@@ -1,13 +1,13 @@
 TARGET = RepGame
-LIBS = -l glut
+LIBS = -l GL -l GLU -l glut
 CC = gcc
 CFLAGS = -g -Wall
 
-
-all: out $(TARGET)
-
-run: all
+run: compile
 	./$(TARGET)
+
+compile: out $(TARGET)
+
 out:
 	mkdir out
 OBJECTS = $(patsubst %.c, out/%.o, $(wildcard *.c))
@@ -25,8 +25,7 @@ clean:
 	rm -rf out
 	rm -f $(TARGET)
 
-
 install:
 	apt install freeglut3-dev
 
-.PHONY: all clean install
+.PHONY: all clean install compile run
