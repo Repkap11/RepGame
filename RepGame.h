@@ -10,24 +10,13 @@
 
 #define test pr_debug();
 
+#include "input.h"
+
 typedef struct {
-    int exitGame;
     int colorR;
     int colorG;
     int colorB;
-    struct {
-        struct {
-            int left;
-            int right;
-            int up;
-            int down;
-        } arrows;
-        struct {
-            int left;
-            int right;
-            int middle;
-        } mouse;
-    } input;
+    InputState input;
     struct {
         float angle;
         float lx;

@@ -10,7 +10,7 @@
 #include "draw.h"
 
 void initilizeGameState(RepGameState* gameState){
-    gameState->exitGame = 0;
+    gameState->input.exitGame = 0;
     gameState->colorR = 1;
     gameState->colorG = 0;
     gameState->colorB = 0;
@@ -129,7 +129,7 @@ void display(RepGameState* gameState) {
 }
 
 void gameTick(RepGameState *gameState){
-	if (gameState->exitGame){
+	if (gameState->input.exitGame){
 		//Don't bother updating the state if the game is exiting
 		return;
 	}
@@ -161,16 +161,19 @@ void gameTick(RepGameState *gameState){
 RepGameState globalGameState;
 
 void arrowKeyDownInput(int key, int x, int y) {
-	input_arrowKeyDownInput(&globalGameState, key, x, y);
+	input_arrowKeyDownInput(&globalGameState.input, key, x, y);
 }
 void arrowKeyUpInput(int key, int x, int y) {
-	input_arrowKeyUpInput(&globalGameState, key, x, y);
+	input_arrowKeyUpInput(&globalGameState.input, key, x, y);
 }
 void mouseInput(int button, int state, int x, int y) {
-	input_mouseInput(&globalGameState, button, state, x, y);
+	input_mouseInput(&globalGameState.input, button, state, x, y);
 }
 void keysInput(unsigned char key, int x, int y) {
-    input_keysInput(&globalGameState, key, x, y);
+    input_keysInput(&globalGameState.input, key, x, y);
+}
+void mouseMove(int x, int y){
+    input_mouseMove(&globalGameState.input, x, y);
 }
 
 
@@ -212,11 +215,14 @@ int main(int argc, char**argv) {
     glutCreateWindow("RepGame");
     glutSpecialFunc(arrowKeyDownInput);
     glutSpecialUpFunc(arrowKeyUpInput);
+
     glutKeyboardFunc(keysInput);
     glutMouseFunc(mouseInput);
     glutReshapeFunc(changeSize);
+    glutMotionFunc(mouseMove);
+
     initilizeGameState(&globalGameState);
-    while (!globalGameState.exitGame){
+    while (!globalGameState.input.exitGame){
         glutMainLoopEvent();
         gameTick(&globalGameState);
         display(&globalGameState);
