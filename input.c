@@ -4,7 +4,6 @@
 void input_arrowKeyDownInput(RepGameState* gameState, int key, int x, int y) {
     switch(key) {
         case GLUT_KEY_UP:
-            gameState->exitGame = 1;
             gameState->input.arrows.up = 1;
             pr_debug("Up Arrow 1 %d %d", x, y);
         break;
@@ -25,7 +24,6 @@ void input_arrowKeyDownInput(RepGameState* gameState, int key, int x, int y) {
 void input_arrowKeyUpInput(RepGameState* gameState, int key, int x, int y) {
     switch(key) {
         case GLUT_KEY_UP:
-            gameState->exitGame = 1;
             gameState->input.arrows.up = 0;
             pr_debug("Up Arrow 0 %d %d", x, y);
         break;
@@ -58,5 +56,11 @@ void input_mouseInput(RepGameState* gameState, int button, int state, int x, int
         case GLUT_MIDDLE_BUTTON:
             gameState->input.mouse.middle = !state;
             pr_debug("Middle Click %d", !state);
+    }
+}
+void input_keysInput(RepGameState* gameState, unsigned char key, int x, int y){
+    pr_debug("Got Key:%d", key);
+    if (key == 27 || key == 113){
+        gameState->exitGame = 1;
     }
 }

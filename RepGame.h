@@ -15,7 +15,7 @@ typedef struct {
     int colorR;
     int colorG;
     int colorB;
-    struct  {
+    struct {
         struct {
             int left;
             int right;
@@ -28,6 +28,13 @@ typedef struct {
             int middle;
         } mouse;
     } input;
+    struct {
+        float angle;
+        float lx;
+        float lz;
+        float x;
+        float z;
+    } camera;
 
 } RepGameState;
 

@@ -1,5 +1,5 @@
 TARGET = RepGame
-LIBS = -l GL -l GLU -l glut
+LIBS = -lm -l GL -l GLU -l glut
 CC = gcc
 CFLAGS = -g -Wall -Werror
 
