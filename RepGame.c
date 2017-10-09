@@ -230,9 +230,9 @@ int main(int argc, char**argv) {
     glutInit(&argc, argv);
 
     glutInitDisplayMode(GLUT_DEPTH | GLUT_DOUBLE | GLUT_RGBA);
-    glEnable(GL_DEPTH_TEST);
 
     glutCreateWindow("RepGame");
+    glEnable(GL_DEPTH_TEST);
     glutSpecialFunc(arrowKeyDownInput);
     glutSpecialUpFunc(arrowKeyUpInput);
 
