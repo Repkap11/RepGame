@@ -21,7 +21,7 @@ typedef struct {
         struct {
             int x;
             int y;
-        } rightPressedPosition;
+        } previousPosition;
     } mouse;
     int exitGame;
 } InputState;

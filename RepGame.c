@@ -135,16 +135,20 @@ void gameTick(RepGameState *gameState){
 	}
     float fraction = 0.5f;
     float angle_diff = 0.05f;
+
+    if (gameState->input.mouse.buttons.middle){
+        // update deltaAngle
+        pr_debug("Position Diff:%d",gameState->input.mouse.currentPosition.x - gameState->input.mouse.previousPosition.x);
+        gameState->camera.angle += (gameState->input.mouse.currentPosition.x - gameState->input.mouse.previousPosition.x) * 0.002f;
+    }
+
     if (gameState->input.arrows.left){
         gameState->camera.angle -= angle_diff;
-        gameState->camera.lx = sin(gameState->camera.angle);
-        gameState->camera.lz = -cos(gameState->camera.angle);
     }
     if (gameState->input.arrows.right){
         gameState->camera.angle +=angle_diff;
-        gameState->camera.lx = sin(gameState->camera.angle);
-        gameState->camera.lz = -cos(gameState->camera.angle);
     }
+
     if (gameState->input.arrows.up){
         gameState->camera.x += gameState->camera.lx * fraction;
         gameState->camera.z += gameState->camera.lz * fraction;
@@ -154,8 +158,9 @@ void gameTick(RepGameState *gameState){
         gameState->camera.z -= gameState->camera.lz * fraction;
     }
 
-
-    //TODO game logic
+    gameState->input.mouse.previousPosition.x = gameState->input.mouse.currentPosition.x;
+    gameState->camera.lx = sin(gameState->camera.angle);
+    gameState->camera.lz = -cos(gameState->camera.angle);
 }
 
 RepGameState globalGameState;
