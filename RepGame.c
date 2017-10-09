@@ -1,7 +1,7 @@
 #include <GL/freeglut.h>
 #include <GL/gl.h>
 
-#include "test.h"
+#include "RepGame.h"
 #include "input.h"
 
 void initilizeGameState(RepGameState* gameState){
