@@ -35,6 +35,10 @@ typedef struct {
         float x;
         float z;
     } camera;
+    struct {
+        float width;
+        float height;
+    } screen;
 
 } RepGameState;
 

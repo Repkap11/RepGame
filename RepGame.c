@@ -7,6 +7,7 @@
 
 #include "RepGame.h"
 #include "input.h"
+#include "draw.h"
 
 void initilizeGameState(RepGameState* gameState){
     gameState->exitGame = 0;
@@ -49,17 +50,6 @@ void drawSnowMan() {
 
 void renderScene(RepGameState* gameState) {
 
-    // Clear Color and Depth Buffers
-
-    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
-    // Reset transformations
-    glLoadIdentity();
-    // Set the camera
-    gluLookAt(  gameState->camera.x, 2.9f, gameState->camera.z,
-            gameState->camera.x+gameState->camera.lx, 2.6f,  gameState->camera.z+gameState->camera.lz,
-            0.0f, 1.0f,  0.0f);
-
         // Draw ground
     glColor3f(0.9f, 0.9f, 0.9f);
     glBegin(GL_QUADS);
@@ -78,7 +68,41 @@ void renderScene(RepGameState* gameState) {
             glPopMatrix();
         }
 
-    glutSwapBuffers();
+}
+
+void pointCamera(RepGameState* gameState){
+    glLoadIdentity();
+    // Set the camera
+    gluLookAt(  gameState->camera.x, 2.9f, gameState->camera.z,
+            gameState->camera.x+gameState->camera.lx, 2.6f,  gameState->camera.z+gameState->camera.lz,
+            0.0f, 1.0f,  0.0f);
+}
+
+void renderOverlay(RepGameState* gameState){
+
+    int screenWidth = gameState->screen.width;
+    int screenHeight = gameState->screen.height;
+    glPushMatrix();
+    glMatrixMode(GL_PROJECTION);
+    glPushMatrix();
+    glLoadIdentity();
+    glOrtho(0, screenWidth, screenHeight, 0, -1.0, 1.0);
+    glMatrixMode(GL_MODELVIEW);
+    glLoadIdentity();
+
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+    glEnable(GL_BLEND);
+    glColor4f(1.0f, 0.0f, 0.0, 0.5);
+    draw_border(0,0,screenWidth,screenHeight, 10);
+    draw_border(100,100,500, 700, 20);
+
+
+    // Making sure we can render 3d again
+    glMatrixMode(GL_PROJECTION);
+    glPopMatrix();
+    glMatrixMode(GL_MODELVIEW);
+    glPopMatrix();
+
 }
 
 clock_t lastTime;
@@ -87,7 +111,13 @@ float fps_ms = (1.0f/60.0f)*1000.0f;
 
 void display(RepGameState* gameState) {
     lastTime = clock();
+
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     renderScene(gameState);
+    pointCamera(gameState);
+    renderOverlay(gameState);
+
+    glutSwapBuffers();
     glFlush();
     double diff_ms = (double)(clock() - lastTime) / CLOCKS_PER_SEC;
     double wait_time_ms = fps_ms - diff_ms;
@@ -147,6 +177,10 @@ void keysInput(unsigned char key, int x, int y) {
 
 void changeSize(int w, int h) {
 
+    pr_debug("Screen Size Change:%dx%d", w,h);
+    globalGameState.screen.width = w;
+    globalGameState.screen.height = h;
+
     // Prevent a divide by zero, when window is too short
     // (you cant make a window of zero width).
     if(h == 0)
@@ -171,10 +205,10 @@ void changeSize(int w, int h) {
 
 int main(int argc, char**argv) {
     glutInit(&argc, argv);
-    //glutInitWindowPosition(100,100);
-    //glutInitWindowSize(500,500);
+
     glutInitDisplayMode(GLUT_DEPTH | GLUT_DOUBLE | GLUT_RGBA);
     glEnable(GL_DEPTH_TEST);
+
     glutCreateWindow("RepGame");
     glutSpecialFunc(arrowKeyDownInput);
     glutSpecialUpFunc(arrowKeyUpInput);
