@@ -79,6 +79,10 @@ void pointCamera(RepGameState* gameState){
             0.0f, 1.0f,  0.0f);
 }
 
+char fps_str[50];
+
+int frameCounter = 0;
+
 void renderOverlay(RepGameState* gameState){
 
     int screenWidth = gameState->screen.width;
@@ -95,8 +99,26 @@ void renderOverlay(RepGameState* gameState){
     glEnable(GL_BLEND);
     glColor4f(1.0f, 0.0f, 0.0, 0.5);
     draw_border(0,0,screenWidth,screenHeight, 10);
+
     //draw_border(100,100,500, 700, 20);
-    draw_bitmapString(18,100+18,GLUT_BITMAP_HELVETICA_18,"Test");
+    if ((frameCounter % 8) == 0){
+        frameCounter = 0;
+        sprintf(fps_str, "FPS : %.2f", gameState->frameRate);
+    }
+    frameCounter += 1;
+    glColor3f(0.0f, 0.0f, 0.0);
+    draw_bitmapString(19,19+18,GLUT_BITMAP_HELVETICA_18,fps_str);
+    draw_bitmapString(17,17+18,GLUT_BITMAP_HELVETICA_18,fps_str);
+    draw_bitmapString(19,17+18,GLUT_BITMAP_HELVETICA_18,fps_str);
+    draw_bitmapString(17,19+18,GLUT_BITMAP_HELVETICA_18,fps_str);
+
+    draw_bitmapString(18,19+18,GLUT_BITMAP_HELVETICA_18,fps_str);
+    draw_bitmapString(19,18+18,GLUT_BITMAP_HELVETICA_18,fps_str);
+    draw_bitmapString(17,18+18,GLUT_BITMAP_HELVETICA_18,fps_str);
+    draw_bitmapString(18,17+18,GLUT_BITMAP_HELVETICA_18,fps_str);
+
+    glColor3f(1.0f, 1.0f, 1.0);
+    draw_bitmapString(18,18+18,GLUT_BITMAP_HELVETICA_18,fps_str);
 
     //renderBitmapString(30,35,(void *)font,"Test");
 
@@ -109,13 +131,7 @@ void renderOverlay(RepGameState* gameState){
 
 }
 
-clock_t lastTime;
-
-float fps_ms = (1.0f/60.0f)*1000.0f;
-
 void display(RepGameState* gameState) {
-    lastTime = clock();
-
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     renderScene(gameState);
     pointCamera(gameState);
@@ -123,13 +139,6 @@ void display(RepGameState* gameState) {
 
     glutSwapBuffers();
     glFlush();
-    double diff_ms = (double)(clock() - lastTime) / CLOCKS_PER_SEC;
-    double wait_time_ms = fps_ms - diff_ms;
-    if (wait_time_ms > 1.0){
-        int wait_time_us = (int)(wait_time_ms * 1000.0f);
-        //pr_debug("WaitTime:%f", wait_time_ms);
-        usleep(wait_time_us);
-    }
 }
 
 void gameTick(RepGameState *gameState){
@@ -215,6 +224,8 @@ void changeSize(int w, int h) {
     glMatrixMode(GL_MODELVIEW);
 }
 
+double fps_ms = (1.0/60.0)*1000.0;
+
 int main(int argc, char**argv) {
     glutInit(&argc, argv);
 
@@ -229,12 +240,30 @@ int main(int argc, char**argv) {
     glutMouseFunc(mouseInput);
     glutReshapeFunc(changeSize);
     glutMotionFunc(mouseMove);
-
     initilizeGameState(&globalGameState);
+
+    struct timespec tstart={0,0}, tend={0,0};
+    clock_gettime(CLOCK_MONOTONIC, &tstart);
+    tend = tstart;
     while (!globalGameState.input.exitGame){
         glutMainLoopEvent();
         gameTick(&globalGameState);
         display(&globalGameState);
+
+        clock_gettime(CLOCK_MONOTONIC, &tstart);
+
+        double diff_ms = (((double)tstart.tv_sec + 1.0e-9*tstart.tv_nsec) - ((double)tend.tv_sec + 1.0e-9*tend.tv_nsec)) * 1000.0;
+        tend = tstart;
+        //pr_debug("Time Diff ms:%f", diff_ms);
+        globalGameState.frameRate = 1.0/(diff_ms / 1000.0);
+        double wait_time_ms = fps_ms - diff_ms;
+        if (wait_time_ms > 1.0){
+            int wait_time_us = (int)(wait_time_ms * 1000.0);
+            //pr_debug("WaitTime_us:%d", wait_time_us);
+            usleep(wait_time_us);
+            //(void) wait_time_us;
+        }
+
     }
     glutLeaveMainLoop();
     return 0;
