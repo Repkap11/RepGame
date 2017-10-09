@@ -1,6 +1,9 @@
 #include <GL/freeglut.h>
 #include <GL/gl.h>
 #include <math.h>
+#include <time.h>
+#include <unistd.h>
+
 
 #include "RepGame.h"
 #include "input.h"
@@ -78,13 +81,21 @@ void renderScene(RepGameState* gameState) {
     glutSwapBuffers();
 }
 
-void display(RepGameState* gameState) {
-    //glClearColor(gameState->colorR, gameState->colorG, gameState->colorB, 0);
-    //drawSnowMan();
-    renderScene(gameState);
-    //glClear(GL_COLOR_BUFFER_BIT|GL_DEPTH_BUFFER_BIT);
-    //glFlush();
+clock_t lastTime;
 
+float fps_ms = (1.0f/60.0f)*1000.0f;
+
+void display(RepGameState* gameState) {
+    lastTime = clock();
+    renderScene(gameState);
+    glFlush();
+    double diff_ms = (double)(clock() - lastTime) / CLOCKS_PER_SEC;
+    double wait_time_ms = fps_ms - diff_ms;
+    if (wait_time_ms > 1.0){
+        int wait_time_us = (int)(wait_time_ms * 1000.0f);
+        //pr_debug("WaitTime:%f", wait_time_ms);
+        usleep(wait_time_us);
+    }
 }
 
 void gameTick(RepGameState *gameState){
@@ -92,14 +103,15 @@ void gameTick(RepGameState *gameState){
 		//Don't bother updating the state if the game is exiting
 		return;
 	}
-    float fraction = 0.1f;
+    float fraction = 0.5f;
+    float angle_diff = 0.05f;
     if (gameState->input.arrows.left){
-        gameState->camera.angle -= 0.01f;
+        gameState->camera.angle -= angle_diff;
         gameState->camera.lx = sin(gameState->camera.angle);
         gameState->camera.lz = -cos(gameState->camera.angle);
     }
     if (gameState->input.arrows.right){
-        gameState->camera.angle += 0.01f;
+        gameState->camera.angle +=angle_diff;
         gameState->camera.lx = sin(gameState->camera.angle);
         gameState->camera.lz = -cos(gameState->camera.angle);
     }
