@@ -18,9 +18,9 @@ void draw_border(double left, double top, double width, double height, double in
     draw_rect(left+width-inlay,top+inlay, inlay, height - doubleInlay);
 }
 
-void draw_bitmapString(float left, float top, void *font, char *string) {
+void draw_bitmapString(float left, float top, void *font, char *string, float depth) {
   char *c;
-  glRasterPos2f(left, top);
+  glRasterPos3f(left, top, depth);
   for (c=string; *c != '\0'; c++) {
     glutBitmapCharacter(font, *c);
   }

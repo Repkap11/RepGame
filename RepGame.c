@@ -107,18 +107,18 @@ void renderOverlay(RepGameState* gameState){
     }
     frameCounter += 1;
     glColor3f(0.0f, 0.0f, 0.0);
-    draw_bitmapString(19,19+18,GLUT_BITMAP_HELVETICA_18,fps_str);
-    draw_bitmapString(17,17+18,GLUT_BITMAP_HELVETICA_18,fps_str);
-    draw_bitmapString(19,17+18,GLUT_BITMAP_HELVETICA_18,fps_str);
-    draw_bitmapString(17,19+18,GLUT_BITMAP_HELVETICA_18,fps_str);
+    draw_bitmapString(19,19+18,GLUT_BITMAP_HELVETICA_18,fps_str, 0);
+    draw_bitmapString(17,17+18,GLUT_BITMAP_HELVETICA_18,fps_str, 0);
+    draw_bitmapString(19,17+18,GLUT_BITMAP_HELVETICA_18,fps_str, 0);
+    draw_bitmapString(17,19+18,GLUT_BITMAP_HELVETICA_18,fps_str, 0);
 
-    draw_bitmapString(18,19+18,GLUT_BITMAP_HELVETICA_18,fps_str);
-    draw_bitmapString(19,18+18,GLUT_BITMAP_HELVETICA_18,fps_str);
-    draw_bitmapString(17,18+18,GLUT_BITMAP_HELVETICA_18,fps_str);
-    draw_bitmapString(18,17+18,GLUT_BITMAP_HELVETICA_18,fps_str);
+    draw_bitmapString(18,19+18,GLUT_BITMAP_HELVETICA_18,fps_str, 0);
+    draw_bitmapString(19,18+18,GLUT_BITMAP_HELVETICA_18,fps_str, 0);
+    draw_bitmapString(17,18+18,GLUT_BITMAP_HELVETICA_18,fps_str, 0);
+    draw_bitmapString(18,17+18,GLUT_BITMAP_HELVETICA_18,fps_str, 0);
 
     glColor3f(1.0f, 1.0f, 1.0);
-    draw_bitmapString(18,18+18,GLUT_BITMAP_HELVETICA_18,fps_str);
+    draw_bitmapString(18,18+18,GLUT_BITMAP_HELVETICA_18,fps_str, 0.1);
 
     //renderBitmapString(30,35,(void *)font,"Test");
 
