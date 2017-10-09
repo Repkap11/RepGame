@@ -53,10 +53,11 @@ void renderScene(RepGameState* gameState) {
         // Draw ground
     glColor3f(0.9f, 0.9f, 0.9f);
     glBegin(GL_QUADS);
-        glVertex3f(-100.0f, 0.0f, -100.0f);
-        glVertex3f(-100.0f, 0.0f,  100.0f);
-        glVertex3f( 100.0f, 0.0f,  100.0f);
-        glVertex3f( 100.0f, 0.0f, -100.0f);
+        float groudSize = 1000.0f;
+        glVertex3f(-1*groudSize, 0.0f, -1*groudSize);
+        glVertex3f(-1*groudSize, 0.0f,  groudSize);
+        glVertex3f( groudSize, 0.0f,  groudSize);
+        glVertex3f( groudSize, 0.0f, -1*groudSize);
     glEnd();
 
         // Draw 36 SnowMen
@@ -74,7 +75,7 @@ void pointCamera(RepGameState* gameState){
     glLoadIdentity();
     // Set the camera
     gluLookAt(  gameState->camera.x, 2.9f, gameState->camera.z,
-            gameState->camera.x+gameState->camera.lx, 2.6f,  gameState->camera.z+gameState->camera.lz,
+            gameState->camera.x+gameState->camera.lx, 2.5f,  gameState->camera.z+gameState->camera.lz,
             0.0f, 1.0f,  0.0f);
 }
 
@@ -94,7 +95,10 @@ void renderOverlay(RepGameState* gameState){
     glEnable(GL_BLEND);
     glColor4f(1.0f, 0.0f, 0.0, 0.5);
     draw_border(0,0,screenWidth,screenHeight, 10);
-    draw_border(100,100,500, 700, 20);
+    //draw_border(100,100,500, 700, 20);
+    draw_bitmapString(18,100+18,GLUT_BITMAP_HELVETICA_18,"Test");
+
+    //renderBitmapString(30,35,(void *)font,"Test");
 
 
     // Making sure we can render 3d again

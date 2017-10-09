@@ -1,4 +1,5 @@
 #include <GL/gl.h>
+#include <GL/glut.h>
 
 void draw_rect(double left, double top, double width, double height){
     glBegin(GL_QUADS);
@@ -15,4 +16,12 @@ void draw_border(double left, double top, double width, double height, double in
     draw_rect(left,top+height-inlay,width, inlay);
     draw_rect(left,top+inlay,inlay, height - doubleInlay);
     draw_rect(left+width-inlay,top+inlay, inlay, height - doubleInlay);
+}
+
+void draw_bitmapString(float left, float top, void *font, char *string) {
+  char *c;
+  glRasterPos2f(left, top);
+  for (c=string; *c != '\0'; c++) {
+    glutBitmapCharacter(font, *c);
+  }
 }
