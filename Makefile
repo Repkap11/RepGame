@@ -1,7 +1,7 @@
 TARGET = RepGame
 LIBS = -lm -l GL -l GLU -l glut
 CC = gcc
-CFLAGS = -g -Wall -Werror
+CFLAGS = -g -Wall -Werror -std=gnu99
 
 run: compile
 	./$(TARGET)
