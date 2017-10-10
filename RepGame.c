@@ -30,12 +30,67 @@ void drawCube() {
 
     glBindTexture(GL_TEXTURE_2D, textures_getTestTexture());
 
-    glBegin(GL_QUADS);
-    glTexCoord2f(0, 0); glVertex3f(0, 0, 0);
-    glTexCoord2f(0, 1); glVertex3f(0, 1, 0);
-    glTexCoord2f(1, 1); glVertex3f(1, 1, 0);
-    glTexCoord2f(1, 0); glVertex3f(1, 0, 0);
+    // White side - BACK
+    glBegin(GL_POLYGON);
+    glColor3f(   1.0,  1.0, 1.0 );
+    glVertex3f(  1.0, 0.0, 1.0 );
+    glVertex3f(  1.0,  1.0, 1.0 );
+    glVertex3f( 0.0,  1.0, 1.0 );
+    glVertex3f( 0.0, 0.0, 1.0 );
     glEnd();
+
+    // Purple side - RIGHT
+    glBegin(GL_POLYGON);
+    glColor3f(  1.0,  0.0,  1.0 );
+    glVertex3f( 1.0, 0.0, 0.0 );
+    glVertex3f( 1.0,  1.0, 0.0 );
+    glVertex3f( 1.0,  1.0,  1.0 );
+    glVertex3f( 1.0, 0.0,  1.0 );
+    glEnd();
+
+    // Green side - LEFT
+    glBegin(GL_POLYGON);
+    glColor3f(   0.0,  1.0,  0.0 );
+    glVertex3f( 0.0, 0.0,  1.0 );
+    glVertex3f( 0.0,  1.0,  1.0 );
+    glVertex3f( 0.0,  1.0, 0.0 );
+    glVertex3f( 0.0, 0.0, 0.0 );
+    glEnd();
+
+    // Blue side - TOP
+    glBegin(GL_POLYGON);
+    glColor3f(   0.0,  0.0,  1.0 );
+    glVertex3f(  1.0,  1.0,  1.0 );
+    glVertex3f(  1.0,  1.0, 0.0 );
+    glVertex3f( 0.0,  1.0, 0.0 );
+    glVertex3f( 0.0,  1.0,  1.0 );
+    glEnd();
+
+    // Red side - BOTTOM
+    glBegin(GL_POLYGON);
+    glColor3f(   1.0,  0.0,  0.0 );
+    glVertex3f(  1.0, 0.0, 0.0 );
+    glVertex3f(  1.0, 0.0,  1.0 );
+    glVertex3f( 0.0, 0.0,  1.0 );
+    glVertex3f( 0.0, 0.0, 0.0 );
+    glEnd();
+
+
+    // //Side
+    // glTexCoord2f(0, 0); glVertex3f(0, 0, 0);
+    // glTexCoord2f(0, 1); glVertex3f(0, 1, 0);
+    // glTexCoord2f(1, 1); glVertex3f(1, 1, 0);
+    // glTexCoord2f(1, 0); glVertex3f(1, 0, 0);
+
+    // glTexCoord2f(0, 0); glVertex3f(0, 1, 0);
+    // glTexCoord2f(0, 1); glVertex3f(0, 1, 1);
+    // glTexCoord2f(1, 1); glVertex3f(0, 0, 1);
+    // glTexCoord2f(1, 0); glVertex3f(0, 0, 0);
+
+    // glTexCoord2f(0, 0); glVertex3f(1, 0, 0);
+    // glTexCoord2f(0, 1); glVertex3f(1, 0, 1);
+    // glTexCoord2f(1, 1); glVertex3f(0, 0, 1);
+    // glTexCoord2f(1, 0); glVertex3f(0, 0, 0);
 
     glDisable(GL_TEXTURE_2D);
 
@@ -47,17 +102,17 @@ void renderScene(RepGameState* gameState) {
     glColor3f(1.0f, 1.0f, 1.0f);
     glBegin(GL_QUADS);
         float groudSize = 1000.0f;
-        glVertex3f(-1*groudSize, 0.0f, -1*groudSize);
-        glVertex3f(-1*groudSize, 0.0f,  groudSize);
-        glVertex3f( groudSize, 0.0f,  groudSize);
-        glVertex3f( groudSize, 0.0f, -1*groudSize);
+        glVertex3f(-1*groudSize, -0.001f, -1*groudSize);
+        glVertex3f(-1*groudSize, -0.001f,  groudSize);
+        glVertex3f( groudSize, -0.001f,  groudSize);
+        glVertex3f( groudSize, -0.001f, -1*groudSize);
     glEnd();
 
     //glEnable(GL_LIGHTING);
     //glEnable(GL_LIGHT0);
 
-    for(int i = -9; i < 9; i++)
-        for(int j=-9; j < 9; j++) {
+    for(int i = 0; i < 2; i++)
+        for(int j=0; j < 2; j++) {
             glPushMatrix();
             glTranslatef(i*2.0,0,j * 2.0);
             drawCube();
@@ -93,8 +148,8 @@ void gameTick(RepGameState *gameState){
 		//Don't bother updating the state if the game is exiting
 		return;
 	}
-    float fraction = 0.5f;
-    float angle_diff = 0.05f;
+    float fraction = 0.08f;
+    float angle_diff = 0.020f;
 
     if (gameState->input.mouse.buttons.middle){
         // update deltaAngle

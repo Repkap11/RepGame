@@ -48,7 +48,7 @@ int loadTexture(const char * filename )
 
 int test_texture;
 void textures_populate(){
-    test_texture = loadTexture("./bitmaps/colors.bmp");
+    test_texture = loadTexture("./bitmaps/dirt.bmp");
 }
 
 int textures_getTestTexture(){
