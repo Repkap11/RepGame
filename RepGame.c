@@ -156,7 +156,7 @@ void gameTick(RepGameState *gameState){
 		return;
 	}
     float fraction = 0.08f;
-    float angle_diff = 0.020f;
+    //float angle_diff = 0.020f;
 
     if (gameState->input.mouse.buttons.middle){
         // update deltaAngle
@@ -165,12 +165,13 @@ void gameTick(RepGameState *gameState){
     }
 
     if (gameState->input.arrows.left){
-        gameState->camera.angle -= angle_diff;
+        gameState->camera.x += gameState->camera.lz * fraction;
+        gameState->camera.z -= gameState->camera.lx * fraction;
     }
     if (gameState->input.arrows.right){
-        gameState->camera.angle +=angle_diff;
+        gameState->camera.x -= gameState->camera.lz * fraction;
+        gameState->camera.z += gameState->camera.lx * fraction;
     }
-
     if (gameState->input.arrows.up){
         gameState->camera.x += gameState->camera.lx * fraction;
         gameState->camera.z += gameState->camera.lz * fraction;
