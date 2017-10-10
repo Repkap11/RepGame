@@ -19,9 +19,10 @@ int loadTexture(const char * filename )
     }
     width = 512;
     height = 512;
-    data = (unsigned char *)malloc( width * height * 3 );
+    int bmp_header = 122;
+    data = (unsigned char *)malloc( width * height * 3 + bmp_header);
     //int size = fseek(file,);
-    fread( data, width * height * 3, 1, file );
+    fread( data, width * height * 3 + bmp_header, 1, file );
     pr_debug("Finished reading file");
     fclose( file );
 
@@ -36,9 +37,9 @@ int loadTexture(const char * filename )
     //glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAX_ANISOTROPY_EXT, fLargest);
 
     glTexParameterf( GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER,GL_LINEAR );
-    glTexParameterf( GL_TEXTURE_2D, GL_TEXTURE_WRAP_S,GL_REPEAT );
-    glTexParameterf( GL_TEXTURE_2D, GL_TEXTURE_WRAP_T,GL_REPEAT );
-    gluBuild2DMipmaps( GL_TEXTURE_2D, 3, width, height,GL_RGB, GL_UNSIGNED_BYTE, data );
+    glTexParameterf( GL_TEXTURE_2D, GL_TEXTURE_WRAP_S,GL_CLAMP_TO_BORDER );
+    glTexParameterf( GL_TEXTURE_2D, GL_TEXTURE_WRAP_T,GL_CLAMP_TO_BORDER );
+    gluBuild2DMipmaps( GL_TEXTURE_2D, 3, width, height,GL_BGR, GL_UNSIGNED_BYTE, data + bmp_header);
     //glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB8, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, data);
 
     free(data);
