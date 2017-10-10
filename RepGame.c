@@ -12,6 +12,7 @@
 #include "textures.h"
 
 #define ENABLE_LIGHT 0
+#define MOVEMENT_SENSITIVITY 2.0f
 
 void initilizeGameState(RepGameState* gameState){
     gameState->input.exitGame = 0;
@@ -32,50 +33,54 @@ void drawCube() {
 
     glBindTexture(GL_TEXTURE_2D, textures_getTestTexture());
 
-    // White side - BACK
+    //FRONT
     glBegin(GL_POLYGON);
-    //glColor3f(   1.0,  1.0, 1.0 );
-    glTexCoord2f(0, 0); glVertex3f(  1.0, 0.0, 1.0 );
-    glTexCoord2f(0, 1); glVertex3f(  1.0,  1.0, 1.0 );
-    glTexCoord2f(1, 1); glVertex3f( 0.0,  1.0, 1.0 );
-    glTexCoord2f(1, 0); glVertex3f( 0.0, 0.0, 1.0 );
+    glTexCoord2f(0, 0); glVertex3f(1.0, 0.0, 0.0);
+    glTexCoord2f(0, 1); glVertex3f(1.0, 1.0, 0.0);
+    glTexCoord2f(1, 1); glVertex3f(0.0, 1.0, 0.0);
+    glTexCoord2f(1, 0); glVertex3f(0.0, 0.0, 0.0);
     glEnd();
 
-    // Purple side - RIGHT
+    //BACK
     glBegin(GL_POLYGON);
-    //glColor3f(  1.0,  0.0,  1.0 );
-    glTexCoord2f(0, 0); glVertex3f( 1.0, 0.0, 0.0 );
-    glTexCoord2f(0, 1); glVertex3f( 1.0,  1.0, 0.0 );
-    glTexCoord2f(1, 1); glVertex3f( 1.0,  1.0,  1.0 );
-    glTexCoord2f(1, 0); glVertex3f( 1.0, 0.0,  1.0 );
+    glTexCoord2f(0, 0); glVertex3f(1.0, 0.0, 1.0);
+    glTexCoord2f(0, 1); glVertex3f(1.0, 1.0, 1.0);
+    glTexCoord2f(1, 1); glVertex3f(0.0, 1.0, 1.0);
+    glTexCoord2f(1, 0); glVertex3f(0.0, 0.0, 1.0);
     glEnd();
 
-    // Green side - LEFT
+    //RIGHT
     glBegin(GL_POLYGON);
-    //glColor3f(   0.0,  1.0,  0.0 );
-    glTexCoord2f(0, 0); glVertex3f( 0.0, 0.0,  1.0 );
-    glTexCoord2f(0, 1); glVertex3f( 0.0,  1.0,  1.0 );
-    glTexCoord2f(1, 1); glVertex3f( 0.0,  1.0, 0.0 );
-    glTexCoord2f(1, 0); glVertex3f( 0.0, 0.0, 0.0 );
+    glTexCoord2f(0, 0); glVertex3f(1.0, 0.0, 0.0);
+    glTexCoord2f(0, 1); glVertex3f(1.0, 1.0, 0.0);
+    glTexCoord2f(1, 1); glVertex3f(1.0, 1.0, 1.0);
+    glTexCoord2f(1, 0); glVertex3f(1.0, 0.0, 1.0);
     glEnd();
 
-    // Blue side - TOP
+    //LEFT
     glBegin(GL_POLYGON);
-    //glColor3f(   0.0,  0.0,  1.0 );
-    glTexCoord2f(0, 0); glVertex3f(  1.0,  1.0,  1.0 );
-    glTexCoord2f(0, 1); glVertex3f(  1.0,  1.0, 0.0 );
-    glTexCoord2f(1, 1); glVertex3f( 0.0,  1.0, 0.0 );
-    glTexCoord2f(1, 0); glVertex3f( 0.0,  1.0,  1.0 );
+    glTexCoord2f(0, 0); glVertex3f(0.0, 0.0, 1.0);
+    glTexCoord2f(0, 1); glVertex3f(0.0, 1.0, 1.0);
+    glTexCoord2f(1, 1); glVertex3f(0.0, 1.0, 0.0);
+    glTexCoord2f(1, 0); glVertex3f(0.0, 0.0, 0.0);
     glEnd();
 
-    // Red side - BOTTOM
+    //TOP
     glBegin(GL_POLYGON);
-    //glColor3f(   1.0,  0.0,  0.0 );
-    glTexCoord2f(0, 0); glVertex3f(  1.0, 0.0, 0.0 );
-    glTexCoord2f(0, 1); glVertex3f(  1.0, 0.0,  1.0 );
-    glTexCoord2f(1, 1); glVertex3f( 0.0, 0.0,  1.0 );
-    glTexCoord2f(1, 0); glVertex3f( 0.0, 0.0, 0.0 );
+    glTexCoord2f(0, 0); glVertex3f(1.0, 1.0, 1.0);
+    glTexCoord2f(0, 1); glVertex3f(1.0, 1.0, 0.0);
+    glTexCoord2f(1, 1); glVertex3f(0.0, 1.0, 0.0);
+    glTexCoord2f(1, 0); glVertex3f(0.0, 1.0, 1.0);
     glEnd();
+
+    //BOTTOM
+    glBegin(GL_POLYGON);
+    glTexCoord2f(0, 0); glVertex3f(1.0, 0.0, 0.0);
+    glTexCoord2f(0, 1); glVertex3f(1.0, 0.0, 1.0);
+    glTexCoord2f(1, 1); glVertex3f(0.0, 0.0, 1.0);
+    glTexCoord2f(1, 0); glVertex3f(0.0, 0.0, 0.0);
+    glEnd();
+
 
 
     // //Side
@@ -155,7 +160,7 @@ void gameTick(RepGameState *gameState){
 		//Don't bother updating the state if the game is exiting
 		return;
 	}
-    float fraction = 0.08f;
+    float fraction = 0.010f * MOVEMENT_SENSITIVITY;
     //float angle_diff = 0.020f;
 
     if (gameState->input.mouse.buttons.middle){
@@ -228,7 +233,7 @@ void changeSize(int w, int h) {
     glViewport(0, 0, w, h);
 
     // Set the correct perspective.
-    gluPerspective(45,ratio,0.1f,1000);
+    gluPerspective(45,ratio,1.1f,1000);
 
     // Get Back to the Modelview
     glMatrixMode(GL_MODELVIEW);
