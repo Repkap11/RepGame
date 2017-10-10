@@ -27,12 +27,16 @@ void drawSnowMan() {
     glColor3f(1.0f, 1.0f, 1.0f);
 
 // Draw Body
+    glTranslatef(0.0f ,0.7f, 0.0f);
+    glutSolidSphere(0.65f,15,15);
+
     glTranslatef(0.0f ,0.75f, 0.0f);
-    glutSolidSphere(0.75f,20,20);
+    glutSolidSphere(0.45f,15,15);
+
 
 // Draw Head
-    glTranslatef(0.0f, 1.0f, 0.0f);
-    glutSolidSphere(0.25f,20,20);
+    glTranslatef(0.0f, 0.58f, 0.0f);
+    glutSolidSphere(0.25f,10,10);
 
 // Draw Eyes
     glPushMatrix();
@@ -51,14 +55,14 @@ void drawSnowMan() {
 void renderScene(RepGameState* gameState) {
 
         // Draw ground
-    glColor3f(0.9f, 0.9f, 0.9f);
-    glBegin(GL_QUADS);
-        float groudSize = 1000.0f;
-        glVertex3f(-1*groudSize, 0.0f, -1*groudSize);
-        glVertex3f(-1*groudSize, 0.0f,  groudSize);
-        glVertex3f( groudSize, 0.0f,  groudSize);
-        glVertex3f( groudSize, 0.0f, -1*groudSize);
-    glEnd();
+    // glColor3f(0.9f, 0.9f, 0.9f);
+    // glBegin(GL_QUADS);
+    //     float groudSize = 1000.0f;
+    //     glVertex3f(-1*groudSize, 0.0f, -1*groudSize);
+    //     glVertex3f(-1*groudSize, 0.0f,  groudSize);
+    //     glVertex3f( groudSize, 0.0f,  groudSize);
+    //     glVertex3f( groudSize, 0.0f, -1*groudSize);
+    // glEnd();
 
         // Draw 36 SnowMen
     for(int i = -9; i < 9; i++)
@@ -100,7 +104,6 @@ void renderOverlay(RepGameState* gameState){
     glColor4f(1.0f, 0.0f, 0.0, 0.5);
     draw_border(0,0,screenWidth,screenHeight, 10);
 
-    //draw_border(100,100,500, 700, 20);
     if ((frameCounter % 8) == 0){
         frameCounter = 0;
         sprintf(fps_str, "FPS : %.2f", gameState->frameRate);
@@ -134,8 +137,13 @@ void renderOverlay(RepGameState* gameState){
 void display(RepGameState* gameState) {
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     renderScene(gameState);
+
+    glDisable(GL_LIGHTING);
+    glDisable(GL_LIGHT0);
     pointCamera(gameState);
     renderOverlay(gameState);
+    glEnable(GL_LIGHTING);
+    glEnable(GL_LIGHT0);
 
     glutSwapBuffers();
     glFlush();
@@ -233,6 +241,10 @@ int main(int argc, char**argv) {
 
     glutCreateWindow("RepGame");
     glEnable(GL_DEPTH_TEST);
+    glEnable(GL_LIGHTING);
+    glEnable(GL_LIGHT0);
+    glEnable(GL_NORMALIZE);
+    glEnable(GL_COLOR_MATERIAL);
     glutSpecialFunc(arrowKeyDownInput);
     glutSpecialUpFunc(arrowKeyUpInput);
 
@@ -261,7 +273,7 @@ int main(int argc, char**argv) {
             int wait_time_us = (int)(wait_time_ms * 1000.0);
             //pr_debug("WaitTime_us:%d", wait_time_us);
             usleep(wait_time_us);
-            //(void) wait_time_us;
+            (void) wait_time_us;
         }
 
     }
