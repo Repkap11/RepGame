@@ -11,6 +11,8 @@
 #include "ui_overlay.h"
 #include "textures.h"
 
+#define ENABLE_LIGHT 0
+
 void initilizeGameState(RepGameState* gameState){
     gameState->input.exitGame = 0;
     gameState->colorR = 1;
@@ -32,47 +34,47 @@ void drawCube() {
 
     // White side - BACK
     glBegin(GL_POLYGON);
-    glColor3f(   1.0,  1.0, 1.0 );
-    glVertex3f(  1.0, 0.0, 1.0 );
-    glVertex3f(  1.0,  1.0, 1.0 );
-    glVertex3f( 0.0,  1.0, 1.0 );
-    glVertex3f( 0.0, 0.0, 1.0 );
+    //glColor3f(   1.0,  1.0, 1.0 );
+    glTexCoord2f(0, 0); glVertex3f(  1.0, 0.0, 1.0 );
+    glTexCoord2f(0, 2); glVertex3f(  1.0,  1.0, 1.0 );
+    glTexCoord2f(2, 2); glVertex3f( 0.0,  1.0, 1.0 );
+    glTexCoord2f(2, 0); glVertex3f( 0.0, 0.0, 1.0 );
     glEnd();
 
     // Purple side - RIGHT
     glBegin(GL_POLYGON);
-    glColor3f(  1.0,  0.0,  1.0 );
-    glVertex3f( 1.0, 0.0, 0.0 );
-    glVertex3f( 1.0,  1.0, 0.0 );
-    glVertex3f( 1.0,  1.0,  1.0 );
-    glVertex3f( 1.0, 0.0,  1.0 );
+    //glColor3f(  1.0,  0.0,  1.0 );
+    glTexCoord2f(0, 0); glVertex3f( 1.0, 0.0, 0.0 );
+    glTexCoord2f(0, 1); glVertex3f( 1.0,  1.0, 0.0 );
+    glTexCoord2f(1, 1); glVertex3f( 1.0,  1.0,  1.0 );
+    glTexCoord2f(1, 0); glVertex3f( 1.0, 0.0,  1.0 );
     glEnd();
 
     // Green side - LEFT
     glBegin(GL_POLYGON);
-    glColor3f(   0.0,  1.0,  0.0 );
-    glVertex3f( 0.0, 0.0,  1.0 );
-    glVertex3f( 0.0,  1.0,  1.0 );
-    glVertex3f( 0.0,  1.0, 0.0 );
-    glVertex3f( 0.0, 0.0, 0.0 );
+    //glColor3f(   0.0,  1.0,  0.0 );
+    glTexCoord2f(0, 0); glVertex3f( 0.0, 0.0,  1.0 );
+    glTexCoord2f(0, 1); glVertex3f( 0.0,  1.0,  1.0 );
+    glTexCoord2f(1, 1); glVertex3f( 0.0,  1.0, 0.0 );
+    glTexCoord2f(1, 0); glVertex3f( 0.0, 0.0, 0.0 );
     glEnd();
 
     // Blue side - TOP
     glBegin(GL_POLYGON);
-    glColor3f(   0.0,  0.0,  1.0 );
-    glVertex3f(  1.0,  1.0,  1.0 );
-    glVertex3f(  1.0,  1.0, 0.0 );
-    glVertex3f( 0.0,  1.0, 0.0 );
-    glVertex3f( 0.0,  1.0,  1.0 );
+    //glColor3f(   0.0,  0.0,  1.0 );
+    glTexCoord2f(0, 0); glVertex3f(  1.0,  1.0,  1.0 );
+    glTexCoord2f(0, 1); glVertex3f(  1.0,  1.0, 0.0 );
+    glTexCoord2f(1, 1); glVertex3f( 0.0,  1.0, 0.0 );
+    glTexCoord2f(1, 0); glVertex3f( 0.0,  1.0,  1.0 );
     glEnd();
 
     // Red side - BOTTOM
     glBegin(GL_POLYGON);
-    glColor3f(   1.0,  0.0,  0.0 );
-    glVertex3f(  1.0, 0.0, 0.0 );
-    glVertex3f(  1.0, 0.0,  1.0 );
-    glVertex3f( 0.0, 0.0,  1.0 );
-    glVertex3f( 0.0, 0.0, 0.0 );
+    //glColor3f(   1.0,  0.0,  0.0 );
+    glTexCoord2f(0, 0); glVertex3f(  1.0, 0.0, 0.0 );
+    glTexCoord2f(0, 1); glVertex3f(  1.0, 0.0,  1.0 );
+    glTexCoord2f(1, 1); glVertex3f( 0.0, 0.0,  1.0 );
+    glTexCoord2f(1, 0); glVertex3f( 0.0, 0.0, 0.0 );
     glEnd();
 
 
@@ -108,26 +110,31 @@ void renderScene(RepGameState* gameState) {
         glVertex3f( groudSize, -0.001f, -1*groudSize);
     glEnd();
 
-    //glEnable(GL_LIGHTING);
-    //glEnable(GL_LIGHT0);
+    if (ENABLE_LIGHT){
+        glEnable(GL_LIGHTING);
+        glEnable(GL_LIGHT0);
+    }
 
-    for(int i = 0; i < 2; i++)
+    for(int i = 0; i < 2; i++) {
         for(int j=0; j < 2; j++) {
             glPushMatrix();
             glTranslatef(i*2.0,0,j * 2.0);
             drawCube();
             glPopMatrix();
         }
-    //glDisable(GL_LIGHTING);
-    //glDisable(GL_LIGHT0);
+    }
+    if (ENABLE_LIGHT){
+        glDisable(GL_LIGHTING);
+        glDisable(GL_LIGHT0);
+    }
 
 }
 
 void pointCamera(RepGameState* gameState){
     glLoadIdentity();
     // Set the camera
-    gluLookAt(  gameState->camera.x, 1.45f, gameState->camera.z,
-            gameState->camera.x+gameState->camera.lx, 1.25f,  gameState->camera.z+gameState->camera.lz,
+    gluLookAt(  gameState->camera.x, 1.30f, gameState->camera.z,
+            gameState->camera.x+gameState->camera.lx, 1.0f,  gameState->camera.z+gameState->camera.lz,
             0.0f, 1.0f,  0.0f);
 }
 
@@ -220,7 +227,7 @@ void changeSize(int w, int h) {
     glViewport(0, 0, w, h);
 
     // Set the correct perspective.
-    gluPerspective(45,ratio,1,1000);
+    gluPerspective(45,ratio,0.1f,1000);
 
     // Get Back to the Modelview
     glMatrixMode(GL_MODELVIEW);
