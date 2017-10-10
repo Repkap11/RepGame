@@ -22,71 +22,108 @@ void initilizeGameState(RepGameState* gameState){
 
 }
 
-void drawSnowMan() {
 
+GLuint loadTexture( const char * filename )
+{
+    GLuint texture;
+    int width, height;
+    unsigned char * data;
+    FILE * file;
+    file = fopen( filename, "rb" );
+    if ( file == NULL ){
+        pr_debug("Error rendering texture %s", filename);
+        return 0;
+    }
+    width = 512;
+    height = 512;
+    data = (unsigned char *)malloc( width * height * 3 );
+    //int size = fseek(file,);
+    fread( data, width * height * 3, 1, file );
+    pr_debug("Finished reading file");
+    fclose( file );
+
+    glGenTextures( 1, &texture );
+    glBindTexture( GL_TEXTURE_2D, texture );
+    glTexEnvf( GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE,GL_MODULATE );
+    glTexParameterf( GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER,GL_LINEAR_MIPMAP_NEAREST );
+
+    float fLargest;
+    glGetFloatv(GL_MAX_TEXTURE_MAX_ANISOTROPY_EXT, &fLargest);
+    pr_debug("Largest Fitering:%f", fLargest);
+    //glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAX_ANISOTROPY_EXT, fLargest);
+
+    glTexParameterf( GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER,GL_LINEAR );
+    glTexParameterf( GL_TEXTURE_2D, GL_TEXTURE_WRAP_S,GL_REPEAT );
+    glTexParameterf( GL_TEXTURE_2D, GL_TEXTURE_WRAP_T,GL_REPEAT );
+    gluBuild2DMipmaps( GL_TEXTURE_2D, 3, width, height,GL_RGB, GL_UNSIGNED_BYTE, data );
+    //glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB8, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, data);
+
+    free(data);
+    pr_debug("Done with loading texture");
+    return texture;
+}
+
+GLuint texture;
+void initilizeTexture(){
+    texture = loadTexture("./bitmaps/colors.bmp");
+}
+
+
+void drawCube() {
+
+    glEnable(GL_TEXTURE_2D);
     glColor3f(1.0f, 1.0f, 1.0f);
 
-// Draw Body
-    glTranslatef(0.0f ,0.7f, 0.0f);
-    glutSolidSphere(0.65f,15,15);
+    glBindTexture(GL_TEXTURE_2D, texture);
 
-    glTranslatef(0.0f ,0.75f, 0.0f);
-    glutSolidSphere(0.45f,15,15);
+    glBegin(GL_QUADS);
+    glTexCoord2f(0, 0); glVertex3f(0, 0, 0);
+    glTexCoord2f(0, 1); glVertex3f(0, 1, 0);
+    glTexCoord2f(1, 1); glVertex3f(1, 1, 0);
+    glTexCoord2f(1, 0); glVertex3f(1, 0, 0);
+    glEnd();
 
+    glDisable(GL_TEXTURE_2D);
 
-// Draw Head
-    glTranslatef(0.0f, 0.58f, 0.0f);
-    glutSolidSphere(0.25f,10,10);
-
-// Draw Eyes
-    glPushMatrix();
-    glColor3f(0.0f,0.0f,0.0f);
-    glTranslatef(0.05f, 0.10f, 0.18f);
-    glutSolidSphere(0.05f,10,10);
-    glTranslatef(-0.1f, 0.0f, 0.0f);
-    glutSolidSphere(0.05f,10,10);
-    glPopMatrix();
-
-// Draw Nose
-    glColor3f(1.0f, 0.5f , 0.5f);
-    glutSolidCone(0.08f,0.5f,10,2);
 }
 
 void renderScene(RepGameState* gameState) {
 
         // Draw ground
-    // glColor3f(0.9f, 0.9f, 0.9f);
-    // glBegin(GL_QUADS);
-    //     float groudSize = 1000.0f;
-    //     glVertex3f(-1*groudSize, 0.0f, -1*groudSize);
-    //     glVertex3f(-1*groudSize, 0.0f,  groudSize);
-    //     glVertex3f( groudSize, 0.0f,  groudSize);
-    //     glVertex3f( groudSize, 0.0f, -1*groudSize);
-    // glEnd();
+    glColor3f(1.0f, 1.0f, 1.0f);
+    glBegin(GL_QUADS);
+        float groudSize = 1000.0f;
+        glVertex3f(-1*groudSize, 0.0f, -1*groudSize);
+        glVertex3f(-1*groudSize, 0.0f,  groudSize);
+        glVertex3f( groudSize, 0.0f,  groudSize);
+        glVertex3f( groudSize, 0.0f, -1*groudSize);
+    glEnd();
 
-        // Draw 36 SnowMen
+    //glEnable(GL_LIGHTING);
+    //glEnable(GL_LIGHT0);
+
     for(int i = -9; i < 9; i++)
         for(int j=-9; j < 9; j++) {
             glPushMatrix();
-            glTranslatef(i*4.0,0,j * 4.0);
-            drawSnowMan();
+            glTranslatef(i*2.0,0,j * 2.0);
+            drawCube();
             glPopMatrix();
         }
+    //glDisable(GL_LIGHTING);
+    //glDisable(GL_LIGHT0);
 
 }
 
 void pointCamera(RepGameState* gameState){
     glLoadIdentity();
     // Set the camera
-    gluLookAt(  gameState->camera.x, 2.9f, gameState->camera.z,
-            gameState->camera.x+gameState->camera.lx, 2.5f,  gameState->camera.z+gameState->camera.lz,
+    gluLookAt(  gameState->camera.x, 1.45f, gameState->camera.z,
+            gameState->camera.x+gameState->camera.lx, 1.25f,  gameState->camera.z+gameState->camera.lz,
             0.0f, 1.0f,  0.0f);
 }
 
 char fps_str[50];
-
 int frameCounter = 0;
-
 void renderOverlay(RepGameState* gameState){
 
     int screenWidth = gameState->screen.width;
@@ -109,7 +146,7 @@ void renderOverlay(RepGameState* gameState){
         sprintf(fps_str, "FPS : %.2f", gameState->frameRate);
     }
     frameCounter += 1;
-    glColor3f(0.0f, 0.0f, 0.0);
+    glColor3f(0.0f, 0.0f, 0.0f);
     draw_bitmapString(19,19+18,GLUT_BITMAP_HELVETICA_18,fps_str, 0);
     draw_bitmapString(17,17+18,GLUT_BITMAP_HELVETICA_18,fps_str, 0);
     draw_bitmapString(19,17+18,GLUT_BITMAP_HELVETICA_18,fps_str, 0);
@@ -120,11 +157,8 @@ void renderOverlay(RepGameState* gameState){
     draw_bitmapString(17,18+18,GLUT_BITMAP_HELVETICA_18,fps_str, 0);
     draw_bitmapString(18,17+18,GLUT_BITMAP_HELVETICA_18,fps_str, 0);
 
-    glColor3f(1.0f, 1.0f, 1.0);
+    glColor3f(1.0f, 1.0f, 1.0f);
     draw_bitmapString(18,18+18,GLUT_BITMAP_HELVETICA_18,fps_str, 0.1);
-
-    //renderBitmapString(30,35,(void *)font,"Test");
-
 
     // Making sure we can render 3d again
     glMatrixMode(GL_PROJECTION);
@@ -136,15 +170,10 @@ void renderOverlay(RepGameState* gameState){
 
 void display(RepGameState* gameState) {
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-    renderScene(gameState);
 
-    glDisable(GL_LIGHTING);
-    glDisable(GL_LIGHT0);
+    renderScene(gameState);
     pointCamera(gameState);
     renderOverlay(gameState);
-    glEnable(GL_LIGHTING);
-    glEnable(GL_LIGHT0);
-
     glutSwapBuffers();
     glFlush();
 }
@@ -241,10 +270,6 @@ int main(int argc, char**argv) {
 
     glutCreateWindow("RepGame");
     glEnable(GL_DEPTH_TEST);
-    glEnable(GL_LIGHTING);
-    glEnable(GL_LIGHT0);
-    glEnable(GL_NORMALIZE);
-    glEnable(GL_COLOR_MATERIAL);
     glutSpecialFunc(arrowKeyDownInput);
     glutSpecialUpFunc(arrowKeyUpInput);
 
@@ -253,6 +278,7 @@ int main(int argc, char**argv) {
     glutReshapeFunc(changeSize);
     glutMotionFunc(mouseMove);
     initilizeGameState(&globalGameState);
+    initilizeTexture();
 
     struct timespec tstart={0,0}, tend={0,0};
     clock_gettime(CLOCK_MONOTONIC, &tstart);
