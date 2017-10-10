@@ -47,12 +47,16 @@ int loadTexture(const char * filename )
     return texture;
 }
 
-int test_texture;
+int dirt_texture, grass_texture;
 void textures_populate(){
-    test_texture = loadTexture("./bitmaps/dirt2.bmp");
+    dirt_texture = loadTexture("./bitmaps/dirt.bmp");
+    grass_texture = loadTexture("./bitmaps/grass.bmp");
 }
 
-int textures_getTestTexture(){
-	return test_texture;
+int textures_getDirtTexture(){
+	return dirt_texture;
+}
+int textures_getGrassTexture(){
+	return grass_texture;
 }
 

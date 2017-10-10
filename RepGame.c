@@ -11,8 +11,11 @@
 #include "ui_overlay.h"
 #include "textures.h"
 
-#define ENABLE_LIGHT 0
-#define MOVEMENT_SENSITIVITY 2.0f
+#define ENABLE_LIGHT 0 //Use light
+#define MOVEMENT_SENSITIVITY 2.0f //How sensitive the arrow keys are
+#define CAMERA_SIZE 0.1f //Defines how much crop is in front (low for minecraft)
+#define PERSON_HEIGHT 10.0f
+#define PERSON_LOOKING (PERSON_HEIGHT - 0.5f)
 
 void initilizeGameState(RepGameState* gameState){
     gameState->input.exitGame = 0;
@@ -31,7 +34,7 @@ void drawCube() {
     glEnable(GL_TEXTURE_2D);
     glColor3f(1.0f, 1.0f, 1.0f);
 
-    glBindTexture(GL_TEXTURE_2D, textures_getTestTexture());
+    glBindTexture(GL_TEXTURE_2D, textures_getDirtTexture());
 
     //FRONT
     glBegin(GL_POLYGON);
@@ -65,14 +68,6 @@ void drawCube() {
     glTexCoord2f(1, 0); glVertex3f(0.0, 0.0, 0.0);
     glEnd();
 
-    //TOP
-    glBegin(GL_POLYGON);
-    glTexCoord2f(0, 0); glVertex3f(1.0, 1.0, 1.0);
-    glTexCoord2f(0, 1); glVertex3f(1.0, 1.0, 0.0);
-    glTexCoord2f(1, 1); glVertex3f(0.0, 1.0, 0.0);
-    glTexCoord2f(1, 0); glVertex3f(0.0, 1.0, 1.0);
-    glEnd();
-
     //BOTTOM
     glBegin(GL_POLYGON);
     glTexCoord2f(0, 0); glVertex3f(1.0, 0.0, 0.0);
@@ -82,22 +77,14 @@ void drawCube() {
     glEnd();
 
 
-
-    // //Side
-    // glTexCoord2f(0, 0); glVertex3f(0, 0, 0);
-    // glTexCoord2f(0, 1); glVertex3f(0, 1, 0);
-    // glTexCoord2f(1, 1); glVertex3f(1, 1, 0);
-    // glTexCoord2f(1, 0); glVertex3f(1, 0, 0);
-
-    // glTexCoord2f(0, 0); glVertex3f(0, 1, 0);
-    // glTexCoord2f(0, 1); glVertex3f(0, 1, 1);
-    // glTexCoord2f(1, 1); glVertex3f(0, 0, 1);
-    // glTexCoord2f(1, 0); glVertex3f(0, 0, 0);
-
-    // glTexCoord2f(0, 0); glVertex3f(1, 0, 0);
-    // glTexCoord2f(0, 1); glVertex3f(1, 0, 1);
-    // glTexCoord2f(1, 1); glVertex3f(0, 0, 1);
-    // glTexCoord2f(1, 0); glVertex3f(0, 0, 0);
+    glBindTexture(GL_TEXTURE_2D, textures_getGrassTexture());
+    //TOP
+    glBegin(GL_POLYGON);
+    glTexCoord2f(0, 0); glVertex3f(1.0, 1.0, 1.0);
+    glTexCoord2f(0, 1); glVertex3f(1.0, 1.0, 0.0);
+    glTexCoord2f(1, 1); glVertex3f(0.0, 1.0, 0.0);
+    glTexCoord2f(1, 0); glVertex3f(0.0, 1.0, 1.0);
+    glEnd();
 
     glDisable(GL_TEXTURE_2D);
 
@@ -120,12 +107,16 @@ void renderScene(RepGameState* gameState) {
         glEnable(GL_LIGHT0);
     }
 
-    for(int i = 0; i < 2; i++) {
-        for(int j=0; j < 2; j++) {
-            glPushMatrix();
-            glTranslatef(i*2.0,0,j * 2.0);
-            drawCube();
-            glPopMatrix();
+    for(int i = 0; i < 8; i++) {
+        for(int j=0; j < 8; j++) {
+            for(int k=0; k < 8; k++) {
+                if (i+j > k){
+                    glPushMatrix();
+                    glTranslatef(i,k,j);
+                    drawCube();
+                    glPopMatrix();
+                }
+            }
         }
     }
     if (ENABLE_LIGHT){
@@ -138,8 +129,8 @@ void renderScene(RepGameState* gameState) {
 void pointCamera(RepGameState* gameState){
     glLoadIdentity();
     // Set the camera
-    gluLookAt(  gameState->camera.x, 1.30f, gameState->camera.z,
-            gameState->camera.x+gameState->camera.lx, 1.0f,  gameState->camera.z+gameState->camera.lz,
+    gluLookAt(  gameState->camera.x, PERSON_HEIGHT, gameState->camera.z,
+            gameState->camera.x+gameState->camera.lx, PERSON_LOOKING,  gameState->camera.z+gameState->camera.lz,
             0.0f, 1.0f,  0.0f);
 }
 
@@ -233,7 +224,7 @@ void changeSize(int w, int h) {
     glViewport(0, 0, w, h);
 
     // Set the correct perspective.
-    gluPerspective(45,ratio,1.1f,1000);
+    gluPerspective(45,ratio,CAMERA_SIZE,1000);
 
     // Get Back to the Modelview
     glMatrixMode(GL_MODELVIEW);

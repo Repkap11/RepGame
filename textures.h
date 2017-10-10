@@ -4,5 +4,6 @@
 #include "RepGame.h"
 
 void textures_populate();
-int textures_getTestTexture();
+int textures_getDirtTexture();
+int textures_getGrassTexture();
 #endif
