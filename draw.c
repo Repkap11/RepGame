@@ -1,5 +1,6 @@
 #include <GL/gl.h>
 #include <GL/glut.h>
+#include "draw.h"
 
 void draw_rect(double left, double top, double width, double height){
     glBegin(GL_QUADS);
