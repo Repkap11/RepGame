@@ -111,6 +111,42 @@ void drawCube( ) {
     glDisable( GL_TEXTURE_2D );
 }
 
+void drawSphere( ) {
+
+    // int list = 0;
+
+    // glNewList( list, GL_COMPILE );
+
+    // GLUquadricObj *sphere = gluNewQuadric( );
+    // // gluQuadricDrawStyle( sphere, GLU_FILL );
+    // // gluQuadricNormals( sphere, GLU_SMOOTH );
+    // // gluQuadricOrientation( sphere, GLU_OUTSIDE );
+    // gluQuadricTexture( sphere, GL_TRUE );
+
+    // // glColor3f( 0.0, 1.0, 0.0 );
+    // gluSphere( sphere, 1, 16, 16 );
+
+    // glEndList( );
+    glEnable( GL_TEXTURE_2D );
+
+    GLUquadricObj *sphere = NULL;
+    sphere = gluNewQuadric( );
+    // gluQuadricDrawStyle( sphere, GLU_FILL );
+    gluQuadricTexture( sphere, 1 );
+    // gluQuadricNormals( sphere, GLU_SMOOTH );
+    // Making a display list
+    int mysphereID = glGenLists( 1 );
+    glNewList( mysphereID, GL_COMPILE );
+    gluSphere( sphere, 1.0, 20, 20 );
+    glEndList( );
+    gluDeleteQuadric( sphere );
+
+    glBindTexture( GL_TEXTURE_2D, textures_getSkyTexture( ) );
+    glCallList( mysphereID );
+
+    glDisable( GL_TEXTURE_2D );
+}
+
 void renderScene( RepGameState *gameState ) {
 
     if ( ENABLE_LIGHT ) {
@@ -130,6 +166,12 @@ void renderScene( RepGameState *gameState ) {
             }
         }
     }
+    glPushMatrix( );
+    glTranslatef( gameState->camera.x, 5, gameState->camera.z );
+    glScalef( 100, 100, 100 );
+    glRotatef( 270, 1, 0, 0 );
+    drawSphere( );
+    glPopMatrix( );
     for ( int i = -50; i < 50; i++ ) {
         for ( int j = 0; j < 1; j++ ) {
             for ( int k = -50; k < 50; k++ ) {

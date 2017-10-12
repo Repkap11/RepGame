@@ -6,4 +6,5 @@
 void textures_populate( );
 int textures_getDirtTexture( );
 int textures_getGrassTexture( );
+int textures_getSkyTexture( );
 #endif
