@@ -16,9 +16,6 @@
 #include "input.h"
 
 typedef struct {
-    int colorR;
-    int colorG;
-    int colorB;
     double frameRate;
     InputState input;
     struct {

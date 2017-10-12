@@ -18,9 +18,6 @@
 
 void initilizeGameState( RepGameState *gameState ) {
     gameState->input.exitGame = 0;
-    gameState->colorR = 1;
-    gameState->colorG = 0;
-    gameState->colorB = 0;
     gameState->camera.angle_H = 0.0f;
     gameState->camera.angle_V = 0.0f;
     gameState->camera.lx = 0.0f;
