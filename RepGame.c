@@ -10,9 +10,9 @@
 #include "textures.h"
 #include "ui_overlay.h"
 
-#define ENABLE_LIGHT 0            // Use light
-#define MOVEMENT_SENSITIVITY 2.0f // How sensitive the arrow keys are
-#define CAMERA_SIZE 0.1f          // Defines how much crop is in front (low for minecraft)
+#define ENABLE_LIGHT 0             // Use light
+#define MOVEMENT_SENSITIVITY 20.0f // How sensitive the arrow keys are
+#define CAMERA_SIZE 0.1f           // Defines how much crop is in front (low for minecraft)
 #define PERSON_HEIGHT 10.0f
 #define PERSON_LOOKING -0.5f
 
@@ -131,12 +131,22 @@ void renderScene( RepGameState *gameState ) {
     for ( int i = 0; i < 8; i++ ) {
         for ( int j = 0; j < 8; j++ ) {
             for ( int k = 0; k < 8; k++ ) {
-                if ( i + j > k ) {
+                if ( i + k > j ) {
                     glPushMatrix( );
-                    glTranslatef( i, k, j );
+                    glTranslatef( i, j, k );
                     drawCube( );
                     glPopMatrix( );
                 }
+            }
+        }
+    }
+    for ( int i = -50; i < 50; i++ ) {
+        for ( int j = 0; j < 1; j++ ) {
+            for ( int k = -50; k < 50; k++ ) {
+                glPushMatrix( );
+                glTranslatef( i, j, k );
+                drawCube( );
+                glPopMatrix( );
             }
         }
     }
