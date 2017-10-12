@@ -1,4 +1,4 @@
-#include "draw.h"
+#include "draw2d.h"
 #include <GL/gl.h>
 #include <GL/glut.h>
 

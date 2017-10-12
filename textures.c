@@ -1,7 +1,7 @@
 #include <GL/gl.h>
 #include <GL/glut.h>
 
-#include "draw.h"
+#include "draw2d.h"
 #include "textures.h"
 
 int loadTexture( const char *filename ) {

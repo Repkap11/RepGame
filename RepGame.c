@@ -5,7 +5,7 @@
 #include <unistd.h>
 
 #include "RepGame.h"
-#include "draw.h"
+#include "draw2d.h"
 #include "input.h"
 #include "textures.h"
 #include "ui_overlay.h"
