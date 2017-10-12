@@ -3,6 +3,6 @@
 
 #include "RepGame.h"
 
-void ui_overlay_draw(RepGameState* gameState);
+void ui_overlay_draw( RepGameState *gameState );
 
 #endif

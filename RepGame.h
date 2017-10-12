@@ -5,10 +5,13 @@
 
 #define DEBUG 1
 
-#define pr_debug(fmt, ...) \
-        do { if (DEBUG) fprintf(stderr, "%s:%d:%s():"fmt"\n", __FILE__, __LINE__, __func__, ##__VA_ARGS__); } while (0)
+#define pr_debug( fmt, ... )                                                                                                                                                                                                                   \
+    do {                                                                                                                                                                                                                                       \
+        if ( DEBUG )                                                                                                                                                                                                                           \
+            fprintf( stderr, "%s:%d:%s():" fmt "\n", __FILE__, __LINE__, __func__, ##__VA_ARGS__ );                                                                                                                                            \
+    } while ( 0 )
 
-#define test pr_debug();
+#define test pr_debug( );
 
 #include "input.h"
 
