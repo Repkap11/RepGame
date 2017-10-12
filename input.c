@@ -65,10 +65,58 @@ void input_mouseInput( InputState *inputState, int button, int state, int x, int
     }
 }
 
-void input_keysInput( InputState *inputState, unsigned char key, int x, int y ) {
-    pr_debug( "Got Key:%d", key );
-    if ( key == 27 || key == 113 ) {
-        inputState->exitGame = 1;
+void input_keysInput( InputState *inputState, unsigned char key, int x, int y, int pressed ) {
+
+    switch ( key ) {
+        case 27:
+        case 113:
+            inputState->exitGame = 1;
+            break;
+
+        case 119:
+            if ( pressed ) {
+                pr_debug( "Key Down: W" );
+            } else {
+                pr_debug( "Key Up: W" );
+            }
+
+            break;
+
+        case 97:
+            if ( pressed ) {
+                pr_debug( "Key Down: A" );
+            } else {
+                pr_debug( "Key Up: A" );
+            }
+
+            break;
+
+        case 115:
+            if ( pressed ) {
+                pr_debug( " Key Down: S" );
+            } else {
+                pr_debug( "Key Up: S" );
+            }
+
+            break;
+
+        case 100:
+            if ( pressed ) {
+                pr_debug( "Pressed Key Down: D" );
+            } else {
+                pr_debug( "Key Up: D" );
+            }
+
+            break;
+
+        default:
+            if ( pressed ) {
+                pr_debug( "Got Unhandled Key Down: %d", key );
+
+            } else {
+                pr_debug( "Got Unhandled Key Up: %d", key );
+            }
+            break;
     }
 }
 

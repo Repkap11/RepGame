@@ -210,15 +210,23 @@ RepGameState globalGameState;
 void arrowKeyDownInput( int key, int x, int y ) {
     input_arrowKeyDownInput( &globalGameState.input, key, x, y );
 }
+
 void arrowKeyUpInput( int key, int x, int y ) {
     input_arrowKeyUpInput( &globalGameState.input, key, x, y );
 }
+
 void mouseInput( int button, int state, int x, int y ) {
     input_mouseInput( &globalGameState.input, button, state, x, y );
 }
+
 void keysInput( unsigned char key, int x, int y ) {
-    input_keysInput( &globalGameState.input, key, x, y );
+    input_keysInput( &globalGameState.input, key, x, y, 1 );
 }
+
+void keysInputUp( unsigned char key, int x, int y ) {
+    input_keysInput( &globalGameState.input, key, x, y, 0 );
+}
+
 void mouseMove( int x, int y ) {
     input_mouseMove( &globalGameState.input, x, y );
 }
@@ -264,6 +272,7 @@ int main( int argc, char **argv ) {
     glutSpecialUpFunc( arrowKeyUpInput );
 
     glutKeyboardFunc( keysInput );
+    glutKeyboardUpFunc( keysInputUp );
     glutMouseFunc( mouseInput );
     glutReshapeFunc( changeSize );
     glutMotionFunc( mouseMove );
