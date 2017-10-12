@@ -46,10 +46,10 @@ void input_arrowKeyUpInput( InputState *inputState, int key, int x, int y ) {
 }
 
 void input_mouseInput( InputState *inputState, int button, int state, int x, int y ) {
-    inputState->mouse.currentPosition.x = x;
-    inputState->mouse.currentPosition.y = y;
-    inputState->mouse.previousPosition.x = x;
-    inputState->mouse.previousPosition.y = y;
+    // inputState->mouse.currentPosition.x = x;
+    // inputState->mouse.currentPosition.y = y;
+    // inputState->mouse.previousPosition.x = x;
+    // inputState->mouse.previousPosition.y = y;
     switch ( button ) {
         case GLUT_LEFT_BUTTON:
             inputState->mouse.buttons.left = !state;
@@ -122,6 +122,7 @@ void input_keysInput( InputState *inputState, unsigned char key, int x, int y, i
 }
 
 void input_mouseMove( InputState *inputState, int x, int y ) {
+    // pr_debug( "Using location %d %d", x, y );
     inputState->mouse.currentPosition.x = x;
     inputState->mouse.currentPosition.y = y;
 }

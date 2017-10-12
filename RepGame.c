@@ -191,8 +191,9 @@ void renderScene( RepGameState *gameState ) {
 void pointCamera( RepGameState *gameState ) {
     glLoadIdentity( );
     // Set the camera
-    gluLookAt( gameState->camera.x, gameState->camera.y, gameState->camera.z, // Eye point
-               gameState->camera.x + gameState->camera.lx, gameState->camera.y + gameState->camera.ly, gameState->camera.z + gameState->camera.lz, 0.0f, 1.0f, 0.0f );
+    gluLookAt( gameState->camera.x, gameState->camera.y, gameState->camera.z,                                                                      // Eye point
+               gameState->camera.x + gameState->camera.lx, gameState->camera.y + gameState->camera.ly, gameState->camera.z + gameState->camera.lz, // look at
+               0.0f, 1.0f, 0.0f );
 }
 
 void display( RepGameState *gameState ) {
@@ -213,12 +214,27 @@ void gameTick( RepGameState *gameState ) {
     float fraction = 0.010f * MOVEMENT_SENSITIVITY;
     // float angle_diff = 0.020f;
 
-    if ( gameState->input.mouse.buttons.middle ) {
-        // update deltaAngle
-        pr_debug( "Position Diff:%d", gameState->input.mouse.currentPosition.x - gameState->input.mouse.previousPosition.x );
-        gameState->camera.angle_H += ( gameState->input.mouse.currentPosition.x - gameState->input.mouse.previousPosition.x ) * 0.002f;
-        gameState->camera.angle_V += ( gameState->input.mouse.currentPosition.y - gameState->input.mouse.previousPosition.y ) * 0.002f;
+    // if ( gameState->input.mouse.buttons.middle ) {
+    // update deltaAngle
+    if ( gameState->input.mouse.currentPosition.x - gameState->input.mouse.previousPosition.x || gameState->input.mouse.currentPosition.y - gameState->input.mouse.previousPosition.y ) {
+        // pr_debug( "Position Diff:%d %d", gameState->input.mouse.currentPosition.x - gameState->input.mouse.previousPosition.x, gameState->input.mouse.currentPosition.y - gameState->input.mouse.previousPosition.y );
     }
+
+    gameState->camera.angle_H += ( gameState->input.mouse.currentPosition.x - gameState->input.mouse.previousPosition.x ) * 0.002f;
+    gameState->camera.angle_V += ( gameState->input.mouse.currentPosition.y - gameState->input.mouse.previousPosition.y ) * 0.002f;
+
+    // pr_debug( "Angle_V:%f", gameState->camera.angle_V );
+
+    float upAngleLimit = ( M_PI / 2 ) - 0.001f;
+    if ( gameState->camera.angle_V > upAngleLimit ) {
+        gameState->camera.angle_V = upAngleLimit;
+    }
+
+    float downAngleLimit = -( M_PI / 2 ) + 0.001f;
+    if ( gameState->camera.angle_V < downAngleLimit ) {
+        gameState->camera.angle_V = downAngleLimit;
+    }
+    //}
 
     if ( gameState->input.arrows.left ) {
         gameState->camera.x += gameState->camera.lz * fraction;
@@ -237,10 +253,12 @@ void gameTick( RepGameState *gameState ) {
         gameState->camera.z -= gameState->camera.lz * fraction;
     }
 
-    gameState->input.mouse.previousPosition.x = gameState->input.mouse.currentPosition.x;
-    gameState->input.mouse.previousPosition.y = gameState->input.mouse.currentPosition.y;
+    gameState->input.mouse.previousPosition.x = gameState->screen.width / 2;
+    gameState->input.mouse.previousPosition.y = gameState->screen.height / 2;
     gameState->camera.lx = sin( gameState->camera.angle_H );
-    gameState->camera.ly = sin( gameState->camera.angle_V );
+    gameState->camera.ly = -tan( gameState->camera.angle_V );
+    // pr_debug( "Vector_Y:%f", gameState->camera.ly );
+
     gameState->camera.lz = -cos( gameState->camera.angle_H );
 }
 
@@ -310,10 +328,13 @@ int main( int argc, char **argv ) {
     glutSpecialFunc( arrowKeyDownInput );
     glutSpecialUpFunc( arrowKeyUpInput );
 
+    glutSetCursor( GLUT_CURSOR_NONE );
+
     glutKeyboardFunc( keysInput );
     glutKeyboardUpFunc( keysInputUp );
     glutMouseFunc( mouseInput );
     glutReshapeFunc( changeSize );
+    glutPassiveMotionFunc( mouseMove );
     glutMotionFunc( mouseMove );
     initilizeGameState( &globalGameState );
     textures_populate( );
@@ -323,6 +344,10 @@ int main( int argc, char **argv ) {
     tend = tstart;
     while ( !globalGameState.input.exitGame ) {
         glutMainLoopEvent( );
+        // input_set_enable_mouse( 0 );
+        glutWarpPointer( globalGameState.screen.width / 2, globalGameState.screen.height / 2 );
+        // glutMainLoopEvent( );
+        // input_set_enable_mouse( 1 );
         gameTick( &globalGameState );
         display( &globalGameState );
 
@@ -336,7 +361,7 @@ int main( int argc, char **argv ) {
         if ( wait_time_ms > 1.0 ) {
             int wait_time_us = ( int )( wait_time_ms * 1000.0 );
             // pr_debug("WaitTime_us:%d", wait_time_us);
-            usleep( wait_time_us );
+            // usleep( wait_time_us );
             ( void )wait_time_us;
         }
     }
