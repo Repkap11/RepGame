@@ -19,10 +19,13 @@ typedef struct {
     double frameRate;
     InputState input;
     struct {
-        float angle;
+        float angle_H;
+        float angle_V;
         float lx;
+        float ly;
         float lz;
         float x;
+        float y;
         float z;
     } camera;
     struct {

@@ -15,17 +15,20 @@
 #define MOVEMENT_SENSITIVITY 2.0f //How sensitive the arrow keys are
 #define CAMERA_SIZE 0.1f //Defines how much crop is in front (low for minecraft)
 #define PERSON_HEIGHT 10.0f
-#define PERSON_LOOKING (PERSON_HEIGHT - 0.5f)
+#define PERSON_LOOKING -0.5f
 
 void initilizeGameState(RepGameState* gameState){
     gameState->input.exitGame = 0;
     gameState->colorR = 1;
     gameState->colorG = 0;
     gameState->colorB = 0;
-    gameState->camera.angle = 0.0f;
+    gameState->camera.angle_H = 0.0f;
+    gameState->camera.angle_V = 0.0f;
     gameState->camera.lx = 0.0f;
+    gameState->camera.ly = PERSON_LOOKING;
     gameState->camera.lz = -1.0f;
     gameState->camera.x = 0.0f;
+    gameState->camera.y = PERSON_HEIGHT;
     gameState->camera.z = 5.0f;
 }
 
@@ -129,8 +132,8 @@ void renderScene(RepGameState* gameState) {
 void pointCamera(RepGameState* gameState){
     glLoadIdentity();
     // Set the camera
-    gluLookAt(  gameState->camera.x, PERSON_HEIGHT, gameState->camera.z,
-            gameState->camera.x+gameState->camera.lx, PERSON_LOOKING,  gameState->camera.z+gameState->camera.lz,
+    gluLookAt(gameState->camera.x, gameState->camera.y, gameState->camera.z, //Eye point
+            gameState->camera.x+gameState->camera.lx, gameState->camera.y+gameState->camera.ly, gameState->camera.z+gameState->camera.lz,
             0.0f, 1.0f,  0.0f);
 }
 
@@ -157,8 +160,10 @@ void gameTick(RepGameState *gameState){
     if (gameState->input.mouse.buttons.middle){
         // update deltaAngle
         pr_debug("Position Diff:%d",gameState->input.mouse.currentPosition.x - gameState->input.mouse.previousPosition.x);
-        gameState->camera.angle += (gameState->input.mouse.currentPosition.x - gameState->input.mouse.previousPosition.x) * 0.002f;
+        gameState->camera.angle_H += (gameState->input.mouse.currentPosition.x - gameState->input.mouse.previousPosition.x) * 0.002f;
+        gameState->camera.angle_V += (gameState->input.mouse.currentPosition.y - gameState->input.mouse.previousPosition.y) * 0.002f;
     }
+
 
     if (gameState->input.arrows.left){
         gameState->camera.x += gameState->camera.lz * fraction;
@@ -178,8 +183,10 @@ void gameTick(RepGameState *gameState){
     }
 
     gameState->input.mouse.previousPosition.x = gameState->input.mouse.currentPosition.x;
-    gameState->camera.lx = sin(gameState->camera.angle);
-    gameState->camera.lz = -cos(gameState->camera.angle);
+    gameState->input.mouse.previousPosition.y = gameState->input.mouse.currentPosition.y;
+    gameState->camera.lx = sin(gameState->camera.angle_H);
+    gameState->camera.ly = sin(gameState->camera.angle_V);
+    gameState->camera.lz = -cos(gameState->camera.angle_H);
 }
 
 RepGameState globalGameState;
