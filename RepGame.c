@@ -113,16 +113,6 @@ void drawCube( ) {
 
 void renderScene( RepGameState *gameState ) {
 
-    // Draw ground
-    glColor3f( 1.0f, 1.0f, 1.0f );
-    glBegin( GL_QUADS );
-    float groudSize = 1000.0f;
-    glVertex3f( -1 * groudSize, -0.001f, -1 * groudSize );
-    glVertex3f( -1 * groudSize, -0.001f, groudSize );
-    glVertex3f( groudSize, -0.001f, groudSize );
-    glVertex3f( groudSize, -0.001f, -1 * groudSize );
-    glEnd( );
-
     if ( ENABLE_LIGHT ) {
         glEnable( GL_LIGHTING );
         glEnable( GL_LIGHT0 );
