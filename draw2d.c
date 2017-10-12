@@ -19,6 +19,14 @@ void draw_border( double left, double top, double width, double height, double i
     draw_rect( left + width - inlay, top + inlay, inlay, height - doubleInlay );
 }
 
+void draw_cross( double center_h, double center_v, double thinkness, double length ) {
+    draw_rect( center_h - length / 2, center_v - thinkness / 2, length, thinkness );
+    draw_rect( center_h - thinkness / 2, center_v - length / 2, thinkness, length );
+    // draw_rect( left, top + height - inlay, width, inlay );
+    // draw_rect( left, top + inlay, inlay, height - doubleInlay );
+    // draw_rect( left + width - inlay, top + inlay, inlay, height - doubleInlay );
+}
+
 void draw_bitmapString( float left, float top, void *font, char *string, float depth ) {
     char *c;
     glRasterPos3f( left, top, depth );
