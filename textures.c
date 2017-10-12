@@ -33,7 +33,7 @@ int loadTexture( const char *filename ) {
     pr_debug( "Largest Fitering:%f", fLargest );
     // glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAX_ANISOTROPY_EXT, fLargest);
 
-    glTexParameterf( GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR );
+    glTexParameterf( GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST );
     glTexParameterf( GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER );
     glTexParameterf( GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER );
     gluBuild2DMipmaps( GL_TEXTURE_2D, 3, width, height, GL_BGR, GL_UNSIGNED_BYTE, data + bmp_header );
@@ -46,8 +46,8 @@ int loadTexture( const char *filename ) {
 
 int dirt_texture, grass_texture;
 void textures_populate( ) {
-    dirt_texture = loadTexture( "./bitmaps/dirt.bmp" );
-    grass_texture = loadTexture( "./bitmaps/grass.bmp" );
+    dirt_texture = loadTexture( "./bitmaps/grass_side.bmp" );
+    grass_texture = loadTexture( "./bitmaps/grass-top.bmp" );
 }
 
 int textures_getDirtTexture( ) {
