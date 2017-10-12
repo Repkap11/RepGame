@@ -68,43 +68,44 @@ void input_mouseInput( InputState *inputState, int button, int state, int x, int
 void input_keysInput( InputState *inputState, unsigned char key, int x, int y, int pressed ) {
 
     switch ( key ) {
-        case 27:
-        case 113:
+        case 27:  // lowercase q
+        case 81:  // uppercase q
+        case 113: // escape
             inputState->exitGame = 1;
             break;
 
         case 119:
             if ( pressed ) {
-                pr_debug( "Key Down: W" );
+                inputState->arrows.up = 1;
             } else {
-                pr_debug( "Key Up: W" );
+                inputState->arrows.up = 0;
             }
 
             break;
 
         case 97:
             if ( pressed ) {
-                pr_debug( "Key Down: A" );
+                inputState->arrows.left = 1;
             } else {
-                pr_debug( "Key Up: A" );
+                inputState->arrows.left = 0;
             }
 
             break;
 
         case 115:
             if ( pressed ) {
-                pr_debug( " Key Down: S" );
+                inputState->arrows.down = 1;
             } else {
-                pr_debug( "Key Up: S" );
+                inputState->arrows.down = 0;
             }
 
             break;
 
         case 100:
             if ( pressed ) {
-                pr_debug( "Pressed Key Down: D" );
+                inputState->arrows.right = 1;
             } else {
-                pr_debug( "Key Up: D" );
+                inputState->arrows.right = 0;
             }
 
             break;
