@@ -14,9 +14,9 @@ int loadTexture( const char *filename ) {
         pr_debug( "Error rendering texture %s", filename );
         return 0;
     }
-    width = 512;
-    height = 512;
-    int bmp_header = 122;
+    width = 16;
+    height = 16;
+    int bmp_header = 54;
     data = ( unsigned char * )malloc( width * height * 3 + bmp_header );
     // int size = fseek(file,);
     fread( data, width * height * 3 + bmp_header, 1, file );
