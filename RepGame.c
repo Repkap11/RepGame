@@ -21,11 +21,11 @@ void initilizeGameState( RepGameState *gameState ) {
     gameState->camera.angle_H = 0.0f;
     gameState->camera.angle_V = 0.0f;
     gameState->camera.lx = 0.0f;
-    gameState->camera.ly = PERSON_LOOKING;
+    gameState->camera.ly = 0;
     gameState->camera.lz = -1.0f;
     gameState->camera.x = 0.0f;
     gameState->camera.y = PERSON_HEIGHT;
-    gameState->camera.z = 5.0f;
+    gameState->camera.z = 0.0f;
 }
 
 void drawCube( ) {
