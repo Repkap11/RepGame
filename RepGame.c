@@ -10,22 +10,20 @@
 #include "textures.h"
 #include "ui_overlay.h"
 
-#define ENABLE_LIGHT 0             // Use light
-#define MOVEMENT_SENSITIVITY 20.0f // How sensitive the arrow keys are
+#define MOVEMENT_SENSITIVITY 10.0f // How sensitive the arrow keys are
 #define CAMERA_SIZE 0.1f           // Defines how much crop is in front (low for minecraft)
 #define PERSON_HEIGHT 10.0f
 #define PERSON_LOOKING -0.5f
 
+int cubeDisplayList;
 void initilizeGameState( RepGameState *gameState ) {
     gameState->input.exitGame = 0;
     gameState->camera.angle_H = 0.0f;
-    gameState->camera.angle_V = 0.0f;
-    gameState->camera.lx = 0.0f;
-    gameState->camera.ly = 0;
+    gameState->camera.angle_V = 0.3f;
     gameState->camera.lz = -1.0f;
-    gameState->camera.x = 0.0f;
+    gameState->camera.x = 0.5f;
     gameState->camera.y = PERSON_HEIGHT;
-    gameState->camera.z = 0.0f;
+    gameState->camera.z = 5.0f;
 }
 
 void drawCube( ) {
@@ -213,10 +211,33 @@ void drawSphere( ) {
 }
 
 void renderScene( RepGameState *gameState ) {
+    drawCube( );
 
-    if ( ENABLE_LIGHT ) {
-        glEnable( GL_LIGHTING );
-        glEnable( GL_LIGHT0 );
+    glCallList( cubeDisplayList );
+
+    glPushMatrix( );
+    glTranslatef( gameState->camera.x, 0, gameState->camera.z );
+    glScalef( 100, 100, 100 );
+    glRotatef( 270, 1, 0, 0 );
+    drawSphere( );
+    glPopMatrix( );
+}
+
+void createDisplayList( ) {
+    glPushMatrix( );
+    cubeDisplayList = glGenLists( 1 );
+    // compile the display list, store a triangle in it
+    glNewList( cubeDisplayList, GL_COMPILE );
+
+    for ( int i = -50; i < 50; i++ ) {
+        for ( int j = 0; j < 1; j++ ) {
+            for ( int k = -50; k < 50; k++ ) {
+                glPushMatrix( );
+                glTranslatef( i, j, k );
+                drawCube( );
+                glPopMatrix( );
+            }
+        }
     }
 
     for ( int i = 0; i < 8; i++ ) {
@@ -231,26 +252,10 @@ void renderScene( RepGameState *gameState ) {
             }
         }
     }
-    glPushMatrix( );
-    glTranslatef( gameState->camera.x, 5, gameState->camera.z );
-    glScalef( 100, 100, 100 );
-    glRotatef( 270, 1, 0, 0 );
-    drawSphere( );
+
+    // draw3d_cube( );
+    glEndList( );
     glPopMatrix( );
-    for ( int i = -50; i < 50; i++ ) {
-        for ( int j = 0; j < 1; j++ ) {
-            for ( int k = -50; k < 50; k++ ) {
-                glPushMatrix( );
-                glTranslatef( i, j, k );
-                drawCube( );
-                glPopMatrix( );
-            }
-        }
-    }
-    if ( ENABLE_LIGHT ) {
-        glDisable( GL_LIGHTING );
-        glDisable( GL_LIGHT0 );
-    }
 }
 
 void pointCamera( RepGameState *gameState ) {
@@ -263,6 +268,7 @@ void pointCamera( RepGameState *gameState ) {
 
 void display( RepGameState *gameState ) {
     glClear( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT );
+    glColor3f( 1.0f, 1.0f, 1.0f );
 
     renderScene( gameState );
     pointCamera( gameState );
@@ -385,12 +391,17 @@ double fps_ms = ( 1.0 / 60.0 ) * 1000.0;
 
 int main( int argc, char **argv ) {
     glutInit( &argc, argv );
-
+    // glutInitContextVersion( 3, 1 );
+    // glutInitContextFlags( GLUT_DEBUG );
     glutInitDisplayMode( GLUT_DEPTH | GLUT_DOUBLE | GLUT_RGBA );
 
     glutCreateWindow( "RepGame" );
     glEnable( GL_DEPTH_TEST );
     glEnable( GL_CULL_FACE );
+    glEnable( GL_TEXTURE_2D );
+    glEnable( GL_BLEND );
+    glEnable( GL_MULTISAMPLE );
+
     glutSpecialFunc( arrowKeyDownInput );
     glutSpecialUpFunc( arrowKeyUpInput );
 
@@ -408,6 +419,7 @@ int main( int argc, char **argv ) {
     struct timespec tstart = {0, 0}, tend = {0, 0};
     clock_gettime( CLOCK_MONOTONIC, &tstart );
     tend = tstart;
+    createDisplayList( );
     while ( !globalGameState.input.exitGame ) {
         glutMainLoopEvent( );
         // input_set_enable_mouse( 0 );
@@ -427,7 +439,7 @@ int main( int argc, char **argv ) {
         if ( wait_time_ms > 1.0 ) {
             int wait_time_us = ( int )( wait_time_ms * 1000.0 );
             // pr_debug("WaitTime_us:%d", wait_time_us);
-            // usleep( wait_time_us );
+            usleep( wait_time_us );
             ( void )wait_time_us;
         }
     }

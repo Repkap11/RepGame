@@ -25,7 +25,6 @@ int loadTexture( const char *filename, int size, int bmp_header ) {
     glGenTextures( 1, &texture );
     glBindTexture( GL_TEXTURE_2D, texture );
     glTexEnvf( GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_MODULATE );
-    glTexParameterf( GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_NEAREST );
 
     float fLargest;
     glGetFloatv( GL_MAX_TEXTURE_MAX_ANISOTROPY_EXT, &fLargest );
@@ -33,9 +32,14 @@ int loadTexture( const char *filename, int size, int bmp_header ) {
     // glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAX_ANISOTROPY_EXT, fLargest);
 
     glTexParameterf( GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST );
-    glTexParameterf( GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER );
-    glTexParameterf( GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER );
+    glTexParameterf( GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT );
+    glTexParameterf( GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT );
+    glTexParameterf( GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_NEAREST ); // GL_NEAREST GL_LINEAR_MIPMAP_LINEAR
     gluBuild2DMipmaps( GL_TEXTURE_2D, 3, width, height, GL_BGR, GL_UNSIGNED_BYTE, data + bmp_header );
+    // glTexImage2DMultisample( GL_TEXTURE_2D_MULTISAMPLE, 12, GL_RGBA8, 1, 1, false );
+    // glTexStorage2D( GL_TEXTURE_2D, 12, GL_RGBA8, width, height );
+    // glTexSubImage2D( GL_TEXTURE_2D, 0, 0, 0, width, height, GL_BGRA, GL_UNSIGNED_BYTE, data + bmp_header );
+    // glGenerateMipmap( GL_TEXTURE_2D ); // Generate num_mipmaps number of mipmaps here.
 
     // glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB8, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, data);
 

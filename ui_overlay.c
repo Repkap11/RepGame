@@ -21,7 +21,6 @@ void ui_overlay_drawFPS( RepGameState *gameState ) {
     glScalef( 0.15, 0.15, 0.15 );
     glRotatef( 180, 1, 0, 0 );
     glColor4f( 1.0f, 1.0f, 1.0, 1 );
-    // glEnable( GL_LINE_SMOOTH );
     glBlendFunc( GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA );
     glLineWidth( 2 );
     draw2d_string( GLUT_STROKE_MONO_ROMAN, fps_str );
@@ -50,7 +49,6 @@ void ui_overlay_draw( RepGameState *gameState ) {
     glLoadIdentity( );
 
     glBlendFunc( GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA );
-    glEnable( GL_BLEND );
 
     ui_overlay_drawBorder( gameState );
     ui_overlay_drawFPS( gameState );
