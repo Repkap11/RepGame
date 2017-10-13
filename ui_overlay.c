@@ -44,6 +44,7 @@ void ui_overlay_draw( RepGameState *gameState ) {
     glMatrixMode( GL_PROJECTION );
     glPushMatrix( );
     glLoadIdentity( );
+    glFrontFace( GL_CW );
     glOrtho( 0, screenWidth, screenHeight, 0, -1.0, 1.0 );
     glMatrixMode( GL_MODELVIEW );
     glLoadIdentity( );
@@ -57,6 +58,7 @@ void ui_overlay_draw( RepGameState *gameState ) {
 
     // Making sure we can render 3d again
     glMatrixMode( GL_PROJECTION );
+    glFrontFace( GL_CCW );
     glPopMatrix( );
     glMatrixMode( GL_MODELVIEW );
     glPopMatrix( );

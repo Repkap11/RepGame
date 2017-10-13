@@ -36,76 +36,141 @@ void drawCube( ) {
     glBindTexture( GL_TEXTURE_2D, textures_getDirtTexture( ) );
 
     // FRONT
-    glBegin( GL_POLYGON );
-    glTexCoord2f( 0, 0 );
-    glVertex3f( 1.0, 0.0, 0.0 );
-    glTexCoord2f( 0, 1 );
-    glVertex3f( 1.0, 1.0, 0.0 );
-    glTexCoord2f( 1, 1 );
-    glVertex3f( 0.0, 1.0, 0.0 );
-    glTexCoord2f( 1, 0 );
-    glVertex3f( 0.0, 0.0, 0.0 );
+    glBegin( GL_TRIANGLES );
+    {
+
+        glTexCoord2f( 0, 1 );
+        glVertex3f( 1.0, 1.0, 0.0 );
+        glTexCoord2f( 0, 0 );
+        glVertex3f( 1.0, 0.0, 0.0 );
+        glTexCoord2f( 1, 1 );
+        glVertex3f( 0.0, 1.0, 0.0 );
+    }
+    glEnd( );
+    glBegin( GL_TRIANGLES );
+    {
+        glTexCoord2f( 1, 0 );
+        glVertex3f( 0.0, 0.0, 0.0 );
+        glTexCoord2f( 1, 1 );
+        glVertex3f( 0.0, 1.0, 0.0 );
+        glTexCoord2f( 0, 0 );
+        glVertex3f( 1.0, 0.0, 0.0 );
+    }
     glEnd( );
 
     // BACK
-    glBegin( GL_POLYGON );
-    glTexCoord2f( 0, 0 );
-    glVertex3f( 1.0, 0.0, 1.0 );
-    glTexCoord2f( 0, 1 );
-    glVertex3f( 1.0, 1.0, 1.0 );
-    glTexCoord2f( 1, 1 );
-    glVertex3f( 0.0, 1.0, 1.0 );
-    glTexCoord2f( 1, 0 );
-    glVertex3f( 0.0, 0.0, 1.0 );
+    glBegin( GL_TRIANGLES );
+    {
+        glTexCoord2f( 0, 0 );
+        glVertex3f( 1.0, 0.0, 1.0 );
+        glTexCoord2f( 0, 1 );
+        glVertex3f( 1.0, 1.0, 1.0 );
+        glTexCoord2f( 1, 1 );
+        glVertex3f( 0.0, 1.0, 1.0 );
+    }
+    glEnd( );
+    glBegin( GL_TRIANGLES );
+    {
+
+        glTexCoord2f( 1, 1 );
+        glVertex3f( 0.0, 1.0, 1.0 );
+        glTexCoord2f( 1, 0 );
+        glVertex3f( 0.0, 0.0, 1.0 );
+        glTexCoord2f( 0, 0 );
+        glVertex3f( 1.0, 0.0, 1.0 );
+    }
     glEnd( );
 
     // RIGHT
-    glBegin( GL_POLYGON );
-    glTexCoord2f( 0, 0 );
-    glVertex3f( 1.0, 0.0, 0.0 );
-    glTexCoord2f( 0, 1 );
-    glVertex3f( 1.0, 1.0, 0.0 );
-    glTexCoord2f( 1, 1 );
-    glVertex3f( 1.0, 1.0, 1.0 );
-    glTexCoord2f( 1, 0 );
-    glVertex3f( 1.0, 0.0, 1.0 );
+    glBegin( GL_TRIANGLES );
+    {
+        glTexCoord2f( 0, 0 );
+        glVertex3f( 1.0, 0.0, 0.0 );
+        glTexCoord2f( 0, 1 );
+        glVertex3f( 1.0, 1.0, 0.0 );
+        glTexCoord2f( 1, 1 );
+        glVertex3f( 1.0, 1.0, 1.0 );
+    }
+    glEnd( );
+    glBegin( GL_TRIANGLES );
+    {
+
+        glTexCoord2f( 1, 1 );
+        glVertex3f( 1.0, 1.0, 1.0 );
+        glTexCoord2f( 1, 0 );
+        glVertex3f( 1.0, 0.0, 1.0 );
+        glTexCoord2f( 0, 0 );
+        glVertex3f( 1.0, 0.0, 0.0 );
+    }
     glEnd( );
 
     // LEFT
-    glBegin( GL_POLYGON );
-    glTexCoord2f( 0, 0 );
-    glVertex3f( 0.0, 0.0, 1.0 );
-    glTexCoord2f( 0, 1 );
-    glVertex3f( 0.0, 1.0, 1.0 );
-    glTexCoord2f( 1, 1 );
-    glVertex3f( 0.0, 1.0, 0.0 );
-    glTexCoord2f( 1, 0 );
-    glVertex3f( 0.0, 0.0, 0.0 );
+    glBegin( GL_TRIANGLES );
+    {
+        glTexCoord2f( 0, 0 );
+        glVertex3f( 0.0, 0.0, 1.0 );
+        glTexCoord2f( 0, 1 );
+        glVertex3f( 0.0, 1.0, 1.0 );
+        glTexCoord2f( 1, 1 );
+        glVertex3f( 0.0, 1.0, 0.0 );
+    }
+    glEnd( );
+    glBegin( GL_TRIANGLES );
+    {
+
+        glTexCoord2f( 1, 1 );
+        glVertex3f( 0.0, 1.0, 0.0 );
+        glTexCoord2f( 1, 0 );
+        glVertex3f( 0.0, 0.0, 0.0 );
+        glTexCoord2f( 0, 0 );
+        glVertex3f( 0.0, 0.0, 1.0 );
+    }
     glEnd( );
 
     // BOTTOM
-    glBegin( GL_POLYGON );
-    glTexCoord2f( 0, 0 );
-    glVertex3f( 1.0, 0.0, 0.0 );
-    glTexCoord2f( 0, 1 );
-    glVertex3f( 1.0, 0.0, 1.0 );
-    glTexCoord2f( 1, 1 );
-    glVertex3f( 0.0, 0.0, 1.0 );
-    glTexCoord2f( 1, 0 );
-    glVertex3f( 0.0, 0.0, 0.0 );
+    glBegin( GL_TRIANGLES );
+    {
+        glTexCoord2f( 0, 0 );
+        glVertex3f( 1.0, 0.0, 0.0 );
+        glTexCoord2f( 0, 1 );
+        glVertex3f( 1.0, 0.0, 1.0 );
+        glTexCoord2f( 1, 1 );
+        glVertex3f( 0.0, 0.0, 1.0 );
+    }
+    glEnd( );
+    glBegin( GL_TRIANGLES );
+    {
+
+        glTexCoord2f( 1, 1 );
+        glVertex3f( 0.0, 0.0, 1.0 );
+        glTexCoord2f( 1, 0 );
+        glVertex3f( 0.0, 0.0, 0.0 );
+        glTexCoord2f( 0, 0 );
+        glVertex3f( 1.0, 0.0, 0.0 );
+    }
     glEnd( );
 
     glBindTexture( GL_TEXTURE_2D, textures_getGrassTexture( ) );
     // TOP
-    glBegin( GL_POLYGON );
-    glTexCoord2f( 0, 0 );
-    glVertex3f( 1.0, 1.0, 1.0 );
-    glTexCoord2f( 0, 1 );
-    glVertex3f( 1.0, 1.0, 0.0 );
-    glTexCoord2f( 1, 1 );
-    glVertex3f( 0.0, 1.0, 0.0 );
-    glTexCoord2f( 1, 0 );
-    glVertex3f( 0.0, 1.0, 1.0 );
+    glBegin( GL_TRIANGLES );
+    {
+        glTexCoord2f( 0, 0 );
+        glVertex3f( 1.0, 1.0, 1.0 );
+        glTexCoord2f( 0, 1 );
+        glVertex3f( 1.0, 1.0, 0.0 );
+        glTexCoord2f( 1, 1 );
+        glVertex3f( 0.0, 1.0, 0.0 );
+    }
+    glEnd( );
+    glBegin( GL_TRIANGLES );
+    {
+        glTexCoord2f( 1, 1 );
+        glVertex3f( 0.0, 1.0, 0.0 );
+        glTexCoord2f( 1, 0 );
+        glVertex3f( 0.0, 1.0, 1.0 );
+        glTexCoord2f( 0, 0 );
+        glVertex3f( 1.0, 1.0, 1.0 );
+    }
     glEnd( );
 
     glDisable( GL_TEXTURE_2D );
@@ -128,7 +193,7 @@ void drawSphere( ) {
 
     // glEndList( );
     glEnable( GL_TEXTURE_2D );
-
+    glFrontFace( GL_CW );
     GLUquadricObj *sphere = NULL;
     sphere = gluNewQuadric( );
     // gluQuadricDrawStyle( sphere, GLU_FILL );
@@ -140,9 +205,9 @@ void drawSphere( ) {
     gluSphere( sphere, 1.0, 20, 20 );
     glEndList( );
     gluDeleteQuadric( sphere );
-
     glBindTexture( GL_TEXTURE_2D, textures_getSkyTexture( ) );
     glCallList( mysphereID );
+    glFrontFace( GL_CCW );
 
     glDisable( GL_TEXTURE_2D );
 }
@@ -325,6 +390,7 @@ int main( int argc, char **argv ) {
 
     glutCreateWindow( "RepGame" );
     glEnable( GL_DEPTH_TEST );
+    glEnable( GL_CULL_FACE );
     glutSpecialFunc( arrowKeyDownInput );
     glutSpecialUpFunc( arrowKeyUpInput );
 
