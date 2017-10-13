@@ -5,7 +5,7 @@
 #include <unistd.h>
 
 #include "RepGame.h"
-#include "draw2d.h"
+#include "draw3d.h"
 #include "input.h"
 #include "textures.h"
 #include "ui_overlay.h"
@@ -26,192 +26,8 @@ void initilizeGameState( RepGameState *gameState ) {
     gameState->camera.z = 5.0f;
 }
 
-void drawCube( ) {
-
-    glEnable( GL_TEXTURE_2D );
-    glColor3f( 1.0f, 1.0f, 1.0f );
-
-    glBindTexture( GL_TEXTURE_2D, textures_getDirtTexture( ) );
-
-    // FRONT
-    glBegin( GL_TRIANGLES );
-    {
-
-        glTexCoord2f( 0, 1 );
-        glVertex3f( 1.0, 1.0, 0.0 );
-        glTexCoord2f( 0, 0 );
-        glVertex3f( 1.0, 0.0, 0.0 );
-        glTexCoord2f( 1, 1 );
-        glVertex3f( 0.0, 1.0, 0.0 );
-    }
-    glEnd( );
-    glBegin( GL_TRIANGLES );
-    {
-        glTexCoord2f( 1, 0 );
-        glVertex3f( 0.0, 0.0, 0.0 );
-        glTexCoord2f( 1, 1 );
-        glVertex3f( 0.0, 1.0, 0.0 );
-        glTexCoord2f( 0, 0 );
-        glVertex3f( 1.0, 0.0, 0.0 );
-    }
-    glEnd( );
-
-    // BACK
-    glBegin( GL_TRIANGLES );
-    {
-        glTexCoord2f( 0, 0 );
-        glVertex3f( 1.0, 0.0, 1.0 );
-        glTexCoord2f( 0, 1 );
-        glVertex3f( 1.0, 1.0, 1.0 );
-        glTexCoord2f( 1, 1 );
-        glVertex3f( 0.0, 1.0, 1.0 );
-    }
-    glEnd( );
-    glBegin( GL_TRIANGLES );
-    {
-
-        glTexCoord2f( 1, 1 );
-        glVertex3f( 0.0, 1.0, 1.0 );
-        glTexCoord2f( 1, 0 );
-        glVertex3f( 0.0, 0.0, 1.0 );
-        glTexCoord2f( 0, 0 );
-        glVertex3f( 1.0, 0.0, 1.0 );
-    }
-    glEnd( );
-
-    // RIGHT
-    glBegin( GL_TRIANGLES );
-    {
-        glTexCoord2f( 0, 0 );
-        glVertex3f( 1.0, 0.0, 0.0 );
-        glTexCoord2f( 0, 1 );
-        glVertex3f( 1.0, 1.0, 0.0 );
-        glTexCoord2f( 1, 1 );
-        glVertex3f( 1.0, 1.0, 1.0 );
-    }
-    glEnd( );
-    glBegin( GL_TRIANGLES );
-    {
-
-        glTexCoord2f( 1, 1 );
-        glVertex3f( 1.0, 1.0, 1.0 );
-        glTexCoord2f( 1, 0 );
-        glVertex3f( 1.0, 0.0, 1.0 );
-        glTexCoord2f( 0, 0 );
-        glVertex3f( 1.0, 0.0, 0.0 );
-    }
-    glEnd( );
-
-    // LEFT
-    glBegin( GL_TRIANGLES );
-    {
-        glTexCoord2f( 0, 0 );
-        glVertex3f( 0.0, 0.0, 1.0 );
-        glTexCoord2f( 0, 1 );
-        glVertex3f( 0.0, 1.0, 1.0 );
-        glTexCoord2f( 1, 1 );
-        glVertex3f( 0.0, 1.0, 0.0 );
-    }
-    glEnd( );
-    glBegin( GL_TRIANGLES );
-    {
-
-        glTexCoord2f( 1, 1 );
-        glVertex3f( 0.0, 1.0, 0.0 );
-        glTexCoord2f( 1, 0 );
-        glVertex3f( 0.0, 0.0, 0.0 );
-        glTexCoord2f( 0, 0 );
-        glVertex3f( 0.0, 0.0, 1.0 );
-    }
-    glEnd( );
-
-    // BOTTOM
-    glBegin( GL_TRIANGLES );
-    {
-        glTexCoord2f( 0, 0 );
-        glVertex3f( 1.0, 0.0, 0.0 );
-        glTexCoord2f( 0, 1 );
-        glVertex3f( 1.0, 0.0, 1.0 );
-        glTexCoord2f( 1, 1 );
-        glVertex3f( 0.0, 0.0, 1.0 );
-    }
-    glEnd( );
-    glBegin( GL_TRIANGLES );
-    {
-
-        glTexCoord2f( 1, 1 );
-        glVertex3f( 0.0, 0.0, 1.0 );
-        glTexCoord2f( 1, 0 );
-        glVertex3f( 0.0, 0.0, 0.0 );
-        glTexCoord2f( 0, 0 );
-        glVertex3f( 1.0, 0.0, 0.0 );
-    }
-    glEnd( );
-
-    glBindTexture( GL_TEXTURE_2D, textures_getGrassTexture( ) );
-    // TOP
-    glBegin( GL_TRIANGLES );
-    {
-        glTexCoord2f( 0, 0 );
-        glVertex3f( 1.0, 1.0, 1.0 );
-        glTexCoord2f( 0, 1 );
-        glVertex3f( 1.0, 1.0, 0.0 );
-        glTexCoord2f( 1, 1 );
-        glVertex3f( 0.0, 1.0, 0.0 );
-    }
-    glEnd( );
-    glBegin( GL_TRIANGLES );
-    {
-        glTexCoord2f( 1, 1 );
-        glVertex3f( 0.0, 1.0, 0.0 );
-        glTexCoord2f( 1, 0 );
-        glVertex3f( 0.0, 1.0, 1.0 );
-        glTexCoord2f( 0, 0 );
-        glVertex3f( 1.0, 1.0, 1.0 );
-    }
-    glEnd( );
-
-    glDisable( GL_TEXTURE_2D );
-}
-
-void drawSphere( ) {
-
-    // int list = 0;
-
-    // glNewList( list, GL_COMPILE );
-
-    // GLUquadricObj *sphere = gluNewQuadric( );
-    // // gluQuadricDrawStyle( sphere, GLU_FILL );
-    // // gluQuadricNormals( sphere, GLU_SMOOTH );
-    // // gluQuadricOrientation( sphere, GLU_OUTSIDE );
-    // gluQuadricTexture( sphere, GL_TRUE );
-
-    // // glColor3f( 0.0, 1.0, 0.0 );
-    // gluSphere( sphere, 1, 16, 16 );
-
-    // glEndList( );
-    glEnable( GL_TEXTURE_2D );
-    glFrontFace( GL_CW );
-    GLUquadricObj *sphere = NULL;
-    sphere = gluNewQuadric( );
-    // gluQuadricDrawStyle( sphere, GLU_FILL );
-    gluQuadricTexture( sphere, 1 );
-    // gluQuadricNormals( sphere, GLU_SMOOTH );
-    // Making a display list
-    int mysphereID = glGenLists( 1 );
-    glNewList( mysphereID, GL_COMPILE );
-    gluSphere( sphere, 1.0, 20, 20 );
-    glEndList( );
-    gluDeleteQuadric( sphere );
-    glBindTexture( GL_TEXTURE_2D, textures_getSkyTexture( ) );
-    glCallList( mysphereID );
-    glFrontFace( GL_CCW );
-
-    glDisable( GL_TEXTURE_2D );
-}
-
 void renderScene( RepGameState *gameState ) {
-    drawCube( );
+    draw3d_cube( );
 
     glCallList( cubeDisplayList );
 
@@ -219,7 +35,7 @@ void renderScene( RepGameState *gameState ) {
     glTranslatef( gameState->camera.x, 0, gameState->camera.z );
     glScalef( 100, 100, 100 );
     glRotatef( 270, 1, 0, 0 );
-    drawSphere( );
+    draw3d_sphere( );
     glPopMatrix( );
 }
 
@@ -234,7 +50,7 @@ void createDisplayList( ) {
             for ( int k = -50; k < 50; k++ ) {
                 glPushMatrix( );
                 glTranslatef( i, j, k );
-                drawCube( );
+                draw3d_cube( );
                 glPopMatrix( );
             }
         }
@@ -246,7 +62,7 @@ void createDisplayList( ) {
                 if ( i + k > j ) {
                     glPushMatrix( );
                     glTranslatef( i, j, k );
-                    drawCube( );
+                    draw3d_cube( );
                     glPopMatrix( );
                 }
             }

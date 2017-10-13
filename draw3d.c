@@ -1,10 +1,14 @@
 
+#include "draw3d.h"
 #include <GL/gl.h>
 #include <GL/glut.h>
 
 #include "textures.h"
 
 void draw3d_cube( ) {
+
+    glColor3f( 1.0f, 1.0f, 1.0f );
+
     glBindTexture( GL_TEXTURE_2D, textures_getDirtTexture( ) );
     // FRONT
     glBegin( GL_TRIANGLES );
