@@ -10,7 +10,7 @@ int frameCounter = 0;
 
 void ui_overlay_drawBorder( RepGameState *gameState ) {
     glColor4f( 0.0f, 0.0f, 0.0, 0.5 );
-    draw_border( 0, 0, gameState->screen.width, gameState->screen.height, BORDER_SIZE );
+    draw2d_border( 0, 0, gameState->screen.width, gameState->screen.height, BORDER_SIZE );
 }
 
 void ui_overlay_drawFPS( RepGameState *gameState ) {
@@ -24,7 +24,7 @@ void ui_overlay_drawFPS( RepGameState *gameState ) {
     // glEnable( GL_LINE_SMOOTH );
     glBlendFunc( GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA );
     glLineWidth( 2 );
-    draw_string( GLUT_STROKE_MONO_ROMAN, fps_str );
+    draw2d_string( GLUT_STROKE_MONO_ROMAN, fps_str );
     glPopMatrix( );
 }
 
@@ -34,7 +34,7 @@ void ui_overlay_drawCursor( RepGameState *gameState ) {
     // int crossThinkness = 1;
     // int crossLength = 5;
     glColor4f( 0.0f, 0.0f, 0.0, 0.5 );
-    draw_cross( screenWidth / 2, screenHeight / 2, 3, 30 );
+    draw2d_cross( screenWidth / 2, screenHeight / 2, 3, 30 );
 }
 
 void ui_overlay_draw( RepGameState *gameState ) {
