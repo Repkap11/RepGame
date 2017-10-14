@@ -5,6 +5,7 @@
 #include <unistd.h>
 
 #include "RepGame.h"
+#include "chunk.h"
 #include "draw3d.h"
 #include "input.h"
 #include "textures.h"
@@ -26,10 +27,9 @@ void initilizeGameState( RepGameState *gameState ) {
     gameState->camera.z = 5.0f;
 }
 
-void renderScene( RepGameState *gameState ) {
+void drawScene( RepGameState *gameState ) {
     draw3d_cube( );
-
-    glCallList( cubeDisplayList );
+    chunk_draw( &gameState->gameChunk );
 
     glPushMatrix( );
     glTranslatef( gameState->camera.x, 0, gameState->camera.z );
@@ -38,40 +38,8 @@ void renderScene( RepGameState *gameState ) {
     draw3d_sphere( );
     glPopMatrix( );
 }
-
-void createDisplayList( ) {
-    glPushMatrix( );
-    cubeDisplayList = glGenLists( 1 );
-    // compile the display list, store a triangle in it
-    glNewList( cubeDisplayList, GL_COMPILE );
-
-    for ( int i = -50; i < 50; i++ ) {
-        for ( int j = 0; j < 1; j++ ) {
-            for ( int k = -50; k < 50; k++ ) {
-                glPushMatrix( );
-                glTranslatef( i, j, k );
-                draw3d_cube( );
-                glPopMatrix( );
-            }
-        }
-    }
-
-    for ( int i = 0; i < 8; i++ ) {
-        for ( int j = 0; j < 8; j++ ) {
-            for ( int k = 0; k < 8; k++ ) {
-                if ( i + k > j ) {
-                    glPushMatrix( );
-                    glTranslatef( i, j, k );
-                    draw3d_cube( );
-                    glPopMatrix( );
-                }
-            }
-        }
-    }
-
-    // draw3d_cube( );
-    glEndList( );
-    glPopMatrix( );
+void renderScene( RepGameState *gameState ) {
+    chunk_create_display_list( &gameState->gameChunk );
 }
 
 void pointCamera( RepGameState *gameState ) {
@@ -85,8 +53,7 @@ void pointCamera( RepGameState *gameState ) {
 void display( RepGameState *gameState ) {
     glClear( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT );
     glColor3f( 1.0f, 1.0f, 1.0f );
-
-    renderScene( gameState );
+    drawScene( gameState );
     pointCamera( gameState );
     ui_overlay_draw( gameState );
     glutSwapBuffers( );
@@ -237,7 +204,7 @@ int main( int argc, char **argv ) {
     struct timespec tstart = {0, 0}, tend = {0, 0};
     clock_gettime( CLOCK_MONOTONIC, &tstart );
     tend = tstart;
-    createDisplayList( );
+    renderScene( &globalGameState );
     while ( !globalGameState.input.exitGame ) {
         glutMainLoopEvent( );
         // input_set_enable_mouse( 0 );

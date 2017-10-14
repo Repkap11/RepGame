@@ -1,6 +1,7 @@
 #ifndef HEADER_TEST_H
 #define HEADER_TEST_H
 
+#include "chunk.h"
 #include <stdio.h>
 
 #define DEBUG 1
@@ -32,6 +33,7 @@ typedef struct {
         float width;
         float height;
     } screen;
+    Chunk gameChunk;
 
 } RepGameState;
 
