@@ -212,6 +212,8 @@ int main( int argc, char **argv ) {
     glutInitDisplayMode( GLUT_DEPTH | GLUT_DOUBLE | GLUT_RGBA );
 
     glutCreateWindow( "RepGame" );
+    pr_debug( "Using OpenGL Version:%s", glGetString( GL_VERSION ) );
+
     glEnable( GL_DEPTH_TEST );
     glEnable( GL_CULL_FACE );
     glEnable( GL_TEXTURE_2D );
