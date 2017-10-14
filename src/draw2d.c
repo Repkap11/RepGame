@@ -1,5 +1,5 @@
 #include "draw2d.h"
-#include <GL/gl.h>
+#include <GL/glew.h>
 #include <GL/glut.h>
 
 void draw2d_rect( double left, double top, double width, double height ) {

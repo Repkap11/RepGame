@@ -1,8 +1,9 @@
 TARGET = RepGame
-LIBS = -lm -l GL -l GLU -l glut -pthread
+LIBS = -lm -l GL -l GLU -l GLEW -l glut -pthread
 CC = clang
 #CFLAGS = -Wall -Werror -std=gnu99 -Wno-unused-variable -O3 -march=native -flto
 CFLAGS = -g -Wall -Werror -std=gnu99 -Wno-unused-variable -O0 -march=native -flto
+
 export CPATH = include/
 
 run: compile
@@ -28,6 +29,6 @@ clean:
 	rm -f $(TARGET)
 
 install:
-	apt install freeglut3-dev
+	apt install freeglut3-dev libglew-dev
 
 .PHONY: all clean install compile run
