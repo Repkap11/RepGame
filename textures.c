@@ -32,7 +32,7 @@ int loadTexture( const char *filename, int size, int bmp_header ) {
     glTexParameterf( GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST );
     glTexParameterf( GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT );
     glTexParameterf( GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT );
-    glTexParameterf( GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_NEAREST ); // GL_NEAREST GL_LINEAR_MIPMAP_LINEAR
+    glTexParameterf( GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR ); // GL_NEAREST GL_LINEAR_MIPMAP_LINEAR
     gluBuild2DMipmaps( GL_TEXTURE_2D, 3, width, height, GL_BGR, GL_UNSIGNED_BYTE, data + bmp_header );
     // glTexImage2DMultisample( GL_TEXTURE_2D_MULTISAMPLE, 12, GL_RGBA8, 1, 1, false );
     // glTexStorage2D( GL_TEXTURE_2D, 12, GL_RGBA8, width, height );

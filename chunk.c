@@ -3,7 +3,7 @@
 #include "draw3d.h"
 #include <GL/gl.h>
 
-#define BLOCK_SCALE 0.8
+#define BLOCK_SCALE 1.0
 
 int chunk_get_index_from_coords( int x, int y, int z ) {
     return y * CHUNK_SIZE * CHUNK_SIZE + x * CHUNK_SIZE + z;

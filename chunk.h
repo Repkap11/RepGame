@@ -1,7 +1,7 @@
 #ifndef HEADER_CHUNK_H
 #define HEADER_CHUNK_H
 
-#define CHUNK_SIZE 8
+#define CHUNK_SIZE 128
 #define CHUNK_BLOCK_SIZE ( CHUNK_SIZE * CHUNK_SIZE * CHUNK_SIZE )
 
 typedef struct {
