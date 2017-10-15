@@ -11,7 +11,6 @@ typedef struct {
 } Chunk;
 void chunk_get_coords_from_index( int index, int *out_x, int *out_y, int *out_z );
 void chunk_load( Chunk *chunk );
-void chunk_create_display_list( Chunk *chunk );
 void chunk_draw( Chunk *chunk );
 void chunk_free( Chunk *chunk );
 

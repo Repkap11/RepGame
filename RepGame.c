@@ -29,8 +29,7 @@ void initilizeGameState( RepGameState *gameState ) {
     gameState->camera.x = 0.0f;
     gameState->camera.y = PERSON_HEIGHT;
     gameState->camera.z = 0.0f;
-    // chunk_loader_render_chunks( &gameState->gameChunks, gameState->camera.x, gameState->camera.y, gameState->camera.z );
-    // chunk_load( &gameState->gameChunk );
+    chunk_loader_init( &gameState->gameChunks );
 }
 void cleanupGameState( RepGameState *gameState ) {
     chunk_loader_free_chunks( &gameState->gameChunks );

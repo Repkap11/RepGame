@@ -26,10 +26,6 @@ int chunk_block( Chunk *chunk, int x, int y, int z ) {
     return chunk->blocks[ chunk_get_index_from_coords( x, y, z ) ];
 }
 
-void chunk_load( Chunk *chunk ) {
-    chunk->blocks = map_gen_load_block( );
-}
-
 void chunk_create_display_list( Chunk *chunk ) {
     chunk->displayList = glGenLists( 1 );
     // compile the display list, store a triangle in it
@@ -64,6 +60,12 @@ void chunk_create_display_list( Chunk *chunk ) {
     glPopMatrix( );
     glEndList( );
 }
+
+void chunk_load( Chunk *chunk ) {
+    chunk->blocks = map_gen_load_block( );
+    chunk_create_display_list( chunk );
+}
+
 void chunk_destroy_display_list( Chunk *chunk ) {
     glDeleteLists( chunk->displayList, 1 );
 }
@@ -72,5 +74,6 @@ void chunk_draw( Chunk *chunk ) {
     glCallList( chunk->displayList );
 }
 void chunk_free( Chunk *chunk ) {
+    chunk_destroy_display_list( chunk );
     map_gen_free_block( chunk->blocks );
 }
