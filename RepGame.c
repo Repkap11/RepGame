@@ -12,7 +12,7 @@
 #include "textures.h"
 #include "ui_overlay.h"
 
-#define MOVEMENT_SENSITIVITY 40.0f // How sensitive the arrow keys are
+#define MOVEMENT_SENSITIVITY 20.0f // How sensitive the arrow keys are
 #define CAMERA_SIZE 0.1f           // Defines how much crop is in front (low for minecraft)
 #define PERSON_HEIGHT 2.8f
 #define PERSON_LOOKING -0.5f
@@ -23,7 +23,7 @@ int cubeDisplayList;
 
 void initilizeGameState( RepGameState *gameState ) {
     gameState->input.exitGame = 0;
-    gameState->camera.angle_H = M_PI * 2 / 4;
+    gameState->camera.angle_H = 90;
     gameState->camera.angle_V = 0.0f;
     gameState->camera.x = 0.0f;
     gameState->camera.y = PERSON_HEIGHT;
@@ -36,6 +36,7 @@ void cleanupGameState( RepGameState *gameState ) {
 
 void drawScene( RepGameState *gameState ) {
     // draw3d_cube( );
+
     chunk_draw( &gameState->gameChunk );
 
     glPushMatrix( );
@@ -50,18 +51,17 @@ void renderScene( RepGameState *gameState ) {
 }
 
 void pointCamera( RepGameState *gameState ) {
-    glLoadIdentity( );
-    // Set the camera
-    gluLookAt( gameState->camera.x, gameState->camera.y, gameState->camera.z,                                                                      // Eye point
-               gameState->camera.x + gameState->camera.lx, gameState->camera.y + gameState->camera.ly, gameState->camera.z + gameState->camera.lz, // look at
-               0.0f, 1.0f, 0.0f );
+    glRotatef( -gameState->camera.angle_V, -1, 0, 0 );
+    glRotatef( -gameState->camera.angle_H, 0, -1, 0 );
+    glTranslatef( -gameState->camera.x, -gameState->camera.y, -gameState->camera.z );
 }
 
 void display( RepGameState *gameState ) {
     glClear( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT );
     glColor3f( 1.0f, 1.0f, 1.0f );
-    drawScene( gameState );
+    glLoadIdentity( );
     pointCamera( gameState );
+    drawScene( gameState );
     ui_overlay_draw( gameState );
     glutSwapBuffers( );
     glFlush( );
@@ -81,18 +81,18 @@ void gameTick( RepGameState *gameState ) {
         // pr_debug( "Position Diff:%d %d", gameState->input.mouse.currentPosition.x - gameState->input.mouse.previousPosition.x, gameState->input.mouse.currentPosition.y - gameState->input.mouse.previousPosition.y );
     }
 
-    gameState->camera.angle_H += ( gameState->input.mouse.currentPosition.x - gameState->input.mouse.previousPosition.x ) * 0.002f;
-    gameState->camera.angle_V += ( gameState->input.mouse.currentPosition.y - gameState->input.mouse.previousPosition.y ) * 0.002f;
+    gameState->camera.angle_H += ( gameState->input.mouse.currentPosition.x - gameState->input.mouse.previousPosition.x ) * 0.04f;
+    gameState->camera.angle_V += ( gameState->input.mouse.currentPosition.y - gameState->input.mouse.previousPosition.y ) * 0.04f;
 
-    // pr_debug( "Angle_V:%f", gameState->camera.angle_V );
-    // pr_debug( "Angle_H:%f", gameState->camera.angle_H );
+    pr_debug( "Angle_V:%f", gameState->camera.angle_V );
+    // Bpr_debug( "Angle_H:%f", gameState->camera.angle_H );
 
-    float upAngleLimit = ( M_PI / 2 ) - 0.001f;
+    float upAngleLimit = ( 90 ) - 0.001f;
     if ( gameState->camera.angle_V > upAngleLimit ) {
         gameState->camera.angle_V = upAngleLimit;
     }
 
-    float downAngleLimit = -( M_PI / 2 ) + 0.001f;
+    float downAngleLimit = -( 90 ) + 0.001f;
     if ( gameState->camera.angle_V < downAngleLimit ) {
         gameState->camera.angle_V = downAngleLimit;
     }
@@ -125,9 +125,9 @@ void gameTick( RepGameState *gameState ) {
 
     gameState->input.mouse.previousPosition.x = gameState->screen.width / 2;
     gameState->input.mouse.previousPosition.y = gameState->screen.height / 2;
-    gameState->camera.lx = sin( gameState->camera.angle_H );
-    gameState->camera.ly = -tan( gameState->camera.angle_V );
-    gameState->camera.lz = -cos( gameState->camera.angle_H );
+    gameState->camera.lx = sin( gameState->camera.angle_H * M_PI / 180 );
+    gameState->camera.ly = -tan( gameState->camera.angle_V * M_PI / 180 );
+    gameState->camera.lz = -cos( gameState->camera.angle_H * M_PI / 180 );
 
     // pr_debug( "Looking x:%f z:%f", gameState->camera.lx, gameState->camera.lz );
 }
