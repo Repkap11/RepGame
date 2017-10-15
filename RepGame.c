@@ -119,7 +119,7 @@ void gameTick( RepGameState *gameState ) {
     gameState->camera.ly = -tan( gameState->camera.angle_V );
     gameState->camera.lz = -cos( gameState->camera.angle_H );
 
-    pr_debug( "Looking x:%f z:%f", gameState->camera.lx, gameState->camera.lz );
+    // pr_debug( "Looking x:%f z:%f", gameState->camera.lx, gameState->camera.lz );
 }
 
 RepGameState globalGameState;

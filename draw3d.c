@@ -12,9 +12,12 @@ void draw3d_cube_parts( int top, int bottom, int left, int right, int front, int
 
     glColor3f( 1.0f, 1.0f, 1.0f );
 
-    glBindTexture( GL_TEXTURE_2D, textures_getDirtTexture( ) );
+    if ( top ) {
+        glBindTexture( GL_TEXTURE_2D, textures_getGrassSideTexture( ) );
+    } else {
+        glBindTexture( GL_TEXTURE_2D, textures_getDirtTexture( ) );
+    }
     if ( left ) {
-        // FRONT
         glBegin( GL_TRIANGLES );
         glTexCoord2f( 0, 1 );
         glVertex3f( 1.0, 1.0, 0.0 );
@@ -34,7 +37,6 @@ void draw3d_cube_parts( int top, int bottom, int left, int right, int front, int
         glEnd( );
     }
 
-    // BACK
     if ( right ) {
         glBegin( GL_TRIANGLES );
         glTexCoord2f( 0, 0 );
@@ -55,7 +57,6 @@ void draw3d_cube_parts( int top, int bottom, int left, int right, int front, int
         glEnd( );
     }
 
-    // RIGHT
     if ( front ) {
         glBegin( GL_TRIANGLES );
         glTexCoord2f( 0, 0 );
@@ -76,7 +77,6 @@ void draw3d_cube_parts( int top, int bottom, int left, int right, int front, int
         glEnd( );
     }
 
-    // LEFT
     if ( back ) {
         glBegin( GL_TRIANGLES );
         glTexCoord2f( 0, 0 );
@@ -97,7 +97,7 @@ void draw3d_cube_parts( int top, int bottom, int left, int right, int front, int
         glEnd( );
     }
 
-    // BOTTOM
+    glBindTexture( GL_TEXTURE_2D, textures_getDirtTexture( ) );
     if ( bottom ) {
         glBegin( GL_TRIANGLES );
         glTexCoord2f( 0, 0 );
@@ -119,7 +119,6 @@ void draw3d_cube_parts( int top, int bottom, int left, int right, int front, int
     }
 
     glBindTexture( GL_TEXTURE_2D, textures_getGrassTexture( ) );
-    // TOP
     if ( top ) {
         glBegin( GL_TRIANGLES );
         glTexCoord2f( 0, 0 );

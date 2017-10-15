@@ -45,10 +45,11 @@ int loadTexture( const char *filename, int size, int bmp_header ) {
     return texture;
 }
 
-int dirt_texture, grass_texture, sky_texture;
+int dirt_texture, grass_texture, grass_side_texture, sky_texture;
 void textures_populate( ) {
-    dirt_texture = loadTexture( "./bitmaps/grass_side.bmp", 16, 54 );
+    grass_side_texture = loadTexture( "./bitmaps/grass_side.bmp", 16, 54 );
     grass_texture = loadTexture( "./bitmaps/grass-top.bmp", 16, 54 );
+    dirt_texture = loadTexture( "./bitmaps/dirt.bmp", 16, 54 );
     sky_texture = loadTexture( "./bitmaps/sky3.bmp", 64, 54 );
 }
 
@@ -60,4 +61,7 @@ int textures_getGrassTexture( ) {
 }
 int textures_getSkyTexture( ) {
     return sky_texture;
+}
+int textures_getGrassSideTexture( ) {
+    return grass_side_texture;
 }
