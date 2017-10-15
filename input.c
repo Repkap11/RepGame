@@ -6,11 +6,11 @@
 void input_arrowKeyDownInput( InputState *inputState, int key, int x, int y ) {
     switch ( key ) {
         case GLUT_KEY_UP:
-            inputState->arrows.up = 1;
+            inputState->arrows.front = 1;
             // pr_debug( "Up Arrow 1 %d %d", x, y );
             break;
         case GLUT_KEY_DOWN:
-            inputState->arrows.down = 1;
+            inputState->arrows.back = 1;
             // pr_debug( "Down Arrow 1 %d %d", x, y );
             break;
         case GLUT_KEY_LEFT:
@@ -21,17 +21,25 @@ void input_arrowKeyDownInput( InputState *inputState, int key, int x, int y ) {
             inputState->arrows.right = 1;
             // pr_debug( "Right Arrow 1 %d %d", x, y );
             break;
+        case 114: // Left Control
+        case 115: // Right Control
+            inputState->arrows.down = 1;
+            // pr_debug( "Right Arrow 0 %d %d", x, y );
+            break;
+        default:
+            pr_debug( "Got Unhandled Special Key Down: %d", key );
+            break;
     }
 }
 
 void input_arrowKeyUpInput( InputState *inputState, int key, int x, int y ) {
     switch ( key ) {
         case GLUT_KEY_UP:
-            inputState->arrows.up = 0;
+            inputState->arrows.front = 0;
             // pr_debug( "Up Arrow 0 %d %d", x, y );
             break;
         case GLUT_KEY_DOWN:
-            inputState->arrows.down = 0;
+            inputState->arrows.back = 0;
             // pr_debug( "Down Arrow 0 %d %d", x, y );
             break;
         case GLUT_KEY_LEFT:
@@ -41,6 +49,15 @@ void input_arrowKeyUpInput( InputState *inputState, int key, int x, int y ) {
         case GLUT_KEY_RIGHT:
             inputState->arrows.right = 0;
             // pr_debug( "Right Arrow 0 %d %d", x, y );
+            break;
+
+        case 114: // Left Control
+        case 115: // Right Control
+            inputState->arrows.down = 0;
+            // pr_debug( "Right Arrow 0 %d %d", x, y );
+            break;
+        default:
+            pr_debug( "Got Unhandled Special Key Up: %d", key );
             break;
     }
 }
@@ -74,16 +91,18 @@ void input_keysInput( InputState *inputState, unsigned char key, int x, int y, i
             inputState->exitGame = 1;
             break;
 
-        case 119:
+        case 'w':
+        case 'o':
             if ( pressed ) {
-                inputState->arrows.up = 1;
+                inputState->arrows.front = 1;
             } else {
-                inputState->arrows.up = 0;
+                inputState->arrows.front = 0;
             }
 
             break;
 
-        case 97:
+        case 'a':
+        case 'k':
             if ( pressed ) {
                 inputState->arrows.left = 1;
             } else {
@@ -92,20 +111,42 @@ void input_keysInput( InputState *inputState, unsigned char key, int x, int y, i
 
             break;
 
-        case 115:
+        case 's':
+        case 'l':
+
             if ( pressed ) {
-                inputState->arrows.down = 1;
+                inputState->arrows.back = 1;
             } else {
-                inputState->arrows.down = 0;
+                inputState->arrows.back = 0;
             }
 
             break;
 
-        case 100:
+        case 'd':
+        case ';':
+
             if ( pressed ) {
                 inputState->arrows.right = 1;
             } else {
                 inputState->arrows.right = 0;
+            }
+
+            break;
+
+        case ' ':
+            if ( pressed ) {
+                inputState->arrows.up = 1;
+            } else {
+                inputState->arrows.up = 0;
+            }
+
+            break;
+
+        case '\'':
+            if ( pressed ) {
+                inputState->arrows.down = 1;
+            } else {
+                inputState->arrows.down = 0;
             }
 
             break;

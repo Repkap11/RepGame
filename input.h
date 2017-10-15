@@ -5,6 +5,8 @@ typedef struct {
     struct {
         int left;
         int right;
+        int front;
+        int back;
         int up;
         int down;
     } arrows;

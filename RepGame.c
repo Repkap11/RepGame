@@ -104,13 +104,21 @@ void gameTick( RepGameState *gameState ) {
         gameState->camera.x -= gameState->camera.lz * fraction;
         gameState->camera.z += gameState->camera.lx * fraction;
     }
-    if ( gameState->input.arrows.up ) {
+    if ( gameState->input.arrows.front ) {
         gameState->camera.x += gameState->camera.lx * fraction;
         gameState->camera.z += gameState->camera.lz * fraction;
     }
-    if ( gameState->input.arrows.down ) {
+    if ( gameState->input.arrows.back ) {
         gameState->camera.x -= gameState->camera.lx * fraction;
         gameState->camera.z -= gameState->camera.lz * fraction;
+    }
+    if ( gameState->input.arrows.up ) {
+        // pr_debug( "Up" );
+        gameState->camera.y += fraction;
+    }
+    if ( gameState->input.arrows.down ) {
+        // pr_debug( "Down" );
+        gameState->camera.y -= fraction;
     }
 
     gameState->input.mouse.previousPosition.x = gameState->screen.width / 2;

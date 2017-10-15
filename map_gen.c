@@ -8,9 +8,9 @@ int *map_gen_load_block( ) {
         int x, y, z;
         int value = 0;
         chunk_get_coords_from_index( index, &x, &y, &z );
-        // if ( x == 0 ) {
-        value = 1;
-        //}
+        if ( y == 0 ) {
+            value = 1;
+        }
         blocks[ index ] = value;
     }
 
