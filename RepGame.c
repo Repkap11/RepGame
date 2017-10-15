@@ -12,10 +12,12 @@
 #include "textures.h"
 #include "ui_overlay.h"
 
-#define MOVEMENT_SENSITIVITY 10.0f // How sensitive the arrow keys are
+#define MOVEMENT_SENSITIVITY 40.0f // How sensitive the arrow keys are
 #define CAMERA_SIZE 0.1f           // Defines how much crop is in front (low for minecraft)
 #define PERSON_HEIGHT 2.8f
 #define PERSON_LOOKING -0.5f
+#define DRAW_DISTANCE 100
+#define SKY_BOX_DISTANCE DRAW_DISTANCE * 0.95
 
 int cubeDisplayList;
 
@@ -37,8 +39,8 @@ void drawScene( RepGameState *gameState ) {
     chunk_draw( &gameState->gameChunk );
 
     glPushMatrix( );
-    glTranslatef( gameState->camera.x, 0, gameState->camera.z );
-    glScalef( 100, 100, 100 );
+    glTranslatef( gameState->camera.x, gameState->camera.y, gameState->camera.z );
+    glScalef( SKY_BOX_DISTANCE, SKY_BOX_DISTANCE, SKY_BOX_DISTANCE );
     glRotatef( 270, 1, 0, 0 );
     draw3d_sphere( );
     glPopMatrix( );
@@ -184,7 +186,7 @@ void changeSize( int w, int h ) {
     glViewport( 0, 0, w, h );
 
     // Set the correct perspective.
-    gluPerspective( 45, ratio, CAMERA_SIZE, 1000 );
+    gluPerspective( 45, ratio, CAMERA_SIZE, DRAW_DISTANCE );
 
     // Get Back to the Modelview
     glMatrixMode( GL_MODELVIEW );

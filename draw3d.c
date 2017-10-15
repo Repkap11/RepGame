@@ -165,7 +165,7 @@ void draw3d_sphere( ) {
     // Making a display list
     int mysphereID = glGenLists( 1 );
     glNewList( mysphereID, GL_COMPILE );
-    gluSphere( sphere, 1.0, 20, 20 );
+    gluSphere( sphere, 1.0, 10, 10 );
     glEndList( );
     gluDeleteQuadric( sphere );
     glBindTexture( GL_TEXTURE_2D, textures_getSkyTexture( ) );

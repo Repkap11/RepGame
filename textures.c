@@ -4,9 +4,8 @@
 #include "draw2d.h"
 #include "textures.h"
 
-int loadTexture( const char *filename, int size, int bmp_header ) {
+int loadTexture( const char *filename, int width, int height, int bmp_header ) {
     GLuint texture;
-    int width, height;
     unsigned char *data;
     FILE *file;
     file = fopen( filename, "rb" );
@@ -14,10 +13,7 @@ int loadTexture( const char *filename, int size, int bmp_header ) {
         pr_debug( "Error rendering texture %s", filename );
         return 0;
     }
-    width = size;
-    height = size;
     data = ( unsigned char * )malloc( width * height * 3 + bmp_header );
-    // int size = fseek(file,);
     fread( data, width * height * 3 + bmp_header, 1, file );
     fclose( file );
 
@@ -47,10 +43,10 @@ int loadTexture( const char *filename, int size, int bmp_header ) {
 
 int dirt_texture, grass_texture, grass_side_texture, sky_texture;
 void textures_populate( ) {
-    grass_side_texture = loadTexture( "./bitmaps/grass_side.bmp", 16, 54 );
-    grass_texture = loadTexture( "./bitmaps/grass-top.bmp", 16, 54 );
-    dirt_texture = loadTexture( "./bitmaps/dirt.bmp", 16, 54 );
-    sky_texture = loadTexture( "./bitmaps/sky3.bmp", 64, 54 );
+    grass_side_texture = loadTexture( "./bitmaps/grass_side.bmp", 16, 16, 54 );
+    grass_texture = loadTexture( "./bitmaps/grass-top.bmp", 16, 16, 54 );
+    dirt_texture = loadTexture( "./bitmaps/dirt.bmp", 16, 16, 54 );
+    sky_texture = loadTexture( "./bitmaps/sky4.bmp", 2048, 1024, 54 );
 }
 
 int textures_getDirtTexture( ) {
