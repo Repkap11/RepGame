@@ -19,7 +19,6 @@ int loadTexture( const char *filename, int size, int bmp_header ) {
     data = ( unsigned char * )malloc( width * height * 3 + bmp_header );
     // int size = fseek(file,);
     fread( data, width * height * 3 + bmp_header, 1, file );
-    pr_debug( "Finished reading file" );
     fclose( file );
 
     glGenTextures( 1, &texture );
@@ -28,7 +27,6 @@ int loadTexture( const char *filename, int size, int bmp_header ) {
 
     float fLargest;
     glGetFloatv( GL_MAX_TEXTURE_MAX_ANISOTROPY_EXT, &fLargest );
-    pr_debug( "Largest Fitering:%f", fLargest );
     // glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAX_ANISOTROPY_EXT, fLargest);
 
     glTexParameterf( GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST );
@@ -44,7 +42,6 @@ int loadTexture( const char *filename, int size, int bmp_header ) {
     // glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB8, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, data);
 
     free( data );
-    pr_debug( "Done with loading texture" );
     return texture;
 }
 

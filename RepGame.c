@@ -8,27 +8,32 @@
 #include "chunk.h"
 #include "draw3d.h"
 #include "input.h"
+#include "map_gen.h"
 #include "textures.h"
 #include "ui_overlay.h"
 
 #define MOVEMENT_SENSITIVITY 10.0f // How sensitive the arrow keys are
 #define CAMERA_SIZE 0.1f           // Defines how much crop is in front (low for minecraft)
-#define PERSON_HEIGHT 10.0f
+#define PERSON_HEIGHT 2.8f
 #define PERSON_LOOKING -0.5f
 
 int cubeDisplayList;
+
 void initilizeGameState( RepGameState *gameState ) {
     gameState->input.exitGame = 0;
-    gameState->camera.angle_H = 0.0f;
-    gameState->camera.angle_V = 0.3f;
-    gameState->camera.lz = -1.0f;
-    gameState->camera.x = 0.5f;
+    gameState->camera.angle_H = M_PI * 3 / 4;
+    gameState->camera.angle_V = 0.0f;
+    gameState->camera.x = 0.0f;
     gameState->camera.y = PERSON_HEIGHT;
-    gameState->camera.z = 5.0f;
+    gameState->camera.z = 0.0f;
+    gameState->gameChunk.blocks = map_gen_load_block( );
+}
+void cleanupGameState( RepGameState *gameState ) {
+    map_gen_load_block( gameState->gameChunk.blocks );
 }
 
 void drawScene( RepGameState *gameState ) {
-    draw3d_cube( );
+    // draw3d_cube( );
     chunk_draw( &gameState->gameChunk );
 
     glPushMatrix( );
@@ -78,6 +83,7 @@ void gameTick( RepGameState *gameState ) {
     gameState->camera.angle_V += ( gameState->input.mouse.currentPosition.y - gameState->input.mouse.previousPosition.y ) * 0.002f;
 
     // pr_debug( "Angle_V:%f", gameState->camera.angle_V );
+    // pr_debug( "Angle_H:%f", gameState->camera.angle_H );
 
     float upAngleLimit = ( M_PI / 2 ) - 0.001f;
     if ( gameState->camera.angle_V > upAngleLimit ) {
@@ -144,9 +150,15 @@ void mouseMove( int x, int y ) {
 
 void changeSize( int w, int h ) {
 
-    pr_debug( "Screen Size Change:%dx%d", w, h );
+    // pr_debug( "Screen Size Change:%dx%d", w, h );
     globalGameState.screen.width = w;
     globalGameState.screen.height = h;
+
+    globalGameState.input.mouse.currentPosition.x = w / 2;
+    globalGameState.input.mouse.currentPosition.y = h / 2;
+
+    globalGameState.input.mouse.previousPosition.x = w / 2;
+    globalGameState.input.mouse.previousPosition.y = h / 2;
 
     // Prevent a divide by zero, when window is too short
     // (you cant make a window of zero width).
@@ -198,8 +210,8 @@ int main( int argc, char **argv ) {
     glutReshapeFunc( changeSize );
     glutPassiveMotionFunc( mouseMove );
     glutMotionFunc( mouseMove );
-    initilizeGameState( &globalGameState );
     textures_populate( );
+    initilizeGameState( &globalGameState );
 
     struct timespec tstart = {0, 0}, tend = {0, 0};
     clock_gettime( CLOCK_MONOTONIC, &tstart );
