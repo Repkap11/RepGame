@@ -26,7 +26,9 @@ void draw2d_cross( double center_h, double center_v, double thinkness, double le
 
 void draw2d_string( void *font, char *string ) {
     char *c;
+    glPushMatrix( );
     for ( c = string; *c != '\0'; c++ ) {
         glutStrokeCharacter( font, *c );
     }
+    glPopMatrix( );
 }
