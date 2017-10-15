@@ -21,7 +21,7 @@ int cubeDisplayList;
 
 void initilizeGameState( RepGameState *gameState ) {
     gameState->input.exitGame = 0;
-    gameState->camera.angle_H = M_PI * 3 / 4;
+    gameState->camera.angle_H = M_PI * 2 / 4;
     gameState->camera.angle_V = 0.0f;
     gameState->camera.x = 0.0f;
     gameState->camera.y = PERSON_HEIGHT;
@@ -29,7 +29,7 @@ void initilizeGameState( RepGameState *gameState ) {
     gameState->gameChunk.blocks = map_gen_load_block( );
 }
 void cleanupGameState( RepGameState *gameState ) {
-    map_gen_load_block( gameState->gameChunk.blocks );
+    map_gen_free_block( gameState->gameChunk.blocks );
 }
 
 void drawScene( RepGameState *gameState ) {
@@ -117,9 +117,9 @@ void gameTick( RepGameState *gameState ) {
     gameState->input.mouse.previousPosition.y = gameState->screen.height / 2;
     gameState->camera.lx = sin( gameState->camera.angle_H );
     gameState->camera.ly = -tan( gameState->camera.angle_V );
-    // pr_debug( "Vector_Y:%f", gameState->camera.ly );
-
     gameState->camera.lz = -cos( gameState->camera.angle_H );
+
+    pr_debug( "Looking x:%f z:%f", gameState->camera.lx, gameState->camera.lz );
 }
 
 RepGameState globalGameState;

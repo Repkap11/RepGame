@@ -6,147 +6,139 @@
 #include "textures.h"
 
 void draw3d_cube( ) {
+    draw3d_cube_parts( 1, 1, 1, 1, 1, 1 );
+}
+void draw3d_cube_parts( int top, int bottom, int left, int right, int front, int back ) {
 
     glColor3f( 1.0f, 1.0f, 1.0f );
 
     glBindTexture( GL_TEXTURE_2D, textures_getDirtTexture( ) );
-    // FRONT
-    glBegin( GL_TRIANGLES );
-    {
-
+    if ( left ) {
+        // FRONT
+        glBegin( GL_TRIANGLES );
         glTexCoord2f( 0, 1 );
         glVertex3f( 1.0, 1.0, 0.0 );
         glTexCoord2f( 0, 0 );
         glVertex3f( 1.0, 0.0, 0.0 );
         glTexCoord2f( 1, 1 );
         glVertex3f( 0.0, 1.0, 0.0 );
-    }
-    glEnd( );
-    glBegin( GL_TRIANGLES );
-    {
+        glEnd( );
+
+        glBegin( GL_TRIANGLES );
         glTexCoord2f( 1, 0 );
         glVertex3f( 0.0, 0.0, 0.0 );
         glTexCoord2f( 1, 1 );
         glVertex3f( 0.0, 1.0, 0.0 );
         glTexCoord2f( 0, 0 );
         glVertex3f( 1.0, 0.0, 0.0 );
+        glEnd( );
     }
-    glEnd( );
 
     // BACK
-    glBegin( GL_TRIANGLES );
-    {
+    if ( right ) {
+        glBegin( GL_TRIANGLES );
         glTexCoord2f( 0, 0 );
         glVertex3f( 1.0, 0.0, 1.0 );
         glTexCoord2f( 0, 1 );
         glVertex3f( 1.0, 1.0, 1.0 );
         glTexCoord2f( 1, 1 );
         glVertex3f( 0.0, 1.0, 1.0 );
-    }
-    glEnd( );
-    glBegin( GL_TRIANGLES );
-    {
+        glEnd( );
 
+        glBegin( GL_TRIANGLES );
         glTexCoord2f( 1, 1 );
         glVertex3f( 0.0, 1.0, 1.0 );
         glTexCoord2f( 1, 0 );
         glVertex3f( 0.0, 0.0, 1.0 );
         glTexCoord2f( 0, 0 );
         glVertex3f( 1.0, 0.0, 1.0 );
+        glEnd( );
     }
-    glEnd( );
 
     // RIGHT
-    glBegin( GL_TRIANGLES );
-    {
+    if ( front ) {
+        glBegin( GL_TRIANGLES );
         glTexCoord2f( 0, 0 );
         glVertex3f( 1.0, 0.0, 0.0 );
         glTexCoord2f( 0, 1 );
         glVertex3f( 1.0, 1.0, 0.0 );
         glTexCoord2f( 1, 1 );
         glVertex3f( 1.0, 1.0, 1.0 );
-    }
-    glEnd( );
-    glBegin( GL_TRIANGLES );
-    {
+        glEnd( );
 
+        glBegin( GL_TRIANGLES );
         glTexCoord2f( 1, 1 );
         glVertex3f( 1.0, 1.0, 1.0 );
         glTexCoord2f( 1, 0 );
         glVertex3f( 1.0, 0.0, 1.0 );
         glTexCoord2f( 0, 0 );
         glVertex3f( 1.0, 0.0, 0.0 );
+        glEnd( );
     }
-    glEnd( );
 
     // LEFT
-    glBegin( GL_TRIANGLES );
-    {
+    if ( back ) {
+        glBegin( GL_TRIANGLES );
         glTexCoord2f( 0, 0 );
         glVertex3f( 0.0, 0.0, 1.0 );
         glTexCoord2f( 0, 1 );
         glVertex3f( 0.0, 1.0, 1.0 );
         glTexCoord2f( 1, 1 );
         glVertex3f( 0.0, 1.0, 0.0 );
-    }
-    glEnd( );
-    glBegin( GL_TRIANGLES );
-    {
+        glEnd( );
 
+        glBegin( GL_TRIANGLES );
         glTexCoord2f( 1, 1 );
         glVertex3f( 0.0, 1.0, 0.0 );
         glTexCoord2f( 1, 0 );
         glVertex3f( 0.0, 0.0, 0.0 );
         glTexCoord2f( 0, 0 );
         glVertex3f( 0.0, 0.0, 1.0 );
+        glEnd( );
     }
-    glEnd( );
 
     // BOTTOM
-    glBegin( GL_TRIANGLES );
-    {
+    if ( bottom ) {
+        glBegin( GL_TRIANGLES );
         glTexCoord2f( 0, 0 );
         glVertex3f( 1.0, 0.0, 0.0 );
         glTexCoord2f( 0, 1 );
         glVertex3f( 1.0, 0.0, 1.0 );
         glTexCoord2f( 1, 1 );
         glVertex3f( 0.0, 0.0, 1.0 );
-    }
-    glEnd( );
-    glBegin( GL_TRIANGLES );
-    {
+        glEnd( );
 
+        glBegin( GL_TRIANGLES );
         glTexCoord2f( 1, 1 );
         glVertex3f( 0.0, 0.0, 1.0 );
         glTexCoord2f( 1, 0 );
         glVertex3f( 0.0, 0.0, 0.0 );
         glTexCoord2f( 0, 0 );
         glVertex3f( 1.0, 0.0, 0.0 );
+        glEnd( );
     }
-    glEnd( );
 
     glBindTexture( GL_TEXTURE_2D, textures_getGrassTexture( ) );
     // TOP
-    glBegin( GL_TRIANGLES );
-    {
+    if ( top ) {
+        glBegin( GL_TRIANGLES );
         glTexCoord2f( 0, 0 );
         glVertex3f( 1.0, 1.0, 1.0 );
         glTexCoord2f( 0, 1 );
         glVertex3f( 1.0, 1.0, 0.0 );
         glTexCoord2f( 1, 1 );
         glVertex3f( 0.0, 1.0, 0.0 );
-    }
-    glEnd( );
-    glBegin( GL_TRIANGLES );
-    {
+        glEnd( );
+
+        glBegin( GL_TRIANGLES );
         glTexCoord2f( 1, 1 );
         glVertex3f( 0.0, 1.0, 0.0 );
         glTexCoord2f( 1, 0 );
         glVertex3f( 0.0, 1.0, 1.0 );
         glTexCoord2f( 0, 0 );
         glVertex3f( 1.0, 1.0, 1.0 );
+        glEnd( );
     }
-    glEnd( );
 }
 
 void draw3d_sphere( ) {

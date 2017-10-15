@@ -3,7 +3,7 @@
 #include "draw3d.h"
 #include <GL/gl.h>
 
-#define BLOCK_SCALE 0.95
+#define BLOCK_SCALE 0.8
 
 int chunk_get_index_from_coords( int x, int y, int z ) {
     return y * CHUNK_SIZE * CHUNK_SIZE + x * CHUNK_SIZE + z;
@@ -37,10 +37,10 @@ void chunk_create_display_list( Chunk *chunk ) {
             chunk_get_coords_from_index( index, &x, &y, &z );
             int upBlock = chunk_block( chunk, x + 0, y + 1, z + 0 );
             int downBlock = chunk_block( chunk, x + 0, y - 1, z + 0 );
-            int leftBlock = chunk_block( chunk, x + 1, y + 0, z + 0 );
-            int rightBlock = chunk_block( chunk, x - 1, y + 0, z + 0 );
-            int frontBlock = chunk_block( chunk, x + 0, y + 0, z + 1 );
-            int backBlock = chunk_block( chunk, x + 0, y + 0, z - 1 );
+            int leftBlock = chunk_block( chunk, x + 0, y + 0, z - 1 );
+            int rightBlock = chunk_block( chunk, x + 0, y + 0, z + 1 );
+            int frontBlock = chunk_block( chunk, x + 1, y + 0, z + 0 );
+            int backBlock = chunk_block( chunk, x - 1, y + 0, z + 0 );
 
             if ( upBlock && downBlock && leftBlock && rightBlock && frontBlock && backBlock ) {
                 continue;
@@ -49,7 +49,8 @@ void chunk_create_display_list( Chunk *chunk ) {
             glPushMatrix( );
             glTranslatef( x, y, z );
             glScalef( BLOCK_SCALE, BLOCK_SCALE, BLOCK_SCALE );
-            draw3d_cube( );
+            // draw3d_cube( );
+            draw3d_cube_parts( !upBlock, !downBlock, !leftBlock, !rightBlock, !frontBlock, !backBlock );
             glPopMatrix( );
         } else {
             // pr_debug( "i:%d x%d y:%d z:%d", index, x, y, z );
