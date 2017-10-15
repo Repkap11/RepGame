@@ -1,9 +1,10 @@
 #include "chunk.h"
 #include "RepGame.h"
 #include "draw3d.h"
+#include "map_gen.h"
 #include <GL/gl.h>
 
-#define BLOCK_SCALE 1.0
+#define BLOCK_SCALE 1
 
 int chunk_get_index_from_coords( int x, int y, int z ) {
     return y * CHUNK_SIZE * CHUNK_SIZE + x * CHUNK_SIZE + z;
@@ -25,12 +26,16 @@ int chunk_block( Chunk *chunk, int x, int y, int z ) {
     return chunk->blocks[ chunk_get_index_from_coords( x, y, z ) ];
 }
 
+void chunk_load( Chunk *chunk ) {
+    chunk->blocks = map_gen_load_block( );
+}
+
 void chunk_create_display_list( Chunk *chunk ) {
-    glPushMatrix( );
     chunk->displayList = glGenLists( 1 );
     // compile the display list, store a triangle in it
     glNewList( chunk->displayList, GL_COMPILE );
-
+    glPushMatrix( );
+    glTranslatef( chunk->chunk_x * CHUNK_SIZE, chunk->chunk_y * CHUNK_SIZE, chunk->chunk_z * CHUNK_SIZE );
     for ( int index = 0; index < CHUNK_BLOCK_SIZE; index++ ) {
         int x, y, z;
         if ( chunk->blocks[ index ] ) {
@@ -56,8 +61,8 @@ void chunk_create_display_list( Chunk *chunk ) {
             // pr_debug( "i:%d x%d y:%d z:%d", index, x, y, z );
         }
     }
-    glEndList( );
     glPopMatrix( );
+    glEndList( );
 }
 void chunk_destroy_display_list( Chunk *chunk ) {
     glDeleteLists( chunk->displayList, 1 );
@@ -65,4 +70,7 @@ void chunk_destroy_display_list( Chunk *chunk ) {
 
 void chunk_draw( Chunk *chunk ) {
     glCallList( chunk->displayList );
+}
+void chunk_free( Chunk *chunk ) {
+    map_gen_free_block( chunk->blocks );
 }

@@ -6,18 +6,19 @@
 
 #include "RepGame.h"
 #include "chunk.h"
+#include "chunk_loader.h"
 #include "draw3d.h"
 #include "input.h"
 #include "map_gen.h"
 #include "textures.h"
 #include "ui_overlay.h"
 
-#define MOVEMENT_SENSITIVITY 20.0f // How sensitive the arrow keys are
+#define MOVEMENT_SENSITIVITY 10.0f // How sensitive the arrow keys are
 #define CAMERA_SIZE 0.1f           // Defines how much crop is in front (low for minecraft)
 #define PERSON_HEIGHT 2.8f
 #define PERSON_LOOKING -0.5f
-#define DRAW_DISTANCE 100
-#define SKY_BOX_DISTANCE DRAW_DISTANCE * 0.95
+#define DRAW_DISTANCE 10000
+#define SKY_BOX_DISTANCE DRAW_DISTANCE * 0.9
 
 int cubeDisplayList;
 
@@ -28,16 +29,18 @@ void initilizeGameState( RepGameState *gameState ) {
     gameState->camera.x = 0.0f;
     gameState->camera.y = PERSON_HEIGHT;
     gameState->camera.z = 0.0f;
-    gameState->gameChunk.blocks = map_gen_load_block( );
+    // chunk_loader_render_chunks( &gameState->gameChunks, gameState->camera.x, gameState->camera.y, gameState->camera.z );
+    // chunk_load( &gameState->gameChunk );
 }
 void cleanupGameState( RepGameState *gameState ) {
-    map_gen_free_block( gameState->gameChunk.blocks );
+    chunk_loader_free_chunks( &gameState->gameChunks );
+    // chunk_free( &gameState->gameChunk );
 }
 
 void drawScene( RepGameState *gameState ) {
-    // draw3d_cube( );
-
-    chunk_draw( &gameState->gameChunk );
+    // draw3d_cube( );cleanupGameState
+    chunk_loader_render_chunks( &gameState->gameChunks, gameState->camera.x, gameState->camera.y, gameState->camera.z );
+    chunk_loader_draw_chunks( &gameState->gameChunks );
 
     glPushMatrix( );
     glTranslatef( gameState->camera.x, gameState->camera.y, gameState->camera.z );
@@ -45,9 +48,6 @@ void drawScene( RepGameState *gameState ) {
     glRotatef( 270, 1, 0, 0 );
     draw3d_sphere( );
     glPopMatrix( );
-}
-void renderScene( RepGameState *gameState ) {
-    chunk_create_display_list( &gameState->gameChunk );
 }
 
 void pointCamera( RepGameState *gameState ) {
@@ -58,6 +58,7 @@ void pointCamera( RepGameState *gameState ) {
 
 void display( RepGameState *gameState ) {
     glClear( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT );
+    glLoadIdentity( );
     glColor3f( 1.0f, 1.0f, 1.0f );
     glLoadIdentity( );
     pointCamera( gameState );
@@ -84,7 +85,7 @@ void gameTick( RepGameState *gameState ) {
     gameState->camera.angle_H += ( gameState->input.mouse.currentPosition.x - gameState->input.mouse.previousPosition.x ) * 0.04f;
     gameState->camera.angle_V += ( gameState->input.mouse.currentPosition.y - gameState->input.mouse.previousPosition.y ) * 0.04f;
 
-    pr_debug( "Angle_V:%f", gameState->camera.angle_V );
+    // pr_debug( "Angle_V:%f", gameState->camera.angle_V );
     // Bpr_debug( "Angle_H:%f", gameState->camera.angle_H );
 
     float upAngleLimit = ( 90 ) - 0.001f;
@@ -226,7 +227,6 @@ int main( int argc, char **argv ) {
     struct timespec tstart = {0, 0}, tend = {0, 0};
     clock_gettime( CLOCK_MONOTONIC, &tstart );
     tend = tstart;
-    renderScene( &globalGameState );
     while ( !globalGameState.input.exitGame ) {
         glutMainLoopEvent( );
         // input_set_enable_mouse( 0 );
@@ -250,6 +250,7 @@ int main( int argc, char **argv ) {
             ( void )wait_time_us;
         }
     }
+    cleanupGameState( &globalGameState );
     glutLeaveMainLoop( );
     return 0;
 }

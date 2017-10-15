@@ -20,7 +20,7 @@ void ui_overlay_drawFPS( RepGameState *gameState ) {
     glTranslatef( 14, 30, 0 );
     glScalef( 0.15, 0.15, 0.15 );
     glRotatef( 180, 1, 0, 0 );
-    glColor4f( 1.0f, 1.0f, 1.0, 1 );
+    glColor4f( 0.0f, 0.0f, 0.0, 1 );
     glBlendFunc( GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA );
     glLineWidth( 2 );
     draw2d_string( GLUT_STROKE_MONO_ROMAN, fps_str );
