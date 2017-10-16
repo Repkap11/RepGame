@@ -1,21 +1,8 @@
 #include "map_gen.h"
 #include "RepGame.h"
-#include <math.h>
+#include "perlin_noise.h"
 
 #include <stdlib.h>
-
-int perlin_noise( int x, int y, int z ) {
-    if ( y == 0 ) {
-        return 1;
-    }
-    if ( y < 0 ) {
-        return 0;
-    }
-    if ( sin( ( double )( x + z ) / 10.0 ) > ( y ) + z / 10.0 ) {
-        return 1;
-    }
-    return 0;
-}
 
 int *map_gen_load_block( Chunk *chunk, int draw_block ) {
     int chunk_offset_x = chunk->chunk_x * CHUNK_SIZE;

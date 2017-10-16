@@ -3,8 +3,10 @@
 #include <math.h>
 #include <stdlib.h>
 
-#define CHUNK_RADIUS 2
-#define MAX_LOADED_CHUNKS ( ( 2 * CHUNK_RADIUS + 1 ) * ( 2 * CHUNK_RADIUS + 1 ) * ( 2 * CHUNK_RADIUS + 1 ) )
+#define CHUNK_RADIUS_X 3
+#define CHUNK_RADIUS_Y 3
+#define CHUNK_RADIUS_Z 3
+#define MAX_LOADED_CHUNKS ( ( 2 * CHUNK_RADIUS_X + 1 ) * ( 2 * CHUNK_RADIUS_Y + 1 ) * ( 2 * CHUNK_RADIUS_Z + 1 ) )
 
 void chunk_loader_init( LoadedChunks *loadedChunks ) {
     loadedChunks->loadedChunkArray = malloc( MAX_LOADED_CHUNKS * sizeof( LoadedChunk ) );
@@ -47,9 +49,9 @@ void chunk_loader_render_chunks( LoadedChunks *loadedChunks, float camera_x, flo
 
         if ( !loadedChunks->loaded_any ) {
             int nextChunk = 0;
-            for ( int i = -CHUNK_RADIUS; i <= CHUNK_RADIUS; i++ ) {
-                for ( int j = -CHUNK_RADIUS; j <= CHUNK_RADIUS; j++ ) {
-                    for ( int k = -CHUNK_RADIUS; k <= CHUNK_RADIUS; k++ ) {
+            for ( int i = -CHUNK_RADIUS_X; i <= CHUNK_RADIUS_X; i++ ) {
+                for ( int j = -CHUNK_RADIUS_Y; j <= CHUNK_RADIUS_Y; j++ ) {
+                    for ( int k = -CHUNK_RADIUS_Z; k <= CHUNK_RADIUS_Z; k++ ) {
                         chunk_loader_load_chunk( loadedChunks, nextChunk, chunk_x + i, chunk_y + j, chunk_z + k );
                         // pr_debug( "Initing chunk %d", nextChunk );
                         nextChunk = ( nextChunk + 1 );
@@ -69,9 +71,9 @@ void chunk_loader_render_chunks( LoadedChunks *loadedChunks, float camera_x, flo
                 int dist_z_abs = abs( dist_z );
 
                 // if ( dist_x_abs * dist_x_abs + dist_y_abs * dist_y_abs + dist_z_abs * dist_z_abs > CHUNK_RADIUS * CHUNK_RADIUS ) {
-                if ( dist_x_abs > CHUNK_RADIUS || //
-                     dist_y_abs > CHUNK_RADIUS || //
-                     dist_z_abs > CHUNK_RADIUS ) {
+                if ( dist_x_abs > CHUNK_RADIUS_X || //
+                     dist_y_abs > CHUNK_RADIUS_Y || //
+                     dist_z_abs > CHUNK_RADIUS_Z ) {
 
                     int sig_x = loadedChunks->chunk_center_x - chunk_x;
                     int sig_y = loadedChunks->chunk_center_y - chunk_y;
