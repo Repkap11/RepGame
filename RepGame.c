@@ -13,7 +13,7 @@
 #include "textures.h"
 #include "ui_overlay.h"
 
-#define MOVEMENT_SENSITIVITY 40.0f // How sensitive the arrow keys are
+#define MOVEMENT_SENSITIVITY 10.0f // How sensitive the arrow keys are
 #define CAMERA_SIZE 0.1f           // Defines how much crop is in front (low for minecraft)
 #define PERSON_HEIGHT 2.8f
 #define PERSON_LOOKING -0.5f
@@ -186,7 +186,7 @@ void changeSize( int w, int h ) {
     glViewport( 0, 0, w, h );
 
     // Set the correct perspective.
-    gluPerspective( 45, ratio, CAMERA_SIZE, DRAW_DISTANCE );
+    gluPerspective( 60, ratio, CAMERA_SIZE, DRAW_DISTANCE );
 
     // Get Back to the Modelview
     glMatrixMode( GL_MODELVIEW );

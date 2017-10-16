@@ -17,7 +17,7 @@ int *map_gen_load_block( int draw_block, int uniq ) {
         }
         blocks[ index ] = value;
     }
-    pr_debug( "Drawing %d", uniq );
+    // pr_debug( "Drawing %d", uniq );
     return blocks;
 }
 
