@@ -24,6 +24,7 @@ int cubeDisplayList;
 
 void initilizeGameState( RepGameState *gameState ) {
     gameState->input.exitGame = 0;
+    gameState->input.limit_fps = 1;
     gameState->camera.angle_H = 45;
     gameState->camera.angle_V = 0.0f;
     gameState->camera.x = 0.0f;
@@ -240,13 +241,15 @@ int main( int argc, char **argv ) {
         double diff_ms = ( ( ( double )tstart.tv_sec + 1.0e-9 * tstart.tv_nsec ) - ( ( double )tend.tv_sec + 1.0e-9 * tend.tv_nsec ) ) * 1000.0;
         tend = tstart;
         // pr_debug("Time Diff ms:%f", diff_ms);
-        globalGameState.frameRate = 1.0 / ( diff_ms / 1000.0 );
-        double wait_time_ms = fps_ms - diff_ms;
-        if ( wait_time_ms > 1.0 ) {
-            int wait_time_us = ( int )( wait_time_ms * 1000.0 );
-            // pr_debug("WaitTime_us:%d", wait_time_us);
-            usleep( wait_time_us );
-            ( void )wait_time_us;
+        globalGameState.frame_rate = 1.0 / ( diff_ms / 1000.0 );
+        if ( globalGameState.input.limit_fps ) {
+            double wait_time_ms = fps_ms - diff_ms;
+            if ( wait_time_ms > 1.0 ) {
+                int wait_time_us = ( int )( wait_time_ms * 1000.0 );
+                // pr_debug("WaitTime_us:%d", wait_time_us);
+                usleep( wait_time_us );
+                ( void )wait_time_us;
+            }
         }
     }
     cleanupGameState( &globalGameState );

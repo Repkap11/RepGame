@@ -6,7 +6,7 @@
 #include <math.h>
 
 int frameCounter = 0;
-#define BORDER_SIZE 10.0f
+#define BORDER_SIZE 0.0f
 
 void ui_overlay_drawBorder( RepGameState *gameState ) {
     glColor4f( 0.0f, 0.0f, 0.0, 0.5 );
@@ -16,15 +16,18 @@ void ui_overlay_drawBorder( RepGameState *gameState ) {
 char fps_str[ 50 ];
 char chunk_coords[ 50 ];
 char block_coords[ 50 ];
+char limit_fps[ 50 ];
 
 void ui_overlay_drawText( RepGameState *gameState ) {
-    sprintf( fps_str, "FPS: %4.1f", gameState->frameRate );
+    sprintf( fps_str, "FPS: %4.1f", gameState->frame_rate );
     sprintf( chunk_coords, "Block: x:%4.1f y:%4.1f z:%4.1f", gameState->camera.x, gameState->camera.y, gameState->camera.z );
     sprintf( block_coords, "Chunk: x:%4.0f y:%4.0f z:%4.0f", floor( gameState->camera.x / CHUNK_SIZE ), floor( gameState->camera.y / CHUNK_SIZE ), floor( gameState->camera.z / CHUNK_SIZE ) );
+    sprintf( limit_fps, "Limit FPS: %s", gameState->input.limit_fps ? "true" : "false" );
 
     glPushMatrix( );
-    glTranslatef( 14, 30, 0 );
-    glScalef( 0.15, 0.15, 0.15 );
+    // glTranslatef( 15, 15, 0 );
+    glTranslatef( 2, 17, 0 );
+    glScalef( 0.12, 0.12, 0.12 );
     glRotatef( 180, 1, 0, 0 );
     glColor4f( 0.0f, 0.0f, 0.0, 1 );
     glBlendFunc( GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA );
@@ -34,6 +37,8 @@ void ui_overlay_drawText( RepGameState *gameState ) {
     draw2d_string( GLUT_STROKE_MONO_ROMAN, block_coords );
     glTranslatef( 0, -180, 0 );
     draw2d_string( GLUT_STROKE_MONO_ROMAN, chunk_coords );
+    glTranslatef( 0, -180, 0 );
+    draw2d_string( GLUT_STROKE_MONO_ROMAN, limit_fps );
     glPopMatrix( );
 }
 
@@ -60,7 +65,7 @@ void ui_overlay_draw( RepGameState *gameState ) {
 
     glBlendFunc( GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA );
 
-    ui_overlay_drawBorder( gameState );
+    // ui_overlay_drawBorder( gameState );
     ui_overlay_drawText( gameState );
     ui_overlay_drawCursor( gameState );
 

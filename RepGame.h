@@ -17,7 +17,7 @@
 #include "input.h"
 
 typedef struct {
-    double frameRate;
+    double frame_rate;
     InputState input;
     struct {
         float angle_H;

@@ -151,6 +151,13 @@ void input_keysInput( InputState *inputState, unsigned char key, int x, int y, i
 
             break;
 
+        case 'f':
+            if ( pressed ) {
+                inputState->limit_fps = !inputState->limit_fps;
+            }
+
+            break;
+
         default:
             if ( pressed ) {
                 pr_debug( "Got Unhandled Key Down: %d", key );

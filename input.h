@@ -26,6 +26,7 @@ typedef struct {
         } previousPosition;
     } mouse;
     int exitGame;
+    int limit_fps;
 } InputState;
 
 void input_arrowKeyDownInput( InputState *inputState, int key, int x, int y );
