@@ -45,7 +45,7 @@ void chunk_loader_render_chunks( LoadedChunks *loadedChunks, float camera_x, flo
     int chunk_z = floor( camera_z / CHUNK_SIZE );
 
     if ( ( loadedChunks->chunk_center_x != chunk_x ) || ( loadedChunks->chunk_center_y != chunk_y ) || ( loadedChunks->chunk_center_z != chunk_z ) || !loadedChunks->loaded_any ) {
-        pr_debug( "Moved into chunk x:%d y:%d z:%d", chunk_x, chunk_y, chunk_z );
+        // pr_debug( "Moved into chunk x:%d y:%d z:%d", chunk_x, chunk_y, chunk_z );
 
         if ( !loadedChunks->loaded_any ) {
             int nextChunk = 0;
