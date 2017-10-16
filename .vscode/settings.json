@@ -3,6 +3,7 @@
         "*.h": "c",
         "*.c": "c",
         "cmath": "c",
-        "cstdlib": "c"
+        "cstdlib": "c",
+        "type_traits": "c"
     }
 }
