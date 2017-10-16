@@ -13,8 +13,8 @@
 #include "textures.h"
 #include "ui_overlay.h"
 
-#define MOVEMENT_SENSITIVITY 40.0f // How sensitive the arrow keys are
-#define CAMERA_SIZE 0.1f           // Defines how much crop is in front (low for minecraft)
+#define MOVEMENT_SENSITIVITY 100.0f // How sensitive the arrow keys are
+#define CAMERA_SIZE 0.1f            // Defines how much crop is in front (low for minecraft)
 #define PERSON_HEIGHT 2.8f
 #define PERSON_LOOKING -0.5f
 #define DRAW_DISTANCE 10000
