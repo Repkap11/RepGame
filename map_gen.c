@@ -2,13 +2,13 @@
 #include "chunk.h"
 #include <stdlib.h>
 
-int *map_gen_load_block( ) {
+int *map_gen_load_block( int make_blocks ) {
     int *blocks = malloc( CHUNK_BLOCK_SIZE * sizeof( int ) );
     for ( int index = 0; index < CHUNK_BLOCK_SIZE; index++ ) {
         int x, y, z;
         int value = 0;
         chunk_get_coords_from_index( index, &x, &y, &z );
-        if ( y < 1 ) { //&& ( abs( x + z ) > y ) ) {
+        if ( y < 1 && make_blocks ) { //&& ( abs( x + z ) > y ) ) {
             value = 1;
         }
         blocks[ index ] = value;

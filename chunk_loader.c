@@ -3,7 +3,7 @@
 #include <math.h>
 #include <stdlib.h>
 
-#define CHUNK_RADIUS 2
+#define CHUNK_RADIUS 5
 #define MAX_LOADED_CHUNKS ( ( 2 * CHUNK_RADIUS + 1 ) * ( 2 * CHUNK_RADIUS + 1 ) * ( 2 * CHUNK_RADIUS + 1 ) )
 
 void chunk_loader_init( LoadedChunks *loadedChunks ) {
