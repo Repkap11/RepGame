@@ -1,0 +1,8 @@
+{
+    "files.associations": {
+        "*.h": "c",
+        "*.c": "c",
+        "cmath": "c",
+        "cstdlib": "c"
+    }
+}
