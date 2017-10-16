@@ -64,7 +64,7 @@ void chunk_create_display_list( Chunk *chunk ) {
 void chunk_load( Chunk *chunk ) {
     // pr_debug( "Loading chunk x:%d y:%d z:%d", chunk->chunk_x, chunk->chunk_y, chunk->chunk_z );
 
-    chunk->blocks = map_gen_load_block( chunk->chunk_y == 0, chunk->uniq );
+    chunk->blocks = map_gen_load_block( chunk->chunk_y == 0 );
     chunk_create_display_list( chunk );
 }
 

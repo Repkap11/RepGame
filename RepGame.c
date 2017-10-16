@@ -13,7 +13,7 @@
 #include "textures.h"
 #include "ui_overlay.h"
 
-#define MOVEMENT_SENSITIVITY 10.0f // How sensitive the arrow keys are
+#define MOVEMENT_SENSITIVITY 40.0f // How sensitive the arrow keys are
 #define CAMERA_SIZE 0.1f           // Defines how much crop is in front (low for minecraft)
 #define PERSON_HEIGHT 2.8f
 #define PERSON_LOOKING -0.5f
@@ -24,7 +24,7 @@ int cubeDisplayList;
 
 void initilizeGameState( RepGameState *gameState ) {
     gameState->input.exitGame = 0;
-    gameState->camera.angle_H = 90;
+    gameState->camera.angle_H = 45;
     gameState->camera.angle_V = 0.0f;
     gameState->camera.x = 0.0f;
     gameState->camera.y = PERSON_HEIGHT;

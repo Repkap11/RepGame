@@ -3,7 +3,7 @@
 #include "chunk.h"
 #include <stdlib.h>
 
-int *map_gen_load_block( int draw_block, int uniq ) {
+int *map_gen_load_block( int draw_block ) {
     int *blocks = malloc( CHUNK_BLOCK_SIZE * sizeof( int ) );
     for ( int index = 0; index < CHUNK_BLOCK_SIZE; index++ ) {
         int x, y, z;
@@ -12,12 +12,8 @@ int *map_gen_load_block( int draw_block, int uniq ) {
         if ( y == 0 && draw_block ) { //&& ( abs( x + z ) > y ) ) {
             value = 1;
         }
-        if ( y == 1 && uniq == 65 ) {
-            value = 1;
-        }
         blocks[ index ] = value;
     }
-    // pr_debug( "Drawing %d", uniq );
     return blocks;
 }
 
