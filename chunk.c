@@ -85,11 +85,9 @@ void chunk_create_display_list( Chunk *chunk ) {
     glEndList( );
 }
 
-void chunk_load( Chunk *chunk ) {
-    // pr_debug( "Loading chunk x:%d y:%d z:%d", chunk->chunk_x, chunk->chunk_y, chunk->chunk_z );
-
-    chunk->blocks = map_gen_load_block( chunk, chunk->chunk_y == 0 );
-    chunk_create_display_list( chunk );
+void chunk_load_terrain( Chunk *chunk ) {
+    // pr_debug( "Loading chunk terrain x:%d y:%d z:%d", chunk->chunk_x, chunk->chunk_y, chunk->chunk_z );
+    chunk->blocks = map_gen_load_block( chunk );
 }
 
 void chunk_destroy_display_list( Chunk *chunk ) {
@@ -99,7 +97,7 @@ void chunk_destroy_display_list( Chunk *chunk ) {
 void chunk_draw( Chunk *chunk ) {
     glCallList( chunk->displayList );
 }
-void chunk_free( Chunk *chunk ) {
+void chunk_free_terrain( Chunk *chunk ) {
     // pr_debug( "Freeing chunk x:%d y:%d z:%d", chunk->chunk_x, chunk->chunk_y, chunk->chunk_z );
     chunk_destroy_display_list( chunk );
     map_gen_free_block( chunk->blocks );

@@ -53,31 +53,27 @@ LinkedListItem *linked_list_add_element( LinkedList *l, void *ptr ) {
     return li;
 }
 
-int linked_list_remove_element( LinkedList *l, void *ptr ) {
+int linked_list_pop_element( LinkedList *l, void *ptr ) {
     int result = 0;
     LinkedListItem *li = l->head;
 
     pthread_mutex_lock( &( l->mutex ) );
 
-    while ( li != NULL ) {
-        if ( li->value == ptr ) {
-            if ( li->prev == NULL ) {
-                l->head = li->next;
-            } else {
-                li->prev->next = li->next;
-            }
-
-            if ( li->next == NULL ) {
-                l->tail = li->prev;
-            } else {
-                li->next->prev = li->prev;
-            }
-            l->count--;
-            free( li );
-            result = 1;
-            break;
+    if ( li != NULL ) {
+        if ( li->prev == NULL ) {
+            l->head = li->next;
+        } else {
+            li->prev->next = li->next;
         }
-        li = li->next;
+
+        if ( li->next == NULL ) {
+            l->tail = li->prev;
+        } else {
+            li->next->prev = li->prev;
+        }
+        l->count--;
+        free( li );
+        result = 1;
     }
 
     pthread_mutex_unlock( &( l->mutex ) );

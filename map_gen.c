@@ -4,7 +4,7 @@
 
 #include <stdlib.h>
 
-int *map_gen_load_block( Chunk *chunk, int draw_block ) {
+int *map_gen_load_block( Chunk *chunk ) {
     int chunk_offset_x = chunk->chunk_x * CHUNK_SIZE;
     int chunk_offset_y = chunk->chunk_y * CHUNK_SIZE;
     int chunk_offset_z = chunk->chunk_z * CHUNK_SIZE;

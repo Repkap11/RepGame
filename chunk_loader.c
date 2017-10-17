@@ -35,14 +35,15 @@ void chunk_loader_load_chunk( LoadedChunks *loadedChunks, int index, int chunk_x
     loadedChunk->chunk.chunk_x = chunk_x;
     loadedChunk->chunk.chunk_y = chunk_y;
     loadedChunk->chunk.chunk_z = chunk_z;
-    chunk_load( &loadedChunk->chunk );
-    loadedChunk->loaded = 1;
+    terrain_loading_thread_enqueue( int index, &loadedChunk->chunk );
 }
 
 void chunk_loader_render_chunks( LoadedChunks *loadedChunks, float camera_x, float camera_y, float camera_z ) {
     int chunk_x = floor( camera_x / CHUNK_SIZE );
     int chunk_y = floor( camera_y / CHUNK_SIZE );
     int chunk_z = floor( camera_z / CHUNK_SIZE );
+
+    loadedChunk->loaded = 1;
 
     if ( ( loadedChunks->chunk_center_x != chunk_x ) || ( loadedChunks->chunk_center_y != chunk_y ) || ( loadedChunks->chunk_center_z != chunk_z ) || !loadedChunks->loaded_any ) {
         // pr_debug( "Moved into chunk x:%d y:%d z:%d", chunk_x, chunk_y, chunk_z );

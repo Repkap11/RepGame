@@ -16,11 +16,11 @@ typedef struct {
     pthread_mutex_t mutex;
 } LinkedList;
 
-LinkedList *list_create( );
-void list_free( LinkedList *l );
+LinkedList *linked_list_create( );
+void linked_list_free( LinkedList *l );
 
 LinkedListItem *linked_list_add_element( LinkedList *l, void *ptr );
-int linked_list_remove_element( LinkedList *l, void *ptr );
+int linked_list_pop_element( LinkedList *l, void *ptr );
 void linked_list_each_element( LinkedList *l, int ( *func )( LinkedListItem * ) );
 
 #endif
