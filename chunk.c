@@ -4,7 +4,7 @@
 #include "map_gen.h"
 #include <GL/gl.h>
 
-#define BLOCK_SCALE 1
+#define BLOCK_SCALE 1.0f
 
 int chunk_get_index_from_coords( int x, int y, int z ) {
     return ( y + 1 ) * CHUNK_SIZE_INTERNAL * CHUNK_SIZE_INTERNAL + ( x + 1 ) * CHUNK_SIZE_INTERNAL + ( z + 1 );
@@ -19,14 +19,14 @@ int chunk_get_coords_from_index( int index, int *out_x, int *out_y, int *out_z )
 }
 
 int chunk_block( Chunk *chunk, int x, int y, int z ) {
-    if ( x < 0 || y < 0 || z < 0 ) {
-        // pr_debug( "Block coord negitive should not be checked." );
-        // return 0;
-    }
-    if ( x > CHUNK_SIZE || y > CHUNK_SIZE || z > CHUNK_SIZE ) {
-        // pr_debug( "Block coord %d should not be checked.", CHUNK_SIZE_INTERNAL );
-        // return 0;
-    }
+    // if ( x < 0 || y < 0 || z < 0 ) {
+    //     // pr_debug( "Block coord negitive should not be checked." );
+    //     // return 0;
+    // }
+    // if ( x > CHUNK_SIZE || y > CHUNK_SIZE || z > CHUNK_SIZE ) {
+    //     // pr_debug( "Block coord %d should not be checked.", CHUNK_SIZE_INTERNAL );
+    //     // return 0;
+    // }
     return chunk->blocks[ chunk_get_index_from_coords( x, y, z ) ];
 }
 
@@ -43,12 +43,28 @@ void chunk_create_display_list( Chunk *chunk ) {
         // drawn_block = 1;
         if ( drawn_block ) {
             if ( type > 0 ) {
-                int upBlock = chunk_block( chunk, x + 0, y + 1, z + 0 ) == type;
-                int downBlock = chunk_block( chunk, x + 0, y - 1, z + 0 ) == type;
-                int leftBlock = chunk_block( chunk, x + 0, y + 0, z - 1 ) == type;
-                int rightBlock = chunk_block( chunk, x + 0, y + 0, z + 1 ) == type;
-                int frontBlock = chunk_block( chunk, x + 1, y + 0, z + 0 ) == type;
-                int backBlock = chunk_block( chunk, x - 1, y + 0, z + 0 ) == type;
+                int upBlock = chunk_block( chunk, x + 0, y + 1, z + 0 );
+                int downBlock = chunk_block( chunk, x + 0, y - 1, z + 0 );
+                int leftBlock = chunk_block( chunk, x + 0, y + 0, z - 1 );
+                int rightBlock = chunk_block( chunk, x + 0, y + 0, z + 1 );
+                int frontBlock = chunk_block( chunk, x + 1, y + 0, z + 0 );
+                int backBlock = chunk_block( chunk, x - 1, y + 0, z + 0 );
+                if ( type == 1 ) {
+                    upBlock = ( upBlock == type );       // || upBlock == 0 );
+                    downBlock = ( downBlock == type );   // || downBlock == 0 );
+                    leftBlock = ( leftBlock == type );   // || leftBlock == 0 );
+                    rightBlock = ( rightBlock == type ); // || rightBlock == 0 );
+                    frontBlock = ( frontBlock == type ); // || frontBlock == 0 );
+                    backBlock = ( backBlock == type );   // || backBlock == 0 );
+                }
+                if ( type == 2 ) {
+                    upBlock = !( upBlock == 0 );       // || upBlock == 0 );
+                    downBlock = !( downBlock == 0 );   // || downBlock == 0 );
+                    leftBlock = !( leftBlock == 0 );   // || leftBlock == 0 );
+                    rightBlock = !( rightBlock == 0 ); // || rightBlock == 0 );
+                    frontBlock = !( frontBlock == 0 ); // || frontBlock == 0 );
+                    backBlock = !( backBlock == 0 );   // || backBlock == 0 );
+                }
 
                 if ( upBlock && downBlock && leftBlock && rightBlock && frontBlock && backBlock ) {
                     continue;
