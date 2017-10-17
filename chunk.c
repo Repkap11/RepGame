@@ -7,21 +7,25 @@
 #define BLOCK_SCALE 1
 
 int chunk_get_index_from_coords( int x, int y, int z ) {
-    return y * CHUNK_SIZE * CHUNK_SIZE + x * CHUNK_SIZE + z;
+    return ( y + 1 ) * CHUNK_SIZE_INTERNAL * CHUNK_SIZE_INTERNAL + ( x + 1 ) * CHUNK_SIZE_INTERNAL + ( z + 1 );
 }
 
-void chunk_get_coords_from_index( int index, int *out_x, int *out_y, int *out_z ) {
-    *out_y = index / ( CHUNK_SIZE * CHUNK_SIZE );
-    *out_x = ( index / CHUNK_SIZE ) % CHUNK_SIZE;
-    *out_z = index % ( CHUNK_SIZE );
+int chunk_get_coords_from_index( int index, int *out_x, int *out_y, int *out_z ) {
+    *out_y = ( index / ( CHUNK_SIZE_INTERNAL * CHUNK_SIZE_INTERNAL ) ) - 1;
+    *out_x = ( ( index / CHUNK_SIZE_INTERNAL ) % CHUNK_SIZE_INTERNAL ) - 1;
+    *out_z = ( index % ( CHUNK_SIZE_INTERNAL ) ) - 1;
+    // return 1;
+    return *out_x >= 0 && *out_y >= 0 && *out_z >= 0 && *out_x < CHUNK_SIZE && *out_y < CHUNK_SIZE && *out_z < CHUNK_SIZE;
 }
 
 int chunk_block( Chunk *chunk, int x, int y, int z ) {
     if ( x < 0 || y < 0 || z < 0 ) {
-        return 0;
+        // pr_debug( "Block coord negitive should not be checked." );
+        // return 0;
     }
-    if ( x >= CHUNK_SIZE || y >= CHUNK_SIZE || z >= CHUNK_SIZE ) {
-        return 0;
+    if ( x > CHUNK_SIZE || y > CHUNK_SIZE || z > CHUNK_SIZE ) {
+        // pr_debug( "Block coord %d should not be checked.", CHUNK_SIZE_INTERNAL );
+        // return 0;
     }
     return chunk->blocks[ chunk_get_index_from_coords( x, y, z ) ];
 }
@@ -34,8 +38,9 @@ void chunk_create_display_list( Chunk *chunk ) {
     glTranslatef( chunk->chunk_x * CHUNK_SIZE, chunk->chunk_y * CHUNK_SIZE, chunk->chunk_z * CHUNK_SIZE );
     for ( int index = 0; index < CHUNK_BLOCK_SIZE; index++ ) {
         int x, y, z;
-        if ( chunk->blocks[ index ] ) {
-            chunk_get_coords_from_index( index, &x, &y, &z );
+        int drawn_block = chunk_get_coords_from_index( index, &x, &y, &z );
+        // drawn_block = 1;
+        if ( drawn_block && chunk->blocks[ index ] ) {
             int upBlock = chunk_block( chunk, x + 0, y + 1, z + 0 );
             int downBlock = chunk_block( chunk, x + 0, y - 1, z + 0 );
             int leftBlock = chunk_block( chunk, x + 0, y + 0, z - 1 );

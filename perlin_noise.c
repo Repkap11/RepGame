@@ -63,5 +63,5 @@ float perlin2d( float x, float y, float freq, int depth ) {
 int perlin_noise( int x, int y, int z ) {
     float noise = perlin2d( abs( x ), abs( z ), 0.02, 4 );
     // pr_debug( "Noise %f", noise );
-    return y < ( noise * 20 );
+    return y < ( noise * 80 );
 }
