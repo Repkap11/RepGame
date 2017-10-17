@@ -8,4 +8,5 @@ int textures_getDirtTexture( );
 int textures_getGrassTexture( );
 int textures_getSkyTexture( );
 int textures_getGrassSideTexture( );
+int textures_getWaterTexture( );
 #endif

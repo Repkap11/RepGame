@@ -39,6 +39,7 @@ void cleanupGameState( RepGameState *gameState ) {
 
 void drawScene( RepGameState *gameState ) {
     // draw3d_cube( );cleanupGameState
+    glBlendFunc( GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA );
     chunk_loader_render_chunks( &gameState->gameChunks, gameState->camera.x, gameState->camera.y, gameState->camera.z );
     chunk_loader_draw_chunks( &gameState->gameChunks );
 
@@ -208,6 +209,7 @@ int main( int argc, char **argv ) {
     glEnable( GL_CULL_FACE );
     glEnable( GL_TEXTURE_2D );
     glEnable( GL_BLEND );
+    glBlendFunc( GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA );
     glEnable( GL_MULTISAMPLE );
 
     glutSpecialFunc( arrowKeyDownInput );

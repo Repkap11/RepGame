@@ -39,27 +39,30 @@ void chunk_create_display_list( Chunk *chunk ) {
     for ( int index = 0; index < CHUNK_BLOCK_SIZE; index++ ) {
         int x, y, z;
         int drawn_block = chunk_get_coords_from_index( index, &x, &y, &z );
+        int type = chunk->blocks[ index ];
         // drawn_block = 1;
-        if ( drawn_block && chunk->blocks[ index ] ) {
-            int upBlock = chunk_block( chunk, x + 0, y + 1, z + 0 );
-            int downBlock = chunk_block( chunk, x + 0, y - 1, z + 0 );
-            int leftBlock = chunk_block( chunk, x + 0, y + 0, z - 1 );
-            int rightBlock = chunk_block( chunk, x + 0, y + 0, z + 1 );
-            int frontBlock = chunk_block( chunk, x + 1, y + 0, z + 0 );
-            int backBlock = chunk_block( chunk, x - 1, y + 0, z + 0 );
+        if ( drawn_block ) {
+            if ( type > 0 ) {
+                int upBlock = chunk_block( chunk, x + 0, y + 1, z + 0 ) == type;
+                int downBlock = chunk_block( chunk, x + 0, y - 1, z + 0 ) == type;
+                int leftBlock = chunk_block( chunk, x + 0, y + 0, z - 1 ) == type;
+                int rightBlock = chunk_block( chunk, x + 0, y + 0, z + 1 ) == type;
+                int frontBlock = chunk_block( chunk, x + 1, y + 0, z + 0 ) == type;
+                int backBlock = chunk_block( chunk, x - 1, y + 0, z + 0 ) == type;
 
-            if ( upBlock && downBlock && leftBlock && rightBlock && frontBlock && backBlock ) {
-                continue;
+                if ( upBlock && downBlock && leftBlock && rightBlock && frontBlock && backBlock ) {
+                    continue;
+                }
+
+                glPushMatrix( );
+                glTranslatef( x, y, z );
+                glScalef( BLOCK_SCALE, BLOCK_SCALE, BLOCK_SCALE );
+                // draw3d_cube( );
+                draw3d_cube_parts( !upBlock, !downBlock, !leftBlock, !rightBlock, !frontBlock, !backBlock, type );
+                glPopMatrix( );
+            } else {
+                // pr_debug( "i:%d x%d y:%d z:%d", index, x, y, z );
             }
-
-            glPushMatrix( );
-            glTranslatef( x, y, z );
-            glScalef( BLOCK_SCALE, BLOCK_SCALE, BLOCK_SCALE );
-            // draw3d_cube( );
-            draw3d_cube_parts( !upBlock, !downBlock, !leftBlock, !rightBlock, !frontBlock, !backBlock );
-            glPopMatrix( );
-        } else {
-            // pr_debug( "i:%d x%d y:%d z:%d", index, x, y, z );
         }
     }
     glPopMatrix( );
