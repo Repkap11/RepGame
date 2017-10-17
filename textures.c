@@ -13,9 +13,22 @@ int loadTexture( const char *filename, int width, int height, int bmp_header ) {
         pr_debug( "Error rendering texture %s", filename );
         return 0;
     }
-    data = ( unsigned char * )malloc( width * height * 3 + bmp_header );
-    fread( data, width * height * 3 + bmp_header, 1, file );
+    data = ( unsigned char * )malloc( width * height * 4 + bmp_header );
+    fread( data, width * height * 4 + bmp_header, 1, file );
     fclose( file );
+
+    // Image is really in ARGB but we need BGRA
+    for ( int i = 0; i < width * height; i++ ) {
+        char a = data[ i * 4 + 0 + bmp_header ];
+        char r = data[ i * 4 + 1 + bmp_header ];
+        char g = data[ i * 4 + 2 + bmp_header ];
+        char b = data[ i * 4 + 3 + bmp_header ];
+
+        data[ i * 4 + 0 + bmp_header ] = r;
+        data[ i * 4 + 1 + bmp_header ] = g;
+        data[ i * 4 + 2 + bmp_header ] = b;
+        data[ i * 4 + 3 + bmp_header ] = a;
+    }
 
     glGenTextures( 1, &texture );
     glBindTexture( GL_TEXTURE_2D, texture );
@@ -29,24 +42,19 @@ int loadTexture( const char *filename, int width, int height, int bmp_header ) {
     glTexParameterf( GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT );
     glTexParameterf( GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT );
     glTexParameterf( GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR ); // GL_NEAREST GL_LINEAR_MIPMAP_LINEAR
-    gluBuild2DMipmaps( GL_TEXTURE_2D, 3, width, height, GL_BGR, GL_UNSIGNED_BYTE, data + bmp_header );
-    // glTexImage2DMultisample( GL_TEXTURE_2D_MULTISAMPLE, 12, GL_RGBA8, 1, 1, false );
-    // glTexStorage2D( GL_TEXTURE_2D, 12, GL_RGBA8, width, height );
-    // glTexSubImage2D( GL_TEXTURE_2D, 0, 0, 0, width, height, GL_BGRA, GL_UNSIGNED_BYTE, data + bmp_header );
-    // glGenerateMipmap( GL_TEXTURE_2D ); // Generate num_mipmaps number of mipmaps here.
-
-    // glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB8, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, data);
+    gluBuild2DMipmaps( GL_TEXTURE_2D, 3, width, height, GL_BGRA, GL_UNSIGNED_BYTE, data + bmp_header );
 
     free( data );
     return texture;
 }
 
-int dirt_texture, grass_texture, grass_side_texture, sky_texture;
+int dirt_texture, grass_texture, grass_side_texture, sky_texture, water_texture;
 void textures_populate( ) {
-    grass_side_texture = loadTexture( "./bitmaps/grass_side.bmp", 16, 16, 54 );
-    grass_texture = loadTexture( "./bitmaps/grass-top.bmp", 16, 16, 54 );
-    dirt_texture = loadTexture( "./bitmaps/dirt.bmp", 16, 16, 54 );
-    sky_texture = loadTexture( "./bitmaps/sky4.bmp", 2048, 1024, 54 );
+    grass_side_texture = loadTexture( "./bitmaps/grass_side.bmp", 16, 16, 138 );
+    grass_texture = loadTexture( "./bitmaps/grass-top.bmp", 16, 16, 138 );
+    dirt_texture = loadTexture( "./bitmaps/dirt.bmp", 16, 16, 138 );
+    sky_texture = loadTexture( "./bitmaps/sky4.bmp", 2048, 1024, 138 );
+    water_texture = loadTexture( "./bitmaps/water.bmp", 16, 16, 138 );
 }
 
 int textures_getDirtTexture( ) {
@@ -60,4 +68,8 @@ int textures_getSkyTexture( ) {
 }
 int textures_getGrassSideTexture( ) {
     return grass_side_texture;
+}
+
+int textures_getWaterTexture( ) {
+    return water_texture;
 }

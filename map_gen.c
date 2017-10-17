@@ -14,9 +14,12 @@ int *map_gen_load_block( Chunk *chunk, int draw_block ) {
         int x, y, z;
         int value = 0;
         chunk_get_coords_from_index( index, &x, &y, &z );
-
         // value = 1;
         value = perlin_noise( chunk_offset_x + x, chunk_offset_y + y, chunk_offset_z + z );
+
+        if ( value == 0 && chunk_offset_y + y < 30 ) {
+            value = 2;
+        }
 
         blocks[ index ] = value;
     }

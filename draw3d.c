@@ -3,19 +3,33 @@
 #include <GL/gl.h>
 #include <GL/glut.h>
 
+#include "block.h"
 #include "textures.h"
 
 void draw3d_cube( ) {
-    draw3d_cube_parts( 1, 1, 1, 1, 1, 1 );
+    draw3d_cube_parts( 1, 1, 1, 1, 1, 1, 1 );
 }
-void draw3d_cube_parts( int top, int bottom, int left, int right, int front, int back ) {
+void draw3d_cube_parts( int top, int bottom, int left, int right, int front, int back, int type ) {
+
+    BlockTextureMap btm;
+    if ( type == 1 ) {
+        btm.top = textures_getGrassSideTexture( );
+        btm.side = textures_getDirtTexture( );
+        btm.bottom = textures_getDirtTexture( );
+    }
+
+    if ( type == 2 ) {
+        btm.top = textures_getWaterTexture( );
+        btm.side = textures_getWaterTexture( );
+        btm.bottom = textures_getWaterTexture( );
+    }
 
     glColor3f( 1.0f, 1.0f, 1.0f );
 
     if ( top ) {
-        glBindTexture( GL_TEXTURE_2D, textures_getGrassSideTexture( ) );
+        glBindTexture( GL_TEXTURE_2D, btm.top );
     } else {
-        glBindTexture( GL_TEXTURE_2D, textures_getDirtTexture( ) );
+        glBindTexture( GL_TEXTURE_2D, btm.bottom );
     }
     if ( left ) {
         glBegin( GL_TRIANGLES );
@@ -97,7 +111,7 @@ void draw3d_cube_parts( int top, int bottom, int left, int right, int front, int
         glEnd( );
     }
 
-    glBindTexture( GL_TEXTURE_2D, textures_getDirtTexture( ) );
+    glBindTexture( GL_TEXTURE_2D, btm.bottom );
     if ( bottom ) {
         glBegin( GL_TRIANGLES );
         glTexCoord2f( 0, 0 );
@@ -118,7 +132,7 @@ void draw3d_cube_parts( int top, int bottom, int left, int right, int front, int
         glEnd( );
     }
 
-    glBindTexture( GL_TEXTURE_2D, textures_getGrassTexture( ) );
+    glBindTexture( GL_TEXTURE_2D, btm.top );
     if ( top ) {
         glBegin( GL_TRIANGLES );
         glTexCoord2f( 0, 0 );
