@@ -16,8 +16,7 @@
 
 #define MOVEMENT_SENSITIVITY 400.0f // How sensitive the arrow keys are
 #define CAMERA_SIZE 0.1f            // Defines how much crop is in front (low for minecraft)
-#define PERSON_HEIGHT 40.0f
-#define PERSON_LOOKING -0.5f
+#define PERSON_HEIGHT 80.0f
 #define DRAW_DISTANCE 10000
 #define SKY_BOX_DISTANCE DRAW_DISTANCE * 0.9
 
@@ -27,7 +26,7 @@ void initilizeGameState( RepGameState *gameState ) {
     gameState->input.exitGame = 0;
     gameState->input.limit_fps = 1;
     gameState->camera.angle_H = 45;
-    gameState->camera.angle_V = 0.0f;
+    gameState->camera.angle_V = 35;
     gameState->camera.x = 0.0f;
     gameState->camera.y = PERSON_HEIGHT;
     gameState->camera.z = 0.0f;

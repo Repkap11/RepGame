@@ -5,7 +5,7 @@
 #include <stdlib.h>
 
 #define CHUNK_RADIUS_X 13
-#define CHUNK_RADIUS_Y 13
+#define CHUNK_RADIUS_Y 5
 #define CHUNK_RADIUS_Z 13
 #define MAX_LOADED_CHUNKS ( ( 2 * CHUNK_RADIUS_X + 1 ) * ( 2 * CHUNK_RADIUS_Y + 1 ) * ( 2 * CHUNK_RADIUS_Z + 1 ) )
 
@@ -51,13 +51,21 @@ void chunk_loader_render_chunks( LoadedChunks *loadedChunks, float camera_x, flo
         if ( !loadedChunks->loaded_any ) {
             int nextChunk = 0;
             for ( int i = -CHUNK_RADIUS_X; i <= CHUNK_RADIUS_X; i++ ) {
+                int new_i = ( i + CHUNK_RADIUS_X );
+                new_i = ( ( new_i * ( new_i % 2 ? 1 : -1 ) ) + ( ( new_i % 2 ) ? 1 : 0 ) ) / 2;
+                // pr_debug( "i:%d new_i:%d", i, new_i );
                 for ( int j = -CHUNK_RADIUS_Y; j <= CHUNK_RADIUS_Y; j++ ) {
+                    int new_j = ( j + CHUNK_RADIUS_Y );
+                    new_j = ( ( new_j * ( new_j % 2 ? 1 : -1 ) ) + ( ( new_j % 2 ) ? 1 : 0 ) ) / 2;
                     for ( int k = -CHUNK_RADIUS_Z; k <= CHUNK_RADIUS_Z; k++ ) {
+                        int new_k = ( k + CHUNK_RADIUS_Z );
+                        new_k = ( ( new_k * ( new_k % 2 ? 1 : -1 ) ) + ( ( new_k % 2 ) ? 1 : 0 ) ) / 2;
+
                         // pr_debug( "Initing chunk %d", nextChunk );
 
-                        loadedChunks->chunkArray[ nextChunk ].chunk_x = chunk_x + i;
-                        loadedChunks->chunkArray[ nextChunk ].chunk_y = chunk_y + j;
-                        loadedChunks->chunkArray[ nextChunk ].chunk_z = chunk_z + k;
+                        loadedChunks->chunkArray[ nextChunk ].chunk_x = chunk_x + new_i;
+                        loadedChunks->chunkArray[ nextChunk ].chunk_y = chunk_y + new_j;
+                        loadedChunks->chunkArray[ nextChunk ].chunk_z = chunk_z + new_k;
                         terrain_loading_thread_enqueue( &loadedChunks->chunkArray[ nextChunk ] );
                         nextChunk = ( nextChunk + 1 );
                     }
