@@ -1,3 +1,6 @@
+#ifndef HEADER_BLOCK_DEFINITIONS_H
+#define HEADER_BLOCK_DEFINITIONS_H
+
 typedef struct {
     int top;
     int side;
@@ -6,10 +9,16 @@ typedef struct {
     float height;
 } BlockTextureMap;
 
+typedef enum { AIR = 0, GRASS, WATER, LAST_TYPE } BlockID;
+
 typedef struct {
-    int id;
+    BlockID id;
     BlockTextureMap btm;
     int opacity;
 } BlockDefinition;
 
-enum BlockTypes { air, grass, water };
+void block_definitions_initilize_definitions( );
+BlockDefinition *block_definition_get_definition( BlockID blockID );
+void block_definitions_free_definitions( );
+
+#endif

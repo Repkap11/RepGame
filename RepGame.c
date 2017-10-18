@@ -5,6 +5,7 @@
 #include <unistd.h>
 
 #include "RepGame.h"
+#include "block_definitions.h"
 #include "chunk.h"
 #include "chunk_loader.h"
 #include "draw3d.h"
@@ -30,11 +31,12 @@ void initilizeGameState( RepGameState *gameState ) {
     gameState->camera.x = 0.0f;
     gameState->camera.y = PERSON_HEIGHT;
     gameState->camera.z = 0.0f;
+    block_definitions_initilize_definitions( );
     chunk_loader_init( &gameState->gameChunks );
 }
 void cleanupGameState( RepGameState *gameState ) {
     chunk_loader_free_chunks( &gameState->gameChunks );
-    // chunk_free( &gameState->gameChunk );
+    block_definitions_free_definitions( );
 }
 
 void drawScene( RepGameState *gameState ) {
