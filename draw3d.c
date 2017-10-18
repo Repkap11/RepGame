@@ -18,14 +18,15 @@ void draw3d_cube_parts( int top, int bottom, int left, int right, int front, int
         btm.bottom = textures_getDirtTexture( );
         btm.alpha = 1.0f;
         btm.height = 1.0f;
-    }
-
-    if ( type == 2 ) {
+    } else if ( type == 2 ) {
         btm.top = textures_getWaterTexture( );
         btm.side = textures_getWaterTexture( );
         btm.bottom = textures_getWaterTexture( );
         btm.alpha = 0.5f;
         btm.height = 1.0f;
+    } else {
+        pr_debug( "Unexpected texture" );
+        return;
     }
 
     glColor4f( 1.0f, 1.0f, 1.0f, btm.alpha );

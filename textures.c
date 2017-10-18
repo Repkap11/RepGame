@@ -13,8 +13,12 @@ int loadTexture( const char *filename, int width, int height, int bmp_header ) {
         pr_debug( "Error rendering texture %s", filename );
         return 0;
     }
-    data = ( unsigned char * )malloc( width * height * 4 + bmp_header );
-    fread( data, width * height * 4 + bmp_header, 1, file );
+    size_t mem_size = width * height * 4 + bmp_header;
+    data = ( unsigned char * )malloc( mem_size );
+    size_t read_size = fread( data, mem_size, 1, file );
+    if ( read_size != mem_size ) {
+        pr_debug( "Texture file wrong size. Expected:%ld got:%ld", mem_size, read_size );
+    }
     fclose( file );
 
     // Image is really in ARGB but we need BGRA

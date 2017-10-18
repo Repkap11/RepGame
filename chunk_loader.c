@@ -45,7 +45,7 @@ void chunk_loader_render_chunks( LoadedChunks *loadedChunks, float camera_x, flo
             chunk->loaded = 1;
         }
         count += 1;
-    } while ( chunk && count < 200 );
+    } while ( chunk && count < 1000 );
 
     if ( ( loadedChunks->chunk_center_x != chunk_x ) || ( loadedChunks->chunk_center_y != chunk_y ) || ( loadedChunks->chunk_center_z != chunk_z ) || !loadedChunks->loaded_any ) {
         // pr_debug( "Moved into chunk x:%d y:%d z:%d", chunk_x, chunk_y, chunk_z );
