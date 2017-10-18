@@ -1,7 +1,8 @@
 TARGET = RepGame
 LIBS = -lm -l GL -l GLU -l glut -pthread
 CC = gcc
-CFLAGS = -g -Wall -Werror -std=gnu99 -Wno-unused-variable -O3
+CFLAGS = -Wall -Werror -std=gnu99 -Wno-unused-variable -Ofast -march=native -flto
+DEBUG_FLAGS = -g
 
 run: compile
 	./$(TARGET)
