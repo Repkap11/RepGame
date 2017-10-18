@@ -10,7 +10,7 @@ int chunk_get_index_from_coords( int x, int y, int z ) {
     return ( y + 1 ) * CHUNK_SIZE_INTERNAL * CHUNK_SIZE_INTERNAL + ( x + 1 ) * CHUNK_SIZE_INTERNAL + ( z + 1 );
 }
 
-int chunk_get_coords_from_index( int index, int *out_x, int *out_y, int *out_z ) {
+inline int chunk_get_coords_from_index( int index, int *out_x, int *out_y, int *out_z ) {
     *out_y = ( index / ( CHUNK_SIZE_INTERNAL * CHUNK_SIZE_INTERNAL ) ) - 1;
     *out_x = ( ( index / CHUNK_SIZE_INTERNAL ) % CHUNK_SIZE_INTERNAL ) - 1;
     *out_z = ( index % ( CHUNK_SIZE_INTERNAL ) ) - 1;
@@ -85,22 +85,27 @@ void chunk_create_display_list( Chunk *chunk ) {
     glEndList( );
 }
 
-void chunk_load( Chunk *chunk ) {
-    // pr_debug( "Loading chunk x:%d y:%d z:%d", chunk->chunk_x, chunk->chunk_y, chunk->chunk_z );
-
-    chunk->blocks = map_gen_load_block( chunk, chunk->chunk_y == 0 );
-    chunk_create_display_list( chunk );
+void chunk_load_terrain( Chunk *chunk ) {
+    // pr_debug( "Loading chunk terrain x:%d y:%d z:%d", chunk->chunk_x, chunk->chunk_y, chunk->chunk_z );
+    map_gen_load_block( chunk );
 }
 
 void chunk_destroy_display_list( Chunk *chunk ) {
-    glDeleteLists( chunk->displayList, 1 );
+    if ( chunk->displayList ) {
+        glDeleteLists( chunk->displayList, 1 );
+        chunk->displayList = 0;
+    }
 }
 
 void chunk_draw( Chunk *chunk ) {
-    glCallList( chunk->displayList );
+    if ( chunk->displayList ) {
+        glCallList( chunk->displayList );
+    }
 }
-void chunk_free( Chunk *chunk ) {
+void chunk_free_terrain( Chunk *chunk ) {
     // pr_debug( "Freeing chunk x:%d y:%d z:%d", chunk->chunk_x, chunk->chunk_y, chunk->chunk_z );
-    chunk_destroy_display_list( chunk );
-    map_gen_free_block( chunk->blocks );
+    if ( chunk->blocks ) {
+        map_gen_free_block( chunk->blocks );
+        chunk->blocks = 0;
+    }
 }
