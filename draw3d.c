@@ -13,39 +13,42 @@ void draw3d_cube_parts( int top, int bottom, int left, int right, int front, int
 
     BlockTextureMap btm;
     if ( type == 1 ) {
-        btm.top = textures_getGrassSideTexture( );
-        btm.side = textures_getDirtTexture( );
+        btm.top = textures_getGrassTexture( );
+        btm.side = textures_getGrassSideTexture( );
         btm.bottom = textures_getDirtTexture( );
+        btm.alpha = 1.0f;
+        btm.height = 1.0f;
     }
 
     if ( type == 2 ) {
         btm.top = textures_getWaterTexture( );
         btm.side = textures_getWaterTexture( );
         btm.bottom = textures_getWaterTexture( );
+        btm.alpha = 0.5f;
+        btm.height = 1.0f;
     }
 
-    glColor3f( 1.0f, 1.0f, 1.0f );
-
+    glColor4f( 1.0f, 1.0f, 1.0f, btm.alpha );
     if ( top ) {
-        glBindTexture( GL_TEXTURE_2D, btm.top );
+        glBindTexture( GL_TEXTURE_2D, btm.side );
     } else {
         glBindTexture( GL_TEXTURE_2D, btm.bottom );
     }
     if ( left ) {
         glBegin( GL_TRIANGLES );
         glTexCoord2f( 0, 1 );
-        glVertex3f( 1.0, 1.0, 0.0 );
+        glVertex3f( 1.0, btm.height, 0.0 );
         glTexCoord2f( 0, 0 );
         glVertex3f( 1.0, 0.0, 0.0 );
         glTexCoord2f( 1, 1 );
-        glVertex3f( 0.0, 1.0, 0.0 );
+        glVertex3f( 0.0, btm.height, 0.0 );
         glEnd( );
 
         glBegin( GL_TRIANGLES );
         glTexCoord2f( 1, 0 );
         glVertex3f( 0.0, 0.0, 0.0 );
         glTexCoord2f( 1, 1 );
-        glVertex3f( 0.0, 1.0, 0.0 );
+        glVertex3f( 0.0, btm.height, 0.0 );
         glTexCoord2f( 0, 0 );
         glVertex3f( 1.0, 0.0, 0.0 );
         glEnd( );
@@ -56,14 +59,14 @@ void draw3d_cube_parts( int top, int bottom, int left, int right, int front, int
         glTexCoord2f( 0, 0 );
         glVertex3f( 1.0, 0.0, 1.0 );
         glTexCoord2f( 0, 1 );
-        glVertex3f( 1.0, 1.0, 1.0 );
+        glVertex3f( 1.0, btm.height, 1.0 );
         glTexCoord2f( 1, 1 );
-        glVertex3f( 0.0, 1.0, 1.0 );
+        glVertex3f( 0.0, btm.height, 1.0 );
         glEnd( );
 
         glBegin( GL_TRIANGLES );
         glTexCoord2f( 1, 1 );
-        glVertex3f( 0.0, 1.0, 1.0 );
+        glVertex3f( 0.0, btm.height, 1.0 );
         glTexCoord2f( 1, 0 );
         glVertex3f( 0.0, 0.0, 1.0 );
         glTexCoord2f( 0, 0 );
@@ -76,14 +79,14 @@ void draw3d_cube_parts( int top, int bottom, int left, int right, int front, int
         glTexCoord2f( 0, 0 );
         glVertex3f( 1.0, 0.0, 0.0 );
         glTexCoord2f( 0, 1 );
-        glVertex3f( 1.0, 1.0, 0.0 );
+        glVertex3f( 1.0, btm.height, 0.0 );
         glTexCoord2f( 1, 1 );
-        glVertex3f( 1.0, 1.0, 1.0 );
+        glVertex3f( 1.0, btm.height, 1.0 );
         glEnd( );
 
         glBegin( GL_TRIANGLES );
         glTexCoord2f( 1, 1 );
-        glVertex3f( 1.0, 1.0, 1.0 );
+        glVertex3f( 1.0, btm.height, 1.0 );
         glTexCoord2f( 1, 0 );
         glVertex3f( 1.0, 0.0, 1.0 );
         glTexCoord2f( 0, 0 );
@@ -96,14 +99,14 @@ void draw3d_cube_parts( int top, int bottom, int left, int right, int front, int
         glTexCoord2f( 0, 0 );
         glVertex3f( 0.0, 0.0, 1.0 );
         glTexCoord2f( 0, 1 );
-        glVertex3f( 0.0, 1.0, 1.0 );
+        glVertex3f( 0.0, btm.height, 1.0 );
         glTexCoord2f( 1, 1 );
-        glVertex3f( 0.0, 1.0, 0.0 );
+        glVertex3f( 0.0, btm.height, 0.0 );
         glEnd( );
 
         glBegin( GL_TRIANGLES );
         glTexCoord2f( 1, 1 );
-        glVertex3f( 0.0, 1.0, 0.0 );
+        glVertex3f( 0.0, btm.height, 0.0 );
         glTexCoord2f( 1, 0 );
         glVertex3f( 0.0, 0.0, 0.0 );
         glTexCoord2f( 0, 0 );
@@ -136,20 +139,20 @@ void draw3d_cube_parts( int top, int bottom, int left, int right, int front, int
     if ( top ) {
         glBegin( GL_TRIANGLES );
         glTexCoord2f( 0, 0 );
-        glVertex3f( 1.0, 1.0, 1.0 );
+        glVertex3f( 1.0, btm.height, 1.0 );
         glTexCoord2f( 0, 1 );
-        glVertex3f( 1.0, 1.0, 0.0 );
+        glVertex3f( 1.0, btm.height, 0.0 );
         glTexCoord2f( 1, 1 );
-        glVertex3f( 0.0, 1.0, 0.0 );
+        glVertex3f( 0.0, btm.height, 0.0 );
         glEnd( );
 
         glBegin( GL_TRIANGLES );
         glTexCoord2f( 1, 1 );
-        glVertex3f( 0.0, 1.0, 0.0 );
+        glVertex3f( 0.0, btm.height, 0.0 );
         glTexCoord2f( 1, 0 );
-        glVertex3f( 0.0, 1.0, 1.0 );
+        glVertex3f( 0.0, btm.height, 1.0 );
         glTexCoord2f( 0, 0 );
-        glVertex3f( 1.0, 1.0, 1.0 );
+        glVertex3f( 1.0, btm.height, 1.0 );
         glEnd( );
     }
 }

@@ -10,12 +10,13 @@
 #include "draw3d.h"
 #include "input.h"
 #include "map_gen.h"
+#include "terrain_loading_thread.h"
 #include "textures.h"
 #include "ui_overlay.h"
 
 #define MOVEMENT_SENSITIVITY 100.0f // How sensitive the arrow keys are
 #define CAMERA_SIZE 0.1f            // Defines how much crop is in front (low for minecraft)
-#define PERSON_HEIGHT 100.0f
+#define PERSON_HEIGHT 40.0f
 #define PERSON_LOOKING -0.5f
 #define DRAW_DISTANCE 10000
 #define SKY_BOX_DISTANCE DRAW_DISTANCE * 0.9
@@ -209,7 +210,6 @@ int main( int argc, char **argv ) {
     glEnable( GL_CULL_FACE );
     glEnable( GL_TEXTURE_2D );
     glEnable( GL_BLEND );
-    glBlendFunc( GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA );
     glEnable( GL_MULTISAMPLE );
 
     glutSpecialFunc( arrowKeyDownInput );
@@ -225,6 +225,10 @@ int main( int argc, char **argv ) {
     glutMotionFunc( mouseMove );
     textures_populate( );
     initilizeGameState( &globalGameState );
+    int status = terrain_loading_thread_start( );
+    if ( status ) {
+        pr_debug( "Terrain loading thread failed to start." );
+    }
 
     struct timespec tstart = {0, 0}, tend = {0, 0};
     clock_gettime( CLOCK_MONOTONIC, &tstart );
@@ -254,6 +258,7 @@ int main( int argc, char **argv ) {
             }
         }
     }
+    terrain_loading_thread_stop( );
     cleanupGameState( &globalGameState );
     glutLeaveMainLoop( );
     return 0;

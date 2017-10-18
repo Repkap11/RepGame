@@ -69,7 +69,6 @@ int textures_getSkyTexture( ) {
 int textures_getGrassSideTexture( ) {
     return grass_side_texture;
 }
-
 int textures_getWaterTexture( ) {
     return water_texture;
 }
