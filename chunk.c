@@ -87,18 +87,25 @@ void chunk_create_display_list( Chunk *chunk ) {
 
 void chunk_load_terrain( Chunk *chunk ) {
     // pr_debug( "Loading chunk terrain x:%d y:%d z:%d", chunk->chunk_x, chunk->chunk_y, chunk->chunk_z );
-    chunk->blocks = map_gen_load_block( chunk );
+    map_gen_load_block( chunk );
 }
 
 void chunk_destroy_display_list( Chunk *chunk ) {
-    glDeleteLists( chunk->displayList, 1 );
+    if ( chunk->displayList ) {
+        glDeleteLists( chunk->displayList, 1 );
+        chunk->displayList = 0;
+    }
 }
 
 void chunk_draw( Chunk *chunk ) {
-    glCallList( chunk->displayList );
+    if ( chunk->displayList ) {
+        glCallList( chunk->displayList );
+    }
 }
 void chunk_free_terrain( Chunk *chunk ) {
     // pr_debug( "Freeing chunk x:%d y:%d z:%d", chunk->chunk_x, chunk->chunk_y, chunk->chunk_z );
-    chunk_destroy_display_list( chunk );
-    map_gen_free_block( chunk->blocks );
+    if ( chunk->blocks ) {
+        map_gen_free_block( chunk->blocks );
+        chunk->blocks = 0;
+    }
 }

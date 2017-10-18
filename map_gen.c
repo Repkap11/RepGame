@@ -4,12 +4,13 @@
 
 #include <stdlib.h>
 
-int *map_gen_load_block( Chunk *chunk ) {
+void map_gen_load_block( Chunk *chunk ) {
     int chunk_offset_x = chunk->chunk_x * CHUNK_SIZE;
     int chunk_offset_y = chunk->chunk_y * CHUNK_SIZE;
     int chunk_offset_z = chunk->chunk_z * CHUNK_SIZE;
-
-    int *blocks = malloc( CHUNK_BLOCK_SIZE * sizeof( int ) );
+    if ( chunk->blocks == NULL ) {
+        chunk->blocks = calloc( CHUNK_BLOCK_SIZE, sizeof( int ) );
+    }
     for ( int index = 0; index < CHUNK_BLOCK_SIZE; index++ ) {
         int x, y, z;
         int value = 0;
@@ -21,9 +22,8 @@ int *map_gen_load_block( Chunk *chunk ) {
             value = 2;
         }
 
-        blocks[ index ] = value;
+        chunk->blocks[ index ] = value;
     }
-    return blocks;
 }
 
 void map_gen_free_block( int *blocks ) {

@@ -1,6 +1,8 @@
 #include "linked_list.h"
+#include "RepGame.h"
 #include <stdlib.h>
 
+#define LOCK_LIST 1
 /* Naive linked list implementation from https://gist.github.com/wayling/3877624*/
 
 LinkedList *linked_list_create( ) {
@@ -14,8 +16,9 @@ LinkedList *linked_list_create( ) {
 
 void linked_list_free( LinkedList *l ) {
     LinkedListItem *li, *tmp;
-
-    pthread_mutex_lock( &( l->mutex ) );
+    if ( LOCK_LIST ) {
+        pthread_mutex_lock( &( l->mutex ) );
+    }
 
     if ( l != NULL ) {
         li = l->head;
@@ -25,74 +28,58 @@ void linked_list_free( LinkedList *l ) {
             li = tmp;
         }
     }
-
-    pthread_mutex_unlock( &( l->mutex ) );
+    if ( LOCK_LIST ) {
+        pthread_mutex_unlock( &( l->mutex ) );
+    }
     pthread_mutex_destroy( &( l->mutex ) );
     free( l );
 }
 
-LinkedListItem *linked_list_add_element( LinkedList *l, void *ptr ) {
+// Add element to tail
+void linked_list_add_element( LinkedList *l, LinkedListValue value ) {
     LinkedListItem *li;
-
-    pthread_mutex_lock( &( l->mutex ) );
+    if ( LOCK_LIST ) {
+        pthread_mutex_lock( &( l->mutex ) );
+    }
 
     li = ( LinkedListItem * )malloc( sizeof( LinkedListItem ) );
-    li->value = ptr;
-    li->next = NULL;
-    li->prev = l->tail;
-
-    if ( l->tail == NULL ) {
-        l->head = l->tail = li;
-    } else {
-        l->tail = li;
+    li->value = value;
+    if ( l->tail != NULL ) {
+        l->tail->prev = li;
     }
+    li->next = l->tail;
+    li->prev = NULL;
+
+    if ( l->head == NULL ) {
+        l->head = li;
+    }
+    l->tail = li;
     l->count++;
-
-    pthread_mutex_unlock( &( l->mutex ) );
-
-    return li;
+    if ( LOCK_LIST ) {
+        pthread_mutex_unlock( &( l->mutex ) );
+    }
 }
 
-int linked_list_pop_element( LinkedList *l, void *ptr ) {
-    int result = 0;
+// Pop off head
+LinkedListValue linked_list_pop_element( LinkedList *l ) {
+    void *result = NULL;
+    if ( LOCK_LIST ) {
+        pthread_mutex_lock( &( l->mutex ) );
+    }
     LinkedListItem *li = l->head;
-
-    pthread_mutex_lock( &( l->mutex ) );
-
     if ( li != NULL ) {
-        if ( li->prev == NULL ) {
-            l->head = li->next;
+        if ( li->prev != NULL ) {
+            li->prev->next = NULL;
         } else {
-            li->prev->next = li->next;
+            l->tail = NULL;
         }
-
-        if ( li->next == NULL ) {
-            l->tail = li->prev;
-        } else {
-            li->next->prev = li->prev;
-        }
+        l->head = li->prev;
         l->count--;
+        result = li->value;
         free( li );
-        result = 1;
     }
-
-    pthread_mutex_unlock( &( l->mutex ) );
-
+    if ( LOCK_LIST ) {
+        pthread_mutex_unlock( &( l->mutex ) );
+    }
     return result;
-}
-
-void list_each_element( LinkedList *l, int ( *func )( LinkedListItem * ) ) {
-    LinkedListItem *li;
-
-    pthread_mutex_lock( &( l->mutex ) );
-
-    li = l->head;
-    while ( li != NULL ) {
-        if ( func( li ) == 1 ) {
-            break;
-        }
-        li = li->next;
-    }
-
-    pthread_mutex_unlock( &( l->mutex ) );
 }

@@ -3,14 +3,9 @@
 #include "chunk.h"
 
 typedef struct {
-    int loaded;
-    Chunk chunk;
-} LoadedChunk;
-
-typedef struct {
     int loaded_any;
     int chunk_center_x, chunk_center_y, chunk_center_z;
-    LoadedChunk *loadedChunkArray;
+    Chunk *chunkArray;
 } LoadedChunks;
 
 void chunk_loader_init( LoadedChunks *loadedChunks );

@@ -1,10 +1,13 @@
 #ifndef HEADER_LINKED_LIST_H
 #define HEADER_LINKED_LIST_H
 
+#include "chunk.h"
 #include <pthread.h>
 
+#define LinkedListValue Chunk *
+
 typedef struct _list_item {
-    void *value;
+    LinkedListValue value;
     struct _list_item *prev;
     struct _list_item *next;
 } LinkedListItem;
@@ -19,8 +22,7 @@ typedef struct {
 LinkedList *linked_list_create( );
 void linked_list_free( LinkedList *l );
 
-LinkedListItem *linked_list_add_element( LinkedList *l, void *ptr );
-int linked_list_pop_element( LinkedList *l, void *ptr );
-void linked_list_each_element( LinkedList *l, int ( *func )( LinkedListItem * ) );
+void linked_list_add_element( LinkedList *l, LinkedListValue value );
+LinkedListValue linked_list_pop_element( LinkedList *l );
 
 #endif
