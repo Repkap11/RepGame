@@ -10,7 +10,7 @@ int chunk_get_index_from_coords( int x, int y, int z ) {
     return ( y + 1 ) * CHUNK_SIZE_INTERNAL * CHUNK_SIZE_INTERNAL + ( x + 1 ) * CHUNK_SIZE_INTERNAL + ( z + 1 );
 }
 
-int chunk_get_coords_from_index( int index, int *out_x, int *out_y, int *out_z ) {
+inline int chunk_get_coords_from_index( int index, int *out_x, int *out_y, int *out_z ) {
     *out_y = ( index / ( CHUNK_SIZE_INTERNAL * CHUNK_SIZE_INTERNAL ) ) - 1;
     *out_x = ( ( index / CHUNK_SIZE_INTERNAL ) % CHUNK_SIZE_INTERNAL ) - 1;
     *out_z = ( index % ( CHUNK_SIZE_INTERNAL ) ) - 1;
