@@ -4,6 +4,5 @@
 #include "chunk.h"
 
 void map_gen_load_block( Chunk *chunk );
-void map_gen_free_block( int *blocks );
-
+void map_gen_free_block( Block *blocks );
 #endif

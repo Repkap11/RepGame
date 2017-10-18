@@ -9,7 +9,7 @@ void map_gen_load_block( Chunk *chunk ) {
     int chunk_offset_y = chunk->chunk_y * CHUNK_SIZE;
     int chunk_offset_z = chunk->chunk_z * CHUNK_SIZE;
     if ( chunk->blocks == NULL ) {
-        chunk->blocks = calloc( CHUNK_BLOCK_SIZE, sizeof( int ) );
+        chunk->blocks = calloc( CHUNK_BLOCK_SIZE, sizeof( Block ) );
     }
     for ( int index = 0; index < CHUNK_BLOCK_SIZE; index++ ) {
         int x, y, z;
@@ -22,10 +22,10 @@ void map_gen_load_block( Chunk *chunk ) {
             value = 2;
         }
 
-        chunk->blocks[ index ] = value;
+        chunk->blocks[ index ].type = value;
     }
 }
 
-void map_gen_free_block( int *blocks ) {
+void map_gen_free_block( Block *blocks ) {
     free( blocks );
 }

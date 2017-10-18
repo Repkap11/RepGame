@@ -4,9 +4,9 @@
 #include <math.h>
 #include <stdlib.h>
 
-#define CHUNK_RADIUS_X 13
-#define CHUNK_RADIUS_Y 5
-#define CHUNK_RADIUS_Z 13
+#define CHUNK_RADIUS_X 10
+#define CHUNK_RADIUS_Y 8
+#define CHUNK_RADIUS_Z 10
 #define MAX_LOADED_CHUNKS ( ( 2 * CHUNK_RADIUS_X + 1 ) * ( 2 * CHUNK_RADIUS_Y + 1 ) * ( 2 * CHUNK_RADIUS_Z + 1 ) )
 
 void chunk_loader_init( LoadedChunks *loadedChunks ) {
@@ -36,6 +36,7 @@ void chunk_loader_render_chunks( LoadedChunks *loadedChunks, float camera_x, flo
     int chunk_z = floor( camera_z / CHUNK_SIZE );
 
     Chunk *chunk;
+    int count = 0;
     do {
         chunk = terrain_loading_thread_dequeue( );
         if ( chunk ) {
@@ -43,7 +44,8 @@ void chunk_loader_render_chunks( LoadedChunks *loadedChunks, float camera_x, flo
             chunk_create_display_list( chunk );
             chunk->loaded = 1;
         }
-    } while ( chunk );
+        count += 1;
+    } while ( chunk && count < 200 );
 
     if ( ( loadedChunks->chunk_center_x != chunk_x ) || ( loadedChunks->chunk_center_y != chunk_y ) || ( loadedChunks->chunk_center_z != chunk_z ) || !loadedChunks->loaded_any ) {
         // pr_debug( "Moved into chunk x:%d y:%d z:%d", chunk_x, chunk_y, chunk_z );

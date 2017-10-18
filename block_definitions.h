@@ -10,6 +10,6 @@ typedef struct {
     int id;
     BlockTextureMap btm;
     int opacity;
-} Block;
+} BlockDefinition;
 
 enum BlockTypes { air, grass, water };

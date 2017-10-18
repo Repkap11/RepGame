@@ -3,11 +3,11 @@
 #include <GL/gl.h>
 #include <GL/glut.h>
 
-#include "block.h"
+#include "block_definitions.h"
 #include "textures.h"
 
-void draw3d_cube( ) {
-    draw3d_cube_parts( 1, 1, 1, 1, 1, 1, 1 );
+void draw3d_cube( int type ) {
+    draw3d_cube_parts( 1, 1, 1, 1, 1, 1, type );
 }
 void draw3d_cube_parts( int top, int bottom, int left, int right, int front, int back, int type ) {
 
