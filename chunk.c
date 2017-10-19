@@ -73,9 +73,37 @@ void chunk_calculate_sides( Chunk *chunk ) {
 
 void chunk_create_display_list( Chunk *chunk ) {
 
-    chunk->displayList = glGenLists( 1 );
+    chunk->displayListSolid = glGenLists( 1 );
     // compile the display list, store a triangle in it
-    glNewList( chunk->displayList, GL_COMPILE );
+    glNewList( chunk->displayListSolid, GL_COMPILE );
+    glPushMatrix( );
+    glTranslatef( chunk->chunk_x * CHUNK_SIZE, chunk->chunk_y * CHUNK_SIZE, chunk->chunk_z * CHUNK_SIZE );
+    for ( int index = 0; index < CHUNK_BLOCK_SIZE; index++ ) {
+        int x, y, z;
+        int drawn_block = chunk_get_coords_from_index( index, &x, &y, &z );
+        if ( !drawn_block ) { // Blocks at the edge of the chunk are not drawn, but only for edge checking
+            continue;
+        }
+        Block *block = &chunk->blocks[ index ];
+        if ( block->blockDef->alpha != 1.0f ) {
+            // Quick exit for air and translucent
+            continue;
+        }
+        if ( !block->draw_sides.top && !block->draw_sides.bottom && !block->draw_sides.left && !block->draw_sides.right && !block->draw_sides.front && !block->draw_sides.back ) {
+            // Quick exit for not shown block
+            continue;
+        }
+        glPushMatrix( );
+        glTranslatef( x, y, z );
+        block_draw( block );
+        glPopMatrix( );
+    }
+    glPopMatrix( );
+    glEndList( );
+
+    chunk->displayListTranslucent = glGenLists( 1 );
+    // compile the display list, store a triangle in it
+    glNewList( chunk->displayListTranslucent, GL_COMPILE );
     glPushMatrix( );
     glTranslatef( chunk->chunk_x * CHUNK_SIZE, chunk->chunk_y * CHUNK_SIZE, chunk->chunk_z * CHUNK_SIZE );
     for ( int index = 0; index < CHUNK_BLOCK_SIZE; index++ ) {
@@ -87,6 +115,10 @@ void chunk_create_display_list( Chunk *chunk ) {
         Block *block = &chunk->blocks[ index ];
         if ( block->blockDef->alpha == 0.0f ) {
             // Quick exit for air
+            continue;
+        }
+        if ( block->blockDef->alpha == 1.0f ) {
+            // Don't draw solid blocks in the translucent display list
             continue;
         }
         if ( !block->draw_sides.top && !block->draw_sides.bottom && !block->draw_sides.left && !block->draw_sides.right && !block->draw_sides.front && !block->draw_sides.back ) {
@@ -108,15 +140,22 @@ void chunk_load_terrain( Chunk *chunk ) {
 }
 
 void chunk_destroy_display_list( Chunk *chunk ) {
-    if ( chunk->displayList ) {
-        glDeleteLists( chunk->displayList, 1 );
-        chunk->displayList = 0;
+    if ( chunk->displayListSolid ) {
+        glDeleteLists( chunk->displayListSolid, 1 );
+        chunk->displayListSolid = 0;
+    }
+    if ( chunk->displayListTranslucent ) {
+        glDeleteLists( chunk->displayListTranslucent, 1 );
+        chunk->displayListTranslucent = 0;
     }
 }
 
-void chunk_draw( Chunk *chunk ) {
-    if ( chunk->displayList ) {
-        glCallList( chunk->displayList );
+void chunk_draw( Chunk *chunk, int solid ) {
+    if ( solid && chunk->displayListSolid ) {
+        glCallList( chunk->displayListSolid );
+    }
+    if ( !solid && chunk->displayListTranslucent ) {
+        glCallList( chunk->displayListTranslucent );
     }
 }
 void chunk_free_terrain( Chunk *chunk ) {
