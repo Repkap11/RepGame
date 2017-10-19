@@ -150,7 +150,11 @@ void chunk_loader_draw_chunks( LoadedChunks *loadedChunks ) {
     // pr_debug( "Drawing %d chunks", loadedChunks->numLoadedChunks );
     for ( int i = 0; i < MAX_LOADED_CHUNKS; i++ ) {
         // pr_debug( "Drawing chunk %d", i );
-        chunk_draw( &loadedChunks->chunkArray[ i ] );
+        chunk_draw( &loadedChunks->chunkArray[ i ], 1 );
+    }
+    for ( int i = 0; i < MAX_LOADED_CHUNKS; i++ ) {
+        // pr_debug( "Drawing chunk %d", i );
+        chunk_draw( &loadedChunks->chunkArray[ i ], 0 );
     }
 }
 
