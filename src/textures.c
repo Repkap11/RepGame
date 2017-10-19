@@ -4,8 +4,8 @@
 #include "draw2d.h"
 #include "textures.h"
 
-GLuint loadTexture( const char *filename, int width, int height, int bmp_header ) {
-    GLuint texture;
+#define BYTEX_PER_PIXEL 4
+GLuint *loadTextures( const char *filename, int width, int height, int bmp_header, int tile_size_across, int tile_size_down, int *out_num_extures ) {
     unsigned char *data;
     FILE *file;
     file = fopen( filename, "rb" );
@@ -13,7 +13,7 @@ GLuint loadTexture( const char *filename, int width, int height, int bmp_header 
         pr_debug( "Error rendering texture %s", filename );
         return 0;
     }
-    size_t mem_size = width * height * 4 + bmp_header;
+    size_t mem_size = width * height * BYTEX_PER_PIXEL + bmp_header;
     data = ( unsigned char * )malloc( mem_size );
     size_t read_size = fread( data, mem_size, 1, file );
     if ( read_size != 1 ) {
@@ -23,61 +23,87 @@ GLuint loadTexture( const char *filename, int width, int height, int bmp_header 
 
     // Image is really in ARGB but we need BGRA
     for ( int i = 0; i < width * height; i++ ) {
-        char a = data[ i * 4 + 0 + bmp_header ];
-        char r = data[ i * 4 + 1 + bmp_header ];
-        char g = data[ i * 4 + 2 + bmp_header ];
-        char b = data[ i * 4 + 3 + bmp_header ];
+        char a = data[ i * BYTEX_PER_PIXEL + 0 + bmp_header ];
+        char r = data[ i * BYTEX_PER_PIXEL + 1 + bmp_header ];
+        char g = data[ i * BYTEX_PER_PIXEL + 2 + bmp_header ];
+        char b = data[ i * BYTEX_PER_PIXEL + 3 + bmp_header ];
 
-        data[ i * 4 + 0 + bmp_header ] = r;
-        data[ i * 4 + 1 + bmp_header ] = g;
-        data[ i * 4 + 2 + bmp_header ] = b;
-        data[ i * 4 + 3 + bmp_header ] = a;
+        data[ i * BYTEX_PER_PIXEL + 0 + bmp_header ] = r;
+        data[ i * BYTEX_PER_PIXEL + 1 + bmp_header ] = g;
+        data[ i * BYTEX_PER_PIXEL + 2 + bmp_header ] = b;
+        data[ i * BYTEX_PER_PIXEL + 3 + bmp_header ] = a;
     }
 
-    glGenTextures( 1, &texture );
-    glBindTexture( GL_TEXTURE_2D, texture );
-    glTexEnvf( GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_MODULATE );
+    int textures_across = width / tile_size_across;
+    int textures_down = height / tile_size_down;
+    *out_num_extures = textures_across * textures_down;
+    GLuint *textures = ( GLuint * )malloc( ( *out_num_extures ) * sizeof( GLuint ) );
+    glGenTextures( *out_num_extures, textures );
 
-    float fLargest;
-    glGetFloatv( GL_MAX_TEXTURE_MAX_ANISOTROPY_EXT, &fLargest );
-    // glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAX_ANISOTROPY_EXT, fLargest);
+    unsigned char *working_data = ( unsigned char * )malloc( tile_size_across * tile_size_down * 4 );
+    for ( int i = 0; i < textures_across * textures_down; i++ ) {
+        int tex_coord_x = ( i % textures_across );
+        int tex_coord_y = ( textures_down - 1 ) - ( i / textures_across );
+        int text_coord_base = tex_coord_x * tile_size_across + tex_coord_y * tile_size_down * width;
 
-    glTexParameterf( GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST );
-    glTexParameterf( GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT );
-    glTexParameterf( GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT );
-    glTexParameterf( GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR ); // GL_NEAREST GL_LINEAR_MIPMAP_LINEAR
-    gluBuild2DMipmaps( GL_TEXTURE_2D, 3, width, height, GL_BGRA, GL_UNSIGNED_BYTE, data + bmp_header );
+        for ( int pixel_y = 0; pixel_y < tile_size_down; pixel_y++ ) {
+            for ( int pixel_x = 0; pixel_x < tile_size_across; pixel_x++ ) {
+                int working_point = pixel_y * tile_size_across + pixel_x;
 
+                int target_point = text_coord_base + pixel_y * width + pixel_x;
+
+                working_data[ BYTEX_PER_PIXEL * working_point + 0 ] = data[ BYTEX_PER_PIXEL * target_point + bmp_header + 0 ];
+                working_data[ BYTEX_PER_PIXEL * working_point + 1 ] = data[ BYTEX_PER_PIXEL * target_point + bmp_header + 1 ];
+                working_data[ BYTEX_PER_PIXEL * working_point + 2 ] = data[ BYTEX_PER_PIXEL * target_point + bmp_header + 2 ];
+                working_data[ BYTEX_PER_PIXEL * working_point + 3 ] = data[ BYTEX_PER_PIXEL * target_point + bmp_header + 3 ];
+            }
+        }
+
+        glBindTexture( GL_TEXTURE_2D, textures[ i ] );
+
+        glTexEnvf( GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_MODULATE );
+
+        // float fLargest;
+        // glGetFloatv( GL_MAX_TEXTURE_MAX_ANISOTROPY_EXT, &fLargest );
+        // glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAX_ANISOTROPY_EXT, fLargest);
+
+        glTexParameterf( GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST );
+        glTexParameterf( GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT );
+        glTexParameterf( GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT );
+        glTexParameterf( GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR ); // GL_NEAREST GL_LINEAR_MIPMAP_LINEAR
+        gluBuild2DMipmaps( GL_TEXTURE_2D, 3, tile_size_across, tile_size_down, GL_BGRA, GL_UNSIGNED_BYTE, working_data );
+    }
+    free( working_data );
     free( data );
-    return texture;
+    return textures;
 }
 
-GLuint dirt_texture, grass_texture, grass_side_texture, sky_texture, water_texture;
+GLuint *textures, *sky_textures;
+int num_textures, num_skys;
 void textures_populate( ) {
-    grass_side_texture = loadTexture( "./bitmaps/grass_side.bmp", 16, 16, 138 );
-    grass_texture = loadTexture( "./bitmaps/grass-top.bmp", 16, 16, 138 );
-    dirt_texture = loadTexture( "./bitmaps/dirt.bmp", 16, 16, 138 );
-    sky_texture = loadTexture( "./bitmaps/sky4.bmp", 2048, 1024, 138 );
-    water_texture = loadTexture( "./bitmaps/water.bmp", 16, 16, 138 );
+    sky_textures = loadTextures( "./bitmaps/sky4.bmp", 2048, 1024, 138, 2048, 1024, &num_skys );
+    textures = loadTextures( "./bitmaps/textures.bmp", 256, 256, 138, 16, 16, &num_textures );
 }
 
 GLuint textures_getDirtTexture( ) {
-    return dirt_texture;
+    return textures[ 2 ];
 }
 GLuint textures_getGrassTexture( ) {
-    return grass_texture;
+    return textures[ 0 ];
 }
 GLuint textures_getSkyTexture( ) {
-    return sky_texture;
+    return sky_textures[ 0 ];
 }
 GLuint textures_getGrassSideTexture( ) {
-    return grass_side_texture;
+    return textures[ 3 ];
 }
 GLuint textures_getWaterTexture( ) {
-    return water_texture;
+    return textures[ 14 ];
 }
 
 void textures_free( ) {
-    GLuint textures[] = {dirt_texture, grass_texture, sky_texture, grass_side_texture, water_texture};
-    glDeleteTextures( sizeof( textures ) / sizeof( int ), textures );
+    glDeleteTextures( num_textures, textures );
+    glDeleteTextures( num_skys, sky_textures );
+    free( textures );
+    free( sky_textures );
 }

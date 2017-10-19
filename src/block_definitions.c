@@ -22,7 +22,7 @@ void block_definitions_initilize_definitions( ) {
 
     block_definitions[ WATER ].id = WATER;
     block_definitions[ WATER ].alpha = 0.5f;
-    block_definitions[ WATER ].height = 15.0f / 16.0f;
+    block_definitions[ WATER ].height = 14.0f / 16.0f;
     block_definitions[ WATER ].textures.top = textures_getWaterTexture( );
     block_definitions[ WATER ].textures.side = textures_getWaterTexture( );
     block_definitions[ WATER ].textures.bottom = textures_getWaterTexture( );

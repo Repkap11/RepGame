@@ -6,7 +6,7 @@
 #include <unistd.h>
 
 volatile int cancelThread = 0;
-#define NUM_RENDER_THREADS 7
+#define NUM_RENDER_THREADS 4
 pthread_t background_threads[ NUM_RENDER_THREADS ];
 LinkedList *work_linked_list;
 LinkedList *result_linked_list;
@@ -26,7 +26,7 @@ void *process_background_tasks( void *arg ) {
             linked_list_add_element( result_linked_list, chunk );
             // pr_debug( "Paul Loading terrain x:%d y%d: z:%d work:%d results:%d", chunk->chunk_x, chunk->chunk_y, chunk->chunk_z, work_linked_list->count, result_linked_list->count );
         } else {
-            usleep( 10000 );
+            usleep( 100000 );
         }
     }
     return 0;
