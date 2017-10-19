@@ -2,6 +2,7 @@
 #define HEADER_TEST_H
 
 #include "chunk_loader.h"
+#include "constants.h"
 #include <stdio.h>
 
 #define DEBUG 1

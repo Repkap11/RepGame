@@ -4,9 +4,6 @@
 #include <math.h>
 #include <stdlib.h>
 
-#define CHUNK_RADIUS_X 8
-#define CHUNK_RADIUS_Y 4
-#define CHUNK_RADIUS_Z 8
 #define MAX_LOADED_CHUNKS ( ( 2 * CHUNK_RADIUS_X + 1 ) * ( 2 * CHUNK_RADIUS_Y + 1 ) * ( 2 * CHUNK_RADIUS_Z + 1 ) )
 
 void chunk_loader_init( LoadedChunks *loadedChunks ) {
@@ -45,7 +42,7 @@ void chunk_loader_render_chunks( LoadedChunks *loadedChunks, float camera_x, flo
             chunk->loaded = 1;
         }
         count += 1;
-    } while ( chunk && count < 100 );
+    } while ( chunk && count < CHUNK_RENDERS_PER_FRAME );
 
     if ( ( loadedChunks->chunk_center_x != chunk_x ) || ( loadedChunks->chunk_center_y != chunk_y ) || ( loadedChunks->chunk_center_z != chunk_z ) || !loadedChunks->loaded_any ) {
         // pr_debug( "Moved into chunk x:%d y:%d z:%d", chunk_x, chunk_y, chunk_z );

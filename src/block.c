@@ -3,8 +3,8 @@
 #include <GL/gl.h>
 #include <GL/glut.h>
 
+#include "RepGame.h"
 #include "block.h"
-#define BLOCK_SCALE 1.0f
 
 void block_draw( Block *block ) {
     BlockDefinition *blockDef = block->blockDef;
