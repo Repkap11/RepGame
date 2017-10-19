@@ -4,7 +4,7 @@
 #include "draw2d.h"
 #include "textures.h"
 
-int loadTexture( const char *filename, int width, int height, int bmp_header ) {
+GLuint loadTexture( const char *filename, int width, int height, int bmp_header ) {
     GLuint texture;
     unsigned char *data;
     FILE *file;
@@ -13,8 +13,12 @@ int loadTexture( const char *filename, int width, int height, int bmp_header ) {
         pr_debug( "Error rendering texture %s", filename );
         return 0;
     }
-    data = ( unsigned char * )malloc( width * height * 4 + bmp_header );
-    fread( data, width * height * 4 + bmp_header, 1, file );
+    size_t mem_size = width * height * 4 + bmp_header;
+    data = ( unsigned char * )malloc( mem_size );
+    size_t read_size = fread( data, mem_size, 1, file );
+    if ( read_size != 1 ) {
+        pr_debug( "Texture file wrong size. Expected:%ld", mem_size );
+    }
     fclose( file );
 
     // Image is really in ARGB but we need BGRA
@@ -48,7 +52,7 @@ int loadTexture( const char *filename, int width, int height, int bmp_header ) {
     return texture;
 }
 
-int dirt_texture, grass_texture, grass_side_texture, sky_texture, water_texture;
+GLuint dirt_texture, grass_texture, grass_side_texture, sky_texture, water_texture;
 void textures_populate( ) {
     grass_side_texture = loadTexture( "./bitmaps/grass_side.bmp", 16, 16, 138 );
     grass_texture = loadTexture( "./bitmaps/grass-top.bmp", 16, 16, 138 );
@@ -57,18 +61,23 @@ void textures_populate( ) {
     water_texture = loadTexture( "./bitmaps/water.bmp", 16, 16, 138 );
 }
 
-int textures_getDirtTexture( ) {
+GLuint textures_getDirtTexture( ) {
     return dirt_texture;
 }
-int textures_getGrassTexture( ) {
+GLuint textures_getGrassTexture( ) {
     return grass_texture;
 }
-int textures_getSkyTexture( ) {
+GLuint textures_getSkyTexture( ) {
     return sky_texture;
 }
-int textures_getGrassSideTexture( ) {
+GLuint textures_getGrassSideTexture( ) {
     return grass_side_texture;
 }
-int textures_getWaterTexture( ) {
+GLuint textures_getWaterTexture( ) {
     return water_texture;
+}
+
+void textures_free( ) {
+    GLuint textures[] = {dirt_texture, grass_texture, sky_texture, grass_side_texture, water_texture};
+    glDeleteTextures( sizeof( textures ) / sizeof( int ), textures );
 }

@@ -1,15 +1,20 @@
-typedef struct {
-    int top;
-    int side;
-    int bottom;
-    float alpha;
-    float height;
-} BlockTextureMap;
+#ifndef HEADER_BLOCK_H
+#define HEADER_BLOCK_H
+
+#include "block_definitions.h"
 
 typedef struct {
-    int id;
-    BlockTextureMap btm;
-    int opacity;
+    BlockDefinition *blockDef;
+    struct {
+        int top;
+        int bottom;
+        int left;
+        int right;
+        int front;
+        int back;
+    } draw_sides;
+
 } Block;
 
-enum BlockTypes { air, grass, water };
+void block_draw( Block *block );
+#endif

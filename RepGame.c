@@ -5,6 +5,7 @@
 #include <unistd.h>
 
 #include "RepGame.h"
+#include "block_definitions.h"
 #include "chunk.h"
 #include "chunk_loader.h"
 #include "draw3d.h"
@@ -16,7 +17,7 @@
 
 #define MOVEMENT_SENSITIVITY 400.0f // How sensitive the arrow keys are
 #define CAMERA_SIZE 0.1f            // Defines how much crop is in front (low for minecraft)
-#define PERSON_HEIGHT 80.0f
+#define PERSON_HEIGHT 40.0f
 #define DRAW_DISTANCE 10000
 #define SKY_BOX_DISTANCE DRAW_DISTANCE * 0.9
 
@@ -30,11 +31,16 @@ void initilizeGameState( RepGameState *gameState ) {
     gameState->camera.x = 0.0f;
     gameState->camera.y = PERSON_HEIGHT;
     gameState->camera.z = 0.0f;
+    textures_populate( );
+    block_definitions_initilize_definitions( );
     chunk_loader_init( &gameState->gameChunks );
+    // pr_debug( "RepGame init done" );
 }
 void cleanupGameState( RepGameState *gameState ) {
     chunk_loader_free_chunks( &gameState->gameChunks );
-    // chunk_free( &gameState->gameChunk );
+    block_definitions_free_definitions( );
+    textures_free( );
+    // pr_debug( "RepGame cleanup done" );
 }
 
 void drawScene( RepGameState *gameState ) {
@@ -222,7 +228,6 @@ int main( int argc, char **argv ) {
     glutReshapeFunc( changeSize );
     glutPassiveMotionFunc( mouseMove );
     glutMotionFunc( mouseMove );
-    textures_populate( );
     initilizeGameState( &globalGameState );
     int status = terrain_loading_thread_start( );
     if ( status ) {

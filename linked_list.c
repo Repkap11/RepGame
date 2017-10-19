@@ -2,7 +2,6 @@
 #include "RepGame.h"
 #include <stdlib.h>
 
-#define LOCK_LIST 1
 /* Naive linked list implementation from https://gist.github.com/wayling/3877624*/
 
 LinkedList *linked_list_create( ) {
@@ -16,9 +15,7 @@ LinkedList *linked_list_create( ) {
 
 void linked_list_free( LinkedList *l ) {
     LinkedListItem *li, *tmp;
-    if ( LOCK_LIST ) {
-        pthread_mutex_lock( &( l->mutex ) );
-    }
+    pthread_mutex_lock( &( l->mutex ) );
 
     if ( l != NULL ) {
         li = l->head;
@@ -28,9 +25,8 @@ void linked_list_free( LinkedList *l ) {
             li = tmp;
         }
     }
-    if ( LOCK_LIST ) {
-        pthread_mutex_unlock( &( l->mutex ) );
-    }
+    pthread_mutex_unlock( &( l->mutex ) );
+
     pthread_mutex_destroy( &( l->mutex ) );
     free( l );
 }
@@ -38,9 +34,7 @@ void linked_list_free( LinkedList *l ) {
 // Add element to tail
 void linked_list_add_element( LinkedList *l, LinkedListValue value ) {
     LinkedListItem *li;
-    if ( LOCK_LIST ) {
-        pthread_mutex_lock( &( l->mutex ) );
-    }
+    pthread_mutex_lock( &( l->mutex ) );
 
     li = ( LinkedListItem * )malloc( sizeof( LinkedListItem ) );
     li->value = value;
@@ -55,17 +49,14 @@ void linked_list_add_element( LinkedList *l, LinkedListValue value ) {
     }
     l->tail = li;
     l->count++;
-    if ( LOCK_LIST ) {
-        pthread_mutex_unlock( &( l->mutex ) );
-    }
+    pthread_mutex_unlock( &( l->mutex ) );
 }
 
 // Pop off head
 LinkedListValue linked_list_pop_element( LinkedList *l ) {
     void *result = NULL;
-    if ( LOCK_LIST ) {
-        pthread_mutex_lock( &( l->mutex ) );
-    }
+    pthread_mutex_lock( &( l->mutex ) );
+
     LinkedListItem *li = l->head;
     if ( li != NULL ) {
         if ( li->prev != NULL ) {
@@ -78,8 +69,7 @@ LinkedListValue linked_list_pop_element( LinkedList *l ) {
         result = li->value;
         free( li );
     }
-    if ( LOCK_LIST ) {
-        pthread_mutex_unlock( &( l->mutex ) );
-    }
+    pthread_mutex_unlock( &( l->mutex ) );
+
     return result;
 }
