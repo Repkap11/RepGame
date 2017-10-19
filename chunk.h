@@ -1,21 +1,11 @@
 #ifndef HEADER_CHUNK_H
 #define HEADER_CHUNK_H
 
+#include "block.h"
+
 #define CHUNK_SIZE 8
 #define CHUNK_SIZE_INTERNAL ( CHUNK_SIZE + 2 )
 #define CHUNK_BLOCK_SIZE ( CHUNK_SIZE_INTERNAL * CHUNK_SIZE_INTERNAL * CHUNK_SIZE_INTERNAL )
-
-typedef struct {
-    int type;
-    struct {
-        int top;
-        int bottom;
-        int left;
-        int right;
-        int front;
-        int back;
-    } draw_sides;
-} Block;
 
 typedef struct {
     int loaded;

@@ -1,5 +1,6 @@
 #include "map_gen.h"
 #include "RepGame.h"
+#include "block_definitions.h"
 #include "perlin_noise.h"
 
 #include <stdlib.h>
@@ -22,7 +23,7 @@ void map_gen_load_block( Chunk *chunk ) {
             value = 2;
         }
 
-        chunk->blocks[ index ].type = value;
+        chunk->blocks[ index ].blockDef = block_definition_get_definition( value );
     }
 }
 

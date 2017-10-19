@@ -2,11 +2,13 @@
 #define HEADER_TEXTURES_H
 
 #include "RepGame.h"
+#include <GL/gl.h>
 
 void textures_populate( );
-int textures_getDirtTexture( );
-int textures_getGrassTexture( );
-int textures_getSkyTexture( );
-int textures_getGrassSideTexture( );
-int textures_getWaterTexture( );
+GLuint textures_getDirtTexture( );
+GLuint textures_getGrassTexture( );
+GLuint textures_getSkyTexture( );
+GLuint textures_getGrassSideTexture( );
+GLuint textures_getWaterTexture( );
+void textures_free( );
 #endif

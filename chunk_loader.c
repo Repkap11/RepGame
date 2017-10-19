@@ -4,9 +4,9 @@
 #include <math.h>
 #include <stdlib.h>
 
-#define CHUNK_RADIUS_X 10
+#define CHUNK_RADIUS_X 13
 #define CHUNK_RADIUS_Y 8
-#define CHUNK_RADIUS_Z 10
+#define CHUNK_RADIUS_Z 13
 #define MAX_LOADED_CHUNKS ( ( 2 * CHUNK_RADIUS_X + 1 ) * ( 2 * CHUNK_RADIUS_Y + 1 ) * ( 2 * CHUNK_RADIUS_Z + 1 ) )
 
 void chunk_loader_init( LoadedChunks *loadedChunks ) {

@@ -4,13 +4,11 @@
 #include "map_gen.h"
 #include <GL/gl.h>
 
-#define BLOCK_SCALE 1.0f
-
-inline int chunk_get_index_from_coords( int x, int y, int z ) {
+int chunk_get_index_from_coords( int x, int y, int z ) {
     return ( y + 1 ) * CHUNK_SIZE_INTERNAL * CHUNK_SIZE_INTERNAL + ( x + 1 ) * CHUNK_SIZE_INTERNAL + ( z + 1 );
 }
 
-inline int chunk_get_coords_from_index( int index, int *out_x, int *out_y, int *out_z ) {
+int chunk_get_coords_from_index( int index, int *out_x, int *out_y, int *out_z ) {
     *out_y = ( index / ( CHUNK_SIZE_INTERNAL * CHUNK_SIZE_INTERNAL ) ) - 1;
     *out_x = ( ( index / CHUNK_SIZE_INTERNAL ) % CHUNK_SIZE_INTERNAL ) - 1;
     *out_z = ( index % ( CHUNK_SIZE_INTERNAL ) ) - 1;
@@ -18,7 +16,7 @@ inline int chunk_get_coords_from_index( int index, int *out_x, int *out_y, int *
     return *out_x >= 0 && *out_y >= 0 && *out_z >= 0 && *out_x < CHUNK_SIZE && *out_y < CHUNK_SIZE && *out_z < CHUNK_SIZE;
 }
 
-inline Block *chunk_block( Chunk *chunk, int x, int y, int z ) {
+Block *chunk_block( Chunk *chunk, int x, int y, int z ) {
     // if ( x < 0 || y < 0 || z < 0 ) {
     //     // pr_debug( "Block coord negitive should not be checked." );
     //     // return 0;
@@ -34,72 +32,70 @@ void chunk_calculate_sides( Chunk *chunk ) {
     for ( int index = 0; index < CHUNK_BLOCK_SIZE; index++ ) {
         int x, y, z;
         int drawn_block = chunk_get_coords_from_index( index, &x, &y, &z );
-        int type = chunk->blocks[ index ].type;
-        // drawn_block = 1;
-        if ( drawn_block ) {
-            if ( type > 0 ) {
-                int upBlock = chunk_block( chunk, x + 0, y + 1, z + 0 )->type;
-                int downBlock = chunk_block( chunk, x + 0, y - 1, z + 0 )->type;
-                int leftBlock = chunk_block( chunk, x + 0, y + 0, z - 1 )->type;
-                int rightBlock = chunk_block( chunk, x + 0, y + 0, z + 1 )->type;
-                int frontBlock = chunk_block( chunk, x + 1, y + 0, z + 0 )->type;
-                int backBlock = chunk_block( chunk, x - 1, y + 0, z + 0 )->type;
-                if ( type == 1 ) {
-                    upBlock = ( upBlock == type );       // || upBlock == 0 );
-                    downBlock = ( downBlock == type );   // || downBlock == 0 );
-                    leftBlock = ( leftBlock == type );   // || leftBlock == 0 );
-                    rightBlock = ( rightBlock == type ); // || rightBlock == 0 );
-                    frontBlock = ( frontBlock == type ); // || frontBlock == 0 );
-                    backBlock = ( backBlock == type );   // || backBlock == 0 );
-                }
-                if ( type == 2 ) {
-                    upBlock = !( upBlock == 0 );       // || upBlock == 0 );
-                    downBlock = !( downBlock == 0 );   // || downBlock == 0 );
-                    leftBlock = !( leftBlock == 0 );   // || leftBlock == 0 );
-                    rightBlock = !( rightBlock == 0 ); // || rightBlock == 0 );
-                    frontBlock = !( frontBlock == 0 ); // || frontBlock == 0 );
-                    backBlock = !( backBlock == 0 );   // || backBlock == 0 );
-                }
-                // pr_debug( "Calculated sides for block" );
-                chunk->blocks[ index ].draw_sides.left = !leftBlock;
-                chunk->blocks[ index ].draw_sides.right = !rightBlock;
-                chunk->blocks[ index ].draw_sides.front = !frontBlock;
-                chunk->blocks[ index ].draw_sides.back = !backBlock;
-                chunk->blocks[ index ].draw_sides.top = !upBlock;
-                chunk->blocks[ index ].draw_sides.bottom = !downBlock;
-
+        if ( drawn_block ) { // Blocks at the edge of the chunk are not drawn, but only for edge checking
+            Block *block = &chunk->blocks[ index ];
+            if ( block->blockDef->alpha == 0.0f ) {
+                // Transparent blocks don't get drawn
+                block->draw_sides.top = 0;
+                block->draw_sides.bottom = 0;
+                block->draw_sides.left = 0;
+                block->draw_sides.right = 0;
+                block->draw_sides.front = 0;
+                block->draw_sides.back = 0;
             } else {
-                // pr_debug( "i:%d x%d y:%d z:%d", index, x, y, z );
+                Block *topBlock = chunk_block( chunk, x + 0, y + 1, z + 0 );
+                Block *bottomBlock = chunk_block( chunk, x + 0, y - 1, z + 0 );
+                Block *leftBlock = chunk_block( chunk, x + 0, y + 0, z - 1 );
+                Block *rightBlock = chunk_block( chunk, x + 0, y + 0, z + 1 );
+                Block *frontBlock = chunk_block( chunk, x + 1, y + 0, z + 0 );
+                Block *backBlock = chunk_block( chunk, x - 1, y + 0, z + 0 );
+                // if ( block->blockDef->alpha == 1.0f ) {
+                // Sufeaces of solid blocks get drawn if they are next to a transparent block.
+                block->draw_sides.top = ( topBlock->blockDef->alpha < block->blockDef->alpha );
+                block->draw_sides.bottom = ( bottomBlock->blockDef->alpha < block->blockDef->alpha );
+                block->draw_sides.left = ( leftBlock->blockDef->alpha < block->blockDef->alpha );
+                block->draw_sides.right = ( rightBlock->blockDef->alpha < block->blockDef->alpha );
+                block->draw_sides.front = ( frontBlock->blockDef->alpha < block->blockDef->alpha );
+                block->draw_sides.back = ( backBlock->blockDef->alpha < block->blockDef->alpha );
+                // } else {
+                //     // Sufeaces of translucent blocks get drawn unless they are next to a solid block
+                //     block->draw_sides.top = ( topBlock->blockDef->alpha > block->blockDef->alpha );
+                //     block->draw_sides.bottom = ( bottomBlock->blockDef->alpha != 1.0f );
+                //     block->draw_sides.left = ( leftBlock->blockDef->alpha != 1.0f );
+                //     block->draw_sides.right = ( rightBlock->blockDef->alpha != 1.0f );
+                //     block->draw_sides.front = ( frontBlock->blockDef->alpha != 1.0f );
+                //     block->draw_sides.back = ( backBlock->blockDef->alpha != 1.0f );
+                // }
             }
         }
     }
 }
 
 void chunk_create_display_list( Chunk *chunk ) {
+
     chunk->displayList = glGenLists( 1 );
     // compile the display list, store a triangle in it
     glNewList( chunk->displayList, GL_COMPILE );
     glPushMatrix( );
     glTranslatef( chunk->chunk_x * CHUNK_SIZE, chunk->chunk_y * CHUNK_SIZE, chunk->chunk_z * CHUNK_SIZE );
     for ( int index = 0; index < CHUNK_BLOCK_SIZE; index++ ) {
-        Block *block = &chunk->blocks[ index ];
-        if ( !block->draw_sides.top && !block->draw_sides.bottom && !block->draw_sides.left && !block->draw_sides.right && !block->draw_sides.front && !block->draw_sides.back ) {
-            continue;
-        }
-        int type = block->type;
-        if ( type == 0 ) {
-            continue;
-        }
         int x, y, z;
         int drawn_block = chunk_get_coords_from_index( index, &x, &y, &z );
-        if ( !drawn_block ) {
+        if ( !drawn_block ) { // Blocks at the edge of the chunk are not drawn, but only for edge checking
+            continue;
+        }
+        Block *block = &chunk->blocks[ index ];
+        if ( block->blockDef->alpha == 0.0f ) {
+            // Quick exit for air
+            continue;
+        }
+        if ( !block->draw_sides.top && !block->draw_sides.bottom && !block->draw_sides.left && !block->draw_sides.right && !block->draw_sides.front && !block->draw_sides.back ) {
+            // Quick exit for not shown block
             continue;
         }
         glPushMatrix( );
         glTranslatef( x, y, z );
-        glScalef( BLOCK_SCALE, BLOCK_SCALE, BLOCK_SCALE );
-        // draw3d_cube( type );
-        draw3d_cube_parts( block->draw_sides.top, block->draw_sides.bottom, block->draw_sides.left, block->draw_sides.right, block->draw_sides.front, block->draw_sides.back, type );
+        block_draw( block );
         glPopMatrix( );
     }
     glPopMatrix( );
