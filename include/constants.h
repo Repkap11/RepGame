@@ -2,9 +2,10 @@
 #define HEADER_CONSTANTS_H
 
 #define CHUNK_SIZE 8
-#define CHUNK_RADIUS_X 10
-#define CHUNK_RADIUS_Y 7
-#define CHUNK_RADIUS_Z 10
+
+#define CHUNK_RADIUS_X 8
+#define CHUNK_RADIUS_Y 4
+#define CHUNK_RADIUS_Z 8
 #define BLOCK_SCALE 1.0f
 
 #define MOVEMENT_SENSITIVITY 100.0f // How sensitive the arrow keys are
