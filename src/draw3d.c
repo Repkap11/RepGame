@@ -21,6 +21,7 @@ void draw3d_sphere( ) {
     // gluSphere( sphere, 1, 16, 16 );
 
     // glEndList( );
+    glColor4f( 1.0f, 1.0f, 1.0f, 1.0f );
     glFrontFace( GL_CW );
     GLUquadricObj *sphere = NULL;
     sphere = gluNewQuadric( );
