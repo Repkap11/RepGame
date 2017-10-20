@@ -29,7 +29,7 @@ Block *chunk_block( Chunk *chunk, int x, int y, int z ) {
 }
 
 void chunk_calculate_sides( Chunk *chunk ) {
-    for ( int index = 0; index < CHUNK_BLOCK_SIZE; index++ ) {
+    for ( int index = CHUNK_BLOCK_DRAW_START; index < CHUNK_BLOCK_DRAW_STOP; index++ ) {
         int x, y, z;
         int drawn_block = chunk_get_coords_from_index( index, &x, &y, &z );
         if ( drawn_block ) { // Blocks at the edge of the chunk are not drawn, but only for edge checking
@@ -78,7 +78,7 @@ void chunk_create_display_list( Chunk *chunk ) {
     glNewList( chunk->displayListSolid, GL_COMPILE );
     glPushMatrix( );
     glTranslatef( chunk->chunk_x * CHUNK_SIZE, chunk->chunk_y * CHUNK_SIZE, chunk->chunk_z * CHUNK_SIZE );
-    for ( int index = 0; index < CHUNK_BLOCK_SIZE; index++ ) {
+    for ( int index = CHUNK_BLOCK_DRAW_START; index < CHUNK_BLOCK_DRAW_STOP; index++ ) {
         int x, y, z;
         int drawn_block = chunk_get_coords_from_index( index, &x, &y, &z );
         if ( !drawn_block ) { // Blocks at the edge of the chunk are not drawn, but only for edge checking
@@ -106,7 +106,7 @@ void chunk_create_display_list( Chunk *chunk ) {
     glNewList( chunk->displayListTranslucent, GL_COMPILE );
     glPushMatrix( );
     glTranslatef( chunk->chunk_x * CHUNK_SIZE, chunk->chunk_y * CHUNK_SIZE, chunk->chunk_z * CHUNK_SIZE );
-    for ( int index = 0; index < CHUNK_BLOCK_SIZE; index++ ) {
+    for ( int index = CHUNK_BLOCK_DRAW_START; index < CHUNK_BLOCK_DRAW_STOP; index++ ) {
         int x, y, z;
         int drawn_block = chunk_get_coords_from_index( index, &x, &y, &z );
         if ( !drawn_block ) { // Blocks at the edge of the chunk are not drawn, but only for edge checking
