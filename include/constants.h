@@ -3,12 +3,12 @@
 
 #define CHUNK_SIZE 8
 
-#define CHUNK_RADIUS_X 8
-#define CHUNK_RADIUS_Y 4
-#define CHUNK_RADIUS_Z 8
+#define CHUNK_RADIUS_X 80 / CHUNK_SIZE
+#define CHUNK_RADIUS_Y 64 / CHUNK_SIZE
+#define CHUNK_RADIUS_Z 80 / CHUNK_SIZE
 #define BLOCK_SCALE 1.0f
 
-#define MOVEMENT_SENSITIVITY 100.0f // How sensitive the arrow keys are
+#define MOVEMENT_SENSITIVITY 400.0f // How sensitive the arrow keys are
 #define CAMERA_SIZE 0.1f            // Defines how much crop is in front (low for minecraft)
 #define PERSON_HEIGHT 40.0f
 #define DRAW_DISTANCE 10000.0f
