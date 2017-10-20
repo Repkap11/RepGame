@@ -17,126 +17,120 @@
 
 #define SKY_BOX_DISTANCE DRAW_DISTANCE * 0.9
 
-int cubeDisplayList;
+RepGameState globalGameState;
 
-void initilizeGameState( RepGameState *gameState ) {
-    gameState->input.exitGame = 0;
-    gameState->input.limit_fps = 1;
-    gameState->camera.angle_H = STARTING_ANGLE_H;
-    gameState->camera.angle_V = STARTING_ANGLE_V;
-    gameState->camera.x = 0.0f;
-    gameState->camera.y = PERSON_HEIGHT;
-    gameState->camera.z = 0.0f;
+static inline void initilizeGameState( ) {
+    globalGameState.input.exitGame = 0;
+    globalGameState.input.limit_fps = 1;
+    globalGameState.camera.angle_H = STARTING_ANGLE_H;
+    globalGameState.camera.angle_V = STARTING_ANGLE_V;
+    globalGameState.camera.x = 0.0f;
+    globalGameState.camera.y = PERSON_HEIGHT;
+    globalGameState.camera.z = 0.0f;
     textures_populate( );
     block_definitions_initilize_definitions( );
-    chunk_loader_init( &gameState->gameChunks );
+    chunk_loader_init( &globalGameState.gameChunks );
     // pr_debug( "RepGame init done" );
 }
-void cleanupGameState( RepGameState *gameState ) {
-    chunk_loader_free_chunks( &gameState->gameChunks );
+static inline void cleanupGameState( ) {
+    chunk_loader_free_chunks( &globalGameState.gameChunks );
     block_definitions_free_definitions( );
     textures_free( );
     // pr_debug( "RepGame cleanup done" );
 }
 
-void drawScene( RepGameState *gameState ) {
+static inline void drawScene( ) {
     // draw3d_cube( );cleanupGameState
     glBlendFunc( GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA );
-    chunk_loader_render_chunks( &gameState->gameChunks, gameState->camera.x, gameState->camera.y, gameState->camera.z );
-    chunk_loader_draw_chunks( &gameState->gameChunks );
+    chunk_loader_render_chunks( &globalGameState.gameChunks, globalGameState.camera.x, globalGameState.camera.y, globalGameState.camera.z );
+    chunk_loader_draw_chunks( &globalGameState.gameChunks );
 
     glPushMatrix( );
-    glTranslatef( gameState->camera.x, gameState->camera.y, gameState->camera.z );
+    glTranslatef( globalGameState.camera.x, globalGameState.camera.y, globalGameState.camera.z );
     glScalef( SKY_BOX_DISTANCE, SKY_BOX_DISTANCE, SKY_BOX_DISTANCE );
     glRotatef( 270, 1, 0, 0 );
     draw3d_sphere( );
     glPopMatrix( );
 }
 
-void pointCamera( RepGameState *gameState ) {
-    glRotatef( -gameState->camera.angle_V, -1, 0, 0 );
-    glRotatef( -gameState->camera.angle_H, 0, -1, 0 );
-    glTranslatef( -gameState->camera.x, -gameState->camera.y, -gameState->camera.z );
+static inline void pointCamera( ) {
+    glRotatef( -globalGameState.camera.angle_V, -1, 0, 0 );
+    glRotatef( -globalGameState.camera.angle_H, 0, -1, 0 );
+    glTranslatef( -globalGameState.camera.x, -globalGameState.camera.y, -globalGameState.camera.z );
 }
 
-void display( RepGameState *gameState ) {
+static inline void display( ) {
     glClear( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT );
     glLoadIdentity( );
-    glColor3f( 1.0f, 1.0f, 1.0f );
-    glLoadIdentity( );
-    pointCamera( gameState );
-    drawScene( gameState );
-    ui_overlay_draw( gameState );
+    pointCamera( );
+    drawScene( );
+    ui_overlay_draw( &globalGameState );
     glutSwapBuffers( );
-    glFlush( );
 }
 
-void gameTick( RepGameState *gameState ) {
-    if ( gameState->input.exitGame ) {
+static inline void gameTick( ) {
+    if ( globalGameState.input.exitGame ) {
         // Don't bother updating the state if the game is exiting
         return;
     }
     float fraction = 0.010f * MOVEMENT_SENSITIVITY;
     // float angle_diff = 0.020f;
 
-    // if ( gameState->input.mouse.buttons.middle ) {
+    // if ( input.mouse.buttons.middle ) {
     // update deltaAngle
-    if ( gameState->input.mouse.currentPosition.x - gameState->input.mouse.previousPosition.x || gameState->input.mouse.currentPosition.y - gameState->input.mouse.previousPosition.y ) {
-        // pr_debug( "Position Diff:%d %d", gameState->input.mouse.currentPosition.x - gameState->input.mouse.previousPosition.x, gameState->input.mouse.currentPosition.y - gameState->input.mouse.previousPosition.y );
+    if ( globalGameState.input.mouse.currentPosition.x - globalGameState.input.mouse.previousPosition.x || globalGameState.input.mouse.currentPosition.y - globalGameState.input.mouse.previousPosition.y ) {
+        // pr_debug( "Position Diff:%d %d", input.mouse.currentPosition.x - input.mouse.previousPosition.x, input.mouse.currentPosition.y - input.mouse.previousPosition.y );
     }
 
-    gameState->camera.angle_H += ( gameState->input.mouse.currentPosition.x - gameState->input.mouse.previousPosition.x ) * 0.04f;
-    gameState->camera.angle_V += ( gameState->input.mouse.currentPosition.y - gameState->input.mouse.previousPosition.y ) * 0.04f;
+    globalGameState.camera.angle_H += ( globalGameState.input.mouse.currentPosition.x - globalGameState.input.mouse.previousPosition.x ) * 0.04f;
+    globalGameState.camera.angle_V += ( globalGameState.input.mouse.currentPosition.y - globalGameState.input.mouse.previousPosition.y ) * 0.04f;
 
-    // pr_debug( "Angle_V:%f", gameState->camera.angle_V );
-    // Bpr_debug( "Angle_H:%f", gameState->camera.angle_H );
+    // pr_debug( "Angle_V:%f", globalGameState.camera.angle_V );
+    // Bpr_debug( "Angle_H:%f", globalGameState.camera.angle_H );
 
-    float upAngleLimit = ( 90 ) - 0.001f;
-    if ( gameState->camera.angle_V > upAngleLimit ) {
-        gameState->camera.angle_V = upAngleLimit;
+    float upAngleLimit = 90 - 0.001f;
+    if ( globalGameState.camera.angle_V > upAngleLimit ) {
+        globalGameState.camera.angle_V = upAngleLimit;
     }
 
-    float downAngleLimit = -( 90 ) + 0.001f;
-    if ( gameState->camera.angle_V < downAngleLimit ) {
-        gameState->camera.angle_V = downAngleLimit;
+    float downAngleLimit = -90 + 0.001f;
+    if ( globalGameState.camera.angle_V < downAngleLimit ) {
+        globalGameState.camera.angle_V = downAngleLimit;
     }
     //}
 
-    if ( gameState->input.arrows.left ) {
-        gameState->camera.x += gameState->camera.lz * fraction;
-        gameState->camera.z -= gameState->camera.lx * fraction;
+    if ( globalGameState.input.arrows.left ) {
+        globalGameState.camera.x += globalGameState.camera.lz * fraction;
+        globalGameState.camera.z -= globalGameState.camera.lx * fraction;
     }
-    if ( gameState->input.arrows.right ) {
-        gameState->camera.x -= gameState->camera.lz * fraction;
-        gameState->camera.z += gameState->camera.lx * fraction;
+    if ( globalGameState.input.arrows.right ) {
+        globalGameState.camera.x -= globalGameState.camera.lz * fraction;
+        globalGameState.camera.z += globalGameState.camera.lx * fraction;
     }
-    if ( gameState->input.arrows.front ) {
-        gameState->camera.x += gameState->camera.lx * fraction;
-        gameState->camera.z += gameState->camera.lz * fraction;
+    if ( globalGameState.input.arrows.front ) {
+        globalGameState.camera.x += globalGameState.camera.lx * fraction;
+        globalGameState.camera.z += globalGameState.camera.lz * fraction;
     }
-    if ( gameState->input.arrows.back ) {
-        gameState->camera.x -= gameState->camera.lx * fraction;
-        gameState->camera.z -= gameState->camera.lz * fraction;
+    if ( globalGameState.input.arrows.back ) {
+        globalGameState.camera.x -= globalGameState.camera.lx * fraction;
+        globalGameState.camera.z -= globalGameState.camera.lz * fraction;
     }
-    if ( gameState->input.arrows.up ) {
+    if ( globalGameState.input.arrows.up ) {
         // pr_debug( "Up" );
-        gameState->camera.y += fraction;
+        globalGameState.camera.y += fraction;
     }
-    if ( gameState->input.arrows.down ) {
+    if ( globalGameState.input.arrows.down ) {
         // pr_debug( "Down" );
-        gameState->camera.y -= fraction;
+        globalGameState.camera.y -= fraction;
     }
 
-    gameState->input.mouse.previousPosition.x = gameState->screen.width / 2;
-    gameState->input.mouse.previousPosition.y = gameState->screen.height / 2;
-    gameState->camera.lx = sin( gameState->camera.angle_H * M_PI / 180 );
-    gameState->camera.ly = -tan( gameState->camera.angle_V * M_PI / 180 );
-    gameState->camera.lz = -cos( gameState->camera.angle_H * M_PI / 180 );
-
-    // pr_debug( "Looking x:%f z:%f", gameState->camera.lx, gameState->camera.lz );
+    globalGameState.input.mouse.previousPosition.x = globalGameState.screen.width / 2;
+    globalGameState.input.mouse.previousPosition.y = globalGameState.screen.height / 2;
+    globalGameState.camera.lx = sin( globalGameState.camera.angle_H * ( M_PI / 180 ) );
+    globalGameState.camera.ly = -tan( globalGameState.camera.angle_V * ( M_PI / 180 ) );
+    globalGameState.camera.lz = -cos( globalGameState.camera.angle_H * ( M_PI / 180 ) );
+    // pr_debug( "Looking x:%f z:%f", globalGameState.camera.lx, globalGameState.camera.lz );
 }
-
-RepGameState globalGameState;
 
 void arrowKeyDownInput( int key, int x, int y ) {
     input_arrowKeyDownInput( &globalGameState.input, key, x, y );
@@ -224,7 +218,7 @@ int main( int argc, char **argv ) {
     glutReshapeFunc( changeSize );
     glutPassiveMotionFunc( mouseMove );
     glutMotionFunc( mouseMove );
-    initilizeGameState( &globalGameState );
+    initilizeGameState( );
     int status = terrain_loading_thread_start( );
     if ( status ) {
         pr_debug( "Terrain loading thread failed to start." );
@@ -239,8 +233,8 @@ int main( int argc, char **argv ) {
         glutWarpPointer( globalGameState.screen.width / 2, globalGameState.screen.height / 2 );
         // glutMainLoopEvent( );
         // input_set_enable_mouse( 1 );
-        gameTick( &globalGameState );
-        display( &globalGameState );
+        gameTick( );
+        display( );
 
         clock_gettime( CLOCK_MONOTONIC, &tstart );
 
@@ -254,12 +248,11 @@ int main( int argc, char **argv ) {
                 int wait_time_us = ( int )( wait_time_ms * 1000.0 );
                 // pr_debug("WaitTime_us:%d", wait_time_us);
                 usleep( wait_time_us );
-                ( void )wait_time_us;
             }
         }
     }
     terrain_loading_thread_stop( );
-    cleanupGameState( &globalGameState );
+    cleanupGameState( );
     glutLeaveMainLoop( );
     return 0;
 }
