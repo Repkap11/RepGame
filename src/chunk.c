@@ -4,27 +4,23 @@
 #include "map_gen.h"
 #include <GL/gl.h>
 
-int chunk_get_index_from_coords( int x, int y, int z ) {
+extern inline int chunk_get_index_from_coords( int x, int y, int z ) {
     return ( y + 1 ) * CHUNK_SIZE_INTERNAL * CHUNK_SIZE_INTERNAL + ( x + 1 ) * CHUNK_SIZE_INTERNAL + ( z + 1 );
 }
 
-int chunk_get_coords_from_index( int index, int *out_x, int *out_y, int *out_z ) {
-    *out_y = ( index / ( CHUNK_SIZE_INTERNAL * CHUNK_SIZE_INTERNAL ) ) - 1;
-    *out_x = ( ( index / CHUNK_SIZE_INTERNAL ) % CHUNK_SIZE_INTERNAL ) - 1;
-    *out_z = ( index % ( CHUNK_SIZE_INTERNAL ) ) - 1;
+extern inline int chunk_get_coords_from_index( int index, int *out_x, int *out_y, int *out_z ) {
+    int y = ( index / ( CHUNK_SIZE_INTERNAL * CHUNK_SIZE_INTERNAL ) ) - 1;
+    int x = ( ( index / CHUNK_SIZE_INTERNAL ) % CHUNK_SIZE_INTERNAL ) - 1;
+    int z = ( index % ( CHUNK_SIZE_INTERNAL ) ) - 1;
     // return 1;
-    return *out_x >= 0 && *out_y >= 0 && *out_z >= 0 && *out_x < CHUNK_SIZE && *out_y < CHUNK_SIZE && *out_z < CHUNK_SIZE;
+    int result = x >= 0 && y >= 0 && z >= 0 && x < CHUNK_SIZE && y < CHUNK_SIZE && z < CHUNK_SIZE;
+    *out_x = x;
+    *out_y = y;
+    *out_z = z;
+    return result;
 }
 
-Block *chunk_block( Chunk *chunk, int x, int y, int z ) {
-    // if ( x < 0 || y < 0 || z < 0 ) {
-    //     // pr_debug( "Block coord negitive should not be checked." );
-    //     // return 0;
-    // }
-    // if ( x > CHUNK_SIZE || y > CHUNK_SIZE || z > CHUNK_SIZE ) {
-    //     // pr_debug( "Block coord %d should not be checked.", CHUNK_SIZE_INTERNAL );
-    //     // return 0;
-    // }
+static inline Block *chunk_block( Chunk *chunk, int x, int y, int z ) {
     return &chunk->blocks[ chunk_get_index_from_coords( x, y, z ) ];
 }
 
@@ -134,7 +130,7 @@ void chunk_create_display_list( Chunk *chunk ) {
     glEndList( );
 }
 
-void chunk_load_terrain( Chunk *chunk ) {
+extern inline void chunk_load_terrain( Chunk *chunk ) {
     // pr_debug( "Loading chunk terrain x:%d y:%d z:%d", chunk->chunk_x, chunk->chunk_y, chunk->chunk_z );
     map_gen_load_block( chunk );
 }

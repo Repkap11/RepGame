@@ -39,7 +39,6 @@ void chunk_loader_render_chunks( LoadedChunks *loadedChunks, float camera_x, flo
         if ( chunk ) {
             // pr_debug( "Paul Loading terrain x:%d y%d: z:%d", chunk->chunk_x, chunk->chunk_y, chunk->chunk_z );
             chunk_create_display_list( chunk );
-            chunk->loaded = 1;
         }
         count += 1;
     } while ( chunk && count < CHUNK_RENDERS_PER_FRAME );
@@ -73,59 +72,58 @@ void chunk_loader_render_chunks( LoadedChunks *loadedChunks, float camera_x, flo
         }
 
         for ( int i = 0; i < MAX_LOADED_CHUNKS; i++ ) {
-            Chunk *loadedChunk = &loadedChunks->chunkArray[ i ];
-            if ( loadedChunk->loaded ) {
-                int dist_x = loadedChunk->chunk_x - chunk_x;
-                int dist_y = loadedChunk->chunk_y - chunk_y;
-                int dist_z = loadedChunk->chunk_z - chunk_z;
-                int dist_x_abs = abs( dist_x );
-                int dist_y_abs = abs( dist_y );
-                int dist_z_abs = abs( dist_z );
+            chunk = &loadedChunks->chunkArray[ i ];
+            Chunk loadedChunk = *chunk; // Make a local copy for faster access to xyz
+            int dist_x = loadedChunk.chunk_x - chunk_x;
+            int dist_y = loadedChunk.chunk_y - chunk_y;
+            int dist_z = loadedChunk.chunk_z - chunk_z;
+            int dist_x_abs = abs( dist_x );
+            int dist_y_abs = abs( dist_y );
+            int dist_z_abs = abs( dist_z );
 
-                // if ( dist_x_abs * dist_x_abs + dist_y_abs * dist_y_abs + dist_z_abs * dist_z_abs > CHUNK_RADIUS * CHUNK_RADIUS ) {
-                if ( dist_x_abs > CHUNK_RADIUS_X || //
-                     dist_y_abs > CHUNK_RADIUS_Y || //
-                     dist_z_abs > CHUNK_RADIUS_Z ) {
+            // if ( dist_x_abs * dist_x_abs + dist_y_abs * dist_y_abs + dist_z_abs * dist_z_abs > CHUNK_RADIUS * CHUNK_RADIUS ) {
+            if ( dist_x_abs > CHUNK_RADIUS_X || //
+                 dist_y_abs > CHUNK_RADIUS_Y || //
+                 dist_z_abs > CHUNK_RADIUS_Z ) {
 
-                    int sig_x = loadedChunks->chunk_center_x - chunk_x;
-                    int sig_y = loadedChunks->chunk_center_y - chunk_y;
-                    int sig_z = loadedChunks->chunk_center_z - chunk_z;
-                    // pr_debug( "sig x:%d y:%d z:%d", sig_x, sig_y, sig_z );
+                int sig_x = loadedChunks->chunk_center_x - chunk_x;
+                int sig_y = loadedChunks->chunk_center_y - chunk_y;
+                int sig_z = loadedChunks->chunk_center_z - chunk_z;
+                // pr_debug( "sig x:%d y:%d z:%d", sig_x, sig_y, sig_z );
 
-                    // int sig_x2 = ( dist_x_abs > CHUNK_RADIUS ) * ( sig_x );
-                    // int sig_y2 = ( dist_y_abs > CHUNK_RADIUS ) * ( sig_y );
-                    // int sig_z2 = ( dist_z_abs > CHUNK_RADIUS ) * ( sig_z );
+                // int sig_x2 = ( dist_x_abs > CHUNK_RADIUS ) * ( sig_x );
+                // int sig_y2 = ( dist_y_abs > CHUNK_RADIUS ) * ( sig_y );
+                // int sig_z2 = ( dist_z_abs > CHUNK_RADIUS ) * ( sig_z );
 
-                    // pr_debug( "change x:%d y:%d z:%d", dist_x, dist_y, dist_z );
+                // pr_debug( "change x:%d y:%d z:%d", dist_x, dist_y, dist_z );
 
-                    // if ( !loadedChunks->loaded_any ) {
-                    // if ( chunk_x == 0 && chunk_y == 0 && chunk_z == 0 ) {
-                    // pr_debug( "Freeing chunk  x:%d y:%d z:%d", loadedChunk->chunk.chunk_x, loadedChunk->chunk.chunk_y, loadedChunk->chunk.chunk_z );
-                    // pr_debug( " Freed because x:%d y:%d z:%d", dist_x, dist_y, dist_z );
-                    // pr_debug( "Alloc   chunk  x:%d y:%d z:%d", loadedChunk->chunk.chunk_x - 2 * dist_x + sig_x, loadedChunk->chunk.chunk_y - 2 * dist_y + sig_y, loadedChunk->chunk.chunk_z - 2 * dist_z + sig_z );
-                    //}
-                    //}
-                    // chunk_free( &loadedChunk->chunk );
-                    // chunk_loader_load_chunk( loadedChunks, i, , , );
+                // if ( !loadedChunks->loaded_any ) {
+                // if ( chunk_x == 0 && chunk_y == 0 && chunk_z == 0 ) {
+                // pr_debug( "Freeing chunk  x:%d y:%d z:%d", loadedChunk->chunk.chunk_x, loadedChunk->chunk.chunk_y, loadedChunk->chunk.chunk_z );
+                // pr_debug( " Freed because x:%d y:%d z:%d", dist_x, dist_y, dist_z );
+                // pr_debug( "Alloc   chunk  x:%d y:%d z:%d", loadedChunk->chunk.chunk_x - 2 * dist_x + sig_x, loadedChunk->chunk.chunk_y - 2 * dist_y + sig_y, loadedChunk->chunk.chunk_z - 2 * dist_z + sig_z );
+                //}
+                //}
+                // chunk_free( &loadedChunk->chunk );
+                // chunk_loader_load_chunk( loadedChunks, i, , , );
 
-                    chunk_destroy_display_list( loadedChunk );
-                    // chunk_free_terrain( loadedChunk );
-                    //}
-                    // if ( chunk_loader_is_chunk_loaded( loadedChunks, chunk_x, chunk_y, chunk_z ) ) {
-                    //    pr_debug( "Paul Error" );
-                    //}
-                    loadedChunk->chunk_x = loadedChunk->chunk_x - 2 * dist_x + sig_x;
-                    loadedChunk->chunk_y = loadedChunk->chunk_y - 2 * dist_y + sig_y;
-                    loadedChunk->chunk_z = loadedChunk->chunk_z - 2 * dist_z + sig_z;
-                    terrain_loading_thread_enqueue( loadedChunk );
-                    // chunk_x = 10 //camera
-                    // loadedChunk->chunk.chunk_x = 5 // chunk
-                    // = 2 * chunk_x - loadedChunk->chunk.chunk_x + sig( loadedChunk->chunk.chunk_y - chunk )
+                chunk_destroy_display_list( chunk );
+                // chunk_free_terrain( loadedChunk );
+                //}
+                // if ( chunk_loader_is_chunk_loaded( loadedChunks, chunk_x, chunk_y, chunk_z ) ) {
+                //    pr_debug( "Paul Error" );
+                //}
+                chunk->chunk_x = loadedChunk.chunk_x - 2 * dist_x + sig_x;
+                chunk->chunk_y = loadedChunk.chunk_y - 2 * dist_y + sig_y;
+                chunk->chunk_z = loadedChunk.chunk_z - 2 * dist_z + sig_z;
+                terrain_loading_thread_enqueue( chunk );
+                // chunk_x = 10 //camera
+                // loadedChunk->chunk.chunk_x = 5 // chunk
+                // = 2 * chunk_x - loadedChunk->chunk.chunk_x + sig( loadedChunk->chunk.chunk_y - chunk )
 
-                    // = 2 * 10 - 5 + -1
-                    //  = 20 - 5 + -1
-                    // loadedChunk->loaded = 0;
-                }
+                // = 2 * 10 - 5 + -1
+                //  = 20 - 5 + -1
+                // loadedChunk->loaded = 0;
             }
         }
         loadedChunks->loaded_any = 1;
@@ -143,7 +141,7 @@ void chunk_loader_render_chunks( LoadedChunks *loadedChunks, float camera_x, flo
     }
 }
 
-void chunk_loader_draw_chunks( LoadedChunks *loadedChunks ) {
+extern inline void chunk_loader_draw_chunks( LoadedChunks *loadedChunks ) {
     // pr_debug( "Drawing %d chunks", loadedChunks->numLoadedChunks );
     for ( int i = 0; i < MAX_LOADED_CHUNKS; i++ ) {
         // pr_debug( "Drawing chunk %d", i );

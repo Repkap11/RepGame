@@ -9,7 +9,6 @@
 #define CHUNK_BLOCK_DRAW_STOP ( CHUNK_BLOCK_SIZE - CHUNK_BLOCK_DRAW_START )
 
 typedef struct {
-    int loaded;
     int displayListSolid;
     int displayListTranslucent;
     Block *blocks;
