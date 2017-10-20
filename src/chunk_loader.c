@@ -28,9 +28,9 @@ void chunk_loader_init( LoadedChunks *loadedChunks ) {
 // }
 
 void chunk_loader_render_chunks( LoadedChunks *loadedChunks, float camera_x, float camera_y, float camera_z ) {
-    int chunk_x = floor( camera_x / CHUNK_SIZE );
-    int chunk_y = floor( camera_y / CHUNK_SIZE );
-    int chunk_z = floor( camera_z / CHUNK_SIZE );
+    int chunk_x = floor( camera_x / ( float )CHUNK_SIZE );
+    int chunk_y = floor( camera_y / ( float )CHUNK_SIZE );
+    int chunk_z = floor( camera_z / ( float )CHUNK_SIZE );
 
     Chunk *chunk;
     int count = 0;
