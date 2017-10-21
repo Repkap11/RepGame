@@ -39,6 +39,23 @@ static inline void cleanupGameState( ) {
     // pr_debug( "RepGame cleanup done" );
 }
 
+// Returns the worls coord from the screen coords xy
+void getPosFromMouse( int x, int y, double *out_x, double *out_y, double *out_z ) {
+    GLint viewport[ 4 ];
+    GLdouble modelview[ 16 ];
+    GLdouble projection[ 16 ];
+    GLfloat winX, winY, winZ;
+    GLdouble posX, posY, posZ;
+    glGetDoublev( GL_MODELVIEW_MATRIX, modelview );
+    glGetDoublev( GL_PROJECTION_MATRIX, projection );
+    glGetIntegerv( GL_VIEWPORT, viewport );
+    winX = ( float )x;
+    winY = ( float )viewport[ 3 ] - ( float )y;
+    glReadPixels( x, ( int )winY, 1, 1, GL_DEPTH_COMPONENT, GL_FLOAT, &winZ );
+
+    gluUnProject( winX, winY, winZ, modelview, projection, viewport, out_x, out_y, out_z );
+}
+
 static inline void drawScene( ) {
     // draw3d_cube( );cleanupGameState
     glBlendFunc( GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA );
@@ -59,11 +76,71 @@ static inline void pointCamera( ) {
     glTranslatef( -globalGameState.camera.x, -globalGameState.camera.y, -globalGameState.camera.z );
 }
 
+static inline void calculateMousePos( ) {
+    double world_mouse_x, world_mouse_y, world_mouse_z = 0;
+    getPosFromMouse( globalGameState.screen.width / 2, globalGameState.screen.height / 2, &world_mouse_x, &world_mouse_y, &world_mouse_z );
+    double camera_x_round = round( globalGameState.camera.x );
+    double camera_y_round = round( globalGameState.camera.y );
+    double camera_z_round = round( globalGameState.camera.z );
+    // pr_debug("Mouse x:%f y:%f z:%f",world_mouse_x,world_mouse_y,world_mouse_z);
+    double world_x_round = round( world_mouse_x );
+    double world_y_round = round( world_mouse_y );
+    double world_z_round = round( world_mouse_z );
+
+    int face_x = fabs( world_x_round - world_mouse_x ) < 0.01;
+    int face_y = fabs( world_y_round - world_mouse_y ) < 0.01;
+    int face_z = fabs( world_z_round - world_mouse_z ) < 0.01;
+    // pr_debug("Face x:%d y:%d z:%d",face_x,face_y,face_z);
+
+    int offset_x = ( world_x_round < camera_x_round ) && face_x;
+    int offset_y = ( world_y_round < camera_y_round ) && face_y;
+    int offset_z = ( world_z_round < camera_z_round ) && face_z;
+    // pr_debug( "Offset x:%d y:%d z:%d", offset_x, offset_y, offset_z );
+
+    int world_x = face_x ? world_x_round : floor( world_mouse_x );
+    int world_y = face_y ? world_y_round : floor( world_mouse_y );
+    int world_z = face_z ? world_z_round : floor( world_mouse_z );
+    // pr_debug("World x:%d y:%d z:%d",world_x,world_y,world_z);
+
+    world_x -= offset_x;
+    world_y -= offset_y;
+    world_z -= offset_z;
+    // The player has selected this block (unless there are edge problems)
+
+    glPushMatrix( );
+    float half = 0.5f;
+    float scale = 1.001f;
+    glTranslatef( world_x + half, world_y + half, world_z + half );
+    glScalef( scale, scale, scale );
+    glTranslatef( -half, -half, -half );
+    Block block;
+    block.draw_sides.top = 1;
+    block.draw_sides.bottom = 1;
+    block.draw_sides.left = 1;
+    block.draw_sides.right = 1;
+    block.draw_sides.front = 1;
+    block.draw_sides.back = 1;
+    BlockDefinition blockDef;
+
+    blockDef.id = WATER;
+    blockDef.alpha = 0.5f;
+    blockDef.height = 1.0f;
+    blockDef.textures.top = getTexture( WATER );
+    blockDef.textures.side = getTexture( WATER );
+    blockDef.textures.bottom = getTexture( WATER );
+    blockDef.special_grass_logic = 0;
+    block.blockDef = &blockDef;
+
+    block_draw( &block );
+    glPopMatrix( );
+}
+
 static inline void display( ) {
     glClear( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT );
     glLoadIdentity( );
     pointCamera( );
     drawScene( );
+    calculateMousePos( );
     ui_overlay_draw( &globalGameState );
     glutSwapBuffers( );
 }
