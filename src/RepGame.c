@@ -79,32 +79,55 @@ static inline void pointCamera( ) {
 static inline void calculateMousePos( ) {
     double world_mouse_x, world_mouse_y, world_mouse_z = 0;
     getPosFromMouse( globalGameState.screen.width / 2, globalGameState.screen.height / 2, &world_mouse_x, &world_mouse_y, &world_mouse_z );
-    double camera_x_round = round( globalGameState.camera.x );
-    double camera_y_round = round( globalGameState.camera.y );
-    double camera_z_round = round( globalGameState.camera.z );
+    int camera_x_round = round( globalGameState.camera.x );
+    int camera_y_round = round( globalGameState.camera.y );
+    int camera_z_round = round( globalGameState.camera.z );
     // pr_debug("Mouse x:%f y:%f z:%f",world_mouse_x,world_mouse_y,world_mouse_z);
-    double world_x_round = round( world_mouse_x );
-    double world_y_round = round( world_mouse_y );
-    double world_z_round = round( world_mouse_z );
+    int world_x_round = round( world_mouse_x );
+    int world_y_round = round( world_mouse_y );
+    int world_z_round = round( world_mouse_z );
 
-    int face_x = fabs( world_x_round - world_mouse_x ) < 0.01;
-    int face_y = fabs( world_y_round - world_mouse_y ) < 0.01;
-    int face_z = fabs( world_z_round - world_mouse_z ) < 0.01;
-    // pr_debug("Face x:%d y:%d z:%d",face_x,face_y,face_z);
+    double dis_x = world_x_round - world_mouse_x;
+    double dis_y = world_y_round - world_mouse_y;
+    double dis_z = world_z_round - world_mouse_z;
 
-    int offset_x = ( world_x_round < camera_x_round ) && face_x;
-    int offset_y = ( world_y_round < camera_y_round ) && face_y;
-    int offset_z = ( world_z_round < camera_z_round ) && face_z;
-    // pr_debug( "Offset x:%d y:%d z:%d", offset_x, offset_y, offset_z );
+    double dis_x_abs = fabs( dis_x );
+    double dis_y_abs = fabs( dis_y );
+    double dis_z_abs = fabs( dis_z );
+
+    int face_x = ( dis_x_abs < 0.01 );
+    int face_y = ( dis_y_abs < 0.01 );
+    int face_z = ( dis_z_abs < 0.01 );
+    // pr_debug( "Face x:%d y:%d z:%d", face_x, face_y, face_z );
+
+    double sig_x = ( round( world_mouse_x ) - floor( globalGameState.camera.x ) == 0 ) ? -1 : ( ( round( world_mouse_x ) - floor( globalGameState.camera.x ) ) / fabs( floor( globalGameState.camera.x ) - round( world_mouse_x ) ) );
+    double sig_y = ( round( world_mouse_y ) - floor( globalGameState.camera.y ) == 0 ) ? -1 : ( ( round( world_mouse_y ) - floor( globalGameState.camera.y ) ) / fabs( floor( globalGameState.camera.y ) - round( world_mouse_y ) ) );
+    double sig_z = ( round( world_mouse_z ) - floor( globalGameState.camera.z ) == 0 ) ? -1 : ( ( round( world_mouse_z ) - floor( globalGameState.camera.z ) ) / fabs( floor( globalGameState.camera.z ) - round( world_mouse_z ) ) );
+    // pr_debug( "Sig x:%+2f y:%+2f z:%+2f", sig_x, sig_y, sig_z );
+    // pr_debug( "Faceing x:%+2.0f y:%+2.0f z:%+2.0f", sig_x * face_x, sig_y * face_y, sig_z * face_z );
+
+    int offset_x = sig_x * face_x;
+    int offset_y = sig_y * face_y;
+    int offset_z = sig_z * face_z;
+
+    // int offset_x = face_x * ( world_x_round <= camera_x_round );
+    // int offset_y = face_y * ( world_y_round <= camera_y_round );
+    // int offset_z = face_z * ( world_z_round <= camera_z_round );
+    // pr_debug( " Offset x:%d y:%d z:%d", offset_x, offset_y, offset_z );
+
+    // int offset_x2 = ( world_x_round == camera_x_round ) && face_x;
+    // int offset_y2 = ( world_y_round == camera_y_round ) && face_y;
+    // int offset_z2 = ( world_z_round == camera_z_round ) && face_z;
+    // pr_debug( "Offse2 x:%d y:%d z:%d", offset_x2, offset_y2, offset_z2 );
 
     int world_x = face_x ? world_x_round : floor( world_mouse_x );
     int world_y = face_y ? world_y_round : floor( world_mouse_y );
     int world_z = face_z ? world_z_round : floor( world_mouse_z );
     // pr_debug("World x:%d y:%d z:%d",world_x,world_y,world_z);
 
-    world_x -= offset_x;
-    world_y -= offset_y;
-    world_z -= offset_z;
+    world_x += ( offset_x == 1 ? 0 : offset_x );
+    world_y += ( offset_y == 1 ? 0 : offset_y );
+    world_z += ( offset_z == 1 ? 0 : offset_z );
     // The player has selected this block (unless there are edge problems)
 
     glPushMatrix( );
