@@ -57,10 +57,11 @@ void getPosFromMouse( int x, int y, double *out_x, double *out_y, double *out_z 
 }
 
 static inline void drawScene( ) {
-    // draw3d_cube( );cleanupGameState
+    glEnable( GL_LIGHTING );
     glBlendFunc( GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA );
     chunk_loader_render_chunks( &globalGameState.gameChunks, globalGameState.camera.x, globalGameState.camera.y, globalGameState.camera.z );
     chunk_loader_draw_chunks( &globalGameState.gameChunks );
+    glDisable( GL_LIGHTING );
 
     glPushMatrix( );
     glTranslatef( globalGameState.camera.x, globalGameState.camera.y, globalGameState.camera.z );
@@ -68,6 +69,18 @@ static inline void drawScene( ) {
     glRotatef( 270, 1, 0, 0 );
     draw3d_sphere( );
     glPopMatrix( );
+}
+
+void pointLight( ) {
+    GLfloat light_ambient[] = {0.5, 0.5, 0.5, 0.0};
+    GLfloat light_diffuse[] = {0.3, 0.3, 0.3, 0.0};
+    GLfloat light_specular[] = {0.2, 0.2, 0.2, 0.0};
+
+    GLfloat light_position[] = {0.5, 1, 0, 0};
+    glLightfv( GL_LIGHT0, GL_POSITION, light_position );
+    glLightfv( GL_LIGHT0, GL_AMBIENT, light_ambient );
+    glLightfv( GL_LIGHT0, GL_DIFFUSE, light_diffuse );
+    glLightfv( GL_LIGHT0, GL_SPECULAR, light_specular );
 }
 
 static inline void pointCamera( ) {
@@ -162,6 +175,7 @@ static inline void display( ) {
     glClear( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT );
     glLoadIdentity( );
     pointCamera( );
+    pointLight( );
     drawScene( );
     calculateMousePos( );
     ui_overlay_draw( &globalGameState );
@@ -197,7 +211,6 @@ static inline void gameTick( ) {
     if ( globalGameState.camera.angle_V < downAngleLimit ) {
         globalGameState.camera.angle_V = downAngleLimit;
     }
-    //}
 
     if ( globalGameState.input.arrows.left ) {
         globalGameState.camera.x += globalGameState.camera.lz * fraction;
@@ -306,6 +319,9 @@ int main( int argc, char **argv ) {
     glEnable( GL_TEXTURE_2D );
     glEnable( GL_BLEND );
     glEnable( GL_MULTISAMPLE );
+    glEnable( GL_COLOR_MATERIAL );
+    glEnable( GL_NORMALIZE );
+    glEnable( GL_LIGHT0 );
 
     glutSpecialFunc( arrowKeyDownInput );
     glutSpecialUpFunc( arrowKeyUpInput );

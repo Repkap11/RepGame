@@ -1,7 +1,7 @@
 #ifndef HEADER_CONSTANTS_H
 #define HEADER_CONSTANTS_H
 
-#define LARGE_WORLD
+//#define LARGE_WORLD
 
 #ifdef LARGE_WORLD
 #define MOVEMENT_SENSITIVITY 400.0f // How sensitive the arrow keys are
