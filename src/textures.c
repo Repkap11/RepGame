@@ -85,20 +85,101 @@ void textures_populate( ) {
     textures = loadTextures( "./bitmaps/textures.bmp", 256, 256, 138, 16, 16, &num_textures );
 }
 
-GLuint textures_getDirtTexture( ) {
-    return textures[ 2 ];
-}
-GLuint textures_getGrassTexture( ) {
-    return textures[ 0 ];
-}
 GLuint textures_getSkyTexture( ) {
     return sky_textures[ 0 ];
 }
-GLuint textures_getGrassSideTexture( ) {
-    return textures[ 3 ];
-}
-GLuint textures_getWaterTexture( ) {
-    return textures[ 14 ];
+GLuint getTexture( BlockID id ) {
+
+    switch ( id ) {
+        case GRASS:
+            return textures[ 0 ];
+            break;
+
+        case STONE:
+            return textures[ 1 ];
+            break;
+
+        case DIRT:
+            return textures[ 2 ];
+            break;
+
+        case GRASS_SIDE:
+            return textures[ 3 ];
+            break;
+
+        case WOOD_PLANK:
+            return textures[ 4 ];
+            break;
+
+        case DOUBLE_SLAB:
+            return textures[ 5 ];
+            break;
+
+        case SLAB_TOP:
+            return textures[ 6 ];
+            break;
+
+        case BRICK:
+            return textures[ 7 ];
+            break;
+
+        case TNT:
+            return textures[ 8 ];
+            break;
+
+        case TNT_TOP:
+            return textures[ 9 ];
+            break;
+
+        case TNT_BOTTOM:
+            return textures[ 10 ];
+            break;
+
+        case WATER:
+            return textures[ 14 ];
+            break;
+
+        case COBBLESTONE:
+            return textures[ 1 ];
+            break;
+
+        case BEDROCK:
+            return textures[ 1 ];
+            break;
+
+        case SAND:
+            return textures[ 18 ];
+            break;
+
+        case GRAVEL:
+            return textures[ 1 ];
+            break;
+
+        case WOOD_LOG_SIDE:
+            return textures[ 1 ];
+            break;
+
+        case WOOD_LOG_TOP:
+            return textures[ 1 ];
+            break;
+
+        case IRON_BLOCK:
+            return textures[ 1 ];
+            break;
+
+        case GOLD_BLOCK:
+            return textures[ 1 ];
+            break;
+
+        case DIAMOND_BLOCK:
+            return textures[ 1 ];
+            break;
+
+        default:
+            pr_debug( "Warning, using default texture for %d", id );
+            return textures[ 1 ];
+            break;
+    }
 }
 
 void textures_free( ) {

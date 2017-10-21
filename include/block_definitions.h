@@ -9,7 +9,31 @@ typedef struct {
     GLuint bottom;
 } BlockTextureMap;
 
-typedef enum { AIR = 0, GRASS, WATER, LAST_BLOCK_ID } BlockID;
+typedef enum {
+    AIR = 0,
+    GRASS,
+    STONE,
+    DIRT,
+    GRASS_SIDE,
+    WOOD_PLANK,
+    DOUBLE_SLAB,
+    SLAB_TOP,
+    BRICK,
+    TNT,
+    TNT_TOP,
+    TNT_BOTTOM,
+    WATER,
+    COBBLESTONE,
+    BEDROCK,
+    SAND,
+    GRAVEL,
+    WOOD_LOG_SIDE,
+    WOOD_LOG_TOP,
+    IRON_BLOCK,
+    GOLD_BLOCK,
+    DIAMOND_BLOCK,
+    LAST_BLOCK_ID
+} BlockID;
 
 typedef struct {
     BlockID id;

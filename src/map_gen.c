@@ -2,6 +2,7 @@
 #include "RepGame.h"
 #include "block_definitions.h"
 #include "perlin_noise.h"
+#include <math.h>
 
 #include <stdlib.h>
 
@@ -14,16 +15,31 @@ void map_gen_load_block( Chunk *chunk ) {
     }
     for ( int index = 0; index < CHUNK_BLOCK_SIZE; index++ ) {
         int x, y, z;
-        int value = 0;
+        int terrainShouldHaveBlock = 0; // Default to no block
+        int terrainBiomeType = 0;       // Some default biome type
+        int finalBlockId = 0;           // base block type is grass I guess
         chunk_get_coords_from_index( index, &x, &y, &z );
-        // value = 1;
-        value = perlin_noise( chunk_offset_x + x, chunk_offset_y + y, chunk_offset_z + z );
+        terrainShouldHaveBlock = perlin_noise_terrain( chunk_offset_x + x, chunk_offset_y + y, chunk_offset_z + z );
+        if ( terrainShouldHaveBlock == 1 ) {
+            terrainBiomeType = perlin_noise_biomes( chunk_offset_x + x, chunk_offset_y + y, chunk_offset_z + z );
+            finalBlockId = GRASS;
+            if ( terrainBiomeType > 4 ) {
+                finalBlockId = GRASS;
+            }
 
-        if ( value == 0 && chunk_offset_y + y < 30 ) {
-            value = 2;
+            if ( terrainBiomeType < 4 && terrainBiomeType > 0 ) {
+                finalBlockId = SAND;
+            }
         }
 
-        chunk->blocks[ index ].blockDef = block_definition_get_definition( value );
+        if ( terrainShouldHaveBlock == 0 ) {
+            // There should not be a block here, but water is still possible at low height
+            if ( chunk_offset_y + y < 30 ) {
+                finalBlockId = WATER;
+            }
+        }
+
+        chunk->blocks[ index ].blockDef = block_definition_get_definition( finalBlockId );
     }
 }
 
