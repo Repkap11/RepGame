@@ -3,9 +3,9 @@
 
 #define CHUNK_SIZE 8
 
-#define CHUNK_RADIUS_X 80 / CHUNK_SIZE
+#define CHUNK_RADIUS_X 160 / CHUNK_SIZE
 #define CHUNK_RADIUS_Y 64 / CHUNK_SIZE
-#define CHUNK_RADIUS_Z 80 / CHUNK_SIZE
+#define CHUNK_RADIUS_Z 160 / CHUNK_SIZE
 #define BLOCK_SCALE 1.0f
 
 #define MOVEMENT_SENSITIVITY 400.0f // How sensitive the arrow keys are

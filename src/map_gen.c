@@ -30,6 +30,10 @@ void map_gen_load_block( Chunk *chunk ) {
             if ( terrainBiomeType < 4 && terrainBiomeType > 0 ) {
                 finalBlockId = SAND;
             }
+
+            if ( terrainBiomeType > 7.5 ) {
+                finalBlockId = STONE;
+            }
         }
 
         if ( terrainShouldHaveBlock == 0 ) {
