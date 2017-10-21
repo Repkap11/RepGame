@@ -74,6 +74,7 @@ void chunk_create_display_list( Chunk *chunk ) {
     glNewList( chunk->displayListSolid, GL_COMPILE );
     glPushMatrix( );
     glTranslatef( chunk->chunk_x * CHUNK_SIZE, chunk->chunk_y * CHUNK_SIZE, chunk->chunk_z * CHUNK_SIZE );
+    int chunk_contains_faces = 0;
     for ( int index = CHUNK_BLOCK_DRAW_START; index < CHUNK_BLOCK_DRAW_STOP; index++ ) {
         int x, y, z;
         int drawn_block = chunk_get_coords_from_index( index, &x, &y, &z );
@@ -89,6 +90,7 @@ void chunk_create_display_list( Chunk *chunk ) {
             // Quick exit for not shown block
             continue;
         }
+        chunk_contains_faces = 1;
         glPushMatrix( );
         glTranslatef( x, y, z );
         block_draw( block );
@@ -96,11 +98,16 @@ void chunk_create_display_list( Chunk *chunk ) {
     }
     glPopMatrix( );
     glEndList( );
+    if ( !chunk_contains_faces ) {
+        glDeleteLists( chunk->displayListSolid, 1 );
+        chunk->displayListSolid = 0;
+    }
 
     chunk->displayListTranslucent = glGenLists( 1 );
     // compile the display list, store a triangle in it
     glNewList( chunk->displayListTranslucent, GL_COMPILE );
     glPushMatrix( );
+    chunk_contains_faces = 0;
     glTranslatef( chunk->chunk_x * CHUNK_SIZE, chunk->chunk_y * CHUNK_SIZE, chunk->chunk_z * CHUNK_SIZE );
     for ( int index = CHUNK_BLOCK_DRAW_START; index < CHUNK_BLOCK_DRAW_STOP; index++ ) {
         int x, y, z;
@@ -121,6 +128,7 @@ void chunk_create_display_list( Chunk *chunk ) {
             // Quick exit for not shown block
             continue;
         }
+        chunk_contains_faces = 1;
         glPushMatrix( );
         glTranslatef( x, y, z );
         block_draw( block );
@@ -128,6 +136,10 @@ void chunk_create_display_list( Chunk *chunk ) {
     }
     glPopMatrix( );
     glEndList( );
+    if ( !chunk_contains_faces ) {
+        glDeleteLists( chunk->displayListTranslucent, 1 );
+        chunk->displayListTranslucent = 0;
+    }
 }
 
 extern inline void chunk_load_terrain( Chunk *chunk ) {
