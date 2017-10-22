@@ -1,4 +1,4 @@
-const vec3 AMBIENT = vec3(0.1, 0.1, 0.1);
+const vec3 AMBIENT = vec3(0.2, 0.2, 0.2);
 const float MAX_DIST = 1;
 const float MAX_DIST_SQUARED = MAX_DIST * MAX_DIST;
 
@@ -32,7 +32,7 @@ main()
 	vec3 specular = specularColor * pow(clamp(specularDot, 0.0, 1.0), 16.0) * distFactor;
 
 	//gl_FragColor = vec4(clamp((diffuse + AMBIENT) + specular, 0.0, 1.0), 1);
-	//gl_FragColor = vec4(cameraDir, 1);
+	gl_FragColor = vec4(normal + normalize(vec3(1,1,1)), 1);
 	float color = cameraDistance / 50;
-	gl_FragColor = vec4(cameraVector,1);
+	//gl_FragColor = vec4(cameraDir,1);
 }

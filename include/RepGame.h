@@ -53,5 +53,6 @@ typedef struct {
     } physics;
 
 } RepGameState;
+void renderShaders( int x, int y, int z );
 
 #endif

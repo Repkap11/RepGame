@@ -79,22 +79,22 @@ static float g_lightPosition[ 3 ];
 static float g_cameraPosition[ 3 ];
 static float g_cameraUnit[ 3 ];
 
-void renderShaders( ) {
+void renderShaders( int x, int y, int z ) {
     g_programCameraPositionLocation = glGetUniformLocation( g_program, "cameraPosition" );
     g_programCameraUnitLocation = glGetUniformLocation( g_program, "cameraUnit" );
 
     g_programLightPositionLocation = glGetUniformLocation( g_program, "lightPosition" );
 
-    g_cameraPosition[ 0 ] = globalGameState.camera.x;
-    g_cameraPosition[ 1 ] = globalGameState.camera.y;
-    g_cameraPosition[ 2 ] = globalGameState.camera.z;
+    g_cameraPosition[ 0 ] = x;
+    g_cameraPosition[ 1 ] = y;
+    g_cameraPosition[ 2 ] = z;
 
-    g_cameraUnit[ 0 ] = globalGameState.camera.lx;
-    g_cameraUnit[ 1 ] = globalGameState.camera.ly;
-    g_cameraUnit[ 2 ] = globalGameState.camera.lz;
+    g_cameraUnit[ 0 ] = -globalGameState.camera.lx;
+    g_cameraUnit[ 1 ] = -globalGameState.camera.ly;
+    g_cameraUnit[ 2 ] = -globalGameState.camera.lz;
 
     g_lightPosition[ 0 ] = 0;
-    g_lightPosition[ 1 ] = 0;
+    g_lightPosition[ 1 ] = 1;
     g_lightPosition[ 2 ] = 0;
 
     glUniform3fv( g_programCameraPositionLocation, 1, g_cameraPosition );
@@ -106,7 +106,7 @@ static inline void drawScene( ) {
     glEnable( GL_LIGHTING );
     // draw3d_cube( );cleanupGameState
     glUseProgram( g_program );
-    renderShaders( );
+    //renderShaders( );
     glBlendFunc( GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA );
     world_render( &globalGameState.gameChunks, globalGameState.camera.x, globalGameState.camera.y, globalGameState.camera.z );
     world_draw( &globalGameState.gameChunks );

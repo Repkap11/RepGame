@@ -113,6 +113,7 @@ void chunk_create_display_list( Chunk *chunk ) {
         chunk_contains_faces = 1;
         glPushMatrix( );
         glTranslatef( x, y, z );
+        renderShaders(chunk->chunk_x * CHUNK_SIZE+x,chunk->chunk_y * CHUNK_SIZE+y,chunk->chunk_z * CHUNK_SIZE+z);
         block_draw( block );
         glPopMatrix( );
     }
