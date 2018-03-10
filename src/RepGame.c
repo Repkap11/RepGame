@@ -138,10 +138,6 @@ static void calculateMousePos( int arg, int *out_create_x, int *out_create_y, in
     int world_z = face_z ? world_z_round : floor( world_mouse_z );
     // pr_debug( "World %d x:%d y:%d z:%d", arg, world_x, world_y, world_z );
 
-    *out_create_x = world_x;
-    *out_create_y = world_y;
-    *out_create_z = world_z;
-
     world_x += ( offset_x == 1 ? 0 : offset_x );
     world_y += ( offset_y == 1 ? 0 : offset_y );
     world_z += ( offset_z == 1 ? 0 : offset_z );
@@ -149,6 +145,10 @@ static void calculateMousePos( int arg, int *out_create_x, int *out_create_y, in
     *out_destroy_x = world_x;
     *out_destroy_y = world_y;
     *out_destroy_z = world_z;
+
+    *out_create_x = world_x - offset_x;
+    *out_create_y = world_y - offset_y;
+    *out_create_z = world_z - offset_z;
     // The player has selected this block (unless there are edge problems)
 }
 
@@ -194,8 +194,7 @@ static inline void display( ) {
 }
 
 void fixup_chunk( Chunk *chunk, int i, int j, int k, int x, int y, int z, BlockID blockID ) {
-    pr_debug( "                                                               Fixup Offset: %d %d %d", x, y, z );
-
+    //pr_debug( "                                                               Fixup Offset: %d %d %d", x, y, z );
     Chunk *fixupChunk = chunk_loader_get_chunk( &globalGameState.gameChunks, chunk->chunk_x + i, chunk->chunk_y + j, chunk->chunk_z + k );
     if ( fixupChunk ) {
         chunk_destroy_display_list( fixupChunk );
@@ -225,27 +224,27 @@ void change_block( int place, BlockID blockID ) {
     Chunk *chunk = chunk_loader_get_chunk( &globalGameState.gameChunks, chunk_x, chunk_y, chunk_z );
     if ( chunk ) {
         chunk_destroy_display_list( chunk );
-        int diff_x = block_x - chunk->chunk_x * CHUNK_SIZE;
-        int diff_y = block_y - chunk->chunk_y * CHUNK_SIZE;
-        int diff_z = block_z - chunk->chunk_z * CHUNK_SIZE;
+        int diff_x = block_x - chunk_x * CHUNK_SIZE;
+        int diff_y = block_y - chunk_y * CHUNK_SIZE;
+        int diff_z = block_z - chunk_z * CHUNK_SIZE;
+        //pr_debug( "Orig Offset: %d %d %d", diff_x, diff_y, diff_z );
 
         for ( int i = -1; i < 2; i++ ) {
             for ( int j = -1; j < 2; j++ ) {
                 for ( int k = -1; k < 2; k++ ) {
 
-                    int needs_update_x = ( ( i == -1 && diff_x == 0 ) || ( i == 1 && diff_x == ( CHUNK_SIZE - 1 ) ) ); //
-                    int needs_update_y = ( ( j == -1 && diff_y == 0 ) || ( j == 1 && diff_y == ( CHUNK_SIZE - 1 ) ) ); //
-                    int needs_update_z = ( ( k == -1 && diff_z == 0 ) || ( k == 1 && diff_z == ( CHUNK_SIZE - 1 ) ) );
+                    int needs_update_x = ( ( i != 1 && diff_x == 0 ) || ( i != -1 && diff_x == ( CHUNK_SIZE - 1 ) ) ) || i == 0; //
+                    int needs_update_y = ( ( j != 1 && diff_y == 0 ) || ( j != -1 && diff_y == ( CHUNK_SIZE - 1 ) ) ) || j == 0; //
+                    int needs_update_z = ( ( k != 1 && diff_z == 0 ) || ( k != -1 && diff_z == ( CHUNK_SIZE - 1 ) ) ) || k == 0;
 
                     int new_i = i * needs_update_x;
                     int new_j = j * needs_update_y;
                     int new_k = k * needs_update_z;
 
-                    int needs_update = needs_update_x || needs_update_y || needs_update_z;
-                    pr_debug( "Needs Updates: %d %d %d:%d", needs_update_x, needs_update_y, needs_update_z, needs_update );
-
-                    pr_debug( "Chunk Dir: %d %d %d:%d", i, j, k, needs_update );
-                    pr_debug( "                        Orig Offset: %d %d %d:%d", diff_x, diff_y, diff_z, needs_update );
+                    int needs_update = needs_update_x && needs_update_y && needs_update_z && !( i == 0 && j == 0 && k == 0 );
+                    //pr_debug( "Chunk Dir: %d %d %d:%d", i, j, k, needs_update );
+                    //pr_debug( "                    Needs Updates: %d %d %d:%d", needs_update_x, needs_update_y, needs_update_z, needs_update );
+                    //pr_debug( "                                New Offset: %d %d %d:%d", new_i, new_j, new_k, needs_update );
 
                     if ( needs_update ) {
                         fixup_chunk( chunk, i, j, k, diff_x - CHUNK_SIZE * new_i, diff_y - CHUNK_SIZE * new_j, diff_z - CHUNK_SIZE * new_k, blockID );
@@ -274,7 +273,8 @@ static void gameTick( ) {
     }
     if ( globalGameState.input.mouse.buttons.right && globalGameState.input.click_delay_right == 0 ) {
         change_block( 1, STONE );
-        globalGameState.input.click_delay_right = 4;    }
+        globalGameState.input.click_delay_right = 4;
+    }
     float fraction = 0.010f * MOVEMENT_SENSITIVITY;
     // float angle_diff = 0.020f;
 
@@ -335,7 +335,7 @@ static void gameTick( ) {
     } else {
         globalGameState.input.click_delay_right = 0;
     }
-        if ( globalGameState.input.click_delay_left > 0 ) {
+    if ( globalGameState.input.click_delay_left > 0 ) {
         globalGameState.input.click_delay_left--;
     } else {
         globalGameState.input.click_delay_left = 0;
