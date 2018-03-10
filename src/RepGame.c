@@ -95,7 +95,7 @@ static void calculateMousePos( int arg, int *out_create_x, int *out_create_y, in
     int camera_x_round = round( globalGameState.camera.x );
     int camera_y_round = round( globalGameState.camera.y );
     int camera_z_round = round( globalGameState.camera.z );
-    //pr_debug( "Mouse x:%f y:%f z:%f", world_mouse_x, world_mouse_y, world_mouse_z );
+    // pr_debug( "Mouse x:%f y:%f z:%f", world_mouse_x, world_mouse_y, world_mouse_z );
     int world_x_round = round( world_mouse_x );
     int world_y_round = round( world_mouse_y );
     int world_z_round = round( world_mouse_z );
@@ -136,7 +136,7 @@ static void calculateMousePos( int arg, int *out_create_x, int *out_create_y, in
     int world_x = face_x ? world_x_round : floor( world_mouse_x );
     int world_y = face_y ? world_y_round : floor( world_mouse_y );
     int world_z = face_z ? world_z_round : floor( world_mouse_z );
-    //pr_debug( "World %d x:%d y:%d z:%d", arg, world_x, world_y, world_z );
+    // pr_debug( "World %d x:%d y:%d z:%d", arg, world_x, world_y, world_z );
 
     *out_create_x = world_x;
     *out_create_y = world_y;
@@ -193,6 +193,19 @@ static inline void display( ) {
     glutSwapBuffers( );
 }
 
+void fixup_chunk( Chunk *chunk, int i, int j, int k, int x, int y, int z, BlockID blockID ) {
+    pr_debug( "                                                               Fixup Offset: %d %d %d", x, y, z );
+
+    Chunk *fixupChunk = chunk_loader_get_chunk( &globalGameState.gameChunks, chunk->chunk_x + i, chunk->chunk_y + j, chunk->chunk_z + k );
+    if ( fixupChunk ) {
+        chunk_destroy_display_list( fixupChunk );
+        chunk_set_block( fixupChunk, x, y, z, blockID );
+        chunk_calculate_sides( fixupChunk );
+        fixupChunk->ditry = 1;
+        chunk_create_display_list( fixupChunk );
+    }
+}
+
 void change_block( int place, BlockID blockID ) {
     int block_x, block_y, block_z;
     if ( place ) {
@@ -205,14 +218,41 @@ void change_block( int place, BlockID blockID ) {
         block_z = globalGameState.destroy_z;
     }
 
-    Chunk *chunk = chunk_loader_get_chunk( &globalGameState.gameChunks, block_x, block_y, block_z );
+    int chunk_x = floor( block_x / ( float )CHUNK_SIZE );
+    int chunk_y = floor( block_y / ( float )CHUNK_SIZE );
+    int chunk_z = floor( block_z / ( float )CHUNK_SIZE );
+
+    Chunk *chunk = chunk_loader_get_chunk( &globalGameState.gameChunks, chunk_x, chunk_y, chunk_z );
     if ( chunk ) {
         chunk_destroy_display_list( chunk );
         int diff_x = block_x - chunk->chunk_x * CHUNK_SIZE;
         int diff_y = block_y - chunk->chunk_y * CHUNK_SIZE;
         int diff_z = block_z - chunk->chunk_z * CHUNK_SIZE;
-        // /pr_debug( "Pou   x:%d y:%d z:%d", diff_x, diff_y, diff_z );
 
+        for ( int i = -1; i < 2; i++ ) {
+            for ( int j = -1; j < 2; j++ ) {
+                for ( int k = -1; k < 2; k++ ) {
+
+                    int needs_update_x = ( ( i == -1 && diff_x == 0 ) || ( i == 1 && diff_x == ( CHUNK_SIZE - 1 ) ) ); //
+                    int needs_update_y = ( ( j == -1 && diff_y == 0 ) || ( j == 1 && diff_y == ( CHUNK_SIZE - 1 ) ) ); //
+                    int needs_update_z = ( ( k == -1 && diff_z == 0 ) || ( k == 1 && diff_z == ( CHUNK_SIZE - 1 ) ) );
+
+                    int new_i = i * needs_update_x;
+                    int new_j = j * needs_update_y;
+                    int new_k = k * needs_update_z;
+
+                    int needs_update = needs_update_x || needs_update_y || needs_update_z;
+                    pr_debug( "Needs Updates: %d %d %d:%d", needs_update_x, needs_update_y, needs_update_z, needs_update );
+
+                    pr_debug( "Chunk Dir: %d %d %d:%d", i, j, k, needs_update );
+                    pr_debug( "                        Orig Offset: %d %d %d:%d", diff_x, diff_y, diff_z, needs_update );
+
+                    if ( needs_update ) {
+                        fixup_chunk( chunk, i, j, k, diff_x - CHUNK_SIZE * new_i, diff_y - CHUNK_SIZE * new_j, diff_z - CHUNK_SIZE * new_k, blockID );
+                    }
+                }
+            }
+        }
         chunk_set_block( chunk, diff_x, diff_y, diff_z, blockID );
         chunk_calculate_sides( chunk );
         chunk->ditry = 1;
@@ -228,12 +268,13 @@ static void gameTick( ) {
         return;
     }
 
-    if ( globalGameState.input.mouse.buttons.left ) {
-        change_block(0, AIR);
+    if ( globalGameState.input.mouse.buttons.left && globalGameState.input.click_delay_left == 0 ) {
+        change_block( 0, AIR );
+        globalGameState.input.click_delay_left = 8;
     }
-    if ( globalGameState.input.mouse.buttons.right ) {
-        change_block(1, STONE);
-    }
+    if ( globalGameState.input.mouse.buttons.right && globalGameState.input.click_delay_right == 0 ) {
+        change_block( 1, STONE );
+        globalGameState.input.click_delay_right = 4;    }
     float fraction = 0.010f * MOVEMENT_SENSITIVITY;
     // float angle_diff = 0.020f;
 
@@ -289,6 +330,17 @@ static void gameTick( ) {
     globalGameState.camera.lx = sin( globalGameState.camera.angle_H * ( M_PI / 180 ) );
     globalGameState.camera.ly = -tan( globalGameState.camera.angle_V * ( M_PI / 180 ) );
     globalGameState.camera.lz = -cos( globalGameState.camera.angle_H * ( M_PI / 180 ) );
+    if ( globalGameState.input.click_delay_right > 0 ) {
+        globalGameState.input.click_delay_right--;
+    } else {
+        globalGameState.input.click_delay_right = 0;
+    }
+        if ( globalGameState.input.click_delay_left > 0 ) {
+        globalGameState.input.click_delay_left--;
+    } else {
+        globalGameState.input.click_delay_left = 0;
+    }
+
     // pr_debug( "Looking x:%f z:%f", globalGameState.camera.lx, globalGameState.camera.lz );
 }
 

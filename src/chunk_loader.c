@@ -29,11 +29,7 @@ void chunk_loader_init( LoadedChunks *loadedChunks ) {
 //     // if ( loadedChunk->loaded ) {
 // }
 
-Chunk *chunk_loader_get_chunk( LoadedChunks *loadedChunks, int pointed_x, int pointed_y, int pointed_z ) {
-    int chunk_x = floor( pointed_x / ( float )CHUNK_SIZE );
-    int chunk_y = floor( pointed_y / ( float )CHUNK_SIZE );
-    int chunk_z = floor( pointed_z / ( float )CHUNK_SIZE );
-
+Chunk *chunk_loader_get_chunk( LoadedChunks *loadedChunks, int chunk_x, int chunk_y, int chunk_z ) {
     for ( int i = 0; i < MAX_LOADED_CHUNKS; i++ ) {
         Chunk *chunk = &loadedChunks->chunkArray[ i ];
         if ( chunk->chunk_x == chunk_x && chunk->chunk_y == chunk_y && chunk->chunk_z == chunk_z ) {
