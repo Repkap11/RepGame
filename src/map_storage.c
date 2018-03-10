@@ -58,6 +58,8 @@ void map_storage_init( ) {
 void map_storage_cleanup( ) {
 }
 
+#define STORAGE_TYPE char
+
 void map_storage_persist( Chunk *chunk ) {
     if ( chunk->ditry ) {
         int chunk_offset_x = chunk->chunk_x * CHUNK_SIZE;
@@ -67,13 +69,13 @@ void map_storage_persist( Chunk *chunk ) {
         snprintf( file_name, CHUNK_NAME_LENGTH, file_root, map_name, chunk_offset_x, chunk_offset_y, chunk_offset_z );
 
         FILE *write_ptr;
-        BlockID persist_data[ CHUNK_BLOCK_SIZE ];
+        STORAGE_TYPE persist_data[ CHUNK_BLOCK_SIZE ];
         Block *blocks = chunk->blocks;
         for ( int i = 0; i < CHUNK_BLOCK_SIZE; i++ ) {
             persist_data[ i ] = blocks[ i ].blockDef->id;
         }
         write_ptr = fopen( file_name, "wb" );
-        fwrite( persist_data, CHUNK_BLOCK_SIZE * sizeof( BlockID ), 1, write_ptr );
+        fwrite( persist_data, CHUNK_BLOCK_SIZE * sizeof( STORAGE_TYPE ), 1, write_ptr );
         fclose( write_ptr );
     }
 }
@@ -107,10 +109,10 @@ int map_storage_load( Chunk *chunk ) {
     snprintf( file_name, CHUNK_NAME_LENGTH, file_root, map_name, chunk_offset_x, chunk_offset_y, chunk_offset_z );
 
     FILE *read_ptr;
-    BlockID persist_data[ CHUNK_BLOCK_SIZE ];
+    STORAGE_TYPE persist_data[ CHUNK_BLOCK_SIZE ];
     Block *blocks = chunk->blocks;
     read_ptr = fopen( file_name, "rb" );
-    int rc = fread( persist_data, CHUNK_BLOCK_SIZE * sizeof( BlockID ), 1, read_ptr );
+    int rc = fread( persist_data, CHUNK_BLOCK_SIZE * sizeof( STORAGE_TYPE ), 1, read_ptr );
     fclose( read_ptr );
 
     for ( int i = 0; i < CHUNK_BLOCK_SIZE; i++ ) {
