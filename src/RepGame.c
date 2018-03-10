@@ -8,8 +8,6 @@
 #include "block_definitions.h"
 #include "draw3d.h"
 #include "input.h"
-#include "map_gen.h"
-#include "terrain_loading_thread.h"
 #include "textures.h"
 #include "ui_overlay.h"
 #include "world.h"
@@ -394,10 +392,7 @@ int main( int argc, char **argv ) {
     glutPassiveMotionFunc( mouseMove );
     glutMotionFunc( mouseMove );
     initilizeGameState( );
-    int status = terrain_loading_thread_start( );
-    if ( status ) {
-        pr_debug( "Terrain loading thread failed to start." );
-    }
+
 
     struct timespec tstart = {0, 0}, tend = {0, 0};
     clock_gettime( CLOCK_MONOTONIC, &tstart );
@@ -426,7 +421,6 @@ int main( int argc, char **argv ) {
             }
         }
     }
-    terrain_loading_thread_stop( );
     cleanupGameState( );
     glutLeaveMainLoop( );
     return 0;

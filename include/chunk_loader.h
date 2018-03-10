@@ -12,6 +12,6 @@ void chunk_loader_init( LoadedChunks *loadedChunks );
 void chunk_loader_render_chunks( LoadedChunks *loadedChunks, float camera_x, float camera_y, float camera_z );
 void chunk_loader_draw_chunks( LoadedChunks *loadedChunks );
 Chunk *chunk_loader_get_chunk( LoadedChunks *loadedChunks, int pointed_x, int pointed_y, int pointed_z );
-void chunk_loader_free_chunks( LoadedChunks *loadedChunks );
+void chunk_loader_cleanup( LoadedChunks *loadedChunks );
 
 #endif

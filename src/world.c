@@ -14,7 +14,7 @@ void world_draw( LoadedChunks *loadedChunks ) {
     chunk_loader_draw_chunks( loadedChunks );
 }
 void world_cleanup( LoadedChunks *loadedChunks ) {
-    chunk_loader_free_chunks( loadedChunks );
+    chunk_loader_cleanup( loadedChunks );
 }
 
 void fixup_chunk( LoadedChunks *loadedChunks, Chunk *chunk, int i, int j, int k, int x, int y, int z, BlockID blockID ) {

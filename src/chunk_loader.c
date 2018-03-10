@@ -9,6 +9,10 @@
 
 void chunk_loader_init( LoadedChunks *loadedChunks ) {
     map_storage_init( );
+    int status = terrain_loading_thread_start( );
+    if ( status ) {
+        pr_debug( "Terrain loading thread failed to start." );
+    }
     loadedChunks->chunkArray = calloc( MAX_LOADED_CHUNKS, sizeof( Chunk ) );
 }
 
@@ -165,7 +169,8 @@ extern inline void chunk_loader_draw_chunks( LoadedChunks *loadedChunks ) {
     }
 }
 
-void chunk_loader_free_chunks( LoadedChunks *loadedChunks ) {
+void chunk_loader_cleanup( LoadedChunks *loadedChunks ) {
+    terrain_loading_thread_stop( );
     // pr_debug( "Freeing %d chunks", loadedChunks->numLoadedChunks );
     for ( int i = 0; i < MAX_LOADED_CHUNKS; i++ ) {
         Chunk *chunk = &loadedChunks->chunkArray[ i ];
