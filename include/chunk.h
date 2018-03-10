@@ -13,6 +13,7 @@ typedef struct {
     int displayListTranslucent;
     Block *blocks;
     int chunk_x, chunk_y, chunk_z;
+    int ditry;
 } Chunk;
 
 void chunk_calculate_sides( Chunk *chunk );

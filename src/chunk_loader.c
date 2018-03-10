@@ -3,10 +3,12 @@
 #include "terrain_loading_thread.h"
 #include <math.h>
 #include <stdlib.h>
+#include "map_storage.h"
 
 #define MAX_LOADED_CHUNKS ( ( 2 * CHUNK_RADIUS_X + 1 ) * ( 2 * CHUNK_RADIUS_Y + 1 ) * ( 2 * CHUNK_RADIUS_Z + 1 ) )
 
 void chunk_loader_init( LoadedChunks *loadedChunks ) {
+    map_storage_init();
     loadedChunks->chunkArray = calloc( MAX_LOADED_CHUNKS, sizeof( Chunk ) );
 }
 
