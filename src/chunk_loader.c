@@ -118,7 +118,7 @@ void chunk_loader_render_chunks( LoadedChunks *loadedChunks, float camera_x, flo
                 //}
                 // chunk_free( &loadedChunk->chunk );
                 // chunk_loader_load_chunk( loadedChunks, i, , , );
-
+                map_storage_persist( chunk );
                 chunk_destroy_display_list( chunk );
                 // chunk_free_terrain( loadedChunk );
                 //}

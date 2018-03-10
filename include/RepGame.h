@@ -35,12 +35,15 @@ typedef struct {
         float height;
     } screen;
     LoadedChunks gameChunks;
-    int create_x;
-    int create_y;
-    int create_z;
-    int destroy_x;
-    int destroy_y;
-    int destroy_z;
+    struct {
+        int show;
+        int create_x;
+        int create_y;
+        int create_z;
+        int destroy_x;
+        int destroy_y;
+        int destroy_z;
+    } block_selection;
 
 } RepGameState;
 

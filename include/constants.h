@@ -18,6 +18,7 @@
 #define CHUNK_SIZE 8
 
 #define BLOCK_SCALE 1.0f
+#define REACH_DISTANCE 6
 
 #define CAMERA_SIZE 0.1f // Defines how much crop is in front (low for minecraft)
 #define PERSON_HEIGHT 40.0f

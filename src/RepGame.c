@@ -187,14 +187,17 @@ static inline void display( ) {
     pointCamera( );
     pointLight( );
     drawScene( );
-    calculateMousePos( 0, &globalGameState.create_x, &globalGameState.create_y, &globalGameState.create_z, &globalGameState.destroy_x, &globalGameState.destroy_y, &globalGameState.destroy_z );
-    draw_pointed_block( globalGameState.destroy_x, globalGameState.destroy_y, globalGameState.destroy_z );
+    calculateMousePos( 0, &globalGameState.block_selection.create_x, &globalGameState.block_selection.create_y, &globalGameState.block_selection.create_z, &globalGameState.block_selection.destroy_x,
+                       &globalGameState.block_selection.destroy_y, &globalGameState.block_selection.destroy_z );
+    if ( globalGameState.block_selection.show ) {
+        draw_pointed_block( globalGameState.block_selection.destroy_x, globalGameState.block_selection.destroy_y, globalGameState.block_selection.destroy_z );
+    }
     ui_overlay_draw( &globalGameState );
     glutSwapBuffers( );
 }
 
 void fixup_chunk( Chunk *chunk, int i, int j, int k, int x, int y, int z, BlockID blockID ) {
-    //pr_debug( "                                                               Fixup Offset: %d %d %d", x, y, z );
+    // pr_debug( "                                                               Fixup Offset: %d %d %d", x, y, z );
     Chunk *fixupChunk = chunk_loader_get_chunk( &globalGameState.gameChunks, chunk->chunk_x + i, chunk->chunk_y + j, chunk->chunk_z + k );
     if ( fixupChunk ) {
         chunk_destroy_display_list( fixupChunk );
@@ -208,13 +211,13 @@ void fixup_chunk( Chunk *chunk, int i, int j, int k, int x, int y, int z, BlockI
 void change_block( int place, BlockID blockID ) {
     int block_x, block_y, block_z;
     if ( place ) {
-        block_x = globalGameState.create_x;
-        block_y = globalGameState.create_y;
-        block_z = globalGameState.create_z;
+        block_x = globalGameState.block_selection.create_x;
+        block_y = globalGameState.block_selection.create_y;
+        block_z = globalGameState.block_selection.create_z;
     } else {
-        block_x = globalGameState.destroy_x;
-        block_y = globalGameState.destroy_y;
-        block_z = globalGameState.destroy_z;
+        block_x = globalGameState.block_selection.destroy_x;
+        block_y = globalGameState.block_selection.destroy_y;
+        block_z = globalGameState.block_selection.destroy_z;
     }
 
     int chunk_x = floor( block_x / ( float )CHUNK_SIZE );
@@ -227,7 +230,7 @@ void change_block( int place, BlockID blockID ) {
         int diff_x = block_x - chunk_x * CHUNK_SIZE;
         int diff_y = block_y - chunk_y * CHUNK_SIZE;
         int diff_z = block_z - chunk_z * CHUNK_SIZE;
-        //pr_debug( "Orig Offset: %d %d %d", diff_x, diff_y, diff_z );
+        // pr_debug( "Orig Offset: %d %d %d", diff_x, diff_y, diff_z );
 
         for ( int i = -1; i < 2; i++ ) {
             for ( int j = -1; j < 2; j++ ) {
@@ -242,9 +245,9 @@ void change_block( int place, BlockID blockID ) {
                     int new_k = k * needs_update_z;
 
                     int needs_update = needs_update_x && needs_update_y && needs_update_z && !( i == 0 && j == 0 && k == 0 );
-                    //pr_debug( "Chunk Dir: %d %d %d:%d", i, j, k, needs_update );
-                    //pr_debug( "                    Needs Updates: %d %d %d:%d", needs_update_x, needs_update_y, needs_update_z, needs_update );
-                    //pr_debug( "                                New Offset: %d %d %d:%d", new_i, new_j, new_k, needs_update );
+                    // pr_debug( "Chunk Dir: %d %d %d:%d", i, j, k, needs_update );
+                    // pr_debug( "                    Needs Updates: %d %d %d:%d", needs_update_x, needs_update_y, needs_update_z, needs_update );
+                    // pr_debug( "                                New Offset: %d %d %d:%d", new_i, new_j, new_k, needs_update );
 
                     if ( needs_update ) {
                         fixup_chunk( chunk, i, j, k, diff_x - CHUNK_SIZE * new_i, diff_y - CHUNK_SIZE * new_j, diff_z - CHUNK_SIZE * new_k, blockID );
@@ -257,7 +260,8 @@ void change_block( int place, BlockID blockID ) {
         chunk->ditry = 1;
         chunk_create_display_list( chunk );
     } else {
-        pr_debug( "Could not find the pointed to chunk" );
+        // This just means mouse is not pointing at a block
+        // pr_debug( "Could not find the pointed to chunk" );
     }
 }
 
@@ -267,19 +271,21 @@ static void gameTick( ) {
         return;
     }
 
-    if ( globalGameState.input.mouse.buttons.left && globalGameState.input.click_delay_left == 0 ) {
+    globalGameState.block_selection.show = sqrt(                                                                                                                                                     //
+                                               ( globalGameState.camera.x - globalGameState.block_selection.destroy_x ) * ( globalGameState.camera.x - globalGameState.block_selection.destroy_x ) + //
+                                               ( globalGameState.camera.y - globalGameState.block_selection.destroy_y ) * ( globalGameState.camera.y - globalGameState.block_selection.destroy_y ) + //
+                                               ( globalGameState.camera.z - globalGameState.block_selection.destroy_z ) * ( globalGameState.camera.z - globalGameState.block_selection.destroy_z ) ) < REACH_DISTANCE;
+
+    if ( globalGameState.block_selection.show && globalGameState.input.mouse.buttons.left && globalGameState.input.click_delay_left == 0 ) {
         change_block( 0, AIR );
         globalGameState.input.click_delay_left = 8;
     }
-    if ( globalGameState.input.mouse.buttons.right && globalGameState.input.click_delay_right == 0 ) {
+    if ( globalGameState.block_selection.show && globalGameState.input.mouse.buttons.right && globalGameState.input.click_delay_right == 0 ) {
         change_block( 1, STONE );
         globalGameState.input.click_delay_right = 4;
     }
     float fraction = 0.010f * MOVEMENT_SENSITIVITY;
-    // float angle_diff = 0.020f;
 
-    // if ( input.mouse.buttons.middle ) {
-    // update deltaAngle
     if ( globalGameState.input.mouse.currentPosition.x - globalGameState.input.mouse.previousPosition.x || globalGameState.input.mouse.currentPosition.y - globalGameState.input.mouse.previousPosition.y ) {
         // pr_debug( "Position Diff:%d %d", input.mouse.currentPosition.x - input.mouse.previousPosition.x, input.mouse.currentPosition.y - input.mouse.previousPosition.y );
     }
