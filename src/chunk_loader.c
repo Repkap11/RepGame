@@ -1,14 +1,14 @@
 #include "chunk_loader.h"
 #include "RepGame.h"
+#include "map_storage.h"
 #include "terrain_loading_thread.h"
 #include <math.h>
 #include <stdlib.h>
-#include "map_storage.h"
 
 #define MAX_LOADED_CHUNKS ( ( 2 * CHUNK_RADIUS_X + 1 ) * ( 2 * CHUNK_RADIUS_Y + 1 ) * ( 2 * CHUNK_RADIUS_Z + 1 ) )
 
 void chunk_loader_init( LoadedChunks *loadedChunks ) {
-    map_storage_init();
+    map_storage_init( );
     loadedChunks->chunkArray = calloc( MAX_LOADED_CHUNKS, sizeof( Chunk ) );
 }
 
@@ -28,6 +28,20 @@ void chunk_loader_init( LoadedChunks *loadedChunks ) {
 //     Chunk *loadedChunk = &loadedChunks->chunkArray[ index ];
 //     // if ( loadedChunk->loaded ) {
 // }
+
+Chunk *chunk_loader_get_chunk( LoadedChunks *loadedChunks, int pointed_x, int pointed_y, int pointed_z ) {
+    int chunk_x = floor( pointed_x / ( float )CHUNK_SIZE );
+    int chunk_y = floor( pointed_y / ( float )CHUNK_SIZE );
+    int chunk_z = floor( pointed_z / ( float )CHUNK_SIZE );
+
+    for ( int i = 0; i < MAX_LOADED_CHUNKS; i++ ) {
+        Chunk *chunk = &loadedChunks->chunkArray[ i ];
+        if ( chunk->chunk_x == chunk_x && chunk->chunk_y == chunk_y && chunk->chunk_z == chunk_z ) {
+            return chunk;
+        }
+    }
+    return NULL;
+}
 
 void chunk_loader_render_chunks( LoadedChunks *loadedChunks, float camera_x, float camera_y, float camera_z ) {
     int chunk_x = floor( camera_x / ( float )CHUNK_SIZE );

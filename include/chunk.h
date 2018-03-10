@@ -23,6 +23,7 @@ void chunk_create_display_list( Chunk *chunk );
 void chunk_draw( Chunk *chunk, int solid );
 void chunk_destroy_display_list( Chunk *chunk );
 void chunk_free_terrain( Chunk *chunk );
+void chunk_set_block( Chunk *chunk, int x, int y, int z, BlockID blockID);
 void chunk_persist( Chunk *chunk );
 
 #endif

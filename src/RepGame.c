@@ -89,13 +89,13 @@ static inline void pointCamera( ) {
     glTranslatef( -globalGameState.camera.x, -globalGameState.camera.y, -globalGameState.camera.z );
 }
 
-static inline void calculateMousePos( ) {
+static void calculateMousePos( int arg, int *out_create_x, int *out_create_y, int *out_create_z, int *out_destroy_x, int *out_destroy_y, int *out_destroy_z ) {
     double world_mouse_x, world_mouse_y, world_mouse_z = 0;
     getPosFromMouse( globalGameState.screen.width / 2, globalGameState.screen.height / 2, &world_mouse_x, &world_mouse_y, &world_mouse_z );
     int camera_x_round = round( globalGameState.camera.x );
     int camera_y_round = round( globalGameState.camera.y );
     int camera_z_round = round( globalGameState.camera.z );
-    // pr_debug("Mouse x:%f y:%f z:%f",world_mouse_x,world_mouse_y,world_mouse_z);
+    //pr_debug( "Mouse x:%f y:%f z:%f", world_mouse_x, world_mouse_y, world_mouse_z );
     int world_x_round = round( world_mouse_x );
     int world_y_round = round( world_mouse_y );
     int world_z_round = round( world_mouse_z );
@@ -136,13 +136,23 @@ static inline void calculateMousePos( ) {
     int world_x = face_x ? world_x_round : floor( world_mouse_x );
     int world_y = face_y ? world_y_round : floor( world_mouse_y );
     int world_z = face_z ? world_z_round : floor( world_mouse_z );
-    // pr_debug("World x:%d y:%d z:%d",world_x,world_y,world_z);
+    //pr_debug( "World %d x:%d y:%d z:%d", arg, world_x, world_y, world_z );
+
+    *out_create_x = world_x;
+    *out_create_y = world_y;
+    *out_create_z = world_z;
 
     world_x += ( offset_x == 1 ? 0 : offset_x );
     world_y += ( offset_y == 1 ? 0 : offset_y );
     world_z += ( offset_z == 1 ? 0 : offset_z );
-    // The player has selected this block (unless there are edge problems)
 
+    *out_destroy_x = world_x;
+    *out_destroy_y = world_y;
+    *out_destroy_z = world_z;
+    // The player has selected this block (unless there are edge problems)
+}
+
+static void draw_pointed_block( int world_x, int world_y, int world_z ) {
     glPushMatrix( );
     float half = 0.5f;
     float scale = 1.001f;
@@ -177,15 +187,52 @@ static inline void display( ) {
     pointCamera( );
     pointLight( );
     drawScene( );
-    calculateMousePos( );
+    calculateMousePos( 0, &globalGameState.create_x, &globalGameState.create_y, &globalGameState.create_z, &globalGameState.destroy_x, &globalGameState.destroy_y, &globalGameState.destroy_z );
+    draw_pointed_block( globalGameState.destroy_x, globalGameState.destroy_y, globalGameState.destroy_z );
     ui_overlay_draw( &globalGameState );
     glutSwapBuffers( );
 }
 
-static inline void gameTick( ) {
+void change_block( int place, BlockID blockID ) {
+    int block_x, block_y, block_z;
+    if ( place ) {
+        block_x = globalGameState.create_x;
+        block_y = globalGameState.create_y;
+        block_z = globalGameState.create_z;
+    } else {
+        block_x = globalGameState.destroy_x;
+        block_y = globalGameState.destroy_y;
+        block_z = globalGameState.destroy_z;
+    }
+
+    Chunk *chunk = chunk_loader_get_chunk( &globalGameState.gameChunks, block_x, block_y, block_z );
+    if ( chunk ) {
+        chunk_destroy_display_list( chunk );
+        int diff_x = block_x - chunk->chunk_x * CHUNK_SIZE;
+        int diff_y = block_y - chunk->chunk_y * CHUNK_SIZE;
+        int diff_z = block_z - chunk->chunk_z * CHUNK_SIZE;
+        // /pr_debug( "Pou   x:%d y:%d z:%d", diff_x, diff_y, diff_z );
+
+        chunk_set_block( chunk, diff_x, diff_y, diff_z, blockID );
+        chunk_calculate_sides( chunk );
+        chunk->ditry = 1;
+        chunk_create_display_list( chunk );
+    } else {
+        pr_debug( "Could not find the pointed to chunk" );
+    }
+}
+
+static void gameTick( ) {
     if ( globalGameState.input.exitGame ) {
         // Don't bother updating the state if the game is exiting
         return;
+    }
+
+    if ( globalGameState.input.mouse.buttons.left ) {
+        change_block(0, AIR);
+    }
+    if ( globalGameState.input.mouse.buttons.right ) {
+        change_block(1, STONE);
     }
     float fraction = 0.010f * MOVEMENT_SENSITIVITY;
     // float angle_diff = 0.020f;

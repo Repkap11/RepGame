@@ -25,6 +25,11 @@ static inline Block *chunk_block( Chunk *chunk, int x, int y, int z ) {
     return &chunk->blocks[ chunk_get_index_from_coords( x, y, z ) ];
 }
 
+void chunk_set_block( Chunk *chunk, int x, int y, int z, BlockID blockID) {
+    Block *block = chunk_block( chunk, x, y, z );
+    block->blockDef = block_definition_get_definition(blockID);
+}
+
 void chunk_calculate_sides( Chunk *chunk ) {
     for ( int index = CHUNK_BLOCK_DRAW_START; index < CHUNK_BLOCK_DRAW_STOP; index++ ) {
         int x, y, z;
@@ -143,20 +148,20 @@ void chunk_create_display_list( Chunk *chunk ) {
     }
 }
 
-inline int chunk_is_check_gened(){
+inline int chunk_is_check_gened( ) {
     return 0;
 }
 
 extern void chunk_load_terrain( Chunk *chunk ) {
     // pr_debug( "Loading chunk terrain x:%d y:%d z:%d", chunk->chunk_x, chunk->chunk_y, chunk->chunk_z );
     int loaded = map_storage_load( chunk );
-    if (!loaded) {
-        //We havn't loaded this chunk before, map gen it.
+    if ( !loaded ) {
+        // We havn't loaded this chunk before, map gen it.
         map_gen_load_block( chunk );
     }
 }
 extern void chunk_persist( Chunk *chunk ) {
-    map_storage_persist(chunk);
+    map_storage_persist( chunk );
 }
 
 void chunk_destroy_display_list( Chunk *chunk ) {
