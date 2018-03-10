@@ -156,8 +156,10 @@ extern inline void chunk_loader_draw_chunks( LoadedChunks *loadedChunks ) {
 void chunk_loader_free_chunks( LoadedChunks *loadedChunks ) {
     // pr_debug( "Freeing %d chunks", loadedChunks->numLoadedChunks );
     for ( int i = 0; i < MAX_LOADED_CHUNKS; i++ ) {
-        chunk_destroy_display_list( &loadedChunks->chunkArray[ i ] );
-        chunk_free_terrain( &loadedChunks->chunkArray[ i ] );
+        Chunk *chunk = &loadedChunks->chunkArray[ i ];
+        chunk_destroy_display_list( chunk );
+        chunk_persist( chunk );
+        chunk_free_terrain( chunk );
     }
     free( loadedChunks->chunkArray );
 }

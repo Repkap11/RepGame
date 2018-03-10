@@ -2,6 +2,7 @@
 #include "RepGame.h"
 #include "draw3d.h"
 #include "map_gen.h"
+#include "map_storage.h"
 #include <GL/gl.h>
 
 extern inline int chunk_get_index_from_coords( int x, int y, int z ) {
@@ -142,9 +143,20 @@ void chunk_create_display_list( Chunk *chunk ) {
     }
 }
 
-extern inline void chunk_load_terrain( Chunk *chunk ) {
+inline int chunk_is_check_gened(){
+    return 0;
+}
+
+extern void chunk_load_terrain( Chunk *chunk ) {
     // pr_debug( "Loading chunk terrain x:%d y:%d z:%d", chunk->chunk_x, chunk->chunk_y, chunk->chunk_z );
-    map_gen_load_block( chunk );
+    int loaded = map_storage_load( chunk );
+    if (!loaded) {
+        //We havn't loaded this chunk before, map gen it.
+        map_gen_load_block( chunk );
+    }
+}
+extern void chunk_persist( Chunk *chunk ) {
+    map_storage_persist(chunk);
 }
 
 void chunk_destroy_display_list( Chunk *chunk ) {
