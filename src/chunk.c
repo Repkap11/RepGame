@@ -21,12 +21,12 @@ extern inline int chunk_get_coords_from_index( int index, int *out_x, int *out_y
     return result;
 }
 
-static inline Block *chunk_block( Chunk *chunk, int x, int y, int z ) {
+Block *chunk_get_block( Chunk *chunk, int x, int y, int z ) {
     return &chunk->blocks[ chunk_get_index_from_coords( x, y, z ) ];
 }
 
 void chunk_set_block( Chunk *chunk, int x, int y, int z, BlockID blockID) {
-    Block *block = chunk_block( chunk, x, y, z );
+    Block *block = chunk_get_block( chunk, x, y, z );
     block->blockDef = block_definition_get_definition(blockID);
 }
 
@@ -45,12 +45,12 @@ void chunk_calculate_sides( Chunk *chunk ) {
                 block->draw_sides.front = 0;
                 block->draw_sides.back = 0;
             } else {
-                Block *topBlock = chunk_block( chunk, x + 0, y + 1, z + 0 );
-                Block *bottomBlock = chunk_block( chunk, x + 0, y - 1, z + 0 );
-                Block *leftBlock = chunk_block( chunk, x + 0, y + 0, z - 1 );
-                Block *rightBlock = chunk_block( chunk, x + 0, y + 0, z + 1 );
-                Block *frontBlock = chunk_block( chunk, x + 1, y + 0, z + 0 );
-                Block *backBlock = chunk_block( chunk, x - 1, y + 0, z + 0 );
+                Block *topBlock = chunk_get_block( chunk, x + 0, y + 1, z + 0 );
+                Block *bottomBlock = chunk_get_block( chunk, x + 0, y - 1, z + 0 );
+                Block *leftBlock = chunk_get_block( chunk, x + 0, y + 0, z - 1 );
+                Block *rightBlock = chunk_get_block( chunk, x + 0, y + 0, z + 1 );
+                Block *frontBlock = chunk_get_block( chunk, x + 1, y + 0, z + 0 );
+                Block *backBlock = chunk_get_block( chunk, x - 1, y + 0, z + 0 );
                 // if ( block->blockDef->alpha == 1.0f ) {
                 // Sufeaces of solid blocks get drawn if they are next to a transparent block.
                 block->draw_sides.top = ( topBlock->blockDef->alpha < block->blockDef->alpha );

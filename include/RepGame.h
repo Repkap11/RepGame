@@ -37,6 +37,7 @@ typedef struct {
     LoadedChunks gameChunks;
     struct {
         int show;
+        BlockID blockID;
         int create_x;
         int create_y;
         int create_z;

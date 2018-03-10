@@ -27,6 +27,9 @@ static inline void initilizeGameState( ) {
     globalGameState.camera.x = 0.0f;
     globalGameState.camera.y = PERSON_HEIGHT;
     globalGameState.camera.z = 0.0f;
+    globalGameState.block_selection.blockID = GRASS;
+
+    BlockID blockID;
     textures_populate( );
     block_definitions_initilize_definitions( );
     chunk_loader_init( &globalGameState.gameChunks );
@@ -208,6 +211,19 @@ void fixup_chunk( Chunk *chunk, int i, int j, int k, int x, int y, int z, BlockI
     }
 }
 
+BlockID get_block( int block_x, int block_y, int block_z ) {
+    int chunk_x = floor( block_x / ( float )CHUNK_SIZE );
+    int chunk_y = floor( block_y / ( float )CHUNK_SIZE );
+    int chunk_z = floor( block_z / ( float )CHUNK_SIZE );
+    Chunk *chunk = chunk_loader_get_chunk( &globalGameState.gameChunks, chunk_x, chunk_y, chunk_z );
+
+    int diff_x = block_x - chunk_x * CHUNK_SIZE;
+    int diff_y = block_y - chunk_y * CHUNK_SIZE;
+    int diff_z = block_z - chunk_z * CHUNK_SIZE;
+    Block *block = chunk_get_block( chunk, diff_x, diff_y, diff_z );
+    return block->blockDef->id;
+}
+
 void change_block( int place, BlockID blockID ) {
     int block_x, block_y, block_z;
     if ( place ) {
@@ -276,12 +292,19 @@ static void gameTick( ) {
                                                ( globalGameState.camera.y - globalGameState.block_selection.destroy_y ) * ( globalGameState.camera.y - globalGameState.block_selection.destroy_y ) + //
                                                ( globalGameState.camera.z - globalGameState.block_selection.destroy_z ) * ( globalGameState.camera.z - globalGameState.block_selection.destroy_z ) ) < REACH_DISTANCE;
 
+    int block_x = globalGameState.block_selection.destroy_x;
+    int block_y = globalGameState.block_selection.destroy_y;
+    int block_z = globalGameState.block_selection.destroy_z;
+
+    if ( globalGameState.block_selection.show && globalGameState.input.mouse.buttons.middle ) {
+        globalGameState.block_selection.blockID = get_block( globalGameState.block_selection.destroy_x, globalGameState.block_selection.destroy_y, globalGameState.block_selection.destroy_z );
+    }
     if ( globalGameState.block_selection.show && globalGameState.input.mouse.buttons.left && globalGameState.input.click_delay_left == 0 ) {
         change_block( 0, AIR );
         globalGameState.input.click_delay_left = 8;
     }
     if ( globalGameState.block_selection.show && globalGameState.input.mouse.buttons.right && globalGameState.input.click_delay_right == 0 ) {
-        change_block( 1, STONE );
+        change_block( 1, globalGameState.block_selection.blockID );
         globalGameState.input.click_delay_right = 4;
     }
     float fraction = 0.010f * MOVEMENT_SENSITIVITY;
