@@ -27,7 +27,7 @@ static inline void initilizeGameState( ) {
     globalGameState.camera.x = 0.0f;
     globalGameState.camera.y = PERSON_HEIGHT;
     globalGameState.camera.z = 0.0f;
-    globalGameState.block_selection.blockID = GRASS;
+    globalGameState.block_selection.blockID = COBBLESTONE;
 
     BlockID blockID;
     textures_populate( );

@@ -140,11 +140,11 @@ GLuint getTexture( BlockID id ) {
             break;
 
         case COBBLESTONE:
-            return textures[ 1 ];
+            return textures[ 16 ];
             break;
 
         case BEDROCK:
-            return textures[ 1 ];
+            return textures[ 17 ];
             break;
 
         case SAND:
@@ -152,27 +152,27 @@ GLuint getTexture( BlockID id ) {
             break;
 
         case GRAVEL:
-            return textures[ 1 ];
+            return textures[ 19 ];
             break;
 
         case WOOD_LOG_SIDE:
-            return textures[ 1 ];
+            return textures[ 20 ];
             break;
 
         case WOOD_LOG_TOP:
-            return textures[ 1 ];
+            return textures[ 21 ];
             break;
 
         case IRON_BLOCK:
-            return textures[ 1 ];
+            return textures[ 22 ];
             break;
 
         case GOLD_BLOCK:
-            return textures[ 1 ];
+            return textures[ 23 ];
             break;
 
         case DIAMOND_BLOCK:
-            return textures[ 1 ];
+            return textures[ 24 ];
             break;
 
         default:
