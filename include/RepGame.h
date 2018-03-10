@@ -15,6 +15,10 @@
 
 #define test pr_debug( );
 
+#define TRIP_STATE( replace ) replace##x; replace##y; replace##z
+#define TRIP_ARGS( replace ) replace##x, replace##y, replace##z
+#define TRIP_AND( replace ) ( replace##x && replace##y && replace##z )
+
 #include "input.h"
 
 typedef struct {

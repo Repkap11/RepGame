@@ -33,7 +33,7 @@ void chunk_loader_init( LoadedChunks *loadedChunks ) {
 //     // if ( loadedChunk->loaded ) {
 // }
 
-Chunk *chunk_loader_get_chunk( LoadedChunks *loadedChunks, int chunk_x, int chunk_y, int chunk_z ) {
+Chunk *chunk_loader_get_chunk( LoadedChunks *loadedChunks, TRIP_ARGS(int chunk_) ) {
     for ( int i = 0; i < MAX_LOADED_CHUNKS; i++ ) {
         Chunk *chunk = &loadedChunks->chunkArray[ i ];
         if ( chunk->chunk_x == chunk_x && chunk->chunk_y == chunk_y && chunk->chunk_z == chunk_z ) {
@@ -43,7 +43,7 @@ Chunk *chunk_loader_get_chunk( LoadedChunks *loadedChunks, int chunk_x, int chun
     return NULL;
 }
 
-void chunk_loader_render_chunks( LoadedChunks *loadedChunks, float camera_x, float camera_y, float camera_z ) {
+void chunk_loader_render_chunks( LoadedChunks *loadedChunks, TRIP_ARGS(float camera_) ) {
     int chunk_x = floor( camera_x / ( float )CHUNK_SIZE );
     int chunk_y = floor( camera_y / ( float )CHUNK_SIZE );
     int chunk_z = floor( camera_z / ( float )CHUNK_SIZE );

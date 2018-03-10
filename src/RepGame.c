@@ -40,7 +40,7 @@ static inline void cleanupGameState( ) {
 }
 
 // Returns the worls coord from the screen coords xy
-void getPosFromMouse( int x, int y, double *out_x, double *out_y, double *out_z ) {
+void getPosFromMouse( int x, int y, TRIP_ARGS( double *out_ ) ) {
     GLint viewport[ 4 ];
     GLdouble modelview[ 16 ];
     GLdouble projection[ 16 ];
@@ -89,7 +89,7 @@ static inline void pointCamera( ) {
     glTranslatef( -globalGameState.camera.x, -globalGameState.camera.y, -globalGameState.camera.z );
 }
 
-static void calculateMousePos( int arg, int *out_create_x, int *out_create_y, int *out_create_z, int *out_destroy_x, int *out_destroy_y, int *out_destroy_z ) {
+static void calculateMousePos( int arg, TRIP_ARGS( int *out_create_ ), TRIP_ARGS( int *out_destroy_ ) ) {
     double world_mouse_x, world_mouse_y, world_mouse_z = 0;
     getPosFromMouse( globalGameState.screen.width / 2, globalGameState.screen.height / 2, &world_mouse_x, &world_mouse_y, &world_mouse_z );
     int camera_x_round = round( globalGameState.camera.x );
@@ -187,17 +187,16 @@ static inline void display( ) {
     pointCamera( );
     pointLight( );
     drawScene( );
-    calculateMousePos( 0, &globalGameState.block_selection.create_x, &globalGameState.block_selection.create_y, &globalGameState.block_selection.create_z, &globalGameState.block_selection.destroy_x,
-                       &globalGameState.block_selection.destroy_y, &globalGameState.block_selection.destroy_z );
+    calculateMousePos( 0, TRIP_ARGS( &globalGameState.block_selection.create_ ), TRIP_ARGS( &globalGameState.block_selection.destroy_ ) );
     if ( globalGameState.block_selection.show ) {
-        draw_pointed_block( globalGameState.block_selection.destroy_x, globalGameState.block_selection.destroy_y, globalGameState.block_selection.destroy_z );
+        draw_pointed_block( TRIP_ARGS( globalGameState.block_selection.destroy_ ) );
     }
     ui_overlay_draw( &globalGameState );
     glutSwapBuffers( );
 }
 
 void change_block( int place, BlockID blockID ) {
-    int block_x, block_y, block_z;
+    TRIP_STATE( int block_ );
     if ( place ) {
         block_x = globalGameState.block_selection.create_x;
         block_y = globalGameState.block_selection.create_y;
@@ -207,7 +206,7 @@ void change_block( int place, BlockID blockID ) {
         block_y = globalGameState.block_selection.destroy_y;
         block_z = globalGameState.block_selection.destroy_z;
     }
-    world_set_block( &globalGameState.gameChunks, block_x, block_y, block_z, blockID );
+    world_set_block( &globalGameState.gameChunks, TRIP_ARGS( block_ ), blockID );
 }
 
 static void gameTick( ) {
@@ -226,7 +225,7 @@ static void gameTick( ) {
     int block_z = globalGameState.block_selection.destroy_z;
 
     if ( globalGameState.block_selection.show && globalGameState.input.mouse.buttons.middle ) {
-        globalGameState.block_selection.blockID = world_get_block( &globalGameState.gameChunks, globalGameState.block_selection.destroy_x, globalGameState.block_selection.destroy_y, globalGameState.block_selection.destroy_z );
+        globalGameState.block_selection.blockID = world_get_block( &globalGameState.gameChunks, TRIP_ARGS( globalGameState.block_selection.destroy_ ) );
     }
     if ( globalGameState.block_selection.show && globalGameState.input.mouse.buttons.left && globalGameState.input.click_delay_left == 0 ) {
         change_block( 0, AIR );
@@ -392,7 +391,6 @@ int main( int argc, char **argv ) {
     glutPassiveMotionFunc( mouseMove );
     glutMotionFunc( mouseMove );
     initilizeGameState( );
-
 
     struct timespec tstart = {0, 0}, tend = {0, 0};
     clock_gettime( CLOCK_MONOTONIC, &tstart );

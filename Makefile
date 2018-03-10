@@ -1,8 +1,8 @@
 TARGET = RepGame
 LIBS = -lm -l GL -l GLU -l glut -pthread
 CC = gcc
-CFLAGS = -Wall -Werror -std=gnu99 -Wno-unused-variable -Ofast -march=native -flto
-#CFLAGS = -g -Wall -Werror -std=gnu99 -Wno-unused-variable
+CFLAGS = -Wall -Werror -std=gnu99 -Wno-unused-variable -O3 -march=native -flto
+#CFLAGS = -g -Wall -Werror -std=gnu99 -Wno-unused-variable -O0 -march=native -flto
 export CPATH = include/
 
 run: compile
@@ -21,7 +21,7 @@ out/%.o: src/%.c $(HEADERS) Makefile
 .PRECIOUS: $(TARGET) $(OBJECTS)
 
 $(TARGET): $(OBJECTS) Makefile
-	$(CC) $(OBJECTS) -Wall $(LIBS) -o $@
+	$(CC) $(CFLAGS) $(OBJECTS) -Wall $(LIBS) -o $@
 
 clean:
 	rm -rf out

@@ -80,9 +80,9 @@ void map_storage_persist( Chunk *chunk ) {
     }
 }
 
-int check_if_chunk_exists( int chunk_offset_x, int chunk_offset_y, int chunk_offset_z ) {
+int check_if_chunk_exists( TRIP_ARGS( int chunk_offset_ ) ) {
     char file_name[ CHUNK_NAME_LENGTH ];
-    snprintf( file_name, CHUNK_NAME_LENGTH, file_root, map_name, chunk_offset_x, chunk_offset_y, chunk_offset_z );
+    snprintf( file_name, CHUNK_NAME_LENGTH, file_root, map_name, TRIP_ARGS( chunk_offset_ ) );
     if ( access( file_name, F_OK ) != -1 ) {
         return 1;
     } else {
@@ -106,7 +106,7 @@ int map_storage_load( Chunk *chunk ) {
         // This chunks memory is already allocated, its likely reused?
     }
     char file_name[ CHUNK_NAME_LENGTH ];
-    snprintf( file_name, CHUNK_NAME_LENGTH, file_root, map_name, chunk_offset_x, chunk_offset_y, chunk_offset_z );
+    snprintf( file_name, CHUNK_NAME_LENGTH, file_root, map_name, TRIP_ARGS( chunk_offset_ ) );
 
     FILE *read_ptr;
     STORAGE_TYPE persist_data[ CHUNK_BLOCK_SIZE ];
@@ -118,6 +118,6 @@ int map_storage_load( Chunk *chunk ) {
     for ( int i = 0; i < CHUNK_BLOCK_SIZE; i++ ) {
         chunk->blocks[ i ].blockDef = block_definition_get_definition( persist_data[ i ] );
     }
-    chunk->ditry = 1;
+    chunk->ditry = 0;
     return 1;
 }

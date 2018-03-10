@@ -25,9 +25,9 @@ Block *chunk_get_block( Chunk *chunk, int x, int y, int z ) {
     return &chunk->blocks[ chunk_get_index_from_coords( x, y, z ) ];
 }
 
-void chunk_set_block( Chunk *chunk, int x, int y, int z, BlockID blockID) {
+void chunk_set_block( Chunk *chunk, int x, int y, int z, BlockID blockID ) {
     Block *block = chunk_get_block( chunk, x, y, z );
-    block->blockDef = block_definition_get_definition(blockID);
+    block->blockDef = block_definition_get_definition( blockID );
 }
 
 void chunk_calculate_sides( Chunk *chunk ) {
@@ -114,30 +114,31 @@ void chunk_create_display_list( Chunk *chunk ) {
     glNewList( chunk->displayListTranslucent, GL_COMPILE );
     glPushMatrix( );
     chunk_contains_faces = 0;
-    glTranslatef( chunk->chunk_x * CHUNK_SIZE, chunk->chunk_y * CHUNK_SIZE, chunk->chunk_z * CHUNK_SIZE );
+    glTranslatef( TRIP_ARGS( CHUNK_SIZE * chunk->chunk_ ) );
     for ( int index = CHUNK_BLOCK_DRAW_START; index < CHUNK_BLOCK_DRAW_STOP; index++ ) {
-        int x, y, z;
-        int drawn_block = chunk_get_coords_from_index( index, &x, &y, &z );
+        TRIP_STATE( int val_ );
+        int drawn_block = chunk_get_coords_from_index( index, TRIP_ARGS( &val_ ) );
         if ( !drawn_block ) { // Blocks at the edge of the chunk are not drawn, but only for edge checking
             continue;
         }
-        Block *block = &chunk->blocks[ index ];
-        if ( block->blockDef->alpha == 0.0f ) {
+        Block block = chunk->blocks[ index ];
+        float alpha = block.blockDef->alpha;
+        if ( alpha == 0.0f ) {
             // Quick exit for air
             continue;
         }
-        if ( block->blockDef->alpha == 1.0f ) {
+        if ( alpha == 1.0f ) {
             // Don't draw solid blocks in the translucent display list
             continue;
         }
-        if ( !block->draw_sides.top && !block->draw_sides.bottom && !block->draw_sides.left && !block->draw_sides.right && !block->draw_sides.front && !block->draw_sides.back ) {
+        if ( !block.draw_sides.top && !block.draw_sides.bottom && !block.draw_sides.left && !block.draw_sides.right && !block.draw_sides.front && !block.draw_sides.back ) {
             // Quick exit for not shown block
             continue;
         }
         chunk_contains_faces = 1;
         glPushMatrix( );
-        glTranslatef( x, y, z );
-        block_draw( block );
+        glTranslatef( TRIP_ARGS( val_ ) );
+        block_draw( &chunk->blocks[ index ] );
         glPopMatrix( );
     }
     glPopMatrix( );
@@ -146,10 +147,6 @@ void chunk_create_display_list( Chunk *chunk ) {
         glDeleteLists( chunk->displayListTranslucent, 1 );
         chunk->displayListTranslucent = 0;
     }
-}
-
-inline int chunk_is_check_gened( ) {
-    return 0;
 }
 
 extern void chunk_load_terrain( Chunk *chunk ) {
@@ -175,7 +172,7 @@ void chunk_destroy_display_list( Chunk *chunk ) {
     }
 }
 
-void chunk_draw( Chunk *chunk, int solid ) {
+void inline chunk_draw( Chunk *chunk, int solid ) {
     if ( solid && chunk->displayListSolid ) {
         glCallList( chunk->displayListSolid );
     }
