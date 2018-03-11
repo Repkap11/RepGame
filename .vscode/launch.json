@@ -5,6 +5,7 @@
             "name": "(gdb) Launch",
             "type": "cppdbg",
             "request": "launch",
+            "preLaunchTask": "make compile",
             "program": "${workspaceRoot}/RepGame",
             "args": [],
             "stopAtEntry": false,

@@ -9,25 +9,34 @@
 #define CHUNK_RADIUS_Y 64 / CHUNK_SIZE
 #define CHUNK_RADIUS_Z 160 / CHUNK_SIZE
 #else
-#define MOVEMENT_SENSITIVITY 100.0f // How sensitive the arrow keys are
+#define MOVEMENT_SENSITIVITY 0.1f // How sensitive the arrow keys are
 #define CHUNK_RADIUS_X 64 / CHUNK_SIZE
 #define CHUNK_RADIUS_Y 64 / CHUNK_SIZE
 #define CHUNK_RADIUS_Z 64 / CHUNK_SIZE
 #endif
 
 #define CHUNK_SIZE 8
+#define NO_CLIP 0
 
 #define BLOCK_SCALE 1.0f
 #define REACH_DISTANCE 7
+#define GRAVITY_STRENGTH 0.9f
 
-#define CAMERA_SIZE 0.1f // Defines how much crop is in front (low for minecraft)
+#define CAMERA_SIZE 0.01f // Defines how much crop is in front (low for minecraft)
 #define PERSON_HEIGHT 40.0f
-#define DRAW_DISTANCE 10000.0f
-#define STARTING_ANGLE_H 35.0f
+#define DRAW_DISTANCE 1000
+#define STARTING_ANGLE_H 155.0f
 #define STARTING_ANGLE_V 45.0f
 #define FPS_LIMIT 60.0f
-#define CAMERA_FOV 60.0f
-#define NUM_RENDER_THREADS 7
+#define CAMERA_FOV 70.0f
+#define NUM_RENDER_THREADS 1
 #define CHUNK_RENDERS_PER_FRAME ( 2 * CHUNK_RADIUS_X * 2 * CHUNK_RADIUS_Y ) // Render 1 face of the chunk cube per frame. This could be lowered to reduce studder
+
+#define PLAYER_HEIGHT 1.85f
+#define PLAYER_WIDTH 0.6f
+#define PLAYER_EYE_HEIGHT 1.62f
+
+//#define EYE_POSITION_OFFSET 0.1f
+#define EYE_POSITION_OFFSET ( PLAYER_EYE_HEIGHT - ( PLAYER_HEIGHT / 2.0f ) )
 
 #endif

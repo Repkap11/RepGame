@@ -22,6 +22,20 @@ extern inline int chunk_get_coords_from_index( int index, int *out_x, int *out_y
 }
 
 Block *chunk_get_block( Chunk *chunk, int x, int y, int z ) {
+    if ( chunk->blocks == NULL ) {
+        pr_debug("Chunk has no blocks");
+        return NULL;
+    }
+    if ( x > CHUNK_SIZE + 1 || //
+         y > CHUNK_SIZE + 1 || //
+         z > CHUNK_SIZE + 1 ) {
+        return NULL;
+    }
+    if ( x < -1 || //
+         y < -1 || //
+         z < -1 ) {
+        return NULL;
+    }
     return &chunk->blocks[ chunk_get_index_from_coords( x, y, z ) ];
 }
 

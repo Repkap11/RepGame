@@ -15,9 +15,13 @@
 
 #define test pr_debug( );
 
-#define TRIP_STATE( replace ) replace##x; replace##y; replace##z
+#define TRIP_STATE( replace )                                                                                                                                                                                                                  \
+    replace##x;                                                                                                                                                                                                                                \
+    replace##y;                                                                                                                                                                                                                                \
+    replace##z
 #define TRIP_ARGS( replace ) replace##x, replace##y, replace##z
 #define TRIP_AND( replace ) ( replace##x && replace##y && replace##z )
+#define TRIP_OR( replace ) ( replace##x || replace##y || replace##z )
 
 #include "input.h"
 
@@ -27,9 +31,7 @@ typedef struct {
     struct {
         float angle_H;
         float angle_V;
-        float lx;
-        float ly;
-        float lz;
+        TRIP_STATE( float l );
         float x;
         float y;
         float z;
@@ -42,13 +44,13 @@ typedef struct {
     struct {
         int show;
         BlockID blockID;
-        int create_x;
-        int create_y;
-        int create_z;
-        int destroy_x;
-        int destroy_y;
-        int destroy_z;
+        TRIP_STATE( int create_ );
+        TRIP_STATE( int destroy_ );
     } block_selection;
+    struct {
+        Chunk *chunk;
+        TRIP_STATE( float diff_ );
+    } physics;
 
 } RepGameState;
 
