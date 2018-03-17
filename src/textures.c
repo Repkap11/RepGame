@@ -1,5 +1,6 @@
 #include <GL/gl.h>
 #include <GL/glut.h>
+#include "file_utils.h"
 
 #include "draw2d.h"
 #include "textures.h"
@@ -81,8 +82,15 @@ GLuint *loadTextures( const char *filename, int width, int height, int bmp_heade
 GLuint *textures, *sky_textures;
 int num_textures, num_skys;
 void textures_populate( ) {
-    sky_textures = loadTextures( "./bitmaps/sky4.bmp", 2048, 1024, 138, 2048, 1024, &num_skys );
-    textures = loadTextures( "./bitmaps/textures.bmp", 256, 256, 138, 16, 16, &num_textures );
+    char *dir = getRepGamePath( );
+
+    char bufferSky[ BUFSIZ ];
+    sprintf( bufferSky, "%s%s", dir, "/bitmaps/sky4.bmp" );
+    char bufferText[ BUFSIZ ];
+    sprintf( bufferText, "%s%s", dir, "/bitmaps/textures.bmp" );
+
+    sky_textures = loadTextures( bufferSky, 2048, 1024, 138, 2048, 1024, &num_skys );
+    textures = loadTextures( bufferText, 256, 256, 138, 16, 16, &num_textures );
 }
 
 GLuint textures_getSkyTexture( ) {

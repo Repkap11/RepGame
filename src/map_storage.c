@@ -8,11 +8,12 @@
 #include <string.h>
 #include <sys/stat.h> /* mkdir(2) */
 #include <unistd.h>
+#include "file_utils.h"
 
 #define CHUNK_NAME_LENGTH 50
 
 char file_root[ CHUNK_NAME_LENGTH ] = "%s/chunk_%d_%d_%d";
-char map_name[ CHUNK_NAME_LENGTH ] = "./World1";
+char map_name[ CHUNK_NAME_LENGTH ];
 
 int mkdir_p( const char *path ) {
     const size_t len = strlen( path );
@@ -52,6 +53,9 @@ int mkdir_p( const char *path ) {
 }
 
 void map_storage_init( ) {
+    char *dir = getRepGamePath( );
+    char bufferSky[ BUFSIZ ];
+    sprintf( map_name, "%s%s", dir,"/World1" );
     mkdir_p( map_name );
 }
 
