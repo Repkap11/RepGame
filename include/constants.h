@@ -20,7 +20,7 @@
 
 #define BLOCK_SCALE 1.0f
 #define REACH_DISTANCE 7
-#define GRAVITY_STRENGTH 0.9f
+#define GRAVITY_STRENGTH 0.4f
 
 #define CAMERA_SIZE 0.01f // Defines how much crop is in front (low for minecraft)
 #define PERSON_HEIGHT 40.0f

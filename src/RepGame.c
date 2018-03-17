@@ -359,13 +359,13 @@ static void gameTick( ) {
     if ( globalGameState.input.arrows.up ) {
         moved = 1;
         movement_vector_y += 1;
-    } else {
+    } else if ( !globalGameState.input.arrows.down ) {
         moved = 1;
         movement_vector_y -= GRAVITY_STRENGTH;
     }
     if ( globalGameState.input.arrows.down ) {
-        //moved = 1;
-        //movement_vector_y -= 1;
+        moved = 1;
+        movement_vector_y -= 1;
     }
 
     movement_vector_x *= MOVEMENT_SENSITIVITY;
@@ -442,9 +442,9 @@ static void gameTick( ) {
                             );
                         if ( check_block( block ) ) {
                             // pr_debug( "Clip pos %2d %2d %2d : %2d %2d %2d", i, j, k, TRIP_ARGS( block_position_ ) );
-                            pr_debug( "Collide p:%d %d %d n:%d %d %d dir:%d %d %d", TRIP_ARGS( collide_p ), //
-                                      TRIP_ARGS( collide_n ),                                               //
-                                      i, j, k );
+                            // pr_debug( "Collide p:%d %d %d n:%d %d %d dir:%d %d %d", TRIP_ARGS( collide_p ), //
+                            //           TRIP_ARGS( collide_n ),                                               //
+                            //           i, j, k );
 
                             if ( !NO_CLIP ) {
 
@@ -494,7 +494,7 @@ static void gameTick( ) {
         // movement_vector_y *= fraction;
         // movement_vector_z *= fraction;
 
-        pr_debug( "limit:%f %f %f", TRIP_ARGS( limit_movement_ ) );
+        // pr_debug( "limit:%f %f %f", TRIP_ARGS( limit_movement_ ) );
         movement_vector_x -= limit_movement_x;
         movement_vector_y -= limit_movement_y;
         movement_vector_z -= limit_movement_z;
