@@ -13,8 +13,8 @@ uint shaders_compile( ) {
     /* create program object and attach shaders */
     uint g_program = glCreateProgram( );
 
-    shaderAttachFromFile( g_program, GL_VERTEX_SHADER, "shaders/shader.vp" );
-    shaderAttachFromFile( g_program, GL_FRAGMENT_SHADER, "shaders/shader.fp" );
+    shaderAttachFromFile( g_program, GL_VERTEX_SHADER, "shaders/vertex.glsl" );
+    shaderAttachFromFile( g_program, GL_FRAGMENT_SHADER, "shaders/fragment.glsl" );
 
     /* link the program and make sure that there were no errors */
     glLinkProgram( g_program );
