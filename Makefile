@@ -1,6 +1,6 @@
 TARGET = RepGame
 LIBS = -lm -l GL -l GLU -l glut -pthread
-CC = gcc
+CC = clang
 #CFLAGS = -Wall -Werror -std=gnu99 -Wno-unused-variable -O3 -march=native -flto
 CFLAGS = -g -Wall -Werror -std=gnu99 -Wno-unused-variable -O0 -march=native -flto
 export CPATH = include/

@@ -4,19 +4,20 @@
 //#define LARGE_WORLD
 
 #ifdef LARGE_WORLD
-#define MOVEMENT_SENSITIVITY 400.0f // How sensitive the arrow keys are
+#define MOVEMENT_SENSITIVITY 0.2f // How sensitive the arrow keys are
 #define CHUNK_RADIUS_X 160 / CHUNK_SIZE
 #define CHUNK_RADIUS_Y 64 / CHUNK_SIZE
 #define CHUNK_RADIUS_Z 160 / CHUNK_SIZE
 #else
-#define MOVEMENT_SENSITIVITY 0.1f // How sensitive the arrow keys are
-#define CHUNK_RADIUS_X 64 / CHUNK_SIZE
-#define CHUNK_RADIUS_Y 64 / CHUNK_SIZE
-#define CHUNK_RADIUS_Z 64 / CHUNK_SIZE
+#define MOVEMENT_SENSITIVITY 0.2f // How sensitive the arrow keys are
+#define CHUNK_RADIUS_X 32 / CHUNK_SIZE
+#define CHUNK_RADIUS_Y 32 / CHUNK_SIZE
+#define CHUNK_RADIUS_Z 32 / CHUNK_SIZE
 #endif
 
 #define CHUNK_SIZE 8
 #define NO_CLIP 0
+#define MAP_SEED 42
 
 #define BLOCK_SCALE 1.0f
 #define REACH_DISTANCE 7
@@ -29,7 +30,7 @@
 #define STARTING_ANGLE_V 45.0f
 #define FPS_LIMIT 60.0f
 #define CAMERA_FOV 70.0f
-#define NUM_RENDER_THREADS 1
+#define NUM_RENDER_THREADS 7
 #define CHUNK_RENDERS_PER_FRAME ( 2 * CHUNK_RADIUS_X * 2 * CHUNK_RADIUS_Y ) // Render 1 face of the chunk cube per frame. This could be lowered to reduce studder
 
 #define PLAYER_HEIGHT 1.85f
