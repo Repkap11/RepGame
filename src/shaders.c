@@ -8,6 +8,7 @@
 #include <string.h>
 
 #include "shaders.h"
+#include "file_utils.h"
 
 uint shaders_compile( ) {
     /* create program object and attach shaders */
@@ -91,6 +92,8 @@ uint shaderCompileFromFile( int type, const char *filePath ) {
 
     return shader;
 }
+#include "RepGame.h"
+
 char *shaderLoadSource( const char *filePath ) {
     const size_t blockSize = 512;
     FILE *fp;
@@ -99,7 +102,11 @@ char *shaderLoadSource( const char *filePath ) {
     size_t tmp, sourceLength = 0;
 
     /* open file */
-    fp = fopen( filePath, "r" );
+    char *dir = getRepGamePath( );
+    char fullPath[ BUFSIZ ];
+    sprintf( fullPath, "%s%s%s", dir, "/", filePath );
+    pr_debug("shader path:%s",fullPath);
+    fp = fopen( fullPath, "r" );
     if ( !fp ) {
         fprintf( stderr, "shaderLoadSource(): Unable to open %s for reading\n", filePath );
         return NULL;
