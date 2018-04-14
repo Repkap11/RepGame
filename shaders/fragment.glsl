@@ -22,7 +22,7 @@ main()
 
 	// diffuse
 	vec3 lightDir = normalize(lightVector);
-float diffuseDot = dot(normal, lightDir);
+	float diffuseDot = dot(normal, lightDir);
 	vec3 diffuse = lightColor * clamp(diffuseDot, 0.0, 1.0) * distFactor;
 
 	// specular

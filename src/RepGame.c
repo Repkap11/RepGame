@@ -269,7 +269,7 @@ int check_block( Block *block ) {
             pr_debug( "No BlockDef!!" );
         }
     } else {
-        pr_debug( "No Block!!" );
+        //pr_debug( "No Block!!" );
     }
     return 0;
 }
