@@ -18,6 +18,6 @@ void textures_init_sky( Textures *textures );
 Texture textures_get_texture( Textures *textures, BlockID id );
 void textures_destroy( Textures *textures );
 
-void texture_bind( Texture *texture );
-void texture_unbind( Texture *texture );
+void texture_bind( Texture *texture, unsigned int texture_slot );
+void texture_unbind( Texture *texture, unsigned int texture_slot );
 #endif

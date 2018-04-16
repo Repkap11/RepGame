@@ -188,10 +188,12 @@ Texture textures_get_texture( Textures *textures, BlockID id ) {
     return texture;
 }
 
-void texture_bind( Texture *texture ) {
+void texture_bind( Texture *texture , unsigned int texture_slot) {
+    glActiveTexture(GL_TEXTURE0 + texture_slot);
     glBindTexture( GL_TEXTURE_2D, texture->m_RendererId );
 }
-void texture_unbind( Texture *texture) {
+void texture_unbind( Texture *texture , unsigned int texture_slot) {
+    glActiveTexture(GL_TEXTURE0 + texture_slot);
     glBindTexture( GL_TEXTURE_2D, 0 );
 }
 

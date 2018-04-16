@@ -209,7 +209,7 @@ static inline void display( ) {
     // if ( globalGameState.block_selection.show ) {
     //     draw_pointed_block( TRIP_ARGS( globalGameState.block_selection.destroy_ ) );
     // }
-    //drawSceneNew( );
+    // drawSceneNew( );
     // ui_overlay_draw( &globalGameState );
     glutSwapBuffers( );
 }
@@ -626,7 +626,7 @@ int main( int argc, char **argv ) {
     // glEnable( GL_DEPTH_TEST );
     // glEnable( GL_CULL_FACE );
     // glEnable( GL_TEXTURE_2D );
-    // glEnable( GL_BLEND );
+    glEnable( GL_BLEND );
     // glEnable( GL_MULTISAMPLE );
     // glEnable( GL_COLOR_MATERIAL );
     // glEnable( GL_NORMALIZE );
@@ -640,7 +640,7 @@ int main( int argc, char **argv ) {
     glutKeyboardFunc( keysInput );
     glutKeyboardUpFunc( keysInputUp );
     // glutMouseFunc( mouseInput );
-    // glutReshapeFunc( changeSize );
+    //glutReshapeFunc( changeSize );
     // glutPassiveMotionFunc( mouseMove );
     // glutMotionFunc( mouseMove );
     initilizeGameState( );
@@ -650,16 +650,17 @@ int main( int argc, char **argv ) {
     tend = tstart;
 
     // glEnable( GL_LIGHTING );
-    // glBlendFunc( GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA );
+    glBlendFunc( GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA );
 
     VertexBuffer vb;
     float vd_data[] = {
-        -0.5f, -0.5f, //
-        0.5f,  -0.5f, //
-        0.5f,  0.5f,  //
-        -0.5f, 0.5f,  //
+        -0.5f, -0.5f, /*Coords  Texture coords*/ 0,0,
+        0.5f,  -0.5f, /*Coords  Texture coords*/ 1,0,
+        0.5f,  0.5f,  /*Coords  Texture coords*/ 1,1,
+        -0.5f, 0.5f,  /*Coords  Texture coords*/ 0,1,
     };
-    vertex_buffer_init( &vb, vd_data, sizeof( float ) * 2 * VB_DATA_COUNT );
+    unsigned int elements_per_vertex = 4;
+    vertex_buffer_init( &vb, vd_data, sizeof( float ) * elements_per_vertex * VB_DATA_COUNT );
 
     IndexBuffer ib;
     unsigned int ib_data[] = {
@@ -672,7 +673,9 @@ int main( int argc, char **argv ) {
     VertexBufferLayout vbl;
     vertex_buffer_layout_init( &vbl );
     vertex_buffer_layout_bind( &vbl );
-    vertex_buffer_layout_push_float( &vbl, 2 );
+    //The sum of these must be elements_per_vertex
+    vertex_buffer_layout_push_float( &vbl, 2 );//Coords
+    vertex_buffer_layout_push_float( &vbl, 2 );//Texture coords
 
     VertexArray va;
     vertex_array_init( &va );
@@ -680,6 +683,10 @@ int main( int argc, char **argv ) {
 
     Shader shader;
     shader_init( &shader );
+    Texture texture = textures_get_texture( &textures, GRASS_SIDE );
+    unsigned int textureSlot = 0;
+    texture_bind( &texture, textureSlot );
+    shader_set_uniform1i( &shader, "u_Texture", textureSlot );
 
     Renderer renderer;
     // glDisable( GL_LIGHTING );

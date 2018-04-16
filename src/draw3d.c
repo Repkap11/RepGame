@@ -37,7 +37,7 @@ void draw3d_sphere( ) {
     Textures textures;
     textures_init_sky( &textures );
     Texture skyTexture = textures_get_texture(&textures, 0);
-    texture_bind(&skyTexture);
+    texture_bind(&skyTexture, 1);
     glCallList( mysphereID );
     glFrontFace( GL_CCW );
 }

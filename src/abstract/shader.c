@@ -165,3 +165,7 @@ int get_uniform_location( Shader *shader, const char *name ) {
 void shader_set_uniform4f( Shader *shader, const char *name, float f0, float f1, float f2, float f3 ) {
     glUniform4f( get_uniform_location( shader, name ), f0, f1, f2, f3 );
 }
+
+void shader_set_uniform1i( Shader *shader, const char *name, int i ) {
+    glUniform1i( get_uniform_location( shader, name ), i );
+}
