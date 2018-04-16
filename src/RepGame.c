@@ -106,7 +106,7 @@ static inline void drawScene( ) {
     glEnable( GL_LIGHTING );
     // draw3d_cube( );cleanupGameState
     glUseProgram( g_program );
-    //renderShaders( );
+    // renderShaders( );
     glBlendFunc( GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA );
     world_render( &globalGameState.gameChunks, globalGameState.camera.x, globalGameState.camera.y, globalGameState.camera.z );
     world_draw( &globalGameState.gameChunks );
@@ -232,15 +232,16 @@ static void draw_pointed_block( int world_x, int world_y, int world_z ) {
 
 static inline void display( ) {
     glClear( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT );
-    glLoadIdentity( );
-    pointCamera( );
-    pointLight( );
-    drawScene( );
-    calculateMousePos( 0, TRIP_ARGS( &globalGameState.block_selection.create_ ), TRIP_ARGS( &globalGameState.block_selection.destroy_ ) );
-    if ( globalGameState.block_selection.show ) {
-        draw_pointed_block( TRIP_ARGS( globalGameState.block_selection.destroy_ ) );
-    }
-    ui_overlay_draw( &globalGameState );
+    // glLoadIdentity( );
+    // pointCamera( );
+    // pointLight( );
+    // drawScene( );
+    // calculateMousePos( 0, TRIP_ARGS( &globalGameState.block_selection.create_ ), TRIP_ARGS( &globalGameState.block_selection.destroy_ ) );
+    // if ( globalGameState.block_selection.show ) {
+    //     draw_pointed_block( TRIP_ARGS( globalGameState.block_selection.destroy_ ) );
+    // }
+    drawSceneNew( );
+    // ui_overlay_draw( &globalGameState );
     glutSwapBuffers( );
 }
 
@@ -269,7 +270,7 @@ int check_block( Block *block ) {
             pr_debug( "No BlockDef!!" );
         }
     } else {
-        //pr_debug( "No Block!!" );
+        // pr_debug( "No Block!!" );
     }
     return 0;
 }
@@ -329,7 +330,7 @@ static void gameTick( ) {
 
     // Only the first time, calculate the chunk
     if ( globalGameState.physics.chunk == NULL ) {
-        pr_debug( "Doing initial search" );
+        // pr_debug( "Doing initial search" );
         globalGameState.physics.chunk = world_get_loaded_chunk( &globalGameState.gameChunks, globalGameState.camera.x, globalGameState.camera.y - EYE_POSITION_OFFSET, globalGameState.camera.z );
     }
     if ( globalGameState.physics.chunk != NULL ) {
@@ -626,6 +627,14 @@ void changeSize( int w, int h ) {
 
 double fps_ms = ( 1.0 / FPS_LIMIT ) * 1000.0;
 
+
+#include "abstract/vertex_buffer.h"
+#include "abstract/index_buffer.h"
+#include "abstract/vertex_buffer_layout.h"
+#include "abstract/vertex_array.h"
+#define VB_DATA_COUNT ( ( unsigned int )4 )
+#define IB_DATA_COUNT ( ( unsigned int )6 )
+
 int main( int argc, char **argv ) {
     glutInit( &argc, argv );
     // glutInitContextVersion( 3, 1 );
@@ -645,39 +654,80 @@ int main( int argc, char **argv ) {
         exit( 1 ); // or handle the error in a nicer way
     }
 
-    glEnable( GL_DEPTH_TEST );
-    glEnable( GL_CULL_FACE );
-    glEnable( GL_TEXTURE_2D );
-    glEnable( GL_BLEND );
-    glEnable( GL_MULTISAMPLE );
-    glEnable( GL_COLOR_MATERIAL );
-    glEnable( GL_NORMALIZE );
-    glEnable( GL_LIGHT0 );
+    // glEnable( GL_DEPTH_TEST );
+    // glEnable( GL_CULL_FACE );
+    // glEnable( GL_TEXTURE_2D );
+    // glEnable( GL_BLEND );
+    // glEnable( GL_MULTISAMPLE );
+    // glEnable( GL_COLOR_MATERIAL );
+    // glEnable( GL_NORMALIZE );
+    // glEnable( GL_LIGHT0 );
 
-    glutSpecialFunc( arrowKeyDownInput );
-    glutSpecialUpFunc( arrowKeyUpInput );
+    // glutSpecialFunc( arrowKeyDownInput );
+    // glutSpecialUpFunc( arrowKeyUpInput );
 
-    glutSetCursor( GLUT_CURSOR_NONE );
+    // glutSetCursor( GLUT_CURSOR_NONE );
 
     glutKeyboardFunc( keysInput );
     glutKeyboardUpFunc( keysInputUp );
-    glutMouseFunc( mouseInput );
-    glutReshapeFunc( changeSize );
-    glutPassiveMotionFunc( mouseMove );
-    glutMotionFunc( mouseMove );
+    // glutMouseFunc( mouseInput );
+    // glutReshapeFunc( changeSize );
+    // glutPassiveMotionFunc( mouseMove );
+    // glutMotionFunc( mouseMove );
     initilizeGameState( );
 
     struct timespec tstart = {0, 0}, tend = {0, 0};
     clock_gettime( CLOCK_MONOTONIC, &tstart );
     tend = tstart;
+
+    // glEnable( GL_LIGHTING );
+    // glUseProgram( g_program );
+    // glBlendFunc( GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA );
+
+    VertexBuffer vb;
+    float vd_data[ ] = {
+        -0.5f, -0.5f, //
+        0.5f,  -0.5f, //
+        0.5f,  0.5f,  //
+        -0.5f, 0.5f,  //
+    };
+    vertex_buffer_init( &vb, vd_data, sizeof(float) * 2 * VB_DATA_COUNT );
+
+    IndexBuffer ib;
+    unsigned int ib_data[ ] = {
+        0, 1, 2, //
+        2, 3, 0,
+    };
+    index_buffer_init( &ib, ib_data, IB_DATA_COUNT );
+    index_buffer_bind( &ib );
+
+    VertexBufferLayout vbl;
+    vertex_buffer_layout_init( &vbl );
+    vertex_buffer_layout_bind( &vbl );
+    vertex_buffer_layout_push_float( &vbl, 2 );
+
+    VertexArray va;
+    vertex_array_init( &va );
+    vertex_array_bind( &va );
+    vertex_array_add_buffer( &va, &vb, &vbl );
+
+    vertex_array_bind( &va );
+    index_buffer_bind( &ib );
+    // glDisable( GL_LIGHTING );
+
     while ( !globalGameState.input.exitGame ) {
         glutMainLoopEvent( );
         // input_set_enable_mouse( 0 );
-        glutWarpPointer( globalGameState.screen.width / 2, globalGameState.screen.height / 2 );
+        // glutWarpPointer( globalGameState.screen.width / 2, globalGameState.screen.height / 2 );
         // glutMainLoopEvent( );
         // input_set_enable_mouse( 1 );
-        gameTick( );
-        display( );
+        // gameTick( );
+        glClear( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT );
+        // ui_overlay_draw( &globalGameState );
+
+        glDrawElements( GL_TRIANGLES, IB_DATA_COUNT, GL_UNSIGNED_INT, NULL );
+        glutSwapBuffers( );
+
         showErrors( );
 
         clock_gettime( CLOCK_MONOTONIC, &tstart );

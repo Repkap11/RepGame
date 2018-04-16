@@ -11,7 +11,6 @@ varying float cameraDistance;
 void
 main()
 {
-
 	vec4 cameraAdjust = gl_ModelViewProjectionMatrix * vec4(cameraPosition,1);
 	//vec4 cameraAdjust = vec4(cameraPosition,1);
 	//vec4(normalize(cameraUnit),1)

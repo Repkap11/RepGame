@@ -16,13 +16,14 @@ typedef struct {
     VertexBufferElement elements[ NUM_VERTEX_BUFFER_ELEMENTS ];
 } VertexBufferLayout;
 
-int vertex_buffer_layout_size_of_type( unsigned int type );
+unsigned int vertex_buffer_layout_size_of_type( unsigned int type );
 
-void vertex_buffer_layout_init( VertexBufferLayout *vertexBufferLayout, const void *data );
+void vertex_buffer_layout_init( VertexBufferLayout *vertexBufferLayout );
 void vertex_buffer_layout_init_element( VertexBufferElement *vertexBufferElement, unsigned int type, unsigned int count, unsigned int normalized );
 void vertex_buffer_layout_bind( const VertexBufferLayout *vertexBufferLayout );
 
-void vertex_buffer_layout_add_float( const VertexBufferLayout *vertexBufferLayout, int count );
+void vertex_buffer_layout_push_float( VertexBufferLayout *vertexBufferLayout, unsigned int count );
+void vertex_buffer_layout_push_unsigned_int( VertexBufferLayout *vertexBufferLayout, unsigned int count );
 
 void vertex_buffer_layout_unbind( const VertexBufferLayout *vertexBufferLayout );
 void vertex_buffer_layout_destroy( const VertexBufferLayout *vertexBufferLayout );

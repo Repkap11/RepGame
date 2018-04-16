@@ -3,6 +3,7 @@
 
 typedef struct {
     unsigned int mRendererId;
+    unsigned int count;
 } IndexBuffer;
 
 void index_buffer_init(IndexBuffer* indexBuffer, unsigned int* data, unsigned int count);

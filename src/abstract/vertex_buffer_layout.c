@@ -2,7 +2,7 @@
 #include "RepGame.h"
 #include "abstract/vertex_buffer_layout.h"
 
-void vertex_buffer_layout_init( VertexBufferLayout *vertexBufferLayout, const void *data ) {
+void vertex_buffer_layout_init( VertexBufferLayout *vertexBufferLayout ) {
     vertexBufferLayout->current_size = 0;
     vertexBufferLayout->stride = 0;
 }
@@ -10,7 +10,7 @@ void vertex_buffer_layout_init( VertexBufferLayout *vertexBufferLayout, const vo
 void vertex_buffer_layout_destroy( const VertexBufferLayout *vertexBufferLayout ) {
 }
 
-int vertex_buffer_layout_size_of_type( unsigned int type ) {
+unsigned int vertex_buffer_layout_size_of_type( unsigned int type ) {
     switch ( type ) {
         case GL_FLOAT:
             return 4;
@@ -28,7 +28,7 @@ void vertex_buffer_layout_init_element( VertexBufferElement *vertexBufferElement
     vertexBufferElement->normalized = normalized;
 }
 
-void vertex_buffer_layout_push_float( VertexBufferLayout *vertexBufferLayout, int count ) {
+void vertex_buffer_layout_push_float( VertexBufferLayout *vertexBufferLayout, unsigned int count ) {
     if ( vertexBufferLayout->current_size < NUM_VERTEX_BUFFER_ELEMENTS ) {
         vertex_buffer_layout_init_element(                                     //
             &vertexBufferLayout->elements[ vertexBufferLayout->current_size ], //
@@ -42,7 +42,7 @@ void vertex_buffer_layout_push_float( VertexBufferLayout *vertexBufferLayout, in
     }
 }
 
-void vertex_buffer_layout_push_unsigned_int( VertexBufferLayout *vertexBufferLayout, int count ) {
+void vertex_buffer_layout_push_unsigned_int( VertexBufferLayout *vertexBufferLayout, unsigned int count ) {
     if ( vertexBufferLayout->current_size < NUM_VERTEX_BUFFER_ELEMENTS ) {
         vertex_buffer_layout_init_element(                                     //
             &vertexBufferLayout->elements[ vertexBufferLayout->current_size ], //

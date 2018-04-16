@@ -34,5 +34,7 @@ main()
 	//gl_FragColor = vec4(clamp((diffuse + AMBIENT) + specular, 0.0, 1.0), 1);
 	gl_FragColor = vec4(normal + normalize(vec3(1,1,1)), 1);
 	float color = cameraDistance / 50;
-	//gl_FragColor = vec4(cameraDir,1);
+	gl_FragColor = vec4(cameraDir,1);
+
+	//gl_FragColor = vec4(1.0f, 0.0f, 0.0f, 1.0f);
 }
