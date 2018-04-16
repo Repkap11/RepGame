@@ -4,7 +4,6 @@
 #include <time.h>
 #include <unistd.h>
 
-#include "shaders.h"
 #include "RepGame.h"
 #include "block_definitions.h"
 #include "chunk.h"
@@ -13,11 +12,12 @@
 #include "textures.h"
 #include "ui_overlay.h"
 #include "world.h"
+#include "abstract/shader.h"
 
 #define SKY_BOX_DISTANCE DRAW_DISTANCE * 0.8
 
 RepGameState globalGameState;
-uint g_program;
+Shader shader;
 
 static inline void initilizeGameState( ) {
     globalGameState.input.exitGame = 0;
@@ -31,7 +31,7 @@ static inline void initilizeGameState( ) {
 
     BlockID blockID;
     textures_populate( );
-    g_program = shaders_compile( "shaders/vertex.glsl", "shaders/fragment.glsl" );
+    shader_init( &shader );
     block_definitions_initilize_definitions( );
     world_init( &globalGameState.gameChunks );
     // pr_debug( "RepGame init done" );
@@ -70,42 +70,20 @@ void getPosFromMouse( int x, int y, TRIP_ARGS( double *out_ ) ) {
     gluUnProject( winX, winY, winZ, modelview, projection, viewport, out_x, out_y, out_z );
 }
 
-static GLuint g_programCameraPositionLocation;
-static GLuint g_programLightPositionLocation;
-static GLuint g_programCameraUnitLocation;
-
 #define NUM_LIGHTS 1
-static float g_lightPosition[ 3 ];
-static float g_cameraPosition[ 3 ];
-static float g_cameraUnit[ 3 ];
-
 void renderShaders( int x, int y, int z ) {
-    g_programCameraPositionLocation = glGetUniformLocation( g_program, "cameraPosition" );
-    g_programCameraUnitLocation = glGetUniformLocation( g_program, "cameraUnit" );
-
-    g_programLightPositionLocation = glGetUniformLocation( g_program, "lightPosition" );
-
-    g_cameraPosition[ 0 ] = x;
-    g_cameraPosition[ 1 ] = y;
-    g_cameraPosition[ 2 ] = z;
-
-    g_cameraUnit[ 0 ] = -globalGameState.camera.lx;
-    g_cameraUnit[ 1 ] = -globalGameState.camera.ly;
-    g_cameraUnit[ 2 ] = -globalGameState.camera.lz;
-
-    g_lightPosition[ 0 ] = 0;
-    g_lightPosition[ 1 ] = 1;
-    g_lightPosition[ 2 ] = 0;
-
-    glUniform3fv( g_programCameraPositionLocation, 1, g_cameraPosition );
-    glUniform3fv( g_programCameraUnitLocation, 1, g_cameraUnit );
-    glUniform3fv( g_programLightPositionLocation, 1, g_lightPosition );
+    shader_set_uniform4f( &shader, "cameraPosition", x, y, z, 1 );
+    shader_set_uniform4f( &shader, "cameraUnit",      //
+                          -globalGameState.camera.lx, //
+                          -globalGameState.camera.ly, //
+                          -globalGameState.camera.lz, 0 );
+    shader_set_uniform4f( &shader, "lightPosition", 0, 1, 0, 0 );
 }
 
 static inline void drawScene( ) {
     glEnable( GL_LIGHTING );
     // draw3d_cube( );cleanupGameState
-    glUseProgram( g_program );
+    shader_bind(&shader);
     // renderShaders( );
     glBlendFunc( GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA );
     world_render( &globalGameState.gameChunks, globalGameState.camera.x, globalGameState.camera.y, globalGameState.camera.z );
@@ -681,7 +659,6 @@ int main( int argc, char **argv ) {
     tend = tstart;
 
     // glEnable( GL_LIGHTING );
-    // glUseProgram( g_program );
     // glBlendFunc( GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA );
 
     VertexBuffer vb;
@@ -723,11 +700,11 @@ int main( int argc, char **argv ) {
         // glutMainLoopEvent( );
         // input_set_enable_mouse( 1 );
         // gameTick( );
-        renderer_clear(&renderer);
+        renderer_clear( &renderer );
         // ui_overlay_draw( &globalGameState );
 
         renderer_draw( &renderer, &va, &ib, &shader );
-        //glDrawElements( GL_TRIANGLES, IB_DATA_COUNT, GL_UNSIGNED_INT, NULL );
+        // glDrawElements( GL_TRIANGLES, IB_DATA_COUNT, GL_UNSIGNED_INT, NULL );
         glutSwapBuffers( );
 
         showErrors( );
