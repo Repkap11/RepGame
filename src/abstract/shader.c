@@ -153,9 +153,9 @@ void shader_destroy( Shader *shader ) {
     shader->m_RendererId = 0;
 }
 
-unsigned int shader_get_uniform_location( Shader *shader, const char *name ) {
+int get_uniform_location( Shader *shader, const char *name ) {
     // TODO use cache
-    unsigned int result = glGetUniformLocation( shader->m_RendererId, name );
+    int result = glGetUniformLocation( shader->m_RendererId, name );
     if ( result == -1 ) {
         pr_debug( "Shader uniform not found. Name:%s", name );
     }
@@ -163,5 +163,5 @@ unsigned int shader_get_uniform_location( Shader *shader, const char *name ) {
 }
 
 void shader_set_uniform4f( Shader *shader, const char *name, float f0, float f1, float f2, float f3 ) {
-    glUniform4f( shader_get_uniform_location( shader, name ), f0, f1, f2, f3 );
+    glUniform4f( get_uniform_location( shader, name ), f0, f1, f2, f3 );
 }

@@ -3,149 +3,149 @@
 
 #include "textures.h"
 
-void draw3d_cube( ) {
+// void draw3d_cube( ) {
 
-    glColor3f( 1.0f, 1.0f, 1.0f );
+//     glColor3f( 1.0f, 1.0f, 1.0f );
 
-    glBindTexture( GL_TEXTURE_2D, textures_getDirtTexture( ) );
-    // FRONT
-    glBegin( GL_TRIANGLES );
-    {
+//     glBindTexture( GL_TEXTURE_2D, textures_getDirtTexture( ) );
+//     // FRONT
+//     glBegin( GL_TRIANGLES );
+//     {
 
-        glTexCoord2f( 0, 1 );
-        glVertex3f( 1.0, 1.0, 0.0 );
-        glTexCoord2f( 0, 0 );
-        glVertex3f( 1.0, 0.0, 0.0 );
-        glTexCoord2f( 1, 1 );
-        glVertex3f( 0.0, 1.0, 0.0 );
-    }
-    glEnd( );
-    glBegin( GL_TRIANGLES );
-    {
-        glTexCoord2f( 1, 0 );
-        glVertex3f( 0.0, 0.0, 0.0 );
-        glTexCoord2f( 1, 1 );
-        glVertex3f( 0.0, 1.0, 0.0 );
-        glTexCoord2f( 0, 0 );
-        glVertex3f( 1.0, 0.0, 0.0 );
-    }
-    glEnd( );
+//         glTexCoord2f( 0, 1 );
+//         glVertex3f( 1.0, 1.0, 0.0 );
+//         glTexCoord2f( 0, 0 );
+//         glVertex3f( 1.0, 0.0, 0.0 );
+//         glTexCoord2f( 1, 1 );
+//         glVertex3f( 0.0, 1.0, 0.0 );
+//     }
+//     glEnd( );
+//     glBegin( GL_TRIANGLES );
+//     {
+//         glTexCoord2f( 1, 0 );
+//         glVertex3f( 0.0, 0.0, 0.0 );
+//         glTexCoord2f( 1, 1 );
+//         glVertex3f( 0.0, 1.0, 0.0 );
+//         glTexCoord2f( 0, 0 );
+//         glVertex3f( 1.0, 0.0, 0.0 );
+//     }
+//     glEnd( );
 
-    // BACK
-    glBegin( GL_TRIANGLES );
-    {
-        glTexCoord2f( 0, 0 );
-        glVertex3f( 1.0, 0.0, 1.0 );
-        glTexCoord2f( 0, 1 );
-        glVertex3f( 1.0, 1.0, 1.0 );
-        glTexCoord2f( 1, 1 );
-        glVertex3f( 0.0, 1.0, 1.0 );
-    }
-    glEnd( );
-    glBegin( GL_TRIANGLES );
-    {
+//     // BACK
+//     glBegin( GL_TRIANGLES );
+//     {
+//         glTexCoord2f( 0, 0 );
+//         glVertex3f( 1.0, 0.0, 1.0 );
+//         glTexCoord2f( 0, 1 );
+//         glVertex3f( 1.0, 1.0, 1.0 );
+//         glTexCoord2f( 1, 1 );
+//         glVertex3f( 0.0, 1.0, 1.0 );
+//     }
+//     glEnd( );
+//     glBegin( GL_TRIANGLES );
+//     {
 
-        glTexCoord2f( 1, 1 );
-        glVertex3f( 0.0, 1.0, 1.0 );
-        glTexCoord2f( 1, 0 );
-        glVertex3f( 0.0, 0.0, 1.0 );
-        glTexCoord2f( 0, 0 );
-        glVertex3f( 1.0, 0.0, 1.0 );
-    }
-    glEnd( );
+//         glTexCoord2f( 1, 1 );
+//         glVertex3f( 0.0, 1.0, 1.0 );
+//         glTexCoord2f( 1, 0 );
+//         glVertex3f( 0.0, 0.0, 1.0 );
+//         glTexCoord2f( 0, 0 );
+//         glVertex3f( 1.0, 0.0, 1.0 );
+//     }
+//     glEnd( );
 
-    // RIGHT
-    glBegin( GL_TRIANGLES );
-    {
-        glTexCoord2f( 0, 0 );
-        glVertex3f( 1.0, 0.0, 0.0 );
-        glTexCoord2f( 0, 1 );
-        glVertex3f( 1.0, 1.0, 0.0 );
-        glTexCoord2f( 1, 1 );
-        glVertex3f( 1.0, 1.0, 1.0 );
-    }
-    glEnd( );
-    glBegin( GL_TRIANGLES );
-    {
+//     // RIGHT
+//     glBegin( GL_TRIANGLES );
+//     {
+//         glTexCoord2f( 0, 0 );
+//         glVertex3f( 1.0, 0.0, 0.0 );
+//         glTexCoord2f( 0, 1 );
+//         glVertex3f( 1.0, 1.0, 0.0 );
+//         glTexCoord2f( 1, 1 );
+//         glVertex3f( 1.0, 1.0, 1.0 );
+//     }
+//     glEnd( );
+//     glBegin( GL_TRIANGLES );
+//     {
 
-        glTexCoord2f( 1, 1 );
-        glVertex3f( 1.0, 1.0, 1.0 );
-        glTexCoord2f( 1, 0 );
-        glVertex3f( 1.0, 0.0, 1.0 );
-        glTexCoord2f( 0, 0 );
-        glVertex3f( 1.0, 0.0, 0.0 );
-    }
-    glEnd( );
+//         glTexCoord2f( 1, 1 );
+//         glVertex3f( 1.0, 1.0, 1.0 );
+//         glTexCoord2f( 1, 0 );
+//         glVertex3f( 1.0, 0.0, 1.0 );
+//         glTexCoord2f( 0, 0 );
+//         glVertex3f( 1.0, 0.0, 0.0 );
+//     }
+//     glEnd( );
 
-    // LEFT
-    glBegin( GL_TRIANGLES );
-    {
-        glTexCoord2f( 0, 0 );
-        glVertex3f( 0.0, 0.0, 1.0 );
-        glTexCoord2f( 0, 1 );
-        glVertex3f( 0.0, 1.0, 1.0 );
-        glTexCoord2f( 1, 1 );
-        glVertex3f( 0.0, 1.0, 0.0 );
-    }
-    glEnd( );
-    glBegin( GL_TRIANGLES );
-    {
+//     // LEFT
+//     glBegin( GL_TRIANGLES );
+//     {
+//         glTexCoord2f( 0, 0 );
+//         glVertex3f( 0.0, 0.0, 1.0 );
+//         glTexCoord2f( 0, 1 );
+//         glVertex3f( 0.0, 1.0, 1.0 );
+//         glTexCoord2f( 1, 1 );
+//         glVertex3f( 0.0, 1.0, 0.0 );
+//     }
+//     glEnd( );
+//     glBegin( GL_TRIANGLES );
+//     {
 
-        glTexCoord2f( 1, 1 );
-        glVertex3f( 0.0, 1.0, 0.0 );
-        glTexCoord2f( 1, 0 );
-        glVertex3f( 0.0, 0.0, 0.0 );
-        glTexCoord2f( 0, 0 );
-        glVertex3f( 0.0, 0.0, 1.0 );
-    }
-    glEnd( );
+//         glTexCoord2f( 1, 1 );
+//         glVertex3f( 0.0, 1.0, 0.0 );
+//         glTexCoord2f( 1, 0 );
+//         glVertex3f( 0.0, 0.0, 0.0 );
+//         glTexCoord2f( 0, 0 );
+//         glVertex3f( 0.0, 0.0, 1.0 );
+//     }
+//     glEnd( );
 
-    // BOTTOM
-    glBegin( GL_TRIANGLES );
-    {
-        glTexCoord2f( 0, 0 );
-        glVertex3f( 1.0, 0.0, 0.0 );
-        glTexCoord2f( 0, 1 );
-        glVertex3f( 1.0, 0.0, 1.0 );
-        glTexCoord2f( 1, 1 );
-        glVertex3f( 0.0, 0.0, 1.0 );
-    }
-    glEnd( );
-    glBegin( GL_TRIANGLES );
-    {
+//     // BOTTOM
+//     glBegin( GL_TRIANGLES );
+//     {
+//         glTexCoord2f( 0, 0 );
+//         glVertex3f( 1.0, 0.0, 0.0 );
+//         glTexCoord2f( 0, 1 );
+//         glVertex3f( 1.0, 0.0, 1.0 );
+//         glTexCoord2f( 1, 1 );
+//         glVertex3f( 0.0, 0.0, 1.0 );
+//     }
+//     glEnd( );
+//     glBegin( GL_TRIANGLES );
+//     {
 
-        glTexCoord2f( 1, 1 );
-        glVertex3f( 0.0, 0.0, 1.0 );
-        glTexCoord2f( 1, 0 );
-        glVertex3f( 0.0, 0.0, 0.0 );
-        glTexCoord2f( 0, 0 );
-        glVertex3f( 1.0, 0.0, 0.0 );
-    }
-    glEnd( );
+//         glTexCoord2f( 1, 1 );
+//         glVertex3f( 0.0, 0.0, 1.0 );
+//         glTexCoord2f( 1, 0 );
+//         glVertex3f( 0.0, 0.0, 0.0 );
+//         glTexCoord2f( 0, 0 );
+//         glVertex3f( 1.0, 0.0, 0.0 );
+//     }
+//     glEnd( );
 
-    glBindTexture( GL_TEXTURE_2D, textures_getGrassTexture( ) );
-    // TOP
-    glBegin( GL_TRIANGLES );
-    {
-        glTexCoord2f( 0, 0 );
-        glVertex3f( 1.0, 1.0, 1.0 );
-        glTexCoord2f( 0, 1 );
-        glVertex3f( 1.0, 1.0, 0.0 );
-        glTexCoord2f( 1, 1 );
-        glVertex3f( 0.0, 1.0, 0.0 );
-    }
-    glEnd( );
-    glBegin( GL_TRIANGLES );
-    {
-        glTexCoord2f( 1, 1 );
-        glVertex3f( 0.0, 1.0, 0.0 );
-        glTexCoord2f( 1, 0 );
-        glVertex3f( 0.0, 1.0, 1.0 );
-        glTexCoord2f( 0, 0 );
-        glVertex3f( 1.0, 1.0, 1.0 );
-    }
-    glEnd( );
-}
+//     glBindTexture( GL_TEXTURE_2D, textures_getGrassTexture( ) );
+//     // TOP
+//     glBegin( GL_TRIANGLES );
+//     {
+//         glTexCoord2f( 0, 0 );
+//         glVertex3f( 1.0, 1.0, 1.0 );
+//         glTexCoord2f( 0, 1 );
+//         glVertex3f( 1.0, 1.0, 0.0 );
+//         glTexCoord2f( 1, 1 );
+//         glVertex3f( 0.0, 1.0, 0.0 );
+//     }
+//     glEnd( );
+//     glBegin( GL_TRIANGLES );
+//     {
+//         glTexCoord2f( 1, 1 );
+//         glVertex3f( 0.0, 1.0, 0.0 );
+//         glTexCoord2f( 1, 0 );
+//         glVertex3f( 0.0, 1.0, 1.0 );
+//         glTexCoord2f( 0, 0 );
+//         glVertex3f( 1.0, 1.0, 1.0 );
+//     }
+//     glEnd( );
+// }
 
 void draw3d_sphere( ) {
 

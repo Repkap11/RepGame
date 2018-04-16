@@ -3,12 +3,6 @@
 
 #include <GL/gl.h>
 
-typedef struct {
-    GLuint top;
-    GLuint side;
-    GLuint bottom;
-} BlockTextureMap;
-
 typedef enum {
     AIR = 0,
     GRASS,
@@ -32,8 +26,17 @@ typedef enum {
     IRON_BLOCK,
     GOLD_BLOCK,
     DIAMOND_BLOCK,
+    PLAYER_SELECTION,
     LAST_BLOCK_ID
 } BlockID;
+
+#include "textures.h"
+
+typedef struct {
+    Texture top;
+    Texture side;
+    Texture bottom;
+} BlockTextureMap;
 
 typedef struct {
     BlockID id;

@@ -12,9 +12,9 @@ void block_draw( Block *block ) {
     glColor4f( 1.0f, 1.0f, 1.0f, blockDef->alpha );
     float height = blockDef->height;
     if ( !block->draw_sides.top && blockDef->special_grass_logic ) {
-        glBindTexture( GL_TEXTURE_2D, blockDef->textures.bottom );
+        glBindTexture( GL_TEXTURE_2D, blockDef->textures.bottom.m_RendererId );
     } else {
-        glBindTexture( GL_TEXTURE_2D, blockDef->textures.side );
+        glBindTexture( GL_TEXTURE_2D, blockDef->textures.side.m_RendererId );
     }
     if ( block->draw_sides.left ) {
         glNormal3f( 0, 0, 1 );
@@ -100,7 +100,7 @@ void block_draw( Block *block ) {
         glEnd( );
     }
 
-    glBindTexture( GL_TEXTURE_2D, blockDef->textures.bottom );
+    glBindTexture( GL_TEXTURE_2D, blockDef->textures.bottom.m_RendererId );
     if ( block->draw_sides.bottom ) {
         glBegin( GL_TRIANGLES );
         glNormal3f( 0, -1, 0 );
@@ -122,7 +122,7 @@ void block_draw( Block *block ) {
         glEnd( );
     }
 
-    glBindTexture( GL_TEXTURE_2D, blockDef->textures.top );
+    glBindTexture( GL_TEXTURE_2D, blockDef->textures.top.m_RendererId );
     if ( block->draw_sides.top ) {
         glBegin( GL_TRIANGLES );
         glNormal3f( 0, 1, 0 );

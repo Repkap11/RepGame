@@ -18,6 +18,7 @@
 
 RepGameState globalGameState;
 Shader shader;
+Textures textures;
 
 static inline void initilizeGameState( ) {
     globalGameState.input.exitGame = 0;
@@ -29,10 +30,9 @@ static inline void initilizeGameState( ) {
     globalGameState.camera.z = 9.0f;
     globalGameState.block_selection.blockID = TNT;
 
-    BlockID blockID;
-    textures_populate( );
+    textures_init_blocks( &textures );
     shader_init( &shader );
-    block_definitions_initilize_definitions( );
+    block_definitions_initilize_definitions( &textures );
     world_init( &globalGameState.gameChunks );
     // pr_debug( "RepGame init done" );
 }
@@ -49,7 +49,7 @@ void showErrors( ) {
 static inline void cleanupGameState( ) {
     world_cleanup( &globalGameState.gameChunks );
     block_definitions_free_definitions( );
-    textures_free( );
+    textures_destroy( &textures );
     // pr_debug( "RepGame cleanup done" );
 }
 
@@ -72,18 +72,18 @@ void getPosFromMouse( int x, int y, TRIP_ARGS( double *out_ ) ) {
 
 #define NUM_LIGHTS 1
 void renderShaders( int x, int y, int z ) {
-    shader_set_uniform4f( &shader, "cameraPosition", x, y, z, 1 );
-    shader_set_uniform4f( &shader, "cameraUnit",      //
+    shader_set_uniform4f( &shader, "u_CameraPosition", x, y, z, 1 );
+    shader_set_uniform4f( &shader, "u_CameraUnit",    //
                           -globalGameState.camera.lx, //
                           -globalGameState.camera.ly, //
                           -globalGameState.camera.lz, 0 );
-    shader_set_uniform4f( &shader, "lightPosition", 0, 1, 0, 0 );
+    shader_set_uniform4f( &shader, "u_LightPosition", 0, 1, 0, 0 );
 }
 
 static inline void drawScene( ) {
     glEnable( GL_LIGHTING );
     // draw3d_cube( );cleanupGameState
-    shader_bind(&shader);
+    shader_bind( &shader );
     // renderShaders( );
     glBlendFunc( GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA );
     world_render( &globalGameState.gameChunks, globalGameState.camera.x, globalGameState.camera.y, globalGameState.camera.z );
@@ -193,16 +193,7 @@ static void draw_pointed_block( int world_x, int world_y, int world_z ) {
     block.draw_sides.right = 1;
     block.draw_sides.front = 1;
     block.draw_sides.back = 1;
-    BlockDefinition blockDef;
-
-    blockDef.id = WATER;
-    blockDef.alpha = 0.2f;
-    blockDef.height = 1.0f;
-    blockDef.textures.top = getTexture( WATER );
-    blockDef.textures.side = getTexture( WATER );
-    blockDef.textures.bottom = getTexture( WATER );
-    blockDef.special_grass_logic = 0;
-    block.blockDef = &blockDef;
+    block.blockDef = block_definition_get_definition( PLAYER_SELECTION );
 
     block_draw( &block );
     glPopMatrix( );
@@ -218,7 +209,7 @@ static inline void display( ) {
     // if ( globalGameState.block_selection.show ) {
     //     draw_pointed_block( TRIP_ARGS( globalGameState.block_selection.destroy_ ) );
     // }
-    drawSceneNew( );
+    //drawSceneNew( );
     // ui_overlay_draw( &globalGameState );
     glutSwapBuffers( );
 }

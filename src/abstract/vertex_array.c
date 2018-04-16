@@ -20,7 +20,7 @@ void vertex_array_add_buffer( VertexArray *vertexArray, const VertexBuffer *vert
     unsigned int offset = 0;
     const int current_size = vertexBufferLayout->current_size;
     for ( unsigned int i = 0; i < current_size; i++ ) {
-        VertexBufferElement *element = &vertexBufferLayout->elements[ i ];
+        const VertexBufferElement *element = &vertexBufferLayout->elements[ i ];
         glEnableVertexAttribArray( i );
         glVertexAttribPointer( i, element->count, element->type, element->normalized, vertexBufferLayout->stride, ( const void * )(uintptr_t)offset );
         offset += element->count * vertex_buffer_layout_size_of_type( element->type );

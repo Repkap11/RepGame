@@ -2,11 +2,12 @@
 #include <GL/glut.h>
 #include "file_utils.h"
 
+#include "RepGame.h"
 #include "draw2d.h"
 #include "textures.h"
 
 #define BYTEX_PER_PIXEL 4
-GLuint *loadTextures( const char *filename, int width, int height, int bmp_header, int tile_size_across, int tile_size_down, int *out_num_extures ) {
+unsigned int *loadTextures( const char *filename, int width, int height, int bmp_header, int tile_size_across, int tile_size_down, unsigned int *out_num_textures ) {
     unsigned char *data;
     FILE *file;
     file = fopen( filename, "rb" );
@@ -37,9 +38,9 @@ GLuint *loadTextures( const char *filename, int width, int height, int bmp_heade
 
     int textures_across = width / tile_size_across;
     int textures_down = height / tile_size_down;
-    *out_num_extures = textures_across * textures_down;
-    GLuint *textures = ( GLuint * )malloc( ( *out_num_extures ) * sizeof( GLuint ) );
-    glGenTextures( *out_num_extures, textures );
+    *out_num_textures = textures_across * textures_down;
+    GLuint *textures = ( GLuint * )malloc( ( *out_num_textures ) * sizeof( GLuint ) );
+    glGenTextures( *out_num_textures, textures );
 
     unsigned char *working_data = ( unsigned char * )malloc( tile_size_across * tile_size_down * 4 );
     for ( int i = 0; i < textures_across * textures_down; i++ ) {
@@ -79,120 +80,122 @@ GLuint *loadTextures( const char *filename, int width, int height, int bmp_heade
     return textures;
 }
 
-GLuint *textures, *sky_textures;
-int num_textures, num_skys;
-void textures_populate( ) {
+void textures_init_blocks( Textures *textures ) {
     char *dir = getRepGamePath( );
-
-    char bufferSky[ BUFSIZ ];
-    sprintf( bufferSky, "%s%s", dir, "/bitmaps/sky4.bmp" );
     char bufferText[ BUFSIZ ];
     sprintf( bufferText, "%s%s", dir, "/bitmaps/textures.bmp" );
-
-    sky_textures = loadTextures( bufferSky, 2048, 1024, 138, 2048, 1024, &num_skys );
-    textures = loadTextures( bufferText, 256, 256, 138, 16, 16, &num_textures );
+    textures->m_RendererIds = loadTextures( bufferText, 256, 256, 138, 16, 16, &textures->num_RendererIds );
+}
+void textures_init_sky( Textures *textures ) {
+    char *dir = getRepGamePath( );
+    char bufferSky[ BUFSIZ ];
+    sprintf( bufferSky, "%s%s", dir, "/bitmaps/sky4.bmp" );
+    textures->m_RendererIds = loadTextures( bufferSky, 2048, 1024, 138, 2048, 1024, &textures->num_RendererIds );
 }
 
-GLuint textures_getSkyTexture( ) {
-    return sky_textures[ 0 ];
-}
-GLuint getTexture( BlockID id ) {
-
+Texture textures_get_texture( Textures *textures, BlockID id ) {
+    Texture texture;
     switch ( id ) {
         case GRASS:
-            return textures[ 0 ];
+            texture.m_RendererId = textures->m_RendererIds[ 0 ];
             break;
 
         case STONE:
-            return textures[ 1 ];
+            texture.m_RendererId = textures->m_RendererIds[ 1 ];
             break;
 
         case DIRT:
-            return textures[ 2 ];
+            texture.m_RendererId = textures->m_RendererIds[ 2 ];
             break;
 
         case GRASS_SIDE:
-            return textures[ 3 ];
+            texture.m_RendererId = textures->m_RendererIds[ 3 ];
             break;
 
         case WOOD_PLANK:
-            return textures[ 4 ];
+            texture.m_RendererId = textures->m_RendererIds[ 4 ];
             break;
 
         case DOUBLE_SLAB:
-            return textures[ 5 ];
+            texture.m_RendererId = textures->m_RendererIds[ 5 ];
             break;
 
         case SLAB_TOP:
-            return textures[ 6 ];
+            texture.m_RendererId = textures->m_RendererIds[ 6 ];
             break;
 
         case BRICK:
-            return textures[ 7 ];
+            texture.m_RendererId = textures->m_RendererIds[ 7 ];
             break;
 
         case TNT:
-            return textures[ 8 ];
+            texture.m_RendererId = textures->m_RendererIds[ 8 ];
             break;
 
         case TNT_TOP:
-            return textures[ 9 ];
+            texture.m_RendererId = textures->m_RendererIds[ 9 ];
             break;
 
         case TNT_BOTTOM:
-            return textures[ 10 ];
+            texture.m_RendererId = textures->m_RendererIds[ 10 ];
             break;
 
         case WATER:
-            return textures[ 14 ];
+            texture.m_RendererId = textures->m_RendererIds[ 14 ];
             break;
 
         case COBBLESTONE:
-            return textures[ 16 ];
+            texture.m_RendererId = textures->m_RendererIds[ 16 ];
             break;
 
         case BEDROCK:
-            return textures[ 17 ];
+            texture.m_RendererId = textures->m_RendererIds[ 17 ];
             break;
 
         case SAND:
-            return textures[ 18 ];
+            texture.m_RendererId = textures->m_RendererIds[ 18 ];
             break;
 
         case GRAVEL:
-            return textures[ 19 ];
+            texture.m_RendererId = textures->m_RendererIds[ 19 ];
             break;
 
         case WOOD_LOG_SIDE:
-            return textures[ 20 ];
+            texture.m_RendererId = textures->m_RendererIds[ 20 ];
             break;
 
         case WOOD_LOG_TOP:
-            return textures[ 21 ];
+            texture.m_RendererId = textures->m_RendererIds[ 21 ];
             break;
 
         case IRON_BLOCK:
-            return textures[ 22 ];
+            texture.m_RendererId = textures->m_RendererIds[ 22 ];
             break;
 
         case GOLD_BLOCK:
-            return textures[ 23 ];
+            texture.m_RendererId = textures->m_RendererIds[ 23 ];
             break;
 
         case DIAMOND_BLOCK:
-            return textures[ 24 ];
+            texture.m_RendererId = textures->m_RendererIds[ 24 ];
             break;
 
         default:
             pr_debug( "Warning, using default texture for %d", id );
-            return textures[ 1 ];
+            texture.m_RendererId = textures->m_RendererIds[ 1 ];
             break;
     }
+    return texture;
 }
 
-void textures_free( ) {
-    glDeleteTextures( num_textures, textures );
-    glDeleteTextures( num_skys, sky_textures );
-    free( textures );
-    free( sky_textures );
+void texture_bind( Texture *texture ) {
+    glBindTexture( GL_TEXTURE_2D, texture->m_RendererId );
+}
+void texture_unbind( Texture *texture) {
+    glBindTexture( GL_TEXTURE_2D, 0 );
+}
+
+void textures_destroy( Textures *textures ) {
+    glDeleteTextures( textures->num_RendererIds, textures->m_RendererIds );
+    free( textures->m_RendererIds );
 }
