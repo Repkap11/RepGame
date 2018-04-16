@@ -31,7 +31,7 @@ static inline void initilizeGameState( ) {
 
     BlockID blockID;
     textures_populate( );
-    g_program = shaders_compile( );
+    g_program = shaders_compile( "shaders/vertex.glsl", "shaders/fragment.glsl" );
     block_definitions_initilize_definitions( );
     world_init( &globalGameState.gameChunks );
     // pr_debug( "RepGame init done" );
@@ -627,11 +627,11 @@ void changeSize( int w, int h ) {
 
 double fps_ms = ( 1.0 / FPS_LIMIT ) * 1000.0;
 
-
 #include "abstract/vertex_buffer.h"
 #include "abstract/index_buffer.h"
 #include "abstract/vertex_buffer_layout.h"
 #include "abstract/vertex_array.h"
+#include "abstract/renderer.h"
 #define VB_DATA_COUNT ( ( unsigned int )4 )
 #define IB_DATA_COUNT ( ( unsigned int )6 )
 
@@ -685,16 +685,16 @@ int main( int argc, char **argv ) {
     // glBlendFunc( GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA );
 
     VertexBuffer vb;
-    float vd_data[ ] = {
+    float vd_data[] = {
         -0.5f, -0.5f, //
         0.5f,  -0.5f, //
         0.5f,  0.5f,  //
         -0.5f, 0.5f,  //
     };
-    vertex_buffer_init( &vb, vd_data, sizeof(float) * 2 * VB_DATA_COUNT );
+    vertex_buffer_init( &vb, vd_data, sizeof( float ) * 2 * VB_DATA_COUNT );
 
     IndexBuffer ib;
-    unsigned int ib_data[ ] = {
+    unsigned int ib_data[] = {
         0, 1, 2, //
         2, 3, 0,
     };
@@ -708,11 +708,12 @@ int main( int argc, char **argv ) {
 
     VertexArray va;
     vertex_array_init( &va );
-    vertex_array_bind( &va );
     vertex_array_add_buffer( &va, &vb, &vbl );
 
-    vertex_array_bind( &va );
-    index_buffer_bind( &ib );
+    Shader shader;
+    shader_init( &shader );
+
+    Renderer renderer;
     // glDisable( GL_LIGHTING );
 
     while ( !globalGameState.input.exitGame ) {
@@ -722,10 +723,11 @@ int main( int argc, char **argv ) {
         // glutMainLoopEvent( );
         // input_set_enable_mouse( 1 );
         // gameTick( );
-        glClear( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT );
+        renderer_clear(&renderer);
         // ui_overlay_draw( &globalGameState );
 
-        glDrawElements( GL_TRIANGLES, IB_DATA_COUNT, GL_UNSIGNED_INT, NULL );
+        renderer_draw( &renderer, &va, &ib, &shader );
+        //glDrawElements( GL_TRIANGLES, IB_DATA_COUNT, GL_UNSIGNED_INT, NULL );
         glutSwapBuffers( );
 
         showErrors( );

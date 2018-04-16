@@ -10,12 +10,12 @@
 #include "shaders.h"
 #include "file_utils.h"
 
-uint shaders_compile( ) {
+unsigned int shaders_compile( const char* vertex_path, const char* fragment_path ) {
     /* create program object and attach shaders */
-    uint g_program = glCreateProgram( );
+    unsigned int g_program = glCreateProgram( );
 
-    shaderAttachFromFile( g_program, GL_VERTEX_SHADER, "shaders/vertex.glsl" );
-    shaderAttachFromFile( g_program, GL_FRAGMENT_SHADER, "shaders/fragment.glsl" );
+    shaderAttachFromFile( g_program, GL_VERTEX_SHADER,  vertex_path);
+    shaderAttachFromFile( g_program, GL_FRAGMENT_SHADER, fragment_path);
 
     /* link the program and make sure that there were no errors */
     glLinkProgram( g_program );
