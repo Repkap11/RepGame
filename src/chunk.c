@@ -5,11 +5,11 @@
 #include "map_storage.h"
 #include <GL/gl.h>
 
-extern inline int chunk_get_index_from_coords( int x, int y, int z ) {
+int chunk_get_index_from_coords( int x, int y, int z ) {
     return ( y + 1 ) * CHUNK_SIZE_INTERNAL * CHUNK_SIZE_INTERNAL + ( x + 1 ) * CHUNK_SIZE_INTERNAL + ( z + 1 );
 }
 
-extern inline int chunk_get_coords_from_index( int index, int *out_x, int *out_y, int *out_z ) {
+int chunk_get_coords_from_index( int index, int *out_x, int *out_y, int *out_z ) {
     int y = ( index / ( CHUNK_SIZE_INTERNAL * CHUNK_SIZE_INTERNAL ) ) - 1;
     int x = ( ( index / CHUNK_SIZE_INTERNAL ) % CHUNK_SIZE_INTERNAL ) - 1;
     int z = ( index % ( CHUNK_SIZE_INTERNAL ) ) - 1;
@@ -164,7 +164,7 @@ void chunk_create_display_list( Chunk *chunk ) {
     }
 }
 
-extern void chunk_load_terrain( Chunk *chunk ) {
+void chunk_load_terrain( Chunk *chunk ) {
     // pr_debug( "Loading chunk terrain x:%d y:%d z:%d", chunk->chunk_x, chunk->chunk_y, chunk->chunk_z );
     int loaded = map_storage_load( chunk );
     if ( !loaded ) {
@@ -172,7 +172,7 @@ extern void chunk_load_terrain( Chunk *chunk ) {
         map_gen_load_block( chunk );
     }
 }
-extern void chunk_persist( Chunk *chunk ) {
+void chunk_persist( Chunk *chunk ) {
     map_storage_persist( chunk );
 }
 
@@ -187,7 +187,7 @@ void chunk_destroy_display_list( Chunk *chunk ) {
     }
 }
 
-void inline chunk_draw( Chunk *chunk, int solid ) {
+void chunk_draw( Chunk *chunk, int solid ) {
     if ( solid && chunk->displayListSolid ) {
         glCallList( chunk->displayListSolid );
     }

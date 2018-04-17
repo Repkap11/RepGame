@@ -13,8 +13,6 @@
             fprintf( stdout, "%s:%d:%s():" fmt "\n", __FILE__, __LINE__, __func__, ##__VA_ARGS__ );                                                                                                                                            \
     } while ( 0 )
 
-#define test pr_debug( );
-
 #define TRIP_STATE( replace )                                                                                                                                                                                                                  \
     replace##x;                                                                                                                                                                                                                                \
     replace##y;                                                                                                                                                                                                                                \

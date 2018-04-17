@@ -13,6 +13,14 @@
 #include "ui_overlay.h"
 #include "world.h"
 #include "abstract/shader.h"
+#include "abstract/vertex_buffer.h"
+#include "abstract/index_buffer.h"
+#include "abstract/vertex_buffer_layout.h"
+#include "abstract/vertex_array.h"
+#include "abstract/renderer.h"
+
+#include <glm/glm.hpp>
+
 
 #define SKY_BOX_DISTANCE DRAW_DISTANCE * 0.8
 
@@ -596,11 +604,6 @@ void changeSize( int w, int h ) {
 
 double fps_ms = ( 1.0 / FPS_LIMIT ) * 1000.0;
 
-#include "abstract/vertex_buffer.h"
-#include "abstract/index_buffer.h"
-#include "abstract/vertex_buffer_layout.h"
-#include "abstract/vertex_array.h"
-#include "abstract/renderer.h"
 #define VB_DATA_COUNT ( ( unsigned int )4 )
 #define IB_DATA_COUNT ( ( unsigned int )6 )
 
@@ -626,7 +629,6 @@ int main( int argc, char **argv ) {
     // glEnable( GL_DEPTH_TEST );
     // glEnable( GL_CULL_FACE );
     // glEnable( GL_TEXTURE_2D );
-    glEnable( GL_BLEND );
     // glEnable( GL_MULTISAMPLE );
     // glEnable( GL_COLOR_MATERIAL );
     // glEnable( GL_NORMALIZE );
@@ -640,7 +642,7 @@ int main( int argc, char **argv ) {
     glutKeyboardFunc( keysInput );
     glutKeyboardUpFunc( keysInputUp );
     // glutMouseFunc( mouseInput );
-    //glutReshapeFunc( changeSize );
+    // glutReshapeFunc( changeSize );
     // glutPassiveMotionFunc( mouseMove );
     // glutMotionFunc( mouseMove );
     initilizeGameState( );
@@ -650,14 +652,16 @@ int main( int argc, char **argv ) {
     tend = tstart;
 
     // glEnable( GL_LIGHTING );
+    glEnable( GL_BLEND );
     glBlendFunc( GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA );
+    glBlendEquation( GL_FUNC_ADD );
 
     VertexBuffer vb;
     float vd_data[] = {
-        -0.5f, -0.5f, /*Coords  Texture coords*/ 0,0,
-        0.5f,  -0.5f, /*Coords  Texture coords*/ 1,0,
-        0.5f,  0.5f,  /*Coords  Texture coords*/ 1,1,
-        -0.5f, 0.5f,  /*Coords  Texture coords*/ 0,1,
+        -0.5f, -0.5f, /*Coords  Texture coords*/ 0, 0, //
+        0.5f,  -0.5f, /*Coords  Texture coords*/ 1, 0, //
+        0.5f,  0.5f,  /*Coords  Texture coords*/ 1, 1, //
+        -0.5f, 0.5f,  /*Coords  Texture coords*/ 0, 1, //
     };
     unsigned int elements_per_vertex = 4;
     vertex_buffer_init( &vb, vd_data, sizeof( float ) * elements_per_vertex * VB_DATA_COUNT );
@@ -673,9 +677,9 @@ int main( int argc, char **argv ) {
     VertexBufferLayout vbl;
     vertex_buffer_layout_init( &vbl );
     vertex_buffer_layout_bind( &vbl );
-    //The sum of these must be elements_per_vertex
-    vertex_buffer_layout_push_float( &vbl, 2 );//Coords
-    vertex_buffer_layout_push_float( &vbl, 2 );//Texture coords
+    // The sum of these must be elements_per_vertex
+    vertex_buffer_layout_push_float( &vbl, 2 ); // Coords
+    vertex_buffer_layout_push_float( &vbl, 2 ); // Texture coords
 
     VertexArray va;
     vertex_array_init( &va );

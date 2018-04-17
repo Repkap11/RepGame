@@ -36,7 +36,7 @@ void draw3d_sphere( ) {
     gluDeleteQuadric( sphere );
     Textures textures;
     textures_init_sky( &textures );
-    Texture skyTexture = textures_get_texture(&textures, 0);
+    Texture skyTexture = textures_get_texture(&textures, AIR);
     texture_bind(&skyTexture, 1);
     glCallList( mysphereID );
     glFrontFace( GL_CCW );

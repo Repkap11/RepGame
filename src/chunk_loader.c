@@ -13,7 +13,7 @@ void chunk_loader_init( LoadedChunks *loadedChunks ) {
     if ( status ) {
         pr_debug( "Terrain loading thread failed to start." );
     }
-    loadedChunks->chunkArray = calloc( MAX_LOADED_CHUNKS, sizeof( Chunk ) );
+    loadedChunks->chunkArray = ( Chunk * )calloc( MAX_LOADED_CHUNKS, sizeof( Chunk ) );
 }
 
 // int chunk_loader_is_chunk_loaded( LoadedChunks *loadedChunks, int chunk_x, int chunk_y, int chunk_z ) {
@@ -33,7 +33,7 @@ void chunk_loader_init( LoadedChunks *loadedChunks ) {
 //     // if ( loadedChunk->loaded ) {
 // }
 
-Chunk *chunk_loader_get_chunk( LoadedChunks *loadedChunks, TRIP_ARGS(int chunk_) ) {
+Chunk *chunk_loader_get_chunk( LoadedChunks *loadedChunks, TRIP_ARGS( int chunk_ ) ) {
     for ( int i = 0; i < MAX_LOADED_CHUNKS; i++ ) {
         Chunk *chunk = &loadedChunks->chunkArray[ i ];
         if ( chunk->chunk_x == chunk_x && chunk->chunk_y == chunk_y && chunk->chunk_z == chunk_z ) {
@@ -43,7 +43,7 @@ Chunk *chunk_loader_get_chunk( LoadedChunks *loadedChunks, TRIP_ARGS(int chunk_)
     return NULL;
 }
 
-void chunk_loader_render_chunks( LoadedChunks *loadedChunks, TRIP_ARGS(float camera_) ) {
+void chunk_loader_render_chunks( LoadedChunks *loadedChunks, TRIP_ARGS( float camera_ ) ) {
     int chunk_x = floor( camera_x / ( float )CHUNK_SIZE );
     int chunk_y = floor( camera_y / ( float )CHUNK_SIZE );
     int chunk_z = floor( camera_z / ( float )CHUNK_SIZE );
@@ -157,7 +157,7 @@ void chunk_loader_render_chunks( LoadedChunks *loadedChunks, TRIP_ARGS(float cam
     }
 }
 
-extern inline void chunk_loader_draw_chunks( LoadedChunks *loadedChunks ) {
+void chunk_loader_draw_chunks( LoadedChunks *loadedChunks ) {
     // pr_debug( "Drawing %d chunks", loadedChunks->numLoadedChunks );
     for ( int i = 0; i < MAX_LOADED_CHUNKS; i++ ) {
         // pr_debug( "Drawing chunk %d", i );

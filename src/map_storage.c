@@ -55,7 +55,7 @@ int mkdir_p( const char *path ) {
 void map_storage_init( ) {
     char *dir = getRepGamePath( );
     char bufferSky[ BUFSIZ ];
-    sprintf( map_name, "%s%s", dir,"/World1" );
+    sprintf( map_name, "%s%s", dir, "/World1" );
     mkdir_p( map_name );
 }
 
@@ -105,7 +105,7 @@ int map_storage_load( Chunk *chunk ) {
     }
 
     if ( chunk->blocks == NULL ) {
-        chunk->blocks = calloc( CHUNK_BLOCK_SIZE, sizeof( Block ) );
+        chunk->blocks = ( Block * )calloc( CHUNK_BLOCK_SIZE, sizeof( Block ) );
     } else {
         // This chunks memory is already allocated, its likely reused?
     }
@@ -120,7 +120,8 @@ int map_storage_load( Chunk *chunk ) {
     fclose( read_ptr );
 
     for ( int i = 0; i < CHUNK_BLOCK_SIZE; i++ ) {
-        chunk->blocks[ i ].blockDef = block_definition_get_definition( persist_data[ i ] );
+        BlockID blockId = ( BlockID )( persist_data[ i ] );
+        chunk->blocks[ i ].blockDef = block_definition_get_definition( blockId );
     }
     chunk->ditry = 0;
     return 1;

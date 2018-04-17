@@ -1,10 +1,11 @@
 TARGET = RepGame
 LIBS = -lm -l GL -l GLU -l GLEW -l glut -pthread
-CC = clang
+CC = g++
 #CFLAGS = -Wall -Werror -std=gnu99 -Wno-unused-variable -O3 -march=native -flto
-CFLAGS = -g -Wall -std=gnu99 -Wno-unused-variable -O0 -march=native -flto
+CFLAGS = -g -Wall -std=c++98 -Wno-unused-variable -O0 -march=native -flto
 CPUS ?= $(shell nproc || echo 1)
 MAKEFLAGS += --jobs=$(CPUS)
+#MAKEFLAGS += --jobs=1
 
 run: compile
 	./$(TARGET)
@@ -31,7 +32,7 @@ clean:
 	rm -f $(TARGET)
 
 install:
-	apt install freeglut3-dev libglew-dev
+	#apt install freeglut3-dev libglew-dev libglm-dev libglm-doc
 
 #$(info $$VAR is [${VAR}])
 .PHONY: all clean install compile run

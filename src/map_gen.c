@@ -11,13 +11,13 @@ void map_gen_load_block( Chunk *chunk ) {
     int chunk_offset_y = chunk->chunk_y * CHUNK_SIZE;
     int chunk_offset_z = chunk->chunk_z * CHUNK_SIZE;
     if ( chunk->blocks == NULL ) {
-        chunk->blocks = calloc( CHUNK_BLOCK_SIZE, sizeof( Block ) );
+        chunk->blocks = ( Block * )calloc( CHUNK_BLOCK_SIZE, sizeof( Block ) );
     }
     for ( int index = 0; index < CHUNK_BLOCK_SIZE; index++ ) {
         int x, y, z;
         int terrainShouldHaveBlock = 0; // Default to no block
         int terrainBiomeType = 0;       // Some default biome type
-        int finalBlockId = 0;           // base block type is grass I guess
+        BlockID finalBlockId = AIR;           // base block type is grass I guess
         chunk_get_coords_from_index( index, &x, &y, &z );
         terrainShouldHaveBlock = perlin_noise_terrain( chunk_offset_x + x, chunk_offset_y + y, chunk_offset_z + z );
         if ( terrainShouldHaveBlock == 1 ) {

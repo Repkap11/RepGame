@@ -54,7 +54,7 @@ void linked_list_add_element( LinkedList *l, LinkedListValue value ) {
 
 // Pop off head
 LinkedListValue linked_list_pop_element( LinkedList *l ) {
-    void *result = NULL;
+    LinkedListValue result = NULL;
     pthread_mutex_lock( &( l->mutex ) );
 
     LinkedListItem *li = l->head;

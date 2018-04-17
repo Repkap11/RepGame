@@ -6,12 +6,12 @@ typedef struct {
     unsigned int m_RendererId; //
 } Texture;
 
-#include "block_definitions.h"
-
 typedef struct {
     unsigned int *m_RendererIds; //
     unsigned int num_RendererIds;
 } Textures;
+
+#include "block_definitions.h"
 
 void textures_init_blocks( Textures *textures );
 void textures_init_sky( Textures *textures );

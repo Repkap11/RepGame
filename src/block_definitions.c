@@ -8,7 +8,7 @@ BlockDefinition *block_definitions;
 void block_definitions_initilize_definitions( Textures *textures ) {
     Texture noTexture;
     noTexture.m_RendererId = 0;
-    block_definitions = calloc( LAST_BLOCK_ID, sizeof( BlockDefinition ) );
+    block_definitions = (BlockDefinition *)calloc( LAST_BLOCK_ID, sizeof( BlockDefinition ) );
     block_definitions[ AIR ].id = AIR;
     block_definitions[ AIR ].alpha = 0.0f;
     block_definitions[ AIR ].height = 0.0f;

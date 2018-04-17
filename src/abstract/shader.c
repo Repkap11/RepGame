@@ -32,7 +32,7 @@ char *shaderLoadSource( const char *filePath ) {
 
     /* read the entire file into a string */
     while ( ( tmp = fread( buf, 1, blockSize, fp ) ) > 0 ) {
-        char *newSource = malloc( sourceLength + tmp + 1 );
+        char *newSource = ( char * )malloc( sourceLength + tmp + 1 );
         if ( !newSource ) {
             fprintf( stderr, "shaderLoadSource(): malloc failed\n" );
             if ( source )
@@ -82,7 +82,7 @@ unsigned int shaderCompileFromFile( int type, const char *filePath ) {
 
         /* get the shader info log */
         glGetShaderiv( shader, GL_INFO_LOG_LENGTH, &length );
-        log = malloc( length );
+        log = ( char * )malloc( length );
         glGetShaderInfoLog( shader, length, &result, log );
 
         /* print an error message and the info log */
@@ -122,7 +122,7 @@ unsigned int shaders_compile( const char *vertex_path, const char *fragment_path
 
         // get the program info log
         glGetProgramiv( g_program, GL_INFO_LOG_LENGTH, &length );
-        log = malloc( length );
+        log = ( char * )malloc( length );
         glGetProgramInfoLog( g_program, length, &result, log );
 
         /* print an error message and the info log */

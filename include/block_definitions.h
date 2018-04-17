@@ -46,7 +46,7 @@ typedef struct {
     int special_grass_logic;
 } BlockDefinition;
 
-void block_definitions_initilize_definitions( );
+void block_definitions_initilize_definitions( Textures *textures );
 BlockDefinition *block_definition_get_definition( BlockID blockID );
 void block_definitions_free_definitions( );
 
