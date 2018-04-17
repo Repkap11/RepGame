@@ -13,13 +13,13 @@ run: compile
 compile: out $(TARGET)
 
 DIRS    = $(patsubst %/, %, $(sort $(dir $(patsubst src/%, out/%, $(wildcard src/*) $(wildcard src/**/*)))))
-OBJECTS = $(patsubst src/%.c, out/%.o, $(wildcard src/*.c) $(wildcard src/**/*.c))
+OBJECTS = $(patsubst src/%.cpp, out/%.o, $(wildcard src/*.cpp) $(wildcard src/**/*.cpp))
 HEADERS = $(wildcard include/*.h) $(wildcard include/**/*.h)
 
 $(DIRS):
 	mkdir -p $@
 
-out/%.o: src/%.c $(HEADERS) Makefile
+out/%.o: src/%.cpp $(HEADERS) Makefile
 	$(CC) -I include/ $(CFLAGS) -c $< -o $@
 
 .PRECIOUS: $(TARGET) $(OBJECTS)

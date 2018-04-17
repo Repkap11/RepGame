@@ -1,7 +1,7 @@
 {
     "files.associations": {
-        "*.h": "c",
-        "*.c": "c",
+        "*.h": "cpp",
+        "*.cpp": "cpp",
         "cmath": "c",
         "cstdlib": "c",
         "type_traits": "c"
