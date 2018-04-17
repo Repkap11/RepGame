@@ -20,7 +20,7 @@
 #include "abstract/renderer.h"
 
 #include <glm/glm.hpp>
-
+#include <glm/gtc/matrix_transform.hpp>
 
 #define SKY_BOX_DISTANCE DRAW_DISTANCE * 0.8
 
@@ -685,12 +685,16 @@ int main( int argc, char **argv ) {
     vertex_array_init( &va );
     vertex_array_add_buffer( &va, &vb, &vbl );
 
+    //Doenst make things further away smaller, don't copy it...
+    glm::mat4 proj = glm::ortho( -2.0f, 2.0f, -1.5f, 1.5f );
+
     Shader shader;
     shader_init( &shader );
     Texture texture = textures_get_texture( &textures, GRASS_SIDE );
     unsigned int textureSlot = 0;
     texture_bind( &texture, textureSlot );
     shader_set_uniform1i( &shader, "u_Texture", textureSlot );
+    shader_set_uniform_mat4f( &shader, "u_MVP", proj );
 
     Renderer renderer;
     // glDisable( GL_LIGHTING );
