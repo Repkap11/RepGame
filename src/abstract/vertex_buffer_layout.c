@@ -42,19 +42,19 @@ void vertex_buffer_layout_push_float( VertexBufferLayout *vertexBufferLayout, un
     }
 }
 
-void vertex_buffer_layout_push_unsigned_int( VertexBufferLayout *vertexBufferLayout, unsigned int count ) {
-    if ( vertexBufferLayout->current_size < NUM_VERTEX_BUFFER_ELEMENTS ) {
-        vertex_buffer_layout_init_element(                                     //
-            &vertexBufferLayout->elements[ vertexBufferLayout->current_size ], //
-            GL_UNSIGNED_INT,                                                   //
-            count,                                                             //
-            GL_FALSE );
-        vertexBufferLayout->current_size += 1;
-        vertexBufferLayout->stride += count * vertex_buffer_layout_size_of_type( GL_UNSIGNED_INT );
-    } else {
-        pr_debug( "Error, too meny elements in VertexBufferLayout, just increase the hardcoded limit" );
-    }
-}
+// void vertex_buffer_layout_push_unsigned_int( VertexBufferLayout *vertexBufferLayout, unsigned int count ) {
+//     if ( vertexBufferLayout->current_size < NUM_VERTEX_BUFFER_ELEMENTS ) {
+//         vertex_buffer_layout_init_element(                                     //
+//             &vertexBufferLayout->elements[ vertexBufferLayout->current_size ], //
+//             GL_UNSIGNED_INT,                                                   //
+//             count,                                                             //
+//             GL_FALSE );
+//         vertexBufferLayout->current_size += 1;
+//         vertexBufferLayout->stride += count * vertex_buffer_layout_size_of_type( GL_UNSIGNED_INT );
+//     } else {
+//         pr_debug( "Error, too meny elements in VertexBufferLayout, just increase the hardcoded limit" );
+//     }
+// }
 
 void vertex_buffer_layout_bind( const VertexBufferLayout *vertexBufferLayout ) {
 }

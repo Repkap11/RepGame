@@ -25,7 +25,6 @@
 #define SKY_BOX_DISTANCE DRAW_DISTANCE * 0.8
 
 RepGameState globalGameState;
-Shader shader;
 Textures textures;
 
 static inline void initilizeGameState( ) {
@@ -37,11 +36,7 @@ static inline void initilizeGameState( ) {
     globalGameState.camera.y = 35.5f;
     globalGameState.camera.z = 9.0f;
     globalGameState.block_selection.blockID = TNT;
-
-    textures_init_blocks( &textures );
-    shader_init( &shader );
-    block_definitions_initilize_definitions( &textures );
-    world_init( &globalGameState.gameChunks );
+    // world_init( &globalGameState.gameChunks );
     // pr_debug( "RepGame init done" );
 }
 
@@ -55,7 +50,7 @@ void showErrors( ) {
 }
 
 static inline void cleanupGameState( ) {
-    world_cleanup( &globalGameState.gameChunks );
+    // world_cleanup( &globalGameState.gameChunks );
     block_definitions_free_definitions( );
     textures_destroy( &textures );
     // pr_debug( "RepGame cleanup done" );
@@ -80,18 +75,18 @@ void getPosFromMouse( int x, int y, TRIP_ARGS( double *out_ ) ) {
 
 #define NUM_LIGHTS 1
 void renderShaders( int x, int y, int z ) {
-    shader_set_uniform4f( &shader, "u_CameraPosition", x, y, z, 1 );
-    shader_set_uniform4f( &shader, "u_CameraUnit",    //
-                          -globalGameState.camera.lx, //
-                          -globalGameState.camera.ly, //
-                          -globalGameState.camera.lz, 0 );
-    shader_set_uniform4f( &shader, "u_LightPosition", 0, 1, 0, 0 );
+    // shader_set_uniform4f( &shader, "u_CameraPosition", x, y, z, 1 );
+    // shader_set_uniform4f( &shader, "u_CameraUnit",    //
+    //                       -globalGameState.camera.lx, //
+    //                       -globalGameState.camera.ly, //
+    //                       -globalGameState.camera.lz, 0 );
+    // shader_set_uniform4f( &shader, "u_LightPosition", 0, 1, 0, 0 );
 }
 
 static inline void drawScene( ) {
     glEnable( GL_LIGHTING );
     // draw3d_cube( );cleanupGameState
-    shader_bind( &shader );
+    // shader_bind( &shader );
     // renderShaders( );
     glBlendFunc( GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA );
     world_render( &globalGameState.gameChunks, globalGameState.camera.x, globalGameState.camera.y, globalGameState.camera.z );
@@ -570,7 +565,7 @@ void mouseMove( int x, int y ) {
 
 void changeSize( int w, int h ) {
 
-    // pr_debug( "Screen Size Change:%dx%d", w, h );
+    pr_debug( "Screen Size Change:%dx%d", w, h );
     globalGameState.screen.width = w;
     globalGameState.screen.height = h;
 
@@ -580,32 +575,31 @@ void changeSize( int w, int h ) {
     globalGameState.input.mouse.previousPosition.x = w / 2;
     globalGameState.input.mouse.previousPosition.y = h / 2;
 
-    // Prevent a divide by zero, when window is too short
-    // (you cant make a window of zero width).
-    if ( h == 0 )
-        h = 1;
-    float ratio = 1.0 * w / h;
-
-    // Use the Projection Matrix
-    glMatrixMode( GL_PROJECTION );
-
-    // Reset Matrix
-    glLoadIdentity( );
-
-    // Set the viewport to be the entire window
     glViewport( 0, 0, w, h );
 
+    // Prevent a divide by zero, when window is too short
+    // (you cant make a window of zero width).
+    // if ( h == 0 )
+    //     h = 1;
+    // float ratio = 1.0 * w / h;
+
+    // Use the Projection Matrix
+    // glMatrixMode( GL_PROJECTION );
+
+    // Reset Matrix
+    // glLoadIdentity( );
+
+    // Set the viewport to be the entire window
+    // glViewport( 0, 0, w, h );
+
     // Set the correct perspective.
-    gluPerspective( CAMERA_FOV, ratio, CAMERA_SIZE, DRAW_DISTANCE );
+    // gluPerspective( CAMERA_FOV, ratio, CAMERA_SIZE, DRAW_DISTANCE );
 
     // Get Back to the Modelview
-    glMatrixMode( GL_MODELVIEW );
+    // glMatrixMode( GL_MODELVIEW );
 }
 
 double fps_ms = ( 1.0 / FPS_LIMIT ) * 1000.0;
-
-#define VB_DATA_COUNT ( ( unsigned int )4 )
-#define IB_DATA_COUNT ( ( unsigned int )6 )
 
 int main( int argc, char **argv ) {
     glutInit( &argc, argv );
@@ -642,7 +636,7 @@ int main( int argc, char **argv ) {
     glutKeyboardFunc( keysInput );
     glutKeyboardUpFunc( keysInputUp );
     // glutMouseFunc( mouseInput );
-    // glutReshapeFunc( changeSize );
+    glutReshapeFunc( changeSize );
     // glutPassiveMotionFunc( mouseMove );
     // glutMotionFunc( mouseMove );
     initilizeGameState( );
@@ -658,19 +652,31 @@ int main( int argc, char **argv ) {
 
     VertexBuffer vb;
     float vd_data[] = {
-        -0.5f, -0.5f, /*Coords  Texture coords*/ 0, 0, //
-        0.5f,  -0.5f, /*Coords  Texture coords*/ 1, 0, //
-        0.5f,  0.5f,  /*Coords  Texture coords*/ 1, 1, //
-        -0.5f, 0.5f,  /*Coords  Texture coords*/ 0, 1, //
+        0.0f,   0.0f,   0.0f, /*Coords  Texture coords*/ 0, 0, //
+        1000.0f, 0.0f,   0.0f, /*Coords  Texture coords*/ 1, 0, //
+        1000.0f, 1000.0f, 0.0f, /*Coords  Texture coords*/ 1, 1, //
+        0.0f,   1000.0f, 0.0f, /*Coords  Texture coords*/ 0, 1, //
+
+        // 0.0f, 0.0f, 1.0f, /*Coords  Texture coords*/ 0, 0, //
+        // 1.0f, 0.0f, 1.0f, /*Coords  Texture coords*/ 1, 0, //
+        // 1.0f, 1.0f, 1.0f, /*Coords  Texture coords*/ 1, 1, //
+        // 0.0f, 1.0f, 1.0f, /*Coords  Texture coords*/ 0, 1, //
     };
-    unsigned int elements_per_vertex = 4;
+#define VB_DATA_COUNT ( ( unsigned int )4 )
+
+    unsigned int elements_per_vertex = 5;
     vertex_buffer_init( &vb, vd_data, sizeof( float ) * elements_per_vertex * VB_DATA_COUNT );
 
     IndexBuffer ib;
     unsigned int ib_data[] = {
-        0, 1, 2, //
-        2, 3, 0,
+        0, 1, 2, // Front
+        2, 3, 0, //
+
+        // 6, 2, 1, //Right
+        // 1, 5, 6,
     };
+#define IB_DATA_COUNT ( ( unsigned int )( 3 * 2 ) )
+
     index_buffer_init( &ib, ib_data, IB_DATA_COUNT );
     index_buffer_bind( &ib );
 
@@ -678,29 +684,31 @@ int main( int argc, char **argv ) {
     vertex_buffer_layout_init( &vbl );
     vertex_buffer_layout_bind( &vbl );
     // The sum of these must be elements_per_vertex
-    vertex_buffer_layout_push_float( &vbl, 2 ); // Coords
+    vertex_buffer_layout_push_float( &vbl, 3 ); // Coords
     vertex_buffer_layout_push_float( &vbl, 2 ); // Texture coords
 
     VertexArray va;
     vertex_array_init( &va );
     vertex_array_add_buffer( &va, &vb, &vbl );
 
-    //Doenst make things further away smaller, don't copy it...
-    glm::mat4 proj = glm::ortho( -2.0f, 2.0f, -1.5f, 1.5f );
-
     Shader shader;
     shader_init( &shader );
+
+    textures_init_blocks( &textures );
+    // block_definitions_initilize_definitions( &textures );
+
     Texture texture = textures_get_texture( &textures, GRASS_SIDE );
     unsigned int textureSlot = 0;
     texture_bind( &texture, textureSlot );
     shader_set_uniform1i( &shader, "u_Texture", textureSlot );
-    shader_set_uniform_mat4f( &shader, "u_MVP", proj );
+    // shader_set_uniform_mat4f( &shader, "u_MVP", proj );
 
     Renderer renderer;
     // glDisable( GL_LIGHTING );
 
     while ( !globalGameState.input.exitGame ) {
         glutMainLoopEvent( );
+        // pr_debug( "Drawing" );
         // input_set_enable_mouse( 0 );
         // glutWarpPointer( globalGameState.screen.width / 2, globalGameState.screen.height / 2 );
         // glutMainLoopEvent( );
@@ -708,6 +716,9 @@ int main( int argc, char **argv ) {
         // gameTick( );
         renderer_clear( &renderer );
         // ui_overlay_draw( &globalGameState );
+         glm::mat4 proj = glm::ortho<float>( 0.0f, globalGameState.screen.width, 0.0f, globalGameState.screen.height, -1.0f, 1.0f );
+        //glm::mat4 transform = glm::translate( proj, glm::vec3( 0.0f, 0.0f, 0.0f ) );
+        shader_set_uniform_mat4f( &shader, "u_MVP", proj );
 
         renderer_draw( &renderer, &va, &ib, &shader );
         // glDrawElements( GL_TRIANGLES, IB_DATA_COUNT, GL_UNSIGNED_INT, NULL );
