@@ -652,15 +652,15 @@ int main( int argc, char **argv ) {
 
     VertexBuffer vb;
     float vd_data[] = {
-        0.0f,   0.0f,   0.0f, /*Coords  Texture coords*/ 0, 0, //
-        1000.0f, 0.0f,   0.0f, /*Coords  Texture coords*/ 1, 0, //
-        1000.0f, 1000.0f, 0.0f, /*Coords  Texture coords*/ 1, 1, //
-        0.0f,   1000.0f, 0.0f, /*Coords  Texture coords*/ 0, 1, //
+        0.0f, 0.0f, 0.0f, /*Coords  Texture coords*/ 0, 0, //
+        1.0f, 0.0f, 0.0f, /*Coords  Texture coords*/ 1, 0, //
+        1.0f, 1.0f, 0.0f, /*Coords  Texture coords*/ 1, 1, //
+        0.0f, 1.0f, 0.0f, /*Coords  Texture coords*/ 0, 1, //
 
-        // 0.0f, 0.0f, 1.0f, /*Coords  Texture coords*/ 0, 0, //
-        // 1.0f, 0.0f, 1.0f, /*Coords  Texture coords*/ 1, 0, //
-        // 1.0f, 1.0f, 1.0f, /*Coords  Texture coords*/ 1, 1, //
-        // 0.0f, 1.0f, 1.0f, /*Coords  Texture coords*/ 0, 1, //
+        0.0f, 0.0f, 1.0f, /*Coords  Texture coords*/ 0, 0, //
+        1.0f, 0.0f, 1.0f, /*Coords  Texture coords*/ 1, 0, //
+        1.0f, 1.0f, 1.0f, /*Coords  Texture coords*/ 1, 1, //
+        0.0f, 1.0f, 1.0f, /*Coords  Texture coords*/ 0, 1, //
     };
 #define VB_DATA_COUNT ( ( unsigned int )4 )
 
@@ -672,10 +672,10 @@ int main( int argc, char **argv ) {
         0, 1, 2, // Front
         2, 3, 0, //
 
-        // 6, 2, 1, //Right
-        // 1, 5, 6,
+        6, 2, 1, // Right
+        1, 5, 6,
     };
-#define IB_DATA_COUNT ( ( unsigned int )( 3 * 2 ) )
+#define IB_DATA_COUNT ( ( unsigned int )( 3 * 3 ) )
 
     index_buffer_init( &ib, ib_data, IB_DATA_COUNT );
     index_buffer_bind( &ib );
@@ -716,9 +716,15 @@ int main( int argc, char **argv ) {
         // gameTick( );
         renderer_clear( &renderer );
         // ui_overlay_draw( &globalGameState );
-         glm::mat4 proj = glm::ortho<float>( 0.0f, globalGameState.screen.width, 0.0f, globalGameState.screen.height, -1.0f, 1.0f );
-        //glm::mat4 transform = glm::translate( proj, glm::vec3( 0.0f, 0.0f, 0.0f ) );
-        shader_set_uniform_mat4f( &shader, "u_MVP", proj );
+        glm::mat4 proj = glm::ortho<float>( 0.0f, globalGameState.screen.width, 0.0f, globalGameState.screen.height, -1.0f, 1.0f );
+        glm::mat4 view = glm::translate( glm::mat4( 1.0f ), glm::vec3( 0.0f, 0.0f, 0.0f ) );
+        glm::mat4 model = glm::translate( glm::mat4( 1.0f ), glm::vec3( 0.0f, 0.0f, 0.0f ) );
+        model = glm::scale( model, glm::vec3( 1000.0f ) );
+
+        // glm::mat4 view = glm::translate( glm::mat4( 1.0f ), glm::vec3( -globalGameState.camera.x, -globalGameState.camera.y, -globalGameState.camera.x ) );
+        // glm::mat4 transform = glm::translate( proj, glm::vec3( 0.0f, 0.0f, 0.0f ) );
+        glm::mat4 mvp = proj * view * model;
+        shader_set_uniform_mat4f( &shader, "u_MVP", mvp );
 
         renderer_draw( &renderer, &va, &ib, &shader );
         // glDrawElements( GL_TRIANGLES, IB_DATA_COUNT, GL_UNSIGNED_INT, NULL );
