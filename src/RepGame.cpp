@@ -657,12 +657,12 @@ int main( int argc, char **argv ) {
         1.0f, 1.0f, 0.0f, /*Coords  Texture coords*/ 1, 1, //
         0.0f, 1.0f, 0.0f, /*Coords  Texture coords*/ 0, 1, //
 
-        0.0f, 0.0f, 1.0f, /*Coords  Texture coords*/ 0, 0, //
-        1.0f, 0.0f, 1.0f, /*Coords  Texture coords*/ 1, 0, //
-        1.0f, 1.0f, 1.0f, /*Coords  Texture coords*/ 1, 1, //
-        0.0f, 1.0f, 1.0f, /*Coords  Texture coords*/ 0, 1, //
+        0.0f, 0.0f, 1.0f, /*Coords  Texture coords*/ 1, 0, //
+        1.0f, 0.0f, 1.0f, /*Coords  Texture coords*/ 0, 0, //
+        1.0f, 1.0f, 1.0f, /*Coords  Texture coords*/ 0, 1, //
+        0.0f, 1.0f, 1.0f, /*Coords  Texture coords*/ 1, 1, //
     };
-#define VB_DATA_COUNT ( ( unsigned int )4 )
+#define VB_DATA_COUNT ( ( unsigned int )8 )
 
     unsigned int elements_per_vertex = 5;
     vertex_buffer_init( &vb, vd_data, sizeof( float ) * elements_per_vertex * VB_DATA_COUNT );
@@ -672,10 +672,22 @@ int main( int argc, char **argv ) {
         0, 1, 2, // Front
         2, 3, 0, //
 
-        6, 2, 1, // Right
-        1, 5, 6,
+        1, 5, 6, // Right
+        6, 2, 1,
+
+        4, 7, 6, // Back
+        6, 5, 4, //
+
+        4, 0, 3, // Left
+        3, 7, 4, //
+
+        3, 2, 6, // Top
+        6, 7, 3, //
+
+        4, 3, 1, // Bottom
+        1, 0, 4, //
     };
-#define IB_DATA_COUNT ( ( unsigned int )( 3 * 3 ) )
+#define IB_DATA_COUNT ( ( unsigned int )( 3 * 12 ) )
 
     index_buffer_init( &ib, ib_data, IB_DATA_COUNT );
     index_buffer_bind( &ib );
@@ -716,10 +728,18 @@ int main( int argc, char **argv ) {
         // gameTick( );
         renderer_clear( &renderer );
         // ui_overlay_draw( &globalGameState );
-        glm::mat4 proj = glm::ortho<float>( 0.0f, globalGameState.screen.width, 0.0f, globalGameState.screen.height, -1.0f, 1.0f );
-        glm::mat4 view = glm::translate( glm::mat4( 1.0f ), glm::vec3( 0.0f, 0.0f, 0.0f ) );
-        glm::mat4 model = glm::translate( glm::mat4( 1.0f ), glm::vec3( 0.0f, 0.0f, 0.0f ) );
-        model = glm::scale( model, glm::vec3( 1000.0f ) );
+        // glm::mat4 proj = glm::ortho<float>( 0.0f, globalGameState.screen.width, 0.0f, globalGameState.screen.height, -1000.0f, 1000.0f );
+        glm::mat4 proj = glm::perspective<float>( 90.0f, globalGameState.screen.width / globalGameState.screen.height, 0.1f, 10000.0f );
+
+        glm::mat4 view = glm::mat4( 1.0f );
+        // Move thigs around in screen coords
+        // view = glm::translate( view, glm::vec3( globalGameState.screen.width / 4.0f, 0.0f, 0.0f ) );
+        // view = glm::rotate( view, 1.0f, glm::vec3( 1.0f, 1.0f, 1.0f ) );
+
+        glm::mat4 model = glm::mat4( 1.0f );
+        model = glm::translate( model, glm::vec3( -0.5f, -0.5f, -0.5 - 1000.0f ) );
+        model = glm::scale( model, glm::vec3( 500.0f ) );
+        model = glm::rotate( model, 20.0f * ( float )M_PI / 180.0f, glm::normalize( glm::vec3( 1.0f, 1.0f, 0.0f ) ) );
 
         // glm::mat4 view = glm::translate( glm::mat4( 1.0f ), glm::vec3( -globalGameState.camera.x, -globalGameState.camera.y, -globalGameState.camera.x ) );
         // glm::mat4 transform = glm::translate( proj, glm::vec3( 0.0f, 0.0f, 0.0f ) );
