@@ -528,7 +528,7 @@ static void gameTick( ) {
     globalGameState.camera.y += movement_vector_y;
     globalGameState.camera.z += movement_vector_z;
 
-    //pr_debug( "CameraPos::%f %f %f", globalGameState.camera.x, globalGameState.camera.y, globalGameState.camera.z );
+    // pr_debug( "CameraPos::%f %f %f", globalGameState.camera.x, globalGameState.camera.y, globalGameState.camera.z );
 
     // }
 
@@ -627,8 +627,8 @@ int main( int argc, char **argv ) {
         exit( 1 ); // or handle the error in a nicer way
     }
 
-    // glEnable( GL_DEPTH_TEST );
-    // glEnable( GL_CULL_FACE );
+    glEnable( GL_DEPTH_TEST );
+    glEnable( GL_CULL_FACE );
     // glEnable( GL_TEXTURE_2D );
     // glEnable( GL_MULTISAMPLE );
     // glEnable( GL_COLOR_MATERIAL );
@@ -678,25 +678,25 @@ int main( int argc, char **argv ) {
 
     IndexBuffer ib;
     unsigned int ib_data[] = {
-        0, 1, 2, // Front
-        2, 3, 0, //
+        2, 1, 0, // Front
+        0, 3, 2, //
 
-        1, 5, 6, // Right
-        6, 2, 1,
+        6, 5, 1, // Right
+        1, 2, 6,
 
-        4, 7, 6, // Back
-        6, 5, 4, //
+        7, 4, 5, // Back
+        5, 6, 7, //
 
-        4, 0, 3, // Left
-        3, 7, 4, //
+        3, 0, 4, // Left
+        4, 7, 3, //
 
-        3, 2, 6, // Top
-        6, 7, 3, //
+        6, 2, 3, // Top
+        3, 7, 6, //
 
-        4, 3, 1, // Bottom
-        1, 0, 4, //
+        1, 5, 4, // Bottom
+        4, 0, 1, //
     };
-#define IB_DATA_COUNT ( ( unsigned int )( 3 * 2 ) )
+#define IB_DATA_COUNT ( ( unsigned int )( 3 * 2 * 6 ) )
 
     index_buffer_init( &ib, ib_data, IB_DATA_COUNT );
     index_buffer_bind( &ib );
@@ -760,7 +760,7 @@ int main( int argc, char **argv ) {
         model = glm::translate( model, glm::vec3( -globalGameState.camera.x,     //
                                                   -globalGameState.camera.y,     //
                                                   -globalGameState.camera.z ) ); //
-        model = glm::translate( model, glm::vec3( -0.5f ) );
+        // model = glm::translate( model, glm::vec3( -0.5f ) );
         // model = glm::translate( model, glm::vec3( 0.0f, 0.0f, -10.0f ) );
 
         // view = glm::scale( view, glm::vec3( 1.0f ) );
@@ -786,10 +786,12 @@ int main( int argc, char **argv ) {
 
         clock_gettime( CLOCK_MONOTONIC, &tstart );
 
-        // double diff_ms = ( ( ( double )tstart.tv_sec + 1.0e-9 * tstart.tv_nsec ) - ( ( double )tend.tv_sec + 1.0e-9 * tend.tv_nsec ) ) * 1000.0;
-        // tend = tstart;
+        double diff_ms = ( ( ( double )tstart.tv_sec + 1.0e-9 * tstart.tv_nsec ) - ( ( double )tend.tv_sec + 1.0e-9 * tend.tv_nsec ) ) * 1000.0;
+        tend = tstart;
         // // pr_debug("Time Diff ms:%f", diff_ms);
-        // globalGameState.frame_rate = 1.0 / ( diff_ms / 1000.0 );
+        globalGameState.frame_rate = 1.0 / ( diff_ms / 1000.0 );
+        pr_debug( "FPS:%f", globalGameState.frame_rate );
+
         // if ( globalGameState.input.limit_fps ) {
         //     double wait_time_ms = fps_ms - diff_ms;
         //     if ( wait_time_ms > 1.0 ) {
