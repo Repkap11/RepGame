@@ -30,6 +30,7 @@ typedef struct {
         float angle_H;
         float angle_V;
         TRIP_STATE( float l );
+        TRIP_STATE( float m );
         float x;
         float y;
         float z;

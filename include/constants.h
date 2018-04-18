@@ -16,8 +16,9 @@
 #endif
 
 #define CHUNK_SIZE 8
-#define NO_CLIP 0
+#define NO_CLIP 1
 #define MAP_SEED 42
+#define LOCK_MOUSE 1
 
 #define BLOCK_SCALE 1.0f
 #define REACH_DISTANCE 7
@@ -27,7 +28,7 @@
 #define CAMERA_SIZE 0.01f // Defines how much crop is in front (low for minecraft)
 #define PERSON_HEIGHT 40.0f
 #define DRAW_DISTANCE 1000
-#define STARTING_ANGLE_H 155.0f
+#define STARTING_ANGLE_H 0.0f
 #define STARTING_ANGLE_V 45.0f
 #define FPS_LIMIT 60.0f
 #define CAMERA_FOV 70.0f
