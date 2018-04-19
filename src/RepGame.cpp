@@ -30,11 +30,11 @@ Textures textures;
 static inline void initilizeGameState( ) {
     globalGameState.input.exitGame = 0;
     globalGameState.input.limit_fps = 1;
-    globalGameState.camera.angle_H = STARTING_ANGLE_H;
-    globalGameState.camera.angle_V = STARTING_ANGLE_V;
-    globalGameState.camera.x = 0; // 8.0f;
-    globalGameState.camera.y = 0; // 35.5f;
-    globalGameState.camera.z = 0; // 9.0f;
+    globalGameState.camera.angle_H = 45.0f;
+    globalGameState.camera.angle_V = 45.0f;
+    globalGameState.camera.x = -1.0f;
+    globalGameState.camera.y = 2.0f;
+    globalGameState.camera.z = 2.0f;
     globalGameState.block_selection.blockID = TNT;
     world_init( &globalGameState.gameChunks );
     // pr_debug( "RepGame init done" );
