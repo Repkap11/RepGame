@@ -696,7 +696,7 @@ int main( int argc, char **argv ) {
     unsigned int elements_per_vertex = 5;
     vertex_buffer_init( &vb, vd_data, sizeof( float ) * elements_per_vertex * VB_DATA_COUNT );
 
-    IndexBuffer ib;//16 17
+    IndexBuffer ib; // 16 17
     unsigned int ib_data[] = {
         2,  1,  0, // Front
         0,  3,  2, //
@@ -707,7 +707,7 @@ int main( int argc, char **argv ) {
         7,  4,  5, // Back
         5,  6,  7, //
 
-        11,  8,  12, // Left
+        11, 8,  12, // Left
         12, 15, 11, //
 
         6,  18, 19, // Top
@@ -743,7 +743,7 @@ int main( int argc, char **argv ) {
     // shader_set_uniform1i( &shader, "u_Texture", textureSlot );
     // shader_set_uniform1i( &shader, "u_Texture_new", textureSlot );
     // shader_set_uniform_mat4f( &shader, "u_MVP", proj );
-    shader_set_uniform1i( &shader, "u_WhichTexture", 0 );
+    //shader_set_uniform1i( &shader, "u_WhichTexture", 0 );
 
     Renderer renderer;
     // glDisable( GL_LIGHTING );
@@ -809,10 +809,9 @@ int main( int argc, char **argv ) {
             shader_set_uniform1ui( &shader, "u_WhichTexture", whichTexture );
         }
         incTexture++;
-        shader_set_uniform1i( &shader, "u_Texture_new", textureSlot );
+        //shader_set_uniform1i( &shader, "u_Texture_new", textureSlot );
 
         renderer_draw( &renderer, &va, &ib, &shader );
-        // glDrawElements( GL_TRIANGLES, IB_DATA_COUNT, GL_UNSIGNED_INT, NULL );
         glutSwapBuffers( );
 
         showErrors( );
