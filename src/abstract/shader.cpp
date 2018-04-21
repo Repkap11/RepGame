@@ -172,6 +172,11 @@ void shader_set_uniform1i( Shader *shader, const char *name, int i ) {
     glUniform1i( get_uniform_location( shader, name ), i );
 }
 
+void shader_set_uniform1ui( Shader *shader, const char *name, unsigned int i ) {
+    shader_bind( shader );
+    glUniform1ui( get_uniform_location( shader, name ), i );
+}
+
 void shader_set_uniform_mat4f( Shader *shader, const char *name, glm::mat4& mat ) {
     shader_bind( shader );
     glUniformMatrix4fv( get_uniform_location( shader, name ), 1, GL_FALSE, &mat[0][0]);

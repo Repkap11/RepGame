@@ -4,7 +4,8 @@
         "*.cpp": "cpp",
         "cmath": "c",
         "cstdlib": "c",
-        "type_traits": "c"
+        "type_traits": "c",
+        "typeinfo": "cpp"
     },
     "git.ignoreLimitWarning": true
 }

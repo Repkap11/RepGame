@@ -720,13 +720,16 @@ int main( int argc, char **argv ) {
 
     unsigned int textureSlot = 0;
     texture_bind( &blockTexture, textureSlot );
-    //shader_set_uniform1i( &shader, "u_Texture", textureSlot );
-    shader_set_uniform1i( &shader, "u_Texture_new", textureSlot );
+    // shader_set_uniform1i( &shader, "u_Texture", textureSlot );
+    // shader_set_uniform1i( &shader, "u_Texture_new", textureSlot );
     // shader_set_uniform_mat4f( &shader, "u_MVP", proj );
+    shader_set_uniform1i( &shader, "u_WhichTexture", 0 );
 
     Renderer renderer;
     // glDisable( GL_LIGHTING );
 
+    unsigned int incTexture = 0;
+    unsigned int whichTexture = 0;
     while ( !globalGameState.input.exitGame ) {
         glutMainLoopEvent( );
         // pr_debug( "Drawing" );
@@ -778,6 +781,16 @@ int main( int argc, char **argv ) {
         glm::mat4 mvp = proj * view * model;
         shader_set_uniform_mat4f( &shader, "u_MVP", mvp );
 
+        texture_bind( &blockTexture, textureSlot );
+        if ( incTexture == 60 ) {
+            incTexture = 0;
+            whichTexture = ( whichTexture + 1 ) % 100;
+            pr_debug( "Drawing whichTexture %d", whichTexture );
+            shader_set_uniform1ui( &shader, "u_WhichTexture", whichTexture );
+        }
+        incTexture++;
+        shader_set_uniform1i( &shader, "u_Texture_new", textureSlot );
+
         renderer_draw( &renderer, &va, &ib, &shader );
         // glDrawElements( GL_TRIANGLES, IB_DATA_COUNT, GL_UNSIGNED_INT, NULL );
         glutSwapBuffers( );
@@ -790,7 +803,7 @@ int main( int argc, char **argv ) {
         tend = tstart;
         // // pr_debug("Time Diff ms:%f", diff_ms);
         globalGameState.frame_rate = 1.0 / ( diff_ms / 1000.0 );
-        //pr_debug( "FPS:%f", globalGameState.frame_rate );
+        // pr_debug( "FPS:%f", globalGameState.frame_rate );
 
         // if ( globalGameState.input.limit_fps ) {
         //     double wait_time_ms = fps_ms - diff_ms;
