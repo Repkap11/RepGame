@@ -659,44 +659,51 @@ int main( int argc, char **argv ) {
     glBlendFunc( GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA );
     glBlendEquation( GL_FUNC_ADD );
 
+#define FACE_TOP 0
+#define FACE_BOTTOM 2
+#define FACE_FRONT 3
+#define FACE_BACK 3
+#define FACE_LECT 3
+#define FACE_RIGHT 3
+
     VertexBuffer vb;
     float vd_data[] = {
-        0.0f, 0.0f, 0.0f, /*Coords  Texture coords*/ 0,  0, //
-        1.0f, 0.0f, 0.0f, /*Coords  Texture coords*/ 1,  0, //
-        1.0f, 1.0f, 0.0f, /*Coords  Texture coords*/ 1,  1, //
-        0.0f, 1.0f, 0.0f, /*Coords  Texture coords*/ 0,  1, //
+        0.0f, 0.0f, 0.0f, /*Coords  Texture coords*/ 0,  0,  FACE_FRONT, // 0
+        1.0f, 0.0f, 0.0f, /*Coords  Texture coords*/ 1,  0,  FACE_FRONT, // 1
+        1.0f, 1.0f, 0.0f, /*Coords  Texture coords*/ 1,  1,  FACE_FRONT, // 2
+        0.0f, 1.0f, 0.0f, /*Coords  Texture coords*/ 0,  1,  FACE_FRONT, // 3
 
-        0.0f, 0.0f, 1.0f, /*Coords  Texture coords*/ 1,  0, //
-        1.0f, 0.0f, 1.0f, /*Coords  Texture coords*/ 0,  0, //
-        1.0f, 1.0f, 1.0f, /*Coords  Texture coords*/ 0,  1, //
-        0.0f, 1.0f, 1.0f, /*Coords  Texture coords*/ 1,  1, //
+        0.0f, 0.0f, 1.0f, /*Coords  Texture coords*/ 1,  0,  FACE_BACK, // 4
+        1.0f, 0.0f, 1.0f, /*Coords  Texture coords*/ 0,  0,  FACE_BACK, // 5
+        1.0f, 1.0f, 1.0f, /*Coords  Texture coords*/ 0,  1,  FACE_BACK, // 6
+        0.0f, 1.0f, 1.0f, /*Coords  Texture coords*/ 1,  1,  FACE_BACK, // 7
 
-        0.0f, 0.0f, 0.0f, /*Coords  Texture coords*/ !0, 0, //
-        1.0f, 0.0f, 0.0f, /*Coords  Texture coords*/ !1, 0, //
-        1.0f, 1.0f, 0.0f, /*Coords  Texture coords*/ !1, 1, //
-        0.0f, 1.0f, 0.0f, /*Coords  Texture coords*/ !0, 1, //
+        0.0f, 0.0f, 0.0f, /*Coords  Texture coords*/ !0, 0,  FACE_LECT,  // 8
+        1.0f, 0.0f, 0.0f, /*Coords  Texture coords*/ !1, 0,  FACE_RIGHT, // 9
+        1.0f, 1.0f, 0.0f, /*Coords  Texture coords*/ !1, 1,  FACE_RIGHT, // 10
+        0.0f, 1.0f, 0.0f, /*Coords  Texture coords*/ !0, 1,  FACE_LECT,  // 11
 
-        0.0f, 0.0f, 1.0f, /*Coords  Texture coords*/ !1, 0, //
-        1.0f, 0.0f, 1.0f, /*Coords  Texture coords*/ !0, 0, //
-        1.0f, 1.0f, 1.0f, /*Coords  Texture coords*/ !0, 1, //
-        0.0f, 1.0f, 1.0f, /*Coords  Texture coords*/ !1, 1, //
+        0.0f, 0.0f, 1.0f, /*Coords  Texture coords*/ !1, 0,  FACE_LECT,  // 12
+        1.0f, 0.0f, 1.0f, /*Coords  Texture coords*/ !0, 0,  FACE_RIGHT, // 13
+        1.0f, 1.0f, 1.0f, /*Coords  Texture coords*/ !0, 1,  FACE_RIGHT, // 14
+        0.0f, 1.0f, 1.0f, /*Coords  Texture coords*/ !1, 1,  FACE_LECT,  // 15
 
-        0.0f, 0.0f, 0.0f, /*Coords  Texture coords*/ !0, !0, //
-        1.0f, 0.0f, 0.0f, /*Coords  Texture coords*/ !1, !0, //
-        1.0f, 1.0f, 0.0f, /*Coords  Texture coords*/ !1, !1, //
-        0.0f, 1.0f, 0.0f, /*Coords  Texture coords*/ !0, !1, //
+        0.0f, 0.0f, 0.0f, /*Coords  Texture coords*/ 0, !0, FACE_BOTTOM, // 16
+        1.0f, 0.0f, 0.0f, /*Coords  Texture coords*/ 1, !0, FACE_BOTTOM, // 17
+        1.0f, 1.0f, 0.0f, /*Coords  Texture coords*/ !1, !1, FACE_TOP,    // 18
+        0.0f, 1.0f, 0.0f, /*Coords  Texture coords*/ !0, !1, FACE_TOP,    // 19
 
-        0.0f, 0.0f, 1.0f, /*Coords  Texture coords*/ !1, !0, //
-        1.0f, 0.0f, 1.0f, /*Coords  Texture coords*/ !0, !0, //
-        1.0f, 1.0f, 1.0f, /*Coords  Texture coords*/ !0, !1, //
-        0.0f, 1.0f, 1.0f, /*Coords  Texture coords*/ !1, !1, //
+        0.0f, 0.0f, 1.0f, /*Coords  Texture coords*/ !1,  0,  FACE_BOTTOM, // 20
+        1.0f, 0.0f, 1.0f, /*Coords  Texture coords*/ !0,  0,  FACE_BOTTOM, // 21
+        1.0f, 1.0f, 1.0f, /*Coords  Texture coords*/ 0,  1,  FACE_TOP,    // 6
+        0.0f, 1.0f, 1.0f, /*Coords  Texture coords*/ 1,  1,  FACE_TOP,    // 7
     };
 #define VB_DATA_COUNT ( ( unsigned int )4 * 6 )
 
-    unsigned int elements_per_vertex = 5;
+    unsigned int elements_per_vertex = 6;
     vertex_buffer_init( &vb, vd_data, sizeof( float ) * elements_per_vertex * VB_DATA_COUNT );
 
-    IndexBuffer ib; // 16 17
+    IndexBuffer ib; // 16 17 23 24
     unsigned int ib_data[] = {
         2,  1,  0, // Front
         0,  3,  2, //
@@ -710,11 +717,11 @@ int main( int argc, char **argv ) {
         11, 8,  12, // Left
         12, 15, 11, //
 
-        6,  18, 19, // Top
-        19, 7,  6,  //
+        22, 18, 19, // Top
+        19, 23, 22, //
 
-        1,  21, 20, // Bottom
-        20, 0,  1,  //
+        17, 21, 20, // Bottom
+        20, 16, 17, //
     };
 #define IB_DATA_COUNT ( ( unsigned int )( 3 * 2 * 6 ) )
 
@@ -726,7 +733,7 @@ int main( int argc, char **argv ) {
     vertex_buffer_layout_bind( &vbl );
     // The sum of these must be elements_per_vertex
     vertex_buffer_layout_push_float( &vbl, 3 ); // Coords
-    vertex_buffer_layout_push_float( &vbl, 2 ); // Texture coords
+    vertex_buffer_layout_push_float( &vbl, 3 ); // Texture coords and block
 
     VertexArray va;
     vertex_array_init( &va );
@@ -743,7 +750,7 @@ int main( int argc, char **argv ) {
     // shader_set_uniform1i( &shader, "u_Texture", textureSlot );
     // shader_set_uniform1i( &shader, "u_Texture_new", textureSlot );
     // shader_set_uniform_mat4f( &shader, "u_MVP", proj );
-    //shader_set_uniform1i( &shader, "u_WhichTexture", 0 );
+    // shader_set_uniform1i( &shader, "u_WhichTexture", 0 );
 
     Renderer renderer;
     // glDisable( GL_LIGHTING );
@@ -809,7 +816,7 @@ int main( int argc, char **argv ) {
             shader_set_uniform1ui( &shader, "u_WhichTexture", whichTexture );
         }
         incTexture++;
-        //shader_set_uniform1i( &shader, "u_Texture_new", textureSlot );
+        // shader_set_uniform1i( &shader, "u_Texture_new", textureSlot );
 
         renderer_draw( &renderer, &va, &ib, &shader );
         glutSwapBuffers( );
