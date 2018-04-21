@@ -661,40 +661,60 @@ int main( int argc, char **argv ) {
 
     VertexBuffer vb;
     float vd_data[] = {
-        0.0f, 0.0f, 0.0f, /*Coords  Texture coords*/ 0, 0, //
-        1.0f, 0.0f, 0.0f, /*Coords  Texture coords*/ 1, 0, //
-        1.0f, 1.0f, 0.0f, /*Coords  Texture coords*/ 1, 1, //
-        0.0f, 1.0f, 0.0f, /*Coords  Texture coords*/ 0, 1, //
+        0.0f, 0.0f, 0.0f, /*Coords  Texture coords*/ 0,  0, //
+        1.0f, 0.0f, 0.0f, /*Coords  Texture coords*/ 1,  0, //
+        1.0f, 1.0f, 0.0f, /*Coords  Texture coords*/ 1,  1, //
+        0.0f, 1.0f, 0.0f, /*Coords  Texture coords*/ 0,  1, //
 
-        0.0f, 0.0f, 1.0f, /*Coords  Texture coords*/ 1, 0, //
-        1.0f, 0.0f, 1.0f, /*Coords  Texture coords*/ 0, 0, //
-        1.0f, 1.0f, 1.0f, /*Coords  Texture coords*/ 0, 1, //
-        0.0f, 1.0f, 1.0f, /*Coords  Texture coords*/ 1, 1, //
+        0.0f, 0.0f, 1.0f, /*Coords  Texture coords*/ 1,  0, //
+        1.0f, 0.0f, 1.0f, /*Coords  Texture coords*/ 0,  0, //
+        1.0f, 1.0f, 1.0f, /*Coords  Texture coords*/ 0,  1, //
+        0.0f, 1.0f, 1.0f, /*Coords  Texture coords*/ 1,  1, //
+
+        0.0f, 0.0f, 0.0f, /*Coords  Texture coords*/ !0, 0, //
+        1.0f, 0.0f, 0.0f, /*Coords  Texture coords*/ !1, 0, //
+        1.0f, 1.0f, 0.0f, /*Coords  Texture coords*/ !1, 1, //
+        0.0f, 1.0f, 0.0f, /*Coords  Texture coords*/ !0, 1, //
+
+        0.0f, 0.0f, 1.0f, /*Coords  Texture coords*/ !1, 0, //
+        1.0f, 0.0f, 1.0f, /*Coords  Texture coords*/ !0, 0, //
+        1.0f, 1.0f, 1.0f, /*Coords  Texture coords*/ !0, 1, //
+        0.0f, 1.0f, 1.0f, /*Coords  Texture coords*/ !1, 1, //
+
+        0.0f, 0.0f, 0.0f, /*Coords  Texture coords*/ !0, !0, //
+        1.0f, 0.0f, 0.0f, /*Coords  Texture coords*/ !1, !0, //
+        1.0f, 1.0f, 0.0f, /*Coords  Texture coords*/ !1, !1, //
+        0.0f, 1.0f, 0.0f, /*Coords  Texture coords*/ !0, !1, //
+
+        0.0f, 0.0f, 1.0f, /*Coords  Texture coords*/ !1, !0, //
+        1.0f, 0.0f, 1.0f, /*Coords  Texture coords*/ !0, !0, //
+        1.0f, 1.0f, 1.0f, /*Coords  Texture coords*/ !0, !1, //
+        0.0f, 1.0f, 1.0f, /*Coords  Texture coords*/ !1, !1, //
     };
-#define VB_DATA_COUNT ( ( unsigned int )8 )
+#define VB_DATA_COUNT ( ( unsigned int )4 * 6 )
 
     unsigned int elements_per_vertex = 5;
     vertex_buffer_init( &vb, vd_data, sizeof( float ) * elements_per_vertex * VB_DATA_COUNT );
 
     IndexBuffer ib;
     unsigned int ib_data[] = {
-        2, 1, 0, // Front
-        0, 3, 2, //
+        2,          1,          0, // Front
+        0,          3,          2, //
 
-        6, 5, 1, // Right
-        1, 2, 6,
+        6 + 8,      5 + 8,      1 + 8, // Right
+        1 + 8,      2 + 8,      6 + 8, //
 
-        7, 4, 5, // Back
-        5, 6, 7, //
+        7,          4,          5, // Back
+        5,          6,          7, //
 
-        3, 0, 4, // Left
-        4, 7, 3, //
+        3 + 8,      0 + 8,      4 + 8, // Left
+        4 + 8,      7 + 8,      3 + 8, //
 
-        6, 2, 3, // Top
-        3, 7, 6, //
+        6,          2 + 16,     3 + 16, // Top
+        3 + 16,     7,          6,      //
 
-        1, 5, 4, // Bottom
-        4, 0, 1, //
+        1 ,      5  + 16, 4  + 16, // Bottom
+        4  + 16, 0 ,      1 ,      //
     };
 #define IB_DATA_COUNT ( ( unsigned int )( 3 * 2 * 6 ) )
 
