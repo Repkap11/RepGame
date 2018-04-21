@@ -25,7 +25,7 @@
 #define SKY_BOX_DISTANCE DRAW_DISTANCE * 0.8
 
 RepGameState globalGameState;
-Textures textures;
+Texture blockTexture;
 
 static inline void initilizeGameState( ) {
     globalGameState.input.exitGame = 0;
@@ -52,7 +52,7 @@ void showErrors( ) {
 static inline void cleanupGameState( ) {
     // world_cleanup( &globalGameState.gameChunks );
     block_definitions_free_definitions( );
-    textures_destroy( &textures );
+    texture_destroy( &blockTexture );
     // pr_debug( "RepGame cleanup done" );
 }
 
@@ -715,12 +715,11 @@ int main( int argc, char **argv ) {
     Shader shader;
     shader_init( &shader );
 
-    textures_init_blocks( &textures );
+    texture_init_blocks( &blockTexture );
     // block_definitions_initilize_definitions( &textures );
 
-    Texture texture = textures_get_texture( &textures, GRASS_SIDE );
     unsigned int textureSlot = 0;
-    texture_bind( &texture, textureSlot );
+    texture_bind( &blockTexture, textureSlot );
     shader_set_uniform1i( &shader, "u_Texture", textureSlot );
     // shader_set_uniform_mat4f( &shader, "u_MVP", proj );
 

@@ -1,4 +1,4 @@
-#version 330 core
+#version 440 core
 uniform vec4 u_CameraPosition;
 uniform vec4 u_CameraUnit;
 uniform vec4 u_LightPosition;

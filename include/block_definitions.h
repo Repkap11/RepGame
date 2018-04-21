@@ -33,9 +33,9 @@ typedef enum {
 #include "textures.h"
 
 typedef struct {
-    Texture top;
-    Texture side;
-    Texture bottom;
+    BlockID top;
+    BlockID side;
+    BlockID bottom;
 } BlockTextureMap;
 
 typedef struct {
@@ -46,7 +46,7 @@ typedef struct {
     int special_grass_logic;
 } BlockDefinition;
 
-void block_definitions_initilize_definitions( Textures *textures );
+void block_definitions_initilize_definitions( Texture *texture );
 BlockDefinition *block_definition_get_definition( BlockID blockID );
 void block_definitions_free_definitions( );
 
