@@ -720,7 +720,8 @@ int main( int argc, char **argv ) {
 
     unsigned int textureSlot = 0;
     texture_bind( &blockTexture, textureSlot );
-    shader_set_uniform1i( &shader, "u_Texture", textureSlot );
+    //shader_set_uniform1i( &shader, "u_Texture", textureSlot );
+    shader_set_uniform1i( &shader, "u_Texture_new", textureSlot );
     // shader_set_uniform_mat4f( &shader, "u_MVP", proj );
 
     Renderer renderer;
@@ -789,7 +790,7 @@ int main( int argc, char **argv ) {
         tend = tstart;
         // // pr_debug("Time Diff ms:%f", diff_ms);
         globalGameState.frame_rate = 1.0 / ( diff_ms / 1000.0 );
-        pr_debug( "FPS:%f", globalGameState.frame_rate );
+        //pr_debug( "FPS:%f", globalGameState.frame_rate );
 
         // if ( globalGameState.input.limit_fps ) {
         //     double wait_time_ms = fps_ms - diff_ms;
