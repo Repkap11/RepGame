@@ -696,25 +696,25 @@ int main( int argc, char **argv ) {
     unsigned int elements_per_vertex = 5;
     vertex_buffer_init( &vb, vd_data, sizeof( float ) * elements_per_vertex * VB_DATA_COUNT );
 
-    IndexBuffer ib;
+    IndexBuffer ib;//16 17
     unsigned int ib_data[] = {
-        2,          1,          0, // Front
-        0,          3,          2, //
+        2,  1,  0, // Front
+        0,  3,  2, //
 
-        6 + 8,      5 + 8,      1 + 8, // Right
-        1 + 8,      2 + 8,      6 + 8, //
+        14, 13, 9,  // Right
+        9,  10, 14, //
 
-        7,          4,          5, // Back
-        5,          6,          7, //
+        7,  4,  5, // Back
+        5,  6,  7, //
 
-        3 + 8,      0 + 8,      4 + 8, // Left
-        4 + 8,      7 + 8,      3 + 8, //
+        11,  8,  12, // Left
+        12, 15, 11, //
 
-        6,          2 + 16,     3 + 16, // Top
-        3 + 16,     7,          6,      //
+        6,  18, 19, // Top
+        19, 7,  6,  //
 
-        1 ,      5  + 16, 4  + 16, // Bottom
-        4  + 16, 0 ,      1 ,      //
+        1,  21, 20, // Bottom
+        20, 0,  1,  //
     };
 #define IB_DATA_COUNT ( ( unsigned int )( 3 * 2 * 6 ) )
 
