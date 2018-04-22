@@ -57,7 +57,7 @@ unsigned int loadTexture( const char *filename, int width, int height, int bmp_h
     glTexParameterf( GL_TEXTURE_2D_ARRAY, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE );
     glTexParameterf( GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR ); // GL_NEAREST GL_LINEAR_MIPMAP_LINEAR
     glTexParameterf( GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MAG_FILTER, GL_NEAREST );              // GL_NEAREST GL_LINEAR_MIPMAP_LINEAR
-    // glGenerateMipmap( GL_TEXTURE_2D_ARRAY );
+    glGenerateMipmap( GL_TEXTURE_2D_ARRAY );
     free( data );
     return texture;
 }

@@ -19,9 +19,6 @@
 #include "abstract/vertex_array.h"
 #include "abstract/renderer.h"
 
-#include <glm/glm.hpp>
-#include <glm/gtc/matrix_transform.hpp>
-
 #define SKY_BOX_DISTANCE DRAW_DISTANCE * 0.8
 
 RepGameState globalGameState;
@@ -71,52 +68,6 @@ void getPosFromMouse( int x, int y, TRIP_ARGS( double *out_ ) ) {
     glReadPixels( x, ( int )winY, 1, 1, GL_DEPTH_COMPONENT, GL_FLOAT, &winZ );
 
     gluUnProject( winX, winY, winZ, modelview, projection, viewport, out_x, out_y, out_z );
-}
-
-#define NUM_LIGHTS 1
-void renderShaders( int x, int y, int z ) {
-    // shader_set_uniform4f( &shader, "u_CameraPosition", x, y, z, 1 );
-    // shader_set_uniform4f( &shader, "u_CameraUnit",    //
-    //                       -globalGameState.camera.lx, //
-    //                       -globalGameState.camera.ly, //
-    //                       -globalGameState.camera.lz, 0 );
-    // shader_set_uniform4f( &shader, "u_LightPosition", 0, 1, 0, 0 );
-}
-
-static inline void drawScene( ) {
-    glEnable( GL_LIGHTING );
-    // draw3d_cube( );cleanupGameState
-    // shader_bind( &shader );
-    // renderShaders( );
-    glBlendFunc( GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA );
-    world_render( &globalGameState.gameChunks, globalGameState.camera.x, globalGameState.camera.y, globalGameState.camera.z );
-    world_draw( &globalGameState.gameChunks );
-    glDisable( GL_LIGHTING );
-
-    glPushMatrix( );
-    glTranslatef( globalGameState.camera.x, globalGameState.camera.y, globalGameState.camera.z );
-    glScalef( SKY_BOX_DISTANCE, SKY_BOX_DISTANCE, SKY_BOX_DISTANCE );
-    glRotatef( 270, 1, 0, 0 );
-    draw3d_sphere( );
-    glPopMatrix( );
-}
-
-void pointLight( ) {
-    GLfloat light_ambient[] = {0.5, 0.5, 0.5, 0.0};
-    GLfloat light_diffuse[] = {0.3, 0.3, 0.3, 0.0};
-    GLfloat light_specular[] = {0.2, 0.2, 0.2, 0.0};
-
-    GLfloat light_position[] = {0.5, 1, 0, 0};
-    glLightfv( GL_LIGHT0, GL_POSITION, light_position );
-    glLightfv( GL_LIGHT0, GL_AMBIENT, light_ambient );
-    glLightfv( GL_LIGHT0, GL_DIFFUSE, light_diffuse );
-    glLightfv( GL_LIGHT0, GL_SPECULAR, light_specular );
-}
-
-static inline void pointCamera( ) {
-    glRotatef( -globalGameState.camera.angle_V, -1, 0, 0 );
-    glRotatef( -globalGameState.camera.angle_H, 0, -1, 0 );
-    glTranslatef( -globalGameState.camera.x, -globalGameState.camera.y, -globalGameState.camera.z );
 }
 
 static void calculateMousePos( int arg, TRIP_ARGS( int *out_create_ ), TRIP_ARGS( int *out_destroy_ ) ) {
@@ -369,13 +320,21 @@ static void gameTick( ) {
         }
     }
 
-    globalGameState.camera.lx = sin( ( globalGameState.camera.angle_H ) * ( M_PI / 180 ) );
-    globalGameState.camera.ly = -tan( globalGameState.camera.angle_V * ( M_PI / 180 ) );
-    globalGameState.camera.lz = -cos( ( globalGameState.camera.angle_H ) * ( M_PI / 180 ) );
+    float lx = sin( ( globalGameState.camera.angle_H ) * ( M_PI / 180 ) );
+    float ly = -tan( globalGameState.camera.angle_V * ( M_PI / 180 ) );
+    float lz = -cos( ( globalGameState.camera.angle_H ) * ( M_PI / 180 ) );
 
     globalGameState.camera.mx = sin( ( globalGameState.camera.angle_H + angle ) * ( M_PI / 180 ) );
     globalGameState.camera.my = -tan( globalGameState.camera.angle_V * ( M_PI / 180 ) );
     globalGameState.camera.mz = -cos( ( globalGameState.camera.angle_H + angle ) * ( M_PI / 180 ) );
+
+    globalGameState.camera.view_look = glm::lookAt( glm::vec3( 0.0f, 0.0f, 0.0f ), // From the origin
+                                                    glm::vec3( lx, ly, lz ),       // Look at look vector
+                                                    glm::vec3( 0.0f, 1.0f, 0.0f )  // Head is up (set to 0,-1,0 to look upside-down)
+                                                    );
+    globalGameState.camera.view_trans = glm::translate( glm::mat4( 1.0f ), glm::vec3( -globalGameState.camera.x,     //
+                                                                                      -globalGameState.camera.y,     //
+                                                                                      -globalGameState.camera.z ) ); //
 
     float movement_vector_x = moved ? globalGameState.camera.mx : 0.0f;
     float movement_vector_y = 0.0f;
@@ -542,8 +501,6 @@ static void gameTick( ) {
     } else {
         globalGameState.input.click_delay_left = 0;
     }
-
-    // pr_debug( "Looking x:%f z:%f", globalGameState.camera.lx, globalGameState.camera.lz );
 }
 
 void arrowKeyDownInput( int key, int x, int y ) {
@@ -583,27 +540,7 @@ void changeSize( int w, int h ) {
     globalGameState.input.mouse.previousPosition.y = h / 2;
 
     glViewport( 0, 0, w, h );
-
-    // Prevent a divide by zero, when window is too short
-    // (you cant make a window of zero width).
-    // if ( h == 0 )
-    //     h = 1;
-    // float ratio = 1.0 * w / h;
-
-    // Use the Projection Matrix
-    // glMatrixMode( GL_PROJECTION );
-
-    // Reset Matrix
-    // glLoadIdentity( );
-
-    // Set the viewport to be the entire window
-    // glViewport( 0, 0, w, h );
-
-    // Set the correct perspective.
-    // gluPerspective( CAMERA_FOV, ratio, CAMERA_SIZE, DRAW_DISTANCE );
-
-    // Get Back to the Modelview
-    // glMatrixMode( GL_MODELVIEW );
+    globalGameState.screen.proj = glm::perspective<float>( glm::radians( 60.0f ), globalGameState.screen.width / globalGameState.screen.height, 0.1f, 1000.0f );
 }
 
 double fps_ms = ( 1.0 / FPS_LIMIT ) * 1000.0;
@@ -746,13 +683,7 @@ int main( int argc, char **argv ) {
 
     unsigned int textureSlot = 0;
     texture_bind( &blockTexture, textureSlot );
-    // shader_set_uniform1i( &shader, "u_Texture", textureSlot );
-    // shader_set_uniform1i( &shader, "u_Texture_new", textureSlot );
-    // shader_set_uniform_mat4f( &shader, "u_MVP", proj );
-    // shader_set_uniform1i( &shader, "u_WhichTexture", 0 );
-
     Renderer renderer;
-    // glDisable( GL_LIGHTING );
 
     unsigned int incTexture = 0;
     unsigned int whichTexture = 0;
@@ -765,57 +696,15 @@ int main( int argc, char **argv ) {
         glutMainLoopEvent( );
         gameTick( );
         renderer_clear( &renderer );
-        // ui_overlay_draw( &globalGameState );
-        // glm::mat4 proj = glm::ortho<float>( -globalGameState.screen.width / 2.0f, globalGameState.screen.width / 2.0f,   //
-        //                                     -globalGameState.screen.height / 2.0f, globalGameState.screen.height / 2.0f, //
-        //                                     -1000.0f, 1000.0f );
-
-        glm::mat4 proj = glm::perspective<float>( glm::radians( 60.0f ), globalGameState.screen.width / globalGameState.screen.height, 0.1f, 1000.0f );
-        // glm::mat4 view = glm::mat4( 1.0f );
-
-        glm::mat4 view = glm::lookAt( glm::vec3( 0.0f, 0.0f, 0.0f ),        //
-                                      glm::vec3( globalGameState.camera.lx, //
-                                                 globalGameState.camera.ly, //
-                                                 globalGameState.camera.lz  //
-                                                 ),                         // and looks at the origin
-                                      glm::vec3( 0.0f, 1.0f, 0.0f )         // Head is up (set to 0,-1,0 to look upside-down)
-                                      );
-        // view = glm::rotate( view, glm::radians( -globalGameState.camera.angle_V ), glm::normalize( glm::vec3( -1.0f, 0.0f, 0.0f ) ) );
-        // view = glm::rotate( view, glm::radians( -globalGameState.camera.angle_H ), glm::normalize( glm::vec3( 0.0f, -1.0f, 0.0f ) ) );
-
-        // view = glm::translate( view, glm::vec3( -250.f, -250.f, 0.0f ) );
 
         glm::mat4 model = glm::mat4( 1.0f );
-        model = glm::translate( model, glm::vec3( -globalGameState.camera.x,     //
-                                                  -globalGameState.camera.y,     //
-                                                  -globalGameState.camera.z ) ); //
-        // model = glm::translate( model, glm::vec3( -0.5f ) );
-        // model = glm::translate( model, glm::vec3( 0.0f, 0.0f, -10.0f ) );
+        // TODO translate by the block coords
+        // model = glm::translate( model, glm::vec3( -globalGameState.camera.x,     //
+        //                                           -globalGameState.camera.y,     //
+        //                                           -globalGameState.camera.z ) ); //
 
-        // view = glm::scale( view, glm::vec3( 1.0f ) );
-        // view = glm::translate( view, glm::vec3( -0.5f, -0.5f, 0.0f ) );
-
-        // /Move thigs around in screen coords
-
-        //
-        // model = glm::translate( model, glm::vec3( 0.5f, 0.5f, 0.5 - 10.0f ) );
-        // model = glm::scale( model, glm::vec3( 500.0f ) );
-        // model = glm::rotate( model, 20.0f * ( float )M_PI / 180.0f, glm::normalize( glm::vec3( 1.0f, 1.0f, 0.0f ) ) );
-
-        // glm::mat4 view = glm::translate( glm::mat4( 1.0f ), glm::vec3( -globalGameState.camera.x, -globalGameState.camera.y, -globalGameState.camera.x ) );
-        // glm::mat4 transform = glm::translate( proj, glm::vec3( 0.0f, 0.0f, 0.0f ) );
-        glm::mat4 mvp = proj * view * model;
+        glm::mat4 mvp = globalGameState.screen.proj * globalGameState.camera.view_look * globalGameState.camera.view_trans * model;
         shader_set_uniform_mat4f( &shader, "u_MVP", mvp );
-
-        texture_bind( &blockTexture, textureSlot );
-        if ( incTexture == 60 ) {
-            incTexture = 0;
-            whichTexture = ( whichTexture + 1 ) % 100;
-            pr_debug( "Drawing whichTexture %d", whichTexture );
-            shader_set_uniform1ui( &shader, "u_WhichTexture", whichTexture );
-        }
-        incTexture++;
-        // shader_set_uniform1i( &shader, "u_Texture_new", textureSlot );
 
         renderer_draw( &renderer, &va, &ib, &shader );
         glutSwapBuffers( );
@@ -828,7 +717,7 @@ int main( int argc, char **argv ) {
         tend = tstart;
         // // pr_debug("Time Diff ms:%f", diff_ms);
         globalGameState.frame_rate = 1.0 / ( diff_ms / 1000.0 );
-        //pr_debug( "FPS:%f", globalGameState.frame_rate );
+        // pr_debug( "FPS:%f", globalGameState.frame_rate );
 
         // if ( globalGameState.input.limit_fps ) {
         //     double wait_time_ms = fps_ms - diff_ms;

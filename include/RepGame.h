@@ -4,6 +4,8 @@
 #include "chunk_loader.h"
 #include "constants.h"
 #include <stdio.h>
+#include <glm/glm.hpp>
+#include <glm/gtc/matrix_transform.hpp>
 
 #define DEBUG 1
 
@@ -34,10 +36,13 @@ typedef struct {
         float x;
         float y;
         float z;
+        glm::mat4 view_look;
+        glm::mat4 view_trans;
     } camera;
     struct {
         float width;
         float height;
+        glm::mat4 proj;
     } screen;
     LoadedChunks gameChunks;
     struct {
