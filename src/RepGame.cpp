@@ -621,9 +621,8 @@ int main( int argc, char **argv ) {
         pr_debug( "GLEW init failed" );
         exit( 1 ); // or handle the error in a nicer way
     }
-    if ( !GLEW_VERSION_2_1 ) { // check that the machine supports the 2.1 API.
+    if ( !GLEW_VERSION_4_4 ) { // check that the machine supports the 2.1 API.
         pr_debug( "GLEW version wrong" );
-
         exit( 1 ); // or handle the error in a nicer way
     }
 
@@ -688,13 +687,13 @@ int main( int argc, char **argv ) {
         1.0f, 1.0f, 1.0f, /*Coords  Texture coords*/ !0, 1,  FACE_RIGHT, // 14
         0.0f, 1.0f, 1.0f, /*Coords  Texture coords*/ !1, 1,  FACE_LECT,  // 15
 
-        0.0f, 0.0f, 0.0f, /*Coords  Texture coords*/ 0, !0, FACE_BOTTOM, // 16
-        1.0f, 0.0f, 0.0f, /*Coords  Texture coords*/ 1, !0, FACE_BOTTOM, // 17
+        0.0f, 0.0f, 0.0f, /*Coords  Texture coords*/ 0,  !0, FACE_BOTTOM, // 16
+        1.0f, 0.0f, 0.0f, /*Coords  Texture coords*/ 1,  !0, FACE_BOTTOM, // 17
         1.0f, 1.0f, 0.0f, /*Coords  Texture coords*/ !1, !1, FACE_TOP,    // 18
         0.0f, 1.0f, 0.0f, /*Coords  Texture coords*/ !0, !1, FACE_TOP,    // 19
 
-        0.0f, 0.0f, 1.0f, /*Coords  Texture coords*/ !1,  0,  FACE_BOTTOM, // 20
-        1.0f, 0.0f, 1.0f, /*Coords  Texture coords*/ !0,  0,  FACE_BOTTOM, // 21
+        0.0f, 0.0f, 1.0f, /*Coords  Texture coords*/ !1, 0,  FACE_BOTTOM, // 20
+        1.0f, 0.0f, 1.0f, /*Coords  Texture coords*/ !0, 0,  FACE_BOTTOM, // 21
         1.0f, 1.0f, 1.0f, /*Coords  Texture coords*/ 0,  1,  FACE_TOP,    // 6
         0.0f, 1.0f, 1.0f, /*Coords  Texture coords*/ 1,  1,  FACE_TOP,    // 7
     };
@@ -829,7 +828,7 @@ int main( int argc, char **argv ) {
         tend = tstart;
         // // pr_debug("Time Diff ms:%f", diff_ms);
         globalGameState.frame_rate = 1.0 / ( diff_ms / 1000.0 );
-        // pr_debug( "FPS:%f", globalGameState.frame_rate );
+        //pr_debug( "FPS:%f", globalGameState.frame_rate );
 
         // if ( globalGameState.input.limit_fps ) {
         //     double wait_time_ms = fps_ms - diff_ms;

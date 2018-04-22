@@ -9,7 +9,7 @@
 #define CHUNK_RADIUS_Y 64 / CHUNK_SIZE
 #define CHUNK_RADIUS_Z 160 / CHUNK_SIZE
 #else
-#define MOVEMENT_SENSITIVITY 0.02f // How sensitive the arrow keys are
+#define MOVEMENT_SENSITIVITY 0.2f // How sensitive the arrow keys are
 #define CHUNK_RADIUS_X 32 / CHUNK_SIZE
 #define CHUNK_RADIUS_Y 32 / CHUNK_SIZE
 #define CHUNK_RADIUS_Z 32 / CHUNK_SIZE
