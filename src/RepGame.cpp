@@ -639,7 +639,7 @@ int main( int argc, char **argv ) {
     unsigned int elements_per_vertex = 6;
     vertex_buffer_init( &vb, vd_data, sizeof( float ) * elements_per_vertex * VB_DATA_COUNT );
 
-    IndexBuffer ib; // 16 17 23 24
+    IndexBuffer ib;
     unsigned int ib_data[] = {
         2,  1,  0, // Front
         0,  3,  2, //
