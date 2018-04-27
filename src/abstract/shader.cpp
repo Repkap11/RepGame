@@ -153,11 +153,15 @@ void shader_destroy( Shader *shader ) {
     shader->m_RendererId = 0;
 }
 
+int printedUniform = 0;
 int get_uniform_location( Shader *shader, const char *name ) {
     // TODO use cache
     int result = glGetUniformLocation( shader->m_RendererId, name );
     if ( result == -1 ) {
-        pr_debug( "Shader uniform not found. Name:%s", name );
+        if ( !printedUniform ) {
+            printedUniform = 1;
+            pr_debug( "Shader uniform not found. Name:%s", name );
+        }
     }
     return result;
 }
@@ -177,7 +181,7 @@ void shader_set_uniform1ui( Shader *shader, const char *name, unsigned int i ) {
     glUniform1ui( get_uniform_location( shader, name ), i );
 }
 
-void shader_set_uniform_mat4f( Shader *shader, const char *name, glm::mat4& mat ) {
+void shader_set_uniform_mat4f( Shader *shader, const char *name, glm::mat4 &mat ) {
     shader_bind( shader );
-    glUniformMatrix4fv( get_uniform_location( shader, name ), 1, GL_FALSE, &mat[0][0]);
+    glUniformMatrix4fv( get_uniform_location( shader, name ), 1, GL_FALSE, &mat[ 0 ][ 0 ] );
 }

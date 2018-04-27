@@ -47,7 +47,7 @@ void showErrors( ) {
 }
 
 static inline void cleanupGameState( ) {
-    // world_cleanup( &globalGameState.gameChunks );
+    world_cleanup( &globalGameState.gameChunks );
     block_definitions_free_definitions( );
     texture_destroy( &blockTexture );
     // pr_debug( "RepGame cleanup done" );
@@ -597,47 +597,54 @@ int main( int argc, char **argv ) {
 
 #define FACE_TOP 0
 #define FACE_BOTTOM 2
-#define FACE_FRONT 3
-#define FACE_BACK 3
-#define FACE_LECT 3
-#define FACE_RIGHT 3
+#define FACE_FRONT 1
+#define FACE_BACK 1
+#define FACE_LECT 1
+#define FACE_RIGHT 1
 
     VertexBuffer vb;
-    float vd_data[] = {
-        0.0f, 0.0f, 0.0f, /*Coords  Texture coords*/ 0,  0,  FACE_FRONT, // 0
-        1.0f, 0.0f, 0.0f, /*Coords  Texture coords*/ 1,  0,  FACE_FRONT, // 1
-        1.0f, 1.0f, 0.0f, /*Coords  Texture coords*/ 1,  1,  FACE_FRONT, // 2
-        0.0f, 1.0f, 0.0f, /*Coords  Texture coords*/ 0,  1,  FACE_FRONT, // 3
+    typedef struct {
+        float x;
+        float y;
+        float z;
+        unsigned int tex_coord_x;
+        unsigned int tex_coord_y;
+        unsigned int which_face;
+    } CubeFace;
 
-        0.0f, 0.0f, 1.0f, /*Coords  Texture coords*/ 1,  0,  FACE_BACK, // 4
-        1.0f, 0.0f, 1.0f, /*Coords  Texture coords*/ 0,  0,  FACE_BACK, // 5
-        1.0f, 1.0f, 1.0f, /*Coords  Texture coords*/ 0,  1,  FACE_BACK, // 6
-        0.0f, 1.0f, 1.0f, /*Coords  Texture coords*/ 1,  1,  FACE_BACK, // 7
+    CubeFace vd_data[] = {
+        {0.0f, 0.0f, 0.0f, /*Coords  Texture coords*/ 0, 0, FACE_FRONT}, // 0
+        {1.0f, 0.0f, 0.0f, /*Coords  Texture coords*/ 1, 0, FACE_FRONT}, // 1
+        {1.0f, 1.0f, 0.0f, /*Coords  Texture coords*/ 1, 1, FACE_FRONT}, // 2
+        {0.0f, 1.0f, 0.0f, /*Coords  Texture coords*/ 0, 1, FACE_FRONT}, // 3
 
-        0.0f, 0.0f, 0.0f, /*Coords  Texture coords*/ !0, 0,  FACE_LECT,  // 8
-        1.0f, 0.0f, 0.0f, /*Coords  Texture coords*/ !1, 0,  FACE_RIGHT, // 9
-        1.0f, 1.0f, 0.0f, /*Coords  Texture coords*/ !1, 1,  FACE_RIGHT, // 10
-        0.0f, 1.0f, 0.0f, /*Coords  Texture coords*/ !0, 1,  FACE_LECT,  // 11
+        {0.0f, 0.0f, 1.0f, /*Coords  Texture coords*/ 1, 0, FACE_BACK}, // 4
+        {1.0f, 0.0f, 1.0f, /*Coords  Texture coords*/ 0, 0, FACE_BACK}, // 5
+        {1.0f, 1.0f, 1.0f, /*Coords  Texture coords*/ 0, 1, FACE_BACK}, // 6
+        {0.0f, 1.0f, 1.0f, /*Coords  Texture coords*/ 1, 1, FACE_BACK}, // 7
 
-        0.0f, 0.0f, 1.0f, /*Coords  Texture coords*/ !1, 0,  FACE_LECT,  // 12
-        1.0f, 0.0f, 1.0f, /*Coords  Texture coords*/ !0, 0,  FACE_RIGHT, // 13
-        1.0f, 1.0f, 1.0f, /*Coords  Texture coords*/ !0, 1,  FACE_RIGHT, // 14
-        0.0f, 1.0f, 1.0f, /*Coords  Texture coords*/ !1, 1,  FACE_LECT,  // 15
+        {0.0f, 0.0f, 0.0f, /*Coords  Texture coords*/ !0, 0, FACE_LECT},  // 8
+        {1.0f, 0.0f, 0.0f, /*Coords  Texture coords*/ !1, 0, FACE_RIGHT}, // 9
+        {1.0f, 1.0f, 0.0f, /*Coords  Texture coords*/ !1, 1, FACE_RIGHT}, // 10
+        {0.0f, 1.0f, 0.0f, /*Coords  Texture coords*/ !0, 1, FACE_LECT},  // 11
 
-        0.0f, 0.0f, 0.0f, /*Coords  Texture coords*/ 0,  !0, FACE_BOTTOM, // 16
-        1.0f, 0.0f, 0.0f, /*Coords  Texture coords*/ 1,  !0, FACE_BOTTOM, // 17
-        1.0f, 1.0f, 0.0f, /*Coords  Texture coords*/ !1, !1, FACE_TOP,    // 18
-        0.0f, 1.0f, 0.0f, /*Coords  Texture coords*/ !0, !1, FACE_TOP,    // 19
+        {0.0f, 0.0f, 1.0f, /*Coords  Texture coords*/ !1, 0, FACE_LECT},  // 12
+        {1.0f, 0.0f, 1.0f, /*Coords  Texture coords*/ !0, 0, FACE_RIGHT}, // 13
+        {1.0f, 1.0f, 1.0f, /*Coords  Texture coords*/ !0, 1, FACE_RIGHT}, // 14
+        {0.0f, 1.0f, 1.0f, /*Coords  Texture coords*/ !1, 1, FACE_LECT},  // 15
 
-        0.0f, 0.0f, 1.0f, /*Coords  Texture coords*/ !1, 0,  FACE_BOTTOM, // 20
-        1.0f, 0.0f, 1.0f, /*Coords  Texture coords*/ !0, 0,  FACE_BOTTOM, // 21
-        1.0f, 1.0f, 1.0f, /*Coords  Texture coords*/ 0,  1,  FACE_TOP,    // 6
-        0.0f, 1.0f, 1.0f, /*Coords  Texture coords*/ 1,  1,  FACE_TOP,    // 7
+        {0.0f, 0.0f, 0.0f, /*Coords  Texture coords*/ 0, !0, FACE_BOTTOM}, // 16
+        {1.0f, 0.0f, 0.0f, /*Coords  Texture coords*/ 1, !0, FACE_BOTTOM}, // 17
+        {1.0f, 1.0f, 0.0f, /*Coords  Texture coords*/ !1, !1, FACE_TOP},   // 18
+        {0.0f, 1.0f, 0.0f, /*Coords  Texture coords*/ !0, !1, FACE_TOP},   // 19
+
+        {0.0f, 0.0f, 1.0f, /*Coords  Texture coords*/ !1, 0, FACE_BOTTOM}, // 20
+        {1.0f, 0.0f, 1.0f, /*Coords  Texture coords*/ !0, 0, FACE_BOTTOM}, // 21
+        {1.0f, 1.0f, 1.0f, /*Coords  Texture coords*/ 0, 1, FACE_TOP},     // 6
+        {0.0f, 1.0f, 1.0f, /*Coords  Texture coords*/ 1, 1, FACE_TOP},     // 7
     };
-#define VB_DATA_COUNT ( ( unsigned int )4 * 6 )
 
-    unsigned int elements_per_vertex = 6;
-    vertex_buffer_init( &vb, vd_data, sizeof( float ) * elements_per_vertex * VB_DATA_COUNT );
+    vertex_buffer_init( &vb, vd_data, sizeof( CubeFace ) * 4 * 6 );
 
     IndexBuffer ib;
     unsigned int ib_data[] = {
@@ -664,16 +671,42 @@ int main( int argc, char **argv ) {
     index_buffer_init( &ib, ib_data, IB_DATA_COUNT );
     index_buffer_bind( &ib );
 
-    VertexBufferLayout vbl;
-    vertex_buffer_layout_init( &vbl );
-    vertex_buffer_layout_bind( &vbl );
+    VertexBufferLayout vbl_block;
+    vertex_buffer_layout_init( &vbl_block );
+    vertex_buffer_layout_bind( &vbl_block );
     // The sum of these must be elements_per_vertex
-    vertex_buffer_layout_push_float( &vbl, 3 ); // Coords
-    vertex_buffer_layout_push_float( &vbl, 3 ); // Texture coords and block
+    vertex_buffer_layout_push_float( &vbl_block, 3 ); // Coords
+    vertex_buffer_layout_push_float( &vbl_block, 2 ); // Texture coords
+    vertex_buffer_layout_push_float( &vbl_block, 1 ); // Face type (top, sides, bottom)
+
+    VertexBufferLayout vbl_coords;
+    vertex_buffer_layout_init( &vbl_coords );
+    vertex_buffer_layout_bind( &vbl_coords );
+    // The sum of these must be elements_per_vertex
+    typedef struct {
+        float x;
+        float y;
+        float z;
+        unsigned int face_top;
+        unsigned int face_sides;
+        unsigned int face_bottom;
+    } BlockCoords;
+    BlockCoords vd_data_coords[] = {//
+                                    {0, 0, 0, /*Block Pos, block_type*/ 9, 8, 10},
+                                    {1, 0, 0, /*Block Pos, block_type*/ 0, 3, 2},
+                                    {0, 0, 1, /*Block Pos, block_type*/ 5, 5, 5}};
+    unsigned int num_coords = 1;
+    vertex_buffer_layout_push_float( &vbl_coords, 3 );        // block 3d world coords
+    vertex_buffer_layout_push_unsigned_int( &vbl_coords, 3 ); // which texture (block type)
+
+    VertexBuffer vb_coords;
+    unsigned int elements_per_vertex_coords = 6;
+    vertex_buffer_init( &vb_coords, vd_data_coords, sizeof( BlockCoords ) * num_coords );
 
     VertexArray va;
     vertex_array_init( &va );
-    vertex_array_add_buffer( &va, &vb, &vbl );
+    vertex_array_add_buffer( &va, &vb, &vbl_block, 0 );
+    vertex_array_add_buffer( &va, &vb_coords, &vbl_coords, 1 );
 
     Shader shader;
     shader_init( &shader );
@@ -706,7 +739,7 @@ int main( int argc, char **argv ) {
         glm::mat4 mvp = globalGameState.screen.proj * globalGameState.camera.view_look * globalGameState.camera.view_trans * model;
         shader_set_uniform_mat4f( &shader, "u_MVP", mvp );
 
-        renderer_draw( &renderer, &va, &ib, &shader );
+        renderer_draw( &renderer, &va, &ib, &shader, num_coords );
         glutSwapBuffers( );
 
         showErrors( );
