@@ -613,33 +613,33 @@ int main( int argc, char **argv ) {
     } CubeFace;
 
     CubeFace vd_data[] = {
-        {0.0f, 0.0f, 0.0f, /*Coords  Texture coords*/ 0, 0, FACE_FRONT}, // 0
-        {1.0f, 0.0f, 0.0f, /*Coords  Texture coords*/ 1, 0, FACE_FRONT}, // 1
-        {1.0f, 1.0f, 0.0f, /*Coords  Texture coords*/ 1, 1, FACE_FRONT}, // 2
-        {0.0f, 1.0f, 0.0f, /*Coords  Texture coords*/ 0, 1, FACE_FRONT}, // 3
+        {0.0f, 0.0f, 0.0f, /*Coords  Texture coords*/ !0, 0, FACE_FRONT}, // 0
+        {1.0f, 0.0f, 0.0f, /*Coords  Texture coords*/ !1, 0, FACE_FRONT}, // 1
+        {1.0f, 1.0f, 0.0f, /*Coords  Texture coords*/ !1, 1, FACE_FRONT}, // 2
+        {0.0f, 1.0f, 0.0f, /*Coords  Texture coords*/ !0, 1, FACE_FRONT}, // 3
 
-        {0.0f, 0.0f, 1.0f, /*Coords  Texture coords*/ 1, 0, FACE_BACK}, // 4
-        {1.0f, 0.0f, 1.0f, /*Coords  Texture coords*/ 0, 0, FACE_BACK}, // 5
-        {1.0f, 1.0f, 1.0f, /*Coords  Texture coords*/ 0, 1, FACE_BACK}, // 6
-        {0.0f, 1.0f, 1.0f, /*Coords  Texture coords*/ 1, 1, FACE_BACK}, // 7
+        {0.0f, 0.0f, 1.0f, /*Coords  Texture coords*/ !1, 0, FACE_BACK}, // 4
+        {1.0f, 0.0f, 1.0f, /*Coords  Texture coords*/ !0, 0, FACE_BACK}, // 5
+        {1.0f, 1.0f, 1.0f, /*Coords  Texture coords*/ !0, 1, FACE_BACK}, // 6
+        {0.0f, 1.0f, 1.0f, /*Coords  Texture coords*/ !1, 1, FACE_BACK}, // 7
 
-        {0.0f, 0.0f, 0.0f, /*Coords  Texture coords*/ !0, 0, FACE_LECT},  // 8
-        {1.0f, 0.0f, 0.0f, /*Coords  Texture coords*/ !1, 0, FACE_RIGHT}, // 9
-        {1.0f, 1.0f, 0.0f, /*Coords  Texture coords*/ !1, 1, FACE_RIGHT}, // 10
-        {0.0f, 1.0f, 0.0f, /*Coords  Texture coords*/ !0, 1, FACE_LECT},  // 11
+        {0.0f, 0.0f, 0.0f, /*Coords  Texture coords*/ 0, 0, FACE_LECT},  // 8
+        {1.0f, 0.0f, 0.0f, /*Coords  Texture coords*/ 1, 0, FACE_RIGHT}, // 9
+        {1.0f, 1.0f, 0.0f, /*Coords  Texture coords*/ 1, 1, FACE_RIGHT}, // 10
+        {0.0f, 1.0f, 0.0f, /*Coords  Texture coords*/ 0, 1, FACE_LECT},  // 11
 
-        {0.0f, 0.0f, 1.0f, /*Coords  Texture coords*/ !1, 0, FACE_LECT},  // 12
-        {1.0f, 0.0f, 1.0f, /*Coords  Texture coords*/ !0, 0, FACE_RIGHT}, // 13
-        {1.0f, 1.0f, 1.0f, /*Coords  Texture coords*/ !0, 1, FACE_RIGHT}, // 14
-        {0.0f, 1.0f, 1.0f, /*Coords  Texture coords*/ !1, 1, FACE_LECT},  // 15
+        {0.0f, 0.0f, 1.0f, /*Coords  Texture coords*/ 1, 0, FACE_LECT},  // 12
+        {1.0f, 0.0f, 1.0f, /*Coords  Texture coords*/ 0, 0, FACE_RIGHT}, // 13
+        {1.0f, 1.0f, 1.0f, /*Coords  Texture coords*/ 0, 1, FACE_RIGHT}, // 14
+        {0.0f, 1.0f, 1.0f, /*Coords  Texture coords*/ 1, 1, FACE_LECT},  // 15
 
-        {0.0f, 0.0f, 0.0f, /*Coords  Texture coords*/ 0, !0, FACE_BOTTOM}, // 16
-        {1.0f, 0.0f, 0.0f, /*Coords  Texture coords*/ 1, !0, FACE_BOTTOM}, // 17
+        {0.0f, 0.0f, 0.0f, /*Coords  Texture coords*/ !0, !0, FACE_BOTTOM}, // 16
+        {1.0f, 0.0f, 0.0f, /*Coords  Texture coords*/ !1, !0, FACE_BOTTOM}, // 17
         {1.0f, 1.0f, 0.0f, /*Coords  Texture coords*/ !1, !1, FACE_TOP},   // 18
         {0.0f, 1.0f, 0.0f, /*Coords  Texture coords*/ !0, !1, FACE_TOP},   // 19
 
-        {0.0f, 0.0f, 1.0f, /*Coords  Texture coords*/ !1, 0, FACE_BOTTOM}, // 20
-        {1.0f, 0.0f, 1.0f, /*Coords  Texture coords*/ !0, 0, FACE_BOTTOM}, // 21
+        {0.0f, 0.0f, 1.0f, /*Coords  Texture coords*/ 1, 0, FACE_BOTTOM}, // 20
+        {1.0f, 0.0f, 1.0f, /*Coords  Texture coords*/ 0, 0, FACE_BOTTOM}, // 21
         {1.0f, 1.0f, 1.0f, /*Coords  Texture coords*/ 0, 1, FACE_TOP},     // 6
         {0.0f, 1.0f, 1.0f, /*Coords  Texture coords*/ 1, 1, FACE_TOP},     // 7
     };
@@ -693,9 +693,9 @@ int main( int argc, char **argv ) {
     } BlockCoords;
     BlockCoords vd_data_coords[] = {//
                                     {0, 0, 0, /*Block Pos, block_type*/ 9, 8, 10},
-                                    {1, 0, 0, /*Block Pos, block_type*/ 0, 3, 2},
+                                    {2, 0, 0, /*Block Pos, block_type*/ 0, 3, 2},
                                     {0, 0, 1, /*Block Pos, block_type*/ 5, 5, 5}};
-    unsigned int num_coords = 1;
+    unsigned int num_coords = 2;
     vertex_buffer_layout_push_float( &vbl_coords, 3 );        // block 3d world coords
     vertex_buffer_layout_push_unsigned_int( &vbl_coords, 3 ); // which texture (block type)
 
