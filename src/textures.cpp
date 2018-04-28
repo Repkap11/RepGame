@@ -31,7 +31,7 @@ unsigned int loadTexture( const char *filename, int width, int height, int bmp_h
     glGenTextures( 1, &texture );
     glBindTexture( GL_TEXTURE_2D_ARRAY, texture );
     glTexStorage3D( GL_TEXTURE_2D_ARRAY,              //
-                    1,                                // mipLevelCount
+                    5,                                // mipLevelCount
                     GL_RGBA8,                         //
                     tile_size_across, tile_size_down, //
                     layer_count );
@@ -54,8 +54,9 @@ unsigned int loadTexture( const char *filename, int width, int height, int bmp_h
 
     glTexParameterf( GL_TEXTURE_2D_ARRAY, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE );
     glTexParameterf( GL_TEXTURE_2D_ARRAY, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE );
-    glTexParameterf( GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MIN_FILTER, GL_LINEAR ); // GL_NEAREST GL_LINEAR_MIPMAP_LINEAR
-    glTexParameterf( GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MAG_FILTER, GL_NEAREST );              // GL_NEAREST GL_LINEAR_MIPMAP_LINEAR
+    glTexParameterf( GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MIN_FILTER, GL_NEAREST_MIPMAP_LINEAR );  // GL_NEAREST GL_LINEAR_MIPMAP_LINEAR
+    glTexParameterf( GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MAG_FILTER, GL_NEAREST ); // GL_NEAREST GL_LINEAR_MIPMAP_LINEAR
+    glGenerateMipmap(GL_TEXTURE_2D_ARRAY);
     free( data );
     return texture;
 }

@@ -9,7 +9,7 @@
 #define CHUNK_RADIUS_Y 64 / CHUNK_SIZE
 #define CHUNK_RADIUS_Z 160 / CHUNK_SIZE
 #else
-#define MOVEMENT_SENSITIVITY 0.2f // How sensitive the arrow keys are
+#define MOVEMENT_SENSITIVITY 2.8f // How sensitive the arrow keys are
 #define CHUNK_RADIUS_X 32 / CHUNK_SIZE
 #define CHUNK_RADIUS_Y 32 / CHUNK_SIZE
 #define CHUNK_RADIUS_Z 32 / CHUNK_SIZE
@@ -29,7 +29,7 @@
 #define PERSON_HEIGHT 40.0f
 #define DRAW_DISTANCE 1000
 #define FPS_LIMIT 60.0f
-#define CAMERA_FOV 70.0f
+#define CAMERA_FOV 60.0f
 #define NUM_RENDER_THREADS 7
 #define CHUNK_RENDERS_PER_FRAME ( 2 * CHUNK_RADIUS_X * 2 * CHUNK_RADIUS_Y ) // Render 1 face of the chunk cube per frame. This could be lowered to reduce studder
 

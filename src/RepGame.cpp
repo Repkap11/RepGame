@@ -27,11 +27,11 @@ Texture blockTexture;
 static inline void initilizeGameState( ) {
     globalGameState.input.exitGame = 0;
     globalGameState.input.limit_fps = 1;
-    globalGameState.camera.angle_H = 45.0f;
+    globalGameState.camera.angle_H = 135.0f;
     globalGameState.camera.angle_V = 45.0f;
     globalGameState.camera.x = -1.0f;
     globalGameState.camera.y = 2.0f;
-    globalGameState.camera.z = 2.0f;
+    globalGameState.camera.z = -1.0f;
     globalGameState.block_selection.blockID = TNT;
     world_init( &globalGameState.gameChunks );
     // pr_debug( "RepGame init done" );
@@ -540,7 +540,7 @@ void changeSize( int w, int h ) {
     globalGameState.input.mouse.previousPosition.y = h / 2;
 
     glViewport( 0, 0, w, h );
-    globalGameState.screen.proj = glm::perspective<float>( glm::radians( 60.0f ), globalGameState.screen.width / globalGameState.screen.height, 0.1f, 1000.0f );
+    globalGameState.screen.proj = glm::perspective<float>( glm::radians( CAMERA_FOV ), globalGameState.screen.width / globalGameState.screen.height, 0.1f, 1000.0f );
 }
 
 double fps_ms = ( 1.0 / FPS_LIMIT ) * 1000.0;
@@ -565,11 +565,7 @@ int main( int argc, char **argv ) {
 
     glEnable( GL_DEPTH_TEST );
     glEnable( GL_CULL_FACE );
-    // glEnable( GL_TEXTURE_2D );
-    // glEnable( GL_MULTISAMPLE );
-    // glEnable( GL_COLOR_MATERIAL );
-    // glEnable( GL_NORMALIZE );
-    // glEnable( GL_LIGHT0 );
+    glCullFace( GL_BACK );
 
     glutSpecialFunc( arrowKeyDownInput );
     glutSpecialUpFunc( arrowKeyUpInput );
@@ -635,13 +631,13 @@ int main( int argc, char **argv ) {
 
         {0.0f, 0.0f, 0.0f, /*Coords  Texture coords*/ !0, !0, FACE_BOTTOM}, // 16
         {1.0f, 0.0f, 0.0f, /*Coords  Texture coords*/ !1, !0, FACE_BOTTOM}, // 17
-        {1.0f, 1.0f, 0.0f, /*Coords  Texture coords*/ !1, !1, FACE_TOP},   // 18
-        {0.0f, 1.0f, 0.0f, /*Coords  Texture coords*/ !0, !1, FACE_TOP},   // 19
+        {1.0f, 1.0f, 0.0f, /*Coords  Texture coords*/ !1, !1, FACE_TOP},    // 18
+        {0.0f, 1.0f, 0.0f, /*Coords  Texture coords*/ !0, !1, FACE_TOP},    // 19
 
         {0.0f, 0.0f, 1.0f, /*Coords  Texture coords*/ 1, 0, FACE_BOTTOM}, // 20
         {1.0f, 0.0f, 1.0f, /*Coords  Texture coords*/ 0, 0, FACE_BOTTOM}, // 21
-        {1.0f, 1.0f, 1.0f, /*Coords  Texture coords*/ 0, 1, FACE_TOP},     // 6
-        {0.0f, 1.0f, 1.0f, /*Coords  Texture coords*/ 1, 1, FACE_TOP},     // 7
+        {1.0f, 1.0f, 1.0f, /*Coords  Texture coords*/ 0, 1, FACE_TOP},    // 6
+        {0.0f, 1.0f, 1.0f, /*Coords  Texture coords*/ 1, 1, FACE_TOP},    // 7
     };
 
     vertex_buffer_init( &vb, vd_data, sizeof( CubeFace ) * 4 * 6 );
@@ -691,11 +687,35 @@ int main( int argc, char **argv ) {
         unsigned int face_sides;
         unsigned int face_bottom;
     } BlockCoords;
-    BlockCoords vd_data_coords[] = {//
-                                    {0, 0, 0, /*Block Pos, block_type*/ 9, 8, 10},
-                                    {2, 0, 0, /*Block Pos, block_type*/ 0, 3, 2},
-                                    {0, 0, 1, /*Block Pos, block_type*/ 5, 5, 5}};
-    unsigned int num_coords = 2;
+#define SIZE 80
+#define num_coords SIZE *SIZE *SIZE
+    BlockCoords *vd_data_coords = new BlockCoords[ num_coords ];
+    for ( int i = 0; i < num_coords; i++ ) {
+        BlockCoords *block = &vd_data_coords[ i ];
+
+        int y = ( int )( i / ( SIZE * SIZE ) );
+        int x = ( int )( ( i / SIZE ) % SIZE );
+        int z = ( int )( i % SIZE );
+        // int x = ( rand( ) % 128 );
+        // int y = ( rand( ) % 128 );
+        // int z = ( rand( ) % 128 );
+        block->x = x * 7;
+        block->y = y * 3;
+        block->z = z * 7;
+
+        // block->face_top = 9;
+        // block->face_sides = 8;
+        // block->face_bottom = 10;
+        unsigned int face = rand( ) % 128;
+
+        block->face_top = face;
+        block->face_sides = face;
+        block->face_bottom = face;
+    }
+    // vd_data_coords[] BlockCoords vd_data_coords[] = {//
+    //                                                  {0, 0, 0, /*Block Pos, block_type*/ 9, 8, 10},
+    //                                                  {2, 0, 0, /*Block Pos, block_type*/ 0, 3, 2},
+    //                                                  {0, 0, 1, /*Block Pos, block_type*/ 5, 5, 5}};
     vertex_buffer_layout_push_float( &vbl_coords, 3 );        // block 3d world coords
     vertex_buffer_layout_push_unsigned_int( &vbl_coords, 3 ); // which texture (block type)
 
@@ -718,8 +738,6 @@ int main( int argc, char **argv ) {
     texture_bind( &blockTexture, textureSlot );
     Renderer renderer;
 
-    unsigned int incTexture = 0;
-    unsigned int whichTexture = 0;
     while ( !globalGameState.input.exitGame ) {
         glutMainLoopEvent( );
         // pr_debug( "Drawing" );
@@ -727,7 +745,9 @@ int main( int argc, char **argv ) {
             glutWarpPointer( globalGameState.screen.width / 2, globalGameState.screen.height / 2 );
         }
         glutMainLoopEvent( );
+
         gameTick( );
+
         renderer_clear( &renderer );
 
         glm::mat4 model = glm::mat4( 1.0f );
@@ -750,7 +770,7 @@ int main( int argc, char **argv ) {
         tend = tstart;
         // // pr_debug("Time Diff ms:%f", diff_ms);
         globalGameState.frame_rate = 1.0 / ( diff_ms / 1000.0 );
-        // pr_debug( "FPS:%f", globalGameState.frame_rate );
+        pr_debug( "FPS:%f", globalGameState.frame_rate );
 
         // if ( globalGameState.input.limit_fps ) {
         //     double wait_time_ms = fps_ms - diff_ms;
@@ -761,6 +781,7 @@ int main( int argc, char **argv ) {
         //     }
         // }
     }
+    free( vd_data_coords );
     cleanupGameState( );
     glutLeaveMainLoop( );
     return 0;
