@@ -9,6 +9,7 @@ typedef struct {
     Chunk *chunkArray;
     Renderer renderer;
     Shader shader;
+    Texture blocksTexture;
 } LoadedChunks;
 
 void chunk_loader_init( LoadedChunks *loadedChunks );

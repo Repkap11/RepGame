@@ -14,7 +14,13 @@ void chunk_loader_init( LoadedChunks *loadedChunks ) {
         pr_debug( "Terrain loading thread failed to start." );
     }
     loadedChunks->chunkArray = ( Chunk * )calloc( MAX_LOADED_CHUNKS, sizeof( Chunk ) );
+    for ( int i = 0; i < MAX_LOADED_CHUNKS; i++ ) {
+        chunk_init( &loadedChunks->chunkArray[ i ] );
+    }
     shader_init( &loadedChunks->shader );
+    texture_init_blocks( &loadedChunks->blocksTexture );
+    unsigned int textureSlot = 0;
+    texture_bind( &loadedChunks->blocksTexture, textureSlot );
 }
 
 // int chunk_loader_is_chunk_loaded( LoadedChunks *loadedChunks, int chunk_x, int chunk_y, int chunk_z ) {
@@ -138,7 +144,7 @@ void chunk_loader_render_chunks( LoadedChunks *loadedChunks, TRIP_ARGS( float ca
     }
 }
 
-void chunk_loader_draw_chunks( LoadedChunks *loadedChunks, glm::mat4 &mvp) {
+void chunk_loader_draw_chunks( LoadedChunks *loadedChunks, glm::mat4 &mvp ) {
     shader_set_uniform_mat4f( &loadedChunks->shader, "u_MVP", mvp );
     // pr_debug( "Drawing %d chunks", loadedChunks->numLoadedChunks );
     for ( int i = 0; i < MAX_LOADED_CHUNKS; i++ ) {
@@ -156,9 +162,10 @@ void chunk_loader_cleanup( LoadedChunks *loadedChunks ) {
     // pr_debug( "Freeing %d chunks", loadedChunks->numLoadedChunks );
     for ( int i = 0; i < MAX_LOADED_CHUNKS; i++ ) {
         Chunk *chunk = &loadedChunks->chunkArray[ i ];
-        //chunk_destroy_display_list( chunk );
+        // chunk_destroy_display_list( chunk );
         chunk_persist( chunk );
         chunk_free_terrain( chunk );
     }
     free( loadedChunks->chunkArray );
+    texture_destroy( &loadedChunks->blocksTexture );
 }

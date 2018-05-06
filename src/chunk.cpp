@@ -91,9 +91,13 @@ int chunk_get_coords_from_index( int index, int *out_x, int *out_y, int *out_z )
 #define num_blocks CHUNK_SIZE *CHUNK_SIZE *CHUNK_SIZE
 
 void chunk_init( Chunk *chunk ) {
+    static int num_chunk_inits = 0;
+    num_chunk_inits++;
+    pr_debug( "num chunk inits:%d", num_chunk_inits );
     chunk->num_instances = num_blocks;
 
-    vertex_buffer_init( &chunk->vb_block, vd_data, sizeof( CubeFace ) * 4 * 6 );
+    vertex_buffer_init( &chunk->vb_block );
+    vertex_buffer_set_data( &chunk->vb_block, vd_data, sizeof( CubeFace ) * 4 * 6 );
 
     index_buffer_init( &chunk->ib, ib_data, 3 * 2 * 6 );
     index_buffer_bind( &chunk->ib );
@@ -112,23 +116,20 @@ void chunk_init( Chunk *chunk ) {
     vertex_buffer_layout_push_unsigned_int( &chunk->vbl_coords, 3 ); // which texture (block type)
 
     unsigned int elements_per_vertex_coords = 6;
-    vertex_buffer_init( &chunk->vb_coords, chunk->populated_blocks, sizeof( BlockCoords ) * chunk->num_instances );
+    vertex_buffer_init( &chunk->vb_coords );
 
     vertex_array_init( &chunk->va );
     vertex_array_add_buffer( &chunk->va, &chunk->vb_block, &chunk->vbl_block, 0 );
     vertex_array_add_buffer( &chunk->va, &chunk->vb_coords, &chunk->vbl_coords, 1 );
-
-    texture_init_blocks( &chunk->blocksTexture );
-    unsigned int textureSlot = 0;
-    texture_bind( &chunk->blocksTexture, textureSlot );
 }
 
 void chunk_destroy( Chunk *chunk ) {
-    texture_destroy( &chunk->blocksTexture );
 }
 
 void chunk_render( const Chunk *chunk, const Renderer *renderer, const Shader *shader ) {
-    renderer_draw( renderer, &chunk->va, &chunk->ib, shader, chunk->num_instances );
+    if ( chunk->should_render ) {
+        renderer_draw( renderer, &chunk->va, &chunk->ib, shader, chunk->num_instances );
+    }
 }
 
 Block *chunk_get_block( Chunk *chunk, int x, int y, int z ) {
@@ -281,13 +282,12 @@ void chunk_load_terrain( Chunk *chunk ) {
         // We havn't loaded this chunk before, map gen it.
         map_gen_load_block( chunk );
     }
-    // chunk_blocks_to_render_blocks();
-    // delete chunk->blocks;
-}
-
-void chunk_program_terrain( Chunk *chunk ) {
-    // Just for lolz, re gen the terrain every time we program it!
-    // This sort of thing shoudl really go in chunk_load_terrain
+    if ( !chunk->populated_blocks ) {
+        chunk->populated_blocks = ( BlockCoords * )calloc( chunk->num_instances, sizeof( BlockCoords ) );
+    }
+    static int program_count = 0;
+    program_count++;
+    pr_debug( "Paul loading terrain %d", program_count );
     for ( int i = 0; i < chunk->num_instances; i++ ) {
         BlockCoords *block = &chunk->populated_blocks[ i ];
 
@@ -297,9 +297,9 @@ void chunk_program_terrain( Chunk *chunk ) {
         // int x = ( rand( ) % 128 );
         // int y = ( rand( ) % 128 );
         // int z = ( rand( ) % 128 );
-        block->x = x; // * 4;
-        block->y = y; // * 4;
-        block->z = z; // * 4;
+        block->x = chunk->chunk_x * CHUNK_SIZE + x; // * 4;
+        block->y = chunk->chunk_y * CHUNK_SIZE + y; // * 4;
+        block->z = chunk->chunk_z * CHUNK_SIZE + z; // * 4;
 
         // block->face_top = 9;
         // block->face_sides = 8;
@@ -310,7 +310,13 @@ void chunk_program_terrain( Chunk *chunk ) {
         block->face_sides = face;
         block->face_bottom = face;
     }
+    // chunk_blocks_to_render_blocks();
+    // delete chunk->blocks;
+}
+
+void chunk_program_terrain( Chunk *chunk ) {
     vertex_buffer_set_data( &chunk->vb_coords, chunk->populated_blocks, sizeof( BlockCoords ) * chunk->num_instances );
+    chunk->should_render = 1;
 }
 
 void chunk_persist( Chunk *chunk ) {
@@ -323,4 +329,5 @@ void chunk_free_terrain( Chunk *chunk ) {
         map_gen_free_block( chunk->blocks );
         chunk->blocks = 0;
     }
+    chunk->should_render = 0;
 }

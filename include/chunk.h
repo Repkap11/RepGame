@@ -27,13 +27,13 @@ typedef struct {
     VertexBufferLayout vbl_coords;
     BlockCoords *populated_blocks;
     Block *blocks;
-    Texture blocksTexture;
     int num_instances;
     int chunk_x, chunk_y, chunk_z;
     int ditry;
+    int should_render;
 } Chunk;
 
-void chunk_init( Chunk *chunk, unsigned int num_blocks );
+void chunk_init( Chunk *chunk );
 void chunk_render( const Chunk *chunk, const Renderer *renderer, const Shader *shader );
 void chunk_load_terrain( Chunk *chunk );    // Load from file or map gen
 void chunk_program_terrain( Chunk *chunk ); // Program into GPU
