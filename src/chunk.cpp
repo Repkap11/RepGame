@@ -89,10 +89,6 @@ int chunk_get_coords_from_index( int index, int *out_x, int *out_y, int *out_z )
 }
 
 void chunk_init( Chunk *chunk ) {
-    static int num_chunk_inits = 0;
-    num_chunk_inits++;
-    pr_debug( "num chunk inits:%d", num_chunk_inits );
-
     vertex_buffer_init( &chunk->vb_block );
     vertex_buffer_set_data( &chunk->vb_block, vd_data, sizeof( CubeFace ) * 4 * 6 );
 
@@ -124,7 +120,7 @@ void chunk_destroy( Chunk *chunk ) {
 }
 
 void chunk_render( const Chunk *chunk, const Renderer *renderer, const Shader *shader ) {
-    if ( chunk->should_render ) {
+    if ( chunk->should_render && chunk->num_instances != 0 ) {
         renderer_draw( renderer, &chunk->va, &chunk->ib, shader, chunk->num_instances );
     }
 }
@@ -288,24 +284,35 @@ void chunk_load_terrain( Chunk *chunk ) {
         int drawn_block = chunk_get_coords_from_index( index, &x, &y, &z );
         if ( drawn_block ) {
             BlockDefinition *blockDef = chunk->blocks[ index ].blockDef;
-            int visiable_block = drawn_block = blockDef->id != AIR;
+            int visiable_block = blockDef->alpha != 0.0f;
             if ( visiable_block ) {
-                BlockCoords *blockCoord = &chunk->populated_blocks[ which_block_coord ];
-                blockCoord->x = chunk->chunk_x * CHUNK_SIZE + x;
-                blockCoord->y = chunk->chunk_y * CHUNK_SIZE + y;
-                blockCoord->z = chunk->chunk_z * CHUNK_SIZE + z;
-                blockCoord->face_top = blockDef->textures.top - 1;
-                blockCoord->face_sides = blockDef->textures.side - 1;
-                blockCoord->face_bottom = blockDef->textures.bottom - 1;
-                which_block_coord += 1;
+                int visiable_from_top = chunk->blocks[ chunk_get_index_from_coords( x + 0, y + 1, z + 0 ) ].blockDef->alpha < blockDef->alpha;
+                int visiable_from_bottom = chunk->blocks[ chunk_get_index_from_coords( x + 0, y - 1, z + 0 ) ].blockDef->alpha < blockDef->alpha;
+                int visiable_from_left = chunk->blocks[ chunk_get_index_from_coords( x + 0, y + 0, z - 1 ) ].blockDef->alpha < blockDef->alpha;
+                int visiable_from_right = chunk->blocks[ chunk_get_index_from_coords( x + 0, y + 0, z + 1 ) ].blockDef->alpha < blockDef->alpha;
+                int visiable_from_front = chunk->blocks[ chunk_get_index_from_coords( x + 1, y + 0, z + 0 ) ].blockDef->alpha< blockDef->alpha;
+                int visiable_from_back = chunk->blocks[ chunk_get_index_from_coords( x - 1, y + 0, z + 0 ) ].blockDef->alpha < blockDef->alpha;
+
+                int block_could_be_visiable = visiable_from_top || visiable_from_bottom || visiable_from_left || visiable_from_right || visiable_from_front || visiable_from_back;
+
+                if ( block_could_be_visiable ) {
+                    BlockCoords *blockCoord = &chunk->populated_blocks[ which_block_coord ];
+                    blockCoord->x = chunk->chunk_x * CHUNK_SIZE + x;
+                    blockCoord->y = chunk->chunk_y * CHUNK_SIZE + y;
+                    blockCoord->z = chunk->chunk_z * CHUNK_SIZE + z;
+                    blockCoord->face_top = blockDef->textures.top - 1;
+                    blockCoord->face_sides = blockDef->textures.side - 1;
+                    blockCoord->face_bottom = blockDef->textures.bottom - 1;
+                    which_block_coord += 1;
+                }
             }
         }
     }
     chunk->num_instances = which_block_coord;
 
-    static int program_count = 0;
-    program_count++;
-    //Clpr_debug( "Paul loading terrain %d", program_count );
+    // static int program_count = 0;
+    // program_count++;
+    // Clpr_debug( "Paul loading terrain %d", program_count );
     // for ( int i = 0; i < chunk->num_instances; i++ ) {
     //     BlockCoords *block = &chunk->populated_blocks[ i ];
 
@@ -333,8 +340,10 @@ void chunk_load_terrain( Chunk *chunk ) {
 }
 
 void chunk_program_terrain( Chunk *chunk ) {
-    vertex_buffer_set_data( &chunk->vb_coords, chunk->populated_blocks, sizeof( BlockCoords ) * chunk->num_instances );
-    chunk->should_render = 1;
+    if ( chunk->num_instances != 0 ) {
+        vertex_buffer_set_data( &chunk->vb_coords, chunk->populated_blocks, sizeof( BlockCoords ) * chunk->num_instances );
+        chunk->should_render = 1;
+    }
 }
 
 void chunk_persist( Chunk *chunk ) {

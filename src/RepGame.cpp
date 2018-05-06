@@ -589,16 +589,12 @@ int main( int argc, char **argv ) {
     glBlendFunc( GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA );
     glBlendEquation( GL_FUNC_ADD );
 
-    int counter = 100;
-
     while ( !globalGameState.input.exitGame ) {
         glutMainLoopEvent( );
         // pr_debug( "Drawing" );
         if ( LOCK_MOUSE ) {
             glutWarpPointer( globalGameState.screen.width / 2, globalGameState.screen.height / 2 );
         }
-        glutMainLoopEvent( );
-
         gameTick( );
 
         glClear( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT );
