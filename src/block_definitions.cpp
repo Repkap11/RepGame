@@ -10,9 +10,9 @@ void block_definitions_initilize_definitions( Texture *texture ) {
     block_definitions[ AIR ].id = AIR;
     block_definitions[ AIR ].alpha = 0.0f;
     block_definitions[ AIR ].height = 0.0f;
-    block_definitions[ AIR ].textures.top = GOLD_BLOCK;
-    block_definitions[ AIR ].textures.side = GOLD_BLOCK;
-    block_definitions[ AIR ].textures.bottom = GOLD_BLOCK;
+    block_definitions[ AIR ].textures.top = AIR;
+    block_definitions[ AIR ].textures.side = AIR;
+    block_definitions[ AIR ].textures.bottom = AIR;
 
     block_definitions[ PLAYER_SELECTION ].id = PLAYER_SELECTION;
     block_definitions[ PLAYER_SELECTION ].alpha = 0.2f;

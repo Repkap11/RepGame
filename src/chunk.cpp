@@ -88,13 +88,10 @@ int chunk_get_coords_from_index( int index, int *out_x, int *out_y, int *out_z )
     return result;
 }
 
-#define num_blocks CHUNK_SIZE *CHUNK_SIZE *CHUNK_SIZE
-
 void chunk_init( Chunk *chunk ) {
     static int num_chunk_inits = 0;
     num_chunk_inits++;
     pr_debug( "num chunk inits:%d", num_chunk_inits );
-    chunk->num_instances = num_blocks;
 
     vertex_buffer_init( &chunk->vb_block );
     vertex_buffer_set_data( &chunk->vb_block, vd_data, sizeof( CubeFace ) * 4 * 6 );
@@ -283,33 +280,54 @@ void chunk_load_terrain( Chunk *chunk ) {
         map_gen_load_block( chunk );
     }
     if ( !chunk->populated_blocks ) {
-        chunk->populated_blocks = ( BlockCoords * )calloc( chunk->num_instances, sizeof( BlockCoords ) );
+        chunk->populated_blocks = ( BlockCoords * )calloc( CHUNK_BLOCK_SIZE, sizeof( BlockCoords ) );
     }
+    int which_block_coord = 0;
+    for ( int index = CHUNK_BLOCK_DRAW_START; index < CHUNK_BLOCK_DRAW_STOP; index++ ) {
+        int x, y, z;
+        int drawn_block = chunk_get_coords_from_index( index, &x, &y, &z );
+        if ( drawn_block ) {
+            BlockDefinition *blockDef = chunk->blocks[ index ].blockDef;
+            int visiable_block = drawn_block = blockDef->id != AIR;
+            if ( visiable_block ) {
+                BlockCoords *blockCoord = &chunk->populated_blocks[ which_block_coord ];
+                blockCoord->x = chunk->chunk_x * CHUNK_SIZE + x;
+                blockCoord->y = chunk->chunk_y * CHUNK_SIZE + y;
+                blockCoord->z = chunk->chunk_z * CHUNK_SIZE + z;
+                blockCoord->face_top = blockDef->textures.top - 1;
+                blockCoord->face_sides = blockDef->textures.side - 1;
+                blockCoord->face_bottom = blockDef->textures.bottom - 1;
+                which_block_coord += 1;
+            }
+        }
+    }
+    chunk->num_instances = which_block_coord;
+
     static int program_count = 0;
     program_count++;
-    pr_debug( "Paul loading terrain %d", program_count );
-    for ( int i = 0; i < chunk->num_instances; i++ ) {
-        BlockCoords *block = &chunk->populated_blocks[ i ];
+    //Clpr_debug( "Paul loading terrain %d", program_count );
+    // for ( int i = 0; i < chunk->num_instances; i++ ) {
+    //     BlockCoords *block = &chunk->populated_blocks[ i ];
 
-        int y = ( int )( i / ( CHUNK_SIZE * CHUNK_SIZE ) );
-        int x = ( int )( ( i / CHUNK_SIZE ) % CHUNK_SIZE );
-        int z = ( int )( i % CHUNK_SIZE );
-        // int x = ( rand( ) % 128 );
-        // int y = ( rand( ) % 128 );
-        // int z = ( rand( ) % 128 );
-        block->x = chunk->chunk_x * CHUNK_SIZE + x; // * 4;
-        block->y = chunk->chunk_y * CHUNK_SIZE + y; // * 4;
-        block->z = chunk->chunk_z * CHUNK_SIZE + z; // * 4;
+    //     int y = ( int )( i / ( CHUNK_SIZE * CHUNK_SIZE ) );
+    //     int x = ( int )( ( i / CHUNK_SIZE ) % CHUNK_SIZE );
+    //     int z = ( int )( i % CHUNK_SIZE );
+    //     // int x = ( rand( ) % 128 );
+    //     // int y = ( rand( ) % 128 );
+    //     // int z = ( rand( ) % 128 );
+    //     block->x = chunk->chunk_x * CHUNK_SIZE + x; // * 4;
+    //     block->y = chunk->chunk_y * CHUNK_SIZE + y; // * 4;
+    //     block->z = chunk->chunk_z * CHUNK_SIZE + z; // * 4;
 
-        // block->face_top = 9;
-        // block->face_sides = 8;
-        // block->face_bottom = 10;
-        unsigned int face = rand( ) % 128;
+    //     // block->face_top = 9;
+    //     // block->face_sides = 8;
+    //     // block->face_bottom = 10;
+    //     unsigned int face = rand( ) % 128;
 
-        block->face_top = face;
-        block->face_sides = face;
-        block->face_bottom = face;
-    }
+    //     block->face_top = face;
+    //     block->face_sides = face;
+    //     block->face_bottom = face;
+    // }
     // chunk_blocks_to_render_blocks();
     // delete chunk->blocks;
 }
@@ -323,11 +341,14 @@ void chunk_persist( Chunk *chunk ) {
     map_storage_persist( chunk );
 }
 
+void chunk_unprogram_terrain( Chunk *chunk ) {
+    chunk->should_render = 0;
+}
+
 void chunk_free_terrain( Chunk *chunk ) {
     // pr_debug( "Freeing chunk x:%d y:%d z:%d", chunk->chunk_x, chunk->chunk_y, chunk->chunk_z );
     if ( chunk->blocks ) {
         map_gen_free_block( chunk->blocks );
         chunk->blocks = 0;
     }
-    chunk->should_render = 0;
 }

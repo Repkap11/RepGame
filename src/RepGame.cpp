@@ -29,7 +29,7 @@ static inline void initilizeGameState( ) {
     globalGameState.camera.angle_H = 135.0f;
     globalGameState.camera.angle_V = 45.0f;
     globalGameState.camera.x = -1.0f;
-    globalGameState.camera.y = 2.0f;
+    globalGameState.camera.y = PERSON_HEIGHT;
     globalGameState.camera.z = -1.0f;
     globalGameState.block_selection.blockID = TNT;
     world_init( &globalGameState.gameChunks );
@@ -622,7 +622,7 @@ int main( int argc, char **argv ) {
         tend = tstart;
         // // pr_debug("Time Diff ms:%f", diff_ms);
         globalGameState.frame_rate = 1.0 / ( diff_ms / 1000.0 );
-        //pr_debug( "FPS:%f", globalGameState.frame_rate );
+        pr_debug( "FPS:%f", globalGameState.frame_rate );
 
         // if ( globalGameState.input.limit_fps ) {
         //     double wait_time_ms = fps_ms - diff_ms;

@@ -16,7 +16,11 @@ typedef enum {
     TNT,
     TNT_TOP,
     TNT_BOTTOM,
-    WATER,
+    SPIDER_WEB,
+    RED_FLOWER,
+    YELLOW_FLOWER,
+    PLAYER_SELECTION,
+    SAPPLING,
     COBBLESTONE,
     BEDROCK,
     SAND,
@@ -26,7 +30,7 @@ typedef enum {
     IRON_BLOCK,
     GOLD_BLOCK,
     DIAMOND_BLOCK,
-    PLAYER_SELECTION,
+    WATER = 208,
     LAST_BLOCK_ID
 } BlockID;
 

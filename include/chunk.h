@@ -35,9 +35,10 @@ typedef struct {
 
 void chunk_init( Chunk *chunk );
 void chunk_render( const Chunk *chunk, const Renderer *renderer, const Shader *shader );
-void chunk_load_terrain( Chunk *chunk );    // Load from file or map gen
-void chunk_program_terrain( Chunk *chunk ); // Program into GPU
-void chunk_free_terrain( Chunk *chunk );    // Free
+void chunk_load_terrain( Chunk *chunk );      // Load from file or map gen
+void chunk_program_terrain( Chunk *chunk );   // Program into GPU
+void chunk_unprogram_terrain( Chunk *chunk ); // Remove from GPU
+void chunk_free_terrain( Chunk *chunk );      // Free
 // void chunk_calculate_sides( Chunk *chunk );
 int chunk_get_coords_from_index( int index, int *out_x, int *out_y, int *out_z );
 // void chunk_draw( Chunk *chunk, int solid );

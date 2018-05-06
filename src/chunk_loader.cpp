@@ -21,6 +21,7 @@ void chunk_loader_init( LoadedChunks *loadedChunks ) {
     texture_init_blocks( &loadedChunks->blocksTexture );
     unsigned int textureSlot = 0;
     texture_bind( &loadedChunks->blocksTexture, textureSlot );
+    block_definitions_initilize_definitions( &loadedChunks->blocksTexture);
 }
 
 // int chunk_loader_is_chunk_loaded( LoadedChunks *loadedChunks, int chunk_x, int chunk_y, int chunk_z ) {
@@ -114,7 +115,7 @@ void chunk_loader_render_chunks( LoadedChunks *loadedChunks, TRIP_ARGS( float ca
                 int sig_z = loadedChunks->chunk_center_z - chunk_z;
 
                 map_storage_persist( chunk );
-                // chunk_destroy_display_list( chunk );
+                chunk_unprogram_terrain( chunk );
 
                 chunk->chunk_x = loadedChunk.chunk_x - 2 * dist_x + sig_x;
                 chunk->chunk_y = loadedChunk.chunk_y - 2 * dist_y + sig_y;
