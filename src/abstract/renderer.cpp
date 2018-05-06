@@ -9,7 +9,3 @@ void renderer_draw( const Renderer *renderer, const VertexArray *vertexArray, co
     //glDrawElements( GL_TRIANGLES, indexBuffer->count, GL_UNSIGNED_INT, NULL );
     glDrawElementsInstanced( GL_TRIANGLES, indexBuffer->count, GL_UNSIGNED_INT, NULL, num_instances);
 }
-
-void renderer_clear( const Renderer *renderer ) {
-    glClear( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT );
-}

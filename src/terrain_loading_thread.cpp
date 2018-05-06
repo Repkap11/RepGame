@@ -21,7 +21,7 @@ void *process_background_tasks( void *arg ) {
         chunk = linked_list_pop_element( work_linked_list );
         if ( chunk ) {
             chunk_load_terrain( chunk );
-            chunk_calculate_sides( chunk );
+            //chunk_calculate_sides( chunk );
             linked_list_add_element( result_linked_list, chunk );
             // pr_debug( "Paul Loading terrain x:%d y%d: z:%d work:%d results:%d", chunk->chunk_x, chunk->chunk_y, chunk->chunk_z, work_linked_list->count, result_linked_list->count );
         } else {

@@ -10,8 +10,8 @@ void world_init( LoadedChunks *loadedChunks ) {
 void world_render( LoadedChunks *loadedChunks, TRIP_ARGS( float camera_ ) ) {
     chunk_loader_render_chunks( loadedChunks, TRIP_ARGS( camera_ ) );
 }
-void world_draw( LoadedChunks *loadedChunks ) {
-    chunk_loader_draw_chunks( loadedChunks );
+void world_draw( LoadedChunks *loadedChunks , glm::mat4 &mvp) {
+    chunk_loader_draw_chunks( loadedChunks, mvp);
 }
 void world_cleanup( LoadedChunks *loadedChunks ) {
     chunk_loader_cleanup( loadedChunks );
@@ -21,11 +21,11 @@ void fixup_chunk( LoadedChunks *loadedChunks, Chunk *chunk, TRIP_ARGS( int offse
     // pr_debug( "                                                               Fixup Offset: %d %d %d", x, y, z );
     Chunk *fixupChunk = chunk_loader_get_chunk( loadedChunks, chunk->chunk_x + offset_x, chunk->chunk_y + offset_y, chunk->chunk_z + offset_z );
     if ( fixupChunk ) {
-        chunk_destroy_display_list( fixupChunk );
-        chunk_set_block( fixupChunk, TRIP_ARGS( pos_ ), blockID );
-        chunk_calculate_sides( fixupChunk );
+        //chunk_destroy_display_list( fixupChunk );
+        //chunk_set_block( fixupChunk, TRIP_ARGS( pos_ ), blockID );
+        //chunk_calculate_sides( fixupChunk );
         fixupChunk->ditry = 1;
-        chunk_create_display_list( fixupChunk );
+        //chunk_create_display_list( fixupChunk );
     }
 }
 
@@ -56,7 +56,7 @@ void world_set_block( LoadedChunks *loadedChunks, TRIP_ARGS( int block_ ), Block
 
     Chunk *chunk = chunk_loader_get_chunk( loadedChunks, TRIP_ARGS( chunk_ ) );
     if ( chunk ) {
-        chunk_destroy_display_list( chunk );
+        //chunk_destroy_display_list( chunk );
         int diff_x = block_x - chunk_x * CHUNK_SIZE;
         int diff_y = block_y - chunk_y * CHUNK_SIZE;
         int diff_z = block_z - chunk_z * CHUNK_SIZE;
@@ -86,9 +86,9 @@ void world_set_block( LoadedChunks *loadedChunks, TRIP_ARGS( int block_ ), Block
             }
         }
         chunk_set_block( chunk, TRIP_ARGS( diff_ ), blockID );
-        chunk_calculate_sides( chunk );
+        //chunk_calculate_sides( chunk );
         chunk->ditry = 1;
-        chunk_create_display_list( chunk );
+        //chunk_create_display_list( chunk );
     } else {
         // This just means mouse is not pointing at a block
         // pr_debug( "Could not find the pointed to chunk" );

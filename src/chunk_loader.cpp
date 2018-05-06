@@ -14,6 +14,7 @@ void chunk_loader_init( LoadedChunks *loadedChunks ) {
         pr_debug( "Terrain loading thread failed to start." );
     }
     loadedChunks->chunkArray = ( Chunk * )calloc( MAX_LOADED_CHUNKS, sizeof( Chunk ) );
+    shader_init( &loadedChunks->shader );
 }
 
 // int chunk_loader_is_chunk_loaded( LoadedChunks *loadedChunks, int chunk_x, int chunk_y, int chunk_z ) {
@@ -54,7 +55,7 @@ void chunk_loader_render_chunks( LoadedChunks *loadedChunks, TRIP_ARGS( float ca
         chunk = terrain_loading_thread_dequeue( );
         if ( chunk ) {
             // pr_debug( "Paul Loading terrain x:%d y%d: z:%d", chunk->chunk_x, chunk->chunk_y, chunk->chunk_z );
-            chunk_create_display_list( chunk );
+            chunk_program_terrain( chunk );
         }
         count += 1;
     } while ( chunk && count < CHUNK_RENDERS_PER_FRAME );
@@ -105,30 +106,10 @@ void chunk_loader_render_chunks( LoadedChunks *loadedChunks, TRIP_ARGS( float ca
                 int sig_x = loadedChunks->chunk_center_x - chunk_x;
                 int sig_y = loadedChunks->chunk_center_y - chunk_y;
                 int sig_z = loadedChunks->chunk_center_z - chunk_z;
-                // pr_debug( "sig x:%d y:%d z:%d", sig_x, sig_y, sig_z );
 
-                // int sig_x2 = ( dist_x_abs > CHUNK_RADIUS ) * ( sig_x );
-                // int sig_y2 = ( dist_y_abs > CHUNK_RADIUS ) * ( sig_y );
-                // int sig_z2 = ( dist_z_abs > CHUNK_RADIUS ) * ( sig_z );
-
-                // pr_debug( "change x:%d y:%d z:%d", dist_x, dist_y, dist_z );
-
-                // if ( !loadedChunks->loaded_any ) {
-                // if ( chunk_x == 0 && chunk_y == 0 && chunk_z == 0 ) {
-                // pr_debug( "Freeing chunk  x:%d y:%d z:%d", loadedChunk->chunk.chunk_x, loadedChunk->chunk.chunk_y, loadedChunk->chunk.chunk_z );
-                // pr_debug( " Freed because x:%d y:%d z:%d", dist_x, dist_y, dist_z );
-                // pr_debug( "Alloc   chunk  x:%d y:%d z:%d", loadedChunk->chunk.chunk_x - 2 * dist_x + sig_x, loadedChunk->chunk.chunk_y - 2 * dist_y + sig_y, loadedChunk->chunk.chunk_z - 2 * dist_z + sig_z );
-                //}
-                //}
-                // chunk_free( &loadedChunk->chunk );
-                // chunk_loader_load_chunk( loadedChunks, i, , , );
                 map_storage_persist( chunk );
-                chunk_destroy_display_list( chunk );
-                // chunk_free_terrain( loadedChunk );
-                //}
-                // if ( chunk_loader_is_chunk_loaded( loadedChunks, chunk_x, chunk_y, chunk_z ) ) {
-                //    pr_debug( "Paul Error" );
-                //}
+                // chunk_destroy_display_list( chunk );
+
                 chunk->chunk_x = loadedChunk.chunk_x - 2 * dist_x + sig_x;
                 chunk->chunk_y = loadedChunk.chunk_y - 2 * dist_y + sig_y;
                 chunk->chunk_z = loadedChunk.chunk_z - 2 * dist_z + sig_z;
@@ -157,16 +138,17 @@ void chunk_loader_render_chunks( LoadedChunks *loadedChunks, TRIP_ARGS( float ca
     }
 }
 
-void chunk_loader_draw_chunks( LoadedChunks *loadedChunks ) {
+void chunk_loader_draw_chunks( LoadedChunks *loadedChunks, glm::mat4 &mvp) {
+    shader_set_uniform_mat4f( &loadedChunks->shader, "u_MVP", mvp );
     // pr_debug( "Drawing %d chunks", loadedChunks->numLoadedChunks );
     for ( int i = 0; i < MAX_LOADED_CHUNKS; i++ ) {
         // pr_debug( "Drawing chunk %d", i );
-        chunk_draw( &loadedChunks->chunkArray[ i ], 1 );
+        chunk_render( &loadedChunks->chunkArray[ i ], &loadedChunks->renderer, &loadedChunks->shader );
     }
-    for ( int i = 0; i < MAX_LOADED_CHUNKS; i++ ) {
-        // pr_debug( "Drawing chunk %d", i );
-        chunk_draw( &loadedChunks->chunkArray[ i ], 0 );
-    }
+    // for ( int i = 0; i < MAX_LOADED_CHUNKS; i++ ) {
+    //     // pr_debug( "Drawing chunk %d", i );
+    //     chunk_draw( &loadedChunks->chunkArray[ i ], 0 );
+    // }
 }
 
 void chunk_loader_cleanup( LoadedChunks *loadedChunks ) {
@@ -174,7 +156,7 @@ void chunk_loader_cleanup( LoadedChunks *loadedChunks ) {
     // pr_debug( "Freeing %d chunks", loadedChunks->numLoadedChunks );
     for ( int i = 0; i < MAX_LOADED_CHUNKS; i++ ) {
         Chunk *chunk = &loadedChunks->chunkArray[ i ];
-        chunk_destroy_display_list( chunk );
+        //chunk_destroy_display_list( chunk );
         chunk_persist( chunk );
         chunk_free_terrain( chunk );
     }
