@@ -600,10 +600,6 @@ int main( int argc, char **argv ) {
         glClear( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT );
 
         glm::mat4 model = glm::mat4( 1.0f );
-        // TODO translate by the block coords
-        // model = glm::translate( model, glm::vec3( -globalGameState.camera.x,     //
-        //                                           -globalGameState.camera.y,     //
-        //                                           -globalGameState.camera.z ) ); //
 
         glm::mat4 mvp = globalGameState.screen.proj * globalGameState.camera.view_look * globalGameState.camera.view_trans * model;
         world_render( &globalGameState.gameChunks, globalGameState.camera.x, globalGameState.camera.y, globalGameState.camera.z);
@@ -618,7 +614,7 @@ int main( int argc, char **argv ) {
         tend = tstart;
         // // pr_debug("Time Diff ms:%f", diff_ms);
         globalGameState.frame_rate = 1.0 / ( diff_ms / 1000.0 );
-        pr_debug( "FPS:%f", globalGameState.frame_rate );
+        //pr_debug( "FPS:%f", globalGameState.frame_rate );
 
         // if ( globalGameState.input.limit_fps ) {
         //     double wait_time_ms = fps_ms - diff_ms;

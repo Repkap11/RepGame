@@ -134,61 +134,21 @@ void block_definitions_initilize_definitions( Texture *texture ) {
     block_definitions[ DIAMOND_BLOCK ].textures.bottom = DIAMOND_BLOCK;
     block_definitions[ DIAMOND_BLOCK ].special_grass_logic = 0;
 
-    block_definitions[ WOOD_PLANK ].id = DIRT;
+    block_definitions[ WOOD_PLANK ].id = WOOD_PLANK;
     block_definitions[ WOOD_PLANK ].alpha = 1.0f;
     block_definitions[ WOOD_PLANK ].height = 1.0f;
-    block_definitions[ WOOD_PLANK ].textures.top = DIRT;
-    block_definitions[ WOOD_PLANK ].textures.side = DIRT;
-    block_definitions[ WOOD_PLANK ].textures.bottom = DIRT;
+    block_definitions[ WOOD_PLANK ].textures.top = WOOD_PLANK;
+    block_definitions[ WOOD_PLANK ].textures.side = WOOD_PLANK;
+    block_definitions[ WOOD_PLANK ].textures.bottom = WOOD_PLANK;
     block_definitions[ WOOD_PLANK ].special_grass_logic = 0;
 
-    block_definitions[ WOOD_PLANK ].id = DIRT;
-    block_definitions[ WOOD_PLANK ].alpha = 1.0f;
-    block_definitions[ WOOD_PLANK ].height = 1.0f;
-    block_definitions[ WOOD_PLANK ].textures.top = DIRT;
-    block_definitions[ WOOD_PLANK ].textures.side = DIRT;
-    block_definitions[ WOOD_PLANK ].textures.bottom = DIRT;
-    block_definitions[ WOOD_PLANK ].special_grass_logic = 0;
-
-    block_definitions[ WOOD_PLANK ].id = DIRT;
-    block_definitions[ WOOD_PLANK ].alpha = 1.0f;
-    block_definitions[ WOOD_PLANK ].height = 1.0f;
-    block_definitions[ WOOD_PLANK ].textures.top = DIRT;
-    block_definitions[ WOOD_PLANK ].textures.side = DIRT;
-    block_definitions[ WOOD_PLANK ].textures.bottom = DIRT;
-    block_definitions[ WOOD_PLANK ].special_grass_logic = 0;
-
-    block_definitions[ WOOD_PLANK ].id = DIRT;
-    block_definitions[ WOOD_PLANK ].alpha = 1.0f;
-    block_definitions[ WOOD_PLANK ].height = 1.0f;
-    block_definitions[ WOOD_PLANK ].textures.top = DIRT;
-    block_definitions[ WOOD_PLANK ].textures.side = DIRT;
-    block_definitions[ WOOD_PLANK ].textures.bottom = DIRT;
-    block_definitions[ WOOD_PLANK ].special_grass_logic = 0;
-
-    block_definitions[ WOOD_PLANK ].id = DIRT;
-    block_definitions[ WOOD_PLANK ].alpha = 1.0f;
-    block_definitions[ WOOD_PLANK ].height = 1.0f;
-    block_definitions[ WOOD_PLANK ].textures.top = DIRT;
-    block_definitions[ WOOD_PLANK ].textures.side = DIRT;
-    block_definitions[ WOOD_PLANK ].textures.bottom = DIRT;
-    block_definitions[ WOOD_PLANK ].special_grass_logic = 0;
-
-    block_definitions[ WOOD_PLANK ].id = DIRT;
-    block_definitions[ WOOD_PLANK ].alpha = 1.0f;
-    block_definitions[ WOOD_PLANK ].height = 1.0f;
-    block_definitions[ WOOD_PLANK ].textures.top = DIRT;
-    block_definitions[ WOOD_PLANK ].textures.side = DIRT;
-    block_definitions[ WOOD_PLANK ].textures.bottom = DIRT;
-    block_definitions[ WOOD_PLANK ].special_grass_logic = 0;
-
-    block_definitions[ WOOD_PLANK ].id = DIRT;
-    block_definitions[ WOOD_PLANK ].alpha = 1.0f;
-    block_definitions[ WOOD_PLANK ].height = 1.0f;
-    block_definitions[ WOOD_PLANK ].textures.top = DIRT;
-    block_definitions[ WOOD_PLANK ].textures.side = DIRT;
-    block_definitions[ WOOD_PLANK ].textures.bottom = DIRT;
-    block_definitions[ WOOD_PLANK ].special_grass_logic = 0;
+    block_definitions[ WOOD_LOG_TOP ].id = WOOD_LOG_TOP;
+    block_definitions[ WOOD_LOG_TOP ].alpha = 1.0f;
+    block_definitions[ WOOD_LOG_TOP ].height = 1.0f;
+    block_definitions[ WOOD_LOG_TOP ].textures.top = WOOD_LOG_TOP;
+    block_definitions[ WOOD_LOG_TOP ].textures.side = WOOD_LOG_SIDE;
+    block_definitions[ WOOD_LOG_TOP ].textures.bottom = WOOD_LOG_TOP;
+    block_definitions[ WOOD_LOG_TOP ].special_grass_logic = 0;
 
     block_definitions[ SAND ].id = SAND;
     block_definitions[ SAND ].alpha = 1.0f;

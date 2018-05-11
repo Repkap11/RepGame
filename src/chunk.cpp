@@ -5,53 +5,6 @@
 #include "map_storage.h"
 #include <GL/gl.h>
 
-#define FACE_TOP 0
-#define FACE_BOTTOM 2
-#define FACE_FRONT 1
-#define FACE_BACK 1
-#define FACE_LECT 1
-#define FACE_RIGHT 1
-
-typedef struct {
-    float x;
-    float y;
-    float z;
-    unsigned int tex_coord_x;
-    unsigned int tex_coord_y;
-    unsigned int which_face;
-} CubeFace;
-
-CubeFace vd_data[] = {
-    {0.0f, 0.0f, 0.0f, /*Coords  Texture coords*/ !0, 0, FACE_FRONT}, // 0
-    {1.0f, 0.0f, 0.0f, /*Coords  Texture coords*/ !1, 0, FACE_FRONT}, // 1
-    {1.0f, 1.0f, 0.0f, /*Coords  Texture coords*/ !1, 1, FACE_FRONT}, // 2
-    {0.0f, 1.0f, 0.0f, /*Coords  Texture coords*/ !0, 1, FACE_FRONT}, // 3
-
-    {0.0f, 0.0f, 1.0f, /*Coords  Texture coords*/ !1, 0, FACE_BACK}, // 4
-    {1.0f, 0.0f, 1.0f, /*Coords  Texture coords*/ !0, 0, FACE_BACK}, // 5
-    {1.0f, 1.0f, 1.0f, /*Coords  Texture coords*/ !0, 1, FACE_BACK}, // 6
-    {0.0f, 1.0f, 1.0f, /*Coords  Texture coords*/ !1, 1, FACE_BACK}, // 7
-
-    {0.0f, 0.0f, 0.0f, /*Coords  Texture coords*/ 0, 0, FACE_LECT},  // 8
-    {1.0f, 0.0f, 0.0f, /*Coords  Texture coords*/ 1, 0, FACE_RIGHT}, // 9
-    {1.0f, 1.0f, 0.0f, /*Coords  Texture coords*/ 1, 1, FACE_RIGHT}, // 10
-    {0.0f, 1.0f, 0.0f, /*Coords  Texture coords*/ 0, 1, FACE_LECT},  // 11
-
-    {0.0f, 0.0f, 1.0f, /*Coords  Texture coords*/ 1, 0, FACE_LECT},  // 12
-    {1.0f, 0.0f, 1.0f, /*Coords  Texture coords*/ 0, 0, FACE_RIGHT}, // 13
-    {1.0f, 1.0f, 1.0f, /*Coords  Texture coords*/ 0, 1, FACE_RIGHT}, // 14
-    {0.0f, 1.0f, 1.0f, /*Coords  Texture coords*/ 1, 1, FACE_LECT},  // 15
-
-    {0.0f, 0.0f, 0.0f, /*Coords  Texture coords*/ !0, !0, FACE_BOTTOM}, // 16
-    {1.0f, 0.0f, 0.0f, /*Coords  Texture coords*/ !1, !0, FACE_BOTTOM}, // 17
-    {1.0f, 1.0f, 0.0f, /*Coords  Texture coords*/ !1, !1, FACE_TOP},    // 18
-    {0.0f, 1.0f, 0.0f, /*Coords  Texture coords*/ !0, !1, FACE_TOP},    // 19
-
-    {0.0f, 0.0f, 1.0f, /*Coords  Texture coords*/ 1, 0, FACE_BOTTOM}, // 20
-    {1.0f, 0.0f, 1.0f, /*Coords  Texture coords*/ 0, 0, FACE_BOTTOM}, // 21
-    {1.0f, 1.0f, 1.0f, /*Coords  Texture coords*/ 0, 1, FACE_TOP},    // 6
-    {0.0f, 1.0f, 1.0f, /*Coords  Texture coords*/ 1, 1, FACE_TOP},    // 7
-};
 unsigned int ib_data[] = {
     2,  1,  0, // Front
     0,  3,  2, //
@@ -88,19 +41,11 @@ int chunk_get_coords_from_index( int index, int *out_x, int *out_y, int *out_z )
     return result;
 }
 
-void chunk_init( Chunk *chunk ) {
-    vertex_buffer_init( &chunk->vb_block );
-    vertex_buffer_set_data( &chunk->vb_block, vd_data, sizeof( CubeFace ) * 4 * 6 );
-
+void chunk_init( Chunk *chunk, VertexBuffer *vb_block, VertexBufferLayout *vbl_block ) {
+    chunk->blocks = ( Block * )calloc( CHUNK_BLOCK_SIZE, sizeof( Block ) );
+    chunk->populated_blocks = ( BlockCoords * )calloc( CHUNK_BLOCK_SIZE, sizeof( BlockCoords ) );
     index_buffer_init( &chunk->ib, ib_data, 3 * 2 * 6 );
     index_buffer_bind( &chunk->ib );
-
-    vertex_buffer_layout_init( &chunk->vbl_block );
-    vertex_buffer_layout_bind( &chunk->vbl_block );
-    // The sum of these must be elements_per_vertex
-    vertex_buffer_layout_push_float( &chunk->vbl_block, 3 ); // Coords
-    vertex_buffer_layout_push_float( &chunk->vbl_block, 2 ); // Texture coords
-    vertex_buffer_layout_push_float( &chunk->vbl_block, 1 ); // Face type (top, sides, bottom)
 
     vertex_buffer_layout_init( &chunk->vbl_coords );
     vertex_buffer_layout_bind( &chunk->vbl_coords );
@@ -112,15 +57,20 @@ void chunk_init( Chunk *chunk ) {
     vertex_buffer_init( &chunk->vb_coords );
 
     vertex_array_init( &chunk->va );
-    vertex_array_add_buffer( &chunk->va, &chunk->vb_block, &chunk->vbl_block, 0 );
+    vertex_array_add_buffer( &chunk->va, vb_block, vbl_block, 0 );
     vertex_array_add_buffer( &chunk->va, &chunk->vb_coords, &chunk->vbl_coords, 1 );
 }
 
 void chunk_destroy( Chunk *chunk ) {
+    free( chunk->blocks );
+    free( chunk->populated_blocks );
 }
 
 void chunk_render( const Chunk *chunk, const Renderer *renderer, const Shader *shader ) {
     if ( chunk->should_render && chunk->num_instances != 0 ) {
+        if (chunk->is_loading){
+            pr_debug("Error, attempting to render loading chunk");
+        }
         renderer_draw( renderer, &chunk->va, &chunk->ib, shader, chunk->num_instances );
     }
 }
@@ -275,9 +225,6 @@ void chunk_load_terrain( Chunk *chunk ) {
         // We havn't loaded this chunk before, map gen it.
         map_gen_load_block( chunk );
     }
-    if ( !chunk->populated_blocks ) {
-        chunk->populated_blocks = ( BlockCoords * )calloc( CHUNK_BLOCK_SIZE, sizeof( BlockCoords ) );
-    }
     int which_block_coord = 0;
     for ( int index = CHUNK_BLOCK_DRAW_START; index < CHUNK_BLOCK_DRAW_STOP; index++ ) {
         int x, y, z;
@@ -290,7 +237,7 @@ void chunk_load_terrain( Chunk *chunk ) {
                 int visiable_from_bottom = chunk->blocks[ chunk_get_index_from_coords( x + 0, y - 1, z + 0 ) ].blockDef->alpha < blockDef->alpha;
                 int visiable_from_left = chunk->blocks[ chunk_get_index_from_coords( x + 0, y + 0, z - 1 ) ].blockDef->alpha < blockDef->alpha;
                 int visiable_from_right = chunk->blocks[ chunk_get_index_from_coords( x + 0, y + 0, z + 1 ) ].blockDef->alpha < blockDef->alpha;
-                int visiable_from_front = chunk->blocks[ chunk_get_index_from_coords( x + 1, y + 0, z + 0 ) ].blockDef->alpha< blockDef->alpha;
+                int visiable_from_front = chunk->blocks[ chunk_get_index_from_coords( x + 1, y + 0, z + 0 ) ].blockDef->alpha < blockDef->alpha;
                 int visiable_from_back = chunk->blocks[ chunk_get_index_from_coords( x - 1, y + 0, z + 0 ) ].blockDef->alpha < blockDef->alpha;
 
                 int block_could_be_visiable = visiable_from_top || visiable_from_bottom || visiable_from_left || visiable_from_right || visiable_from_front || visiable_from_back;
@@ -309,34 +256,6 @@ void chunk_load_terrain( Chunk *chunk ) {
         }
     }
     chunk->num_instances = which_block_coord;
-
-    // static int program_count = 0;
-    // program_count++;
-    // Clpr_debug( "Paul loading terrain %d", program_count );
-    // for ( int i = 0; i < chunk->num_instances; i++ ) {
-    //     BlockCoords *block = &chunk->populated_blocks[ i ];
-
-    //     int y = ( int )( i / ( CHUNK_SIZE * CHUNK_SIZE ) );
-    //     int x = ( int )( ( i / CHUNK_SIZE ) % CHUNK_SIZE );
-    //     int z = ( int )( i % CHUNK_SIZE );
-    //     // int x = ( rand( ) % 128 );
-    //     // int y = ( rand( ) % 128 );
-    //     // int z = ( rand( ) % 128 );
-    //     block->x = chunk->chunk_x * CHUNK_SIZE + x; // * 4;
-    //     block->y = chunk->chunk_y * CHUNK_SIZE + y; // * 4;
-    //     block->z = chunk->chunk_z * CHUNK_SIZE + z; // * 4;
-
-    //     // block->face_top = 9;
-    //     // block->face_sides = 8;
-    //     // block->face_bottom = 10;
-    //     unsigned int face = rand( ) % 128;
-
-    //     block->face_top = face;
-    //     block->face_sides = face;
-    //     block->face_bottom = face;
-    // }
-    // chunk_blocks_to_render_blocks();
-    // delete chunk->blocks;
 }
 
 void chunk_program_terrain( Chunk *chunk ) {
@@ -346,18 +265,6 @@ void chunk_program_terrain( Chunk *chunk ) {
     }
 }
 
-void chunk_persist( Chunk *chunk ) {
-    map_storage_persist( chunk );
-}
-
 void chunk_unprogram_terrain( Chunk *chunk ) {
     chunk->should_render = 0;
-}
-
-void chunk_free_terrain( Chunk *chunk ) {
-    // pr_debug( "Freeing chunk x:%d y:%d z:%d", chunk->chunk_x, chunk->chunk_y, chunk->chunk_z );
-    if ( chunk->blocks ) {
-        map_gen_free_block( chunk->blocks );
-        chunk->blocks = 0;
-    }
 }

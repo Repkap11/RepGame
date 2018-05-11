@@ -19,11 +19,10 @@ typedef struct {
 } BlockCoords;
 
 typedef struct {
+    int is_loading;
     IndexBuffer ib;
-    VertexBuffer vb_block;
     VertexBuffer vb_coords;
     VertexArray va;
-    VertexBufferLayout vbl_block;
     VertexBufferLayout vbl_coords;
     BlockCoords *populated_blocks;
     Block *blocks;
@@ -33,18 +32,16 @@ typedef struct {
     int should_render;
 } Chunk;
 
-void chunk_init( Chunk *chunk );
+void chunk_init( Chunk *chunk, VertexBuffer *vb_block, VertexBufferLayout *vbl_block );
 void chunk_render( const Chunk *chunk, const Renderer *renderer, const Shader *shader );
 void chunk_load_terrain( Chunk *chunk );      // Load from file or map gen
 void chunk_program_terrain( Chunk *chunk );   // Program into GPU
 void chunk_unprogram_terrain( Chunk *chunk ); // Remove from GPU
-void chunk_free_terrain( Chunk *chunk );      // Free
 // void chunk_calculate_sides( Chunk *chunk );
 int chunk_get_coords_from_index( int index, int *out_x, int *out_y, int *out_z );
 // void chunk_draw( Chunk *chunk, int solid );
-// void chunk_destroy_display_list( Chunk *chunk );
+void chunk_destroy( Chunk *chunk );
 void chunk_set_block( Chunk *chunk, int x, int y, int z, BlockID blockID );
-void chunk_persist( Chunk *chunk );
 Block *chunk_get_block( Chunk *chunk, int x, int y, int z );
 
 #endif

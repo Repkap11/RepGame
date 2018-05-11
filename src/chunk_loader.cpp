@@ -7,6 +7,54 @@
 
 #define MAX_LOADED_CHUNKS ( ( 2 * CHUNK_RADIUS_X + 1 ) * ( 2 * CHUNK_RADIUS_Y + 1 ) * ( 2 * CHUNK_RADIUS_Z + 1 ) )
 
+typedef struct {
+    float x;
+    float y;
+    float z;
+    unsigned int tex_coord_x;
+    unsigned int tex_coord_y;
+    unsigned int which_face;
+} CubeFace;
+
+#define FACE_TOP 0
+#define FACE_BOTTOM 2
+#define FACE_FRONT 1
+#define FACE_BACK 1
+#define FACE_LECT 1
+#define FACE_RIGHT 1
+
+CubeFace vd_data[] = {
+    {0.0f, 0.0f, 0.0f, /*Coords  Texture coords*/ !0, 0, FACE_FRONT}, // 0
+    {1.0f, 0.0f, 0.0f, /*Coords  Texture coords*/ !1, 0, FACE_FRONT}, // 1
+    {1.0f, 1.0f, 0.0f, /*Coords  Texture coords*/ !1, 1, FACE_FRONT}, // 2
+    {0.0f, 1.0f, 0.0f, /*Coords  Texture coords*/ !0, 1, FACE_FRONT}, // 3
+
+    {0.0f, 0.0f, 1.0f, /*Coords  Texture coords*/ !1, 0, FACE_BACK}, // 4
+    {1.0f, 0.0f, 1.0f, /*Coords  Texture coords*/ !0, 0, FACE_BACK}, // 5
+    {1.0f, 1.0f, 1.0f, /*Coords  Texture coords*/ !0, 1, FACE_BACK}, // 6
+    {0.0f, 1.0f, 1.0f, /*Coords  Texture coords*/ !1, 1, FACE_BACK}, // 7
+
+    {0.0f, 0.0f, 0.0f, /*Coords  Texture coords*/ 0, 0, FACE_LECT},  // 8
+    {1.0f, 0.0f, 0.0f, /*Coords  Texture coords*/ 1, 0, FACE_RIGHT}, // 9
+    {1.0f, 1.0f, 0.0f, /*Coords  Texture coords*/ 1, 1, FACE_RIGHT}, // 10
+    {0.0f, 1.0f, 0.0f, /*Coords  Texture coords*/ 0, 1, FACE_LECT},  // 11
+
+    {0.0f, 0.0f, 1.0f, /*Coords  Texture coords*/ 1, 0, FACE_LECT},  // 12
+    {1.0f, 0.0f, 1.0f, /*Coords  Texture coords*/ 0, 0, FACE_RIGHT}, // 13
+    {1.0f, 1.0f, 1.0f, /*Coords  Texture coords*/ 0, 1, FACE_RIGHT}, // 14
+    {0.0f, 1.0f, 1.0f, /*Coords  Texture coords*/ 1, 1, FACE_LECT},  // 15
+
+    {0.0f, 0.0f, 0.0f, /*Coords  Texture coords*/ !0, !0, FACE_BOTTOM}, // 16
+    {1.0f, 0.0f, 0.0f, /*Coords  Texture coords*/ !1, !0, FACE_BOTTOM}, // 17
+    {1.0f, 1.0f, 0.0f, /*Coords  Texture coords*/ !1, !1, FACE_TOP},    // 18
+    {0.0f, 1.0f, 0.0f, /*Coords  Texture coords*/ !0, !1, FACE_TOP},    // 19
+
+    {0.0f, 0.0f, 1.0f, /*Coords  Texture coords*/ 1, 0, FACE_BOTTOM}, // 20
+    {1.0f, 0.0f, 1.0f, /*Coords  Texture coords*/ 0, 0, FACE_BOTTOM}, // 21
+    {1.0f, 1.0f, 1.0f, /*Coords  Texture coords*/ 0, 1, FACE_TOP},    // 6
+    {0.0f, 1.0f, 1.0f, /*Coords  Texture coords*/ 1, 1, FACE_TOP},    // 7
+};
+
 void chunk_loader_init( LoadedChunks *loadedChunks ) {
     map_storage_init( );
     int status = terrain_loading_thread_start( );
@@ -14,14 +62,49 @@ void chunk_loader_init( LoadedChunks *loadedChunks ) {
         pr_debug( "Terrain loading thread failed to start." );
     }
     loadedChunks->chunkArray = ( Chunk * )calloc( MAX_LOADED_CHUNKS, sizeof( Chunk ) );
-    for ( int i = 0; i < MAX_LOADED_CHUNKS; i++ ) {
-        chunk_init( &loadedChunks->chunkArray[ i ] );
-    }
     shader_init( &loadedChunks->shader );
     texture_init_blocks( &loadedChunks->blocksTexture );
     unsigned int textureSlot = 0;
     texture_bind( &loadedChunks->blocksTexture, textureSlot );
-    block_definitions_initilize_definitions( &loadedChunks->blocksTexture);
+    block_definitions_initilize_definitions( &loadedChunks->blocksTexture );
+    vertex_buffer_init( &loadedChunks->vb_block );
+    vertex_buffer_set_data( &loadedChunks->vb_block, vd_data, sizeof( CubeFace ) * 4 * 6 );
+
+    vertex_buffer_layout_init( &loadedChunks->vbl_block );
+    vertex_buffer_layout_bind( &loadedChunks->vbl_block );
+    // The sum of these must be elements_per_vertex
+    vertex_buffer_layout_push_float( &loadedChunks->vbl_block, 3 ); // Coords
+    vertex_buffer_layout_push_float( &loadedChunks->vbl_block, 2 ); // Texture coords
+    vertex_buffer_layout_push_float( &loadedChunks->vbl_block, 1 ); // Face type (top, sides, bottom)
+
+    VertexBuffer *vb_block = &loadedChunks->vb_block;
+    VertexBufferLayout *vbl_block = &loadedChunks->vbl_block;
+    for ( int i = 0; i < MAX_LOADED_CHUNKS; i++ ) {
+        chunk_init( &loadedChunks->chunkArray[ i ], vb_block, vbl_block );
+    }
+
+    int nextChunk = 0;
+    for ( int i = -CHUNK_RADIUS_X; i <= CHUNK_RADIUS_X; i++ ) {
+        int new_i = ( i + CHUNK_RADIUS_X );
+        new_i = ( ( new_i * ( new_i % 2 ? 1 : -1 ) ) + ( ( new_i % 2 ) ? 1 : 0 ) ) / 2;
+        // pr_debug( "i:%d new_i:%d", i, new_i );
+        for ( int j = -CHUNK_RADIUS_Y; j <= CHUNK_RADIUS_Y; j++ ) {
+            int new_j = ( j + CHUNK_RADIUS_Y );
+            new_j = ( ( new_j * ( new_j % 2 ? 1 : -1 ) ) + ( ( new_j % 2 ) ? 1 : 0 ) ) / 2;
+            for ( int k = -CHUNK_RADIUS_Z; k <= CHUNK_RADIUS_Z; k++ ) {
+                int new_k = ( k + CHUNK_RADIUS_Z );
+                new_k = ( ( new_k * ( new_k % 2 ? 1 : -1 ) ) + ( ( new_k % 2 ) ? 1 : 0 ) ) / 2;
+                Chunk *chunk = &loadedChunks->chunkArray[ nextChunk ];
+                // pr_debug( "Initing chunk %d", nextChunk );
+                chunk->chunk_x = new_i;
+                chunk->chunk_y = new_j;
+                chunk->chunk_z = new_k;
+                chunk->is_loading = 1;
+                terrain_loading_thread_enqueue( chunk );
+                nextChunk = ( nextChunk + 1 );
+            }
+        }
+    }
 }
 
 // int chunk_loader_is_chunk_loaded( LoadedChunks *loadedChunks, int chunk_x, int chunk_y, int chunk_z ) {
@@ -61,51 +144,28 @@ void chunk_loader_render_chunks( LoadedChunks *loadedChunks, TRIP_ARGS( float ca
     do {
         chunk = terrain_loading_thread_dequeue( );
         if ( chunk ) {
+            chunk->is_loading = 0;
             // pr_debug( "Paul Loading terrain x:%d y%d: z:%d", chunk->chunk_x, chunk->chunk_y, chunk->chunk_z );
             chunk_program_terrain( chunk );
         }
         count += 1;
     } while ( chunk && count < CHUNK_RENDERS_PER_FRAME );
 
-    if ( ( loadedChunks->chunk_center_x != chunk_x ) || ( loadedChunks->chunk_center_y != chunk_y ) || ( loadedChunks->chunk_center_z != chunk_z ) || !loadedChunks->loaded_any ) {
+    if ( ( loadedChunks->chunk_center_x != chunk_x ) || ( loadedChunks->chunk_center_y != chunk_y ) || ( loadedChunks->chunk_center_z != chunk_z ) ) {
         // pr_debug( "Moved into chunk x:%d y:%d z:%d", chunk_x, chunk_y, chunk_z );
-
-        if ( !loadedChunks->loaded_any ) {
-            int nextChunk = 0;
-            for ( int i = -CHUNK_RADIUS_X; i <= CHUNK_RADIUS_X; i++ ) {
-                int new_i = ( i + CHUNK_RADIUS_X );
-                new_i = ( ( new_i * ( new_i % 2 ? 1 : -1 ) ) + ( ( new_i % 2 ) ? 1 : 0 ) ) / 2;
-                // pr_debug( "i:%d new_i:%d", i, new_i );
-                for ( int j = -CHUNK_RADIUS_Y; j <= CHUNK_RADIUS_Y; j++ ) {
-                    int new_j = ( j + CHUNK_RADIUS_Y );
-                    new_j = ( ( new_j * ( new_j % 2 ? 1 : -1 ) ) + ( ( new_j % 2 ) ? 1 : 0 ) ) / 2;
-                    for ( int k = -CHUNK_RADIUS_Z; k <= CHUNK_RADIUS_Z; k++ ) {
-                        int new_k = ( k + CHUNK_RADIUS_Z );
-                        new_k = ( ( new_k * ( new_k % 2 ? 1 : -1 ) ) + ( ( new_k % 2 ) ? 1 : 0 ) ) / 2;
-
-                        // pr_debug( "Initing chunk %d", nextChunk );
-
-                        loadedChunks->chunkArray[ nextChunk ].chunk_x = chunk_x + new_i;
-                        loadedChunks->chunkArray[ nextChunk ].chunk_y = chunk_y + new_j;
-                        loadedChunks->chunkArray[ nextChunk ].chunk_z = chunk_z + new_k;
-                        terrain_loading_thread_enqueue( &loadedChunks->chunkArray[ nextChunk ] );
-                        nextChunk = ( nextChunk + 1 );
-                    }
-                }
-            }
-        }
 
         for ( int i = 0; i < MAX_LOADED_CHUNKS; i++ ) {
             chunk = &loadedChunks->chunkArray[ i ];
-            Chunk loadedChunk = *chunk; // Make a local copy for faster access to xyz
-            int dist_x = loadedChunk.chunk_x - chunk_x;
-            int dist_y = loadedChunk.chunk_y - chunk_y;
-            int dist_z = loadedChunk.chunk_z - chunk_z;
+            if ( chunk->is_loading ) {
+                //continue;
+            }
+            int dist_x = chunk->chunk_x - chunk_x;
+            int dist_y = chunk->chunk_y - chunk_y;
+            int dist_z = chunk->chunk_z - chunk_z;
             int dist_x_abs = abs( dist_x );
             int dist_y_abs = abs( dist_y );
             int dist_z_abs = abs( dist_z );
 
-            // if ( dist_x_abs * dist_x_abs + dist_y_abs * dist_y_abs + dist_z_abs * dist_z_abs > CHUNK_RADIUS * CHUNK_RADIUS ) {
             if ( dist_x_abs > CHUNK_RADIUS_X || //
                  dist_y_abs > CHUNK_RADIUS_Y || //
                  dist_z_abs > CHUNK_RADIUS_Z ) {
@@ -114,31 +174,16 @@ void chunk_loader_render_chunks( LoadedChunks *loadedChunks, TRIP_ARGS( float ca
                 int sig_y = loadedChunks->chunk_center_y - chunk_y;
                 int sig_z = loadedChunks->chunk_center_z - chunk_z;
 
-                map_storage_persist( chunk );
                 chunk_unprogram_terrain( chunk );
+                map_storage_persist( chunk );
 
-                chunk->chunk_x = loadedChunk.chunk_x - 2 * dist_x + sig_x;
-                chunk->chunk_y = loadedChunk.chunk_y - 2 * dist_y + sig_y;
-                chunk->chunk_z = loadedChunk.chunk_z - 2 * dist_z + sig_z;
+                chunk->chunk_x = chunk->chunk_x - 2 * dist_x + sig_x;
+                chunk->chunk_y = chunk->chunk_y - 2 * dist_y + sig_y;
+                chunk->chunk_z = chunk->chunk_z - 2 * dist_z + sig_z;
+                chunk->is_loading = 1;
                 terrain_loading_thread_enqueue( chunk );
-                // chunk_x = 10 //camera
-                // loadedChunk->chunk.chunk_x = 5 // chunk
-                // = 2 * chunk_x - loadedChunk->chunk.chunk_x + sig( loadedChunk->chunk.chunk_y - chunk )
-
-                // = 2 * 10 - 5 + -1
-                //  = 20 - 5 + -1
-                // loadedChunk->loaded = 0;
             }
         }
-        loadedChunks->loaded_any = 1;
-
-        // pr_debug( "Done with chunk cycle" );
-        // if ( !chunk_loader_is_chunk_loaded( loadedChunks, chunk_x, chunk_y, chunk_z ) ) {
-        //     chunk_loader_load_chunk( &loadedChunks->loadedChunkArray[ nextChunk ], chunk_x, chunk_y, chunk_z );
-        // } else {
-        //     pr_debug( "Not loading chunk x:%d y:%d z:%d because its already loaded", chunk_x, chunk_y, chunk_z );
-        //     return;
-        // }
         loadedChunks->chunk_center_x = chunk_x;
         loadedChunks->chunk_center_y = chunk_y;
         loadedChunks->chunk_center_z = chunk_z;
@@ -160,12 +205,12 @@ void chunk_loader_draw_chunks( LoadedChunks *loadedChunks, glm::mat4 &mvp ) {
 
 void chunk_loader_cleanup( LoadedChunks *loadedChunks ) {
     terrain_loading_thread_stop( );
-    // pr_debug( "Freeing %d chunks", loadedChunks->numLoadedChunks );
     for ( int i = 0; i < MAX_LOADED_CHUNKS; i++ ) {
         Chunk *chunk = &loadedChunks->chunkArray[ i ];
-        // chunk_destroy_display_list( chunk );
-        chunk_persist( chunk );
-        chunk_free_terrain( chunk );
+        if ( !chunk->is_loading ) {
+            map_storage_persist( chunk );
+        }
+        chunk_destroy( chunk );
     }
     free( loadedChunks->chunkArray );
     texture_destroy( &loadedChunks->blocksTexture );
