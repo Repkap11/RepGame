@@ -65,33 +65,33 @@ void map_storage_cleanup( ) {
 #define STORAGE_TYPE char
 
 void map_storage_persist( Chunk *chunk ) {
-    // if ( chunk->ditry ) {
-    int chunk_offset_x = chunk->chunk_x * CHUNK_SIZE;
-    int chunk_offset_y = chunk->chunk_y * CHUNK_SIZE;
-    int chunk_offset_z = chunk->chunk_z * CHUNK_SIZE;
-    char file_name[ CHUNK_NAME_LENGTH ];
-    snprintf( file_name, CHUNK_NAME_LENGTH, file_root, map_name, chunk_offset_x, chunk_offset_y, chunk_offset_z );
+    if ( chunk->ditry ) {
+        int chunk_offset_x = chunk->chunk_x * CHUNK_SIZE;
+        int chunk_offset_y = chunk->chunk_y * CHUNK_SIZE;
+        int chunk_offset_z = chunk->chunk_z * CHUNK_SIZE;
+        char file_name[ CHUNK_NAME_LENGTH ];
+        snprintf( file_name, CHUNK_NAME_LENGTH, file_root, map_name, chunk_offset_x, chunk_offset_y, chunk_offset_z );
 
-    FILE *write_ptr;
-    STORAGE_TYPE persist_data[ CHUNK_BLOCK_SIZE ];
-    Block *blocks = chunk->blocks;
-    if ( blocks == 0 ) {
-        return;
-    }
-    int limit = CHUNK_BLOCK_SIZE;
-    for ( int i = 0; i < CHUNK_BLOCK_SIZE; i++ ) {
-        Block *block = &blocks[ i ];
-        BlockDefinition *blockDef = block->blockDef;
-        if ( blockDef == NULL ) {
-            pr_debug( "Block null?" );
-            continue;
+        FILE *write_ptr;
+        STORAGE_TYPE persist_data[ CHUNK_BLOCK_SIZE ];
+        Block *blocks = chunk->blocks;
+        if ( blocks == 0 ) {
+            return;
         }
-        persist_data[ i ] = blockDef->id;
+        int limit = CHUNK_BLOCK_SIZE;
+        for ( int i = 0; i < CHUNK_BLOCK_SIZE; i++ ) {
+            Block *block = &blocks[ i ];
+            BlockDefinition *blockDef = block->blockDef;
+            if ( blockDef == NULL ) {
+                pr_debug( "Block null?" );
+                continue;
+            }
+            persist_data[ i ] = blockDef->id;
+        }
+        write_ptr = fopen( file_name, "wb" );
+        fwrite( persist_data, CHUNK_BLOCK_SIZE * sizeof( STORAGE_TYPE ), 1, write_ptr );
+        fclose( write_ptr );
     }
-    write_ptr = fopen( file_name, "wb" );
-    fwrite( persist_data, CHUNK_BLOCK_SIZE * sizeof( STORAGE_TYPE ), 1, write_ptr );
-    fclose( write_ptr );
-    //}
 }
 
 int check_if_chunk_exists( TRIP_ARGS( int chunk_offset_ ) ) {

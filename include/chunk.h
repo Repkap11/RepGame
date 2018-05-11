@@ -30,6 +30,7 @@ typedef struct {
     int chunk_x, chunk_y, chunk_z;
     int ditry;
     int should_render;
+    int chunk_mod_x, chunk_mod_y, chunk_mod_z;
 } Chunk;
 
 void chunk_init( Chunk *chunk, VertexBuffer *vb_block, VertexBufferLayout *vbl_block );

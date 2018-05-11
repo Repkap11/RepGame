@@ -87,7 +87,7 @@ void chunk_loader_init( LoadedChunks *loadedChunks ) {
     for ( int i = -CHUNK_RADIUS_X; i <= CHUNK_RADIUS_X; i++ ) {
         int new_i = ( i + CHUNK_RADIUS_X );
         new_i = ( ( new_i * ( new_i % 2 ? 1 : -1 ) ) + ( ( new_i % 2 ) ? 1 : 0 ) ) / 2;
-        // pr_debug( "i:%d new_i:%d", i, new_i );
+        pr_debug( "i:%d new_i:%d", i, new_i );
         for ( int j = -CHUNK_RADIUS_Y; j <= CHUNK_RADIUS_Y; j++ ) {
             int new_j = ( j + CHUNK_RADIUS_Y );
             new_j = ( ( new_j * ( new_j % 2 ? 1 : -1 ) ) + ( ( new_j % 2 ) ? 1 : 0 ) ) / 2;
@@ -95,10 +95,14 @@ void chunk_loader_init( LoadedChunks *loadedChunks ) {
                 int new_k = ( k + CHUNK_RADIUS_Z );
                 new_k = ( ( new_k * ( new_k % 2 ? 1 : -1 ) ) + ( ( new_k % 2 ) ? 1 : 0 ) ) / 2;
                 Chunk *chunk = &loadedChunks->chunkArray[ nextChunk ];
-                // pr_debug( "Initing chunk %d", nextChunk );
                 chunk->chunk_x = new_i;
                 chunk->chunk_y = new_j;
                 chunk->chunk_z = new_k;
+                chunk->chunk_mod_x = new_i < 0 ? -CHUNK_RADIUS_X - new_i - 1 : CHUNK_RADIUS_X - new_i;
+                chunk->chunk_mod_y = new_j < 0 ? -CHUNK_RADIUS_Y - new_j - 1 : CHUNK_RADIUS_Y - new_j;
+                chunk->chunk_mod_z = new_k < 0 ? -CHUNK_RADIUS_Z - new_k - 1 : CHUNK_RADIUS_Z - new_k;
+                //pr_debug( "Initing chunk %d mod_y:%d", nextChunk, chunk->chunk_mod_y );
+
                 chunk->is_loading = 1;
                 terrain_loading_thread_enqueue( chunk );
                 nextChunk = ( nextChunk + 1 );
@@ -134,6 +138,24 @@ Chunk *chunk_loader_get_chunk( LoadedChunks *loadedChunks, TRIP_ARGS( int chunk_
     return NULL;
 }
 
+int reload_if_out_of_bounds( Chunk *chunk, TRIP_ARGS( int chunk_ ) ) {
+    int new_chunk_x = ( int )floorf( ( ( float )( chunk_x + chunk->chunk_mod_x ) ) / ( ( float )( CHUNK_RADIUS_X * 2 + 1 ) ) ) * ( CHUNK_RADIUS_X * 2 + 1 ) - chunk->chunk_mod_x + CHUNK_RADIUS_X;
+    int new_chunk_y = ( int )floorf( ( ( float )( chunk_y + chunk->chunk_mod_y ) ) / ( ( float )( CHUNK_RADIUS_Y * 2 + 1 ) ) ) * ( CHUNK_RADIUS_Y * 2 + 1 ) - chunk->chunk_mod_y + CHUNK_RADIUS_Y;
+    int new_chunk_z = ( int )floorf( ( ( float )( chunk_z + chunk->chunk_mod_z ) ) / ( ( float )( CHUNK_RADIUS_Z * 2 + 1 ) ) ) * ( CHUNK_RADIUS_Z * 2 + 1 ) - chunk->chunk_mod_z + CHUNK_RADIUS_Z;
+    int changed = new_chunk_x != chunk->chunk_x || new_chunk_y != chunk->chunk_y || new_chunk_z != chunk->chunk_z;
+
+    if ( changed ) {
+        chunk_unprogram_terrain( chunk );
+        map_storage_persist( chunk );
+        chunk->chunk_x = new_chunk_x;
+        chunk->chunk_y = new_chunk_y;
+        chunk->chunk_z = new_chunk_z;
+        chunk->is_loading = 1;
+        terrain_loading_thread_enqueue( chunk );
+    }
+    return changed;
+}
+
 void chunk_loader_render_chunks( LoadedChunks *loadedChunks, TRIP_ARGS( float camera_ ) ) {
     int chunk_x = floor( camera_x / ( float )CHUNK_SIZE );
     int chunk_y = floor( camera_y / ( float )CHUNK_SIZE );
@@ -145,8 +167,11 @@ void chunk_loader_render_chunks( LoadedChunks *loadedChunks, TRIP_ARGS( float ca
         chunk = terrain_loading_thread_dequeue( );
         if ( chunk ) {
             chunk->is_loading = 0;
-            // pr_debug( "Paul Loading terrain x:%d y%d: z:%d", chunk->chunk_x, chunk->chunk_y, chunk->chunk_z );
-            chunk_program_terrain( chunk );
+            int reloaded = reload_if_out_of_bounds( chunk, TRIP_ARGS( chunk_ ) );
+            if ( !reloaded ) {
+                // pr_debug( "Paul Loading terrain x:%d y%d: z:%d", chunk->chunk_x, chunk->chunk_y, chunk->chunk_z );
+                chunk_program_terrain( chunk );
+            }
         }
         count += 1;
     } while ( chunk && count < CHUNK_RENDERS_PER_FRAME );
@@ -157,32 +182,9 @@ void chunk_loader_render_chunks( LoadedChunks *loadedChunks, TRIP_ARGS( float ca
         for ( int i = 0; i < MAX_LOADED_CHUNKS; i++ ) {
             chunk = &loadedChunks->chunkArray[ i ];
             if ( chunk->is_loading ) {
-                //continue;
+                continue;
             }
-            int dist_x = chunk->chunk_x - chunk_x;
-            int dist_y = chunk->chunk_y - chunk_y;
-            int dist_z = chunk->chunk_z - chunk_z;
-            int dist_x_abs = abs( dist_x );
-            int dist_y_abs = abs( dist_y );
-            int dist_z_abs = abs( dist_z );
-
-            if ( dist_x_abs > CHUNK_RADIUS_X || //
-                 dist_y_abs > CHUNK_RADIUS_Y || //
-                 dist_z_abs > CHUNK_RADIUS_Z ) {
-
-                int sig_x = loadedChunks->chunk_center_x - chunk_x;
-                int sig_y = loadedChunks->chunk_center_y - chunk_y;
-                int sig_z = loadedChunks->chunk_center_z - chunk_z;
-
-                chunk_unprogram_terrain( chunk );
-                map_storage_persist( chunk );
-
-                chunk->chunk_x = chunk->chunk_x - 2 * dist_x + sig_x;
-                chunk->chunk_y = chunk->chunk_y - 2 * dist_y + sig_y;
-                chunk->chunk_z = chunk->chunk_z - 2 * dist_z + sig_z;
-                chunk->is_loading = 1;
-                terrain_loading_thread_enqueue( chunk );
-            }
+            reload_if_out_of_bounds( chunk, TRIP_ARGS( chunk_ ) );
         }
         loadedChunks->chunk_center_x = chunk_x;
         loadedChunks->chunk_center_y = chunk_y;
