@@ -10,7 +10,7 @@
 #include <unistd.h>
 #include "file_utils.h"
 
-#define CHUNK_NAME_LENGTH 50
+#define CHUNK_NAME_LENGTH 200
 
 char file_root[ CHUNK_NAME_LENGTH ] = "%s/chunk_%d_%d_%d";
 char map_name[ CHUNK_NAME_LENGTH ];
@@ -78,7 +78,6 @@ void map_storage_persist( Chunk *chunk ) {
         if ( blocks == 0 ) {
             return;
         }
-        int limit = CHUNK_BLOCK_SIZE;
         for ( int i = 0; i < CHUNK_BLOCK_SIZE; i++ ) {
             Block *block = &blocks[ i ];
             BlockDefinition *blockDef = block->blockDef;
@@ -86,7 +85,7 @@ void map_storage_persist( Chunk *chunk ) {
                 pr_debug( "Block null?" );
                 continue;
             }
-            persist_data[ i ] = blockDef->id;
+            persist_data[ i ] = (STORAGE_TYPE)(blockDef->id);
         }
         write_ptr = fopen( file_name, "wb" );
         fwrite( persist_data, CHUNK_BLOCK_SIZE * sizeof( STORAGE_TYPE ), 1, write_ptr );
@@ -126,6 +125,10 @@ int map_storage_load( Chunk *chunk ) {
 
     for ( int i = 0; i < CHUNK_BLOCK_SIZE; i++ ) {
         BlockID blockId = ( BlockID )( persist_data[ i ] );
+        if (blockId >= LAST_BLOCK_ID){
+            pr_debug("Got strange block:%d", blockId);
+            blockId = TNT;
+        }
         chunk->blocks[ i ].blockDef = block_definition_get_definition( blockId );
     }
     chunk->ditry = 0;
