@@ -32,7 +32,7 @@ clean:
 	rm -f $(TARGET)
 
 install:
-	#apt install freeglut3-dev libglew-dev libglm-dev libglm-doc
+	apt install freeglut3-dev libglew-dev libglm-dev libglm-doc
 
 #$(info $$VAR is [${VAR}])
 .PHONY: all clean install compile run

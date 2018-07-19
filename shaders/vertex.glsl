@@ -1,4 +1,4 @@
-#version 440 core
+#version 310 es
 uniform mat4 u_MVP;
 
 layout( location = 0 ) in vec4 position;

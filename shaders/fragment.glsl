@@ -1,4 +1,8 @@
-#version 440 core
+#version 310 es
+
+precision highp float;
+precision lowp sampler2DArray;
+
 in vec3 v_TexCoordBlock;
 
 uniform sampler2DArray u_Texture;

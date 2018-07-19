@@ -9,6 +9,7 @@
 
 #define DEBUG 1
 
+void showErrors( );
 #define pr_debug( fmt, ... )                                                                                                                                                                                                                   \
     do {                                                                                                                                                                                                                                       \
         if ( DEBUG )                                                                                                                                                                                                                           \

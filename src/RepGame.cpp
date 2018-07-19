@@ -545,7 +545,7 @@ double fps_ms = ( 1.0 / FPS_LIMIT ) * 1000.0;
 
 int main( int argc, char **argv ) {
     glutInit( &argc, argv );
-    // glutInitContextVersion( 3, 1 );
+    glutInitContextVersion( 3, 1 );
     // glutInitContextFlags( GLUT_DEBUG );
     glutInitDisplayMode( GLUT_DEPTH | GLUT_DOUBLE | GLUT_RGBA );
 
@@ -556,7 +556,7 @@ int main( int argc, char **argv ) {
         pr_debug( "GLEW init failed" );
         exit( 1 ); // or handle the error in a nicer way
     }
-    if ( !GLEW_VERSION_4_4 ) { // check that the machine supports the 2.1 API.
+    if ( !GLEW_VERSION_3_0 ) { // check that the machine supports the 2.1 API.
         pr_debug( "GLEW version wrong" );
         exit( 1 ); // or handle the error in a nicer way
     }
