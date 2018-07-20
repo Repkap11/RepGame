@@ -68,8 +68,8 @@ void chunk_destroy( Chunk *chunk ) {
 
 void chunk_render( const Chunk *chunk, const Renderer *renderer, const Shader *shader ) {
     if ( chunk->should_render && chunk->num_instances != 0 ) {
-        if (chunk->is_loading){
-            pr_debug("Error, attempting to render loading chunk");
+        if ( chunk->is_loading ) {
+            pr_debug( "Error, attempting to render loading chunk" );
         }
         renderer_draw( renderer, &chunk->va, &chunk->ib, shader, chunk->num_instances );
     }
@@ -218,6 +218,10 @@ void chunk_set_block( Chunk *chunk, int x, int y, int z, BlockID blockID ) {
 //     }
 // }
 
+void chunk_persist( Chunk *chunk ) {
+    map_storage_persist( chunk );
+}
+
 void chunk_load_terrain( Chunk *chunk ) {
     // pr_debug( "Loading chunk terrain x:%d y:%d z:%d", chunk->chunk_x, chunk->chunk_y, chunk->chunk_z );
     int loaded = map_storage_load( chunk );
@@ -225,6 +229,8 @@ void chunk_load_terrain( Chunk *chunk ) {
         // We havn't loaded this chunk before, map gen it.
         map_gen_load_block( chunk );
     }
+    chunk->ditry = PERSIST_ALL_CHUNKS;
+
     int which_block_coord = 0;
     for ( int index = CHUNK_BLOCK_DRAW_START; index < CHUNK_BLOCK_DRAW_STOP; index++ ) {
         int x, y, z;

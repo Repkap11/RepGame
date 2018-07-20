@@ -16,5 +16,4 @@ typedef struct {
 
 } Block;
 
-void block_draw( Block *block );
 #endif

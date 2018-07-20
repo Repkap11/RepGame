@@ -54,7 +54,8 @@ void linked_list_add_element( LinkedList *l, LinkedListValue value ) {
 
 // Pop off head
 LinkedListValue linked_list_pop_element( LinkedList *l ) {
-    LinkedListValue result = NULL;
+    LinkedListValue result;
+    result.valid = 0;
     pthread_mutex_lock( &( l->mutex ) );
 
     LinkedListItem *li = l->head;
@@ -67,9 +68,9 @@ LinkedListValue linked_list_pop_element( LinkedList *l ) {
         l->head = li->prev;
         l->count--;
         result = li->value;
+        result.valid = 1;
         free( li );
     }
     pthread_mutex_unlock( &( l->mutex ) );
-
     return result;
 }

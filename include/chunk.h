@@ -41,6 +41,7 @@ void chunk_unprogram_terrain( Chunk *chunk ); // Remove from GPU
 // void chunk_calculate_sides( Chunk *chunk );
 int chunk_get_coords_from_index( int index, int *out_x, int *out_y, int *out_z );
 // void chunk_draw( Chunk *chunk, int solid );
+void chunk_persist( Chunk *chunk );
 void chunk_destroy( Chunk *chunk );
 void chunk_set_block( Chunk *chunk, int x, int y, int z, BlockID blockID );
 Block *chunk_get_block( Chunk *chunk, int x, int y, int z );

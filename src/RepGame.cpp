@@ -131,26 +131,6 @@ static void calculateMousePos( int arg, TRIP_ARGS( int *out_create_ ), TRIP_ARGS
     // The player has selected this block (unless there are edge problems)
 }
 
-static void draw_pointed_block( int world_x, int world_y, int world_z ) {
-    glPushMatrix( );
-    float half = 0.5f;
-    float scale = 1.001f;
-    glTranslatef( world_x + half, world_y + half, world_z + half );
-    glScalef( scale, scale, scale );
-    glTranslatef( -half, -half, -half );
-    Block block;
-    block.draw_sides.top = 1;
-    block.draw_sides.bottom = 1;
-    block.draw_sides.left = 1;
-    block.draw_sides.right = 1;
-    block.draw_sides.front = 1;
-    block.draw_sides.back = 1;
-    block.blockDef = block_definition_get_definition( PLAYER_SELECTION );
-
-    block_draw( &block );
-    glPopMatrix( );
-}
-
 static inline void display( ) {
     glClear( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT );
     // glLoadIdentity( );
@@ -616,14 +596,14 @@ int main( int argc, char **argv ) {
         globalGameState.frame_rate = 1.0 / ( diff_ms / 1000.0 );
         //pr_debug( "FPS:%f", globalGameState.frame_rate );
 
-        // if ( globalGameState.input.limit_fps ) {
-        //     double wait_time_ms = fps_ms - diff_ms;
-        //     if ( wait_time_ms > 1.0 ) {
-        //         int wait_time_us = ( int )( wait_time_ms * 1000.0 );
-        //         // pr_debug("WaitTime_us:%d", wait_time_us);
-        //         usleep( wait_time_us );
-        //     }
-        // }
+        if ( globalGameState.input.limit_fps ) {
+            double wait_time_ms = fps_ms - diff_ms;
+            if ( wait_time_ms > 1.0 ) {
+                int wait_time_us = ( int )( wait_time_ms * 1000.0 );
+                // pr_debug("WaitTime_us:%d", wait_time_us);
+                usleep( wait_time_us );
+            }
+        }
     }
     cleanupGameState( );
     glutLeaveMainLoop( );

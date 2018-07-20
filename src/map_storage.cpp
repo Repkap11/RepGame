@@ -62,7 +62,7 @@ void map_storage_init( ) {
 void map_storage_cleanup( ) {
 }
 
-#define STORAGE_TYPE char
+#define STORAGE_TYPE unsigned char
 
 void map_storage_persist( Chunk *chunk ) {
     if ( chunk->ditry ) {
@@ -131,6 +131,5 @@ int map_storage_load( Chunk *chunk ) {
         }
         chunk->blocks[ i ].blockDef = block_definition_get_definition( blockId );
     }
-    chunk->ditry = 0;
     return 1;
 }

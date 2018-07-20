@@ -101,10 +101,10 @@ void chunk_loader_init( LoadedChunks *loadedChunks ) {
                 chunk->chunk_mod_x = new_i < 0 ? -CHUNK_RADIUS_X - new_i - 1 : CHUNK_RADIUS_X - new_i;
                 chunk->chunk_mod_y = new_j < 0 ? -CHUNK_RADIUS_Y - new_j - 1 : CHUNK_RADIUS_Y - new_j;
                 chunk->chunk_mod_z = new_k < 0 ? -CHUNK_RADIUS_Z - new_k - 1 : CHUNK_RADIUS_Z - new_k;
-                //pr_debug( "Initing chunk %d mod_y:%d", nextChunk, chunk->chunk_mod_y );
+                // pr_debug( "Initing chunk %d mod_y:%d", nextChunk, chunk->chunk_mod_y );
 
                 chunk->is_loading = 1;
-                terrain_loading_thread_enqueue( chunk );
+                terrain_loading_thread_enqueue( chunk, TRIP_ARGS( chunk->chunk_ ), 0 );
                 nextChunk = ( nextChunk + 1 );
             }
         }
@@ -146,12 +146,8 @@ int reload_if_out_of_bounds( Chunk *chunk, TRIP_ARGS( int chunk_ ) ) {
 
     if ( changed ) {
         chunk_unprogram_terrain( chunk );
-        map_storage_persist( chunk );
-        chunk->chunk_x = new_chunk_x;
-        chunk->chunk_y = new_chunk_y;
-        chunk->chunk_z = new_chunk_z;
         chunk->is_loading = 1;
-        terrain_loading_thread_enqueue( chunk );
+        terrain_loading_thread_enqueue( chunk, TRIP_ARGS( new_chunk_ ), 1 );
     }
     return changed;
 }
@@ -210,7 +206,7 @@ void chunk_loader_cleanup( LoadedChunks *loadedChunks ) {
     for ( int i = 0; i < MAX_LOADED_CHUNKS; i++ ) {
         Chunk *chunk = &loadedChunks->chunkArray[ i ];
         if ( !chunk->is_loading ) {
-            map_storage_persist( chunk );
+            chunk_persist( chunk );
         }
         chunk_destroy( chunk );
     }
