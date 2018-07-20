@@ -40,6 +40,7 @@ void chunk_program_terrain( Chunk *chunk );   // Program into GPU
 void chunk_unprogram_terrain( Chunk *chunk ); // Remove from GPU
 // void chunk_calculate_sides( Chunk *chunk );
 int chunk_get_coords_from_index( int index, int *out_x, int *out_y, int *out_z );
+int chunk_get_index_from_coords( int x, int y, int z );
 // void chunk_draw( Chunk *chunk, int solid );
 void chunk_persist( Chunk *chunk );
 void chunk_destroy( Chunk *chunk );

@@ -228,8 +228,8 @@ void chunk_load_terrain( Chunk *chunk ) {
     if ( !loaded ) {
         // We havn't loaded this chunk before, map gen it.
         map_gen_load_block( chunk );
+        chunk->ditry = PERSIST_ALL_CHUNKS;
     }
-    chunk->ditry = PERSIST_ALL_CHUNKS;
 
     int which_block_coord = 0;
     for ( int index = CHUNK_BLOCK_DRAW_START; index < CHUNK_BLOCK_DRAW_STOP; index++ ) {

@@ -170,17 +170,18 @@ void chunk_loader_render_chunks( LoadedChunks *loadedChunks, TRIP_ARGS( float ca
             }
         }
         count += 1;
-    } while ( chunk && count < CHUNK_RENDERS_PER_FRAME );
+    } while ( chunk );
 
     if ( ( loadedChunks->chunk_center_x != chunk_x ) || ( loadedChunks->chunk_center_y != chunk_y ) || ( loadedChunks->chunk_center_z != chunk_z ) ) {
-        // pr_debug( "Moved into chunk x:%d y:%d z:%d", chunk_x, chunk_y, chunk_z );
+        pr_debug( "Moved outof chunk x:%d y:%d z:%d", TRIP_ARGS(loadedChunks->chunk_center_) );
+        pr_debug( "Moved into  chunk x:%d y:%d z:%d", TRIP_ARGS(chunk_) );
 
         for ( int i = 0; i < MAX_LOADED_CHUNKS; i++ ) {
             chunk = &loadedChunks->chunkArray[ i ];
             if ( chunk->is_loading ) {
                 continue;
             }
-            reload_if_out_of_bounds( chunk, TRIP_ARGS( chunk_ ) );
+            int reloaded = reload_if_out_of_bounds( chunk, TRIP_ARGS( chunk_ ) );
         }
         loadedChunks->chunk_center_x = chunk_x;
         loadedChunks->chunk_center_y = chunk_y;

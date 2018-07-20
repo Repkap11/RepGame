@@ -31,8 +31,11 @@ clean:
 	rm -rf out
 	rm -f $(TARGET)
 
+world:
+	rm -rf World1
+
 install:
 	apt install freeglut3-dev libglew-dev libglm-dev libglm-doc
 
 #$(info $$VAR is [${VAR}])
-.PHONY: all clean install compile run
+.PHONY: all clean install compile run world
