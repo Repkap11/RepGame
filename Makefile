@@ -4,7 +4,7 @@ CC_LINUX = g++
 LD_LINUX = ld
 
 CC_ANDROID = /media/paul/storage/android-sdk/ndk-bundle/toolchains/aarch64-linux-android-4.9/prebuilt/linux-x86_64/bin/aarch64-linux-android-g++
-LD_ANDROID = = /media/paul/storage/android-sdk/ndk-bundle/toolchains/aarch64-linux-android-4.9/prebuilt/linux-x86_64/bin/aarch64-linux-android-ld
+LD_ANDROID = /media/paul/storage/android-sdk/ndk-bundle/toolchains/aarch64-linux-android-4.9/prebuilt/linux-x86_64/bin/aarch64-linux-android-ld
 
 #SHELL = sh -xv
 #CFLAGS = -Wall -std=c++98 -Wno-unused-variable -O3 -march=native -flto
@@ -87,6 +87,6 @@ install:
 
 .PRECIOUS: $(TARGET) $(OBJECTS_LINUX) $(OBJECTS_SHARED_LINUX) $(OBJECTS_SHARED_ANDROID) $(LIB_TARGET_LINUX) $(LIB_TARGET_ANDROID)
 
-$(info $$PATH is [${PATH}])
+#$(info $$PATH is [${PATH}])
 .PHONY: all clean install linux run world android map
 $(shell mkdir -p $(DIRS))

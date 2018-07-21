@@ -1,6 +1,5 @@
 #include "abstract/shader.h"
 
-
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -21,7 +20,7 @@ char *shaderLoadSource( const char *filePath ) {
     pr_debug( "shader path:%s", fullPath );
     fp = fopen( fullPath, "r" );
     if ( !fp ) {
-        fprintf( stderr, "shaderLoadSource(): Unable to open %s for reading\n", filePath );
+        pr_debug( "shaderLoadSource(): Unable to open %s for reading\n", filePath );
         return NULL;
     }
 
@@ -29,7 +28,7 @@ char *shaderLoadSource( const char *filePath ) {
     while ( ( tmp = fread( buf, 1, blockSize, fp ) ) > 0 ) {
         char *newSource = ( char * )malloc( sourceLength + tmp + 1 );
         if ( !newSource ) {
-            fprintf( stderr, "shaderLoadSource(): malloc failed\n" );
+            pr_debug( "shaderLoadSource(): malloc failed\n" );
             if ( source )
                 free( source );
             return NULL;
@@ -81,7 +80,7 @@ unsigned int shaderCompileFromFile( int type, const char *filePath ) {
         glGetShaderInfoLog( shader, length, &result, log );
 
         /* print an error message and the info log */
-        fprintf( stderr, "shaderCompileFromFile(): Unable to compile %s: %s\n", filePath, log );
+        pr_debug( "shaderCompileFromFile(): Unable to compile %s: %s\n", filePath, log );
         free( log );
 
         glDeleteShader( shader );
@@ -121,7 +120,7 @@ unsigned int shaders_compile( const char *vertex_path, const char *fragment_path
         glGetProgramInfoLog( g_program, length, &result, log );
 
         /* print an error message and the info log */
-        fprintf( stderr, "sceneInit(): Program linking failed: %s\n", log );
+        pr_debug( "sceneInit(): Program linking failed: %s\n", log );
         free( log );
 
         /* delete the program */
