@@ -1,6 +1,4 @@
 #define GL_GLEXT_PROTOTYPES
-#include <GL/gl.h>
-#include <GL/glut.h>
 #include "file_utils.h"
 
 #include "RepGame.h"

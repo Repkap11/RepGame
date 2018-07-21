@@ -1,20 +1,19 @@
-#ifndef HEADER_TEST_H
-#define HEADER_TEST_H
+#ifndef HEADER_REPGAME_H
+#define HEADER_REPGAME_H
+
+#ifdef REPGAME_LINUX
+#include "linux/RepGameLinux.h"
+#else
+//#include "andorid/RepGameAndroid.h"
+#endif
 
 #include "chunk_loader.h"
 #include "constants.h"
-#include <stdio.h>
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
-
 #define DEBUG 1
 
 void showErrors( );
-#define pr_debug( fmt, ... )                                                                                                                                                                                                                   \
-    do {                                                                                                                                                                                                                                       \
-        if ( DEBUG )                                                                                                                                                                                                                           \
-            fprintf( stdout, "%s:%d:%s():" fmt "\n", __FILE__, __LINE__, __func__, ##__VA_ARGS__ );                                                                                                                                            \
-    } while ( 0 )
 
 #define TRIP_STATE( replace )                                                                                                                                                                                                                  \
     replace##x;                                                                                                                                                                                                                                \

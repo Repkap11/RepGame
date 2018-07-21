@@ -1,5 +1,5 @@
-#define GL_GLEXT_PROTOTYPES
 #include "RepGame.h"
+
 #include "abstract/vertex_array.h"
 #include "abstract/vertex_buffer.h"
 #include "abstract/vertex_buffer_layout.h"
@@ -20,8 +20,8 @@ void vertex_array_add_buffer( VertexArray *vertexArray, const VertexBuffer *vert
     unsigned int offset = 0;
     const unsigned int current_size = vertexBufferLayout->current_size;
     for ( unsigned int i = 0; i < current_size; i++ ) {
-        //TODO keep track of last i inside of vertexArray so next time we can increment it 
-        //pr_debug( "Binding VertexBufferElement:%d", i + divisor * 3 );
+        // TODO keep track of last i inside of vertexArray so next time we can increment it
+        // pr_debug( "Binding VertexBufferElement:%d", i + divisor * 3 );
         const VertexBufferElement *element = &vertexBufferLayout->elements[ i ];
         glEnableVertexAttribArray( i + divisor * 3 );
         glVertexAttribDivisor( i + divisor * 3, divisor );

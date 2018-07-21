@@ -2,7 +2,6 @@
 #include "RepGame.h"
 #include "map_gen.h"
 #include "map_storage.h"
-#include <GL/gl.h>
 
 unsigned int ib_data_solid[] = {
     2,  1,  0, // Front

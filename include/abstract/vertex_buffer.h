@@ -1,7 +1,9 @@
 #ifndef HEADER_VERTEX_BUFFER_H
 #define HEADER_VERTEX_BUFFER_H
 
-typedef struct { unsigned int mRendererId; } VertexBuffer;
+typedef struct {
+    unsigned int mRendererId;
+} VertexBuffer;
 
 void vertex_buffer_init( VertexBuffer *vertexBuffer );
 void vertex_buffer_destroy( const VertexBuffer *vertexBuffer );

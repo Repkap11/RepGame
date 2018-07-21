@@ -1,8 +1,6 @@
 #ifndef HEADER_BLOCK_DEFINITIONS_H
 #define HEADER_BLOCK_DEFINITIONS_H
 
-#include <GL/gl.h>
-
 typedef enum {
     AIR = 0,
     GRASS,

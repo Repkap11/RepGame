@@ -5,7 +5,11 @@
         "cmath": "c",
         "cstdlib": "c",
         "type_traits": "c",
-        "typeinfo": "cpp"
+        "typeinfo": "cpp",
+        "*.tcc": "cpp",
+        "system_error": "cpp",
+        "array": "cpp",
+        "string_view": "cpp"
     },
     "git.ignoreLimitWarning": true
 }

@@ -1,5 +1,3 @@
-#include <GL/glew.h>
-#include <GL/freeglut.h>
 #include <math.h>
 #include <time.h>
 #include <unistd.h>
@@ -130,7 +128,7 @@ void changeSize( int w, int h ) {
 
 int main( int argc, char **argv ) {
     glutInit( &argc, argv );
-    glutInitContextVersion( 3, 1 );
+    glutInitContextVersion( 3, 3 );
     // glutInitContextFlags( GLUT_DEBUG );
     glutInitDisplayMode( GLUT_DEPTH | GLUT_DOUBLE | GLUT_RGBA );
 

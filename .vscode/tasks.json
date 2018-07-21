@@ -14,9 +14,9 @@
             }
         },
         {
-            "label": "make compile",
+            "label": "make linux",
             "type": "shell",
-            "command": "make compile",
+            "command": "make linux",
             "problemMatcher": [],
             "group": {
                 "kind": "test",

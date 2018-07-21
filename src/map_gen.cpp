@@ -1,5 +1,5 @@
-#include "map_gen.h"
 #include "RepGame.h"
+#include "map_gen.h"
 #include "block_definitions.h"
 #include "perlin_noise.h"
 #include "chunk_loader.h"

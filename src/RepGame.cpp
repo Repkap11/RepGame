@@ -15,6 +15,7 @@
 #include "abstract/vertex_buffer_layout.h"
 #include "abstract/vertex_array.h"
 #include "abstract/renderer.h"
+
 RepGameState globalGameState;
 
 glm::mat4 model;
@@ -165,7 +166,7 @@ static void gameTick( ) {
     globalGameState.camera.view_look = glm::lookAt( glm::vec3( 0.0f, 0.0f, 0.0f ), // From the origin
                                                     glm::vec3( lx, ly, lz ),       // Look at look vector
                                                     glm::vec3( 0.0f, 1.0f, 0.0f )  // Head is up (set to 0,-1,0 to look upside-down)
-    );
+                                                    );
     globalGameState.camera.view_trans = glm::translate( glm::mat4( 1.0f ), glm::vec3( -globalGameState.camera.x,     //
                                                                                       -globalGameState.camera.y,     //
                                                                                       -globalGameState.camera.z ) ); //

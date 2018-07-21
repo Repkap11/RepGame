@@ -1,5 +1,3 @@
-#include <GL/freeglut.h>
-
 #include "RepGame.h"
 #include "input.h"
 

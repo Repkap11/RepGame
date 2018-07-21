@@ -1,6 +1,6 @@
 #include <jni.h>
-#include <GLES3/gl31.h>
 #include <android/log.h>
+#include "RepGame.h"
 
 #define APPNAME "RepGameNative"
 
@@ -31,6 +31,7 @@ void on_surface_created( ) {
     pr_debug( "################################# START #################################" );
     pr_debug( "Using OpenGL Version:%s", glGetString( GL_VERSION ) );
     glClearColor( 1.0f, 0.0f, 0.0f, 0.0f );
+
 }
 
 void on_draw_frame( ) {

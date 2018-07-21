@@ -1,10 +1,5 @@
-#define GL_GLEXT_PROTOTYPES
 #include "abstract/shader.h"
 
-#include <GL/glew.h>
-
-#include <GL/glext.h>
-#include <GL/glext.h>
 
 #include <stdio.h>
 #include <stdlib.h>

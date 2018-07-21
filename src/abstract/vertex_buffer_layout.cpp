@@ -1,4 +1,3 @@
-#define GL_GLEXT_PROTOTYPES
 #include "RepGame.h"
 #include "abstract/vertex_buffer_layout.h"
 

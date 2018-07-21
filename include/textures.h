@@ -1,6 +1,5 @@
 #ifndef HEADER_TEXTURES_H
 #define HEADER_TEXTURES_H
-#include <GL/gl.h>
 
 typedef struct {
     unsigned int m_RendererId; //
