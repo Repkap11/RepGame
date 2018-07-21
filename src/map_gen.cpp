@@ -23,9 +23,9 @@ void map_gen_load_block( Chunk *chunk ) {
 
                 // for ( int index = 0; index < CHUNK_BLOCK_SIZE; index++ ) {
                 // int x, y, z;
-                int terrainShouldHaveBlock = (chunk_offset_y + y) < terrainHeight; // Default to no block
-                BlockID finalBlockId = AIR;                                      // base block type is grass I guess
-                                                                                 // chunk_get_coords_from_index( index, &x, &y, &z );
+                int terrainShouldHaveBlock = ( chunk_offset_y + y ) < terrainHeight; // Default to no block
+                BlockID finalBlockId = AIR;                                          // base block type is grass I guess
+                                                                                     // chunk_get_coords_from_index( index, &x, &y, &z );
 
                 if ( terrainShouldHaveBlock == 1 ) {
                     finalBlockId = GRASS;

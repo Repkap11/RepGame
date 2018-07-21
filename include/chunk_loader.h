@@ -9,13 +9,18 @@ typedef struct {
     Renderer renderer;
     Shader shader;
     Texture blocksTexture;
-    VertexBuffer vb_block;
+    struct {
+        VertexBuffer vb_block;
+    } solid;
+    struct {
+        VertexBuffer vb_block;
+    } water;
     VertexBufferLayout vbl_block;
 } LoadedChunks;
 
 void chunk_loader_init( LoadedChunks *loadedChunks );
 void chunk_loader_render_chunks( LoadedChunks *loadedChunks, float camera_x, float camera_y, float camera_z );
-void chunk_loader_draw_chunks( LoadedChunks *loadedChunks, glm::mat4 &mvp);
+void chunk_loader_draw_chunks( LoadedChunks *loadedChunks, glm::mat4 &mvp );
 Chunk *chunk_loader_get_chunk( LoadedChunks *loadedChunks, int pointed_x, int pointed_y, int pointed_z );
 void chunk_loader_cleanup( LoadedChunks *loadedChunks );
 

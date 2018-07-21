@@ -70,8 +70,3 @@ int perlin_noise_biomes( int x, int z ) {
     float noise = perlin2d( abs( x ), abs( z ), 0.02, 4 );
     return floor( noise = noise * 10 );
 }
-
-int perlin_noise_trees( int x, int y, int z ) {
-    float noise = perlin2d( abs( x ), abs( z ), 0.02, 4 );
-    return y < ( noise * 80 );
-}

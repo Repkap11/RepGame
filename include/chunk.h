@@ -20,21 +20,33 @@ typedef struct {
 
 typedef struct {
     int is_loading;
-    IndexBuffer ib;
-    VertexBuffer vb_coords;
-    VertexArray va;
+    struct {
+        VertexArray va;
+        IndexBuffer ib;
+        int num_instances;
+        VertexBuffer vb_coords;
+        BlockCoords *populated_blocks;
+
+    } solid;
+    struct {
+        VertexArray va;
+        IndexBuffer ib;
+        int num_instances;
+        VertexBuffer vb_coords;
+        BlockCoords *populated_blocks;
+
+    } water;
     VertexBufferLayout vbl_coords;
-    BlockCoords *populated_blocks;
     Block *blocks;
-    int num_instances;
     int chunk_x, chunk_y, chunk_z;
     int ditry;
     int should_render;
     int chunk_mod_x, chunk_mod_y, chunk_mod_z;
 } Chunk;
 
-void chunk_init( Chunk *chunk, VertexBuffer *vb_block, VertexBufferLayout *vbl_block );
-void chunk_render( const Chunk *chunk, const Renderer *renderer, const Shader *shader );
+void chunk_init( Chunk *chunk, VertexBuffer *vb_block_solid, VertexBuffer *vb_block_water, VertexBufferLayout *vbl_block );
+void chunk_render_solid( const Chunk *chunk, const Renderer *renderer, const Shader *shader );
+void chunk_render_water( const Chunk *chunk, const Renderer *renderer, const Shader *shader );
 void chunk_load_terrain( Chunk *chunk );      // Load from file or map gen
 void chunk_program_terrain( Chunk *chunk );   // Program into GPU
 void chunk_unprogram_terrain( Chunk *chunk ); // Remove from GPU
