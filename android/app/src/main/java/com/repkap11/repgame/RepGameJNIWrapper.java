@@ -9,6 +9,6 @@ class RepGameJNIWrapper {
     public static native void onDrawFrame();
     public static native void onSurfaceChanged();
     static {
-        System.loadLibrary("native-lib");
+        System.loadLibrary("RepGameAndroid");
     }
 }
