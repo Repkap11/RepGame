@@ -377,6 +377,10 @@ void repgame_init( ) {
     initilizeGameState( );
 }
 
+void repgame_set_textures(unsigned char* textures, int textures_len){
+    textures_set_texture_data(textures, textures_len);
+}
+
 int repgame_shouldExit( ) {
     return globalGameState.input.exitGame;
 }

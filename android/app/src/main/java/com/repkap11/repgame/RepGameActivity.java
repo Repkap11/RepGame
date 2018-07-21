@@ -26,7 +26,7 @@ public class RepGameActivity extends AppCompatActivity {
             glSurfaceView = new GLSurfaceView(this);
             glSurfaceView.getKeepScreenOn();
             glSurfaceView.setEGLContextClientVersion(3);
-            glSurfaceView.setRenderer(new RendererWrapper());
+            glSurfaceView.setRenderer(new RendererWrapper(getApplicationContext()));
             mRendererSet = true;
             setContentView(glSurfaceView);
         } else {

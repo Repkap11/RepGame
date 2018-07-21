@@ -63,6 +63,7 @@ void repgame_init( );
 void repgame_tick( );
 void repgame_clear( );
 void repgame_draw( );
+void repgame_set_textures( unsigned char *textures, int textures_len );
 void repgame_cleanup( );
 void repgame_arrowKeyDownInput( int key, int x, int y );
 void repgame_arrowKeyUpInput( int key, int x, int y );
