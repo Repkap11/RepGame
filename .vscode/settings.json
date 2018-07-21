@@ -10,7 +10,8 @@
         "system_error": "cpp",
         "array": "cpp",
         "string_view": "cpp",
-        "chrono": "cpp"
+        "chrono": "cpp",
+        "cerrno": "cpp"
     },
     "git.ignoreLimitWarning": true
 }

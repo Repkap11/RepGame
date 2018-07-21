@@ -44,7 +44,7 @@ unsigned int loadTexture( const char *filename, int width, int height, int bmp_h
                          0,                                   // Mipmap Level
                          0, 0, i,                             // offset
                          tile_size_across, tile_size_down, 1, //
-                         GL_ABGR_EXT,                         //
+                         GL_RGBA,                         //
                          GL_UNSIGNED_BYTE,                    //
                          data + bmp_header + text_coord_base * BYTEX_PER_PIXEL );
     }
