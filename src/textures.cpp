@@ -4,8 +4,7 @@
 #include "RepGame.h"
 #include "textures.h"
 
-#define BYTEX_PER_PIXEL 4
-unsigned int loadTexture( const char *filename, int width, int height, int bmp_header, int tile_size_across, int tile_size_down ) {
+unsigned char *readTextureData( const char *filename, size_t mem_size ) {
     unsigned char *data;
     FILE *file;
     file = fopen( filename, "rb" );
@@ -13,13 +12,21 @@ unsigned int loadTexture( const char *filename, int width, int height, int bmp_h
         pr_debug( "Error rendering texture %s", filename );
         return 0;
     }
-    size_t mem_size = width * height * BYTEX_PER_PIXEL + bmp_header;
     data = ( unsigned char * )malloc( mem_size );
     size_t read_size = fread( data, mem_size, 1, file );
     if ( read_size != 1 ) {
         pr_debug( "Texture file wrong size. Expected:%ld", mem_size );
     }
     fclose( file );
+    return data;
+}
+
+#define BYTEX_PER_PIXEL 4
+unsigned int loadTexture( const char *filename, int width, int height, int bmp_header, int tile_size_across, int tile_size_down ) {
+    unsigned char *data;
+
+    size_t mem_size = width * height * BYTEX_PER_PIXEL + bmp_header;
+    data = readTextureData( filename, mem_size );
 
     unsigned int textures_across = width / tile_size_across;
     unsigned int textures_down = height / tile_size_down;
@@ -44,16 +51,20 @@ unsigned int loadTexture( const char *filename, int width, int height, int bmp_h
                          0,                                   // Mipmap Level
                          0, 0, i,                             // offset
                          tile_size_across, tile_size_down, 1, //
-                         GL_RGBA,                         //
-                         GL_UNSIGNED_BYTE,                    //
+#ifdef REPGAME_LINUX
+                         GL_ABGR_EXT, //
+#else
+                         GL_RGBA,
+#endif
+                         GL_UNSIGNED_BYTE, //
                          data + bmp_header + text_coord_base * BYTEX_PER_PIXEL );
     }
 
     glTexParameterf( GL_TEXTURE_2D_ARRAY, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE );
     glTexParameterf( GL_TEXTURE_2D_ARRAY, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE );
-    glTexParameterf( GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MIN_FILTER, GL_NEAREST_MIPMAP_LINEAR );  // GL_NEAREST GL_LINEAR_MIPMAP_LINEAR
-    glTexParameterf( GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MAG_FILTER, GL_NEAREST ); // GL_NEAREST GL_LINEAR_MIPMAP_LINEAR
-    glGenerateMipmap(GL_TEXTURE_2D_ARRAY);
+    glTexParameterf( GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MIN_FILTER, GL_NEAREST_MIPMAP_LINEAR ); // GL_NEAREST GL_LINEAR_MIPMAP_LINEAR
+    glTexParameterf( GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MAG_FILTER, GL_NEAREST );               // GL_NEAREST GL_LINEAR_MIPMAP_LINEAR
+    glGenerateMipmap( GL_TEXTURE_2D_ARRAY );
     free( data );
     return texture;
 }

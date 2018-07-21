@@ -11,7 +11,12 @@
         "array": "cpp",
         "string_view": "cpp",
         "chrono": "cpp",
-        "cerrno": "cpp"
+        "cerrno": "cpp",
+        "istream": "cpp",
+        "ostream": "cpp",
+        "ratio": "cpp",
+        "tuple": "cpp",
+        "utility": "cpp"
     },
     "git.ignoreLimitWarning": true
 }

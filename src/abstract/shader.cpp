@@ -52,6 +52,80 @@ char *shaderLoadSource( const char *filePath ) {
     return source;
 }
 
+unsigned int shaderCompileFromString( int type, int is_frag ) {
+    const char *source;
+    unsigned int shader;
+    int length, result;
+
+    /* get shader source */
+    if ( is_frag ) {
+        source = "#version 310 es \n\
+\n\
+precision highp float;\n\
+precision lowp sampler2DArray;\n\
+\n\
+in vec3 v_TexCoordBlock;\n\
+\n\
+uniform sampler2DArray u_Texture;\n\
+\n\
+layout( location = 0 ) out vec4 color;\n\
+\n\
+void main( ) {\n\
+    vec4 texColor = texture( u_Texture, v_TexCoordBlock );\n\
+    if (texColor.a == 0.0){\n\
+        discard;\n\
+    }\n\
+    color = texColor;\n\
+    // color = vec4( 1, 1, 1, 1 );\n\
+}\n\
+";
+    } else {
+        source = "#version 310 es\n\
+uniform mat4 u_MVP;\n\
+\n\
+layout( location = 0 ) in vec4 position;\n\
+layout( location = 1 ) in uvec2 texCoordBlock;\n\
+layout( location = 2 ) in uint faceType;\n\
+layout( location = 3 ) in vec3 blockCoords;\n\
+layout( location = 4 ) in vec3 blockTexture;\n\
+\n\
+out vec3 v_TexCoordBlock;\n\
+\n\
+void main( ) {\n\
+    gl_Position = u_MVP * ( position + vec4( blockCoords, 0 ) );\n\
+    v_TexCoordBlock = vec3( texCoordBlock, blockTexture[faceType] );\n\
+}\n\
+";
+    }
+
+
+    /* create shader object, set the source, and compile */
+    shader = glCreateShader( type );
+    length = strlen( source );
+    glShaderSource( shader, 1, ( const char ** )&source, &length );
+    glCompileShader( shader );
+
+    /* make sure the compilation was successful */
+    glGetShaderiv( shader, GL_COMPILE_STATUS, &result );
+    if ( result == GL_FALSE ) {
+        char *log;
+
+        /* get the shader info log */
+        glGetShaderiv( shader, GL_INFO_LOG_LENGTH, &length );
+        log = ( char * )malloc( length );
+        glGetShaderInfoLog( shader, length, &result, log );
+
+        /* print an error message and the info log */
+        pr_debug( "shaderCompileFromFile(): Unable to compile is_frag:%d: %s\n", is_frag, log );
+        free( log );
+
+        glDeleteShader( shader );
+        return 0;
+    }
+
+    return shader;
+}
+
 unsigned int shaderCompileFromFile( int type, const char *filePath ) {
     char *source;
     unsigned int shader;
@@ -98,12 +172,25 @@ void shaderAttachFromFile( unsigned int program, GLenum type, const char *filePa
     }
 }
 
+void shaderAttachFromString( unsigned int program, GLenum type, int is_frag ) {
+    GLuint shader = shaderCompileFromString( type, is_frag );
+    if ( shader != 0 ) {
+        glAttachShader( program, shader );
+        glDeleteShader( shader );
+    }
+}
+
 unsigned int shaders_compile( const char *vertex_path, const char *fragment_path ) {
     /* create program object and attach shaders */
     unsigned int g_program = glCreateProgram( );
 
+#ifdef REPGAME_LINUX
     shaderAttachFromFile( g_program, GL_VERTEX_SHADER, vertex_path );
     shaderAttachFromFile( g_program, GL_FRAGMENT_SHADER, fragment_path );
+#else
+    shaderAttachFromString( g_program, GL_VERTEX_SHADER, 0 );
+    shaderAttachFromString( g_program, GL_FRAGMENT_SHADER, 1 );
+#endif
 
     /* link the program and make sure that there were no errors */
     glLinkProgram( g_program );

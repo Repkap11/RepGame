@@ -1,5 +1,4 @@
-//#include "RepGame.h"
-#include <GLES3/gl31.h>
+#include "RepGame.h"
 
 #include <jni.h>
 #include <stdarg.h>
@@ -8,7 +7,7 @@
 void pr_debug( const char *fmt, ... ) {
     va_list myargs;
     va_start( myargs, fmt );
-    //__android_log_vprint( ANDROID_LOG_INFO, "RepGameAndroid", fmt, myargs );
+    __android_log_vprint( ANDROID_LOG_INFO, "RepGameAndroid", fmt, myargs );
     va_end( myargs );
 }
 
@@ -36,12 +35,24 @@ JNIEXPORT void JNICALL Java_com_repkap11_repgame_RepGameJNIWrapper_onDrawFrame( 
 void on_surface_created( ) {
     pr_debug( "################################# START #################################" );
     pr_debug( "Using OpenGL Version:%s", glGetString( GL_VERSION ) );
-    glClearColor( 1.0f, 0.0f, 0.0f, 0.0f );
+    repgame_init( );
+
+    // while ( !repgame_shouldExit( ) ) {
+    //     int width, height;
+    //     repgame_get_screen_size( &width, &height );
+
+    //     // showErrors( );
+    // }
+    // repgame_cleanup( );
 }
 
 void on_draw_frame( ) {
-    glClear( GL_COLOR_BUFFER_BIT );
+    //pr_debug("Drawing");
+    repgame_clear( );
+    repgame_tick( );
+    repgame_draw( );
 }
 
 void on_surface_changed( int width, int height ) {
+    // repgame_changeSize( width, height );
 }
