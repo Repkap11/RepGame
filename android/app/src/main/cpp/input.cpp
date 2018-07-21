@@ -157,10 +157,9 @@ void input_keysInput( InputState *inputState, unsigned char key, int x, int y, i
 
         default:
             if ( pressed ) {
-                pr_debug( "Got Unhandled Key Down: %d", key );
-
+                //pr_debug( "Got Unhandled Key Down: %d", key );
             } else {
-                pr_debug( "Got Unhandled Key Up: %d", key );
+                //pr_debug( "Got Unhandled Key Up: %d", key );
             }
             break;
     }

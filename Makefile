@@ -13,7 +13,7 @@ CFLAGS_LINUX = -march=native -DREPGAME_LINUX -flto
 CFLAGS_ANDROID = -fPIC
 CPUS ?= $(shell nproc || echo 1)
 MAKEFLAGS += --jobs=$(CPUS)
-MAKEFLAGS += --jobs=1
+#MAKEFLAGS += --jobs=1
 LIB_TARGET_LINUX = out/linux/lib$(TARGET).so
 LIB_TARGET_ANDROID = out/android/lib$(TARGET).so
 

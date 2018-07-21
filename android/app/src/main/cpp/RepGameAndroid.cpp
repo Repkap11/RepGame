@@ -1,5 +1,7 @@
+//#include "RepGame.h"
+#include <GLES3/gl31.h>
+
 #include <jni.h>
-#include "RepGame.h"
 #include <stdarg.h>
 #include <android/log.h>
 
@@ -33,12 +35,12 @@ JNIEXPORT void JNICALL Java_com_repkap11_repgame_RepGameJNIWrapper_onDrawFrame( 
 
 void on_surface_created( ) {
     pr_debug( "################################# START #################################" );
-    //pr_debug( "Using OpenGL Version:%s", glGetString( GL_VERSION ) );
-    //glClearColor( 1.0f, 0.0f, 0.0f, 0.0f );
+    pr_debug( "Using OpenGL Version:%s", glGetString( GL_VERSION ) );
+    glClearColor( 1.0f, 0.0f, 0.0f, 0.0f );
 }
 
 void on_draw_frame( ) {
-    //glClear( GL_COLOR_BUFFER_BIT );
+    glClear( GL_COLOR_BUFFER_BIT );
 }
 
 void on_surface_changed( int width, int height ) {
