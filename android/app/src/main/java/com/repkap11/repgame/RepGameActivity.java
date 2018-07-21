@@ -20,18 +20,19 @@ public class RepGameActivity extends AppCompatActivity {
         ActivityManager activityManager = (ActivityManager) getSystemService(Context.ACTIVITY_SERVICE);
         ConfigurationInfo configurationInfo = activityManager.getDeviceConfigurationInfo();
 
-        final boolean supportsEs2 = configurationInfo.reqGlEsVersion >= 0x20000;
+        final boolean supportsEs3 = configurationInfo.reqGlEsVersion >= 0x30001;
 
-        if (supportsEs2) {
+        if (supportsEs3) {
             glSurfaceView = new GLSurfaceView(this);
-            glSurfaceView.setEGLContextClientVersion(2);
+            glSurfaceView.getKeepScreenOn();
+            glSurfaceView.setEGLContextClientVersion(3);
             glSurfaceView.setRenderer(new RendererWrapper());
             mRendererSet = true;
             setContentView(glSurfaceView);
         } else {
             // Should never be seen in production, since the manifest filters
             // unsupported devices.
-            Toast.makeText(this, "This device does not support OpenGL ES 2.0.", Toast.LENGTH_LONG).show();
+            Toast.makeText(this, "This device does not support OpenGL ES 3.1.", Toast.LENGTH_LONG).show();
             return;
         }
     }

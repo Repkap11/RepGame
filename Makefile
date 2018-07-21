@@ -31,11 +31,15 @@ clean:
 	rm -rf out
 	rm -f $(TARGET)
 
-world:
+map:
 	rm -rf World1
+
+android:
+	./android/gradlew -p android installDebug
+	adb shell monkey -p com.repkap11.repgame -c android.intent.category.LAUNCHER 1
 
 install:
 	apt install freeglut3-dev libglew-dev libglm-dev libglm-doc
 
 #$(info $$VAR is [${VAR}])
-.PHONY: all clean install compile run world
+.PHONY: all clean install compile run world android

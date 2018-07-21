@@ -1,5 +1,4 @@
-#include <GL/glew.h>
-#include <GL/freeglut.h>
+
 #include <math.h>
 #include <time.h>
 #include <unistd.h>
@@ -16,133 +15,9 @@
 #include "abstract/vertex_buffer_layout.h"
 #include "abstract/vertex_array.h"
 #include "abstract/renderer.h"
-
-#define SKY_BOX_DISTANCE DRAW_DISTANCE * 0.8
-
 RepGameState globalGameState;
 
-static inline void initilizeGameState( ) {
-    globalGameState.input.exitGame = 0;
-    globalGameState.input.limit_fps = 1;
-    globalGameState.camera.angle_H = 135.0f;
-    globalGameState.camera.angle_V = 45.0f;
-    globalGameState.camera.x = -1.0f;
-    globalGameState.camera.y = PERSON_HEIGHT;
-    globalGameState.camera.z = -1.0f;
-    globalGameState.block_selection.blockID = TNT;
-    world_init( &globalGameState.gameChunks );
-    // pr_debug( "RepGame init done" );
-}
-
-void showErrors( ) {
-    int errCode;
-    const GLubyte *errString;
-    if ( ( errCode = glGetError( ) ) != GL_NO_ERROR ) {
-        errString = gluErrorString( errCode );
-        pr_debug( "GL Error:%d:%s", errCode, errString );
-    }
-}
-
-static inline void cleanupGameState( ) {
-    world_cleanup( &globalGameState.gameChunks );
-    block_definitions_free_definitions( );
-    // pr_debug( "RepGame cleanup done" );
-}
-
-// Returns the worls coord from the screen coords xy
-void getPosFromMouse( int x, int y, TRIP_ARGS( double *out_ ) ) {
-    GLint viewport[ 4 ];
-    GLdouble modelview[ 16 ];
-    GLdouble projection[ 16 ];
-    GLfloat winX, winY, winZ;
-    GLdouble posX, posY, posZ;
-    glGetDoublev( GL_MODELVIEW_MATRIX, modelview );
-    glGetDoublev( GL_PROJECTION_MATRIX, projection );
-    glGetIntegerv( GL_VIEWPORT, viewport );
-    winX = ( float )x;
-    winY = ( float )viewport[ 3 ] - ( float )y;
-    glReadPixels( x, ( int )winY, 1, 1, GL_DEPTH_COMPONENT, GL_FLOAT, &winZ );
-
-    gluUnProject( winX, winY, winZ, modelview, projection, viewport, out_x, out_y, out_z );
-}
-
-static void calculateMousePos( int arg, TRIP_ARGS( int *out_create_ ), TRIP_ARGS( int *out_destroy_ ) ) {
-    double world_mouse_x, world_mouse_y, world_mouse_z = 0;
-    getPosFromMouse( globalGameState.screen.width / 2, globalGameState.screen.height / 2, &world_mouse_x, &world_mouse_y, &world_mouse_z );
-    int camera_x_round = round( globalGameState.camera.x );
-    int camera_y_round = round( globalGameState.camera.y );
-    int camera_z_round = round( globalGameState.camera.z );
-    // pr_debug( "Mouse x:%f y:%f z:%f", world_mouse_x, world_mouse_y, world_mouse_z );
-    int world_x_round = round( world_mouse_x );
-    int world_y_round = round( world_mouse_y );
-    int world_z_round = round( world_mouse_z );
-
-    double dis_x = world_x_round - world_mouse_x;
-    double dis_y = world_y_round - world_mouse_y;
-    double dis_z = world_z_round - world_mouse_z;
-
-    double dis_x_abs = fabs( dis_x );
-    double dis_y_abs = fabs( dis_y );
-    double dis_z_abs = fabs( dis_z );
-
-    int face_x = ( dis_x_abs < 0.01 );
-    int face_y = ( dis_y_abs < 0.01 );
-    int face_z = ( dis_z_abs < 0.01 );
-    // pr_debug( "Face x:%d y:%d z:%d", face_x, face_y, face_z );
-
-    double sig_x = ( round( world_mouse_x ) - floor( globalGameState.camera.x ) == 0 ) ? -1 : ( ( round( world_mouse_x ) - floor( globalGameState.camera.x ) ) / fabs( floor( globalGameState.camera.x ) - round( world_mouse_x ) ) );
-    double sig_y = ( round( world_mouse_y ) - floor( globalGameState.camera.y ) == 0 ) ? -1 : ( ( round( world_mouse_y ) - floor( globalGameState.camera.y ) ) / fabs( floor( globalGameState.camera.y ) - round( world_mouse_y ) ) );
-    double sig_z = ( round( world_mouse_z ) - floor( globalGameState.camera.z ) == 0 ) ? -1 : ( ( round( world_mouse_z ) - floor( globalGameState.camera.z ) ) / fabs( floor( globalGameState.camera.z ) - round( world_mouse_z ) ) );
-    // pr_debug( "Sig x:%+2f y:%+2f z:%+2f", sig_x, sig_y, sig_z );
-    // pr_debug( "Faceing x:%+2.0f y:%+2.0f z:%+2.0f", sig_x * face_x, sig_y * face_y, sig_z * face_z );
-
-    int offset_x = sig_x * face_x;
-    int offset_y = sig_y * face_y;
-    int offset_z = sig_z * face_z;
-
-    // int offset_x = face_x * ( world_x_round <= camera_x_round );
-    // int offset_y = face_y * ( world_y_round <= camera_y_round );
-    // int offset_z = face_z * ( world_z_round <= camera_z_round );
-    // pr_debug( " Offset x:%d y:%d z:%d", offset_x, offset_y, offset_z );
-
-    // int offset_x2 = ( world_x_round == camera_x_round ) && face_x;
-    // int offset_y2 = ( world_y_round == camera_y_round ) && face_y;
-    // int offset_z2 = ( world_z_round == camera_z_round ) && face_z;
-    // pr_debug( "Offse2 x:%d y:%d z:%d", offset_x2, offset_y2, offset_z2 );
-
-    int world_x = face_x ? world_x_round : floor( world_mouse_x );
-    int world_y = face_y ? world_y_round : floor( world_mouse_y );
-    int world_z = face_z ? world_z_round : floor( world_mouse_z );
-    // pr_debug( "World %d x:%d y:%d z:%d", arg, world_x, world_y, world_z );
-
-    world_x += ( offset_x == 1 ? 0 : offset_x );
-    world_y += ( offset_y == 1 ? 0 : offset_y );
-    world_z += ( offset_z == 1 ? 0 : offset_z );
-
-    *out_destroy_x = world_x;
-    *out_destroy_y = world_y;
-    *out_destroy_z = world_z;
-
-    *out_create_x = world_x - offset_x;
-    *out_create_y = world_y - offset_y;
-    *out_create_z = world_z - offset_z;
-    // The player has selected this block (unless there are edge problems)
-}
-
-static inline void display( ) {
-    glClear( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT );
-    // glLoadIdentity( );
-    // pointCamera( );
-    // pointLight( );
-    // drawScene( );
-    // calculateMousePos( 0, TRIP_ARGS( &globalGameState.block_selection.create_ ), TRIP_ARGS( &globalGameState.block_selection.destroy_ ) );
-    // if ( globalGameState.block_selection.show ) {
-    //     draw_pointed_block( TRIP_ARGS( globalGameState.block_selection.destroy_ ) );
-    // }
-    // drawSceneNew( );
-    // ui_overlay_draw( &globalGameState );
-    glutSwapBuffers( );
-}
+glm::mat4 model;
 
 void change_block( int place, BlockID blockID ) {
     TRIP_STATE( int block_ );
@@ -157,23 +32,6 @@ void change_block( int place, BlockID blockID ) {
     }
     world_set_block( &globalGameState.gameChunks, TRIP_ARGS( block_ ), blockID );
 }
-
-int check_block( Block *block ) {
-    if ( block != NULL ) {
-        if ( block->blockDef != NULL ) {
-            BlockID blockID = block->blockDef->id;
-            if ( !( blockID == AIR || blockID == AIR ) ) {
-                return 1;
-            }
-        } else {
-            pr_debug( "No BlockDef!!" );
-        }
-    } else {
-        // pr_debug( "No Block!!" );
-    }
-    return 0;
-}
-
 static void gameTick( ) {
     if ( globalGameState.input.exitGame ) {
         // Don't bother updating the state if the game is exiting
@@ -479,31 +337,51 @@ static void gameTick( ) {
     }
 }
 
-void arrowKeyDownInput( int key, int x, int y ) {
-    input_arrowKeyDownInput( &globalGameState.input, key, x, y );
+static inline void initilizeGameState( ) {
+    globalGameState.input.exitGame = 0;
+    globalGameState.input.limit_fps = 1;
+    globalGameState.camera.angle_H = 135.0f;
+    globalGameState.camera.angle_V = 45.0f;
+    globalGameState.camera.x = -1.0f;
+    globalGameState.camera.y = PERSON_HEIGHT;
+    globalGameState.camera.z = -1.0f;
+    globalGameState.block_selection.blockID = TNT;
+    world_init( &globalGameState.gameChunks );
+    // pr_debug( "RepGame init done" );
 }
 
-void arrowKeyUpInput( int key, int x, int y ) {
-    input_arrowKeyUpInput( &globalGameState.input, key, x, y );
+int check_block( Block *block ) {
+    if ( block != NULL ) {
+        if ( block->blockDef != NULL ) {
+            BlockID blockID = block->blockDef->id;
+            if ( !( blockID == AIR || blockID == AIR ) ) {
+                return 1;
+            }
+        } else {
+            pr_debug( "No BlockDef!!" );
+        }
+    } else {
+        // pr_debug( "No Block!!" );
+    }
+    return 0;
 }
 
-void mouseInput( int button, int state, int x, int y ) {
-    input_mouseInput( &globalGameState.input, button, state, x, y );
+void repgame_init( ) {
+    glEnable( GL_DEPTH_TEST );
+    glEnable( GL_CULL_FACE );
+    glCullFace( GL_BACK );
+    glEnable( GL_BLEND );
+    glBlendFunc( GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA );
+    glBlendEquation( GL_FUNC_ADD );
+    model = glm::mat4( 1.0f );
+    initilizeGameState( );
 }
 
-void keysInput( unsigned char key, int x, int y ) {
-    input_keysInput( &globalGameState.input, key, x, y, 1 );
+int repgame_shouldExit( ) {
+    return globalGameState.input.exitGame;
 }
 
-void keysInputUp( unsigned char key, int x, int y ) {
-    input_keysInput( &globalGameState.input, key, x, y, 0 );
-}
-
-void mouseMove( int x, int y ) {
-    input_mouseMove( &globalGameState.input, x, y );
-}
-
-void changeSize( int w, int h ) {
+void repgame_changeSize( int w, int h ) {
 
     pr_debug( "Screen Size Change:%dx%d", w, h );
     globalGameState.screen.width = w;
@@ -519,91 +397,47 @@ void changeSize( int w, int h ) {
     globalGameState.screen.proj = glm::perspective<float>( glm::radians( CAMERA_FOV ), globalGameState.screen.width / globalGameState.screen.height, 0.1f, 1000.0f );
 }
 
-double fps_ms = ( 1.0 / FPS_LIMIT ) * 1000.0;
+void repgame_tick( ) {
+    gameTick( );
+}
 
-int main( int argc, char **argv ) {
-    glutInit( &argc, argv );
-    glutInitContextVersion( 3, 1 );
-    // glutInitContextFlags( GLUT_DEBUG );
-    glutInitDisplayMode( GLUT_DEPTH | GLUT_DOUBLE | GLUT_RGBA );
+void repgame_clear( ) {
+    glClear( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT );
+}
+void repgame_get_screen_size( int *width, int *height ) {
+    *width = globalGameState.screen.width;
+    *height = globalGameState.screen.height;
+}
 
-    glutCreateWindow( "RepGame" );
-    pr_debug( "Using OpenGL Version:%s", glGetString( GL_VERSION ) );
+void repgame_draw( ) {
 
-    if ( glewInit( ) ) {
-        pr_debug( "GLEW init failed" );
-        exit( 1 ); // or handle the error in a nicer way
-    }
-    if ( !GLEW_VERSION_3_0 ) { // check that the machine supports the 2.1 API.
-        pr_debug( "GLEW version wrong" );
-        exit( 1 ); // or handle the error in a nicer way
-    }
+    glm::mat4 mvp = globalGameState.screen.proj * globalGameState.camera.view_look * globalGameState.camera.view_trans * model;
 
-    glEnable( GL_DEPTH_TEST );
-    glEnable( GL_CULL_FACE );
-    glCullFace( GL_BACK );
+    world_render( &globalGameState.gameChunks, globalGameState.camera.x, globalGameState.camera.y, globalGameState.camera.z );
+    world_draw( &globalGameState.gameChunks, mvp );
+}
 
-    glutSpecialFunc( arrowKeyDownInput );
-    glutSpecialUpFunc( arrowKeyUpInput );
+void repgame_cleanup( ) {
+    world_cleanup( &globalGameState.gameChunks );
+    block_definitions_free_definitions( );
+    // pr_debug( "RepGame cleanup done" );
+}
+void repgame_arrowKeyDownInput( int key, int x, int y ) {
+    input_arrowKeyDownInput( &globalGameState.input, key, x, y );
+}
 
-    if ( LOCK_MOUSE ) {
-        glutSetCursor( GLUT_CURSOR_NONE );
-    }
+void repgame_arrowKeyUpInput( int key, int x, int y ) {
+    input_arrowKeyUpInput( &globalGameState.input, key, x, y );
+}
 
-    glutKeyboardFunc( keysInput );
-    glutKeyboardUpFunc( keysInputUp );
-    glutMouseFunc( mouseInput );
-    glutReshapeFunc( changeSize );
-    glutPassiveMotionFunc( mouseMove );
-    glutMotionFunc( mouseMove );
-    initilizeGameState( );
+void repgame_mouseInput( int button, int state, int x, int y ) {
+    input_mouseInput( &globalGameState.input, button, state, x, y );
+}
 
-    struct timespec tstart = {0, 0}, tend = {0, 0};
-    clock_gettime( CLOCK_MONOTONIC, &tstart );
-    tend = tstart;
+void repgame_keysInput( unsigned char key, int x, int y, int pressed ) {
+    input_keysInput( &globalGameState.input, key, x, y, pressed );
+}
 
-    // glEnable( GL_LIGHTING );
-    glEnable( GL_BLEND );
-    glBlendFunc( GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA );
-    glBlendEquation( GL_FUNC_ADD );
-
-    while ( !globalGameState.input.exitGame ) {
-        glutMainLoopEvent( );
-        // pr_debug( "Drawing" );
-        if ( LOCK_MOUSE ) {
-            glutWarpPointer( globalGameState.screen.width / 2, globalGameState.screen.height / 2 );
-        }
-        gameTick( );
-
-        glClear( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT );
-
-        glm::mat4 model = glm::mat4( 1.0f );
-
-        glm::mat4 mvp = globalGameState.screen.proj * globalGameState.camera.view_look * globalGameState.camera.view_trans * model;
-        world_render( &globalGameState.gameChunks, globalGameState.camera.x, globalGameState.camera.y, globalGameState.camera.z );
-        world_draw( &globalGameState.gameChunks, mvp );
-        glutSwapBuffers( );
-
-        showErrors( );
-
-        clock_gettime( CLOCK_MONOTONIC, &tstart );
-
-        double diff_ms = ( ( ( double )tstart.tv_sec + 1.0e-9 * tstart.tv_nsec ) - ( ( double )tend.tv_sec + 1.0e-9 * tend.tv_nsec ) ) * 1000.0;
-        tend = tstart;
-        // // pr_debug("Time Diff ms:%f", diff_ms);
-        globalGameState.frame_rate = 1.0 / ( diff_ms / 1000.0 );
-        // pr_debug( "FPS:%f", globalGameState.frame_rate );
-
-        if ( globalGameState.input.limit_fps ) {
-            double wait_time_ms = fps_ms - diff_ms;
-            if ( wait_time_ms > 1.0 ) {
-                int wait_time_us = ( int )( wait_time_ms * 1000.0 );
-                // pr_debug("WaitTime_us:%d", wait_time_us);
-                usleep( wait_time_us );
-            }
-        }
-    }
-    cleanupGameState( );
-    glutLeaveMainLoop( );
-    return 0;
+void repgame_mouseMove( int x, int y ) {
+    input_mouseMove( &globalGameState.input, x, y );
 }

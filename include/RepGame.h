@@ -58,6 +58,20 @@ typedef struct {
     } physics;
 
 } RepGameState;
+
 void renderShaders( int x, int y, int z );
+void repgame_init( );
+void repgame_tick( );
+void repgame_clear( );
+void repgame_draw( );
+void repgame_cleanup( );
+void repgame_arrowKeyDownInput( int key, int x, int y );
+void repgame_arrowKeyUpInput( int key, int x, int y );
+void repgame_mouseInput( int button, int state, int x, int y );
+void repgame_keysInput( unsigned char key, int x, int y, int pressed );
+void repgame_mouseMove( int x, int y );
+void repgame_changeSize( int x, int y );
+void repgame_get_screen_size( int *width, int *height );
+int repgame_shouldExit( );
 
 #endif
