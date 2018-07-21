@@ -2,9 +2,12 @@
 #include <android/log.h>
 #include "RepGame.h"
 
-#define APPNAME "RepGameNative"
-
-#define pr_debug( message, ... ) __android_log_print( ANDROID_LOG_INFO, APPNAME, message, ##__VA_ARGS__ );
+void pr_debug( const char *fmt, ... ) {
+    va_list myargs;
+    va_start( myargs, fmt );
+    __android_log_vprint( ANDROID_LOG_INFO, "RepGameAndroid", fmt, myargs );
+    va_end( myargs );
+}
 
 void on_surface_created( );
 
@@ -31,7 +34,6 @@ void on_surface_created( ) {
     pr_debug( "################################# START #################################" );
     pr_debug( "Using OpenGL Version:%s", glGetString( GL_VERSION ) );
     glClearColor( 1.0f, 0.0f, 0.0f, 0.0f );
-
 }
 
 void on_draw_frame( ) {

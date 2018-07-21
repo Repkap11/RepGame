@@ -9,7 +9,8 @@
         "*.tcc": "cpp",
         "system_error": "cpp",
         "array": "cpp",
-        "string_view": "cpp"
+        "string_view": "cpp",
+        "chrono": "cpp"
     },
     "git.ignoreLimitWarning": true
 }

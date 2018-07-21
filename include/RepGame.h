@@ -4,7 +4,7 @@
 #ifdef REPGAME_LINUX
 #include "linux/RepGameLinux.h"
 #else
-//#include "andorid/RepGameAndroid.h"
+#include "android/RepGameAndroid.h"
 #endif
 
 #include "chunk_loader.h"

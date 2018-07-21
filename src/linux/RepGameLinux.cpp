@@ -3,7 +3,6 @@
 #include <unistd.h>
 
 #include "RepGame.h"
-#include "input.h"
 
 #define SKY_BOX_DISTANCE DRAW_DISTANCE * 0.8
 

@@ -1,5 +1,4 @@
 #include "RepGame.h"
-#include "input.h"
 
 void input_arrowKeyDownInput( InputState *inputState, int key, int x, int y ) {
     switch ( key ) {

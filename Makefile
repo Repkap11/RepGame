@@ -8,8 +8,8 @@ LD_ANDROID = aarch64-linux-gnu-ld
 
 #SHELL = sh -xv
 #CFLAGS = -Wall -std=c++98 -Wno-unused-variable -O3 -march=native -flto
-CFLAGS = -g -Wall -std=c++98 -Wno-unused-variable -flto 
-CFLAGS_LINUX = -march=native -DREPGAME_LINUX
+CFLAGS = -g -Wall -std=c++98 -Wno-unused-variable
+CFLAGS_LINUX = -march=native -DREPGAME_LINUX -flto
 CFLAGS_ANDROID = -fPIC
 CPUS ?= $(shell nproc || echo 1)
 MAKEFLAGS += --jobs=$(CPUS)
