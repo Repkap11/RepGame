@@ -4,7 +4,6 @@
 #include "file_utils.h"
 
 #include "RepGame.h"
-#include "draw2d.h"
 #include "textures.h"
 
 #define BYTEX_PER_PIXEL 4

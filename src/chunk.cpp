@@ -1,6 +1,5 @@
 #include "chunk.h"
 #include "RepGame.h"
-#include "draw3d.h"
 #include "map_gen.h"
 #include "map_storage.h"
 #include <GL/gl.h>

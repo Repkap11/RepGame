@@ -7,10 +7,8 @@
 #include "RepGame.h"
 #include "block_definitions.h"
 #include "chunk.h"
-#include "draw3d.h"
 #include "input.h"
 #include "textures.h"
-#include "ui_overlay.h"
 #include "world.h"
 #include "abstract/shader.h"
 #include "abstract/vertex_buffer.h"
@@ -309,7 +307,7 @@ static void gameTick( ) {
     globalGameState.camera.view_look = glm::lookAt( glm::vec3( 0.0f, 0.0f, 0.0f ), // From the origin
                                                     glm::vec3( lx, ly, lz ),       // Look at look vector
                                                     glm::vec3( 0.0f, 1.0f, 0.0f )  // Head is up (set to 0,-1,0 to look upside-down)
-                                                    );
+    );
     globalGameState.camera.view_trans = glm::translate( glm::mat4( 1.0f ), glm::vec3( -globalGameState.camera.x,     //
                                                                                       -globalGameState.camera.y,     //
                                                                                       -globalGameState.camera.z ) ); //
@@ -582,7 +580,7 @@ int main( int argc, char **argv ) {
         glm::mat4 model = glm::mat4( 1.0f );
 
         glm::mat4 mvp = globalGameState.screen.proj * globalGameState.camera.view_look * globalGameState.camera.view_trans * model;
-        world_render( &globalGameState.gameChunks, globalGameState.camera.x, globalGameState.camera.y, globalGameState.camera.z);
+        world_render( &globalGameState.gameChunks, globalGameState.camera.x, globalGameState.camera.y, globalGameState.camera.z );
         world_draw( &globalGameState.gameChunks, mvp );
         glutSwapBuffers( );
 
@@ -594,7 +592,7 @@ int main( int argc, char **argv ) {
         tend = tstart;
         // // pr_debug("Time Diff ms:%f", diff_ms);
         globalGameState.frame_rate = 1.0 / ( diff_ms / 1000.0 );
-        //pr_debug( "FPS:%f", globalGameState.frame_rate );
+        // pr_debug( "FPS:%f", globalGameState.frame_rate );
 
         if ( globalGameState.input.limit_fps ) {
             double wait_time_ms = fps_ms - diff_ms;
