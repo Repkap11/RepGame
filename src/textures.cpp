@@ -4,6 +4,8 @@
 #include "RepGame.h"
 #include "textures.h"
 
+#ifdef REPGAME_LINUX
+
 unsigned char *readTextureData( const char *filename, size_t mem_size ) {
     unsigned char *data;
     FILE *file;
@@ -20,6 +22,18 @@ unsigned char *readTextureData( const char *filename, size_t mem_size ) {
     fclose( file );
     return data;
 }
+#else // Android
+unsigned char *readTextureData( const char *filename, size_t mem_size ) {
+    unsigned char *data;
+    data = ( unsigned char * )malloc( mem_size );
+    pr_debug( "Fake loaded texture:%s", filename );
+    for ( size_t i = 0; i < mem_size; i++ ) {
+        data[ i ] = ( unsigned char )100;
+    }
+    return data;
+}
+
+#endif
 
 #define BYTEX_PER_PIXEL 4
 unsigned int loadTexture( const char *filename, int width, int height, int bmp_header, int tile_size_across, int tile_size_down ) {

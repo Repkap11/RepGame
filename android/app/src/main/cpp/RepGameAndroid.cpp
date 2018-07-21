@@ -36,6 +36,7 @@ void on_surface_created( ) {
     pr_debug( "################################# START #################################" );
     pr_debug( "Using OpenGL Version:%s", glGetString( GL_VERSION ) );
     repgame_init( );
+    repgame_changeSize( 1920, 1080 );
 
     // while ( !repgame_shouldExit( ) ) {
     //     int width, height;
@@ -47,12 +48,12 @@ void on_surface_created( ) {
 }
 
 void on_draw_frame( ) {
-    //pr_debug("Drawing");
+    // pr_debug("Drawing");
     repgame_clear( );
     repgame_tick( );
     repgame_draw( );
 }
 
 void on_surface_changed( int width, int height ) {
-    // repgame_changeSize( width, height );
+    repgame_changeSize( width, height );
 }

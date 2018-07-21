@@ -129,7 +129,11 @@ void chunk_persist( Chunk *chunk ) {
 
 void chunk_load_terrain( Chunk *chunk ) {
     // pr_debug( "Loading chunk terrain x:%d y:%d z:%d", chunk->chunk_x, chunk->chunk_y, chunk->chunk_z );
+#ifdef REPGAME_LINUX
     int loaded = map_storage_load( chunk );
+#else
+    int loaded = 0;
+#endif
     if ( !loaded ) {
         // We havn't loaded this chunk before, map gen it.
         map_gen_load_block( chunk );

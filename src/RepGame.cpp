@@ -382,7 +382,9 @@ int repgame_shouldExit( ) {
 }
 
 void repgame_changeSize( int w, int h ) {
-
+    if ( w == 0 || h == 0 ) {
+        return;
+    }
     pr_debug( "Screen Size Change:%dx%d", w, h );
     globalGameState.screen.width = w;
     globalGameState.screen.height = h;
