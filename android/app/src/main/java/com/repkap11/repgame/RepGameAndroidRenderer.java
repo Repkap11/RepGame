@@ -1,4 +1,5 @@
 package com.repkap11.repgame;
+
 import static android.content.ContentValues.TAG;
 import static android.opengl.GLES20.*;
 
@@ -18,10 +19,11 @@ import javax.microedition.khronos.opengles.GL10;
  * Created by paul on 10/22/17.
  */
 
-class RendererWrapper implements GLSurfaceView.Renderer {
+class RepGameAndroidRenderer implements GLSurfaceView.Renderer {
     private final Context mApplicationContext;
+    static private final String TAG = RepGameAndroidRenderer.class.getSimpleName();
 
-    public RendererWrapper(Context applicationContext) {
+    public RepGameAndroidRenderer(Context applicationContext) {
         mApplicationContext = applicationContext;
     }
 
@@ -32,20 +34,24 @@ class RendererWrapper implements GLSurfaceView.Renderer {
         try {
             targetArray = new byte[textureIS.available()];
             textureIS.read(targetArray);
-        } catch( Exception e){
+        } catch (Exception e) {
             Log.d(TAG, "Failed to read bitmap");
         }
         RepGameJNIWrapper.onSurfaceCreated(targetArray);
+
     }
 
     @Override
     public void onSurfaceChanged(GL10 gl, int width, int height) {
-        RepGameJNIWrapper.onSurfaceChanged();
+        RepGameJNIWrapper.onSizeChanged(width, height);
     }
 
     @Override
     public void onDrawFrame(GL10 gl) {
         RepGameJNIWrapper.onDrawFrame();
     }
-}
 
+    public void onMouseInput(int xdiff, int ydiff) {
+        RepGameJNIWrapper.onMouseInput(xdiff, ydiff);
+    }
+}

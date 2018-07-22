@@ -8,30 +8,23 @@
             "type": "shell",
             "command": "make",
             "problemMatcher": [],
-            "group": {
-                "kind": "build",
-                "isDefault": true
-            }
+            "group": "build"
         },
         {
             "label": "make linux",
             "type": "shell",
             "command": "make linux",
             "problemMatcher": [],
-            "group": {
-                "kind": "test",
-                "isDefault": true
-            }
+            "group": "build"
+
         },
         {
             "label": "make android",
             "type": "shell",
             "command": "make android",
             "problemMatcher": [],
-            "group": {
-                "kind": "test",
-                "isDefault": true
-            }
+            "group": "build"
+
         }
     ]
 }

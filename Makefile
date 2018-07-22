@@ -79,8 +79,12 @@ map:
 	rm -rf World1
 
 android: $(LIB_TARGET_ANDROID) Makefile
+	adb shell input keyevent KEYCODE_WAKEUP
 	./android/gradlew -p android installDebug
+	adb logcat -c
 	adb shell monkey -p com.repkap11.repgame -c android.intent.category.LAUNCHER 1
+	#adb logcat -s RepGameAndroid -v brief
+	adb logcat -v brief | grep RepGame
 
 install:
 	apt install freeglut3-dev libglew-dev libglm-dev libglm-doc g++-multilib-arm-linux-gnueabi g++-aarch64-linux-gnu #gcc-multilib g++-multilib

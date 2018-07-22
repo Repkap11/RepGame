@@ -7,7 +7,8 @@ package com.repkap11.repgame;
 class RepGameJNIWrapper {
     public static native void onSurfaceCreated(byte[] textures);
     public static native void onDrawFrame();
-    public static native void onSurfaceChanged();
+    public static native void onSizeChanged(int width, int height);
+    public static native void onMouseInput(int xdiff, int ydiff);
     static {
         System.loadLibrary("RepGameAndroid");
     }

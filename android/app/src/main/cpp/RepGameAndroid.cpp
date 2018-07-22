@@ -28,42 +28,33 @@ unsigned char *as_unsigned_char_array( JNIEnv *env, jbyteArray array, int *out_s
 }
 
 JNIEXPORT void JNICALL Java_com_repkap11_repgame_RepGameJNIWrapper_onSurfaceCreated( JNIEnv *env, jobject obj, jbyteArray array ) {
-    int size;
-    unsigned char *buf = as_unsigned_char_array( env, array, &size );
-    on_surface_created( buf, size );
-}
-
-JNIEXPORT void JNICALL Java_com_repkap11_repgame_RepGameJNIWrapper_onSurfaceChanged( JNIEnv *env, jobject obj, jint width, jint height ) {
-    on_surface_changed( 0, 0 );
-}
-
-JNIEXPORT void JNICALL Java_com_repkap11_repgame_RepGameJNIWrapper_onDrawFrame( JNIEnv *env, jobject obj ) {
-    on_draw_frame( );
-}
-}
-
-void on_surface_created( unsigned char *textures, int textures_len ) {
+    int textures_len;
+    unsigned char *textures = as_unsigned_char_array( env, array, &textures_len );
     pr_debug( "################################# START #################################" );
     pr_debug( "Using OpenGL Version:%s", glGetString( GL_VERSION ) );
     repgame_set_textures( textures, textures_len );
     repgame_init( );
-    repgame_changeSize( 1920, 1080 );
-
-    // while ( !repgame_shouldExit( ) ) {
-    //     int width, height;
-    //     repgame_get_screen_size( &width, &height );
-
-    //     // showErrors( );
-    // }
-    // repgame_cleanup( );
 }
 
-void on_draw_frame( ) {
+int current_screen_width = 0;
+int current_screen_height = 0;
+
+JNIEXPORT void JNICALL Java_com_repkap11_repgame_RepGameJNIWrapper_onSizeChanged( JNIEnv *env, jobject obj, jint width, jint height ) {
+    current_screen_width = width;
+    current_screen_height = height;
+    repgame_changeSize( ( int )width, ( int )height );
+}
+
+JNIEXPORT void JNICALL Java_com_repkap11_repgame_RepGameJNIWrapper_onDrawFrame( JNIEnv *env, jobject obj ) {
     repgame_clear( );
     repgame_tick( );
     repgame_draw( );
 }
 
-void on_surface_changed( int width, int height ) {
-    repgame_changeSize( width, height );
+#define ANDROID_PAN_SENSITIVITY 2
+
+JNIEXPORT void JNICALL Java_com_repkap11_repgame_RepGameJNIWrapper_onMouseInput( JNIEnv *env, jobject obj, jint xdiff, jint ydiff ) {
+    repgame_mouseMove( current_screen_width / 2 - xdiff * ANDROID_PAN_SENSITIVITY, current_screen_height / 2 - ydiff * ANDROID_PAN_SENSITIVITY );
 }
+
+} // End Extern C

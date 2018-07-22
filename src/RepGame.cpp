@@ -165,7 +165,7 @@ static void gameTick( ) {
     globalGameState.camera.view_look = glm::lookAt( glm::vec3( 0.0f, 0.0f, 0.0f ), // From the origin
                                                     glm::vec3( lx, ly, lz ),       // Look at look vector
                                                     glm::vec3( 0.0f, 1.0f, 0.0f )  // Head is up (set to 0,-1,0 to look upside-down)
-                                                    );
+    );
     globalGameState.camera.view_trans = glm::translate( glm::mat4( 1.0f ), glm::vec3( -globalGameState.camera.x,     //
                                                                                       -globalGameState.camera.y,     //
                                                                                       -globalGameState.camera.z ) ); //
@@ -377,8 +377,8 @@ void repgame_init( ) {
     initilizeGameState( );
 }
 
-void repgame_set_textures(unsigned char* textures, int textures_len){
-    textures_set_texture_data(textures, textures_len);
+void repgame_set_textures( unsigned char *textures, int textures_len ) {
+    textures_set_texture_data( textures, textures_len );
 }
 
 int repgame_shouldExit( ) {
@@ -386,10 +386,10 @@ int repgame_shouldExit( ) {
 }
 
 void repgame_changeSize( int w, int h ) {
+    pr_debug( "Screen Size Change:%dx%d", w, h );
     if ( w == 0 || h == 0 ) {
         return;
     }
-    pr_debug( "Screen Size Change:%dx%d", w, h );
     globalGameState.screen.width = w;
     globalGameState.screen.height = h;
 
@@ -445,5 +445,6 @@ void repgame_keysInput( unsigned char key, int x, int y, int pressed ) {
 }
 
 void repgame_mouseMove( int x, int y ) {
+    pr_debug("Saw mouse move: x:%d y:%d", x ,y);
     input_mouseMove( &globalGameState.input, x, y );
 }

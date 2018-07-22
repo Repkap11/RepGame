@@ -104,7 +104,7 @@ void chunk_loader_init( LoadedChunks *loadedChunks ) {
     for ( int i = -CHUNK_RADIUS_X; i <= CHUNK_RADIUS_X; i++ ) {
         int new_i = ( i + CHUNK_RADIUS_X );
         new_i = ( ( new_i * ( new_i % 2 ? 1 : -1 ) ) + ( ( new_i % 2 ) ? 1 : 0 ) ) / 2;
-        pr_debug( "i:%d new_i:%d", i, new_i );
+        //pr_debug( "i:%d new_i:%d", i, new_i );
         for ( int j = -CHUNK_RADIUS_Y; j <= CHUNK_RADIUS_Y; j++ ) {
             int new_j = ( j + CHUNK_RADIUS_Y );
             new_j = ( ( new_j * ( new_j % 2 ? 1 : -1 ) ) + ( ( new_j % 2 ) ? 1 : 0 ) ) / 2;
@@ -190,8 +190,8 @@ void chunk_loader_render_chunks( LoadedChunks *loadedChunks, TRIP_ARGS( float ca
     } while ( chunk );
 
     if ( ( loadedChunks->chunk_center_x != chunk_x ) || ( loadedChunks->chunk_center_y != chunk_y ) || ( loadedChunks->chunk_center_z != chunk_z ) ) {
-        pr_debug( "Moved outof chunk x:%d y:%d z:%d", TRIP_ARGS( loadedChunks->chunk_center_ ) );
-        pr_debug( "Moved into  chunk x:%d y:%d z:%d", TRIP_ARGS( chunk_ ) );
+        //pr_debug( "Moved outof chunk x:%d y:%d z:%d", TRIP_ARGS( loadedChunks->chunk_center_ ) );
+        //pr_debug( "Moved into  chunk x:%d y:%d z:%d", TRIP_ARGS( chunk_ ) );
 
         for ( int i = 0; i < MAX_LOADED_CHUNKS; i++ ) {
             chunk = &loadedChunks->chunkArray[ i ];

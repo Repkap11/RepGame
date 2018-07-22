@@ -6,14 +6,19 @@ import android.content.pm.ConfigurationInfo;
 import android.opengl.GLSurfaceView;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
+import android.view.MotionEvent;
+import android.view.View;
 import android.widget.Toast;
 
-public class RepGameActivity extends AppCompatActivity {
+public class RepGameActivity extends AppCompatActivity implements View.OnTouchListener {
 
+    private static final String TAG = RepGameActivity.class.getSimpleName();
     private GLSurfaceView glSurfaceView;
     private boolean mRendererSet;
+    private RepGameAndroidRenderer mRenderWrapper;
+    private int mPreviousX;
+    private int mPreviousY;
 
-    @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
 
@@ -24,9 +29,11 @@ public class RepGameActivity extends AppCompatActivity {
 
         if (supportsEs3) {
             glSurfaceView = new GLSurfaceView(this);
+            glSurfaceView.setOnTouchListener(this);
             glSurfaceView.getKeepScreenOn();
             glSurfaceView.setEGLContextClientVersion(3);
-            glSurfaceView.setRenderer(new RendererWrapper(getApplicationContext()));
+            mRenderWrapper = new RepGameAndroidRenderer(getApplicationContext());
+            glSurfaceView.setRenderer(mRenderWrapper);
             mRendererSet = true;
             setContentView(glSurfaceView);
         } else {
@@ -40,7 +47,6 @@ public class RepGameActivity extends AppCompatActivity {
     @Override
     protected void onPause() {
         super.onPause();
-
         if (mRendererSet) {
             glSurfaceView.onPause();
         }
@@ -49,9 +55,27 @@ public class RepGameActivity extends AppCompatActivity {
     @Override
     protected void onResume() {
         super.onResume();
-
         if (mRendererSet) {
             glSurfaceView.onResume();
         }
+    }
+
+    @Override
+    public boolean onTouch(View view, MotionEvent event) {
+        int x = (int) event.getX();
+        int y = (int) event.getY();
+        switch (event.getAction()) {
+        case MotionEvent.ACTION_MOVE:
+        case MotionEvent.ACTION_UP:
+        case MotionEvent.ACTION_CANCEL:
+            mRenderWrapper.onMouseInput(x - mPreviousX, y - mPreviousY);
+            break;
+        case MotionEvent.ACTION_DOWN:
+            mRenderWrapper.onMouseInput(0, 0);
+        }
+        mPreviousX = x;
+        mPreviousY = y;
+
+        return true;
     }
 }
