@@ -42,6 +42,7 @@ public class RepGameActivity extends AppCompatActivity implements View.OnTouchLi
             Toast.makeText(this, "This device does not support OpenGL ES 3.1.", Toast.LENGTH_LONG).show();
             return;
         }
+        configureFullScreen();
     }
 
     @Override
@@ -55,9 +56,16 @@ public class RepGameActivity extends AppCompatActivity implements View.OnTouchLi
     @Override
     protected void onResume() {
         super.onResume();
+        configureFullScreen();
         if (mRendererSet) {
             glSurfaceView.onResume();
         }
+    }
+
+    private void configureFullScreen() {
+        View decorView = getWindow().getDecorView();
+        int uiOptions = View.SYSTEM_UI_FLAG_FULLSCREEN | View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY | View.SYSTEM_UI_FLAG_HIDE_NAVIGATION;
+        decorView.setSystemUiVisibility(uiOptions);
     }
 
     @Override
