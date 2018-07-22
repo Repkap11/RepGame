@@ -4,6 +4,8 @@
 #include "RepGame.h"
 #include "textures.h"
 
+#define BMP_HEADER_SIZE 138
+
 #ifdef REPGAME_LINUX
 void textures_set_texture_data( unsigned char *textures, int textures_len ) {
     pr_debug( "textures_set_texture_data doesnt need to be called on Linux" );
@@ -29,7 +31,7 @@ unsigned char *readTextureData( const char *filename, size_t mem_size ) {
 unsigned char *cached_texture = NULL;
 
 void textures_set_texture_data( unsigned char *textures, int textures_len ) {
-    for ( int i = 0; i < textures_len; i += 4 ) {
+    for ( int i = BMP_HEADER_SIZE; i < textures_len; i += 4 ) {
         unsigned char a = textures[ i + 0 ];
         unsigned char b = textures[ i + 1 ];
         unsigned char g = textures[ i + 2 ];
@@ -107,13 +109,13 @@ void texture_init_blocks( Texture *texture ) {
     char *dir = getRepGamePath( );
     char bufferText[ BUFSIZ ];
     sprintf( bufferText, "%s%s", dir, "/bitmaps/textures.bmp" );
-    texture->m_RendererId = loadTexture( bufferText, 256, 256, 138, 16, 16 );
+    texture->m_RendererId = loadTexture( bufferText, 256, 256, BMP_HEADER_SIZE, 16, 16 );
 }
 void texture_init_sky( Texture *texture ) {
     char *dir = getRepGamePath( );
     char bufferSky[ BUFSIZ ];
     sprintf( bufferSky, "%s%s", dir, "/bitmaps/sky4.bmp" );
-    // texture->m_RendererId = loadTexture( bufferSky, 2048, 1024, 138, 2048, 1024 );
+    // texture->m_RendererId = loadTexture( bufferSky, 2048, 1024, BMP_HEADER_SIZE, 2048, 1024 );
     texture->m_RendererId = 0;
 }
 

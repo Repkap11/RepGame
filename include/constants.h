@@ -23,7 +23,7 @@
 #define FPS_LIMIT 60.0f
 #define CAMERA_FOV 60.0f
 #define NUM_RENDER_THREADS 7
-#define CHUNK_RENDERS_PER_FRAME ( 2 * CHUNK_RADIUS_X * 2 * CHUNK_RADIUS_Y )*10000 // Render 1 face of the chunk cube per frame. This could be lowered to reduce studder
+#define CHUNK_RENDERS_PER_FRAME ( 2 * CHUNK_RADIUS_X * 2 * CHUNK_RADIUS_Y ) * 10000 // Render 1 face of the chunk cube per frame. This could be lowered to reduce studder
 
 #define PLAYER_HEIGHT 1.85f
 #define PLAYER_WIDTH 0.6f
