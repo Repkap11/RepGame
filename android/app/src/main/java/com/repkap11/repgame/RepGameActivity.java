@@ -73,13 +73,13 @@ public class RepGameActivity extends AppCompatActivity implements View.OnTouchLi
         int x = (int) event.getX();
         int y = (int) event.getY();
         switch (event.getAction()) {
-        case MotionEvent.ACTION_MOVE:
-        case MotionEvent.ACTION_UP:
-        case MotionEvent.ACTION_CANCEL:
-            mRenderWrapper.onMouseInput(x - mPreviousX, y - mPreviousY);
-            break;
-        case MotionEvent.ACTION_DOWN:
-            mRenderWrapper.onMouseInput(0, 0);
+            case MotionEvent.ACTION_MOVE:
+            case MotionEvent.ACTION_UP:
+            case MotionEvent.ACTION_CANCEL:
+                mRenderWrapper.onMouseInput(x - mPreviousX, y - mPreviousY);
+                break;
+            case MotionEvent.ACTION_DOWN:
+                mRenderWrapper.onMouseInput(0, 0);
         }
         mPreviousX = x;
         mPreviousY = y;

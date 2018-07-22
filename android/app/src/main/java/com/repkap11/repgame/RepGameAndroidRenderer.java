@@ -20,8 +20,8 @@ import javax.microedition.khronos.opengles.GL10;
  */
 
 class RepGameAndroidRenderer implements GLSurfaceView.Renderer {
-    private final Context mApplicationContext;
     static private final String TAG = RepGameAndroidRenderer.class.getSimpleName();
+    private final Context mApplicationContext;
 
     public RepGameAndroidRenderer(Context applicationContext) {
         mApplicationContext = applicationContext;

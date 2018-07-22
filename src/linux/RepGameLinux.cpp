@@ -188,6 +188,7 @@ int main( int argc, char **argv ) {
                 usleep( wait_time_us );
             }
         }
+
         clock_gettime( CLOCK_MONOTONIC, &tblank );
         {
             double diff_ms = ( ( ( double )tend.tv_sec + 1.0e-9 * tblank.tv_nsec ) - ( ( double )tblank.tv_sec + 1.0e-9 * tstart.tv_nsec ) ) * 1000.0;
