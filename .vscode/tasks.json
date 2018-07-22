@@ -4,11 +4,18 @@
     "version": "2.0.0",
     "tasks": [
         {
-            "label": "make",
+            "label": "make android-run",
             "type": "shell",
-            "command": "make",
+            "command": "make android-run",
             "problemMatcher": [],
-            "group": "build"
+            "group": "test"
+        },
+        {
+            "label": "make linux-run",
+            "type": "shell",
+            "command": "make linux-run",
+            "problemMatcher": [],
+            "group": "test"
         },
         {
             "label": "make linux",
