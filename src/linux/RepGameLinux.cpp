@@ -159,11 +159,10 @@ int main( int argc, char **argv ) {
     glutPassiveMotionFunc( mouseMove );
     glutMotionFunc( mouseMove );
 
-    struct timespec tstart = {0, 0}, tend = {0, 0};
-    clock_gettime( CLOCK_MONOTONIC, &tstart );
-    tend = tstart;
+    struct timespec tstart = {0, 0}, tend = {0, 0}, tblank = {0, 0};
 
     while ( !repgame_shouldExit( ) ) {
+        clock_gettime( CLOCK_MONOTONIC, &tstart );
         glutMainLoopEvent( );
         // pr_debug( "Drawing" );
         int width, height;
@@ -178,22 +177,23 @@ int main( int argc, char **argv ) {
 
         showErrors( );
 
-        clock_gettime( CLOCK_MONOTONIC, &tstart );
-
-        double diff_ms = ( ( ( double )tstart.tv_sec + 1.0e-9 * tstart.tv_nsec ) - ( ( double )tend.tv_sec + 1.0e-9 * tend.tv_nsec ) ) * 1000.0;
-        tend = tstart;
-        // // // pr_debug("Time Diff ms:%f", diff_ms);
-        // globalGameState.frame_rate = 1.0 / ( diff_ms / 1000.0 );
-        // // pr_debug( "FPS:%f", globalGameState.frame_rate );
-
-        // if ( globalGameState.input.limit_fps ) {
-        //     double wait_time_ms = fps_ms - diff_ms;
-        //     if ( wait_time_ms > 1.0 ) {
-        //         int wait_time_us = ( int )( wait_time_ms * 1000.0 );
-        //         // pr_debug("WaitTime_us:%d", wait_time_us);
-        //         usleep( wait_time_us );
-        //     }
-        // }
+        clock_gettime( CLOCK_MONOTONIC, &tend );
+        {
+            double diff_ms = ( ( ( double )tend.tv_sec + 1.0e-9 * tend.tv_nsec ) - ( ( double )tstart.tv_sec + 1.0e-9 * tstart.tv_nsec ) ) * 1000.0;
+            float frame_rate = 1.0 / ( diff_ms / 1000.0 );
+            // pr_debug( "FPS (if wasn't waiting):%f", frame_rate );
+            double wait_time_ms = fps_ms - diff_ms;
+            if ( wait_time_ms > 0 ) {
+                int wait_time_us = ( int )( wait_time_ms * 1000.0 );
+                usleep( wait_time_us );
+            }
+        }
+        clock_gettime( CLOCK_MONOTONIC, &tblank );
+        {
+            double diff_ms = ( ( ( double )tend.tv_sec + 1.0e-9 * tblank.tv_nsec ) - ( ( double )tblank.tv_sec + 1.0e-9 * tstart.tv_nsec ) ) * 1000.0;
+            float frame_rate = 1.0 / ( diff_ms / 1000.0 );
+            pr_debug( "FPS:%f", frame_rate );
+        }
     }
     repgame_cleanup( );
     glutLeaveMainLoop( );

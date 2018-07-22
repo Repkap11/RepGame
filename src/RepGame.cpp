@@ -445,6 +445,6 @@ void repgame_keysInput( unsigned char key, int x, int y, int pressed ) {
 }
 
 void repgame_mouseMove( int x, int y ) {
-    pr_debug("Saw mouse move: x:%d y:%d", x ,y);
+    //pr_debug("Saw mouse move: x:%d y:%d", x ,y);
     input_mouseMove( &globalGameState.input, x, y );
 }

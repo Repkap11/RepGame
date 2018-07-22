@@ -1,7 +1,7 @@
 #ifndef HEADER_CONSTANTS_H
 #define HEADER_CONSTANTS_H
 
-#define MOVEMENT_SENSITIVITY 1.0f // How sensitive the arrow keys are
+#define MOVEMENT_SENSITIVITY 2.0f // How sensitive the arrow keys are
 #define CHUNK_RADIUS_X 128 / CHUNK_SIZE
 #define CHUNK_RADIUS_Y 64 / CHUNK_SIZE
 #define CHUNK_RADIUS_Z 128 / CHUNK_SIZE
