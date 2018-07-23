@@ -12,9 +12,10 @@ LIBS_LINUX = -l m -l GL -l GLU -l GLEW -l glut -pthread
 LIB_TARGET_LINUX = out/linux/lib$(TARGET).so
 
 #Android arm64 builds
-ANDROID_SDK_LOCATION = /media/paul/storage/android-sdk/
-CC_ANDROID = $(ANDROID_SDK_LOCATION)/ndk-bundle/toolchains/aarch64-linux-android-4.9/prebuilt/linux-x86_64/bin/aarch64-linux-android-g++
-LD_ANDROID = $(ANDROID_SDK_LOCATION)/ndk-bundle/toolchains/aarch64-linux-android-4.9/prebuilt/linux-x86_64/bin/aarch64-linux-android-ld
+include android/local.properties
+ANDROID_NDK_LOCATION = ${ndk.dir}
+CC_ANDROID = $(ANDROID_NDK_LOCATION)/toolchains/aarch64-linux-android-4.9/prebuilt/linux-x86_64/bin/aarch64-linux-android-g++
+LD_ANDROID = $(ANDROID_NDK_LOCATION)/toolchains/aarch64-linux-android-4.9/prebuilt/linux-x86_64/bin/aarch64-linux-android-ld
 CFLAGS_ANDROID = -fPIC -Wno-attributes
 LIB_TARGET_ANDROID = out/android/lib$(TARGET).so
 
@@ -53,7 +54,7 @@ out/linux/%.so: src/%.cpp $(HEADERS) Makefile
 	$(CC_LINUX) -I include/ -I /usr/include/glm $(CFLAGS) $(CFLAGS_LINUX) -c $< -o $@
 
 out/android/%.so:  src/%.cpp $(HEADERS) Makefile
-	$(CC_ANDROID) $(CFLAGS) $(CFLAGS_ANDROID) -c $< -o $@ -I include/ -I $(ANDROID_SDK_LOCATION)/ndk-bundle/sysroot/usr/include -I /usr/include/glm -I $(ANDROID_SDK_LOCATION)/ndk-bundle/sysroot/usr/include/aarch64-linux-android/ -I $(ANDROID_SDK_LOCATION)/ndk-bundle/sources/cxx-stl/gnu-libstdc++/4.9/include -I $(ANDROID_SDK_LOCATION)/ndk-bundle/sources/cxx-stl/gnu-libstdc++/4.9/libs/arm64-v8a/include/
+	$(CC_ANDROID) $(CFLAGS) $(CFLAGS_ANDROID) -c $< -o $@ -I include/ -I $(ANDROID_NDK_LOCATION)/sysroot/usr/include -I /usr/include/glm -I $(ANDROID_NDK_LOCATION)/sysroot/usr/include/aarch64-linux-android/ -I $(ANDROID_NDK_LOCATION)/sources/cxx-stl/gnu-libstdc++/4.9/include -I $(ANDROID_NDK_LOCATION)/sources/cxx-stl/gnu-libstdc++/4.9/libs/arm64-v8a/include/
 
 $(TARGET): $(LIB_TARGET_LINUX) $(OBJECTS_LINUX) $(OBJECTS_SHARED_LINUX) Makefile 
 	$(CC_LINUX) $(CFLAGS) $(CFLAGS_LINUX) $(LIB_TARGET) $(OBJECTS_LINUX) $(OBJECTS_SHARED_LINUX) -Wall $(LIBS_LINUX) -o $@

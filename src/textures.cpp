@@ -78,7 +78,7 @@ unsigned int loadTexture( const char *filename, int width, int height, int bmp_h
     glPixelStorei( GL_UNPACK_ROW_LENGTH, width );
     glPixelStorei( GL_UNPACK_IMAGE_HEIGHT, height );
 
-    for ( int i = 0; i < layer_count; i++ ) {
+    for (unsigned int i = 0; i < layer_count; i++ ) {
         int tex_coord_x = ( i % textures_across );
         int tex_coord_y = ( textures_down - 1 ) - ( i / textures_across );
         int text_coord_base = tex_coord_x * tile_size_across + tex_coord_y * tile_size_down * width;

@@ -25,7 +25,12 @@ void vertex_array_add_buffer( VertexArray *vertexArray, const VertexBuffer *vert
         const VertexBufferElement *element = &vertexBufferLayout->elements[ i ];
         glEnableVertexAttribArray( i + divisor * 3 );
         glVertexAttribDivisor( i + divisor * 3, divisor );
-        glVertexAttribPointer( i + divisor * 3, element->count, element->type, element->normalized, vertexBufferLayout->stride, ( const void * )offset );
+        //Since we have a vertex array bound, offset "specifies an offset into the array in the data store of that buffer"
+        #pragma GCC diagnostic push
+        #pragma GCC diagnostic ignored "-Wint-to-pointer-cast"
+        const void *offset_pointer = (const void *)offset;
+        #pragma GCC diagnostic pop
+        glVertexAttribPointer( i + divisor * 3, element->count, element->type, element->normalized, vertexBufferLayout->stride, offset_pointer );
         offset += element->count * vertex_buffer_layout_size_of_type( element->type );
     }
 }
