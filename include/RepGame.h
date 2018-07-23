@@ -65,11 +65,15 @@ void repgame_clear( );
 void repgame_draw( );
 void repgame_set_textures( unsigned char *textures, int textures_len );
 void repgame_cleanup( );
-void repgame_arrowKeyDownInput( int key, int x, int y );
-void repgame_arrowKeyUpInput( int key, int x, int y );
-void repgame_mouseInput( int button, int state, int x, int y );
-void repgame_keysInput( unsigned char key, int x, int y, int pressed );
-void repgame_mouseMove( int x, int y );
+
+InputState *repgame_getInputState( );
+// void repgame_arrowKeyDownInput( int key, int x, int y );
+// void repgame_arrowKeyUpInput( int key, int x, int y );
+// void repgame_mouseInput( int button, int state, int x, int y ); // click
+// void repgame_keysInput( unsigned char key, int x, int y, int pressed );
+// void repgame_lookMove( int x, int y );     // mouse move / pan
+// void repgame_positionMove( int x, int y ); // arrows on linux, touch screen on Android
+
 void repgame_changeSize( int x, int y );
 void repgame_get_screen_size( int *width, int *height );
 int repgame_shouldExit( );

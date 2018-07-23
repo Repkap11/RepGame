@@ -53,8 +53,15 @@ JNIEXPORT void JNICALL Java_com_repkap11_repgame_RepGameJNIWrapper_onDrawFrame( 
 
 #define ANDROID_PAN_SENSITIVITY 2
 
-JNIEXPORT void JNICALL Java_com_repkap11_repgame_RepGameJNIWrapper_onMouseInput( JNIEnv *env, jobject obj, jint xdiff, jint ydiff ) {
-    repgame_mouseMove( current_screen_width / 2 - xdiff * ANDROID_PAN_SENSITIVITY, current_screen_height / 2 - ydiff * ANDROID_PAN_SENSITIVITY );
+JNIEXPORT void JNICALL Java_com_repkap11_repgame_RepGameJNIWrapper_onLookInput( JNIEnv *env, jobject obj, jint xdiff, jint ydiff ) {
+    input_lookMove( repgame_getInputState( ), current_screen_width / 2 + xdiff * ANDROID_PAN_SENSITIVITY, current_screen_height / 2 + ydiff * ANDROID_PAN_SENSITIVITY );
+}
+
+#define ANDROID_MOVE_SENSITIVITY 1
+
+JNIEXPORT void JNICALL Java_com_repkap11_repgame_RepGameJNIWrapper_onMoveInput( JNIEnv *env, jobject obj, jint xmove, jint ymove ) {
+
+    input_positionMove( repgame_getInputState( ), xmove * ANDROID_MOVE_SENSITIVITY, ymove * ANDROID_MOVE_SENSITIVITY );
 }
 
 } // End Extern C

@@ -16,7 +16,8 @@
         "ostream": "cpp",
         "ratio": "cpp",
         "tuple": "cpp",
-        "utility": "cpp"
+        "utility": "cpp",
+        "initializer_list": "cpp"
     },
     "git.ignoreLimitWarning": true
 }

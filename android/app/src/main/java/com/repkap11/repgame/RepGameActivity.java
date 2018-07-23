@@ -12,7 +12,7 @@ import android.widget.Toast;
 
 import com.repkap11.repgame.views.UIOverlayView;
 
-public class RepGameActivity extends AppCompatActivity implements View.OnTouchListener {
+public class RepGameActivity extends AppCompatActivity {
 
     private static final String TAG = RepGameActivity.class.getSimpleName();
     private GLSurfaceView glSurfaceView;
@@ -44,7 +44,6 @@ public class RepGameActivity extends AppCompatActivity implements View.OnTouchLi
         {
             //Configure the Surface View
             glSurfaceView = findViewById(R.id.repgame_surfaceview);
-            glSurfaceView.setOnTouchListener(this);
             glSurfaceView.getKeepScreenOn();
             glSurfaceView.setEGLContextClientVersion(3);
             glSurfaceView.setRenderer(mRenderWrapper);
@@ -54,6 +53,8 @@ public class RepGameActivity extends AppCompatActivity implements View.OnTouchLi
             //Configure the UI overlay
             mUIOverlay = findViewById(R.id.repgame_ui_overlay_view);
         }
+
+        mUIOverlay.setRenderer(mRenderWrapper);
     }
 
     @Override
@@ -77,24 +78,5 @@ public class RepGameActivity extends AppCompatActivity implements View.OnTouchLi
         View decorView = getWindow().getDecorView();
         int uiOptions = View.SYSTEM_UI_FLAG_FULLSCREEN | View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY | View.SYSTEM_UI_FLAG_HIDE_NAVIGATION;
         decorView.setSystemUiVisibility(uiOptions);
-    }
-
-    @Override
-    public boolean onTouch(View view, MotionEvent event) {
-        int x = (int) event.getX();
-        int y = (int) event.getY();
-        switch (event.getAction()) {
-            case MotionEvent.ACTION_MOVE:
-            case MotionEvent.ACTION_UP:
-            case MotionEvent.ACTION_CANCEL:
-                mRenderWrapper.onMouseInput(x - mPreviousX, y - mPreviousY);
-                break;
-            case MotionEvent.ACTION_DOWN:
-                mRenderWrapper.onMouseInput(0, 0);
-        }
-        mPreviousX = x;
-        mPreviousY = y;
-
-        return true;
     }
 }

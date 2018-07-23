@@ -19,7 +19,7 @@ import javax.microedition.khronos.opengles.GL10;
  * Created by paul on 10/22/17.
  */
 
-class RepGameAndroidRenderer implements GLSurfaceView.Renderer {
+public class RepGameAndroidRenderer implements GLSurfaceView.Renderer {
     static private final String TAG = RepGameAndroidRenderer.class.getSimpleName();
     private final Context mApplicationContext;
 
@@ -51,7 +51,11 @@ class RepGameAndroidRenderer implements GLSurfaceView.Renderer {
         RepGameJNIWrapper.onDrawFrame();
     }
 
-    public void onMouseInput(int xdiff, int ydiff) {
-        RepGameJNIWrapper.onMouseInput(xdiff, ydiff);
+    public void onLookInput(int xdiff, int ydiff) {
+        RepGameJNIWrapper.onLookInput(xdiff, ydiff);
+    }
+
+    public void onMoveInput(int xdiff, int ydiff) {
+        RepGameJNIWrapper.onMoveInput(xdiff, ydiff);
     }
 }

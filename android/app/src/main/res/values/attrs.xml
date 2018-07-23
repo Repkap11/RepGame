@@ -2,9 +2,6 @@
 <resources>
     <declare-styleable name="UIOverlayView">
         <attr name="overlayColor" format="color" />
-        <attr name="labelPosition" format="enum">
-            <enum name="left" value="0" />
-            <enum name="right" value="1" />
-        </attr>
+        <attr name="lookRadiusFraction" format="float" />
     </declare-styleable>
 </resources>

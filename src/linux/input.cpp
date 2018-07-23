@@ -1,62 +1,117 @@
 #include "RepGame.h"
 
+int front, back, left, right, up, down;
+
+void processMovement( InputState *inputState ) {
+    float angleH = 0;
+    int sizeH = 0;
+    int sizeV = 0;
+
+    if ( front ) {
+        sizeH = 1;
+        if ( left && !right ) {
+            angleH -= 45;
+        }
+        if ( right && !left ) {
+            angleH += 45;
+        }
+        if ( !right && !left ) {
+        }
+    }
+    if ( back ) {
+        sizeH = 1;
+        if ( left && !right ) {
+            angleH -= 135;
+        }
+        if ( right && !left ) {
+            angleH += 135;
+        }
+        if ( !right && !left ) {
+            angleH += 180;
+        }
+    }
+    if ( !front && !back ) {
+        if ( left && !right ) {
+            sizeH = 1;
+            angleH -= 90;
+        }
+        if ( right && !left ) {
+            sizeH = 1;
+            angleH += 90;
+        }
+    }
+    if ( up ) {
+        sizeV += 1;
+    } else if ( !down ) {
+        sizeV -= GRAVITY_STRENGTH;
+    }
+    if ( down ) {
+        sizeV -= 1;
+    }
+    inputState->movement.angleH = angleH;
+    inputState->movement.sizeV = sizeV;
+    inputState->movement.sizeH = sizeH;
+}
+
 void input_arrowKeyDownInput( InputState *inputState, int key, int x, int y ) {
     switch ( key ) {
         case GLUT_KEY_UP:
-            inputState->arrows.front = 1;
+            front = 1;
             // pr_debug( "Up Arrow 1 %d %d", x, y );
             break;
         case GLUT_KEY_DOWN:
-            inputState->arrows.back = 1;
+            back = 1;
             // pr_debug( "Down Arrow 1 %d %d", x, y );
             break;
         case GLUT_KEY_LEFT:
-            inputState->arrows.left = 1;
+            left = 1;
             // pr_debug( "Left Arrow 1 %d %d", x, y );
             break;
         case GLUT_KEY_RIGHT:
-            inputState->arrows.right = 1;
+            right = 1;
             // pr_debug( "Right Arrow 1 %d %d", x, y );
             break;
         case 114: // Left Control
         case 115: // Right Control
-            inputState->arrows.down = 1;
+            down = 1;
             // pr_debug( "Right Arrow 0 %d %d", x, y );
             break;
         default:
             pr_debug( "Got Unhandled Special Key Down: %d", key );
             break;
     }
+    processMovement( inputState );
 }
 
 void input_arrowKeyUpInput( InputState *inputState, int key, int x, int y ) {
     switch ( key ) {
         case GLUT_KEY_UP:
-            inputState->arrows.front = 0;
+            front = 0;
             // pr_debug( "Up Arrow 0 %d %d", x, y );
             break;
         case GLUT_KEY_DOWN:
-            inputState->arrows.back = 0;
+            back = 0;
             // pr_debug( "Down Arrow 0 %d %d", x, y );
             break;
         case GLUT_KEY_LEFT:
-            inputState->arrows.left = 0;
+            left = 0;
             // pr_debug( "Left Arrow 0 %d %d", x, y );
             break;
         case GLUT_KEY_RIGHT:
-            inputState->arrows.right = 0;
+            right = 0;
             // pr_debug( "Right Arrow 0 %d %d", x, y );
             break;
 
         case 114: // Left Control
         case 115: // Right Control
-            inputState->arrows.down = 0;
+            down = 0;
             // pr_debug( "Right Arrow 0 %d %d", x, y );
             break;
         default:
             pr_debug( "Got Unhandled Special Key Up: %d", key );
             break;
     }
+    processMovement( inputState );
 }
 
 void input_mouseInput( InputState *inputState, int button, int state, int x, int y ) {
@@ -91,9 +146,9 @@ void input_keysInput( InputState *inputState, unsigned char key, int x, int y, i
         case 'w':
         case 'o':
             if ( pressed ) {
-                inputState->arrows.front = 1;
+                front = 1;
             } else {
-                inputState->arrows.front = 0;
+                front = 0;
             }
 
             break;
@@ -101,9 +156,9 @@ void input_keysInput( InputState *inputState, unsigned char key, int x, int y, i
         case 'a':
         case 'k':
             if ( pressed ) {
-                inputState->arrows.left = 1;
+                left = 1;
             } else {
-                inputState->arrows.left = 0;
+                left = 0;
             }
 
             break;
@@ -112,9 +167,9 @@ void input_keysInput( InputState *inputState, unsigned char key, int x, int y, i
         case 'l':
 
             if ( pressed ) {
-                inputState->arrows.back = 1;
+                back = 1;
             } else {
-                inputState->arrows.back = 0;
+                back = 0;
             }
 
             break;
@@ -123,27 +178,27 @@ void input_keysInput( InputState *inputState, unsigned char key, int x, int y, i
         case ';':
 
             if ( pressed ) {
-                inputState->arrows.right = 1;
+                right = 1;
             } else {
-                inputState->arrows.right = 0;
+                right = 0;
             }
 
             break;
 
         case ' ':
             if ( pressed ) {
-                inputState->arrows.up = 1;
+                up = 1;
             } else {
-                inputState->arrows.up = 0;
+                up = 0;
             }
 
             break;
 
         case '\'':
             if ( pressed ) {
-                inputState->arrows.down = 1;
+                down = 1;
             } else {
-                inputState->arrows.down = 0;
+                down = 0;
             }
 
             break;
@@ -164,9 +219,10 @@ void input_keysInput( InputState *inputState, unsigned char key, int x, int y, i
             }
             break;
     }
+    processMovement( inputState );
 }
 
-void input_mouseMove( InputState *inputState, int x, int y ) {
+void input_lookMove( InputState *inputState, int x, int y ) {
     // pr_debug( "Using location %d %d", x, y );
     inputState->mouse.currentPosition.x = x;
     inputState->mouse.currentPosition.y = y;
