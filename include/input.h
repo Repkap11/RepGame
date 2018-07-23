@@ -3,7 +3,7 @@
 
 typedef struct {
     struct {
-        int sizeH;
+        float sizeH;
         float angleH;
         int sizeV;
     } movement;
@@ -29,15 +29,13 @@ typedef struct {
 } InputState;
 
 #ifdef REPGAME_LINUX
-
 void input_arrowKeyDownInput( InputState *inputState, int key, int x, int y );
 void input_arrowKeyUpInput( InputState *inputState, int key, int x, int y );
 void input_mouseInput( InputState *inputState, int button, int state, int x, int y );
 void input_set_enable_mouse( int enable );
 void input_keysInput( InputState *inputState, unsigned char key, int x, int y, int pressed );
-
 #else
-void input_positionMove( InputState *inputState, int x, int y );
+void input_positionMove( InputState *inputState, float sizeH, int sizeV, float angleH );
 #endif
 void input_lookMove( InputState *inputState, int x, int y );
 

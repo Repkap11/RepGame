@@ -46,16 +46,15 @@ public class UIOverlayView extends View implements View.OnTouchListener {
 
     @Override
     protected void onSizeChanged(int w, int h, int oldw, int oldh) {
-        int halfWidth = w / 2;
-        int halfHeight = h / 2;
-        mLookX = halfWidth / 2;
-        mLookY = halfHeight;
-        int lookMaxRadius = Math.min(h, halfWidth) / 2;
+        int lookMaxRadius = Math.min(w / 3, h * 2 / 3) / 2;
         mLookRadius = (int) ((float) lookMaxRadius * mLookRadiusFraction);
+
+        mLookX = lookMaxRadius;
+        mLookY = h - lookMaxRadius;
 
         mLookFingerX = mLookX;
         mLookFingerY = mLookY;
-        mLookFingerRadius = mLookRadius / 4;
+        mLookFingerRadius = mLookRadius / 3;
 
         super.onSizeChanged(w, h, oldw, oldh);
     }
@@ -74,18 +73,19 @@ public class UIOverlayView extends View implements View.OnTouchListener {
             case MotionEvent.ACTION_CANCEL:
             case MotionEvent.ACTION_POINTER_DOWN:
             case MotionEvent.ACTION_POINTER_UP:
-                //handleLook(mLookX, mLookY);
-                //mRenderWrapper.onMouseInput(0, 0);
+                handleMove(mLookX, mLookY);
+
                 break;
             case MotionEvent.ACTION_MOVE:
-                //handleTouch(x, y);
-                //handleLookMove(x, y);
+                //handleLook(x, y);
+                handleMove(x, y);
                 break;
         }
         return true;
     }
+
     private void handleLook(int x, int y) {
-        mRenderWrapper.onLookInput(x - mLookFingerX, y - mLookFingerY);
+        mRenderWrapper.lookInput(x - mLookFingerX, y - mLookFingerY);
         invalidate();
     }
 
@@ -94,21 +94,24 @@ public class UIOverlayView extends View implements View.OnTouchListener {
         int distX = Math.abs(mLookX - x);
         int distY = Math.abs(mLookY - y);
         double angle = Math.atan2(mLookY - y, mLookX - x);
-        int extraX = distX - (mLookRadius - mLookFingerRadius);
-        int extraY = distY - (mLookRadius - mLookFingerRadius);
+        int maxDist = mLookRadius - mLookFingerRadius;
+        int extraX = distX - maxDist;
+        int extraY = distY - maxDist;
         if (extraX > 0) {
             distX -= extraX;
         }
         if (extraY > 0) {
             distY -= extraY;
         }
+        int dist = (int) Math.sqrt((double) (distX * distX + distY * distY));
+
         //Log.e(TAG, "distX:" + distX + " distY:" + distY);
-        //Log.e(TAG, "angle:" + Math.toDegrees(angle));
+        Log.e(TAG, "angle:" + Math.toDegrees(angle));
 
         x = (int) (mLookX - Math.cos(angle) * distX);
         y = (int) (mLookY - Math.sin(angle) * distY);
         if (x != mLookFingerX || y != mLookFingerY) {
-            mRenderWrapper.onMoveInput(x - mLookFingerX, y - mLookFingerY);
+            mRenderWrapper.positionInput((float) dist / (float) maxDist, 0, (float) (Math.toDegrees(angle)) - 90);
             invalidate();
         }
 

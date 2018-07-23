@@ -15,6 +15,7 @@ class RepGameJNIWrapper {
 
     public static native void onSizeChanged(int width, int height);
 
-    public static native void onLookInput(int xdiff, int ydiff);
-    public static native void onMoveInput(int xmove, int ymove);
+    public static native void lookInput(int xdiff, int ydiff);
+
+    public static native void positionInput(float sizeH, int sizeV, float angleH);
 }

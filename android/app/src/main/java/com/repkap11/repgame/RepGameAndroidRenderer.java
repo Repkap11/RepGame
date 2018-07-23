@@ -51,11 +51,11 @@ public class RepGameAndroidRenderer implements GLSurfaceView.Renderer {
         RepGameJNIWrapper.onDrawFrame();
     }
 
-    public void onLookInput(int xdiff, int ydiff) {
-        RepGameJNIWrapper.onLookInput(xdiff, ydiff);
+    public void lookInput(int xdiff, int ydiff) {
+        RepGameJNIWrapper.lookInput(xdiff, ydiff);
     }
 
-    public void onMoveInput(int xdiff, int ydiff) {
-        RepGameJNIWrapper.onMoveInput(xdiff, ydiff);
+    public void positionInput(float sizeH, int sizeV, float angleH) {
+        RepGameJNIWrapper.positionInput(sizeH, sizeV, angleH);
     }
 }
