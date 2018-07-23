@@ -58,9 +58,11 @@ JNIEXPORT void JNICALL Java_com_repkap11_repgame_RepGameJNIWrapper_lookInput( JN
 }
 
 #define ANDROID_MOVE_SENSITIVITY 1
-
-JNIEXPORT void JNICALL Java_com_repkap11_repgame_RepGameJNIWrapper_positionInput( JNIEnv *env, jobject obj, jfloat sizeH, jint sizeV, jfloat angleH ) {
-    input_positionMove( repgame_getInputState( ), sizeH * ANDROID_MOVE_SENSITIVITY, sizeV * ANDROID_MOVE_SENSITIVITY, angleH );
+JNIEXPORT void JNICALL Java_com_repkap11_repgame_RepGameJNIWrapper_positionHInput( JNIEnv *env, jobject obj, jfloat sizeH, jfloat angleH ) {
+    input_positionHMove( repgame_getInputState( ), sizeH * ANDROID_MOVE_SENSITIVITY, angleH );
+}
+JNIEXPORT void JNICALL Java_com_repkap11_repgame_RepGameJNIWrapper_positionVInput( JNIEnv *env, jobject obj, jint sizeV ) {
+    input_positionVMove( repgame_getInputState( ), sizeV * ANDROID_MOVE_SENSITIVITY );
 }
 
 } // End Extern C

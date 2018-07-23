@@ -17,5 +17,6 @@ class RepGameJNIWrapper {
 
     public static native void lookInput(int xdiff, int ydiff);
 
-    public static native void positionInput(float sizeH, int sizeV, float angleH);
+    public static native void positionHInput(float sizeH, float angleH);
+    public static native void positionVInput(int sizeV);
 }

@@ -2,6 +2,7 @@
 #include "RepGame.h"
 #include "map_storage.h"
 #include "terrain_loading_thread.h"
+#include "constants.h"
 #include <math.h>
 #include <stdlib.h>
 

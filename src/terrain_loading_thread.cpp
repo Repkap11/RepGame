@@ -4,6 +4,7 @@
 #include <pthread.h>
 #include <unistd.h>
 
+
 volatile int cancelThread = 0;
 pthread_t background_threads[ NUM_RENDER_THREADS ];
 LinkedList *work_linked_list;

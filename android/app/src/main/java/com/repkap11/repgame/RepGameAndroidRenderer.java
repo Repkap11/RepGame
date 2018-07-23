@@ -55,7 +55,11 @@ public class RepGameAndroidRenderer implements GLSurfaceView.Renderer {
         RepGameJNIWrapper.lookInput(xdiff, ydiff);
     }
 
-    public void positionInput(float sizeH, int sizeV, float angleH) {
-        RepGameJNIWrapper.positionInput(sizeH, sizeV, angleH);
+    public void positionHInput(float sizeH, float angleH) {
+        RepGameJNIWrapper.positionHInput(sizeH, angleH);
+    }
+
+    public void positionVInput(int sizeV) {
+        RepGameJNIWrapper.positionVInput(sizeV);
     }
 }
