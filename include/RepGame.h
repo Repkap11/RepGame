@@ -9,8 +9,8 @@
 
 #include "chunk_loader.h"
 #include "constants.h"
-#include <glm/glm.hpp>
-#include <glm/gtc/matrix_transform.hpp>
+#include <glm.hpp>
+#include <gtc/matrix_transform.hpp>
 #define DEBUG 1
 
 void showErrors( );

@@ -50,10 +50,10 @@ OBJECTS_SHARED_ANDROID = $(patsubst src/%.cpp, out/android/%.so, $(wildcard src/
 HEADERS = $(wildcard include/*.h) $(wildcard include/**/*.h)
 
 out/linux/%.so: src/%.cpp $(HEADERS) Makefile
-	$(CC_LINUX) -I include/ $(CFLAGS) $(CFLAGS_LINUX) -c $< -o $@
+	$(CC_LINUX) -I include/ -I /usr/include/glm $(CFLAGS) $(CFLAGS_LINUX) -c $< -o $@
 
 out/android/%.so:  src/%.cpp $(HEADERS) Makefile
-	$(CC_ANDROID) $(CFLAGS) $(CFLAGS_ANDROID) -c $< -o $@ -I include/ -I $(ANDROID_SDK_LOCATION)/ndk-bundle/sysroot/usr/include -I /usr/include/ -I $(ANDROID_SDK_LOCATION)/ndk-bundle/sysroot/usr/include/aarch64-linux-android/ -I $(ANDROID_SDK_LOCATION)/ndk-bundle/sources/cxx-stl/gnu-libstdc++/4.9/include -I $(ANDROID_SDK_LOCATION)/ndk-bundle/sources/cxx-stl/gnu-libstdc++/4.9/libs/arm64-v8a/include/
+	$(CC_ANDROID) $(CFLAGS) $(CFLAGS_ANDROID) -c $< -o $@ -I include/ -I $(ANDROID_SDK_LOCATION)/ndk-bundle/sysroot/usr/include -I /usr/include/glm -I $(ANDROID_SDK_LOCATION)/ndk-bundle/sysroot/usr/include/aarch64-linux-android/ -I $(ANDROID_SDK_LOCATION)/ndk-bundle/sources/cxx-stl/gnu-libstdc++/4.9/include -I $(ANDROID_SDK_LOCATION)/ndk-bundle/sources/cxx-stl/gnu-libstdc++/4.9/libs/arm64-v8a/include/
 
 $(TARGET): $(LIB_TARGET_LINUX) $(OBJECTS_LINUX) $(OBJECTS_SHARED_LINUX) Makefile 
 	$(CC_LINUX) $(CFLAGS) $(CFLAGS_LINUX) $(LIB_TARGET) $(OBJECTS_LINUX) $(OBJECTS_SHARED_LINUX) -Wall $(LIBS_LINUX) -o $@

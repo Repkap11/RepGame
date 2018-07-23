@@ -1,7 +1,7 @@
 #ifndef HEADER_SHADER_H
 #define HEADER_SHADER_H
 
-#include <glm/glm.hpp>
+#include <glm.hpp>
 
 typedef struct {
     unsigned int m_RendererId; //
