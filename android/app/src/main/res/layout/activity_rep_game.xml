@@ -16,7 +16,7 @@
         android:id="@+id/repgame_ui_overlay_view"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        app:lookRadiusFraction="0.9"
+        app:moveRadiusFraction="0.9"
         app:overlayColor="@color/colorOverlay" />
 
 

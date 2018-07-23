@@ -2,6 +2,6 @@
 <resources>
     <declare-styleable name="UIOverlayView">
         <attr name="overlayColor" format="color" />
-        <attr name="lookRadiusFraction" format="float" />
+        <attr name="moveRadiusFraction" format="float" />
     </declare-styleable>
 </resources>

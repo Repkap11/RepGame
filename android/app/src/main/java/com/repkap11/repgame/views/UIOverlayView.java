@@ -6,7 +6,6 @@ import android.graphics.Canvas;
 import android.graphics.Paint;
 import android.support.annotation.Nullable;
 import android.util.AttributeSet;
-import android.util.Log;
 import android.view.MotionEvent;
 import android.view.View;
 
@@ -16,45 +15,47 @@ import com.repkap11.repgame.RepGameAndroidRenderer;
 public class UIOverlayView extends View implements View.OnTouchListener {
     private static final String TAG = UIOverlayView.class.getSimpleName();
 
-    private final Paint mLookPaint;
-    private final float mLookRadiusFraction;
+    private final Paint mMovePaint;
+    private final float mMoveRadiusFraction;
+    int mMovePointerId = -1;
+    int mLookPointerId = -1;
     private RepGameAndroidRenderer mRenderWrapper;
-    private int mLookX;
-    private int mLookY;
-    private int mLookRadius;
+    private int mMoveX;
+    private int mMoveY;
+    private int mMoveRadius;
+    private int mMoveFingerX;
+    private int mMoveFingerY;
+    private int mMoveFingerRadius;
     private int mLookFingerX;
     private int mLookFingerY;
-    private int mLookFingerRadius;
 
     public UIOverlayView(Context context, @Nullable AttributeSet attrs) {
         super(context, attrs);
         TypedArray a = context.getTheme().obtainStyledAttributes(attrs, R.styleable.UIOverlayView, 0, 0);
         int overlayColor = a.getColor(R.styleable.UIOverlayView_overlayColor, getResources().getColor(android.R.color.black));
-        mLookPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
-        mLookPaint.setStyle(Paint.Style.FILL);
-        mLookPaint.setColor(overlayColor);
-        mLookRadiusFraction = a.getFloat(R.styleable.UIOverlayView_lookRadiusFraction, 1.0f);
+        mMovePaint = new Paint(Paint.ANTI_ALIAS_FLAG);
+        mMovePaint.setStyle(Paint.Style.FILL);
+        mMovePaint.setColor(overlayColor);
+        mMoveRadiusFraction = a.getFloat(R.styleable.UIOverlayView_moveRadiusFraction, 1.0f);
         setOnTouchListener(this);
     }
 
     @Override
     protected void onDraw(Canvas canvas) {
         super.onDraw(canvas);
-        canvas.drawCircle(mLookX, mLookY, mLookRadius, mLookPaint);
-        canvas.drawCircle(mLookFingerX, mLookFingerY, mLookFingerRadius, mLookPaint);
+        canvas.drawCircle(mMoveX, mMoveY, mMoveRadius, mMovePaint);
+        canvas.drawCircle(mMoveFingerX, mMoveFingerY, mMoveFingerRadius, mMovePaint);
     }
 
     @Override
     protected void onSizeChanged(int w, int h, int oldw, int oldh) {
         int lookMaxRadius = Math.min(w / 3, h * 2 / 3) / 2;
-        mLookRadius = (int) ((float) lookMaxRadius * mLookRadiusFraction);
-
-        mLookX = lookMaxRadius;
-        mLookY = h - lookMaxRadius;
-
-        mLookFingerX = mLookX;
-        mLookFingerY = mLookY;
-        mLookFingerRadius = mLookRadius / 3;
+        mMoveRadius = (int) ((float) lookMaxRadius * mMoveRadiusFraction);
+        mMoveX = w - lookMaxRadius;
+        mMoveY = h - lookMaxRadius;
+        mMoveFingerX = mMoveX;
+        mMoveFingerY = mMoveY;
+        mMoveFingerRadius = mMoveRadius / 3;
 
         super.onSizeChanged(w, h, oldw, oldh);
     }
@@ -63,38 +64,73 @@ public class UIOverlayView extends View implements View.OnTouchListener {
         mRenderWrapper = renderer;
     }
 
+    boolean eventWithinMove(MotionEvent event, int pointerIndex) {
+        int x = (int) event.getX(pointerIndex);
+        int y = (int) event.getY(pointerIndex);
+        if ((Math.abs(x - mMoveX) < mMoveRadius) &&
+                (Math.abs(y - mMoveY) < mMoveRadius)) {
+            return true;
+        }
+        return false;
+    }
+
     @Override
     public boolean onTouch(View view, MotionEvent event) {
-        int x = (int) event.getX();
-        int y = (int) event.getY();
-        switch (event.getAction()) {
-            case MotionEvent.ACTION_UP:
+        int actionIndex = event.getActionIndex();
+        int actionPointer = event.getPointerId(actionIndex);
+        switch (event.getActionMasked()) {
             case MotionEvent.ACTION_DOWN:
-            case MotionEvent.ACTION_CANCEL:
             case MotionEvent.ACTION_POINTER_DOWN:
+                if (eventWithinMove(event, actionIndex)) {
+                    //Log.e(TAG, "Event within look");
+                    mMovePointerId = actionPointer;
+                } else {
+                    handleLook((int) event.getX(actionIndex), (int) event.getY(actionIndex), true);
+                    mLookPointerId = actionPointer;
+                    //Log.e(TAG, "Event NOT within look");
+                }
+                break;
+            case MotionEvent.ACTION_UP:
+            case MotionEvent.ACTION_CANCEL:
             case MotionEvent.ACTION_POINTER_UP:
-                handleMove(mLookX, mLookY);
+                if (actionPointer == mMovePointerId) {
+                    handleMove(mMoveX, mMoveY);
+                    mMovePointerId = -1;
+                }
+                if (actionPointer == mLookPointerId) {
+                    handleLook((int) mLookFingerX, mLookFingerY, false);
+                    mLookPointerId = -1;
+                }
 
                 break;
             case MotionEvent.ACTION_MOVE:
-                //handleLook(x, y);
-                handleMove(x, y);
+                for (int i = 0; i < event.getPointerCount(); i++) {
+                    if (event.getPointerId(i) == mMovePointerId) {
+                        handleMove((int) event.getX(i), (int) event.getY(i));
+                    }
+                    if (event.getPointerId(i) == mLookPointerId) {
+                        handleLook((int) event.getX(i), (int) event.getY(i), false);
+                    }
+                }
                 break;
         }
         return true;
     }
 
-    private void handleLook(int x, int y) {
-        mRenderWrapper.lookInput(x - mLookFingerX, y - mLookFingerY);
-        invalidate();
+    private void handleLook(int x, int y, boolean init) {
+        if (!init) {
+            mRenderWrapper.lookInput(x - mLookFingerX, y - mLookFingerY);
+        }
+        mLookFingerX = x;
+        mLookFingerY = y;
     }
 
 
     private void handleMove(int x, int y) {
-        int distX = Math.abs(mLookX - x);
-        int distY = Math.abs(mLookY - y);
-        double angle = Math.atan2(mLookY - y, mLookX - x);
-        int maxDist = mLookRadius - mLookFingerRadius;
+        int distX = Math.abs(mMoveX - x);
+        int distY = Math.abs(mMoveY - y);
+        double angle = Math.atan2(mMoveY - y, mMoveX - x);
+        int maxDist = mMoveRadius - mMoveFingerRadius;
         int extraX = distX - maxDist;
         int extraY = distY - maxDist;
         if (extraX > 0) {
@@ -106,17 +142,17 @@ public class UIOverlayView extends View implements View.OnTouchListener {
         int dist = (int) Math.sqrt((double) (distX * distX + distY * distY));
 
         //Log.e(TAG, "distX:" + distX + " distY:" + distY);
-        Log.e(TAG, "angle:" + Math.toDegrees(angle));
+        //Log.e(TAG, "angle:" + Math.toDegrees(angle));
 
-        x = (int) (mLookX - Math.cos(angle) * distX);
-        y = (int) (mLookY - Math.sin(angle) * distY);
-        if (x != mLookFingerX || y != mLookFingerY) {
+        x = (int) (mMoveX - Math.cos(angle) * distX);
+        y = (int) (mMoveY - Math.sin(angle) * distY);
+        if (x != mMoveFingerX || y != mMoveFingerY) {
             mRenderWrapper.positionInput((float) dist / (float) maxDist, 0, (float) (Math.toDegrees(angle)) - 90);
             invalidate();
+            mMoveFingerX = x;
+            mMoveFingerY = y;
         }
 
-        mLookFingerX = x;
-        mLookFingerY = y;
 
     }
 }
