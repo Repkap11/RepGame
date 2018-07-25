@@ -6,7 +6,6 @@ import android.content.pm.ConfigurationInfo;
 import android.opengl.GLSurfaceView;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
-import android.view.MotionEvent;
 import android.view.View;
 import android.widget.Toast;
 
@@ -46,6 +45,7 @@ public class RepGameActivity extends AppCompatActivity {
             glSurfaceView = findViewById(R.id.repgame_surfaceview);
             glSurfaceView.getKeepScreenOn();
             glSurfaceView.setEGLContextClientVersion(3);
+            glSurfaceView.setEGLConfigChooser(new RepGameAndroidRenderer.ConfigChooser());
             glSurfaceView.setRenderer(mRenderWrapper);
             mRendererSet = true;
         }
