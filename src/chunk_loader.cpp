@@ -105,7 +105,7 @@ void chunk_loader_init( LoadedChunks *loadedChunks ) {
     for ( int i = -CHUNK_RADIUS_X; i <= CHUNK_RADIUS_X; i++ ) {
         int new_i = ( i + CHUNK_RADIUS_X );
         new_i = ( ( new_i * ( new_i % 2 ? 1 : -1 ) ) + ( ( new_i % 2 ) ? 1 : 0 ) ) / 2;
-        //pr_debug( "i:%d new_i:%d", i, new_i );
+        // pr_debug( "i:%d new_i:%d", i, new_i );
         for ( int j = -CHUNK_RADIUS_Y; j <= CHUNK_RADIUS_Y; j++ ) {
             int new_j = ( j + CHUNK_RADIUS_Y );
             new_j = ( ( new_j * ( new_j % 2 ? 1 : -1 ) ) + ( ( new_j % 2 ) ? 1 : 0 ) ) / 2;
@@ -170,10 +170,43 @@ int reload_if_out_of_bounds( Chunk *chunk, TRIP_ARGS( int chunk_ ) ) {
     return changed;
 }
 
+inline int process_chunk_position( Chunk *chunk, TRIP_ARGS( int chunk_diff_ ), TRIP_ARGS( int center_previous_ ), TRIP_ARGS( int center_next_ ), int force_reload ) {
+
+    int visiable_changed_x = 0;
+    int visiable_changed_y = 0;
+    int visiable_changed_z = 0;
+
+    if ( !force_reload ) {
+        visiable_changed_x = ( chunk_diff_x != 0 ) && ( chunk->chunk_x == center_previous_x || chunk->chunk_x == center_next_x );
+        visiable_changed_y = ( chunk_diff_y != 0 ) && ( chunk->chunk_y == center_previous_y || chunk->chunk_y == center_next_y );
+        visiable_changed_z = ( chunk_diff_z != 0 ) && ( chunk->chunk_z == center_previous_z || chunk->chunk_z == center_next_z );
+    }
+    if ( force_reload || TRIP_OR( visiable_changed_ ) ) {
+        // pr_debug( "Vis dir changed for %2d %2d %2d changed because of:%2d %2d %2d same:%2d %2d %2d", //
+        //           TRIP_ARGS( chunk->chunk_ ),                                                        //
+        //           TRIP_ARGS( chunk_diff_ ),                                                          //
+        //           chunk->chunk_x == center_previous_x,                                               //
+        //           chunk->chunk_y == center_previous_y,                                               //
+        //           chunk->chunk_z == center_previous_z                                                //
+        // );
+        chunk_calculate_sides( chunk, TRIP_ARGS( center_next_ ) );
+        return 1;
+    }
+    return 0;
+}
+
 void chunk_loader_render_chunks( LoadedChunks *loadedChunks, TRIP_ARGS( float camera_ ) ) {
     int chunk_x = floor( camera_x / ( float )CHUNK_SIZE );
     int chunk_y = floor( camera_y / ( float )CHUNK_SIZE );
     int chunk_z = floor( camera_z / ( float )CHUNK_SIZE );
+
+    int loaded_x = loadedChunks->chunk_center_x;
+    int loaded_y = loadedChunks->chunk_center_y;
+    int loaded_z = loadedChunks->chunk_center_z;
+
+    int chunk_diff_x = chunk_x - loaded_x;
+    int chunk_diff_y = chunk_y - loaded_y;
+    int chunk_diff_z = chunk_z - loaded_z;
 
     Chunk *chunk;
     int count = 0;
@@ -184,14 +217,15 @@ void chunk_loader_render_chunks( LoadedChunks *loadedChunks, TRIP_ARGS( float ca
             int reloaded = reload_if_out_of_bounds( chunk, TRIP_ARGS( chunk_ ) );
             if ( !reloaded ) {
                 // pr_debug( "Paul Loading terrain x:%d y%d: z:%d", chunk->chunk_x, chunk->chunk_y, chunk->chunk_z );
+                process_chunk_position( chunk, TRIP_ARGS( chunk_diff_ ), TRIP_ARGS( loaded_ ), TRIP_ARGS( chunk_ ), 1 );
                 chunk_program_terrain( chunk );
             }
         }
         count += 1;
     } while ( chunk );
 
-    if ( ( loadedChunks->chunk_center_x != chunk_x ) || ( loadedChunks->chunk_center_y != chunk_y ) || ( loadedChunks->chunk_center_z != chunk_z ) ) {
-        //pr_debug( "Moved outof chunk x:%d y:%d z:%d", TRIP_ARGS( loadedChunks->chunk_center_ ) );
+    if ( TRIP_OR( 0 != chunk_diff_ ) ) {
+        //pr_debug( "Moved outof chunk x:%d y:%d z:%d", TRIP_ARGS( loaded_ ) );
         //pr_debug( "Moved into  chunk x:%d y:%d z:%d", TRIP_ARGS( chunk_ ) );
 
         for ( int i = 0; i < MAX_LOADED_CHUNKS; i++ ) {
@@ -200,6 +234,9 @@ void chunk_loader_render_chunks( LoadedChunks *loadedChunks, TRIP_ARGS( float ca
                 continue;
             }
             int reloaded = reload_if_out_of_bounds( chunk, TRIP_ARGS( chunk_ ) );
+            if ( !reloaded ) {
+                process_chunk_position( chunk, TRIP_ARGS( chunk_diff_ ), TRIP_ARGS( loaded_ ), TRIP_ARGS( chunk_ ), 0 );
+            }
         }
         loadedChunks->chunk_center_x = chunk_x;
         loadedChunks->chunk_center_y = chunk_y;

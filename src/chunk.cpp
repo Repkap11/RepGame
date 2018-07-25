@@ -3,17 +3,24 @@
 #include "map_gen.h"
 #include "map_storage.h"
 
+#define IB_POSITION_SOLID_RIGHT 0
+#define IB_POSITION_SOLID_FRONT 1
+#define IB_POSITION_SOLID_LEFT 2
+#define IB_POSITION_SOLID_BACK 3
+#define IB_POSITION_SOLID_TOP 4
+#define IB_POSITION_SOLID_BOTTOM 5
+
 unsigned int ib_data_solid[] = {
-    2,  1,  0, // Front
+    2,  1,  0, // Right
     0,  3,  2, //
 
-    14, 13, 9,  // Right
+    14, 13, 9,  // Front
     9,  10, 14, //
 
-    7,  4,  5, // Back
+    7,  4,  5, // Left
     5,  6,  7, //
 
-    11, 8,  12, // Left
+    11, 8,  12, // Back
     12, 15, 11, //
 
     22, 18, 19, // Top
@@ -22,9 +29,9 @@ unsigned int ib_data_solid[] = {
     17, 21, 20, // Bottom
     20, 16, 17, //
 };
-unsigned int ib_data_solid_size = 6 * 3 * 2;
-unsigned int ib_data_solid_coord_size = 3;
 
+#define IB_POSITION_WATER_TOP 0
+#define IB_POSITION_WATER_BOTTOM 1
 unsigned int ib_data_water[] = {
     2, 0, 1, // Top from the top
     1, 3, 2, //
@@ -32,7 +39,54 @@ unsigned int ib_data_water[] = {
     2, 3, 1, // Top, from the bottom
     1, 0, 2, //
 };
-unsigned int ib_data_water_size = 2 * 3 * 2;
+
+void chunk_calculate_sides( Chunk *chunk, TRIP_ARGS( int center_next_ ) ) {
+    int visable_top = chunk->chunk_y <= center_next_y;
+    int visable_bottom = chunk->chunk_y >= center_next_y;
+    int visable_left = chunk->chunk_z <= center_next_z;
+    int visable_right = chunk->chunk_z >= center_next_z;
+    int visable_front = chunk->chunk_x <= center_next_x;
+    int visable_back = chunk->chunk_x >= center_next_x;
+
+    int ib_size_solid = 0;
+    int ib_size_water = 0;
+    if ( visable_front ) {//bad
+        for ( int i = 0; i < 6; i++ ) {
+            chunk->solid.ib_data[ ib_size_solid++ ] = ib_data_solid[ 6 * IB_POSITION_SOLID_FRONT + i ];
+        }
+    }
+    if ( visable_right ) {//bad
+        for ( int i = 0; i < 6; i++ ) {
+            chunk->solid.ib_data[ ib_size_solid++ ] = ib_data_solid[ 6 * IB_POSITION_SOLID_RIGHT + i ];
+        }
+    }
+    if ( visable_back ) {//bad
+        for ( int i = 0; i < 6; i++ ) {
+            chunk->solid.ib_data[ ib_size_solid++ ] = ib_data_solid[ 6 * IB_POSITION_SOLID_BACK + i ];
+        }
+    }
+    if ( visable_left ) {//bad
+        for ( int i = 0; i < 6; i++ ) {
+            chunk->solid.ib_data[ ib_size_solid++ ] = ib_data_solid[ 6 * IB_POSITION_SOLID_LEFT + i ];
+        }
+    }
+    if ( visable_top ) {//good
+        for ( int i = 0; i < 6; i++ ) {
+            chunk->solid.ib_data[ ib_size_solid++ ] = ib_data_solid[ 6 * IB_POSITION_SOLID_TOP + i ];
+            chunk->water.ib_data[ ib_size_water++ ] = ib_data_water[ 6 * IB_POSITION_WATER_TOP + i ];
+        }
+    }
+    if ( visable_bottom ) {//good
+        for ( int i = 0; i < 6; i++ ) {
+            chunk->solid.ib_data[ ib_size_solid++ ] = ib_data_solid[ 6 * IB_POSITION_SOLID_BOTTOM + i ];
+            chunk->water.ib_data[ ib_size_water++ ] = ib_data_water[ 6 * IB_POSITION_WATER_BOTTOM + i ];
+        }
+    }
+    chunk->solid.ib_data_size = ib_size_solid;
+    chunk->water.ib_data_size = ib_size_water;
+    index_buffer_set_data( &chunk->solid.ib, chunk->solid.ib_data, chunk->solid.ib_data_size );
+    index_buffer_set_data( &chunk->water.ib, chunk->water.ib_data, chunk->water.ib_data_size );
+}
 
 int chunk_get_index_from_coords( int x, int y, int z ) {
     return ( y + 1 ) * CHUNK_SIZE_INTERNAL * CHUNK_SIZE_INTERNAL + ( x + 1 ) * CHUNK_SIZE_INTERNAL + ( z + 1 );
@@ -61,14 +115,14 @@ void chunk_init( Chunk *chunk, VertexBuffer *vb_block_solid, VertexBuffer *vb_bl
     }
 
     {
-        index_buffer_init( &chunk->solid.ib, ib_data_solid, ib_data_solid_size );
+        index_buffer_init( &chunk->solid.ib );
         vertex_buffer_init( &chunk->solid.vb_coords );
         vertex_array_init( &chunk->solid.va );
         vertex_array_add_buffer( &chunk->solid.va, vb_block_solid, vbl_block, 0 );
         vertex_array_add_buffer( &chunk->solid.va, &chunk->solid.vb_coords, &chunk->vbl_coords, 1 );
     }
     {
-        index_buffer_init( &chunk->water.ib, ib_data_water, ib_data_water_size );
+        index_buffer_init( &chunk->water.ib );
         vertex_buffer_init( &chunk->water.vb_coords );
         vertex_array_init( &chunk->water.va );
         vertex_array_add_buffer( &chunk->water.va, vb_block_water, vbl_block, 0 );
@@ -128,7 +182,7 @@ void chunk_persist( Chunk *chunk ) {
 }
 
 void chunk_load_terrain( Chunk *chunk ) {
-    // pr_debug( "Loading chunk terrain x:%d y:%d z:%d", chunk->chunk_x, chunk->chunk_y, chunk->chunk_z );
+// pr_debug( "Loading chunk terrain x:%d y:%d z:%d", chunk->chunk_x, chunk->chunk_y, chunk->chunk_z );
 #ifdef REPGAME_LINUX
     int loaded = map_storage_load( chunk );
 #else

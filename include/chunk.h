@@ -26,6 +26,8 @@ typedef struct {
         int num_instances;
         VertexBuffer vb_coords;
         BlockCoords *populated_blocks;
+        unsigned int ib_data_size;
+        unsigned int ib_data[ 3 * 2 * 6 ];
 
     } solid;
     struct {
@@ -34,6 +36,8 @@ typedef struct {
         int num_instances;
         VertexBuffer vb_coords;
         BlockCoords *populated_blocks;
+        unsigned int ib_data_size;
+        unsigned int ib_data[2 * 2 * 2 ];
 
     } water;
     VertexBufferLayout vbl_coords;
@@ -50,7 +54,7 @@ void chunk_render_water( const Chunk *chunk, const Renderer *renderer, const Sha
 void chunk_load_terrain( Chunk *chunk );      // Load from file or map gen
 void chunk_program_terrain( Chunk *chunk );   // Program into GPU
 void chunk_unprogram_terrain( Chunk *chunk ); // Remove from GPU
-// void chunk_calculate_sides( Chunk *chunk );
+void chunk_calculate_sides( Chunk *chunk, int center_next_x, int center_next_y, int center_next_z );
 int chunk_get_coords_from_index( int index, int *out_x, int *out_y, int *out_z );
 int chunk_get_index_from_coords( int x, int y, int z );
 // void chunk_draw( Chunk *chunk, int solid );
