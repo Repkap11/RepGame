@@ -1,12 +1,15 @@
 #ifndef HEADER_CONSTANTS_H
 #define HEADER_CONSTANTS_H
 
-#define MOVEMENT_SENSITIVITY 1.0f // How sensitive the arrow keys are
+#define MOVEMENT_SENSITIVITY 3.0f // How sensitive the arrow keys are
 
 #ifdef REPGAME_LINUX
 
+// #define CHUNK_RADIUS_X 400 / CHUNK_SIZE
+// #define CHUNK_RADIUS_Y 200 / CHUNK_SIZE
+// #define CHUNK_RADIUS_Z 400 / CHUNK_SIZE
 #define CHUNK_RADIUS_X 300 / CHUNK_SIZE
-#define CHUNK_RADIUS_Y 128 / CHUNK_SIZE
+#define CHUNK_RADIUS_Y 200 / CHUNK_SIZE
 #define CHUNK_RADIUS_Z 300 / CHUNK_SIZE
 #define CHUNK_SIZE 32
 
