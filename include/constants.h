@@ -23,7 +23,7 @@
 
 #endif
 
-#define PERSIST_ALL_CHUNKS 1
+#define PERSIST_ALL_CHUNKS 0
 #define NO_CLIP 1
 #define MAP_SEED 0
 #define LOCK_MOUSE 1
