@@ -108,7 +108,9 @@ int chunk_get_coords_from_index( int index, int *out_x, int *out_y, int *out_z )
 }
 
 void chunk_init( Chunk *chunk, VertexBuffer *vb_block_solid, VertexBuffer *vb_block_water, VertexBufferLayout *vbl_block ) {
-    chunk->blocks = ( Block * )calloc( CHUNK_BLOCK_SIZE, sizeof( Block ) );
+    if ( REMEMBER_BLOCKS ) {
+        chunk->blocks = ( Block * )calloc( CHUNK_BLOCK_SIZE, sizeof( Block ) );
+    }
     {
         vertex_buffer_layout_init( &chunk->vbl_coords );
         vertex_buffer_layout_push_float( &chunk->vbl_coords, 3 );        // block 3d world coords
@@ -132,7 +134,9 @@ void chunk_init( Chunk *chunk, VertexBuffer *vb_block_solid, VertexBuffer *vb_bl
 }
 
 void chunk_destroy( Chunk *chunk ) {
-    free( chunk->blocks );
+    if ( REMEMBER_BLOCKS ) {
+        free( chunk->blocks );
+    }
     if ( chunk->solid.populated_blocks ) {
         free( chunk->solid.populated_blocks );
     }
@@ -186,11 +190,16 @@ void chunk_set_block( Chunk *chunk, int x, int y, int z, BlockID blockID ) {
 
 void chunk_persist( Chunk *chunk ) {
 #ifdef REPGAME_LINUX
-    map_storage_persist( chunk );
+    if ( REMEMBER_BLOCKS ) {
+        map_storage_persist( chunk );
+    }
 #endif
 }
 
 void chunk_load_terrain( Chunk *chunk ) {
+    if ( !REMEMBER_BLOCKS ) {
+        chunk->blocks = ( Block * )calloc( CHUNK_BLOCK_SIZE, sizeof( Block ) );
+    }
 // pr_debug( "Loading chunk terrain x:%d y:%d z:%d", chunk->chunk_x, chunk->chunk_y, chunk->chunk_z );
 #ifdef REPGAME_LINUX
     int loaded = map_storage_load( chunk );
@@ -245,6 +254,14 @@ void chunk_load_terrain( Chunk *chunk ) {
                 }
             }
         }
+    }
+    if ( !REMEMBER_BLOCKS ) {
+#ifdef REPGAME_LINUX
+        if ( PERSIST_ALL_CHUNKS ) {
+            map_storage_persist( chunk );
+        }
+#endif
+        free( chunk->blocks );
     }
     chunk->solid.num_instances = num_solid_instances;
     chunk->water.num_instances = num_water_instances;
