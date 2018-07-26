@@ -185,7 +185,9 @@ void chunk_set_block( Chunk *chunk, int x, int y, int z, BlockID blockID ) {
 }
 
 void chunk_persist( Chunk *chunk ) {
+#ifdef REPGAME_LINUX
     map_storage_persist( chunk );
+#endif
 }
 
 void chunk_load_terrain( Chunk *chunk ) {

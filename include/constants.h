@@ -11,6 +11,7 @@
 #define CHUNK_RADIUS_X 300 / CHUNK_SIZE
 #define CHUNK_RADIUS_Y 200 / CHUNK_SIZE
 #define CHUNK_RADIUS_Z 300 / CHUNK_SIZE
+
 #define CHUNK_SIZE 32
 
 #else
@@ -22,7 +23,7 @@
 
 #endif
 
-#define PERSIST_ALL_CHUNKS 0
+#define PERSIST_ALL_CHUNKS 1
 #define NO_CLIP 1
 #define MAP_SEED 0
 #define LOCK_MOUSE 1

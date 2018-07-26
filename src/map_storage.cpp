@@ -62,7 +62,13 @@ void map_storage_init( ) {
 void map_storage_cleanup( ) {
 }
 
-#define STORAGE_TYPE unsigned char
+#define STORAGE_TYPE_BLOCK_ID unsigned char
+#define STORAGE_TYPE_NUM_BLOCKS unsigned short
+
+typedef struct {
+    STORAGE_TYPE_BLOCK_ID block_id;
+    STORAGE_TYPE_NUM_BLOCKS num;
+} STORAGE_TYPE;
 
 void map_storage_persist( Chunk *chunk ) {
     if ( chunk->ditry ) {
@@ -78,17 +84,45 @@ void map_storage_persist( Chunk *chunk ) {
         if ( blocks == 0 ) {
             return;
         }
+        int persist_data_index = -1;
+        STORAGE_TYPE_NUM_BLOCKS num_same_blocks = 0;
+        int total_num_blocks = 0;
+        STORAGE_TYPE_BLOCK_ID previous_id = LAST_BLOCK_ID;
         for ( int i = 0; i < CHUNK_BLOCK_SIZE; i++ ) {
+
             Block *block = &blocks[ i ];
             BlockDefinition *blockDef = block->blockDef;
             if ( blockDef == NULL ) {
                 pr_debug( "Block null?" );
                 continue;
             }
-            persist_data[ i ] = (STORAGE_TYPE)(blockDef->id);
+            BlockID id = blockDef->id;
+            if ( id == previous_id ) {
+                num_same_blocks++;
+            } else {
+                if ( num_same_blocks > 0 ) {
+                    persist_data[ persist_data_index ].block_id = previous_id;
+                    persist_data[ persist_data_index ].num = num_same_blocks;
+                    total_num_blocks += num_same_blocks;
+                }
+                persist_data_index++;
+                previous_id = id;
+                num_same_blocks = 1;
+            }
+        }
+        if ( num_same_blocks >= 0 ) {
+            persist_data[ persist_data_index ].block_id = previous_id;
+            persist_data[ persist_data_index ].num = num_same_blocks;
+            total_num_blocks += num_same_blocks;
+
+            persist_data_index++;
+        }
+        int expected_num_saved_blocks = CHUNK_BLOCK_SIZE;
+        if ( total_num_blocks != expected_num_saved_blocks ) {
+            pr_debug( "Didn't get enough blocks save" );
         }
         write_ptr = fopen( file_name, "wb" );
-        fwrite( persist_data, CHUNK_BLOCK_SIZE * sizeof( STORAGE_TYPE ), 1, write_ptr );
+        fwrite( persist_data, sizeof( STORAGE_TYPE ), persist_data_index, write_ptr );
         fclose( write_ptr );
     }
 }
@@ -120,16 +154,24 @@ int map_storage_load( Chunk *chunk ) {
     STORAGE_TYPE persist_data[ CHUNK_BLOCK_SIZE ];
     Block *blocks = chunk->blocks;
     read_ptr = fopen( file_name, "rb" );
-    int rc = fread( persist_data, CHUNK_BLOCK_SIZE * sizeof( STORAGE_TYPE ), 1, read_ptr );
+    int persist_data_length = fread( persist_data, sizeof( STORAGE_TYPE ), CHUNK_BLOCK_SIZE, read_ptr );
     fclose( read_ptr );
 
-    for ( int i = 0; i < CHUNK_BLOCK_SIZE; i++ ) {
-        BlockID blockId = ( BlockID )( persist_data[ i ] );
-        if (blockId >= LAST_BLOCK_ID){
-            pr_debug("Got strange block:%d", blockId);
-            blockId = TNT;
+    int block_index = 0;
+    for ( int i = 0; i < persist_data_length; i++ ) {
+        STORAGE_TYPE block_storage = persist_data[ i ];
+        if ( block_storage.block_id >= LAST_BLOCK_ID ) {
+            pr_debug( "Got strange block:%d", block_storage.block_id );
+            block_storage.block_id = TNT;
         }
-        chunk->blocks[ i ].blockDef = block_definition_get_definition( blockId );
+        BlockDefinition *block_def = block_definition_get_definition( ( BlockID )block_storage.block_id );
+        for ( int j = 0; j < block_storage.num; j++ ) {
+            chunk->blocks[ block_index++ ].blockDef = block_def;
+        }
+    }
+    int expected_num_blocks = CHUNK_BLOCK_SIZE;
+    if ( block_index != expected_num_blocks ) {
+        pr_debug( "Didn't get enough blocks load" );
     }
     return 1;
 }

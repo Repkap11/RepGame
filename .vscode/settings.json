@@ -17,7 +17,8 @@
         "ratio": "cpp",
         "tuple": "cpp",
         "utility": "cpp",
-        "initializer_list": "cpp"
+        "initializer_list": "cpp",
+        "thread": "cpp"
     },
     "git.ignoreLimitWarning": true
 }

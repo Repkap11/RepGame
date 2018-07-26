@@ -29,7 +29,7 @@ typedef enum {
     GOLD_BLOCK,
     DIAMOND_BLOCK,
     WATER = 208,
-    LAST_BLOCK_ID
+    LAST_BLOCK_ID = 255,
 } BlockID;
 
 #include "textures.h"
