@@ -79,5 +79,5 @@ install:
 .PRECIOUS: $(TARGET) $(OBJECTS_LINUX) $(OBJECTS_ANDROID) $(OBJECTS_SHARED_LINUX) $(OBJECTS_SHARED_ANDROID) $(LIB_TARGET_LINUX) $(LIB_TARGET_ANDROID)
 
 #$(info $$PATH is [${PATH}])
-.PHONY: all clean install linux run world android map android-run linux-run
+.PHONY: all clean install linux run android map android-run linux-run
 $(shell mkdir -p $(DIRS))

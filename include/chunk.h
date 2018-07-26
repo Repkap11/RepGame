@@ -26,8 +26,6 @@ typedef struct {
         int num_instances;
         VertexBuffer vb_coords;
         BlockCoords *populated_blocks;
-        unsigned int ib_data_size;
-        unsigned int ib_data[ 3 * 2 * 6 ];
 
     } solid;
     struct {
@@ -36,8 +34,6 @@ typedef struct {
         int num_instances;
         VertexBuffer vb_coords;
         BlockCoords *populated_blocks;
-        unsigned int ib_data_size;
-        unsigned int ib_data[2 * 2 * 2 ];
 
     } water;
     VertexBufferLayout vbl_coords;

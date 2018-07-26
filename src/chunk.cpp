@@ -41,6 +41,9 @@ unsigned int ib_data_water[] = {
 };
 
 void chunk_calculate_sides( Chunk *chunk, TRIP_ARGS( int center_next_ ) ) {
+    unsigned int *chunk_ib_data_solid = ( unsigned int * )malloc( 3 * 2 * 6 * sizeof( unsigned int ) );
+    unsigned int *chunk_ib_data_water = ( unsigned int * )malloc( 3 * 2 * 2 * sizeof( unsigned int ) );
+
     int visable_top = chunk->chunk_y <= center_next_y;
     int visable_bottom = chunk->chunk_y >= center_next_y;
     int visable_left = chunk->chunk_z <= center_next_z;
@@ -50,42 +53,42 @@ void chunk_calculate_sides( Chunk *chunk, TRIP_ARGS( int center_next_ ) ) {
 
     int ib_size_solid = 0;
     int ib_size_water = 0;
-    if ( visable_front ) {//bad
+    if ( visable_front ) {
         for ( int i = 0; i < 6; i++ ) {
-            chunk->solid.ib_data[ ib_size_solid++ ] = ib_data_solid[ 6 * IB_POSITION_SOLID_FRONT + i ];
+            chunk_ib_data_solid[ ib_size_solid++ ] = ib_data_solid[ 6 * IB_POSITION_SOLID_FRONT + i ];
         }
     }
-    if ( visable_right ) {//bad
+    if ( visable_right ) {
         for ( int i = 0; i < 6; i++ ) {
-            chunk->solid.ib_data[ ib_size_solid++ ] = ib_data_solid[ 6 * IB_POSITION_SOLID_RIGHT + i ];
+            chunk_ib_data_solid[ ib_size_solid++ ] = ib_data_solid[ 6 * IB_POSITION_SOLID_RIGHT + i ];
         }
     }
-    if ( visable_back ) {//bad
+    if ( visable_back ) {
         for ( int i = 0; i < 6; i++ ) {
-            chunk->solid.ib_data[ ib_size_solid++ ] = ib_data_solid[ 6 * IB_POSITION_SOLID_BACK + i ];
+            chunk_ib_data_solid[ ib_size_solid++ ] = ib_data_solid[ 6 * IB_POSITION_SOLID_BACK + i ];
         }
     }
-    if ( visable_left ) {//bad
+    if ( visable_left ) {
         for ( int i = 0; i < 6; i++ ) {
-            chunk->solid.ib_data[ ib_size_solid++ ] = ib_data_solid[ 6 * IB_POSITION_SOLID_LEFT + i ];
+            chunk_ib_data_solid[ ib_size_solid++ ] = ib_data_solid[ 6 * IB_POSITION_SOLID_LEFT + i ];
         }
     }
-    if ( visable_top ) {//good
+    if ( visable_top ) {
         for ( int i = 0; i < 6; i++ ) {
-            chunk->solid.ib_data[ ib_size_solid++ ] = ib_data_solid[ 6 * IB_POSITION_SOLID_TOP + i ];
-            chunk->water.ib_data[ ib_size_water++ ] = ib_data_water[ 6 * IB_POSITION_WATER_TOP + i ];
+            chunk_ib_data_solid[ ib_size_solid++ ] = ib_data_solid[ 6 * IB_POSITION_SOLID_TOP + i ];
+            chunk_ib_data_water[ ib_size_water++ ] = ib_data_water[ 6 * IB_POSITION_WATER_TOP + i ];
         }
     }
-    if ( visable_bottom ) {//good
+    if ( visable_bottom ) {
         for ( int i = 0; i < 6; i++ ) {
-            chunk->solid.ib_data[ ib_size_solid++ ] = ib_data_solid[ 6 * IB_POSITION_SOLID_BOTTOM + i ];
-            chunk->water.ib_data[ ib_size_water++ ] = ib_data_water[ 6 * IB_POSITION_WATER_BOTTOM + i ];
+            chunk_ib_data_solid[ ib_size_solid++ ] = ib_data_solid[ 6 * IB_POSITION_SOLID_BOTTOM + i ];
+            chunk_ib_data_water[ ib_size_water++ ] = ib_data_water[ 6 * IB_POSITION_WATER_BOTTOM + i ];
         }
     }
-    chunk->solid.ib_data_size = ib_size_solid;
-    chunk->water.ib_data_size = ib_size_water;
-    index_buffer_set_data( &chunk->solid.ib, chunk->solid.ib_data, chunk->solid.ib_data_size );
-    index_buffer_set_data( &chunk->water.ib, chunk->water.ib_data, chunk->water.ib_data_size );
+    index_buffer_set_data( &chunk->solid.ib, chunk_ib_data_solid, ib_size_solid );
+    index_buffer_set_data( &chunk->water.ib, chunk_ib_data_water, ib_size_water );
+    free( chunk_ib_data_solid );
+    free( chunk_ib_data_water );
 }
 
 int chunk_get_index_from_coords( int x, int y, int z ) {
@@ -106,8 +109,6 @@ int chunk_get_coords_from_index( int index, int *out_x, int *out_y, int *out_z )
 
 void chunk_init( Chunk *chunk, VertexBuffer *vb_block_solid, VertexBuffer *vb_block_water, VertexBufferLayout *vbl_block ) {
     chunk->blocks = ( Block * )calloc( CHUNK_BLOCK_SIZE, sizeof( Block ) );
-    chunk->solid.populated_blocks = ( BlockCoords * )calloc( CHUNK_BLOCK_SIZE, sizeof( BlockCoords ) );
-    chunk->water.populated_blocks = ( BlockCoords * )calloc( CHUNK_BLOCK_SIZE, sizeof( BlockCoords ) );
     {
         vertex_buffer_layout_init( &chunk->vbl_coords );
         vertex_buffer_layout_push_float( &chunk->vbl_coords, 3 );        // block 3d world coords
@@ -132,8 +133,14 @@ void chunk_init( Chunk *chunk, VertexBuffer *vb_block_solid, VertexBuffer *vb_bl
 
 void chunk_destroy( Chunk *chunk ) {
     free( chunk->blocks );
-    free( chunk->solid.populated_blocks );
-    free( chunk->water.populated_blocks );
+    if ( chunk->solid.populated_blocks ) {
+        free( chunk->solid.populated_blocks );
+    }
+    chunk->solid.populated_blocks = 0;
+    if ( chunk->water.populated_blocks ) {
+        free( chunk->water.populated_blocks );
+    }
+    chunk->water.populated_blocks = 0;
 }
 
 void chunk_render_solid( const Chunk *chunk, const Renderer *renderer, const Shader *shader ) {
@@ -195,6 +202,12 @@ void chunk_load_terrain( Chunk *chunk ) {
     }
     int num_water_instances = 0;
     int num_solid_instances = 0;
+    if ( chunk->solid.populated_blocks || chunk->water.populated_blocks ) {
+        pr_debug( "Error, populated blocks already populated" );
+    }
+
+    chunk->solid.populated_blocks = ( BlockCoords * )calloc( CHUNK_BLOCK_SIZE, sizeof( BlockCoords ) );
+    chunk->water.populated_blocks = ( BlockCoords * )calloc( CHUNK_BLOCK_SIZE, sizeof( BlockCoords ) );
     for ( int index = CHUNK_BLOCK_DRAW_START; index < CHUNK_BLOCK_DRAW_STOP; index++ ) {
         int x, y, z;
         int drawn_block = chunk_get_coords_from_index( index, &x, &y, &z );
@@ -244,8 +257,20 @@ void chunk_program_terrain( Chunk *chunk ) {
         vertex_buffer_set_data( &chunk->water.vb_coords, chunk->water.populated_blocks, sizeof( BlockCoords ) * chunk->water.num_instances );
         chunk->should_render = 1;
     }
+    free( chunk->solid.populated_blocks );
+    free( chunk->water.populated_blocks );
+    chunk->solid.populated_blocks = 0;
+    chunk->water.populated_blocks = 0;
 }
 
 void chunk_unprogram_terrain( Chunk *chunk ) {
     chunk->should_render = 0;
+    if ( chunk->solid.populated_blocks ) {
+        free( chunk->solid.populated_blocks );
+    }
+    chunk->solid.populated_blocks = 0;
+    if ( chunk->water.populated_blocks ) {
+        free( chunk->water.populated_blocks );
+    }
+    chunk->water.populated_blocks = 0;
 }
