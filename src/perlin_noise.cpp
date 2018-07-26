@@ -59,12 +59,27 @@ float perlin2d( float x, float y, float freq, int depth, int seed ) {
     return fin / div;
 }
 
-int perlin_noise_terrain( int x, int z ) {
-    float noise = perlin2d( x, z, 0.02, 4, MAP_SEED );
-    return noise * 80;
+float perlin_noise_hills( int x, int z ) {
+    float noise = perlin2d( x, z, 0.002, 3, MAP_SEED );
+    return ( noise - 0.5 - 0.2 ) * 50;
 }
 
-int perlin_noise_biomes( int x, int z ) {
-    float noise = perlin2d( x, z, 0.02, 4, MAP_SEED  );
-    return floor(noise = noise * 10);
+float perlin_noise_ground_noise( int x, int z ) {
+    float noise = perlin2d( x, z, 0.02, 4, MAP_SEED + 1 );
+    return noise * 30;
+}
+
+float perlin_noise_mountians( int x, int z ) {
+    float noise = perlin2d( x, z, 0.008, 4, MAP_SEED + 2 );
+    return ( noise - 0.1 ) * 3;
+}
+
+float perlin_noise_mountian_block( int x, int z ) {
+    float noise = perlin2d( x, z, 0.8, 8, MAP_SEED + 3 );
+    return noise;
+}
+
+float perlin_noise_under_water_block( int x, int z ) {
+    float noise = perlin2d( x, z, 0.2, 2, MAP_SEED + 4 );
+    return noise;
 }

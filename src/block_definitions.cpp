@@ -158,9 +158,17 @@ void block_definitions_initilize_definitions( Texture *texture ) {
     block_definitions[ SAND ].textures.bottom = SAND;
     block_definitions[ SAND ].special_grass_logic = 0;
 
+    block_definitions[ SNOW ].id = SNOW;
+    block_definitions[ SNOW ].alpha = 1.0f;
+    block_definitions[ SNOW ].height = 1.0f;
+    block_definitions[ SNOW ].textures.top = SNOW;
+    block_definitions[ SNOW ].textures.side = SNOW;
+    block_definitions[ SNOW ].textures.bottom = SNOW;
+    block_definitions[ SNOW ].special_grass_logic = 0;
+
     block_definitions[ WATER ].id = WATER;
-    block_definitions[ WATER ].alpha = 0.5f;
-    block_definitions[ WATER ].height = 14.0f / 16.0f;
+    block_definitions[ WATER ].alpha = 0.9f;
+    block_definitions[ WATER ].height = 1.0f;
     block_definitions[ WATER ].textures.top = WATER;
     block_definitions[ WATER ].textures.side = WATER;
     block_definitions[ WATER ].textures.bottom = WATER;

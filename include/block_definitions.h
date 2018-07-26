@@ -28,6 +28,7 @@ typedef enum {
     IRON_BLOCK,
     GOLD_BLOCK,
     DIAMOND_BLOCK,
+    SNOW = 67,
     WATER = 208,
     LAST_BLOCK_ID = 255,
 } BlockID;
