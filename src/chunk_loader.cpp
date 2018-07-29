@@ -225,8 +225,8 @@ void chunk_loader_render_chunks( LoadedChunks *loadedChunks, TRIP_ARGS( float ca
     } while ( chunk );
 
     if ( TRIP_OR( 0 != chunk_diff_ ) ) {
-        //pr_debug( "Moved outof chunk x:%d y:%d z:%d", TRIP_ARGS( loaded_ ) );
-        //pr_debug( "Moved into  chunk x:%d y:%d z:%d", TRIP_ARGS( chunk_ ) );
+        // pr_debug( "Moved outof chunk x:%d y:%d z:%d", TRIP_ARGS( loaded_ ) );
+        // pr_debug( "Moved into  chunk x:%d y:%d z:%d", TRIP_ARGS( chunk_ ) );
 
         for ( int i = 0; i < MAX_LOADED_CHUNKS; i++ ) {
             chunk = &loadedChunks->chunkArray[ i ];

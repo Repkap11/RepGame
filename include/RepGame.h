@@ -7,13 +7,22 @@
 #include "android/RepGameAndroid.h"
 #endif
 
+
+#define showErrors( ) \
+    {\
+        int errCode;\
+        const GLubyte *errString;\
+        if ( ( errCode = glGetError( ) ) != GL_NO_ERROR ) {\
+            errString = gluErrorString( errCode );\
+            pr_debug( "GL Error:%d:%s", errCode, errString );\
+        }\
+    }
+
 #include "chunk_loader.h"
 #include "constants.h"
 #include <glm.hpp>
 #include <gtc/matrix_transform.hpp>
 #define DEBUG 1
-
-void showErrors( );
 
 #define TRIP_STATE( replace )                                                                                                                                                                                                                  \
     replace##x;                                                                                                                                                                                                                                \

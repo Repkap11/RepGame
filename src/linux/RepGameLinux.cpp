@@ -6,15 +6,6 @@
 
 #define SKY_BOX_DISTANCE DRAW_DISTANCE * 0.8
 
-void showErrors( ) {
-    int errCode;
-    const GLubyte *errString;
-    if ( ( errCode = glGetError( ) ) != GL_NO_ERROR ) {
-        errString = gluErrorString( errCode );
-        pr_debug( "GL Error:%d:%s", errCode, errString );
-    }
-}
-
 void arrowKeyDownInput( int key, int x, int y ) {
     input_arrowKeyDownInput( repgame_getInputState( ), key, x, y );
 }
