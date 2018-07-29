@@ -36,7 +36,7 @@
 #define GRAVITY_STRENGTH 0.0f
 
 #define CAMERA_SIZE 0.01f // Defines how much crop is in front (low for minecraft)
-#define PERSON_HEIGHT 20.0f
+#define PERSON_HEIGHT 10.0f
 #define DRAW_DISTANCE 1000
 #define FPS_LIMIT 60.0f
 #define CAMERA_FOV 60.0f

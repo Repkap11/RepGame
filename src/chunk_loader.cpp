@@ -17,13 +17,6 @@ typedef struct {
     unsigned int which_face;
 } CubeFace;
 
-#define FACE_TOP 0
-#define FACE_BOTTOM 2
-#define FACE_FRONT 1
-#define FACE_BACK 1
-#define FACE_LECT 1
-#define FACE_RIGHT 1
-
 CubeFace vd_data_solid[] = {
     {0.0f, 0.0f, 0.0f, /*Coords  Texture coords*/ !0, 0, FACE_FRONT}, // 0
     {1.0f, 0.0f, 0.0f, /*Coords  Texture coords*/ !1, 0, FACE_FRONT}, // 1
@@ -35,15 +28,15 @@ CubeFace vd_data_solid[] = {
     {1.0f, 1.0f, 1.0f, /*Coords  Texture coords*/ !0, 1, FACE_BACK}, // 6
     {0.0f, 1.0f, 1.0f, /*Coords  Texture coords*/ !1, 1, FACE_BACK}, // 7
 
-    {0.0f, 0.0f, 0.0f, /*Coords  Texture coords*/ 0, 0, FACE_LECT},  // 8
+    {0.0f, 0.0f, 0.0f, /*Coords  Texture coords*/ 0, 0, FACE_LEFT},  // 8
     {1.0f, 0.0f, 0.0f, /*Coords  Texture coords*/ 1, 0, FACE_RIGHT}, // 9
     {1.0f, 1.0f, 0.0f, /*Coords  Texture coords*/ 1, 1, FACE_RIGHT}, // 10
-    {0.0f, 1.0f, 0.0f, /*Coords  Texture coords*/ 0, 1, FACE_LECT},  // 11
+    {0.0f, 1.0f, 0.0f, /*Coords  Texture coords*/ 0, 1, FACE_LEFT},  // 11
 
-    {0.0f, 0.0f, 1.0f, /*Coords  Texture coords*/ 1, 0, FACE_LECT},  // 12
+    {0.0f, 0.0f, 1.0f, /*Coords  Texture coords*/ 1, 0, FACE_LEFT},  // 12
     {1.0f, 0.0f, 1.0f, /*Coords  Texture coords*/ 0, 0, FACE_RIGHT}, // 13
     {1.0f, 1.0f, 1.0f, /*Coords  Texture coords*/ 0, 1, FACE_RIGHT}, // 14
-    {0.0f, 1.0f, 1.0f, /*Coords  Texture coords*/ 1, 1, FACE_LECT},  // 15
+    {0.0f, 1.0f, 1.0f, /*Coords  Texture coords*/ 1, 1, FACE_LEFT},  // 15
 
     {0.0f, 0.0f, 0.0f, /*Coords  Texture coords*/ !0, !0, FACE_BOTTOM}, // 16
     {1.0f, 0.0f, 0.0f, /*Coords  Texture coords*/ !1, !0, FACE_BOTTOM}, // 17

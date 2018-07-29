@@ -12,6 +12,7 @@ flat out ivec4 v_BlockCoords;
 
 void main( ) {
     gl_Position = u_MVP * ( position + vec4( blockCoords, 0 ) );
-    v_TexCoordBlock = vec3( texCoordBlock, blockTexture[ faceType ] );
-    v_BlockCoords = ivec4( blockCoords.xyz, faceType );
+    uint face_adjusted = faceType > uint( 2 ) ? uint( 2 ) : faceType;
+    v_TexCoordBlock = vec3( texCoordBlock, blockTexture[ face_adjusted ] );
+    v_BlockCoords = ivec4( blockCoords.xyz, faceType + uint( 1 ) );
 }
