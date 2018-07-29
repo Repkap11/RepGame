@@ -128,7 +128,7 @@ static void gameTick( ) {
     globalGameState.camera.view_look = glm::lookAt( glm::vec3( 0.0f, 0.0f, 0.0f ), // From the origin
                                                     glm::vec3( lx, ly, lz ),       // Look at look vector
                                                     glm::vec3( 0.0f, 1.0f, 0.0f )  // Head is up (set to 0,-1,0 to look upside-down)
-                                                    );
+    );
     globalGameState.camera.view_trans = glm::translate( glm::mat4( 1.0f ), glm::vec3( -globalGameState.camera.x,     //
                                                                                       -globalGameState.camera.y,     //
                                                                                       -globalGameState.camera.z ) ); //
@@ -197,6 +197,7 @@ int check_block( Block *block ) {
     return 0;
 }
 GLuint fbo;
+GLuint pbo[ 2 ];
 
 void repgame_init( ) {
     glEnable( GL_DEPTH_TEST );
@@ -269,8 +270,19 @@ void repgame_init( ) {
         pr_debug( "Frame buffer OK" );
     }
 
-    // glReadBuffer( GL_COLOR_ATTACHMENT1 );
-    // showErrors( );
+    {
+        // init the PBOs
+        glGenBuffers( 2, pbo );
+        glBindBuffer( GL_PIXEL_PACK_BUFFER, pbo[ 0 ] );
+        glBufferData( GL_PIXEL_PACK_BUFFER, ( 4 * sizeof( int ) ), NULL, GL_STREAM_READ );
+
+        glBindBuffer( GL_PIXEL_PACK_BUFFER, pbo[ 1 ] );
+        glBufferData( GL_PIXEL_PACK_BUFFER, ( 4 * sizeof( int ) ), NULL, GL_STREAM_READ );
+
+        // bind it to nothing so other stuff doesn't
+        // think it should use the PBOs
+        glBindBuffer( GL_PIXEL_PACK_BUFFER, 0 );
+    }
 }
 
 void repgame_set_textures( unsigned char *textures, int textures_len ) {
@@ -311,6 +323,8 @@ void repgame_get_screen_size( int *width, int *height ) {
     *height = globalGameState.screen.height;
 }
 
+int index = 0;
+int nextIndex = 1;
 void repgame_draw( ) {
 
     glm::mat4 mvp = globalGameState.screen.proj * globalGameState.camera.view_look * globalGameState.camera.view_trans * model;
@@ -324,12 +338,28 @@ void repgame_draw( ) {
     world_draw( &globalGameState.gameChunks, mvp );
     showErrors( );
 
-    int outData[ 4 ] = {42, 43, 44, 45};
-    glReadBuffer( GL_COLOR_ATTACHMENT1 );
-    glReadPixels( globalGameState.screen.width / 2, globalGameState.screen.height / 2, 1, 1, GL_RGBA_INTEGER, GL_INT, outData );
-    pr_debug( "Depth at center r:%d g:%d b:%d a:%d", outData[ 0 ], outData[ 1 ], outData[ 2 ], outData[ 3 ] );
-    showErrors( );
-    // pr_debug( "Got 1" );
+    {
+        glReadBuffer( GL_COLOR_ATTACHMENT1 );
+        glBindBuffer( GL_PIXEL_PACK_BUFFER, pbo[ index ] );
+        glReadPixels( globalGameState.screen.width / 2, globalGameState.screen.height / 2, 1, 1, GL_RGBA_INTEGER, GL_INT, 0 );
+        // pr_debug( "Depth at center r:%d g:%d b:%d a:%d", outData[ 0 ], outData[ 1 ], outData[ 2 ], outData[ 3 ] );
+        showErrors( );
+
+        glBindBuffer( GL_PIXEL_PACK_BUFFER, pbo[ nextIndex ] );
+
+        int *outData = ( int * )glMapBufferRange( GL_PIXEL_PACK_BUFFER, 0, 4 * sizeof( int ), GL_MAP_READ_BIT );
+        if ( outData ) {
+            pr_debug( "Depth at center r:%d g:%d b:%d a:%d", outData[ 0 ], outData[ 1 ], outData[ 2 ], outData[ 3 ] );
+            glUnmapBuffer( GL_PIXEL_PACK_BUFFER );
+        } else {
+            pr_debug( "No Data" );
+        }
+        glBindBuffer( GL_PIXEL_PACK_BUFFER, 0 );
+        index = !index;
+        nextIndex = !nextIndex;
+
+        // pr_debug( "Got 1" );
+    }
 
     /* We are going to blit into the window (default framebuffer)                     */
     glBindFramebuffer( GL_DRAW_FRAMEBUFFER, 0 );

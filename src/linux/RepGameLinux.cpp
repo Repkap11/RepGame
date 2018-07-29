@@ -36,7 +36,7 @@ void changeSize( int w, int h ) {
     repgame_changeSize( w, h );
 }
 
-const char *repgame_getShaderString(const char *filename) {
+const char *repgame_getShaderString( const char *filename ) {
     return "RepGame Linux doesn't support shaders from file";
 }
 
