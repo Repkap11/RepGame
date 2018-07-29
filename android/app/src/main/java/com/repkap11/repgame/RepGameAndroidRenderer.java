@@ -1,6 +1,7 @@
 package com.repkap11.repgame;
 
 import android.content.Context;
+import android.content.res.AssetManager;
 import android.opengl.GLSurfaceView;
 import android.util.Log;
 
@@ -33,7 +34,8 @@ public class RepGameAndroidRenderer implements GLSurfaceView.Renderer {
         } catch (Exception e) {
             Log.d(TAG, "Failed to read bitmap");
         }
-        RepGameJNIWrapper.onSurfaceCreated(targetArray);
+
+        RepGameJNIWrapper.onSurfaceCreated(targetArray, mApplicationContext.getAssets());
 
     }
 

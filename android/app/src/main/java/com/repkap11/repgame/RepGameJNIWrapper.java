@@ -1,5 +1,7 @@
 package com.repkap11.repgame;
 
+import android.content.res.AssetManager;
+
 /**
  * Created by paul on 10/22/17.
  */
@@ -9,7 +11,7 @@ class RepGameJNIWrapper {
         System.loadLibrary("RepGameAndroid");
     }
 
-    public static native void onSurfaceCreated(byte[] textures);
+    public static native void onSurfaceCreated(byte[] textures, AssetManager assetManager);
 
     public static native void onDrawFrame();
 

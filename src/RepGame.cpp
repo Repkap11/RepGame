@@ -128,7 +128,7 @@ static void gameTick( ) {
     globalGameState.camera.view_look = glm::lookAt( glm::vec3( 0.0f, 0.0f, 0.0f ), // From the origin
                                                     glm::vec3( lx, ly, lz ),       // Look at look vector
                                                     glm::vec3( 0.0f, 1.0f, 0.0f )  // Head is up (set to 0,-1,0 to look upside-down)
-                                                    );
+    );
     globalGameState.camera.view_trans = glm::translate( glm::mat4( 1.0f ), glm::vec3( -globalGameState.camera.x,     //
                                                                                       -globalGameState.camera.y,     //
                                                                                       -globalGameState.camera.z ) ); //
@@ -209,8 +209,11 @@ void repgame_init( ) {
     initilizeGameState( );
     showErrors( );
 
-    int fbo_width = 1920;
-    int fbo_height = 1043;
+    // int fbo_width = 1920;
+    // int fbo_height = 1043;
+
+    int fbo_width = 2060;
+    int fbo_height = 1017;
 
     // generate a framebuffer
     glGenFramebuffers( 1, &fbo );
@@ -310,21 +313,22 @@ void repgame_draw( ) {
     world_draw( &globalGameState.gameChunks, mvp );
     showErrors( );
 
-    glFlush( );
-    glFinish( );
     int outData[ 4 ] = {42, 43, 44, 45};
     glReadBuffer( GL_COLOR_ATTACHMENT1 );
     glReadPixels( globalGameState.screen.width / 2, globalGameState.screen.height / 2, 1, 1, GL_RGBA_INTEGER, GL_INT, outData );
     pr_debug( "Depth at center r:%d g:%d b:%d a:%d", outData[ 0 ], outData[ 1 ], outData[ 2 ], outData[ 3 ] );
     showErrors( );
+    pr_debug( "Got 1" );
 
     // glDeleteFramebuffers( 1, &fbo );
 
     /* We are going to blit into the window (default framebuffer)                     */
     glBindFramebuffer( GL_DRAW_FRAMEBUFFER, 0 );
     showErrors( );
+    pr_debug( "Got 2" );
 
-    glDrawBuffer( GL_BACK ); /* Use backbuffer as color dst.         */
+    GLenum which_buf = GL_BACK;
+    glDrawBuffers( 1, &which_buf );
     showErrors( );
 
     /* Read from your FBO */
@@ -333,11 +337,14 @@ void repgame_draw( ) {
 
     glReadBuffer( GL_COLOR_ATTACHMENT0 ); /* Use Color Attachment 0 as color src. */
     showErrors( );
+    pr_debug( "Got 3 %p", glBlitFramebuffer );
 
     /* Copy the color and depth buffer from your FBO to the default framebuffer       */
     glBlitFramebuffer( 0, 0, globalGameState.screen.width, globalGameState.screen.height, //
                        0, 0, globalGameState.screen.width, globalGameState.screen.height, //
                        GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT, GL_NEAREST );
+    pr_debug( "Got 4" );
+
     showErrors( );
     glBindFramebuffer( GL_FRAMEBUFFER, fbo );
     showErrors( );

@@ -7,5 +7,6 @@
 #include <stdlib.h>
 
 void pr_debug( const char *message, ... );
+#define showErrors( )
 
 #endif
