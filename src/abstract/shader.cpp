@@ -158,6 +158,7 @@ unsigned int shaderCompileFromFile( int type, const char *filePath ) {
         free( log );
 
         glDeleteShader( shader );
+        exit(1);
         return 0;
     }
 

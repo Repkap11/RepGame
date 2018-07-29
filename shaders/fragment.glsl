@@ -4,7 +4,7 @@ precision highp float;
 precision lowp sampler2DArray;
 
 in vec3 v_TexCoordBlock;
-in vec3 v_BlockCoords;
+flat in ivec4 v_BlockCoords;
 
 uniform sampler2DArray u_Texture;
 
@@ -17,8 +17,7 @@ void main( ) {
         discard;
     }
     color = texColor;
-    // color = v_BlockCoords;
 
-    blockCoords = ivec4( v_BlockCoords, 1 );
+    blockCoords =  v_BlockCoords;
     // blockCoords = ivec4( 1, 5, 10, 1 );
 }
