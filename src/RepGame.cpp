@@ -128,7 +128,7 @@ static void gameTick( ) {
     globalGameState.camera.view_look = glm::lookAt( glm::vec3( 0.0f, 0.0f, 0.0f ), // From the origin
                                                     glm::vec3( lx, ly, lz ),       // Look at look vector
                                                     glm::vec3( 0.0f, 1.0f, 0.0f )  // Head is up (set to 0,-1,0 to look upside-down)
-    );
+                                                    );
     globalGameState.camera.view_trans = glm::translate( glm::mat4( 1.0f ), glm::vec3( -globalGameState.camera.x,     //
                                                                                       -globalGameState.camera.y,     //
                                                                                       -globalGameState.camera.z ) ); //
@@ -213,7 +213,7 @@ void repgame_init( ) {
     // int fbo_height = 1043;
 
     int fbo_width = 2160;
-    int fbo_height = 1017;
+    int fbo_height = 1080;
 
     // int fbo_width = 800;
     // int fbo_height = 600;
@@ -326,8 +326,8 @@ void repgame_draw( ) {
 
     int outData[ 4 ] = {42, 43, 44, 45};
     glReadBuffer( GL_COLOR_ATTACHMENT1 );
-    // glReadPixels( globalGameState.screen.width / 2, globalGameState.screen.height / 2, 1, 1, GL_RGBA_INTEGER, GL_INT, outData );
-    // pr_debug( "Depth at center r:%d g:%d b:%d a:%d", outData[ 0 ], outData[ 1 ], outData[ 2 ], outData[ 3 ] );
+    glReadPixels( globalGameState.screen.width / 2, globalGameState.screen.height / 2, 1, 1, GL_RGBA_INTEGER, GL_INT, outData );
+    pr_debug( "Depth at center r:%d g:%d b:%d a:%d", outData[ 0 ], outData[ 1 ], outData[ 2 ], outData[ 3 ] );
     showErrors( );
     // pr_debug( "Got 1" );
 
@@ -353,8 +353,8 @@ void repgame_draw( ) {
     showErrors( );
 
     /* Copy the color and depth buffer from your FBO to the default framebuffer       */
-    glBlitFramebuffer( 0, 0, 2160, 1017, //
-                       0, 0, 2160, 1017, //
+    glBlitFramebuffer( 0, 0, 2160, 1080, //
+                       0, 0, 2160, 1080, //
                        GL_COLOR_BUFFER_BIT, GL_NEAREST );
     // pr_debug( "Got 5" );
 
