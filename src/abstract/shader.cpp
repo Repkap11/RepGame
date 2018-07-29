@@ -59,11 +59,10 @@ unsigned int shaderCompileFromString( int type, int is_frag ) {
 
     /* get shader source */
     if ( is_frag ) {
-        source = repgame_getShaderString("fragment.glsl");
+        source = repgame_getShaderString( "fragment.glsl" );
     } else {
-        source = repgame_getShaderString("vertex.glsl");
+        source = repgame_getShaderString( "vertex.glsl" );
     }
-
 
     /* create shader object, set the source, and compile */
     shader = glCreateShader( type );
@@ -124,7 +123,7 @@ unsigned int shaderCompileFromFile( int type, const char *filePath ) {
         free( log );
 
         glDeleteShader( shader );
-        exit(1);
+        exit( 1 );
         return 0;
     }
 
@@ -149,39 +148,48 @@ void shaderAttachFromString( unsigned int program, GLenum type, int is_frag ) {
 
 unsigned int shaders_compile( const char *vertex_path, const char *fragment_path ) {
     /* create program object and attach shaders */
-    unsigned int g_program = glCreateProgram( );
-
-#ifdef REPGAME_LINUX
-    shaderAttachFromFile( g_program, GL_VERTEX_SHADER, vertex_path );
-    shaderAttachFromFile( g_program, GL_FRAGMENT_SHADER, fragment_path );
-#else
-
-    shaderAttachFromString( g_program, GL_VERTEX_SHADER, 0 );
-    shaderAttachFromString( g_program, GL_FRAGMENT_SHADER, 1 );
-#endif
+    unsigned int g_program;
 
     /* link the program and make sure that there were no errors */
-    glLinkProgram( g_program );
-    glValidateProgram( g_program );
-    int result;
-    glGetProgramiv( g_program, GL_LINK_STATUS, &result );
-    if ( result == GL_FALSE ) {
-        GLint length;
-        char *log;
 
-        // get the program info log
-        glGetProgramiv( g_program, GL_INFO_LOG_LENGTH, &length );
-        log = ( char * )malloc( length );
-        glGetProgramInfoLog( g_program, length, &result, log );
+    int result = 0;
+    int try_counts = 0;
+    while ( try_counts < 5 ) {
+        try_counts++;
+        g_program = glCreateProgram( );
+#ifdef REPGAME_LINUX
+        shaderAttachFromFile( g_program, GL_VERTEX_SHADER, vertex_path );
+        shaderAttachFromFile( g_program, GL_FRAGMENT_SHADER, fragment_path );
+#else
+        shaderAttachFromString( g_program, GL_VERTEX_SHADER, 0 );
+        shaderAttachFromString( g_program, GL_FRAGMENT_SHADER, 1 );
+#endif
+        glLinkProgram( g_program );
+        glValidateProgram( g_program );
+        glGetProgramiv( g_program, GL_LINK_STATUS, &result );
+        if ( result == GL_FALSE ) {
+            GLint length;
+            char *log;
 
-        /* print an error message and the info log */
-        pr_debug( "sceneInit(): Program linking failed: %s\n", log );
-        free( log );
+            // get the program info log
+            glGetProgramiv( g_program, GL_INFO_LOG_LENGTH, &length );
+            log = ( char * )malloc( length );
+            glGetProgramInfoLog( g_program, length, &result, log );
 
-        /* delete the program */
-        glDeleteProgram( g_program );
-        g_program = 0;
+            /* print an error message and the info log */
+            pr_debug( "sceneInit(): Program linking failed: %s\n", log );
+            free( log );
+
+            /* delete the program */
+            glDeleteProgram( g_program );
+            g_program = 0;
+        } else {
+            pr_debug( "Program good after:%d", try_counts );
+            return g_program;
+        }
     }
+    pr_debug( "Too many trys linking shader" );
+    exit( 1 );
     return g_program;
 }
 

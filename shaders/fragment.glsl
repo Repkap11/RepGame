@@ -18,6 +18,6 @@ void main( ) {
     }
     color = texColor;
 
-    blockCoords =  v_BlockCoords;
+    blockCoords = v_BlockCoords;
     // blockCoords = ivec4( 1, 5, 10, 1 );
 }

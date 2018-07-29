@@ -363,7 +363,7 @@ void repgame_draw( ) {
         pr_debug( "Time read:%fms map:%fms", diff_read, diff_map );
 
         if ( outData ) {
-            // pr_debug( "Depth at center r:%d g:%d b:%d a:%d", outData[ 0 ], outData[ 1 ], outData[ 2 ], outData[ 3 ] );
+            pr_debug( "Depth at center r:%d g:%d b:%d a:%d", outData[ 0 ], outData[ 1 ], outData[ 2 ], outData[ 3 ] );
             glUnmapBuffer( GL_PIXEL_PACK_BUFFER );
         } else {
             pr_debug( "No Data" );

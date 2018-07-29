@@ -63,7 +63,7 @@ void repgame_clear( );
 void repgame_draw( );
 void repgame_set_textures( unsigned char *textures, int textures_len );
 void repgame_cleanup( );
-const char * repgame_getShaderString( const char * fileName);
+const char *repgame_getShaderString( const char *fileName );
 InputState *repgame_getInputState( );
 
 void repgame_changeSize( int x, int y );
