@@ -128,7 +128,7 @@ static void gameTick( ) {
     globalGameState.camera.view_look = glm::lookAt( glm::vec3( 0.0f, 0.0f, 0.0f ), // From the origin
                                                     glm::vec3( lx, ly, lz ),       // Look at look vector
                                                     glm::vec3( 0.0f, 1.0f, 0.0f )  // Head is up (set to 0,-1,0 to look upside-down)
-    );
+                                                    );
     globalGameState.camera.view_trans = glm::translate( glm::mat4( 1.0f ), glm::vec3( -globalGameState.camera.x,     //
                                                                                       -globalGameState.camera.y,     //
                                                                                       -globalGameState.camera.z ) ); //
@@ -196,8 +196,8 @@ int check_block( Block *block ) {
     }
     return 0;
 }
-GLuint fbo;
-GLuint pbo[ 4 ];
+
+GLuint pbo[ 2 ];
 int pbo_size = 4 * sizeof( int );
 
 void repgame_init( ) {
@@ -211,79 +211,13 @@ void repgame_init( ) {
     initilizeGameState( );
     showErrors( );
 
-    // int fbo_width = 1920;
-    // int fbo_height = 1043;
-
-    int fbo_width = 2160;
-    int fbo_height = 1080;
-
-    // int fbo_width = 800;
-    // int fbo_height = 600;
-
-    // generate a framebuffer
-    glGenFramebuffers( 1, &fbo );
-    // bind it as the target for rendering commands
-    glBindFramebuffer( GL_FRAMEBUFFER, fbo );
-
-    GLuint render_buffer_color;
-    showErrors( );
-    glGenRenderbuffers( 1, &render_buffer_color );
-    showErrors( );
-    glBindRenderbuffer( GL_RENDERBUFFER, render_buffer_color );
-    showErrors( );
-    glRenderbufferStorage( GL_RENDERBUFFER, GL_RGBA8, fbo_width, fbo_height );
-    showErrors( );
-    glFramebufferRenderbuffer( GL_DRAW_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_RENDERBUFFER, render_buffer_color );
-    showErrors( );
-
-    GLuint render_buffer_depth;
-    glGenRenderbuffers( 1, &render_buffer_depth );
-    showErrors( );
-    glBindRenderbuffer( GL_RENDERBUFFER, render_buffer_depth );
-    showErrors( );
-    glRenderbufferStorage( GL_RENDERBUFFER, GL_DEPTH_COMPONENT24, fbo_width, fbo_height );
-    showErrors( );
-    glFramebufferRenderbuffer( GL_DRAW_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, render_buffer_depth );
-    showErrors( );
-
-    GLuint render_buffer_color_metadata;
-    showErrors( );
-    glGenRenderbuffers( 1, &render_buffer_color_metadata );
-    showErrors( );
-    glBindRenderbuffer( GL_RENDERBUFFER, render_buffer_color_metadata );
-    showErrors( );
-    glRenderbufferStorage( GL_RENDERBUFFER, GL_RGBA32I, fbo_width, fbo_height );
-    showErrors( );
-    glFramebufferRenderbuffer( GL_READ_FRAMEBUFFER, GL_COLOR_ATTACHMENT1, GL_RENDERBUFFER, render_buffer_color_metadata );
-    showErrors( );
-
-    GLuint fbdraw;
-    const GLenum bufs[ 2 ] = {GL_COLOR_ATTACHMENT0, GL_COLOR_ATTACHMENT1};
-    // glGenDrawbuffers( 1, &fbdraw );
-    glDrawBuffers( 2, bufs );
-    showErrors( );
-
-    GLenum status = glCheckFramebufferStatus( GL_FRAMEBUFFER );
-    if ( status != GL_FRAMEBUFFER_COMPLETE ) {
-        pr_debug( "The frame buffer status is not complete 0x%x", status );
-        exit( 1 );
-    } else {
-        pr_debug( "Frame buffer OK" );
-    }
-
     {
         // init the PBOs
-        glGenBuffers( 4, pbo );
+        glGenBuffers( 2, pbo );
         glBindBuffer( GL_PIXEL_PACK_BUFFER, pbo[ 0 ] );
         glBufferData( GL_PIXEL_PACK_BUFFER, pbo_size, NULL, GL_STREAM_READ );
 
         glBindBuffer( GL_PIXEL_PACK_BUFFER, pbo[ 1 ] );
-        glBufferData( GL_PIXEL_PACK_BUFFER, pbo_size, NULL, GL_STREAM_READ );
-
-        glBindBuffer( GL_PIXEL_PACK_BUFFER, pbo[ 2 ] );
-        glBufferData( GL_PIXEL_PACK_BUFFER, pbo_size, NULL, GL_STREAM_READ );
-
-        glBindBuffer( GL_PIXEL_PACK_BUFFER, pbo[ 3 ] );
         glBufferData( GL_PIXEL_PACK_BUFFER, pbo_size, NULL, GL_STREAM_READ );
 
         // bind it to nothing so other stuff doesn't
@@ -299,6 +233,8 @@ void repgame_set_textures( unsigned char *textures, int textures_len ) {
 int repgame_shouldExit( ) {
     return globalGameState.input.exitGame;
 }
+
+GLuint fbo;
 
 void repgame_changeSize( int w, int h ) {
     pr_debug( "Screen Size Change:%dx%d", w, h );
@@ -316,6 +252,60 @@ void repgame_changeSize( int w, int h ) {
 
     glViewport( 0, 0, w, h );
     globalGameState.screen.proj = glm::perspective<float>( glm::radians( CAMERA_FOV ), globalGameState.screen.width / globalGameState.screen.height, 0.1f, 1000.0f );
+
+    if ( fbo != 0 ) {
+        glDeleteFramebuffers( 1, &fbo );
+    }
+    // generate a framebuffer
+    glGenFramebuffers( 1, &fbo );
+    // bind it as the target for rendering commands
+    glBindFramebuffer( GL_FRAMEBUFFER, fbo );
+
+    GLuint render_buffer_color;
+    showErrors( );
+    glGenRenderbuffers( 1, &render_buffer_color );
+    showErrors( );
+    glBindRenderbuffer( GL_RENDERBUFFER, render_buffer_color );
+    showErrors( );
+    glRenderbufferStorage( GL_RENDERBUFFER, GL_RGBA8, globalGameState.screen.width, globalGameState.screen.height );
+    showErrors( );
+    glFramebufferRenderbuffer( GL_DRAW_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_RENDERBUFFER, render_buffer_color );
+    showErrors( );
+
+    GLuint render_buffer_depth;
+    glGenRenderbuffers( 1, &render_buffer_depth );
+    showErrors( );
+    glBindRenderbuffer( GL_RENDERBUFFER, render_buffer_depth );
+    showErrors( );
+    glRenderbufferStorage( GL_RENDERBUFFER, GL_DEPTH_COMPONENT24, globalGameState.screen.width, globalGameState.screen.height );
+    showErrors( );
+    glFramebufferRenderbuffer( GL_DRAW_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, render_buffer_depth );
+    showErrors( );
+
+    GLuint render_buffer_color_metadata;
+    showErrors( );
+    glGenRenderbuffers( 1, &render_buffer_color_metadata );
+    showErrors( );
+    glBindRenderbuffer( GL_RENDERBUFFER, render_buffer_color_metadata );
+    showErrors( );
+    glRenderbufferStorage( GL_RENDERBUFFER, GL_RGBA32I, globalGameState.screen.width, globalGameState.screen.height );
+    showErrors( );
+    glFramebufferRenderbuffer( GL_READ_FRAMEBUFFER, GL_COLOR_ATTACHMENT1, GL_RENDERBUFFER, render_buffer_color_metadata );
+    showErrors( );
+
+    GLuint fbdraw;
+    const GLenum bufs[ 2 ] = {GL_COLOR_ATTACHMENT0, GL_COLOR_ATTACHMENT1};
+    // glGenDrawbuffers( 1, &fbdraw );
+    glDrawBuffers( 2, bufs );
+    showErrors( );
+
+    GLenum status = glCheckFramebufferStatus( GL_FRAMEBUFFER );
+    if ( status != GL_FRAMEBUFFER_COMPLETE ) {
+        pr_debug( "The frame buffer status is not complete 0x%x", status );
+        exit( 1 );
+    } else {
+        pr_debug( "Frame buffer OK" );
+    }
 }
 
 void repgame_tick( ) {
@@ -347,8 +337,8 @@ void repgame_draw( ) {
 
     struct timespec t_start = {0, 0}, t_end = {0, 0};
     {
-        index = ( index + 1 ) % 4;
-        nextIndex = ( index + 3 ) % 4;
+        index = ( index + 1 ) % 2;
+        nextIndex = ( index + 1 ) % 2;
 
         glBindBuffer( GL_PIXEL_PACK_BUFFER, pbo[ nextIndex ] );
         glReadBuffer( GL_COLOR_ATTACHMENT1 );
@@ -378,7 +368,10 @@ void repgame_draw( ) {
         } else {
             pr_debug( "No Data" );
         }
+        showErrors( );
+
         glBindBuffer( GL_PIXEL_PACK_BUFFER, 0 );
+        showErrors( );
 
         // pr_debug( "Got 1" );
     }
