@@ -197,7 +197,8 @@ int check_block( Block *block ) {
     return 0;
 }
 GLuint fbo;
-GLuint pbo[ 2 ];
+GLuint pbo[ 4 ];
+int pbo_size = 4 * sizeof( int );
 
 void repgame_init( ) {
     glEnable( GL_DEPTH_TEST );
@@ -272,12 +273,18 @@ void repgame_init( ) {
 
     {
         // init the PBOs
-        glGenBuffers( 2, pbo );
+        glGenBuffers( 4, pbo );
         glBindBuffer( GL_PIXEL_PACK_BUFFER, pbo[ 0 ] );
-        glBufferData( GL_PIXEL_PACK_BUFFER, ( 4 * sizeof( int ) ), NULL, GL_STREAM_READ );
+        glBufferData( GL_PIXEL_PACK_BUFFER, pbo_size, NULL, GL_STREAM_READ );
 
         glBindBuffer( GL_PIXEL_PACK_BUFFER, pbo[ 1 ] );
-        glBufferData( GL_PIXEL_PACK_BUFFER, ( 4 * sizeof( int ) ), NULL, GL_STREAM_READ );
+        glBufferData( GL_PIXEL_PACK_BUFFER, pbo_size, NULL, GL_STREAM_READ );
+
+        glBindBuffer( GL_PIXEL_PACK_BUFFER, pbo[ 2 ] );
+        glBufferData( GL_PIXEL_PACK_BUFFER, pbo_size, NULL, GL_STREAM_READ );
+
+        glBindBuffer( GL_PIXEL_PACK_BUFFER, pbo[ 3 ] );
+        glBufferData( GL_PIXEL_PACK_BUFFER, pbo_size, NULL, GL_STREAM_READ );
 
         // bind it to nothing so other stuff doesn't
         // think it should use the PBOs
@@ -324,7 +331,7 @@ void repgame_get_screen_size( int *width, int *height ) {
 }
 
 int index = 0;
-int nextIndex = 1;
+int nextIndex = 0;
 void repgame_draw( ) {
 
     glm::mat4 mvp = globalGameState.screen.proj * globalGameState.camera.view_look * globalGameState.camera.view_trans * model;
@@ -338,25 +345,40 @@ void repgame_draw( ) {
     world_draw( &globalGameState.gameChunks, mvp );
     showErrors( );
 
+    struct timespec t_start = {0, 0}, t_end = {0, 0};
     {
-        glReadBuffer( GL_COLOR_ATTACHMENT1 );
-        glBindBuffer( GL_PIXEL_PACK_BUFFER, pbo[ index ] );
-        glReadPixels( globalGameState.screen.width / 2, globalGameState.screen.height / 2, 1, 1, GL_RGBA_INTEGER, GL_INT, 0 );
-        // pr_debug( "Depth at center r:%d g:%d b:%d a:%d", outData[ 0 ], outData[ 1 ], outData[ 2 ], outData[ 3 ] );
-        showErrors( );
+        index = ( index + 1 ) % 4;
+        nextIndex = ( index + 3 ) % 4;
 
         glBindBuffer( GL_PIXEL_PACK_BUFFER, pbo[ nextIndex ] );
+        glReadBuffer( GL_COLOR_ATTACHMENT1 );
+        glBufferData( GL_PIXEL_PACK_BUFFER, pbo_size, NULL, GL_STREAM_READ );
 
-        int *outData = ( int * )glMapBufferRange( GL_PIXEL_PACK_BUFFER, 0, 4 * sizeof( int ), GL_MAP_READ_BIT );
+        clock_gettime( CLOCK_MONOTONIC, &t_start );
+        // int outDataRead[] = {42, 43, 44, 45};
+        glReadPixels( globalGameState.screen.width / 2, globalGameState.screen.height / 2, 1, 1, GL_RGBA_INTEGER, GL_INT, 0 );
+        clock_gettime( CLOCK_MONOTONIC, &t_end );
+        double diff_read = ( ( ( double )t_end.tv_sec + 1.0e-9 * t_end.tv_nsec ) - ( ( double )t_start.tv_sec + 1.0e-9 * t_start.tv_nsec ) ) * 1000.0;
+        // pr_debug( "Depth at center r:%d g:%d b:%d a:%d", outDataRead[ 0 ], outDataRead[ 1 ], outDataRead[ 2 ], outDataRead[ 3 ] );
+        showErrors( );
+
+        glBindBuffer( GL_PIXEL_PACK_BUFFER, pbo[ index ] );
+
+        int *outData = 0;
+        clock_gettime( CLOCK_MONOTONIC, &t_start );
+
+        outData = ( int * )glMapBufferRange( GL_PIXEL_PACK_BUFFER, 0, 4 * sizeof( int ), GL_MAP_READ_BIT );
+        clock_gettime( CLOCK_MONOTONIC, &t_end );
+        double diff_map = ( ( ( double )t_end.tv_sec + 1.0e-9 * t_end.tv_nsec ) - ( ( double )t_start.tv_sec + 1.0e-9 * t_start.tv_nsec ) ) * 1000.0;
+        pr_debug( "Time read:%fms map:%fms", diff_read, diff_map );
+
         if ( outData ) {
-            pr_debug( "Depth at center r:%d g:%d b:%d a:%d", outData[ 0 ], outData[ 1 ], outData[ 2 ], outData[ 3 ] );
+            // pr_debug( "Depth at center r:%d g:%d b:%d a:%d", outData[ 0 ], outData[ 1 ], outData[ 2 ], outData[ 3 ] );
             glUnmapBuffer( GL_PIXEL_PACK_BUFFER );
         } else {
             pr_debug( "No Data" );
         }
         glBindBuffer( GL_PIXEL_PACK_BUFFER, 0 );
-        index = !index;
-        nextIndex = !nextIndex;
 
         // pr_debug( "Got 1" );
     }
