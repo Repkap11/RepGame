@@ -8,10 +8,10 @@ layout( location = 3 ) in vec3 blockCoords;
 layout( location = 4 ) in vec3 blockTexture;
 
 out vec3 v_TexCoordBlock;
-out vec4 v_BlockCoords;
+out vec3 v_BlockCoords;
 
 void main( ) {
     gl_Position = u_MVP * ( position + vec4( blockCoords, 0 ) );
-    v_TexCoordBlock = vec3( texCoordBlock, blockTexture[faceType] );
-    v_BlockCoords = vec4(blockCoords, 1);
+    v_TexCoordBlock = vec3( texCoordBlock, blockTexture[ faceType ] );
+    v_BlockCoords = blockCoords.xyz;
 }

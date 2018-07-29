@@ -225,7 +225,7 @@ void repgame_init( ) {
     showErrors( );
     glRenderbufferStorage( GL_RENDERBUFFER, GL_RGBA, fbo_width, fbo_height );
     showErrors( );
-    glFramebufferRenderbuffer( GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_RENDERBUFFER, render_buffer_color );
+    glFramebufferRenderbuffer( GL_DRAW_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_RENDERBUFFER, render_buffer_color );
     showErrors( );
 
     GLuint render_buffer_depth;
@@ -235,7 +235,7 @@ void repgame_init( ) {
     showErrors( );
     glRenderbufferStorage( GL_RENDERBUFFER, GL_DEPTH_COMPONENT, fbo_width, fbo_height );
     showErrors( );
-    glFramebufferRenderbuffer( GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, render_buffer_depth );
+    glFramebufferRenderbuffer( GL_DRAW_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, render_buffer_depth );
     showErrors( );
 
     GLuint render_buffer_color_metadata;
@@ -244,9 +244,9 @@ void repgame_init( ) {
     showErrors( );
     glBindRenderbuffer( GL_RENDERBUFFER, render_buffer_color_metadata );
     showErrors( );
-    glRenderbufferStorage( GL_RENDERBUFFER, GL_RGBA, fbo_width, fbo_height );
+    glRenderbufferStorage( GL_RENDERBUFFER, GL_RGBA32I, fbo_width, fbo_height );
     showErrors( );
-    glFramebufferRenderbuffer( GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT1, GL_RENDERBUFFER, render_buffer_color_metadata );
+    glFramebufferRenderbuffer( GL_READ_FRAMEBUFFER, GL_COLOR_ATTACHMENT1, GL_RENDERBUFFER, render_buffer_color_metadata );
     showErrors( );
 
     GLuint fbdraw;
@@ -302,6 +302,7 @@ void repgame_draw( ) {
     glm::mat4 mvp = globalGameState.screen.proj * globalGameState.camera.view_look * globalGameState.camera.view_trans * model;
 
     glBindFramebuffer( GL_FRAMEBUFFER, fbo );
+    showErrors( );
 
     world_render( &globalGameState.gameChunks, globalGameState.camera.x, globalGameState.camera.y, globalGameState.camera.z );
     showErrors( );
@@ -309,12 +310,12 @@ void repgame_draw( ) {
     world_draw( &globalGameState.gameChunks, mvp );
     showErrors( );
 
-    // glFlush( );
-    // glFinish( );
-    float outData[ 4 ];
+    glFlush( );
+    glFinish( );
+    int outData[ 4 ] = {42, 43, 44, 45};
     glReadBuffer( GL_COLOR_ATTACHMENT1 );
-    glReadPixels( globalGameState.screen.width / 2, globalGameState.screen.height / 2, 1, 1, GL_RGBA, GL_FLOAT, outData );
-    pr_debug( "Depth at center r:%f g:%f b:%f a:%f", outData[ 0 ], outData[ 1 ], outData[ 2 ], outData[ 3 ] );
+    glReadPixels( globalGameState.screen.width / 2, globalGameState.screen.height / 2, 1, 1, GL_RGBA_INTEGER, GL_INT, outData );
+    pr_debug( "Depth at center r:%d g:%d b:%d a:%d", outData[ 0 ], outData[ 1 ], outData[ 2 ], outData[ 3 ] );
     showErrors( );
 
     // glDeleteFramebuffers( 1, &fbo );

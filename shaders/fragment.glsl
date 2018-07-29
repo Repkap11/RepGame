@@ -4,12 +4,12 @@ precision highp float;
 precision lowp sampler2DArray;
 
 in vec3 v_TexCoordBlock;
-in vec4 v_BlockCoords;
+in vec3 v_BlockCoords;
 
 uniform sampler2DArray u_Texture;
 
 layout( location = 0 ) out vec4 color;
-layout( location = 1 ) out vec4 blockCoords;
+layout( location = 1 ) out ivec4 blockCoords;
 
 void main( ) {
     vec4 texColor = texture( u_Texture, v_TexCoordBlock );
@@ -19,6 +19,6 @@ void main( ) {
     color = texColor;
     // color = v_BlockCoords;
 
-    blockCoords = v_BlockCoords;
-    // blockCoords = texColor;
+    blockCoords = ivec4( v_BlockCoords, 1 );
+    // blockCoords = ivec4( 1, 5, 10, 1 );
 }
