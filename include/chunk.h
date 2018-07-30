@@ -9,14 +9,6 @@
 #define CHUNK_BLOCK_DRAW_START ( CHUNK_SIZE_INTERNAL * CHUNK_SIZE_INTERNAL )
 #define CHUNK_BLOCK_DRAW_STOP ( CHUNK_BLOCK_SIZE - CHUNK_BLOCK_DRAW_START )
 
-#define FACE_TOP 0
-#define FACE_BOTTOM 1
-#define FACE_RIGHT 2
-#define FACE_FRONT 3
-#define FACE_LEFT 4
-#define FACE_BACK 5
-
-
 typedef struct {
     float x;
     float y;

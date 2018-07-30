@@ -3,37 +3,6 @@
 #include "map_gen.h"
 #include "map_storage.h"
 
-unsigned int ib_data_solid[] = {
-    22, 18, 19, // Top
-    19, 23, 22, //
-
-    17, 21, 20, // Bottom
-    20, 16, 17, //
-
-    2,  1,  0, // Right
-    0,  3,  2, //
-
-    14, 13, 9,  // Front
-    9,  10, 14, //
-
-    7,  4,  5, // Left
-    5,  6,  7, //
-
-    11, 8,  12, // Back
-    12, 15, 11, //
-
-};
-
-#define IB_POSITION_WATER_TOP 0
-#define IB_POSITION_WATER_BOTTOM 1
-unsigned int ib_data_water[] = {
-    2, 0, 1, // Top from the top
-    1, 3, 2, //
-
-    2, 3, 1, // Top, from the bottom
-    1, 0, 2, //
-};
-
 void chunk_calculate_sides( Chunk *chunk, TRIP_ARGS( int center_next_ ) ) {
     unsigned int *chunk_ib_data_solid = ( unsigned int * )malloc( 3 * 2 * 6 * sizeof( unsigned int ) );
     unsigned int *chunk_ib_data_water = ( unsigned int * )malloc( 3 * 2 * 2 * sizeof( unsigned int ) );

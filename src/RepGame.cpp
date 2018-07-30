@@ -128,7 +128,7 @@ static void gameTick( ) {
     globalGameState.camera.view_look = glm::lookAt( glm::vec3( 0.0f, 0.0f, 0.0f ), // From the origin
                                                     glm::vec3( lx, ly, lz ),       // Look at look vector
                                                     glm::vec3( 0.0f, 1.0f, 0.0f )  // Head is up (set to 0,-1,0 to look upside-down)
-                                                    );
+    );
     globalGameState.camera.view_trans = glm::translate( glm::mat4( 1.0f ), glm::vec3( -globalGameState.camera.x,     //
                                                                                       -globalGameState.camera.y,     //
                                                                                       -globalGameState.camera.z ) ); //
@@ -152,10 +152,6 @@ static void gameTick( ) {
     globalGameState.camera.y += movement_vector_y;
     globalGameState.camera.z += movement_vector_z;
 
-    // pr_debug( "CameraPos::%f %f %f", globalGameState.camera.x, globalGameState.camera.y, globalGameState.camera.z );
-
-    // }
-
     if ( globalGameState.input.click_delay_right > 0 ) {
         globalGameState.input.click_delay_right--;
     } else {
@@ -178,7 +174,6 @@ static inline void initilizeGameState( ) {
     globalGameState.camera.z = -1.0f;
     globalGameState.block_selection.blockID = TNT;
     world_init( &globalGameState.gameChunks );
-    // pr_debug( "RepGame init done" );
 }
 
 int check_block( Block *block ) {
@@ -209,21 +204,12 @@ void repgame_init( ) {
     glBlendEquation( GL_FUNC_ADD );
     model = glm::mat4( 1.0f );
     initilizeGameState( );
-    showErrors( );
-
-    {
-        // init the PBOs
-        glGenBuffers( 2, pbo );
-        glBindBuffer( GL_PIXEL_PACK_BUFFER, pbo[ 0 ] );
-        glBufferData( GL_PIXEL_PACK_BUFFER, pbo_size, NULL, GL_STREAM_READ );
-
-        glBindBuffer( GL_PIXEL_PACK_BUFFER, pbo[ 1 ] );
-        glBufferData( GL_PIXEL_PACK_BUFFER, pbo_size, NULL, GL_STREAM_READ );
-
-        // bind it to nothing so other stuff doesn't
-        // think it should use the PBOs
-        glBindBuffer( GL_PIXEL_PACK_BUFFER, 0 );
-    }
+    glGenBuffers( 2, pbo );
+    glBindBuffer( GL_PIXEL_PACK_BUFFER, pbo[ 0 ] );
+    glBufferData( GL_PIXEL_PACK_BUFFER, pbo_size, NULL, GL_STREAM_READ );
+    glBindBuffer( GL_PIXEL_PACK_BUFFER, pbo[ 1 ] );
+    glBufferData( GL_PIXEL_PACK_BUFFER, pbo_size, NULL, GL_STREAM_READ );
+    glBindBuffer( GL_PIXEL_PACK_BUFFER, 0 );
 }
 
 void repgame_set_textures( unsigned char *textures, int textures_len ) {
@@ -262,34 +248,23 @@ void repgame_changeSize( int w, int h ) {
     glBindFramebuffer( GL_FRAMEBUFFER, fbo );
 
     GLuint render_buffer_color;
-    showErrors( );
     glGenRenderbuffers( 1, &render_buffer_color );
-    showErrors( );
     glBindRenderbuffer( GL_RENDERBUFFER, render_buffer_color );
-    showErrors( );
     glRenderbufferStorage( GL_RENDERBUFFER, GL_RGBA8, globalGameState.screen.width, globalGameState.screen.height );
-    showErrors( );
     glFramebufferRenderbuffer( GL_DRAW_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_RENDERBUFFER, render_buffer_color );
     showErrors( );
 
     GLuint render_buffer_depth;
     glGenRenderbuffers( 1, &render_buffer_depth );
-    showErrors( );
     glBindRenderbuffer( GL_RENDERBUFFER, render_buffer_depth );
-    showErrors( );
     glRenderbufferStorage( GL_RENDERBUFFER, GL_DEPTH_COMPONENT24, globalGameState.screen.width, globalGameState.screen.height );
-    showErrors( );
     glFramebufferRenderbuffer( GL_DRAW_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, render_buffer_depth );
     showErrors( );
 
     GLuint render_buffer_color_metadata;
-    showErrors( );
     glGenRenderbuffers( 1, &render_buffer_color_metadata );
-    showErrors( );
     glBindRenderbuffer( GL_RENDERBUFFER, render_buffer_color_metadata );
-    showErrors( );
     glRenderbufferStorage( GL_RENDERBUFFER, GL_RGBA32I, globalGameState.screen.width, globalGameState.screen.height );
-    showErrors( );
     glFramebufferRenderbuffer( GL_READ_FRAMEBUFFER, GL_COLOR_ATTACHMENT1, GL_RENDERBUFFER, render_buffer_color_metadata );
     showErrors( );
 
@@ -312,6 +287,51 @@ void repgame_tick( ) {
     gameTick( );
 }
 
+int index;
+int getMouseCoords( TRIP_ARGS( int *out_mouse_ ), int *out_which_face ) {
+    int found_block = 0;
+    struct timespec t_start = {0, 0}, t_end = {0, 0};
+    index = ( index + 1 ) % 2;
+    int nextIndex = ( index + 1 ) % 2;
+
+    glBindBuffer( GL_PIXEL_PACK_BUFFER, pbo[ nextIndex ] );
+    glReadBuffer( GL_COLOR_ATTACHMENT1 );
+    glBufferData( GL_PIXEL_PACK_BUFFER, pbo_size, NULL, GL_STREAM_READ );
+
+    clock_gettime( CLOCK_MONOTONIC, &t_start );
+    glReadPixels( globalGameState.screen.width / 2, globalGameState.screen.height / 2, 1, 1, GL_RGBA_INTEGER, GL_INT, 0 );
+    clock_gettime( CLOCK_MONOTONIC, &t_end );
+    double diff_read = ( ( ( double )t_end.tv_sec + 1.0e-9 * t_end.tv_nsec ) - ( ( double )t_start.tv_sec + 1.0e-9 * t_start.tv_nsec ) ) * 1000.0;
+    showErrors( );
+
+    glBindBuffer( GL_PIXEL_PACK_BUFFER, pbo[ index ] );
+
+    int *outData = 0;
+    clock_gettime( CLOCK_MONOTONIC, &t_start );
+
+    outData = ( int * )glMapBufferRange( GL_PIXEL_PACK_BUFFER, 0, 4 * sizeof( int ), GL_MAP_READ_BIT );
+    clock_gettime( CLOCK_MONOTONIC, &t_end );
+    double diff_map = ( ( ( double )t_end.tv_sec + 1.0e-9 * t_end.tv_nsec ) - ( ( double )t_start.tv_sec + 1.0e-9 * t_start.tv_nsec ) ) * 1000.0;
+    // pr_debug( "Time read:%fms map:%fms", diff_read, diff_map );
+
+    if ( outData ) {
+        glUnmapBuffer( GL_PIXEL_PACK_BUFFER );
+        *out_mouse_x = outData[ 0 ];
+        *out_mouse_y = outData[ 1 ];
+        *out_mouse_z = outData[ 2 ];
+        found_block = outData[ 3 ] != 0;
+        *out_which_face = outData[ 3 ] - 1;
+
+    } else {
+        pr_debug( "No Data" );
+    }
+    showErrors( );
+
+    glBindBuffer( GL_PIXEL_PACK_BUFFER, 0 );
+    showErrors( );
+    return found_block;
+}
+
 void repgame_clear( ) {
     glClear( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT );
 }
@@ -320,92 +340,38 @@ void repgame_get_screen_size( int *width, int *height ) {
     *height = globalGameState.screen.height;
 }
 
-int index = 0;
-int nextIndex = 0;
-void repgame_draw( ) {
-
-    glm::mat4 mvp = globalGameState.screen.proj * globalGameState.camera.view_look * globalGameState.camera.view_trans * model;
-
+void blitScreen( ) {
+    glBindFramebuffer( GL_DRAW_FRAMEBUFFER, 0 );
+    GLenum which_buf = GL_BACK;
+    glDrawBuffers( 1, &which_buf );
+    glBindFramebuffer( GL_READ_FRAMEBUFFER, fbo );
+    glReadBuffer( GL_COLOR_ATTACHMENT0 );
+    glBlitFramebuffer( 0, 0, globalGameState.screen.width, globalGameState.screen.height, //
+                       0, 0, globalGameState.screen.width, globalGameState.screen.height, //
+                       GL_COLOR_BUFFER_BIT, GL_NEAREST );
     glBindFramebuffer( GL_FRAMEBUFFER, fbo );
-    showErrors( );
+}
 
+void repgame_draw( ) {
+    glm::mat4 mvp = globalGameState.screen.proj * globalGameState.camera.view_look * globalGameState.camera.view_trans * model;
+    glBindFramebuffer( GL_FRAMEBUFFER, fbo );
     world_render( &globalGameState.gameChunks, globalGameState.camera.x, globalGameState.camera.y, globalGameState.camera.z );
     showErrors( );
 
-    world_draw( &globalGameState.gameChunks, mvp );
-    showErrors( );
+    world_draw_solid( &globalGameState.gameChunks, mvp );
 
-    struct timespec t_start = {0, 0}, t_end = {0, 0};
-    {
-        index = ( index + 1 ) % 2;
-        nextIndex = ( index + 1 ) % 2;
+    int mouseBlock_x = 0;
+    int mouseBlock_y = 0;
+    int mouseBlock_z = 0;
+    int whichFace = 0;
+    int foundBlock = getMouseCoords( TRIP_ARGS( &globalGameState.block_selection.destroy_ ), &whichFace );
+    pr_debug( "Depth at center x:%d y:%d z:%d face:%d", TRIP_ARGS( mouseBlock_ ), whichFace );
 
-        glBindBuffer( GL_PIXEL_PACK_BUFFER, pbo[ nextIndex ] );
-        glReadBuffer( GL_COLOR_ATTACHMENT1 );
-        glBufferData( GL_PIXEL_PACK_BUFFER, pbo_size, NULL, GL_STREAM_READ );
+    // draw_mouse_selection( );
 
-        clock_gettime( CLOCK_MONOTONIC, &t_start );
-        // int outDataRead[] = {42, 43, 44, 45};
-        glReadPixels( globalGameState.screen.width / 2, globalGameState.screen.height / 2, 1, 1, GL_RGBA_INTEGER, GL_INT, 0 );
-        clock_gettime( CLOCK_MONOTONIC, &t_end );
-        double diff_read = ( ( ( double )t_end.tv_sec + 1.0e-9 * t_end.tv_nsec ) - ( ( double )t_start.tv_sec + 1.0e-9 * t_start.tv_nsec ) ) * 1000.0;
-        // pr_debug( "Depth at center r:%d g:%d b:%d a:%d", outDataRead[ 0 ], outDataRead[ 1 ], outDataRead[ 2 ], outDataRead[ 3 ] );
-        showErrors( );
+    world_draw_liquid( &globalGameState.gameChunks, mvp );
 
-        glBindBuffer( GL_PIXEL_PACK_BUFFER, pbo[ index ] );
-
-        int *outData = 0;
-        clock_gettime( CLOCK_MONOTONIC, &t_start );
-
-        outData = ( int * )glMapBufferRange( GL_PIXEL_PACK_BUFFER, 0, 4 * sizeof( int ), GL_MAP_READ_BIT );
-        clock_gettime( CLOCK_MONOTONIC, &t_end );
-        double diff_map = ( ( ( double )t_end.tv_sec + 1.0e-9 * t_end.tv_nsec ) - ( ( double )t_start.tv_sec + 1.0e-9 * t_start.tv_nsec ) ) * 1000.0;
-        pr_debug( "Time read:%fms map:%fms", diff_read, diff_map );
-
-        if ( outData ) {
-            pr_debug( "Depth at center r:%d g:%d b:%d a:%d", outData[ 0 ], outData[ 1 ], outData[ 2 ], outData[ 3 ] );
-            glUnmapBuffer( GL_PIXEL_PACK_BUFFER );
-        } else {
-            pr_debug( "No Data" );
-        }
-        showErrors( );
-
-        glBindBuffer( GL_PIXEL_PACK_BUFFER, 0 );
-        showErrors( );
-
-        // pr_debug( "Got 1" );
-    }
-
-    /* We are going to blit into the window (default framebuffer)                     */
-    glBindFramebuffer( GL_DRAW_FRAMEBUFFER, 0 );
-    showErrors( );
-    // pr_debug( "Got 2" );
-
-    GLenum which_buf = GL_BACK;
-    glDrawBuffers( 1, &which_buf );
-    showErrors( );
-
-    /* Read from your FBO */
-    glBindFramebuffer( GL_READ_FRAMEBUFFER, fbo );
-    showErrors( );
-
-    glReadBuffer( GL_COLOR_ATTACHMENT0 ); /* Use Color Attachment 0 as color src. */
-    showErrors( );
-    // pr_debug( "Got 3 %p", glBlitFramebuffer );
-    int result;
-    glGetIntegerv( GL_MAX_DRAW_BUFFERS, &result );
-    // pr_debug( "Got 4 num_bufs:%d", result );
-    showErrors( );
-
-    /* Copy the color and depth buffer from your FBO to the default framebuffer       */
-    glBlitFramebuffer( 0, 0, 2160, 1080, //
-                       0, 0, 2160, 1080, //
-                       GL_COLOR_BUFFER_BIT, GL_NEAREST );
-    // pr_debug( "Got 5" );
-
-    showErrors( );
-    glBindFramebuffer( GL_FRAMEBUFFER, fbo );
-    showErrors( );
+    blitScreen( );
 }
 
 void repgame_cleanup( ) {

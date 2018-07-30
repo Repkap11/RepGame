@@ -8,58 +8,6 @@
 
 #define MAX_LOADED_CHUNKS ( ( 2 * CHUNK_RADIUS_X + 1 ) * ( 2 * CHUNK_RADIUS_Y + 1 ) * ( 2 * CHUNK_RADIUS_Z + 1 ) )
 
-typedef struct {
-    float x;
-    float y;
-    float z;
-    unsigned int tex_coord_x;
-    unsigned int tex_coord_y;
-    unsigned int which_face;
-} CubeFace;
-
-CubeFace vd_data_solid[] = {
-    {0.0f, 0.0f, 0.0f, /*Coords  Texture coords*/ !0, 0, FACE_FRONT}, // 0
-    {1.0f, 0.0f, 0.0f, /*Coords  Texture coords*/ !1, 0, FACE_FRONT}, // 1
-    {1.0f, 1.0f, 0.0f, /*Coords  Texture coords*/ !1, 1, FACE_FRONT}, // 2
-    {0.0f, 1.0f, 0.0f, /*Coords  Texture coords*/ !0, 1, FACE_FRONT}, // 3
-
-    {0.0f, 0.0f, 1.0f, /*Coords  Texture coords*/ !1, 0, FACE_BACK}, // 4
-    {1.0f, 0.0f, 1.0f, /*Coords  Texture coords*/ !0, 0, FACE_BACK}, // 5
-    {1.0f, 1.0f, 1.0f, /*Coords  Texture coords*/ !0, 1, FACE_BACK}, // 6
-    {0.0f, 1.0f, 1.0f, /*Coords  Texture coords*/ !1, 1, FACE_BACK}, // 7
-
-    {0.0f, 0.0f, 0.0f, /*Coords  Texture coords*/ 0, 0, FACE_LEFT},  // 8
-    {1.0f, 0.0f, 0.0f, /*Coords  Texture coords*/ 1, 0, FACE_RIGHT}, // 9
-    {1.0f, 1.0f, 0.0f, /*Coords  Texture coords*/ 1, 1, FACE_RIGHT}, // 10
-    {0.0f, 1.0f, 0.0f, /*Coords  Texture coords*/ 0, 1, FACE_LEFT},  // 11
-
-    {0.0f, 0.0f, 1.0f, /*Coords  Texture coords*/ 1, 0, FACE_LEFT},  // 12
-    {1.0f, 0.0f, 1.0f, /*Coords  Texture coords*/ 0, 0, FACE_RIGHT}, // 13
-    {1.0f, 1.0f, 1.0f, /*Coords  Texture coords*/ 0, 1, FACE_RIGHT}, // 14
-    {0.0f, 1.0f, 1.0f, /*Coords  Texture coords*/ 1, 1, FACE_LEFT},  // 15
-
-    {0.0f, 0.0f, 0.0f, /*Coords  Texture coords*/ !0, !0, FACE_BOTTOM}, // 16
-    {1.0f, 0.0f, 0.0f, /*Coords  Texture coords*/ !1, !0, FACE_BOTTOM}, // 17
-    {1.0f, 1.0f, 0.0f, /*Coords  Texture coords*/ !1, !1, FACE_TOP},    // 18
-    {0.0f, 1.0f, 0.0f, /*Coords  Texture coords*/ !0, !1, FACE_TOP},    // 19
-
-    {0.0f, 0.0f, 1.0f, /*Coords  Texture coords*/ 1, 0, FACE_BOTTOM}, // 20
-    {1.0f, 0.0f, 1.0f, /*Coords  Texture coords*/ 0, 0, FACE_BOTTOM}, // 21
-    {1.0f, 1.0f, 1.0f, /*Coords  Texture coords*/ 0, 1, FACE_TOP},    // 22
-    {0.0f, 1.0f, 1.0f, /*Coords  Texture coords*/ 1, 1, FACE_TOP},    // 23
-};
-int vd_data_size_solid = 4 * 6;
-
-float water_height = 0.875f;
-CubeFace vd_data_water[] = {
-    {1.0f, water_height, 0.0f, /*Coords  Texture coords*/ !1, !1, FACE_TOP}, // 18 0
-    {0.0f, water_height, 0.0f, /*Coords  Texture coords*/ !0, !1, FACE_TOP}, // 19 1
-
-    {1.0f, water_height, 1.0f, /*Coords  Texture coords*/ 0, 1, FACE_TOP}, // 22 2
-    {0.0f, water_height, 1.0f, /*Coords  Texture coords*/ 1, 1, FACE_TOP}, // 23 3
-};
-int vd_data_size_water = 2 * 2;
-
 void chunk_loader_init( LoadedChunks *loadedChunks ) {
     map_storage_init( );
     int status = terrain_loading_thread_start( );
@@ -74,11 +22,11 @@ void chunk_loader_init( LoadedChunks *loadedChunks ) {
     block_definitions_initilize_definitions( &loadedChunks->blocksTexture );
     {
         vertex_buffer_init( &loadedChunks->solid.vb_block );
-        vertex_buffer_set_data( &loadedChunks->solid.vb_block, vd_data_solid, sizeof( CubeFace ) * vd_data_size_solid );
+        vertex_buffer_set_data( &loadedChunks->solid.vb_block, vd_data_solid, sizeof( CubeFace ) * VB_DATA_SIZE_SOLID );
     }
     {
         vertex_buffer_init( &loadedChunks->water.vb_block );
-        vertex_buffer_set_data( &loadedChunks->water.vb_block, vd_data_water, sizeof( CubeFace ) * vd_data_size_water );
+        vertex_buffer_set_data( &loadedChunks->water.vb_block, vd_data_water, sizeof( CubeFace ) * VB_DATA_SIZE_WATER );
     }
     vertex_buffer_layout_init( &loadedChunks->vbl_block );
     vertex_buffer_layout_bind( &loadedChunks->vbl_block );
@@ -121,23 +69,6 @@ void chunk_loader_init( LoadedChunks *loadedChunks ) {
         }
     }
 }
-
-// int chunk_loader_is_chunk_loaded( LoadedChunks *loadedChunks, int chunk_x, int chunk_y, int chunk_z ) {
-//     for ( int i = 0; i < MAX_LOADED_CHUNKS; i++ ) {
-//         Chunk *loadedChunk = &loadedChunks->chunkArray[ i ];
-//         if ( loadedChunk->loaded ) {
-//             if ( loadedChunk->chunk_x == chunk_x && loadedChunk->chunk_y == chunk_y && loadedChunk->chunk_z == chunk_z ) {
-//                 return 1;
-//             }
-//         }
-//     }
-//     return 0;
-// }
-
-// void chunk_loader_load_chunk( LoadedChunks *loadedChunks, int index, int chunk_x, int chunk_y, int chunk_z ) {
-//     Chunk *loadedChunk = &loadedChunks->chunkArray[ index ];
-//     // if ( loadedChunk->loaded ) {
-// }
 
 Chunk *chunk_loader_get_chunk( LoadedChunks *loadedChunks, TRIP_ARGS( int chunk_ ) ) {
     for ( int i = 0; i < MAX_LOADED_CHUNKS; i++ ) {
@@ -237,22 +168,19 @@ void chunk_loader_render_chunks( LoadedChunks *loadedChunks, TRIP_ARGS( float ca
     }
 }
 
-void chunk_loader_draw_chunks( LoadedChunks *loadedChunks, glm::mat4 &mvp ) {
-    showErrors( );
-
+void chunk_loader_draw_chunks_solid( LoadedChunks *loadedChunks, glm::mat4 &mvp ) {
     shader_set_uniform_mat4f( &loadedChunks->shader, "u_MVP", mvp );
-    showErrors( );
-
     // pr_debug( "Drawing %d chunks", loadedChunks->numLoadedChunks );
     for ( int i = 0; i < MAX_LOADED_CHUNKS; i++ ) {
         // pr_debug( "Drawing chunk %d", i );
         chunk_render_solid( &loadedChunks->chunkArray[ i ], &loadedChunks->renderer, &loadedChunks->shader );
-        showErrors( );
     }
+}
+void chunk_loader_draw_chunks_liquid( LoadedChunks *loadedChunks, glm::mat4 &mvp ) {
+
     for ( int i = 0; i < MAX_LOADED_CHUNKS; i++ ) {
         // pr_debug( "Drawing chunk %d", i );
         chunk_render_water( &loadedChunks->chunkArray[ i ], &loadedChunks->renderer, &loadedChunks->shader );
-        showErrors( );
     }
 }
 

@@ -10,8 +10,11 @@ void world_init( LoadedChunks *loadedChunks ) {
 void world_render( LoadedChunks *loadedChunks, TRIP_ARGS( float camera_ ) ) {
     chunk_loader_render_chunks( loadedChunks, TRIP_ARGS( camera_ ) );
 }
-void world_draw( LoadedChunks *loadedChunks , glm::mat4 &mvp) {
-    chunk_loader_draw_chunks( loadedChunks, mvp);
+void world_draw_solid( LoadedChunks *loadedChunks, glm::mat4 &mvp ) {
+    chunk_loader_draw_chunks_solid( loadedChunks, mvp );
+}
+void world_draw_liquid( LoadedChunks *loadedChunks, glm::mat4 &mvp ) {
+    chunk_loader_draw_chunks_liquid( loadedChunks, mvp );
 }
 void world_cleanup( LoadedChunks *loadedChunks ) {
     chunk_loader_cleanup( loadedChunks );
@@ -21,11 +24,11 @@ void fixup_chunk( LoadedChunks *loadedChunks, Chunk *chunk, TRIP_ARGS( int offse
     // pr_debug( "                                                               Fixup Offset: %d %d %d", x, y, z );
     Chunk *fixupChunk = chunk_loader_get_chunk( loadedChunks, chunk->chunk_x + offset_x, chunk->chunk_y + offset_y, chunk->chunk_z + offset_z );
     if ( fixupChunk ) {
-        //chunk_destroy_display_list( fixupChunk );
-        //chunk_set_block( fixupChunk, TRIP_ARGS( pos_ ), blockID );
-        //chunk_calculate_sides( fixupChunk );
+        // chunk_destroy_display_list( fixupChunk );
+        // chunk_set_block( fixupChunk, TRIP_ARGS( pos_ ), blockID );
+        // chunk_calculate_sides( fixupChunk );
         fixupChunk->ditry = 1;
-        //chunk_create_display_list( fixupChunk );
+        // chunk_create_display_list( fixupChunk );
     }
 }
 

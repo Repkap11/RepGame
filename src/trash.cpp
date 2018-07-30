@@ -197,3 +197,20 @@
 // movement_vector_x -= limit_movement_x;
 // movement_vector_y -= limit_movement_y;
 // movement_vector_z -= limit_movement_z;
+
+// int chunk_loader_is_chunk_loaded( LoadedChunks *loadedChunks, int chunk_x, int chunk_y, int chunk_z ) {
+//     for ( int i = 0; i < MAX_LOADED_CHUNKS; i++ ) {
+//         Chunk *loadedChunk = &loadedChunks->chunkArray[ i ];
+//         if ( loadedChunk->loaded ) {
+//             if ( loadedChunk->chunk_x == chunk_x && loadedChunk->chunk_y == chunk_y && loadedChunk->chunk_z == chunk_z ) {
+//                 return 1;
+//             }
+//         }
+//     }
+//     return 0;
+// }
+
+// void chunk_loader_load_chunk( LoadedChunks *loadedChunks, int index, int chunk_x, int chunk_y, int chunk_z ) {
+//     Chunk *loadedChunk = &loadedChunks->chunkArray[ index ];
+//     // if ( loadedChunk->loaded ) {
+// }
