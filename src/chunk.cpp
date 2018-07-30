@@ -169,6 +169,10 @@ void chunk_load_terrain( Chunk *chunk ) {
         map_gen_load_block( chunk );
         chunk->ditry = PERSIST_ALL_CHUNKS;
     }
+    chunk_calculate_popupated_blocks( chunk );
+}
+
+void chunk_calculate_popupated_blocks( Chunk *chunk ) {
     int num_water_instances = 0;
     int num_solid_instances = 0;
     if ( chunk->solid.populated_blocks || chunk->water.populated_blocks ) {

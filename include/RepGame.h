@@ -44,8 +44,10 @@ typedef struct {
     } screen;
     LoadedChunks gameChunks;
     struct {
-        int show;
-        BlockID blockID;
+        int selectionFound;
+        int selectionInBounds;
+        int face;
+        BlockID holdingBlock;
         TRIP_STATE( int create_ );
         TRIP_STATE( int destroy_ );
     } block_selection;

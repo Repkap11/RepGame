@@ -57,5 +57,6 @@ void chunk_persist( Chunk *chunk );
 void chunk_destroy( Chunk *chunk );
 void chunk_set_block( Chunk *chunk, int x, int y, int z, BlockID blockID );
 Block *chunk_get_block( Chunk *chunk, int x, int y, int z );
+void chunk_calculate_popupated_blocks( Chunk *chunk );
 
 #endif

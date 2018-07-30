@@ -22,11 +22,17 @@ void mouse_selection_init( MouseSelection *mouseSelection, VertexBuffer *vb_bloc
     mouseSelection->shouldDraw = 0;
 }
 void mouse_selection_set_block( MouseSelection *mouseSelection, int x, int y, int z, int shouldDraw ) {
-    mouseSelection->block.x = x;
-    mouseSelection->block.y = y + 1;
-    mouseSelection->block.z = z;
+    y += 1;
     mouseSelection->shouldDraw = shouldDraw;
-    vertex_buffer_set_data( &mouseSelection->vb_coords, &mouseSelection->block, sizeof( BlockCoords ) * 1 );
+    if ( mouseSelection->block.x != x || //
+         mouseSelection->block.y != y || //
+         mouseSelection->block.z != z    //
+         ) {
+        mouseSelection->block.x = x;
+        mouseSelection->block.y = y;
+        mouseSelection->block.z = z;
+        vertex_buffer_set_data( &mouseSelection->vb_coords, &mouseSelection->block, sizeof( BlockCoords ) * 1 );
+    }
 }
 void mouse_selection_draw( MouseSelection *mouseSelection, Renderer *renderer, Shader *shader ) {
     if ( mouseSelection->shouldDraw ) {

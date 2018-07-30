@@ -21,14 +21,14 @@ void world_cleanup( LoadedChunks *loadedChunks ) {
 }
 
 void fixup_chunk( LoadedChunks *loadedChunks, Chunk *chunk, TRIP_ARGS( int offset_ ), TRIP_ARGS( int pos_ ), BlockID blockID ) {
-    // pr_debug( "                                                               Fixup Offset: %d %d %d", x, y, z );
+    // pr_debug( "Fixup Offset: %d %d %d", x, y, z );
     Chunk *fixupChunk = chunk_loader_get_chunk( loadedChunks, chunk->chunk_x + offset_x, chunk->chunk_y + offset_y, chunk->chunk_z + offset_z );
     if ( fixupChunk ) {
-        // chunk_destroy_display_list( fixupChunk );
-        // chunk_set_block( fixupChunk, TRIP_ARGS( pos_ ), blockID );
-        // chunk_calculate_sides( fixupChunk );
+        chunk_unprogram_terrain( chunk );
+        chunk_set_block( fixupChunk, TRIP_ARGS( pos_ ), blockID );
         fixupChunk->ditry = 1;
-        // chunk_create_display_list( fixupChunk );
+        chunk_calculate_popupated_blocks( fixupChunk );
+        chunk_program_terrain( fixupChunk );
     }
 }
 
@@ -87,8 +87,11 @@ void world_set_block( LoadedChunks *loadedChunks, TRIP_ARGS( int block_ ), Block
                 }
             }
         }
+        chunk_unprogram_terrain( chunk );
         chunk_set_block( chunk, TRIP_ARGS( diff_ ), blockID );
         chunk->ditry = 1;
+        chunk_calculate_popupated_blocks( chunk );
+        chunk_program_terrain( chunk );
     } else {
         // This just means mouse is not pointing at a block
         // pr_debug( "Could not find the pointed to chunk" );

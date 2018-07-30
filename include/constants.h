@@ -1,7 +1,7 @@
 #ifndef HEADER_CONSTANTS_H
 #define HEADER_CONSTANTS_H
 
-#define MOVEMENT_SENSITIVITY 2.0f // How sensitive the arrow keys are
+#define MOVEMENT_SENSITIVITY 0.2f // How sensitive the arrow keys are
 
 #ifdef REPGAME_LINUX
 
@@ -24,7 +24,7 @@
 #endif
 
 #define PERSIST_ALL_CHUNKS 0
-#define REMEMBER_BLOCKS 0
+#define REMEMBER_BLOCKS 1
 
 #define NO_CLIP 1
 #define MAP_SEED 0
