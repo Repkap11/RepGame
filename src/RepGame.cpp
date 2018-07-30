@@ -367,7 +367,7 @@ void repgame_draw( ) {
     //         TRIP_ARGS( globalGameState.block_selection.destroy_ ), whichFace, globalGameState.block_selection.selectionFound );
     globalGameState.block_selection.create_x = globalGameState.block_selection.destroy_x + ( whichFace == FACE_RIGHT ) - ( whichFace == FACE_LEFT );
     globalGameState.block_selection.create_y = globalGameState.block_selection.destroy_y + ( whichFace == FACE_TOP ) - ( whichFace == FACE_BOTTOM );
-    globalGameState.block_selection.create_z = globalGameState.block_selection.destroy_z - ( whichFace == FACE_FRONT ) + ( whichFace == FACE_BACK );
+    globalGameState.block_selection.create_z = globalGameState.block_selection.destroy_z + ( whichFace == FACE_BACK ) - ( whichFace == FACE_FRONT );
 
     chunk_loader_set_selected_block( &globalGameState.gameChunks, TRIP_ARGS( globalGameState.block_selection.destroy_ ), globalGameState.block_selection.selectionInBounds );
     chunk_loader_draw_mouse_selection( &globalGameState.gameChunks );

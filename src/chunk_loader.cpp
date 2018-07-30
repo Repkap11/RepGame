@@ -44,7 +44,7 @@ void chunk_loader_init( LoadedChunks *loadedChunks ) {
         VertexBuffer *vb_block_water = &loadedChunks->water.vb_block;
         VertexBufferLayout *vbl_block = &loadedChunks->vbl_block;
         VertexBufferLayout *vbl_coords = &loadedChunks->vbl_coords;
-        mouse_selection_init( &loadedChunks->mouseSelection, vb_block_solid, vbl_block, vbl_coords );
+        mouse_selection_init( &loadedChunks->mouseSelection, vbl_block, vbl_coords );
         for ( int i = 0; i < MAX_LOADED_CHUNKS; i++ ) {
             chunk_init( &loadedChunks->chunkArray[ i ], vb_block_solid, vb_block_water, vbl_block, vbl_coords );
         }

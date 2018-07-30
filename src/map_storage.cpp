@@ -72,9 +72,9 @@ typedef struct {
 
 void map_storage_persist( Chunk *chunk ) {
     if ( chunk->ditry ) {
-        int chunk_offset_x = chunk->chunk_x * CHUNK_SIZE;
-        int chunk_offset_y = chunk->chunk_y * CHUNK_SIZE;
-        int chunk_offset_z = chunk->chunk_z * CHUNK_SIZE;
+        int chunk_offset_x = chunk->chunk_x;
+        int chunk_offset_y = chunk->chunk_y;
+        int chunk_offset_z = chunk->chunk_z;
         char file_name[ CHUNK_NAME_LENGTH ];
         snprintf( file_name, CHUNK_NAME_LENGTH, file_root, map_name, chunk_offset_x, chunk_offset_y, chunk_offset_z );
 
@@ -138,9 +138,9 @@ int check_if_chunk_exists( TRIP_ARGS( int chunk_offset_ ) ) {
 }
 
 int map_storage_load( Chunk *chunk ) {
-    int chunk_offset_x = chunk->chunk_x * CHUNK_SIZE;
-    int chunk_offset_y = chunk->chunk_y * CHUNK_SIZE;
-    int chunk_offset_z = chunk->chunk_z * CHUNK_SIZE;
+    int chunk_offset_x = chunk->chunk_x;
+    int chunk_offset_y = chunk->chunk_y;
+    int chunk_offset_z = chunk->chunk_z;
 
     if ( !check_if_chunk_exists( chunk_offset_x, chunk_offset_y, chunk_offset_z ) ) {
         // This chunk isn't in a file, return 0 so the chunk gets loaded
