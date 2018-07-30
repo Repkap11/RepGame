@@ -36,7 +36,6 @@ typedef struct {
         BlockCoords *populated_blocks;
 
     } water;
-    VertexBufferLayout vbl_coords;
     Block *blocks;
     int chunk_x, chunk_y, chunk_z;
     int ditry;
@@ -44,7 +43,7 @@ typedef struct {
     int chunk_mod_x, chunk_mod_y, chunk_mod_z;
 } Chunk;
 
-void chunk_init( Chunk *chunk, VertexBuffer *vb_block_solid, VertexBuffer *vb_block_water, VertexBufferLayout *vbl_block );
+void chunk_init( Chunk *chunk, VertexBuffer *vb_block_solid, VertexBuffer *vb_block_water, VertexBufferLayout *vbl_block, VertexBufferLayout *vbl_coords );
 void chunk_render_solid( const Chunk *chunk, const Renderer *renderer, const Shader *shader );
 void chunk_render_water( const Chunk *chunk, const Renderer *renderer, const Shader *shader );
 void chunk_load_terrain( Chunk *chunk );      // Load from file or map gen

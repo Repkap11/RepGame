@@ -70,14 +70,9 @@ int chunk_get_coords_from_index( int index, int *out_x, int *out_y, int *out_z )
     return result;
 }
 
-void chunk_init( Chunk *chunk, VertexBuffer *vb_block_solid, VertexBuffer *vb_block_water, VertexBufferLayout *vbl_block ) {
+void chunk_init( Chunk *chunk, VertexBuffer *vb_block_solid, VertexBuffer *vb_block_water, VertexBufferLayout *vbl_block, VertexBufferLayout *vbl_coords ) {
     if ( REMEMBER_BLOCKS ) {
         chunk->blocks = ( Block * )calloc( CHUNK_BLOCK_SIZE, sizeof( Block ) );
-    }
-    {
-        vertex_buffer_layout_init( &chunk->vbl_coords );
-        vertex_buffer_layout_push_float( &chunk->vbl_coords, 3 );        // block 3d world coords
-        vertex_buffer_layout_push_unsigned_int( &chunk->vbl_coords, 3 ); // which texture (block type)
     }
 
     {
@@ -85,14 +80,14 @@ void chunk_init( Chunk *chunk, VertexBuffer *vb_block_solid, VertexBuffer *vb_bl
         vertex_buffer_init( &chunk->solid.vb_coords );
         vertex_array_init( &chunk->solid.va );
         vertex_array_add_buffer( &chunk->solid.va, vb_block_solid, vbl_block, 0 );
-        vertex_array_add_buffer( &chunk->solid.va, &chunk->solid.vb_coords, &chunk->vbl_coords, 1 );
+        vertex_array_add_buffer( &chunk->solid.va, &chunk->solid.vb_coords, vbl_coords, 1 );
     }
     {
         index_buffer_init( &chunk->water.ib );
         vertex_buffer_init( &chunk->water.vb_coords );
         vertex_array_init( &chunk->water.va );
         vertex_array_add_buffer( &chunk->water.va, vb_block_water, vbl_block, 0 );
-        vertex_array_add_buffer( &chunk->water.va, &chunk->water.vb_coords, &chunk->vbl_coords, 1 );
+        vertex_array_add_buffer( &chunk->water.va, &chunk->water.vb_coords, vbl_coords, 1 );
     }
 }
 

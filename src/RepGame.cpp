@@ -360,14 +360,13 @@ void repgame_draw( ) {
 
     world_draw_solid( &globalGameState.gameChunks, mvp );
 
-    int mouseBlock_x = 0;
-    int mouseBlock_y = 0;
-    int mouseBlock_z = 0;
     int whichFace = 0;
     int foundBlock = getMouseCoords( TRIP_ARGS( &globalGameState.block_selection.destroy_ ), &whichFace );
-    pr_debug( "Depth at center x:%d y:%d z:%d face:%d", TRIP_ARGS( mouseBlock_ ), whichFace );
+    pr_debug( "Depth at center x:%d y:%d z:%d face:%d draw:%d", //
+              TRIP_ARGS( globalGameState.block_selection.destroy_ ), whichFace, foundBlock );
 
-    // draw_mouse_selection( );
+    chunk_loader_set_selected_block( &globalGameState.gameChunks, TRIP_ARGS( globalGameState.block_selection.destroy_ ), foundBlock );
+    chunk_loader_draw_mouse_selection( &globalGameState.gameChunks );
 
     world_draw_liquid( &globalGameState.gameChunks, mvp );
 

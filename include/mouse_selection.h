@@ -6,9 +6,10 @@ typedef struct {
     VertexArray va;
     BlockCoords block;
     VertexBuffer vb_coords;
+    int shouldDraw;
 } MouseSelection;
 
-void mouse_selection_init( MouseSelection *mouseSelection );
-void mouse_selection_draw( MouseSelection *mouseSelection );
-
+void mouse_selection_init( MouseSelection *mouseSelection, VertexBuffer *vb_block_solid, VertexBufferLayout *vbl_block, VertexBufferLayout *vbl_coords );
+void mouse_selection_set_block( MouseSelection *mouseSelection, int x, int y, int z, int shouldDraw );
+void mouse_selection_draw( MouseSelection *mouseSelection, Renderer *renderer, Shader *shader );
 #endif

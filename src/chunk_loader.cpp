@@ -35,11 +35,19 @@ void chunk_loader_init( LoadedChunks *loadedChunks ) {
     vertex_buffer_layout_push_float( &loadedChunks->vbl_block, 2 ); // Texture coords
     vertex_buffer_layout_push_float( &loadedChunks->vbl_block, 1 ); // Face type (top, sides, bottom)
 
-    VertexBuffer *vb_block_solid = &loadedChunks->solid.vb_block;
-    VertexBuffer *vb_block_water = &loadedChunks->water.vb_block;
-    VertexBufferLayout *vbl_block = &loadedChunks->vbl_block;
-    for ( int i = 0; i < MAX_LOADED_CHUNKS; i++ ) {
-        chunk_init( &loadedChunks->chunkArray[ i ], vb_block_solid, vb_block_water, vbl_block );
+    vertex_buffer_layout_init( &loadedChunks->vbl_coords );
+    vertex_buffer_layout_push_float( &loadedChunks->vbl_coords, 3 );        // block 3d world coords
+    vertex_buffer_layout_push_unsigned_int( &loadedChunks->vbl_coords, 3 ); // which texture (block type)
+
+    {
+        VertexBuffer *vb_block_solid = &loadedChunks->solid.vb_block;
+        VertexBuffer *vb_block_water = &loadedChunks->water.vb_block;
+        VertexBufferLayout *vbl_block = &loadedChunks->vbl_block;
+        VertexBufferLayout *vbl_coords = &loadedChunks->vbl_coords;
+        mouse_selection_init( &loadedChunks->mouseSelection, vb_block_solid, vbl_block, vbl_coords );
+        for ( int i = 0; i < MAX_LOADED_CHUNKS; i++ ) {
+            chunk_init( &loadedChunks->chunkArray[ i ], vb_block_solid, vb_block_water, vbl_block, vbl_coords );
+        }
     }
 
     int nextChunk = 0;
@@ -68,6 +76,10 @@ void chunk_loader_init( LoadedChunks *loadedChunks ) {
             }
         }
     }
+}
+
+void chunk_loader_set_selected_block( LoadedChunks *loadedChunks, TRIP_ARGS( int selected_ ), int shouldDraw ) {
+    mouse_selection_set_block( &loadedChunks->mouseSelection, TRIP_ARGS( selected_ ), shouldDraw );
 }
 
 Chunk *chunk_loader_get_chunk( LoadedChunks *loadedChunks, TRIP_ARGS( int chunk_ ) ) {
@@ -182,6 +194,10 @@ void chunk_loader_draw_chunks_liquid( LoadedChunks *loadedChunks, glm::mat4 &mvp
         // pr_debug( "Drawing chunk %d", i );
         chunk_render_water( &loadedChunks->chunkArray[ i ], &loadedChunks->renderer, &loadedChunks->shader );
     }
+}
+
+void chunk_loader_draw_mouse_selection( LoadedChunks *loadedChunks ) {
+    mouse_selection_draw( &loadedChunks->mouseSelection, &loadedChunks->renderer, &loadedChunks->shader );
 }
 
 void chunk_loader_cleanup( LoadedChunks *loadedChunks ) {
