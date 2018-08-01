@@ -60,11 +60,11 @@ static void gameTick( ) {
     }
     if ( globalGameState.block_selection.selectionInBounds && globalGameState.input.mouse.buttons.left && globalGameState.input.click_delay_left == 0 ) {
         change_block( 0, AIR );
-        globalGameState.input.click_delay_left = 8;
+        globalGameState.input.click_delay_left = 16;
     }
     if ( globalGameState.block_selection.selectionInBounds && globalGameState.input.mouse.buttons.right && globalGameState.input.click_delay_right == 0 ) {
         change_block( 1, globalGameState.block_selection.holdingBlock );
-        globalGameState.input.click_delay_right = 4;
+        globalGameState.input.click_delay_right = 8;
     }
     if ( globalGameState.input.mouse.currentPosition.x - globalGameState.input.mouse.previousPosition.x || globalGameState.input.mouse.currentPosition.y - globalGameState.input.mouse.previousPosition.y ) {
         // pr_debug( "Position Diff:%d %d", input.mouse.currentPosition.x - input.mouse.previousPosition.x, input.mouse.currentPosition.y - input.mouse.previousPosition.y );

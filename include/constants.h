@@ -1,7 +1,7 @@
 #ifndef HEADER_CONSTANTS_H
 #define HEADER_CONSTANTS_H
 
-#define MOVEMENT_SENSITIVITY 0.2f // How sensitive the arrow keys are
+#define MOVEMENT_SENSITIVITY 0.8f // How sensitive the arrow keys are
 
 #ifdef REPGAME_LINUX
 

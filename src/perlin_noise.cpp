@@ -60,26 +60,42 @@ float perlin2d( float x, float y, float freq, int depth, int seed ) {
 }
 
 float perlin_noise_hills( int x, int z ) {
-    float noise = perlin2d( x, z, 0.002, 3, MAP_SEED );
-    return ( noise - 0.5 - 0.2 ) * 50;
+    float noise = perlin2d( x, z, 0.02f, 3, MAP_SEED );
+    return ( noise - 0.5f ) * 15;
 }
 
 float perlin_noise_ground_noise( int x, int z ) {
-    float noise = perlin2d( x, z, 0.02, 4, MAP_SEED + 1 );
-    return noise * 30;
+    float noise = perlin2d( x, z, 0.1f, 2, MAP_SEED + 1 );
+    return ( noise - 0.5f ) * 2;
+}
+
+float perlin_noise_level( int x, int z ) {
+    float noise_orig = perlin2d( x, z, 0.004f, 2, MAP_SEED + 5 );
+    noise_orig = ( noise_orig - 0.5f ) * 10;
+    float noise = fabs( noise_orig );
+    noise = noise * noise_orig;
+    noise = noise > 1 ? 1 : noise;
+    noise = noise < -1 ? -1 : noise;
+
+    return noise * 10;
 }
 
 float perlin_noise_mountians( int x, int z ) {
-    float noise = perlin2d( x, z, 0.008, 4, MAP_SEED + 2 );
-    return ( noise - 0.1 ) * 3;
+    float noise = perlin2d( x, z, 0.008f, 3, MAP_SEED + 2 );
+    noise = noise - 0.5f;
+    if ( noise < 0 ) {
+        noise = 0;
+    }
+    float mountians = noise * noise * noise * 1000;
+    return mountians;
 }
 
 float perlin_noise_mountian_block( int x, int z ) {
-    float noise = perlin2d( x, z, 0.8, 8, MAP_SEED + 3 );
+    float noise = perlin2d( x, z, 0.8f, 8, MAP_SEED + 3 );
     return noise;
 }
 
 float perlin_noise_under_water_block( int x, int z ) {
-    float noise = perlin2d( x, z, 0.2, 2, MAP_SEED + 4 );
+    float noise = perlin2d( x, z, 0.2f, 2, MAP_SEED + 4 );
     return noise;
 }
