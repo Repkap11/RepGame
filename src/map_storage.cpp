@@ -80,7 +80,7 @@ void map_storage_persist( Chunk *chunk ) {
 
         FILE *write_ptr;
         STORAGE_TYPE persist_data[ CHUNK_BLOCK_SIZE ];
-        Block *blocks = chunk->blocks;
+        BlockID *blocks = chunk->blocks;
         if ( blocks == 0 ) {
             return;
         }
@@ -90,13 +90,7 @@ void map_storage_persist( Chunk *chunk ) {
         STORAGE_TYPE_BLOCK_ID previous_id = LAST_BLOCK_ID;
         for ( int i = 0; i < CHUNK_BLOCK_SIZE; i++ ) {
 
-            Block *block = &blocks[ i ];
-            BlockDefinition *blockDef = block->blockDef;
-            if ( blockDef == NULL ) {
-                pr_debug( "Block null?" );
-                continue;
-            }
-            BlockID id = blockDef->id;
+            BlockID id = blocks[ i ];
             if ( id == previous_id ) {
                 num_same_blocks++;
             } else {
@@ -152,7 +146,7 @@ int map_storage_load( Chunk *chunk ) {
 
     FILE *read_ptr;
     STORAGE_TYPE persist_data[ CHUNK_BLOCK_SIZE ];
-    Block *blocks = chunk->blocks;
+    BlockID *blocks = chunk->blocks;
     read_ptr = fopen( file_name, "rb" );
     int persist_data_length = fread( persist_data, sizeof( STORAGE_TYPE ), CHUNK_BLOCK_SIZE, read_ptr );
     fclose( read_ptr );
@@ -164,9 +158,9 @@ int map_storage_load( Chunk *chunk ) {
             pr_debug( "Got strange block:%d", block_storage.block_id );
             block_storage.block_id = TNT;
         }
-        BlockDefinition *block_def = block_definition_get_definition( ( BlockID )block_storage.block_id );
-        for ( int j = 0; j < block_storage.num; j++ ) {
-            chunk->blocks[ block_index++ ].blockDef = block_def;
+        BlockID block_id = ( BlockID )block_storage.block_id;
+        for ( unsigned int j = 0; j < block_storage.num; j++ ) {
+            blocks[ block_index++ ] = block_id;
         }
     }
     int expected_num_blocks = CHUNK_BLOCK_SIZE;

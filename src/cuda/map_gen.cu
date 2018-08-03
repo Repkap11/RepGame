@@ -2,7 +2,7 @@
 #include "map_gen.h"
 #include "block_definitions.h"
 
-__host__ void map_gen_load_block( Chunk *chunk ) {
+__host__ void map_gen_load_block_cuda( Chunk *chunk ) {
     int chunk_offset_x = chunk->chunk_x * CHUNK_SIZE;
     int chunk_offset_y = chunk->chunk_y * CHUNK_SIZE;
     int chunk_offset_z = chunk->chunk_z * CHUNK_SIZE;
@@ -17,7 +17,7 @@ __host__ void map_gen_load_block( Chunk *chunk ) {
                 } else {
                     finalBlockId = AIR;
                 }
-                chunk->blocks[ index ].blockDef = block_definition_get_definition( finalBlockId );
+                chunk->blocks[ index ] = finalBlockId ;
             }
         }
     }

@@ -36,7 +36,7 @@ typedef struct {
         BlockCoords *populated_blocks;
 
     } water;
-    Block *blocks;
+    BlockID *blocks;
     int chunk_x, chunk_y, chunk_z;
     int ditry;
     int should_render;
@@ -56,7 +56,7 @@ int chunk_get_index_from_coords( int x, int y, int z );
 void chunk_persist( Chunk *chunk );
 void chunk_destroy( Chunk *chunk );
 void chunk_set_block( Chunk *chunk, int x, int y, int z, BlockID blockID );
-Block *chunk_get_block( Chunk *chunk, int x, int y, int z );
+BlockID chunk_get_block( Chunk *chunk, int x, int y, int z );
 void chunk_calculate_popupated_blocks( Chunk *chunk );
 
 #endif

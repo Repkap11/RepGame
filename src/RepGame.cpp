@@ -48,15 +48,8 @@ static void gameTick( ) {
     // int block_z = globalGameState.block_selection.destroy_z;
 
     if ( globalGameState.block_selection.selectionInBounds && globalGameState.input.mouse.buttons.middle ) {
-
-        Block *block = world_get_loaded_block( &globalGameState.gameChunks, TRIP_ARGS( globalGameState.block_selection.destroy_ ) );
-        if ( block ) {
-            BlockDefinition *blockDef = block->blockDef;
-            if ( blockDef ) {
-                Block *holdingBlock = world_get_loaded_block( &globalGameState.gameChunks, TRIP_ARGS( globalGameState.block_selection.destroy_ ) );
-                globalGameState.block_selection.holdingBlock = holdingBlock->blockDef->id;
-            }
-        }
+        BlockID blockID = world_get_loaded_block( &globalGameState.gameChunks, TRIP_ARGS( globalGameState.block_selection.destroy_ ) );
+        globalGameState.block_selection.holdingBlock = blockID;
     }
     if ( globalGameState.block_selection.selectionInBounds && globalGameState.input.mouse.buttons.left && globalGameState.input.click_delay_left == 0 ) {
         change_block( 0, AIR );
@@ -179,13 +172,9 @@ static inline void initilizeGameState( ) {
 
 int check_block( Block *block ) {
     if ( block != NULL ) {
-        if ( block->blockDef != NULL ) {
-            BlockID blockID = block->blockDef->id;
-            if ( !( blockID == AIR || blockID == AIR ) ) {
-                return 1;
-            }
-        } else {
-            pr_debug( "No BlockDef!!" );
+        BlockID blockID = block->id;
+        if ( !( blockID == AIR || blockID == AIR ) ) {
+            return 1;
         }
     } else {
         // pr_debug( "No Block!!" );

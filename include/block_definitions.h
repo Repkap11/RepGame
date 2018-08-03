@@ -47,10 +47,10 @@ typedef struct {
     float alpha;
     float height;
     int special_grass_logic;
-} BlockDefinition;
+} Block;
 
 void block_definitions_initilize_definitions( Texture *texture );
-BlockDefinition *block_definition_get_definition( BlockID blockID );
+Block *block_definition_get_definition( BlockID blockID );
 void block_definitions_free_definitions( );
 
 #endif

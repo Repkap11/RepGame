@@ -19,19 +19,6 @@ typedef struct {
     unsigned int which_face;
 } CubeFace;
 
-typedef struct {
-    BlockDefinition *blockDef;
-    struct {
-        int top;
-        int bottom;
-        int left;
-        int right;
-        int front;
-        int back;
-    } draw_sides;
-
-} Block;
-
 static unsigned int ib_data_solid[] = {
     22, 18, 19, // Top
     19, 23, 22, //

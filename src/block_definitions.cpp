@@ -3,10 +3,10 @@
 #include "RepGame.h"
 #include <stdlib.h>
 
-BlockDefinition *block_definitions;
+Block *block_definitions;
 
 void block_definitions_initilize_definitions( Texture *texture ) {
-    block_definitions = ( BlockDefinition * )calloc( LAST_BLOCK_ID, sizeof( BlockDefinition ) );
+    block_definitions = ( Block * )calloc( LAST_BLOCK_ID, sizeof( Block ) );
     block_definitions[ AIR ].id = AIR;
     block_definitions[ AIR ].alpha = 0.0f;
     block_definitions[ AIR ].height = 0.0f;
@@ -175,7 +175,7 @@ void block_definitions_initilize_definitions( Texture *texture ) {
     block_definitions[ WATER ].special_grass_logic = 0;
 }
 
-BlockDefinition *block_definition_get_definition( BlockID blockID ) {
+Block *block_definition_get_definition( BlockID blockID ) {
     if ( blockID < LAST_BLOCK_ID ) {
         return &block_definitions[ blockID ];
     } else {

@@ -3,6 +3,7 @@
 
 #include "chunk.h"
 
-void map_gen_load_block( Chunk *chunk );
+void map_gen_load_block_cuda( Chunk *chunk );
+void map_gen_load_block_c( Chunk *chunk );
 void map_gen_free_block( Chunk *chunk );
 #endif

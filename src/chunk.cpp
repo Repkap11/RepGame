@@ -72,7 +72,7 @@ int chunk_get_coords_from_index( int index, int *out_x, int *out_y, int *out_z )
 
 void chunk_init( Chunk *chunk, VertexBuffer *vb_block_solid, VertexBuffer *vb_block_water, VertexBufferLayout *vbl_block, VertexBufferLayout *vbl_coords ) {
     if ( REMEMBER_BLOCKS ) {
-        chunk->blocks = ( Block * )calloc( CHUNK_BLOCK_SIZE, sizeof( Block ) );
+        chunk->blocks = ( BlockID * )calloc( CHUNK_BLOCK_SIZE, sizeof( BlockID ) );
     }
 
     {
@@ -123,27 +123,40 @@ void chunk_render_water( const Chunk *chunk, const Renderer *renderer, const Sha
     }
 }
 
-Block *chunk_get_block( Chunk *chunk, int x, int y, int z ) {
+BlockID chunk_get_block( Chunk *chunk, int x, int y, int z ) {
     if ( chunk->blocks == NULL ) {
         // pr_debug("Chunk has no blocks");
-        return NULL;
+        return LAST_BLOCK_ID;
     }
     if ( x > CHUNK_SIZE + 1 || //
          y > CHUNK_SIZE + 1 || //
          z > CHUNK_SIZE + 1 ) {
-        return NULL;
+        return LAST_BLOCK_ID;
     }
     if ( x < -1 || //
          y < -1 || //
          z < -1 ) {
-        return NULL;
+        return LAST_BLOCK_ID;
     }
-    return &chunk->blocks[ chunk_get_index_from_coords( x, y, z ) ];
+    return chunk->blocks[ chunk_get_index_from_coords( x, y, z ) ];
 }
 
 void chunk_set_block( Chunk *chunk, int x, int y, int z, BlockID blockID ) {
-    Block *block = chunk_get_block( chunk, x, y, z );
-    block->blockDef = block_definition_get_definition( blockID );
+    if ( chunk->blocks == NULL ) {
+        // pr_debug("Chunk has no blocks");
+        return;
+    }
+    if ( x > CHUNK_SIZE + 1 || //
+         y > CHUNK_SIZE + 1 || //
+         z > CHUNK_SIZE + 1 ) {
+        return;
+    }
+    if ( x < -1 || //
+         y < -1 || //
+         z < -1 ) {
+        return;
+    }
+    chunk->blocks[ chunk_get_index_from_coords( x, y, z ) ] = blockID;
 }
 
 void chunk_persist( Chunk *chunk ) {
@@ -156,7 +169,7 @@ void chunk_persist( Chunk *chunk ) {
 
 void chunk_load_terrain( Chunk *chunk ) {
     if ( !REMEMBER_BLOCKS ) {
-        chunk->blocks = ( Block * )calloc( CHUNK_BLOCK_SIZE, sizeof( Block ) );
+        chunk->blocks = ( BlockID * )calloc( CHUNK_BLOCK_SIZE, sizeof( BlockID ) );
     }
 // pr_debug( "Loading chunk terrain x:%d y:%d z:%d", chunk->chunk_x, chunk->chunk_y, chunk->chunk_z );
 #ifdef REPGAME_LINUX
@@ -166,7 +179,11 @@ void chunk_load_terrain( Chunk *chunk ) {
 #endif
     if ( !loaded ) {
         // We havn't loaded this chunk before, map gen it.
-        map_gen_load_block( chunk );
+        if ( LOAD_WITH_CUDA ) {
+            map_gen_load_block_cuda( chunk );
+        } else {
+            map_gen_load_block_c( chunk );
+        }
         chunk->ditry = PERSIST_ALL_CHUNKS;
     }
     chunk_calculate_popupated_blocks( chunk );
@@ -185,22 +202,24 @@ void chunk_calculate_popupated_blocks( Chunk *chunk ) {
         int x, y, z;
         int drawn_block = chunk_get_coords_from_index( index, &x, &y, &z );
         if ( drawn_block ) {
-            BlockDefinition *blockDef = chunk->blocks[ index ].blockDef;
-            int visiable_block = blockDef->alpha != 0.0f;
+            BlockID blockID = chunk->blocks[ index ];
+            Block *block = block_definition_get_definition( blockID );
+            float alpha = block->alpha;
+            int visiable_block = alpha != 0.0f;
             if ( visiable_block ) {
-                int visiable_from_top = chunk->blocks[ chunk_get_index_from_coords( x + 0, y + 1, z + 0 ) ].blockDef->alpha < blockDef->alpha;
-                int visiable_from_bottom = chunk->blocks[ chunk_get_index_from_coords( x + 0, y - 1, z + 0 ) ].blockDef->alpha < blockDef->alpha;
-                int visiable_from_left = chunk->blocks[ chunk_get_index_from_coords( x + 0, y + 0, z - 1 ) ].blockDef->alpha < blockDef->alpha;
-                int visiable_from_right = chunk->blocks[ chunk_get_index_from_coords( x + 0, y + 0, z + 1 ) ].blockDef->alpha < blockDef->alpha;
-                int visiable_from_front = chunk->blocks[ chunk_get_index_from_coords( x + 1, y + 0, z + 0 ) ].blockDef->alpha < blockDef->alpha;
-                int visiable_from_back = chunk->blocks[ chunk_get_index_from_coords( x - 1, y + 0, z + 0 ) ].blockDef->alpha < blockDef->alpha;
+                int visiable_from_top = block_definition_get_definition( chunk->blocks[ chunk_get_index_from_coords( x + 0, y + 1, z + 0 ) ] )->alpha < alpha;
+                int visiable_from_bottom = block_definition_get_definition( chunk->blocks[ chunk_get_index_from_coords( x + 0, y - 1, z + 0 ) ] )->alpha < alpha;
+                int visiable_from_left = block_definition_get_definition( chunk->blocks[ chunk_get_index_from_coords( x + 0, y + 0, z - 1 ) ] )->alpha < alpha;
+                int visiable_from_right = block_definition_get_definition( chunk->blocks[ chunk_get_index_from_coords( x + 0, y + 0, z + 1 ) ] )->alpha < alpha;
+                int visiable_from_front = block_definition_get_definition( chunk->blocks[ chunk_get_index_from_coords( x + 1, y + 0, z + 0 ) ] )->alpha < alpha;
+                int visiable_from_back = block_definition_get_definition( chunk->blocks[ chunk_get_index_from_coords( x - 1, y + 0, z + 0 ) ] )->alpha < alpha;
 
                 int block_could_be_visiable = visiable_from_top || visiable_from_bottom || visiable_from_left || visiable_from_right || visiable_from_front || visiable_from_back;
 
                 if ( block_could_be_visiable ) {
                     BlockCoords *blockCoord;
                     int instance_index;
-                    if ( blockDef->id == WATER ) {
+                    if ( blockID == WATER ) {
                         blockCoord = &chunk->water.populated_blocks[ num_water_instances ];
                         num_water_instances += 1;
                     } else {
@@ -210,9 +229,9 @@ void chunk_calculate_popupated_blocks( Chunk *chunk ) {
                     blockCoord->x = chunk->chunk_x * CHUNK_SIZE + x;
                     blockCoord->y = chunk->chunk_y * CHUNK_SIZE + y;
                     blockCoord->z = chunk->chunk_z * CHUNK_SIZE + z;
-                    blockCoord->face_top = blockDef->textures.top - 1;
-                    blockCoord->face_sides = blockDef->textures.side - 1;
-                    blockCoord->face_bottom = blockDef->textures.bottom - 1;
+                    blockCoord->face_top = block->textures.top - 1;
+                    blockCoord->face_sides = block->textures.side - 1;
+                    blockCoord->face_bottom = block->textures.bottom - 1;
                 }
             }
         }
