@@ -50,7 +50,7 @@ float map_gen_under_water_block( int x, int z ) {
     return noise;
 }
 
-void map_gen_load_block( Chunk *chunk ) {
+void map_gen_load_block2( Chunk *chunk ) {
     int chunk_offset_x = chunk->chunk_x * CHUNK_SIZE;
     int chunk_offset_y = chunk->chunk_y * CHUNK_SIZE;
     int chunk_offset_z = chunk->chunk_z * CHUNK_SIZE;
