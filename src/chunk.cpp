@@ -167,6 +167,7 @@ void chunk_persist( Chunk *chunk ) {
 #endif
 }
 
+int use_cuda = 0;
 void chunk_load_terrain( Chunk *chunk ) {
     if ( !REMEMBER_BLOCKS ) {
         chunk->blocks = ( BlockID * )calloc( CHUNK_BLOCK_SIZE, sizeof( BlockID ) );

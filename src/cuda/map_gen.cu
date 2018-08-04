@@ -52,53 +52,23 @@ __device__ float map_gen_under_water_block( int x, int z ) {
 
 __global__ void cuda_set_block(BlockID* blocks, int chunk_x, int chunk_y, int chunk_z){
     int index = blockIdx.x * blockDim.x + threadIdx.x;
-    int y = ( index / ( CHUNK_SIZE_INTERNAL * CHUNK_SIZE_INTERNAL ) ) - 1;
-    int x = ( ( index / CHUNK_SIZE_INTERNAL ) % CHUNK_SIZE_INTERNAL ) - 1;
-    int z = ( index % ( CHUNK_SIZE_INTERNAL ) ) - 1;
-    x += chunk_x;
-    y += chunk_y;
-    z += chunk_z;
+    if (index < CHUNK_BLOCK_SIZE){
+        int y = ( index / ( CHUNK_SIZE_INTERNAL * CHUNK_SIZE_INTERNAL ) ) - 1;
+        int x = ( ( index / CHUNK_SIZE_INTERNAL ) % CHUNK_SIZE_INTERNAL ) - 1;
+        int z = ( index % ( CHUNK_SIZE_INTERNAL ) ) - 1;
+        x += chunk_x;
+        y += chunk_y;
+        z += chunk_z;
 
-    float ground_noise = map_gen_ground_noise(x, z);
-    float hills = map_gen_hills(x, z);
-    float mountians = map_gen_mountians( x, z);
-    float level = map_gen_level(x, z);
-    float terrainHeight = level + mountians + hills + ground_noise;
-    // terrainHeight = biome;
+        float ground_noise = map_gen_ground_noise(x, z);
+        float hills = map_gen_hills(x, z);
+        float mountians = map_gen_mountians( x, z);
+        float level = map_gen_level(x, z);
+        float terrainHeight = level + mountians + hills + ground_noise;
+#include "map_logic.h"
 
-    BlockID finalBlockId = AIR; // base block type is grass I guess
-    if ( y < terrainHeight ) {
-        finalBlockId = DIRT;
-        if ( -2.3 + WATER_LEVEL < terrainHeight && terrainHeight < 0.3 + WATER_LEVEL ) {
-            finalBlockId = SAND;
-        } else if ( terrainHeight < WATER_LEVEL + 0.3 ) {
-            float under_water = map_gen_under_water_block(x, z);
-            finalBlockId = under_water > 0.5 ? GRAVEL : SAND;
-        } else if ( terrainHeight > MOUNTAN_CAP_HEIGHT ) {
-            float mountian_block = map_gen_mountian_block(x, z );
-            if ( mountian_block * ( terrainHeight - MOUNTAN_CAP_HEIGHT ) > 25 ) {
-                finalBlockId = SNOW;
-            } else if ( mountian_block * ( terrainHeight - MOUNTAN_CAP_HEIGHT ) > 10 ) {
-                finalBlockId = STONE;
-            } else if ( y + 1 >= terrainHeight ) {
-                finalBlockId = GRASS;
-            }
-        } else if ( y + 1 >= terrainHeight ) {
-            finalBlockId = GRASS;
-        }
-    } else {
-        // There should not be a block here, but water is still possible at low height
-        if (y < WATER_LEVEL ) {
-            finalBlockId = WATER;
-        }
+        blocks[index] = finalBlockId;
     }
-    
-
-
-
-
-
-    blocks[index] = finalBlockId;
 }
 
 #define NUM_THREADS_PER_BLOCK 256
@@ -108,7 +78,7 @@ __host__ void map_gen_load_block_cuda( Chunk *chunk ) {
     BlockID* device_blocks;
     cudaMalloc(&device_blocks, CHUNK_BLOCK_SIZE * sizeof( BlockID ));
 
-    cuda_set_block<<<(CHUNK_BLOCK_SIZE + (NUM_THREADS_PER_BLOCK-1))/NUM_THREADS_PER_BLOCK , NUM_THREADS_PER_BLOCK>>>(device_blocks,
+    cuda_set_block<<<(CHUNK_BLOCK_SIZE + (NUM_THREADS_PER_BLOCK-1))/NUM_THREADS_PER_BLOCK , NUM_THREADS_PER_BLOCK, 0>>>(device_blocks,
         chunk->chunk_x * CHUNK_SIZE,
         chunk->chunk_y * CHUNK_SIZE,
         chunk->chunk_z * CHUNK_SIZE);
