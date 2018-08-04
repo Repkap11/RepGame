@@ -4,7 +4,7 @@
 #define MOVEMENT_SENSITIVITY 3.0f // How sensitive the arrow keys are
 
 #ifdef REPGAME_LINUX
-#define LOAD_WITH_CUDA 1
+#define LOAD_WITH_CUDA 0
 
 #define CHUNK_RADIUS_X 500 / CHUNK_SIZE
 #define CHUNK_RADIUS_Y 200 / CHUNK_SIZE

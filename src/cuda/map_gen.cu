@@ -2,7 +2,10 @@
 #include "map_gen.h"
 #include "block_definitions.h"
 #include "cuda/perlin_noise.h"
+#include "chunk_loader.h"
+#include "chunk.h"
 
+#include <stdlib.h>
 #define WATER_LEVEL 0
 #define MOUNTAN_CAP_HEIGHT 50
 
