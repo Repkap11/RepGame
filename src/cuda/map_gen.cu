@@ -2,23 +2,35 @@
 #include "map_gen.h"
 #include "block_definitions.h"
 
-__host__ void map_gen_load_block_cuda( Chunk *chunk ) {
-    int chunk_offset_x = chunk->chunk_x * CHUNK_SIZE;
-    int chunk_offset_y = chunk->chunk_y * CHUNK_SIZE;
-    int chunk_offset_z = chunk->chunk_z * CHUNK_SIZE;
-    for ( int x = -1; x < CHUNK_SIZE_INTERNAL - 1; x++ ) {
-        for ( int z = -1; z < CHUNK_SIZE_INTERNAL - 1; z++ ) {
-            for ( int y = -1; y < CHUNK_SIZE_INTERNAL - 1; y++ ) {
-                int index = chunk_get_index_from_coords( x, y, z );
-                int real_y = chunk_offset_y + y;
-                BlockID finalBlockId;
-                if (real_y < 0) {
-                    finalBlockId = GRASS;
-                } else {
-                    finalBlockId = AIR;
-                }
-                chunk->blocks[ index ] = finalBlockId ;
-            }
-        }
+__global__ void cuda_set_block(BlockID* blocks, int chunk_x, int chunk_y, int chunk_z){
+    int index = blockIdx.x * blockDim.x + threadIdx.x;
+    int y = ( index / ( CHUNK_SIZE_INTERNAL * CHUNK_SIZE_INTERNAL ) ) - 1;
+    int x = ( ( index / CHUNK_SIZE_INTERNAL ) % CHUNK_SIZE_INTERNAL ) - 1;
+    int z = ( index % ( CHUNK_SIZE_INTERNAL ) ) - 1;
+
+    //x += chunk_x;
+    y += chunk_y;
+    //z += chunk_z;
+
+    BlockID finalBlockId = AIR;
+    if (y < x+z){
+        finalBlockId = GRASS;
     }
+    blocks[index] = finalBlockId;
+}
+
+#define NUM_THREADS_PER_BLOCK 256
+
+__host__ void map_gen_load_block_cuda( Chunk *chunk ) {
+
+    BlockID* device_blocks;
+    cudaMalloc(&device_blocks, CHUNK_BLOCK_SIZE * sizeof( BlockID ));
+
+    cuda_set_block<<<(CHUNK_BLOCK_SIZE + (NUM_THREADS_PER_BLOCK-1))/NUM_THREADS_PER_BLOCK , NUM_THREADS_PER_BLOCK>>>(device_blocks,
+        chunk->chunk_x * CHUNK_SIZE,
+        chunk->chunk_y * CHUNK_SIZE,
+        chunk->chunk_z * CHUNK_SIZE);
+
+    cudaMemcpy(chunk->blocks, device_blocks, CHUNK_BLOCK_SIZE * sizeof( BlockID) , cudaMemcpyDeviceToHost);
+    cudaFree(device_blocks);
 }
