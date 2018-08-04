@@ -3,9 +3,48 @@
 #include "block_definitions.h"
 #include "cuda/perlin_noise.h"
 
-__device__ float map_gen_hills_cuda( int x, int z ) {
+#define WATER_LEVEL 0
+#define MOUNTAN_CAP_HEIGHT 50
+
+__device__ float map_gen_hills( int x, int z ) {
     float noise = perlin_noise_cuda( x, z, 0.02f, 3, MAP_SEED );
     return ( noise - 0.5f ) * 15;
+}
+
+__device__ float map_gen_ground_noise( int x, int z ) {
+    float noise = perlin_noise_cuda( x, z, 0.1f, 2, MAP_SEED + 1 );
+    return ( noise - 0.5f ) * 2;
+}
+
+__device__ float map_gen_level( int x, int z ) {
+    float noise_orig = perlin_noise_cuda( x, z, 0.004f, 2, MAP_SEED + 5 );
+    noise_orig = ( noise_orig - 0.5f ) * 10;
+    float noise = fabs( noise_orig );
+    noise = noise * noise_orig;
+    noise = noise > 1 ? 1 : noise;
+    noise = noise < -1 ? -1 : noise;
+
+    return noise * 10;
+}
+
+__device__ float map_gen_mountians( int x, int z ) {
+    float noise = perlin_noise_cuda( x, z, 0.008f, 3, MAP_SEED + 2 );
+    noise = noise - 0.5f;
+    if ( noise < 0 ) {
+        noise = 0;
+    }
+    float mountians = noise * noise * noise * 1000;
+    return mountians;
+}
+
+__device__ float map_gen_mountian_block( int x, int z ) {
+    float noise = perlin_noise_cuda( x, z, 0.8f, 8, MAP_SEED + 3 );
+    return noise;
+}
+
+__device__ float map_gen_under_water_block( int x, int z ) {
+    float noise = perlin_noise_cuda( x, z, 0.2f, 2, MAP_SEED + 4 );
+    return noise;
 }
 
 __global__ void cuda_set_block(BlockID* blocks, int chunk_x, int chunk_y, int chunk_z){
@@ -13,17 +52,49 @@ __global__ void cuda_set_block(BlockID* blocks, int chunk_x, int chunk_y, int ch
     int y = ( index / ( CHUNK_SIZE_INTERNAL * CHUNK_SIZE_INTERNAL ) ) - 1;
     int x = ( ( index / CHUNK_SIZE_INTERNAL ) % CHUNK_SIZE_INTERNAL ) - 1;
     int z = ( index % ( CHUNK_SIZE_INTERNAL ) ) - 1;
-
     x += chunk_x;
     y += chunk_y;
     z += chunk_z;
 
-    float height = map_gen_hills_cuda(x, z);
+    float ground_noise = map_gen_ground_noise(x, z);
+    float hills = map_gen_hills(x, z);
+    float mountians = map_gen_mountians( x, z);
+    float level = map_gen_level(x, z);
+    float terrainHeight = level + mountians + hills + ground_noise;
+    // terrainHeight = biome;
 
-    BlockID finalBlockId = AIR;
-    if (y < height){
-        finalBlockId = GRASS;
+    BlockID finalBlockId = AIR; // base block type is grass I guess
+    if ( y < terrainHeight ) {
+        finalBlockId = DIRT;
+        if ( -2.3 + WATER_LEVEL < terrainHeight && terrainHeight < 0.3 + WATER_LEVEL ) {
+            finalBlockId = SAND;
+        } else if ( terrainHeight < WATER_LEVEL + 0.3 ) {
+            float under_water = map_gen_under_water_block(x, z);
+            finalBlockId = under_water > 0.5 ? GRAVEL : SAND;
+        } else if ( terrainHeight > MOUNTAN_CAP_HEIGHT ) {
+            float mountian_block = map_gen_mountian_block(x, z );
+            if ( mountian_block * ( terrainHeight - MOUNTAN_CAP_HEIGHT ) > 25 ) {
+                finalBlockId = SNOW;
+            } else if ( mountian_block * ( terrainHeight - MOUNTAN_CAP_HEIGHT ) > 10 ) {
+                finalBlockId = STONE;
+            } else if ( y + 1 >= terrainHeight ) {
+                finalBlockId = GRASS;
+            }
+        } else if ( y + 1 >= terrainHeight ) {
+            finalBlockId = GRASS;
+        }
+    } else {
+        // There should not be a block here, but water is still possible at low height
+        if (y < WATER_LEVEL ) {
+            finalBlockId = WATER;
+        }
     }
+    
+
+
+
+
+
     blocks[index] = finalBlockId;
 }
 
