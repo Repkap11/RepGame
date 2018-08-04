@@ -3,17 +3,22 @@ CFLAGS = -g -Wall -std=c++98 -Wno-unused-variable
 #SHELL = sh -xv
 CPUS ?= $(shell nproc || echo 1)
 MAKEFLAGS += --jobs=$(CPUS)
+MAKEFLAGS += -k
 
 #Linux x86_64 builds
 CC_LINUX = g++
 LD_LINUX = ld
 CFLAGS_LINUX = -march=native -DREPGAME_LINUX -flto
-LIBS_LINUX = -L/usr/local/cuda-9.2/lib64 -l m -l GL -l GLU -l GLEW -l glut -pthread -lcudart
+LIBS_LINUX = -L/usr/local/cuda-9.2/lib64 -l m -l GL -l GLU -l GLEW -l glut -pthread -lcudadevrt -lcudart
 LIB_TARGET_LINUX = out/linux/lib$(TARGET).so
 
 #Linux Cuda
-CC_CUDA = /usr/local/cuda-9.2/bin/nvcc
-CFLAGS_CUDA = -arch=sm_35 -c -Xcompiler -fPIC -DREPGAME_LINUX
+CC_CUDA = /usr/local/cuda-9.2/bin/nvcc -x cu -arch=sm_35 -dc -c
+LINK_DEVICE_CUDA = /usr/local/cuda-9.2/bin/nvcc -arch=sm_35 --lib
+LD_CUDA = /usr/local/cuda-9.2/bin/nvcc -arch=sm_35 --shared
+CFLAGS_CUDA = -Xcompiler -fPIC -DREPGAME_LINUX
+LIB_DEVICE_CUDA = out/cuda/lib$(TARGET)_device.so
+LIB_TARGET_CUDA = out/cuda/lib$(TARGET).so
 
 #Android arm64 builds
 include android/local.properties
@@ -68,11 +73,17 @@ out/android/%.so:  src/%.cpp $(HEADERS) Makefile
 $(LIB_TARGET_LINUX): $(OBJECTS_SHARED_LINUX) out Makefile
 	$(LD_LINUX) -r $(OBJECTS_SHARED_LINUX) -o $@
 
+$(LIB_DEVICE_CUDA): $(OBJECTS_CUDA) out Makefile
+	$(LINK_DEVICE_CUDA) $(CFLAGS_CUDA) $(OBJECTS_CUDA) -o $@
+
+$(LIB_TARGET_CUDA): $(LIB_DEVICE_CUDA) out Makefile
+	$(LD_CUDA) $(CFLAGS_CUDA) $(LIB_DEVICE_CUDA) -o $@
+
 $(LIB_TARGET_ANDROID): $(OBJECTS_SHARED_ANDROID) out Makefile
 	$(LD_ANDROID) -r $(OBJECTS_SHARED_ANDROID) -o $@
 
-$(TARGET): $(LIB_TARGET_LINUX) $(OBJECTS_LINUX) $(OBJECTS_SHARED_LINUX) $(OBJECTS_CUDA) Makefile
-	$(CC_LINUX) $(CFLAGS) $(CFLAGS_LINUX) $(LIB_TARGET) $(OBJECTS_LINUX) $(OBJECTS_SHARED_LINUX) $(OBJECTS_CUDA) -Wall $(LIBS_LINUX) -o $@
+$(TARGET): $(LIB_TARGET_LINUX) $(OBJECTS_LINUX) $(LIB_TARGET_CUDA) $(OBJECCTS_CUDA) Makefile
+	$(CC_LINUX) $(CFLAGS) $(CFLAGS_LINUX) $(LIB_TARGET) $(OBJECTS_LINUX) $(LIB_TARGET_LINUX) $(LIB_TARGET_CUDA) -Wall $(LIBS_LINUX) -o $@
 
 map:
 	rm -rf World1

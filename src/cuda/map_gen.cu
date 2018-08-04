@@ -1,6 +1,12 @@
 #include "RepGame.h"
 #include "map_gen.h"
 #include "block_definitions.h"
+#include "cuda/perlin_noise.h"
+
+__device__ float map_gen_hills_cuda( int x, int z ) {
+    float noise = perlin_noise_cuda( x, z, 0.02f, 3, MAP_SEED );
+    return ( noise - 0.5f ) * 15;
+}
 
 __global__ void cuda_set_block(BlockID* blocks, int chunk_x, int chunk_y, int chunk_z){
     int index = blockIdx.x * blockDim.x + threadIdx.x;
@@ -8,12 +14,14 @@ __global__ void cuda_set_block(BlockID* blocks, int chunk_x, int chunk_y, int ch
     int x = ( ( index / CHUNK_SIZE_INTERNAL ) % CHUNK_SIZE_INTERNAL ) - 1;
     int z = ( index % ( CHUNK_SIZE_INTERNAL ) ) - 1;
 
-    //x += chunk_x;
+    x += chunk_x;
     y += chunk_y;
-    //z += chunk_z;
+    z += chunk_z;
+
+    float height = map_gen_hills_cuda(x, z);
 
     BlockID finalBlockId = AIR;
-    if (y < x+z){
+    if (y < height){
         finalBlockId = GRASS;
     }
     blocks[index] = finalBlockId;
