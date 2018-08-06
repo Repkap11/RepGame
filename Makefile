@@ -9,13 +9,13 @@ MAKEFLAGS += -k
 CC_LINUX = g++
 LD_LINUX = ld
 CFLAGS_LINUX = -march=native -DREPGAME_LINUX -flto
-LIBS_LINUX = -L/usr/local/cuda-9.2/lib64 -l m -l GL -l GLU -l GLEW -l glut -pthread -lcudadevrt -lcudart
+LIBS_LINUX = -L/usr/local/cuda-9.2/lib64 -l m -l GL -l GLU -l GLEW -l glut -pthread -lcudart
 LIB_TARGET_LINUX = out/linux/lib$(TARGET).so
 
 #Linux Cuda
 CC_CUDA = /usr/local/cuda-9.2/bin/nvcc -x cu -arch=sm_35 -dc -c
 LINK_DEVICE_CUDA = /usr/local/cuda-9.2/bin/nvcc -arch=sm_35 --lib
-LD_CUDA = /usr/local/cuda-9.2/bin/nvcc -arch=sm_35 --shared
+LD_CUDA = /usr/local/cuda-9.2/bin/nvcc -arch=sm_35 -dlink
 CFLAGS_CUDA = -Xcompiler -fPIC -DREPGAME_LINUX
 LIB_DEVICE_CUDA = out/cuda/lib$(TARGET)_device.so
 LIB_TARGET_CUDA = out/cuda/lib$(TARGET).so
@@ -82,8 +82,8 @@ $(LIB_TARGET_CUDA): $(LIB_DEVICE_CUDA) out Makefile
 $(LIB_TARGET_ANDROID): $(OBJECTS_SHARED_ANDROID) out Makefile
 	$(LD_ANDROID) -r $(OBJECTS_SHARED_ANDROID) -o $@
 
-$(TARGET): $(LIB_TARGET_LINUX) $(OBJECTS_LINUX) $(LIB_TARGET_CUDA) $(OBJECCTS_CUDA) Makefile
-	$(CC_LINUX) $(CFLAGS) $(CFLAGS_LINUX) $(LIB_TARGET) $(OBJECTS_LINUX) $(LIB_TARGET_LINUX) $(LIB_TARGET_CUDA) -Wall $(LIBS_LINUX) -o $@
+$(TARGET): $(LIB_TARGET_LINUX) $(OBJECTS_LINUX) $(LIB_TARGET_CUDA) $(LIB_DEVICE_CUDA) Makefile
+	$(CC_LINUX) $(LIB_TARGET) $(OBJECTS_LINUX) $(LIB_TARGET_LINUX) $(LIB_TARGET_CUDA) $(LIB_DEVICE_CUDA) $(LIBS_LINUX) -o $@
 
 map:
 	rm -rf World1

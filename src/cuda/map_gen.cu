@@ -9,17 +9,17 @@
 #define WATER_LEVEL 0
 #define MOUNTAN_CAP_HEIGHT 50
 
-__device__ float map_gen_hills( int x, int z ) {
+__device__ float map_gen_hills_cuda( int x, int z ) {
     float noise = perlin_noise_cuda( x, z, 0.02f, 3, MAP_SEED );
     return ( noise - 0.5f ) * 15;
 }
 
-__device__ float map_gen_ground_noise( int x, int z ) {
+__device__ float map_gen_ground_noise_cuda( int x, int z ) {
     float noise = perlin_noise_cuda( x, z, 0.1f, 2, MAP_SEED + 1 );
     return ( noise - 0.5f ) * 2;
 }
 
-__device__ float map_gen_level( int x, int z ) {
+__device__ float map_gen_level_cuda( int x, int z ) {
     float noise_orig = perlin_noise_cuda( x, z, 0.004f, 2, MAP_SEED + 5 );
     noise_orig = ( noise_orig - 0.5f ) * 10;
     float noise = fabs( noise_orig );
@@ -30,7 +30,7 @@ __device__ float map_gen_level( int x, int z ) {
     return noise * 10;
 }
 
-__device__ float map_gen_mountians( int x, int z ) {
+__device__ float map_gen_mountians_cuda( int x, int z ) {
     float noise = perlin_noise_cuda( x, z, 0.008f, 3, MAP_SEED + 2 );
     noise = noise - 0.5f;
     if ( noise < 0 ) {
@@ -40,15 +40,17 @@ __device__ float map_gen_mountians( int x, int z ) {
     return mountians;
 }
 
-__device__ float map_gen_mountian_block( int x, int z ) {
+__device__ float map_gen_mountian_block_cuda( int x, int z ) {
     float noise = perlin_noise_cuda( x, z, 0.8f, 8, MAP_SEED + 3 );
     return noise;
 }
 
-__device__ float map_gen_under_water_block( int x, int z ) {
+__device__ float map_gen_under_water_block_cuda( int x, int z ) {
     float noise = perlin_noise_cuda( x, z, 0.2f, 2, MAP_SEED + 4 );
     return noise;
 }
+
+#define MAP_GEN(func, ...) map_gen_##func##_cuda(__VA_ARGS__)
 
 __global__ void cuda_set_block(BlockID* blocks, int chunk_x, int chunk_y, int chunk_z){
     int index = blockIdx.x * blockDim.x + threadIdx.x;
@@ -60,10 +62,10 @@ __global__ void cuda_set_block(BlockID* blocks, int chunk_x, int chunk_y, int ch
         y += chunk_y;
         z += chunk_z;
 
-        float ground_noise = map_gen_ground_noise(x, z);
-        float hills = map_gen_hills(x, z);
-        float mountians = map_gen_mountians( x, z);
-        float level = map_gen_level(x, z);
+        float ground_noise = map_gen_ground_noise_cuda(x, z);
+        float hills = map_gen_hills_cuda(x, z);
+        float mountians = map_gen_mountians_cuda( x, z);
+        float level = map_gen_level_cuda(x, z);
         float terrainHeight = level + mountians + hills + ground_noise;
 #include "map_logic.h"
 

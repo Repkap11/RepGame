@@ -50,6 +50,8 @@ float map_gen_under_water_block( int x, int z ) {
     return noise;
 }
 
+#define MAP_GEN( func, ... ) map_gen_##func( __VA_ARGS__ )
+
 void map_gen_load_block_c( Chunk *chunk ) {
     int chunk_offset_x = chunk->chunk_x * CHUNK_SIZE;
     int chunk_offset_y = chunk->chunk_y * CHUNK_SIZE;
