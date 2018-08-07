@@ -67,7 +67,7 @@ void map_gen_load_block_c( Chunk *chunk ) {
 
             for ( int y = chunk_offset_y - 1; y < chunk_offset_y + CHUNK_SIZE_INTERNAL - 1; y++ ) {
 
-                int index = chunk_get_index_from_coords( x, y, z );
+                int index = chunk_get_index_from_coords( x - chunk_offset_x, y - chunk_offset_y, z - chunk_offset_z );
 #include "map_logic.h"
                 chunk->blocks[ index ] = finalBlockId;
             }
