@@ -3,30 +3,10 @@
 #include "RepGame.h"
 #include "world.h"
 
-// https://gist.github.com/yamamushi/5823518
-// Bresenham3D
-//
-// A slightly modified version of the source found at
-// http://www.ict.griffith.edu.au/anthony/info/graphics/bresenham.procs
-// Provided by Anthony Thyssen, though he does not take credit for the original implementation
-//
-// It is highly likely that the original Author was Bob Pendelton, as referenced here
-//
-// ftp://ftp.isc.org/pub/usenet/comp.sources.unix/volume26/line3d
-//
-// line3d was dervied from DigitalLine.c published as "Digital Line Drawing"
-// by Paul Heckbert from "Graphics Gems", Academic Press, 1990
-//
-// 3D modifications by Bob Pendleton. The original source code was in the public
-// domain, the author of the 3D version places his modifications in the
-// public domain as well.
-//
-// line3d uses Bresenham's algorithm to generate the 3 dimensional points on a
-// line from (x1, y1, z1) to (x2, y2, z2)
-//
+// https://bitbucket.org/volumesoffun/polyvox/src/9a71004b1e72d6cf92c41da8995e21b652e6b836/include/PolyVox/Raycast.inl?at=develop&fileviewer=file-view-default
 
-int contains_block( LoadedChunks *gameChunks, float *point ) {
-    BlockID blockID = world_get_loaded_block( gameChunks, floor( point[ 0 ] ), floor( point[ 1 ] ), floor( point[ 2 ] ) );
+int contains_block( LoadedChunks *gameChunks, int block_x, int block_y, int block_z ) {
+    BlockID blockID = world_get_loaded_block( gameChunks, TRIP_ARGS( block_ ) );
     return !( blockID == AIR || blockID == LAST_BLOCK_ID );
 }
 
@@ -34,96 +14,69 @@ int ray_traversal_find_block_from_to( LoadedChunks *gameChunks, float x1, float 
                                       float x2, float y2, float z2,                           //
                                       int *out_x, int *out_y, int *out_z ) {
 
-    float i, dx, dy, dz, l, m, n, x_inc, y_inc, z_inc, err_1, err_2, dx2, dy2, dz2;
-    float point[ 3 ];
+    int i = ( int )floorf( x1 );
+    int j = ( int )floorf( y1 );
+    int k = ( int )floorf( z1 );
 
-    point[ 0 ] = x1;
-    point[ 1 ] = y1;
-    point[ 2 ] = z1;
-    dx = x2 - x1;
-    dy = y2 - y1;
-    dz = z2 - z1;
-    x_inc = ( dx < 0 ) ? -1 : 1;
-    l = abs( dx );
-    y_inc = ( dy < 0 ) ? -1 : 1;
-    m = abs( dy );
-    z_inc = ( dz < 0 ) ? -1 : 1;
-    n = abs( dz );
-    dx2 = l * 2;
-    dy2 = m * 2;
-    dz2 = n * 2;
+    const int iend = ( int )floorf( x2 );
+    const int jend = ( int )floorf( y2 );
+    const int kend = ( int )floorf( z2 );
 
-    if ( ( l >= m ) && ( l >= n ) ) {
-        err_1 = dy2 - l;
-        err_2 = dz2 - l;
-        for ( i = 0; i < l; i++ ) {
-            if ( contains_block( gameChunks, point ) ) {
-                *out_x = floor( point[ 0 ] );
-                *out_y = floor( point[ 1 ] );
-                *out_z = floor( point[ 2 ] );
-                return 1;
-            }
-            if ( err_1 > 0 ) {
-                point[ 1 ] += y_inc;
-                err_1 -= dx2;
-            }
-            if ( err_2 > 0 ) {
-                point[ 2 ] += z_inc;
-                err_2 -= dx2;
-            }
-            err_1 += dy2;
-            err_2 += dz2;
-            point[ 0 ] += x_inc;
+    const int di = ( ( x1 < x2 ) ? 1 : ( ( x1 > x2 ) ? -1 : 0 ) );
+    const int dj = ( ( y1 < y2 ) ? 1 : ( ( y1 > y2 ) ? -1 : 0 ) );
+    const int dk = ( ( z1 < z2 ) ? 1 : ( ( z1 > z2 ) ? -1 : 0 ) );
+
+    const float deltatx = 1.0f / std::abs( x2 - x1 );
+    const float deltaty = 1.0f / std::abs( y2 - y1 );
+    const float deltatz = 1.0f / std::abs( z2 - z1 );
+
+    const float minx = floorf( x1 ), maxx = minx + 1.0f;
+    float tx = ( ( x1 > x2 ) ? ( x1 - minx ) : ( maxx - x1 ) ) * deltatx;
+    const float miny = floorf( y1 ), maxy = miny + 1.0f;
+    float ty = ( ( y1 > y2 ) ? ( y1 - miny ) : ( maxy - y1 ) ) * deltaty;
+    const float minz = floorf( z1 ), maxz = minz + 1.0f;
+    float tz = ( ( z1 > z2 ) ? ( z1 - minz ) : ( maxz - z1 ) ) * deltatz;
+
+    for ( ;; ) {
+        if ( contains_block( gameChunks, i, j, k ) ) {
+            *out_x = i;
+            *out_y = j;
+            *out_z = k;
+            return 1;
         }
-    } else if ( ( m >= l ) && ( m >= n ) ) {
-        err_1 = dx2 - m;
-        err_2 = dz2 - m;
-        for ( i = 0; i < m; i++ ) {
-            if ( contains_block( gameChunks, point ) ) {
-                *out_x = floor( point[ 0 ] );
-                *out_y = floor( point[ 1 ] );
-                *out_z = floor( point[ 2 ] );
-                return 1;
-            }
-            if ( err_1 > 0 ) {
-                point[ 0 ] += x_inc;
-                err_1 -= dy2;
-            }
-            if ( err_2 > 0 ) {
-                point[ 2 ] += z_inc;
-                err_2 -= dy2;
-            }
-            err_1 += dx2;
-            err_2 += dz2;
-            point[ 1 ] += y_inc;
-        }
-    } else {
-        err_1 = dy2 - n;
-        err_2 = dx2 - n;
-        for ( i = 0; i < n; i++ ) {
-            if ( contains_block( gameChunks, point ) ) {
-                *out_x = floor( point[ 0 ] );
-                *out_y = floor( point[ 1 ] );
-                *out_z = floor( point[ 2 ] );
-                return 1;
-            }
-            if ( err_1 > 0 ) {
-                point[ 1 ] += y_inc;
-                err_1 -= dz2;
-            }
-            if ( err_2 > 0 ) {
-                point[ 0 ] += x_inc;
-                err_2 -= dz2;
-            }
-            err_1 += dy2;
-            err_2 += dx2;
-            point[ 2 ] += z_inc;
+
+        if ( tx <= ty && tx <= tz ) {
+            if ( i == iend )
+                break;
+            tx += deltatx;
+            i += di;
+
+            // if ( di == 1 )
+            //     sampler.movePositiveX( );
+            // if ( di == -1 )
+            //     sampler.moveNegativeX( );
+        } else if ( ty <= tz ) {
+            if ( j == jend )
+                break;
+            ty += deltaty;
+            j += dj;
+
+            // if ( dj == 1 )
+            //     sampler.movePositiveY( );
+            // if ( dj == -1 )
+            //     sampler.moveNegativeY( );
+        } else {
+            if ( k == kend )
+                break;
+            tz += deltatz;
+            k += dk;
+
+            // if ( dk == 1 )
+            //     sampler.movePositiveZ( );
+            // if ( dk == -1 )
+            //     sampler.moveNegativeZ( );
         }
     }
-    if ( contains_block( gameChunks, point ) ) {
-        *out_x = floor( point[ 0 ] );
-        *out_y = floor( point[ 1 ] );
-        *out_z = floor( point[ 2 ] );
-        return 1;
-    }
+
+    return 0;
 }
