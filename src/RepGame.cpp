@@ -360,9 +360,9 @@ void repgame_draw( ) {
                                           globalGameState.camera.x + globalGameState.camera.look.x * REACH_DISTANCE,    //
                                           globalGameState.camera.y + globalGameState.camera.look.y * REACH_DISTANCE,    //
                                           globalGameState.camera.z + globalGameState.camera.look.z * REACH_DISTANCE,    //
-                                          TRIP_ARGS( &globalGameState.block_selection.destroy_ ) );
-    pr_debug( "Depth at center x:%d y:%d z:%d face:%d draw:%d", //
-              TRIP_ARGS( globalGameState.block_selection.destroy_ ), whichFace, globalGameState.block_selection.selectionInBounds );
+                                          TRIP_ARGS( &globalGameState.block_selection.destroy_ ), &whichFace );
+    // pr_debug( "Depth at center x:%d y:%d z:%d face:%d draw:%d", //
+    //           TRIP_ARGS( globalGameState.block_selection.destroy_ ), whichFace, globalGameState.block_selection.selectionInBounds );
     globalGameState.block_selection.create_x = globalGameState.block_selection.destroy_x + ( whichFace == FACE_RIGHT ) - ( whichFace == FACE_LEFT );
     globalGameState.block_selection.create_y = globalGameState.block_selection.destroy_y + ( whichFace == FACE_TOP ) - ( whichFace == FACE_BOTTOM );
     globalGameState.block_selection.create_z = globalGameState.block_selection.destroy_z + ( whichFace == FACE_BACK ) - ( whichFace == FACE_FRONT );
