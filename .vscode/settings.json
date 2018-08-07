@@ -18,7 +18,8 @@
         "tuple": "cpp",
         "utility": "cpp",
         "initializer_list": "cpp",
-        "thread": "cpp"
+        "thread": "cpp",
+        "functional": "cpp"
     },
     "git.ignoreLimitWarning": true
 }

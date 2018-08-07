@@ -29,7 +29,7 @@ typedef struct {
     struct {
         float angle_H;
         float angle_V;
-        TRIP_STATE( float l );
+        glm::vec3 look;
         TRIP_STATE( float m );
         float x;
         float y;
@@ -44,7 +44,6 @@ typedef struct {
     } screen;
     LoadedChunks gameChunks;
     struct {
-        int selectionFound;
         int selectionInBounds;
         int face;
         BlockID holdingBlock;

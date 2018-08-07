@@ -48,8 +48,11 @@ BlockID world_get_block( Chunk *chunk, TRIP_ARGS( int block_ ) ) {
 
 BlockID world_get_loaded_block( LoadedChunks *loadedChunks, TRIP_ARGS( int block_ ) ) {
     Chunk *chunk = world_get_loaded_chunk( loadedChunks, TRIP_ARGS( block_ ) );
-    BlockID blockID = world_get_block( chunk, TRIP_ARGS( block_ ) );
-    return blockID;
+    if ( chunk ) {
+        BlockID blockID = world_get_block( chunk, TRIP_ARGS( block_ ) );
+        return blockID;
+    }
+    return LAST_BLOCK_ID;
 }
 
 void world_set_block( LoadedChunks *loadedChunks, TRIP_ARGS( int block_ ), BlockID blockID ) {

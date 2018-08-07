@@ -14,6 +14,7 @@
 #include "abstract/vertex_buffer_layout.h"
 #include "abstract/vertex_array.h"
 #include "abstract/renderer.h"
+#include "ray_traversal.h"
 
 RepGameState globalGameState;
 
@@ -111,18 +112,19 @@ static void gameTick( ) {
     globalGameState.input.mouse.previousPosition.x = globalGameState.screen.width / 2;
     globalGameState.input.mouse.previousPosition.y = globalGameState.screen.height / 2;
 
-    float lx = sin( ( globalGameState.camera.angle_H ) * ( M_PI / 180 ) );
-    float ly = -tan( globalGameState.camera.angle_V * ( M_PI / 180 ) );
-    float lz = -cos( ( globalGameState.camera.angle_H ) * ( M_PI / 180 ) );
+    globalGameState.camera.look = glm::normalize( glm::vec3(        //
+        sin( ( globalGameState.camera.angle_H ) * ( M_PI / 180 ) ), //
+        -tan( globalGameState.camera.angle_V * ( M_PI / 180 ) ),    //
+        -cos( ( globalGameState.camera.angle_H ) * ( M_PI / 180 ) ) ) );
 
     globalGameState.camera.mx = sin( ( globalGameState.camera.angle_H + globalGameState.input.movement.angleH ) * ( M_PI / 180 ) );
     globalGameState.camera.my = -tan( globalGameState.camera.angle_V * ( M_PI / 180 ) );
     globalGameState.camera.mz = -cos( ( globalGameState.camera.angle_H + globalGameState.input.movement.angleH ) * ( M_PI / 180 ) );
 
     globalGameState.camera.view_look = glm::lookAt( glm::vec3( 0.0f, 0.0f, 0.0f ), // From the origin
-                                                    glm::vec3( lx, ly, lz ),       // Look at look vector
+                                                    globalGameState.camera.look,   // Look at look vector
                                                     glm::vec3( 0.0f, 1.0f, 0.0f )  // Head is up (set to 0,-1,0 to look upside-down)
-                                                    );
+    );
     globalGameState.camera.view_trans = glm::translate( glm::mat4( 1.0f ), glm::vec3( -globalGameState.camera.x,     //
                                                                                       -globalGameState.camera.y,     //
                                                                                       -globalGameState.camera.z ) ); //
@@ -351,9 +353,16 @@ void repgame_draw( ) {
     world_draw_solid( &globalGameState.gameChunks, mvp );
 
     int whichFace = 0;
-    globalGameState.block_selection.selectionFound = getMouseCoords( TRIP_ARGS( &globalGameState.block_selection.destroy_ ), &whichFace );
-    // pr_debug( "Depth at center x:%d y:%d z:%d face:%d draw:%d", //
-    //         TRIP_ARGS( globalGameState.block_selection.destroy_ ), whichFace, globalGameState.block_selection.selectionFound );
+    // globalGameState.block_selection.selectionFound = getMouseCoords( TRIP_ARGS( &globalGameState.block_selection.destroy_ ), &whichFace );
+    globalGameState.block_selection.selectionInBounds =                                                                    //
+        ray_traversal_find_block_from_to( &globalGameState.gameChunks,                                                  //
+                                          globalGameState.camera.x, globalGameState.camera.y, globalGameState.camera.z, //
+                                          globalGameState.camera.x + globalGameState.camera.look.x * REACH_DISTANCE,    //
+                                          globalGameState.camera.y + globalGameState.camera.look.y * REACH_DISTANCE,    //
+                                          globalGameState.camera.z + globalGameState.camera.look.z * REACH_DISTANCE,    //
+                                          TRIP_ARGS( &globalGameState.block_selection.destroy_ ) );
+    pr_debug( "Depth at center x:%d y:%d z:%d face:%d draw:%d", //
+              TRIP_ARGS( globalGameState.block_selection.destroy_ ), whichFace, globalGameState.block_selection.selectionInBounds );
     globalGameState.block_selection.create_x = globalGameState.block_selection.destroy_x + ( whichFace == FACE_RIGHT ) - ( whichFace == FACE_LEFT );
     globalGameState.block_selection.create_y = globalGameState.block_selection.destroy_y + ( whichFace == FACE_TOP ) - ( whichFace == FACE_BOTTOM );
     globalGameState.block_selection.create_z = globalGameState.block_selection.destroy_z + ( whichFace == FACE_BACK ) - ( whichFace == FACE_FRONT );
