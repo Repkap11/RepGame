@@ -100,7 +100,9 @@ int main( int argc, char **argv ) {
             double wait_time_ms = fps_ms - diff_ms;
             if ( wait_time_ms > 0 ) {
                 int wait_time_us = ( int )( wait_time_ms * 1000.0 );
-                usleep( wait_time_us );
+                if ( LIMIT_FPS ) {
+                    usleep( wait_time_us );
+                }
             }
         }
 
@@ -108,7 +110,9 @@ int main( int argc, char **argv ) {
         {
             double diff_ms = ( ( ( double )tend.tv_sec + 1.0e-9 * tblank.tv_nsec ) - ( ( double )tblank.tv_sec + 1.0e-9 * tstart.tv_nsec ) ) * 1000.0;
             float frame_rate = 1.0 / ( diff_ms / 1000.0 );
-            // pr_debug( "FPS:%f", frame_rate );
+            if ( SHOW_FPS ) {
+                pr_debug( "FPS:%f", frame_rate );
+            }
         }
     }
     repgame_cleanup( );
