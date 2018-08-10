@@ -177,20 +177,47 @@ void chunk_loader_render_chunks( LoadedChunks *loadedChunks, TRIP_ARGS( float ca
         loadedChunks->chunk_center_z = chunk_z;
     }
 }
+float chunk_diameter = ( CHUNK_SIZE + 1 ) * 1.73205080757; // sqrt(3)
 
 void chunk_loader_draw_chunks_solid( LoadedChunks *loadedChunks, glm::mat4 &mvp ) {
     shader_set_uniform_mat4f( &loadedChunks->shader, "u_MVP", mvp );
     // pr_debug( "Drawing %d chunks", loadedChunks->numLoadedChunks );
+
     for ( int i = 0; i < MAX_LOADED_CHUNKS; i++ ) {
-        // pr_debug( "Drawing chunk %d", i );
-        chunk_render_solid( &loadedChunks->chunkArray[ i ], &loadedChunks->renderer, &loadedChunks->shader );
+        int final_is_visiable = 1;
+        Chunk *chunk = &loadedChunks->chunkArray[ i ];
+        glm::vec4 chunk_coords = glm::vec4(               //
+            chunk->chunk_x * CHUNK_SIZE + CHUNK_SIZE / 2, //
+            chunk->chunk_y * CHUNK_SIZE + CHUNK_SIZE / 2, //
+            chunk->chunk_z * CHUNK_SIZE + CHUNK_SIZE / 2, 1 );
+        glm::vec4 result_v = mvp * chunk_coords;
+        float adjusted_diameter = chunk_diameter / fabsf( result_v.w );
+
+        result_v.x /= result_v.w;
+        result_v.y /= result_v.w;
+        result_v.z /= result_v.w;
+        if ( fabsf( result_v.x ) > 1 + adjusted_diameter || //
+             fabsf( result_v.y ) > 1 + adjusted_diameter || //
+             fabsf( result_v.z ) > 1 + adjusted_diameter ) {
+            final_is_visiable = 0;
+        } else {
+            final_is_visiable = 1;
+        }
+        if ( final_is_visiable ) {
+            chunk->cached_cull_water = 0;
+            chunk_render_solid( chunk, &loadedChunks->renderer, &loadedChunks->shader );
+        } else {
+            chunk->cached_cull_water = 1;
+        }
     }
 }
 void chunk_loader_draw_chunks_liquid( LoadedChunks *loadedChunks, glm::mat4 &mvp ) {
 
     for ( int i = 0; i < MAX_LOADED_CHUNKS; i++ ) {
-        // pr_debug( "Drawing chunk %d", i );
-        chunk_render_water( &loadedChunks->chunkArray[ i ], &loadedChunks->renderer, &loadedChunks->shader );
+        Chunk *chunk = &loadedChunks->chunkArray[ i ];
+        if ( !chunk->cached_cull_water ) {
+            chunk_render_water( &loadedChunks->chunkArray[ i ], &loadedChunks->renderer, &loadedChunks->shader );
+        }
     }
 }
 

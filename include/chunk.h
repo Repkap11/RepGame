@@ -40,6 +40,7 @@ typedef struct {
     int chunk_x, chunk_y, chunk_z;
     int ditry;
     int should_render;
+    int cached_cull_water;
     int chunk_mod_x, chunk_mod_y, chunk_mod_z;
 } Chunk;
 
