@@ -145,7 +145,6 @@ void chunk_loader_render_chunks( LoadedChunks *loadedChunks, TRIP_ARGS( float ca
     int chunk_diff_z = chunk_z - loaded_z;
 
     Chunk *chunk;
-    int count = 0;
     do {
         chunk = terrain_loading_thread_dequeue( );
         if ( chunk ) {
@@ -157,7 +156,6 @@ void chunk_loader_render_chunks( LoadedChunks *loadedChunks, TRIP_ARGS( float ca
                 chunk_program_terrain( chunk );
             }
         }
-        count += 1;
     } while ( chunk );
 
     if ( TRIP_OR( 0 != chunk_diff_ ) ) {

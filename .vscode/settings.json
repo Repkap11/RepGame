@@ -19,7 +19,8 @@
         "utility": "cpp",
         "initializer_list": "cpp",
         "thread": "cpp",
-        "functional": "cpp"
+        "functional": "cpp",
+        "bitset": "cpp"
     },
     "git.ignoreLimitWarning": true
 }
