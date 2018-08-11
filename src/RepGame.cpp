@@ -218,7 +218,7 @@ void repgame_changeSize( int w, int h ) {
     globalGameState.input.mouse.previousPosition.y = h / 2;
 
     glViewport( 0, 0, w, h );
-    globalGameState.screen.proj = glm::perspective<float>( glm::radians( CAMERA_FOV ), globalGameState.screen.width / globalGameState.screen.height, 0.1f, 1000.0f );
+    globalGameState.screen.proj = glm::perspective<float>( glm::radians( CAMERA_FOV ), globalGameState.screen.width / globalGameState.screen.height, 0.2f, 800.0f );
 }
 
 void repgame_tick( ) {

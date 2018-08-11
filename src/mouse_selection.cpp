@@ -3,7 +3,7 @@
 #include "abstract/renderer.h"
 #include "block.h"
 
-#define SELECTION_SIZE_OFFSET ( 0.001f )
+#define SELECTION_SIZE_OFFSET ( 0.004f )
 
 static CubeFace vd_data_selection[] = {
     {0.0f - SELECTION_SIZE_OFFSET, 0.0f - SELECTION_SIZE_OFFSET, 0.0f - SELECTION_SIZE_OFFSET, /*Coords  Texture coords*/ !0, 0, FACE_FRONT}, // 0
