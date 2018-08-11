@@ -180,7 +180,7 @@ void chunk_load_terrain( Chunk *chunk ) {
 #endif
     if ( !loaded ) {
         // We havn't loaded this chunk before, map gen it.
-        if ( LOAD_WITH_CUDA ) {
+        if ( LOAD_CHUNKDS_WITH_CUDA ) {
             map_gen_load_block_cuda( chunk );
         } else {
             map_gen_load_block_c( chunk );

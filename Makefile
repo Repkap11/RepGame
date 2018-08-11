@@ -1,24 +1,32 @@
 TARGET = RepGame
 CFLAGS = -g -Wall -std=c++98 -Wno-unused-variable
-#SHELL = sh -xv
+LD_FLAGS = -r
 CPUS ?= $(shell nproc || echo 1)
 MAKEFLAGS += --jobs=$(CPUS)
 MAKEFLAGS += -k
+#SHELL = sh -xv
+
 
 #Linux x86_64 builds
 CC_LINUX = g++
-LD_LINUX = ld
+LD_LINUX = ld -r
 CFLAGS_LINUX = -march=native -DREPGAME_LINUX -flto
 LIBS_LINUX = -L/usr/local/cuda-9.2/lib64 -l m -l GL -l GLU -l GLEW -l glut -pthread -lcudart
 LIB_TARGET_LINUX = out/linux/lib$(TARGET).so
 
 #Linux Cuda
-CC_CUDA = /usr/local/cuda-9.2/bin/nvcc -x cu -arch=sm_35 -dc -c
-LINK_DEVICE_CUDA = /usr/local/cuda-9.2/bin/nvcc -arch=sm_35 --lib
-LD_CUDA = /usr/local/cuda-9.2/bin/nvcc -arch=sm_35 -dlink
-CFLAGS_CUDA = -Xcompiler -fPIC -DREPGAME_LINUX
-LIB_DEVICE_CUDA = out/cuda/lib$(TARGET)_device.so
-LIB_TARGET_CUDA = out/cuda/lib$(TARGET).so
+CC_CUDA = /usr/local/cuda-9.2/bin/nvcc
+CFLAGS_CUDA = -arch=sm_35 -Xcompiler -fPIC -DREPGAME_LINUX
+CFLAGS_CUDA_COMPILE = -x cu -dc -c
+CFLAGS_CUDA_LINK_DEVICE = --lib
+CFLAGS_CUDA_LINK_HOST = -dlink
+#If the current system has the cuda compiler, use CUDA to accelerate terrain gen
+ifneq ("$(wildcard $(CC_CUDA))","")
+	LIB_DEVICE_CUDA = out/cuda/lib$(TARGET)_device.so
+	LIB_TARGET_CUDA = out/cuda/lib$(TARGET).so
+	LIBS_LINUX += -lcudart
+	CFLAGS_LINUX += -DLOAD_WITH_CUDA
+endif
 
 #Android arm64 builds
 include android/local.properties
@@ -65,22 +73,22 @@ out/linux/%.so: src/%.cpp $(HEADERS) Makefile
 	$(CC_LINUX) -I include/ -I /usr/include/glm $(CFLAGS) $(CFLAGS_LINUX) -c $< -o $@
 
 out/cuda/%.so: src/%.cu $(HEADERS) Makefile
-	$(CC_CUDA) -I include/ -I /usr/include/glm $(CFLAGS_CUDA) $< -o $@
+	$(CC_CUDA) $(CFLAGS_CUDA_COMPILE) -I include/ -I /usr/include/glm $(CFLAGS_CUDA) $< -o $@
 
 out/android/%.so:  src/%.cpp $(HEADERS) Makefile
 	$(CC_ANDROID) $(CFLAGS) $(CFLAGS_ANDROID) -c $< -o $@ -I include/ -I $(ANDROID_NDK_LOCATION)/sysroot/usr/include -I /usr/include/glm -I $(ANDROID_NDK_LOCATION)/sysroot/usr/include/aarch64-linux-android/ -I $(ANDROID_NDK_LOCATION)/sources/cxx-stl/gnu-libstdc++/4.9/include -I $(ANDROID_NDK_LOCATION)/sources/cxx-stl/gnu-libstdc++/4.9/libs/arm64-v8a/include/
 
-$(LIB_TARGET_LINUX): $(OBJECTS_SHARED_LINUX) out Makefile
-	$(LD_LINUX) -r $(OBJECTS_SHARED_LINUX) -o $@
+$(LIB_TARGET_LINUX): $(OBJECTS_SHARED_LINUX) Makefile
+	$(LD_LINUX) $(LD_FLAGS) $(OBJECTS_SHARED_LINUX) -o $@
 
-$(LIB_DEVICE_CUDA): $(OBJECTS_CUDA) out Makefile
-	$(LINK_DEVICE_CUDA) $(CFLAGS_CUDA) $(OBJECTS_CUDA) -o $@
+$(LIB_DEVICE_CUDA): $(OBJECTS_CUDA) Makefile
+	$(CC_CUDA) $(CFLAGS_CUDA) $(CFLAGS_CUDA_LINK_DEVICE) $(OBJECTS_CUDA) -o $@
 
-$(LIB_TARGET_CUDA): $(LIB_DEVICE_CUDA) out Makefile
-	$(LD_CUDA) $(CFLAGS_CUDA) $(LIB_DEVICE_CUDA) -o $@
+$(LIB_TARGET_CUDA): $(LIB_DEVICE_CUDA) Makefile
+	$(CC_CUDA) $(CFLAGS_CUDA) $(CFLAGS_CUDA_LINK_HOST) $(LIB_DEVICE_CUDA) -o $@
 
-$(LIB_TARGET_ANDROID): $(OBJECTS_SHARED_ANDROID) out Makefile
-	$(LD_ANDROID) -r $(OBJECTS_SHARED_ANDROID) -o $@
+$(LIB_TARGET_ANDROID): $(OBJECTS_SHARED_ANDROID) Makefile
+	$(LD_ANDROID) $(LD_FLAGS) $(OBJECTS_SHARED_ANDROID) -o $@
 
 $(TARGET): $(LIB_TARGET_LINUX) $(OBJECTS_LINUX) $(LIB_TARGET_CUDA) $(LIB_DEVICE_CUDA) Makefile
 	$(CC_LINUX) $(CFLAGS) $(LIB_TARGET) $(OBJECTS_LINUX) $(LIB_TARGET_LINUX) $(LIB_TARGET_CUDA) $(LIB_DEVICE_CUDA) $(LIBS_LINUX) -o $@
