@@ -66,7 +66,8 @@ static void gameTick( ) {
 
     globalGameState.camera.angle_H += ( globalGameState.input.mouse.currentPosition.x - globalGameState.input.mouse.previousPosition.x ) * 0.04f;
     globalGameState.camera.angle_V += ( globalGameState.input.mouse.currentPosition.y - globalGameState.input.mouse.previousPosition.y ) * 0.04f;
-
+    globalGameState.input.mouse.currentPosition.x = globalGameState.screen.width / 2;
+    globalGameState.input.mouse.currentPosition.y = globalGameState.screen.height / 2;
     // pr_debug( "Angle_V:%f", globalGameState.camera.angle_V );
     // Bpr_debug( "Angle_H:%f", globalGameState.camera.angle_H );
 
