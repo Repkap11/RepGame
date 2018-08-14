@@ -11,7 +11,7 @@ MAKEFLAGS += -k
 CC_LINUX = g++
 LD_LINUX = ld -r
 CFLAGS_LINUX = -march=native -DREPGAME_LINUX -flto
-LIBS_LINUX = -L/usr/local/cuda-9.2/lib64 -l m -l GL -l GLU -l GLEW -l glut -pthread -lcudart
+LIBS_LINUX = -L/usr/local/cuda-9.2/lib64 -l m -l GL -l GLU -l GLEW -l glut -pthread
 LIB_TARGET_LINUX = out/linux/lib$(TARGET).so
 
 #Linux Cuda
