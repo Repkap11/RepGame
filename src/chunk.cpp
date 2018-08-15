@@ -194,6 +194,7 @@ typedef struct {
     int can_be_seen;
     int visable;
     int has_been_drawn;
+    int solid;
 } WorkingSpace;
 
 int chunk_can_extend_rect( Chunk *chunk, BlockID rect_blockID, WorkingSpace *workingSpace, TRIP_ARGS( int starting_ ), TRIP_ARGS( int size_ ), TRIP_ARGS( int dir_ ) ) {
@@ -215,7 +216,11 @@ int chunk_can_extend_rect( Chunk *chunk, BlockID rect_blockID, WorkingSpace *wor
                 int index = chunk_get_index_from_coords( new_x + dir_x, new_y + dir_y, new_z + dir_z );
                 BlockID new_blockID = chunk->blocks[ index ];
                 num_checked_blocks++;
-                if ( new_blockID != rect_blockID || workingSpace[ index ].has_been_drawn ) {
+                int allow_different_block = 0;
+                if ( ALLOW_CHUNKS_WITH_OVERLAPPING_BUT_HIDDEN_BLOCKS ) {
+                    allow_different_block = workingSpace[ index ].solid && !workingSpace[ index ].can_be_seen;
+                }
+                if ( ( new_blockID != rect_blockID && !allow_different_block ) || workingSpace[ index ].has_been_drawn ) {
                     return 0;
                 }
             }
@@ -256,6 +261,8 @@ void chunk_calculate_popupated_blocks( Chunk *chunk ) {
             float alpha = block->alpha;
             int visiable_block = alpha != 0.0f;
             workingSpace[ index ].visable = visiable_block;
+            workingSpace[ index ].solid = alpha == 1.0f;
+
             if ( visiable_block ) {
                 int visiable_from_top = block_definition_get_definition( chunk->blocks[ chunk_get_index_from_coords( x + 0, y + 1, z + 0 ) ] )->alpha < alpha;
                 int visiable_from_bottom = block_definition_get_definition( chunk->blocks[ chunk_get_index_from_coords( x + 0, y - 1, z + 0 ) ] )->alpha < alpha;
