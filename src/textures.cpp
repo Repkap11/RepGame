@@ -78,7 +78,7 @@ unsigned int loadTexture( const char *filename, int width, int height, int bmp_h
     glPixelStorei( GL_UNPACK_ROW_LENGTH, width );
     glPixelStorei( GL_UNPACK_IMAGE_HEIGHT, height );
 
-    for (unsigned int i = 0; i < layer_count; i++ ) {
+    for ( unsigned int i = 0; i < layer_count; i++ ) {
         int tex_coord_x = ( i % textures_across );
         int tex_coord_y = ( textures_down - 1 ) - ( i / textures_across );
         int text_coord_base = tex_coord_x * tile_size_across + tex_coord_y * tile_size_down * width;
@@ -96,8 +96,8 @@ unsigned int loadTexture( const char *filename, int width, int height, int bmp_h
                          data + bmp_header + text_coord_base * BYTEX_PER_PIXEL );
     }
 
-    glTexParameterf( GL_TEXTURE_2D_ARRAY, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE );
-    glTexParameterf( GL_TEXTURE_2D_ARRAY, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE );
+    glTexParameterf( GL_TEXTURE_2D_ARRAY, GL_TEXTURE_WRAP_S, GL_REPEAT );
+    glTexParameterf( GL_TEXTURE_2D_ARRAY, GL_TEXTURE_WRAP_T, GL_REPEAT );
     glTexParameterf( GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MIN_FILTER, GL_NEAREST_MIPMAP_LINEAR ); // GL_NEAREST GL_LINEAR_MIPMAP_LINEAR
     glTexParameterf( GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MAG_FILTER, GL_NEAREST );               // GL_NEAREST GL_LINEAR_MIPMAP_LINEAR
     glGenerateMipmap( GL_TEXTURE_2D_ARRAY );

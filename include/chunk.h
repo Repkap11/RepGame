@@ -13,6 +13,11 @@ typedef struct {
     float x;
     float y;
     float z;
+
+    float mesh_x;
+    float mesh_y;
+    float mesh_z;
+
     unsigned int face_top;
     unsigned int face_bottom;
     unsigned int face_sides;

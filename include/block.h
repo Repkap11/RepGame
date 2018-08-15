@@ -15,8 +15,10 @@ typedef struct {
     float x;
     float y;
     float z;
-    unsigned int tex_coord_x;
-    unsigned int tex_coord_y;
+
+    float tex_coord_x;
+    float tex_coord_y;
+
     unsigned int which_face;
 } CubeFace;
 

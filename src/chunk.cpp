@@ -230,6 +230,11 @@ void chunk_calculate_popupated_blocks( Chunk *chunk ) {
                     blockCoord->x = chunk->chunk_x * CHUNK_SIZE + x;
                     blockCoord->y = chunk->chunk_y * CHUNK_SIZE + y;
                     blockCoord->z = chunk->chunk_z * CHUNK_SIZE + z;
+
+                    blockCoord->mesh_x = 2;
+                    blockCoord->mesh_y = 2;
+                    blockCoord->mesh_z = 2;
+
                     blockCoord->face_top = block->textures.top - 1;
                     blockCoord->face_sides = block->textures.side - 1;
                     blockCoord->face_bottom = block->textures.bottom - 1;
