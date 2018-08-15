@@ -1,6 +1,7 @@
 #ifndef HEADER_BLOCK_H
 #define HEADER_BLOCK_H
 
+#include "constants.h"
 #include "block_definitions.h"
 
 #define FACE_TOP 0
@@ -52,35 +53,35 @@ static unsigned int ib_data_water[] = {
 };
 
 static CubeFace vd_data_solid[] = {
-    {0.0f, 0.0f, 0.0f, /*Coords  Texture coords*/ !0, 0, FACE_FRONT}, // 0
-    {1.0f, 0.0f, 0.0f, /*Coords  Texture coords*/ !1, 0, FACE_FRONT}, // 1
-    {1.0f, 1.0f, 0.0f, /*Coords  Texture coords*/ !1, 1, FACE_FRONT}, // 2
-    {0.0f, 1.0f, 0.0f, /*Coords  Texture coords*/ !0, 1, FACE_FRONT}, // 3
+    {0.0f, 0.0f, 0.0f, /*Coords  Texture coords*/ !0, 0, FACE_FRONT},               // 0
+    {BLOCK_SCALE, 0.0f, 0.0f, /*Coords  Texture coords*/ !1, 0, FACE_FRONT},        // 1
+    {BLOCK_SCALE, BLOCK_SCALE, 0.0f, /*Coords  Texture coords*/ !1, 1, FACE_FRONT}, // 2
+    {0.0f, BLOCK_SCALE, 0.0f, /*Coords  Texture coords*/ !0, 1, FACE_FRONT},        // 3
 
-    {0.0f, 0.0f, 1.0f, /*Coords  Texture coords*/ !1, 0, FACE_BACK}, // 4
-    {1.0f, 0.0f, 1.0f, /*Coords  Texture coords*/ !0, 0, FACE_BACK}, // 5
-    {1.0f, 1.0f, 1.0f, /*Coords  Texture coords*/ !0, 1, FACE_BACK}, // 6
-    {0.0f, 1.0f, 1.0f, /*Coords  Texture coords*/ !1, 1, FACE_BACK}, // 7
+    {0.0f, 0.0f, BLOCK_SCALE, /*Coords  Texture coords*/ !1, 0, FACE_BACK},               // 4
+    {BLOCK_SCALE, 0.0f, BLOCK_SCALE, /*Coords  Texture coords*/ !0, 0, FACE_BACK},        // 5
+    {BLOCK_SCALE, BLOCK_SCALE, BLOCK_SCALE, /*Coords  Texture coords*/ !0, 1, FACE_BACK}, // 6
+    {0.0f, BLOCK_SCALE, BLOCK_SCALE, /*Coords  Texture coords*/ !1, 1, FACE_BACK},        // 7
 
-    {0.0f, 0.0f, 0.0f, /*Coords  Texture coords*/ 0, 0, FACE_LEFT},  // 8
-    {1.0f, 0.0f, 0.0f, /*Coords  Texture coords*/ 1, 0, FACE_RIGHT}, // 9
-    {1.0f, 1.0f, 0.0f, /*Coords  Texture coords*/ 1, 1, FACE_RIGHT}, // 10
-    {0.0f, 1.0f, 0.0f, /*Coords  Texture coords*/ 0, 1, FACE_LEFT},  // 11
+    {0.0f, 0.0f, 0.0f, /*Coords  Texture coords*/ 0, 0, FACE_LEFT},                // 8
+    {BLOCK_SCALE, 0.0f, 0.0f, /*Coords  Texture coords*/ 1, 0, FACE_RIGHT},        // 9
+    {BLOCK_SCALE, BLOCK_SCALE, 0.0f, /*Coords  Texture coords*/ 1, 1, FACE_RIGHT}, // 10
+    {0.0f, BLOCK_SCALE, 0.0f, /*Coords  Texture coords*/ 0, 1, FACE_LEFT},         // 11
 
-    {0.0f, 0.0f, 1.0f, /*Coords  Texture coords*/ 1, 0, FACE_LEFT},  // 12
-    {1.0f, 0.0f, 1.0f, /*Coords  Texture coords*/ 0, 0, FACE_RIGHT}, // 13
-    {1.0f, 1.0f, 1.0f, /*Coords  Texture coords*/ 0, 1, FACE_RIGHT}, // 14
-    {0.0f, 1.0f, 1.0f, /*Coords  Texture coords*/ 1, 1, FACE_LEFT},  // 15
+    {0.0f, 0.0f, BLOCK_SCALE, /*Coords  Texture coords*/ 1, 0, FACE_LEFT},                // 12
+    {BLOCK_SCALE, 0.0f, BLOCK_SCALE, /*Coords  Texture coords*/ 0, 0, FACE_RIGHT},        // 13
+    {BLOCK_SCALE, BLOCK_SCALE, BLOCK_SCALE, /*Coords  Texture coords*/ 0, 1, FACE_RIGHT}, // 14
+    {0.0f, BLOCK_SCALE, BLOCK_SCALE, /*Coords  Texture coords*/ 1, 1, FACE_LEFT},         // 15
 
-    {0.0f, 0.0f, 0.0f, /*Coords  Texture coords*/ !0, !0, FACE_BOTTOM}, // 16
-    {1.0f, 0.0f, 0.0f, /*Coords  Texture coords*/ !1, !0, FACE_BOTTOM}, // 17
-    {1.0f, 1.0f, 0.0f, /*Coords  Texture coords*/ !1, !1, FACE_TOP},    // 18
-    {0.0f, 1.0f, 0.0f, /*Coords  Texture coords*/ !0, !1, FACE_TOP},    // 19
+    {0.0f, 0.0f, 0.0f, /*Coords  Texture coords*/ !0, !0, FACE_BOTTOM},            // 16
+    {BLOCK_SCALE, 0.0f, 0.0f, /*Coords  Texture coords*/ !1, !0, FACE_BOTTOM},     // 17
+    {BLOCK_SCALE, BLOCK_SCALE, 0.0f, /*Coords  Texture coords*/ !1, !1, FACE_TOP}, // 18
+    {0.0f, BLOCK_SCALE, 0.0f, /*Coords  Texture coords*/ !0, !1, FACE_TOP},        // 19
 
-    {0.0f, 0.0f, 1.0f, /*Coords  Texture coords*/ 1, 0, FACE_BOTTOM}, // 20
-    {1.0f, 0.0f, 1.0f, /*Coords  Texture coords*/ 0, 0, FACE_BOTTOM}, // 21
-    {1.0f, 1.0f, 1.0f, /*Coords  Texture coords*/ 0, 1, FACE_TOP},    // 22
-    {0.0f, 1.0f, 1.0f, /*Coords  Texture coords*/ 1, 1, FACE_TOP},    // 23
+    {0.0f, 0.0f, BLOCK_SCALE, /*Coords  Texture coords*/ 1, 0, FACE_BOTTOM},            // 20
+    {BLOCK_SCALE, 0.0f, BLOCK_SCALE, /*Coords  Texture coords*/ 0, 0, FACE_BOTTOM},     // 21
+    {BLOCK_SCALE, BLOCK_SCALE, BLOCK_SCALE, /*Coords  Texture coords*/ 0, 1, FACE_TOP}, // 22
+    {0.0f, BLOCK_SCALE, BLOCK_SCALE, /*Coords  Texture coords*/ 1, 1, FACE_TOP},        // 23
 };
 #define VB_DATA_SIZE_SOLID ( 4 * 6 )
 
