@@ -264,15 +264,19 @@ void chunk_calculate_popupated_blocks( Chunk *chunk ) {
             workingSpace[ index ].solid = alpha == 1.0f;
 
             if ( visiable_block ) {
-                int visiable_from_top = block_definition_get_definition( chunk->blocks[ chunk_get_index_from_coords( x + 0, y + 1, z + 0 ) ] )->alpha < alpha;
-                int visiable_from_bottom = block_definition_get_definition( chunk->blocks[ chunk_get_index_from_coords( x + 0, y - 1, z + 0 ) ] )->alpha < alpha;
-                int visiable_from_left = block_definition_get_definition( chunk->blocks[ chunk_get_index_from_coords( x + 0, y + 0, z - 1 ) ] )->alpha < alpha;
-                int visiable_from_right = block_definition_get_definition( chunk->blocks[ chunk_get_index_from_coords( x + 0, y + 0, z + 1 ) ] )->alpha < alpha;
-                int visiable_from_front = block_definition_get_definition( chunk->blocks[ chunk_get_index_from_coords( x + 1, y + 0, z + 0 ) ] )->alpha < alpha;
-                int visiable_from_back = block_definition_get_definition( chunk->blocks[ chunk_get_index_from_coords( x - 1, y + 0, z + 0 ) ] )->alpha < alpha;
+                if ( alpha != 1.0f || !RENDER_ALL_SOLID_BECAUSE_ITS_SO_FAST ) {
+                    int visiable_from_top = block_definition_get_definition( chunk->blocks[ chunk_get_index_from_coords( x + 0, y + 1, z + 0 ) ] )->alpha < alpha;
+                    int visiable_from_bottom = block_definition_get_definition( chunk->blocks[ chunk_get_index_from_coords( x + 0, y - 1, z + 0 ) ] )->alpha < alpha;
+                    int visiable_from_left = block_definition_get_definition( chunk->blocks[ chunk_get_index_from_coords( x + 0, y + 0, z - 1 ) ] )->alpha < alpha;
+                    int visiable_from_right = block_definition_get_definition( chunk->blocks[ chunk_get_index_from_coords( x + 0, y + 0, z + 1 ) ] )->alpha < alpha;
+                    int visiable_from_front = block_definition_get_definition( chunk->blocks[ chunk_get_index_from_coords( x + 1, y + 0, z + 0 ) ] )->alpha < alpha;
+                    int visiable_from_back = block_definition_get_definition( chunk->blocks[ chunk_get_index_from_coords( x - 1, y + 0, z + 0 ) ] )->alpha < alpha;
 
-                int block_could_be_visiable = visiable_from_top || visiable_from_bottom || visiable_from_left || visiable_from_right || visiable_from_front || visiable_from_back;
-                workingSpace[ index ].can_be_seen = block_could_be_visiable;
+                    int block_could_be_visiable = visiable_from_top || visiable_from_bottom || visiable_from_left || visiable_from_right || visiable_from_front || visiable_from_back;
+                    workingSpace[ index ].can_be_seen = block_could_be_visiable;
+                } else {
+                    workingSpace[ index ].can_be_seen = 1;
+                }
             } else {
                 workingSpace[ index ].can_be_seen = 0;
             }
