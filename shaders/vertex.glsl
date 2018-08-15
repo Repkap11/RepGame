@@ -12,11 +12,13 @@ layout( location = 2 ) in uint faceType;
 layout( location = 3 ) in vec3 blockCoords;
 layout( location = 4 ) in vec3 blockTexture;
 
-out vec3 v_TexCoordBlock;
+out vec2 v_TexCoordBlock;
+out flat float blockID;
 
 void main( ) {
     gl_Position = u_MVP * ( position + vec4( blockCoords, 0 ) );
     // This face_adjusted isn't needed if you want a different texture per face (not the same on all sides)
     uint face_adjusted = faceType > uint( 2 ) ? uint( 2 ) : faceType;
-    v_TexCoordBlock = vec3( texCoordBlock, blockTexture[ face_adjusted ] );
+    v_TexCoordBlock = vec2( texCoordBlock );
+    blockID = blockTexture[ face_adjusted ];
 }
