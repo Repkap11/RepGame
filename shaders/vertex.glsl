@@ -24,9 +24,9 @@ void main( ) {
     if ( faceType == uint( 0 ) || faceType == uint( 1 ) ) {
         face_scale = mesh_size.xz;
     } else if ( faceType == uint( 2 ) || faceType == uint( 4 ) ) {
-        face_scale = mesh_size.xy;
-    } else if ( faceType == uint( 3 ) || faceType == uint( 5 ) ) {
         face_scale = mesh_size.zy;
+    } else if ( faceType == uint( 3 ) || faceType == uint( 5 ) ) {
+        face_scale = mesh_size.xy;
     }
     v_TexCoordBlock = texCoordBlock * face_scale;
     blockID = blockTexture[ face_adjusted ];

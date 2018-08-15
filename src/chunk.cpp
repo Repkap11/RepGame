@@ -54,7 +54,7 @@ void chunk_calculate_sides( Chunk *chunk, TRIP_ARGS( int center_next_ ) ) {
     free( chunk_ib_data_water );
 }
 
-int chunk_get_index_from_coords( int x, int y, int z ) {
+inline int chunk_get_index_from_coords( int x, int y, int z ) {
     return ( y + 1 ) * CHUNK_SIZE_INTERNAL * CHUNK_SIZE_INTERNAL + ( x + 1 ) * CHUNK_SIZE_INTERNAL + ( z + 1 );
 }
 
@@ -190,6 +190,52 @@ void chunk_load_terrain( Chunk *chunk ) {
     chunk_calculate_popupated_blocks( chunk );
 }
 
+typedef struct {
+    int can_be_seen;
+    int visable;
+    int has_been_drawn;
+} WorkingSpace;
+
+int chunk_can_extend_rect( Chunk *chunk, BlockID rect_blockID, WorkingSpace *workingSpace, TRIP_ARGS( int starting_ ), TRIP_ARGS( int size_ ), TRIP_ARGS( int dir_ ) ) {
+    if ( starting_x + size_x + dir_x > CHUNK_SIZE )
+        return 0;
+    if ( starting_y + size_y + dir_y > CHUNK_SIZE )
+        return 0;
+    if ( starting_z + size_z + dir_z > CHUNK_SIZE )
+        return 0;
+    if ( ( ( size_x > 1 ) + ( size_y > 1 ) + ( size_z > 1 ) ) == 3 ) {
+        if ( !( size_x == 1 && size_y == 1 && size_z == 1 ) ) {
+            pr_debug( "Error, there must be 2 values different in a plane" );
+        }
+    }
+    int num_checked_blocks = 0;
+    for ( int new_x = starting_x; new_x < starting_x + size_x; new_x++ ) {
+        for ( int new_y = starting_y; new_y < starting_y + size_y; new_y++ ) {
+            for ( int new_z = starting_z; new_z < starting_z + size_z; new_z++ ) {
+                int index = chunk_get_index_from_coords( new_x + dir_x, new_y + dir_y, new_z + dir_z );
+                BlockID new_blockID = chunk->blocks[ index ];
+                num_checked_blocks++;
+                if ( new_blockID != rect_blockID || workingSpace[ index ].has_been_drawn ) {
+                    return 0;
+                }
+            }
+        }
+    }
+    int expected_checked_blocks = size_x * size_y * size_z;
+    if ( num_checked_blocks != expected_checked_blocks ) {
+        pr_debug( "Error, Didnt check enough blocks" );
+    }
+    for ( int new_x = starting_x; new_x < starting_x + size_x; new_x++ ) {
+        for ( int new_y = starting_y; new_y < starting_y + size_y; new_y++ ) {
+            for ( int new_z = starting_z; new_z < starting_z + size_z; new_z++ ) {
+                int index = chunk_get_index_from_coords( new_x + dir_x, new_y + dir_y, new_z + dir_z );
+                workingSpace[ index ].has_been_drawn = 1;
+            }
+        }
+    }
+    return 1;
+}
+
 void chunk_calculate_popupated_blocks( Chunk *chunk ) {
     int num_water_instances = 0;
     int num_solid_instances = 0;
@@ -199,6 +245,8 @@ void chunk_calculate_popupated_blocks( Chunk *chunk ) {
 
     chunk->solid.populated_blocks = ( BlockCoords * )calloc( CHUNK_BLOCK_SIZE, sizeof( BlockCoords ) );
     chunk->water.populated_blocks = ( BlockCoords * )calloc( CHUNK_BLOCK_SIZE, sizeof( BlockCoords ) );
+    WorkingSpace *workingSpace = ( WorkingSpace * )calloc( CHUNK_BLOCK_SIZE, sizeof( WorkingSpace ) );
+
     for ( int index = CHUNK_BLOCK_DRAW_START; index < CHUNK_BLOCK_DRAW_STOP; index++ ) {
         int x, y, z;
         int drawn_block = chunk_get_coords_from_index( index, &x, &y, &z );
@@ -207,6 +255,7 @@ void chunk_calculate_popupated_blocks( Chunk *chunk ) {
             Block *block = block_definition_get_definition( blockID );
             float alpha = block->alpha;
             int visiable_block = alpha != 0.0f;
+            workingSpace[ index ].visable = visiable_block;
             if ( visiable_block ) {
                 int visiable_from_top = block_definition_get_definition( chunk->blocks[ chunk_get_index_from_coords( x + 0, y + 1, z + 0 ) ] )->alpha < alpha;
                 int visiable_from_bottom = block_definition_get_definition( chunk->blocks[ chunk_get_index_from_coords( x + 0, y - 1, z + 0 ) ] )->alpha < alpha;
@@ -216,32 +265,68 @@ void chunk_calculate_popupated_blocks( Chunk *chunk ) {
                 int visiable_from_back = block_definition_get_definition( chunk->blocks[ chunk_get_index_from_coords( x - 1, y + 0, z + 0 ) ] )->alpha < alpha;
 
                 int block_could_be_visiable = visiable_from_top || visiable_from_bottom || visiable_from_left || visiable_from_right || visiable_from_front || visiable_from_back;
+                workingSpace[ index ].can_be_seen = block_could_be_visiable;
+            } else {
+                workingSpace[ index ].can_be_seen = 0;
+            }
+        }
+    }
+    for ( int y = 0; y < CHUNK_SIZE; y++ ) {
+        for ( int x = 0; x < CHUNK_SIZE; x++ ) {
+            for ( int z = 0; z < CHUNK_SIZE; z++ ) {
+                int index = chunk_get_index_from_coords( x, y, z );
+                if ( !workingSpace[ index ].has_been_drawn ) {
 
-                if ( block_could_be_visiable ) {
-                    BlockCoords *blockCoord;
-                    int instance_index;
-                    if ( blockID == WATER ) {
-                        blockCoord = &chunk->water.populated_blocks[ num_water_instances ];
-                        num_water_instances += 1;
-                    } else {
-                        blockCoord = &chunk->solid.populated_blocks[ num_solid_instances ];
-                        num_solid_instances += 1;
+                    BlockID blockID = chunk->blocks[ index ];
+                    Block *block = block_definition_get_definition( blockID );
+                    int visiable_block = workingSpace[ index ].visable;
+                    int can_be_seen = workingSpace[ index ].can_be_seen;
+                    int has_been_drawn = workingSpace[ index ].has_been_drawn;
+
+                    if ( visiable_block && can_be_seen && !has_been_drawn ) {
+                        int can_extend = 1;
+                        int size_x = 1;
+                        int size_y = 1;
+                        int size_z = 1;
+                        do { // Extend X
+                            can_extend = chunk_can_extend_rect( chunk, blockID, workingSpace, x + size_x - 1, y, z, 1, size_y, size_z, 1, 0, 0 );
+                        } while ( can_extend && size_x++ );
+                        do { // Extend Z
+                            can_extend = chunk_can_extend_rect( chunk, blockID, workingSpace, x, y, z + size_z - 1, size_x, size_y, 1, 0, 0, 1 );
+                        } while ( can_extend && size_z++ );
+                        do { // Extend Y
+                            can_extend = chunk_can_extend_rect( chunk, blockID, workingSpace, x, y + size_y - 1, z, size_x, 1, size_z, 0, 1, 0 );
+                        } while ( can_extend && size_y++ );
+
+                        workingSpace[ index ].has_been_drawn = 1;
+
+                        BlockCoords *blockCoord;
+                        if ( blockID == WATER ) {
+                            blockCoord = &chunk->water.populated_blocks[ num_water_instances ];
+                            num_water_instances += 1;
+                        } else {
+                            blockCoord = &chunk->solid.populated_blocks[ num_solid_instances ];
+                            num_solid_instances += 1;
+                        }
+                        blockCoord->x = chunk->chunk_x * CHUNK_SIZE + x;
+                        blockCoord->y = chunk->chunk_y * CHUNK_SIZE + y;
+                        blockCoord->z = chunk->chunk_z * CHUNK_SIZE + z;
+
+                        blockCoord->mesh_x = size_x;
+                        blockCoord->mesh_y = size_y;
+                        blockCoord->mesh_z = size_z;
+
+                        blockCoord->face_top = block->textures.top - 1;
+                        blockCoord->face_sides = block->textures.side - 1;
+                        blockCoord->face_bottom = block->textures.bottom - 1;
                     }
-                    blockCoord->x = chunk->chunk_x * CHUNK_SIZE + x;
-                    blockCoord->y = chunk->chunk_y * CHUNK_SIZE + y;
-                    blockCoord->z = chunk->chunk_z * CHUNK_SIZE + z;
-
-                    blockCoord->mesh_x = 2;
-                    blockCoord->mesh_y = 2;
-                    blockCoord->mesh_z = 2;
-
-                    blockCoord->face_top = block->textures.top - 1;
-                    blockCoord->face_sides = block->textures.side - 1;
-                    blockCoord->face_bottom = block->textures.bottom - 1;
                 }
             }
         }
     }
+
+    free( workingSpace );
+
     if ( !REMEMBER_BLOCKS ) {
 #ifdef REPGAME_LINUX
         if ( PERSIST_ALL_CHUNKS ) {
