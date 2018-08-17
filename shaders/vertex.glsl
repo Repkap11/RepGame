@@ -31,7 +31,7 @@ void main( ) {
     } else if ( faceType == uint( 3 ) || faceType == uint( 5 ) ) {
         face_scale = mesh_size.xy;
     }
-    corner_lighting = float( ( packed_lighting >> corner_shift ) & uint( 3 ) );
+    corner_lighting = float( ( packed_lighting >> corner_shift ) & uint( 3 ) ); // Has to be a float to be interped over the shader
     v_TexCoordBlock = texCoordBlock * face_scale;
     blockID = blockTexture[ face_adjusted ];
 }

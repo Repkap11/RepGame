@@ -279,14 +279,29 @@ void chunk_calculate_popupated_blocks( Chunk *chunk ) {
                     int block_could_be_visiable = visiable_from_top || visiable_from_bottom || visiable_from_left || visiable_from_right || visiable_from_front || visiable_from_back;
                     workingSpace[ index ].can_be_seen = block_could_be_visiable;
 
-                    unsigned int tfl = visiable_from_top + visiable_from_front + visiable_from_left;
-                    unsigned int tfr = visiable_from_top + visiable_from_front + visiable_from_right;
-                    unsigned int tbl = visiable_from_top + visiable_from_back + visiable_from_left;
-                    unsigned int tbr = visiable_from_top + visiable_from_back + visiable_from_right;
-                    unsigned int bfl = visiable_from_bottom + visiable_from_front + visiable_from_left;
-                    unsigned int bfr = visiable_from_bottom + visiable_from_front + visiable_from_right;
-                    unsigned int bbl = visiable_from_bottom + visiable_from_back + visiable_from_left;
-                    unsigned int bbr = visiable_from_bottom + visiable_from_back + visiable_from_right;
+                    int visiable_from_top_left = block_definition_get_definition( chunk->blocks[ chunk_get_index_from_coords( x + 0, y + 1, z - 1 ) ] )->alpha < alpha;
+                    int visiable_from_top_right = block_definition_get_definition( chunk->blocks[ chunk_get_index_from_coords( x + 0, y + 1, z + 1 ) ] )->alpha < alpha;
+                    int visiable_from_top_front = block_definition_get_definition( chunk->blocks[ chunk_get_index_from_coords( x + 1, y + 1, z + 0 ) ] )->alpha < alpha;
+                    int visiable_from_top_back = block_definition_get_definition( chunk->blocks[ chunk_get_index_from_coords( x - 1, y + 1, z + 0 ) ] )->alpha < alpha;
+
+                    int visiable_from_bottom_left = block_definition_get_definition( chunk->blocks[ chunk_get_index_from_coords( x + 0, y - 1, z - 1 ) ] )->alpha < alpha;
+                    int visiable_from_bottom_right = block_definition_get_definition( chunk->blocks[ chunk_get_index_from_coords( x + 0, y - 1, z + 1 ) ] )->alpha < alpha;
+                    int visiable_from_bottom_front = block_definition_get_definition( chunk->blocks[ chunk_get_index_from_coords( x + 1, y - 1, z + 0 ) ] )->alpha < alpha;
+                    int visiable_from_bottom_back = block_definition_get_definition( chunk->blocks[ chunk_get_index_from_coords( x - 1, y - 1, z + 0 ) ] )->alpha < alpha;
+
+                    int visiable_from_front_left = block_definition_get_definition( chunk->blocks[ chunk_get_index_from_coords( x + 1, y + 0, z - 1 ) ] )->alpha < alpha;
+                    int visiable_from_back_left = block_definition_get_definition( chunk->blocks[ chunk_get_index_from_coords( x - 1, y + 0, z - 1 ) ] )->alpha < alpha;
+                    int visiable_from_front_right = block_definition_get_definition( chunk->blocks[ chunk_get_index_from_coords( x + 1, y + 0, z + 1 ) ] )->alpha < alpha;
+                    int visiable_from_back_right = block_definition_get_definition( chunk->blocks[ chunk_get_index_from_coords( x - 1, y + 0, z + 1 ) ] )->alpha < alpha;
+
+                    unsigned int tfl = !visiable_from_top_front + !visiable_from_front_left + !visiable_from_top_left;
+                    unsigned int tfr = !visiable_from_top_front + !visiable_from_front_right + !visiable_from_top_right;
+                    unsigned int tbl = !visiable_from_top_back + !visiable_from_back_left + !visiable_from_top_left;
+                    unsigned int tbr = !visiable_from_top_back + !visiable_from_back_right + !visiable_from_top_right;
+                    unsigned int bfl = !visiable_from_bottom_front + !visiable_from_front_left + !visiable_from_bottom_left;
+                    unsigned int bfr = !visiable_from_bottom_front + !visiable_from_front_right + !visiable_from_bottom_right;
+                    unsigned int bbl = !visiable_from_bottom_back + !visiable_from_back_left + !visiable_from_bottom_left;
+                    unsigned int bbr = !visiable_from_bottom_back + !visiable_from_back_right + !visiable_from_bottom_right;
                     workingSpace[ index ].packed_lighting = tfl << CORNER_OFFSET_tfl | tfr << CORNER_OFFSET_tfr | tbl << CORNER_OFFSET_tbl | //
                                                             tbr << CORNER_OFFSET_tbr | bfl << CORNER_OFFSET_bfl | bfr << CORNER_OFFSET_bfr | //
                                                             bbl << CORNER_OFFSET_bbl | bbr << CORNER_OFFSET_bbr;
