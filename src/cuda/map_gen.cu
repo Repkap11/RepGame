@@ -50,26 +50,31 @@ __device__ float map_gen_under_water_block_cuda( int x, int z ) {
     return noise;
 }
 
+__device__ int chunk_get_index_from_coords_cuda( int x, int y, int z ) {
+    return ( y + 1 ) * CHUNK_SIZE_INTERNAL * CHUNK_SIZE_INTERNAL + ( x + 1 ) * CHUNK_SIZE_INTERNAL + ( z + 1 );
+}
+
 #define MAP_GEN(func, ...) map_gen_##func##_cuda(__VA_ARGS__)
 
 __global__ void cuda_set_block(BlockID* blocks, int chunk_x, int chunk_y, int chunk_z){
-    int index = blockIdx.x * blockDim.x + threadIdx.x;
-    if (index < CHUNK_BLOCK_SIZE){
-        int y = ( index / ( CHUNK_SIZE_INTERNAL * CHUNK_SIZE_INTERNAL ) ) - 1;
-        int x = ( ( index / CHUNK_SIZE_INTERNAL ) % CHUNK_SIZE_INTERNAL ) - 1;
-        int z = ( index % ( CHUNK_SIZE_INTERNAL ) ) - 1;
-        x += chunk_x;
-        y += chunk_y;
-        z += chunk_z;
+    int val = blockIdx.x * blockDim.x + threadIdx.x;
+    if (val < CHUNK_SIZE_INTERNAL * CHUNK_SIZE_INTERNAL){
+        int block_x = val / CHUNK_SIZE_INTERNAL - 1;
+        int block_z = val % CHUNK_SIZE_INTERNAL - 1;
+        int x = block_x + chunk_x;
+        int z = block_z + chunk_z;
 
         float ground_noise = map_gen_ground_noise_cuda(x, z);
         float hills = map_gen_hills_cuda(x, z);
         float mountians = map_gen_mountians_cuda( x, z);
         float level = map_gen_level_cuda(x, z);
         float terrainHeight = level + mountians + hills + ground_noise;
-#include "map_logic.h"
-
-        blocks[index] = finalBlockId;
+        for ( int block_y = -1; block_y < CHUNK_SIZE_INTERNAL - 1; block_y++ ) {
+            int y = block_y + chunk_y;
+            int index = chunk_get_index_from_coords_cuda( block_x, block_y, block_z );
+        #include "map_logic.h"
+            blocks[index] = finalBlockId;
+        }
     }
 }
 
@@ -80,7 +85,7 @@ __host__ void map_gen_load_block_cuda( Chunk *chunk ) {
     BlockID* device_blocks;
     cudaMalloc(&device_blocks, CHUNK_BLOCK_SIZE * sizeof( BlockID ));
 
-    cuda_set_block<<<(CHUNK_BLOCK_SIZE + (NUM_THREADS_PER_BLOCK-1))/NUM_THREADS_PER_BLOCK , NUM_THREADS_PER_BLOCK, 0>>>(device_blocks,
+    cuda_set_block<<<(CHUNK_SIZE_INTERNAL * CHUNK_SIZE_INTERNAL + (NUM_THREADS_PER_BLOCK-1))/NUM_THREADS_PER_BLOCK , NUM_THREADS_PER_BLOCK, 0>>>(device_blocks,
         chunk->chunk_x * CHUNK_SIZE,
         chunk->chunk_y * CHUNK_SIZE,
         chunk->chunk_z * CHUNK_SIZE);
