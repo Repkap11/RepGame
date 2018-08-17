@@ -5,6 +5,8 @@ precision lowp sampler2DArray;
 
 in vec2 v_TexCoordBlock;
 in flat float blockID;
+in flat float diffuse;
+in flat float ambient;
 
 uniform sampler2DArray u_Texture;
 
@@ -15,5 +17,5 @@ void main( ) {
     if ( texColor.a == 0.0 ) {
         discard;
     }
-    color = texColor;
+    color = texColor * vec4( vec3( diffuse, diffuse, diffuse ) + ambient, 1 );
 }
