@@ -195,9 +195,13 @@ typedef struct {
     int visable;
     int has_been_drawn;
     int solid;
+    unsigned int packed_lighting;
 } WorkingSpace;
 
 int chunk_can_extend_rect( Chunk *chunk, BlockID rect_blockID, WorkingSpace *workingSpace, TRIP_ARGS( int starting_ ), TRIP_ARGS( int size_ ), TRIP_ARGS( int dir_ ) ) {
+    if ( DISABLE_GROUPING_BLOCKS ) {
+        return 0;
+    }
     if ( starting_x + size_x + dir_x > CHUNK_SIZE )
         return 0;
     if ( starting_y + size_y + dir_y > CHUNK_SIZE )
@@ -274,6 +278,18 @@ void chunk_calculate_popupated_blocks( Chunk *chunk ) {
 
                     int block_could_be_visiable = visiable_from_top || visiable_from_bottom || visiable_from_left || visiable_from_right || visiable_from_front || visiable_from_back;
                     workingSpace[ index ].can_be_seen = block_could_be_visiable;
+
+                    unsigned int tfl = visiable_from_top + visiable_from_front + visiable_from_left;
+                    unsigned int tfr = visiable_from_top + visiable_from_front + visiable_from_right;
+                    unsigned int tbl = visiable_from_top + visiable_from_back + visiable_from_left;
+                    unsigned int tbr = visiable_from_top + visiable_from_back + visiable_from_right;
+                    unsigned int bfl = visiable_from_bottom + visiable_from_front + visiable_from_left;
+                    unsigned int bfr = visiable_from_bottom + visiable_from_front + visiable_from_right;
+                    unsigned int bbl = visiable_from_bottom + visiable_from_back + visiable_from_left;
+                    unsigned int bbr = visiable_from_bottom + visiable_from_back + visiable_from_right;
+                    workingSpace[ index ].packed_lighting = tfl << CORNER_OFFSET_tfl | tfr << CORNER_OFFSET_tfr | tbl << CORNER_OFFSET_tbl | //
+                                                            tbr << CORNER_OFFSET_tbr | bfl << CORNER_OFFSET_bfl | bfr << CORNER_OFFSET_bfr | //
+                                                            bbl << CORNER_OFFSET_bbl | bbr << CORNER_OFFSET_bbr;
                 } else {
                     workingSpace[ index ].can_be_seen = 1;
                 }
@@ -326,6 +342,8 @@ void chunk_calculate_popupated_blocks( Chunk *chunk ) {
                         blockCoord->mesh_x = size_x;
                         blockCoord->mesh_y = size_y;
                         blockCoord->mesh_z = size_z;
+
+                        blockCoord->packed_lighting = workingSpace[ index ].packed_lighting;
 
                         blockCoord->face_top = block->textures.top - 1;
                         blockCoord->face_sides = block->textures.side - 1;

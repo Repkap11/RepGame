@@ -5,6 +5,7 @@ precision lowp sampler2DArray;
 
 in vec2 v_TexCoordBlock;
 in flat float blockID;
+in float corner_lighting;
 
 uniform sampler2DArray u_Texture;
 
@@ -15,5 +16,6 @@ void main( ) {
     if ( texColor.a == 0.0 ) {
         discard;
     }
-    color = texColor;
+    float corner_light = ( 3.0f - corner_lighting ) / 3.0;
+    color = texColor * vec4( corner_light, corner_light, corner_light, 1 );
 }

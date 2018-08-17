@@ -6,15 +6,18 @@ uniform mat4 u_MVP;
 layout( location = 0 ) in vec3 position;
 layout( location = 1 ) in vec2 texCoordBlock;
 layout( location = 2 ) in uint faceType;
+layout( location = 3 ) in uint corner_shift;
 
 // See BlockCoords in chunk.h
 // There is one of these per block
-layout( location = 3 ) in vec3 blockCoords;
-layout( location = 4 ) in vec3 mesh_size;
-layout( location = 5 ) in vec3 blockTexture;
+layout( location = 4 ) in vec3 blockCoords;
+layout( location = 5 ) in vec3 mesh_size;
+layout( location = 6 ) in vec3 blockTexture;
+layout( location = 7 ) in uint packed_lighting;
 
 out vec2 v_TexCoordBlock;
 out flat float blockID;
+out float corner_lighting;
 
 void main( ) {
     gl_Position = u_MVP * vec4( position * mesh_size + blockCoords, 1 );
@@ -28,6 +31,7 @@ void main( ) {
     } else if ( faceType == uint( 3 ) || faceType == uint( 5 ) ) {
         face_scale = mesh_size.xy;
     }
+    corner_lighting = float( ( packed_lighting >> corner_shift ) & uint( 3 ) );
     v_TexCoordBlock = texCoordBlock * face_scale;
     blockID = blockTexture[ face_adjusted ];
 }

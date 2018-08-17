@@ -1,7 +1,7 @@
 #ifndef HEADER_CONSTANTS_H
 #define HEADER_CONSTANTS_H
 
-#define MOVEMENT_SENSITIVITY 3.0f // How sensitive the arrow keys are
+#define MOVEMENT_SENSITIVITY 0.3f // How sensitive the arrow keys are
 
 #ifdef REPGAME_LINUX
 
@@ -39,6 +39,7 @@
 #define RENDER_ALL_SOLID_BECAUSE_ITS_SO_FAST 0
 
 #define BLOCK_SCALE 1.0f
+#define DISABLE_GROUPING_BLOCKS 1
 #define REACH_DISTANCE 7
 //#define GRAVITY_STRENGTH 0.4f
 #define GRAVITY_STRENGTH 0.0f

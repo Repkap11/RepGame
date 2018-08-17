@@ -28,19 +28,20 @@ void chunk_loader_init( LoadedChunks *loadedChunks ) {
         vertex_buffer_init( &loadedChunks->water.vb_block );
         vertex_buffer_set_data( &loadedChunks->water.vb_block, vd_data_water, sizeof( CubeFace ) * VB_DATA_SIZE_WATER );
     }
-    vertex_buffer_layout_init( &loadedChunks->vbl_block );
-    vertex_buffer_layout_bind( &loadedChunks->vbl_block );
 
     // These are from CubeFace
+    vertex_buffer_layout_init( &loadedChunks->vbl_block );
     vertex_buffer_layout_push_float( &loadedChunks->vbl_block, 3 ); // Coords
     vertex_buffer_layout_push_float( &loadedChunks->vbl_block, 2 ); // Texture coords
     vertex_buffer_layout_push_float( &loadedChunks->vbl_block, 1 ); // Face type (top, sides, bottom)
+    vertex_buffer_layout_push_float( &loadedChunks->vbl_block, 1 ); // Corner_shift
 
     // These are from BlockCoords
     vertex_buffer_layout_init( &loadedChunks->vbl_coords );
     vertex_buffer_layout_push_float( &loadedChunks->vbl_coords, 3 );        // block 3d world coords
     vertex_buffer_layout_push_float( &loadedChunks->vbl_coords, 3 );        // Multiples (mesh)
     vertex_buffer_layout_push_unsigned_int( &loadedChunks->vbl_coords, 3 ); // which texture (block type)
+    vertex_buffer_layout_push_unsigned_int( &loadedChunks->vbl_coords, 1 ); // packed lighting
 
     {
         VertexBuffer *vb_block_solid = &loadedChunks->solid.vb_block;
