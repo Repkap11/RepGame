@@ -79,15 +79,15 @@ void chunk_init( Chunk *chunk, VertexBuffer *vb_block_solid, VertexBuffer *vb_bl
         index_buffer_init( &chunk->solid.ib );
         vertex_buffer_init( &chunk->solid.vb_coords );
         vertex_array_init( &chunk->solid.va );
-        vertex_array_add_buffer( &chunk->solid.va, vb_block_solid, vbl_block, 0 );
-        vertex_array_add_buffer( &chunk->solid.va, &chunk->solid.vb_coords, vbl_coords, 1 );
+        vertex_array_add_buffer( &chunk->solid.va, vb_block_solid, vbl_block, 0, 0 );
+        vertex_array_add_buffer( &chunk->solid.va, &chunk->solid.vb_coords, vbl_coords, 1, vbl_block->current_size );
     }
     {
         index_buffer_init( &chunk->water.ib );
         vertex_buffer_init( &chunk->water.vb_coords );
         vertex_array_init( &chunk->water.va );
-        vertex_array_add_buffer( &chunk->water.va, vb_block_water, vbl_block, 0 );
-        vertex_array_add_buffer( &chunk->water.va, &chunk->water.vb_coords, vbl_coords, 1 );
+        vertex_array_add_buffer( &chunk->water.va, vb_block_water, vbl_block, 0, 0 );
+        vertex_array_add_buffer( &chunk->water.va, &chunk->water.vb_coords, vbl_coords, 1, vbl_block->current_size );
     }
 }
 

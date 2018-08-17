@@ -48,8 +48,8 @@ void mouse_selection_init( MouseSelection *mouseSelection, VertexBufferLayout *v
 
     vertex_buffer_init( &mouseSelection->vb_coords );
     vertex_array_init( &mouseSelection->va );
-    vertex_array_add_buffer( &mouseSelection->va, &mouseSelection->vb_block, vbl_block, 0 );
-    vertex_array_add_buffer( &mouseSelection->va, &mouseSelection->vb_coords, vbl_coords, 1 );
+    vertex_array_add_buffer( &mouseSelection->va, &mouseSelection->vb_block, vbl_block, 0, 0 );
+    vertex_array_add_buffer( &mouseSelection->va, &mouseSelection->vb_coords, vbl_coords, 1, vbl_block->current_size );
 
     mouseSelection->block.face_top = WATER - 1;
     mouseSelection->block.face_bottom = WATER - 1;
