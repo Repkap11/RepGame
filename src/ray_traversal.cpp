@@ -7,7 +7,11 @@
 
 int contains_block( LoadedChunks *gameChunks, int block_x, int block_y, int block_z ) {
     BlockID blockID = world_get_loaded_block( gameChunks, TRIP_ARGS( block_ ) );
-    return !( blockID == AIR || blockID == LAST_BLOCK_ID );
+    if ( blockID >= LAST_BLOCK_ID ) {
+        return 0;
+    }
+    Block *block = block_definition_get_definition( blockID );
+    return !( block->alpha != 1.0f );
 }
 
 int ray_traversal_find_block_from_to( LoadedChunks *gameChunks, float x1, float y1, float z1, //
