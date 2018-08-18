@@ -6,6 +6,8 @@
 #include "file_utils.h"
 #include "RepGame.h"
 
+#define SHADER_TRY_COUNTS 1
+
 char *shaderLoadSource( const char *filePath ) {
     const size_t blockSize = 512;
     FILE *fp;
@@ -157,7 +159,7 @@ unsigned int shaders_compile( const char *vertex_path, const char *fragment_path
 
     int result = 0;
     int try_counts = 0;
-    while ( try_counts < 5 ) {
+    while ( try_counts < SHADER_TRY_COUNTS ) {
         try_counts++;
         g_program = glCreateProgram( );
 #ifdef REPGAME_LINUX
