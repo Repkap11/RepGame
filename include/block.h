@@ -11,6 +11,19 @@
 #define FACE_LEFT 4
 #define FACE_BACK 5
 
+//  FR
+// BR  FL
+//  BL
+
+#define CORNER_OFFSET_tfl 0
+#define CORNER_OFFSET_tfr 2
+#define CORNER_OFFSET_tbl 4
+#define CORNER_OFFSET_tbr 6
+#define CORNER_OFFSET_bfl 8
+#define CORNER_OFFSET_bfr 10
+#define CORNER_OFFSET_bbl 12
+#define CORNER_OFFSET_bbr 14
+
 typedef struct {
     float x;
     float y;
@@ -54,18 +67,6 @@ static unsigned int ib_data_water[] = {
     2, 3, 1, // Top, from the bottom
     1, 0, 2, //
 };
-//  FR
-//BR  FL
-//  BL
-
-#define CORNER_OFFSET_tfl 0
-#define CORNER_OFFSET_tfr 2
-#define CORNER_OFFSET_tbl 4
-#define CORNER_OFFSET_tbr 6
-#define CORNER_OFFSET_bfl 8
-#define CORNER_OFFSET_bfr 10
-#define CORNER_OFFSET_bbl 12
-#define CORNER_OFFSET_bbr 14
 
 #define WATER_HEIGHT ( 0.875f )
 

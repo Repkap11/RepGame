@@ -20,7 +20,9 @@
         "initializer_list": "cpp",
         "thread": "cpp",
         "functional": "cpp",
-        "bitset": "cpp"
+        "bitset": "cpp",
+        "deque": "cpp",
+        "vector": "cpp"
     },
     "git.ignoreLimitWarning": true
 }

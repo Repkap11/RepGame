@@ -40,9 +40,15 @@ void main( ) {
     // } else {
     //     packed_lighting = packed_lighting_2[ faceType - uint( 3 ) ];
     // }
-    if ( faceType == uint( 0 ) ) {
-        packed_lighting = packed_lighting_1[ faceType ];
+    // if ( faceType == uint( 0 ) ) {
+    //     packed_lighting = packed_lighting_1[ 0 ];
+    // }
+    if ( faceType == uint( 1 ) ) {
+        packed_lighting = packed_lighting_1[ 1 ];
     }
+    // if ( faceType == uint( 4 ) ) {
+    //     packed_lighting = packed_lighting_2[ 1 ];
+    // }
     corner_lighting = float( ( uint( packed_lighting ) >> uint( corner_shift ) ) & uint( 3 ) ); // Has to be a float to be interped over the shader
     v_TexCoordBlock = texCoordBlock * face_scale;
     blockID = blockTexture[ face_adjusted ];

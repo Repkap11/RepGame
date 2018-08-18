@@ -279,51 +279,48 @@ void chunk_calculate_popupated_blocks( Chunk *chunk ) {
                     int xplus = x + 1;
                     int xminus = x - 1;
 
-                    // int xplus = x - 1;
-                    // int xminus = x + 1;
-
                     int yplus = y + 1;
                     int yminus = y - 1;
 
-                    int zplus = z - 1;
-                    int zminus = z + 1;
+                    int zplus = z + 1;
+                    int zminus = z - 1;
 
                     int top = block_definition_get_definition( chunk->blocks[ chunk_get_index_from_coords( x + 0, yplus, z + 0 ) ] )->alpha < alpha;
                     int bottom = block_definition_get_definition( chunk->blocks[ chunk_get_index_from_coords( x + 0, yminus, z + 0 ) ] )->alpha < alpha;
-                    int left = block_definition_get_definition( chunk->blocks[ chunk_get_index_from_coords( x + 0, y + 0, zminus ) ] )->alpha < alpha;
-                    int right = block_definition_get_definition( chunk->blocks[ chunk_get_index_from_coords( x + 0, y + 0, zplus ) ] )->alpha < alpha;
-                    int front = block_definition_get_definition( chunk->blocks[ chunk_get_index_from_coords( xplus, y + 0, z + 0 ) ] )->alpha < alpha;
-                    int back = block_definition_get_definition( chunk->blocks[ chunk_get_index_from_coords( xminus, y + 0, z + 0 ) ] )->alpha < alpha;
+                    int front = block_definition_get_definition( chunk->blocks[ chunk_get_index_from_coords( x + 0, y + 0, zplus ) ] )->alpha < alpha;
+                    int back = block_definition_get_definition( chunk->blocks[ chunk_get_index_from_coords( x + 0, y + 0, zminus ) ] )->alpha < alpha;
+                    int right = block_definition_get_definition( chunk->blocks[ chunk_get_index_from_coords( xplus, y + 0, z + 0 ) ] )->alpha < alpha;
+                    int left = block_definition_get_definition( chunk->blocks[ chunk_get_index_from_coords( xminus, y + 0, z + 0 ) ] )->alpha < alpha;
 
                     int block_could_be_visiable = top || bottom || left || right || front || back;
                     workingSpace[ index ].can_be_seen = block_could_be_visiable;
 
                     // 2 Offsets
-                    int tl = block_definition_get_definition( chunk->blocks[ chunk_get_index_from_coords( x + 0, yplus, zminus ) ] )->alpha >= alpha;
-                    int tr = block_definition_get_definition( chunk->blocks[ chunk_get_index_from_coords( x + 0, yplus, zplus ) ] )->alpha >= alpha;
-                    int tf = block_definition_get_definition( chunk->blocks[ chunk_get_index_from_coords( xplus, yplus, z + 0 ) ] )->alpha >= alpha;
-                    int tba = block_definition_get_definition( chunk->blocks[ chunk_get_index_from_coords( xminus, yplus, z + 0 ) ] )->alpha >= alpha;
+                    int tl = block_definition_get_definition( chunk->blocks[ chunk_get_index_from_coords( xminus, yplus, z + 0 ) ] )->alpha >= alpha;
+                    int tr = block_definition_get_definition( chunk->blocks[ chunk_get_index_from_coords( xplus, yplus, z + 0 ) ] )->alpha >= alpha;
+                    int tf = block_definition_get_definition( chunk->blocks[ chunk_get_index_from_coords( x + 0, yplus, zplus ) ] )->alpha >= alpha;
+                    int tba = block_definition_get_definition( chunk->blocks[ chunk_get_index_from_coords( x + 0, yplus, zminus ) ] )->alpha >= alpha;
 
-                    int bol = block_definition_get_definition( chunk->blocks[ chunk_get_index_from_coords( x + 0, yminus, zminus ) ] )->alpha >= alpha;
-                    int bor = block_definition_get_definition( chunk->blocks[ chunk_get_index_from_coords( x + 0, yminus, zplus ) ] )->alpha >= alpha;
-                    int bof = block_definition_get_definition( chunk->blocks[ chunk_get_index_from_coords( xplus, yminus, z + 0 ) ] )->alpha >= alpha;
-                    int boba = block_definition_get_definition( chunk->blocks[ chunk_get_index_from_coords( xminus, yminus, z + 0 ) ] )->alpha >= alpha;
+                    int bol = block_definition_get_definition( chunk->blocks[ chunk_get_index_from_coords( xminus, yminus, z + 0 ) ] )->alpha >= alpha;
+                    int bor = block_definition_get_definition( chunk->blocks[ chunk_get_index_from_coords( xplus, yminus, z + 0 ) ] )->alpha >= alpha;
+                    int bof = block_definition_get_definition( chunk->blocks[ chunk_get_index_from_coords( x + 0, yminus, zplus ) ] )->alpha >= alpha;
+                    int boba = block_definition_get_definition( chunk->blocks[ chunk_get_index_from_coords( x + 0, yminus, zminus ) ] )->alpha >= alpha;
 
-                    int fl = block_definition_get_definition( chunk->blocks[ chunk_get_index_from_coords( xplus, y + 0, zminus ) ] )->alpha >= alpha;
+                    int fl = block_definition_get_definition( chunk->blocks[ chunk_get_index_from_coords( xminus, y + 0, zplus ) ] )->alpha >= alpha;
                     int bal = block_definition_get_definition( chunk->blocks[ chunk_get_index_from_coords( xminus, y + 0, zminus ) ] )->alpha >= alpha;
                     int fr = block_definition_get_definition( chunk->blocks[ chunk_get_index_from_coords( xplus, y + 0, zplus ) ] )->alpha >= alpha;
-                    int bar = block_definition_get_definition( chunk->blocks[ chunk_get_index_from_coords( xminus, y + 0, zplus ) ] )->alpha >= alpha;
+                    int bar = block_definition_get_definition( chunk->blocks[ chunk_get_index_from_coords( xplus, y + 0, zminus ) ] )->alpha >= alpha;
 
                     // 3 Offsetes
-                    int tfl = block_definition_get_definition( chunk->blocks[ chunk_get_index_from_coords( xplus, yplus, zminus ) ] )->alpha >= alpha;
+                    int tfl = block_definition_get_definition( chunk->blocks[ chunk_get_index_from_coords( xminus, yplus, zplus ) ] )->alpha >= alpha;
                     int tbl = block_definition_get_definition( chunk->blocks[ chunk_get_index_from_coords( xminus, yplus, zminus ) ] )->alpha >= alpha;
                     int tfr = block_definition_get_definition( chunk->blocks[ chunk_get_index_from_coords( xplus, yplus, zplus ) ] )->alpha >= alpha;
-                    int tbr = block_definition_get_definition( chunk->blocks[ chunk_get_index_from_coords( xminus, yplus, zplus ) ] )->alpha >= alpha;
+                    int tbr = block_definition_get_definition( chunk->blocks[ chunk_get_index_from_coords( xplus, yplus, zminus ) ] )->alpha >= alpha;
 
-                    int bfl = block_definition_get_definition( chunk->blocks[ chunk_get_index_from_coords( xplus, yminus, zminus ) ] )->alpha >= alpha;
+                    int bfl = block_definition_get_definition( chunk->blocks[ chunk_get_index_from_coords( xminus, yminus, zplus ) ] )->alpha >= alpha;
                     int bbl = block_definition_get_definition( chunk->blocks[ chunk_get_index_from_coords( xminus, yminus, zminus ) ] )->alpha >= alpha;
                     int bfr = block_definition_get_definition( chunk->blocks[ chunk_get_index_from_coords( xplus, yminus, zplus ) ] )->alpha >= alpha;
-                    int bbr = block_definition_get_definition( chunk->blocks[ chunk_get_index_from_coords( xminus, yminus, zplus ) ] )->alpha >= alpha;
+                    int bbr = block_definition_get_definition( chunk->blocks[ chunk_get_index_from_coords( xplus, yminus, zminus ) ] )->alpha >= alpha;
 
                     int top_tfr = tf && tr ? 3 : ( tf + tr + tfr );
                     int top_tfl = tf && tl ? 3 : ( tf + tl + tfl );
@@ -332,7 +329,6 @@ void chunk_calculate_popupated_blocks( Chunk *chunk ) {
                     workingSpace[ index ].packed_lighting_top =                                 //
                         ( ( top_tfr << CORNER_OFFSET_tfr ) | ( top_tfl << CORNER_OFFSET_tfl ) | //
                           ( top_tbr << CORNER_OFFSET_tbr ) | ( top_tbl << CORNER_OFFSET_tbl ) );
-                    //workingSpace[ index ].packed_lighting_top = 0b00111100;
 
                     int bottom_bfr = bof && bor ? 3 : ( bof + bor + bfr );
                     int bottom_bfl = bof && bol ? 3 : ( bof + bol + bfl );
@@ -349,6 +345,8 @@ void chunk_calculate_popupated_blocks( Chunk *chunk ) {
                     workingSpace[ index ].packed_lighting_front =                                   //
                         ( ( front_tfr << CORNER_OFFSET_tfr ) | ( front_tfl << CORNER_OFFSET_tfl ) | //
                           ( front_bfr << CORNER_OFFSET_bfr ) | ( front_bfl << CORNER_OFFSET_bfl ) );
+                    // workingSpace[ index ].packed_lighting_front = 0b00111100001111;
+                    // workingSpace[ index ].packed_lighting_front = 0b00000000000000;
 
                     int back_tbr = tba && bar ? 3 : ( tba + bar + tbr );
                     int back_tbl = tba && bal ? 3 : ( tba + bal + tbl );
