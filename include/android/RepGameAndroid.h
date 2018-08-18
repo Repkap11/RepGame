@@ -2,7 +2,7 @@
 #define HEADER_REPGAMEANDROID_H
 
 #include <stdio.h>
-#include <GLES3/gl31.h>
+#include <GLES3/gl32.h>
 #include <malloc.h>
 #include <stdlib.h>
 #include <android/log.h>

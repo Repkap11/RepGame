@@ -5,8 +5,9 @@ void renderer_draw( const Renderer *renderer, const VertexArray *vertexArray, co
     vertex_array_bind( vertexArray );
     index_buffer_bind( indexBuffer );
     shader_bind( shader );
+    glPatchParameteri( GL_PATCH_VERTICES, 3 );
     // glDrawElements( GL_TRIANGLES, indexBuffer->count, GL_UNSIGNED_INT, NULL );
-    glDrawElementsInstanced( GL_TRIANGLES, indexBuffer->count, GL_UNSIGNED_INT, NULL, num_instances );
+    glDrawElementsInstanced( GL_PATCHES, indexBuffer->count, GL_UNSIGNED_INT, NULL, num_instances );
     showErrors( );
 
     // pr_debug("Drawing a chunk");

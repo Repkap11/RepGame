@@ -30,13 +30,13 @@ public class RepGameActivity extends AppCompatActivity {
             mRenderWrapper = new RepGameAndroidRenderer(getApplicationContext());
         }
         {
-            //Verify that we support OpenGL ES 3.1
+            //Verify that we support OpenGL ES 3.2
             ConfigurationInfo configurationInfo = ((ActivityManager) getSystemService(Context.ACTIVITY_SERVICE)).getDeviceConfigurationInfo();
-            final boolean supportsEs31 = configurationInfo.reqGlEsVersion >= 0x30001;
-            if (!supportsEs31) {
+            final boolean supportsEs32 = configurationInfo.reqGlEsVersion >= 0x30002;
+            if (!supportsEs32) {
                 // Should never be seen in production, since the manifest filters
                 // unsupported devices.
-                Toast.makeText(this, "This device does not support OpenGL ES 3.1.", Toast.LENGTH_LONG).show();
+                Toast.makeText(this, "This device does not support OpenGL ES 3.2.", Toast.LENGTH_LONG).show();
                 return;
             }
         }

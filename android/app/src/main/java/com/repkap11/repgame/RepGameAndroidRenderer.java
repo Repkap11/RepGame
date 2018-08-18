@@ -65,6 +65,7 @@ public class RepGameAndroidRenderer implements GLSurfaceView.Renderer {
         @Override
         public EGLConfig chooseConfig(EGL10 egl, EGLDisplay display) {
             int attribs[] = {
+                    //0x3098, 3,
                     EGL10.EGL_LEVEL, 0,
                     EGL10.EGL_RENDERABLE_TYPE, 4,  // EGL_OPENGL_ES2_BIT
                     EGL10.EGL_COLOR_BUFFER_TYPE, EGL10.EGL_RGB_BUFFER,
@@ -83,6 +84,7 @@ public class RepGameAndroidRenderer implements GLSurfaceView.Renderer {
 
             if (configCounts[0] == 0) {
                 // Failed! Error handling.
+                Log.d(TAG, "Couldn't find a config");
                 return null;
             } else {
                 return configs[0];

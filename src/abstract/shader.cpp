@@ -52,18 +52,21 @@ char *shaderLoadSource( const char *filePath ) {
     return source;
 }
 
-unsigned int shaderCompileFromString( int type, int is_frag ) {
+unsigned int shaderCompileFromString( int type ) {
     const char *source;
     unsigned int shader;
     int length, result;
 
     /* get shader source */
-    if ( is_frag ) {
+    if ( type == GL_FRAGMENT_SHADER ) {
         source = repgame_getShaderString( "fragment.glsl" );
-    } else {
+    } else if ( type == GL_VERTEX_SHADER ) {
         source = repgame_getShaderString( "vertex.glsl" );
+    } else if ( type == GL_TESS_CONTROL_SHADER ) {
+        source = repgame_getShaderString( "tess_control.glsl" );
+    } else if ( type == GL_TESS_EVALUATION_SHADER ) {
+        source = repgame_getShaderString( "tess_eval.glsl" );
     }
-
     /* create shader object, set the source, and compile */
     shader = glCreateShader( type );
     length = strlen( source );
@@ -81,7 +84,7 @@ unsigned int shaderCompileFromString( int type, int is_frag ) {
         glGetShaderInfoLog( shader, length, &result, log );
 
         /* print an error message and the info log */
-        pr_debug( "shaderCompileFromFile(): Unable to compile is_frag:%d: %s\n", is_frag, log );
+        pr_debug( "shaderCompileFromFile(): Unable to compile type:%d: %s\n", type, log );
         free( log );
 
         glDeleteShader( shader );
@@ -138,15 +141,15 @@ void shaderAttachFromFile( unsigned int program, GLenum type, const char *filePa
     }
 }
 
-void shaderAttachFromString( unsigned int program, GLenum type, int is_frag ) {
-    GLuint shader = shaderCompileFromString( type, is_frag );
+void shaderAttachFromString( unsigned int program, GLenum type ) {
+    GLuint shader = shaderCompileFromString( type );
     if ( shader != 0 ) {
         glAttachShader( program, shader );
         glDeleteShader( shader );
     }
 }
 
-unsigned int shaders_compile( const char *vertex_path, const char *fragment_path ) {
+unsigned int shaders_compile( const char *vertex_path, const char *fragment_path, const char *tess_control_path, const char *tess_eval_path ) {
     /* create program object and attach shaders */
     unsigned int g_program;
 
@@ -160,9 +163,13 @@ unsigned int shaders_compile( const char *vertex_path, const char *fragment_path
 #ifdef REPGAME_LINUX
         shaderAttachFromFile( g_program, GL_VERTEX_SHADER, vertex_path );
         shaderAttachFromFile( g_program, GL_FRAGMENT_SHADER, fragment_path );
+        shaderAttachFromFile( g_program, GL_TESS_CONTROL_SHADER, tess_control_path );
+        shaderAttachFromFile( g_program, GL_TESS_EVALUATION_SHADER, tess_eval_path );
 #else
-        shaderAttachFromString( g_program, GL_VERTEX_SHADER, 0 );
-        shaderAttachFromString( g_program, GL_FRAGMENT_SHADER, 1 );
+        shaderAttachFromString( g_program, GL_VERTEX_SHADER );
+        shaderAttachFromString( g_program, GL_FRAGMENT_SHADER );
+        shaderAttachFromString( g_program, GL_TESS_CONTROL_SHADER );
+        shaderAttachFromString( g_program, GL_TESS_EVALUATION_SHADER );
 #endif
         glLinkProgram( g_program );
         glValidateProgram( g_program );
@@ -194,7 +201,7 @@ unsigned int shaders_compile( const char *vertex_path, const char *fragment_path
 }
 
 void shader_init( Shader *shader ) {
-    shader->m_RendererId = shaders_compile( "shaders/vertex.glsl", "shaders/fragment.glsl" );
+    shader->m_RendererId = shaders_compile( "shaders/vertex.glsl", "shaders/fragment.glsl", "shaders/tess_control.glsl", "shaders/tess_eval.glsl" );
 }
 
 void shader_bind( const Shader *shader ) {
