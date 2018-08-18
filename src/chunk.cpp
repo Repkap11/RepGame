@@ -195,16 +195,11 @@ typedef struct {
     int visable;
     int has_been_drawn;
     int solid;
-    unsigned int packed_lighting_top;
-    unsigned int packed_lighting_bottom;
-    unsigned int packed_lighting_right;
-    unsigned int packed_lighting_front;
-    unsigned int packed_lighting_left;
-    unsigned int packed_lighting_back;
+    unsigned int packed_lighting[ NUM_FACES_IN_CUBE ];
 
 } WorkingSpace;
 
-int chunk_can_extend_rect( Chunk *chunk, BlockID rect_blockID, WorkingSpace *workingSpace, TRIP_ARGS( int starting_ ), TRIP_ARGS( int size_ ), TRIP_ARGS( int dir_ ) ) {
+int chunk_can_extend_rect( Chunk *chunk, BlockID rect_blockID, unsigned int *packed_lighting, WorkingSpace *workingSpace, TRIP_ARGS( int starting_ ), TRIP_ARGS( int size_ ), TRIP_ARGS( int dir_ ) ) {
     if ( DISABLE_GROUPING_BLOCKS ) {
         return 0;
     }
@@ -232,6 +227,12 @@ int chunk_can_extend_rect( Chunk *chunk, BlockID rect_blockID, WorkingSpace *wor
                 }
                 if ( ( new_blockID != rect_blockID && !allow_different_block ) || workingSpace[ index ].has_been_drawn ) {
                     return 0;
+                }
+                int different_lighting = 0;
+                for ( int i = 0; i < NUM_FACES_IN_CUBE; i++ ) {
+                    if ( packed_lighting[ i ] != workingSpace[ index ].packed_lighting[ i ] ) {
+                        return 0;
+                    }
                 }
             }
         }
@@ -326,7 +327,7 @@ void chunk_calculate_popupated_blocks( Chunk *chunk ) {
                     int top_tfl = tf && tl ? 3 : ( tf + tl + tfl );
                     int top_tbr = tba && tr ? 3 : ( tba + tr + tbr );
                     int top_tbl = tba && tl ? 3 : ( tba + tl + tbl );
-                    workingSpace[ index ].packed_lighting_top =                                 //
+                    workingSpace[ index ].packed_lighting[ FACE_TOP ] =                         //
                         ( ( top_tfr << CORNER_OFFSET_tfr ) | ( top_tfl << CORNER_OFFSET_tfl ) | //
                           ( top_tbr << CORNER_OFFSET_tbr ) | ( top_tbl << CORNER_OFFSET_tbl ) );
 
@@ -334,7 +335,7 @@ void chunk_calculate_popupated_blocks( Chunk *chunk ) {
                     int bottom_bfl = bof && bol ? 3 : ( bof + bol + bfl );
                     int bottom_bbr = boba && bor ? 3 : ( boba + bor + bbr );
                     int bottom_bbl = boba && bol ? 3 : ( boba + bol + bbl );
-                    workingSpace[ index ].packed_lighting_bottom =                                    //
+                    workingSpace[ index ].packed_lighting[ FACE_BOTTOM ] =                            //
                         ( ( bottom_bfr << CORNER_OFFSET_bfr ) | ( bottom_bfl << CORNER_OFFSET_bfl ) | //
                           ( bottom_bbr << CORNER_OFFSET_bbr ) | ( bottom_bbl << CORNER_OFFSET_bbl ) );
 
@@ -342,17 +343,15 @@ void chunk_calculate_popupated_blocks( Chunk *chunk ) {
                     int front_tfl = tf && fl ? 3 : ( tf + fl + tfl );
                     int front_bfr = bof && fr ? 3 : ( bof + fr + bfr );
                     int front_bfl = bof && fl ? 3 : ( bof + fl + bfl );
-                    workingSpace[ index ].packed_lighting_front =                                   //
+                    workingSpace[ index ].packed_lighting[ FACE_FRONT ] =                           //
                         ( ( front_tfr << CORNER_OFFSET_tfr ) | ( front_tfl << CORNER_OFFSET_tfl ) | //
                           ( front_bfr << CORNER_OFFSET_bfr ) | ( front_bfl << CORNER_OFFSET_bfl ) );
-                    // workingSpace[ index ].packed_lighting_front = 0b00111100001111;
-                    // workingSpace[ index ].packed_lighting_front = 0b00000000000000;
 
                     int back_tbr = tba && bar ? 3 : ( tba + bar + tbr );
                     int back_tbl = tba && bal ? 3 : ( tba + bal + tbl );
                     int back_bbr = boba && bar ? 3 : ( boba + bar + bbr );
                     int back_bbl = boba && bal ? 3 : ( boba + bal + bbl );
-                    workingSpace[ index ].packed_lighting_back =                                  //
+                    workingSpace[ index ].packed_lighting[ FACE_BACK ] =                          //
                         ( ( back_tbr << CORNER_OFFSET_tbr ) | ( back_tbl << CORNER_OFFSET_tbl ) | //
                           ( back_bbr << CORNER_OFFSET_bbr ) | ( back_bbl << CORNER_OFFSET_bbl ) );
 
@@ -360,7 +359,7 @@ void chunk_calculate_popupated_blocks( Chunk *chunk ) {
                     int left_tbl = tl && bal ? 3 : ( tl + bal + tbl );
                     int left_bfl = bol && fl ? 3 : ( bol + fl + bfl );
                     int left_bbl = bol && bal ? 3 : ( bol + bal + bbl );
-                    workingSpace[ index ].packed_lighting_left =                                  //
+                    workingSpace[ index ].packed_lighting[ FACE_LEFT ] =                          //
                         ( ( left_tfl << CORNER_OFFSET_tfl ) | ( left_tbl << CORNER_OFFSET_tbl ) | //
                           ( left_bfl << CORNER_OFFSET_bfl ) | ( left_bbl << CORNER_OFFSET_bbl ) );
 
@@ -368,7 +367,7 @@ void chunk_calculate_popupated_blocks( Chunk *chunk ) {
                     int right_tbr = tr && bar ? 3 : ( tr + bar + tbr );
                     int right_bfr = bor && fr ? 3 : ( bor + fr + bfr );
                     int right_bbr = bor && bar ? 3 : ( bor + bar + bbr );
-                    workingSpace[ index ].packed_lighting_right =                                   //
+                    workingSpace[ index ].packed_lighting[ FACE_RIGHT ] =                           //
                         ( ( right_tfr << CORNER_OFFSET_tfr ) | ( right_tbr << CORNER_OFFSET_tbr ) | //
                           ( right_bfr << CORNER_OFFSET_bfr ) | ( right_bbr << CORNER_OFFSET_bbr ) );
 
@@ -391,6 +390,7 @@ void chunk_calculate_popupated_blocks( Chunk *chunk ) {
                     int visiable_block = workingSpace[ index ].visable;
                     int can_be_seen = workingSpace[ index ].can_be_seen;
                     int has_been_drawn = workingSpace[ index ].has_been_drawn;
+                    unsigned int *packed_lighting = workingSpace[ index ].packed_lighting;
 
                     if ( visiable_block && can_be_seen && !has_been_drawn ) {
                         int can_extend = 1;
@@ -398,13 +398,13 @@ void chunk_calculate_popupated_blocks( Chunk *chunk ) {
                         int size_y = 1;
                         int size_z = 1;
                         do { // Extend X
-                            can_extend = chunk_can_extend_rect( chunk, blockID, workingSpace, x + size_x - 1, y, z, 1, size_y, size_z, 1, 0, 0 );
+                            can_extend = chunk_can_extend_rect( chunk, blockID, packed_lighting, workingSpace, x + size_x - 1, y, z, 1, size_y, size_z, 1, 0, 0 );
                         } while ( can_extend && size_x++ );
                         do { // Extend Z
-                            can_extend = chunk_can_extend_rect( chunk, blockID, workingSpace, x, y, z + size_z - 1, size_x, size_y, 1, 0, 0, 1 );
+                            can_extend = chunk_can_extend_rect( chunk, blockID, packed_lighting, workingSpace, x, y, z + size_z - 1, size_x, size_y, 1, 0, 0, 1 );
                         } while ( can_extend && size_z++ );
                         do { // Extend Y
-                            can_extend = chunk_can_extend_rect( chunk, blockID, workingSpace, x, y + size_y - 1, z, size_x, 1, size_z, 0, 1, 0 );
+                            can_extend = chunk_can_extend_rect( chunk, blockID, packed_lighting, workingSpace, x, y + size_y - 1, z, size_x, 1, size_z, 0, 1, 0 );
                         } while ( can_extend && size_y++ );
 
                         workingSpace[ index ].has_been_drawn = 1;
@@ -425,12 +425,9 @@ void chunk_calculate_popupated_blocks( Chunk *chunk ) {
                         blockCoord->mesh_y = size_y;
                         blockCoord->mesh_z = size_z;
 
-                        blockCoord->packed_lighting[ FACE_TOP ] = workingSpace[ index ].packed_lighting_top;
-                        blockCoord->packed_lighting[ FACE_BOTTOM ] = workingSpace[ index ].packed_lighting_bottom;
-                        blockCoord->packed_lighting[ FACE_RIGHT ] = workingSpace[ index ].packed_lighting_right;
-                        blockCoord->packed_lighting[ FACE_FRONT ] = workingSpace[ index ].packed_lighting_front;
-                        blockCoord->packed_lighting[ FACE_LEFT ] = workingSpace[ index ].packed_lighting_left;
-                        blockCoord->packed_lighting[ FACE_BACK ] = workingSpace[ index ].packed_lighting_back;
+                        for ( int i = 0; i < NUM_FACES_IN_CUBE; i++ ) {
+                            blockCoord->packed_lighting[ i ] = workingSpace[ index ].packed_lighting[ i ];
+                        }
 
                         blockCoord->face_top = block->textures.top - 1;
                         blockCoord->face_sides = block->textures.side - 1;

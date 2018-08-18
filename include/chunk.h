@@ -9,6 +9,8 @@
 #define CHUNK_BLOCK_DRAW_START ( CHUNK_SIZE_INTERNAL * CHUNK_SIZE_INTERNAL )
 #define CHUNK_BLOCK_DRAW_STOP ( CHUNK_BLOCK_SIZE - CHUNK_BLOCK_DRAW_START )
 
+#define NUM_FACES_IN_CUBE 6
+
 typedef struct {
     float x;
     float y;
@@ -22,7 +24,7 @@ typedef struct {
     float face_bottom;
     float face_sides;
 
-    float packed_lighting[ 6 ];
+    float packed_lighting[ NUM_FACES_IN_CUBE ];
 } BlockCoords;
 
 typedef struct {
