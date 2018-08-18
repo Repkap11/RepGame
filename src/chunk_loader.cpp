@@ -8,6 +8,39 @@
 
 #define MAX_LOADED_CHUNKS ( ( 2 * CHUNK_RADIUS_X + 1 ) * ( 2 * CHUNK_RADIUS_Y + 1 ) * ( 2 * CHUNK_RADIUS_Z + 1 ) )
 
+static CubeFace vd_data_solid[] = {
+    {0.0f * BLOCK_SCALE, 0.0f * BLOCK_SCALE, 0.0f * BLOCK_SCALE, /*Coords  Texture coords*/ 1, 0, FACE_FRONT, CORNER_OFFSET_bfl}, // 0
+    {1.0f * BLOCK_SCALE, 0.0f * BLOCK_SCALE, 0.0f * BLOCK_SCALE, /*Coords  Texture coords*/ 0, 0, FACE_FRONT, CORNER_OFFSET_bfr}, // 1
+    {1.0f * BLOCK_SCALE, 1.0f * BLOCK_SCALE, 0.0f * BLOCK_SCALE, /*Coords  Texture coords*/ 0, 1, FACE_FRONT, CORNER_OFFSET_tfr}, // 2
+    {0.0f * BLOCK_SCALE, 1.0f * BLOCK_SCALE, 0.0f * BLOCK_SCALE, /*Coords  Texture coords*/ 1, 1, FACE_FRONT, CORNER_OFFSET_tfl}, // 3
+
+    {0.0f * BLOCK_SCALE, 0.0f * BLOCK_SCALE, 1.0f * BLOCK_SCALE, /*Coords  Texture coords*/ 0, 0, FACE_BACK, CORNER_OFFSET_bbl}, // 4
+    {1.0f * BLOCK_SCALE, 0.0f * BLOCK_SCALE, 1.0f * BLOCK_SCALE, /*Coords  Texture coords*/ 1, 0, FACE_BACK, CORNER_OFFSET_bbr}, // 5
+    {1.0f * BLOCK_SCALE, 1.0f * BLOCK_SCALE, 1.0f * BLOCK_SCALE, /*Coords  Texture coords*/ 1, 1, FACE_BACK, CORNER_OFFSET_tbr}, // 6
+    {0.0f * BLOCK_SCALE, 1.0f * BLOCK_SCALE, 1.0f * BLOCK_SCALE, /*Coords  Texture coords*/ 0, 1, FACE_BACK, CORNER_OFFSET_tbl}, // 7
+
+    {0.0f * BLOCK_SCALE, 0.0f * BLOCK_SCALE, 0.0f * BLOCK_SCALE, /*Coords  Texture coords*/ 0, 0, FACE_LEFT, CORNER_OFFSET_bfl},  // 8
+    {1.0f * BLOCK_SCALE, 0.0f * BLOCK_SCALE, 0.0f * BLOCK_SCALE, /*Coords  Texture coords*/ 1, 0, FACE_RIGHT, CORNER_OFFSET_bfr}, // 9
+    {1.0f * BLOCK_SCALE, 1.0f * BLOCK_SCALE, 0.0f * BLOCK_SCALE, /*Coords  Texture coords*/ 1, 1, FACE_RIGHT, CORNER_OFFSET_tfr}, // 10
+    {0.0f * BLOCK_SCALE, 1.0f * BLOCK_SCALE, 0.0f * BLOCK_SCALE, /*Coords  Texture coords*/ 0, 1, FACE_LEFT, CORNER_OFFSET_tfl},  // 11
+
+    {0.0f * BLOCK_SCALE, 0.0f * BLOCK_SCALE, 1.0f * BLOCK_SCALE, /*Coords  Texture coords*/ 1, 0, FACE_LEFT, CORNER_OFFSET_bbl},  // 12
+    {1.0f * BLOCK_SCALE, 0.0f * BLOCK_SCALE, 1.0f * BLOCK_SCALE, /*Coords  Texture coords*/ 0, 0, FACE_RIGHT, CORNER_OFFSET_bbr}, // 13
+    {1.0f * BLOCK_SCALE, 1.0f * BLOCK_SCALE, 1.0f * BLOCK_SCALE, /*Coords  Texture coords*/ 0, 1, FACE_RIGHT, CORNER_OFFSET_tbr}, // 14
+    {0.0f * BLOCK_SCALE, 1.0f * BLOCK_SCALE, 1.0f * BLOCK_SCALE, /*Coords  Texture coords*/ 1, 1, FACE_LEFT, CORNER_OFFSET_tbl},  // 15
+
+    {0.0f * BLOCK_SCALE, 0.0f * BLOCK_SCALE, 0.0f * BLOCK_SCALE, /*Coords  Texture coords*/ 1, 1, FACE_BOTTOM, CORNER_OFFSET_bfl}, // 16
+    {1.0f * BLOCK_SCALE, 0.0f * BLOCK_SCALE, 0.0f * BLOCK_SCALE, /*Coords  Texture coords*/ 0, 1, FACE_BOTTOM, CORNER_OFFSET_bfr}, // 17
+    {1.0f * BLOCK_SCALE, 1.0f * BLOCK_SCALE, 0.0f * BLOCK_SCALE, /*Coords  Texture coords*/ 0, 0, FACE_TOP, CORNER_OFFSET_tfr},    // 18
+    {0.0f * BLOCK_SCALE, 1.0f * BLOCK_SCALE, 0.0f * BLOCK_SCALE, /*Coords  Texture coords*/ 1, 0, FACE_TOP, CORNER_OFFSET_tbr},    // 19
+
+    {0.0f * BLOCK_SCALE, 0.0f * BLOCK_SCALE, 1.0f * BLOCK_SCALE, /*Coords  Texture coords*/ 1, 0, FACE_BOTTOM, CORNER_OFFSET_bbl}, // 20
+    {1.0f * BLOCK_SCALE, 0.0f * BLOCK_SCALE, 1.0f * BLOCK_SCALE, /*Coords  Texture coords*/ 0, 0, FACE_BOTTOM, CORNER_OFFSET_bbr}, // 21
+    {1.0f * BLOCK_SCALE, 1.0f * BLOCK_SCALE, 1.0f * BLOCK_SCALE, /*Coords  Texture coords*/ 0, 1, FACE_TOP, CORNER_OFFSET_tfl},    // 22
+    {0.0f * BLOCK_SCALE, 1.0f * BLOCK_SCALE, 1.0f * BLOCK_SCALE, /*Coords  Texture coords*/ 1, 1, FACE_TOP, CORNER_OFFSET_tbl},    // 23
+};
+#define VB_DATA_SIZE_SOLID ( 4 * 6 )
+
 void chunk_loader_init( LoadedChunks *loadedChunks ) {
     map_storage_init( );
     int status = terrain_loading_thread_start( );
@@ -31,10 +64,10 @@ void chunk_loader_init( LoadedChunks *loadedChunks ) {
 
     // These are from CubeFace
     vertex_buffer_layout_init( &loadedChunks->vbl_block );
-    vertex_buffer_layout_push_float( &loadedChunks->vbl_block, 3 );              // Coords
-    vertex_buffer_layout_push_float( &loadedChunks->vbl_block, 2 );              // Texture coords
-    vertex_buffer_layout_push_unsigned_bytes( &loadedChunks->vbl_block, 1 * 4 ); // Face type (top, sides, bottom)
-    vertex_buffer_layout_push_float( &loadedChunks->vbl_block, 1 );              // Corner_shift
+    vertex_buffer_layout_push_float( &loadedChunks->vbl_block, 3 ); // Coords
+    vertex_buffer_layout_push_float( &loadedChunks->vbl_block, 2 ); // Texture coords
+    vertex_buffer_layout_push_float( &loadedChunks->vbl_block, 1 ); // Face type (top, sides, bottom)
+    vertex_buffer_layout_push_float( &loadedChunks->vbl_block, 1 ); // Corner_shift
 
     // These are from BlockCoords
     vertex_buffer_layout_init( &loadedChunks->vbl_coords );

@@ -17,7 +17,7 @@ typedef enum {
     SPIDER_WEB,
     RED_FLOWER,
     YELLOW_FLOWER,
-    PLAYER_SELECTION,
+    NO_BLOCK,
     SAPPLING,
     COBBLESTONE,
     BEDROCK,
@@ -29,6 +29,7 @@ typedef enum {
     GOLD_BLOCK,
     DIAMOND_BLOCK,
     SNOW = 67,
+    PLAYER_SELECTION = 139,
     WATER = 208,
     LAST_BLOCK_ID = 255,
 } BlockID;

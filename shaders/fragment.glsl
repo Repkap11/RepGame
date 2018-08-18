@@ -4,7 +4,7 @@ precision highp float;
 precision lowp sampler2DArray;
 
 in vec2 v_TexCoordBlock;
-in flat uint blockID;
+in flat float blockID;
 in float corner_lighting;
 
 uniform sampler2DArray u_Texture;

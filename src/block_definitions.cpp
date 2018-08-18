@@ -17,9 +17,9 @@ void block_definitions_initilize_definitions( Texture *texture ) {
     block_definitions[ PLAYER_SELECTION ].id = PLAYER_SELECTION;
     block_definitions[ PLAYER_SELECTION ].alpha = 0.2f;
     block_definitions[ PLAYER_SELECTION ].height = 1.0f;
-    block_definitions[ PLAYER_SELECTION ].textures.top = WATER;
-    block_definitions[ PLAYER_SELECTION ].textures.side = WATER;
-    block_definitions[ PLAYER_SELECTION ].textures.bottom = WATER;
+    block_definitions[ PLAYER_SELECTION ].textures.top = PLAYER_SELECTION;
+    block_definitions[ PLAYER_SELECTION ].textures.side = PLAYER_SELECTION;
+    block_definitions[ PLAYER_SELECTION ].textures.bottom = PLAYER_SELECTION;
     block_definitions[ PLAYER_SELECTION ].special_grass_logic = 0;
 
     block_definitions[ GRASS ].id = GRASS;

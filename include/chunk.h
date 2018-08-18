@@ -18,9 +18,9 @@ typedef struct {
     float mesh_y;
     float mesh_z;
 
-    unsigned int face_top;
-    unsigned int face_bottom;
-    unsigned int face_sides;
+    float face_top;
+    float face_bottom;
+    float face_sides;
 
     float packed_lighting[ 6 ];
 } BlockCoords;

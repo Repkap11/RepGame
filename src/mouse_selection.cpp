@@ -51,9 +51,9 @@ void mouse_selection_init( MouseSelection *mouseSelection, VertexBufferLayout *v
     vertex_array_add_buffer( &mouseSelection->va, &mouseSelection->vb_block, vbl_block, 0, 0 );
     vertex_array_add_buffer( &mouseSelection->va, &mouseSelection->vb_coords, vbl_coords, 1, vbl_block->current_size );
 
-    mouseSelection->block.face_top = WATER - 1;
-    mouseSelection->block.face_bottom = WATER - 1;
-    mouseSelection->block.face_sides = WATER - 1;
+    mouseSelection->block.face_top = PLAYER_SELECTION - 1;
+    mouseSelection->block.face_bottom = PLAYER_SELECTION - 1;
+    mouseSelection->block.face_sides = PLAYER_SELECTION - 1;
     mouseSelection->block.x = 0;
     mouseSelection->block.y = 0;
     mouseSelection->block.z = 0;
