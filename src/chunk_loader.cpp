@@ -29,13 +29,15 @@ static CubeFace vd_data_solid[] = {
     {1.0f * BLOCK_SCALE, 1.0f * BLOCK_SCALE, 1.0f * BLOCK_SCALE, /*Coords  Texture coords*/ 0, 1, FACE_RIGHT, CORNER_OFFSET_tbr}, // 14
     {0.0f * BLOCK_SCALE, 1.0f * BLOCK_SCALE, 1.0f * BLOCK_SCALE, /*Coords  Texture coords*/ 1, 1, FACE_LEFT, CORNER_OFFSET_tbl},  // 15
 
-    {0.0f * BLOCK_SCALE, 0.0f * BLOCK_SCALE, 0.0f * BLOCK_SCALE, /*Coords  Texture coords*/ 1, 1, FACE_BOTTOM, CORNER_OFFSET_bfl}, // 16
+    // Good
+    {0.0f * BLOCK_SCALE, 0.0f * BLOCK_SCALE, 0.0f * BLOCK_SCALE, /*Coords  Texture coords*/ 1, 1, FACE_BOTTOM, CORNER_OFFSET_bbr}, // 16
     {1.0f * BLOCK_SCALE, 0.0f * BLOCK_SCALE, 0.0f * BLOCK_SCALE, /*Coords  Texture coords*/ 0, 1, FACE_BOTTOM, CORNER_OFFSET_bfr}, // 17
     {1.0f * BLOCK_SCALE, 1.0f * BLOCK_SCALE, 0.0f * BLOCK_SCALE, /*Coords  Texture coords*/ 0, 0, FACE_TOP, CORNER_OFFSET_tfr},    // 18
     {0.0f * BLOCK_SCALE, 1.0f * BLOCK_SCALE, 0.0f * BLOCK_SCALE, /*Coords  Texture coords*/ 1, 0, FACE_TOP, CORNER_OFFSET_tbr},    // 19
 
+    // Good
     {0.0f * BLOCK_SCALE, 0.0f * BLOCK_SCALE, 1.0f * BLOCK_SCALE, /*Coords  Texture coords*/ 1, 0, FACE_BOTTOM, CORNER_OFFSET_bbl}, // 20
-    {1.0f * BLOCK_SCALE, 0.0f * BLOCK_SCALE, 1.0f * BLOCK_SCALE, /*Coords  Texture coords*/ 0, 0, FACE_BOTTOM, CORNER_OFFSET_bbr}, // 21
+    {1.0f * BLOCK_SCALE, 0.0f * BLOCK_SCALE, 1.0f * BLOCK_SCALE, /*Coords  Texture coords*/ 0, 0, FACE_BOTTOM, CORNER_OFFSET_bfl}, // 21
     {1.0f * BLOCK_SCALE, 1.0f * BLOCK_SCALE, 1.0f * BLOCK_SCALE, /*Coords  Texture coords*/ 0, 1, FACE_TOP, CORNER_OFFSET_tfl},    // 22
     {0.0f * BLOCK_SCALE, 1.0f * BLOCK_SCALE, 1.0f * BLOCK_SCALE, /*Coords  Texture coords*/ 1, 1, FACE_TOP, CORNER_OFFSET_tbl},    // 23
 };
