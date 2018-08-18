@@ -195,7 +195,13 @@ typedef struct {
     int visable;
     int has_been_drawn;
     int solid;
-    unsigned int packed_lighting;
+    unsigned int packed_lighting_top;
+    unsigned int packed_lighting_bottom;
+    unsigned int packed_lighting_right;
+    unsigned int packed_lighting_front;
+    unsigned int packed_lighting_left;
+    unsigned int packed_lighting_back;
+
 } WorkingSpace;
 
 int chunk_can_extend_rect( Chunk *chunk, BlockID rect_blockID, WorkingSpace *workingSpace, TRIP_ARGS( int starting_ ), TRIP_ARGS( int size_ ), TRIP_ARGS( int dir_ ) ) {
@@ -269,49 +275,97 @@ void chunk_calculate_popupated_blocks( Chunk *chunk ) {
 
             if ( visiable_block ) {
                 if ( alpha != 1.0f || !RENDER_ALL_SOLID_BECAUSE_ITS_SO_FAST ) {
-                    int visiable_from_top = block_definition_get_definition( chunk->blocks[ chunk_get_index_from_coords( x + 0, y + 1, z + 0 ) ] )->alpha < alpha;
-                    int visiable_from_bottom = block_definition_get_definition( chunk->blocks[ chunk_get_index_from_coords( x + 0, y - 1, z + 0 ) ] )->alpha < alpha;
-                    int visiable_from_left = block_definition_get_definition( chunk->blocks[ chunk_get_index_from_coords( x + 0, y + 0, z - 1 ) ] )->alpha < alpha;
-                    int visiable_from_right = block_definition_get_definition( chunk->blocks[ chunk_get_index_from_coords( x + 0, y + 0, z + 1 ) ] )->alpha < alpha;
-                    int visiable_from_front = block_definition_get_definition( chunk->blocks[ chunk_get_index_from_coords( x + 1, y + 0, z + 0 ) ] )->alpha < alpha;
-                    int visiable_from_back = block_definition_get_definition( chunk->blocks[ chunk_get_index_from_coords( x - 1, y + 0, z + 0 ) ] )->alpha < alpha;
+                    // 1 Offset
+                    int top = block_definition_get_definition( chunk->blocks[ chunk_get_index_from_coords( x + 0, y + 1, z + 0 ) ] )->alpha < alpha;
+                    int bottom = block_definition_get_definition( chunk->blocks[ chunk_get_index_from_coords( x + 0, y - 1, z + 0 ) ] )->alpha < alpha;
+                    int left = block_definition_get_definition( chunk->blocks[ chunk_get_index_from_coords( x + 0, y + 0, z - 1 ) ] )->alpha < alpha;
+                    int right = block_definition_get_definition( chunk->blocks[ chunk_get_index_from_coords( x + 0, y + 0, z + 1 ) ] )->alpha < alpha;
+                    int front = block_definition_get_definition( chunk->blocks[ chunk_get_index_from_coords( x + 1, y + 0, z + 0 ) ] )->alpha < alpha;
+                    int back = block_definition_get_definition( chunk->blocks[ chunk_get_index_from_coords( x - 1, y + 0, z + 0 ) ] )->alpha < alpha;
 
-                    int block_could_be_visiable = visiable_from_top || visiable_from_bottom || visiable_from_left || visiable_from_right || visiable_from_front || visiable_from_back;
+                    int block_could_be_visiable = top || bottom || left || right || front || back;
                     workingSpace[ index ].can_be_seen = block_could_be_visiable;
 
-                    int visiable_from_top_left = block_definition_get_definition( chunk->blocks[ chunk_get_index_from_coords( x + 0, y + 1, z - 1 ) ] )->alpha < alpha;
-                    int visiable_from_top_right = block_definition_get_definition( chunk->blocks[ chunk_get_index_from_coords( x + 0, y + 1, z + 1 ) ] )->alpha < alpha;
-                    int visiable_from_top_front = block_definition_get_definition( chunk->blocks[ chunk_get_index_from_coords( x + 1, y + 1, z + 0 ) ] )->alpha < alpha;
-                    int visiable_from_top_back = block_definition_get_definition( chunk->blocks[ chunk_get_index_from_coords( x - 1, y + 1, z + 0 ) ] )->alpha < alpha;
+                    // 2 Offsets
+                    int tl = block_definition_get_definition( chunk->blocks[ chunk_get_index_from_coords( x + 0, y + 1, z - 1 ) ] )->alpha < alpha;
+                    int tr = block_definition_get_definition( chunk->blocks[ chunk_get_index_from_coords( x + 0, y + 1, z + 1 ) ] )->alpha < alpha;
+                    int tf = block_definition_get_definition( chunk->blocks[ chunk_get_index_from_coords( x + 1, y + 1, z + 0 ) ] )->alpha < alpha;
+                    int tba = block_definition_get_definition( chunk->blocks[ chunk_get_index_from_coords( x - 1, y + 1, z + 0 ) ] )->alpha < alpha;
 
-                    int visiable_from_bottom_left = block_definition_get_definition( chunk->blocks[ chunk_get_index_from_coords( x + 0, y - 1, z - 1 ) ] )->alpha < alpha;
-                    int visiable_from_bottom_right = block_definition_get_definition( chunk->blocks[ chunk_get_index_from_coords( x + 0, y - 1, z + 1 ) ] )->alpha < alpha;
-                    int visiable_from_bottom_front = block_definition_get_definition( chunk->blocks[ chunk_get_index_from_coords( x + 1, y - 1, z + 0 ) ] )->alpha < alpha;
-                    int visiable_from_bottom_back = block_definition_get_definition( chunk->blocks[ chunk_get_index_from_coords( x - 1, y - 1, z + 0 ) ] )->alpha < alpha;
+                    int bol = block_definition_get_definition( chunk->blocks[ chunk_get_index_from_coords( x + 0, y - 1, z - 1 ) ] )->alpha < alpha;
+                    int bor = block_definition_get_definition( chunk->blocks[ chunk_get_index_from_coords( x + 0, y - 1, z + 1 ) ] )->alpha < alpha;
+                    int bof = block_definition_get_definition( chunk->blocks[ chunk_get_index_from_coords( x + 1, y - 1, z + 0 ) ] )->alpha < alpha;
+                    int boba = block_definition_get_definition( chunk->blocks[ chunk_get_index_from_coords( x - 1, y - 1, z + 0 ) ] )->alpha < alpha;
 
-                    int visiable_from_front_left = block_definition_get_definition( chunk->blocks[ chunk_get_index_from_coords( x + 1, y + 0, z - 1 ) ] )->alpha < alpha;
-                    int visiable_from_back_left = block_definition_get_definition( chunk->blocks[ chunk_get_index_from_coords( x - 1, y + 0, z - 1 ) ] )->alpha < alpha;
-                    int visiable_from_front_right = block_definition_get_definition( chunk->blocks[ chunk_get_index_from_coords( x + 1, y + 0, z + 1 ) ] )->alpha < alpha;
-                    int visiable_from_back_right = block_definition_get_definition( chunk->blocks[ chunk_get_index_from_coords( x - 1, y + 0, z + 1 ) ] )->alpha < alpha;
+                    int fl = block_definition_get_definition( chunk->blocks[ chunk_get_index_from_coords( x + 1, y + 0, z - 1 ) ] )->alpha < alpha;
+                    int bal = block_definition_get_definition( chunk->blocks[ chunk_get_index_from_coords( x - 1, y + 0, z - 1 ) ] )->alpha < alpha;
+                    int fr = block_definition_get_definition( chunk->blocks[ chunk_get_index_from_coords( x + 1, y + 0, z + 1 ) ] )->alpha < alpha;
+                    int bar = block_definition_get_definition( chunk->blocks[ chunk_get_index_from_coords( x - 1, y + 0, z + 1 ) ] )->alpha < alpha;
 
-                    unsigned int tfl = !visiable_from_top_front + !visiable_from_front_left + !visiable_from_top_left;
-                    unsigned int tfr = !visiable_from_top_front + !visiable_from_front_right + !visiable_from_top_right;
-                    unsigned int tbl = !visiable_from_top_back + !visiable_from_back_left + !visiable_from_top_left;
-                    unsigned int tbr = !visiable_from_top_back + !visiable_from_back_right + !visiable_from_top_right;
-                    unsigned int bfl = !visiable_from_bottom_front + !visiable_from_front_left + !visiable_from_bottom_left;
-                    unsigned int bfr = !visiable_from_bottom_front + !visiable_from_front_right + !visiable_from_bottom_right;
-                    unsigned int bbl = !visiable_from_bottom_back + !visiable_from_back_left + !visiable_from_bottom_left;
-                    unsigned int bbr = !visiable_from_bottom_back + !visiable_from_back_right + !visiable_from_bottom_right;
-                    workingSpace[ index ].packed_lighting = ( ( tfl << CORNER_OFFSET_tfl ) | ( tfr << CORNER_OFFSET_tfr ) | ( tbl << CORNER_OFFSET_tbl ) | //
-                                                              ( tbr << CORNER_OFFSET_tbr ) | ( bfl << CORNER_OFFSET_bfl ) | ( bfr << CORNER_OFFSET_bfr ) | //
-                                                              ( bbl << CORNER_OFFSET_bbl ) | ( bbr << CORNER_OFFSET_bbr ) );
-                    // workingSpace[ index ].packed_lighting = 2;
+                    // 3 Offsetes
+                    int tfl = block_definition_get_definition( chunk->blocks[ chunk_get_index_from_coords( x + 1, y + 1, z - 1 ) ] )->alpha < alpha;
+                    int tbl = block_definition_get_definition( chunk->blocks[ chunk_get_index_from_coords( x - 1, y + 1, z - 1 ) ] )->alpha < alpha;
+                    int tfr = block_definition_get_definition( chunk->blocks[ chunk_get_index_from_coords( x + 1, y + 1, z + 1 ) ] )->alpha < alpha;
+                    int tbr = block_definition_get_definition( chunk->blocks[ chunk_get_index_from_coords( x - 1, y + 1, z + 1 ) ] )->alpha < alpha;
+
+                    int bfl = block_definition_get_definition( chunk->blocks[ chunk_get_index_from_coords( x + 1, y - 1, z - 1 ) ] )->alpha < alpha;
+                    int bbl = block_definition_get_definition( chunk->blocks[ chunk_get_index_from_coords( x - 1, y - 1, z - 1 ) ] )->alpha < alpha;
+                    int bfr = block_definition_get_definition( chunk->blocks[ chunk_get_index_from_coords( x + 1, y - 1, z + 1 ) ] )->alpha < alpha;
+                    int bbr = block_definition_get_definition( chunk->blocks[ chunk_get_index_from_coords( x - 1, y - 1, z + 1 ) ] )->alpha < alpha;
+
+                    int top_tfr = tf && tr ? 0 : 3 - ( tf + tr + tfr );
+                    int top_tfl = tf && tl ? 0 : 3 - ( tf + tl + tfl );
+                    int top_tbr = tba && tr ? 0 : 3 - ( tba + tr + tbr );
+                    int top_tbl = tba && tl ? 0 : 3 - ( tba + tl + tbl );
+                    workingSpace[ index ].packed_lighting_top =                                 //
+                        ( ( top_tfr << CORNER_OFFSET_tfr ) | ( top_tfl << CORNER_OFFSET_tfl ) | //
+                          ( top_tbr << CORNER_OFFSET_tbr ) | ( top_tbl << CORNER_OFFSET_tbl ) );
+
+                    int bottom_bfr = bof && bor ? 0 : 3 - ( bof + bor + bfr );
+                    int bottom_bfl = bof && bol ? 0 : 3 - ( bof + bol + bfl );
+                    int bottom_bbr = boba && bor ? 0 : 3 - ( boba + bor + bbr );
+                    int bottom_bbl = boba && bol ? 0 : 3 - ( boba + bol + bbl );
+                    workingSpace[ index ].packed_lighting_bottom =                                    //
+                        ( ( bottom_bfr << CORNER_OFFSET_bfr ) | ( bottom_bfl << CORNER_OFFSET_bfl ) | //
+                          ( bottom_bbr << CORNER_OFFSET_bbr ) | ( bottom_bbl << CORNER_OFFSET_bbl ) );
+
+                    int front_tfr = tf && fr ? 0 : 3 - ( tf + fr + tfr );
+                    int front_tfl = tf && fl ? 0 : 3 - ( tf + fl + tfl );
+                    int front_bfr = bof && fr ? 0 : 3 - ( bof + fr + bfr );
+                    int front_bfl = bof && fl ? 0 : 3 - ( bof + fl + bfl );
+                    workingSpace[ index ].packed_lighting_front =                                   //
+                        ( ( front_tfr << CORNER_OFFSET_tfr ) | ( front_tfl << CORNER_OFFSET_tfl ) | //
+                          ( front_bfr << CORNER_OFFSET_bfr ) | ( front_bfl << CORNER_OFFSET_bfl ) );
+
+                    int back_tbr = tba && bar ? 0 : 3 - ( tba + bar + tbr );
+                    int back_tbl = tba && bal ? 0 : 3 - ( tba + bal + tbl );
+                    int back_bbr = boba && bar ? 0 : 3 - ( boba + bar + bbr );
+                    int back_bbl = boba && bal ? 0 : 3 - ( boba + bal + bbl );
+                    workingSpace[ index ].packed_lighting_back =                                  //
+                        ( ( back_tbr << CORNER_OFFSET_tbr ) | ( back_tbl << CORNER_OFFSET_tbl ) | //
+                          ( back_bbr << CORNER_OFFSET_bbr ) | ( back_bbl << CORNER_OFFSET_bbl ) );
+
+                    int left_tfl = tl && fl ? 0 : 3 - ( tl + fl + tfl );
+                    int left_tbl = tl && bal ? 0 : 3 - ( tl + bal + tbl );
+                    int left_bfl = bol && fl ? 0 : 3 - ( bol + fl + bfl );
+                    int left_bbl = bol && bal ? 0 : 3 - ( bol + bal + bbl );
+                    workingSpace[ index ].packed_lighting_left =                                  //
+                        ( ( left_tfl << CORNER_OFFSET_tfl ) | ( left_tbl << CORNER_OFFSET_tbl ) | //
+                          ( left_bfl << CORNER_OFFSET_bfl ) | ( left_bbl << CORNER_OFFSET_bbl ) );
+
+                    int right_tfr = tr && fr ? 0 : 3 - ( tr + fr + tfr );
+                    int right_tbr = tr && bar ? 0 : 3 - ( tr + bar + tbr );
+                    int right_bfr = bor && fr ? 0 : 3 - ( bor + fr + bfr );
+                    int right_bbr = bor && bar ? 0 : 3 - ( bor + bar + bbr );
+                    workingSpace[ index ].packed_lighting_right =                                   //
+                        ( ( right_tfr << CORNER_OFFSET_tfr ) | ( right_tbr << CORNER_OFFSET_tbr ) | //
+                          ( right_bfr << CORNER_OFFSET_bfr ) | ( right_bbr << CORNER_OFFSET_bbr ) );
+
                 } else {
                     workingSpace[ index ].can_be_seen = 1;
                 }
             } else {
                 workingSpace[ index ].can_be_seen = 0;
-                // workingSpace[ index ].packed_lighting = 0;
             }
         }
     }
@@ -360,7 +414,12 @@ void chunk_calculate_popupated_blocks( Chunk *chunk ) {
                         blockCoord->mesh_y = size_y;
                         blockCoord->mesh_z = size_z;
 
-                        blockCoord->packed_lighting = workingSpace[ index ].packed_lighting;
+                        blockCoord->packed_lighting[ FACE_TOP ] = workingSpace[ index ].packed_lighting_top;
+                        blockCoord->packed_lighting[ FACE_BOTTOM ] = workingSpace[ index ].packed_lighting_bottom;
+                        blockCoord->packed_lighting[ FACE_RIGHT ] = workingSpace[ index ].packed_lighting_right;
+                        blockCoord->packed_lighting[ FACE_FRONT ] = workingSpace[ index ].packed_lighting_front;
+                        blockCoord->packed_lighting[ FACE_LEFT ] = workingSpace[ index ].packed_lighting_left;
+                        blockCoord->packed_lighting[ FACE_BACK ] = workingSpace[ index ].packed_lighting_back;
 
                         blockCoord->face_top = block->textures.top - 1;
                         blockCoord->face_sides = block->textures.side - 1;

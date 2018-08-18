@@ -1,7 +1,7 @@
 #ifndef HEADER_VERTEX_BUFFER_LAYOUT_H
 #define HEADER_VERTEX_BUFFER_LAYOUT_H
 
-#define NUM_VERTEX_BUFFER_ELEMENTS 4
+#define NUM_VERTEX_BUFFER_ELEMENTS 10
 
 typedef struct {
     unsigned int type;

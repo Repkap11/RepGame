@@ -41,7 +41,8 @@ void chunk_loader_init( LoadedChunks *loadedChunks ) {
     vertex_buffer_layout_push_float( &loadedChunks->vbl_coords, 3 ); // block 3d world coords
     vertex_buffer_layout_push_float( &loadedChunks->vbl_coords, 3 ); // Multiples (mesh)
     vertex_buffer_layout_push_float( &loadedChunks->vbl_coords, 3 ); // which texture (block type)
-    vertex_buffer_layout_push_float( &loadedChunks->vbl_coords, 1 ); // packed lighting
+    vertex_buffer_layout_push_float( &loadedChunks->vbl_coords, 3 ); // packed lighting
+    vertex_buffer_layout_push_float( &loadedChunks->vbl_coords, 3 ); // packed lighting
 
     {
         VertexBuffer *vb_block_solid = &loadedChunks->solid.vb_block;

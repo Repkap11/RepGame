@@ -13,7 +13,8 @@ layout( location = 3 ) in float corner_shift;
 layout( location = 4 ) in vec3 blockCoords;
 layout( location = 5 ) in vec3 mesh_size;
 layout( location = 6 ) in uvec3 blockTexture;
-layout( location = 7 ) in float packed_lighting;
+layout( location = 7 ) in vec3 packed_lighting_1;
+layout( location = 8 ) in vec3 packed_lighting_2;
 
 out vec2 v_TexCoordBlock;
 out flat uint blockID;
@@ -30,6 +31,13 @@ void main( ) {
         face_scale = mesh_size.zy;
     } else if ( faceType == uint( 3 ) || faceType == uint( 5 ) ) {
         face_scale = mesh_size.xy;
+    }
+
+    float packed_lighting;
+    if ( faceType == uint( 0 ) || faceType == uint( 1 ) || faceType == uint( 2 ) ) {
+        packed_lighting = packed_lighting_1[ faceType ];
+    } else {
+        packed_lighting = packed_lighting_2[ faceType - uint( 3 ) ];
     }
     corner_lighting = float( ( uint( packed_lighting ) >> uint( corner_shift ) ) & uint( 3 ) ); // Has to be a float to be interped over the shader
     v_TexCoordBlock = texCoordBlock * face_scale;
