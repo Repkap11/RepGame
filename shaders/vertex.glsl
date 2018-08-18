@@ -6,14 +6,14 @@ uniform mat4 u_MVP;
 layout( location = 0 ) in vec3 position;
 layout( location = 1 ) in vec2 texCoordBlock;
 layout( location = 2 ) in uint faceType;
-layout( location = 3 ) in uint corner_shift;
+layout( location = 3 ) in float corner_shift;
 
 // See BlockCoords in chunk.h
 // There is one of these per block
 layout( location = 4 ) in vec3 blockCoords;
 layout( location = 5 ) in vec3 mesh_size;
 layout( location = 6 ) in uvec3 blockTexture;
-layout( location = 7 ) in uint packed_lighting;
+layout( location = 7 ) in float packed_lighting;
 
 out vec2 v_TexCoordBlock;
 out flat uint blockID;
@@ -31,7 +31,7 @@ void main( ) {
     } else if ( faceType == uint( 3 ) || faceType == uint( 5 ) ) {
         face_scale = mesh_size.xy;
     }
-    corner_lighting = float( ( packed_lighting >> corner_shift ) & uint( 3 ) ); // Has to be a float to be interped over the shader
+    corner_lighting = float( ( uint( packed_lighting ) >> uint( corner_shift ) ) & uint( 3 ) ); // Has to be a float to be interped over the shader
     v_TexCoordBlock = texCoordBlock * face_scale;
-    blockID =  blockTexture[ face_adjusted ] ;
+    blockID = blockTexture[ face_adjusted ];
 }

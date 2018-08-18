@@ -22,7 +22,7 @@ typedef struct {
     unsigned int face_bottom;
     unsigned int face_sides;
 
-    unsigned int packed_lighting;
+    float packed_lighting;
 } BlockCoords;
 
 typedef struct {

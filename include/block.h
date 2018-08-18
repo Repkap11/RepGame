@@ -20,7 +20,7 @@ typedef struct {
     float tex_coord_y;
 
     unsigned int which_face;
-    unsigned int corner_shift;
+    float corner_shift;
 } CubeFace;
 
 static unsigned int ib_data_solid[] = {

@@ -302,15 +302,16 @@ void chunk_calculate_popupated_blocks( Chunk *chunk ) {
                     unsigned int bfr = !visiable_from_bottom_front + !visiable_from_front_right + !visiable_from_bottom_right;
                     unsigned int bbl = !visiable_from_bottom_back + !visiable_from_back_left + !visiable_from_bottom_left;
                     unsigned int bbr = !visiable_from_bottom_back + !visiable_from_back_right + !visiable_from_bottom_right;
-                    // workingSpace[ index ].packed_lighting = ( ( tfl << CORNER_OFFSET_tfl ) | ( tfr << CORNER_OFFSET_tfr ) | ( tbl << CORNER_OFFSET_tbl ) | //
-                    //                                           ( tbr << CORNER_OFFSET_tbr ) | ( bfl << CORNER_OFFSET_bfl ) | ( bfr << CORNER_OFFSET_bfr ) | //
-                    //                                           ( bbl << CORNER_OFFSET_bbl ) | ( bbr << CORNER_OFFSET_bbr ) );
-                    workingSpace[ index ].packed_lighting = 0xffffffff;
+                    workingSpace[ index ].packed_lighting = ( ( tfl << CORNER_OFFSET_tfl ) | ( tfr << CORNER_OFFSET_tfr ) | ( tbl << CORNER_OFFSET_tbl ) | //
+                                                              ( tbr << CORNER_OFFSET_tbr ) | ( bfl << CORNER_OFFSET_bfl ) | ( bfr << CORNER_OFFSET_bfr ) | //
+                                                              ( bbl << CORNER_OFFSET_bbl ) | ( bbr << CORNER_OFFSET_bbr ) );
+                    // workingSpace[ index ].packed_lighting = 2;
                 } else {
                     workingSpace[ index ].can_be_seen = 1;
                 }
             } else {
                 workingSpace[ index ].can_be_seen = 0;
+                // workingSpace[ index ].packed_lighting = 0;
             }
         }
     }
