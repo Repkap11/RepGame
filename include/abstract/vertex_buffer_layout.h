@@ -25,6 +25,7 @@ void vertex_buffer_layout_bind( const VertexBufferLayout *vertexBufferLayout );
 void vertex_buffer_layout_push_float( VertexBufferLayout *vertexBufferLayout, unsigned int count );
 void vertex_buffer_layout_push_unsigned_int( VertexBufferLayout *vertexBufferLayout, unsigned int count );
 void vertex_buffer_layout_push_int( VertexBufferLayout *vertexBufferLayout, unsigned int count );
+void vertex_buffer_layout_push_bytes( VertexBufferLayout *vertexBufferLayout, unsigned int count );
 
 void vertex_buffer_layout_unbind( const VertexBufferLayout *vertexBufferLayout );
 void vertex_buffer_layout_destroy( const VertexBufferLayout *vertexBufferLayout );

@@ -16,6 +16,8 @@ unsigned int vertex_buffer_layout_size_of_type( unsigned int type ) {
         case GL_UNSIGNED_INT:
         case GL_INT:
             return 4;
+        case GL_BYTE:
+            return 1;
         default:
             pr_debug( "Error, unexpected type" );
             return 0;
@@ -48,7 +50,7 @@ void vertex_buffer_layout_push_unsigned_int( VertexBufferLayout *vertexBufferLay
             &vertexBufferLayout->elements[ vertexBufferLayout->current_size ], //
             GL_UNSIGNED_INT,                                                   //
             count,                                                             //
-            GL_FALSE );
+            GL_TRUE );
         vertexBufferLayout->current_size += 1;
         vertexBufferLayout->stride += count * vertex_buffer_layout_size_of_type( GL_UNSIGNED_INT );
     } else {
@@ -65,6 +67,20 @@ void vertex_buffer_layout_push_int( VertexBufferLayout *vertexBufferLayout, unsi
             GL_FALSE );
         vertexBufferLayout->current_size += 1;
         vertexBufferLayout->stride += count * vertex_buffer_layout_size_of_type( GL_INT );
+    } else {
+        pr_debug( "Error, too meny elements in VertexBufferLayout, just increase the hardcoded limit" );
+    }
+}
+
+void vertex_buffer_layout_push_bytes( VertexBufferLayout *vertexBufferLayout, unsigned int count ) {
+    if ( vertexBufferLayout->current_size < NUM_VERTEX_BUFFER_ELEMENTS ) {
+        vertex_buffer_layout_init_element(                                     //
+            &vertexBufferLayout->elements[ vertexBufferLayout->current_size ], //
+            GL_BYTE,                                                           //
+            count,                                                             //
+            GL_FALSE );
+        vertexBufferLayout->current_size += 1;
+        vertexBufferLayout->stride += count * vertex_buffer_layout_size_of_type( GL_BYTE );
     } else {
         pr_debug( "Error, too meny elements in VertexBufferLayout, just increase the hardcoded limit" );
     }

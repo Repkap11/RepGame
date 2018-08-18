@@ -16,7 +16,7 @@ typedef struct {
     float y;
     float z;
 
-    float tex_coord_x;
+    float tex_coord_x; // Float just because it needs to be in shader, and we can avoid the gpu side cast
     float tex_coord_y;
 
     unsigned int which_face;

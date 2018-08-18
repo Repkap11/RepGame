@@ -12,11 +12,11 @@ layout( location = 3 ) in uint corner_shift;
 // There is one of these per block
 layout( location = 4 ) in vec3 blockCoords;
 layout( location = 5 ) in vec3 mesh_size;
-layout( location = 6 ) in vec3 blockTexture;
+layout( location = 6 ) in uvec3 blockTexture;
 layout( location = 7 ) in uint packed_lighting;
 
 out vec2 v_TexCoordBlock;
-out flat float blockID;
+out flat uint blockID;
 out float corner_lighting;
 
 void main( ) {
@@ -33,5 +33,5 @@ void main( ) {
     }
     corner_lighting = float( ( packed_lighting >> corner_shift ) & uint( 3 ) ); // Has to be a float to be interped over the shader
     v_TexCoordBlock = texCoordBlock * face_scale;
-    blockID = blockTexture[ face_adjusted ];
+    blockID =  blockTexture[ face_adjusted ] ;
 }

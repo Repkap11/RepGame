@@ -1,5 +1,5 @@
 TARGET = RepGame
-CFLAGS = -g -Wall -std=c++98 -Wno-unused-variable
+CFLAGS = -g -Wall -Werror -std=c++98 -Wno-unused-variable
 LD_FLAGS = -r
 CPUS ?= $(shell nproc || echo 1)
 MAKEFLAGS += --jobs=$(CPUS)

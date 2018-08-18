@@ -75,7 +75,7 @@ int main( int argc, char **argv ) {
     glutMotionFunc( mouseMove );
 
     struct timespec tstart = {0, 0}, tend = {0, 0}, tblank = {0, 0};
-
+    pr_debug( "Size of Int:%lu", sizeof( int ) );
     while ( !repgame_shouldExit( ) ) {
         clock_gettime( CLOCK_MONOTONIC, &tstart );
         glutMainLoopEvent( );
@@ -96,7 +96,7 @@ int main( int argc, char **argv ) {
         {
             double diff_ms = ( ( ( double )tend.tv_sec + 1.0e-9 * tend.tv_nsec ) - ( ( double )tstart.tv_sec + 1.0e-9 * tstart.tv_nsec ) ) * 1000.0;
             float frame_rate = 1.0 / ( diff_ms / 1000.0 );
-            //pr_debug( "FPS (if wasn't waiting):%f", frame_rate );
+            // pr_debug( "FPS (if wasn't waiting):%f", frame_rate );
             double wait_time_ms = fps_ms - diff_ms;
             if ( wait_time_ms > 0 ) {
                 int wait_time_us = ( int )( wait_time_ms * 1000.0 );
