@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <declare-styleable name="UIOverlayView">
+        <attr name="overlayColor" format="color" />
+        <attr name="moveRadiusFraction" format="float" />
+    </declare-styleable>
+</resources>

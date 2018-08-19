@@ -3,8 +3,14 @@
 
 #include "chunk.h"
 #include <pthread.h>
+#include "RepGame.h"
 
-#define LinkedListValue Chunk *
+typedef struct {
+	Chunk * chunk;
+	TRIP_STATE(int new_chunk_);
+	int persist;
+	int valid;
+} LinkedListValue;
 
 typedef struct _list_item {
     LinkedListValue value;

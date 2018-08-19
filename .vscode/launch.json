@@ -5,13 +5,13 @@
             "name": "(gdb) Launch",
             "type": "cppdbg",
             "request": "launch",
-            "preLaunchTask": "make compile",
+            "preLaunchTask": "make linux",
             "program": "${workspaceRoot}/RepGame",
             "args": [],
             "stopAtEntry": false,
             "cwd": "${workspaceRoot}",
             "environment": [],
-            "externalConsole": true,
+            "externalConsole": false,
             "MIMode": "gdb",
             "setupCommands": [
                 {

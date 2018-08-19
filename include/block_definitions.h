@@ -1,14 +1,6 @@
 #ifndef HEADER_BLOCK_DEFINITIONS_H
 #define HEADER_BLOCK_DEFINITIONS_H
 
-#include <GL/gl.h>
-
-typedef struct {
-    GLuint top;
-    GLuint side;
-    GLuint bottom;
-} BlockTextureMap;
-
 typedef enum {
     AIR = 0,
     GRASS,
@@ -22,7 +14,11 @@ typedef enum {
     TNT,
     TNT_TOP,
     TNT_BOTTOM,
-    WATER,
+    SPIDER_WEB,
+    RED_FLOWER,
+    YELLOW_FLOWER,
+    NO_BLOCK,
+    SAPPLING,
     COBBLESTONE,
     BEDROCK,
     SAND,
@@ -32,8 +28,19 @@ typedef enum {
     IRON_BLOCK,
     GOLD_BLOCK,
     DIAMOND_BLOCK,
-    LAST_BLOCK_ID
+    SNOW = 67,
+    PLAYER_SELECTION = 139,
+    WATER = 208,
+    LAST_BLOCK_ID = 255,
 } BlockID;
+
+#include "textures.h"
+
+typedef struct {
+    BlockID top;
+    BlockID side;
+    BlockID bottom;
+} BlockTextureMap;
 
 typedef struct {
     BlockID id;
@@ -41,10 +48,10 @@ typedef struct {
     float alpha;
     float height;
     int special_grass_logic;
-} BlockDefinition;
+} Block;
 
-void block_definitions_initilize_definitions( );
-BlockDefinition *block_definition_get_definition( BlockID blockID );
+void block_definitions_initilize_definitions( Texture *texture );
+Block *block_definition_get_definition( BlockID blockID );
 void block_definitions_free_definitions( );
 
 #endif

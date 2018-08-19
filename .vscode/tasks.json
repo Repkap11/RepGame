@@ -4,24 +4,34 @@
     "version": "2.0.0",
     "tasks": [
         {
-            "label": "make",
+            "label": "make android-run",
             "type": "shell",
-            "command": "make",
+            "command": "make android-run",
             "problemMatcher": [],
-            "group": {
-                "kind": "build",
-                "isDefault": true
-            }
+            "group": "test"
         },
         {
-            "label": "make compile",
+            "label": "make linux-run",
             "type": "shell",
-            "command": "make compile",
+            "command": "make linux-run",
             "problemMatcher": [],
-            "group": {
-                "kind": "test",
-                "isDefault": true
-            }
+            "group": "test"
+        },
+        {
+            "label": "make linux",
+            "type": "shell",
+            "command": "make linux",
+            "problemMatcher": [],
+            "group": "build"
+
+        },
+        {
+            "label": "make android",
+            "type": "shell",
+            "command": "make android",
+            "problemMatcher": [],
+            "group": "build"
+
         }
     ]
 }

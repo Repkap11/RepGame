@@ -1,10 +1,28 @@
 {
     "files.associations": {
-        "*.h": "c",
-        "*.c": "c",
+        "*.h": "cpp",
+        "*.cpp": "cpp",
         "cmath": "c",
         "cstdlib": "c",
-        "type_traits": "c"
+        "type_traits": "c",
+        "typeinfo": "cpp",
+        "*.tcc": "cpp",
+        "system_error": "cpp",
+        "array": "cpp",
+        "string_view": "cpp",
+        "chrono": "cpp",
+        "cerrno": "cpp",
+        "istream": "cpp",
+        "ostream": "cpp",
+        "ratio": "cpp",
+        "tuple": "cpp",
+        "utility": "cpp",
+        "initializer_list": "cpp",
+        "thread": "cpp",
+        "functional": "cpp",
+        "bitset": "cpp",
+        "deque": "cpp",
+        "vector": "cpp"
     },
     "git.ignoreLimitWarning": true
 }
