@@ -4,48 +4,48 @@
 #include "map_storage.h"
 
 void chunk_calculate_sides( Chunk *chunk, TRIP_ARGS( int center_next_ ) ) {
-    unsigned int *chunk_ib_data_solid = ( unsigned int * )malloc( 3 * 2 * 6 * sizeof( unsigned int ) );
-    unsigned int *chunk_ib_data_water = ( unsigned int * )malloc( 3 * 2 * 2 * sizeof( unsigned int ) );
+    unsigned int *chunk_ib_data_solid = ( unsigned int * )malloc( 3 * 4 * 6 * sizeof( unsigned int ) );
+    unsigned int *chunk_ib_data_water = ( unsigned int * )malloc( 3 * 4 * 2 * sizeof( unsigned int ) );
 
     int visable_top = chunk->chunk_y <= center_next_y;
     int visable_bottom = chunk->chunk_y >= center_next_y;
-    int visable_left = chunk->chunk_z <= center_next_z;
-    int visable_right = chunk->chunk_z >= center_next_z;
-    int visable_front = chunk->chunk_x <= center_next_x;
-    int visable_back = chunk->chunk_x >= center_next_x;
+    int visable_right = chunk->chunk_x <= center_next_x;
+    int visable_left = chunk->chunk_x >= center_next_x;
+    int visable_front = chunk->chunk_z <= center_next_z;
+    int visable_back = chunk->chunk_z >= center_next_z;
 
     int ib_size_solid = 0;
     int ib_size_water = 0;
     if ( visable_front ) {
-        for ( int i = 0; i < 6; i++ ) {
-            chunk_ib_data_solid[ ib_size_solid++ ] = ib_data_solid[ 6 * FACE_FRONT + i ];
+        for ( int i = 0; i < 12; i++ ) {
+            chunk_ib_data_solid[ ib_size_solid++ ] = ib_data_solid[ 12 * FACE_FRONT + i ];
         }
     }
     if ( visable_right ) {
-        for ( int i = 0; i < 6; i++ ) {
-            chunk_ib_data_solid[ ib_size_solid++ ] = ib_data_solid[ 6 * FACE_RIGHT + i ];
+        for ( int i = 0; i < 12; i++ ) {
+            chunk_ib_data_solid[ ib_size_solid++ ] = ib_data_solid[ 12 * FACE_RIGHT + i ];
         }
     }
     if ( visable_back ) {
-        for ( int i = 0; i < 6; i++ ) {
-            chunk_ib_data_solid[ ib_size_solid++ ] = ib_data_solid[ 6 * FACE_BACK + i ];
+        for ( int i = 0; i < 12; i++ ) {
+            chunk_ib_data_solid[ ib_size_solid++ ] = ib_data_solid[ 12 * FACE_BACK + i ];
         }
     }
     if ( visable_left ) {
-        for ( int i = 0; i < 6; i++ ) {
-            chunk_ib_data_solid[ ib_size_solid++ ] = ib_data_solid[ 6 * FACE_LEFT + i ];
+        for ( int i = 0; i < 12; i++ ) {
+            chunk_ib_data_solid[ ib_size_solid++ ] = ib_data_solid[ 12 * FACE_LEFT + i ];
         }
     }
     if ( visable_top ) {
-        for ( int i = 0; i < 6; i++ ) {
-            chunk_ib_data_solid[ ib_size_solid++ ] = ib_data_solid[ 6 * FACE_TOP + i ];
-            chunk_ib_data_water[ ib_size_water++ ] = ib_data_water[ 6 * IB_POSITION_WATER_TOP + i ];
+        for ( int i = 0; i < 12; i++ ) {
+            chunk_ib_data_solid[ ib_size_solid++ ] = ib_data_solid[ 12 * FACE_TOP + i ];
+            chunk_ib_data_water[ ib_size_water++ ] = ib_data_water[ 12 * IB_POSITION_WATER_TOP + i ];
         }
     }
     if ( visable_bottom ) {
-        for ( int i = 0; i < 6; i++ ) {
-            chunk_ib_data_solid[ ib_size_solid++ ] = ib_data_solid[ 6 * FACE_BOTTOM + i ];
-            chunk_ib_data_water[ ib_size_water++ ] = ib_data_water[ 6 * IB_POSITION_WATER_BOTTOM + i ];
+        for ( int i = 0; i < 12; i++ ) {
+            chunk_ib_data_solid[ ib_size_solid++ ] = ib_data_solid[ 12 * FACE_BOTTOM + i ];
+            chunk_ib_data_water[ ib_size_water++ ] = ib_data_water[ 12 * IB_POSITION_WATER_BOTTOM + i ];
         }
     }
     index_buffer_set_data( &chunk->solid.ib, chunk_ib_data_solid, ib_size_solid );
