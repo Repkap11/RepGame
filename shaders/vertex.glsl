@@ -1,4 +1,4 @@
-#version 310 es
+#version 320 es
 
 // See CubeFace in block.h
 // This defines all the triangles of a cube
@@ -16,7 +16,7 @@ layout( location = 7 ) in vec3 packed_lighting_1;
 layout( location = 8 ) in vec3 packed_lighting_2;
 
 out vec2 v_TexCoordBlock;
-out flat float v_blockID;
+out float v_blockID;
 out float v_corner_light;
 out vec3 v_position;
 

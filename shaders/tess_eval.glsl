@@ -1,5 +1,4 @@
-#version 310 es
-#extension GL_ANDROID_extension_pack_es31a : require
+#version 320 es
 
 uniform mat4 u_MVP;
 
@@ -7,12 +6,12 @@ layout( triangles, equal_spacing, ccw ) in;
 
 in vec3 tc_position[];
 in vec2 tc_TexCoordBlock[];
-in flat float tc_blockID[];
+in float tc_blockID[];
 in float tc_corner_light[];
 
 out vec3 te_position;
 out vec2 te_TexCoordBlock;
-out flat float te_blockID;
+out float te_blockID;
 out float te_corner_light;
 out vec3 te_PatchDistance;
 
@@ -27,7 +26,6 @@ vec3 interpolate3D( vec3 v0, vec3 v1, vec3 v2 ) {
 }
 
 void main( ) {
-    te_TexCoordBlock = interpolate2D( tc_TexCoordBlock[ 0 ], tc_TexCoordBlock[ 1 ], tc_TexCoordBlock[ 2 ] );
     te_TexCoordBlock = interpolate2D( tc_TexCoordBlock[ 0 ], tc_TexCoordBlock[ 1 ], tc_TexCoordBlock[ 2 ] );
     te_blockID = tc_blockID[ 0 ];
     te_corner_light = interpolate1D( tc_corner_light[ 0 ], tc_corner_light[ 1 ], tc_corner_light[ 2 ] );
