@@ -21,5 +21,5 @@ void main( ) {
     float border = min( ( 1.0 - ( max( border_vec.x, border_vec.y ) ) ) * 20.0, 1.0 );
 
     float corner_light = ( ( 3.0 - v_corner_lighting ) / 3.0 ); // * border;
-    color = texColor;                                           // * vec4( corner_light, corner_light, corner_light, 1 );
+    color = texColor * vec4( corner_light, corner_light, corner_light, 1 );
 }

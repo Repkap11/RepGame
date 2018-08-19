@@ -22,7 +22,8 @@
         "functional": "cpp",
         "bitset": "cpp",
         "deque": "cpp",
-        "vector": "cpp"
+        "vector": "cpp",
+        "limits": "cpp"
     },
     "git.ignoreLimitWarning": true
 }

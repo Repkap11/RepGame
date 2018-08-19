@@ -3,10 +3,10 @@
 
 typedef enum {
     AIR = 0,
-    GRASS,
+    NONE,
     STONE,
-    DIRT,
-    GRASS_SIDE,
+    NONE2,
+    NONE3,
     WOOD_PLANK,
     DOUBLE_SLAB,
     SLAB_TOP,
@@ -29,6 +29,9 @@ typedef enum {
     GOLD_BLOCK,
     DIAMOND_BLOCK,
     SNOW = 67,
+    GRASS = 15,
+    GRASS_SIDE = 15,
+    DIRT = 15,
     PLAYER_SELECTION = 139,
     WATER = 208,
     LAST_BLOCK_ID = 255,

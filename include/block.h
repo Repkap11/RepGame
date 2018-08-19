@@ -24,12 +24,7 @@
 #define CORNER_OFFSET_bbl 12
 #define CORNER_OFFSET_bbr 14
 
-#define CORNER_OFFSET_tcc 16
-#define CORNER_OFFSET_bcc 18
-#define CORNER_OFFSET_ccr 20
-#define CORNER_OFFSET_cfc 22
-#define CORNER_OFFSET_ccl 24
-#define CORNER_OFFSET_cbc 28
+#define CORNER_OFFSET_c 16
 
 typedef struct {
     float x;

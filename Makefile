@@ -1,6 +1,6 @@
 TARGET = RepGame
 CFLAGS = -g -Wall -Werror -std=c++98 -Wno-unused-variable
-LD_FLAGS = -r
+LD_FLAGS = -r -flto
 CPUS ?= $(shell nproc || echo 1)
 MAKEFLAGS += --jobs=$(CPUS)
 MAKEFLAGS += -k
@@ -76,7 +76,7 @@ $(LIB_TARGET_ANDROID): $(OBJECTS_SHARED_ANDROID) Makefile
 	$(LD_ANDROID) $(LD_FLAGS) $(OBJECTS_SHARED_ANDROID) -o $@
 
 $(TARGET): $(LIB_TARGET_LINUX) $(OBJECTS_LINUX) $(LIB_TARGET_CUDA) $(LIB_DEVICE_CUDA) Makefile
-	$(CC_LINUX) $(CFLAGS) $(LIB_TARGET) $(OBJECTS_LINUX) $(LIB_TARGET_LINUX) $(LIB_TARGET_CUDA) $(LIB_DEVICE_CUDA) $(LIBS_LINUX) -o $@
+	$(CC_LINUX) -flto $(CFLAGS) $(LIB_TARGET) $(OBJECTS_LINUX) $(LIB_TARGET_LINUX) $(LIB_TARGET_CUDA) $(LIB_DEVICE_CUDA) $(LIBS_LINUX) -o $@
 
 run: linux android-run
 	./$(TARGET)
