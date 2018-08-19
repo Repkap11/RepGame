@@ -6,6 +6,7 @@ precision lowp sampler2DArray;
 in vec2 te_TexCoordBlock;
 in flat float te_blockID;
 in float te_corner_light;
+in vec3 te_PatchDistance;
 
 uniform sampler2DArray u_Texture;
 
@@ -17,7 +18,7 @@ void main( ) {
     if ( texColor.a == 0.0 ) {
         discard;
     }
-    float corner_light = ( 3.0 - te_corner_light ) / 3.0;
+    float d2 = min( ( min( min( te_PatchDistance.x, te_PatchDistance.y ), te_PatchDistance.z ) ) * 20.0, 1.0 );
+    float corner_light = d2 * ( 3.0 - te_corner_light ) / 3.0;
     f_color = texColor * vec4( corner_light, corner_light, corner_light, 1 );
-    // f_color = texColor;
 }

@@ -94,7 +94,7 @@ android-run: android
 	./android/gradlew -q -p android installDebug
 	adb logcat -c
 	adb shell monkey -p com.repkap11.repgame -c android.intent.category.LAUNCHER 1
-	#adb logcat -s RepGameAndroid -v brief
+	adb logcat -s RepGameAndroid -v brief
 	#adb logcat -v brief | grep RepGame
 map:
 	rm -rf World1

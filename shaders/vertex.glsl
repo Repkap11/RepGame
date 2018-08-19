@@ -1,5 +1,4 @@
 #version 310 es
-uniform mat4 u_MVP;
 
 // See CubeFace in block.h
 // This defines all the triangles of a cube
@@ -23,7 +22,6 @@ out vec3 v_position;
 
 void main( ) {
     v_position = position * mesh_size + blockCoords;
-    // gl_Position = u_MVP * vec4( position * mesh_size + blockCoords, 1 );
     uint faceType = uint( faceType_f );
     // This face_adjusted isn't needed if you want a different texture per face (not the same on all sides)
     uint face_adjusted = faceType > uint( 2 ) ? uint( 2 ) : faceType;
@@ -43,7 +41,7 @@ void main( ) {
         packed_lighting = packed_lighting_2[ faceType - uint( 3 ) ];
     }
     float light_divisor = 1.7; // good looking
-    // float light_divisor = 0.1;                                                                                    // debug
+    // float light_divisor = 0.1;                                                                                 // debug
     v_corner_light = float( ( uint( packed_lighting ) >> uint( corner_shift ) ) & uint( 3 ) ) / light_divisor; // Has to be a float to be interped over the shader
     v_TexCoordBlock = texCoordBlock * face_scale;
     v_blockID = blockTexture[ face_adjusted ];
