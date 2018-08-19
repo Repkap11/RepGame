@@ -44,17 +44,16 @@ void main( ) {
     } else {
         packed_lighting = packed_lighting_2[ faceType - uint( 3 ) ];
     }
-    float light_divisor = 1.7; // good looking
-    light_divisor = 1.0;       // debug
+    float light_divisor = 2.0; // good looking
+    // light_divisor = 1.0;       // debug
 
     uint which_bits = uint( 3 );
     if ( corner_shift == 16.0 ) {
-        // which_bits = uint( 7 );
+        which_bits = uint( 7 );
     }
     v_corner_lighting = float( ( uint( packed_lighting ) >> uint( corner_shift ) ) & which_bits ) / light_divisor; // Has to be a float to be interped over the shader;
     if ( corner_shift == 16.0 ) {
         v_corner_lighting /= 2.0;
-        // v_corner_lighting = 4.0;
     }
     v_TexCoordBlock = texCoordBlock * face_scale;
     v_TexCoordBlock_orig = texCoordBlock;

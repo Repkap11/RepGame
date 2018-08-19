@@ -76,7 +76,7 @@ void mouse_selection_set_block( MouseSelection *mouseSelection, int x, int y, in
     if ( mouseSelection->block.x != x || //
          mouseSelection->block.y != y || //
          mouseSelection->block.z != z    //
-    ) {
+         ) {
         mouseSelection->block.x = x;
         mouseSelection->block.y = y;
         mouseSelection->block.z = z;

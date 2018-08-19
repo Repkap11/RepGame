@@ -1,7 +1,7 @@
 #ifndef HEADER_CONSTANTS_H
 #define HEADER_CONSTANTS_H
 
-#define MOVEMENT_SENSITIVITY 0.1f // How sensitive the arrow keys are
+#define MOVEMENT_SENSITIVITY 0.5f // How sensitive the arrow keys are
 
 #ifdef REPGAME_LINUX
 
@@ -35,8 +35,6 @@
 #define NO_CLIP 1
 #define MAP_SEED 0
 #define LOCK_MOUSE 1
-#define ALLOW_CHUNKS_WITH_OVERLAPPING_BUT_HIDDEN_BLOCKS 1
-#define RENDER_ALL_SOLID_BECAUSE_ITS_SO_FAST 0
 
 #define BLOCK_SCALE 1.0f
 #define DISABLE_GROUPING_BLOCKS 0
