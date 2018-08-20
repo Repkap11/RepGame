@@ -1,5 +1,5 @@
 TARGET = RepGame
-CFLAGS = -g -Wall -Werror -std=c++98 -Wno-unused-variable
+CFLAGS = -g -Wall -Werror -std=c++98 -Wno-unused-variable -fPIC
 CPUS ?= $(shell nproc || echo 1)
 MAKEFLAGS += --jobs=$(CPUS)
 MAKEFLAGS += -k
@@ -9,7 +9,7 @@ MAKEFLAGS += -k
 #Linux x86_64 builds
 CC_LINUX = g++
 LD_LINUX = ld -r
-CFLAGS_LINUX = $(CFLAGS) -march=native -DREPGAME_LINUX -flto -fPIC
+CFLAGS_LINUX = $(CFLAGS) -march=native -DREPGAME_LINUX -flto -no-pie
 LIBS_LINUX = -L/usr/local/cuda-9.2/lib64 -l m -l GL -l GLU -l GLEW -l glut -pthread
 LIB_TARGET_LINUX = out/linux/lib$(TARGET).so
 
@@ -32,7 +32,7 @@ include android/local.properties
 ANDROID_NDK_LOCATION = ${ndk.dir}
 CC_ANDROID = $(ANDROID_NDK_LOCATION)/toolchains/aarch64-linux-android-4.9/prebuilt/linux-x86_64/bin/aarch64-linux-android-g++
 LD_ANDROID = $(ANDROID_NDK_LOCATION)/toolchains/aarch64-linux-android-4.9/prebuilt/linux-x86_64/bin/aarch64-linux-android-ld
-CFLAGS_ANDROID =  $(CFLAGS) -fPIC -Wno-attributes
+CFLAGS_ANDROID =  $(CFLAGS) -Wno-attributes
 LDFLAGS_ANDROID = -r -flto
 LIB_TARGET_ANDROID = out/android/lib$(TARGET).so
 
