@@ -7,8 +7,11 @@
 char *getRepGamePath( ) {
     char buffer[ BUFSIZ ];
     memset( buffer, 0, sizeof( buffer ) );
-    readlink( "/proc/self/exe", buffer, BUFSIZ - 1 );
+    ssize_t result = readlink( "/proc/self/exe", buffer, BUFSIZ - 1 );
     char *dir;
+    if ( result == -1 ) {
+        return NULL;
+    }
     dir = dirname( buffer );
     return dir;
 }
