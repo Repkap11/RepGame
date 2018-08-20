@@ -1,6 +1,5 @@
 TARGET = RepGame
 CFLAGS = -g -Wall -Werror -std=c++98 -Wno-unused-variable
-LD_FLAGS = -r -flto
 CPUS ?= $(shell nproc || echo 1)
 MAKEFLAGS += --jobs=$(CPUS)
 MAKEFLAGS += -k
@@ -10,7 +9,7 @@ MAKEFLAGS += -k
 #Linux x86_64 builds
 CC_LINUX = g++
 LD_LINUX = ld -r
-CFLAGS_LINUX = -march=native -DREPGAME_LINUX -flto
+CFLAGS_LINUX = $(CFLAGS) -march=native -DREPGAME_LINUX -flto -fPIC
 LIBS_LINUX = -L/usr/local/cuda-9.2/lib64 -l m -l GL -l GLU -l GLEW -l glut -pthread
 LIB_TARGET_LINUX = out/linux/lib$(TARGET).so
 
@@ -33,7 +32,8 @@ include android/local.properties
 ANDROID_NDK_LOCATION = ${ndk.dir}
 CC_ANDROID = $(ANDROID_NDK_LOCATION)/toolchains/aarch64-linux-android-4.9/prebuilt/linux-x86_64/bin/aarch64-linux-android-g++
 LD_ANDROID = $(ANDROID_NDK_LOCATION)/toolchains/aarch64-linux-android-4.9/prebuilt/linux-x86_64/bin/aarch64-linux-android-ld
-CFLAGS_ANDROID = -fPIC -Wno-attributes
+CFLAGS_ANDROID =  $(CFLAGS) -fPIC -Wno-attributes
+LDFLAGS_ANDROID = -r -flto
 LIB_TARGET_ANDROID = out/android/lib$(TARGET).so
 
 all: linux android
@@ -56,16 +56,13 @@ android/app/src/main/assets/%.glsl: shaders/%.glsl Makefile
 	cp $< $@
 
 out/linux/%.so: src/%.cpp $(HEADERS) Makefile
-	$(CC_LINUX) -I include/ -I /usr/include/glm $(CFLAGS) $(CFLAGS_LINUX) -c $< -o $@
+	$(CC_LINUX) -I include/ -I /usr/include/glm $(CFLAGS_LINUX) -c $< -o $@
 
 out/cuda/%.so: src/%.cu $(HEADERS) Makefile
 	$(CC_CUDA) $(CFLAGS_CUDA_COMPILE) -I include/ -I /usr/include/glm $(CFLAGS_CUDA) $< -o $@
 
 out/android/%.so:  src/%.cpp $(HEADERS) Makefile
-	$(CC_ANDROID) $(CFLAGS) $(CFLAGS_ANDROID) -c $< -o $@ -I include/ -I $(ANDROID_NDK_LOCATION)/sysroot/usr/include -I /usr/include/glm -I $(ANDROID_NDK_LOCATION)/sysroot/usr/include/aarch64-linux-android/ -I $(ANDROID_NDK_LOCATION)/sources/cxx-stl/gnu-libstdc++/4.9/include -I $(ANDROID_NDK_LOCATION)/sources/cxx-stl/gnu-libstdc++/4.9/libs/arm64-v8a/include/
-
-$(LIB_TARGET_LINUX): $(OBJECTS_SHARED_LINUX) Makefile
-	$(LD_LINUX) $(LD_FLAGS) $(OBJECTS_SHARED_LINUX) -o $@
+	$(CC_ANDROID) $(CFLAGS_ANDROID) -c $< -o $@ -I include/ -I $(ANDROID_NDK_LOCATION)/sysroot/usr/include -I /usr/include/glm -I $(ANDROID_NDK_LOCATION)/sysroot/usr/include/aarch64-linux-android/ -I $(ANDROID_NDK_LOCATION)/sources/cxx-stl/gnu-libstdc++/4.9/include -I $(ANDROID_NDK_LOCATION)/sources/cxx-stl/gnu-libstdc++/4.9/libs/arm64-v8a/include/
 
 $(LIB_DEVICE_CUDA): $(OBJECTS_CUDA) Makefile
 	$(CC_CUDA) $(CFLAGS_CUDA) $(CFLAGS_CUDA_LINK_DEVICE) $(OBJECTS_CUDA) -o $@
@@ -74,10 +71,10 @@ $(LIB_TARGET_CUDA): $(LIB_DEVICE_CUDA) Makefile
 	$(CC_CUDA) $(CFLAGS_CUDA) $(CFLAGS_CUDA_LINK_HOST) $(LIB_DEVICE_CUDA) -o $@
 
 $(LIB_TARGET_ANDROID): $(OBJECTS_SHARED_ANDROID) Makefile
-	$(LD_ANDROID) $(LD_FLAGS) $(OBJECTS_SHARED_ANDROID) -o $@
+	$(LD_ANDROID) $(LDFLAGS_ANDROID) $(OBJECTS_SHARED_ANDROID) -o $@
 
-$(TARGET): $(LIB_TARGET_LINUX) $(OBJECTS_LINUX) $(LIB_TARGET_CUDA) $(LIB_DEVICE_CUDA) Makefile
-	$(CC_LINUX) -flto $(CFLAGS) $(LIB_TARGET) $(OBJECTS_LINUX) $(LIB_TARGET_LINUX) $(LIB_TARGET_CUDA) $(LIB_DEVICE_CUDA) $(LIBS_LINUX) -o $@
+$(TARGET): $(OBJECTS_SHARED_LINUX) $(OBJECTS_LINUX) $(LIB_TARGET_CUDA) $(LIB_DEVICE_CUDA) Makefile
+	$(CC_LINUX) -flto $(CFLAGS_LINUX) $(LIB_TARGET) $(OBJECTS_LINUX) $(OBJECTS_SHARED_LINUX) $(LIB_TARGET_CUDA) $(LIB_DEVICE_CUDA) $(LIBS_LINUX) -o $@
 
 run: linux android-run
 	./$(TARGET)
