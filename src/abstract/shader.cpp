@@ -3,7 +3,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include "file_utils.h"
+#include "utils/file_utils.h"
 #include "RepGame.h"
 
 char *shaderLoadSource( const char *filePath ) {

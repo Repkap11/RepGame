@@ -1,4 +1,4 @@
-#include "linked_list.h"
+#include "utils/linked_list.h"
 #include "RepGame.h"
 #include <stdlib.h>
 

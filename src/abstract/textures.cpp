@@ -1,8 +1,8 @@
 #define GL_GLEXT_PROTOTYPES
-#include "file_utils.h"
+#include "utils/file_utils.h"
 
 #include "RepGame.h"
-#include "textures.h"
+#include "abstract/textures.h"
 
 #define BMP_HEADER_SIZE 138
 

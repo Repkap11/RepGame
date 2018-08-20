@@ -34,7 +34,7 @@ typedef enum {
     LAST_BLOCK_ID = 255,
 } BlockID;
 
-#include "textures.h"
+#include "abstract/textures.h"
 
 typedef struct {
     BlockID top;

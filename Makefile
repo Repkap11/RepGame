@@ -46,8 +46,9 @@ OBJECTS_LINUX = $(patsubst src/%.cpp, out/linux/%.so, $(wildcard src/linux/*.cpp
 OBJECTS_CUDA = $(patsubst src/%.cu, out/cuda/%.so, $(wildcard src/cuda/*.cu))
 OBJECTS_ANDROID = #There are no object just for Android right now. Those likely need the Android NDK, and are build by cmake and gradle
 
-OBJECTS_SHARED_LINUX = $(patsubst src/%.cpp, out/linux/%.so, $(wildcard src/*.cpp) $(wildcard src/abstract/*.cpp))
-OBJECTS_SHARED_ANDROID = $(patsubst src/%.cpp, out/android/%.so, $(wildcard src/*.cpp) $(wildcard src/abstract/*.cpp))
+ALL_SHARED = $(wildcard src/*.cpp) $(wildcard src/abstract/*.cpp) $(wildcard src/utils/*.cpp)
+OBJECTS_SHARED_LINUX = $(patsubst src/%.cpp, out/linux/%.so, $(ALL_SHARED))
+OBJECTS_SHARED_ANDROID = $(patsubst src/%.cpp, out/android/%.so, $(ALL_SHARED))
 HEADERS = $(wildcard include/*.h) $(wildcard include/**/*.h)
 SHADERS_ANDROID = $(patsubst shaders/%.glsl, android/app/src/main/assets/%.glsl, $(wildcard shaders/*.glsl))
 
@@ -99,11 +100,15 @@ android-run: android
 map:
 	rm -rf World1
 
-clean: map
+clean-linux: map
 	rm -rf out
 	rm -f $(TARGET)
 	rm -f $(SHADERS_ANDROID)
+
+clean-android: map
 	./android/gradlew -q -p android clean
+
+clean: clean-android clean-linux map
 
 install:
 	apt install freeglut3-dev libglew-dev libglm-dev libglm-doc g++-multilib-arm-linux-gnueabi g++-aarch64-linux-gnu
@@ -117,5 +122,5 @@ install:
 .PRECIOUS: $(TARGET) $(OBJECTS_LINUX) $(OBJECTS_ANDROID) $(OBJECTS_SHARED_LINUX) $(OBJECTS_SHARED_ANDROID) $(LIB_TARGET_LINUX) $(LIB_TARGET_ANDROID)
 
 #$(info $$SHADERS_ANDROID is [${SHADERS_ANDROID}])
-.PHONY: all clean install linux run android map android-run linux-run android-shaders
+.PHONY: all clean install linux run android map android-run linux-run android-shaders clean-linux clean-android
 $(shell mkdir -p $(DIRS))

@@ -6,7 +6,7 @@
 #include "RepGame.h"
 #include "block_definitions.h"
 #include "chunk.h"
-#include "textures.h"
+#include "abstract/textures.h"
 #include "world.h"
 #include "abstract/shader.h"
 #include "abstract/vertex_buffer.h"

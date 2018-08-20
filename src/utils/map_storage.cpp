@@ -1,4 +1,4 @@
-#include "map_storage.h"
+#include "utils/map_storage.h"
 #include "RepGame.h"
 #include "constants.h"
 #include <errno.h>
@@ -8,7 +8,7 @@
 #include <string.h>
 #include <sys/stat.h> /* mkdir(2) */
 #include <unistd.h>
-#include "file_utils.h"
+#include "utils/file_utils.h"
 
 #define CHUNK_NAME_LENGTH 200
 
