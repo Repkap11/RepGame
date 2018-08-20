@@ -1,7 +1,7 @@
 #include <math.h>
 
-#include "RepGame.h"
-#include "world.h"
+#include "RepGame.hpp"
+#include "world.hpp"
 
 // https://bitbucket.org/volumesoffun/polyvox/src/9a71004b1e72d6cf92c41da8995e21b652e6b836/include/PolyVox/Raycast.inl?at=develop&fileviewer=file-view-default
 

@@ -50,7 +50,7 @@ OBJECTS_ANDROID = #There are no object just for Android right now. Those likely 
 ALL_SHARED = $(wildcard src/*.cpp) $(wildcard src/abstract/*.cpp) $(wildcard src/utils/*.cpp)
 OBJECTS_SHARED_LINUX = $(patsubst src/%.cpp, out/linux/%.so, $(ALL_SHARED))
 OBJECTS_SHARED_ANDROID = $(patsubst src/%.cpp, out/android/%.so, $(ALL_SHARED))
-HEADERS = $(wildcard include/*.h) $(wildcard include/**/*.h)
+HEADERS = $(wildcard include/*.hpp) $(wildcard include/**/*.hpp)
 SHADERS_ANDROID = $(patsubst shaders/%.glsl, android/app/src/main/assets/%.glsl, $(wildcard shaders/*.glsl))
 
 android/app/src/main/assets/%.glsl: shaders/%.glsl Makefile

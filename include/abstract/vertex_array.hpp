@@ -1,8 +1,8 @@
 #ifndef HEADER_VERTEX_ARRAY_H
 #define HEADER_VERTEX_ARRAY_H
 
-#include "abstract/vertex_buffer.h"
-#include "abstract/vertex_buffer_layout.h"
+#include "abstract/vertex_buffer.hpp"
+#include "abstract/vertex_buffer_layout.hpp"
 
 typedef struct {
     unsigned int mRendererId;

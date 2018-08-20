@@ -1,10 +1,10 @@
-#include "abstract/shader.h"
+#include "abstract/shader.hpp"
 
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include "utils/file_utils.h"
-#include "RepGame.h"
+#include "utils/file_utils.hpp"
+#include "RepGame.hpp"
 
 char *shaderLoadSource( const char *filePath ) {
     const size_t blockSize = 512;

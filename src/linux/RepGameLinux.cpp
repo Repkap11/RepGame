@@ -2,7 +2,7 @@
 #include <time.h>
 #include <unistd.h>
 
-#include "RepGame.h"
+#include "RepGame.hpp"
 
 #define SKY_BOX_DISTANCE DRAW_DISTANCE * 0.8
 

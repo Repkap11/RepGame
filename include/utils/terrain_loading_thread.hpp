@@ -1,8 +1,8 @@
 #ifndef HEADER_TERRAIN_LOADING_H
 #define HEADER_TERRAIN_LOADING_H
 
-#include "chunk.h"
-#include "RepGame.h"
+#include "chunk.hpp"
+#include "RepGame.hpp"
 
 int terrain_loading_thread_start( );
 void terrain_loading_thread_enqueue( Chunk *chunk, TRIP_ARGS(int new_chunk_) , int persist);

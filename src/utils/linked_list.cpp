@@ -1,5 +1,5 @@
-#include "utils/linked_list.h"
-#include "RepGame.h"
+#include "utils/linked_list.hpp"
+#include "RepGame.hpp"
 #include <stdlib.h>
 
 /* Naive linked list implementation from https://gist.github.com/wayling/3877624*/

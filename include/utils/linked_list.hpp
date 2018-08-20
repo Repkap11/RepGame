@@ -1,9 +1,9 @@
 #ifndef HEADER_LINKED_LIST_H
 #define HEADER_LINKED_LIST_H
 
-#include "chunk.h"
+#include "chunk.hpp"
 #include <pthread.h>
-#include "RepGame.h"
+#include "RepGame.hpp"
 
 typedef struct {
 	Chunk * chunk;

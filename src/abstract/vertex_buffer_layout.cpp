@@ -1,5 +1,5 @@
-#include "RepGame.h"
-#include "abstract/vertex_buffer_layout.h"
+#include "RepGame.hpp"
+#include "abstract/vertex_buffer_layout.hpp"
 
 void vertex_buffer_layout_init( VertexBufferLayout *vertexBufferLayout ) {
     vertexBufferLayout->current_size = 0;

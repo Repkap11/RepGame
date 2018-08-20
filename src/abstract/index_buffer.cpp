@@ -1,5 +1,5 @@
-#include "RepGame.h"
-#include "abstract/index_buffer.h"
+#include "RepGame.hpp"
+#include "abstract/index_buffer.hpp"
 
 void index_buffer_init( IndexBuffer *indexBuffer ) {
     indexBuffer->count = 0;

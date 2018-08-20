@@ -1,8 +1,8 @@
 #ifndef HEADER_CHUNK_LOADER_H
 #define HEADER_CHUNK_LOADER_H
-#include "chunk.h"
-#include "abstract/renderer.h"
-#include "mouse_selection.h"
+#include "chunk.hpp"
+#include "abstract/renderer.hpp"
+#include "mouse_selection.hpp"
 
 typedef struct {
     int chunk_center_x, chunk_center_y, chunk_center_z;

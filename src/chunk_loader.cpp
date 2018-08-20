@@ -1,8 +1,8 @@
-#include "chunk_loader.h"
-#include "RepGame.h"
-#include "utils/map_storage.h"
-#include "utils/terrain_loading_thread.h"
-#include "constants.h"
+#include "chunk_loader.hpp"
+#include "RepGame.hpp"
+#include "utils/map_storage.hpp"
+#include "utils/terrain_loading_thread.hpp"
+#include "constants.hpp"
 #include <math.h>
 #include <stdlib.h>
 

@@ -1,11 +1,11 @@
 #ifndef HEADER_RENDERER_H
 #define HEADER_RENDERER_H
 
-#include "abstract/vertex_buffer.h"
-#include "abstract/vertex_array.h"
-#include "abstract/index_buffer.h"
-#include "abstract/vertex_buffer_layout.h"
-#include "abstract/shader.h"
+#include "abstract/vertex_buffer.hpp"
+#include "abstract/vertex_array.hpp"
+#include "abstract/index_buffer.hpp"
+#include "abstract/vertex_buffer_layout.hpp"
+#include "abstract/shader.hpp"
 
 typedef struct { unsigned int mRendererId; } Renderer;
 

@@ -1,9 +1,9 @@
-#include "RepGame.h"
-#include "map_gen.h"
-#include "block_definitions.h"
-#include "perlin_noise.h"
-#include "chunk_loader.h"
-#include "chunk.h"
+#include "RepGame.hpp"
+#include "map_gen.hpp"
+#include "block_definitions.hpp"
+#include "perlin_noise.hpp"
+#include "chunk_loader.hpp"
+#include "chunk.hpp"
 
 #include <stdlib.h>
 #define WATER_LEVEL 0
@@ -68,7 +68,7 @@ void map_gen_load_block_c( Chunk *chunk ) {
             for ( int y = chunk_offset_y - 1; y < chunk_offset_y + CHUNK_SIZE_INTERNAL - 1; y++ ) {
 
                 int index = chunk_get_index_from_coords( x - chunk_offset_x, y - chunk_offset_y, z - chunk_offset_z );
-#include "map_logic.h"
+#include "map_logic.hpp"
                 chunk->blocks[ index ] = finalBlockId;
             }
         }

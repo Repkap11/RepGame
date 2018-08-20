@@ -1,6 +1,6 @@
-#include "utils/terrain_loading_thread.h"
-#include "chunk.h"
-#include "utils/linked_list.h"
+#include "utils/terrain_loading_thread.hpp"
+#include "chunk.hpp"
+#include "utils/linked_list.hpp"
 #include <pthread.h>
 #include <unistd.h>
 

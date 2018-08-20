@@ -1,8 +1,8 @@
-#include "perlin_noise.h"
-#include "RepGame.h"
+#include "perlin_noise.hpp"
+#include "RepGame.hpp"
 #include <math.h>
 #include <stdlib.h>
-#include "constants.h"
+#include "constants.hpp"
 
 #include <stdio.h>
 

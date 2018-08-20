@@ -1,9 +1,9 @@
-#include "RepGame.h"
-#include "map_gen.h"
-#include "block_definitions.h"
-#include "cuda/perlin_noise.h"
-#include "chunk_loader.h"
-#include "chunk.h"
+#include "RepGame.hpp"
+#include "map_gen.hpp"
+#include "block_definitions.hpp"
+#include "cuda/perlin_noise.hpp"
+#include "chunk_loader.hpp"
+#include "chunk.hpp"
 
 #include <stdlib.h>
 #define WATER_LEVEL 0
@@ -67,7 +67,7 @@ __global__ void cuda_set_block(BlockID* blocks, int chunk_x, int chunk_y, int ch
         float mountians = map_gen_mountians_cuda( x, z);
         float level = map_gen_level_cuda(x, z);
         float terrainHeight = level + mountians + hills + ground_noise;
-#include "map_logic.h"
+#include "map_logic.hpp"
 
         blocks[index] = finalBlockId;
     }

@@ -3,18 +3,18 @@
 #include <time.h>
 #include <unistd.h>
 
-#include "RepGame.h"
-#include "block_definitions.h"
-#include "chunk.h"
-#include "abstract/textures.h"
-#include "world.h"
-#include "abstract/shader.h"
-#include "abstract/vertex_buffer.h"
-#include "abstract/index_buffer.h"
-#include "abstract/vertex_buffer_layout.h"
-#include "abstract/vertex_array.h"
-#include "abstract/renderer.h"
-#include "ray_traversal.h"
+#include "RepGame.hpp"
+#include "block_definitions.hpp"
+#include "chunk.hpp"
+#include "abstract/textures.hpp"
+#include "world.hpp"
+#include "abstract/shader.hpp"
+#include "abstract/vertex_buffer.hpp"
+#include "abstract/index_buffer.hpp"
+#include "abstract/vertex_buffer_layout.hpp"
+#include "abstract/vertex_array.hpp"
+#include "abstract/renderer.hpp"
+#include "ray_traversal.hpp"
 
 RepGameState globalGameState;
 

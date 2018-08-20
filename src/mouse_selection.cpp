@@ -1,7 +1,7 @@
-#include "RepGame.h"
-#include "mouse_selection.h"
-#include "abstract/renderer.h"
-#include "block.h"
+#include "RepGame.hpp"
+#include "mouse_selection.hpp"
+#include "abstract/renderer.hpp"
+#include "block.hpp"
 
 #define SELECTION_SIZE_OFFSET ( 0.004f )
 

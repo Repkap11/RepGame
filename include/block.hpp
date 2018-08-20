@@ -1,8 +1,8 @@
 #ifndef HEADER_BLOCK_H
 #define HEADER_BLOCK_H
 
-#include "constants.h"
-#include "block_definitions.h"
+#include "constants.hpp"
+#include "block_definitions.hpp"
 
 #define FACE_TOP 0
 #define FACE_BOTTOM 1

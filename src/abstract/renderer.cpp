@@ -1,5 +1,5 @@
-#include "RepGame.h"
-#include "abstract/renderer.h"
+#include "RepGame.hpp"
+#include "abstract/renderer.hpp"
 
 void renderer_draw( const Renderer *renderer, const VertexArray *vertexArray, const IndexBuffer *indexBuffer, const Shader *shader, unsigned int num_instances ) {
     vertex_array_bind( vertexArray );

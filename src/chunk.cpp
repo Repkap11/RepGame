@@ -1,7 +1,7 @@
-#include "RepGame.h"
-#include "chunk.h"
-#include "map_gen.h"
-#include "utils/map_storage.h"
+#include "RepGame.hpp"
+#include "chunk.hpp"
+#include "map_gen.hpp"
+#include "utils/map_storage.hpp"
 
 void chunk_calculate_sides( Chunk *chunk, TRIP_ARGS( int center_next_ ) ) {
     unsigned int *chunk_ib_data_solid = ( unsigned int * )malloc( IB_SOLID_SIZE * sizeof( unsigned int ) );

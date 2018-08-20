@@ -1,7 +1,7 @@
-#include "world.h"
-#include "RepGame.h"
-#include "chunk.h"
-#include "chunk_loader.h"
+#include "world.hpp"
+#include "RepGame.hpp"
+#include "chunk.hpp"
+#include "chunk_loader.hpp"
 #include <math.h>
 
 void world_init( LoadedChunks *loadedChunks ) {

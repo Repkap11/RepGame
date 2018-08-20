@@ -1,6 +1,6 @@
-#include "block_definitions.h"
-#include "abstract/textures.h"
-#include "RepGame.h"
+#include "block_definitions.hpp"
+#include "abstract/textures.hpp"
+#include "RepGame.hpp"
 #include <stdlib.h>
 
 Block *block_definitions;

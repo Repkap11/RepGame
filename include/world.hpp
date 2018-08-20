@@ -1,8 +1,8 @@
 #ifndef HEADER_WORLD_H
 #define HEADER_WORLD_H
 
-#include "block.h"
-#include "RepGame.h"
+#include "block.hpp"
+#include "RepGame.hpp"
 
 BlockID world_get_loaded_block( LoadedChunks *loadedChunks, TRIP_ARGS( int block_ ) );
 BlockID world_get_block( Chunk *chunk, TRIP_ARGS( int block_ ) );

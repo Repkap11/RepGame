@@ -1,8 +1,8 @@
 #ifndef HEADER_CHUNK_H
 #define HEADER_CHUNK_H
 
-#include "block.h"
-#include "abstract/renderer.h"
+#include "block.hpp"
+#include "abstract/renderer.hpp"
 
 #define CHUNK_SIZE_INTERNAL ( CHUNK_SIZE + 2 )
 #define CHUNK_BLOCK_SIZE ( CHUNK_SIZE_INTERNAL * CHUNK_SIZE_INTERNAL * CHUNK_SIZE_INTERNAL )

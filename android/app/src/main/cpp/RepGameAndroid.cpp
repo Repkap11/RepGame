@@ -1,4 +1,4 @@
-#include "RepGame.h"
+#include "RepGame.hpp"
 
 #include <jni.h>
 #include <stdarg.h>

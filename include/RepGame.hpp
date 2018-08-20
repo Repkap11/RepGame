@@ -2,13 +2,13 @@
 #define HEADER_REPGAME_H
 
 #ifdef REPGAME_LINUX
-#include "linux/RepGameLinux.h"
+#include "linux/RepGameLinux.hpp"
 #else
-#include "android/RepGameAndroid.h"
+#include "android/RepGameAndroid.hpp"
 #endif
 
-#include "chunk_loader.h"
-#include "constants.h"
+#include "chunk_loader.hpp"
+#include "constants.hpp"
 #include <glm.hpp>
 #include <gtc/matrix_transform.hpp>
 #define DEBUG 1
@@ -21,7 +21,7 @@
 #define TRIP_AND( replace ) ( replace##x && replace##y && replace##z )
 #define TRIP_OR( replace ) ( replace##x || replace##y || replace##z )
 
-#include "input.h"
+#include "input.hpp"
 
 typedef struct {
     double frame_rate;

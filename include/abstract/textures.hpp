@@ -5,7 +5,7 @@ typedef struct {
     unsigned int m_RendererId; //
 } Texture;
 
-#include "block_definitions.h"
+#include "block_definitions.hpp"
 
 void textures_set_texture_data( unsigned char *textures, int textures_len );
 

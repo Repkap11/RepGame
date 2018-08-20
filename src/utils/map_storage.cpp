@@ -1,6 +1,6 @@
-#include "utils/map_storage.h"
-#include "RepGame.h"
-#include "constants.h"
+#include "utils/map_storage.hpp"
+#include "RepGame.hpp"
+#include "constants.hpp"
 #include <errno.h>
 #include <limits.h> /* PATH_MAX */
 #include <stdio.h>
@@ -8,7 +8,7 @@
 #include <string.h>
 #include <sys/stat.h> /* mkdir(2) */
 #include <unistd.h>
-#include "utils/file_utils.h"
+#include "utils/file_utils.hpp"
 
 #define CHUNK_NAME_LENGTH 200
 
