@@ -18,8 +18,6 @@
 
 RepGameState globalGameState;
 
-glm::mat4 model;
-
 void change_block( int place, BlockID blockID ) {
     TRIP_STATE( int block_ );
     if ( place ) {
@@ -192,7 +190,6 @@ void repgame_init( ) {
     glEnable( GL_BLEND );
     glBlendFunc( GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA );
     glBlendEquation( GL_FUNC_ADD );
-    model = glm::mat4( 1.0f );
     initilizeGameState( );
 }
 
@@ -235,7 +232,7 @@ void repgame_get_screen_size( int *width, int *height ) {
 }
 
 void repgame_draw( ) {
-    glm::mat4 mvp = globalGameState.screen.proj * globalGameState.camera.view_look * globalGameState.camera.view_trans * model;
+    glm::mat4 mvp = globalGameState.screen.proj * globalGameState.camera.view_look * globalGameState.camera.view_trans;
     world_render( &globalGameState.gameChunks, globalGameState.camera.x, globalGameState.camera.y, globalGameState.camera.z );
     showErrors( );
 

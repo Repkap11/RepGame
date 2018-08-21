@@ -28,6 +28,9 @@ unsigned char *readTextureData( const char *filename, size_t mem_size ) {
 }
 
 #else // Android
+#define GL_TEXTURE_MAX_ANISOTROPY_EXT 0x84FE
+#define GL_MAX_TEXTURE_MAX_ANISOTROPY_EXT 0x84FF
+
 unsigned char *cached_texture = NULL;
 
 void textures_set_texture_data( unsigned char *textures, int textures_len ) {
@@ -98,8 +101,13 @@ unsigned int loadTexture( const char *filename, int width, int height, int bmp_h
 
     glTexParameterf( GL_TEXTURE_2D_ARRAY, GL_TEXTURE_WRAP_S, GL_REPEAT );
     glTexParameterf( GL_TEXTURE_2D_ARRAY, GL_TEXTURE_WRAP_T, GL_REPEAT );
-    glTexParameterf( GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MIN_FILTER, GL_NEAREST_MIPMAP_LINEAR ); // GL_NEAREST GL_LINEAR_MIPMAP_LINEAR
-    glTexParameterf( GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MAG_FILTER, GL_NEAREST );               // GL_NEAREST GL_LINEAR_MIPMAP_LINEAR
+    glTexParameterf( GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR ); // GL_NEAREST GL_LINEAR_MIPMAP_LINEAR
+    glTexParameterf( GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MAG_FILTER, GL_NEAREST );              // GL_NEAREST GL_LINEAR_MIPMAP_LINEAR
+    float max_ani;
+    glGetFloatv( GL_MAX_TEXTURE_MAX_ANISOTROPY_EXT, &max_ani );
+    pr_debug( "Max ani:%f", max_ani );
+
+    glTexParameterf( GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MAX_ANISOTROPY_EXT, max_ani );
     glGenerateMipmap( GL_TEXTURE_2D_ARRAY );
     free( data );
     return texture;
