@@ -190,7 +190,13 @@ void repgame_init( ) {
     glEnable( GL_BLEND );
     glBlendFunc( GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA );
     glBlendEquation( GL_FUNC_ADD );
+
     initilizeGameState( );
+    int iMultiSample = 0;
+    int iNumSamples = 0;
+    glGetIntegerv( GL_SAMPLE_BUFFERS, &iMultiSample );
+    glGetIntegerv( GL_SAMPLES, &iNumSamples );
+    pr_debug( "GL_SAMPLE_BUFFERS = %d, GL_SAMPLES = %d", iMultiSample, iNumSamples );
 }
 
 void repgame_set_textures( unsigned char *textures, int textures_len ) {

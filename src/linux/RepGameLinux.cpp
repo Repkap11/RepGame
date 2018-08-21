@@ -43,10 +43,13 @@ const char *repgame_getShaderString( const char *filename ) {
 int main( int argc, char **argv ) {
     glutInit( &argc, argv );
     glutInitContextVersion( 3, 3 );
+
     // glutInitContextFlags( GLUT_DEBUG );
-    glutInitDisplayMode( GLUT_DEPTH | GLUT_DOUBLE | GLUT_RGBA );
+    glutSetOption( GLUT_MULTISAMPLE, 16 );
+    glutInitDisplayMode( GLUT_DEPTH | GLUT_DOUBLE | GLUT_RGBA | GLUT_MULTISAMPLE );
 
     glutCreateWindow( "RepGame" );
+
     pr_debug( "Using OpenGL Version:%s", glGetString( GL_VERSION ) );
 
     if ( glewInit( ) ) {

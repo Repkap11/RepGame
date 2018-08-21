@@ -73,8 +73,8 @@ public class RepGameAndroidRenderer implements GLSurfaceView.Renderer {
                     EGL10.EGL_BLUE_SIZE, 8,
                     EGL10.EGL_ALPHA_SIZE, 8,
                     EGL10.EGL_DEPTH_SIZE, 24,
-                    EGL10.EGL_SAMPLE_BUFFERS, 0,
-                    EGL10.EGL_SAMPLES, 0,  // This is for 4x MSAA.
+                    EGL10.EGL_SAMPLE_BUFFERS, 1,
+                    EGL10.EGL_SAMPLES, 4,  // This is for 4x MSAA.
                     EGL10.EGL_NONE
             };
             EGLConfig[] configs = new EGLConfig[1];
