@@ -117,12 +117,16 @@ void texture_init_blocks( Texture *texture ) {
     char *dir = getRepGamePath( );
     char bufferText[ BUFSIZ ];
     sprintf( bufferText, "%s%s", dir, "/bitmaps/textures.bmp" );
+    texture->slot = 1;
+    glActiveTexture( GL_TEXTURE0 + texture->slot );
     texture->m_RendererId = loadTexture( bufferText, 256, 256, BMP_HEADER_SIZE, 16, 16 );
 }
 void texture_init_sky( Texture *texture ) {
     char *dir = getRepGamePath( );
     char bufferSky[ BUFSIZ ];
     sprintf( bufferSky, "%s%s", dir, "/bitmaps/sky4.bmp" );
+    texture->slot = 2;
+    glActiveTexture( GL_TEXTURE0 + texture->slot );
     texture->m_RendererId = loadTexture( bufferSky, 2048, 1024, BMP_HEADER_SIZE, 2048, 1024 );
     texture->m_RendererId = 0;
 }

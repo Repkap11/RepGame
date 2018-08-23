@@ -59,6 +59,8 @@ void chunk_loader_init( LoadedChunks *loadedChunks ) {
     loadedChunks->chunkArray = ( Chunk * )calloc( MAX_LOADED_CHUNKS, sizeof( Chunk ) );
     shader_init( &loadedChunks->shader, "chunk_vertex.glsl", "chunk_fragment.glsl" );
     texture_init_blocks( &loadedChunks->blocksTexture );
+    // texture_bind( &loadedChunks->blocksTexture, 2 );
+
     block_definitions_initilize_definitions( &loadedChunks->blocksTexture );
     {
         vertex_buffer_init( &loadedChunks->solid.vb_block );
@@ -225,7 +227,7 @@ void chunk_loader_render_chunks( LoadedChunks *loadedChunks, TRIP_ARGS( float ca
 float chunk_diameter = ( CHUNK_SIZE + 1 ) * 1.73205080757; // sqrt(3)
 
 void chunk_loader_draw_chunks_solid( LoadedChunks *loadedChunks, glm::mat4 &mvp ) {
-    texture_bind( &loadedChunks->blocksTexture, 0 );
+    shader_set_uniform1i( &loadedChunks->shader, "u_Texture", loadedChunks->blocksTexture.slot );
     shader_set_uniform_mat4f( &loadedChunks->shader, "u_MVP", mvp );
     // pr_debug( "Drawing %d chunks", loadedChunks->numLoadedChunks );
 

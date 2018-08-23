@@ -3,6 +3,7 @@
 
 typedef struct {
     unsigned int m_RendererId; //
+    unsigned int slot;
 } Texture;
 
 #include "block_definitions.hpp"

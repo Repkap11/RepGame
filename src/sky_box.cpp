@@ -4,9 +4,9 @@
 #include "sky_box.hpp"
 #include "abstract/shader.hpp"
 
-#define Stacks 10
-#define Slices 10
-#define Radius 0.1f
+#define Stacks 4
+#define Slices 4
+#define Radius 0.2f
 
 #define SKY_BOX_VERTEX_COUNT ( ( Slices + 1 ) * ( Stacks + 1 ) )
 #define SKY_BOX_TRIANGLES_COUNT ( Slices * Stacks + Slices )
@@ -36,6 +36,8 @@ void sky_box_init( SkyBox *skyBox ) {
             vertex->x = x * Radius;
             vertex->y = y * Radius;
             vertex->z = z * Radius;
+            vertex->u = U;
+            vertex->v = V;
         }
     }
 
@@ -60,6 +62,7 @@ void sky_box_init( SkyBox *skyBox ) {
     // These are from SkyVertex
     vertex_buffer_layout_init( &skyBox->vbl );
     vertex_buffer_layout_push_float( &skyBox->vbl, 3 ); // Coords
+    vertex_buffer_layout_push_float( &skyBox->vbl, 2 ); // TxCoords
 
     skyBox->vertex_size = SKY_BOX_VERTEX_COUNT;
 
@@ -69,12 +72,11 @@ void sky_box_init( SkyBox *skyBox ) {
     vertex_array_init( &skyBox->va );
 
     vertex_array_add_buffer( &skyBox->va, &skyBox->vb, &skyBox->vbl, 0, 0 );
-
     shader_init( &skyBox->shader, "sky_box_vertex.glsl", "sky_box_fragment.glsl" );
     texture_init_sky( &skyBox->texture );
 }
 
 void sky_box_draw( SkyBox *skyBox, Renderer *renderer ) {
-    texture_bind( &skyBox->texture, 1 );
+    shader_set_uniform1i( &skyBox->shader, "u_Texture", skyBox->texture.slot );
     renderer_draw( renderer, &skyBox->va, &skyBox->ib, &skyBox->shader, 1 );
 }

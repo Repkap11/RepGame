@@ -15,8 +15,9 @@ void world_draw_solid( LoadedChunks *loadedChunks, glm::mat4 &mvp ) {
     chunk_loader_draw_chunks_solid( loadedChunks, mvp );
 }
 void world_draw_liquid( LoadedChunks *loadedChunks, glm::mat4 &mvp ) {
-    chunk_loader_draw_chunks_liquid( loadedChunks, mvp );
     sky_box_draw( &loadedChunks->skyBox, &loadedChunks->renderer );
+
+    chunk_loader_draw_chunks_liquid( loadedChunks, mvp );
 }
 void world_cleanup( LoadedChunks *loadedChunks ) {
     chunk_loader_cleanup( loadedChunks );

@@ -20,6 +20,8 @@ typedef struct {
     float x;
     float y;
     float z;
+    float u;
+    float v;
 } SkyVertex;
 
 void sky_box_init( SkyBox *skyBox );
