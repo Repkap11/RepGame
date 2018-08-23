@@ -4,9 +4,9 @@
 #include "sky_box.hpp"
 #include "abstract/shader.hpp"
 
-#define Stacks 4
-#define Slices 4
-#define Radius 0.2f
+#define Stacks 10
+#define Slices 10
+#define Radius 0.1f
 
 #define SKY_BOX_VERTEX_COUNT ( ( Slices + 1 ) * ( Stacks + 1 ) )
 #define SKY_BOX_TRIANGLES_COUNT ( Slices * Stacks + Slices )
@@ -28,7 +28,7 @@ void sky_box_init( SkyBox *skyBox ) {
 
             // Calc The Vertex Positions
             float x = cosf( theta ) * sinf( phi );
-            float y = cosf( phi );
+            float y = -cosf( phi );
             float z = sinf( theta ) * sinf( phi );
 
             // Push Back Vertex Data

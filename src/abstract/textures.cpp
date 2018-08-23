@@ -3,11 +3,12 @@
 
 #include "RepGame.hpp"
 #include "abstract/textures.hpp"
+#include <cstring>
 
 #define BMP_HEADER_SIZE 138
 
 #ifdef REPGAME_LINUX
-void textures_set_texture_data( unsigned char *textures, int textures_len ) {
+void textures_set_texture_data( unsigned int which_texture, unsigned char *textures, int textures_len ) {
     pr_debug( "textures_set_texture_data doesnt need to be called on Linux" );
 }
 unsigned char *readTextureData( const char *filename, size_t mem_size ) {
@@ -31,9 +32,9 @@ unsigned char *readTextureData( const char *filename, size_t mem_size ) {
 #define GL_TEXTURE_MAX_ANISOTROPY_EXT 0x84FE
 #define GL_MAX_TEXTURE_MAX_ANISOTROPY_EXT 0x84FF
 
-unsigned char *cached_texture = NULL;
+unsigned char *cached_texture[ 2 ];
 
-void textures_set_texture_data( unsigned char *textures, int textures_len ) {
+void textures_set_texture_data( unsigned int which_texture, unsigned char *textures, int textures_len ) {
     for ( int i = BMP_HEADER_SIZE; i < textures_len; i += 4 ) {
         unsigned char a = textures[ i + 0 ];
         unsigned char b = textures[ i + 1 ];
@@ -44,18 +45,17 @@ void textures_set_texture_data( unsigned char *textures, int textures_len ) {
         textures[ i + 2 ] = b;
         textures[ i + 3 ] = a;
     }
-    cached_texture = textures;
+    cached_texture[ which_texture ] = textures;
 }
 
 unsigned char *readTextureData( const char *filename, size_t mem_size ) {
-    return cached_texture;
-    // unsigned char *data;
-    // data = ( unsigned char * )malloc( mem_size );
-    // pr_debug( "Fake loaded texture:%s", filename );
-    // for ( size_t i = 0; i < mem_size; i++ ) {
-    //     data[ i ] = ( unsigned char )100;
-    // }
-    // return data;
+    //TODO this is such a hack
+    if ( strcmp( filename, "/system/bin/bitmaps/textures.bmp" ) == 0 )
+        return cached_texture[ 0 ];
+    if ( strcmp( filename, "/system/bin/bitmaps/sky4.bmp" ) == 0 )
+        return cached_texture[ 1 ];
+    pr_debug( "Cant find a texture for:%s", filename );
+    return NULL;
 }
 
 #endif

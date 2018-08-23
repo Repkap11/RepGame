@@ -8,7 +8,7 @@ typedef struct {
 
 #include "block_definitions.hpp"
 
-void textures_set_texture_data( unsigned char *textures, int textures_len );
+void textures_set_texture_data( unsigned int which_texture, unsigned char *textures, int textures_len );
 
 void texture_init_blocks( Texture *texture );
 void texture_init_sky( Texture *texture );

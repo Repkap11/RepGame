@@ -199,8 +199,8 @@ void repgame_init( ) {
     pr_debug( "GL_SAMPLE_BUFFERS = %d, GL_SAMPLES = %d", iMultiSample, iNumSamples );
 }
 
-void repgame_set_textures( unsigned char *textures, int textures_len ) {
-    textures_set_texture_data( textures, textures_len );
+void repgame_set_textures( unsigned int which_texture, unsigned char *textures, int textures_len ) {
+    textures_set_texture_data( which_texture, textures, textures_len );
 }
 
 int repgame_shouldExit( ) {

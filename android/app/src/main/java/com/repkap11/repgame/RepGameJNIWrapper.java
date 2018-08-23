@@ -11,7 +11,7 @@ class RepGameJNIWrapper {
         System.loadLibrary("RepGameAndroid");
     }
 
-    public static native void onSurfaceCreated(byte[] textures, AssetManager assetManager);
+    public static native void onSurfaceCreated(byte[] textureBlocks, byte[] textureSky, AssetManager assetManager);
 
     public static native void onDrawFrame();
 
@@ -20,5 +20,6 @@ class RepGameJNIWrapper {
     public static native void lookInput(int xdiff, int ydiff);
 
     public static native void positionHInput(float sizeH, float angleH);
+
     public static native void positionVInput(int sizeV);
 }
