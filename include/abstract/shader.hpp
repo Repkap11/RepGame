@@ -7,7 +7,7 @@ typedef struct {
     unsigned int m_RendererId; //
 } Shader;
 
-void shader_init( Shader *shader );
+void shader_init( Shader *shader, const char *vertex, const char *fragment );
 void shader_bind( const Shader *shader );
 void shader_unbind( const Shader *shader );
 void shader_destroy( Shader *shader );

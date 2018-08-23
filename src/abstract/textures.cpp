@@ -123,10 +123,9 @@ void texture_init_sky( Texture *texture ) {
     char *dir = getRepGamePath( );
     char bufferSky[ BUFSIZ ];
     sprintf( bufferSky, "%s%s", dir, "/bitmaps/sky4.bmp" );
-    // texture->m_RendererId = loadTexture( bufferSky, 2048, 1024, BMP_HEADER_SIZE, 2048, 1024 );
+    texture->m_RendererId = loadTexture( bufferSky, 2048, 1024, BMP_HEADER_SIZE, 2048, 1024 );
     texture->m_RendererId = 0;
 }
-
 void texture_bind( Texture *texture, unsigned int texture_slot ) {
     glActiveTexture( GL_TEXTURE0 + texture_slot );
     glBindTexture( GL_TEXTURE_2D_ARRAY, texture->m_RendererId );

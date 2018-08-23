@@ -41,7 +41,8 @@ all: linux android
 
 DIRS = $(patsubst %/, %, $(sort $(dir $(patsubst src/%, out/linux/%, $(wildcard src/*) $(wildcard src/**/*)))))\
 	   $(patsubst %/, %, $(sort $(dir $(patsubst src/%, out/android/%, $(wildcard src/*) $(wildcard src/**/*)))))\
-	   $(patsubst %/, %, $(sort $(dir $(patsubst src/%, out/cuda/%, $(wildcard src/*) $(wildcard src/**/*)))))
+	   $(patsubst %/, %, $(sort $(dir $(patsubst src/%, out/cuda/%, $(wildcard src/*) $(wildcard src/**/*)))))\
+	   android/app/src/main/assets/shaders
 
 OBJECTS_LINUX = $(patsubst src/%.cpp, out/linux/%.so, $(wildcard src/linux/*.cpp))
 OBJECTS_CUDA = $(patsubst src/%.cu, out/cuda/%.so, $(wildcard src/cuda/*.cu))
@@ -101,9 +102,9 @@ map:
 clean-linux: map
 	rm -rf out
 	rm -f $(TARGET)
-	rm -f $(SHADERS_ANDROID)
 
-clean-android: map
+clean-android:
+	rm -f $(SHADERS_ANDROID)
 	./android/gradlew -q -p android clean
 
 clean: clean-android clean-linux map

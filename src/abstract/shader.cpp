@@ -16,11 +16,11 @@ char *shaderLoadSource( const char *filePath ) {
     /* open file */
     char *dir = getRepGamePath( );
     char fullPath[ BUFSIZ ];
-    sprintf( fullPath, "%s%s%s", dir, "/", filePath );
+    sprintf( fullPath, "%s/shaders/%s", dir, filePath );
     pr_debug( "shader path:%s", fullPath );
     fp = fopen( fullPath, "r" );
     if ( !fp ) {
-        pr_debug( "shaderLoadSource(): Unable to open %s for reading\n", filePath );
+        pr_debug( "shaderLoadSource(): Unable to open %s for reading\n", fullPath );
         return NULL;
     }
 
@@ -52,17 +52,13 @@ char *shaderLoadSource( const char *filePath ) {
     return source;
 }
 
-unsigned int shaderCompileFromString( int type, int is_frag ) {
+unsigned int shaderCompileFromString( int type, const char *fileName ) {
     const char *source;
     unsigned int shader;
     int length, result;
 
     /* get shader source */
-    if ( is_frag ) {
-        source = repgame_getShaderString( "fragment.glsl" );
-    } else {
-        source = repgame_getShaderString( "vertex.glsl" );
-    }
+    source = repgame_getShaderString( fileName );
 
     /* create shader object, set the source, and compile */
     shader = glCreateShader( type );
@@ -81,7 +77,7 @@ unsigned int shaderCompileFromString( int type, int is_frag ) {
         glGetShaderInfoLog( shader, length, &result, log );
 
         /* print an error message and the info log */
-        pr_debug( "shaderCompileFromFile(): Unable to compile is_frag:%d: %s\n", is_frag, log );
+        pr_debug( "shaderCompileFromFile(): Unable to compile: %s\n", log );
         free( log );
 
         glDeleteShader( shader );
@@ -138,8 +134,8 @@ void shaderAttachFromFile( unsigned int program, GLenum type, const char *filePa
     }
 }
 
-void shaderAttachFromString( unsigned int program, GLenum type, int is_frag ) {
-    GLuint shader = shaderCompileFromString( type, is_frag );
+void shaderAttachFromString( unsigned int program, GLenum type, const char *filePath ) {
+    GLuint shader = shaderCompileFromString( type, filePath );
     if ( shader != 0 ) {
         glAttachShader( program, shader );
         glDeleteShader( shader );
@@ -161,8 +157,8 @@ unsigned int shaders_compile( const char *vertex_path, const char *fragment_path
         shaderAttachFromFile( g_program, GL_VERTEX_SHADER, vertex_path );
         shaderAttachFromFile( g_program, GL_FRAGMENT_SHADER, fragment_path );
 #else
-        shaderAttachFromString( g_program, GL_VERTEX_SHADER, 0 );
-        shaderAttachFromString( g_program, GL_FRAGMENT_SHADER, 1 );
+        shaderAttachFromString( g_program, GL_VERTEX_SHADER, vertex_path );
+        shaderAttachFromString( g_program, GL_FRAGMENT_SHADER, fragment_path );
 #endif
         glLinkProgram( g_program );
         glValidateProgram( g_program );
@@ -193,8 +189,8 @@ unsigned int shaders_compile( const char *vertex_path, const char *fragment_path
     return g_program;
 }
 
-void shader_init( Shader *shader ) {
-    shader->m_RendererId = shaders_compile( "shaders/vertex.glsl", "shaders/fragment.glsl" );
+void shader_init( Shader *shader, const char *vertex, const char *fragment ) {
+    shader->m_RendererId = shaders_compile( vertex, fragment );
 }
 
 void shader_bind( const Shader *shader ) {

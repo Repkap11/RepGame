@@ -3,6 +3,7 @@
 #include "chunk.hpp"
 #include "abstract/renderer.hpp"
 #include "mouse_selection.hpp"
+#include "sky_box.hpp"
 
 typedef struct {
     int chunk_center_x, chunk_center_y, chunk_center_z;
@@ -19,6 +20,7 @@ typedef struct {
     } water;
     VertexBufferLayout vbl_block;
     VertexBufferLayout vbl_coords;
+    SkyBox skyBox;
 } LoadedChunks;
 
 void chunk_loader_init( LoadedChunks *loadedChunks );

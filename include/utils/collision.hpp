@@ -1,0 +1,6 @@
+#ifndef HEADER_COLLISION_H
+#define HEADER_COLLISION_H
+
+
+
+#endif
