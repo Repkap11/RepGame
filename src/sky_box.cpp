@@ -4,12 +4,12 @@
 #include "sky_box.hpp"
 #include "abstract/shader.hpp"
 
-#define Stacks 10
-#define Slices 10
-#define Radius 0.1f
+#define Stacks 20
+#define Slices 20
+#define Radius 750.0f
 
-#define SKY_BOX_VERTEX_COUNT ( ( Slices + 1 ) * ( Stacks + 1 ) )
-#define SKY_BOX_TRIANGLES_COUNT ( Slices * Stacks + Slices )
+#define SKY_BOX_VERTEX_COUNT ( ( Slices + 2 ) * ( Stacks + 1 ) )
+#define SKY_BOX_TRIANGLES_COUNT ( ( Slices ) * ( Stacks + 1 ) )
 #define SKY_BOX_INDEX_COUNT ( SKY_BOX_TRIANGLES_COUNT * 6 )
 
 void sky_box_init( SkyBox *skyBox ) {
@@ -19,20 +19,20 @@ void sky_box_init( SkyBox *skyBox ) {
 
         float V = i / ( float )Stacks;
         float phi = V * glm::pi<float>( );
+        float y = -cosf( phi );
 
         // Loop Through Slices
-        for ( int j = 0; j <= Slices; ++j ) {
+        for ( int j = 0; j <= Slices + Stacks; ++j ) {
 
-            float U = j / ( float )Slices;
+            float U = ( j / ( ( float )Slices ) ); // * 0.75f + 0.05f;
             float theta = U * ( glm::pi<float>( ) * 2 );
 
             // Calc The Vertex Positions
             float x = cosf( theta ) * sinf( phi );
-            float y = -cosf( phi );
             float z = sinf( theta ) * sinf( phi );
 
             // Push Back Vertex Data
-            SkyVertex *vertex = &vb_data[ i * Slices + j ];
+            SkyVertex *vertex = &vb_data[ i * ( Slices + 1 ) + j ];
             vertex->x = x * Radius;
             vertex->y = y * Radius;
             vertex->z = z * Radius;
@@ -47,12 +47,12 @@ void sky_box_init( SkyBox *skyBox ) {
     for ( int i = 0; i < SKY_BOX_TRIANGLES_COUNT; ++i ) {
 
         ib_data[ i * 6 + 0 ] = i;
-        ib_data[ i * 6 + 2 ] = i + Slices + 1;
-        ib_data[ i * 6 + 1 ] = i + Slices;
+        ib_data[ i * 6 + 1 ] = i + Slices + 1;
+        ib_data[ i * 6 + 2 ] = i + Slices;
 
         ib_data[ i * 6 + 3 ] = i + Slices + 1;
-        ib_data[ i * 6 + 5 ] = i;
-        ib_data[ i * 6 + 4 ] = i + 1;
+        ib_data[ i * 6 + 4 ] = i;
+        ib_data[ i * 6 + 5 ] = i + 1;
         if ( i * 6 + 5 > SKY_BOX_INDEX_COUNT ) {
             pr_debug( "Out of bounds" );
         }
@@ -76,7 +76,8 @@ void sky_box_init( SkyBox *skyBox ) {
     texture_init_sky( &skyBox->texture );
 }
 
-void sky_box_draw( SkyBox *skyBox, Renderer *renderer ) {
+void sky_box_draw( SkyBox *skyBox, Renderer *renderer, glm::mat4 &mvp_sky ) {
     shader_set_uniform1i( &skyBox->shader, "u_Texture", skyBox->texture.slot );
+    shader_set_uniform_mat4f( &skyBox->shader, "u_MVP", mvp_sky );
     renderer_draw( renderer, &skyBox->va, &skyBox->ib, &skyBox->shader, 1 );
 }

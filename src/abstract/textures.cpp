@@ -49,7 +49,7 @@ void textures_set_texture_data( unsigned int which_texture, unsigned char *textu
 }
 
 unsigned char *readTextureData( const char *filename, size_t mem_size ) {
-    //TODO this is such a hack
+    // TODO this is such a hack
     if ( strcmp( filename, "/system/bin/bitmaps/textures.bmp" ) == 0 )
         return cached_texture[ 0 ];
     if ( strcmp( filename, "/system/bin/bitmaps/sky4.bmp" ) == 0 )

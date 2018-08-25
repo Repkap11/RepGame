@@ -37,6 +37,20 @@ static void gameTick( ) {
         return;
     }
 
+    int whichFace = 0;
+    globalGameState.block_selection.selectionInBounds =                                                                 //
+        ray_traversal_find_block_from_to( &globalGameState.gameChunks,                                                  //
+                                          globalGameState.camera.x, globalGameState.camera.y, globalGameState.camera.z, //
+                                          globalGameState.camera.x + globalGameState.camera.look.x * REACH_DISTANCE,    //
+                                          globalGameState.camera.y + globalGameState.camera.look.y * REACH_DISTANCE,    //
+                                          globalGameState.camera.z + globalGameState.camera.look.z * REACH_DISTANCE,    //
+                                          TRIP_ARGS( &globalGameState.block_selection.destroy_ ), &whichFace );
+    globalGameState.block_selection.create_x = globalGameState.block_selection.destroy_x + ( whichFace == FACE_RIGHT ) - ( whichFace == FACE_LEFT );
+    globalGameState.block_selection.create_y = globalGameState.block_selection.destroy_y + ( whichFace == FACE_TOP ) - ( whichFace == FACE_BOTTOM );
+    globalGameState.block_selection.create_z = globalGameState.block_selection.destroy_z + ( whichFace == FACE_BACK ) - ( whichFace == FACE_FRONT );
+
+    chunk_loader_set_selected_block( &globalGameState.gameChunks, TRIP_ARGS( globalGameState.block_selection.destroy_ ), globalGameState.block_selection.selectionInBounds );
+
     globalGameState.block_selection.selectionInBounds = sqrt(                                                                                                                                                     //
                                                             ( globalGameState.camera.x - globalGameState.block_selection.destroy_x ) * ( globalGameState.camera.x - globalGameState.block_selection.destroy_x ) + //
                                                             ( globalGameState.camera.y - globalGameState.block_selection.destroy_y ) * ( globalGameState.camera.y - globalGameState.block_selection.destroy_y ) + //
@@ -123,7 +137,7 @@ static void gameTick( ) {
     globalGameState.camera.view_look = glm::lookAt( glm::vec3( 0.0f, 0.0f, 0.0f ), // From the origin
                                                     globalGameState.camera.look,   // Look at look vector
                                                     glm::vec3( 0.0f, 1.0f, 0.0f )  // Head is up (set to 0,-1,0 to look upside-down)
-    );
+                                                    );
     globalGameState.camera.view_trans = glm::translate( glm::mat4( 1.0f ), glm::vec3( -globalGameState.camera.x,     //
                                                                                       -globalGameState.camera.y,     //
                                                                                       -globalGameState.camera.z ) ); //
@@ -238,31 +252,14 @@ void repgame_get_screen_size( int *width, int *height ) {
 }
 
 void repgame_draw( ) {
-    glm::mat4 mvp = globalGameState.screen.proj * globalGameState.camera.view_look * globalGameState.camera.view_trans;
+    glm::mat4 mvp_sky = globalGameState.screen.proj * globalGameState.camera.view_look;
+    glm::mat4 mvp = mvp_sky * globalGameState.camera.view_trans;
     world_render( &globalGameState.gameChunks, globalGameState.camera.x, globalGameState.camera.y, globalGameState.camera.z );
     showErrors( );
 
-    world_draw_solid( &globalGameState.gameChunks, mvp );
-
-    int whichFace = 0;
-    // globalGameState.block_selection.selectionFound = getMouseCoords( TRIP_ARGS( &globalGameState.block_selection.destroy_ ), &whichFace );
-    globalGameState.block_selection.selectionInBounds =                                                                 //
-        ray_traversal_find_block_from_to( &globalGameState.gameChunks,                                                  //
-                                          globalGameState.camera.x, globalGameState.camera.y, globalGameState.camera.z, //
-                                          globalGameState.camera.x + globalGameState.camera.look.x * REACH_DISTANCE,    //
-                                          globalGameState.camera.y + globalGameState.camera.look.y * REACH_DISTANCE,    //
-                                          globalGameState.camera.z + globalGameState.camera.look.z * REACH_DISTANCE,    //
-                                          TRIP_ARGS( &globalGameState.block_selection.destroy_ ), &whichFace );
-    // pr_debug( "Depth at center x:%d y:%d z:%d face:%d draw:%d", //
-    //           TRIP_ARGS( globalGameState.block_selection.destroy_ ), whichFace, globalGameState.block_selection.selectionInBounds );
-    globalGameState.block_selection.create_x = globalGameState.block_selection.destroy_x + ( whichFace == FACE_RIGHT ) - ( whichFace == FACE_LEFT );
-    globalGameState.block_selection.create_y = globalGameState.block_selection.destroy_y + ( whichFace == FACE_TOP ) - ( whichFace == FACE_BOTTOM );
-    globalGameState.block_selection.create_z = globalGameState.block_selection.destroy_z + ( whichFace == FACE_BACK ) - ( whichFace == FACE_FRONT );
-
-    chunk_loader_set_selected_block( &globalGameState.gameChunks, TRIP_ARGS( globalGameState.block_selection.destroy_ ), globalGameState.block_selection.selectionInBounds );
-    chunk_loader_draw_mouse_selection( &globalGameState.gameChunks );
-
+    world_draw_solid( &globalGameState.gameChunks, mvp, mvp_sky );
     world_draw_liquid( &globalGameState.gameChunks, mvp );
+    chunk_loader_draw_mouse_selection( &globalGameState.gameChunks );
 }
 
 void repgame_cleanup( ) {

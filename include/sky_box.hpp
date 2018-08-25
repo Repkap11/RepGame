@@ -25,6 +25,6 @@ typedef struct {
 } SkyVertex;
 
 void sky_box_init( SkyBox *skyBox );
-void sky_box_draw( SkyBox *skyBox, Renderer *renderer );
+void sky_box_draw( SkyBox *skyBox, Renderer *renderer, glm::mat4 &mvp_sky );
 
 #endif

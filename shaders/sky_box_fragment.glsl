@@ -14,7 +14,5 @@ void main( ) {
     if ( texColor.a == 0.0 ) {
         discard;
     }
-
     color = texColor;
-    // color = vec4( 1, 0, 0, 1 );
 }
