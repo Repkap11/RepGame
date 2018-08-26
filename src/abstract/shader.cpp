@@ -224,6 +224,11 @@ void shader_set_uniform4f( Shader *shader, const char *name, float f0, float f1,
     glUniform4f( get_uniform_location( shader, name ), f0, f1, f2, f3 );
 }
 
+void shader_set_uniform3f( Shader *shader, const char *name, float f0, float f1, float f2 ) {
+    shader_bind( shader );
+    glUniform3f( get_uniform_location( shader, name ), f0, f1, f2 );
+}
+
 void shader_set_uniform1i( Shader *shader, const char *name, int i ) {
     shader_bind( shader );
     glUniform1i( get_uniform_location( shader, name ), i );

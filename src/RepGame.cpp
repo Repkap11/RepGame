@@ -137,7 +137,7 @@ static void gameTick( ) {
     globalGameState.camera.view_look = glm::lookAt( glm::vec3( 0.0f, 0.0f, 0.0f ), // From the origin
                                                     globalGameState.camera.look,   // Look at look vector
                                                     glm::vec3( 0.0f, 1.0f, 0.0f )  // Head is up (set to 0,-1,0 to look upside-down)
-                                                    );
+    );
     globalGameState.camera.view_trans = glm::translate( glm::mat4( 1.0f ), glm::vec3( -globalGameState.camera.x,     //
                                                                                       -globalGameState.camera.y,     //
                                                                                       -globalGameState.camera.z ) ); //
@@ -177,12 +177,13 @@ static inline void initilizeGameState( ) {
     globalGameState.input.exitGame = 0;
     globalGameState.input.limit_fps = 1;
     globalGameState.camera.angle_H = 135.0f;
-    globalGameState.camera.angle_V = 45.0f;
+    globalGameState.camera.angle_V = 25.0f;
     globalGameState.camera.x = -1.0f;
     globalGameState.camera.y = PERSON_HEIGHT;
     globalGameState.camera.z = -1.0f;
     globalGameState.block_selection.holdingBlock = TNT;
     world_init( &globalGameState.gameChunks );
+    ui_overlay_init( &globalGameState.ui_overlay );
 }
 
 int check_block( Block *block ) {
@@ -237,6 +238,8 @@ void repgame_changeSize( int w, int h ) {
 
     glViewport( 0, 0, w, h );
     globalGameState.screen.proj = glm::perspective<float>( glm::radians( CAMERA_FOV ), globalGameState.screen.width / globalGameState.screen.height, 0.2f, 800.0f );
+    globalGameState.screen.ortho = glm::ortho<float>( 0.f, w, 0.f, h, -1.f, 1.f );
+    globalGameState.screen.ortho_center = glm::ortho<float>( -w / 2, w / 2, -h / 2, h / 2, -1.f, 1.f );
 }
 
 void repgame_tick( ) {
@@ -260,6 +263,7 @@ void repgame_draw( ) {
     world_draw_solid( &globalGameState.gameChunks, mvp, mvp_sky );
     world_draw_liquid( &globalGameState.gameChunks, mvp );
     chunk_loader_draw_mouse_selection( &globalGameState.gameChunks );
+    ui_overlay_draw( &globalGameState.ui_overlay, &globalGameState.gameChunks.renderer, globalGameState.screen.ortho_center );
 }
 
 void repgame_cleanup( ) {

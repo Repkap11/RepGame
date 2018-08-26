@@ -9,6 +9,8 @@
 
 #include "chunk_loader.hpp"
 #include "constants.hpp"
+#include "ui_overlay.hpp"
+
 #include <glm.hpp>
 #include <gtc/matrix_transform.hpp>
 #define DEBUG 1
@@ -41,8 +43,11 @@ typedef struct {
         float width;
         float height;
         glm::mat4 proj;
+        glm::mat4 ortho;
+        glm::mat4 ortho_center;
     } screen;
     LoadedChunks gameChunks;
+    UIOverlay ui_overlay;
     struct {
         int selectionInBounds;
         int face;
