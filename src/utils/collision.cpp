@@ -12,7 +12,7 @@ int collision_check_move( LoadedChunks *loadedChunks, TRIP_ARGS( float *movement
     float *faces_extra = ( float * )calloc( NUM_FACES_IN_CUBE, sizeof( float ) );
     // position_y -= 1.6f;
     int half_width_x = 0.5f;
-    int half_width_y = 0.9f;
+    int half_width_y = 0.5f;
     int half_width_z = 0.5f;
     // Set of loops for block position
     for ( int offset_x = -1; offset_x < 2; offset_x++ ) {
@@ -22,7 +22,7 @@ int collision_check_move( LoadedChunks *loadedChunks, TRIP_ARGS( float *movement
                 int out_face;
                 float out_extra = 0;
                 float new_x = position_x + offset_x * half_width_x;
-                float new_y = position_y + offset_y * half_width_y - 1.6;
+                float new_y = position_y + offset_y * half_width_y; // - 1.6;
                 float new_z = position_z + offset_z * half_width_z;
 
                 int collide = ray_traversal_find_block_from_to( //
@@ -33,11 +33,16 @@ int collision_check_move( LoadedChunks *loadedChunks, TRIP_ARGS( float *movement
                     new_x + ( *movement_vec_x ),                //
                     new_y + ( *movement_vec_y ),                //
                     new_z + ( *movement_vec_z ),                //
-                    TRIP_ARGS( &out_ ), &out_face, &out_extra );
+                    TRIP_ARGS( &out_ ), &out_face, &out_extra, 1 );
                 if ( collide ) {
-                    faces[ out_face ] = 1;
                     float cur_value = faces_extra[ out_face ];
-                    faces_extra[ out_face ] = out_extra < cur_value ? cur_value : out_extra;
+                    // float next_value = ( out_extra > cur_value ) ? out_extra : cur_value;
+                    float next_value = out_extra;
+                    if ( next_value < 0.9f ) {
+                        pr_debug( "Got it" );
+                    }
+                    faces_extra[ out_face ] = next_value;
+                    faces[ out_face ] = 1;
                 }
             }
         }
@@ -57,10 +62,9 @@ int collision_check_move( LoadedChunks *loadedChunks, TRIP_ARGS( float *movement
     }
     if ( faces[ FACE_TOP ] && *movement_vec_y < 0 ) {
         float orig_movement = *movement_vec_y;
-        *movement_vec_y = -1.0f + faces_extra[ FACE_TOP ];
-        if ( *movement_vec_y < -0.11f ) {
-            pr_debug( "Too large" );
-        }
+        double int_part;
+        float new_value = position_y + *movement_vec_y;
+        *movement_vec_y = roundf( new_value ) - position_y;
         collide = 1;
 
         pr_debug( "Collide FACE_TOP" );

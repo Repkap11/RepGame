@@ -14,9 +14,9 @@ int contains_block( LoadedChunks *gameChunks, int block_x, int block_y, int bloc
     return !( block->alpha != 1.0f );
 }
 
-int ray_traversal_find_block_from_to( LoadedChunks *gameChunks, float x1, float y1, float z1, //
-                                      float x2, float y2, float z2,                           //
-                                      int *out_x, int *out_y, int *out_z, int *out_whichFace, float *out_extra ) {
+int ray_traversal_find_block_from_to( LoadedChunks *gameChunks, const float x1, const float y1, const float z1, //
+                                      const float x2, const float y2, const float z2,                           //
+                                      int *out_x, int *out_y, int *out_z, int *out_whichFace, float *out_extra, int flag ) {
 
     int i = ( int )floorf( x1 );
     int j = ( int )floorf( y1 );
@@ -41,40 +41,23 @@ int ray_traversal_find_block_from_to( LoadedChunks *gameChunks, float x1, float 
     const float minz = floorf( z1 ), maxz = minz + 1.0f;
     float tz = ( ( z1 > z2 ) ? ( z1 - minz ) : ( maxz - z1 ) ) * deltatz;
 
-    int face = FACE_TOP;
+    int face = FACE_RIGHT;
     for ( ;; ) {
         if ( contains_block( gameChunks, i, j, k ) ) {
             *out_x = i;
             *out_y = j;
             *out_z = k;
-            float extra = 0;
-            if ( di == 1 ) {
-                face = FACE_LEFT;
-                extra = tx;
-            }
-            if ( di == -1 ) {
-                face = FACE_RIGHT;
-                extra = tx;
-            }
-            if ( dj == 1 ) {
-                face = FACE_BOTTOM;
-                extra = ty;
-            }
-            if ( dj == -1 ) {
-                face = FACE_TOP;
-                extra = ty;
-            }
-            if ( dk == 1 ) {
-                face = FACE_FRONT;
-                extra = tz;
-            }
-            if ( dk == -1 ) {
-                face = FACE_BACK;
-                extra = tz;
-            }
-            double intpart;
-            *out_extra = modf( extra, &intpart );
             *out_whichFace = face;
+            if ( face == FACE_TOP || face == FACE_BOTTOM ) {
+                double intpart;
+                *out_extra = modf( ty, &intpart );
+            }
+
+            if ( flag ) {
+                if ( *out_extra < 0.9f ) {
+                    pr_debug( "Got flag" );
+                }
+            }
             return 1;
         }
 
@@ -83,20 +66,37 @@ int ray_traversal_find_block_from_to( LoadedChunks *gameChunks, float x1, float 
                 break;
             tx += deltatx;
             i += di;
+            if ( di == 1 ) {
+                face = FACE_LEFT;
+            }
+            if ( di == -1 ) {
+                face = FACE_RIGHT;
+            }
 
         } else if ( ty <= tz ) {
             if ( j == jend )
                 break;
             ty += deltaty;
             j += dj;
+            if ( dj == 1 ) {
+                face = FACE_BOTTOM;
+            }
+            if ( dj == -1 ) {
+                face = FACE_TOP;
+            }
 
         } else {
             if ( k == kend )
                 break;
             tz += deltatz;
             k += dk;
+            if ( dk == 1 ) {
+                face = FACE_FRONT;
+            }
+            if ( dk == -1 ) {
+                face = FACE_BACK;
+            }
         }
     }
-
     return 0;
 }
