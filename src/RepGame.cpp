@@ -14,7 +14,8 @@
 #include "abstract/vertex_buffer_layout.hpp"
 #include "abstract/vertex_array.hpp"
 #include "abstract/renderer.hpp"
-#include "ray_traversal.hpp"
+#include "utils/ray_traversal.hpp"
+#include "utils/collision.hpp"
 
 RepGameState globalGameState;
 
@@ -38,13 +39,14 @@ static void gameTick( ) {
     }
 
     int whichFace = 0;
+    float extra;
     globalGameState.block_selection.selectionInBounds =                                                                 //
         ray_traversal_find_block_from_to( &globalGameState.gameChunks,                                                  //
                                           globalGameState.camera.x, globalGameState.camera.y, globalGameState.camera.z, //
                                           globalGameState.camera.x + globalGameState.camera.look.x * REACH_DISTANCE,    //
                                           globalGameState.camera.y + globalGameState.camera.look.y * REACH_DISTANCE,    //
                                           globalGameState.camera.z + globalGameState.camera.look.z * REACH_DISTANCE,    //
-                                          TRIP_ARGS( &globalGameState.block_selection.destroy_ ), &whichFace );
+                                          TRIP_ARGS( &globalGameState.block_selection.destroy_ ), &whichFace, &extra );
     globalGameState.block_selection.create_x = globalGameState.block_selection.destroy_x + ( whichFace == FACE_RIGHT ) - ( whichFace == FACE_LEFT );
     globalGameState.block_selection.create_y = globalGameState.block_selection.destroy_y + ( whichFace == FACE_TOP ) - ( whichFace == FACE_BOTTOM );
     globalGameState.block_selection.create_z = globalGameState.block_selection.destroy_z + ( whichFace == FACE_BACK ) - ( whichFace == FACE_FRONT );
@@ -150,12 +152,13 @@ static void gameTick( ) {
     movement_vector_y *= MOVEMENT_SENSITIVITY;
     movement_vector_z *= MOVEMENT_SENSITIVITY;
 
-    float character_half_width = PLAYER_WIDTH / 2.0f;
-    float character_half_height = PLAYER_HEIGHT / 2.0f;
-
-    float limit_movement_x = 0;
-    float limit_movement_y = 0;
-    float limit_movement_z = 0;
+    int collision = collision_check_move( &globalGameState.gameChunks, TRIP_ARGS( &movement_vector_ ), //
+                                          globalGameState.camera.x,                                    //
+                                          globalGameState.camera.y,                                    //
+                                          globalGameState.camera.z );
+    if ( collision ) {
+        pr_debug( "Collision!" );
+    }
 
     globalGameState.camera.x += movement_vector_x;
     globalGameState.camera.y += movement_vector_y;
@@ -179,7 +182,7 @@ static inline void initilizeGameState( ) {
     globalGameState.camera.angle_H = 135.0f;
     globalGameState.camera.angle_V = 25.0f;
     globalGameState.camera.x = -1.0f;
-    globalGameState.camera.y = PERSON_HEIGHT;
+    globalGameState.camera.y = 10.0f;
     globalGameState.camera.z = -1.0f;
     globalGameState.block_selection.holdingBlock = TNT;
     world_init( &globalGameState.gameChunks );
@@ -237,7 +240,7 @@ void repgame_changeSize( int w, int h ) {
     globalGameState.input.mouse.previousPosition.y = h / 2;
 
     glViewport( 0, 0, w, h );
-    globalGameState.screen.proj = glm::perspective<float>( glm::radians( CAMERA_FOV ), globalGameState.screen.width / globalGameState.screen.height, 0.2f, 800.0f );
+    globalGameState.screen.proj = glm::perspective<float>( glm::radians( CAMERA_FOV ), globalGameState.screen.width / globalGameState.screen.height, 0.1f, 800.0f );
     globalGameState.screen.ortho = glm::ortho<float>( 0.f, w, 0.f, h, -1.f, 1.f );
     globalGameState.screen.ortho_center = glm::ortho<float>( -w / 2, w / 2, -h / 2, h / 2, -1.f, 1.f );
 }

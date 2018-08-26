@@ -1,7 +1,7 @@
 #ifndef HEADER_CONSTANTS_H
 #define HEADER_CONSTANTS_H
 
-#define MOVEMENT_SENSITIVITY 0.5f // How sensitive the arrow keys are
+#define MOVEMENT_SENSITIVITY 0.1f // How sensitive the arrow keys are
 
 #ifdef REPGAME_LINUX
 
@@ -43,7 +43,7 @@
 #define GRAVITY_STRENGTH 0.0f
 
 #define CAMERA_SIZE 0.01f // Defines how much crop is in front (low for minecraft)
-#define PERSON_HEIGHT 10.0f
+#define PERSON_HEIGHT 1.62f
 #define DRAW_DISTANCE 1000
 #define LIMIT_FPS 1
 #define SHOW_FPS 0

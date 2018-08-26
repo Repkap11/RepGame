@@ -5,5 +5,5 @@ uniform mat4 u_MVP;
 layout( location = 0 ) in vec2 position;
 
 void main( ) {
-    gl_Position = u_MVP * vec4( position, -0.2, 1 );
+    gl_Position = u_MVP * vec4( position, -0.1, 1 );
 }
