@@ -39,14 +39,13 @@ static void gameTick( ) {
     }
 
     int whichFace = 0;
-    float extra;
     globalGameState.block_selection.selectionInBounds =                                                                 //
         ray_traversal_find_block_from_to( &globalGameState.gameChunks,                                                  //
                                           globalGameState.camera.x, globalGameState.camera.y, globalGameState.camera.z, //
                                           globalGameState.camera.x + globalGameState.camera.look.x * REACH_DISTANCE,    //
                                           globalGameState.camera.y + globalGameState.camera.look.y * REACH_DISTANCE,    //
                                           globalGameState.camera.z + globalGameState.camera.look.z * REACH_DISTANCE,    //
-                                          TRIP_ARGS( &globalGameState.block_selection.destroy_ ), &whichFace, &extra, 0 );
+                                          TRIP_ARGS( &globalGameState.block_selection.destroy_ ), &whichFace, 0 );
     globalGameState.block_selection.create_x = globalGameState.block_selection.destroy_x + ( whichFace == FACE_RIGHT ) - ( whichFace == FACE_LEFT );
     globalGameState.block_selection.create_y = globalGameState.block_selection.destroy_y + ( whichFace == FACE_TOP ) - ( whichFace == FACE_BOTTOM );
     globalGameState.block_selection.create_z = globalGameState.block_selection.destroy_z + ( whichFace == FACE_BACK ) - ( whichFace == FACE_FRONT );
@@ -139,7 +138,7 @@ static void gameTick( ) {
     globalGameState.camera.view_look = glm::lookAt( glm::vec3( 0.0f, 0.0f, 0.0f ), // From the origin
                                                     globalGameState.camera.look,   // Look at look vector
                                                     glm::vec3( 0.0f, 1.0f, 0.0f )  // Head is up (set to 0,-1,0 to look upside-down)
-                                                    );
+    );
     globalGameState.camera.view_trans = glm::translate( glm::mat4( 1.0f ), glm::vec3( -globalGameState.camera.x,     //
                                                                                       -globalGameState.camera.y,     //
                                                                                       -globalGameState.camera.z ) ); //
@@ -152,13 +151,10 @@ static void gameTick( ) {
     movement_vector_y *= MOVEMENT_SENSITIVITY;
     movement_vector_z *= MOVEMENT_SENSITIVITY;
 
-    int collision = collision_check_move( &globalGameState.gameChunks, TRIP_ARGS( &movement_vector_ ), //
-                                          globalGameState.camera.x,                                    //
-                                          globalGameState.camera.y,                                    //
-                                          globalGameState.camera.z );
-    if ( collision ) {
-        pr_debug( "Collision!" );
-    }
+    collision_check_move( &globalGameState.gameChunks, TRIP_ARGS( &movement_vector_ ), //
+                          globalGameState.camera.x,                                    //
+                          globalGameState.camera.y,                                    //
+                          globalGameState.camera.z );
 
     globalGameState.camera.x += movement_vector_x;
     globalGameState.camera.y += movement_vector_y;
