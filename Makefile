@@ -30,7 +30,7 @@ ifneq ("$(wildcard $(CC_CUDA))","")
 endif
 
 #Android arm64 builds
-#include android/local.properties
+include android/local.properties
 ANDROID_NDK_LOCATION = ${ndk.dir}
 CC_ANDROID = $(ANDROID_NDK_LOCATION)/toolchains/aarch64-linux-android-4.9/prebuilt/linux-x86_64/bin/aarch64-linux-android-g++
 LD_ANDROID = $(ANDROID_NDK_LOCATION)/toolchains/aarch64-linux-android-4.9/prebuilt/linux-x86_64/bin/aarch64-linux-android-ld
