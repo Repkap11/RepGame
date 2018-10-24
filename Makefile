@@ -29,31 +29,20 @@ ifneq ("$(wildcard $(CC_CUDA))","")
 	CFLAGS_LINUX += -DLOAD_WITH_CUDA
 endif
 
-#Android arm64 builds
-include android/local.properties
-ANDROID_NDK_LOCATION = ${ndk.dir}
-CC_ANDROID = $(ANDROID_NDK_LOCATION)/toolchains/aarch64-linux-android-4.9/prebuilt/linux-x86_64/bin/aarch64-linux-android-g++
-LD_ANDROID = $(ANDROID_NDK_LOCATION)/toolchains/aarch64-linux-android-4.9/prebuilt/linux-x86_64/bin/aarch64-linux-android-ld
-CFLAGS_ANDROID =  $(CFLAGS) -Wno-attributes
-LDFLAGS_ANDROID = -r -flto
-LIB_TARGET_ANDROID = out/android/lib$(TARGET).so
 
-all: linux android
+all: linux
 
 DIRS = $(patsubst %/, %, $(sort $(dir $(patsubst src/%, out/linux/%, $(wildcard src/*) $(wildcard src/**/*)))))\
 	   $(patsubst %/, %, $(sort $(dir $(patsubst src/%, out/server/%, $(wildcard src/*) $(wildcard src/**/*)))))\
-	   $(patsubst %/, %, $(sort $(dir $(patsubst src/%, out/android/%, $(wildcard src/*) $(wildcard src/**/*)))))\
 	   $(patsubst %/, %, $(sort $(dir $(patsubst src/%, out/cuda/%, $(wildcard src/*) $(wildcard src/**/*)))))\
 	   android/app/src/main/assets/shaders
 
 OBJECTS_LINUX = $(patsubst src/%.cpp, out/linux/%.so, $(wildcard src/linux/*.cpp))
 OBJECTS_CUDA = $(patsubst src/%.cu, out/cuda/%.so, $(wildcard src/cuda/*.cu))
-OBJECTS_ANDROID = #There are no object just for Android right now. Those likely need the Android NDK, and are build by cmake and gradle
 
 ALL_SHARED = $(wildcard src/*.cpp) $(wildcard src/abstract/*.cpp) $(wildcard src/utils/*.cpp)
 OBJECTS_SERVER = $(patsubst server/src/%.cpp, out/server/%.so, $(wildcard server/src/*.cpp))
 OBJECTS_SHARED_LINUX = $(patsubst src/%.cpp, out/linux/%.so, $(ALL_SHARED))
-OBJECTS_SHARED_ANDROID = $(patsubst src/%.cpp, out/android/%.so, $(ALL_SHARED))
 HEADERS = $(wildcard include/*.hpp) $(wildcard include/**/*.hpp)
 SHADERS_ANDROID = $(patsubst shaders/%.glsl, android/app/src/main/assets/%.glsl, $(wildcard shaders/*.glsl))
 
@@ -66,9 +55,6 @@ out/linux/%.so: src/%.cpp $(HEADERS) Makefile
 out/cuda/%.so: src/%.cu $(HEADERS) Makefile
 	$(CC_CUDA) $(CFLAGS_CUDA_COMPILE) -I include/ -I /usr/include/glm $(CFLAGS_CUDA) $< -o $@
 
-out/android/%.so:  src/%.cpp $(HEADERS) Makefile
-	$(CC_ANDROID) $(CFLAGS_ANDROID) -c $< -o $@ -I include/ -I $(ANDROID_NDK_LOCATION)/sysroot/usr/include -I /usr/include/glm -I $(ANDROID_NDK_LOCATION)/sysroot/usr/include/aarch64-linux-android/ -I $(ANDROID_NDK_LOCATION)/sources/cxx-stl/gnu-libstdc++/4.9/include -I $(ANDROID_NDK_LOCATION)/sources/cxx-stl/gnu-libstdc++/4.9/libs/arm64-v8a/include/
-
 out/server/%.so: server/src/%.cpp Makefile 
 	$(CC_LINUX) $(CFLAGS_LINUX) -c $< -o $@
 
@@ -77,9 +63,6 @@ $(LIB_DEVICE_CUDA): $(OBJECTS_CUDA) Makefile
 
 $(LIB_TARGET_CUDA): $(LIB_DEVICE_CUDA) Makefile
 	$(CC_CUDA) $(CFLAGS_CUDA) $(CFLAGS_CUDA_LINK_HOST) $(LIB_DEVICE_CUDA) -o $@
-
-$(LIB_TARGET_ANDROID): $(OBJECTS_SHARED_ANDROID) Makefile
-	$(LD_ANDROID) $(LDFLAGS_ANDROID) $(OBJECTS_SHARED_ANDROID) -o $@
 
 $(TARGET): $(OBJECTS_SHARED_LINUX) $(OBJECTS_LINUX) $(LIB_TARGET_CUDA) $(LIB_DEVICE_CUDA) Makefile
 	$(CC_LINUX) -flto $(CFLAGS_LINUX) $(LIB_TARGET) $(OBJECTS_LINUX) $(OBJECTS_SHARED_LINUX) $(LIB_TARGET_CUDA) $(LIB_DEVICE_CUDA) $(LIBS_LINUX) -o $@
@@ -94,7 +77,7 @@ server: $(REPSERVER)
 	
 linux: $(TARGET)
 
-android: $(LIB_TARGET_ANDROID) $(SHADERS_ANDROID) Makefile
+android: $(SHADERS_ANDROID) Makefile
 	./android/gradlew -q -p android assembleDebug
 
 linux-run: linux
@@ -121,7 +104,7 @@ clean-android:
 clean: clean-android clean-linux map
 
 install:
-	apt install freeglut3-dev libglew-dev libglm-dev libglm-doc g++-multilib-arm-linux-gnueabi g++-aarch64-linux-gnu
+	apt install freeglut3-dev libglew-dev libglm-dev libglm-doc
 	# wget http://developer.download.nvidia.com/compute/cuda/repos/ubuntu1710/x86_64/cuda-repo-ubuntu1710_9.2.148-1_amd64.deb -O cuda.deb
 	# dpkg -i cuda.deb
 	# rm cuda.deb
@@ -129,7 +112,7 @@ install:
 	# apt update
 	# apt install cuda
 
-.PRECIOUS: $(TARGET) $(OBJECTS_LINUX) $(OBJECTS_ANDROID) $(OBJECTS_SHARED_LINUX) $(OBJECTS_SHARED_ANDROID) $(LIB_TARGET_LINUX) $(LIB_TARGET_ANDROID) $(REPSERVER)
+.PRECIOUS: $(TARGET) $(OBJECTS_LINUX) $(OBJECTS_SHARED_LINUX) $(OBJECTS_SHARED_ANDROID) $(LIB_TARGET_LINUX) $(REPSERVER)
 
 #$(info $$SHADERS_ANDROID is [${SHADERS_ANDROID}])
 .PHONY: all clean install linux run android map android-run linux-run android-shaders clean-linux clean-android server
