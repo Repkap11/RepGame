@@ -4,20 +4,21 @@ MAKEFILES += server.mk
 
 REPSERVER = $(TARGET)Server 
 
-OBJECTS_SERVER = $(patsubst server/src/%.cpp, out/server/%.so, $(wildcard server/src/*.cpp))
+OBJECTS_SERVER = $(patsubst src/server/%.cpp, out/server/%.so, $(wildcard src/server/*.cpp))
 
 
-$(REPSERVER): $(OBJECTS_SERVER) $(MAKEFILES)
+$(REPSERVER): $(OBJECTS_SERVER) $(MAKEFILES) out
 	$(CC_LINUX) -flto $(CFLAGS_LINUX) $(OBJECTS_SERVER) -o $@
 
 server: $(REPSERVER)
 
-out/server/%.so: server/src/%.cpp $(MAKEFILES) 
+out/server/%.so: src/server/%.cpp $(MAKEFILES) out
 	$(CC_LINUX) $(CFLAGS_LINUX) -c $< -o $@
 
 .PRECIOUS: $(REPSERVER)
 
 clean-server:
-	rm -rf $(REPSERVER)
+	rm -f $(OBJECTS_SERVER)
+	rm -f $(REPSERVER)
 
-.PHONY: server
+.PHONY: server clean-server

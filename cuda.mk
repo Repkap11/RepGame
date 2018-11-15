@@ -14,17 +14,22 @@ CFLAGS_CUDA_LINK_HOST = -dlink
 LIBS_LINUX += -lcudart
 CFLAGS_LINUX += -DLOAD_WITH_CUDA
 
-out/linux/linux/cuda/%.so: src/linux/cuda/%.cu $(HEADERS) $(MAKEFILES)
+out/linux/linux/cuda/%.so: src/linux/cuda/%.cu $(HEADERS) $(MAKEFILES) out
 	$(CC_CUDA) $(CFLAGS_CUDA_COMPILE) $(INCLUDES_COMMON) $(CFLAGS_CUDA) $< -o $@
 
-$(LIB_TARGET_CUDA): $(LIB_DEVICE_CUDA) $(MAKEFILES)
+$(LIB_TARGET_CUDA): $(LIB_DEVICE_CUDA) $(MAKEFILES) out
 	$(CC_CUDA) $(CFLAGS_CUDA) $(CFLAGS_CUDA_LINK_HOST) $(LIB_DEVICE_CUDA) -o $@
 
-$(LIB_DEVICE_CUDA): $(OBJECTS_CUDA) $(MAKEFILES)
+$(LIB_DEVICE_CUDA): $(OBJECTS_CUDA) $(MAKEFILES) out
 	$(CC_CUDA) $(CFLAGS_CUDA) $(CFLAGS_CUDA_LINK_DEVICE) $(OBJECTS_CUDA) -o $@
 
 cuda: $(LIB_TARGET_CUDA) $(LIB_DEVICE_CUDA)
 
-.PHONY: cuda
+clean-cuda:
+	rm -f $(OBJECTS_CUDA)
+	rm -f $(LIB_TARGET_CUDA)
+	rm -f $(LIB_DEVICE_CUDA)
+
+.PHONY: cuda clean-cuda
 
 endif

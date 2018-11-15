@@ -13,7 +13,9 @@ MAKEFLAGS += -k
 #Default target
 all: linux server android
 
-DIRS = $(patsubst src%, out/linux%, $(shell find src -type d))\
+#DIRS makes too many dirs...
+DIRS = $(patsubst src%, out/linux%, $(shell find src -type d)) \
+       $(patsubst src%, out/server%, $(shell find src -type d)) \
 	   android/app/src/main/assets/shaders
 
 SRC_COMMON = $(wildcard src/common/*.cpp) $(wildcard src/common/abstract/*.cpp) $(wildcard src/common/utils/*.cpp)
@@ -21,20 +23,22 @@ INCLUDES_COMMON = -I include/ -I /usr/include/glm
 
 HEADERS = $(wildcard include/**/*.hpp)
 
-#Android will rebuild if linux.mk changes
+#Android targets might depend on linux.mk modifications
 include linux.mk
 include android.mk
 
 run: linux android-run
 	./$(TARGET)
 
-map:
-	rm -rf World1
-
-clean: clean-android clean-linux map
+clean: clean-android clean-linux
+	rm -rf out
 
 install:
 	sudo apt install freeglut3-dev libglew-dev libglm-dev libglm-doc nvidia-cuda-toolkit
 
-#$(info $$MAKEFILES is [${MAKEFILES}])
-$(shell mkdir -p $(DIRS))
+out:
+	mkdir -p $(DIRS)
+
+.PHONY: run install all clean
+
+#$(info $$MAKECMDGOALS is [${MAKECMDGOALS}])

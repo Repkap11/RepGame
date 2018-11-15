@@ -6,7 +6,7 @@ SHADERS_ANDROID = $(patsubst shaders/%.glsl, android/app/src/main/assets/%.glsl,
 android: $(SHADERS_ANDROID) $(MAKEFILES)
 	./android/gradlew -q -p android assembleDebug
 
-android-run: android $(MAKEFILES)
+android-run: android $(MAKEFILES) dirs
 	adb shell input keyevent KEYCODE_WAKEUP
 	./android/gradlew -q -p android installDebug
 	adb logcat -c
