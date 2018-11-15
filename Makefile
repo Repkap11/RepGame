@@ -7,30 +7,30 @@ MAKEFLAGS += --jobs=$(CPUS)
 MAKEFLAGS += -k
 #SHELL = sh -xv
 
-
 #Linux x86_64 builds
 CC_LINUX = g++
 LD_LINUX = ld -r
 CFLAGS_LINUX = $(CFLAGS) -march=native -DREPGAME_LINUX -flto -no-pie
 LIBS_LINUX = -L/usr/local/cuda-9.2/lib64 -l m -l GL -l GLU -l GLEW -l glut -pthread
 LIB_TARGET_LINUX = out/linux/lib$(TARGET).so
+INCLUDES_LINUX = -I include/ -I /usr/include/glm
 
 #Linux Cuda
-CC_CUDA = /usr/local/cuda-9.2/bin/nvcc
-CFLAGS_CUDA = -arch=sm_35 -Xcompiler -fPIC -DREPGAME_LINUX
-CFLAGS_CUDA_COMPILE = -x cu -dc -c
-CFLAGS_CUDA_LINK_DEVICE = --lib
-CFLAGS_CUDA_LINK_HOST = -dlink
+CC_CUDA = /usr/bin/nvcc
 #If the current system has the cuda compiler, use CUDA to accelerate terrain gen
 ifneq ("$(wildcard $(CC_CUDA))","")
+	CFLAGS_CUDA = -arch=sm_35 -Xcompiler -fPIC -DREPGAME_LINUX
+	CFLAGS_CUDA_COMPILE = -x cu -dc -c
+	CFLAGS_CUDA_LINK_DEVICE = --lib
+	CFLAGS_CUDA_LINK_HOST = -dlink
 	LIB_DEVICE_CUDA = out/cuda/lib$(TARGET)_device.so
 	LIB_TARGET_CUDA = out/cuda/lib$(TARGET).so
 	LIBS_LINUX += -lcudart
 	CFLAGS_LINUX += -DLOAD_WITH_CUDA
 endif
 
-
-all: linux
+#Default target
+all: linux server android
 
 DIRS = $(patsubst %/, %, $(sort $(dir $(patsubst src/%, out/linux/%, $(wildcard src/*) $(wildcard src/**/*)))))\
 	   $(patsubst %/, %, $(sort $(dir $(patsubst src/%, out/server/%, $(wildcard src/*) $(wildcard src/**/*)))))\
@@ -50,10 +50,10 @@ android/app/src/main/assets/%.glsl: shaders/%.glsl Makefile
 	cp $< $@
 
 out/linux/%.so: src/%.cpp $(HEADERS) Makefile
-	$(CC_LINUX) -I include/ -I /usr/include/glm $(CFLAGS_LINUX) -c $< -o $@
+	$(CC_LINUX) $(INCLUDES_LINUX) $(CFLAGS_LINUX) -c $< -o $@
 
 out/cuda/%.so: src/%.cu $(HEADERS) Makefile
-	$(CC_CUDA) $(CFLAGS_CUDA_COMPILE) -I include/ -I /usr/include/glm $(CFLAGS_CUDA) $< -o $@
+	$(CC_CUDA) $(CFLAGS_CUDA_COMPILE) $(INCLUDES_LINUX) $(CFLAGS_CUDA) $< -o $@
 
 out/server/%.so: server/src/%.cpp Makefile 
 	$(CC_LINUX) $(CFLAGS_LINUX) -c $< -o $@
@@ -104,13 +104,7 @@ clean-android:
 clean: clean-android clean-linux map
 
 install:
-	apt install freeglut3-dev libglew-dev libglm-dev libglm-doc
-	# wget http://developer.download.nvidia.com/compute/cuda/repos/ubuntu1710/x86_64/cuda-repo-ubuntu1710_9.2.148-1_amd64.deb -O cuda.deb
-	# dpkg -i cuda.deb
-	# rm cuda.deb
-	# sudo apt-key adv --fetch-keys https://developer.download.nvidia.com/compute/cuda/repos/ubuntu1710/x86_64/7fa2af80.pub
-	# apt update
-	# apt install cuda
+	sudo apt install freeglut3-dev libglew-dev libglm-dev libglm-doc nvidia-cuda-toolkit
 
 .PRECIOUS: $(TARGET) $(OBJECTS_LINUX) $(OBJECTS_SHARED_LINUX) $(OBJECTS_SHARED_ANDROID) $(LIB_TARGET_LINUX) $(REPSERVER)
 

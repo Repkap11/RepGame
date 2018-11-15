@@ -27,7 +27,7 @@ int main( int argc, char *argv[] ) {
     fd_set readfds;
 
     // a message
-    char *message = "RepGame Server v1.0 \r\n";
+    const char *message = "RepGame Server v1.0 \r\n";
 
     // initialise all client_socket[] to 0 so not checked
     for ( i = 0; i < max_clients; i++ ) {
