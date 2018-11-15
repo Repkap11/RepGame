@@ -41,4 +41,4 @@ out:
 
 .PHONY: run install all clean
 
-#$(info $$MAKECMDGOALS is [${MAKECMDGOALS}])
+#$(info $$SHADERS_SRC is [${SHADERS_SRC}])
