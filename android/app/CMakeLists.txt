@@ -5,13 +5,13 @@ find_library( android-lib android )
 include_directories(/usr/include/glm/)
 include_directories(../../include/)
 
-file(GLOB PAUL_SOURCES
-        ${CMAKE_CURRENT_SOURCE_DIR}/../../src/*.cpp
+file(GLOB REPGAME_SOURCES
         ${CMAKE_CURRENT_SOURCE_DIR}/../../src/android/*.cpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/../../src/abstract/*.cpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/../../src/utils/*.cpp)
-#message(ERROR "Paul_Sources:${PAUL_SOURCES}End")
-add_library( RepGameAndroid SHARED ${PAUL_SOURCES} )
+        ${CMAKE_CURRENT_SOURCE_DIR}/../../src/common/*.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/../../src/common/abstract/*.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/../../src/common/utils/*.cpp)
+#message(ERROR "REPGAME_SOURCES:${REPGAME_SOURCES}End")
+add_library( RepGameAndroid SHARED ${REPGAME_SOURCES} )
 
 #target_link_libraries(RepGameAndroid input ${PaulSource} ${log-lib} ${android-lib} GLESv3 )
 target_link_libraries(RepGameAndroid ${log-lib} ${android-lib} GLESv3 )

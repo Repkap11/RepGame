@@ -1,4 +1,8 @@
 TARGET = RepGame
+
+#This target can be used to depend on the contents of the makefiles
+MAKEFILES = Makefile
+
 #CFLAGS = -Wall -Werror -std=c++98 -Wno-unused-variable -fPIC -O3
 CFLAGS = -g -std=c++98 -Wno-unused-variable -fPIC
 CPUS ?= $(shell nproc || echo 1)
@@ -9,17 +13,15 @@ MAKEFLAGS += -k
 #Default target
 all: linux server android
 
-DIRS = $(patsubst %/, %, $(sort $(dir $(patsubst src/%, out/linux/%, $(wildcard src/*) $(wildcard src/**/*)))))\
-	   $(patsubst %/, %, $(sort $(dir $(patsubst src/%, out/server/%, $(wildcard src/*) $(wildcard src/**/*)))))\
-	   $(patsubst %/, %, $(sort $(dir $(patsubst src/%, out/cuda/%, $(wildcard src/*) $(wildcard src/**/*)))))\
+DIRS = $(patsubst src%, out/linux%, $(shell find src -type d))\
 	   android/app/src/main/assets/shaders
 
-ALL_SHARED = $(wildcard src/*.cpp) $(wildcard src/abstract/*.cpp) $(wildcard src/utils/*.cpp)
-HEADERS = $(wildcard include/*.hpp) $(wildcard include/**/*.hpp)
+SRC_COMMON = $(wildcard src/common/*.cpp) $(wildcard src/common/abstract/*.cpp) $(wildcard src/common/utils/*.cpp)
+INCLUDES_COMMON = -I include/ -I /usr/include/glm
 
-#This makefile depends on its included makefiles
-Makefile: linux.mk server.mk android.mk
+HEADERS = $(wildcard include/**/*.hpp)
 
+#Android will rebuild if linux.mk changes
 include linux.mk
 include android.mk
 
@@ -34,5 +36,5 @@ clean: clean-android clean-linux map
 install:
 	sudo apt install freeglut3-dev libglew-dev libglm-dev libglm-doc nvidia-cuda-toolkit
 
-#$(info $$SHADERS_ANDROID is [${SHADERS_ANDROID}])
+#$(info $$MAKEFILES is [${MAKEFILES}])
 $(shell mkdir -p $(DIRS))

@@ -1,4 +1,4 @@
-#include "RepGame.hpp"
+#include "common/RepGame.hpp"
 
 int front, back, left, right, up, down;
 

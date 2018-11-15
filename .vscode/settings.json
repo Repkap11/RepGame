@@ -23,7 +23,8 @@
         "bitset": "cpp",
         "deque": "cpp",
         "vector": "cpp",
-        "limits": "cpp"
+        "limits": "cpp",
+        "cstring": "cpp"
     },
     "git.ignoreLimitWarning": true
 }

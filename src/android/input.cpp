@@ -1,4 +1,4 @@
-#include "RepGame.hpp"
+#include "common/RepGame.hpp"
 
 void input_lookMove( InputState *inputState, int x, int y ) {
     inputState->mouse.currentPosition.x = x;

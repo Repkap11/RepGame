@@ -1,9 +1,12 @@
+#Android app
+MAKEFILES += android.mk
+
 SHADERS_ANDROID = $(patsubst shaders/%.glsl, android/app/src/main/assets/%.glsl, $(wildcard shaders/*.glsl))
 
-android: $(SHADERS_ANDROID) Makefile
+android: $(SHADERS_ANDROID) $(MAKEFILES)
 	./android/gradlew -q -p android assembleDebug
 
-android-run: android
+android-run: android $(MAKEFILES)
 	adb shell input keyevent KEYCODE_WAKEUP
 	./android/gradlew -q -p android installDebug
 	adb logcat -c
@@ -11,12 +14,12 @@ android-run: android
 	#adb logcat -s RepGameAndroid -v brief
 	#adb logcat -v brief | grep RepGame
 
-clean-android:
+clean-android: $(MAKEFILES)
 	rm -f $(SHADERS_ANDROID)
 	./android/gradlew -q -p android clean
 
 
-android/app/src/main/assets/%.glsl: shaders/%.glsl Makefile
+android/app/src/main/assets/%.glsl: shaders/%.glsl $(MAKEFILES)
 	cp $< $@
 
 .PRECIOUS: $(OBJECTS_SHARED_ANDROID)
