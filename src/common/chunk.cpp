@@ -54,10 +54,6 @@ void chunk_calculate_sides( Chunk *chunk, TRIP_ARGS( int center_next_ ) ) {
     free( chunk_ib_data_water );
 }
 
-inline int chunk_get_index_from_coords( int x, int y, int z ) {
-    return ( y + 1 ) * CHUNK_SIZE_INTERNAL * CHUNK_SIZE_INTERNAL + ( x + 1 ) * CHUNK_SIZE_INTERNAL + ( z + 1 );
-}
-
 int chunk_get_coords_from_index( int index, int *out_x, int *out_y, int *out_z ) {
     int y = ( index / ( CHUNK_SIZE_INTERNAL * CHUNK_SIZE_INTERNAL ) ) - 1;
     int x = ( ( index / CHUNK_SIZE_INTERNAL ) % CHUNK_SIZE_INTERNAL ) - 1;

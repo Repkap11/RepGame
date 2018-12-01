@@ -1,27 +1,28 @@
-TARGET = RepGame
+BEFORE_VARS := $(.VARIABLES)
 
 #This target can be used to depend on the contents of the makefiles
-MAKEFILES = Makefile
+MAKEFILES := Makefile
 
-#CFLAGS = -Wall -Werror -std=c++98 -Wno-unused-variable -fPIC -O3
-CFLAGS = -g -std=c++98 -Wno-unused-variable -fPIC
-CPUS ?= $(shell nproc || echo 1)
+MAKEFLAGS += -k #Continue after failed targets
+MAKEFLAGS += -r #Don't use build in commands
+#MAKEFLAGS += -s #Be silent on stdout
+MAKEFLAGS += --warn-undefined-variables
 MAKEFLAGS += --jobs=$(CPUS)
-MAKEFLAGS += -k
+
+CPUS ?= $(shell nproc || echo 1)
 #SHELL = sh -xv
+
+TARGET := RepGame
+CFLAGS := -Wall -Werror -std=c++98 -Wno-unused-variable -fPIC -O3
+#CFLAGS := -Wall -Werror -std=c++98 -Wno-unused-variable -fPIC -g
 
 #Default target
 all: linux server android
 
-#DIRS makes too many dirs...
-DIRS = $(patsubst src%, out/linux%, $(shell find src -type d)) \
-       $(patsubst src%, out/server%, $(shell find src -type d)) \
-	   android/app/src/main/assets/shaders
+SRC_COMMON := $(wildcard src/common/*.cpp) $(wildcard src/common/abstract/*.cpp) $(wildcard src/common/utils/*.cpp)
+INCLUDES_COMMON := -I include/ -I /usr/include/glm
 
-SRC_COMMON = $(wildcard src/common/*.cpp) $(wildcard src/common/abstract/*.cpp) $(wildcard src/common/utils/*.cpp)
-INCLUDES_COMMON = -I include/ -I /usr/include/glm
-
-HEADERS = $(wildcard include/**/*.hpp)
+HEADERS := $(wildcard include/**/*.hpp)
 
 #Android targets might depend on linux.mk modifications
 include linux.mk
@@ -30,15 +31,14 @@ include android.mk
 run: linux android-run
 	./$(TARGET)
 
-clean: clean-android clean-linux
-	rm -rf out
+clean: clean-linux clean-android
 
 install:
 	sudo apt install freeglut3-dev libglew-dev libglm-dev libglm-doc nvidia-cuda-toolkit
 
-out:
-	mkdir -p $(DIRS)
+.PHONY: run install all clean vars
 
-.PHONY: run install all clean
+vars:
+	@echo "$(BEFORE_VARS) $(AFTER_VARS)" | xargs -n1 | sort | uniq -u
 
-#$(info $$SHADERS_SRC is [${SHADERS_SRC}])
+AFTER_VARS := $(.VARIABLES)

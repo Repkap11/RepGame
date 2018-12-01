@@ -2,7 +2,7 @@
 
 MAKEFILES += server.mk
 
-REPSERVER = $(TARGET)Server 
+REPSERVER := $(TARGET)Server
 
 OBJECTS_SERVER = $(patsubst src/server/%.cpp, out/server/%.so, $(wildcard src/server/*.cpp))
 

@@ -1,18 +1,27 @@
 #Linux Cuda
 MAKEFILES += cuda.mk
 
-OBJECTS_CUDA = $(patsubst src/linux/cuda/%.cu, out/linux/linux/cuda/%.so, $(wildcard src/linux/cuda/*.cu))
+OBJECTS_CUDA := $(patsubst src/linux/cuda/%.cu,out/linux/linux/cuda/%.so, $(wildcard src/linux/cuda/*.cu))
+CLEAN_CUDA := $(OBJECTS_CUDA)
 
-CC_CUDA = /usr/bin/nvcc
+CC_CUDA := /usr/bin/nvcc
 #If the current system has the cuda compiler, use CUDA to accelerate terrain gen
 ifneq ("$(wildcard $(CC_CUDA))","")
 
-CFLAGS_CUDA = -arch=sm_35 -Xcompiler -fPIC -DREPGAME_LINUX
-CFLAGS_CUDA_COMPILE = -x cu -dc -c
-CFLAGS_CUDA_LINK_DEVICE = --lib
-CFLAGS_CUDA_LINK_HOST = -dlink
+LIB_DEVICE_CUDA := out/linux/linux/cuda/lib$(TARGET)_device.so
+LIB_TARGET_CUDA := out/linux/linux/cuda/lib$(TARGET).so
+CLEAN_CUDA += $(LIB_DEVICE_CUDA) $(LIB_TARGET_CUDA)
+
+CFLAGS_CUDA := -arch=sm_35 -Xcompiler -fPIC -DREPGAME_LINUX
+CFLAGS_CUDA_COMPILE := -x cu -dc -c
+CFLAGS_CUDA_LINK_DEVICE := --lib
+CFLAGS_CUDA_LINK_HOST := -dlink
+
 LIBS_LINUX += -lcudart
 CFLAGS_LINUX += -DLOAD_WITH_CUDA
+OBJECTS_COMMON_LINUX += $(LIB_TARGET_CUDA) $(LIB_DEVICE_CUDA)
+
+endif
 
 out/linux/linux/cuda/%.so: src/linux/cuda/%.cu $(HEADERS) $(MAKEFILES) out
 	$(CC_CUDA) $(CFLAGS_CUDA_COMPILE) $(INCLUDES_COMMON) $(CFLAGS_CUDA) $< -o $@
@@ -26,10 +35,6 @@ $(LIB_DEVICE_CUDA): $(OBJECTS_CUDA) $(MAKEFILES) out
 cuda: $(LIB_TARGET_CUDA) $(LIB_DEVICE_CUDA)
 
 clean-cuda:
-	rm -f $(OBJECTS_CUDA)
-	rm -f $(LIB_TARGET_CUDA)
-	rm -f $(LIB_DEVICE_CUDA)
+	rm -f $(CLEAN_CUDA)
 
 .PHONY: cuda clean-cuda
-
-endif
