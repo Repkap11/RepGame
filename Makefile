@@ -3,14 +3,14 @@ BEFORE_VARS := $(.VARIABLES)
 #This target can be used to depend on the contents of the makefiles
 MAKEFILES := Makefile
 
+CPUS ?= $(shell nproc || echo 1)
+#SHELL = sh -xv
+
 MAKEFLAGS += -k #Continue after failed targets
 MAKEFLAGS += -r #Don't use build in commands
 #MAKEFLAGS += -s #Be silent on stdout
 MAKEFLAGS += --warn-undefined-variables
 MAKEFLAGS += --jobs=$(CPUS)
-
-CPUS ?= $(shell nproc || echo 1)
-#SHELL = sh -xv
 
 TARGET := RepGame
 CFLAGS := -Wall -Werror -std=c++98 -Wno-unused-variable -fPIC -O3

@@ -36,6 +36,7 @@
 #define MAP_SEED 0
 #define LOCK_MOUSE 1
 
+//#define BLOCK_SCALE 0.9f
 #define BLOCK_SCALE 1.0f
 #define DISABLE_GROUPING_BLOCKS 0
 #define REACH_DISTANCE 7
