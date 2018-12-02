@@ -1,7 +1,7 @@
 #Android app
 MAKEFILES += android.mk
 
-ANDROID_SHADERS = $(patsubst src/shaders/%.glsl, android/app/src/main/assets/%.glsl, $(wildcard src/shaders/*.glsl))
+ANDROID_SHADERS = $(patsubst src/shaders/%.glsl,android/app/src/main/assets/%.glsl,$(wildcard src/shaders/*.glsl))
 
 android: android-shaders $(MAKEFILES)
 	./android/gradlew -q -p android assembleDebug

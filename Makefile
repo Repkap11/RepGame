@@ -6,6 +6,9 @@ MAKEFILES := Makefile
 CPUS ?= $(shell nproc || echo 1)
 #SHELL = sh -xv
 
+# OLD_SHELL := $(SHELL)
+# SHELL = $(warning [Paul: $@ ($^) ($?)])$(OLD_SHELL)
+
 MAKEFLAGS += -k #Continue after failed targets
 MAKEFLAGS += -r #Don't use build in commands
 #MAKEFLAGS += -s #Be silent on stdout
@@ -42,3 +45,5 @@ vars:
 	@echo "$(BEFORE_VARS) $(AFTER_VARS)" | xargs -n1 | sort | uniq -u
 
 AFTER_VARS := $(.VARIABLES)
+
+#$(info $$DEPS_LINUX is [${DEPS_LINUX}])
