@@ -20,9 +20,8 @@ DIRS = out \
 	   android/app/src/main/assets/shaders
 
 out/linux/%.o: src/%.cpp $(MAKEFILES) out
-	$(CC_LINUX) $(INCLUDES_COMMON) $(CFLAGS_LINUX) -c $< -o $@
-	@#Use g++ to build a dependecy tree which .d file for every cpp file
-	$(CC_LINUX) $(INCLUDES_COMMON) $(CFLAGS_LINUX) -MM -MP -MF $(patsubst %.o,%.d,$@) -MT $(patsubst %.d,%.o,$@) $<
+	@#Use g++ to build o file and a dependecy tree .d file for every cpp file
+	$(CC_LINUX) $(INCLUDES_COMMON) $(CFLAGS_LINUX) -MMD -MP -MF $(patsubst %.o,%.d,$@) -MT $(patsubst %.d,%.o,$@) -c $< -o $@
 
 #Include these .d files, so the dependicies are known for secondary builds.
 -include $(DEPS_LINUX)
