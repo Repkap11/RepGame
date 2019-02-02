@@ -2,7 +2,7 @@
 MAKEFILES += wasm.mk
 #
 #-s USE_PTHREADS=1 -s TOTAL_MEMORY=512MB
-CFLAGS_WASM := $(CFLAGS) -s ALLOW_MEMORY_GROWTH=1 -DREPGAME_WASM -s FULL_ES3=1 -s USE_WEBGL2=1
+CFLAGS_WASM := -s ALLOW_MEMORY_GROWTH=1 -DREPGAME_WASM -s USE_WEBGL2=1
 
 CC_WASM := ~/Software/emsdk/emsdk/emscripten/1.38.25/em++
 
@@ -14,7 +14,7 @@ WASM_FILE_TYPE = js
 OBJECTS_COMMON_WASM := $(patsubst src/common/%.cpp,out/wasm/common/%.bc, $(SRC_COMMON))
 OBJECTS_WASM := $(patsubst src/%.cpp,out/wasm/%.bc, $(wildcard src/wasm/*.cpp))
 
-wasm: out/wasm/$(TARGET).$(WASM_FILE_TYPE) out/wasm/index.html
+wasm: out/wasm/$(TARGET).$(WASM_FILE_TYPE) out/wasm/index.html out/wasm/reset.css
 
 WASM_DIRS = $(patsubst src%,out/wasm%,$(shell find src -type d)) \
 			out/wasm/fs \
@@ -29,6 +29,9 @@ out/wasm/$(TARGET).$(WASM_FILE_TYPE): $(OBJECTS_COMMON_WASM) $(OBJECTS_WASM) $(W
 	$(CC_WASM) -flto $(CFLAGS_WASM) $(OBJECTS_WASM) $(OBJECTS_COMMON_WASM) --preload-file out/wasm/fs@ -o $@
 
 out/wasm/index.html: src/wasm/index.html | out/wasm
+	cp $< $@
+
+out/wasm/reset.css: src/wasm/reset.css | out/wasm
 	cp $< $@
 
 out/wasm/fs/src/shaders/%.glsl: src/shaders/%.glsl $(MAKEFILES) | out/wasm

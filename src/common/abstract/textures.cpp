@@ -86,7 +86,7 @@ unsigned int loadTexture( const char *filename, int width, int height, int bmp_h
     unsigned int texture;
     glGenTextures( 1, &texture );
     glBindTexture( GL_TEXTURE_2D_ARRAY, texture );
-#ifdef REPGAME_WASM
+#if defined(REPGAME_WASM) || defined(REPGAME_LINUX)
     glTexImage3D( GL_TEXTURE_2D_ARRAY,              //
                   0,                                // mipLevelCount
                   GL_RGBA8,                         //
