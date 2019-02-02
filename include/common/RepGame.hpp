@@ -7,6 +7,9 @@
 #ifdef REPGAME_ANDROID
 #include "android/RepGameAndroid.hpp"
 #endif
+#ifdef REPGAME_WASM
+#include "wasm/RepGameWASM.hpp"
+#endif
 
 #include "chunk_loader.hpp"
 #include "constants.hpp"

@@ -73,11 +73,13 @@ unsigned int loadTexture( const char *filename, int width, int height, int bmp_h
     unsigned int texture;
     glGenTextures( 1, &texture );
     glBindTexture( GL_TEXTURE_2D_ARRAY, texture );
+#ifndef REPGAME_WASM
     glTexStorage3D( GL_TEXTURE_2D_ARRAY,              //
                     5,                                // mipLevelCount
                     GL_RGBA8,                         //
                     tile_size_across, tile_size_down, //
                     layer_count );
+#endif
     glPixelStorei( GL_UNPACK_ROW_LENGTH, width );
     glPixelStorei( GL_UNPACK_IMAGE_HEIGHT, height );
 
