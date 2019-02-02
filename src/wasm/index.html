@@ -1,6 +1,14 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en-us">
-    <script async type="text/javascript" src="../../out/wasm/RepGame.js"></script>
+  <body>
+    <canvas class="emscripten" id="canvas" oncontextmenu="event.preventDefault()" tabindex="-1"></canvas>
+  </body>
+  <script>
+    var Module = {
+      print: console.log,
+      printErr: console.error,
+      canvas: document.getElementById("canvas")
+    };
+  </script>
+  <script src="RepGame.js"></script>
 </html>
-
-

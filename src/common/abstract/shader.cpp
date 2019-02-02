@@ -153,7 +153,7 @@ unsigned int shaders_compile( const char *vertex_path, const char *fragment_path
     while ( try_counts < 5 ) {
         try_counts++;
         g_program = glCreateProgram( );
-#ifdef REPGAME_LINUX
+#if defined(REPGAME_LINUX) || defined(REPGAME_WASM)
         shaderAttachFromFile( g_program, GL_VERTEX_SHADER, vertex_path );
         shaderAttachFromFile( g_program, GL_FRAGMENT_SHADER, fragment_path );
 #else

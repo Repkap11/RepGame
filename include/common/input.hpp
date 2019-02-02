@@ -28,7 +28,7 @@ typedef struct {
     int click_delay_right;
 } InputState;
 
-#ifdef REPGAME_LINUX
+#if defined(REPGAME_LINUX) || defined(REPGAME_WASM)
 void input_arrowKeyDownInput( InputState *inputState, int key, int x, int y );
 void input_arrowKeyUpInput( InputState *inputState, int key, int x, int y );
 void input_mouseInput( InputState *inputState, int button, int state, int x, int y );

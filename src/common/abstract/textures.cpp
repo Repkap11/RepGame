@@ -87,7 +87,7 @@ unsigned int loadTexture( const char *filename, int width, int height, int bmp_h
         int tex_coord_x = ( i % textures_across );
         int tex_coord_y = ( textures_down - 1 ) - ( i / textures_across );
         int text_coord_base = tex_coord_x * tile_size_across + tex_coord_y * tile_size_down * width;
-
+#ifndef REPGAME_WASM
         glTexSubImage3D( GL_TEXTURE_2D_ARRAY,                 //
                          0,                                   // Mipmap Level
                          0, 0, i,                             // offset
@@ -99,6 +99,7 @@ unsigned int loadTexture( const char *filename, int width, int height, int bmp_h
 #endif
                          GL_UNSIGNED_BYTE, //
                          data + bmp_header + text_coord_base * BYTEX_PER_PIXEL );
+#endif
     }
 
     glTexParameterf( GL_TEXTURE_2D_ARRAY, GL_TEXTURE_WRAP_S, GL_REPEAT );

@@ -4,6 +4,7 @@
 #include <string.h>
 #include <unistd.h>
 
+#ifdef REPGAME_LINUX
 char *getRepGamePath( ) {
     char buffer[ BUFSIZ ];
     memset( buffer, 0, sizeof( buffer ) );
@@ -15,3 +16,9 @@ char *getRepGamePath( ) {
     dir = dirname( buffer );
     return dir;
 }
+#endif
+#ifdef REPGAME_WASM
+char *getRepGamePath( ) {
+    return (char*)".";
+}
+#endif
