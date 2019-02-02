@@ -25,6 +25,18 @@ unsigned char *readTextureData( const char *filename, size_t mem_size ) {
         pr_debug( "Texture file wrong size. Expected:%ld", mem_size );
     }
     fclose( file );
+#ifdef REPGAME_WASM
+    for ( int i = BMP_HEADER_SIZE; i < mem_size; i += 4 ) {
+        unsigned char a = data[ i + 0 ];
+        unsigned char b = data[ i + 1 ];
+        unsigned char g = data[ i + 2 ];
+        unsigned char r = data[ i + 3 ];
+        data[ i + 0 ] = r;
+        data[ i + 1 ] = g;
+        data[ i + 2 ] = b;
+        data[ i + 3 ] = a;
+    }
+#endif
     return data;
 }
 
@@ -81,11 +93,11 @@ unsigned int loadTexture( const char *filename, int width, int height, int bmp_h
                   tile_size_across, tile_size_down, //
                   layer_count, 0, GL_RGBA, GL_UNSIGNED_BYTE, NULL );
 #else
-    // glTexStorage3D( GL_TEXTURE_2D_ARRAY,              //
-    //                 5,                                // mipLevelCount
-    //                 GL_RGBA8,                         //
-    //                 tile_size_across, tile_size_down, //
-    //                 layer_count );
+    glTexStorage3D( GL_TEXTURE_2D_ARRAY,              //
+                    5,                                // mipLevelCount
+                    GL_RGBA8,                         //
+                    tile_size_across, tile_size_down, //
+                    layer_count );
 #endif
     glPixelStorei( GL_UNPACK_ROW_LENGTH, width );
     glPixelStorei( GL_UNPACK_IMAGE_HEIGHT, height );

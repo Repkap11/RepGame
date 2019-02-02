@@ -4,13 +4,17 @@
     <canvas class="emscripten" id="canvas" oncontextmenu="event.preventDefault()" tabindex="-1"></canvas>
   </body>
   <script>
-    var canvas = document.getElementById("canvas")
+    var canvas = document.getElementById("canvas");
     canvas.width = window.innerWidth;
     canvas.height = window.innerHeight;
+    // canvas.onclick = function() {
+    //   console.error("Requestion pointer lock");
+    //   canvas.requestPointerLock();
+    // };
     var Module = {
       print: console.log,
       printErr: console.error,
-      canvas: document.getElementById("canvas")
+      canvas: canvas
     };
     document["exitFullscreen"] = function() {};
     document["cancelFullScreen"] = function() {};
