@@ -7,9 +7,9 @@
 
 #define BMP_HEADER_SIZE 138
 
-#ifdef REPGAME_LINUX
+#if defined( REPGAME_LINUX ) || defined( REPGAME_WASM )
 void textures_set_texture_data( unsigned int which_texture, unsigned char *textures, int textures_len ) {
-    pr_debug( "textures_set_texture_data doesnt need to be called on Linux" );
+    pr_debug( "textures_set_texture_data doesnt need to be called on Linux or WASM" );
 }
 unsigned char *readTextureData( const char *filename, size_t mem_size ) {
     unsigned char *data;
@@ -28,7 +28,8 @@ unsigned char *readTextureData( const char *filename, size_t mem_size ) {
     return data;
 }
 
-#else // Android
+#endif
+#ifdef REPGAME_ANDROID
 #define GL_TEXTURE_MAX_ANISOTROPY_EXT 0x84FE
 #define GL_MAX_TEXTURE_MAX_ANISOTROPY_EXT 0x84FF
 
@@ -73,7 +74,13 @@ unsigned int loadTexture( const char *filename, int width, int height, int bmp_h
     unsigned int texture;
     glGenTextures( 1, &texture );
     glBindTexture( GL_TEXTURE_2D_ARRAY, texture );
-#ifndef REPGAME_WASM
+#ifdef REPGAME_WASM
+    glTexImage3D( GL_TEXTURE_2D_ARRAY,              //
+                  0,                                // mipLevelCount
+                  GL_RGBA8,                         //
+                  tile_size_across, tile_size_down, //
+                  layer_count, 0, GL_RGBA, GL_UNSIGNED_BYTE, NULL );
+#else
     glTexStorage3D( GL_TEXTURE_2D_ARRAY,              //
                     5,                                // mipLevelCount
                     GL_RGBA8,                         //
@@ -82,12 +89,11 @@ unsigned int loadTexture( const char *filename, int width, int height, int bmp_h
 #endif
     glPixelStorei( GL_UNPACK_ROW_LENGTH, width );
     glPixelStorei( GL_UNPACK_IMAGE_HEIGHT, height );
-
+#ifndef REPGAME_WASM
     for ( unsigned int i = 0; i < layer_count; i++ ) {
         int tex_coord_x = ( i % textures_across );
         int tex_coord_y = ( textures_down - 1 ) - ( i / textures_across );
         int text_coord_base = tex_coord_x * tile_size_across + tex_coord_y * tile_size_down * width;
-#ifndef REPGAME_WASM
         glTexSubImage3D( GL_TEXTURE_2D_ARRAY,                 //
                          0,                                   // Mipmap Level
                          0, 0, i,                             // offset
@@ -99,8 +105,8 @@ unsigned int loadTexture( const char *filename, int width, int height, int bmp_h
 #endif
                          GL_UNSIGNED_BYTE, //
                          data + bmp_header + text_coord_base * BYTEX_PER_PIXEL );
-#endif
     }
+#endif
 
     glTexParameterf( GL_TEXTURE_2D_ARRAY, GL_TEXTURE_WRAP_S, GL_REPEAT );
     glTexParameterf( GL_TEXTURE_2D_ARRAY, GL_TEXTURE_WRAP_T, GL_REPEAT );

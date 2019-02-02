@@ -1,11 +1,11 @@
-#version 310 es
+#version 300 es
 
 precision highp float;
 precision lowp sampler2DArray;
 
 in vec2 v_TexCoordBlock;
 in vec2 v_TexCoordBlock_orig;
-in flat float v_blockID;
+flat in float v_blockID;
 in float v_corner_lighting;
 
 uniform sampler2DArray u_Texture;

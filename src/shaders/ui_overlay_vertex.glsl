@@ -1,4 +1,4 @@
-#version 310 es
+#version 300 es
 uniform mat4 u_MVP;
 
 // See SkyVertex in sky_box.hpp

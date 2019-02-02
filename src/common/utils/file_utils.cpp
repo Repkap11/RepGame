@@ -19,6 +19,6 @@ char *getRepGamePath( ) {
 #endif
 #ifdef REPGAME_WASM
 char *getRepGamePath( ) {
-    return (char*)".";
+    return (char*)"";
 }
 #endif

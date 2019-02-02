@@ -1,4 +1,4 @@
-#version 310 es
+#version 300 es
 uniform mat4 u_MVP;
 
 // See CubeFace in block.h
@@ -18,7 +18,7 @@ layout( location = 8 ) in vec3 packed_lighting_2;
 
 out vec2 v_TexCoordBlock;
 out vec2 v_TexCoordBlock_orig;
-out flat float v_blockID;
+flat out float v_blockID;
 out float v_corner_lighting;
 
 void main( ) {

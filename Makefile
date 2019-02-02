@@ -53,4 +53,4 @@ vars:
 
 AFTER_VARS := $(.VARIABLES)
 
-#$(info $$DEPS_LINUX is [${DEPS_LINUX}])
+$(info $$WASM_BITMAPS is [${WASM_BITMAPS}])
