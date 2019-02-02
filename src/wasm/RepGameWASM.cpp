@@ -27,8 +27,14 @@ void keysInputUp( unsigned char key, int x, int y ) {
     input_keysInput( repgame_getInputState( ), key, x, y, 0 );
 }
 
+#define WASM_PAN_SENSITIVITY 2
 void mouseMove( int x, int y ) {
-    input_lookMove( repgame_getInputState( ), x, y );
+    // pr_debug( "mouseMove %d %d", x, y );
+    int current_screen_width, current_screen_height;
+    repgame_get_screen_size( &current_screen_width, &current_screen_height );
+
+    input_lookMove( repgame_getInputState( ), current_screen_width / 2 + x * WASM_PAN_SENSITIVITY, current_screen_height / 2 + y * WASM_PAN_SENSITIVITY );
+    // input_lookMove( repgame_getInputState( ), x, y );
 }
 
 double fps_ms = ( 1.0 / FPS_LIMIT ) * 1000.0;
@@ -83,7 +89,7 @@ int main( int argc, char **argv ) {
     glutSpecialUpFunc( arrowKeyUpInput );
 
     if ( LOCK_MOUSE ) {
-        glutSetCursor( GLUT_CURSOR_NONE );
+        // glutSetCursor( GLUT_CURSOR_NONE );
     }
 
     glutKeyboardFunc( keysInput );

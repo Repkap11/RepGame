@@ -1,0 +1,14 @@
+emsdk changes:
+
+Add this in src/library_browser.js line 270
+      pointerLockChange();
+
+
+Add this in src/library_glut.js line 53
+
+      if (Browser.pointerLock){
+        lastX = Browser.mouseMovementX;
+        lastY = Browser.mouseMovementY;
+        newX = 0;
+        newY = 0;
+      }
