@@ -3,7 +3,8 @@
 
 #ifdef REPGAME_LINUX
 #include "linux/RepGameLinux.hpp"
-#else
+#endif
+#ifdef REPGAME_ANDROID
 #include "android/RepGameAndroid.hpp"
 #endif
 

@@ -14,12 +14,11 @@ DEPS_LINUX := $(patsubst src/%.cpp,out/linux/%.d, $(wildcard src/linux/*.cpp)) \
 
 linux: $(TARGET)
 
-DIRS = out \
-	   $(patsubst src%,out/linux%,$(shell find src -type d)) \
+LINUX_DIRS = $(patsubst src%,out/linux%,$(shell find src -type d)) \
        $(patsubst src%,out/server%,$(shell find src -type d)) \
 	   android/app/src/main/assets/shaders
 
-out/linux/%.o: src/%.cpp $(MAKEFILES) out
+out/linux/%.o: src/%.cpp $(MAKEFILES) | out/linux
 	@#Use g++ to build o file and a dependecy tree .d file for every cpp file
 	$(CC_LINUX) $(INCLUDES_COMMON) $(CFLAGS_LINUX) -MMD -MP -MF $(patsubst %.o,%.d,$@) -MT $(patsubst %.d,%.o,$@) -c $< -o $@
 
@@ -44,14 +43,11 @@ map:
 reverse = $(if $(1),$(call reverse,$(wordlist 2,$(words $(1)),$(1)))) $(firstword $(1))
 
 clean-linux: clean-cuda clean-server map
-	rm -f $(OBJECTS_COMMON_LINUX)
-	rm -f $(DEPS_LINUX)
-	rm -f $(OBJECTS_LINUX)
-	rm -f $(TARGET)
-	rm -fd $(call reverse,$(DIRS))
+	rm -rf out/linux
 
-out:
-	mkdir $(DIRS)
+out/linux: | out
+	echo Making linux $(LINUX_DIRS)
+	mkdir -p $(LINUX_DIRS)
 
 .PRECIOUS: $(TARGET) $(OBJECTS_LINUX) $(OBJECTS_COMMON_LINUX) $(LIB_TARGET_LINUX)
 

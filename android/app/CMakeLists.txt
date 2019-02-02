@@ -5,6 +5,7 @@ find_library( android-lib android )
 include_directories(/usr/include/glm/)
 include_directories(../../include/)
 
+add_definitions(-DREPGAME_ANDROID)
 file(GLOB REPGAME_SOURCES
         ${CMAKE_CURRENT_SOURCE_DIR}/../../src/android/*.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/../../src/common/*.cpp

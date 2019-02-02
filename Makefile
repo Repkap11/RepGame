@@ -27,14 +27,20 @@ INCLUDES_COMMON := -I include/ -I /usr/include/glm
 
 HEADERS := $(wildcard include/**/*.hpp)
 
+reverse = $(if $(1),$(call reverse,$(wordlist 2,$(words $(1)),$(1)))) $(firstword $(1))
+
 #Android targets might depend on linux.mk modifications
 include linux.mk
 include android.mk
+
+out:
+	mkdir -p out
 
 run: linux android-run
 	./$(TARGET)
 
 clean: clean-linux clean-android
+	rm -d out
 
 install:
 	sudo apt install freeglut3-dev libglew-dev libglm-dev libglm-doc nvidia-cuda-toolkit
