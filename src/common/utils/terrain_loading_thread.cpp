@@ -1,14 +1,53 @@
 #include "common/utils/terrain_loading_thread.hpp"
 #include "common/chunk.hpp"
 #include "common/utils/linked_list.hpp"
-#include <pthread.h>
 #include <unistd.h>
 
+LinkedList *work_linked_list;
+LinkedList *result_linked_list;
+
+void process_value( LinkedListValue *value ) {
+    Chunk *chunk = value->chunk;
+    chunk_persist( chunk );
+    chunk->chunk_x = value->new_chunk_x;
+    chunk->chunk_y = value->new_chunk_y;
+    chunk->chunk_z = value->new_chunk_z;
+    if ( chunk ) {
+        chunk_load_terrain( chunk );
+        // pr_debug( "Paul Loading terrain x:%d y%d: z:%d work:%d results:%d", chunk->chunk_x, chunk->chunk_y, chunk->chunk_z, work_linked_list->count, result_linked_list->count );
+    }
+}
+
+#ifdef REPGAME_WASM
+void terrain_loading_thread_enqueue( Chunk *chunk, TRIP_ARGS( int new_chunk_ ), int persist ) {
+    LinkedListValue value;
+    value.chunk = chunk;
+    value.new_chunk_x = new_chunk_x;
+    value.new_chunk_y = new_chunk_y;
+    value.new_chunk_z = new_chunk_z;
+    value.persist = persist;
+    if ( value.valid ) {
+        process_value( &value );
+        if ( value.chunk ) {
+            linked_list_add_element( result_linked_list, value );
+        }
+    }
+}
+int terrain_loading_thread_start( ) {
+    result_linked_list = linked_list_create( );
+
+    return 0;
+}
+
+void terrain_loading_thread_stop( ) {
+}
+
+#else // not REPGAME_WASM
+
+#include <pthread.h>
 
 volatile int cancelThread = 0;
 pthread_t background_threads[ NUM_RENDER_THREADS ];
-LinkedList *work_linked_list;
-LinkedList *result_linked_list;
 
 void *process_background_tasks( void *arg ) {
     while ( !cancelThread ) {
@@ -16,21 +55,14 @@ void *process_background_tasks( void *arg ) {
         // sleep( 1 );
         // pr_debug( "Working2... Work Size: %d", work_linked_list->count );
 
-        
         int poped = 1;
         LinkedListValue value = linked_list_pop_element( work_linked_list );
-        if (value.valid){
-            Chunk *chunk = value.chunk;
-            chunk_persist(chunk);
-            chunk->chunk_x = value.new_chunk_x;
-            chunk->chunk_y = value.new_chunk_y;
-            chunk->chunk_z = value.new_chunk_z;
-            if ( chunk ) {
-                chunk_load_terrain( chunk );
+        if ( value.valid ) {
+            process_value( &value );
+            if ( value.chunk ) {
                 linked_list_add_element( result_linked_list, value );
-                // pr_debug( "Paul Loading terrain x:%d y%d: z:%d work:%d results:%d", chunk->chunk_x, chunk->chunk_y, chunk->chunk_z, work_linked_list->count, result_linked_list->count );
-            } 
-    }else {
+            }
+        } else {
             usleep( 100000 );
         }
     }
@@ -46,10 +78,10 @@ int terrain_loading_thread_start( ) {
             return -1;
         }
     }
-
     return 0;
 }
-void terrain_loading_thread_enqueue( Chunk *chunk , TRIP_ARGS(int new_chunk_), int persist) {
+
+void terrain_loading_thread_enqueue( Chunk *chunk, TRIP_ARGS( int new_chunk_ ), int persist ) {
     LinkedListValue value;
     value.chunk = chunk;
     value.new_chunk_x = new_chunk_x;
@@ -59,14 +91,7 @@ void terrain_loading_thread_enqueue( Chunk *chunk , TRIP_ARGS(int new_chunk_), i
     linked_list_add_element( work_linked_list, value );
     // pr_debug( "Paul enqueued x:%d y%d: z:%d work:%d h:%p t:%p", chunk->chunk_x, chunk->chunk_y, chunk->chunk_z, work_linked_list->count, work_linked_list->head, work_linked_list->tail );
 }
-Chunk *terrain_loading_thread_dequeue( ) {
-    LinkedListValue value = linked_list_pop_element( result_linked_list );
-    if (value.valid){
-            return value.chunk;
-    } else {
-        return NULL;
-    }
-}
+
 void terrain_loading_thread_stop( ) {
     cancelThread = 1;
     for ( int i = 0; i < NUM_RENDER_THREADS; i++ ) {
@@ -75,4 +100,14 @@ void terrain_loading_thread_stop( ) {
     cancelThread = 0;
     linked_list_free( work_linked_list );
     linked_list_free( result_linked_list );
+}
+#endif // else REPGAME_WASM
+
+Chunk *terrain_loading_thread_dequeue( ) {
+    LinkedListValue value = linked_list_pop_element( result_linked_list );
+    if ( value.valid ) {
+        return value.chunk;
+    } else {
+        return NULL;
+    }
 }

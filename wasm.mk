@@ -1,7 +1,8 @@
 #WASM
 MAKEFILES += wasm.mk
-#-s ALLOW_MEMORY_GROWTH=1
-CFLAGS_WASM := $(CFLAGS) -s TOTAL_MEMORY=512MB -DREPGAME_WASM -s FULL_ES3=1 -s USE_WEBGL2=1 -s NO_EXIT_RUNTIME=1 -s USE_PTHREADS=1
+#
+#-s USE_PTHREADS=1 -s TOTAL_MEMORY=512MB
+CFLAGS_WASM := $(CFLAGS) -s ALLOW_MEMORY_GROWTH=1 -DREPGAME_WASM -s FULL_ES3=1 -s USE_WEBGL2=1 -s NO_EXIT_RUNTIME=1 
 
 CC_WASM := ~/Software/emsdk/emsdk/emscripten/1.38.25/em++
 
@@ -39,7 +40,7 @@ wasm-start-server:
 	http-server &
 
 wasm-run: wasm
-	google-chrome --new-window http://localhost:8080/out/wasm/index.html
+	google-chrome --new-window http://localhost:8080/out/wasm/index.html &
 
 
 clean-wasm:

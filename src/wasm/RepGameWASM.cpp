@@ -84,7 +84,9 @@ int main( int argc, char **argv ) {
     struct timespec tstart = {0, 0}, tend = {0, 0}, tblank = {0, 0};
     pr_debug( "Size of Int:%lu", sizeof( int ) );
     while ( !repgame_shouldExit( ) ) {
+        pr_debug( "loop" );
         clock_gettime( CLOCK_MONOTONIC, &tstart );
+        pr_debug( "clock" );
         // glutMainLoopEvent( );
         // pr_debug( "Drawing" );
         int width, height;
@@ -95,6 +97,7 @@ int main( int argc, char **argv ) {
         repgame_clear( );
         repgame_tick( );
         repgame_draw( );
+
         glutSwapBuffers( );
 
         showErrors( );

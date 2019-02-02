@@ -256,7 +256,9 @@ void repgame_get_screen_size( int *width, int *height ) {
 void repgame_draw( ) {
     glm::mat4 mvp_sky = globalGameState.screen.proj * globalGameState.camera.view_look;
     glm::mat4 mvp = mvp_sky * globalGameState.camera.view_trans;
+    pr_debug( "World about to render" );
     world_render( &globalGameState.gameChunks, globalGameState.camera.x, globalGameState.camera.y, globalGameState.camera.z );
+    pr_debug( "World Rendered" );
     showErrors( );
 
     world_draw_solid( &globalGameState.gameChunks, mvp, mvp_sky );
