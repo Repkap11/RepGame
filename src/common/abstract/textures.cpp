@@ -81,15 +81,14 @@ unsigned int loadTexture( const char *filename, int width, int height, int bmp_h
                   tile_size_across, tile_size_down, //
                   layer_count, 0, GL_RGBA, GL_UNSIGNED_BYTE, NULL );
 #else
-    glTexStorage3D( GL_TEXTURE_2D_ARRAY,              //
-                    5,                                // mipLevelCount
-                    GL_RGBA8,                         //
-                    tile_size_across, tile_size_down, //
-                    layer_count );
+    // glTexStorage3D( GL_TEXTURE_2D_ARRAY,              //
+    //                 5,                                // mipLevelCount
+    //                 GL_RGBA8,                         //
+    //                 tile_size_across, tile_size_down, //
+    //                 layer_count );
 #endif
     glPixelStorei( GL_UNPACK_ROW_LENGTH, width );
     glPixelStorei( GL_UNPACK_IMAGE_HEIGHT, height );
-#ifndef REPGAME_WASM
     for ( unsigned int i = 0; i < layer_count; i++ ) {
         int tex_coord_x = ( i % textures_across );
         int tex_coord_y = ( textures_down - 1 ) - ( i / textures_across );
@@ -106,7 +105,6 @@ unsigned int loadTexture( const char *filename, int width, int height, int bmp_h
                          GL_UNSIGNED_BYTE, //
                          data + bmp_header + text_coord_base * BYTEX_PER_PIXEL );
     }
-#endif
 
     glTexParameterf( GL_TEXTURE_2D_ARRAY, GL_TEXTURE_WRAP_S, GL_REPEAT );
     glTexParameterf( GL_TEXTURE_2D_ARRAY, GL_TEXTURE_WRAP_T, GL_REPEAT );

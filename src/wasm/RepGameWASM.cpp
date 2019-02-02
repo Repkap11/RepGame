@@ -43,15 +43,19 @@ const char *repgame_getShaderString( const char *filename ) {
 }
 
 static void displayFunc( void ) {
+    // pr_debug( "RepGameWASM displayFunc" );
     repgame_clear( );
     repgame_tick( );
     repgame_draw( );
+    // glutSwapBuffers( );
+    glutPostRedisplay( );
+    // pr_debug( "RepGameWASM displayFunc done" );
 }
 
 int main( int argc, char **argv ) {
     glutInit( &argc, argv );
     // glutInitContextVersion( 3, 3 );
-    glutInitWindowSize( 300, 300 );
+    // glutInitWindowSize( 300, 300 );
 
     pr_debug( "Entering RepGameWASM" );
     // exit(0);
@@ -64,10 +68,10 @@ int main( int argc, char **argv ) {
 
     pr_debug( "Using OpenGL Version:%s", glGetString( GL_VERSION ) );
 
-    if ( glewInit( ) ) {
-        pr_debug( "GLEW init failed" );
-        exit( 1 ); // or handle the error in a nicer way
-    }
+    // if ( glewInit( ) ) {
+    //     pr_debug( "GLEW init failed" );
+    //     exit( 1 ); // or handle the error in a nicer way
+    // }
     // if ( !GLEW_VERSION_3_0 ) { // check that the machine supports the 2.1 API.
     //     pr_debug( "GLEW version wrong" );
     //     exit( 1 ); // or handle the error in a nicer way
@@ -99,7 +103,9 @@ int main( int argc, char **argv ) {
     // glutSwapBuffers( );
 
     // showErrors( );
+    pr_debug( "Starting glut main loop" );
     glutMainLoop( );
+    pr_debug( "Glut main loop done?" );
     // while ( !repgame_shouldExit( ) ) {
     //     // glutMainLoopEvent( );
     //     // pr_debug( "Drawing" );

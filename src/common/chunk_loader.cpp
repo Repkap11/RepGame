@@ -195,7 +195,7 @@ void chunk_loader_render_chunks( LoadedChunks *loadedChunks, TRIP_ARGS( float ca
     Chunk *chunk;
     do {
         chunk = terrain_loading_thread_dequeue( );
-        pr_debug( "Got chunk %p", chunk );
+        //pr_debug( "Got chunk %p", chunk );
         if ( chunk ) {
             chunk->is_loading = 0;
             int reloaded = reload_if_out_of_bounds( chunk, TRIP_ARGS( chunk_ ) );

@@ -9,7 +9,7 @@ CPUS ?= $(shell nproc || echo 1)
 # OLD_SHELL := $(SHELL)
 # SHELL = $(warning [Paul: $@ ($^) ($?)])$(OLD_SHELL)
 
-MAKEFLAGS += -k #Continue after failed targets
+#MAKEFLAGS += -k #Continue after failed targets
 MAKEFLAGS += -r #Don't use build in commands
 #MAKEFLAGS += -s #Be silent on stdout
 MAKEFLAGS += --warn-undefined-variables

@@ -1,14 +1,21 @@
 <!DOCTYPE html>
 <html lang="en-us">
   <body>
-    <canvas class="emscripten" id="canvas" oncontextmenu="event.preventDefault()" tabindex="-1" width=500 height=500></canvas>
+    <canvas class="emscripten" id="canvas" oncontextmenu="event.preventDefault()" tabindex="-1"></canvas>
   </body>
   <script>
+    var canvas = document.getElementById("canvas")
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
     var Module = {
       print: console.log,
       printErr: console.error,
       canvas: document.getElementById("canvas")
     };
+    document["exitFullscreen"] = function() {};
+    document["cancelFullScreen"] = function() {};
+    document["mozCancelFullScreen"] = function() {};
+    document["webkitCancelFullScreen"] = function() {};
   </script>
   <script src="RepGame.js"></script>
 </html>

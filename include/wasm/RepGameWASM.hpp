@@ -7,6 +7,7 @@
 #include <stdlib.h>
 #include <emscripten.h>
 
+//#define pr_debug( fmt, ... )
 #define pr_debug( fmt, ... ) fprintf( stdout, "%s:%d:%s():" fmt "\n", __FILE__, __LINE__, __func__, ##__VA_ARGS__ );
 #define showErrors( )                                                                                                                                                                                                                          \
     {                                                                                                                                                                                                                                          \

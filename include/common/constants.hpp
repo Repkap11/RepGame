@@ -16,10 +16,10 @@
 
 #else
 
-#define CHUNK_SIZE 32
-#define CHUNK_RADIUS_X 64 / CHUNK_SIZE
-#define CHUNK_RADIUS_Y 64 / CHUNK_SIZE
-#define CHUNK_RADIUS_Z 64 / CHUNK_SIZE
+#define CHUNK_SIZE 16
+#define CHUNK_RADIUS_X 1
+#define CHUNK_RADIUS_Y 1
+#define CHUNK_RADIUS_Z 1
 
 #endif
 
