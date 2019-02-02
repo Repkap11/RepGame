@@ -42,9 +42,17 @@ const char *repgame_getShaderString( const char *filename ) {
     return "RepGame WASM doesn't support shaders from file";
 }
 
+static void displayFunc( void ) {
+    repgame_clear( );
+    repgame_tick( );
+    repgame_draw( );
+}
+
 int main( int argc, char **argv ) {
     glutInit( &argc, argv );
     // glutInitContextVersion( 3, 3 );
+    glutInitWindowSize( 300, 300 );
+
     pr_debug( "Entering RepGameWASM" );
     // exit(0);
 
@@ -80,51 +88,22 @@ int main( int argc, char **argv ) {
     glutReshapeFunc( changeSize );
     glutPassiveMotionFunc( mouseMove );
     glutMotionFunc( mouseMove );
+    glutDisplayFunc( displayFunc );
 
-    struct timespec tstart = {0, 0}, tend = {0, 0}, tblank = {0, 0};
-    pr_debug( "Size of Int:%lu", sizeof( int ) );
-    while ( !repgame_shouldExit( ) ) {
-        pr_debug( "loop" );
-        clock_gettime( CLOCK_MONOTONIC, &tstart );
-        pr_debug( "clock" );
-        // glutMainLoopEvent( );
-        // pr_debug( "Drawing" );
-        int width, height;
-        repgame_get_screen_size( &width, &height );
-        if ( LOCK_MOUSE ) {
-            // glutWarpPointer( width / 2, height / 2 );
-        }
-        repgame_clear( );
-        repgame_tick( );
-        repgame_draw( );
+    // repgame_get_screen_size( &width, &height );
+    // int width, height;
+    // if ( LOCK_MOUSE ) {
+    //     // glutWarpPointer( width / 2, height / 2 );
+    // }
 
-        glutSwapBuffers( );
+    // glutSwapBuffers( );
 
-        showErrors( );
-
-        clock_gettime( CLOCK_MONOTONIC, &tend );
-        {
-            double diff_ms = ( ( ( double )tend.tv_sec + 1.0e-9 * tend.tv_nsec ) - ( ( double )tstart.tv_sec + 1.0e-9 * tstart.tv_nsec ) ) * 1000.0;
-            float frame_rate = 1.0 / ( diff_ms / 1000.0 );
-            // pr_debug( "FPS (if wasn't waiting):%f", frame_rate );
-            double wait_time_ms = fps_ms - diff_ms;
-            if ( wait_time_ms > 0 ) {
-                int wait_time_us = ( int )( wait_time_ms * 1000.0 );
-                if ( LIMIT_FPS ) {
-                    usleep( wait_time_us );
-                }
-            }
-        }
-
-        clock_gettime( CLOCK_MONOTONIC, &tblank );
-        {
-            double diff_ms = ( ( ( double )tend.tv_sec + 1.0e-9 * tblank.tv_nsec ) - ( ( double )tblank.tv_sec + 1.0e-9 * tstart.tv_nsec ) ) * 1000.0;
-            float frame_rate = 1.0 / ( diff_ms / 1000.0 );
-            if ( SHOW_FPS ) {
-                pr_debug( "FPS:%f", frame_rate );
-            }
-        }
-    }
+    // showErrors( );
+    glutMainLoop( );
+    // while ( !repgame_shouldExit( ) ) {
+    //     // glutMainLoopEvent( );
+    //     // pr_debug( "Drawing" );
+    // }
     repgame_cleanup( );
     // glutLeaveMainLoop( );
     return 0;
