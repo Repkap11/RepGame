@@ -2,7 +2,7 @@
 #define HEADER_LINKED_LIST_H
 
 #include "common/chunk.hpp"
-//#include <pthread.h>
+#include <pthread.h>
 #include "common/RepGame.hpp"
 
 typedef struct {
@@ -22,7 +22,7 @@ typedef struct {
     int count;
     LinkedListItem *head;
     LinkedListItem *tail;
-    //pthread_mutex_t mutex;
+    pthread_mutex_t mutex;
 } LinkedList;
 
 LinkedList *linked_list_create( );
