@@ -4,7 +4,7 @@
 #include <string.h>
 #include <unistd.h>
 
-#ifdef REPGAME_LINUX
+#if defined( REPGAME_LINUX ) || defined( REPGAME_ANDROID )
 char *getRepGamePath( ) {
     char buffer[ BUFSIZ ];
     memset( buffer, 0, sizeof( buffer ) );
@@ -19,6 +19,6 @@ char *getRepGamePath( ) {
 #endif
 #ifdef REPGAME_WASM
 char *getRepGamePath( ) {
-    return (char*)"";
+    return ( char * )"";
 }
 #endif

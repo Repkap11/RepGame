@@ -37,7 +37,8 @@ include android.mk
 out:
 	mkdir -p out
 
-run: linux android-run
+run: linux android-run wasm
+	google-chrome --app=http://localhost:8080/index.html  --start-fullscreen &
 	./$(TARGET)
 
 clean: clean-linux clean-android

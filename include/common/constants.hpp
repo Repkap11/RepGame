@@ -4,23 +4,24 @@
 #define MOVEMENT_SENSITIVITY 1.0f // How sensitive the arrow keys are
 
 #ifdef REPGAME_LINUX
-
 #define CHUNK_RADIUS_X 200 / CHUNK_SIZE
 #define CHUNK_RADIUS_Y 200 / CHUNK_SIZE
 #define CHUNK_RADIUS_Z 200 / CHUNK_SIZE
-// #define CHUNK_RADIUS_X 300 / CHUNK_SIZE
-// #define CHUNK_RADIUS_Y 200 / CHUNK_SIZE
-// #define CHUNK_RADIUS_Z 300 / CHUNK_SIZE
-
 #define CHUNK_SIZE 32
+#endif
 
-#else
-
+#ifdef REPGAME_WASM
 #define CHUNK_SIZE 16
-#define CHUNK_RADIUS_X 1
-#define CHUNK_RADIUS_Y 1
-#define CHUNK_RADIUS_Z 1
+#define CHUNK_RADIUS_X 16 / CHUNK_SIZE
+#define CHUNK_RADIUS_Y 16 / CHUNK_SIZE
+#define CHUNK_RADIUS_Z 16 / CHUNK_SIZE
+#endif
 
+#ifdef REPGAME_ANDROID
+#define CHUNK_SIZE 32
+#define CHUNK_RADIUS_X 256 / CHUNK_SIZE
+#define CHUNK_RADIUS_Y 128 / CHUNK_SIZE
+#define CHUNK_RADIUS_Z 256 / CHUNK_SIZE
 #endif
 
 #ifdef LOAD_WITH_CUDA

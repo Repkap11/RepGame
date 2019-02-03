@@ -45,7 +45,9 @@ wasm-start-server:
 
 wasm-run: wasm
 	#google-chrome --new-window http://localhost:8080/Repgame.html &
-	google-chrome --new-window http://localhost:8080/index.html &
+	#google-chrome --new-window http://localhost:8080/index.html &
+	google-chrome --app=http://localhost:8080/index.html  --start-fullscreen &
+
 
 
 WASM_DEPLOY_REMOTE_PATH := "paul@repkap11.com:/home/paul/website/repgame"
