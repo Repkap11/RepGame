@@ -41,7 +41,7 @@ run: linux android-run wasm
 	google-chrome --app=http://localhost:8080/index.html  --start-fullscreen &
 	./$(TARGET)
 
-clean: clean-linux clean-android
+clean: clean-linux clean-android clean-wasm
 	rm -d out
 
 install:
