@@ -48,6 +48,15 @@ wasm-run: wasm
 	google-chrome --new-window http://localhost:8080/out/wasm/index.html &
 
 
+WASM_DEPLOY_REMOTE_PATH := "paul@repkap11.com:/home/paul/website/repgame"
+
+wasm-deploy: wasm
+	rsync --update out/wasm/index.html ${WASM_DEPLOY_REMOTE_PATH}/index.html
+	rsync --update out/wasm/reset.css ${WASM_DEPLOY_REMOTE_PATH}/reset.css
+	rsync --update out/wasm/RepGame.data ${WASM_DEPLOY_REMOTE_PATH}/RepGame.data
+	rsync --update out/wasm/RepGame.js ${WASM_DEPLOY_REMOTE_PATH}/RepGame.js
+	rsync --update out/wasm/RepGame.wasm ${WASM_DEPLOY_REMOTE_PATH}/RepGame.wasm
+
 clean-wasm:
 	rm -rf $(WASM_DIRS)
 
