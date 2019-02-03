@@ -41,11 +41,11 @@ out/wasm/fs/bitmaps/% : android/app/src/main/res/raw/% $(MAKEFILES) | out/wasm
 	cp $< $@
 
 wasm-start-server:
-	http-server &
+	http-server out/wasm/ &
 
 wasm-run: wasm
-	#google-chrome --new-window http://localhost:8080/out/wasm/Repgame.html &
-	google-chrome --new-window http://localhost:8080/out/wasm/index.html &
+	#google-chrome --new-window http://localhost:8080/Repgame.html &
+	google-chrome --new-window http://localhost:8080/index.html &
 
 
 WASM_DEPLOY_REMOTE_PATH := "paul@repkap11.com:/home/paul/website/repgame"
