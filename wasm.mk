@@ -50,7 +50,7 @@ wasm-run: wasm
 
 
 
-WASM_DEPLOY_REMOTE_PATH := "paul@repkap11.com:/home/paul/website/repgame"
+WASM_DEPLOY_REMOTE_PATH := paul@repkap11.com:/home/paul/website/repgame
 
 wasm-deploy: wasm
 	rsync --update out/wasm/index.html ${WASM_DEPLOY_REMOTE_PATH}/index.html
