@@ -115,11 +115,11 @@ void chunk_loader_init( LoadedChunks *loadedChunks ) {
                 chunk->chunk_mod_x = new_i < 0 ? -CHUNK_RADIUS_X - new_i - 1 : CHUNK_RADIUS_X - new_i;
                 chunk->chunk_mod_y = new_j < 0 ? -CHUNK_RADIUS_Y - new_j - 1 : CHUNK_RADIUS_Y - new_j;
                 chunk->chunk_mod_z = new_k < 0 ? -CHUNK_RADIUS_Z - new_k - 1 : CHUNK_RADIUS_Z - new_k;
-                pr_debug( "Initing chunk %d mod_y:%d", nextChunk, chunk->chunk_mod_y );
+                // pr_debug( "Initing chunk %d mod_y:%d", nextChunk, chunk->chunk_mod_y );
 
                 chunk->is_loading = 1;
                 terrain_loading_thread_enqueue( chunk, TRIP_ARGS( chunk->chunk_ ), 0 );
-                pr_debug( "Chunk Done" );
+                // pr_debug( "Chunk Done" );
                 nextChunk = ( nextChunk + 1 );
             }
         }
@@ -193,9 +193,16 @@ void chunk_loader_render_chunks( LoadedChunks *loadedChunks, TRIP_ARGS( float ca
     int chunk_diff_z = chunk_z - loaded_z;
 
     Chunk *chunk;
+#if defined( REPGAME_WASM )
+    static int count = 0;
+    count++;
+    if ( count == 3 ) {
+        count = 0;
+#else
     do {
+#endif
         chunk = terrain_loading_thread_dequeue( );
-        //pr_debug( "Got chunk %p", chunk );
+        // pr_debug( "Got chunk %p", chunk );
         if ( chunk ) {
             chunk->is_loading = 0;
             int reloaded = reload_if_out_of_bounds( chunk, TRIP_ARGS( chunk_ ) );
@@ -205,8 +212,11 @@ void chunk_loader_render_chunks( LoadedChunks *loadedChunks, TRIP_ARGS( float ca
                 chunk_program_terrain( chunk );
             }
         }
+#if defined( REPGAME_WASM )
+    }
+#else
     } while ( chunk );
-
+#endif
     if ( TRIP_OR( 0 != chunk_diff_ ) ) {
         // pr_debug( "Moved outof chunk x:%d y:%d z:%d", TRIP_ARGS( loaded_ ) );
         // pr_debug( "Moved into  chunk x:%d y:%d z:%d", TRIP_ARGS( chunk_ ) );

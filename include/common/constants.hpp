@@ -11,10 +11,10 @@
 #endif
 
 #ifdef REPGAME_WASM
-#define CHUNK_SIZE 16
-#define CHUNK_RADIUS_X 16 / CHUNK_SIZE
-#define CHUNK_RADIUS_Y 16 / CHUNK_SIZE
-#define CHUNK_RADIUS_Z 16 / CHUNK_SIZE
+#define CHUNK_SIZE 32
+#define CHUNK_RADIUS_X 64 / CHUNK_SIZE
+#define CHUNK_RADIUS_Y 32 / CHUNK_SIZE
+#define CHUNK_RADIUS_Z 64 / CHUNK_SIZE
 #endif
 
 #ifdef REPGAME_ANDROID
@@ -52,9 +52,9 @@
 #define FPS_LIMIT 60.0f
 #define CAMERA_FOV 60.0f
 #ifdef REPGAME_WASM
-#define NUM_RENDER_THREADS 7
+#define NUM_RENDER_THREADS 1
 #else
-#define NUM_RENDER_THREADS 2
+#define NUM_RENDER_THREADS 7
 #endif
 #define CHUNK_RENDERS_PER_FRAME ( 2 * CHUNK_RADIUS_X * 2 * CHUNK_RADIUS_Y ) * 10000 // Render 1 face of the chunk cube per frame. This could be lowered to reduce studder
 

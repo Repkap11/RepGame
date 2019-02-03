@@ -8,6 +8,8 @@ CC_WASM := ~/Software/emsdk/emsdk/emscripten/1.38.25/em++
 
 WASM_SHADERS = $(patsubst src/shaders/%.glsl,out/wasm/fs/src/shaders/%.glsl,$(wildcard src/shaders/*.glsl))
 WASM_BITMAPS = $(patsubst android/app/src/main/res/raw/%,out/wasm/fs/bitmaps/%,$(wildcard android/app/src/main/res/raw/*))
+WASM_HEADERS := $(wildcard include/**/*.hpp)
+
 
 WASM_FILE_TYPE = js
 
@@ -22,7 +24,7 @@ WASM_DIRS = $(patsubst src%,out/wasm%,$(shell find src -type d)) \
 			out/wasm/fs/src/shaders \
 			out/wasm/fs/bitmaps
 
-out/wasm/%.bc: src/%.cpp $(MAKEFILES) | out/wasm
+out/wasm/%.bc: src/%.cpp $(MAKEFILES) $(WASM_HEADERS) | out/wasm
 	$(CC_WASM) $(INCLUDES_COMMON) $(CFLAGS_WASM) -c $< -o $@
 
 out/wasm/$(TARGET).$(WASM_FILE_TYPE): $(OBJECTS_COMMON_WASM) $(OBJECTS_WASM) $(WASM_SHADERS) $(WASM_BITMAPS) $(MAKEFILES)

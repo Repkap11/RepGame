@@ -44,7 +44,7 @@ void main( ) {
     } else {
         packed_lighting = packed_lighting_2[ faceType - uint( 3 ) ];
     }
-    float light_divisor = 2.0; // good looking
+    float light_divisor = 1.5; // good looking
     // light_divisor = 1.0;       // debug
 
     uint which_bits = uint( 3 );

@@ -18,19 +18,27 @@ void process_value( LinkedListValue *value ) {
     }
 }
 
-#ifdef REPGAME_WASM
+#if defined( REPGAME_WASM )
 void terrain_loading_thread_enqueue( Chunk *chunk, TRIP_ARGS( int new_chunk_ ), int persist ) {
     LinkedListValue value;
+    value.valid = 1;
     value.chunk = chunk;
     value.new_chunk_x = new_chunk_x;
     value.new_chunk_y = new_chunk_y;
     value.new_chunk_z = new_chunk_z;
     value.persist = persist;
+    if ( value.chunk ) {
+        linked_list_add_element( result_linked_list, value );
+    }
+}
+
+Chunk *terrain_loading_thread_dequeue( ) {
+    LinkedListValue value = linked_list_pop_element( result_linked_list );
     if ( value.valid ) {
         process_value( &value );
-        if ( value.chunk ) {
-            linked_list_add_element( result_linked_list, value );
-        }
+        return value.chunk;
+    } else {
+        return NULL;
     }
 }
 int terrain_loading_thread_start( ) {
@@ -101,7 +109,6 @@ void terrain_loading_thread_stop( ) {
     linked_list_free( work_linked_list );
     linked_list_free( result_linked_list );
 }
-#endif // else REPGAME_WASM
 
 Chunk *terrain_loading_thread_dequeue( ) {
     LinkedListValue value = linked_list_pop_element( result_linked_list );
@@ -111,3 +118,5 @@ Chunk *terrain_loading_thread_dequeue( ) {
         return NULL;
     }
 }
+
+#endif // else REPGAME_WASM
