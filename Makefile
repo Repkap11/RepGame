@@ -45,7 +45,7 @@ clean: clean-linux clean-android clean-wasm
 	rm -d out
 
 install:
-	sudo apt install freeglut3-dev libglew-dev libglm-dev libglm-doc nvidia-cuda-toolkit
+	sudo apt install freeglut3-dev libglew-dev libglm-dev libglm-doc nvidia-cuda-toolkit rsync
 
 .PHONY: run install all clean vars
 
