@@ -2,7 +2,7 @@
 MAKEFILES += wasm.mk
 #
 #-s USE_PTHREADS=1 -s TOTAL_MEMORY=512MB
-CFLAGS_WASM := -s ALLOW_MEMORY_GROWTH=1 -DREPGAME_WASM -s USE_WEBGL2=1
+CFLAGS_WASM := -s ALLOW_MEMORY_GROWTH=1 -DREPGAME_WASM -s USE_WEBGL2=1 --no-heap-copy
 
 CC_WASM := ~/Software/emsdk/emsdk/emscripten/1.38.25/em++
 
@@ -43,14 +43,12 @@ out/wasm/fs/bitmaps/% : android/app/src/main/res/raw/% $(MAKEFILES) | out/wasm
 	cp $< $@
 
 wasm-start-server:
-	http-server out/wasm/ &
+	http-server out/wasm/ -c-1 &
 
 wasm-run: wasm
 	#google-chrome --new-window http://localhost:8080/Repgame.html &
 	#google-chrome --new-window http://localhost:8080/index.html &
-	google-chrome --app=http://localhost:8080/index.html  --start-fullscreen &
-
-
+	google-chrome --app=http://localhost:8080/index.html --start-fullscreen
 
 WASM_DEPLOY_REMOTE_PATH := paul@repkap11.com:/home/paul/website/repgame
 

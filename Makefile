@@ -54,4 +54,4 @@ vars:
 
 AFTER_VARS := $(.VARIABLES)
 
-$(info $$WASM_BITMAPS is [${WASM_BITMAPS}])
+#$(info $$WASM_BITMAPS is [${WASM_BITMAPS}])

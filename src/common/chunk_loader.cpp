@@ -196,7 +196,7 @@ void chunk_loader_render_chunks( LoadedChunks *loadedChunks, TRIP_ARGS( float ca
 #if defined( REPGAME_WASM )
     static int count = 0;
     count++;
-    if ( count == 3 ) {
+    if ( count >= 3 ) {
         count = 0;
 #else
     do {

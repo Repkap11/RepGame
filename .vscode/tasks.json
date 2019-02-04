@@ -1,37 +1,50 @@
 {
-    // See https://go.microsoft.com/fwlink/?LinkId=733558
-    // for the documentation about the tasks.json format
-    "version": "2.0.0",
-    "tasks": [
-        {
-            "label": "make android-run",
-            "type": "shell",
-            "command": "make android-run",
-            "problemMatcher": [],
-            "group": "test"
-        },
-        {
-            "label": "make linux-run",
-            "type": "shell",
-            "command": "make linux-run",
-            "problemMatcher": [],
-            "group": "test"
-        },
-        {
-            "label": "make linux",
-            "type": "shell",
-            "command": "make linux",
-            "problemMatcher": [],
-            "group": "build"
+  // See https://go.microsoft.com/fwlink/?LinkId=733558
+  // for the documentation about the tasks.json format
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "make linux-run",
+      "type": "shell",
+      "command": "make linux-run",
+      "problemMatcher": [],
+      "group": "test"
+    },
+    {
+      "label": "make android-run",
+      "type": "shell",
+      "command": "make android-run",
+      "problemMatcher": [],
+      "group": "test"
+    },
 
-        },
-        {
-            "label": "make android",
-            "type": "shell",
-            "command": "make android",
-            "problemMatcher": [],
-            "group": "build"
-
-        }
-    ]
+    {
+      "label": "make wasm-run",
+      "type": "shell",
+      "command": "make wasm-run",
+      "problemMatcher": [],
+      "group": "test"
+    },
+    {
+      "label": "make linux",
+      "type": "shell",
+      "command": "make linux",
+      "problemMatcher": [],
+      "group": "build"
+    },
+    {
+      "label": "make android",
+      "type": "shell",
+      "command": "make android",
+      "problemMatcher": [],
+      "group": "build"
+    },
+    {
+      "label": "make wasm",
+      "type": "shell",
+      "command": "make wasm",
+      "problemMatcher": [],
+      "group": "build"
+    }
+  ]
 }
