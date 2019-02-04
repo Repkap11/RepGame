@@ -26,6 +26,9 @@ void keysInput( unsigned char key, int x, int y ) {
 void keysInputUp( unsigned char key, int x, int y ) {
     input_keysInput( repgame_getInputState( ), key, x, y, 0 );
 }
+extern "C" void testJS( int num, const char *string ) {
+    pr_debug( "testJS called with:%d %s", num, string );
+}
 
 #define WASM_PAN_SENSITIVITY 2
 void mouseMove( int x, int y ) {
@@ -37,8 +40,6 @@ void mouseMove( int x, int y ) {
     // input_lookMove( repgame_getInputState( ), x, y );
 }
 
-double fps_ms = ( 1.0 / FPS_LIMIT ) * 1000.0;
-
 void changeSize( int w, int h ) {
     repgame_changeSize( w, h );
 }
@@ -49,39 +50,21 @@ const char *repgame_getShaderString( const char *filename ) {
 }
 
 static void displayFunc( void ) {
-    // pr_debug( "RepGameWASM displayFunc" );
     repgame_clear( );
     repgame_tick( );
     repgame_draw( );
-    // glutSwapBuffers( );
     glutPostRedisplay( );
-    // pr_debug( "RepGameWASM displayFunc done" );
 }
 
-int main( int argc, char **argv ) {
+extern "C" int main( int argc, char **argv ) {
     glutInit( &argc, argv );
-    // glutInitContextVersion( 3, 3 );
-    // glutInitWindowSize( 300, 300 );
+    pr_debug( "Entering RepGameWASM Paul Main" );
 
-    pr_debug( "Entering RepGameWASM" );
-    // exit(0);
-
-    // glutInitContextFlags( GLUT_DEBUG );
-    // glutSetOption( GLUT_MULTISAMPLE, 16 );
     glutInitDisplayMode( GLUT_DEPTH | GLUT_DOUBLE | GLUT_RGBA | GLUT_MULTISAMPLE );
 
     glutCreateWindow( "RepGame" );
 
     pr_debug( "Using OpenGL Version:%s", glGetString( GL_VERSION ) );
-
-    // if ( glewInit( ) ) {
-    //     pr_debug( "GLEW init failed" );
-    //     exit( 1 ); // or handle the error in a nicer way
-    // }
-    // if ( !GLEW_VERSION_3_0 ) { // check that the machine supports the 2.1 API.
-    //     pr_debug( "GLEW version wrong" );
-    //     exit( 1 ); // or handle the error in a nicer way
-    // }
 
     repgame_init( );
 

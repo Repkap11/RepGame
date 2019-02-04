@@ -2,7 +2,12 @@
 MAKEFILES += wasm.mk
 #
 #-s USE_PTHREADS=1 -s TOTAL_MEMORY=512MB
-CFLAGS_WASM := -s ALLOW_MEMORY_GROWTH=1 -DREPGAME_WASM -s USE_WEBGL2=1 --no-heap-copy
+CFLAGS_WASM := -DREPGAME_WASM \
+			-s ALLOW_MEMORY_GROWTH=1 \
+			-s USE_WEBGL2=1 \
+			--no-heap-copy \
+			-s EXPORTED_FUNCTIONS='["_main", "_testJS"]' \
+			-s EXTRA_EXPORTED_RUNTIME_METHODS='["ccall", "cwrap"]'
 
 CC_WASM := ~/Software/emsdk/emsdk/emscripten/1.38.25/em++
 
@@ -16,7 +21,7 @@ WASM_FILE_TYPE = js
 OBJECTS_COMMON_WASM := $(patsubst src/common/%.cpp,out/wasm/common/%.bc, $(SRC_COMMON))
 OBJECTS_WASM := $(patsubst src/%.cpp,out/wasm/%.bc, $(wildcard src/wasm/*.cpp))
 
-wasm: out/wasm/$(TARGET).$(WASM_FILE_TYPE) out/wasm/index.html out/wasm/reset.css
+wasm: out/wasm/$(TARGET).$(WASM_FILE_TYPE) out/wasm/index.html out/wasm/reset.css out/wasm/helper.js out/wasm/icon.png
 
 WASM_DIRS = $(patsubst src%,out/wasm%,$(shell find src -type d)) \
 			out/wasm/fs \
@@ -33,6 +38,9 @@ out/wasm/$(TARGET).$(WASM_FILE_TYPE): $(OBJECTS_COMMON_WASM) $(OBJECTS_WASM) $(W
 out/wasm/index.html: src/wasm/index.html | out/wasm
 	cp $< $@
 
+out/wasm/helper.js: src/wasm/helper.js | out/wasm
+	cp $< $@
+
 out/wasm/reset.css: src/wasm/reset.css | out/wasm
 	cp $< $@
 
@@ -42,13 +50,16 @@ out/wasm/fs/src/shaders/%.glsl: src/shaders/%.glsl $(MAKEFILES) | out/wasm
 out/wasm/fs/bitmaps/% : android/app/src/main/res/raw/% $(MAKEFILES) | out/wasm
 	cp $< $@
 
+out/wasm/icon.png : bitmaps/icon.png | out/wasm
+	cp $< $@
+
 wasm-start-server:
 	http-server out/wasm/ -c-1 &
 
+WASM_START_COMMAND := google-chrome --app=http://localhost:8080 --start-fullscreen
+
 wasm-run: wasm
-	#google-chrome --new-window http://localhost:8080/Repgame.html &
-	#google-chrome --new-window http://localhost:8080/index.html &
-	google-chrome --app=http://localhost:8080/index.html --start-fullscreen
+	${WASM_START_COMMAND}
 
 WASM_DEPLOY_REMOTE_PATH := paul@repkap11.com:/home/paul/website/repgame
 
@@ -57,6 +68,7 @@ wasm-deploy: wasm
 	rsync --update out/wasm/reset.css ${WASM_DEPLOY_REMOTE_PATH}/reset.css
 	rsync --update out/wasm/RepGame.data ${WASM_DEPLOY_REMOTE_PATH}/RepGame.data
 	rsync --update out/wasm/RepGame.js ${WASM_DEPLOY_REMOTE_PATH}/RepGame.js
+	rsync --update out/wasm/helper.js ${WASM_DEPLOY_REMOTE_PATH}/helper.js
 	rsync --update out/wasm/RepGame.wasm ${WASM_DEPLOY_REMOTE_PATH}/RepGame.wasm
 
 clean-wasm:

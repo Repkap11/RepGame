@@ -20,7 +20,7 @@ CFLAGS := -Wall -Werror -std=c++98 -Wno-unused-variable -fPIC -O3
 #CFLAGS := -Wall -Werror -std=c++98 -Wno-unused-variable -fPIC -g
 
 #Default target
-all: linux android wasm
+all: android linux wasm
 
 SRC_COMMON := $(wildcard src/common/*.cpp) $(wildcard src/common/abstract/*.cpp) $(wildcard src/common/utils/*.cpp)
 INCLUDES_COMMON := -I include/ -I /usr/include/glm
@@ -38,7 +38,7 @@ out:
 	mkdir -p out
 
 run: linux android-run wasm
-	google-chrome --app=http://localhost:8080/index.html  --start-fullscreen &
+	${WASM_START_COMMAND} &
 	./$(TARGET)
 
 clean: clean-linux clean-android clean-wasm

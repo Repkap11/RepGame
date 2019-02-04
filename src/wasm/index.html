@@ -4,40 +4,9 @@
     <link rel="stylesheet" type="text/css" href="reset.css" />
   </head>
   <body>
-    <canvas class="emscripten" id="canvas" oncontextmenu="event.preventDefault()" tabindex="-1"></canvas>
+    <div id="canvas_holder">
+      <canvas id="canvas"></canvas>
+    </div>
+    <script src="helper.js"></script>
   </body>
-  <script>
-    var canvas = document.getElementById("canvas");
-    canvas.width = window.innerWidth;
-    canvas.height = window.innerHeight;
-    var req = new XMLHttpRequest();
-    var Module = {
-      print: console.log,
-      printErr: console.error,
-      canvas: canvas
-    };
-    var loaded_once = 0;
-    canvas.onclick = function() {
-      var hasPointerLock = document.pointerLockElement === canvas;
-      console.log("Has Lock:", hasPointerLock);
-      if (!hasPointerLock) {
-        canvas.requestPointerLock();
-      }
-      if (!loaded_once) {
-        loaded_once = 1;
-        req.addEventListener("load", function(evt) {
-          document["exitFullscreen"] = function() {};
-          document["cancelFullScreen"] = function() {};
-          document["mozCancelFullScreen"] = function() {};
-          document["webkitCancelFullScreen"] = function() {};
-          var script = document.createElement("script");
-          script.innerHTML = evt.target.responseText;
-          var h = document.getElementsByTagName("head")[0];
-          h.appendChild(script); //Really starts the game...
-        });
-        req.open("GET", "RepGame.js");
-        req.send();
-      }
-    };
-  </script>
 </html>
