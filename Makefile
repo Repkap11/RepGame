@@ -16,8 +16,6 @@ MAKEFLAGS += --warn-undefined-variables
 MAKEFLAGS += --jobs=$(CPUS)
 
 TARGET := RepGame
-CFLAGS := -Wall -Werror -std=c++98 -Wno-unused-variable -fPIC -O3
-#CFLAGS := -Wall -Werror -std=c++98 -Wno-unused-variable -fPIC -g
 
 #Default target
 all: android linux wasm
@@ -26,8 +24,6 @@ SRC_COMMON := $(wildcard src/common/*.cpp) $(wildcard src/common/abstract/*.cpp)
 INCLUDES_COMMON := -I include/ -I /usr/include/glm
 
 HEADERS := $(wildcard include/**/*.hpp)
-
-reverse = $(if $(1),$(call reverse,$(wordlist 2,$(words $(1)),$(1)))) $(firstword $(1))
 
 #Android targets might depend on linux.mk modifications
 include wasm.mk
