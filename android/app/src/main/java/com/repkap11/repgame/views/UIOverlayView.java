@@ -32,9 +32,11 @@ public class UIOverlayView extends View implements View.OnTouchListener {
     private int mLookFingerY;
     private int mUpRadius;
     private int mUpX;
+    private int mUpX2;
     private int mUpY;
     private int mDownRadius;
     private int mDownX;
+    private int mDownX2;
     private int mDownY;
 
     public UIOverlayView(Context context, @Nullable AttributeSet attrs) {
@@ -54,7 +56,9 @@ public class UIOverlayView extends View implements View.OnTouchListener {
         canvas.drawCircle(mMoveX, mMoveY, mMoveRadius, mMovePaint);
         canvas.drawCircle(mMoveFingerX, mMoveFingerY, mMoveFingerRadius, mMovePaint);
         canvas.drawCircle(mUpX, mUpY, mUpRadius, mMovePaint);
+        canvas.drawCircle(mUpX2, mUpY, mUpRadius, mMovePaint);
         canvas.drawCircle(mDownX, mDownY, mDownRadius, mMovePaint);
+        canvas.drawCircle(mDownX2, mDownY, mDownRadius, mMovePaint);
     }
 
     @Override
@@ -66,13 +70,15 @@ public class UIOverlayView extends View implements View.OnTouchListener {
         mMoveFingerX = mMoveX;
         mMoveFingerY = mMoveY;
         mMoveFingerRadius = mMoveRadius / 3;
+        mUpRadius = mMoveRadius / 2;
+        mUpX = lookMaxRadius / 2;
+        mUpX2 = w - mUpX;
 
-        mUpRadius = mMoveRadius / 3;
-        mUpX = lookMaxRadius / 3;
-        mUpY = lookMaxRadius / 3;
-        mDownRadius = mMoveRadius / 3;
-        mDownX = lookMaxRadius / 3;
-        mDownY = lookMaxRadius * 3 / 3;
+        mUpY = lookMaxRadius / 2;
+        mDownRadius = mMoveRadius / 2;
+        mDownX = lookMaxRadius / 2;
+        mDownX2 = w - mDownX;
+        mDownY = lookMaxRadius * 3 / 2;
 
 
         super.onSizeChanged(w, h, oldw, oldh);
@@ -99,6 +105,10 @@ public class UIOverlayView extends View implements View.OnTouchListener {
                 (Math.abs(y - mUpY) < mUpRadius)) {
             return true;
         }
+        if ((Math.abs(x - mUpX2) < mUpRadius) &&
+                (Math.abs(y - mUpY) < mUpRadius)) {
+            return true;
+        }
         return false;
     }
 
@@ -106,6 +116,10 @@ public class UIOverlayView extends View implements View.OnTouchListener {
         int x = (int) event.getX(pointerIndex);
         int y = (int) event.getY(pointerIndex);
         if ((Math.abs(x - mDownX) < mDownRadius) &&
+                (Math.abs(y - mDownY) < mDownRadius)) {
+            return true;
+        }
+        if ((Math.abs(x - mDownX2) < mDownRadius) &&
                 (Math.abs(y - mDownY) < mDownRadius)) {
             return true;
         }
