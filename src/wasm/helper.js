@@ -44,6 +44,7 @@ function setup_key_listener() {
     if (event.keyCode == 81) {
       //Native game will stop, so release the pointer lock
       document.exitPointerLock();
+      close();
     }
   });
 }
