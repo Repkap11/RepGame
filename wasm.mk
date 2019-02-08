@@ -17,7 +17,7 @@ WASM_BITMAPS = $(patsubst android/app/src/main/res/raw/%,out/wasm/fs/bitmaps/%,$
 OBJECTS_COMMON_WASM := $(patsubst src/common/%.cpp,out/wasm/common/%.bc, $(SRC_COMMON))
 OBJECTS_WASM := $(patsubst src/%.cpp,out/wasm/%.bc, $(wildcard src/wasm/*.cpp))
 
-wasm: out/wasm/delivery/$(TARGET).js out/wasm/delivery/index.html out/wasm/delivery/reset.css out/wasm/delivery/helper.js out/wasm/delivery/icon.png
+wasm: out/wasm/delivery/$(TARGET).js out/wasm/delivery/index.html out/wasm/delivery/reset.css out/wasm/delivery/index.js out/wasm/delivery/icon.png
 
 WASM_DIRS = $(patsubst src%,out/wasm%,$(shell find src -type d)) \
 			out/wasm \
@@ -36,7 +36,7 @@ out/wasm/delivery/$(TARGET).js: $(OBJECTS_COMMON_WASM) $(OBJECTS_WASM) $(WASM_SH
 out/wasm/delivery/index.html: src/wasm/index.html | out/wasm
 	cp $< $@
 
-out/wasm/delivery/helper.js: src/wasm/helper.js | out/wasm
+out/wasm/delivery/index.js: src/wasm/index.js | out/wasm
 	cp $< $@
 
 out/wasm/delivery/reset.css: src/wasm/reset.css | out/wasm
