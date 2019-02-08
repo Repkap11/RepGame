@@ -26,5 +26,5 @@ typedef struct {
 
 void sky_box_init( SkyBox *skyBox );
 void sky_box_draw( SkyBox *skyBox, Renderer *renderer, glm::mat4 &mvp_sky );
-
+void sky_box_destroy( SkyBox *skyBox );
 #endif

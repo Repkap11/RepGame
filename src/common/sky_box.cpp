@@ -74,10 +74,21 @@ void sky_box_init( SkyBox *skyBox ) {
     vertex_array_add_buffer( &skyBox->va, &skyBox->vb, &skyBox->vbl, 0, 0 );
     shader_init( &skyBox->shader, "sky_box_vertex.glsl", "sky_box_fragment.glsl" );
     texture_init_sky( &skyBox->texture );
+    free( ib_data );
+    free( vb_data );
 }
 
 void sky_box_draw( SkyBox *skyBox, Renderer *renderer, glm::mat4 &mvp_sky ) {
     shader_set_uniform1i( &skyBox->shader, "u_Texture", skyBox->texture.slot );
     shader_set_uniform_mat4f( &skyBox->shader, "u_MVP", mvp_sky );
     renderer_draw( renderer, &skyBox->va, &skyBox->ib, &skyBox->shader, 1 );
+}
+
+void sky_box_destroy( SkyBox *skyBox ) {
+    vertex_buffer_layout_destroy( &skyBox->vbl );
+    index_buffer_destroy( &skyBox->ib );
+    vertex_array_destroy( &skyBox->va );
+    vertex_buffer_destroy( &skyBox->vb );
+    shader_destroy( &skyBox->shader );
+    texture_destroy( &skyBox->texture );
 }

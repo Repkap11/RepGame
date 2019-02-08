@@ -48,7 +48,7 @@ int main( int argc, char **argv ) {
     glutSetOption( GLUT_MULTISAMPLE, 16 );
     glutInitDisplayMode( GLUT_DEPTH | GLUT_DOUBLE | GLUT_RGBA | GLUT_MULTISAMPLE );
 
-    glutCreateWindow( "RepGame" );
+    int glut_window = glutCreateWindow( "RepGame" );
 
     pr_debug( "Using OpenGL Version:%s", glGetString( GL_VERSION ) );
 
@@ -120,5 +120,6 @@ int main( int argc, char **argv ) {
     }
     repgame_cleanup( );
     glutLeaveMainLoop( );
+    glutDestroyWindow(glut_window);
     return 0;
 }

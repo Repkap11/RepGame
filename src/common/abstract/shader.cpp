@@ -15,8 +15,9 @@ char *shaderLoadSource( const char *filePath ) {
 
     /* open file */
     char *dir = getRepGamePath( );
-    char fullPath[ BUFSIZ ];
+    char fullPath[ 8192 ];
     sprintf( fullPath, "%s/src/shaders/%s", dir, filePath );
+    free( dir );
     pr_debug( "shader path:%s", fullPath );
     fp = fopen( fullPath, "r" );
     if ( !fp ) {
@@ -153,7 +154,7 @@ unsigned int shaders_compile( const char *vertex_path, const char *fragment_path
     while ( try_counts < 5 ) {
         try_counts++;
         g_program = glCreateProgram( );
-#if defined(REPGAME_LINUX) || defined(REPGAME_WASM)
+#if defined( REPGAME_LINUX ) || defined( REPGAME_WASM )
         shaderAttachFromFile( g_program, GL_VERTEX_SHADER, vertex_path );
         shaderAttachFromFile( g_program, GL_FRAGMENT_SHADER, fragment_path );
 #else

@@ -9,16 +9,18 @@ char *getRepGamePath( ) {
     char buffer[ BUFSIZ ];
     memset( buffer, 0, sizeof( buffer ) );
     ssize_t result = readlink( "/proc/self/exe", buffer, BUFSIZ - 1 );
-    char *dir;
     if ( result == -1 ) {
         return NULL;
     }
-    dir = dirname( buffer );
+    char *dir_temp = dirname( buffer );
+    char *dir = strdup( dir_temp );
     return dir;
 }
 #endif
 #ifdef REPGAME_WASM
 char *getRepGamePath( ) {
-    return ( char * )"";
+    char *dir_temp = ( char * )"";
+    char *dir = strdup( dir_temp );
+    return dir;
 }
 #endif

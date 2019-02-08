@@ -138,6 +138,7 @@ void collision_check_move( LoadedChunks *loadedChunks, TRIP_ARGS( float *movemen
     if ( dirs_to_check[ FACE_BACK ] ) {
         check_collides_with_player( loadedChunks, &zero, &zero, movement_vec_z, TRIP_ARGS( position_ ) );
     }
+    free(dirs_to_check);
 
     // TRIP_STATE( int out_ );
     // int *faces = ( int * )calloc( NUM_FACES_IN_CUBE, sizeof( int ) );

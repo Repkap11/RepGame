@@ -20,6 +20,7 @@ void world_draw_liquid( LoadedChunks *loadedChunks, glm::mat4 &mvp ) {
 }
 void world_cleanup( LoadedChunks *loadedChunks ) {
     chunk_loader_cleanup( loadedChunks );
+    sky_box_destroy( &loadedChunks->skyBox );
 }
 
 void fixup_chunk( LoadedChunks *loadedChunks, Chunk *chunk, TRIP_ARGS( int offset_ ), TRIP_ARGS( int pos_ ), BlockID blockID ) {

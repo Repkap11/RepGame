@@ -57,6 +57,7 @@ void map_storage_init( ) {
     char bufferSky[ BUFSIZ ];
     sprintf( map_name, "%s%s", dir, "/World1" );
     mkdir_p( map_name );
+    free( dir );
 }
 
 void map_storage_cleanup( ) {

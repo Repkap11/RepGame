@@ -86,7 +86,7 @@ unsigned int loadTexture( const char *filename, int width, int height, int bmp_h
     unsigned int texture;
     glGenTextures( 1, &texture );
     glBindTexture( GL_TEXTURE_2D_ARRAY, texture );
-#if defined(REPGAME_WASM) || defined(REPGAME_LINUX)
+#if defined( REPGAME_WASM ) || defined( REPGAME_LINUX )
     glTexImage3D( GL_TEXTURE_2D_ARRAY,              //
                   0,                                // mipLevelCount
                   GL_RGBA8,                         //
@@ -136,6 +136,7 @@ void texture_init_blocks( Texture *texture ) {
     char *dir = getRepGamePath( );
     char bufferText[ BUFSIZ ];
     sprintf( bufferText, "%s%s", dir, "/bitmaps/textures.bmp" );
+    free( dir );
     texture->slot = 1;
     glActiveTexture( GL_TEXTURE0 + texture->slot );
     texture->m_RendererId = loadTexture( bufferText, 256, 256, BMP_HEADER_SIZE, 16, 16 );
@@ -144,6 +145,7 @@ void texture_init_sky( Texture *texture ) {
     char *dir = getRepGamePath( );
     char bufferSky[ BUFSIZ ];
     sprintf( bufferSky, "%s%s", dir, "/bitmaps/sky4.bmp" );
+    free( dir );
     texture->slot = 2;
     glActiveTexture( GL_TEXTURE0 + texture->slot );
     texture->m_RendererId = loadTexture( bufferSky, 2048, 1024, BMP_HEADER_SIZE, 2048, 1024 );
