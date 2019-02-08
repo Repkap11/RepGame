@@ -56,7 +56,13 @@ function reset_canvas() {
   }
   var canvas = document.createElement("canvas");
   canvas.id = "canvas";
-  canvas.oncontextmenu = event.preventDefault();
+  canvas.addEventListener(
+    "contextmenu",
+    function(event) {
+      event.preventDefault();
+    },
+    false
+  );
   canvas_holder.appendChild(canvas);
   set_canvas_size();
   Module.canvas = canvas;
