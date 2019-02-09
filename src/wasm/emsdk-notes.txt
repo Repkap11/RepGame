@@ -1,10 +1,10 @@
 emsdk changes:
 
-Add this in src/library_browser.js line 270
+Add this in src/library_browser.js line 270 to call the event once on startup
       pointerLockChange();
 
 
-Add this in src/library_glut.js line 53
+Add this in src/library_glut.js line 53 to use relitive positions on desktop with pointer lock
 
       if (Browser.pointerLock){
         lastX = Browser.mouseMovementX;
