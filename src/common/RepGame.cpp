@@ -52,11 +52,6 @@ static void gameTick( ) {
 
     chunk_loader_set_selected_block( &globalGameState.gameChunks, TRIP_ARGS( globalGameState.block_selection.destroy_ ), globalGameState.block_selection.selectionInBounds );
 
-    globalGameState.block_selection.selectionInBounds = sqrt(                                                                                                                                                     //
-                                                            ( globalGameState.camera.x - globalGameState.block_selection.destroy_x ) * ( globalGameState.camera.x - globalGameState.block_selection.destroy_x ) + //
-                                                            ( globalGameState.camera.y - globalGameState.block_selection.destroy_y ) * ( globalGameState.camera.y - globalGameState.block_selection.destroy_y ) + //
-                                                            ( globalGameState.camera.z - globalGameState.block_selection.destroy_z ) * ( globalGameState.camera.z - globalGameState.block_selection.destroy_z ) ) < REACH_DISTANCE;
-
     // int block_x = globalGameState.block_selection.destroy_x;
     // int block_y = globalGameState.block_selection.destroy_y;
     // int block_z = globalGameState.block_selection.destroy_z;
