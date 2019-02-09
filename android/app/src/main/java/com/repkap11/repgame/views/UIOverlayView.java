@@ -21,6 +21,9 @@ public class UIOverlayView extends View implements View.OnTouchListener {
     int mLookPointerId = -1;
     int mUpPointerId = -1;
     int mDownPointerId = -1;
+    int mMouseLeftPointerId = -1;
+    int mMouseMiddlePointerId = -1;
+    int mMouseRightPointerId = -1;
     private RepGameAndroidRenderer mRenderWrapper;
     private int mMoveX;
     private int mMoveY;
@@ -38,6 +41,13 @@ public class UIOverlayView extends View implements View.OnTouchListener {
     private int mDownX;
     private int mDownX2;
     private int mDownY;
+    private int mMouseLeftX;
+    private int mMouseLeftY;
+    private int mMouseMiddleX;
+    private int mMouseMiddleY;
+    private int mMouseRightX;
+    private int mMouseRightY;
+    private int mMouseRadius;
 
     public UIOverlayView(Context context, @Nullable AttributeSet attrs) {
         super(context, attrs);
@@ -59,6 +69,9 @@ public class UIOverlayView extends View implements View.OnTouchListener {
         canvas.drawCircle(mUpX2, mUpY, mUpRadius, mMovePaint);
         canvas.drawCircle(mDownX, mDownY, mDownRadius, mMovePaint);
         canvas.drawCircle(mDownX2, mDownY, mDownRadius, mMovePaint);
+        canvas.drawCircle(mMouseLeftX, mMouseLeftY, mMouseRadius, mMovePaint);
+        canvas.drawCircle(mMouseMiddleX, mMouseMiddleY, mMouseRadius, mMovePaint);
+        canvas.drawCircle(mMouseRightX, mMouseRightY, mMouseRadius, mMovePaint);
     }
 
     @Override
@@ -79,6 +92,15 @@ public class UIOverlayView extends View implements View.OnTouchListener {
         mDownX = lookMaxRadius / 2;
         mDownX2 = w - mDownX;
         mDownY = lookMaxRadius * 3 / 2;
+
+        mMouseLeftY = h - mUpRadius;
+        mMouseMiddleY = h - mUpRadius;
+        mMouseRightY = h - mUpRadius;
+
+        mMouseRadius = mMoveRadius / 3;
+        mMouseLeftX = mMoveRadius * 2 + mMouseRadius;
+        mMouseRightX = w - mMouseLeftX;
+        mMouseMiddleX = (mMouseLeftX + mMouseRightX) / 2;
 
 
         super.onSizeChanged(w, h, oldw, oldh);
@@ -126,6 +148,37 @@ public class UIOverlayView extends View implements View.OnTouchListener {
         return false;
     }
 
+    private boolean eventWithinMouseLeft(MotionEvent event, int pointerIndex) {
+        int x = (int) event.getX(pointerIndex);
+        int y = (int) event.getY(pointerIndex);
+        if ((Math.abs(x - mMouseLeftX) < mMouseRadius) &&
+                (Math.abs(y - mMouseLeftY) < mMouseRadius)) {
+            return true;
+        }
+        return false;
+    }
+
+    private boolean eventWithinMouseMiddle(MotionEvent event, int pointerIndex) {
+        int x = (int) event.getX(pointerIndex);
+        int y = (int) event.getY(pointerIndex);
+        if ((Math.abs(x - mMouseMiddleX) < mMouseRadius) &&
+                (Math.abs(y - mMouseMiddleY) < mMouseRadius)) {
+            return true;
+        }
+        return false;
+    }
+
+    private boolean eventWithinMouseRight(MotionEvent event, int pointerIndex) {
+        int x = (int) event.getX(pointerIndex);
+        int y = (int) event.getY(pointerIndex);
+        if ((Math.abs(x - mMouseRightX) < mMouseRadius) &&
+                (Math.abs(y - mMouseRightY) < mMouseRadius)) {
+            return true;
+        }
+        return false;
+    }
+
+
     @Override
     public boolean onTouch(View view, MotionEvent event) {
         int actionIndex = event.getActionIndex();
@@ -139,6 +192,15 @@ public class UIOverlayView extends View implements View.OnTouchListener {
                 } else if (eventWithinUp(event, actionIndex)) {
                     mUpPointerId = actionPointer;
                     handleVMove();
+                } else if (eventWithinMouseLeft(event, actionIndex)) {
+                    mMouseLeftPointerId = actionPointer;
+                    handleMouseButtons();
+                } else if (eventWithinMouseMiddle(event, actionIndex)) {
+                    mMouseMiddlePointerId = actionPointer;
+                    handleMouseButtons();
+                } else if (eventWithinMouseRight(event, actionIndex)) {
+                    mMouseRightPointerId = actionPointer;
+                    handleMouseButtons();
                 } else if (eventWithinDown(event, actionIndex)) {
                     mDownPointerId = actionPointer;
                     handleVMove();
@@ -167,6 +229,19 @@ public class UIOverlayView extends View implements View.OnTouchListener {
                     mDownPointerId = -1;
                     handleVMove();
                 }
+                if (actionPointer == mMouseLeftPointerId) {
+                    mMouseLeftPointerId = -1;
+                    handleMouseButtons();
+                }
+                if (actionPointer == mMouseMiddlePointerId) {
+                    mMouseMiddlePointerId = -1;
+                    handleMouseButtons();
+                }
+                if (actionPointer == mMouseRightPointerId) {
+                    mMouseRightPointerId = -1;
+                    handleMouseButtons();
+                }
+
                 break;
             case MotionEvent.ACTION_MOVE:
                 for (int i = 0; i < event.getPointerCount(); i++) {
@@ -180,6 +255,13 @@ public class UIOverlayView extends View implements View.OnTouchListener {
                 break;
         }
         return true;
+    }
+
+    private void handleMouseButtons() {
+        int left = mMouseLeftPointerId == -1 ? 0 : 1;
+        int middle = mMouseMiddlePointerId == -1 ? 0 : 1;
+        int right = mMouseRightPointerId == -1 ? 0 : 1;
+        mRenderWrapper.setButtonState(left, middle, right);
     }
 
     private void handleVMove() {

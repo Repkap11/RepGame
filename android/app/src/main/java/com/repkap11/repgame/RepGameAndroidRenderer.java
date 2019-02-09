@@ -60,6 +60,10 @@ public class RepGameAndroidRenderer implements GLSurfaceView.Renderer {
     public void positionHInput(float sizeH, float angleH) {
         RepGameJNIWrapper.positionHInput(sizeH, angleH);
     }
+    public void setButtonState(int left, int middle, int right){
+        RepGameJNIWrapper.setButtonState(left, middle, right);
+    }
+
 
     public void positionVInput(int sizeV) {
         RepGameJNIWrapper.positionVInput(sizeV);

@@ -22,4 +22,7 @@ class RepGameJNIWrapper {
     public static native void positionHInput(float sizeH, float angleH);
 
     public static native void positionVInput(int sizeV);
+
+    public static native void setButtonState(int left, int middle, int right);
+
 }

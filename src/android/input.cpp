@@ -12,3 +12,9 @@ void input_positionHMove( InputState *inputState, float sizeH, float angleH ) {
 void input_positionVMove( InputState *inputState, int sizeV ) {
     inputState->movement.sizeV = sizeV;
 }
+
+void input_setButtonState( InputState *inputState, int left, int middle, int right ) {
+    inputState->mouse.buttons.left = left;
+    inputState->mouse.buttons.middle = middle;
+    inputState->mouse.buttons.right = right;
+}
