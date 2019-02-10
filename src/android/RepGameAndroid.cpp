@@ -9,7 +9,7 @@
 AAssetManager *assetManager;
 #define SHADER_SIZE 4096
 
-const char *repgame_getShaderString( const char *filename ) {
+char *repgame_getShaderString( const char *filename ) {
     char *buf = ( char * )malloc( SHADER_SIZE );
 
     pr_debug( "About to asset %s", filename );
@@ -51,6 +51,10 @@ JNIEXPORT void JNICALL Java_com_repkap11_repgame_RepGameJNIWrapper_onSurfaceCrea
     repgame_init( );
 }
 
+JNIEXPORT void JNICALL Java_com_repkap11_repgame_RepGameJNIWrapper_onSurfaceDestroyed( JNIEnv *env, jobject obj ) {
+    repgame_cleanup();
+}
+
 int current_screen_width = 0;
 int current_screen_height = 0;
 
@@ -73,7 +77,7 @@ JNIEXPORT void JNICALL Java_com_repkap11_repgame_RepGameJNIWrapper_lookInput( JN
 }
 
 JNIEXPORT void JNICALL Java_com_repkap11_repgame_RepGameJNIWrapper_setButtonState( JNIEnv *env, jobject obj, jint left, jint middle, jint right ) {
-    input_setButtonState( repgame_getInputState( ), left, middle, right);
+    input_setButtonState( repgame_getInputState( ), left, middle, right );
 }
 
 #define ANDROID_MOVE_SENSITIVITY 1

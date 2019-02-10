@@ -44,7 +44,7 @@ void changeSize( int w, int h ) {
     repgame_changeSize( w, h );
 }
 
-const char *repgame_getShaderString( const char *filename ) {
+char *repgame_getShaderString( const char *filename ) {
     pr_debug( "RepGame WASM doesn't support shaders from file" );
     return "RepGame WASM doesn't support shaders from file";
 }

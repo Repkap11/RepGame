@@ -62,6 +62,7 @@ public class RepGameActivity extends AppCompatActivity {
         super.onPause();
         if (mRendererSet) {
             glSurfaceView.onPause();
+            mRenderWrapper.onPause();
         }
     }
 

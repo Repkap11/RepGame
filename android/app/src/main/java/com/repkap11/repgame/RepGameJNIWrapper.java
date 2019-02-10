@@ -13,6 +13,8 @@ class RepGameJNIWrapper {
 
     public static native void onSurfaceCreated(byte[] textureBlocks, byte[] textureSky, AssetManager assetManager);
 
+    public static native void onSurfaceDestroyed();
+
     public static native void onDrawFrame();
 
     public static native void onSizeChanged(int width, int height);

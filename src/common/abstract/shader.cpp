@@ -54,7 +54,7 @@ char *shaderLoadSource( const char *filePath ) {
 }
 
 unsigned int shaderCompileFromString( int type, const char *fileName ) {
-    const char *source;
+    char *source;
     unsigned int shader;
     int length, result;
 
@@ -66,6 +66,7 @@ unsigned int shaderCompileFromString( int type, const char *fileName ) {
     length = strlen( source );
     glShaderSource( shader, 1, ( const char ** )&source, &length );
     glCompileShader( shader );
+    free( source );
 
     /* make sure the compilation was successful */
     glGetShaderiv( shader, GL_COMPILE_STATUS, &result );

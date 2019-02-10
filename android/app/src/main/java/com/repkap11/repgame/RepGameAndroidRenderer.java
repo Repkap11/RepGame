@@ -40,7 +40,6 @@ public class RepGameAndroidRenderer implements GLSurfaceView.Renderer {
         }
 
         RepGameJNIWrapper.onSurfaceCreated(blocks, sky, mApplicationContext.getAssets());
-
     }
 
     @Override
@@ -67,6 +66,10 @@ public class RepGameAndroidRenderer implements GLSurfaceView.Renderer {
 
     public void positionVInput(int sizeV) {
         RepGameJNIWrapper.positionVInput(sizeV);
+    }
+
+    public void onPause() {
+        RepGameJNIWrapper.onSurfaceDestroyed();
     }
 
     public static class ConfigChooser implements GLSurfaceView.EGLConfigChooser {

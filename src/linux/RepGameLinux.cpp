@@ -36,8 +36,8 @@ void changeSize( int w, int h ) {
     repgame_changeSize( w, h );
 }
 
-const char *repgame_getShaderString( const char *filename ) {
-    return "RepGame Linux doesn't support shaders from file";
+char *repgame_getShaderString( const char *filename ) {
+    return ( char * )"RepGame Linux doesn't support shaders from file";
 }
 
 int main( int argc, char **argv ) {
@@ -120,6 +120,6 @@ int main( int argc, char **argv ) {
     }
     repgame_cleanup( );
     glutLeaveMainLoop( );
-    glutDestroyWindow(glut_window);
+    glutDestroyWindow( glut_window );
     return 0;
 }
