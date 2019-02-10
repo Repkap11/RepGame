@@ -2,7 +2,7 @@
 #include "common/RepGame.hpp"
 #include "common/utils/ray_traversal.hpp"
 
-int check_collides_with_player( LoadedChunks *loadedChunks, TRIP_ARGS( float *movement_vec_ ), TRIP_ARGS( float position_ ) ) {
+void check_collides_with_player( LoadedChunks *loadedChunks, TRIP_ARGS( float *movement_vec_ ), TRIP_ARGS( float position_ ) ) {
     float half_width_x = PLAYER_WIDTH / 2.0f;
     float half_width_y = PLAYER_HEIGHT / 2.0f;
     float half_width_z = PLAYER_WIDTH / 2.0f;
@@ -29,9 +29,6 @@ int check_collides_with_player( LoadedChunks *loadedChunks, TRIP_ARGS( float *mo
                     new_y + ( *movement_vec_y ),                //
                     new_z + ( *movement_vec_z ),                //
                     TRIP_ARGS( &out_ ), faces, 1 );
-                if ( collide ) {
-                    return 1;
-                }
             }
         }
     }
@@ -41,60 +38,44 @@ int check_collides_with_player( LoadedChunks *loadedChunks, TRIP_ARGS( float *mo
         *movement_vec_x = roundf( ( position_x - half_width_x ) + *movement_vec_x ) - ( position_x - half_width_x );
         if ( *movement_vec_x != movement_vec_x_orig ) {
             *movement_vec_x += .00001f;
-            collide = 1;
         }
-        pr_debug( "Collide FACE_RIGHT" );
     }
     if ( faces[ FACE_LEFT ] && *movement_vec_x > 0 ) {
         float movement_vec_x_orig = *movement_vec_x;
         *movement_vec_x = roundf( ( position_x + half_width_x ) + *movement_vec_x ) - ( position_x + half_width_x );
         if ( *movement_vec_x != movement_vec_x_orig ) {
             *movement_vec_x -= .00001f;
-            collide = 1;
         }
-        pr_debug( "Collide FACE_LEFT" );
     }
     if ( faces[ FACE_TOP ] && *movement_vec_y < 0 ) {
         float movement_vec_y_orig = *movement_vec_y;
         *movement_vec_y = roundf( ( position_y - half_width_y ) + *movement_vec_y ) - ( position_y - half_width_y );
         if ( *movement_vec_y != movement_vec_y_orig ) {
             *movement_vec_y += .00001f;
-            collide = 1;
         }
-        pr_debug( "Collide FACE_TOP" );
     }
     if ( faces[ FACE_BOTTOM ] && *movement_vec_y > 0 ) {
         float movement_vec_y_orig = *movement_vec_y;
         *movement_vec_y = roundf( ( position_y + half_width_y ) + *movement_vec_y ) - ( position_y + half_width_y );
         if ( *movement_vec_y != movement_vec_y_orig ) {
             *movement_vec_y -= .00001f;
-            collide = 1;
         }
-        pr_debug( "Collide FACE_BOTTOM" );
     }
     if ( faces[ FACE_BACK ] && *movement_vec_z < 0 ) {
         float movement_vec_z_orig = *movement_vec_z;
         *movement_vec_z = roundf( ( position_z - half_width_z ) + *movement_vec_z ) - ( position_z - half_width_z );
         if ( *movement_vec_z != movement_vec_z_orig ) {
             *movement_vec_z += .00001f;
-            collide = 1;
         }
-        pr_debug( "Collide FACE_BACK" );
     }
     if ( faces[ FACE_FRONT ] && *movement_vec_z > 0 ) {
         float movement_vec_z_orig = *movement_vec_z;
         *movement_vec_z = roundf( ( position_z + half_width_z ) + *movement_vec_z ) - ( position_z + half_width_z );
         if ( *movement_vec_z != movement_vec_z_orig ) {
             *movement_vec_z -= .00001f;
-            collide = 1;
         }
-        pr_debug( "Collide FACE_FRONT" );
     }
     free( faces );
-    if ( collide ) {
-        // collision_check_move( loadedChunks, TRIP_ARGS( movement_vec_ ), TRIP_ARGS( position_ ) );
-    }
-    return 0;
 }
 
 void collision_check_move( LoadedChunks *loadedChunks, TRIP_ARGS( float *movement_vec_ ), TRIP_ARGS( float position_ ) ) {
