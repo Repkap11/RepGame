@@ -1,7 +1,7 @@
 #ifndef HEADER_CONSTANTS_H
 #define HEADER_CONSTANTS_H
 
-#define MOVEMENT_SENSITIVITY 0.2f // How sensitive the arrow keys are
+#define MOVEMENT_SENSITIVITY 0.15f // How sensitive the arrow keys are
 
 #ifdef REPGAME_LINUX
 #define CHUNK_RADIUS_X 200 / CHUNK_SIZE
@@ -41,8 +41,8 @@
 #define BLOCK_SCALE 1.0f
 #define DISABLE_GROUPING_BLOCKS 0
 #define REACH_DISTANCE 7
-//#define GRAVITY_STRENGTH 0.4f
-#define GRAVITY_STRENGTH 0.0f
+#define GRAVITY_STRENGTH 0.1f
+//#define GRAVITY_STRENGTH 0.0f
 
 #define CAMERA_SIZE 0.01f // Defines how much crop is in front (low for minecraft)
 #define PERSON_HEIGHT 1.62f

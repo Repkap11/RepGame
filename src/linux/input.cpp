@@ -42,8 +42,6 @@ void processMovement( InputState *inputState ) {
     }
     if ( up ) {
         sizeV += 1;
-    } else if ( !down ) {
-        sizeV -= GRAVITY_STRENGTH;
     }
     if ( down ) {
         sizeV -= 1;

@@ -146,6 +146,10 @@ static void gameTick( ) {
     movement_vector_y *= MOVEMENT_SENSITIVITY;
     movement_vector_z *= MOVEMENT_SENSITIVITY;
 
+    if ( movement_vector_y == 0 ) {
+        movement_vector_y = -GRAVITY_STRENGTH;
+    }
+
     collision_check_move( &globalGameState.gameChunks, TRIP_ARGS( &movement_vector_ ), //
                           globalGameState.camera.x,                                    //
                           globalGameState.camera.y,                                    //
@@ -173,7 +177,7 @@ static inline void initilizeGameState( ) {
     globalGameState.camera.angle_H = 135.0f;
     globalGameState.camera.angle_V = 25.0f;
     globalGameState.camera.x = 0.0f;
-    globalGameState.camera.y = 7.5f;
+    globalGameState.camera.y = 8.5f;
     globalGameState.camera.z = 0.0f;
     globalGameState.block_selection.holdingBlock = TNT;
     world_init( &globalGameState.gameChunks );

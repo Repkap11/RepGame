@@ -3,20 +3,21 @@
 #include "common/utils/ray_traversal.hpp"
 
 int check_collides_with_player( LoadedChunks *loadedChunks, TRIP_ARGS( float *movement_vec_ ), TRIP_ARGS( float position_ ) ) {
-    float half_width_x = 0.4f;
-    float half_width_y = 0.4f;
-    float half_width_z = 0.4f;
+    float half_width_x = PLAYER_WIDTH / 2.0f;
+    float half_width_y = PLAYER_HEIGHT / 2.0f;
+    float half_width_z = PLAYER_WIDTH / 2.0f;
     int out_x;
     int out_y;
     int out_z;
     int *faces = ( int * )calloc( NUM_FACES_IN_CUBE, sizeof( int ) );
+    position_y -= EYE_POSITION_OFFSET;
 
     // For each point in the persons collision box, check the direction
     for ( int offset_x = -1; offset_x < 2; offset_x++ ) {
         for ( int offset_y = -1; offset_y < 2; offset_y++ ) {
             for ( int offset_z = -1; offset_z < 2; offset_z++ ) {
                 float new_x = position_x + offset_x * half_width_x;
-                float new_y = position_y + offset_y * half_width_y; // - 1.6;
+                float new_y = position_y + offset_y * half_width_y;
                 float new_z = position_z + offset_z * half_width_z;
 
                 int collide = ray_traversal_find_block_from_to( //
@@ -41,7 +42,7 @@ int check_collides_with_player( LoadedChunks *loadedChunks, TRIP_ARGS( float *mo
         if ( *movement_vec_x != movement_vec_x_orig ) {
             collide = 1;
         }
-        pr_debug( "Collide FACE_RIGHT orig:%f adj:%f diff:%f", movement_vec_x_orig, *movement_vec_x, movement_vec_x_orig - *movement_vec_x );
+        pr_debug( "Collide FACE_RIGHT" );
     }
     if ( faces[ FACE_LEFT ] && *movement_vec_x > 0 ) {
         float movement_vec_x_orig = *movement_vec_x;
@@ -105,7 +106,6 @@ void collision_check_move( LoadedChunks *loadedChunks, TRIP_ARGS( float *movemen
         dirs_to_check[ FACE_TOP ] = 1;
     }
     if ( *movement_vec_y < 0 ) {
-        pr_debug( "Checking bottom" );
         dirs_to_check[ FACE_BOTTOM ] = 1;
     }
     if ( *movement_vec_z > 0 ) {
