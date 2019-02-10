@@ -35,58 +35,56 @@ int check_collides_with_player( LoadedChunks *loadedChunks, TRIP_ARGS( float *mo
         }
     }
     int collide = 0;
-    // pr_debug( "New Frame" );
     if ( faces[ FACE_RIGHT ] && *movement_vec_x < 0 ) {
         float movement_vec_x_orig = *movement_vec_x;
-        *movement_vec_x = floorf( ( position_x - half_width_x ) + *movement_vec_x ) - ( ( position_x - half_width_x ) );
+        *movement_vec_x = roundf( ( position_x - half_width_x ) + *movement_vec_x ) - ( position_x - half_width_x );
         if ( *movement_vec_x != movement_vec_x_orig ) {
             collide = 1;
         }
-        pr_debug( "Collide FACE_RIGHT" );
+        pr_debug( "Collide FACE_RIGHT orig:%f adj:%f diff:%f", movement_vec_x_orig, *movement_vec_x, movement_vec_x_orig - *movement_vec_x );
     }
     if ( faces[ FACE_LEFT ] && *movement_vec_x > 0 ) {
         float movement_vec_x_orig = *movement_vec_x;
-        *movement_vec_x = floorf( ( position_x + half_width_x ) + *movement_vec_x ) - ( ( position_x + half_width_x ) );
+        *movement_vec_x = roundf( ( position_x + half_width_x ) + *movement_vec_x ) - ( position_x + half_width_x );
         if ( *movement_vec_x != movement_vec_x_orig ) {
+            *movement_vec_x -= .00001f;
             collide = 1;
         }
         pr_debug( "Collide FACE_LEFT" );
     }
     if ( faces[ FACE_TOP ] && *movement_vec_y < 0 ) {
         float movement_vec_y_orig = *movement_vec_y;
-        float val1 = position_y - half_width_y;
-        float val2 = val1 + *movement_vec_y;
-        *movement_vec_y = round( val2 ) - val1;
+        *movement_vec_y = roundf( ( position_y - half_width_y ) + *movement_vec_y ) - ( position_y - half_width_y );
         if ( *movement_vec_y != movement_vec_y_orig ) {
             collide = 1;
-            pr_debug( "Collide FACE_TOP %f diff:%f", val2, movement_vec_y_orig - *movement_vec_y );
-        } else {
-            pr_debug( "Collide FACE_TOP %f", val2 );
         }
+        pr_debug( "Collide FACE_TOP" );
     }
     if ( faces[ FACE_BOTTOM ] && *movement_vec_y > 0 ) {
         float movement_vec_y_orig = *movement_vec_y;
-        *movement_vec_y = roundf( ( position_y + half_width_y ) + *movement_vec_y - ( position_y + half_width_y ) );
+        *movement_vec_y = roundf( ( position_y + half_width_y ) + *movement_vec_y ) - ( position_y + half_width_y );
         if ( *movement_vec_y != movement_vec_y_orig ) {
+            *movement_vec_y -= .00001f;
             collide = 1;
         }
         pr_debug( "Collide FACE_BOTTOM" );
     }
-    if ( faces[ FACE_FRONT ] && *movement_vec_z < 0 ) {
+    if ( faces[ FACE_BACK ] && *movement_vec_z < 0 ) {
         float movement_vec_z_orig = *movement_vec_z;
-        *movement_vec_z = roundf( ( position_z - half_width_z ) + *movement_vec_z ) - ( ( position_z - half_width_z ) );
-        if ( *movement_vec_z != movement_vec_z_orig ) {
-            collide = 1;
-        }
-        pr_debug( "Collide FACE_FRONT" );
-    }
-    if ( faces[ FACE_BACK ] && *movement_vec_z > 0 ) {
-        float movement_vec_z_orig = *movement_vec_z;
-        *movement_vec_z = roundf( ( position_z + half_width_z ) + *movement_vec_z ) - ( ( position_z + half_width_z ) );
+        *movement_vec_z = roundf( ( position_z - half_width_z ) + *movement_vec_z ) - ( position_z - half_width_z );
         if ( *movement_vec_z != movement_vec_z_orig ) {
             collide = 1;
         }
         pr_debug( "Collide FACE_BACK" );
+    }
+    if ( faces[ FACE_FRONT ] && *movement_vec_z > 0 ) {
+        float movement_vec_z_orig = *movement_vec_z;
+        *movement_vec_z = roundf( ( position_z + half_width_z ) + *movement_vec_z ) - ( position_z + half_width_z );
+        if ( *movement_vec_z != movement_vec_z_orig ) {
+            *movement_vec_z -= .00001f;
+            collide = 1;
+        }
+        pr_debug( "Collide FACE_FRONT" );
     }
     free( faces );
     if ( collide ) {

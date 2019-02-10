@@ -172,9 +172,9 @@ static inline void initilizeGameState( ) {
     globalGameState.input.limit_fps = 1;
     globalGameState.camera.angle_H = 135.0f;
     globalGameState.camera.angle_V = 25.0f;
-    globalGameState.camera.x = -1.0f;
+    globalGameState.camera.x = 0.0f;
     globalGameState.camera.y = 7.5f;
-    globalGameState.camera.z = -1.0f;
+    globalGameState.camera.z = 0.0f;
     globalGameState.block_selection.holdingBlock = TNT;
     world_init( &globalGameState.gameChunks );
     ui_overlay_init( &globalGameState.ui_overlay );
