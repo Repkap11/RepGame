@@ -40,6 +40,7 @@ int check_collides_with_player( LoadedChunks *loadedChunks, TRIP_ARGS( float *mo
         float movement_vec_x_orig = *movement_vec_x;
         *movement_vec_x = roundf( ( position_x - half_width_x ) + *movement_vec_x ) - ( position_x - half_width_x );
         if ( *movement_vec_x != movement_vec_x_orig ) {
+            *movement_vec_x += .00001f;
             collide = 1;
         }
         pr_debug( "Collide FACE_RIGHT" );
@@ -57,6 +58,7 @@ int check_collides_with_player( LoadedChunks *loadedChunks, TRIP_ARGS( float *mo
         float movement_vec_y_orig = *movement_vec_y;
         *movement_vec_y = roundf( ( position_y - half_width_y ) + *movement_vec_y ) - ( position_y - half_width_y );
         if ( *movement_vec_y != movement_vec_y_orig ) {
+            *movement_vec_y += .00001f;
             collide = 1;
         }
         pr_debug( "Collide FACE_TOP" );
@@ -74,6 +76,7 @@ int check_collides_with_player( LoadedChunks *loadedChunks, TRIP_ARGS( float *mo
         float movement_vec_z_orig = *movement_vec_z;
         *movement_vec_z = roundf( ( position_z - half_width_z ) + *movement_vec_z ) - ( position_z - half_width_z );
         if ( *movement_vec_z != movement_vec_z_orig ) {
+            *movement_vec_z += .00001f;
             collide = 1;
         }
         pr_debug( "Collide FACE_BACK" );
