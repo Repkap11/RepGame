@@ -173,7 +173,7 @@ static inline void initilizeGameState( ) {
     globalGameState.camera.angle_H = 135.0f;
     globalGameState.camera.angle_V = 25.0f;
     globalGameState.camera.x = -1.0f;
-    globalGameState.camera.y = 10.0f;
+    globalGameState.camera.y = 7.5f;
     globalGameState.camera.z = -1.0f;
     globalGameState.block_selection.holdingBlock = TNT;
     world_init( &globalGameState.gameChunks );
