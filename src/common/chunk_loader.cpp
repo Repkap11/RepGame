@@ -98,29 +98,38 @@ void chunk_loader_init( LoadedChunks *loadedChunks ) {
     }
 
     int nextChunk = 0;
-    for ( int i = -CHUNK_RADIUS_X; i <= CHUNK_RADIUS_X; i++ ) {
-        int new_i = ( i + CHUNK_RADIUS_X );
-        new_i = ( ( new_i * ( new_i % 2 ? 1 : -1 ) ) + ( ( new_i % 2 ) ? 1 : 0 ) ) / 2;
-        // pr_debug( "i:%d new_i:%d", i, new_i );
-        for ( int j = -CHUNK_RADIUS_Y; j <= CHUNK_RADIUS_Y; j++ ) {
-            int new_j = ( j + CHUNK_RADIUS_Y );
-            new_j = ( ( new_j * ( new_j % 2 ? 1 : -1 ) ) + ( ( new_j % 2 ) ? 1 : 0 ) ) / 2;
-            for ( int k = -CHUNK_RADIUS_Z; k <= CHUNK_RADIUS_Z; k++ ) {
-                int new_k = ( k + CHUNK_RADIUS_Z );
-                new_k = ( ( new_k * ( new_k % 2 ? 1 : -1 ) ) + ( ( new_k % 2 ) ? 1 : 0 ) ) / 2;
-                Chunk *chunk = &loadedChunks->chunkArray[ nextChunk ];
-                chunk->chunk_x = new_i;
-                chunk->chunk_y = new_j;
-                chunk->chunk_z = new_k;
-                chunk->chunk_mod_x = new_i < 0 ? -CHUNK_RADIUS_X - new_i - 1 : CHUNK_RADIUS_X - new_i;
-                chunk->chunk_mod_y = new_j < 0 ? -CHUNK_RADIUS_Y - new_j - 1 : CHUNK_RADIUS_Y - new_j;
-                chunk->chunk_mod_z = new_k < 0 ? -CHUNK_RADIUS_Z - new_k - 1 : CHUNK_RADIUS_Z - new_k;
-                // pr_debug( "Initing chunk %d mod_y:%d", nextChunk, chunk->chunk_mod_y );
+    for ( int i = 0; i <= CHUNK_RADIUS_X; i++ ) {
+        for ( int j = 0; j <= CHUNK_RADIUS_Y; j++ ) {
+            for ( int k = 0; k <= CHUNK_RADIUS_Z; k++ ) {
+                for ( int sign_i = -1; sign_i < 3; sign_i += 2 ) {
+                    for ( int sign_j = -1; sign_j < 3; sign_j += 2 ) {
+                        for ( int sign_k = -1; sign_k < 3; sign_k += 2 ) {
+                            if ( sign_i == -1 && i == CHUNK_RADIUS_X ) {
+                                continue;
+                            }
+                            if ( sign_j == -1 && j == CHUNK_RADIUS_Y ) {
+                                continue;
+                            }
+                            if ( sign_k == -1 && k == CHUNK_RADIUS_Z ) {
+                                continue;
+                            }
+                            int new_i = ( i * sign_i ) - ( sign_i == -1 );
+                            int new_j = ( j * sign_j ) - ( sign_j == -1 );
+                            int new_k = ( k * sign_k ) - ( sign_k == -1 );
+                            Chunk *chunk = &loadedChunks->chunkArray[ nextChunk ];
+                            chunk->chunk_x = new_i;
+                            chunk->chunk_y = new_j;
+                            chunk->chunk_z = new_k;
+                            chunk->chunk_mod_x = new_i < 0 ? -CHUNK_RADIUS_X - new_i - 1 : CHUNK_RADIUS_X - new_i;
+                            chunk->chunk_mod_y = new_j < 0 ? -CHUNK_RADIUS_Y - new_j - 1 : CHUNK_RADIUS_Y - new_j;
+                            chunk->chunk_mod_z = new_k < 0 ? -CHUNK_RADIUS_Z - new_k - 1 : CHUNK_RADIUS_Z - new_k;
 
-                chunk->is_loading = 1;
-                terrain_loading_thread_enqueue( chunk, TRIP_ARGS( chunk->chunk_ ), 0 );
-                // pr_debug( "Chunk Done" );
-                nextChunk = ( nextChunk + 1 );
+                            chunk->is_loading = 1;
+                            terrain_loading_thread_enqueue( chunk, TRIP_ARGS( chunk->chunk_ ), 0 );
+                            nextChunk = ( nextChunk + 1 );
+                        }
+                    }
+                }
             }
         }
     }
