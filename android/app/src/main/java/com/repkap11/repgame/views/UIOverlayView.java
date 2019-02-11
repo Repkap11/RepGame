@@ -97,8 +97,8 @@ public class UIOverlayView extends View implements View.OnTouchListener {
         mMouseMiddleY = h - mUpRadius;
         mMouseRightY = h - mUpRadius;
 
-        mMouseRadius = mMoveRadius / 3;
-        mMouseLeftX = mMoveRadius * 2 + mMouseRadius;
+        mMouseRadius = mMoveRadius / 2;
+        mMouseLeftX = (int)(mMoveRadius * 2.5) + mMouseRadius;
         mMouseRightX = w - mMouseLeftX;
         mMouseMiddleX = (mMouseLeftX + mMouseRightX) / 2;
 
