@@ -89,35 +89,6 @@ static void gameTick( ) {
         globalGameState.camera.angle_V = downAngleLimit;
     }
 
-    // Only the first time, calculate the chunk
-    if ( globalGameState.physics.chunk == NULL ) {
-        // pr_debug( "Doing initial search" );
-        globalGameState.physics.chunk = world_get_loaded_chunk( &globalGameState.gameChunks, globalGameState.camera.x, globalGameState.camera.y - EYE_POSITION_OFFSET, globalGameState.camera.z );
-    }
-    if ( globalGameState.physics.chunk != NULL ) {
-        int chunk_x = floor( ( int )globalGameState.camera.x / ( float )CHUNK_SIZE );
-        int chunk_y = floor( ( int )( globalGameState.camera.y - EYE_POSITION_OFFSET ) / ( float )CHUNK_SIZE );
-        int chunk_z = floor( ( int )globalGameState.camera.z / ( float )CHUNK_SIZE );
-
-        int chunk_changed_x = chunk_x != globalGameState.physics.chunk->chunk_x;
-        int chunk_changed_y = chunk_y != globalGameState.physics.chunk->chunk_y;
-        int chunk_changed_z = chunk_z != globalGameState.physics.chunk->chunk_z;
-
-        int chunk_changed = TRIP_OR( chunk_changed_ );
-
-        // if ( chunk_changed ) {
-        //     // pr_debug( "Searching for chunk" );
-        //     globalGameState.physics.chunk = world_get_loaded_chunk( &globalGameState.gameChunks, globalGameState.camera.x, globalGameState.camera.y - EYE_POSITION_OFFSET, globalGameState.camera.z );
-        //     if ( globalGameState.physics.chunk == NULL ) {
-        //         pr_debug( "Chunk not found for physics...." );
-        //     }
-        // }
-
-        globalGameState.physics.diff_x = ( float )globalGameState.camera.x - globalGameState.physics.chunk->chunk_x * CHUNK_SIZE;
-        globalGameState.physics.diff_y = ( float )( globalGameState.camera.y - EYE_POSITION_OFFSET ) - globalGameState.physics.chunk->chunk_y * CHUNK_SIZE;
-        globalGameState.physics.diff_z = ( float )globalGameState.camera.z - globalGameState.physics.chunk->chunk_z * CHUNK_SIZE;
-    }
-
     globalGameState.input.mouse.previousPosition.x = globalGameState.screen.width / 2;
     globalGameState.input.mouse.previousPosition.y = globalGameState.screen.height / 2;
 

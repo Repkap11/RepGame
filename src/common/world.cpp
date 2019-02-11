@@ -52,6 +52,9 @@ BlockID world_get_block( Chunk *chunk, TRIP_ARGS( int block_ ) ) {
 BlockID world_get_loaded_block( LoadedChunks *loadedChunks, TRIP_ARGS( int block_ ) ) {
     Chunk *chunk = world_get_loaded_chunk( loadedChunks, TRIP_ARGS( block_ ) );
     if ( chunk ) {
+        if ( chunk->is_loading ) {
+            return LAST_BLOCK_ID;
+        }
         BlockID blockID = world_get_block( chunk, TRIP_ARGS( block_ ) );
         return blockID;
     }

@@ -20,14 +20,14 @@ void check_collides_with_player( LoadedChunks *loadedChunks, TRIP_ARGS( float *m
                 float new_y = position_y + offset_y * half_width_y;
                 float new_z = position_z + offset_z * half_width_z;
 
-                int collide = ray_traversal_find_block_from_to( //
-                    loadedChunks,                               //
-                    new_x,                                      //
-                    new_y,                                      //
-                    new_z,                                      //
-                    new_x + ( *movement_vec_x ),                //
-                    new_y + ( *movement_vec_y ),                //
-                    new_z + ( *movement_vec_z ),                //
+                ray_traversal_find_block_from_to( //
+                    loadedChunks,                 //
+                    new_x,                        //
+                    new_y,                        //
+                    new_z,                        //
+                    new_x + ( *movement_vec_x ),  //
+                    new_y + ( *movement_vec_y ),  //
+                    new_z + ( *movement_vec_z ),  //
                     TRIP_ARGS( &out_ ), faces, 1 );
             }
         }

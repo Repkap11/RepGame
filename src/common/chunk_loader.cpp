@@ -255,22 +255,24 @@ void chunk_loader_draw_chunks_solid( LoadedChunks *loadedChunks, glm::mat4 &mvp 
     for ( int i = 0; i < MAX_LOADED_CHUNKS; i++ ) {
         int final_is_visiable = 1;
         Chunk *chunk = &loadedChunks->chunkArray[ i ];
-        glm::vec4 chunk_coords = glm::vec4(               //
-            chunk->chunk_x * CHUNK_SIZE + CHUNK_SIZE / 2, //
-            chunk->chunk_y * CHUNK_SIZE + CHUNK_SIZE / 2, //
-            chunk->chunk_z * CHUNK_SIZE + CHUNK_SIZE / 2, 1 );
-        glm::vec4 result_v = mvp * chunk_coords;
-        float adjusted_diameter = chunk_diameter / fabsf( result_v.w );
+        if ( CULL_NON_VISIBLE ) {
+            glm::vec4 chunk_coords = glm::vec4(               //
+                chunk->chunk_x * CHUNK_SIZE + CHUNK_SIZE / 2, //
+                chunk->chunk_y * CHUNK_SIZE + CHUNK_SIZE / 2, //
+                chunk->chunk_z * CHUNK_SIZE + CHUNK_SIZE / 2, 1 );
+            glm::vec4 result_v = mvp * chunk_coords;
+            float adjusted_diameter = chunk_diameter / fabsf( result_v.w );
 
-        result_v.x /= result_v.w;
-        result_v.y /= result_v.w;
-        result_v.z /= result_v.w;
-        if ( fabsf( result_v.x ) > 1 + adjusted_diameter || //
-             fabsf( result_v.y ) > 1 + adjusted_diameter || //
-             fabsf( result_v.z ) > 1 + adjusted_diameter ) {
-            final_is_visiable = 0;
-        } else {
-            final_is_visiable = 1;
+            result_v.x /= result_v.w;
+            result_v.y /= result_v.w;
+            result_v.z /= result_v.w;
+            if ( fabsf( result_v.x ) > 1 + adjusted_diameter || //
+                 fabsf( result_v.y ) > 1 + adjusted_diameter || //
+                 fabsf( result_v.z ) > 1 + adjusted_diameter ) {
+                final_is_visiable = 0;
+            } else {
+                final_is_visiable = 1;
+            }
         }
         if ( final_is_visiable ) {
             chunk->cached_cull_water = 0;

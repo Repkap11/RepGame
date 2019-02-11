@@ -5,10 +5,10 @@
 
 // https://bitbucket.org/volumesoffun/polyvox/src/9a71004b1e72d6cf92c41da8995e21b652e6b836/include/PolyVox/Raycast.inl?at=develop&fileviewer=file-view-default
 
-int contains_block( LoadedChunks *gameChunks, int block_x, int block_y, int block_z ) {
+int contains_block( LoadedChunks *gameChunks, int block_x, int block_y, int block_z, int collide_with_unloaded ) {
     BlockID blockID = world_get_loaded_block( gameChunks, TRIP_ARGS( block_ ) );
     if ( blockID >= LAST_BLOCK_ID ) {
-        return 0;
+        return collide_with_unloaded;
     }
     Block *block = block_definition_get_definition( blockID );
     return !( block->alpha != 1.0f );
@@ -61,7 +61,7 @@ int ray_traversal_find_block_from_to( LoadedChunks *gameChunks, const float x1, 
         face = FACE_BACK;
     }
     for ( ;; ) {
-        if ( contains_block( gameChunks, i, j, k ) ) {
+        if ( contains_block( gameChunks, i, j, k , flag) ) {
             *out_x = i;
             *out_y = j;
             *out_z = k;

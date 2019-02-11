@@ -59,11 +59,6 @@ typedef struct {
         TRIP_STATE( int create_ );
         TRIP_STATE( int destroy_ );
     } block_selection;
-    struct {
-        Chunk *chunk;
-        TRIP_STATE( float diff_ );
-    } physics;
-
 } RepGameState;
 
 void renderShaders( int x, int y, int z );

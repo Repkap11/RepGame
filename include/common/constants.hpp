@@ -32,6 +32,7 @@
 
 #define PERSIST_ALL_CHUNKS 0
 #define REMEMBER_BLOCKS 1
+#define CULL_NON_VISIBLE 1
 
 #define NO_CLIP 1
 #define MAP_SEED 0
