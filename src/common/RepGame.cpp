@@ -62,7 +62,7 @@ static void gameTick( ) {
     }
     if ( globalGameState.block_selection.selectionInBounds && globalGameState.input.mouse.buttons.left && globalGameState.input.click_delay_left == 0 ) {
         change_block( 0, AIR );
-        globalGameState.input.click_delay_left = 16;
+        globalGameState.input.click_delay_left = 8;
     }
     if ( globalGameState.block_selection.selectionInBounds && globalGameState.input.mouse.buttons.right && globalGameState.input.click_delay_right == 0 ) {
         change_block( 1, globalGameState.block_selection.holdingBlock );

@@ -3,7 +3,7 @@
 #include "common/abstract/renderer.hpp"
 #include "common/block.hpp"
 
-#define SELECTION_SIZE_OFFSET ( 0.004f )
+#define SELECTION_SIZE_OFFSET ( 0.0003f )
 
 static CubeFace vd_data_selection[] = {
     // x=right/left, y=top/bottom, z=front/back : 1/0
@@ -85,6 +85,6 @@ void mouse_selection_set_block( MouseSelection *mouseSelection, int x, int y, in
 }
 void mouse_selection_draw( MouseSelection *mouseSelection, Renderer *renderer, Shader *shader ) {
     if ( mouseSelection->shouldDraw ) {
-        renderer_draw( renderer, &mouseSelection->va, &mouseSelection->ib, shader, 1 );
+        renderer_draw_lines( renderer, &mouseSelection->va, &mouseSelection->ib, shader, 1 );
     }
 }

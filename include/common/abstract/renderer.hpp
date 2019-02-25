@@ -10,4 +10,5 @@
 typedef struct { unsigned int mRendererId; } Renderer;
 
 void renderer_draw( const Renderer *renderer, const VertexArray *vertexArray, const IndexBuffer *indexBuffer, const Shader *shader, unsigned int num_instances );
+void renderer_draw_lines( const Renderer *renderer, const VertexArray *vertexArray, const IndexBuffer *indexBuffer, const Shader *shader, unsigned int num_instances );
 #endif
