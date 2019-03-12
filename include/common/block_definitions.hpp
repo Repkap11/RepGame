@@ -1,6 +1,8 @@
 #ifndef HEADER_BLOCK_DEFINITIONS_H
 #define HEADER_BLOCK_DEFINITIONS_H
 
+// According to GIMP upper left pixel coord
+// X/16 + 24*(Y/16) + 1
 typedef enum {
     AIR = 0,
     GRASS,
@@ -29,9 +31,9 @@ typedef enum {
     GOLD_BLOCK,
     DIAMOND_BLOCK,
     SNOW = 67,
-    PLAYER_SELECTION = 139,
+    PLAYER_SELECTION = 1212,
     WATER = 208,
-    LAST_BLOCK_ID = 255,
+    LAST_BLOCK_ID = 1200,
 } BlockID;
 
 #include "abstract/textures.hpp"

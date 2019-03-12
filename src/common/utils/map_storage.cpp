@@ -63,7 +63,7 @@ void map_storage_init( ) {
 void map_storage_cleanup( ) {
 }
 
-#define STORAGE_TYPE_BLOCK_ID unsigned char
+#define STORAGE_TYPE_BLOCK_ID unsigned short
 #define STORAGE_TYPE_NUM_BLOCKS unsigned int
 
 typedef struct {

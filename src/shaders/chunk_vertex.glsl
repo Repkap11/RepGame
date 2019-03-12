@@ -37,6 +37,14 @@ void main( ) {
     } else if ( faceType == uint( 3 ) || faceType == uint( 5 ) ) {
         face_scale = mesh_size.xy;
     }
+    float face_light;
+    if ( faceType == uint( 0 ) ) {
+        face_light = 1.0;
+    } else if ( faceType == uint( 1 ) ) {
+        face_light = 0.5;
+    } else {
+        face_light = 0.75;
+    }
 
     float packed_lighting = 0.0;
     if ( faceType == uint( 0 ) || faceType == uint( 1 ) || faceType == uint( 2 ) ) {
@@ -44,17 +52,20 @@ void main( ) {
     } else {
         packed_lighting = packed_lighting_2[ faceType - uint( 3 ) ];
     }
-    float light_divisor = 1.4; // good looking
+    float light_divisor = 1.3; // good looking
     // light_divisor = 1.0;       // debug
 
     uint which_bits = uint( 3 );
     if ( corner_shift == 16.0 ) {
         which_bits = uint( 7 );
     }
-    v_corner_lighting = float( ( uint( packed_lighting ) >> uint( corner_shift ) ) & which_bits ) / light_divisor; // Has to be a float to be interped over the shader;
+    float corner_light = float( ( uint( packed_lighting ) >> uint( corner_shift ) ) & which_bits ) / light_divisor; // Has to be a float to be interped over the shader;
     if ( corner_shift == 16.0 ) {
-        v_corner_lighting /= 2.0;
+        corner_light /= 2.0;
     }
+    corner_light = ( 3.9 - corner_light ) / 3.9;
+
+    v_corner_lighting = face_light * corner_light;
     v_TexCoordBlock = texCoordBlock * face_scale;
     v_TexCoordBlock_orig = texCoordBlock;
     v_blockID = blockTexture[ face_adjusted ];

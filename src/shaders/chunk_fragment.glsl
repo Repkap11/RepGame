@@ -20,6 +20,6 @@ void main( ) {
     vec2 border_vec = abs( ( v_TexCoordBlock_orig - vec2( 0.5, 0.5 ) ) * 2.0 );
     float border = min( ( 1.0 - ( max( border_vec.x, border_vec.y ) ) ) * 20.0, 1.0 );
 
-    float corner_light = ( ( 3.0 - v_corner_lighting ) / 3.0 ); // * border;
+    float corner_light = v_corner_lighting;
     color = texColor * vec4( corner_light, corner_light, corner_light, 1 );
 }

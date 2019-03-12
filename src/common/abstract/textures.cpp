@@ -139,7 +139,7 @@ void texture_init_blocks( Texture *texture ) {
     free( dir );
     texture->slot = 1;
     glActiveTexture( GL_TEXTURE0 + texture->slot );
-    texture->m_RendererId = loadTexture( bufferText, 256, 256, BMP_HEADER_SIZE, 16, 16 );
+    texture->m_RendererId = loadTexture( bufferText, 384, 816, BMP_HEADER_SIZE, 16, 16 );
 }
 void texture_init_sky( Texture *texture ) {
     char *dir = getRepGamePath( );
