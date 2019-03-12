@@ -45,7 +45,7 @@ map:
 
 reverse = $(if $(1),$(call reverse,$(wordlist 2,$(words $(1)),$(1)))) $(firstword $(1))
 
-clean-linux: clean-cuda clean-server map
+clean-linux: clean-cuda clean-server
 	rm -rf out/linux
 
 out/linux: | out
