@@ -1,5 +1,6 @@
 #version 300 es
 uniform mat4 u_MVP;
+uniform vec3 u_DebugScaleOffset;
 
 // See CubeFace in block.h
 // This defines all the triangles of a cube
@@ -25,7 +26,7 @@ void main( ) {
 
     // vec3 adjust = vec3( 1, 1, 1 ) - position;
     // adjust.y = position.y;
-    gl_Position = u_MVP * vec4( position * mesh_size + blockCoords, 1 );
+    gl_Position = u_MVP * vec4( position * (mesh_size - u_DebugScaleOffset ) + blockCoords, 1 );
     uint faceType = uint( faceType_f );
     // This face_adjusted isn't needed if you want a different texture per face (not the same on all sides)
     uint face_adjusted = faceType > uint( 2 ) ? uint( 2 ) : faceType;

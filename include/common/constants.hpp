@@ -38,8 +38,9 @@
 #define MAP_SEED 0
 #define LOCK_MOUSE 1
 
-//#define BLOCK_SCALE 0.9f
-#define BLOCK_SCALE 1.0f
+//#define BLOCK_SCALE_OFFSET 0.1f
+#define BLOCK_SCALE_OFFSET 0.0f
+
 #define DISABLE_GROUPING_BLOCKS 0
 #define REACH_DISTANCE 7
 #define GRAVITY_STRENGTH 0.1f

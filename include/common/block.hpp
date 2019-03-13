@@ -90,13 +90,13 @@ static unsigned int ib_data_water[] = {
 #define WATER_HEIGHT ( 0.875f )
 
 static CubeFace vd_data_water[] = {
-    {1.0f * BLOCK_SCALE, WATER_HEIGHT, 0.0f * BLOCK_SCALE, /*Coords  Texture coords*/ 0, 0, FACE_TOP}, // 18 0
-    {0.0f * BLOCK_SCALE, WATER_HEIGHT, 0.0f * BLOCK_SCALE, /*Coords  Texture coords*/ 1, 0, FACE_TOP}, // 19 1
+    {1.0f, WATER_HEIGHT, 0.0f, /*Coords  Texture coords*/ 0, 0, FACE_TOP}, // 18 0
+    {0.0f, WATER_HEIGHT, 0.0f, /*Coords  Texture coords*/ 1, 0, FACE_TOP}, // 19 1
 
-    {1.0f * BLOCK_SCALE, WATER_HEIGHT, 1.0f * BLOCK_SCALE, /*Coords  Texture coords*/ 0, 1, FACE_TOP}, // 22 2
-    {0.0f * BLOCK_SCALE, WATER_HEIGHT, 1.0f * BLOCK_SCALE, /*Coords  Texture coords*/ 1, 1, FACE_TOP}, // 23 3
+    {1.0f, WATER_HEIGHT, 1.0f, /*Coords  Texture coords*/ 0, 1, FACE_TOP}, // 22 2
+    {0.0f, WATER_HEIGHT, 1.0f, /*Coords  Texture coords*/ 1, 1, FACE_TOP}, // 23 3
 
-    {0.5f * BLOCK_SCALE, WATER_HEIGHT, 0.5f * BLOCK_SCALE, /*Coords  Texture coords*/ 0.5f, 0.5f, FACE_TOP}, // 4
+    {0.5f, WATER_HEIGHT, 0.5f, /*Coords  Texture coords*/ 0.5f, 0.5f, FACE_TOP}, // 4
 };
 #define VB_DATA_SIZE_WATER ( 2 * 2 + 1 )
 
