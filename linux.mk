@@ -2,8 +2,8 @@
 MAKEFILES += linux.mk
 
 CFLAGS_CORE := -Wall -Werror -std=c++98 -Wno-unused-variable -no-pie -fno-pie -march=native
-CFLAGS_CORE += -O3
-#CFLAGS_CORE += -g
+#CFLAGS_CORE += -O3
+CFLAGS_CORE += -g
 CFLAGS_LINUX := $(CFLAGS_CORE) -DREPGAME_LINUX
 LIBS_LINUX := -L/usr/local/cuda-9.2/lib64 -l m -l GL -l GLU -l GLEW -l glut -pthread
 

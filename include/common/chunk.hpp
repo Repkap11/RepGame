@@ -28,34 +28,26 @@ typedef struct {
 } BlockCoords;
 
 typedef struct {
+    VertexArray va;
+    IndexBuffer ib;
+    int num_instances;
+    VertexBuffer vb_coords;
+    BlockCoords *populated_blocks;
+} RenderLayer;
+
+typedef struct {
     int is_loading;
-    struct {
-        VertexArray va;
-        IndexBuffer ib;
-        int num_instances;
-        VertexBuffer vb_coords;
-        BlockCoords *populated_blocks;
-
-    } solid;
-    struct {
-        VertexArray va;
-        IndexBuffer ib;
-        int num_instances;
-        VertexBuffer vb_coords;
-        BlockCoords *populated_blocks;
-
-    } water;
+    RenderLayer layers[ LAST_RENDER_ORDER ];
     BlockID *blocks;
     int chunk_x, chunk_y, chunk_z;
     int ditry;
     int should_render;
-    int cached_cull_water;
+    int cached_cull;
     int chunk_mod_x, chunk_mod_y, chunk_mod_z;
 } Chunk;
 
 void chunk_init( Chunk *chunk, VertexBuffer *vb_block_solid, VertexBuffer *vb_block_water, VertexBufferLayout *vbl_block, VertexBufferLayout *vbl_coords );
-void chunk_render_solid( const Chunk *chunk, const Renderer *renderer, const Shader *shader );
-void chunk_render_water( const Chunk *chunk, const Renderer *renderer, const Shader *shader );
+void chunk_render( const Chunk *chunk, const Renderer *renderer, const Shader *shader, RenderOrder renderOrder );
 void chunk_load_terrain( Chunk *chunk );      // Load from file or map gen
 void chunk_program_terrain( Chunk *chunk );   // Program into GPU
 void chunk_unprogram_terrain( Chunk *chunk ); // Remove from GPU

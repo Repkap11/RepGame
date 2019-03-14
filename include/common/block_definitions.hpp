@@ -40,6 +40,7 @@ typedef enum {
     DIAMOND_BLOCK,
     EMERALD_BLOCK,
     REDSTONE_BLOCK,
+    WHITE_GLASS = 74,
     WATER = 95,
     SNOW = 99,
     PLAYER_SELECTION = 1212,
@@ -54,7 +55,7 @@ typedef struct {
     BlockID bottom;
 } BlockTextureMap;
 
-typedef enum { RenderOrderTransparent, RenderOrderTranslucent, RenderOrderSolid } RenderOrder;
+typedef enum { RenderOrder_Transparent, RenderOrder_Glass, RenderOrder_Water, RenderOrder_Solid, LAST_RENDER_ORDER } RenderOrder;
 
 typedef struct {
     BlockID id;

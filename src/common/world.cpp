@@ -11,12 +11,11 @@ void world_init( LoadedChunks *loadedChunks ) {
 void world_render( LoadedChunks *loadedChunks, TRIP_ARGS( float camera_ ) ) {
     chunk_loader_render_chunks( loadedChunks, TRIP_ARGS( camera_ ) );
 }
-void world_draw_solid( LoadedChunks *loadedChunks, glm::mat4 &mvp, glm::mat4 &mvp_sky ) {
-    chunk_loader_draw_chunks_solid( loadedChunks, mvp );
+void world_draw( LoadedChunks *loadedChunks, glm::mat4 &mvp, glm::mat4 &mvp_sky ) {
     sky_box_draw( &loadedChunks->skyBox, &loadedChunks->renderer, mvp_sky );
-}
-void world_draw_liquid( LoadedChunks *loadedChunks, glm::mat4 &mvp ) {
-    chunk_loader_draw_chunks_liquid( loadedChunks, mvp );
+    chunk_loader_calculate_cull( loadedChunks, mvp );
+    chunk_loader_draw_chunks( loadedChunks, mvp );
+    chunk_loader_draw_mouse_selection( loadedChunks );
 }
 void world_cleanup( LoadedChunks *loadedChunks ) {
     chunk_loader_cleanup( loadedChunks );

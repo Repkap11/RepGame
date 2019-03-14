@@ -5,13 +5,23 @@
 
 // https://bitbucket.org/volumesoffun/polyvox/src/9a71004b1e72d6cf92c41da8995e21b652e6b836/include/PolyVox/Raycast.inl?at=develop&fileviewer=file-view-default
 
+inline int ray_traversal_is_pickable( RenderOrder renderOrder ) {
+    switch ( renderOrder ) {
+        case RenderOrder_Transparent:
+        case RenderOrder_Water:
+            return false;
+        default:
+            return true;
+    }
+}
+
 int contains_block( LoadedChunks *gameChunks, int block_x, int block_y, int block_z, int collide_with_unloaded ) {
     BlockID blockID = world_get_loaded_block( gameChunks, TRIP_ARGS( block_ ) );
     if ( blockID >= LAST_BLOCK_ID ) {
         return collide_with_unloaded;
     }
     Block *block = block_definition_get_definition( blockID );
-    return !( block->renderOrder != RenderOrderSolid );
+    return ray_traversal_is_pickable( block->renderOrder );
 }
 
 int ray_traversal_find_block_from_to( LoadedChunks *gameChunks, const float x1, const float y1, const float z1, //

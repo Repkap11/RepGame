@@ -150,7 +150,7 @@ static inline void initilizeGameState( ) {
     globalGameState.camera.x = 0.0f;
     globalGameState.camera.y = 8.5f;
     globalGameState.camera.z = 0.0f;
-    globalGameState.block_selection.holdingBlock = TNT;
+    globalGameState.block_selection.holdingBlock = WHITE_GLASS;
     world_init( &globalGameState.gameChunks );
     ui_overlay_init( &globalGameState.ui_overlay );
 }
@@ -229,9 +229,7 @@ void repgame_draw( ) {
     world_render( &globalGameState.gameChunks, globalGameState.camera.x, globalGameState.camera.y, globalGameState.camera.z );
     showErrors( );
 
-    world_draw_solid( &globalGameState.gameChunks, mvp, mvp_sky );
-    world_draw_liquid( &globalGameState.gameChunks, mvp );
-    chunk_loader_draw_mouse_selection( &globalGameState.gameChunks );
+    world_draw( &globalGameState.gameChunks, mvp, mvp_sky );
     ui_overlay_draw( &globalGameState.ui_overlay, &globalGameState.gameChunks.renderer, globalGameState.screen.ortho_center );
 }
 

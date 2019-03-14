@@ -247,12 +247,7 @@ void chunk_loader_render_chunks( LoadedChunks *loadedChunks, TRIP_ARGS( float ca
 }
 float chunk_diameter = ( CHUNK_SIZE + 1 ) * 1.73205080757; // sqrt(3)
 
-void chunk_loader_draw_chunks_solid( LoadedChunks *loadedChunks, glm::mat4 &mvp ) {
-    shader_set_uniform1i( &loadedChunks->shader, "u_Texture", loadedChunks->blocksTexture.slot );
-    shader_set_uniform_mat4f( &loadedChunks->shader, "u_MVP", mvp );
-    shader_set_uniform3f( &loadedChunks->shader, "u_DebugScaleOffset", BLOCK_SCALE_OFFSET, BLOCK_SCALE_OFFSET, BLOCK_SCALE_OFFSET );
-    // pr_debug( "Drawing %d chunks", loadedChunks->numLoadedChunks );
-
+void chunk_loader_calculate_cull( LoadedChunks *loadedChunks, glm::mat4 &mvp ) {
     for ( int i = 0; i < MAX_LOADED_CHUNKS; i++ ) {
         int final_is_visiable = 1;
         Chunk *chunk = &loadedChunks->chunkArray[ i ];
@@ -275,20 +270,21 @@ void chunk_loader_draw_chunks_solid( LoadedChunks *loadedChunks, glm::mat4 &mvp 
                 final_is_visiable = 1;
             }
         }
-        if ( final_is_visiable ) {
-            chunk->cached_cull_water = 0;
-            chunk_render_solid( chunk, &loadedChunks->renderer, &loadedChunks->shader );
-        } else {
-            chunk->cached_cull_water = 1;
-        }
+        chunk->cached_cull = !final_is_visiable;
     }
 }
-void chunk_loader_draw_chunks_liquid( LoadedChunks *loadedChunks, glm::mat4 &mvp ) {
 
-    for ( int i = 0; i < MAX_LOADED_CHUNKS; i++ ) {
-        Chunk *chunk = &loadedChunks->chunkArray[ i ];
-        if ( !chunk->cached_cull_water ) {
-            chunk_render_water( &loadedChunks->chunkArray[ i ], &loadedChunks->renderer, &loadedChunks->shader );
+void chunk_loader_draw_chunks( LoadedChunks *loadedChunks, glm::mat4 &mvp ) {
+    shader_set_uniform1i( &loadedChunks->shader, "u_Texture", loadedChunks->blocksTexture.slot );
+    shader_set_uniform_mat4f( &loadedChunks->shader, "u_MVP", mvp );
+    shader_set_uniform3f( &loadedChunks->shader, "u_DebugScaleOffset", BLOCK_SCALE_OFFSET, BLOCK_SCALE_OFFSET, BLOCK_SCALE_OFFSET );
+    // pr_debug( "Drawing %d chunks", loadedChunks->numLoadedChunks );
+    for ( int renderOrder = LAST_RENDER_ORDER - 1; renderOrder > 0; renderOrder-- ) {
+        for ( int i = 0; i < MAX_LOADED_CHUNKS; i++ ) {
+            Chunk *chunk = &loadedChunks->chunkArray[ i ];
+            if ( !chunk->cached_cull ) {
+                chunk_render( &loadedChunks->chunkArray[ i ], &loadedChunks->renderer, &loadedChunks->shader, ( RenderOrder )renderOrder );
+            }
         }
     }
 }

@@ -3,9 +3,46 @@
 #include "common/map_gen.hpp"
 #include "common/utils/map_storage.hpp"
 
+inline int chunk_get_render_order_ib_size( RenderOrder renderOrder ) {
+    switch ( renderOrder ) {
+        case RenderOrder_Water:
+            return IB_WATER_SIZE;
+        default:
+            return IB_SOLID_SIZE;
+    }
+}
+
+inline int chunk_get_render_order_is_solid( RenderOrder renderOrder ) {
+    switch ( renderOrder ) {
+        case RenderOrder_Transparent:
+        case RenderOrder_Water:
+            return false;
+        default:
+            return true;
+    }
+}
+inline int chunk_get_render_order_casts_shadow( RenderOrder renderOrder ) {
+    switch ( renderOrder ) {
+        case RenderOrder_Solid:
+            return true;
+        default:
+            return false;
+    }
+}
+inline int chunk_get_render_order_is_visible( RenderOrder renderOrder ) {
+    switch ( renderOrder ) {
+        case RenderOrder_Transparent:
+            return false;
+        default:
+            return true;
+    }
+}
+
 void chunk_calculate_sides( Chunk *chunk, TRIP_ARGS( int center_next_ ) ) {
-    unsigned int *chunk_ib_data_solid = ( unsigned int * )malloc( IB_SOLID_SIZE * sizeof( unsigned int ) );
-    unsigned int *chunk_ib_data_water = ( unsigned int * )malloc( IB_WATER_SIZE * sizeof( unsigned int ) );
+    unsigned int *chunk_ib_data[ LAST_RENDER_ORDER ];
+    for ( int renderOrder = 0; renderOrder < LAST_RENDER_ORDER; renderOrder++ ) {
+        chunk_ib_data[ renderOrder ] = ( unsigned int * )malloc( chunk_get_render_order_ib_size( ( RenderOrder )renderOrder ) * sizeof( unsigned int ) );
+    }
 
     int visable_top = chunk->chunk_y <= center_next_y;
     int visable_bottom = chunk->chunk_y >= center_next_y;
@@ -14,44 +51,49 @@ void chunk_calculate_sides( Chunk *chunk, TRIP_ARGS( int center_next_ ) ) {
     int visable_front = chunk->chunk_z <= center_next_z;
     int visable_back = chunk->chunk_z >= center_next_z;
 
-    int ib_size_solid = 0;
-    int ib_size_water = 0;
+    int ib_size[ LAST_RENDER_ORDER ] = {0};
     if ( visable_front ) {
         for ( int i = 0; i < 12; i++ ) {
-            chunk_ib_data_solid[ ib_size_solid++ ] = ib_data_solid[ 12 * FACE_FRONT + i ]; // bad
+            chunk_ib_data[ RenderOrder_Solid ][ ib_size[ RenderOrder_Solid ]++ ] = ib_data_solid[ 12 * FACE_FRONT + i ];
+            chunk_ib_data[ RenderOrder_Glass ][ ib_size[ RenderOrder_Glass ]++ ] = ib_data_solid[ 12 * FACE_FRONT + i ];
         }
     }
     if ( visable_right ) {
         for ( int i = 0; i < 12; i++ ) {
-            chunk_ib_data_solid[ ib_size_solid++ ] = ib_data_solid[ 12 * FACE_RIGHT + i ];
+            chunk_ib_data[ RenderOrder_Solid ][ ib_size[ RenderOrder_Solid ]++ ] = ib_data_solid[ 12 * FACE_RIGHT + i ];
+            chunk_ib_data[ RenderOrder_Glass ][ ib_size[ RenderOrder_Glass ]++ ] = ib_data_solid[ 12 * FACE_RIGHT + i ];
         }
     }
     if ( visable_back ) {
         for ( int i = 0; i < 12; i++ ) {
-            chunk_ib_data_solid[ ib_size_solid++ ] = ib_data_solid[ 12 * FACE_BACK + i ]; // bad
+            chunk_ib_data[ RenderOrder_Solid ][ ib_size[ RenderOrder_Solid ]++ ] = ib_data_solid[ 12 * FACE_BACK + i ];
+            chunk_ib_data[ RenderOrder_Glass ][ ib_size[ RenderOrder_Glass ]++ ] = ib_data_solid[ 12 * FACE_BACK + i ];
         }
     }
     if ( visable_left ) {
         for ( int i = 0; i < 12; i++ ) {
-            chunk_ib_data_solid[ ib_size_solid++ ] = ib_data_solid[ 12 * FACE_LEFT + i ]; // bad
+            chunk_ib_data[ RenderOrder_Solid ][ ib_size[ RenderOrder_Solid ]++ ] = ib_data_solid[ 12 * FACE_LEFT + i ];
+            chunk_ib_data[ RenderOrder_Glass ][ ib_size[ RenderOrder_Glass ]++ ] = ib_data_solid[ 12 * FACE_LEFT + i ];
         }
     }
     if ( visable_top ) {
         for ( int i = 0; i < 12; i++ ) {
-            chunk_ib_data_solid[ ib_size_solid++ ] = ib_data_solid[ 12 * FACE_TOP + i ];
-            chunk_ib_data_water[ ib_size_water++ ] = ib_data_water[ 12 * IB_POSITION_WATER_TOP + i ];
+            chunk_ib_data[ RenderOrder_Solid ][ ib_size[ RenderOrder_Solid ]++ ] = ib_data_solid[ 12 * FACE_TOP + i ];
+            chunk_ib_data[ RenderOrder_Glass ][ ib_size[ RenderOrder_Glass ]++ ] = ib_data_solid[ 12 * FACE_TOP + i ];
+            chunk_ib_data[ RenderOrder_Water ][ ib_size[ RenderOrder_Water ]++ ] = ib_data_water[ 12 * IB_POSITION_WATER_TOP + i ];
         }
     }
     if ( visable_bottom ) {
         for ( int i = 0; i < 12; i++ ) {
-            chunk_ib_data_solid[ ib_size_solid++ ] = ib_data_solid[ 12 * FACE_BOTTOM + i ];
-            chunk_ib_data_water[ ib_size_water++ ] = ib_data_water[ 12 * IB_POSITION_WATER_BOTTOM + i ];
+            chunk_ib_data[ RenderOrder_Solid ][ ib_size[ RenderOrder_Solid ]++ ] = ib_data_solid[ 12 * FACE_BOTTOM + i ];
+            chunk_ib_data[ RenderOrder_Glass ][ ib_size[ RenderOrder_Glass ]++ ] = ib_data_solid[ 12 * FACE_BOTTOM + i ];
+            chunk_ib_data[ RenderOrder_Water ][ ib_size[ RenderOrder_Water ]++ ] = ib_data_water[ 12 * IB_POSITION_WATER_BOTTOM + i ];
         }
     }
-    index_buffer_set_data( &chunk->solid.ib, chunk_ib_data_solid, ib_size_solid );
-    index_buffer_set_data( &chunk->water.ib, chunk_ib_data_water, ib_size_water );
-    free( chunk_ib_data_solid );
-    free( chunk_ib_data_water );
+    for ( int renderOrder = 0; renderOrder < LAST_RENDER_ORDER; renderOrder++ ) {
+        index_buffer_set_data( &chunk->layers[ renderOrder ].ib, chunk_ib_data[ renderOrder ], chunk_get_render_order_ib_size( ( RenderOrder )renderOrder ) );
+        free( chunk_ib_data[ renderOrder ] );
+    }
 }
 
 int chunk_get_coords_from_index( int index, int *out_x, int *out_y, int *out_z ) {
@@ -71,19 +113,20 @@ void chunk_init( Chunk *chunk, VertexBuffer *vb_block_solid, VertexBuffer *vb_bl
         chunk->blocks = ( BlockID * )calloc( CHUNK_BLOCK_SIZE, sizeof( BlockID ) );
     }
 
-    {
-        index_buffer_init( &chunk->solid.ib );
-        vertex_buffer_init( &chunk->solid.vb_coords );
-        vertex_array_init( &chunk->solid.va );
-        vertex_array_add_buffer( &chunk->solid.va, vb_block_solid, vbl_block, 0, 0 );
-        vertex_array_add_buffer( &chunk->solid.va, &chunk->solid.vb_coords, vbl_coords, 1, vbl_block->current_size );
-    }
-    {
-        index_buffer_init( &chunk->water.ib );
-        vertex_buffer_init( &chunk->water.vb_coords );
-        vertex_array_init( &chunk->water.va );
-        vertex_array_add_buffer( &chunk->water.va, vb_block_water, vbl_block, 0, 0 );
-        vertex_array_add_buffer( &chunk->water.va, &chunk->water.vb_coords, vbl_coords, 1, vbl_block->current_size );
+    for ( int renderOrder = 0; renderOrder < LAST_RENDER_ORDER; renderOrder++ ) {
+        VertexBuffer *vb;
+        switch ( renderOrder ) {
+            case RenderOrder_Water:
+                vb = vb_block_water;
+                break;
+            default:
+                vb = vb_block_solid;
+        }
+        index_buffer_init( &chunk->layers[ renderOrder ].ib );
+        vertex_buffer_init( &chunk->layers[ renderOrder ].vb_coords );
+        vertex_array_init( &chunk->layers[ renderOrder ].va );
+        vertex_array_add_buffer( &chunk->layers[ renderOrder ].va, vb, vbl_block, 0, 0 );
+        vertex_array_add_buffer( &chunk->layers[ renderOrder ].va, &chunk->layers[ renderOrder ].vb_coords, vbl_coords, 1, vbl_block->current_size );
     }
 }
 
@@ -91,31 +134,21 @@ void chunk_destroy( Chunk *chunk ) {
     if ( REMEMBER_BLOCKS ) {
         free( chunk->blocks );
     }
-    if ( chunk->solid.populated_blocks ) {
-        free( chunk->solid.populated_blocks );
-    }
-    chunk->solid.populated_blocks = 0;
-    if ( chunk->water.populated_blocks ) {
-        free( chunk->water.populated_blocks );
-    }
-    chunk->water.populated_blocks = 0;
-}
 
-void chunk_render_solid( const Chunk *chunk, const Renderer *renderer, const Shader *shader ) {
-    if ( chunk->should_render && chunk->solid.num_instances != 0 ) {
-        if ( chunk->is_loading ) {
-            pr_debug( "Error, attempting to render loading chunk" );
+    for ( int renderOrder = 0; renderOrder < LAST_RENDER_ORDER; renderOrder++ ) {
+        if ( chunk->layers[ renderOrder ].populated_blocks ) {
+            free( chunk->layers[ renderOrder ].populated_blocks );
         }
-        renderer_draw( renderer, &chunk->solid.va, &chunk->solid.ib, shader, chunk->solid.num_instances );
+        chunk->layers[ renderOrder ].populated_blocks = 0;
     }
 }
 
-void chunk_render_water( const Chunk *chunk, const Renderer *renderer, const Shader *shader ) {
-    if ( chunk->should_render && chunk->water.num_instances != 0 ) {
+void chunk_render( const Chunk *chunk, const Renderer *renderer, const Shader *shader, RenderOrder renderOrder ) {
+    if ( chunk->should_render && chunk->layers[ renderOrder ].num_instances != 0 ) {
         if ( chunk->is_loading ) {
             pr_debug( "Error, attempting to render loading chunk" );
         }
-        renderer_draw( renderer, &chunk->water.va, &chunk->water.ib, shader, chunk->water.num_instances );
+        renderer_draw( renderer, &chunk->layers[ renderOrder ].va, &chunk->layers[ renderOrder ].ib, shader, chunk->layers[ renderOrder ].num_instances );
     }
 }
 
@@ -195,8 +228,11 @@ typedef struct {
 
 } WorkingSpace;
 
-int chunk_can_extend_rect( Chunk *chunk, BlockID rect_blockID, unsigned int *packed_lighting, WorkingSpace *workingSpace, TRIP_ARGS( int starting_ ), TRIP_ARGS( int size_ ), TRIP_ARGS( int dir_ ) ) {
+int chunk_can_extend_rect( Chunk *chunk, Block *block, unsigned int *packed_lighting, WorkingSpace *workingSpace, TRIP_ARGS( int starting_ ), TRIP_ARGS( int size_ ), TRIP_ARGS( int dir_ ) ) {
     if ( DISABLE_GROUPING_BLOCKS ) {
+        return 0;
+    }
+    if ( block->renderOrder == RenderOrder_Glass ) {
         return 0;
     }
     if ( starting_x + size_x + dir_x > CHUNK_SIZE )
@@ -223,7 +259,7 @@ int chunk_can_extend_rect( Chunk *chunk, BlockID rect_blockID, unsigned int *pac
                 if ( !workingSpace[ index ].can_be_seen ) {
                     return 0;
                 }
-                if ( new_blockID != rect_blockID ) {
+                if ( new_blockID != block->id ) {
                     return 0;
                 }
                 for ( int i = 0; i < NUM_FACES_IN_CUBE; i++ ) {
@@ -249,14 +285,14 @@ inline int min( int a, int b, int c, int d ) {
 }
 
 void chunk_calculate_popupated_blocks( Chunk *chunk ) {
-    int num_water_instances = 0;
-    int num_solid_instances = 0;
-    if ( chunk->solid.populated_blocks || chunk->water.populated_blocks ) {
-        pr_debug( "Error, populated blocks already populated" );
-    }
+    int num_instances[ LAST_RENDER_ORDER ] = {0};
 
-    chunk->solid.populated_blocks = ( BlockCoords * )calloc( CHUNK_BLOCK_SIZE, sizeof( BlockCoords ) );
-    chunk->water.populated_blocks = ( BlockCoords * )calloc( CHUNK_BLOCK_SIZE, sizeof( BlockCoords ) );
+    for ( int renderOrder = 0; renderOrder < LAST_RENDER_ORDER; renderOrder++ ) {
+        if ( chunk->layers[ renderOrder ].populated_blocks ) {
+            pr_debug( "Error, populated blocks already populated" );
+        }
+        chunk->layers[ renderOrder ].populated_blocks = ( BlockCoords * )calloc( CHUNK_BLOCK_SIZE, sizeof( BlockCoords ) );
+    }
     WorkingSpace *workingSpace = ( WorkingSpace * )calloc( CHUNK_BLOCK_SIZE, sizeof( WorkingSpace ) );
 
     for ( int index = CHUNK_BLOCK_DRAW_START; index < CHUNK_BLOCK_DRAW_STOP; index++ ) {
@@ -266,8 +302,8 @@ void chunk_calculate_popupated_blocks( Chunk *chunk ) {
             BlockID blockID = chunk->blocks[ index ];
             Block *block = block_definition_get_definition( blockID );
             float renderOrder = block->renderOrder;
-            workingSpace[ index ].visable = block->renderOrder != RenderOrderTransparent;
-            workingSpace[ index ].solid = block->renderOrder == RenderOrderSolid;
+            workingSpace[ index ].visable = chunk_get_render_order_is_visible( block->renderOrder );
+            int casts_shadow = chunk_get_render_order_casts_shadow( block->renderOrder );
 
             if ( workingSpace[ index ].visable ) {
                 // 1 Offset
@@ -316,73 +352,74 @@ void chunk_calculate_popupated_blocks( Chunk *chunk ) {
                 int bbl = block_definition_get_definition( chunk->blocks[ chunk_get_index_from_coords( xminus, yminus, zminus ) ] )->renderOrder >= renderOrder;
                 int bfr = block_definition_get_definition( chunk->blocks[ chunk_get_index_from_coords( xplus, yminus, zplus ) ] )->renderOrder >= renderOrder;
                 int bbr = block_definition_get_definition( chunk->blocks[ chunk_get_index_from_coords( xplus, yminus, zminus ) ] )->renderOrder >= renderOrder;
-                {
-                    int top_tfr = tf && tr ? 3 : ( tf + tr + tfr );
-                    int top_tfl = tf && tl ? 3 : ( tf + tl + tfl );
-                    int top_tbr = tba && tr ? 3 : ( tba + tr + tbr );
-                    int top_tbl = tba && tl ? 3 : ( tba + tl + tbl );
-                    int tcc = min( top_tfr, top_tfl, top_tbr, top_tbl );
-                    workingSpace[ index ].packed_lighting[ FACE_TOP ] =                         //
-                        ( ( top_tfr << CORNER_OFFSET_tfr ) | ( top_tfl << CORNER_OFFSET_tfl ) | //
-                          ( top_tbr << CORNER_OFFSET_tbr ) | ( top_tbl << CORNER_OFFSET_tbl ) | //
-                          tcc << CORNER_OFFSET_c );
+                if ( casts_shadow ) {
+                    {
+                        int top_tfr = tf && tr ? 3 : ( tf + tr + tfr );
+                        int top_tfl = tf && tl ? 3 : ( tf + tl + tfl );
+                        int top_tbr = tba && tr ? 3 : ( tba + tr + tbr );
+                        int top_tbl = tba && tl ? 3 : ( tba + tl + tbl );
+                        int tcc = min( top_tfr, top_tfl, top_tbr, top_tbl );
+                        workingSpace[ index ].packed_lighting[ FACE_TOP ] =                         //
+                            ( ( top_tfr << CORNER_OFFSET_tfr ) | ( top_tfl << CORNER_OFFSET_tfl ) | //
+                              ( top_tbr << CORNER_OFFSET_tbr ) | ( top_tbl << CORNER_OFFSET_tbl ) | //
+                              tcc << CORNER_OFFSET_c );
+                    }
+                    {
+                        int bottom_bfr = bof && bor ? 3 : ( bof + bor + bfr );
+                        int bottom_bfl = bof && bol ? 3 : ( bof + bol + bfl );
+                        int bottom_bbr = boba && bor ? 3 : ( boba + bor + bbr );
+                        int bottom_bbl = boba && bol ? 3 : ( boba + bol + bbl );
+                        int bcc = min( bottom_bfr, bottom_bfl, bottom_bbr, bottom_bbl );
+                        workingSpace[ index ].packed_lighting[ FACE_BOTTOM ] =                            //
+                            ( ( bottom_bfr << CORNER_OFFSET_bfr ) | ( bottom_bfl << CORNER_OFFSET_bfl ) | //
+                              ( bottom_bbr << CORNER_OFFSET_bbr ) | ( bottom_bbl << CORNER_OFFSET_bbl ) | //
+                              bcc << CORNER_OFFSET_c );
+                    }
+                    {
+                        int front_tfr = tf && fr ? 3 : ( tf + fr + tfr );
+                        int front_tfl = tf && fl ? 3 : ( tf + fl + tfl );
+                        int front_bfr = bof && fr ? 3 : ( bof + fr + bfr );
+                        int front_bfl = bof && fl ? 3 : ( bof + fl + bfl );
+                        int cfc = min( front_tfr, front_tfl, front_bfr, front_bfl );
+                        workingSpace[ index ].packed_lighting[ FACE_FRONT ] =                           //
+                            ( ( front_tfr << CORNER_OFFSET_tfr ) | ( front_tfl << CORNER_OFFSET_tfl ) | //
+                              ( front_bfr << CORNER_OFFSET_bfr ) | ( front_bfl << CORNER_OFFSET_bfl ) | //
+                              cfc << CORNER_OFFSET_c );
+                    }
+                    {
+                        int back_tbr = tba && bar ? 3 : ( tba + bar + tbr );
+                        int back_tbl = tba && bal ? 3 : ( tba + bal + tbl );
+                        int back_bbr = boba && bar ? 3 : ( boba + bar + bbr );
+                        int back_bbl = boba && bal ? 3 : ( boba + bal + bbl );
+                        int cbc = min( back_tbr, back_tbl, back_bbr, back_bbl );
+                        workingSpace[ index ].packed_lighting[ FACE_BACK ] =                          //
+                            ( ( back_tbr << CORNER_OFFSET_tbr ) | ( back_tbl << CORNER_OFFSET_tbl ) | //
+                              ( back_bbr << CORNER_OFFSET_bbr ) | ( back_bbl << CORNER_OFFSET_bbl ) | //
+                              cbc << CORNER_OFFSET_c );
+                    }
+                    {
+                        int right_tfr = tr && fr ? 3 : ( tr + fr + tfr );
+                        int right_tbr = tr && bar ? 3 : ( tr + bar + tbr );
+                        int right_bfr = bor && fr ? 3 : ( bor + fr + bfr );
+                        int right_bbr = bor && bar ? 3 : ( bor + bar + bbr );
+                        int ccr = min( right_tfr, right_tbr, right_bfr, right_bbr );
+                        workingSpace[ index ].packed_lighting[ FACE_RIGHT ] =                           //
+                            ( ( right_tfr << CORNER_OFFSET_tfr ) | ( right_tbr << CORNER_OFFSET_tbr ) | //
+                              ( right_bfr << CORNER_OFFSET_bfr ) | ( right_bbr << CORNER_OFFSET_bbr ) | //
+                              ccr << CORNER_OFFSET_c );
+                    }
+                    {
+                        int left_tfl = tl && fl ? 3 : ( tl + fl + tfl );
+                        int left_tbl = tl && bal ? 3 : ( tl + bal + tbl );
+                        int left_bfl = bol && fl ? 3 : ( bol + fl + bfl );
+                        int left_bbl = bol && bal ? 3 : ( bol + bal + bbl );
+                        int ccl = min( left_tfl, left_tbl, left_bfl, left_bbl );
+                        workingSpace[ index ].packed_lighting[ FACE_LEFT ] =                          //
+                            ( ( left_tfl << CORNER_OFFSET_tfl ) | ( left_tbl << CORNER_OFFSET_tbl ) | //
+                              ( left_bfl << CORNER_OFFSET_bfl ) | ( left_bbl << CORNER_OFFSET_bbl ) | //
+                              ccl << CORNER_OFFSET_c );
+                    }
                 }
-                {
-                    int bottom_bfr = bof && bor ? 3 : ( bof + bor + bfr );
-                    int bottom_bfl = bof && bol ? 3 : ( bof + bol + bfl );
-                    int bottom_bbr = boba && bor ? 3 : ( boba + bor + bbr );
-                    int bottom_bbl = boba && bol ? 3 : ( boba + bol + bbl );
-                    int bcc = min( bottom_bfr, bottom_bfl, bottom_bbr, bottom_bbl );
-                    workingSpace[ index ].packed_lighting[ FACE_BOTTOM ] =                            //
-                        ( ( bottom_bfr << CORNER_OFFSET_bfr ) | ( bottom_bfl << CORNER_OFFSET_bfl ) | //
-                          ( bottom_bbr << CORNER_OFFSET_bbr ) | ( bottom_bbl << CORNER_OFFSET_bbl ) | //
-                          bcc << CORNER_OFFSET_c );
-                }
-                {
-                    int front_tfr = tf && fr ? 3 : ( tf + fr + tfr );
-                    int front_tfl = tf && fl ? 3 : ( tf + fl + tfl );
-                    int front_bfr = bof && fr ? 3 : ( bof + fr + bfr );
-                    int front_bfl = bof && fl ? 3 : ( bof + fl + bfl );
-                    int cfc = min( front_tfr, front_tfl, front_bfr, front_bfl );
-                    workingSpace[ index ].packed_lighting[ FACE_FRONT ] =                           //
-                        ( ( front_tfr << CORNER_OFFSET_tfr ) | ( front_tfl << CORNER_OFFSET_tfl ) | //
-                          ( front_bfr << CORNER_OFFSET_bfr ) | ( front_bfl << CORNER_OFFSET_bfl ) | //
-                          cfc << CORNER_OFFSET_c );
-                }
-                {
-                    int back_tbr = tba && bar ? 3 : ( tba + bar + tbr );
-                    int back_tbl = tba && bal ? 3 : ( tba + bal + tbl );
-                    int back_bbr = boba && bar ? 3 : ( boba + bar + bbr );
-                    int back_bbl = boba && bal ? 3 : ( boba + bal + bbl );
-                    int cbc = min( back_tbr, back_tbl, back_bbr, back_bbl );
-                    workingSpace[ index ].packed_lighting[ FACE_BACK ] =                          //
-                        ( ( back_tbr << CORNER_OFFSET_tbr ) | ( back_tbl << CORNER_OFFSET_tbl ) | //
-                          ( back_bbr << CORNER_OFFSET_bbr ) | ( back_bbl << CORNER_OFFSET_bbl ) | //
-                          cbc << CORNER_OFFSET_c );
-                }
-                {
-                    int right_tfr = tr && fr ? 3 : ( tr + fr + tfr );
-                    int right_tbr = tr && bar ? 3 : ( tr + bar + tbr );
-                    int right_bfr = bor && fr ? 3 : ( bor + fr + bfr );
-                    int right_bbr = bor && bar ? 3 : ( bor + bar + bbr );
-                    int ccr = min( right_tfr, right_tbr, right_bfr, right_bbr );
-                    workingSpace[ index ].packed_lighting[ FACE_RIGHT ] =                           //
-                        ( ( right_tfr << CORNER_OFFSET_tfr ) | ( right_tbr << CORNER_OFFSET_tbr ) | //
-                          ( right_bfr << CORNER_OFFSET_bfr ) | ( right_bbr << CORNER_OFFSET_bbr ) | //
-                          ccr << CORNER_OFFSET_c );
-                }
-                {
-                    int left_tfl = tl && fl ? 3 : ( tl + fl + tfl );
-                    int left_tbl = tl && bal ? 3 : ( tl + bal + tbl );
-                    int left_bfl = bol && fl ? 3 : ( bol + fl + bfl );
-                    int left_bbl = bol && bal ? 3 : ( bol + bal + bbl );
-                    int ccl = min( left_tfl, left_tbl, left_bfl, left_bbl );
-                    workingSpace[ index ].packed_lighting[ FACE_LEFT ] =                          //
-                        ( ( left_tfl << CORNER_OFFSET_tfl ) | ( left_tbl << CORNER_OFFSET_tbl ) | //
-                          ( left_bfl << CORNER_OFFSET_bfl ) | ( left_bbl << CORNER_OFFSET_bbl ) | //
-                          ccl << CORNER_OFFSET_c );
-                }
-
             } else {
                 workingSpace[ index ].can_be_seen = 0;
             }
@@ -409,13 +446,13 @@ void chunk_calculate_popupated_blocks( Chunk *chunk ) {
                             int size_y = 1;
                             int size_z = 1;
                             do {
-                                can_extend_x = chunk_can_extend_rect( chunk, blockID, packed_lighting, workingSpace, x + size_x - 1, y, z, 1, size_y, size_z, 1, 0, 0 );
+                                can_extend_x = chunk_can_extend_rect( chunk, block, packed_lighting, workingSpace, x + size_x - 1, y, z, 1, size_y, size_z, 1, 0, 0 );
                                 if ( can_extend_x )
                                     size_x++;
-                                can_extend_z = chunk_can_extend_rect( chunk, blockID, packed_lighting, workingSpace, x, y, z + size_z - 1, size_x, size_y, 1, 0, 0, 1 );
+                                can_extend_z = chunk_can_extend_rect( chunk, block, packed_lighting, workingSpace, x, y, z + size_z - 1, size_x, size_y, 1, 0, 0, 1 );
                                 if ( can_extend_z )
                                     size_z++;
-                                can_extend_y = chunk_can_extend_rect( chunk, blockID, packed_lighting, workingSpace, x, y + size_y - 1, z, size_x, 1, size_z, 0, 1, 0 );
+                                can_extend_y = chunk_can_extend_rect( chunk, block, packed_lighting, workingSpace, x, y + size_y - 1, z, size_x, 1, size_z, 0, 1, 0 );
                                 if ( can_extend_y )
                                     size_y++;
                             } while ( can_extend_x || can_extend_z || can_extend_y );
@@ -432,13 +469,10 @@ void chunk_calculate_popupated_blocks( Chunk *chunk ) {
                                 workingSpace[ index ].has_been_drawn = 1;
 
                                 BlockCoords *blockCoord;
-                                if ( block->renderOrder == RenderOrderTranslucent ) {
-                                    blockCoord = &chunk->water.populated_blocks[ num_water_instances ];
-                                    num_water_instances += 1;
-                                } else {
-                                    blockCoord = &chunk->solid.populated_blocks[ num_solid_instances ];
-                                    num_solid_instances += 1;
-                                }
+
+                                blockCoord = &chunk->layers[ block->renderOrder ].populated_blocks[ num_instances[ block->renderOrder ] ];
+                                num_instances[ block->renderOrder ] += 1;
+
                                 blockCoord->x = chunk->chunk_x * CHUNK_SIZE + x;
                                 blockCoord->y = chunk->chunk_y * CHUNK_SIZE + y;
                                 blockCoord->z = chunk->chunk_z * CHUNK_SIZE + z;
@@ -472,33 +506,28 @@ void chunk_calculate_popupated_blocks( Chunk *chunk ) {
 #endif
         free( chunk->blocks );
     }
-    chunk->solid.num_instances = num_solid_instances;
-    chunk->water.num_instances = num_water_instances;
+    for ( int renderOrder = 0; renderOrder < LAST_RENDER_ORDER; renderOrder++ ) {
+        chunk->layers[ renderOrder ].num_instances = num_instances[ renderOrder ];
+    }
 }
 
 void chunk_program_terrain( Chunk *chunk ) {
-    if ( chunk - chunk->solid.num_instances != 0 ) {
-        vertex_buffer_set_data( &chunk->solid.vb_coords, chunk->solid.populated_blocks, sizeof( BlockCoords ) * chunk->solid.num_instances );
-        chunk->should_render = 1;
+    for ( int renderOrder = 0; renderOrder < LAST_RENDER_ORDER; renderOrder++ ) {
+        if ( chunk - chunk->layers[ renderOrder ].num_instances != 0 ) {
+            vertex_buffer_set_data( &chunk->layers[ renderOrder ].vb_coords, chunk->layers[ renderOrder ].populated_blocks, sizeof( BlockCoords ) * chunk->layers[ renderOrder ].num_instances );
+            chunk->should_render = 1;
+        }
+        free( chunk->layers[ renderOrder ].populated_blocks );
+        chunk->layers[ renderOrder ].populated_blocks = 0;
     }
-    if ( chunk - chunk->water.num_instances != 0 ) {
-        vertex_buffer_set_data( &chunk->water.vb_coords, chunk->water.populated_blocks, sizeof( BlockCoords ) * chunk->water.num_instances );
-        chunk->should_render = 1;
-    }
-    free( chunk->solid.populated_blocks );
-    free( chunk->water.populated_blocks );
-    chunk->solid.populated_blocks = 0;
-    chunk->water.populated_blocks = 0;
 }
 
 void chunk_unprogram_terrain( Chunk *chunk ) {
     chunk->should_render = 0;
-    if ( chunk->solid.populated_blocks ) {
-        free( chunk->solid.populated_blocks );
+    for ( int renderOrder = 0; renderOrder < LAST_RENDER_ORDER; renderOrder++ ) {
+        if ( chunk->layers[ renderOrder ].populated_blocks ) {
+            free( chunk->layers[ renderOrder ].populated_blocks );
+        }
+        chunk->layers[ renderOrder ].populated_blocks = 0;
     }
-    chunk->solid.populated_blocks = 0;
-    if ( chunk->water.populated_blocks ) {
-        free( chunk->water.populated_blocks );
-    }
-    chunk->water.populated_blocks = 0;
 }
