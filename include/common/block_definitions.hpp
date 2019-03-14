@@ -54,12 +54,13 @@ typedef struct {
     BlockID bottom;
 } BlockTextureMap;
 
+typedef enum { RenderOrderTransparent, RenderOrderTranslucent, RenderOrderSolid } RenderOrder;
+
 typedef struct {
     BlockID id;
     BlockTextureMap textures;
-    float alpha;
+    RenderOrder renderOrder;
     float height;
-    int special_grass_logic;
 } Block;
 
 void block_definitions_initilize_definitions( Texture *texture );

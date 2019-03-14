@@ -11,7 +11,7 @@ int contains_block( LoadedChunks *gameChunks, int block_x, int block_y, int bloc
         return collide_with_unloaded;
     }
     Block *block = block_definition_get_definition( blockID );
-    return !( block->alpha != 1.0f );
+    return !( block->renderOrder != RenderOrderSolid );
 }
 
 int ray_traversal_find_block_from_to( LoadedChunks *gameChunks, const float x1, const float y1, const float z1, //
@@ -61,7 +61,7 @@ int ray_traversal_find_block_from_to( LoadedChunks *gameChunks, const float x1, 
         face = FACE_BACK;
     }
     for ( ;; ) {
-        if ( contains_block( gameChunks, i, j, k , flag) ) {
+        if ( contains_block( gameChunks, i, j, k, flag ) ) {
             *out_x = i;
             *out_y = j;
             *out_z = k;
