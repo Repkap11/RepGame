@@ -275,9 +275,7 @@ void chunk_loader_calculate_cull( LoadedChunks *loadedChunks, glm::mat4 &mvp ) {
 }
 
 void chunk_loader_draw_chunks( LoadedChunks *loadedChunks, glm::mat4 &mvp ) {
-    shader_set_uniform1i( &loadedChunks->shader, "u_Texture", loadedChunks->blocksTexture.slot );
-    shader_set_uniform_mat4f( &loadedChunks->shader, "u_MVP", mvp );
-    shader_set_uniform3f( &loadedChunks->shader, "u_DebugScaleOffset", BLOCK_SCALE_OFFSET, BLOCK_SCALE_OFFSET, BLOCK_SCALE_OFFSET );
+
     // pr_debug( "Drawing %d chunks", loadedChunks->numLoadedChunks );
     for ( int renderOrder = LAST_RENDER_ORDER - 1; renderOrder > 0; renderOrder-- ) {
         for ( int i = 0; i < MAX_LOADED_CHUNKS; i++ ) {
