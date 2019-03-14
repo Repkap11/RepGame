@@ -26,6 +26,7 @@ typedef struct {
     int limit_fps;
     int click_delay_left;
     int click_delay_right;
+    int debug_mode;
 } InputState;
 
 #if defined( REPGAME_LINUX ) || defined( REPGAME_WASM )

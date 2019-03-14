@@ -207,6 +207,11 @@ void input_keysInput( InputState *inputState, unsigned char key, int x, int y, i
             }
 
             break;
+        case 'm':
+            if ( pressed ) {
+                inputState->debug_mode = !inputState->debug_mode;
+            }
+            break;
 
         default:
             if ( pressed ) {

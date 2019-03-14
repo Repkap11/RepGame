@@ -229,7 +229,7 @@ void repgame_draw( ) {
     world_render( &globalGameState.gameChunks, globalGameState.camera.x, globalGameState.camera.y, globalGameState.camera.z );
     showErrors( );
 
-    world_draw( &globalGameState.gameChunks, mvp, mvp_sky );
+    world_draw( &globalGameState.gameChunks, mvp, mvp_sky, globalGameState.input.debug_mode );
     ui_overlay_draw( &globalGameState.ui_overlay, &globalGameState.gameChunks.renderer, globalGameState.screen.ortho_center );
 }
 
