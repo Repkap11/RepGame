@@ -1,13 +1,19 @@
 #Linux x86_64 builds
 MAKEFILES += linux.mk
 
-CFLAGS_CORE := -Wall -Werror -std=c++98 -Wno-unused-variable -no-pie -fno-pie -march=native
-#CFLAGS_CORE += -O3
-CFLAGS_CORE += -g
-CFLAGS_LINUX := $(CFLAGS_CORE) -DREPGAME_LINUX
-LIBS_LINUX := -L/usr/local/cuda-9.2/lib64 -l m -l GL -l GLU -l GLEW -l glut -pthread
+CFLAGS_LINUX := -Wall -Werror -std=c++98 -Wno-unused-variable -fno-pie -march=native
+CFLAGS_LINUX += -O3
+#CFLAGS_CORE += -g
+CFLAGS_LINUX += -DREPGAME_LINUX
+LIBS_LINUX := -l m -l GL -l GLU -l GLEW -l glut -pthread
 
 CC_LINUX := g++
+#CC_LINUX := clang++
+
+ifeq ($(CC_LINUX),g++)
+CFLAGS_LINUX += -no-pie
+endif
+
 LD_LINUX := ld -r
 
 OBJECTS_COMMON_LINUX := $(patsubst src/common/%.cpp,out/linux/common/%.o, $(SRC_COMMON))
@@ -45,7 +51,7 @@ map:
 
 reverse = $(if $(1),$(call reverse,$(wordlist 2,$(words $(1)),$(1)))) $(firstword $(1))
 
-clean-linux: clean-cuda clean-server
+clean-linux: clean-server
 	rm -rf out/linux
 
 out/linux: | out

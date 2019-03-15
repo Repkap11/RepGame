@@ -17,7 +17,7 @@ CFLAGS_CUDA_COMPILE := -x cu -dc -c
 CFLAGS_CUDA_LINK_DEVICE := --lib
 CFLAGS_CUDA_LINK_HOST := -dlink
 
-LIBS_LINUX += -lcudart
+LIBS_LINUX += -lcudart -L/usr/local/cuda-9.2/lib64
 CFLAGS_LINUX += -DLOAD_WITH_CUDA
 OBJECTS_COMMON_LINUX += $(LIB_TARGET_CUDA) $(LIB_DEVICE_CUDA)
 
@@ -33,6 +33,8 @@ $(LIB_DEVICE_CUDA): $(OBJECTS_CUDA) $(MAKEFILES) out
 	$(CC_CUDA) $(CFLAGS_CUDA) $(CFLAGS_CUDA_LINK_DEVICE) $(OBJECTS_CUDA) -o $@
 
 cuda: $(LIB_TARGET_CUDA) $(LIB_DEVICE_CUDA)
+
+clean-linux: clean-cuda
 
 clean-cuda:
 	rm -f $(CLEAN_CUDA)
