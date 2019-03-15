@@ -25,6 +25,7 @@ clean-android:
 	rm -f $(ANDROID_SHADERS)
 	rm -f $(ANDROID_BITMAPS)
 	rm -rf $(ANDROID_DIRS)
+	rm -rf android/app/.externalNativeBuild
 	./android/gradlew -q -p android clean
 
 android-shaders: $(ANDROID_SHADERS)
