@@ -48,14 +48,13 @@ typedef enum {
 } BlockID;
 
 #include "abstract/textures.hpp"
+#include "common/render_order.hpp"
 
 typedef struct {
     BlockID top;
     BlockID side;
     BlockID bottom;
 } BlockTextureMap;
-
-typedef enum { RenderOrder_Transparent, RenderOrder_Glass, RenderOrder_Water, RenderOrder_Solid, LAST_RENDER_ORDER } RenderOrder;
 
 typedef struct {
     BlockID id;

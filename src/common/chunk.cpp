@@ -3,41 +3,6 @@
 #include "common/map_gen.hpp"
 #include "common/utils/map_storage.hpp"
 
-inline int chunk_get_render_order_ib_size( RenderOrder renderOrder ) {
-    switch ( renderOrder ) {
-        case RenderOrder_Water:
-            return IB_WATER_SIZE;
-        default:
-            return IB_SOLID_SIZE;
-    }
-}
-
-inline int chunk_get_render_order_is_solid( RenderOrder renderOrder ) {
-    switch ( renderOrder ) {
-        case RenderOrder_Transparent:
-        case RenderOrder_Water:
-            return false;
-        default:
-            return true;
-    }
-}
-inline int chunk_get_render_order_casts_shadow( RenderOrder renderOrder ) {
-    switch ( renderOrder ) {
-        case RenderOrder_Solid:
-            return true;
-        default:
-            return false;
-    }
-}
-inline int chunk_get_render_order_is_visible( RenderOrder renderOrder ) {
-    switch ( renderOrder ) {
-        case RenderOrder_Transparent:
-            return false;
-        default:
-            return true;
-    }
-}
-
 void chunk_calculate_sides( Chunk *chunk, TRIP_ARGS( int center_next_ ) ) {
     unsigned int *chunk_ib_data[ LAST_RENDER_ORDER ];
     for ( int renderOrder = 0; renderOrder < LAST_RENDER_ORDER; renderOrder++ ) {
