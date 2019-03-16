@@ -4,53 +4,77 @@
 #include "common/ui_overlay.hpp"
 #include "common/abstract/shader.hpp"
 
-#define UI_OVERLAY_VERTEX_COUNT 8
-
 #define WIDTH ( 1.5f )
 #define SCALE ( 10.0f )
-UIOverlayVertex vb_data[] = {
-    {-SCALE * WIDTH, -WIDTH}, // 0
-    {-SCALE * WIDTH, WIDTH},  // 1
-    {SCALE * WIDTH, -WIDTH},  // 2
-    {SCALE * WIDTH, WIDTH},   // 3
 
-    {-WIDTH, -SCALE *WIDTH}, // 4
-    {-WIDTH, SCALE *WIDTH},  // 5
-    {WIDTH, -SCALE *WIDTH},  // 6
-    {WIDTH, SCALE *WIDTH},   // 7
+#define UI_OVERLAY_VERTEX_COUNT_CROSSHAIR 8
+#define CROSSHAIR_COLOR 0, 0, 0, 0.5f
+UIOverlayVertex vb_data_crosshair[] = {
+    {-SCALE * WIDTH, -WIDTH, 0, CROSSHAIR_COLOR}, // 0
+    {-SCALE * WIDTH, WIDTH, 0, CROSSHAIR_COLOR},  // 1
+    {SCALE * WIDTH, -WIDTH, 0, CROSSHAIR_COLOR},  // 2
+    {SCALE * WIDTH, WIDTH, 0, CROSSHAIR_COLOR},   // 3
+
+    {-WIDTH, -SCALE *WIDTH, 0, CROSSHAIR_COLOR}, // 4
+    {-WIDTH, SCALE *WIDTH, 0, CROSSHAIR_COLOR},  // 5
+    {WIDTH, -SCALE *WIDTH, 0, CROSSHAIR_COLOR},  // 6
+    {WIDTH, SCALE *WIDTH, 0, CROSSHAIR_COLOR},   // 7
 
 };
-
-#define UI_OVERLAY_INDEX_COUNT ( 3 * 2 * 2 )
-unsigned int ib_data[] = {
+#define UI_OVERLAY_INDEX_COUNT_CROSSHAIR ( 3 * 2 * 2 )
+unsigned int ib_data_crosshair[] = {
     0, 3, 1, //
     3, 0, 2, //
 
     4, 7, 5, //
     7, 4, 6, //
 };
+
 void ui_overlay_init( UIOverlay *ui_overlay ) {
     // Calc The Vertices
-    index_buffer_init( &ui_overlay->ib );
-    index_buffer_set_data( &ui_overlay->ib, ib_data, UI_OVERLAY_INDEX_COUNT );
+    showErrors( );
 
     // These are from UIOverlayVertex
     vertex_buffer_layout_init( &ui_overlay->vbl );
-    vertex_buffer_layout_push_float( &ui_overlay->vbl, 2 ); // Coords
+    vertex_buffer_layout_push_float( &ui_overlay->vbl, 2 ); // UIOverlayVertex screen_position
+    vertex_buffer_layout_push_float( &ui_overlay->vbl, 1 ); // UIOverlayVertex is_block
+    vertex_buffer_layout_push_float( &ui_overlay->vbl, 4 ); // UIOverlayVertex tex_coord
 
-    ui_overlay->vertex_size = UI_OVERLAY_VERTEX_COUNT;
+    {
+        index_buffer_init( &ui_overlay->draw_crosshair.ib );
+        index_buffer_set_data( &ui_overlay->draw_crosshair.ib, ib_data_crosshair, UI_OVERLAY_INDEX_COUNT_CROSSHAIR );
+        ui_overlay->draw_crosshair.vertex_size = UI_OVERLAY_VERTEX_COUNT_CROSSHAIR;
+        vertex_buffer_init( &ui_overlay->draw_crosshair.vb );
+        vertex_buffer_set_data( &ui_overlay->draw_crosshair.vb, vb_data_crosshair, sizeof( UIOverlayVertex ) * ui_overlay->draw_crosshair.vertex_size );
+        vertex_array_init( &ui_overlay->draw_crosshair.va );
+        showErrors( );
+        vertex_array_add_buffer( &ui_overlay->draw_crosshair.va, &ui_overlay->draw_crosshair.vb, &ui_overlay->vbl, 0, 0 );
+        showErrors( );
+    }
+    showErrors( );
 
-    vertex_buffer_init( &ui_overlay->vb );
-    vertex_buffer_set_data( &ui_overlay->vb, vb_data, sizeof( UIOverlayVertex ) * ui_overlay->vertex_size );
+    // {
+    //     index_buffer_init( &ui_overlay->draw_inventory.ib );
+    //     index_buffer_set_data( &ui_overlay->draw_inventory.ib, ib_data_crosshair, UI_OVERLAY_INDEX_COUNT_INVENTORY );
+    //     ui_overlay->draw_inventory.vertex_size = UI_OVERLAY_VERTEX_COUNT_INVENTORY;
+    //     vertex_buffer_init( &ui_overlay->draw_inventory.vb );
+    //     vertex_buffer_set_data( &ui_overlay->draw_inventory.vb, vb_data_crosshair, sizeof( UIOverlayVertex ) * ui_overlay->draw_inventory.vertex_size );
+    //     vertex_array_init( &ui_overlay->draw_inventory.va );
+    //     vertex_array_add_buffer( &ui_overlay->draw_inventory.va, &ui_overlay->draw_inventory.vb, &ui_overlay->vbl, 0, 0 );
+    // }
 
-    vertex_array_init( &ui_overlay->va );
-
-    vertex_array_add_buffer( &ui_overlay->va, &ui_overlay->vb, &ui_overlay->vbl, 0, 0 );
     shader_init( &ui_overlay->shader, "ui_overlay_vertex.glsl", "ui_overlay_fragment.glsl" );
-    shader_set_uniform4f( &ui_overlay->shader, "u_Color", 0, 0, 0, 0.5f );
+    ui_overlay->state.inventoryOpen = 0;
+}
+
+void ui_overlay_update_state( UIOverlay *ui_overlay ) {
 }
 
 void ui_overlay_draw( UIOverlay *ui_overlay, Renderer *renderer, glm::mat4 &mvp_ui ) {
     shader_set_uniform_mat4f( &ui_overlay->shader, "u_MVP", mvp_ui );
-    renderer_draw( renderer, &ui_overlay->va, &ui_overlay->ib, &ui_overlay->shader, 1 );
+    if ( ui_overlay->state.inventoryOpen ) {
+        renderer_draw( renderer, &ui_overlay->draw_inventory.va, &ui_overlay->draw_inventory.ib, &ui_overlay->shader, 1 );
+    } else {
+        renderer_draw( renderer, &ui_overlay->draw_crosshair.va, &ui_overlay->draw_crosshair.ib, &ui_overlay->shader, 1 );
+    }
 }

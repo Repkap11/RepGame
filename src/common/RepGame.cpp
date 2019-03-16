@@ -227,6 +227,7 @@ void repgame_draw( ) {
     glm::mat4 mvp_sky = globalGameState.screen.proj * globalGameState.camera.view_look;
     glm::mat4 mvp = mvp_sky * globalGameState.camera.view_trans;
     world_render( &globalGameState.gameChunks, globalGameState.camera.x, globalGameState.camera.y, globalGameState.camera.z );
+    ui_overlay_update_state( &globalGameState.ui_overlay );
     showErrors( );
 
     world_draw( &globalGameState.gameChunks, mvp, mvp_sky, globalGameState.input.debug_mode );
