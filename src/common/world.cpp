@@ -11,7 +11,7 @@ void world_init( LoadedChunks *loadedChunks ) {
 void world_render( LoadedChunks *loadedChunks, TRIP_ARGS( float camera_ ) ) {
     chunk_loader_render_chunks( loadedChunks, TRIP_ARGS( camera_ ) );
 }
-void world_draw( LoadedChunks *loadedChunks, Texture *blocksTexture, glm::mat4 &mvp, glm::mat4 &mvp_sky, int debug ) {
+void world_draw( LoadedChunks *loadedChunks, Texture *blocksTexture, glm::mat4 &mvp, glm::mat4 &mvp_sky, int debug, int draw_mouse_selection ) {
     sky_box_draw( &loadedChunks->skyBox, &loadedChunks->renderer, mvp_sky );
 
     shader_set_uniform1i( &loadedChunks->shader, "u_Texture", blocksTexture->slot );
@@ -24,7 +24,9 @@ void world_draw( LoadedChunks *loadedChunks, Texture *blocksTexture, glm::mat4 &
     }
     shader_set_uniform3f( &loadedChunks->shader, "u_DebugScaleOffset", debug_block_scale, debug_block_scale, debug_block_scale );
     chunk_loader_calculate_cull( loadedChunks, mvp );
-    chunk_loader_draw_mouse_selection( loadedChunks );
+    if ( draw_mouse_selection ) {
+        chunk_loader_draw_mouse_selection( loadedChunks );
+    }
     chunk_loader_draw_chunks( loadedChunks, mvp );
 }
 void world_cleanup( LoadedChunks *loadedChunks ) {

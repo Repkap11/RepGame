@@ -232,7 +232,7 @@ void repgame_draw( ) {
     world_render( &globalGameState.gameChunks, globalGameState.camera.x, globalGameState.camera.y, globalGameState.camera.z );
     showErrors( );
 
-    world_draw( &globalGameState.gameChunks, &globalGameState.blocksTexture, mvp, mvp_sky, globalGameState.input.debug_mode );
+    world_draw( &globalGameState.gameChunks, &globalGameState.blocksTexture, mvp, mvp_sky, globalGameState.input.debug_mode, !globalGameState.input.inventory_open );
     ui_overlay_draw( &globalGameState.ui_overlay, &globalGameState.gameChunks.renderer, &globalGameState.blocksTexture, &globalGameState.input, globalGameState.screen.ortho_center );
 }
 
