@@ -18,7 +18,6 @@ layout( location = 7 ) in vec3 packed_lighting_1;
 layout( location = 8 ) in vec3 packed_lighting_2;
 
 out vec2 v_TexCoordBlock;
-out vec2 v_TexCoordBlock_orig;
 flat out float v_blockID;
 out float v_corner_lighting;
 
@@ -68,6 +67,5 @@ void main( ) {
 
     v_corner_lighting = face_light * corner_light;
     v_TexCoordBlock = texCoordBlock * face_scale;
-    v_TexCoordBlock_orig = texCoordBlock;
     v_blockID = blockTexture[ face_adjusted ];
 }
