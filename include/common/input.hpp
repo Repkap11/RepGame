@@ -27,6 +27,7 @@ typedef struct {
     int click_delay_left;
     int click_delay_right;
     int debug_mode;
+    int inventory_open;
 } InputState;
 
 #if defined( REPGAME_LINUX ) || defined( REPGAME_WASM )

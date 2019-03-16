@@ -212,6 +212,11 @@ void input_keysInput( InputState *inputState, unsigned char key, int x, int y, i
                 inputState->debug_mode = !inputState->debug_mode;
             }
             break;
+        case 'i':
+            if ( pressed ) {
+                inputState->inventory_open = !inputState->inventory_open;
+            }
+            break;
 
         default:
             if ( pressed ) {
