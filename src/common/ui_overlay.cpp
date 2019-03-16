@@ -86,7 +86,6 @@ void ui_overlay_init( UIOverlay *ui_overlay ) {
 
             for ( int i_point = 0; i_point < num_points_per_block; i_point++ ) {
                 int vb_index = i_block * num_points_per_block + i_point;
-                pr_debug( "Doing point %d", vb_index );
                 UIOverlayVertex *ui_vertex = &vb_data_inventory[ vb_index ];
                 ui_vertex->data.block.x = ( i_point / 2 );
                 ui_vertex->data.block.y = ( i_point % 2 );
