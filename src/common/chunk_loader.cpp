@@ -58,10 +58,7 @@ void chunk_loader_init( LoadedChunks *loadedChunks ) {
     }
     loadedChunks->chunkArray = ( Chunk * )calloc( MAX_LOADED_CHUNKS, sizeof( Chunk ) );
     shader_init( &loadedChunks->shader, "chunk_vertex.glsl", "chunk_fragment.glsl" );
-    texture_init_blocks( &loadedChunks->blocksTexture );
-    // texture_bind( &loadedChunks->blocksTexture, 2 );
 
-    block_definitions_initilize_definitions( &loadedChunks->blocksTexture );
     {
         vertex_buffer_init( &loadedChunks->solid.vb_block );
         vertex_buffer_set_data( &loadedChunks->solid.vb_block, vd_data_solid, sizeof( CubeFace ) * VB_DATA_SIZE_SOLID );
@@ -301,5 +298,4 @@ void chunk_loader_cleanup( LoadedChunks *loadedChunks ) {
         chunk_destroy( chunk );
     }
     free( loadedChunks->chunkArray );
-    texture_destroy( &loadedChunks->blocksTexture );
 }

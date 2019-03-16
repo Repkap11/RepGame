@@ -10,7 +10,6 @@ typedef struct {
     Chunk *chunkArray;
     Renderer renderer;
     Shader shader;
-    Texture blocksTexture;
     MouseSelection mouseSelection;
     struct {
         VertexBuffer vb_block;

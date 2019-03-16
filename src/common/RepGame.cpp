@@ -151,8 +151,6 @@ static inline void initilizeGameState( ) {
     globalGameState.camera.y = 8.5f;
     globalGameState.camera.z = 0.0f;
     globalGameState.block_selection.holdingBlock = WHITE_GLASS;
-    world_init( &globalGameState.gameChunks );
-    ui_overlay_init( &globalGameState.ui_overlay );
 }
 
 int check_block( Block *block ) {
@@ -176,6 +174,11 @@ void repgame_init( ) {
     glBlendEquation( GL_FUNC_ADD );
 
     initilizeGameState( );
+    texture_init_blocks( &globalGameState.blocksTexture );
+    block_definitions_initilize_definitions( &globalGameState.blocksTexture );
+    world_init( &globalGameState.gameChunks );
+    ui_overlay_init( &globalGameState.ui_overlay );
+
     int iMultiSample = 0;
     int iNumSamples = 0;
     glGetIntegerv( GL_SAMPLE_BUFFERS, &iMultiSample );
@@ -230,12 +233,13 @@ void repgame_draw( ) {
     ui_overlay_update_state( &globalGameState.ui_overlay );
     showErrors( );
 
-    world_draw( &globalGameState.gameChunks, mvp, mvp_sky, globalGameState.input.debug_mode );
-    ui_overlay_draw( &globalGameState.ui_overlay, &globalGameState.gameChunks.renderer, globalGameState.screen.ortho_center );
+    world_draw( &globalGameState.gameChunks, &globalGameState.blocksTexture, mvp, mvp_sky, globalGameState.input.debug_mode );
+    ui_overlay_draw( &globalGameState.ui_overlay, &globalGameState.gameChunks.renderer, &globalGameState.blocksTexture, globalGameState.screen.ortho_center );
 }
 
 void repgame_cleanup( ) {
     world_cleanup( &globalGameState.gameChunks );
+    texture_destroy( &globalGameState.blocksTexture );
     block_definitions_free_definitions( );
     // pr_debug( "RepGame cleanup done" );
 }

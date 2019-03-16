@@ -11,10 +11,10 @@ void world_init( LoadedChunks *loadedChunks ) {
 void world_render( LoadedChunks *loadedChunks, TRIP_ARGS( float camera_ ) ) {
     chunk_loader_render_chunks( loadedChunks, TRIP_ARGS( camera_ ) );
 }
-void world_draw( LoadedChunks *loadedChunks, glm::mat4 &mvp, glm::mat4 &mvp_sky, int debug ) {
+void world_draw( LoadedChunks *loadedChunks, Texture *blocksTexture, glm::mat4 &mvp, glm::mat4 &mvp_sky, int debug ) {
     sky_box_draw( &loadedChunks->skyBox, &loadedChunks->renderer, mvp_sky );
 
-    shader_set_uniform1i( &loadedChunks->shader, "u_Texture", loadedChunks->blocksTexture.slot );
+    shader_set_uniform1i( &loadedChunks->shader, "u_Texture", blocksTexture->slot );
     shader_set_uniform_mat4f( &loadedChunks->shader, "u_MVP", mvp );
     float debug_block_scale;
     if ( debug ) {

@@ -50,6 +50,7 @@ typedef struct {
         glm::mat4 ortho;
         glm::mat4 ortho_center;
     } screen;
+    Texture blocksTexture;
     LoadedChunks gameChunks;
     UIOverlay ui_overlay;
     struct {
