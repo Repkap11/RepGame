@@ -55,25 +55,22 @@ static void gameTick( ) {
     // int block_x = globalGameState.block_selection.destroy_x;
     // int block_y = globalGameState.block_selection.destroy_y;
     // int block_z = globalGameState.block_selection.destroy_z;
-
-    if ( globalGameState.block_selection.selectionInBounds && globalGameState.input.mouse.buttons.middle ) {
-        BlockID blockID = world_get_loaded_block( &globalGameState.gameChunks, TRIP_ARGS( globalGameState.block_selection.destroy_ ) );
-        globalGameState.block_selection.holdingBlock = blockID;
+    if ( repgame_should_lock_pointer( ) ) {
+        if ( globalGameState.block_selection.selectionInBounds && globalGameState.input.mouse.buttons.middle ) {
+            BlockID blockID = world_get_loaded_block( &globalGameState.gameChunks, TRIP_ARGS( globalGameState.block_selection.destroy_ ) );
+            globalGameState.block_selection.holdingBlock = blockID;
+        }
+        if ( globalGameState.block_selection.selectionInBounds && globalGameState.input.mouse.buttons.left && globalGameState.input.click_delay_left == 0 ) {
+            change_block( 0, AIR );
+            globalGameState.input.click_delay_left = 8;
+        }
+        if ( globalGameState.block_selection.selectionInBounds && globalGameState.input.mouse.buttons.right && globalGameState.input.click_delay_right == 0 ) {
+            change_block( 1, globalGameState.block_selection.holdingBlock );
+            globalGameState.input.click_delay_right = 8;
+        }
+        globalGameState.camera.angle_H += ( globalGameState.input.mouse.currentPosition.x - globalGameState.input.mouse.previousPosition.x ) * 0.04f;
+        globalGameState.camera.angle_V += ( globalGameState.input.mouse.currentPosition.y - globalGameState.input.mouse.previousPosition.y ) * 0.04f;
     }
-    if ( globalGameState.block_selection.selectionInBounds && globalGameState.input.mouse.buttons.left && globalGameState.input.click_delay_left == 0 ) {
-        change_block( 0, AIR );
-        globalGameState.input.click_delay_left = 8;
-    }
-    if ( globalGameState.block_selection.selectionInBounds && globalGameState.input.mouse.buttons.right && globalGameState.input.click_delay_right == 0 ) {
-        change_block( 1, globalGameState.block_selection.holdingBlock );
-        globalGameState.input.click_delay_right = 8;
-    }
-    if ( globalGameState.input.mouse.currentPosition.x - globalGameState.input.mouse.previousPosition.x || globalGameState.input.mouse.currentPosition.y - globalGameState.input.mouse.previousPosition.y ) {
-        // pr_debug( "Position Diff:%d %d", input.mouse.currentPosition.x - input.mouse.previousPosition.x, input.mouse.currentPosition.y - input.mouse.previousPosition.y );
-    }
-
-    globalGameState.camera.angle_H += ( globalGameState.input.mouse.currentPosition.x - globalGameState.input.mouse.previousPosition.x ) * 0.04f;
-    globalGameState.camera.angle_V += ( globalGameState.input.mouse.currentPosition.y - globalGameState.input.mouse.previousPosition.y ) * 0.04f;
     globalGameState.input.mouse.currentPosition.x = globalGameState.screen.width / 2;
     globalGameState.input.mouse.currentPosition.y = globalGameState.screen.height / 2;
     // pr_debug( "Angle_V:%f", globalGameState.camera.angle_V );
@@ -194,6 +191,9 @@ int repgame_shouldExit( ) {
     return globalGameState.input.exitGame;
 }
 
+int repgame_should_lock_pointer( ) {
+    return !globalGameState.input.inventory_open;
+}
 void repgame_changeSize( int w, int h ) {
     pr_debug( "Screen Size Change:%dx%d", w, h );
     if ( w == 0 || h == 0 ) {

@@ -75,5 +75,6 @@ InputState *repgame_getInputState( );
 void repgame_changeSize( int x, int y );
 void repgame_get_screen_size( int *width, int *height );
 int repgame_shouldExit( );
+int repgame_should_lock_pointer( );
 
 #endif

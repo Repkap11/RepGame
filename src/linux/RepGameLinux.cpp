@@ -66,10 +66,6 @@ int main( int argc, char **argv ) {
     glutSpecialFunc( arrowKeyDownInput );
     glutSpecialUpFunc( arrowKeyUpInput );
 
-    if ( LOCK_MOUSE ) {
-        glutSetCursor( GLUT_CURSOR_NONE );
-    }
-
     glutKeyboardFunc( keysInput );
     glutKeyboardUpFunc( keysInputUp );
     glutMouseFunc( mouseInput );
@@ -79,13 +75,23 @@ int main( int argc, char **argv ) {
 
     struct timespec tstart = {0, 0}, tend = {0, 0}, tblank = {0, 0};
     pr_debug( "Size of Int:%lu", sizeof( int ) );
+    int is_locking_pointer = 0;
     while ( !repgame_shouldExit( ) ) {
         clock_gettime( CLOCK_MONOTONIC, &tstart );
         glutMainLoopEvent( );
         // pr_debug( "Drawing" );
         int width, height;
         repgame_get_screen_size( &width, &height );
-        if ( LOCK_MOUSE ) {
+        int should_lock_pointer = repgame_should_lock_pointer( );
+        if ( should_lock_pointer != is_locking_pointer ) {
+            if ( should_lock_pointer ) {
+                glutSetCursor( GLUT_CURSOR_NONE );
+            } else {
+                glutSetCursor( GLUT_CURSOR_LEFT_ARROW );
+            }
+            is_locking_pointer = should_lock_pointer;
+        }
+        if ( should_lock_pointer ) {
             glutWarpPointer( width / 2, height / 2 );
         }
         repgame_clear( );
