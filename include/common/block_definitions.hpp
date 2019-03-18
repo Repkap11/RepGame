@@ -41,6 +41,7 @@ typedef enum {
     EMERALD_BLOCK,
     REDSTONE_BLOCK,
     WHITE_GLASS = 74,
+    LEAF = 77,
     WATER = 95,
     SNOW = 99,
     PLAYER_SELECTION = 1212,

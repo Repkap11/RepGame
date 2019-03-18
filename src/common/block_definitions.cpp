@@ -37,6 +37,9 @@ void block_definitions_initilize_definitions( Texture *texture ) {
 
     block_definitions[ WATER ].renderOrder = RenderOrder_Water;
     block_definitions[ WHITE_GLASS ].renderOrder = RenderOrder_Glass;
+    block_definitions[ LEAF ].renderOrder = RenderOrder_Glass;
+
+
 }
 
 Block *block_definition_get_definition( BlockID blockID ) {
