@@ -68,6 +68,24 @@ static void gameTick( ) {
             change_block( 1, globalGameState.block_selection.holdingBlock );
             globalGameState.input.click_delay_right = 8;
         }
+        if ( globalGameState.block_selection.selectionInBounds && globalGameState.input.mouse.currentPosition.wheel_counts != globalGameState.input.mouse.previousPosition.wheel_counts ) {
+            int wheel_diff = globalGameState.input.mouse.currentPosition.wheel_counts > globalGameState.input.mouse.previousPosition.wheel_counts ? 1 : -1;
+            BlockID blockID = world_get_loaded_block( &globalGameState.gameChunks, TRIP_ARGS( globalGameState.block_selection.destroy_ ) );
+            int blockID_int = ( int )blockID;
+            do {
+                blockID_int += wheel_diff;
+                if ( blockID_int >= LAST_BLOCK_ID ) {
+                    blockID_int = LAST_BLOCK_ID - 1;
+                }
+                if ( blockID_int <= 0 ) {
+                    blockID_int = 1;
+                }
+            } while ( !render_order_is_pickable( block_definition_get_definition( ( BlockID )blockID_int )->renderOrder ) );
+
+            change_block( 0, ( BlockID )blockID_int );
+        }
+        globalGameState.input.mouse.currentPosition.wheel_counts = 0;
+
         globalGameState.camera.angle_H += ( globalGameState.input.mouse.currentPosition.x - globalGameState.input.mouse.previousPosition.x ) * 0.04f;
         globalGameState.camera.angle_V += ( globalGameState.input.mouse.currentPosition.y - globalGameState.input.mouse.previousPosition.y ) * 0.04f;
     }
@@ -88,6 +106,7 @@ static void gameTick( ) {
 
     globalGameState.input.mouse.previousPosition.x = globalGameState.screen.width / 2;
     globalGameState.input.mouse.previousPosition.y = globalGameState.screen.height / 2;
+    globalGameState.input.mouse.previousPosition.wheel_counts = globalGameState.input.mouse.currentPosition.wheel_counts;
 
     globalGameState.camera.look = glm::normalize( glm::vec3(        //
         sin( ( globalGameState.camera.angle_H ) * ( M_PI / 180 ) ), //

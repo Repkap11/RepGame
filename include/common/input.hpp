@@ -16,10 +16,12 @@ typedef struct {
         struct {
             int x;
             int y;
+            int wheel_counts;
         } currentPosition;
         struct {
             int x;
             int y;
+            int wheel_counts;
         } previousPosition;
     } mouse;
     int exitGame;

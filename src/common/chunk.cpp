@@ -6,7 +6,7 @@
 void chunk_calculate_sides( Chunk *chunk, TRIP_ARGS( int center_next_ ) ) {
     unsigned int *chunk_ib_data[ LAST_RENDER_ORDER ];
     for ( int renderOrder = 0; renderOrder < LAST_RENDER_ORDER; renderOrder++ ) {
-        chunk_ib_data[ renderOrder ] = ( unsigned int * )malloc( chunk_get_render_order_ib_size( ( RenderOrder )renderOrder ) * sizeof( unsigned int ) );
+        chunk_ib_data[ renderOrder ] = ( unsigned int * )malloc( render_order_ib_size( ( RenderOrder )renderOrder ) * sizeof( unsigned int ) );
     }
 
     int visable_top = chunk->chunk_y <= center_next_y;
@@ -56,7 +56,7 @@ void chunk_calculate_sides( Chunk *chunk, TRIP_ARGS( int center_next_ ) ) {
         }
     }
     for ( int renderOrder = 0; renderOrder < LAST_RENDER_ORDER; renderOrder++ ) {
-        index_buffer_set_data( &chunk->layers[ renderOrder ].ib, chunk_ib_data[ renderOrder ], chunk_get_render_order_ib_size( ( RenderOrder )renderOrder ) );
+        index_buffer_set_data( &chunk->layers[ renderOrder ].ib, chunk_ib_data[ renderOrder ], render_order_ib_size( ( RenderOrder )renderOrder ) );
         free( chunk_ib_data[ renderOrder ] );
     }
 }
@@ -272,7 +272,7 @@ void chunk_calculate_popupated_blocks( Chunk *chunk ) {
                 // break water rendering under water. Its kind of a hack:
                 renderOrder = RenderOrder_Solid;
             }
-            workingSpace[ index ].visable = chunk_get_render_order_is_visible( block->renderOrder );
+            workingSpace[ index ].visable = render_order_is_visible( block->renderOrder );
 
             if ( workingSpace[ index ].visable ) {
 
@@ -295,7 +295,7 @@ void chunk_calculate_popupated_blocks( Chunk *chunk ) {
 
                 int block_is_visiable = top || bottom || left || right || front || back;
                 workingSpace[ index ].can_be_seen = block_is_visiable;
-                int casts_shadow = chunk_get_render_order_casts_shadow( block->renderOrder );
+                int casts_shadow = render_order_casts_shadow( block->renderOrder );
 
                 if ( block_is_visiable && casts_shadow ) {
                     // 2 Offsets

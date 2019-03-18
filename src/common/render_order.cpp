@@ -1,7 +1,7 @@
 #include "common/render_order.hpp"
 #include "common/block.hpp"
 
-int chunk_get_render_order_ib_size( RenderOrder renderOrder ) {
+int render_order_ib_size( RenderOrder renderOrder ) {
     switch ( renderOrder ) {
         case RenderOrder_Water:
             return IB_WATER_SIZE;
@@ -10,7 +10,7 @@ int chunk_get_render_order_ib_size( RenderOrder renderOrder ) {
     }
 }
 
-int chunk_get_render_order_is_solid( RenderOrder renderOrder ) {
+int render_order_is_pickable( RenderOrder renderOrder ) {
     switch ( renderOrder ) {
         case RenderOrder_Transparent:
         case RenderOrder_Water:
@@ -19,7 +19,17 @@ int chunk_get_render_order_is_solid( RenderOrder renderOrder ) {
             return true;
     }
 }
-int chunk_get_render_order_casts_shadow( RenderOrder renderOrder ) {
+
+int render_order_is_solid( RenderOrder renderOrder ) {
+    switch ( renderOrder ) {
+        case RenderOrder_Transparent:
+        case RenderOrder_Water:
+            return false;
+        default:
+            return true;
+    }
+}
+int render_order_casts_shadow( RenderOrder renderOrder ) {
     switch ( renderOrder ) {
         case RenderOrder_Solid:
             return true;
@@ -27,7 +37,7 @@ int chunk_get_render_order_casts_shadow( RenderOrder renderOrder ) {
             return false;
     }
 }
-int chunk_get_render_order_is_visible( RenderOrder renderOrder ) {
+int render_order_is_visible( RenderOrder renderOrder ) {
     switch ( renderOrder ) {
         case RenderOrder_Transparent:
             return false;

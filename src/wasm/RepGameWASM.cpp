@@ -71,10 +71,6 @@ extern "C" int main( int argc, char **argv ) {
     glutSpecialFunc( arrowKeyDownInput );
     glutSpecialUpFunc( arrowKeyUpInput );
 
-    if ( LOCK_MOUSE ) {
-        // glutSetCursor( GLUT_CURSOR_NONE );
-    }
-
     glutKeyboardFunc( keysInput );
     glutKeyboardUpFunc( keysInputUp );
     glutMouseFunc( mouseInput );
@@ -84,10 +80,6 @@ extern "C" int main( int argc, char **argv ) {
     glutDisplayFunc( displayFunc );
 
     // repgame_get_screen_size( &width, &height );
-    // int width, height;
-    // if ( LOCK_MOUSE ) {
-    //     // glutWarpPointer( width / 2, height / 2 );
-    // }
 
     // glutSwapBuffers( );
 

@@ -129,6 +129,17 @@ void input_mouseInput( InputState *inputState, int button, int state, int x, int
         case GLUT_MIDDLE_BUTTON:
             inputState->mouse.buttons.middle = !state;
             // pr_debug( "Middle Click %d", !state );
+            break;
+        case 3: // Up
+            inputState->mouse.currentPosition.wheel_counts += 1;
+            break;
+
+        case 4: // Down
+            inputState->mouse.currentPosition.wheel_counts -= 1;
+
+            break;
+
+            pr_debug( "Other mouse %d", button );
     }
 }
 

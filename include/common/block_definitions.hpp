@@ -44,7 +44,7 @@ typedef enum {
     WATER = 95,
     SNOW = 99,
     PLAYER_SELECTION = 1212,
-    LAST_BLOCK_ID = 1200,
+    LAST_BLOCK_ID = 1213,
 } BlockID;
 
 #include "abstract/textures.hpp"
