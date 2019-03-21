@@ -21,30 +21,35 @@ void chunk_calculate_sides( Chunk *chunk, TRIP_ARGS( int center_next_ ) ) {
         for ( int i = 0; i < 12; i++ ) {
             chunk_ib_data[ RenderOrder_Solid ][ ib_size[ RenderOrder_Solid ]++ ] = ib_data_solid[ 12 * FACE_FRONT + i ];
             chunk_ib_data[ RenderOrder_Glass ][ ib_size[ RenderOrder_Glass ]++ ] = ib_data_solid[ 12 * FACE_FRONT + i ];
+            chunk_ib_data[ RenderOrder_Leafs ][ ib_size[ RenderOrder_Leafs ]++ ] = ib_data_solid[ 12 * FACE_FRONT + i ];
         }
     }
     if ( visable_right ) {
         for ( int i = 0; i < 12; i++ ) {
             chunk_ib_data[ RenderOrder_Solid ][ ib_size[ RenderOrder_Solid ]++ ] = ib_data_solid[ 12 * FACE_RIGHT + i ];
             chunk_ib_data[ RenderOrder_Glass ][ ib_size[ RenderOrder_Glass ]++ ] = ib_data_solid[ 12 * FACE_RIGHT + i ];
+            chunk_ib_data[ RenderOrder_Leafs ][ ib_size[ RenderOrder_Leafs ]++ ] = ib_data_solid[ 12 * FACE_RIGHT + i ];
         }
     }
     if ( visable_back ) {
         for ( int i = 0; i < 12; i++ ) {
             chunk_ib_data[ RenderOrder_Solid ][ ib_size[ RenderOrder_Solid ]++ ] = ib_data_solid[ 12 * FACE_BACK + i ];
             chunk_ib_data[ RenderOrder_Glass ][ ib_size[ RenderOrder_Glass ]++ ] = ib_data_solid[ 12 * FACE_BACK + i ];
+            chunk_ib_data[ RenderOrder_Leafs ][ ib_size[ RenderOrder_Leafs ]++ ] = ib_data_solid[ 12 * FACE_BACK + i ];
         }
     }
     if ( visable_left ) {
         for ( int i = 0; i < 12; i++ ) {
             chunk_ib_data[ RenderOrder_Solid ][ ib_size[ RenderOrder_Solid ]++ ] = ib_data_solid[ 12 * FACE_LEFT + i ];
             chunk_ib_data[ RenderOrder_Glass ][ ib_size[ RenderOrder_Glass ]++ ] = ib_data_solid[ 12 * FACE_LEFT + i ];
+            chunk_ib_data[ RenderOrder_Leafs ][ ib_size[ RenderOrder_Leafs ]++ ] = ib_data_solid[ 12 * FACE_LEFT + i ];
         }
     }
     if ( visable_top ) {
         for ( int i = 0; i < 12; i++ ) {
             chunk_ib_data[ RenderOrder_Solid ][ ib_size[ RenderOrder_Solid ]++ ] = ib_data_solid[ 12 * FACE_TOP + i ];
             chunk_ib_data[ RenderOrder_Glass ][ ib_size[ RenderOrder_Glass ]++ ] = ib_data_solid[ 12 * FACE_TOP + i ];
+            chunk_ib_data[ RenderOrder_Leafs ][ ib_size[ RenderOrder_Leafs ]++ ] = ib_data_solid[ 12 * FACE_TOP + i ];
             chunk_ib_data[ RenderOrder_Water ][ ib_size[ RenderOrder_Water ]++ ] = ib_data_water[ 12 * IB_POSITION_WATER_TOP + i ];
         }
     }
@@ -52,6 +57,7 @@ void chunk_calculate_sides( Chunk *chunk, TRIP_ARGS( int center_next_ ) ) {
         for ( int i = 0; i < 12; i++ ) {
             chunk_ib_data[ RenderOrder_Solid ][ ib_size[ RenderOrder_Solid ]++ ] = ib_data_solid[ 12 * FACE_BOTTOM + i ];
             chunk_ib_data[ RenderOrder_Glass ][ ib_size[ RenderOrder_Glass ]++ ] = ib_data_solid[ 12 * FACE_BOTTOM + i ];
+            chunk_ib_data[ RenderOrder_Leafs ][ ib_size[ RenderOrder_Leafs ]++ ] = ib_data_solid[ 12 * FACE_BOTTOM + i ];
             chunk_ib_data[ RenderOrder_Water ][ ib_size[ RenderOrder_Water ]++ ] = ib_data_water[ 12 * IB_POSITION_WATER_BOTTOM + i ];
         }
     }
@@ -197,7 +203,7 @@ int chunk_can_extend_rect( Chunk *chunk, Block *block, unsigned int *packed_ligh
     if ( DISABLE_GROUPING_BLOCKS ) {
         return 0;
     }
-    if ( block->renderOrder == RenderOrder_Glass ) {
+    if ( !render_order_can_mesh( block->renderOrder ) ) {
         return 0;
     }
     if ( starting_x + size_x + dir_x > CHUNK_SIZE )

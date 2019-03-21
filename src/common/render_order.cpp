@@ -20,18 +20,10 @@ int render_order_is_pickable( RenderOrder renderOrder ) {
     }
 }
 
-int render_order_is_solid( RenderOrder renderOrder ) {
-    switch ( renderOrder ) {
-        case RenderOrder_Transparent:
-        case RenderOrder_Water:
-            return false;
-        default:
-            return true;
-    }
-}
 int render_order_casts_shadow( RenderOrder renderOrder ) {
     switch ( renderOrder ) {
         case RenderOrder_Solid:
+        case RenderOrder_Leafs:
             return true;
         default:
             return false;
@@ -43,5 +35,13 @@ int render_order_is_visible( RenderOrder renderOrder ) {
             return false;
         default:
             return true;
+    }
+}
+int render_order_can_mesh( RenderOrder renderOrder ) {
+    switch ( renderOrder ) {
+        case RenderOrder_Solid:
+            return true;
+        default:
+            return false;
     }
 }
