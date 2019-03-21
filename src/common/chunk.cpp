@@ -272,12 +272,7 @@ void chunk_calculate_popupated_blocks( Chunk *chunk ) {
         if ( drawn_block ) {
             BlockID blockID = chunk->blocks[ index ];
             Block *block = block_definition_get_definition( blockID );
-            float renderOrder = block->renderOrder;
-            if ( renderOrder < RenderOrder_Water ) {
-                // This logic fixes glass rendeing next to water, but doesn't
-                // break water rendering under water. Its kind of a hack:
-                renderOrder = RenderOrder_Solid;
-            }
+
             workingSpace[ index ].visable = render_order_is_visible( block->renderOrder );
 
             if ( workingSpace[ index ].visable ) {
@@ -292,44 +287,52 @@ void chunk_calculate_popupated_blocks( Chunk *chunk ) {
                 int zplus = z + 1;
                 int zminus = z - 1;
 
-                int top = block_definition_get_definition( chunk->blocks[ chunk_get_index_from_coords( x + 0, yplus, z + 0 ) ] )->renderOrder < renderOrder;
-                int bottom = block_definition_get_definition( chunk->blocks[ chunk_get_index_from_coords( x + 0, yminus, z + 0 ) ] )->renderOrder < renderOrder;
-                int front = block_definition_get_definition( chunk->blocks[ chunk_get_index_from_coords( x + 0, y + 0, zplus ) ] )->renderOrder < renderOrder;
-                int back = block_definition_get_definition( chunk->blocks[ chunk_get_index_from_coords( x + 0, y + 0, zminus ) ] )->renderOrder < renderOrder;
-                int right = block_definition_get_definition( chunk->blocks[ chunk_get_index_from_coords( xplus, y + 0, z + 0 ) ] )->renderOrder < renderOrder;
-                int left = block_definition_get_definition( chunk->blocks[ chunk_get_index_from_coords( xminus, y + 0, z + 0 ) ] )->renderOrder < renderOrder;
+                int block_is_visiable;
+                {
+                    RenderOrder renderOrder = block->renderOrder;
+                    if ( renderOrder < RenderOrder_Water ) {
+                        // This logic fixes glass rendeing next to water, but doesn't
+                        // break water rendering under water. Its kind of a hack:
+                        renderOrder = RenderOrder_Solid;
+                    }
+                    int top = block_definition_get_definition( chunk->blocks[ chunk_get_index_from_coords( x + 0, yplus, z + 0 ) ] )->renderOrder < renderOrder;
+                    int bottom = block_definition_get_definition( chunk->blocks[ chunk_get_index_from_coords( x + 0, yminus, z + 0 ) ] )->renderOrder < renderOrder;
+                    int front = block_definition_get_definition( chunk->blocks[ chunk_get_index_from_coords( x + 0, y + 0, zplus ) ] )->renderOrder < renderOrder;
+                    int back = block_definition_get_definition( chunk->blocks[ chunk_get_index_from_coords( x + 0, y + 0, zminus ) ] )->renderOrder < renderOrder;
+                    int right = block_definition_get_definition( chunk->blocks[ chunk_get_index_from_coords( xplus, y + 0, z + 0 ) ] )->renderOrder < renderOrder;
+                    int left = block_definition_get_definition( chunk->blocks[ chunk_get_index_from_coords( xminus, y + 0, z + 0 ) ] )->renderOrder < renderOrder;
+                    block_is_visiable = top || bottom || left || right || front || back;
+                }
+                int can_be_shaded = render_order_casts_shadow( block->renderOrder );
 
-                int block_is_visiable = top || bottom || left || right || front || back;
-                workingSpace[ index ].can_be_seen = block_is_visiable;
-                int casts_shadow = render_order_casts_shadow( block->renderOrder );
-
-                if ( block_is_visiable && casts_shadow ) {
+                if ( block_is_visiable && can_be_shaded ) {
+                    //If the block is visible and can be shaded, check neighbors for shade and populated the packed lighting
                     // 2 Offsets
-                    int tl = block_definition_get_definition( chunk->blocks[ chunk_get_index_from_coords( xminus, yplus, z + 0 ) ] )->renderOrder >= renderOrder;
-                    int tr = block_definition_get_definition( chunk->blocks[ chunk_get_index_from_coords( xplus, yplus, z + 0 ) ] )->renderOrder >= renderOrder;
-                    int tf = block_definition_get_definition( chunk->blocks[ chunk_get_index_from_coords( x + 0, yplus, zplus ) ] )->renderOrder >= renderOrder;
-                    int tba = block_definition_get_definition( chunk->blocks[ chunk_get_index_from_coords( x + 0, yplus, zminus ) ] )->renderOrder >= renderOrder;
+                    int tl = render_order_casts_shadow( block_definition_get_definition( chunk->blocks[ chunk_get_index_from_coords( xminus, yplus, z + 0 ) ] )->renderOrder );
+                    int tr = render_order_casts_shadow( block_definition_get_definition( chunk->blocks[ chunk_get_index_from_coords( xplus, yplus, z + 0 ) ] )->renderOrder );
+                    int tf = render_order_casts_shadow( block_definition_get_definition( chunk->blocks[ chunk_get_index_from_coords( x + 0, yplus, zplus ) ] )->renderOrder );
+                    int tba = render_order_casts_shadow( block_definition_get_definition( chunk->blocks[ chunk_get_index_from_coords( x + 0, yplus, zminus ) ] )->renderOrder );
 
-                    int bol = block_definition_get_definition( chunk->blocks[ chunk_get_index_from_coords( xminus, yminus, z + 0 ) ] )->renderOrder >= renderOrder;
-                    int bor = block_definition_get_definition( chunk->blocks[ chunk_get_index_from_coords( xplus, yminus, z + 0 ) ] )->renderOrder >= renderOrder;
-                    int bof = block_definition_get_definition( chunk->blocks[ chunk_get_index_from_coords( x + 0, yminus, zplus ) ] )->renderOrder >= renderOrder;
-                    int boba = block_definition_get_definition( chunk->blocks[ chunk_get_index_from_coords( x + 0, yminus, zminus ) ] )->renderOrder >= renderOrder;
+                    int bol = render_order_casts_shadow( block_definition_get_definition( chunk->blocks[ chunk_get_index_from_coords( xminus, yminus, z + 0 ) ] )->renderOrder );
+                    int bor = render_order_casts_shadow( block_definition_get_definition( chunk->blocks[ chunk_get_index_from_coords( xplus, yminus, z + 0 ) ] )->renderOrder );
+                    int bof = render_order_casts_shadow( block_definition_get_definition( chunk->blocks[ chunk_get_index_from_coords( x + 0, yminus, zplus ) ] )->renderOrder );
+                    int boba = render_order_casts_shadow( block_definition_get_definition( chunk->blocks[ chunk_get_index_from_coords( x + 0, yminus, zminus ) ] )->renderOrder );
 
-                    int fl = block_definition_get_definition( chunk->blocks[ chunk_get_index_from_coords( xminus, y + 0, zplus ) ] )->renderOrder >= renderOrder;
-                    int bal = block_definition_get_definition( chunk->blocks[ chunk_get_index_from_coords( xminus, y + 0, zminus ) ] )->renderOrder >= renderOrder;
-                    int fr = block_definition_get_definition( chunk->blocks[ chunk_get_index_from_coords( xplus, y + 0, zplus ) ] )->renderOrder >= renderOrder;
-                    int bar = block_definition_get_definition( chunk->blocks[ chunk_get_index_from_coords( xplus, y + 0, zminus ) ] )->renderOrder >= renderOrder;
+                    int fl = render_order_casts_shadow( block_definition_get_definition( chunk->blocks[ chunk_get_index_from_coords( xminus, y + 0, zplus ) ] )->renderOrder );
+                    int bal = render_order_casts_shadow( block_definition_get_definition( chunk->blocks[ chunk_get_index_from_coords( xminus, y + 0, zminus ) ] )->renderOrder );
+                    int fr = render_order_casts_shadow( block_definition_get_definition( chunk->blocks[ chunk_get_index_from_coords( xplus, y + 0, zplus ) ] )->renderOrder );
+                    int bar = render_order_casts_shadow( block_definition_get_definition( chunk->blocks[ chunk_get_index_from_coords( xplus, y + 0, zminus ) ] )->renderOrder );
 
                     // 3 Offsetes
-                    int tfl = block_definition_get_definition( chunk->blocks[ chunk_get_index_from_coords( xminus, yplus, zplus ) ] )->renderOrder >= renderOrder;
-                    int tbl = block_definition_get_definition( chunk->blocks[ chunk_get_index_from_coords( xminus, yplus, zminus ) ] )->renderOrder >= renderOrder;
-                    int tfr = block_definition_get_definition( chunk->blocks[ chunk_get_index_from_coords( xplus, yplus, zplus ) ] )->renderOrder >= renderOrder;
-                    int tbr = block_definition_get_definition( chunk->blocks[ chunk_get_index_from_coords( xplus, yplus, zminus ) ] )->renderOrder >= renderOrder;
+                    int tfl = render_order_casts_shadow( block_definition_get_definition( chunk->blocks[ chunk_get_index_from_coords( xminus, yplus, zplus ) ] )->renderOrder );
+                    int tbl = render_order_casts_shadow( block_definition_get_definition( chunk->blocks[ chunk_get_index_from_coords( xminus, yplus, zminus ) ] )->renderOrder );
+                    int tfr = render_order_casts_shadow( block_definition_get_definition( chunk->blocks[ chunk_get_index_from_coords( xplus, yplus, zplus ) ] )->renderOrder );
+                    int tbr = render_order_casts_shadow( block_definition_get_definition( chunk->blocks[ chunk_get_index_from_coords( xplus, yplus, zminus ) ] )->renderOrder );
 
-                    int bfl = block_definition_get_definition( chunk->blocks[ chunk_get_index_from_coords( xminus, yminus, zplus ) ] )->renderOrder >= renderOrder;
-                    int bbl = block_definition_get_definition( chunk->blocks[ chunk_get_index_from_coords( xminus, yminus, zminus ) ] )->renderOrder >= renderOrder;
-                    int bfr = block_definition_get_definition( chunk->blocks[ chunk_get_index_from_coords( xplus, yminus, zplus ) ] )->renderOrder >= renderOrder;
-                    int bbr = block_definition_get_definition( chunk->blocks[ chunk_get_index_from_coords( xplus, yminus, zminus ) ] )->renderOrder >= renderOrder;
+                    int bfl = render_order_casts_shadow( block_definition_get_definition( chunk->blocks[ chunk_get_index_from_coords( xminus, yminus, zplus ) ] )->renderOrder );
+                    int bbl = render_order_casts_shadow( block_definition_get_definition( chunk->blocks[ chunk_get_index_from_coords( xminus, yminus, zminus ) ] )->renderOrder );
+                    int bfr = render_order_casts_shadow( block_definition_get_definition( chunk->blocks[ chunk_get_index_from_coords( xplus, yminus, zplus ) ] )->renderOrder );
+                    int bbr = render_order_casts_shadow( block_definition_get_definition( chunk->blocks[ chunk_get_index_from_coords( xplus, yminus, zminus ) ] )->renderOrder );
                     {
                         int top_tfr = tf && tr ? 3 : ( tf + tr + tfr );
                         int top_tfl = tf && tl ? 3 : ( tf + tl + tfl );
@@ -397,6 +400,7 @@ void chunk_calculate_popupated_blocks( Chunk *chunk ) {
                               ccl << CORNER_OFFSET_c );
                     }
                 }
+                workingSpace[ index ].can_be_seen = block_is_visiable;
             } else {
                 workingSpace[ index ].can_be_seen = 0;
             }
