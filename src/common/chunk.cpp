@@ -222,7 +222,6 @@ int chunk_can_extend_rect( Chunk *chunk, Block *block, unsigned int *packed_ligh
         for ( int new_y = starting_y; new_y < starting_y + size_y; new_y++ ) {
             for ( int new_z = starting_z; new_z < starting_z + size_z; new_z++ ) {
                 int index = chunk_get_index_from_coords( new_x + dir_x, new_y + dir_y, new_z + dir_z );
-                BlockID new_blockID = chunk->blocks[ index ];
                 num_checked_blocks++;
                 if ( workingSpace[ index ].has_been_drawn ) {
                     return 0;
@@ -230,6 +229,7 @@ int chunk_can_extend_rect( Chunk *chunk, Block *block, unsigned int *packed_ligh
                 if ( !workingSpace[ index ].can_be_seen ) {
                     return 0;
                 }
+                BlockID new_blockID = chunk->blocks[ index ];
                 if ( new_blockID != block->id ) {
                     return 0;
                 }
@@ -287,26 +287,24 @@ void chunk_calculate_popupated_blocks( Chunk *chunk ) {
                 int zplus = z + 1;
                 int zminus = z - 1;
 
-                int block_is_visiable;
-                {
-                    RenderOrder renderOrder = block->renderOrder;
-                    if ( renderOrder < RenderOrder_Water ) {
-                        // This logic fixes glass rendeing next to water, but doesn't
-                        // break water rendering under water. Its kind of a hack:
-                        renderOrder = RenderOrder_Solid;
-                    }
-                    int top = block_definition_get_definition( chunk->blocks[ chunk_get_index_from_coords( x + 0, yplus, z + 0 ) ] )->renderOrder < renderOrder;
-                    int bottom = block_definition_get_definition( chunk->blocks[ chunk_get_index_from_coords( x + 0, yminus, z + 0 ) ] )->renderOrder < renderOrder;
-                    int front = block_definition_get_definition( chunk->blocks[ chunk_get_index_from_coords( x + 0, y + 0, zplus ) ] )->renderOrder < renderOrder;
-                    int back = block_definition_get_definition( chunk->blocks[ chunk_get_index_from_coords( x + 0, y + 0, zminus ) ] )->renderOrder < renderOrder;
-                    int right = block_definition_get_definition( chunk->blocks[ chunk_get_index_from_coords( xplus, y + 0, z + 0 ) ] )->renderOrder < renderOrder;
-                    int left = block_definition_get_definition( chunk->blocks[ chunk_get_index_from_coords( xminus, y + 0, z + 0 ) ] )->renderOrder < renderOrder;
-                    block_is_visiable = top || bottom || left || right || front || back;
+                RenderOrder renderOrder = block->renderOrder;
+                if ( renderOrder < RenderOrder_Water ) {
+                    // This logic fixes glass rendeing next to water, but doesn't
+                    // break water rendering under water. Its kind of a hack:
+                    renderOrder = RenderOrder_Solid;
                 }
+                int visiable_top = block_definition_get_definition( chunk->blocks[ chunk_get_index_from_coords( x + 0, yplus, z + 0 ) ] )->renderOrder < renderOrder;
+                int visiable_bottom = block_definition_get_definition( chunk->blocks[ chunk_get_index_from_coords( x + 0, yminus, z + 0 ) ] )->renderOrder < renderOrder;
+                int visiable_front = block_definition_get_definition( chunk->blocks[ chunk_get_index_from_coords( x + 0, y + 0, zplus ) ] )->renderOrder < renderOrder;
+                int visiable_back = block_definition_get_definition( chunk->blocks[ chunk_get_index_from_coords( x + 0, y + 0, zminus ) ] )->renderOrder < renderOrder;
+                int visiable_right = block_definition_get_definition( chunk->blocks[ chunk_get_index_from_coords( xplus, y + 0, z + 0 ) ] )->renderOrder < renderOrder;
+                int visiable_left = block_definition_get_definition( chunk->blocks[ chunk_get_index_from_coords( xminus, y + 0, z + 0 ) ] )->renderOrder < renderOrder;
+                int block_is_visiable = visiable_top || visiable_bottom || visiable_left || visiable_right || visiable_front || visiable_back;
+
                 int can_be_shaded = render_order_casts_shadow( block->renderOrder );
 
                 if ( block_is_visiable && can_be_shaded ) {
-                    //If the block is visible and can be shaded, check neighbors for shade and populated the packed lighting
+                    // If the block is visible and can be shaded, check neighbors for shade and populated the packed lighting
                     // 2 Offsets
                     int tl = render_order_casts_shadow( block_definition_get_definition( chunk->blocks[ chunk_get_index_from_coords( xminus, yplus, z + 0 ) ] )->renderOrder );
                     int tr = render_order_casts_shadow( block_definition_get_definition( chunk->blocks[ chunk_get_index_from_coords( xplus, yplus, z + 0 ) ] )->renderOrder );
@@ -333,7 +331,7 @@ void chunk_calculate_popupated_blocks( Chunk *chunk ) {
                     int bbl = render_order_casts_shadow( block_definition_get_definition( chunk->blocks[ chunk_get_index_from_coords( xminus, yminus, zminus ) ] )->renderOrder );
                     int bfr = render_order_casts_shadow( block_definition_get_definition( chunk->blocks[ chunk_get_index_from_coords( xplus, yminus, zplus ) ] )->renderOrder );
                     int bbr = render_order_casts_shadow( block_definition_get_definition( chunk->blocks[ chunk_get_index_from_coords( xplus, yminus, zminus ) ] )->renderOrder );
-                    {
+                    if ( visiable_top ) {
                         int top_tfr = tf && tr ? 3 : ( tf + tr + tfr );
                         int top_tfl = tf && tl ? 3 : ( tf + tl + tfl );
                         int top_tbr = tba && tr ? 3 : ( tba + tr + tbr );
@@ -343,8 +341,10 @@ void chunk_calculate_popupated_blocks( Chunk *chunk ) {
                             ( ( top_tfr << CORNER_OFFSET_tfr ) | ( top_tfl << CORNER_OFFSET_tfl ) | //
                               ( top_tbr << CORNER_OFFSET_tbr ) | ( top_tbl << CORNER_OFFSET_tbl ) | //
                               tcc << CORNER_OFFSET_c );
+                    } else {
+                        workingSpace[ index ].packed_lighting[ FACE_TOP ] = NO_LIGHT;
                     }
-                    {
+                    if ( visiable_bottom ) {
                         int bottom_bfr = bof && bor ? 3 : ( bof + bor + bfr );
                         int bottom_bfl = bof && bol ? 3 : ( bof + bol + bfl );
                         int bottom_bbr = boba && bor ? 3 : ( boba + bor + bbr );
@@ -354,8 +354,10 @@ void chunk_calculate_popupated_blocks( Chunk *chunk ) {
                             ( ( bottom_bfr << CORNER_OFFSET_bfr ) | ( bottom_bfl << CORNER_OFFSET_bfl ) | //
                               ( bottom_bbr << CORNER_OFFSET_bbr ) | ( bottom_bbl << CORNER_OFFSET_bbl ) | //
                               bcc << CORNER_OFFSET_c );
+                    } else {
+                        workingSpace[ index ].packed_lighting[ FACE_BOTTOM ] = NO_LIGHT;
                     }
-                    {
+                    if ( visiable_front ) {
                         int front_tfr = tf && fr ? 3 : ( tf + fr + tfr );
                         int front_tfl = tf && fl ? 3 : ( tf + fl + tfl );
                         int front_bfr = bof && fr ? 3 : ( bof + fr + bfr );
@@ -365,8 +367,10 @@ void chunk_calculate_popupated_blocks( Chunk *chunk ) {
                             ( ( front_tfr << CORNER_OFFSET_tfr ) | ( front_tfl << CORNER_OFFSET_tfl ) | //
                               ( front_bfr << CORNER_OFFSET_bfr ) | ( front_bfl << CORNER_OFFSET_bfl ) | //
                               cfc << CORNER_OFFSET_c );
+                    } else {
+                        workingSpace[ index ].packed_lighting[ FACE_FRONT ] = NO_LIGHT;
                     }
-                    {
+                    if ( visiable_back ) {
                         int back_tbr = tba && bar ? 3 : ( tba + bar + tbr );
                         int back_tbl = tba && bal ? 3 : ( tba + bal + tbl );
                         int back_bbr = boba && bar ? 3 : ( boba + bar + bbr );
@@ -376,8 +380,10 @@ void chunk_calculate_popupated_blocks( Chunk *chunk ) {
                             ( ( back_tbr << CORNER_OFFSET_tbr ) | ( back_tbl << CORNER_OFFSET_tbl ) | //
                               ( back_bbr << CORNER_OFFSET_bbr ) | ( back_bbl << CORNER_OFFSET_bbl ) | //
                               cbc << CORNER_OFFSET_c );
+                    } else {
+                        workingSpace[ index ].packed_lighting[ FACE_BACK ] = NO_LIGHT;
                     }
-                    {
+                    if ( visiable_right ) {
                         int right_tfr = tr && fr ? 3 : ( tr + fr + tfr );
                         int right_tbr = tr && bar ? 3 : ( tr + bar + tbr );
                         int right_bfr = bor && fr ? 3 : ( bor + fr + bfr );
@@ -387,8 +393,10 @@ void chunk_calculate_popupated_blocks( Chunk *chunk ) {
                             ( ( right_tfr << CORNER_OFFSET_tfr ) | ( right_tbr << CORNER_OFFSET_tbr ) | //
                               ( right_bfr << CORNER_OFFSET_bfr ) | ( right_bbr << CORNER_OFFSET_bbr ) | //
                               ccr << CORNER_OFFSET_c );
+                    } else {
+                        workingSpace[ index ].packed_lighting[ FACE_RIGHT ] = NO_LIGHT;
                     }
-                    {
+                    if ( visiable_left ) {
                         int left_tfl = tl && fl ? 3 : ( tl + fl + tfl );
                         int left_tbl = tl && bal ? 3 : ( tl + bal + tbl );
                         int left_bfl = bol && fl ? 3 : ( bol + fl + bfl );
@@ -398,6 +406,8 @@ void chunk_calculate_popupated_blocks( Chunk *chunk ) {
                             ( ( left_tfl << CORNER_OFFSET_tfl ) | ( left_tbl << CORNER_OFFSET_tbl ) | //
                               ( left_bfl << CORNER_OFFSET_bfl ) | ( left_bbl << CORNER_OFFSET_bbl ) | //
                               ccl << CORNER_OFFSET_c );
+                    } else {
+                        workingSpace[ index ].packed_lighting[ FACE_LEFT ] = NO_LIGHT;
                     }
                 }
                 workingSpace[ index ].can_be_seen = block_is_visiable;
