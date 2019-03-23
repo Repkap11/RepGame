@@ -40,6 +40,8 @@ int render_order_is_visible( RenderOrder renderOrder ) {
 int render_order_can_mesh( RenderOrder renderOrder ) {
     switch ( renderOrder ) {
         case RenderOrder_Solid:
+        case RenderOrder_Water:
+
             return true;
         default:
             return false;
