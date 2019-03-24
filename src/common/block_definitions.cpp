@@ -22,24 +22,34 @@ void block_definitions_initilize_definitions( Texture *texture ) {
     block_definitions[ GRASS ].textures.top = GRASS;
     block_definitions[ GRASS ].textures.side = GRASS_SIDE;
     block_definitions[ GRASS ].textures.bottom = DIRT;
+    block_definitions[ GRASS_SIDE ].renderOrder = RenderOrder_Transparent;
 
     block_definitions[ DOUBLE_SLAB ].textures.top = SLAB_TOP;
     block_definitions[ DOUBLE_SLAB ].textures.side = DOUBLE_SLAB;
     block_definitions[ DOUBLE_SLAB ].textures.bottom = SLAB_TOP;
+    block_definitions[ SLAB_TOP ].renderOrder = RenderOrder_Transparent;
 
     block_definitions[ TNT ].textures.top = TNT_TOP;
     block_definitions[ TNT ].textures.side = TNT;
     block_definitions[ TNT ].textures.bottom = TNT_BOTTOM;
+    block_definitions[ TNT_BOTTOM ].renderOrder = RenderOrder_Transparent;
+    block_definitions[ TNT_TOP ].renderOrder = RenderOrder_Transparent;
 
-    block_definitions[ WOOD_LOG_TOP ].textures.top = WOOD_LOG_TOP;
-    block_definitions[ WOOD_LOG_TOP ].textures.side = WOOD_LOG_SIDE;
-    block_definitions[ WOOD_LOG_TOP ].textures.bottom = WOOD_LOG_TOP;
+    block_definitions[ WOOD_LOG_SIDE ].textures.top = WOOD_LOG_TOP;
+    block_definitions[ WOOD_LOG_SIDE ].textures.side = WOOD_LOG_SIDE;
+    block_definitions[ WOOD_LOG_SIDE ].textures.bottom = WOOD_LOG_TOP;
+    block_definitions[ WOOD_LOG_TOP ].renderOrder = RenderOrder_Transparent;
 
     block_definitions[ WATER ].renderOrder = RenderOrder_Water;
     block_definitions[ WHITE_GLASS ].renderOrder = RenderOrder_Glass;
     block_definitions[ LEAF ].renderOrder = RenderOrder_Leafs;
 
+    block_definitions[ BOOK_CASE ].textures.top = OAK_PLANK;
+    block_definitions[ BOOK_CASE ].textures.bottom = OAK_PLANK;
 
+    block_definitions[ CRAFTING_BENCH ].textures.side = CRAFTING_BENCH_SIDE;
+    block_definitions[ CRAFTING_BENCH ].textures.bottom = OAK_PLANK;
+    block_definitions[ CRAFTING_BENCH_SIDE ].renderOrder = RenderOrder_Transparent;
 }
 
 Block *block_definition_get_definition( BlockID blockID ) {

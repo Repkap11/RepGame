@@ -41,6 +41,7 @@ void change_block( int place, BlockID blockID ) {
 void repgame_process_mouse_events( ) {
     if ( globalGameState.block_selection.selectionInBounds && globalGameState.input.mouse.buttons.middle ) {
         BlockID blockID = world_get_loaded_block( &globalGameState.gameChunks, TRIP_ARGS( globalGameState.block_selection.destroy_ ) );
+        pr_debug( "Selected block:%d", blockID );
         globalGameState.block_selection.holdingBlock = blockID;
     }
     if ( globalGameState.block_selection.selectionInBounds && globalGameState.input.mouse.buttons.left && globalGameState.input.click_delay_left == 0 ) {
@@ -163,7 +164,7 @@ static inline void initilizeGameState( ) {
     globalGameState.camera.x = 0.0f;
     globalGameState.camera.y = 8.5f;
     globalGameState.camera.z = 0.0f;
-    globalGameState.block_selection.holdingBlock = WHITE_GLASS;
+    globalGameState.block_selection.holdingBlock = STARTING_BLOCK;
 }
 
 int check_block( Block *block ) {

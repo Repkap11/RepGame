@@ -9,7 +9,7 @@ typedef enum {
     STONE,
     DIRT,
     GRASS_SIDE,
-    WOOD_PLANK,
+    OAK_PLANK,
     DOUBLE_SLAB,
     SLAB_TOP,
     BRICK,
@@ -40,13 +40,19 @@ typedef enum {
     DIAMOND_BLOCK,
     EMERALD_BLOCK,
     REDSTONE_BLOCK,
+    BOOK_CASE = 52,
     WHITE_GLASS = 74,
     LEAF = 77,
+    CRAFTING_BENCH_SIDE = 84,
+    CRAFTING_BENCH = 60,
+
     WATER = 95,
     SNOW = 99,
     PLAYER_SELECTION = 1212,
     LAST_BLOCK_ID = 1213,
 } BlockID;
+
+#define STARTING_BLOCK CRAFTING_BENCH
 
 #include "abstract/textures.hpp"
 #include "common/render_order.hpp"
