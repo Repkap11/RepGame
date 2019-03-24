@@ -30,82 +30,51 @@ void change_block( int place, BlockID blockID ) {
         block_y = globalGameState.block_selection.destroy_y;
         block_z = globalGameState.block_selection.destroy_z;
     }
+
     world_set_block( &globalGameState.gameChunks, TRIP_ARGS( block_ ), blockID );
 }
-static void gameTick( ) {
-    if ( globalGameState.input.exitGame ) {
-        // Don't bother updating the state if the game is exiting
-        return;
+
+void repgame_process_mouse_events( ) {
+    if ( globalGameState.block_selection.selectionInBounds && globalGameState.input.mouse.buttons.middle ) {
+        BlockID blockID = world_get_loaded_block( &globalGameState.gameChunks, TRIP_ARGS( globalGameState.block_selection.destroy_ ) );
+        globalGameState.block_selection.holdingBlock = blockID;
     }
-
-    int whichFace = 0;
-
-    if ( repgame_should_lock_pointer( ) ) {
-        if ( globalGameState.block_selection.selectionInBounds && globalGameState.input.mouse.buttons.middle ) {
-            BlockID blockID = world_get_loaded_block( &globalGameState.gameChunks, TRIP_ARGS( globalGameState.block_selection.destroy_ ) );
-            globalGameState.block_selection.holdingBlock = blockID;
-        }
-        if ( globalGameState.block_selection.selectionInBounds && globalGameState.input.mouse.buttons.left && globalGameState.input.click_delay_left == 0 ) {
-            change_block( 0, AIR );
-            globalGameState.input.click_delay_left = 8;
-        }
-        globalGameState.block_selection.selectionInBounds =                                                                 //
-            ray_traversal_find_block_from_to( &globalGameState.gameChunks,                                                  //
-                                              globalGameState.camera.x, globalGameState.camera.y, globalGameState.camera.z, //
-                                              globalGameState.camera.x + globalGameState.camera.look.x * REACH_DISTANCE,    //
-                                              globalGameState.camera.y + globalGameState.camera.look.y * REACH_DISTANCE,    //
-                                              globalGameState.camera.z + globalGameState.camera.look.z * REACH_DISTANCE,    //
-                                              TRIP_ARGS( &globalGameState.block_selection.destroy_ ), &whichFace, 0 );
-        globalGameState.block_selection.create_x = globalGameState.block_selection.destroy_x + ( whichFace == FACE_RIGHT ) - ( whichFace == FACE_LEFT );
-        globalGameState.block_selection.create_y = globalGameState.block_selection.destroy_y + ( whichFace == FACE_TOP ) - ( whichFace == FACE_BOTTOM );
-        globalGameState.block_selection.create_z = globalGameState.block_selection.destroy_z + ( whichFace == FACE_BACK ) - ( whichFace == FACE_FRONT );
-
-        chunk_loader_set_selected_block( &globalGameState.gameChunks, TRIP_ARGS( globalGameState.block_selection.destroy_ ), globalGameState.block_selection.selectionInBounds );
-
-        if ( globalGameState.block_selection.selectionInBounds && globalGameState.input.mouse.buttons.right && globalGameState.input.click_delay_right == 0 ) {
-            change_block( 1, globalGameState.block_selection.holdingBlock );
-            globalGameState.input.click_delay_right = 8;
-        }
-        if ( globalGameState.block_selection.selectionInBounds && globalGameState.input.mouse.currentPosition.wheel_counts != globalGameState.input.mouse.previousPosition.wheel_counts ) {
-            int wheel_diff = globalGameState.input.mouse.currentPosition.wheel_counts > globalGameState.input.mouse.previousPosition.wheel_counts ? 1 : -1;
-            BlockID blockID = world_get_loaded_block( &globalGameState.gameChunks, TRIP_ARGS( globalGameState.block_selection.destroy_ ) );
-            int blockID_int = ( int )blockID;
-            do {
-                blockID_int += wheel_diff;
-                if ( blockID_int >= LAST_BLOCK_ID ) {
-                    blockID_int = LAST_BLOCK_ID - 1;
-                }
-                if ( blockID_int <= 0 ) {
-                    blockID_int = 1;
-                }
-            } while ( !render_order_is_pickable( block_definition_get_definition( ( BlockID )blockID_int )->renderOrder ) );
-
-            change_block( 0, ( BlockID )blockID_int );
-        }
-        globalGameState.input.mouse.currentPosition.wheel_counts = 0;
-
-        globalGameState.camera.angle_H += ( globalGameState.input.mouse.currentPosition.x - globalGameState.input.mouse.previousPosition.x ) * 0.04f;
-        globalGameState.camera.angle_V += ( globalGameState.input.mouse.currentPosition.y - globalGameState.input.mouse.previousPosition.y ) * 0.04f;
+    if ( globalGameState.block_selection.selectionInBounds && globalGameState.input.mouse.buttons.left && globalGameState.input.click_delay_left == 0 ) {
+        change_block( 0, AIR );
+        globalGameState.input.click_delay_left = 8;
     }
-    globalGameState.input.mouse.currentPosition.x = globalGameState.screen.width / 2;
-    globalGameState.input.mouse.currentPosition.y = globalGameState.screen.height / 2;
-    // pr_debug( "Angle_V:%f", globalGameState.camera.angle_V );
-    // Bpr_debug( "Angle_H:%f", globalGameState.camera.angle_H );
+    if ( globalGameState.block_selection.selectionInBounds && globalGameState.input.mouse.buttons.right && globalGameState.input.click_delay_right == 0 ) {
+        change_block( 1, globalGameState.block_selection.holdingBlock );
+        globalGameState.input.click_delay_right = 8;
+    }
+    if ( globalGameState.block_selection.selectionInBounds && globalGameState.input.mouse.currentPosition.wheel_counts != globalGameState.input.mouse.previousPosition.wheel_counts ) {
+        int wheel_diff = globalGameState.input.mouse.currentPosition.wheel_counts > globalGameState.input.mouse.previousPosition.wheel_counts ? 1 : -1;
+        BlockID blockID = world_get_loaded_block( &globalGameState.gameChunks, TRIP_ARGS( globalGameState.block_selection.destroy_ ) );
+        int blockID_int = ( int )blockID;
+        do {
+            blockID_int += wheel_diff;
+            if ( blockID_int >= LAST_BLOCK_ID ) {
+                blockID_int = LAST_BLOCK_ID - 1;
+            }
+            if ( blockID_int <= 0 ) {
+                blockID_int = 1;
+            }
+        } while ( !render_order_is_pickable( block_definition_get_definition( ( BlockID )blockID_int )->renderOrder ) );
 
+        change_block( 0, ( BlockID )blockID_int );
+    }
+    globalGameState.input.mouse.currentPosition.wheel_counts = 0;
+}
+
+void repgame_process_camera_angle( ) {
     float upAngleLimit = 90 - 0.001f;
     if ( globalGameState.camera.angle_V > upAngleLimit ) {
         globalGameState.camera.angle_V = upAngleLimit;
     }
-
     float downAngleLimit = -90 + 0.001f;
     if ( globalGameState.camera.angle_V < downAngleLimit ) {
         globalGameState.camera.angle_V = downAngleLimit;
     }
-
-    globalGameState.input.mouse.previousPosition.x = globalGameState.screen.width / 2;
-    globalGameState.input.mouse.previousPosition.y = globalGameState.screen.height / 2;
-    globalGameState.input.mouse.previousPosition.wheel_counts = globalGameState.input.mouse.currentPosition.wheel_counts;
-
     globalGameState.camera.look = glm::normalize( glm::vec3(        //
         sin( ( globalGameState.camera.angle_H ) * ( M_PI / 180 ) ), //
         -tan( globalGameState.camera.angle_V * ( M_PI / 180 ) ),    //
@@ -119,17 +88,12 @@ static void gameTick( ) {
                                                     globalGameState.camera.look,   // Look at look vector
                                                     glm::vec3( 0.0f, 1.0f, 0.0f )  // Head is up (set to 0,-1,0 to look upside-down)
     );
-    globalGameState.camera.view_trans = glm::translate( glm::mat4( 1.0f ), glm::vec3( -globalGameState.camera.x,     //
-                                                                                      -globalGameState.camera.y,     //
-                                                                                      -globalGameState.camera.z ) ); //
-
-    float movement_vector_x = globalGameState.input.movement.sizeH * globalGameState.camera.mx;
-    float movement_vector_y = globalGameState.input.movement.sizeV;
-    float movement_vector_z = globalGameState.input.movement.sizeH * globalGameState.camera.mz;
-
-    movement_vector_x *= MOVEMENT_SENSITIVITY;
-    movement_vector_y *= MOVEMENT_SENSITIVITY;
-    movement_vector_z *= MOVEMENT_SENSITIVITY;
+    globalGameState.camera.view_trans = glm::translate( glm::mat4( 1.0f ), glm::vec3( -globalGameState.camera.x, -globalGameState.camera.y, -globalGameState.camera.z ) );
+}
+void repgame_process_movement( ) {
+    float movement_vector_x = MOVEMENT_SENSITIVITY * globalGameState.input.movement.sizeH * globalGameState.camera.mx;
+    float movement_vector_y = MOVEMENT_SENSITIVITY * globalGameState.input.movement.sizeV;
+    float movement_vector_z = MOVEMENT_SENSITIVITY * globalGameState.input.movement.sizeH * globalGameState.camera.mz;
 
     if ( movement_vector_y == 0 ) {
         movement_vector_y = -GRAVITY_STRENGTH;
@@ -143,6 +107,33 @@ static void gameTick( ) {
     globalGameState.camera.x += movement_vector_x;
     globalGameState.camera.y += movement_vector_y;
     globalGameState.camera.z += movement_vector_z;
+}
+static void gameTick( ) {
+    if ( globalGameState.input.exitGame ) {
+        // Don't bother updating the state if the game is exiting
+        return;
+    }
+
+    if ( repgame_should_lock_pointer( ) ) {
+        repgame_process_mouse_events( );
+        int whichFace = 0;
+        globalGameState.block_selection.selectionInBounds = ray_traversal_find_block_from_to(
+            &globalGameState.gameChunks, globalGameState.camera.x, globalGameState.camera.y, globalGameState.camera.z, globalGameState.camera.x + globalGameState.camera.look.x * REACH_DISTANCE,
+            globalGameState.camera.y + globalGameState.camera.look.y * REACH_DISTANCE, globalGameState.camera.z + globalGameState.camera.look.z * REACH_DISTANCE, TRIP_ARGS( &globalGameState.block_selection.destroy_ ), &whichFace, 0 );
+
+        globalGameState.block_selection.create_x = globalGameState.block_selection.destroy_x + ( whichFace == FACE_RIGHT ) - ( whichFace == FACE_LEFT );
+        globalGameState.block_selection.create_y = globalGameState.block_selection.destroy_y + ( whichFace == FACE_TOP ) - ( whichFace == FACE_BOTTOM );
+        globalGameState.block_selection.create_z = globalGameState.block_selection.destroy_z + ( whichFace == FACE_BACK ) - ( whichFace == FACE_FRONT );
+
+        chunk_loader_set_selected_block( &globalGameState.gameChunks, TRIP_ARGS( globalGameState.block_selection.destroy_ ), globalGameState.block_selection.selectionInBounds );
+        globalGameState.camera.angle_H += ( globalGameState.input.mouse.currentPosition.x - globalGameState.input.mouse.previousPosition.x ) * 0.04f;
+        globalGameState.camera.angle_V += ( globalGameState.input.mouse.currentPosition.y - globalGameState.input.mouse.previousPosition.y ) * 0.04f;
+    }
+    globalGameState.input.mouse.currentPosition.x = globalGameState.screen.width / 2;
+    globalGameState.input.mouse.currentPosition.y = globalGameState.screen.height / 2;
+
+    repgame_process_camera_angle( );
+    repgame_process_movement( );
 
     if ( globalGameState.input.click_delay_right > 0 ) {
         globalGameState.input.click_delay_right--;
@@ -154,6 +145,10 @@ static void gameTick( ) {
     } else {
         globalGameState.input.click_delay_left = 0;
     }
+
+    globalGameState.input.mouse.previousPosition.x = globalGameState.input.mouse.currentPosition.x;
+    globalGameState.input.mouse.previousPosition.y = globalGameState.input.mouse.currentPosition.y;
+    globalGameState.input.mouse.previousPosition.wheel_counts = globalGameState.input.mouse.currentPosition.wheel_counts;
 }
 
 static inline void initilizeGameState( ) {
