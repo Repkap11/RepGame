@@ -2,10 +2,30 @@
 #include "common/RepGame.hpp"
 #include "common/utils/ray_traversal.hpp"
 
+float half_width_x = ( PLAYER_WIDTH / 2.0f );
+float half_width_y = ( PLAYER_HEIGHT / 2.0f );
+float half_width_z = ( PLAYER_WIDTH / 2.0f );
+
+int collision_check_collides_with_block( LoadedChunks *loadedChunks, TRIP_ARGS( float player_ ), TRIP_ARGS( float block_ ) ) {
+    player_y -= EYE_POSITION_OFFSET;
+    // For each point in the persons collision box, check the direction
+    for ( int offset_x = -1; offset_x < 2; offset_x++ ) {
+        for ( int offset_y = -1; offset_y < 2; offset_y++ ) {
+            for ( int offset_z = -1; offset_z < 2; offset_z++ ) {
+                int new_x = ( int )floorf( player_x + offset_x * half_width_x );
+                int new_y = ( int )floorf( player_y + offset_y * half_width_y );
+                int new_z = ( int )floorf( player_z + offset_z * half_width_z );
+
+                if ( block_x == new_x && block_y == new_y && block_z == new_z ) {
+                    return 1;
+                }
+            }
+        }
+    }
+    return 0;
+}
+
 void check_collides_with_player( LoadedChunks *loadedChunks, TRIP_ARGS( float *movement_vec_ ), TRIP_ARGS( float position_ ) ) {
-    float half_width_x = PLAYER_WIDTH / 2.0f;
-    float half_width_y = PLAYER_HEIGHT / 2.0f;
-    float half_width_z = PLAYER_WIDTH / 2.0f;
     int out_x;
     int out_y;
     int out_z;
