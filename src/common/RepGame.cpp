@@ -165,7 +165,7 @@ static inline void initilizeGameState( ) {
     globalGameState.camera.x = 0.0f;
     globalGameState.camera.y = 8.5f;
     globalGameState.camera.z = 0.0f;
-    globalGameState.block_selection.holdingBlock = STARTING_BLOCK;
+    globalGameState.block_selection.holdingBlock = GRASS;
 
     map_storage_init( );
     PlayerData saved_data;

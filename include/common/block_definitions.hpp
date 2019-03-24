@@ -41,18 +41,23 @@ typedef enum {
     EMERALD_BLOCK,
     REDSTONE_BLOCK,
     BOOK_CASE = 52,
+    FURNACE_UNLIT = 61,
     WHITE_GLASS = 74,
     LEAF = 77,
     CRAFTING_BENCH_SIDE = 84,
+    FURNACE_LIT = 86,
+    FURNACE_TOP = 87,
     CRAFTING_BENCH = 60,
-
     WATER = 95,
     SNOW = 99,
+    SNOWY_GRASS = 101,
+    MYCELIUM_SIDE = 110,
+    MYCELIUM = 111,
+    SINGLE_CHEST_TOP = 162,
+    SINGLE_CHEST_SIDE = 164,
     PLAYER_SELECTION = 1212,
     LAST_BLOCK_ID = 1213,
 } BlockID;
-
-#define STARTING_BLOCK CRAFTING_BENCH
 
 #include "abstract/textures.hpp"
 #include "common/render_order.hpp"

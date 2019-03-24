@@ -50,6 +50,24 @@ void block_definitions_initilize_definitions( Texture *texture ) {
     block_definitions[ CRAFTING_BENCH ].textures.side = CRAFTING_BENCH_SIDE;
     block_definitions[ CRAFTING_BENCH ].textures.bottom = OAK_PLANK;
     block_definitions[ CRAFTING_BENCH_SIDE ].renderOrder = RenderOrder_Transparent;
+
+    block_definitions[ SINGLE_CHEST_SIDE ].textures.top = SINGLE_CHEST_TOP;
+    block_definitions[ SINGLE_CHEST_SIDE ].textures.bottom = SINGLE_CHEST_TOP;
+    block_definitions[ SINGLE_CHEST_TOP ].renderOrder = RenderOrder_Transparent;
+
+    block_definitions[ SNOWY_GRASS ].textures.top = SNOW;
+    block_definitions[ SNOWY_GRASS ].textures.bottom = DIRT;
+
+    block_definitions[ FURNACE_UNLIT ].textures.top = FURNACE_TOP;
+    block_definitions[ FURNACE_UNLIT ].textures.bottom = FURNACE_TOP;
+    block_definitions[ FURNACE_TOP ].renderOrder = RenderOrder_Transparent;
+
+    block_definitions[ FURNACE_LIT ].textures.top = FURNACE_TOP;
+    block_definitions[ FURNACE_LIT ].textures.bottom = FURNACE_TOP;
+
+    block_definitions[ MYCELIUM ].textures.side = MYCELIUM_SIDE;
+    block_definitions[ MYCELIUM ].textures.bottom = DIRT;
+    block_definitions[ MYCELIUM_SIDE ].renderOrder = RenderOrder_Transparent;
 }
 
 Block *block_definition_get_definition( BlockID blockID ) {
