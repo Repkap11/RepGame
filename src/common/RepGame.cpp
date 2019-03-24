@@ -6,6 +6,7 @@
 #include "common/RepGame.hpp"
 #include "common/block_definitions.hpp"
 #include "common/chunk.hpp"
+#include "common/utils/map_storage.hpp"
 #include "common/abstract/textures.hpp"
 #include "common/world.hpp"
 #include "common/abstract/shader.hpp"
@@ -165,6 +166,18 @@ static inline void initilizeGameState( ) {
     globalGameState.camera.y = 8.5f;
     globalGameState.camera.z = 0.0f;
     globalGameState.block_selection.holdingBlock = STARTING_BLOCK;
+
+    map_storage_init( );
+    PlayerData saved_data;
+    int has_saved_data = map_storage_read_player_data( &saved_data );
+    if ( has_saved_data ) {
+        globalGameState.camera.x = saved_data.world_x;
+        globalGameState.camera.y = saved_data.world_y;
+        globalGameState.camera.z = saved_data.world_z;
+        globalGameState.block_selection.holdingBlock = saved_data.holdingBlock;
+        globalGameState.camera.angle_H = saved_data.angle_H;
+        globalGameState.camera.angle_V = saved_data.angle_V;
+    }
 }
 
 int check_block( Block *block ) {
@@ -257,6 +270,16 @@ void repgame_cleanup( ) {
     world_cleanup( &globalGameState.gameChunks );
     texture_destroy( &globalGameState.blocksTexture );
     block_definitions_free_definitions( );
+
+    PlayerData saved_data;
+    saved_data.world_x = globalGameState.camera.x;
+    saved_data.world_y = globalGameState.camera.y;
+    saved_data.world_z = globalGameState.camera.z;
+    saved_data.angle_H = globalGameState.camera.angle_H;
+    saved_data.angle_V = globalGameState.camera.angle_V;
+
+    saved_data.holdingBlock = globalGameState.block_selection.holdingBlock;
+    map_storage_write_player_data( &saved_data );
     // pr_debug( "RepGame cleanup done" );
 }
 

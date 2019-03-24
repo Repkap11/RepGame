@@ -51,7 +51,6 @@ static CubeFace vd_data_solid[] = {
 #define VB_DATA_SIZE_SOLID ( 5 * 6 + 6 )
 
 void chunk_loader_init( LoadedChunks *loadedChunks ) {
-    map_storage_init( );
     int status = terrain_loading_thread_start( );
     if ( status ) {
         pr_debug( "Terrain loading thread failed to start." );

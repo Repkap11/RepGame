@@ -12,7 +12,9 @@
 
 #define CHUNK_NAME_LENGTH 200
 
-char file_root[ CHUNK_NAME_LENGTH ] = "%s/chunk_%d_%d_%d";
+const char file_root_chunk[ CHUNK_NAME_LENGTH ] = "%s/chunk_%d_%d_%d";
+const char file_root_player_data[ CHUNK_NAME_LENGTH ] = "%s/player.dat";
+
 char map_name[ CHUNK_NAME_LENGTH ];
 
 int mkdir_p( const char *path ) {
@@ -77,7 +79,7 @@ void map_storage_persist( Chunk *chunk ) {
         int chunk_offset_y = chunk->chunk_y;
         int chunk_offset_z = chunk->chunk_z;
         char file_name[ CHUNK_NAME_LENGTH ];
-        snprintf( file_name, CHUNK_NAME_LENGTH, file_root, map_name, chunk_offset_x, chunk_offset_y, chunk_offset_z );
+        snprintf( file_name, CHUNK_NAME_LENGTH, file_root_chunk, map_name, chunk_offset_x, chunk_offset_y, chunk_offset_z );
 
         FILE *write_ptr;
         STORAGE_TYPE persist_data[ CHUNK_BLOCK_SIZE ];
@@ -124,7 +126,7 @@ void map_storage_persist( Chunk *chunk ) {
 
 int check_if_chunk_exists( TRIP_ARGS( int chunk_offset_ ) ) {
     char file_name[ CHUNK_NAME_LENGTH ];
-    snprintf( file_name, CHUNK_NAME_LENGTH, file_root, map_name, TRIP_ARGS( chunk_offset_ ) );
+    snprintf( file_name, CHUNK_NAME_LENGTH, file_root_chunk, map_name, TRIP_ARGS( chunk_offset_ ) );
     if ( access( file_name, F_OK ) != -1 ) {
         return 1;
     } else {
@@ -143,7 +145,7 @@ int map_storage_load( Chunk *chunk ) {
     }
 
     char file_name[ CHUNK_NAME_LENGTH ];
-    snprintf( file_name, CHUNK_NAME_LENGTH, file_root, map_name, TRIP_ARGS( chunk_offset_ ) );
+    snprintf( file_name, CHUNK_NAME_LENGTH, file_root_chunk, map_name, TRIP_ARGS( chunk_offset_ ) );
 
     FILE *read_ptr;
     STORAGE_TYPE persist_data[ CHUNK_BLOCK_SIZE ];
@@ -169,4 +171,28 @@ int map_storage_load( Chunk *chunk ) {
         pr_debug( "Didn't get enough blocks load" );
     }
     return 1;
+}
+
+int map_storage_read_player_data( PlayerData *player_data ) {
+    char file_name[ CHUNK_NAME_LENGTH ];
+    snprintf( file_name, CHUNK_NAME_LENGTH, file_root_player_data, map_name );
+    FILE *read_ptr = fopen( file_name, "rb" );
+    if ( !read_ptr ) {
+        pr_debug( "No player data:%s", file_name );
+        return 0;
+    }
+    int persist_data_length = fread( player_data, 1, sizeof( PlayerData ), read_ptr );
+    if ( persist_data_length != sizeof( PlayerData ) ) {
+        pr_debug( "Warning, wrong size player data. Read:%d expected:%ld", persist_data_length, sizeof( PlayerData ) );
+    }
+    fclose( read_ptr );
+    return 1;
+}
+
+void map_storage_write_player_data( PlayerData *player_data ) {
+    char file_name[ CHUNK_NAME_LENGTH ];
+    snprintf( file_name, CHUNK_NAME_LENGTH, file_root_player_data, map_name );
+    FILE *write_ptr = fopen( file_name, "wb" );
+    fwrite( player_data, sizeof( PlayerData ), 1, write_ptr );
+    fclose( write_ptr );
 }

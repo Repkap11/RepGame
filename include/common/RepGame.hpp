@@ -62,6 +62,15 @@ typedef struct {
     } block_selection;
 } RepGameState;
 
+typedef struct {
+    BlockID holdingBlock;
+    float world_x;
+    float world_y;
+    float world_z;
+    float angle_H;
+    float angle_V;
+} PlayerData;
+
 void renderShaders( int x, int y, int z );
 void repgame_init( );
 void repgame_tick( );
