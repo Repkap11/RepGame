@@ -26,9 +26,11 @@ void change_block( int place, BlockID blockID ) {
         block_x = globalGameState.block_selection.create_x;
         block_y = globalGameState.block_selection.create_y;
         block_z = globalGameState.block_selection.create_z;
-        int hits = collision_check_collides_with_block( &globalGameState.gameChunks, globalGameState.camera.x, globalGameState.camera.y, globalGameState.camera.z, TRIP_ARGS( block_ ) );
-        if ( hits ) {
-            return;
+        if ( render_order_collides_with_player( block_definition_get_definition( blockID )->renderOrder ) ) {
+            int hits = collision_check_collides_with_block( &globalGameState.gameChunks, globalGameState.camera.x, globalGameState.camera.y, globalGameState.camera.z, TRIP_ARGS( block_ ) );
+            if ( hits ) {
+                return;
+            }
         }
     } else {
         block_x = globalGameState.block_selection.destroy_x;
@@ -125,7 +127,7 @@ static void gameTick( ) {
         int whichFace = 0;
         globalGameState.block_selection.selectionInBounds = ray_traversal_find_block_from_to(
             &globalGameState.gameChunks, globalGameState.camera.x, globalGameState.camera.y, globalGameState.camera.z, globalGameState.camera.x + globalGameState.camera.look.x * REACH_DISTANCE,
-            globalGameState.camera.y + globalGameState.camera.look.y * REACH_DISTANCE, globalGameState.camera.z + globalGameState.camera.look.z * REACH_DISTANCE, TRIP_ARGS( &globalGameState.block_selection.destroy_ ), &whichFace, 0 );
+            globalGameState.camera.y + globalGameState.camera.look.y * REACH_DISTANCE, globalGameState.camera.z + globalGameState.camera.look.z * REACH_DISTANCE, TRIP_ARGS( &globalGameState.block_selection.destroy_ ), &whichFace, 0, 1 );
 
         globalGameState.block_selection.create_x = globalGameState.block_selection.destroy_x + ( whichFace == FACE_RIGHT ) - ( whichFace == FACE_LEFT );
         globalGameState.block_selection.create_y = globalGameState.block_selection.destroy_y + ( whichFace == FACE_TOP ) - ( whichFace == FACE_BOTTOM );

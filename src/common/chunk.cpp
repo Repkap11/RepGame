@@ -3,6 +3,18 @@
 #include "common/map_gen.hpp"
 #include "common/utils/map_storage.hpp"
 
+static unsigned int ib_data_flowers[] = {
+    14, 0, 13, // Right, Back, Right
+    13, 0, 14, //
+    14, 0, 3,  // Right, Back, Back
+    3,  0, 14, //
+
+    7,  9, 4,  // Front, Right, Front
+    4,  9, 7,  //
+    7,  9, 10, // Front, Right, Right
+    10, 9, 7,  //
+};
+
 void chunk_calculate_sides( Chunk *chunk, TRIP_ARGS( int center_next_ ) ) {
     unsigned int *chunk_ib_data[ LAST_RENDER_ORDER ];
     for ( int renderOrder = 0; renderOrder < LAST_RENDER_ORDER; renderOrder++ ) {
@@ -62,7 +74,11 @@ void chunk_calculate_sides( Chunk *chunk, TRIP_ARGS( int center_next_ ) ) {
         }
     }
     for ( int renderOrder = 0; renderOrder < LAST_RENDER_ORDER; renderOrder++ ) {
-        index_buffer_set_data( &chunk->layers[ renderOrder ].ib, chunk_ib_data[ renderOrder ], render_order_ib_size( ( RenderOrder )renderOrder ) );
+        unsigned int *ib_data = chunk_ib_data[ renderOrder ];
+        if ( renderOrder == RenderOrder_Flowers ) {
+            ib_data = ib_data_flowers;
+        }
+        index_buffer_set_data( &chunk->layers[ renderOrder ].ib, ib_data, render_order_ib_size( ( RenderOrder )renderOrder ) );
         free( chunk_ib_data[ renderOrder ] );
     }
 }

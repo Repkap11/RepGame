@@ -48,7 +48,7 @@ void check_collides_with_player( LoadedChunks *loadedChunks, TRIP_ARGS( float *m
                     new_x + ( *movement_vec_x ),  //
                     new_y + ( *movement_vec_y ),  //
                     new_z + ( *movement_vec_z ),  //
-                    TRIP_ARGS( &out_ ), faces, 1 );
+                    TRIP_ARGS( &out_ ), faces, 1, 0 );
             }
         }
     }
