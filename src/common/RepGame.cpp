@@ -39,22 +39,7 @@ static void gameTick( ) {
     }
 
     int whichFace = 0;
-    globalGameState.block_selection.selectionInBounds =                                                                 //
-        ray_traversal_find_block_from_to( &globalGameState.gameChunks,                                                  //
-                                          globalGameState.camera.x, globalGameState.camera.y, globalGameState.camera.z, //
-                                          globalGameState.camera.x + globalGameState.camera.look.x * REACH_DISTANCE,    //
-                                          globalGameState.camera.y + globalGameState.camera.look.y * REACH_DISTANCE,    //
-                                          globalGameState.camera.z + globalGameState.camera.look.z * REACH_DISTANCE,    //
-                                          TRIP_ARGS( &globalGameState.block_selection.destroy_ ), &whichFace, 0 );
-    globalGameState.block_selection.create_x = globalGameState.block_selection.destroy_x + ( whichFace == FACE_RIGHT ) - ( whichFace == FACE_LEFT );
-    globalGameState.block_selection.create_y = globalGameState.block_selection.destroy_y + ( whichFace == FACE_TOP ) - ( whichFace == FACE_BOTTOM );
-    globalGameState.block_selection.create_z = globalGameState.block_selection.destroy_z + ( whichFace == FACE_BACK ) - ( whichFace == FACE_FRONT );
 
-    chunk_loader_set_selected_block( &globalGameState.gameChunks, TRIP_ARGS( globalGameState.block_selection.destroy_ ), globalGameState.block_selection.selectionInBounds );
-
-    // int block_x = globalGameState.block_selection.destroy_x;
-    // int block_y = globalGameState.block_selection.destroy_y;
-    // int block_z = globalGameState.block_selection.destroy_z;
     if ( repgame_should_lock_pointer( ) ) {
         if ( globalGameState.block_selection.selectionInBounds && globalGameState.input.mouse.buttons.middle ) {
             BlockID blockID = world_get_loaded_block( &globalGameState.gameChunks, TRIP_ARGS( globalGameState.block_selection.destroy_ ) );
@@ -64,6 +49,19 @@ static void gameTick( ) {
             change_block( 0, AIR );
             globalGameState.input.click_delay_left = 8;
         }
+        globalGameState.block_selection.selectionInBounds =                                                                 //
+            ray_traversal_find_block_from_to( &globalGameState.gameChunks,                                                  //
+                                              globalGameState.camera.x, globalGameState.camera.y, globalGameState.camera.z, //
+                                              globalGameState.camera.x + globalGameState.camera.look.x * REACH_DISTANCE,    //
+                                              globalGameState.camera.y + globalGameState.camera.look.y * REACH_DISTANCE,    //
+                                              globalGameState.camera.z + globalGameState.camera.look.z * REACH_DISTANCE,    //
+                                              TRIP_ARGS( &globalGameState.block_selection.destroy_ ), &whichFace, 0 );
+        globalGameState.block_selection.create_x = globalGameState.block_selection.destroy_x + ( whichFace == FACE_RIGHT ) - ( whichFace == FACE_LEFT );
+        globalGameState.block_selection.create_y = globalGameState.block_selection.destroy_y + ( whichFace == FACE_TOP ) - ( whichFace == FACE_BOTTOM );
+        globalGameState.block_selection.create_z = globalGameState.block_selection.destroy_z + ( whichFace == FACE_BACK ) - ( whichFace == FACE_FRONT );
+
+        chunk_loader_set_selected_block( &globalGameState.gameChunks, TRIP_ARGS( globalGameState.block_selection.destroy_ ), globalGameState.block_selection.selectionInBounds );
+
         if ( globalGameState.block_selection.selectionInBounds && globalGameState.input.mouse.buttons.right && globalGameState.input.click_delay_right == 0 ) {
             change_block( 1, globalGameState.block_selection.holdingBlock );
             globalGameState.input.click_delay_right = 8;
