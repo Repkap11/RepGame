@@ -1,0 +1,5 @@
+Fix lighting meshing bug (might be fixed with dark inner blocks)
+Make inventory ui blocks selectable to change the current block
+Render the current block on the UI, or make a hotbar
+Make tree mapgen, and complicated post gen structure placement with chunk genned bit and locking
+Map the chunk_loader load the chunks around the player instead of around 0,0
