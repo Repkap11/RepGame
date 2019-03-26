@@ -28,6 +28,7 @@
 
 #define NO_LIGHT_DRAW 0x7ffff
 #define NO_LIGHT_NO_DRAW 0xfffff
+#define NO_LIGHT_BRIGHT 0
 
 typedef struct {
     float x;

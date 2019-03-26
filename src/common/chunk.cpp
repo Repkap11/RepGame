@@ -32,44 +32,44 @@ void chunk_calculate_sides( Chunk *chunk, TRIP_ARGS( int center_next_ ) ) {
     if ( visable_front ) {
         for ( int i = 0; i < 12; i++ ) {
             chunk_ib_data[ RenderOrder_Solid ][ ib_size[ RenderOrder_Solid ]++ ] = ib_data_solid[ 12 * FACE_FRONT + i ];
-            chunk_ib_data[ RenderOrder_Glass ][ ib_size[ RenderOrder_Glass ]++ ] = ib_data_solid[ 12 * FACE_FRONT + i ];
-            chunk_ib_data[ RenderOrder_Leafs ][ ib_size[ RenderOrder_Leafs ]++ ] = ib_data_solid[ 12 * FACE_FRONT + i ];
+            chunk_ib_data[ RenderOrder_GlassLeafs ][ ib_size[ RenderOrder_GlassLeafs ]++ ] = ib_data_solid[ 12 * FACE_FRONT + i ];
+            // chunk_ib_data[ RenderOrder_Leafs ][ ib_size[ RenderOrder_Leafs ]++ ] = ib_data_solid[ 12 * FACE_FRONT + i ];
         }
     }
     if ( visable_right ) {
         for ( int i = 0; i < 12; i++ ) {
             chunk_ib_data[ RenderOrder_Solid ][ ib_size[ RenderOrder_Solid ]++ ] = ib_data_solid[ 12 * FACE_RIGHT + i ];
-            chunk_ib_data[ RenderOrder_Glass ][ ib_size[ RenderOrder_Glass ]++ ] = ib_data_solid[ 12 * FACE_RIGHT + i ];
-            chunk_ib_data[ RenderOrder_Leafs ][ ib_size[ RenderOrder_Leafs ]++ ] = ib_data_solid[ 12 * FACE_RIGHT + i ];
+            chunk_ib_data[ RenderOrder_GlassLeafs ][ ib_size[ RenderOrder_GlassLeafs ]++ ] = ib_data_solid[ 12 * FACE_RIGHT + i ];
+            // chunk_ib_data[ RenderOrder_Leafs ][ ib_size[ RenderOrder_Leafs ]++ ] = ib_data_solid[ 12 * FACE_RIGHT + i ];
         }
     }
     if ( visable_back ) {
         for ( int i = 0; i < 12; i++ ) {
             chunk_ib_data[ RenderOrder_Solid ][ ib_size[ RenderOrder_Solid ]++ ] = ib_data_solid[ 12 * FACE_BACK + i ];
-            chunk_ib_data[ RenderOrder_Glass ][ ib_size[ RenderOrder_Glass ]++ ] = ib_data_solid[ 12 * FACE_BACK + i ];
-            chunk_ib_data[ RenderOrder_Leafs ][ ib_size[ RenderOrder_Leafs ]++ ] = ib_data_solid[ 12 * FACE_BACK + i ];
+            chunk_ib_data[ RenderOrder_GlassLeafs ][ ib_size[ RenderOrder_GlassLeafs ]++ ] = ib_data_solid[ 12 * FACE_BACK + i ];
+            // chunk_ib_data[ RenderOrder_Leafs ][ ib_size[ RenderOrder_Leafs ]++ ] = ib_data_solid[ 12 * FACE_BACK + i ];
         }
     }
     if ( visable_left ) {
         for ( int i = 0; i < 12; i++ ) {
             chunk_ib_data[ RenderOrder_Solid ][ ib_size[ RenderOrder_Solid ]++ ] = ib_data_solid[ 12 * FACE_LEFT + i ];
-            chunk_ib_data[ RenderOrder_Glass ][ ib_size[ RenderOrder_Glass ]++ ] = ib_data_solid[ 12 * FACE_LEFT + i ];
-            chunk_ib_data[ RenderOrder_Leafs ][ ib_size[ RenderOrder_Leafs ]++ ] = ib_data_solid[ 12 * FACE_LEFT + i ];
+            chunk_ib_data[ RenderOrder_GlassLeafs ][ ib_size[ RenderOrder_GlassLeafs ]++ ] = ib_data_solid[ 12 * FACE_LEFT + i ];
+            // chunk_ib_data[ RenderOrder_Leafs ][ ib_size[ RenderOrder_Leafs ]++ ] = ib_data_solid[ 12 * FACE_LEFT + i ];
         }
     }
     if ( visable_top ) {
         for ( int i = 0; i < 12; i++ ) {
             chunk_ib_data[ RenderOrder_Solid ][ ib_size[ RenderOrder_Solid ]++ ] = ib_data_solid[ 12 * FACE_TOP + i ];
-            chunk_ib_data[ RenderOrder_Glass ][ ib_size[ RenderOrder_Glass ]++ ] = ib_data_solid[ 12 * FACE_TOP + i ];
-            chunk_ib_data[ RenderOrder_Leafs ][ ib_size[ RenderOrder_Leafs ]++ ] = ib_data_solid[ 12 * FACE_TOP + i ];
+            chunk_ib_data[ RenderOrder_GlassLeafs ][ ib_size[ RenderOrder_GlassLeafs ]++ ] = ib_data_solid[ 12 * FACE_TOP + i ];
+            // chunk_ib_data[ RenderOrder_Leafs ][ ib_size[ RenderOrder_Leafs ]++ ] = ib_data_solid[ 12 * FACE_TOP + i ];
             chunk_ib_data[ RenderOrder_Water ][ ib_size[ RenderOrder_Water ]++ ] = ib_data_water[ 12 * IB_POSITION_WATER_TOP + i ];
         }
     }
     if ( visable_bottom ) {
         for ( int i = 0; i < 12; i++ ) {
             chunk_ib_data[ RenderOrder_Solid ][ ib_size[ RenderOrder_Solid ]++ ] = ib_data_solid[ 12 * FACE_BOTTOM + i ];
-            chunk_ib_data[ RenderOrder_Glass ][ ib_size[ RenderOrder_Glass ]++ ] = ib_data_solid[ 12 * FACE_BOTTOM + i ];
-            chunk_ib_data[ RenderOrder_Leafs ][ ib_size[ RenderOrder_Leafs ]++ ] = ib_data_solid[ 12 * FACE_BOTTOM + i ];
+            chunk_ib_data[ RenderOrder_GlassLeafs ][ ib_size[ RenderOrder_GlassLeafs ]++ ] = ib_data_solid[ 12 * FACE_BOTTOM + i ];
+            // chunk_ib_data[ RenderOrder_Leafs ][ ib_size[ RenderOrder_Leafs ]++ ] = ib_data_solid[ 12 * FACE_BOTTOM + i ];
             chunk_ib_data[ RenderOrder_Water ][ ib_size[ RenderOrder_Water ]++ ] = ib_data_water[ 12 * IB_POSITION_WATER_BOTTOM + i ];
         }
     }
@@ -319,35 +319,33 @@ void chunk_calculate_popupated_blocks( Chunk *chunk ) {
 
                 int can_be_shaded = render_order_can_be_shaded( block->renderOrder );
 
-                float no_light = render_order_get_no_light( block->renderOrder );
-
                 // If the block is visible and can be shaded, check neighbors for shade and populated the packed lighting
                 // 2 Offsets
-                int tl = render_order_casts_shadow( block_definition_get_definition( chunk->blocks[ chunk_get_index_from_coords( xminus, yplus, z + 0 ) ] )->renderOrder );
-                int tr = render_order_casts_shadow( block_definition_get_definition( chunk->blocks[ chunk_get_index_from_coords( xplus, yplus, z + 0 ) ] )->renderOrder );
-                int tf = render_order_casts_shadow( block_definition_get_definition( chunk->blocks[ chunk_get_index_from_coords( x + 0, yplus, zplus ) ] )->renderOrder );
-                int tba = render_order_casts_shadow( block_definition_get_definition( chunk->blocks[ chunk_get_index_from_coords( x + 0, yplus, zminus ) ] )->renderOrder );
+                int tl = block_definition_get_definition( chunk->blocks[ chunk_get_index_from_coords( xminus, yplus, z + 0 ) ] )->casts_shadow;
+                int tr = block_definition_get_definition( chunk->blocks[ chunk_get_index_from_coords( xplus, yplus, z + 0 ) ] )->casts_shadow;
+                int tf = block_definition_get_definition( chunk->blocks[ chunk_get_index_from_coords( x + 0, yplus, zplus ) ] )->casts_shadow;
+                int tba = block_definition_get_definition( chunk->blocks[ chunk_get_index_from_coords( x + 0, yplus, zminus ) ] )->casts_shadow;
 
-                int bol = render_order_casts_shadow( block_definition_get_definition( chunk->blocks[ chunk_get_index_from_coords( xminus, yminus, z + 0 ) ] )->renderOrder );
-                int bor = render_order_casts_shadow( block_definition_get_definition( chunk->blocks[ chunk_get_index_from_coords( xplus, yminus, z + 0 ) ] )->renderOrder );
-                int bof = render_order_casts_shadow( block_definition_get_definition( chunk->blocks[ chunk_get_index_from_coords( x + 0, yminus, zplus ) ] )->renderOrder );
-                int boba = render_order_casts_shadow( block_definition_get_definition( chunk->blocks[ chunk_get_index_from_coords( x + 0, yminus, zminus ) ] )->renderOrder );
+                int bol = block_definition_get_definition( chunk->blocks[ chunk_get_index_from_coords( xminus, yminus, z + 0 ) ] )->casts_shadow;
+                int bor = block_definition_get_definition( chunk->blocks[ chunk_get_index_from_coords( xplus, yminus, z + 0 ) ] )->casts_shadow;
+                int bof = block_definition_get_definition( chunk->blocks[ chunk_get_index_from_coords( x + 0, yminus, zplus ) ] )->casts_shadow;
+                int boba = block_definition_get_definition( chunk->blocks[ chunk_get_index_from_coords( x + 0, yminus, zminus ) ] )->casts_shadow;
 
-                int fl = render_order_casts_shadow( block_definition_get_definition( chunk->blocks[ chunk_get_index_from_coords( xminus, y + 0, zplus ) ] )->renderOrder );
-                int bal = render_order_casts_shadow( block_definition_get_definition( chunk->blocks[ chunk_get_index_from_coords( xminus, y + 0, zminus ) ] )->renderOrder );
-                int fr = render_order_casts_shadow( block_definition_get_definition( chunk->blocks[ chunk_get_index_from_coords( xplus, y + 0, zplus ) ] )->renderOrder );
-                int bar = render_order_casts_shadow( block_definition_get_definition( chunk->blocks[ chunk_get_index_from_coords( xplus, y + 0, zminus ) ] )->renderOrder );
+                int fl = block_definition_get_definition( chunk->blocks[ chunk_get_index_from_coords( xminus, y + 0, zplus ) ] )->casts_shadow;
+                int bal = block_definition_get_definition( chunk->blocks[ chunk_get_index_from_coords( xminus, y + 0, zminus ) ] )->casts_shadow;
+                int fr = block_definition_get_definition( chunk->blocks[ chunk_get_index_from_coords( xplus, y + 0, zplus ) ] )->casts_shadow;
+                int bar = block_definition_get_definition( chunk->blocks[ chunk_get_index_from_coords( xplus, y + 0, zminus ) ] )->casts_shadow;
 
                 // 3 Offsetes
-                int tfl = render_order_casts_shadow( block_definition_get_definition( chunk->blocks[ chunk_get_index_from_coords( xminus, yplus, zplus ) ] )->renderOrder );
-                int tbl = render_order_casts_shadow( block_definition_get_definition( chunk->blocks[ chunk_get_index_from_coords( xminus, yplus, zminus ) ] )->renderOrder );
-                int tfr = render_order_casts_shadow( block_definition_get_definition( chunk->blocks[ chunk_get_index_from_coords( xplus, yplus, zplus ) ] )->renderOrder );
-                int tbr = render_order_casts_shadow( block_definition_get_definition( chunk->blocks[ chunk_get_index_from_coords( xplus, yplus, zminus ) ] )->renderOrder );
+                int tfl = block_definition_get_definition( chunk->blocks[ chunk_get_index_from_coords( xminus, yplus, zplus ) ] )->casts_shadow;
+                int tbl = block_definition_get_definition( chunk->blocks[ chunk_get_index_from_coords( xminus, yplus, zminus ) ] )->casts_shadow;
+                int tfr = block_definition_get_definition( chunk->blocks[ chunk_get_index_from_coords( xplus, yplus, zplus ) ] )->casts_shadow;
+                int tbr = block_definition_get_definition( chunk->blocks[ chunk_get_index_from_coords( xplus, yplus, zminus ) ] )->casts_shadow;
 
-                int bfl = render_order_casts_shadow( block_definition_get_definition( chunk->blocks[ chunk_get_index_from_coords( xminus, yminus, zplus ) ] )->renderOrder );
-                int bbl = render_order_casts_shadow( block_definition_get_definition( chunk->blocks[ chunk_get_index_from_coords( xminus, yminus, zminus ) ] )->renderOrder );
-                int bfr = render_order_casts_shadow( block_definition_get_definition( chunk->blocks[ chunk_get_index_from_coords( xplus, yminus, zplus ) ] )->renderOrder );
-                int bbr = render_order_casts_shadow( block_definition_get_definition( chunk->blocks[ chunk_get_index_from_coords( xplus, yminus, zminus ) ] )->renderOrder );
+                int bfl = block_definition_get_definition( chunk->blocks[ chunk_get_index_from_coords( xminus, yminus, zplus ) ] )->casts_shadow;
+                int bbl = block_definition_get_definition( chunk->blocks[ chunk_get_index_from_coords( xminus, yminus, zminus ) ] )->casts_shadow;
+                int bfr = block_definition_get_definition( chunk->blocks[ chunk_get_index_from_coords( xplus, yminus, zplus ) ] )->casts_shadow;
+                int bbr = block_definition_get_definition( chunk->blocks[ chunk_get_index_from_coords( xplus, yminus, zminus ) ] )->casts_shadow;
                 if ( visiable_top && can_be_shaded ) {
                     int top_tfr = tf && tr ? 3 : ( tf + tr + tfr );
                     int top_tfl = tf && tl ? 3 : ( tf + tl + tfl );
@@ -359,7 +357,7 @@ void chunk_calculate_popupated_blocks( Chunk *chunk ) {
                           ( top_tbr << CORNER_OFFSET_tbr ) | ( top_tbl << CORNER_OFFSET_tbl ) | //
                           tcc << CORNER_OFFSET_c );
                 } else {
-                    workingSpace[ index ].packed_lighting[ FACE_TOP ] = no_light;
+                    workingSpace[ index ].packed_lighting[ FACE_TOP ] = block->no_light;
                 }
                 if ( visiable_bottom && can_be_shaded ) {
                     int bottom_bfr = bof && bor ? 3 : ( bof + bor + bfr );
@@ -372,7 +370,7 @@ void chunk_calculate_popupated_blocks( Chunk *chunk ) {
                           ( bottom_bbr << CORNER_OFFSET_bbr ) | ( bottom_bbl << CORNER_OFFSET_bbl ) | //
                           bcc << CORNER_OFFSET_c );
                 } else {
-                    workingSpace[ index ].packed_lighting[ FACE_BOTTOM ] = no_light;
+                    workingSpace[ index ].packed_lighting[ FACE_BOTTOM ] = block->no_light;
                 }
                 if ( visiable_front && can_be_shaded ) {
                     int front_tfr = tf && fr ? 3 : ( tf + fr + tfr );
@@ -385,7 +383,7 @@ void chunk_calculate_popupated_blocks( Chunk *chunk ) {
                           ( front_bfr << CORNER_OFFSET_bfr ) | ( front_bfl << CORNER_OFFSET_bfl ) | //
                           cfc << CORNER_OFFSET_c );
                 } else {
-                    workingSpace[ index ].packed_lighting[ FACE_FRONT ] = no_light;
+                    workingSpace[ index ].packed_lighting[ FACE_FRONT ] = block->no_light;
                 }
                 if ( visiable_back && can_be_shaded ) {
                     int back_tbr = tba && bar ? 3 : ( tba + bar + tbr );
@@ -398,7 +396,7 @@ void chunk_calculate_popupated_blocks( Chunk *chunk ) {
                           ( back_bbr << CORNER_OFFSET_bbr ) | ( back_bbl << CORNER_OFFSET_bbl ) | //
                           cbc << CORNER_OFFSET_c );
                 } else {
-                    workingSpace[ index ].packed_lighting[ FACE_BACK ] = no_light;
+                    workingSpace[ index ].packed_lighting[ FACE_BACK ] = block->no_light;
                 }
                 if ( visiable_right && can_be_shaded ) {
                     int right_tfr = tr && fr ? 3 : ( tr + fr + tfr );
@@ -411,7 +409,7 @@ void chunk_calculate_popupated_blocks( Chunk *chunk ) {
                           ( right_bfr << CORNER_OFFSET_bfr ) | ( right_bbr << CORNER_OFFSET_bbr ) | //
                           ccr << CORNER_OFFSET_c );
                 } else {
-                    workingSpace[ index ].packed_lighting[ FACE_RIGHT ] = no_light;
+                    workingSpace[ index ].packed_lighting[ FACE_RIGHT ] = block->no_light;
                 }
                 if ( visiable_left && can_be_shaded ) {
                     int left_tfl = tl && fl ? 3 : ( tl + fl + tfl );
@@ -424,7 +422,7 @@ void chunk_calculate_popupated_blocks( Chunk *chunk ) {
                           ( left_bfl << CORNER_OFFSET_bfl ) | ( left_bbl << CORNER_OFFSET_bbl ) | //
                           ccl << CORNER_OFFSET_c );
                 } else {
-                    workingSpace[ index ].packed_lighting[ FACE_LEFT ] = no_light;
+                    workingSpace[ index ].packed_lighting[ FACE_LEFT ] = block->no_light;
                 }
                 workingSpace[ index ].can_be_seen = block_is_visiable;
             } else {

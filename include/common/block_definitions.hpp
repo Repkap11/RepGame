@@ -185,7 +185,9 @@ typedef struct {
     BlockID id;
     BlockTextureMap textures;
     RenderOrder renderOrder;
-    float height;
+    int no_light;
+    int casts_shadow;
+    int is_seethrough;
 } Block;
 
 void block_definitions_initilize_definitions( Texture *texture );

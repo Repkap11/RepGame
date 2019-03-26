@@ -11,10 +11,11 @@ void block_definitions_initilize_definitions( Texture *texture ) {
         Block *block = &block_definitions[ block_id ];
         block->id = ( BlockID )block_id;
         block->renderOrder = RenderOrder_Solid;
-        block->height = 1.0f;
         block->textures.top = ( BlockID )block_id;
         block->textures.side = ( BlockID )block_id;
         block->textures.bottom = ( BlockID )block_id;
+        block->no_light = NO_LIGHT_NO_DRAW;
+        block->casts_shadow = 1;
     }
 
     block_definitions[ AIR ].renderOrder = RenderOrder_Transparent;
@@ -56,8 +57,7 @@ void block_definitions_initilize_definitions( Texture *texture ) {
     block_definitions[ DARK_OAK_LOG_TOP ].renderOrder = RenderOrder_Transparent;
 
     block_definitions[ WATER ].renderOrder = RenderOrder_Water;
-    block_definitions[ WHITE_GLASS ].renderOrder = RenderOrder_Glass;
-    block_definitions[ LEAF ].renderOrder = RenderOrder_Leafs;
+    block_definitions[ WHITE_GLASS ].renderOrder = RenderOrder_GlassLeafs;
 
     block_definitions[ BOOK_CASE ].textures.top = OAK_PLANK;
     block_definitions[ BOOK_CASE ].textures.bottom = OAK_PLANK;
@@ -101,7 +101,7 @@ void block_definitions_initilize_definitions( Texture *texture ) {
     block_definitions[ BLUE_CORAL ].renderOrder = RenderOrder_Flowers;
     block_definitions[ FIRE ].renderOrder = RenderOrder_Flowers;
     block_definitions[ RED_MUSHROOM_IN_POT ].renderOrder = RenderOrder_Flowers;
-    block_definitions[ EMPTY_SPAWNER ].renderOrder = RenderOrder_Glass;
+    block_definitions[ EMPTY_SPAWNER ].renderOrder = RenderOrder_GlassLeafs;
     block_definitions[ BIRTCH_SAPPLING ].renderOrder = RenderOrder_Flowers;
     block_definitions[ BLUE_FLOWER ].renderOrder = RenderOrder_Flowers;
     block_definitions[ WHEAT_0 ].renderOrder = RenderOrder_Flowers;
@@ -112,15 +112,12 @@ void block_definitions_initilize_definitions( Texture *texture ) {
     block_definitions[ WHEAT_5 ].renderOrder = RenderOrder_Flowers;
     block_definitions[ WHEAT_6 ].renderOrder = RenderOrder_Flowers;
     block_definitions[ WHEAT_7 ].renderOrder = RenderOrder_Flowers;
-    block_definitions[ BIRTCH_LEAVES ].renderOrder = RenderOrder_Leafs;
     block_definitions[ MELLON_STEM ].renderOrder = RenderOrder_Flowers;
-    block_definitions[ PINE_LEAF ].renderOrder = RenderOrder_Leafs;
     block_definitions[ RED_FLOWER_IN_POT ].renderOrder = RenderOrder_Flowers;
     block_definitions[ DRAGON_EGG ].renderOrder = RenderOrder_Flowers;
     block_definitions[ PURPLE_CORAL ].renderOrder = RenderOrder_Flowers;
     block_definitions[ RED_CORAL ].renderOrder = RenderOrder_Flowers;
     block_definitions[ EMPTY_POT ].renderOrder = RenderOrder_Flowers;
-    block_definitions[ JUNGLE_LEAF ].renderOrder = RenderOrder_Leafs;
     block_definitions[ CARROT_0 ].renderOrder = RenderOrder_Flowers;
     block_definitions[ CARROT_1 ].renderOrder = RenderOrder_Flowers;
     block_definitions[ CARROT_2 ].renderOrder = RenderOrder_Flowers;
@@ -195,11 +192,40 @@ void block_definitions_initilize_definitions( Texture *texture ) {
     block_definitions[ WHITE_FLOWER_SAPPLING_IN_POT ].renderOrder = RenderOrder_Flowers;
     block_definitions[ END_ROD ].renderOrder = RenderOrder_Flowers;
 
+    block_definitions[ LEAF ].renderOrder = RenderOrder_GlassLeafs;
+    block_definitions[ BIRTCH_LEAVES ].renderOrder = RenderOrder_GlassLeafs;
+    block_definitions[ PINE_LEAF ].renderOrder = RenderOrder_GlassLeafs;
+    block_definitions[ JUNGLE_LEAF ].renderOrder = RenderOrder_GlassLeafs;
+
+    block_definitions[ LEAF ].no_light = NO_LIGHT_DRAW;
+    block_definitions[ BIRTCH_LEAVES ].no_light = NO_LIGHT_DRAW;
+    block_definitions[ PINE_LEAF ].no_light = NO_LIGHT_DRAW;
+    block_definitions[ JUNGLE_LEAF ].no_light = NO_LIGHT_DRAW;
+
+    block_definitions[ WATER ].no_light = NO_LIGHT_BRIGHT;
+    block_definitions[ WATER ].casts_shadow = 0;
+    block_definitions[ WHITE_GLASS ].casts_shadow = 0;
+
     for ( int block_id = 0; block_id < LAST_BLOCK_ID; block_id++ ) {
         Block *block = &block_definitions[ block_id ];
         if ( block->renderOrder == RenderOrder_Flowers ) {
             block->textures.top = TNT;
             block->textures.bottom = TNT;
+            block->no_light = NO_LIGHT_BRIGHT;
+            block->casts_shadow = false;
+            block->is_seethrough = true;
+        }
+        if ( block->renderOrder == RenderOrder_GlassLeafs ||  //
+             block->renderOrder == RenderOrder_Transparent || //
+             block->renderOrder == RenderOrder_Water ) {
+            block->is_seethrough = true;
+        }
+        if ( block->renderOrder == RenderOrder_Transparent ) {
+            block->no_light = NO_LIGHT_DRAW;
+            block->casts_shadow = false;
+        }
+        if ( block->no_light == NO_LIGHT_DRAW ) {
+            block->is_seethrough = true;
         }
     }
 }
