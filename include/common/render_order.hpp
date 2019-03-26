@@ -9,4 +9,7 @@ int render_order_casts_shadow( RenderOrder renderOrder );
 int render_order_is_visible( RenderOrder renderOrder );
 int render_order_can_mesh( RenderOrder renderOrder );
 int render_order_collides_with_player( RenderOrder renderOrder );
+int render_order_can_be_shaded( RenderOrder renderOrder );
+float render_order_get_no_light( RenderOrder renderOrder );
+
 #endif

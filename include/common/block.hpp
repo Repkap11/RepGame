@@ -26,7 +26,8 @@
 
 #define CORNER_OFFSET_c 16
 
-#define NO_LIGHT 0x7ffff
+#define NO_LIGHT_DRAW 0x7ffff
+#define NO_LIGHT_NO_DRAW 0xfffff
 
 typedef struct {
     float x;

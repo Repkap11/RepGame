@@ -288,8 +288,9 @@ void chunk_calculate_popupated_blocks( Chunk *chunk ) {
         if ( drawn_block ) {
             BlockID blockID = chunk->blocks[ index ];
             Block *block = block_definition_get_definition( blockID );
+            RenderOrder renderOrder = block->renderOrder;
 
-            workingSpace[ index ].visable = render_order_is_visible( block->renderOrder );
+            workingSpace[ index ].visable = render_order_is_visible( renderOrder );
 
             if ( workingSpace[ index ].visable ) {
 
@@ -303,7 +304,6 @@ void chunk_calculate_popupated_blocks( Chunk *chunk ) {
                 int zplus = z + 1;
                 int zminus = z - 1;
 
-                RenderOrder renderOrder = block->renderOrder;
                 if ( renderOrder < RenderOrder_Water ) {
                     // This logic fixes glass rendeing next to water, but doesn't
                     // break water rendering under water. Its kind of a hack:
@@ -317,114 +317,114 @@ void chunk_calculate_popupated_blocks( Chunk *chunk ) {
                 int visiable_left = block_definition_get_definition( chunk->blocks[ chunk_get_index_from_coords( xminus, y + 0, z + 0 ) ] )->renderOrder < renderOrder;
                 int block_is_visiable = visiable_top || visiable_bottom || visiable_left || visiable_right || visiable_front || visiable_back;
 
-                int can_be_shaded = render_order_casts_shadow( block->renderOrder );
+                int can_be_shaded = render_order_can_be_shaded( block->renderOrder );
 
-                if ( block_is_visiable && can_be_shaded ) {
-                    // If the block is visible and can be shaded, check neighbors for shade and populated the packed lighting
-                    // 2 Offsets
-                    int tl = render_order_casts_shadow( block_definition_get_definition( chunk->blocks[ chunk_get_index_from_coords( xminus, yplus, z + 0 ) ] )->renderOrder );
-                    int tr = render_order_casts_shadow( block_definition_get_definition( chunk->blocks[ chunk_get_index_from_coords( xplus, yplus, z + 0 ) ] )->renderOrder );
-                    int tf = render_order_casts_shadow( block_definition_get_definition( chunk->blocks[ chunk_get_index_from_coords( x + 0, yplus, zplus ) ] )->renderOrder );
-                    int tba = render_order_casts_shadow( block_definition_get_definition( chunk->blocks[ chunk_get_index_from_coords( x + 0, yplus, zminus ) ] )->renderOrder );
+                float no_light = render_order_get_no_light( block->renderOrder );
 
-                    int bol = render_order_casts_shadow( block_definition_get_definition( chunk->blocks[ chunk_get_index_from_coords( xminus, yminus, z + 0 ) ] )->renderOrder );
-                    int bor = render_order_casts_shadow( block_definition_get_definition( chunk->blocks[ chunk_get_index_from_coords( xplus, yminus, z + 0 ) ] )->renderOrder );
-                    int bof = render_order_casts_shadow( block_definition_get_definition( chunk->blocks[ chunk_get_index_from_coords( x + 0, yminus, zplus ) ] )->renderOrder );
-                    int boba = render_order_casts_shadow( block_definition_get_definition( chunk->blocks[ chunk_get_index_from_coords( x + 0, yminus, zminus ) ] )->renderOrder );
+                // If the block is visible and can be shaded, check neighbors for shade and populated the packed lighting
+                // 2 Offsets
+                int tl = render_order_casts_shadow( block_definition_get_definition( chunk->blocks[ chunk_get_index_from_coords( xminus, yplus, z + 0 ) ] )->renderOrder );
+                int tr = render_order_casts_shadow( block_definition_get_definition( chunk->blocks[ chunk_get_index_from_coords( xplus, yplus, z + 0 ) ] )->renderOrder );
+                int tf = render_order_casts_shadow( block_definition_get_definition( chunk->blocks[ chunk_get_index_from_coords( x + 0, yplus, zplus ) ] )->renderOrder );
+                int tba = render_order_casts_shadow( block_definition_get_definition( chunk->blocks[ chunk_get_index_from_coords( x + 0, yplus, zminus ) ] )->renderOrder );
 
-                    int fl = render_order_casts_shadow( block_definition_get_definition( chunk->blocks[ chunk_get_index_from_coords( xminus, y + 0, zplus ) ] )->renderOrder );
-                    int bal = render_order_casts_shadow( block_definition_get_definition( chunk->blocks[ chunk_get_index_from_coords( xminus, y + 0, zminus ) ] )->renderOrder );
-                    int fr = render_order_casts_shadow( block_definition_get_definition( chunk->blocks[ chunk_get_index_from_coords( xplus, y + 0, zplus ) ] )->renderOrder );
-                    int bar = render_order_casts_shadow( block_definition_get_definition( chunk->blocks[ chunk_get_index_from_coords( xplus, y + 0, zminus ) ] )->renderOrder );
+                int bol = render_order_casts_shadow( block_definition_get_definition( chunk->blocks[ chunk_get_index_from_coords( xminus, yminus, z + 0 ) ] )->renderOrder );
+                int bor = render_order_casts_shadow( block_definition_get_definition( chunk->blocks[ chunk_get_index_from_coords( xplus, yminus, z + 0 ) ] )->renderOrder );
+                int bof = render_order_casts_shadow( block_definition_get_definition( chunk->blocks[ chunk_get_index_from_coords( x + 0, yminus, zplus ) ] )->renderOrder );
+                int boba = render_order_casts_shadow( block_definition_get_definition( chunk->blocks[ chunk_get_index_from_coords( x + 0, yminus, zminus ) ] )->renderOrder );
 
-                    // 3 Offsetes
-                    int tfl = render_order_casts_shadow( block_definition_get_definition( chunk->blocks[ chunk_get_index_from_coords( xminus, yplus, zplus ) ] )->renderOrder );
-                    int tbl = render_order_casts_shadow( block_definition_get_definition( chunk->blocks[ chunk_get_index_from_coords( xminus, yplus, zminus ) ] )->renderOrder );
-                    int tfr = render_order_casts_shadow( block_definition_get_definition( chunk->blocks[ chunk_get_index_from_coords( xplus, yplus, zplus ) ] )->renderOrder );
-                    int tbr = render_order_casts_shadow( block_definition_get_definition( chunk->blocks[ chunk_get_index_from_coords( xplus, yplus, zminus ) ] )->renderOrder );
+                int fl = render_order_casts_shadow( block_definition_get_definition( chunk->blocks[ chunk_get_index_from_coords( xminus, y + 0, zplus ) ] )->renderOrder );
+                int bal = render_order_casts_shadow( block_definition_get_definition( chunk->blocks[ chunk_get_index_from_coords( xminus, y + 0, zminus ) ] )->renderOrder );
+                int fr = render_order_casts_shadow( block_definition_get_definition( chunk->blocks[ chunk_get_index_from_coords( xplus, y + 0, zplus ) ] )->renderOrder );
+                int bar = render_order_casts_shadow( block_definition_get_definition( chunk->blocks[ chunk_get_index_from_coords( xplus, y + 0, zminus ) ] )->renderOrder );
 
-                    int bfl = render_order_casts_shadow( block_definition_get_definition( chunk->blocks[ chunk_get_index_from_coords( xminus, yminus, zplus ) ] )->renderOrder );
-                    int bbl = render_order_casts_shadow( block_definition_get_definition( chunk->blocks[ chunk_get_index_from_coords( xminus, yminus, zminus ) ] )->renderOrder );
-                    int bfr = render_order_casts_shadow( block_definition_get_definition( chunk->blocks[ chunk_get_index_from_coords( xplus, yminus, zplus ) ] )->renderOrder );
-                    int bbr = render_order_casts_shadow( block_definition_get_definition( chunk->blocks[ chunk_get_index_from_coords( xplus, yminus, zminus ) ] )->renderOrder );
-                    if ( visiable_top ) {
-                        int top_tfr = tf && tr ? 3 : ( tf + tr + tfr );
-                        int top_tfl = tf && tl ? 3 : ( tf + tl + tfl );
-                        int top_tbr = tba && tr ? 3 : ( tba + tr + tbr );
-                        int top_tbl = tba && tl ? 3 : ( tba + tl + tbl );
-                        int tcc = min( top_tfr, top_tfl, top_tbr, top_tbl );
-                        workingSpace[ index ].packed_lighting[ FACE_TOP ] =                         //
-                            ( ( top_tfr << CORNER_OFFSET_tfr ) | ( top_tfl << CORNER_OFFSET_tfl ) | //
-                              ( top_tbr << CORNER_OFFSET_tbr ) | ( top_tbl << CORNER_OFFSET_tbl ) | //
-                              tcc << CORNER_OFFSET_c );
-                    } else {
-                        workingSpace[ index ].packed_lighting[ FACE_TOP ] = NO_LIGHT;
-                    }
-                    if ( visiable_bottom ) {
-                        int bottom_bfr = bof && bor ? 3 : ( bof + bor + bfr );
-                        int bottom_bfl = bof && bol ? 3 : ( bof + bol + bfl );
-                        int bottom_bbr = boba && bor ? 3 : ( boba + bor + bbr );
-                        int bottom_bbl = boba && bol ? 3 : ( boba + bol + bbl );
-                        int bcc = min( bottom_bfr, bottom_bfl, bottom_bbr, bottom_bbl );
-                        workingSpace[ index ].packed_lighting[ FACE_BOTTOM ] =                            //
-                            ( ( bottom_bfr << CORNER_OFFSET_bfr ) | ( bottom_bfl << CORNER_OFFSET_bfl ) | //
-                              ( bottom_bbr << CORNER_OFFSET_bbr ) | ( bottom_bbl << CORNER_OFFSET_bbl ) | //
-                              bcc << CORNER_OFFSET_c );
-                    } else {
-                        workingSpace[ index ].packed_lighting[ FACE_BOTTOM ] = NO_LIGHT;
-                    }
-                    if ( visiable_front ) {
-                        int front_tfr = tf && fr ? 3 : ( tf + fr + tfr );
-                        int front_tfl = tf && fl ? 3 : ( tf + fl + tfl );
-                        int front_bfr = bof && fr ? 3 : ( bof + fr + bfr );
-                        int front_bfl = bof && fl ? 3 : ( bof + fl + bfl );
-                        int cfc = min( front_tfr, front_tfl, front_bfr, front_bfl );
-                        workingSpace[ index ].packed_lighting[ FACE_FRONT ] =                           //
-                            ( ( front_tfr << CORNER_OFFSET_tfr ) | ( front_tfl << CORNER_OFFSET_tfl ) | //
-                              ( front_bfr << CORNER_OFFSET_bfr ) | ( front_bfl << CORNER_OFFSET_bfl ) | //
-                              cfc << CORNER_OFFSET_c );
-                    } else {
-                        workingSpace[ index ].packed_lighting[ FACE_FRONT ] = NO_LIGHT;
-                    }
-                    if ( visiable_back ) {
-                        int back_tbr = tba && bar ? 3 : ( tba + bar + tbr );
-                        int back_tbl = tba && bal ? 3 : ( tba + bal + tbl );
-                        int back_bbr = boba && bar ? 3 : ( boba + bar + bbr );
-                        int back_bbl = boba && bal ? 3 : ( boba + bal + bbl );
-                        int cbc = min( back_tbr, back_tbl, back_bbr, back_bbl );
-                        workingSpace[ index ].packed_lighting[ FACE_BACK ] =                          //
-                            ( ( back_tbr << CORNER_OFFSET_tbr ) | ( back_tbl << CORNER_OFFSET_tbl ) | //
-                              ( back_bbr << CORNER_OFFSET_bbr ) | ( back_bbl << CORNER_OFFSET_bbl ) | //
-                              cbc << CORNER_OFFSET_c );
-                    } else {
-                        workingSpace[ index ].packed_lighting[ FACE_BACK ] = NO_LIGHT;
-                    }
-                    if ( visiable_right ) {
-                        int right_tfr = tr && fr ? 3 : ( tr + fr + tfr );
-                        int right_tbr = tr && bar ? 3 : ( tr + bar + tbr );
-                        int right_bfr = bor && fr ? 3 : ( bor + fr + bfr );
-                        int right_bbr = bor && bar ? 3 : ( bor + bar + bbr );
-                        int ccr = min( right_tfr, right_tbr, right_bfr, right_bbr );
-                        workingSpace[ index ].packed_lighting[ FACE_RIGHT ] =                           //
-                            ( ( right_tfr << CORNER_OFFSET_tfr ) | ( right_tbr << CORNER_OFFSET_tbr ) | //
-                              ( right_bfr << CORNER_OFFSET_bfr ) | ( right_bbr << CORNER_OFFSET_bbr ) | //
-                              ccr << CORNER_OFFSET_c );
-                    } else {
-                        workingSpace[ index ].packed_lighting[ FACE_RIGHT ] = NO_LIGHT;
-                    }
-                    if ( visiable_left ) {
-                        int left_tfl = tl && fl ? 3 : ( tl + fl + tfl );
-                        int left_tbl = tl && bal ? 3 : ( tl + bal + tbl );
-                        int left_bfl = bol && fl ? 3 : ( bol + fl + bfl );
-                        int left_bbl = bol && bal ? 3 : ( bol + bal + bbl );
-                        int ccl = min( left_tfl, left_tbl, left_bfl, left_bbl );
-                        workingSpace[ index ].packed_lighting[ FACE_LEFT ] =                          //
-                            ( ( left_tfl << CORNER_OFFSET_tfl ) | ( left_tbl << CORNER_OFFSET_tbl ) | //
-                              ( left_bfl << CORNER_OFFSET_bfl ) | ( left_bbl << CORNER_OFFSET_bbl ) | //
-                              ccl << CORNER_OFFSET_c );
-                    } else {
-                        workingSpace[ index ].packed_lighting[ FACE_LEFT ] = NO_LIGHT;
-                    }
+                // 3 Offsetes
+                int tfl = render_order_casts_shadow( block_definition_get_definition( chunk->blocks[ chunk_get_index_from_coords( xminus, yplus, zplus ) ] )->renderOrder );
+                int tbl = render_order_casts_shadow( block_definition_get_definition( chunk->blocks[ chunk_get_index_from_coords( xminus, yplus, zminus ) ] )->renderOrder );
+                int tfr = render_order_casts_shadow( block_definition_get_definition( chunk->blocks[ chunk_get_index_from_coords( xplus, yplus, zplus ) ] )->renderOrder );
+                int tbr = render_order_casts_shadow( block_definition_get_definition( chunk->blocks[ chunk_get_index_from_coords( xplus, yplus, zminus ) ] )->renderOrder );
+
+                int bfl = render_order_casts_shadow( block_definition_get_definition( chunk->blocks[ chunk_get_index_from_coords( xminus, yminus, zplus ) ] )->renderOrder );
+                int bbl = render_order_casts_shadow( block_definition_get_definition( chunk->blocks[ chunk_get_index_from_coords( xminus, yminus, zminus ) ] )->renderOrder );
+                int bfr = render_order_casts_shadow( block_definition_get_definition( chunk->blocks[ chunk_get_index_from_coords( xplus, yminus, zplus ) ] )->renderOrder );
+                int bbr = render_order_casts_shadow( block_definition_get_definition( chunk->blocks[ chunk_get_index_from_coords( xplus, yminus, zminus ) ] )->renderOrder );
+                if ( visiable_top && can_be_shaded ) {
+                    int top_tfr = tf && tr ? 3 : ( tf + tr + tfr );
+                    int top_tfl = tf && tl ? 3 : ( tf + tl + tfl );
+                    int top_tbr = tba && tr ? 3 : ( tba + tr + tbr );
+                    int top_tbl = tba && tl ? 3 : ( tba + tl + tbl );
+                    int tcc = min( top_tfr, top_tfl, top_tbr, top_tbl );
+                    workingSpace[ index ].packed_lighting[ FACE_TOP ] =                         //
+                        ( ( top_tfr << CORNER_OFFSET_tfr ) | ( top_tfl << CORNER_OFFSET_tfl ) | //
+                          ( top_tbr << CORNER_OFFSET_tbr ) | ( top_tbl << CORNER_OFFSET_tbl ) | //
+                          tcc << CORNER_OFFSET_c );
+                } else {
+                    workingSpace[ index ].packed_lighting[ FACE_TOP ] = no_light;
+                }
+                if ( visiable_bottom && can_be_shaded ) {
+                    int bottom_bfr = bof && bor ? 3 : ( bof + bor + bfr );
+                    int bottom_bfl = bof && bol ? 3 : ( bof + bol + bfl );
+                    int bottom_bbr = boba && bor ? 3 : ( boba + bor + bbr );
+                    int bottom_bbl = boba && bol ? 3 : ( boba + bol + bbl );
+                    int bcc = min( bottom_bfr, bottom_bfl, bottom_bbr, bottom_bbl );
+                    workingSpace[ index ].packed_lighting[ FACE_BOTTOM ] =                            //
+                        ( ( bottom_bfr << CORNER_OFFSET_bfr ) | ( bottom_bfl << CORNER_OFFSET_bfl ) | //
+                          ( bottom_bbr << CORNER_OFFSET_bbr ) | ( bottom_bbl << CORNER_OFFSET_bbl ) | //
+                          bcc << CORNER_OFFSET_c );
+                } else {
+                    workingSpace[ index ].packed_lighting[ FACE_BOTTOM ] = no_light;
+                }
+                if ( visiable_front && can_be_shaded ) {
+                    int front_tfr = tf && fr ? 3 : ( tf + fr + tfr );
+                    int front_tfl = tf && fl ? 3 : ( tf + fl + tfl );
+                    int front_bfr = bof && fr ? 3 : ( bof + fr + bfr );
+                    int front_bfl = bof && fl ? 3 : ( bof + fl + bfl );
+                    int cfc = min( front_tfr, front_tfl, front_bfr, front_bfl );
+                    workingSpace[ index ].packed_lighting[ FACE_FRONT ] =                           //
+                        ( ( front_tfr << CORNER_OFFSET_tfr ) | ( front_tfl << CORNER_OFFSET_tfl ) | //
+                          ( front_bfr << CORNER_OFFSET_bfr ) | ( front_bfl << CORNER_OFFSET_bfl ) | //
+                          cfc << CORNER_OFFSET_c );
+                } else {
+                    workingSpace[ index ].packed_lighting[ FACE_FRONT ] = no_light;
+                }
+                if ( visiable_back && can_be_shaded ) {
+                    int back_tbr = tba && bar ? 3 : ( tba + bar + tbr );
+                    int back_tbl = tba && bal ? 3 : ( tba + bal + tbl );
+                    int back_bbr = boba && bar ? 3 : ( boba + bar + bbr );
+                    int back_bbl = boba && bal ? 3 : ( boba + bal + bbl );
+                    int cbc = min( back_tbr, back_tbl, back_bbr, back_bbl );
+                    workingSpace[ index ].packed_lighting[ FACE_BACK ] =                          //
+                        ( ( back_tbr << CORNER_OFFSET_tbr ) | ( back_tbl << CORNER_OFFSET_tbl ) | //
+                          ( back_bbr << CORNER_OFFSET_bbr ) | ( back_bbl << CORNER_OFFSET_bbl ) | //
+                          cbc << CORNER_OFFSET_c );
+                } else {
+                    workingSpace[ index ].packed_lighting[ FACE_BACK ] = no_light;
+                }
+                if ( visiable_right && can_be_shaded ) {
+                    int right_tfr = tr && fr ? 3 : ( tr + fr + tfr );
+                    int right_tbr = tr && bar ? 3 : ( tr + bar + tbr );
+                    int right_bfr = bor && fr ? 3 : ( bor + fr + bfr );
+                    int right_bbr = bor && bar ? 3 : ( bor + bar + bbr );
+                    int ccr = min( right_tfr, right_tbr, right_bfr, right_bbr );
+                    workingSpace[ index ].packed_lighting[ FACE_RIGHT ] =                           //
+                        ( ( right_tfr << CORNER_OFFSET_tfr ) | ( right_tbr << CORNER_OFFSET_tbr ) | //
+                          ( right_bfr << CORNER_OFFSET_bfr ) | ( right_bbr << CORNER_OFFSET_bbr ) | //
+                          ccr << CORNER_OFFSET_c );
+                } else {
+                    workingSpace[ index ].packed_lighting[ FACE_RIGHT ] = no_light;
+                }
+                if ( visiable_left && can_be_shaded ) {
+                    int left_tfl = tl && fl ? 3 : ( tl + fl + tfl );
+                    int left_tbl = tl && bal ? 3 : ( tl + bal + tbl );
+                    int left_bfl = bol && fl ? 3 : ( bol + fl + bfl );
+                    int left_bbl = bol && bal ? 3 : ( bol + bal + bbl );
+                    int ccl = min( left_tfl, left_tbl, left_bfl, left_bbl );
+                    workingSpace[ index ].packed_lighting[ FACE_LEFT ] =                          //
+                        ( ( left_tfl << CORNER_OFFSET_tfl ) | ( left_tbl << CORNER_OFFSET_tbl ) | //
+                          ( left_bfl << CORNER_OFFSET_bfl ) | ( left_bbl << CORNER_OFFSET_bbl ) | //
+                          ccl << CORNER_OFFSET_c );
+                } else {
+                    workingSpace[ index ].packed_lighting[ FACE_LEFT ] = no_light;
                 }
                 workingSpace[ index ].can_be_seen = block_is_visiable;
             } else {

@@ -44,6 +44,18 @@ int render_order_casts_shadow( RenderOrder renderOrder ) {
             return false;
     }
 }
+
+int render_order_can_be_shaded( RenderOrder renderOrder ) {
+    switch ( renderOrder ) {
+        case RenderOrder_Solid:
+        case RenderOrder_Leafs:
+        case RenderOrder_Glass:
+            return true;
+        default:
+            return false;
+    }
+}
+
 int render_order_is_visible( RenderOrder renderOrder ) {
     switch ( renderOrder ) {
         case RenderOrder_Transparent:
@@ -60,5 +72,17 @@ int render_order_can_mesh( RenderOrder renderOrder ) {
             return true;
         default:
             return false;
+    }
+}
+
+float render_order_get_no_light( RenderOrder renderOrder ) {
+    switch ( renderOrder ) {
+        case RenderOrder_Solid:
+        case RenderOrder_Glass:
+            return NO_LIGHT_NO_DRAW;
+        case RenderOrder_Flowers:
+            return 0;
+        default:
+            return NO_LIGHT_DRAW;
     }
 }

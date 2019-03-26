@@ -19,13 +19,14 @@ layout( location = 8 ) in vec3 packed_lighting_2;
 
 out vec2 v_TexCoordBlock;
 flat out float v_blockID;
+flat out int v_shouldDiscardNoLight;
 out float v_corner_lighting;
 
 void main( ) {
 
     // vec3 adjust = vec3( 1, 1, 1 ) - position;
     // adjust.y = position.y;
-    gl_Position = u_MVP * vec4( position * (mesh_size - u_DebugScaleOffset ) + blockCoords, 1 );
+    gl_Position = u_MVP * vec4( position * ( mesh_size - u_DebugScaleOffset ) + blockCoords, 1 );
     uint faceType = uint( faceType_f );
     // This face_adjusted isn't needed if you want a different texture per face (not the same on all sides)
     uint face_adjusted = faceType > uint( 2 ) ? uint( 2 ) : faceType;
@@ -62,6 +63,11 @@ void main( ) {
     float corner_light = float( ( uint( packed_lighting ) >> uint( corner_shift ) ) & which_bits ) / light_divisor; // Has to be a float to be interped over the shader;
     if ( corner_shift == 16.0 ) {
         corner_light /= 2.0;
+    }
+    if ( packed_lighting == float( 0xfffff ) ) {
+        v_shouldDiscardNoLight = 1;
+    } else {
+        v_shouldDiscardNoLight = 0;
     }
     corner_light = ( 3.9 - corner_light ) / 3.9;
 
