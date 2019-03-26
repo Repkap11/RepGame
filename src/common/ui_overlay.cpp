@@ -8,7 +8,7 @@
 #define SCALE ( 10.0f )
 
 #define UI_OVERLAY_VERTEX_COUNT_CROSSHAIR 8
-#define CROSSHAIR_COLOR 0, 0, 0, 0.5f
+#define CROSSHAIR_COLOR {{0, 0, 0, 0.5f}}
 UIOverlayVertex vb_data_crosshair[] = {
     {-SCALE * WIDTH, -WIDTH, 0, CROSSHAIR_COLOR}, // 0
     {-SCALE * WIDTH, WIDTH, 0, CROSSHAIR_COLOR},  // 1
