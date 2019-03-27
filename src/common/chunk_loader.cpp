@@ -2,6 +2,7 @@
 #include "common/RepGame.hpp"
 #include "common/utils/map_storage.hpp"
 #include "common/utils/terrain_loading_thread.hpp"
+#include "common/abstract/shader.hpp"
 #include "common/constants.hpp"
 #include <math.h>
 #include <stdlib.h>
@@ -274,6 +275,7 @@ void chunk_loader_draw_chunks( LoadedChunks *loadedChunks, glm::mat4 &mvp ) {
 
     // pr_debug( "Drawing %d chunks", loadedChunks->numLoadedChunks );
     for ( int renderOrder = LAST_RENDER_ORDER - 1; renderOrder > 0; renderOrder-- ) {
+        shader_set_uniform1f( &loadedChunks->shader, "u_shouldDiscardAlpha", renderOrder != RenderOrder_Water );
         for ( int i = 0; i < MAX_LOADED_CHUNKS; i++ ) {
             Chunk *chunk = &loadedChunks->chunkArray[ i ];
             if ( !chunk->cached_cull ) {
@@ -281,6 +283,7 @@ void chunk_loader_draw_chunks( LoadedChunks *loadedChunks, glm::mat4 &mvp ) {
             }
         }
     }
+    shader_set_uniform1f( &loadedChunks->shader, "u_shouldDiscardAlpha", 1 );
 }
 
 void chunk_loader_draw_mouse_selection( LoadedChunks *loadedChunks ) {

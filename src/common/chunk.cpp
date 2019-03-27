@@ -219,7 +219,7 @@ int chunk_can_extend_rect( Chunk *chunk, Block *block, unsigned int *packed_ligh
     if ( DISABLE_GROUPING_BLOCKS ) {
         return 0;
     }
-    if ( !render_order_can_mesh( block->renderOrder ) ) {
+    if ( !block->can_mesh ) {
         return 0;
     }
     if ( starting_x + size_x + dir_x > CHUNK_SIZE )
@@ -288,9 +288,9 @@ void chunk_calculate_popupated_blocks( Chunk *chunk ) {
         if ( drawn_block ) {
             BlockID blockID = chunk->blocks[ index ];
             Block *block = block_definition_get_definition( blockID );
-            RenderOrder renderOrder = block->renderOrder;
+            // RenderOrder renderOrder = block->renderOrder;
 
-            workingSpace[ index ].visable = render_order_is_visible( renderOrder );
+            workingSpace[ index ].visable = render_order_is_visible( block->renderOrder );
 
             if ( workingSpace[ index ].visable ) {
 
@@ -303,18 +303,42 @@ void chunk_calculate_popupated_blocks( Chunk *chunk ) {
 
                 int zplus = z + 1;
                 int zminus = z - 1;
+                int visiable_top = 0;
+                int visiable_bottom = 0;
+                int visiable_front = 0;
+                int visiable_back = 0;
+                int visiable_right = 0;
+                int visiable_left = 0;
+                if ( block->renderOrder == RenderOrder_Water ) {
+                    Block *block_top = block_definition_get_definition( chunk->blocks[ chunk_get_index_from_coords( x + 0, yplus, z + 0 ) ] );
+                    visiable_top = block_top->is_seethrough && block_top->id != block->id;
+                } else if ( block->renderOrder == RenderOrder_GlassLeafs && block->hides_self ) {
+                    Block *block_top = block_definition_get_definition( chunk->blocks[ chunk_get_index_from_coords( x + 0, yplus, z + 0 ) ] );
+                    visiable_top = block_top->is_seethrough && block_top->id != block->id;
 
-                if ( renderOrder < RenderOrder_Water ) {
-                    // This logic fixes glass rendeing next to water, but doesn't
-                    // break water rendering under water. Its kind of a hack:
-                    renderOrder = RenderOrder_Solid;
+                    Block *block_bottom = block_definition_get_definition( chunk->blocks[ chunk_get_index_from_coords( x + 0, yminus, z + 0 ) ] );
+                    visiable_bottom = block_bottom->is_seethrough && block_bottom->id != block->id;
+
+                    Block *block_front = block_definition_get_definition( chunk->blocks[ chunk_get_index_from_coords( x + 0, y + 0, zplus ) ] );
+                    visiable_front = block_front->is_seethrough && block_front->id != block->id;
+
+                    Block *block_back = block_definition_get_definition( chunk->blocks[ chunk_get_index_from_coords( x + 0, y + 0, zminus ) ] );
+                    visiable_back = block_back->is_seethrough && block_back->id != block->id;
+
+                    Block *block_right = block_definition_get_definition( chunk->blocks[ chunk_get_index_from_coords( xplus, y + 0, z + 0 ) ] );
+                    visiable_right = block_right->is_seethrough && block_right->id != block->id;
+
+                    Block *block_left = block_definition_get_definition( chunk->blocks[ chunk_get_index_from_coords( xminus, y + 0, z + 0 ) ] );
+                    visiable_left = block_left->is_seethrough && block_left->id != block->id;
+
+                } else {
+                    visiable_top = block_definition_get_definition( chunk->blocks[ chunk_get_index_from_coords( x + 0, yplus, z + 0 ) ] )->is_seethrough;
+                    visiable_bottom = block_definition_get_definition( chunk->blocks[ chunk_get_index_from_coords( x + 0, yminus, z + 0 ) ] )->is_seethrough;
+                    visiable_front = block_definition_get_definition( chunk->blocks[ chunk_get_index_from_coords( x + 0, y + 0, zplus ) ] )->is_seethrough;
+                    visiable_back = block_definition_get_definition( chunk->blocks[ chunk_get_index_from_coords( x + 0, y + 0, zminus ) ] )->is_seethrough;
+                    visiable_right = block_definition_get_definition( chunk->blocks[ chunk_get_index_from_coords( xplus, y + 0, z + 0 ) ] )->is_seethrough;
+                    visiable_left = block_definition_get_definition( chunk->blocks[ chunk_get_index_from_coords( xminus, y + 0, z + 0 ) ] )->is_seethrough;
                 }
-                int visiable_top = block_definition_get_definition( chunk->blocks[ chunk_get_index_from_coords( x + 0, yplus, z + 0 ) ] )->renderOrder < renderOrder;
-                int visiable_bottom = block_definition_get_definition( chunk->blocks[ chunk_get_index_from_coords( x + 0, yminus, z + 0 ) ] )->renderOrder < renderOrder;
-                int visiable_front = block_definition_get_definition( chunk->blocks[ chunk_get_index_from_coords( x + 0, y + 0, zplus ) ] )->renderOrder < renderOrder;
-                int visiable_back = block_definition_get_definition( chunk->blocks[ chunk_get_index_from_coords( x + 0, y + 0, zminus ) ] )->renderOrder < renderOrder;
-                int visiable_right = block_definition_get_definition( chunk->blocks[ chunk_get_index_from_coords( xplus, y + 0, z + 0 ) ] )->renderOrder < renderOrder;
-                int visiable_left = block_definition_get_definition( chunk->blocks[ chunk_get_index_from_coords( xminus, y + 0, z + 0 ) ] )->renderOrder < renderOrder;
                 int block_is_visiable = visiable_top || visiable_bottom || visiable_left || visiable_right || visiable_front || visiable_back;
 
                 int can_be_shaded = render_order_can_be_shaded( block->renderOrder );

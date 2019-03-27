@@ -188,6 +188,8 @@ typedef struct {
     int no_light;
     int casts_shadow;
     int is_seethrough;
+    int can_mesh;
+    int hides_self;
 } Block;
 
 void block_definitions_initilize_definitions( Texture *texture );
