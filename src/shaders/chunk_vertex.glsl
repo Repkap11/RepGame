@@ -25,6 +25,7 @@ flat out float v_blockID;
 flat out int v_shouldDiscardNoLight;
 out float v_planarDot;
 out float v_corner_lighting;
+flat out int v_needs_rotate;
 
 #define FACE_TOP 0u
 #define FACE_BOTTOM 1u
@@ -104,7 +105,21 @@ void main( ) {
 
     v_corner_lighting = face_light * corner_light;
     v_TexCoordBlock = texCoordBlock_adjust * face_scale;
+
     uint shift = ( faceType_rotated % 2u ) * 16u;
     // 0xffffu is max short 16u is sizeof(short)
     v_blockID = float( ( blockTexture[ faceType_rotated / 2u ] & ( 0xffffu << shift ) ) >> shift );
+    // if ( faceType < 2u ) {
+    //     v_blockID = blockTexture1[ faceType ];
+    // } else {
+    //     v_blockID = blockTexture2[ faceType - 3u ];
+    // }
+
+    if ( v_blockID == 0.0f ) {
+        int x_mod = ( int( ( blockCoords.x ) ) % 32 );
+        int y_mod = ( int( ( blockCoords.y ) ) % 32 );
+        int z_mod = ( int( ( blockCoords.z ) ) % 32 );
+
+        v_needs_rotate = ( 27 * x_mod + y_mod + z_mod ) % 32;
+    }
 }

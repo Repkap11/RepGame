@@ -219,6 +219,8 @@ void chunk_loader_calculate_cull( LoadedChunks *loadedChunks, const glm::mat4 &m
     }
 }
 
+int shouldInc = 0;
+int showRotation = 0;
 void chunk_loader_draw_chunks( LoadedChunks *loadedChunks, const glm::mat4 &mvp, Renderer *renderer, bool reflect_only ) {
     shader_set_uniform_mat4f( &loadedChunks->shader, "u_MVP", mvp );
 
@@ -234,6 +236,16 @@ void chunk_loader_draw_chunks( LoadedChunks *loadedChunks, const glm::mat4 &mvp,
             }
         }
     }
+    shouldInc++;
+    if ( shouldInc > 1000 ) {
+        shouldInc = 0;
+        showRotation++;
+        if ( showRotation >= 8 ) {
+            showRotation = 0;
+        }
+    }
+
+    shader_set_uniform1f( &loadedChunks->shader, "u_ShowRotation", showRotation );
     shader_set_uniform1f( &loadedChunks->shader, "u_shouldDiscardAlpha", 1 );
 }
 
