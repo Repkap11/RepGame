@@ -22,6 +22,7 @@ out vec2 v_TexCoordBlock;
 flat out float v_blockID;
 flat out int v_shouldDiscardNoLight;
 out float v_corner_lighting;
+flat out int v_needs_rotate;
 
 void main( ) {
 
@@ -76,5 +77,13 @@ void main( ) {
         v_blockID = blockTexture1[ faceType ];
     } else {
         v_blockID = blockTexture2[ faceType - 3u ];
+    }
+
+    if ( v_blockID == 0.0f ) {
+        int x_mod = ( int( ( blockCoords.x ) ) % 32 );
+        int y_mod = ( int( ( blockCoords.y ) ) % 32 );
+        int z_mod = ( int( ( blockCoords.z ) ) % 32 );
+
+        v_needs_rotate = ( 27 * x_mod + y_mod + z_mod ) % 32;
     }
 }
