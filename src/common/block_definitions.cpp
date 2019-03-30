@@ -13,9 +13,9 @@ void block_definitions_initilize_definitions( Texture *texture ) {
         Block *block = &block_definitions[ block_id ];
         block->id = ( BlockID )block_id;
         block->renderOrder = RenderOrder_Solid;
-        block->textures.top = ( BlockID )block_id;
-        block->textures.side = ( BlockID )block_id;
-        block->textures.bottom = ( BlockID )block_id;
+        for ( int i = 0; i < NUM_FACES_IN_CUBE; i++ ) {
+            block->textures[ i ] = ( BlockID )block_id;
+        }
         block->no_light = NO_LIGHT_NO_DRAW;
         block->casts_shadow = true;
         block->can_mesh = true;
@@ -23,56 +23,72 @@ void block_definitions_initilize_definitions( Texture *texture ) {
     }
     block_definitions[ WATER ].renderOrder = RenderOrder_Water;
 
-    block_definitions[ GRASS ].textures.top = GRASS;
-    block_definitions[ GRASS ].textures.side = GRASS_SIDE;
-    block_definitions[ GRASS ].textures.bottom = DIRT;
+    block_definitions[ GRASS ].textures[ FACE_LEFT ] = GRASS_SIDE;
+    block_definitions[ GRASS ].textures[ FACE_RIGHT ] = GRASS_SIDE;
+    block_definitions[ GRASS ].textures[ FACE_FRONT ] = GRASS_SIDE;
+    block_definitions[ GRASS ].textures[ FACE_BACK ] = GRASS_SIDE;
+    block_definitions[ GRASS ].textures[ FACE_BOTTOM ] = DIRT;
 
-    block_definitions[ DOUBLE_SLAB ].textures.top = SLAB_TOP;
-    block_definitions[ DOUBLE_SLAB ].textures.side = DOUBLE_SLAB;
-    block_definitions[ DOUBLE_SLAB ].textures.bottom = SLAB_TOP;
+    block_definitions[ DOUBLE_SLAB ].textures[ FACE_TOP ] = SLAB_TOP;
+    block_definitions[ DOUBLE_SLAB ].textures[ FACE_LEFT ] = DOUBLE_SLAB;
+    block_definitions[ DOUBLE_SLAB ].textures[ FACE_BOTTOM ] = SLAB_TOP;
 
-    block_definitions[ TNT ].textures.top = TNT_TOP;
-    block_definitions[ TNT ].textures.side = TNT;
-    block_definitions[ TNT ].textures.bottom = TNT_BOTTOM;
+    block_definitions[ TNT ].textures[ FACE_TOP ] = TNT_TOP;
+    block_definitions[ TNT ].textures[ FACE_BOTTOM ] = TNT_BOTTOM;
 
-    block_definitions[ OAK_LOG ].textures.top = OAK_LOG_TOP;
-    block_definitions[ OAK_LOG ].textures.bottom = OAK_LOG_TOP;
+    block_definitions[ OAK_LOG ].textures[ FACE_TOP ] = OAK_LOG_TOP;
+    block_definitions[ OAK_LOG ].textures[ FACE_BOTTOM ] = OAK_LOG_TOP;
 
-    block_definitions[ BIRTCH_LOG ].textures.top = BIRTCH_LOG_TOP;
-    block_definitions[ BIRTCH_LOG ].textures.bottom = BIRTCH_LOG_TOP;
+    block_definitions[ BIRTCH_LOG ].textures[ FACE_TOP ] = BIRTCH_LOG_TOP;
+    block_definitions[ BIRTCH_LOG ].textures[ FACE_BOTTOM ] = BIRTCH_LOG_TOP;
 
-    block_definitions[ JUNGLE_LOG ].textures.top = JUNGLE_LOG_TOP;
-    block_definitions[ JUNGLE_LOG ].textures.bottom = JUNGLE_LOG_TOP;
+    block_definitions[ JUNGLE_LOG ].textures[ FACE_TOP ] = JUNGLE_LOG_TOP;
+    block_definitions[ JUNGLE_LOG ].textures[ FACE_BOTTOM ] = JUNGLE_LOG_TOP;
 
-    block_definitions[ ACADIA_LOG ].textures.top = ACADIA_LOG_TOP;
-    block_definitions[ ACADIA_LOG ].textures.bottom = ACADIA_LOG_TOP;
+    block_definitions[ ACADIA_LOG ].textures[ FACE_TOP ] = ACADIA_LOG_TOP;
+    block_definitions[ ACADIA_LOG ].textures[ FACE_BOTTOM ] = ACADIA_LOG_TOP;
 
-    block_definitions[ DARK_OAK_LOG ].textures.top = DARK_OAK_LOG_TOP;
-    block_definitions[ DARK_OAK_LOG ].textures.bottom = DARK_OAK_LOG_TOP;
+    block_definitions[ DARK_OAK_LOG ].textures[ FACE_TOP ] = DARK_OAK_LOG_TOP;
+    block_definitions[ DARK_OAK_LOG ].textures[ FACE_BOTTOM ] = DARK_OAK_LOG_TOP;
 
-    block_definitions[ BOOK_CASE ].textures.top = OAK_PLANK;
-    block_definitions[ BOOK_CASE ].textures.bottom = OAK_PLANK;
+    block_definitions[ BOOK_CASE ].textures[ FACE_TOP ] = OAK_PLANK;
+    block_definitions[ BOOK_CASE ].textures[ FACE_BOTTOM ] = OAK_PLANK;
 
-    block_definitions[ CRAFTING_BENCH ].textures.side = CRAFTING_BENCH_SIDE;
-    block_definitions[ CRAFTING_BENCH ].textures.bottom = OAK_PLANK;
+    block_definitions[ CRAFTING_BENCH ].textures[ FACE_LEFT ] = CRAFTING_BENCH_SIDE1;
+    block_definitions[ CRAFTING_BENCH ].textures[ FACE_RIGHT ] = CRAFTING_BENCH_SIDE1;
+    block_definitions[ CRAFTING_BENCH ].textures[ FACE_FRONT ] = CRAFTING_BENCH_SIDE2;
+    block_definitions[ CRAFTING_BENCH ].textures[ FACE_BACK ] = CRAFTING_BENCH_SIDE2;
+    block_definitions[ CRAFTING_BENCH ].textures[ FACE_BOTTOM ] = OAK_PLANK;
 
-    block_definitions[ SINGLE_CHEST_SIDE ].textures.top = SINGLE_CHEST_TOP;
-    block_definitions[ SINGLE_CHEST_SIDE ].textures.bottom = SINGLE_CHEST_TOP;
+    block_definitions[ SINGLE_CHEST_SIDE ].textures[ FACE_TOP ] = SINGLE_CHEST_TOP;
+    block_definitions[ SINGLE_CHEST_SIDE ].textures[ FACE_BOTTOM ] = SINGLE_CHEST_TOP;
 
-    block_definitions[ SNOWY_GRASS ].textures.top = SNOW;
-    block_definitions[ SNOWY_GRASS ].textures.bottom = DIRT;
+    block_definitions[ SNOWY_GRASS ].textures[ FACE_TOP ] = SNOW;
+    block_definitions[ SNOWY_GRASS ].textures[ FACE_BOTTOM ] = DIRT;
 
-    block_definitions[ FURNACE_UNLIT ].textures.top = FURNACE_TOP;
-    block_definitions[ FURNACE_UNLIT ].textures.bottom = FURNACE_TOP;
+    block_definitions[ FURNACE_UNLIT ].textures[ FACE_TOP ] = FURNACE_TOP;
+    block_definitions[ FURNACE_UNLIT ].textures[ FACE_LEFT ] = FURNACE_UNLIT;
+    block_definitions[ FURNACE_UNLIT ].textures[ FACE_RIGHT ] = FURNACE_SIDE;
+    block_definitions[ FURNACE_UNLIT ].textures[ FACE_FRONT ] = FURNACE_SIDE;
+    block_definitions[ FURNACE_UNLIT ].textures[ FACE_BACK ] = FURNACE_SIDE;    block_definitions[ FURNACE_UNLIT ].textures[ FACE_BOTTOM ] = FURNACE_TOP;
 
-    block_definitions[ FURNACE_LIT ].textures.top = FURNACE_TOP;
-    block_definitions[ FURNACE_LIT ].textures.bottom = FURNACE_TOP;
+    block_definitions[ FURNACE_LIT ].textures[ FACE_TOP ] = FURNACE_TOP;
+    block_definitions[ FURNACE_LIT ].textures[ FACE_LEFT ] = FURNACE_LIT;
+    block_definitions[ FURNACE_LIT ].textures[ FACE_RIGHT ] = FURNACE_SIDE;
+    block_definitions[ FURNACE_LIT ].textures[ FACE_FRONT ] = FURNACE_SIDE;
+    block_definitions[ FURNACE_LIT ].textures[ FACE_BACK ] = FURNACE_SIDE;    block_definitions[ FURNACE_LIT ].textures[ FACE_BOTTOM ] = FURNACE_TOP;
 
-    block_definitions[ MYCELIUM ].textures.side = MYCELIUM_SIDE;
-    block_definitions[ MYCELIUM ].textures.bottom = DIRT;
+    block_definitions[ MYCELIUM ].textures[ FACE_LEFT ] = MYCELIUM_SIDE;
+    block_definitions[ MYCELIUM ].textures[ FACE_RIGHT ] = MYCELIUM_SIDE;
+    block_definitions[ MYCELIUM ].textures[ FACE_FRONT ] = MYCELIUM_SIDE;
+    block_definitions[ MYCELIUM ].textures[ FACE_BACK ] = MYCELIUM_SIDE;
+    block_definitions[ MYCELIUM ].textures[ FACE_BOTTOM ] = DIRT;
 
-    block_definitions[ PODZEL ].textures.side = PODZEL_SIDE;
-    block_definitions[ PODZEL ].textures.bottom = DIRT;
+    block_definitions[ PODZEL ].textures[ FACE_LEFT ] = PODZEL_SIDE;
+    block_definitions[ PODZEL ].textures[ FACE_RIGHT ] = PODZEL_SIDE;
+    block_definitions[ PODZEL ].textures[ FACE_FRONT ] = PODZEL_SIDE;
+    block_definitions[ PODZEL ].textures[ FACE_BACK ] = PODZEL_SIDE;
+    block_definitions[ PODZEL ].textures[ FACE_BOTTOM ] = DIRT;
     do_flowers( block_definitions );
     do_disable( block_definitions );
 
@@ -102,8 +118,8 @@ void block_definitions_initilize_definitions( Texture *texture ) {
     for ( int block_id = 0; block_id < LAST_BLOCK_ID; block_id++ ) {
         Block *block = &block_definitions[ block_id ];
         if ( block->renderOrder == RenderOrder_Flowers ) {
-            block->textures.top = TNT;
-            block->textures.bottom = TNT;
+            block->textures[ FACE_TOP ] = TNT;
+            block->textures[ FACE_BOTTOM ] = TNT;
             block->is_seethrough = true;
             block->no_light = NO_LIGHT_BRIGHT;
             block->casts_shadow = false;
@@ -158,7 +174,8 @@ void do_disable( Block *block_definitions ) {
     block_definitions[ TNT_BOTTOM ].renderOrder = RenderOrder_Transparent;
     block_definitions[ SLAB_TOP ].renderOrder = RenderOrder_Transparent;
     block_definitions[ GRASS_SIDE ].renderOrder = RenderOrder_Transparent;
-    block_definitions[ CRAFTING_BENCH_SIDE ].renderOrder = RenderOrder_Transparent;
+    block_definitions[ CRAFTING_BENCH_SIDE1 ].renderOrder = RenderOrder_Transparent;
+    block_definitions[ CRAFTING_BENCH_SIDE2 ].renderOrder = RenderOrder_Transparent;
 }
 
 void do_flowers( Block *block_definitions ) {

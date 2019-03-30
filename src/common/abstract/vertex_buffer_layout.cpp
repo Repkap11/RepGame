@@ -25,7 +25,7 @@ unsigned int vertex_buffer_layout_size_of_type( unsigned int type ) {
     }
 }
 
-void vertex_buffer_layout_init_element( VertexBufferElement *vertexBufferElement, unsigned int type, unsigned int count, unsigned int normalized ) {
+inline void vertex_buffer_layout_init_element( VertexBufferElement *vertexBufferElement, unsigned int type, unsigned int count, unsigned int normalized ) {
     vertexBufferElement->type = type;
     vertexBufferElement->count = count;
     vertexBufferElement->normalized = normalized;
@@ -42,6 +42,12 @@ void vertex_buffer_layout_push_float( VertexBufferLayout *vertexBufferLayout, un
         vertexBufferLayout->stride += count * vertex_buffer_layout_size_of_type( GL_FLOAT );
     } else {
         pr_debug( "Error, too meny elements in VertexBufferLayout, just increase the hardcoded limit" );
+    }
+}
+
+void vertex_buffer_layout_push_float_array( VertexBufferLayout *vertexBufferLayout, unsigned int count ) {
+    for ( unsigned int i = 0; i < count; i++ ) {
+        vertex_buffer_layout_push_float( vertexBufferLayout, 1 );
     }
 }
 

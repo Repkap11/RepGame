@@ -1,6 +1,8 @@
 #ifndef HEADER_BLOCK_DEFINITIONS_H
 #define HEADER_BLOCK_DEFINITIONS_H
 
+#define NUM_FACES_IN_CUBE 6
+
 // According to GIMP upper left pixel coord
 // X/16 + 24*(Y/16) + 1
 typedef enum {
@@ -46,24 +48,26 @@ typedef enum {
     JUNGLE_SAPLING, // 39
     BOOK_CASE = 52,
     DARK_BARRIER = 55,
-    DARK_DEAD_SAPPLING = 56,
-    GRASS_TUFT = 57,
+    DARK_DEAD_SAPPLING,
+    GRASS_TUFT,
     CRAFTING_BENCH = 60,
-    FURNACE_UNLIT = 61,
+    FURNACE_UNLIT,
+    FURNACE_SIDE,
     WHITE_GLASS = 74,
     LEAF = 77,
     LIGHT_DEAD_SAPPLING = 80,
-    GARBAGE_SAPPLING = 81,
-    CRAFTING_BENCH_SIDE = 84,
-    FURNACE_LIT = 86,
-    FURNACE_TOP = 87,
-    DARK_OAK_SAPPLING = 88,
+    GARBAGE_SAPPLING,
+    CRAFTING_BENCH_SIDE1 = 84,
+    CRAFTING_BENCH_SIDE2,
+    FURNACE_LIT,
+    FURNACE_TOP,
+    DARK_OAK_SAPPLING,
     BLUE_CORAL = 91,
-    FIRE = 92,
+    FIRE,
     WATER = 95,
-    RED_MUSHROOM_IN_POT = 96,
+    RED_MUSHROOM_IN_POT,
     EMPTY_SPAWNER = 98,
-    SNOW = 99,
+    SNOW,
     SNOWY_GRASS = 101,
     MYCELIUM_SIDE = 110,
     MYCELIUM = 111,
@@ -176,14 +180,8 @@ typedef enum {
 #include "common/render_order.hpp"
 
 typedef struct {
-    BlockID top;
-    BlockID side;
-    BlockID bottom;
-} BlockTextureMap;
-
-typedef struct {
     BlockID id;
-    BlockTextureMap textures;
+    BlockID textures[ NUM_FACES_IN_CUBE ];
     RenderOrder renderOrder;
     int no_light;
     int casts_shadow;

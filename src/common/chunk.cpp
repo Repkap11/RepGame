@@ -510,11 +510,8 @@ void chunk_calculate_popupated_blocks( Chunk *chunk ) {
 
                         for ( int i = 0; i < NUM_FACES_IN_CUBE; i++ ) {
                             blockCoord->packed_lighting[ i ] = workingSpace[ index ].packed_lighting[ i ];
+                            blockCoord->face[ i ] = block->textures[ i ] - 1;
                         }
-
-                        blockCoord->face_top = block->textures.top - 1;
-                        blockCoord->face_sides = block->textures.side - 1;
-                        blockCoord->face_bottom = block->textures.bottom - 1;
                     }
                 }
             }
