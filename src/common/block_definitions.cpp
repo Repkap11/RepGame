@@ -60,8 +60,12 @@ void block_definitions_initilize_definitions( Texture *texture ) {
     block_definitions[ CRAFTING_BENCH ].textures[ FACE_BACK ] = CRAFTING_BENCH_SIDE2;
     block_definitions[ CRAFTING_BENCH ].textures[ FACE_BOTTOM ] = OAK_PLANK;
 
-    block_definitions[ SINGLE_CHEST_SIDE ].textures[ FACE_TOP ] = SINGLE_CHEST_TOP;
-    block_definitions[ SINGLE_CHEST_SIDE ].textures[ FACE_BOTTOM ] = SINGLE_CHEST_TOP;
+    block_definitions[ SINGLE_CHEST_SIDE_LATCH ].textures[ FACE_TOP ] = SINGLE_CHEST_TOP;
+    block_definitions[ SINGLE_CHEST_SIDE_LATCH ].textures[ FACE_FRONT ] = SINGLE_CHEST_SIDE_EMPTY;
+    block_definitions[ SINGLE_CHEST_SIDE_LATCH ].textures[ FACE_BACK ] = SINGLE_CHEST_SIDE_EMPTY;
+    block_definitions[ SINGLE_CHEST_SIDE_LATCH ].textures[ FACE_LEFT ] = SINGLE_CHEST_SIDE_EMPTY;
+    block_definitions[ SINGLE_CHEST_SIDE_LATCH ].textures[ FACE_RIGHT ] = SINGLE_CHEST_SIDE_LATCH;
+    block_definitions[ SINGLE_CHEST_SIDE_LATCH ].textures[ FACE_BOTTOM ] = SINGLE_CHEST_TOP;
 
     block_definitions[ SNOWY_GRASS ].textures[ FACE_TOP ] = SNOW;
     block_definitions[ SNOWY_GRASS ].textures[ FACE_BOTTOM ] = DIRT;
@@ -70,13 +74,15 @@ void block_definitions_initilize_definitions( Texture *texture ) {
     block_definitions[ FURNACE_UNLIT ].textures[ FACE_LEFT ] = FURNACE_UNLIT;
     block_definitions[ FURNACE_UNLIT ].textures[ FACE_RIGHT ] = FURNACE_SIDE;
     block_definitions[ FURNACE_UNLIT ].textures[ FACE_FRONT ] = FURNACE_SIDE;
-    block_definitions[ FURNACE_UNLIT ].textures[ FACE_BACK ] = FURNACE_SIDE;    block_definitions[ FURNACE_UNLIT ].textures[ FACE_BOTTOM ] = FURNACE_TOP;
+    block_definitions[ FURNACE_UNLIT ].textures[ FACE_BACK ] = FURNACE_SIDE;
+    block_definitions[ FURNACE_UNLIT ].textures[ FACE_BOTTOM ] = FURNACE_TOP;
 
     block_definitions[ FURNACE_LIT ].textures[ FACE_TOP ] = FURNACE_TOP;
     block_definitions[ FURNACE_LIT ].textures[ FACE_LEFT ] = FURNACE_LIT;
     block_definitions[ FURNACE_LIT ].textures[ FACE_RIGHT ] = FURNACE_SIDE;
     block_definitions[ FURNACE_LIT ].textures[ FACE_FRONT ] = FURNACE_SIDE;
-    block_definitions[ FURNACE_LIT ].textures[ FACE_BACK ] = FURNACE_SIDE;    block_definitions[ FURNACE_LIT ].textures[ FACE_BOTTOM ] = FURNACE_TOP;
+    block_definitions[ FURNACE_LIT ].textures[ FACE_BACK ] = FURNACE_SIDE;
+    block_definitions[ FURNACE_LIT ].textures[ FACE_BOTTOM ] = FURNACE_TOP;
 
     block_definitions[ MYCELIUM ].textures[ FACE_LEFT ] = MYCELIUM_SIDE;
     block_definitions[ MYCELIUM ].textures[ FACE_RIGHT ] = MYCELIUM_SIDE;
