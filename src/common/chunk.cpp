@@ -61,12 +61,17 @@ void chunk_calculate_sides( Chunk *chunk, TRIP_ARGS( int center_next_ ) ) {
             chunk_ib_data[ RenderOrder_Water ][ ib_size[ RenderOrder_Water ]++ ] = ib_data_water[ 12 * IB_POSITION_WATER_BOTTOM + i ];
         }
     }
-    for ( int renderOrder = 0; renderOrder < LAST_RENDER_ORDER; renderOrder++ ) {
+    for ( int renderOrder = 1; renderOrder < LAST_RENDER_ORDER; renderOrder++ ) {
         unsigned int *ib_data = chunk_ib_data[ renderOrder ];
+        unsigned int ib_new_size = ib_size[ renderOrder ];
         if ( renderOrder == RenderOrder_Flowers ) {
             ib_data = ib_data_flowers;
+            ib_new_size = render_order_ib_size( ( RenderOrder )renderOrder );
+        } else if ( renderOrder == RenderOrder_Opaque || renderOrder == RenderOrder_Water ) {
+        } else {
+            pr_debug( "Unexpected index buffer. Crash likely on WASM ro:%d", renderOrder );
         }
-        index_buffer_set_data( &chunk->layers[ renderOrder ].ib, ib_data, render_order_ib_size( ( RenderOrder )renderOrder ) );
+        index_buffer_set_data( &chunk->layers[ renderOrder ].ib, ib_data, ib_new_size );
         free( chunk_ib_data[ renderOrder ] );
     }
 }
