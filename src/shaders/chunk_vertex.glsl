@@ -13,9 +13,10 @@ layout( location = 3 ) in float corner_shift;
 // There is one of these per block
 layout( location = 4 ) in vec3 blockCoords;
 layout( location = 5 ) in vec3 mesh_size;
-layout( location = 6 ) in float[ 6 ] blockTexture;
-layout( location = 12 ) in vec3 packed_lighting_1;
-layout( location = 13 ) in vec3 packed_lighting_2;
+layout( location = 6 ) in vec3 blockTexture1;
+layout( location = 7 ) in vec3 blockTexture2;
+layout( location = 8 ) in vec3 packed_lighting_1;
+layout( location = 9 ) in vec3 packed_lighting_2;
 
 out vec2 v_TexCoordBlock;
 flat out float v_blockID;
@@ -71,5 +72,9 @@ void main( ) {
 
     v_corner_lighting = face_light * corner_light;
     v_TexCoordBlock = texCoordBlock * face_scale;
-    v_blockID = blockTexture[ faceType ];
+    if ( faceType < 2u ) {
+        v_blockID = blockTexture1[ faceType ];
+    } else {
+        v_blockID = blockTexture2[ faceType - 3u ];
+    }
 }
