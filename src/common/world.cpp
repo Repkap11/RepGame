@@ -53,7 +53,7 @@ Chunk *world_get_loaded_chunk( LoadedChunks *loadedChunks, TRIP_ARGS( int block_
     return chunk_loader_get_chunk( loadedChunks, TRIP_ARGS( chunk_ ) );
 }
 
-BlockID world_get_block( Chunk *chunk, TRIP_ARGS( int block_ ) ) {
+BlockID world_get_block_from_chunk( Chunk *chunk, TRIP_ARGS( int block_ ) ) {
     int diff_x = block_x - chunk->chunk_x * CHUNK_SIZE;
     int diff_y = block_y - chunk->chunk_y * CHUNK_SIZE;
     int diff_z = block_z - chunk->chunk_z * CHUNK_SIZE;
@@ -66,13 +66,13 @@ BlockID world_get_loaded_block( LoadedChunks *loadedChunks, TRIP_ARGS( int block
         if ( chunk->is_loading ) {
             return LAST_BLOCK_ID;
         }
-        BlockID blockID = world_get_block( chunk, TRIP_ARGS( block_ ) );
+        BlockID blockID = world_get_block_from_chunk( chunk, TRIP_ARGS( block_ ) );
         return blockID;
     }
     return LAST_BLOCK_ID;
 }
 
-void world_set_block( LoadedChunks *loadedChunks, TRIP_ARGS( int block_ ), BlockID blockID ) {
+void world_set_loaded_block( LoadedChunks *loadedChunks, TRIP_ARGS( int block_ ), BlockID blockID ) {
     int chunk_x = floor( block_x / ( float )CHUNK_SIZE );
     int chunk_y = floor( block_y / ( float )CHUNK_SIZE );
     int chunk_z = floor( block_z / ( float )CHUNK_SIZE );

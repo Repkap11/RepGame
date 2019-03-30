@@ -37,7 +37,7 @@ int render_order_collides_with_player( RenderOrder renderOrder ) {
 
 int render_order_can_be_shaded( RenderOrder renderOrder ) {
     switch ( renderOrder ) {
-        case RenderOrder_Solid:
+        case RenderOrder_Opaque:
         case RenderOrder_GlassLeafs:
             return true;
         default:
@@ -55,7 +55,7 @@ int render_order_is_visible( RenderOrder renderOrder ) {
 }
 int render_order_can_mesh( RenderOrder renderOrder ) {
     switch ( renderOrder ) {
-        case RenderOrder_Solid:
+        case RenderOrder_Opaque:
         case RenderOrder_Water:
             return true;
         default:

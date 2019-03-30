@@ -189,6 +189,7 @@ typedef struct {
     int is_seethrough;
     int can_mesh;
     int hides_self;
+    int needs_place_on_solid;
 } Block;
 
 void block_definitions_initilize_definitions( Texture *texture );

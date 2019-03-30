@@ -12,7 +12,7 @@ void block_definitions_initilize_definitions( Texture *texture ) {
     for ( int block_id = 0; block_id < LAST_BLOCK_ID; block_id++ ) {
         Block *block = &block_definitions[ block_id ];
         block->id = ( BlockID )block_id;
-        block->renderOrder = RenderOrder_Solid;
+        block->renderOrder = RenderOrder_Opaque;
         for ( int i = 0; i < NUM_FACES_IN_CUBE; i++ ) {
             block->textures[ i ] = ( BlockID )block_id;
         }
@@ -20,6 +20,7 @@ void block_definitions_initilize_definitions( Texture *texture ) {
         block->casts_shadow = true;
         block->can_mesh = true;
         block->hides_self = false;
+        block->needs_place_on_solid = false;
     }
     block_definitions[ WATER ].renderOrder = RenderOrder_Water;
 
@@ -130,12 +131,12 @@ void block_definitions_initilize_definitions( Texture *texture ) {
             block->no_light = NO_LIGHT_BRIGHT;
             block->casts_shadow = false;
             block->can_mesh = false;
+            block->needs_place_on_solid = true;
         }
         if ( block->renderOrder == RenderOrder_Water ) {
             block->is_seethrough = true;
             block->no_light = NO_LIGHT_BRIGHT;
             block->casts_shadow = false;
-            // block->can_mesh = true;
         }
         if ( block->renderOrder == RenderOrder_Transparent ) {
             block->is_seethrough = true;

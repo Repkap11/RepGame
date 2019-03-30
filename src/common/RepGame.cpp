@@ -22,23 +22,33 @@ RepGameState globalGameState;
 
 void change_block( int place, BlockID blockID ) {
     TRIP_STATE( int block_ );
+    Block *block = block_definition_get_definition( blockID );
+
     if ( place ) {
         block_x = globalGameState.block_selection.create_x;
         block_y = globalGameState.block_selection.create_y;
         block_z = globalGameState.block_selection.create_z;
         if ( render_order_collides_with_player( block_definition_get_definition( blockID )->renderOrder ) ) {
-            int hits = collision_check_collides_with_block( &globalGameState.gameChunks, globalGameState.camera.x, globalGameState.camera.y, globalGameState.camera.z, TRIP_ARGS( block_ ) );
-            if ( hits ) {
+            // If the block collides with the player, make sure its not being placed where it would collide
+            if ( collision_check_collides_with_block( &globalGameState.gameChunks, globalGameState.camera.x, globalGameState.camera.y, globalGameState.camera.z, TRIP_ARGS( block_ ) ) ) {
                 return;
             }
         }
+        if ( block->needs_place_on_solid ) {
+            BlockID under_blockID = world_get_loaded_block( &globalGameState.gameChunks, block_x, block_y - 1, block_z );
+            Block *under_block = block_definition_get_definition( under_blockID );
+            if ( !render_order_collides_with_player( under_block->renderOrder ) ) {
+                return;
+            }
+        }
+
     } else {
         block_x = globalGameState.block_selection.destroy_x;
         block_y = globalGameState.block_selection.destroy_y;
         block_z = globalGameState.block_selection.destroy_z;
     }
 
-    world_set_block( &globalGameState.gameChunks, TRIP_ARGS( block_ ), blockID );
+    world_set_loaded_block( &globalGameState.gameChunks, TRIP_ARGS( block_ ), blockID );
 }
 
 void repgame_process_mouse_events( ) {
