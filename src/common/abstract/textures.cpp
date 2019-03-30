@@ -149,7 +149,6 @@ void texture_init_sky( Texture *texture ) {
     texture->slot = 2;
     glActiveTexture( GL_TEXTURE0 + texture->slot );
     texture->m_RendererId = loadTexture( bufferSky, 2048, 1024, BMP_HEADER_SIZE, 2048, 1024 );
-    texture->m_RendererId = 0;
 }
 void texture_bind( Texture *texture, unsigned int texture_slot ) {
     glActiveTexture( GL_TEXTURE0 + texture_slot );
