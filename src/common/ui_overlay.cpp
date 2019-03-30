@@ -8,7 +8,10 @@
 #define SCALE ( 10.0f )
 
 #define UI_OVERLAY_VERTEX_COUNT_CROSSHAIR 8
-#define CROSSHAIR_COLOR {{0, 0, 0, 0.5f}}
+#define CROSSHAIR_COLOR                                                                                                                                                                                                                        \
+    {                                                                                                                                                                                                                                          \
+        { 1, 1, 1, 0.5f }                                                                                                                                                                                                                      \
+    }
 UIOverlayVertex vb_data_crosshair[] = {
     {-SCALE * WIDTH, -WIDTH, 0, CROSSHAIR_COLOR}, // 0
     {-SCALE * WIDTH, WIDTH, 0, CROSSHAIR_COLOR},  // 1
@@ -119,6 +122,8 @@ void ui_overlay_draw( UIOverlay *ui_overlay, Renderer *renderer, Texture *blocks
     if ( input->inventory_open ) {
         renderer_draw( renderer, &ui_overlay->draw_inventory.va, &ui_overlay->draw_inventory.ib, &ui_overlay->shader, 1 );
     } else {
+        glBlendFunc( GL_ONE_MINUS_DST_COLOR, GL_ZERO );
         renderer_draw( renderer, &ui_overlay->draw_crosshair.va, &ui_overlay->draw_crosshair.ib, &ui_overlay->shader, 1 );
+        glBlendFunc( GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA );
     }
 }
