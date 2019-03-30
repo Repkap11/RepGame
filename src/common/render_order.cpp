@@ -38,7 +38,6 @@ int render_order_collides_with_player( RenderOrder renderOrder ) {
 int render_order_can_be_shaded( RenderOrder renderOrder ) {
     switch ( renderOrder ) {
         case RenderOrder_Opaque:
-        case RenderOrder_GlassLeafs:
             return true;
         default:
             return false;

@@ -99,11 +99,11 @@ void block_definitions_initilize_definitions( Texture *texture ) {
     do_flowers( block_definitions );
     do_disable( block_definitions );
 
-    block_definitions[ WHITE_GLASS ].renderOrder = RenderOrder_GlassLeafs;
-    block_definitions[ BIRTCH_LEAVES ].renderOrder = RenderOrder_GlassLeafs;
-    block_definitions[ PINE_LEAF ].renderOrder = RenderOrder_GlassLeafs;
-    block_definitions[ JUNGLE_LEAF ].renderOrder = RenderOrder_GlassLeafs;
-    block_definitions[ LEAF ].renderOrder = RenderOrder_GlassLeafs;
+    block_definitions[ WHITE_GLASS ].is_seethrough = true;
+    block_definitions[ BIRTCH_LEAVES ].is_seethrough = true;
+    block_definitions[ PINE_LEAF ].is_seethrough = true;
+    block_definitions[ JUNGLE_LEAF ].is_seethrough = true;
+    block_definitions[ LEAF ].is_seethrough = true;
 
     block_definitions[ WHITE_GLASS ].casts_shadow = false;
 
@@ -143,12 +143,6 @@ void block_definitions_initilize_definitions( Texture *texture ) {
             block->no_light = NO_LIGHT_DRAW;
             block->casts_shadow = false;
             // block->can_mesh = true; not that it matters...
-        }
-        if ( block->renderOrder == RenderOrder_GlassLeafs ) {
-            block->is_seethrough = true;
-            // block->no_light
-            // block->casts_shadow;
-            // block->can_mesh = true;
         }
     }
 }

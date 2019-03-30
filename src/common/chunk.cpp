@@ -32,44 +32,32 @@ void chunk_calculate_sides( Chunk *chunk, TRIP_ARGS( int center_next_ ) ) {
     if ( visable_front ) {
         for ( int i = 0; i < 12; i++ ) {
             chunk_ib_data[ RenderOrder_Opaque ][ ib_size[ RenderOrder_Opaque ]++ ] = ib_data_solid[ 12 * FACE_FRONT + i ];
-            chunk_ib_data[ RenderOrder_GlassLeafs ][ ib_size[ RenderOrder_GlassLeafs ]++ ] = ib_data_solid[ 12 * FACE_FRONT + i ];
-            // chunk_ib_data[ RenderOrder_Leafs ][ ib_size[ RenderOrder_Leafs ]++ ] = ib_data_solid[ 12 * FACE_FRONT + i ];
         }
     }
     if ( visable_right ) {
         for ( int i = 0; i < 12; i++ ) {
             chunk_ib_data[ RenderOrder_Opaque ][ ib_size[ RenderOrder_Opaque ]++ ] = ib_data_solid[ 12 * FACE_RIGHT + i ];
-            chunk_ib_data[ RenderOrder_GlassLeafs ][ ib_size[ RenderOrder_GlassLeafs ]++ ] = ib_data_solid[ 12 * FACE_RIGHT + i ];
-            // chunk_ib_data[ RenderOrder_Leafs ][ ib_size[ RenderOrder_Leafs ]++ ] = ib_data_solid[ 12 * FACE_RIGHT + i ];
         }
     }
     if ( visable_back ) {
         for ( int i = 0; i < 12; i++ ) {
             chunk_ib_data[ RenderOrder_Opaque ][ ib_size[ RenderOrder_Opaque ]++ ] = ib_data_solid[ 12 * FACE_BACK + i ];
-            chunk_ib_data[ RenderOrder_GlassLeafs ][ ib_size[ RenderOrder_GlassLeafs ]++ ] = ib_data_solid[ 12 * FACE_BACK + i ];
-            // chunk_ib_data[ RenderOrder_Leafs ][ ib_size[ RenderOrder_Leafs ]++ ] = ib_data_solid[ 12 * FACE_BACK + i ];
         }
     }
     if ( visable_left ) {
         for ( int i = 0; i < 12; i++ ) {
             chunk_ib_data[ RenderOrder_Opaque ][ ib_size[ RenderOrder_Opaque ]++ ] = ib_data_solid[ 12 * FACE_LEFT + i ];
-            chunk_ib_data[ RenderOrder_GlassLeafs ][ ib_size[ RenderOrder_GlassLeafs ]++ ] = ib_data_solid[ 12 * FACE_LEFT + i ];
-            // chunk_ib_data[ RenderOrder_Leafs ][ ib_size[ RenderOrder_Leafs ]++ ] = ib_data_solid[ 12 * FACE_LEFT + i ];
         }
     }
     if ( visable_top ) {
         for ( int i = 0; i < 12; i++ ) {
             chunk_ib_data[ RenderOrder_Opaque ][ ib_size[ RenderOrder_Opaque ]++ ] = ib_data_solid[ 12 * FACE_TOP + i ];
-            chunk_ib_data[ RenderOrder_GlassLeafs ][ ib_size[ RenderOrder_GlassLeafs ]++ ] = ib_data_solid[ 12 * FACE_TOP + i ];
-            // chunk_ib_data[ RenderOrder_Leafs ][ ib_size[ RenderOrder_Leafs ]++ ] = ib_data_solid[ 12 * FACE_TOP + i ];
             chunk_ib_data[ RenderOrder_Water ][ ib_size[ RenderOrder_Water ]++ ] = ib_data_water[ 12 * IB_POSITION_WATER_TOP + i ];
         }
     }
     if ( visable_bottom ) {
         for ( int i = 0; i < 12; i++ ) {
             chunk_ib_data[ RenderOrder_Opaque ][ ib_size[ RenderOrder_Opaque ]++ ] = ib_data_solid[ 12 * FACE_BOTTOM + i ];
-            chunk_ib_data[ RenderOrder_GlassLeafs ][ ib_size[ RenderOrder_GlassLeafs ]++ ] = ib_data_solid[ 12 * FACE_BOTTOM + i ];
-            // chunk_ib_data[ RenderOrder_Leafs ][ ib_size[ RenderOrder_Leafs ]++ ] = ib_data_solid[ 12 * FACE_BOTTOM + i ];
             chunk_ib_data[ RenderOrder_Water ][ ib_size[ RenderOrder_Water ]++ ] = ib_data_water[ 12 * IB_POSITION_WATER_BOTTOM + i ];
         }
     }
@@ -312,7 +300,7 @@ void chunk_calculate_popupated_blocks( Chunk *chunk ) {
                 if ( block->renderOrder == RenderOrder_Water ) {
                     Block *block_top = block_definition_get_definition( chunk->blocks[ chunk_get_index_from_coords( x + 0, yplus, z + 0 ) ] );
                     visiable_top = block_top->is_seethrough && block_top->id != block->id;
-                } else if ( block->renderOrder == RenderOrder_GlassLeafs && block->hides_self ) {
+                } else if ( block->is_seethrough && block->hides_self ) {
                     Block *block_top = block_definition_get_definition( chunk->blocks[ chunk_get_index_from_coords( x + 0, yplus, z + 0 ) ] );
                     visiable_top = block_top->is_seethrough && block_top->id != block->id;
 
