@@ -6,6 +6,9 @@
 #include <stdio.h>
 
 #define pr_debug( fmt, ... ) fprintf( stdout, "%s:%d:%s():" fmt "\n", __FILE__, __LINE__, __func__, ##__VA_ARGS__ );
+#ifdef REPGAME_FAST
+#define showErrors( )
+#else
 #define showErrors( )                                                                                                                                                                                                                          \
     {                                                                                                                                                                                                                                          \
         int errCode;                                                                                                                                                                                                                           \
@@ -16,4 +19,5 @@
         }                                                                                                                                                                                                                                      \
     }
 
+#endif
 #endif

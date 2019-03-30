@@ -2,8 +2,8 @@
 MAKEFILES += linux.mk
 
 CFLAGS_LINUX := -Wall -Werror -std=c++98 -Wno-unused-variable -fno-pie -march=native
-#CFLAGS_LINUX += -O3
-CFLAGS_LINUX += -g
+CFLAGS_LINUX += -O3 -DREPGAME_FAST
+#CFLAGS_LINUX += -g
 CFLAGS_LINUX += -DREPGAME_LINUX
 LIBS_LINUX := -l m -l GL -l GLU -l GLEW -l glut -pthread
 

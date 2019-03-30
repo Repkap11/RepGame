@@ -47,8 +47,15 @@
 #define CAMERA_SIZE 0.01f // Defines how much crop is in front (low for minecraft)
 #define PERSON_HEIGHT 1.62f
 #define DRAW_DISTANCE 1000
+
+#ifdef REPGAME_FAST
+#define LIMIT_FPS 0
+#define SHOW_FPS 1
+#else
 #define LIMIT_FPS 1
 #define SHOW_FPS 0
+#endif
+
 #define FPS_LIMIT 60.0f
 #define CAMERA_FOV 60.0f
 #ifdef REPGAME_WASM
