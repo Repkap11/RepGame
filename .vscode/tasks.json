@@ -11,6 +11,13 @@
       "group": "test"
     },
     {
+      "label": "make windows-run",
+      "type": "shell",
+      "command": "make windows-run",
+      "problemMatcher": [],
+      "group": "test"
+    },
+    {
       "label": "make android-run",
       "type": "shell",
       "command": "make android-run",
@@ -29,6 +36,13 @@
       "label": "make linux",
       "type": "shell",
       "command": "make linux",
+      "problemMatcher": [],
+      "group": "build"
+    },
+    {
+      "label": "make windows",
+      "type": "shell",
+      "command": "make windows",
       "problemMatcher": [],
       "group": "build"
     },

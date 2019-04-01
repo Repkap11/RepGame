@@ -17,6 +17,12 @@ const char file_root_player_data[ CHUNK_NAME_LENGTH ] = "%s/player.dat";
 
 char map_name[ CHUNK_NAME_LENGTH ];
 
+#if defined( REPGAME_WINDOWS )
+#define MKDIR_ETRA_FLAGS
+#else
+#define MKDIR_ETRA_FLAGS , S_IRWXU
+#endif
+
 int mkdir_p( const char *path ) {
     const size_t len = strlen( path );
     char _path[ PATH_MAX ];
@@ -37,7 +43,7 @@ int mkdir_p( const char *path ) {
             /* Temporarily truncate */
             *p = '\0';
 
-            if ( mkdir( _path, S_IRWXU ) != 0 ) {
+            if ( mkdir( _path MKDIR_ETRA_FLAGS ) != 0 ) {
                 if ( errno != EEXIST )
                     return -1;
             }
@@ -46,7 +52,7 @@ int mkdir_p( const char *path ) {
         }
     }
 
-    if ( mkdir( _path, S_IRWXU ) != 0 ) {
+    if ( mkdir( _path MKDIR_ETRA_FLAGS ) != 0 ) {
         if ( errno != EEXIST )
             return -1;
     }
@@ -183,7 +189,7 @@ int map_storage_read_player_data( PlayerData *player_data ) {
     }
     int persist_data_length = fread( player_data, 1, sizeof( PlayerData ), read_ptr );
     if ( persist_data_length != sizeof( PlayerData ) ) {
-        pr_debug( "Warning, wrong size player data. Read:%d expected:%ld", persist_data_length, sizeof( PlayerData ) );
+        pr_debug( "Warning, wrong size player data. Read:%d expected:%d", persist_data_length, ( int )sizeof( PlayerData ) );
     }
     fclose( read_ptr );
     return 1;

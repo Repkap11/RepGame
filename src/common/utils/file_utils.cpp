@@ -17,7 +17,14 @@ char *getRepGamePath( ) {
     return dir;
 }
 #endif
-#ifdef REPGAME_WASM
+#if defined( REPGAME_WINDOWS )
+char *getRepGamePath( ) {
+    char *dir_temp = ( char * )".";
+    char *dir = strdup( dir_temp );
+    return dir;
+}
+#endif
+#if defined( REPGAME_WASM )
 char *getRepGamePath( ) {
     char *dir_temp = ( char * )"";
     char *dir = strdup( dir_temp );

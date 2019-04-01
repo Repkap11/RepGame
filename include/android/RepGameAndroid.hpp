@@ -7,6 +7,7 @@
 #include <stdlib.h>
 #include <android/log.h>
 
+#define REPGAME_PATH_DIVIDOR "/"
 #define pr_debug( fmt, ... ) __android_log_print( ANDROID_LOG_INFO, "RepGameAndroid", "%s:%d:%s():" fmt "\n", __FILE__, __LINE__, __func__, ##__VA_ARGS__ );
 
 #define showErrors( )                                                                                                                                                                                                                          \

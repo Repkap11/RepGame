@@ -63,6 +63,7 @@ void chunk_loader_init( LoadedChunks *loadedChunks ) {
         vertex_buffer_init( &loadedChunks->solid.vb_block );
         vertex_buffer_set_data( &loadedChunks->solid.vb_block, vd_data_solid, sizeof( CubeFace ) * VB_DATA_SIZE_SOLID );
     }
+
     {
         vertex_buffer_init( &loadedChunks->water.vb_block );
         vertex_buffer_set_data( &loadedChunks->water.vb_block, vd_data_water, sizeof( CubeFace ) * VB_DATA_SIZE_WATER );

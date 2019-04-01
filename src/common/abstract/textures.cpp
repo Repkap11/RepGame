@@ -7,11 +7,11 @@
 
 #define BMP_HEADER_SIZE 138
 
-#if defined( REPGAME_LINUX ) || defined( REPGAME_WASM )
+#if defined( REPGAME_LINUX ) || defined( REPGAME_WINDOWS ) || defined( REPGAME_WASM )
 void textures_set_texture_data( unsigned int which_texture, unsigned char *textures, int textures_len ) {
-    pr_debug( "textures_set_texture_data doesnt need to be called on Linux or WASM" );
+    pr_debug( "textures_set_texture_data doesnt need to be called on Linux WASM or Windows" );
 }
-unsigned char *readTextureData( const char *filename, size_t mem_size ) {
+unsigned char *readTextureData( const char *filename, int mem_size ) {
     unsigned char *data;
     FILE *file;
     file = fopen( filename, "rb" );
@@ -22,7 +22,7 @@ unsigned char *readTextureData( const char *filename, size_t mem_size ) {
     data = ( unsigned char * )malloc( mem_size );
     size_t read_size = fread( data, mem_size, 1, file );
     if ( read_size != 1 ) {
-        pr_debug( "Texture file wrong size. Expected:%ld", mem_size );
+        pr_debug( "Texture file wrong size. Expected:%d", mem_size );
     }
     fclose( file );
 #ifdef REPGAME_WASM
@@ -61,7 +61,7 @@ void textures_set_texture_data( unsigned int which_texture, unsigned char *textu
     cached_texture[ which_texture ] = textures;
 }
 
-unsigned char *readTextureData( const char *filename, size_t mem_size ) {
+unsigned char *readTextureData( const char *filename, int mem_size ) {
     // TODO this is such a hack
     if ( strcmp( filename, "/system/bin/bitmaps/textures.bmp" ) == 0 )
         return cached_texture[ 0 ];
@@ -77,7 +77,7 @@ unsigned char *readTextureData( const char *filename, size_t mem_size ) {
 unsigned int loadTexture( const char *filename, int width, int height, int bmp_header, int tile_size_across, int tile_size_down ) {
     unsigned char *data;
 
-    size_t mem_size = width * height * BYTEX_PER_PIXEL + bmp_header;
+    int mem_size = width * height * BYTEX_PER_PIXEL + bmp_header;
     data = readTextureData( filename, mem_size );
 
     unsigned int textures_across = width / tile_size_across;
@@ -86,7 +86,7 @@ unsigned int loadTexture( const char *filename, int width, int height, int bmp_h
     unsigned int texture;
     glGenTextures( 1, &texture );
     glBindTexture( GL_TEXTURE_2D_ARRAY, texture );
-#if defined( REPGAME_WASM ) || defined( REPGAME_LINUX )
+#if defined( REPGAME_WASM ) || defined( REPGAME_LINUX ) || defined( REPGAME_WINDOWS )
     glTexImage3D( GL_TEXTURE_2D_ARRAY,              //
                   0,                                // mipLevelCount
                   GL_RGBA8,                         //
@@ -109,7 +109,7 @@ unsigned int loadTexture( const char *filename, int width, int height, int bmp_h
                          0,                                   // Mipmap Level
                          0, 0, i,                             // offset
                          tile_size_across, tile_size_down, 1, //
-#ifdef REPGAME_LINUX
+#if defined( REPGAME_LINUX ) || defined( REPGAME_WINDOWS )
                          GL_ABGR_EXT, //
 #else
                          GL_RGBA,
@@ -124,7 +124,7 @@ unsigned int loadTexture( const char *filename, int width, int height, int bmp_h
     glTexParameterf( GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MAG_FILTER, GL_NEAREST );              // GL_NEAREST GL_LINEAR_MIPMAP_LINEAR
     float max_ani;
     glGetFloatv( GL_MAX_TEXTURE_MAX_ANISOTROPY_EXT, &max_ani );
-    pr_debug( "Max ani:%f", max_ani );
+    pr_debug( "Max ani:%f %s", max_ani , filename );
 
     glTexParameterf( GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MAX_ANISOTROPY_EXT, max_ani );
     glGenerateMipmap( GL_TEXTURE_2D_ARRAY );
@@ -135,7 +135,7 @@ unsigned int loadTexture( const char *filename, int width, int height, int bmp_h
 void texture_init_blocks( Texture *texture ) {
     char *dir = getRepGamePath( );
     char bufferText[ BUFSIZ ];
-    sprintf( bufferText, "%s%s", dir, "/bitmaps/textures.bmp" );
+    sprintf( bufferText, "%s%s", dir, REPGAME_PATH_DIVIDOR "bitmaps" REPGAME_PATH_DIVIDOR "textures.bmp" );
     free( dir );
     texture->slot = 1;
     glActiveTexture( GL_TEXTURE0 + texture->slot );
@@ -144,7 +144,7 @@ void texture_init_blocks( Texture *texture ) {
 void texture_init_sky( Texture *texture ) {
     char *dir = getRepGamePath( );
     char bufferSky[ BUFSIZ ];
-    sprintf( bufferSky, "%s%s", dir, "/bitmaps/sky4.bmp" );
+    sprintf( bufferSky, "%s%s", dir, REPGAME_PATH_DIVIDOR "bitmaps" REPGAME_PATH_DIVIDOR "sky4.bmp" );
     free( dir );
     texture->slot = 2;
     glActiveTexture( GL_TEXTURE0 + texture->slot );

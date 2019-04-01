@@ -1,11 +1,14 @@
-#ifndef HEADER_REPGAMELINUX_H
-#define HEADER_REPGAMELINUX_H
+#ifndef HEADER_REPGAMEWINDOWS_H
+#define HEADER_REPGAMEWINDOWS_H
 
 #include <GL/glew.h>
 #include <GL/freeglut.h>
 #include <stdio.h>
+#ifndef M_PI
+#define M_PI (3.14159265358979323846)
+#endif
 
-#define REPGAME_PATH_DIVIDOR "/"
+#define REPGAME_PATH_DIVIDOR "\\"
 #define pr_debug( fmt, ... ) fprintf( stdout, "%s:%d:%s():" fmt "\n", __FILE__, __LINE__, __func__, ##__VA_ARGS__ );
 #ifdef REPGAME_FAST
 #define showErrors( )

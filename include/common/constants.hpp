@@ -10,6 +10,13 @@
 #define CHUNK_SIZE 32
 #endif
 
+#ifdef REPGAME_WINDOWS
+#define CHUNK_RADIUS_X 100 / CHUNK_SIZE
+#define CHUNK_RADIUS_Y 100 / CHUNK_SIZE
+#define CHUNK_RADIUS_Z 100 / CHUNK_SIZE
+#define CHUNK_SIZE 32
+#endif
+
 #ifdef REPGAME_WASM
 #define CHUNK_SIZE 32
 #define CHUNK_RADIUS_X 64 / CHUNK_SIZE
@@ -58,7 +65,7 @@
 
 #define FPS_LIMIT 60.0f
 #define CAMERA_FOV 60.0f
-#ifdef REPGAME_WASM
+#if defined( REPGAME_WASM ) || defined( REPGAME_WINDOWS )
 #define NUM_RENDER_THREADS 1
 #else
 #define NUM_RENDER_THREADS 7
