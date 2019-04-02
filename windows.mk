@@ -18,17 +18,26 @@ ifeq ($(CC_WINDOWS),x86_64-w64-mingw32-g++)
 CFLAGS_WINDOWS += -no-pie
 endif
 
-LD_WINDOWS := ld -r
+LD_WINDOWS := x86_64-w64-mingw32-ld -r
 
 OBJECTS_COMMON_WINDOWS := $(patsubst src/common/%.cpp,out/windows/common/%.o, $(SRC_COMMON))
 OBJECTS_WINDOWS := $(patsubst src/%.cpp,out/windows/%.o, $(wildcard src/windows/*.cpp))
 DEPS_WINDOWS := $(patsubst src/%.cpp,out/windows/%.d, $(wildcard src/windows/*.cpp)) \
 			$(patsubst src/common/%.cpp,out/windows/common/%.d, $(SRC_COMMON))
 
+SHADER_BLOBS_WINDOWS := $(patsubst src/shaders/%.glsl,out/windows/shaders/%.o,$(wildcard src/shaders/*.glsl))
+BITMAP_BLOBS_WINDOWS := $(patsubst bitmaps/%.bmp,out/windows/bitmaps/%.o,$(wildcard bitmaps/*.bmp))
+
+out/windows/shaders/%.o : src/shaders/%.glsl $(MAKEFILES) | out/windows
+	$(LD_WINDOWS) -b binary $< -o $@
+
+out/windows/bitmaps/%.o : bitmaps/%.bmp $(MAKEFILES) | out/windows
+	$(LD_WINDOWS) -b binary $< -o $@
+
 windows: $(TARGET).exe
 
 WINDOWS_DIRS = $(patsubst src%,out/windows%,$(shell find src -type d)) \
-	   android/app/src/main/assets/shaders
+	   out/windows/shaders out/windows/bitmaps
 
 out/windows/%.o: src/%.cpp $(MAKEFILES) | out/windows
 	@#Use g++ to build o file and a dependecy tree .d file for every cpp file
@@ -37,8 +46,8 @@ out/windows/%.o: src/%.cpp $(MAKEFILES) | out/windows
 #Include these .d files, so the dependicies are known for secondary builds.
 -include $(DEPS_WINDOWS)
 
-$(TARGET).exe: $(OBJECTS_COMMON_WINDOWS) $(OBJECTS_WINDOWS) $(MAKEFILES)
-	$(CC_WINDOWS) -flto $(CFLAGS_WINDOWS) $(OBJECTS_WINDOWS) $(OBJECTS_COMMON_WINDOWS) $(LIBS_WINDOWS) -o $@
+$(TARGET).exe: $(OBJECTS_COMMON_WINDOWS) $(OBJECTS_WINDOWS) $(SHADER_BLOBS_WINDOWS) $(BITMAP_BLOBS_WINDOWS) $(MAKEFILES)
+	$(CC_WINDOWS) -flto $(CFLAGS_WINDOWS) $(OBJECTS_WINDOWS) $(OBJECTS_COMMON_WINDOWS) $(SHADER_BLOBS_WINDOWS) $(BITMAP_BLOBS_WINDOWS) $(LIBS_WINDOWS) -o $@
 
 windows-run: windows
 	wine $(TARGET).exe
@@ -52,6 +61,6 @@ out/windows: | out
 	echo Making windows $(WINDOWS_DIRS)
 	mkdir -p $(WINDOWS_DIRS)
 
-.PRECIOUS: $(TARGET).exe $(OBJECTS_WINDOWS) $(OBJECTS_COMMON_WINDOWS) $(LIB_TARGET_WINDOWS)
+.PRECIOUS: $(TARGET).exe $(OBJECTS_WINDOWS) $(OBJECTS_COMMON_WINDOWS) $(LIB_TARGET_WINDOWS) $(SHADER_BLOBS_WINDOWS) $(BITMAP_BLOBS_WINDOWS)
 
 .PHONY: windows windows-run clean-windows

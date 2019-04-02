@@ -68,7 +68,7 @@ wasm-deploy: wasm
 clean-wasm:
 	rm -rf $(WASM_DIRS)
 
-out/wasm: out
+out/wasm: | out
 	mkdir -p $(WASM_DIRS)
 
 .PRECIOUS: $(TARGET) $(OBJECTS_WASM) $(OBJECTS_COMMON_WASM) $(LIB_TARGET_WASM)

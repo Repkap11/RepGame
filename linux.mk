@@ -23,16 +23,19 @@ OBJECTS_LINUX := $(patsubst src/%.cpp,out/linux/%.o, $(wildcard src/linux/*.cpp)
 DEPS_LINUX := $(patsubst src/%.cpp,out/linux/%.d, $(wildcard src/linux/*.cpp)) \
 			$(patsubst src/common/%.cpp,out/linux/common/%.d, $(SRC_COMMON))
 
-SHADER_BLOBS_LINUX := $(patsubst src/shaders/%.glsl,out/linux/shaders/%.o,$(wildcard src/shaders/*.glsl))
+SHADER_BLOBS_LINUX := $(patsubst src/shaders/%.glsl,out/linux/shaders/%.o.temp,$(wildcard src/shaders/*.glsl))
+SHADER_BLOBS_TEMP_LINUX := $(patsubst src/shaders/%.glsl,out/linux/shaders/%.o.temp,$(wildcard src/shaders/*.glsl))
 BITMAP_BLOBS_LINUX := $(patsubst bitmaps/%.bmp,out/linux/bitmaps/%.o,$(wildcard bitmaps/*.bmp))
+BITMAP_BLOBS_TEMP_LINUX := $(patsubst bitmaps/%.bmp,out/linux/bitmaps/%.o,$(wildcard bitmaps/*.bmp))
 
 
-out/linux/shaders/%.o : src/shaders/%.glsl $(MAKEFILES) | out/linux/shaders
-	#objcopy --input binary --output elf64-x86-64 --binary-architecture i386 $< $@
+out/linux/shaders/%.o.temp : src/shaders/%.glsl $(MAKEFILES) | out/linux
 	$(LD_LINUX) -b binary $< -o $@
 
-out/linux/bitmaps/%.o : bitmaps/%.bmp $(MAKEFILES) | out/linux/shaders
-	#cp $< $@
+out/linux/%.o : out/linux/%.o.temp $(MAKEFILES) | out/linux
+	objcopy --rename-section .data=.rodata,CONTENTS,ALLOC,LOAD,READONLY,DATA $< $@
+
+out/linux/bitmaps/%.o : bitmaps/%.bmp $(MAKEFILES) | out/linux
 	$(LD_LINUX) -b binary $< -o $@
 
 
@@ -47,14 +50,14 @@ out/linux/%.o: src/%.cpp $(MAKEFILES) | out/linux
 	$(CC_LINUX) $(INCLUDES_COMMON) $(CFLAGS_LINUX) -MMD -MP -MF $(patsubst %.o,%.d,$@) -MT $(patsubst %.d,%.o,$@) -c $< -o $@
 
 #Include these .d files, so the dependicies are known for secondary builds.
--include $(DEPS_LINUX)
+#-include $(DEPS_LINUX)
 
 # Server targets might depend on cuda.mk modifications
 include cuda.mk
 
 
 $(TARGET): $(OBJECTS_COMMON_LINUX) $(OBJECTS_LINUX) $(MAKEFILES) $(SHADER_BLOBS_LINUX) $(BITMAP_BLOBS_LINUX) 
-	$(CC_LINUX) -flto $(CFLAGS_LINUX) $(OBJECTS_LINUX) $(OBJECTS_COMMON_LINUX) $(SHADER_BLOBS_LINUX) $(LIBS_LINUX) -o $@
+	$(CC_LINUX) -flto $(CFLAGS_LINUX) $(OBJECTS_LINUX) $(OBJECTS_COMMON_LINUX) $(SHADER_BLOBS_LINUX) $(BITMAP_BLOBS_LINUX) $(LIBS_LINUX) -o $@
 
 include server.mk
 
@@ -70,11 +73,11 @@ clean-linux: clean-server
 	rm -rf out/linux
 
 out/linux: | out
-	echo Making linux $(LINUX_DIRS)
+	#@echo Making linux $(LINUX_DIRS)
 	mkdir -p $(LINUX_DIRS)
 
-.PRECIOUS: $(TARGET) $(OBJECTS_LINUX) $(OBJECTS_COMMON_LINUX) $(LIB_TARGET_LINUX)
+.PRECIOUS: $(TARGET) $(OBJECTS_LINUX) $(OBJECTS_COMMON_LINUX) $(LIB_TARGET_LINUX) $(SHADER_BLOBS_LINUX) $(BITMAP_BLOBS_TEMP_LINUX) $(SHADER_BLOBS_TEMP_LINUX) $(BITMAP_BLOBS_LINUX)
 
 .PHONY: linux linux-run clean-linux map
 
-$(info $$SHADER_BLOBS_LINUX is [${SHADER_BLOBS_LINUX}])
+#$(info $$SHADER_BLOBS_LINUX is [${SHADER_BLOBS_LINUX}])

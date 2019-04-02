@@ -39,4 +39,6 @@ clean-linux: clean-cuda
 clean-cuda:
 	rm -f $(CLEAN_CUDA)
 
+.PRECIOUS: %.o
+
 .PHONY: cuda clean-cuda

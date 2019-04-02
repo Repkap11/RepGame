@@ -5,6 +5,7 @@
 #include <string.h>
 #include "common/utils/file_utils.hpp"
 #include "common/RepGame.hpp"
+#include "repgame_shaders.hpp"
 
 char *shaderLoadSource( const char *filePath ) {
     const size_t blockSize = 512;
@@ -89,7 +90,7 @@ unsigned int shaderCompileFromString( int type, const char *fileName ) {
     return shader;
 }
 
-#include "repgame_shaders.hpp"
+#if defined( REPGAME_LINUX ) || defined( REPGAME_WINDOWS )
 
 unsigned int shaderCompileFromBlob( int type, const char *filePath ) {
     unsigned int shader;
@@ -148,6 +149,16 @@ unsigned int shaderCompileFromBlob( int type, const char *filePath ) {
     return shader;
 }
 
+void shaderAttachFromBlob( unsigned int program, GLenum type, const char *filePath ) {
+    GLuint shader = shaderCompileFromBlob( type, filePath );
+    if ( shader != 0 ) {
+        glAttachShader( program, shader );
+        glDeleteShader( shader );
+    }
+}
+
+#endif
+
 unsigned int shaderCompileFromFile( int type, const char *filePath ) {
     char *source;
     unsigned int shader;
@@ -195,14 +206,6 @@ void shaderAttachFromFile( unsigned int program, GLenum type, const char *filePa
     }
 }
 
-void shaderAttachFromBlob( unsigned int program, GLenum type, const char *filePath ) {
-    GLuint shader = shaderCompileFromBlob( type, filePath );
-    if ( shader != 0 ) {
-        glAttachShader( program, shader );
-        glDeleteShader( shader );
-    }
-}
-
 void shaderAttachFromString( unsigned int program, GLenum type, const char *filePath ) {
     GLuint shader = shaderCompileFromString( type, filePath );
     if ( shader != 0 ) {
@@ -222,10 +225,10 @@ unsigned int shaders_compile( const char *vertex_path, const char *fragment_path
     while ( try_counts < 5 ) {
         try_counts++;
         g_program = glCreateProgram( );
-#if defined( REPGAME_WASM ) || defined( REPGAME_WINDOWS )
+#if defined( REPGAME_WASM )
         shaderAttachFromFile( g_program, GL_VERTEX_SHADER, vertex_path );
         shaderAttachFromFile( g_program, GL_FRAGMENT_SHADER, fragment_path );
-#elif defined( REPGAME_LINUX )
+#elif defined( REPGAME_LINUX ) || defined( REPGAME_WINDOWS )
         shaderAttachFromBlob( g_program, GL_VERTEX_SHADER, vertex_path );
         shaderAttachFromBlob( g_program, GL_FRAGMENT_SHADER, fragment_path );
 #else
