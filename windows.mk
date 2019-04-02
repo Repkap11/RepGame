@@ -1,14 +1,14 @@
 #Windows x86_64 builds
 MAKEFILES += windows.mk
 
-CFLAGS_WINDOWS := -Wall -Werror -std=c++98 -Wno-unused-variable -fno-pie
+CFLAGS_WINDOWS := -Wall -Werror -std=c++98 -Wno-unused-variable -fno-pie -D GLEW_STATIC -D FREEGLUT_STATIC
 
 #CFLAGS_WINDOWS += -O3 -DREPGAME_FAST
 CFLAGS_WINDOWS += -g
 
 CFLAGS_WINDOWS += -DREPGAME_WINDOWS
 #LIBS_WINDOWS := -l m -l GL -l GLU -l GLEW -l glut -pthread
-LIBS_WINDOWS := -lopengl32 -lglu32 -L windows_build/freeglut/lib/x64 -lfreeglut -L windows_build/glew/lib -l glew32 -Wl,-Bstatic -lpthread -Wl,-Bdynamic -static-libgcc -static-libstdc++
+LIBS_WINDOWS := windows_build/glew/lib/libglew32.a -L windows_build/freeglut/lib/x64 -lfreeglut_static -lopengl32 -lglu32 -lwinmm -lgdi32 -Wl,-Bstatic -lpthread -Wl,-Bdynamic -static-libgcc -static-libstdc++
 INCLUDES_WINDOWS := -I windows_build/freeglut/include -I windows_build/glew/include
 
 CC_WINDOWS := x86_64-w64-mingw32-g++
@@ -41,7 +41,7 @@ $(TARGET).exe: $(OBJECTS_COMMON_WINDOWS) $(OBJECTS_WINDOWS) $(MAKEFILES)
 	$(CC_WINDOWS) -flto $(CFLAGS_WINDOWS) $(OBJECTS_WINDOWS) $(OBJECTS_COMMON_WINDOWS) $(LIBS_WINDOWS) -o $@
 
 windows-run: windows
-	#wine $(TARGET).exe
+	wine $(TARGET).exe
 
 reverse = $(if $(1),$(call reverse,$(wordlist 2,$(words $(1)),$(1)))) $(firstword $(1))
 
