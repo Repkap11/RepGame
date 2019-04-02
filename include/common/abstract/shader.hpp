@@ -7,6 +7,11 @@ typedef struct {
     unsigned int m_RendererId; //
 } Shader;
 
+typedef struct {
+    char *source;
+    int length;
+} Shader_Source_Data;
+
 void shader_init( Shader *shader, const char *vertex, const char *fragment );
 void shader_bind( const Shader *shader );
 void shader_unbind( const Shader *shader );

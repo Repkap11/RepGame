@@ -57,6 +57,8 @@ install:
 
 .PHONY: run install all clean vars
 
+nothing:
+
 vars:
 	@echo "$(BEFORE_VARS) $(AFTER_VARS)" | xargs -n1 | sort | uniq -u
 

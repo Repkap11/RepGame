@@ -89,6 +89,65 @@ unsigned int shaderCompileFromString( int type, const char *fileName ) {
     return shader;
 }
 
+#include "repgame_shaders.hpp"
+
+unsigned int shaderCompileFromBlob( int type, const char *filePath ) {
+    unsigned int shader;
+    int result;
+    Shader_Source_Data shader_data = {.source = NULL, .length = 0};
+
+    /* get shader source */
+    pr_debug( "Getting shader blob:%s", filePath );
+    int used_file = 0;
+    if ( strcmp( filePath, "chunk_vertex.glsl" ) == 0 ) {
+        pr_debug( "##############Using my thing!!!" );
+        shader_data = chunk_vertex;
+    } else if ( strcmp( filePath, "chunk_fragment.glsl" ) == 0 ) {
+        pr_debug( "##############Using my thing!!!" );
+        shader_data = chunk_fragment;
+    } else {
+        used_file = 1;
+        pr_debug( "################NOT Using my thing!!!" );
+        shader_data.source = shaderLoadSource( filePath );
+        shader_data.length = strlen( shader_data.source );
+    }
+    if ( !shader_data.source ) {
+        pr_debug( "Shader source %s invalid.", filePath );
+        return 0;
+    }
+
+    /* create shader object, set the source, and compile */
+    shader = glCreateShader( type );
+    glShaderSource( shader, 1, ( const char ** )&shader_data.source, &shader_data.length );
+    pr_debug( "Given Source" );
+    glCompileShader( shader );
+    if ( used_file ) {
+        free( shader_data.source );
+    }
+
+    /* make sure the compilation was successful */
+    glGetShaderiv( shader, GL_COMPILE_STATUS, &result );
+    if ( result == GL_FALSE ) {
+        char *log;
+        int log_length;
+
+        /* get the shader info log */
+        glGetShaderiv( shader, GL_INFO_LOG_LENGTH, &log_length );
+        log = ( char * )malloc( log_length );
+        glGetShaderInfoLog( shader, log_length, &result, log );
+
+        /* print an error message and the info log */
+        pr_debug( "shaderCompileFromFile(): Unable to compile %s: %s\n", filePath, log );
+        free( log );
+
+        glDeleteShader( shader );
+        exit( 1 );
+        return 0;
+    }
+
+    return shader;
+}
+
 unsigned int shaderCompileFromFile( int type, const char *filePath ) {
     char *source;
     unsigned int shader;
@@ -136,6 +195,14 @@ void shaderAttachFromFile( unsigned int program, GLenum type, const char *filePa
     }
 }
 
+void shaderAttachFromBlob( unsigned int program, GLenum type, const char *filePath ) {
+    GLuint shader = shaderCompileFromBlob( type, filePath );
+    if ( shader != 0 ) {
+        glAttachShader( program, shader );
+        glDeleteShader( shader );
+    }
+}
+
 void shaderAttachFromString( unsigned int program, GLenum type, const char *filePath ) {
     GLuint shader = shaderCompileFromString( type, filePath );
     if ( shader != 0 ) {
@@ -155,9 +222,12 @@ unsigned int shaders_compile( const char *vertex_path, const char *fragment_path
     while ( try_counts < 5 ) {
         try_counts++;
         g_program = glCreateProgram( );
-#if defined( REPGAME_LINUX ) || defined( REPGAME_WASM ) || defined( REPGAME_WINDOWS )
+#if defined( REPGAME_WASM ) || defined( REPGAME_WINDOWS )
         shaderAttachFromFile( g_program, GL_VERTEX_SHADER, vertex_path );
         shaderAttachFromFile( g_program, GL_FRAGMENT_SHADER, fragment_path );
+#elif defined( REPGAME_LINUX )
+        shaderAttachFromBlob( g_program, GL_VERTEX_SHADER, vertex_path );
+        shaderAttachFromBlob( g_program, GL_FRAGMENT_SHADER, fragment_path );
 #else
         shaderAttachFromString( g_program, GL_VERTEX_SHADER, vertex_path );
         shaderAttachFromString( g_program, GL_FRAGMENT_SHADER, fragment_path );

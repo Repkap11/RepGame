@@ -3,8 +3,8 @@ MAKEFILES += linux.mk
 
 CFLAGS_LINUX := -Wall -Werror -std=c++98 -Wno-unused-variable -fno-pie -march=native
 
-#CFLAGS_LINUX += -O3 -DREPGAME_FAST
-CFLAGS_LINUX += -g
+CFLAGS_LINUX += -O3 -DREPGAME_FAST
+#CFLAGS_LINUX += -g
 
 CFLAGS_LINUX += -DREPGAME_LINUX
 LIBS_LINUX := -l m -l GL -l GLU -l GLEW -l glut -pthread
@@ -23,11 +23,24 @@ OBJECTS_LINUX := $(patsubst src/%.cpp,out/linux/%.o, $(wildcard src/linux/*.cpp)
 DEPS_LINUX := $(patsubst src/%.cpp,out/linux/%.d, $(wildcard src/linux/*.cpp)) \
 			$(patsubst src/common/%.cpp,out/linux/common/%.d, $(SRC_COMMON))
 
+SHADER_BLOBS_LINUX := $(patsubst src/shaders/%.glsl,out/linux/shaders/%.o,$(wildcard src/shaders/*.glsl))
+BITMAP_BLOBS_LINUX := $(patsubst bitmaps/%.bmp,out/linux/bitmaps/%.o,$(wildcard bitmaps/*.bmp))
+
+
+out/linux/shaders/%.o : src/shaders/%.glsl $(MAKEFILES) | out/linux/shaders
+	#objcopy --input binary --output elf64-x86-64 --binary-architecture i386 $< $@
+	$(LD_LINUX) -b binary $< -o $@
+
+out/linux/bitmaps/%.o : bitmaps/%.bmp $(MAKEFILES) | out/linux/shaders
+	#cp $< $@
+	$(LD_LINUX) -b binary $< -o $@
+
+
 linux: $(TARGET)
 
 LINUX_DIRS = $(patsubst src%,out/linux%,$(shell find src -type d)) \
        $(patsubst src%,out/server%,$(shell find src -type d)) \
-	   android/app/src/main/assets/shaders
+	   out/linux/shaders out/linux/bitmaps
 
 out/linux/%.o: src/%.cpp $(MAKEFILES) | out/linux
 	@#Use g++ to build o file and a dependecy tree .d file for every cpp file
@@ -40,8 +53,8 @@ out/linux/%.o: src/%.cpp $(MAKEFILES) | out/linux
 include cuda.mk
 
 
-$(TARGET): $(OBJECTS_COMMON_LINUX) $(OBJECTS_LINUX) $(MAKEFILES)
-	$(CC_LINUX) -flto $(CFLAGS_LINUX) $(OBJECTS_LINUX) $(OBJECTS_COMMON_LINUX) $(LIBS_LINUX) -o $@
+$(TARGET): $(OBJECTS_COMMON_LINUX) $(OBJECTS_LINUX) $(MAKEFILES) $(SHADER_BLOBS_LINUX) $(BITMAP_BLOBS_LINUX) 
+	$(CC_LINUX) -flto $(CFLAGS_LINUX) $(OBJECTS_LINUX) $(OBJECTS_COMMON_LINUX) $(SHADER_BLOBS_LINUX) $(LIBS_LINUX) -o $@
 
 include server.mk
 
@@ -63,3 +76,5 @@ out/linux: | out
 .PRECIOUS: $(TARGET) $(OBJECTS_LINUX) $(OBJECTS_COMMON_LINUX) $(LIB_TARGET_LINUX)
 
 .PHONY: linux linux-run clean-linux map
+
+$(info $$SHADER_BLOBS_LINUX is [${SHADER_BLOBS_LINUX}])
