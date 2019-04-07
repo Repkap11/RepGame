@@ -9,12 +9,12 @@ typedef struct {
 } BinaryBlob;
 
 #if defined( REPGAME_ANDROID ) || defined( REPGAME_WASM )
-#define MK_BLOB( shader_name )
+#define MK_BLOB( prefix, name, postfix )
 #else
-#define MK_BLOB( prefix, name )                                                                                                                                                                                                               \
-    extern char _binary_##prefix##_##name##_glsl_start;                                                                                                                                                                                \
-    extern char _binary_##prefix##_##name##_glsl_size[];                                                                                                                                                                               \
-    const BinaryBlob name = {.source = ( &_binary_##prefix##_##name##_glsl_start ), .length = ( ( int )( intptr_t )_binary_##prefix##_##name##_glsl_size )}
+#define MK_BLOB( prefix, name, postfix )                                                                                                                                                                                                       \
+    extern char _binary_##prefix##_##name##_##postfix##_start;                                                                                                                                                                                 \
+    extern char _binary_##prefix##_##name##_##postfix##_size[];                                                                                                                                                                                \
+    const BinaryBlob name = {.source = ( &_binary_##prefix##_##name##_##postfix##_start ), .length = ( ( int )( intptr_t )_binary_##prefix##_##name##_##postfix##_size )}
 
 #endif
 #endif

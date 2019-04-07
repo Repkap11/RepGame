@@ -14,6 +14,7 @@
 
 MK_SHADER( sky_box_vertex );
 MK_SHADER( sky_box_fragment );
+MK_TEXTURE( sky4, 2048, 1024, 2048, 1024 );
 
 void sky_box_init( SkyBox *skyBox ) {
     SkyVertex *vb_data = ( SkyVertex * )calloc( SKY_BOX_VERTEX_COUNT, sizeof( SkyVertex ) );
@@ -76,7 +77,7 @@ void sky_box_init( SkyBox *skyBox ) {
 
     vertex_array_add_buffer( &skyBox->va, &skyBox->vb, &skyBox->vbl, 0, 0 );
     shader_init( &skyBox->shader, &sky_box_vertex, &sky_box_fragment );
-    texture_init_sky( &skyBox->texture );
+    texture_init( &skyBox->texture, &texture_source_sky4 );
     free( ib_data );
     free( vb_data );
 }

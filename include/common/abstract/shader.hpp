@@ -10,7 +10,7 @@ typedef struct {
 
 #if defined( REPGAME_LINUX ) || defined( REPGAME_WINDOWS )
 typedef BinaryBlob ShaderSourceData;
-#define MK_SHADER( name ) MK_BLOB( src_shaders, name )
+#define MK_SHADER( name ) MK_BLOB( src_shaders, name, glsl )
 
 #elif defined( REPGAME_WASM )
 typedef struct {
