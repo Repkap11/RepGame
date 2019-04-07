@@ -8,7 +8,7 @@ CFLAGS_LINUX += -g
 
 
 CFLAGS_LINUX += -DREPGAME_LINUX
-LIBS_LINUX := -l m -l GL -l GLU -l GLEW -l glut -pthread
+LIBS_LINUX := -Wl,-Bstatic  -l GLU -l glut -lX11 -lXxf86vm -lXi -l xcb -lXau -lXdmcp -lXext -Wl,-Bdynamic -l m -l GL -l GLEW -lpthread -l dl  -static-libgcc -static-libstdc++
 
 CC_LINUX := g++
 #CC_LINUX := clang++
