@@ -9,7 +9,7 @@
 AAssetManager *assetManager;
 #define SHADER_SIZE 4096
 
-char *repgame_getShaderString( const char *filename ) {
+char *repgame_android_getShaderString( const char *filename ) {
     char *buf = ( char * )malloc( SHADER_SIZE );
 
     pr_debug( "About to asset %s", filename );

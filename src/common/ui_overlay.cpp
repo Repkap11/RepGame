@@ -33,6 +33,9 @@ unsigned int ib_data_crosshair[] = {
     7, 4, 6, //
 };
 
+MK_SHADER( ui_overlay_vertex );
+MK_SHADER( ui_overlay_fragment );
+
 void ui_overlay_init( UIOverlay *ui_overlay ) {
     // Calc The Vertices
     showErrors( );
@@ -112,7 +115,7 @@ void ui_overlay_init( UIOverlay *ui_overlay ) {
         free( ib_data_inventory );
     }
 
-    shader_init( &ui_overlay->shader, "ui_overlay_vertex.glsl", "ui_overlay_fragment.glsl" );
+    shader_init( &ui_overlay->shader, &ui_overlay_vertex, &ui_overlay_fragment );
 }
 
 void ui_overlay_draw( UIOverlay *ui_overlay, Renderer *renderer, Texture *blocksTexture, InputState *input, glm::mat4 &mvp_ui ) {

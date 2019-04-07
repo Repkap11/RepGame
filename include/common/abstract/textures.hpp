@@ -1,6 +1,9 @@
 #ifndef HEADER_TEXTURES_H
 #define HEADER_TEXTURES_H
 
+#include "binary_blobs.hpp"
+typedef BinaryBlob TextureSourceData;
+
 typedef struct {
     unsigned int m_RendererId; //
     unsigned int slot;

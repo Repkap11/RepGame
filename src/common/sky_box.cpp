@@ -12,6 +12,9 @@
 #define SKY_BOX_TRIANGLES_COUNT ( ( Slices ) * ( Stacks + 1 ) )
 #define SKY_BOX_INDEX_COUNT ( SKY_BOX_TRIANGLES_COUNT * 6 )
 
+MK_SHADER( sky_box_vertex );
+MK_SHADER( sky_box_fragment );
+
 void sky_box_init( SkyBox *skyBox ) {
     SkyVertex *vb_data = ( SkyVertex * )calloc( SKY_BOX_VERTEX_COUNT, sizeof( SkyVertex ) );
     // Calc The Vertices
@@ -72,7 +75,7 @@ void sky_box_init( SkyBox *skyBox ) {
     vertex_array_init( &skyBox->va );
 
     vertex_array_add_buffer( &skyBox->va, &skyBox->vb, &skyBox->vbl, 0, 0 );
-    shader_init( &skyBox->shader, "sky_box_vertex.glsl", "sky_box_fragment.glsl" );
+    shader_init( &skyBox->shader, &sky_box_vertex, &sky_box_fragment );
     texture_init_sky( &skyBox->texture );
     free( ib_data );
     free( vb_data );

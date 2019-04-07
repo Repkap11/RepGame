@@ -2,17 +2,36 @@
 #define HEADER_SHADER_H
 
 #include <glm.hpp>
+#include "binary_blobs.hpp"
 
 typedef struct {
     unsigned int m_RendererId; //
 } Shader;
 
-typedef struct {
-    char *source;
-    int length;
-} Shader_Source_Data;
+#if defined( REPGAME_LINUX ) || defined( REPGAME_WINDOWS )
+typedef BinaryBlob ShaderSourceData;
+#define MK_SHADER( name ) MK_BLOB( src_shaders, name )
 
-void shader_init( Shader *shader, const char *vertex, const char *fragment );
+#elif defined( REPGAME_WASM )
+typedef struct {
+    const char *path;
+} ShaderSourceData;
+#define MK_SHADER( name ) ShaderSourceData name = {.path = #name ".glsl"}
+
+#elif defined( REPGAME_ANDROID )
+typedef struct {
+    const char *resource_path;
+} ShaderSourceData;
+#define MK_SHADER( name ) ShaderSourceData name = {.resource_path = #name ".glsl"}
+#endif
+
+#if defined( REPGAME_LINUX ) || defined( REPGAME_WINDOWS )
+
+#else
+
+#endif
+
+void shader_init( Shader *shader, const ShaderSourceData *vertex, const ShaderSourceData *fragment );
 void shader_bind( const Shader *shader );
 void shader_unbind( const Shader *shader );
 void shader_destroy( Shader *shader );

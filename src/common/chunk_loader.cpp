@@ -51,13 +51,17 @@ static CubeFace vd_data_solid[] = {
 };
 #define VB_DATA_SIZE_SOLID ( 5 * 6 + 6 )
 
+MK_SHADER( chunk_vertex );
+MK_SHADER( chunk_fragment );
+
 void chunk_loader_init( LoadedChunks *loadedChunks ) {
     int status = terrain_loading_thread_start( );
     if ( status ) {
         pr_debug( "Terrain loading thread failed to start." );
     }
     loadedChunks->chunkArray = ( Chunk * )calloc( MAX_LOADED_CHUNKS, sizeof( Chunk ) );
-    shader_init( &loadedChunks->shader, "chunk_vertex.glsl", "chunk_fragment.glsl" );
+
+    shader_init( &loadedChunks->shader, &chunk_vertex, &chunk_fragment );
 
     {
         vertex_buffer_init( &loadedChunks->solid.vb_block );

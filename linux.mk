@@ -3,8 +3,9 @@ MAKEFILES += linux.mk
 
 CFLAGS_LINUX := -Wall -Werror -std=c++98 -Wno-unused-variable -fno-pie -march=native
 
-CFLAGS_LINUX += -O3 -DREPGAME_FAST
-#CFLAGS_LINUX += -g
+#CFLAGS_LINUX += -O3 -DREPGAME_FAST
+CFLAGS_LINUX += -g
+
 
 CFLAGS_LINUX += -DREPGAME_LINUX
 LIBS_LINUX := -l m -l GL -l GLU -l GLEW -l glut -pthread
@@ -50,7 +51,7 @@ out/linux/%.o: src/%.cpp $(MAKEFILES) | out/linux
 	$(CC_LINUX) $(INCLUDES_COMMON) $(CFLAGS_LINUX) -MMD -MP -MF $(patsubst %.o,%.d,$@) -MT $(patsubst %.d,%.o,$@) -c $< -o $@
 
 #Include these .d files, so the dependicies are known for secondary builds.
-#-include $(DEPS_LINUX)
+-include $(DEPS_LINUX)
 
 # Server targets might depend on cuda.mk modifications
 include cuda.mk

@@ -3,19 +3,18 @@
 
 #include <stdint.h>
 
-// extern char _binary_src_shaders_chunk_vertex_glsl_start;
-// extern char _binary_src_shaders_chunk_vertex_glsl_size[];
-
-// #define SHADER_CHUNK_VERTEX
-// #define SHADER_CHUNK_VERTEX_SIZE
+typedef struct {
+    char *source;
+    int length;
+} BinaryBlob;
 
 #if defined( REPGAME_ANDROID ) || defined( REPGAME_WASM )
-#define MK_SHADER( shader_name )
+#define MK_BLOB( shader_name )
 #else
-#define MK_SHADER( shader_name )                                                                                                                                                                                                               \
-    extern char _binary_src_shaders_##shader_name##_glsl_start;                                                                                                                                                                                \
-    extern char _binary_src_shaders_##shader_name##_glsl_size[];                                                                                                                                                                               \
-    Shader_Source_Data shader_name = {.source = ( &_binary_src_shaders_##shader_name##_glsl_start ), .length = ( ( int )( intptr_t )_binary_src_shaders_##shader_name##_glsl_size )}
+#define MK_BLOB( prefix, name )                                                                                                                                                                                                               \
+    extern char _binary_##prefix##_##name##_glsl_start;                                                                                                                                                                                \
+    extern char _binary_##prefix##_##name##_glsl_size[];                                                                                                                                                                               \
+    const BinaryBlob name = {.source = ( &_binary_##prefix##_##name##_glsl_start ), .length = ( ( int )( intptr_t )_binary_##prefix##_##name##_glsl_size )}
 
 #endif
 #endif
