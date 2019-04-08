@@ -52,7 +52,7 @@ clean: clean-linux clean-windows clean-android clean-wasm
 	rm -d out
 
 install:
-	sudo apt install freeglut3-dev libglew-dev libglm-dev libglm-doc nvidia-cuda-toolkit rsync libarchive-tools libxi-dev wget ccache
+	sudo apt install freeglut3-dev libglew-dev libglm-dev libglm-doc nvidia-cuda-toolkit rsync libarchive-tools libxi-dev wget ccache mingw-w64
 	rm -rf freeglut.zip
 	rm -rf glew.zip
 	rm -rf windows_build
