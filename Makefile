@@ -66,6 +66,8 @@ install:
 
 .PHONY: run install all clean vars
 
+deploy: windows-deploy linux-deploy wasm-deploy
+
 nothing:
 
 .PRECIOUS: $(BITMAPS_NO_HEADER)

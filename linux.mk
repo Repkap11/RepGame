@@ -42,6 +42,9 @@ out/linux/bitmaps/%.o : out/bitmaps/%.bin $(MAKEFILES) | out/linux
 
 linux: $(TARGET)
 
+linux-deploy: $(TARGET)
+	rsync $< paul@repkap11.com:/home/paul/website/repgame
+
 LINUX_DIRS = $(patsubst src%,out/linux%,$(shell find src -type d)) \
        $(patsubst src%,out/server%,$(shell find src -type d)) \
 	   out/linux/shaders out/linux/bitmaps
@@ -79,4 +82,4 @@ out/linux: | out
 
 .PRECIOUS: $(TARGET) $(OBJECTS_LINUX) $(OBJECTS_COMMON_LINUX) $(LIB_TARGET_LINUX) $(SHADER_BLOBS_LINUX) $(BITMAP_BLOBS_LINUX)
 
-.PHONY: linux linux-run clean-linux map
+.PHONY: linux linux-run clean-linux map linux-deploy

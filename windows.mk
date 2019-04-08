@@ -42,6 +42,9 @@ out/windows/bitmaps/%.o : out/bitmaps/%.bin $(MAKEFILES) | out/windows
 
 windows: $(TARGET).exe
 
+windows-deploy: $(TARGET).exe
+	rsync $< paul@repkap11.com:/home/paul/website/repgame
+
 WINDOWS_DIRS = $(patsubst src%,out/windows%,$(shell find src -type d)) \
 	   out/windows/shaders out/windows/bitmaps
 
@@ -69,4 +72,4 @@ out/windows: | out
 
 .PRECIOUS: $(TARGET).exe $(OBJECTS_WINDOWS) $(OBJECTS_COMMON_WINDOWS) $(LIB_TARGET_WINDOWS) $(SHADER_BLOBS_WINDOWS) $(BITMAP_BLOBS_WINDOWS)
 
-.PHONY: windows windows-run clean-windows
+.PHONY: windows windows-run clean-windows windows-deploy

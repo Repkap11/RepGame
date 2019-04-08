@@ -76,4 +76,4 @@ out/wasm: | out
 
 .PRECIOUS: $(TARGET) $(OBJECTS_WASM) $(OBJECTS_COMMON_WASM) $(LIB_TARGET_WASM)
 
-.PHONY: wasm wasm-run clean-wasm
+.PHONY: wasm wasm-run clean-wasm wasm-deploy
