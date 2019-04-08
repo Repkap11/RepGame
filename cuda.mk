@@ -5,7 +5,7 @@ OBJECTS_CUDA := $(patsubst src/linux/cuda/%.cu,out/linux/linux/cuda/%.o, $(wildc
 CLEAN_CUDA := $(OBJECTS_CUDA)
 
 CC_CUDA := /usr/bin/nvcc
-#If the current system has the cuda compiler, use CUDA to accelerate terrain gen
+#If the current system has the cuda compiler allow cuda to be build
 ifneq ("$(wildcard $(CC_CUDA))","")
 
 ifeq ($(USE_CCACHE),1)
@@ -21,9 +21,14 @@ CFLAGS_CUDA_COMPILE := -x cu -dc -c
 CFLAGS_CUDA_LINK_DEVICE := --lib
 CFLAGS_CUDA_LINK_HOST := -dlink
 
+
+SUPPORTS_CUDA := $(shell lspci | grep VGA | grep -i nvidia | wc -l )
+
+ifeq ($(SUPPORTS_CUDA),1) #If the current linux GPU has cuda, use CUDA to accelerate terrain gen
 LIBS_LINUX += -lcudart -L/usr/local/cuda-9.2/lib64
 CFLAGS_LINUX += -DLOAD_WITH_CUDA
 OBJECTS_COMMON_LINUX += $(LIB_TARGET_CUDA) $(LIB_DEVICE_CUDA)
+endif
 
 endif
 
