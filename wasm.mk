@@ -13,7 +13,7 @@ CFLAGS_WASM += -s ALLOW_MEMORY_GROWTH=1
 CC_WASM := ~/Software/emsdk/emsdk/emscripten/1.38.26/em++
 
 WASM_SHADERS = $(patsubst src/shaders/%.glsl,out/wasm/fs/src/shaders/%.glsl,$(wildcard src/shaders/*.glsl))
-WASM_BITMAPS = $(patsubst bitmaps/%,out/wasm/fs/bitmaps/%,$(wildcard bitmaps/*))
+WASM_BITMAPS = $(patsubst bitmaps/%.bmp,out/wasm/fs/bitmaps/%.bin,$(wildcard bitmaps/*.bmp))
 
 OBJECTS_COMMON_WASM := $(patsubst src/common/%.cpp,out/wasm/common/%.bc, $(SRC_COMMON))
 OBJECTS_WASM := $(patsubst src/%.cpp,out/wasm/%.bc, $(wildcard src/wasm/*.cpp))
@@ -46,7 +46,7 @@ out/wasm/delivery/reset.css: src/wasm/reset.css | out/wasm
 out/wasm/fs/src/shaders/%.glsl: src/shaders/%.glsl $(MAKEFILES) | out/wasm
 	cp $< $@
 
-out/wasm/fs/bitmaps/% : android/app/src/main/res/raw/% $(MAKEFILES) | out/wasm
+out/wasm/fs/bitmaps/% : out/bitmaps/% $(MAKEFILES) | out/wasm
 	cp $< $@
 
 out/wasm/delivery/icon.png : bitmaps/icon.png | out/wasm

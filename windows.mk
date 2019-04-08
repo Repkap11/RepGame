@@ -31,8 +31,9 @@ BITMAP_BLOBS_WINDOWS := $(patsubst bitmaps/%.bmp,out/windows/bitmaps/%.o,$(wildc
 out/windows/shaders/%.o : src/shaders/%.glsl $(MAKEFILES) | out/windows
 	$(LD_WINDOWS) -b binary $< -o $@
 
-out/windows/bitmaps/%.o : bitmaps/%.bmp $(MAKEFILES) | out/windows
+out/windows/bitmaps/%.o : out/bitmaps/%.bin $(MAKEFILES) | out/windows
 	$(LD_WINDOWS) -b binary $< -o $@
+	objcopy --rename-section .data=.rodata,CONTENTS,ALLOC,LOAD,READONLY,DATA --reverse-bytes=4 $@ $@
 
 windows: $(TARGET).exe
 

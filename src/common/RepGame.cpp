@@ -204,7 +204,7 @@ int check_block( Block *block ) {
     return 0;
 }
 
-MK_TEXTURE( textures, 384, 816, 16, 16 );
+MK_TEXTURE( textures, 384, 816, 16, 16, 138 );
 
 void repgame_init( ) {
     glEnable( GL_DEPTH_TEST );

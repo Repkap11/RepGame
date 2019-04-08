@@ -25,22 +25,16 @@ DEPS_LINUX := $(patsubst src/%.cpp,out/linux/%.d, $(wildcard src/linux/*.cpp)) \
 			$(patsubst src/common/%.cpp,out/linux/common/%.d, $(SRC_COMMON))
 
 SHADER_BLOBS_LINUX := $(patsubst src/shaders/%.glsl,out/linux/shaders/%.o.temp,$(wildcard src/shaders/*.glsl))
-SHADER_BLOBS_TEMP_LINUX := $(patsubst src/shaders/%.glsl,out/linux/shaders/%.o.temp,$(wildcard src/shaders/*.glsl))
 BITMAP_BLOBS_LINUX := $(patsubst bitmaps/%.bmp,out/linux/bitmaps/%.o,$(wildcard bitmaps/*.bmp))
-BITMAP_BLOBS_TEMP_LINUX := $(patsubst bitmaps/%.bmp,out/linux/bitmaps/%.o.temp,$(wildcard bitmaps/*.bmp))
 
 
 out/linux/shaders/%.o.temp : src/shaders/%.glsl $(MAKEFILES) | out/linux
 	$(LD_LINUX) -b binary $< -o $@
+	objcopy --rename-section .data=.rodata,CONTENTS,ALLOC,LOAD,READONLY,DATA $@ $@
 
-out/linux/bitmaps/%.o : out/linux/bitmaps/%.o.temp $(MAKEFILES) | out/linux
-	objcopy --rename-section .data=.rodata,CONTENTS,ALLOC,LOAD,READONLY,DATA $< $@
-
-out/linux/bitmaps/%.o.temp : bitmaps/%.bmp $(MAKEFILES) | out/linux
+out/linux/bitmaps/%.o : out/bitmaps/%.bin $(MAKEFILES) | out/linux
 	$(LD_LINUX) -b binary $< -o $@
-
-out/linux/shaders/%.o : out/linux/shaders/%.o.temp $(MAKEFILES) | out/linux
-	objcopy --rename-section .data=.rodata,CONTENTS,ALLOC,LOAD,READONLY,DATA $< $@
+	objcopy --rename-section .data=.rodata,CONTENTS,ALLOC,LOAD,READONLY,DATA --reverse-bytes=4 $@ $@
 
 linux: $(TARGET)
 
@@ -79,8 +73,6 @@ out/linux: | out
 	#@echo Making linux $(LINUX_DIRS)
 	mkdir -p $(LINUX_DIRS)
 
-.PRECIOUS: $(TARGET) $(OBJECTS_LINUX) $(OBJECTS_COMMON_LINUX) $(LIB_TARGET_LINUX) $(SHADER_BLOBS_LINUX) $(SHADER_BLOBS_TEMP_LINUX) $(BITMAP_BLOBS_LINUX) $(BITMAP_BLOBS_TEMP_LINUX)
+.PRECIOUS: $(TARGET) $(OBJECTS_LINUX) $(OBJECTS_COMMON_LINUX) $(LIB_TARGET_LINUX) $(SHADER_BLOBS_LINUX) $(BITMAP_BLOBS_LINUX)
 
 .PHONY: linux linux-run clean-linux map
-
-#$(info $$SHADER_BLOBS_LINUX is [${SHADER_BLOBS_LINUX}])

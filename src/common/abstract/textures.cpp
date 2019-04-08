@@ -5,14 +5,12 @@
 #include "common/abstract/textures.hpp"
 #include <cstring>
 
-#define BMP_HEADER_SIZE 138
-
 #if defined( REPGAME_ANDROID )
 #define GL_TEXTURE_MAX_ANISOTROPY_EXT 0x84FE
 #define GL_MAX_TEXTURE_MAX_ANISOTROPY_EXT 0x84FF
 unsigned char *cached_texture[ 2 ];
 void textures_set_texture_data( unsigned int which_texture, unsigned char *textures, int textures_len ) {
-    for ( int i = BMP_HEADER_SIZE; i < textures_len; i += 4 ) {
+    for ( int i = 0; i < textures_len; i += 4 ) {
         unsigned char a = textures[ i + 0 ];
         unsigned char b = textures[ i + 1 ];
         unsigned char g = textures[ i + 2 ];
@@ -46,7 +44,7 @@ unsigned char *readTextureDataFromFile( const char *filename, int mem_size ) {
         pr_debug( "Texture file wrong size. Expected:%d", mem_size );
     }
     fclose( file );
-    for ( int i = BMP_HEADER_SIZE; i < mem_size; i += 4 ) {
+    for ( int i = 0; i < mem_size; i += 4 ) {
         unsigned char a = data[ i + 0 ];
         unsigned char b = data[ i + 1 ];
         unsigned char g = data[ i + 2 ];
@@ -62,18 +60,20 @@ unsigned char *readTextureDataFromFile( const char *filename, int mem_size ) {
 #if defined( REPGAME_ANDROID )
 unsigned char *readTextureDataFromCache( const char *filename, int mem_size ) {
     // TODO this is such a hack
-    if ( strcmp( filename, "bitmaps/textures.bmp" ) == 0 )
+    pr_debug( "Returning texture for %d", filename );
+    if ( strcmp( filename, "bitmaps/textures.bin" ) == 0 )
         return cached_texture[ 0 ];
-    if ( strcmp( filename, "bitmaps/sky4.bmp" ) == 0 )
+    if ( strcmp( filename, "bitmaps/sky4.bin" ) == 0 )
         return cached_texture[ 1 ];
     pr_debug( "Cant find a texture for:%s", filename );
+    exit( 1 );
     return NULL;
 }
 #endif
 
 #define BYTEX_PER_PIXEL 4
 unsigned int loadTexture( const TextureSourceData *texture_source ) {
-    int bmp_header = BMP_HEADER_SIZE;
+    int bmp_header = texture_source->header_size;
     unsigned char *data;
 
     int mem_size = texture_source->width * texture_source->height * BYTEX_PER_PIXEL + bmp_header;
@@ -82,14 +82,16 @@ unsigned int loadTexture( const TextureSourceData *texture_source ) {
 #if defined( REPGAME_LINUX ) || defined( REPGAME_WINDOWS )
     needs_free = 0;
     if ( texture_source->blob->length != mem_size ) {
-        pr_debug( "Unexpected Source Size blob:%d calculated:%d", texture_source->blob->length, mem_size );
+        int diff = texture_source->blob->length - mem_size;
+        pr_debug( "Unexpected Source Size blob:%d calculated:%d diff:%d", texture_source->blob->length, mem_size, diff );
+        exit( 1 );
     }
     data = ( unsigned char * )texture_source->blob->source;
 #elif defined( REPGAME_WASM )
     needs_free = 1;
     data = readTextureDataFromFile( texture_source->filename, mem_size );
 #elif defined( REPGAME_ANDROID )
-    needs_free = 1;
+    needs_free = 0;
     data = readTextureDataFromCache( texture_source->filename, mem_size );
 #endif
 
@@ -99,7 +101,7 @@ unsigned int loadTexture( const TextureSourceData *texture_source ) {
     unsigned int texture;
     glGenTextures( 1, &texture );
     glBindTexture( GL_TEXTURE_2D_ARRAY, texture );
-#if defined( REPGAME_WASM ) || defined( REPGAME_LINUX ) || defined( REPGAME_WINDOWS )
+#if defined( REPGAME_WASM )
     glTexImage3D( GL_TEXTURE_2D_ARRAY,                                              //
                   0,                                                                // mipLevelCount
                   GL_RGBA8,                                                         //
@@ -122,11 +124,7 @@ unsigned int loadTexture( const TextureSourceData *texture_source ) {
                          0,                                                                   // Mipmap Level
                          0, 0, i,                                                             // offset
                          texture_source->tile_size_across, texture_source->tile_size_down, 1, //
-#if defined( REPGAME_LINUX ) || defined( REPGAME_WINDOWS )
-                         GL_ABGR_EXT, //
-#else
                          GL_RGBA,
-#endif
                          GL_UNSIGNED_BYTE, //
                          data + bmp_header + text_coord_base * BYTEX_PER_PIXEL );
     }

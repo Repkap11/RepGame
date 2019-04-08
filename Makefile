@@ -26,6 +26,12 @@ INCLUDES_COMMON := -I include/ -I /usr/include/glm
 
 HEADERS := $(wildcard include/**/*.hpp)
 
+
+BITMAPS_NO_HEADER := $(patsubst bitmaps/%.bmp,out/bitmaps/%.bin,$(wildcard bitmaps/*.bmp))
+
+out/bitmaps/%.bin : bitmaps/%.bmp $(MAKEFILES) | out
+	tail -c +139 $< > $@
+
 #Android targets might depend on linux.mk modifications
 include wasm.mk
 include linux.mk
@@ -33,13 +39,14 @@ include windows.mk
 include android.mk
 
 out:
-	mkdir -p out
+	mkdir -p out out/bitmaps
 
 run: linux android-run wasm
 	${WASM_START_COMMAND} &
 	./$(TARGET)
 
 clean: clean-linux clean-windows clean-android clean-wasm
+	rm -rf out/bitmaps
 	rm -d out
 
 install:
@@ -59,9 +66,11 @@ install:
 
 nothing:
 
+.PRECIOUS: $(BITMAPS_NO_HEADER)
+
 vars:
 	@echo "$(BEFORE_VARS) $(AFTER_VARS)" | xargs -n1 | sort | uniq -u
 
 AFTER_VARS := $(.VARIABLES)
 
-#$(info $$WASM_BITMAPS is [${WASM_BITMAPS}])
+#$(info $$ANDROID_BITMAPS is [${ANDROID_BITMAPS}])

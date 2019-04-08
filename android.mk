@@ -2,7 +2,7 @@
 MAKEFILES += android.mk
 
 ANDROID_SHADERS = $(patsubst src/shaders/%.glsl,android/app/src/main/assets/%.glsl,$(wildcard src/shaders/*.glsl))
-ANDROID_BITMAPS = $(patsubst bitmaps/%,android/app/src/main/res/raw/%,$(wildcard bitmaps/*))
+ANDROID_BITMAPS = $(patsubst bitmaps/%.bmp,android/app/src/main/res/raw/%.bin,$(wildcard bitmaps/*.bmp))
 
 
 ANDROID_DIRS = android/app/src/main/assets/shaders
@@ -34,7 +34,7 @@ android-bitmaps: $(ANDROID_BITMAPS)
 android/app/src/main/assets/%.glsl: src/shaders/%.glsl $(MAKEFILES) | $(ANDROID_DIRS)
 	cp $< $@
 
-android/app/src/main/res/raw/%: bitmaps/% $(MAKEFILES) | $(ANDROID_DIRS)
+android/app/src/main/res/raw/%: out/bitmaps/% $(MAKEFILES) | $(ANDROID_DIRS)
 	cp $< $@
 
 .PRECIOUS: $(OBJECTS_SHARED_ANDROID)
