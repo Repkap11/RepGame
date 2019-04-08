@@ -11,6 +11,9 @@ CFLAGS_WASM := -DREPGAME_WASM \
 CFLAGS_WASM += -s ALLOW_MEMORY_GROWTH=1
 
 CC_WASM := ~/Software/emsdk/emsdk/emscripten/1.38.26/em++
+ifeq ($(USE_CCACHE),1)
+CC_WASM := ccache $(CC_WASM)
+endif
 
 WASM_SHADERS = $(patsubst src/shaders/%.glsl,out/wasm/fs/src/shaders/%.glsl,$(wildcard src/shaders/*.glsl))
 WASM_BITMAPS = $(patsubst bitmaps/%.bmp,out/wasm/fs/bitmaps/%.bin,$(wildcard bitmaps/*.bmp))

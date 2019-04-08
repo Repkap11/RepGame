@@ -8,6 +8,10 @@ CC_CUDA := /usr/bin/nvcc
 #If the current system has the cuda compiler, use CUDA to accelerate terrain gen
 ifneq ("$(wildcard $(CC_CUDA))","")
 
+ifeq ($(USE_CCACHE),1)
+CC_CUDA := ccache $(CC_CUDA)
+endif
+
 LIB_DEVICE_CUDA := out/linux/linux/cuda/lib$(TARGET)_device.o
 LIB_TARGET_CUDA := out/linux/linux/cuda/lib$(TARGET).o
 CLEAN_CUDA += $(LIB_DEVICE_CUDA) $(LIB_TARGET_CUDA)

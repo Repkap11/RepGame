@@ -16,8 +16,12 @@ CC_LINUX := g++
 ifeq ($(CC_LINUX),g++)
 CFLAGS_LINUX += -no-pie
 endif
+LD_LINUX := ld
 
-LD_LINUX := ld -r
+ifeq ($(USE_CCACHE),1)
+CC_LINUX := ccache $(CC_LINUX)
+LD_LINUX := ccache $(LD_LINUX)
+endif
 
 OBJECTS_COMMON_LINUX := $(patsubst src/common/%.cpp,out/linux/common/%.o, $(SRC_COMMON))
 OBJECTS_LINUX := $(patsubst src/%.cpp,out/linux/%.o, $(wildcard src/linux/*.cpp))
@@ -29,11 +33,11 @@ BITMAP_BLOBS_LINUX := $(patsubst bitmaps/%.bmp,out/linux/bitmaps/%.o,$(wildcard 
 
 
 out/linux/shaders/%.o.temp : src/shaders/%.glsl $(MAKEFILES) | out/linux
-	$(LD_LINUX) -b binary $< -o $@
+	$(LD_LINUX) -r -b binary $< -o $@
 	objcopy --rename-section .data=.rodata,CONTENTS,ALLOC,LOAD,READONLY,DATA $@ $@
 
 out/linux/bitmaps/%.o : out/bitmaps/%.bin $(MAKEFILES) | out/linux
-	$(LD_LINUX) -b binary $< -o $@
+	$(LD_LINUX) -r -b binary $< -o $@
 	objcopy --rename-section .data=.rodata,CONTENTS,ALLOC,LOAD,READONLY,DATA --reverse-bytes=4 $@ $@
 
 linux: $(TARGET)

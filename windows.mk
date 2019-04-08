@@ -18,7 +18,12 @@ ifeq ($(CC_WINDOWS),x86_64-w64-mingw32-g++)
 CFLAGS_WINDOWS += -no-pie
 endif
 
-LD_WINDOWS := x86_64-w64-mingw32-ld -r
+LD_WINDOWS := x86_64-w64-mingw32-ld
+
+ifeq ($(USE_CCACHE),1)
+CC_WINDOWS := ccache $(CC_WINDOWS)
+LD_WINDOWS := ccache $(LD_WINDOWS)
+endif
 
 OBJECTS_COMMON_WINDOWS := $(patsubst src/common/%.cpp,out/windows/common/%.o, $(SRC_COMMON))
 OBJECTS_WINDOWS := $(patsubst src/%.cpp,out/windows/%.o, $(wildcard src/windows/*.cpp))
@@ -29,10 +34,10 @@ SHADER_BLOBS_WINDOWS := $(patsubst src/shaders/%.glsl,out/windows/shaders/%.o,$(
 BITMAP_BLOBS_WINDOWS := $(patsubst bitmaps/%.bmp,out/windows/bitmaps/%.o,$(wildcard bitmaps/*.bmp))
 
 out/windows/shaders/%.o : src/shaders/%.glsl $(MAKEFILES) | out/windows
-	$(LD_WINDOWS) -b binary $< -o $@
+	$(LD_WINDOWS) -r -b binary $< -o $@
 
 out/windows/bitmaps/%.o : out/bitmaps/%.bin $(MAKEFILES) | out/windows
-	$(LD_WINDOWS) -b binary $< -o $@
+	$(LD_WINDOWS) -r -b binary $< -o $@
 	objcopy --rename-section .data=.rodata,CONTENTS,ALLOC,LOAD,READONLY,DATA --reverse-bytes=4 $@ $@
 
 windows: $(TARGET).exe
