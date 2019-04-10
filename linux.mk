@@ -1,6 +1,8 @@
 #Linux x86_64 builds
 MAKEFILES += linux.mk
 
+REPGAME_PACKAGES += freeglut3-dev libglew-dev libxi-dev
+
 CFLAGS_LINUX := -Wall -Werror -std=c++98 -Wno-unused-variable -fno-pie -march=native
 
 #CFLAGS_LINUX += -O3 -DREPGAME_FAST

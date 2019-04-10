@@ -1,6 +1,8 @@
 #Linux Cuda
 MAKEFILES += cuda.mk
 
+REPGAME_PACKAGES += nvidia-cuda-toolkit
+
 OBJECTS_CUDA := $(patsubst src/linux/cuda/%.cu,out/linux/linux/cuda/%.o, $(wildcard src/linux/cuda/*.cu))
 CLEAN_CUDA := $(OBJECTS_CUDA)
 

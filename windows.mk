@@ -1,6 +1,8 @@
 #Windows x86_64 builds
 MAKEFILES += windows.mk
 
+REPGAME_PACKAGES += mingw-w64
+
 CFLAGS_WINDOWS := -Wall -Werror -std=c++98 -Wno-unused-variable -fno-pie -D GLEW_STATIC -D FREEGLUT_STATIC
 
 #CFLAGS_WINDOWS += -O3 -DREPGAME_FAST

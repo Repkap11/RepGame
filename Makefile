@@ -34,6 +34,8 @@ BITMAPS_NO_HEADER := $(patsubst bitmaps/%.bmp,out/bitmaps/%.bin,$(wildcard bitma
 out/bitmaps/%.bin : bitmaps/%.bmp $(MAKEFILES) | out
 	tail -c +139 $< > $@
 
+REPGAME_PACKAGES := libglm-dev libglm-doc rsync libarchive-tools wget ccache
+
 #Android targets might depend on linux.mk modifications
 include wasm.mk
 include linux.mk
@@ -52,7 +54,7 @@ clean: clean-linux clean-windows clean-android clean-wasm
 	rm -d out
 
 install:
-	sudo apt install freeglut3-dev libglew-dev libglm-dev libglm-doc nvidia-cuda-toolkit rsync libarchive-tools libxi-dev wget ccache mingw-w64
+	sudo apt install $(REPGAME_PACKAGES)
 	rm -rf freeglut.zip
 	rm -rf glew.zip
 	rm -rf windows_build
