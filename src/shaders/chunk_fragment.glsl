@@ -20,7 +20,7 @@ void main( ) {
     if ( texColor.a == 0.0 ) {
         discard;
     }
-    if ( u_shouldDiscardAlpha == 1.0f && texColor.a < 0.9 ) {
+    if ( u_shouldDiscardAlpha == 1.0f && texColor.a < 0.7 ) {
         discard;
     }
 
