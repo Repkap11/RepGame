@@ -113,13 +113,12 @@ void map_storage_persist( Chunk *chunk ) {
                 num_same_blocks = 1;
             }
         }
-        if ( num_same_blocks >= 0 ) {
-            persist_data[ persist_data_index ].block_id = previous_id;
-            persist_data[ persist_data_index ].num = num_same_blocks;
-            total_num_blocks += num_same_blocks;
+        persist_data[ persist_data_index ].block_id = previous_id;
+        persist_data[ persist_data_index ].num = num_same_blocks;
+        total_num_blocks += num_same_blocks;
 
-            persist_data_index++;
-        }
+        persist_data_index++;
+
         int expected_num_saved_blocks = CHUNK_BLOCK_SIZE;
         if ( total_num_blocks != expected_num_saved_blocks ) {
             pr_debug( "Didn't get enough blocks save" );
