@@ -12,7 +12,7 @@ RepGame requires some dependencies to be installed on the your system before you
 Windows: https://repkap11.com/repgame//RepGame.exe
 Linux: https://repkap11.com/repgame/RepGame
 Web (Web Assembly): https://repkap11.com/repgame
-Andorid: TBD
+Andorid: http://repkap11.com/repgame/RepGame.apk
 
 ## Screenshots
 ![RepGame House](https://github.com/Repkap11/RepGame/blob/master/screenshots/repgame_house.png "RepGame House")

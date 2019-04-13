@@ -68,7 +68,7 @@ install:
 
 .PHONY: run install all clean vars
 
-deploy: windows-deploy linux-deploy wasm-deploy
+deploy: windows-deploy linux-deploy wasm-deploy android-deploy
 
 nothing:
 

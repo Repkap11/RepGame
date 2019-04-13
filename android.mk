@@ -21,6 +21,9 @@ android-run: android
 	#adb logcat -s RepGameAndroid -v brief
 	#adb logcat -v brief | grep RepGame
 
+android-deploy: android
+	rsync android/app/build/outputs/apk/debug/RepGame-debug.apk paul@repkap11.com:/home/paul/website/repgame/RepGame.apk
+
 clean-android:
 	rm -f $(ANDROID_SHADERS)
 	rm -f $(ANDROID_BITMAPS)
@@ -39,4 +42,4 @@ android/app/src/main/res/raw/%: out/bitmaps/% $(MAKEFILES) | $(ANDROID_DIRS)
 
 .PRECIOUS: $(OBJECTS_SHARED_ANDROID)
 
-.PHONY: android android-run android-shaders clean-android
+.PHONY: android android-run android-shaders clean-android android-deploy
