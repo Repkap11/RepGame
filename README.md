@@ -9,9 +9,9 @@ RepGame requires some dependencies to be installed on the your system before you
 
 
 ## Play on Windows, Linux, Web, or Android
-Windows: https://repkap11.com/repgame//RepGame.exe
-Linux: https://repkap11.com/repgame/RepGame
-Web (Web Assembly): https://repkap11.com/repgame
+Windows: https://repkap11.com/repgame//RepGame.exe \
+Linux: https://repkap11.com/repgame/RepGame \
+Web (Web Assembly): https://repkap11.com/repgame \
 Andorid: http://repkap11.com/repgame/RepGame.apk
 
 ## Screenshots
