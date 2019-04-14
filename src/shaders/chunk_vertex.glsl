@@ -53,7 +53,7 @@ void main( ) {
         packed_lighting = packed_lighting_2[ faceType - uint( 3 ) ];
     }
     float light_divisor = 1.3; // good looking
-    // light_divisor = 1.0;       // debug
+    // light_divisor = 0.5;       // debug
 
     uint which_bits = uint( 3 );
     if ( corner_shift == 16.0 ) {

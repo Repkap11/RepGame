@@ -169,7 +169,7 @@ void chunk_set_block( Chunk *chunk, int x, int y, int z, BlockID blockID ) {
 }
 
 void chunk_persist( Chunk *chunk ) {
-#if defined(REPGAME_LINUX) || defined(REPGAME_WINDOWS)
+#if defined( REPGAME_LINUX ) || defined( REPGAME_WINDOWS )
     if ( REMEMBER_BLOCKS ) {
         map_storage_persist( chunk );
     }
@@ -182,7 +182,7 @@ void chunk_load_terrain( Chunk *chunk ) {
         chunk->blocks = ( BlockID * )calloc( CHUNK_BLOCK_SIZE, sizeof( BlockID ) );
     }
 // pr_debug( "Loading chunk terrain x:%d y:%d z:%d", chunk->chunk_x, chunk->chunk_y, chunk->chunk_z );
-#if defined(REPGAME_LINUX) || defined(REPGAME_WINDOWS)
+#if defined( REPGAME_LINUX ) || defined( REPGAME_WINDOWS )
     int loaded = map_storage_load( chunk );
 #else
     int loaded = 0;
@@ -336,6 +336,13 @@ void chunk_calculate_popupated_blocks( Chunk *chunk ) {
 
                 int can_be_shaded = render_order_can_be_shaded( block->renderOrder );
 
+                int t = block_definition_get_definition( chunk->blocks[ chunk_get_index_from_coords( x + 0, yplus, z + 0 ) ] )->casts_shadow;
+                int bo = block_definition_get_definition( chunk->blocks[ chunk_get_index_from_coords( x + 0, yminus, z + 0 ) ] )->casts_shadow;
+                int f = block_definition_get_definition( chunk->blocks[ chunk_get_index_from_coords( x + 0, y + 0, zplus ) ] )->casts_shadow;
+                int ba = block_definition_get_definition( chunk->blocks[ chunk_get_index_from_coords( x + 0, y + 0, zminus ) ] )->casts_shadow;
+                int r = block_definition_get_definition( chunk->blocks[ chunk_get_index_from_coords( xplus, y + 0, z + 0 ) ] )->casts_shadow;
+                int l = block_definition_get_definition( chunk->blocks[ chunk_get_index_from_coords( xminus, y + 0, z + 0 ) ] )->casts_shadow;
+
                 // If the block is visible and can be shaded, check neighbors for shade and populated the packed lighting
                 // 2 Offsets
                 int tl = block_definition_get_definition( chunk->blocks[ chunk_get_index_from_coords( xminus, yplus, z + 0 ) ] )->casts_shadow;
@@ -364,10 +371,14 @@ void chunk_calculate_popupated_blocks( Chunk *chunk ) {
                 int bfr = block_definition_get_definition( chunk->blocks[ chunk_get_index_from_coords( xplus, yminus, zplus ) ] )->casts_shadow;
                 int bbr = block_definition_get_definition( chunk->blocks[ chunk_get_index_from_coords( xplus, yminus, zminus ) ] )->casts_shadow;
                 if ( visiable_top && can_be_shaded ) {
-                    int top_tfr = tf && tr ? 3 : ( tf + tr + tfr );
-                    int top_tfl = tf && tl ? 3 : ( tf + tl + tfl );
-                    int top_tbr = tba && tr ? 3 : ( tba + tr + tbr );
-                    int top_tbl = tba && tl ? 3 : ( tba + tl + tbl );
+                    int top_tfr = ( tf && tr ? 3 : ( tf + tr + tfr ) ) + t;
+                    int top_tfl = ( tf && tl ? 3 : ( tf + tl + tfl ) ) + t;
+                    int top_tbr = ( tba && tr ? 3 : ( tba + tr + tbr ) ) + t;
+                    int top_tbl = ( tba && tl ? 3 : ( tba + tl + tbl ) ) + t;
+                    top_tfr = top_tfr > 3 ? 3 : top_tfr;
+                    top_tfl = top_tfl > 3 ? 3 : top_tfl;
+                    top_tbr = top_tbr > 3 ? 3 : top_tbr;
+                    top_tbl = top_tbl > 3 ? 3 : top_tbl;
                     int tcc = min( top_tfr, top_tfl, top_tbr, top_tbl );
                     workingSpace[ index ].packed_lighting[ FACE_TOP ] =                         //
                         ( ( top_tfr << CORNER_OFFSET_tfr ) | ( top_tfl << CORNER_OFFSET_tfl ) | //
@@ -377,10 +388,14 @@ void chunk_calculate_popupated_blocks( Chunk *chunk ) {
                     workingSpace[ index ].packed_lighting[ FACE_TOP ] = block->no_light;
                 }
                 if ( visiable_bottom && can_be_shaded ) {
-                    int bottom_bfr = bof && bor ? 3 : ( bof + bor + bfr );
-                    int bottom_bfl = bof && bol ? 3 : ( bof + bol + bfl );
-                    int bottom_bbr = boba && bor ? 3 : ( boba + bor + bbr );
-                    int bottom_bbl = boba && bol ? 3 : ( boba + bol + bbl );
+                    int bottom_bfr = ( bof && bor ? 3 : ( bof + bor + bfr ) ) + bo;
+                    int bottom_bfl = ( bof && bol ? 3 : ( bof + bol + bfl ) ) + bo;
+                    int bottom_bbr = ( boba && bor ? 3 : ( boba + bor + bbr ) ) + bo;
+                    int bottom_bbl = ( boba && bol ? 3 : ( boba + bol + bbl ) ) + bo;
+                    bottom_bfr = bottom_bfr > 3 ? 3 : bottom_bfr;
+                    bottom_bfl = bottom_bfl > 3 ? 3 : bottom_bfl;
+                    bottom_bbr = bottom_bbr > 3 ? 3 : bottom_bbr;
+                    bottom_bbl = bottom_bbl > 3 ? 3 : bottom_bbl;
                     int bcc = min( bottom_bfr, bottom_bfl, bottom_bbr, bottom_bbl );
                     workingSpace[ index ].packed_lighting[ FACE_BOTTOM ] =                            //
                         ( ( bottom_bfr << CORNER_OFFSET_bfr ) | ( bottom_bfl << CORNER_OFFSET_bfl ) | //
@@ -390,10 +405,14 @@ void chunk_calculate_popupated_blocks( Chunk *chunk ) {
                     workingSpace[ index ].packed_lighting[ FACE_BOTTOM ] = block->no_light;
                 }
                 if ( visiable_front && can_be_shaded ) {
-                    int front_tfr = tf && fr ? 3 : ( tf + fr + tfr );
-                    int front_tfl = tf && fl ? 3 : ( tf + fl + tfl );
-                    int front_bfr = bof && fr ? 3 : ( bof + fr + bfr );
-                    int front_bfl = bof && fl ? 3 : ( bof + fl + bfl );
+                    int front_tfr = ( tf && fr ? 3 : ( tf + fr + tfr ) ) + f;
+                    int front_tfl = ( tf && fl ? 3 : ( tf + fl + tfl ) ) + f;
+                    int front_bfr = ( bof && fr ? 3 : ( bof + fr + bfr ) ) + f;
+                    int front_bfl = ( bof && fl ? 3 : ( bof + fl + bfl ) ) + f;
+                    front_tfr = front_tfr > 3 ? 3 : front_tfr;
+                    front_tfl = front_tfl > 3 ? 3 : front_tfl;
+                    front_bfr = front_bfr > 3 ? 3 : front_bfr;
+                    front_bfl = front_bfl > 3 ? 3 : front_bfl;
                     int cfc = min( front_tfr, front_tfl, front_bfr, front_bfl );
                     workingSpace[ index ].packed_lighting[ FACE_FRONT ] =                           //
                         ( ( front_tfr << CORNER_OFFSET_tfr ) | ( front_tfl << CORNER_OFFSET_tfl ) | //
@@ -403,10 +422,14 @@ void chunk_calculate_popupated_blocks( Chunk *chunk ) {
                     workingSpace[ index ].packed_lighting[ FACE_FRONT ] = block->no_light;
                 }
                 if ( visiable_back && can_be_shaded ) {
-                    int back_tbr = tba && bar ? 3 : ( tba + bar + tbr );
-                    int back_tbl = tba && bal ? 3 : ( tba + bal + tbl );
-                    int back_bbr = boba && bar ? 3 : ( boba + bar + bbr );
-                    int back_bbl = boba && bal ? 3 : ( boba + bal + bbl );
+                    int back_tbr = ( tba && bar ? 3 : ( tba + bar + tbr ) ) + ba;
+                    int back_tbl = ( tba && bal ? 3 : ( tba + bal + tbl ) ) + ba;
+                    int back_bbr = ( boba && bar ? 3 : ( boba + bar + bbr ) ) + ba;
+                    int back_bbl = ( boba && bal ? 3 : ( boba + bal + bbl ) ) + ba;
+                    back_tbr = back_tbr > 3 ? 3 : back_tbr;
+                    back_tbl = back_tbl > 3 ? 3 : back_tbl;
+                    back_bbr = back_bbr > 3 ? 3 : back_bbr;
+                    back_bbl = back_bbl > 3 ? 3 : back_bbl;
                     int cbc = min( back_tbr, back_tbl, back_bbr, back_bbl );
                     workingSpace[ index ].packed_lighting[ FACE_BACK ] =                          //
                         ( ( back_tbr << CORNER_OFFSET_tbr ) | ( back_tbl << CORNER_OFFSET_tbl ) | //
@@ -416,10 +439,14 @@ void chunk_calculate_popupated_blocks( Chunk *chunk ) {
                     workingSpace[ index ].packed_lighting[ FACE_BACK ] = block->no_light;
                 }
                 if ( visiable_right && can_be_shaded ) {
-                    int right_tfr = tr && fr ? 3 : ( tr + fr + tfr );
-                    int right_tbr = tr && bar ? 3 : ( tr + bar + tbr );
-                    int right_bfr = bor && fr ? 3 : ( bor + fr + bfr );
-                    int right_bbr = bor && bar ? 3 : ( bor + bar + bbr );
+                    int right_tfr = ( tr && fr ? 3 : ( tr + fr + tfr ) ) + r;
+                    int right_tbr = ( tr && bar ? 3 : ( tr + bar + tbr ) ) + r;
+                    int right_bfr = ( bor && fr ? 3 : ( bor + fr + bfr ) ) + r;
+                    int right_bbr = ( bor && bar ? 3 : ( bor + bar + bbr ) ) + r;
+                    right_tfr = right_tfr > 3 ? 3 : right_tfr;
+                    right_tbr = right_tbr > 3 ? 3 : right_tbr;
+                    right_bfr = right_bfr > 3 ? 3 : right_bfr;
+                    right_bbr = right_bbr > 3 ? 3 : right_bbr;
                     int ccr = min( right_tfr, right_tbr, right_bfr, right_bbr );
                     workingSpace[ index ].packed_lighting[ FACE_RIGHT ] =                           //
                         ( ( right_tfr << CORNER_OFFSET_tfr ) | ( right_tbr << CORNER_OFFSET_tbr ) | //
@@ -429,10 +456,14 @@ void chunk_calculate_popupated_blocks( Chunk *chunk ) {
                     workingSpace[ index ].packed_lighting[ FACE_RIGHT ] = block->no_light;
                 }
                 if ( visiable_left && can_be_shaded ) {
-                    int left_tfl = tl && fl ? 3 : ( tl + fl + tfl );
-                    int left_tbl = tl && bal ? 3 : ( tl + bal + tbl );
-                    int left_bfl = bol && fl ? 3 : ( bol + fl + bfl );
-                    int left_bbl = bol && bal ? 3 : ( bol + bal + bbl );
+                    int left_tfl = ( tl && fl ? 3 : ( tl + fl + tfl ) ) + l;
+                    int left_tbl = ( tl && bal ? 3 : ( tl + bal + tbl ) ) + l;
+                    int left_bfl = ( bol && fl ? 3 : ( bol + fl + bfl ) ) + l;
+                    int left_bbl = ( bol && bal ? 3 : ( bol + bal + bbl ) ) + l;
+                    left_tfl = left_tfl > 3 ? 3 : left_tfl;
+                    left_tbl = left_tbl > 3 ? 3 : left_tbl;
+                    left_bfl = left_bfl > 3 ? 3 : left_bfl;
+                    left_bbl = left_bbl > 3 ? 3 : left_bbl;
                     int ccl = min( left_tfl, left_tbl, left_bfl, left_bbl );
                     workingSpace[ index ].packed_lighting[ FACE_LEFT ] =                          //
                         ( ( left_tfl << CORNER_OFFSET_tfl ) | ( left_tbl << CORNER_OFFSET_tbl ) | //
@@ -513,7 +544,7 @@ void chunk_calculate_popupated_blocks( Chunk *chunk ) {
     free( workingSpace );
 
     if ( !REMEMBER_BLOCKS ) {
-#if defined(REPGAME_LINUX) || defined(REPGAME_WINDOWS)
+#if defined( REPGAME_LINUX ) || defined( REPGAME_WINDOWS )
         if ( PERSIST_ALL_CHUNKS ) {
             map_storage_persist( chunk );
         }
