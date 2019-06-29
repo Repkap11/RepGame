@@ -17,12 +17,12 @@ android-run: android
 	adb shell input keyevent KEYCODE_WAKEUP
 	./android/gradlew -q -p android installDebug
 	adb logcat -c
-	adb shell monkey -p com.repkap11.repgame -c android.intent.category.LAUNCHER 1
-	#adb logcat -s RepGameAndroid -v brief
-	#adb logcat -v brief | grep RepGame
+	adb shell monkey -p com.repkap11.${TARGET_LOWER} -c android.intent.category.LAUNCHER 1
+	#adb logcat -s ${TARGET}Android -v brief
+	#adb logcat -v brief | grep ${TARGET}
 
 android-deploy: android
-	rsync android/app/build/outputs/apk/debug/RepGame-debug.apk paul@repkap11.com:/home/paul/website/repgame/RepGame.apk
+	rsync android/app/build/outputs/apk/debug/${TARGET}-debug.apk paul@repkap11.com:/home/paul/website/${TARGET_LOWER}/${TARGET}.apk
 
 clean-android:
 	rm -f $(ANDROID_SHADERS)

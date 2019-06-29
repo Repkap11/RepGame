@@ -63,7 +63,7 @@ WASM_START_COMMAND := google-chrome --app=http://localhost:8080 --start-fullscre
 wasm-run: wasm
 	${WASM_START_COMMAND}
 
-WASM_DEPLOY_REMOTE_PATH := paul@repkap11.com:/home/paul/website/repgame
+WASM_DEPLOY_REMOTE_PATH := paul@repkap11.com:/home/paul/website/${TARGET_LOWER}
 
 wasm-deploy: wasm
 	rsync -r out/wasm/delivery/ ${WASM_DEPLOY_REMOTE_PATH}

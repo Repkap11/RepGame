@@ -45,7 +45,7 @@ out/windows/bitmaps/%.o : out/bitmaps/%.bin $(MAKEFILES) | out/windows
 windows: $(TARGET).exe
 
 windows-deploy: $(TARGET).exe
-	rsync $< paul@repkap11.com:/home/paul/website/repgame
+	rsync $< paul@repkap11.com:/home/paul/website/${TARGET_LOWER}
 
 WINDOWS_DIRS = $(patsubst src%,out/windows%,$(shell find src -type d)) \
 	   out/windows/shaders out/windows/bitmaps

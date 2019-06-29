@@ -45,7 +45,7 @@ out/linux/bitmaps/%.o : out/bitmaps/%.bin $(MAKEFILES) | out/linux
 linux: $(TARGET)
 
 linux-deploy: $(TARGET)
-	rsync $< paul@repkap11.com:/home/paul/website/repgame
+	rsync $< paul@repkap11.com:/home/paul/website/${TARGET_LOWER}
 
 LINUX_DIRS = $(patsubst src%,out/linux%,$(shell find src -type d)) \
        $(patsubst src%,out/server%,$(shell find src -type d)) \

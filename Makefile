@@ -16,12 +16,13 @@ MAKEFLAGS += --warn-undefined-variables
 MAKEFLAGS += --jobs=$(CPUS)
 
 TARGET := RepGame
+TARGET_LOWER := repgame
 
 USE_CCACHE := 1
 
 #Default target
 all: android linux windows wasm
-	@echo "RepGame build complete..."
+	@echo "${TARGET} build complete..."
 
 SRC_COMMON := $(wildcard src/common/*.cpp) $(wildcard src/common/abstract/*.cpp) $(wildcard src/common/utils/*.cpp)
 INCLUDES_COMMON := -I include/ -I /usr/include/glm
