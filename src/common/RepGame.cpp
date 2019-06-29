@@ -215,7 +215,7 @@ void repgame_init( ) {
     glBlendEquation( GL_FUNC_ADD );
 
     initilizeGameState( );
-    texture_init( &globalGameState.blocksTexture, &texture_source_textures );
+    texture_init( &globalGameState.blocksTexture, &texture_source_textures, 0 );
     block_definitions_initilize_definitions( &globalGameState.blocksTexture );
     world_init( &globalGameState.gameChunks );
     ui_overlay_init( &globalGameState.ui_overlay );

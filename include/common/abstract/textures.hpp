@@ -29,7 +29,7 @@ typedef struct {
         .height = height_,                                                                                                                                                                                                                     \
         .tile_size_across = tile_size_across_,                                                                                                                                                                                                 \
         .tile_size_down = tile_size_down_,                                                                                                                                                                                                     \
-        .header_size = 0,                                                                                                                                                                                                           \
+        .header_size = 0,                                                                                                                                                                                                                      \
     }
 #endif
 
@@ -42,7 +42,7 @@ typedef struct {
 
 void textures_set_texture_data( unsigned int which_texture, unsigned char *textures, int textures_len );
 
-void texture_init( Texture *texture, const TextureSourceData *texture_source );
+void texture_init( Texture *texture, const TextureSourceData *texture_source, int blur_mag );
 void texture_destroy( Texture *texture );
 void texture_bind( Texture *texture, unsigned int texture_slot );
 void texture_unbind( Texture *texture, unsigned int texture_slot );

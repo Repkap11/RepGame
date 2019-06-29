@@ -77,7 +77,7 @@ void sky_box_init( SkyBox *skyBox ) {
 
     vertex_array_add_buffer( &skyBox->va, &skyBox->vb, &skyBox->vbl, 0, 0 );
     shader_init( &skyBox->shader, &sky_box_vertex, &sky_box_fragment );
-    texture_init( &skyBox->texture, &texture_source_sky4 );
+    texture_init( &skyBox->texture, &texture_source_sky4, 1 );
     free( ib_data );
     free( vb_data );
 }

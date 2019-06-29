@@ -72,7 +72,7 @@ unsigned char *readTextureDataFromCache( const char *filename, int mem_size ) {
 #endif
 
 #define BYTEX_PER_PIXEL 4
-unsigned int loadTexture( const TextureSourceData *texture_source ) {
+unsigned int loadTexture( const TextureSourceData *texture_source, int blur_mag ) {
     int bmp_header = texture_source->header_size;
     unsigned char *data;
 
@@ -132,7 +132,11 @@ unsigned int loadTexture( const TextureSourceData *texture_source ) {
     glTexParameterf( GL_TEXTURE_2D_ARRAY, GL_TEXTURE_WRAP_S, GL_REPEAT );
     glTexParameterf( GL_TEXTURE_2D_ARRAY, GL_TEXTURE_WRAP_T, GL_REPEAT );
     glTexParameterf( GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MIN_FILTER, GL_LINEAR );
-    glTexParameterf( GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MAG_FILTER, GL_NEAREST );
+    if ( blur_mag ) {
+        glTexParameterf( GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MAG_FILTER, GL_LINEAR );
+    } else {
+        glTexParameterf( GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MAG_FILTER, GL_NEAREST );
+    }
     float max_ani;
     glGetFloatv( GL_MAX_TEXTURE_MAX_ANISOTROPY_EXT, &max_ani );
     pr_debug( "Max ani:%f", max_ani );
@@ -145,11 +149,11 @@ unsigned int loadTexture( const TextureSourceData *texture_source ) {
 }
 
 static int next_slot = 1;
-void texture_init( Texture *texture, const TextureSourceData *texture_source ) {
+void texture_init( Texture *texture, const TextureSourceData *texture_source, int blur_mag ) {
     texture->slot = next_slot;
     next_slot++;
     glActiveTexture( GL_TEXTURE0 + texture->slot );
-    texture->m_RendererId = loadTexture( texture_source );
+    texture->m_RendererId = loadTexture( texture_source, blur_mag );
 }
 
 void texture_bind( Texture *texture, unsigned int texture_slot ) {
