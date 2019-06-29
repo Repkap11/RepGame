@@ -75,7 +75,7 @@ void sky_box_init( SkyBox *skyBox, VertexBufferLayout *vbl_object_vertex, Vertex
 
     vertex_array_add_buffer( &skyBox->va, &skyBox->vb_vertex, vbl_object_vertex, 0, 0 );
     vertex_array_add_buffer( &skyBox->va, &skyBox->vb_position, vbl_object_position, vbl_object_vertex->current_size, 1 );
-    texture_init( &skyBox->texture, &texture_source_sky4 );
+    texture_init( &skyBox->texture, &texture_source_sky4, 1 );
     free( ib_data );
     free( vb_data );
 }

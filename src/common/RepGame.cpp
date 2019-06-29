@@ -288,7 +288,7 @@ void repgame_init( const char *world_name, bool connect_multi, const char *host 
     glBlendEquation( GL_FUNC_ADD );
 
     initilizeGameState( world_name );
-    texture_init( &globalGameState.blocksTexture, &texture_source_textures );
+    texture_init( &globalGameState.blocksTexture, &texture_source_textures, 0 );
     block_definitions_initilize_definitions( &globalGameState.blocksTexture );
     world_init( &globalGameState.world, globalGameState.camera.x, globalGameState.camera.y, globalGameState.camera.z );
     ui_overlay_init( &globalGameState.ui_overlay );
