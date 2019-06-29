@@ -2,6 +2,7 @@
 #include "common/chunk.hpp"
 #include "common/map_gen.hpp"
 #include "common/utils/map_storage.hpp"
+#include "common/structure_gen.hpp"
 
 static unsigned int ib_data_flowers[] = {
     14, 0, 13, // Right, Back, Right
@@ -194,6 +195,7 @@ void chunk_load_terrain( Chunk *chunk ) {
         } else {
             map_gen_load_block_c( chunk );
         }
+        structure_gen_place_trees( chunk );
         chunk->ditry = PERSIST_ALL_CHUNKS;
     }
     chunk_calculate_popupated_blocks( chunk );

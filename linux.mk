@@ -19,6 +19,7 @@ ifeq ($(CC_LINUX),g++)
 CFLAGS_LINUX += -no-pie
 endif
 LD_LINUX := ld
+#LD_LINUX := gold
 
 ifeq ($(USE_CCACHE),1)
 CC_LINUX := ccache $(CC_LINUX)
@@ -59,7 +60,7 @@ out/linux/%.o: src/%.cpp $(MAKEFILES) | out/linux
 -include $(DEPS_LINUX)
 
 # Server targets might depend on cuda.mk modifications
-#include cuda.mk
+include cuda.mk
 
 
 $(TARGET): $(OBJECTS_COMMON_LINUX) $(OBJECTS_LINUX) $(MAKEFILES) $(SHADER_BLOBS_LINUX) $(BITMAP_BLOBS_LINUX) 

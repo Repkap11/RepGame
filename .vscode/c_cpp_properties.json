@@ -36,7 +36,8 @@
                 "/usr/include",
                 "/usr/include/x86_64-linux-gnu",
                 "${workspaceRoot}",
-                "${workspaceRoot}/include"
+                "${workspaceRoot}/include",
+                "/usr/include/glm"
             ],
             "defines": [],
             "intelliSenseMode": "clang-x64",

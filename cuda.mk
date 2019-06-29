@@ -34,7 +34,7 @@ endif
 
 endif
 
-out/linux/linux/cuda/%.o: src/linux/cuda/%.cu $(HEADERS) $(MAKEFILES) | out
+out/linux/linux/cuda/%.o: src/linux/cuda/%.cu $(HEADERS) $(MAKEFILES) | out/linux
 	$(CC_CUDA) $(CFLAGS_CUDA_COMPILE) $(INCLUDES_COMMON) $(CFLAGS_CUDA) $< -o $@
 
 $(LIB_TARGET_CUDA): $(LIB_DEVICE_CUDA) $(MAKEFILES) | out
