@@ -197,6 +197,7 @@ void do_flowers( Block *block_definitions ) {
     block_definitions[ BLUE_CORAL ].renderOrder = RenderOrder_Flowers;
     block_definitions[ FIRE ].renderOrder = RenderOrder_Flowers;
     block_definitions[ RED_MUSHROOM_IN_POT ].renderOrder = RenderOrder_Flowers;
+    block_definitions[ REED ].renderOrder = RenderOrder_Flowers;
     block_definitions[ BIRTCH_SAPPLING ].renderOrder = RenderOrder_Flowers;
     block_definitions[ BLUE_FLOWER ].renderOrder = RenderOrder_Flowers;
     block_definitions[ WHEAT_0 ].renderOrder = RenderOrder_Flowers;

@@ -6,8 +6,6 @@
 #include "common/chunk.hpp"
 
 #include <stdlib.h>
-#define WATER_LEVEL 0
-#define MOUNTAN_CAP_HEIGHT 50
 
 __device__ float map_gen_hills_cuda( int x, int z ) {
     float noise = perlin_noise_cuda( x, z, 0.02f, 3, MAP_SEED );
@@ -41,7 +39,7 @@ __device__ float map_gen_mountians_cuda( int x, int z ) {
 }
 
 __device__ float map_gen_mountian_block_cuda( int x, int z ) {
-    float noise = perlin_noise_cuda( x, z, 0.8f, 8, MAP_SEED + 3 );
+    float noise = perlin_noise_cuda( x, z, 0.4f, 2, MAP_SEED + 3 );
     return noise;
 }
 

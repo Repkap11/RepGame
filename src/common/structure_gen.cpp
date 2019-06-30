@@ -65,6 +65,18 @@ BlockID structure_gen_is_long_grass_roll( int x, int z, int is_forest ) {
     return AIR;
 }
 
+int structure_gen_is_reed_roll( int x, int z ) {
+    float noise = perlin_noise( x, z, 1.0f, 1, MAP_SEED + 10 );
+    return noise > 0.95f;
+}
+
+int strcuture_gen_poll_fits( Chunk *chunk, int x, int y, int z, int height ) {
+    if ( ( y + height ) >= CHUNK_SIZE_INTERNAL - 1 ) {
+        return 0;
+    }
+    return 1;
+}
+
 #define MAX_TREE_HEIGHT 6
 int strcuture_gen_tree_fits( Chunk *chunk, int x, int y, int z, int max_tree_radius ) {
     if ( y + MAX_TREE_HEIGHT - 3 + max_tree_radius >= CHUNK_SIZE_INTERNAL - 1 ) {
@@ -97,6 +109,21 @@ int strcuture_gen_tree_fits( Chunk *chunk, int x, int y, int z, int max_tree_rad
         return 0;
     }
 }
+
+int structure_gen_is_next_to( Chunk *chunk, int x, int y, int z, BlockID block ) {
+    for ( int i = -1; i < 2; i++ ) {
+        for ( int j = -1; j < 2; j++ ) {
+            if ( i == 0 || j == 0 ) {
+                continue;
+            }
+            if ( chunk->blocks[ chunk_get_index_from_coords( x + i, y, z + j ) ] == block ) {
+                return 1;
+            }
+        }
+    }
+    return 0;
+}
+
 void place_leaves( Chunk *chunk, int x, int y, int z, int tree_type );
 
 void structure_gen_place( Chunk *chunk ) {
@@ -114,22 +141,31 @@ void structure_gen_place( Chunk *chunk ) {
                 max_tree_radius = 3;
             }
             int placed_tree = 0;
-            int cached_good_y = -1;
-            int is_forest = structure_gen_is_forest( world_x, world_z );
-            if ( is_forest ) {
-                int tree_type = structure_gen_is_tree_roll( world_x, world_z, max_tree_radius );
-                if ( tree_type != 0 ) {
-                    for ( int y = CHUNK_SIZE - 1; y > -1; y-- ) {
-                        // If this block is air
-                        if ( chunk->blocks[ chunk_get_index_from_coords( x, y, z ) ] != AIR ) {
-                            break;
-                        }
-                        // And the block below is solid
-                        BlockID block_below = chunk->blocks[ chunk_get_index_from_coords( x, y - 1, z ) ];
-                        if ( block_below != GRASS ) {
-                            continue;
-                        }
-                        cached_good_y = y;
+            int surface_y = -1;
+            BlockID block_below = AIR;
+            for ( int y = CHUNK_SIZE - 1; y > -1; y-- ) {
+                // If this block isn't air
+                if ( chunk->blocks[ chunk_get_index_from_coords( x, y, z ) ] != AIR ) {
+                    break;
+                }
+                // And the block below is solid
+                block_below = chunk->blocks[ chunk_get_index_from_coords( x, y - 1, z ) ];
+                if ( block_below == AIR ) {
+                    continue;
+                }
+                surface_y = y;
+                break;
+            }
+            if ( surface_y == -1 ) {
+                continue;
+            }
+            int y = surface_y;
+            int is_forest = 0;
+            if ( block_below == GRASS && y != 0 ) {
+                is_forest = structure_gen_is_forest( world_x, world_z );
+                if ( is_forest ) {
+                    int tree_type = structure_gen_is_tree_roll( world_x, world_z, max_tree_radius );
+                    if ( tree_type != 0 ) {
                         if ( FOREST_DEBUG ) {
                             chunk->blocks[ chunk_get_index_from_coords( x, y, z ) ] = OAK_LOG;
                             continue;
@@ -160,36 +196,27 @@ void structure_gen_place( Chunk *chunk ) {
                             }
                             place_leaves( chunk, x, y, z, tree_type );
                         }
-                        break;
                     }
                 }
-            }
-            if ( !placed_tree ) {
-                BlockID grass_type = structure_gen_is_long_grass_roll( world_x, world_z, is_forest );
-                if ( grass_type != AIR ) {
-                    int good_y = -1;
-                    if ( cached_good_y != -1 ) {
-                        good_y = cached_good_y;
-                    } else {
-                        for ( int y = CHUNK_SIZE - 1; y > -1; y-- ) {
-                            // If this block is air
-                            if ( chunk->blocks[ chunk_get_index_from_coords( x, y, z ) ] != AIR ) {
-                                break;
+                if ( !placed_tree ) {
+                    BlockID grass_type = structure_gen_is_long_grass_roll( world_x, world_z, is_forest );
+                    if ( grass_type != AIR ) {
+                        chunk->blocks[ chunk_get_index_from_coords( x, surface_y, z ) ] = grass_type;
+                    }
+                }
+            } // End block below is grass
+            if ( block_below == SAND ) {
+                int height = 3;
+                if ( structure_gen_is_next_to( chunk, x, y - 1, z, WATER ) ) {
+                    if ( strcuture_gen_poll_fits( chunk, x, y, z, height ) ) {
+                        if ( structure_gen_is_reed_roll( x, z ) ) {
+                            for ( int i = 0; i < height; i++ ) {
+                                chunk->blocks[ chunk_get_index_from_coords( x, y + i, z ) ] = REED;
                             }
-                            // And the block below is solid
-                            BlockID block_below = chunk->blocks[ chunk_get_index_from_coords( x, y - 1, z ) ];
-                            if ( block_below != GRASS ) {
-                                continue;
-                            }
-                            good_y = y;
-                            break;
                         }
                     }
-                    if ( good_y != -1 ) {
-                        chunk->blocks[ chunk_get_index_from_coords( x, good_y, z ) ] = grass_type;
-                    }
                 }
-            }
+            } // end loops
         }
     }
 }

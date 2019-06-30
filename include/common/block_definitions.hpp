@@ -69,6 +69,7 @@ typedef enum {
     EMPTY_SPAWNER = 98,
     SNOW,
     SNOWY_GRASS = 101,
+    REED = 106,
     MYCELIUM_SIDE = 110,
     MYCELIUM = 111,
     BIRTCH_SAPPLING = 112,
