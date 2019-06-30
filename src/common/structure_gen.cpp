@@ -8,7 +8,7 @@ int structure_gen_is_forest( int x, int z ) {
     float noise = perlin_noise( x, z, 0.02f, 3, MAP_SEED + 6 );
     return noise > 0.7f;
 }
-int structure_gen_is_tree_roll( int x, int z, int max_tree_size ) {
+int structure_gen_is_tree_roll( int x, int z, int max_tree_radius ) {
     float noise = perlin_noise( x, z, 0.9f, 1, MAP_SEED + 7 );
     if ( FOREST_DEBUG ) {
         return -1;
@@ -16,7 +16,7 @@ int structure_gen_is_tree_roll( int x, int z, int max_tree_size ) {
     if ( noise < 0.60f ) {
         return 0;
     }
-    if ( max_tree_size == 3 ) {
+    if ( max_tree_radius == 2 ) {
         if ( noise < 0.7f ) {
             return 1;
         }
@@ -45,14 +45,20 @@ int structure_gen_is_tree_roll( int x, int z, int max_tree_size ) {
 }
 
 #define MAX_TREE_HEIGHT 6
-int strcuture_gen_tree_fits( Chunk *chunk, int x, int y, int z ) {
-    if ( y + MAX_TREE_HEIGHT >= CHUNK_SIZE_INTERNAL - 1 ) {
+int strcuture_gen_tree_fits( Chunk *chunk, int x, int y, int z, int max_tree_radius ) {
+    if ( y + MAX_TREE_HEIGHT - 3 + max_tree_radius >= CHUNK_SIZE_INTERNAL - 1 ) {
         return 0;
     }
     int num_colliding_leafs = 0;
-    for ( int bound_x = -2; bound_x < 3; bound_x++ ) {
-        for ( int bound_z = -2; bound_z < 3; bound_z++ ) {
-            for ( int bound_y = 0; bound_y < MAX_TREE_HEIGHT; bound_y++ ) {
+    for ( int bound_y = 2; bound_y < MAX_TREE_HEIGHT; bound_y++ ) {
+        int xz_limit = max_tree_radius;
+        xz_limit = bound_y < xz_limit ? bound_y - 2 : xz_limit;
+
+        for ( int bound_x = -xz_limit; bound_x < ( xz_limit + 1 ); bound_x++ ) {
+            for ( int bound_z = -xz_limit; bound_z < ( xz_limit + 1 ); bound_z++ ) {
+                if ( abs( bound_x ) + abs( bound_z ) > max_tree_radius ) {
+                    continue;
+                }
                 BlockID colliding_blockid = chunk->blocks[ chunk_get_index_from_coords( x + bound_x, y + bound_y, z + bound_z ) ];
                 if ( colliding_blockid == LEAF ) {
                     num_colliding_leafs++;
@@ -64,7 +70,7 @@ int strcuture_gen_tree_fits( Chunk *chunk, int x, int y, int z ) {
             }
         }
     }
-    if ( num_colliding_leafs < 4 ) {
+    if ( num_colliding_leafs < max_tree_radius * 3 ) {
         return 1;
     } else {
         return 0;
@@ -79,16 +85,16 @@ void structure_gen_place_trees( Chunk *chunk ) {
         int world_x = chunk_offset_x + x;
         for ( int z = 1; z < CHUNK_SIZE - 1; z++ ) {
             int world_z = chunk_offset_z + z;
-            int max_tree_size;
+            int max_tree_radius;
             if ( x == 1 || z == 1 || z == CHUNK_SIZE - 1 || z == CHUNK_SIZE - 2 ) {
-                max_tree_size = 3;
+                max_tree_radius = 2;
             } else {
-                max_tree_size = 5;
+                max_tree_radius = 3;
             }
             if ( !structure_gen_is_forest( world_x, world_z ) ) {
                 continue;
             }
-            int tree_type = structure_gen_is_tree_roll( world_x, world_z, max_tree_size );
+            int tree_type = structure_gen_is_tree_roll( world_x, world_z, max_tree_radius );
             if ( tree_type == 0 ) {
                 continue;
             }
@@ -107,7 +113,7 @@ void structure_gen_place_trees( Chunk *chunk ) {
                     continue;
                 }
                 // And the blocks in the bounding box are not solid
-                if ( strcuture_gen_tree_fits( chunk, x, y, z ) ) {
+                if ( strcuture_gen_tree_fits( chunk, x, y, z, max_tree_radius ) ) {
                     chunk->blocks[ chunk_get_index_from_coords( x, y - 1, z ) ] = DIRT;
                     chunk->blocks[ chunk_get_index_from_coords( x, y, z ) ] = OAK_LOG;
                     chunk->blocks[ chunk_get_index_from_coords( x, y + 1, z ) ] = OAK_LOG;
