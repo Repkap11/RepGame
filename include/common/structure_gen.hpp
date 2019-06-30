@@ -3,6 +3,6 @@
 
 #include "common/chunk.hpp"
 
-void structure_gen_place_trees(Chunk * chunk);
+void structure_gen_place(Chunk * chunk);
 
 #endif
