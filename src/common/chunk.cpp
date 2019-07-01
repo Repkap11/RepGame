@@ -5,14 +5,11 @@
 #include "common/structure_gen.hpp"
 
 static unsigned int ib_data_flowers[] = {
-    7,  0,  6, // Right, Back, Right
-    14,  12,  15, //
+    7,  0,  6,  // Right, Back, Right
+    14, 12, 15, //
 
-    7,  0,  1, // Right, Back, Back
-    13,  12,  15, //
-
-
-
+    7,  0,  1,  // Right, Back, Back
+    13, 12, 15, //
 
     3,  4,  2, // Front, Right, Front
     8,  10, 9, //
