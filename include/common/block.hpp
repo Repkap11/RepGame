@@ -10,6 +10,7 @@
 #define FACE_FRONT 3
 #define FACE_LEFT 4
 #define FACE_BACK 5
+#define FACE_NONE 6
 
 //  FR
 // BR  FL
@@ -75,6 +76,30 @@ static unsigned int ib_data_solid[] = {
 
 };
 #define IB_SOLID_SIZE ( 3 * 4 * 6 )
+
+static unsigned int ib_data_flowers[] = {
+    16, 0,  6,  // Right, Back, Right
+    7,  16, 6,  // Right, Back, Right
+    14, 16, 15, //
+    14, 12, 16, //
+
+    16, 0,  1,  // Right, Back, Back
+    7,  16, 1,  // Right, Back, Back
+    13, 16, 15, //
+    13, 12, 16, //
+
+    16, 4,  2,  // Front, Right, Front
+    3,  16, 2,  // Front, Right, Front
+    8,  16, 9,  //
+    8,  10, 16, //
+
+    16, 4,  5,  // Front, Right, Right
+    3,  16, 5,  // Front, Right, Right
+    11, 16, 9,  //
+    11, 10, 16, //
+};
+
+#define IB_FLOWERS_SIZE ( 3 * 4 * 4 )
 
 #define IB_POSITION_WATER_TOP 0
 #define IB_POSITION_WATER_BOTTOM 1

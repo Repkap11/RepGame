@@ -53,29 +53,31 @@ static CubeFace vd_data_solid[] = {
 
 static CubeFace vd_data_flowers[] = {
     // x=right/left, y=top/bottom, z=front/back : 1/0
-    {0.0f, 0.0f, 0.0f, /*Coords  Texture coords*/ 1, 0, FACE_TOP, CORNER_OFFSET_bbl}, // 0 0 FACE_LEFT BOTTOM BACK
-    {0.0f, 1.0f, 0.0f, /*Coords  Texture coords*/ 1, 1, FACE_TOP, CORNER_OFFSET_tbl}, // 3 1 FACE_LEFT TOP BACK
+    {0.0f, 0.0f, 0.0f, /*Coords  Texture coords*/ 1, 0, FACE_BOTTOM, CORNER_OFFSET_bbl}, // 0 0 FACE_LEFT BOTTOM BACK
+    {0.0f, 1.0f, 0.0f, /*Coords  Texture coords*/ 1, 1, FACE_TOP, CORNER_OFFSET_tbl},    // 3 1 FACE_LEFT TOP BACK
 
-    {0.0f, 0.0f, 1.0f, /*Coords  Texture coords*/ 0, 0, FACE_TOP, CORNER_OFFSET_bfl}, // 4 2 LEFT FRONT BOTTOM
-    {0.0f, 1.0f, 1.0f, /*Coords  Texture coords*/ 0, 1, FACE_TOP, CORNER_OFFSET_tfl}, // 7 3 FACE_LEFT TOP FRONT
-    {1.0f, 0.0f, 0.0f, /*Coords  Texture coords*/ 1, 0, FACE_TOP, CORNER_OFFSET_bbr}, // 9 4 FACE_RIGHT BACK BOTTOM
-    {1.0f, 1.0f, 0.0f, /*Coords  Texture coords*/ 1, 1, FACE_TOP, CORNER_OFFSET_tbr}, // 10 5 FACE_RIGHT TOP BACK
+    {0.0f, 0.0f, 1.0f, /*Coords  Texture coords*/ 0, 0, FACE_BOTTOM, CORNER_OFFSET_bfl}, // 4 2 LEFT FRONT BOTTOM BROKEN???
+    {0.0f, 1.0f, 1.0f, /*Coords  Texture coords*/ 0, 1, FACE_TOP, CORNER_OFFSET_tfl},    // 7 3 FACE_LEFT TOP FRONT
+    {1.0f, 0.0f, 0.0f, /*Coords  Texture coords*/ 1, 0, FACE_BOTTOM, CORNER_OFFSET_bbr}, // 9 4 FACE_RIGHT BACK BOTTOM
+    {1.0f, 1.0f, 0.0f, /*Coords  Texture coords*/ 1, 1, FACE_TOP, CORNER_OFFSET_tbr},    // 10 5 FACE_RIGHT TOP BACK
 
-    {1.0f, 0.0f, 1.0f, /*Coords  Texture coords*/ 0, 0, FACE_TOP, CORNER_OFFSET_bfr}, // 13 6 FACE_RIGHT FACE_BOTTOM FACE_FRONT
-    {1.0f, 1.0f, 1.0f, /*Coords  Texture coords*/ 0, 1, FACE_TOP, CORNER_OFFSET_tfr}, // 14 7 FACE_RIGHT FACE_TOP FACE_FRONT
+    {1.0f, 0.0f, 1.0f, /*Coords  Texture coords*/ 0, 0, FACE_BOTTOM, CORNER_OFFSET_bfr}, // 13 6 FACE_RIGHT FACE_BOTTOM FACE_FRONT BROKEN???
+    {1.0f, 1.0f, 1.0f, /*Coords  Texture coords*/ 0, 1, FACE_TOP, CORNER_OFFSET_tfr},    // 14 7 FACE_RIGHT FACE_TOP FACE_FRONT
 
-    {0.0f, 0.0f, 1.0f, /*Coords  Texture coords*/ 0, 0, FACE_TOP, CORNER_OFFSET_bfl}, // 4 8 FACE_LEFT FACE_BOTTOM FACE_FRONT
-    {0.0f, 1.0f, 1.0f, /*Coords  Texture coords*/ 0, 1, FACE_TOP, CORNER_OFFSET_tfl}, // 7 9 FACE_LEFT FACE_TOP FACE_FRONT
-    {1.0f, 0.0f, 0.0f, /*Coords  Texture coords*/ 1, 0, FACE_TOP, CORNER_OFFSET_bbr}, // 9 10 FACE_RIGHT FACE_BOTTOM FACE_BACK
-    {1.0f, 1.0f, 0.0f, /*Coords  Texture coords*/ 1, 1, FACE_TOP, CORNER_OFFSET_tbr}, // 10 11 FACE_RIGHT FACE_TOP FACE_BACK
+    {0.0f, 0.0f, 1.0f, /*Coords  Texture coords*/ 0, 0, FACE_BOTTOM, CORNER_OFFSET_bfl}, // 4 8 FACE_LEFT FACE_BOTTOM FACE_FRONT BROKEN???
+    {0.0f, 1.0f, 1.0f, /*Coords  Texture coords*/ 0, 1, FACE_TOP, CORNER_OFFSET_tfl},    // 7 9 FACE_LEFT FACE_TOP FACE_FRONT
+    {1.0f, 0.0f, 0.0f, /*Coords  Texture coords*/ 1, 0, FACE_BOTTOM, CORNER_OFFSET_bbr}, // 9 10 FACE_RIGHT FACE_BOTTOM FACE_BACK
+    {1.0f, 1.0f, 0.0f, /*Coords  Texture coords*/ 1, 1, FACE_TOP, CORNER_OFFSET_tbr},    // 10 11 FACE_RIGHT FACE_TOP FACE_BACK
 
-    {0.0f, 0.0f, 0.0f, /*Coords  Texture coords*/ 1, 0, FACE_TOP, CORNER_OFFSET_bbl}, // 0 12 FACE_LEFT FACE_BOTTOM FACE_BACK
-    {0.0f, 1.0f, 0.0f, /*Coords  Texture coords*/ 1, 1, FACE_TOP, CORNER_OFFSET_tbl}, // 3 13
-    {1.0f, 0.0f, 1.0f, /*Coords  Texture coords*/ 0, 0, FACE_TOP, CORNER_OFFSET_bfr}, // 13 14 FACE_RIGHT FACE_BOTTOM FACE_FRONT
-    {1.0f, 1.0f, 1.0f, /*Coords  Texture coords*/ 0, 1, FACE_TOP, CORNER_OFFSET_tfr}, // 14 15 FACE_RIGHT FACE_TOP FACE_FRONT
+    {0.0f, 0.0f, 0.0f, /*Coords  Texture coords*/ 1, 0, FACE_BOTTOM, CORNER_OFFSET_bbl}, // 0 12 FACE_LEFT FACE_BOTTOM FACE_BACK
+    {0.0f, 1.0f, 0.0f, /*Coords  Texture coords*/ 1, 1, FACE_TOP, CORNER_OFFSET_tbl},    // 3 13
+    {1.0f, 0.0f, 1.0f, /*Coords  Texture coords*/ 0, 0, FACE_BOTTOM, CORNER_OFFSET_bfr}, // 13 14 FACE_RIGHT FACE_BOTTOM FACE_FRONT BROKEN???
+    {1.0f, 1.0f, 1.0f, /*Coords  Texture coords*/ 0, 1, FACE_TOP, CORNER_OFFSET_tfr},    // 14 15 FACE_RIGHT FACE_TOP FACE_FRONT
+
+    {0.5f, 0.5f, 0.5f, /*Coords  Texture coords*/ 0.5f, 0.5f, FACE_TOP, CORNER_OFFSET_c}, // 16
 
 };
-#define VB_DATA_SIZE_FLOWERS ( 4 * 4 )
+#define VB_DATA_SIZE_FLOWERS ( 4 * 4 + 1 )
 
 MK_SHADER( chunk_vertex );
 MK_SHADER( chunk_fragment );

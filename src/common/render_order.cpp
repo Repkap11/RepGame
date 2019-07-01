@@ -1,7 +1,6 @@
 #include "common/render_order.hpp"
 #include "common/block.hpp"
 
-#define IB_FLOWERS_SIZE ( 3 * 4 * 2 )
 
 int render_order_ib_size( RenderOrder renderOrder ) {
     switch ( renderOrder ) {

@@ -4,20 +4,6 @@
 #include "common/utils/map_storage.hpp"
 #include "common/structure_gen.hpp"
 
-static unsigned int ib_data_flowers[] = {
-    7,  0,  6,  // Right, Back, Right
-    14, 12, 15, //
-
-    7,  0,  1,  // Right, Back, Back
-    13, 12, 15, //
-
-    3,  4,  2, // Front, Right, Front
-    8,  10, 9, //
-
-    3,  4,  5, // Front, Right, Right
-    11, 10, 9, //
-};
-
 void chunk_calculate_sides( Chunk *chunk, TRIP_ARGS( int center_next_ ) ) {
     unsigned int *chunk_ib_data[ LAST_RENDER_ORDER ];
     for ( int renderOrder = 0; renderOrder < LAST_RENDER_ORDER; renderOrder++ ) {

@@ -128,8 +128,6 @@ void block_definitions_initilize_definitions( Texture *texture ) {
     for ( int block_id = 0; block_id < LAST_BLOCK_ID; block_id++ ) {
         Block *block = &block_definitions[ block_id ];
         if ( block->renderOrder == RenderOrder_Flowers ) {
-            block->textures[ FACE_TOP ] = TNT;
-            block->textures[ FACE_BOTTOM ] = TNT;
             block->is_seethrough = true;
             block->no_light = NO_LIGHT_BRIGHT;
             block->casts_shadow = false;
@@ -151,12 +149,9 @@ void block_definitions_initilize_definitions( Texture *texture ) {
             // block->can_mesh = true; not that it matters...
         }
     }
-    block_definitions[ GRASS_TUFT ].casts_shadow = true;
-    // block_definitions[ GRASS_TUFT2 ].casts_shadow = true;
+    block_definitions[ GRASS_TUFT2 ].casts_shadow = true;
     block_definitions[ GRASS_TUFT2 ].no_light = NO_LIGHT_DRAW;
     block_definitions[ GRASS_TUFT2 ].can_be_shaded = true;
-    block_definitions[ GRASS_TUFT3 ].casts_shadow = true;
-    block_definitions[ GRASS_TUFT4 ].casts_shadow = true;
 }
 
 Block *block_definition_get_definition( BlockID blockID ) {
