@@ -113,7 +113,7 @@ int strcuture_gen_tree_fits( Chunk *chunk, int x, int y, int z, int max_tree_rad
 int structure_gen_is_next_to( Chunk *chunk, int x, int y, int z, BlockID block ) {
     for ( int i = -1; i < 2; i++ ) {
         for ( int j = -1; j < 2; j++ ) {
-            if ( i == 0 || j == 0 ) {
+            if ( i == 0 && j == 0 ) {
                 continue;
             }
             if ( chunk->blocks[ chunk_get_index_from_coords( x + i, y, z + j ) ] == block ) {
@@ -199,9 +199,11 @@ void structure_gen_place( Chunk *chunk ) {
                     }
                 }
                 if ( !placed_tree ) {
-                    BlockID grass_type = structure_gen_is_long_grass_roll( world_x, world_z, is_forest );
-                    if ( grass_type != AIR ) {
-                        chunk->blocks[ chunk_get_index_from_coords( x, surface_y, z ) ] = grass_type;
+                    if ( !structure_gen_is_next_to( chunk, x, y, z, GRASS_TUFT2 ) ) {
+                        BlockID grass_type = structure_gen_is_long_grass_roll( world_x, world_z, is_forest );
+                        if ( grass_type != AIR ) {
+                            chunk->blocks[ chunk_get_index_from_coords( x, y, z ) ] = grass_type;
+                        }
                     }
                 }
             } // End block below is grass

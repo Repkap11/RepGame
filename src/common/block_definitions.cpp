@@ -96,8 +96,6 @@ void block_definitions_initilize_definitions( Texture *texture ) {
     block_definitions[ PODZEL ].textures[ FACE_FRONT ] = PODZEL_SIDE;
     block_definitions[ PODZEL ].textures[ FACE_BACK ] = PODZEL_SIDE;
     block_definitions[ PODZEL ].textures[ FACE_BOTTOM ] = DIRT;
-    do_flowers( block_definitions );
-    do_disable( block_definitions );
 
     block_definitions[ WHITE_GLASS ].is_seethrough = true;
     block_definitions[ BIRTCH_LEAVES ].is_seethrough = true;
@@ -122,6 +120,10 @@ void block_definitions_initilize_definitions( Texture *texture ) {
 
     block_definitions[ WHITE_GLASS ].hides_self = true;
 
+    // Start flower section
+    do_flowers( block_definitions );
+    do_disable( block_definitions );
+
     for ( int block_id = 0; block_id < LAST_BLOCK_ID; block_id++ ) {
         Block *block = &block_definitions[ block_id ];
         if ( block->renderOrder == RenderOrder_Flowers ) {
@@ -145,6 +147,10 @@ void block_definitions_initilize_definitions( Texture *texture ) {
             // block->can_mesh = true; not that it matters...
         }
     }
+    block_definitions[ GRASS_TUFT ].casts_shadow = true;
+    block_definitions[ GRASS_TUFT2 ].casts_shadow = true;
+    block_definitions[ GRASS_TUFT3 ].casts_shadow = true;
+    block_definitions[ GRASS_TUFT4 ].casts_shadow = true;
 }
 
 Block *block_definition_get_definition( BlockID blockID ) {
