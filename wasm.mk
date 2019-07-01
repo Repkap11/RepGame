@@ -21,7 +21,7 @@ WASM_BITMAPS = $(patsubst bitmaps/%.bmp,out/wasm/fs/bitmaps/%.bin,$(wildcard bit
 OBJECTS_COMMON_WASM := $(patsubst src/common/%.cpp,out/wasm/common/%.bc, $(SRC_COMMON))
 OBJECTS_WASM := $(patsubst src/%.cpp,out/wasm/%.bc, $(wildcard src/wasm/*.cpp))
 
-wasm: out/wasm/delivery/$(TARGET).js out/wasm/delivery/index.html out/wasm/delivery/reset.css out/wasm/delivery/index.js out/wasm/delivery/icon.png
+wasm: out/wasm/delivery/$(TARGET).js out/wasm/delivery/index.html out/wasm/delivery/reset.css out/wasm/delivery/index.css out/wasm/delivery/index.js out/wasm/delivery/icon.png
 
 WASM_DIRS = $(patsubst src%,out/wasm%,$(shell find src -type d)) \
 			out/wasm \
@@ -43,7 +43,7 @@ out/wasm/delivery/index.html: src/wasm/index.html | out/wasm
 out/wasm/delivery/index.js: src/wasm/index.js | out/wasm
 	cp $< $@
 
-out/wasm/delivery/reset.css: src/wasm/reset.css | out/wasm
+out/wasm/delivery/%.css: src/wasm/%.css | out/wasm
 	cp $< $@
 
 out/wasm/fs/src/shaders/%.glsl: src/shaders/%.glsl $(MAKEFILES) | out/wasm

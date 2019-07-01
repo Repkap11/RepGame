@@ -1,6 +1,5 @@
 clear_fullscreen_functions();
 set_canvas_size();
-draw_mark();
 
 var Module = {
   print: console.log,
@@ -30,6 +29,7 @@ function onModuleReady() {
   console.log("Module ready");
   setup_click_handler();
   setup_key_listener();
+  draw_mark();
 }
 
 function setup_key_listener() {
