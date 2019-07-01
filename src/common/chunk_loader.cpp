@@ -277,11 +277,34 @@ void chunk_loader_calculate_cull( LoadedChunks *loadedChunks, glm::mat4 &mvp ) {
     }
 }
 
+static float wave_angle_x = 0.0f;
+static float wave_angle_z = 0.0f;
+static float wave_angle_y = 0.0f;
 void chunk_loader_draw_chunks( LoadedChunks *loadedChunks, glm::mat4 &mvp ) {
-
     // pr_debug( "Drawing %d chunks", loadedChunks->numLoadedChunks );
+    float wave_x = 0, wave_y = 0, wave_z = 0;
+
+    wave_angle_x += 0.01f;
+    wave_angle_z += 0.015f;
+    wave_angle_y += 0.007f;
+
+    if ( wave_angle_x > 2 * M_PI ) {
+        wave_angle_x -= 2 * M_PI;
+    }
+    if ( wave_angle_z > 2 * M_PI ) {
+        wave_angle_z -= 2 * M_PI;
+    }
+    if ( wave_angle_y > 2 * M_PI ) {
+        wave_angle_y -= 2 * M_PI;
+    }
+    wave_x = sin( wave_angle_x ) * 0.05f;
+    wave_z = cos( wave_angle_z ) * 0.05f;
+    wave_y = cos( wave_angle_y ) * 0.02f;
+
     for ( int renderOrder = LAST_RENDER_ORDER - 1; renderOrder > 0; renderOrder-- ) {
         shader_set_uniform1f( &loadedChunks->shader, "u_shouldDiscardAlpha", renderOrder != RenderOrder_Water );
+
+        shader_set_uniform3f( &loadedChunks->shader, "u_WaveOffset", wave_x, wave_y, wave_z );
         for ( int i = 0; i < MAX_LOADED_CHUNKS; i++ ) {
             Chunk *chunk = &loadedChunks->chunkArray[ i ];
             if ( !chunk->cached_cull ) {
@@ -289,7 +312,9 @@ void chunk_loader_draw_chunks( LoadedChunks *loadedChunks, glm::mat4 &mvp ) {
             }
         }
     }
+
     shader_set_uniform1f( &loadedChunks->shader, "u_shouldDiscardAlpha", 1 );
+    shader_set_uniform3f( &loadedChunks->shader, "u_WaveOffset", 0, 0, 0 );
 }
 
 void chunk_loader_draw_mouse_selection( LoadedChunks *loadedChunks ) {

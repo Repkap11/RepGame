@@ -1,6 +1,7 @@
 #version 300 es
 uniform mat4 u_MVP;
 uniform vec3 u_DebugScaleOffset;
+uniform vec3 u_WaveOffset;
 
 // See CubeFace in block.h
 // This defines all the triangles of a cube
@@ -24,10 +25,6 @@ flat out int v_shouldDiscardNoLight;
 out float v_corner_lighting;
 
 void main( ) {
-
-    // vec3 adjust = vec3( 1, 1, 1 ) - position;
-    // adjust.y = position.y;
-    gl_Position = u_MVP * vec4( position * ( mesh_size - u_DebugScaleOffset ) + blockCoords, 1 );
     uint faceType = uint( faceType_f );
     vec2 face_scale = vec2( 1, 1 );
     if ( faceType == uint( 0 ) || faceType == uint( 1 ) ) {
@@ -68,6 +65,15 @@ void main( ) {
     } else {
         v_shouldDiscardNoLight = 0;
     }
+
+    float corner_light_wave = 0.0f;
+    if ( corner_light < 1.5 ) {
+        corner_light_wave = 1.0;
+    }
+    if ( corner_light < 0.5 ) {
+        corner_light_wave = 2.0;
+    }
+
     corner_light = ( 3.9 - corner_light ) / 3.9;
 
     v_corner_lighting = face_light * corner_light;
@@ -77,4 +83,10 @@ void main( ) {
     } else {
         v_blockID = blockTexture2[ faceType - 3u ];
     }
+
+    vec3 adjusted_block_coords = blockCoords;
+    if ( v_blockID == 76.0 || v_blockID == 397.0 ) {
+        adjusted_block_coords += u_WaveOffset * corner_light_wave;
+    }
+    gl_Position = u_MVP * vec4( position * ( mesh_size - u_DebugScaleOffset ) + adjusted_block_coords, 1 );
 }

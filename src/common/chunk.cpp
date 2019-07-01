@@ -14,6 +14,7 @@ static unsigned int ib_data_flowers[] = {
     4,  9, 7,  //
     7,  9, 10, // Front, Right, Right
     10, 9, 7,  //
+
 };
 
 void chunk_calculate_sides( Chunk *chunk, TRIP_ARGS( int center_next_ ) ) {

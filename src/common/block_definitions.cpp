@@ -21,6 +21,7 @@ void block_definitions_initilize_definitions( Texture *texture ) {
         block->can_mesh = true;
         block->hides_self = false;
         block->needs_place_on_solid = false;
+        block->waves = false;
     }
     block_definitions[ WATER ].renderOrder = RenderOrder_Water;
 
@@ -121,6 +122,11 @@ void block_definitions_initilize_definitions( Texture *texture ) {
     block_definitions[ LEAF ].no_light = NO_LIGHT_DRAW;
 
     block_definitions[ WHITE_GLASS ].hides_self = true;
+
+    block_definitions[ BIRTCH_LEAVES ].waves = true;
+    block_definitions[ PINE_LEAF ].waves = true;
+    block_definitions[ JUNGLE_LEAF ].waves = true;
+    block_definitions[ LEAF ].waves = true;
 
     for ( int block_id = 0; block_id < LAST_BLOCK_ID; block_id++ ) {
         Block *block = &block_definitions[ block_id ];
