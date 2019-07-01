@@ -9,7 +9,6 @@
 #define CHUNK_BLOCK_DRAW_START ( CHUNK_SIZE_INTERNAL * CHUNK_SIZE_INTERNAL )
 #define CHUNK_BLOCK_DRAW_STOP ( CHUNK_BLOCK_SIZE - CHUNK_BLOCK_DRAW_START )
 
-
 typedef struct {
     float x;
     float y;
@@ -43,7 +42,7 @@ typedef struct {
     int chunk_mod_x, chunk_mod_y, chunk_mod_z;
 } Chunk;
 
-void chunk_init( Chunk *chunk, VertexBuffer *vb_block_solid, VertexBuffer *vb_block_water, VertexBufferLayout *vbl_block, VertexBufferLayout *vbl_coords );
+void chunk_init( Chunk *chunk, VertexBuffer *vb_block_solid, VertexBuffer *vb_block_water, VertexBuffer *vb_block_flowers, VertexBufferLayout *vbl_block, VertexBufferLayout *vbl_coords );
 void chunk_render( const Chunk *chunk, const Renderer *renderer, const Shader *shader, RenderOrder renderOrder );
 void chunk_load_terrain( Chunk *chunk );      // Load from file or map gen
 void chunk_program_terrain( Chunk *chunk );   // Program into GPU

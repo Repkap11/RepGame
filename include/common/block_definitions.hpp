@@ -191,6 +191,7 @@ typedef struct {
     int can_mesh;
     int hides_self;
     int needs_place_on_solid;
+    int can_be_shaded;
 } Block;
 
 void block_definitions_initilize_definitions( Texture *texture );

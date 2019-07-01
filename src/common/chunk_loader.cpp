@@ -51,6 +51,32 @@ static CubeFace vd_data_solid[] = {
 };
 #define VB_DATA_SIZE_SOLID ( 5 * 6 + 6 )
 
+static CubeFace vd_data_flowers[] = {
+    // x=right/left, y=top/bottom, z=front/back : 1/0
+    {0.0f, 0.0f, 0.0f, /*Coords  Texture coords*/ 1, 0, FACE_BACK, CORNER_OFFSET_bbl}, // 0 0
+    {0.0f, 1.0f, 0.0f, /*Coords  Texture coords*/ 1, 1, FACE_BACK, CORNER_OFFSET_tbl}, // 3 1
+
+    {0.0f, 0.0f, 1.0f, /*Coords  Texture coords*/ 0, 0, FACE_FRONT, CORNER_OFFSET_bfl}, // 4 2
+    {0.0f, 1.0f, 1.0f, /*Coords  Texture coords*/ 0, 1, FACE_FRONT, CORNER_OFFSET_tfl}, // 7 3
+    {1.0f, 0.0f, 0.0f, /*Coords  Texture coords*/ 1, 0, FACE_RIGHT, CORNER_OFFSET_bbr}, // 9 4
+    {1.0f, 1.0f, 0.0f, /*Coords  Texture coords*/ 1, 1, FACE_RIGHT, CORNER_OFFSET_tbr}, // 10 5
+
+    {1.0f, 0.0f, 1.0f, /*Coords  Texture coords*/ 0, 0, FACE_RIGHT, CORNER_OFFSET_bfr}, // 13 6
+    {1.0f, 1.0f, 1.0f, /*Coords  Texture coords*/ 0, 1, FACE_RIGHT, CORNER_OFFSET_tfr}, // 14 7
+
+    {0.0f, 0.0f, 1.0f, /*Coords  Texture coords*/ 0, 0, FACE_FRONT, CORNER_OFFSET_bfl}, // 4 8
+    {0.0f, 1.0f, 1.0f, /*Coords  Texture coords*/ 0, 1, FACE_FRONT, CORNER_OFFSET_tfl}, // 7 9
+    {1.0f, 0.0f, 0.0f, /*Coords  Texture coords*/ 1, 0, FACE_RIGHT, CORNER_OFFSET_bbr}, // 9 10
+    {1.0f, 1.0f, 0.0f, /*Coords  Texture coords*/ 1, 1, FACE_RIGHT, CORNER_OFFSET_tbr}, // 10 11
+
+    {0.0f, 0.0f, 0.0f, /*Coords  Texture coords*/ 1, 0, FACE_BACK, CORNER_OFFSET_bbl},  // 0 12
+    {0.0f, 1.0f, 0.0f, /*Coords  Texture coords*/ 1, 1, FACE_BACK, CORNER_OFFSET_tbl},  // 3 13
+    {1.0f, 0.0f, 1.0f, /*Coords  Texture coords*/ 0, 0, FACE_RIGHT, CORNER_OFFSET_bfr}, // 13 14
+    {1.0f, 1.0f, 1.0f, /*Coords  Texture coords*/ 0, 1, FACE_RIGHT, CORNER_OFFSET_tfr}, // 14 15
+
+};
+#define VB_DATA_SIZE_FLOWERS ( 4 * 4 )
+
 MK_SHADER( chunk_vertex );
 MK_SHADER( chunk_fragment );
 
@@ -62,6 +88,11 @@ void chunk_loader_init( LoadedChunks *loadedChunks ) {
     loadedChunks->chunkArray = ( Chunk * )calloc( MAX_LOADED_CHUNKS, sizeof( Chunk ) );
 
     shader_init( &loadedChunks->shader, &chunk_vertex, &chunk_fragment );
+
+    {
+        vertex_buffer_init( &loadedChunks->flowers.vb_block );
+        vertex_buffer_set_data( &loadedChunks->flowers.vb_block, vd_data_flowers, sizeof( CubeFace ) * VB_DATA_SIZE_FLOWERS );
+    }
 
     {
         vertex_buffer_init( &loadedChunks->solid.vb_block );
@@ -92,11 +123,12 @@ void chunk_loader_init( LoadedChunks *loadedChunks ) {
     {
         VertexBuffer *vb_block_solid = &loadedChunks->solid.vb_block;
         VertexBuffer *vb_block_water = &loadedChunks->water.vb_block;
+        VertexBuffer *vb_block_flowers = &loadedChunks->flowers.vb_block;
         VertexBufferLayout *vbl_block = &loadedChunks->vbl_block;
         VertexBufferLayout *vbl_coords = &loadedChunks->vbl_coords;
         mouse_selection_init( &loadedChunks->mouseSelection, vbl_block, vbl_coords );
         for ( int i = 0; i < MAX_LOADED_CHUNKS; i++ ) {
-            chunk_init( &loadedChunks->chunkArray[ i ], vb_block_solid, vb_block_water, vbl_block, vbl_coords );
+            chunk_init( &loadedChunks->chunkArray[ i ], vb_block_solid, vb_block_water, vb_block_flowers, vbl_block, vbl_coords );
         }
     }
 

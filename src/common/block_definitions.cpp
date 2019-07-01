@@ -21,6 +21,7 @@ void block_definitions_initilize_definitions( Texture *texture ) {
         block->can_mesh = true;
         block->hides_self = false;
         block->needs_place_on_solid = false;
+        block->can_be_shaded = true;
     }
     block_definitions[ WATER ].renderOrder = RenderOrder_Water;
 
@@ -112,11 +113,11 @@ void block_definitions_initilize_definitions( Texture *texture ) {
     block_definitions[ JUNGLE_LEAF ].can_mesh = false;
     block_definitions[ LEAF ].can_mesh = false;
 
-    block_definitions[ WHITE_GLASS ].no_light = NO_LIGHT_NO_DRAW;
-    block_definitions[ BIRTCH_LEAVES ].no_light = NO_LIGHT_DRAW;
-    block_definitions[ PINE_LEAF ].no_light = NO_LIGHT_DRAW;
-    block_definitions[ JUNGLE_LEAF ].no_light = NO_LIGHT_DRAW;
-    block_definitions[ LEAF ].no_light = NO_LIGHT_DRAW;
+    // block_definitions[ WHITE_GLASS ].no_light = NO_LIGHT_NO_DRAW;
+    // block_definitions[ BIRTCH_LEAVES ].no_light = NO_LIGHT_DRAW;
+    // block_definitions[ PINE_LEAF ].no_light = NO_LIGHT_DRAW;
+    // block_definitions[ JUNGLE_LEAF ].no_light = NO_LIGHT_DRAW;
+    // block_definitions[ LEAF ].no_light = NO_LIGHT_DRAW;
 
     block_definitions[ WHITE_GLASS ].hides_self = true;
 
@@ -134,21 +135,26 @@ void block_definitions_initilize_definitions( Texture *texture ) {
             block->casts_shadow = false;
             block->can_mesh = false;
             block->needs_place_on_solid = true;
+            block->can_be_shaded = false;
         }
         if ( block->renderOrder == RenderOrder_Water ) {
             block->is_seethrough = true;
             block->no_light = NO_LIGHT_BRIGHT;
             block->casts_shadow = false;
+            block->can_be_shaded = false;
         }
         if ( block->renderOrder == RenderOrder_Transparent ) {
             block->is_seethrough = true;
             block->no_light = NO_LIGHT_DRAW;
             block->casts_shadow = false;
+            block->can_be_shaded = false;
             // block->can_mesh = true; not that it matters...
         }
     }
     block_definitions[ GRASS_TUFT ].casts_shadow = true;
-    block_definitions[ GRASS_TUFT2 ].casts_shadow = true;
+    // block_definitions[ GRASS_TUFT2 ].casts_shadow = true;
+    block_definitions[ GRASS_TUFT2 ].no_light = NO_LIGHT_DRAW;
+    block_definitions[ GRASS_TUFT2 ].can_be_shaded = true;
     block_definitions[ GRASS_TUFT3 ].casts_shadow = true;
     block_definitions[ GRASS_TUFT4 ].casts_shadow = true;
 }

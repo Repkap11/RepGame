@@ -5,15 +5,20 @@
 #include "common/structure_gen.hpp"
 
 static unsigned int ib_data_flowers[] = {
-    14, 0, 13, // Right, Back, Right
-    13, 0, 14, //
-    14, 0, 3,  // Right, Back, Back
-    3,  0, 14, //
+    7,  0,  6, // Right, Back, Right
+    14,  12,  15, //
 
-    7,  9, 4,  // Front, Right, Front
-    4,  9, 7,  //
-    7,  9, 10, // Front, Right, Right
-    10, 9, 7,  //
+    7,  0,  1, // Right, Back, Back
+    13,  12,  15, //
+
+
+
+
+    3,  4,  2, // Front, Right, Front
+    8,  10, 9, //
+
+    3,  4,  5, // Front, Right, Right
+    11, 10, 9, //
 };
 
 void chunk_calculate_sides( Chunk *chunk, TRIP_ARGS( int center_next_ ) ) {
@@ -89,7 +94,7 @@ int chunk_get_coords_from_index( int index, int *out_x, int *out_y, int *out_z )
     return result;
 }
 
-void chunk_init( Chunk *chunk, VertexBuffer *vb_block_solid, VertexBuffer *vb_block_water, VertexBufferLayout *vbl_block, VertexBufferLayout *vbl_coords ) {
+void chunk_init( Chunk *chunk, VertexBuffer *vb_block_solid, VertexBuffer *vb_block_water, VertexBuffer *vb_block_flowers, VertexBufferLayout *vbl_block, VertexBufferLayout *vbl_coords ) {
     if ( REMEMBER_BLOCKS ) {
         chunk->blocks = ( BlockID * )calloc( CHUNK_BLOCK_SIZE, sizeof( BlockID ) );
     }
@@ -99,6 +104,9 @@ void chunk_init( Chunk *chunk, VertexBuffer *vb_block_solid, VertexBuffer *vb_bl
         switch ( renderOrder ) {
             case RenderOrder_Water:
                 vb = vb_block_water;
+                break;
+            case RenderOrder_Flowers:
+                vb = vb_block_flowers;
                 break;
             default:
                 vb = vb_block_solid;
@@ -336,7 +344,7 @@ void chunk_calculate_popupated_blocks( Chunk *chunk ) {
                 }
                 int block_is_visiable = visiable_top || visiable_bottom || visiable_left || visiable_right || visiable_front || visiable_back;
 
-                int can_be_shaded = render_order_can_be_shaded( block->renderOrder );
+                int can_be_shaded = block->can_be_shaded;
 
                 int t = block_definition_get_definition( chunk->blocks[ chunk_get_index_from_coords( x + 0, yplus, z + 0 ) ] )->casts_shadow;
                 int bo = block_definition_get_definition( chunk->blocks[ chunk_get_index_from_coords( x + 0, yminus, z + 0 ) ] )->casts_shadow;

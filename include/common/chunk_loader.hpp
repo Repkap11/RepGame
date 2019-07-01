@@ -17,6 +17,9 @@ typedef struct {
     struct {
         VertexBuffer vb_block;
     } water;
+    struct {
+        VertexBuffer vb_block;
+    } flowers;
     VertexBufferLayout vbl_block;
     VertexBufferLayout vbl_coords;
     SkyBox skyBox;
