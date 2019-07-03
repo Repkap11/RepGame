@@ -10,7 +10,9 @@ CFLAGS_WASM := -DREPGAME_WASM \
 #CFLAGS_WASM += -s USE_PTHREADS=1 -s TOTAL_MEMORY=512MB
 CFLAGS_WASM += -s ALLOW_MEMORY_GROWTH=1
 
-CC_WASM := ~/Software/emsdk/emsdk/emscripten/1.38.26/em++
+EM_ROOT := $(shell cat  ~/.emscripten | grep BINARYEN_ROOT | sed -e "s/.* = \(.*\)/\1/" )
+
+CC_WASM := ${EM_ROOT}/emscripten/em++
 ifeq ($(USE_CCACHE),1)
 CC_WASM := ccache $(CC_WASM)
 endif
