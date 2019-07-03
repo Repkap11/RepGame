@@ -73,6 +73,8 @@ linux-run: linux
 
 map:
 	rm -rf World1
+player:
+	rm -rf World1/player.dat
 
 reverse = $(if $(1),$(call reverse,$(wordlist 2,$(words $(1)),$(1)))) $(firstword $(1))
 
