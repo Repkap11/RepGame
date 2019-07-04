@@ -32,7 +32,7 @@ HEADERS := $(wildcard include/**/*.hpp)
 
 BITMAPS_NO_HEADER := $(patsubst bitmaps/%.bmp,out/bitmaps/%.bin,$(wildcard bitmaps/*.bmp))
 
-out/bitmaps/%.bin : bitmaps/%.bmp $(MAKEFILES) | out
+out/bitmaps/%.bin : bitmaps/%.bmp $(MAKEFILES) | out/bitmaps
 	tail -c +139 $< > $@
 
 REPGAME_PACKAGES := libglm-dev libglm-doc rsync libarchive-tools wget ccache
@@ -44,15 +44,20 @@ include windows.mk
 include android.mk
 
 out:
-	mkdir -p out out/bitmaps
+	mkdir -p out
+
+out/bitmaps: | out
+	mkdir -p out/bitmaps
 
 run: linux android-run wasm
 	${WASM_START_COMMAND} &
 	./$(TARGET)
 
-clean: clean-linux clean-windows clean-android clean-wasm
-	rm -rf out/bitmaps
+clean: clean-bitmaps clean-linux clean-windows clean-android clean-wasm
 	rm -d out
+
+clean-bitmaps:
+	rm -rf out/bitmaps
 
 install:
 	sudo apt-get install -y $(REPGAME_PACKAGES)
@@ -67,7 +72,7 @@ install:
 	rm -rf freeglut.zip
 	rm -rf glew.zip
 
-.PHONY: run install all clean vars
+.PHONY: run install all clean vars clean-bitmaps
 
 deploy: windows-deploy linux-deploy wasm-deploy android-deploy
 
