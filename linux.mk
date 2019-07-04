@@ -1,7 +1,7 @@
 #Linux x86_64 builds
 MAKEFILES += linux.mk
 
-REPGAME_PACKAGES += freeglut3-dev libglew-dev libxi-dev
+REPGAME_PACKAGES += freeglut3-dev libglew-dev libxi-dev g++
 
 CFLAGS_LINUX := -Wall -Wextra -Werror -std=c++98 -Wno-unused-parameter -Wno-unused-variable -fno-pie -march=native
 
