@@ -169,7 +169,7 @@ static void gameTick( ) {
     globalGameState.input.mouse.previousPosition.wheel_counts = globalGameState.input.mouse.currentPosition.wheel_counts;
 }
 
-static inline void initilizeGameState( ) {
+static inline void initilizeGameState( const char *world_name ) {
     globalGameState.input.exitGame = 0;
     globalGameState.input.limit_fps = 1;
     globalGameState.camera.angle_H = 135.0f;
@@ -179,7 +179,7 @@ static inline void initilizeGameState( ) {
     globalGameState.camera.z = 0.0f;
     globalGameState.block_selection.holdingBlock = GRASS;
 
-    map_storage_init( );
+    map_storage_init( world_name );
     PlayerData saved_data;
     int has_saved_data = map_storage_read_player_data( &saved_data );
     if ( has_saved_data ) {
@@ -206,7 +206,7 @@ int check_block( Block *block ) {
 
 MK_TEXTURE( textures, 384, 816, 16, 16, 138 );
 
-void repgame_init( ) {
+void repgame_init( const char *world_name ) {
     glEnable( GL_DEPTH_TEST );
     glEnable( GL_CULL_FACE );
     glCullFace( GL_BACK );
@@ -214,7 +214,7 @@ void repgame_init( ) {
     glBlendFunc( GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA );
     glBlendEquation( GL_FUNC_ADD );
 
-    initilizeGameState( );
+    initilizeGameState( world_name );
     texture_init( &globalGameState.blocksTexture, &texture_source_textures );
     block_definitions_initilize_definitions( &globalGameState.blocksTexture );
     world_init( &globalGameState.gameChunks );

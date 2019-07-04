@@ -44,6 +44,15 @@ void idleFunc( ) {
 }
 
 int main( int argc, char **argv ) {
+    const char *world_path;
+    if ( argc == 1 ) {
+        world_path = "World1";
+    } else if ( 2 ) {
+        world_path = argv[ 1 ];
+    } else {
+        pr_debug( "\nusage: %s world_path\n\tWhere world_path is relitive to the current directory.", argv[ 0 ] );
+        return -1;
+    }
     glutInit( &argc, argv );
     glutInitContextVersion( 3, 3 );
 
@@ -67,7 +76,7 @@ int main( int argc, char **argv ) {
         exit( 1 ); // or handle the error in a nicer way
     }
 
-    repgame_init( );
+    repgame_init( world_path );
 
     glutSpecialFunc( arrowKeyDownInput );
     glutSpecialUpFunc( arrowKeyUpInput );

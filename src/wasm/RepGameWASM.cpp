@@ -66,7 +66,7 @@ extern "C" int main( int argc, char **argv ) {
 
     pr_debug( "Using OpenGL Version:%s", glGetString( GL_VERSION ) );
 
-    repgame_init( );
+    repgame_init( "World1" );
 
     glutSpecialFunc( arrowKeyDownInput );
     glutSpecialUpFunc( arrowKeyUpInput );

@@ -75,7 +75,7 @@ typedef struct {
 } PlayerData;
 
 void renderShaders( int x, int y, int z );
-void repgame_init( );
+void repgame_init( const char* world_name );
 void repgame_tick( );
 void repgame_clear( );
 void repgame_draw( );

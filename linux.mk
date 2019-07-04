@@ -43,9 +43,9 @@ out/linux/bitmaps/%.o : out/bitmaps/%.bin $(MAKEFILES) | out/linux
 	$(LD_LINUX) -r -b binary $< -o $@
 	objcopy --rename-section .data=.rodata,CONTENTS,ALLOC,LOAD,READONLY,DATA --reverse-bytes=4 $@ $@
 
-linux: $(TARGET)
+linux: out/linux/$(TARGET)
 
-linux-deploy: $(TARGET)
+linux-deploy: out/linux/$(TARGET)
 	rsync $< paul@repkap11.com:/home/paul/website/${TARGET_LOWER}
 
 LINUX_DIRS = $(patsubst src%,out/linux%,$(shell find src -type d)) \
@@ -63,13 +63,13 @@ out/linux/%.o: src/%.cpp $(MAKEFILES) | out/linux
 include cuda.mk
 
 
-$(TARGET): $(OBJECTS_COMMON_LINUX) $(OBJECTS_LINUX) $(MAKEFILES) $(SHADER_BLOBS_LINUX) $(BITMAP_BLOBS_LINUX) 
+out/linux/$(TARGET): $(OBJECTS_COMMON_LINUX) $(OBJECTS_LINUX) $(MAKEFILES) $(SHADER_BLOBS_LINUX) $(BITMAP_BLOBS_LINUX) | out/linux
 	$(CC_LINUX) -flto $(CFLAGS_LINUX) $(OBJECTS_LINUX) $(OBJECTS_COMMON_LINUX) $(SHADER_BLOBS_LINUX) $(BITMAP_BLOBS_LINUX) $(LIBS_LINUX) -o $@
 
 include server.mk
 
 linux-run: linux
-	./$(TARGET)
+	./out/linux/$(TARGET) "../../World1"
 
 map:
 	rm -rf World1
@@ -82,9 +82,8 @@ clean-linux: clean-server
 	rm -rf out/linux
 
 out/linux: | out
-	#@echo Making linux $(LINUX_DIRS)
 	mkdir -p $(LINUX_DIRS)
 
-.PRECIOUS: $(TARGET) $(OBJECTS_LINUX) $(OBJECTS_COMMON_LINUX) $(LIB_TARGET_LINUX) $(SHADER_BLOBS_LINUX) $(BITMAP_BLOBS_LINUX)
+.PRECIOUS: out/linux/$(TARGET) $(OBJECTS_LINUX) $(OBJECTS_COMMON_LINUX) $(LIB_TARGET_LINUX) $(SHADER_BLOBS_LINUX) $(BITMAP_BLOBS_LINUX)
 
 .PHONY: linux linux-run clean-linux map linux-deploy

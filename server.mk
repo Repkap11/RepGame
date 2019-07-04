@@ -2,7 +2,8 @@
 
 MAKEFILES += server.mk
 
-REPSERVER := $(TARGET)Server
+#This make file is probably broken, since the code doesn't even work...
+REPSERVER := out/linux/server/$(TARGET)Server
 
 OBJECTS_SERVER = $(patsubst src/server/%.cpp,out/server/%.so, $(wildcard src/server/*.cpp))
 

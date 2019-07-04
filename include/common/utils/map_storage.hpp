@@ -4,7 +4,7 @@
 #include "common/chunk.hpp"
 #include "common/RepGame.hpp"
 
-void map_storage_init( );
+void map_storage_init( const char *world_name );
 void map_storage_persist( Chunk *chunk );
 int map_storage_load( Chunk *chunk );
 int map_storage_read_player_data( PlayerData *player_data );

@@ -48,7 +48,7 @@ JNIEXPORT void JNICALL Java_com_repkap11_repgame_RepGameJNIWrapper_onSurfaceCrea
     repgame_set_textures( 1, texture, textures_len );
     assetManager = AAssetManager_fromJava( env, assetManager_java );
 
-    repgame_init( );
+    repgame_init( "World1" );
 }
 
 JNIEXPORT void JNICALL Java_com_repkap11_repgame_RepGameJNIWrapper_onSurfaceDestroyed( JNIEnv *env, jobject obj ) {

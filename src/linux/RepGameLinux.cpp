@@ -41,6 +41,15 @@ char *repgame_getShaderString( const char *filename ) {
 }
 
 int main( int argc, char **argv ) {
+    const char *world_path;
+    if ( argc == 1 ) {
+        world_path = "World1";
+    } else if ( argc == 2 ) {
+        world_path = argv[ 1 ];
+    } else {
+        pr_debug( "\nusage: %s world_path\n\tWhere world_path is relitive to the executable.", argv[ 0 ] );
+        return -1;
+    }
     glutInit( &argc, argv );
     glutInitContextVersion( 3, 3 );
 
@@ -48,7 +57,7 @@ int main( int argc, char **argv ) {
     glutSetOption( GLUT_MULTISAMPLE, 16 );
     glutInitDisplayMode( GLUT_DEPTH | GLUT_DOUBLE | GLUT_RGBA | GLUT_MULTISAMPLE );
 
-    glutInitWindowSize(glutGet(GLUT_SCREEN_WIDTH), glutGet(GLUT_SCREEN_HEIGHT));
+    glutInitWindowSize( glutGet( GLUT_SCREEN_WIDTH ), glutGet( GLUT_SCREEN_HEIGHT ) );
     glutInitWindowPosition( 0, 0 );
 
     int glut_window = glutCreateWindow( "RepGame" );
@@ -64,7 +73,7 @@ int main( int argc, char **argv ) {
         exit( 1 ); // or handle the error in a nicer way
     }
 
-    repgame_init( );
+    repgame_init( world_path );
 
     glutSpecialFunc( arrowKeyDownInput );
     glutSpecialUpFunc( arrowKeyUpInput );

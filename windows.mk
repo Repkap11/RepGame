@@ -42,9 +42,9 @@ out/windows/bitmaps/%.o : out/bitmaps/%.bin $(MAKEFILES) | out/windows
 	$(LD_WINDOWS) -r -b binary $< -o $@
 	objcopy --rename-section .data=.rodata,CONTENTS,ALLOC,LOAD,READONLY,DATA --reverse-bytes=4 $@ $@
 
-windows: $(TARGET).exe
+windows:  out/windows/$(TARGET).exe
 
-windows-deploy: $(TARGET).exe
+windows-deploy: out/windows/$(TARGET).exe
 	rsync $< paul@repkap11.com:/home/paul/website/${TARGET_LOWER}
 
 WINDOWS_DIRS = $(patsubst src%,out/windows%,$(shell find src -type d)) \
@@ -57,11 +57,11 @@ out/windows/%.o: src/%.cpp $(MAKEFILES) | out/windows
 #Include these .d files, so the dependicies are known for secondary builds.
 -include $(DEPS_WINDOWS)
 
-$(TARGET).exe: $(OBJECTS_COMMON_WINDOWS) $(OBJECTS_WINDOWS) $(SHADER_BLOBS_WINDOWS) $(BITMAP_BLOBS_WINDOWS) $(MAKEFILES)
+out/windows/$(TARGET).exe: $(OBJECTS_COMMON_WINDOWS) $(OBJECTS_WINDOWS) $(SHADER_BLOBS_WINDOWS) $(BITMAP_BLOBS_WINDOWS) $(MAKEFILES) | out/windows
 	$(CC_WINDOWS) -flto $(CFLAGS_WINDOWS) $(OBJECTS_WINDOWS) $(OBJECTS_COMMON_WINDOWS) $(SHADER_BLOBS_WINDOWS) $(BITMAP_BLOBS_WINDOWS) $(LIBS_WINDOWS) -o $@
 
 windows-run: windows
-	wine $(TARGET).exe
+	wine out/windows/$(TARGET).exe "World1"
 
 reverse = $(if $(1),$(call reverse,$(wordlist 2,$(words $(1)),$(1)))) $(firstword $(1))
 
@@ -72,6 +72,6 @@ out/windows: | out
 	echo Making windows $(WINDOWS_DIRS)
 	mkdir -p $(WINDOWS_DIRS)
 
-.PRECIOUS: $(TARGET).exe $(OBJECTS_WINDOWS) $(OBJECTS_COMMON_WINDOWS) $(LIB_TARGET_WINDOWS) $(SHADER_BLOBS_WINDOWS) $(BITMAP_BLOBS_WINDOWS)
+.PRECIOUS: out/windows/$(TARGET).exe $(OBJECTS_WINDOWS) $(OBJECTS_COMMON_WINDOWS) $(LIB_TARGET_WINDOWS) $(SHADER_BLOBS_WINDOWS) $(BITMAP_BLOBS_WINDOWS)
 
 .PHONY: windows windows-run clean-windows windows-deploy

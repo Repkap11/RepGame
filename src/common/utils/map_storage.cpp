@@ -60,10 +60,10 @@ int mkdir_p( const char *path ) {
     return 0;
 }
 
-void map_storage_init( ) {
+void map_storage_init( const char *world_name ) {
     char *dir = getRepGamePath( );
-    char bufferSky[ BUFSIZ ];
-    sprintf( map_name, "%s%s", dir, "/World1" );
+    sprintf( map_name, "%s%s%s", dir, REPGAME_PATH_DIVIDOR, world_name );
+    pr_debug( "Loading map from:%s", map_name );
     mkdir_p( map_name );
     free( dir );
 }
