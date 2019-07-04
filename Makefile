@@ -55,7 +55,7 @@ clean: clean-linux clean-windows clean-android clean-wasm
 	rm -d out
 
 install:
-	sudo apt install $(REPGAME_PACKAGES)
+	sudo apt-get install -y $(REPGAME_PACKAGES)
 	rm -rf freeglut.zip
 	rm -rf glew.zip
 	rm -rf windows_build
