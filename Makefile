@@ -42,6 +42,8 @@ include wasm.mk
 include linux.mk
 include windows.mk
 include android.mk
+#Docker should be last since it uses REPGAME_PACKAGES
+include docker.mk
 
 out:
 	mkdir -p out
@@ -59,8 +61,7 @@ clean: clean-bitmaps clean-linux clean-windows clean-android clean-wasm
 clean-bitmaps:
 	rm -rf out/bitmaps
 
-install:
-	sudo apt-get install -y $(REPGAME_PACKAGES)
+windows_build:
 	rm -rf freeglut.zip
 	rm -rf glew.zip
 	rm -rf windows_build
@@ -71,6 +72,9 @@ install:
 	bsdtar  -xvf freeglut.zip -C windows_build
 	rm -rf freeglut.zip
 	rm -rf glew.zip
+
+install: windows_build
+	sudo apt-get install -y $(REPGAME_PACKAGES)
 
 .PHONY: run install all clean vars clean-bitmaps
 
