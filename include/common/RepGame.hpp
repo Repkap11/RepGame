@@ -78,6 +78,7 @@ void renderShaders( int x, int y, int z );
 void repgame_init( const char* world_name );
 void repgame_tick( );
 void repgame_clear( );
+void repgame_idle( );
 void repgame_draw( );
 void repgame_set_textures( unsigned int which_texture, unsigned char *textures, int textures_len );
 void repgame_cleanup( );

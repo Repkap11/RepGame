@@ -126,7 +126,15 @@ void repgame_process_movement( ) {
     globalGameState.camera.y += movement_vector_y;
     globalGameState.camera.z += movement_vector_z;
 }
-static void gameTick( ) {
+void repgame_idle( ) {
+    if ( globalGameState.input.exitGame ) {
+        // Don't bother being idle if the state if the game is exiting
+        return;
+    }
+    world_render( &globalGameState.gameChunks, globalGameState.camera.x, globalGameState.camera.y, globalGameState.camera.z, 1 );
+}
+
+void repgame_tick( ) {
     if ( globalGameState.input.exitGame ) {
         // Don't bother updating the state if the game is exiting
         return;
@@ -258,10 +266,6 @@ void repgame_changeSize( int w, int h ) {
     globalGameState.screen.ortho_center = glm::ortho<float>( -w / 2, w / 2, -h / 2, h / 2, -1.f, 1.f );
 }
 
-void repgame_tick( ) {
-    gameTick( );
-}
-
 void repgame_clear( ) {
     glClear( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT );
 }
@@ -271,9 +275,16 @@ void repgame_get_screen_size( int *width, int *height ) {
 }
 
 void repgame_draw( ) {
+    if ( globalGameState.input.exitGame ) {
+        // Don't bother draw the state if the game is exiting
+        return;
+    }
     glm::mat4 mvp_sky = globalGameState.screen.proj * globalGameState.camera.view_look;
     glm::mat4 mvp = mvp_sky * globalGameState.camera.view_trans;
-    world_render( &globalGameState.gameChunks, globalGameState.camera.x, globalGameState.camera.y, globalGameState.camera.z );
+#if defined( REPGAME_WASM )
+#else
+    world_render( &globalGameState.gameChunks, globalGameState.camera.x, globalGameState.camera.y, globalGameState.camera.z, false );
+#endif
     showErrors( );
 
     world_draw( &globalGameState.gameChunks, &globalGameState.blocksTexture, mvp, mvp_sky, globalGameState.input.debug_mode, !globalGameState.input.inventory_open );
@@ -281,6 +292,11 @@ void repgame_draw( ) {
 }
 
 void repgame_cleanup( ) {
+    static int clean_up_done = 0;
+    if ( clean_up_done ) {
+        return;
+    }
+    clean_up_done = 1;
     world_cleanup( &globalGameState.gameChunks );
     texture_destroy( &globalGameState.blocksTexture );
     block_definitions_free_definitions( );
@@ -294,7 +310,10 @@ void repgame_cleanup( ) {
 
     saved_data.holdingBlock = globalGameState.block_selection.holdingBlock;
     map_storage_write_player_data( &saved_data );
-    // pr_debug( "RepGame cleanup done" );
+#if defined( REPGAME_WASM )
+    EM_ASM( "FS.syncfs(false, err => {console.log(\"Sync done, its OK to close RepGame:\", err)});" );
+#endif
+    pr_debug( "RepGame cleanup done" );
 }
 
 InputState *repgame_getInputState( ) {

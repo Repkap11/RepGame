@@ -8,9 +8,10 @@ void world_init( LoadedChunks *loadedChunks ) {
     chunk_loader_init( loadedChunks );
     sky_box_init( &loadedChunks->skyBox );
 }
-void world_render( LoadedChunks *loadedChunks, TRIP_ARGS( float camera_ ) ) {
-    chunk_loader_render_chunks( loadedChunks, TRIP_ARGS( camera_ ) );
+void world_render( LoadedChunks *loadedChunks, TRIP_ARGS( float camera_ ), int limit_render ) {
+    chunk_loader_render_chunks( loadedChunks, TRIP_ARGS( camera_ ), limit_render );
 }
+
 void world_draw( LoadedChunks *loadedChunks, Texture *blocksTexture, glm::mat4 &mvp, glm::mat4 &mvp_sky, int debug, int draw_mouse_selection ) {
     sky_box_draw( &loadedChunks->skyBox, &loadedChunks->renderer, mvp_sky );
 

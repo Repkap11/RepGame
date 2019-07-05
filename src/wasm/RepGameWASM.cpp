@@ -56,9 +56,24 @@ static void displayFunc( void ) {
     glutPostRedisplay( );
 }
 
+void onIdle( ) {
+    //glutPostRedisplay( );
+    repgame_idle( );
+    if ( repgame_shouldExit( ) ) {
+        repgame_cleanup( );
+        // pr_debug( "RepGame WASM about to killself" );
+        // glutDestroyWindow( 0 );
+        // exit( 0 );
+        sleep( 1 );
+    }
+}
+
 extern "C" int main( int argc, char **argv ) {
+    pr_debug( "Entering RepGameWASM Paul Main:%d", argc );
+
+    const char *world_path = "repgame_wasm/World1";
+
     glutInit( &argc, argv );
-    pr_debug( "Entering RepGameWASM Paul Main" );
 
     glutInitDisplayMode( GLUT_DEPTH | GLUT_DOUBLE | GLUT_RGBA | GLUT_MULTISAMPLE );
 
@@ -66,7 +81,7 @@ extern "C" int main( int argc, char **argv ) {
 
     pr_debug( "Using OpenGL Version:%s", glGetString( GL_VERSION ) );
 
-    repgame_init( "World1" );
+    repgame_init( world_path );
 
     glutSpecialFunc( arrowKeyDownInput );
     glutSpecialUpFunc( arrowKeyUpInput );
@@ -78,6 +93,7 @@ extern "C" int main( int argc, char **argv ) {
     glutPassiveMotionFunc( mouseMove );
     glutMotionFunc( mouseMove );
     glutDisplayFunc( displayFunc );
+    glutIdleFunc( onIdle );
 
     // repgame_get_screen_size( &width, &height );
 

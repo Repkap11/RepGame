@@ -33,7 +33,6 @@ function onModuleReady() {
 }
 
 function setup_key_listener() {
-  var testJS = Module.cwrap("testJS", "void", ["number", "string"]);
   document.addEventListener("keydown", function(event) {
     console.log("got key" + event.keyCode);
     //F5
@@ -110,7 +109,12 @@ function setup_click_handler() {
     }
     if (first_time) {
       first_time = 0;
-      Module.ccall("main");
+      FS.mkdir("/repgame_wasm");
+      FS.mount(IDBFS, {}, "/repgame_wasm");
+      FS.syncfs(true, err => {
+        console.log("Before:", err);
+        Module.ccall("main");
+      });
     }
   }
   canvas.onclick = callback;

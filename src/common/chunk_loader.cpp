@@ -191,7 +191,7 @@ inline int process_chunk_position( Chunk *chunk, TRIP_ARGS( int chunk_diff_ ), T
     return 0;
 }
 
-void chunk_loader_render_chunks( LoadedChunks *loadedChunks, TRIP_ARGS( float camera_ ) ) {
+void chunk_loader_render_chunks( LoadedChunks *loadedChunks, TRIP_ARGS( float camera_ ), int limit_render ) {
     int chunk_x = floor( camera_x / ( float )CHUNK_SIZE );
     int chunk_y = floor( camera_y / ( float )CHUNK_SIZE );
     int chunk_z = floor( camera_z / ( float )CHUNK_SIZE );
@@ -205,14 +205,7 @@ void chunk_loader_render_chunks( LoadedChunks *loadedChunks, TRIP_ARGS( float ca
     int chunk_diff_z = chunk_z - loaded_z;
 
     Chunk *chunk;
-#if defined( REPGAME_WASM )
-    static int count = 0;
-    count++;
-    if ( count >= 3 ) {
-        count = 0;
-#else
     do {
-#endif
         chunk = terrain_loading_thread_dequeue( );
         // pr_debug( "Got chunk %p", chunk );
         if ( chunk ) {
@@ -224,11 +217,7 @@ void chunk_loader_render_chunks( LoadedChunks *loadedChunks, TRIP_ARGS( float ca
                 chunk_program_terrain( chunk );
             }
         }
-#if defined( REPGAME_WASM )
-    }
-#else
-    } while ( chunk );
-#endif
+    } while ( chunk && !limit_render );
     if ( TRIP_OR( 0 != chunk_diff_ ) ) {
         // pr_debug( "Moved outof chunk x:%d y:%d z:%d", TRIP_ARGS( loaded_ ) );
         // pr_debug( "Moved into  chunk x:%d y:%d z:%d", TRIP_ARGS( chunk_ ) );

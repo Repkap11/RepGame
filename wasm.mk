@@ -59,6 +59,7 @@ out/wasm/delivery/icon.png : bitmaps/icon.png | out/wasm
 
 wasm-start-server:
 	http-server out/wasm/delivery -c-1 &
+	sleep 0.5
 
 WASM_START_COMMAND := google-chrome --app=http://localhost:8080 --start-fullscreen
 
