@@ -51,13 +51,25 @@ BlockID structure_gen_is_long_grass_roll( int x, int z, int is_forest ) {
         is_tuftland = 1;
     } else {
         float noise = perlin_noise( x, z, 0.03f, 1, MAP_SEED + 8 );
-        if ( noise < 0.3f ) {
+        if ( noise > 0.7f ) {
             is_tuftland = 1;
         }
     }
     if ( is_tuftland ) {
         float noise2 = perlin_noise( x, z, 1.0f, 3, MAP_SEED + 9 );
-        if ( noise2 < 0.3 ) {
+        if ( noise2 > 0.95 ) {
+            return YELLOW_FLOWER;
+        }
+
+        if ( noise2 > 0.93 ) {
+            return RED_FLOWER;
+        }
+
+        if ( noise2 > 0.91 ) {
+            return BLUE_FLOWER;
+        }
+
+        if ( noise2 > 0.8 ) {
             return GRASS_TUFT2;
         }
     }
