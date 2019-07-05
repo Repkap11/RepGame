@@ -170,7 +170,7 @@ void chunk_set_block( Chunk *chunk, int x, int y, int z, BlockID blockID ) {
 }
 
 void chunk_persist( Chunk *chunk ) {
-#if defined( REPGAME_LINUX ) || defined( REPGAME_WINDOWS )
+#if defined( REPGAME_LINUX ) || defined( REPGAME_WINDOWS ) || defined( REPGAME_ANDROID )
     if ( REMEMBER_BLOCKS ) {
         map_storage_persist( chunk );
     }
@@ -183,7 +183,7 @@ void chunk_load_terrain( Chunk *chunk ) {
         chunk->blocks = ( BlockID * )calloc( CHUNK_BLOCK_SIZE, sizeof( BlockID ) );
     }
 // pr_debug( "Loading chunk terrain x:%d y:%d z:%d", chunk->chunk_x, chunk->chunk_y, chunk->chunk_z );
-#if defined( REPGAME_LINUX ) || defined( REPGAME_WINDOWS )
+#if defined( REPGAME_LINUX ) || defined( REPGAME_WINDOWS ) || defined( REPGAME_ANDROID )
     int loaded = map_storage_load( chunk );
 #else
     int loaded = 0;
@@ -546,7 +546,7 @@ void chunk_calculate_popupated_blocks( Chunk *chunk ) {
     free( workingSpace );
 
     if ( !REMEMBER_BLOCKS ) {
-#if defined( REPGAME_LINUX ) || defined( REPGAME_WINDOWS )
+#if defined( REPGAME_LINUX ) || defined( REPGAME_WINDOWS ) || defined( REPGAME_WINDOWS )
         if ( PERSIST_ALL_CHUNKS ) {
             map_storage_persist( chunk );
         }

@@ -4,7 +4,7 @@
 #include <string.h>
 #include <unistd.h>
 
-#if defined( REPGAME_LINUX ) || defined( REPGAME_ANDROID )
+#if defined( REPGAME_LINUX )
 char *getRepGamePath( ) {
     char buffer[ BUFSIZ ];
     memset( buffer, 0, sizeof( buffer ) );
@@ -13,6 +13,13 @@ char *getRepGamePath( ) {
         return NULL;
     }
     char *dir_temp = dirname( buffer );
+    char *dir = strdup( dir_temp );
+    return dir;
+}
+#endif
+#if defined( REPGAME_ANDROID )
+char *getRepGamePath( ) {
+    char *dir_temp = ( char * )".";
     char *dir = strdup( dir_temp );
     return dir;
 }

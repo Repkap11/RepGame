@@ -37,18 +37,21 @@ unsigned char *as_unsigned_char_array( JNIEnv *env, jbyteArray array, int *out_s
     return buf;
 }
 
-JNIEXPORT void JNICALL Java_com_repkap11_repgame_RepGameJNIWrapper_onSurfaceCreated( JNIEnv *env, jobject obj, jbyteArray texture_bytes0, jbyteArray texture_bytes1, jobject assetManager_java ) {
+JNIEXPORT void JNICALL Java_com_repkap11_repgame_RepGameJNIWrapper_onSurfaceCreated( JNIEnv *env, jobject obj, jbyteArray texture_bytes0, jbyteArray texture_bytes1, jobject assetManager_java, jstring world_name_java ) {
     pr_debug( "################################# START #################################" );
     pr_debug( "Using OpenGL Version:%s", glGetString( GL_VERSION ) );
     int textures_len;
     unsigned char *texture;
+    const char *world_name = env->GetStringUTFChars( world_name_java, 0 );
+
     texture = as_unsigned_char_array( env, texture_bytes0, &textures_len );
     repgame_set_textures( 0, texture, textures_len );
     texture = as_unsigned_char_array( env, texture_bytes1, &textures_len );
     repgame_set_textures( 1, texture, textures_len );
     assetManager = AAssetManager_fromJava( env, assetManager_java );
 
-    repgame_init( "World1" );
+    repgame_init( world_name );
+    env->ReleaseStringUTFChars( world_name_java, world_name );
 }
 
 JNIEXPORT void JNICALL Java_com_repkap11_repgame_RepGameJNIWrapper_onSurfaceDestroyed( JNIEnv *env, jobject obj ) {

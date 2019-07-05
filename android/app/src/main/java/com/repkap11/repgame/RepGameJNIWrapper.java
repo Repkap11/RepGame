@@ -11,7 +11,7 @@ class RepGameJNIWrapper {
         System.loadLibrary("RepGameAndroid");
     }
 
-    public static native void onSurfaceCreated(byte[] textureBlocks, byte[] textureSky, AssetManager assetManager);
+    public static native void onSurfaceCreated(byte[] textureBlocks, byte[] textureSky, AssetManager assetManager, String world_name);
 
     public static native void onSurfaceDestroyed();
 

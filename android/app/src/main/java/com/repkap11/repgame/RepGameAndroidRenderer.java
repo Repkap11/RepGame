@@ -6,6 +6,7 @@ import android.opengl.GLSurfaceView;
 import android.util.Log;
 
 import java.io.InputStream;
+import java.io.File;
 
 import javax.microedition.khronos.egl.EGL10;
 import javax.microedition.khronos.egl.EGLConfig;
@@ -39,7 +40,7 @@ public class RepGameAndroidRenderer implements GLSurfaceView.Renderer {
             Log.d(TAG, "Failed to read bitmap");
         }
 
-        RepGameJNIWrapper.onSurfaceCreated(blocks, sky, mApplicationContext.getAssets());
+        RepGameJNIWrapper.onSurfaceCreated(blocks, sky, mApplicationContext.getAssets(), mApplicationContext.getFilesDir().getPath() + File.separator + "World1");
     }
 
     @Override
