@@ -225,7 +225,7 @@ void repgame_init( const char *world_name ) {
     initilizeGameState( world_name );
     texture_init( &globalGameState.blocksTexture, &texture_source_textures );
     block_definitions_initilize_definitions( &globalGameState.blocksTexture );
-    world_init( &globalGameState.gameChunks );
+    world_init( &globalGameState.gameChunks, globalGameState.camera.x, globalGameState.camera.y, globalGameState.camera.z );
     ui_overlay_init( &globalGameState.ui_overlay );
 
     int iMultiSample = 0;

@@ -4,8 +4,8 @@
 #include "common/chunk_loader.hpp"
 #include <math.h>
 
-void world_init( LoadedChunks *loadedChunks ) {
-    chunk_loader_init( loadedChunks );
+void world_init( LoadedChunks *loadedChunks, TRIP_ARGS( float camera_ ) ) {
+    chunk_loader_init( loadedChunks, TRIP_ARGS( camera_ ) );
     sky_box_init( &loadedChunks->skyBox );
 }
 void world_render( LoadedChunks *loadedChunks, TRIP_ARGS( float camera_ ), int limit_render ) {

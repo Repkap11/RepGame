@@ -1,5 +1,4 @@
 #include "common/chunk_loader.hpp"
-#include "common/RepGame.hpp"
 #include "common/utils/map_storage.hpp"
 #include "common/utils/terrain_loading_thread.hpp"
 #include "common/abstract/shader.hpp"
@@ -54,7 +53,29 @@ static CubeFace vd_data_solid[] = {
 MK_SHADER( chunk_vertex );
 MK_SHADER( chunk_fragment );
 
-void chunk_loader_init( LoadedChunks *loadedChunks ) {
+int mod( int x, int N ) {
+    int result = ( x % N + N ) % N;
+    if ( result < 0 ) {
+        pr_debug( "Bad Mod:%d", result );
+    }
+    return result;
+}
+int reload_if_out_of_bounds( Chunk *chunk, TRIP_ARGS( int chunk_ ) ) {
+
+    int new_chunk_x = ( int )floorf( ( ( float )( chunk_x - chunk->chunk_mod_x + CHUNK_RADIUS_X ) ) / ( ( float )( CHUNK_RADIUS_X * 2 + 1 ) ) ) * ( CHUNK_RADIUS_X * 2 + 1 ) + chunk->chunk_mod_x;
+    int new_chunk_y = ( int )floorf( ( ( float )( chunk_y - chunk->chunk_mod_y + CHUNK_RADIUS_Y ) ) / ( ( float )( CHUNK_RADIUS_Y * 2 + 1 ) ) ) * ( CHUNK_RADIUS_Y * 2 + 1 ) + chunk->chunk_mod_y;
+    int new_chunk_z = ( int )floorf( ( ( float )( chunk_z - chunk->chunk_mod_z + CHUNK_RADIUS_Z ) ) / ( ( float )( CHUNK_RADIUS_Z * 2 + 1 ) ) ) * ( CHUNK_RADIUS_Z * 2 + 1 ) + chunk->chunk_mod_z;
+    int changed = new_chunk_x != chunk->chunk_x || new_chunk_y != chunk->chunk_y || new_chunk_z != chunk->chunk_z;
+
+    if ( changed ) {
+        chunk_unprogram_terrain( chunk );
+        chunk->is_loading = 1;
+        terrain_loading_thread_enqueue( chunk, TRIP_ARGS( new_chunk_ ), 1 );
+    }
+    return changed;
+}
+
+void chunk_loader_init( LoadedChunks *loadedChunks, TRIP_ARGS( float camera_ ) ) {
     int status = terrain_loading_thread_start( );
     if ( status ) {
         pr_debug( "Terrain loading thread failed to start." );
@@ -100,32 +121,38 @@ void chunk_loader_init( LoadedChunks *loadedChunks ) {
         }
     }
 
+    int camera_chunk_x = floor( camera_x / ( float )CHUNK_SIZE );
+    int camera_chunk_y = floor( camera_y / ( float )CHUNK_SIZE );
+    int camera_chunk_z = floor( camera_z / ( float )CHUNK_SIZE );
+
     int nextChunk = 0;
     for ( int i = 0; i <= CHUNK_RADIUS_X; i++ ) {
         for ( int j = 0; j <= CHUNK_RADIUS_Y; j++ ) {
             for ( int k = 0; k <= CHUNK_RADIUS_Z; k++ ) {
                 for ( int sign_i = -1; sign_i < 3; sign_i += 2 ) {
+                    if ( sign_i == -1 && i == CHUNK_RADIUS_X ) {
+                        continue;
+                    }
                     for ( int sign_j = -1; sign_j < 3; sign_j += 2 ) {
+                        if ( sign_j == -1 && j == CHUNK_RADIUS_Y ) {
+                            continue;
+                        }
                         for ( int sign_k = -1; sign_k < 3; sign_k += 2 ) {
-                            if ( sign_i == -1 && i == CHUNK_RADIUS_X ) {
-                                continue;
-                            }
-                            if ( sign_j == -1 && j == CHUNK_RADIUS_Y ) {
-                                continue;
-                            }
                             if ( sign_k == -1 && k == CHUNK_RADIUS_Z ) {
                                 continue;
                             }
                             int new_i = ( i * sign_i ) - ( sign_i == -1 );
                             int new_j = ( j * sign_j ) - ( sign_j == -1 );
                             int new_k = ( k * sign_k ) - ( sign_k == -1 );
+
                             Chunk *chunk = &loadedChunks->chunkArray[ nextChunk ];
-                            chunk->chunk_x = new_i;
-                            chunk->chunk_y = new_j;
-                            chunk->chunk_z = new_k;
-                            chunk->chunk_mod_x = new_i < 0 ? -CHUNK_RADIUS_X - new_i - 1 : CHUNK_RADIUS_X - new_i;
-                            chunk->chunk_mod_y = new_j < 0 ? -CHUNK_RADIUS_Y - new_j - 1 : CHUNK_RADIUS_Y - new_j;
-                            chunk->chunk_mod_z = new_k < 0 ? -CHUNK_RADIUS_Z - new_k - 1 : CHUNK_RADIUS_Z - new_k;
+                            chunk->chunk_x = new_i + camera_chunk_x;
+                            chunk->chunk_y = new_j + camera_chunk_y;
+                            chunk->chunk_z = new_k + camera_chunk_z;
+
+                            chunk->chunk_mod_x = mod( chunk->chunk_x, 2 * CHUNK_RADIUS_X + 1 );
+                            chunk->chunk_mod_y = mod( chunk->chunk_y, 2 * CHUNK_RADIUS_Y + 1 );
+                            chunk->chunk_mod_z = mod( chunk->chunk_z, 2 * CHUNK_RADIUS_Z + 1 );
 
                             chunk->is_loading = 1;
                             terrain_loading_thread_enqueue( chunk, TRIP_ARGS( chunk->chunk_ ), 0 );
@@ -150,20 +177,6 @@ Chunk *chunk_loader_get_chunk( LoadedChunks *loadedChunks, TRIP_ARGS( int chunk_
         }
     }
     return NULL;
-}
-
-int reload_if_out_of_bounds( Chunk *chunk, TRIP_ARGS( int chunk_ ) ) {
-    int new_chunk_x = ( int )floorf( ( ( float )( chunk_x + chunk->chunk_mod_x ) ) / ( ( float )( CHUNK_RADIUS_X * 2 + 1 ) ) ) * ( CHUNK_RADIUS_X * 2 + 1 ) - chunk->chunk_mod_x + CHUNK_RADIUS_X;
-    int new_chunk_y = ( int )floorf( ( ( float )( chunk_y + chunk->chunk_mod_y ) ) / ( ( float )( CHUNK_RADIUS_Y * 2 + 1 ) ) ) * ( CHUNK_RADIUS_Y * 2 + 1 ) - chunk->chunk_mod_y + CHUNK_RADIUS_Y;
-    int new_chunk_z = ( int )floorf( ( ( float )( chunk_z + chunk->chunk_mod_z ) ) / ( ( float )( CHUNK_RADIUS_Z * 2 + 1 ) ) ) * ( CHUNK_RADIUS_Z * 2 + 1 ) - chunk->chunk_mod_z + CHUNK_RADIUS_Z;
-    int changed = new_chunk_x != chunk->chunk_x || new_chunk_y != chunk->chunk_y || new_chunk_z != chunk->chunk_z;
-
-    if ( changed ) {
-        chunk_unprogram_terrain( chunk );
-        chunk->is_loading = 1;
-        terrain_loading_thread_enqueue( chunk, TRIP_ARGS( new_chunk_ ), 1 );
-    }
-    return changed;
 }
 
 inline int process_chunk_position( Chunk *chunk, TRIP_ARGS( int chunk_diff_ ), TRIP_ARGS( int center_previous_ ), TRIP_ARGS( int center_next_ ), int force_reload ) {

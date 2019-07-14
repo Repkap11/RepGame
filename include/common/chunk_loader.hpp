@@ -22,7 +22,7 @@ typedef struct {
     SkyBox skyBox;
 } LoadedChunks;
 
-void chunk_loader_init( LoadedChunks *loadedChunks );
+void chunk_loader_init( LoadedChunks *loadedChunks, float camera_x, float camera_y, float camera_z );
 void chunk_loader_render_chunks( LoadedChunks *loadedChunks, float camera_x, float camera_y, float camera_z, int limit_render );
 void chunk_loader_calculate_cull( LoadedChunks *loadedChunks, glm::mat4 &mvp );
 void chunk_loader_draw_chunks( LoadedChunks *loadedChunks, glm::mat4 &mvp );
