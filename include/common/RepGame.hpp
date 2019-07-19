@@ -15,6 +15,7 @@
 #endif
 
 #include "chunk_loader.hpp"
+#include "world.hpp"
 #include "constants.hpp"
 #include "ui_overlay.hpp"
 
@@ -54,7 +55,7 @@ typedef struct {
         glm::mat4 ortho_center;
     } screen;
     Texture blocksTexture;
-    LoadedChunks gameChunks;
+    World world;
     UIOverlay ui_overlay;
     struct {
         int selectionInBounds;

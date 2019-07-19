@@ -30,12 +30,12 @@ void change_block( int place, BlockID blockID ) {
         block_z = globalGameState.block_selection.create_z;
         if ( render_order_collides_with_player( block_definition_get_definition( blockID )->renderOrder ) ) {
             // If the block collides with the player, make sure its not being placed where it would collide
-            if ( collision_check_collides_with_block( &globalGameState.gameChunks, globalGameState.camera.x, globalGameState.camera.y, globalGameState.camera.z, TRIP_ARGS( block_ ) ) ) {
+            if ( collision_check_collides_with_block( &globalGameState.world, globalGameState.camera.x, globalGameState.camera.y, globalGameState.camera.z, TRIP_ARGS( block_ ) ) ) {
                 return;
             }
         }
         if ( block->needs_place_on_solid ) {
-            BlockID under_blockID = world_get_loaded_block( &globalGameState.gameChunks, block_x, block_y - 1, block_z );
+            BlockID under_blockID = world_get_loaded_block( &globalGameState.world, block_x, block_y - 1, block_z );
             Block *under_block = block_definition_get_definition( under_blockID );
             if ( !render_order_collides_with_player( under_block->renderOrder ) ) {
                 return;
@@ -48,12 +48,12 @@ void change_block( int place, BlockID blockID ) {
         block_z = globalGameState.block_selection.destroy_z;
     }
 
-    world_set_loaded_block( &globalGameState.gameChunks, TRIP_ARGS( block_ ), blockID );
+    world_set_loaded_block( &globalGameState.world, TRIP_ARGS( block_ ), blockID );
 }
 
 void repgame_process_mouse_events( ) {
     if ( globalGameState.block_selection.selectionInBounds && globalGameState.input.mouse.buttons.middle ) {
-        BlockID blockID = world_get_loaded_block( &globalGameState.gameChunks, TRIP_ARGS( globalGameState.block_selection.destroy_ ) );
+        BlockID blockID = world_get_loaded_block( &globalGameState.world, TRIP_ARGS( globalGameState.block_selection.destroy_ ) );
         pr_debug( "Selected block:%d", blockID );
         globalGameState.block_selection.holdingBlock = blockID;
     }
@@ -67,7 +67,7 @@ void repgame_process_mouse_events( ) {
     }
     if ( globalGameState.block_selection.selectionInBounds && globalGameState.input.mouse.currentPosition.wheel_counts != globalGameState.input.mouse.previousPosition.wheel_counts ) {
         int wheel_diff = globalGameState.input.mouse.currentPosition.wheel_counts > globalGameState.input.mouse.previousPosition.wheel_counts ? 1 : -1;
-        BlockID blockID = world_get_loaded_block( &globalGameState.gameChunks, TRIP_ARGS( globalGameState.block_selection.destroy_ ) );
+        BlockID blockID = world_get_loaded_block( &globalGameState.world, TRIP_ARGS( globalGameState.block_selection.destroy_ ) );
         int blockID_int = ( int )blockID;
         do {
             blockID_int += wheel_diff;
@@ -117,7 +117,7 @@ void repgame_process_movement( ) {
         movement_vector_y = -GRAVITY_STRENGTH;
     }
 
-    collision_check_move( &globalGameState.gameChunks, TRIP_ARGS( &movement_vector_ ), //
+    collision_check_move( &globalGameState.world, TRIP_ARGS( &movement_vector_ ), //
                           globalGameState.camera.x,                                    //
                           globalGameState.camera.y,                                    //
                           globalGameState.camera.z );
@@ -131,7 +131,7 @@ void repgame_idle( ) {
         // Don't bother being idle if the state if the game is exiting
         return;
     }
-    world_render( &globalGameState.gameChunks, globalGameState.camera.x, globalGameState.camera.y, globalGameState.camera.z, 1 );
+    world_render( &globalGameState.world, globalGameState.camera.x, globalGameState.camera.y, globalGameState.camera.z, 1 );
 }
 
 void repgame_tick( ) {
@@ -144,14 +144,14 @@ void repgame_tick( ) {
         repgame_process_mouse_events( );
         int whichFace = 0;
         globalGameState.block_selection.selectionInBounds = ray_traversal_find_block_from_to(
-            &globalGameState.gameChunks, globalGameState.camera.x, globalGameState.camera.y, globalGameState.camera.z, globalGameState.camera.x + globalGameState.camera.look.x * REACH_DISTANCE,
+            &globalGameState.world, globalGameState.camera.x, globalGameState.camera.y, globalGameState.camera.z, globalGameState.camera.x + globalGameState.camera.look.x * REACH_DISTANCE,
             globalGameState.camera.y + globalGameState.camera.look.y * REACH_DISTANCE, globalGameState.camera.z + globalGameState.camera.look.z * REACH_DISTANCE, TRIP_ARGS( &globalGameState.block_selection.destroy_ ), &whichFace, 0, 1 );
 
         globalGameState.block_selection.create_x = globalGameState.block_selection.destroy_x + ( whichFace == FACE_RIGHT ) - ( whichFace == FACE_LEFT );
         globalGameState.block_selection.create_y = globalGameState.block_selection.destroy_y + ( whichFace == FACE_TOP ) - ( whichFace == FACE_BOTTOM );
         globalGameState.block_selection.create_z = globalGameState.block_selection.destroy_z + ( whichFace == FACE_BACK ) - ( whichFace == FACE_FRONT );
 
-        chunk_loader_set_selected_block( &globalGameState.gameChunks, TRIP_ARGS( globalGameState.block_selection.destroy_ ), globalGameState.block_selection.selectionInBounds );
+        world_set_selected_block( &globalGameState.world, TRIP_ARGS( globalGameState.block_selection.destroy_ ), globalGameState.block_selection.selectionInBounds );
         globalGameState.camera.angle_H += ( globalGameState.input.mouse.currentPosition.x - globalGameState.input.mouse.previousPosition.x ) * 0.04f;
         globalGameState.camera.angle_V += ( globalGameState.input.mouse.currentPosition.y - globalGameState.input.mouse.previousPosition.y ) * 0.04f;
     }
@@ -225,7 +225,7 @@ void repgame_init( const char *world_name ) {
     initilizeGameState( world_name );
     texture_init( &globalGameState.blocksTexture, &texture_source_textures );
     block_definitions_initilize_definitions( &globalGameState.blocksTexture );
-    world_init( &globalGameState.gameChunks, globalGameState.camera.x, globalGameState.camera.y, globalGameState.camera.z );
+    world_init( &globalGameState.world, globalGameState.camera.x, globalGameState.camera.y, globalGameState.camera.z );
     ui_overlay_init( &globalGameState.ui_overlay );
 
     int iMultiSample = 0;
@@ -283,12 +283,12 @@ void repgame_draw( ) {
     glm::mat4 mvp = mvp_sky * globalGameState.camera.view_trans;
 #if defined( REPGAME_WASM )
 #else
-    world_render( &globalGameState.gameChunks, globalGameState.camera.x, globalGameState.camera.y, globalGameState.camera.z, false );
+    world_render( &globalGameState.world, globalGameState.camera.x, globalGameState.camera.y, globalGameState.camera.z, false );
 #endif
     showErrors( );
 
-    world_draw( &globalGameState.gameChunks, &globalGameState.blocksTexture, mvp, mvp_sky, globalGameState.input.debug_mode, !globalGameState.input.inventory_open );
-    ui_overlay_draw( &globalGameState.ui_overlay, &globalGameState.gameChunks.renderer, &globalGameState.blocksTexture, &globalGameState.input, globalGameState.screen.ortho_center );
+    world_draw( &globalGameState.world, &globalGameState.blocksTexture, mvp, mvp_sky, globalGameState.input.debug_mode, !globalGameState.input.inventory_open );
+    ui_overlay_draw( &globalGameState.ui_overlay, &globalGameState.world.renderer, &globalGameState.blocksTexture, &globalGameState.input, globalGameState.screen.ortho_center );
 }
 
 void repgame_cleanup( ) {
@@ -297,7 +297,7 @@ void repgame_cleanup( ) {
         return;
     }
     clean_up_done = 1;
-    world_cleanup( &globalGameState.gameChunks );
+    world_cleanup( &globalGameState.world );
     texture_destroy( &globalGameState.blocksTexture );
     block_definitions_free_definitions( );
 

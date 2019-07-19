@@ -6,8 +6,8 @@
 
 // https://bitbucket.org/volumesoffun/polyvox/src/9a71004b1e72d6cf92c41da8995e21b652e6b836/include/PolyVox/Raycast.inl?at=develop&fileviewer=file-view-default
 
-int contains_block( LoadedChunks *gameChunks, int block_x, int block_y, int block_z, int collide_with_unloaded, int is_pick ) {
-    BlockID blockID = world_get_loaded_block( gameChunks, TRIP_ARGS( block_ ) );
+int contains_block( World *world, int block_x, int block_y, int block_z, int collide_with_unloaded, int is_pick ) {
+    BlockID blockID = world_get_loaded_block( world, TRIP_ARGS( block_ ) );
     if ( blockID >= LAST_BLOCK_ID ) {
         return collide_with_unloaded;
     }
@@ -19,7 +19,7 @@ int contains_block( LoadedChunks *gameChunks, int block_x, int block_y, int bloc
     }
 }
 
-int ray_traversal_find_block_from_to( LoadedChunks *gameChunks, const float x1, const float y1, const float z1, //
+int ray_traversal_find_block_from_to( World *world, const float x1, const float y1, const float z1, //
                                       const float x2, const float y2, const float z2,                           //
                                       int *out_x, int *out_y, int *out_z, int *out_whichFace, int flag, int is_pick ) {
 
@@ -66,7 +66,7 @@ int ray_traversal_find_block_from_to( LoadedChunks *gameChunks, const float x1, 
         face = FACE_BACK;
     }
     for ( ;; ) {
-        if ( contains_block( gameChunks, i, j, k, flag, is_pick ) ) {
+        if ( contains_block( world, i, j, k, flag, is_pick ) ) {
             *out_x = i;
             *out_y = j;
             *out_z = k;

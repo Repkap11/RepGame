@@ -1,3 +1,4 @@
+#include "common/RepGame.hpp"
 #include "common/chunk_loader.hpp"
 #include "common/utils/map_storage.hpp"
 #include "common/utils/terrain_loading_thread.hpp"
@@ -279,7 +280,7 @@ void chunk_loader_calculate_cull( LoadedChunks *loadedChunks, glm::mat4 &mvp ) {
     }
 }
 
-void chunk_loader_draw_chunks( LoadedChunks *loadedChunks, glm::mat4 &mvp ) {
+void chunk_loader_draw_chunks( LoadedChunks *loadedChunks, Renderer *renderer, glm::mat4 &mvp ) {
 
     // pr_debug( "Drawing %d chunks", loadedChunks->numLoadedChunks );
     for ( int renderOrder = LAST_RENDER_ORDER - 1; renderOrder > 0; renderOrder-- ) {
@@ -287,15 +288,15 @@ void chunk_loader_draw_chunks( LoadedChunks *loadedChunks, glm::mat4 &mvp ) {
         for ( int i = 0; i < MAX_LOADED_CHUNKS; i++ ) {
             Chunk *chunk = &loadedChunks->chunkArray[ i ];
             if ( !chunk->cached_cull ) {
-                chunk_render( &loadedChunks->chunkArray[ i ], &loadedChunks->renderer, &loadedChunks->shader, ( RenderOrder )renderOrder );
+                chunk_render( &loadedChunks->chunkArray[ i ], renderer, &loadedChunks->shader, ( RenderOrder )renderOrder );
             }
         }
     }
     shader_set_uniform1f( &loadedChunks->shader, "u_shouldDiscardAlpha", 1 );
 }
 
-void chunk_loader_draw_mouse_selection( LoadedChunks *loadedChunks ) {
-    mouse_selection_draw( &loadedChunks->mouseSelection, &loadedChunks->renderer, &loadedChunks->shader );
+void chunk_loader_draw_mouse_selection( LoadedChunks *loadedChunks, Renderer *renderer ) {
+    mouse_selection_draw( &loadedChunks->mouseSelection, renderer, &loadedChunks->shader );
 }
 
 void chunk_loader_cleanup( LoadedChunks *loadedChunks ) {

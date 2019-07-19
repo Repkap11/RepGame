@@ -2,16 +2,23 @@
 #define HEADER_WORLD_H
 
 #include "block.hpp"
-#include "RepGame.hpp"
+#include "chunk_loader.hpp"
 
-BlockID world_get_loaded_block( LoadedChunks *loadedChunks, TRIP_ARGS( int block_ ) );
-void world_set_loaded_block( LoadedChunks *loadedChunks, int block_x, int block_y, int block_z, BlockID blockID );
+typedef struct {
+    LoadedChunks loadedChunks;
+    Renderer renderer;
+    SkyBox skyBox;
+} World;
 
-BlockID world_get_block_from_chunk( Chunk *chunk, TRIP_ARGS( int block_ ) );
-Chunk *world_get_loaded_chunk( LoadedChunks *loadedChunks, TRIP_ARGS( int block_ ) );
-void world_init( LoadedChunks *loadedChunks , TRIP_ARGS( float camera_ ));
-void world_render( LoadedChunks *loadedChunks, TRIP_ARGS( float camera_ ), int limit_render );
-void world_draw( LoadedChunks *loadedChunks, Texture *blocksTexture, glm::mat4 &mvp, glm::mat4 &mvp_sky, int debug, int draw_mouse_selection );
-void world_cleanup( LoadedChunks *loadedChunks );
+BlockID world_get_loaded_block( World *world, int block_x, int block_y, int block_z );
+void world_set_loaded_block( World *world, int block_x, int block_y, int block_z, BlockID blockID );
+
+BlockID world_get_block_from_chunk( Chunk *chunk, int block_, int block_y, int block_z );
+Chunk *world_get_loaded_chunk( World *world, int block_x, int block_y, int block_z );
+void world_init( World *world, float camera_x, float camera_y, float camera_z );
+void world_render( World *world, float camera_x, float camera_y, float camera_z, int limit_render );
+void world_draw( World *world, Texture *blocksTexture, glm::mat4 &mvp, glm::mat4 &mvp_sky, int debug, int draw_mouse_selection );
+void world_set_selected_block( World *world, int selected_x, int selected_y, int selected_z, int shouldDraw );
+void world_cleanup( World *world );
 
 #endif
