@@ -3,6 +3,7 @@
 #include <unistd.h>
 
 #include "common/RepGame.hpp"
+#include "common/net/multiplayer.hpp"
 
 #define SKY_BOX_DISTANCE DRAW_DISTANCE * 0.8
 
@@ -42,6 +43,8 @@ char *repgame_getShaderString( const char *filename ) {
 
 int main( int argc, char **argv ) {
     const char *world_path;
+    bool connect_multi = true;
+
     if ( argc == 1 ) {
         world_path = "World1";
     } else if ( argc == 2 ) {
@@ -74,6 +77,11 @@ int main( int argc, char **argv ) {
     }
 
     repgame_init( world_path );
+
+    // Start broadcasting chunk updates
+    if ( connect_multi ) {
+        multiplayer_init( );
+    }
 
     glutSpecialFunc( arrowKeyDownInput );
     glutSpecialUpFunc( arrowKeyUpInput );
@@ -137,6 +145,9 @@ int main( int argc, char **argv ) {
             }
         }
     }
+
+    // Stop broadcasting chunk updates
+    multiplayer_cleanup( );
     repgame_cleanup( );
     glutLeaveMainLoop( );
     glutDestroyWindow( glut_window );
