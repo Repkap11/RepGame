@@ -7,6 +7,7 @@
 void world_init( World *world, TRIP_ARGS( float camera_ ) ) {
     chunk_loader_init( &world->loadedChunks, TRIP_ARGS( camera_ ) );
     sky_box_init( &world->skyBox );
+    mobs_init( &world->mobs );
 }
 void world_render( World *world, TRIP_ARGS( float camera_ ), int limit_render ) {
     chunk_loader_render_chunks( &world->loadedChunks, TRIP_ARGS( camera_ ), limit_render );
@@ -33,10 +34,12 @@ void world_draw( World *world, Texture *blocksTexture, glm::mat4 &mvp, glm::mat4
         chunk_loader_draw_mouse_selection( &world->loadedChunks, &world->renderer );
     }
     chunk_loader_draw_chunks( &world->loadedChunks, &world->renderer, mvp );
+    mobs_draw( &world->mobs, &world->renderer, mvp );
 }
 void world_cleanup( World *world ) {
     chunk_loader_cleanup( &world->loadedChunks );
     sky_box_destroy( &world->skyBox );
+    mobs_cleanup( &world->mobs );
 }
 
 void fixup_chunk( World *world, Chunk *chunk, TRIP_ARGS( int offset_ ), TRIP_ARGS( int pos_ ), BlockID blockID ) {

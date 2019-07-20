@@ -3,11 +3,13 @@
 
 #include "block.hpp"
 #include "chunk_loader.hpp"
+#include "mobs.hpp"
 
 typedef struct {
     LoadedChunks loadedChunks;
     Renderer renderer;
     SkyBox skyBox;
+    Mobs mobs;
 } World;
 
 BlockID world_get_loaded_block( World *world, int block_x, int block_y, int block_z );
