@@ -10,12 +10,13 @@
 #include "common/RepGame.hpp"
 #include "common/block_definitions.hpp"
 #include "common/chunk.hpp"
+#include "common/net/multiplayer.hpp"
 
 int sockfd;
 int portno;
 int n;
+long sequence = 0;
 
-char block_send_buffer[ 256 ];
 char block_recv_buffer[ 256 ];
 
 bool active = false;
@@ -46,11 +47,20 @@ void multiplayer_init( const char *hostname, int port ) {
 
     serv_addr.sin_port = htons( portno );
     if ( connect( sockfd, ( struct sockaddr * )&serv_addr, sizeof( serv_addr ) ) < 0 ) {
-
         return;
     } else {
         // We connected!
         active = true;
+
+        // Send updates to the server
+        NetPacket update;
+        update.type = CLIENT_INIT;
+        update.sequence = sequence++;
+
+        int status = write( sockfd, ( void * )&update, sizeof( NetPacket ) );
+        if ( status < 0 ) {
+            pr_debug( "Unable to send message to socket" );
+        }
     }
 }
 
@@ -64,14 +74,11 @@ void server_set_block( int place, int block_x, int block_y, int block_z, BlockID
         }
 
         // Send updates to the server
-        bzero( block_send_buffer, 256 );
-        sprintf( block_send_buffer, "%i,%i,%i:%i", block_x, block_y, block_z, blockID );
-        int status = write( sockfd, block_send_buffer, strlen( block_send_buffer ) );
+        NetPacket update = {BLOCK_UPDATE, sequence++, block_x, block_y, block_z, blockID};
+        int status = write( sockfd, ( void * )&update, sizeof( NetPacket ) );
         if ( status < 0 ) {
             pr_debug( "Unable to send message to socket" );
         }
-
-        bzero( block_send_buffer, 256 );
     }
 }
 

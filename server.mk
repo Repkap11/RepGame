@@ -9,17 +9,20 @@ OBJECTS_SERVER = $(patsubst src/server/%.cpp,out/server/%.so, $(wildcard src/ser
 
 
 $(REPSERVER): $(OBJECTS_SERVER) $(MAKEFILES) out
-	$(CC_LINUX) -flto $(CFLAGS_LINUX) $(OBJECTS_SERVER) -o $@
+	$(CC_LINUX) -flto $(CFLAGS_LINUX) $(OBJECTS_SERVER)  -o $@
 
 server: $(REPSERVER)
 
 out/server/%.so: src/server/%.cpp $(MAKEFILES) out
-	$(CC_LINUX) $(CFLAGS_LINUX) -c $< -o $@
+	$(CC_LINUX) $(INCLUDES_COMMON) $(CFLAGS_LINUX) -c $< -o $@
 
 .PRECIOUS: $(REPSERVER)
+
+server-run: server
+	./$(REPSERVER)
 
 clean-server:
 	rm -f $(OBJECTS_SERVER)
 	rm -rf out/server
 
-.PHONY: server clean-server
+.PHONY: server clean-server server-run
