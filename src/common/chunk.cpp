@@ -3,7 +3,6 @@
 #include "common/map_gen.hpp"
 #include "common/utils/map_storage.hpp"
 #include "common/structure_gen.hpp"
-#include "common/net/multiplayer.hpp"
 
 static unsigned int ib_data_flowers[] = {
     14, 0, 13, // Right, Back, Right
@@ -170,9 +169,6 @@ void chunk_set_block( Chunk *chunk, int x, int y, int z, BlockID blockID ) {
 
     // Update the block in the client...
     chunk->blocks[ chunk_get_index_from_coords( x, y, z ) ] = blockID;
-
-    // Tell the server that a block in a chunk has changed
-    broadcast_chunk_update( chunk->chunk_x, chunk->chunk_y, chunk->chunk_z, x, y, z, blockID );
 }
 
 void chunk_persist( Chunk *chunk ) {

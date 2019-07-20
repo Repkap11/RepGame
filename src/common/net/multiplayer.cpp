@@ -1,59 +1,84 @@
 #include <stdio.h>
+#include <unistd.h>
+#include <stdlib.h>
+#include <netdb.h>
+#include <string.h>
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
-#include <arpa/inet.h>
-#include <netdb.h>
-#include <string>
-#include <assert.h>
-#include <string.h>
-#include <ctime>
 
 #include "common/RepGame.hpp"
 #include "common/block_definitions.hpp"
 #include "common/chunk.hpp"
 
-int s = -1;
-char buf[ 10000 ];
+int sockfd;
+int portno;
+int n;
 
-void multiplayer_init( ) {
-    pr_debug( "init_multicast - starting broadcast connections" );
+char block_send_buffer[ 256 ];
+char block_recv_buffer[ 256 ];
 
-    sockaddr_in si_me, si_other;
+bool active = false;
 
-    s = socket( AF_INET, SOCK_DGRAM, IPPROTO_UDP );
-    if ( s == -1 ) {
+void multiplayer_init( const char *hostname, int port ) {
+    pr_debug( "using server %s:%i", hostname, port );
+
+    struct sockaddr_in serv_addr;
+    struct hostent *server;
+
+    portno = port;
+    sockfd = socket( AF_INET, SOCK_STREAM, 0 );
+    if ( sockfd < 0 ) {
+        fprintf( stderr, "Unable to allocate socket \n" );
         return;
     }
 
-    int port = 4448;
-    int broadcast = 1;
+    server = gethostbyname( hostname );
+    if ( server == NULL ) {
+        fprintf( stderr, "Unable to get hostname from string \n" );
+        return;
+    }
 
-    setsockopt( s, SOL_SOCKET, SO_BROADCAST, &broadcast, sizeof broadcast );
+    bzero( ( char * )&serv_addr, sizeof( serv_addr ) );
+    serv_addr.sin_family = AF_INET;
 
-    memset( &si_me, 0, sizeof( si_me ) );
-    si_me.sin_family = AF_INET;
-    si_me.sin_port = htons( port );
-    si_me.sin_addr.s_addr = INADDR_ANY;
+    bcopy( ( char * )server->h_addr, ( char * )&serv_addr.sin_addr.s_addr, server->h_length );
 
-    // Bind to the wildcard ip on whatever port so we get everything
-    assert(::bind( s, ( sockaddr * )&si_me, sizeof( sockaddr ) ) != -1 );
+    serv_addr.sin_port = htons( portno );
+    if ( connect( sockfd, ( struct sockaddr * )&serv_addr, sizeof( serv_addr ) ) < 0 ) {
 
-    printf( "Send message to broadcast\n" );
-    strcpy( buf, "client_init" );
-    unsigned slen = sizeof( sockaddr );
-    send( s, buf, sizeof( buf ) - 1, 0 );
+        return;
+    } else {
+        // We connected!
+        active = true;
+    }
 }
 
-void broadcast_chunk_update( int chunk_x, int chunk_y, int chunk_z, int block_x, int block_y, int block_z, BlockID blockID ) {
-    if ( s != -1 ) {
-        pr_debug( "mrepka: Chunk: %i, %i, %i, Block: %i, %i, %i is set to blockid: %i", chunk_x, chunk_y, chunk_z, block_x, block_y, block_z, blockID );
-        sprintf( buf, "%i,%i,%i,%i,%i,%i,%i", chunk_x, chunk_y, chunk_z, block_x, block_y, block_z, blockID );
-        send( s, buf, sizeof( buf ) - 1, 0 );
+void server_set_block( int place, int block_x, int block_y, int block_z, BlockID blockID ) {
+    if ( active ) {
+        // Log what the player is doing
+        if ( place ) {
+            pr_debug( "Player placed %i at %i, %i, %i", blockID, block_x, block_y, block_z );
+        } else {
+            pr_debug( "Player broke the block at %i, %i, %i", block_x, block_y, block_z );
+        }
+
+        // Send updates to the server
+        bzero( block_send_buffer, 256 );
+        sprintf( block_send_buffer, "%i,%i,%i:%i", block_x, block_y, block_z, blockID );
+        int status = write( sockfd, block_send_buffer, strlen( block_send_buffer ) );
+        if ( status < 0 ) {
+            pr_debug( "Unable to send message to socket" );
+        }
+
+        bzero( block_send_buffer, 256 );
     }
 }
 
 void multiplayer_cleanup( ) {
-    pr_debug( "mrepka: Cleaning up multiplayer udp multicast socket" );
-    s = -1;
+    pr_debug( "closing multiplayer" );
+    if ( active ) {
+        close( sockfd );
+        active = false;
+    }
 }

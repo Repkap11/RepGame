@@ -17,6 +17,7 @@
 #include "common/abstract/renderer.hpp"
 #include "common/utils/ray_traversal.hpp"
 #include "common/utils/collision.hpp"
+#include "common/net/multiplayer.hpp"
 
 RepGameState globalGameState;
 
@@ -48,6 +49,7 @@ void change_block( int place, BlockID blockID ) {
         block_z = globalGameState.block_selection.destroy_z;
     }
 
+    server_set_block(place, block_x, block_y, block_z, blockID );
     world_set_loaded_block( &globalGameState.gameChunks, TRIP_ARGS( block_ ), blockID );
 }
 

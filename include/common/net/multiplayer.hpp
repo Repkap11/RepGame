@@ -3,7 +3,9 @@
 #include "common/block_definitions.hpp"
 #include "common/chunk.hpp"
 
-void multiplayer_init( );
+void multiplayer_init( const char *hostname, int port );
 void multiplayer_cleanup( );
 
-void broadcast_chunk_update( int chunk_x, int chunk_y, int chunk_z, int block_x, int block_y, int block_z, BlockID blockID );
+void dostuff( int );
+
+void server_set_block( int place, int block_x, int block_y, int block_z, BlockID blockID );

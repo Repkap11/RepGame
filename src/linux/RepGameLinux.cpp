@@ -80,7 +80,7 @@ int main( int argc, char **argv ) {
 
     // Start broadcasting chunk updates
     if ( connect_multi ) {
-        multiplayer_init( );
+        multiplayer_init( "localhost", 25566 );
     }
 
     glutSpecialFunc( arrowKeyDownInput );
