@@ -14,24 +14,25 @@ void world_init( World *world, TRIP_ARGS( float camera_ ) ) {
 
     // These are from BlockCoords
     vertex_buffer_layout_init( &world->vbl_coords );
-    vertex_buffer_layout_push_float( &world->vbl_coords, 3 );     // block 3d world coords
-    vertex_buffer_layout_push_float( &world->vbl_coords, 3 );     // Multiples (mesh)
-    vertex_buffer_layout_push_float( &world->vbl_coords, 3 );     // which texture (block type 1)
-    vertex_buffer_layout_push_float( &world->vbl_coords, 3 );     // which texture (block type 2)
-    vertex_buffer_layout_push_float( &world->vbl_coords, 3 );     // packed lighting
-    vertex_buffer_layout_push_float( &world->vbl_coords, 3 );     // packed lighting
-    //vertex_buffer_layout_push_float( &world->vbl_coords, 4 * 4 ); // rotation
+    vertex_buffer_layout_push_float( &world->vbl_coords, 3 ); // block 3d world coords
+    vertex_buffer_layout_push_float( &world->vbl_coords, 3 ); // Multiples (mesh)
+    vertex_buffer_layout_push_float( &world->vbl_coords, 3 ); // which texture (block type 1)
+    vertex_buffer_layout_push_float( &world->vbl_coords, 3 ); // which texture (block type 2)
+    vertex_buffer_layout_push_float( &world->vbl_coords, 3 ); // packed lighting
+    vertex_buffer_layout_push_float( &world->vbl_coords, 3 ); // packed lighting
+    // vertex_buffer_layout_push_float( &world->vbl_coords, 4 * 4 ); // rotation
 
     chunk_loader_init( &world->loadedChunks, TRIP_ARGS( camera_ ), &world->vbl_block, &world->vbl_coords );
     sky_box_init( &world->skyBox );
     mobs_init( &world->mobs, &world->vbl_block, &world->vbl_coords );
+    mouse_selection_init( &world->mouseSelection, &world->vbl_block, &world->vbl_coords );
 }
 void world_render( World *world, TRIP_ARGS( float camera_ ), int limit_render ) {
     chunk_loader_render_chunks( &world->loadedChunks, TRIP_ARGS( camera_ ), limit_render );
 }
 
 void world_set_selected_block( World *world, int selected_x, int selected_y, int selected_z, int shouldDraw ) {
-    chunk_loader_set_selected_block( &world->loadedChunks, TRIP_ARGS( selected_ ), shouldDraw );
+    mouse_selection_set_block( &world->mouseSelection, TRIP_ARGS( selected_ ), shouldDraw );
 }
 
 void world_draw( World *world, Texture *blocksTexture, glm::mat4 &mvp, glm::mat4 &mvp_sky, int debug, int draw_mouse_selection ) {
@@ -48,7 +49,7 @@ void world_draw( World *world, Texture *blocksTexture, glm::mat4 &mvp, glm::mat4
     shader_set_uniform3f( &world->loadedChunks.shader, "u_DebugScaleOffset", debug_block_scale, debug_block_scale, debug_block_scale );
     chunk_loader_calculate_cull( &world->loadedChunks, mvp );
     if ( draw_mouse_selection ) {
-        chunk_loader_draw_mouse_selection( &world->loadedChunks, &world->renderer );
+        mouse_selection_draw( &world->mouseSelection, &world->renderer, &world->loadedChunks.shader );
     }
     chunk_loader_draw_chunks( &world->loadedChunks, &world->renderer, mvp );
     mobs_draw( &world->mobs, &world->renderer, &world->loadedChunks.shader );

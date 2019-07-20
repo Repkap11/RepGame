@@ -9,7 +9,6 @@ typedef struct {
     int chunk_center_x, chunk_center_y, chunk_center_z;
     Chunk *chunkArray;
     Shader shader;
-    MouseSelection mouseSelection;
     struct {
         VertexBuffer vb_block;
     } solid;
@@ -24,8 +23,5 @@ void chunk_loader_calculate_cull( LoadedChunks *loadedChunks, glm::mat4 &mvp );
 void chunk_loader_draw_chunks( LoadedChunks *loadedChunks, Renderer *renderer, glm::mat4 &mvp );
 Chunk *chunk_loader_get_chunk( LoadedChunks *loadedChunks, int pointed_x, int pointed_y, int pointed_z );
 void chunk_loader_cleanup( LoadedChunks *loadedChunks );
-
-void chunk_loader_set_selected_block( LoadedChunks *loadedChunks, int selected_x, int selected_y, int selected_z, int shouldDraw );
-void chunk_loader_draw_mouse_selection( LoadedChunks *loadedChunks, Renderer *renderer );
 
 #endif

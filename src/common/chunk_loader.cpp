@@ -57,7 +57,6 @@ void chunk_loader_init( LoadedChunks *loadedChunks, TRIP_ARGS( float camera_ ), 
     {
         VertexBuffer *vb_block_solid = &loadedChunks->solid.vb_block;
         VertexBuffer *vb_block_water = &loadedChunks->water.vb_block;
-        mouse_selection_init( &loadedChunks->mouseSelection, vbl_block, vbl_coords );
         for ( int i = 0; i < MAX_LOADED_CHUNKS; i++ ) {
             chunk_init( &loadedChunks->chunkArray[ i ], vb_block_solid, vb_block_water, vbl_block, vbl_coords );
         }
@@ -106,10 +105,6 @@ void chunk_loader_init( LoadedChunks *loadedChunks, TRIP_ARGS( float camera_ ), 
             }
         }
     }
-}
-
-void chunk_loader_set_selected_block( LoadedChunks *loadedChunks, TRIP_ARGS( int selected_ ), int shouldDraw ) {
-    mouse_selection_set_block( &loadedChunks->mouseSelection, TRIP_ARGS( selected_ ), shouldDraw );
 }
 
 Chunk *chunk_loader_get_chunk( LoadedChunks *loadedChunks, TRIP_ARGS( int chunk_ ) ) {
@@ -235,10 +230,6 @@ void chunk_loader_draw_chunks( LoadedChunks *loadedChunks, Renderer *renderer, g
         }
     }
     shader_set_uniform1f( &loadedChunks->shader, "u_shouldDiscardAlpha", 1 );
-}
-
-void chunk_loader_draw_mouse_selection( LoadedChunks *loadedChunks, Renderer *renderer ) {
-    mouse_selection_draw( &loadedChunks->mouseSelection, renderer, &loadedChunks->shader );
 }
 
 void chunk_loader_cleanup( LoadedChunks *loadedChunks ) {
