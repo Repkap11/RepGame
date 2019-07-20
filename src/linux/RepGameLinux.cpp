@@ -86,7 +86,7 @@ int main( int argc, char **argv ) {
     glutMotionFunc( mouseMove );
 
     struct timespec tstart = {0, 0}, tend = {0, 0}, tblank = {0, 0};
-    pr_debug( "Size of Int:%lu", sizeof( int ) );
+    // pr_debug( "Size of Int:%lu", sizeof( int ) );
     int is_locking_pointer = 0;
     while ( !repgame_shouldExit( ) ) {
         clock_gettime( CLOCK_MONOTONIC, &tstart );

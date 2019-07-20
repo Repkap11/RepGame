@@ -136,7 +136,9 @@ unsigned int shaders_compile( const ShaderSourceData *vertex_path, const ShaderS
             glDeleteProgram( g_program );
             g_program = 0;
         } else {
-            pr_debug( "Program good after:%d", try_counts );
+            if ( try_counts != 1 ) {
+                pr_debug( "Program good after:%d", try_counts );
+            }
             return g_program;
         }
     }

@@ -135,7 +135,7 @@ unsigned int loadTexture( const TextureSourceData *texture_source ) {
     glTexParameterf( GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MAG_FILTER, GL_NEAREST );
     float max_ani;
     glGetFloatv( GL_MAX_TEXTURE_MAX_ANISOTROPY_EXT, &max_ani );
-    pr_debug( "Max ani:%f", max_ani );
+    // pr_debug( "Max ani:%f", max_ani );
     if ( needs_free ) {
         free( data );
     }

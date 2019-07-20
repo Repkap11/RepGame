@@ -118,8 +118,8 @@ void repgame_process_movement( ) {
     }
 
     collision_check_move( &globalGameState.world, TRIP_ARGS( &movement_vector_ ), //
-                          globalGameState.camera.x,                                    //
-                          globalGameState.camera.y,                                    //
+                          globalGameState.camera.x,                               //
+                          globalGameState.camera.y,                               //
                           globalGameState.camera.z );
 
     globalGameState.camera.x += movement_vector_x;
@@ -232,7 +232,7 @@ void repgame_init( const char *world_name ) {
     int iNumSamples = 0;
     glGetIntegerv( GL_SAMPLE_BUFFERS, &iMultiSample );
     glGetIntegerv( GL_SAMPLES, &iNumSamples );
-    pr_debug( "GL_SAMPLE_BUFFERS = %d, GL_SAMPLES = %d", iMultiSample, iNumSamples );
+    // pr_debug( "GL_SAMPLE_BUFFERS = %d, GL_SAMPLES = %d", iMultiSample, iNumSamples );
 }
 
 void repgame_set_textures( unsigned int which_texture, unsigned char *textures, int textures_len ) {
@@ -247,7 +247,7 @@ int repgame_should_lock_pointer( ) {
     return !globalGameState.input.inventory_open;
 }
 void repgame_changeSize( int w, int h ) {
-    pr_debug( "Screen Size Change:%dx%d", w, h );
+    // pr_debug( "Screen Size Change:%dx%d", w, h );
     if ( w == 0 || h == 0 ) {
         return;
     }
@@ -313,7 +313,7 @@ void repgame_cleanup( ) {
 #if defined( REPGAME_WASM )
     EM_ASM( "FS.syncfs(false, err => {console.log(\"Sync done, its OK to close RepGame:\", err)});" );
 #endif
-    pr_debug( "RepGame cleanup done" );
+    //pr_debug( "RepGame cleanup done" );
 }
 
 InputState *repgame_getInputState( ) {
