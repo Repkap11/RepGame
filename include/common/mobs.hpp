@@ -12,17 +12,19 @@
 typedef struct {
     IndexBuffer ib;
     VertexArray va;
+
     BlockCoords mob_placement;
-    VertexBuffer vb_places;
-    int shouldDraw;
+    VertexBuffer vb_mob_placement;
+
+    CubeFace mob_shape;
     VertexBuffer vb_mob_shape;
-    VertexBufferLayout vbl_mob_shape;
-    VertexBufferLayout vbl_mob_placement;
+    int shouldDraw;
+
 } Mobs;
 
-void mobs_init( Mobs *mobs );
+void mobs_init( Mobs *mobs, VertexBufferLayout *vbl_mob_shape, VertexBufferLayout *vbl_mob_placement );
 void mobs_update_position( );
-void mobs_draw( Mobs *mobs, Renderer *renderer, glm::mat4 &mvp );
+void mobs_draw( Mobs *mobs, Renderer *renderer, Shader *shader );
 void mobs_cleanup( Mobs *mobs );
 
 #endif

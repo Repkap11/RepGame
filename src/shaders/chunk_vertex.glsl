@@ -17,6 +17,7 @@ layout( location = 6 ) in vec3 blockTexture1;
 layout( location = 7 ) in vec3 blockTexture2;
 layout( location = 8 ) in vec3 packed_lighting_1;
 layout( location = 9 ) in vec3 packed_lighting_2;
+// layout( location = 10 ) in mat4 rotation;
 
 out vec2 v_TexCoordBlock;
 flat out float v_blockID;

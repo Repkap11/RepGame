@@ -9,7 +9,6 @@
 
 #define MAX_LOADED_CHUNKS ( ( 2 * CHUNK_RADIUS_X + 1 ) * ( 2 * CHUNK_RADIUS_Y + 1 ) * ( 2 * CHUNK_RADIUS_Z + 1 ) )
 
-
 MK_SHADER( chunk_vertex );
 MK_SHADER( chunk_fragment );
 
@@ -35,12 +34,13 @@ int reload_if_out_of_bounds( Chunk *chunk, TRIP_ARGS( int chunk_ ) ) {
     return changed;
 }
 
-void chunk_loader_init( LoadedChunks *loadedChunks, TRIP_ARGS( float camera_ ) ) {
+void chunk_loader_init( LoadedChunks *loadedChunks, TRIP_ARGS( float camera_ ), VertexBufferLayout *vbl_block, VertexBufferLayout *vbl_coords ) {
     int status = terrain_loading_thread_start( );
     if ( status ) {
         pr_debug( "Terrain loading thread failed to start." );
     }
     loadedChunks->chunkArray = ( Chunk * )calloc( MAX_LOADED_CHUNKS, sizeof( Chunk ) );
+    showErrors( );
 
     shader_init( &loadedChunks->shader, &chunk_vertex, &chunk_fragment );
 
@@ -54,32 +54,15 @@ void chunk_loader_init( LoadedChunks *loadedChunks, TRIP_ARGS( float camera_ ) )
         vertex_buffer_set_data( &loadedChunks->water.vb_block, vd_data_water, sizeof( CubeFace ) * VB_DATA_SIZE_WATER );
     }
 
-    // These are from CubeFace
-    vertex_buffer_layout_init( &loadedChunks->vbl_block );
-    vertex_buffer_layout_push_float( &loadedChunks->vbl_block, 3 ); // Coords
-    vertex_buffer_layout_push_float( &loadedChunks->vbl_block, 2 ); // Texture coords
-    vertex_buffer_layout_push_float( &loadedChunks->vbl_block, 1 ); // Face type (top, sides, bottom)
-    vertex_buffer_layout_push_float( &loadedChunks->vbl_block, 1 ); // Corner_shift
-
-    // These are from BlockCoords
-    vertex_buffer_layout_init( &loadedChunks->vbl_coords );
-    vertex_buffer_layout_push_float( &loadedChunks->vbl_coords, 3 ); // block 3d world coords
-    vertex_buffer_layout_push_float( &loadedChunks->vbl_coords, 3 ); // Multiples (mesh)
-    vertex_buffer_layout_push_float( &loadedChunks->vbl_coords, 3 ); // which texture (block type 1)
-    vertex_buffer_layout_push_float( &loadedChunks->vbl_coords, 3 ); // which texture (block type 2)
-    vertex_buffer_layout_push_float( &loadedChunks->vbl_coords, 3 ); // packed lighting
-    vertex_buffer_layout_push_float( &loadedChunks->vbl_coords, 3 ); // packed lighting
-
     {
         VertexBuffer *vb_block_solid = &loadedChunks->solid.vb_block;
         VertexBuffer *vb_block_water = &loadedChunks->water.vb_block;
-        VertexBufferLayout *vbl_block = &loadedChunks->vbl_block;
-        VertexBufferLayout *vbl_coords = &loadedChunks->vbl_coords;
         mouse_selection_init( &loadedChunks->mouseSelection, vbl_block, vbl_coords );
         for ( int i = 0; i < MAX_LOADED_CHUNKS; i++ ) {
             chunk_init( &loadedChunks->chunkArray[ i ], vb_block_solid, vb_block_water, vbl_block, vbl_coords );
         }
     }
+    showErrors( );
 
     int camera_chunk_x = floor( camera_x / ( float )CHUNK_SIZE );
     int camera_chunk_y = floor( camera_y / ( float )CHUNK_SIZE );

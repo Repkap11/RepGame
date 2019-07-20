@@ -49,8 +49,12 @@
 
 #define DISABLE_GROUPING_BLOCKS 0
 #define REACH_DISTANCE 7
+
+#if NO_CLIP
+#define GRAVITY_STRENGTH 0.0f
+#else
 #define GRAVITY_STRENGTH 0.1f
-//#define GRAVITY_STRENGTH 0.0f
+#endif
 
 #define CAMERA_SIZE 0.01f // Defines how much crop is in front (low for minecraft)
 #define PERSON_HEIGHT 1.62f

@@ -16,11 +16,9 @@ typedef struct {
     struct {
         VertexBuffer vb_block;
     } water;
-    VertexBufferLayout vbl_block;
-    VertexBufferLayout vbl_coords;
 } LoadedChunks;
 
-void chunk_loader_init( LoadedChunks *loadedChunks, float camera_x, float camera_y, float camera_z );
+void chunk_loader_init( LoadedChunks *loadedChunks, float camera_x, float camera_y, float camera_z, VertexBufferLayout *vbl_block, VertexBufferLayout *vbl_coords );
 void chunk_loader_render_chunks( LoadedChunks *loadedChunks, float camera_x, float camera_y, float camera_z, int limit_render );
 void chunk_loader_calculate_cull( LoadedChunks *loadedChunks, glm::mat4 &mvp );
 void chunk_loader_draw_chunks( LoadedChunks *loadedChunks, Renderer *renderer, glm::mat4 &mvp );

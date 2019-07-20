@@ -5,9 +5,26 @@
 #include <math.h>
 
 void world_init( World *world, TRIP_ARGS( float camera_ ) ) {
-    chunk_loader_init( &world->loadedChunks, TRIP_ARGS( camera_ ) );
+    // These are from CubeFace
+    vertex_buffer_layout_init( &world->vbl_block );
+    vertex_buffer_layout_push_float( &world->vbl_block, 3 ); // Coords
+    vertex_buffer_layout_push_float( &world->vbl_block, 2 ); // Texture coords
+    vertex_buffer_layout_push_float( &world->vbl_block, 1 ); // Face type (top, sides, bottom)
+    vertex_buffer_layout_push_float( &world->vbl_block, 1 ); // Corner_shift
+
+    // These are from BlockCoords
+    vertex_buffer_layout_init( &world->vbl_coords );
+    vertex_buffer_layout_push_float( &world->vbl_coords, 3 );     // block 3d world coords
+    vertex_buffer_layout_push_float( &world->vbl_coords, 3 );     // Multiples (mesh)
+    vertex_buffer_layout_push_float( &world->vbl_coords, 3 );     // which texture (block type 1)
+    vertex_buffer_layout_push_float( &world->vbl_coords, 3 );     // which texture (block type 2)
+    vertex_buffer_layout_push_float( &world->vbl_coords, 3 );     // packed lighting
+    vertex_buffer_layout_push_float( &world->vbl_coords, 3 );     // packed lighting
+    //vertex_buffer_layout_push_float( &world->vbl_coords, 4 * 4 ); // rotation
+
+    chunk_loader_init( &world->loadedChunks, TRIP_ARGS( camera_ ), &world->vbl_block, &world->vbl_coords );
     sky_box_init( &world->skyBox );
-    mobs_init( &world->mobs );
+    mobs_init( &world->mobs, &world->vbl_block, &world->vbl_coords );
 }
 void world_render( World *world, TRIP_ARGS( float camera_ ), int limit_render ) {
     chunk_loader_render_chunks( &world->loadedChunks, TRIP_ARGS( camera_ ), limit_render );
@@ -34,7 +51,7 @@ void world_draw( World *world, Texture *blocksTexture, glm::mat4 &mvp, glm::mat4
         chunk_loader_draw_mouse_selection( &world->loadedChunks, &world->renderer );
     }
     chunk_loader_draw_chunks( &world->loadedChunks, &world->renderer, mvp );
-    mobs_draw( &world->mobs, &world->renderer, mvp );
+    mobs_draw( &world->mobs, &world->renderer, &world->loadedChunks.shader );
 }
 void world_cleanup( World *world ) {
     chunk_loader_cleanup( &world->loadedChunks );

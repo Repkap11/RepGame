@@ -22,6 +22,8 @@ typedef struct {
     float face[ NUM_FACES_IN_CUBE ];
 
     float packed_lighting[ NUM_FACES_IN_CUBE ];
+
+    //glm::mat4 rotation;
 } BlockCoords;
 
 typedef struct {

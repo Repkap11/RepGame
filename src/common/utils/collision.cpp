@@ -41,7 +41,7 @@ void check_collides_with_player( World *world, TRIP_ARGS( float *movement_vec_ )
                 float new_z = position_z + offset_z * half_width_z;
 
                 ray_traversal_find_block_from_to( //
-                    world,                 //
+                    world,                        //
                     new_x,                        //
                     new_y,                        //
                     new_z,                        //
@@ -99,6 +99,9 @@ void check_collides_with_player( World *world, TRIP_ARGS( float *movement_vec_ )
 }
 
 void collision_check_move( World *world, TRIP_ARGS( float *movement_vec_ ), TRIP_ARGS( float position_ ) ) {
+    if ( NO_CLIP ) {
+        return;
+    }
     int *dirs_to_check = ( int * )calloc( NUM_FACES_IN_CUBE, sizeof( int ) );
     if ( *movement_vec_x > 0 ) {
         dirs_to_check[ FACE_RIGHT ] = 1;

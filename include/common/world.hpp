@@ -10,6 +10,8 @@ typedef struct {
     Renderer renderer;
     SkyBox skyBox;
     Mobs mobs;
+    VertexBufferLayout vbl_block;
+    VertexBufferLayout vbl_coords;
 } World;
 
 BlockID world_get_loaded_block( World *world, int block_x, int block_y, int block_z );
