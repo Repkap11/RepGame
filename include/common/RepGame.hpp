@@ -21,6 +21,7 @@
 
 #include <glm.hpp>
 #include <gtc/matrix_transform.hpp>
+
 #define DEBUG 1
 
 #define TRIP_STATE( replace )                                                                                                                                                                                                                  \

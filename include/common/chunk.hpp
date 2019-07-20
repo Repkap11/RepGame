@@ -23,7 +23,7 @@ typedef struct {
 
     float packed_lighting[ NUM_FACES_IN_CUBE ];
 
-    //glm::mat4 rotation;
+    glm::mat4 rotation;
 } BlockCoords;
 
 typedef struct {

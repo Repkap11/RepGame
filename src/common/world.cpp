@@ -20,15 +20,20 @@ void world_init( World *world, TRIP_ARGS( float camera_ ) ) {
     vertex_buffer_layout_push_float( &world->vbl_coords, 3 ); // which texture (block type 2)
     vertex_buffer_layout_push_float( &world->vbl_coords, 3 ); // packed lighting
     vertex_buffer_layout_push_float( &world->vbl_coords, 3 ); // packed lighting
-    // vertex_buffer_layout_push_float( &world->vbl_coords, 4 * 4 ); // rotation
+    vertex_buffer_layout_push_float( &world->vbl_coords, 4 ); // rotation
+    vertex_buffer_layout_push_float( &world->vbl_coords, 4 ); // rotation
+    vertex_buffer_layout_push_float( &world->vbl_coords, 4 ); // rotation
+    vertex_buffer_layout_push_float( &world->vbl_coords, 4 ); // rotation
+    pr_debug( "Sizeof mat4:%d", ( int )sizeof( glm::mat4 ) );
 
     chunk_loader_init( &world->loadedChunks, TRIP_ARGS( camera_ ), &world->vbl_block, &world->vbl_coords );
     sky_box_init( &world->skyBox );
     mobs_init( &world->mobs, &world->vbl_block, &world->vbl_coords );
     mouse_selection_init( &world->mouseSelection, &world->vbl_block, &world->vbl_coords );
 }
-void world_render( World *world, TRIP_ARGS( float camera_ ), int limit_render ) {
+void world_render( World *world, TRIP_ARGS( float camera_ ), int limit_render, float angle_H, float angle_V ) {
     chunk_loader_render_chunks( &world->loadedChunks, TRIP_ARGS( camera_ ), limit_render );
+    mobs_update_position( &world->mobs, 0, 0, 0, angle_H, angle_V );
 }
 
 void world_set_selected_block( World *world, int selected_x, int selected_y, int selected_z, int shouldDraw ) {

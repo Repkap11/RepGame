@@ -1,4 +1,6 @@
 #include "common/mobs.hpp"
+#include "common/RepGame.hpp"
+
 void mobs_init( Mobs *mobs, VertexBufferLayout *vbl_mob_shape, VertexBufferLayout *vbl_mob_placement ) {
 
     {
@@ -11,8 +13,10 @@ void mobs_init( Mobs *mobs, VertexBufferLayout *vbl_mob_shape, VertexBufferLayou
     }
     {
         for ( int i = 0; i < NUM_FACES_IN_CUBE; i++ ) {
-            mobs->mob_placement.face[ i ] = GRASS - 1;
+            mobs->mob_placement.face[ i ] = DIRT - 1;
         }
+        mobs->mob_placement.face[ FACE_FRONT ] = GOLD_BLOCK - 1;
+        // mobs->mob_placement.face[ FACE_BACK ] = DIAMOND_BLOCK - 1;
         mobs->mob_placement.x = 0;
         mobs->mob_placement.y = 0;
         mobs->mob_placement.z = 0;
@@ -22,11 +26,8 @@ void mobs_init( Mobs *mobs, VertexBufferLayout *vbl_mob_shape, VertexBufferLayou
         mobs->shouldDraw = 1;
     }
     {
-        mobs->mob_placement.x = 0;
-        mobs->mob_placement.y = 10;
-        mobs->mob_placement.z = 0;
-    }
-    {
+
+    } {
         // vertex_buffer_set_data( &mobs->vb_mob_shape, &mobs->mob_shape, sizeof( CubeFace ) * 1 );
         vertex_buffer_set_data( &mobs->vb_mob_shape, vd_data_solid, sizeof( CubeFace ) * VB_DATA_SIZE_SOLID );
         vertex_buffer_set_data( &mobs->vb_mob_placement, &mobs->mob_placement, sizeof( BlockCoords ) * 1 );
@@ -34,7 +35,25 @@ void mobs_init( Mobs *mobs, VertexBufferLayout *vbl_mob_shape, VertexBufferLayou
     }
 }
 
-void mobs_update_position( ) {
+void mobs_update_position( Mobs *mobs, float x, float y, float z, float angle_H, float angle_V ) {
+    mobs->mob_placement.x = 0;
+    mobs->mob_placement.y = 0;
+    mobs->mob_placement.z = 0;
+
+    glm::mat4 rotate = glm::rotate( glm::mat4( 1.0f ), glm::radians( -angle_H + 180 ), glm::vec3( 0.0f, 1.0f, 0.0f ) );
+    rotate = glm::rotate( rotate, glm::radians( angle_V ), glm::vec3( 1.0f, 0.0f, 0.0f ) );
+
+    glm::vec3 translate = glm::vec3(           //
+        ( float )mobs->mob_placement.x + 0.5f, //
+        ( float )mobs->mob_placement.y + 0.5f, //
+        ( float )mobs->mob_placement.z + 0.5f );
+
+    glm::mat4 trans_mat = glm::translate( glm::mat4( 1.0f ), translate );
+    glm::mat4 trans_inverse_mat = glm::translate( glm::mat4( 1.0f ), glm::vec3( -1.0f ) * translate );
+
+    glm::mat4 mat = trans_mat * rotate * trans_inverse_mat;
+    mobs->mob_placement.rotation = mat;
+    vertex_buffer_set_data( &mobs->vb_mob_placement, &mobs->mob_placement, sizeof( BlockCoords ) * 1 );
 }
 
 void mobs_draw( Mobs *mobs, Renderer *renderer, Shader *shader ) {

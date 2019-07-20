@@ -131,7 +131,7 @@ void repgame_idle( ) {
         // Don't bother being idle if the state if the game is exiting
         return;
     }
-    world_render( &globalGameState.world, globalGameState.camera.x, globalGameState.camera.y, globalGameState.camera.z, 1 );
+    world_render( &globalGameState.world, globalGameState.camera.x, globalGameState.camera.y, globalGameState.camera.z, 1, globalGameState.camera.angle_H, globalGameState.camera.angle_V );
 }
 
 void repgame_tick( ) {
@@ -283,7 +283,7 @@ void repgame_draw( ) {
     glm::mat4 mvp = mvp_sky * globalGameState.camera.view_trans;
 #if defined( REPGAME_WASM )
 #else
-    world_render( &globalGameState.world, globalGameState.camera.x, globalGameState.camera.y, globalGameState.camera.z, false );
+    world_render( &globalGameState.world, globalGameState.camera.x, globalGameState.camera.y, globalGameState.camera.z, false, globalGameState.camera.angle_H, globalGameState.camera.angle_V );
 #endif
     showErrors( );
 
@@ -313,7 +313,7 @@ void repgame_cleanup( ) {
 #if defined( REPGAME_WASM )
     EM_ASM( "FS.syncfs(false, err => {console.log(\"Sync done, its OK to close RepGame:\", err)});" );
 #endif
-    //pr_debug( "RepGame cleanup done" );
+    // pr_debug( "RepGame cleanup done" );
 }
 
 InputState *repgame_getInputState( ) {

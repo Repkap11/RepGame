@@ -180,7 +180,7 @@ void chunk_load_terrain( Chunk *chunk ) {
     if ( !REMEMBER_BLOCKS ) {
         chunk->blocks = ( BlockID * )calloc( CHUNK_BLOCK_SIZE, sizeof( BlockID ) );
     }
-// pr_debug( "Loading chunk terrain x:%d y:%d z:%d", chunk->chunk_x, chunk->chunk_y, chunk->chunk_z );
+    // pr_debug( "Loading chunk terrain x:%d y:%d z:%d", chunk->chunk_x, chunk->chunk_y, chunk->chunk_z );
     int loaded = map_storage_load( chunk );
     if ( !loaded ) {
         // We havn't loaded this chunk before, map gen it.
@@ -527,6 +527,7 @@ void chunk_calculate_popupated_blocks( Chunk *chunk ) {
                         blockCoord->mesh_x = size_x;
                         blockCoord->mesh_y = size_y;
                         blockCoord->mesh_z = size_z;
+                        blockCoord->rotation = glm::mat4( 1 );
 
                         for ( int i = 0; i < NUM_FACES_IN_CUBE; i++ ) {
                             blockCoord->packed_lighting[ i ] = workingSpace[ index ].packed_lighting[ i ];

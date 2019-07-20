@@ -17,6 +17,7 @@
         if ( ( errCode = glGetError( ) ) != GL_NO_ERROR ) {                                                                                                                                                                                    \
             errString = gluErrorString( errCode );                                                                                                                                                                                             \
             pr_debug( "GL Error:%d:%s", errCode, errString );                                                                                                                                                                                  \
+            exit(1);                                                                                                                                                                                  \
         }                                                                                                                                                                                                                                      \
     }
 
