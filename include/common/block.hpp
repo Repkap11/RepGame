@@ -42,6 +42,7 @@ typedef struct {
     float corner_shift;
 } CubeFace;
 
+//Order must match order of FACE_
 static unsigned int ib_data_solid[] = {
     22, 18, 24, //
     24, 18, 19, // Top

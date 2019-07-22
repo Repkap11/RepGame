@@ -24,6 +24,13 @@ flat out float v_blockID;
 flat out int v_shouldDiscardNoLight;
 out float v_corner_lighting;
 
+#define FACE_TOP 0
+#define FACE_BOTTOM 1
+#define FACE_RIGHT 2
+#define FACE_FRONT 3
+#define FACE_LEFT 4
+#define FACE_BACK 5
+
 void main( ) {
 
     // vec3 adjust = vec3( 1, 1, 1 ) - position;
@@ -31,11 +38,11 @@ void main( ) {
     gl_Position = u_MVP * rotation * vec4( position * ( mesh_size - u_DebugScaleOffset ) + blockCoords, 1 );
     uint faceType = uint( faceType_f );
     vec2 face_scale = vec2( 1, 1 );
-    if ( faceType == uint( 0 ) || faceType == uint( 1 ) ) {
+    if ( faceType == uint( FACE_TOP ) || faceType == uint( FACE_BOTTOM ) ) {
         face_scale = mesh_size.xz;
-    } else if ( faceType == uint( 2 ) || faceType == uint( 4 ) ) {
+    } else if ( faceType == uint( FACE_RIGHT ) || faceType == uint( FACE_LEFT ) ) {
         face_scale = mesh_size.zy;
-    } else if ( faceType == uint( 3 ) || faceType == uint( 5 ) ) {
+    } else if ( faceType == uint( FACE_FRONT ) || faceType == uint( FACE_BACK ) ) {
         face_scale = mesh_size.xy;
     }
     float face_light;
@@ -48,9 +55,9 @@ void main( ) {
     }
 
     float packed_lighting = 0.0;
-    if ( faceType == uint( 0 ) || faceType == uint( 1 ) || faceType == uint( 2 ) ) {
+    if ( faceType == uint( FACE_TOP ) || faceType == uint( FACE_BOTTOM ) || faceType == uint( FACE_RIGHT ) ) {
         packed_lighting = packed_lighting_1[ faceType ];
-    } else {
+    } else {// For FACE_FRONT FACE_LEFT FACE_BACK
         packed_lighting = packed_lighting_2[ faceType - uint( 3 ) ];
     }
     float light_divisor = 1.3; // good looking
@@ -73,7 +80,7 @@ void main( ) {
 
     v_corner_lighting = face_light * corner_light;
     v_TexCoordBlock = texCoordBlock * face_scale;
-    if ( faceType < 2u ) {
+    if ( faceType < 3u ) {
         v_blockID = blockTexture1[ faceType ];
     } else {
         v_blockID = blockTexture2[ faceType - 3u ];
