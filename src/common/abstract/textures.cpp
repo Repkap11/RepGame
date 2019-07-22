@@ -101,19 +101,12 @@ unsigned int loadTexture( const TextureSourceData *texture_source ) {
     unsigned int texture;
     glGenTextures( 1, &texture );
     glBindTexture( GL_TEXTURE_2D_ARRAY, texture );
-#if defined( REPGAME_WASM )
     glTexImage3D( GL_TEXTURE_2D_ARRAY,                                              //
                   0,                                                                // mipLevelCount
                   GL_RGBA8,                                                         //
                   texture_source->tile_size_across, texture_source->tile_size_down, //
                   layer_count, 0, GL_RGBA, GL_UNSIGNED_BYTE, NULL );
-#else
-    glTexStorage3D( GL_TEXTURE_2D_ARRAY,                                              //
-                    5,                                                                // mipLevelCount
-                    GL_RGBA8,                                                         //
-                    texture_source->tile_size_across, texture_source->tile_size_down, //
-                    layer_count );
-#endif
+
     glPixelStorei( GL_UNPACK_ROW_LENGTH, texture_source->width );
     glPixelStorei( GL_UNPACK_IMAGE_HEIGHT, texture_source->height );
     for ( unsigned int i = 0; i < layer_count; i++ ) {
