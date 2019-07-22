@@ -98,6 +98,10 @@ void repgame_process_camera_angle( ) {
         -tan( globalGameState.camera.angle_V * ( M_PI / 180 ) ),    //
         -cos( ( globalGameState.camera.angle_H ) * ( M_PI / 180 ) ) ) );
 
+    glm::mat4 rotate = glm::rotate( glm::mat4( 1.0f ), glm::radians( -globalGameState.camera.angle_H + 180 ), glm::vec3( 0.0f, 1.0f, 0.0f ) );
+    rotate = glm::rotate( rotate, glm::radians( globalGameState.camera.angle_V ), glm::vec3( 1.0f, 0.0f, 0.0f ) );
+    globalGameState.camera.rotation = rotate;
+
     globalGameState.camera.mx = sin( ( globalGameState.camera.angle_H + globalGameState.input.movement.angleH ) * ( M_PI / 180 ) );
     globalGameState.camera.my = -tan( globalGameState.camera.angle_V * ( M_PI / 180 ) );
     globalGameState.camera.mz = -cos( ( globalGameState.camera.angle_H + globalGameState.input.movement.angleH ) * ( M_PI / 180 ) );
@@ -131,7 +135,7 @@ void repgame_idle( ) {
         // Don't bother being idle if the state if the game is exiting
         return;
     }
-    world_render( &globalGameState.world, globalGameState.camera.x, globalGameState.camera.y, globalGameState.camera.z, 1, globalGameState.camera.angle_H, globalGameState.camera.angle_V );
+    world_render( &globalGameState.world, globalGameState.camera.x, globalGameState.camera.y, globalGameState.camera.z, 1, globalGameState.camera.rotation );
 }
 
 void repgame_tick( ) {
@@ -283,7 +287,7 @@ void repgame_draw( ) {
     glm::mat4 mvp = mvp_sky * globalGameState.camera.view_trans;
 #if defined( REPGAME_WASM )
 #else
-    world_render( &globalGameState.world, globalGameState.camera.x, globalGameState.camera.y, globalGameState.camera.z, false, globalGameState.camera.angle_H, globalGameState.camera.angle_V );
+    world_render( &globalGameState.world, globalGameState.camera.x, globalGameState.camera.y, globalGameState.camera.z, false, globalGameState.camera.rotation );
 #endif
     showErrors( );
 

@@ -41,6 +41,7 @@ typedef struct {
         float angle_H;
         float angle_V;
         glm::vec3 look;
+        glm::mat4 rotation;
         TRIP_STATE( float m );
         float x;
         float y;
@@ -77,7 +78,7 @@ typedef struct {
 } PlayerData;
 
 void renderShaders( int x, int y, int z );
-void repgame_init( const char* world_name );
+void repgame_init( const char *world_name );
 void repgame_tick( );
 void repgame_clear( );
 void repgame_idle( );

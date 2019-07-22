@@ -31,9 +31,9 @@ void world_init( World *world, TRIP_ARGS( float camera_ ) ) {
     mobs_init( &world->mobs, &world->vbl_block, &world->vbl_coords );
     mouse_selection_init( &world->mouseSelection, &world->vbl_block, &world->vbl_coords );
 }
-void world_render( World *world, TRIP_ARGS( float camera_ ), int limit_render, float angle_H, float angle_V ) {
+void world_render( World *world, TRIP_ARGS( float camera_ ), int limit_render, glm::mat4 &rotation ) {
     chunk_loader_render_chunks( &world->loadedChunks, TRIP_ARGS( camera_ ), limit_render );
-    mobs_update_position( &world->mobs, 10, 10, 10, angle_H, angle_V );
+    mobs_update_position( &world->mobs, 10, 10, 10, rotation );
 }
 
 void world_set_selected_block( World *world, int selected_x, int selected_y, int selected_z, int shouldDraw ) {

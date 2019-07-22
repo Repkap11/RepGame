@@ -35,13 +35,10 @@ void mobs_init( Mobs *mobs, VertexBufferLayout *vbl_mob_shape, VertexBufferLayou
     }
 }
 
-void mobs_update_position( Mobs *mobs, float x, float y, float z, float angle_H, float angle_V ) {
+void mobs_update_position( Mobs *mobs, float x, float y, float z, glm::mat4 &rotation ) {
     mobs->mob_placement.x = x;
     mobs->mob_placement.y = y;
     mobs->mob_placement.z = z;
-
-    glm::mat4 rotate = glm::rotate( glm::mat4( 1.0f ), glm::radians( -angle_H + 180 ), glm::vec3( 0.0f, 1.0f, 0.0f ) );
-    rotate = glm::rotate( rotate, glm::radians( angle_V ), glm::vec3( 1.0f, 0.0f, 0.0f ) );
 
     glm::vec3 translate = glm::vec3(           //
         ( float )mobs->mob_placement.x + 0.5f, //
@@ -51,8 +48,8 @@ void mobs_update_position( Mobs *mobs, float x, float y, float z, float angle_H,
     glm::mat4 trans_mat = glm::translate( glm::mat4( 1.0f ), translate );
     glm::mat4 trans_inverse_mat = glm::translate( glm::mat4( 1.0f ), glm::vec3( -1.0f ) * translate );
 
-    glm::mat4 mat = trans_mat * rotate * trans_inverse_mat;
-    mobs->mob_placement.rotation = mat;
+    mobs->mob_placement.rotation = trans_mat * rotation * trans_inverse_mat;
+
     vertex_buffer_set_data( &mobs->vb_mob_placement, &mobs->mob_placement, sizeof( BlockCoords ) * 1 );
 }
 

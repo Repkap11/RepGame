@@ -23,7 +23,7 @@ typedef struct {
 } Mobs;
 
 void mobs_init( Mobs *mobs, VertexBufferLayout *vbl_mob_shape, VertexBufferLayout *vbl_mob_placement );
-void mobs_update_position( Mobs *mobs, float x, float y, float z, float angle_H, float angle_V );
+void mobs_update_position( Mobs *mobs, float x, float y, float z, glm::mat4 &rotation );
 void mobs_draw( Mobs *mobs, Renderer *renderer, Shader *shader );
 void mobs_cleanup( Mobs *mobs );
 
