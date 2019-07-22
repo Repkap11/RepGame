@@ -7,6 +7,9 @@
 void vertex_array_init( VertexArray *vertexArray ) {
     glGenVertexArrays( 1, &vertexArray->mRendererId );
     vertex_array_bind( vertexArray );
+    // int n = 0;
+    // glGetIntegerv( GL_MAX_VERTEX_ATTRIBS, &n );
+    // pr_debug( "GL_MAX_VERTEX_ATTRIBS:%d", n );
 }
 
 void vertex_array_destroy( VertexArray *vertexArray ) {
@@ -19,6 +22,7 @@ void vertex_array_add_buffer( VertexArray *vertexArray, const VertexBuffer *vert
     vertex_buffer_bind( vertexBuffer );
     unsigned int offset = 0;
     const unsigned int current_size = vertexBufferLayout->current_size;
+    // pr_debug( "Current Size:%u", current_size );
     for ( unsigned int i = 0; i < current_size; i++ ) {
         // TODO keep track of last i inside of vertexArray so next time we can increment it
         // pr_debug( "Binding VertexBufferElement:%d", i + divisor * 3 );
@@ -31,7 +35,12 @@ void vertex_array_add_buffer( VertexArray *vertexArray, const VertexBuffer *vert
 #pragma GCC diagnostic ignored "-Wint-to-pointer-cast"
         const void *offset_pointer = ( const void * )offset;
 #pragma GCC diagnostic pop
+        showErrors( );
+        // pr_debug( "Adding attrib:%d", index );
+
         glVertexAttribPointer( index, element->count, element->type, element->normalized, vertexBufferLayout->stride, offset_pointer );
+        showErrors( );
+
         offset += element->count * vertex_buffer_layout_size_of_type( element->type );
     }
 }

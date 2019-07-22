@@ -17,6 +17,7 @@ layout( location = 6 ) in vec3 blockTexture1;
 layout( location = 7 ) in vec3 blockTexture2;
 layout( location = 8 ) in vec3 packed_lighting_1;
 layout( location = 9 ) in vec3 packed_lighting_2;
+layout( location = 10 ) in mat4 rotation;
 
 out vec2 v_TexCoordBlock;
 flat out float v_blockID;
@@ -27,7 +28,7 @@ void main( ) {
 
     // vec3 adjust = vec3( 1, 1, 1 ) - position;
     // adjust.y = position.y;
-    gl_Position = u_MVP * vec4( position * ( mesh_size - u_DebugScaleOffset ) + blockCoords, 1 );
+    gl_Position = u_MVP * rotation * vec4( position * ( mesh_size - u_DebugScaleOffset ) + blockCoords, 1 );
     uint faceType = uint( faceType_f );
     vec2 face_scale = vec2( 1, 1 );
     if ( faceType == uint( 0 ) || faceType == uint( 1 ) ) {

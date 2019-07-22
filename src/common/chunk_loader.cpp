@@ -1,3 +1,4 @@
+#include "common/RepGame.hpp"
 #include "common/chunk_loader.hpp"
 #include "common/utils/map_storage.hpp"
 #include "common/utils/terrain_loading_thread.hpp"
@@ -7,48 +8,6 @@
 #include <stdlib.h>
 
 #define MAX_LOADED_CHUNKS ( ( 2 * CHUNK_RADIUS_X + 1 ) * ( 2 * CHUNK_RADIUS_Y + 1 ) * ( 2 * CHUNK_RADIUS_Z + 1 ) )
-
-static CubeFace vd_data_solid[] = {
-    // x=right/left, y=top/bottom, z=front/back : 1/0
-    {0.0f, 0.0f, 0.0f, /*Coords  Texture coords*/ 1, 0, FACE_BACK, CORNER_OFFSET_bbl}, // 0
-    {1.0f, 0.0f, 0.0f, /*Coords  Texture coords*/ 0, 0, FACE_BACK, CORNER_OFFSET_bbr}, // 1
-    {1.0f, 1.0f, 0.0f, /*Coords  Texture coords*/ 0, 1, FACE_BACK, CORNER_OFFSET_tbr}, // 2
-    {0.0f, 1.0f, 0.0f, /*Coords  Texture coords*/ 1, 1, FACE_BACK, CORNER_OFFSET_tbl}, // 3
-
-    {0.0f, 0.0f, 1.0f, /*Coords  Texture coords*/ 0, 0, FACE_FRONT, CORNER_OFFSET_bfl}, // 4
-    {1.0f, 0.0f, 1.0f, /*Coords  Texture coords*/ 1, 0, FACE_FRONT, CORNER_OFFSET_bfr}, // 5
-    {1.0f, 1.0f, 1.0f, /*Coords  Texture coords*/ 1, 1, FACE_FRONT, CORNER_OFFSET_tfr}, // 6
-    {0.0f, 1.0f, 1.0f, /*Coords  Texture coords*/ 0, 1, FACE_FRONT, CORNER_OFFSET_tfl}, // 7
-
-    {0.0f, 0.0f, 0.0f, /*Coords  Texture coords*/ 0, 0, FACE_LEFT, CORNER_OFFSET_bbl},  // 8
-    {1.0f, 0.0f, 0.0f, /*Coords  Texture coords*/ 1, 0, FACE_RIGHT, CORNER_OFFSET_bbr}, // 9
-    {1.0f, 1.0f, 0.0f, /*Coords  Texture coords*/ 1, 1, FACE_RIGHT, CORNER_OFFSET_tbr}, // 10
-    {0.0f, 1.0f, 0.0f, /*Coords  Texture coords*/ 0, 1, FACE_LEFT, CORNER_OFFSET_tbl},  // 11
-
-    {0.0f, 0.0f, 1.0f, /*Coords  Texture coords*/ 1, 0, FACE_LEFT, CORNER_OFFSET_bfl},  // 12
-    {1.0f, 0.0f, 1.0f, /*Coords  Texture coords*/ 0, 0, FACE_RIGHT, CORNER_OFFSET_bfr}, // 13
-    {1.0f, 1.0f, 1.0f, /*Coords  Texture coords*/ 0, 1, FACE_RIGHT, CORNER_OFFSET_tfr}, // 14
-    {0.0f, 1.0f, 1.0f, /*Coords  Texture coords*/ 1, 1, FACE_LEFT, CORNER_OFFSET_tfl},  // 15
-
-    {0.0f, 0.0f, 0.0f, /*Coords  Texture coords*/ 1, 1, FACE_BOTTOM, CORNER_OFFSET_bbl}, // 16
-    {1.0f, 0.0f, 0.0f, /*Coords  Texture coords*/ 0, 1, FACE_BOTTOM, CORNER_OFFSET_bbr}, // 17
-    {1.0f, 1.0f, 0.0f, /*Coords  Texture coords*/ 0, 0, FACE_TOP, CORNER_OFFSET_tbr},    // 18
-    {0.0f, 1.0f, 0.0f, /*Coords  Texture coords*/ 1, 0, FACE_TOP, CORNER_OFFSET_tbl},    // 19
-
-    {0.0f, 0.0f, 1.0f, /*Coords  Texture coords*/ 1, 0, FACE_BOTTOM, CORNER_OFFSET_bfl}, // 20
-    {1.0f, 0.0f, 1.0f, /*Coords  Texture coords*/ 0, 0, FACE_BOTTOM, CORNER_OFFSET_bfr}, // 21
-    {1.0f, 1.0f, 1.0f, /*Coords  Texture coords*/ 0, 1, FACE_TOP, CORNER_OFFSET_tfr},    // 22
-    {0.0f, 1.0f, 1.0f, /*Coords  Texture coords*/ 1, 1, FACE_TOP, CORNER_OFFSET_tfl},    // 23
-
-    {0.5f, 1.0f, 0.5f, /*Coords  Texture coords*/ 0.5f, 0.5f, FACE_TOP, CORNER_OFFSET_c},    // 24
-    {0.5f, 0.0f, 0.5f, /*Coords  Texture coords*/ 0.5f, 0.5f, FACE_BOTTOM, CORNER_OFFSET_c}, // 25
-    {1.0f, 0.5f, 0.5f, /*Coords  Texture coords*/ 0.5f, 0.5f, FACE_RIGHT, CORNER_OFFSET_c},  // 26
-    {0.5f, 0.5f, 1.0f, /*Coords  Texture coords*/ 0.5f, 0.5f, FACE_FRONT, CORNER_OFFSET_c},  // 27
-    {0.0f, 0.5f, 0.5f, /*Coords  Texture coords*/ 0.5f, 0.5f, FACE_LEFT, CORNER_OFFSET_c},   // 28
-    {0.5f, 0.5f, 0.0f, /*Coords  Texture coords*/ 0.5f, 0.5f, FACE_BACK, CORNER_OFFSET_c},   // 29
-
-};
-#define VB_DATA_SIZE_SOLID ( 5 * 6 + 6 )
 
 MK_SHADER( chunk_vertex );
 MK_SHADER( chunk_fragment );
@@ -75,12 +34,13 @@ int reload_if_out_of_bounds( Chunk *chunk, TRIP_ARGS( int chunk_ ) ) {
     return changed;
 }
 
-void chunk_loader_init( LoadedChunks *loadedChunks, TRIP_ARGS( float camera_ ) ) {
+void chunk_loader_init( LoadedChunks *loadedChunks, TRIP_ARGS( float camera_ ), VertexBufferLayout *vbl_block, VertexBufferLayout *vbl_coords ) {
     int status = terrain_loading_thread_start( );
     if ( status ) {
         pr_debug( "Terrain loading thread failed to start." );
     }
     loadedChunks->chunkArray = ( Chunk * )calloc( MAX_LOADED_CHUNKS, sizeof( Chunk ) );
+    showErrors( );
 
     shader_init( &loadedChunks->shader, &chunk_vertex, &chunk_fragment );
 
@@ -94,32 +54,14 @@ void chunk_loader_init( LoadedChunks *loadedChunks, TRIP_ARGS( float camera_ ) )
         vertex_buffer_set_data( &loadedChunks->water.vb_block, vd_data_water, sizeof( CubeFace ) * VB_DATA_SIZE_WATER );
     }
 
-    // These are from CubeFace
-    vertex_buffer_layout_init( &loadedChunks->vbl_block );
-    vertex_buffer_layout_push_float( &loadedChunks->vbl_block, 3 ); // Coords
-    vertex_buffer_layout_push_float( &loadedChunks->vbl_block, 2 ); // Texture coords
-    vertex_buffer_layout_push_float( &loadedChunks->vbl_block, 1 ); // Face type (top, sides, bottom)
-    vertex_buffer_layout_push_float( &loadedChunks->vbl_block, 1 ); // Corner_shift
-
-    // These are from BlockCoords
-    vertex_buffer_layout_init( &loadedChunks->vbl_coords );
-    vertex_buffer_layout_push_float( &loadedChunks->vbl_coords, 3 ); // block 3d world coords
-    vertex_buffer_layout_push_float( &loadedChunks->vbl_coords, 3 ); // Multiples (mesh)
-    vertex_buffer_layout_push_float( &loadedChunks->vbl_coords, 3 ); // which texture (block type 1)
-    vertex_buffer_layout_push_float( &loadedChunks->vbl_coords, 3 ); // which texture (block type 2)
-    vertex_buffer_layout_push_float( &loadedChunks->vbl_coords, 3 ); // packed lighting
-    vertex_buffer_layout_push_float( &loadedChunks->vbl_coords, 3 ); // packed lighting
-
     {
         VertexBuffer *vb_block_solid = &loadedChunks->solid.vb_block;
         VertexBuffer *vb_block_water = &loadedChunks->water.vb_block;
-        VertexBufferLayout *vbl_block = &loadedChunks->vbl_block;
-        VertexBufferLayout *vbl_coords = &loadedChunks->vbl_coords;
-        mouse_selection_init( &loadedChunks->mouseSelection, vbl_block, vbl_coords );
         for ( int i = 0; i < MAX_LOADED_CHUNKS; i++ ) {
             chunk_init( &loadedChunks->chunkArray[ i ], vb_block_solid, vb_block_water, vbl_block, vbl_coords );
         }
     }
+    showErrors( );
 
     int camera_chunk_x = floor( camera_x / ( float )CHUNK_SIZE );
     int camera_chunk_y = floor( camera_y / ( float )CHUNK_SIZE );
@@ -163,10 +105,6 @@ void chunk_loader_init( LoadedChunks *loadedChunks, TRIP_ARGS( float camera_ ) )
             }
         }
     }
-}
-
-void chunk_loader_set_selected_block( LoadedChunks *loadedChunks, TRIP_ARGS( int selected_ ), int shouldDraw ) {
-    mouse_selection_set_block( &loadedChunks->mouseSelection, TRIP_ARGS( selected_ ), shouldDraw );
 }
 
 Chunk *chunk_loader_get_chunk( LoadedChunks *loadedChunks, TRIP_ARGS( int chunk_ ) ) {
@@ -279,7 +217,7 @@ void chunk_loader_calculate_cull( LoadedChunks *loadedChunks, glm::mat4 &mvp ) {
     }
 }
 
-void chunk_loader_draw_chunks( LoadedChunks *loadedChunks, glm::mat4 &mvp ) {
+void chunk_loader_draw_chunks( LoadedChunks *loadedChunks, Renderer *renderer, glm::mat4 &mvp ) {
 
     // pr_debug( "Drawing %d chunks", loadedChunks->numLoadedChunks );
     for ( int renderOrder = LAST_RENDER_ORDER - 1; renderOrder > 0; renderOrder-- ) {
@@ -287,15 +225,11 @@ void chunk_loader_draw_chunks( LoadedChunks *loadedChunks, glm::mat4 &mvp ) {
         for ( int i = 0; i < MAX_LOADED_CHUNKS; i++ ) {
             Chunk *chunk = &loadedChunks->chunkArray[ i ];
             if ( !chunk->cached_cull ) {
-                chunk_render( &loadedChunks->chunkArray[ i ], &loadedChunks->renderer, &loadedChunks->shader, ( RenderOrder )renderOrder );
+                chunk_render( &loadedChunks->chunkArray[ i ], renderer, &loadedChunks->shader, ( RenderOrder )renderOrder );
             }
         }
     }
     shader_set_uniform1f( &loadedChunks->shader, "u_shouldDiscardAlpha", 1 );
-}
-
-void chunk_loader_draw_mouse_selection( LoadedChunks *loadedChunks ) {
-    mouse_selection_draw( &loadedChunks->mouseSelection, &loadedChunks->renderer, &loadedChunks->shader );
 }
 
 void chunk_loader_cleanup( LoadedChunks *loadedChunks ) {

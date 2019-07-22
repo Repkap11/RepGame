@@ -55,6 +55,7 @@ int main( int argc, char **argv ) {
     }
     glutInit( &argc, argv );
     glutInitContextVersion( 3, 3 );
+    glutInitContextProfile( GLUT_CORE_PROFILE );
 
     // glutInitContextFlags( GLUT_DEBUG );
     glutSetOption( GLUT_MULTISAMPLE, 16 );
@@ -71,7 +72,7 @@ int main( int argc, char **argv ) {
         pr_debug( "GLEW init failed" );
         exit( 1 ); // or handle the error in a nicer way
     }
-    if ( !GLEW_VERSION_3_0 ) { // check that the machine supports the 2.1 API.
+    if ( !GLEW_VERSION_3_3 ) { // check that the machine supports the 2.1 API.
         pr_debug( "GLEW version wrong" );
         exit( 1 ); // or handle the error in a nicer way
     }
@@ -94,7 +95,7 @@ int main( int argc, char **argv ) {
     glutMotionFunc( mouseMove );
 
     struct timespec tstart = {0, 0}, tend = {0, 0}, tblank = {0, 0};
-    pr_debug( "Size of Int:%lu", sizeof( int ) );
+    // pr_debug( "Size of Int:%lu", sizeof( int ) );
     int is_locking_pointer = 0;
     while ( !repgame_shouldExit( ) ) {
         clock_gettime( CLOCK_MONOTONIC, &tstart );

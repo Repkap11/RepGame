@@ -6,7 +6,7 @@ float half_width_x = ( PLAYER_WIDTH / 2.0f );
 float half_width_y = ( PLAYER_HEIGHT / 2.0f );
 float half_width_z = ( PLAYER_WIDTH / 2.0f );
 
-int collision_check_collides_with_block( LoadedChunks *loadedChunks, TRIP_ARGS( float player_ ), TRIP_ARGS( float block_ ) ) {
+int collision_check_collides_with_block( World *world, TRIP_ARGS( float player_ ), TRIP_ARGS( float block_ ) ) {
     player_y -= EYE_POSITION_OFFSET;
     // For each point in the persons collision box, check the direction
     for ( int offset_x = -1; offset_x < 2; offset_x++ ) {
@@ -25,7 +25,7 @@ int collision_check_collides_with_block( LoadedChunks *loadedChunks, TRIP_ARGS( 
     return 0;
 }
 
-void check_collides_with_player( LoadedChunks *loadedChunks, TRIP_ARGS( float *movement_vec_ ), TRIP_ARGS( float position_ ) ) {
+void check_collides_with_player( World *world, TRIP_ARGS( float *movement_vec_ ), TRIP_ARGS( float position_ ) ) {
     int out_x;
     int out_y;
     int out_z;
@@ -41,7 +41,7 @@ void check_collides_with_player( LoadedChunks *loadedChunks, TRIP_ARGS( float *m
                 float new_z = position_z + offset_z * half_width_z;
 
                 ray_traversal_find_block_from_to( //
-                    loadedChunks,                 //
+                    world,                        //
                     new_x,                        //
                     new_y,                        //
                     new_z,                        //
@@ -98,7 +98,10 @@ void check_collides_with_player( LoadedChunks *loadedChunks, TRIP_ARGS( float *m
     free( faces );
 }
 
-void collision_check_move( LoadedChunks *loadedChunks, TRIP_ARGS( float *movement_vec_ ), TRIP_ARGS( float position_ ) ) {
+void collision_check_move( World *world, TRIP_ARGS( float *movement_vec_ ), TRIP_ARGS( float position_ ) ) {
+    if ( NO_CLIP ) {
+        return;
+    }
     int *dirs_to_check = ( int * )calloc( NUM_FACES_IN_CUBE, sizeof( int ) );
     if ( *movement_vec_x > 0 ) {
         dirs_to_check[ FACE_RIGHT ] = 1;
@@ -121,22 +124,22 @@ void collision_check_move( LoadedChunks *loadedChunks, TRIP_ARGS( float *movemen
     // Check for collides in each direction
     float zero = 0;
     if ( dirs_to_check[ FACE_RIGHT ] ) {
-        check_collides_with_player( loadedChunks, movement_vec_x, &zero, &zero, TRIP_ARGS( position_ ) );
+        check_collides_with_player( world, movement_vec_x, &zero, &zero, TRIP_ARGS( position_ ) );
     }
     if ( dirs_to_check[ FACE_LEFT ] ) {
-        check_collides_with_player( loadedChunks, movement_vec_x, &zero, &zero, TRIP_ARGS( position_ ) );
+        check_collides_with_player( world, movement_vec_x, &zero, &zero, TRIP_ARGS( position_ ) );
     }
     if ( dirs_to_check[ FACE_TOP ] ) {
-        check_collides_with_player( loadedChunks, &zero, movement_vec_y, &zero, TRIP_ARGS( position_ ) );
+        check_collides_with_player( world, &zero, movement_vec_y, &zero, TRIP_ARGS( position_ ) );
     }
     if ( dirs_to_check[ FACE_BOTTOM ] ) {
-        check_collides_with_player( loadedChunks, &zero, movement_vec_y, &zero, TRIP_ARGS( position_ ) );
+        check_collides_with_player( world, &zero, movement_vec_y, &zero, TRIP_ARGS( position_ ) );
     }
     if ( dirs_to_check[ FACE_FRONT ] ) {
-        check_collides_with_player( loadedChunks, &zero, &zero, movement_vec_z, TRIP_ARGS( position_ ) );
+        check_collides_with_player( world, &zero, &zero, movement_vec_z, TRIP_ARGS( position_ ) );
     }
     if ( dirs_to_check[ FACE_BACK ] ) {
-        check_collides_with_player( loadedChunks, &zero, &zero, movement_vec_z, TRIP_ARGS( position_ ) );
+        check_collides_with_player( world, &zero, &zero, movement_vec_z, TRIP_ARGS( position_ ) );
     }
     free( dirs_to_check );
 }

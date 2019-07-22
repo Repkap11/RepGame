@@ -4,40 +4,70 @@
 #include "common/chunk_loader.hpp"
 #include <math.h>
 
-void world_init( LoadedChunks *loadedChunks, TRIP_ARGS( float camera_ ) ) {
-    chunk_loader_init( loadedChunks, TRIP_ARGS( camera_ ) );
-    sky_box_init( &loadedChunks->skyBox );
+void world_init( World *world, TRIP_ARGS( float camera_ ) ) {
+    // These are from CubeFace
+    vertex_buffer_layout_init( &world->vbl_block );
+    vertex_buffer_layout_push_float( &world->vbl_block, 3 ); // Coords
+    vertex_buffer_layout_push_float( &world->vbl_block, 2 ); // Texture coords
+    vertex_buffer_layout_push_float( &world->vbl_block, 1 ); // Face type (top, sides, bottom)
+    vertex_buffer_layout_push_float( &world->vbl_block, 1 ); // Corner_shift
+
+    // These are from BlockCoords
+    vertex_buffer_layout_init( &world->vbl_coords );
+    vertex_buffer_layout_push_float( &world->vbl_coords, 3 ); // block 3d world coords
+    vertex_buffer_layout_push_float( &world->vbl_coords, 3 ); // Multiples (mesh)
+    vertex_buffer_layout_push_float( &world->vbl_coords, 3 ); // which texture (block type 1)
+    vertex_buffer_layout_push_float( &world->vbl_coords, 3 ); // which texture (block type 2)
+    vertex_buffer_layout_push_float( &world->vbl_coords, 3 ); // packed lighting
+    vertex_buffer_layout_push_float( &world->vbl_coords, 3 ); // packed lighting
+    vertex_buffer_layout_push_float( &world->vbl_coords, 4 ); // rotation
+    vertex_buffer_layout_push_float( &world->vbl_coords, 4 ); // rotation
+    vertex_buffer_layout_push_float( &world->vbl_coords, 4 ); // rotation
+    vertex_buffer_layout_push_float( &world->vbl_coords, 4 ); // rotation
+    pr_debug( "Sizeof mat4:%d", ( int )sizeof( glm::mat4 ) );
+
+    chunk_loader_init( &world->loadedChunks, TRIP_ARGS( camera_ ), &world->vbl_block, &world->vbl_coords );
+    sky_box_init( &world->skyBox );
+    mobs_init( &world->mobs, &world->vbl_block, &world->vbl_coords );
+    mouse_selection_init( &world->mouseSelection, &world->vbl_block, &world->vbl_coords );
 }
-void world_render( LoadedChunks *loadedChunks, TRIP_ARGS( float camera_ ), int limit_render ) {
-    chunk_loader_render_chunks( loadedChunks, TRIP_ARGS( camera_ ), limit_render );
+void world_render( World *world, TRIP_ARGS( float camera_ ), int limit_render, glm::mat4 &rotation ) {
+    chunk_loader_render_chunks( &world->loadedChunks, TRIP_ARGS( camera_ ), limit_render );
+    mobs_update_position( &world->mobs, 10, 10, 10, rotation );
 }
 
-void world_draw( LoadedChunks *loadedChunks, Texture *blocksTexture, glm::mat4 &mvp, glm::mat4 &mvp_sky, int debug, int draw_mouse_selection ) {
-    sky_box_draw( &loadedChunks->skyBox, &loadedChunks->renderer, mvp_sky );
+void world_set_selected_block( World *world, int selected_x, int selected_y, int selected_z, int shouldDraw ) {
+    mouse_selection_set_block( &world->mouseSelection, TRIP_ARGS( selected_ ), shouldDraw );
+}
 
-    shader_set_uniform1i( &loadedChunks->shader, "u_Texture", blocksTexture->slot );
-    shader_set_uniform_mat4f( &loadedChunks->shader, "u_MVP", mvp );
+void world_draw( World *world, Texture *blocksTexture, glm::mat4 &mvp, glm::mat4 &mvp_sky, int debug, int draw_mouse_selection ) {
+    sky_box_draw( &world->skyBox, &world->renderer, mvp_sky );
+
+    shader_set_uniform1i( &world->loadedChunks.shader, "u_Texture", blocksTexture->slot );
+    shader_set_uniform_mat4f( &world->loadedChunks.shader, "u_MVP", mvp );
     float debug_block_scale;
     if ( debug ) {
         debug_block_scale = BLOCK_SCALE_OFFSET;
     } else {
         debug_block_scale = 0.0f;
     }
-    shader_set_uniform3f( &loadedChunks->shader, "u_DebugScaleOffset", debug_block_scale, debug_block_scale, debug_block_scale );
-    chunk_loader_calculate_cull( loadedChunks, mvp );
+    shader_set_uniform3f( &world->loadedChunks.shader, "u_DebugScaleOffset", debug_block_scale, debug_block_scale, debug_block_scale );
+    chunk_loader_calculate_cull( &world->loadedChunks, mvp );
     if ( draw_mouse_selection ) {
-        chunk_loader_draw_mouse_selection( loadedChunks );
+        mouse_selection_draw( &world->mouseSelection, &world->renderer, &world->loadedChunks.shader );
     }
-    chunk_loader_draw_chunks( loadedChunks, mvp );
+    chunk_loader_draw_chunks( &world->loadedChunks, &world->renderer, mvp );
+    mobs_draw( &world->mobs, &world->renderer, &world->loadedChunks.shader );
 }
-void world_cleanup( LoadedChunks *loadedChunks ) {
-    chunk_loader_cleanup( loadedChunks );
-    sky_box_destroy( &loadedChunks->skyBox );
+void world_cleanup( World *world ) {
+    chunk_loader_cleanup( &world->loadedChunks );
+    sky_box_destroy( &world->skyBox );
+    mobs_cleanup( &world->mobs );
 }
 
-void fixup_chunk( LoadedChunks *loadedChunks, Chunk *chunk, TRIP_ARGS( int offset_ ), TRIP_ARGS( int pos_ ), BlockID blockID ) {
+void fixup_chunk( World *world, Chunk *chunk, TRIP_ARGS( int offset_ ), TRIP_ARGS( int pos_ ), BlockID blockID ) {
     // pr_debug( "Fixup Offset: %d %d %d", x, y, z );
-    Chunk *fixupChunk = chunk_loader_get_chunk( loadedChunks, chunk->chunk_x + offset_x, chunk->chunk_y + offset_y, chunk->chunk_z + offset_z );
+    Chunk *fixupChunk = chunk_loader_get_chunk( &world->loadedChunks, chunk->chunk_x + offset_x, chunk->chunk_y + offset_y, chunk->chunk_z + offset_z );
     if ( fixupChunk ) {
         chunk_unprogram_terrain( chunk );
         chunk_set_block( fixupChunk, TRIP_ARGS( pos_ ), blockID );
@@ -47,11 +77,11 @@ void fixup_chunk( LoadedChunks *loadedChunks, Chunk *chunk, TRIP_ARGS( int offse
     }
 }
 
-Chunk *world_get_loaded_chunk( LoadedChunks *loadedChunks, TRIP_ARGS( int block_ ) ) {
+Chunk *world_get_loaded_chunk( World *world, TRIP_ARGS( int block_ ) ) {
     int chunk_x = floor( block_x / ( float )CHUNK_SIZE );
     int chunk_y = floor( block_y / ( float )CHUNK_SIZE );
     int chunk_z = floor( block_z / ( float )CHUNK_SIZE );
-    return chunk_loader_get_chunk( loadedChunks, TRIP_ARGS( chunk_ ) );
+    return chunk_loader_get_chunk( &world->loadedChunks, TRIP_ARGS( chunk_ ) );
 }
 
 BlockID world_get_block_from_chunk( Chunk *chunk, TRIP_ARGS( int block_ ) ) {
@@ -61,8 +91,8 @@ BlockID world_get_block_from_chunk( Chunk *chunk, TRIP_ARGS( int block_ ) ) {
     return chunk_get_block( chunk, TRIP_ARGS( diff_ ) );
 }
 
-BlockID world_get_loaded_block( LoadedChunks *loadedChunks, TRIP_ARGS( int block_ ) ) {
-    Chunk *chunk = world_get_loaded_chunk( loadedChunks, TRIP_ARGS( block_ ) );
+BlockID world_get_loaded_block( World *world, TRIP_ARGS( int block_ ) ) {
+    Chunk *chunk = world_get_loaded_chunk( world, TRIP_ARGS( block_ ) );
     if ( chunk ) {
         if ( chunk->is_loading ) {
             return LAST_BLOCK_ID;
@@ -73,12 +103,12 @@ BlockID world_get_loaded_block( LoadedChunks *loadedChunks, TRIP_ARGS( int block
     return LAST_BLOCK_ID;
 }
 
-void world_set_loaded_block( LoadedChunks *loadedChunks, TRIP_ARGS( int block_ ), BlockID blockID ) {
+void world_set_loaded_block( World *world, TRIP_ARGS( int block_ ), BlockID blockID ) {
     int chunk_x = floor( block_x / ( float )CHUNK_SIZE );
     int chunk_y = floor( block_y / ( float )CHUNK_SIZE );
     int chunk_z = floor( block_z / ( float )CHUNK_SIZE );
 
-    Chunk *chunk = chunk_loader_get_chunk( loadedChunks, TRIP_ARGS( chunk_ ) );
+    Chunk *chunk = chunk_loader_get_chunk( &world->loadedChunks, TRIP_ARGS( chunk_ ) );
     if ( chunk ) {
         int diff_x = block_x - chunk_x * CHUNK_SIZE;
         int diff_y = block_y - chunk_y * CHUNK_SIZE;
@@ -103,7 +133,7 @@ void world_set_loaded_block( LoadedChunks *loadedChunks, TRIP_ARGS( int block_ )
                     // pr_debug( "                                New Offset: %d %d %d:%d", new_i, new_j, new_k, needs_update );
 
                     if ( needs_update ) {
-                        fixup_chunk( loadedChunks, chunk, i, j, k, diff_x - CHUNK_SIZE * new_i, diff_y - CHUNK_SIZE * new_j, diff_z - CHUNK_SIZE * new_k, blockID );
+                        fixup_chunk( world, chunk, i, j, k, diff_x - CHUNK_SIZE * new_i, diff_y - CHUNK_SIZE * new_j, diff_z - CHUNK_SIZE * new_k, blockID );
                     }
                 }
             }

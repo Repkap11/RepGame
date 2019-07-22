@@ -15,11 +15,13 @@
 #endif
 
 #include "chunk_loader.hpp"
+#include "world.hpp"
 #include "constants.hpp"
 #include "ui_overlay.hpp"
 
 #include <glm.hpp>
 #include <gtc/matrix_transform.hpp>
+
 #define DEBUG 1
 
 #define TRIP_STATE( replace )                                                                                                                                                                                                                  \
@@ -39,6 +41,7 @@ typedef struct {
         float angle_H;
         float angle_V;
         glm::vec3 look;
+        glm::mat4 rotation;
         TRIP_STATE( float m );
         float x;
         float y;
@@ -54,7 +57,7 @@ typedef struct {
         glm::mat4 ortho_center;
     } screen;
     Texture blocksTexture;
-    LoadedChunks gameChunks;
+    World world;
     UIOverlay ui_overlay;
     struct {
         int selectionInBounds;
@@ -75,7 +78,7 @@ typedef struct {
 } PlayerData;
 
 void renderShaders( int x, int y, int z );
-void repgame_init( const char* world_name );
+void repgame_init( const char *world_name );
 void repgame_tick( );
 void repgame_clear( );
 void repgame_idle( );
