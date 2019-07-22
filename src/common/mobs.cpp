@@ -36,9 +36,9 @@ void mobs_init( Mobs *mobs, VertexBufferLayout *vbl_mob_shape, VertexBufferLayou
 }
 
 void mobs_update_position( Mobs *mobs, float x, float y, float z, float angle_H, float angle_V ) {
-    mobs->mob_placement.x = 0;
-    mobs->mob_placement.y = 0;
-    mobs->mob_placement.z = 0;
+    mobs->mob_placement.x = x;
+    mobs->mob_placement.y = y;
+    mobs->mob_placement.z = z;
 
     glm::mat4 rotate = glm::rotate( glm::mat4( 1.0f ), glm::radians( -angle_H + 180 ), glm::vec3( 0.0f, 1.0f, 0.0f ) );
     rotate = glm::rotate( rotate, glm::radians( angle_V ), glm::vec3( 1.0f, 0.0f, 0.0f ) );

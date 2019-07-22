@@ -33,7 +33,7 @@ void world_init( World *world, TRIP_ARGS( float camera_ ) ) {
 }
 void world_render( World *world, TRIP_ARGS( float camera_ ), int limit_render, float angle_H, float angle_V ) {
     chunk_loader_render_chunks( &world->loadedChunks, TRIP_ARGS( camera_ ), limit_render );
-    mobs_update_position( &world->mobs, 0, 0, 0, angle_H, angle_V );
+    mobs_update_position( &world->mobs, 10, 10, 10, angle_H, angle_V );
 }
 
 void world_set_selected_block( World *world, int selected_x, int selected_y, int selected_z, int shouldDraw ) {
