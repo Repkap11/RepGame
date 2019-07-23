@@ -38,11 +38,12 @@ typedef struct {
     float tex_coord_x; // Float just because it needs to be in shader, and we can avoid the gpu side cast
     float tex_coord_y;
 
-    float which_face;
-    float corner_shift;
+    unsigned int which_face;
+    unsigned int corner_shift;
+
 } CubeFace;
 
-//Order must match order of FACE_
+// Order must match order of FACE_
 static unsigned int ib_data_solid[] = {
     22, 18, 24, //
     24, 18, 19, // Top

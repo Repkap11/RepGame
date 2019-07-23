@@ -9,7 +9,6 @@
 #define CHUNK_BLOCK_DRAW_START ( CHUNK_SIZE_INTERNAL * CHUNK_SIZE_INTERNAL )
 #define CHUNK_BLOCK_DRAW_STOP ( CHUNK_BLOCK_SIZE - CHUNK_BLOCK_DRAW_START )
 
-
 typedef struct {
     float x;
     float y;
@@ -21,7 +20,7 @@ typedef struct {
 
     float face[ NUM_FACES_IN_CUBE ];
 
-    float packed_lighting[ NUM_FACES_IN_CUBE ];
+    unsigned int packed_lighting[ NUM_FACES_IN_CUBE ];
 
     glm::mat4 rotation;
 } BlockCoords;

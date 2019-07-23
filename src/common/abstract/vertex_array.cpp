@@ -35,12 +35,12 @@ void vertex_array_add_buffer( VertexArray *vertexArray, const VertexBuffer *vert
 #pragma GCC diagnostic ignored "-Wint-to-pointer-cast"
         const void *offset_pointer = ( const void * )offset;
 #pragma GCC diagnostic pop
-        showErrors( );
         // pr_debug( "Adding attrib:%d", index );
-
-        glVertexAttribPointer( index, element->count, element->type, element->normalized, vertexBufferLayout->stride, offset_pointer );
-        showErrors( );
-
+        if ( vertex_buffer_layout_uses_I_attrib( element->type ) ) {
+            glVertexAttribIPointer( index, element->count, element->type, vertexBufferLayout->stride, offset_pointer );
+        } else {
+            glVertexAttribPointer( index, element->count, element->type, element->normalized, vertexBufferLayout->stride, offset_pointer );
+        }
         offset += element->count * vertex_buffer_layout_size_of_type( element->type );
     }
 }
