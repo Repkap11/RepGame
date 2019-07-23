@@ -7,23 +7,22 @@
 void world_init( World *world, TRIP_ARGS( float camera_ ) ) {
     // These are from CubeFace
     vertex_buffer_layout_init( &world->vbl_block );
-    vertex_buffer_layout_push_float( &world->vbl_block, 3 ); // Coords
-    vertex_buffer_layout_push_float( &world->vbl_block, 2 ); // Texture coords
-    vertex_buffer_layout_push_unsigned_int( &world->vbl_block, 1 );   // Face type (top, sides, bottom)
+    vertex_buffer_layout_push_float( &world->vbl_block, 3 );        // Coords
+    vertex_buffer_layout_push_float( &world->vbl_block, 2 );        // Texture coords
+    vertex_buffer_layout_push_unsigned_int( &world->vbl_block, 1 ); // Face type (top, sides, bottom)
     vertex_buffer_layout_push_unsigned_int( &world->vbl_block, 1 ); // Corner_shift
 
     // These are from BlockCoords
     vertex_buffer_layout_init( &world->vbl_coords );
-    vertex_buffer_layout_push_float( &world->vbl_coords, 3 ); // block 3d world coords
-    vertex_buffer_layout_push_float( &world->vbl_coords, 3 ); // Multiples (mesh)
-    vertex_buffer_layout_push_float( &world->vbl_coords, 3 ); // which texture (block type 1)
-    vertex_buffer_layout_push_float( &world->vbl_coords, 3 ); // which texture (block type 2)
+    vertex_buffer_layout_push_float( &world->vbl_coords, 3 );        // block 3d world coords
+    vertex_buffer_layout_push_float( &world->vbl_coords, 3 );        // Multiples (mesh)
+    vertex_buffer_layout_push_unsigned_int( &world->vbl_coords, 3 ); // which texture
     vertex_buffer_layout_push_unsigned_int( &world->vbl_coords, 3 ); // packed lighting
     vertex_buffer_layout_push_unsigned_int( &world->vbl_coords, 3 ); // packed lighting
-    vertex_buffer_layout_push_float( &world->vbl_coords, 4 ); // rotation
-    vertex_buffer_layout_push_float( &world->vbl_coords, 4 ); // rotation
-    vertex_buffer_layout_push_float( &world->vbl_coords, 4 ); // rotation
-    vertex_buffer_layout_push_float( &world->vbl_coords, 4 ); // rotation
+    vertex_buffer_layout_push_float( &world->vbl_coords, 4 );        // rotation
+    vertex_buffer_layout_push_float( &world->vbl_coords, 4 );        // rotation
+    vertex_buffer_layout_push_float( &world->vbl_coords, 4 );        // rotation
+    vertex_buffer_layout_push_float( &world->vbl_coords, 4 );        // rotation
     pr_debug( "Sizeof mat4:%d", ( int )sizeof( glm::mat4 ) );
 
     chunk_loader_init( &world->loadedChunks, TRIP_ARGS( camera_ ), &world->vbl_block, &world->vbl_coords );

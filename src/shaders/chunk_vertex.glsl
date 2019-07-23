@@ -13,11 +13,10 @@ layout( location = 3 ) in uint corner_shift;
 // There is one of these per block
 layout( location = 4 ) in vec3 blockCoords;
 layout( location = 5 ) in vec3 mesh_size;
-layout( location = 6 ) in vec3 blockTexture1;
-layout( location = 7 ) in vec3 blockTexture2;
-layout( location = 8 ) in uvec3 packed_lighting_1;
-layout( location = 9 ) in uvec3 packed_lighting_2;
-layout( location = 10 ) in mat4 rotation;
+layout( location = 6 ) in uvec3 blockTexture;
+layout( location = 7 ) in uvec3 packed_lighting_1;
+layout( location = 8 ) in uvec3 packed_lighting_2;
+layout( location = 9 ) in mat4 rotation;
 
 out vec2 v_TexCoordBlock;
 flat out float v_blockID;
@@ -64,7 +63,7 @@ void main( ) {
         packed_lighting = packed_lighting_2[ faceType - 3u ];
     }
     float light_divisor = 1.3; // good looking
-    //light_divisor = 0.5;       // debug
+    // light_divisor = 0.5;       // debug
 
     uint which_bits = 3u;
     if ( corner_shift == CORNER_OFFSET_c ) {
@@ -83,9 +82,7 @@ void main( ) {
 
     v_corner_lighting = face_light * corner_light;
     v_TexCoordBlock = texCoordBlock * face_scale;
-    if ( faceType < 3u ) {
-        v_blockID = blockTexture1[ faceType ];
-    } else {
-        v_blockID = blockTexture2[ faceType - 3u ];
-    }
+    uint shift = ( faceType % 2u ) * 16u;
+    // 0xffffu is max short 16u is sizeof(short)
+    v_blockID = float( ( blockTexture[ faceType / 2u ] & ( 0xffffu << shift ) ) >> shift );
 }

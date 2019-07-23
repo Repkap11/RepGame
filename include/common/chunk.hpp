@@ -18,7 +18,7 @@ typedef struct {
     float mesh_y;
     float mesh_z;
 
-    float face[ NUM_FACES_IN_CUBE ];
+    unsigned short face[ NUM_FACES_IN_CUBE ];
 
     unsigned int packed_lighting[ NUM_FACES_IN_CUBE ];
 
