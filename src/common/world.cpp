@@ -19,10 +19,12 @@ void world_init( World *world, TRIP_ARGS( float camera_ ) ) {
     vertex_buffer_layout_push_unsigned_int( &world->vbl_coords, 3 ); // which texture
     vertex_buffer_layout_push_unsigned_int( &world->vbl_coords, 3 ); // packed lighting
     vertex_buffer_layout_push_unsigned_int( &world->vbl_coords, 3 ); // packed lighting
-    vertex_buffer_layout_push_float( &world->vbl_coords, 4 );        // rotation
-    vertex_buffer_layout_push_float( &world->vbl_coords, 4 );        // rotation
-    vertex_buffer_layout_push_float( &world->vbl_coords, 4 );        // rotation
-    vertex_buffer_layout_push_float( &world->vbl_coords, 4 );        // rotation
+#if MOB_ROTATION
+    vertex_buffer_layout_push_float( &world->vbl_coords, 4 ); // rotation
+    vertex_buffer_layout_push_float( &world->vbl_coords, 4 ); // rotation
+    vertex_buffer_layout_push_float( &world->vbl_coords, 4 ); // rotation
+    vertex_buffer_layout_push_float( &world->vbl_coords, 4 ); // rotation
+#endif
     pr_debug( "Sizeof mat4:%d", ( int )sizeof( glm::mat4 ) );
 
     chunk_loader_init( &world->loadedChunks, TRIP_ARGS( camera_ ), &world->vbl_block, &world->vbl_coords );

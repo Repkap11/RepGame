@@ -23,7 +23,10 @@ typedef struct {
 
     unsigned int packed_lighting[ NUM_FACES_IN_CUBE ];
 
+#if MOB_ROTATION
     glm::mat4 rotation;
+#endif
+
 } BlockCoords;
 
 typedef struct {

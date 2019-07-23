@@ -79,7 +79,9 @@ void mouse_selection_set_block( MouseSelection *mouseSelection, int x, int y, in
         mouseSelection->block.x = x;
         mouseSelection->block.y = y;
         mouseSelection->block.z = z;
+#if MOB_ROTATION
         mouseSelection->block.rotation = glm::mat4( 1 );
+#endif
 
         vertex_buffer_set_data( &mouseSelection->vb_coords, &mouseSelection->block, sizeof( BlockCoords ) * 1 );
     }

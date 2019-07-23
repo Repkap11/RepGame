@@ -40,6 +40,7 @@ void mobs_update_position( Mobs *mobs, float x, float y, float z, glm::mat4 &rot
     mobs->mob_placement.y = y;
     mobs->mob_placement.z = z;
 
+#if MOB_ROTATION
     glm::vec3 translate = glm::vec3(           //
         ( float )mobs->mob_placement.x + 0.5f, //
         ( float )mobs->mob_placement.y + 0.5f, //
@@ -49,6 +50,7 @@ void mobs_update_position( Mobs *mobs, float x, float y, float z, glm::mat4 &rot
     glm::mat4 trans_inverse_mat = glm::translate( glm::mat4( 1.0f ), glm::vec3( -1.0f ) * translate );
 
     mobs->mob_placement.rotation = trans_mat * rotation * trans_inverse_mat;
+#endif
 
     vertex_buffer_set_data( &mobs->vb_mob_placement, &mobs->mob_placement, sizeof( BlockCoords ) * 1 );
 }

@@ -35,12 +35,10 @@ out float v_corner_lighting;
 #define CORNER_OFFSET_c 16u
 
 void main( ) {
-    // vec3 adjust = vec3( 1, 1, 1 ) - position;
-    // adjust.y = position.y;
     vec3 mesh_size = vec3( ( mesh_size_packed & 0xffu ), ( mesh_size_packed & 0xff00u ) >> 8, ( mesh_size_packed & 0xff0000u ) >> 16 );
-    gl_Position = u_MVP * rotation * vec4( position * ( mesh_size - u_DebugScaleOffset ) + blockCoords, 1 );
-    // uint faceType = uint( faceType_f );
-    vec2 face_scale; // = vec2( 1, 1 );
+    gl_Position = u_MVP * vec4( position * ( mesh_size - u_DebugScaleOffset ) + blockCoords, 1 );
+    //gl_Position = u_MVP * rotation * vec4( position * ( mesh_size - u_DebugScaleOffset ) + blockCoords, 1 );
+    vec2 face_scale;
     if ( faceType == FACE_TOP || faceType == FACE_BOTTOM ) {
         face_scale = mesh_size.xz;
     } else if ( faceType == FACE_RIGHT || faceType == FACE_LEFT ) {
