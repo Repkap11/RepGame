@@ -15,7 +15,7 @@ void world_init( World *world, TRIP_ARGS( float camera_ ) ) {
     // These are from BlockCoords
     vertex_buffer_layout_init( &world->vbl_coords );
     vertex_buffer_layout_push_float( &world->vbl_coords, 3 );        // block 3d world coords
-    vertex_buffer_layout_push_float( &world->vbl_coords, 3 );        // Multiples (mesh)
+    vertex_buffer_layout_push_unsigned_int( &world->vbl_coords, 1 ); // Multiples (mesh)
     vertex_buffer_layout_push_unsigned_int( &world->vbl_coords, 3 ); // which texture
     vertex_buffer_layout_push_unsigned_int( &world->vbl_coords, 3 ); // packed lighting
     vertex_buffer_layout_push_unsigned_int( &world->vbl_coords, 3 ); // packed lighting

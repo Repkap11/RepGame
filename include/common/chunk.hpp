@@ -14,9 +14,10 @@ typedef struct {
     float y;
     float z;
 
-    float mesh_x;
-    float mesh_y;
-    float mesh_z;
+    unsigned char mesh_x;
+    unsigned char mesh_y;
+    unsigned char mesh_z;
+    unsigned char space;
 
     unsigned short face[ NUM_FACES_IN_CUBE ];
 

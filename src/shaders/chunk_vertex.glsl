@@ -12,7 +12,7 @@ layout( location = 3 ) in uint corner_shift;
 // See BlockCoords in chunk.h
 // There is one of these per block
 layout( location = 4 ) in vec3 blockCoords;
-layout( location = 5 ) in vec3 mesh_size;
+layout( location = 5 ) in uint mesh_size_packed;
 layout( location = 6 ) in uvec3 blockTexture;
 layout( location = 7 ) in uvec3 packed_lighting_1;
 layout( location = 8 ) in uvec3 packed_lighting_2;
@@ -37,6 +37,7 @@ out float v_corner_lighting;
 void main( ) {
     // vec3 adjust = vec3( 1, 1, 1 ) - position;
     // adjust.y = position.y;
+    vec3 mesh_size = vec3( ( mesh_size_packed & 0xffu ), ( mesh_size_packed & 0xff00u ) >> 8, ( mesh_size_packed & 0xff0000u ) >> 16 );
     gl_Position = u_MVP * rotation * vec4( position * ( mesh_size - u_DebugScaleOffset ) + blockCoords, 1 );
     // uint faceType = uint( faceType_f );
     vec2 face_scale; // = vec2( 1, 1 );
