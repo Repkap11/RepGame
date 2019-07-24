@@ -42,7 +42,7 @@
 #define CULL_NON_VISIBLE 1
 #define FOREST_DEBUG 0
 
-#define NO_CLIP 1
+#define NO_CLIP 0
 #define MAP_SEED 0
 
 #define BLOCK_SCALE_OFFSET 0.1f
