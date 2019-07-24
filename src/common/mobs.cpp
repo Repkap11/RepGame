@@ -30,12 +30,6 @@ void mobs_init( Mobs *mobs, VertexBufferLayout *vbl_object_vertex, VertexBufferL
         vertex_array_add_buffer( &mobs->va, &mobs->vb_mob_placement, vbl_object_placement, 1, vbl_object_vertex->current_size );
     }
     {
-        // for ( int i = 0; i < NUM_FACES_IN_CUBE; i++ ) {
-        //     mobs->mob_placement.face[ i ] = DIRT - 1;
-        // }
-        // mobs->mob_placement.face[ FACE_FRONT ] = GOLD_BLOCK - 1;
-        // mobs->mob_placement.face[ FACE_BACK ] = DIAMOND_BLOCK - 1;
-        // mobs->mob_placement = glm::mat4( 1 );
         mobs->shouldDraw = 1;
         mobs->mob_position.which_block = GOLD_BLOCK - 1;
     }

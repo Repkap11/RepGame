@@ -45,8 +45,6 @@
 #define NO_CLIP 1
 #define MAP_SEED 0
 
-#define MOB_ROTATION 0 //Make sure to change the gl_Position line in the shader too.
-
 #define BLOCK_SCALE_OFFSET 0.1f
 
 #define DISABLE_GROUPING_BLOCKS 0
