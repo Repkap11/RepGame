@@ -4,8 +4,8 @@
 #include "common/chunk_loader.hpp"
 #include <math.h>
 
-MK_SHADER( sky_box_vertex );
-MK_SHADER( sky_box_fragment );
+MK_SHADER( object_vertex );
+MK_SHADER( object_fragment );
 
 void world_init( World *world, TRIP_ARGS( float camera_ ) ) {
     // These are from CubeFace
@@ -39,7 +39,7 @@ void world_init( World *world, TRIP_ARGS( float camera_ ) ) {
 
     chunk_loader_init( &world->loadedChunks, TRIP_ARGS( camera_ ), &world->vbl_block, &world->vbl_coords );
 
-    shader_init( &world->sky_shader, &sky_box_vertex, &sky_box_fragment );
+    shader_init( &world->sky_shader, &object_vertex, &object_fragment );
 
     sky_box_init( &world->skyBox, &world->vbl_object_vertex, &world->vbl_object_position );
     mobs_init( &world->mobs, &world->vbl_object_vertex, &world->vbl_object_position );
