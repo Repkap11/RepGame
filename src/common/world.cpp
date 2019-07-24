@@ -25,16 +25,17 @@ void world_init( World *world, TRIP_ARGS( float camera_ ) ) {
 
     // These are from ObjectVertex
     vertex_buffer_layout_init( &world->vbl_object_vertex );
-    vertex_buffer_layout_push_float( &world->vbl_object_vertex, 3 ); // Coords
-    vertex_buffer_layout_push_float( &world->vbl_object_vertex, 2 ); // TxCoords
+    vertex_buffer_layout_push_float( &world->vbl_object_vertex, 3 );        // Coords
+    vertex_buffer_layout_push_float( &world->vbl_object_vertex, 2 );        // TxCoords
+    vertex_buffer_layout_push_unsigned_int( &world->vbl_object_vertex, 1 ); // faceType
 
     // These are from ObjectPosition
     vertex_buffer_layout_init( &world->vbl_object_position );
-    vertex_buffer_layout_push_float( &world->vbl_object_position, 1 ); // blockId
-    vertex_buffer_layout_push_float( &world->vbl_object_position, 4 ); // transform
-    vertex_buffer_layout_push_float( &world->vbl_object_position, 4 ); // transform
-    vertex_buffer_layout_push_float( &world->vbl_object_position, 4 ); // transform
-    vertex_buffer_layout_push_float( &world->vbl_object_position, 4 ); // transform
+    vertex_buffer_layout_push_unsigned_int( &world->vbl_object_position, 3 ); // which texture
+    vertex_buffer_layout_push_float( &world->vbl_object_position, 4 );        // transform
+    vertex_buffer_layout_push_float( &world->vbl_object_position, 4 );        // transform
+    vertex_buffer_layout_push_float( &world->vbl_object_position, 4 );        // transform
+    vertex_buffer_layout_push_float( &world->vbl_object_position, 4 );        // transform
 
     chunk_loader_init( &world->loadedChunks, TRIP_ARGS( camera_ ), &world->vbl_block, &world->vbl_coords );
 

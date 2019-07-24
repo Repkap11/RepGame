@@ -26,7 +26,7 @@ typedef struct {
 } BlockCoords;
 
 typedef struct {
-    float which_block;
+    unsigned short face[ NUM_FACES_IN_CUBE ];
     glm::mat4 transform;
 } ObjectPosition;
 

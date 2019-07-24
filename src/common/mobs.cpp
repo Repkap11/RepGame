@@ -1,14 +1,6 @@
 #include "common/mobs.hpp"
 #include "common/RepGame.hpp"
 
-static ObjectVertex vd_data_player[] = {
-    {0, 0, 0, 0, 0}, //
-    {1, 0, 0, 1, 0}, //
-    {1, 0, 1, 1, 1}, //
-    {0, 0, 1, 0, 1}, //
-};
-#define VB_DATA_SIZE_PLAYER ( 4 )
-
 static unsigned int ib_data_player[] = {
     0, 1, 2, //
     2, 3, 0, //
@@ -30,8 +22,12 @@ void mobs_init( Mobs *mobs, VertexBufferLayout *vbl_object_vertex, VertexBufferL
         vertex_array_add_buffer( &mobs->va, &mobs->vb_mob_placement, vbl_object_placement, 1, vbl_object_vertex->current_size );
     }
     {
+        for ( int i = 0; i < NUM_FACES_IN_CUBE; i++ ) {
+            mobs->mob_position.face[ i ] = DIRT - 1;
+        }
+        mobs->mob_position.face[ FACE_FRONT ] = GOLD_BLOCK - 1;
+        mobs->mob_position.face[ FACE_BACK ] = DIAMOND_BLOCK - 1;
         mobs->shouldDraw = 1;
-        mobs->mob_position.which_block = GOLD_BLOCK - 1;
     }
     {
 
