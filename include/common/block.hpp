@@ -146,6 +146,55 @@ static CubeFace vd_data_solid[] = {
     {0.5f, 0.5f, 0.0f, /*Coords  Texture coords*/ 0.5f, 0.5f, FACE_BACK, CORNER_OFFSET_c},   // 29
 
 };
-#define VB_DATA_SIZE_SOLID ( 5 * 6 + 6 )
+
+typedef struct {
+    float x;
+    float y;
+    float z;
+    float u;
+    float v;
+} ObjectVertex;
+
+static ObjectVertex vd_data_solid_object[] = {
+    // x=right/left, y=top/bottom, z=front/back : 1/0
+    {0.0f, 0.0f, 0.0f, /*Coords  Texture coords*/ 1, 0}, // 0
+    {1.0f, 0.0f, 0.0f, /*Coords  Texture coords*/ 0, 0}, // 1
+    {1.0f, 1.0f, 0.0f, /*Coords  Texture coords*/ 0, 1}, // 2
+    {0.0f, 1.0f, 0.0f, /*Coords  Texture coords*/ 1, 1}, // 3
+
+    {0.0f, 0.0f, 1.0f, /*Coords  Texture coords*/ 0, 0}, // 4
+    {1.0f, 0.0f, 1.0f, /*Coords  Texture coords*/ 1, 0}, // 5
+    {1.0f, 1.0f, 1.0f, /*Coords  Texture coords*/ 1, 1}, // 6
+    {0.0f, 1.0f, 1.0f, /*Coords  Texture coords*/ 0, 1}, // 7
+
+    {0.0f, 0.0f, 0.0f, /*Coords  Texture coords*/ 0, 0}, // 8
+    {1.0f, 0.0f, 0.0f, /*Coords  Texture coords*/ 1, 0}, // 9
+    {1.0f, 1.0f, 0.0f, /*Coords  Texture coords*/ 1, 1}, // 10
+    {0.0f, 1.0f, 0.0f, /*Coords  Texture coords*/ 0, 1}, // 11
+
+    {0.0f, 0.0f, 1.0f, /*Coords  Texture coords*/ 1, 0}, // 12
+    {1.0f, 0.0f, 1.0f, /*Coords  Texture coords*/ 0, 0}, // 13
+    {1.0f, 1.0f, 1.0f, /*Coords  Texture coords*/ 0, 1}, // 14
+    {0.0f, 1.0f, 1.0f, /*Coords  Texture coords*/ 1, 1}, // 15
+
+    {0.0f, 0.0f, 0.0f, /*Coords  Texture coords*/ 1, 1}, // 16
+    {1.0f, 0.0f, 0.0f, /*Coords  Texture coords*/ 0, 1}, // 17
+    {1.0f, 1.0f, 0.0f, /*Coords  Texture coords*/ 0, 0}, // 18
+    {0.0f, 1.0f, 0.0f, /*Coords  Texture coords*/ 1, 0}, // 19
+
+    {0.0f, 0.0f, 1.0f, /*Coords  Texture coords*/ 1, 0}, // 20
+    {1.0f, 0.0f, 1.0f, /*Coords  Texture coords*/ 0, 0}, // 21
+    {1.0f, 1.0f, 1.0f, /*Coords  Texture coords*/ 0, 1}, // 22
+    {0.0f, 1.0f, 1.0f, /*Coords  Texture coords*/ 1, 1}, // 23
+
+    {0.5f, 1.0f, 0.5f, /*Coords  Texture coords*/ 0.5f, 0.5f}, // 24
+    {0.5f, 0.0f, 0.5f, /*Coords  Texture coords*/ 0.5f, 0.5f}, // 25
+    {1.0f, 0.5f, 0.5f, /*Coords  Texture coords*/ 0.5f, 0.5f}, // 26
+    {0.5f, 0.5f, 1.0f, /*Coords  Texture coords*/ 0.5f, 0.5f}, // 27
+    {0.0f, 0.5f, 0.5f, /*Coords  Texture coords*/ 0.5f, 0.5f}, // 28
+    {0.5f, 0.5f, 0.0f, /*Coords  Texture coords*/ 0.5f, 0.5f}, // 29
+
+};
+#define VB_DATA_SIZE_SOLID ( 5 * 6 )
 
 #endif

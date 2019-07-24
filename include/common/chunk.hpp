@@ -30,6 +30,11 @@ typedef struct {
 } BlockCoords;
 
 typedef struct {
+    float which_block;
+    glm::mat4 transform;
+} ObjectPosition;
+
+typedef struct {
     VertexArray va;
     IndexBuffer ib;
     int num_instances;

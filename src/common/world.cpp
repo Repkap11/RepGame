@@ -4,6 +4,9 @@
 #include "common/chunk_loader.hpp"
 #include <math.h>
 
+MK_SHADER( sky_box_vertex );
+MK_SHADER( sky_box_fragment );
+
 void world_init( World *world, TRIP_ARGS( float camera_ ) ) {
     // These are from CubeFace
     vertex_buffer_layout_init( &world->vbl_block );
@@ -27,9 +30,25 @@ void world_init( World *world, TRIP_ARGS( float camera_ ) ) {
 #endif
     pr_debug( "Sizeof mat4:%d", ( int )sizeof( glm::mat4 ) );
 
+    // These are from ObjectVertex
+    vertex_buffer_layout_init( &world->vbl_object_vertex );
+    vertex_buffer_layout_push_float( &world->vbl_object_vertex, 3 ); // Coords
+    vertex_buffer_layout_push_float( &world->vbl_object_vertex, 2 ); // TxCoords
+
+    // These are from ObjectPosition
+    vertex_buffer_layout_init( &world->vbl_object_position );
+    vertex_buffer_layout_push_float( &world->vbl_object_position, 1 ); // blockId
+    vertex_buffer_layout_push_float( &world->vbl_object_position, 4 ); // transform
+    vertex_buffer_layout_push_float( &world->vbl_object_position, 4 ); // transform
+    vertex_buffer_layout_push_float( &world->vbl_object_position, 4 ); // transform
+    vertex_buffer_layout_push_float( &world->vbl_object_position, 4 ); // transform
+
     chunk_loader_init( &world->loadedChunks, TRIP_ARGS( camera_ ), &world->vbl_block, &world->vbl_coords );
-    sky_box_init( &world->skyBox );
-    mobs_init( &world->mobs, &world->vbl_block, &world->vbl_coords );
+
+    shader_init( &world->sky_shader, &sky_box_vertex, &sky_box_fragment );
+
+    sky_box_init( &world->skyBox, &world->vbl_object_vertex, &world->vbl_object_position );
+    mobs_init( &world->mobs, &world->vbl_object_vertex, &world->vbl_object_position );
     mouse_selection_init( &world->mouseSelection, &world->vbl_block, &world->vbl_coords );
 }
 void world_render( World *world, TRIP_ARGS( float camera_ ), int limit_render, glm::mat4 &rotation ) {
@@ -42,7 +61,13 @@ void world_set_selected_block( World *world, int selected_x, int selected_y, int
 }
 
 void world_draw( World *world, Texture *blocksTexture, glm::mat4 &mvp, glm::mat4 &mvp_sky, int debug, int draw_mouse_selection ) {
-    sky_box_draw( &world->skyBox, &world->renderer, mvp_sky );
+
+    sky_box_draw( &world->skyBox, &world->renderer, mvp_sky, &world->sky_shader );
+
+    shader_set_uniform1i( &world->sky_shader, "u_Texture", blocksTexture->slot );
+    shader_set_uniform_mat4f( &world->sky_shader, "u_MVP", mvp );
+
+    mobs_draw( &world->mobs, &world->renderer, &world->sky_shader );
 
     shader_set_uniform1i( &world->loadedChunks.shader, "u_Texture", blocksTexture->slot );
     shader_set_uniform_mat4f( &world->loadedChunks.shader, "u_MVP", mvp );
@@ -58,12 +83,15 @@ void world_draw( World *world, Texture *blocksTexture, glm::mat4 &mvp, glm::mat4
         mouse_selection_draw( &world->mouseSelection, &world->renderer, &world->loadedChunks.shader );
     }
     chunk_loader_draw_chunks( &world->loadedChunks, &world->renderer, mvp );
-    mobs_draw( &world->mobs, &world->renderer, &world->loadedChunks.shader );
 }
 void world_cleanup( World *world ) {
+
     chunk_loader_cleanup( &world->loadedChunks );
     sky_box_destroy( &world->skyBox );
     mobs_cleanup( &world->mobs );
+    vertex_buffer_layout_destroy( &world->vbl_block );
+    vertex_buffer_layout_destroy( &world->vbl_block );
+    vertex_buffer_layout_destroy( &world->vbl_coords );
 }
 
 void fixup_chunk( World *world, Chunk *chunk, TRIP_ARGS( int offset_ ), TRIP_ARGS( int pos_ ), BlockID blockID ) {
