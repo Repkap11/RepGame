@@ -24,7 +24,9 @@
         "deque": "cpp",
         "vector": "cpp",
         "limits": "cpp",
-        "cstring": "cpp"
+        "cstring": "cpp",
+        "hash_map": "cpp",
+        "*.cuh": "cpp"
     },
     "git.ignoreLimitWarning": true
 }

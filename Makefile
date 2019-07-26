@@ -24,7 +24,7 @@ USE_CCACHE := 1
 all: android linux windows wasm
 	@echo "${TARGET} build complete..."
 
-SRC_COMMON := $(wildcard src/common/*.cpp) $(wildcard src/common/abstract/*.cpp) $(wildcard src/common/utils/*.cpp) $(wildcard src/common/net/*.cpp)
+SRC_COMMON := $(wildcard src/common/*.cpp) $(wildcard src/common/**/*.cpp)
 INCLUDES_COMMON := -I include/ -I /usr/include/glm
 
 HEADERS := $(wildcard include/**/*.hpp)
@@ -89,4 +89,4 @@ vars:
 
 AFTER_VARS := $(.VARIABLES)
 
-#$(info $$ANDROID_BITMAPS is [${ANDROID_BITMAPS}])
+$(info $$SRC_COMMON is [${SRC_COMMON}])

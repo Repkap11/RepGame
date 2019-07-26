@@ -1,1 +1,22 @@
-#define pr_debug( fmt, ... ) fprintf( stdout, "%s:%d:%s():" fmt "\n", __FILE__, __LINE__, __func__, ##__VA_ARGS__ );
+
+#include <glm.hpp>
+
+typedef enum { INVALID, PLAYER_LOCATION, BLOCK_UPDATE, CLIENT_INIT, SERVER_ACK } PacketType;
+
+typedef struct {
+    PacketType type;
+    union {
+        struct {
+            int x;
+            int y;
+            int z;
+            int blockID;
+        } block;
+        struct {
+            float x;
+            float y;
+            float z;
+            float rotation[ 4 * 4 ];
+        } player;
+    } data;
+} NetPacket;
