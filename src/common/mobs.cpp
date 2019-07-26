@@ -22,11 +22,13 @@ void mobs_init( Mobs *mobs, VertexBufferLayout *vbl_object_vertex, VertexBufferL
         vertex_array_add_buffer( &mobs->va, &mobs->vb_mob_placement, vbl_object_placement, 1, vbl_object_vertex->current_size );
     }
     {
-        for ( int i = 0; i < NUM_FACES_IN_CUBE; i++ ) {
-            mobs->mob_position.face[ i ] = DIRT - 1;
-        }
-        mobs->mob_position.face[ FACE_FRONT ] = GOLD_BLOCK - 1;
-        mobs->mob_position.face[ FACE_BACK ] = DIAMOND_BLOCK - 1;
+        mobs->mob_position.face[ FACE_TOP ] = STEVE_HEAD_TOP - 1;
+        mobs->mob_position.face[ FACE_BOTTOM ] = STEVE_HEAD_BOTTOM - 1;
+        mobs->mob_position.face[ FACE_RIGHT ] = STEVE_HEAD_RIGHT - 1;
+        mobs->mob_position.face[ FACE_FRONT ] = STEVE_HEAD_FRONT - 1;
+        mobs->mob_position.face[ FACE_LEFT ] = STEVE_HEAD_LEFT - 1;
+        mobs->mob_position.face[ FACE_BACK ] = STEVE_HEAD_BACK - 1;
+
         mobs->shouldDraw = 1;
     }
     {
