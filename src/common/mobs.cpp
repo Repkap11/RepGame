@@ -30,9 +30,7 @@ void mobs_init( Mobs *mobs, VertexBufferLayout *vbl_object_vertex, VertexBufferL
         mobs->shouldDraw = 1;
     }
     {
-
-    } {
-        vertex_buffer_set_data( &mobs->vb_mob_shape, vd_data_solid_object, sizeof( ObjectVertex ) * VB_DATA_SIZE_SOLID );
+        vertex_buffer_set_data( &mobs->vb_mob_shape, vd_data_player_object, sizeof( ObjectVertex ) * VB_DATA_SIZE_PLAYER );
         vertex_buffer_set_data( &mobs->vb_mob_placement, &mobs->mob_position, sizeof( ObjectPosition ) * 1 );
         index_buffer_set_data( &mobs->ib, ib_data_solid, IB_SOLID_SIZE );
     }

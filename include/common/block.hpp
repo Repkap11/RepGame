@@ -4,32 +4,6 @@
 #include "constants.hpp"
 #include "block_definitions.hpp"
 
-#define FACE_TOP 0
-#define FACE_BOTTOM 1
-#define FACE_RIGHT 2
-#define FACE_FRONT 3
-#define FACE_LEFT 4
-#define FACE_BACK 5
-
-//  FR
-// BR  FL
-//  BL
-
-#define CORNER_OFFSET_tfl 0
-#define CORNER_OFFSET_tfr 2
-#define CORNER_OFFSET_tbl 4
-#define CORNER_OFFSET_tbr 6
-#define CORNER_OFFSET_bfl 8
-#define CORNER_OFFSET_bfr 10
-#define CORNER_OFFSET_bbl 12
-#define CORNER_OFFSET_bbr 14
-
-#define CORNER_OFFSET_c 16
-
-#define NO_LIGHT_DRAW 0x7ffff
-#define NO_LIGHT_NO_DRAW 0xfffff
-#define NO_LIGHT_BRIGHT 0
-
 typedef struct {
     float x;
     float y;
@@ -144,58 +118,23 @@ static CubeFace vd_data_solid[] = {
     {0.5f, 0.5f, 1.0f, /*Coords  Texture coords*/ 0.5f, 0.5f, FACE_FRONT, CORNER_OFFSET_c},  // 27
     {0.0f, 0.5f, 0.5f, /*Coords  Texture coords*/ 0.5f, 0.5f, FACE_LEFT, CORNER_OFFSET_c},   // 28
     {0.5f, 0.5f, 0.0f, /*Coords  Texture coords*/ 0.5f, 0.5f, FACE_BACK, CORNER_OFFSET_c},   // 29
-
 };
+#define VB_DATA_SIZE_SOLID ( 5 * 6 )
 
 typedef struct {
     float x;
     float y;
     float z;
-    float u;
-    float v;
-    unsigned int which_face;
-} ObjectVertex;
 
-static ObjectVertex vd_data_solid_object[] = {
-    // x=right/left, y=top/bottom, z=front/back : 1/0
-    {0.0f, 0.0f, 0.0f, /*Coords  Texture coords*/ 1, 0, FACE_BACK}, // 0
-    {1.0f, 0.0f, 0.0f, /*Coords  Texture coords*/ 0, 0, FACE_BACK}, // 1
-    {1.0f, 1.0f, 0.0f, /*Coords  Texture coords*/ 0, 1, FACE_BACK}, // 2
-    {0.0f, 1.0f, 0.0f, /*Coords  Texture coords*/ 1, 1, FACE_BACK}, // 3
+    unsigned char mesh_x;
+    unsigned char mesh_y;
+    unsigned char mesh_z;
+    unsigned char space;
 
-    {0.0f, 0.0f, 1.0f, /*Coords  Texture coords*/ 0, 0, FACE_FRONT}, // 4
-    {1.0f, 0.0f, 1.0f, /*Coords  Texture coords*/ 1, 0, FACE_FRONT}, // 5
-    {1.0f, 1.0f, 1.0f, /*Coords  Texture coords*/ 1, 1, FACE_FRONT}, // 6
-    {0.0f, 1.0f, 1.0f, /*Coords  Texture coords*/ 0, 1, FACE_FRONT}, // 7
+    unsigned short face[ NUM_FACES_IN_CUBE ];
 
-    {0.0f, 0.0f, 0.0f, /*Coords  Texture coords*/ 0, 0, FACE_LEFT}, // 8
-    {1.0f, 0.0f, 0.0f, /*Coords  Texture coords*/ 1, 0, FACE_RIGHT}, // 9
-    {1.0f, 1.0f, 0.0f, /*Coords  Texture coords*/ 1, 1, FACE_RIGHT}, // 10
-    {0.0f, 1.0f, 0.0f, /*Coords  Texture coords*/ 0, 1, FACE_LEFT}, // 11
+    unsigned int packed_lighting[ NUM_FACES_IN_CUBE ];
 
-    {0.0f, 0.0f, 1.0f, /*Coords  Texture coords*/ 1, 0, FACE_LEFT}, // 12
-    {1.0f, 0.0f, 1.0f, /*Coords  Texture coords*/ 0, 0, FACE_RIGHT}, // 13
-    {1.0f, 1.0f, 1.0f, /*Coords  Texture coords*/ 0, 1, FACE_RIGHT}, // 14
-    {0.0f, 1.0f, 1.0f, /*Coords  Texture coords*/ 1, 1, FACE_LEFT}, // 15
-
-    {0.0f, 0.0f, 0.0f, /*Coords  Texture coords*/ 1, 1, FACE_BOTTOM}, // 16
-    {1.0f, 0.0f, 0.0f, /*Coords  Texture coords*/ 0, 1, FACE_BOTTOM}, // 17
-    {1.0f, 1.0f, 0.0f, /*Coords  Texture coords*/ 0, 0, FACE_TOP}, // 18
-    {0.0f, 1.0f, 0.0f, /*Coords  Texture coords*/ 1, 0, FACE_TOP}, // 19
-
-    {0.0f, 0.0f, 1.0f, /*Coords  Texture coords*/ 1, 0, FACE_BOTTOM}, // 20
-    {1.0f, 0.0f, 1.0f, /*Coords  Texture coords*/ 0, 0, FACE_BOTTOM}, // 21
-    {1.0f, 1.0f, 1.0f, /*Coords  Texture coords*/ 0, 1, FACE_TOP}, // 22
-    {0.0f, 1.0f, 1.0f, /*Coords  Texture coords*/ 1, 1, FACE_TOP}, // 23
-
-    {0.5f, 1.0f, 0.5f, /*Coords  Texture coords*/ 0.5f, 0.5f, FACE_TOP}, // 24
-    {0.5f, 0.0f, 0.5f, /*Coords  Texture coords*/ 0.5f, 0.5f, FACE_BOTTOM}, // 25
-    {1.0f, 0.5f, 0.5f, /*Coords  Texture coords*/ 0.5f, 0.5f, FACE_RIGHT}, // 26
-    {0.5f, 0.5f, 1.0f, /*Coords  Texture coords*/ 0.5f, 0.5f, FACE_FRONT}, // 27
-    {0.0f, 0.5f, 0.5f, /*Coords  Texture coords*/ 0.5f, 0.5f, FACE_LEFT}, // 28
-    {0.5f, 0.5f, 0.0f, /*Coords  Texture coords*/ 0.5f, 0.5f, FACE_BACK}, // 29
-
-};
-#define VB_DATA_SIZE_SOLID ( 5 * 6 )
+} BlockCoords;
 
 #endif

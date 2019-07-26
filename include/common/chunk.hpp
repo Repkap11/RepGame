@@ -10,27 +10,6 @@
 #define CHUNK_BLOCK_DRAW_STOP ( CHUNK_BLOCK_SIZE - CHUNK_BLOCK_DRAW_START )
 
 typedef struct {
-    float x;
-    float y;
-    float z;
-
-    unsigned char mesh_x;
-    unsigned char mesh_y;
-    unsigned char mesh_z;
-    unsigned char space;
-
-    unsigned short face[ NUM_FACES_IN_CUBE ];
-
-    unsigned int packed_lighting[ NUM_FACES_IN_CUBE ];
-
-} BlockCoords;
-
-typedef struct {
-    unsigned short face[ NUM_FACES_IN_CUBE ];
-    glm::mat4 transform;
-} ObjectPosition;
-
-typedef struct {
     VertexArray va;
     IndexBuffer ib;
     int num_instances;

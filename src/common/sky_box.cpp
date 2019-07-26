@@ -3,6 +3,7 @@
 #include "common/RepGame.hpp"
 #include "common/sky_box.hpp"
 #include "common/abstract/shader.hpp"
+#include "common/object.hpp"
 
 #define Stacks 20
 #define Slices 20

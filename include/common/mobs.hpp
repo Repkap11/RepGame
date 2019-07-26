@@ -8,7 +8,7 @@
 #include "abstract/renderer.hpp"
 #include "block.hpp"
 #include "chunk.hpp"
-#include "sky_box.hpp"
+#include "common/object.hpp"
 
 typedef struct {
     IndexBuffer ib;

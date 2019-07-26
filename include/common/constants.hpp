@@ -84,4 +84,27 @@
 //#define EYE_POSITION_OFFSET 0.1f
 #define EYE_POSITION_OFFSET ( PLAYER_EYE_HEIGHT - ( PLAYER_HEIGHT / 2.0f ) )
 
+#define FACE_TOP 0
+#define FACE_BOTTOM 1
+#define FACE_RIGHT 2
+#define FACE_FRONT 3
+#define FACE_LEFT 4
+#define FACE_BACK 5
+
+#define NUM_FACES_IN_CUBE 6
+
+#define CORNER_OFFSET_tfl 0
+#define CORNER_OFFSET_tfr 2
+#define CORNER_OFFSET_tbl 4
+#define CORNER_OFFSET_tbr 6
+#define CORNER_OFFSET_bfl 8
+#define CORNER_OFFSET_bfr 10
+#define CORNER_OFFSET_bbl 12
+#define CORNER_OFFSET_bbr 14
+
+#define CORNER_OFFSET_c 16
+
+#define NO_LIGHT_DRAW 0x7ffff
+#define NO_LIGHT_NO_DRAW 0xfffff
+#define NO_LIGHT_BRIGHT 0
 #endif

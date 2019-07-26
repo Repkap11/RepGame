@@ -38,8 +38,6 @@ typedef struct {
     unsigned int slot;
 } Texture;
 
-#include "common/block_definitions.hpp"
-
 void textures_set_texture_data( unsigned int which_texture, unsigned char *textures, int textures_len );
 
 void texture_init( Texture *texture, const TextureSourceData *texture_source );
