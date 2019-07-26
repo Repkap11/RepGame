@@ -17,6 +17,7 @@ typedef struct {
 } VertexBufferLayout;
 
 unsigned int vertex_buffer_layout_size_of_type( unsigned int type );
+bool vertex_buffer_layout_uses_I_attrib( unsigned int type );
 
 void vertex_buffer_layout_init( VertexBufferLayout *vertexBufferLayout );
 void vertex_buffer_layout_init_element( VertexBufferElement *vertexBufferElement, unsigned int type, unsigned int count, unsigned int normalized );
@@ -27,6 +28,7 @@ void vertex_buffer_layout_push_unsigned_int( VertexBufferLayout *vertexBufferLay
 void vertex_buffer_layout_push_int( VertexBufferLayout *vertexBufferLayout, unsigned int count );
 void vertex_buffer_layout_push_unsigned_bytes( VertexBufferLayout *vertexBufferLayout, unsigned int count );
 void vertex_buffer_layout_push_float_array( VertexBufferLayout *vertexBufferLayout, unsigned int count );
+void vertex_buffer_layout_push_byte( VertexBufferLayout *vertexBufferLayout, unsigned int count );
 
 void vertex_buffer_layout_unbind( const VertexBufferLayout *vertexBufferLayout );
 void vertex_buffer_layout_destroy( const VertexBufferLayout *vertexBufferLayout );

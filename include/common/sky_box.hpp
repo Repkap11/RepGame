@@ -7,24 +7,16 @@
 #include "abstract/renderer.hpp"
 
 typedef struct {
-    VertexBufferLayout vbl;
     IndexBuffer ib;
     VertexArray va;
-    VertexBuffer vb;
+    VertexBuffer vb_vertex;
+    VertexBuffer vb_position;
     int vertex_size;
     Shader shader;
     Texture texture;
 } SkyBox;
 
-typedef struct {
-    float x;
-    float y;
-    float z;
-    float u;
-    float v;
-} SkyVertex;
-
-void sky_box_init( SkyBox *skyBox );
-void sky_box_draw( SkyBox *skyBox, Renderer *renderer, glm::mat4 &mvp_sky );
+void sky_box_init( SkyBox *skyBox, VertexBufferLayout *vbl_object_vertex, VertexBufferLayout *vbl_object_position );
+void sky_box_draw( SkyBox *skyBox, Renderer *renderer, glm::mat4 &mvp_sky, Shader *sky_shader );
 void sky_box_destroy( SkyBox *skyBox );
 #endif

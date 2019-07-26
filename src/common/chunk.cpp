@@ -529,7 +529,6 @@ void chunk_calculate_popupated_blocks( Chunk *chunk ) {
                         blockCoord->mesh_x = size_x;
                         blockCoord->mesh_y = size_y;
                         blockCoord->mesh_z = size_z;
-                        blockCoord->rotation = glm::mat4( 1 );
 
                         for ( int i = 0; i < NUM_FACES_IN_CUBE; i++ ) {
                             blockCoord->packed_lighting[ i ] = workingSpace[ index ].packed_lighting[ i ];

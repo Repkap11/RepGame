@@ -4,32 +4,6 @@
 #include "constants.hpp"
 #include "block_definitions.hpp"
 
-#define FACE_TOP 0
-#define FACE_BOTTOM 1
-#define FACE_RIGHT 2
-#define FACE_FRONT 3
-#define FACE_LEFT 4
-#define FACE_BACK 5
-
-//  FR
-// BR  FL
-//  BL
-
-#define CORNER_OFFSET_tfl 0
-#define CORNER_OFFSET_tfr 2
-#define CORNER_OFFSET_tbl 4
-#define CORNER_OFFSET_tbr 6
-#define CORNER_OFFSET_bfl 8
-#define CORNER_OFFSET_bfr 10
-#define CORNER_OFFSET_bbl 12
-#define CORNER_OFFSET_bbr 14
-
-#define CORNER_OFFSET_c 16
-
-#define NO_LIGHT_DRAW 0x7ffff
-#define NO_LIGHT_NO_DRAW 0xfffff
-#define NO_LIGHT_BRIGHT 0
-
 typedef struct {
     float x;
     float y;
@@ -38,10 +12,12 @@ typedef struct {
     float tex_coord_x; // Float just because it needs to be in shader, and we can avoid the gpu side cast
     float tex_coord_y;
 
-    float which_face;
-    float corner_shift;
+    unsigned int which_face;
+    unsigned int corner_shift;
+
 } CubeFace;
 
+// Order must match order of FACE_
 static unsigned int ib_data_solid[] = {
     22, 18, 24, //
     24, 18, 19, // Top
@@ -142,8 +118,23 @@ static CubeFace vd_data_solid[] = {
     {0.5f, 0.5f, 1.0f, /*Coords  Texture coords*/ 0.5f, 0.5f, FACE_FRONT, CORNER_OFFSET_c},  // 27
     {0.0f, 0.5f, 0.5f, /*Coords  Texture coords*/ 0.5f, 0.5f, FACE_LEFT, CORNER_OFFSET_c},   // 28
     {0.5f, 0.5f, 0.0f, /*Coords  Texture coords*/ 0.5f, 0.5f, FACE_BACK, CORNER_OFFSET_c},   // 29
-
 };
-#define VB_DATA_SIZE_SOLID ( 5 * 6 + 6 )
+#define VB_DATA_SIZE_SOLID ( 5 * 6 )
+
+typedef struct {
+    float x;
+    float y;
+    float z;
+
+    unsigned char mesh_x;
+    unsigned char mesh_y;
+    unsigned char mesh_z;
+    unsigned char space;
+
+    unsigned short face[ NUM_FACES_IN_CUBE ];
+
+    unsigned int packed_lighting[ NUM_FACES_IN_CUBE ];
+
+} BlockCoords;
 
 #endif

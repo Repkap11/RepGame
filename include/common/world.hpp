@@ -12,7 +12,11 @@ typedef struct {
     Mobs mobs;
     VertexBufferLayout vbl_block;
     VertexBufferLayout vbl_coords;
+    VertexBufferLayout vbl_object_vertex;
+    VertexBufferLayout vbl_object_position;
+
     MouseSelection mouseSelection;
+    Shader sky_shader;
 } World;
 
 BlockID world_get_loaded_block( World *world, int block_x, int block_y, int block_z );

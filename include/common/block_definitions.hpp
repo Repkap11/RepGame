@@ -1,7 +1,9 @@
 #ifndef HEADER_BLOCK_DEFINITIONS_H
 #define HEADER_BLOCK_DEFINITIONS_H
 
-#define NUM_FACES_IN_CUBE 6
+#include "constants.hpp"
+#include "abstract/textures.hpp"
+#include "common/render_order.hpp"
 
 // According to GIMP upper left pixel coord
 // X/16 + 24*(Y/16) + 1
@@ -175,11 +177,14 @@ typedef enum {
     DARK_OAK_SAPPLING_IN_POT,
     WHITE_FLOWER_SAPPLING_IN_POT,
     PLAYER_SELECTION = 1212,
-    LAST_BLOCK_ID = 1213,
+    STEVE_HEAD_TOP,
+    STEVE_HEAD_BOTTOM,
+    STEVE_HEAD_LEFT,
+    STEVE_HEAD_FRONT,
+    STEVE_HEAD_RIGHT,
+    STEVE_HEAD_BACK,
+    LAST_BLOCK_ID = 1219,
 } BlockID;
-
-#include "abstract/textures.hpp"
-#include "common/render_order.hpp"
 
 typedef struct {
     BlockID id;
