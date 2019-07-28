@@ -69,7 +69,7 @@ void sky_box_init( SkyBox *skyBox, VertexBufferLayout *vbl_object_vertex, Vertex
     vertex_buffer_set_data( &skyBox->vb_vertex, vb_data, sizeof( ObjectVertex ) * skyBox->vertex_size );
 
     vertex_buffer_init( &skyBox->vb_position );
-    ObjectPosition sky_position = {{}, glm::mat4( 1.0f )}; // The sky's vertexes are scaled, no neeed to scale instance.
+    ObjectPosition sky_position = {0, {}, glm::mat4( 1.0f )}; // The sky's vertexes are scaled, no neeed to scale instance.
     vertex_buffer_set_data( &skyBox->vb_position, &sky_position, sizeof( ObjectPosition ) * 1 );
     vertex_array_init( &skyBox->va );
 

@@ -115,7 +115,7 @@ void server_on_client_disconnected( int client_fd ) {
 }
 
 void server_send_client_message( int client_fd, NetPacket *update ) {
-    //pr_debug( "Sending message to:%d block:%d", client_fd, update->blockID );
+    // pr_debug( "Sending message to:%d block:%d", client_fd, update->blockID );
     int status = write( client_fd, ( void * )update, sizeof( NetPacket ) );
     if ( status < 0 ) {
         pr_debug( "Unable to send message to socket" );
@@ -123,8 +123,12 @@ void server_send_client_message( int client_fd, NetPacket *update ) {
 }
 
 void server_on_client_message( int client_fd, NetPacket *packet ) {
-    //pr_debug( "Got message from:%d block:%d", client_fd, packet->blockID );
+    // pr_debug( "Got message from:%d block:%d", client_fd, packet->blockID );
     if ( packet->type != INVALID && packet->type != CLIENT_INIT && packet->type != SERVER_ACK ) {
+        packet->player_id = client_fd;
+        // if ( packet->type == BLOCK_UPDATE ) {
+        //     pr_debug( "Propagating block break from:%d", client_fd );
+        // }
         // Tell the other connected players about the block update
         for ( int prop_id = 0; prop_id < MAXFDS; prop_id++ ) {
             if ( prop_id == client_fd ) {

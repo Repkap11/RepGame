@@ -3,7 +3,7 @@ MAKEFILES += linux.mk
 
 REPGAME_PACKAGES += freeglut3-dev libglew-dev libxi-dev g++
 
-CFLAGS_LINUX := -Wall -Wextra -Werror -std=c++98 -Wno-unused-parameter -Wno-unused-variable -fno-pie -march=native
+CFLAGS_LINUX := -Wall -Wextra -Werror -std=c++11 -Wno-unused-parameter -Wno-unused-variable -fno-pie -march=native
 
 #CFLAGS_LINUX += -O3 -DREPGAME_FAST
 CFLAGS_LINUX += -g

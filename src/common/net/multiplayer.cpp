@@ -86,9 +86,9 @@ void multiplayer_process_events( World *world ) {
                     world_set_loaded_block( world, update.data.block.x, update.data.block.y, update.data.block.z, ( BlockID )update.data.block.blockID );
                 }
                 if ( update.type == PLAYER_LOCATION ) {
-                    // pr_debug( "Updating player location" );
+                    pr_debug( "Updating player location:%d", update.player_id );
                     glm::mat4 rotation = glm::make_mat4( update.data.player.rotation );
-                    mobs_update_position( &world->mobs, update.data.player.x, update.data.player.y, update.data.player.z, rotation );
+                    mobs_update_position( &world->mobs, update.player_id, update.data.player.x, update.data.player.y, update.data.player.z, rotation );
                 }
             }
         }

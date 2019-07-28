@@ -31,6 +31,7 @@ void world_init( World *world, TRIP_ARGS( float camera_ ) ) {
 
     // These are from ObjectPosition
     vertex_buffer_layout_init( &world->vbl_object_position );
+    vertex_buffer_layout_push_unsigned_int( &world->vbl_object_position, 1 ); // id
     vertex_buffer_layout_push_unsigned_int( &world->vbl_object_position, 3 ); // which texture
     vertex_buffer_layout_push_float( &world->vbl_object_position, 4 );        // transform
     vertex_buffer_layout_push_float( &world->vbl_object_position, 4 );        // transform

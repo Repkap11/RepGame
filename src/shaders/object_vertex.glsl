@@ -14,8 +14,9 @@ layout( location = 1 ) in vec2 texCoords;
 layout( location = 2 ) in uint faceType;
 
 // See ObjectPosition in chunk.hpp
-layout( location = 3 ) in uvec3 blockTexture;
-layout( location = 4 ) in mat4 transform;
+layout( location = 3 ) in uint id;
+layout( location = 4 ) in uvec3 blockTexture;
+layout( location = 5 ) in mat4 transform;
 
 out vec2 v_tex_coords;
 out float v_light;

@@ -5,6 +5,7 @@ typedef enum { INVALID, PLAYER_LOCATION, BLOCK_UPDATE, CLIENT_INIT, SERVER_ACK }
 
 typedef struct {
     PacketType type;
+    int player_id;
     union {
         struct {
             int x;
