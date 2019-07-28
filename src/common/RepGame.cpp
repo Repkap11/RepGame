@@ -157,6 +157,7 @@ void repgame_process_movement( ) {
     } else if ( !player_flying && !player_sprinting ) {
         movement_speed = MOVEMENT_SENSITIVITY_WALKING;
     } else {
+        movement_speed = 0;
         pr_debug( "Invalid sprint fly combo" );
     }
 
@@ -299,6 +300,7 @@ void repgame_init( const char *world_name, bool connect_multi, const char *host 
     block_definitions_initilize_definitions( &globalGameState.blocksTexture );
     world_init( &globalGameState.world, globalGameState.camera.x, globalGameState.camera.y, globalGameState.camera.z );
     ui_overlay_init( &globalGameState.ui_overlay );
+    inventory_init( &globalGameState.inventory );
 
     int iMultiSample = 0;
     int iNumSamples = 0;
@@ -411,6 +413,8 @@ void repgame_draw( ) {
     showErrors( );
     ui_overlay_draw( &globalGameState.ui_overlay, &globalGameState.world.renderer, &globalGameState.blocksTexture, &globalGameState.input, globalGameState.screen.ortho_center );
     showErrors( );
+    inventory_draw( &globalGameState.inventory, &globalGameState.world.renderer, &globalGameState.blocksTexture, &globalGameState.input, globalGameState.screen.ortho_center );
+    showErrors( );
 }
 
 void repgame_cleanup( ) {
@@ -423,6 +427,7 @@ void repgame_cleanup( ) {
     world_cleanup( &globalGameState.world );
     texture_destroy( &globalGameState.blocksTexture );
     block_definitions_free_definitions( );
+    inventory_cleanup( &globalGameState.inventory );
 
     PlayerData saved_data;
     saved_data.world_x = globalGameState.camera.x;
