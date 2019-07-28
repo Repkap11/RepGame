@@ -17,6 +17,7 @@ typedef struct {
     VertexBuffer vb_mob_placement;
     VertexBuffer vb_mob_shape;
     int shouldDraw;
+    glm::mat4 initial_mat;
 
 } Mobs;
 

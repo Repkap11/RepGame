@@ -36,13 +36,15 @@ void mobs_init( Mobs *mobs, VertexBufferLayout *vbl_object_vertex, VertexBufferL
         vertex_buffer_set_data( &mobs->vb_mob_placement, &mobs->mob_position, sizeof( ObjectPosition ) * 1 );
         index_buffer_set_data( &mobs->ib, ib_data_solid, IB_SOLID_SIZE );
     }
+    glm::mat4 scale = glm::scale( glm::mat4( 1.0 ), glm::vec3( 0.25f ) );
+    glm::mat4 un_translate = glm::translate( glm::mat4( 1.0 ), glm::vec3( -0.5f, -0.5f, -0.5f ) );
+    mobs->initial_mat = scale * un_translate;
 }
 
 void mobs_update_position( Mobs *mobs, float x, float y, float z, glm::mat4 &rotation ) {
-    glm::mat4 translate = glm::translate( glm::mat4( 1.0 ), glm::vec3( x + 0.5f, y + 0.5f, z + 0.5f ) );
-    glm::mat4 scale = glm::scale( glm::mat4( 1.0 ), glm::vec3( 0.5f ) );
-    glm::mat4 un_translate = glm::translate( glm::mat4( 1.0 ), glm::vec3( -0.5f, -0.5f, -0.5f ) );
-    mobs->mob_position.transform = translate * rotation * scale * un_translate;
+    glm::mat4 translate = glm::translate( glm::mat4( 1.0 ), glm::vec3( x, y, z ) );
+
+    mobs->mob_position.transform = translate * rotation * mobs->initial_mat;
     vertex_buffer_set_data( &mobs->vb_mob_placement, &mobs->mob_position, sizeof( ObjectPosition ) * 1 );
 }
 

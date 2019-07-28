@@ -72,21 +72,24 @@ void multiplayer_init( const char *hostname, int port ) {
 
 void multiplayer_process_events( World *world ) {
     if ( active ) {
-        // Send updates to the server
-        NetPacket update;
-        int status = read( sockfd, &update, sizeof( NetPacket ) );
-        if ( status < 0 ) {
-            // This is fine, it just means there are no messages;
-            // pr_debug( "Unable to read message from socket" );
-        } else {
-            if ( update.type == BLOCK_UPDATE ) {
-                pr_debug( "Read message: block:%d", update.data.block.blockID );
-                world_set_loaded_block( world, update.data.block.x, update.data.block.y, update.data.block.z, ( BlockID )update.data.block.blockID );
-            }
-            if ( update.type == PLAYER_LOCATION ) {
-                // pr_debug( "Updating player location" );
-                glm::mat4 rotation = glm::make_mat4( update.data.player.rotation );
-                mobs_update_position( &world->mobs, update.data.player.x, update.data.player.y, update.data.player.z, rotation );
+        while ( true ) {
+            // Send updates to the server
+            NetPacket update;
+            int status = read( sockfd, &update, sizeof( NetPacket ) );
+            if ( status < 0 ) {
+                // This is fine, it just means there are no messages;
+                // pr_debug( "Unable to read message from socket" );
+                return;
+            } else {
+                if ( update.type == BLOCK_UPDATE ) {
+                    pr_debug( "Read message: block:%d", update.data.block.blockID );
+                    world_set_loaded_block( world, update.data.block.x, update.data.block.y, update.data.block.z, ( BlockID )update.data.block.blockID );
+                }
+                if ( update.type == PLAYER_LOCATION ) {
+                    // pr_debug( "Updating player location" );
+                    glm::mat4 rotation = glm::make_mat4( update.data.player.rotation );
+                    mobs_update_position( &world->mobs, update.data.player.x, update.data.player.y, update.data.player.z, rotation );
+                }
             }
         }
     } else {
