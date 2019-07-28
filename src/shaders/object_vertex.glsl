@@ -21,6 +21,7 @@ layout( location = 5 ) in mat4 transform;
 out vec2 v_tex_coords;
 out float v_light;
 flat out float v_blockID;
+flat out float v_id;
 
 void main( ) {
     gl_Position = u_MVP * transform * vec4( position, 1 );

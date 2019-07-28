@@ -123,7 +123,7 @@ void ui_overlay_draw( UIOverlay *ui_overlay, Renderer *renderer, Texture *blocks
     shader_set_uniform1i( &ui_overlay->shader, "u_Texture", blocksTexture->slot );
 
     if ( input->inventory_open ) {
-        renderer_draw( renderer, &ui_overlay->draw_inventory.va, &ui_overlay->draw_inventory.ib, &ui_overlay->shader, 1 );
+        // renderer_draw( renderer, &ui_overlay->draw_inventory.va, &ui_overlay->draw_inventory.ib, &ui_overlay->shader, 1 );
     } else {
         glBlendFunc( GL_ONE_MINUS_DST_COLOR, GL_ZERO );
         renderer_draw( renderer, &ui_overlay->draw_crosshair.va, &ui_overlay->draw_crosshair.ib, &ui_overlay->shader, 1 );

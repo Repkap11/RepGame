@@ -26,6 +26,7 @@ typedef struct {
 } Mobs;
 
 void mobs_init( Mobs *mobs, VertexBufferLayout *vbl_object_vertex, VertexBufferLayout *vbl_object_position );
+void mobs_add_mob( Mobs *mobs, unsigned int mob_id );
 void mobs_update_position( Mobs *mobs, int mob_id, float x, float y, float z, glm::mat4 &rotation );
 void mobs_remove_mob( Mobs *mobs, int mob_id );
 void mobs_draw( Mobs *mobs, Renderer *renderer, Shader *shader );

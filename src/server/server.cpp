@@ -1,51 +1,35 @@
-// https://github.com/eliben/code-for-blog/blob/master/2017/async-socket-server/epoll-server.c
-
-// Asynchronous socket server - accepting multiple clients concurrently,
-// multiplexing the connections with epoll.
-//
-// Eli Bendersky [http://eli.thegreenplace.net]
-// This code is in the public domain.
-#include <assert.h>
-#include <errno.h>
-#include <stdbool.h>
-#include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <string.h>
-#include <sys/epoll.h>
-#include <sys/socket.h>
-#include <sys/types.h>
-#include <unistd.h>
-
-// Start utils
-#include <fcntl.h>
-#include <stdarg.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <sys/socket.h>
-#include <sys/types.h>
-//#define _GNU_SOURCE
-#include <netdb.h>
-
 #include "server/server.hpp"
-#include "common/RepGame.hpp"
+#include <sys/socket.h>
+#include <sys/types.h>
+#include <arpa/inet.h>
+#include <fcntl.h>
+#include <sys/epoll.h>
+#include <errno.h>
+#include <queue>
 
-//#define MAXFDS 16 * 1024
-#define MAXFDS 16
+#include "server/server_logic.hpp"
 
 #define pr_debug( fmt, ... ) fprintf( stdout, "%s:%d:%s():" fmt "\n", __FILE__, __LINE__, __func__, ##__VA_ARGS__ );
 
-#define N_BACKLOG 64
+#define INET_SOCKET_BACKLOG 64
 
-int listen_inet_socket( int portnum ) {
+int epoll_fd = 0;
+
+typedef struct {
+    int connected;
+    std::queue<NetPacket> pending_sends;
+} ClientData;
+ClientData client_data[ MAX_CLIENT_FDS ];
+
+int server_setup_inet_socket( int port ) {
     int sockfd = socket( AF_INET, SOCK_STREAM, 0 );
     if ( sockfd < 0 ) {
         pr_debug( "ERROR opening socket" );
     }
 
-    // This helps avoid spurious EADDRINUSE when the previous instance of this
-    // server died.
+    // This helps avoid spurious EADDRINUSE when the previous instance of this server died.
     int opt = 1;
     if ( setsockopt( sockfd, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof( opt ) ) < 0 ) {
         pr_debug( "setsockopt" );
@@ -55,16 +39,14 @@ int listen_inet_socket( int portnum ) {
     memset( &serv_addr, 0, sizeof( serv_addr ) );
     serv_addr.sin_family = AF_INET;
     serv_addr.sin_addr.s_addr = INADDR_ANY;
-    serv_addr.sin_port = htons( portnum );
+    serv_addr.sin_port = htons( port );
 
     if ( bind( sockfd, ( struct sockaddr * )&serv_addr, sizeof( serv_addr ) ) < 0 ) {
         pr_debug( "ERROR on binding" );
     }
-
-    if ( listen( sockfd, N_BACKLOG ) < 0 ) {
+    if ( listen( sockfd, INET_SOCKET_BACKLOG ) < 0 ) {
         pr_debug( "ERROR on listen" );
     }
-
     return sockfd;
 }
 
@@ -79,291 +61,190 @@ void make_socket_non_blocking( int sockfd ) {
     }
 }
 
-// End utils
-
-typedef enum { INITIAL_ACK, WAIT_FOR_MSG, IN_MSG } ProcessingState;
-
-typedef struct {
-    ProcessingState state;
-    NetPacket sendbuf;
-} peer_state_t;
-
-// Each peer is globally identified by the file descriptor (fd) it's connected
-// on. As long as the peer is connected, the fd is unique to it. When a peer
-// disconnects, a new peer may connect and get the same fd. on_peer_connected
-// should initialize the state properly to remove any trace of the old peer on
-// the same fd.
-peer_state_t global_state[ MAXFDS ];
-
-// Callbacks (on_XXX functions) return this status to the main loop; the status
-// instructs the loop about the next steps for the fd for which the callback was
-// invoked.
-// want_read=true means we want to keep monitoring this fd for reading.
-// want_write=true means we want to keep monitoring this fd for writing.
-// When both are false it means the fd is no longer needed and can be closed.
-typedef struct {
-    bool want_read;
-    bool want_write;
-} fd_status_t;
-
-void server_on_client_connected( int client_fd ) {
-    pr_debug( "%d", client_fd );
+void server_add_epoll( int client_fd ) {
+    struct epoll_event accept_event;
+    accept_event.data.fd = client_fd;
+    accept_event.events = EPOLLIN;
+    if ( epoll_ctl( epoll_fd, EPOLL_CTL_ADD, client_fd, &accept_event ) < 0 ) {
+        pr_debug( "epoll_ctl EPOLL_CTL_ADD" );
+    }
+    //pr_debug( "Epoll add:%d", client_fd );
+    return;
 }
 
-void server_on_client_disconnected( int client_fd ) {
-    pr_debug( "%d", client_fd );
+void server_del_epoll( int client_fd ) {
+    if ( epoll_ctl( epoll_fd, EPOLL_CTL_DEL, client_fd, NULL ) < 0 ) {
+        pr_debug( "epoll_ctl EPOLL_CTL_DEL" );
+    }
+    //pr_debug( "Epoll del:%d", client_fd );
+    return;
 }
-
-void server_send_client_message( int client_fd, NetPacket *update ) {
-    // pr_debug( "Sending message to:%d block:%d", client_fd, update->blockID );
-    int status = write( client_fd, ( void * )update, sizeof( NetPacket ) );
+void server_update_epoll( int client_fd ) {
+    struct epoll_event event = {0, 0};
+    event.data.fd = client_fd;
+    event.events = 0;
+    event.events |= EPOLLET;
+    if ( !client_data[ client_fd ].pending_sends.empty( ) ) {
+        event.events |= EPOLLOUT;
+        // pr_debug( "Update to out" );
+    } else {
+        event.events |= EPOLLIN;
+        // pr_debug( "Update to in" );
+    }
+    // pr_debug( "About to epoll_ctl mod" );
+    int status = epoll_ctl( epoll_fd, EPOLL_CTL_MOD, client_fd, &event );
     if ( status < 0 ) {
-        pr_debug( "Unable to send message to socket" );
+        pr_debug( "epoll_ctl EPOLL_CTL_MOD status:%d:%s", status, strerror( status ) );
     }
+    // pr_debug( "About to epoll_ctl mod done" );
 }
 
-void server_on_client_message( int client_fd, NetPacket *packet ) {
-    // pr_debug( "Got message from:%d block:%d", client_fd, packet->blockID );
-    if ( packet->type != INVALID && packet->type != CLIENT_INIT && packet->type != SERVER_ACK ) {
-        packet->player_id = client_fd;
-        // if ( packet->type == BLOCK_UPDATE ) {
-        //     pr_debug( "Propagating block break from:%d", client_fd );
-        // }
-        // Tell the other connected players about the block update
-        for ( int prop_id = 0; prop_id < MAXFDS; prop_id++ ) {
-            if ( prop_id == client_fd ) {
-                // Don't send the message back to the client that generated it.
-                continue;
-            }
-            if ( global_state[ prop_id ].state != INITIAL_ACK ) {
-                server_send_client_message( prop_id, packet );
-            }
-        }
-    }
-}
-
-// These constants make creating fd_status_t values less verbose.
-const fd_status_t fd_status_R = {.want_read = true, .want_write = false};
-const fd_status_t fd_status_W = {.want_read = false, .want_write = true};
-const fd_status_t fd_status_RW = {.want_read = true, .want_write = true};
-const fd_status_t fd_status_NORW = {.want_read = false, .want_write = false};
-
-void report_peer_connected( const struct sockaddr_in *sa, socklen_t salen, int fd ) {
-    char hostbuf[ NI_MAXHOST ];
-    char portbuf[ NI_MAXSERV ];
-    if ( getnameinfo( ( struct sockaddr * )sa, salen, hostbuf, NI_MAXHOST, portbuf, NI_MAXSERV, 0 ) == 0 ) {
-        printf( "peer (%s, %s) connected\n", hostbuf, portbuf );
-        server_on_client_connected( fd );
-    } else {
-        printf( "peer (unknonwn) connected\n" );
-    }
-}
-
-fd_status_t on_peer_connected( int sockfd, const struct sockaddr_in *peer_addr, socklen_t peer_addr_len ) {
-    assert( sockfd < MAXFDS );
-    report_peer_connected( peer_addr, peer_addr_len, sockfd );
-
-    // Initialize state to send back a '*' to the peer immediately.
-    peer_state_t *peerstate = &global_state[ sockfd ];
-    peerstate->state = INITIAL_ACK;
-    peerstate->sendbuf.type = SERVER_ACK;
-
-    // Signal that this socket is ready for writing now.
-    return fd_status_W;
-}
-
-fd_status_t on_peer_ready_recv( int sockfd ) {
-    assert( sockfd < MAXFDS );
-    peer_state_t *peerstate = &global_state[ sockfd ];
-
-    if ( peerstate->state == INITIAL_ACK ) {
-        // Until the initial ACK has been sent to the peer, there's nothing we
-        // want to receive. Also, wait until all data staged for sending is sent to
-        // receive more data.
-        return fd_status_W;
-    }
-
-    int nbytes = recv( sockfd, &peerstate->sendbuf, sizeof( NetPacket ), 0 );
-    if ( nbytes == 0 ) {
-        // The peer disconnected.
-        return fd_status_NORW;
-    } else if ( nbytes < 0 ) {
+void server_handle_new_client_event( int inet_socket_fd ) {
+    struct sockaddr_in client_addr;
+    socklen_t client_addr_len = sizeof( client_addr );
+    int client_fd = accept( inet_socket_fd, ( struct sockaddr * )&client_addr, &client_addr_len );
+    if ( client_fd < 0 ) {
         if ( errno == EAGAIN || errno == EWOULDBLOCK ) {
-            // The socket is not *really* ready for recv; wait until it is.
-            return fd_status_R;
-        } else {
-            pr_debug( "recv" );
+            // This can happen due to the nonblocking socket mode; in this
+            // case don't do anything, but print a notice (since these events
+            // are extremely rare and interesting to observe...)
+            pr_debug( "accept returned EAGAIN or EWOULDBLOCK" );
         }
-    } else if ( nbytes != sizeof( NetPacket ) ) {
-        pr_debug( "Only got a partial packet" );
-        return fd_status_R;
+        pr_debug( "Failed to get client FD" );
+        return;
     }
-
-    bool ready_to_send = false;
-    server_on_client_message( sockfd, &peerstate->sendbuf );
-
-    // Report reading readiness iff there's nothing to send to the peer as a
-    // result of the latest recv.
-    return ( fd_status_t ){.want_read = !ready_to_send, .want_write = ready_to_send};
+    if ( client_fd >= MAX_CLIENT_FDS ) {
+        pr_debug( "socket fd (%d) >= MAX_CLIENT_FDS (%d)", client_fd, MAX_CLIENT_FDS );
+    }
+    make_socket_non_blocking( client_fd );
+    server_add_epoll( client_fd );
+    client_data[ client_fd ].connected = 1;
+    server_logic_on_client_connected( client_fd );
 }
 
-fd_status_t on_peer_ready_send( int sockfd ) {
-    assert( sockfd < MAXFDS );
-    peer_state_t *peerstate = &global_state[ sockfd ];
-
-    if ( peerstate->sendbuf.type == INVALID ) {
-        // Nothing to send.
-        return fd_status_RW;
-    }
-    int nsent = send( sockfd, &peerstate->sendbuf, sizeof( NetPacket ), 0 );
-    if ( nsent == -1 ) {
-        if ( errno == EAGAIN || errno == EWOULDBLOCK ) {
-            return fd_status_W;
-        } else {
-            pr_debug( "send" );
+void server_handle_client_ready_for_read( int client_fd ) {
+    // pr_debug( "server_handle_client_ready_for_read" );
+    int disconnected = 0;
+    while ( true ) {
+        NetPacket packet;
+        int nbytes = recv( client_fd, &packet, sizeof( NetPacket ), 0 );
+        if ( nbytes == 0 ) {
+            // The client disconnected.
+            disconnected = 1;
+            break;
+        } else if ( nbytes < 0 ) {
+            if ( errno == EAGAIN || errno == EWOULDBLOCK ) {
+                // The socket is not *really* ready for recv; wait until it is.
+                break;
+            }
+            pr_debug( "recv got negitive bytes, darn" );
+            break;
+        } else if ( nbytes != sizeof( NetPacket ) ) {
+            pr_debug( "Only got a partial packet, darn" );
+            break;
         }
+        server_logic_on_client_message( client_fd, packet );
     }
-    if ( nsent < ( int )sizeof( NetPacket ) ) {
-        return fd_status_W;
+    if ( disconnected ) {
+        std::queue<NetPacket> empty;
+        std::swap( client_data[ client_fd ].pending_sends, empty );
+        server_logic_on_client_disconnected( client_fd );
+        client_data[ client_fd ].connected = 0;
+        server_del_epoll( client_fd );
     } else {
-        // Everything was sent successfully; reset the send queue.
-        peerstate->sendbuf.type = INVALID;
-
-        // Special-case state transition in if we were in INITIAL_ACK until now.
-        if ( peerstate->state == INITIAL_ACK ) {
-            peerstate->state = WAIT_FOR_MSG;
-        }
-
-        return fd_status_R;
+        server_update_epoll( client_fd );
     }
+
+    return;
+}
+
+void server_queue_packet( int client_fd, NetPacket &packet ) {
+    client_data[ client_fd ].pending_sends.push( packet );
+    pr_debug( "Queueing packet on %d length:%ld", client_fd, client_data[ client_fd ].pending_sends.size( ) );
+    int server_has_data_to_send = 1;
+    server_update_epoll( client_fd );
+    // pr_debug( "Got packet done with server_update_epoll" );
+}
+
+int server_is_client_connected( int client_id ) {
+    return client_data[ client_id ].connected;
+}
+
+void server_handle_client_ready_for_write( int client_fd ) {
+    // pr_debug( "server_handle_client_ready_for_write" );
+    std::queue<NetPacket> &pending_sends = client_data[ client_fd ].pending_sends;
+    while ( !pending_sends.empty( ) ) {
+        NetPacket &packet = pending_sends.front( );
+        pending_sends.pop( );
+        int nsent = send( client_fd, &packet, sizeof( NetPacket ), 0 );
+        if ( nsent == -1 ) {
+            if ( errno == EAGAIN || errno == EWOULDBLOCK ) {
+                break;
+            } else {
+                pr_debug( "send" );
+            }
+        }
+        if ( nsent < ( int )sizeof( NetPacket ) ) {
+            pr_debug( "Sent less than a packet" );
+            break;
+        }
+    }
+    server_update_epoll( client_fd );
 }
 
 int main( int argc, const char **argv ) {
-    setvbuf( stdout, NULL, _IONBF, 0 );
+    // setvbuf( stdout, NULL, _IONBF, 0 );
 
     int portnum = 25566;
     if ( argc >= 2 ) {
         portnum = atoi( argv[ 1 ] );
     }
-    printf( "Serving on port %d\n", portnum );
+    pr_debug( "Serving on port %d", portnum );
 
-    int listener_sockfd = listen_inet_socket( portnum );
-    make_socket_non_blocking( listener_sockfd );
+    int inet_socket_fd = server_setup_inet_socket( portnum );
 
-    int epollfd = epoll_create1( 0 );
-    if ( epollfd < 0 ) {
+    make_socket_non_blocking( inet_socket_fd );
+
+    epoll_fd = epoll_create1( 0 );
+    if ( epoll_fd < 0 ) {
         pr_debug( "epoll_create1" );
     }
 
     struct epoll_event accept_event;
-    accept_event.data.fd = listener_sockfd;
+    accept_event.data.fd = inet_socket_fd;
     accept_event.events = EPOLLIN;
-    if ( epoll_ctl( epollfd, EPOLL_CTL_ADD, listener_sockfd, &accept_event ) < 0 ) {
+    if ( epoll_ctl( epoll_fd, EPOLL_CTL_ADD, inet_socket_fd, &accept_event ) < 0 ) {
         pr_debug( "epoll_ctl EPOLL_CTL_ADD" );
     }
 
-    struct epoll_event *events = ( struct epoll_event * )calloc( MAXFDS, sizeof( struct epoll_event ) );
+    struct epoll_event *events = ( struct epoll_event * )calloc( MAX_CLIENT_FDS, sizeof( struct epoll_event ) );
     if ( events == NULL ) {
         pr_debug( "Unable to allocate memory for epoll_events" );
     }
-
     while ( 1 ) {
-        int nready = epoll_wait( epollfd, events, MAXFDS, -1 );
-        pr_debug( "epoll returned: %d", nready );
-        for ( int i = 0; i < nready; i++ ) {
+        int num_ready = epoll_wait( epoll_fd, events, MAX_CLIENT_FDS, -1 );
+        // pr_debug( "epoll returned: %d", num_ready );
+        for ( int i = 0; i < num_ready; i++ ) {
             if ( events[ i ].events & EPOLLERR ) {
                 pr_debug( "epoll_wait returned EPOLLERR" );
             }
+            int client_fd = events[ i ].data.fd;
 
-            if ( events[ i ].data.fd == listener_sockfd ) {
+            if ( client_fd == inet_socket_fd ) {
+                int server_has_data_to_send = 0;
                 // The listening socket is ready; this means a new peer is connecting.
-
-                struct sockaddr_in peer_addr;
-                socklen_t peer_addr_len = sizeof( peer_addr );
-                int newsockfd = accept( listener_sockfd, ( struct sockaddr * )&peer_addr, &peer_addr_len );
-                if ( newsockfd < 0 ) {
-                    if ( errno == EAGAIN || errno == EWOULDBLOCK ) {
-                        // This can happen due to the nonblocking socket mode; in this
-                        // case don't do anything, but print a notice (since these events
-                        // are extremely rare and interesting to observe...)
-                        printf( "accept returned EAGAIN or EWOULDBLOCK\n" );
-                    } else {
-                        pr_debug( "accept" );
-                    }
-                } else {
-                    make_socket_non_blocking( newsockfd );
-                    if ( newsockfd >= MAXFDS ) {
-                        pr_debug( "socket fd (%d) >= MAXFDS (%d)", newsockfd, MAXFDS );
-                    }
-
-                    fd_status_t status = on_peer_connected( newsockfd, &peer_addr, peer_addr_len );
-                    struct epoll_event event = {0, 0};
-                    event.data.fd = newsockfd;
-                    if ( status.want_read ) {
-                        event.events |= EPOLLIN;
-                    }
-                    if ( status.want_write ) {
-                        event.events |= EPOLLOUT;
-                    }
-
-                    if ( epoll_ctl( epollfd, EPOLL_CTL_ADD, newsockfd, &event ) < 0 ) {
-                        pr_debug( "epoll_ctl EPOLL_CTL_ADD" );
-                    }
-                }
+                server_handle_new_client_event( inet_socket_fd );
             } else {
+                uint32_t epoll_events = events[ i ].events;
                 // A peer socket is ready.
-                if ( events[ i ].events & EPOLLIN ) {
+                if ( epoll_events & EPOLLIN ) {
                     // Ready for reading.
-                    int fd = events[ i ].data.fd;
-                    fd_status_t status = on_peer_ready_recv( fd );
-                    struct epoll_event event = {0, 0};
-                    event.data.fd = fd;
-                    if ( status.want_read ) {
-                        event.events |= EPOLLIN;
-                    }
-                    if ( status.want_write ) {
-                        event.events |= EPOLLOUT;
-                    }
-                    if ( event.events == 0 ) {
-                        server_on_client_disconnected( fd );
-                        printf( "socket %d closing\n", fd );
-                        if ( epoll_ctl( epollfd, EPOLL_CTL_DEL, fd, NULL ) < 0 ) {
-                            pr_debug( "epoll_ctl EPOLL_CTL_DEL" );
-                        }
-                        close( fd );
-                    } else if ( epoll_ctl( epollfd, EPOLL_CTL_MOD, fd, &event ) < 0 ) {
-                        pr_debug( "epoll_ctl EPOLL_CTL_MOD" );
-                    } else {
-                        pr_debug( "Else 1?" );
-                    }
-                } else if ( events[ i ].events & EPOLLOUT ) {
+                    server_handle_client_ready_for_read( client_fd );
+                } else if ( epoll_events & EPOLLOUT ) {
                     // Ready for writing.
-                    int fd = events[ i ].data.fd;
-                    fd_status_t status = on_peer_ready_send( fd );
-                    struct epoll_event event = {0, 0};
-                    event.data.fd = fd;
-
-                    if ( status.want_read ) {
-                        event.events |= EPOLLIN;
-                    }
-                    if ( status.want_write ) {
-                        event.events |= EPOLLOUT;
-                    }
-                    if ( event.events == 0 ) {
-                        printf( "socket %d closing\n", fd );
-                        if ( epoll_ctl( epollfd, EPOLL_CTL_DEL, fd, NULL ) < 0 ) {
-                            pr_debug( "epoll_ctl EPOLL_CTL_DEL" );
-                        }
-                        close( fd );
-                    } else if ( epoll_ctl( epollfd, EPOLL_CTL_MOD, fd, &event ) < 0 ) {
-                        pr_debug( "epoll_ctl EPOLL_CTL_MOD" );
-                    } else {
-                        pr_debug( "Else 2?" );
-                    }
+                    server_handle_client_ready_for_write( client_fd );
                 }
             }
         }
     }
-
-    return 0;
 }

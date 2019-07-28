@@ -84,11 +84,18 @@ void multiplayer_process_events( World *world ) {
                 if ( update.type == BLOCK_UPDATE ) {
                     pr_debug( "Read message: block:%d", update.data.block.blockID );
                     world_set_loaded_block( world, update.data.block.x, update.data.block.y, update.data.block.z, ( BlockID )update.data.block.blockID );
-                }
-                if ( update.type == PLAYER_LOCATION ) {
-                    pr_debug( "Updating player location:%d", update.player_id );
+                } else if ( update.type == PLAYER_LOCATION ) {
+                    // pr_debug( "Updating player location:%d", update.player_id );
                     glm::mat4 rotation = glm::make_mat4( update.data.player.rotation );
                     mobs_update_position( &world->mobs, update.player_id, update.data.player.x, update.data.player.y, update.data.player.z, rotation );
+                } else if ( update.type == PLAYER_CONNECTED ) {
+                    pr_debug( "Updating player connected:%d", update.player_id );
+                    mobs_add_mob( &world->mobs, update.player_id );
+                } else if ( update.type == PLAYER_DISCONNECTED ) {
+                    pr_debug( "Updating player disconected:%d", update.player_id );
+                    mobs_remove_mob( &world->mobs, update.player_id );
+                } else {
+                    pr_debug( "Saw unexpected packet:%d from:%d", update.type, update.player_id );
                 }
             }
         }

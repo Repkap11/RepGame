@@ -1,7 +1,11 @@
+#ifndef HEADER_SERVER_H
+#define HEADER_SERVER_H
 
 #include <glm.hpp>
 
-typedef enum { INVALID, PLAYER_LOCATION, BLOCK_UPDATE, CLIENT_INIT, SERVER_ACK } PacketType;
+#define MAX_CLIENT_FDS 16
+
+typedef enum { INVALID, PLAYER_LOCATION, BLOCK_UPDATE, CLIENT_INIT, PLAYER_CONNECTED, PLAYER_DISCONNECTED, SERVER_ACK } PacketType;
 
 typedef struct {
     PacketType type;
@@ -21,3 +25,8 @@ typedef struct {
         } player;
     } data;
 } NetPacket;
+
+void server_queue_packet( int client_fd, NetPacket &packet );
+int server_is_client_connected( int client_id );
+
+#endif

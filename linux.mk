@@ -48,8 +48,7 @@ linux: out/linux/$(TARGET)
 linux-deploy: out/linux/$(TARGET)
 	rsync $< paul@repkap11.com:/home/paul/website/${TARGET_LOWER}
 
-LINUX_DIRS = $(patsubst src%,out/linux%,$(shell find src -type d)) \
-       $(patsubst src%,out/server%,$(shell find src -type d)) \
+LINUX_DIRS := $(patsubst src%,out/linux%,$(shell find src -type d)) \
 	   out/linux/shaders out/linux/bitmaps
 
 out/linux/%.o: src/%.cpp $(MAKEFILES) | out/linux

@@ -89,4 +89,4 @@ vars:
 
 AFTER_VARS := $(.VARIABLES)
 
-$(info $$SRC_COMMON is [${SRC_COMMON}])
+#$(info $$DEPS_SERVER is [${DEPS_SERVER}])
