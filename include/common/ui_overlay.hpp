@@ -17,11 +17,6 @@ typedef struct {
         VertexArray va;
         VertexBuffer vb;
     } draw_crosshair;
-    struct {
-        IndexBuffer ib;
-        VertexArray va;
-        VertexBuffer vb;
-    } draw_inventory;
 } UIOverlay;
 
 typedef struct {

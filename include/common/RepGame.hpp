@@ -18,6 +18,7 @@
 #include "world.hpp"
 #include "constants.hpp"
 #include "ui_overlay.hpp"
+#include "inventory.hpp"
 
 #include <glm.hpp>
 #include <glm/gtc/type_ptr.hpp>
@@ -60,6 +61,7 @@ typedef struct {
     Texture blocksTexture;
     World world;
     UIOverlay ui_overlay;
+    Inventory inventory;
     struct {
         int selectionInBounds;
         int face;
