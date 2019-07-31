@@ -63,6 +63,7 @@ void mobs_remove_mob( Mobs *mobs, int mob_id ) {
     if ( positions.empty( ) ) {
         mobs->shouldDraw = false;
     }
+    pr_debug( "Removed mob:%d", mob_id );
 }
 
 void mobs_add_mob( Mobs *mobs, unsigned int mob_id ) {
@@ -70,6 +71,7 @@ void mobs_add_mob( Mobs *mobs, unsigned int mob_id ) {
         pr_debug( "Mob id too high, got %d, max:%d", mob_id, MAX_MOB_COUNT );
         return;
     }
+    pr_debug( "Added new mob:%d", mob_id );
     std::vector<ObjectPosition> &positions = mobs->mob_positions;
     int next_index = positions.size( );
     mobs->mob_index_lookup[ mob_id ] = next_index;

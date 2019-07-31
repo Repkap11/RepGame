@@ -8,6 +8,7 @@
 #include <sys/epoll.h>
 #include <errno.h>
 #include <queue>
+#include <unistd.h>
 
 #include "server/server_logic.hpp"
 
@@ -21,7 +22,7 @@ typedef struct {
     int connected;
     std::queue<NetPacket> pending_sends;
 } ClientData;
-ClientData client_data[ MAX_CLIENT_FDS ];
+ClientData *client_data;
 
 int server_setup_inet_socket( int port ) {
     int sockfd = socket( AF_INET, SOCK_STREAM, 0 );
@@ -64,11 +65,11 @@ void make_socket_non_blocking( int sockfd ) {
 void server_add_epoll( int client_fd ) {
     struct epoll_event accept_event;
     accept_event.data.fd = client_fd;
-    accept_event.events = EPOLLIN;
+    accept_event.events = EPOLLOUT | EPOLLET;
     if ( epoll_ctl( epoll_fd, EPOLL_CTL_ADD, client_fd, &accept_event ) < 0 ) {
         pr_debug( "epoll_ctl EPOLL_CTL_ADD" );
     }
-    //pr_debug( "Epoll add:%d", client_fd );
+    // pr_debug( "Epoll add:%d", client_fd );
     return;
 }
 
@@ -76,20 +77,22 @@ void server_del_epoll( int client_fd ) {
     if ( epoll_ctl( epoll_fd, EPOLL_CTL_DEL, client_fd, NULL ) < 0 ) {
         pr_debug( "epoll_ctl EPOLL_CTL_DEL" );
     }
-    //pr_debug( "Epoll del:%d", client_fd );
+    // pr_debug( "Epoll del:%d", client_fd );
     return;
 }
 void server_update_epoll( int client_fd ) {
-    struct epoll_event event = {0, 0};
+    struct epoll_event event = {0, {0}};
     event.data.fd = client_fd;
-    event.events = 0;
-    event.events |= EPOLLET;
-    if ( !client_data[ client_fd ].pending_sends.empty( ) ) {
+    event.events = EPOLLET;
+    int size = client_data[ client_fd ].pending_sends.size( );
+    if ( size == 1 ) {
         event.events |= EPOLLOUT;
         // pr_debug( "Update to out" );
-    } else {
+    } else if ( size == 0 ) {
         event.events |= EPOLLIN;
         // pr_debug( "Update to in" );
+    } else {
+        return;
     }
     // pr_debug( "About to epoll_ctl mod" );
     int status = epoll_ctl( epoll_fd, EPOLL_CTL_MOD, client_fd, &event );
@@ -114,7 +117,7 @@ void server_handle_new_client_event( int inet_socket_fd ) {
         return;
     }
     if ( client_fd >= MAX_CLIENT_FDS ) {
-        pr_debug( "socket fd (%d) >= MAX_CLIENT_FDS (%d)", client_fd, MAX_CLIENT_FDS );
+        pr_debug( "socket fd (%d) >= MAX 0NT_FDS (%d)", client_fd, MAX_CLIENT_FDS );
     }
     make_socket_non_blocking( client_fd );
     server_add_epoll( client_fd );
@@ -151,6 +154,7 @@ void server_handle_client_ready_for_read( int client_fd ) {
         server_logic_on_client_disconnected( client_fd );
         client_data[ client_fd ].connected = 0;
         server_del_epoll( client_fd );
+        close( client_fd );
     } else {
         server_update_epoll( client_fd );
     }
@@ -160,7 +164,7 @@ void server_handle_client_ready_for_read( int client_fd ) {
 
 void server_queue_packet( int client_fd, NetPacket &packet ) {
     client_data[ client_fd ].pending_sends.push( packet );
-    pr_debug( "Queueing packet on %d length:%ld", client_fd, client_data[ client_fd ].pending_sends.size( ) );
+    // pr_debug( "Queueing packet on %d length:%ld", client_fd, client_data[ client_fd ].pending_sends.size( ) );
     int server_has_data_to_send = 1;
     server_update_epoll( client_fd );
     // pr_debug( "Got packet done with server_update_epoll" );
@@ -217,6 +221,11 @@ int main( int argc, const char **argv ) {
         pr_debug( "epoll_ctl EPOLL_CTL_ADD" );
     }
 
+    client_data = ( ClientData * )calloc( MAX_CLIENT_FDS, sizeof( ClientData ) );
+    for ( int i = 0; i < MAX_CLIENT_FDS; i++ ) {
+        new ( &client_data[ i ].pending_sends ) std::queue<NetPacket>( );
+        // client_data[ i ].pending_sends = std::queue<NetPacket>( );
+    }
     struct epoll_event *events = ( struct epoll_event * )calloc( MAX_CLIENT_FDS, sizeof( struct epoll_event ) );
     if ( events == NULL ) {
         pr_debug( "Unable to allocate memory for epoll_events" );
@@ -225,10 +234,10 @@ int main( int argc, const char **argv ) {
         int num_ready = epoll_wait( epoll_fd, events, MAX_CLIENT_FDS, -1 );
         // pr_debug( "epoll returned: %d", num_ready );
         for ( int i = 0; i < num_ready; i++ ) {
-            if ( events[ i ].events & EPOLLERR ) {
-                pr_debug( "epoll_wait returned EPOLLERR" );
-            }
             int client_fd = events[ i ].data.fd;
+            if ( events[ i ].events & EPOLLERR ) {
+                pr_debug( "epoll_wait returned EPOLLERR:%d", client_fd );
+            }
 
             if ( client_fd == inet_socket_fd ) {
                 int server_has_data_to_send = 0;

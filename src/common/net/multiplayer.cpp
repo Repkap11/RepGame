@@ -58,15 +58,6 @@ void multiplayer_init( const char *hostname, int port ) {
             fprintf( stderr, "Unable to set non-blocking \n" );
             return;
         }
-
-        // Send updates to the server
-        NetPacket update;
-        update.type = CLIENT_INIT;
-
-        status = write( sockfd, ( void * )&update, sizeof( NetPacket ) );
-        if ( status < 0 ) {
-            pr_debug( "Unable to send message to socket" );
-        }
     }
 }
 
