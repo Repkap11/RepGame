@@ -8,17 +8,21 @@
 #include "RepGame.hpp"
 #include "input.hpp"
 
+#define INVENTORY_MAX_SIZE 5
 #define INVENTORY_BLOCKS_PER_ROW 20
 #define INVENTORY_BLOCK_SIZE 50
 #define INVENTORY_BLOCK_SPACING 60
 
 typedef struct {
     int slot_pos;
-    UIOverlayVertex *ui_vertex;
+    int is_active;
+    float screen_x;
+    float screen_y;
+    BlockID block_id;
 } InventorySlot;
 
 typedef struct {
-    InventorySlot *slots;
+    InventorySlot *slots[ INVENTORY_MAX_SIZE ];
     unsigned int size;
 
     struct {

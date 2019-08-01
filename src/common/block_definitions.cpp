@@ -3,6 +3,13 @@
 #include "common/RepGame.hpp"
 #include <stdlib.h>
 
+#define SET_LEFT( block, block_face )   block_definitions[ block ].textures[ FACE_LEFT ] = block_face
+#define SET_RIGHT( block, block_face )  block_definitions[ block ].textures[ FACE_RIGHT ] = block_face
+#define SET_FRONT( block, block_face )  block_definitions[ block ].textures[ FACE_FRONT ] = block_face
+#define SET_BACK( block, block_face )   block_definitions[ block ].textures[ FACE_BACK ] = block_face
+#define SET_TOP( block, block_face )    block_definitions[ block ].textures[ FACE_TOP ] = block_face
+#define SET_BOT( block, block_face )    block_definitions[ block ].textures[ FACE_BOTTOM ] = block_face
+
 Block *block_definitions;
 void do_disable( Block *block_definitions );
 void do_flowers( Block *block_definitions );
@@ -24,78 +31,78 @@ void block_definitions_initilize_definitions( Texture *texture ) {
     }
     block_definitions[ WATER ].renderOrder = RenderOrder_Water;
 
-    block_definitions[ GRASS ].textures[ FACE_LEFT ] = GRASS_SIDE;
-    block_definitions[ GRASS ].textures[ FACE_RIGHT ] = GRASS_SIDE;
-    block_definitions[ GRASS ].textures[ FACE_FRONT ] = GRASS_SIDE;
-    block_definitions[ GRASS ].textures[ FACE_BACK ] = GRASS_SIDE;
-    block_definitions[ GRASS ].textures[ FACE_BOTTOM ] = DIRT;
+    SET_LEFT( GRASS, GRASS_SIDE );
+    SET_RIGHT( GRASS, GRASS_SIDE );
+    SET_FRONT( GRASS, GRASS_SIDE );
+    SET_BACK( GRASS, GRASS_SIDE );
+    SET_BOT( GRASS, DIRT );
 
-    block_definitions[ DOUBLE_SLAB ].textures[ FACE_TOP ] = SLAB_TOP;
-    block_definitions[ DOUBLE_SLAB ].textures[ FACE_LEFT ] = DOUBLE_SLAB;
-    block_definitions[ DOUBLE_SLAB ].textures[ FACE_BOTTOM ] = SLAB_TOP;
+    SET_TOP( DOUBLE_SLAB, SLAB_TOP );
+    SET_LEFT( DOUBLE_SLAB, DOUBLE_SLAB );
+    SET_BOT( DOUBLE_SLAB, SLAB_TOP );
 
-    block_definitions[ TNT ].textures[ FACE_TOP ] = TNT_TOP;
-    block_definitions[ TNT ].textures[ FACE_BOTTOM ] = TNT_BOTTOM;
+    SET_TOP( TNT, TNT_TOP );
+    SET_BOT( TNT, TNT_BOTTOM );
 
-    block_definitions[ OAK_LOG ].textures[ FACE_TOP ] = OAK_LOG_TOP;
-    block_definitions[ OAK_LOG ].textures[ FACE_BOTTOM ] = OAK_LOG_TOP;
+    SET_TOP( OAK_LOG, OAK_LOG_TOP );
+    SET_BOT( OAK_LOG, OAK_LOG_TOP );
 
-    block_definitions[ BIRTCH_LOG ].textures[ FACE_TOP ] = BIRTCH_LOG_TOP;
-    block_definitions[ BIRTCH_LOG ].textures[ FACE_BOTTOM ] = BIRTCH_LOG_TOP;
+    SET_TOP( BIRTCH_LOG, BIRTCH_LOG_TOP );
+    SET_BOT( BIRTCH_LOG, BIRTCH_LOG_TOP );
 
-    block_definitions[ JUNGLE_LOG ].textures[ FACE_TOP ] = JUNGLE_LOG_TOP;
-    block_definitions[ JUNGLE_LOG ].textures[ FACE_BOTTOM ] = JUNGLE_LOG_TOP;
+    SET_TOP( JUNGLE_LOG, JUNGLE_LOG_TOP );
+    SET_BOT( JUNGLE_LOG, JUNGLE_LOG_TOP );
 
-    block_definitions[ ACADIA_LOG ].textures[ FACE_TOP ] = ACADIA_LOG_TOP;
-    block_definitions[ ACADIA_LOG ].textures[ FACE_BOTTOM ] = ACADIA_LOG_TOP;
+    SET_TOP( ACADIA_LOG, ACADIA_LOG_TOP );
+    SET_BOT( ACADIA_LOG, ACADIA_LOG_TOP );
 
-    block_definitions[ DARK_OAK_LOG ].textures[ FACE_TOP ] = DARK_OAK_LOG_TOP;
-    block_definitions[ DARK_OAK_LOG ].textures[ FACE_BOTTOM ] = DARK_OAK_LOG_TOP;
+    SET_TOP( DARK_OAK_LOG, DARK_OAK_LOG_TOP );
+    SET_BOT( DARK_OAK_LOG, DARK_OAK_LOG_TOP );
 
-    block_definitions[ BOOK_CASE ].textures[ FACE_TOP ] = OAK_PLANK;
-    block_definitions[ BOOK_CASE ].textures[ FACE_BOTTOM ] = OAK_PLANK;
+    SET_TOP( BOOK_CASE, OAK_PLANK );
+    SET_BOT( BOOK_CASE, OAK_PLANK );
 
-    block_definitions[ CRAFTING_BENCH ].textures[ FACE_LEFT ] = CRAFTING_BENCH_SIDE1;
-    block_definitions[ CRAFTING_BENCH ].textures[ FACE_RIGHT ] = CRAFTING_BENCH_SIDE1;
-    block_definitions[ CRAFTING_BENCH ].textures[ FACE_FRONT ] = CRAFTING_BENCH_SIDE2;
-    block_definitions[ CRAFTING_BENCH ].textures[ FACE_BACK ] = CRAFTING_BENCH_SIDE2;
-    block_definitions[ CRAFTING_BENCH ].textures[ FACE_BOTTOM ] = OAK_PLANK;
+    SET_LEFT( CRAFTING_BENCH, CRAFTING_BENCH_SIDE1 );
+    SET_RIGHT( CRAFTING_BENCH, CRAFTING_BENCH_SIDE1 );
+    SET_FRONT( CRAFTING_BENCH, CRAFTING_BENCH_SIDE2 );
+    SET_BACK( CRAFTING_BENCH, CRAFTING_BENCH_SIDE2 );
+    SET_BOT( CRAFTING_BENCH, OAK_PLANK );
 
-    block_definitions[ SINGLE_CHEST_SIDE_LATCH ].textures[ FACE_TOP ] = SINGLE_CHEST_TOP;
-    block_definitions[ SINGLE_CHEST_SIDE_LATCH ].textures[ FACE_FRONT ] = SINGLE_CHEST_SIDE_EMPTY;
-    block_definitions[ SINGLE_CHEST_SIDE_LATCH ].textures[ FACE_BACK ] = SINGLE_CHEST_SIDE_EMPTY;
-    block_definitions[ SINGLE_CHEST_SIDE_LATCH ].textures[ FACE_LEFT ] = SINGLE_CHEST_SIDE_EMPTY;
-    block_definitions[ SINGLE_CHEST_SIDE_LATCH ].textures[ FACE_RIGHT ] = SINGLE_CHEST_SIDE_LATCH;
-    block_definitions[ SINGLE_CHEST_SIDE_LATCH ].textures[ FACE_BOTTOM ] = SINGLE_CHEST_TOP;
+    SET_TOP( SINGLE_CHEST_SIDE_LATCH, SINGLE_CHEST_TOP );
+    SET_FRONT( SINGLE_CHEST_SIDE_LATCH, SINGLE_CHEST_SIDE_EMPTY );
+    SET_BACK( SINGLE_CHEST_SIDE_LATCH, SINGLE_CHEST_SIDE_EMPTY );
+    SET_LEFT( SINGLE_CHEST_SIDE_LATCH, SINGLE_CHEST_SIDE_EMPTY );
+    SET_RIGHT( SINGLE_CHEST_SIDE_LATCH, SINGLE_CHEST_SIDE_LATCH );
+    SET_BOT( SINGLE_CHEST_SIDE_LATCH, SINGLE_CHEST_TOP );
 
-    block_definitions[ SNOWY_GRASS ].textures[ FACE_TOP ] = SNOW;
-    block_definitions[ SNOWY_GRASS ].textures[ FACE_BOTTOM ] = DIRT;
+    SET_TOP( SNOWY_GRASS, SNOW );
+    SET_BOT( SNOWY_GRASS, DIRT );
 
-    block_definitions[ FURNACE_UNLIT ].textures[ FACE_TOP ] = FURNACE_TOP;
-    block_definitions[ FURNACE_UNLIT ].textures[ FACE_LEFT ] = FURNACE_UNLIT;
-    block_definitions[ FURNACE_UNLIT ].textures[ FACE_RIGHT ] = FURNACE_SIDE;
-    block_definitions[ FURNACE_UNLIT ].textures[ FACE_FRONT ] = FURNACE_SIDE;
-    block_definitions[ FURNACE_UNLIT ].textures[ FACE_BACK ] = FURNACE_SIDE;
-    block_definitions[ FURNACE_UNLIT ].textures[ FACE_BOTTOM ] = FURNACE_TOP;
+    SET_TOP( FURNACE_UNLIT, FURNACE_TOP );
+    SET_LEFT( FURNACE_UNLIT, FURNACE_UNLIT );
+    SET_RIGHT( FURNACE_UNLIT, FURNACE_SIDE );
+    SET_FRONT( FURNACE_UNLIT, FURNACE_SIDE );
+    SET_BACK( FURNACE_UNLIT, FURNACE_SIDE );
+    SET_BOT( FURNACE_UNLIT, FURNACE_TOP );
 
-    block_definitions[ FURNACE_LIT ].textures[ FACE_TOP ] = FURNACE_TOP;
-    block_definitions[ FURNACE_LIT ].textures[ FACE_LEFT ] = FURNACE_LIT;
-    block_definitions[ FURNACE_LIT ].textures[ FACE_RIGHT ] = FURNACE_SIDE;
-    block_definitions[ FURNACE_LIT ].textures[ FACE_FRONT ] = FURNACE_SIDE;
-    block_definitions[ FURNACE_LIT ].textures[ FACE_BACK ] = FURNACE_SIDE;
-    block_definitions[ FURNACE_LIT ].textures[ FACE_BOTTOM ] = FURNACE_TOP;
+    SET_TOP( FURNACE_LIT, FURNACE_TOP );
+    SET_LEFT( FURNACE_LIT, FURNACE_LIT );
+    SET_RIGHT( FURNACE_LIT, FURNACE_SIDE );
+    SET_FRONT( FURNACE_LIT, FURNACE_SIDE );
+    SET_BACK( FURNACE_LIT, FURNACE_SIDE );
+    SET_BOT( FURNACE_LIT, FURNACE_TOP );
 
-    block_definitions[ MYCELIUM ].textures[ FACE_LEFT ] = MYCELIUM_SIDE;
-    block_definitions[ MYCELIUM ].textures[ FACE_RIGHT ] = MYCELIUM_SIDE;
-    block_definitions[ MYCELIUM ].textures[ FACE_FRONT ] = MYCELIUM_SIDE;
-    block_definitions[ MYCELIUM ].textures[ FACE_BACK ] = MYCELIUM_SIDE;
-    block_definitions[ MYCELIUM ].textures[ FACE_BOTTOM ] = DIRT;
+    SET_LEFT( MYCELIUM, MYCELIUM_SIDE );
+    SET_RIGHT( MYCELIUM, MYCELIUM_SIDE );
+    SET_FRONT( MYCELIUM, MYCELIUM_SIDE );
+    SET_BACK( MYCELIUM, MYCELIUM_SIDE );
+    SET_BOT( MYCELIUM, DIRT );
 
-    block_definitions[ PODZEL ].textures[ FACE_LEFT ] = PODZEL_SIDE;
-    block_definitions[ PODZEL ].textures[ FACE_RIGHT ] = PODZEL_SIDE;
-    block_definitions[ PODZEL ].textures[ FACE_FRONT ] = PODZEL_SIDE;
-    block_definitions[ PODZEL ].textures[ FACE_BACK ] = PODZEL_SIDE;
-    block_definitions[ PODZEL ].textures[ FACE_BOTTOM ] = DIRT;
+    SET_LEFT( PODZEL, PODZEL_SIDE );
+    SET_RIGHT( PODZEL, PODZEL_SIDE );
+    SET_FRONT( PODZEL, PODZEL_SIDE );
+    SET_BACK( PODZEL, PODZEL_SIDE );
+    SET_BOT( PODZEL, DIRT );
 
     block_definitions[ WHITE_GLASS ].is_seethrough = true;
     block_definitions[ BIRTCH_LEAVES ].is_seethrough = true;
@@ -112,7 +119,6 @@ void block_definitions_initilize_definitions( Texture *texture ) {
     block_definitions[ JUNGLE_LEAF ].can_mesh = false;
     block_definitions[ LEAF ].can_mesh = false;
 
-    block_definitions[ WHITE_GLASS ].no_light = NO_LIGHT_NO_DRAW;
     block_definitions[ BIRTCH_LEAVES ].no_light = NO_LIGHT_DRAW;
     block_definitions[ PINE_LEAF ].no_light = NO_LIGHT_DRAW;
     block_definitions[ JUNGLE_LEAF ].no_light = NO_LIGHT_DRAW;
