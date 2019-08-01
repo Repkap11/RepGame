@@ -1,7 +1,7 @@
 BEFORE_VARS := $(.VARIABLES)
 
 #This target can be used to depend on the contents of the makefiles
-MAKEFILES := Makefile
+REP_MAKEFILES = Makefile
 
 CPUS ?= $(shell nproc || echo 1)
 #SHELL = sh -xv
@@ -32,7 +32,7 @@ HEADERS := $(wildcard include/**/*.hpp)
 
 BITMAPS_NO_HEADER := $(patsubst bitmaps/%.bmp,out/bitmaps/%.bin,$(wildcard bitmaps/*.bmp))
 
-out/bitmaps/%.bin : bitmaps/%.bmp $(MAKEFILES) | out/bitmaps
+out/bitmaps/%.bin : bitmaps/%.bmp $(REP_MAKEFILES) | out/bitmaps
 	tail -c +139 $< > $@
 
 REPGAME_PACKAGES := libglm-dev libglm-doc rsync libarchive-tools wget ccache

@@ -1,5 +1,5 @@
 #Windows x86_64 builds
-MAKEFILES += windows.mk
+REP_MAKEFILES += windows.mk
 
 REPGAME_PACKAGES += mingw-w64
 
@@ -35,10 +35,10 @@ DEPS_WINDOWS := $(patsubst src/%.cpp,out/windows/%.d, $(wildcard src/windows/*.c
 SHADER_BLOBS_WINDOWS := $(patsubst src/shaders/%.glsl,out/windows/shaders/%.o,$(wildcard src/shaders/*.glsl))
 BITMAP_BLOBS_WINDOWS := $(patsubst bitmaps/%.bmp,out/windows/bitmaps/%.o,$(wildcard bitmaps/*.bmp))
 
-out/windows/shaders/%.o : src/shaders/%.glsl $(MAKEFILES) | out/windows
+out/windows/shaders/%.o : src/shaders/%.glsl $(REP_MAKEFILES) | out/windows
 	$(LD_WINDOWS) -r -b binary $< -o $@
 
-out/windows/bitmaps/%.o : out/bitmaps/%.bin $(MAKEFILES) | out/windows
+out/windows/bitmaps/%.o : out/bitmaps/%.bin $(REP_MAKEFILES) | out/windows
 	$(LD_WINDOWS) -r -b binary $< -o $@
 	objcopy --rename-section .data=.rodata,CONTENTS,ALLOC,LOAD,READONLY,DATA --reverse-bytes=4 $@ $@
 
@@ -50,14 +50,14 @@ windows-deploy: out/windows/$(TARGET).exe
 WINDOWS_DIRS = $(patsubst src%,out/windows%,$(shell find src -type d)) \
 	   out/windows/shaders out/windows/bitmaps
 
-out/windows/%.o: src/%.cpp $(MAKEFILES) | out/windows
+out/windows/%.o: src/%.cpp $(REP_MAKEFILES) | out/windows
 	@#Use g++ to build o file and a dependecy tree .d file for every cpp file
 	$(CC_WINDOWS) $(INCLUDES_WINDOWS) $(INCLUDES_COMMON) $(CFLAGS_WINDOWS) -MMD -MP -MF $(patsubst %.o,%.d,$@) -MT $(patsubst %.d,%.o,$@) -c $< -o $@
 
 #Include these .d files, so the dependicies are known for secondary builds.
 -include $(DEPS_WINDOWS)
 
-out/windows/$(TARGET).exe: $(OBJECTS_COMMON_WINDOWS) $(OBJECTS_WINDOWS) $(SHADER_BLOBS_WINDOWS) $(BITMAP_BLOBS_WINDOWS) $(MAKEFILES) | out/windows
+out/windows/$(TARGET).exe: $(OBJECTS_COMMON_WINDOWS) $(OBJECTS_WINDOWS) $(SHADER_BLOBS_WINDOWS) $(BITMAP_BLOBS_WINDOWS) $(REP_MAKEFILES) | out/windows
 	$(CC_WINDOWS) -flto $(CFLAGS_WINDOWS) $(OBJECTS_WINDOWS) $(OBJECTS_COMMON_WINDOWS) $(SHADER_BLOBS_WINDOWS) $(BITMAP_BLOBS_WINDOWS) $(LIBS_WINDOWS) -o $@
 
 windows-run: windows

@@ -1,4 +1,4 @@
-MAKEFILES += docker.mk
+REP_MAKEFILES += docker.mk
 
 docker-init:
 	docker images -aq -f 'dangling=true' | xargs docker rmi || echo

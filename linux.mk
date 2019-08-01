@@ -1,5 +1,5 @@
 #Linux x86_64 builds
-MAKEFILES += linux.mk
+REP_MAKEFILES += linux.mk
 
 REPGAME_PACKAGES += freeglut3-dev libglew-dev libxi-dev g++
 
@@ -35,11 +35,11 @@ SHADER_BLOBS_LINUX := $(patsubst src/shaders/%.glsl,out/linux/shaders/%.o.temp,$
 BITMAP_BLOBS_LINUX := $(patsubst bitmaps/%.bmp,out/linux/bitmaps/%.o,$(wildcard bitmaps/*.bmp))
 
 
-out/linux/shaders/%.o.temp : src/shaders/%.glsl $(MAKEFILES) | out/linux
+out/linux/shaders/%.o.temp : src/shaders/%.glsl $(REP_MAKEFILES) | out/linux
 	$(LD_LINUX) -r -b binary $< -o $@
 	objcopy --rename-section .data=.rodata,CONTENTS,ALLOC,LOAD,READONLY,DATA $@ $@
 
-out/linux/bitmaps/%.o : out/bitmaps/%.bin $(MAKEFILES) | out/linux
+out/linux/bitmaps/%.o : out/bitmaps/%.bin $(REP_MAKEFILES) | out/linux
 	$(LD_LINUX) -r -b binary $< -o $@
 	objcopy --rename-section .data=.rodata,CONTENTS,ALLOC,LOAD,READONLY,DATA --reverse-bytes=4 $@ $@
 
@@ -52,7 +52,7 @@ LINUX_DIRS = $(patsubst src%,out/linux%,$(shell find src -type d)) \
        $(patsubst src%,out/server%,$(shell find src -type d)) \
 	   out/linux/shaders out/linux/bitmaps
 
-out/linux/%.o: src/%.cpp $(MAKEFILES) | out/linux
+out/linux/%.o: src/%.cpp $(REP_MAKEFILES) | out/linux
 	@#Use g++ to build o file and a dependecy tree .d file for every cpp file
 	$(CC_LINUX) $(INCLUDES_COMMON) $(CFLAGS_LINUX) -MMD -MP -MF $(patsubst %.o,%.d,$@) -MT $(patsubst %.d,%.o,$@) -c $< -o $@
 
@@ -63,7 +63,7 @@ out/linux/%.o: src/%.cpp $(MAKEFILES) | out/linux
 #include cuda.mk
 
 
-out/linux/$(TARGET): $(OBJECTS_COMMON_LINUX) $(OBJECTS_LINUX) $(MAKEFILES) $(SHADER_BLOBS_LINUX) $(BITMAP_BLOBS_LINUX) | out/linux
+out/linux/$(TARGET): $(OBJECTS_COMMON_LINUX) $(OBJECTS_LINUX) $(REP_MAKEFILES) $(SHADER_BLOBS_LINUX) $(BITMAP_BLOBS_LINUX) | out/linux
 	$(CC_LINUX) -flto $(CFLAGS_LINUX) $(OBJECTS_LINUX) $(OBJECTS_COMMON_LINUX) $(SHADER_BLOBS_LINUX) $(BITMAP_BLOBS_LINUX) $(LIBS_LINUX) -o $@
 
 include server.mk
