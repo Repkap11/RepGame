@@ -58,26 +58,21 @@ out/linux/%.o: src/%.cpp $(REP_MAKEFILES) | out/linux
 #Include these .d files, so the dependicies are known for secondary builds.
 -include $(DEPS_LINUX)
 
-# Server targets might depend on cuda.mk modifications
 #include cuda.mk
-
 
 out/linux/$(TARGET): $(OBJECTS_COMMON_LINUX) $(OBJECTS_LINUX) $(REP_MAKEFILES) $(SHADER_BLOBS_LINUX) $(BITMAP_BLOBS_LINUX) | out/linux
 	$(CC_LINUX) -flto $(CFLAGS_LINUX) $(OBJECTS_LINUX) $(OBJECTS_COMMON_LINUX) $(SHADER_BLOBS_LINUX) $(BITMAP_BLOBS_LINUX) $(LIBS_LINUX) -o $@
-
-include server.mk
 
 linux-run: linux
 	./out/linux/$(TARGET) "../../World1"
 
 map:
 	rm -rf World1
+
 player:
 	rm -rf World1/player.dat
 
-reverse = $(if $(1),$(call reverse,$(wordlist 2,$(words $(1)),$(1)))) $(firstword $(1))
-
-clean-linux: clean-server
+clean-linux:
 	rm -rf out/linux
 
 out/linux: | out

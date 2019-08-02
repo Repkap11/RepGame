@@ -63,8 +63,6 @@ out/windows/$(TARGET).exe: $(OBJECTS_COMMON_WINDOWS) $(OBJECTS_WINDOWS) $(SHADER
 windows-run: windows
 	wine out/windows/$(TARGET).exe "World1"
 
-reverse = $(if $(1),$(call reverse,$(wordlist 2,$(words $(1)),$(1)))) $(firstword $(1))
-
 clean-windows: clean-server
 	rm -rf out/windows
 

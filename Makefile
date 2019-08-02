@@ -21,15 +21,12 @@ TARGET_LOWER := repgame
 USE_CCACHE := 1
 
 #Default target
-all: android linux windows wasm
+all: android linux windows wasm server
 	@echo "${TARGET} build complete..."
 
 SRC_COMMON := $(wildcard src/common/*.cpp) $(wildcard src/common/**/*.cpp)
 INCLUDES_COMMON := -I include/ -I /usr/include/glm
-
 HEADERS := $(wildcard include/**/*.hpp)
-
-
 BITMAPS_NO_HEADER := $(patsubst bitmaps/%.bmp,out/bitmaps/%.bin,$(wildcard bitmaps/*.bmp))
 
 out/bitmaps/%.bin : bitmaps/%.bmp $(REP_MAKEFILES) | out/bitmaps
@@ -39,7 +36,8 @@ REPGAME_PACKAGES := libglm-dev libglm-doc rsync libarchive-tools wget ccache
 
 #Android targets might depend on linux.mk modifications
 include wasm.mk
-include linux.mk
+include linux.mk #cuda.mk can be turned on inside linux.mk
+include server.mk #Server depends on things inside linux.mk
 include windows.mk
 include android.mk
 #Docker should be last since it uses REPGAME_PACKAGES
@@ -55,7 +53,7 @@ run: linux android-run wasm
 	${WASM_START_COMMAND} &
 	./$(TARGET)
 
-clean: clean-bitmaps clean-linux clean-windows clean-android clean-wasm
+clean: clean-bitmaps clean-linux clean-windows clean-android clean-wasm clean-server
 	rm -d out
 
 clean-bitmaps:
