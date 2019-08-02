@@ -17,6 +17,7 @@
 #include "common/abstract/renderer.hpp"
 #include "common/utils/ray_traversal.hpp"
 #include "common/utils/collision.hpp"
+#include "common/multiplayer.hpp"
 
 RepGameState globalGameState;
 
@@ -47,7 +48,7 @@ void change_block( int place, BlockID blockID ) {
         block_y = globalGameState.block_selection.destroy_y;
         block_z = globalGameState.block_selection.destroy_z;
     }
-
+    multiplayer_set_block( place, block_x, block_y, block_z, blockID );
     world_set_loaded_block( &globalGameState.world, TRIP_ARGS( block_ ), blockID );
 }
 
@@ -135,6 +136,7 @@ void repgame_idle( ) {
         // Don't bother being idle if the state if the game is exiting
         return;
     }
+    multiplayer_process_events( &globalGameState.world );
     world_render( &globalGameState.world, globalGameState.camera.x, globalGameState.camera.y, globalGameState.camera.z, 1, globalGameState.camera.rotation );
 }
 
@@ -278,6 +280,7 @@ void repgame_get_screen_size( int *width, int *height ) {
     *height = globalGameState.screen.height;
 }
 
+// int should_upate_count = 0;
 void repgame_draw( ) {
     if ( globalGameState.input.exitGame ) {
         // Don't bother draw the state if the game is exiting
@@ -287,6 +290,12 @@ void repgame_draw( ) {
     glm::mat4 mvp = mvp_sky * globalGameState.camera.view_trans;
 #if defined( REPGAME_WASM )
 #else
+    multiplayer_process_events( &globalGameState.world );
+    // if ( should_upate_count > 100 ) {
+    multiplayer_update_players_position( globalGameState.camera.x, globalGameState.camera.y, globalGameState.camera.z, globalGameState.camera.rotation );
+    //    should_upate_count = 0;
+    //}
+    // should_upate_count++;
     world_render( &globalGameState.world, globalGameState.camera.x, globalGameState.camera.y, globalGameState.camera.z, false, globalGameState.camera.rotation );
 #endif
     showErrors( );

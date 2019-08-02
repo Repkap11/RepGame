@@ -1,161 +1,259 @@
-// Example code: A simple server side code, which echos back the received message.
-// Handle multiple socket connections with select and fd_set on Linux
 #include <stdio.h>
-#include <string.h> //strlen
 #include <stdlib.h>
-#include <errno.h>
-#include <unistd.h>    //close
-#include <arpa/inet.h> //close
-#include <sys/types.h>
+#include "server/server.hpp"
 #include <sys/socket.h>
-#include <netinet/in.h>
-#include <sys/time.h> //FD_SET, FD_ISSET, FD_ZERO macros
+#include <sys/types.h>
+#include <arpa/inet.h>
+#include <fcntl.h>
+#include <sys/epoll.h>
+#include <errno.h>
+#include <queue>
+#include <unistd.h>
 
-#define TRUE 1
-#define FALSE 0
-#define PORT 8888
+#include "server/server_logic.hpp"
 
-int main( int argc, char *argv[] ) {
-    int opt = TRUE;
-    int master_socket, addrlen, new_socket, client_socket[ 30 ], max_clients = 30, activity, i, valread, sd, sockd, sockctr;
-    int max_sd;
-    struct sockaddr_in address;
+#define pr_debug( fmt, ... ) fprintf( stdout, "%s:%d:%s():" fmt "\n", __FILE__, __LINE__, __func__, ##__VA_ARGS__ );
 
-    char buffer[ 1025 ]; // data buffer of 1K
+#define INET_SOCKET_BACKLOG 64
 
-    // set of socket descriptors
-    fd_set readfds;
+int epoll_fd = 0;
 
-    // a message
-    const char *message = "RepGame Server v1.0 \r\n";
+typedef struct {
+    int connected;
+    std::queue<NetPacket> pending_sends;
+} ClientData;
+ClientData *client_data;
 
-    // initialise all client_socket[] to 0 so not checked
-    for ( i = 0; i < max_clients; i++ ) {
-        client_socket[ i ] = 0;
+int server_setup_inet_socket( int port ) {
+    int sockfd = socket( AF_INET, SOCK_STREAM, 0 );
+    if ( sockfd < 0 ) {
+        pr_debug( "ERROR opening socket" );
     }
 
-    // create a master socket
-    if ( ( master_socket = socket( AF_INET, SOCK_STREAM, 0 ) ) == 0 ) {
-        perror( "socket failed" );
-        exit( EXIT_FAILURE );
+    // This helps avoid spurious EADDRINUSE when the previous instance of this server died.
+    int opt = 1;
+    if ( setsockopt( sockfd, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof( opt ) ) < 0 ) {
+        pr_debug( "setsockopt" );
     }
 
-    // set master socket to allow multiple connections ,
-    // this is just a good habit, it will work without this
-    if ( setsockopt( master_socket, SOL_SOCKET, SO_REUSEADDR, ( char * )&opt, sizeof( opt ) ) < 0 ) {
-        perror( "setsockopt" );
-        exit( EXIT_FAILURE );
+    struct sockaddr_in serv_addr;
+    memset( &serv_addr, 0, sizeof( serv_addr ) );
+    serv_addr.sin_family = AF_INET;
+    serv_addr.sin_addr.s_addr = INADDR_ANY;
+    serv_addr.sin_port = htons( port );
+
+    if ( bind( sockfd, ( struct sockaddr * )&serv_addr, sizeof( serv_addr ) ) < 0 ) {
+        pr_debug( "ERROR on binding" );
+    }
+    if ( listen( sockfd, INET_SOCKET_BACKLOG ) < 0 ) {
+        pr_debug( "ERROR on listen" );
+    }
+    return sockfd;
+}
+
+void make_socket_non_blocking( int sockfd ) {
+    int flags = fcntl( sockfd, F_GETFL, 0 );
+    if ( flags == -1 ) {
+        pr_debug( "fcntl F_GETFL" );
     }
 
-    // type of socket created
-    address.sin_family = AF_INET;
-    address.sin_addr.s_addr = INADDR_ANY;
-    address.sin_port = htons( PORT );
-
-    // bind the socket to localhost port 8888
-    if ( bind( master_socket, ( struct sockaddr * )&address, sizeof( address ) ) < 0 ) {
-        perror( "bind failed" );
-        exit( EXIT_FAILURE );
+    if ( fcntl( sockfd, F_SETFL, flags | O_NONBLOCK ) == -1 ) {
+        pr_debug( "fcntl F_SETFL O_NONBLOCK" );
     }
-    printf( "Listening on port %d \n", PORT );
+}
 
-    // try to specify maximum of 3 pending connections for the master socket
-    if ( listen( master_socket, 3 ) < 0 ) {
-        perror( "listen" );
-        exit( EXIT_FAILURE );
+void server_add_epoll( int client_fd ) {
+    struct epoll_event accept_event;
+    accept_event.data.fd = client_fd;
+    accept_event.events = EPOLLOUT | EPOLLET;
+    if ( epoll_ctl( epoll_fd, EPOLL_CTL_ADD, client_fd, &accept_event ) < 0 ) {
+        pr_debug( "epoll_ctl EPOLL_CTL_ADD" );
     }
+    // pr_debug( "Epoll add:%d", client_fd );
+    return;
+}
 
-    // accept the incoming connection
-    addrlen = sizeof( address );
-    puts( "Waiting for connections ..." );
+void server_del_epoll( int client_fd ) {
+    if ( epoll_ctl( epoll_fd, EPOLL_CTL_DEL, client_fd, NULL ) < 0 ) {
+        pr_debug( "epoll_ctl EPOLL_CTL_DEL" );
+    }
+    // pr_debug( "Epoll del:%d", client_fd );
+    return;
+}
+void server_update_epoll( int client_fd ) {
+    struct epoll_event event = {0, {0}};
+    event.data.fd = client_fd;
+    event.events = EPOLLET;
+    int size = client_data[ client_fd ].pending_sends.size( );
+    if ( size == 1 ) {
+        event.events |= EPOLLOUT;
+        // pr_debug( "Update to out" );
+    } else if ( size == 0 ) {
+        event.events |= EPOLLIN;
+        // pr_debug( "Update to in" );
+    } else {
+        return;
+    }
+    // pr_debug( "About to epoll_ctl mod" );
+    int status = epoll_ctl( epoll_fd, EPOLL_CTL_MOD, client_fd, &event );
+    if ( status < 0 ) {
+        pr_debug( "epoll_ctl EPOLL_CTL_MOD status:%d:%s", status, strerror( status ) );
+    }
+    // pr_debug( "About to epoll_ctl mod done" );
+}
 
-    while ( TRUE ) {
-        // clear the socket set
-        FD_ZERO( &readfds );
-
-        // add master socket to set
-        FD_SET( master_socket, &readfds );
-        max_sd = master_socket;
-
-        // add child sockets to set
-        for ( i = 0; i < max_clients; i++ ) {
-            // socket descriptor
-            sd = client_socket[ i ];
-
-            // if valid socket descriptor then add to read list
-            if ( sd > 0 )
-                FD_SET( sd, &readfds );
-
-            // highest file descriptor number, need it for the select function
-            if ( sd > max_sd )
-                max_sd = sd;
+void server_handle_new_client_event( int inet_socket_fd ) {
+    struct sockaddr_in client_addr;
+    socklen_t client_addr_len = sizeof( client_addr );
+    int client_fd = accept( inet_socket_fd, ( struct sockaddr * )&client_addr, &client_addr_len );
+    if ( client_fd < 0 ) {
+        if ( errno == EAGAIN || errno == EWOULDBLOCK ) {
+            // This can happen due to the nonblocking socket mode; in this
+            // case don't do anything, but print a notice (since these events
+            // are extremely rare and interesting to observe...)
+            pr_debug( "accept returned EAGAIN or EWOULDBLOCK" );
         }
+        pr_debug( "Failed to get client FD" );
+        return;
+    }
+    if ( client_fd >= MAX_CLIENT_FDS ) {
+        pr_debug( "socket fd (%d) >= MAX 0NT_FDS (%d)", client_fd, MAX_CLIENT_FDS );
+    }
+    make_socket_non_blocking( client_fd );
+    server_add_epoll( client_fd );
+    client_data[ client_fd ].connected = 1;
+    server_logic_on_client_connected( client_fd );
+}
 
-        // wait for an activity on one of the sockets , timeout is NULL ,
-        // so wait indefinitely
-        activity = select( max_sd + 1, &readfds, NULL, NULL, NULL );
-
-        if ( ( activity < 0 ) && ( errno != EINTR ) ) {
-            printf( "select error" );
+void server_handle_client_ready_for_read( int client_fd ) {
+    // pr_debug( "server_handle_client_ready_for_read" );
+    int disconnected = 0;
+    while ( true ) {
+        NetPacket packet;
+        int nbytes = recv( client_fd, &packet, sizeof( NetPacket ), 0 );
+        if ( nbytes == 0 ) {
+            // The client disconnected.
+            disconnected = 1;
+            break;
+        } else if ( nbytes < 0 ) {
+            if ( errno == EAGAIN || errno == EWOULDBLOCK ) {
+                // The socket is not *really* ready for recv; wait until it is.
+                break;
+            }
+            pr_debug( "recv got negitive bytes, darn" );
+            break;
+        } else if ( nbytes != sizeof( NetPacket ) ) {
+            pr_debug( "Only got a partial packet, darn" );
+            break;
         }
+        server_logic_on_client_message( client_fd, packet );
+    }
+    if ( disconnected ) {
+        std::queue<NetPacket> empty;
+        std::swap( client_data[ client_fd ].pending_sends, empty );
+        server_logic_on_client_disconnected( client_fd );
+        client_data[ client_fd ].connected = 0;
+        server_del_epoll( client_fd );
+        close( client_fd );
+    } else {
+        server_update_epoll( client_fd );
+    }
 
-        // If something happened on the master socket ,
-        // then its an incoming connection
-        if ( FD_ISSET( master_socket, &readfds ) ) {
-            if ( ( new_socket = accept( master_socket, ( struct sockaddr * )&address, ( socklen_t * )&addrlen ) ) < 0 ) {
-                perror( "accept" );
-                exit( EXIT_FAILURE );
+    return;
+}
+
+void server_queue_packet( int client_fd, NetPacket &packet ) {
+    client_data[ client_fd ].pending_sends.push( packet );
+    // pr_debug( "Queueing packet on %d length:%ld", client_fd, client_data[ client_fd ].pending_sends.size( ) );
+    int server_has_data_to_send = 1;
+    server_update_epoll( client_fd );
+    // pr_debug( "Got packet done with server_update_epoll" );
+}
+
+int server_is_client_connected( int client_id ) {
+    return client_data[ client_id ].connected;
+}
+
+void server_handle_client_ready_for_write( int client_fd ) {
+    // pr_debug( "server_handle_client_ready_for_write" );
+    std::queue<NetPacket> &pending_sends = client_data[ client_fd ].pending_sends;
+    while ( !pending_sends.empty( ) ) {
+        NetPacket &packet = pending_sends.front( );
+        pending_sends.pop( );
+        int nsent = send( client_fd, &packet, sizeof( NetPacket ), 0 );
+        if ( nsent == -1 ) {
+            if ( errno == EAGAIN || errno == EWOULDBLOCK ) {
+                break;
+            } else {
+                pr_debug( "send" );
+            }
+        }
+        if ( nsent < ( int )sizeof( NetPacket ) ) {
+            pr_debug( "Sent less than a packet" );
+            break;
+        }
+    }
+    server_update_epoll( client_fd );
+}
+
+int main( int argc, const char **argv ) {
+    // setvbuf( stdout, NULL, _IONBF, 0 );
+
+    int portnum = 25566;
+    if ( argc >= 2 ) {
+        portnum = atoi( argv[ 1 ] );
+    }
+    pr_debug( "Serving on port %d", portnum );
+
+    int inet_socket_fd = server_setup_inet_socket( portnum );
+
+    make_socket_non_blocking( inet_socket_fd );
+
+    epoll_fd = epoll_create1( 0 );
+    if ( epoll_fd < 0 ) {
+        pr_debug( "epoll_create1" );
+    }
+
+    struct epoll_event accept_event;
+    accept_event.data.fd = inet_socket_fd;
+    accept_event.events = EPOLLIN;
+    if ( epoll_ctl( epoll_fd, EPOLL_CTL_ADD, inet_socket_fd, &accept_event ) < 0 ) {
+        pr_debug( "epoll_ctl EPOLL_CTL_ADD" );
+    }
+
+    client_data = ( ClientData * )calloc( MAX_CLIENT_FDS, sizeof( ClientData ) );
+    for ( int i = 0; i < MAX_CLIENT_FDS; i++ ) {
+        new ( &client_data[ i ].pending_sends ) std::queue<NetPacket>( );
+        // client_data[ i ].pending_sends = std::queue<NetPacket>( );
+    }
+    struct epoll_event *events = ( struct epoll_event * )calloc( MAX_CLIENT_FDS, sizeof( struct epoll_event ) );
+    if ( events == NULL ) {
+        pr_debug( "Unable to allocate memory for epoll_events" );
+    }
+    while ( 1 ) {
+        int num_ready = epoll_wait( epoll_fd, events, MAX_CLIENT_FDS, -1 );
+        // pr_debug( "epoll returned: %d", num_ready );
+        for ( int i = 0; i < num_ready; i++ ) {
+            int client_fd = events[ i ].data.fd;
+            if ( events[ i ].events & EPOLLERR ) {
+                pr_debug( "epoll_wait returned EPOLLERR:%d", client_fd );
             }
 
-            // inform user of socket number - used in send and receive commands
-            printf( "New connection , socket fd is %d , ip is : %s , port : %d\n ", new_socket, inet_ntoa( address.sin_addr ), ntohs( address.sin_port ) );
-
-            // send new connection greeting message
-            if ( send( new_socket, message, strlen( message ), 0 ) != strlen( message ) ) {
-                perror( "send" );
-            }
-
-            puts( "Welcome message sent successfully" );
-
-            // add new socket to array of sockets
-            for ( i = 0; i < max_clients; i++ ) {
-                // if position is empty
-                if ( client_socket[ i ] == 0 ) {
-                    client_socket[ i ] = new_socket;
-                    printf( "Adding to list of sockets as %d\n", i );
-
-                    break;
+            if ( client_fd == inet_socket_fd ) {
+                int server_has_data_to_send = 0;
+                // The listening socket is ready; this means a new peer is connecting.
+                server_handle_new_client_event( inet_socket_fd );
+            } else {
+                uint32_t epoll_events = events[ i ].events;
+                // A peer socket is ready.
+                if ( epoll_events & EPOLLIN ) {
+                    // Ready for reading.
+                    server_handle_client_ready_for_read( client_fd );
+                } else if ( epoll_events & EPOLLOUT ) {
+                    // Ready for writing.
+                    server_handle_client_ready_for_write( client_fd );
                 }
             }
         }
-
-        // else its some IO operation on some other socket
-        for ( i = 0; i < max_clients; i++ ) {
-            sd = client_socket[ i ];
-
-            if ( FD_ISSET( sd, &readfds ) ) {
-                // Check if it was for closing , and also read the
-                // incoming message
-                if ( ( valread = read( sd, buffer, 1024 ) ) == 0 ) {
-                    // Somebody disconnected , get his details and print
-                    getpeername( sd, ( struct sockaddr * )&address, ( socklen_t * )&addrlen );
-                    printf( "Host disconnected , ip %s , port %d \n", inet_ntoa( address.sin_addr ), ntohs( address.sin_port ) );
-
-                    // Close the socket and mark as 0 in list for reuse
-                    close( sd );
-                    client_socket[ i ] = 0;
-                } else {
-                    // Echo back the message that came in
-                    // set the string terminating NULL byte on the end
-                    // of the data read
-                    buffer[ valread ] = '\0';
-
-                    printf( "Sending response buffer to client %d\n", sd );
-                    send( sd, buffer, strlen( buffer ), 0 );
-                }
-            }
-        }
     }
-
-    return 0;
 }

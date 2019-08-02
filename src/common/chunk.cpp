@@ -166,6 +166,8 @@ void chunk_set_block( Chunk *chunk, int x, int y, int z, BlockID blockID ) {
          z < -1 ) {
         return;
     }
+
+    // Update the block in the client...
     chunk->blocks[ chunk_get_index_from_coords( x, y, z ) ] = blockID;
 }
 

@@ -3,7 +3,7 @@ REP_MAKEFILES += windows.mk
 
 REPGAME_PACKAGES += mingw-w64
 
-CFLAGS_WINDOWS := -Wall -Werror -std=c++98 -Wno-unused-variable -fno-pie -D GLEW_STATIC -D FREEGLUT_STATIC -mwindows
+CFLAGS_WINDOWS := -Wall -Werror -std=c++11 -Wno-unused-variable -fno-pie -D GLEW_STATIC -D FREEGLUT_STATIC -mwindows
 
 #CFLAGS_WINDOWS += -O3 -DREPGAME_FAST
 CFLAGS_WINDOWS += -g

@@ -20,6 +20,7 @@
 #include "ui_overlay.hpp"
 
 #include <glm.hpp>
+#include <gtc/type_ptr.hpp>
 #include <gtc/matrix_transform.hpp>
 
 #define DEBUG 1

@@ -4,6 +4,7 @@ REP_MAKEFILES += wasm.mk
 CFLAGS_WASM := -DREPGAME_WASM \
 			-s USE_WEBGL2=1 \
 			--no-heap-copy \
+			-std=c++11 \
 			-s EXPORTED_FUNCTIONS='["_main", "_testJS"]' \
 			-s EXTRA_EXPORTED_RUNTIME_METHODS='["ccall", "cwrap"]'
 

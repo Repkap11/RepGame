@@ -3,7 +3,7 @@ REP_MAKEFILES += linux.mk
 
 REPGAME_PACKAGES += freeglut3-dev libglew-dev libxi-dev g++
 
-CFLAGS_LINUX := -Wall -Wextra -Werror -std=c++98 -Wno-unused-parameter -Wno-unused-variable -fno-pie -march=native
+CFLAGS_LINUX := -Wall -Wextra -Werror -std=c++11 -Wno-unused-parameter -Wno-unused-variable -fno-pie -march=native
 
 #CFLAGS_LINUX += -O3 -DREPGAME_FAST
 CFLAGS_LINUX += -g
@@ -48,8 +48,7 @@ linux: out/linux/$(TARGET)
 linux-deploy: out/linux/$(TARGET)
 	rsync $< paul@repkap11.com:/home/paul/website/${TARGET_LOWER}
 
-LINUX_DIRS = $(patsubst src%,out/linux%,$(shell find src -type d)) \
-       $(patsubst src%,out/server%,$(shell find src -type d)) \
+LINUX_DIRS := $(patsubst src%,out/linux%,$(shell find src -type d)) \
 	   out/linux/shaders out/linux/bitmaps
 
 out/linux/%.o: src/%.cpp $(REP_MAKEFILES) | out/linux
