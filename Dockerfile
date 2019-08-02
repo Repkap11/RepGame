@@ -1,6 +1,6 @@
 FROM ubuntu:18.04
 
-RUN apt-get update && apt-get upgrade -y
+RUN apt-get update
 RUN apt-get install -y --no-install-recommends git make sudo pciutils coreutils ca-certificates
 
 ARG repgame_packages
@@ -13,5 +13,5 @@ RUN echo "$user_name ALL=(root) NOPASSWD:ALL" > /etc/sudoers.d/user && chmod 044
 USER $user_name
 WORKDIR /home/$user_name/RepGame
 
-CMD make install && make linux windows
+CMD make docker-internal-pre-build && make docker-internal-build
 #CMD bash
