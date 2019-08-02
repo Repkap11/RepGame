@@ -17,7 +17,7 @@
 #include "common/abstract/renderer.hpp"
 #include "common/utils/ray_traversal.hpp"
 #include "common/utils/collision.hpp"
-#include "common/net/multiplayer.hpp"
+#include "common/multiplayer.hpp"
 
 RepGameState globalGameState;
 

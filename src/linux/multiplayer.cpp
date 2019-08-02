@@ -11,7 +11,7 @@
 #include "common/RepGame.hpp"
 #include "common/block_definitions.hpp"
 #include "common/chunk.hpp"
-#include "common/net/multiplayer.hpp"
+#include "common/multiplayer.hpp"
 
 int sockfd;
 int portno;

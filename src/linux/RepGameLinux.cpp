@@ -3,7 +3,7 @@
 #include <unistd.h>
 
 #include "common/RepGame.hpp"
-#include "common/net/multiplayer.hpp"
+#include "common/multiplayer.hpp"
 
 #define SKY_BOX_DISTANCE DRAW_DISTANCE * 0.8
 
