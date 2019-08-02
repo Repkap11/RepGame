@@ -1,5 +1,5 @@
 #Linux Cuda
-REP_MAKEFILES += cuda.mk
+REP_MAKEFILES += makefiles/cuda.mk
 
 REPGAME_PACKAGES += nvidia-cuda-toolkit
 

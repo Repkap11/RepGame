@@ -1,6 +1,6 @@
 #Linux Server
 
-REP_MAKEFILES += server.mk
+REP_MAKEFILES += makefiles/server.mk
 
 REPSERVER := $(TARGET)Server
 

@@ -1,5 +1,5 @@
 #Windows x86_64 builds
-REP_MAKEFILES += windows.mk
+REP_MAKEFILES += makefiles/windows.mk
 
 REPGAME_PACKAGES += mingw-w64
 

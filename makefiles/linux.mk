@@ -1,5 +1,5 @@
 #Linux x86_64 builds
-REP_MAKEFILES += linux.mk
+REP_MAKEFILES += makefiles/linux.mk
 
 REPGAME_PACKAGES += freeglut3-dev libglew-dev libxi-dev g++
 
@@ -58,7 +58,7 @@ out/linux/%.o: src/%.cpp $(REP_MAKEFILES) | out/linux
 #Include these .d files, so the dependicies are known for secondary builds.
 -include $(DEPS_LINUX)
 
-#include cuda.mk
+#include makefiles/cuda.mk
 
 out/linux/$(TARGET): $(OBJECTS_COMMON_LINUX) $(OBJECTS_LINUX) $(REP_MAKEFILES) $(SHADER_BLOBS_LINUX) $(BITMAP_BLOBS_LINUX) | out/linux
 	$(CC_LINUX) -flto $(CFLAGS_LINUX) $(OBJECTS_LINUX) $(OBJECTS_COMMON_LINUX) $(SHADER_BLOBS_LINUX) $(BITMAP_BLOBS_LINUX) $(LIBS_LINUX) -o $@

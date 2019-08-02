@@ -1,5 +1,5 @@
 #WASM
-REP_MAKEFILES += wasm.mk
+REP_MAKEFILES += makefiles/wasm.mk
 #
 CFLAGS_WASM := -DREPGAME_WASM \
 			-s USE_WEBGL2=1 \

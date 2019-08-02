@@ -18,69 +18,31 @@ MAKEFLAGS += --jobs=$(CPUS)
 TARGET := RepGame
 TARGET_LOWER := repgame
 
-USE_CCACHE := 1
-
 #Default target
 all: android linux windows wasm server
 	@echo "${TARGET} build complete..."
 
-SRC_COMMON := $(wildcard src/common/*.cpp) $(wildcard src/common/**/*.cpp)
-INCLUDES_COMMON := -I include/ -I /usr/include/glm
-HEADERS := $(wildcard include/**/*.hpp)
-BITMAPS_NO_HEADER := $(patsubst bitmaps/%.bmp,out/bitmaps/%.bin,$(wildcard bitmaps/*.bmp))
-
-out/bitmaps/%.bin : bitmaps/%.bmp $(REP_MAKEFILES) | out/bitmaps
-	tail -c +139 $< > $@
-
-REPGAME_PACKAGES := libglm-dev libglm-doc rsync libarchive-tools wget ccache
-
-#Android targets might depend on linux.mk modifications
-include wasm.mk
-include linux.mk #cuda.mk can be turned on inside linux.mk
-include server.mk #Server depends on things inside linux.mk
-include windows.mk
-include android.mk
-#Docker should be last since it uses REPGAME_PACKAGES
-include docker.mk
+#Sub makefiles might share variables. Cuda, server and linux do for sure.
+include makefiles/common.mk
+include makefiles/install.mk
+include makefiles/wasm.mk
+include makefiles/linux.mk #cuda.mk can be turned on inside linux.mk
+include makefiles/server.mk
+include makefiles/windows.mk
+include makefiles/android.mk
+include makefiles/docker.mk
 
 out:
 	mkdir -p out
 
-out/bitmaps: | out
-	mkdir -p out/bitmaps
-
-run: linux android-run wasm
-	${WASM_START_COMMAND} &
-	./$(TARGET)
-
 clean: clean-bitmaps clean-linux clean-windows clean-android clean-wasm clean-server
 	rm -d out
 
-clean-bitmaps:
-	rm -rf out/bitmaps
-
-windows_build:
-	rm -rf freeglut.zip
-	rm -rf glew.zip
-	rm -rf windows_build
-	mkdir -p windows_build/glew
-	wget -q https://www.transmissionzero.co.uk/files/software/development/GLUT/freeglut-MinGW.zip -O freeglut.zip
-	wget -q http://www.grhmedia.com/glew/glew-2.1.0-mingw-w64.zip -O glew.zip
-	bsdtar --strip-components=1 -xvf glew.zip -C windows_build/glew
-	bsdtar  -xvf freeglut.zip -C windows_build
-	rm -rf freeglut.zip
-	rm -rf glew.zip
-
-install: windows_build
-	sudo apt-get install -y $(REPGAME_PACKAGES)
-
-.PHONY: run install all clean vars clean-bitmaps
+.PHONY: all clean vars
 
 deploy: windows-deploy linux-deploy wasm-deploy android-deploy
 
 nothing:
-
-.PRECIOUS: $(BITMAPS_NO_HEADER)
 
 vars:
 	@echo "$(BEFORE_VARS) $(AFTER_VARS)" | xargs -n1 | sort | uniq -u

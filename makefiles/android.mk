@@ -1,5 +1,5 @@
 #Android app
-REP_MAKEFILES += android.mk
+REP_MAKEFILES += makefiles/android.mk
 
 ANDROID_SHADERS = $(patsubst src/shaders/%.glsl,android/app/src/main/assets/%.glsl,$(wildcard src/shaders/*.glsl))
 ANDROID_BITMAPS = $(patsubst bitmaps/%.bmp,android/app/src/main/res/raw/%.bin,$(wildcard bitmaps/*.bmp))
