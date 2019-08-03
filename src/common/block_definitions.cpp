@@ -62,12 +62,28 @@ void block_definitions_initilize_definitions( Texture *texture ) {
     block_definitions[ CRAFTING_BENCH ].textures[ FACE_BACK ] = CRAFTING_BENCH_SIDE2;
     block_definitions[ CRAFTING_BENCH ].textures[ FACE_BOTTOM ] = OAK_PLANK;
 
-    block_definitions[ SINGLE_CHEST_SIDE_LATCH ].textures[ FACE_TOP ] = SINGLE_CHEST_TOP;
-    block_definitions[ SINGLE_CHEST_SIDE_LATCH ].textures[ FACE_FRONT ] = SINGLE_CHEST_SIDE_EMPTY;
-    block_definitions[ SINGLE_CHEST_SIDE_LATCH ].textures[ FACE_BACK ] = SINGLE_CHEST_SIDE_EMPTY;
-    block_definitions[ SINGLE_CHEST_SIDE_LATCH ].textures[ FACE_LEFT ] = SINGLE_CHEST_SIDE_EMPTY;
-    block_definitions[ SINGLE_CHEST_SIDE_LATCH ].textures[ FACE_RIGHT ] = SINGLE_CHEST_SIDE_LATCH;
-    block_definitions[ SINGLE_CHEST_SIDE_LATCH ].textures[ FACE_BOTTOM ] = SINGLE_CHEST_TOP;
+    block_definitions[ SINGLE_CHEST_LATCH ].textures[ FACE_TOP ] = SINGLE_CHEST_TOP;
+    block_definitions[ SINGLE_CHEST_LATCH ].textures[ FACE_FRONT ] = SINGLE_CHEST_LATCH;
+    block_definitions[ SINGLE_CHEST_LATCH ].textures[ FACE_BACK ] = CHEST_SIDE;
+    block_definitions[ SINGLE_CHEST_LATCH ].textures[ FACE_LEFT ] = CHEST_SIDE;
+    block_definitions[ SINGLE_CHEST_LATCH ].textures[ FACE_RIGHT ] = CHEST_SIDE;
+    block_definitions[ SINGLE_CHEST_LATCH ].textures[ FACE_BOTTOM ] = SINGLE_CHEST_TOP;
+
+    block_definitions[ DOUBLE_CHEST_LEFT_LATCH ].textures[ FACE_TOP ] = DOUBLE_CHEST_LEFT_TOP;
+    block_definitions[ DOUBLE_CHEST_LEFT_LATCH ].textures[ FACE_FRONT ] = DOUBLE_CHEST_LEFT_LATCH;
+    block_definitions[ DOUBLE_CHEST_LEFT_LATCH ].textures[ FACE_BACK ] = DOUBLE_CHEST_LEFT_BACK;
+    block_definitions[ DOUBLE_CHEST_LEFT_LATCH ].textures[ FACE_LEFT ] = CHEST_SIDE;
+    block_definitions[ DOUBLE_CHEST_LEFT_LATCH ].textures[ FACE_RIGHT ] = CHEST_SIDE;
+    block_definitions[ DOUBLE_CHEST_LEFT_LATCH ].textures[ FACE_BOTTOM ] = DOUBLE_CHEST_LEFT_TOP;
+
+    block_definitions[ DOUBLE_CHEST_RIGHT_LATCH ].textures[ FACE_TOP ] = DOUBLE_CHEST_RIGHT_TOP;
+    block_definitions[ DOUBLE_CHEST_RIGHT_LATCH ].textures[ FACE_FRONT ] = DOUBLE_CHEST_RIGHT_LATCH;
+    block_definitions[ DOUBLE_CHEST_RIGHT_LATCH ].textures[ FACE_BACK ] = DOUBLE_CHEST_RIGHT_BACK;
+    block_definitions[ DOUBLE_CHEST_RIGHT_LATCH ].textures[ FACE_LEFT ] = CHEST_SIDE;
+    block_definitions[ DOUBLE_CHEST_RIGHT_LATCH ].textures[ FACE_RIGHT ] = CHEST_SIDE;
+    block_definitions[ DOUBLE_CHEST_RIGHT_LATCH ].textures[ FACE_BOTTOM ] = DOUBLE_CHEST_RIGHT_TOP;
+
+    // SINGLE_CHEST_TOP = 162, CHEST_SIDE = 163, SINGLE_CHEST_LATCH = 164, DOUBLE_CHEST_LEFT_LATCH = 165, DOUBLE_CHEST_RIGHT_LATCH = 166, DOUBLE_CHEST_LEFT_BACK = 167, DOUBLE_CHEST_RIGHT_BACK = 168,
 
     block_definitions[ SNOWY_GRASS ].textures[ FACE_TOP ] = SNOW;
     block_definitions[ SNOWY_GRASS ].textures[ FACE_BOTTOM ] = DIRT;
@@ -123,6 +139,9 @@ void block_definitions_initilize_definitions( Texture *texture ) {
 
     block_definitions[ FURNACE_LIT ].rotate_on_placement = true;
     block_definitions[ FURNACE_UNLIT ].rotate_on_placement = true;
+    block_definitions[ SINGLE_CHEST_LATCH ].rotate_on_placement = true;
+    block_definitions[ DOUBLE_CHEST_LEFT_LATCH ].rotate_on_placement = true;
+    block_definitions[ DOUBLE_CHEST_RIGHT_LATCH ].rotate_on_placement = true;
 
     // Start flower section
     do_flowers( block_definitions );
@@ -187,6 +206,12 @@ void do_disable( Block *block_definitions ) {
     block_definitions[ GRASS_SIDE ].renderOrder = RenderOrder_Transparent;
     block_definitions[ CRAFTING_BENCH_SIDE1 ].renderOrder = RenderOrder_Transparent;
     block_definitions[ CRAFTING_BENCH_SIDE2 ].renderOrder = RenderOrder_Transparent;
+    block_definitions[ CHEST_SIDE ].renderOrder = RenderOrder_Transparent;
+    block_definitions[ DOUBLE_CHEST_LEFT_BACK ].renderOrder = RenderOrder_Transparent;
+    block_definitions[ DOUBLE_CHEST_RIGHT_BACK ].renderOrder = RenderOrder_Transparent;
+    block_definitions[ DOUBLE_CHEST_RIGHT_BACK ].renderOrder = RenderOrder_Transparent;
+    block_definitions[ DOUBLE_CHEST_LEFT_TOP ].renderOrder = RenderOrder_Transparent;
+    block_definitions[ DOUBLE_CHEST_RIGHT_TOP ].renderOrder = RenderOrder_Transparent;
 }
 
 void do_flowers( Block *block_definitions ) {
