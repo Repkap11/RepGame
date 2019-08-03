@@ -104,7 +104,7 @@ int strcuture_gen_tree_fits( Chunk *chunk, int x, int y, int z, int max_tree_rad
                 if ( abs( bound_x ) + abs( bound_z ) > max_tree_radius ) {
                     continue;
                 }
-                BlockID colliding_blockid = chunk->blocks[ chunk_get_index_from_coords( x + bound_x, y + bound_y, z + bound_z ) ];
+                BlockID colliding_blockid = chunk->blocks[ chunk_get_index_from_coords( x + bound_x, y + bound_y, z + bound_z ) ].id;
                 if ( colliding_blockid == LEAF ) {
                     num_colliding_leafs++;
                     continue;
@@ -128,7 +128,7 @@ int structure_gen_is_next_to( Chunk *chunk, int x, int y, int z, BlockID block )
             if ( i == 0 && j == 0 ) {
                 continue;
             }
-            if ( chunk->blocks[ chunk_get_index_from_coords( x + i, y, z + j ) ] == block ) {
+            if ( chunk->blocks[ chunk_get_index_from_coords( x + i, y, z + j ) ].id == block ) {
                 return 1;
             }
         }
@@ -157,11 +157,11 @@ void structure_gen_place( Chunk *chunk ) {
             BlockID block_below = AIR;
             for ( int y = CHUNK_SIZE - 1; y > -1; y-- ) {
                 // If this block isn't air
-                if ( chunk->blocks[ chunk_get_index_from_coords( x, y, z ) ] != AIR ) {
+                if ( chunk->blocks[ chunk_get_index_from_coords( x, y, z ) ].id != AIR ) {
                     break;
                 }
                 // And the block below is solid
-                block_below = chunk->blocks[ chunk_get_index_from_coords( x, y - 1, z ) ];
+                block_below = chunk->blocks[ chunk_get_index_from_coords( x, y - 1, z ) ].id;
                 if ( block_below == AIR ) {
                     continue;
                 }
@@ -179,31 +179,31 @@ void structure_gen_place( Chunk *chunk ) {
                     int tree_type = structure_gen_is_tree_roll( world_x, world_z, max_tree_radius );
                     if ( tree_type != 0 ) {
                         if ( FOREST_DEBUG ) {
-                            chunk->blocks[ chunk_get_index_from_coords( x, y, z ) ] = OAK_LOG;
+                            chunk->blocks[ chunk_get_index_from_coords( x, y, z ) ] = {OAK_LOG, BLOCK_ROTATE_0};
                             continue;
                         }
                         // And the blocks in the bounding box are not solid
                         if ( strcuture_gen_tree_fits( chunk, x, y, z, max_tree_radius ) ) {
                             placed_tree = 1;
-                            chunk->blocks[ chunk_get_index_from_coords( x, y - 1, z ) ] = DIRT;
-                            chunk->blocks[ chunk_get_index_from_coords( x, y, z ) ] = OAK_LOG;
-                            chunk->blocks[ chunk_get_index_from_coords( x, y + 1, z ) ] = OAK_LOG;
-                            chunk->blocks[ chunk_get_index_from_coords( x, y + 2, z ) ] = OAK_LOG;
+                            chunk->blocks[ chunk_get_index_from_coords( x, y - 1, z ) ] = {DIRT, BLOCK_ROTATE_0};
+                            chunk->blocks[ chunk_get_index_from_coords( x, y, z ) ] = {OAK_LOG, BLOCK_ROTATE_0};
+                            chunk->blocks[ chunk_get_index_from_coords( x, y + 1, z ) ] = {OAK_LOG, BLOCK_ROTATE_0};
+                            chunk->blocks[ chunk_get_index_from_coords( x, y + 2, z ) ] = {OAK_LOG, BLOCK_ROTATE_0};
 
                             // tree_type = 3;
                             if ( tree_type == 1 ) { // This is a small tree, but a baby
-                                chunk->blocks[ chunk_get_index_from_coords( x, y + 3, z ) ] = LEAF;
+                                chunk->blocks[ chunk_get_index_from_coords( x, y + 3, z ) ] = {LEAF, BLOCK_ROTATE_0};
                                 // chunk->blocks[ chunk_get_index_from_coords( x, y + 3, z ) ] = ( BlockID )( tree_type - 1 + IRON_BLOCK );
 
                             } else if ( tree_type <= 3 ) { // This is a small tree
-                                chunk->blocks[ chunk_get_index_from_coords( x, y + 3, z ) ] = OAK_LOG;
-                                chunk->blocks[ chunk_get_index_from_coords( x, y + 4, z ) ] = LEAF;
+                                chunk->blocks[ chunk_get_index_from_coords( x, y + 3, z ) ] = {OAK_LOG, BLOCK_ROTATE_0};
+                                chunk->blocks[ chunk_get_index_from_coords( x, y + 4, z ) ] = {LEAF, BLOCK_ROTATE_0};
                                 // chunk->blocks[ chunk_get_index_from_coords( x, y + 4, z ) ] = ( BlockID )( tree_type - 1 + IRON_BLOCK );
 
                             } else {
-                                chunk->blocks[ chunk_get_index_from_coords( x, y + 3, z ) ] = OAK_LOG;
-                                chunk->blocks[ chunk_get_index_from_coords( x, y + 4, z ) ] = OAK_LOG;
-                                chunk->blocks[ chunk_get_index_from_coords( x, y + 5, z ) ] = LEAF;
+                                chunk->blocks[ chunk_get_index_from_coords( x, y + 3, z ) ] = {OAK_LOG, BLOCK_ROTATE_0};
+                                chunk->blocks[ chunk_get_index_from_coords( x, y + 4, z ) ] = {OAK_LOG, BLOCK_ROTATE_0};
+                                chunk->blocks[ chunk_get_index_from_coords( x, y + 5, z ) ] = {LEAF, BLOCK_ROTATE_0};
                                 // chunk->blocks[ chunk_get_index_from_coords( x, y + 5, z ) ] = ( BlockID )( tree_type - 1 + IRON_BLOCK );
                             }
                             place_leaves( chunk, x, y, z, tree_type );
@@ -214,7 +214,7 @@ void structure_gen_place( Chunk *chunk ) {
                     if ( !structure_gen_is_next_to( chunk, x, y, z, GRASS_TUFT2 ) ) {
                         BlockID grass_type = structure_gen_is_long_grass_roll( world_x, world_z, is_forest );
                         if ( grass_type != AIR ) {
-                            chunk->blocks[ chunk_get_index_from_coords( x, y, z ) ] = grass_type;
+                            chunk->blocks[ chunk_get_index_from_coords( x, y, z ) ] = {grass_type, BLOCK_ROTATE_0};
                         }
                     }
                 }
@@ -225,7 +225,7 @@ void structure_gen_place( Chunk *chunk ) {
                     if ( strcuture_gen_poll_fits( chunk, x, y, z, height ) ) {
                         if ( structure_gen_is_reed_roll( x, z ) ) {
                             for ( int i = 0; i < height; i++ ) {
-                                chunk->blocks[ chunk_get_index_from_coords( x, y + i, z ) ] = REED;
+                                chunk->blocks[ chunk_get_index_from_coords( x, y + i, z ) ] = {DIRT, BLOCK_ROTATE_0};
                             }
                         }
                     }
@@ -237,212 +237,212 @@ void structure_gen_place( Chunk *chunk ) {
 
 void place_leaves( Chunk *chunk, int x, int y, int z, int tree_type ) {
     if ( tree_type == 1 ) { // This is a small tree, place up to 4 tall
-        chunk->blocks[ chunk_get_index_from_coords( x - 1, y + 3, z ) ] = LEAF;
-        chunk->blocks[ chunk_get_index_from_coords( x + 1, y + 3, z ) ] = LEAF;
-        // chunk->blocks[ chunk_get_index_from_coords( x - 1, y + 3, z + 1 ) ] = LEAF;
-        // chunk->blocks[ chunk_get_index_from_coords( x + 1, y + 3, z + 1 ) ] = LEAF;
-        // chunk->blocks[ chunk_get_index_from_coords( x - 1, y + 3, z - 1 ) ] = LEAF;
-        // chunk->blocks[ chunk_get_index_from_coords( x + 1, y + 3, z - 1 ) ] = LEAF;
-        chunk->blocks[ chunk_get_index_from_coords( x, y + 3, z + 1 ) ] = LEAF;
-        chunk->blocks[ chunk_get_index_from_coords( x, y + 3, z - 1 ) ] = LEAF;
+        chunk->blocks[ chunk_get_index_from_coords( x - 1, y + 3, z ) ] = {LEAF, BLOCK_ROTATE_0};
+        chunk->blocks[ chunk_get_index_from_coords( x + 1, y + 3, z ) ] = {LEAF, BLOCK_ROTATE_0};
+        // chunk->blocks[ chunk_get_index_from_coords( x - 1, y + 3, z + 1 ) ] = {LEAF, BLOCK_ROTATE_0};
+        // chunk->blocks[ chunk_get_index_from_coords( x + 1, y + 3, z + 1 ) ] = {LEAF, BLOCK_ROTATE_0};
+        // chunk->blocks[ chunk_get_index_from_coords( x - 1, y + 3, z - 1 ) ] = {LEAF, BLOCK_ROTATE_0};
+        // chunk->blocks[ chunk_get_index_from_coords( x + 1, y + 3, z - 1 ) ] = {LEAF, BLOCK_ROTATE_0};
+        chunk->blocks[ chunk_get_index_from_coords( x, y + 3, z + 1 ) ] = {LEAF, BLOCK_ROTATE_0};
+        chunk->blocks[ chunk_get_index_from_coords( x, y + 3, z - 1 ) ] = {LEAF, BLOCK_ROTATE_0};
 
-        // chunk->blocks[ chunk_get_index_from_coords( x - 1, y + 1, z ) ] = LEAF;
-        // chunk->blocks[ chunk_get_index_from_coords( x + 1, y + 1, z ) ] = LEAF;
-        // chunk->blocks[ chunk_get_index_from_coords( x, y + 1, z + 1 ) ] = LEAF;
-        // chunk->blocks[ chunk_get_index_from_coords( x, y + 1, z - 1 ) ] = LEAF;
+        // chunk->blocks[ chunk_get_index_from_coords( x - 1, y + 1, z ) ] = {LEAF, BLOCK_ROTATE_0};
+        // chunk->blocks[ chunk_get_index_from_coords( x + 1, y + 1, z ) ] = {LEAF, BLOCK_ROTATE_0};
+        // chunk->blocks[ chunk_get_index_from_coords( x, y + 1, z + 1 ) ] = {LEAF, BLOCK_ROTATE_0};
+        // chunk->blocks[ chunk_get_index_from_coords( x, y + 1, z - 1 ) ] = {LEAF, BLOCK_ROTATE_0};
 
-        chunk->blocks[ chunk_get_index_from_coords( x - 1, y + 2, z ) ] = LEAF;
-        chunk->blocks[ chunk_get_index_from_coords( x + 1, y + 2, z ) ] = LEAF;
-        chunk->blocks[ chunk_get_index_from_coords( x - 1, y + 2, z + 1 ) ] = LEAF;
-        chunk->blocks[ chunk_get_index_from_coords( x + 1, y + 2, z + 1 ) ] = LEAF;
-        chunk->blocks[ chunk_get_index_from_coords( x - 1, y + 2, z - 1 ) ] = LEAF;
-        chunk->blocks[ chunk_get_index_from_coords( x + 1, y + 2, z - 1 ) ] = LEAF;
-        chunk->blocks[ chunk_get_index_from_coords( x, y + 2, z + 1 ) ] = LEAF;
-        chunk->blocks[ chunk_get_index_from_coords( x, y + 2, z - 1 ) ] = LEAF;
+        chunk->blocks[ chunk_get_index_from_coords( x - 1, y + 2, z ) ] = {LEAF, BLOCK_ROTATE_0};
+        chunk->blocks[ chunk_get_index_from_coords( x + 1, y + 2, z ) ] = {LEAF, BLOCK_ROTATE_0};
+        chunk->blocks[ chunk_get_index_from_coords( x - 1, y + 2, z + 1 ) ] = {LEAF, BLOCK_ROTATE_0};
+        chunk->blocks[ chunk_get_index_from_coords( x + 1, y + 2, z + 1 ) ] = {LEAF, BLOCK_ROTATE_0};
+        chunk->blocks[ chunk_get_index_from_coords( x - 1, y + 2, z - 1 ) ] = {LEAF, BLOCK_ROTATE_0};
+        chunk->blocks[ chunk_get_index_from_coords( x + 1, y + 2, z - 1 ) ] = {LEAF, BLOCK_ROTATE_0};
+        chunk->blocks[ chunk_get_index_from_coords( x, y + 2, z + 1 ) ] = {LEAF, BLOCK_ROTATE_0};
+        chunk->blocks[ chunk_get_index_from_coords( x, y + 2, z - 1 ) ] = {LEAF, BLOCK_ROTATE_0};
     }
     if ( tree_type == 2 ) { // This is a small tree, place up to 4 tall
-        chunk->blocks[ chunk_get_index_from_coords( x - 1, y + 4, z ) ] = LEAF;
-        chunk->blocks[ chunk_get_index_from_coords( x + 1, y + 4, z ) ] = LEAF;
-        // chunk->blocks[ chunk_get_index_from_coords( x - 1, y + 4, z + 1 ) ] = LEAF;
-        // chunk->blocks[ chunk_get_index_from_coords( x + 1, y + 4, z + 1 ) ] = LEAF;
-        // chunk->blocks[ chunk_get_index_from_coords( x - 1, y + 4, z - 1 ) ] = LEAF;
-        // chunk->blocks[ chunk_get_index_from_coords( x + 1, y + 4, z - 1 ) ] = LEAF;
-        chunk->blocks[ chunk_get_index_from_coords( x, y + 4, z + 1 ) ] = LEAF;
-        chunk->blocks[ chunk_get_index_from_coords( x, y + 4, z - 1 ) ] = LEAF;
+        chunk->blocks[ chunk_get_index_from_coords( x - 1, y + 4, z ) ] = {LEAF, BLOCK_ROTATE_0};
+        chunk->blocks[ chunk_get_index_from_coords( x + 1, y + 4, z ) ] = {LEAF, BLOCK_ROTATE_0};
+        // chunk->blocks[ chunk_get_index_from_coords( x - 1, y + 4, z + 1 ) ] = {LEAF, BLOCK_ROTATE_0};
+        // chunk->blocks[ chunk_get_index_from_coords( x + 1, y + 4, z + 1 ) ] = {LEAF, BLOCK_ROTATE_0};
+        // chunk->blocks[ chunk_get_index_from_coords( x - 1, y + 4, z - 1 ) ] = {LEAF, BLOCK_ROTATE_0};
+        // chunk->blocks[ chunk_get_index_from_coords( x + 1, y + 4, z - 1 ) ] = {LEAF, BLOCK_ROTATE_0};
+        chunk->blocks[ chunk_get_index_from_coords( x, y + 4, z + 1 ) ] = {LEAF, BLOCK_ROTATE_0};
+        chunk->blocks[ chunk_get_index_from_coords( x, y + 4, z - 1 ) ] = {LEAF, BLOCK_ROTATE_0};
 
-        chunk->blocks[ chunk_get_index_from_coords( x - 1, y + 3, z ) ] = LEAF;
-        chunk->blocks[ chunk_get_index_from_coords( x + 1, y + 3, z ) ] = LEAF;
-        chunk->blocks[ chunk_get_index_from_coords( x - 1, y + 3, z + 1 ) ] = LEAF;
-        chunk->blocks[ chunk_get_index_from_coords( x + 1, y + 3, z + 1 ) ] = LEAF;
-        chunk->blocks[ chunk_get_index_from_coords( x - 1, y + 3, z - 1 ) ] = LEAF;
-        chunk->blocks[ chunk_get_index_from_coords( x + 1, y + 3, z - 1 ) ] = LEAF;
-        chunk->blocks[ chunk_get_index_from_coords( x, y + 3, z + 1 ) ] = LEAF;
-        chunk->blocks[ chunk_get_index_from_coords( x, y + 3, z - 1 ) ] = LEAF;
+        chunk->blocks[ chunk_get_index_from_coords( x - 1, y + 3, z ) ] = {LEAF, BLOCK_ROTATE_0};
+        chunk->blocks[ chunk_get_index_from_coords( x + 1, y + 3, z ) ] = {LEAF, BLOCK_ROTATE_0};
+        chunk->blocks[ chunk_get_index_from_coords( x - 1, y + 3, z + 1 ) ] = {LEAF, BLOCK_ROTATE_0};
+        chunk->blocks[ chunk_get_index_from_coords( x + 1, y + 3, z + 1 ) ] = {LEAF, BLOCK_ROTATE_0};
+        chunk->blocks[ chunk_get_index_from_coords( x - 1, y + 3, z - 1 ) ] = {LEAF, BLOCK_ROTATE_0};
+        chunk->blocks[ chunk_get_index_from_coords( x + 1, y + 3, z - 1 ) ] = {LEAF, BLOCK_ROTATE_0};
+        chunk->blocks[ chunk_get_index_from_coords( x, y + 3, z + 1 ) ] = {LEAF, BLOCK_ROTATE_0};
+        chunk->blocks[ chunk_get_index_from_coords( x, y + 3, z - 1 ) ] = {LEAF, BLOCK_ROTATE_0};
 
-        // chunk->blocks[ chunk_get_index_from_coords( x - 2, y + 2, z ) ] = LEAF;
-        // chunk->blocks[ chunk_get_index_from_coords( x + 2, y + 2, z ) ] = LEAF;
-        // chunk->blocks[ chunk_get_index_from_coords( x, y + 2, z + 2 ) ] = LEAF;
-        // chunk->blocks[ chunk_get_index_from_coords( x, y + 2, z - 2 ) ] = LEAF;
+        // chunk->blocks[ chunk_get_index_from_coords( x - 2, y + 2, z ) ] = {LEAF, BLOCK_ROTATE_0};
+        // chunk->blocks[ chunk_get_index_from_coords( x + 2, y + 2, z ) ] = {LEAF, BLOCK_ROTATE_0};
+        // chunk->blocks[ chunk_get_index_from_coords( x, y + 2, z + 2 ) ] = {LEAF, BLOCK_ROTATE_0};
+        // chunk->blocks[ chunk_get_index_from_coords( x, y + 2, z - 2 ) ] = {LEAF, BLOCK_ROTATE_0};
 
-        chunk->blocks[ chunk_get_index_from_coords( x - 1, y + 2, z ) ] = LEAF;
-        chunk->blocks[ chunk_get_index_from_coords( x + 1, y + 2, z ) ] = LEAF;
-        chunk->blocks[ chunk_get_index_from_coords( x - 1, y + 2, z + 1 ) ] = LEAF;
-        chunk->blocks[ chunk_get_index_from_coords( x + 1, y + 2, z + 1 ) ] = LEAF;
-        chunk->blocks[ chunk_get_index_from_coords( x - 1, y + 2, z - 1 ) ] = LEAF;
-        chunk->blocks[ chunk_get_index_from_coords( x + 1, y + 2, z - 1 ) ] = LEAF;
-        chunk->blocks[ chunk_get_index_from_coords( x, y + 2, z + 1 ) ] = LEAF;
-        chunk->blocks[ chunk_get_index_from_coords( x, y + 2, z - 1 ) ] = LEAF;
+        chunk->blocks[ chunk_get_index_from_coords( x - 1, y + 2, z ) ] = {LEAF, BLOCK_ROTATE_0};
+        chunk->blocks[ chunk_get_index_from_coords( x + 1, y + 2, z ) ] = {LEAF, BLOCK_ROTATE_0};
+        chunk->blocks[ chunk_get_index_from_coords( x - 1, y + 2, z + 1 ) ] = {LEAF, BLOCK_ROTATE_0};
+        chunk->blocks[ chunk_get_index_from_coords( x + 1, y + 2, z + 1 ) ] = {LEAF, BLOCK_ROTATE_0};
+        chunk->blocks[ chunk_get_index_from_coords( x - 1, y + 2, z - 1 ) ] = {LEAF, BLOCK_ROTATE_0};
+        chunk->blocks[ chunk_get_index_from_coords( x + 1, y + 2, z - 1 ) ] = {LEAF, BLOCK_ROTATE_0};
+        chunk->blocks[ chunk_get_index_from_coords( x, y + 2, z + 1 ) ] = {LEAF, BLOCK_ROTATE_0};
+        chunk->blocks[ chunk_get_index_from_coords( x, y + 2, z - 1 ) ] = {LEAF, BLOCK_ROTATE_0};
     }
     if ( tree_type == 3 ) { // This is a small tree, place up to 4 tall
-        chunk->blocks[ chunk_get_index_from_coords( x - 1, y + 4, z ) ] = LEAF;
-        chunk->blocks[ chunk_get_index_from_coords( x + 1, y + 4, z ) ] = LEAF;
-        // chunk->blocks[ chunk_get_index_from_coords( x - 1, y + 4, z + 1 ) ] = LEAF;
-        // chunk->blocks[ chunk_get_index_from_coords( x + 1, y + 4, z + 1 ) ] = LEAF;
-        // chunk->blocks[ chunk_get_index_from_coords( x - 1, y + 4, z - 1 ) ] = LEAF;
-        // chunk->blocks[ chunk_get_index_from_coords( x + 1, y + 4, z - 1 ) ] = LEAF;
-        chunk->blocks[ chunk_get_index_from_coords( x, y + 4, z + 1 ) ] = LEAF;
-        chunk->blocks[ chunk_get_index_from_coords( x, y + 4, z - 1 ) ] = LEAF;
+        chunk->blocks[ chunk_get_index_from_coords( x - 1, y + 4, z ) ] = {LEAF, BLOCK_ROTATE_0};
+        chunk->blocks[ chunk_get_index_from_coords( x + 1, y + 4, z ) ] = {LEAF, BLOCK_ROTATE_0};
+        // chunk->blocks[ chunk_get_index_from_coords( x - 1, y + 4, z + 1 ) ] = {LEAF, BLOCK_ROTATE_0};
+        // chunk->blocks[ chunk_get_index_from_coords( x + 1, y + 4, z + 1 ) ] = {LEAF, BLOCK_ROTATE_0};
+        // chunk->blocks[ chunk_get_index_from_coords( x - 1, y + 4, z - 1 ) ] = {LEAF, BLOCK_ROTATE_0};
+        // chunk->blocks[ chunk_get_index_from_coords( x + 1, y + 4, z - 1 ) ] = {LEAF, BLOCK_ROTATE_0};
+        chunk->blocks[ chunk_get_index_from_coords( x, y + 4, z + 1 ) ] = {LEAF, BLOCK_ROTATE_0};
+        chunk->blocks[ chunk_get_index_from_coords( x, y + 4, z - 1 ) ] = {LEAF, BLOCK_ROTATE_0};
 
-        chunk->blocks[ chunk_get_index_from_coords( x - 1, y + 3, z ) ] = LEAF;
-        chunk->blocks[ chunk_get_index_from_coords( x + 1, y + 3, z ) ] = LEAF;
-        chunk->blocks[ chunk_get_index_from_coords( x - 1, y + 3, z + 1 ) ] = LEAF;
-        chunk->blocks[ chunk_get_index_from_coords( x + 1, y + 3, z + 1 ) ] = LEAF;
-        chunk->blocks[ chunk_get_index_from_coords( x - 1, y + 3, z - 1 ) ] = LEAF;
-        chunk->blocks[ chunk_get_index_from_coords( x + 1, y + 3, z - 1 ) ] = LEAF;
-        chunk->blocks[ chunk_get_index_from_coords( x, y + 3, z + 1 ) ] = LEAF;
-        chunk->blocks[ chunk_get_index_from_coords( x, y + 3, z - 1 ) ] = LEAF;
+        chunk->blocks[ chunk_get_index_from_coords( x - 1, y + 3, z ) ] = {LEAF, BLOCK_ROTATE_0};
+        chunk->blocks[ chunk_get_index_from_coords( x + 1, y + 3, z ) ] = {LEAF, BLOCK_ROTATE_0};
+        chunk->blocks[ chunk_get_index_from_coords( x - 1, y + 3, z + 1 ) ] = {LEAF, BLOCK_ROTATE_0};
+        chunk->blocks[ chunk_get_index_from_coords( x + 1, y + 3, z + 1 ) ] = {LEAF, BLOCK_ROTATE_0};
+        chunk->blocks[ chunk_get_index_from_coords( x - 1, y + 3, z - 1 ) ] = {LEAF, BLOCK_ROTATE_0};
+        chunk->blocks[ chunk_get_index_from_coords( x + 1, y + 3, z - 1 ) ] = {LEAF, BLOCK_ROTATE_0};
+        chunk->blocks[ chunk_get_index_from_coords( x, y + 3, z + 1 ) ] = {LEAF, BLOCK_ROTATE_0};
+        chunk->blocks[ chunk_get_index_from_coords( x, y + 3, z - 1 ) ] = {LEAF, BLOCK_ROTATE_0};
 
-        // chunk->blocks[ chunk_get_index_from_coords( x - 2, y + 2, z ) ] = LEAF;
-        // chunk->blocks[ chunk_get_index_from_coords( x + 2, y + 2, z ) ] = LEAF;
-        // chunk->blocks[ chunk_get_index_from_coords( x, y + 2, z + 2 ) ] = LEAF;
-        // chunk->blocks[ chunk_get_index_from_coords( x, y + 2, z - 2 ) ] = LEAF;
+        // chunk->blocks[ chunk_get_index_from_coords( x - 2, y + 2, z ) ] = {LEAF, BLOCK_ROTATE_0};
+        // chunk->blocks[ chunk_get_index_from_coords( x + 2, y + 2, z ) ] = {LEAF, BLOCK_ROTATE_0};
+        // chunk->blocks[ chunk_get_index_from_coords( x, y + 2, z + 2 ) ] = {LEAF, BLOCK_ROTATE_0};
+        // chunk->blocks[ chunk_get_index_from_coords( x, y + 2, z - 2 ) ] = {LEAF, BLOCK_ROTATE_0};
 
-        chunk->blocks[ chunk_get_index_from_coords( x - 1, y + 2, z ) ] = LEAF;
-        chunk->blocks[ chunk_get_index_from_coords( x + 1, y + 2, z ) ] = LEAF;
-        // chunk->blocks[ chunk_get_index_from_coords( x - 1, y + 4, z + 1 ) ] = LEAF;
-        // chunk->blocks[ chunk_get_index_from_coords( x + 1, y + 4, z + 1 ) ] = LEAF;
-        // chunk->blocks[ chunk_get_index_from_coords( x - 1, y + 4, z - 1 ) ] = LEAF;
-        // chunk->blocks[ chunk_get_index_from_coords( x + 1, y + 4, z - 1 ) ] = LEAF;
-        chunk->blocks[ chunk_get_index_from_coords( x, y + 2, z + 1 ) ] = LEAF;
-        chunk->blocks[ chunk_get_index_from_coords( x, y + 2, z - 1 ) ] = LEAF;
+        chunk->blocks[ chunk_get_index_from_coords( x - 1, y + 2, z ) ] = {LEAF, BLOCK_ROTATE_0};
+        chunk->blocks[ chunk_get_index_from_coords( x + 1, y + 2, z ) ] = {LEAF, BLOCK_ROTATE_0};
+        // chunk->blocks[ chunk_get_index_from_coords( x - 1, y + 4, z + 1 ) ] = {LEAF, BLOCK_ROTATE_0};
+        // chunk->blocks[ chunk_get_index_from_coords( x + 1, y + 4, z + 1 ) ] = {LEAF, BLOCK_ROTATE_0};
+        // chunk->blocks[ chunk_get_index_from_coords( x - 1, y + 4, z - 1 ) ] = {LEAF, BLOCK_ROTATE_0};
+        // chunk->blocks[ chunk_get_index_from_coords( x + 1, y + 4, z - 1 ) ] = {LEAF, BLOCK_ROTATE_0};
+        chunk->blocks[ chunk_get_index_from_coords( x, y + 2, z + 1 ) ] = {LEAF, BLOCK_ROTATE_0};
+        chunk->blocks[ chunk_get_index_from_coords( x, y + 2, z - 1 ) ] = {LEAF, BLOCK_ROTATE_0};
     }
     if ( tree_type == 4 ) { // Large tree, place to to 5 tall
-        chunk->blocks[ chunk_get_index_from_coords( x - 1, y + 4, z ) ] = LEAF;
-        chunk->blocks[ chunk_get_index_from_coords( x + 1, y + 4, z ) ] = LEAF;
-        chunk->blocks[ chunk_get_index_from_coords( x - 1, y + 4, z + 1 ) ] = LEAF;
-        chunk->blocks[ chunk_get_index_from_coords( x + 1, y + 4, z + 1 ) ] = LEAF;
-        chunk->blocks[ chunk_get_index_from_coords( x - 1, y + 4, z - 1 ) ] = LEAF;
-        chunk->blocks[ chunk_get_index_from_coords( x + 1, y + 4, z - 1 ) ] = LEAF;
-        chunk->blocks[ chunk_get_index_from_coords( x, y + 4, z + 1 ) ] = LEAF;
-        chunk->blocks[ chunk_get_index_from_coords( x, y + 4, z - 1 ) ] = LEAF;
+        chunk->blocks[ chunk_get_index_from_coords( x - 1, y + 4, z ) ] = {LEAF, BLOCK_ROTATE_0};
+        chunk->blocks[ chunk_get_index_from_coords( x + 1, y + 4, z ) ] = {LEAF, BLOCK_ROTATE_0};
+        chunk->blocks[ chunk_get_index_from_coords( x - 1, y + 4, z + 1 ) ] = {LEAF, BLOCK_ROTATE_0};
+        chunk->blocks[ chunk_get_index_from_coords( x + 1, y + 4, z + 1 ) ] = {LEAF, BLOCK_ROTATE_0};
+        chunk->blocks[ chunk_get_index_from_coords( x - 1, y + 4, z - 1 ) ] = {LEAF, BLOCK_ROTATE_0};
+        chunk->blocks[ chunk_get_index_from_coords( x + 1, y + 4, z - 1 ) ] = {LEAF, BLOCK_ROTATE_0};
+        chunk->blocks[ chunk_get_index_from_coords( x, y + 4, z + 1 ) ] = {LEAF, BLOCK_ROTATE_0};
+        chunk->blocks[ chunk_get_index_from_coords( x, y + 4, z - 1 ) ] = {LEAF, BLOCK_ROTATE_0};
 
-        chunk->blocks[ chunk_get_index_from_coords( x - 1, y + 3, z ) ] = LEAF;
-        chunk->blocks[ chunk_get_index_from_coords( x + 1, y + 3, z ) ] = LEAF;
-        chunk->blocks[ chunk_get_index_from_coords( x - 1, y + 3, z + 1 ) ] = LEAF;
-        chunk->blocks[ chunk_get_index_from_coords( x + 1, y + 3, z + 1 ) ] = LEAF;
-        chunk->blocks[ chunk_get_index_from_coords( x - 1, y + 3, z - 1 ) ] = LEAF;
-        chunk->blocks[ chunk_get_index_from_coords( x + 1, y + 3, z - 1 ) ] = LEAF;
-        chunk->blocks[ chunk_get_index_from_coords( x, y + 3, z + 1 ) ] = LEAF;
-        chunk->blocks[ chunk_get_index_from_coords( x, y + 3, z - 1 ) ] = LEAF;
+        chunk->blocks[ chunk_get_index_from_coords( x - 1, y + 3, z ) ] = {LEAF, BLOCK_ROTATE_0};
+        chunk->blocks[ chunk_get_index_from_coords( x + 1, y + 3, z ) ] = {LEAF, BLOCK_ROTATE_0};
+        chunk->blocks[ chunk_get_index_from_coords( x - 1, y + 3, z + 1 ) ] = {LEAF, BLOCK_ROTATE_0};
+        chunk->blocks[ chunk_get_index_from_coords( x + 1, y + 3, z + 1 ) ] = {LEAF, BLOCK_ROTATE_0};
+        chunk->blocks[ chunk_get_index_from_coords( x - 1, y + 3, z - 1 ) ] = {LEAF, BLOCK_ROTATE_0};
+        chunk->blocks[ chunk_get_index_from_coords( x + 1, y + 3, z - 1 ) ] = {LEAF, BLOCK_ROTATE_0};
+        chunk->blocks[ chunk_get_index_from_coords( x, y + 3, z + 1 ) ] = {LEAF, BLOCK_ROTATE_0};
+        chunk->blocks[ chunk_get_index_from_coords( x, y + 3, z - 1 ) ] = {LEAF, BLOCK_ROTATE_0};
 
-        chunk->blocks[ chunk_get_index_from_coords( x - 2, y + 3, z ) ] = LEAF;
-        chunk->blocks[ chunk_get_index_from_coords( x + 2, y + 3, z ) ] = LEAF;
-        chunk->blocks[ chunk_get_index_from_coords( x, y + 3, z + 2 ) ] = LEAF;
-        chunk->blocks[ chunk_get_index_from_coords( x, y + 3, z - 2 ) ] = LEAF;
+        chunk->blocks[ chunk_get_index_from_coords( x - 2, y + 3, z ) ] = {LEAF, BLOCK_ROTATE_0};
+        chunk->blocks[ chunk_get_index_from_coords( x + 2, y + 3, z ) ] = {LEAF, BLOCK_ROTATE_0};
+        chunk->blocks[ chunk_get_index_from_coords( x, y + 3, z + 2 ) ] = {LEAF, BLOCK_ROTATE_0};
+        chunk->blocks[ chunk_get_index_from_coords( x, y + 3, z - 2 ) ] = {LEAF, BLOCK_ROTATE_0};
 
-        chunk->blocks[ chunk_get_index_from_coords( x - 1, y + 2, z ) ] = LEAF;
-        chunk->blocks[ chunk_get_index_from_coords( x + 1, y + 2, z ) ] = LEAF;
-        chunk->blocks[ chunk_get_index_from_coords( x - 1, y + 2, z + 1 ) ] = LEAF;
-        chunk->blocks[ chunk_get_index_from_coords( x + 1, y + 2, z + 1 ) ] = LEAF;
-        chunk->blocks[ chunk_get_index_from_coords( x - 1, y + 2, z - 1 ) ] = LEAF;
-        chunk->blocks[ chunk_get_index_from_coords( x + 1, y + 2, z - 1 ) ] = LEAF;
-        chunk->blocks[ chunk_get_index_from_coords( x, y + 2, z + 1 ) ] = LEAF;
-        chunk->blocks[ chunk_get_index_from_coords( x, y + 2, z - 1 ) ] = LEAF;
+        chunk->blocks[ chunk_get_index_from_coords( x - 1, y + 2, z ) ] = {LEAF, BLOCK_ROTATE_0};
+        chunk->blocks[ chunk_get_index_from_coords( x + 1, y + 2, z ) ] = {LEAF, BLOCK_ROTATE_0};
+        chunk->blocks[ chunk_get_index_from_coords( x - 1, y + 2, z + 1 ) ] = {LEAF, BLOCK_ROTATE_0};
+        chunk->blocks[ chunk_get_index_from_coords( x + 1, y + 2, z + 1 ) ] = {LEAF, BLOCK_ROTATE_0};
+        chunk->blocks[ chunk_get_index_from_coords( x - 1, y + 2, z - 1 ) ] = {LEAF, BLOCK_ROTATE_0};
+        chunk->blocks[ chunk_get_index_from_coords( x + 1, y + 2, z - 1 ) ] = {LEAF, BLOCK_ROTATE_0};
+        chunk->blocks[ chunk_get_index_from_coords( x, y + 2, z + 1 ) ] = {LEAF, BLOCK_ROTATE_0};
+        chunk->blocks[ chunk_get_index_from_coords( x, y + 2, z - 1 ) ] = {LEAF, BLOCK_ROTATE_0};
 
-        chunk->blocks[ chunk_get_index_from_coords( x - 1, y + 5, z ) ] = LEAF;
-        chunk->blocks[ chunk_get_index_from_coords( x + 1, y + 5, z ) ] = LEAF;
-        chunk->blocks[ chunk_get_index_from_coords( x, y + 5, z + 1 ) ] = LEAF;
-        chunk->blocks[ chunk_get_index_from_coords( x, y + 5, z - 1 ) ] = LEAF;
+        chunk->blocks[ chunk_get_index_from_coords( x - 1, y + 5, z ) ] = {LEAF, BLOCK_ROTATE_0};
+        chunk->blocks[ chunk_get_index_from_coords( x + 1, y + 5, z ) ] = {LEAF, BLOCK_ROTATE_0};
+        chunk->blocks[ chunk_get_index_from_coords( x, y + 5, z + 1 ) ] = {LEAF, BLOCK_ROTATE_0};
+        chunk->blocks[ chunk_get_index_from_coords( x, y + 5, z - 1 ) ] = {LEAF, BLOCK_ROTATE_0};
     }
     if ( tree_type == 5 ) {
-        chunk->blocks[ chunk_get_index_from_coords( x - 1, y + 4, z ) ] = LEAF;
-        chunk->blocks[ chunk_get_index_from_coords( x + 1, y + 4, z ) ] = LEAF;
-        chunk->blocks[ chunk_get_index_from_coords( x - 1, y + 4, z + 1 ) ] = LEAF;
-        chunk->blocks[ chunk_get_index_from_coords( x + 1, y + 4, z + 1 ) ] = LEAF;
-        chunk->blocks[ chunk_get_index_from_coords( x - 1, y + 4, z - 1 ) ] = LEAF;
-        chunk->blocks[ chunk_get_index_from_coords( x + 1, y + 4, z - 1 ) ] = LEAF;
-        chunk->blocks[ chunk_get_index_from_coords( x, y + 4, z + 1 ) ] = LEAF;
-        chunk->blocks[ chunk_get_index_from_coords( x, y + 4, z - 1 ) ] = LEAF;
+        chunk->blocks[ chunk_get_index_from_coords( x - 1, y + 4, z ) ] = {LEAF, BLOCK_ROTATE_0};
+        chunk->blocks[ chunk_get_index_from_coords( x + 1, y + 4, z ) ] = {LEAF, BLOCK_ROTATE_0};
+        chunk->blocks[ chunk_get_index_from_coords( x - 1, y + 4, z + 1 ) ] = {LEAF, BLOCK_ROTATE_0};
+        chunk->blocks[ chunk_get_index_from_coords( x + 1, y + 4, z + 1 ) ] = {LEAF, BLOCK_ROTATE_0};
+        chunk->blocks[ chunk_get_index_from_coords( x - 1, y + 4, z - 1 ) ] = {LEAF, BLOCK_ROTATE_0};
+        chunk->blocks[ chunk_get_index_from_coords( x + 1, y + 4, z - 1 ) ] = {LEAF, BLOCK_ROTATE_0};
+        chunk->blocks[ chunk_get_index_from_coords( x, y + 4, z + 1 ) ] = {LEAF, BLOCK_ROTATE_0};
+        chunk->blocks[ chunk_get_index_from_coords( x, y + 4, z - 1 ) ] = {LEAF, BLOCK_ROTATE_0};
 
-        chunk->blocks[ chunk_get_index_from_coords( x - 1, y + 3, z ) ] = LEAF;
-        chunk->blocks[ chunk_get_index_from_coords( x + 1, y + 3, z ) ] = LEAF;
-        chunk->blocks[ chunk_get_index_from_coords( x - 1, y + 3, z + 1 ) ] = LEAF;
-        chunk->blocks[ chunk_get_index_from_coords( x + 1, y + 3, z + 1 ) ] = LEAF;
-        chunk->blocks[ chunk_get_index_from_coords( x - 1, y + 3, z - 1 ) ] = LEAF;
-        chunk->blocks[ chunk_get_index_from_coords( x + 1, y + 3, z - 1 ) ] = LEAF;
-        chunk->blocks[ chunk_get_index_from_coords( x, y + 3, z + 1 ) ] = LEAF;
-        chunk->blocks[ chunk_get_index_from_coords( x, y + 3, z - 1 ) ] = LEAF;
+        chunk->blocks[ chunk_get_index_from_coords( x - 1, y + 3, z ) ] = {LEAF, BLOCK_ROTATE_0};
+        chunk->blocks[ chunk_get_index_from_coords( x + 1, y + 3, z ) ] = {LEAF, BLOCK_ROTATE_0};
+        chunk->blocks[ chunk_get_index_from_coords( x - 1, y + 3, z + 1 ) ] = {LEAF, BLOCK_ROTATE_0};
+        chunk->blocks[ chunk_get_index_from_coords( x + 1, y + 3, z + 1 ) ] = {LEAF, BLOCK_ROTATE_0};
+        chunk->blocks[ chunk_get_index_from_coords( x - 1, y + 3, z - 1 ) ] = {LEAF, BLOCK_ROTATE_0};
+        chunk->blocks[ chunk_get_index_from_coords( x + 1, y + 3, z - 1 ) ] = {LEAF, BLOCK_ROTATE_0};
+        chunk->blocks[ chunk_get_index_from_coords( x, y + 3, z + 1 ) ] = {LEAF, BLOCK_ROTATE_0};
+        chunk->blocks[ chunk_get_index_from_coords( x, y + 3, z - 1 ) ] = {LEAF, BLOCK_ROTATE_0};
 
-        chunk->blocks[ chunk_get_index_from_coords( x - 2, y + 3, z ) ] = LEAF;
-        chunk->blocks[ chunk_get_index_from_coords( x + 2, y + 3, z ) ] = LEAF;
-        chunk->blocks[ chunk_get_index_from_coords( x, y + 3, z + 2 ) ] = LEAF;
-        chunk->blocks[ chunk_get_index_from_coords( x, y + 3, z - 2 ) ] = LEAF;
+        chunk->blocks[ chunk_get_index_from_coords( x - 2, y + 3, z ) ] = {LEAF, BLOCK_ROTATE_0};
+        chunk->blocks[ chunk_get_index_from_coords( x + 2, y + 3, z ) ] = {LEAF, BLOCK_ROTATE_0};
+        chunk->blocks[ chunk_get_index_from_coords( x, y + 3, z + 2 ) ] = {LEAF, BLOCK_ROTATE_0};
+        chunk->blocks[ chunk_get_index_from_coords( x, y + 3, z - 2 ) ] = {LEAF, BLOCK_ROTATE_0};
 
-        // chunk->blocks[ chunk_get_index_from_coords( x - 1, y + 2, z ) ] = LEAF;
-        // chunk->blocks[ chunk_get_index_from_coords( x + 1, y + 2, z ) ] = LEAF;
-        // chunk->blocks[ chunk_get_index_from_coords( x - 1, y + 2, z + 1 ) ] = LEAF;
-        // chunk->blocks[ chunk_get_index_from_coords( x + 1, y + 2, z + 1 ) ] = LEAF;
-        // chunk->blocks[ chunk_get_index_from_coords( x - 1, y + 2, z - 1 ) ] = LEAF;
-        // chunk->blocks[ chunk_get_index_from_coords( x + 1, y + 2, z - 1 ) ] = LEAF;
-        // chunk->blocks[ chunk_get_index_from_coords( x, y + 2, z + 1 ) ] = LEAF;
-        // chunk->blocks[ chunk_get_index_from_coords( x, y + 2, z - 1 ) ] = LEAF;
+        // chunk->blocks[ chunk_get_index_from_coords( x - 1, y + 2, z ) ] = {LEAF, BLOCK_ROTATE_0};
+        // chunk->blocks[ chunk_get_index_from_coords( x + 1, y + 2, z ) ] = {LEAF, BLOCK_ROTATE_0};
+        // chunk->blocks[ chunk_get_index_from_coords( x - 1, y + 2, z + 1 ) ] = {LEAF, BLOCK_ROTATE_0};
+        // chunk->blocks[ chunk_get_index_from_coords( x + 1, y + 2, z + 1 ) ] = {LEAF, BLOCK_ROTATE_0};
+        // chunk->blocks[ chunk_get_index_from_coords( x - 1, y + 2, z - 1 ) ] = {LEAF, BLOCK_ROTATE_0};
+        // chunk->blocks[ chunk_get_index_from_coords( x + 1, y + 2, z - 1 ) ] = {LEAF, BLOCK_ROTATE_0};
+        // chunk->blocks[ chunk_get_index_from_coords( x, y + 2, z + 1 ) ] = {LEAF, BLOCK_ROTATE_0};
+        // chunk->blocks[ chunk_get_index_from_coords( x, y + 2, z - 1 ) ] = {LEAF, BLOCK_ROTATE_0};
 
-        chunk->blocks[ chunk_get_index_from_coords( x - 1, y + 5, z ) ] = LEAF;
-        chunk->blocks[ chunk_get_index_from_coords( x + 1, y + 5, z ) ] = LEAF;
-        chunk->blocks[ chunk_get_index_from_coords( x, y + 5, z + 1 ) ] = LEAF;
-        chunk->blocks[ chunk_get_index_from_coords( x, y + 5, z - 1 ) ] = LEAF;
+        chunk->blocks[ chunk_get_index_from_coords( x - 1, y + 5, z ) ] = {LEAF, BLOCK_ROTATE_0};
+        chunk->blocks[ chunk_get_index_from_coords( x + 1, y + 5, z ) ] = {LEAF, BLOCK_ROTATE_0};
+        chunk->blocks[ chunk_get_index_from_coords( x, y + 5, z + 1 ) ] = {LEAF, BLOCK_ROTATE_0};
+        chunk->blocks[ chunk_get_index_from_coords( x, y + 5, z - 1 ) ] = {LEAF, BLOCK_ROTATE_0};
     }
     if ( tree_type == 6 ) {
-        chunk->blocks[ chunk_get_index_from_coords( x - 1, y + 4, z ) ] = LEAF;
-        chunk->blocks[ chunk_get_index_from_coords( x + 1, y + 4, z ) ] = LEAF;
-        chunk->blocks[ chunk_get_index_from_coords( x - 1, y + 4, z + 1 ) ] = LEAF;
-        chunk->blocks[ chunk_get_index_from_coords( x + 1, y + 4, z + 1 ) ] = LEAF;
-        chunk->blocks[ chunk_get_index_from_coords( x - 1, y + 4, z - 1 ) ] = LEAF;
-        chunk->blocks[ chunk_get_index_from_coords( x + 1, y + 4, z - 1 ) ] = LEAF;
-        chunk->blocks[ chunk_get_index_from_coords( x, y + 4, z + 1 ) ] = LEAF;
-        chunk->blocks[ chunk_get_index_from_coords( x, y + 4, z - 1 ) ] = LEAF;
+        chunk->blocks[ chunk_get_index_from_coords( x - 1, y + 4, z ) ] = {LEAF, BLOCK_ROTATE_0};
+        chunk->blocks[ chunk_get_index_from_coords( x + 1, y + 4, z ) ] = {LEAF, BLOCK_ROTATE_0};
+        chunk->blocks[ chunk_get_index_from_coords( x - 1, y + 4, z + 1 ) ] = {LEAF, BLOCK_ROTATE_0};
+        chunk->blocks[ chunk_get_index_from_coords( x + 1, y + 4, z + 1 ) ] = {LEAF, BLOCK_ROTATE_0};
+        chunk->blocks[ chunk_get_index_from_coords( x - 1, y + 4, z - 1 ) ] = {LEAF, BLOCK_ROTATE_0};
+        chunk->blocks[ chunk_get_index_from_coords( x + 1, y + 4, z - 1 ) ] = {LEAF, BLOCK_ROTATE_0};
+        chunk->blocks[ chunk_get_index_from_coords( x, y + 4, z + 1 ) ] = {LEAF, BLOCK_ROTATE_0};
+        chunk->blocks[ chunk_get_index_from_coords( x, y + 4, z - 1 ) ] = {LEAF, BLOCK_ROTATE_0};
 
-        chunk->blocks[ chunk_get_index_from_coords( x - 2, y + 4, z ) ] = LEAF;
-        chunk->blocks[ chunk_get_index_from_coords( x + 2, y + 4, z ) ] = LEAF;
-        chunk->blocks[ chunk_get_index_from_coords( x, y + 4, z + 2 ) ] = LEAF;
-        chunk->blocks[ chunk_get_index_from_coords( x, y + 4, z - 2 ) ] = LEAF;
+        chunk->blocks[ chunk_get_index_from_coords( x - 2, y + 4, z ) ] = {LEAF, BLOCK_ROTATE_0};
+        chunk->blocks[ chunk_get_index_from_coords( x + 2, y + 4, z ) ] = {LEAF, BLOCK_ROTATE_0};
+        chunk->blocks[ chunk_get_index_from_coords( x, y + 4, z + 2 ) ] = {LEAF, BLOCK_ROTATE_0};
+        chunk->blocks[ chunk_get_index_from_coords( x, y + 4, z - 2 ) ] = {LEAF, BLOCK_ROTATE_0};
 
-        chunk->blocks[ chunk_get_index_from_coords( x - 1, y + 3, z ) ] = LEAF;
-        chunk->blocks[ chunk_get_index_from_coords( x + 1, y + 3, z ) ] = LEAF;
-        chunk->blocks[ chunk_get_index_from_coords( x - 1, y + 3, z + 1 ) ] = LEAF;
-        chunk->blocks[ chunk_get_index_from_coords( x + 1, y + 3, z + 1 ) ] = LEAF;
-        chunk->blocks[ chunk_get_index_from_coords( x - 1, y + 3, z - 1 ) ] = LEAF;
-        chunk->blocks[ chunk_get_index_from_coords( x + 1, y + 3, z - 1 ) ] = LEAF;
-        chunk->blocks[ chunk_get_index_from_coords( x, y + 3, z + 1 ) ] = LEAF;
-        chunk->blocks[ chunk_get_index_from_coords( x, y + 3, z - 1 ) ] = LEAF;
+        chunk->blocks[ chunk_get_index_from_coords( x - 1, y + 3, z ) ] = {LEAF, BLOCK_ROTATE_0};
+        chunk->blocks[ chunk_get_index_from_coords( x + 1, y + 3, z ) ] = {LEAF, BLOCK_ROTATE_0};
+        chunk->blocks[ chunk_get_index_from_coords( x - 1, y + 3, z + 1 ) ] = {LEAF, BLOCK_ROTATE_0};
+        chunk->blocks[ chunk_get_index_from_coords( x + 1, y + 3, z + 1 ) ] = {LEAF, BLOCK_ROTATE_0};
+        chunk->blocks[ chunk_get_index_from_coords( x - 1, y + 3, z - 1 ) ] = {LEAF, BLOCK_ROTATE_0};
+        chunk->blocks[ chunk_get_index_from_coords( x + 1, y + 3, z - 1 ) ] = {LEAF, BLOCK_ROTATE_0};
+        chunk->blocks[ chunk_get_index_from_coords( x, y + 3, z + 1 ) ] = {LEAF, BLOCK_ROTATE_0};
+        chunk->blocks[ chunk_get_index_from_coords( x, y + 3, z - 1 ) ] = {LEAF, BLOCK_ROTATE_0};
 
-        chunk->blocks[ chunk_get_index_from_coords( x - 2, y + 3, z ) ] = LEAF;
-        chunk->blocks[ chunk_get_index_from_coords( x + 2, y + 3, z ) ] = LEAF;
-        chunk->blocks[ chunk_get_index_from_coords( x, y + 3, z + 2 ) ] = LEAF;
-        chunk->blocks[ chunk_get_index_from_coords( x, y + 3, z - 2 ) ] = LEAF;
+        chunk->blocks[ chunk_get_index_from_coords( x - 2, y + 3, z ) ] = {LEAF, BLOCK_ROTATE_0};
+        chunk->blocks[ chunk_get_index_from_coords( x + 2, y + 3, z ) ] = {LEAF, BLOCK_ROTATE_0};
+        chunk->blocks[ chunk_get_index_from_coords( x, y + 3, z + 2 ) ] = {LEAF, BLOCK_ROTATE_0};
+        chunk->blocks[ chunk_get_index_from_coords( x, y + 3, z - 2 ) ] = {LEAF, BLOCK_ROTATE_0};
 
-        chunk->blocks[ chunk_get_index_from_coords( x - 1, y + 2, z ) ] = LEAF;
-        chunk->blocks[ chunk_get_index_from_coords( x + 1, y + 2, z ) ] = LEAF;
-        chunk->blocks[ chunk_get_index_from_coords( x - 1, y + 2, z + 1 ) ] = LEAF;
-        chunk->blocks[ chunk_get_index_from_coords( x + 1, y + 2, z + 1 ) ] = LEAF;
-        chunk->blocks[ chunk_get_index_from_coords( x - 1, y + 2, z - 1 ) ] = LEAF;
-        chunk->blocks[ chunk_get_index_from_coords( x + 1, y + 2, z - 1 ) ] = LEAF;
-        chunk->blocks[ chunk_get_index_from_coords( x, y + 2, z + 1 ) ] = LEAF;
-        chunk->blocks[ chunk_get_index_from_coords( x, y + 2, z - 1 ) ] = LEAF;
+        chunk->blocks[ chunk_get_index_from_coords( x - 1, y + 2, z ) ] = {LEAF, BLOCK_ROTATE_0};
+        chunk->blocks[ chunk_get_index_from_coords( x + 1, y + 2, z ) ] = {LEAF, BLOCK_ROTATE_0};
+        chunk->blocks[ chunk_get_index_from_coords( x - 1, y + 2, z + 1 ) ] = {LEAF, BLOCK_ROTATE_0};
+        chunk->blocks[ chunk_get_index_from_coords( x + 1, y + 2, z + 1 ) ] = {LEAF, BLOCK_ROTATE_0};
+        chunk->blocks[ chunk_get_index_from_coords( x - 1, y + 2, z - 1 ) ] = {LEAF, BLOCK_ROTATE_0};
+        chunk->blocks[ chunk_get_index_from_coords( x + 1, y + 2, z - 1 ) ] = {LEAF, BLOCK_ROTATE_0};
+        chunk->blocks[ chunk_get_index_from_coords( x, y + 2, z + 1 ) ] = {LEAF, BLOCK_ROTATE_0};
+        chunk->blocks[ chunk_get_index_from_coords( x, y + 2, z - 1 ) ] = {LEAF, BLOCK_ROTATE_0};
 
-        chunk->blocks[ chunk_get_index_from_coords( x - 1, y + 5, z ) ] = LEAF;
-        chunk->blocks[ chunk_get_index_from_coords( x + 1, y + 5, z ) ] = LEAF;
-        chunk->blocks[ chunk_get_index_from_coords( x, y + 5, z + 1 ) ] = LEAF;
-        chunk->blocks[ chunk_get_index_from_coords( x, y + 5, z - 1 ) ] = LEAF;
+        chunk->blocks[ chunk_get_index_from_coords( x - 1, y + 5, z ) ] = {LEAF, BLOCK_ROTATE_0};
+        chunk->blocks[ chunk_get_index_from_coords( x + 1, y + 5, z ) ] = {LEAF, BLOCK_ROTATE_0};
+        chunk->blocks[ chunk_get_index_from_coords( x, y + 5, z + 1 ) ] = {LEAF, BLOCK_ROTATE_0};
+        chunk->blocks[ chunk_get_index_from_coords( x, y + 5, z - 1 ) ] = {LEAF, BLOCK_ROTATE_0};
     }
 }

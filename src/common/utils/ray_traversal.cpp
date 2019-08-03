@@ -7,7 +7,7 @@
 // https://bitbucket.org/volumesoffun/polyvox/src/9a71004b1e72d6cf92c41da8995e21b652e6b836/include/PolyVox/Raycast.inl?at=develop&fileviewer=file-view-default
 
 int contains_block( World *world, int block_x, int block_y, int block_z, int collide_with_unloaded, int is_pick ) {
-    BlockID blockID = world_get_loaded_block( world, TRIP_ARGS( block_ ) );
+    BlockID blockID = world_get_loaded_block( world, TRIP_ARGS( block_ ) ).id;
     if ( blockID >= LAST_BLOCK_ID ) {
         return collide_with_unloaded;
     }

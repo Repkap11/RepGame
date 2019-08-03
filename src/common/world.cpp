@@ -22,6 +22,7 @@ void world_init( World *world, TRIP_ARGS( float camera_ ) ) {
     vertex_buffer_layout_push_unsigned_int( &world->vbl_coords, 3 ); // which texture
     vertex_buffer_layout_push_unsigned_int( &world->vbl_coords, 3 ); // packed lighting
     vertex_buffer_layout_push_unsigned_int( &world->vbl_coords, 3 ); // packed lightingMOB_ROTATION
+    vertex_buffer_layout_push_unsigned_int( &world->vbl_coords, 1 ); // face_shift for face rotation
 
     // These are from ObjectVertex
     vertex_buffer_layout_init( &world->vbl_object_vertex );
@@ -89,12 +90,12 @@ void world_cleanup( World *world ) {
     vertex_buffer_layout_destroy( &world->vbl_coords );
 }
 
-void fixup_chunk( World *world, Chunk *chunk, TRIP_ARGS( int offset_ ), TRIP_ARGS( int pos_ ), BlockID blockID ) {
+void fixup_chunk( World *world, Chunk *chunk, TRIP_ARGS( int offset_ ), TRIP_ARGS( int pos_ ), BlockState blockState ) {
     // pr_debug( "Fixup Offset: %d %d %d", x, y, z );
     Chunk *fixupChunk = chunk_loader_get_chunk( &world->loadedChunks, chunk->chunk_x + offset_x, chunk->chunk_y + offset_y, chunk->chunk_z + offset_z );
     if ( fixupChunk ) {
         chunk_unprogram_terrain( chunk );
-        chunk_set_block( fixupChunk, TRIP_ARGS( pos_ ), blockID );
+        chunk_set_block( fixupChunk, TRIP_ARGS( pos_ ), blockState );
         fixupChunk->ditry = 1;
         chunk_calculate_popupated_blocks( fixupChunk );
         chunk_program_terrain( fixupChunk );
@@ -108,26 +109,26 @@ Chunk *world_get_loaded_chunk( World *world, TRIP_ARGS( int block_ ) ) {
     return chunk_loader_get_chunk( &world->loadedChunks, TRIP_ARGS( chunk_ ) );
 }
 
-BlockID world_get_block_from_chunk( Chunk *chunk, TRIP_ARGS( int block_ ) ) {
+BlockState world_get_block_from_chunk( Chunk *chunk, TRIP_ARGS( int block_ ) ) {
     int diff_x = block_x - chunk->chunk_x * CHUNK_SIZE;
     int diff_y = block_y - chunk->chunk_y * CHUNK_SIZE;
     int diff_z = block_z - chunk->chunk_z * CHUNK_SIZE;
     return chunk_get_block( chunk, TRIP_ARGS( diff_ ) );
 }
 
-BlockID world_get_loaded_block( World *world, TRIP_ARGS( int block_ ) ) {
+BlockState world_get_loaded_block( World *world, TRIP_ARGS( int block_ ) ) {
     Chunk *chunk = world_get_loaded_chunk( world, TRIP_ARGS( block_ ) );
     if ( chunk ) {
         if ( chunk->is_loading ) {
-            return LAST_BLOCK_ID;
+            return {LAST_BLOCK_ID, BLOCK_ROTATE_0};
         }
-        BlockID blockID = world_get_block_from_chunk( chunk, TRIP_ARGS( block_ ) );
-        return blockID;
+        BlockState blockState = world_get_block_from_chunk( chunk, TRIP_ARGS( block_ ) );
+        return blockState;
     }
-    return LAST_BLOCK_ID;
+    return {LAST_BLOCK_ID, BLOCK_ROTATE_0};
 }
 
-void world_set_loaded_block( World *world, TRIP_ARGS( int block_ ), BlockID blockID ) {
+void world_set_loaded_block( World *world, TRIP_ARGS( int block_ ), BlockState blockState ) {
     int chunk_x = floor( block_x / ( float )CHUNK_SIZE );
     int chunk_y = floor( block_y / ( float )CHUNK_SIZE );
     int chunk_z = floor( block_z / ( float )CHUNK_SIZE );
@@ -157,13 +158,13 @@ void world_set_loaded_block( World *world, TRIP_ARGS( int block_ ), BlockID bloc
                     // pr_debug( "                                New Offset: %d %d %d:%d", new_i, new_j, new_k, needs_update );
 
                     if ( needs_update ) {
-                        fixup_chunk( world, chunk, i, j, k, diff_x - CHUNK_SIZE * new_i, diff_y - CHUNK_SIZE * new_j, diff_z - CHUNK_SIZE * new_k, blockID );
+                        fixup_chunk( world, chunk, i, j, k, diff_x - CHUNK_SIZE * new_i, diff_y - CHUNK_SIZE * new_j, diff_z - CHUNK_SIZE * new_k, blockState );
                     }
                 }
             }
         }
         chunk_unprogram_terrain( chunk );
-        chunk_set_block( chunk, TRIP_ARGS( diff_ ), blockID );
+        chunk_set_block( chunk, TRIP_ARGS( diff_ ), blockState );
         chunk->ditry = 1;
         chunk_calculate_popupated_blocks( chunk );
         chunk_program_terrain( chunk );

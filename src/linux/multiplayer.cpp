@@ -73,8 +73,10 @@ void multiplayer_process_events( World *world ) {
                 return;
             } else {
                 if ( update.type == BLOCK_UPDATE ) {
-                    pr_debug( "Read message: block:%d", update.data.block.blockID );
-                    world_set_loaded_block( world, update.data.block.x, update.data.block.y, update.data.block.z, ( BlockID )update.data.block.blockID );
+                    BlockState *blockState = ( BlockState * )( update.data.block.blockState );
+                    pr_debug( "Read message: block:%d", blockState->id );
+
+                    world_set_loaded_block( world, update.data.block.x, update.data.block.y, update.data.block.z, *blockState );
                 } else if ( update.type == PLAYER_LOCATION ) {
                     // pr_debug( "Updating player location:%d", update.player_id );
                     glm::mat4 rotation = glm::make_mat4( update.data.player.rotation );
@@ -103,11 +105,11 @@ void multiplayer_set_block_send_packet( NetPacket *update ) {
     }
 }
 
-void multiplayer_set_block( int place, int block_x, int block_y, int block_z, BlockID blockID ) {
+void multiplayer_set_block( int place, int block_x, int block_y, int block_z, BlockState blockState ) {
     if ( active ) {
         // Log what the player is doing
         if ( place ) {
-            pr_debug( "Player placed %i at %i, %i, %i", blockID, block_x, block_y, block_z );
+            pr_debug( "Player placed %i at %i, %i, %i", blockState.id, block_x, block_y, block_z );
         } else {
             pr_debug( "Player broke the block at %i, %i, %i", block_x, block_y, block_z );
         }
@@ -116,7 +118,7 @@ void multiplayer_set_block( int place, int block_x, int block_y, int block_z, Bl
         update.data.block.x = block_x;
         update.data.block.y = block_y;
         update.data.block.z = block_z;
-        update.data.block.blockID = blockID;
+        memcpy( &update.data.block.blockState, &blockState, sizeof( BlockState ) );
 
         multiplayer_set_block_send_packet( &update );
     }

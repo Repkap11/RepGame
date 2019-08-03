@@ -3,6 +3,7 @@
 
 #include "block.hpp"
 #include "abstract/renderer.hpp"
+#include "server/server.hpp"
 
 #define CHUNK_SIZE_INTERNAL ( CHUNK_SIZE + 2 )
 #define CHUNK_BLOCK_SIZE ( CHUNK_SIZE_INTERNAL * CHUNK_SIZE_INTERNAL * CHUNK_SIZE_INTERNAL )
@@ -17,10 +18,24 @@ typedef struct {
     BlockCoords *populated_blocks;
 } RenderLayer;
 
+
+#define BLOCK_ROTATE_0 0
+#define BLOCK_ROTATE_90 1
+#define BLOCK_ROTATE_180 2
+#define BLOCK_ROTATE_270 3
+
+typedef struct {
+    BlockID id;
+    unsigned char rotation;
+    //TODO add chest furnase or other block spesific state
+} BlockState;
+//This size must match, update the size in server.hpp if it doesn't
+static_assert(sizeof(BlockState) == SERVER_BLOCK_DATA_SIZE);
+
 typedef struct {
     int is_loading;
     RenderLayer layers[ LAST_RENDER_ORDER ];
-    BlockID *blocks;
+    BlockState *blocks;
     int chunk_x, chunk_y, chunk_z;
     int ditry;
     int should_render;
@@ -39,8 +54,8 @@ int chunk_get_index_from_coords( int x, int y, int z );
 // void chunk_draw( Chunk *chunk, int solid );
 void chunk_persist( Chunk *chunk );
 void chunk_destroy( Chunk *chunk );
-void chunk_set_block( Chunk *chunk, int x, int y, int z, BlockID blockID );
-BlockID chunk_get_block( Chunk *chunk, int x, int y, int z );
+void chunk_set_block( Chunk *chunk, int x, int y, int z, BlockState blockState );
+BlockState chunk_get_block( Chunk *chunk, int x, int y, int z );
 void chunk_calculate_popupated_blocks( Chunk *chunk );
 
 inline int chunk_get_index_from_coords( int x, int y, int z ) {

@@ -91,7 +91,7 @@ int chunk_get_coords_from_index( int index, int *out_x, int *out_y, int *out_z )
 
 void chunk_init( Chunk *chunk, VertexBuffer *vb_block_solid, VertexBuffer *vb_block_water, VertexBufferLayout *vbl_block, VertexBufferLayout *vbl_coords ) {
     if ( REMEMBER_BLOCKS ) {
-        chunk->blocks = ( BlockID * )calloc( CHUNK_BLOCK_SIZE, sizeof( BlockID ) );
+        chunk->blocks = ( BlockState * )calloc( CHUNK_BLOCK_SIZE, sizeof( BlockState ) );
     }
 
     for ( int renderOrder = 0; renderOrder < LAST_RENDER_ORDER; renderOrder++ ) {
@@ -133,25 +133,25 @@ void chunk_render( const Chunk *chunk, const Renderer *renderer, const Shader *s
     }
 }
 
-BlockID chunk_get_block( Chunk *chunk, int x, int y, int z ) {
+BlockState chunk_get_block( Chunk *chunk, int x, int y, int z ) {
     if ( chunk->blocks == NULL ) {
         // pr_debug("Chunk has no blocks");
-        return LAST_BLOCK_ID;
+        return {LAST_BLOCK_ID, BLOCK_ROTATE_0};
     }
     if ( x > CHUNK_SIZE + 1 || //
          y > CHUNK_SIZE + 1 || //
          z > CHUNK_SIZE + 1 ) {
-        return LAST_BLOCK_ID;
+        return {LAST_BLOCK_ID, BLOCK_ROTATE_0};
     }
     if ( x < -1 || //
          y < -1 || //
          z < -1 ) {
-        return LAST_BLOCK_ID;
+        return {LAST_BLOCK_ID, BLOCK_ROTATE_0};
     }
     return chunk->blocks[ chunk_get_index_from_coords( x, y, z ) ];
 }
 
-void chunk_set_block( Chunk *chunk, int x, int y, int z, BlockID blockID ) {
+void chunk_set_block( Chunk *chunk, int x, int y, int z, BlockState blockState ) {
     if ( chunk->blocks == NULL ) {
         // pr_debug("Chunk has no blocks");
         return;
@@ -168,7 +168,7 @@ void chunk_set_block( Chunk *chunk, int x, int y, int z, BlockID blockID ) {
     }
 
     // Update the block in the client...
-    chunk->blocks[ chunk_get_index_from_coords( x, y, z ) ] = blockID;
+    chunk->blocks[ chunk_get_index_from_coords( x, y, z ) ] = blockState;
 }
 
 void chunk_persist( Chunk *chunk ) {
@@ -180,7 +180,7 @@ void chunk_persist( Chunk *chunk ) {
 int use_cuda = 0;
 void chunk_load_terrain( Chunk *chunk ) {
     if ( !REMEMBER_BLOCKS ) {
-        chunk->blocks = ( BlockID * )calloc( CHUNK_BLOCK_SIZE, sizeof( BlockID ) );
+        chunk->blocks = ( BlockState * )calloc( CHUNK_BLOCK_SIZE, sizeof( BlockState ) );
     }
     // pr_debug( "Loading chunk terrain x:%d y:%d z:%d", chunk->chunk_x, chunk->chunk_y, chunk->chunk_z );
     int loaded = map_storage_load( chunk );
@@ -236,10 +236,11 @@ int chunk_can_extend_rect( Chunk *chunk, Block *block, unsigned int *packed_ligh
                 if ( !workingSpace[ index ].can_be_seen ) {
                     return 0;
                 }
-                BlockID new_blockID = chunk->blocks[ index ];
+                BlockID new_blockID = chunk->blocks[ index ].id;
                 if ( new_blockID != block->id ) {
                     return 0;
                 }
+
                 for ( int i = 0; i < NUM_FACES_IN_CUBE; i++ ) {
                     if ( packed_lighting[ i ] != workingSpace[ index ].packed_lighting[ i ] ) {
                         return 0;
@@ -277,7 +278,7 @@ void chunk_calculate_popupated_blocks( Chunk *chunk ) {
         int x, y, z;
         int drawn_block = chunk_get_coords_from_index( index, &x, &y, &z );
         if ( drawn_block ) {
-            BlockID blockID = chunk->blocks[ index ];
+            BlockID blockID = chunk->blocks[ index ].id;
             Block *block = block_definition_get_definition( blockID );
             // RenderOrder renderOrder = block->renderOrder;
 
@@ -301,73 +302,73 @@ void chunk_calculate_popupated_blocks( Chunk *chunk ) {
                 int visiable_right = 0;
                 int visiable_left = 0;
                 if ( block->renderOrder == RenderOrder_Water ) {
-                    Block *block_top = block_definition_get_definition( chunk->blocks[ chunk_get_index_from_coords( x + 0, yplus, z + 0 ) ] );
+                    Block *block_top = block_definition_get_definition( chunk->blocks[ chunk_get_index_from_coords( x + 0, yplus, z + 0 ) ].id );
                     visiable_top = block_top->is_seethrough && block_top->id != block->id;
                 } else if ( block->is_seethrough && block->hides_self ) {
-                    Block *block_top = block_definition_get_definition( chunk->blocks[ chunk_get_index_from_coords( x + 0, yplus, z + 0 ) ] );
+                    Block *block_top = block_definition_get_definition( chunk->blocks[ chunk_get_index_from_coords( x + 0, yplus, z + 0 ) ].id );
                     visiable_top = block_top->is_seethrough && block_top->id != block->id;
 
-                    Block *block_bottom = block_definition_get_definition( chunk->blocks[ chunk_get_index_from_coords( x + 0, yminus, z + 0 ) ] );
+                    Block *block_bottom = block_definition_get_definition( chunk->blocks[ chunk_get_index_from_coords( x + 0, yminus, z + 0 ) ].id );
                     visiable_bottom = block_bottom->is_seethrough && block_bottom->id != block->id;
 
-                    Block *block_front = block_definition_get_definition( chunk->blocks[ chunk_get_index_from_coords( x + 0, y + 0, zplus ) ] );
+                    Block *block_front = block_definition_get_definition( chunk->blocks[ chunk_get_index_from_coords( x + 0, y + 0, zplus ) ].id );
                     visiable_front = block_front->is_seethrough && block_front->id != block->id;
 
-                    Block *block_back = block_definition_get_definition( chunk->blocks[ chunk_get_index_from_coords( x + 0, y + 0, zminus ) ] );
+                    Block *block_back = block_definition_get_definition( chunk->blocks[ chunk_get_index_from_coords( x + 0, y + 0, zminus ) ].id );
                     visiable_back = block_back->is_seethrough && block_back->id != block->id;
 
-                    Block *block_right = block_definition_get_definition( chunk->blocks[ chunk_get_index_from_coords( xplus, y + 0, z + 0 ) ] );
+                    Block *block_right = block_definition_get_definition( chunk->blocks[ chunk_get_index_from_coords( xplus, y + 0, z + 0 ) ].id );
                     visiable_right = block_right->is_seethrough && block_right->id != block->id;
 
-                    Block *block_left = block_definition_get_definition( chunk->blocks[ chunk_get_index_from_coords( xminus, y + 0, z + 0 ) ] );
+                    Block *block_left = block_definition_get_definition( chunk->blocks[ chunk_get_index_from_coords( xminus, y + 0, z + 0 ) ].id );
                     visiable_left = block_left->is_seethrough && block_left->id != block->id;
 
                 } else {
-                    visiable_top = block_definition_get_definition( chunk->blocks[ chunk_get_index_from_coords( x + 0, yplus, z + 0 ) ] )->is_seethrough;
-                    visiable_bottom = block_definition_get_definition( chunk->blocks[ chunk_get_index_from_coords( x + 0, yminus, z + 0 ) ] )->is_seethrough;
-                    visiable_front = block_definition_get_definition( chunk->blocks[ chunk_get_index_from_coords( x + 0, y + 0, zplus ) ] )->is_seethrough;
-                    visiable_back = block_definition_get_definition( chunk->blocks[ chunk_get_index_from_coords( x + 0, y + 0, zminus ) ] )->is_seethrough;
-                    visiable_right = block_definition_get_definition( chunk->blocks[ chunk_get_index_from_coords( xplus, y + 0, z + 0 ) ] )->is_seethrough;
-                    visiable_left = block_definition_get_definition( chunk->blocks[ chunk_get_index_from_coords( xminus, y + 0, z + 0 ) ] )->is_seethrough;
+                    visiable_top = block_definition_get_definition( chunk->blocks[ chunk_get_index_from_coords( x + 0, yplus, z + 0 ) ].id )->is_seethrough;
+                    visiable_bottom = block_definition_get_definition( chunk->blocks[ chunk_get_index_from_coords( x + 0, yminus, z + 0 ) ].id )->is_seethrough;
+                    visiable_front = block_definition_get_definition( chunk->blocks[ chunk_get_index_from_coords( x + 0, y + 0, zplus ) ].id )->is_seethrough;
+                    visiable_back = block_definition_get_definition( chunk->blocks[ chunk_get_index_from_coords( x + 0, y + 0, zminus ) ].id )->is_seethrough;
+                    visiable_right = block_definition_get_definition( chunk->blocks[ chunk_get_index_from_coords( xplus, y + 0, z + 0 ) ].id )->is_seethrough;
+                    visiable_left = block_definition_get_definition( chunk->blocks[ chunk_get_index_from_coords( xminus, y + 0, z + 0 ) ].id )->is_seethrough;
                 }
                 int block_is_visiable = visiable_top || visiable_bottom || visiable_left || visiable_right || visiable_front || visiable_back;
 
                 int can_be_shaded = render_order_can_be_shaded( block->renderOrder );
 
-                int t = block_definition_get_definition( chunk->blocks[ chunk_get_index_from_coords( x + 0, yplus, z + 0 ) ] )->casts_shadow;
-                int bo = block_definition_get_definition( chunk->blocks[ chunk_get_index_from_coords( x + 0, yminus, z + 0 ) ] )->casts_shadow;
-                int f = block_definition_get_definition( chunk->blocks[ chunk_get_index_from_coords( x + 0, y + 0, zplus ) ] )->casts_shadow;
-                int ba = block_definition_get_definition( chunk->blocks[ chunk_get_index_from_coords( x + 0, y + 0, zminus ) ] )->casts_shadow;
-                int r = block_definition_get_definition( chunk->blocks[ chunk_get_index_from_coords( xplus, y + 0, z + 0 ) ] )->casts_shadow;
-                int l = block_definition_get_definition( chunk->blocks[ chunk_get_index_from_coords( xminus, y + 0, z + 0 ) ] )->casts_shadow;
+                int t = block_definition_get_definition( chunk->blocks[ chunk_get_index_from_coords( x + 0, yplus, z + 0 ) ].id )->casts_shadow;
+                int bo = block_definition_get_definition( chunk->blocks[ chunk_get_index_from_coords( x + 0, yminus, z + 0 ) ].id )->casts_shadow;
+                int f = block_definition_get_definition( chunk->blocks[ chunk_get_index_from_coords( x + 0, y + 0, zplus ) ].id )->casts_shadow;
+                int ba = block_definition_get_definition( chunk->blocks[ chunk_get_index_from_coords( x + 0, y + 0, zminus ) ].id )->casts_shadow;
+                int r = block_definition_get_definition( chunk->blocks[ chunk_get_index_from_coords( xplus, y + 0, z + 0 ) ].id )->casts_shadow;
+                int l = block_definition_get_definition( chunk->blocks[ chunk_get_index_from_coords( xminus, y + 0, z + 0 ) ].id )->casts_shadow;
 
                 // If the block is visible and can be shaded, check neighbors for shade and populated the packed lighting
                 // 2 Offsets
-                int tl = block_definition_get_definition( chunk->blocks[ chunk_get_index_from_coords( xminus, yplus, z + 0 ) ] )->casts_shadow;
-                int tr = block_definition_get_definition( chunk->blocks[ chunk_get_index_from_coords( xplus, yplus, z + 0 ) ] )->casts_shadow;
-                int tf = block_definition_get_definition( chunk->blocks[ chunk_get_index_from_coords( x + 0, yplus, zplus ) ] )->casts_shadow;
-                int tba = block_definition_get_definition( chunk->blocks[ chunk_get_index_from_coords( x + 0, yplus, zminus ) ] )->casts_shadow;
+                int tl = block_definition_get_definition( chunk->blocks[ chunk_get_index_from_coords( xminus, yplus, z + 0 ) ].id )->casts_shadow;
+                int tr = block_definition_get_definition( chunk->blocks[ chunk_get_index_from_coords( xplus, yplus, z + 0 ) ].id )->casts_shadow;
+                int tf = block_definition_get_definition( chunk->blocks[ chunk_get_index_from_coords( x + 0, yplus, zplus ) ].id )->casts_shadow;
+                int tba = block_definition_get_definition( chunk->blocks[ chunk_get_index_from_coords( x + 0, yplus, zminus ) ].id )->casts_shadow;
 
-                int bol = block_definition_get_definition( chunk->blocks[ chunk_get_index_from_coords( xminus, yminus, z + 0 ) ] )->casts_shadow;
-                int bor = block_definition_get_definition( chunk->blocks[ chunk_get_index_from_coords( xplus, yminus, z + 0 ) ] )->casts_shadow;
-                int bof = block_definition_get_definition( chunk->blocks[ chunk_get_index_from_coords( x + 0, yminus, zplus ) ] )->casts_shadow;
-                int boba = block_definition_get_definition( chunk->blocks[ chunk_get_index_from_coords( x + 0, yminus, zminus ) ] )->casts_shadow;
+                int bol = block_definition_get_definition( chunk->blocks[ chunk_get_index_from_coords( xminus, yminus, z + 0 ) ].id )->casts_shadow;
+                int bor = block_definition_get_definition( chunk->blocks[ chunk_get_index_from_coords( xplus, yminus, z + 0 ) ].id )->casts_shadow;
+                int bof = block_definition_get_definition( chunk->blocks[ chunk_get_index_from_coords( x + 0, yminus, zplus ) ].id )->casts_shadow;
+                int boba = block_definition_get_definition( chunk->blocks[ chunk_get_index_from_coords( x + 0, yminus, zminus ) ].id )->casts_shadow;
 
-                int fl = block_definition_get_definition( chunk->blocks[ chunk_get_index_from_coords( xminus, y + 0, zplus ) ] )->casts_shadow;
-                int bal = block_definition_get_definition( chunk->blocks[ chunk_get_index_from_coords( xminus, y + 0, zminus ) ] )->casts_shadow;
-                int fr = block_definition_get_definition( chunk->blocks[ chunk_get_index_from_coords( xplus, y + 0, zplus ) ] )->casts_shadow;
-                int bar = block_definition_get_definition( chunk->blocks[ chunk_get_index_from_coords( xplus, y + 0, zminus ) ] )->casts_shadow;
+                int fl = block_definition_get_definition( chunk->blocks[ chunk_get_index_from_coords( xminus, y + 0, zplus ) ].id )->casts_shadow;
+                int bal = block_definition_get_definition( chunk->blocks[ chunk_get_index_from_coords( xminus, y + 0, zminus ) ].id )->casts_shadow;
+                int fr = block_definition_get_definition( chunk->blocks[ chunk_get_index_from_coords( xplus, y + 0, zplus ) ].id )->casts_shadow;
+                int bar = block_definition_get_definition( chunk->blocks[ chunk_get_index_from_coords( xplus, y + 0, zminus ) ].id )->casts_shadow;
 
                 // 3 Offsetes
-                int tfl = block_definition_get_definition( chunk->blocks[ chunk_get_index_from_coords( xminus, yplus, zplus ) ] )->casts_shadow;
-                int tbl = block_definition_get_definition( chunk->blocks[ chunk_get_index_from_coords( xminus, yplus, zminus ) ] )->casts_shadow;
-                int tfr = block_definition_get_definition( chunk->blocks[ chunk_get_index_from_coords( xplus, yplus, zplus ) ] )->casts_shadow;
-                int tbr = block_definition_get_definition( chunk->blocks[ chunk_get_index_from_coords( xplus, yplus, zminus ) ] )->casts_shadow;
+                int tfl = block_definition_get_definition( chunk->blocks[ chunk_get_index_from_coords( xminus, yplus, zplus ) ].id )->casts_shadow;
+                int tbl = block_definition_get_definition( chunk->blocks[ chunk_get_index_from_coords( xminus, yplus, zminus ) ].id )->casts_shadow;
+                int tfr = block_definition_get_definition( chunk->blocks[ chunk_get_index_from_coords( xplus, yplus, zplus ) ].id )->casts_shadow;
+                int tbr = block_definition_get_definition( chunk->blocks[ chunk_get_index_from_coords( xplus, yplus, zminus ) ].id )->casts_shadow;
 
-                int bfl = block_definition_get_definition( chunk->blocks[ chunk_get_index_from_coords( xminus, yminus, zplus ) ] )->casts_shadow;
-                int bbl = block_definition_get_definition( chunk->blocks[ chunk_get_index_from_coords( xminus, yminus, zminus ) ] )->casts_shadow;
-                int bfr = block_definition_get_definition( chunk->blocks[ chunk_get_index_from_coords( xplus, yminus, zplus ) ] )->casts_shadow;
-                int bbr = block_definition_get_definition( chunk->blocks[ chunk_get_index_from_coords( xplus, yminus, zminus ) ] )->casts_shadow;
+                int bfl = block_definition_get_definition( chunk->blocks[ chunk_get_index_from_coords( xminus, yminus, zplus ) ].id )->casts_shadow;
+                int bbl = block_definition_get_definition( chunk->blocks[ chunk_get_index_from_coords( xminus, yminus, zminus ) ].id )->casts_shadow;
+                int bfr = block_definition_get_definition( chunk->blocks[ chunk_get_index_from_coords( xplus, yminus, zplus ) ].id )->casts_shadow;
+                int bbr = block_definition_get_definition( chunk->blocks[ chunk_get_index_from_coords( xplus, yminus, zminus ) ].id )->casts_shadow;
                 if ( visiable_top && can_be_shaded ) {
                     int top_tfr = ( tf && tr ? 3 : ( tf + tr + tfr ) ) + t;
                     int top_tfl = ( tf && tl ? 3 : ( tf + tl + tfl ) ) + t;
@@ -482,8 +483,8 @@ void chunk_calculate_popupated_blocks( Chunk *chunk ) {
                 int index = chunk_get_index_from_coords( x, y, z );
                 if ( !workingSpace[ index ].has_been_drawn ) {
 
-                    BlockID blockID = chunk->blocks[ index ];
-                    Block *block = block_definition_get_definition( blockID );
+                    BlockState blockState = chunk->blocks[ index ];
+                    Block *block = block_definition_get_definition( blockState.id );
                     int visiable_block = workingSpace[ index ].visable;
                     int can_be_seen = workingSpace[ index ].can_be_seen;
                     int has_been_drawn = workingSpace[ index ].has_been_drawn;

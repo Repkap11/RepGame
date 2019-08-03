@@ -89,7 +89,7 @@ void map_storage_persist( Chunk *chunk ) {
 
         FILE *write_ptr;
         STORAGE_TYPE persist_data[ CHUNK_BLOCK_SIZE ];
-        BlockID *blocks = chunk->blocks;
+        BlockState *blocks = chunk->blocks;
         if ( blocks == 0 ) {
             return;
         }
@@ -99,7 +99,7 @@ void map_storage_persist( Chunk *chunk ) {
         STORAGE_TYPE_BLOCK_ID previous_id = LAST_BLOCK_ID;
         for ( int i = 0; i < CHUNK_BLOCK_SIZE; i++ ) {
 
-            BlockID id = blocks[ i ];
+            BlockID id = blocks[ i ].id;//TODO the rotation isn't saved
             if ( id == previous_id ) {
                 num_same_blocks++;
             } else {
@@ -154,7 +154,7 @@ int map_storage_load( Chunk *chunk ) {
 
     FILE *read_ptr;
     STORAGE_TYPE persist_data[ CHUNK_BLOCK_SIZE ];
-    BlockID *blocks = chunk->blocks;
+    BlockState *blocks = chunk->blocks;
     read_ptr = fopen( file_name, "rb" );
     int persist_data_length = fread( persist_data, sizeof( STORAGE_TYPE ), CHUNK_BLOCK_SIZE, read_ptr );
     fclose( read_ptr );
@@ -168,7 +168,7 @@ int map_storage_load( Chunk *chunk ) {
         }
         BlockID block_id = ( BlockID )block_storage.block_id;
         for ( unsigned int j = 0; j < block_storage.num; j++ ) {
-            blocks[ block_index++ ] = block_id;
+            blocks[ block_index++ ] = {block_id, BLOCK_ROTATE_0};//TODO rotation isn't restored
         }
     }
     int expected_num_blocks = CHUNK_BLOCK_SIZE;

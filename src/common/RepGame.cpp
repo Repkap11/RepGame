@@ -21,22 +21,22 @@
 
 RepGameState globalGameState;
 
-void change_block( int place, BlockID blockID ) {
+void change_block( int place, BlockState blockState ) {
     TRIP_STATE( int block_ );
-    Block *block = block_definition_get_definition( blockID );
+    Block *block = block_definition_get_definition( blockState.id );
 
     if ( place ) {
         block_x = globalGameState.block_selection.create_x;
         block_y = globalGameState.block_selection.create_y;
         block_z = globalGameState.block_selection.create_z;
-        if ( render_order_collides_with_player( block_definition_get_definition( blockID )->renderOrder ) ) {
+        if ( render_order_collides_with_player( block_definition_get_definition( blockState.id )->renderOrder ) ) {
             // If the block collides with the player, make sure its not being placed where it would collide
             if ( collision_check_collides_with_block( &globalGameState.world, globalGameState.camera.x, globalGameState.camera.y, globalGameState.camera.z, TRIP_ARGS( block_ ) ) ) {
                 return;
             }
         }
         if ( block->needs_place_on_solid ) {
-            BlockID under_blockID = world_get_loaded_block( &globalGameState.world, block_x, block_y - 1, block_z );
+            BlockID under_blockID = world_get_loaded_block( &globalGameState.world, block_x, block_y - 1, block_z ).id;
             Block *under_block = block_definition_get_definition( under_blockID );
             if ( !render_order_collides_with_player( under_block->renderOrder ) ) {
                 return;
@@ -48,39 +48,50 @@ void change_block( int place, BlockID blockID ) {
         block_y = globalGameState.block_selection.destroy_y;
         block_z = globalGameState.block_selection.destroy_z;
     }
-    multiplayer_set_block( place, block_x, block_y, block_z, blockID );
-    world_set_loaded_block( &globalGameState.world, TRIP_ARGS( block_ ), blockID );
+    multiplayer_set_block( place, block_x, block_y, block_z, blockState );
+    world_set_loaded_block( &globalGameState.world, TRIP_ARGS( block_ ), blockState );
 }
 
 void repgame_process_mouse_events( ) {
     if ( globalGameState.block_selection.selectionInBounds && globalGameState.input.mouse.buttons.middle ) {
-        BlockID blockID = world_get_loaded_block( &globalGameState.world, TRIP_ARGS( globalGameState.block_selection.destroy_ ) );
-        pr_debug( "Selected block:%d", blockID );
-        globalGameState.block_selection.holdingBlock = blockID;
+        BlockState blockState = world_get_loaded_block( &globalGameState.world, TRIP_ARGS( globalGameState.block_selection.destroy_ ) );
+        pr_debug( "Selected block:%d", blockState.id );
+        globalGameState.block_selection.holdingBlock = blockState.id;
     }
     if ( globalGameState.block_selection.selectionInBounds && globalGameState.input.mouse.buttons.left && globalGameState.input.click_delay_left == 0 ) {
-        change_block( 0, AIR );
+        change_block( 0, {AIR, BLOCK_ROTATE_0} );
         globalGameState.input.click_delay_left = 8;
     }
     if ( globalGameState.block_selection.selectionInBounds && globalGameState.input.mouse.buttons.right && globalGameState.input.click_delay_right == 0 ) {
-        change_block( 1, globalGameState.block_selection.holdingBlock );
+        change_block( 1, {globalGameState.block_selection.holdingBlock, BLOCK_ROTATE_0} );//TODO rotate block based on facing dir
         globalGameState.input.click_delay_right = 8;
     }
     if ( globalGameState.block_selection.selectionInBounds && globalGameState.input.mouse.currentPosition.wheel_counts != globalGameState.input.mouse.previousPosition.wheel_counts ) {
         int wheel_diff = globalGameState.input.mouse.currentPosition.wheel_counts > globalGameState.input.mouse.previousPosition.wheel_counts ? 1 : -1;
-        BlockID blockID = world_get_loaded_block( &globalGameState.world, TRIP_ARGS( globalGameState.block_selection.destroy_ ) );
-        int blockID_int = ( int )blockID;
-        do {
-            blockID_int += wheel_diff;
-            if ( blockID_int >= LAST_BLOCK_ID ) {
-                blockID_int = LAST_BLOCK_ID - 1;
-            }
-            if ( blockID_int <= 0 ) {
-                blockID_int = 1;
-            }
-        } while ( !render_order_is_pickable( block_definition_get_definition( ( BlockID )blockID_int )->renderOrder ) );
+        BlockState blockState = world_get_loaded_block( &globalGameState.world, TRIP_ARGS( globalGameState.block_selection.destroy_ ) );
+        int blockID_int = ( int )blockState.id;
+        // do {
+        //     blockID_int += wheel_diff;
+        //     if ( blockID_int >= LAST_BLOCK_ID ) {
+        //         blockID_int = LAST_BLOCK_ID - 1;
+        //     }
+        //     if ( blockID_int <= 0 ) {
+        //         blockID_int = 1;
+        //     }
+        // } while ( !render_order_is_pickable( block_definition_get_definition( ( BlockID )blockID_int )->renderOrder ) );
+        // blockState.id = ( BlockID )blockID_int;
 
-        change_block( 0, ( BlockID )blockID_int );
+        int block_rot = ( int )blockState.rotation;
+        block_rot += wheel_diff;
+        if ( block_rot >= BLOCK_ROTATE_270 ) {
+            block_rot = BLOCK_ROTATE_270 - 1;
+        }
+        if ( block_rot <= BLOCK_ROTATE_0 ) {
+            block_rot = BLOCK_ROTATE_0 + 1;
+        }
+        blockState.rotation = block_rot;
+
+        change_block( 0, blockState );
     }
     globalGameState.input.mouse.currentPosition.wheel_counts = 0;
 }

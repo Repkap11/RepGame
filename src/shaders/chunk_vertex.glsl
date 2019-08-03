@@ -16,7 +16,7 @@ layout( location = 5 ) in uint mesh_size_packed;
 layout( location = 6 ) in uvec3 blockTexture;
 layout( location = 7 ) in uvec3 packed_lighting_1;
 layout( location = 8 ) in uvec3 packed_lighting_2;
-layout( location = 9 ) in mat4 rotation;
+layout( location = 9 ) in uint face_shift;
 
 out vec2 v_TexCoordBlock;
 flat out float v_blockID;

@@ -132,8 +132,8 @@ typedef struct {
     unsigned char space;
 
     unsigned short face[ NUM_FACES_IN_CUBE ];
-
     unsigned int packed_lighting[ NUM_FACES_IN_CUBE ];
+    unsigned int face_shift;
 
 } BlockCoords;
 

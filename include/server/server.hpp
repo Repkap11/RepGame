@@ -7,6 +7,8 @@
 
 typedef enum { INVALID, PLAYER_LOCATION, BLOCK_UPDATE, CLIENT_INIT, PLAYER_CONNECTED, PLAYER_DISCONNECTED } PacketType;
 
+#define SERVER_BLOCK_DATA_SIZE 8
+
 typedef struct {
     PacketType type;
     int player_id;
@@ -15,7 +17,7 @@ typedef struct {
             int x;
             int y;
             int z;
-            int blockID;
+            char blockState[ SERVER_BLOCK_DATA_SIZE ];
         } block;
         struct {
             float x;

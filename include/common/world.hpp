@@ -19,10 +19,10 @@ typedef struct {
     Shader sky_shader;
 } World;
 
-BlockID world_get_loaded_block( World *world, int block_x, int block_y, int block_z );
-void world_set_loaded_block( World *world, int block_x, int block_y, int block_z, BlockID blockID );
+BlockState world_get_loaded_block( World *world, int block_x, int block_y, int block_z );
+void world_set_loaded_block( World *world, int block_x, int block_y, int block_z, BlockState blockState );
 
-BlockID world_get_block_from_chunk( Chunk *chunk, int block_, int block_y, int block_z );
+BlockState world_get_block_from_chunk( Chunk *chunk, int block_, int block_y, int block_z );
 Chunk *world_get_loaded_chunk( World *world, int block_x, int block_y, int block_z );
 void world_init( World *world, float camera_x, float camera_y, float camera_z );
 void world_render( World *world, float camera_x, float camera_y, float camera_z, int limit_render, glm::mat4 &rotation );
