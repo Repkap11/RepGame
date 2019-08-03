@@ -225,7 +225,7 @@ void structure_gen_place( Chunk *chunk ) {
                     if ( strcuture_gen_poll_fits( chunk, x, y, z, height ) ) {
                         if ( structure_gen_is_reed_roll( x, z ) ) {
                             for ( int i = 0; i < height; i++ ) {
-                                chunk->blocks[ chunk_get_index_from_coords( x, y + i, z ) ] = {DIRT, BLOCK_ROTATE_0};
+                                chunk->blocks[ chunk_get_index_from_coords( x, y + i, z ) ] = {REED, BLOCK_ROTATE_0};
                             }
                         }
                     }
