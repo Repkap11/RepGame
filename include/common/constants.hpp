@@ -91,6 +91,11 @@
 #define FACE_LEFT 4
 #define FACE_BACK 5
 
+#define BLOCK_ROTATE_0 0
+#define BLOCK_ROTATE_90 1
+#define BLOCK_ROTATE_180 2
+#define BLOCK_ROTATE_270 3
+
 #define NUM_FACES_IN_CUBE 6
 
 #define CORNER_OFFSET_tfl 0

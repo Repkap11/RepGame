@@ -18,19 +18,13 @@ typedef struct {
     BlockCoords *populated_blocks;
 } RenderLayer;
 
-
-#define BLOCK_ROTATE_0 0
-#define BLOCK_ROTATE_90 1
-#define BLOCK_ROTATE_180 2
-#define BLOCK_ROTATE_270 3
-
 typedef struct {
     BlockID id;
     unsigned char rotation;
     //TODO add chest furnase or other block spesific state
 } BlockState;
 //This size must match, update the size in server.hpp if it doesn't
-static_assert(sizeof(BlockState) == SERVER_BLOCK_DATA_SIZE);
+static_assert(sizeof(BlockState) == SERVER_BLOCK_DATA_SIZE, "Size of BlockState doesn't match server packet size.");
 
 typedef struct {
     int is_loading;

@@ -63,7 +63,7 @@ void repgame_process_mouse_events( ) {
         globalGameState.input.click_delay_left = 8;
     }
     if ( globalGameState.block_selection.selectionInBounds && globalGameState.input.mouse.buttons.right && globalGameState.input.click_delay_right == 0 ) {
-        change_block( 1, {globalGameState.block_selection.holdingBlock, BLOCK_ROTATE_0} );//TODO rotate block based on facing dir
+        change_block( 1, {globalGameState.block_selection.holdingBlock, BLOCK_ROTATE_90} ); // TODO rotate block based on facing dir
         globalGameState.input.click_delay_right = 8;
     }
     if ( globalGameState.block_selection.selectionInBounds && globalGameState.input.mouse.currentPosition.wheel_counts != globalGameState.input.mouse.previousPosition.wheel_counts ) {
@@ -83,11 +83,11 @@ void repgame_process_mouse_events( ) {
 
         int block_rot = ( int )blockState.rotation;
         block_rot += wheel_diff;
-        if ( block_rot >= BLOCK_ROTATE_270 ) {
-            block_rot = BLOCK_ROTATE_270 - 1;
+        if ( block_rot > BLOCK_ROTATE_270 ) {
+            block_rot = BLOCK_ROTATE_270;
         }
-        if ( block_rot <= BLOCK_ROTATE_0 ) {
-            block_rot = BLOCK_ROTATE_0 + 1;
+        if ( block_rot < 0 ) {
+            block_rot = 0;
         }
         blockState.rotation = block_rot;
 

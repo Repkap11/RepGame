@@ -206,11 +206,8 @@ typedef struct {
 
 } WorkingSpace;
 
-int chunk_can_extend_rect( Chunk *chunk, Block *block, unsigned int *packed_lighting, WorkingSpace *workingSpace, TRIP_ARGS( int starting_ ), TRIP_ARGS( int size_ ), TRIP_ARGS( int dir_ ) ) {
+int chunk_can_extend_rect( Chunk *chunk, BlockState blockState, unsigned int *packed_lighting, WorkingSpace *workingSpace, TRIP_ARGS( int starting_ ), TRIP_ARGS( int size_ ), TRIP_ARGS( int dir_ ) ) {
     if ( DISABLE_GROUPING_BLOCKS ) {
-        return 0;
-    }
-    if ( !block->can_mesh ) {
         return 0;
     }
     if ( starting_x + size_x + dir_x > CHUNK_SIZE )
@@ -236,11 +233,13 @@ int chunk_can_extend_rect( Chunk *chunk, Block *block, unsigned int *packed_ligh
                 if ( !workingSpace[ index ].can_be_seen ) {
                     return 0;
                 }
-                BlockID new_blockID = chunk->blocks[ index ].id;
-                if ( new_blockID != block->id ) {
+                BlockState new_blockState = chunk->blocks[ index ];
+                if ( new_blockState.id != blockState.id ) {
                     return 0;
                 }
-
+                if ( new_blockState.rotation != blockState.rotation ) {
+                    return 0;
+                }
                 for ( int i = 0; i < NUM_FACES_IN_CUBE; i++ ) {
                     if ( packed_lighting[ i ] != workingSpace[ index ].packed_lighting[ i ] ) {
                         return 0;
@@ -496,17 +495,19 @@ void chunk_calculate_popupated_blocks( Chunk *chunk ) {
                         int size_x = 1;
                         int size_y = 1;
                         int size_z = 1;
-                        do {
-                            can_extend_x = chunk_can_extend_rect( chunk, block, packed_lighting, workingSpace, x + size_x - 1, y, z, 1, size_y, size_z, 1, 0, 0 );
-                            if ( can_extend_x )
-                                size_x++;
-                            can_extend_z = chunk_can_extend_rect( chunk, block, packed_lighting, workingSpace, x, y, z + size_z - 1, size_x, size_y, 1, 0, 0, 1 );
-                            if ( can_extend_z )
-                                size_z++;
-                            can_extend_y = chunk_can_extend_rect( chunk, block, packed_lighting, workingSpace, x, y + size_y - 1, z, size_x, 1, size_z, 0, 1, 0 );
-                            if ( can_extend_y )
-                                size_y++;
-                        } while ( can_extend_x || can_extend_z || can_extend_y );
+                        if ( block->can_mesh ) {
+                            do {
+                                can_extend_x = chunk_can_extend_rect( chunk, blockState, packed_lighting, workingSpace, x + size_x - 1, y, z, 1, size_y, size_z, 1, 0, 0 );
+                                if ( can_extend_x )
+                                    size_x++;
+                                can_extend_z = chunk_can_extend_rect( chunk, blockState, packed_lighting, workingSpace, x, y, z + size_z - 1, size_x, size_y, 1, 0, 0, 1 );
+                                if ( can_extend_z )
+                                    size_z++;
+                                can_extend_y = chunk_can_extend_rect( chunk, blockState, packed_lighting, workingSpace, x, y + size_y - 1, z, size_x, 1, size_z, 0, 1, 0 );
+                                if ( can_extend_y )
+                                    size_y++;
+                            } while ( can_extend_x || can_extend_z || can_extend_y );
+                        }
                         int full_size = size_x * size_z * size_y;
                         for ( int new_x = x; new_x < x + size_x; new_x++ ) {
                             for ( int new_z = z; new_z < z + size_z; new_z++ ) {
@@ -530,6 +531,7 @@ void chunk_calculate_popupated_blocks( Chunk *chunk ) {
                         blockCoord->mesh_x = size_x;
                         blockCoord->mesh_y = size_y;
                         blockCoord->mesh_z = size_z;
+                        blockCoord->face_shift = blockState.rotation;
 
                         for ( int i = 0; i < NUM_FACES_IN_CUBE; i++ ) {
                             blockCoord->packed_lighting[ i ] = workingSpace[ index ].packed_lighting[ i ];
