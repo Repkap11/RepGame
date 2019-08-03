@@ -21,6 +21,7 @@ void block_definitions_initilize_definitions( Texture *texture ) {
         block->can_mesh = true;
         block->hides_self = false;
         block->needs_place_on_solid = false;
+        block->rotate_on_placement = false;
     }
     block_definitions[ WATER ].renderOrder = RenderOrder_Water;
 
@@ -72,16 +73,16 @@ void block_definitions_initilize_definitions( Texture *texture ) {
     block_definitions[ SNOWY_GRASS ].textures[ FACE_BOTTOM ] = DIRT;
 
     block_definitions[ FURNACE_UNLIT ].textures[ FACE_TOP ] = FURNACE_TOP;
-    block_definitions[ FURNACE_UNLIT ].textures[ FACE_LEFT ] = FURNACE_UNLIT;
+    block_definitions[ FURNACE_UNLIT ].textures[ FACE_LEFT ] = FURNACE_SIDE;
     block_definitions[ FURNACE_UNLIT ].textures[ FACE_RIGHT ] = FURNACE_SIDE;
-    block_definitions[ FURNACE_UNLIT ].textures[ FACE_FRONT ] = FURNACE_SIDE;
+    block_definitions[ FURNACE_UNLIT ].textures[ FACE_FRONT ] = FURNACE_UNLIT;
     block_definitions[ FURNACE_UNLIT ].textures[ FACE_BACK ] = FURNACE_SIDE;
     block_definitions[ FURNACE_UNLIT ].textures[ FACE_BOTTOM ] = FURNACE_TOP;
 
     block_definitions[ FURNACE_LIT ].textures[ FACE_TOP ] = FURNACE_TOP;
-    block_definitions[ FURNACE_LIT ].textures[ FACE_LEFT ] = FURNACE_LIT;
+    block_definitions[ FURNACE_LIT ].textures[ FACE_LEFT ] = FURNACE_SIDE;
     block_definitions[ FURNACE_LIT ].textures[ FACE_RIGHT ] = FURNACE_SIDE;
-    block_definitions[ FURNACE_LIT ].textures[ FACE_FRONT ] = FURNACE_SIDE;
+    block_definitions[ FURNACE_LIT ].textures[ FACE_FRONT ] = FURNACE_LIT;
     block_definitions[ FURNACE_LIT ].textures[ FACE_BACK ] = FURNACE_SIDE;
     block_definitions[ FURNACE_LIT ].textures[ FACE_BOTTOM ] = FURNACE_TOP;
 
@@ -119,6 +120,9 @@ void block_definitions_initilize_definitions( Texture *texture ) {
     block_definitions[ LEAF ].no_light = NO_LIGHT_DRAW;
 
     block_definitions[ WHITE_GLASS ].hides_self = true;
+
+    block_definitions[ FURNACE_LIT ].rotate_on_placement = true;
+    block_definitions[ FURNACE_UNLIT ].rotate_on_placement = true;
 
     // Start flower section
     do_flowers( block_definitions );

@@ -50,18 +50,18 @@ void main( ) {
         face_scale = mesh_size.xz;
         if ( rotation == BLOCK_ROTATE_0 ) {
             texCoordBlock_adjust = vec2( texCoordBlock.x, texCoordBlock.y );
-        } else if ( ( faceType == FACE_TOP && rotation == BLOCK_ROTATE_90 ) || ( faceType == FACE_BOTTOM && rotation == BLOCK_ROTATE_270 ) ) {
+        } else if ( ( faceType == FACE_TOP && rotation == BLOCK_ROTATE_270 ) || ( faceType == FACE_BOTTOM && rotation == BLOCK_ROTATE_90 ) ) {
             texCoordBlock_adjust = vec2( texCoordBlock.y, 1.0 - texCoordBlock.x );
         } else if ( rotation == BLOCK_ROTATE_180 ) {
             texCoordBlock_adjust = vec2( 1.0 - texCoordBlock.x, 1.0 - texCoordBlock.y );
-        } else if ( ( faceType == FACE_TOP && rotation == BLOCK_ROTATE_270 ) || ( faceType == FACE_BOTTOM && rotation == BLOCK_ROTATE_90 ) ) {
+        } else if ( ( faceType == FACE_TOP && rotation == BLOCK_ROTATE_90 ) || ( faceType == FACE_BOTTOM && rotation == BLOCK_ROTATE_270 ) ) {
             texCoordBlock_adjust = vec2( 1.0 - texCoordBlock.y, texCoordBlock.x );
         }
     } else if ( faceType == FACE_RIGHT || faceType == FACE_LEFT ) {
-        faceType_rotated = ( faceType + rotation - 2u ) % 4u + 2u;
+        faceType_rotated = ( faceType - rotation - 2u ) % 4u + 2u;
         face_scale = mesh_size.zy;
     } else if ( faceType == FACE_FRONT || faceType == FACE_BACK ) {
-        faceType_rotated = ( faceType + rotation - 2u ) % 4u + 2u;
+        faceType_rotated = ( faceType - rotation - 2u ) % 4u + 2u;
         face_scale = mesh_size.xy;
     }
     float face_light;

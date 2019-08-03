@@ -52,6 +52,24 @@ void change_block( int place, BlockState blockState ) {
     world_set_loaded_block( &globalGameState.world, TRIP_ARGS( block_ ), blockState );
 }
 
+unsigned char getPlacedRotation( BlockID blockID ) {
+    unsigned char rotation = BLOCK_ROTATE_0;
+    if ( block_definition_get_definition( blockID )->rotate_on_placement ) {
+        if ( globalGameState.camera.angle_H < 45 ) {
+            rotation = BLOCK_ROTATE_0;
+        } else if ( globalGameState.camera.angle_H < 135 ) {
+            rotation = BLOCK_ROTATE_90;
+        } else if ( globalGameState.camera.angle_H < 225 ) {
+            rotation = BLOCK_ROTATE_180;
+        } else if ( globalGameState.camera.angle_H < 315 ) {
+            rotation = BLOCK_ROTATE_270;
+        } else {
+            rotation = BLOCK_ROTATE_0;
+        }
+    }
+    return rotation;
+}
+
 void repgame_process_mouse_events( ) {
     if ( globalGameState.block_selection.selectionInBounds && globalGameState.input.mouse.buttons.middle ) {
         BlockState blockState = world_get_loaded_block( &globalGameState.world, TRIP_ARGS( globalGameState.block_selection.destroy_ ) );
@@ -63,34 +81,25 @@ void repgame_process_mouse_events( ) {
         globalGameState.input.click_delay_left = 8;
     }
     if ( globalGameState.block_selection.selectionInBounds && globalGameState.input.mouse.buttons.right && globalGameState.input.click_delay_right == 0 ) {
-        change_block( 1, {globalGameState.block_selection.holdingBlock, BLOCK_ROTATE_90} ); // TODO rotate block based on facing dir
+        unsigned char rotation = getPlacedRotation( globalGameState.block_selection.holdingBlock );
+        change_block( 1, {globalGameState.block_selection.holdingBlock, rotation} );
         globalGameState.input.click_delay_right = 8;
     }
     if ( globalGameState.block_selection.selectionInBounds && globalGameState.input.mouse.currentPosition.wheel_counts != globalGameState.input.mouse.previousPosition.wheel_counts ) {
         int wheel_diff = globalGameState.input.mouse.currentPosition.wheel_counts > globalGameState.input.mouse.previousPosition.wheel_counts ? 1 : -1;
         BlockState blockState = world_get_loaded_block( &globalGameState.world, TRIP_ARGS( globalGameState.block_selection.destroy_ ) );
         int blockID_int = ( int )blockState.id;
-        // do {
-        //     blockID_int += wheel_diff;
-        //     if ( blockID_int >= LAST_BLOCK_ID ) {
-        //         blockID_int = LAST_BLOCK_ID - 1;
-        //     }
-        //     if ( blockID_int <= 0 ) {
-        //         blockID_int = 1;
-        //     }
-        // } while ( !render_order_is_pickable( block_definition_get_definition( ( BlockID )blockID_int )->renderOrder ) );
-        // blockState.id = ( BlockID )blockID_int;
-
-        int block_rot = ( int )blockState.rotation;
-        block_rot += wheel_diff;
-        if ( block_rot > BLOCK_ROTATE_270 ) {
-            block_rot = BLOCK_ROTATE_270;
-        }
-        if ( block_rot < 0 ) {
-            block_rot = 0;
-        }
-        blockState.rotation = block_rot;
-
+        do {
+            blockID_int += wheel_diff;
+            if ( blockID_int >= LAST_BLOCK_ID ) {
+                blockID_int = LAST_BLOCK_ID - 1;
+            }
+            if ( blockID_int <= 0 ) {
+                blockID_int = 1;
+            }
+        } while ( !render_order_is_pickable( block_definition_get_definition( ( BlockID )blockID_int )->renderOrder ) );
+        blockState.id = ( BlockID )blockID_int;
+        blockState.rotation = getPlacedRotation( blockState.id );
         change_block( 0, blockState );
     }
     globalGameState.input.mouse.currentPosition.wheel_counts = 0;
@@ -171,6 +180,12 @@ void repgame_tick( ) {
         world_set_selected_block( &globalGameState.world, TRIP_ARGS( globalGameState.block_selection.destroy_ ), globalGameState.block_selection.selectionInBounds );
         globalGameState.camera.angle_H += ( globalGameState.input.mouse.currentPosition.x - globalGameState.input.mouse.previousPosition.x ) * 0.04f;
         globalGameState.camera.angle_V += ( globalGameState.input.mouse.currentPosition.y - globalGameState.input.mouse.previousPosition.y ) * 0.04f;
+        if ( globalGameState.camera.angle_H >= 360.0f ) {
+            globalGameState.camera.angle_H -= 360.0f;
+        }
+        if ( globalGameState.camera.angle_H < 0.0f ) {
+            globalGameState.camera.angle_H += 360.0f;
+        }
     }
     globalGameState.input.mouse.currentPosition.x = globalGameState.screen.width / 2;
     globalGameState.input.mouse.currentPosition.y = globalGameState.screen.height / 2;

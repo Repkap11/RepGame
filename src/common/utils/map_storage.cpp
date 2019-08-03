@@ -97,10 +97,10 @@ void map_storage_persist( Chunk *chunk ) {
         STORAGE_TYPE_NUM_BLOCKS num_same_blocks = 0;
         int total_num_blocks = 0;
         STORAGE_TYPE_BLOCK_ID previous_id = LAST_BLOCK_ID;
+        BlockState previousBlockState = {LAST_BLOCK_ID, BLOCK_ROTATE_0};
         for ( int i = 0; i < CHUNK_BLOCK_SIZE; i++ ) {
-
-            BlockID id = blocks[ i ].id;//TODO the rotation isn't saved
-            if ( id == previous_id ) {
+            BlockState blockState = blocks[ i ]; // TODO the rotation isn't saved
+            if ( blockState.id == previousBlockState.id && blockState.rotation == previousBlockState.rotation ) {
                 num_same_blocks++;
             } else {
                 if ( num_same_blocks > 0 ) {
@@ -109,7 +109,7 @@ void map_storage_persist( Chunk *chunk ) {
                     total_num_blocks += num_same_blocks;
                 }
                 persist_data_index++;
-                previous_id = id;
+                previous_id = ((STORAGE_TYPE_BLOCK_ID)blockState.id) | (((STORAGE_TYPE_BLOCK_ID)blockState.rotation) << 14);
                 num_same_blocks = 1;
             }
         }
@@ -162,13 +162,16 @@ int map_storage_load( Chunk *chunk ) {
     int block_index = 0;
     for ( int i = 0; i < persist_data_length; i++ ) {
         STORAGE_TYPE block_storage = persist_data[ i ];
-        if ( block_storage.block_id >= LAST_BLOCK_ID ) {
+        STORAGE_TYPE_BLOCK_ID block_packed = block_storage.block_id;
+        BlockState blockState;
+        blockState.id = (BlockID)(block_packed & ~( 0b11 << 14 ));
+        blockState.rotation = block_packed >> 14;
+        if (  blockState.id >= LAST_BLOCK_ID ) {
             pr_debug( "Got strange block:%d", block_storage.block_id );
             block_storage.block_id = TNT;
         }
-        BlockID block_id = ( BlockID )block_storage.block_id;
         for ( unsigned int j = 0; j < block_storage.num; j++ ) {
-            blocks[ block_index++ ] = {block_id, BLOCK_ROTATE_0};//TODO rotation isn't restored
+            blocks[ block_index++ ] = blockState;
         }
     }
     int expected_num_blocks = CHUNK_BLOCK_SIZE;
