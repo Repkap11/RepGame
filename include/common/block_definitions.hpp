@@ -205,7 +205,7 @@ typedef struct {
     int rotate_on_placement;
 } Block;
 
-void block_definitions_initilize_definitions( Texture *texture );
+void block_definitions_initilize_definitions( );
 Block *block_definition_get_definition( BlockID blockID );
 void block_definitions_free_definitions( );
 

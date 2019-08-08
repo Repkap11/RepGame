@@ -245,6 +245,7 @@ int check_block( Block *block ) {
 }
 
 MK_TEXTURE( textures, 384, 816, 16, 16, 138 );
+MK_TEXTURE( textures_metallic, 384, 816, 16, 16, 138 );
 
 void repgame_init( const char *world_name ) {
     glEnable( GL_DEPTH_TEST );
@@ -256,7 +257,9 @@ void repgame_init( const char *world_name ) {
 
     initilizeGameState( world_name );
     texture_init( &globalGameState.blocksTexture, &texture_source_textures );
-    block_definitions_initilize_definitions( &globalGameState.blocksTexture );
+    texture_init( &globalGameState.metallicTexture, &texture_source_textures_metallic );
+
+    block_definitions_initilize_definitions( );
     world_init( &globalGameState.world, globalGameState.camera.x, globalGameState.camera.y, globalGameState.camera.z );
     ui_overlay_init( &globalGameState.ui_overlay );
 
@@ -326,7 +329,8 @@ void repgame_draw( ) {
 #endif
     showErrors( );
 
-    world_draw( &globalGameState.world, &globalGameState.blocksTexture, mvp, mvp_sky, globalGameState.input.debug_mode, !globalGameState.input.inventory_open );
+    world_draw( &globalGameState.world, &globalGameState.blocksTexture, &globalGameState.metallicTexture, mvp, mvp_sky, globalGameState.input.debug_mode, !globalGameState.input.inventory_open, //
+                globalGameState.camera.x, globalGameState.camera.y, globalGameState.camera.z );
     ui_overlay_draw( &globalGameState.ui_overlay, &globalGameState.world.renderer, &globalGameState.blocksTexture, &globalGameState.input, globalGameState.screen.ortho_center );
 }
 
@@ -338,6 +342,7 @@ void repgame_cleanup( ) {
     clean_up_done = 1;
     world_cleanup( &globalGameState.world );
     texture_destroy( &globalGameState.blocksTexture );
+    texture_destroy( &globalGameState.metallicTexture );
     block_definitions_free_definitions( );
 
     PlayerData saved_data;

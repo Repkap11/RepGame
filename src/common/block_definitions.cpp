@@ -7,7 +7,7 @@ Block *block_definitions;
 void do_disable( Block *block_definitions );
 void do_flowers( Block *block_definitions );
 
-void block_definitions_initilize_definitions( Texture *texture ) {
+void block_definitions_initilize_definitions( ) {
     block_definitions = ( Block * )calloc( LAST_BLOCK_ID, sizeof( Block ) );
     for ( int block_id = 0; block_id < LAST_BLOCK_ID; block_id++ ) {
         Block *block = &block_definitions[ block_id ];

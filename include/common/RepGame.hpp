@@ -58,6 +58,7 @@ typedef struct {
         glm::mat4 ortho_center;
     } screen;
     Texture blocksTexture;
+    Texture metallicTexture;
     World world;
     UIOverlay ui_overlay;
     struct {

@@ -22,6 +22,8 @@ out vec2 v_TexCoordBlock;
 flat out float v_blockID;
 flat out int v_shouldDiscardNoLight;
 out float v_corner_lighting;
+out vec3 v_pos_world;
+out vec3 v_normal;
 
 #define FACE_TOP 0u
 #define FACE_BOTTOM 1u
@@ -41,11 +43,28 @@ out float v_corner_lighting;
 
 void main( ) {
     vec3 mesh_size = vec3( ( mesh_size_packed & 0xffu ), ( mesh_size_packed & 0xff00u ) >> 8, ( mesh_size_packed & 0xff0000u ) >> 16 );
-    gl_Position = u_MVP * vec4( position * ( mesh_size - u_DebugScaleOffset ) + blockCoords, 1 );
+    v_pos_world = position * ( mesh_size - u_DebugScaleOffset ) + blockCoords;
+    gl_Position = u_MVP * vec4( v_pos_world, 1 );
     // gl_Position = u_MVP * rotation * vec4( position * ( mesh_size - u_DebugScaleOffset ) + blockCoords, 1 );
     vec2 face_scale;
     vec2 texCoordBlock_adjust = texCoordBlock;
     uint faceType_rotated = faceType;
+
+    v_normal;
+    if ( faceType == FACE_TOP ) {
+        v_normal = vec3( 0, 1, 0 );
+    } else if ( faceType == FACE_BOTTOM ) {
+        v_normal = vec3( 0, -1, 0 );
+    } else if ( faceType == FACE_RIGHT ) {
+        v_normal = vec3( 1, 0, 0 );
+    } else if ( faceType == FACE_FRONT ) {
+        v_normal = vec3( 0, 0, 1 );
+    } else if ( faceType == FACE_LEFT ) {
+        v_normal = vec3( -1, 0, 0 );
+    } else if ( faceType == FACE_BACK ) {
+        v_normal = vec3( 0, 0, -1 );
+    }
+
     if ( faceType == FACE_TOP || faceType == FACE_BOTTOM ) {
         face_scale = mesh_size.xz;
         if ( rotation == BLOCK_ROTATE_0 ) {

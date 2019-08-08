@@ -56,7 +56,10 @@ void world_set_selected_block( World *world, int selected_x, int selected_y, int
     mouse_selection_set_block( &world->mouseSelection, TRIP_ARGS( selected_ ), shouldDraw );
 }
 
-void world_draw( World *world, Texture *blocksTexture, glm::mat4 &mvp, glm::mat4 &mvp_sky, int debug, int draw_mouse_selection ) {
+static float light_offset = 0.0f;
+static float light_change = 1.0f;
+void world_draw( World *world, Texture *blocksTexture, Texture *metallicTexture, glm::mat4 &mvp, glm::mat4 &mvp_sky, int debug, int draw_mouse_selection, //
+                 float camera_x, float camera_y, float camera_z ) {
 
     sky_box_draw( &world->skyBox, &world->renderer, mvp_sky, &world->sky_shader );
 
@@ -66,7 +69,19 @@ void world_draw( World *world, Texture *blocksTexture, glm::mat4 &mvp, glm::mat4
     mobs_draw( &world->mobs, &world->renderer, &world->sky_shader );
 
     shader_set_uniform1i( &world->loadedChunks.shader, "u_Texture", blocksTexture->slot );
+    shader_set_uniform1i( &world->loadedChunks.shader, "u_Metallic", blocksTexture->slot );
     shader_set_uniform_mat4f( &world->loadedChunks.shader, "u_MVP", mvp );
+    light_offset += light_change;
+    if ( light_offset > 10 ) {
+        light_change = -0.05;
+    }
+    if ( light_offset < 0.0 ) {
+        light_change = 0.05;
+    }
+    pr_debug( "Light offset:%f", light_offset );
+    shader_set_uniform3f( &world->loadedChunks.shader, "u_LightPosition", 10.0, 10.0 + light_offset, 10.0 );
+    shader_set_uniform3f( &world->loadedChunks.shader, "u_CameraPos", camera_x, camera_y, camera_z );
+
     float debug_block_scale;
     if ( debug ) {
         debug_block_scale = BLOCK_SCALE_OFFSET;
