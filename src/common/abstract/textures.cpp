@@ -103,7 +103,7 @@ unsigned int loadTexture( const TextureSourceData *texture_source ) {
     glBindTexture( GL_TEXTURE_2D_ARRAY, texture );
     glTexImage3D( GL_TEXTURE_2D_ARRAY,                                              //
                   0,                                                                // mipLevelCount
-                  GL_RGBA8,                                                         //
+                  GL_SRGB8_ALPHA8,                                                    //
                   texture_source->tile_size_across, texture_source->tile_size_down, //
                   layer_count, 0, GL_RGBA, GL_UNSIGNED_BYTE, NULL );
 

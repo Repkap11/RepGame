@@ -50,7 +50,27 @@
         "streambuf": "cpp",
         "cinttypes": "cpp",
         "algorithm": "cpp",
-        "*.cpp_garbage": "cpp"
+        "*.cpp_garbage": "cpp",
+        "atomic": "cpp",
+        "strstream": "cpp",
+        "cfenv": "cpp",
+        "codecvt": "cpp",
+        "csetjmp": "cpp",
+        "csignal": "cpp",
+        "forward_list": "cpp",
+        "unordered_set": "cpp",
+        "any": "cpp",
+        "filesystem": "cpp",
+        "memory_resource": "cpp",
+        "optional": "cpp",
+        "future": "cpp",
+        "iomanip": "cpp",
+        "numeric": "cpp",
+        "scoped_allocator": "cpp",
+        "shared_mutex": "cpp",
+        "typeindex": "cpp",
+        "valarray": "cpp",
+        "variant": "cpp"
     },
     "git.ignoreLimitWarning": true
 }

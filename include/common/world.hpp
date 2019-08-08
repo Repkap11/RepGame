@@ -4,6 +4,7 @@
 #include "block.hpp"
 #include "chunk_loader.hpp"
 #include "mobs.hpp"
+#include "common/lights.hpp"
 
 typedef struct {
     LoadedChunks loadedChunks;
@@ -17,6 +18,7 @@ typedef struct {
 
     MouseSelection mouseSelection;
     Shader sky_shader;
+    Lights lights;
 } World;
 
 BlockState world_get_loaded_block( World *world, int block_x, int block_y, int block_z );

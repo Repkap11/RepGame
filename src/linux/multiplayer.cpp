@@ -124,6 +124,11 @@ void multiplayer_set_block( int place, int block_x, int block_y, int block_z, Bl
     }
 }
 
+void multiplayer_hack_player_position( float player_x, float player_y, float player_z, glm::mat4 &rotation ) {
+    active = 1;
+    
+}
+
 void multiplayer_update_players_position( float player_x, float player_y, float player_z, glm::mat4 &rotation ) {
     if ( active ) {
         NetPacket update;

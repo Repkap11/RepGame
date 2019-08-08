@@ -41,4 +41,6 @@ void shader_set_uniform1f( Shader *shader, const char *name, float f );
 void shader_set_uniform1i( Shader *shader, const char *name, int i );
 void shader_set_uniform1ui( Shader *shader, const char *name, unsigned int i );
 void shader_set_uniform_mat4f( Shader *shader, const char *name, glm::mat4 &mat );
+void shader_set_uniform3fv( Shader *shader, const char *name, float *f, int count );
+void shader_set_uniform4fv( Shader *shader, const char *name, float *f, int count );
 #endif

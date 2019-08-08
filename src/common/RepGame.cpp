@@ -268,6 +268,7 @@ void repgame_init( const char *world_name ) {
     glGetIntegerv( GL_SAMPLE_BUFFERS, &iMultiSample );
     glGetIntegerv( GL_SAMPLES, &iNumSamples );
     // pr_debug( "GL_SAMPLE_BUFFERS = %d, GL_SAMPLES = %d", iMultiSample, iNumSamples );
+    mobs_add_mob( &globalGameState.world.mobs, 4 );
 }
 
 void repgame_set_textures( unsigned int which_texture, unsigned char *textures, int textures_len ) {

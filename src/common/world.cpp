@@ -46,6 +46,12 @@ void world_init( World *world, TRIP_ARGS( float camera_ ) ) {
     sky_box_init( &world->skyBox, &world->vbl_object_vertex, &world->vbl_object_position );
     mobs_init( &world->mobs, &world->vbl_object_vertex, &world->vbl_object_position );
     mouse_selection_init( &world->mouseSelection, &world->vbl_block, &world->vbl_coords );
+    lights_init( &world->lights );
+    lights_add_light( &world->lights, 5 );
+    lights_update_color( &world->lights, 5, 10, 10, 10 );
+
+    lights_add_light( &world->lights, 15 );
+    lights_update_color( &world->lights, 15, 100, 100, 100 );
 }
 void world_render( World *world, TRIP_ARGS( float camera_ ), int limit_render, glm::mat4 &rotation ) {
     chunk_loader_render_chunks( &world->loadedChunks, TRIP_ARGS( camera_ ), limit_render );
@@ -69,17 +75,24 @@ void world_draw( World *world, Texture *blocksTexture, Texture *metallicTexture,
     mobs_draw( &world->mobs, &world->renderer, &world->sky_shader );
 
     shader_set_uniform1i( &world->loadedChunks.shader, "u_Texture", blocksTexture->slot );
-    shader_set_uniform1i( &world->loadedChunks.shader, "u_Metallic", blocksTexture->slot );
+    shader_set_uniform1i( &world->loadedChunks.shader, "u_Metallic", metallicTexture->slot );
     shader_set_uniform_mat4f( &world->loadedChunks.shader, "u_MVP", mvp );
     light_offset += light_change;
-    if ( light_offset > 10 ) {
+    if ( light_offset > 2 ) {
         light_change = -0.05;
     }
     if ( light_offset < 0.0 ) {
         light_change = 0.05;
     }
-    pr_debug( "Light offset:%f", light_offset );
-    shader_set_uniform3f( &world->loadedChunks.shader, "u_LightPosition", 10.0, 10.0 + light_offset, 10.0 );
+    // pr_debug( "Light offset:%f", light_offset );
+    glm::mat4 rotation = glm::mat4( 1 );
+    float x = 50;
+    float y = 10 + light_offset;
+    float z = 0;
+    mobs_update_position( &world->mobs, 4, x, y, z, rotation );
+    lights_update_position( &world->lights, 15, x, y, z );
+
+    lights_set_uniforms( &world->lights, &world->loadedChunks.shader );
     shader_set_uniform3f( &world->loadedChunks.shader, "u_CameraPos", camera_x, camera_y, camera_z );
 
     float debug_block_scale;
@@ -103,6 +116,7 @@ void world_cleanup( World *world ) {
     vertex_buffer_layout_destroy( &world->vbl_block );
     vertex_buffer_layout_destroy( &world->vbl_block );
     vertex_buffer_layout_destroy( &world->vbl_coords );
+    lights_cleanup( &world->lights );
 }
 
 void fixup_chunk( World *world, Chunk *chunk, TRIP_ARGS( int offset_ ), TRIP_ARGS( int pos_ ), BlockState blockState ) {
