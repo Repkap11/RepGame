@@ -13,7 +13,6 @@ flat in float v_blockID;
 
 void main( ) {
     vec4 texColor = texture( u_Texture, vec3( v_tex_coords, v_blockID ) );
-    // vec4 texColor = vec4( 1, 0, 0, 1 );
     if ( texColor.a == 0.0 ) {
         discard;
     }

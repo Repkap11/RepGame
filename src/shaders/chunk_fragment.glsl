@@ -41,14 +41,13 @@ void main( ) {
         discard;
     }
 
-    float corner_light = v_corner_lighting;
-    vec4 orig_color = texColor * vec4( corner_light, corner_light, corner_light, 1 );
+    vec3 orig_color = texColor.xyz;
 
-    vec3 albedo = orig_color.xyz;
+    vec3 albedo = orig_color;
     vec4 texture2 = texture( u_Metallic, vec3( v_TexCoordBlock, v_blockID ) );
     float metallic = texture2.r;
     float roughness = texture2.g;
-    float ao = 8.0;
+    float ao = v_corner_lighting;
 
     vec3 N = v_normal;
     vec3 V = normalize( u_CameraPos - v_pos_world );
@@ -64,7 +63,7 @@ void main( ) {
         vec3 L = normalize( u_LightPositions[ i ] - v_pos_world );
         vec3 H = normalize( V + L );
         float distance = length( u_LightPositions[ i ] - v_pos_world );
-        float attenuation = 1.0 / ( distance * distance );
+        float attenuation = pow( distance, -1.5f );
         vec3 radiance = lightColor * attenuation;
 
         // cook-torrance brdf
@@ -84,13 +83,11 @@ void main( ) {
         float NdotL = max( dot( N, L ), 0.0 );
         Lo += ( kD * albedo / PI + specular ) * radiance * NdotL;
     }
+    vec3 new_color = albedo * ao + Lo;
 
-    vec3 ambient = vec3( 0.03 ) * albedo * ao;
-    vec3 new_color = ambient + Lo;
-
-    new_color = new_color / ( new_color + vec3( 1.0 ) );
-    new_color = pow( new_color, vec3( 1.0 / 2.2 ) );
-    color = vec4( new_color, orig_color.a );
+    // new_color = new_color / ( new_color + vec3( 1.0 ) );
+    // new_color = pow( new_color, vec3( 1.0 / 2.2 ) );
+    color = vec4( new_color, texColor.a );
 }
 
 vec3 fresnelSchlick( float cosTheta, vec3 F0 ) {

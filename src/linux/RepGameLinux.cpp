@@ -48,6 +48,7 @@ int main( int argc, char **argv ) {
 
     if ( argc == 1 ) {
         world_path = "World1";
+        host = "repkap11.com";
     } else if ( argc == 2 ) {
         world_path = argv[ 1 ];
         host = "repkap11.com";

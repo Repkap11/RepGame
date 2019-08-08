@@ -268,7 +268,6 @@ void repgame_init( const char *world_name ) {
     glGetIntegerv( GL_SAMPLE_BUFFERS, &iMultiSample );
     glGetIntegerv( GL_SAMPLES, &iNumSamples );
     // pr_debug( "GL_SAMPLE_BUFFERS = %d, GL_SAMPLES = %d", iMultiSample, iNumSamples );
-    mobs_add_mob( &globalGameState.world.mobs, 4 );
 }
 
 void repgame_set_textures( unsigned int which_texture, unsigned char *textures, int textures_len ) {
@@ -331,7 +330,7 @@ void repgame_draw( ) {
     showErrors( );
 
     world_draw( &globalGameState.world, &globalGameState.blocksTexture, &globalGameState.metallicTexture, mvp, mvp_sky, globalGameState.input.debug_mode, !globalGameState.input.inventory_open, //
-                globalGameState.camera.x, globalGameState.camera.y, globalGameState.camera.z );
+                globalGameState.camera.x, globalGameState.camera.y, globalGameState.camera.z, globalGameState.camera.look );
     ui_overlay_draw( &globalGameState.ui_overlay, &globalGameState.world.renderer, &globalGameState.blocksTexture, &globalGameState.input, globalGameState.screen.ortho_center );
 }
 

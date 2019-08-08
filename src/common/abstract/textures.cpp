@@ -8,7 +8,7 @@
 #if defined( REPGAME_ANDROID )
 #define GL_TEXTURE_MAX_ANISOTROPY_EXT 0x84FE
 #define GL_MAX_TEXTURE_MAX_ANISOTROPY_EXT 0x84FF
-unsigned char *cached_texture[ 2 ];
+unsigned char *cached_texture[ 3 ];
 void textures_set_texture_data( unsigned int which_texture, unsigned char *textures, int textures_len ) {
     for ( int i = 0; i < textures_len; i += 4 ) {
         unsigned char a = textures[ i + 0 ];
@@ -65,7 +65,9 @@ unsigned char *readTextureDataFromCache( const char *filename, int mem_size ) {
         return cached_texture[ 0 ];
     if ( strcmp( filename, "bitmaps/sky4.bin" ) == 0 )
         return cached_texture[ 1 ];
-    pr_debug( "Cant find a texture for:%s", filename );
+    if ( strcmp( filename, "bitmaps/textures_metallic.bin" ) == 0 )
+        return cached_texture[ 2 ];
+    pr_debug( "Cant find a texture for:%s they are hard coded, you need to add it here", filename );
     exit( 1 );
     return NULL;
 }
@@ -103,7 +105,7 @@ unsigned int loadTexture( const TextureSourceData *texture_source ) {
     glBindTexture( GL_TEXTURE_2D_ARRAY, texture );
     glTexImage3D( GL_TEXTURE_2D_ARRAY,                                              //
                   0,                                                                // mipLevelCount
-                  GL_SRGB8_ALPHA8,                                                    //
+                  GL_RGBA8,                                                         //
                   texture_source->tile_size_across, texture_source->tile_size_down, //
                   layer_count, 0, GL_RGBA, GL_UNSIGNED_BYTE, NULL );
 

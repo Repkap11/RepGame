@@ -29,18 +29,22 @@ public class RepGameAndroidRenderer implements GLSurfaceView.Renderer {
     public void onSurfaceCreated(GL10 gl, EGLConfig config) {
         InputStream blocksIS = mApplicationContext.getResources().openRawResource(R.raw.textures);
         InputStream skyIS = mApplicationContext.getResources().openRawResource(R.raw.sky4);
+        InputStream metallicIS = mApplicationContext.getResources().openRawResource(R.raw.textures_metallic);
         byte[] blocks = null;
         byte[] sky = null;
+        byte[] metallic = null;
         try {
             blocks = new byte[blocksIS.available()];
             sky = new byte[skyIS.available()];
+            metallic = new byte[metallicIS.available()];
             blocksIS.read(blocks);
             skyIS.read(sky);
+            metallicIS.read(sky);
         } catch (Exception e) {
             Log.d(TAG, "Failed to read bitmap");
         }
 
-        RepGameJNIWrapper.onSurfaceCreated(blocks, sky, mApplicationContext.getAssets(), mApplicationContext.getFilesDir().getPath() + File.separator + "World1");
+        RepGameJNIWrapper.onSurfaceCreated(blocks, sky, metallic, mApplicationContext.getAssets(), mApplicationContext.getFilesDir().getPath() + File.separator + "World1");
     }
 
     @Override

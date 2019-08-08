@@ -1,5 +1,6 @@
 #version 300 es
 uniform mat4 u_MVP;
+uniform float u_DayNightLight;
 
 #define FACE_TOP 0u
 #define FACE_BOTTOM 1u
@@ -37,6 +38,6 @@ void main( ) {
     } else {
         face_light = 0.75;
     }
-    v_light = face_light;
+    v_light = face_light * u_DayNightLight;
     v_blockID = float( ( blockTexture[ faceType / 2u ] & ( 0xffffu << shift ) ) >> shift );
 }
