@@ -183,7 +183,8 @@ typedef enum {
     STEVE_HEAD_FRONT,
     STEVE_HEAD_RIGHT,
     STEVE_HEAD_BACK,
-    LAST_BLOCK_ID = 1219,
+    INVENTORY_SLOT_EMPTY,
+    LAST_BLOCK_ID = 1220,
 } BlockID;
 
 typedef struct {

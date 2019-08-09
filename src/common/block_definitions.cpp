@@ -189,6 +189,7 @@ void do_disable( Block *block_definitions ) {
     block_definitions[ GRASS_SIDE ].renderOrder = RenderOrder_Transparent;
     block_definitions[ CRAFTING_BENCH_SIDE1 ].renderOrder = RenderOrder_Transparent;
     block_definitions[ CRAFTING_BENCH_SIDE2 ].renderOrder = RenderOrder_Transparent;
+    block_definitions[ INVENTORY_SLOT_EMPTY ].renderOrder = RenderOrder_Transparent;
 }
 
 void do_flowers( Block *block_definitions ) {

@@ -14,6 +14,7 @@
 #define INVENTORY_BLOCK_SPACING 60
 
 typedef struct {
+    int stack;
     int slot_pos;
     int is_active;
     float screen_x;
