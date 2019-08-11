@@ -60,6 +60,9 @@
 #define PERSON_HEIGHT 1.62f
 #define DRAW_DISTANCE 1000
 
+#define ALWAYS_NIGHT 0
+#define ALWAYS_DAY 0
+
 #ifdef REPGAME_FAST
 #define LIMIT_FPS 0
 #define SHOW_FPS 1

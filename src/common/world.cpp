@@ -88,10 +88,18 @@ void world_draw( World *world, Texture *blocksTexture, Texture *metallicTexture,
     if ( light_offset > 3 ) {
         light_change = -0.01;
     }
-    if ( light_offset < -1 ) {
+    if ( light_offset < -2 ) {
         light_change = 0.01;
     }
-    float sun_position = max( min( light_offset, 1 ), 0.2 );
+    float sun_position = max( min( light_offset, 1.0 ), 0.02 );
+    if ( ALWAYS_NIGHT ) {
+        sun_position = 0.02;
+    }
+    if ( ALWAYS_DAY ) {
+        sun_position = 1.0;
+    }
+
+    float light_frac = 1.0 - ( ( sun_position - 0.05 ) / ( 1.0 - 0.05 ) + 0.05 );
     shader_set_uniform1f( &world->loadedChunks.shader, "u_DayNightLight", sun_position );
 
     shader_set_uniform1f( &world->sky_shader, "u_DayNightLight", sun_position );
@@ -104,6 +112,7 @@ void world_draw( World *world, Texture *blocksTexture, Texture *metallicTexture,
 
     shader_set_uniform1i( &world->loadedChunks.shader, "u_Texture", blocksTexture->slot );
     shader_set_uniform1i( &world->loadedChunks.shader, "u_Metallic", metallicTexture->slot );
+    lights_update_color( &world->lights, 5, 10 * light_frac, 10 * light_frac, 8 * light_frac );
     shader_set_uniform_mat4f( &world->loadedChunks.shader, "u_MVP", mvp );
 
     // pr_debug( "Light offset:%f", light_offset );
@@ -113,7 +122,7 @@ void world_draw( World *world, Texture *blocksTexture, Texture *metallicTexture,
     // float y1 = camera_y + look.y * 2.0f;
     // float z1 = camera_z + look.z * 2.0f;
     float x1 = camera_x;
-    float y1 = camera_y + 1;
+    float y1 = camera_y + 0.1;
     float z1 = camera_z;
 
     // Sun

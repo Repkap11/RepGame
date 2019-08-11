@@ -16,5 +16,10 @@ void main( ) {
     if ( texColor.a == 0.0 ) {
         discard;
     }
-    color = texColor * vec4( v_light, v_light, v_light, 1 );
+    texColor = texColor * v_light;
+    color = texColor;
+
+    // vec3 new_color = texColor.rgb / ( texColor.rgb + vec3( 1.0 ) );
+    // new_color = pow( new_color, vec3( 1.0 / 2.2 ) );
+    // color = vec4( new_color, texColor.a );
 }

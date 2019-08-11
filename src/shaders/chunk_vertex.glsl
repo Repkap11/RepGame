@@ -84,14 +84,14 @@ void main( ) {
         faceType_rotated = ( faceType - rotation - 2u ) % 4u + 2u;
         face_scale = mesh_size.xy;
     }
-    // float face_light;
-    // if ( faceType == FACE_TOP ) {
-    //     face_light = 1.0;
-    // } else if ( faceType == FACE_BOTTOM ) {
-    //     face_light = 0.5;
-    // } else {
-    //     face_light = 0.75;
-    // }
+    float face_light;
+    if ( faceType == FACE_TOP ) {
+        face_light = 1.0;
+    } else if ( faceType == FACE_BOTTOM ) {
+        face_light = 0.5;
+    } else {
+        face_light = 0.75;
+    }
 
     uint packed_lighting;
     if ( faceType == FACE_TOP || faceType == FACE_BOTTOM || faceType == FACE_RIGHT ) {
@@ -115,9 +115,9 @@ void main( ) {
     } else {
         v_shouldDiscardNoLight = 0;
     }
-    corner_light = ( 3.9 - corner_light ) / 3.9;
+    corner_light = ( 3.5 - corner_light ) / 4.0;
 
-    v_corner_lighting = corner_light * u_DayNightLight;
+    v_corner_lighting = corner_light * u_DayNightLight * face_light;
     v_TexCoordBlock = texCoordBlock_adjust * face_scale;
     uint shift = ( faceType_rotated % 2u ) * 16u;
     // 0xffffu is max short 16u is sizeof(short)

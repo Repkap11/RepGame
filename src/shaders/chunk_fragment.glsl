@@ -51,7 +51,7 @@ void main( ) {
 
     vec3 N = v_normal;
     vec3 V = normalize( u_CameraPos - v_pos_world );
-    vec3 F0 = vec3( 0.04 );
+    vec3 F0 = vec3( 0.4 );
     F0 = mix( F0, albedo, metallic );
 
     // reflectance equation
@@ -63,7 +63,8 @@ void main( ) {
         vec3 L = normalize( u_LightPositions[ i ] - v_pos_world );
         vec3 H = normalize( V + L );
         float distance = length( u_LightPositions[ i ] - v_pos_world );
-        float attenuation = pow( distance, -1.5f );
+        distance = max( distance, 2.0 );
+        float attenuation = pow( distance, -1.2 );
         vec3 radiance = lightColor * attenuation;
 
         // cook-torrance brdf
@@ -85,8 +86,8 @@ void main( ) {
     }
     vec3 new_color = albedo * ao + Lo;
 
-    // new_color = new_color / ( new_color + vec3( 1.0 ) );
-    // new_color = pow( new_color, vec3( 1.0 / 2.2 ) );
+    //new_color = new_color / ( new_color + vec3( 1.0 ) );
+    //new_color = pow( new_color, vec3( 1.0 / 2.2 ) );
     color = vec4( new_color, texColor.a );
 }
 
