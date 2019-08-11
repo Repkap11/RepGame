@@ -13,7 +13,8 @@
 #define SKY_BOX_TRIANGLES_COUNT ( ( Slices ) * ( Stacks + 1 ) )
 #define SKY_BOX_INDEX_COUNT ( SKY_BOX_TRIANGLES_COUNT * 6 )
 
-MK_TEXTURE( sky4, 2048, 1024, 2048, 1024, 70 );
+//MK_TEXTURE( sky4, 2048, 1024, 2048, 1024, 70 );
+MK_TEXTURE( night_sky, 2048, 1024, 2048, 1024, 70 );
 
 void sky_box_init( SkyBox *skyBox, VertexBufferLayout *vbl_object_vertex, VertexBufferLayout *vbl_object_position ) {
     ObjectVertex *vb_data = ( ObjectVertex * )calloc( SKY_BOX_VERTEX_COUNT, sizeof( ObjectVertex ) );
@@ -75,7 +76,8 @@ void sky_box_init( SkyBox *skyBox, VertexBufferLayout *vbl_object_vertex, Vertex
 
     vertex_array_add_buffer( &skyBox->va, &skyBox->vb_vertex, vbl_object_vertex, 0, 0 );
     vertex_array_add_buffer( &skyBox->va, &skyBox->vb_position, vbl_object_position, vbl_object_vertex->current_size, 1 );
-    texture_init( &skyBox->texture, &texture_source_sky4 );
+    //texture_init( &skyBox->texture, &texture_source_sky4 );
+    texture_init( &skyBox->texture, &texture_source_night_sky );
     free( ib_data );
     free( vb_data );
 }
