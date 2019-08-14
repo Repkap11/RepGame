@@ -53,7 +53,7 @@
 #if NO_CLIP
 #define GRAVITY_STRENGTH 0.0f
 #else
-#define GRAVITY_STRENGTH 0.1f
+#define GRAVITY_STRENGTH 0.001f
 #endif
 
 #define CAMERA_SIZE 0.01f // Defines how much crop is in front (low for minecraft)

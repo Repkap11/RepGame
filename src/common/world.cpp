@@ -56,10 +56,7 @@ void world_set_selected_block( World *world, int selected_x, int selected_y, int
     mouse_selection_set_block( &world->mouseSelection, TRIP_ARGS( selected_ ), shouldDraw );
 }
 
-void world_draw( World *world, Texture *blocksTexture, glm::mat4 &mvp, glm::mat4 &mvp_sky, int debug, int draw_mouse_selection ) {
-
-    sky_box_draw( &world->skyBox, &world->renderer, mvp_sky, &world->sky_shader );
-
+void world_draw( World *world, Texture *blocksTexture, glm::mat4 &mvp, glm::mat4 &mvp_reflect, glm::mat4 &mvp_sky, int debug, int draw_mouse_selection ) {
     shader_set_uniform1i( &world->sky_shader, "u_Texture", blocksTexture->slot );
     shader_set_uniform_mat4f( &world->sky_shader, "u_MVP", mvp );
 
@@ -74,11 +71,34 @@ void world_draw( World *world, Texture *blocksTexture, glm::mat4 &mvp, glm::mat4
         debug_block_scale = 0.0f;
     }
     shader_set_uniform3f( &world->loadedChunks.shader, "u_DebugScaleOffset", debug_block_scale, debug_block_scale, debug_block_scale );
-    chunk_loader_calculate_cull( &world->loadedChunks, mvp );
     if ( draw_mouse_selection ) {
         mouse_selection_draw( &world->mouseSelection, &world->renderer, &world->loadedChunks.shader );
     }
-    chunk_loader_draw_chunks( &world->loadedChunks, &world->renderer, mvp );
+
+    shader_set_uniform_mat4f( &world->loadedChunks.shader, "u_MVP", mvp_reflect );
+    chunk_loader_calculate_cull( &world->loadedChunks, mvp_reflect );
+    glCullFace( GL_FRONT );
+    chunk_loader_draw_chunks( &world->loadedChunks, &world->renderer, mvp, false ); // Others
+    shader_set_uniform_mat4f( &world->loadedChunks.shader, "u_MVP", mvp );
+    glCullFace( GL_BACK );
+    chunk_loader_calculate_cull( &world->loadedChunks, mvp );
+
+    glClear( GL_STENCIL_BUFFER_BIT | GL_DEPTH_BUFFER_BIT );
+
+    glStencilOp( GL_REPLACE, GL_REPLACE, GL_REPLACE );
+    glStencilFunc( GL_ALWAYS, 1, 1 );
+    glEnable( GL_STENCIL_TEST );
+
+    glColorMask( 0, 0, 0, 0 );
+    chunk_loader_draw_chunks( &world->loadedChunks, &world->renderer, mvp, true ); // Water
+    glStencilOp( GL_KEEP, GL_KEEP, GL_KEEP );
+    glStencilFunc( GL_NOTEQUAL, 0, -1 ); // Guessed numbers
+    glClear( GL_COLOR_BUFFER_BIT );
+    glColorMask( 0xff, 0xff, 0xff, 0xff );
+
+    glDisable( GL_STENCIL_TEST );
+    sky_box_draw( &world->skyBox, &world->renderer, mvp_sky, &world->sky_shader );
+    chunk_loader_draw_chunks( &world->loadedChunks, &world->renderer, mvp, false ); // Others
 }
 void world_cleanup( World *world ) {
 
