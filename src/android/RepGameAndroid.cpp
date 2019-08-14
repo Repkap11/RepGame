@@ -7,19 +7,21 @@
 #include <android/asset_manager_jni.h>
 
 AAssetManager *assetManager;
-#define SHADER_SIZE 4096
 
 char *repgame_android_getShaderString( const char *filename ) {
-    char *buf = ( char * )malloc( SHADER_SIZE );
-
-    pr_debug( "About to asset %s", filename );
     AAssetDir *assetDir = AAssetManager_openDir( assetManager, "" );
     AAsset *asset = AAssetManager_open( assetManager, filename, AASSET_MODE_STREAMING );
 
+    int size = ( int )AAsset_getLength( asset );
+    size += 1;
+    char *buf = ( char * )malloc( size );
+
+    pr_debug( "About to asset %s size:%d", filename, size );
+
     /* read the entire file into a string */
-    int size = AAsset_read( asset, buf, SHADER_SIZE );
-    pr_debug( "Read asset size:%d", size );
-    buf[ size ] = '\0';
+    int read_size = AAsset_read( asset, buf, size );
+    pr_debug( "Read asset size:%d out of %d", read_size, size );
+    buf[ read_size ] = '\0';
 
     AAsset_close( asset );
     AAssetDir_close( assetDir );

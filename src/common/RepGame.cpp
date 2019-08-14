@@ -299,7 +299,7 @@ void repgame_changeSize( int w, int h ) {
 }
 
 void repgame_clear( ) {
-    glClear( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT );
+    glClear( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT );
 }
 void repgame_get_screen_size( int *width, int *height ) {
     *width = globalGameState.screen.width;
@@ -313,7 +313,29 @@ void repgame_draw( ) {
         return;
     }
     glm::mat4 mvp_sky = globalGameState.screen.proj * globalGameState.camera.view_look;
+    // glm::mat4 mvp_sky_reflect = globalGameState.screen.proj * globalGameState.camera.view_look;
+
     glm::mat4 mvp = mvp_sky * globalGameState.camera.view_trans;
+    glm::mat4 rotation = glm::mat4( //
+        1, 0, 0, 0,                 //
+        0, -1, 0, 0,                //
+        0, 0, 1, 0,                 //
+        0, 0, 0, 1                  //
+    );
+
+    glm::mat4 flipped_look = globalGameState.camera.view_look * rotation;
+    // glm::mat4 flipped_look = rotation * globalGameState.camera.view_look;
+
+    // glm::mat4 flipped_trans = rotation * globalGameState.camera.view_trans;
+    // TODO globalGameState.camera.y causes a strange jump, perhaps the vars are updated in the wrong order.
+    float height_above_water = globalGameState.camera.y + ( 1.0 - WATER_HEIGHT );
+    float offset = 2.0f * height_above_water;
+    glm::mat4 flipped_trans = glm::translate( globalGameState.camera.view_trans, glm::vec3( 0.0, offset, 0.0 ) );
+    // glm::mat4 flipped_trans = globalGameState.camera.view_trans;
+
+    glm::mat4 mvp_sky_reflect = globalGameState.screen.proj * flipped_look;
+
+    glm::mat4 mvp_reflect = globalGameState.screen.proj * flipped_look * flipped_trans;
 #if defined( REPGAME_WASM )
 #else
     multiplayer_process_events( &globalGameState.world );
@@ -326,7 +348,13 @@ void repgame_draw( ) {
 #endif
     showErrors( );
 
-    world_draw( &globalGameState.world, &globalGameState.blocksTexture, mvp, mvp_sky, globalGameState.input.debug_mode, !globalGameState.input.inventory_open );
+    // glm::mat4 mvp_mirror = glm::translate( mvp, glm::vec3( 0, -10, 0 ) );
+    // glm::mat4 rotation = glm::diagonal4x4( glm::vec4( 1, 1, -1, 1 ) );
+    // glm::mat4 rotation = glm::rotate( glm::mat4( 1.0 ), glm::radians( 90.0f ), glm::vec3( 1, 0, 1 ) );
+    // glm::mat4 mvp_reflect = mvp * rotation;
+    // mvp_mirror = glm::translate( mvp_mirror, glm::vec3( 0, -10, 0 ) );
+
+    world_draw( &globalGameState.world, &globalGameState.blocksTexture, mvp, mvp_reflect, mvp_sky, mvp_sky_reflect, globalGameState.input.debug_mode, !globalGameState.input.inventory_open );
     ui_overlay_draw( &globalGameState.ui_overlay, &globalGameState.world.renderer, &globalGameState.blocksTexture, &globalGameState.input, globalGameState.screen.ortho_center );
 }
 

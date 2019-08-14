@@ -56,17 +56,14 @@ void world_set_selected_block( World *world, int selected_x, int selected_y, int
     mouse_selection_set_block( &world->mouseSelection, TRIP_ARGS( selected_ ), shouldDraw );
 }
 
-void world_draw( World *world, Texture *blocksTexture, glm::mat4 &mvp, glm::mat4 &mvp_sky, int debug, int draw_mouse_selection ) {
+void world_draw( World *world, Texture *blocksTexture, glm::mat4 &mvp, glm::mat4 &mvp_reflect, glm::mat4 &mvp_sky, glm::mat4 &mvp_sky_reflect, int debug, int draw_mouse_selection ) {
 
-    sky_box_draw( &world->skyBox, &world->renderer, mvp_sky, &world->sky_shader );
+    shader_set_uniform1f( &world->loadedChunks.shader, "u_ReflectionHeight", 0 );
 
     shader_set_uniform1i( &world->sky_shader, "u_Texture", blocksTexture->slot );
-    shader_set_uniform_mat4f( &world->sky_shader, "u_MVP", mvp );
-
-    mobs_draw( &world->mobs, &world->renderer, &world->sky_shader );
+    mobs_draw( &world->mobs, mvp, &world->renderer, &world->sky_shader );
 
     shader_set_uniform1i( &world->loadedChunks.shader, "u_Texture", blocksTexture->slot );
-    shader_set_uniform_mat4f( &world->loadedChunks.shader, "u_MVP", mvp );
     float debug_block_scale;
     if ( debug ) {
         debug_block_scale = BLOCK_SCALE_OFFSET;
@@ -74,11 +71,43 @@ void world_draw( World *world, Texture *blocksTexture, glm::mat4 &mvp, glm::mat4
         debug_block_scale = 0.0f;
     }
     shader_set_uniform3f( &world->loadedChunks.shader, "u_DebugScaleOffset", debug_block_scale, debug_block_scale, debug_block_scale );
+
+    sky_box_draw( &world->skyBox, &world->renderer, mvp_sky, &world->sky_shader );
     chunk_loader_calculate_cull( &world->loadedChunks, mvp );
+    chunk_loader_draw_chunks( &world->loadedChunks, mvp, &world->renderer, false ); // Blocks
     if ( draw_mouse_selection ) {
         mouse_selection_draw( &world->mouseSelection, &world->renderer, &world->loadedChunks.shader );
     }
-    chunk_loader_draw_chunks( &world->loadedChunks, &world->renderer, mvp );
+
+    glEnable( GL_STENCIL_TEST );
+    glStencilFunc( GL_ALWAYS, 1, 0xff );
+    glStencilOp( GL_KEEP, GL_KEEP, GL_REPLACE );
+
+    chunk_loader_draw_chunks( &world->loadedChunks, mvp, &world->renderer, true ); // Stencil water
+
+    glColorMask( GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE );
+    glStencilFunc( GL_EQUAL, 1, 0xff );
+    glStencilOp( GL_KEEP, GL_KEEP, GL_KEEP );
+    glCullFace( GL_FRONT );
+    glDepthMask( GL_TRUE );
+
+    glClear( GL_DEPTH_BUFFER_BIT );
+    shader_set_uniform1f( &world->loadedChunks.shader, "u_ReflectionHeight", WATER_HEIGHT );
+
+    chunk_loader_calculate_cull( &world->loadedChunks, mvp_reflect );
+    chunk_loader_draw_chunks( &world->loadedChunks, mvp_reflect, &world->renderer, false ); // Reflected blocks
+    shader_set_uniform1i( &world->sky_shader, "u_Texture", blocksTexture->slot );
+    mobs_draw( &world->mobs, mvp_reflect, &world->renderer, &world->sky_shader );
+
+    // sky_box_draw( &world->skyBox, &world->renderer, mvp_sky_reflect, &world->sky_shader );
+
+    glDepthMask( GL_TRUE );
+    shader_set_uniform1f( &world->loadedChunks.shader, "u_ReflectionHeight", 0 );
+    glCullFace( GL_BACK );
+
+    chunk_loader_calculate_cull( &world->loadedChunks, mvp );
+    chunk_loader_draw_chunks( &world->loadedChunks, mvp, &world->renderer, true ); // Water
+    glDisable( GL_STENCIL_TEST );
 }
 void world_cleanup( World *world ) {
 

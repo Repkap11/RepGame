@@ -64,7 +64,7 @@ int main( int argc, char **argv ) {
 
     // glutInitContextFlags( GLUT_DEBUG );
     glutSetOption( GLUT_MULTISAMPLE, 16 );
-    glutInitDisplayMode( GLUT_DEPTH | GLUT_DOUBLE | GLUT_RGBA | GLUT_MULTISAMPLE );
+    glutInitDisplayMode( GLUT_DEPTH | GLUT_STENCIL | GLUT_DOUBLE | GLUT_RGBA | GLUT_MULTISAMPLE );
 
     glutInitWindowSize( glutGet( GLUT_SCREEN_WIDTH ), glutGet( GLUT_SCREEN_HEIGHT ) );
     glutInitWindowPosition( 0, 0 );
