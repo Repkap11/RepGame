@@ -217,11 +217,12 @@ void chunk_loader_calculate_cull( LoadedChunks *loadedChunks, glm::mat4 &mvp ) {
     }
 }
 
-void chunk_loader_draw_chunks( LoadedChunks *loadedChunks, Renderer *renderer, bool reflect_only ) {
+void chunk_loader_draw_chunks( LoadedChunks *loadedChunks, glm::mat4 &mvp, Renderer *renderer, bool reflect_only ) {
+    shader_set_uniform_mat4f( &loadedChunks->shader, "u_MVP", mvp );
 
     // pr_debug( "Drawing %d chunks", loadedChunks->numLoadedChunks );
     for ( int renderOrder = LAST_RENDER_ORDER - 1; renderOrder > 0; renderOrder-- ) {
-        if ( reflect_only == (renderOrder == RenderOrder_Water) ) {
+        if ( reflect_only == ( renderOrder == RenderOrder_Water ) ) {
             shader_set_uniform1f( &loadedChunks->shader, "u_shouldDiscardAlpha", renderOrder != RenderOrder_Water );
             for ( int i = 0; i < MAX_LOADED_CHUNKS; i++ ) {
                 Chunk *chunk = &loadedChunks->chunkArray[ i ];
