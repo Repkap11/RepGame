@@ -76,9 +76,10 @@ void world_draw( World *world, Texture *blocksTexture, glm::mat4 &mvp, glm::mat4
     chunk_loader_draw_chunks( &world->loadedChunks, mvp, &world->renderer, false ); // Blocks
     sky_box_draw( &world->skyBox, &world->renderer, mvp_sky, &world->sky_shader );
 
-    glClear( GL_DEPTH_BUFFER_BIT );
+    // glClear( GL_DEPTH_BUFFER_BIT );
 
     // glDisable( GL_DEPTH_TEST );
+    glDepthMask( GL_FALSE );
     glColorMask( GL_FALSE, GL_FALSE, GL_FALSE, GL_FALSE );
 
     glEnable( GL_STENCIL_TEST );
@@ -87,19 +88,33 @@ void world_draw( World *world, Texture *blocksTexture, glm::mat4 &mvp, glm::mat4
     glStencilOp( GL_REPLACE, GL_REPLACE, GL_REPLACE );
 
     chunk_loader_calculate_cull( &world->loadedChunks, mvp );
-    chunk_loader_draw_chunks( &world->loadedChunks, mvp, &world->renderer, true ); // Water
+    chunk_loader_draw_chunks( &world->loadedChunks, mvp, &world->renderer, true ); // Mark reflections
 
     glColorMask( GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE );
+
     glStencilOp( GL_KEEP, GL_KEEP, GL_KEEP );
     // glEnable( GL_DEPTH_TEST );
     glStencilFunc( GL_EQUAL, 1, 0xff );
     glStencilOp( GL_KEEP, GL_KEEP, GL_KEEP );
 
     glCullFace( GL_FRONT );
+    // glDisable( GL_DEPTH_TEST );
+
+    glDisable( GL_STENCIL_TEST );
+    glDepthMask( GL_TRUE );
+    chunk_loader_draw_chunks( &world->loadedChunks, mvp, &world->renderer, true ); // Water
+    //glDepthMask( GL_FALSE );
+    glEnable( GL_STENCIL_TEST );
+
+    glClear( GL_DEPTH_BUFFER_BIT );
     glEnable( GL_CLIP_PLANE0 );
+
     chunk_loader_calculate_cull( &world->loadedChunks, mvp_reflect );
     chunk_loader_draw_chunks( &world->loadedChunks, mvp_reflect, &world->renderer, false ); // Blocks
-    //sky_box_draw( &world->skyBox, &world->renderer, mvp_sky_reflect, &world->sky_shader );
+    glDepthMask( GL_TRUE );
+    // glEnable( GL_DEPTH_TEST );
+
+    // sky_box_draw( &world->skyBox, &world->renderer, mvp_sky_reflect, &world->sky_shader );
 
     glDisable( GL_CLIP_PLANE0 );
     // glClear( GL_DEPTH_BUFFER_BIT );
@@ -126,8 +141,6 @@ void world_draw( World *world, Texture *blocksTexture, glm::mat4 &mvp, glm::mat4
 
     // glColorMask( 0, 0, 0, 0xff );
     // glColorMask( 0xff, 0xff, 0xff, 0xff );
-
-    chunk_loader_draw_chunks( &world->loadedChunks, mvp, &world->renderer, true ); // Water
 
     // glStencilOp( GL_KEEP, GL_KEEP, GL_KEEP );
     // glStencilFunc( GL_NOTEQUAL, 0, 0 ); // Guessed numbers
