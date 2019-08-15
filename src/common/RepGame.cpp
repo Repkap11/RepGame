@@ -329,7 +329,9 @@ void repgame_draw( ) {
 
     // glm::mat4 flipped_trans = rotation * globalGameState.camera.view_trans;
     // TODO globalGameState.camera.y causes a strange jump, perhaps the vars are updated in the wrong order.
-    glm::mat4 flipped_trans = glm::translate( globalGameState.camera.view_trans, glm::vec3( 0.0, 2.0 * globalGameState.camera.y, 0.0 ) );
+    float height_above_water = globalGameState.camera.y + ( 1.0 - WATER_HEIGHT );
+    float offset = 2.0f * height_above_water;
+    glm::mat4 flipped_trans = glm::translate( globalGameState.camera.view_trans, glm::vec3( 0.0, offset, 0.0 ) );
     // glm::mat4 flipped_trans = globalGameState.camera.view_trans;
 
     glm::mat4 mvp_sky_reflect = globalGameState.screen.proj * flipped_look;

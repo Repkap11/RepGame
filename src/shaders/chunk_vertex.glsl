@@ -44,7 +44,7 @@ void main( ) {
     vec3 mesh_size = vec3( ( mesh_size_packed & 0xffu ), ( mesh_size_packed & 0xff00u ) >> 8, ( mesh_size_packed & 0xff0000u ) >> 16 );
     vec4 vertex = vec4( position * ( mesh_size - u_DebugScaleOffset ) + blockCoords, 1 );
     gl_Position = u_MVP * vertex;
-    gl_ClipDistance[ 0 ] = dot( vertex, vec4( 0, 2, 0, 0 ) );
+    gl_ClipDistance[ 0 ] = dot( vertex, vec4( 0, 0.875, 0, 0 ) );
     vec2 face_scale;
     vec2 texCoordBlock_adjust = texCoordBlock;
     uint faceType_rotated = faceType;
