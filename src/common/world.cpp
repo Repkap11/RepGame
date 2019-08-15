@@ -58,126 +58,50 @@ void world_set_selected_block( World *world, int selected_x, int selected_y, int
 
 void world_draw( World *world, Texture *blocksTexture, glm::mat4 &mvp, glm::mat4 &mvp_reflect, glm::mat4 &mvp_sky, glm::mat4 &mvp_sky_reflect, int debug, int draw_mouse_selection ) {
 
-    shader_set_uniform1f( &world->loadedChunks.shader, "u_ExtraAlpha", 1.0f );
     shader_set_uniform1f( &world->loadedChunks.shader, "u_ReflectionHeight", 0 );
 
     shader_set_uniform1i( &world->sky_shader, "u_Texture", blocksTexture->slot );
     mobs_draw( &world->mobs, mvp, &world->renderer, &world->sky_shader );
 
     shader_set_uniform1i( &world->loadedChunks.shader, "u_Texture", blocksTexture->slot );
-    // float debug_block_scale;
-    // if ( debug ) {
-    //     debug_block_scale = BLOCK_SCALE_OFFSET;
-    // } else {
-    //     debug_block_scale = 0.0f;
-    // }
-    // shader_set_uniform3f( &world->loadedChunks.shader, "u_DebugScaleOffset", debug_block_scale, debug_block_scale, debug_block_scale );
-
-    // glClear( GL_STENCIL_BUFFER_BIT | GL_DEPTH_BUFFER_BIT );
+    float debug_block_scale;
+    if ( debug ) {
+        debug_block_scale = BLOCK_SCALE_OFFSET;
+    } else {
+        debug_block_scale = 0.0f;
+    }
+    shader_set_uniform3f( &world->loadedChunks.shader, "u_DebugScaleOffset", debug_block_scale, debug_block_scale, debug_block_scale );
 
     sky_box_draw( &world->skyBox, &world->renderer, mvp_sky, &world->sky_shader );
-
-    // glClear( GL_DEPTH_BUFFER_BIT );
-
-    // glDisable( GL_DEPTH_TEST );
     chunk_loader_calculate_cull( &world->loadedChunks, mvp );
     chunk_loader_draw_chunks( &world->loadedChunks, mvp, &world->renderer, false ); // Blocks
 
     glEnable( GL_STENCIL_TEST );
-
-    // glStencilMask( 0xff );
-    // glStencilFunc( GL_EQUAL, 1, 0xff );
-    // glStencilOp( GL_REPLACE, GL_REPLACE, GL_REPLACE );
     glStencilFunc( GL_ALWAYS, 1, 0xff );
     glStencilOp( GL_KEEP, GL_KEEP, GL_REPLACE );
 
-    chunk_loader_draw_chunks( &world->loadedChunks, mvp, &world->renderer, true ); // Water
-
-    glDepthMask( GL_FALSE );
-    glColorMask( GL_FALSE, GL_FALSE, GL_FALSE, GL_FALSE );
-
-    // chunk_loader_draw_chunks( &world->loadedChunks, mvp, &world->renderer, true ); // Mark reflections
-    glStencilFunc( GL_EQUAL, 0, 0xff );
-    // chunk_loader_draw_chunks( &world->loadedChunks, mvp, &world->renderer, false ); // Un mark solid in front of reflections
+    chunk_loader_draw_chunks( &world->loadedChunks, mvp, &world->renderer, true ); // Stencil water
 
     glColorMask( GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE );
-
-    glStencilOp( GL_KEEP, GL_KEEP, GL_KEEP );
-    // glEnable( GL_DEPTH_TEST );
     glStencilFunc( GL_EQUAL, 1, 0xff );
     glStencilOp( GL_KEEP, GL_KEEP, GL_KEEP );
-
-    glDisable( GL_STENCIL_TEST );
-    // chunk_loader_draw_chunks( &world->loadedChunks, mvp, &world->renderer, true ); // Water
     glCullFace( GL_FRONT );
-    // glDisable( GL_DEPTH_TEST );                                                                            // glDepthMask( GL_FALSE );
     glDepthMask( GL_TRUE );
-
-    glEnable( GL_STENCIL_TEST );
 
     glClear( GL_DEPTH_BUFFER_BIT );
     shader_set_uniform1f( &world->loadedChunks.shader, "u_ReflectionHeight", WATER_HEIGHT );
 
-    // shader_set_uniform1f( &world->loadedChunks.shader, "u_ExtraAlpha", 0.4f );
     chunk_loader_calculate_cull( &world->loadedChunks, mvp_reflect );
-    chunk_loader_draw_chunks( &world->loadedChunks, mvp_reflect, &world->renderer, false ); // Blocks
+    chunk_loader_draw_chunks( &world->loadedChunks, mvp_reflect, &world->renderer, false ); // Reflected blocks
+    //sky_box_draw( &world->skyBox, &world->renderer, mvp_sky_reflect, &world->sky_shader );
+
     glDepthMask( GL_TRUE );
-    // glEnable( GL_DEPTH_TEST );
-
-    // sky_box_draw( &world->skyBox, &world->renderer, mvp_sky_reflect, &world->sky_shader );
-
     shader_set_uniform1f( &world->loadedChunks.shader, "u_ReflectionHeight", 0 );
-
-    // glClear( GL_DEPTH_BUFFER_BIT );
-
     glCullFace( GL_BACK );
 
     chunk_loader_calculate_cull( &world->loadedChunks, mvp );
-    // shader_set_uniform1f( &world->loadedChunks.shader, "u_ExtraAlpha", 0.4f );
-
     chunk_loader_draw_chunks( &world->loadedChunks, mvp, &world->renderer, true ); // Water
     glDisable( GL_STENCIL_TEST );
-
-    // glStencilOp( GL_REPLACE, GL_REPLACE, GL_KEEP );
-
-    // chunk_loader_draw_chunks( &world->loadedChunks, mvp, &world->renderer, false ); // Blocks
-
-    // glCullFace( GL_FRONT );
-    // glEnable( GL_CLIP_PLANE0 );
-    // shader_set_uniform1f( &world->loadedChunks.shader, "u_ExtraAlpha", 0.5f );
-    // chunk_loader_draw_chunks( &world->loadedChunks, mvp_reflect, &world->renderer, false ); // Blocks
-    // shader_set_uniform1f( &world->loadedChunks.shader, "u_ExtraAlpha", 1.0f );
-
-    // sky_box_draw( &world->skyBox, &world->renderer, mvp_sky_reflect, &world->sky_shader );
-
-    // glCullFace( GL_BACK );
-    // glDisable( GL_CLIP_PLANE0 );
-
-    // chunk_loader_calculate_cull( &world->loadedChunks, mvp );
-
-    // glColorMask( 0, 0, 0, 0xff );
-    // glColorMask( 0xff, 0xff, 0xff, 0xff );
-
-    // glStencilOp( GL_KEEP, GL_KEEP, GL_KEEP );
-    // glStencilFunc( GL_NOTEQUAL, 0, 0 ); // Guessed numbers
-    // glClear( GL_DEPTH_BUFFER_BIT );
-    // glClear( GL_COLOR_BUFFER_BIT );
-
-    // glColorMask( 0xff, 0xff, 0xff, 0xff );
-
-    // glDisable( GL_STENCIL_TEST );
-    // // sky_box_draw( &world->skyBox, &world->renderer, mvp_sky, &world->sky_shader );
-    // if ( draw_mouse_selection ) {
-    //     mouse_selection_draw( &world->mouseSelection, &world->renderer, &world->loadedChunks.shader );
-    // }
-    // glClear( GL_STENCIL_BUFFER_BIT | GL_DEPTH_BUFFER_BIT );
-
-    // glBlendFunc( GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA );
-    // glBlendColor( 0.0, 0, 0, 0.5 );
-    // glBlendFunc( GL_ONE_MINUS_CONSTANT_COLOR, GL_CONSTANT_COLOR );
-    // chunk_loader_draw_chunks( &world->loadedChunks, mvp, &world->renderer, false ); // Blocks
-
-    // chunk_loader_draw_chunks( &world->loadedChunks, mvp, &world->renderer, true ); // Water
 }
 void world_cleanup( World *world ) {
 
