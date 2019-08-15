@@ -73,9 +73,9 @@ void chunk_calculate_sides( Chunk *chunk, TRIP_ARGS( int center_next_ ) ) {
             pr_debug( "Unexpected index buffer. Crash likely on WASM ro:%d", renderOrder );
         }
         if ( renderOrder == RenderOrder_Opaque ) {
-            pr_debug( "Should be %p:%d", ib_data, ib_new_size );
-            index_buffer_set_data( &chunk->layers[ renderOrder ].ib, ib_data_solid, IB_SOLID_SIZE );
-            // index_buffer_set_data( &chunk->layers[ renderOrder ].ib, ib_data, ib_new_size );
+            // pr_debug( "Should be %p:%d", ib_data, ib_new_size );
+            // index_buffer_set_data( &chunk->layers[ renderOrder ].ib, ib_data_solid, IB_SOLID_SIZE );
+            index_buffer_set_data( &chunk->layers[ renderOrder ].ib, ib_data, ib_new_size );
 
         } else {
             index_buffer_set_data( &chunk->layers[ renderOrder ].ib, ib_data, ib_new_size );

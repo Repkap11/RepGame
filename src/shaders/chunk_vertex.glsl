@@ -1,5 +1,6 @@
-#version 300 es
+#version 400
 uniform mat4 u_MVP;
+uniform mat4 u_MV;
 uniform vec3 u_DebugScaleOffset;
 
 // See CubeFace in block.h
@@ -41,8 +42,9 @@ out float v_corner_lighting;
 
 void main( ) {
     vec3 mesh_size = vec3( ( mesh_size_packed & 0xffu ), ( mesh_size_packed & 0xff00u ) >> 8, ( mesh_size_packed & 0xff0000u ) >> 16 );
-    gl_Position = u_MVP * vec4( position * ( mesh_size - u_DebugScaleOffset ) + blockCoords, 1 );
-    // gl_Position = u_MVP * rotation * vec4( position * ( mesh_size - u_DebugScaleOffset ) + blockCoords, 1 );
+    vec4 vertex = vec4( position * ( mesh_size - u_DebugScaleOffset ) + blockCoords, 1 );
+    gl_Position = u_MVP * vertex;
+    gl_ClipDistance[ 0 ] = dot( vertex, vec4( 0, 1, 0, 0 ) );
     vec2 face_scale;
     vec2 texCoordBlock_adjust = texCoordBlock;
     uint faceType_rotated = faceType;

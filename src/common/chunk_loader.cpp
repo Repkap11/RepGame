@@ -217,7 +217,7 @@ void chunk_loader_calculate_cull( LoadedChunks *loadedChunks, glm::mat4 &mvp ) {
     }
 }
 
-void chunk_loader_draw_chunks( LoadedChunks *loadedChunks, Renderer *renderer, glm::mat4 &mvp, bool reflect_only ) {
+void chunk_loader_draw_chunks( LoadedChunks *loadedChunks, Renderer *renderer, bool reflect_only ) {
 
     // pr_debug( "Drawing %d chunks", loadedChunks->numLoadedChunks );
     for ( int renderOrder = LAST_RENDER_ORDER - 1; renderOrder > 0; renderOrder-- ) {

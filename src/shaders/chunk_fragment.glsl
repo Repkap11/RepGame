@@ -1,4 +1,4 @@
-#version 300 es
+#version 400
 
 precision highp float;
 precision lowp sampler2DArray;
@@ -9,6 +9,7 @@ in float v_corner_lighting;
 flat in int v_shouldDiscardNoLight;
 uniform float u_shouldDiscardAlpha;
 uniform sampler2DArray u_Texture;
+uniform float u_ExtraAlpha;
 
 layout( location = 0 ) out vec4 color;
 
@@ -23,6 +24,7 @@ void main( ) {
     if ( u_shouldDiscardAlpha == 1.0f && texColor.a < 0.7 ) {
         discard;
     }
+    texColor.a *= u_ExtraAlpha;
 
     float corner_light = v_corner_lighting;
     color = texColor * vec4( corner_light, corner_light, corner_light, 1 );

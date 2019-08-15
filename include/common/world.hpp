@@ -26,7 +26,7 @@ BlockState world_get_block_from_chunk( Chunk *chunk, int block_, int block_y, in
 Chunk *world_get_loaded_chunk( World *world, int block_x, int block_y, int block_z );
 void world_init( World *world, float camera_x, float camera_y, float camera_z );
 void world_render( World *world, float camera_x, float camera_y, float camera_z, int limit_render, glm::mat4 &rotation );
-void world_draw( World *world, Texture *blocksTexture, glm::mat4 &mvp, glm::mat4 &mvp_reflect, glm::mat4 &mvp_sky, int debug, int draw_mouse_selection );
+void world_draw( World *world, Texture *blocksTexture, glm::mat4 &mvp, glm::mat4 &mvp_reflect, glm::mat4 &mvp_sky, glm::mat4 &mvp_sky_reflect, int debug, int draw_mouse_selection );
 void world_set_selected_block( World *world, int selected_x, int selected_y, int selected_z, int shouldDraw );
 void world_cleanup( World *world );
 
