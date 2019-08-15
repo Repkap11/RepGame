@@ -84,8 +84,8 @@ void world_draw( World *world, Texture *blocksTexture, glm::mat4 &mvp, glm::mat4
     glEnable( GL_STENCIL_TEST );
 
     // glStencilMask( 0xff );
-    //glStencilFunc( GL_EQUAL, 1, 0xff );
-    //glStencilOp( GL_REPLACE, GL_REPLACE, GL_REPLACE );
+    // glStencilFunc( GL_EQUAL, 1, 0xff );
+    // glStencilOp( GL_REPLACE, GL_REPLACE, GL_REPLACE );
     glStencilFunc( GL_ALWAYS, 1, 0xff );
     glStencilOp( GL_KEEP, GL_KEEP, GL_REPLACE );
 
@@ -94,7 +94,7 @@ void world_draw( World *world, Texture *blocksTexture, glm::mat4 &mvp, glm::mat4
     glDepthMask( GL_FALSE );
     glColorMask( GL_FALSE, GL_FALSE, GL_FALSE, GL_FALSE );
 
-    //chunk_loader_draw_chunks( &world->loadedChunks, mvp, &world->renderer, true ); // Mark reflections
+    // chunk_loader_draw_chunks( &world->loadedChunks, mvp, &world->renderer, true ); // Mark reflections
     glStencilFunc( GL_EQUAL, 0, 0xff );
     // chunk_loader_draw_chunks( &world->loadedChunks, mvp, &world->renderer, false ); // Un mark solid in front of reflections
 
@@ -116,7 +116,7 @@ void world_draw( World *world, Texture *blocksTexture, glm::mat4 &mvp, glm::mat4
     glClear( GL_DEPTH_BUFFER_BIT );
     glEnable( GL_CLIP_PLANE0 );
 
-    shader_set_uniform1f( &world->loadedChunks.shader, "u_ExtraAlpha", 0.4f );
+    // shader_set_uniform1f( &world->loadedChunks.shader, "u_ExtraAlpha", 0.4f );
     chunk_loader_calculate_cull( &world->loadedChunks, mvp_reflect );
     chunk_loader_draw_chunks( &world->loadedChunks, mvp_reflect, &world->renderer, false ); // Blocks
     glDepthMask( GL_TRUE );
@@ -127,8 +127,13 @@ void world_draw( World *world, Texture *blocksTexture, glm::mat4 &mvp, glm::mat4
     glDisable( GL_CLIP_PLANE0 );
     // glClear( GL_DEPTH_BUFFER_BIT );
 
-    glDisable( GL_STENCIL_TEST );
     glCullFace( GL_BACK );
+
+    chunk_loader_calculate_cull( &world->loadedChunks, mvp );
+    // shader_set_uniform1f( &world->loadedChunks.shader, "u_ExtraAlpha", 0.4f );
+
+    chunk_loader_draw_chunks( &world->loadedChunks, mvp, &world->renderer, true ); // Water
+    glDisable( GL_STENCIL_TEST );
 
     // glStencilOp( GL_REPLACE, GL_REPLACE, GL_KEEP );
 
