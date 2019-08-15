@@ -74,6 +74,7 @@ void world_draw( World *world, Texture *blocksTexture, glm::mat4 &mvp, glm::mat4
     // glClear( GL_STENCIL_BUFFER_BIT | GL_DEPTH_BUFFER_BIT );
 
     chunk_loader_draw_chunks( &world->loadedChunks, mvp, &world->renderer, false ); // Blocks
+    chunk_loader_draw_chunks( &world->loadedChunks, mvp, &world->renderer, true );  // Water
     sky_box_draw( &world->skyBox, &world->renderer, mvp_sky, &world->sky_shader );
 
     // glClear( GL_DEPTH_BUFFER_BIT );
@@ -85,10 +86,12 @@ void world_draw( World *world, Texture *blocksTexture, glm::mat4 &mvp, glm::mat4
     glEnable( GL_STENCIL_TEST );
     // glStencilMask( 0xff );
     glStencilFunc( GL_EQUAL, 1, 0xff );
-    glStencilOp( GL_REPLACE, GL_REPLACE, GL_REPLACE );
+    glStencilOp( GL_REPLACE, GL_KEEP, GL_REPLACE );
 
     chunk_loader_calculate_cull( &world->loadedChunks, mvp );
     chunk_loader_draw_chunks( &world->loadedChunks, mvp, &world->renderer, true ); // Mark reflections
+    glStencilFunc( GL_EQUAL, 0, 0xff );
+    // chunk_loader_draw_chunks( &world->loadedChunks, mvp, &world->renderer, false ); // Un mark solid in front of reflections
 
     glColorMask( GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE );
 
@@ -98,7 +101,7 @@ void world_draw( World *world, Texture *blocksTexture, glm::mat4 &mvp, glm::mat4
     glStencilOp( GL_KEEP, GL_KEEP, GL_KEEP );
 
     glDisable( GL_STENCIL_TEST );
-    chunk_loader_draw_chunks( &world->loadedChunks, mvp, &world->renderer, true ); // Water
+    // chunk_loader_draw_chunks( &world->loadedChunks, mvp, &world->renderer, true ); // Water
     glCullFace( GL_FRONT );
     // glDisable( GL_DEPTH_TEST );                                                                            // glDepthMask( GL_FALSE );
     glDepthMask( GL_TRUE );
