@@ -59,6 +59,8 @@ void world_set_selected_block( World *world, int selected_x, int selected_y, int
 void world_draw( World *world, Texture *blocksTexture, glm::mat4 &mvp, glm::mat4 &mvp_reflect, glm::mat4 &mvp_sky, glm::mat4 &mvp_sky_reflect, int debug, int draw_mouse_selection ) {
 
     shader_set_uniform1f( &world->loadedChunks.shader, "u_ExtraAlpha", 1.0f );
+    shader_set_uniform1f( &world->loadedChunks.shader, "u_ReflectionHeight", 0 );
+
     shader_set_uniform1i( &world->sky_shader, "u_Texture", blocksTexture->slot );
     mobs_draw( &world->mobs, mvp, &world->renderer, &world->sky_shader );
 
@@ -114,7 +116,7 @@ void world_draw( World *world, Texture *blocksTexture, glm::mat4 &mvp, glm::mat4
     glEnable( GL_STENCIL_TEST );
 
     glClear( GL_DEPTH_BUFFER_BIT );
-    glEnable( GL_CLIP_PLANE0 );
+    shader_set_uniform1f( &world->loadedChunks.shader, "u_ReflectionHeight", WATER_HEIGHT );
 
     // shader_set_uniform1f( &world->loadedChunks.shader, "u_ExtraAlpha", 0.4f );
     chunk_loader_calculate_cull( &world->loadedChunks, mvp_reflect );
@@ -124,7 +126,8 @@ void world_draw( World *world, Texture *blocksTexture, glm::mat4 &mvp, glm::mat4
 
     // sky_box_draw( &world->skyBox, &world->renderer, mvp_sky_reflect, &world->sky_shader );
 
-    glDisable( GL_CLIP_PLANE0 );
+    shader_set_uniform1f( &world->loadedChunks.shader, "u_ReflectionHeight", 0 );
+
     // glClear( GL_DEPTH_BUFFER_BIT );
 
     glCullFace( GL_BACK );

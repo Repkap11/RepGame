@@ -1,7 +1,8 @@
-#version 400
+#version 300 es
 uniform mat4 u_MVP;
 uniform mat4 u_MV;
 uniform vec3 u_DebugScaleOffset;
+uniform float u_ReflectionHeight;
 
 // See CubeFace in block.h
 // This defines all the triangles of a cube
@@ -22,6 +23,7 @@ layout( location = 9 ) in uint rotation;
 out vec2 v_TexCoordBlock;
 flat out float v_blockID;
 flat out int v_shouldDiscardNoLight;
+out float v_planarDot;
 out float v_corner_lighting;
 
 #define FACE_TOP 0u
@@ -44,7 +46,8 @@ void main( ) {
     vec3 mesh_size = vec3( ( mesh_size_packed & 0xffu ), ( mesh_size_packed & 0xff00u ) >> 8, ( mesh_size_packed & 0xff0000u ) >> 16 );
     vec4 vertex = vec4( position * ( mesh_size - u_DebugScaleOffset ) + blockCoords, 1 );
     gl_Position = u_MVP * vertex;
-    gl_ClipDistance[ 0 ] = dot( vertex, vec4( 0, 0.875, 0, 0 ) );
+    v_planarDot = dot( vertex, vec4( 0, u_ReflectionHeight, 0, 0 ) );
+
     vec2 face_scale;
     vec2 texCoordBlock_adjust = texCoordBlock;
     uint faceType_rotated = faceType;

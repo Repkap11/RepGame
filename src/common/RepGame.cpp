@@ -316,13 +316,12 @@ void repgame_draw( ) {
     // glm::mat4 mvp_sky_reflect = globalGameState.screen.proj * globalGameState.camera.view_look;
 
     glm::mat4 mvp = mvp_sky * globalGameState.camera.view_trans;
-    glm::mat4 rotation = glm::diagonal4x4( glm::vec4( 1, -1, 1, 1 ) );
-    // glm::mat4 rotation = glm::mat4( //
-    //     1, 0, 0, 0,                 //
-    //     0, -1, 0, 0,                //
-    //     0, 0, 1, 0,                 //
-    //     0, 0, 0, 1                  //
-    // );
+    glm::mat4 rotation = glm::mat4( //
+        1, 0, 0, 0,                 //
+        0, -1, 0, 0,                //
+        0, 0, 1, 0,                 //
+        0, 0, 0, 1                  //
+    );
 
     glm::mat4 flipped_look = globalGameState.camera.view_look * rotation;
     // glm::mat4 flipped_look = rotation * globalGameState.camera.view_look;
