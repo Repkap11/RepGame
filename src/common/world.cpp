@@ -97,18 +97,18 @@ void world_draw( World *world, Texture *blocksTexture, glm::mat4 &mvp, glm::mat4
     glStencilFunc( GL_EQUAL, 1, 0xff );
     glStencilOp( GL_KEEP, GL_KEEP, GL_KEEP );
 
-    glCullFace( GL_FRONT );
-    // glDisable( GL_DEPTH_TEST );
-
     glDisable( GL_STENCIL_TEST );
-    glDepthMask( GL_TRUE );
     chunk_loader_draw_chunks( &world->loadedChunks, mvp, &world->renderer, true ); // Water
-    //glDepthMask( GL_FALSE );
+    glCullFace( GL_FRONT );
+    // glDisable( GL_DEPTH_TEST );                                                                            // glDepthMask( GL_FALSE );
+    glDepthMask( GL_TRUE );
+
     glEnable( GL_STENCIL_TEST );
 
     glClear( GL_DEPTH_BUFFER_BIT );
     glEnable( GL_CLIP_PLANE0 );
 
+    shader_set_uniform1f( &world->loadedChunks.shader, "u_ExtraAlpha", 0.4f );
     chunk_loader_calculate_cull( &world->loadedChunks, mvp_reflect );
     chunk_loader_draw_chunks( &world->loadedChunks, mvp_reflect, &world->renderer, false ); // Blocks
     glDepthMask( GL_TRUE );
