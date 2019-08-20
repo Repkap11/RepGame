@@ -1,5 +1,6 @@
 #version 300 es
 uniform mat4 u_MVP;
+uniform float u_ReflectionHeight;
 
 #define FACE_TOP 0u
 #define FACE_BOTTOM 1u
@@ -22,9 +23,13 @@ out vec2 v_tex_coords;
 out float v_light;
 flat out float v_blockID;
 flat out float v_id;
+out float v_planarDot;
 
 void main( ) {
-    gl_Position = u_MVP * transform * vec4( position, 1 );
+    vec4 vertex = transform * vec4( position, 1 );
+    gl_Position = u_MVP * vertex;
+    v_planarDot = dot( vertex, vec4( 0, 1, 0, u_ReflectionHeight ) );
+
     v_tex_coords = texCoords;
     uint shift = ( faceType % 2u ) * 16u;
     // 0xffffu is max short 16u is sizeof(short)

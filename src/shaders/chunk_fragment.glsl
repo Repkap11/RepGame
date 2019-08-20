@@ -10,6 +10,7 @@ flat in int v_shouldDiscardNoLight;
 in float v_planarDot;
 uniform float u_shouldDiscardAlpha;
 uniform sampler2DArray u_Texture;
+uniform float u_ReflectionHeight;
 
 layout( location = 0 ) out vec4 color;
 
@@ -17,7 +18,7 @@ void main( ) {
     if ( v_shouldDiscardNoLight == 1 ) {
         discard;
     }
-    if ( v_planarDot < 0.0 ) {
+    if ( v_planarDot < 0.0 && u_ReflectionHeight != 0.0 ) {
         discard;
     }
     vec4 texColor = texture( u_Texture, vec3( v_TexCoordBlock, v_blockID ) );

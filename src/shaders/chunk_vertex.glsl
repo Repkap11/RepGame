@@ -46,7 +46,7 @@ void main( ) {
     vec3 mesh_size = vec3( ( mesh_size_packed & 0xffu ), ( mesh_size_packed & 0xff00u ) >> 8, ( mesh_size_packed & 0xff0000u ) >> 16 );
     vec4 vertex = vec4( position * ( mesh_size - u_DebugScaleOffset ) + blockCoords, 1 );
     gl_Position = u_MVP * vertex;
-    v_planarDot = dot( vertex, vec4( 0, u_ReflectionHeight, 0, 0 ) );
+    v_planarDot = dot( vertex, vec4( 0, 1, 0, u_ReflectionHeight ) );
 
     vec2 face_scale;
     vec2 texCoordBlock_adjust = texCoordBlock;

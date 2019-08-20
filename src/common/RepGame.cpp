@@ -190,8 +190,8 @@ void repgame_tick( ) {
     globalGameState.input.mouse.currentPosition.x = globalGameState.screen.width / 2;
     globalGameState.input.mouse.currentPosition.y = globalGameState.screen.height / 2;
 
-    repgame_process_camera_angle( );
     repgame_process_movement( );
+    repgame_process_camera_angle( );
 
     if ( globalGameState.input.click_delay_right > 0 ) {
         globalGameState.input.click_delay_right--;
