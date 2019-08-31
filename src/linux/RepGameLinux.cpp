@@ -72,11 +72,13 @@ int main( int argc, char **argv ) {
     int glut_window = glutCreateWindow( "RepGame" );
 
     pr_debug( "Using OpenGL Version:%s", glGetString( GL_VERSION ) );
-
+    glewExperimental = GL_TRUE;
     if ( glewInit( ) ) {
         pr_debug( "GLEW init failed" );
         exit( 1 ); // or handle the error in a nicer way
     }
+    ignoreErrors( );
+
     if ( !GLEW_VERSION_3_3 ) { // check that the machine supports the 2.1 API.
         pr_debug( "GLEW version wrong" );
         exit( 1 ); // or handle the error in a nicer way

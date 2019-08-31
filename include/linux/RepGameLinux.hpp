@@ -20,6 +20,16 @@
             exit(1);                                                                                                                                                                                  \
         }                                                                                                                                                                                                                                      \
     }
-
 #endif
+
+#define ignoreErrors( )                                                                                                                                                                                                                          \
+    {                                                                                                                                                                                                                                          \
+        int errCode;                                                                                                                                                                                                                           \
+        const GLubyte *errString;                                                                                                                                                                                                              \
+        if ( ( errCode = glGetError( ) ) != GL_NO_ERROR ) {                                                                                                                                                                                    \
+            errString = gluErrorString( errCode );                                                                                                                                                                                             \
+            pr_debug( "GL Ignoring Error:%d:%s", errCode, errString );                                                                                                                                                                                  \
+        }                                                                                                                                                                                                                                      \
+    }
+
 #endif
