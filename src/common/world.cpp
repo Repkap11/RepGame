@@ -141,14 +141,14 @@ Chunk *world_get_loaded_chunk( World *world, TRIP_ARGS( int block_ ) ) {
     int chunk_x = floor( block_x / ( float )CHUNK_SIZE );
     int chunk_y = floor( block_y / ( float )CHUNK_SIZE );
     int chunk_z = floor( block_z / ( float )CHUNK_SIZE );
-    return chunk_loader_get_chunk( &world->loadedChunks, TRIP_ARGS( chunk_ ) );
+    return chunk_loader_get_chunk( &world->loadedChunks, chunk_x, chunk_y, chunk_z );
 }
 
 BlockState world_get_block_from_chunk( Chunk *chunk, TRIP_ARGS( int block_ ) ) {
     int diff_x = block_x - chunk->chunk_x * CHUNK_SIZE;
     int diff_y = block_y - chunk->chunk_y * CHUNK_SIZE;
     int diff_z = block_z - chunk->chunk_z * CHUNK_SIZE;
-    return chunk_get_block( chunk, TRIP_ARGS( diff_ ) );
+    return chunk_get_block( chunk, diff_x, diff_y, diff_z );
 }
 
 BlockState world_get_loaded_block( World *world, TRIP_ARGS( int block_ ) ) {
@@ -168,7 +168,7 @@ void world_set_loaded_block( World *world, TRIP_ARGS( int block_ ), BlockState b
     int chunk_y = floor( block_y / ( float )CHUNK_SIZE );
     int chunk_z = floor( block_z / ( float )CHUNK_SIZE );
 
-    Chunk *chunk = chunk_loader_get_chunk( &world->loadedChunks, TRIP_ARGS( chunk_ ) );
+    Chunk *chunk = chunk_loader_get_chunk( &world->loadedChunks, chunk_x, chunk_y, chunk_z );
     if ( chunk ) {
         int diff_x = block_x - chunk_x * CHUNK_SIZE;
         int diff_y = block_y - chunk_y * CHUNK_SIZE;

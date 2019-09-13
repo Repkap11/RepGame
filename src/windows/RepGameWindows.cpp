@@ -47,7 +47,7 @@ int main( int argc, char **argv ) {
     const char *world_path;
     if ( argc == 1 ) {
         world_path = "World1";
-    } else if ( 2 ) {
+    } else if ( argc == 2 ) {
         world_path = argv[ 1 ];
     } else {
         pr_debug( "\nusage: %s world_path\n\tWhere world_path is relitive to the current directory.", argv[ 0 ] );
@@ -121,7 +121,7 @@ int main( int argc, char **argv ) {
         clock_gettime( CLOCK_MONOTONIC, &tend );
         if ( LIMIT_FPS ) {
             double diff_ms = ( ( ( double )tend.tv_sec + 1.0e-9 * tend.tv_nsec ) - ( ( double )tstart.tv_sec + 1.0e-9 * tstart.tv_nsec ) ) * 1000.0;
-            float frame_rate = 1.0 / ( diff_ms / 1000.0 );
+            // float frame_rate = 1.0 / ( diff_ms / 1000.0 );
             // pr_debug( "FPS (if wasn't waiting):%f", frame_rate );
             double wait_time_ms = fps_ms - diff_ms;
             if ( wait_time_ms > 0 ) {

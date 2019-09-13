@@ -30,8 +30,10 @@ char *shaderLoadSourceFromFile( const char *filePath ) {
         char *newSource = ( char * )malloc( sourceLength + tmp + 1 );
         if ( !newSource ) {
             pr_debug( "shaderLoadSource(): malloc failed\n" );
-            if ( source )
+            if ( source ) {
                 free( source );
+            }
+            fclose( fp );
             return NULL;
         }
 

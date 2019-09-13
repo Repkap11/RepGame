@@ -109,7 +109,7 @@ void map_storage_persist( Chunk *chunk ) {
                     total_num_blocks += num_same_blocks;
                 }
                 persist_data_index++;
-                previous_id = ((STORAGE_TYPE_BLOCK_ID)blockState.id) | (((STORAGE_TYPE_BLOCK_ID)blockState.rotation) << 14);
+                previous_id = ( ( STORAGE_TYPE_BLOCK_ID )blockState.id ) | ( ( ( STORAGE_TYPE_BLOCK_ID )blockState.rotation ) << 14 );
                 num_same_blocks = 1;
             }
         }
@@ -131,7 +131,7 @@ void map_storage_persist( Chunk *chunk ) {
 
 int check_if_chunk_exists( TRIP_ARGS( int chunk_offset_ ) ) {
     char file_name[ CHUNK_NAME_LENGTH ];
-    snprintf( file_name, CHUNK_NAME_LENGTH, file_root_chunk, map_name, TRIP_ARGS( chunk_offset_ ) );
+    snprintf( file_name, CHUNK_NAME_LENGTH, file_root_chunk, map_name, chunk_offset_x, chunk_offset_y, chunk_offset_z );
     if ( access( file_name, F_OK ) != -1 ) {
         return 1;
     } else {
@@ -150,7 +150,7 @@ int map_storage_load( Chunk *chunk ) {
     }
 
     char file_name[ CHUNK_NAME_LENGTH ];
-    snprintf( file_name, CHUNK_NAME_LENGTH, file_root_chunk, map_name, TRIP_ARGS( chunk_offset_ ) );
+    snprintf( file_name, CHUNK_NAME_LENGTH, file_root_chunk, map_name, chunk_offset_x, chunk_offset_y, chunk_offset_z );
 
     FILE *read_ptr;
     STORAGE_TYPE persist_data[ CHUNK_BLOCK_SIZE ];
@@ -164,9 +164,9 @@ int map_storage_load( Chunk *chunk ) {
         STORAGE_TYPE block_storage = persist_data[ i ];
         STORAGE_TYPE_BLOCK_ID block_packed = block_storage.block_id;
         BlockState blockState;
-        blockState.id = (BlockID)(block_packed & ~( 0b11 << 14 ));
+        blockState.id = ( BlockID )( block_packed & ~( 0b11 << 14 ) );
         blockState.rotation = block_packed >> 14;
-        if (  blockState.id >= LAST_BLOCK_ID ) {
+        if ( blockState.id >= LAST_BLOCK_ID ) {
             pr_debug( "Got strange block:%d", block_storage.block_id );
             block_storage.block_id = TNT;
         }

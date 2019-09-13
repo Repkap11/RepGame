@@ -17,6 +17,13 @@ out/bitmaps: | out
 clean-bitmaps:
 	rm -rf out/bitmaps
 
-.PHONY: clean-bitmaps
+check:
+	#cppcheck --quiet --enable=all -DREPGAME_LINUX src/ -Iinclude --suppress=missingIncludeSystem
+	cppcheck -j$(CPUS) --quiet --enable=warning,style,performance,portability,information,missingInclude -Iinclude -DREPGAME_LINUX src
+	cppcheck -j$(CPUS) --quiet --enable=warning,style,performance,portability,information,missingInclude -Iinclude -DREPGAME_WINDOWS src
+	cppcheck -j$(CPUS) --quiet --enable=warning,style,performance,portability,information,missingInclude -Iinclude -DREPGAME_ANDROID src
+	cppcheck -j$(CPUS) --quiet --enable=warning,style,performance,portability,information,missingInclude -Iinclude -DREPGAME_WASM src
+
+.PHONY: clean-bitmaps check
 
 .PRECIOUS: $(BITMAPS_NO_HEADER)

@@ -152,7 +152,6 @@ void structure_gen_place( Chunk *chunk ) {
             } else {
                 max_tree_radius = 3;
             }
-            int placed_tree = 0;
             int surface_y = -1;
             BlockID block_below = AIR;
             for ( int y = CHUNK_SIZE - 1; y > -1; y-- ) {
@@ -172,8 +171,9 @@ void structure_gen_place( Chunk *chunk ) {
                 continue;
             }
             int y = surface_y;
-            int is_forest = 0;
             if ( block_below == GRASS && y != 0 ) {
+                int is_forest = 0;
+                int placed_tree = 0;
                 is_forest = structure_gen_is_forest( world_x, world_z );
                 if ( is_forest ) {
                     int tree_type = structure_gen_is_tree_roll( world_x, world_z, max_tree_radius );
@@ -220,11 +220,11 @@ void structure_gen_place( Chunk *chunk ) {
                 }
             } // End block below is grass
             if ( block_below == SAND ) {
-                int height = 3;
+                #define REED_HEIGHT 3
                 if ( structure_gen_is_next_to( chunk, x, y - 1, z, WATER ) ) {
-                    if ( strcuture_gen_poll_fits( chunk, x, y, z, height ) ) {
+                    if ( strcuture_gen_poll_fits( chunk, x, y, z, REED_HEIGHT ) ) {
                         if ( structure_gen_is_reed_roll( x, z ) ) {
-                            for ( int i = 0; i < height; i++ ) {
+                            for ( int i = 0; i < REED_HEIGHT; i++ ) {
                                 chunk->blocks[ chunk_get_index_from_coords( x, y + i, z ) ] = {REED, BLOCK_ROTATE_0};
                             }
                         }

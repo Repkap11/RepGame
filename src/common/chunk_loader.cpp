@@ -29,7 +29,7 @@ int reload_if_out_of_bounds( Chunk *chunk, TRIP_ARGS( int chunk_ ) ) {
     if ( changed ) {
         chunk_unprogram_terrain( chunk );
         chunk->is_loading = 1;
-        terrain_loading_thread_enqueue( chunk, TRIP_ARGS( new_chunk_ ), 1 );
+        terrain_loading_thread_enqueue( chunk, new_chunk_x, new_chunk_y, new_chunk_z, 1 );
     }
     return changed;
 }
@@ -128,7 +128,7 @@ inline int process_chunk_position( Chunk *chunk, TRIP_ARGS( int chunk_diff_ ), T
         visiable_changed_y = ( chunk_diff_y != 0 ) && ( chunk->chunk_y == center_previous_y || chunk->chunk_y == center_next_y );
         visiable_changed_z = ( chunk_diff_z != 0 ) && ( chunk->chunk_z == center_previous_z || chunk->chunk_z == center_next_z );
     }
-    if ( force_reload || TRIP_OR( visiable_changed_ ) ) {
+    if ( force_reload || visiable_changed_x || visiable_changed_y || visiable_changed_z ) {
         // pr_debug( "Vis dir changed for %2d %2d %2d changed because of:%2d %2d %2d same:%2d %2d %2d", //
         //           TRIP_ARGS( chunk->chunk_ ),                                                        //
         //           TRIP_ARGS( chunk_diff_ ),                                                          //
@@ -169,7 +169,7 @@ void chunk_loader_render_chunks( LoadedChunks *loadedChunks, TRIP_ARGS( float ca
             }
         }
     } while ( chunk && !limit_render );
-    if ( TRIP_OR( 0 != chunk_diff_ ) ) {
+    if ( 0 != chunk_diff_x || 0 != chunk_diff_y || 0 != chunk_diff_z ) {
         // pr_debug( "Moved outof chunk x:%d y:%d z:%d", TRIP_ARGS( loaded_ ) );
         // pr_debug( "Moved into  chunk x:%d y:%d z:%d", TRIP_ARGS( chunk_ ) );
 

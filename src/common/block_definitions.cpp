@@ -209,7 +209,6 @@ void do_disable( Block *block_definitions ) {
     block_definitions[ CHEST_SIDE ].renderOrder = RenderOrder_Transparent;
     block_definitions[ DOUBLE_CHEST_LEFT_BACK ].renderOrder = RenderOrder_Transparent;
     block_definitions[ DOUBLE_CHEST_RIGHT_BACK ].renderOrder = RenderOrder_Transparent;
-    block_definitions[ DOUBLE_CHEST_RIGHT_BACK ].renderOrder = RenderOrder_Transparent;
     block_definitions[ DOUBLE_CHEST_LEFT_TOP ].renderOrder = RenderOrder_Transparent;
     block_definitions[ DOUBLE_CHEST_RIGHT_TOP ].renderOrder = RenderOrder_Transparent;
 }

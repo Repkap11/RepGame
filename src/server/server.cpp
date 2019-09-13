@@ -165,7 +165,6 @@ void server_handle_client_ready_for_read( int client_fd ) {
 void server_queue_packet( int client_fd, NetPacket &packet ) {
     client_data[ client_fd ].pending_sends.push( packet );
     // pr_debug( "Queueing packet on %d length:%ld", client_fd, client_data[ client_fd ].pending_sends.size( ) );
-    int server_has_data_to_send = 1;
     server_update_epoll( client_fd );
     // pr_debug( "Got packet done with server_update_epoll" );
 }
@@ -240,7 +239,6 @@ int main( int argc, const char **argv ) {
             }
 
             if ( client_fd == inet_socket_fd ) {
-                int server_has_data_to_send = 0;
                 // The listening socket is ready; this means a new peer is connecting.
                 server_handle_new_client_event( inet_socket_fd );
             } else {

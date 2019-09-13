@@ -64,7 +64,7 @@ out/linux/$(TARGET): $(OBJECTS_COMMON_LINUX) $(OBJECTS_LINUX) $(REP_MAKEFILES) $
 	$(CC_LINUX) -flto $(CFLAGS_LINUX) $(OBJECTS_LINUX) $(OBJECTS_COMMON_LINUX) $(SHADER_BLOBS_LINUX) $(BITMAP_BLOBS_LINUX) $(LIBS_LINUX) -o $@
 
 linux-run: linux
-	./out/linux/$(TARGET) "../../World1"
+	./out/linux/$(TARGET) "../../World1" "repkap11.com"
 
 map:
 	rm -rf World1

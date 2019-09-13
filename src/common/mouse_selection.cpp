@@ -47,7 +47,6 @@ static CubeFace vd_data_selection[] = {
 #define VB_DATA_SIZE_SELECTION ( 4 * 6 + 6 )
 
 void mouse_selection_init( MouseSelection *mouseSelection, VertexBufferLayout *vbl_block, VertexBufferLayout *vbl_coords ) {
-    int ib_size = 0;
     index_buffer_init( &mouseSelection->ib );
     index_buffer_set_data( &mouseSelection->ib, ib_data_solid, IB_SOLID_SIZE );
 

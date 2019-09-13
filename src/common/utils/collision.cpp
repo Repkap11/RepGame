@@ -48,11 +48,10 @@ void check_collides_with_player( World *world, TRIP_ARGS( float *movement_vec_ )
                     new_x + ( *movement_vec_x ),  //
                     new_y + ( *movement_vec_y ),  //
                     new_z + ( *movement_vec_z ),  //
-                    TRIP_ARGS( &out_ ), faces, 1, 0 );
+                    &out_x, &out_y, &out_z, faces, 1, 0 );
             }
         }
     }
-    int collide = 0;
     if ( faces[ FACE_RIGHT ] && *movement_vec_x < 0 ) {
         float movement_vec_x_orig = *movement_vec_x;
         *movement_vec_x = roundf( ( position_x - half_width_x ) + *movement_vec_x ) - ( position_x - half_width_x );

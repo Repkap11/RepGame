@@ -12,10 +12,8 @@ void process_value( LinkedListValue *value ) {
     chunk->chunk_x = value->new_chunk_x;
     chunk->chunk_y = value->new_chunk_y;
     chunk->chunk_z = value->new_chunk_z;
-    if ( chunk ) {
-        chunk_load_terrain( chunk );
-        // pr_debug( "Paul Loading terrain x:%d y%d: z:%d work:%d results:%d", chunk->chunk_x, chunk->chunk_y, chunk->chunk_z, work_linked_list->count, result_linked_list->count );
-    }
+    chunk_load_terrain( chunk );
+    // pr_debug( "Paul Loading terrain x:%d y%d: z:%d work:%d results:%d", chunk->chunk_x, chunk->chunk_y, chunk->chunk_z, work_linked_list->count, result_linked_list->count );
 }
 
 #if defined( REPGAME_WASM )
@@ -62,8 +60,6 @@ void *process_background_tasks( void *arg ) {
         // pr_debug( "Working..." );
         // sleep( 1 );
         // pr_debug( "Working2... Work Size: %d", work_linked_list->count );
-
-        int poped = 1;
         LinkedListValue value = linked_list_pop_element( work_linked_list );
         if ( value.valid ) {
             process_value( &value );
@@ -96,6 +92,7 @@ void terrain_loading_thread_enqueue( Chunk *chunk, TRIP_ARGS( int new_chunk_ ), 
     value.new_chunk_y = new_chunk_y;
     value.new_chunk_z = new_chunk_z;
     value.persist = persist;
+    value.valid = 0;
     linked_list_add_element( work_linked_list, value );
     // pr_debug( "Paul enqueued x:%d y%d: z:%d work:%d h:%p t:%p", chunk->chunk_x, chunk->chunk_y, chunk->chunk_z, work_linked_list->count, work_linked_list->head, work_linked_list->tail );
 }

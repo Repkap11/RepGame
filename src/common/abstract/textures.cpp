@@ -60,7 +60,7 @@ unsigned char *readTextureDataFromFile( const char *filename, int mem_size ) {
 #if defined( REPGAME_ANDROID )
 unsigned char *readTextureDataFromCache( const char *filename, int mem_size ) {
     // TODO this is such a hack
-    pr_debug( "Returning texture for %d", filename );
+    pr_debug( "Returning texture for %s", filename );
     if ( strcmp( filename, "bitmaps/textures.bin" ) == 0 )
         return cached_texture[ 0 ];
     if ( strcmp( filename, "bitmaps/sky4.bin" ) == 0 )
@@ -77,10 +77,9 @@ unsigned int loadTexture( const TextureSourceData *texture_source ) {
     unsigned char *data;
 
     int mem_size = texture_source->width * texture_source->height * BYTEX_PER_PIXEL + bmp_header;
-    int needs_free;
 
 #if defined( REPGAME_LINUX ) || defined( REPGAME_WINDOWS )
-    needs_free = 0;
+#define TEXTURE_NEEDS_FREE 0
     if ( texture_source->blob->length != mem_size ) {
         int diff = texture_source->blob->length - mem_size;
         pr_debug( "Unexpected Source Size blob:%d calculated:%d diff:%d", texture_source->blob->length, mem_size, diff );
@@ -88,11 +87,14 @@ unsigned int loadTexture( const TextureSourceData *texture_source ) {
     }
     data = ( unsigned char * )texture_source->blob->source;
 #elif defined( REPGAME_WASM )
-    needs_free = 1;
+#define TEXTURE_NEEDS_FREE 1
     data = readTextureDataFromFile( texture_source->filename, mem_size );
 #elif defined( REPGAME_ANDROID )
-    needs_free = 0;
+#define TEXTURE_NEEDS_FREE 0
     data = readTextureDataFromCache( texture_source->filename, mem_size );
+#else
+    data = NULL;
+    pr_debug( "Undefined platform in textures.cpp mem_size:%d", mem_size );
 #endif
 
     unsigned int textures_across = texture_source->width / texture_source->tile_size_across;
@@ -129,7 +131,7 @@ unsigned int loadTexture( const TextureSourceData *texture_source ) {
     float max_ani;
     glGetFloatv( GL_MAX_TEXTURE_MAX_ANISOTROPY_EXT, &max_ani );
     // pr_debug( "Max ani:%f", max_ani );
-    if ( needs_free ) {
+    if ( TEXTURE_NEEDS_FREE ) {
         free( data );
     }
     glTexParameterf( GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MAX_ANISOTROPY_EXT, max_ani );

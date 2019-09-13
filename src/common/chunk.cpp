@@ -497,12 +497,12 @@ void chunk_calculate_popupated_blocks( Chunk *chunk ) {
                     unsigned int *packed_lighting = workingSpace[ index ].packed_lighting;
 
                     if ( visiable_block && can_be_seen && !has_been_drawn ) {
-                        int can_extend_x, can_extend_z, can_extend_y;
 
                         int size_x = 1;
                         int size_y = 1;
                         int size_z = 1;
                         if ( block->can_mesh ) {
+                            int can_extend_x, can_extend_z, can_extend_y;
                             do {
                                 can_extend_x = chunk_can_extend_rect( chunk, blockState, packed_lighting, workingSpace, x + size_x - 1, y, z, 1, size_y, size_z, 1, 0, 0 );
                                 if ( can_extend_x )
@@ -515,7 +515,6 @@ void chunk_calculate_popupated_blocks( Chunk *chunk ) {
                                     size_y++;
                             } while ( can_extend_x || can_extend_z || can_extend_y );
                         }
-                        int full_size = size_x * size_z * size_y;
                         for ( int new_x = x; new_x < x + size_x; new_x++ ) {
                             for ( int new_z = z; new_z < z + size_z; new_z++ ) {
                                 for ( int new_y = y; new_y < y + size_y; new_y++ ) {

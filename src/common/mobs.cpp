@@ -53,7 +53,7 @@ void mobs_remove_mob( Mobs *mobs, int mob_id ) {
 
     ObjectPosition *swapped_mob = &positions.back( );
     // ObjectPosition *removed_mob = &positions[ removed_index ];
-    int swapped_index = positions.size( ) - 1;
+    // int swapped_index = positions.size( ) - 1;
     // swapped_mob->id = removed_index;
 
     std::swap( positions[ removed_index ], positions.back( ) );
@@ -68,10 +68,10 @@ void mobs_remove_mob( Mobs *mobs, int mob_id ) {
 
 void mobs_add_mob( Mobs *mobs, unsigned int mob_id ) {
     if ( mob_id >= MAX_MOB_COUNT ) {
-        pr_debug( "Mob id too high, got %d, max:%d", mob_id, MAX_MOB_COUNT );
+        pr_debug( "Mob id too high, got %u, max:%d", mob_id, MAX_MOB_COUNT );
         return;
     }
-    pr_debug( "Added new mob:%d", mob_id );
+    pr_debug( "Added new mob:%u", mob_id );
     std::vector<ObjectPosition> &positions = mobs->mob_positions;
     int next_index = positions.size( );
     mobs->mob_index_lookup[ mob_id ] = next_index;

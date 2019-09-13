@@ -232,18 +232,6 @@ static inline void initilizeGameState( const char *world_name ) {
     }
 }
 
-int check_block( Block *block ) {
-    if ( block != NULL ) {
-        BlockID blockID = block->id;
-        if ( !( blockID == AIR || blockID == AIR ) ) {
-            return 1;
-        }
-    } else {
-        // pr_debug( "No Block!!" );
-    }
-    return 0;
-}
-
 MK_TEXTURE( textures, 384, 816, 16, 16, 138 );
 
 void repgame_init( const char *world_name ) {
