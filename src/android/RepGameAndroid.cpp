@@ -1,10 +1,10 @@
-#include "common/RepGame.hpp"
-
 #include <jni.h>
 #include <stdarg.h>
 #include <string.h>
 #include <android/asset_manager.h>
 #include <android/asset_manager_jni.h>
+
+#include "common/RepGame.hpp"
 
 AAssetManager *assetManager;
 

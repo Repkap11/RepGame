@@ -1,9 +1,10 @@
+#include <cstring>
+
 #define GL_GLEXT_PROTOTYPES
 #include "common/utils/file_utils.hpp"
 
 #include "common/RepGame.hpp"
 #include "common/abstract/textures.hpp"
-#include <cstring>
 
 #if defined( REPGAME_ANDROID )
 #define GL_TEXTURE_MAX_ANISOTROPY_EXT 0x84FE

@@ -80,7 +80,7 @@ void sky_box_init( SkyBox *skyBox, VertexBufferLayout *vbl_object_vertex, Vertex
     free( vb_data );
 }
 
-void sky_box_draw( SkyBox *skyBox, Renderer *renderer, glm::mat4 &mvp_sky, Shader *sky_shader ) {
+void sky_box_draw( SkyBox *skyBox, Renderer *renderer, const glm::mat4 &mvp_sky, Shader *sky_shader ) {
     shader_set_uniform1i( sky_shader, "u_Texture", skyBox->texture.slot );
     shader_set_uniform_mat4f( sky_shader, "u_MVP", mvp_sky );
     renderer_draw( renderer, &skyBox->va, &skyBox->ib, sky_shader, 1 );

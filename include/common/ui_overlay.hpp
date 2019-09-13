@@ -39,6 +39,6 @@ typedef struct {
 } UIOverlayVertex;
 
 void ui_overlay_init( UIOverlay *ui_overlay );
-void ui_overlay_draw( UIOverlay *ui_overlay, Renderer *renderer, Texture *blocksTexture, InputState *input, glm::mat4 &mvp_ui );
+void ui_overlay_draw( UIOverlay *ui_overlay, Renderer *renderer, Texture *blocksTexture, InputState *input, const glm::mat4 &mvp_ui );
 
 #endif

@@ -80,7 +80,7 @@ void mobs_add_mob( Mobs *mobs, unsigned int mob_id ) {
     mobs->shouldDraw = 1;
 }
 
-void mobs_update_position( Mobs *mobs, int mob_id, float x, float y, float z, glm::mat4 &rotation ) {
+void mobs_update_position( Mobs *mobs, int mob_id, float x, float y, float z, const glm::mat4 &rotation ) {
     int mod_index = mobs->mob_index_lookup[ mob_id ];
     if ( mod_index < 0 ) {
         pr_debug( "Not addign mob" );
@@ -100,7 +100,7 @@ void mobs_update_position( Mobs *mobs, int mob_id, float x, float y, float z, gl
     vertex_buffer_set_data( &mobs->vb_mob_placement, mobs->mob_positions.data( ), sizeof( ObjectPosition ) * mobs->mob_positions.size( ) );
 }
 
-void mobs_draw( Mobs *mobs, glm::mat4 &mvp, Renderer *renderer, Shader *shader ) {
+void mobs_draw( Mobs *mobs, const glm::mat4 &mvp, Renderer *renderer, Shader *shader ) {
     if ( mobs->shouldDraw ) {
         shader_set_uniform_mat4f( shader, "u_MVP", mvp );
         renderer_draw( renderer, &mobs->va, &mobs->ib, shader, mobs->mob_positions.size( ) );

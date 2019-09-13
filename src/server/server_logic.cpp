@@ -21,7 +21,7 @@ void server_logic_on_client_connected( int client_fd ) {
             // pr_debug( "Notifying3 existing player:%d of new player:%d", prop_id, client_fd );
             packet.player_id = client_fd;
             // pr_debug( "Notifying4 existing player:%d of new player:%d", prop_id, client_fd );
-            server_queue_packet( prop_id, packet );
+            server_queue_packet( prop_id, &packet );
             // pr_debug( "Notifying5 existing player:%d of new player:%d", prop_id, client_fd );
         }
     }
@@ -36,15 +36,15 @@ void server_logic_on_client_connected( int client_fd ) {
             NetPacket packet;
             packet.type = PLAYER_CONNECTED;
             packet.player_id = online_id;
-            server_queue_packet( client_fd, packet );
+            server_queue_packet( client_fd, &packet );
             pr_debug( "Notifying new player:%d of existing player:%d", client_fd, online_id );
         }
     }
 }
 
-void server_logic_on_client_message( int client_fd, NetPacket &packet ) {
+void server_logic_on_client_message( int client_fd, NetPacket *packet ) {
     // pr_debug( "Got message from:%d block:%d", client_fd, packet->blockID );
-    if ( packet.type != INVALID ) {
+    if ( packet->type != INVALID ) {
         // Tell the other connected players about most types of messages, but mark the
         // packet as from the player that sent it.
 
@@ -55,7 +55,7 @@ void server_logic_on_client_message( int client_fd, NetPacket &packet ) {
                 continue;
             }
             if ( server_is_client_connected( prop_id ) ) {
-                packet.player_id = client_fd;
+                packet->player_id = client_fd;
                 server_queue_packet( prop_id, packet );
             }
         }
@@ -74,7 +74,7 @@ void server_logic_on_client_disconnected( int client_fd ) {
             NetPacket packet;
             packet.type = PLAYER_DISCONNECTED;
             packet.player_id = client_fd;
-            server_queue_packet( prop_id, packet );
+            server_queue_packet( prop_id, &packet );
             pr_debug( "Notifying existing player:%d of removed player:%d", prop_id, client_fd );
         }
     }

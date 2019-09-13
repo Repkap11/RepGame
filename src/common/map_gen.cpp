@@ -1,11 +1,11 @@
+#include <stdlib.h>
+
 #include "common/RepGame.hpp"
 #include "common/map_gen.hpp"
 #include "common/block_definitions.hpp"
 #include "common/perlin_noise.hpp"
 #include "common/chunk_loader.hpp"
 #include "common/chunk.hpp"
-
-#include <stdlib.h>
 
 float map_gen_hills( int x, int z ) {
     float noise = perlin_noise( x, z, 0.02f, 3, MAP_SEED );

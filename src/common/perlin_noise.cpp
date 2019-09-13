@@ -1,10 +1,10 @@
-#include "common/perlin_noise.hpp"
-#include "common/RepGame.hpp"
+#include <stdio.h>
 #include <math.h>
 #include <stdlib.h>
-#include "common/constants.hpp"
 
-#include <stdio.h>
+#include "common/perlin_noise.hpp"
+#include "common/RepGame.hpp"
+#include "common/constants.hpp"
 
 static int hash[] = {208, 34,  231, 213, 32,  248, 233, 56,  161, 78,  24,  140, 71,  48,  140, 254, 245, 255, 247, 247, 40,  185, 248, 251, 245, 28,  124, 204, 204, 76,  36,  1,   107, 28,  234, 163, 202, 224, 245, 128, 167, 204, 9,
                      92,  217, 54,  239, 174, 173, 102, 193, 189, 190, 121, 100, 108, 167, 44,  43,  77,  180, 204, 8,   81,  70,  223, 11,  38,  24,  254, 210, 210, 177, 32,  81,  195, 243, 125, 8,   169, 112, 32,  97,  53,  195, 13,

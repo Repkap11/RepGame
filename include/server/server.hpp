@@ -28,7 +28,7 @@ typedef struct {
     } data;
 } NetPacket;
 
-void server_queue_packet( int client_fd, NetPacket &packet );
+void server_queue_packet( int client_fd, NetPacket *packet );
 int server_is_client_connected( int client_id );
 
 #endif

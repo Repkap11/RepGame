@@ -1,7 +1,8 @@
+#include <stdlib.h>
+
 #include "common/block_definitions.hpp"
 #include "common/abstract/textures.hpp"
 #include "common/RepGame.hpp"
-#include <stdlib.h>
 
 Block *block_definitions;
 void do_disable( Block *block_definitions );

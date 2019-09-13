@@ -1,15 +1,15 @@
 #include <stdio.h>
 #include <stdlib.h>
-#include "server/server.hpp"
 #include <sys/socket.h>
 #include <sys/types.h>
 #include <arpa/inet.h>
 #include <fcntl.h>
 #include <sys/epoll.h>
 #include <errno.h>
-#include <queue>
 #include <unistd.h>
+#include <queue>
 
+#include "server/server.hpp"
 #include "server/server_logic.hpp"
 
 #define pr_debug( fmt, ... ) fprintf( stdout, "%s:%d:%s():" fmt "\n", __FILE__, __LINE__, __func__, ##__VA_ARGS__ );
@@ -146,7 +146,7 @@ void server_handle_client_ready_for_read( int client_fd ) {
             pr_debug( "Only got a partial packet, darn" );
             break;
         }
-        server_logic_on_client_message( client_fd, packet );
+        server_logic_on_client_message( client_fd, &packet );
     }
     if ( disconnected ) {
         std::queue<NetPacket> empty;
@@ -162,8 +162,8 @@ void server_handle_client_ready_for_read( int client_fd ) {
     return;
 }
 
-void server_queue_packet( int client_fd, NetPacket &packet ) {
-    client_data[ client_fd ].pending_sends.push( packet );
+void server_queue_packet( int client_fd, NetPacket *packet ) {
+    client_data[ client_fd ].pending_sends.push( *packet );
     // pr_debug( "Queueing packet on %d length:%ld", client_fd, client_data[ client_fd ].pending_sends.size( ) );
     server_update_epoll( client_fd );
     // pr_debug( "Got packet done with server_update_epoll" );

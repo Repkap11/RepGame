@@ -17,6 +17,6 @@ typedef struct {
 } SkyBox;
 
 void sky_box_init( SkyBox *skyBox, VertexBufferLayout *vbl_object_vertex, VertexBufferLayout *vbl_object_position );
-void sky_box_draw( SkyBox *skyBox, Renderer *renderer, glm::mat4 &mvp_sky, Shader *sky_shader );
+void sky_box_draw( SkyBox *skyBox, Renderer *renderer, const glm::mat4 &mvp_sky, Shader *sky_shader );
 void sky_box_destroy( SkyBox *skyBox );
 #endif

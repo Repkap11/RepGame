@@ -1,11 +1,12 @@
+#include <math.h>
+#include <stdlib.h>
+
 #include "common/RepGame.hpp"
 #include "common/chunk_loader.hpp"
 #include "common/utils/map_storage.hpp"
 #include "common/utils/terrain_loading_thread.hpp"
 #include "common/abstract/shader.hpp"
 #include "common/constants.hpp"
-#include <math.h>
-#include <stdlib.h>
 
 #define MAX_LOADED_CHUNKS ( ( 2 * CHUNK_RADIUS_X + 1 ) * ( 2 * CHUNK_RADIUS_Y + 1 ) * ( 2 * CHUNK_RADIUS_Z + 1 ) )
 
@@ -190,7 +191,7 @@ void chunk_loader_render_chunks( LoadedChunks *loadedChunks, TRIP_ARGS( float ca
 }
 float chunk_diameter = ( CHUNK_SIZE + 1 ) * 1.73205080757; // sqrt(3)
 
-void chunk_loader_calculate_cull( LoadedChunks *loadedChunks, glm::mat4 &mvp ) {
+void chunk_loader_calculate_cull( LoadedChunks *loadedChunks, const glm::mat4 &mvp ) {
     for ( int i = 0; i < MAX_LOADED_CHUNKS; i++ ) {
         int final_is_visiable = 1;
         Chunk *chunk = &loadedChunks->chunkArray[ i ];
@@ -217,7 +218,7 @@ void chunk_loader_calculate_cull( LoadedChunks *loadedChunks, glm::mat4 &mvp ) {
     }
 }
 
-void chunk_loader_draw_chunks( LoadedChunks *loadedChunks, glm::mat4 &mvp, Renderer *renderer, bool reflect_only ) {
+void chunk_loader_draw_chunks( LoadedChunks *loadedChunks, const glm::mat4 &mvp, Renderer *renderer, bool reflect_only ) {
     shader_set_uniform_mat4f( &loadedChunks->shader, "u_MVP", mvp );
 
     // pr_debug( "Drawing %d chunks", loadedChunks->numLoadedChunks );

@@ -1,6 +1,3 @@
-#include "common/utils/map_storage.hpp"
-#include "common/RepGame.hpp"
-#include "common/constants.hpp"
 #include <errno.h>
 #include <limits.h> /* PATH_MAX */
 #include <stdio.h>
@@ -8,6 +5,10 @@
 #include <string.h>
 #include <sys/stat.h> /* mkdir(2) */
 #include <unistd.h>
+
+#include "common/utils/map_storage.hpp"
+#include "common/RepGame.hpp"
+#include "common/constants.hpp"
 #include "common/utils/file_utils.hpp"
 
 #define CHUNK_NAME_LENGTH 200
@@ -35,7 +36,7 @@ int mkdir_p( const char *path ) {
         errno = ENAMETOOLONG;
         return -1;
     }
-    strcpy( _path, path );
+    snprintf( _path, PATH_MAX, "%s", path );
 
     /* Iterate the string */
     for ( p = _path + 1; *p; p++ ) {
@@ -62,7 +63,7 @@ int mkdir_p( const char *path ) {
 
 void map_storage_init( const char *world_name ) {
     char *dir = getRepGamePath( );
-    sprintf( map_name, "%s%s%s", dir, REPGAME_PATH_DIVIDOR, world_name );
+    snprintf( map_name, CHUNK_NAME_LENGTH, "%s%s%s", dir, REPGAME_PATH_DIVIDOR, world_name );
     pr_debug( "Loading map from:%s", map_name );
     mkdir_p( map_name );
     free( dir );
@@ -71,7 +72,7 @@ void map_storage_init( const char *world_name ) {
 void map_storage_cleanup( ) {
 }
 
-#define STORAGE_TYPE_BLOCK_ID unsigned short
+#define STORAGE_TYPE_BLOCK_ID uint16_t
 #define STORAGE_TYPE_NUM_BLOCKS unsigned int
 
 typedef struct {
@@ -99,7 +100,7 @@ void map_storage_persist( Chunk *chunk ) {
         STORAGE_TYPE_BLOCK_ID previous_id = LAST_BLOCK_ID;
         BlockState previousBlockState = {LAST_BLOCK_ID, BLOCK_ROTATE_0};
         for ( int i = 0; i < CHUNK_BLOCK_SIZE; i++ ) {
-            BlockState blockState = blocks[ i ]; // TODO the rotation isn't saved
+            BlockState blockState = blocks[ i ];
             if ( blockState.id == previousBlockState.id && blockState.rotation == previousBlockState.rotation ) {
                 num_same_blocks++;
             } else {

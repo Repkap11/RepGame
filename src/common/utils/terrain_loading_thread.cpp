@@ -1,7 +1,8 @@
+#include <unistd.h>
+
 #include "common/utils/terrain_loading_thread.hpp"
 #include "common/chunk.hpp"
 #include "common/utils/linked_list.hpp"
-#include <unistd.h>
 
 LinkedList *work_linked_list;
 LinkedList *result_linked_list;

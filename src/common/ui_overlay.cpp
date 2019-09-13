@@ -118,7 +118,7 @@ void ui_overlay_init( UIOverlay *ui_overlay ) {
     shader_init( &ui_overlay->shader, &ui_overlay_vertex, &ui_overlay_fragment );
 }
 
-void ui_overlay_draw( UIOverlay *ui_overlay, Renderer *renderer, Texture *blocksTexture, InputState *input, glm::mat4 &mvp_ui ) {
+void ui_overlay_draw( UIOverlay *ui_overlay, Renderer *renderer, Texture *blocksTexture, InputState *input, const glm::mat4 &mvp_ui ) {
     shader_set_uniform_mat4f( &ui_overlay->shader, "u_MVP", mvp_ui );
     shader_set_uniform1i( &ui_overlay->shader, "u_Texture", blocksTexture->slot );
 

@@ -1,8 +1,9 @@
-#include "common/utils/linked_list.hpp"
-#include "common/RepGame.hpp"
 #include <stdlib.h>
 
-/* Naive linked list implementation from https://gist.github.com/wayling/3877624*/
+#include "common/utils/linked_list.hpp"
+#include "common/RepGame.hpp"
+
+// Naive linked list implementation from https://gist.github.com/wayling/3877624
 
 LinkedList *linked_list_create( ) {
     LinkedList *l = ( LinkedList * )malloc( sizeof( LinkedList ) );

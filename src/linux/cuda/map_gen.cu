@@ -1,11 +1,11 @@
+#include <stdlib.h>
+
 #include "common/RepGame.hpp"
 #include "common/map_gen.hpp"
 #include "common/block_definitions.hpp"
 #include "linux/cuda/perlin_noise.hpp"
 #include "common/chunk_loader.hpp"
 #include "common/chunk.hpp"
-
-#include <stdlib.h>
 
 __device__ float map_gen_hills_cuda( int x, int z ) {
     float noise = perlin_noise_cuda( x, z, 0.02f, 3, MAP_SEED );
@@ -48,11 +48,11 @@ __device__ float map_gen_under_water_block_cuda( int x, int z ) {
     return noise;
 }
 
-#define MAP_GEN(func, ...) map_gen_##func##_cuda(__VA_ARGS__)
+#define MAP_GEN( func, ... ) map_gen_##func##_cuda( __VA_ARGS__ )
 
-__global__ void cuda_set_block(BlockID* blocks, int chunk_x, int chunk_y, int chunk_z){
+__global__ void cuda_set_block( BlockID *blocks, int chunk_x, int chunk_y, int chunk_z ) {
     int index = blockIdx.x * blockDim.x + threadIdx.x;
-    if (index < CHUNK_BLOCK_SIZE){
+    if ( index < CHUNK_BLOCK_SIZE ) {
         int y = ( index / ( CHUNK_SIZE_INTERNAL * CHUNK_SIZE_INTERNAL ) ) - 1;
         int x = ( ( index / CHUNK_SIZE_INTERNAL ) % CHUNK_SIZE_INTERNAL ) - 1;
         int z = ( index % ( CHUNK_SIZE_INTERNAL ) ) - 1;
@@ -60,14 +60,14 @@ __global__ void cuda_set_block(BlockID* blocks, int chunk_x, int chunk_y, int ch
         y += chunk_y;
         z += chunk_z;
 
-        float ground_noise = map_gen_ground_noise_cuda(x, z);
-        float hills = map_gen_hills_cuda(x, z);
-        float mountians = map_gen_mountians_cuda( x, z);
-        float level = map_gen_level_cuda(x, z);
+        float ground_noise = map_gen_ground_noise_cuda( x, z );
+        float hills = map_gen_hills_cuda( x, z );
+        float mountians = map_gen_mountians_cuda( x, z );
+        float level = map_gen_level_cuda( x, z );
         float terrainHeight = level + mountians + hills + ground_noise;
 #include "common/map_logic.hpp"
 
-        blocks[index] = finalBlockId;
+        blocks[ index ] = finalBlockId;
     }
 }
 
@@ -75,14 +75,11 @@ __global__ void cuda_set_block(BlockID* blocks, int chunk_x, int chunk_y, int ch
 
 __host__ void map_gen_load_block_cuda( Chunk *chunk ) {
 
-    BlockID* device_blocks;
-    cudaMalloc(&device_blocks, CHUNK_BLOCK_SIZE * sizeof( BlockID ));
+    BlockID *device_blocks;
+    cudaMalloc( &device_blocks, CHUNK_BLOCK_SIZE * sizeof( BlockID ) );
 
-    cuda_set_block<<<(CHUNK_BLOCK_SIZE + (NUM_THREADS_PER_BLOCK-1))/NUM_THREADS_PER_BLOCK , NUM_THREADS_PER_BLOCK, 0>>>(device_blocks,
-        chunk->chunk_x * CHUNK_SIZE,
-        chunk->chunk_y * CHUNK_SIZE,
-        chunk->chunk_z * CHUNK_SIZE);
+    cuda_set_block<<<( CHUNK_BLOCK_SIZE + ( NUM_THREADS_PER_BLOCK - 1 ) ) / NUM_THREADS_PER_BLOCK, NUM_THREADS_PER_BLOCK, 0>>>( device_blocks, chunk->chunk_x * CHUNK_SIZE, chunk->chunk_y * CHUNK_SIZE, chunk->chunk_z * CHUNK_SIZE );
 
-    cudaMemcpy(chunk->blocks, device_blocks, CHUNK_BLOCK_SIZE * sizeof( BlockID) , cudaMemcpyDeviceToHost);
-    cudaFree(device_blocks);
+    cudaMemcpy( chunk->blocks, device_blocks, CHUNK_BLOCK_SIZE * sizeof( BlockID ), cudaMemcpyDeviceToHost );
+    cudaFree( device_blocks );
 }

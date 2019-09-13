@@ -6,17 +6,19 @@
 #include "common/utils/file_utils.hpp"
 #include "common/RepGame.hpp"
 
+#define SHADER_BLOCK_SIZE 512
+#define FULL_PATH_SIZE 8192
+
 char *shaderLoadSourceFromFile( const char *filePath ) {
-    const size_t blockSize = 512;
     FILE *fp;
-    char buf[ blockSize ];
+    char buf[ SHADER_BLOCK_SIZE ];
     char *source = NULL;
     size_t tmp, sourceLength = 0;
 
     /* open file */
     char *dir = getRepGamePath( );
-    char fullPath[ 8192 ];
-    sprintf( fullPath, "%s/src/shaders/%s", dir, filePath );
+    char fullPath[ FULL_PATH_SIZE ];
+    snprintf( fullPath, FULL_PATH_SIZE, "%s/src/shaders/%s", dir, filePath );
     free( dir );
     pr_debug( "shader path:%s", fullPath );
     fp = fopen( fullPath, "r" );
@@ -26,7 +28,7 @@ char *shaderLoadSourceFromFile( const char *filePath ) {
     }
 
     /* read the entire file into a string */
-    while ( ( tmp = fread( buf, 1, blockSize, fp ) ) > 0 ) {
+    while ( ( tmp = fread( buf, 1, SHADER_BLOCK_SIZE, fp ) ) > 0 ) {
         char *newSource = ( char * )malloc( sourceLength + tmp + 1 );
         if ( !newSource ) {
             pr_debug( "shaderLoadSource(): malloc failed\n" );
@@ -204,7 +206,7 @@ void shader_set_uniform1ui( Shader *shader, const char *name, unsigned int i ) {
     glUniform1ui( get_uniform_location( shader, name ), i );
 }
 
-void shader_set_uniform_mat4f( Shader *shader, const char *name, glm::mat4 &mat ) {
+void shader_set_uniform_mat4f( Shader *shader, const char *name, const glm::mat4 &mat ) {
     shader_bind( shader );
     glUniformMatrix4fv( get_uniform_location( shader, name ), 1, GL_FALSE, &mat[ 0 ][ 0 ] );
 }
