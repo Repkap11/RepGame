@@ -57,7 +57,7 @@ static void displayFunc( void ) {
 }
 
 void onIdle( ) {
-    //glutPostRedisplay( );
+    // glutPostRedisplay( );
     repgame_idle( );
     if ( repgame_shouldExit( ) ) {
         repgame_cleanup( );
@@ -81,7 +81,7 @@ extern "C" int main( int argc, char **argv ) {
 
     pr_debug( "Using OpenGL Version:%s", glGetString( GL_VERSION ) );
 
-    repgame_init( world_path );
+    repgame_init( world_path, false, NULL );
 
     glutSpecialFunc( arrowKeyDownInput );
     glutSpecialUpFunc( arrowKeyUpInput );

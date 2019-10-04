@@ -234,7 +234,14 @@ static inline void initilizeGameState( const char *world_name ) {
 
 MK_TEXTURE( textures, 384, 816, 16, 16, 138 );
 
-void repgame_init( const char *world_name ) {
+void repgame_init( const char *world_name, bool connect_multi, const char *host ) {
+
+    // Start broadcasting chunk updates
+    if ( connect_multi ) {
+        multiplayer_init( host, 25566 );
+        // multiplayer_init( "localhost", 25566 );
+    }
+
     glEnable( GL_DEPTH_TEST );
     glEnable( GL_CULL_FACE );
     glCullFace( GL_BACK );
@@ -352,6 +359,7 @@ void repgame_cleanup( ) {
         return;
     }
     clean_up_done = 1;
+    multiplayer_cleanup( );
     world_cleanup( &globalGameState.world );
     texture_destroy( &globalGameState.blocksTexture );
     block_definitions_free_definitions( );

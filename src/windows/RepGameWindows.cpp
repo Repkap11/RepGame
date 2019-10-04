@@ -77,7 +77,7 @@ int main( int argc, char **argv ) {
         exit( 1 ); // or handle the error in a nicer way
     }
 
-    repgame_init( world_path );
+    repgame_init( world_path , false, NULL);
 
     glutSpecialFunc( arrowKeyDownInput );
     glutSpecialUpFunc( arrowKeyUpInput );

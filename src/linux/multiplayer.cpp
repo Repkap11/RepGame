@@ -30,12 +30,12 @@ void multiplayer_init( const char *hostname, int port ) {
     portno = port;
     sockfd = socket( AF_INET, SOCK_STREAM, 0 );
     if ( sockfd < 0 ) {
-        fprintf( stderr, "Unable to allocate socket \n" );
+        pr_debug( "Unable to allocate socket" );
         return;
     }
     server = gethostbyname( hostname );
     if ( server == NULL ) {
-        fprintf( stderr, "Unable to get hostname from string \n" );
+        pr_debug( "Unable to get hostname from string" );
         return;
     }
 
@@ -55,7 +55,7 @@ void multiplayer_init( const char *hostname, int port ) {
         int flags = fcntl( sockfd, F_GETFL );
         int status = fcntl( sockfd, F_SETFL, flags | O_NONBLOCK );
         if ( status < 0 ) {
-            fprintf( stderr, "Unable to set non-blocking \n" );
+            pr_debug( "Unable to set non-blocking" );
             return;
         }
     }
