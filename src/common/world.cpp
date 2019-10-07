@@ -80,7 +80,7 @@ void world_draw( World *world, Texture *blocksTexture, const glm::mat4 &mvp, con
     if ( draw_mouse_selection ) {
         mouse_selection_draw( &world->mouseSelection, &world->renderer, &world->loadedChunks.shader );
     }
-
+#if defined( REPGAME_LINUX ) || defined( REPGAME_WINDOWS ) || defined( REPGAME_ANDROID )
     glEnable( GL_STENCIL_TEST );
     glStencilFunc( GL_ALWAYS, 1, 0xff );
     glStencilOp( GL_KEEP, GL_KEEP, GL_REPLACE );
@@ -111,6 +111,7 @@ void world_draw( World *world, Texture *blocksTexture, const glm::mat4 &mvp, con
     shader_set_uniform1f( &world->sky_shader, "u_ReflectionHeight", 0 );
 
     glCullFace( GL_BACK );
+#endif
 
     chunk_loader_calculate_cull( &world->loadedChunks, mvp );
     chunk_loader_draw_chunks( &world->loadedChunks, mvp, &world->renderer, true ); // Water

@@ -148,6 +148,7 @@ int main( int argc, char **argv ) {
             }
         }
     }
+    repgame_cleanup();
     glutLeaveMainLoop( );
     glutDestroyWindow( glut_window );
     return 0;
