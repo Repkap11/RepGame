@@ -24,6 +24,7 @@ WASM_BITMAPS = $(patsubst bitmaps/%.bmp,out/wasm/fs/bitmaps/%.bin,$(wildcard bit
 OBJECTS_COMMON_WASM := $(patsubst src/common/%.cpp,out/wasm/common/%.bc, $(SRC_COMMON))
 OBJECTS_WASM := $(patsubst src/%.cpp,out/wasm/%.bc, $(wildcard src/wasm/*.cpp))
 
+all: wasm
 wasm: out/wasm/delivery/$(TARGET).js out/wasm/delivery/index.html out/wasm/delivery/reset.css out/wasm/delivery/index.css out/wasm/delivery/index.js out/wasm/delivery/icon.png
 
 WASM_DIRS = $(patsubst src%,out/wasm%,$(shell find src -type d)) \
@@ -70,8 +71,12 @@ wasm-run: wasm
 
 WASM_DEPLOY_REMOTE_PATH := paul@repkap11.com:/home/paul/website/${TARGET_LOWER}
 
+deploy: wasm-deploy
+
 wasm-deploy: wasm
 	rsync -r out/wasm/delivery/ ${WASM_DEPLOY_REMOTE_PATH}
+
+clean: clean-wasm
 
 clean-wasm:
 	rm -rf $(WASM_DIRS)

@@ -19,7 +19,7 @@ TARGET := RepGame
 TARGET_LOWER := repgame
 
 #Default target
-all: android linux windows wasm server
+all:
 	@echo "${TARGET} build complete..."
 
 #Sub makefiles might share variables. Cuda, server and linux do for sure.
@@ -27,7 +27,7 @@ include makefiles/common.mk
 include makefiles/install.mk
 include makefiles/wasm.mk
 include makefiles/linux.mk #cuda.mk can be turned on inside linux.mk
-include makefiles/server.mk
+include makefiles/server.mk #Must also include linux.mk
 include makefiles/windows.mk
 include makefiles/android.mk
 include makefiles/docker.mk
@@ -35,12 +35,14 @@ include makefiles/docker.mk
 out:
 	mkdir -p out
 
-clean: clean-bitmaps clean-linux clean-windows clean-android clean-wasm clean-server
-	rm -d out
+clean:
+	@echo "rm -fd out" ; rm -fd out || echo Forcing \'rm -rf out\'. An output was not cleaned up ; rm -rf out
 
 .PHONY: all clean vars
 
-deploy: windows-deploy linux-deploy wasm-deploy android-deploy
+deploy:
+	@echo "${TARGET} deploy complete..."
+
 
 nothing:
 

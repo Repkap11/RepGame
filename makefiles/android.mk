@@ -10,6 +10,7 @@ ANDROID_DIRS = android/app/src/main/assets/shaders
 android/app/src/main/assets/shaders:
 	mkdir -p $@
 
+all: android
 android: android-shaders android-bitmaps $(REP_MAKEFILES)
 	./android/gradlew -q -p android assembleDebug
 
@@ -21,8 +22,12 @@ android-run: android
 	#adb logcat -s ${TARGET}Android -v brief
 	#adb logcat -v brief | grep ${TARGET}
 
+deploy: android-deploy
+
 android-deploy: android
 	rsync android/app/build/outputs/apk/debug/${TARGET}-debug.apk paul@repkap11.com:/home/paul/website/${TARGET_LOWER}/${TARGET}.apk
+
+clean: clean-android
 
 clean-android:
 	rm -f $(ANDROID_SHADERS)
@@ -32,6 +37,7 @@ clean-android:
 	./android/gradlew -q -p android clean
 
 android-shaders: $(ANDROID_SHADERS)
+
 android-bitmaps: $(ANDROID_BITMAPS)
 
 android/app/src/main/assets/%.glsl: src/shaders/%.glsl $(REP_MAKEFILES) | $(ANDROID_DIRS)

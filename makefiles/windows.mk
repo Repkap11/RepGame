@@ -42,7 +42,11 @@ out/windows/bitmaps/%.o : out/bitmaps/%.bin $(REP_MAKEFILES) | out/windows
 	$(LD_WINDOWS) -r -b binary $< -o $@
 	objcopy --rename-section .data=.rodata,CONTENTS,ALLOC,LOAD,READONLY,DATA --reverse-bytes=4 $@ $@
 
+all: windows
+
 windows:  out/windows/$(TARGET).exe
+
+deploy: windows-deploy
 
 windows-deploy: out/windows/$(TARGET).exe
 	rsync $< paul@repkap11.com:/home/paul/website/${TARGET_LOWER}
@@ -63,7 +67,9 @@ out/windows/$(TARGET).exe: $(OBJECTS_COMMON_WINDOWS) $(OBJECTS_WINDOWS) $(SHADER
 windows-run: windows
 	wine out/windows/$(TARGET).exe "World1"
 
-clean-windows: clean-server
+clean: clean-windows
+
+clean-windows:
 	rm -rf out/windows
 
 out/windows: | out

@@ -12,6 +12,8 @@ SERVER_DIRS := $(patsubst src/server%,out/server%,$(shell find src/server -type 
 out/server/$(REPSERVER): $(OBJECTS_SERVER) $(REP_MAKEFILES) | out/server
 	$(CC_LINUX) -flto $(CFLAGS_LINUX) $(OBJECTS_SERVER) -o $@
 
+all: server
+
 server: out/server/$(REPSERVER)
 
 out/server/%.o: src/server/%.cpp $(REP_MAKEFILES) | out/server
@@ -28,6 +30,8 @@ out/server: | out
 
 server-run: server
 	./out/server/$(REPSERVER)
+
+clean: clean-server
 
 clean-server:
 	rm -rf out/server

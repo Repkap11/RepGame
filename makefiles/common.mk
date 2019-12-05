@@ -15,6 +15,7 @@ out/bitmaps/%.bin : bitmaps/%.bmp $(REP_MAKEFILES) | out/bitmaps
 out/bitmaps: | out
 	mkdir -p out/bitmaps
 
+clean: clean-bitmaps
 clean-bitmaps:
 	rm -rf out/bitmaps
 

@@ -43,7 +43,11 @@ out/linux/bitmaps/%.o : out/bitmaps/%.bin $(REP_MAKEFILES) | out/linux
 	$(LD_LINUX) -r -b binary $< -o $@
 	objcopy --rename-section .data=.rodata,CONTENTS,ALLOC,LOAD,READONLY,DATA --reverse-bytes=4 $@ $@
 
+all: linux
+
 linux: out/linux/$(TARGET)
+
+deploy: linux-deploy
 
 linux-deploy: out/linux/$(TARGET)
 	rsync $< paul@repkap11.com:/home/paul/website/${TARGET_LOWER}
@@ -71,6 +75,8 @@ map:
 
 player:
 	rm -rf World1/player.dat
+
+clean: clean-linux
 
 clean-linux:
 	rm -rf out/linux
