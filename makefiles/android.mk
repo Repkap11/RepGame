@@ -46,6 +46,4 @@ android/app/src/main/assets/%.glsl: src/shaders/%.glsl $(REP_MAKEFILES) | $(ANDR
 android/app/src/main/res/raw/%: out/bitmaps/% $(REP_MAKEFILES) | $(ANDROID_DIRS)
 	cp $< $@
 
-.PRECIOUS: $(OBJECTS_SHARED_ANDROID)
-
 .PHONY: android android-run android-shaders clean-android android-deploy

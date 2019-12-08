@@ -44,7 +44,7 @@ out/windows/bitmaps/%.o : out/bitmaps/%.bin $(REP_MAKEFILES) | out/windows
 
 all: windows
 
-windows:  out/windows/$(TARGET).exe
+windows:  out/windows/$(TARGET).exe windows_build
 
 deploy: windows-deploy
 
@@ -76,6 +76,6 @@ out/windows: | out
 	echo Making windows $(WINDOWS_DIRS)
 	mkdir -p $(WINDOWS_DIRS)
 
-.PRECIOUS: out/windows/$(TARGET).exe $(OBJECTS_WINDOWS) $(OBJECTS_COMMON_WINDOWS) $(LIB_TARGET_WINDOWS) $(SHADER_BLOBS_WINDOWS) $(BITMAP_BLOBS_WINDOWS)
+.PRECIOUS: out/windows/$(TARGET).exe $(OBJECTS_WINDOWS) $(OBJECTS_COMMON_WINDOWS) $(SHADER_BLOBS_WINDOWS) $(BITMAP_BLOBS_WINDOWS)
 
 .PHONY: windows windows-run clean-windows windows-deploy

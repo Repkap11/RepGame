@@ -14,6 +14,7 @@ MAKEFLAGS += -r #Don't use build in commands
 #MAKEFLAGS += -s #Be silent on stdout
 MAKEFLAGS += --warn-undefined-variables
 MAKEFLAGS += --jobs=$(CPUS)
+MAKEFLAGS += --no-print-directory
 
 TARGET := RepGame
 TARGET_LOWER := repgame
