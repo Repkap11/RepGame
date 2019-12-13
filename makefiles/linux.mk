@@ -70,6 +70,9 @@ out/linux/$(TARGET): $(OBJECTS_COMMON_LINUX) $(OBJECTS_LINUX) $(REP_MAKEFILES) $
 linux-run: linux
 	./out/linux/$(TARGET) "../../World1" "repkap11.com"
 
+tests: linux
+	./out/linux/$(TARGET) tests
+
 map:
 	rm -rf World1
 

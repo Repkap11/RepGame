@@ -94,4 +94,6 @@ void repgame_get_screen_size( int *width, int *height );
 int repgame_shouldExit( );
 int repgame_should_lock_pointer( );
 
+int rep_tests_start( );
+
 #endif

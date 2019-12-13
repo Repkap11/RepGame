@@ -49,6 +49,9 @@ int main( int argc, char **argv ) {
         world_path = "World1";
         connect_multi = false;
     } else if ( argc == 2 ) {
+        if ( strcmp( argv[ 1 ], "tests" ) == 0 ) {
+            return rep_tests_start( );
+        }
         world_path = argv[ 1 ];
         connect_multi = false;
     } else if ( argc == 3 ) {
