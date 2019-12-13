@@ -41,9 +41,6 @@ void mobs_init( Mobs *mobs, VertexBufferLayout *vbl_object_vertex, VertexBufferL
     glm::mat4 scale = glm::scale( glm::mat4( 1.0 ), glm::vec3( 0.5f ) );
     glm::mat4 un_translate = glm::translate( glm::mat4( 1.0 ), glm::vec3( -0.5f, -0.5f, -0.5f ) );
     mobs->initial_mat = scale * un_translate;
-    for ( int i = 0; i < MAX_MOB_COUNT; i++ ) {
-        mobs->mob_index_lookup[ i ] = -1;
-    }
 }
 
 void mobs_remove_mob( Mobs *mobs, int mob_id ) {
@@ -70,11 +67,13 @@ void mobs_remove_mob( Mobs *mobs, int mob_id ) {
 }
 
 void mobs_add_mob( Mobs *mobs, unsigned int mob_id ) {
-    if ( mob_id >= MAX_MOB_COUNT ) {
-        pr_debug( "Mob id too high, got %u, max:%d", mob_id, MAX_MOB_COUNT );
-        return;
-    }
     pr_debug( "Added new mob:%u", mob_id );
+    if ( mob_id >= mobs->mob_index_lookup.size( ) ) {
+        mobs->mob_index_lookup.push_back( -1 );
+        if ( mob_id >= mobs->mob_index_lookup.size( ) ) {
+            pr_debug( "Error, mobs should only need 1 more element ot fix this mob" );
+        }
+    }
     std::vector<ObjectPosition> &positions = mobs->mob_positions;
     int next_index = positions.size( );
     mobs->mob_index_lookup[ mob_id ] = next_index;
@@ -99,20 +98,20 @@ void mobs_update_position( Mobs *mobs, int mob_id, float x, float y, float z, co
 
 int mobs_check_consistency( Mobs *mobs ) {
     int expected_num_mobs = 0;
-    for ( int i = 0; i < MAX_MOB_COUNT; i++ ) {
+    for ( unsigned int i = 0; i < mobs->mob_index_lookup.size( ); i++ ) {
         int lookup = mobs->mob_index_lookup[ i ];
         if ( lookup != -1 ) {
             expected_num_mobs++;
-            pr_test( "Lookup %d = %d", i, lookup );
+            //pr_test( "Lookup %d = %d", i, lookup );
         }
     }
     for ( ObjectPosition &position : mobs->mob_positions ) {
         unsigned int id = position.id;
         float val = position.transform[ 0 ][ 0 ];
-        pr_test( "Pos %d %f", id, val );
+        //pr_test( "Position %d" );
     }
     int expected_num_mobs2 = mobs->mob_positions.size( );
-    pr_test( "Num Mobs:%d %d", expected_num_mobs2, expected_num_mobs );
+    //pr_test( "Num Mobs:%d %d", expected_num_mobs2, expected_num_mobs );
 
     return expected_num_mobs2 != expected_num_mobs;
 }

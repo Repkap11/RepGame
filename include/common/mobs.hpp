@@ -17,7 +17,7 @@ typedef struct {
     IndexBuffer ib;
     VertexArray va;
     std::vector<ObjectPosition> mob_positions;
-    int mob_index_lookup[ MAX_MOB_COUNT ];
+    std::vector<int> mob_index_lookup;
     VertexBuffer vb_mob_placement;
     VertexBuffer vb_mob_shape;
     int shouldDraw;
