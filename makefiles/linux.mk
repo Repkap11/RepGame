@@ -15,15 +15,18 @@ LIBS_LINUX := -Wl,-Bstatic  -l GLU -l glut -lX11 -lXxf86vm -lXi -l xcb -lXau -lX
 CC_LINUX := g++
 #CC_LINUX := clang++
 
-ifeq ($(CC_LINUX),g++)
-CFLAGS_LINUX += -no-pie
-endif
 LD_LINUX := ld
 #LD_LINUX := gold
 
+ifeq ($(CC_LINUX),g++)
+	CFLAGS_LINUX += -no-pie
+	ifeq ($(LD_LINUX),gold)
+		CFLAGS_LINUX += -fuse-ld=gold
+	endif
+endif
+
 ifeq ($(USE_CCACHE),1)
 CC_LINUX := ccache $(CC_LINUX)
-LD_LINUX := ccache $(LD_LINUX)
 endif
 
 OBJECTS_COMMON_LINUX := $(patsubst src/common/%.cpp,out/linux/common/%.o, $(SRC_COMMON))
