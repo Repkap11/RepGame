@@ -1,10 +1,15 @@
 #include "common/utils/file_utils.hpp"
+#include "common/RepGame.hpp"
 #include <libgen.h>
 #include <stdio.h>
 #include <string.h>
 #include <unistd.h>
 
 #if defined( REPGAME_LINUX )
+#include <unistd.h>
+#include <pwd.h>
+#include <stdio.h>
+#include <stdlib.h>
 char *getRepGamePath( ) {
     char buffer[ BUFSIZ ];
     memset( buffer, 0, sizeof( buffer ) );
@@ -12,9 +17,18 @@ char *getRepGamePath( ) {
     if ( result == -1 ) {
         return NULL;
     }
-    char *dir_temp = dirname( buffer );
-    char *dir = strdup( dir_temp );
-    return dir;
+    // char *dir_temp = dirname( buffer );
+    // char *dir = strdup( dir_temp );
+    char *dir;
+
+    if ( ( dir = getenv( "HOME" ) ) == NULL ) {
+        dir = getpwuid( getuid( ) )->pw_dir;
+    }
+    // strcpy(dir, "/home/paul/rep_image");
+    char *fullPath = (char*)malloc(BUFSIZ * sizeof(char));
+    snprintf( fullPath, BUFSIZ, "%s%s.repgame", dir, REPGAME_PATH_DIVIDOR);
+    //free(dir);
+    return fullPath;
 }
 #endif
 #if defined( REPGAME_ANDROID )

@@ -3,6 +3,12 @@ REP_MAKEFILES += makefiles/install.mk
 
 REPGAME_PACKAGES := libglm-dev libglm-doc rsync libarchive-tools wget ccache
 
+linux_build:
+	mkdir -p linux_build/
+	wget https://github.com/linuxdeploy/linuxdeploy/releases/download/continuous/linuxdeploy-x86_64.AppImage -O linux_build/linuxdeploy-x86_64.AppImage
+	chmod +x linux_build/linuxdeploy-x86_64.AppImage
+
+
 windows_build:
 	rm -rf freeglut.zip
 	rm -rf glew.zip
@@ -15,7 +21,7 @@ windows_build:
 	rm -rf freeglut.zip
 	rm -rf glew.zip
 
-install: windows_build
+install: windows_build linux_build
 	sudo apt-get install -y $(REPGAME_PACKAGES)
 
 .PHONY: install

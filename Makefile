@@ -25,6 +25,7 @@ all:
 
 #Sub makefiles might share variables. Cuda, server and linux do for sure.
 include makefiles/common.mk
+include makefiles/appimage.mk
 include makefiles/install.mk
 include makefiles/wasm.mk
 include makefiles/linux.mk #cuda.mk can be turned on inside linux.mk
