@@ -32,4 +32,6 @@ void mobs_remove_mob( Mobs *mobs, int mob_id );
 void mobs_draw( Mobs *mobs, const glm::mat4 &mvp, Renderer *renderer, Shader *shader );
 void mobs_cleanup( Mobs *mobs );
 
+int mobs_check_consistency( Mobs *mobs );
+
 #endif

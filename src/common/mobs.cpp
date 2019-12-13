@@ -49,16 +49,19 @@ void mobs_init( Mobs *mobs, VertexBufferLayout *vbl_object_vertex, VertexBufferL
 void mobs_remove_mob( Mobs *mobs, int mob_id ) {
     std::vector<ObjectPosition> &positions = mobs->mob_positions;
     int removed_index = mobs->mob_index_lookup[ mob_id ];
+    if ( removed_index == -1 ) {
+        pr_debug( "Can't remove an invalid mob_id:%d", mob_id );
+        return;
+    }
     mobs->mob_index_lookup[ mob_id ] = -1;
 
     ObjectPosition *swapped_mob = &positions.back( );
-    // ObjectPosition *removed_mob = &positions[ removed_index ];
-    // int swapped_index = positions.size( ) - 1;
-    // swapped_mob->id = removed_index;
+    if ( swapped_mob->id != ( unsigned int )mob_id ) {
+        mobs->mob_index_lookup[ swapped_mob->id ] = removed_index;
 
-    std::swap( positions[ removed_index ], positions.back( ) );
-
-    mobs->mob_index_lookup[ swapped_mob->id ] = removed_index;
+        // Warning, after this call swapped_mob is now the other mob!!
+        std::swap( positions[ removed_index ], positions.back( ) );
+    }
     positions.pop_back( );
     if ( positions.empty( ) ) {
         mobs->shouldDraw = false;
@@ -83,14 +86,8 @@ void mobs_add_mob( Mobs *mobs, unsigned int mob_id ) {
 void mobs_update_position( Mobs *mobs, int mob_id, float x, float y, float z, const glm::mat4 &rotation ) {
     int mod_index = mobs->mob_index_lookup[ mob_id ];
     if ( mod_index < 0 ) {
-        pr_debug( "Not addign mob" );
+        pr_debug( "Can't update position for non-existent mob %d", mob_id );
         return;
-        // pr_debug( "Adding mob" );
-        // mobs_add_mob( mobs, mob_id );
-        // mod_index = mobs->mob_index_lookup[ mob_id ];
-        // if ( mod_index < 0 ) {
-        //     pr_debug( "After adding a mob, its index shouln't be negative" );
-        // }
     }
     glm::mat4 translate = glm::translate( glm::mat4( 1.0 ), glm::vec3( x, y, z ) );
     ObjectPosition *mob = &mobs->mob_positions[ mod_index ];
@@ -98,6 +95,26 @@ void mobs_update_position( Mobs *mobs, int mob_id, float x, float y, float z, co
     mob->transform = translate * rotation * mobs->initial_mat;
     // TODO only update part of the VB, or only update it once on draw.
     vertex_buffer_set_data( &mobs->vb_mob_placement, mobs->mob_positions.data( ), sizeof( ObjectPosition ) * mobs->mob_positions.size( ) );
+}
+
+int mobs_check_consistency( Mobs *mobs ) {
+    int expected_num_mobs = 0;
+    for ( int i = 0; i < MAX_MOB_COUNT; i++ ) {
+        int lookup = mobs->mob_index_lookup[ i ];
+        if ( lookup != -1 ) {
+            expected_num_mobs++;
+            pr_test( "Lookup %d = %d", i, lookup );
+        }
+    }
+    for ( ObjectPosition &position : mobs->mob_positions ) {
+        unsigned int id = position.id;
+        float val = position.transform[ 0 ][ 0 ];
+        pr_test( "Pos %d %f", id, val );
+    }
+    int expected_num_mobs2 = mobs->mob_positions.size( );
+    pr_test( "Num Mobs:%d %d", expected_num_mobs2, expected_num_mobs );
+
+    return expected_num_mobs2 != expected_num_mobs;
 }
 
 void mobs_draw( Mobs *mobs, const glm::mat4 &mvp, Renderer *renderer, Shader *shader ) {

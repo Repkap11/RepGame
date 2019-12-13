@@ -45,12 +45,13 @@ int main( int argc, char **argv ) {
     const char *host;
     bool connect_multi = true;
 
+    int tests = 0;
     if ( argc == 1 ) {
         world_path = "World1";
         connect_multi = false;
     } else if ( argc == 2 ) {
         if ( strcmp( argv[ 1 ], "tests" ) == 0 ) {
-            return rep_tests_start( );
+            tests = 1;
         }
         world_path = argv[ 1 ];
         connect_multi = false;
@@ -87,6 +88,9 @@ int main( int argc, char **argv ) {
         exit( 1 ); // or handle the error in a nicer way
     }
 
+    if ( tests ) {
+        return rep_tests_start( );
+    }
     repgame_init( world_path, connect_multi, host );
 
     glutSpecialFunc( arrowKeyDownInput );
@@ -151,7 +155,7 @@ int main( int argc, char **argv ) {
             }
         }
     }
-    repgame_cleanup();
+    repgame_cleanup( );
     glutLeaveMainLoop( );
     glutDestroyWindow( glut_window );
     return 0;
