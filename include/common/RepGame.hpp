@@ -20,6 +20,7 @@
 #include "ui_overlay.hpp"
 
 #include <glm.hpp>
+#define GLM_FORCE_RADIANS
 #include <gtc/type_ptr.hpp>
 #include <gtc/matrix_transform.hpp>
 

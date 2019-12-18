@@ -4,6 +4,13 @@ BEFORE_VARS := $(.VARIABLES)
 REP_MAKEFILES = Makefile
 
 CPUS ?= $(shell nproc || echo 1)
+
+#Current version of Ubuntu running make
+UBUNTU_VERSION := $(shell lsb_release -r -s)
+
+#Version of Ubuntu to target when build with docker
+DOCKER_UBUNTU_VERSION ?= ${UBUNTU_VERSION}
+
 #SHELL = sh -xv
 
 # OLD_SHELL := $(SHELL)

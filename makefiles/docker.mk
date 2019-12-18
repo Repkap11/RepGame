@@ -4,7 +4,12 @@ REP_MAKEFILES += makefiles/docker.mk
 docker-image:
 	docker images -aq -f 'dangling=true' | xargs -r docker rmi || true
 	docker volume ls -q -f 'dangling=true' | xargs -r docker volume rm || true
-	docker build -t repgame --build-arg repgame_packages="${REPGAME_PACKAGES}" --build-arg user_name=$(shell whoami) .
+	docker build -t repgame \
+		--build-arg repgame_packages="$(DOCKER_ONLY_REPGAME_PACKAGES) $(REPGAME_PACKAGES)" \
+		--build-arg user_name=$(shell whoami) \
+		--build-arg user_id=$(shell id -u) \
+		--build-arg ubuntu_version="$(DOCKER_UBUNTU_VERSION)" \
+		.
 
 #This saves the docker image for repgame as a file so it can be "docker load -i" on another machine.
 docker-save: docker-image
@@ -20,9 +25,10 @@ docker-compile: | docker-image
 		--env="QT_X11_NO_MITSHM=1" \
 		--gpus all \
 		--volume="/tmp/.X11-unix:/tmp/.X11-unix:rw" \
-	repgame
+		--privileged \
+	repgame make docker-internal
 
 #This is what gets called whenin the container when you build via "docker-compile".
-docker-internal: windows linux-run
+docker-internal:
 
 .PHONY: docker-save docker-compile docker-image docker-install docker-internal-pre-build docker-internal-build

@@ -3,5 +3,5 @@ World1
 World2
 .vscode/ipch/
 windows_build
-linux_build
+appimage_build
 RepGame-1-x86_64.AppImage

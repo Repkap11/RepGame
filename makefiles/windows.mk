@@ -17,7 +17,9 @@ CC_WINDOWS := x86_64-w64-mingw32-g++
 #CC_WINDOWS := clang++
 
 ifeq ($(CC_WINDOWS),x86_64-w64-mingw32-g++)
-CFLAGS_WINDOWS += -no-pie
+	ifeq ($(UBUNTU_VERSION),18.04)
+		CFLAGS_WINDOWS += -no-pie
+	endif
 endif
 
 LD_WINDOWS := x86_64-w64-mingw32-ld
@@ -43,7 +45,7 @@ out/windows/bitmaps/%.o : out/bitmaps/%.bin $(REP_MAKEFILES) | out/windows
 	objcopy --rename-section .data=.rodata,CONTENTS,ALLOC,LOAD,READONLY,DATA --reverse-bytes=4 $@ $@
 
 all: windows
-
+docker-internal: windows
 windows:  out/windows/$(TARGET).exe windows_build
 
 deploy: windows-deploy
@@ -75,6 +77,19 @@ clean-windows:
 out/windows: | out
 	echo Making windows $(WINDOWS_DIRS)
 	mkdir -p $(WINDOWS_DIRS)
+
+install: windows_build
+windows_build:
+	rm -rf freeglut.zip
+	rm -rf glew.zip
+	rm -rf windows_build
+	mkdir -p windows_build/glew
+	wget -q https://www.transmissionzero.co.uk/files/software/development/GLUT/freeglut-MinGW.zip -O freeglut.zip
+	wget -q http://www.grhmedia.com/glew/glew-2.1.0-mingw-w64.zip -O glew.zip
+	bsdtar --strip-components=1 -xvf glew.zip -C windows_build/glew
+	bsdtar  -xvf freeglut.zip -C windows_build
+	rm -rf freeglut.zip
+	rm -rf glew.zip
 
 .PRECIOUS: out/windows/$(TARGET).exe $(OBJECTS_WINDOWS) $(OBJECTS_COMMON_WINDOWS) $(SHADER_BLOBS_WINDOWS) $(BITMAP_BLOBS_WINDOWS)
 

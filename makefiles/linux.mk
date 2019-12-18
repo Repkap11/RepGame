@@ -19,7 +19,9 @@ LD_LINUX := ld
 #LD_LINUX := gold
 
 ifeq ($(CC_LINUX),g++)
-	CFLAGS_LINUX += -no-pie
+	ifeq ($(UBUNTU_VERSION),18.04)
+		CFLAGS_LINUX += -no-pie
+	endif
 	ifeq ($(LD_LINUX),gold)
 		CFLAGS_LINUX += -fuse-ld=gold
 	endif
@@ -47,7 +49,7 @@ out/linux/bitmaps/%.o : out/bitmaps/%.bin $(REP_MAKEFILES) | out/linux
 	objcopy --rename-section .data=.rodata,CONTENTS,ALLOC,LOAD,READONLY,DATA --reverse-bytes=4 $@ $@
 
 all: linux
-
+docker-internal: linux
 linux: out/linux/$(TARGET)
 
 deploy: linux-deploy
@@ -77,10 +79,10 @@ tests: linux
 	./out/linux/$(TARGET) tests
 
 map:
-	rm -rf World1
+	rm -rf ~/.repgame/World1
 
 player:
-	rm -rf World1/player.dat
+	rm -rf ~/.repgame/World1/player.dat
 
 clean: clean-linux
 
