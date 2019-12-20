@@ -10,6 +10,7 @@
 #include "chunk.hpp"
 #include "common/object.hpp"
 #include <vector>
+#include <map>
 
 #define MAX_MOB_COUNT 20
 
@@ -17,7 +18,7 @@ typedef struct {
     IndexBuffer ib;
     VertexArray va;
     std::vector<ObjectPosition> mob_positions;
-    std::vector<int> mob_index_lookup;
+    std::map<int,int> mob_index_lookup;
     VertexBuffer vb_mob_placement;
     VertexBuffer vb_mob_shape;
     int shouldDraw;

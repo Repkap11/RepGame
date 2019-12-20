@@ -44,13 +44,13 @@ void mobs_init( Mobs *mobs, VertexBufferLayout *vbl_object_vertex, VertexBufferL
 }
 
 void mobs_remove_mob( Mobs *mobs, int mob_id ) {
-    std::vector<ObjectPosition> &positions = mobs->mob_positions;
-    int removed_index = mobs->mob_index_lookup[ mob_id ];
-    if ( removed_index == -1 ) {
+    if ( mobs->mob_index_lookup.find( mob_id ) == mobs->mob_index_lookup.end( ) ) {
         pr_debug( "Can't remove an invalid mob_id:%d", mob_id );
         return;
     }
-    mobs->mob_index_lookup[ mob_id ] = -1;
+    std::vector<ObjectPosition> &positions = mobs->mob_positions;
+    int removed_index = mobs->mob_index_lookup.at( mob_id );
+    mobs->mob_index_lookup.erase( mob_id );
 
     ObjectPosition *swapped_mob = &positions.back( );
     if ( swapped_mob->id != ( unsigned int )mob_id ) {
@@ -68,12 +68,6 @@ void mobs_remove_mob( Mobs *mobs, int mob_id ) {
 
 void mobs_add_mob( Mobs *mobs, unsigned int mob_id ) {
     pr_debug( "Added new mob:%u", mob_id );
-    if ( mob_id >= mobs->mob_index_lookup.size( ) ) {
-        mobs->mob_index_lookup.push_back( -1 );
-        if ( mob_id >= mobs->mob_index_lookup.size( ) ) {
-            pr_debug( "Error, mobs should only need 1 more element ot fix this mob" );
-        }
-    }
     std::vector<ObjectPosition> &positions = mobs->mob_positions;
     int next_index = positions.size( );
     mobs->mob_index_lookup[ mob_id ] = next_index;
@@ -97,21 +91,14 @@ void mobs_update_position( Mobs *mobs, int mob_id, float x, float y, float z, co
 }
 
 int mobs_check_consistency( Mobs *mobs ) {
-    int expected_num_mobs = 0;
-    for ( unsigned int i = 0; i < mobs->mob_index_lookup.size( ); i++ ) {
-        int lookup = mobs->mob_index_lookup[ i ];
-        if ( lookup != -1 ) {
-            expected_num_mobs++;
-            //pr_test( "Lookup %d = %d", i, lookup );
-        }
-    }
     for ( ObjectPosition &position : mobs->mob_positions ) {
         unsigned int id = position.id;
         float val = position.transform[ 0 ][ 0 ];
-        //pr_test( "Position %d" );
+        // pr_test( "Position %d" );
     }
+    int expected_num_mobs = mobs->mob_index_lookup.size( );
     int expected_num_mobs2 = mobs->mob_positions.size( );
-    //pr_test( "Num Mobs:%d %d", expected_num_mobs2, expected_num_mobs );
+    // pr_test( "Num Mobs:%d %d", expected_num_mobs2, expected_num_mobs );
 
     return expected_num_mobs2 != expected_num_mobs;
 }
