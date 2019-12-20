@@ -37,6 +37,9 @@ void change_block( int place, BlockState blockState ) {
         }
         if ( block->needs_place_on_solid ) {
             BlockID under_blockID = world_get_loaded_block( &globalGameState.world, block_x, block_y - 1, block_z ).id;
+            if (under_blockID == LAST_BLOCK_ID){
+                return;
+            }
             Block *under_block = block_definition_get_definition( under_blockID );
             if ( !render_order_collides_with_player( under_block->renderOrder ) ) {
                 return;
@@ -73,8 +76,10 @@ unsigned char getPlacedRotation( BlockID blockID ) {
 void repgame_process_mouse_events( ) {
     if ( globalGameState.block_selection.selectionInBounds && globalGameState.input.mouse.buttons.middle ) {
         BlockState blockState = world_get_loaded_block( &globalGameState.world, TRIP_ARGS( globalGameState.block_selection.destroy_ ) );
-        pr_debug( "Selected block:%d", blockState.id );
-        globalGameState.block_selection.holdingBlock = blockState.id;
+        if (blockState.id != LAST_BLOCK_ID){
+            pr_debug( "Selected block:%d", blockState.id );
+            globalGameState.block_selection.holdingBlock = blockState.id;
+        }
     }
     if ( globalGameState.block_selection.selectionInBounds && globalGameState.input.mouse.buttons.left && globalGameState.input.click_delay_left == 0 ) {
         change_block( 0, {AIR, BLOCK_ROTATE_0} );
@@ -89,18 +94,20 @@ void repgame_process_mouse_events( ) {
         int wheel_diff = globalGameState.input.mouse.currentPosition.wheel_counts > globalGameState.input.mouse.previousPosition.wheel_counts ? 1 : -1;
         BlockState blockState = world_get_loaded_block( &globalGameState.world, TRIP_ARGS( globalGameState.block_selection.destroy_ ) );
         int blockID_int = ( int )blockState.id;
-        do {
-            blockID_int += wheel_diff;
-            if ( blockID_int >= LAST_BLOCK_ID ) {
-                blockID_int = LAST_BLOCK_ID - 1;
-            }
-            if ( blockID_int <= 0 ) {
-                blockID_int = 1;
-            }
-        } while ( !render_order_is_pickable( block_definition_get_definition( ( BlockID )blockID_int )->renderOrder ) );
-        blockState.id = ( BlockID )blockID_int;
-        blockState.rotation = getPlacedRotation( blockState.id );
-        change_block( 0, blockState );
+        if (blockID_int != LAST_BLOCK_ID){
+            do {
+                blockID_int += wheel_diff;
+                if ( blockID_int >= LAST_BLOCK_ID ) {
+                    blockID_int = LAST_BLOCK_ID - 1;
+                }
+                if ( blockID_int <= 0 ) {
+                    blockID_int = 1;
+                }
+            } while ( !render_order_is_pickable( block_definition_get_definition( ( BlockID )blockID_int )->renderOrder ) );
+            blockState.id = ( BlockID )blockID_int;
+            blockState.rotation = getPlacedRotation( blockState.id );
+            change_block( 0, blockState );
+        }
     }
     globalGameState.input.mouse.currentPosition.wheel_counts = 0;
 }
