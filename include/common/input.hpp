@@ -40,7 +40,7 @@ void input_set_enable_mouse( int enable );
 void input_keysInput( InputState *inputState, unsigned char key, int x, int y, int pressed );
 #else
 void input_positionHMove( InputState *inputState, float sizeH, float angleH );
-void input_positionVMove( InputState *inputState, int sizeV );
+void input_setJumpPressed( InputState *inputState, int jumpPressed );
 void input_setButtonState( InputState *inputState, int left, int middle, int right );
 #endif
 void input_lookMove( InputState *inputState, int x, int y );

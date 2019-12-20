@@ -191,7 +191,7 @@ public class UIOverlayView extends View implements View.OnTouchListener {
                     mMovePointerId = actionPointer;
                 } else if (eventWithinUp(event, actionIndex)) {
                     mUpPointerId = actionPointer;
-                    handleVMove();
+                    handleJump();
                 } else if (eventWithinMouseLeft(event, actionIndex)) {
                     mMouseLeftPointerId = actionPointer;
                     handleMouseButtons();
@@ -203,7 +203,7 @@ public class UIOverlayView extends View implements View.OnTouchListener {
                     handleMouseButtons();
                 } else if (eventWithinDown(event, actionIndex)) {
                     mDownPointerId = actionPointer;
-                    handleVMove();
+                    handleJump();
                 } else {
                     handleLook((int) event.getX(actionIndex), (int) event.getY(actionIndex), true);
                     mLookPointerId = actionPointer;
@@ -223,11 +223,11 @@ public class UIOverlayView extends View implements View.OnTouchListener {
                 }
                 if (actionPointer == mUpPointerId) {
                     mUpPointerId = -1;
-                    handleVMove();
+                    handleJump();
                 }
                 if (actionPointer == mDownPointerId) {
                     mDownPointerId = -1;
-                    handleVMove();
+                    handleJump();
                 }
                 if (actionPointer == mMouseLeftPointerId) {
                     mMouseLeftPointerId = -1;
@@ -264,19 +264,17 @@ public class UIOverlayView extends View implements View.OnTouchListener {
         mRenderWrapper.setButtonState(left, middle, right);
     }
 
-    private void handleVMove() {
-        int size;
+    private void handleJump() {
+        int jumpPressed;
         if (mUpPointerId != -1 && mDownPointerId != -1) {
-            //Up and down, dont move;
-            size = 0;
+            //Up and down, dont jump;
+            jumpPressed = 0;
         } else if (mUpPointerId != -1) {
-            size = 1;
-        } else if (mDownPointerId != -1) {
-            size = -1;
+            jumpPressed = 1;
         } else {
-            size = 0;
+            jumpPressed = 0;
         }
-        mRenderWrapper.positionVInput(size);
+        mRenderWrapper.setJumpPressed(jumpPressed);
 
     }
 

@@ -65,8 +65,8 @@ public class RepGameAndroidRenderer implements GLSurfaceView.Renderer {
     }
 
 
-    public void positionVInput(int sizeV) {
-        RepGameJNIWrapper.positionVInput(sizeV);
+    public void setJumpPressed(int jumpPressed) {
+        RepGameJNIWrapper.setJumpPressed(jumpPressed);
     }
 
     public void onPause() {

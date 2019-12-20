@@ -9,8 +9,8 @@ void input_positionHMove( InputState *inputState, float sizeH, float angleH ) {
     inputState->movement.angleH = angleH;
 }
 
-void input_positionVMove( InputState *inputState, int sizeV ) {
-    inputState->movement.sizeV = sizeV;
+void input_setJumpPressed( InputState *inputState, int jumpPressed ) {
+    inputState->movement.jumpPressed = jumpPressed;
 }
 
 void input_setButtonState( InputState *inputState, int left, int middle, int right ) {
