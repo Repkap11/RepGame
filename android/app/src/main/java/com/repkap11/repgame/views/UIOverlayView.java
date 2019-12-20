@@ -37,10 +37,6 @@ public class UIOverlayView extends View implements View.OnTouchListener {
     private int mUpX;
     private int mUpX2;
     private int mUpY;
-    private int mDownRadius;
-    private int mDownX;
-    private int mDownX2;
-    private int mDownY;
     private int mMouseLeftX;
     private int mMouseLeftY;
     private int mMouseMiddleX;
@@ -67,8 +63,6 @@ public class UIOverlayView extends View implements View.OnTouchListener {
         canvas.drawCircle(mMoveFingerX, mMoveFingerY, mMoveFingerRadius, mMovePaint);
         canvas.drawCircle(mUpX, mUpY, mUpRadius, mMovePaint);
         canvas.drawCircle(mUpX2, mUpY, mUpRadius, mMovePaint);
-        canvas.drawCircle(mDownX, mDownY, mDownRadius, mMovePaint);
-        canvas.drawCircle(mDownX2, mDownY, mDownRadius, mMovePaint);
         canvas.drawCircle(mMouseLeftX, mMouseLeftY, mMouseRadius, mMovePaint);
         canvas.drawCircle(mMouseMiddleX, mMouseMiddleY, mMouseRadius, mMovePaint);
         canvas.drawCircle(mMouseRightX, mMouseRightY, mMouseRadius, mMovePaint);
@@ -88,10 +82,6 @@ public class UIOverlayView extends View implements View.OnTouchListener {
         mUpX2 = w - mUpX;
 
         mUpY = lookMaxRadius / 2;
-        mDownRadius = mMoveRadius / 2;
-        mDownX = lookMaxRadius / 2;
-        mDownX2 = w - mDownX;
-        mDownY = lookMaxRadius * 3 / 2;
 
         mMouseLeftY = h - mUpRadius;
         mMouseMiddleY = h - mUpRadius;
@@ -129,20 +119,6 @@ public class UIOverlayView extends View implements View.OnTouchListener {
         }
         if ((Math.abs(x - mUpX2) < mUpRadius) &&
                 (Math.abs(y - mUpY) < mUpRadius)) {
-            return true;
-        }
-        return false;
-    }
-
-    boolean eventWithinDown(MotionEvent event, int pointerIndex) {
-        int x = (int) event.getX(pointerIndex);
-        int y = (int) event.getY(pointerIndex);
-        if ((Math.abs(x - mDownX) < mDownRadius) &&
-                (Math.abs(y - mDownY) < mDownRadius)) {
-            return true;
-        }
-        if ((Math.abs(x - mDownX2) < mDownRadius) &&
-                (Math.abs(y - mDownY) < mDownRadius)) {
             return true;
         }
         return false;
@@ -201,9 +177,6 @@ public class UIOverlayView extends View implements View.OnTouchListener {
                 } else if (eventWithinMouseRight(event, actionIndex)) {
                     mMouseRightPointerId = actionPointer;
                     handleMouseButtons();
-                } else if (eventWithinDown(event, actionIndex)) {
-                    mDownPointerId = actionPointer;
-                    handleJump();
                 } else {
                     handleLook((int) event.getX(actionIndex), (int) event.getY(actionIndex), true);
                     mLookPointerId = actionPointer;
