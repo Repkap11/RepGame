@@ -12,11 +12,11 @@ android/app/src/main/assets/shaders:
 
 all: android
 android: android-shaders android-bitmaps $(REP_MAKEFILES)
-	./android/gradlew -q -p android assembleDebug
+	./android/gradlew --console=plain -q -p android assembleDebug
 
 android-run: android
 	adb shell input keyevent KEYCODE_WAKEUP
-	./android/gradlew -q -p android installDebug
+	./android/gradlew --console=plain -q -p android installDebug
 	adb logcat -c
 	adb shell monkey -p com.repkap11.${TARGET_LOWER} -c android.intent.category.LAUNCHER 1
 	#adb logcat -s ${TARGET}Android -v brief
@@ -34,7 +34,7 @@ clean-android:
 	rm -f $(ANDROID_BITMAPS)
 	rm -rf $(ANDROID_DIRS)
 	rm -rf android/app/.externalNativeBuild
-	./android/gradlew -q -p android clean
+	./android/gradlew --console=plain -q -p android clean
 
 android-shaders: $(ANDROID_SHADERS)
 
