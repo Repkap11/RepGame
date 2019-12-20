@@ -27,7 +27,7 @@ out/appimage: out/linux/$(TARGET) src/linux/$(TARGET).desktop bitmaps/icon_512.p
 		--desktop-file src/linux/$(TARGET).desktop \
 		--icon-file bitmaps/icon_512.png
 
-$(TARGET)-1-x86_64.AppImage: $(REP_MAKEFILES) out/appimage
+$(TARGET)-1-x86_64.AppImage: $(REP_MAKEFILES) appimage_build out/appimage
 	VERSION=1 appimage_build/linuxdeploy-x86_64.AppImage \
 		--appdir out/appimage --output appimage
 

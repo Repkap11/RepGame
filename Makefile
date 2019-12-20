@@ -24,7 +24,7 @@ MAKEFLAGS += --jobs=$(CPUS)
 MAKEFLAGS += --no-print-directory
 
 TARGET := RepGame
-TARGET_LOWER := repgame
+TARGET_LOWER := $(shell echo $(TARGET) | tr '[:upper:]' '[:lower:]')
 
 #Default target
 all:
