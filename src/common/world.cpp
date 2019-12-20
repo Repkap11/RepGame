@@ -127,10 +127,25 @@ void world_cleanup( World *world ) {
     vertex_buffer_layout_destroy( &world->vbl_coords );
 }
 
+int can_fixup_chunk( World *world, Chunk *chunk, TRIP_ARGS( int offset_ ) ) {
+    Chunk *fixupChunk = chunk_loader_get_chunk( &world->loadedChunks, chunk->chunk_x + offset_x, chunk->chunk_y + offset_y, chunk->chunk_z + offset_z );
+    if ( fixupChunk ) {
+        if ( !fixupChunk->is_loading ) {
+            return 1;
+        }
+    }
+    return 0;
+}
+
 void fixup_chunk( World *world, Chunk *chunk, TRIP_ARGS( int offset_ ), TRIP_ARGS( int pos_ ), BlockState blockState ) {
     // pr_debug( "Fixup Offset: %d %d %d", x, y, z );
     Chunk *fixupChunk = chunk_loader_get_chunk( &world->loadedChunks, chunk->chunk_x + offset_x, chunk->chunk_y + offset_y, chunk->chunk_z + offset_z );
     if ( fixupChunk ) {
+        if ( fixupChunk->is_loading ) {
+            //This shouldn't happen because can_fixup_chunk should be called first.
+            pr_debug( "Ekk, still loading. You'll probably get a lighting bug." );
+            return;
+        }
         chunk_unprogram_terrain( chunk );
         chunk_set_block( fixupChunk, TRIP_ARGS( pos_ ), blockState );
         fixupChunk->ditry = 1;
@@ -177,6 +192,22 @@ void world_set_loaded_block( World *world, TRIP_ARGS( int block_ ), BlockState b
         int diff_z = block_z - chunk_z * CHUNK_SIZE;
         // pr_debug( "Orig Offset: %d %d %d", diff_x, diff_y, diff_z );
 
+        for ( int i = -1; i < 2; i++ ) {
+            for ( int j = -1; j < 2; j++ ) {
+                for ( int k = -1; k < 2; k++ ) {
+                    int needs_update_x = ( ( i != 1 && diff_x == 0 ) || ( i != -1 && diff_x == ( CHUNK_SIZE - 1 ) ) ) || i == 0; //
+                    int needs_update_y = ( ( j != 1 && diff_y == 0 ) || ( j != -1 && diff_y == ( CHUNK_SIZE - 1 ) ) ) || j == 0; //
+                    int needs_update_z = ( ( k != 1 && diff_z == 0 ) || ( k != -1 && diff_z == ( CHUNK_SIZE - 1 ) ) ) || k == 0;
+                    int needs_update = TRIP_AND( needs_update_ ) && !( i == 0 && j == 0 && k == 0 );
+                    if ( needs_update ) {
+                        if ( !can_fixup_chunk( world, chunk, i, j, k ) ) {
+                            pr_debug( "Ekk, can't fixup block, so not placing" );
+                            return;
+                        }
+                    }
+                }
+            }
+        }
         for ( int i = -1; i < 2; i++ ) {
             for ( int j = -1; j < 2; j++ ) {
                 for ( int k = -1; k < 2; k++ ) {
