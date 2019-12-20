@@ -5,15 +5,27 @@ CFLAGS_WASM := -DREPGAME_WASM \
 			-s USE_WEBGL2=1 \
 			--no-heap-copy \
 			-std=c++11 \
+			-lidbfs.js \
 			-s EXPORTED_FUNCTIONS='["_main", "_testJS"]' \
 			-s EXTRA_EXPORTED_RUNTIME_METHODS='["ccall", "cwrap"]'
 
-#CFLAGS_WASM += -s USE_PTHREADS=1 -s TOTAL_MEMORY=512MB
+
+#Works OK
 CFLAGS_WASM += -s ALLOW_MEMORY_GROWTH=1
 
-EM_ROOT := $(shell if [ -f ~/.emscripten ]; then cat  ~/.emscripten | grep BINARYEN_ROOT | sed -e "s/.* = \(.*\)/\1/" ; fi )
+#Locks up GPU
+#CFLAGS_WASM += -s USE_PTHREADS=1 -s TOTAL_MEMORY=512MB
 
+#Basically not supported
+#CFLAGS_WASM += -s USE_PTHREADS=1 -s ALLOW_MEMORY_GROWTH=1 -s WASM_MEM_MAX=1024MB
+
+#To apply repgame patch run
+#wget -q -O - https://github.com/Repkap11/emscripten/commit/a9f0365aaa9f4c02d38a24fef52c492773725317.patch | sed -s -e "s#a/src#a/upstream/emscripten/src#" | sed -s -e "s#b/src#b/upstream/emscripten/src#" | patch -p1
+
+EM_ROOT := $(shell if [ -f ~/.emscripten ]; then cat  ~/.emscripten | grep BINARYEN_ROOT | sed -e "s/.* = \(.*\)/\1/" ; fi )
+#EM_ROOT := /home/paul/Software/
 CC_WASM := ${EM_ROOT}/emscripten/em++
+
 ifeq ($(USE_CCACHE),1)
 CC_WASM := ccache $(CC_WASM)
 endif
