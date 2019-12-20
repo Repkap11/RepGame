@@ -31,4 +31,9 @@ $(TARGET)-1-x86_64.AppImage: $(REP_MAKEFILES) appimage_build out/appimage
 	VERSION=1 appimage_build/linuxdeploy-x86_64.AppImage \
 		--appdir out/appimage --output appimage
 
+deploy: appimage-deploy
+
+appimage-deploy: $(TARGET)-1-x86_64.AppImage
+	rsync $< paul@repkap11.com:/home/paul/website/${TARGET_LOWER}
+
 .PHONY: appimage clean-appimage appimage-run
