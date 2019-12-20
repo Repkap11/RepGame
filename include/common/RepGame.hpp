@@ -48,8 +48,10 @@ typedef struct {
         float x;
         float y;
         float z;
+        float y_speed;
         glm::mat4 view_look;
         glm::mat4 view_trans;
+        int standing_on_solid;
     } camera;
     struct {
         float width;

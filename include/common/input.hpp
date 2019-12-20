@@ -5,7 +5,7 @@ typedef struct {
     struct {
         float sizeH;
         float angleH;
-        int sizeV;
+        int jumpPressed;
     } movement;
     struct {
         struct {

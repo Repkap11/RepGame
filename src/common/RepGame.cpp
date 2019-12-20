@@ -37,7 +37,7 @@ void change_block( int place, BlockState blockState ) {
         }
         if ( block->needs_place_on_solid ) {
             BlockID under_blockID = world_get_loaded_block( &globalGameState.world, block_x, block_y - 1, block_z ).id;
-            if (under_blockID == LAST_BLOCK_ID){
+            if ( under_blockID == LAST_BLOCK_ID ) {
                 return;
             }
             Block *under_block = block_definition_get_definition( under_blockID );
@@ -76,7 +76,7 @@ unsigned char getPlacedRotation( BlockID blockID ) {
 void repgame_process_mouse_events( ) {
     if ( globalGameState.block_selection.selectionInBounds && globalGameState.input.mouse.buttons.middle ) {
         BlockState blockState = world_get_loaded_block( &globalGameState.world, TRIP_ARGS( globalGameState.block_selection.destroy_ ) );
-        if (blockState.id != LAST_BLOCK_ID){
+        if ( blockState.id != LAST_BLOCK_ID ) {
             pr_debug( "Selected block:%d", blockState.id );
             globalGameState.block_selection.holdingBlock = blockState.id;
         }
@@ -94,7 +94,7 @@ void repgame_process_mouse_events( ) {
         int wheel_diff = globalGameState.input.mouse.currentPosition.wheel_counts > globalGameState.input.mouse.previousPosition.wheel_counts ? 1 : -1;
         BlockState blockState = world_get_loaded_block( &globalGameState.world, TRIP_ARGS( globalGameState.block_selection.destroy_ ) );
         int blockID_int = ( int )blockState.id;
-        if (blockID_int != LAST_BLOCK_ID){
+        if ( blockID_int != LAST_BLOCK_ID ) {
             do {
                 blockID_int += wheel_diff;
                 if ( blockID_int >= LAST_BLOCK_ID ) {
@@ -140,22 +140,42 @@ void repgame_process_camera_angle( ) {
     );
     globalGameState.camera.view_trans = glm::translate( glm::mat4( 1.0f ), glm::vec3( -globalGameState.camera.x, -globalGameState.camera.y, -globalGameState.camera.z ) );
 }
-void repgame_process_movement( ) {
-    float movement_vector_x = MOVEMENT_SENSITIVITY * globalGameState.input.movement.sizeH * globalGameState.camera.mx;
-    float movement_vector_y = MOVEMENT_SENSITIVITY * globalGameState.input.movement.sizeV;
-    float movement_vector_z = MOVEMENT_SENSITIVITY * globalGameState.input.movement.sizeH * globalGameState.camera.mz;
 
-    if ( movement_vector_y == 0 ) {
-        movement_vector_y = -GRAVITY_STRENGTH;
+#define TERMINAL_VELOCITY 0.5f
+#define JUMP_STRENGTH 0.18f
+
+#if NO_CLIP
+#define GRAVITY_STRENGTH 0.0f
+#else
+#define GRAVITY_STRENGTH 0.01f
+#endif
+
+void repgame_process_movement( ) {
+
+    if ( globalGameState.input.movement.jumpPressed && globalGameState.camera.standing_on_solid ) {
+        globalGameState.camera.y_speed = JUMP_STRENGTH;
     }
 
+    float accel = -GRAVITY_STRENGTH;
+
+    float movement_vector_x = MOVEMENT_SENSITIVITY * globalGameState.input.movement.sizeH * globalGameState.camera.mx;
+    float movement_vector_y = globalGameState.camera.y_speed + accel;
+    if ( movement_vector_y > TERMINAL_VELOCITY ) {
+        movement_vector_y = TERMINAL_VELOCITY;
+    }
+    if ( movement_vector_y < -TERMINAL_VELOCITY ) {
+        movement_vector_y = -TERMINAL_VELOCITY;
+    }
+    float movement_vector_z = MOVEMENT_SENSITIVITY * globalGameState.input.movement.sizeH * globalGameState.camera.mz;
     collision_check_move( &globalGameState.world, TRIP_ARGS( &movement_vector_ ), //
                           globalGameState.camera.x,                               //
                           globalGameState.camera.y,                               //
-                          globalGameState.camera.z );
+                          globalGameState.camera.z,                               //
+                          &globalGameState.camera.standing_on_solid );
 
     globalGameState.camera.x += movement_vector_x;
     globalGameState.camera.y += movement_vector_y;
+    globalGameState.camera.y_speed = movement_vector_y;
     globalGameState.camera.z += movement_vector_z;
 }
 void repgame_idle( ) {

@@ -97,10 +97,12 @@ void check_collides_with_player( World *world, TRIP_ARGS( float *movement_vec_ )
     free( faces );
 }
 
-void collision_check_move( World *world, TRIP_ARGS( float *movement_vec_ ), TRIP_ARGS( float position_ ) ) {
+void collision_check_move( World *world, TRIP_ARGS( float *movement_vec_ ), TRIP_ARGS( float position_ ), int *out_standing ) {
     if ( NO_CLIP ) {
+        *out_standing = 0;
         return;
     }
+    int standing = 0;
     int *dirs_to_check = ( int * )calloc( NUM_FACES_IN_CUBE, sizeof( int ) );
     if ( *movement_vec_x > 0 ) {
         dirs_to_check[ FACE_RIGHT ] = 1;
@@ -132,7 +134,11 @@ void collision_check_move( World *world, TRIP_ARGS( float *movement_vec_ ), TRIP
         check_collides_with_player( world, &zero, movement_vec_y, &zero, TRIP_ARGS( position_ ) );
     }
     if ( dirs_to_check[ FACE_BOTTOM ] ) {
+        float before = *movement_vec_y;
         check_collides_with_player( world, &zero, movement_vec_y, &zero, TRIP_ARGS( position_ ) );
+        if ( before != *movement_vec_y ) {
+            standing = 1;
+        }
     }
     if ( dirs_to_check[ FACE_FRONT ] ) {
         check_collides_with_player( world, &zero, &zero, movement_vec_z, TRIP_ARGS( position_ ) );
@@ -141,4 +147,5 @@ void collision_check_move( World *world, TRIP_ARGS( float *movement_vec_ ), TRIP
         check_collides_with_player( world, &zero, &zero, movement_vec_z, TRIP_ARGS( position_ ) );
     }
     free( dirs_to_check );
+    *out_standing = standing;
 }
