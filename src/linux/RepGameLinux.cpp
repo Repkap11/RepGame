@@ -76,6 +76,7 @@ int main( int argc, char **argv ) {
     int glut_window = glutCreateWindow( "RepGame" );
 
     pr_debug( "Using OpenGL Version:%s", glGetString( GL_VERSION ) );
+    pr_debug( "Using OpenGL Renderer:%s", glGetString( GL_RENDERER ) );
     glewExperimental = GL_TRUE;
     if ( glewInit( ) ) {
         pr_debug( "GLEW init failed" );
