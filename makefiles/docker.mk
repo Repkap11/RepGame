@@ -28,6 +28,18 @@ docker-compile: | docker-image
 		--privileged \
 	repgame make docker-internal
 
+docker-run: | docker-image
+	docker run \
+		--user $(shell id -u):$(shell id -g) \
+		--rm -it --init \
+		-v $(shell pwd):/home/$(shell whoami)/RepGame \
+		--env="DISPLAY" \
+		--env="QT_X11_NO_MITSHM=1" \
+		--gpus all \
+		--volume="/tmp/.X11-unix:/tmp/.X11-unix:rw" \
+		--privileged \
+	repgame make linux-run
+
 #This is what gets called whenin the container when you build via "docker-compile".
 docker-internal:
 
