@@ -193,6 +193,8 @@ void repgame_tick( ) {
         return;
     }
 
+    multiplayer_process_events( &globalGameState.world );
+
     if ( repgame_should_lock_pointer( ) ) {
         repgame_process_mouse_events( );
         int whichFace = 0;
