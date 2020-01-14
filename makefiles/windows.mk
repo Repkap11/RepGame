@@ -75,7 +75,6 @@ clean-windows:
 	rm -rf out/windows
 
 out/windows: | out
-	echo Making windows $(WINDOWS_DIRS)
 	mkdir -p $(WINDOWS_DIRS)
 
 install: windows_build
