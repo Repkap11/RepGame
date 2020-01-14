@@ -14,7 +14,7 @@ DOCKER_UBUNTU_VERSION ?= ${UBUNTU_VERSION}
 #SHELL = sh -xv
 
 # OLD_SHELL := $(SHELL)
-# SHELL = $(warning [Paul: $@ ($^) ($?)])$(OLD_SHELL)
+# SHELL = $(info [Paul: $@ ($^) ($?)])$(OLD_SHELL)
 
 #MAKEFLAGS += -k #Continue after failed targets
 MAKEFLAGS += -r #Don't use build in commands

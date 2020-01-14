@@ -86,7 +86,8 @@ void map_storage_persist( Chunk *chunk ) {
         int chunk_offset_y = chunk->chunk_y;
         int chunk_offset_z = chunk->chunk_z;
         char file_name[ CHUNK_NAME_LENGTH ];
-        snprintf( file_name, CHUNK_NAME_LENGTH, file_root_chunk, map_name, chunk_offset_x, chunk_offset_y, chunk_offset_z );
+        if ( snprintf( file_name, CHUNK_NAME_LENGTH, file_root_chunk, map_name, chunk_offset_x, chunk_offset_y, chunk_offset_z ) != CHUNK_NAME_LENGTH ) {
+        }
 
         FILE *write_ptr;
         STORAGE_TYPE persist_data[ CHUNK_BLOCK_SIZE ];
@@ -132,7 +133,8 @@ void map_storage_persist( Chunk *chunk ) {
 
 int check_if_chunk_exists( TRIP_ARGS( int chunk_offset_ ) ) {
     char file_name[ CHUNK_NAME_LENGTH ];
-    snprintf( file_name, CHUNK_NAME_LENGTH, file_root_chunk, map_name, chunk_offset_x, chunk_offset_y, chunk_offset_z );
+    if ( snprintf( file_name, CHUNK_NAME_LENGTH, file_root_chunk, map_name, chunk_offset_x, chunk_offset_y, chunk_offset_z ) != CHUNK_NAME_LENGTH ) {
+    }
     if ( access( file_name, F_OK ) != -1 ) {
         return 1;
     } else {
@@ -151,7 +153,8 @@ int map_storage_load( Chunk *chunk ) {
     }
 
     char file_name[ CHUNK_NAME_LENGTH ];
-    snprintf( file_name, CHUNK_NAME_LENGTH, file_root_chunk, map_name, chunk_offset_x, chunk_offset_y, chunk_offset_z );
+    if ( snprintf( file_name, CHUNK_NAME_LENGTH, file_root_chunk, map_name, chunk_offset_x, chunk_offset_y, chunk_offset_z ) != CHUNK_NAME_LENGTH ) {
+    }
 
     FILE *read_ptr;
     STORAGE_TYPE persist_data[ CHUNK_BLOCK_SIZE ];
@@ -184,7 +187,8 @@ int map_storage_load( Chunk *chunk ) {
 
 int map_storage_read_player_data( PlayerData *player_data ) {
     char file_name[ CHUNK_NAME_LENGTH ];
-    snprintf( file_name, CHUNK_NAME_LENGTH, file_root_player_data, map_name );
+    if ( snprintf( file_name, CHUNK_NAME_LENGTH, file_root_player_data, map_name ) != CHUNK_NAME_LENGTH ) {
+    }
     FILE *read_ptr = fopen( file_name, "rb" );
     if ( !read_ptr ) {
         pr_debug( "No player data:%s (%p)", file_name, read_ptr );
@@ -200,7 +204,8 @@ int map_storage_read_player_data( PlayerData *player_data ) {
 
 void map_storage_write_player_data( PlayerData *player_data ) {
     char file_name[ CHUNK_NAME_LENGTH ];
-    snprintf( file_name, CHUNK_NAME_LENGTH, file_root_player_data, map_name );
+    if ( snprintf( file_name, CHUNK_NAME_LENGTH, file_root_player_data, map_name ) != CHUNK_NAME_LENGTH ) {
+    }
     FILE *write_ptr = fopen( file_name, "wb" );
     if ( !write_ptr ) {
         pr_debug( "Can't write player:%s (%p)", file_name, write_ptr );

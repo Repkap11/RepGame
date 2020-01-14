@@ -38,9 +38,10 @@ docker-run: | docker-image
 		--gpus all \
 		--volume="/tmp/.X11-unix:/tmp/.X11-unix:rw" \
 		--privileged \
-	repgame make linux-run
+	repgame make appimage-run
 
-#This is what gets called whenin the container when you build via "docker-compile".
+#This is what gets called inside the container when you build via "docker-compile".
+#Each makefile adds dependencies to this target to include themselves in the build
 docker-internal:
 
 .PHONY: docker-save docker-compile docker-image docker-install docker-internal-build

@@ -37,7 +37,7 @@ out/appimage/$(TARGET)-1-x86_64.AppImage: $(REP_MAKEFILES) appimage_build out/ap
 
 deploy: appimage-deploy
 
-appimage-deploy: $(TARGET)-1-x86_64.AppImage
+appimage-deploy: out/appimage/$(TARGET)-1-x86_64.AppImage
 	rsync $< paul@repkap11.com:/home/paul/website/${TARGET_LOWER}
 
 .PHONY: appimage clean-appimage appimage-run

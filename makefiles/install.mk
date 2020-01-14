@@ -9,7 +9,8 @@ else
 	HOST_ONLY_REPGAME_PACKAGES += libarchive-tools
 endif
 
-ifneq ($(DOCKER_UBUNTU_VERSION),18.04)
+ifeq ($(DOCKER_UBUNTU_VERSION),14.04)
+else ifeq ($(DOCKER_UBUNTU_VERSION),16.04)
 	DOCKER_ONLY_REPGAME_PACKAGES += bsdtar
 else
 	DOCKER_ONLY_REPGAME_PACKAGES += libarchive-tools

@@ -19,7 +19,9 @@ LD_LINUX := ld
 #LD_LINUX := gold
 
 ifeq ($(CC_LINUX),g++)
-	ifeq ($(UBUNTU_VERSION),18.04)
+	ifeq ($(UBUNTU_VERSION),14.04)
+	else ifeq ($(UBUNTU_VERSION),16.04)
+	else
 		CFLAGS_LINUX += -no-pie
 	endif
 	ifeq ($(LD_LINUX),gold)
