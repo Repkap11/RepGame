@@ -49,12 +49,14 @@ int main( int argc, char **argv ) {
     if ( argc == 1 ) {
         world_path = "World1";
         connect_multi = false;
+        host = "";
     } else if ( argc == 2 ) {
         if ( strcmp( argv[ 1 ], "tests" ) == 0 ) {
             tests = 1;
         }
         world_path = argv[ 1 ];
         connect_multi = false;
+        host = "";
     } else if ( argc == 3 ) {
         world_path = argv[ 1 ];
         host = argv[ 2 ];
