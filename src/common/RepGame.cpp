@@ -152,7 +152,7 @@ void repgame_process_camera_angle( ) {
 
 void repgame_process_movement( ) {
 
-    if ( globalGameState.input.movement.jumpPressed && globalGameState.camera.standing_on_solid && globalGameState.camera.y_speed < 0.01f && globalGameState.camera.y_speed > -0.01f ) {
+    if ( globalGameState.input.movement.jumpPressed && globalGameState.camera.standing_on_solid ) {
         globalGameState.camera.y_speed = JUMP_STRENGTH;
     }
 
