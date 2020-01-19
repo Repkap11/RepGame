@@ -62,7 +62,7 @@ linux-deploy: out/linux/$(TARGET)
 LINUX_DIRS := $(patsubst src%,out/linux%,$(shell find src -type d)) \
 	   out/linux/shaders out/linux/bitmaps
 
-include makefiles/cuda.mk
+#include makefiles/cuda.mk
 
 out/linux/%.o: src/%.cpp $(REP_MAKEFILES) | out/linux
 	@#Use g++ to build o file and a dependecy tree .d file for every cpp file
