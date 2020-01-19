@@ -21,11 +21,12 @@ CFLAGS_WASM += -s ALLOW_MEMORY_GROWTH=1
 #Basically not supported
 #CFLAGS_WASM += -s USE_PTHREADS=1 -s ALLOW_MEMORY_GROWTH=1 -s WASM_MEM_MAX=1024MB
 
-#To apply repgame patch run
-#wget -q -O - https://github.com/Repkap11/emscripten/commit/a9f0365aaa9f4c02d38a24fef52c492773725317.patch | sed -s -e "s#a/src#a/upstream/emscripten/src#" | sed -s -e "s#b/src#b/upstream/emscripten/src#" | patch -p1
-
+# Clone emsdk from
+#git clone https://github.com/emscripten-core/emsdk.git
+#./emsdk install latest
+#./emsdk activate latest
+# Replace emsdk/upstream/emscripten with git clone git@github.com:Repkap11/emscripten.git
 EM_ROOT := $(shell if [ -f ~/.emscripten ]; then cat  ~/.emscripten | grep BINARYEN_ROOT | sed -e "s/.* = \(.*\)/\1/" ; fi )
-#EM_ROOT := /home/paul/Software/
 CC_WASM := ${EM_ROOT}/emscripten/em++
 
 ifeq ($(USE_CCACHE),1)
