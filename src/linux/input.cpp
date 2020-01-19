@@ -5,7 +5,8 @@ int front, back, left, right, up, down;
 void processMovement( InputState *inputState ) {
     float angleH = 0;
     int sizeH = 0;
-    int jumpPressed = 0;
+    int jumpPressed = false;
+    int sneakPressed = false;
 
     if ( front ) {
         sizeH = 1;
@@ -41,13 +42,14 @@ void processMovement( InputState *inputState ) {
         }
     }
     if ( up ) {
-        jumpPressed = 1;
+        jumpPressed = true;
     }
     if ( down ) {
-        jumpPressed = 0;
+        sneakPressed = true;
     }
     inputState->movement.angleH = angleH;
     inputState->movement.jumpPressed = jumpPressed;
+    inputState->movement.sneakPressed = sneakPressed;
     inputState->movement.sizeH = sizeH;
 }
 

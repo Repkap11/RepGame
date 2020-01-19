@@ -144,16 +144,32 @@ void repgame_process_camera_angle( ) {
 #define TERMINAL_VELOCITY 0.5f
 #define JUMP_STRENGTH 0.18f
 
-#if NO_CLIP
+#if FLY
 #define GRAVITY_STRENGTH 0.0f
+#define NEEDS_GROUND_TO_JUMP 0
 #else
 #define GRAVITY_STRENGTH 0.01f
+#define NEEDS_GROUND_TO_JUMP 1
 #endif
 
 void repgame_process_movement( ) {
 
-    if ( globalGameState.input.movement.jumpPressed && globalGameState.camera.standing_on_solid ) {
-        globalGameState.camera.y_speed = JUMP_STRENGTH;
+    if ( NEEDS_GROUND_TO_JUMP ) {
+        if ( globalGameState.input.movement.jumpPressed && globalGameState.camera.standing_on_solid && globalGameState.camera.y_speed < 0.01f && globalGameState.camera.y_speed > -0.01f ) {
+            globalGameState.camera.y_speed = JUMP_STRENGTH;
+        }
+    } else {
+        if ( globalGameState.input.movement.sneakPressed && globalGameState.input.movement.jumpPressed ) {
+            globalGameState.camera.y_speed = 0;
+        } else {
+            if ( globalGameState.input.movement.sneakPressed ) {
+                globalGameState.camera.y_speed = -JUMP_STRENGTH;
+            } else if ( globalGameState.input.movement.jumpPressed ) {
+                globalGameState.camera.y_speed = JUMP_STRENGTH;
+            } else {
+                globalGameState.camera.y_speed = 0;
+            }
+        }
     }
 
     float accel = -GRAVITY_STRENGTH;
