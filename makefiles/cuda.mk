@@ -32,7 +32,6 @@ CFLAGS_LINUX += -DLOAD_WITH_CUDA
 OBJECTS_COMMON_LINUX += $(LIB_TARGET_CUDA) $(LIB_DEVICE_CUDA)
 endif
 
-endif
 
 out/linux/linux/cuda/%.o: src/linux/cuda/%.cu $(HEADERS) $(REP_MAKEFILES) | out/linux
 	$(CC_CUDA) $(CFLAGS_CUDA_COMPILE) $(INCLUDES_COMMON) $(CFLAGS_CUDA) $< -o $@
@@ -53,3 +52,5 @@ clean-cuda:
 .PRECIOUS: %.o
 
 .PHONY: cuda clean-cuda
+
+endif # End if has cuda

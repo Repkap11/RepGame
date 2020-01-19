@@ -62,6 +62,8 @@ linux-deploy: out/linux/$(TARGET)
 LINUX_DIRS := $(patsubst src%,out/linux%,$(shell find src -type d)) \
 	   out/linux/shaders out/linux/bitmaps
 
+include makefiles/cuda.mk
+
 out/linux/%.o: src/%.cpp $(REP_MAKEFILES) | out/linux
 	@#Use g++ to build o file and a dependecy tree .d file for every cpp file
 	$(CC_LINUX) $(INCLUDES_COMMON) $(CFLAGS_LINUX) -MMD -MP -MF $(patsubst %.o,%.d,$@) -MT $(patsubst %.d,%.o,$@) -c $< -o $@
@@ -69,7 +71,6 @@ out/linux/%.o: src/%.cpp $(REP_MAKEFILES) | out/linux
 #Include these .d files, so the dependicies are known for secondary builds.
 -include $(DEPS_LINUX)
 
-#include makefiles/cuda.mk
 
 out/linux/$(TARGET): $(OBJECTS_COMMON_LINUX) $(OBJECTS_LINUX) $(REP_MAKEFILES) $(SHADER_BLOBS_LINUX) $(BITMAP_BLOBS_LINUX) | out/linux
 	$(CC_LINUX) -flto $(CFLAGS_LINUX) $(OBJECTS_LINUX) $(OBJECTS_COMMON_LINUX) $(SHADER_BLOBS_LINUX) $(BITMAP_BLOBS_LINUX) $(LIBS_LINUX) -o $@
