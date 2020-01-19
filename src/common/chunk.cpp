@@ -141,6 +141,9 @@ void chunk_render( const Chunk *chunk, const Renderer *renderer, const Shader *s
 }
 
 BlockState chunk_get_block( Chunk *chunk, int x, int y, int z ) {
+    if ( !REMEMBER_BLOCKS ) {
+        return {AIR, BLOCK_ROTATE_0};
+    }
     if ( chunk->blocks == NULL ) {
         // pr_debug("Chunk has no blocks");
         return {LAST_BLOCK_ID, BLOCK_ROTATE_0};
