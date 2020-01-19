@@ -1,7 +1,7 @@
 #Shared between platforms
 REP_MAKEFILES += makefiles/common.mk
 
-USE_CCACHE := 1
+USE_CCACHE ?= 1
 
 SRC_COMMON := $(wildcard src/common/*.cpp) $(wildcard src/common/**/*.cpp)
 SRC_ALL_C := $(wildcard src/**/*.cpp) $(wildcard src/**/**/*.cpp) $(wildcard src/**/*.cu) $(wildcard src/**/**/*.cu)
