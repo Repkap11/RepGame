@@ -50,7 +50,7 @@ __device__ float map_gen_under_water_block_cuda( int x, int z ) {
 
 #define MAP_GEN( func, ... ) map_gen_##func##_cuda( __VA_ARGS__ )
 
-__global__ void cuda_set_block( BlockID *blocks, int chunk_x, int chunk_y, int chunk_z ) {
+__global__ void cuda_set_block( BlockState *blocks, int chunk_x, int chunk_y, int chunk_z ) {
     int index = blockIdx.x * blockDim.x + threadIdx.x;
     if ( index < CHUNK_BLOCK_SIZE ) {
         int y = ( index / ( CHUNK_SIZE_INTERNAL * CHUNK_SIZE_INTERNAL ) ) - 1;
@@ -67,7 +67,7 @@ __global__ void cuda_set_block( BlockID *blocks, int chunk_x, int chunk_y, int c
         float terrainHeight = level + mountians + hills + ground_noise;
 #include "common/map_logic.hpp"
 
-        blocks[ index ] = finalBlockId;
+        blocks[ index ] = {finalBlockId, BLOCK_ROTATE_0};;
     }
 }
 
@@ -75,11 +75,11 @@ __global__ void cuda_set_block( BlockID *blocks, int chunk_x, int chunk_y, int c
 
 __host__ void map_gen_load_block_cuda( Chunk *chunk ) {
 
-    BlockID *device_blocks;
-    cudaMalloc( &device_blocks, CHUNK_BLOCK_SIZE * sizeof( BlockID ) );
+    BlockState *device_blocks;
+    cudaMalloc( &device_blocks, CHUNK_BLOCK_SIZE * sizeof( BlockState ) );
 
     cuda_set_block<<<( CHUNK_BLOCK_SIZE + ( NUM_THREADS_PER_BLOCK - 1 ) ) / NUM_THREADS_PER_BLOCK, NUM_THREADS_PER_BLOCK, 0>>>( device_blocks, chunk->chunk_x * CHUNK_SIZE, chunk->chunk_y * CHUNK_SIZE, chunk->chunk_z * CHUNK_SIZE );
 
-    cudaMemcpy( chunk->blocks, device_blocks, CHUNK_BLOCK_SIZE * sizeof( BlockID ), cudaMemcpyDeviceToHost );
+    cudaMemcpy( chunk->blocks, device_blocks, CHUNK_BLOCK_SIZE * sizeof( BlockState ), cudaMemcpyDeviceToHost );
     cudaFree( device_blocks );
 }
