@@ -16,7 +16,9 @@ else
 	DOCKER_ONLY_REPGAME_PACKAGES += libarchive-tools
 endif
 
-install:
+install: packages
+
+packages:
 	sudo apt-get install -y $(REPGAME_PACKAGES) $(HOST_ONLY_REPGAME_PACKAGES)
 
-.PHONY: install
+.PHONY: install packages

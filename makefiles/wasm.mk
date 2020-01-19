@@ -1,6 +1,8 @@
 #WASM
 REP_MAKEFILES += makefiles/wasm.mk
-#
+
+REPGAME_PACKAGES += npm
+
 CFLAGS_WASM := -DREPGAME_WASM \
 			-s USE_WEBGL2=1 \
 			--no-heap-copy \
@@ -35,6 +37,9 @@ WASM_BITMAPS = $(patsubst bitmaps/%.bmp,out/wasm/fs/bitmaps/%.bin,$(wildcard bit
 
 OBJECTS_COMMON_WASM := $(patsubst src/common/%.cpp,out/wasm/common/%.bc, $(SRC_COMMON))
 OBJECTS_WASM := $(patsubst src/%.cpp,out/wasm/%.bc, $(wildcard src/wasm/*.cpp))
+
+wasm-install: packages
+	sudo npm install -g http-server
 
 all: wasm
 wasm: out/wasm/delivery/$(TARGET).js out/wasm/delivery/index.html out/wasm/delivery/reset.css out/wasm/delivery/index.css out/wasm/delivery/index.js out/wasm/delivery/icon.png
@@ -98,4 +103,4 @@ out/wasm: | out
 
 .PRECIOUS: $(TARGET) $(OBJECTS_WASM) $(OBJECTS_COMMON_WASM)
 
-.PHONY: wasm wasm-run clean-wasm wasm-deploy
+.PHONY: wasm wasm-run clean-wasm wasm-deploy wasm-install
