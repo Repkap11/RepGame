@@ -1,16 +1,16 @@
 #Linux x86_64 builds
 REP_MAKEFILES += makefiles/linux.mk
 
-REPGAME_PACKAGES += freeglut3-dev libglew-dev libxi-dev g++
+REPGAME_PACKAGES += freeglut3-dev libglew-dev libxi-dev g++ libsdl2-dev
 
-CFLAGS_LINUX := -Wall -Wextra -Werror -std=c++11 -Wno-unused-parameter -Wno-unused-variable -fno-pie -march=native
+CFLAGS_LINUX := -Wall -Wextra -std=c++11 -Wno-unused-parameter -Wno-unused-variable -fno-pie -march=native
 
 #CFLAGS_LINUX += -O3 -DREPGAME_FAST
 CFLAGS_LINUX += -g
 
 
 CFLAGS_LINUX += -DREPGAME_LINUX
-LIBS_LINUX := -Wl,-Bstatic  -l GLU -l glut -lX11 -lXxf86vm -lXi -l xcb -lXau -lXdmcp -lXext -Wl,-Bdynamic -l m -l GL -l GLEW -lpthread -l dl  -static-libgcc -static-libstdc++
+LIBS_LINUX := -l GLU -l SDL2 -l m -l GL -l GLEW -lpthread -l dl  -static-libgcc -static-libstdc++
 
 CC_LINUX := g++
 #CC_LINUX := clang++

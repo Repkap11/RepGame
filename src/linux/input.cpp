@@ -54,95 +54,91 @@ void processMovement( InputState *inputState ) {
 }
 
 void input_arrowKeyDownInput( InputState *inputState, int key, int x, int y ) {
-    switch ( key ) {
-        case GLUT_KEY_UP:
-            front = 1;
-            // pr_debug( "Up Arrow 1 %d %d", x, y );
-            break;
-        case GLUT_KEY_DOWN:
-            back = 1;
-            // pr_debug( "Down Arrow 1 %d %d", x, y );
-            break;
-        case GLUT_KEY_LEFT:
-            left = 1;
-            // pr_debug( "Left Arrow 1 %d %d", x, y );
-            break;
-        case GLUT_KEY_RIGHT:
-            right = 1;
-            // pr_debug( "Right Arrow 1 %d %d", x, y );
-            break;
-        case 114: // Left Control
-        case 115: // Right Control
-            down = 1;
-            // pr_debug( "Right Arrow 0 %d %d", x, y );
-            break;
-        default:
-            pr_debug( "Got Unhandled Special Key Down: %d", key );
-            break;
-    }
+    // switch ( key ) {
+    //     case GLUT_KEY_UP:
+    //         front = 1;
+    //         // pr_debug( "Up Arrow 1 %d %d", x, y );
+    //         break;
+    //     case GLUT_KEY_DOWN:
+    //         back = 1;
+    //         // pr_debug( "Down Arrow 1 %d %d", x, y );
+    //         break;
+    //     case GLUT_KEY_LEFT:
+    //         left = 1;
+    //         // pr_debug( "Left Arrow 1 %d %d", x, y );
+    //         break;
+    //     case GLUT_KEY_RIGHT:
+    //         right = 1;
+    //         // pr_debug( "Right Arrow 1 %d %d", x, y );
+    //         break;
+    //     case 114: // Left Control
+    //     case 115: // Right Control
+    //         down = 1;
+    //         // pr_debug( "Right Arrow 0 %d %d", x, y );
+    //         break;
+    //     default:
+    //         pr_debug( "Got Unhandled Special Key Down: %d", key );
+    //         break;
+    // }
     processMovement( inputState );
 }
 
 void input_arrowKeyUpInput( InputState *inputState, int key, int x, int y ) {
-    switch ( key ) {
-        case GLUT_KEY_UP:
-            front = 0;
-            // pr_debug( "Up Arrow 0 %d %d", x, y );
-            break;
-        case GLUT_KEY_DOWN:
-            back = 0;
-            // pr_debug( "Down Arrow 0 %d %d", x, y );
-            break;
-        case GLUT_KEY_LEFT:
-            left = 0;
-            // pr_debug( "Left Arrow 0 %d %d", x, y );
-            break;
-        case GLUT_KEY_RIGHT:
-            right = 0;
-            // pr_debug( "Right Arrow 0 %d %d", x, y );
-            break;
+    // switch ( key ) {
+    //     case GLUT_KEY_UP:
+    //         front = 0;
+    //         // pr_debug( "Up Arrow 0 %d %d", x, y );
+    //         break;
+    //     case GLUT_KEY_DOWN:
+    //         back = 0;
+    //         // pr_debug( "Down Arrow 0 %d %d", x, y );
+    //         break;
+    //     case GLUT_KEY_LEFT:
+    //         left = 0;
+    //         // pr_debug( "Left Arrow 0 %d %d", x, y );
+    //         break;
+    //     case GLUT_KEY_RIGHT:
+    //         right = 0;
+    //         // pr_debug( "Right Arrow 0 %d %d", x, y );
+    //         break;
 
-        case 114: // Left Control
-        case 115: // Right Control
-            down = 0;
-            // pr_debug( "Right Arrow 0 %d %d", x, y );
-            break;
-        default:
-            pr_debug( "Got Unhandled Special Key Up: %d", key );
-            break;
-    }
+    //     case 114: // Left Control
+    //     case 115: // Right Control
+    //         down = 0;
+    //         // pr_debug( "Right Arrow 0 %d %d", x, y );
+    //         break;
+    //     default:
+    //         pr_debug( "Got Unhandled Special Key Up: %d", key );
+    //         break;
+    // }
     processMovement( inputState );
 }
 
 void input_mouseInput( InputState *inputState, int button, int state, int x, int y ) {
-    // inputState->mouse.currentPosition.x = x;
-    // inputState->mouse.currentPosition.y = y;
-    // inputState->mouse.previousPosition.x = x;
-    // inputState->mouse.previousPosition.y = y;
-    switch ( button ) {
-        case GLUT_LEFT_BUTTON:
-            inputState->mouse.buttons.left = !state;
-            // pr_debug( "Left Click %d", !state );
-            break;
-        case GLUT_RIGHT_BUTTON:
-            inputState->mouse.buttons.right = !state;
-            // pr_debug( "Right Click %d", !state );
-            break;
-        case GLUT_MIDDLE_BUTTON:
-            inputState->mouse.buttons.middle = !state;
-            // pr_debug( "Middle Click %d", !state );
-            break;
-        case 3: // Up
-            inputState->mouse.currentPosition.wheel_counts += 1;
-            break;
+    // switch ( button ) {
+    //     case GLUT_LEFT_BUTTON:
+    //         inputState->mouse.buttons.left = !state;
+    //         // pr_debug( "Left Click %d", !state );
+    //         break;
+    //     case GLUT_RIGHT_BUTTON:
+    //         inputState->mouse.buttons.right = !state;
+    //         // pr_debug( "Right Click %d", !state );
+    //         break;
+    //     case GLUT_MIDDLE_BUTTON:
+    //         inputState->mouse.buttons.middle = !state;
+    //         // pr_debug( "Middle Click %d", !state );
+    //         break;
+    //     case 3: // Up
+    //         inputState->mouse.currentPosition.wheel_counts += 1;
+    //         break;
 
-        case 4: // Down
-            inputState->mouse.currentPosition.wheel_counts -= 1;
+    //     case 4: // Down
+    //         inputState->mouse.currentPosition.wheel_counts -= 1;
 
-            break;
+    //         break;
 
-            pr_debug( "Other mouse %d", button );
-    }
+    //         pr_debug( "Other mouse %d", button );
+    // }
 }
 
 void input_keysInput( InputState *inputState, unsigned char key, int x, int y, int pressed ) {

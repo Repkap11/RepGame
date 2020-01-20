@@ -2,7 +2,8 @@
 #define HEADER_REPGAMELINUX_H
 
 #include <GL/glew.h>
-#include <GL/freeglut.h>
+#include <SDL2/SDL.h>
+#include <SDL2/SDL_opengl.h>
 #include <stdio.h>
 
 #define REPGAME_PATH_DIVIDOR "/"
