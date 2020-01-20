@@ -85,22 +85,6 @@ void input_arrowKeyDownInput( InputState *inputState, int key, int x, int y ) {
 
 void input_arrowKeyUpInput( InputState *inputState, int key, int x, int y ) {
     // switch ( key ) {
-    //     case GLUT_KEY_UP:
-    //         front = 0;
-    //         // pr_debug( "Up Arrow 0 %d %d", x, y );
-    //         break;
-    //     case GLUT_KEY_DOWN:
-    //         back = 0;
-    //         // pr_debug( "Down Arrow 0 %d %d", x, y );
-    //         break;
-    //     case GLUT_KEY_LEFT:
-    //         left = 0;
-    //         // pr_debug( "Left Arrow 0 %d %d", x, y );
-    //         break;
-    //     case GLUT_KEY_RIGHT:
-    //         right = 0;
-    //         // pr_debug( "Right Arrow 0 %d %d", x, y );
-    //         break;
 
     //     case 114: // Left Control
     //     case 115: // Right Control
@@ -141,17 +125,18 @@ void input_mouseInput( InputState *inputState, int button, int state, int x, int
     // }
 }
 
-void input_keysInput( InputState *inputState, unsigned char key, int x, int y, int pressed ) {
+void input_keysInput( InputState *inputState, SDL_Keycode key, int pressed ) {
 
     switch ( key ) {
-        case 27:  // lowercase q
-        case 81:  // uppercase q
-        case 113: // escape
+        case 'q':
+        case SDLK_ESCAPE: // escape
             inputState->exitGame = 1;
             break;
 
         case 'w':
         case 'o':
+        case SDLK_UP:
+
             if ( pressed ) {
                 front = 1;
             } else {
@@ -162,6 +147,8 @@ void input_keysInput( InputState *inputState, unsigned char key, int x, int y, i
 
         case 'a':
         case 'k':
+        case SDLK_LEFT:
+
             if ( pressed ) {
                 left = 1;
             } else {
@@ -172,6 +159,7 @@ void input_keysInput( InputState *inputState, unsigned char key, int x, int y, i
 
         case 's':
         case 'l':
+        case SDLK_DOWN:
 
             if ( pressed ) {
                 back = 1;
@@ -183,6 +171,7 @@ void input_keysInput( InputState *inputState, unsigned char key, int x, int y, i
 
         case 'd':
         case ';':
+        case SDLK_RIGHT:
 
             if ( pressed ) {
                 right = 1;

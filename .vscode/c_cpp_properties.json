@@ -32,12 +32,12 @@
                 "/usr/include/c++/6",
                 "/usr/include/x86_64-linux-gnu/c++/6",
                 "/usr/local/include",
-                "/usr/lib/clang/3.8.1/include",
                 "/usr/include",
                 "/usr/include/x86_64-linux-gnu",
                 "${workspaceRoot}",
                 "${workspaceRoot}/include",
-                "/usr/include/glm"
+                "/usr/include/glm",
+                "/usr/include/SDL2"
             ],
             "defines": [],
             "intelliSenseMode": "clang-x64",
@@ -54,9 +54,12 @@
                 "limitSymbolsToIncludedHeaders": true,
                 "databaseFilename": ""
             },
-            "compilerPath": "/usr/bin/clang++-3.8",
+            "compilerPath": "/usr/bin/g++",
             "cStandard": "c11",
-            "cppStandard": "c++17"
+            "cppStandard": "c++17",
+            "compilerArgs": [
+                "-DREPGAME_LINUX"
+            ]
         },
         {
             "name": "Win32",

@@ -6,35 +6,32 @@
 
 #define SKY_BOX_DISTANCE DRAW_DISTANCE * 0.8
 
-void arrowKeyDownInput( int key, int x, int y ) {
-    input_arrowKeyDownInput( repgame_getInputState( ), key, x, y );
-}
-
-void arrowKeyUpInput( int key, int x, int y ) {
-    input_arrowKeyUpInput( repgame_getInputState( ), key, x, y );
-}
-
 void mouseInput( int button, int state, int x, int y ) {
     input_mouseInput( repgame_getInputState( ), button, state, x, y );
-}
-
-void keysInput( unsigned char key, int x, int y ) {
-    input_keysInput( repgame_getInputState( ), key, x, y, 1 );
-}
-
-void keysInputUp( unsigned char key, int x, int y ) {
-    input_keysInput( repgame_getInputState( ), key, x, y, 0 );
 }
 
 void mouseMove( int x, int y ) {
     input_lookMove( repgame_getInputState( ), x, y );
 }
 
-double fps_ms = ( 1.0 / FPS_LIMIT ) * 1000.0;
-
-void changeSize( int w, int h ) {
-    repgame_changeSize( w, h );
+void repgame_linux_process_sdl_events( ) {
+    SDL_Event event;
+    while ( SDL_PollEvent( &event ) ) {
+        switch ( event.type ) {
+            case SDL_KEYDOWN:
+            case SDL_KEYUP:
+                input_keysInput( repgame_getInputState( ), event.key.keysym.sym, event.type == SDL_KEYDOWN );
+                break;
+            case SDL_WINDOWEVENT:
+                if ( event.window.event == SDL_WINDOWEVENT_RESIZED ) {
+                    repgame_changeSize( event.window.data1, event.window.data2 );
+                }
+                break;
+        }
+    }
 }
+
+double fps_ms = ( 1.0 / FPS_LIMIT ) * 1000.0;
 
 char *repgame_getShaderString( const char *filename ) {
     return ( char * )"RepGame Linux doesn't support shaders from file";
@@ -102,9 +99,11 @@ int main( int argc, char **argv ) {
     SDL_GL_SetAttribute( SDL_GL_DOUBLEBUFFER, 1 );
     SDL_GL_SetAttribute( SDL_GL_DEPTH_SIZE, 24 );
     SDL_GL_SetAttribute( SDL_GL_STENCIL_SIZE, 8 );
+    SDL_GL_SetAttribute( SDL_GL_MULTISAMPLESAMPLES, 16 );
+    // SDL_GL_SetAttribute( SDL_GL_ACCELERATED_VISUAL, 1 );
 
     /* Create our window centered */
-    mainwindow = SDL_CreateWindow( "RepGame", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, 1600, 800, SDL_WINDOW_OPENGL );
+    mainwindow = SDL_CreateWindow( "RepGame", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, 1600, 800, SDL_WINDOW_OPENGL | SDL_WINDOW_SHOWN | SDL_WINDOW_RESIZABLE );
 
     maincontext = SDL_GL_CreateContext( mainwindow );
 
@@ -141,30 +140,15 @@ int main( int argc, char **argv ) {
     // glutPassiveMotionFunc( mouseMove );
     // glutMotionFunc( mouseMove );
 
-    // struct timespec tstart = {0, 0}, tend = {0, 0}, tblank = {0, 0};
+    struct timespec tstart = {0, 0}, tend = {0, 0}, tblank = {0, 0};
     // pr_debug( "Size of Int:%lu", sizeof( int ) );
     int is_locking_pointer = 0;
-    glViewport( 0, 0, 1000, 1000 );
-    glClearColor( 1.f, 0.f, 1.f, 0.f );
-    glClear( GL_COLOR_BUFFER_BIT );
     bool Running = true;
     while ( !repgame_shouldExit( ) && Running ) {
-        // clock_gettime( CLOCK_MONOTONIC, &tstart );
-        //     // glutMainLoopEvent( );
-        pr_debug( "Drawing" );
-        // SDL_GL_SwapWindow( mainwindow );
-        SDL_Event Event;
-        while ( SDL_PollEvent( &Event ) ) {
-            if ( Event.type == SDL_KEYDOWN ) {
-                switch ( Event.key.keysym.sym ) {
-                    case SDLK_ESCAPE:
-                        Running = 0;
-                        break;
-                    default:
-                        Running = 1;
-                }
-            }
-        }
+        clock_gettime( CLOCK_MONOTONIC, &tstart );
+        // pr_debug( "Drawing" );
+
+        repgame_linux_process_sdl_events( );
 
         int width, height;
         repgame_get_screen_size( &width, &height );
