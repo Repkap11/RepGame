@@ -5,10 +5,11 @@ REPGAME_PACKAGES += npm
 
 CFLAGS_WASM := -DREPGAME_WASM \
 			-s USE_WEBGL2=1 \
+			-s USE_SDL=2 \
 			--no-heap-copy \
 			-std=c++11 \
 			-lidbfs.js \
-			-s EXPORTED_FUNCTIONS='["_main", "_testJS"]' \
+			-s EXPORTED_FUNCTIONS='["_main"]' \
 			-s EXTRA_EXPORTED_RUNTIME_METHODS='["ccall", "cwrap"]'
 
 

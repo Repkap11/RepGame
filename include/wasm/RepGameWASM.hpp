@@ -2,9 +2,7 @@
 #define HEADER_REPGAMEWASM_H
 
 #include <GL/glew.h>
-#include <GL/glut.h>
-#include <stdio.h>
-#include <stdlib.h>
+#include "common/RepGameSDL2.hpp"
 #include <emscripten.h>
 
 #define REPGAME_PATH_DIVIDOR "/"
@@ -17,6 +15,14 @@
         int errCode;                                                                                                                                                                                                                           \
         if ( ( errCode = glGetError( ) ) != GL_NO_ERROR ) {                                                                                                                                                                                    \
             pr_debug( "GL Error:%d:%s", errCode, "Not Defines on WASM" );                                                                                                                                                                      \
+        }                                                                                                                                                                                                                                      \
+    }
+
+#define ignoreErrors( )                                                                                                                                                                                                                        \
+    {                                                                                                                                                                                                                                          \
+        int errCode;                                                                                                                                                                                                                           \
+        if ( ( errCode = glGetError( ) ) != GL_NO_ERROR ) {                                                                                                                                                                                    \
+            pr_debug( "GL Ignoring Error:%d", errCode );                                                                                                                                                                                       \
         }                                                                                                                                                                                                                                      \
     }
 

@@ -3,7 +3,6 @@
 
 #include <GL/glew.h>
 #include "common/RepGameSDL2.hpp"
-#include "linux/RepGameLinux.hpp"
 
 #define REPGAME_PATH_DIVIDOR "/"
 #define pr_debug( fmt, ... ) fprintf( stdout, "%s:%d:%s():" fmt "\n", __FILE__, __LINE__, __func__, ##__VA_ARGS__ );

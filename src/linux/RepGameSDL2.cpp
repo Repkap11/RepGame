@@ -34,25 +34,10 @@ void repgame_linux_process_sdl_events( ) {
 double fps_ms = ( 1.0 / FPS_LIMIT ) * 1000.0;
 
 char *repgame_getShaderString( const char *filename ) {
-    return ( char * )"RepGame Linux doesn't support shaders from file";
+    return ( char * )"RepGame SDL doesn't support shaders from file";
 }
 
 int repgame_sdl2_main( const char *world_path, const char *host, bool connect_multi, bool tests ) {
-    // glutInit( &argc, argv );
-    // glutInitContextVersion( 3, 3 );
-    // glutInitContextProfile( GLUT_CORE_PROFILE );
-
-    // glutInitContextFlags( GLUT_DEBUG );
-    // glutSetOption( GLUT_MULTISAMPLE, 16 );
-    // glutInitDisplayMode( GLUT_DEPTH | GLUT_STENCIL | GLUT_DOUBLE | GLUT_RGBA | GLUT_MULTISAMPLE );
-
-    // glutInitWindowSize( glutGet( GLUT_SCREEN_WIDTH ), glutGet( GLUT_SCREEN_HEIGHT ) );
-    // glutInitWindowPosition( 0, 0 );
-
-    // int glut_window = glutCreateWindow( "RepGame" );
-    SDL_Window *mainwindow;    /* Our window handle */
-    SDL_GLContext maincontext; /* Our opengl context handle */
-
     if ( SDL_Init( SDL_INIT_VIDEO ) < 0 ) {     /* Initialize SDL's Video subsystem */
         pr_debug( "Unable to initialize SDL" ); /* Or die on error */
         exit( 1 );
@@ -60,9 +45,6 @@ int repgame_sdl2_main( const char *world_path, const char *host, bool connect_mu
 
     SDL_GL_SetAttribute( SDL_GL_CONTEXT_MAJOR_VERSION, 3 );
     SDL_GL_SetAttribute( SDL_GL_CONTEXT_MINOR_VERSION, 3 );
-
-    // SDL_GL_SetAttribute( SDL_GL_DEPTH_SIZE,  );
-    // SDL_GL_SetAttribute( SDL_GL_ALPHA_SIZE, 8 );
 
     // next line as per: http://stackoverflow.com/questions/11961116/opengl-3-x-context-creation-using-sdl2-on-osx-macbook-air-2012
     SDL_GL_SetAttribute( SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_CORE );
@@ -77,13 +59,16 @@ int repgame_sdl2_main( const char *world_path, const char *host, bool connect_mu
     SDL_GL_SetAttribute( SDL_GL_DEPTH_SIZE, 24 );
     SDL_GL_SetAttribute( SDL_GL_STENCIL_SIZE, 8 );
     SDL_GL_SetAttribute( SDL_GL_MULTISAMPLESAMPLES, 16 );
-    // SDL_GL_SetAttribute( SDL_GL_ACCELERATED_VISUAL, 1 );
 
     /* Create our window centered */
-    mainwindow = SDL_CreateWindow( "RepGame", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, 1600, 800, SDL_WINDOW_OPENGL | SDL_WINDOW_SHOWN | SDL_WINDOW_RESIZABLE );
-
-    maincontext = SDL_GL_CreateContext( mainwindow );
-
+    SDL_Window *sdl_window = SDL_CreateWindow( "RepGame", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, 1600, 800, SDL_WINDOW_OPENGL | SDL_WINDOW_SHOWN | SDL_WINDOW_RESIZABLE );
+    if ( !sdl_window ) {
+        pr_debug( "Creating the SDL window failed" );
+    }
+    SDL_GLContext sdl_context = SDL_GL_CreateContext( sdl_window );
+    if ( !sdl_context ) {
+        pr_debug( "Creating the SDL context failed" );
+    }
     /* This makes our buffer swap syncronized with the monitor's vertical refresh */
     SDL_GL_SetSwapInterval( 1 );
 
@@ -133,8 +118,8 @@ int repgame_sdl2_main( const char *world_path, const char *host, bool connect_mu
         if ( should_lock_pointer != is_locking_pointer ) {
             SDL_SetRelativeMouseMode( should_lock_pointer ? SDL_TRUE : SDL_FALSE );
             int width, height;
-            SDL_GetWindowSize( mainwindow, &width, &height );
-            SDL_WarpMouseInWindow( mainwindow, width / 2, height / 2 );
+            SDL_GetWindowSize( sdl_window, &width, &height );
+            SDL_WarpMouseInWindow( sdl_window, width / 2, height / 2 );
             is_locking_pointer = should_lock_pointer;
         }
         if ( should_lock_pointer ) {
@@ -143,7 +128,7 @@ int repgame_sdl2_main( const char *world_path, const char *host, bool connect_mu
         repgame_clear( );
         repgame_tick( );
         repgame_draw( );
-        SDL_GL_SwapWindow( mainwindow );
+        SDL_GL_SwapWindow( sdl_window );
         // glutSwapBuffers( );
 
         showErrors( );
@@ -173,8 +158,8 @@ int repgame_sdl2_main( const char *world_path, const char *host, bool connect_mu
         // }
     }
     repgame_cleanup( );
-    SDL_GL_DeleteContext( maincontext );
-    SDL_DestroyWindow( mainwindow );
+    SDL_GL_DeleteContext( sdl_context );
+    SDL_DestroyWindow( sdl_window );
     SDL_Quit( );
     // glutLeaveMainLoop( );
     // glutDestroyWindow( glut_window );
