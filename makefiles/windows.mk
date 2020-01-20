@@ -62,6 +62,9 @@ out/windows/%.o: src/%.cpp $(REP_MAKEFILES) windows_build | out/windows
 #Include these .d files, so the dependicies are known for secondary builds.
 -include $(DEPS_WINDOWS)
 
+out/windows/SDL2.dll: windows_build/sdl2/x86_64-w64-mingw32/bin/SDL2.dll windows_build
+	cp $< $@
+
 out/windows/$(TARGET).exe: windows_build $(OBJECTS_COMMON_WINDOWS) $(OBJECTS_WINDOWS) $(SHADER_BLOBS_WINDOWS) $(BITMAP_BLOBS_WINDOWS) $(REP_MAKEFILES) | out/windows
 	$(CC_WINDOWS) -flto $(CFLAGS_WINDOWS) $(OBJECTS_WINDOWS) $(OBJECTS_COMMON_WINDOWS) $(SHADER_BLOBS_WINDOWS) $(BITMAP_BLOBS_WINDOWS) $(LIBS_WINDOWS) -o $@
 
