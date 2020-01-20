@@ -2,9 +2,8 @@
 #define HEADER_REPGAMELINUX_H
 
 #include <GL/glew.h>
-#include <SDL2/SDL.h>
-#include <SDL2/SDL_opengl.h>
-#include <stdio.h>
+#include "common/RepGameSDL2.hpp"
+#include "linux/RepGameLinux.hpp"
 
 #define REPGAME_PATH_DIVIDOR "/"
 #define pr_debug( fmt, ... ) fprintf( stdout, "%s:%d:%s():" fmt "\n", __FILE__, __LINE__, __func__, ##__VA_ARGS__ );
@@ -19,18 +18,18 @@
         if ( ( errCode = glGetError( ) ) != GL_NO_ERROR ) {                                                                                                                                                                                    \
             errString = gluErrorString( errCode );                                                                                                                                                                                             \
             pr_debug( "GL Error:%d:%s", errCode, errString );                                                                                                                                                                                  \
-            exit(1);                                                                                                                                                                                  \
+            exit( 1 );                                                                                                                                                                                                                         \
         }                                                                                                                                                                                                                                      \
     }
 #endif
 
-#define ignoreErrors( )                                                                                                                                                                                                                          \
+#define ignoreErrors( )                                                                                                                                                                                                                        \
     {                                                                                                                                                                                                                                          \
         int errCode;                                                                                                                                                                                                                           \
         const GLubyte *errString;                                                                                                                                                                                                              \
         if ( ( errCode = glGetError( ) ) != GL_NO_ERROR ) {                                                                                                                                                                                    \
             errString = gluErrorString( errCode );                                                                                                                                                                                             \
-            pr_debug( "GL Ignoring Error:%d:%s", errCode, errString );                                                                                                                                                                                  \
+            pr_debug( "GL Ignoring Error:%d:%s", errCode, errString );                                                                                                                                                                         \
         }                                                                                                                                                                                                                                      \
     }
 

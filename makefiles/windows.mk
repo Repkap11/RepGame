@@ -3,15 +3,14 @@ REP_MAKEFILES += makefiles/windows.mk
 
 REPGAME_PACKAGES += mingw-w64
 
-CFLAGS_WINDOWS := -Wall -Werror -std=c++11 -Wno-unused-variable -fno-pie -D GLEW_STATIC -D FREEGLUT_STATIC -mwindows
+CFLAGS_WINDOWS := -Wall -Werror -std=c++11 -Wno-unused-variable -fno-pie -D GLEW_STATIC -mwindows
 
 #CFLAGS_WINDOWS += -O3 -DREPGAME_FAST
 CFLAGS_WINDOWS += -g
 
 CFLAGS_WINDOWS += -DREPGAME_WINDOWS
-#LIBS_WINDOWS := -l m -l GL -l GLU -l GLEW -l glut -pthread
-LIBS_WINDOWS := windows_build/glew/lib/libglew32.a -L windows_build/freeglut/lib/x64 -lfreeglut_static -lopengl32 -lglu32 -lwinmm -lgdi32 -Wl,-Bstatic -lpthread -Wl,-Bdynamic -static-libgcc -static-libstdc++
-INCLUDES_WINDOWS := -I windows_build/freeglut/include -I windows_build/glew/include
+LIBS_WINDOWS := windows_build/glew/lib/libglew32.a windows_build/sdl2/x86_64-w64-mingw32/bin/SDL2.dll -lopengl32 -lglu32 -Wl,-Bstatic -lpthread -Wl,-Bdynamic -static-libgcc -static-libstdc++
+INCLUDES_WINDOWS := -I windows_build/sdl2/x86_64-w64-mingw32/include -I windows_build/glew/include
 
 CC_WINDOWS := x86_64-w64-mingw32-g++
 #CC_WINDOWS := clang++
@@ -79,15 +78,15 @@ out/windows: | out
 
 install: windows_build
 windows_build:
-	rm -rf freeglut.zip
 	rm -rf glew.zip
 	rm -rf windows_build
 	mkdir -p windows_build/glew
-	wget -q https://www.transmissionzero.co.uk/files/software/development/GLUT/freeglut-MinGW.zip -O freeglut.zip
+	mkdir -p windows_build/sdl2
+	wget -q https://www.libsdl.org/release/SDL2-devel-2.0.10-mingw.tar.gz -O sdl2.tar.gz
 	wget -q http://www.grhmedia.com/glew/glew-2.1.0-mingw-w64.zip -O glew.zip
-	bsdtar --strip-components=1 -xvf glew.zip -C windows_build/glew
-	bsdtar  -xvf freeglut.zip -C windows_build
-	rm -rf freeglut.zip
+	bsdtar --strip-components=1 -xvzf glew.zip -C windows_build/glew
+	bsdtar --strip-components=1 -xvzf sdl2.tar.gz -C windows_build/sdl2
+	rm -rf sdl2.tar.gz
 	rm -rf glew.zip
 
 .PRECIOUS: out/windows/$(TARGET).exe $(OBJECTS_WINDOWS) $(OBJECTS_COMMON_WINDOWS) $(SHADER_BLOBS_WINDOWS) $(BITMAP_BLOBS_WINDOWS)

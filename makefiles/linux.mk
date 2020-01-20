@@ -10,7 +10,7 @@ CFLAGS_LINUX += -g
 
 
 CFLAGS_LINUX += -DREPGAME_LINUX
-LIBS_LINUX := -l GLU -l SDL2 -l m -l GL -l GLEW -lpthread -l dl  -static-libgcc -static-libstdc++
+LIBS_LINUX := -l GLU -l SDL2 -l m -l GL -l GLEW -lpthread -l dl -static-libgcc -static-libstdc++
 
 CC_LINUX := g++
 #CC_LINUX := clang++

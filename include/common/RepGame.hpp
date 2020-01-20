@@ -1,6 +1,8 @@
 #ifndef HEADER_REPGAME_H
 #define HEADER_REPGAME_H
 
+#include <stdio.h>
+
 #ifdef REPGAME_LINUX
 #include "linux/RepGameLinux.hpp"
 #endif

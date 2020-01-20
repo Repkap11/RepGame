@@ -2,10 +2,10 @@
 #define HEADER_REPGAMEWINDOWS_H
 
 #include <GL/glew.h>
-#include <GL/freeglut.h>
-#include <stdio.h>
+#include "common/RepGameSDL2.hpp"
+
 #ifndef M_PI
-#define M_PI (3.14159265358979323846)
+#define M_PI ( 3.14159265358979323846 )
 #endif
 
 #define REPGAME_PATH_DIVIDOR "\\"
@@ -21,6 +21,16 @@
         if ( ( errCode = glGetError( ) ) != GL_NO_ERROR ) {                                                                                                                                                                                    \
             errString = gluErrorString( errCode );                                                                                                                                                                                             \
             pr_debug( "GL Error:%d:%s", errCode, errString );                                                                                                                                                                                  \
+        }                                                                                                                                                                                                                                      \
+    }
+
+#define ignoreErrors( )                                                                                                                                                                                                                        \
+    {                                                                                                                                                                                                                                          \
+        int errCode;                                                                                                                                                                                                                           \
+        const GLubyte *errString;                                                                                                                                                                                                              \
+        if ( ( errCode = glGetError( ) ) != GL_NO_ERROR ) {                                                                                                                                                                                    \
+            errString = gluErrorString( errCode );                                                                                                                                                                                             \
+            pr_debug( "GL Ignoring Error:%d:%s", errCode, errString );                                                                                                                                                                         \
         }                                                                                                                                                                                                                                      \
     }
 
