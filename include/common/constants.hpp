@@ -63,7 +63,7 @@
 #define SHOW_FPS 0
 #endif
 
-#define FPS_LIMIT 165.0f
+#define FPS_LIMIT 60.0f
 #define CAMERA_FOV 60.0f
 #if defined( REPGAME_WASM ) || defined( REPGAME_WINDOWS )
 #define NUM_RENDER_THREADS 1

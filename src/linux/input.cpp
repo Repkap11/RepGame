@@ -98,31 +98,26 @@ void input_arrowKeyUpInput( InputState *inputState, int key, int x, int y ) {
     processMovement( inputState );
 }
 
-void input_mouseInput( InputState *inputState, int button, int state, int x, int y ) {
-    // switch ( button ) {
-    //     case GLUT_LEFT_BUTTON:
-    //         inputState->mouse.buttons.left = !state;
-    //         // pr_debug( "Left Click %d", !state );
-    //         break;
-    //     case GLUT_RIGHT_BUTTON:
-    //         inputState->mouse.buttons.right = !state;
-    //         // pr_debug( "Right Click %d", !state );
-    //         break;
-    //     case GLUT_MIDDLE_BUTTON:
-    //         inputState->mouse.buttons.middle = !state;
-    //         // pr_debug( "Middle Click %d", !state );
-    //         break;
-    //     case 3: // Up
-    //         inputState->mouse.currentPosition.wheel_counts += 1;
-    //         break;
+void input_mouseInput( InputState *inputState, int button, int state ) {
+    switch ( button ) {
+        case SDL_BUTTON_LEFT:
+            inputState->mouse.buttons.left = !state;
+            // pr_debug( "Left Click %d", !state );
+            break;
+        case SDL_BUTTON_RIGHT:
+            inputState->mouse.buttons.right = !state;
+            // pr_debug( "Right Click %d", !state );
+            break;
+        case SDL_BUTTON_MIDDLE:
+            inputState->mouse.buttons.middle = !state;
+            // pr_debug( "Middle Click %d", !state );
+            break;
 
-    //     case 4: // Down
-    //         inputState->mouse.currentPosition.wheel_counts -= 1;
-
-    //         break;
-
-    //         pr_debug( "Other mouse %d", button );
-    // }
+            pr_debug( "Other mouse %d", button );
+    }
+}
+void input_mouseWheel( InputState *inputState, int x_delta, int y_delta ) {
+    inputState->mouse.currentPosition.wheel_counts += y_delta;
 }
 
 void input_keysInput( InputState *inputState, SDL_Keycode key, int pressed ) {
@@ -230,6 +225,6 @@ void input_keysInput( InputState *inputState, SDL_Keycode key, int pressed ) {
 
 void input_lookMove( InputState *inputState, int x, int y ) {
     // pr_debug( "Using location %d %d", x, y );
-    inputState->mouse.currentPosition.x = x;
-    inputState->mouse.currentPosition.y = y;
+    inputState->mouse.currentPosition.x += x;
+    inputState->mouse.currentPosition.y += y;
 }

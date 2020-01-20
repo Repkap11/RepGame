@@ -7,7 +7,7 @@
 #define SKY_BOX_DISTANCE DRAW_DISTANCE * 0.8
 
 void mouseInput( int button, int state, int x, int y ) {
-    input_mouseInput( repgame_getInputState( ), button, state, x, y );
+    input_mouseInput( repgame_getInputState( ), button, state );
 }
 
 void mouseMove( int x, int y ) {
@@ -26,6 +26,16 @@ void repgame_linux_process_sdl_events( ) {
                 if ( event.window.event == SDL_WINDOWEVENT_RESIZED ) {
                     repgame_changeSize( event.window.data1, event.window.data2 );
                 }
+                break;
+            case SDL_MOUSEBUTTONDOWN:
+            case SDL_MOUSEBUTTONUP:
+                input_mouseInput( repgame_getInputState( ), event.button.button, event.type == SDL_MOUSEBUTTONUP );
+                break;
+            case SDL_MOUSEWHEEL:
+                input_mouseWheel( repgame_getInputState( ), event.wheel.x, event.wheel.y );
+                break;
+            case SDL_MOUSEMOTION:
+                input_lookMove( repgame_getInputState( ), event.motion.xrel, event.motion.yrel );
                 break;
         }
     }
@@ -154,11 +164,10 @@ int main( int argc, char **argv ) {
         repgame_get_screen_size( &width, &height );
         int should_lock_pointer = repgame_should_lock_pointer( );
         if ( should_lock_pointer != is_locking_pointer ) {
-            if ( should_lock_pointer ) {
-                // glutSetCursor( GLUT_CURSOR_NONE );
-            } else {
-                // glutSetCursor( GLUT_CURSOR_LEFT_ARROW );
-            }
+            SDL_SetRelativeMouseMode( should_lock_pointer ? SDL_TRUE : SDL_FALSE );
+            int width, height;
+            SDL_GetWindowSize( mainwindow, &width, &height );
+            SDL_WarpMouseInWindow( mainwindow, width / 2, height / 2 );
             is_locking_pointer = should_lock_pointer;
         }
         if ( should_lock_pointer ) {
