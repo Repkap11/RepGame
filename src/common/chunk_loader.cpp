@@ -62,6 +62,7 @@ void chunk_loader_init( LoadedChunks *loadedChunks, TRIP_ARGS( float camera_ ), 
             chunk_init( &loadedChunks->chunkArray[ i ], vb_block_solid, vb_block_water, vbl_block, vbl_coords );
         }
     }
+
     showErrors( );
 
     int camera_chunk_x = floor( camera_x / ( float )CHUNK_SIZE );

@@ -51,8 +51,9 @@ char *shaderLoadSourceFromFile( const char *filePath ) {
 
     /* close the file and null terminate the string */
     fclose( fp );
-    if ( source )
+    if ( source ){
         source[ sourceLength ] = '\0';
+    }
 
     return source;
 }

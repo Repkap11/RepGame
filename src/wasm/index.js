@@ -1,4 +1,4 @@
-clear_fullscreen_functions();
+//clear_fullscreen_functions();
 set_canvas_size();
 
 var Module = {

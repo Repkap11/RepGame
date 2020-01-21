@@ -54,7 +54,7 @@ WASM_DIRS = $(patsubst src%,out/wasm%,$(shell find src -type d)) \
 			out/wasm/fs/bitmaps \
 			out/wasm/delivery
 
-out/wasm/%.bc: src/%.cpp $(REP_MAKEFILES) $(HEADERS) | out/wasm
+out/wasm/%.bc: src/%.cpp $(REP_MAKEFILES) $(HEADERS) src/linux/RepGameSDL2.cpp | out/wasm
 	$(CC_WASM) $(INCLUDES_COMMON) $(CFLAGS_WASM) -c $< -o $@
 
 out/wasm/delivery/$(TARGET).js: $(OBJECTS_COMMON_WASM) $(OBJECTS_WASM) $(WASM_SHADERS) $(WASM_BITMAPS) $(REP_MAKEFILES) | out/wasm

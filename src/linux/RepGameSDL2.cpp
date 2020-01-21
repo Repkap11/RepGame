@@ -38,36 +38,38 @@ char *repgame_getShaderString( const char *filename ) {
 }
 
 int repgame_sdl2_main( const char *world_path, const char *host, bool connect_multi, bool tests ) {
-    if ( SDL_Init( SDL_INIT_VIDEO ) < 0 ) {     /* Initialize SDL's Video subsystem */
+    if ( SDL_Init( SDL_INIT_VIDEO ) != 0 ) {     /* Initialize SDL's Video subsystem */
         pr_debug( "Unable to initialize SDL" ); /* Or die on error */
         exit( 1 );
     }
 
-    SDL_GL_SetAttribute( SDL_GL_CONTEXT_MAJOR_VERSION, 3 );
-    SDL_GL_SetAttribute( SDL_GL_CONTEXT_MINOR_VERSION, 3 );
+    //SDL_GL_SetAttribute( SDL_GL_CONTEXT_MAJOR_VERSION, 3 );
+    //SDL_GL_SetAttribute( SDL_GL_CONTEXT_MINOR_VERSION, 0 );
 
     // next line as per: http://stackoverflow.com/questions/11961116/opengl-3-x-context-creation-using-sdl2-on-osx-macbook-air-2012
-    SDL_GL_SetAttribute( SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_CORE );
+    // SDL_GL_SetAttribute( SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_CORE );
 
     /* Turn on double buffering with a 24bit Z buffer.
      * You may need to change this to 16 or 32 for your system */
-    SDL_GL_SetAttribute( SDL_GL_RED_SIZE, 8 );
-    SDL_GL_SetAttribute( SDL_GL_GREEN_SIZE, 8 );
-    SDL_GL_SetAttribute( SDL_GL_BLUE_SIZE, 8 );
-    SDL_GL_SetAttribute( SDL_GL_DEPTH_SIZE, 16 );
-    SDL_GL_SetAttribute( SDL_GL_DOUBLEBUFFER, 1 );
-    SDL_GL_SetAttribute( SDL_GL_DEPTH_SIZE, 24 );
-    SDL_GL_SetAttribute( SDL_GL_STENCIL_SIZE, 8 );
-    SDL_GL_SetAttribute( SDL_GL_MULTISAMPLESAMPLES, 16 );
+    // SDL_GL_SetAttribute( SDL_GL_RED_SIZE, 8 );
+    // SDL_GL_SetAttribute( SDL_GL_GREEN_SIZE, 8 );
+    // SDL_GL_SetAttribute( SDL_GL_BLUE_SIZE, 8 );
+    // SDL_GL_SetAttribute( SDL_GL_DEPTH_SIZE, 16 );
+    // SDL_GL_SetAttribute( SDL_GL_DOUBLEBUFFER, 1 );
+    // SDL_GL_SetAttribute( SDL_GL_DEPTH_SIZE, 24 );
+    // SDL_GL_SetAttribute( SDL_GL_STENCIL_SIZE, 8 );
+    // SDL_GL_SetAttribute( SDL_GL_MULTISAMPLESAMPLES, 16 );
 
     /* Create our window centered */
     SDL_Window *sdl_window = SDL_CreateWindow( "RepGame", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, 1600, 800, SDL_WINDOW_OPENGL | SDL_WINDOW_SHOWN | SDL_WINDOW_RESIZABLE );
     if ( !sdl_window ) {
         pr_debug( "Creating the SDL window failed" );
+        exit( 1 );
     }
     SDL_GLContext sdl_context = SDL_GL_CreateContext( sdl_window );
     if ( !sdl_context ) {
         pr_debug( "Creating the SDL context failed" );
+        exit( 1 );
     }
     /* This makes our buffer swap syncronized with the monitor's vertical refresh */
     SDL_GL_SetSwapInterval( 1 );
@@ -81,10 +83,10 @@ int repgame_sdl2_main( const char *world_path, const char *host, bool connect_mu
     }
     ignoreErrors( );
 
-    if ( !GLEW_VERSION_3_3 ) { // check that the machine supports the 2.1 API.
-        pr_debug( "GLEW version wrong" );
-        exit( 1 ); // or handle the error in a nicer way
-    }
+    // if ( !GLEW_VERSION_3_3 ) { // check that the machine supports the 2.1 API.
+    //     pr_debug( "GLEW version wrong" );
+    //     exit( 1 ); // or handle the error in a nicer way
+    // }
 
     if ( tests ) {
         return rep_tests_start( );
@@ -92,21 +94,10 @@ int repgame_sdl2_main( const char *world_path, const char *host, bool connect_mu
     repgame_init( world_path, connect_multi, host );
     repgame_changeSize( 1600, 800 );
 
-    // glutSpecialFunc( arrowKeyDownInput );
-    // glutSpecialUpFunc( arrowKeyUpInput );
-
-    // glutKeyboardFunc( keysInput );
-    // glutKeyboardUpFunc( keysInputUp );
-    // glutMouseFunc( mouseInput );
-    // glutReshapeFunc( changeSize );
-    // glutPassiveMotionFunc( mouseMove );
-    // glutMotionFunc( mouseMove );
-
     struct timespec tstart = {0, 0}, tend = {0, 0}, tblank = {0, 0};
     // pr_debug( "Size of Int:%lu", sizeof( int ) );
     int is_locking_pointer = 0;
-    bool Running = true;
-    while ( !repgame_shouldExit( ) && Running ) {
+    while ( !repgame_shouldExit( ) ) {
         clock_gettime( CLOCK_MONOTONIC, &tstart );
         // pr_debug( "Drawing" );
 
@@ -122,14 +113,10 @@ int repgame_sdl2_main( const char *world_path, const char *host, bool connect_mu
             SDL_WarpMouseInWindow( sdl_window, width / 2, height / 2 );
             is_locking_pointer = should_lock_pointer;
         }
-        if ( should_lock_pointer ) {
-            // glutWarpPointer( width / 2, height / 2 );
-        }
         repgame_clear( );
         repgame_tick( );
         repgame_draw( );
         SDL_GL_SwapWindow( sdl_window );
-        // glutSwapBuffers( );
 
         showErrors( );
         // clock_gettime( CLOCK_MONOTONIC, &tend );
