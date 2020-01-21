@@ -7,7 +7,7 @@
             "request": "launch",
             "preLaunchTask": "make linux",
             "program": "${workspaceRoot}/out/linux/RepGame",
-            "args": ["../../World1"],
+            "args": ["World1","repkap11.com"],
             "stopAtEntry": false,
             "cwd": "${workspaceRoot}",
             "environment": [],

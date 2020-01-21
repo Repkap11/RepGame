@@ -9,6 +9,7 @@ CFLAGS_WASM := -DREPGAME_WASM \
 			--no-heap-copy \
 			-std=c++11 \
 			-lidbfs.js \
+			-s DISABLE_DEPRECATED_FIND_EVENT_TARGET_BEHAVIOR=0 \
 			-s EXPORTED_FUNCTIONS='["_main"]' \
 			-s EXTRA_EXPORTED_RUNTIME_METHODS='["ccall", "cwrap"]'
 

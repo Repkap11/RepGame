@@ -37,42 +37,43 @@ char *repgame_getShaderString( const char *filename ) {
     return ( char * )"RepGame SDL doesn't support shaders from file";
 }
 
+void main_loop_once( );
+SDL_Window *sdl_window = NULL;
+SDL_GLContext sdl_context = NULL;
 int repgame_sdl2_main( const char *world_path, const char *host, bool connect_multi, bool tests ) {
-    if ( SDL_Init( SDL_INIT_VIDEO ) != 0 ) {     /* Initialize SDL's Video subsystem */
+    if ( SDL_Init( SDL_INIT_VIDEO ) != 0 ) {    /* Initialize SDL's Video subsystem */
         pr_debug( "Unable to initialize SDL" ); /* Or die on error */
         exit( 1 );
     }
 
-    //SDL_GL_SetAttribute( SDL_GL_CONTEXT_MAJOR_VERSION, 3 );
-    //SDL_GL_SetAttribute( SDL_GL_CONTEXT_MINOR_VERSION, 0 );
-
+    SDL_GL_SetAttribute( SDL_GL_CONTEXT_MAJOR_VERSION, 3 );
+#if !defined( REPGAME_WASM )
+    SDL_GL_SetAttribute( SDL_GL_CONTEXT_MINOR_VERSION, 3 );
     // next line as per: http://stackoverflow.com/questions/11961116/opengl-3-x-context-creation-using-sdl2-on-osx-macbook-air-2012
-    // SDL_GL_SetAttribute( SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_CORE );
+    SDL_GL_SetAttribute( SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_CORE );
+#endif
 
     /* Turn on double buffering with a 24bit Z buffer.
      * You may need to change this to 16 or 32 for your system */
-    // SDL_GL_SetAttribute( SDL_GL_RED_SIZE, 8 );
-    // SDL_GL_SetAttribute( SDL_GL_GREEN_SIZE, 8 );
-    // SDL_GL_SetAttribute( SDL_GL_BLUE_SIZE, 8 );
-    // SDL_GL_SetAttribute( SDL_GL_DEPTH_SIZE, 16 );
-    // SDL_GL_SetAttribute( SDL_GL_DOUBLEBUFFER, 1 );
-    // SDL_GL_SetAttribute( SDL_GL_DEPTH_SIZE, 24 );
-    // SDL_GL_SetAttribute( SDL_GL_STENCIL_SIZE, 8 );
-    // SDL_GL_SetAttribute( SDL_GL_MULTISAMPLESAMPLES, 16 );
+    SDL_GL_SetAttribute( SDL_GL_RED_SIZE, 8 );
+    SDL_GL_SetAttribute( SDL_GL_GREEN_SIZE, 8 );
+    SDL_GL_SetAttribute( SDL_GL_BLUE_SIZE, 8 );
+    SDL_GL_SetAttribute( SDL_GL_DOUBLEBUFFER, 1 );
+    SDL_GL_SetAttribute( SDL_GL_DEPTH_SIZE, 24 );
+    SDL_GL_SetAttribute( SDL_GL_STENCIL_SIZE, 8 );
+    SDL_GL_SetAttribute( SDL_GL_MULTISAMPLESAMPLES, 16 );
 
     /* Create our window centered */
-    SDL_Window *sdl_window = SDL_CreateWindow( "RepGame", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, 1600, 800, SDL_WINDOW_OPENGL | SDL_WINDOW_SHOWN | SDL_WINDOW_RESIZABLE );
+    sdl_window = SDL_CreateWindow( "RepGame", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, 1600, 800, SDL_WINDOW_OPENGL | SDL_WINDOW_SHOWN | SDL_WINDOW_RESIZABLE );
     if ( !sdl_window ) {
         pr_debug( "Creating the SDL window failed" );
         exit( 1 );
     }
-    SDL_GLContext sdl_context = SDL_GL_CreateContext( sdl_window );
+    sdl_context = SDL_GL_CreateContext( sdl_window );
     if ( !sdl_context ) {
         pr_debug( "Creating the SDL context failed" );
         exit( 1 );
     }
-    /* This makes our buffer swap syncronized with the monitor's vertical refresh */
-    SDL_GL_SetSwapInterval( 1 );
 
     pr_debug( "Using OpenGL Version:%s", glGetString( GL_VERSION ) );
     pr_debug( "Using OpenGL Renderer:%s", glGetString( GL_RENDERER ) );
@@ -83,23 +84,47 @@ int repgame_sdl2_main( const char *world_path, const char *host, bool connect_mu
     }
     ignoreErrors( );
 
-    // if ( !GLEW_VERSION_3_3 ) { // check that the machine supports the 2.1 API.
-    //     pr_debug( "GLEW version wrong" );
-    //     exit( 1 ); // or handle the error in a nicer way
-    // }
+#if !defined( REPGAME_WASM )
 
+    /* This makes our buffer swap syncronized with the monitor's vertical refresh */
+    SDL_GL_SetSwapInterval( 1 );
+
+    if ( !GLEW_VERSION_3_3 ) { // check that the machine supports the 2.1 API.
+        pr_debug( "GLEW version wrong" );
+        exit( 1 ); // or handle the error in a nicer way
+    }
+#endif
     if ( tests ) {
         return rep_tests_start( );
     }
     repgame_init( world_path, connect_multi, host );
     repgame_changeSize( 1600, 800 );
 
-    struct timespec tstart = {0, 0}, tend = {0, 0}, tblank = {0, 0};
-    // pr_debug( "Size of Int:%lu", sizeof( int ) );
-    int is_locking_pointer = 0;
+#if defined( REPGAME_WASM )
+    pr_debug( "before emscripten_set_main_loop" );
+    emscripten_set_main_loop( main_loop_once, 0, 1 );
+    pr_debug( "after emscripten_set_main_loop" );
+#else
     while ( !repgame_shouldExit( ) ) {
-        clock_gettime( CLOCK_MONOTONIC, &tstart );
-        // pr_debug( "Drawing" );
+        main_loop_once( );
+        // Delay to keep frame rate constant (using SDL)
+        SDL_GL_SwapWindow( sdl_window );
+    }
+    repgame_cleanup( );
+    SDL_GL_DeleteContext( sdl_context );
+    SDL_DestroyWindow( sdl_window );
+    SDL_Quit( );
+#endif
+    return 0;
+}
+
+int is_locking_pointer = 0;
+void main_loop_once( ) {
+    if ( repgame_shouldExit( ) ) {
+        return;
+    } else {
+        // clock_gettime( CLOCK_MONOTONIC, &tstart );
+        pr_debug( "Drawing" );
 
         repgame_linux_process_sdl_events( );
 
@@ -116,7 +141,7 @@ int repgame_sdl2_main( const char *world_path, const char *host, bool connect_mu
         repgame_clear( );
         repgame_tick( );
         repgame_draw( );
-        SDL_GL_SwapWindow( sdl_window );
+        // SDL_GL_SwapWindow( sdl_window );
 
         showErrors( );
         // clock_gettime( CLOCK_MONOTONIC, &tend );
@@ -144,11 +169,5 @@ int repgame_sdl2_main( const char *world_path, const char *host, bool connect_mu
         //     }
         // }
     }
-    repgame_cleanup( );
-    SDL_GL_DeleteContext( sdl_context );
-    SDL_DestroyWindow( sdl_window );
-    SDL_Quit( );
-    // glutLeaveMainLoop( );
-    // glutDestroyWindow( glut_window );
-    return 0;
+    return;
 }
