@@ -84,6 +84,12 @@ int repgame_sdl2_main( const char *world_path, const char *host, bool connect_mu
     }
     ignoreErrors( );
 
+    if ( tests ) {
+        return rep_tests_start( );
+    }
+    repgame_init( world_path, connect_multi, host );
+    repgame_changeSize( 1600, 800 );
+
 #if !defined( REPGAME_WASM )
 
     /* This makes our buffer swap syncronized with the monitor's vertical refresh */
@@ -93,18 +99,6 @@ int repgame_sdl2_main( const char *world_path, const char *host, bool connect_mu
         pr_debug( "GLEW version wrong" );
         exit( 1 ); // or handle the error in a nicer way
     }
-#endif
-    if ( tests ) {
-        return rep_tests_start( );
-    }
-    repgame_init( world_path, connect_multi, host );
-    repgame_changeSize( 1600, 800 );
-
-#if defined( REPGAME_WASM )
-    pr_debug( "before emscripten_set_main_loop" );
-    emscripten_set_main_loop( main_loop_once, 0, 1 );
-    pr_debug( "after emscripten_set_main_loop" );
-#else
     while ( !repgame_shouldExit( ) ) {
         main_loop_once( );
         // Delay to keep frame rate constant (using SDL)
@@ -114,6 +108,8 @@ int repgame_sdl2_main( const char *world_path, const char *host, bool connect_mu
     SDL_GL_DeleteContext( sdl_context );
     SDL_DestroyWindow( sdl_window );
     SDL_Quit( );
+#else
+    emscripten_set_main_loop( main_loop_once, 0, 1 );
 #endif
     return 0;
 }
@@ -124,7 +120,7 @@ void main_loop_once( ) {
         return;
     } else {
         // clock_gettime( CLOCK_MONOTONIC, &tstart );
-        pr_debug( "Drawing" );
+        // pr_debug( "Drawing" );
 
         repgame_linux_process_sdl_events( );
 
@@ -141,7 +137,6 @@ void main_loop_once( ) {
         repgame_clear( );
         repgame_tick( );
         repgame_draw( );
-        // SDL_GL_SwapWindow( sdl_window );
 
         showErrors( );
         // clock_gettime( CLOCK_MONOTONIC, &tend );

@@ -194,14 +194,6 @@ void repgame_process_movement( ) {
     globalGameState.camera.y_speed = movement_vector_y;
     globalGameState.camera.z += movement_vector_z;
 }
-void repgame_idle( ) {
-    if ( globalGameState.input.exitGame ) {
-        // Don't bother being idle if the state if the game is exiting
-        return;
-    }
-    multiplayer_process_events( &globalGameState.world );
-    world_render( &globalGameState.world, globalGameState.camera.x, globalGameState.camera.y, globalGameState.camera.z, 1, globalGameState.camera.rotation );
-}
 
 void repgame_tick( ) {
     if ( globalGameState.input.exitGame ) {
@@ -376,16 +368,29 @@ void repgame_draw( ) {
     glm::mat4 mvp_sky_reflect = globalGameState.screen.proj * flipped_look;
 
     glm::mat4 mvp_reflect = globalGameState.screen.proj * flipped_look * flipped_trans;
-#if defined( REPGAME_WASM )
-#else
+
     multiplayer_process_events( &globalGameState.world );
-    // if ( should_upate_count > 100 ) {
     multiplayer_update_players_position( globalGameState.camera.x, globalGameState.camera.y, globalGameState.camera.z, globalGameState.camera.rotation );
-    //    should_upate_count = 0;
-    //}
-    // should_upate_count++;
-    world_render( &globalGameState.world, globalGameState.camera.x, globalGameState.camera.y, globalGameState.camera.z, false, globalGameState.camera.rotation );
+
+#if defined( REPGAME_WASM )
+    bool limit_render = 1;
+    bool do_render;
+    static int should_update_count = 0;
+    if ( should_update_count > 20 ) {
+        should_update_count = 0;
+        do_render = 1;
+    } else {
+        do_render = 0;
+    }
+    should_update_count++;
+#else
+    bool do_render = 1;
+    bool limit_render = 0;
 #endif
+    if ( do_render ) {
+        world_render( &globalGameState.world, globalGameState.camera.x, globalGameState.camera.y, globalGameState.camera.z, limit_render, globalGameState.camera.rotation );
+    }
+
     showErrors( );
 
     // glm::mat4 mvp_mirror = glm::translate( mvp, glm::vec3( 0, -10, 0 ) );
