@@ -13,39 +13,24 @@ script.src = "RepGame.js";
 document.body.appendChild(script);
 
 function clear_fullscreen_functions() {
-  document["exitFullscreen"] = function() {};
-  document["cancelFullScreen"] = function() {};
-  document["mozCancelFullScreen"] = function() {};
-  document["webkitCancelFullScreen"] = function() {};
+  //   document["exitFullscreen"] = function() {};
+  //   document["cancelFullScreen"] = function() {};
+  //   document["mozCancelFullScreen"] = function() {};
+  //   document["webkitCancelFullScreen"] = function() {};
 }
 
 function set_canvas_size() {
   var canvas = document.getElementById("canvas");
-  canvas.width = window.innerWidth;
-  canvas.height = window.innerHeight;
+  canvas.style.width = window.innerWidth + "px";
+  canvas.style.height = window.innerHeight + "px";
 }
 
 function onModuleReady() {
   console.log("Module ready");
   setup_click_handler();
-  setup_key_listener();
   draw_mark();
-}
-
-function setup_key_listener() {
-  document.addEventListener("keydown", function(event) {
-    console.log("got key" + event.keyCode);
-    //F5
-    if (event.keyCode == 116) {
-      location.reload();
-    }
-    //Q
-    if (event.keyCode == 81) {
-      //Native game will stop, so release the pointer lock
-      document.exitPointerLock();
-      close();
-    }
-  });
+  canvas.focus();
+  window.onresize = set_canvas_size;
 }
 
 function reset_canvas() {
@@ -83,7 +68,7 @@ function draw_mark() {
   ctx.fillStyle = "black";
   ctx.font = "100px Arial";
 
-  var textString = "Click Here To Play";
+  var textString = "Press and Hold Any Key To Play";
   var textWidth = ctx.measureText(textString).width;
 
   var textString2 = "RepGame";
@@ -96,18 +81,33 @@ function draw_mark() {
 function setup_click_handler() {
   var first_time = 1;
   var canvas = document.getElementById("canvas");
-  function callback() {
+
+  function callback(event) {
+    console.log("Got a press");
     if (first_time) {
       reset_canvas();
-      var canvas = document.getElementById("canvas");
-      canvas.onclick = callback;
+    } else {
+      console.log("got key" + event.keyCode);
+      //F5
+      if (event.keyCode == 116) {
+        location.reload();
+      }
+      //Q
+      if (event.keyCode == 81) {
+        //Native game will stop, so release the okii lock
+        //document.exitPointerLock();
+        close();
+      }
     }
     var canvas = document.getElementById("canvas");
-    var hasPointerLock = document.pointerLockElement === canvas;
-    if (!hasPointerLock) {
-      canvas.requestPointerLock();
-    }
+
+    // var hasPointerLock = document.pointerLockElement === canvas;
+    // if (!hasPointerLock) {
+    canvas.requestPointerLock();
+    // }
     if (first_time) {
+      document.addEventListener("keydown", callback);
+
       first_time = 0;
       FS.mkdir("/repgame_wasm");
       FS.mount(IDBFS, {}, "/repgame_wasm");
@@ -117,5 +117,9 @@ function setup_click_handler() {
       });
     }
   }
-  canvas.onclick = callback;
+  document.addEventListener("keydown", callback);
+  //canvas.onkeydown = callback;
 }
+
+// Webkit/Blink will fire this on load, but Gecko doesn't.
+// So we fire it manually...

@@ -88,7 +88,6 @@ int repgame_sdl2_main( const char *world_path, const char *host, bool connect_mu
         return rep_tests_start( );
     }
     repgame_init( world_path, connect_multi, host );
-    repgame_changeSize( 1600, 800 );
 
 #if !defined( REPGAME_WASM )
 

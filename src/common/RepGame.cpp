@@ -249,6 +249,7 @@ void repgame_tick( ) {
 static inline void initilizeGameState( const char *world_name ) {
     globalGameState.input.exitGame = 0;
     globalGameState.input.limit_fps = 1;
+    globalGameState.input.inventory_open = 0;
     globalGameState.camera.angle_H = 135.0f;
     globalGameState.camera.angle_V = 25.0f;
     globalGameState.camera.x = 0.0f;

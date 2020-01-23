@@ -53,51 +53,6 @@ void processMovement( InputState *inputState ) {
     inputState->movement.sizeH = sizeH;
 }
 
-void input_arrowKeyDownInput( InputState *inputState, int key, int x, int y ) {
-    // switch ( key ) {
-    //     case GLUT_KEY_UP:
-    //         front = 1;
-    //         // pr_debug( "Up Arrow 1 %d %d", x, y );
-    //         break;
-    //     case GLUT_KEY_DOWN:
-    //         back = 1;
-    //         // pr_debug( "Down Arrow 1 %d %d", x, y );
-    //         break;
-    //     case GLUT_KEY_LEFT:
-    //         left = 1;
-    //         // pr_debug( "Left Arrow 1 %d %d", x, y );
-    //         break;
-    //     case GLUT_KEY_RIGHT:
-    //         right = 1;
-    //         // pr_debug( "Right Arrow 1 %d %d", x, y );
-    //         break;
-    //     case 114: // Left Control
-    //     case 115: // Right Control
-    //         down = 1;
-    //         // pr_debug( "Right Arrow 0 %d %d", x, y );
-    //         break;
-    //     default:
-    //         pr_debug( "Got Unhandled Special Key Down: %d", key );
-    //         break;
-    // }
-    processMovement( inputState );
-}
-
-void input_arrowKeyUpInput( InputState *inputState, int key, int x, int y ) {
-    // switch ( key ) {
-
-    //     case 114: // Left Control
-    //     case 115: // Right Control
-    //         down = 0;
-    //         // pr_debug( "Right Arrow 0 %d %d", x, y );
-    //         break;
-    //     default:
-    //         pr_debug( "Got Unhandled Special Key Up: %d", key );
-    //         break;
-    // }
-    processMovement( inputState );
-}
-
 void input_mouseInput( InputState *inputState, int button, int state ) {
     switch ( button ) {
         case SDL_BUTTON_LEFT:
