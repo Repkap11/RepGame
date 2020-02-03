@@ -44,6 +44,9 @@ void chunk_loader_init( LoadedChunks *loadedChunks, TRIP_ARGS( float camera_ ), 
     showErrors( );
 
     shader_init( &loadedChunks->shader, &chunk_vertex, &chunk_fragment );
+    if ( !DEBUG_CYCLE_AUTO_ROTATING_BLOCKS ) {
+        shader_set_uniform1f( &loadedChunks->shader, "u_ShowRotation", -2 );
+    }
 
     {
         vertex_buffer_init( &loadedChunks->solid.vb_block );
@@ -236,16 +239,18 @@ void chunk_loader_draw_chunks( LoadedChunks *loadedChunks, const glm::mat4 &mvp,
             }
         }
     }
-    shouldInc++;
-    if ( shouldInc > 1000 ) {
-        shouldInc = 0;
-        showRotation++;
-        if ( showRotation >= 8 ) {
-            showRotation = 0;
+    if ( DEBUG_CYCLE_AUTO_ROTATING_BLOCKS ) {
+        shouldInc++;
+        if ( shouldInc > 100 ) {
+            shouldInc = 0;
+            showRotation++;
+            if ( showRotation >= 8 ) {
+                showRotation = 0;
+            }
         }
+        shader_set_uniform1f( &loadedChunks->shader, "u_ShowRotation", showRotation );
     }
 
-    shader_set_uniform1f( &loadedChunks->shader, "u_ShowRotation", showRotation );
     shader_set_uniform1f( &loadedChunks->shader, "u_shouldDiscardAlpha", 1 );
 }
 

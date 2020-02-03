@@ -42,6 +42,7 @@
 #define CULL_NON_VISIBLE 1
 #define FOREST_DEBUG 0
 #define REFLECTIONS 1
+#define DEBUG_CYCLE_AUTO_ROTATING_BLOCKS 0
 
 #define NO_CLIP 0
 #define MAP_SEED 0
