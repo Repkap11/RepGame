@@ -4,6 +4,9 @@ uniform mat4 u_MV;
 uniform vec3 u_DebugScaleOffset;
 uniform float u_ReflectionHeight;
 
+#define MAX_ROTATABLE_BLOCK 100u
+uniform float u_RandomRotationBlocks[ MAX_ROTATABLE_BLOCK ];
+
 // See CubeFace in block.h
 // This defines all the triangles of a cube
 layout( location = 0 ) in vec3 position;
@@ -21,11 +24,12 @@ layout( location = 8 ) in uvec3 packed_lighting_2;
 layout( location = 9 ) in uint rotation;
 
 out vec2 v_TexCoordBlock;
-flat out float v_blockID;
+flat out uint v_blockID;
 flat out int v_shouldDiscardNoLight;
 out float v_planarDot;
 out float v_corner_lighting;
 flat out int v_needs_rotate;
+flat out int v_block_auto_rotates;
 
 #define FACE_TOP 0u
 #define FACE_BOTTOM 1u
@@ -108,18 +112,22 @@ void main( ) {
 
     uint shift = ( faceType_rotated % 2u ) * 16u;
     // 0xffffu is max short 16u is sizeof(short)
-    v_blockID = float( ( blockTexture[ faceType_rotated / 2u ] & ( 0xffffu << shift ) ) >> shift );
+    v_blockID = ( blockTexture[ faceType_rotated / 2u ] & ( 0xffffu << shift ) ) >> shift;
     // if ( faceType < 2u ) {
     //     v_blockID = blockTexture1[ faceType ];
     // } else {
     //     v_blockID = blockTexture2[ faceType - 3u ];
     // }
-
-    if ( v_blockID == 0.0f ) {
+    if ( v_blockID > MAX_ROTATABLE_BLOCK ) {
+        v_block_auto_rotates = 0;
+    } else {
+        v_block_auto_rotates = int( u_RandomRotationBlocks[ v_blockID ] == 1.0f );
+    }
+    if ( bool( v_block_auto_rotates ) ) {
         int x_mod = ( int( ( blockCoords.x ) ) % 32 );
         int y_mod = ( int( ( blockCoords.y ) ) % 32 );
         int z_mod = ( int( ( blockCoords.z ) ) % 32 );
 
-        v_needs_rotate = ( 27 * x_mod + y_mod + z_mod ) % 32;
+        v_needs_rotate = ( 27 * x_mod + 3*y_mod + z_mod ) % 32;
     }
 }

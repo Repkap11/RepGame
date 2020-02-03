@@ -83,12 +83,12 @@ void repgame_process_mouse_events( ) {
     }
     if ( globalGameState.block_selection.selectionInBounds && globalGameState.input.mouse.buttons.left && globalGameState.input.click_delay_left == 0 ) {
         change_block( 0, {AIR, BLOCK_ROTATE_0} );
-        globalGameState.input.click_delay_left = 8;
+        globalGameState.input.click_delay_left = 30;
     }
     if ( globalGameState.block_selection.selectionInBounds && globalGameState.input.mouse.buttons.right && globalGameState.input.click_delay_right == 0 ) {
         unsigned char rotation = getPlacedRotation( globalGameState.block_selection.holdingBlock );
         change_block( 1, {globalGameState.block_selection.holdingBlock, rotation} );
-        globalGameState.input.click_delay_right = 8;
+        globalGameState.input.click_delay_right = 30;
     }
     if ( globalGameState.block_selection.selectionInBounds && globalGameState.input.mouse.currentPosition.wheel_counts != globalGameState.input.mouse.previousPosition.wheel_counts ) {
         int wheel_diff = globalGameState.input.mouse.currentPosition.wheel_counts > globalGameState.input.mouse.previousPosition.wheel_counts ? 1 : -1;

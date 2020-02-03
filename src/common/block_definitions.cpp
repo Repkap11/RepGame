@@ -5,13 +5,21 @@
 #include "common/RepGame.hpp"
 
 Block *block_definitions;
+float *block_supports_random_rotations;
+
 void do_disable( Block *block_definitions );
 void do_flowers( Block *block_definitions );
 
+void block_definitions_get_random_rotations( float **out_supports_random_rotations ) {
+    *out_supports_random_rotations = block_supports_random_rotations;
+}
+
 void block_definitions_initilize_definitions( Texture *texture ) {
     block_definitions = ( Block * )calloc( LAST_BLOCK_ID, sizeof( Block ) );
+    block_supports_random_rotations = ( float * )calloc( LAST_BLOCK_ID, sizeof( float ) );
     for ( int block_id = 0; block_id < LAST_BLOCK_ID; block_id++ ) {
         Block *block = &block_definitions[ block_id ];
+        block_supports_random_rotations[ block_id ] = 0.0f;
         block->id = ( BlockID )block_id;
         block->renderOrder = RenderOrder_Opaque;
         for ( int i = 0; i < NUM_FACES_IN_CUBE; i++ ) {
@@ -31,6 +39,8 @@ void block_definitions_initilize_definitions( Texture *texture ) {
     block_definitions[ GRASS ].textures[ FACE_FRONT ] = GRASS_SIDE;
     block_definitions[ GRASS ].textures[ FACE_BACK ] = GRASS_SIDE;
     block_definitions[ GRASS ].textures[ FACE_BOTTOM ] = DIRT;
+    block_supports_random_rotations[ GRASS - 1 ] = 1.0f;
+    block_supports_random_rotations[ TNT_TOP - 1 ] = 1.0f;
 
     block_definitions[ DOUBLE_SLAB ].textures[ FACE_TOP ] = SLAB_TOP;
     block_definitions[ DOUBLE_SLAB ].textures[ FACE_LEFT ] = DOUBLE_SLAB;
@@ -188,6 +198,7 @@ Block *block_definition_get_definition( BlockID blockID ) {
 
 void block_definitions_free_definitions( ) {
     free( block_definitions );
+    free( block_supports_random_rotations );
 }
 
 void do_disable( Block *block_definitions ) {

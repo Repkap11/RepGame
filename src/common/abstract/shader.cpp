@@ -51,7 +51,7 @@ char *shaderLoadSourceFromFile( const char *filePath ) {
 
     /* close the file and null terminate the string */
     fclose( fp );
-    if ( source ){
+    if ( source ) {
         source[ sourceLength ] = '\0';
     }
 
@@ -130,11 +130,15 @@ unsigned int shaders_compile( const ShaderSourceData *vertex_path, const ShaderS
 
             // get the program info log
             glGetProgramiv( g_program, GL_INFO_LOG_LENGTH, &length );
-            log = ( char * )malloc( length );
+            if ( length < 100 ) {
+                length = 100;
+            }
+            log = ( char * )malloc( length + 1 );
             glGetProgramInfoLog( g_program, length, &result, log );
+            log[ length ] = 0;
 
             /* print an error message and the info log */
-            pr_debug( "sceneInit(): Program linking failed: %s\n", log );
+            pr_debug( "sceneInit(): Program linking failed: %d:%s\n", length, log );
             free( log );
 
             /* delete the program */
@@ -190,6 +194,11 @@ void shader_set_uniform4f( Shader *shader, const char *name, float f0, float f1,
 void shader_set_uniform3f( Shader *shader, const char *name, float f0, float f1, float f2 ) {
     shader_bind( shader );
     glUniform3f( get_uniform_location( shader, name ), f0, f1, f2 );
+}
+
+void shader_set_uniform1fv( Shader *shader, const char *name, float *f, int count ) {
+    shader_bind( shader );
+    glUniform1fv( get_uniform_location( shader, name ), count, f );
 }
 
 void shader_set_uniform1f( Shader *shader, const char *name, float f ) {

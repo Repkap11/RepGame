@@ -72,12 +72,12 @@ unsigned char *readTextureDataFromCache( const char *filename, int mem_size ) {
 }
 #endif
 
-#define BYTEX_PER_PIXEL 4
+#define BYTES_PER_PIXEL 4
 unsigned int loadTexture( const TextureSourceData *texture_source ) {
     int bmp_header = texture_source->header_size;
     unsigned char *data;
 
-    int mem_size = texture_source->width * texture_source->height * BYTEX_PER_PIXEL + bmp_header;
+    int mem_size = texture_source->width * texture_source->height * BYTES_PER_PIXEL + bmp_header;
 
 #if defined( REPGAME_LINUX ) || defined( REPGAME_WINDOWS )
 #define TEXTURE_NEEDS_FREE 0
@@ -97,9 +97,27 @@ unsigned int loadTexture( const TextureSourceData *texture_source ) {
     data = NULL;
     pr_debug( "Undefined platform in textures.cpp mem_size:%d", mem_size );
 #endif
-
     unsigned int textures_across = texture_source->width / texture_source->tile_size_across;
     unsigned int textures_down = texture_source->height / texture_source->tile_size_down;
+
+    // Due to strange issues with block meshing and rotation, it's easier to flip images in the X direction here,
+    // instead of in texture coordinates.
+    int working_size = texture_source->width * texture_source->height * BYTES_PER_PIXEL * sizeof( char );
+    unsigned char *working = ( unsigned char * )malloc( working_size + bmp_header );
+    for ( unsigned int y = 0; y < textures_down; y++ ) {
+        for ( unsigned int x = 0; x < textures_across; x++ ) {
+            unsigned int corner_pixel = y * texture_source->width * texture_source->tile_size_down + x * texture_source->tile_size_across;
+            for ( unsigned int pix_y = 0; pix_y < texture_source->tile_size_down; pix_y++ ) {
+                for ( unsigned int pix_x = 0; pix_x < texture_source->tile_size_across; pix_x++ ) {
+                    for ( unsigned int which_byte = 0; which_byte < BYTES_PER_PIXEL; which_byte++ ) {
+                        working[ ( corner_pixel + pix_y * texture_source->width + ( texture_source->tile_size_across - pix_x - 1 ) ) * BYTES_PER_PIXEL + which_byte ] = //
+                            data[ ( corner_pixel + pix_y * texture_source->width + pix_x ) * BYTES_PER_PIXEL + which_byte ];
+                    }
+                }
+            }
+        }
+    }
+
     unsigned int layer_count = textures_across * textures_down;
     unsigned int texture;
     glGenTextures( 1, &texture );
@@ -122,8 +140,9 @@ unsigned int loadTexture( const TextureSourceData *texture_source ) {
                          texture_source->tile_size_across, texture_source->tile_size_down, 1, //
                          GL_RGBA,
                          GL_UNSIGNED_BYTE, //
-                         data + bmp_header + text_coord_base * BYTEX_PER_PIXEL );
+                         working + bmp_header + text_coord_base * BYTES_PER_PIXEL );
     }
+    free( working );
 
     glTexParameterf( GL_TEXTURE_2D_ARRAY, GL_TEXTURE_WRAP_S, GL_REPEAT );
     glTexParameterf( GL_TEXTURE_2D_ARRAY, GL_TEXTURE_WRAP_T, GL_REPEAT );

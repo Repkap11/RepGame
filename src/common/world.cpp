@@ -42,6 +42,11 @@ void world_init( World *world, TRIP_ARGS( float camera_ ) ) {
 
     chunk_loader_init( &world->loadedChunks, TRIP_ARGS( camera_ ), &world->vbl_block, &world->vbl_coords );
 
+    float *random_rotation_blocks;
+    block_definitions_get_random_rotations( &random_rotation_blocks );
+
+    shader_set_uniform1fv( &world->loadedChunks.shader, "u_RandomRotationBlocks", random_rotation_blocks, MAX_ROTATABLE_BLOCK );
+
     shader_init( &world->sky_shader, &object_vertex, &object_fragment );
 
     sky_box_init( &world->skyBox, &world->vbl_object_vertex, &world->vbl_object_position );
@@ -144,7 +149,7 @@ void fixup_chunk( World *world, Chunk *chunk, TRIP_ARGS( int offset_ ), TRIP_ARG
     Chunk *fixupChunk = chunk_loader_get_chunk( &world->loadedChunks, chunk->chunk_x + offset_x, chunk->chunk_y + offset_y, chunk->chunk_z + offset_z );
     if ( fixupChunk ) {
         if ( fixupChunk->is_loading ) {
-            //This shouldn't happen because can_fixup_chunk should be called first.
+            // This shouldn't happen because can_fixup_chunk should be called first.
             pr_debug( "Ekk, still loading. You'll probably get a lighting bug." );
             return;
         }

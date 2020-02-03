@@ -37,6 +37,7 @@ void shader_unbind( const Shader *shader );
 void shader_destroy( Shader *shader );
 void shader_set_uniform4f( Shader *shader, const char *name, float f0, float f1, float f2, float f3 );
 void shader_set_uniform3f( Shader *shader, const char *name, float f0, float f1, float f2 );
+void shader_set_uniform1fv( Shader *shader, const char *name, float *f, int count );
 void shader_set_uniform1f( Shader *shader, const char *name, float f );
 void shader_set_uniform1i( Shader *shader, const char *name, int i );
 void shader_set_uniform1ui( Shader *shader, const char *name, unsigned int i );

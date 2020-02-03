@@ -4,7 +4,7 @@ precision highp float;
 precision lowp sampler2DArray;
 
 in vec2 v_TexCoordBlock;
-flat in float v_blockID;
+flat in uint v_blockID;
 in float v_corner_lighting;
 flat in int v_shouldDiscardNoLight;
 in float v_planarDot;
@@ -12,7 +12,10 @@ uniform float u_shouldDiscardAlpha;
 uniform sampler2DArray u_Texture;
 uniform float u_ReflectionHeight;
 flat in int v_needs_rotate;
+flat in int v_block_auto_rotates;
 uniform float u_ShowRotation;
+#define MAX_ROTATABLE_BLOCK 100u
+uniform float u_RandomRotationBlocks[ MAX_ROTATABLE_BLOCK ];
 
 layout( location = 0 ) out vec4 color;
 
@@ -25,10 +28,11 @@ void main( ) {
     }
     vec2 working_fract = vec2( fract( v_TexCoordBlock.x ), fract( v_TexCoordBlock.y ) );
     vec2 working_int = vec2( v_TexCoordBlock.x - working_fract.x, v_TexCoordBlock.y - working_fract.y );
-
+    // working_fract = vec2( 1.0 - working_fract.x, working_fract.y );
     int set_color = 0;
     int mod_sum = -1;
-    if ( v_blockID == 0.0f ) {
+    if ( bool( v_block_auto_rotates ) ) {
+        // if ( v_blockID == 0u ) {//Grass
         int x_mod = int( working_int.x ) % 32;
         int y_mod = int( working_int.y ) % 32;
         mod_sum = ( 27 * x_mod + y_mod + v_needs_rotate ) % 32;

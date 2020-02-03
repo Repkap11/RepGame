@@ -189,8 +189,12 @@ typedef enum {
     STEVE_HEAD_FRONT,
     STEVE_HEAD_RIGHT,
     STEVE_HEAD_BACK,
-    LAST_BLOCK_ID = 1219,
+    LAST_BLOCK_ID = 1219, //Also in chunk_vertex.glsl
 } BlockID;
+
+//The GPU can only hold so many blocks, so only blocks with id's under 100 can be rotated.
+//This constant is duplicated in chunk_vertex.glsl and chunk_fragment.glsl
+#define MAX_ROTATABLE_BLOCK 100
 
 typedef struct {
     BlockID id;
@@ -207,6 +211,7 @@ typedef struct {
 
 void block_definitions_initilize_definitions( Texture *texture );
 Block *block_definition_get_definition( BlockID blockID );
+void block_definitions_get_random_rotations( float **out_supports_random_rotations );
 void block_definitions_free_definitions( );
 
 #endif

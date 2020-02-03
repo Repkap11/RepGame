@@ -8,11 +8,11 @@ typedef struct {
 #else
     const char *filename;
 #endif
-    int width;
-    int height;
-    int tile_size_across;
-    int tile_size_down;
-    int header_size;
+    unsigned int width;
+    unsigned int height;
+    unsigned int tile_size_across;
+    unsigned int tile_size_down;
+    unsigned int header_size;
 } TextureSourceData;
 
 // header_size must match trim value in Makefile for linux and windows binaries
