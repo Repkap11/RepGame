@@ -127,6 +127,7 @@ unsigned int loadTexture( const TextureSourceData *texture_source, int blur_mag 
                   GL_RGBA8,                                                         //
                   texture_source->tile_size_across, texture_source->tile_size_down, //
                   layer_count, 0, GL_RGBA, GL_UNSIGNED_BYTE, NULL );
+    showErrors( );
 
     glPixelStorei( GL_UNPACK_ROW_LENGTH, texture_source->width );
     glPixelStorei( GL_UNPACK_IMAGE_HEIGHT, texture_source->height );
@@ -141,6 +142,7 @@ unsigned int loadTexture( const TextureSourceData *texture_source, int blur_mag 
                          GL_RGBA,
                          GL_UNSIGNED_BYTE, //
                          working + bmp_header + text_coord_base * BYTES_PER_PIXEL );
+        showErrors( );
     }
     free( working );
 
