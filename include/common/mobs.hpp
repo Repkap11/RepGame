@@ -14,25 +14,26 @@
 
 #define MAX_MOB_COUNT 20
 
-typedef struct {
+class Mobs {
     IndexBuffer ib;
     VertexArray va;
     std::vector<ObjectPosition> mob_positions;
-    std::map<int,int> mob_index_lookup;
+    std::map<int, int> mob_index_lookup;
     VertexBuffer vb_mob_placement;
     VertexBuffer vb_mob_shape;
     int shouldDraw;
     glm::mat4 initial_mat;
+    static void init_mob( ObjectPosition *mob, int id );
 
-} Mobs;
-
-void mobs_init( Mobs *mobs, VertexBufferLayout *vbl_object_vertex, VertexBufferLayout *vbl_object_position );
-void mobs_add_mob( Mobs *mobs, unsigned int mob_id );
-void mobs_update_position( Mobs *mobs, int mob_id, float x, float y, float z, const glm::mat4 &rotation );
-void mobs_remove_mob( Mobs *mobs, int mob_id );
-void mobs_draw( Mobs *mobs, const glm::mat4 &mvp, Renderer *renderer, Shader *shader );
-void mobs_cleanup( Mobs *mobs );
-
-int mobs_check_consistency( Mobs *mobs );
+  public:
+    Mobs( );
+    Mobs( VertexBufferLayout *vbl_object_vertex, VertexBufferLayout *vbl_object_position );
+    void add_mob( unsigned int mob_id );
+    void update_position( int mob_id, float x, float y, float z, const glm::mat4 &rotation );
+    void remove_mob( int mob_id );
+    void draw( const glm::mat4 &mvp, Renderer *renderer, Shader *shader );
+    void cleanup( );
+    int check_consistency( );
+};
 
 #endif

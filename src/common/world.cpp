@@ -50,12 +50,12 @@ void world_init( World *world, TRIP_ARGS( float camera_ ) ) {
     shader_init( &world->sky_shader, &object_vertex, &object_fragment );
 
     sky_box_init( &world->skyBox, &world->vbl_object_vertex, &world->vbl_object_position );
-    mobs_init( &world->mobs, &world->vbl_object_vertex, &world->vbl_object_position );
+    world->mobs = Mobs( &world->vbl_object_vertex, &world->vbl_object_position );
     mouse_selection_init( &world->mouseSelection, &world->vbl_block, &world->vbl_coords );
 }
 void world_render( World *world, TRIP_ARGS( float camera_ ), int limit_render, const glm::mat4 &rotation ) {
     chunk_loader_render_chunks( &world->loadedChunks, TRIP_ARGS( camera_ ), limit_render );
-    // mobs_update_position( &world->mobs, 10, 10, 10, rotation );
+    // world->mobs.update_position( 10, 10, 10, rotation );
 }
 
 void world_set_selected_block( World *world, int selected_x, int selected_y, int selected_z, int shouldDraw ) {
@@ -69,7 +69,7 @@ void world_draw( World *world, Texture *blocksTexture, const glm::mat4 &mvp, con
     shader_set_uniform1f( &world->sky_shader, "u_ExtraAlpha", 1.0 );
     shader_set_uniform1f( &world->sky_shader, "u_ReflectionHeight", 0 );
 
-    mobs_draw( &world->mobs, mvp, &world->renderer, &world->sky_shader );
+    world->mobs.draw( mvp, &world->renderer, &world->sky_shader );
 
     shader_set_uniform1i( &world->loadedChunks.shader, "u_Texture", blocksTexture->slot );
     float debug_block_scale;
@@ -108,7 +108,7 @@ void world_draw( World *world, Texture *blocksTexture, const glm::mat4 &mvp, con
     chunk_loader_draw_chunks( &world->loadedChunks, mvp_reflect, &world->renderer, false ); // Reflected blocks
     shader_set_uniform1i( &world->sky_shader, "u_Texture", blocksTexture->slot );
 
-    mobs_draw( &world->mobs, mvp_reflect, &world->renderer, &world->sky_shader );
+    world->mobs.draw( mvp_reflect, &world->renderer, &world->sky_shader );
     shader_set_uniform1f( &world->sky_shader, "u_ExtraAlpha", 0.5 );
     sky_box_draw( &world->skyBox, &world->renderer, mvp_sky_reflect, &world->sky_shader );
 
@@ -128,7 +128,7 @@ void world_cleanup( World *world ) {
 
     chunk_loader_cleanup( &world->loadedChunks );
     sky_box_destroy( &world->skyBox );
-    mobs_cleanup( &world->mobs );
+    world->mobs.cleanup( );
     vertex_buffer_layout_destroy( &world->vbl_block );
     vertex_buffer_layout_destroy( &world->vbl_block );
     vertex_buffer_layout_destroy( &world->vbl_coords );

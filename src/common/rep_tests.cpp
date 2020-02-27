@@ -16,7 +16,6 @@ typedef struct Test {
 
 int test_mobs( ) {
     pr_test( "Testing Mobs" );
-    Mobs mobs;
     VertexBufferLayout vbl_object_vertex;
     VertexBufferLayout vbl_object_placement;
     vertex_buffer_layout_init( &vbl_object_vertex );
@@ -25,27 +24,27 @@ int test_mobs( ) {
     int inconsistent = 0;
     int num_test_mobs = 1000;
 
-    mobs_init( &mobs, &vbl_object_vertex, &vbl_object_placement );
+    Mobs mobs(&vbl_object_vertex, &vbl_object_placement );
     for ( int mob_id = 0; mob_id < num_test_mobs; mob_id++ ) {
-        mobs_add_mob( &mobs, mob_id );
-        inconsistent |= mobs_check_consistency( &mobs );
+        mobs.add_mob(mob_id );
+        inconsistent |= mobs.check_consistency(  );
     }
 
     for ( int mob_id = 0; mob_id < num_test_mobs; mob_id++ ) {
         float rand = perlin_noise( 0.0f, 0.0f, 1.0, 1, mob_id );
         if ( rand < 0.5f ) {
-            mobs_remove_mob( &mobs, mob_id );
-            inconsistent |= mobs_check_consistency( &mobs );
+            mobs.remove_mob(mob_id );
+            inconsistent |= mobs.check_consistency(  );
         }
     }
     for ( int mob_id = 0; mob_id < num_test_mobs; mob_id++ ) {
         float rand = perlin_noise( 100.0f, 0.0f, 1.0, 1, mob_id );
         if ( rand < 0.5f ) {
-            mobs_remove_mob( &mobs, mob_id );
-            inconsistent |= mobs_check_consistency( &mobs );
+            mobs.remove_mob(mob_id );
+            inconsistent |= mobs.check_consistency(  );
         }
     }
-    inconsistent |= mobs_check_consistency( &mobs );
+    inconsistent |= mobs.check_consistency(  );
 
     return inconsistent;
 }

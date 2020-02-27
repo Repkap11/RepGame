@@ -1,7 +1,7 @@
 #Used to install platform build tools on linux host
 REP_MAKEFILES += makefiles/install.mk
 
-REPGAME_PACKAGES := libglm-dev libglm-doc rsync wget ccache
+REPGAME_PACKAGES := libglm-dev libglm-doc rsync wget ccache clang
 
 ifneq ($(UBUNTU_VERSION),18.04)
 	HOST_ONLY_REPGAME_PACKAGES += bsdtar
