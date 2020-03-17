@@ -1,6 +1,6 @@
 
-#ifndef HEADER_OBJECT_H
-#define HEADER_OBJECT_H
+#ifndef HEADER_PARTICLE_H
+#define HEADER_PARTICLE_H
 typedef struct {
     float x;
     float y;
@@ -8,9 +8,9 @@ typedef struct {
     float u;
     float v;
     unsigned int which_face;
-} ObjectVertex;
+} ParticleVertex;
 
-static ObjectVertex vd_data_player_object[] = {
+static ParticleVertex vd_data_player_object[] = {
     // x=right/left, y=top/bottom, z=front/back : 1/0
     {0.0f, 0.0f, 0.0f, /*Coords  Texture coords*/ 1, 0, FACE_BACK}, // 0
     {1.0f, 0.0f, 0.0f, /*Coords  Texture coords*/ 0, 0, FACE_BACK}, // 1
@@ -56,6 +56,6 @@ typedef struct {
     unsigned int id;
     unsigned short face[ NUM_FACES_IN_CUBE ];
     glm::mat4 transform;
-} ObjectPosition;
+} ParticlePosition;
 
 #endif

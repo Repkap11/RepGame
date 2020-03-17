@@ -83,10 +83,10 @@ void multiplayer_process_events( World *world ) {
                     world->mobs.update_position( update.player_id, update.data.player.x, update.data.player.y, update.data.player.z, rotation );
                 } else if ( update.type == PLAYER_CONNECTED ) {
                     pr_debug( "Updating player connected:%d", update.player_id );
-                    world->mobs.add_mob( update.player_id );
+                    world->mobs.add( update.player_id );
                 } else if ( update.type == PLAYER_DISCONNECTED ) {
                     pr_debug( "Updating player disconected:%d", update.player_id );
-                    world->mobs.remove_mob( update.player_id );
+                    world->mobs.remove( update.player_id );
                 } else {
                     pr_debug( "Saw unexpected packet:%d from:%d", update.type, update.player_id );
                 }

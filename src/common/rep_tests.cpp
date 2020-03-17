@@ -24,27 +24,27 @@ int test_mobs( ) {
     int inconsistent = 0;
     int num_test_mobs = 1000;
 
-    Mobs mobs(&vbl_object_vertex, &vbl_object_placement );
+    Mobs mobs( &vbl_object_vertex, &vbl_object_placement );
     for ( int mob_id = 0; mob_id < num_test_mobs; mob_id++ ) {
-        mobs.add_mob(mob_id );
-        inconsistent |= mobs.check_consistency(  );
+        mobs.add( mob_id );
+        inconsistent |= mobs.check_consistency( );
     }
 
     for ( int mob_id = 0; mob_id < num_test_mobs; mob_id++ ) {
         float rand = perlin_noise( 0.0f, 0.0f, 1.0, 1, mob_id );
         if ( rand < 0.5f ) {
-            mobs.remove_mob(mob_id );
-            inconsistent |= mobs.check_consistency(  );
+            mobs.remove( mob_id );
+            inconsistent |= mobs.check_consistency( );
         }
     }
     for ( int mob_id = 0; mob_id < num_test_mobs; mob_id++ ) {
         float rand = perlin_noise( 100.0f, 0.0f, 1.0, 1, mob_id );
         if ( rand < 0.5f ) {
-            mobs.remove_mob(mob_id );
-            inconsistent |= mobs.check_consistency(  );
+            mobs.remove( mob_id );
+            inconsistent |= mobs.check_consistency( );
         }
     }
-    inconsistent |= mobs.check_consistency(  );
+    inconsistent |= mobs.check_consistency( );
 
     return inconsistent;
 }

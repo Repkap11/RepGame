@@ -3,7 +3,7 @@
 #include "common/RepGame.hpp"
 #include "common/sky_box.hpp"
 #include "common/abstract/shader.hpp"
-#include "common/object.hpp"
+#include "common/Particle.hpp"
 
 #define Stacks 20
 #define Slices 20
@@ -16,7 +16,7 @@
 MK_TEXTURE( sky4, 2048, 1024, 2048, 1024, 70 );
 
 void sky_box_init( SkyBox *skyBox, VertexBufferLayout *vbl_object_vertex, VertexBufferLayout *vbl_object_position ) {
-    ObjectVertex *vb_data = ( ObjectVertex * )calloc( SKY_BOX_VERTEX_COUNT, sizeof( ObjectVertex ) );
+    ParticleVertex *vb_data = ( ParticleVertex * )calloc( SKY_BOX_VERTEX_COUNT, sizeof( ParticleVertex ) );
     // Calc The Vertices
     for ( int i = 0; i <= Stacks; ++i ) {
 
@@ -35,7 +35,7 @@ void sky_box_init( SkyBox *skyBox, VertexBufferLayout *vbl_object_vertex, Vertex
             float z = sinf( theta ) * sinf( phi );
 
             // Push Back Vertex Data
-            ObjectVertex *vertex = &vb_data[ i * ( Slices + 1 ) + j ];
+            ParticleVertex *vertex = &vb_data[ i * ( Slices + 1 ) + j ];
             vertex->x = x * Radius;
             vertex->y = y * Radius;
             vertex->z = z * Radius;
@@ -66,11 +66,11 @@ void sky_box_init( SkyBox *skyBox, VertexBufferLayout *vbl_object_vertex, Vertex
     skyBox->vertex_size = SKY_BOX_VERTEX_COUNT;
 
     vertex_buffer_init( &skyBox->vb_vertex );
-    vertex_buffer_set_data( &skyBox->vb_vertex, vb_data, sizeof( ObjectVertex ) * skyBox->vertex_size );
+    vertex_buffer_set_data( &skyBox->vb_vertex, vb_data, sizeof( ParticleVertex ) * skyBox->vertex_size );
 
     vertex_buffer_init( &skyBox->vb_position );
-    ObjectPosition sky_position = {0, {}, glm::mat4( 1.0f )}; // The sky's vertexes are scaled, no neeed to scale instance.
-    vertex_buffer_set_data( &skyBox->vb_position, &sky_position, sizeof( ObjectPosition ) * 1 );
+    ParticlePosition sky_position = {0, {}, glm::mat4( 1.0f )}; // The sky's vertexes are scaled, no neeed to scale instance.
+    vertex_buffer_set_data( &skyBox->vb_position, &sky_position, sizeof( ParticlePosition ) * 1 );
     vertex_array_init( &skyBox->va );
 
     vertex_array_add_buffer( &skyBox->va, &skyBox->vb_vertex, vbl_object_vertex, 0, 0 );
