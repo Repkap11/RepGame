@@ -145,6 +145,8 @@ void repgame_process_movement( ) {
     bool player_flying = globalGameState.input.player_flying;
     bool needs_ground_to_jump = !player_flying;
     float gravity = player_flying ? 0 : GRAVITY_STRENGTH;
+    float movement_speed = player_flying ? MOVEMENT_SENSITIVITY_FLYING : MOVEMENT_SENSITIVITY_WALKING;
+
     if ( needs_ground_to_jump ) {
         if ( globalGameState.input.movement.jumpPressed && globalGameState.camera.standing_on_solid && globalGameState.camera.y_speed < 0.01f && globalGameState.camera.y_speed > -0.01f ) {
             globalGameState.camera.y_speed = JUMP_STRENGTH;
@@ -154,18 +156,19 @@ void repgame_process_movement( ) {
             globalGameState.camera.y_speed = 0;
         } else {
             if ( globalGameState.input.movement.sneakPressed ) {
-                globalGameState.camera.y_speed = -JUMP_STRENGTH;
+                globalGameState.camera.y_speed = -1.0f * ( JUMP_STRENGTH + TERMINAL_VELOCITY ) / 4.0f;
             } else if ( globalGameState.input.movement.jumpPressed ) {
-                globalGameState.camera.y_speed = JUMP_STRENGTH;
+                globalGameState.camera.y_speed = ( JUMP_STRENGTH + TERMINAL_VELOCITY ) / 4.0f;
+                ;
             } else {
                 globalGameState.camera.y_speed = 0;
             }
         }
     }
 
-    float accel = -GRAVITY_STRENGTH;
+    float accel = -gravity;
 
-    float movement_vector_x = MOVEMENT_SENSITIVITY * globalGameState.input.movement.sizeH * globalGameState.camera.mx;
+    float movement_vector_x = movement_speed * globalGameState.input.movement.sizeH * globalGameState.camera.mx;
     float movement_vector_y = globalGameState.camera.y_speed + accel;
     if ( movement_vector_y > TERMINAL_VELOCITY ) {
         movement_vector_y = TERMINAL_VELOCITY;
@@ -173,7 +176,7 @@ void repgame_process_movement( ) {
     if ( movement_vector_y < -TERMINAL_VELOCITY ) {
         movement_vector_y = -TERMINAL_VELOCITY;
     }
-    float movement_vector_z = MOVEMENT_SENSITIVITY * globalGameState.input.movement.sizeH * globalGameState.camera.mz;
+    float movement_vector_z = movement_speed * globalGameState.input.movement.sizeH * globalGameState.camera.mz;
     collision_check_move( &globalGameState.world, TRIP_ARGS( &movement_vector_ ), //
                           globalGameState.camera.x,                               //
                           globalGameState.camera.y,                               //
