@@ -143,9 +143,22 @@ void repgame_process_camera_angle( ) {
 
 void repgame_process_movement( ) {
     bool player_flying = globalGameState.input.player_flying;
+    bool player_sprinting = globalGameState.input.player_sprinting;
     bool needs_ground_to_jump = !player_flying;
     float gravity = player_flying ? 0 : GRAVITY_STRENGTH;
-    float movement_speed = player_flying ? MOVEMENT_SENSITIVITY_FLYING : MOVEMENT_SENSITIVITY_WALKING;
+
+    float movement_speed;
+    if ( player_flying && player_sprinting ) {
+        movement_speed = MOVEMENT_SENSITIVITY_FLYING_SPRINTING;
+    } else if ( player_flying && !player_sprinting ) {
+        movement_speed = MOVEMENT_SENSITIVITY_FLYING;
+    } else if ( !player_flying && player_sprinting ) {
+        movement_speed = MOVEMENT_SENSITIVITY_SPRINTING;
+    } else if ( !player_flying && !player_sprinting ) {
+        movement_speed = MOVEMENT_SENSITIVITY_WALKING;
+    } else {
+        pr_debug( "Invalid sprint fly combo" );
+    }
 
     if ( needs_ground_to_jump ) {
         if ( globalGameState.input.movement.jumpPressed && globalGameState.camera.standing_on_solid && globalGameState.camera.y_speed < 0.01f && globalGameState.camera.y_speed > -0.01f ) {

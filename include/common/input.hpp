@@ -31,6 +31,7 @@ typedef struct {
     bool debug_mode;
     bool inventory_open;
     bool player_flying;
+    bool player_sprinting;
 } InputState;
 
 #if defined( REPGAME_LINUX ) || defined( REPGAME_WINDOWS ) || defined( REPGAME_WASM )

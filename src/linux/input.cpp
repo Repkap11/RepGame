@@ -131,6 +131,10 @@ void input_keysInput( InputState *inputState, SDL_Keycode key, int pressed ) {
 
             break;
 
+        case 'p':
+            inputState->player_sprinting = pressed;
+            break;
+
         case ' ':
             if ( pressed ) {
                 up = 1;
