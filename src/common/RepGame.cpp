@@ -332,7 +332,7 @@ void repgame_changeSize( int w, int h ) {
 
     globalGameState.input.mouse.previousPosition.x = w / 2;
     globalGameState.input.mouse.previousPosition.y = h / 2;
-
+    ui_overlay_on_screen_size_change( &globalGameState.ui_overlay, w, h );
     glViewport( 0, 0, w, h );
     globalGameState.screen.proj = glm::perspective<float>( glm::radians( CAMERA_FOV ), globalGameState.screen.width / globalGameState.screen.height, 0.1f, 800.0f );
     globalGameState.screen.ortho = glm::ortho<float>( 0.f, w, 0.f, h, -1.f, 1.f );
@@ -410,7 +410,7 @@ void repgame_draw( ) {
 
     world_draw( &globalGameState.world, &globalGameState.blocksTexture, mvp, mvp_reflect, mvp_sky, mvp_sky_reflect, globalGameState.input.debug_mode, !globalGameState.input.inventory_open );
     showErrors( );
-    ui_overlay_draw( &globalGameState.ui_overlay, &globalGameState.world.renderer, &globalGameState.blocksTexture, &globalGameState.input, globalGameState.screen.ortho_center );
+    ui_overlay_draw( &globalGameState.ui_overlay, &globalGameState.world.renderer, &globalGameState.blocksTexture, &globalGameState.input, globalGameState.screen.ortho_center, globalGameState.block_selection.holdingBlock );
     showErrors( );
 }
 
@@ -423,7 +423,7 @@ void repgame_cleanup( ) {
     multiplayer_cleanup( );
     world_cleanup( &globalGameState.world );
     texture_destroy( &globalGameState.blocksTexture );
-    ui_overlay_cleanup(&globalGameState.ui_overlay);
+    ui_overlay_cleanup( &globalGameState.ui_overlay );
     block_definitions_free_definitions( );
 
     PlayerData saved_data;

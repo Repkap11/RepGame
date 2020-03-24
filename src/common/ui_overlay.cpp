@@ -26,6 +26,46 @@ UIOverlayVertex vb_data_crosshair[] = {
     {WIDTH, SCALE *WIDTH, 0, CROSSHAIR_COLOR},   // 7
 
 };
+
+// // Top
+// {0, 0},     // 0
+// {-1, 0.5f}, // 1
+// {1, 0.5f},  // 2
+// {0, 1},     // 3
+// // Front
+// {-1, -0.5f}, // 4
+// {-1, 0.5f},
+// {0, -1}, // 5
+// {0, 0},
+// // Right
+// {0, -1},
+// {0, 0},
+// {1, -0.5f}, // 6
+// {1, 0.5f}}
+
+float holding_alpha = 1.0f;
+float tint_top = 1.0f;
+float tint_front = 0.8f;
+float tint_right = 0.6f;
+float id = ( float )TNT;
+#define UI_OVERLAY_VERTEX_COUNT_HOLDING_BLOCK ( 4 * 3 )
+UIOverlayVertex vb_data_holding_block[] = {
+    {0, 0, 1, {0, 0, id}, {tint_top, tint_top, tint_top, holding_alpha}},     // 0
+    {0, 0, 1, {-1, 0.5f, id}, {tint_top, tint_top, tint_top, holding_alpha}}, // 1
+    {0, 0, 1, {1, 0.5f, id}, {tint_top, tint_top, tint_top, holding_alpha}},  // 2
+    {0, 0, 1, {0, 1, id}, {tint_top, tint_top, tint_top, holding_alpha}},     // 3
+
+    {0, 0, 1, {-1, -0.5f, id}, {tint_front, tint_front, tint_front, holding_alpha}}, // 4
+    {0, 0, 1, {-1, 0.5f, id}, {tint_front, tint_front, tint_top, holding_alpha}},    // 5
+    {0, 0, 1, {0, -1, id}, {tint_front, tint_front, tint_front, holding_alpha}},     // 6
+    {0, 0, 1, {0, 0, id}, {tint_front, tint_front, tint_front, holding_alpha}},      // 7
+
+    {0, 0, 1, {0, -1, id}, {tint_right, tint_right, tint_right, holding_alpha}},    // 8
+    {0, 0, 1, {0, 0, id}, {tint_right, tint_right, tint_right, holding_alpha}},     // 9
+    {0, 0, 1, {1, -0.5f, id}, {tint_right, tint_right, tint_right, holding_alpha}}, // 10
+    {0, 0, 1, {1, 0.5f, id}, {tint_right, tint_right, tint_right, holding_alpha}},  // 11
+};
+
 #define UI_OVERLAY_INDEX_COUNT_CROSSHAIR ( 3 * 2 * 2 )
 unsigned int ib_data_crosshair[] = {
     0, 3, 1, //
@@ -33,6 +73,18 @@ unsigned int ib_data_crosshair[] = {
 
     4, 7, 5, //
     7, 4, 6, //
+};
+
+#define UI_OVERLAY_INDEX_COUNT_HOLDING_BLOCK ( 3 * 2 * 3 )
+unsigned int ib_holding_block[] = {
+    0,  3,  1, //
+    3,  0,  2, //
+
+    4,  7,  5, //
+    7,  4,  6, //
+
+    8,  11, 9,  //
+    11, 8,  10, //
 };
 
 MK_SHADER( ui_overlay_vertex );
@@ -55,9 +107,15 @@ void ui_overlay_init( UIOverlay *ui_overlay ) {
         vertex_buffer_init( &ui_overlay->draw_crosshair.vb );
         vertex_buffer_set_data( &ui_overlay->draw_crosshair.vb, vb_data_crosshair, sizeof( UIOverlayVertex ) * UI_OVERLAY_VERTEX_COUNT_CROSSHAIR );
         vertex_array_init( &ui_overlay->draw_crosshair.va );
-        showErrors( );
         vertex_array_add_buffer( &ui_overlay->draw_crosshair.va, &ui_overlay->draw_crosshair.vb, &ui_overlay->vbl, 0, 0 );
-        showErrors( );
+    }
+    {
+        index_buffer_init( &ui_overlay->draw_holding_block.ib );
+        index_buffer_set_data( &ui_overlay->draw_holding_block.ib, ib_holding_block, UI_OVERLAY_INDEX_COUNT_HOLDING_BLOCK );
+        vertex_buffer_init( &ui_overlay->draw_holding_block.vb );
+        vertex_buffer_set_data( &ui_overlay->draw_holding_block.vb, vb_data_holding_block, sizeof( UIOverlayVertex ) * UI_OVERLAY_VERTEX_COUNT_HOLDING_BLOCK );
+        vertex_array_init( &ui_overlay->draw_holding_block.va );
+        vertex_array_add_buffer( &ui_overlay->draw_holding_block.va, &ui_overlay->draw_holding_block.vb, &ui_overlay->vbl, 0, 0 );
     }
     showErrors( );
 
@@ -66,13 +124,28 @@ void ui_overlay_init( UIOverlay *ui_overlay ) {
     inventory_init( &ui_overlay->inventory, &ui_overlay->vbl );
 }
 
-void ui_overlay_draw( UIOverlay *ui_overlay, Renderer *renderer, Texture *blocksTexture, InputState *input, const glm::mat4 &mvp_ui ) {
+void ui_overlay_on_screen_size_change( UIOverlay *ui_overlay, int width, int height ) {
+    ui_overlay->screen_width = width;
+    ui_overlay->screen_height = height;
+}
+
+void ui_overlay_draw( UIOverlay *ui_overlay, Renderer *renderer, Texture *blocksTexture, InputState *input, const glm::mat4 &mvp_ui, BlockID holding_block ) {
+    for ( int i = 0; i < UI_OVERLAY_VERTEX_COUNT_HOLDING_BLOCK; i++ ) {
+        UIOverlayVertex *vertex = &vb_data_holding_block[ i ];
+        vertex->screen_x = -1.0 * ui_overlay->screen_width / 2 + 50 * ( vertex->texture.x + 2 );
+        vertex->screen_y = -1.0 * ui_overlay->screen_height / 2 + 50 * ( vertex->texture.y + 2 );
+        vertex->texture.id = holding_block;
+    }
+
+    vertex_buffer_set_data( &ui_overlay->draw_holding_block.vb, vb_data_holding_block, sizeof( UIOverlayVertex ) * UI_OVERLAY_VERTEX_COUNT_HOLDING_BLOCK );
+
     shader_set_uniform_mat4f( &ui_overlay->shader, "u_MVP", mvp_ui );
     shader_set_uniform1i( &ui_overlay->shader, "u_Texture", blocksTexture->slot );
 
     if ( input->inventory_open ) {
         inventory_draw( &ui_overlay->inventory, renderer, blocksTexture, input, mvp_ui, &ui_overlay->shader );
     } else {
+        renderer_draw( renderer, &ui_overlay->draw_holding_block.va, &ui_overlay->draw_holding_block.ib, &ui_overlay->shader, 1 );
         glBlendFunc( GL_ONE_MINUS_DST_COLOR, GL_ZERO );
         renderer_draw( renderer, &ui_overlay->draw_crosshair.va, &ui_overlay->draw_crosshair.ib, &ui_overlay->shader, 1 );
         glBlendFunc( GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA );
