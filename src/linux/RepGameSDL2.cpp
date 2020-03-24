@@ -114,54 +114,30 @@ int repgame_sdl2_main( const char *world_path, const char *host, bool connect_mu
 }
 
 int is_locking_pointer = 0;
+void repgame_linux_process_window_and_pointer_state( ) {
+    int width, height;
+    repgame_get_screen_size( &width, &height );
+    int should_lock_pointer = repgame_should_lock_pointer( );
+    if ( should_lock_pointer != is_locking_pointer ) {
+        SDL_SetRelativeMouseMode( should_lock_pointer ? SDL_TRUE : SDL_FALSE );
+        int width, height;
+        SDL_GetWindowSize( sdl_window, &width, &height );
+        SDL_WarpMouseInWindow( sdl_window, width / 2, height / 2 );
+        is_locking_pointer = should_lock_pointer;
+    }
+}
+
 void main_loop_once( ) {
     if ( repgame_shouldExit( ) ) {
         return;
     } else {
-        // clock_gettime( CLOCK_MONOTONIC, &tstart );
-        // pr_debug( "Drawing" );
-
         repgame_linux_process_sdl_events( );
-
-        int width, height;
-        repgame_get_screen_size( &width, &height );
-        int should_lock_pointer = repgame_should_lock_pointer( );
-        if ( should_lock_pointer != is_locking_pointer ) {
-            SDL_SetRelativeMouseMode( should_lock_pointer ? SDL_TRUE : SDL_FALSE );
-            int width, height;
-            SDL_GetWindowSize( sdl_window, &width, &height );
-            SDL_WarpMouseInWindow( sdl_window, width / 2, height / 2 );
-            is_locking_pointer = should_lock_pointer;
-        }
+        repgame_linux_process_window_and_pointer_state( );
         repgame_clear( );
         repgame_tick( );
         repgame_draw( );
 
         showErrors( );
-        // clock_gettime( CLOCK_MONOTONIC, &tend );
-        // if ( LIMIT_FPS ) {
-        //     double diff_ms = ( ( ( double )tend.tv_sec + 1.0e-9 * tend.tv_nsec ) - ( ( double )tstart.tv_sec + 1.0e-9 * tstart.tv_nsec ) ) * 1000.0;
-        //     // float frame_rate = 1.0 / ( diff_ms / 1000.0 );
-        //     // pr_debug( "FPS (if wasn't waiting):%f", frame_rate );
-        //     double wait_time_ms = fps_ms - diff_ms;
-        //     if ( wait_time_ms > 0 ) {
-        //         int wait_time_us = ( int )( wait_time_ms * 1000.0 );
-        //         usleep( wait_time_us );
-        //     }
-        // }
-        // clock_gettime( CLOCK_MONOTONIC, &tblank );
-        // {
-        //     double diff_ms = ( ( ( double )tend.tv_sec + 1.0e-9 * tblank.tv_nsec ) - ( ( double )tblank.tv_sec + 1.0e-9 * tstart.tv_nsec ) ) * 1000.0;
-        //     float frame_rate = 1.0 / ( diff_ms / 1000.0 );
-        //     if ( SHOW_FPS ) {
-        //         static int show_fps = 0;
-        //         show_fps++;
-        //         if ( show_fps >= 200 ) {
-        //             show_fps = 0;
-        //             pr_debug( "FPS:%f", frame_rate );
-        //         }
-        //     }
-        // }
     }
     return;
 }
