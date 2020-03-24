@@ -47,6 +47,11 @@ flat out int v_block_auto_rotates;
 
 #define CORNER_OFFSET_c 16u
 
+//Different devices give different results when using the modulus operator with negative numbers. So I need this function.
+int rep_mod( int x, int y ) {
+    return x - y * int( floor( float( x ) / float( y ) ) );
+}
+
 void main( ) {
     vec3 mesh_size = vec3( ( mesh_size_packed & 0xffu ), ( mesh_size_packed & 0xff00u ) >> 8, ( mesh_size_packed & 0xff0000u ) >> 16 );
     vec4 vertex = vec4( position * ( mesh_size - u_DebugScaleOffset ) + blockCoords, 1 );
@@ -124,10 +129,10 @@ void main( ) {
         v_block_auto_rotates = int( u_RandomRotationBlocks[ v_blockID ] == 1.0f );
     }
     if ( bool( v_block_auto_rotates ) ) {
-        int x_mod = ( int( ( blockCoords.x ) ) % 32 );
-        int y_mod = ( int( ( blockCoords.y ) ) % 32 );
-        int z_mod = ( int( ( blockCoords.z ) ) % 32 );
+        int x_mod = rep_mod( int( blockCoords.x ), 32 );
+        int y_mod = rep_mod( int( blockCoords.y ), 32 );
+        int z_mod = rep_mod( int( blockCoords.z ), 32 );
 
-        v_needs_rotate = ( 27 * x_mod + 3*y_mod + z_mod ) % 32;
+        v_needs_rotate = rep_mod( 27 * x_mod + 3 * y_mod + z_mod, 32);
     }
 }

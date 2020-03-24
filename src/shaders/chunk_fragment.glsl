@@ -29,7 +29,6 @@ void main( ) {
     vec2 working_fract = vec2( fract( v_TexCoordBlock.x ), fract( v_TexCoordBlock.y ) );
     vec2 working_int = vec2( v_TexCoordBlock.x - working_fract.x, v_TexCoordBlock.y - working_fract.y );
     // working_fract = vec2( 1.0 - working_fract.x, working_fract.y );
-    int set_color = 0;
     int mod_sum = -1;
     if ( bool( v_block_auto_rotates ) ) {
         // if ( v_blockID == 0u ) {//Grass
@@ -39,11 +38,9 @@ void main( ) {
         if ( mod_sum >= 8 && mod_sum < 16 ) {
             int offset = 1 - ( mod_sum % 2 );
             mod_sum = ( mod_sum + 2 * offset ) % 8;
-        }
-        if ( mod_sum >= 24 && mod_sum < 32 ) {
+        } else  if ( mod_sum >= 24 && mod_sum < 32 ) {
             mod_sum = 7 - ( mod_sum % 8 );
-        }
-        if ( mod_sum >= 16 && mod_sum < 24 ) {
+        } else if ( mod_sum >= 16 && mod_sum < 24 ) {
             int offset = 4 - ( mod_sum % 5 );
             mod_sum = ( mod_sum + 2 * offset ) % 8;
         }
