@@ -141,20 +141,11 @@ void repgame_process_camera_angle( ) {
     globalGameState.camera.view_trans = glm::translate( glm::mat4( 1.0f ), glm::vec3( -globalGameState.camera.x, -globalGameState.camera.y, -globalGameState.camera.z ) );
 }
 
-#define TERMINAL_VELOCITY 0.5f
-#define JUMP_STRENGTH 0.18f
-
-#if FLY
-#define GRAVITY_STRENGTH 0.0f
-#define NEEDS_GROUND_TO_JUMP 0
-#else
-#define GRAVITY_STRENGTH 0.01f
-#define NEEDS_GROUND_TO_JUMP 1
-#endif
-
 void repgame_process_movement( ) {
-
-    if ( NEEDS_GROUND_TO_JUMP ) {
+    bool player_flying = globalGameState.input.player_flying;
+    bool needs_ground_to_jump = !player_flying;
+    float gravity = player_flying ? 0 : GRAVITY_STRENGTH;
+    if ( needs_ground_to_jump ) {
         if ( globalGameState.input.movement.jumpPressed && globalGameState.camera.standing_on_solid && globalGameState.camera.y_speed < 0.01f && globalGameState.camera.y_speed > -0.01f ) {
             globalGameState.camera.y_speed = JUMP_STRENGTH;
         }
@@ -248,7 +239,7 @@ void repgame_tick( ) {
 
 static inline void initilizeGameState( const char *world_name ) {
     globalGameState.input.exitGame = 0;
-    globalGameState.input.limit_fps = 1;
+    globalGameState.input.player_flying = 0;
     globalGameState.input.inventory_open = 0;
     globalGameState.camera.angle_H = 135.0f;
     globalGameState.camera.angle_V = 25.0f;

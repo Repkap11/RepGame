@@ -1,7 +1,7 @@
 #ifndef HEADER_CONSTANTS_H
 #define HEADER_CONSTANTS_H
 
-#define MOVEMENT_SENSITIVITY 0.15f // How sensitive the arrow keys are
+#define MOVEMENT_SENSITIVITY 0.07f // How sensitive the arrow keys are
 
 #ifdef REPGAME_LINUX
 #define CHUNK_RADIUS_X 200 / CHUNK_SIZE
@@ -56,15 +56,10 @@
 #define PERSON_HEIGHT 1.62f
 #define DRAW_DISTANCE 1000
 
-#ifdef REPGAME_FAST
-#define LIMIT_FPS 0
-#define SHOW_FPS 1
-#else
-#define LIMIT_FPS 1
-#define SHOW_FPS 0
-#endif
+#define TERMINAL_VELOCITY 0.5f
+#define JUMP_STRENGTH 0.07f
+#define GRAVITY_STRENGTH 0.002f
 
-#define FPS_LIMIT 60.0f
 #define CAMERA_FOV 60.0f
 #if defined( REPGAME_WASM ) || defined( REPGAME_WINDOWS )
 #define NUM_RENDER_THREADS 1

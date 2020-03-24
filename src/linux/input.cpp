@@ -151,7 +151,7 @@ void input_keysInput( InputState *inputState, SDL_Keycode key, int pressed ) {
 
         case 'f':
             if ( pressed ) {
-                inputState->limit_fps = !inputState->limit_fps;
+                inputState->player_flying = !inputState->player_flying;
             }
 
             break;

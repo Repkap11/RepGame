@@ -25,12 +25,12 @@ typedef struct {
             int wheel_counts;
         } previousPosition;
     } mouse;
-    int exitGame;
-    int limit_fps;
+    bool exitGame;
     int click_delay_left;
     int click_delay_right;
-    int debug_mode;
-    int inventory_open;
+    bool debug_mode;
+    bool inventory_open;
+    bool player_flying;
 } InputState;
 
 #if defined( REPGAME_LINUX ) || defined( REPGAME_WINDOWS ) || defined( REPGAME_WASM )

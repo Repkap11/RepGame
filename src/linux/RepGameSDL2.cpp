@@ -31,8 +31,6 @@ void repgame_linux_process_sdl_events( ) {
     }
 }
 
-double fps_ms = ( 1.0 / FPS_LIMIT ) * 1000.0;
-
 char *repgame_getShaderString( const char *filename ) {
     return ( char * )"RepGame SDL doesn't support shaders from file";
 }
@@ -137,13 +135,40 @@ void main_loop_wasm( ) {
     }
     return;
 }
+
+#define UPS_RATE 200
 void main_loop_full( ) {
+    int be_nice_and_dont_burn_the_cpu = 1;
+    int vsync_enabled = 1;
+
+    Uint32 time_step_ms = 1000 / UPS_RATE;
+    Uint32 next_game_step = SDL_GetTicks( ); // initial value
+
     while ( !repgame_shouldExit( ) ) {
-        repgame_linux_process_sdl_events( );
-        repgame_linux_process_window_and_pointer_state( );
-        repgame_clear( );
-        repgame_tick( );
-        repgame_draw( );
-        SDL_GL_SwapWindow( sdl_window );
+        Uint32 now = SDL_GetTicks( );
+
+        if ( ( ( ( int )next_game_step - ( int )now ) <= 0 ) || vsync_enabled ) {
+            int computer_is_too_slow_limit = 10; // max number of advances per render, if you can't get 20 fps, slow the game's UPS
+
+            // Loop until all steps are executed or computer_is_too_slow_limit is reached
+            int num_ticks_in_frame = 0;
+            while ( ( ( ( ( int )next_game_step - ( int )now ) <= 0 ) ) && ( computer_is_too_slow_limit-- ) ) {
+                repgame_linux_process_sdl_events( );
+                repgame_linux_process_window_and_pointer_state( );
+                repgame_tick( );
+                num_ticks_in_frame++;
+                next_game_step += time_step_ms; // count 1 game tick done
+            }
+            // pr_debug( "slow:%d num_ticks_in_frame:%d fps:%f", computer_is_too_slow_limit, num_ticks_in_frame, ( float )( UPS_RATE ) / ( float )num_ticks_in_frame );
+
+            repgame_clear( );
+            repgame_draw( );
+            SDL_GL_SwapWindow( sdl_window );
+        } else {
+            // we're too fast, wait a bit.
+            if ( be_nice_and_dont_burn_the_cpu ) {
+                SDL_Delay( next_game_step - now );
+            }
+        }
     }
 }
