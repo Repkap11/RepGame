@@ -8,10 +8,12 @@
 #include "RepGame.hpp"
 #include "input.hpp"
 
-#define INVENTORY_MAX_SIZE 5
 #define INVENTORY_BLOCKS_PER_ROW 20
-#define INVENTORY_BLOCK_SIZE 50
-#define INVENTORY_BLOCK_SPACING 60
+#define INVENTORY_BLOCKS_PER_COL 5
+#define INVENTORY_MAX_SIZE ( INVENTORY_BLOCKS_PER_ROW * INVENTORY_BLOCKS_PER_COL )
+
+#define INVENTORY_BLOCK_SIZE 30
+#define INVENTORY_BLOCK_SPACING 80
 
 typedef struct {
     int stack;
@@ -38,7 +40,7 @@ typedef struct {
     } UI;
 } Inventory;
 
-void inventory_init( Inventory *inventory,  VertexBufferLayout *ui_overlay_vbl);
+void inventory_init( Inventory *inventory, VertexBufferLayout *ui_overlay_vbl );
 void inventory_draw( Inventory *inventory, Renderer *renderer, Texture *blocksTexture, InputState *input, const glm::mat4 &mvp_ui, Shader *shader );
 /**
  * Picks up an ItemBlock from the world and places it in the first available
