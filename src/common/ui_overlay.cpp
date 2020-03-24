@@ -8,10 +8,12 @@
 #define SCALE ( 10.0f )
 
 #define UI_OVERLAY_VERTEX_COUNT_CROSSHAIR 8
+
 #define CROSSHAIR_COLOR                                                                                                                                                                                                                        \
-    {                                                                                                                                                                                                                                          \
-        { 1, 1, 1, 0.5f }                                                                                                                                                                                                                      \
+    {0, 0, 0}, {                                                                                                                                                                                                                               \
+        1, 1, 1, 0.5f                                                                                                                                                                                                                          \
     }
+
 UIOverlayVertex vb_data_crosshair[] = {
     {-SCALE * WIDTH, -WIDTH, 0, CROSSHAIR_COLOR}, // 0
     {-SCALE * WIDTH, WIDTH, 0, CROSSHAIR_COLOR},  // 1
@@ -44,7 +46,8 @@ void ui_overlay_init( UIOverlay *ui_overlay ) {
     vertex_buffer_layout_init( &ui_overlay->vbl );
     vertex_buffer_layout_push_float( &ui_overlay->vbl, 2 ); // UIOverlayVertex screen_position
     vertex_buffer_layout_push_float( &ui_overlay->vbl, 1 ); // UIOverlayVertex is_block
-    vertex_buffer_layout_push_float( &ui_overlay->vbl, 4 ); // UIOverlayVertex tex_coord
+    vertex_buffer_layout_push_float( &ui_overlay->vbl, 3 ); // UIOverlayVertex texture
+    vertex_buffer_layout_push_float( &ui_overlay->vbl, 4 ); // UIOverlayVertex tint
 
     {
         index_buffer_init( &ui_overlay->draw_crosshair.ib );

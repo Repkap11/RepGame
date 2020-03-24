@@ -6,17 +6,16 @@ precision lowp sampler2DArray;
 uniform sampler2DArray u_Texture;
 
 flat in float v_is_block;
-in vec2 v_TexCoordBlock;
-flat in float v_blockID;
-in float v_alpha;
+in vec3 v_TexCoordBlock;
+in vec4 v_Tint;
 
 layout( location = 0 ) out vec4 color;
 
 void main( ) {
     if ( v_is_block != 0.0 ) {
-        color = texture( u_Texture, vec3( v_TexCoordBlock, v_blockID ) );
-        color *= vec4( 1, 1, 1, v_alpha );
+        color = texture( u_Texture, v_TexCoordBlock );
+        color *= v_Tint;
     } else {
-        color = vec4( v_TexCoordBlock, v_blockID, v_alpha );
+        color = v_Tint;
     }
 }

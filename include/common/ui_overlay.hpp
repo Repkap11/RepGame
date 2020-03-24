@@ -8,7 +8,6 @@
 #include "RepGame.hpp"
 #include "input.hpp"
 
-
 typedef struct {
     VertexBufferLayout vbl;
     Shader shader;
@@ -24,14 +23,12 @@ typedef struct {
     float screen_x;
     float screen_y;
     float is_block;
-    union {
-        struct {
-            float x, y, id, a;
-        } block;
-        struct {
-            float r, g, b, a;
-        } color;
-    } data;
+    struct {
+        float x, y, id;
+    } texture;
+    struct {
+        float r, g, b, a;
+    } tint;
 } UIOverlayVertex;
 
 void ui_overlay_init( UIOverlay *ui_overlay );

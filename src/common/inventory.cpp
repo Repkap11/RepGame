@@ -35,6 +35,7 @@ float verticies[][ 2 ] = {
 // };
 
 int inventory_isometric_face[] = {FACE_TOP, FACE_FRONT, FACE_RIGHT};
+float tints_for_light[] = {1, 0.8, 0.6};
 
 void inventory_init( Inventory *inventory, VertexBufferLayout *ui_overlay_vbl ) {
     {
@@ -94,21 +95,25 @@ void inventory_init( Inventory *inventory, VertexBufferLayout *ui_overlay_vbl ) 
                     int vb_index = i_block * num_points_per_block * ISOMETRIC_FACES + i_point + num_points_per_block * face;
                     UIOverlayVertex *ui_vertex = &vb_data_inventory[ vb_index ];
 
-                    ui_vertex->data.block.x = ( i_point / 2 );
-                    ui_vertex->data.block.y = ( i_point % 2 );
-                    ui_vertex->data.block.a = 1.0f;
+                    ui_vertex->texture.x = ( i_point / 2 );
+                    ui_vertex->texture.y = ( i_point % 2 );
                     ui_vertex->is_block = 1;
+                    float tint_for_light = tints_for_light[ face ];
+                    if ( !block->casts_shadow ) {
+                        tint_for_light = 1.0f;
+                    }
+                    ui_vertex->tint = {tint_for_light, tint_for_light, tint_for_light, 1};
 
                     if ( block->renderOrder != RenderOrder_Opaque ) {
-                        ui_vertex->screen_x = block_corner_x + INVENTORY_BLOCK_SIZE * ( ui_vertex->data.block.x * 2 - 1 );
-                        ui_vertex->screen_y = block_corner_y + INVENTORY_BLOCK_SIZE * ( ui_vertex->data.block.y * 2 - 1 );
+                        ui_vertex->screen_x = block_corner_x + INVENTORY_BLOCK_SIZE * ( ui_vertex->texture.x * 2 - 1 );
+                        ui_vertex->screen_y = block_corner_y + INVENTORY_BLOCK_SIZE * ( ui_vertex->texture.y * 2 - 1 );
 
-                        ui_vertex->data.block.id = block->id - 1;
+                        ui_vertex->texture.id = block->id - 1;
                     } else {
                         ui_vertex->screen_x = block_corner_x + INVENTORY_BLOCK_SIZE * verticies[ i_point + num_points_per_block * face ][ 0 ];
                         ui_vertex->screen_y = block_corner_y + INVENTORY_BLOCK_SIZE * verticies[ i_point + num_points_per_block * face ][ 1 ];
 
-                        ui_vertex->data.block.id = ( block->textures[ inventory_isometric_face[ face ] ] - 1 );
+                        ui_vertex->texture.id = ( block->textures[ inventory_isometric_face[ face ] ] - 1 );
                     }
                 }
             }
