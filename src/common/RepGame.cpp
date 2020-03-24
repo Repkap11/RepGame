@@ -401,7 +401,9 @@ void repgame_draw( ) {
     // mvp_mirror = glm::translate( mvp_mirror, glm::vec3( 0, -10, 0 ) );
 
     world_draw( &globalGameState.world, &globalGameState.blocksTexture, mvp, mvp_reflect, mvp_sky, mvp_sky_reflect, globalGameState.input.debug_mode, !globalGameState.input.inventory_open );
+    showErrors( );
     ui_overlay_draw( &globalGameState.ui_overlay, &globalGameState.world.renderer, &globalGameState.blocksTexture, &globalGameState.input, globalGameState.screen.ortho_center );
+    showErrors( );
 }
 
 void repgame_cleanup( ) {

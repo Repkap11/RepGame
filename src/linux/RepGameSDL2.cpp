@@ -37,7 +37,9 @@ char *repgame_getShaderString( const char *filename ) {
     return ( char * )"RepGame SDL doesn't support shaders from file";
 }
 
-void main_loop_once( );
+void main_loop_wasm( );
+void main_loop_full( );
+
 SDL_Window *sdl_window = NULL;
 SDL_GLContext sdl_context = NULL;
 int repgame_sdl2_main( const char *world_path, const char *host, bool connect_multi, bool tests ) {
@@ -98,17 +100,13 @@ int repgame_sdl2_main( const char *world_path, const char *host, bool connect_mu
         pr_debug( "GLEW version wrong" );
         exit( 1 ); // or handle the error in a nicer way
     }
-    while ( !repgame_shouldExit( ) ) {
-        main_loop_once( );
-        // Delay to keep frame rate constant (using SDL)
-        SDL_GL_SwapWindow( sdl_window );
-    }
+    main_loop_full( );
     repgame_cleanup( );
     SDL_GL_DeleteContext( sdl_context );
     SDL_DestroyWindow( sdl_window );
     SDL_Quit( );
 #else
-    emscripten_set_main_loop( main_loop_once, 0, 1 );
+    emscripten_set_main_loop( main_loop_wasm, 0, 1 );
 #endif
     return 0;
 }
@@ -127,7 +125,7 @@ void repgame_linux_process_window_and_pointer_state( ) {
     }
 }
 
-void main_loop_once( ) {
+void main_loop_wasm( ) {
     if ( repgame_shouldExit( ) ) {
         return;
     } else {
@@ -136,8 +134,16 @@ void main_loop_once( ) {
         repgame_clear( );
         repgame_tick( );
         repgame_draw( );
-
-        showErrors( );
     }
     return;
+}
+void main_loop_full( ) {
+    while ( !repgame_shouldExit( ) ) {
+        repgame_linux_process_sdl_events( );
+        repgame_linux_process_window_and_pointer_state( );
+        repgame_clear( );
+        repgame_tick( );
+        repgame_draw( );
+        SDL_GL_SwapWindow( sdl_window );
+    }
 }
