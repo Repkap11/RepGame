@@ -6,20 +6,20 @@
 
 float verticies[][ 2 ] = {
     // Top
-    { 0, 0 },      // 0
-    { -1, 0.5f },  // 1
-    { 1, 0.5f },   // 2
-    { 0, 1 },      // 3
+    {0, 0},     // 0
+    {-1, 0.5f}, // 1
+    {1, 0.5f},  // 2
+    {0, 1},     // 3
     // Front
-    { -1, -0.5f }, // 4
-    { -1, 0.5f },
-    { 0, -1 },     // 5
-    { 0, 0 },
+    {-1, -0.5f}, // 4
+    {-1, 0.5f},
+    {0, -1}, // 5
+    {0, 0},
     // Right
-    { 0, -1 },
-    { 0, 0 },
-    { 1, -0.5f },  // 6
-    { 1, 0.5f },
+    {0, -1},
+    {0, 0},
+    {1, -0.5f}, // 6
+    {1, 0.5f},
 };
 
 // unsigned int indicies[] {
@@ -34,21 +34,12 @@ float verticies[][ 2 ] = {
 //     6, 2, 0,
 // };
 
-int inventory_isometric_face[] = { FACE_TOP, FACE_FRONT, FACE_RIGHT };
+int inventory_isometric_face[] = {FACE_TOP, FACE_FRONT, FACE_RIGHT};
 
-MK_SHADER( inventory_vertex );
-MK_SHADER( inventory_fragment );
-
-void inventory_init( Inventory *inventory ) {
-    // These are from UIOverlayVertex
-    vertex_buffer_layout_init( &inventory->UI.vbl );
-    vertex_buffer_layout_push_float( &inventory->UI.vbl, 2 ); // UIOverlayVertex screen_position
-    vertex_buffer_layout_push_float( &inventory->UI.vbl, 1 ); // UIOverlayVertex is_block
-    vertex_buffer_layout_push_float( &inventory->UI.vbl, 4 ); // UIOverlayVertex tex_coord
-
+void inventory_init( Inventory *inventory, VertexBufferLayout *ui_overlay_vbl ) {
     {
-        *(&inventory->UI.screen_x) = 0;
-        *(&inventory->UI.screen_y) = 0;
+        inventory->UI.screen_x = 0;
+        inventory->UI.screen_y = 0;
 
         int num_blocks = 5;
         int num_points_per_block = 4;
@@ -64,8 +55,8 @@ void inventory_init( Inventory *inventory ) {
             InventorySlot *inventory_slots = ( InventorySlot * )malloc( sizeof( InventorySlot ) );
             int block_grid_coord_x = i_block % INVENTORY_BLOCKS_PER_ROW;
             int block_grid_coord_y = i_block / INVENTORY_BLOCKS_PER_ROW;
-            int block_corner_x = *(&inventory->UI.screen_x) + block_grid_coord_x;
-            int block_corner_y = *(&inventory->UI.screen_y) + block_grid_coord_y;
+            int block_corner_x = inventory->UI.screen_x + block_grid_coord_x;
+            int block_corner_y = inventory->UI.screen_y + block_grid_coord_y;
 
             unsigned int *ui_ib = &ib_data_inventory[ i_block * num_index_per_block ];
             // Top
@@ -93,7 +84,7 @@ void inventory_init( Inventory *inventory ) {
             for ( int face = 0; face < ISOMETRIC_FACES; face++ ) {
                 for ( int i_point = 0; i_point < num_points_per_block; i_point++ ) {
                     // Get the block definition to see if it should be displayed isometrically or not.
-                    Block *block = block_definition_get_definition(( BlockID )( TNT ));
+                    Block *block = block_definition_get_definition( ( BlockID )( TNT ) );
                     int vb_index = i_block * num_points_per_block * ISOMETRIC_FACES + i_point + num_points_per_block * face;
                     UIOverlayVertex *ui_vertex = &vb_data_inventory[ vb_index ];
 
@@ -102,7 +93,7 @@ void inventory_init( Inventory *inventory ) {
                     ui_vertex->data.block.a = 1.0f;
                     ui_vertex->is_block = 1;
 
-                    if (block->is_seethrough) {
+                    if ( block->is_seethrough ) {
                         ui_vertex->screen_x = block_corner_x + INVENTORY_BLOCK_SIZE * ui_vertex->data.block.x;
                         ui_vertex->screen_y = block_corner_y + INVENTORY_BLOCK_SIZE * ui_vertex->data.block.y;
 
@@ -111,9 +102,8 @@ void inventory_init( Inventory *inventory ) {
                         ui_vertex->screen_x = block_corner_x + INVENTORY_BLOCK_SIZE * verticies[ i_point + num_points_per_block * face ][ 0 ];
                         ui_vertex->screen_y = block_corner_y + INVENTORY_BLOCK_SIZE * verticies[ i_point + num_points_per_block * face ][ 1 ];
 
-                        ui_vertex->data.block.id = (block->textures[ inventory_isometric_face[ face ] ] - 1);
+                        ui_vertex->data.block.id = ( block->textures[ inventory_isometric_face[ face ] ] - 1 );
                     }
-
                 }
             }
             inventory_slots->screen_x = block_corner_x;
@@ -128,34 +118,28 @@ void inventory_init( Inventory *inventory ) {
         vertex_buffer_init( &inventory->UI.vb );
         vertex_buffer_set_data( &inventory->UI.vb, vb_data_inventory, sizeof( UIOverlayVertex ) * vb_size );
         vertex_array_init( &inventory->UI.va );
-        vertex_array_add_buffer( &inventory->UI.va, &inventory->UI.vb, &inventory->UI.vbl, 0, 0 );
+        vertex_array_add_buffer( &inventory->UI.va, &inventory->UI.vb, ui_overlay_vbl, 0, 0 );
         free( vb_data_inventory );
         free( ib_data_inventory );
     }
-
-    shader_init( &inventory->UI.shader, &inventory_vertex, &inventory_fragment );
 }
 
-void inventory_draw( Inventory *inventory, Renderer *renderer, Texture *blocksTexture, InputState *input, glm::mat4 &mvp_ui ) {
-    shader_set_uniform_mat4f( &inventory->UI.shader, "u_MVP", mvp_ui );
-    shader_set_uniform1i( &inventory->UI.shader, "u_Texture", blocksTexture->slot );
+void inventory_draw( Inventory *inventory, Renderer *renderer, Texture *blocksTexture, InputState *input, const glm::mat4 &mvp_ui, Shader *shader ) {
 
-    if ( input->inventory_open ) {
-        if ( input->mouse.buttons.left ) {
-            printf("Clicked!\n");
-        }
-        // for ( int i_pos = 0; i_pos < 12; i_pos++ ) {
-        // glBufferSubData( GL_ARRAY_BUFFER, sizeof( UIOverlayVertex ), sizeof( UIOverlayVertex ), )
-        // }
-        showErrors();
-        renderer_draw( renderer, &inventory->UI.va, &inventory->UI.ib, &inventory->UI.shader, 1 );
-        showErrors();
+    if ( input->mouse.buttons.left ) {
+        printf( "Clicked!\n" );
     }
+    // for ( int i_pos = 0; i_pos < 12; i_pos++ ) {
+    // glBufferSubData( GL_ARRAY_BUFFER, sizeof( UIOverlayVertex ), sizeof( UIOverlayVertex ), )
+    // }
+    showErrors( );
+    renderer_draw( renderer, &inventory->UI.va, &inventory->UI.ib, shader, 1 );
+    showErrors( );
 }
 
 void inventory_cleanup( Inventory *inventory ) {
     for ( int i_slot = 0; i_slot < INVENTORY_MAX_SIZE; i_slot++ ) {
         if ( inventory->slots[ i_slot ] != NULL )
-            free(inventory->slots[ i_slot ]);
+            free( inventory->slots[ i_slot ] );
     }
 }

@@ -32,21 +32,18 @@ typedef struct {
         int text_size;
         int text_spacing;
 
-        VertexBufferLayout vbl;
-        Shader shader;
-
         IndexBuffer ib;
         VertexArray va;
         VertexBuffer vb;
     } UI;
 } Inventory;
 
-void inventory_init( Inventory *inventory );
-void inventory_draw( Inventory *inventory, Renderer *renderer, Texture *blocksTexture, InputState *input, glm::mat4 &mvp_ui );
+void inventory_init( Inventory *inventory,  VertexBufferLayout *ui_overlay_vbl);
+void inventory_draw( Inventory *inventory, Renderer *renderer, Texture *blocksTexture, InputState *input, const glm::mat4 &mvp_ui, Shader *shader );
 /**
  * Picks up an ItemBlock from the world and places it in the first available
  * InventorySlot (or stacks if applicable).
- * 
+ *
  * Returns true if there was an empty inventory slot, false otherwise.
  */
 // bool inventory_pickup( Inventory *inventory, ItemBlock *item );

@@ -59,15 +59,24 @@ void ui_overlay_init( UIOverlay *ui_overlay ) {
     showErrors( );
 
     shader_init( &ui_overlay->shader, &ui_overlay_vertex, &ui_overlay_fragment );
+
+    inventory_init( &ui_overlay->inventory, &ui_overlay->vbl );
 }
 
 void ui_overlay_draw( UIOverlay *ui_overlay, Renderer *renderer, Texture *blocksTexture, InputState *input, const glm::mat4 &mvp_ui ) {
     shader_set_uniform_mat4f( &ui_overlay->shader, "u_MVP", mvp_ui );
     shader_set_uniform1i( &ui_overlay->shader, "u_Texture", blocksTexture->slot );
 
-    if ( !input->inventory_open ) {
+    if ( input->inventory_open ) {
+        inventory_draw( &ui_overlay->inventory, renderer, blocksTexture, input, mvp_ui, &ui_overlay->shader );
+    } else {
         glBlendFunc( GL_ONE_MINUS_DST_COLOR, GL_ZERO );
         renderer_draw( renderer, &ui_overlay->draw_crosshair.va, &ui_overlay->draw_crosshair.ib, &ui_overlay->shader, 1 );
         glBlendFunc( GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA );
     }
+    showErrors( );
+}
+
+void ui_overlay_cleanup( UIOverlay *ui_overlay ) {
+    inventory_cleanup( &ui_overlay->inventory );
 }
