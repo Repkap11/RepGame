@@ -51,7 +51,14 @@ void inventory_init( Inventory *inventory, VertexBufferLayout *ui_overlay_vbl ) 
         unsigned int *ib_data_inventory = ( unsigned int * )calloc( ib_size, sizeof( unsigned int ) );
         UIOverlayVertex *vb_data_inventory = ( UIOverlayVertex * )calloc( vb_size, sizeof( UIOverlayVertex ) );
 
+        int shown_block_index = -1;
+        Block *block;
         for ( int i_block = 0; i_block < num_blocks; i_block++ ) {
+            do {
+                shown_block_index++;
+                block = block_definition_get_definition( ( BlockID )shown_block_index );
+            } while ( !render_order_is_pickable( block->renderOrder ) );
+
             InventorySlot *inventory_slots = ( InventorySlot * )malloc( sizeof( InventorySlot ) );
             int block_grid_coord_x = i_block % INVENTORY_BLOCKS_PER_ROW;
             int block_grid_coord_y = i_block / INVENTORY_BLOCKS_PER_ROW;
@@ -84,7 +91,6 @@ void inventory_init( Inventory *inventory, VertexBufferLayout *ui_overlay_vbl ) 
             for ( int face = 0; face < ISOMETRIC_FACES; face++ ) {
                 for ( int i_point = 0; i_point < num_points_per_block; i_point++ ) {
                     // Get the block definition to see if it should be displayed isometrically or not.
-                    Block *block = block_definition_get_definition( ( BlockID )i_block );
                     int vb_index = i_block * num_points_per_block * ISOMETRIC_FACES + i_point + num_points_per_block * face;
                     UIOverlayVertex *ui_vertex = &vb_data_inventory[ vb_index ];
 
@@ -93,7 +99,7 @@ void inventory_init( Inventory *inventory, VertexBufferLayout *ui_overlay_vbl ) 
                     ui_vertex->data.block.a = 1.0f;
                     ui_vertex->is_block = 1;
 
-                    if ( block->is_seethrough ) {
+                    if ( block->renderOrder != RenderOrder_Opaque ) {
                         ui_vertex->screen_x = block_corner_x + INVENTORY_BLOCK_SIZE * ( ui_vertex->data.block.x * 2 - 1 );
                         ui_vertex->screen_y = block_corner_y + INVENTORY_BLOCK_SIZE * ( ui_vertex->data.block.y * 2 - 1 );
 
