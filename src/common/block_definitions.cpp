@@ -34,6 +34,7 @@ void block_definitions_initilize_definitions( Texture *texture ) {
         block->icon_is_isometric = true;
     }
     block_definitions[ WATER ].renderOrder = RenderOrder_Water;
+    block_definitions[ LAVA ].renderOrder = RenderOrder_Water;
 
     block_definitions[ GRASS ].textures[ FACE_LEFT ] = GRASS_SIDE;
     block_definitions[ GRASS ].textures[ FACE_RIGHT ] = GRASS_SIDE;

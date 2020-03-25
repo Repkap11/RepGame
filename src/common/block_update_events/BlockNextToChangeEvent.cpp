@@ -15,7 +15,10 @@ void BlockNextToChangeEvent::performAction( BlockUpdateQueue *blockUpdateQueue, 
     // Water flow
     if ( updateing_block_state.id == WATER ) {
         if ( this->affecting_block_y <= this->block_y ) {
-            if ( block_definitions_is_replaced_by_neighboring_water( affecting_block_state ) ) {
+            if ( affecting_block_state.id == LAVA ) {
+                BlockUpdateEvent *blockPlacedEvent = new PlayerBlockPlacedEvent( 1, this->affecting_block_x, this->affecting_block_y, this->affecting_block_z, {COBBLESTONE, 0} );
+                blockUpdateQueue->addBlockUpdate( blockPlacedEvent );
+            } else if ( block_definitions_is_replaced_by_neighboring_water( affecting_block_state ) ) {
                 BlockUpdateEvent *blockPlacedEvent = new PlayerBlockPlacedEvent( 1, this->affecting_block_x, this->affecting_block_y, this->affecting_block_z, {WATER, 0} );
                 blockUpdateQueue->addBlockUpdate( blockPlacedEvent );
             }
