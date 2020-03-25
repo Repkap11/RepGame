@@ -48,6 +48,7 @@ typedef enum {
     RED_MUSHROOM,
     BROWN_MUSHROOM,
     JUNGLE_SAPLING, // 39
+    STONE_BRICK_SLAB = 41,
     BOOK_CASE = 52,
     DARK_BARRIER = 55,
     DARK_DEAD_SAPPLING,
@@ -57,6 +58,7 @@ typedef enum {
     FURNACE_SIDE,
     WHITE_GLASS = 74,
     LEAF = 77,
+    STONE_BRICK = 79,
     LIGHT_DEAD_SAPPLING = 80,
     GARBAGE_SAPPLING,
     CRAFTING_BENCH_SIDE1 = 84,
@@ -98,6 +100,7 @@ typedef enum {
     DOUBLE_CHEST_LEFT_TOP = 191,
     PINE_LEAF = 197,
     RED_FLOWER_IN_POT = 216,
+    REDSTONE_LINE_POWERED = 246,
     DRAGON_EGG = 248,
     PURPLE_CORAL = 260,
     RED_CORAL = 274,
@@ -206,12 +209,29 @@ typedef struct {
     int no_light;
     int casts_shadow;
     int is_seethrough;
-    int can_mesh;
+    int can_mesh_x;
+    int can_mesh_y;
+    int can_mesh_z;
     int hides_self;
     int needs_place_on_solid;
     int rotate_on_placement;
     int icon_is_isometric;
     int flows;
+    struct {
+        float x;
+        float y;
+        float z;
+    } scale;
+    struct {
+        float x;
+        float y;
+        float z;
+    } offset;
+    struct {
+        float x;
+        float y;
+        float z;
+    } tex_offset;
 } Block;
 
 typedef struct {

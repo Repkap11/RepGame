@@ -1,1 +1,0 @@
-Allow instanced rendering of non-full size blocks. Allow a scale and offset to each vertex per block (for short things like redstone and slabs)

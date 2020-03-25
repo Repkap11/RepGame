@@ -137,13 +137,17 @@ typedef struct {
     unsigned int packed_lighting[ NUM_FACES_IN_CUBE ];
     unsigned int face_shift;
 
+    float scale_x;
+    float scale_y;
+    float scale_z;
+
     float offset_x;
     float offset_y;
     float offset_z;
 
-    float scale_x;
-    float scale_y;
-    float scale_z;
+    float tex_offset_x;
+    float tex_offset_y;
+    float tex_offset_z;
 
 } BlockCoords;
 

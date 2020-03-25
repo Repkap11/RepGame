@@ -22,8 +22,9 @@ layout( location = 6 ) in uvec3 blockTexture;
 layout( location = 7 ) in uvec3 packed_lighting_1;
 layout( location = 8 ) in uvec3 packed_lighting_2;
 layout( location = 9 ) in uint rotation;
-layout( location = 10 ) in vec3 blockCoords_offset;
-layout( location = 11 ) in vec3 blockCoords_scale;
+layout( location = 10 ) in vec3 blockCoords_scale;
+layout( location = 11 ) in vec3 blockCoords_offset;
+layout( location = 12 ) in vec3 texCoords_offset;
 
 out vec2 v_TexCoordBlock;
 flat out uint v_blockID;
@@ -49,22 +50,34 @@ flat out int v_block_auto_rotates;
 
 #define CORNER_OFFSET_c 16u
 
-//Different devices give different results when using the modulus operator with negative numbers. So I need this function.
+// Different devices give different results when using the modulus operator with negative numbers. So I need this function.
 int rep_mod( int x, int y ) {
     return x - y * int( floor( float( x ) / float( y ) ) );
 }
 
 void main( ) {
+    vec3 adjusted_position = position;
+    adjusted_position.x *= blockCoords_scale.x;
+    adjusted_position.y *= blockCoords_scale.y;
+    adjusted_position.z *= blockCoords_scale.z;
+
+    adjusted_position.x -= blockCoords_offset.x;
+    adjusted_position.y -= blockCoords_offset.y;
+    adjusted_position.z -= blockCoords_offset.z;
+
     vec3 mesh_size = vec3( ( mesh_size_packed & 0xffu ), ( mesh_size_packed & 0xff00u ) >> 8, ( mesh_size_packed & 0xff0000u ) >> 16 );
-    vec4 vertex = vec4( position * ( mesh_size - u_DebugScaleOffset ) + blockCoords, 1 );
+    vec4 vertex = vec4( adjusted_position * ( mesh_size - u_DebugScaleOffset ) + blockCoords, 1 );
     gl_Position = u_MVP * vertex;
     v_planarDot = dot( vertex, vec4( 0, 1, 0, u_ReflectionHeight ) );
 
     vec2 face_scale;
+    vec2 face_shift;
     vec2 texCoordBlock_adjust = texCoordBlock;
     uint faceType_rotated = faceType;
     if ( faceType == FACE_TOP || faceType == FACE_BOTTOM ) {
-        face_scale = mesh_size.xz;
+        face_scale.x = mesh_size.x * blockCoords_scale.x;
+        face_scale.y = mesh_size.z * blockCoords_scale.z;
+        face_shift = texCoords_offset.xz;
         if ( rotation == BLOCK_ROTATE_0 ) {
             texCoordBlock_adjust = vec2( texCoordBlock.x, texCoordBlock.y );
         } else if ( ( faceType == FACE_TOP && rotation == BLOCK_ROTATE_270 ) || ( faceType == FACE_BOTTOM && rotation == BLOCK_ROTATE_90 ) ) {
@@ -76,10 +89,15 @@ void main( ) {
         }
     } else if ( faceType == FACE_RIGHT || faceType == FACE_LEFT ) {
         faceType_rotated = ( faceType - rotation - 2u ) % 4u + 2u;
-        face_scale = mesh_size.zy;
+        face_scale.x = mesh_size.z * blockCoords_scale.z;
+        face_scale.y = mesh_size.y * blockCoords_scale.y;
+        face_shift = texCoords_offset.zy;
+
     } else if ( faceType == FACE_FRONT || faceType == FACE_BACK ) {
         faceType_rotated = ( faceType - rotation - 2u ) % 4u + 2u;
-        face_scale = mesh_size.xy;
+        face_scale.x = ( mesh_size.x * blockCoords_scale.x );
+        face_scale.y = ( mesh_size.y * blockCoords_scale.y );
+        face_shift = texCoords_offset.xy;
     }
     float face_light;
     if ( faceType == FACE_TOP ) {
@@ -115,7 +133,7 @@ void main( ) {
     corner_light = ( 3.9 - corner_light ) / 3.9;
 
     v_corner_lighting = face_light * corner_light;
-    v_TexCoordBlock = texCoordBlock_adjust * face_scale;
+    v_TexCoordBlock = texCoordBlock_adjust * face_scale - face_shift;
 
     uint shift = ( faceType_rotated % 2u ) * 16u;
     // 0xffffu is max short 16u is sizeof(short)
@@ -135,6 +153,6 @@ void main( ) {
         int y_mod = rep_mod( int( blockCoords.y ), 32 );
         int z_mod = rep_mod( int( blockCoords.z ), 32 );
 
-        v_needs_rotate = rep_mod( 27 * x_mod + 3 * y_mod + z_mod, 32);
+        v_needs_rotate = rep_mod( 27 * x_mod + 3 * y_mod + z_mod, 32 );
     }
 }

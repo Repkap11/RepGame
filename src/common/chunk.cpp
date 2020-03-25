@@ -506,20 +506,30 @@ void chunk_calculate_popupated_blocks( Chunk *chunk ) {
                         int size_x = 1;
                         int size_y = 1;
                         int size_z = 1;
-                        if ( block->can_mesh ) {
-                            int can_extend_x, can_extend_z, can_extend_y;
-                            do {
+                        int can_extend_x = 0;
+                        int can_extend_y = 0;
+                        int can_extend_z = 0;
+                        do {
+                            if ( block->can_mesh_x ) {
                                 can_extend_x = chunk_can_extend_rect( chunk, blockState, packed_lighting, workingSpace, x + size_x - 1, y, z, 1, size_y, size_z, 1, 0, 0 );
-                                if ( can_extend_x )
+                                if ( can_extend_x ) {
                                     size_x++;
+                                }
+                            }
+                            if ( block->can_mesh_z ) {
                                 can_extend_z = chunk_can_extend_rect( chunk, blockState, packed_lighting, workingSpace, x, y, z + size_z - 1, size_x, size_y, 1, 0, 0, 1 );
-                                if ( can_extend_z )
+                                if ( can_extend_z ) {
                                     size_z++;
+                                }
+                            }
+                            if ( block->can_mesh_y ) {
                                 can_extend_y = chunk_can_extend_rect( chunk, blockState, packed_lighting, workingSpace, x, y + size_y - 1, z, size_x, 1, size_z, 0, 1, 0 );
-                                if ( can_extend_y )
+                                if ( can_extend_y ) {
                                     size_y++;
-                            } while ( can_extend_x || can_extend_z || can_extend_y );
-                        }
+                                }
+                            }
+                        } while ( can_extend_x || can_extend_z || can_extend_y );
+
                         for ( int new_x = x; new_x < x + size_x; new_x++ ) {
                             for ( int new_z = z; new_z < z + size_z; new_z++ ) {
                                 for ( int new_y = y; new_y < y + size_y; new_y++ ) {
@@ -543,6 +553,17 @@ void chunk_calculate_popupated_blocks( Chunk *chunk ) {
                         blockCoord->mesh_y = size_y;
                         blockCoord->mesh_z = size_z;
                         blockCoord->face_shift = blockState.rotation;
+                        blockCoord->scale_x = block->scale.x;
+                        blockCoord->scale_y = block->scale.y;
+                        blockCoord->scale_z = block->scale.z;
+
+                        blockCoord->offset_x = block->offset.x;
+                        blockCoord->offset_y = block->offset.y;
+                        blockCoord->offset_z = block->offset.z;
+
+                        blockCoord->tex_offset_x = block->tex_offset.x;
+                        blockCoord->tex_offset_y = block->tex_offset.y;
+                        blockCoord->tex_offset_z = block->tex_offset.z;
 
                         for ( int i = 0; i < NUM_FACES_IN_CUBE; i++ ) {
                             blockCoord->packed_lighting[ i ] = workingSpace[ index ].packed_lighting[ i ];

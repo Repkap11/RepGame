@@ -27,13 +27,42 @@ void block_definitions_initilize_definitions( Texture *texture ) {
         }
         block->no_light = NO_LIGHT_NO_DRAW;
         block->casts_shadow = true;
-        block->can_mesh = true;
-        block->hides_self = false;
+        block->can_mesh_x = true;
+        block->can_mesh_y = true;
+        block->can_mesh_z = true;
+        block->hides_self = false; // like connected glass so you don't see the perpendicular panes
         block->needs_place_on_solid = false;
         block->rotate_on_placement = false;
         block->icon_is_isometric = true;
         block->flows = 0;
+        block->scale = {1, 1, 1};
+        block->offset = {0, 0, 0};
+        block->tex_offset = {0, 0, 0};
     }
+
+    block_definitions[ STONE_BRICK_SLAB ].textures[ FACE_TOP ] = STONE_BRICK;
+    block_definitions[ STONE_BRICK_SLAB ].textures[ FACE_BOTTOM ] = STONE_BRICK;
+    block_definitions[ STONE_BRICK_SLAB ].scale = {1, 1.0f / 2.0f, 1};
+    block_definitions[ STONE_BRICK_SLAB ].offset = {0, 0, 0};
+    block_definitions[ STONE_BRICK_SLAB ].tex_offset = {0, -0.25, 0};
+    block_definitions[ STONE_BRICK_SLAB ].is_seethrough = true;
+    block_definitions[ STONE_BRICK_SLAB ].can_mesh_x = true;
+    block_definitions[ STONE_BRICK_SLAB ].can_mesh_y = false;
+    block_definitions[ STONE_BRICK_SLAB ].can_mesh_z = true;
+
+    block_definitions[ REDSTONE_LINE_POWERED ].textures[ FACE_LEFT ] = AIR;
+    block_definitions[ REDSTONE_LINE_POWERED ].textures[ FACE_RIGHT ] = AIR;
+    block_definitions[ REDSTONE_LINE_POWERED ].textures[ FACE_FRONT ] = AIR;
+    block_definitions[ REDSTONE_LINE_POWERED ].textures[ FACE_BACK ] = AIR;
+    block_definitions[ REDSTONE_LINE_POWERED ].scale = {1, 1.0f / 16.0f, 1};
+    block_definitions[ REDSTONE_LINE_POWERED ].offset = {0, 0, 0};
+    block_definitions[ REDSTONE_LINE_POWERED ].tex_offset = {0, 0, 0};
+    block_definitions[ REDSTONE_LINE_POWERED ].is_seethrough = true;
+    block_definitions[ REDSTONE_LINE_POWERED ].can_mesh_x = true;
+    block_definitions[ REDSTONE_LINE_POWERED ].can_mesh_y = false;
+    block_definitions[ REDSTONE_LINE_POWERED ].can_mesh_z = true;
+    block_definitions[ REDSTONE_LINE_POWERED ].casts_shadow = false;
+
     block_definitions[ WATER ].renderOrder = RenderOrder_Water;
     block_definitions[ WATER ].flows = 20;
     block_definitions[ LAVA ].renderOrder = RenderOrder_Water;
@@ -138,12 +167,21 @@ void block_definitions_initilize_definitions( Texture *texture ) {
 
     block_definitions[ WHITE_GLASS ].casts_shadow = false;
 
-    block_definitions[ WHITE_GLASS ].can_mesh = false;
-    block_definitions[ WHITE_GLASS ].can_mesh = false;
-    block_definitions[ BIRTCH_LEAVES ].can_mesh = false;
-    block_definitions[ PINE_LEAF ].can_mesh = false;
-    block_definitions[ JUNGLE_LEAF ].can_mesh = false;
-    block_definitions[ LEAF ].can_mesh = false;
+    block_definitions[ WHITE_GLASS ].can_mesh_x = false;
+    block_definitions[ WHITE_GLASS ].can_mesh_y = false;
+    block_definitions[ WHITE_GLASS ].can_mesh_z = false;
+    block_definitions[ BIRTCH_LEAVES ].can_mesh_x = false;
+    block_definitions[ BIRTCH_LEAVES ].can_mesh_y = false;
+    block_definitions[ BIRTCH_LEAVES ].can_mesh_z = false;
+    block_definitions[ PINE_LEAF ].can_mesh_x = false;
+    block_definitions[ PINE_LEAF ].can_mesh_y = false;
+    block_definitions[ PINE_LEAF ].can_mesh_z = false;
+    block_definitions[ JUNGLE_LEAF ].can_mesh_x = false;
+    block_definitions[ JUNGLE_LEAF ].can_mesh_y = false;
+    block_definitions[ JUNGLE_LEAF ].can_mesh_z = false;
+    block_definitions[ LEAF ].can_mesh_x = false;
+    block_definitions[ LEAF ].can_mesh_y = false;
+    block_definitions[ LEAF ].can_mesh_z = false;
 
     block_definitions[ WHITE_GLASS ].no_light = NO_LIGHT_NO_DRAW;
     block_definitions[ BIRTCH_LEAVES ].no_light = NO_LIGHT_DRAW;
@@ -171,7 +209,9 @@ void block_definitions_initilize_definitions( Texture *texture ) {
             block->is_seethrough = true;
             block->no_light = NO_LIGHT_BRIGHT;
             block->casts_shadow = false;
-            block->can_mesh = false;
+            block->can_mesh_x = false;
+            block->can_mesh_y = true;
+            block->can_mesh_z = false;
             block->needs_place_on_solid = true;
             block->icon_is_isometric = false;
         }

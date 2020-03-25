@@ -67,6 +67,18 @@ void mouse_selection_init( MouseSelection *mouseSelection, VertexBufferLayout *v
     mouseSelection->block.mesh_y = 1;
     mouseSelection->block.mesh_z = 1;
     mouseSelection->shouldDraw = 0;
+
+    mouseSelection->block.scale_x = 1;
+    mouseSelection->block.scale_y = 1;
+    mouseSelection->block.scale_z = 1;
+
+    mouseSelection->block.offset_x = 0;
+    mouseSelection->block.offset_y = 0;
+    mouseSelection->block.offset_z = 0;
+
+    mouseSelection->block.tex_offset_x = 0;
+    mouseSelection->block.tex_offset_y = 0;
+    mouseSelection->block.tex_offset_z = 0;
 }
 void mouse_selection_set_block( MouseSelection *mouseSelection, int x, int y, int z, int shouldDraw ) {
     // y += 1;

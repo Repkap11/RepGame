@@ -24,8 +24,9 @@ void world_init( World *world, TRIP_ARGS( float camera_ ) ) {
     vertex_buffer_layout_push_unsigned_int( &world->vbl_coords, 3 ); // packed lighting
     vertex_buffer_layout_push_unsigned_int( &world->vbl_coords, 3 ); // packed lightingMOB_ROTATION
     vertex_buffer_layout_push_unsigned_int( &world->vbl_coords, 1 ); // face_shift for face rotation
-    vertex_buffer_layout_push_float( &world->vbl_coords, 3 );        // block shape offset
     vertex_buffer_layout_push_float( &world->vbl_coords, 3 );        // block shape scale
+    vertex_buffer_layout_push_float( &world->vbl_coords, 3 );        // block shape offset
+    vertex_buffer_layout_push_float( &world->vbl_coords, 3 );        // texture shape offset
 
     // These are from ObjectVertex
     vertex_buffer_layout_init( &world->vbl_object_vertex );
