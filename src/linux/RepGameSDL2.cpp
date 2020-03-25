@@ -136,7 +136,6 @@ void main_loop_wasm( ) {
     return;
 }
 
-#define UPS_RATE 200
 void main_loop_full( ) {
     int be_nice_and_dont_burn_the_cpu = 1;
     int vsync_enabled = 1;

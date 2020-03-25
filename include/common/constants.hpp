@@ -63,6 +63,8 @@
 #define JUMP_STRENGTH 0.07f
 #define GRAVITY_STRENGTH 0.002f
 
+#define UPS_RATE 200
+
 #define CAMERA_FOV 60.0f
 #if defined( REPGAME_WASM ) || defined( REPGAME_WINDOWS )
 #define NUM_RENDER_THREADS 1

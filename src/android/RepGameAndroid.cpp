@@ -1,6 +1,8 @@
 #include <jni.h>
 #include <stdarg.h>
 #include <string.h>
+#include <time.h>
+
 #include <android/asset_manager.h>
 #include <android/asset_manager_jni.h>
 
@@ -31,6 +33,12 @@ char *repgame_android_getShaderString( const char *filename ) {
 
 extern "C" {
 
+static double now_ms( void ) {
+    struct timespec res;
+    clock_gettime( CLOCK_MONOTONIC, &res );
+    return ( int )( 1000.0 * res.tv_sec + ( double )res.tv_nsec / 1e6 );
+}
+
 unsigned char *as_unsigned_char_array( JNIEnv *env, jbyteArray array, int *out_size ) {
     int len = env->GetArrayLength( array );
     unsigned char *buf = new unsigned char[ len ];
@@ -38,6 +46,7 @@ unsigned char *as_unsigned_char_array( JNIEnv *env, jbyteArray array, int *out_s
     *out_size = len;
     return buf;
 }
+int next_game_step;
 
 JNIEXPORT void JNICALL Java_com_repkap11_repgame_RepGameJNIWrapper_onSurfaceCreated( JNIEnv *env, jobject obj, jbyteArray texture_bytes0, jbyteArray texture_bytes1, jobject assetManager_java, jstring world_name_java ) {
     pr_debug( "################################# START #################################" );
@@ -54,6 +63,7 @@ JNIEXPORT void JNICALL Java_com_repkap11_repgame_RepGameJNIWrapper_onSurfaceCrea
 
     repgame_init( world_name, true, "repkap11.com" );
     env->ReleaseStringUTFChars( world_name_java, world_name );
+    next_game_step = now_ms( );
 }
 
 JNIEXPORT void JNICALL Java_com_repkap11_repgame_RepGameJNIWrapper_onSurfaceDestroyed( JNIEnv *env, jobject obj ) {
@@ -70,8 +80,17 @@ JNIEXPORT void JNICALL Java_com_repkap11_repgame_RepGameJNIWrapper_onSizeChanged
 }
 
 JNIEXPORT void JNICALL Java_com_repkap11_repgame_RepGameJNIWrapper_onDrawFrame( JNIEnv *env, jobject obj ) {
+    int now = now_ms( );
+    int computer_is_too_slow_limit = 10; // max number of advances per render, if you can't get 20 fps, slow the game's UPS
+    int num_ticks_in_frame = 0;
+    while ( ( ( ( ( int )next_game_step - ( int )now ) <= 0 ) ) && ( computer_is_too_slow_limit-- ) ) {
+        repgame_tick( );
+        num_ticks_in_frame++;
+        next_game_step += ( 1000 / UPS_RATE ); // count 1 game tick done
+    }
+    // pr_debug( "slow:%d num_ticks_in_frame:%d fps:%f", computer_is_too_slow_limit, num_ticks_in_frame, ( float )( UPS_RATE ) / ( float )num_ticks_in_frame );
+
     repgame_clear( );
-    repgame_tick( );
     repgame_draw( );
 }
 
