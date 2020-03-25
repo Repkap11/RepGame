@@ -184,6 +184,11 @@ void block_definitions_initilize_definitions( Texture *texture ) {
             // block->can_mesh = true; not that it matters...
         }
     }
+
+    block_definitions[ SPIDER_WEB ].needs_place_on_solid = false;
+    block_definitions[ BARRIER ].needs_place_on_solid = false;
+    block_definitions[ DARK_BARRIER ].needs_place_on_solid = false;
+
     block_definitions[ GRASS_TUFT ].casts_shadow = true;
     block_definitions[ GRASS_TUFT2 ].casts_shadow = true;
     block_definitions[ GRASS_TUFT3 ].casts_shadow = true;
