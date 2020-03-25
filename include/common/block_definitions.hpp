@@ -218,6 +218,8 @@ typedef struct {
     // TODO add chest furnase or other block spesific state
 } BlockState;
 
+bool BlockStates_equal( const BlockState &a, const BlockState &b );
+
 void block_definitions_initilize_definitions( Texture *texture );
 Block *block_definition_get_definition( BlockID blockID );
 void block_definitions_get_random_rotations( float **out_supports_random_rotations );

@@ -76,6 +76,7 @@ typedef struct {
         TRIP_STATE( int destroy_ );
     } block_selection;
     BlockUpdateQueue blockUpdateQueue;
+    long tick_number = 0;
 } RepGameState;
 
 typedef struct {

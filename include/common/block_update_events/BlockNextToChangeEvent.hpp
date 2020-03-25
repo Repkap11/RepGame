@@ -5,7 +5,7 @@
 
 class BlockNextToChangeEvent : public BlockUpdateEvent {
   public:
-    BlockNextToChangeEvent( int x, int y, int z, int i, int j, int k );
+    BlockNextToChangeEvent( long tick_number, int x, int y, int z, int i, int j, int k );
     void performAction( BlockUpdateQueue *blockUpdateQueue, World *world ) override;
 
   private:

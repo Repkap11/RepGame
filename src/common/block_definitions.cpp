@@ -35,7 +35,9 @@ void block_definitions_initilize_definitions( Texture *texture ) {
         block->flows = 0;
     }
     block_definitions[ WATER ].renderOrder = RenderOrder_Water;
+    block_definitions[ WATER ].flows = 20;
     block_definitions[ LAVA ].renderOrder = RenderOrder_Water;
+    block_definitions[ LAVA ].flows = 20;
 
     block_definitions[ GRASS ].textures[ FACE_LEFT ] = GRASS_SIDE;
     block_definitions[ GRASS ].textures[ FACE_RIGHT ] = GRASS_SIDE;
@@ -179,7 +181,6 @@ void block_definitions_initilize_definitions( Texture *texture ) {
             block->casts_shadow = false;
             block->icon_is_isometric = false;
             block->hides_self = true;
-            block->flows = true;
         }
         if ( block->renderOrder == RenderOrder_Transparent ) {
             block->is_seethrough = true;
@@ -346,4 +347,8 @@ bool block_definitions_is_replaced_by_neighboring_flow( BlockState blockState ) 
     } else {
         return false;
     }
+}
+
+bool BlockStates_equal( const BlockState &a, const BlockState &b ) {
+    return a.id == b.id && a.rotation == b.rotation;
 }

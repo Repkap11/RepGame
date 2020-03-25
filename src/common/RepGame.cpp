@@ -52,7 +52,7 @@ void change_block( int place, BlockState blockState ) {
         block_y = globalGameState.block_selection.destroy_y;
         block_z = globalGameState.block_selection.destroy_z;
     }
-    BlockUpdateEvent *blockPlacedEvent = new PlayerBlockPlacedEvent( block_x, block_y, block_z, blockState );
+    BlockUpdateEvent *blockPlacedEvent = new PlayerBlockPlacedEvent( globalGameState.tick_number, block_x, block_y, block_z, blockState );
     globalGameState.blockUpdateQueue.addBlockUpdate( blockPlacedEvent );
 }
 
@@ -206,7 +206,7 @@ void repgame_process_movement( ) {
 }
 
 void repgame_process_block_updates( ) {
-    globalGameState.blockUpdateQueue.processAllBlockUpdates( &globalGameState.world );
+    globalGameState.blockUpdateQueue.processAllBlockUpdates( &globalGameState.world, globalGameState.tick_number );
 }
 
 void repgame_tick( ) {
@@ -214,6 +214,7 @@ void repgame_tick( ) {
         // Don't bother updating the state if the game is exiting
         return;
     }
+    globalGameState.tick_number++;
 
     multiplayer_process_events( &globalGameState.world );
 
