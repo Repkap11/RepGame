@@ -105,10 +105,10 @@ void multiplayer_set_block_send_packet( NetPacket *update ) {
     }
 }
 
-void multiplayer_set_block( int place, int block_x, int block_y, int block_z, BlockState blockState ) {
+void multiplayer_set_block( int block_x, int block_y, int block_z, BlockState blockState ) {
     if ( active ) {
         // Log what the player is doing
-        if ( place ) {
+        if ( blockState.id != AIR ) {
             pr_debug( "Player placed %i at %i, %i, %i", blockState.id, block_x, block_y, block_z );
         } else {
             pr_debug( "Player broke the block at %i, %i, %i", block_x, block_y, block_z );

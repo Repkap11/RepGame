@@ -310,12 +310,14 @@ void chunk_calculate_popupated_blocks( Chunk *chunk ) {
                 int visiable_back = 0;
                 int visiable_right = 0;
                 int visiable_left = 0;
-                if ( block->renderOrder == RenderOrder_Water ) {
+
+                if ( block->is_seethrough && block->hides_self ) {
                     Block *block_top = block_definition_get_definition( chunk->blocks[ chunk_get_index_from_coords( x + 0, yplus, z + 0 ) ].id );
-                    visiable_top = block_top->is_seethrough && block_top->id != block->id;
-                } else if ( block->is_seethrough && block->hides_self ) {
-                    Block *block_top = block_definition_get_definition( chunk->blocks[ chunk_get_index_from_coords( x + 0, yplus, z + 0 ) ].id );
-                    visiable_top = block_top->is_seethrough && block_top->id != block->id;
+                    if ( block->renderOrder == RenderOrder_Water ) {
+                        visiable_top = block_top->id != block->id;
+                    } else {
+                        visiable_top = block_top->is_seethrough && block_top->id != block->id;
+                    }
 
                     Block *block_bottom = block_definition_get_definition( chunk->blocks[ chunk_get_index_from_coords( x + 0, yminus, z + 0 ) ].id );
                     visiable_bottom = block_bottom->is_seethrough && block_bottom->id != block->id;

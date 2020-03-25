@@ -177,6 +177,7 @@ void block_definitions_initilize_definitions( Texture *texture ) {
             block->no_light = NO_LIGHT_BRIGHT;
             block->casts_shadow = false;
             block->icon_is_isometric = false;
+            block->hides_self = true;
         }
         if ( block->renderOrder == RenderOrder_Transparent ) {
             block->is_seethrough = true;

@@ -52,7 +52,7 @@ void change_block( int place, BlockState blockState ) {
         block_y = globalGameState.block_selection.destroy_y;
         block_z = globalGameState.block_selection.destroy_z;
     }
-    BlockUpdateEvent *blockPlacedEvent = new PlayerBlockPlacedEvent( place, block_x, block_y, block_z, blockState );
+    BlockUpdateEvent *blockPlacedEvent = new PlayerBlockPlacedEvent(block_x, block_y, block_z, blockState );
     globalGameState.blockUpdateQueue.addBlockUpdate( blockPlacedEvent );
 }
 

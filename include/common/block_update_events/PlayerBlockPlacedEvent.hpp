@@ -5,15 +5,16 @@
 
 class PlayerBlockPlacedEvent : public BlockUpdateEvent {
   public:
-    PlayerBlockPlacedEvent( int place, int block_x, int block_y, int block_z, BlockState blockState );
+    PlayerBlockPlacedEvent( int block_x, int block_y, int block_z, BlockState blockState );
     void performAction( BlockUpdateQueue *blockUpdateQueue, World *world ) override;
 
   private:
-    int place;
     int block_x;
     int block_y;
     int block_z;
     BlockState blockState;
+
+    void performActionBasedOnNeighbor( BlockUpdateQueue *blockUpdateQueue, World *world, int i, int j, int k );
 };
 
 #endif
