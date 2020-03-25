@@ -202,7 +202,7 @@ void chunk_load_terrain( Chunk *chunk ) {
             map_gen_load_block_c( chunk );
         }
         structure_gen_place( chunk );
-        chunk->ditry = PERSIST_ALL_CHUNKS;
+        chunk->dirty = PERSIST_ALL_CHUNKS;
     }
     chunk_calculate_popupated_blocks( chunk );
 }

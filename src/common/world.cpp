@@ -157,11 +157,9 @@ void fixup_chunk( World *world, Chunk *chunk, TRIP_ARGS( int offset_ ), TRIP_ARG
             pr_debug( "Ekk, still loading. You'll probably get a lighting bug." );
             return;
         }
-        chunk_unprogram_terrain( chunk );
         chunk_set_block( fixupChunk, TRIP_ARGS( pos_ ), blockState );
-        fixupChunk->ditry = 1;
-        chunk_calculate_popupated_blocks( fixupChunk );
-        chunk_program_terrain( fixupChunk );
+        fixupChunk->dirty = 1;
+        fixupChunk->needs_repopulation = 1;
     }
 }
 
@@ -242,11 +240,10 @@ void world_set_loaded_block( World *world, TRIP_ARGS( int block_ ), BlockState b
                 }
             }
         }
-        chunk_unprogram_terrain( chunk );
         chunk_set_block( chunk, TRIP_ARGS( diff_ ), blockState );
-        chunk->ditry = 1;
-        chunk_calculate_popupated_blocks( chunk );
-        chunk_program_terrain( chunk );
+        chunk->dirty = 1;
+        chunk->needs_repopulation = 1;
+
     } else {
         // This just means mouse is not pointing at a block
         // pr_debug( "Could not find the pointed to chunk" );

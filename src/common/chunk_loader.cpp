@@ -192,6 +192,15 @@ void chunk_loader_render_chunks( LoadedChunks *loadedChunks, TRIP_ARGS( float ca
         loadedChunks->chunk_center_y = chunk_y;
         loadedChunks->chunk_center_z = chunk_z;
     }
+    for ( int i = 0; i < MAX_LOADED_CHUNKS; i++ ) {
+        Chunk *chunk = &loadedChunks->chunkArray[ i ];
+        if ( !chunk->is_loading && chunk->needs_repopulation && !chunk->cached_cull ) {
+            chunk_unprogram_terrain( chunk );
+            chunk_calculate_popupated_blocks( chunk );
+            chunk_program_terrain( chunk );
+            chunk->needs_repopulation = false;
+        }
+    }
 }
 float chunk_diameter = ( CHUNK_SIZE + 1 ) * 1.73205080757; // sqrt(3)
 

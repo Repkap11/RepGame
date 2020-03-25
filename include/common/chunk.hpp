@@ -26,9 +26,10 @@ typedef struct {
     RenderLayer layers[ LAST_RENDER_ORDER ];
     BlockState *blocks;
     int chunk_x, chunk_y, chunk_z;
-    int ditry;
+    int dirty;
     int should_render;
     int cached_cull;
+    int needs_repopulation;
     int chunk_mod_x, chunk_mod_y, chunk_mod_z;
 } Chunk;
 

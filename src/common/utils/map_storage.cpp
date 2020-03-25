@@ -81,7 +81,7 @@ typedef struct {
 } STORAGE_TYPE;
 
 void map_storage_persist( Chunk *chunk ) {
-    if ( chunk->ditry ) {
+    if ( chunk->dirty ) {
         int chunk_offset_x = chunk->chunk_x;
         int chunk_offset_y = chunk->chunk_y;
         int chunk_offset_z = chunk->chunk_z;
