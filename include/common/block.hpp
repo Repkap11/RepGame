@@ -4,6 +4,7 @@
 #include "constants.hpp"
 #include "block_definitions.hpp"
 
+// See world.cpp for vbl
 typedef struct {
     float x;
     float y;
@@ -121,6 +122,7 @@ static CubeFace vd_data_solid[] = {
 };
 #define VB_DATA_SIZE_SOLID ( 5 * 6 )
 
+// See world.cpp for vbl
 typedef struct {
     float x;
     float y;
@@ -134,6 +136,14 @@ typedef struct {
     unsigned short face[ NUM_FACES_IN_CUBE ];
     unsigned int packed_lighting[ NUM_FACES_IN_CUBE ];
     unsigned int face_shift;
+
+    float offset_x;
+    float offset_y;
+    float offset_z;
+
+    float scale_x;
+    float scale_y;
+    float scale_z;
 
 } BlockCoords;
 

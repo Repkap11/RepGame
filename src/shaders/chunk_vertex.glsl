@@ -22,6 +22,8 @@ layout( location = 6 ) in uvec3 blockTexture;
 layout( location = 7 ) in uvec3 packed_lighting_1;
 layout( location = 8 ) in uvec3 packed_lighting_2;
 layout( location = 9 ) in uint rotation;
+layout( location = 10 ) in vec3 blockCoords_offset;
+layout( location = 11 ) in vec3 blockCoords_scale;
 
 out vec2 v_TexCoordBlock;
 flat out uint v_blockID;
