@@ -22,18 +22,6 @@ float verticies[][ 2 ] = {
     {1, 0.5f},
 };
 
-// unsigned int indicies[] {
-//     // Top
-//     2, 3, 0,
-//     3, 1, 0,
-//     // Front
-//     4, 5, 0,
-//     0, 1, 4,
-//     // Right
-//     5, 6, 0,
-//     6, 2, 0,
-// };
-
 int inventory_isometric_face[] = {FACE_TOP, FACE_FRONT, FACE_RIGHT};
 float tints_for_light[] = {1, 0.8, 0.6};
 

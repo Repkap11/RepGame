@@ -29,7 +29,7 @@ UIOverlayVertex vb_data_crosshair[] = {
 
 float holding_alpha = 1.0f;
 float tint_top = 1.0f;
-float tint_front = 0.8f;
+float tint_front = 0.8f; // Blocks in the world are 0.75 for all side faces, but we fake a 3d shape by making the right darker than the front
 float tint_right = 0.6f;
 float id = ( float )TNT;
 #define UI_OVERLAY_VERTEX_COUNT_HOLDING_BLOCK ( 4 * 3 )
@@ -65,9 +65,9 @@ float isometric_coords[][ 2 ]{
     {0, -1},     {0, 0},     {1, -0.5f}, {1, 0.5f},
 };
 float square_coords[][ 2 ]{
-    {0, 0}, {0, 0}, {0, 0}, {0, 0}, //
+    {0, 0},   {0, 0},  {0, 0},  {0, 0}, //
     {-1, -1}, {-1, 1}, {1, -1}, {1, 1}, //
-    {0, 0}, {0, 0}, {0, 0}, {0, 0},
+    {0, 0},   {0, 0},  {0, 0},  {0, 0},
 };
 
 #define UI_OVERLAY_INDEX_COUNT_CROSSHAIR ( 3 * 2 * 2 )
@@ -141,18 +141,18 @@ void ui_overlay_init( UIOverlay *ui_overlay ) {
 void ui_overlay_on_screen_size_change( UIOverlay *ui_overlay, int width, int height ) {
     ui_overlay->screen_width = width;
     ui_overlay->screen_height = height;
+    // When the screen changes, we need to reprocess the held block graphics
+    ui_overlay_set_holding_block( ui_overlay, ui_overlay->draw_holding_block.heldBlockID );
 }
 
-void ui_overlay_draw( UIOverlay *ui_overlay, Renderer *renderer, Texture *blocksTexture, InputState *input, const glm::mat4 &mvp_ui, BlockID holding_block ) {
-    Block *holdingBlock = block_definition_get_definition( holding_block );
+void ui_overlay_set_holding_block( UIOverlay *ui_overlay, BlockID holding_block ) {
+    ui_overlay->draw_holding_block.heldBlockID = holding_block;
+    Block *holdingBlock = block_definition_get_definition( ui_overlay->draw_holding_block.heldBlockID );
     float( *which_shape )[ 2 ];
-    IndexBuffer *which_index_buffer;
     if ( holdingBlock->icon_is_isometric ) {
         which_shape = isometric_coords;
-        which_index_buffer = &ui_overlay->draw_holding_block.ib_isometric;
     } else {
         which_shape = square_coords;
-        which_index_buffer = &ui_overlay->draw_holding_block.ib_square;
     }
     for ( int i = 0; i < UI_OVERLAY_VERTEX_COUNT_HOLDING_BLOCK; i++ ) {
         UIOverlayVertex *vertex = &vb_data_holding_block[ i ];
@@ -163,8 +163,10 @@ void ui_overlay_draw( UIOverlay *ui_overlay, Renderer *renderer, Texture *blocks
         BlockID texture = holdingBlock->textures[ holding_block_vertex_face_map[ i ] ];
         vertex->texture.id = texture - 1;
     }
-
     vertex_buffer_set_data( &ui_overlay->draw_holding_block.vb, vb_data_holding_block, sizeof( UIOverlayVertex ) * UI_OVERLAY_VERTEX_COUNT_HOLDING_BLOCK );
+}
+
+void ui_overlay_draw( UIOverlay *ui_overlay, Renderer *renderer, Texture *blocksTexture, InputState *input, const glm::mat4 &mvp_ui ) {
 
     shader_set_uniform_mat4f( &ui_overlay->shader, "u_MVP", mvp_ui );
     shader_set_uniform1i( &ui_overlay->shader, "u_Texture", blocksTexture->slot );
@@ -172,6 +174,13 @@ void ui_overlay_draw( UIOverlay *ui_overlay, Renderer *renderer, Texture *blocks
     if ( input->inventory_open ) {
         inventory_draw( &ui_overlay->inventory, renderer, blocksTexture, input, mvp_ui, &ui_overlay->shader );
     } else {
+        IndexBuffer *which_index_buffer;
+        Block *heldBlock = block_definition_get_definition( ui_overlay->draw_holding_block.heldBlockID );
+        if ( heldBlock->icon_is_isometric ) {
+            which_index_buffer = &ui_overlay->draw_holding_block.ib_isometric;
+        } else {
+            which_index_buffer = &ui_overlay->draw_holding_block.ib_square;
+        }
         renderer_draw( renderer, &ui_overlay->draw_holding_block.va, which_index_buffer, &ui_overlay->shader, 1 );
         glBlendFunc( GL_ONE_MINUS_DST_COLOR, GL_ZERO );
         renderer_draw( renderer, &ui_overlay->draw_crosshair.va, &ui_overlay->draw_crosshair.ib, &ui_overlay->shader, 1 );

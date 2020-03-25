@@ -79,6 +79,7 @@ void repgame_process_mouse_events( ) {
         if ( blockState.id != LAST_BLOCK_ID ) {
             pr_debug( "Selected block:%d", blockState.id );
             globalGameState.block_selection.holdingBlock = blockState.id;
+            ui_overlay_set_holding_block( &globalGameState.ui_overlay, globalGameState.block_selection.holdingBlock );
         }
     }
     if ( globalGameState.block_selection.selectionInBounds && globalGameState.input.mouse.buttons.left && globalGameState.input.click_delay_left == 0 ) {
@@ -300,6 +301,7 @@ void repgame_init( const char *world_name, bool connect_multi, const char *host 
     block_definitions_initilize_definitions( &globalGameState.blocksTexture );
     world_init( &globalGameState.world, globalGameState.camera.x, globalGameState.camera.y, globalGameState.camera.z );
     ui_overlay_init( &globalGameState.ui_overlay );
+    ui_overlay_set_holding_block( &globalGameState.ui_overlay, globalGameState.block_selection.holdingBlock );
 
     int iMultiSample = 0;
     int iNumSamples = 0;
@@ -410,7 +412,7 @@ void repgame_draw( ) {
 
     world_draw( &globalGameState.world, &globalGameState.blocksTexture, mvp, mvp_reflect, mvp_sky, mvp_sky_reflect, globalGameState.input.debug_mode, !globalGameState.input.inventory_open );
     showErrors( );
-    ui_overlay_draw( &globalGameState.ui_overlay, &globalGameState.world.renderer, &globalGameState.blocksTexture, &globalGameState.input, globalGameState.screen.ortho_center, globalGameState.block_selection.holdingBlock );
+    ui_overlay_draw( &globalGameState.ui_overlay, &globalGameState.world.renderer, &globalGameState.blocksTexture, &globalGameState.input, globalGameState.screen.ortho_center );
     showErrors( );
 }
 
