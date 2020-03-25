@@ -334,3 +334,12 @@ void do_flowers( Block *block_definitions ) {
     block_definitions[ WHITE_FLOWER_SAPPLING_IN_POT ].renderOrder = RenderOrder_Flowers;
     block_definitions[ END_ROD ].renderOrder = RenderOrder_Flowers;
 }
+
+bool block_definitions_is_replaced_by_neighboring_water( BlockState blockState ) {
+    Block *block = block_definition_get_definition( blockState.id );
+    if ( block->renderOrder == RenderOrder_Flowers || block->renderOrder == RenderOrder_Transparent ) {
+        return true;
+    } else {
+        return false;
+    }
+}

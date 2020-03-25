@@ -10,11 +10,10 @@ void BlockUpdateQueue::addBlockUpdate( BlockUpdateEvent *event ) {
 }
 void BlockUpdateQueue::processAllBlockUpdates( World *world ) {
     while ( !this->pending_events.empty( ) ) {
-        pr_debug( "About to process element on queue" );
         std::shared_ptr<BlockUpdateEvent> event_prt = this->pending_events.front( );
-        pr_debug( "Process element %s", event_prt->name );
+        pr_debug( "Process event %s", event_prt->name );
 
         this->pending_events.pop( );
-        event_prt->performAction( world );
+        event_prt->performAction(this, world );
     }
 }

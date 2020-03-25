@@ -6,7 +6,7 @@
 class PlayerBlockPlacedEvent : public BlockUpdateEvent {
   public:
     PlayerBlockPlacedEvent( int place, int block_x, int block_y, int block_z, BlockState blockState );
-    void performAction( World *world ) override;
+    void performAction( BlockUpdateQueue *blockUpdateQueue, World *world ) override;
 
   private:
     int place;
