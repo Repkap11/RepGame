@@ -12,11 +12,11 @@ CFLAGS_LINUX += -g
 CFLAGS_LINUX += -DREPGAME_LINUX
 LIBS_LINUX := -l GLU -l SDL2 -l m -l GL -l GLEW -lpthread -l dl -static-libgcc -static-libstdc++
 
-CC_LINUX := g++
+# CC_LINUX := g++
 CC_LINUX := clang++
 
 LD_LINUX := ld
-#LD_LINUX := gold
+# LD_LINUX := gold
 
 ifeq ($(CC_LINUX),g++)
 	ifeq ($(UBUNTU_VERSION),14.04)

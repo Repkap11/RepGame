@@ -14,7 +14,6 @@ void BlockUpdateQueue::processAllBlockUpdates( World *world, long tick_number ) 
     this->current_tick = tick_number;
     while ( !this->pending_events.empty( ) ) {
         std::shared_ptr<BlockUpdateEvent> event_prt = this->pending_events.top( );
-        pr_debug( "Process event %s left:%d", event_prt->name, this->pending_events.size( ) );
         if ( event_prt->tick_number >= this->current_tick ) {
             break;
         }
