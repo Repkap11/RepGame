@@ -27,22 +27,6 @@ UIOverlayVertex vb_data_crosshair[] = {
 
 };
 
-// // Top
-// {0, 0},     // 0
-// {-1, 0.5f}, // 1
-// {1, 0.5f},  // 2
-// {0, 1},     // 3
-// // Front
-// {-1, -0.5f}, // 4
-// {-1, 0.5f},
-// {0, -1}, // 5
-// {0, 0},
-// // Right
-// {0, -1},
-// {0, 0},
-// {1, -0.5f}, // 6
-// {1, 0.5f}}
-
 float holding_alpha = 1.0f;
 float tint_top = 1.0f;
 float tint_front = 0.8f;
@@ -50,20 +34,32 @@ float tint_right = 0.6f;
 float id = ( float )TNT;
 #define UI_OVERLAY_VERTEX_COUNT_HOLDING_BLOCK ( 4 * 3 )
 UIOverlayVertex vb_data_holding_block[] = {
-    {0, 0, 1, {0, 0, id}, {tint_top, tint_top, tint_top, holding_alpha}},     // 0
-    {0, 0, 1, {-1, 0.5f, id}, {tint_top, tint_top, tint_top, holding_alpha}}, // 1
-    {0, 0, 1, {1, 0.5f, id}, {tint_top, tint_top, tint_top, holding_alpha}},  // 2
-    {0, 0, 1, {0, 1, id}, {tint_top, tint_top, tint_top, holding_alpha}},     // 3
+    {0, 0, 1, {!0, 0, id}, {tint_top, tint_top, tint_top, holding_alpha}}, // 0
+    {0, 0, 1, {!0, 1, id}, {tint_top, tint_top, tint_top, holding_alpha}}, // 1
+    {0, 0, 1, {!1, 0, id}, {tint_top, tint_top, tint_top, holding_alpha}}, // 2
+    {0, 0, 1, {!1, 1, id}, {tint_top, tint_top, tint_top, holding_alpha}}, // 3
 
-    {0, 0, 1, {-1, -0.5f, id}, {tint_front, tint_front, tint_front, holding_alpha}}, // 4
-    {0, 0, 1, {-1, 0.5f, id}, {tint_front, tint_front, tint_top, holding_alpha}},    // 5
-    {0, 0, 1, {0, -1, id}, {tint_front, tint_front, tint_front, holding_alpha}},     // 6
-    {0, 0, 1, {0, 0, id}, {tint_front, tint_front, tint_front, holding_alpha}},      // 7
+    {0, 0, 1, {!0, 0, id}, {tint_front, tint_front, tint_front, holding_alpha}}, // 4
+    {0, 0, 1, {!0, 1, id}, {tint_front, tint_front, tint_top, holding_alpha}},   // 5
+    {0, 0, 1, {!1, 0, id}, {tint_front, tint_front, tint_front, holding_alpha}}, // 6
+    {0, 0, 1, {!1, 1, id}, {tint_front, tint_front, tint_front, holding_alpha}}, // 7
 
-    {0, 0, 1, {0, -1, id}, {tint_right, tint_right, tint_right, holding_alpha}},    // 8
-    {0, 0, 1, {0, 0, id}, {tint_right, tint_right, tint_right, holding_alpha}},     // 9
-    {0, 0, 1, {1, -0.5f, id}, {tint_right, tint_right, tint_right, holding_alpha}}, // 10
-    {0, 0, 1, {1, 0.5f, id}, {tint_right, tint_right, tint_right, holding_alpha}},  // 11
+    {0, 0, 1, {!0, 0, id}, {tint_right, tint_right, tint_right, holding_alpha}}, // 8
+    {0, 0, 1, {!0, 1, id}, {tint_right, tint_right, tint_right, holding_alpha}}, // 9
+    {0, 0, 1, {!1, 0, id}, {tint_right, tint_right, tint_right, holding_alpha}}, // 10
+    {0, 0, 1, {!1, 1, id}, {tint_right, tint_right, tint_right, holding_alpha}}, // 11
+};
+
+int holding_block_vertex_face_map[] = {
+    FACE_TOP,   FACE_TOP,   FACE_TOP,   FACE_TOP,
+
+    FACE_FRONT, FACE_FRONT, FACE_FRONT, FACE_FRONT,
+
+    FACE_RIGHT, FACE_RIGHT, FACE_RIGHT, FACE_RIGHT,
+};
+
+float isometric_coords[][ 2 ]{
+    {0, 0}, {-1, 0.5f}, {1, 0.5f}, {0, 1}, {-1, -0.5f}, {-1, 0.5f}, {0, -1}, {0, 0}, {0, -1}, {0, 0}, {1, -0.5f}, {1, 0.5f},
 };
 
 #define UI_OVERLAY_INDEX_COUNT_CROSSHAIR ( 3 * 2 * 2 )
@@ -132,9 +128,10 @@ void ui_overlay_on_screen_size_change( UIOverlay *ui_overlay, int width, int hei
 void ui_overlay_draw( UIOverlay *ui_overlay, Renderer *renderer, Texture *blocksTexture, InputState *input, const glm::mat4 &mvp_ui, BlockID holding_block ) {
     for ( int i = 0; i < UI_OVERLAY_VERTEX_COUNT_HOLDING_BLOCK; i++ ) {
         UIOverlayVertex *vertex = &vb_data_holding_block[ i ];
-        vertex->screen_x = -1.0 * ui_overlay->screen_width / 2 + 50 * ( vertex->texture.x + 2 );
-        vertex->screen_y = -1.0 * ui_overlay->screen_height / 2 + 50 * ( vertex->texture.y + 2 );
-        vertex->texture.id = holding_block;
+        vertex->screen_x = -1.0 * ui_overlay->screen_width / 2 + 50 * ( isometric_coords[ i ][ 0 ] + 2 );
+        vertex->screen_y = -1.0 * ui_overlay->screen_height / 2 + 50 * ( isometric_coords[ i ][ 1 ] + 2 );
+        BlockID texture = block_definition_get_definition( holding_block )->textures[ holding_block_vertex_face_map[ i ] ];
+        vertex->texture.id = texture - 1;
     }
 
     vertex_buffer_set_data( &ui_overlay->draw_holding_block.vb, vb_data_holding_block, sizeof( UIOverlayVertex ) * UI_OVERLAY_VERTEX_COUNT_HOLDING_BLOCK );
