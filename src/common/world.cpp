@@ -62,7 +62,8 @@ void world_render( World *world, TRIP_ARGS( float camera_ ), int limit_render, c
 }
 
 void world_set_selected_block( World *world, int selected_x, int selected_y, int selected_z, int shouldDraw ) {
-    mouse_selection_set_block( &world->mouseSelection, TRIP_ARGS( selected_ ), shouldDraw );
+    BlockState blockState = world_get_loaded_block( world, TRIP_ARGS( selected_ ) );
+    mouse_selection_set_block( &world->mouseSelection, TRIP_ARGS( selected_ ), shouldDraw, blockState );
 }
 
 void world_draw( World *world, Texture *blocksTexture, const glm::mat4 &mvp, const glm::mat4 &mvp_reflect, const glm::mat4 &mvp_sky, const glm::mat4 &mvp_sky_reflect, int debug, int draw_mouse_selection ) {

@@ -281,8 +281,7 @@ static inline void initilizeGameState( const char *world_name ) {
         globalGameState.camera.x = saved_data.world_x;
         globalGameState.camera.y = saved_data.world_y;
         globalGameState.camera.z = saved_data.world_z;
-        globalGameState.block_selection.holdingBlock
-         = saved_data.holdingBlock;
+        globalGameState.block_selection.holdingBlock = saved_data.holdingBlock;
         // globalGameState.block_selection.holdingBlock = WATER;
         globalGameState.camera.angle_H = saved_data.angle_H;
         globalGameState.camera.angle_V = saved_data.angle_V;

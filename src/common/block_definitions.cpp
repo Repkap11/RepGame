@@ -50,10 +50,6 @@ void block_definitions_initilize_definitions( Texture *texture ) {
     block_definitions[ STONE_BRICK_SLAB ].can_mesh_y = false;
     block_definitions[ STONE_BRICK_SLAB ].can_mesh_z = true;
 
-    block_definitions[ REDSTONE_LINE_POWERED ].textures[ FACE_LEFT ] = AIR;
-    block_definitions[ REDSTONE_LINE_POWERED ].textures[ FACE_RIGHT ] = AIR;
-    block_definitions[ REDSTONE_LINE_POWERED ].textures[ FACE_FRONT ] = AIR;
-    block_definitions[ REDSTONE_LINE_POWERED ].textures[ FACE_BACK ] = AIR;
     block_definitions[ REDSTONE_LINE_POWERED ].scale = {1, 1.0f / 16.0f, 1};
     block_definitions[ REDSTONE_LINE_POWERED ].offset = {0, 0, 0};
     block_definitions[ REDSTONE_LINE_POWERED ].tex_offset = {0, 0, 0};
@@ -62,6 +58,7 @@ void block_definitions_initilize_definitions( Texture *texture ) {
     block_definitions[ REDSTONE_LINE_POWERED ].can_mesh_y = false;
     block_definitions[ REDSTONE_LINE_POWERED ].can_mesh_z = true;
     block_definitions[ REDSTONE_LINE_POWERED ].casts_shadow = false;
+    block_definitions[ REDSTONE_LINE_POWERED ].icon_is_isometric = false;
 
     block_definitions[ WATER ].renderOrder = RenderOrder_Water;
     block_definitions[ WATER ].flows = 20;

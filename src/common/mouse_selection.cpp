@@ -80,16 +80,29 @@ void mouse_selection_init( MouseSelection *mouseSelection, VertexBufferLayout *v
     mouseSelection->block.tex_offset_y = 0;
     mouseSelection->block.tex_offset_z = 0;
 }
-void mouse_selection_set_block( MouseSelection *mouseSelection, int x, int y, int z, int shouldDraw ) {
+void mouse_selection_set_block( MouseSelection *mouseSelection, int x, int y, int z, int shouldDraw, BlockState blockState ) {
     // y += 1;
     mouseSelection->shouldDraw = shouldDraw;
     if ( mouseSelection->block.x != x || //
          mouseSelection->block.y != y || //
          mouseSelection->block.z != z    //
     ) {
+        Block *block = block_definition_get_definition( blockState.id );
         mouseSelection->block.x = x;
         mouseSelection->block.y = y;
         mouseSelection->block.z = z;
+
+        mouseSelection->block.scale_x = block->scale.x;
+        mouseSelection->block.scale_y = block->scale.y;
+        mouseSelection->block.scale_z = block->scale.z;
+
+        mouseSelection->block.offset_x = block->offset.x;
+        mouseSelection->block.offset_y = block->offset.y;
+        mouseSelection->block.offset_z = block->offset.z;
+
+        mouseSelection->block.tex_offset_x = block->tex_offset.x;
+        mouseSelection->block.tex_offset_y = block->tex_offset.y;
+        mouseSelection->block.tex_offset_z = block->tex_offset.z;
 
         vertex_buffer_set_data( &mouseSelection->vb_coords, &mouseSelection->block, sizeof( BlockCoords ) * 1 );
     }
