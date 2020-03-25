@@ -52,7 +52,7 @@ void change_block( int place, BlockState blockState ) {
         block_y = globalGameState.block_selection.destroy_y;
         block_z = globalGameState.block_selection.destroy_z;
     }
-    BlockUpdateEvent *blockPlacedEvent = new PlayerBlockPlacedEvent(block_x, block_y, block_z, blockState );
+    BlockUpdateEvent *blockPlacedEvent = new PlayerBlockPlacedEvent( block_x, block_y, block_z, blockState );
     globalGameState.blockUpdateQueue.addBlockUpdate( blockPlacedEvent );
 }
 
@@ -280,7 +280,8 @@ static inline void initilizeGameState( const char *world_name ) {
         globalGameState.camera.x = saved_data.world_x;
         globalGameState.camera.y = saved_data.world_y;
         globalGameState.camera.z = saved_data.world_z;
-        globalGameState.block_selection.holdingBlock = saved_data.holdingBlock;
+        // globalGameState.block_selection.holdingBlock = saved_data.holdingBlock;
+        globalGameState.block_selection.holdingBlock = LAVA;
         globalGameState.camera.angle_H = saved_data.angle_H;
         globalGameState.camera.angle_V = saved_data.angle_V;
     }

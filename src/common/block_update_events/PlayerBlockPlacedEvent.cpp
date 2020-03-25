@@ -8,14 +8,15 @@ PlayerBlockPlacedEvent::PlayerBlockPlacedEvent( int x, int y, int z, BlockState 
 }
 
 void PlayerBlockPlacedEvent::performActionBasedOnNeighbor( BlockUpdateQueue *blockUpdateQueue, World *world, int i, int j, int k ) {
+    Block *block = block_definition_get_definition( this->blockState.id );
 
-    if ( this->blockState.id == WATER && j != 1 ) {
+    if ( block->flows && j != 1 ) {
         int affecting_block_x = this->block_x + i;
         int affecting_block_y = this->block_y + j;
         int affecting_block_z = this->block_z + k;
-        BlockState neighbot_block_state = world_get_loaded_block( world, affecting_block_x, affecting_block_y, affecting_block_z );
-        if ( block_definitions_is_replaced_by_neighboring_water( neighbot_block_state ) ) {
-            BlockUpdateEvent *blockPlacedEvent = new PlayerBlockPlacedEvent( affecting_block_x, affecting_block_y, affecting_block_z, {WATER, 0} );
+        BlockState neighbor_block_state = world_get_loaded_block( world, affecting_block_x, affecting_block_y, affecting_block_z );
+        if ( block_definitions_is_replaced_by_neighboring_flow( neighbor_block_state ) ) {
+            BlockUpdateEvent *blockPlacedEvent = new PlayerBlockPlacedEvent( affecting_block_x, affecting_block_y, affecting_block_z, {blockState.id, 0} );
             blockUpdateQueue->addBlockUpdate( blockPlacedEvent );
         }
     }

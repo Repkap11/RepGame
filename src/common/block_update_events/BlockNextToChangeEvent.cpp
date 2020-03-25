@@ -9,18 +9,19 @@ BlockNextToChangeEvent::BlockNextToChangeEvent( int x, int y, int z, int i, int 
 
 void BlockNextToChangeEvent::performAction( BlockUpdateQueue *blockUpdateQueue, World *world ) {
     BlockState updateing_block_state = world_get_loaded_block( world, this->block_x, this->block_y, this->block_z );
+    Block *updateing_block = block_definition_get_definition( updateing_block_state.id );
     BlockState affecting_block_state = world_get_loaded_block( world, this->affecting_block_x, this->affecting_block_y, this->affecting_block_z );
 
     // Water flow needs to start when a block next to water is broken
-    if ( updateing_block_state.id == WATER ) {
+    if ( updateing_block->flows ) {
         if ( this->affecting_block_y <= this->block_y ) {
             // if ( affecting_block_state.id == LAVA ) {
             //     BlockUpdateEvent *blockPlacedEvent = new PlayerBlockPlacedEvent( this->affecting_block_x, this->affecting_block_y, this->affecting_block_z, {COBBLESTONE, 0} );
             //     blockUpdateQueue->addBlockUpdate( blockPlacedEvent );
             // } else
-            if ( block_definitions_is_replaced_by_neighboring_water( affecting_block_state ) ) {
+            if ( block_definitions_is_replaced_by_neighboring_flow( affecting_block_state ) ) {
                 pr_debug( "Expanding a water x:%d y:%d z:%d into x:%d y:%d z:%d ", this->block_x, this->block_y, this->block_z, this->affecting_block_x, this->affecting_block_y, this->affecting_block_z );
-                BlockUpdateEvent *blockPlacedEvent = new PlayerBlockPlacedEvent( this->affecting_block_x, this->affecting_block_y, this->affecting_block_z, {WATER, 0} );
+                BlockUpdateEvent *blockPlacedEvent = new PlayerBlockPlacedEvent( this->affecting_block_x, this->affecting_block_y, this->affecting_block_z, {updateing_block_state.id, 0} );
                 blockUpdateQueue->addBlockUpdate( blockPlacedEvent );
             } else {
                 pr_debug( "Can't fill x:%d y:%d z:%d", this->block_x, this->block_y, this->block_z );

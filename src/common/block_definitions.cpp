@@ -32,6 +32,7 @@ void block_definitions_initilize_definitions( Texture *texture ) {
         block->needs_place_on_solid = false;
         block->rotate_on_placement = false;
         block->icon_is_isometric = true;
+        block->flows = 0;
     }
     block_definitions[ WATER ].renderOrder = RenderOrder_Water;
     block_definitions[ LAVA ].renderOrder = RenderOrder_Water;
@@ -178,6 +179,7 @@ void block_definitions_initilize_definitions( Texture *texture ) {
             block->casts_shadow = false;
             block->icon_is_isometric = false;
             block->hides_self = true;
+            block->flows = true;
         }
         if ( block->renderOrder == RenderOrder_Transparent ) {
             block->is_seethrough = true;
@@ -337,7 +339,7 @@ void do_flowers( Block *block_definitions ) {
     block_definitions[ END_ROD ].renderOrder = RenderOrder_Flowers;
 }
 
-bool block_definitions_is_replaced_by_neighboring_water( BlockState blockState ) {
+bool block_definitions_is_replaced_by_neighboring_flow( BlockState blockState ) {
     Block *block = block_definition_get_definition( blockState.id );
     if ( block->renderOrder == RenderOrder_Flowers || block->renderOrder == RenderOrder_Transparent ) {
         return true;

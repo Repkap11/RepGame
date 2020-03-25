@@ -209,6 +209,7 @@ typedef struct {
     int needs_place_on_solid;
     int rotate_on_placement;
     int icon_is_isometric;
+    int flows;
 } Block;
 
 typedef struct {
@@ -220,7 +221,7 @@ typedef struct {
 void block_definitions_initilize_definitions( Texture *texture );
 Block *block_definition_get_definition( BlockID blockID );
 void block_definitions_get_random_rotations( float **out_supports_random_rotations );
-bool block_definitions_is_replaced_by_neighboring_water( BlockState blockState );
+bool block_definitions_is_replaced_by_neighboring_flow( BlockState blockState );
 void block_definitions_free_definitions( );
 
 #endif
