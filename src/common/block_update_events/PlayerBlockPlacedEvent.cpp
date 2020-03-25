@@ -21,7 +21,7 @@ void PlayerBlockPlacedEvent::performActionBasedOnNeighbor( BlockUpdateQueue *blo
         }
     }
 
-    BlockUpdateEvent *blockUpdatedEvent = new BlockNextToChangeEvent( this->tick_number, this->block_x, this->block_y, this->block_z, i, j, k );
+    BlockUpdateEvent *blockUpdatedEvent = new BlockNextToChangeEvent( this->tick_number + 1, this->block_x, this->block_y, this->block_z, i, j, k );
     blockUpdateQueue->addBlockUpdate( blockUpdatedEvent );
 }
 

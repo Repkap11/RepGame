@@ -108,6 +108,8 @@ typedef enum {
     CARROT_2 = 299,
     CARROT_3 = 300,
     CARROT_4 = 301,
+    REDSTONE_LAMP_OFF = 316,
+    REDSTONE_LAMP_ON = 317,
     NETHER_WART_1 = 339,
     NETHER_WART_2 = 340,
     NETHER_WART_3 = 341,
