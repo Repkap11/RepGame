@@ -104,7 +104,7 @@ void inventory_init( Inventory *inventory, VertexBufferLayout *ui_overlay_vbl ) 
                     }
                     ui_vertex->tint = {tint_for_light, tint_for_light, tint_for_light, 1};
 
-                    if ( block->renderOrder != RenderOrder_Opaque ) {
+                    if ( !block->icon_is_isometric ) {
                         ui_vertex->screen_x = block_corner_x + INVENTORY_BLOCK_SIZE * ( ui_vertex->texture.x * 2 - 1 );
                         ui_vertex->screen_y = block_corner_y + INVENTORY_BLOCK_SIZE * ( ui_vertex->texture.y * 2 - 1 );
 

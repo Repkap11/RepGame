@@ -207,6 +207,7 @@ typedef struct {
     int hides_self;
     int needs_place_on_solid;
     int rotate_on_placement;
+    int icon_is_isometric;
 } Block;
 
 void block_definitions_initilize_definitions( Texture *texture );

@@ -31,6 +31,7 @@ void block_definitions_initilize_definitions( Texture *texture ) {
         block->hides_self = false;
         block->needs_place_on_solid = false;
         block->rotate_on_placement = false;
+        block->icon_is_isometric = true;
     }
     block_definitions[ WATER ].renderOrder = RenderOrder_Water;
 
@@ -168,11 +169,13 @@ void block_definitions_initilize_definitions( Texture *texture ) {
             block->casts_shadow = false;
             block->can_mesh = false;
             block->needs_place_on_solid = true;
+            block->icon_is_isometric = false;
         }
         if ( block->renderOrder == RenderOrder_Water ) {
             block->is_seethrough = true;
             block->no_light = NO_LIGHT_BRIGHT;
             block->casts_shadow = false;
+            block->icon_is_isometric = false;
         }
         if ( block->renderOrder == RenderOrder_Transparent ) {
             block->is_seethrough = true;

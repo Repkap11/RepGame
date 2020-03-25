@@ -17,7 +17,8 @@ typedef struct {
         VertexBuffer vb;
     } draw_crosshair;
     struct {
-        IndexBuffer ib;
+        IndexBuffer ib_isometric;
+        IndexBuffer ib_square;
         VertexArray va;
         VertexBuffer vb;
     } draw_holding_block;
