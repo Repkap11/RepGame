@@ -18,6 +18,7 @@
 #include "common/utils/ray_traversal.hpp"
 #include "common/utils/collision.hpp"
 #include "common/multiplayer.hpp"
+#include "common/block_update_events/PlayerBlockPlacedEvent.hpp"
 
 RepGameState globalGameState;
 
@@ -51,8 +52,8 @@ void change_block( int place, BlockState blockState ) {
         block_y = globalGameState.block_selection.destroy_y;
         block_z = globalGameState.block_selection.destroy_z;
     }
-    multiplayer_set_block( place, block_x, block_y, block_z, blockState );
-    world_set_loaded_block( &globalGameState.world, TRIP_ARGS( block_ ), blockState );
+    BlockUpdateEvent *blockPlacedEvent = new PlayerBlockPlacedEvent( place, block_x, block_y, block_z, blockState );
+    globalGameState.blockUpdateQueue.addBlockUpdate( blockPlacedEvent );
 }
 
 unsigned char getPlacedRotation( BlockID blockID ) {
@@ -204,6 +205,10 @@ void repgame_process_movement( ) {
     globalGameState.camera.z += movement_vector_z;
 }
 
+void repgame_process_block_updates( ) {
+    globalGameState.blockUpdateQueue.processAllBlockUpdates( &globalGameState.world );
+}
+
 void repgame_tick( ) {
     if ( globalGameState.input.exitGame ) {
         // Don't bother updating the state if the game is exiting
@@ -253,6 +258,8 @@ void repgame_tick( ) {
     globalGameState.input.mouse.previousPosition.x = globalGameState.input.mouse.currentPosition.x;
     globalGameState.input.mouse.previousPosition.y = globalGameState.input.mouse.currentPosition.y;
     globalGameState.input.mouse.previousPosition.wheel_counts = globalGameState.input.mouse.currentPosition.wheel_counts;
+
+    repgame_process_block_updates( );
 }
 
 static inline void initilizeGameState( const char *world_name ) {

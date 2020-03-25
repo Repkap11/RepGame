@@ -77,7 +77,10 @@
         "shared_mutex": "cpp",
         "valarray": "cpp",
         "variant": "cpp",
-        "*.ipp": "cpp"
+        "*.ipp": "cpp",
+        "regex": "cpp",
+        "typeindex": "cpp",
+        "bit": "cpp"
     },
     "git.ignoreLimitWarning": true
 }

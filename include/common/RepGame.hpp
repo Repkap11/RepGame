@@ -21,6 +21,7 @@
 #include "constants.hpp"
 #include "ui_overlay.hpp"
 #include "inventory.hpp"
+#include "common/BlockUpdateQueue.hpp"
 
 #include <glm.hpp>
 #define GLM_FORCE_RADIANS
@@ -74,6 +75,7 @@ typedef struct {
         TRIP_STATE( int create_ );
         TRIP_STATE( int destroy_ );
     } block_selection;
+    BlockUpdateQueue blockUpdateQueue;
 } RepGameState;
 
 typedef struct {
