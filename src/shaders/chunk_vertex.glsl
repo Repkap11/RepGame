@@ -3,6 +3,7 @@ uniform mat4 u_MVP;
 uniform mat4 u_MV;
 uniform vec3 u_DebugScaleOffset;
 uniform float u_ReflectionHeight;
+uniform uint u_ScaleTextureBlock;
 
 #define MAX_ROTATABLE_BLOCK 100u
 uniform float u_RandomRotationBlocks[ MAX_ROTATABLE_BLOCK ];
@@ -61,9 +62,9 @@ void main( ) {
     adjusted_position.y *= blockCoords_scale.y;
     adjusted_position.z *= blockCoords_scale.z;
 
-    adjusted_position.x -= blockCoords_offset.x;
-    adjusted_position.y -= blockCoords_offset.y;
-    adjusted_position.z -= blockCoords_offset.z;
+    adjusted_position.x += blockCoords_offset.x;
+    adjusted_position.y += blockCoords_offset.y;
+    adjusted_position.z += blockCoords_offset.z;
 
     vec3 mesh_size = vec3( ( mesh_size_packed & 0xffu ), ( mesh_size_packed & 0xff00u ) >> 8, ( mesh_size_packed & 0xff0000u ) >> 16 );
     vec4 vertex = vec4( adjusted_position * ( mesh_size - u_DebugScaleOffset ) + blockCoords, 1 );
@@ -75,8 +76,11 @@ void main( ) {
     vec2 texCoordBlock_adjust = texCoordBlock;
     uint faceType_rotated = faceType;
     if ( faceType == FACE_TOP || faceType == FACE_BOTTOM ) {
-        face_scale.x = mesh_size.x * blockCoords_scale.x;
-        face_scale.y = mesh_size.z * blockCoords_scale.z;
+        face_scale.xy = mesh_size.xz;
+        if ( u_ScaleTextureBlock != 0u ) {
+            face_scale.x *= blockCoords_scale.x;
+            face_scale.y *= blockCoords_scale.z;
+        }
         face_shift = texCoords_offset.xz;
         if ( rotation == BLOCK_ROTATE_0 ) {
             texCoordBlock_adjust = vec2( texCoordBlock.x, texCoordBlock.y );
@@ -89,14 +93,21 @@ void main( ) {
         }
     } else if ( faceType == FACE_RIGHT || faceType == FACE_LEFT ) {
         faceType_rotated = ( faceType - rotation - 2u ) % 4u + 2u;
-        face_scale.x = mesh_size.z * blockCoords_scale.z;
-        face_scale.y = mesh_size.y * blockCoords_scale.y;
+        face_scale.xy = mesh_size.zy;
+        if ( u_ScaleTextureBlock != 0u ) {
+            face_scale.x *= blockCoords_scale.z;
+            face_scale.y *= blockCoords_scale.y;
+        }
         face_shift = texCoords_offset.zy;
 
     } else if ( faceType == FACE_FRONT || faceType == FACE_BACK ) {
         faceType_rotated = ( faceType - rotation - 2u ) % 4u + 2u;
-        face_scale.x = ( mesh_size.x * blockCoords_scale.x );
-        face_scale.y = ( mesh_size.y * blockCoords_scale.y );
+        face_scale.xy = mesh_size.xy;
+        if ( u_ScaleTextureBlock != 0u ) {
+            face_scale.x *= blockCoords_scale.x;
+            face_scale.y *= blockCoords_scale.y;
+        }
+
         face_shift = texCoords_offset.xy;
     }
     float face_light;

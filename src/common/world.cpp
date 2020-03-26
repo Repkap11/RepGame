@@ -85,6 +85,7 @@ void world_draw( World *world, Texture *blocksTexture, const glm::mat4 &mvp, con
     shader_set_uniform3f( &world->loadedChunks.shader, "u_DebugScaleOffset", debug_block_scale, debug_block_scale, debug_block_scale );
     sky_box_draw( &world->skyBox, &world->renderer, mvp_sky, &world->sky_shader );
     chunk_loader_calculate_cull( &world->loadedChunks, mvp );
+    shader_set_uniform1ui( &world->loadedChunks.shader, "u_ScaleTextureBlock", 1 );
     chunk_loader_draw_chunks( &world->loadedChunks, mvp, &world->renderer, false ); // Blocks
     if ( draw_mouse_selection ) {
         mouse_selection_draw( &world->mouseSelection, &world->renderer, &world->loadedChunks.shader );

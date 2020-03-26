@@ -289,7 +289,6 @@ void chunk_calculate_popupated_blocks( Chunk *chunk ) {
         if ( drawn_block ) {
             BlockID blockID = chunk->blocks[ index ].id;
             Block *block = block_definition_get_definition( blockID );
-            // RenderOrder renderOrder = block->renderOrder;
 
             workingSpace[ index ].visable = render_order_is_visible( block->renderOrder );
 
@@ -334,6 +333,13 @@ void chunk_calculate_popupated_blocks( Chunk *chunk ) {
                     Block *block_left = block_definition_get_definition( chunk->blocks[ chunk_get_index_from_coords( xminus, y + 0, z + 0 ) ].id );
                     visiable_left = block_left->is_seethrough && block_left->id != block->id;
 
+                } else if ( block->is_seethrough ) {
+                    visiable_top = true;
+                    visiable_bottom = true;
+                    visiable_front = true;
+                    visiable_back = true;
+                    visiable_right = true;
+                    visiable_left = true;
                 } else {
                     visiable_top = block_definition_get_definition( chunk->blocks[ chunk_get_index_from_coords( x + 0, yplus, z + 0 ) ].id )->is_seethrough;
                     visiable_bottom = block_definition_get_definition( chunk->blocks[ chunk_get_index_from_coords( x + 0, yminus, z + 0 ) ].id )->is_seethrough;

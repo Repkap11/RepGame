@@ -30,7 +30,8 @@ void block_definitions_initilize_definitions( Texture *texture ) {
         block->can_mesh_x = true;
         block->can_mesh_y = true;
         block->can_mesh_z = true;
-        block->hides_self = false; // like connected glass so you don't see the perpendicular panes
+        block->hides_self = false; // like connected glass so you don't see the perpendicular panes, you probably need is_seethrough too.
+        block->is_seethrough = false;
         block->needs_place_on_solid = false;
         block->rotate_on_placement = false;
         block->icon_is_isometric = true;
@@ -51,6 +52,19 @@ void block_definitions_initilize_definitions( Texture *texture ) {
     block_definitions[ STONE_BRICK_SLAB ].can_mesh_x = true;
     block_definitions[ STONE_BRICK_SLAB ].can_mesh_y = false;
     block_definitions[ STONE_BRICK_SLAB ].can_mesh_z = true;
+
+    // block_definitions[ CREEPER_HEAD ].textures[ FACE_TOP ] = STONE_BRICK;
+    // block_definitions[ CREEPER_HEAD ].textures[ FACE_BOTTOM ] = STONE_BRICK;
+    block_definitions[ CREEPER_HEAD ].scale = {1.0f / 2.0f, 1.0f / 2.0f, 1.0f / 2.0f};
+    block_definitions[ CREEPER_HEAD ].offset = {0.25, 0, 0.25};
+    block_definitions[ CREEPER_HEAD ].tex_offset = {-0.25, -0.25, -0.25};
+    block_definitions[ CREEPER_HEAD ].is_seethrough = true;
+    block_definitions[ CREEPER_HEAD ].can_mesh_x = false;
+    block_definitions[ CREEPER_HEAD ].can_mesh_y = false;
+    block_definitions[ CREEPER_HEAD ].can_mesh_z = false;
+    block_definitions[ CREEPER_HEAD ].casts_shadow = false;
+    block_definitions[ CREEPER_HEAD ].collides_with_player = false;
+    block_definitions[ CREEPER_HEAD ].casts_shadow = false;
 
     block_definitions[ REDSTONE_LINE_POWERED ].scale = {1, 1.0f / 16.0f, 1};
     block_definitions[ REDSTONE_LINE_POWERED ].offset = {0, 0, 0};
