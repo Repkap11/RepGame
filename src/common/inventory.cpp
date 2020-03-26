@@ -46,7 +46,7 @@ void inventory_init( Inventory *inventory, VertexBufferLayout *ui_overlay_vbl ) 
             do {
                 shown_block_index++;
                 block = block_definition_get_definition( ( BlockID )shown_block_index );
-            } while ( !render_order_is_pickable( block->renderOrder ) );
+            } while ( !block->is_pickable );
 
             InventorySlot *inventory_slots = ( InventorySlot * )malloc( sizeof( InventorySlot ) );
             int block_grid_coord_x = i_block % INVENTORY_BLOCKS_PER_ROW;

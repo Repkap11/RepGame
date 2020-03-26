@@ -233,6 +233,8 @@ typedef struct {
         float z;
     } tex_offset;
     int non_full_size;
+    int is_pickable;
+    int collides_with_player;
 } Block;
 
 typedef struct {

@@ -30,7 +30,7 @@ void change_block( int place, BlockState blockState ) {
         block_x = globalGameState.block_selection.create_x;
         block_y = globalGameState.block_selection.create_y;
         block_z = globalGameState.block_selection.create_z;
-        if ( render_order_collides_with_player( block_definition_get_definition( blockState.id )->renderOrder ) ) {
+        if ( block_definition_get_definition( blockState.id )->collides_with_player ) {
             // If the block collides with the player, make sure its not being placed where it would collide
             if ( collision_check_collides_with_block( &globalGameState.world, globalGameState.camera.x, globalGameState.camera.y, globalGameState.camera.z, TRIP_ARGS( block_ ) ) ) {
                 return;
@@ -42,7 +42,7 @@ void change_block( int place, BlockState blockState ) {
                 return;
             }
             Block *under_block = block_definition_get_definition( under_blockID );
-            if ( !render_order_collides_with_player( under_block->renderOrder ) ) {
+            if ( !under_block->collides_with_player ) {
                 return;
             }
         }
@@ -105,7 +105,7 @@ void repgame_process_mouse_events( ) {
                 if ( blockID_int <= 0 ) {
                     blockID_int = 1;
                 }
-            } while ( !render_order_is_pickable( block_definition_get_definition( ( BlockID )blockID_int )->renderOrder ) );
+            } while ( !block_definition_get_definition( ( BlockID )blockID_int )->is_pickable );
             blockState.id = ( BlockID )blockID_int;
             blockState.rotation = getPlacedRotation( blockState.id );
             change_block( 0, blockState );

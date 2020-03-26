@@ -34,6 +34,8 @@ void block_definitions_initilize_definitions( Texture *texture ) {
         block->needs_place_on_solid = false;
         block->rotate_on_placement = false;
         block->icon_is_isometric = true;
+        block->is_pickable = true;
+        block->collides_with_player = true;
         block->flows = 0;
         block->scale = {1, 1, 1};
         block->offset = {0, 0, 0};
@@ -60,6 +62,7 @@ void block_definitions_initilize_definitions( Texture *texture ) {
     block_definitions[ REDSTONE_LINE_POWERED ].casts_shadow = false;
     block_definitions[ REDSTONE_LINE_POWERED ].icon_is_isometric = false;
     block_definitions[ REDSTONE_LINE_POWERED ].needs_place_on_solid = true;
+    block_definitions[ REDSTONE_LINE_POWERED ].collides_with_player = false;
 
     block_definitions[ WATER ].renderOrder = RenderOrder_Water;
     block_definitions[ WATER ].flows = 20;
@@ -222,6 +225,8 @@ void block_definitions_initilize_definitions( Texture *texture ) {
             block->can_mesh_z = false;
             block->needs_place_on_solid = true;
             block->icon_is_isometric = false;
+            block->is_pickable = true;
+            block->collides_with_player = false;
         }
         if ( block->renderOrder == RenderOrder_Water ) {
             block->is_seethrough = true;
@@ -229,11 +234,15 @@ void block_definitions_initilize_definitions( Texture *texture ) {
             block->casts_shadow = false;
             block->icon_is_isometric = false;
             block->hides_self = true;
+            block->is_pickable = false;
+            block->collides_with_player = false;
         }
         if ( block->renderOrder == RenderOrder_Transparent ) {
             block->is_seethrough = true;
             block->no_light = NO_LIGHT_DRAW;
             block->casts_shadow = false;
+            block->is_pickable = false;
+            block->collides_with_player = false;
             // block->can_mesh = true; not that it matters...
         }
     }

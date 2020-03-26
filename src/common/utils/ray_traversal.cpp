@@ -68,9 +68,9 @@ int contains_block( World *world, float dir_x, float dir_y, float dir_z, float i
     Block *block = block_definition_get_definition( blockID );
     bool result;
     if ( is_pick ) {
-        result = render_order_is_pickable( block->renderOrder );
+        result = block->is_pickable;
     } else {
-        result = render_order_collides_with_player( block->renderOrder );
+        result = block->collides_with_player;
     }
     if ( result && block->non_full_size ) {
         return contains_pixel( block, dir_x, dir_y, dir_z, initial_x, initial_y, initial_z, block_x, block_y, block_z );
