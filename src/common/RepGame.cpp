@@ -77,19 +77,23 @@ unsigned char getPlacedRotation( BlockID blockID ) {
 void repgame_process_mouse_events( ) {
     if ( globalGameState.block_selection.selectionInBounds && globalGameState.input.mouse.buttons.middle ) {
         BlockState blockState = world_get_loaded_block( &globalGameState.world, TRIP_ARGS( globalGameState.block_selection.destroy_ ) );
-        if ( blockState.id != LAST_BLOCK_ID ) {
+        if ( blockState.id != globalGameState.block_selection.holdingBlock ) {
             pr_debug( "Selected block:%d", blockState.id );
             globalGameState.block_selection.holdingBlock = blockState.id;
             ui_overlay_set_holding_block( &globalGameState.ui_overlay, globalGameState.block_selection.holdingBlock );
         }
     }
     if ( globalGameState.block_selection.selectionInBounds && globalGameState.input.mouse.buttons.left && globalGameState.input.click_delay_left == 0 ) {
-        change_block( 0, {AIR, BLOCK_ROTATE_0} );
+        change_block( 0, BLOCK_STATE_AIR );
         globalGameState.input.click_delay_left = 30;
     }
     if ( globalGameState.block_selection.selectionInBounds && globalGameState.input.mouse.buttons.right && globalGameState.input.click_delay_right == 0 ) {
         unsigned char rotation = getPlacedRotation( globalGameState.block_selection.holdingBlock );
-        change_block( 1, {globalGameState.block_selection.holdingBlock, rotation} );
+        Block *held_block = block_definition_get_definition( globalGameState.block_selection.holdingBlock );
+        if (held_block->initial_redstone_power != 0){
+            pr_debug("Plaed a block with redstone power");
+        }
+        change_block( 1, {globalGameState.block_selection.holdingBlock, rotation, held_block->initial_redstone_power} );
         globalGameState.input.click_delay_right = 30;
     }
     if ( globalGameState.block_selection.selectionInBounds && globalGameState.input.mouse.currentPosition.wheel_counts != globalGameState.input.mouse.previousPosition.wheel_counts ) {

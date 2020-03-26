@@ -14,7 +14,7 @@ class PlayerBlockPlacedEvent : public BlockUpdateEvent {
     int block_z;
     BlockState blockState;
 
-    void performActionBasedOnNeighbor( BlockUpdateQueue *blockUpdateQueue, World *world, int i, int j, int k );
+    void performActionToNeighbor( BlockUpdateQueue *blockUpdateQueue, World *world, int i, int j, int k );
 };
 
 #endif

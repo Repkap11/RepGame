@@ -67,7 +67,7 @@ void map_gen_load_block_c( Chunk *chunk ) {
 
                 int index = chunk_get_index_from_coords( x - chunk_offset_x, y - chunk_offset_y, z - chunk_offset_z );
 #include "common/map_logic.hpp"
-                chunk->blocks[ index ] = {finalBlockId, BLOCK_ROTATE_0};
+                chunk->blocks[ index ] = {finalBlockId, BLOCK_ROTATE_0, 0};//Assumes all blocks don't spawn with redstone power
             }
         }
     }

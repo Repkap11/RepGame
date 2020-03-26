@@ -7,7 +7,7 @@ PlayerBlockPlacedEvent::PlayerBlockPlacedEvent( long tick_number, int x, int y, 
     this->name = "PlayerBlockPlacedEvent";
 }
 
-void PlayerBlockPlacedEvent::performActionBasedOnNeighbor( BlockUpdateQueue *blockUpdateQueue, World *world, int i, int j, int k ) {
+void PlayerBlockPlacedEvent::performActionToNeighbor( BlockUpdateQueue *blockUpdateQueue, World *world, int i, int j, int k ) {
     Block *block = block_definition_get_definition( this->blockState.id );
 
     if ( block->flows != 0 && j != 1 ) {
@@ -15,7 +15,8 @@ void PlayerBlockPlacedEvent::performActionBasedOnNeighbor( BlockUpdateQueue *blo
         int affecting_block_y = this->block_y + j;
         int affecting_block_z = this->block_z + k;
         BlockState neighbor_block_state = world_get_loaded_block( world, affecting_block_x, affecting_block_y, affecting_block_z );
-        if ( block_definitions_is_replaced_by_neighboring_flow( neighbor_block_state ) ) {
+        Block *neighbor_block = block_definition_get_definition( neighbor_block_state.id );
+        if ( neighbor_block->breaks_in_liquid ) {
             BlockUpdateEvent *blockPlacedEvent = new PlayerBlockPlacedEvent( this->tick_number + block->flows, affecting_block_x, affecting_block_y, affecting_block_z, {blockState.id, 0} );
             blockUpdateQueue->addBlockUpdate( blockPlacedEvent );
         }
@@ -35,12 +36,12 @@ void PlayerBlockPlacedEvent::performAction( BlockUpdateQueue *blockUpdateQueue, 
     world_set_loaded_block( world, TRIP_ARGS( this->block_ ), this->blockState );
 
     for ( int j = -1; j < 2; j += 2 ) {
-        performActionBasedOnNeighbor( blockUpdateQueue, world, 0, j, 0 );
+        performActionToNeighbor( blockUpdateQueue, world, 0, j, 0 );
     }
     for ( int i = -1; i < 2; i += 2 ) {
-        performActionBasedOnNeighbor( blockUpdateQueue, world, i, 0, 0 );
+        performActionToNeighbor( blockUpdateQueue, world, i, 0, 0 );
     }
     for ( int k = -1; k < 2; k += 2 ) {
-        performActionBasedOnNeighbor( blockUpdateQueue, world, 0, 0, k );
+        performActionToNeighbor( blockUpdateQueue, world, 0, 0, k );
     }
 }

@@ -113,6 +113,7 @@ typedef enum {
     CARROT_3 = 300,
     CARROT_4 = 301,
     REDSTONE_LAMP_OFF = 316,
+    REDSTONE_LAMP = 316,
     REDSTONE_LAMP_ON = 317,
     NETHER_WART_1 = 339,
     NETHER_WART_2 = 340,
@@ -236,20 +237,27 @@ typedef struct {
     int non_full_size;
     int is_pickable;
     int collides_with_player;
+    int breaks_in_liquid;
+    int initial_redstone_power;
+    int transmits_redstone_power;
+    int affected_by_neighboring_redstone_power;
 } Block;
 
 typedef struct {
     BlockID id;
     unsigned char rotation;
     // TODO add chest furnase or other block spesific state
+    int current_redstone_power;
 } BlockState;
+
+static BlockState BLOCK_STATE_AIR = {AIR, BLOCK_ROTATE_0, 0};
+static BlockState BLOCK_STATE_LAST_BLOCK_ID = {LAST_BLOCK_ID, BLOCK_ROTATE_0, 0};
 
 bool BlockStates_equal( const BlockState &a, const BlockState &b );
 
 void block_definitions_initilize_definitions( Texture *texture );
 Block *block_definition_get_definition( BlockID blockID );
 void block_definitions_get_random_rotations( float **out_supports_random_rotations );
-bool block_definitions_is_replaced_by_neighboring_flow( BlockState blockState );
 void block_definitions_free_definitions( );
 
 #endif

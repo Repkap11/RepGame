@@ -142,21 +142,21 @@ void chunk_render( const Chunk *chunk, const Renderer *renderer, const Shader *s
 
 BlockState chunk_get_block( Chunk *chunk, int x, int y, int z ) {
     if ( !REMEMBER_BLOCKS ) {
-        return {AIR, BLOCK_ROTATE_0};
+        return BLOCK_STATE_AIR;
     }
     if ( chunk->blocks == NULL ) {
         // pr_debug("Chunk has no blocks");
-        return {LAST_BLOCK_ID, BLOCK_ROTATE_0};
+        return BLOCK_STATE_LAST_BLOCK_ID;
     }
     if ( x > CHUNK_SIZE + 1 || //
          y > CHUNK_SIZE + 1 || //
          z > CHUNK_SIZE + 1 ) {
-        return {LAST_BLOCK_ID, BLOCK_ROTATE_0};
+        return BLOCK_STATE_LAST_BLOCK_ID;
     }
     if ( x < -1 || //
          y < -1 || //
          z < -1 ) {
-        return {LAST_BLOCK_ID, BLOCK_ROTATE_0};
+        return BLOCK_STATE_LAST_BLOCK_ID;
     }
     return chunk->blocks[ chunk_get_index_from_coords( x, y, z ) ];
 }
@@ -244,7 +244,7 @@ int chunk_can_extend_rect( Chunk *chunk, BlockState blockState, unsigned int *pa
                     return 0;
                 }
                 BlockState new_blockState = chunk->blocks[ index ];
-                if ( new_blockState.id != blockState.id ) {
+                if ( !BlockStates_equal( new_blockState, blockState ) ) {
                     return 0;
                 }
                 if ( new_blockState.rotation != blockState.rotation ) {
@@ -573,7 +573,12 @@ void chunk_calculate_popupated_blocks( Chunk *chunk ) {
 
                         for ( int i = 0; i < NUM_FACES_IN_CUBE; i++ ) {
                             blockCoord->packed_lighting[ i ] = workingSpace[ index ].packed_lighting[ i ];
-                            blockCoord->face[ i ] = block->textures[ i ] - 1;
+                            BlockID texture = block->textures[ i ];
+                            if ( texture == REDSTONE_LAMP_OFF && blockState.current_redstone_power > 0 ) {
+                                pr_debug( "block on!!!!!!!!!!!!1" );
+                                texture = REDSTONE_LAMP_ON;
+                            }
+                            blockCoord->face[ i ] = texture - 1;
                         }
                     }
                 }

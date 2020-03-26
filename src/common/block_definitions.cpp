@@ -41,7 +41,13 @@ void block_definitions_initilize_definitions( Texture *texture ) {
         block->scale = {1, 1, 1};
         block->offset = {0, 0, 0};
         block->tex_offset = {0, 0, 0};
+        block->breaks_in_liquid = 0;
+        block->affected_by_neighboring_redstone_power = 0;
+        block->initial_redstone_power = 0;
     }
+
+    block_definitions[ REDSTONE_LAMP ].affected_by_neighboring_redstone_power = 1;
+    block_definitions[ REDSTONE_BLOCK ].initial_redstone_power = 2;
 
     block_definitions[ STONE_BRICK_SLAB ].textures[ FACE_TOP ] = STONE_BRICK;
     block_definitions[ STONE_BRICK_SLAB ].textures[ FACE_BOTTOM ] = STONE_BRICK;
@@ -89,7 +95,6 @@ void block_definitions_initilize_definitions( Texture *texture ) {
     block_definitions[ GRASS ].textures[ FACE_BACK ] = GRASS_SIDE;
     block_definitions[ GRASS ].textures[ FACE_BOTTOM ] = DIRT;
     block_supports_random_rotations[ GRASS - 1 ] = 1.0f;
-    block_supports_random_rotations[ TNT_TOP - 1 ] = 1.0f;
 
     block_definitions[ DOUBLE_SLAB ].textures[ FACE_TOP ] = SLAB_TOP;
     block_definitions[ DOUBLE_SLAB ].textures[ FACE_LEFT ] = DOUBLE_SLAB;
@@ -241,6 +246,7 @@ void block_definitions_initilize_definitions( Texture *texture ) {
             block->icon_is_isometric = false;
             block->is_pickable = true;
             block->collides_with_player = false;
+            block->breaks_in_liquid = true;
         }
         if ( block->renderOrder == RenderOrder_Water ) {
             block->is_seethrough = true;
@@ -257,10 +263,12 @@ void block_definitions_initilize_definitions( Texture *texture ) {
             block->casts_shadow = false;
             block->is_pickable = false;
             block->collides_with_player = false;
+            block->breaks_in_liquid = true;
             // block->can_mesh = true; not that it matters...
         }
     }
 
+    // Exceptions
     block_definitions[ SPIDER_WEB ].needs_place_on_solid = false;
     block_definitions[ BARRIER ].needs_place_on_solid = false;
     block_definitions[ DARK_BARRIER ].needs_place_on_solid = false;
@@ -409,15 +417,6 @@ void do_flowers( Block *block_definitions ) {
     block_definitions[ DARK_OAK_SAPPLING_IN_POT ].renderOrder = RenderOrder_Flowers;
     block_definitions[ WHITE_FLOWER_SAPPLING_IN_POT ].renderOrder = RenderOrder_Flowers;
     block_definitions[ END_ROD ].renderOrder = RenderOrder_Flowers;
-}
-
-bool block_definitions_is_replaced_by_neighboring_flow( BlockState blockState ) {
-    Block *block = block_definition_get_definition( blockState.id );
-    if ( block->renderOrder == RenderOrder_Flowers || block->renderOrder == RenderOrder_Transparent ) {
-        return true;
-    } else {
-        return false;
-    }
 }
 
 bool BlockStates_equal( const BlockState &a, const BlockState &b ) {

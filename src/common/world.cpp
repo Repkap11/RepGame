@@ -182,12 +182,12 @@ BlockState world_get_loaded_block( World *world, TRIP_ARGS( int block_ ) ) {
     Chunk *chunk = world_get_loaded_chunk( world, TRIP_ARGS( block_ ) );
     if ( chunk ) {
         if ( chunk->is_loading ) {
-            return {LAST_BLOCK_ID, BLOCK_ROTATE_0};
+            return BLOCK_STATE_LAST_BLOCK_ID;
         }
         BlockState blockState = world_get_block_from_chunk( chunk, TRIP_ARGS( block_ ) );
         return blockState;
     }
-    return {LAST_BLOCK_ID, BLOCK_ROTATE_0};
+    return BLOCK_STATE_LAST_BLOCK_ID;
 }
 
 void world_set_loaded_block( World *world, TRIP_ARGS( int block_ ), BlockState blockState ) {
