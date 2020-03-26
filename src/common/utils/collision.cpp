@@ -42,13 +42,14 @@ void check_collides_with_player( World *world, TRIP_ARGS( float *movement_vec_ )
 
                 ray_traversal_find_block_from_to( //
                     world,                        //
-                    new_x,                        //
-                    new_y,                        //
-                    new_z,                        //
-                    new_x + ( *movement_vec_x ),  //
-                    new_y + ( *movement_vec_y ),  //
-                    new_z + ( *movement_vec_z ),  //
-                    &out_x, &out_y, &out_z, faces, 1, 0 );
+                    NULL,
+                    new_x,                       //
+                    new_y,                       //
+                    new_z,                       //
+                    new_x + ( *movement_vec_x ), //
+                    new_y + ( *movement_vec_y ), //
+                    new_z + ( *movement_vec_z ), //
+                    &out_x, &out_y, &out_z, faces, 1, 0, 0 );
             }
         }
     }

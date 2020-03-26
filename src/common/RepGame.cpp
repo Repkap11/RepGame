@@ -222,8 +222,8 @@ void repgame_tick( ) {
         repgame_process_mouse_events( );
         int whichFace = 0;
         globalGameState.block_selection.selectionInBounds = ray_traversal_find_block_from_to(
-            &globalGameState.world, globalGameState.camera.x, globalGameState.camera.y, globalGameState.camera.z, globalGameState.camera.x + globalGameState.camera.look.x * REACH_DISTANCE,
-            globalGameState.camera.y + globalGameState.camera.look.y * REACH_DISTANCE, globalGameState.camera.z + globalGameState.camera.look.z * REACH_DISTANCE, TRIP_ARGS( &globalGameState.block_selection.destroy_ ), &whichFace, 0, 1 );
+            &globalGameState.world, NULL, globalGameState.camera.x, globalGameState.camera.y, globalGameState.camera.z, globalGameState.camera.x + globalGameState.camera.look.x * REACH_DISTANCE,
+            globalGameState.camera.y + globalGameState.camera.look.y * REACH_DISTANCE, globalGameState.camera.z + globalGameState.camera.look.z * REACH_DISTANCE, TRIP_ARGS( &globalGameState.block_selection.destroy_ ), &whichFace, 0, 1, 0 );
 
         globalGameState.block_selection.create_x = globalGameState.block_selection.destroy_x + ( whichFace == FACE_RIGHT ) - ( whichFace == FACE_LEFT );
         globalGameState.block_selection.create_y = globalGameState.block_selection.destroy_y + ( whichFace == FACE_TOP ) - ( whichFace == FACE_BOTTOM );
@@ -282,7 +282,7 @@ static inline void initilizeGameState( const char *world_name ) {
         globalGameState.camera.y = saved_data.world_y;
         globalGameState.camera.z = saved_data.world_z;
         globalGameState.block_selection.holdingBlock = saved_data.holdingBlock;
-        globalGameState.block_selection.holdingBlock = WATER;
+        // globalGameState.block_selection.holdingBlock = WATER;
         globalGameState.camera.angle_H = saved_data.angle_H;
         globalGameState.camera.angle_V = saved_data.angle_V;
     }

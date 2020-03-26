@@ -232,6 +232,7 @@ typedef struct {
         float y;
         float z;
     } tex_offset;
+    int non_full_size;
 } Block;
 
 typedef struct {

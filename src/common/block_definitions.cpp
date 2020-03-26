@@ -59,6 +59,7 @@ void block_definitions_initilize_definitions( Texture *texture ) {
     block_definitions[ REDSTONE_LINE_POWERED ].can_mesh_z = true;
     block_definitions[ REDSTONE_LINE_POWERED ].casts_shadow = false;
     block_definitions[ REDSTONE_LINE_POWERED ].icon_is_isometric = false;
+    block_definitions[ REDSTONE_LINE_POWERED ].needs_place_on_solid = true;
 
     block_definitions[ WATER ].renderOrder = RenderOrder_Water;
     block_definitions[ WATER ].flows = 20;
@@ -200,6 +201,16 @@ void block_definitions_initilize_definitions( Texture *texture ) {
 
     for ( int block_id = 0; block_id < LAST_BLOCK_ID; block_id++ ) {
         Block *block = &block_definitions[ block_id ];
+
+        // Calculate non_full_size so the result can be cached for access at runtime.
+        if ( ( block->scale.x != 1 || block->scale.y != 1 || block->scale.x != 1 ) ||    //
+             ( block->offset.x != 0 || block->offset.y != 0 || block->offset.x != 0 ) || //
+             ( block->tex_offset.x != 0 || block->tex_offset.y != 0 || block->tex_offset.x != 0 ) ) {
+            block->non_full_size = true;
+        } else {
+            block->non_full_size = false;
+        }
+
         if ( block->renderOrder == RenderOrder_Flowers ) {
             block->textures[ FACE_TOP ] = TNT;
             block->textures[ FACE_BOTTOM ] = TNT;
