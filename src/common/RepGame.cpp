@@ -74,14 +74,20 @@ unsigned char getPlacedRotation( BlockID blockID ) {
     return rotation;
 }
 
+static bool was_middle = false;
 void repgame_process_mouse_events( ) {
     if ( globalGameState.block_selection.selectionInBounds && globalGameState.input.mouse.buttons.middle ) {
         BlockState blockState = world_get_loaded_block( &globalGameState.world, TRIP_ARGS( globalGameState.block_selection.destroy_ ) );
         if ( blockState.id != globalGameState.block_selection.holdingBlock ) {
-            pr_debug( "Selected block:%d rotation:%d redstone_power:%d", blockState.id, blockState.rotation, blockState.current_redstone_power );
             globalGameState.block_selection.holdingBlock = blockState.id;
             ui_overlay_set_holding_block( &globalGameState.ui_overlay, globalGameState.block_selection.holdingBlock );
         }
+        if ( !was_middle ) {
+            pr_debug( "Selected block:%d rotation:%d redstone_power:%d", blockState.id, blockState.rotation, blockState.current_redstone_power );
+        }
+        was_middle = true;
+    } else {
+        was_middle = false;
     }
     if ( globalGameState.block_selection.selectionInBounds && globalGameState.input.mouse.buttons.left && globalGameState.input.click_delay_left == 0 ) {
         change_block( 0, BLOCK_STATE_AIR );

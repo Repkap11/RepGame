@@ -9,11 +9,11 @@ BlockNextToChangeEvent::BlockNextToChangeEvent( long tick_number, int x, int y, 
 }
 
 void BlockNextToChangeEvent::performAction( BlockUpdateQueue *blockUpdateQueue, World *world ) {
-    // The updating block is the one that origionally change
+    // The updating block  was next to the updating one, and might need to change
     BlockState updateing_block_state = world_get_loaded_block( world, this->block_x, this->block_y, this->block_z );
     Block *updateing_block = block_definition_get_definition( updateing_block_state.id );
 
-    // The affecting block was next to the updating one, and might need to change
+    // The affecting block is the one that origionally change
     BlockState affecting_block_state = world_get_loaded_block( world, this->affecting_block_x, this->affecting_block_y, this->affecting_block_z );
     Block *affecting_block = block_definition_get_definition( affecting_block_state.id );
 
@@ -35,5 +35,8 @@ void BlockNextToChangeEvent::performAction( BlockUpdateQueue *blockUpdateQueue, 
     if ( affecting_block->affected_by_redstone_power && updateing_block_state.current_redstone_power > 0 ) {
         // redstone might change
         pr_debug( "Redstone might change" );
+        BlockUpdateEvent *blockPlacedEvent = new PlayerBlockPlacedEvent( this->tick_number+10, this->affecting_block_x, this->affecting_block_y, this->affecting_block_z,
+                                                                         {affecting_block_state.id, affecting_block_state.rotation, updateing_block_state.current_redstone_power - 1} );
+        blockUpdateQueue->addBlockUpdate( blockPlacedEvent );
     }
 }

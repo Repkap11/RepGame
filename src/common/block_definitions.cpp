@@ -1,4 +1,5 @@
 #include <stdlib.h>
+#include <string.h>
 
 #include "common/block_definitions.hpp"
 #include "common/abstract/textures.hpp"
@@ -44,7 +45,7 @@ void block_definitions_initilize_definitions( Texture *texture ) {
         block->breaks_in_liquid = 0;
         block->initial_redstone_power = 0;
 
-        block->affected_by_redstone_power = 0;//dust, piston
+        block->affected_by_redstone_power = 0; // dust, piston
     }
 
     block_definitions[ REDSTONE_LAMP ].affected_by_redstone_power = 1;
@@ -421,5 +422,5 @@ void do_flowers( Block *block_definitions ) {
 }
 
 bool BlockStates_equal( const BlockState &a, const BlockState &b ) {
-    return a.id == b.id && a.rotation == b.rotation;
+    return !memcmp( &a, &b, sizeof( BlockState ) );
 }
