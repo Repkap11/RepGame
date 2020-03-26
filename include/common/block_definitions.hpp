@@ -239,8 +239,7 @@ typedef struct {
     int collides_with_player;
     int breaks_in_liquid;
     int initial_redstone_power;
-    int transmits_redstone_power;
-    int affected_by_neighboring_redstone_power;
+    int affected_by_redstone_power;
 } Block;
 
 typedef struct {

@@ -9,8 +9,11 @@ BlockNextToChangeEvent::BlockNextToChangeEvent( long tick_number, int x, int y, 
 }
 
 void BlockNextToChangeEvent::performAction( BlockUpdateQueue *blockUpdateQueue, World *world ) {
+    // The updating block is the one that origionally change
     BlockState updateing_block_state = world_get_loaded_block( world, this->block_x, this->block_y, this->block_z );
     Block *updateing_block = block_definition_get_definition( updateing_block_state.id );
+
+    // The affecting block was next to the updating one, and might need to change
     BlockState affecting_block_state = world_get_loaded_block( world, this->affecting_block_x, this->affecting_block_y, this->affecting_block_z );
     Block *affecting_block = block_definition_get_definition( affecting_block_state.id );
 
@@ -26,5 +29,11 @@ void BlockNextToChangeEvent::performAction( BlockUpdateQueue *blockUpdateQueue, 
         pr_debug( "Expanding a water2 x:%d y:%d z:%d into x:%d y:%d z:%d ", this->affecting_block_x, this->affecting_block_y, this->affecting_block_z, this->block_x, this->block_y, this->block_z );
         BlockUpdateEvent *blockPlacedEvent = new PlayerBlockPlacedEvent( this->tick_number + affecting_block->flows, this->block_x, this->block_y, this->block_z, {affecting_block_state.id, 0, affecting_block->initial_redstone_power} );
         blockUpdateQueue->addBlockUpdate( blockPlacedEvent );
+    }
+
+    // Make a placed lamp next to redstone turn on
+    if ( affecting_block->affected_by_redstone_power && updateing_block_state.current_redstone_power > 0 ) {
+        // redstone might change
+        pr_debug( "Redstone might change" );
     }
 }

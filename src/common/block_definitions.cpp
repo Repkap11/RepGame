@@ -42,11 +42,12 @@ void block_definitions_initilize_definitions( Texture *texture ) {
         block->offset = {0, 0, 0};
         block->tex_offset = {0, 0, 0};
         block->breaks_in_liquid = 0;
-        block->affected_by_neighboring_redstone_power = 0;
         block->initial_redstone_power = 0;
+
+        block->affected_by_redstone_power = 0;//dust, piston
     }
 
-    block_definitions[ REDSTONE_LAMP ].affected_by_neighboring_redstone_power = 1;
+    block_definitions[ REDSTONE_LAMP ].affected_by_redstone_power = 1;
     block_definitions[ REDSTONE_BLOCK ].initial_redstone_power = 2;
 
     block_definitions[ STONE_BRICK_SLAB ].textures[ FACE_TOP ] = STONE_BRICK;

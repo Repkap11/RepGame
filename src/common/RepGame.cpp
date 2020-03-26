@@ -78,7 +78,7 @@ void repgame_process_mouse_events( ) {
     if ( globalGameState.block_selection.selectionInBounds && globalGameState.input.mouse.buttons.middle ) {
         BlockState blockState = world_get_loaded_block( &globalGameState.world, TRIP_ARGS( globalGameState.block_selection.destroy_ ) );
         if ( blockState.id != globalGameState.block_selection.holdingBlock ) {
-            pr_debug( "Selected block:%d", blockState.id );
+            pr_debug( "Selected block:%d rotation:%d redstone_power:%d", blockState.id, blockState.rotation, blockState.current_redstone_power );
             globalGameState.block_selection.holdingBlock = blockState.id;
             ui_overlay_set_holding_block( &globalGameState.ui_overlay, globalGameState.block_selection.holdingBlock );
         }
@@ -90,8 +90,8 @@ void repgame_process_mouse_events( ) {
     if ( globalGameState.block_selection.selectionInBounds && globalGameState.input.mouse.buttons.right && globalGameState.input.click_delay_right == 0 ) {
         unsigned char rotation = getPlacedRotation( globalGameState.block_selection.holdingBlock );
         Block *held_block = block_definition_get_definition( globalGameState.block_selection.holdingBlock );
-        if (held_block->initial_redstone_power != 0){
-            pr_debug("Plaed a block with redstone power");
+        if ( held_block->initial_redstone_power != 0 ) {
+            pr_debug( "Plaed a block with redstone power" );
         }
         change_block( 1, {globalGameState.block_selection.holdingBlock, rotation, held_block->initial_redstone_power} );
         globalGameState.input.click_delay_right = 30;
