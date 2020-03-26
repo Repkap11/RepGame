@@ -25,6 +25,8 @@ int find_largest_redstone_power_around( World *world, int x, int y, int z ) {
     return max;
 }
 
+#define REDSTONE_DELAY 0
+
 void BlockNextToChangeEvent::performAction( BlockUpdateQueue *blockUpdateQueue, World *world ) {
     // The updating block  was next to the updating one, and might need to change
     BlockState updateing_block_state = world_get_loaded_block( world, this->block_x, this->block_y, this->block_z );
@@ -54,7 +56,7 @@ void BlockNextToChangeEvent::performAction( BlockUpdateQueue *blockUpdateQueue, 
         int new_power = maximum_power - 1;
         if ( new_power != affecting_block_state.current_redstone_power ) {
             BlockUpdateEvent *blockPlacedEvent =
-                new PlayerBlockPlacedEvent( this->tick_number + 10, this->affecting_block_x, this->affecting_block_y, this->affecting_block_z, {affecting_block_state.id, affecting_block_state.rotation, new_power} );
+                new PlayerBlockPlacedEvent( this->tick_number + REDSTONE_DELAY, this->affecting_block_x, this->affecting_block_y, this->affecting_block_z, {affecting_block_state.id, affecting_block_state.rotation, new_power} );
             blockUpdateQueue->addBlockUpdate( blockPlacedEvent );
         }
     }
@@ -63,7 +65,7 @@ void BlockNextToChangeEvent::performAction( BlockUpdateQueue *blockUpdateQueue, 
         int maximum_power = find_largest_redstone_power_around( world, this->block_x, this->block_y, this->block_z );
         int new_power = maximum_power - 1;
         if ( new_power != updateing_block_state.current_redstone_power ) {
-            BlockUpdateEvent *blockPlacedEvent = new PlayerBlockPlacedEvent( this->tick_number + 10, this->block_x, this->block_y, this->block_z, {updateing_block_state.id, updateing_block_state.rotation, new_power} );
+            BlockUpdateEvent *blockPlacedEvent = new PlayerBlockPlacedEvent( this->tick_number + REDSTONE_DELAY, this->block_x, this->block_y, this->block_z, {updateing_block_state.id, updateing_block_state.rotation, new_power} );
             blockUpdateQueue->addBlockUpdate( blockPlacedEvent );
         }
     }

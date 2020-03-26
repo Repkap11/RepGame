@@ -43,13 +43,14 @@ void block_definitions_initilize_definitions( Texture *texture ) {
         block->offset = {0, 0, 0};
         block->tex_offset = {0, 0, 0};
         block->breaks_in_liquid = 0;
-        block->initial_redstone_power = 0;
+        block->initial_redstone_power = 0; // redstone block
 
         block->affected_by_redstone_power = 0; // dust, piston
     }
 
     block_definitions[ REDSTONE_LAMP ].affected_by_redstone_power = 1;
-    block_definitions[ REDSTONE_BLOCK ].initial_redstone_power = 2;
+    block_definitions[ REDSTONE_BLOCK ].initial_redstone_power = 10;
+    block_definitions[ REDSTONE_LINE ].affected_by_redstone_power = 1;
 
     block_definitions[ STONE_BRICK_SLAB ].textures[ FACE_TOP ] = STONE_BRICK;
     block_definitions[ STONE_BRICK_SLAB ].textures[ FACE_BOTTOM ] = STONE_BRICK;
@@ -74,17 +75,17 @@ void block_definitions_initilize_definitions( Texture *texture ) {
     block_definitions[ CREEPER_HEAD ].collides_with_player = false;
     block_definitions[ CREEPER_HEAD ].casts_shadow = false;
 
-    block_definitions[ REDSTONE_LINE_POWERED ].scale = {1, 1.0f / 16.0f, 1};
-    block_definitions[ REDSTONE_LINE_POWERED ].offset = {0, 0, 0};
-    block_definitions[ REDSTONE_LINE_POWERED ].tex_offset = {0, 0, 0};
-    block_definitions[ REDSTONE_LINE_POWERED ].is_seethrough = true;
-    block_definitions[ REDSTONE_LINE_POWERED ].can_mesh_x = true;
-    block_definitions[ REDSTONE_LINE_POWERED ].can_mesh_y = false;
-    block_definitions[ REDSTONE_LINE_POWERED ].can_mesh_z = true;
-    block_definitions[ REDSTONE_LINE_POWERED ].casts_shadow = false;
-    block_definitions[ REDSTONE_LINE_POWERED ].icon_is_isometric = false;
-    block_definitions[ REDSTONE_LINE_POWERED ].needs_place_on_solid = true;
-    block_definitions[ REDSTONE_LINE_POWERED ].collides_with_player = false;
+    block_definitions[ REDSTONE_LINE ].scale = {1, 1.0f / 16.0f, 1};
+    block_definitions[ REDSTONE_LINE ].offset = {0, 0, 0};
+    block_definitions[ REDSTONE_LINE ].tex_offset = {0, 0, 0};
+    block_definitions[ REDSTONE_LINE ].is_seethrough = true;
+    block_definitions[ REDSTONE_LINE ].can_mesh_x = true;
+    block_definitions[ REDSTONE_LINE ].can_mesh_y = false;
+    block_definitions[ REDSTONE_LINE ].can_mesh_z = true;
+    block_definitions[ REDSTONE_LINE ].casts_shadow = false;
+    block_definitions[ REDSTONE_LINE ].icon_is_isometric = false;
+    block_definitions[ REDSTONE_LINE ].needs_place_on_solid = true;
+    block_definitions[ REDSTONE_LINE ].collides_with_player = false;
 
     block_definitions[ WATER ].renderOrder = RenderOrder_Water;
     block_definitions[ WATER ].flows = 20;
@@ -312,6 +313,8 @@ void do_disable( Block *block_definitions ) {
     block_definitions[ GRASS_SIDE ].renderOrder = RenderOrder_Transparent;
     block_definitions[ CRAFTING_BENCH_SIDE1 ].renderOrder = RenderOrder_Transparent;
     block_definitions[ CRAFTING_BENCH_SIDE2 ].renderOrder = RenderOrder_Transparent;
+    block_definitions[ REDSTONE_LINE_POWERED ].renderOrder = RenderOrder_Transparent;
+    block_definitions[ REDSTONE_LAMP_POWERED ].renderOrder = RenderOrder_Transparent;
 }
 
 void do_flowers( Block *block_definitions ) {

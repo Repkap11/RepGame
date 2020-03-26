@@ -574,9 +574,11 @@ void chunk_calculate_popupated_blocks( Chunk *chunk ) {
                         for ( int i = 0; i < NUM_FACES_IN_CUBE; i++ ) {
                             blockCoord->packed_lighting[ i ] = workingSpace[ index ].packed_lighting[ i ];
                             BlockID texture = block->textures[ i ];
-                            if ( texture == REDSTONE_LAMP_OFF && blockState.current_redstone_power > 0 ) {
-                                pr_debug( "block on!!!!!!!!!!!!1" );
-                                texture = REDSTONE_LAMP_ON;
+                            if ( texture == REDSTONE_LAMP_UNPOWERED && blockState.current_redstone_power > 0 ) {
+                                texture = REDSTONE_LAMP_POWERED;
+                            }
+                            if ( texture == REDSTONE_LINE_UNPOWERED && blockState.current_redstone_power > 0 ) {
+                                texture = REDSTONE_LINE_POWERED;
                             }
                             blockCoord->face[ i ] = texture - 1;
                         }
