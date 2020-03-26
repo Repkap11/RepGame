@@ -8,21 +8,8 @@ PlayerBlockPlacedEvent::PlayerBlockPlacedEvent( long tick_number, int x, int y, 
 }
 
 void PlayerBlockPlacedEvent::performActionToNeighbor( BlockUpdateQueue *blockUpdateQueue, World *world, int i, int j, int k ) {
-    Block *block = block_definition_get_definition( this->blockState.id );
 
-    if ( block->flows != 0 && j != 1 ) {
-        int affecting_block_x = this->block_x + i;
-        int affecting_block_y = this->block_y + j;
-        int affecting_block_z = this->block_z + k;
-        BlockState neighbor_block_state = world_get_loaded_block( world, affecting_block_x, affecting_block_y, affecting_block_z );
-        Block *neighbor_block = block_definition_get_definition( neighbor_block_state.id );
-        if ( neighbor_block->breaks_in_liquid ) {
-            BlockUpdateEvent *blockPlacedEvent = new PlayerBlockPlacedEvent( this->tick_number + block->flows, affecting_block_x, affecting_block_y, affecting_block_z, {blockState.id, 0} );
-            blockUpdateQueue->addBlockUpdate( blockPlacedEvent );
-        }
-    }
-
-    BlockUpdateEvent *blockUpdatedEvent = new BlockNextToChangeEvent( this->tick_number + 1, this->block_x, this->block_y, this->block_z, i, j, k );
+    BlockUpdateEvent *blockUpdatedEvent = new BlockNextToChangeEvent( this->tick_number, this->block_x, this->block_y, this->block_z, i, j, k );
     blockUpdateQueue->addBlockUpdate( blockUpdatedEvent );
 }
 
