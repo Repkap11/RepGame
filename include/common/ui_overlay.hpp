@@ -31,13 +31,14 @@ typedef struct {
 typedef struct {
     float screen_x;
     float screen_y;
-    float is_block;
+    unsigned int is_block;
     struct {
         float x, y, id;
     } texture;
     struct {
         float r, g, b, a;
     } tint;
+    unsigned int face_type;
 } UIOverlayVertex;
 
 void ui_overlay_init( UIOverlay *ui_overlay );

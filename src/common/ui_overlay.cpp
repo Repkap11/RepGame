@@ -15,39 +15,37 @@
     }
 
 UIOverlayVertex vb_data_crosshair[] = {
-    {-SCALE * WIDTH, -WIDTH, 0, CROSSHAIR_COLOR}, // 0
-    {-SCALE * WIDTH, WIDTH, 0, CROSSHAIR_COLOR},  // 1
-    {SCALE * WIDTH, -WIDTH, 0, CROSSHAIR_COLOR},  // 2
-    {SCALE * WIDTH, WIDTH, 0, CROSSHAIR_COLOR},   // 3
+    {-SCALE * WIDTH, -WIDTH, 0, CROSSHAIR_COLOR, 0}, // 0
+    {-SCALE * WIDTH, WIDTH, 0, CROSSHAIR_COLOR, 0},  // 1
+    {SCALE * WIDTH, -WIDTH, 0, CROSSHAIR_COLOR, 0},  // 2
+    {SCALE * WIDTH, WIDTH, 0, CROSSHAIR_COLOR, 0},   // 3
 
-    {-WIDTH, -SCALE *WIDTH, 0, CROSSHAIR_COLOR}, // 4
-    {-WIDTH, SCALE *WIDTH, 0, CROSSHAIR_COLOR},  // 5
-    {WIDTH, -SCALE *WIDTH, 0, CROSSHAIR_COLOR},  // 6
-    {WIDTH, SCALE *WIDTH, 0, CROSSHAIR_COLOR},   // 7
+    {-WIDTH, -SCALE *WIDTH, 0, CROSSHAIR_COLOR, 0}, // 4
+    {-WIDTH, SCALE *WIDTH, 0, CROSSHAIR_COLOR, 0},  // 5
+    {WIDTH, -SCALE *WIDTH, 0, CROSSHAIR_COLOR, 0},  // 6
+    {WIDTH, SCALE *WIDTH, 0, CROSSHAIR_COLOR, 0},   // 7
 
 };
 
 float holding_alpha = 1.0f;
-float tint_top = 1.0f;
-float tint_front = 0.8f; // Blocks in the world are 0.75 for all side faces, but we fake a 3d shape by making the right darker than the front
-float tint_right = 0.6f;
+
 float id = ( float )TNT;
 #define UI_OVERLAY_VERTEX_COUNT_HOLDING_BLOCK ( 4 * 3 )
 UIOverlayVertex vb_data_holding_block[] = {
-    {0, 0, 1, {1, 0, id}, {tint_top, tint_top, tint_top, holding_alpha}}, // 0
-    {0, 0, 1, {1, 1, id}, {tint_top, tint_top, tint_top, holding_alpha}}, // 1
-    {0, 0, 1, {0, 0, id}, {tint_top, tint_top, tint_top, holding_alpha}}, // 2
-    {0, 0, 1, {0, 1, id}, {tint_top, tint_top, tint_top, holding_alpha}}, // 3
+    {0, 0, 1, {1, 0, id}, {1, 1, 1, holding_alpha}, FACE_TOP}, // 0
+    {0, 0, 1, {1, 1, id}, {1, 1, 1, holding_alpha}, FACE_TOP}, // 1
+    {0, 0, 1, {0, 0, id}, {1, 1, 1, holding_alpha}, FACE_TOP}, // 2
+    {0, 0, 1, {0, 1, id}, {1, 1, 1, holding_alpha}, FACE_TOP}, // 3
 
-    {0, 0, 1, {1, 0, id}, {tint_front, tint_front, tint_front, holding_alpha}}, // 4
-    {0, 0, 1, {1, 1, id}, {tint_front, tint_front, tint_top, holding_alpha}},   // 5
-    {0, 0, 1, {0, 0, id}, {tint_front, tint_front, tint_front, holding_alpha}}, // 6
-    {0, 0, 1, {0, 1, id}, {tint_front, tint_front, tint_front, holding_alpha}}, // 7
+    {0, 0, 1, {1, 0, id}, {1, 1, 1, holding_alpha}, FACE_FRONT}, // 4
+    {0, 0, 1, {1, 1, id}, {1, 1, 1, holding_alpha}, FACE_FRONT}, // 5
+    {0, 0, 1, {0, 0, id}, {1, 1, 1, holding_alpha}, FACE_FRONT}, // 6
+    {0, 0, 1, {0, 1, id}, {1, 1, 1, holding_alpha}, FACE_FRONT}, // 7
 
-    {0, 0, 1, {1, 0, id}, {tint_right, tint_right, tint_right, holding_alpha}}, // 8
-    {0, 0, 1, {1, 1, id}, {tint_right, tint_right, tint_right, holding_alpha}}, // 9
-    {0, 0, 1, {0, 0, id}, {tint_right, tint_right, tint_right, holding_alpha}}, // 10
-    {0, 0, 1, {0, 1, id}, {tint_right, tint_right, tint_right, holding_alpha}}, // 11
+    {0, 0, 1, {1, 0, id}, {1, 1, 1, holding_alpha}, FACE_RIGHT}, // 8
+    {0, 0, 1, {1, 1, id}, {1, 1, 1, holding_alpha}, FACE_RIGHT}, // 9
+    {0, 0, 1, {0, 0, id}, {1, 1, 1, holding_alpha}, FACE_RIGHT}, // 10
+    {0, 0, 1, {0, 1, id}, {1, 1, 1, holding_alpha}, FACE_RIGHT}, // 11
 
 };
 
@@ -106,10 +104,11 @@ void ui_overlay_init( UIOverlay *ui_overlay ) {
 
     // These are from UIOverlayVertex
     vertex_buffer_layout_init( &ui_overlay->vbl );
-    vertex_buffer_layout_push_float( &ui_overlay->vbl, 2 ); // UIOverlayVertex screen_position
-    vertex_buffer_layout_push_float( &ui_overlay->vbl, 1 ); // UIOverlayVertex is_block
-    vertex_buffer_layout_push_float( &ui_overlay->vbl, 3 ); // UIOverlayVertex texture
-    vertex_buffer_layout_push_float( &ui_overlay->vbl, 4 ); // UIOverlayVertex tint
+    vertex_buffer_layout_push_float( &ui_overlay->vbl, 2 );        // UIOverlayVertex screen_position
+    vertex_buffer_layout_push_unsigned_int( &ui_overlay->vbl, 1 ); // UIOverlayVertex is_block
+    vertex_buffer_layout_push_float( &ui_overlay->vbl, 3 );        // UIOverlayVertex texture
+    vertex_buffer_layout_push_float( &ui_overlay->vbl, 4 );        // UIOverlayVertex tint
+    vertex_buffer_layout_push_unsigned_int( &ui_overlay->vbl, 1 ); // UIOverlayVertex face_type
 
     {
         index_buffer_init( &ui_overlay->draw_crosshair.ib );
