@@ -31,7 +31,7 @@ int contains_pixel( Block *pixel_block, float dir_x, float dir_y, float dir_z, f
 
     // pr_debug( "%f %f %f", lb.x, lb.y, lb.z );
     // pr_debug( "%f %f %f", rt.x, rt.y, rt.z );
-    float length = 0;
+    // float length = 0;
     float t1 = ( c1_x - initial_x ) * dirfrac_x;
     float t2 = ( c2_x - initial_x ) * dirfrac_x;
     float t3 = ( c1_y - initial_y ) * dirfrac_y;
@@ -42,21 +42,19 @@ int contains_pixel( Block *pixel_block, float dir_x, float dir_y, float dir_z, f
     float tmin = fmax( fmax( fmin( t1, t2 ), fmin( t3, t4 ) ), fmin( t5, t6 ) );
     float tmax = fmin( fmin( fmax( t1, t2 ), fmax( t3, t4 ) ), fmax( t5, t6 ) );
 
-    pr_debug( "min:%f max:%f", tmin, tmax );
-
     // if tmax < 0, ray (line) is intersecting AABB, but the whole AABB is behind us
     if ( tmax < 0 ) {
-        length = tmax;
+        // length = tmax;
         return false;
     }
 
     // if tmin > tmax, ray doesn't intersect AABB
     if ( tmin > tmax ) {
-        length = tmax;
+        // length = tmax;
         return false;
     }
 
-    length = tmin;
+    // length = tmin;
     return true;
 }
 
