@@ -76,20 +76,23 @@ void main( ) {
     vec2 texCoordBlock_adjust = texCoordBlock;
     uint faceType_rotated = faceType;
     if ( faceType == FACE_TOP || faceType == FACE_BOTTOM ) {
-        face_scale.xy = mesh_size.xz;
+        face_shift = texCoords_offset.xz;
+        if ( rotation == BLOCK_ROTATE_0 ) {
+            face_scale.xy = mesh_size.xz;
+            texCoordBlock_adjust = vec2( texCoordBlock.x, texCoordBlock.y );
+        } else if ( ( faceType == FACE_TOP && rotation == BLOCK_ROTATE_270 ) || ( faceType == FACE_BOTTOM && rotation == BLOCK_ROTATE_90 ) ) {
+            face_scale.xy = mesh_size.zx;
+            texCoordBlock_adjust = vec2( texCoordBlock.y, 1.0 - texCoordBlock.x );
+        } else if ( rotation == BLOCK_ROTATE_180 ) {
+            face_scale.xy = mesh_size.xz;
+            texCoordBlock_adjust = vec2( 1.0 - texCoordBlock.x, 1.0 - texCoordBlock.y );
+        } else if ( ( faceType == FACE_TOP && rotation == BLOCK_ROTATE_90 ) || ( faceType == FACE_BOTTOM && rotation == BLOCK_ROTATE_270 ) ) {
+            face_scale.xy = mesh_size.zx;
+            texCoordBlock_adjust = vec2( 1.0 - texCoordBlock.y, texCoordBlock.x );
+        }
         if ( u_ScaleTextureBlock != 0u ) {
             face_scale.x *= blockCoords_scale.x;
             face_scale.y *= blockCoords_scale.z;
-        }
-        face_shift = texCoords_offset.xz;
-        if ( rotation == BLOCK_ROTATE_0 ) {
-            texCoordBlock_adjust = vec2( texCoordBlock.x, texCoordBlock.y );
-        } else if ( ( faceType == FACE_TOP && rotation == BLOCK_ROTATE_270 ) || ( faceType == FACE_BOTTOM && rotation == BLOCK_ROTATE_90 ) ) {
-            texCoordBlock_adjust = vec2( texCoordBlock.y, 1.0 - texCoordBlock.x );
-        } else if ( rotation == BLOCK_ROTATE_180 ) {
-            texCoordBlock_adjust = vec2( 1.0 - texCoordBlock.x, 1.0 - texCoordBlock.y );
-        } else if ( ( faceType == FACE_TOP && rotation == BLOCK_ROTATE_90 ) || ( faceType == FACE_BOTTOM && rotation == BLOCK_ROTATE_270 ) ) {
-            texCoordBlock_adjust = vec2( 1.0 - texCoordBlock.y, texCoordBlock.x );
         }
     } else if ( faceType == FACE_RIGHT || faceType == FACE_LEFT ) {
         faceType_rotated = ( faceType - rotation - 2u ) % 4u + 2u;
