@@ -12,22 +12,38 @@ typedef struct {
     float z;
 } RayTemp;
 
-int contains_pixel( Block *pixel_block, float dir_x, float dir_y, float dir_z, float initial_x, float initial_y, float initial_z, float block_x, float block_y, float block_z ) {
+int contains_pixel( Block *pixel_block, BlockState *block_state, float dir_x, float dir_y, float dir_z, float initial_x, float initial_y, float initial_z, float block_x, float block_y, float block_z ) {
     // r.dir is unit direction vector of ray
     float dirfrac_x = 1.0f / dir_x;
     float dirfrac_y = 1.0f / dir_y;
     float dirfrac_z = 1.0f / dir_z;
     // lb is the corner of AABB with minimal coordinates - left bottom, rt is maximal corner
     // r.org is origin of ray
-    RayTemp lb = {0, 0, 0};
-    RayTemp rt = {1, 0.5f, 1};
-    float c1_x = block_x + pixel_block->offset.x;
-    float c1_y = block_y + pixel_block->offset.y;
-    float c1_z = block_z + pixel_block->offset.z;
 
-    float c2_x = c1_x + pixel_block->scale.x;
+    float scale_x = pixel_block->scale.x;
+    float scale_z = pixel_block->scale.z;
+    float offset_x = pixel_block->offset.x;
+    float offset_z = pixel_block->offset.z;
+    if ( block_state->rotation == BLOCK_ROTATE_0 ) {
+    } else if ( block_state->rotation == BLOCK_ROTATE_90 ) {
+        scale_x = pixel_block->scale.z;
+        scale_z = pixel_block->scale.x;
+        offset_x += 1.0f - scale_x;
+    } else if ( block_state->rotation == BLOCK_ROTATE_180 ) {
+        offset_z += 1.0f - scale_z;
+    } else if ( block_state->rotation == BLOCK_ROTATE_270 ) {
+        scale_x = pixel_block->scale.z;
+        scale_z = pixel_block->scale.x;
+    }
+
+    float c1_x = block_x + offset_x;
+    float c1_z = block_z + offset_z;
+
+    float c2_x = c1_x + scale_x;
+    float c2_z = c1_z + scale_z;
+
+    float c1_y = block_y + pixel_block->offset.y;
     float c2_y = c1_y + pixel_block->scale.y;
-    float c2_z = c1_z + pixel_block->scale.z;
 
     // pr_debug( "%f %f %f", lb.x, lb.y, lb.z );
     // pr_debug( "%f %f %f", rt.x, rt.y, rt.z );
@@ -59,7 +75,8 @@ int contains_pixel( Block *pixel_block, float dir_x, float dir_y, float dir_z, f
 }
 
 int contains_block( World *world, float dir_x, float dir_y, float dir_z, float initial_x, float initial_y, float initial_z, int block_x, int block_y, int block_z, int collide_with_unloaded, int is_pick ) {
-    BlockID blockID = world_get_loaded_block( world, TRIP_ARGS( block_ ) ).id;
+    BlockState blockState = world_get_loaded_block( world, TRIP_ARGS( block_ ) );
+    BlockID blockID = blockState.id;
     if ( blockID >= LAST_BLOCK_ID ) {
         return collide_with_unloaded;
     }
@@ -71,7 +88,7 @@ int contains_block( World *world, float dir_x, float dir_y, float dir_z, float i
         result = block->collides_with_player;
     }
     if ( result && block->non_full_size ) {
-        return contains_pixel( block, dir_x, dir_y, dir_z, initial_x, initial_y, initial_z, block_x, block_y, block_z );
+        return contains_pixel( block, &blockState, dir_x, dir_y, dir_z, initial_x, initial_y, initial_z, block_x, block_y, block_z );
     } else {
         return result;
     }
