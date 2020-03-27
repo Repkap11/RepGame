@@ -7,6 +7,7 @@
 #include <sys/epoll.h>
 #include <errno.h>
 #include <unistd.h>
+#include <string.h>
 #include <queue>
 
 #include "server/server.hpp"
