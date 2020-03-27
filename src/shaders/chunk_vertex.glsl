@@ -57,32 +57,39 @@ int rep_mod( int x, int y ) {
 }
 
 void main( ) {
-    vec3 adjusted_position = position;
+    vec3 mesh_size = vec3( ( mesh_size_packed & 0xffu ), ( mesh_size_packed & 0xff00u ) >> 8, ( mesh_size_packed & 0xff0000u ) >> 16 );
+    vec3 meshed_position = position * ( mesh_size - u_DebugScaleOffset );
 
-    adjusted_position.x *= blockCoords_scale.x;
-    adjusted_position.y *= blockCoords_scale.y;
-    adjusted_position.z *= blockCoords_scale.z;
+    vec3 adjusted_position = meshed_position;
 
-    adjusted_position.x += blockCoords_offset.x;
-    adjusted_position.y += blockCoords_offset.y;
-    adjusted_position.z += blockCoords_offset.z;
+    vec3 blockCoords_scale_adjust = blockCoords_scale;
+    vec3 blockCoords_offset_adjust = blockCoords_offset;
 
     if ( rotation == BLOCK_ROTATE_0 ) {
-        adjusted_position.xz = adjusted_position.xz;
+        blockCoords_scale_adjust.xz = blockCoords_scale_adjust.xz;
     } else if ( rotation == BLOCK_ROTATE_90 ) {
-        adjusted_position.xz = vec2( 1, 0 ) + vec2( -1, 1 ) * adjusted_position.zx;
+        blockCoords_scale_adjust.xz = blockCoords_scale_adjust.zx;
+        blockCoords_offset_adjust.x += 1.0f - blockCoords_scale_adjust.x;
     } else if ( rotation == BLOCK_ROTATE_180 ) {
-        adjusted_position.xz = vec2( 1.0 ) - adjusted_position.xz;
+        blockCoords_scale_adjust.xz = blockCoords_scale_adjust.xz;
+        blockCoords_offset_adjust.z += 1.0f - blockCoords_scale_adjust.z;
     } else if ( rotation == BLOCK_ROTATE_270 ) {
-        adjusted_position.xz = vec2( 0, 1.0 ) + vec2( 1, -1 ) * adjusted_position.zx;
+        blockCoords_scale_adjust.xz = blockCoords_scale_adjust.zx;
     }
 
-    vec3 mesh_size = vec3( ( mesh_size_packed & 0xffu ), ( mesh_size_packed & 0xff00u ) >> 8, ( mesh_size_packed & 0xff0000u ) >> 16 );
-    vec4 vertex = vec4( adjusted_position * ( mesh_size - u_DebugScaleOffset ) + blockCoords, 1 );
+    adjusted_position.x *= blockCoords_scale_adjust.x;
+    adjusted_position.y *= blockCoords_scale_adjust.y;
+    adjusted_position.z *= blockCoords_scale_adjust.z;
+
+    adjusted_position.x += blockCoords_offset_adjust.x;
+    adjusted_position.y += blockCoords_offset_adjust.y;
+    adjusted_position.z += blockCoords_offset_adjust.z;
+
+    vec4 vertex = vec4( adjusted_position + blockCoords, 1 );
     gl_Position = u_MVP * vertex;
     v_planarDot = dot( vertex, vec4( 0, 1, 0, u_ReflectionHeight ) );
 
-    vec2 face_scale;
+    vec2 face_scale = vec2( 1, 1 );
     vec2 face_shift;
     vec2 texCoordBlock_adjust = texCoordBlock;
     uint faceType_rotated = faceType;
@@ -90,27 +97,27 @@ void main( ) {
         face_shift = texCoords_offset.xz;
         if ( rotation == BLOCK_ROTATE_0 ) {
             face_scale.xy = mesh_size.xz;
-            texCoordBlock_adjust = vec2( texCoordBlock.x, texCoordBlock.y );
+            // texCoordBlock_adjust = vec2( texCoordBlock.x, texCoordBlock.y );
         } else if ( ( faceType == FACE_TOP && rotation == BLOCK_ROTATE_270 ) || ( faceType == FACE_BOTTOM && rotation == BLOCK_ROTATE_90 ) ) {
             face_scale.xy = mesh_size.zx;
-            texCoordBlock_adjust = vec2( texCoordBlock.y, 1.0 - texCoordBlock.x );
+            // texCoordBlock_adjust = vec2( texCoordBlock.y, 1.0 - texCoordBlock.x );
         } else if ( rotation == BLOCK_ROTATE_180 ) {
             face_scale.xy = mesh_size.xz;
-            texCoordBlock_adjust = vec2( 1.0 - texCoordBlock.x, 1.0 - texCoordBlock.y );
+            // texCoordBlock_adjust = vec2( 1.0 - texCoordBlock.x, 1.0 - texCoordBlock.y );
         } else if ( ( faceType == FACE_TOP && rotation == BLOCK_ROTATE_90 ) || ( faceType == FACE_BOTTOM && rotation == BLOCK_ROTATE_270 ) ) {
             face_scale.xy = mesh_size.zx;
-            texCoordBlock_adjust = vec2( 1.0 - texCoordBlock.y, texCoordBlock.x );
+            // texCoordBlock_adjust = vec2( 1.0 - texCoordBlock.y, texCoordBlock.x );
         }
         if ( u_ScaleTextureBlock != 0u ) {
-            face_scale.x *= blockCoords_scale.x;
-            face_scale.y *= blockCoords_scale.z;
+            face_scale.x *= blockCoords_scale_adjust.x;
+            face_scale.y *= blockCoords_scale_adjust.z;
         }
     } else if ( faceType == FACE_RIGHT || faceType == FACE_LEFT ) {
         faceType_rotated = ( faceType - rotation - 2u ) % 4u + 2u;
         face_scale.xy = mesh_size.zy;
         if ( u_ScaleTextureBlock != 0u ) {
-            face_scale.x *= blockCoords_scale.z;
-            face_scale.y *= blockCoords_scale.y;
+            face_scale.x *= blockCoords_scale_adjust.z;
+            face_scale.y *= blockCoords_scale_adjust.y;
         }
         face_shift = texCoords_offset.zy;
 
@@ -118,8 +125,8 @@ void main( ) {
         faceType_rotated = ( faceType - rotation - 2u ) % 4u + 2u;
         face_scale.xy = mesh_size.xy;
         if ( u_ScaleTextureBlock != 0u ) {
-            face_scale.x *= blockCoords_scale.x;
-            face_scale.y *= blockCoords_scale.y;
+            face_scale.x *= blockCoords_scale_adjust.x;
+            face_scale.y *= blockCoords_scale_adjust.y;
         }
 
         face_shift = texCoords_offset.xy;
