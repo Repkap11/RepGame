@@ -69,7 +69,7 @@ void BlockNextToChangeEvent::performAction( BlockUpdateQueue *blockUpdateQueue, 
         }
 
         if ( new_power != affecting_block_state.current_redstone_power ) {
-            pr_debug( "Queueing event1 with old:%d new:%d", affecting_block_state.current_redstone_power, new_power );
+            // pr_debug( "Queueing event1 with old:%d new:%d", affecting_block_state.current_redstone_power, new_power );
             BlockUpdateEvent *blockPlacedEvent =
                 new PlayerBlockPlacedEvent( this->tick_number + REDSTONE_DELAY, this->affecting_block_x, this->affecting_block_y, this->affecting_block_z, {affecting_block_state.id, affecting_block_state.rotation, new_power} );
             blockUpdateQueue->addBlockUpdate( blockPlacedEvent );
@@ -93,24 +93,36 @@ void BlockNextToChangeEvent::performAction( BlockUpdateQueue *blockUpdateQueue, 
             }
         }
         if ( new_power != updateing_block_state.current_redstone_power ) {
-            pr_debug( "Queueing event2 with old:%d new:%d", updateing_block_state.current_redstone_power, new_power );
+            // pr_debug( "Queueing event2 with old:%d new:%d", updateing_block_state.current_redstone_power, new_power );
             BlockUpdateEvent *blockPlacedEvent = new PlayerBlockPlacedEvent( this->tick_number + REDSTONE_DELAY, this->block_x, this->block_y, this->block_z, {updateing_block_state.id, updateing_block_state.rotation, new_power} );
             blockUpdateQueue->addBlockUpdate( blockPlacedEvent );
         }
     }
 
     if ( updateing_block->needs_place_on_solid ) {
-        bool block_below_is_solid = block_definition_get_definition( world_get_loaded_block( world, this->block_x, this->block_y, this->block_z ).id )->collides_with_player;
-        if ( !block_below_is_solid ) {
-            BlockUpdateEvent *blockPlacedEvent = new PlayerBlockPlacedEvent( this->tick_number + REDSTONE_DELAY, this->block_x, this->block_y, this->block_z, BLOCK_STATE_AIR );
+        BlockID below_block_id = world_get_loaded_block( world, this->block_x, this->block_y - 1, this->block_z ).id;
+        bool block_below_is_good;
+        if ( updateing_block->needs_place_on_solid_but_can_stack_on_self && below_block_id == updateing_block_state.id ) {
+            block_below_is_good = true;
+        } else {
+            block_below_is_good = block_definition_get_definition( below_block_id )->collides_with_player;
+        }
+        if ( !block_below_is_good ) {
+            BlockUpdateEvent *blockPlacedEvent = new PlayerBlockPlacedEvent( this->tick_number, this->block_x, this->block_y, this->block_z, BLOCK_STATE_AIR );
             blockUpdateQueue->addBlockUpdate( blockPlacedEvent );
         }
     }
-    // if ( affecting_block->needs_place_on_solid ) {
-    //     bool block_below_is_solid = block_definition_get_definition( world_get_loaded_block( world, this->block_x, this->block_y, this->block_z ).id )->collides_with_player;
-    //     if ( !block_below_is_solid ) {
-    //         BlockUpdateEvent *blockPlacedEvent = new PlayerBlockPlacedEvent( this->tick_number + REDSTONE_DELAY, this->block_x, this->block_y, this->block_z, BLOCK_STATE_AIR );
-    //         blockUpdateQueue->addBlockUpdate( blockPlacedEvent );
-    //     }
-    // }
+    if ( affecting_block->needs_place_on_solid ) {
+        BlockID below_block_id = world_get_loaded_block( world, this->affecting_block_x, this->affecting_block_y - 1, this->affecting_block_z ).id;
+        bool block_below_is_good;
+        if ( affecting_block->needs_place_on_solid_but_can_stack_on_self && below_block_id == affecting_block_state.id ) {
+            block_below_is_good = true;
+        } else {
+            block_below_is_good = block_definition_get_definition( below_block_id )->collides_with_player;
+        }
+        if ( !block_below_is_good ) {
+            BlockUpdateEvent *blockPlacedEvent = new PlayerBlockPlacedEvent( this->tick_number, this->affecting_block_x, this->affecting_block_y, this->affecting_block_z, BLOCK_STATE_AIR );
+            blockUpdateQueue->addBlockUpdate( blockPlacedEvent );
+        }
+    }
 }

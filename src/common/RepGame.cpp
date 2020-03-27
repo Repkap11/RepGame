@@ -36,15 +36,10 @@ void change_block( int place, BlockState blockState ) {
                 return;
             }
         }
-        if ( block->needs_place_on_solid ) {
-            BlockID under_blockID = world_get_loaded_block( &globalGameState.world, block_x, block_y - 1, block_z ).id;
-            if ( under_blockID == LAST_BLOCK_ID ) {
-                return;
-            }
-            Block *under_block = block_definition_get_definition( under_blockID );
-            if ( !under_block->collides_with_player ) {
-                return;
-            }
+        // if ( block->needs_place_on_solid ) {
+        BlockID under_blockID = world_get_loaded_block( &globalGameState.world, block_x, block_y - 1, block_z ).id;
+        if ( under_blockID == LAST_BLOCK_ID ) {
+            return;
         }
 
     } else {

@@ -218,6 +218,7 @@ typedef struct {
     int can_mesh_z;
     int hides_self;
     int needs_place_on_solid;
+    int needs_place_on_solid_but_can_stack_on_self;
     int rotate_on_placement;
     int icon_is_isometric;
     int flows;

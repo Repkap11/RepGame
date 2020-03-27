@@ -43,10 +43,13 @@ void block_definitions_initilize_definitions( Texture *texture ) {
         block->offset = {0, 0, 0};
         block->tex_offset = {0, 0, 0};
         block->breaks_in_liquid = false;
-        block->initial_redstone_power = 0;     // redstone block
-        block->affected_by_redstone_power = 1; // dust, piston, all solid blocks
-        block->transmits_redstone_power = false;   // dust
+        block->initial_redstone_power = 0;       // redstone block
+        block->affected_by_redstone_power = 1;   // dust, piston, all solid blocks
+        block->transmits_redstone_power = false; // dust
+        block->needs_place_on_solid_but_can_stack_on_self = false;
     }
+
+    block_definitions[ REED ].needs_place_on_solid_but_can_stack_on_self = true;
 
     block_definitions[ REDSTONE_LAMP ].affected_by_redstone_power = 1;
     block_definitions[ REDSTONE_BLOCK ].initial_redstone_power = 10;
