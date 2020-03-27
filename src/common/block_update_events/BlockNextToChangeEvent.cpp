@@ -98,4 +98,19 @@ void BlockNextToChangeEvent::performAction( BlockUpdateQueue *blockUpdateQueue, 
             blockUpdateQueue->addBlockUpdate( blockPlacedEvent );
         }
     }
+
+    if ( updateing_block->needs_place_on_solid ) {
+        bool block_below_is_solid = block_definition_get_definition( world_get_loaded_block( world, this->block_x, this->block_y, this->block_z ).id )->collides_with_player;
+        if ( !block_below_is_solid ) {
+            BlockUpdateEvent *blockPlacedEvent = new PlayerBlockPlacedEvent( this->tick_number + REDSTONE_DELAY, this->block_x, this->block_y, this->block_z, BLOCK_STATE_AIR );
+            blockUpdateQueue->addBlockUpdate( blockPlacedEvent );
+        }
+    }
+    // if ( affecting_block->needs_place_on_solid ) {
+    //     bool block_below_is_solid = block_definition_get_definition( world_get_loaded_block( world, this->block_x, this->block_y, this->block_z ).id )->collides_with_player;
+    //     if ( !block_below_is_solid ) {
+    //         BlockUpdateEvent *blockPlacedEvent = new PlayerBlockPlacedEvent( this->tick_number + REDSTONE_DELAY, this->block_x, this->block_y, this->block_z, BLOCK_STATE_AIR );
+    //         blockUpdateQueue->addBlockUpdate( blockPlacedEvent );
+    //     }
+    // }
 }
