@@ -72,6 +72,8 @@ void map_storage_init( const char *world_name ) {
 void map_storage_cleanup( ) {
 }
 
+#define STORAGE_TYPE_SIZE_HEADER uint32_t
+
 #define STORAGE_TYPE_BLOCK_ID uint16_t
 #define STORAGE_TYPE_NUM_BLOCKS unsigned int
 
@@ -113,7 +115,6 @@ void map_storage_persist( Chunk *chunk ) {
                 persist_data_index++;
                 previous_id = ( ( STORAGE_TYPE_BLOCK_ID )blockState.id ) | ( ( ( STORAGE_TYPE_BLOCK_ID )blockState.rotation ) << 14 );
                 previousBlockState = blockState;
-                pr_debug( "Saving run with %d", num_same_blocks );
                 num_same_blocks = 1;
             }
         }
@@ -128,6 +129,9 @@ void map_storage_persist( Chunk *chunk ) {
             pr_debug( "Didn't get enough blocks save" );
         }
         write_ptr = fopen( file_name, "wb" );
+        // uint32_t storage_type_size = sizeof(BlockState);
+        uint32_t storage_type_size = 8;
+        fwrite( &storage_type_size, sizeof( uint32_t ), 1, write_ptr );
         fwrite( persist_data, sizeof( STORAGE_TYPE ), persist_data_index, write_ptr );
         fclose( write_ptr );
     }
@@ -175,12 +179,12 @@ int map_storage_load( Chunk *chunk ) {
     int block_index = 0;
     for ( int i = 0; i < persist_data_length; i++ ) {
         char *block_storage = &persist_data[ i * storage_type_size ];
-        unsigned int block_storage_num = *( unsigned int * )&persist_data[ ( ( i + 1 ) * storage_type_size ) - sizeof( unsigned int ) ];
+        unsigned int block_storage_num = *( unsigned int * )&persist_data[ ( ( i + 1 ) * storage_type_size ) - sizeof( STORAGE_TYPE_NUM_BLOCKS ) ];
 
         BlockState blockState = {AIR, 0, 0};
-        // memset( &blockState, 0, sizeof( BlockState ) );
-        pr_debug( "Copy size:%d", storage_type_size - sizeof( unsigned int )-2 );
-        memcpy( &blockState, block_storage, storage_type_size - sizeof( unsigned int )-2 );
+        memset( &blockState, 0, sizeof( BlockState ) );
+        // pr_debug( "Copy size:%d", storage_type_size - sizeof( unsigned int )-2 );
+        memcpy( &blockState, block_storage, storage_type_size - sizeof( unsigned int ) - 2 );
 
         if ( blockState.id >= LAST_BLOCK_ID ) {
             pr_debug( "Got strange block:%d", blockState.id );
