@@ -69,7 +69,7 @@
 #if defined( REPGAME_WASM ) || defined( REPGAME_WINDOWS )
 #define NUM_RENDER_THREADS 1
 #else
-#define NUM_RENDER_THREADS 1
+#define NUM_RENDER_THREADS 11
 #endif
 #define CHUNK_RENDERS_PER_FRAME ( 2 * CHUNK_RADIUS_X * 2 * CHUNK_RADIUS_Y ) * 10000 // Render 1 face of the chunk cube per frame. This could be lowered to reduce studder
 

@@ -25,7 +25,7 @@ int find_largest_redstone_power_around( World *world, int x, int y, int z ) {
     return max;
 }
 
-#define REDSTONE_DELAY 0
+#define REDSTONE_DELAY 20
 
 void BlockNextToChangeEvent::performAction( BlockUpdateQueue *blockUpdateQueue, World *world ) {
     // The updating block  was next to the updating one, and might need to change

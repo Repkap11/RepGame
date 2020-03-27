@@ -159,19 +159,16 @@ int map_storage_load( Chunk *chunk ) {
     char file_name[ CHUNK_NAME_LENGTH ];
     if ( snprintf( file_name, CHUNK_NAME_LENGTH, file_root_chunk, map_name, chunk_offset_x, chunk_offset_y, chunk_offset_z ) != CHUNK_NAME_LENGTH ) {
     }
-    pr_debug( "%s", file_name );
-
-    pr_debug( "%s", file_name );
     FILE *read_ptr;
     BlockState *blocks = chunk->blocks;
     read_ptr = fopen( file_name, "rb" );
     uint32_t storage_type_size = 0;
     fread( &storage_type_size, sizeof( uint32_t ), 1, read_ptr );
-    pr_debug( "Got storage size:%d %d %d", storage_type_size, sizeof( STORAGE_TYPE ), sizeof( uint32_t ) );
+    // pr_debug( "Got storage size:%d", storage_type_size );
 
     char *persist_data = ( char * )calloc( CHUNK_BLOCK_SIZE, storage_type_size );
     unsigned int persist_data_length = fread( persist_data, storage_type_size, CHUNK_BLOCK_SIZE, read_ptr );
-    pr_debug( "Got data length:%d", persist_data_length );
+    // pr_debug( "Got data length:%d", persist_data_length );
     fclose( read_ptr );
 
     int block_index = 0;
@@ -182,11 +179,15 @@ int map_storage_load( Chunk *chunk ) {
         BlockState blockState = {AIR, 0, 0};
         memset( &blockState, 0, sizeof( BlockState ) );
         // pr_debug( "Copy size:%d", storage_type_size - sizeof( unsigned int )-2 );
-        memcpy( &blockState, block_storage, storage_type_size - sizeof( unsigned int ) - 2 );
+        int storage_offset_size = 0;
+        if ( storage_type_size == 8 ) {
+            storage_offset_size = 2;
+        }
+        memcpy( &blockState, block_storage, storage_type_size - sizeof( unsigned int ) - storage_offset_size );
 
         if ( blockState.id >= LAST_BLOCK_ID ) {
-            pr_debug( "Got strange block:%d", blockState.id );
-            blockState.id = TNT;
+            pr_debug( "Got strange block in %s :%d", file_name, blockState.id );
+            // blockState.id = GOLD_BLOCK;
         }
         for ( unsigned int j = 0; j < block_storage_num; j++ ) {
             blocks[ block_index++ ] = blockState;
@@ -194,7 +195,7 @@ int map_storage_load( Chunk *chunk ) {
     }
     int expected_num_blocks = CHUNK_BLOCK_SIZE;
     if ( block_index != expected_num_blocks ) {
-        pr_debug( "Didn't get enough blocks load" );
+        pr_debug( "Didn't get enough blocks load:%s", file_name );
     }
     return 1;
 }
