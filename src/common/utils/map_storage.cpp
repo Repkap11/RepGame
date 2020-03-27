@@ -100,7 +100,7 @@ void map_storage_persist( Chunk *chunk ) {
         int persist_data_index = -1;
         STORAGE_TYPE_NUM_BLOCKS num_same_blocks = 0;
         int total_num_blocks = 0;
-        BlockState previousBlockState = {LAST_BLOCK_ID, BLOCK_ROTATE_0};
+        BlockState previousBlockState = {BLOCK_STATE_LAST_BLOCK_ID};
         for ( int i = 0; i < CHUNK_BLOCK_SIZE; i++ ) {
             BlockState blockState = blocks[ i ];
             if ( blockState.id == previousBlockState.id ) {
@@ -172,7 +172,7 @@ int map_storage_load( Chunk *chunk ) {
     fclose( read_ptr );
 
     int block_index = 0;
-    for ( int i = 0; i < persist_data_length; i++ ) {
+    for ( unsigned int i = 0; i < persist_data_length; i++ ) {
         char *block_storage = &persist_data[ i * storage_type_size ];
         unsigned int block_storage_num = *( unsigned int * )&persist_data[ ( ( i + 1 ) * storage_type_size ) - sizeof( STORAGE_TYPE_NUM_BLOCKS ) ];
 
