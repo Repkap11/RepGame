@@ -102,7 +102,7 @@ void map_storage_persist( Chunk *chunk ) {
         BlockState previousBlockState = {LAST_BLOCK_ID, BLOCK_ROTATE_0};
         for ( int i = 0; i < CHUNK_BLOCK_SIZE; i++ ) {
             BlockState blockState = blocks[ i ];
-            if ( blockState.id == previousBlockState.id && blockState.rotation == previousBlockState.rotation ) {
+            if ( blockState.id == previousBlockState.id ) {
                 num_same_blocks++;
             } else {
                 if ( num_same_blocks > 0 ) {
@@ -112,6 +112,8 @@ void map_storage_persist( Chunk *chunk ) {
                 }
                 persist_data_index++;
                 previous_id = ( ( STORAGE_TYPE_BLOCK_ID )blockState.id ) | ( ( ( STORAGE_TYPE_BLOCK_ID )blockState.rotation ) << 14 );
+                previousBlockState = blockState;
+                pr_debug( "Saving run with %d", num_same_blocks );
                 num_same_blocks = 1;
             }
         }
@@ -155,26 +157,36 @@ int map_storage_load( Chunk *chunk ) {
     char file_name[ CHUNK_NAME_LENGTH ];
     if ( snprintf( file_name, CHUNK_NAME_LENGTH, file_root_chunk, map_name, chunk_offset_x, chunk_offset_y, chunk_offset_z ) != CHUNK_NAME_LENGTH ) {
     }
+    pr_debug( "%s", file_name );
 
+    pr_debug( "%s", file_name );
     FILE *read_ptr;
-    STORAGE_TYPE persist_data[ CHUNK_BLOCK_SIZE ];
     BlockState *blocks = chunk->blocks;
     read_ptr = fopen( file_name, "rb" );
-    int persist_data_length = fread( persist_data, sizeof( STORAGE_TYPE ), CHUNK_BLOCK_SIZE, read_ptr );
+    uint32_t storage_type_size = 0;
+    fread( &storage_type_size, sizeof( uint32_t ), 1, read_ptr );
+    pr_debug( "Got storage size:%d %d %d", storage_type_size, sizeof( STORAGE_TYPE ), sizeof( uint32_t ) );
+
+    char *persist_data = ( char * )calloc( CHUNK_BLOCK_SIZE, storage_type_size );
+    unsigned int persist_data_length = fread( persist_data, storage_type_size, CHUNK_BLOCK_SIZE, read_ptr );
+    pr_debug( "Got data length:%d", persist_data_length );
     fclose( read_ptr );
 
     int block_index = 0;
     for ( int i = 0; i < persist_data_length; i++ ) {
-        STORAGE_TYPE block_storage = persist_data[ i ];
-        STORAGE_TYPE_BLOCK_ID block_packed = block_storage.block_id;
-        BlockState blockState;
-        blockState.id = ( BlockID )( block_packed & ~( 0b11 << 14 ) );
-        blockState.rotation = block_packed >> 14;
+        char *block_storage = &persist_data[ i * storage_type_size ];
+        unsigned int block_storage_num = *( unsigned int * )&persist_data[ ( ( i + 1 ) * storage_type_size ) - sizeof( unsigned int ) ];
+
+        BlockState blockState = {AIR, 0, 0};
+        // memset( &blockState, 0, sizeof( BlockState ) );
+        pr_debug( "Copy size:%d", storage_type_size - sizeof( unsigned int )-2 );
+        memcpy( &blockState, block_storage, storage_type_size - sizeof( unsigned int )-2 );
+
         if ( blockState.id >= LAST_BLOCK_ID ) {
-            pr_debug( "Got strange block:%d", block_storage.block_id );
-            block_storage.block_id = TNT;
+            pr_debug( "Got strange block:%d", blockState.id );
+            blockState.id = TNT;
         }
-        for ( unsigned int j = 0; j < block_storage.num; j++ ) {
+        for ( unsigned int j = 0; j < block_storage_num; j++ ) {
             blocks[ block_index++ ] = blockState;
         }
     }

@@ -57,5 +57,10 @@ nothing:
 vars:
 	@echo "$(BEFORE_VARS) $(AFTER_VARS)" | xargs -n1 | sort | uniq -u
 
+
+update-world:
+	ls -1 ~/.repgame/World1/ | grep "^chunk_" | xargs -n1 bash -c 'printf "\x08\x0\x0\x0" | cat - ~/.repgame/World1/$$0 > ~/.repgame/World1/new_$$0'
+	ls -1 ~/.repgame/World1/ | grep "^chunk_" | xargs -n1 bash -c 'mv ~/.repgame/World1/new_$$0 ~/.repgame/World1/$$0'
+
 AFTER_VARS := $(.VARIABLES)
 #$(info $$DEPS_SERVER is [${DEPS_SERVER}])
