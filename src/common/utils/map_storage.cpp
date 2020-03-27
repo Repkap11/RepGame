@@ -74,11 +74,11 @@ void map_storage_cleanup( ) {
 
 #define STORAGE_TYPE_SIZE_HEADER uint32_t
 
-#define STORAGE_TYPE_BLOCK_ID uint16_t
+#define STORAGE_TYPE_BLOCK_ID BlockState
 #define STORAGE_TYPE_NUM_BLOCKS unsigned int
 
 typedef struct {
-    STORAGE_TYPE_BLOCK_ID block_id;
+    STORAGE_TYPE_BLOCK_ID blockState;
     STORAGE_TYPE_NUM_BLOCKS num;
 } STORAGE_TYPE;
 
@@ -100,7 +100,6 @@ void map_storage_persist( Chunk *chunk ) {
         int persist_data_index = -1;
         STORAGE_TYPE_NUM_BLOCKS num_same_blocks = 0;
         int total_num_blocks = 0;
-        STORAGE_TYPE_BLOCK_ID previous_id = LAST_BLOCK_ID;
         BlockState previousBlockState = {LAST_BLOCK_ID, BLOCK_ROTATE_0};
         for ( int i = 0; i < CHUNK_BLOCK_SIZE; i++ ) {
             BlockState blockState = blocks[ i ];
@@ -108,17 +107,16 @@ void map_storage_persist( Chunk *chunk ) {
                 num_same_blocks++;
             } else {
                 if ( num_same_blocks > 0 ) {
-                    persist_data[ persist_data_index ].block_id = previous_id;
+                    persist_data[ persist_data_index ].blockState = previousBlockState;
                     persist_data[ persist_data_index ].num = num_same_blocks;
                     total_num_blocks += num_same_blocks;
                 }
                 persist_data_index++;
-                previous_id = ( ( STORAGE_TYPE_BLOCK_ID )blockState.id ) | ( ( ( STORAGE_TYPE_BLOCK_ID )blockState.rotation ) << 14 );
                 previousBlockState = blockState;
                 num_same_blocks = 1;
             }
         }
-        persist_data[ persist_data_index ].block_id = previous_id;
+        persist_data[ persist_data_index ].blockState = previousBlockState;
         persist_data[ persist_data_index ].num = num_same_blocks;
         total_num_blocks += num_same_blocks;
 
@@ -129,8 +127,8 @@ void map_storage_persist( Chunk *chunk ) {
             pr_debug( "Didn't get enough blocks save" );
         }
         write_ptr = fopen( file_name, "wb" );
-        // uint32_t storage_type_size = sizeof(BlockState);
-        uint32_t storage_type_size = 8;
+        uint32_t storage_type_size = sizeof( STORAGE_TYPE );
+        // uint32_t storage_type_size = 8;
         fwrite( &storage_type_size, sizeof( uint32_t ), 1, write_ptr );
         fwrite( persist_data, sizeof( STORAGE_TYPE ), persist_data_index, write_ptr );
         fclose( write_ptr );
