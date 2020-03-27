@@ -42,15 +42,16 @@ void block_definitions_initilize_definitions( Texture *texture ) {
         block->scale = {1, 1, 1};
         block->offset = {0, 0, 0};
         block->tex_offset = {0, 0, 0};
-        block->breaks_in_liquid = 0;
-        block->initial_redstone_power = 0; // redstone block
-
-        block->affected_by_redstone_power = 0; // dust, piston
+        block->breaks_in_liquid = false;
+        block->initial_redstone_power = 0;     // redstone block
+        block->affected_by_redstone_power = 1; // dust, piston, all solid blocks
+        block->transmits_redstone_power = false;   // dust
     }
 
     block_definitions[ REDSTONE_LAMP ].affected_by_redstone_power = 1;
     block_definitions[ REDSTONE_BLOCK ].initial_redstone_power = 10;
     block_definitions[ REDSTONE_LINE ].affected_by_redstone_power = 1;
+    block_definitions[ REDSTONE_LINE ].transmits_redstone_power = 1;
 
     block_definitions[ STONE_BRICK_SLAB ].textures[ FACE_TOP ] = STONE_BRICK;
     block_definitions[ STONE_BRICK_SLAB ].textures[ FACE_BOTTOM ] = STONE_BRICK;
@@ -250,6 +251,7 @@ void block_definitions_initilize_definitions( Texture *texture ) {
             block->is_pickable = true;
             block->collides_with_player = false;
             block->breaks_in_liquid = true;
+            block->affected_by_redstone_power = false;
         }
         if ( block->renderOrder == RenderOrder_Water ) {
             block->is_seethrough = true;
@@ -267,6 +269,8 @@ void block_definitions_initilize_definitions( Texture *texture ) {
             block->is_pickable = false;
             block->collides_with_player = false;
             block->breaks_in_liquid = true;
+            block->affected_by_redstone_power = false;
+
             // block->can_mesh = true; not that it matters...
         }
     }

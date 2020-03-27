@@ -576,10 +576,12 @@ void chunk_calculate_popupated_blocks( Chunk *chunk ) {
                             BlockID texture = block->textures[ i ];
                             if ( texture == REDSTONE_LAMP_UNPOWERED && blockState.current_redstone_power > 0 ) {
                                 texture = REDSTONE_LAMP_POWERED;
-                            }
-                            if ( texture == REDSTONE_LINE_UNPOWERED && blockState.current_redstone_power > 0 ) {
+                            } else if ( texture == REDSTONE_LINE_UNPOWERED && blockState.current_redstone_power > 0 ) {
                                 texture = REDSTONE_LINE_POWERED;
+                            } else if ( blockState.current_redstone_power > 0 ) {
+                                // texture = GOLD_BLOCK;
                             }
+
                             blockCoord->face[ i ] = texture - 1;
                         }
                     }

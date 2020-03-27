@@ -25,7 +25,7 @@ int find_largest_redstone_power_around( World *world, int x, int y, int z ) {
     return max;
 }
 
-#define REDSTONE_DELAY 20
+#define REDSTONE_DELAY 0
 
 void BlockNextToChangeEvent::performAction( BlockUpdateQueue *blockUpdateQueue, World *world ) {
     // The updating block  was next to the updating one, and might need to change
@@ -50,21 +50,50 @@ void BlockNextToChangeEvent::performAction( BlockUpdateQueue *blockUpdateQueue, 
         blockUpdateQueue->addBlockUpdate( blockPlacedEvent );
     }
 
-    // Make a placed lamp next to redstone turn on
-    if ( affecting_block->affected_by_redstone_power ) {
-        int maximum_power = find_largest_redstone_power_around( world, this->affecting_block_x, this->affecting_block_y, this->affecting_block_z );
-        int new_power = maximum_power - 1;
+    {
+        int new_power;
+        if ( affecting_block->initial_redstone_power ) {
+            new_power = affecting_block->initial_redstone_power;
+        } else {
+            int maximum_power = find_largest_redstone_power_around( world, this->affecting_block_x, this->affecting_block_y, this->affecting_block_z );
+            new_power = maximum_power > 1 ? maximum_power - 1 : 0;
+            if ( !affecting_block->transmits_redstone_power ) {
+                if ( new_power > 0 ) {
+                    if ( affecting_block->affected_by_redstone_power ) {
+                        new_power = 1;
+                    } else {
+                        new_power = 0;
+                    }
+                }
+            }
+        }
+
         if ( new_power != affecting_block_state.current_redstone_power ) {
+            pr_debug( "Queueing event1 with old:%d new:%d", affecting_block_state.current_redstone_power, new_power );
             BlockUpdateEvent *blockPlacedEvent =
                 new PlayerBlockPlacedEvent( this->tick_number + REDSTONE_DELAY, this->affecting_block_x, this->affecting_block_y, this->affecting_block_z, {affecting_block_state.id, affecting_block_state.rotation, new_power} );
             blockUpdateQueue->addBlockUpdate( blockPlacedEvent );
         }
     }
-    // Make a placed redstone block turn on a lamp
-    if ( updateing_block->affected_by_redstone_power ) {
-        int maximum_power = find_largest_redstone_power_around( world, this->block_x, this->block_y, this->block_z );
-        int new_power = maximum_power - 1;
+    {
+        int new_power;
+        if ( updateing_block->initial_redstone_power ) {
+            new_power = updateing_block->initial_redstone_power;
+        } else {
+            int maximum_power = find_largest_redstone_power_around( world, this->block_x, this->block_y, this->block_z );
+            new_power = maximum_power > 1 ? maximum_power - 1 : 0;
+            if ( !updateing_block->transmits_redstone_power ) {
+                if ( new_power > 0 ) {
+                    if ( updateing_block->affected_by_redstone_power ) {
+                        new_power = 1;
+                    } else {
+                        new_power = 0;
+                    }
+                }
+            }
+        }
         if ( new_power != updateing_block_state.current_redstone_power ) {
+            pr_debug( "Queueing event2 with old:%d new:%d", updateing_block_state.current_redstone_power, new_power );
             BlockUpdateEvent *blockPlacedEvent = new PlayerBlockPlacedEvent( this->tick_number + REDSTONE_DELAY, this->block_x, this->block_y, this->block_z, {updateing_block_state.id, updateing_block_state.rotation, new_power} );
             blockUpdateQueue->addBlockUpdate( blockPlacedEvent );
         }

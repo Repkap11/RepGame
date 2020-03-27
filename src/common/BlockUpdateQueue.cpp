@@ -20,7 +20,7 @@ void BlockUpdateQueue::processAllBlockUpdates( World *world, long tick_number ) 
         this->pending_events.pop( );
         event_prt->performAction( this, world );
         num_events++;
-        if ( num_events > 1000 ) {
+        if ( num_events > 10000 ) {
             pr_debug( "Error too many events!!!" );
             exit( 1 );
             return;
