@@ -90,6 +90,7 @@ void block_definitions_initilize_definitions( Texture *texture ) {
     block_definitions[ REDSTONE_LINE ].icon_is_isometric = false;
     block_definitions[ REDSTONE_LINE ].needs_place_on_solid = true;
     block_definitions[ REDSTONE_LINE ].collides_with_player = false;
+    block_definitions[ REDSTONE_LINE ].breaks_in_liquid = true;
 
     block_definitions[ WATER ].renderOrder = RenderOrder_Water;
     block_definitions[ WATER ].flows = 20;
