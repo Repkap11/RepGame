@@ -100,6 +100,8 @@ void mouse_selection_set_block( MouseSelection *mouseSelection, int x, int y, in
         mouseSelection->block.offset_y = block->offset.y;
         mouseSelection->block.offset_z = block->offset.z;
 
+        mouseSelection->block.face_shift = blockState.rotation;
+
         vertex_buffer_set_data( &mouseSelection->vb_coords, &mouseSelection->block, sizeof( BlockCoords ) * 1 );
     }
 }

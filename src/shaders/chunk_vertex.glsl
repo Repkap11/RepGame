@@ -58,6 +58,7 @@ int rep_mod( int x, int y ) {
 
 void main( ) {
     vec3 adjusted_position = position;
+
     adjusted_position.x *= blockCoords_scale.x;
     adjusted_position.y *= blockCoords_scale.y;
     adjusted_position.z *= blockCoords_scale.z;
@@ -65,6 +66,16 @@ void main( ) {
     adjusted_position.x += blockCoords_offset.x;
     adjusted_position.y += blockCoords_offset.y;
     adjusted_position.z += blockCoords_offset.z;
+
+    if ( rotation == BLOCK_ROTATE_0 ) {
+        adjusted_position.xz = adjusted_position.xz;
+    } else if ( rotation == BLOCK_ROTATE_90 ) {
+        adjusted_position.xz = vec2( 1, 0 ) + vec2( -1, 1 ) * adjusted_position.zx;
+    } else if ( rotation == BLOCK_ROTATE_180 ) {
+        adjusted_position.xz = vec2( 1.0 ) - adjusted_position.xz;
+    } else if ( rotation == BLOCK_ROTATE_270 ) {
+        adjusted_position.xz = vec2( 0, 1.0 ) + vec2( 1, -1 ) * adjusted_position.zx;
+    }
 
     vec3 mesh_size = vec3( ( mesh_size_packed & 0xffu ), ( mesh_size_packed & 0xff00u ) >> 8, ( mesh_size_packed & 0xff0000u ) >> 16 );
     vec4 vertex = vec4( adjusted_position * ( mesh_size - u_DebugScaleOffset ) + blockCoords, 1 );

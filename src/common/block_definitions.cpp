@@ -49,6 +49,20 @@ void block_definitions_initilize_definitions( Texture *texture ) {
         block->needs_place_on_solid_but_can_stack_on_self = false;
     }
 
+    block_definitions[ LADDER ].scale = {1, 1, 1.0f / 16.0f};
+    block_definitions[ LADDER ].offset = {0, 0, 0};
+    block_definitions[ LADDER ].tex_offset = {0, 0, 0};
+    block_definitions[ LADDER ].is_seethrough = true;
+    block_definitions[ LADDER ].can_mesh_x = true;
+    block_definitions[ LADDER ].can_mesh_y = true;
+    block_definitions[ LADDER ].can_mesh_z = false;
+    block_definitions[ LADDER ].casts_shadow = false;
+    block_definitions[ LADDER ].icon_is_isometric = false;
+    block_definitions[ LADDER ].needs_place_on_solid = false;
+    block_definitions[ LADDER ].collides_with_player = false;
+    block_definitions[ LADDER ].breaks_in_liquid = false;
+    block_definitions[ LADDER ].rotate_on_placement = true;
+
     block_definitions[ REED ].needs_place_on_solid_but_can_stack_on_self = true;
 
     block_definitions[ REDSTONE_LAMP ].affected_by_redstone_power = 1;
@@ -56,41 +70,50 @@ void block_definitions_initilize_definitions( Texture *texture ) {
     block_definitions[ REDSTONE_LINE ].affected_by_redstone_power = 1;
     block_definitions[ REDSTONE_LINE ].transmits_redstone_power = 1;
 
+    BlockID slab_shaped[] = {STONE_BRICK_SLAB};
+    for ( int i = 0; i < sizeof( slab_shaped ) / sizeof( BlockID ); i++ ) {
+        BlockID id = slab_shaped[ i ];
+        block_definitions[ id ].scale = {1, 1.0f / 2.0f, 1};
+        block_definitions[ id ].offset = {0, 0, 0};
+        block_definitions[ id ].tex_offset = {0, -0.25, 0};
+        block_definitions[ id ].is_seethrough = true;
+        block_definitions[ id ].can_mesh_x = true;
+        block_definitions[ id ].can_mesh_y = false;
+        block_definitions[ id ].can_mesh_z = true;
+    }
     block_definitions[ STONE_BRICK_SLAB ].textures[ FACE_TOP ] = STONE_BRICK;
     block_definitions[ STONE_BRICK_SLAB ].textures[ FACE_BOTTOM ] = STONE_BRICK;
-    block_definitions[ STONE_BRICK_SLAB ].scale = {1, 1.0f / 2.0f, 1};
-    block_definitions[ STONE_BRICK_SLAB ].offset = {0, 0, 0};
-    block_definitions[ STONE_BRICK_SLAB ].tex_offset = {0, -0.25, 0};
-    block_definitions[ STONE_BRICK_SLAB ].is_seethrough = true;
-    block_definitions[ STONE_BRICK_SLAB ].can_mesh_x = true;
-    block_definitions[ STONE_BRICK_SLAB ].can_mesh_y = false;
-    block_definitions[ STONE_BRICK_SLAB ].can_mesh_z = true;
 
-    // block_definitions[ CREEPER_HEAD ].textures[ FACE_TOP ] = STONE_BRICK;
-    // block_definitions[ CREEPER_HEAD ].textures[ FACE_BOTTOM ] = STONE_BRICK;
-    block_definitions[ CREEPER_HEAD ].scale = {1.0f / 2.0f, 1.0f / 2.0f, 1.0f / 2.0f};
-    block_definitions[ CREEPER_HEAD ].offset = {0.25, 0, 0.25};
-    block_definitions[ CREEPER_HEAD ].tex_offset = {-0.25, -0.25, -0.25};
-    block_definitions[ CREEPER_HEAD ].is_seethrough = true;
-    block_definitions[ CREEPER_HEAD ].can_mesh_x = false;
-    block_definitions[ CREEPER_HEAD ].can_mesh_y = false;
-    block_definitions[ CREEPER_HEAD ].can_mesh_z = false;
-    block_definitions[ CREEPER_HEAD ].casts_shadow = false;
-    block_definitions[ CREEPER_HEAD ].collides_with_player = false;
-    block_definitions[ CREEPER_HEAD ].casts_shadow = false;
-
-    block_definitions[ REDSTONE_LINE ].scale = {1, 1.0f / 16.0f, 1};
-    block_definitions[ REDSTONE_LINE ].offset = {0, 0, 0};
-    block_definitions[ REDSTONE_LINE ].tex_offset = {0, 0, 0};
-    block_definitions[ REDSTONE_LINE ].is_seethrough = true;
-    block_definitions[ REDSTONE_LINE ].can_mesh_x = true;
-    block_definitions[ REDSTONE_LINE ].can_mesh_y = false;
-    block_definitions[ REDSTONE_LINE ].can_mesh_z = true;
-    block_definitions[ REDSTONE_LINE ].casts_shadow = false;
-    block_definitions[ REDSTONE_LINE ].icon_is_isometric = false;
-    block_definitions[ REDSTONE_LINE ].needs_place_on_solid = true;
-    block_definitions[ REDSTONE_LINE ].collides_with_player = false;
-    block_definitions[ REDSTONE_LINE ].breaks_in_liquid = true;
+    BlockID head_shaped[] = {SKELETON_HEAD, WHITHER_SKELETON_HEAD, ZOMBIE_HEAD, PLAYER_HEAD, CREEPER_HEAD};
+    for ( int i = 0; i < sizeof( head_shaped ) / sizeof( BlockID ); i++ ) {
+        BlockID id = head_shaped[ i ];
+        block_definitions[ id ].scale = {1.0f / 2.0f, 1.0f / 2.0f, 1.0f / 2.0f};
+        block_definitions[ id ].offset = {0.25, 0, 0.25};
+        block_definitions[ id ].tex_offset = {-0.25, -0.25, -0.25};
+        block_definitions[ id ].is_seethrough = true;
+        block_definitions[ id ].can_mesh_x = false;
+        block_definitions[ id ].can_mesh_y = false;
+        block_definitions[ id ].can_mesh_z = false;
+        block_definitions[ id ].casts_shadow = false;
+        block_definitions[ id ].collides_with_player = false;
+        block_definitions[ id ].casts_shadow = false;
+    }
+    BlockID dust_shaped[] = {REDSTONE_LINE};
+    for ( int i = 0; i < sizeof( dust_shaped ) / sizeof( BlockID ); i++ ) {
+        BlockID id = dust_shaped[ i ];
+        block_definitions[ id ].scale = {1, 1.0f / 16.0f, 1};
+        block_definitions[ id ].offset = {0, 0, 0};
+        block_definitions[ id ].tex_offset = {0, 0, 0};
+        block_definitions[ id ].is_seethrough = true;
+        block_definitions[ id ].can_mesh_x = true;
+        block_definitions[ id ].can_mesh_y = false;
+        block_definitions[ id ].can_mesh_z = true;
+        block_definitions[ id ].casts_shadow = false;
+        block_definitions[ id ].icon_is_isometric = false;
+        block_definitions[ id ].needs_place_on_solid = true;
+        block_definitions[ id ].collides_with_player = false;
+        block_definitions[ id ].breaks_in_liquid = true;
+    }
 
     block_definitions[ WATER ].renderOrder = RenderOrder_Water;
     block_definitions[ WATER ].flows = 20;
