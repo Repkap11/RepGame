@@ -110,6 +110,7 @@ void repgame_process_mouse_events( ) {
             } while ( !block_definition_get_definition( ( BlockID )blockID_int )->is_pickable );
             blockState.id = ( BlockID )blockID_int;
             blockState.rotation = getPlacedRotation( blockState.id );
+            change_block( 0, BLOCK_STATE_AIR );
             change_block( 0, blockState );
         }
     }

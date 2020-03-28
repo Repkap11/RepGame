@@ -127,8 +127,6 @@ int contains_pixel( Block *pixel_block, BlockState *block_state, float dir_x, fl
     }
 
     *which_face = face;
-    pr_debug( "Match with face:%d", face );
-
     return true;
 }
 

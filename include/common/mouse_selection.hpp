@@ -8,6 +8,7 @@ typedef struct {
     VertexBuffer vb_coords;
     int shouldDraw;
     VertexBuffer vb_block;
+    BlockState selected_block_state;
 } MouseSelection;
 
 void mouse_selection_init( MouseSelection *mouseSelection, VertexBufferLayout *vbl_block, VertexBufferLayout *vbl_coords );

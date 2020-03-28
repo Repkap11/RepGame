@@ -83,14 +83,16 @@ void mouse_selection_init( MouseSelection *mouseSelection, VertexBufferLayout *v
 void mouse_selection_set_block( MouseSelection *mouseSelection, int x, int y, int z, int shouldDraw, BlockState blockState ) {
     // y += 1;
     mouseSelection->shouldDraw = shouldDraw;
-    if ( mouseSelection->block.x != x || //
-         mouseSelection->block.y != y || //
-         mouseSelection->block.z != z    //
+    if ( mouseSelection->block.x != x ||                                        //
+         mouseSelection->block.y != y ||                                        //
+         mouseSelection->block.z != z ||                                        //
+         !BlockStates_equal( blockState, mouseSelection->selected_block_state ) //
     ) {
         Block *block = block_definition_get_definition( blockState.id );
         mouseSelection->block.x = x;
         mouseSelection->block.y = y;
         mouseSelection->block.z = z;
+        mouseSelection->selected_block_state = blockState;
 
         mouseSelection->block.scale_x = block->scale.x;
         mouseSelection->block.scale_y = block->scale.y;

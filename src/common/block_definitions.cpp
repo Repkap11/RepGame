@@ -71,6 +71,14 @@ void block_definitions_initilize_definitions( Texture *texture ) {
     block_definitions[ REDSTONE_LINE ].affected_by_redstone_power = 1;
     block_definitions[ REDSTONE_LINE ].transmits_redstone_power = 1;
 
+    BlockID small_flower_shaped[] = {YELLOW_FLOWER, BLUE_FLOWER};
+    for ( unsigned int i = 0; i < sizeof( small_flower_shaped ) / sizeof( BlockID ); i++ ) {
+        BlockID id = small_flower_shaped[ i ];
+        block_definitions[ id ].scale = {1.0f / 2.0f, 11.0f / 16.0f, 1.0f / 2.0f};
+        block_definitions[ id ].offset = {0.25, 0, 0.25};
+        block_definitions[ id ].tex_offset = {-0.25, 0, -0.25};
+    }
+
     BlockID slab_shaped[] = {STONE_BRICK_SLAB};
     for ( unsigned int i = 0; i < sizeof( slab_shaped ) / sizeof( BlockID ); i++ ) {
         BlockID id = slab_shaped[ i ];
