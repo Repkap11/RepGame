@@ -96,7 +96,7 @@ void block_definitions_initilize_definitions( Texture *texture ) {
         block_definitions[ id ].tex_offset = {-0.25, 0, -0.25};
     }
 
-    BlockID slab_shaped[] = {STONE_BRICK_SLAB};
+    BlockID slab_shaped[] = {STONE_BRICK_SLAB, DARK_OAK_SLAB, OAK_SLAB, BIRTCH_SLAB, JUNGLE_SLAB, ACACIA_SLAB, RED_SANDSTONE_BRICK_SLAB, PINE_SLAB, COBBLESTONE_SLAB, SANDSTONE_SLAB};
     for ( unsigned int i = 0; i < sizeof( slab_shaped ) / sizeof( BlockID ); i++ ) {
         BlockID id = slab_shaped[ i ];
         block_definitions[ id ].scale = {1, 1.0f / 2.0f, 1};
@@ -107,8 +107,36 @@ void block_definitions_initilize_definitions( Texture *texture ) {
         block_definitions[ id ].can_mesh_y = false;
         block_definitions[ id ].can_mesh_z = true;
     }
+
     block_definitions[ STONE_BRICK_SLAB ].textures[ FACE_TOP ] = STONE_BRICK;
     block_definitions[ STONE_BRICK_SLAB ].textures[ FACE_BOTTOM ] = STONE_BRICK;
+
+    block_definitions[ DARK_OAK_SLAB ].textures[ FACE_TOP ] = DARK_OAK_PLANK;
+    block_definitions[ DARK_OAK_SLAB ].textures[ FACE_BOTTOM ] = DARK_OAK_PLANK;
+
+    block_definitions[ OAK_SLAB ].textures[ FACE_TOP ] = OAK_PLANK;
+    block_definitions[ OAK_SLAB ].textures[ FACE_BOTTOM ] = OAK_PLANK;
+
+    block_definitions[ BIRTCH_SLAB ].textures[ FACE_TOP ] = BIRTCH_PLANK;
+    block_definitions[ BIRTCH_SLAB ].textures[ FACE_BOTTOM ] = BIRTCH_PLANK;
+
+    block_definitions[ JUNGLE_SLAB ].textures[ FACE_TOP ] = JUNGLE_PLANK;
+    block_definitions[ JUNGLE_SLAB ].textures[ FACE_BOTTOM ] = JUNGLE_PLANK;
+
+    block_definitions[ ACACIA_SLAB ].textures[ FACE_TOP ] = ACACIA_PLANK;
+    block_definitions[ ACACIA_SLAB ].textures[ FACE_BOTTOM ] = ACACIA_PLANK;
+
+    block_definitions[ RED_SANDSTONE_BRICK_SLAB ].textures[ FACE_TOP ] = RED_SANDSTONE_BRICK_TOP;
+    block_definitions[ RED_SANDSTONE_BRICK_SLAB ].textures[ FACE_BOTTOM ] = RED_SANDSTONE_BRICK_BOTTOM;
+
+    block_definitions[ PINE_SLAB ].textures[ FACE_TOP ] = PINE_PLANK;
+    block_definitions[ PINE_SLAB ].textures[ FACE_BOTTOM ] = PINE_PLANK;
+
+    block_definitions[ COBBLESTONE_SLAB ].textures[ FACE_TOP ] = COBBLESTONE;
+    block_definitions[ COBBLESTONE_SLAB ].textures[ FACE_BOTTOM ] = COBBLESTONE;
+
+    block_definitions[ SANDSTONE_SLAB ].textures[ FACE_TOP ] = SANDSTONE_BRICK_TOP;
+    block_definitions[ SANDSTONE_SLAB ].textures[ FACE_BOTTOM ] = SANDSTONE_BRICK_BOTTOM;
 
     BlockID head_shaped[] = {SKELETON_HEAD, WHITHER_SKELETON_HEAD, ZOMBIE_HEAD, PLAYER_HEAD, CREEPER_HEAD};
     for ( unsigned int i = 0; i < sizeof( head_shaped ) / sizeof( BlockID ); i++ ) {
@@ -159,6 +187,24 @@ void block_definitions_initilize_definitions( Texture *texture ) {
     block_definitions[ DOUBLE_SLAB ].textures[ FACE_LEFT ] = DOUBLE_SLAB;
     block_definitions[ DOUBLE_SLAB ].textures[ FACE_BOTTOM ] = SLAB_TOP;
 
+    block_definitions[ RED_SANDSTONE_BRICK ].textures[ FACE_TOP ] = RED_SANDSTONE_BRICK_TOP;
+    block_definitions[ RED_SANDSTONE_BRICK ].textures[ FACE_BOTTOM ] = RED_SANDSTONE_BRICK_BOTTOM;
+
+    block_definitions[ RED_SANDSTONE_BRICK_WITHER ].textures[ FACE_TOP ] = RED_SANDSTONE_BRICK_TOP;
+    block_definitions[ RED_SANDSTONE_BRICK_WITHER ].textures[ FACE_BOTTOM ] = RED_SANDSTONE_BRICK_BOTTOM;
+
+    block_definitions[ RED_SANDSTONE_BRICK_POLISHED ].textures[ FACE_TOP ] = RED_SANDSTONE_BRICK_TOP;
+    block_definitions[ RED_SANDSTONE_BRICK_POLISHED ].textures[ FACE_BOTTOM ] = RED_SANDSTONE_BRICK_TOP;
+
+    block_definitions[ SANDSTONE_BRICK ].textures[ FACE_TOP ] = SANDSTONE_BRICK_TOP;
+    block_definitions[ SANDSTONE_BRICK ].textures[ FACE_BOTTOM ] = SANDSTONE_BRICK_BOTTOM;
+
+    block_definitions[ SANDSTONE_BRICK_CREEPER ].textures[ FACE_TOP ] = SANDSTONE_BRICK_TOP;
+    block_definitions[ SANDSTONE_BRICK_CREEPER ].textures[ FACE_BOTTOM ] = SANDSTONE_BRICK_BOTTOM;
+
+    block_definitions[ SANDSTONE_BRICK_POLISHED ].textures[ FACE_TOP ] = SANDSTONE_BRICK_TOP;
+    block_definitions[ SANDSTONE_BRICK_POLISHED ].textures[ FACE_BOTTOM ] = SANDSTONE_BRICK_TOP;
+
     block_definitions[ TNT ].textures[ FACE_TOP ] = TNT_TOP;
     block_definitions[ TNT ].textures[ FACE_BOTTOM ] = TNT_BOTTOM;
 
@@ -171,8 +217,8 @@ void block_definitions_initilize_definitions( Texture *texture ) {
     block_definitions[ JUNGLE_LOG ].textures[ FACE_TOP ] = JUNGLE_LOG_TOP;
     block_definitions[ JUNGLE_LOG ].textures[ FACE_BOTTOM ] = JUNGLE_LOG_TOP;
 
-    block_definitions[ ACADIA_LOG ].textures[ FACE_TOP ] = ACADIA_LOG_TOP;
-    block_definitions[ ACADIA_LOG ].textures[ FACE_BOTTOM ] = ACADIA_LOG_TOP;
+    block_definitions[ ACACIA_LOG ].textures[ FACE_TOP ] = ACACIA_LOG_TOP;
+    block_definitions[ ACACIA_LOG ].textures[ FACE_BOTTOM ] = ACACIA_LOG_TOP;
 
     block_definitions[ DARK_OAK_LOG ].textures[ FACE_TOP ] = DARK_OAK_LOG_TOP;
     block_definitions[ DARK_OAK_LOG ].textures[ FACE_BOTTOM ] = DARK_OAK_LOG_TOP;
@@ -364,7 +410,7 @@ void do_disable( Block *block_definitions ) {
     block_definitions[ MYCELIUM_SIDE ].renderOrder = RenderOrder_Transparent;
     block_definitions[ FURNACE_TOP ].renderOrder = RenderOrder_Transparent;
     block_definitions[ DARK_OAK_LOG_TOP ].renderOrder = RenderOrder_Transparent;
-    block_definitions[ ACADIA_LOG_TOP ].renderOrder = RenderOrder_Transparent;
+    block_definitions[ ACACIA_LOG_TOP ].renderOrder = RenderOrder_Transparent;
     block_definitions[ JUNGLE_LOG_TOP ].renderOrder = RenderOrder_Transparent;
     block_definitions[ BIRTCH_LOG_TOP ].renderOrder = RenderOrder_Transparent;
     block_definitions[ OAK_LOG_TOP ].renderOrder = RenderOrder_Transparent;
@@ -376,6 +422,10 @@ void do_disable( Block *block_definitions ) {
     block_definitions[ CRAFTING_BENCH_SIDE2 ].renderOrder = RenderOrder_Transparent;
     block_definitions[ REDSTONE_LINE_POWERED ].renderOrder = RenderOrder_Transparent;
     block_definitions[ REDSTONE_LAMP_POWERED ].renderOrder = RenderOrder_Transparent;
+    block_definitions[ RED_SANDSTONE_BRICK_TOP ].renderOrder = RenderOrder_Transparent;
+    block_definitions[ RED_SANDSTONE_BRICK_BOTTOM ].renderOrder = RenderOrder_Transparent;
+    block_definitions[ SANDSTONE_BRICK_TOP ].renderOrder = RenderOrder_Transparent;
+    block_definitions[ SANDSTONE_BRICK_TOP ].renderOrder = RenderOrder_Transparent;
 }
 
 void do_flowers( Block *block_definitions ) {
