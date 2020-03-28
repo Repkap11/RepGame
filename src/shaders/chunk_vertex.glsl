@@ -66,15 +66,19 @@ void main( ) {
     vec3 blockCoords_offset_adjust = blockCoords_offset;
 
     if ( rotation == BLOCK_ROTATE_0 ) {
-        blockCoords_scale_adjust.xz = blockCoords_scale_adjust.xz;
+        blockCoords_scale_adjust.xz = blockCoords_scale.xz;
     } else if ( rotation == BLOCK_ROTATE_90 ) {
-        blockCoords_scale_adjust.xz = blockCoords_scale_adjust.zx;
-        blockCoords_offset_adjust.x += 1.0f - blockCoords_scale_adjust.x;
+        blockCoords_scale_adjust.xz = blockCoords_scale.zx;
+        blockCoords_offset_adjust.x = 1.0f - blockCoords_scale.z - blockCoords_offset.z;
+        blockCoords_offset_adjust.z = blockCoords_offset.x;
     } else if ( rotation == BLOCK_ROTATE_180 ) {
-        blockCoords_scale_adjust.xz = blockCoords_scale_adjust.xz;
-        blockCoords_offset_adjust.z += 1.0f - blockCoords_scale_adjust.z;
+        blockCoords_scale_adjust.xz = blockCoords_scale.xz;
+        blockCoords_offset_adjust.x = 1.0f - blockCoords_scale.x - blockCoords_offset.x;
+        blockCoords_offset_adjust.z = 1.0f - blockCoords_scale.z - blockCoords_offset.z;
     } else if ( rotation == BLOCK_ROTATE_270 ) {
-        blockCoords_scale_adjust.xz = blockCoords_scale_adjust.zx;
+        blockCoords_scale_adjust.xz = blockCoords_scale.zx;
+        blockCoords_offset_adjust.x = blockCoords_offset.z;
+        blockCoords_offset_adjust.z = 1.0f - blockCoords_scale.x - blockCoords_offset.x;
     }
 
     adjusted_position.x *= blockCoords_scale_adjust.x;

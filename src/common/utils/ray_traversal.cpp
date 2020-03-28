@@ -28,12 +28,16 @@ int contains_pixel( Block *pixel_block, BlockState *block_state, float dir_x, fl
     } else if ( block_state->rotation == BLOCK_ROTATE_90 ) {
         scale_x = pixel_block->scale.z;
         scale_z = pixel_block->scale.x;
-        offset_x += 1.0f - scale_x;
+        offset_x = 1.0f - pixel_block->scale.z - pixel_block->offset.z;
+        offset_z = pixel_block->offset.x;
     } else if ( block_state->rotation == BLOCK_ROTATE_180 ) {
-        offset_z += 1.0f - scale_z;
+        offset_x = 1.0f - pixel_block->scale.x - pixel_block->offset.x;
+        offset_z = 1.0f - pixel_block->scale.z - pixel_block->offset.z;
     } else if ( block_state->rotation == BLOCK_ROTATE_270 ) {
         scale_x = pixel_block->scale.z;
         scale_z = pixel_block->scale.x;
+        offset_x = pixel_block->offset.z;
+        offset_z = 1.0f - pixel_block->scale.x - pixel_block->offset.x;
     }
 
     float c1_x = block_x + offset_x;

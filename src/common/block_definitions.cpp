@@ -97,6 +97,8 @@ void block_definitions_initilize_definitions( Texture *texture ) {
         block_definitions[ id ].casts_shadow = false;
         block_definitions[ id ].collides_with_player = false;
         block_definitions[ id ].casts_shadow = false;
+        block_definitions[ id ].rotate_on_placement = true;
+        block_definitions[ id ].icon_is_isometric = false;
     }
     BlockID dust_shaped[] = {REDSTONE_LINE};
     for ( int i = 0; i < sizeof( dust_shaped ) / sizeof( BlockID ); i++ ) {
