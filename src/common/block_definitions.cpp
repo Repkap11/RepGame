@@ -50,19 +50,25 @@ void block_definitions_initilize_definitions( Texture *texture ) {
         block->can_be_placed_in = false;
     }
 
-    block_definitions[ LADDER ].scale = {1, 1, 1.0f / 16.0f};
-    block_definitions[ LADDER ].offset = {0, 0, 0};
-    block_definitions[ LADDER ].tex_offset = {0, 0, 0};
-    block_definitions[ LADDER ].is_seethrough = true;
-    block_definitions[ LADDER ].can_mesh_x = true;
-    block_definitions[ LADDER ].can_mesh_y = true;
-    block_definitions[ LADDER ].can_mesh_z = false;
-    block_definitions[ LADDER ].casts_shadow = false;
-    block_definitions[ LADDER ].icon_is_isometric = false;
-    block_definitions[ LADDER ].needs_place_on_solid = false;
-    block_definitions[ LADDER ].collides_with_player = false;
-    block_definitions[ LADDER ].breaks_in_liquid = false;
-    block_definitions[ LADDER ].rotate_on_placement = true;
+    BlockID ladder_shaped[] = {LADDER,         ( BlockID )146, ( BlockID )523, ( BlockID )147, ( BlockID )524, ( BlockID )525, ( BlockID )526, ( BlockID )527,
+                               ( BlockID )122, ( BlockID )499, ( BlockID )123, ( BlockID )500, ( BlockID )501, ( BlockID )502, ( BlockID )503};
+
+    for ( unsigned int i = 0; i < sizeof( ladder_shaped ) / sizeof( BlockID ); i++ ) {
+        BlockID id = ladder_shaped[ i ];
+        block_definitions[ id ].scale = {1, 1, 1.0f / 16.0f};
+        block_definitions[ id ].offset = {0, 0, 0};
+        block_definitions[ id ].tex_offset = {0, 0, 0};
+        block_definitions[ id ].is_seethrough = true;
+        block_definitions[ id ].can_mesh_x = true;
+        block_definitions[ id ].can_mesh_y = true;
+        block_definitions[ id ].can_mesh_z = false;
+        block_definitions[ id ].casts_shadow = false;
+        block_definitions[ id ].icon_is_isometric = false;
+        block_definitions[ id ].needs_place_on_solid = false;
+        block_definitions[ id ].collides_with_player = false;
+        block_definitions[ id ].breaks_in_liquid = false;
+        block_definitions[ id ].rotate_on_placement = true;
+    }
 
     block_definitions[ REED ].needs_place_on_solid_but_can_stack_on_self = true;
 
@@ -81,7 +87,7 @@ void block_definitions_initilize_definitions( Texture *texture ) {
         block_definitions[ id ].rotate_on_placement = true;
         block_definitions[ id ].is_seethrough = true;
         block_definitions[ id ].can_mesh_x = false;
-        block_definitions[ id ].can_mesh_y = false;
+        block_definitions[ id ].can_mesh_y = true;
         block_definitions[ id ].can_mesh_z = false;
         block_definitions[ id ].casts_shadow = false;
         // block_definitions[ id ].hides_self = true;
