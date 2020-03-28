@@ -68,6 +68,7 @@ void block_definitions_initilize_definitions( Texture *texture ) {
 
     block_definitions[ REDSTONE_LAMP ].affected_by_redstone_power = 1;
     block_definitions[ REDSTONE_BLOCK ].initial_redstone_power = 10;
+    block_definitions[ REDSTONE_BLOCK ].affected_by_redstone_power = 0;
     block_definitions[ REDSTONE_LINE ].affected_by_redstone_power = 1;
     block_definitions[ REDSTONE_LINE ].transmits_redstone_power = 1;
 
