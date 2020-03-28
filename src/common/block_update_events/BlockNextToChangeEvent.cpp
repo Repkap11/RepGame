@@ -40,13 +40,14 @@ void BlockNextToChangeEvent::performAction( BlockUpdateQueue *blockUpdateQueue, 
     if ( updateing_block->flows != 0 && affecting_block->breaks_in_liquid && this->affecting_block_y <= this->block_y ) {
         pr_debug( "Expanding a water x:%d y:%d z:%d into x:%d y:%d z:%d ", this->block_x, this->block_y, this->block_z, this->affecting_block_x, this->affecting_block_y, this->affecting_block_z );
         BlockUpdateEvent *blockPlacedEvent =
-            new PlayerBlockPlacedEvent( this->tick_number + updateing_block->flows, this->affecting_block_x, this->affecting_block_y, this->affecting_block_z, {updateing_block_state.id, 0, updateing_block->initial_redstone_power} );
+            new PlayerBlockPlacedEvent( this->tick_number + updateing_block->flows, this->affecting_block_x, this->affecting_block_y, this->affecting_block_z, {updateing_block_state.id, 0, updateing_block->initial_redstone_power},false );
         blockUpdateQueue->addBlockUpdate( blockPlacedEvent );
     }
 
     if ( updateing_block->breaks_in_liquid && affecting_block->flows != 0 && this->block_y <= this->affecting_block_y ) {
         pr_debug( "Expanding a water2 x:%d y:%d z:%d into x:%d y:%d z:%d ", this->affecting_block_x, this->affecting_block_y, this->affecting_block_z, this->block_x, this->block_y, this->block_z );
-        BlockUpdateEvent *blockPlacedEvent = new PlayerBlockPlacedEvent( this->tick_number + affecting_block->flows, this->block_x, this->block_y, this->block_z, {affecting_block_state.id, 0, affecting_block->initial_redstone_power} );
+        BlockUpdateEvent *blockPlacedEvent =
+            new PlayerBlockPlacedEvent( this->tick_number + affecting_block->flows, this->block_x, this->block_y, this->block_z, {affecting_block_state.id, 0, affecting_block->initial_redstone_power}, false );
         blockUpdateQueue->addBlockUpdate( blockPlacedEvent );
     }
 
@@ -71,7 +72,7 @@ void BlockNextToChangeEvent::performAction( BlockUpdateQueue *blockUpdateQueue, 
         if ( new_power != affecting_block_state.current_redstone_power ) {
             // pr_debug( "Queueing event1 with old:%d new:%d", affecting_block_state.current_redstone_power, new_power );
             BlockUpdateEvent *blockPlacedEvent =
-                new PlayerBlockPlacedEvent( this->tick_number + REDSTONE_DELAY, this->affecting_block_x, this->affecting_block_y, this->affecting_block_z, {affecting_block_state.id, affecting_block_state.rotation, new_power} );
+                new PlayerBlockPlacedEvent( this->tick_number + REDSTONE_DELAY, this->affecting_block_x, this->affecting_block_y, this->affecting_block_z, {affecting_block_state.id, affecting_block_state.rotation, new_power}, true );
             blockUpdateQueue->addBlockUpdate( blockPlacedEvent );
         }
     }
@@ -94,7 +95,7 @@ void BlockNextToChangeEvent::performAction( BlockUpdateQueue *blockUpdateQueue, 
         }
         if ( new_power != updateing_block_state.current_redstone_power ) {
             // pr_debug( "Queueing event2 with old:%d new:%d", updateing_block_state.current_redstone_power, new_power );
-            BlockUpdateEvent *blockPlacedEvent = new PlayerBlockPlacedEvent( this->tick_number + REDSTONE_DELAY, this->block_x, this->block_y, this->block_z, {updateing_block_state.id, updateing_block_state.rotation, new_power} );
+            BlockUpdateEvent *blockPlacedEvent = new PlayerBlockPlacedEvent( this->tick_number + REDSTONE_DELAY, this->block_x, this->block_y, this->block_z, {updateing_block_state.id, updateing_block_state.rotation, new_power}, true );
             blockUpdateQueue->addBlockUpdate( blockPlacedEvent );
         }
     }
@@ -108,7 +109,7 @@ void BlockNextToChangeEvent::performAction( BlockUpdateQueue *blockUpdateQueue, 
             block_below_is_good = block_definition_get_definition( below_block_id )->collides_with_player;
         }
         if ( !block_below_is_good ) {
-            BlockUpdateEvent *blockPlacedEvent = new PlayerBlockPlacedEvent( this->tick_number, this->block_x, this->block_y, this->block_z, BLOCK_STATE_AIR );
+            BlockUpdateEvent *blockPlacedEvent = new PlayerBlockPlacedEvent( this->tick_number, this->block_x, this->block_y, this->block_z, BLOCK_STATE_AIR, false );
             blockUpdateQueue->addBlockUpdate( blockPlacedEvent );
         }
     }
@@ -121,7 +122,7 @@ void BlockNextToChangeEvent::performAction( BlockUpdateQueue *blockUpdateQueue, 
             block_below_is_good = block_definition_get_definition( below_block_id )->collides_with_player;
         }
         if ( !block_below_is_good ) {
-            BlockUpdateEvent *blockPlacedEvent = new PlayerBlockPlacedEvent( this->tick_number, this->affecting_block_x, this->affecting_block_y, this->affecting_block_z, BLOCK_STATE_AIR );
+            BlockUpdateEvent *blockPlacedEvent = new PlayerBlockPlacedEvent( this->tick_number, this->affecting_block_x, this->affecting_block_y, this->affecting_block_z, BLOCK_STATE_AIR, false );
             blockUpdateQueue->addBlockUpdate( blockPlacedEvent );
         }
     }

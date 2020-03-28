@@ -3,7 +3,8 @@
 #include "common/multiplayer.hpp"
 #include "common/block_update_events/BlockNextToChangeEvent.hpp"
 
-PlayerBlockPlacedEvent::PlayerBlockPlacedEvent( long tick_number, int x, int y, int z, BlockState blockState ) : BlockUpdateEvent( tick_number ), block_x( x ), block_y( y ), block_z( z ), blockState( blockState ) {
+PlayerBlockPlacedEvent::PlayerBlockPlacedEvent( long tick_number, int x, int y, int z, BlockState blockState, bool state_update ) //
+    : BlockUpdateEvent( tick_number ), block_x( x ), block_y( y ), block_z( z ), blockState( blockState ), state_update( state_update ) {
     this->name = "PlayerBlockPlacedEvent";
 }
 
@@ -27,9 +28,12 @@ void PlayerBlockPlacedEvent::performAction( BlockUpdateQueue *blockUpdateQueue, 
         // Unless that block flows, and the other block can be broken by fluid
         if ( new_block->flows != 0 && current_block->breaks_in_liquid ) {
             // This position already has a block, but the new block is a liquid, and the current block will break in a liquid
-        } else
+        } else if ( this->state_update && this->blockState.id == current_block_state.id ) {
+            // This position already has the same type of block, allow other state to change.
+        } else {
             // This position already has a block that can't be replaced.
             return;
+        }
     }
     // If you're destroying a block, the destroyed block must have can_be_destroyed
     // if (this->blockState.id == AIR && !current_block->can_be_destroyed){

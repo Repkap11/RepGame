@@ -5,7 +5,7 @@
 
 class PlayerBlockPlacedEvent : public BlockUpdateEvent {
   public:
-    PlayerBlockPlacedEvent(long tick_number, int block_x, int block_y, int block_z, BlockState blockState );
+    PlayerBlockPlacedEvent( long tick_number, int block_x, int block_y, int block_z, BlockState blockState, bool state_update );
     void performAction( BlockUpdateQueue *blockUpdateQueue, World *world ) override;
 
   private:
@@ -13,6 +13,7 @@ class PlayerBlockPlacedEvent : public BlockUpdateEvent {
     int block_y;
     int block_z;
     BlockState blockState;
+    bool state_update;
 
     void performActionToNeighbor( BlockUpdateQueue *blockUpdateQueue, World *world, int i, int j, int k );
 };
