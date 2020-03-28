@@ -151,4 +151,6 @@ typedef struct {
 
 } BlockCoords;
 
+void block_adjust_coord_based_on_state( const Block *block, const BlockState *blockState, BlockCoords *blockCoord );
+
 #endif

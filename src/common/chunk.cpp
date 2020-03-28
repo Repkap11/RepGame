@@ -573,16 +573,12 @@ void chunk_calculate_popupated_blocks( Chunk *chunk ) {
 
                         for ( int i = 0; i < NUM_FACES_IN_CUBE; i++ ) {
                             blockCoord->packed_lighting[ i ] = workingSpace[ index ].packed_lighting[ i ];
-                            BlockID texture = block->textures[ i ];
-                            if ( texture == REDSTONE_LAMP_UNPOWERED && blockState.current_redstone_power > 0 ) {
-                                texture = REDSTONE_LAMP_POWERED;
-                            } else if ( texture == REDSTONE_LINE_UNPOWERED && blockState.current_redstone_power > 0 ) {
-                                texture = REDSTONE_LINE_POWERED;
-                            } else if ( blockState.current_redstone_power > 0 ) {
-                                // texture = GOLD_BLOCK;
-                            }
-
-                            blockCoord->face[ i ] = texture - 1;
+                            blockCoord->face[ i ] = block->textures[ i ];
+                        }
+                        block_adjust_coord_based_on_state( block, &blockState, blockCoord );
+                        // They are offset by 1 in the shader...
+                        for ( int i = 0; i < NUM_FACES_IN_CUBE; i++ ) {
+                            blockCoord->face[ i ] = blockCoord->face[ i ] - 1;
                         }
                     }
                 }
