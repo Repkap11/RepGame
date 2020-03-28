@@ -104,12 +104,14 @@ void main( ) {
             texCoordBlock_adjust = vec2( texCoordBlock.x, texCoordBlock.y );
         } else if ( ( faceType == FACE_TOP && rotation == BLOCK_ROTATE_270 ) || ( faceType == FACE_BOTTOM && rotation == BLOCK_ROTATE_90 ) ) {
             face_scale.xy = mesh_size.zx;
+            blockCoords_scale_adjust.xz = blockCoords_scale_adjust.zx;
             texCoordBlock_adjust = vec2( 1.0f - texCoordBlock.y, texCoordBlock.x );
         } else if ( rotation == BLOCK_ROTATE_180 ) {
             face_scale.xy = mesh_size.xz;
             texCoordBlock_adjust = vec2( 1.0 - texCoordBlock.x, 1.0 - texCoordBlock.y );
         } else if ( ( faceType == FACE_TOP && rotation == BLOCK_ROTATE_90 ) || ( faceType == FACE_BOTTOM && rotation == BLOCK_ROTATE_270 ) ) {
             face_scale.xy = mesh_size.zx;
+            blockCoords_scale_adjust.xz = blockCoords_scale_adjust.zx;
             texCoordBlock_adjust = vec2( texCoordBlock.y, 1.0 - texCoordBlock.x );
         }
         if ( u_ScaleTextureBlock != 0u ) {
@@ -123,7 +125,11 @@ void main( ) {
             face_scale.x *= blockCoords_scale_adjust.z;
             face_scale.y *= blockCoords_scale_adjust.y;
         }
-        face_shift = texCoords_offset.zy;
+        if ( rotation == BLOCK_ROTATE_90 || rotation == BLOCK_ROTATE_270 ) {
+            face_shift = texCoords_offset.zy;
+        } else {
+            face_shift = texCoords_offset.xy;
+        }
 
     } else if ( faceType == FACE_FRONT || faceType == FACE_BACK ) {
         faceType_rotated = ( faceType - rotation - 2u ) % 4u + 2u;
@@ -132,8 +138,11 @@ void main( ) {
             face_scale.x *= blockCoords_scale_adjust.x;
             face_scale.y *= blockCoords_scale_adjust.y;
         }
-
-        face_shift = texCoords_offset.xy;
+        if ( rotation == BLOCK_ROTATE_90 || rotation == BLOCK_ROTATE_270 ) {
+            face_shift = texCoords_offset.xy;
+        } else {
+            face_shift = texCoords_offset.zy;
+        }
     }
     float face_light;
     if ( faceType == FACE_TOP ) {

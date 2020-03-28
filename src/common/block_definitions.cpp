@@ -71,6 +71,21 @@ void block_definitions_initilize_definitions( Texture *texture ) {
     block_definitions[ REDSTONE_LINE ].affected_by_redstone_power = 1;
     block_definitions[ REDSTONE_LINE ].transmits_redstone_power = 1;
 
+    BlockID pane_shaped[] = {GLASS_PANE};
+    for ( unsigned int i = 0; i < sizeof( pane_shaped ) / sizeof( BlockID ); i++ ) {
+        BlockID id = pane_shaped[ i ];
+        block_definitions[ id ].scale = {1, 1, 2.0f / 16.0f};
+        block_definitions[ id ].offset = {0, 0, 7.0f / 16.0f};
+        block_definitions[ id ].tex_offset = {-7.0f / 16.0f, 0, 0};
+        block_definitions[ id ].rotate_on_placement = true;
+        block_definitions[ id ].is_seethrough = true;
+        block_definitions[ id ].can_mesh_x = false;
+        block_definitions[ id ].can_mesh_y = false;
+        block_definitions[ id ].can_mesh_z = false;
+        block_definitions[ id ].casts_shadow = false;
+        // block_definitions[ id ].hides_self = true;
+    }
+
     BlockID torch_shaped[] = {TORCH, BURNT_OUT_TORCH, REDSTONE_TORCH, REDSTONE_TORCH_OFF, BLACK_TORCH, BLUE_TORCH, WHITE_TORCH, PURPLE_TORCH, RED_TORCH, CYAN_TORCH};
     for ( unsigned int i = 0; i < sizeof( torch_shaped ) / sizeof( BlockID ); i++ ) {
         BlockID id = torch_shaped[ i ];
@@ -107,6 +122,9 @@ void block_definitions_initilize_definitions( Texture *texture ) {
         block_definitions[ id ].can_mesh_y = false;
         block_definitions[ id ].can_mesh_z = true;
     }
+
+    block_definitions[ GLASS_PANE ].textures[ FACE_FRONT ] = GLASS;
+    block_definitions[ GLASS_PANE ].textures[ FACE_BACK ] = GLASS;
 
     block_definitions[ STONE_BRICK_SLAB ].textures[ FACE_TOP ] = STONE_BRICK;
     block_definitions[ STONE_BRICK_SLAB ].textures[ FACE_BOTTOM ] = STONE_BRICK;
@@ -284,17 +302,17 @@ void block_definitions_initilize_definitions( Texture *texture ) {
     block_definitions[ PODZEL ].textures[ FACE_BACK ] = PODZEL_SIDE;
     block_definitions[ PODZEL ].textures[ FACE_BOTTOM ] = DIRT;
 
-    block_definitions[ WHITE_GLASS ].is_seethrough = true;
+    block_definitions[ GLASS ].is_seethrough = true;
     block_definitions[ BIRTCH_LEAVES ].is_seethrough = true;
     block_definitions[ PINE_LEAF ].is_seethrough = true;
     block_definitions[ JUNGLE_LEAF ].is_seethrough = true;
     block_definitions[ LEAF ].is_seethrough = true;
 
-    block_definitions[ WHITE_GLASS ].casts_shadow = false;
+    block_definitions[ GLASS ].casts_shadow = false;
 
-    block_definitions[ WHITE_GLASS ].can_mesh_x = false;
-    block_definitions[ WHITE_GLASS ].can_mesh_y = false;
-    block_definitions[ WHITE_GLASS ].can_mesh_z = false;
+    block_definitions[ GLASS ].can_mesh_x = false;
+    block_definitions[ GLASS ].can_mesh_y = false;
+    block_definitions[ GLASS ].can_mesh_z = false;
     block_definitions[ BIRTCH_LEAVES ].can_mesh_x = false;
     block_definitions[ BIRTCH_LEAVES ].can_mesh_y = false;
     block_definitions[ BIRTCH_LEAVES ].can_mesh_z = false;
@@ -308,13 +326,13 @@ void block_definitions_initilize_definitions( Texture *texture ) {
     block_definitions[ LEAF ].can_mesh_y = false;
     block_definitions[ LEAF ].can_mesh_z = false;
 
-    block_definitions[ WHITE_GLASS ].no_light = NO_LIGHT_NO_DRAW;
+    block_definitions[ GLASS ].no_light = NO_LIGHT_NO_DRAW;
     block_definitions[ BIRTCH_LEAVES ].no_light = NO_LIGHT_DRAW;
     block_definitions[ PINE_LEAF ].no_light = NO_LIGHT_DRAW;
     block_definitions[ JUNGLE_LEAF ].no_light = NO_LIGHT_DRAW;
     block_definitions[ LEAF ].no_light = NO_LIGHT_DRAW;
 
-    block_definitions[ WHITE_GLASS ].hides_self = true;
+    block_definitions[ GLASS ].hides_self = true;
 
     block_definitions[ FURNACE_LIT ].rotate_on_placement = true;
     block_definitions[ FURNACE_UNLIT ].rotate_on_placement = true;
