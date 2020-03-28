@@ -60,29 +60,75 @@ int contains_pixel( Block *pixel_block, BlockState *block_state, float dir_x, fl
     all_t[ FACE_LEFT ] = ( c1_x - initial_x ) * dirfrac_x;
     all_t[ FACE_FRONT ] = ( c1_z - initial_z ) * dirfrac_z;
 
-    float tmin = fmax( fmax( fmin( all_t[ FACE_LEFT ], all_t[ FACE_RIGHT ] ), fmin( all_t[ FACE_BOTTOM ], all_t[ FACE_TOP ] ) ), fmin( all_t[ FACE_BACK ], all_t[ FACE_FRONT ] ) );
-    float tmax = fmin( fmin( fmax( all_t[ FACE_LEFT ], all_t[ FACE_RIGHT ] ), fmax( all_t[ FACE_BOTTOM ], all_t[ FACE_TOP ] ) ), fmax( all_t[ FACE_BACK ], all_t[ FACE_FRONT ] ) );
+    float rl_min;
+    float rl_max;
+    float rl_face;
+    if ( all_t[ FACE_RIGHT ] < all_t[ FACE_LEFT ] ) {
+        rl_face = FACE_RIGHT;
+        rl_min = all_t[ FACE_RIGHT ];
+        rl_max = all_t[ FACE_LEFT ];
+    } else {
+        rl_face = FACE_LEFT;
+        rl_max = all_t[ FACE_RIGHT ];
+        rl_min = all_t[ FACE_LEFT ];
+    }
 
-    // if tmax < 0, ray (line) is intersecting AABB, but the whole AABB is behind us
-    if ( tmax < 0 ) {
+    float tb_min;
+    float tb_max;
+    float tb_face;
+    if ( all_t[ FACE_TOP ] < all_t[ FACE_BOTTOM ] ) {
+        tb_face = FACE_TOP;
+        tb_min = all_t[ FACE_TOP ];
+        tb_max = all_t[ FACE_BOTTOM ];
+    } else {
+        tb_face = FACE_BOTTOM;
+        tb_max = all_t[ FACE_TOP ];
+        tb_min = all_t[ FACE_BOTTOM ];
+    }
+
+    float fb_min;
+    float fb_max;
+    float fb_face;
+    if ( all_t[ FACE_FRONT ] < all_t[ FACE_BACK ] ) {
+        fb_face = FACE_FRONT;
+        fb_min = all_t[ FACE_FRONT ];
+        fb_max = all_t[ FACE_BACK ];
+    } else {
+        fb_face = FACE_BACK;
+        fb_max = all_t[ FACE_FRONT ];
+        fb_min = all_t[ FACE_BACK ];
+    }
+
+    float min;
+    float face;
+    if ( rl_min > tb_min ) {
+        face = rl_face;
+        min = rl_min;
+    } else {
+        face = tb_face;
+        min = tb_min;
+    }
+    if ( fb_min > min ) {
+        face = fb_face;
+        min = fb_min;
+    }
+    float max = fmin( fmin( rl_max, tb_max ), fb_max );
+
+    // The whole AABB is behind us
+    if ( max < 0 ) {
         // length = tmax;
         return false;
     }
 
-    // if tmin > tmax, ray doesn't intersect AABB
-    if ( tmin > tmax ) {
+    // Ray doesn't intersect AABB
+    if ( min > max ) {
         // length = tmax;
         return false;
     }
-    // float all_debug_t[ 7 ] = {all_t[ FACE_LEFT ], all_t[ FACE_RIGHT ], all_t[ FACE_BOTTOM ], all_t[ FACE_TOP ], all_t[ FACE_BACK ], all_t[ FACE_FRONT ]};
 
-    // length = tmin;
-    for ( int i = 0; i < 7; i++ ) {
-        if ( all_t[ i ] == tmin ) {
-            *which_face = i;
-            pr_debug( "Match with face%d", i );
-        }
-    }
+    *which_face = face;
+    pr_debug( "Match with face:%d", face );
+
     return true;
 }
 

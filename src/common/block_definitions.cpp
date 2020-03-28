@@ -47,6 +47,7 @@ void block_definitions_initilize_definitions( Texture *texture ) {
         block->affected_by_redstone_power = 1;   // dust, piston, all solid blocks
         block->transmits_redstone_power = false; // dust
         block->needs_place_on_solid_but_can_stack_on_self = false;
+        block->can_be_placed_in = false;
     }
 
     block_definitions[ LADDER ].scale = {1, 1, 1.0f / 16.0f};
@@ -290,6 +291,7 @@ void block_definitions_initilize_definitions( Texture *texture ) {
             block->hides_self = true;
             block->is_pickable = false;
             block->collides_with_player = false;
+            block->can_be_placed_in = true;
         }
         if ( block->renderOrder == RenderOrder_Transparent ) {
             block->is_seethrough = true;
@@ -299,6 +301,7 @@ void block_definitions_initilize_definitions( Texture *texture ) {
             block->collides_with_player = false;
             block->breaks_in_liquid = true;
             block->affected_by_redstone_power = false;
+            block->can_be_placed_in = true;
 
             // block->can_mesh = true; not that it matters...
         }

@@ -91,9 +91,6 @@ void repgame_process_mouse_events( ) {
     if ( globalGameState.block_selection.selectionInBounds && globalGameState.input.mouse.buttons.right && globalGameState.input.click_delay_right == 0 ) {
         unsigned char rotation = getPlacedRotation( globalGameState.block_selection.holdingBlock );
         Block *held_block = block_definition_get_definition( globalGameState.block_selection.holdingBlock );
-        if ( held_block->initial_redstone_power != 0 ) {
-            pr_debug( "Placed a block with redstone power" );
-        }
         change_block( 1, {globalGameState.block_selection.holdingBlock, rotation, 0} );
         globalGameState.input.click_delay_right = 30;
     }

@@ -249,6 +249,7 @@ typedef struct {
     int initial_redstone_power;
     int affected_by_redstone_power;
     int transmits_redstone_power;
+    int can_be_placed_in;
 } Block;
 
 typedef struct {
