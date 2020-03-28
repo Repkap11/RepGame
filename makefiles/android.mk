@@ -11,7 +11,11 @@ android/app/src/main/assets/shaders:
 	mkdir -p $@
 
 all: android
-android: android-shaders android-bitmaps $(REP_MAKEFILES)
+
+android-find-new-files:
+	touch ./android/app/CMakeLists.txt
+
+android: android-shaders android-bitmaps $(REP_MAKEFILES) android-find-new-files
 	./android/gradlew --console=plain -q -p android assembleDebug
 
 android-run: android
@@ -46,4 +50,4 @@ android/app/src/main/assets/%.glsl: src/shaders/%.glsl $(REP_MAKEFILES) | $(ANDR
 android/app/src/main/res/raw/%: out/bitmaps/% $(REP_MAKEFILES) | $(ANDROID_DIRS)
 	cp $< $@
 
-.PHONY: android android-run android-shaders clean-android android-deploy
+.PHONY: android android-run android-shaders clean-android android-deploy android-find-new-files
