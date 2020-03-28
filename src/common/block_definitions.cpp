@@ -71,7 +71,7 @@ void block_definitions_initilize_definitions( Texture *texture ) {
     block_definitions[ REDSTONE_LINE ].transmits_redstone_power = 1;
 
     BlockID slab_shaped[] = {STONE_BRICK_SLAB};
-    for ( int i = 0; i < sizeof( slab_shaped ) / sizeof( BlockID ); i++ ) {
+    for ( unsigned int i = 0; i < sizeof( slab_shaped ) / sizeof( BlockID ); i++ ) {
         BlockID id = slab_shaped[ i ];
         block_definitions[ id ].scale = {1, 1.0f / 2.0f, 1};
         block_definitions[ id ].offset = {0, 0, 0};
@@ -85,7 +85,7 @@ void block_definitions_initilize_definitions( Texture *texture ) {
     block_definitions[ STONE_BRICK_SLAB ].textures[ FACE_BOTTOM ] = STONE_BRICK;
 
     BlockID head_shaped[] = {SKELETON_HEAD, WHITHER_SKELETON_HEAD, ZOMBIE_HEAD, PLAYER_HEAD, CREEPER_HEAD};
-    for ( int i = 0; i < sizeof( head_shaped ) / sizeof( BlockID ); i++ ) {
+    for ( unsigned int i = 0; i < sizeof( head_shaped ) / sizeof( BlockID ); i++ ) {
         BlockID id = head_shaped[ i ];
         block_definitions[ id ].scale = {1.0f / 2.0f, 1.0f / 2.0f, 1.0f / 2.0f};
         block_definitions[ id ].offset = {0.25, 0, 0.25};
@@ -101,7 +101,7 @@ void block_definitions_initilize_definitions( Texture *texture ) {
         block_definitions[ id ].icon_is_isometric = false;
     }
     BlockID dust_shaped[] = {REDSTONE_LINE};
-    for ( int i = 0; i < sizeof( dust_shaped ) / sizeof( BlockID ); i++ ) {
+    for ( unsigned int i = 0; i < sizeof( dust_shaped ) / sizeof( BlockID ); i++ ) {
         BlockID id = dust_shaped[ i ];
         block_definitions[ id ].scale = {1, 1.0f / 16.0f, 1};
         block_definitions[ id ].offset = {0, 0, 0};
