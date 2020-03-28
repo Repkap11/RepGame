@@ -71,7 +71,24 @@ void block_definitions_initilize_definitions( Texture *texture ) {
     block_definitions[ REDSTONE_LINE ].affected_by_redstone_power = 1;
     block_definitions[ REDSTONE_LINE ].transmits_redstone_power = 1;
 
-    BlockID small_flower_shaped[] = {YELLOW_FLOWER, BLUE_FLOWER};
+    BlockID torch_shaped[] = {TORCH, BURNT_OUT_TORCH, REDSTONE_TORCH, REDSTONE_TORCH_OFF, BLACK_TORCH, BLUE_TORCH, WHITE_TORCH, PURPLE_TORCH, RED_TORCH, CYAN_TORCH};
+    for ( unsigned int i = 0; i < sizeof( torch_shaped ) / sizeof( BlockID ); i++ ) {
+        BlockID id = torch_shaped[ i ];
+        // block_definitions[ id ].scale = {1.0f / 16.0f, 1.0f, 1.0f / 16.0f};
+        block_definitions[ id ].scale = {2.0f / 16.0f, 10.0f / 16.0f, 2.0f / 16.0f};
+        block_definitions[ id ].offset = {7.0f / 16.0f, 0, 7.0f / 16.0f};
+        block_definitions[ id ].tex_offset = {-7.0f / 16.0f, 0, -7.0f / 16.0f};
+        block_definitions[ id ].is_seethrough = true;
+        block_definitions[ id ].can_mesh_x = false;
+        block_definitions[ id ].can_mesh_y = false;
+        block_definitions[ id ].can_mesh_z = false;
+        block_definitions[ id ].casts_shadow = false;
+        block_definitions[ id ].collides_with_player = false;
+        block_definitions[ id ].icon_is_isometric = false;
+        block_definitions[ id ].needs_place_on_solid = true;
+        block_definitions[ id ].breaks_in_liquid = true;
+    }
+    BlockID small_flower_shaped[] = {RED_FLOWER, YELLOW_FLOWER, BLUE_FLOWER, RED_MUSHROOM, BROWN_MUSHROOM, BLUE_FLOWER, TURTLE_EGGS1, TURTLE_EGGS2, EMPTY_POT, POPPY_FLOWER, LARGE_WHITE_FLOWER, BLACK_FLOWER};
     for ( unsigned int i = 0; i < sizeof( small_flower_shaped ) / sizeof( BlockID ); i++ ) {
         BlockID id = small_flower_shaped[ i ];
         block_definitions[ id ].scale = {1.0f / 2.0f, 11.0f / 16.0f, 1.0f / 2.0f};
@@ -434,8 +451,8 @@ void do_flowers( Block *block_definitions ) {
     block_definitions[ RED_CORAL2 ].renderOrder = RenderOrder_Flowers;
     block_definitions[ YELLOW_CORAL2 ].renderOrder = RenderOrder_Flowers;
     block_definitions[ SEAWEED ].renderOrder = RenderOrder_Flowers;
-    block_definitions[ CORAL_SPOTS1 ].renderOrder = RenderOrder_Flowers;
-    block_definitions[ CORAL_SPOTS2 ].renderOrder = RenderOrder_Flowers;
+    block_definitions[ TURTLE_EGGS1 ].renderOrder = RenderOrder_Flowers;
+    block_definitions[ TURTLE_EGGS2 ].renderOrder = RenderOrder_Flowers;
     block_definitions[ GRAYCALE_CORAL_1 ].renderOrder = RenderOrder_Flowers;
     block_definitions[ GRAYCALE_CORAL_2 ].renderOrder = RenderOrder_Flowers;
     block_definitions[ GRAYCALE_CORAL_3 ].renderOrder = RenderOrder_Flowers;
