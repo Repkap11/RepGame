@@ -73,10 +73,15 @@ void block_definitions_initilize_definitions( Texture *texture ) {
     block_definitions[ REED ].needs_place_on_solid_but_can_stack_on_self = true;
 
     block_definitions[ REDSTONE_LAMP ].affected_by_redstone_power = 1;
+
     block_definitions[ REDSTONE_BLOCK ].initial_redstone_power = 10;
     block_definitions[ REDSTONE_BLOCK ].affected_by_redstone_power = 0;
+
     block_definitions[ REDSTONE_LINE ].affected_by_redstone_power = 1;
     block_definitions[ REDSTONE_LINE ].transmits_redstone_power = 1;
+
+    block_definitions[ REDSTONE_TORCH ].affected_by_redstone_power = 1;
+    block_definitions[ REDSTONE_TORCH ].transmits_redstone_power = 1;
 
     BlockID pane_shaped[] = {GLASS_PANE};
     for ( unsigned int i = 0; i < sizeof( pane_shaped ) / sizeof( BlockID ); i++ ) {
@@ -451,6 +456,7 @@ void do_disable( Block *block_definitions ) {
     block_definitions[ RED_SANDSTONE_BRICK_BOTTOM ].renderOrder = RenderOrder_Transparent;
     block_definitions[ SANDSTONE_BRICK_TOP ].renderOrder = RenderOrder_Transparent;
     block_definitions[ SANDSTONE_BRICK_TOP ].renderOrder = RenderOrder_Transparent;
+    block_definitions[ REDSTONE_TORCH_OFF ].renderOrder = RenderOrder_Transparent;
 }
 
 void do_flowers( Block *block_definitions ) {

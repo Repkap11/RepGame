@@ -14,4 +14,7 @@ void block_adjust_coord_based_on_state( const Block *block, const BlockState *bl
     if ( blockState->id == REDSTONE_LINE_UNPOWERED && blockState->current_redstone_power > 0 ) {
         change_all_textures_to( blockCoord->face, REDSTONE_LINE_POWERED );
     }
+    if ( blockState->id == REDSTONE_TORCH && blockState->current_redstone_power > 0 ) {
+        change_all_textures_to( blockCoord->face, REDSTONE_TORCH_OFF );
+    }
 }
