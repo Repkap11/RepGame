@@ -12,7 +12,7 @@ typedef struct {
     float z;
 } RayTemp;
 
-int contains_pixel( Block *pixel_block, BlockState *block_state, float dir_x, float dir_y, float dir_z, float initial_x, float initial_y, float initial_z, float block_x, float block_y, float block_z ) {
+int contains_pixel( Block *pixel_block, BlockState *block_state, float dir_x, float dir_y, float dir_z, float initial_x, float initial_y, float initial_z, float block_x, float block_y, float block_z, int *which_face ) {
     // r.dir is unit direction vector of ray
     float dirfrac_x = 1.0f / dir_x;
     float dirfrac_y = 1.0f / dir_y;
@@ -52,15 +52,16 @@ int contains_pixel( Block *pixel_block, BlockState *block_state, float dir_x, fl
     // pr_debug( "%f %f %f", lb.x, lb.y, lb.z );
     // pr_debug( "%f %f %f", rt.x, rt.y, rt.z );
     // float length = 0;
-    float t1 = ( c1_x - initial_x ) * dirfrac_x;
-    float t2 = ( c2_x - initial_x ) * dirfrac_x;
-    float t3 = ( c1_y - initial_y ) * dirfrac_y;
-    float t4 = ( c2_y - initial_y ) * dirfrac_y;
-    float t5 = ( c1_z - initial_z ) * dirfrac_z;
-    float t6 = ( c2_z - initial_z ) * dirfrac_z;
+    float all_t[ NUM_FACES_IN_CUBE ];
+    all_t[ FACE_TOP ] = ( c2_y - initial_y ) * dirfrac_y;
+    all_t[ FACE_BOTTOM ] = ( c1_y - initial_y ) * dirfrac_y;
+    all_t[ FACE_RIGHT ] = ( c2_x - initial_x ) * dirfrac_x;
+    all_t[ FACE_BACK ] = ( c2_z - initial_z ) * dirfrac_z;
+    all_t[ FACE_LEFT ] = ( c1_x - initial_x ) * dirfrac_x;
+    all_t[ FACE_FRONT ] = ( c1_z - initial_z ) * dirfrac_z;
 
-    float tmin = fmax( fmax( fmin( t1, t2 ), fmin( t3, t4 ) ), fmin( t5, t6 ) );
-    float tmax = fmin( fmin( fmax( t1, t2 ), fmax( t3, t4 ) ), fmax( t5, t6 ) );
+    float tmin = fmax( fmax( fmin( all_t[ FACE_LEFT ], all_t[ FACE_RIGHT ] ), fmin( all_t[ FACE_BOTTOM ], all_t[ FACE_TOP ] ) ), fmin( all_t[ FACE_BACK ], all_t[ FACE_FRONT ] ) );
+    float tmax = fmin( fmin( fmax( all_t[ FACE_LEFT ], all_t[ FACE_RIGHT ] ), fmax( all_t[ FACE_BOTTOM ], all_t[ FACE_TOP ] ) ), fmax( all_t[ FACE_BACK ], all_t[ FACE_FRONT ] ) );
 
     // if tmax < 0, ray (line) is intersecting AABB, but the whole AABB is behind us
     if ( tmax < 0 ) {
@@ -73,12 +74,19 @@ int contains_pixel( Block *pixel_block, BlockState *block_state, float dir_x, fl
         // length = tmax;
         return false;
     }
+    // float all_debug_t[ 7 ] = {all_t[ FACE_LEFT ], all_t[ FACE_RIGHT ], all_t[ FACE_BOTTOM ], all_t[ FACE_TOP ], all_t[ FACE_BACK ], all_t[ FACE_FRONT ]};
 
     // length = tmin;
+    for ( int i = 0; i < 7; i++ ) {
+        if ( all_t[ i ] == tmin ) {
+            *which_face = i;
+            pr_debug( "Match with face%d", i );
+        }
+    }
     return true;
 }
 
-int contains_block( World *world, float dir_x, float dir_y, float dir_z, float initial_x, float initial_y, float initial_z, int block_x, int block_y, int block_z, int collide_with_unloaded, int is_pick ) {
+int contains_block( World *world, float dir_x, float dir_y, float dir_z, float initial_x, float initial_y, float initial_z, int block_x, int block_y, int block_z, int collide_with_unloaded, int is_pick, int *which_face ) {
     BlockState blockState = world_get_loaded_block( world, TRIP_ARGS( block_ ) );
     BlockID blockID = blockState.id;
     if ( blockID >= LAST_BLOCK_ID ) {
@@ -92,7 +100,7 @@ int contains_block( World *world, float dir_x, float dir_y, float dir_z, float i
         result = block->collides_with_player;
     }
     if ( result && block->non_full_size ) {
-        return contains_pixel( block, &blockState, dir_x, dir_y, dir_z, initial_x, initial_y, initial_z, block_x, block_y, block_z );
+        return contains_pixel( block, &blockState, dir_x, dir_y, dir_z, initial_x, initial_y, initial_z, block_x, block_y, block_z, which_face );
     } else {
         return result;
     }
@@ -155,7 +163,12 @@ int ray_traversal_find_block_from_to( World *world, Block *pixel_block,         
         face = FACE_BACK;
     }
     for ( ;; ) {
-        if ( contains_block( world, dir_x, dir_y, dir_z, x1, y1, z1, i, j, k, flag, is_pick ) ) {
+        int which_face = -1;
+        int hit_block = contains_block( world, dir_x, dir_y, dir_z, x1, y1, z1, i, j, k, flag, is_pick, &which_face );
+        if ( which_face != -1 ) {
+            face = which_face;
+        }
+        if ( hit_block ) {
             *out_x = i;
             *out_y = j;
             *out_z = k;
