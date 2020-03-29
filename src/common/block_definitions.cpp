@@ -28,11 +28,8 @@ void block_definitions_initilize_definitions( Texture *texture ) {
         }
         block->no_light = NO_LIGHT_NO_DRAW;
         block->casts_shadow = true;
-        block->can_mesh_x = true;
-        block->can_mesh_y = true;
-        block->can_mesh_z = true;
         block->hides_self = false; // like connected glass so you don't see the perpendicular panes, you probably need is_seethrough too.
-        block->is_seethrough = false;
+        block->is_seethrough2 = false;
         block->needs_place_on_solid = false;
         block->rotate_on_placement = false;
         block->icon_is_isometric = true;
@@ -56,10 +53,7 @@ void block_definitions_initilize_definitions( Texture *texture ) {
         block_definitions[ id ].scale = {14.0f / 16.0f, 1, 1.0f / 16.0f};
         block_definitions[ id ].offset = {1.0f / 16.0f, 0, 0};
         block_definitions[ id ].tex_offset = {-5.0f / 16.0f, 0.0f / 16.0f, -1.0f / 16.0f};
-        block_definitions[ id ].is_seethrough = true;
-        block_definitions[ id ].can_mesh_x = true;
-        block_definitions[ id ].can_mesh_y = true;
-        block_definitions[ id ].can_mesh_z = false;
+        block_definitions[ id ].is_seethrough2 = true;
         block_definitions[ id ].casts_shadow = false;
         block_definitions[ id ].icon_is_isometric = false;
         block_definitions[ id ].needs_place_on_solid = false;
@@ -68,6 +62,7 @@ void block_definitions_initilize_definitions( Texture *texture ) {
         block_definitions[ id ].rotate_on_placement = true;
         block_definitions[ id ].textures[ FACE_TOP ] = AIR;
         block_definitions[ id ].textures[ FACE_BOTTOM ] = AIR;
+        block_definitions[ id ].hides_self = true;
     }
 
     BlockID door_shaped[] = {( BlockID )146, ( BlockID )523, ( BlockID )147, ( BlockID )524, ( BlockID )525, ( BlockID )526, ( BlockID )527,
@@ -77,10 +72,7 @@ void block_definitions_initilize_definitions( Texture *texture ) {
         block_definitions[ id ].scale = {1, 1, 1.0f / 16.0f};
         block_definitions[ id ].offset = {0, 0, 0};
         block_definitions[ id ].tex_offset = {0.0f / 16.0f, 0, 0};
-        block_definitions[ id ].is_seethrough = true;
-        block_definitions[ id ].can_mesh_x = true;
-        block_definitions[ id ].can_mesh_y = true;
-        block_definitions[ id ].can_mesh_z = false;
+        block_definitions[ id ].is_seethrough2 = true;
         block_definitions[ id ].casts_shadow = false;
         block_definitions[ id ].icon_is_isometric = false;
         block_definitions[ id ].needs_place_on_solid = false;
@@ -111,10 +103,7 @@ void block_definitions_initilize_definitions( Texture *texture ) {
         block_definitions[ id ].offset = {0, 0, 7.0f / 16.0f};
         block_definitions[ id ].tex_offset = {-7.0f / 16.0f, 0, 0};
         block_definitions[ id ].rotate_on_placement = true;
-        block_definitions[ id ].is_seethrough = true;
-        block_definitions[ id ].can_mesh_x = false;
-        block_definitions[ id ].can_mesh_y = true;
-        block_definitions[ id ].can_mesh_z = false;
+        block_definitions[ id ].is_seethrough2 = true;
         block_definitions[ id ].casts_shadow = false;
         // block_definitions[ id ].hides_self = true;
     }
@@ -126,10 +115,7 @@ void block_definitions_initilize_definitions( Texture *texture ) {
         block_definitions[ id ].scale = {2.0f / 16.0f, 10.0f / 16.0f, 2.0f / 16.0f};
         block_definitions[ id ].offset = {7.0f / 16.0f, 0, 7.0f / 16.0f};
         block_definitions[ id ].tex_offset = {-7.0f / 16.0f, 0, -7.0f / 16.0f};
-        block_definitions[ id ].is_seethrough = true;
-        block_definitions[ id ].can_mesh_x = false;
-        block_definitions[ id ].can_mesh_y = false;
-        block_definitions[ id ].can_mesh_z = false;
+        // block_definitions[ id ].is_seethrough = true;
         block_definitions[ id ].casts_shadow = false;
         block_definitions[ id ].collides_with_player = false;
         block_definitions[ id ].icon_is_isometric = false;
@@ -150,10 +136,7 @@ void block_definitions_initilize_definitions( Texture *texture ) {
         block_definitions[ id ].scale = {1, 1.0f / 2.0f, 1};
         block_definitions[ id ].offset = {0, 0, 0};
         block_definitions[ id ].tex_offset = {0, -0.25, 0};
-        block_definitions[ id ].is_seethrough = true;
-        block_definitions[ id ].can_mesh_x = true;
-        block_definitions[ id ].can_mesh_y = false;
-        block_definitions[ id ].can_mesh_z = true;
+        // block_definitions[ id ].is_seethrough = true;
     }
 
     block_definitions[ GLASS_PANE ].textures[ FACE_FRONT ] = GLASS;
@@ -195,10 +178,7 @@ void block_definitions_initilize_definitions( Texture *texture ) {
         block_definitions[ id ].scale = {1.0f / 2.0f, 1.0f / 2.0f, 1.0f / 2.0f};
         block_definitions[ id ].offset = {0.25, 0, 0.25};
         block_definitions[ id ].tex_offset = {-0.25, -0.25, -0.25};
-        block_definitions[ id ].is_seethrough = true;
-        block_definitions[ id ].can_mesh_x = false;
-        block_definitions[ id ].can_mesh_y = false;
-        block_definitions[ id ].can_mesh_z = false;
+        // block_definitions[ id ].is_seethrough = true;
         block_definitions[ id ].casts_shadow = false;
         block_definitions[ id ].collides_with_player = false;
         block_definitions[ id ].casts_shadow = false;
@@ -211,10 +191,7 @@ void block_definitions_initilize_definitions( Texture *texture ) {
         block_definitions[ id ].scale = {1, 1.0f / 16.0f, 1};
         block_definitions[ id ].offset = {0, 0, 0};
         block_definitions[ id ].tex_offset = {0, 0, 0};
-        block_definitions[ id ].is_seethrough = true;
-        block_definitions[ id ].can_mesh_x = true;
-        block_definitions[ id ].can_mesh_y = false;
-        block_definitions[ id ].can_mesh_z = true;
+        block_definitions[ id ].is_seethrough2 = true;
         block_definitions[ id ].casts_shadow = false;
         block_definitions[ id ].icon_is_isometric = false;
         block_definitions[ id ].needs_place_on_solid = true;
@@ -335,29 +312,13 @@ void block_definitions_initilize_definitions( Texture *texture ) {
     block_definitions[ PODZEL ].textures[ FACE_BACK ] = PODZEL_SIDE;
     block_definitions[ PODZEL ].textures[ FACE_BOTTOM ] = DIRT;
 
-    block_definitions[ GLASS ].is_seethrough = true;
-    block_definitions[ BIRTCH_LEAVES ].is_seethrough = true;
-    block_definitions[ PINE_LEAF ].is_seethrough = true;
-    block_definitions[ JUNGLE_LEAF ].is_seethrough = true;
-    block_definitions[ LEAF ].is_seethrough = true;
+    block_definitions[ GLASS ].is_seethrough2 = true;
+    block_definitions[ BIRTCH_LEAVES ].is_seethrough2 = true;
+    block_definitions[ PINE_LEAF ].is_seethrough2 = true;
+    block_definitions[ JUNGLE_LEAF ].is_seethrough2 = true;
+    block_definitions[ LEAF ].is_seethrough2 = true;
 
     block_definitions[ GLASS ].casts_shadow = false;
-
-    block_definitions[ GLASS ].can_mesh_x = false;
-    block_definitions[ GLASS ].can_mesh_y = false;
-    block_definitions[ GLASS ].can_mesh_z = false;
-    block_definitions[ BIRTCH_LEAVES ].can_mesh_x = false;
-    block_definitions[ BIRTCH_LEAVES ].can_mesh_y = false;
-    block_definitions[ BIRTCH_LEAVES ].can_mesh_z = false;
-    block_definitions[ PINE_LEAF ].can_mesh_x = false;
-    block_definitions[ PINE_LEAF ].can_mesh_y = false;
-    block_definitions[ PINE_LEAF ].can_mesh_z = false;
-    block_definitions[ JUNGLE_LEAF ].can_mesh_x = false;
-    block_definitions[ JUNGLE_LEAF ].can_mesh_y = false;
-    block_definitions[ JUNGLE_LEAF ].can_mesh_z = false;
-    block_definitions[ LEAF ].can_mesh_x = false;
-    block_definitions[ LEAF ].can_mesh_y = false;
-    block_definitions[ LEAF ].can_mesh_z = false;
 
     block_definitions[ GLASS ].no_light = NO_LIGHT_NO_DRAW;
     block_definitions[ BIRTCH_LEAVES ].no_light = NO_LIGHT_DRAW;
@@ -392,12 +353,9 @@ void block_definitions_initilize_definitions( Texture *texture ) {
         if ( block->renderOrder == RenderOrder_Flowers ) {
             block->textures[ FACE_TOP ] = TNT;
             block->textures[ FACE_BOTTOM ] = TNT;
-            block->is_seethrough = true;
+            block->is_seethrough2 = true;
             block->no_light = NO_LIGHT_BRIGHT;
             block->casts_shadow = false;
-            block->can_mesh_x = false;
-            block->can_mesh_y = true;
-            block->can_mesh_z = false;
             block->needs_place_on_solid = true;
             block->icon_is_isometric = false;
             block->is_pickable = true;
@@ -406,7 +364,7 @@ void block_definitions_initilize_definitions( Texture *texture ) {
             block->affected_by_redstone_power = false;
         }
         if ( block->renderOrder == RenderOrder_Water ) {
-            block->is_seethrough = true;
+            block->is_seethrough2 = true;
             block->no_light = NO_LIGHT_BRIGHT;
             block->casts_shadow = false;
             block->icon_is_isometric = false;
@@ -416,7 +374,7 @@ void block_definitions_initilize_definitions( Texture *texture ) {
             block->can_be_placed_in = true;
         }
         if ( block->renderOrder == RenderOrder_Transparent ) {
-            block->is_seethrough = true;
+            block->is_seethrough2 = true;
             block->no_light = NO_LIGHT_DRAW;
             block->casts_shadow = false;
             block->is_pickable = false;
@@ -424,8 +382,32 @@ void block_definitions_initilize_definitions( Texture *texture ) {
             block->breaks_in_liquid = true;
             block->affected_by_redstone_power = false;
             block->can_be_placed_in = true;
-
-            // block->can_mesh = true; not that it matters...
+        }
+        if ( block->is_seethrough2 && !block->hides_self ) { // leaves, flowers
+            // This block can't mesh with itself
+            block->calculated.can_mesh_x = false;
+            block->calculated.can_mesh_y = false;
+            block->calculated.can_mesh_z = false;
+        } else if ( block->is_seethrough2 ) { // glass
+            block->calculated.can_mesh_x = block->scale.x == 1.0f ? true : false;
+            block->calculated.can_mesh_y = block->scale.y == 1.0f ? true : false;
+            block->calculated.can_mesh_z = block->scale.z == 1.0f ? true : false;
+        } else { // other blocks, like dirt
+            block->calculated.can_mesh_x = block->scale.x == 1.0f ? true : false;
+            block->calculated.can_mesh_y = block->scale.y == 1.0f ? true : false;
+            block->calculated.can_mesh_z = block->scale.z == 1.0f ? true : false;
+        }
+        if ( block->is_seethrough2 ) { // leaves, flowers, glass
+            for ( int face = FACE_TOP; face < NUM_FACES_IN_CUBE; face++ ) {
+                block->calculated.is_seethrough[ face ] = true;
+            }
+        } else { // other blocks, like dirt, slabs
+            block->calculated.is_seethrough[ FACE_TOP ] = ( block->scale.y + block->offset.y ) == 1.0f ? false : true;
+            block->calculated.is_seethrough[ FACE_BOTTOM ] = ( block->offset.y ) == 1.0f ? false : true;
+            block->calculated.is_seethrough[ FACE_RIGHT ] = ( block->scale.x + block->offset.x ) == 1.0f ? false : true;
+            block->calculated.is_seethrough[ FACE_FRONT ] = ( block->scale.z + block->offset.z ) == 1.0f ? false : true;
+            block->calculated.is_seethrough[ FACE_LEFT ] = ( block->offset.x ) == 1.0f ? false : true;
+            block->calculated.is_seethrough[ FACE_BACK ] = ( block->offset.z ) == 1.0f ? false : true;
         }
     }
 

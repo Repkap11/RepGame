@@ -250,10 +250,8 @@ typedef struct {
     RenderOrder renderOrder;
     int no_light;
     bool casts_shadow;
-    bool is_seethrough;
-    bool can_mesh_x;
-    bool can_mesh_y;
-    bool can_mesh_z;
+    bool is_seethrough2;
+
     bool hides_self;
     bool needs_place_on_solid;
     bool needs_place_on_solid_but_can_stack_on_self;
@@ -283,6 +281,12 @@ typedef struct {
     bool affected_by_redstone_power;
     bool transmits_redstone_power;
     bool can_be_placed_in;
+    struct {
+        bool can_mesh_x;
+        bool can_mesh_y;
+        bool can_mesh_z;
+        bool is_seethrough[ NUM_FACES_IN_CUBE ];
+    } calculated;
 
 } Block;
 

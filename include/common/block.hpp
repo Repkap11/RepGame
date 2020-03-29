@@ -122,6 +122,19 @@ static CubeFace vd_data_solid[] = {
 };
 #define VB_DATA_SIZE_SOLID ( 5 * 6 )
 
+#define FACE_TOP 0
+#define FACE_BOTTOM 1
+#define FACE_RIGHT 2
+#define FACE_FRONT 3
+#define FACE_LEFT 4
+#define FACE_BACK 5
+
+static int FACE_DIR_X_OFFSETS[ NUM_FACES_IN_CUBE ] = {0, 0, 1, 0, -1, 0};
+static int FACE_DIR_Y_OFFSETS[ NUM_FACES_IN_CUBE ] = {1, -1, 0, 0, 0, 0};
+static int FACE_DIR_Z_OFFSETS[ NUM_FACES_IN_CUBE ] = {0, 0, 0, 1, 0, -1};
+
+static int OPPOSITE_FACE[ NUM_FACES_IN_CUBE ] = {FACE_BOTTOM, FACE_TOP, FACE_LEFT, FACE_BACK, FACE_RIGHT, FACE_FRONT};
+
 // See world.cpp for vbl
 typedef struct {
     float x;
