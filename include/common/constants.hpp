@@ -50,7 +50,7 @@
 #define NO_CLIP 0
 #define MAP_SEED 0
 
-#define BLOCK_SCALE_OFFSET 0.1f
+#define BLOCK_SCALE_OFFSET 0.2f
 
 #define DISABLE_GROUPING_BLOCKS 0
 #define REACH_DISTANCE 7

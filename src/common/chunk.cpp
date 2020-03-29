@@ -300,16 +300,44 @@ void chunk_calculate_popupated_blocks( Chunk *chunk ) {
                     BlockID block_next_to_id = chunk->blocks[ chunk_get_index_from_coords( x + FACE_DIR_X_OFFSETS[ face ], y + FACE_DIR_Y_OFFSETS[ face ], z + FACE_DIR_Z_OFFSETS[ face ] ) ].id;
                     // TODO look at the blocks rotation...
                     Block *block_next_to_face = block_definition_get_definition( block_next_to_id );
-                    if ( is_seethrough && block->hides_self ) {
-                        if ( face == FACE_TOP && block->renderOrder == RenderOrder_Water ) {
-                            visible_from[ face ] = block_next_to_face->id != block->id;
-                        } else {
-                            visible_from[ face ] = block_next_to_face->calculated.is_seethrough[ OPPOSITE_FACE[ face ] ] && block_next_to_id != blockID;
+                    // if ( is_seethrough && block->hides_self ) { // water and glass
+                    //     if ( face == FACE_TOP && block->renderOrder == RenderOrder_Water ) {
+                    //         visible_from[ face ] = block_next_to_face->id != block->id;
+                    //     } else {
+                    //         visible_from[ face ] = block_next_to_face->calculated.is_seethrough[ OPPOSITE_FACE[ face ] ] && block_next_to_id != blockID;
+                    //     }
+                    // } else
+                    if ( is_seethrough ) { // The current block is seethough on this face. Check all the directions not opposing it;
+                        bool visable_through_opposing = false;
+                        for ( int face_around = FACE_TOP; face_around < NUM_FACES_IN_CUBE; face_around++ ) {
+                            if ( face_around == OPPOSITE_FACE[ face ] ) {
+                                // It's the non_opposing_face and parallel with this face, don't count it
+                                continue;
+                            }
+                            BlockID block_around_id = chunk->blocks[ chunk_get_index_from_coords( x + FACE_DIR_X_OFFSETS[ face_around ], y + FACE_DIR_Y_OFFSETS[ face_around ], z + FACE_DIR_Z_OFFSETS[ face_around ] ) ].id;
+                            Block *block_around = block_definition_get_definition( block_around_id );
+                            bool visible_towards_me = block_around->calculated.is_seethrough[ OPPOSITE_FACE[ face_around ] ];
+                            if ( visible_towards_me ) {
+                                visable_through_opposing = true;
+                                break;
+                            }
                         }
-                    } else if ( is_seethrough ) {
-                        visible_from[ face ] = true;
+                        visible_from[ face ] = visable_through_opposing;
+
                     } else {
-                        visible_from[ face ] = block_next_to_face->calculated.is_seethrough[ OPPOSITE_FACE[ face ] ];
+                        // {
+                        bool visable_through_opposing = false;
+                        for ( int non_opposing_face = FACE_TOP; non_opposing_face < NUM_FACES_IN_CUBE; non_opposing_face++ ) {
+                            if ( non_opposing_face == OPPOSITE_FACE[ face ] ) {
+                                // It's the non_opposing_face, don't count it
+                                continue;
+                            }
+                            if ( block_next_to_face->calculated.is_seethrough[ non_opposing_face ] ) {
+                                visable_through_opposing = true;
+                                break;
+                            }
+                        }
+                        visible_from[ face ] = visable_through_opposing;
                     }
                     block_is_visiable |= visible_from[ face ];
                 }

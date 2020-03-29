@@ -415,6 +415,8 @@ void block_definitions_initilize_definitions( Texture *texture ) {
             block->calculated.is_seethrough[ FACE_BACK ] = ( block->offset.z ) == 0 ? ( block->scale.y != 16 || block->scale.x != 16 ) : true;
         }
     }
+    Block *slab_block = &block_definitions[ STONE_BRICK_SLAB ];
+    pr_debug("Paul SLAB:%d ", slab_block->calculated.is_seethrough[FACE_TOP]);
 
     // Exceptions
     block_definitions[ SPIDER_WEB ].needs_place_on_solid = false;
