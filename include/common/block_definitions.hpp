@@ -249,16 +249,16 @@ typedef struct {
     BlockID textures[ NUM_FACES_IN_CUBE ];
     RenderOrder renderOrder;
     int no_light;
-    int casts_shadow;
-    int is_seethrough;
-    int can_mesh_x;
-    int can_mesh_y;
-    int can_mesh_z;
-    int hides_self;
-    int needs_place_on_solid;
-    int needs_place_on_solid_but_can_stack_on_self;
-    int rotate_on_placement;
-    int icon_is_isometric;
+    bool casts_shadow;
+    bool is_seethrough;
+    bool can_mesh_x;
+    bool can_mesh_y;
+    bool can_mesh_z;
+    bool hides_self;
+    bool needs_place_on_solid;
+    bool needs_place_on_solid_but_can_stack_on_self;
+    bool rotate_on_placement;
+    bool icon_is_isometric;
     int flows;
     struct {
         float x;
@@ -275,14 +275,15 @@ typedef struct {
         float y;
         float z;
     } tex_offset;
-    int non_full_size;
-    int is_pickable;
-    int collides_with_player;
-    int breaks_in_liquid;
+    bool non_full_size;
+    bool is_pickable;
+    bool collides_with_player;
+    bool breaks_in_liquid;
     int initial_redstone_power;
-    int affected_by_redstone_power;
-    int transmits_redstone_power;
-    int can_be_placed_in;
+    bool affected_by_redstone_power;
+    bool transmits_redstone_power;
+    bool can_be_placed_in;
+
 } Block;
 
 typedef struct {

@@ -9,7 +9,6 @@ PlayerBlockPlacedEvent::PlayerBlockPlacedEvent( long tick_number, int x, int y, 
 }
 
 void PlayerBlockPlacedEvent::performActionToNeighbor( BlockUpdateQueue *blockUpdateQueue, World *world, int i, int j, int k ) {
-
     BlockUpdateEvent *blockUpdatedEvent = new BlockNextToChangeEvent( this->tick_number, this->block_x, this->block_y, this->block_z, i, j, k );
     blockUpdateQueue->addBlockUpdate( blockUpdatedEvent );
 }
