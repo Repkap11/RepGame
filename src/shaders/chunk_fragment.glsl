@@ -30,6 +30,7 @@ void main( ) {
     vec2 working_int = vec2( v_TexCoordBlock.x - working_fract.x, v_TexCoordBlock.y - working_fract.y );
     // working_fract = vec2( 1.0 - working_fract.x, working_fract.y );
     int mod_sum = -1;
+    vec3 adjusted_face = vec3( 1, 1, 1 );
     if ( bool( v_block_auto_rotates ) ) {
         // if ( v_blockID == 0u ) {//Grass
         int x_mod = int( working_int.x ) % 32;
@@ -38,7 +39,7 @@ void main( ) {
         if ( mod_sum >= 8 && mod_sum < 16 ) {
             int offset = 1 - ( mod_sum % 2 );
             mod_sum = ( mod_sum + 2 * offset ) % 8;
-        } else  if ( mod_sum >= 24 && mod_sum < 32 ) {
+        } else if ( mod_sum >= 24 && mod_sum < 32 ) {
             mod_sum = 7 - ( mod_sum % 8 );
         } else if ( mod_sum >= 16 && mod_sum < 24 ) {
             int offset = 4 - ( mod_sum % 5 );
@@ -46,10 +47,13 @@ void main( ) {
         }
 
         if ( mod_sum == 0 ) {
+            adjusted_face.r = 2.0f;
             working_fract = vec2( 1.0f - working_fract.y, working_fract.x );
         } else if ( mod_sum == 1 ) {
+            adjusted_face.b = 2.0f;
             working_fract = vec2( 1.0f - working_fract.x, 1.0f - working_fract.y );
         } else if ( mod_sum == 2 ) {
+            adjusted_face.g = 2.0f;
             working_fract = vec2( working_fract.y, 1.0f - working_fract.x );
         } else {
             working_fract = vec2( working_fract.x, working_fract.y );
@@ -64,8 +68,11 @@ void main( ) {
     if ( u_shouldDiscardAlpha == 1.0f && texColor.a < 0.7 ) {
         discard;
     }
-    if ( float( mod_sum ) == u_ShowRotation ) {
-        texColor.r *= 2.1f;
+    // if ( float( mod_sum ) == u_ShowRotation ) {
+    //     texColor.r *= 2.1f;
+    // }
+    if ( u_ShowRotation != -2.0f ) {
+        texColor.rgb *= adjusted_face;
     }
     float corner_light = v_corner_lighting;
     color = texColor * vec4( corner_light, corner_light, corner_light, 1 );
