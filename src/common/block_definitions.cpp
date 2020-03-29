@@ -62,7 +62,12 @@ void block_definitions_initilize_definitions( Texture *texture ) {
         block_definitions[ id ].rotate_on_placement = true;
         block_definitions[ id ].textures[ FACE_TOP ] = AIR;
         block_definitions[ id ].textures[ FACE_BOTTOM ] = AIR;
-        block_definitions[ id ].hides_self = true;
+        // block_definitions[ id ].hides_self = true;
+
+        block_definitions[ id ].is_seethrough2 = false;
+        block_definitions[ id ].scale = {16, 16, 1};
+        block_definitions[ id ].offset = {0, 0, 0};
+        block_definitions[ id ].tex_offset = {-4, 0, 0};
     }
 
     BlockID door_shaped[] = {( BlockID )146, ( BlockID )523, ( BlockID )147, ( BlockID )524, ( BlockID )525, ( BlockID )526, ( BlockID )527,
@@ -401,12 +406,13 @@ void block_definitions_initilize_definitions( Texture *texture ) {
                 block->calculated.is_seethrough[ face ] = true;
             }
         } else { // other blocks, like dirt, slabs
-            block->calculated.is_seethrough[ FACE_TOP ] = ( block->scale.y + block->offset.y ) == 16 ? false : true;
-            block->calculated.is_seethrough[ FACE_BOTTOM ] = ( block->offset.y ) == 16 ? false : true;
-            block->calculated.is_seethrough[ FACE_RIGHT ] = ( block->scale.x + block->offset.x ) == 16 ? false : true;
-            block->calculated.is_seethrough[ FACE_FRONT ] = ( block->scale.z + block->offset.z ) == 16 ? false : true;
-            block->calculated.is_seethrough[ FACE_LEFT ] = ( block->offset.x ) == 16 ? false : true;
-            block->calculated.is_seethrough[ FACE_BACK ] = ( block->offset.z ) == 16 ? false : true;
+
+            block->calculated.is_seethrough[ FACE_TOP ] = ( block->scale.y + block->offset.y ) == 16 ? ( block->scale.x != 16 || block->scale.z != 16 ) : true;
+            block->calculated.is_seethrough[ FACE_BOTTOM ] = ( block->offset.y ) == 0 ? ( block->scale.x != 16 || block->scale.z != 16 ) : true;
+            block->calculated.is_seethrough[ FACE_RIGHT ] = ( block->scale.x + block->offset.x ) == 16 ? ( block->scale.y != 16 || block->scale.z != 16 ) : true;
+            block->calculated.is_seethrough[ FACE_FRONT ] = ( block->scale.z + block->offset.z ) == 16 ? ( block->scale.y != 16 || block->scale.x != 16 ) : true;
+            block->calculated.is_seethrough[ FACE_LEFT ] = ( block->offset.x ) == 0 ? ( block->scale.y != 16 || block->scale.z != 16 ) : true;
+            block->calculated.is_seethrough[ FACE_BACK ] = ( block->offset.z ) == 0 ? ( block->scale.y != 16 || block->scale.x != 16 ) : true;
         }
     }
 
