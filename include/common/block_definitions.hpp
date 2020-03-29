@@ -259,19 +259,19 @@ typedef struct {
     bool icon_is_isometric;
     int flows;
     struct {
-        float x;
-        float y;
-        float z;
+        char x;
+        char y;
+        char z;
     } scale;
     struct {
-        float x;
-        float y;
-        float z;
+        char x;
+        char y;
+        char z;
     } offset;
     struct {
-        float x;
-        float y;
-        float z;
+        char x;
+        char y;
+        char z;
     } tex_offset;
     bool non_full_size;
     bool is_pickable;

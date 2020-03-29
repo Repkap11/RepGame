@@ -94,13 +94,13 @@ void mouse_selection_set_block( MouseSelection *mouseSelection, int x, int y, in
         mouseSelection->block.z = z;
         mouseSelection->selected_block_state = blockState;
 
-        mouseSelection->block.scale_x = block->scale.x;
-        mouseSelection->block.scale_y = block->scale.y;
-        mouseSelection->block.scale_z = block->scale.z;
+        mouseSelection->block.scale_x = PIXEL_TO_FLOAT( block->scale.x );
+        mouseSelection->block.scale_y = PIXEL_TO_FLOAT( block->scale.y );
+        mouseSelection->block.scale_z = PIXEL_TO_FLOAT( block->scale.z );
 
-        mouseSelection->block.offset_x = block->offset.x;
-        mouseSelection->block.offset_y = block->offset.y;
-        mouseSelection->block.offset_z = block->offset.z;
+        mouseSelection->block.offset_x = PIXEL_TO_FLOAT( block->offset.x );
+        mouseSelection->block.offset_y = PIXEL_TO_FLOAT( block->offset.y );
+        mouseSelection->block.offset_z = PIXEL_TO_FLOAT( block->offset.z );
 
         mouseSelection->block.face_shift = blockState.rotation;
 

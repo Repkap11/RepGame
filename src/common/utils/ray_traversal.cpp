@@ -20,34 +20,34 @@ int contains_pixel( Block *pixel_block, BlockState *block_state, float dir_x, fl
     // lb is the corner of AABB with minimal coordinates - left bottom, rt is maximal corner
     // r.org is origin of ray
 
-    float scale_x = pixel_block->scale.x;
-    float scale_z = pixel_block->scale.z;
-    float offset_x = pixel_block->offset.x;
-    float offset_z = pixel_block->offset.z;
+    char scale_x = pixel_block->scale.x;
+    char scale_z = pixel_block->scale.z;
+    char offset_x = pixel_block->offset.x;
+    char offset_z = pixel_block->offset.z;
     if ( block_state->rotation == BLOCK_ROTATE_0 ) {
     } else if ( block_state->rotation == BLOCK_ROTATE_90 ) {
         scale_x = pixel_block->scale.z;
         scale_z = pixel_block->scale.x;
-        offset_x = 1.0f - pixel_block->scale.z - pixel_block->offset.z;
+        offset_x = 16 - pixel_block->scale.z - pixel_block->offset.z;
         offset_z = pixel_block->offset.x;
     } else if ( block_state->rotation == BLOCK_ROTATE_180 ) {
-        offset_x = 1.0f - pixel_block->scale.x - pixel_block->offset.x;
-        offset_z = 1.0f - pixel_block->scale.z - pixel_block->offset.z;
+        offset_x = 16 - pixel_block->scale.x - pixel_block->offset.x;
+        offset_z = 16 - pixel_block->scale.z - pixel_block->offset.z;
     } else if ( block_state->rotation == BLOCK_ROTATE_270 ) {
         scale_x = pixel_block->scale.z;
         scale_z = pixel_block->scale.x;
         offset_x = pixel_block->offset.z;
-        offset_z = 1.0f - pixel_block->scale.x - pixel_block->offset.x;
+        offset_z = 16 - pixel_block->scale.x - pixel_block->offset.x;
     }
 
-    float c1_x = block_x + offset_x;
-    float c1_z = block_z + offset_z;
+    float c1_x = block_x + PIXEL_TO_FLOAT( offset_x );
+    float c1_z = block_z + PIXEL_TO_FLOAT( offset_z );
 
-    float c2_x = c1_x + scale_x;
-    float c2_z = c1_z + scale_z;
+    float c2_x = c1_x + PIXEL_TO_FLOAT( scale_x );
+    float c2_z = c1_z + PIXEL_TO_FLOAT( scale_z );
 
-    float c1_y = block_y + pixel_block->offset.y;
-    float c2_y = c1_y + pixel_block->scale.y;
+    float c1_y = block_y + PIXEL_TO_FLOAT( pixel_block->offset.y );
+    float c2_y = c1_y + PIXEL_TO_FLOAT( pixel_block->scale.y );
 
     // pr_debug( "%f %f %f", lb.x, lb.y, lb.z );
     // pr_debug( "%f %f %f", rt.x, rt.y, rt.z );

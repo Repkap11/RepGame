@@ -530,17 +530,17 @@ void chunk_calculate_popupated_blocks( Chunk *chunk ) {
                         blockCoord->mesh_y = size_y;
                         blockCoord->mesh_z = size_z;
                         blockCoord->face_shift = blockState.rotation;
-                        blockCoord->scale_x = block->scale.x;
-                        blockCoord->scale_y = block->scale.y;
-                        blockCoord->scale_z = block->scale.z;
+                        blockCoord->scale_x = PIXEL_TO_FLOAT( block->scale.x );
+                        blockCoord->scale_y = PIXEL_TO_FLOAT( block->scale.y );
+                        blockCoord->scale_z = PIXEL_TO_FLOAT( block->scale.z );
 
-                        blockCoord->offset_x = block->offset.x;
-                        blockCoord->offset_y = block->offset.y;
-                        blockCoord->offset_z = block->offset.z;
+                        blockCoord->offset_x = PIXEL_TO_FLOAT( block->offset.x );
+                        blockCoord->offset_y = PIXEL_TO_FLOAT( block->offset.y );
+                        blockCoord->offset_z = PIXEL_TO_FLOAT( block->offset.z );
 
-                        blockCoord->tex_offset_x = block->tex_offset.x;
-                        blockCoord->tex_offset_y = block->tex_offset.y;
-                        blockCoord->tex_offset_z = block->tex_offset.z;
+                        blockCoord->tex_offset_x = PIXEL_TO_FLOAT( block->tex_offset.x );
+                        blockCoord->tex_offset_y = PIXEL_TO_FLOAT( block->tex_offset.y );
+                        blockCoord->tex_offset_z = PIXEL_TO_FLOAT( block->tex_offset.z );
 
                         for ( int i = 0; i < NUM_FACES_IN_CUBE; i++ ) {
                             blockCoord->packed_lighting[ i ] = workingSpace[ index ].packed_lighting[ i ];

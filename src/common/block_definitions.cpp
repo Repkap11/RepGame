@@ -36,7 +36,7 @@ void block_definitions_initilize_definitions( Texture *texture ) {
         block->is_pickable = true;
         block->collides_with_player = true;
         block->flows = 0;
-        block->scale = {1, 1, 1};
+        block->scale = {16, 16, 16};
         block->offset = {0, 0, 0};
         block->tex_offset = {0, 0, 0};
         block->breaks_in_liquid = false;
@@ -50,9 +50,9 @@ void block_definitions_initilize_definitions( Texture *texture ) {
     BlockID ladder_shaped[] = {LADDER};
     for ( unsigned int i = 0; i < sizeof( ladder_shaped ) / sizeof( BlockID ); i++ ) {
         BlockID id = ladder_shaped[ i ];
-        block_definitions[ id ].scale = {14.0f / 16.0f, 1, 1.0f / 16.0f};
-        block_definitions[ id ].offset = {1.0f / 16.0f, 0, 0};
-        block_definitions[ id ].tex_offset = {-5.0f / 16.0f, 0.0f / 16.0f, -1.0f / 16.0f};
+        block_definitions[ id ].scale = {14, 16, 1};
+        block_definitions[ id ].offset = {1, 0, 0};
+        block_definitions[ id ].tex_offset = {-5, 0, -1};
         block_definitions[ id ].is_seethrough2 = true;
         block_definitions[ id ].casts_shadow = false;
         block_definitions[ id ].icon_is_isometric = false;
@@ -69,9 +69,9 @@ void block_definitions_initilize_definitions( Texture *texture ) {
                              ( BlockID )122, ( BlockID )499, ( BlockID )123, ( BlockID )500, ( BlockID )501, ( BlockID )502, ( BlockID )503};
     for ( unsigned int i = 0; i < sizeof( door_shaped ) / sizeof( BlockID ); i++ ) {
         BlockID id = door_shaped[ i ];
-        block_definitions[ id ].scale = {1, 1, 1.0f / 16.0f};
+        block_definitions[ id ].scale = {16, 16, 1};
         block_definitions[ id ].offset = {0, 0, 0};
-        block_definitions[ id ].tex_offset = {0.0f / 16.0f, 0, 0};
+        block_definitions[ id ].tex_offset = {0, 0, 0};
         block_definitions[ id ].is_seethrough2 = true;
         block_definitions[ id ].casts_shadow = false;
         block_definitions[ id ].icon_is_isometric = false;
@@ -99,9 +99,9 @@ void block_definitions_initilize_definitions( Texture *texture ) {
     BlockID pane_shaped[] = {GLASS_PANE};
     for ( unsigned int i = 0; i < sizeof( pane_shaped ) / sizeof( BlockID ); i++ ) {
         BlockID id = pane_shaped[ i ];
-        block_definitions[ id ].scale = {1, 1, 2.0f / 16.0f};
-        block_definitions[ id ].offset = {0, 0, 7.0f / 16.0f};
-        block_definitions[ id ].tex_offset = {-7.0f / 16.0f, 0, 0};
+        block_definitions[ id ].scale = {16, 16, 2};
+        block_definitions[ id ].offset = {0, 0, 7};
+        block_definitions[ id ].tex_offset = {-7, 0, 0};
         block_definitions[ id ].rotate_on_placement = true;
         block_definitions[ id ].is_seethrough2 = true;
         block_definitions[ id ].casts_shadow = false;
@@ -111,10 +111,9 @@ void block_definitions_initilize_definitions( Texture *texture ) {
     BlockID torch_shaped[] = {TORCH, BURNT_OUT_TORCH, REDSTONE_TORCH, REDSTONE_TORCH_OFF, BLACK_TORCH, BLUE_TORCH, WHITE_TORCH, PURPLE_TORCH, RED_TORCH, CYAN_TORCH};
     for ( unsigned int i = 0; i < sizeof( torch_shaped ) / sizeof( BlockID ); i++ ) {
         BlockID id = torch_shaped[ i ];
-        // block_definitions[ id ].scale = {1.0f / 16.0f, 1.0f, 1.0f / 16.0f};
-        block_definitions[ id ].scale = {2.0f / 16.0f, 10.0f / 16.0f, 2.0f / 16.0f};
-        block_definitions[ id ].offset = {7.0f / 16.0f, 0, 7.0f / 16.0f};
-        block_definitions[ id ].tex_offset = {-7.0f / 16.0f, 0, -7.0f / 16.0f};
+        block_definitions[ id ].scale = {2, 10, 2};
+        block_definitions[ id ].offset = {7, 0, 7};
+        block_definitions[ id ].tex_offset = {-7, 0, -7};
         // block_definitions[ id ].is_seethrough = true;
         block_definitions[ id ].casts_shadow = false;
         block_definitions[ id ].collides_with_player = false;
@@ -125,17 +124,17 @@ void block_definitions_initilize_definitions( Texture *texture ) {
     BlockID small_flower_shaped[] = {RED_FLOWER, YELLOW_FLOWER, BLUE_FLOWER, RED_MUSHROOM, BROWN_MUSHROOM, BLUE_FLOWER, TURTLE_EGGS1, TURTLE_EGGS2, EMPTY_POT, POPPY_FLOWER, LARGE_WHITE_FLOWER, BLACK_FLOWER};
     for ( unsigned int i = 0; i < sizeof( small_flower_shaped ) / sizeof( BlockID ); i++ ) {
         BlockID id = small_flower_shaped[ i ];
-        block_definitions[ id ].scale = {1.0f / 2.0f, 11.0f / 16.0f, 1.0f / 2.0f};
-        block_definitions[ id ].offset = {0.25, 0, 0.25};
-        block_definitions[ id ].tex_offset = {-0.25, 0, -0.25};
+        block_definitions[ id ].scale = {8, 11, 8};
+        block_definitions[ id ].offset = {4, 0, 4};
+        block_definitions[ id ].tex_offset = {-4, 0, -4};
     }
 
     BlockID slab_shaped[] = {STONE_BRICK_SLAB, DARK_OAK_SLAB, OAK_SLAB, BIRTCH_SLAB, JUNGLE_SLAB, ACACIA_SLAB, RED_SANDSTONE_BRICK_SLAB, PINE_SLAB, COBBLESTONE_SLAB, SANDSTONE_SLAB};
     for ( unsigned int i = 0; i < sizeof( slab_shaped ) / sizeof( BlockID ); i++ ) {
         BlockID id = slab_shaped[ i ];
-        block_definitions[ id ].scale = {1, 1.0f / 2.0f, 1};
+        block_definitions[ id ].scale = {16, 8, 16};
         block_definitions[ id ].offset = {0, 0, 0};
-        block_definitions[ id ].tex_offset = {0, -0.25, 0};
+        block_definitions[ id ].tex_offset = {0, -4, 0};
         // block_definitions[ id ].is_seethrough = true;
     }
 
@@ -175,9 +174,9 @@ void block_definitions_initilize_definitions( Texture *texture ) {
     BlockID head_shaped[] = {SKELETON_HEAD, WHITHER_SKELETON_HEAD, ZOMBIE_HEAD, PLAYER_HEAD, CREEPER_HEAD};
     for ( unsigned int i = 0; i < sizeof( head_shaped ) / sizeof( BlockID ); i++ ) {
         BlockID id = head_shaped[ i ];
-        block_definitions[ id ].scale = {1.0f / 2.0f, 1.0f / 2.0f, 1.0f / 2.0f};
-        block_definitions[ id ].offset = {0.25, 0, 0.25};
-        block_definitions[ id ].tex_offset = {-0.25, -0.25, -0.25};
+        block_definitions[ id ].scale = {8, 8, 8};
+        block_definitions[ id ].offset = {4, 0, 4};
+        block_definitions[ id ].tex_offset = {-4, -4, -4};
         // block_definitions[ id ].is_seethrough = true;
         block_definitions[ id ].casts_shadow = false;
         block_definitions[ id ].collides_with_player = false;
@@ -188,7 +187,7 @@ void block_definitions_initilize_definitions( Texture *texture ) {
     BlockID dust_shaped[] = {REDSTONE_LINE};
     for ( unsigned int i = 0; i < sizeof( dust_shaped ) / sizeof( BlockID ); i++ ) {
         BlockID id = dust_shaped[ i ];
-        block_definitions[ id ].scale = {1, 1.0f / 16.0f, 1};
+        block_definitions[ id ].scale = {16, 1, 16};
         block_definitions[ id ].offset = {0, 0, 0};
         block_definitions[ id ].tex_offset = {0, 0, 0};
         block_definitions[ id ].is_seethrough2 = true;
@@ -342,7 +341,7 @@ void block_definitions_initilize_definitions( Texture *texture ) {
         Block *block = &block_definitions[ block_id ];
 
         // Calculate non_full_size so the result can be cached for access at runtime.
-        if ( ( block->scale.x != 1 || block->scale.y != 1 || block->scale.z != 1 ) ||    //
+        if ( ( block->scale.x != 16 || block->scale.y != 16 || block->scale.z != 16 ) || //
              ( block->offset.x != 0 || block->offset.y != 0 || block->offset.z != 0 ) || //
              ( block->tex_offset.x != 0 || block->tex_offset.y != 0 || block->tex_offset.z != 0 ) ) {
             block->non_full_size = true;
@@ -389,25 +388,25 @@ void block_definitions_initilize_definitions( Texture *texture ) {
             block->calculated.can_mesh_y = false;
             block->calculated.can_mesh_z = false;
         } else if ( block->is_seethrough2 ) { // glass
-            block->calculated.can_mesh_x = block->scale.x == 1.0f ? true : false;
-            block->calculated.can_mesh_y = block->scale.y == 1.0f ? true : false;
-            block->calculated.can_mesh_z = block->scale.z == 1.0f ? true : false;
+            block->calculated.can_mesh_x = block->scale.x == 16 ? true : false;
+            block->calculated.can_mesh_y = block->scale.y == 16 ? true : false;
+            block->calculated.can_mesh_z = block->scale.z == 16 ? true : false;
         } else { // other blocks, like dirt
-            block->calculated.can_mesh_x = block->scale.x == 1.0f ? true : false;
-            block->calculated.can_mesh_y = block->scale.y == 1.0f ? true : false;
-            block->calculated.can_mesh_z = block->scale.z == 1.0f ? true : false;
+            block->calculated.can_mesh_x = block->scale.x == 16 ? true : false;
+            block->calculated.can_mesh_y = block->scale.y == 16 ? true : false;
+            block->calculated.can_mesh_z = block->scale.z == 16 ? true : false;
         }
         if ( block->is_seethrough2 ) { // leaves, flowers, glass
             for ( int face = FACE_TOP; face < NUM_FACES_IN_CUBE; face++ ) {
                 block->calculated.is_seethrough[ face ] = true;
             }
         } else { // other blocks, like dirt, slabs
-            block->calculated.is_seethrough[ FACE_TOP ] = ( block->scale.y + block->offset.y ) == 1.0f ? false : true;
-            block->calculated.is_seethrough[ FACE_BOTTOM ] = ( block->offset.y ) == 1.0f ? false : true;
-            block->calculated.is_seethrough[ FACE_RIGHT ] = ( block->scale.x + block->offset.x ) == 1.0f ? false : true;
-            block->calculated.is_seethrough[ FACE_FRONT ] = ( block->scale.z + block->offset.z ) == 1.0f ? false : true;
-            block->calculated.is_seethrough[ FACE_LEFT ] = ( block->offset.x ) == 1.0f ? false : true;
-            block->calculated.is_seethrough[ FACE_BACK ] = ( block->offset.z ) == 1.0f ? false : true;
+            block->calculated.is_seethrough[ FACE_TOP ] = ( block->scale.y + block->offset.y ) == 16 ? false : true;
+            block->calculated.is_seethrough[ FACE_BOTTOM ] = ( block->offset.y ) == 16 ? false : true;
+            block->calculated.is_seethrough[ FACE_RIGHT ] = ( block->scale.x + block->offset.x ) == 16 ? false : true;
+            block->calculated.is_seethrough[ FACE_FRONT ] = ( block->scale.z + block->offset.z ) == 16 ? false : true;
+            block->calculated.is_seethrough[ FACE_LEFT ] = ( block->offset.x ) == 16 ? false : true;
+            block->calculated.is_seethrough[ FACE_BACK ] = ( block->offset.z ) == 16 ? false : true;
         }
     }
 
