@@ -50,14 +50,12 @@ void block_definitions_initilize_definitions( Texture *texture ) {
         block->can_be_placed_in = false;
     }
 
-    BlockID ladder_shaped[] = {LADDER,         ( BlockID )146, ( BlockID )523, ( BlockID )147, ( BlockID )524, ( BlockID )525, ( BlockID )526, ( BlockID )527,
-                               ( BlockID )122, ( BlockID )499, ( BlockID )123, ( BlockID )500, ( BlockID )501, ( BlockID )502, ( BlockID )503};
-
+    BlockID ladder_shaped[] = {LADDER};
     for ( unsigned int i = 0; i < sizeof( ladder_shaped ) / sizeof( BlockID ); i++ ) {
         BlockID id = ladder_shaped[ i ];
-        block_definitions[ id ].scale = {1, 1, 1.0f / 16.0f};
-        block_definitions[ id ].offset = {0, 0, 0};
-        block_definitions[ id ].tex_offset = {0, 0, 0};
+        block_definitions[ id ].scale = {14.0f / 16.0f, 1, 1.0f / 16.0f};
+        block_definitions[ id ].offset = {1.0f / 16.0f, 0, 0};
+        block_definitions[ id ].tex_offset = {-5.0f / 16.0f, 0.0f / 16.0f, -1.0f / 16.0f};
         block_definitions[ id ].is_seethrough = true;
         block_definitions[ id ].can_mesh_x = true;
         block_definitions[ id ].can_mesh_y = true;
@@ -68,20 +66,43 @@ void block_definitions_initilize_definitions( Texture *texture ) {
         block_definitions[ id ].collides_with_player = false;
         block_definitions[ id ].breaks_in_liquid = false;
         block_definitions[ id ].rotate_on_placement = true;
+        block_definitions[ id ].textures[ FACE_TOP ] = AIR;
+        block_definitions[ id ].textures[ FACE_BOTTOM ] = AIR;
+    }
+
+    BlockID door_shaped[] = {( BlockID )146, ( BlockID )523, ( BlockID )147, ( BlockID )524, ( BlockID )525, ( BlockID )526, ( BlockID )527,
+                             ( BlockID )122, ( BlockID )499, ( BlockID )123, ( BlockID )500, ( BlockID )501, ( BlockID )502, ( BlockID )503};
+    for ( unsigned int i = 0; i < sizeof( door_shaped ) / sizeof( BlockID ); i++ ) {
+        BlockID id = door_shaped[ i ];
+        block_definitions[ id ].scale = {1, 1, 1.0f / 16.0f};
+        block_definitions[ id ].offset = {0, 0, 0};
+        block_definitions[ id ].tex_offset = {0.0f / 16.0f, 0, 0};
+        block_definitions[ id ].is_seethrough = true;
+        block_definitions[ id ].can_mesh_x = true;
+        block_definitions[ id ].can_mesh_y = true;
+        block_definitions[ id ].can_mesh_z = false;
+        block_definitions[ id ].casts_shadow = false;
+        block_definitions[ id ].icon_is_isometric = false;
+        block_definitions[ id ].needs_place_on_solid = false;
+        block_definitions[ id ].collides_with_player = false;
+        block_definitions[ id ].breaks_in_liquid = false;
+        block_definitions[ id ].rotate_on_placement = true;
+        block_definitions[ id ].textures[ FACE_TOP ] = AIR;
+        block_definitions[ id ].textures[ FACE_BOTTOM ] = AIR;
     }
 
     block_definitions[ REED ].needs_place_on_solid_but_can_stack_on_self = true;
 
-    block_definitions[ REDSTONE_LAMP ].affected_by_redstone_power = 1;
+    block_definitions[ REDSTONE_LAMP ].affected_by_redstone_power = true;
 
     block_definitions[ REDSTONE_BLOCK ].initial_redstone_power = 10;
-    block_definitions[ REDSTONE_BLOCK ].affected_by_redstone_power = 0;
+    block_definitions[ REDSTONE_BLOCK ].affected_by_redstone_power = false;
 
-    block_definitions[ REDSTONE_LINE ].affected_by_redstone_power = 1;
-    block_definitions[ REDSTONE_LINE ].transmits_redstone_power = 1;
+    block_definitions[ REDSTONE_LINE ].affected_by_redstone_power = true;
+    block_definitions[ REDSTONE_LINE ].transmits_redstone_power = true;
 
-    block_definitions[ REDSTONE_TORCH ].affected_by_redstone_power = 1;
-    block_definitions[ REDSTONE_TORCH ].transmits_redstone_power = 1;
+    block_definitions[ REDSTONE_TORCH ].affected_by_redstone_power = true;
+    block_definitions[ REDSTONE_TORCH ].transmits_redstone_power = true;
 
     BlockID pane_shaped[] = {GLASS_PANE};
     for ( unsigned int i = 0; i < sizeof( pane_shaped ) / sizeof( BlockID ); i++ ) {
