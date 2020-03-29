@@ -288,6 +288,7 @@ static inline void initilizeGameState( const char *world_name ) {
         // globalGameState.block_selection.holdingBlock = WATER;
         globalGameState.camera.angle_H = saved_data.angle_H;
         globalGameState.camera.angle_V = saved_data.angle_V;
+        globalGameState.input.player_flying = saved_data.flying;
     }
 }
 
@@ -446,6 +447,7 @@ void repgame_cleanup( ) {
     saved_data.world_z = globalGameState.camera.z;
     saved_data.angle_H = globalGameState.camera.angle_H;
     saved_data.angle_V = globalGameState.camera.angle_V;
+    saved_data.flying = globalGameState.input.player_flying;
 
     saved_data.holdingBlock = globalGameState.block_selection.holdingBlock;
     map_storage_write_player_data( &saved_data );

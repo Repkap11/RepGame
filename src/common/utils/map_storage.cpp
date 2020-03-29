@@ -209,6 +209,7 @@ int map_storage_read_player_data( PlayerData *player_data ) {
         pr_debug( "No player data:%s (%p)", file_name, read_ptr );
         return 0;
     }
+    memset( player_data, 0, sizeof( PlayerData ) );
     int persist_data_length = fread( player_data, 1, sizeof( PlayerData ), read_ptr );
     if ( persist_data_length != sizeof( PlayerData ) ) {
         pr_debug( "Warning, wrong size player data. Read:%d expected:%d", persist_data_length, ( int )sizeof( PlayerData ) );
