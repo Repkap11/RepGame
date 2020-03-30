@@ -47,6 +47,50 @@ void block_definitions_initilize_definitions( Texture *texture ) {
         block->can_be_placed_in = false;
     }
 
+    BlockID pressure_plate_shaped[] = {PINE_PRESSURE_PLATE, BIRTCH_PRESSURE_PLATE, JUNGLE_PRESSURE_PLATE, ACACIA_PRESSURE_PLATE, DARK_OAK_PRESSURE_PLATE};
+    for ( unsigned int i = 0; i < sizeof( pressure_plate_shaped ) / sizeof( BlockID ); i++ ) {
+        BlockID id = pressure_plate_shaped[ i ];
+        block_definitions[ id ].scale = {14, 1, 14};
+        block_definitions[ id ].offset = {1, 0, 1};
+        block_definitions[ id ].tex_offset = {-1, 0, -1};
+        block_definitions[ id ].is_seethrough2 = true;
+        block_definitions[ id ].casts_shadow = false;
+        block_definitions[ id ].icon_is_isometric = false;
+        block_definitions[ id ].needs_place_on_solid = true;
+        block_definitions[ id ].collides_with_player = false;
+        block_definitions[ id ].breaks_in_liquid = false;
+        block_definitions[ id ].rotate_on_placement = false;
+    }
+    // block_definitions[ OAK_PRESSURE_PLATE ].textures[ FACE_FRONT ] = OAK_PLANK;
+    // block_definitions[ OAK_PRESSURE_PLATE ].textures[ FACE_BACK ] = OAK_PLANK;
+    // block_definitions[ OAK_PRESSURE_PLATE ].textures[ FACE_RIGHT ] = OAK_PLANK;
+    // block_definitions[ OAK_PRESSURE_PLATE ].textures[ FACE_LEFT ] = OAK_PLANK;
+
+    block_definitions[ PINE_PRESSURE_PLATE ].textures[ FACE_FRONT ] = PINE_PLANK;
+    block_definitions[ PINE_PRESSURE_PLATE ].textures[ FACE_BACK ] = PINE_PLANK;
+    block_definitions[ PINE_PRESSURE_PLATE ].textures[ FACE_RIGHT ] = PINE_PLANK;
+    block_definitions[ PINE_PRESSURE_PLATE ].textures[ FACE_LEFT ] = PINE_PLANK;
+
+    block_definitions[ BIRTCH_PRESSURE_PLATE ].textures[ FACE_FRONT ] = BIRTCH_PLANK;
+    block_definitions[ BIRTCH_PRESSURE_PLATE ].textures[ FACE_BACK ] = BIRTCH_PLANK;
+    block_definitions[ BIRTCH_PRESSURE_PLATE ].textures[ FACE_RIGHT ] = BIRTCH_PLANK;
+    block_definitions[ BIRTCH_PRESSURE_PLATE ].textures[ FACE_LEFT ] = BIRTCH_PLANK;
+
+    block_definitions[ JUNGLE_PRESSURE_PLATE ].textures[ FACE_FRONT ] = JUNGLE_PLANK;
+    block_definitions[ JUNGLE_PRESSURE_PLATE ].textures[ FACE_BACK ] = JUNGLE_PLANK;
+    block_definitions[ JUNGLE_PRESSURE_PLATE ].textures[ FACE_RIGHT ] = JUNGLE_PLANK;
+    block_definitions[ JUNGLE_PRESSURE_PLATE ].textures[ FACE_LEFT ] = JUNGLE_PLANK;
+
+    block_definitions[ ACACIA_PRESSURE_PLATE ].textures[ FACE_FRONT ] = ACACIA_PLANK;
+    block_definitions[ ACACIA_PRESSURE_PLATE ].textures[ FACE_BACK ] = ACACIA_PLANK;
+    block_definitions[ ACACIA_PRESSURE_PLATE ].textures[ FACE_RIGHT ] = ACACIA_PLANK;
+    block_definitions[ ACACIA_PRESSURE_PLATE ].textures[ FACE_LEFT ] = ACACIA_PLANK;
+
+    block_definitions[ DARK_OAK_PRESSURE_PLATE ].textures[ FACE_FRONT ] = DARK_OAK_PLANK;
+    block_definitions[ DARK_OAK_PRESSURE_PLATE ].textures[ FACE_BACK ] = DARK_OAK_PLANK;
+    block_definitions[ DARK_OAK_PRESSURE_PLATE ].textures[ FACE_RIGHT ] = DARK_OAK_PLANK;
+    block_definitions[ DARK_OAK_PRESSURE_PLATE ].textures[ FACE_LEFT ] = DARK_OAK_PLANK;
+
     BlockID button_shaped[] = {OAK_BUTTON, PINE_BUTTON, BIRTCH_BUTTON, JUNGLE_BUTTON, ACACIA_BUTTON, DARK_OAK_BUTTON};
     for ( unsigned int i = 0; i < sizeof( button_shaped ) / sizeof( BlockID ); i++ ) {
         BlockID id = button_shaped[ i ];
