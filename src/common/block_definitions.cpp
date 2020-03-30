@@ -62,12 +62,6 @@ void block_definitions_initilize_definitions( Texture *texture ) {
         block_definitions[ id ].rotate_on_placement = true;
         block_definitions[ id ].textures[ FACE_TOP ] = AIR;
         block_definitions[ id ].textures[ FACE_BOTTOM ] = AIR;
-        // block_definitions[ id ].hides_self = true;
-
-        block_definitions[ id ].is_seethrough2 = false;
-        block_definitions[ id ].scale = {16, 16, 1};
-        block_definitions[ id ].offset = {0, 0, 0};
-        block_definitions[ id ].tex_offset = {-4, 0, 0};
     }
 
     BlockID door_shaped[] = {( BlockID )146, ( BlockID )523, ( BlockID )147, ( BlockID )524, ( BlockID )525, ( BlockID )526, ( BlockID )527,
@@ -416,7 +410,7 @@ void block_definitions_initilize_definitions( Texture *texture ) {
         }
     }
     Block *slab_block = &block_definitions[ STONE_BRICK_SLAB ];
-    pr_debug("Paul SLAB:%d ", slab_block->calculated.is_seethrough[FACE_TOP]);
+    pr_debug( "Paul SLAB:%d ", slab_block->calculated.is_seethrough[ FACE_TOP ] );
 
     // Exceptions
     block_definitions[ SPIDER_WEB ].needs_place_on_solid = false;

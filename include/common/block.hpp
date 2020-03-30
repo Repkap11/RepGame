@@ -132,6 +132,7 @@ static CubeFace vd_data_solid[] = {
 static int FACE_DIR_X_OFFSETS[ NUM_FACES_IN_CUBE ] = {0, 0, 1, 0, -1, 0};
 static int FACE_DIR_Y_OFFSETS[ NUM_FACES_IN_CUBE ] = {1, -1, 0, 0, 0, 0};
 static int FACE_DIR_Z_OFFSETS[ NUM_FACES_IN_CUBE ] = {0, 0, 0, 1, 0, -1};
+static int FACE_ROTATE_90[ NUM_FACES_IN_CUBE ] = {FACE_TOP, FACE_BOTTOM, FACE_BACK, FACE_RIGHT, FACE_FRONT, FACE_LEFT};
 
 static int OPPOSITE_FACE[ NUM_FACES_IN_CUBE ] = {FACE_BOTTOM, FACE_TOP, FACE_LEFT, FACE_BACK, FACE_RIGHT, FACE_FRONT};
 #define PIXEL_TO_FLOAT( pixel ) ( ( ( float )( pixel ) ) / ( 16.0f ) )

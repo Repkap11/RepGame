@@ -272,6 +272,14 @@ inline int min( int a, int b, int c, int d ) {
     return result;
 }
 
+inline int get_rotated_face( int face, int rotation ) {
+    int result = face;
+    for ( int i = 0; i < rotation; i++ ) {
+        result = FACE_ROTATE_90[ result ];
+    }
+    return result;
+}
+
 void chunk_calculate_popupated_blocks( Chunk *chunk ) {
     int num_instances[ LAST_RENDER_ORDER ] = {0};
 
@@ -296,27 +304,32 @@ void chunk_calculate_popupated_blocks( Chunk *chunk ) {
             int block_is_visiable = 0;
             if ( workingSpace[ index ].visable ) {
                 for ( int face = FACE_TOP; face < NUM_FACES_IN_CUBE; face++ ) {
-                    BlockID block_next_to_id = chunk->blocks[ chunk_get_index_from_coords( x + FACE_DIR_X_OFFSETS[ face ], y + FACE_DIR_Y_OFFSETS[ face ], z + FACE_DIR_Z_OFFSETS[ face ] ) ].id;
+                    BlockState block_next_to_state = chunk->blocks[ chunk_get_index_from_coords( x + FACE_DIR_X_OFFSETS[ face ], y + FACE_DIR_Y_OFFSETS[ face ], z + FACE_DIR_Z_OFFSETS[ face ] ) ];
                     // TODO look at the blocks rotation...
-                    Block *block_next_to_face = block_definition_get_definition( block_next_to_id );
+                    Block *block_next_to = block_definition_get_definition( block_next_to_state.id );
+
+                    int opposing_face = get_rotated_face( face, block_next_to_state.rotation );
+                    opposing_face = OPPOSITE_FACE[ opposing_face ];
 
                     bool is_seethrough = block->calculated.is_seethrough[ face ];
                     if ( is_seethrough && block->hides_self ) { // water and glass
                         if ( face == FACE_TOP && block->renderOrder == RenderOrder_Water ) {
-                            visible_from[ face ] = block_next_to_face->id != block->id;
+                            visible_from[ face ] = block_next_to->id != block->id;
                         } else {
-                            visible_from[ face ] = block_next_to_face->calculated.is_seethrough[ OPPOSITE_FACE[ face ] ] && block_next_to_id != blockID;
+                            visible_from[ face ] = block_next_to->calculated.is_seethrough[ opposing_face ] && block_next_to_state.id != blockID;
                         }
                     } else if ( is_seethrough ) { // The current block is seethough on this face. Check all the directions not opposing it;
                         bool visable_through_opposing = false;
                         for ( int face_around = FACE_TOP; face_around < NUM_FACES_IN_CUBE; face_around++ ) {
-                            if ( face_around == OPPOSITE_FACE[ face ] ) {
+                            if ( face_around == opposing_face ) {
                                 // It's the non_opposing_face and parallel with this face, don't count it
                                 continue;
                             }
-                            BlockID block_around_id = chunk->blocks[ chunk_get_index_from_coords( x + FACE_DIR_X_OFFSETS[ face_around ], y + FACE_DIR_Y_OFFSETS[ face_around ], z + FACE_DIR_Z_OFFSETS[ face_around ] ) ].id;
-                            Block *block_around = block_definition_get_definition( block_around_id );
-                            bool visible_towards_me = block_around->calculated.is_seethrough[ OPPOSITE_FACE[ face_around ] ];
+                            BlockState block_around_state = chunk->blocks[ chunk_get_index_from_coords( x + FACE_DIR_X_OFFSETS[ face_around ], y + FACE_DIR_Y_OFFSETS[ face_around ], z + FACE_DIR_Z_OFFSETS[ face_around ] ) ];
+                            Block *block_around = block_definition_get_definition( block_around_state.id );
+                            int around_face = get_rotated_face( face_around, block_around_state.rotation );
+                            around_face = OPPOSITE_FACE[ around_face ];
+                            bool visible_towards_me = block_around->calculated.is_seethrough[ around_face ];
                             if ( visible_towards_me ) {
                                 visable_through_opposing = true;
                                 break;
@@ -325,8 +338,7 @@ void chunk_calculate_popupated_blocks( Chunk *chunk ) {
                         visible_from[ face ] = visable_through_opposing;
 
                     } else {
-                        int opposing_face = OPPOSITE_FACE[ face ];
-                        bool visable_through_opposing = block_next_to_face->calculated.is_seethrough[ opposing_face ];
+                        bool visable_through_opposing = block_next_to->calculated.is_seethrough[ opposing_face ];
                         visible_from[ face ] = visable_through_opposing;
                     }
                     block_is_visiable |= visible_from[ face ];
