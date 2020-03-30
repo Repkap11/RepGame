@@ -102,6 +102,9 @@ typedef enum {
     DOUBLE_CHEST_RIGHT_BACK = 167,
     DOUBLE_CHEST_LEFT_BACK = 168,
     REDSTONE_TORCH_OFF = 172,
+    CAKE = 178,
+    CAKE_SIDE = 179,
+    CAKE_BOTTOM = 181,
     DOUBLE_CHEST_RIGHT_TOP = 190,
     DOUBLE_CHEST_LEFT_TOP = 191,
     PINE_LEAF = 197,
@@ -115,6 +118,7 @@ typedef enum {
     REDSTONE_LINE_POWERED = 246,
     DRAGON_EGG = 248,
     PURPLE_CORAL = 260,
+    OAK_BUTTON = 262,
     SANDSTONE_BRICK_TOP = 265,
     REDSTONE_LINE_UNPOWERED = 270,
     REDSTONE_LINE = 270,
@@ -171,6 +175,11 @@ typedef enum {
     ACACIA_PLANK = 410,
     DARK_OAK_PLANK = 411,
     DARK_OAK_LOG = 408,
+    PINE_BUTTON = 453,
+    BIRTCH_BUTTON = 454,
+    JUNGLE_BUTTON = 455,
+    ACACIA_BUTTON = 456,
+    DARK_OAK_BUTTON = 457,
     GRASS_TUFT4 = 460,
     BEAT = 467,
     BLUE_CORAL2 = 469,
@@ -259,19 +268,19 @@ typedef struct {
     bool icon_is_isometric;
     int flows;
     struct {
-        char x;
-        char y;
-        char z;
+        short x;
+        short y;
+        short z;
     } scale;
     struct {
-        char x;
-        char y;
-        char z;
+        short x;
+        short y;
+        short z;
     } offset;
     struct {
-        char x;
-        char y;
-        char z;
+        short x;
+        short y;
+        short z;
     } tex_offset;
     bool non_full_size;
     bool is_pickable;

@@ -47,6 +47,58 @@ void block_definitions_initilize_definitions( Texture *texture ) {
         block->can_be_placed_in = false;
     }
 
+    BlockID button_shaped[] = {OAK_BUTTON, PINE_BUTTON, BIRTCH_BUTTON, JUNGLE_BUTTON, ACACIA_BUTTON, DARK_OAK_BUTTON};
+    for ( unsigned int i = 0; i < sizeof( button_shaped ) / sizeof( BlockID ); i++ ) {
+        BlockID id = button_shaped[ i ];
+        block_definitions[ id ].scale = {6, 4, 1};
+        block_definitions[ id ].offset = {5, 6, 1};
+        block_definitions[ id ].tex_offset = {-7, -6, -5};
+        block_definitions[ id ].is_seethrough2 = true;
+        block_definitions[ id ].casts_shadow = false;
+        block_definitions[ id ].icon_is_isometric = false;
+        block_definitions[ id ].needs_place_on_solid = false;
+        block_definitions[ id ].collides_with_player = false;
+        block_definitions[ id ].breaks_in_liquid = true;
+        block_definitions[ id ].rotate_on_placement = true;
+    }
+    block_definitions[ OAK_BUTTON ].textures[ FACE_TOP ] = OAK_PLANK;
+    block_definitions[ OAK_BUTTON ].textures[ FACE_BOTTOM ] = OAK_PLANK;
+
+    block_definitions[ PINE_BUTTON ].textures[ FACE_TOP ] = PINE_PLANK;
+    block_definitions[ PINE_BUTTON ].textures[ FACE_BOTTOM ] = PINE_PLANK;
+
+    block_definitions[ BIRTCH_BUTTON ].textures[ FACE_TOP ] = BIRTCH_PLANK;
+    block_definitions[ BIRTCH_BUTTON ].textures[ FACE_BOTTOM ] = BIRTCH_PLANK;
+
+    block_definitions[ JUNGLE_BUTTON ].textures[ FACE_TOP ] = JUNGLE_PLANK;
+    block_definitions[ JUNGLE_BUTTON ].textures[ FACE_BOTTOM ] = JUNGLE_PLANK;
+
+    block_definitions[ ACACIA_BUTTON ].textures[ FACE_TOP ] = ACACIA_PLANK;
+    block_definitions[ ACACIA_BUTTON ].textures[ FACE_BOTTOM ] = ACACIA_PLANK;
+
+    block_definitions[ DARK_OAK_BUTTON ].textures[ FACE_TOP ] = DARK_OAK_PLANK;
+    block_definitions[ DARK_OAK_BUTTON ].textures[ FACE_BOTTOM ] = DARK_OAK_PLANK;
+
+    BlockID cake_shaped[] = {CAKE};
+    for ( unsigned int i = 0; i < sizeof( cake_shaped ) / sizeof( BlockID ); i++ ) {
+        BlockID id = cake_shaped[ i ];
+        block_definitions[ id ].scale = {14, 8, 14};
+        block_definitions[ id ].offset = {1, 0, 1};
+        block_definitions[ id ].tex_offset = {-1, 0, -1};
+        block_definitions[ id ].is_seethrough2 = true;
+        block_definitions[ id ].casts_shadow = true;
+        block_definitions[ id ].icon_is_isometric = false;
+        block_definitions[ id ].needs_place_on_solid = true;
+        block_definitions[ id ].collides_with_player = true;
+        block_definitions[ id ].breaks_in_liquid = false;
+        block_definitions[ id ].rotate_on_placement = true;
+    }
+    block_definitions[ CAKE ].textures[ FACE_FRONT ] = CAKE_SIDE;
+    block_definitions[ CAKE ].textures[ FACE_BACK ] = CAKE_SIDE;
+    block_definitions[ CAKE ].textures[ FACE_RIGHT ] = CAKE_SIDE;
+    block_definitions[ CAKE ].textures[ FACE_LEFT ] = CAKE_SIDE;
+    block_definitions[ CAKE ].textures[ FACE_BOTTOM ] = CAKE_BOTTOM;
+
     BlockID ladder_shaped[] = {LADDER};
     for ( unsigned int i = 0; i < sizeof( ladder_shaped ) / sizeof( BlockID ); i++ ) {
         BlockID id = ladder_shaped[ i ];
@@ -461,6 +513,8 @@ void do_disable( Block *block_definitions ) {
     block_definitions[ SANDSTONE_BRICK_TOP ].renderOrder = RenderOrder_Transparent;
     block_definitions[ SANDSTONE_BRICK_TOP ].renderOrder = RenderOrder_Transparent;
     block_definitions[ REDSTONE_TORCH_OFF ].renderOrder = RenderOrder_Transparent;
+    block_definitions[ CAKE_SIDE ].renderOrder = RenderOrder_Transparent;
+    block_definitions[ CAKE_BOTTOM ].renderOrder = RenderOrder_Transparent;
 }
 
 void do_flowers( Block *block_definitions ) {
