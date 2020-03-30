@@ -91,7 +91,7 @@ void block_definitions_initilize_definitions( Texture *texture ) {
     block_definitions[ DARK_OAK_PRESSURE_PLATE ].textures[ FACE_RIGHT ] = DARK_OAK_PLANK;
     block_definitions[ DARK_OAK_PRESSURE_PLATE ].textures[ FACE_LEFT ] = DARK_OAK_PLANK;
 
-    BlockID button_shaped[] = {OAK_BUTTON, PINE_BUTTON, BIRTCH_BUTTON, JUNGLE_BUTTON, ACACIA_BUTTON, DARK_OAK_BUTTON};
+    BlockID button_shaped[] = {OAK_BUTTON, PINE_BUTTON, BIRTCH_BUTTON, JUNGLE_BUTTON, ACACIA_BUTTON, DARK_OAK_BUTTON, STONE_BUTTON};
     for ( unsigned int i = 0; i < sizeof( button_shaped ) / sizeof( BlockID ); i++ ) {
         BlockID id = button_shaped[ i ];
         block_definitions[ id ].scale = {6, 4, 1};
@@ -122,6 +122,9 @@ void block_definitions_initilize_definitions( Texture *texture ) {
 
     block_definitions[ DARK_OAK_BUTTON ].textures[ FACE_TOP ] = DARK_OAK_PLANK;
     block_definitions[ DARK_OAK_BUTTON ].textures[ FACE_BOTTOM ] = DARK_OAK_PLANK;
+
+    block_definitions[ STONE_BUTTON ].textures[ FACE_TOP ] = STONE;
+    block_definitions[ STONE_BUTTON ].textures[ FACE_BOTTOM ] = STONE;
 
     BlockID cake_shaped[] = {CAKE};
     for ( unsigned int i = 0; i < sizeof( cake_shaped ) / sizeof( BlockID ); i++ ) {

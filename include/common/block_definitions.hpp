@@ -58,6 +58,7 @@ typedef enum {
     FURNACE_UNLIT,
     FURNACE_SIDE,
     REDSTONE_TORCH = 65,
+    STONE_BUTTON = 68,
     GLASS = 74,
     LEAF = 77,
     STONE_BRICK = 79,
