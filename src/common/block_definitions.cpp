@@ -94,8 +94,8 @@ void block_definitions_initilize_definitions( Texture *texture ) {
     BlockID button_shaped[] = {OAK_BUTTON, PINE_BUTTON, BIRTCH_BUTTON, JUNGLE_BUTTON, ACACIA_BUTTON, DARK_OAK_BUTTON, STONE_BUTTON};
     for ( unsigned int i = 0; i < sizeof( button_shaped ) / sizeof( BlockID ); i++ ) {
         BlockID id = button_shaped[ i ];
-        block_definitions[ id ].scale = {6, 4, 1};
-        block_definitions[ id ].offset = {5, 6, 1};
+        block_definitions[ id ].scale = {6, 4, 2};
+        block_definitions[ id ].offset = {5, 6, 0};
         block_definitions[ id ].tex_offset = {-7, -6, -5};
         block_definitions[ id ].is_seethrough2 = true;
         block_definitions[ id ].casts_shadow = false;
