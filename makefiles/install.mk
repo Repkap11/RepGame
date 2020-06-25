@@ -3,7 +3,8 @@ REP_MAKEFILES += makefiles/install.mk
 
 REPGAME_PACKAGES := libglm-dev libglm-doc rsync wget ccache clang
 
-ifneq ($(UBUNTU_VERSION),18.04)
+ifeq ($(UBUNTU_VERSION),14.04)
+else ifeq ($(UBUNTU_VERSION),16.04)
 	HOST_ONLY_REPGAME_PACKAGES += bsdtar
 else
 	HOST_ONLY_REPGAME_PACKAGES += libarchive-tools
