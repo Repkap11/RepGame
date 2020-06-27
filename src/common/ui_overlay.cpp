@@ -10,20 +10,20 @@
 #define UI_OVERLAY_VERTEX_COUNT_CROSSHAIR 8
 
 #define CROSSHAIR_COLOR                                                                                                                                                                                                                        \
-    {0, 0, 0}, {                                                                                                                                                                                                                               \
+    { 0, 0, 0 }, {                                                                                                                                                                                                                             \
         1, 1, 1, 0.5f                                                                                                                                                                                                                          \
     }
 
 UIOverlayVertex vb_data_crosshair[] = {
-    {-SCALE * WIDTH, -WIDTH, 0, CROSSHAIR_COLOR, 0}, // 0
-    {-SCALE * WIDTH, WIDTH, 0, CROSSHAIR_COLOR, 0},  // 1
-    {SCALE * WIDTH, -WIDTH, 0, CROSSHAIR_COLOR, 0},  // 2
-    {SCALE * WIDTH, WIDTH, 0, CROSSHAIR_COLOR, 0},   // 3
+    { -SCALE * WIDTH, -WIDTH, 0, CROSSHAIR_COLOR, 0 }, // 0
+    { -SCALE * WIDTH, WIDTH, 0, CROSSHAIR_COLOR, 0 },  // 1
+    { SCALE * WIDTH, -WIDTH, 0, CROSSHAIR_COLOR, 0 },  // 2
+    { SCALE * WIDTH, WIDTH, 0, CROSSHAIR_COLOR, 0 },   // 3
 
-    {-WIDTH, -SCALE *WIDTH, 0, CROSSHAIR_COLOR, 0}, // 4
-    {-WIDTH, SCALE *WIDTH, 0, CROSSHAIR_COLOR, 0},  // 5
-    {WIDTH, -SCALE *WIDTH, 0, CROSSHAIR_COLOR, 0},  // 6
-    {WIDTH, SCALE *WIDTH, 0, CROSSHAIR_COLOR, 0},   // 7
+    { -WIDTH, -SCALE *WIDTH, 0, CROSSHAIR_COLOR, 0 }, // 4
+    { -WIDTH, SCALE *WIDTH, 0, CROSSHAIR_COLOR, 0 },  // 5
+    { WIDTH, -SCALE *WIDTH, 0, CROSSHAIR_COLOR, 0 },  // 6
+    { WIDTH, SCALE *WIDTH, 0, CROSSHAIR_COLOR, 0 },   // 7
 
 };
 
@@ -32,20 +32,20 @@ float holding_alpha = 1.0f;
 float id = ( float )TNT;
 #define UI_OVERLAY_VERTEX_COUNT_HOLDING_BLOCK ( 4 * 3 )
 UIOverlayVertex vb_data_holding_block[] = {
-    {0, 0, 1, {1, 0, id}, {1, 1, 1, holding_alpha}, FACE_TOP}, // 0
-    {0, 0, 1, {1, 1, id}, {1, 1, 1, holding_alpha}, FACE_TOP}, // 1
-    {0, 0, 1, {0, 0, id}, {1, 1, 1, holding_alpha}, FACE_TOP}, // 2
-    {0, 0, 1, {0, 1, id}, {1, 1, 1, holding_alpha}, FACE_TOP}, // 3
+    { 0, 0, 1, { 1, 0, id }, { 1, 1, 1, holding_alpha }, FACE_TOP }, // 0
+    { 0, 0, 1, { 1, 1, id }, { 1, 1, 1, holding_alpha }, FACE_TOP }, // 1
+    { 0, 0, 1, { 0, 0, id }, { 1, 1, 1, holding_alpha }, FACE_TOP }, // 2
+    { 0, 0, 1, { 0, 1, id }, { 1, 1, 1, holding_alpha }, FACE_TOP }, // 3
 
-    {0, 0, 1, {1, 0, id}, {1, 1, 1, holding_alpha}, FACE_FRONT}, // 4
-    {0, 0, 1, {1, 1, id}, {1, 1, 1, holding_alpha}, FACE_FRONT}, // 5
-    {0, 0, 1, {0, 0, id}, {1, 1, 1, holding_alpha}, FACE_FRONT}, // 6
-    {0, 0, 1, {0, 1, id}, {1, 1, 1, holding_alpha}, FACE_FRONT}, // 7
+    { 0, 0, 1, { 1, 0, id }, { 1, 1, 1, holding_alpha }, FACE_FRONT }, // 4
+    { 0, 0, 1, { 1, 1, id }, { 1, 1, 1, holding_alpha }, FACE_FRONT }, // 5
+    { 0, 0, 1, { 0, 0, id }, { 1, 1, 1, holding_alpha }, FACE_FRONT }, // 6
+    { 0, 0, 1, { 0, 1, id }, { 1, 1, 1, holding_alpha }, FACE_FRONT }, // 7
 
-    {0, 0, 1, {1, 0, id}, {1, 1, 1, holding_alpha}, FACE_RIGHT}, // 8
-    {0, 0, 1, {1, 1, id}, {1, 1, 1, holding_alpha}, FACE_RIGHT}, // 9
-    {0, 0, 1, {0, 0, id}, {1, 1, 1, holding_alpha}, FACE_RIGHT}, // 10
-    {0, 0, 1, {0, 1, id}, {1, 1, 1, holding_alpha}, FACE_RIGHT}, // 11
+    { 0, 0, 1, { 1, 0, id }, { 1, 1, 1, holding_alpha }, FACE_RIGHT }, // 8
+    { 0, 0, 1, { 1, 1, id }, { 1, 1, 1, holding_alpha }, FACE_RIGHT }, // 9
+    { 0, 0, 1, { 0, 0, id }, { 1, 1, 1, holding_alpha }, FACE_RIGHT }, // 10
+    { 0, 0, 1, { 0, 1, id }, { 1, 1, 1, holding_alpha }, FACE_RIGHT }, // 11
 
 };
 
@@ -58,14 +58,14 @@ int holding_block_vertex_face_map[] = {
 };
 
 float isometric_coords[][ 2 ]{
-    {0, 0},      {-1, 0.5f}, {1, 0.5f},  {0, 1}, //
-    {-1, -0.5f}, {-1, 0.5f}, {0, -1},    {0, 0}, //
-    {0, -1},     {0, 0},     {1, -0.5f}, {1, 0.5f},
+    { 0, 0 },      { -1, 0.5f }, { 1, 0.5f },  { 0, 1 }, //
+    { -1, -0.5f }, { -1, 0.5f }, { 0, -1 },    { 0, 0 }, //
+    { 0, -1 },     { 0, 0 },     { 1, -0.5f }, { 1, 0.5f },
 };
 float square_coords[][ 2 ]{
-    {0, 0},   {0, 0},  {0, 0},  {0, 0}, //
-    {-1, -1}, {-1, 1}, {1, -1}, {1, 1}, //
-    {0, 0},   {0, 0},  {0, 0},  {0, 0},
+    { 0, 0 },   { 0, 0 },  { 0, 0 },  { 0, 0 }, //
+    { -1, -1 }, { -1, 1 }, { 1, -1 }, { 1, 1 }, //
+    { 0, 0 },   { 0, 0 },  { 0, 0 },  { 0, 0 },
 };
 
 #define UI_OVERLAY_INDEX_COUNT_CROSSHAIR ( 3 * 2 * 2 )
@@ -159,7 +159,12 @@ void ui_overlay_set_holding_block( UIOverlay *ui_overlay, BlockID holding_block 
         vertex->screen_x = -1.0 * ui_overlay->screen_width / 2 + 50 * ( which_shape[ i ][ 0 ] + 2 );
         vertex->screen_y = -1.0 * ui_overlay->screen_height / 2 + 50 * ( which_shape[ i ][ 1 ] + 2 );
 
-        BlockID texture = holdingBlock->textures[ holding_block_vertex_face_map[ i ] ];
+        BlockID texture;
+        if ( !holdingBlock->icon_is_isometric ) {
+            texture = holdingBlock->inventory_non_isometric_id;
+        } else {
+            texture = holdingBlock->textures[ holding_block_vertex_face_map[ i ] ];
+        }
         vertex->texture.id = texture - 1;
     }
     vertex_buffer_set_data( &ui_overlay->draw_holding_block.vb, vb_data_holding_block, sizeof( UIOverlayVertex ) * UI_OVERLAY_VERTEX_COUNT_HOLDING_BLOCK );

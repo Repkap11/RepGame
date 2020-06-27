@@ -254,6 +254,13 @@ typedef enum {
     STEVE_HEAD_RIGHT,
     STEVE_HEAD_BACK,
     LADDER_TOP = 1219,
+
+
+    REDSTONE_DUST_T_F = 1220,
+    REDSTONE_DUST_T_R = 1221,
+    REDSTONE_DUST_T_B = 1222,
+    REDSTONE_DUST_T_L = 1223,
+
     REDSTONE_CROSS_POWERED = 1225,
     REDSTONE_LINE_1_POWERED = 1226,
 
@@ -327,6 +334,7 @@ typedef struct {
         bool is_seethrough[ NUM_FACES_IN_CUBE ];
     } calculated;
     bool connects_to_redstone_dust;
+    BlockID inventory_non_isometric_id;
 
 } Block;
 

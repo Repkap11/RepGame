@@ -96,7 +96,7 @@ void inventory_init( Inventory *inventory, VertexBufferLayout *ui_overlay_vbl ) 
                         ui_vertex->screen_x = block_corner_x + INVENTORY_BLOCK_SIZE * ( ui_vertex->texture.x * 2 - 1 );
                         ui_vertex->screen_y = block_corner_y + INVENTORY_BLOCK_SIZE * ( ui_vertex->texture.y * 2 - 1 );
 
-                        ui_vertex->texture.id = block->id - 1;
+                        ui_vertex->texture.id = block->inventory_non_isometric_id - 1;
                     } else {
                         ui_vertex->screen_x = block_corner_x + INVENTORY_BLOCK_SIZE * verticies[ i_point + num_points_per_block * face ][ 0 ];
                         ui_vertex->screen_y = block_corner_y + INVENTORY_BLOCK_SIZE * verticies[ i_point + num_points_per_block * face ][ 1 ];

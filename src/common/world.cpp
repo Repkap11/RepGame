@@ -63,6 +63,9 @@ void world_render( World *world, TRIP_ARGS( float camera_ ), int limit_render, c
 
 void world_set_selected_block( World *world, int selected_x, int selected_y, int selected_z, int shouldDraw ) {
     BlockState blockState = world_get_loaded_block( world, TRIP_ARGS( selected_ ) );
+    if ( blockState.id == LAST_BLOCK_ID ) {
+        return;
+    }
     mouse_selection_set_block( &world->mouseSelection, TRIP_ARGS( selected_ ), shouldDraw, blockState );
 }
 

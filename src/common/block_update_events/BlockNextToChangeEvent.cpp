@@ -54,33 +54,51 @@ void perform_checks( BlockUpdateQueue *blockUpdateQueue, World *world, long tick
         if ( affecting_block->connects_to_redstone_dust ) {
             BlockID new_display_block_id = affecting_block_state.display_id;
 
-            bool connects_left = NEXT_TO_BLOCK( 1, 0, 0 )->connects_to_redstone_dust;
-            bool connects_right = NEXT_TO_BLOCK( -1, 0, 0 )->connects_to_redstone_dust;
-            bool connects_front = NEXT_TO_BLOCK( 0, 0, 1 )->connects_to_redstone_dust;
-            bool connects_back = NEXT_TO_BLOCK( 0, 0, -1 )->connects_to_redstone_dust;
-            if ( connects_left && connects_right && connects_front && connects_back ) {
-                new_display_block_id = REDSTONE_CROSS;
-            } else if ( connects_left && connects_front ) {
-                new_display_block_id = REDSTONE_DUST_L_Q2;
-            } else if ( connects_right && connects_back ) {
-                new_display_block_id = REDSTONE_DUST_L_Q4;
-            } else if ( connects_right && connects_front ) {
-                new_display_block_id = REDSTONE_DUST_L_Q1;
-            } else if ( connects_left && connects_back ) {
-                new_display_block_id = REDSTONE_DUST_L_Q3;
-            } else if ( connects_left || connects_right ) {
-                new_display_block_id = REDSTONE_LINE_1;
-            } else if ( connects_front || connects_back ) {
-                new_display_block_id = REDSTONE_LINE_2;
-            }
+            BlockID connects_left_id = NEXT_TO_STATE( 1, 0, 0 ).id;
+            BlockID connects_right_id = NEXT_TO_STATE( -1, 0, 0 ).id;
+            BlockID connects_front_id = NEXT_TO_STATE( 0, 0, 1 ).id;
+            BlockID connects_back_id = NEXT_TO_STATE( 0, 0, -1 ).id;
+            if ( connects_left_id == LAST_BLOCK_ID || connects_right_id == LAST_BLOCK_ID || connects_front_id == LAST_BLOCK_ID || connects_back_id == LAST_BLOCK_ID ) {
+                pr_debug( "Not ready" );
+            } else {
+                bool connects_left = NEXT_TO_BLOCK( 1, 0, 0 )->connects_to_redstone_dust;
+                bool connects_right = NEXT_TO_BLOCK( -1, 0, 0 )->connects_to_redstone_dust;
+                bool connects_front = NEXT_TO_BLOCK( 0, 0, 1 )->connects_to_redstone_dust;
+                bool connects_back = NEXT_TO_BLOCK( 0, 0, -1 )->connects_to_redstone_dust;
+                if ( connects_left && connects_right && connects_front && connects_back ) {
+                    new_display_block_id = REDSTONE_CROSS;
 
-            if ( new_display_block_id != affecting_block_state.display_id ) {
-                pr_debug( "Dust" );
+                } else if ( connects_left && connects_front && connects_right ) {
+                    new_display_block_id = REDSTONE_DUST_T_B;
+                } else if ( connects_left && connects_front && connects_back ) {
+                    new_display_block_id = REDSTONE_DUST_T_R;
+                } else if ( connects_right && connects_back && connects_left ) {
+                    new_display_block_id = REDSTONE_DUST_T_F;
+                } else if ( connects_right && connects_back && connects_front ) {
+                    new_display_block_id = REDSTONE_DUST_T_L;
 
-                BlockState new_block_state = affecting_block_state;
-                new_block_state.display_id = new_display_block_id;
-                BlockUpdateEvent *blockPlacedEvent = new PlayerBlockPlacedEvent( tick_number, affecting_block_x, affecting_block_y, affecting_block_z, new_block_state, true );
-                blockUpdateQueue->addBlockUpdate( blockPlacedEvent );
+                } else if ( connects_left && connects_front ) {
+                    new_display_block_id = REDSTONE_DUST_L_Q2;
+                } else if ( connects_right && connects_back ) {
+                    new_display_block_id = REDSTONE_DUST_L_Q4;
+                } else if ( connects_right && connects_front ) {
+                    new_display_block_id = REDSTONE_DUST_L_Q1;
+                } else if ( connects_left && connects_back ) {
+                    new_display_block_id = REDSTONE_DUST_L_Q3;
+                } else if ( connects_left || connects_right ) {
+                    new_display_block_id = REDSTONE_LINE_1;
+                } else if ( connects_front || connects_back ) {
+                    new_display_block_id = REDSTONE_LINE_2;
+                }
+
+                if ( new_display_block_id != affecting_block_state.display_id ) {
+                    // pr_debug( "Dust" );
+
+                    BlockState new_block_state = affecting_block_state;
+                    new_block_state.display_id = new_display_block_id;
+                    BlockUpdateEvent *blockPlacedEvent = new PlayerBlockPlacedEvent( tick_number, affecting_block_x, affecting_block_y, affecting_block_z, new_block_state, true );
+                    blockUpdateQueue->addBlockUpdate( blockPlacedEvent );
+                }
             }
         }
     }

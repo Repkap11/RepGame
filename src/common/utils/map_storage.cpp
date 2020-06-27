@@ -103,7 +103,7 @@ void map_storage_persist( Chunk *chunk ) {
         BlockState previousBlockState = { BLOCK_STATE_LAST_BLOCK_ID };
         for ( int i = 0; i < CHUNK_BLOCK_SIZE; i++ ) {
             BlockState blockState = blocks[ i ];
-            if ( blockState.id == previousBlockState.id ) {
+            if ( BlockStates_equal( blockState, previousBlockState ) ) {
                 num_same_blocks++;
             } else {
                 if ( num_same_blocks > 0 ) {
@@ -177,7 +177,11 @@ int map_storage_load( Chunk *chunk ) {
     bool loading_old_format_chunk = storage_block_state_size != sizeof( BlockState );
     if ( loading_old_format_chunk ) {
         chunk->dirty = true;
-        pr_debug( "Loaded old chunk with state size:%d expected:%d", storage_block_state_size, (int)sizeof( BlockState ) );
+        pr_debug( "Loaded old chunk with state size:%d expected:%d", storage_block_state_size, ( int )sizeof( BlockState ) );
+    }
+    if ( storage_block_state_size > (int)sizeof( BlockState ) ) {
+        pr_debug( "Smaller" );
+        storage_block_state_size = (int)sizeof( BlockState );
     }
     for ( unsigned int i = 0; i < persist_data_length; i++ ) {
         char *block_storage = &persist_data[ i * storage_type_size ];

@@ -10,9 +10,9 @@ inline void change_all_textures_to( unsigned short *face, BlockID new_texture ) 
 #define REDSTONE_DUST_IF( name )                                                                                                                                                                                                               \
     if ( blockState->display_id == name ) {                                                                                                                                                                                                    \
         if ( blockState->current_redstone_power > 0 ) {                                                                                                                                                                                        \
-            change_all_textures_to( blockCoord->face, name##_POWERED );                                                                                                                                                                        \
+            blockCoord->face[ FACE_TOP ] = name##_POWERED;                                                                                                                                                                                     \
         } else {                                                                                                                                                                                                                               \
-            change_all_textures_to( blockCoord->face, name##_UNPOWERED );                                                                                                                                                                      \
+            blockCoord->face[ FACE_TOP ] = name##_UNPOWERED;                                                                                                                                                                                   \
         }                                                                                                                                                                                                                                      \
     }
 
