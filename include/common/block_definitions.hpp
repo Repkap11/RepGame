@@ -252,7 +252,8 @@ typedef enum {
     STEVE_HEAD_FRONT,
     STEVE_HEAD_RIGHT,
     STEVE_HEAD_BACK,
-    LAST_BLOCK_ID = 1219, // Also in chunk_vertex.glsl
+    LADDER_TOP = 1219,
+    LAST_BLOCK_ID = 1220, // Also in chunk_vertex.glsl
 } BlockID;
 
 // The GPU can only hold so many blocks, so only blocks with id's under 100 can be rotated.

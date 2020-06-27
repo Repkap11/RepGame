@@ -36,9 +36,9 @@ void block_definitions_initilize_definitions( Texture *texture ) {
         block->is_pickable = true;
         block->collides_with_player = true;
         block->flows = 0;
-        block->scale = {16, 16, 16};
-        block->offset = {0, 0, 0};
-        block->tex_offset = {0, 0, 0};
+        block->scale = { 16, 16, 16 };
+        block->offset = { 0, 0, 0 };
+        block->tex_offset = { 0, 0, 0 };
         block->breaks_in_liquid = false;
         block->initial_redstone_power = 0;       // redstone block
         block->affected_by_redstone_power = 1;   // dust, piston, all solid blocks
@@ -47,12 +47,12 @@ void block_definitions_initilize_definitions( Texture *texture ) {
         block->can_be_placed_in = false;
     }
 
-    BlockID pressure_plate_shaped[] = {PINE_PRESSURE_PLATE, BIRTCH_PRESSURE_PLATE, JUNGLE_PRESSURE_PLATE, ACACIA_PRESSURE_PLATE, DARK_OAK_PRESSURE_PLATE};
+    BlockID pressure_plate_shaped[] = { PINE_PRESSURE_PLATE, BIRTCH_PRESSURE_PLATE, JUNGLE_PRESSURE_PLATE, ACACIA_PRESSURE_PLATE, DARK_OAK_PRESSURE_PLATE };
     for ( unsigned int i = 0; i < sizeof( pressure_plate_shaped ) / sizeof( BlockID ); i++ ) {
         BlockID id = pressure_plate_shaped[ i ];
-        block_definitions[ id ].scale = {14, 1, 14};
-        block_definitions[ id ].offset = {1, 0, 1};
-        block_definitions[ id ].tex_offset = {-1, 0, -1};
+        block_definitions[ id ].scale = { 14, 1, 14 };
+        block_definitions[ id ].offset = { 1, 0, 1 };
+        block_definitions[ id ].tex_offset = { -1, 0, -1 };
         block_definitions[ id ].is_seethrough2 = true;
         block_definitions[ id ].casts_shadow = false;
         block_definitions[ id ].icon_is_isometric = false;
@@ -91,12 +91,12 @@ void block_definitions_initilize_definitions( Texture *texture ) {
     block_definitions[ DARK_OAK_PRESSURE_PLATE ].textures[ FACE_RIGHT ] = DARK_OAK_PLANK;
     block_definitions[ DARK_OAK_PRESSURE_PLATE ].textures[ FACE_LEFT ] = DARK_OAK_PLANK;
 
-    BlockID button_shaped[] = {OAK_BUTTON, PINE_BUTTON, BIRTCH_BUTTON, JUNGLE_BUTTON, ACACIA_BUTTON, DARK_OAK_BUTTON, STONE_BUTTON};
+    BlockID button_shaped[] = { OAK_BUTTON, PINE_BUTTON, BIRTCH_BUTTON, JUNGLE_BUTTON, ACACIA_BUTTON, DARK_OAK_BUTTON, STONE_BUTTON };
     for ( unsigned int i = 0; i < sizeof( button_shaped ) / sizeof( BlockID ); i++ ) {
         BlockID id = button_shaped[ i ];
-        block_definitions[ id ].scale = {6, 4, 2};
-        block_definitions[ id ].offset = {5, 6, 0};
-        block_definitions[ id ].tex_offset = {-7, -6, -5};
+        block_definitions[ id ].scale = { 6, 4, 2 };
+        block_definitions[ id ].offset = { 5, 6, 0 };
+        block_definitions[ id ].tex_offset = { -7, -6, -5 };
         block_definitions[ id ].is_seethrough2 = true;
         block_definitions[ id ].casts_shadow = false;
         block_definitions[ id ].icon_is_isometric = false;
@@ -126,12 +126,12 @@ void block_definitions_initilize_definitions( Texture *texture ) {
     block_definitions[ STONE_BUTTON ].textures[ FACE_TOP ] = STONE;
     block_definitions[ STONE_BUTTON ].textures[ FACE_BOTTOM ] = STONE;
 
-    BlockID cake_shaped[] = {CAKE};
+    BlockID cake_shaped[] = { CAKE };
     for ( unsigned int i = 0; i < sizeof( cake_shaped ) / sizeof( BlockID ); i++ ) {
         BlockID id = cake_shaped[ i ];
-        block_definitions[ id ].scale = {14, 8, 14};
-        block_definitions[ id ].offset = {1, 0, 1};
-        block_definitions[ id ].tex_offset = {-1, 0, -1};
+        block_definitions[ id ].scale = { 14, 8, 14 };
+        block_definitions[ id ].offset = { 1, 0, 1 };
+        block_definitions[ id ].tex_offset = { -1, 0, -1 };
         block_definitions[ id ].is_seethrough2 = true;
         block_definitions[ id ].casts_shadow = true;
         block_definitions[ id ].icon_is_isometric = false;
@@ -146,12 +146,12 @@ void block_definitions_initilize_definitions( Texture *texture ) {
     block_definitions[ CAKE ].textures[ FACE_LEFT ] = CAKE_SIDE;
     block_definitions[ CAKE ].textures[ FACE_BOTTOM ] = CAKE_BOTTOM;
 
-    BlockID ladder_shaped[] = {LADDER};
+    BlockID ladder_shaped[] = { LADDER };
     for ( unsigned int i = 0; i < sizeof( ladder_shaped ) / sizeof( BlockID ); i++ ) {
         BlockID id = ladder_shaped[ i ];
-        block_definitions[ id ].scale = {14, 16, 1};
-        block_definitions[ id ].offset = {1, 0, 0};
-        block_definitions[ id ].tex_offset = {-5, 0, -1};
+        block_definitions[ id ].scale = { 14, 16, 1 };
+        block_definitions[ id ].offset = { 1, 0, 0 };
+        block_definitions[ id ].tex_offset = { -5, 0, -1 };
         block_definitions[ id ].is_seethrough2 = true;
         block_definitions[ id ].casts_shadow = false;
         block_definitions[ id ].icon_is_isometric = false;
@@ -162,14 +162,16 @@ void block_definitions_initilize_definitions( Texture *texture ) {
         block_definitions[ id ].textures[ FACE_TOP ] = AIR;
         block_definitions[ id ].textures[ FACE_BOTTOM ] = AIR;
     }
+    block_definitions[ LADDER ].textures[ FACE_TOP ] = LADDER_TOP;
+    block_definitions[ LADDER ].textures[ FACE_BOTTOM ] = LADDER_TOP;
 
-    BlockID door_shaped[] = {( BlockID )146, ( BlockID )523, ( BlockID )147, ( BlockID )524, ( BlockID )525, ( BlockID )526, ( BlockID )527,
-                             ( BlockID )122, ( BlockID )499, ( BlockID )123, ( BlockID )500, ( BlockID )501, ( BlockID )502, ( BlockID )503};
+    BlockID door_shaped[] = { ( BlockID )146, ( BlockID )523, ( BlockID )147, ( BlockID )524, ( BlockID )525, ( BlockID )526, ( BlockID )527,
+                              ( BlockID )122, ( BlockID )499, ( BlockID )123, ( BlockID )500, ( BlockID )501, ( BlockID )502, ( BlockID )503 };
     for ( unsigned int i = 0; i < sizeof( door_shaped ) / sizeof( BlockID ); i++ ) {
         BlockID id = door_shaped[ i ];
-        block_definitions[ id ].scale = {16, 16, 1};
-        block_definitions[ id ].offset = {0, 0, 0};
-        block_definitions[ id ].tex_offset = {0, 0, 0};
+        block_definitions[ id ].scale = { 16, 16, 1 };
+        block_definitions[ id ].offset = { 0, 0, 0 };
+        block_definitions[ id ].tex_offset = { 0, 0, 0 };
         block_definitions[ id ].is_seethrough2 = true;
         block_definitions[ id ].casts_shadow = false;
         block_definitions[ id ].icon_is_isometric = false;
@@ -194,24 +196,24 @@ void block_definitions_initilize_definitions( Texture *texture ) {
     block_definitions[ REDSTONE_TORCH ].affected_by_redstone_power = true;
     block_definitions[ REDSTONE_TORCH ].transmits_redstone_power = true;
 
-    BlockID pane_shaped[] = {GLASS_PANE};
+    BlockID pane_shaped[] = { GLASS_PANE };
     for ( unsigned int i = 0; i < sizeof( pane_shaped ) / sizeof( BlockID ); i++ ) {
         BlockID id = pane_shaped[ i ];
-        block_definitions[ id ].scale = {16, 16, 2};
-        block_definitions[ id ].offset = {0, 0, 7};
-        block_definitions[ id ].tex_offset = {-7, 0, 0};
+        block_definitions[ id ].scale = { 16, 16, 2 };
+        block_definitions[ id ].offset = { 0, 0, 7 };
+        block_definitions[ id ].tex_offset = { -7, 0, 0 };
         block_definitions[ id ].rotate_on_placement = true;
         block_definitions[ id ].is_seethrough2 = true;
         block_definitions[ id ].casts_shadow = false;
         // block_definitions[ id ].hides_self = true;
     }
 
-    BlockID torch_shaped[] = {TORCH, BURNT_OUT_TORCH, REDSTONE_TORCH, REDSTONE_TORCH_OFF, BLACK_TORCH, BLUE_TORCH, WHITE_TORCH, PURPLE_TORCH, RED_TORCH, CYAN_TORCH};
+    BlockID torch_shaped[] = { TORCH, BURNT_OUT_TORCH, REDSTONE_TORCH, REDSTONE_TORCH_OFF, BLACK_TORCH, BLUE_TORCH, WHITE_TORCH, PURPLE_TORCH, RED_TORCH, CYAN_TORCH };
     for ( unsigned int i = 0; i < sizeof( torch_shaped ) / sizeof( BlockID ); i++ ) {
         BlockID id = torch_shaped[ i ];
-        block_definitions[ id ].scale = {2, 10, 2};
-        block_definitions[ id ].offset = {7, 0, 7};
-        block_definitions[ id ].tex_offset = {-7, 0, -7};
+        block_definitions[ id ].scale = { 2, 10, 2 };
+        block_definitions[ id ].offset = { 7, 0, 7 };
+        block_definitions[ id ].tex_offset = { -7, 0, -7 };
         // block_definitions[ id ].is_seethrough = true;
         block_definitions[ id ].casts_shadow = false;
         block_definitions[ id ].collides_with_player = false;
@@ -219,20 +221,20 @@ void block_definitions_initilize_definitions( Texture *texture ) {
         block_definitions[ id ].needs_place_on_solid = true;
         block_definitions[ id ].breaks_in_liquid = true;
     }
-    BlockID small_flower_shaped[] = {RED_FLOWER, YELLOW_FLOWER, BLUE_FLOWER, RED_MUSHROOM, BROWN_MUSHROOM, BLUE_FLOWER, TURTLE_EGGS1, TURTLE_EGGS2, EMPTY_POT, POPPY_FLOWER, LARGE_WHITE_FLOWER, BLACK_FLOWER};
+    BlockID small_flower_shaped[] = { RED_FLOWER, YELLOW_FLOWER, BLUE_FLOWER, RED_MUSHROOM, BROWN_MUSHROOM, BLUE_FLOWER, TURTLE_EGGS1, TURTLE_EGGS2, EMPTY_POT, POPPY_FLOWER, LARGE_WHITE_FLOWER, BLACK_FLOWER };
     for ( unsigned int i = 0; i < sizeof( small_flower_shaped ) / sizeof( BlockID ); i++ ) {
         BlockID id = small_flower_shaped[ i ];
-        block_definitions[ id ].scale = {8, 11, 8};
-        block_definitions[ id ].offset = {4, 0, 4};
-        block_definitions[ id ].tex_offset = {-4, 0, -4};
+        block_definitions[ id ].scale = { 8, 11, 8 };
+        block_definitions[ id ].offset = { 4, 0, 4 };
+        block_definitions[ id ].tex_offset = { -4, 0, -4 };
     }
 
-    BlockID slab_shaped[] = {STONE_BRICK_SLAB, DARK_OAK_SLAB, OAK_SLAB, BIRTCH_SLAB, JUNGLE_SLAB, ACACIA_SLAB, RED_SANDSTONE_BRICK_SLAB, PINE_SLAB, COBBLESTONE_SLAB, SANDSTONE_SLAB};
+    BlockID slab_shaped[] = { STONE_BRICK_SLAB, DARK_OAK_SLAB, OAK_SLAB, BIRTCH_SLAB, JUNGLE_SLAB, ACACIA_SLAB, RED_SANDSTONE_BRICK_SLAB, PINE_SLAB, COBBLESTONE_SLAB, SANDSTONE_SLAB };
     for ( unsigned int i = 0; i < sizeof( slab_shaped ) / sizeof( BlockID ); i++ ) {
         BlockID id = slab_shaped[ i ];
-        block_definitions[ id ].scale = {16, 8, 16};
-        block_definitions[ id ].offset = {0, 0, 0};
-        block_definitions[ id ].tex_offset = {0, -4, 0};
+        block_definitions[ id ].scale = { 16, 8, 16 };
+        block_definitions[ id ].offset = { 0, 0, 0 };
+        block_definitions[ id ].tex_offset = { 0, -4, 0 };
         // block_definitions[ id ].is_seethrough = true;
     }
 
@@ -269,12 +271,12 @@ void block_definitions_initilize_definitions( Texture *texture ) {
     block_definitions[ SANDSTONE_SLAB ].textures[ FACE_TOP ] = SANDSTONE_BRICK_TOP;
     block_definitions[ SANDSTONE_SLAB ].textures[ FACE_BOTTOM ] = SANDSTONE_BRICK_BOTTOM;
 
-    BlockID head_shaped[] = {SKELETON_HEAD, WHITHER_SKELETON_HEAD, ZOMBIE_HEAD, PLAYER_HEAD, CREEPER_HEAD};
+    BlockID head_shaped[] = { SKELETON_HEAD, WHITHER_SKELETON_HEAD, ZOMBIE_HEAD, PLAYER_HEAD, CREEPER_HEAD };
     for ( unsigned int i = 0; i < sizeof( head_shaped ) / sizeof( BlockID ); i++ ) {
         BlockID id = head_shaped[ i ];
-        block_definitions[ id ].scale = {8, 8, 8};
-        block_definitions[ id ].offset = {4, 0, 4};
-        block_definitions[ id ].tex_offset = {-4, -4, -4};
+        block_definitions[ id ].scale = { 8, 8, 8 };
+        block_definitions[ id ].offset = { 4, 0, 4 };
+        block_definitions[ id ].tex_offset = { -4, -4, -4 };
         // block_definitions[ id ].is_seethrough = true;
         block_definitions[ id ].casts_shadow = false;
         block_definitions[ id ].collides_with_player = false;
@@ -282,12 +284,12 @@ void block_definitions_initilize_definitions( Texture *texture ) {
         block_definitions[ id ].rotate_on_placement = true;
         block_definitions[ id ].icon_is_isometric = false;
     }
-    BlockID dust_shaped[] = {REDSTONE_LINE};
+    BlockID dust_shaped[] = { REDSTONE_LINE };
     for ( unsigned int i = 0; i < sizeof( dust_shaped ) / sizeof( BlockID ); i++ ) {
         BlockID id = dust_shaped[ i ];
-        block_definitions[ id ].scale = {16, 1, 16};
-        block_definitions[ id ].offset = {0, 0, 0};
-        block_definitions[ id ].tex_offset = {0, 0, 0};
+        block_definitions[ id ].scale = { 16, 1, 16 };
+        block_definitions[ id ].offset = { 0, 0, 0 };
+        block_definitions[ id ].tex_offset = { 0, 0, 0 };
         block_definitions[ id ].is_seethrough2 = true;
         block_definitions[ id ].casts_shadow = false;
         block_definitions[ id ].icon_is_isometric = false;
