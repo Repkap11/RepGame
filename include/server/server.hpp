@@ -7,7 +7,7 @@
 
 typedef enum { INVALID, PLAYER_LOCATION, BLOCK_UPDATE, CLIENT_INIT, PLAYER_CONNECTED, PLAYER_DISCONNECTED } PacketType;
 
-#define SERVER_BLOCK_DATA_SIZE 12
+#define SERVER_BLOCK_DATA_SIZE 16
 
 typedef struct {
     PacketType type;

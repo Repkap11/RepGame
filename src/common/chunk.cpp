@@ -501,7 +501,7 @@ void chunk_calculate_popupated_blocks( Chunk *chunk ) {
                 if ( !workingSpace[ index ].has_been_drawn ) {
 
                     BlockState blockState = chunk->blocks[ index ];
-                    Block *block = block_definition_get_definition( blockState.id );
+                    Block *block = block_definition_get_definition( blockState.display_id );
                     int visiable_block = workingSpace[ index ].visable;
                     int can_be_seen = workingSpace[ index ].can_be_seen;
                     int has_been_drawn = workingSpace[ index ].has_been_drawn;

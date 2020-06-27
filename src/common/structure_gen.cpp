@@ -147,10 +147,10 @@ void structure_gen_place( Chunk *chunk ) {
     Block *dirt = block_definition_get_definition( DIRT );
     Block *reed = block_definition_get_definition( REED );
 
-    BlockState leaf_state = {LEAF, 0, leaf->initial_redstone_power};
-    BlockState oak_log_state = {OAK_LOG, 0, oak_log->initial_redstone_power};
-    BlockState dirt_state = {DIRT, 0, dirt->initial_redstone_power};
-    BlockState reed_state = {REED, 0, reed->initial_redstone_power};
+    BlockState leaf_state = { LEAF, 0, leaf->initial_redstone_power, LEAF };
+    BlockState oak_log_state = { OAK_LOG, 0, oak_log->initial_redstone_power, OAK_LOG };
+    BlockState dirt_state = { DIRT, 0, dirt->initial_redstone_power, DIRT };
+    BlockState reed_state = { REED, 0, reed->initial_redstone_power, REED };
 
     for ( int x = 1; x < CHUNK_SIZE - 1; x++ ) {
         int world_x = chunk_offset_x + x;
@@ -226,7 +226,7 @@ void structure_gen_place( Chunk *chunk ) {
                         BlockID grass_type = structure_gen_is_long_grass_roll( world_x, world_z, is_forest );
                         Block *grass_block = block_definition_get_definition( grass_type );
                         if ( grass_type != AIR ) {
-                            chunk->blocks[ chunk_get_index_from_coords( x, y, z ) ] = {grass_type, BLOCK_ROTATE_0, grass_block->initial_redstone_power};
+                            chunk->blocks[ chunk_get_index_from_coords( x, y, z ) ] = { grass_type, BLOCK_ROTATE_0, grass_block->initial_redstone_power, grass_type };
                         }
                     }
                 }

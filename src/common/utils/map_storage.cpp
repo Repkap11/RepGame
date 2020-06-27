@@ -100,7 +100,7 @@ void map_storage_persist( Chunk *chunk ) {
         int persist_data_index = -1;
         STORAGE_TYPE_NUM_BLOCKS num_same_blocks = 0;
         int total_num_blocks = 0;
-        BlockState previousBlockState = {BLOCK_STATE_LAST_BLOCK_ID};
+        BlockState previousBlockState = { BLOCK_STATE_LAST_BLOCK_ID };
         for ( int i = 0; i < CHUNK_BLOCK_SIZE; i++ ) {
             BlockState blockState = blocks[ i ];
             if ( blockState.id == previousBlockState.id ) {
@@ -172,19 +172,31 @@ int map_storage_load( Chunk *chunk ) {
     fclose( read_ptr );
 
     int block_index = 0;
+    int storage_block_state_size = storage_type_size - sizeof( unsigned int );
+
+    bool loading_old_format_chunk = storage_block_state_size != sizeof( BlockState );
+    if ( loading_old_format_chunk ) {
+        chunk->dirty = true;
+        pr_debug( "Loaded old chunk with state size:%d expected:%d", storage_block_state_size, (int)sizeof( BlockState ) );
+    }
     for ( unsigned int i = 0; i < persist_data_length; i++ ) {
         char *block_storage = &persist_data[ i * storage_type_size ];
         unsigned int block_storage_num = *( unsigned int * )&persist_data[ ( ( i + 1 ) * storage_type_size ) - sizeof( STORAGE_TYPE_NUM_BLOCKS ) ];
 
-        BlockState blockState = {AIR, 0, 0};
+        BlockState blockState = BLOCK_STATE_AIR;
         memset( &blockState, 0, sizeof( BlockState ) );
         // pr_debug( "Copy size:%d", storage_type_size - sizeof( unsigned int )-2 );
         int storage_offset_size = 0;
         if ( storage_type_size == 8 ) {
             storage_offset_size = 2;
         }
-        memcpy( &blockState, block_storage, storage_type_size - sizeof( unsigned int ) - storage_offset_size );
-
+        memcpy( &blockState, block_storage, storage_block_state_size - storage_offset_size );
+        if ( loading_old_format_chunk ) {
+            // Per block state mitigations
+            if ( storage_block_state_size <= 12 ) {
+                blockState.display_id = blockState.id;
+            }
+        }
         if ( blockState.id >= LAST_BLOCK_ID ) {
             pr_debug( "Got strange block in %s :%d", file_name, blockState.id );
             // blockState.id = GOLD_BLOCK;

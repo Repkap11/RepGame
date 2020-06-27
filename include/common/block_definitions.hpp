@@ -116,6 +116,7 @@ typedef enum {
     ZOMBIE_HEAD = 236,
     PLAYER_HEAD = 237,
     CREEPER_HEAD = 238,
+    REDSTONE_DUST = 246,
     REDSTONE_LINE_POWERED = 246,
     DRAGON_EGG = 248,
     PURPLE_CORAL = 260,
@@ -306,15 +307,16 @@ typedef struct {
 
 } Block;
 
+//Keep in order to make save file backwards compatible
 typedef struct {
     BlockID id;
     unsigned char rotation;
-    // TODO add chest furnase or other block spesific state
     int current_redstone_power;
+    BlockID display_id;
 } BlockState;
 
-static BlockState BLOCK_STATE_AIR = {AIR, BLOCK_ROTATE_0, 0};
-static BlockState BLOCK_STATE_LAST_BLOCK_ID = {LAST_BLOCK_ID, BLOCK_ROTATE_0, 0};
+static BlockState BLOCK_STATE_AIR = { AIR, BLOCK_ROTATE_0, 0, AIR };
+static BlockState BLOCK_STATE_LAST_BLOCK_ID = { LAST_BLOCK_ID, BLOCK_ROTATE_0, 0, LAST_BLOCK_ID };
 
 bool BlockStates_equal( const BlockState &a, const BlockState &b );
 

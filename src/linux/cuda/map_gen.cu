@@ -67,7 +67,7 @@ __global__ void cuda_set_block( BlockState *blocks, int chunk_x, int chunk_y, in
         float terrainHeight = level + mountians + hills + ground_noise;
 #include "common/map_logic.hpp"
 
-        blocks[ index ] = {finalBlockId, BLOCK_ROTATE_0, 0};//Assumes all blocks don't spawn with redstone power
+        blocks[ index ] = {finalBlockId, BLOCK_ROTATE_0, 0, finalBlockId};//Assumes all blocks don't spawn with redstone power
     }
 }
 

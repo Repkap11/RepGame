@@ -91,7 +91,7 @@ void repgame_process_mouse_events( ) {
     if ( globalGameState.block_selection.selectionInBounds && globalGameState.input.mouse.buttons.right && globalGameState.input.click_delay_right == 0 ) {
         unsigned char rotation = getPlacedRotation( globalGameState.block_selection.holdingBlock );
         Block *held_block = block_definition_get_definition( globalGameState.block_selection.holdingBlock );
-        change_block( 1, {globalGameState.block_selection.holdingBlock, rotation, 0} );
+        change_block( 1, {globalGameState.block_selection.holdingBlock, rotation, 0, globalGameState.block_selection.holdingBlock} );
         globalGameState.input.click_delay_right = 30;
     }
     if ( globalGameState.block_selection.selectionInBounds && globalGameState.input.mouse.currentPosition.wheel_counts != globalGameState.input.mouse.previousPosition.wheel_counts ) {

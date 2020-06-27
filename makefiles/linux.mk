@@ -81,8 +81,8 @@ linux-run: linux
 tests: linux
 	./out/linux/$(TARGET) tests
 
-map:
-	rm -rf ~/.repgame/World1
+# map:
+# 	rm -rf ~/.repgame/World1
 
 player:
 	rm -rf ~/.repgame/World1/player.dat
@@ -97,4 +97,4 @@ out/linux: | out
 
 .PRECIOUS: out/linux/$(TARGET) $(OBJECTS_LINUX) $(OBJECTS_COMMON_LINUX) $(SHADER_BLOBS_LINUX) $(BITMAP_BLOBS_LINUX)
 
-.PHONY: linux linux-run clean-linux map linux-deploy
+.PHONY: linux linux-run clean-linux linux-deploy
