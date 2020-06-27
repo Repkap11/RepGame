@@ -29,7 +29,7 @@ void chunk_calculate_sides( Chunk *chunk, TRIP_ARGS( int center_next_ ) ) {
     int visable_front = chunk->chunk_z <= center_next_z;
     int visable_back = chunk->chunk_z >= center_next_z;
 
-    int ib_size[ LAST_RENDER_ORDER ] = {0};
+    int ib_size[ LAST_RENDER_ORDER ] = { 0 };
     if ( visable_front ) {
         for ( int i = 0; i < 12; i++ ) {
             chunk_ib_data[ RenderOrder_Opaque ][ ib_size[ RenderOrder_Opaque ]++ ] = ib_data_solid[ 12 * FACE_FRONT + i ];
@@ -226,10 +226,13 @@ int chunk_can_extend_rect( Chunk *chunk, BlockState blockState, unsigned int *pa
         return 0;
     if ( starting_z + size_z + dir_z > CHUNK_SIZE )
         return 0;
-    if ( ( ( size_x > 1 ) + ( size_y > 1 ) + ( size_z > 1 ) ) == 3 ) {
-        if ( !( size_x == 1 && size_y == 1 && size_z == 1 ) ) {
-            pr_debug( "Error, there must be 2 values different in a plane" );
-        }
+    // if ( ( ( size_x > 1 ) + ( size_y > 1 ) + ( size_z > 1 ) ) == 3 ) {
+    //     if ( !( size_x == 1 && size_y == 1 && size_z == 1 ) ) {
+    //         pr_debug( "Error, there must be 2 values different in a plane" );
+    //     }
+    // }
+    if (blockState.id == REDSTONE_CROSS){
+        pr_debug("Trying to mesh");
     }
     int num_checked_blocks = 0;
     for ( int new_x = starting_x; new_x < starting_x + size_x; new_x++ ) {
@@ -245,9 +248,6 @@ int chunk_can_extend_rect( Chunk *chunk, BlockState blockState, unsigned int *pa
                 }
                 BlockState new_blockState = chunk->blocks[ index ];
                 if ( !BlockStates_equal( new_blockState, blockState ) ) {
-                    return 0;
-                }
-                if ( new_blockState.rotation != blockState.rotation ) {
                     return 0;
                 }
                 for ( int i = 0; i < NUM_FACES_IN_CUBE; i++ ) {
@@ -281,7 +281,7 @@ inline int get_rotated_face( int face, int rotation ) {
 }
 
 void chunk_calculate_popupated_blocks( Chunk *chunk ) {
-    int num_instances[ LAST_RENDER_ORDER ] = {0};
+    int num_instances[ LAST_RENDER_ORDER ] = { 0 };
 
     for ( int renderOrder = 0; renderOrder < LAST_RENDER_ORDER; renderOrder++ ) {
         if ( chunk->layers[ renderOrder ].populated_blocks ) {
@@ -300,7 +300,7 @@ void chunk_calculate_popupated_blocks( Chunk *chunk ) {
 
             workingSpace[ index ].visable = render_order_is_visible( block->renderOrder );
 
-            int visible_from[ NUM_FACES_IN_CUBE ] = {0, 0, 0, 0, 0, 0};
+            int visible_from[ NUM_FACES_IN_CUBE ] = { 0, 0, 0, 0, 0, 0 };
             int block_is_visiable = 0;
             if ( workingSpace[ index ].visable ) {
                 for ( int face = FACE_TOP; face < NUM_FACES_IN_CUBE; face++ ) {
@@ -311,12 +311,12 @@ void chunk_calculate_popupated_blocks( Chunk *chunk ) {
                     int opposing_face = get_rotated_face( face, block_next_to_state.rotation );
                     opposing_face = OPPOSITE_FACE[ opposing_face ];
 
-                    bool is_seethrough = block->calculated.is_seethrough[ face ];
+                    bool is_seethrough = block->calculated.is_seethrough_face[ face ];
                     if ( is_seethrough && block->hides_self ) { // water and glass
                         if ( face == FACE_TOP && block->renderOrder == RenderOrder_Water ) {
                             visible_from[ face ] = block_next_to->id != block->id;
                         } else {
-                            visible_from[ face ] = block_next_to->calculated.is_seethrough[ opposing_face ] && block_next_to_state.id != blockID;
+                            visible_from[ face ] = block_next_to->calculated.is_seethrough_face[ opposing_face ] && block_next_to_state.id != blockID;
                         }
                     } else if ( is_seethrough ) { // The current block is seethough on this face. Check all the directions not opposing it;
                         bool visable_through_opposing = false;
@@ -329,7 +329,7 @@ void chunk_calculate_popupated_blocks( Chunk *chunk ) {
                             Block *block_around = block_definition_get_definition( block_around_state.id );
                             int around_face = get_rotated_face( face_around, block_around_state.rotation );
                             around_face = OPPOSITE_FACE[ around_face ];
-                            bool visible_towards_me = block_around->calculated.is_seethrough[ around_face ];
+                            bool visible_towards_me = block_around->calculated.is_seethrough_face[ around_face ];
                             if ( visible_towards_me ) {
                                 visable_through_opposing = true;
                                 break;
@@ -338,7 +338,7 @@ void chunk_calculate_popupated_blocks( Chunk *chunk ) {
                         visible_from[ face ] = visable_through_opposing;
 
                     } else {
-                        bool visable_through_opposing = block_next_to->calculated.is_seethrough[ opposing_face ];
+                        bool visable_through_opposing = block_next_to->calculated.is_seethrough_face[ opposing_face ];
                         visible_from[ face ] = visable_through_opposing;
                     }
                     block_is_visiable |= visible_from[ face ];
@@ -502,6 +502,9 @@ void chunk_calculate_popupated_blocks( Chunk *chunk ) {
 
                     BlockState blockState = chunk->blocks[ index ];
                     Block *block = block_definition_get_definition( blockState.display_id );
+                    if (blockState.display_id == REDSTONE_CROSS){
+                        pr_debug("Got cross");
+                    }
                     int visiable_block = workingSpace[ index ].visable;
                     int can_be_seen = workingSpace[ index ].can_be_seen;
                     int has_been_drawn = workingSpace[ index ].has_been_drawn;

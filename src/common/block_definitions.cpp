@@ -29,7 +29,7 @@ void block_definitions_initilize_definitions( Texture *texture ) {
         block->no_light = NO_LIGHT_NO_DRAW;
         block->casts_shadow = true;
         block->hides_self = false; // like connected glass so you don't see the perpendicular panes, you probably need is_seethrough too.
-        block->is_seethrough2 = false;
+        block->is_seethrough = false;
         block->needs_place_on_solid = false;
         block->rotate_on_placement = false;
         block->icon_is_isometric = true;
@@ -54,7 +54,7 @@ void block_definitions_initilize_definitions( Texture *texture ) {
         block_definitions[ id ].scale = { 14, 1, 14 };
         block_definitions[ id ].offset = { 1, 0, 1 };
         block_definitions[ id ].tex_offset = { -1, 0, -1 };
-        block_definitions[ id ].is_seethrough2 = true;
+        block_definitions[ id ].is_seethrough = true;
         block_definitions[ id ].casts_shadow = false;
         block_definitions[ id ].icon_is_isometric = false;
         block_definitions[ id ].needs_place_on_solid = true;
@@ -98,7 +98,7 @@ void block_definitions_initilize_definitions( Texture *texture ) {
         block_definitions[ id ].scale = { 6, 4, 2 };
         block_definitions[ id ].offset = { 5, 6, 0 };
         block_definitions[ id ].tex_offset = { -7, -6, -5 };
-        block_definitions[ id ].is_seethrough2 = true;
+        block_definitions[ id ].is_seethrough = true;
         block_definitions[ id ].casts_shadow = false;
         block_definitions[ id ].icon_is_isometric = false;
         block_definitions[ id ].needs_place_on_solid = false;
@@ -133,7 +133,7 @@ void block_definitions_initilize_definitions( Texture *texture ) {
         block_definitions[ id ].scale = { 14, 8, 14 };
         block_definitions[ id ].offset = { 1, 0, 1 };
         block_definitions[ id ].tex_offset = { -1, 0, -1 };
-        block_definitions[ id ].is_seethrough2 = true;
+        block_definitions[ id ].is_seethrough = true;
         block_definitions[ id ].casts_shadow = true;
         block_definitions[ id ].icon_is_isometric = false;
         block_definitions[ id ].needs_place_on_solid = true;
@@ -153,7 +153,7 @@ void block_definitions_initilize_definitions( Texture *texture ) {
         block_definitions[ id ].scale = { 14, 16, 1 };
         block_definitions[ id ].offset = { 1, 0, 0 };
         block_definitions[ id ].tex_offset = { -5, 0, -1 };
-        block_definitions[ id ].is_seethrough2 = true;
+        block_definitions[ id ].is_seethrough = true;
         block_definitions[ id ].casts_shadow = false;
         block_definitions[ id ].icon_is_isometric = false;
         block_definitions[ id ].needs_place_on_solid = false;
@@ -173,7 +173,7 @@ void block_definitions_initilize_definitions( Texture *texture ) {
         block_definitions[ id ].scale = { 16, 16, 1 };
         block_definitions[ id ].offset = { 0, 0, 0 };
         block_definitions[ id ].tex_offset = { 0, 0, 0 };
-        block_definitions[ id ].is_seethrough2 = true;
+        block_definitions[ id ].is_seethrough = true;
         block_definitions[ id ].casts_shadow = false;
         block_definitions[ id ].icon_is_isometric = false;
         block_definitions[ id ].needs_place_on_solid = false;
@@ -201,7 +201,7 @@ void block_definitions_initilize_definitions( Texture *texture ) {
         block_definitions[ id ].offset = { 0, 0, 7 };
         block_definitions[ id ].tex_offset = { -7, 0, 0 };
         block_definitions[ id ].rotate_on_placement = true;
-        block_definitions[ id ].is_seethrough2 = true;
+        block_definitions[ id ].is_seethrough = true;
         block_definitions[ id ].casts_shadow = false;
         // block_definitions[ id ].hides_self = true;
     }
@@ -289,7 +289,7 @@ void block_definitions_initilize_definitions( Texture *texture ) {
         block_definitions[ id ].scale = { 16, 1, 16 };
         block_definitions[ id ].offset = { 0, 0, 0 };
         block_definitions[ id ].tex_offset = { 0, 0, 0 };
-        block_definitions[ id ].is_seethrough2 = true;
+        block_definitions[ id ].is_seethrough = true;
         block_definitions[ id ].casts_shadow = false;
         block_definitions[ id ].icon_is_isometric = false;
         block_definitions[ id ].needs_place_on_solid = true;
@@ -305,9 +305,16 @@ void block_definitions_initilize_definitions( Texture *texture ) {
         block_definitions[ id ].textures[ FACE_BOTTOM ] = AIR;
 
         block_definitions[ id ].connects_to_redstone_dust = true;
-        // block_definitions[ id ].is_pickable = false;
+        block_definitions[ id ].is_pickable = false;
+        block_definitions[ id ].hides_self = true;
     }
     block_definitions[ REDSTONE_CROSS ].is_pickable = true;
+    BlockID power_dust_shaped[] = { REDSTONE_LINE_1_POWERED,   REDSTONE_LINE_2_POWERED,   REDSTONE_CROSS_POWERED,    REDSTONE_DUST_L_Q1_POWERED, REDSTONE_DUST_L_Q2_POWERED, REDSTONE_DUST_L_Q3_POWERED, REDSTONE_DUST_L_Q4_POWERED, //
+                                    REDSTONE_DUST_T_L_POWERED, REDSTONE_DUST_T_R_POWERED, REDSTONE_DUST_T_F_POWERED, REDSTONE_DUST_T_B_POWERED };
+    for ( unsigned int i = 0; i < sizeof( power_dust_shaped ) / sizeof( BlockID ); i++ ) {
+        BlockID id = power_dust_shaped[ i ];
+        block_definitions[ id ].is_pickable = false;
+    }
 
     block_definitions[ WATER ].renderOrder = RenderOrder_Water;
     block_definitions[ WATER ].flows = 20;
@@ -422,11 +429,11 @@ void block_definitions_initilize_definitions( Texture *texture ) {
     block_definitions[ PODZEL ].textures[ FACE_BACK ] = PODZEL_SIDE;
     block_definitions[ PODZEL ].textures[ FACE_BOTTOM ] = DIRT;
 
-    block_definitions[ GLASS ].is_seethrough2 = true;
-    block_definitions[ BIRTCH_LEAVES ].is_seethrough2 = true;
-    block_definitions[ PINE_LEAF ].is_seethrough2 = true;
-    block_definitions[ JUNGLE_LEAF ].is_seethrough2 = true;
-    block_definitions[ LEAF ].is_seethrough2 = true;
+    block_definitions[ GLASS ].is_seethrough = true;
+    block_definitions[ BIRTCH_LEAVES ].is_seethrough = true;
+    block_definitions[ PINE_LEAF ].is_seethrough = true;
+    block_definitions[ JUNGLE_LEAF ].is_seethrough = true;
+    block_definitions[ LEAF ].is_seethrough = true;
 
     block_definitions[ GLASS ].casts_shadow = false;
 
@@ -463,7 +470,7 @@ void block_definitions_initilize_definitions( Texture *texture ) {
         if ( block->renderOrder == RenderOrder_Flowers ) {
             block->textures[ FACE_TOP ] = TNT;
             block->textures[ FACE_BOTTOM ] = TNT;
-            block->is_seethrough2 = true;
+            block->is_seethrough = true;
             block->no_light = NO_LIGHT_BRIGHT;
             block->casts_shadow = false;
             block->needs_place_on_solid = true;
@@ -474,7 +481,7 @@ void block_definitions_initilize_definitions( Texture *texture ) {
             block->affected_by_redstone_power = false;
         }
         if ( block->renderOrder == RenderOrder_Water ) {
-            block->is_seethrough2 = true;
+            block->is_seethrough = true;
             block->no_light = NO_LIGHT_BRIGHT;
             block->casts_shadow = false;
             block->icon_is_isometric = false;
@@ -484,7 +491,7 @@ void block_definitions_initilize_definitions( Texture *texture ) {
             block->can_be_placed_in = true;
         }
         if ( block->renderOrder == RenderOrder_Transparent ) {
-            block->is_seethrough2 = true;
+            block->is_seethrough = true;
             block->no_light = NO_LIGHT_DRAW;
             block->casts_shadow = false;
             block->is_pickable = false;
@@ -493,12 +500,15 @@ void block_definitions_initilize_definitions( Texture *texture ) {
             block->affected_by_redstone_power = false;
             block->can_be_placed_in = true;
         }
-        if ( block->is_seethrough2 && !block->hides_self ) { // leaves, flowers
+        if ( block->id == REDSTONE_CROSS ) {
+            pr_debug( "Got" );
+        }
+        if ( block->is_seethrough && !block->hides_self ) { // leaves, flowers
             // This block can't mesh with itself
             block->calculated.can_mesh_x = false;
             block->calculated.can_mesh_y = false;
             block->calculated.can_mesh_z = false;
-        } else if ( block->is_seethrough2 ) { // glass
+        } else if ( block->is_seethrough ) { // glass
             block->calculated.can_mesh_x = block->scale.x == 16 ? true : false;
             block->calculated.can_mesh_y = block->scale.y == 16 ? true : false;
             block->calculated.can_mesh_z = block->scale.z == 16 ? true : false;
@@ -507,22 +517,22 @@ void block_definitions_initilize_definitions( Texture *texture ) {
             block->calculated.can_mesh_y = block->scale.y == 16 ? true : false;
             block->calculated.can_mesh_z = block->scale.z == 16 ? true : false;
         }
-        if ( block->is_seethrough2 ) { // leaves, flowers, glass
+        if ( block->is_seethrough ) { // leaves, flowers, glass
             for ( int face = FACE_TOP; face < NUM_FACES_IN_CUBE; face++ ) {
-                block->calculated.is_seethrough[ face ] = true;
+                block->calculated.is_seethrough_face[ face ] = true;
             }
         } else { // other blocks, like dirt, slabs
 
-            block->calculated.is_seethrough[ FACE_TOP ] = ( block->scale.y + block->offset.y ) == 16 ? ( block->scale.x != 16 || block->scale.z != 16 ) : true;
-            block->calculated.is_seethrough[ FACE_BOTTOM ] = ( block->offset.y ) == 0 ? ( block->scale.x != 16 || block->scale.z != 16 ) : true;
-            block->calculated.is_seethrough[ FACE_RIGHT ] = ( block->scale.x + block->offset.x ) == 16 ? ( block->scale.y != 16 || block->scale.z != 16 ) : true;
-            block->calculated.is_seethrough[ FACE_FRONT ] = ( block->scale.z + block->offset.z ) == 16 ? ( block->scale.y != 16 || block->scale.x != 16 ) : true;
-            block->calculated.is_seethrough[ FACE_LEFT ] = ( block->offset.x ) == 0 ? ( block->scale.y != 16 || block->scale.z != 16 ) : true;
-            block->calculated.is_seethrough[ FACE_BACK ] = ( block->offset.z ) == 0 ? ( block->scale.y != 16 || block->scale.x != 16 ) : true;
+            block->calculated.is_seethrough_face[ FACE_TOP ] = ( block->scale.y + block->offset.y ) == 16 ? ( block->scale.x != 16 || block->scale.z != 16 ) : true;
+            block->calculated.is_seethrough_face[ FACE_BOTTOM ] = ( block->offset.y ) == 0 ? ( block->scale.x != 16 || block->scale.z != 16 ) : true;
+            block->calculated.is_seethrough_face[ FACE_RIGHT ] = ( block->scale.x + block->offset.x ) == 16 ? ( block->scale.y != 16 || block->scale.z != 16 ) : true;
+            block->calculated.is_seethrough_face[ FACE_FRONT ] = ( block->scale.z + block->offset.z ) == 16 ? ( block->scale.y != 16 || block->scale.x != 16 ) : true;
+            block->calculated.is_seethrough_face[ FACE_LEFT ] = ( block->offset.x ) == 0 ? ( block->scale.y != 16 || block->scale.z != 16 ) : true;
+            block->calculated.is_seethrough_face[ FACE_BACK ] = ( block->offset.z ) == 0 ? ( block->scale.y != 16 || block->scale.x != 16 ) : true;
         }
     }
     Block *slab_block = &block_definitions[ STONE_BRICK_SLAB ];
-    pr_debug( "Paul SLAB:%d ", slab_block->calculated.is_seethrough[ FACE_TOP ] );
+    pr_debug( "Paul SLAB:%d ", slab_block->calculated.is_seethrough_face[ FACE_TOP ] );
 
     // Exceptions
     block_definitions[ SPIDER_WEB ].needs_place_on_solid = false;

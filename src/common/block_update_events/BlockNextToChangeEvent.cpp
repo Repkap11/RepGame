@@ -89,6 +89,8 @@ void perform_checks( BlockUpdateQueue *blockUpdateQueue, World *world, long tick
                     new_display_block_id = REDSTONE_LINE_1;
                 } else if ( connects_front || connects_back ) {
                     new_display_block_id = REDSTONE_LINE_2;
+                } else {
+                    new_display_block_id = REDSTONE_CROSS;
                 }
 
                 if ( new_display_block_id != affecting_block_state.display_id ) {
