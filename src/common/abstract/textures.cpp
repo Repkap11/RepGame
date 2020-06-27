@@ -104,6 +104,7 @@ unsigned int loadTexture( const TextureSourceData *texture_source, int blur_mag 
     // instead of in texture coordinates.
     int working_size = texture_source->width * texture_source->height * BYTES_PER_PIXEL * sizeof( char );
     unsigned char *working = ( unsigned char * )malloc( working_size + bmp_header );
+
     for ( unsigned int y = 0; y < textures_down; y++ ) {
         for ( unsigned int x = 0; x < textures_across; x++ ) {
             unsigned int corner_pixel = y * texture_source->width * texture_source->tile_size_down + x * texture_source->tile_size_across;
@@ -116,6 +117,16 @@ unsigned int loadTexture( const TextureSourceData *texture_source, int blur_mag 
                 }
             }
         }
+    }
+    for ( int i = 0; i < working_size; i += 4 ) {
+        unsigned char a = working[ i + 0 ];
+        unsigned char b = working[ i + 1 ];
+        unsigned char g = working[ i + 2 ];
+        unsigned char r = working[ i + 3 ];
+        working[ i + 0 ] = b;
+        working[ i + 1 ] = g;
+        working[ i + 2 ] = r;
+        working[ i + 3 ] = a;
     }
 
     unsigned int layer_count = textures_across * textures_down;
