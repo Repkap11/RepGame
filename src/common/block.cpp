@@ -29,6 +29,12 @@ void block_adjust_coord_based_on_state( const Block *block, const BlockState *bl
     REDSTONE_DUST_IF( REDSTONE_DUST_L_Q2 )
     REDSTONE_DUST_IF( REDSTONE_DUST_L_Q3 )
     REDSTONE_DUST_IF( REDSTONE_DUST_L_Q4 )
+
+    REDSTONE_DUST_IF( REDSTONE_DUST_T_F )
+    REDSTONE_DUST_IF( REDSTONE_DUST_T_R )
+    REDSTONE_DUST_IF( REDSTONE_DUST_T_B )
+    REDSTONE_DUST_IF( REDSTONE_DUST_T_L )
+
     // if ( blockState->display_id == REDSTONE_LINE_1 ) {
     //     if ( blockState->current_redstone_power > 0 ) {
     //         change_all_textures_to( blockCoord->face, REDSTONE_LINE_1_POWERED );
