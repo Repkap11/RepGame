@@ -78,7 +78,7 @@ void repgame_process_mouse_events( ) {
             ui_overlay_set_holding_block( &globalGameState.ui_overlay, globalGameState.block_selection.holdingBlock );
         }
         if ( !was_middle ) {
-            pr_debug( "Selected block:%d rotation:%d redstone_power:%d", blockState.id, blockState.rotation, blockState.current_redstone_power );
+            pr_debug( "Selected block:%d rotation:%d redstone_power:%d display:%d", blockState.id, blockState.rotation, blockState.current_redstone_power, blockState.display_id );
         }
         was_middle = true;
     } else {
@@ -91,7 +91,7 @@ void repgame_process_mouse_events( ) {
     if ( globalGameState.block_selection.selectionInBounds && globalGameState.input.mouse.buttons.right && globalGameState.input.click_delay_right == 0 ) {
         unsigned char rotation = getPlacedRotation( globalGameState.block_selection.holdingBlock );
         Block *held_block = block_definition_get_definition( globalGameState.block_selection.holdingBlock );
-        change_block( 1, {globalGameState.block_selection.holdingBlock, rotation, 0, globalGameState.block_selection.holdingBlock} );
+        change_block( 1, { globalGameState.block_selection.holdingBlock, rotation, 0, globalGameState.block_selection.holdingBlock } );
         globalGameState.input.click_delay_right = 30;
     }
     if ( globalGameState.block_selection.selectionInBounds && globalGameState.input.mouse.currentPosition.wheel_counts != globalGameState.input.mouse.previousPosition.wheel_counts ) {
@@ -102,13 +102,14 @@ void repgame_process_mouse_events( ) {
             do {
                 blockID_int += wheel_diff;
                 if ( blockID_int >= LAST_BLOCK_ID ) {
-                    blockID_int = LAST_BLOCK_ID - 1;
+                    blockID_int = 1;
                 }
                 if ( blockID_int <= 0 ) {
-                    blockID_int = 1;
+                    blockID_int = LAST_BLOCK_ID - 1;
                 }
             } while ( !block_definition_get_definition( ( BlockID )blockID_int )->is_pickable );
             blockState.id = ( BlockID )blockID_int;
+            blockState.display_id = ( BlockID )blockID_int;
             // blockState.rotation = getPlacedRotation( blockState.id );
             change_block( 0, BLOCK_STATE_AIR );
             change_block( 0, blockState );
@@ -292,7 +293,7 @@ static inline void initilizeGameState( const char *world_name ) {
     }
 }
 
-MK_TEXTURE( textures, 384, 816, 16, 16, 138 );
+MK_TEXTURE( textures, 384, 832, 16, 16, 139 );
 
 void repgame_init( const char *world_name, bool connect_multi, const char *host ) {
 

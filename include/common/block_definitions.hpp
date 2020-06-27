@@ -54,6 +54,7 @@ typedef enum {
     DARK_BARRIER = 55,
     DARK_DEAD_SAPPLING,
     GRASS_TUFT,
+    REDSTONE_DUST_L_Q3_POWERED = 58,
     CRAFTING_BENCH = 60,
     FURNACE_UNLIT,
     FURNACE_SIDE,
@@ -82,6 +83,7 @@ typedef enum {
     MYCELIUM = 111,
     BIRTCH_SAPPLING = 112,
     BLUE_FLOWER = 119,
+    REDSTONE_DUST_L_Q4_POWERED = 120,
     TORCH = 121,
     LADDER = 124,
     WHEAT_0 = 129,
@@ -116,14 +118,11 @@ typedef enum {
     ZOMBIE_HEAD = 236,
     PLAYER_HEAD = 237,
     CREEPER_HEAD = 238,
-    REDSTONE_DUST = 246,
-    REDSTONE_LINE_POWERED = 246,
+    REDSTONE_DUST_L_Q1_POWERED = 246,
     DRAGON_EGG = 248,
     PURPLE_CORAL = 260,
     OAK_BUTTON = 262,
     SANDSTONE_BRICK_TOP = 265,
-    REDSTONE_LINE_UNPOWERED = 270,
-    REDSTONE_LINE = 270,
     RED_CORAL = 274,
     EMPTY_POT = 275,
     SANDSTONE_BRICK = 289,
@@ -140,6 +139,7 @@ typedef enum {
     REDSTONE_LAMP = 316,
     REDSTONE_LAMP_POWERED = 317,
     BIRTCH_PLANK = 319,
+    REDSTONE_DUST_L_Q2_POWERED = 320,
     NETHER_WART_1 = 339,
     NETHER_WART_2 = 340,
     NETHER_WART_3 = 341,
@@ -254,7 +254,29 @@ typedef enum {
     STEVE_HEAD_RIGHT,
     STEVE_HEAD_BACK,
     LADDER_TOP = 1219,
-    LAST_BLOCK_ID = 1220, // Also in chunk_vertex.glsl
+    REDSTONE_CROSS_POWERED = 1225,
+    REDSTONE_LINE_1_POWERED = 1226,
+
+    REDSTONE_CROSS_UNPOWERED = 1227,
+    REDSTONE_CROSS = 1227,
+
+    REDSTONE_LINE_1_UNPOWERED = 1228,
+    REDSTONE_LINE_1 = 1228,
+
+    REDSTONE_LINE_2_POWERED = 1229,
+    REDSTONE_LINE_2_UNPOWERED = 1230,
+    REDSTONE_LINE_2 = 1230,
+
+    REDSTONE_DUST_L_Q4_UNPOWERED = 1244,
+    REDSTONE_DUST_L_Q4 = 1244,
+    REDSTONE_DUST_L_Q3_UNPOWERED = 1245,
+    REDSTONE_DUST_L_Q3 = 1245,
+    REDSTONE_DUST_L_Q2_UNPOWERED = 1246,
+    REDSTONE_DUST_L_Q2 = 1246,
+    REDSTONE_DUST_L_Q1_UNPOWERED = 1247,
+    REDSTONE_DUST_L_Q1 = 1247,
+
+    LAST_BLOCK_ID = 1249, // Also in chunk_vertex.glsl
 } BlockID;
 
 // The GPU can only hold so many blocks, so only blocks with id's under 100 can be rotated.
@@ -304,10 +326,11 @@ typedef struct {
         bool can_mesh_z;
         bool is_seethrough[ NUM_FACES_IN_CUBE ];
     } calculated;
+    bool connects_to_redstone_dust;
 
 } Block;
 
-//Keep in order to make save file backwards compatible
+// Keep in order to make save file backwards compatible
 typedef struct {
     BlockID id;
     unsigned char rotation;

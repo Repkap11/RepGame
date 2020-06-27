@@ -190,9 +190,6 @@ void block_definitions_initilize_definitions( Texture *texture ) {
     block_definitions[ REDSTONE_BLOCK ].initial_redstone_power = 10;
     block_definitions[ REDSTONE_BLOCK ].affected_by_redstone_power = false;
 
-    block_definitions[ REDSTONE_LINE ].affected_by_redstone_power = true;
-    block_definitions[ REDSTONE_LINE ].transmits_redstone_power = true;
-
     block_definitions[ REDSTONE_TORCH ].affected_by_redstone_power = true;
     block_definitions[ REDSTONE_TORCH ].transmits_redstone_power = true;
 
@@ -284,7 +281,7 @@ void block_definitions_initilize_definitions( Texture *texture ) {
         block_definitions[ id ].rotate_on_placement = true;
         block_definitions[ id ].icon_is_isometric = false;
     }
-    BlockID dust_shaped[] = { REDSTONE_LINE };
+    BlockID dust_shaped[] = { REDSTONE_LINE_1, REDSTONE_LINE_2, REDSTONE_CROSS, REDSTONE_DUST_L_Q1, REDSTONE_DUST_L_Q2, REDSTONE_DUST_L_Q3, REDSTONE_DUST_L_Q4 };
     for ( unsigned int i = 0; i < sizeof( dust_shaped ) / sizeof( BlockID ); i++ ) {
         BlockID id = dust_shaped[ i ];
         block_definitions[ id ].scale = { 16, 1, 16 };
@@ -296,7 +293,23 @@ void block_definitions_initilize_definitions( Texture *texture ) {
         block_definitions[ id ].needs_place_on_solid = true;
         block_definitions[ id ].collides_with_player = false;
         block_definitions[ id ].breaks_in_liquid = true;
+        block_definitions[ id ].affected_by_redstone_power = true;
+        block_definitions[ id ].transmits_redstone_power = true;
+
+        // removes icon...
+        // block_definitions[ id ].textures[ FACE_LEFT ] = AIR;
+        // block_definitions[ id ].textures[ FACE_RIGHT ] = AIR;
+        // block_definitions[ id ].textures[ FACE_FRONT ] = AIR;
+        // block_definitions[ id ].textures[ FACE_BACK ] = AIR;
+
+        block_definitions[ id ].connects_to_redstone_dust = true;
+        // block_definitions[ id ].is_pickable = false;
     }
+
+    block_definitions[ REDSTONE_CROSS ].is_pickable = true;
+    // block_definitions[ REDSTONE_CROSS_POWERED ].is_pickable = false;
+    // block_definitions[ REDSTONE_LINE_1_POWERED ].is_pickable = false;
+    // block_definitions[ REDSTONE_LINE_2_POWERED ].is_pickable = false;
 
     block_definitions[ WATER ].renderOrder = RenderOrder_Water;
     block_definitions[ WATER ].flows = 20;
@@ -555,7 +568,6 @@ void do_disable( Block *block_definitions ) {
     block_definitions[ GRASS_SIDE ].renderOrder = RenderOrder_Transparent;
     block_definitions[ CRAFTING_BENCH_SIDE1 ].renderOrder = RenderOrder_Transparent;
     block_definitions[ CRAFTING_BENCH_SIDE2 ].renderOrder = RenderOrder_Transparent;
-    block_definitions[ REDSTONE_LINE_POWERED ].renderOrder = RenderOrder_Transparent;
     block_definitions[ REDSTONE_LAMP_POWERED ].renderOrder = RenderOrder_Transparent;
     block_definitions[ RED_SANDSTONE_BRICK_TOP ].renderOrder = RenderOrder_Transparent;
     block_definitions[ RED_SANDSTONE_BRICK_BOTTOM ].renderOrder = RenderOrder_Transparent;
@@ -564,6 +576,7 @@ void do_disable( Block *block_definitions ) {
     block_definitions[ REDSTONE_TORCH_OFF ].renderOrder = RenderOrder_Transparent;
     block_definitions[ CAKE_SIDE ].renderOrder = RenderOrder_Transparent;
     block_definitions[ CAKE_BOTTOM ].renderOrder = RenderOrder_Transparent;
+    block_definitions[ REDSTONE_CROSS_POWERED ].renderOrder = RenderOrder_Transparent;
 }
 
 void do_flowers( Block *block_definitions ) {

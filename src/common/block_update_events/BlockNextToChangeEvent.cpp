@@ -27,35 +27,63 @@ int find_largest_redstone_power_around( World *world, int x, int y, int z ) {
 
 #define REDSTONE_DELAY 0
 
+#define NEXT_TO_STATE( i, j, k ) world_get_loaded_block( world, affecting_block_x + i, affecting_block_y + j, affecting_block_z + k )
+#define NEXT_TO_BLOCK( i, j, k ) block_definition_get_definition( world_get_loaded_block( world, affecting_block_x + i, affecting_block_y + j, affecting_block_z + k ).id )
+
 void perform_checks( BlockUpdateQueue *blockUpdateQueue, World *world, long tick_number, //
                      int block_x, int block_y, int block_z,                              //
                      int affecting_block_x, int affecting_block_y, int affecting_block_z ) {
 
     // The updating block  was next to the updating one, and might need to change
     const BlockState updateing_block_state = world_get_loaded_block( world, block_x, block_y, block_z );
-    Block *updateing_block = block_definition_get_definition( updateing_block_state.id );
+    const Block *updateing_block = block_definition_get_definition( updateing_block_state.id );
 
     // The affecting block is the one that origionally change
     const BlockState affecting_block_state = world_get_loaded_block( world, affecting_block_x, affecting_block_y, affecting_block_z );
-    Block *affecting_block = block_definition_get_definition( affecting_block_state.id );
+    const Block *affecting_block = block_definition_get_definition( affecting_block_state.id );
 
     // Water flow needs to start when a block next to water is broken
     if ( updateing_block->flows != 0 && affecting_block->breaks_in_liquid && affecting_block_y <= block_y ) {
         pr_debug( "Expanding a water x:%d y:%d z:%d into x:%d y:%d z:%d ", block_x, block_y, block_z, affecting_block_x, affecting_block_y, affecting_block_z );
         BlockState new_block_state = updateing_block_state;
-        BlockUpdateEvent *blockPlacedEvent =
-            new PlayerBlockPlacedEvent( tick_number + updateing_block->flows, affecting_block_x, affecting_block_y, affecting_block_z, new_block_state, false );
+        BlockUpdateEvent *blockPlacedEvent = new PlayerBlockPlacedEvent( tick_number + updateing_block->flows, affecting_block_x, affecting_block_y, affecting_block_z, new_block_state, false );
         blockUpdateQueue->addBlockUpdate( blockPlacedEvent );
     }
 
-    //     {
-    // #define NEXT_TO( i, j, k ) find_largest_redstone_power_around( world, affecting_block_x + i, affecting_block_y + j, affecting_block_z + k )
-    //         if ( updateing_block_state.id == REDSTONE_DUST ) {
-    //             bool connects_left = NEXT_TO( 1, 0, 0 ).id == REDSTONE_DUST;
-    //             bool connects_right = NEXT_TO( 1, 0, 0 ).id == REDSTONE_DUST;
+    {
+        if ( affecting_block->connects_to_redstone_dust ) {
+            BlockID new_display_block_id = affecting_block_state.display_id;
 
-    //         }
-    //     }
+            bool connects_left = NEXT_TO_BLOCK( 1, 0, 0 )->connects_to_redstone_dust;
+            bool connects_right = NEXT_TO_BLOCK( -1, 0, 0 )->connects_to_redstone_dust;
+            bool connects_front = NEXT_TO_BLOCK( 0, 0, 1 )->connects_to_redstone_dust;
+            bool connects_back = NEXT_TO_BLOCK( 0, 0, -1 )->connects_to_redstone_dust;
+            if ( connects_left && connects_right && connects_front && connects_back ) {
+                new_display_block_id = REDSTONE_CROSS;
+            } else if ( connects_left && connects_front ) {
+                new_display_block_id = REDSTONE_DUST_L_Q2;
+            } else if ( connects_right && connects_back ) {
+                new_display_block_id = REDSTONE_DUST_L_Q4;
+            } else if ( connects_right && connects_front ) {
+                new_display_block_id = REDSTONE_DUST_L_Q1;
+            } else if ( connects_left && connects_back ) {
+                new_display_block_id = REDSTONE_DUST_L_Q3;
+            } else if ( connects_left || connects_right ) {
+                new_display_block_id = REDSTONE_LINE_1;
+            } else if ( connects_front || connects_back ) {
+                new_display_block_id = REDSTONE_LINE_2;
+            }
+
+            if ( new_display_block_id != affecting_block_state.display_id ) {
+                pr_debug( "Dust" );
+
+                BlockState new_block_state = affecting_block_state;
+                new_block_state.display_id = new_display_block_id;
+                BlockUpdateEvent *blockPlacedEvent = new PlayerBlockPlacedEvent( tick_number, affecting_block_x, affecting_block_y, affecting_block_z, new_block_state, true );
+                blockUpdateQueue->addBlockUpdate( blockPlacedEvent );
+            }
+        }
+    }
 
     {
         int new_power;
@@ -79,8 +107,7 @@ void perform_checks( BlockUpdateQueue *blockUpdateQueue, World *world, long tick
             // pr_debug( "Queueing event1 with old:%d new:%d", affecting_block_state.current_redstone_power, new_power );
             BlockState new_block_state = affecting_block_state;
             new_block_state.current_redstone_power = new_power;
-            BlockUpdateEvent *blockPlacedEvent =
-                new PlayerBlockPlacedEvent( tick_number + REDSTONE_DELAY, affecting_block_x, affecting_block_y, affecting_block_z, new_block_state, true );
+            BlockUpdateEvent *blockPlacedEvent = new PlayerBlockPlacedEvent( tick_number + REDSTONE_DELAY, affecting_block_x, affecting_block_y, affecting_block_z, new_block_state, true );
             blockUpdateQueue->addBlockUpdate( blockPlacedEvent );
         }
     }
