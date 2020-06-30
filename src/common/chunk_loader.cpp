@@ -233,7 +233,7 @@ void chunk_loader_calculate_cull( LoadedChunks *loadedChunks, const glm::mat4 &m
 
 int shouldInc = 0;
 int showRotation = 0;
-void chunk_loader_draw_chunks( LoadedChunks *loadedChunks, const glm::mat4 &mvp, Renderer *renderer, bool reflect_only ) {
+void chunk_loader_draw_chunks( LoadedChunks *loadedChunks, const glm::mat4 &mvp, Renderer *renderer, bool reflect_only, bool draw_reflect ) {
     shader_set_uniform_mat4f( &loadedChunks->shader, "u_MVP", mvp );
 
     // pr_debug( "Drawing %d chunks", loadedChunks->numLoadedChunks );
@@ -243,7 +243,7 @@ void chunk_loader_draw_chunks( LoadedChunks *loadedChunks, const glm::mat4 &mvp,
             for ( int i = 0; i < MAX_LOADED_CHUNKS; i++ ) {
                 Chunk *chunk = &loadedChunks->chunkArray[ i ];
                 if ( !chunk->cached_cull ) {
-                    chunk_render( &loadedChunks->chunkArray[ i ], renderer, &loadedChunks->shader, ( RenderOrder )renderOrder );
+                    chunk_render( &loadedChunks->chunkArray[ i ], renderer, &loadedChunks->shader, ( RenderOrder )renderOrder, draw_reflect );
                 }
             }
         }

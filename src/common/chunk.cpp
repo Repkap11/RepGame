@@ -18,10 +18,11 @@ static unsigned int ib_data_flowers[] = {
 
 void chunk_calculate_sides( Chunk *chunk, TRIP_ARGS( int center_next_ ) ) {
     unsigned int *chunk_ib_data[ LAST_RENDER_ORDER ];
+    unsigned int *chunk_ib_data_reflect[ LAST_RENDER_ORDER ];
     for ( int renderOrder = 0; renderOrder < LAST_RENDER_ORDER; renderOrder++ ) {
         chunk_ib_data[ renderOrder ] = ( unsigned int * )malloc( render_order_ib_size( ( RenderOrder )renderOrder ) * sizeof( unsigned int ) );
+        chunk_ib_data_reflect[ renderOrder ] = ( unsigned int * )malloc( render_order_ib_size( ( RenderOrder )renderOrder ) * sizeof( unsigned int ) );
     }
-
     int visable_top = chunk->chunk_y <= center_next_y;
     int visable_bottom = chunk->chunk_y >= center_next_y;
     int visable_right = chunk->chunk_x <= center_next_x;
@@ -32,55 +33,61 @@ void chunk_calculate_sides( Chunk *chunk, TRIP_ARGS( int center_next_ ) ) {
     int ib_size[ LAST_RENDER_ORDER ] = { 0 };
     if ( visable_front ) {
         for ( int i = 0; i < 12; i++ ) {
+            chunk_ib_data_reflect[ RenderOrder_Opaque ][ ib_size[ RenderOrder_Opaque ] ] = ib_data_solid[ 12 * FACE_FRONT + i ];
+
             chunk_ib_data[ RenderOrder_Opaque ][ ib_size[ RenderOrder_Opaque ]++ ] = ib_data_solid[ 12 * FACE_FRONT + i ];
         }
     }
     if ( visable_right ) {
         for ( int i = 0; i < 12; i++ ) {
+            chunk_ib_data_reflect[ RenderOrder_Opaque ][ ib_size[ RenderOrder_Opaque ] ] = ib_data_solid[ 12 * FACE_RIGHT + i ];
             chunk_ib_data[ RenderOrder_Opaque ][ ib_size[ RenderOrder_Opaque ]++ ] = ib_data_solid[ 12 * FACE_RIGHT + i ];
         }
     }
     if ( visable_back ) {
         for ( int i = 0; i < 12; i++ ) {
+            chunk_ib_data_reflect[ RenderOrder_Opaque ][ ib_size[ RenderOrder_Opaque ] ] = ib_data_solid[ 12 * FACE_BACK + i ];
             chunk_ib_data[ RenderOrder_Opaque ][ ib_size[ RenderOrder_Opaque ]++ ] = ib_data_solid[ 12 * FACE_BACK + i ];
         }
     }
     if ( visable_left ) {
         for ( int i = 0; i < 12; i++ ) {
+            chunk_ib_data_reflect[ RenderOrder_Opaque ][ ib_size[ RenderOrder_Opaque ] ] = ib_data_solid[ 12 * FACE_LEFT + i ];
             chunk_ib_data[ RenderOrder_Opaque ][ ib_size[ RenderOrder_Opaque ]++ ] = ib_data_solid[ 12 * FACE_LEFT + i ];
         }
     }
     if ( visable_top ) {
         for ( int i = 0; i < 12; i++ ) {
+            chunk_ib_data_reflect[ RenderOrder_Opaque ][ ib_size[ RenderOrder_Opaque ] ] = ib_data_solid[ 12 * FACE_BOTTOM + i ];
             chunk_ib_data[ RenderOrder_Opaque ][ ib_size[ RenderOrder_Opaque ]++ ] = ib_data_solid[ 12 * FACE_TOP + i ];
             chunk_ib_data[ RenderOrder_Water ][ ib_size[ RenderOrder_Water ]++ ] = ib_data_water[ 12 * IB_POSITION_WATER_TOP + i ];
         }
     }
     if ( visable_bottom ) {
         for ( int i = 0; i < 12; i++ ) {
+            chunk_ib_data_reflect[ RenderOrder_Opaque ][ ib_size[ RenderOrder_Opaque ] ] = ib_data_solid[ 12 * FACE_TOP + i ];
             chunk_ib_data[ RenderOrder_Opaque ][ ib_size[ RenderOrder_Opaque ]++ ] = ib_data_solid[ 12 * FACE_BOTTOM + i ];
             chunk_ib_data[ RenderOrder_Water ][ ib_size[ RenderOrder_Water ]++ ] = ib_data_water[ 12 * IB_POSITION_WATER_BOTTOM + i ];
         }
     }
+
     for ( int renderOrder = 1; renderOrder < LAST_RENDER_ORDER; renderOrder++ ) {
         unsigned int *ib_data = chunk_ib_data[ renderOrder ];
+        unsigned int *ib_data_reflect = chunk_ib_data_reflect[ renderOrder ];
         unsigned int ib_new_size = ib_size[ renderOrder ];
         if ( renderOrder == RenderOrder_Flowers ) {
             ib_data = ib_data_flowers;
+            ib_data_reflect = ib_data_flowers;
             ib_new_size = render_order_ib_size( ( RenderOrder )renderOrder );
         } else if ( renderOrder == RenderOrder_Opaque || renderOrder == RenderOrder_Water ) {
         } else {
             pr_debug( "Unexpected index buffer. Crash likely on WASM ro:%d", renderOrder );
         }
-        if ( renderOrder == RenderOrder_Opaque ) {
-            // pr_debug( "Should be %p:%d", ib_data, ib_new_size );
-            // index_buffer_set_data( &chunk->layers[ renderOrder ].ib, ib_data_solid, IB_SOLID_SIZE );
-            index_buffer_set_data( &chunk->layers[ renderOrder ].ib, ib_data, ib_new_size );
+        index_buffer_set_data( &chunk->layers[ renderOrder ].ib, ib_data, ib_new_size );
+        index_buffer_set_data( &chunk->layers[ renderOrder ].ib_reflect, ib_data_reflect, ib_new_size );
 
-        } else {
-            index_buffer_set_data( &chunk->layers[ renderOrder ].ib, ib_data, ib_new_size );
-        }
         free( chunk_ib_data[ renderOrder ] );
+        free( chunk_ib_data_reflect[ renderOrder ] );
     }
 }
 
@@ -111,6 +118,7 @@ void chunk_init( Chunk *chunk, VertexBuffer *vb_block_solid, VertexBuffer *vb_bl
                 vb = vb_block_solid;
         }
         index_buffer_init( &chunk->layers[ renderOrder ].ib );
+        index_buffer_init( &chunk->layers[ renderOrder ].ib_reflect );
         vertex_buffer_init( &chunk->layers[ renderOrder ].vb_coords );
         vertex_array_init( &chunk->layers[ renderOrder ].va );
         vertex_array_add_buffer( &chunk->layers[ renderOrder ].va, vb, vbl_block, 0, 0 );
@@ -128,15 +136,24 @@ void chunk_destroy( Chunk *chunk ) {
             free( chunk->layers[ renderOrder ].populated_blocks );
         }
         chunk->layers[ renderOrder ].populated_blocks = 0;
+        index_buffer_destroy( &chunk->layers[ renderOrder ].ib );
+        index_buffer_destroy( &chunk->layers[ renderOrder ].ib_reflect );
+        vertex_array_destroy( &chunk->layers[ renderOrder ].va );
     }
 }
 
-void chunk_render( const Chunk *chunk, const Renderer *renderer, const Shader *shader, RenderOrder renderOrder ) {
+void chunk_render( const Chunk *chunk, const Renderer *renderer, const Shader *shader, RenderOrder renderOrder, bool draw_reflect ) {
     if ( chunk->should_render && chunk->layers[ renderOrder ].num_instances != 0 ) {
         if ( chunk->is_loading ) {
             pr_debug( "Error, attempting to render loading chunk" );
         }
-        renderer_draw( renderer, &chunk->layers[ renderOrder ].va, &chunk->layers[ renderOrder ].ib, shader, chunk->layers[ renderOrder ].num_instances );
+        const IndexBuffer *active_ib;
+        if ( draw_reflect ) {
+            active_ib = &chunk->layers[ renderOrder ].ib_reflect;
+        } else {
+            active_ib = &chunk->layers[ renderOrder ].ib;
+        }
+        renderer_draw( renderer, &chunk->layers[ renderOrder ].va, active_ib, shader, chunk->layers[ renderOrder ].num_instances );
     }
 }
 
@@ -231,8 +248,8 @@ int chunk_can_extend_rect( Chunk *chunk, BlockState blockState, unsigned int *pa
     //         pr_debug( "Error, there must be 2 values different in a plane" );
     //     }
     // }
-    if (blockState.id == REDSTONE_CROSS){
-        pr_debug("Trying to mesh");
+    if ( blockState.id == REDSTONE_CROSS ) {
+        pr_debug( "Trying to mesh" );
     }
     int num_checked_blocks = 0;
     for ( int new_x = starting_x; new_x < starting_x + size_x; new_x++ ) {
@@ -502,8 +519,8 @@ void chunk_calculate_popupated_blocks( Chunk *chunk ) {
 
                     BlockState blockState = chunk->blocks[ index ];
                     Block *block = block_definition_get_definition( blockState.display_id );
-                    if (blockState.display_id == REDSTONE_CROSS){
-                        pr_debug("Got cross");
+                    if ( blockState.display_id == REDSTONE_CROSS ) {
+                        pr_debug( "Got cross" );
                     }
                     int visiable_block = workingSpace[ index ].visable;
                     int can_be_seen = workingSpace[ index ].can_be_seen;

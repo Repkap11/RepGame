@@ -89,7 +89,7 @@ void world_draw( World *world, Texture *blocksTexture, const glm::mat4 &mvp, con
     sky_box_draw( &world->skyBox, &world->renderer, mvp_sky, &world->sky_shader );
     chunk_loader_calculate_cull( &world->loadedChunks, mvp );
     shader_set_uniform1ui( &world->loadedChunks.shader, "u_ScaleTextureBlock", 1 );
-    chunk_loader_draw_chunks( &world->loadedChunks, mvp, &world->renderer, false ); // Blocks
+    chunk_loader_draw_chunks( &world->loadedChunks, mvp, &world->renderer, false, false ); // Blocks
     if ( draw_mouse_selection ) {
         mouse_selection_draw( &world->mouseSelection, &world->renderer, &world->loadedChunks.shader );
     }
@@ -99,7 +99,7 @@ void world_draw( World *world, Texture *blocksTexture, const glm::mat4 &mvp, con
     glStencilFunc( GL_ALWAYS, 1, 0xff );
     glStencilOp( GL_KEEP, GL_KEEP, GL_REPLACE );
 
-    chunk_loader_draw_chunks( &world->loadedChunks, mvp, &world->renderer, true ); // Stencil water
+    chunk_loader_draw_chunks( &world->loadedChunks, mvp, &world->renderer, true, false ); // Stencil water
 
     glColorMask( GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE );
     glStencilFunc( GL_EQUAL, 1, 0xff );
@@ -113,7 +113,7 @@ void world_draw( World *world, Texture *blocksTexture, const glm::mat4 &mvp, con
     shader_set_uniform1f( &world->sky_shader, "u_ReflectionHeight", offset );
 
     chunk_loader_calculate_cull( &world->loadedChunks, mvp_reflect );
-    chunk_loader_draw_chunks( &world->loadedChunks, mvp_reflect, &world->renderer, false ); // Reflected blocks
+    chunk_loader_draw_chunks( &world->loadedChunks, mvp_reflect, &world->renderer, false, true ); // Reflected blocks
     shader_set_uniform1i( &world->sky_shader, "u_Texture", blocksTexture->slot );
 
     world->mobs.draw( mvp_reflect, &world->renderer, &world->sky_shader );
@@ -129,7 +129,7 @@ void world_draw( World *world, Texture *blocksTexture, const glm::mat4 &mvp, con
 #endif
 
     chunk_loader_calculate_cull( &world->loadedChunks, mvp );
-    chunk_loader_draw_chunks( &world->loadedChunks, mvp, &world->renderer, true ); // Water
+    chunk_loader_draw_chunks( &world->loadedChunks, mvp, &world->renderer, true, false ); // Water
     glDisable( GL_STENCIL_TEST );
 }
 void world_cleanup( World *world ) {

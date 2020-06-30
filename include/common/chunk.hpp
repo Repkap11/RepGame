@@ -13,6 +13,7 @@
 typedef struct {
     VertexArray va;
     IndexBuffer ib;
+    IndexBuffer ib_reflect;
     int num_instances;
     VertexBuffer vb_coords;
     BlockCoords *populated_blocks;
@@ -34,7 +35,7 @@ typedef struct {
 } Chunk;
 
 void chunk_init( Chunk *chunk, VertexBuffer *vb_block_solid, VertexBuffer *vb_block_water, VertexBufferLayout *vbl_block, VertexBufferLayout *vbl_coords );
-void chunk_render( const Chunk *chunk, const Renderer *renderer, const Shader *shader, RenderOrder renderOrder );
+void chunk_render( const Chunk *chunk, const Renderer *renderer, const Shader *shader, RenderOrder renderOrder, bool draw_reflect );
 void chunk_load_terrain( Chunk *chunk );      // Load from file or map gen
 void chunk_program_terrain( Chunk *chunk );   // Program into GPU
 void chunk_unprogram_terrain( Chunk *chunk ); // Remove from GPU
