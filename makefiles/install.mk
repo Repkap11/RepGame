@@ -3,14 +3,8 @@ REP_MAKEFILES += makefiles/install.mk
 
 REPGAME_PACKAGES := libglm-dev libglm-doc rsync wget ccache clang
 
-ifeq ($(UBUNTU_VERSION),14.04)
-else ifeq ($(UBUNTU_VERSION),16.04)
-	HOST_ONLY_REPGAME_PACKAGES += bsdtar
-else
-	HOST_ONLY_REPGAME_PACKAGES += libarchive-tools
-endif
-
 ifeq ($(DOCKER_UBUNTU_VERSION),14.04)
+	DOCKER_ONLY_REPGAME_PACKAGES += bsdtar
 else ifeq ($(DOCKER_UBUNTU_VERSION),16.04)
 	DOCKER_ONLY_REPGAME_PACKAGES += bsdtar
 else
@@ -20,6 +14,7 @@ endif
 install: packages
 
 packages:
-	sudo apt-get install -y $(REPGAME_PACKAGES) $(HOST_ONLY_REPGAME_PACKAGES)
+	sudo apt-get install -y $(REPGAME_PACKAGES)
+	sudo apt-get install -y bsdtar || sudo apt-get install -y libarchive-tools
 
 .PHONY: install packages
