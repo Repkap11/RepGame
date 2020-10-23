@@ -46,6 +46,15 @@ unsigned char *as_unsigned_char_array( JNIEnv *env, jbyteArray array, int *out_s
     *out_size = len;
     return buf;
 }
+
+float *as_float_array(JNIEnv *env, jfloatArray array, int *out_size){
+    int len = env->GetArrayLength( array );
+    float *buf = new float[ len ];
+    env->GetFloatArrayRegion( array, 0, len, reinterpret_cast<jfloat *>( buf ) );
+    *out_size = len;
+    return buf;
+}
+
 int next_game_step;
 
 JNIEXPORT void JNICALL Java_com_repkap11_repgame_RepGameJNIWrapper_onSurfaceCreated( JNIEnv *env, jobject obj, jbyteArray texture_bytes0, jbyteArray texture_bytes1, jobject assetManager_java, jstring world_name_java ) {
@@ -111,5 +120,13 @@ JNIEXPORT void JNICALL Java_com_repkap11_repgame_RepGameJNIWrapper_positionHInpu
 JNIEXPORT void JNICALL Java_com_repkap11_repgame_RepGameJNIWrapper_setJumpPressed( JNIEnv *env, jobject obj, jint jumpPressed ) {
     input_setJumpPressed( repgame_getInputState( ), jumpPressed );
 }
+
+JNIEXPORT void JNICALL Java_com_repkap11_repgame_RepGameJNIWrapper_setHeadForVR( JNIEnv *env, jobject obj, jfloatArray headView ) {
+    int num_floats;
+    float *headViewC = as_float_array( env, headView, &num_floats );
+    input_setHeadForVR(repgame_getInputState( ), headViewC);
+    free(headViewC);
+}
+
 
 } // End Extern C

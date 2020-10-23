@@ -113,11 +113,13 @@ void world_draw( World *world, Texture *blocksTexture, const glm::mat4 &mvp, con
     shader_set_uniform1f( &world->sky_shader, "u_ReflectionHeight", offset );
 
     chunk_loader_calculate_cull( &world->loadedChunks, mvp_reflect );
+    shader_set_uniform1f( &world->sky_shader, "u_ExtraAlpha", 1.0 );
+
     chunk_loader_draw_chunks( &world->loadedChunks, mvp_reflect, &world->renderer, false, true ); // Reflected blocks
     shader_set_uniform1i( &world->sky_shader, "u_Texture", blocksTexture->slot );
 
     world->mobs.draw( mvp_reflect, &world->renderer, &world->sky_shader );
-    shader_set_uniform1f( &world->sky_shader, "u_ExtraAlpha", 0.5 );
+    // shader_set_uniform1f( &world->sky_shader, "u_ExtraAlpha", 0.5 );
     sky_box_draw( &world->skyBox, &world->renderer, mvp_sky_reflect, &world->sky_shader );
 
     glDepthMask( GL_TRUE );

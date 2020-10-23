@@ -9,12 +9,14 @@ import android.os.Bundle;
 import android.view.View;
 import android.widget.Toast;
 
+import com.google.vr.sdk.base.GvrActivity;
+import com.google.vr.sdk.base.GvrView;
 import com.repkap11.repgame.views.UIOverlayView;
 
-public class RepGameActivity extends AppCompatActivity {
+public class RepGameActivity extends GvrActivity {
 
     private static final String TAG = RepGameActivity.class.getSimpleName();
-    private GLSurfaceView glSurfaceView;
+    private GvrView glSurfaceView;
     private boolean mRendererSet;
     private RepGameAndroidRenderer mRenderWrapper;
     private int mPreviousX;
@@ -42,11 +44,16 @@ public class RepGameActivity extends AppCompatActivity {
         }
         {
             //Configure the Surface View
-            glSurfaceView = findViewById(R.id.repgame_surfaceview);
+            glSurfaceView = findViewById(R.id.repgame_gvr_view);
+//          glSurfaceView = findViewById(R.id.repgame_surfaceview);
             glSurfaceView.getKeepScreenOn();
             glSurfaceView.setEGLContextClientVersion(3);
-            glSurfaceView.setEGLConfigChooser(new RepGameAndroidRenderer.ConfigChooser());
+            glSurfaceView.setStereoModeEnabled(false);
+            glSurfaceView.setTransitionViewEnabled(true);
+            glSurfaceView.setEGLConfigChooser(8,8,8,8,24,4);
+//            grvView.setEGLConfigChooser(new RepGameAndroidRenderer.ConfigChooser());
             glSurfaceView.setRenderer(mRenderWrapper);
+            this.setGvrView(glSurfaceView);
             mRendererSet = true;
         }
         {

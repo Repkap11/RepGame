@@ -18,3 +18,9 @@ void input_setButtonState( InputState *inputState, int left, int middle, int rig
     inputState->mouse.buttons.middle = middle;
     inputState->mouse.buttons.right = right;
 }
+
+void input_setHeadForVR( InputState *inputState, float* headView){
+    for (int i=0 ; i<16 ; i++){
+        inputState->headOverride[i] = headView[i];
+    }
+}

@@ -127,6 +127,7 @@ void repgame_process_camera_angle( ) {
     if ( globalGameState.camera.angle_V < downAngleLimit ) {
         globalGameState.camera.angle_V = downAngleLimit;
     }
+    
     globalGameState.camera.look = glm::normalize( glm::vec3(        //
         sin( ( globalGameState.camera.angle_H ) * ( M_PI / 180 ) ), //
         -tan( globalGameState.camera.angle_V * ( M_PI / 180 ) ),    //
@@ -144,6 +145,8 @@ void repgame_process_camera_angle( ) {
                                                     globalGameState.camera.look,   // Look at look vector
                                                     glm::vec3( 0.0f, 1.0f, 0.0f )  // Head is up (set to 0,-1,0 to look upside-down)
     );
+    globalGameState.camera.view_look = glm::make_mat4(globalGameState.input.headOverride);
+
     globalGameState.camera.view_trans = glm::translate( glm::mat4( 1.0f ), glm::vec3( -globalGameState.camera.x, -globalGameState.camera.y, -globalGameState.camera.z ) );
 }
 

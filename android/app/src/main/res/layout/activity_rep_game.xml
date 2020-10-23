@@ -9,8 +9,14 @@
 
     <android.opengl.GLSurfaceView
         android:id="@+id/repgame_surfaceview"
+        android:visibility="gone"
         android:layout_width="match_parent"
         android:layout_height="match_parent" />
+
+    <com.google.vr.sdk.base.GvrView
+        android:id="@+id/repgame_gvr_view"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"/>
 
     <com.repkap11.repgame.views.UIOverlayView
         android:id="@+id/repgame_ui_overlay_view"

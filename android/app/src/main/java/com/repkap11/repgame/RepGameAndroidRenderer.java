@@ -5,6 +5,11 @@ import android.content.res.AssetManager;
 import android.opengl.GLSurfaceView;
 import android.util.Log;
 
+import com.google.vr.sdk.base.Eye;
+import com.google.vr.sdk.base.GvrView;
+import com.google.vr.sdk.base.HeadTransform;
+import com.google.vr.sdk.base.Viewport;
+
 import java.io.InputStream;
 import java.io.File;
 
@@ -17,7 +22,7 @@ import javax.microedition.khronos.opengles.GL10;
  * Created by paul on 10/22/17.
  */
 
-public class RepGameAndroidRenderer implements GLSurfaceView.Renderer {
+public class RepGameAndroidRenderer implements GvrView.Renderer {
     static private final String TAG = RepGameAndroidRenderer.class.getSimpleName();
     private final Context mApplicationContext;
 
@@ -25,8 +30,25 @@ public class RepGameAndroidRenderer implements GLSurfaceView.Renderer {
         mApplicationContext = applicationContext;
     }
 
+    private float[] heads;
     @Override
-    public void onSurfaceCreated(GL10 gl, EGLConfig config) {
+    public void onDrawFrame(HeadTransform headTransform, Eye eye, Eye eye1) {
+        RepGameJNIWrapper.setHeadForVR(headTransform.getHeadView());
+        RepGameJNIWrapper.onDrawFrame();
+    }
+
+    @Override
+    public void onFinishFrame(Viewport viewport) {
+
+    }
+
+    @Override
+    public void onRendererShutdown() {
+
+    }
+
+    @Override
+    public void onSurfaceCreated(EGLConfig config) {
         InputStream blocksIS = mApplicationContext.getResources().openRawResource(R.raw.textures);
         InputStream skyIS = mApplicationContext.getResources().openRawResource(R.raw.sky4);
         byte[] blocks = null;
@@ -44,13 +66,8 @@ public class RepGameAndroidRenderer implements GLSurfaceView.Renderer {
     }
 
     @Override
-    public void onSurfaceChanged(GL10 gl, int width, int height) {
+    public void onSurfaceChanged(int width, int height) {
         RepGameJNIWrapper.onSizeChanged(width, height);
-    }
-
-    @Override
-    public void onDrawFrame(GL10 gl) {
-        RepGameJNIWrapper.onDrawFrame();
     }
 
     public void lookInput(int xdiff, int ydiff) {

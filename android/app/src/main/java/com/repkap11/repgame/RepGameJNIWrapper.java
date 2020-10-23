@@ -27,4 +27,6 @@ class RepGameJNIWrapper {
 
     public static native void setButtonState(int left, int middle, int right);
 
+    public static native void setHeadForVR(float[] headView);
+
 }

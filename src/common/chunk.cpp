@@ -248,9 +248,6 @@ int chunk_can_extend_rect( Chunk *chunk, BlockState blockState, unsigned int *pa
     //         pr_debug( "Error, there must be 2 values different in a plane" );
     //     }
     // }
-    if ( blockState.id == REDSTONE_CROSS ) {
-        pr_debug( "Trying to mesh" );
-    }
     int num_checked_blocks = 0;
     for ( int new_x = starting_x; new_x < starting_x + size_x; new_x++ ) {
         for ( int new_y = starting_y; new_y < starting_y + size_y; new_y++ ) {
