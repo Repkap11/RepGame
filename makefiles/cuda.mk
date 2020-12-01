@@ -18,7 +18,15 @@ LIB_DEVICE_CUDA := out/linux/linux/cuda/lib$(TARGET)_device.o
 LIB_TARGET_CUDA := out/linux/linux/cuda/lib$(TARGET).o
 CLEAN_CUDA += $(LIB_DEVICE_CUDA) $(LIB_TARGET_CUDA)
 
-CFLAGS_CUDA := -arch=sm_35 -Xcompiler -fPIC -DREPGAME_LINUX
+CFLAGS_CUDA :=  -arch=sm_50 \
+				-gencode=arch=compute_50,code=sm_50 \
+				-gencode=arch=compute_52,code=sm_52 \
+				-gencode=arch=compute_60,code=sm_60 \
+				-gencode=arch=compute_61,code=sm_61 \
+				-gencode=arch=compute_70,code=sm_70 \
+				-gencode=arch=compute_75,code=sm_75 \
+				-gencode=arch=compute_75,code=compute_75 \
+				-Xcompiler -fPIC -DREPGAME_LINUX
 CFLAGS_CUDA_COMPILE := -x cu -dc -c
 CFLAGS_CUDA_LINK_DEVICE := --lib
 CFLAGS_CUDA_LINK_HOST := -dlink
@@ -27,7 +35,7 @@ CFLAGS_CUDA_LINK_HOST := -dlink
 SUPPORTS_CUDA := $(shell lspci | grep VGA | grep -i nvidia | wc -l )
 
 ifeq ($(SUPPORTS_CUDA),1) #If the current linux GPU has cuda, use CUDA to accelerate terrain gen
-LIBS_LINUX += -lcudart -L/usr/local/cuda-9.2/lib64
+LIBS_LINUX += -lcudart
 CFLAGS_LINUX += -DLOAD_WITH_CUDA
 OBJECTS_COMMON_LINUX += $(LIB_TARGET_CUDA) $(LIB_DEVICE_CUDA)
 endif
