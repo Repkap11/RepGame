@@ -234,8 +234,8 @@ void repgame_tick( ) {
         globalGameState.block_selection.create_z = globalGameState.block_selection.destroy_z + ( whichFace == FACE_BACK ) - ( whichFace == FACE_FRONT );
 
         world_set_selected_block( &globalGameState.world, TRIP_ARGS( globalGameState.block_selection.destroy_ ), globalGameState.block_selection.selectionInBounds );
-        globalGameState.camera.angle_H += ( globalGameState.input.mouse.currentPosition.x - globalGameState.input.mouse.previousPosition.x ) * 0.04f;
-        globalGameState.camera.angle_V += ( globalGameState.input.mouse.currentPosition.y - globalGameState.input.mouse.previousPosition.y ) * 0.04f;
+        globalGameState.camera.angle_H += ( globalGameState.input.mouse.currentPosition.x - globalGameState.input.mouse.previousPosition.x ) * 0.08f;
+        globalGameState.camera.angle_V += ( globalGameState.input.mouse.currentPosition.y - globalGameState.input.mouse.previousPosition.y ) * 0.08f;
         if ( globalGameState.camera.angle_H >= 360.0f ) {
             globalGameState.camera.angle_H -= 360.0f;
         }
