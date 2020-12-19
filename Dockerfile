@@ -5,7 +5,8 @@ ARG repgame_packages
 
 RUN apt-get update ;\
     apt-get install -y --no-install-recommends git make sudo pciutils coreutils ca-certificates lsb-release patch fuse file ;\
-    apt-get install -y --no-install-recommends $repgame_packages ;\
+    ln -fs /usr/share/zoneinfo/America/New_York /etc/localtime ;\
+    DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends $repgame_packages ;\
     rm -rf /var/lib/apt/lists/*
 
 ARG user_name
