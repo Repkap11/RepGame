@@ -249,7 +249,7 @@ int chunk_can_extend_rect( Chunk *chunk, BlockState blockState, unsigned int *pa
     //     }
     // }
     if ( blockState.id == REDSTONE_CROSS ) {
-        pr_debug( "Trying to mesh" );
+        // pr_debug( "Trying to mesh" );
     }
     int num_checked_blocks = 0;
     for ( int new_x = starting_x; new_x < starting_x + size_x; new_x++ ) {
