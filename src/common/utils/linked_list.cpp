@@ -10,13 +10,13 @@ LinkedList *linked_list_create( ) {
     l->count = 0;
     l->head = NULL;
     l->tail = NULL;
-    pthread_mutex_init( &( l->mutex ), NULL );
+    // pthread_mutex_init( &( l->mutex ), NULL );
     return l;
 }
 
 void linked_list_free( LinkedList *l ) {
     LinkedListItem *li, *tmp;
-    pthread_mutex_lock( &( l->mutex ) );
+    // pthread_mutex_lock( &( l->mutex ) );
 
     if ( l != NULL ) {
         li = l->head;
@@ -26,16 +26,16 @@ void linked_list_free( LinkedList *l ) {
             li = tmp;
         }
     }
-    pthread_mutex_unlock( &( l->mutex ) );
+    // pthread_mutex_unlock( &( l->mutex ) );
 
-    pthread_mutex_destroy( &( l->mutex ) );
+    // pthread_mutex_destroy( &( l->mutex ) );
     free( l );
 }
 
 // Add element to tail
 void linked_list_add_element( LinkedList *l, LinkedListValue value ) {
     LinkedListItem *li;
-    pthread_mutex_lock( &( l->mutex ) );
+    // pthread_mutex_lock( &( l->mutex ) );
 
     li = ( LinkedListItem * )malloc( sizeof( LinkedListItem ) );
     li->value = value;
@@ -50,14 +50,14 @@ void linked_list_add_element( LinkedList *l, LinkedListValue value ) {
     }
     l->tail = li;
     l->count++;
-    pthread_mutex_unlock( &( l->mutex ) );
+    // pthread_mutex_unlock( &( l->mutex ) );
 }
 
 // Pop off head
 LinkedListValue linked_list_pop_element( LinkedList *l ) {
     LinkedListValue result;
     result.valid = 0;
-    pthread_mutex_lock( &( l->mutex ) );
+    // pthread_mutex_lock( &( l->mutex ) );
 
     LinkedListItem *li = l->head;
     if ( li != NULL ) {
@@ -72,6 +72,6 @@ LinkedListValue linked_list_pop_element( LinkedList *l ) {
         result.valid = 1;
         free( li );
     }
-    pthread_mutex_unlock( &( l->mutex ) );
+    // pthread_mutex_unlock( &( l->mutex ) );
     return result;
 }

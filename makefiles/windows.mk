@@ -2,17 +2,18 @@
 
 REPGAME_PACKAGES += mingw-w64
 
-CFLAGS_WINDOWS := -Wall -Werror -std=c++11 -Wno-unused-variable -fno-pie -D GLEW_STATIC -mwindows
+CFLAGS_WINDOWS := -Wall -Werror -std=gnu++11 -Wno-unused-variable -fno-pie -D GLEW_STATIC -mwindows
 
 #CFLAGS_WINDOWS += -O3 -DREPGAME_FAST
 CFLAGS_WINDOWS += -g
 
 CFLAGS_WINDOWS += -DREPGAME_WINDOWS
-LIBS_WINDOWS := windows_build/glew/lib/libglew32.a windows_build/sdl2/x86_64-w64-mingw32/bin/SDL2.dll -lopengl32 -lglu32 -Wl,-Bstatic -lpthread -Wl,-Bdynamic -static-libgcc -static-libstdc++
-INCLUDES_WINDOWS := -I windows_build/sdl2/x86_64-w64-mingw32/include -I windows_build/glew/include
+LIBS_WINDOWS := windows_build/glew/lib/libglew32.a windows_build/sdl2/i686-w64-mingw32/bin/SDL2.dll -lopengl32 -lglu32 -Wl,-Bstatic -Wl,-Bdynamic -static-libgcc -static-libstdc++
+INCLUDES_WINDOWS := -I windows_build/sdl2/i686-w64-mingw32/include -I windows_build/glew/include -I windows_build/glm/glm
 
-CC_WINDOWS := x86_64-w64-mingw32-g++
-# CC_WINDOWS := clang++
+# CC_WINDOWS := x86_64-w64-mingw32-g++
+CC_WINDOWS := mingw32-g++
+#CC_WINDOWS := clang++
 
 ifeq ($(CC_WINDOWS),x86_64-w64-mingw32-g++)
 	ifeq ($(UBUNTU_VERSION),18.04)
@@ -20,11 +21,11 @@ ifeq ($(CC_WINDOWS),x86_64-w64-mingw32-g++)
 	endif
 endif
 
-LD_WINDOWS := x86_64-w64-mingw32-ld
+LD_WINDOWS := ld
 
 ifeq ($(USE_CCACHE),1)
-CC_WINDOWS := ccache $(CC_WINDOWS)
-LD_WINDOWS := ccache $(LD_WINDOWS)
+# CC_WINDOWS := ccache $(CC_WINDOWS)
+# LD_WINDOWS := ccache $(LD_WINDOWS)
 endif
 
 OBJECTS_COMMON_WINDOWS := $(patsubst src/common/%.cpp,out/windows/common/%.o, $(SRC_COMMON))
@@ -64,7 +65,7 @@ out/windows/%.o: src/%.cpp $(call GUARD,CC_WINDOWS INCLUDES_WINDOWS INCLUDES_COM
 #Include these .d files, so the dependicies are known for secondary builds.
 -include $(DEPS_WINDOWS)
 
-out/windows/SDL2.dll: windows_build/sdl2/x86_64-w64-mingw32/bin/SDL2.dll windows_build  | out/windows
+out/windows/SDL2.dll: windows_build/sdl2/i686-w64-mingw32/bin/SDL2.dll windows_build  | out/windows
 	cp $< $@
 
 out/windows/$(TARGET).exe: windows_build out/windows/SDL2.dll $(OBJECTS_COMMON_WINDOWS) $(OBJECTS_WINDOWS) $(SHADER_BLOBS_WINDOWS) $(BITMAP_BLOBS_WINDOWS) $(call GUARD,CC_WINDOWS CFLAGS_WINDOWS LIBS_WINDOWS) | out/windows
@@ -72,7 +73,7 @@ out/windows/$(TARGET).exe: windows_build out/windows/SDL2.dll $(OBJECTS_COMMON_W
 	$(CC_WINDOWS) -flto $(CFLAGS_WINDOWS) $(OBJECTS_WINDOWS) $(OBJECTS_COMMON_WINDOWS) $(SHADER_BLOBS_WINDOWS) $(BITMAP_BLOBS_WINDOWS) $(LIBS_WINDOWS) -o $@
 
 windows-run: windows
-	wine out/windows/$(TARGET).exe "World1"
+	out/windows/$(TARGET).exe "World1"
 
 clean: clean-windows
 
@@ -86,16 +87,23 @@ out/windows: $(call GUARD,WINDOWS_DIRS) | out
 
 install: windows_build
 windows_build:
-	rm -rf glew.zip
+	# rm -rf glew.zip
+	# rm -rf sdl2.tar.gz
 	rm -rf windows_build
 	mkdir -p windows_build/glew
 	mkdir -p windows_build/sdl2
-	wget -q https://www.libsdl.org/release/SDL2-devel-2.0.10-mingw.tar.gz -O sdl2.tar.gz
-	wget -q http://www.grhmedia.com/glew/glew-2.1.0-mingw-w64.zip -O glew.zip
-	bsdtar --strip-components=1 -xvzf glew.zip -C windows_build/glew
-	bsdtar --strip-components=1 -xvzf sdl2.tar.gz -C windows_build/sdl2
-	rm -rf sdl2.tar.gz
-	rm -rf glew.zip
+	
+	# wget -q https://sourceforge.net/projects/glew/files/glew/2.1.0/glew-2.1.0.zip -O glew.zip
+	# wget -q https://www.libsdl.org/release/SDL2-devel-2.0.10-mingw.tar.gz -O sdl2.tar.gz
+	git clone --depth 1 https://github.com/g-truc/glm.git windows_build/glm
+
+	#|| true needed on Windows build for some reason
+	bsdtar --strip-components=1 -xvzf glew.zip -C windows_build/glew || true
+	bsdtar --strip-components=1 -xvzf sdl2.tar.gz -C windows_build/sdl2 || true
+
+	make -C windows_build/glew glew.lib
+	# rm -rf sdl2.tar.gz
+	# rm -rf glew.zip
 
 .PRECIOUS: out/windows/$(TARGET).exe $(OBJECTS_WINDOWS) $(OBJECTS_COMMON_WINDOWS) $(SHADER_BLOBS_WINDOWS) $(BITMAP_BLOBS_WINDOWS)
 
