@@ -17,7 +17,7 @@ void process_value( LinkedListValue *value ) {
     // pr_debug( "Paul Loading terrain x:%d y%d: z:%d work:%d results:%d", chunk->chunk_x, chunk->chunk_y, chunk->chunk_z, work_linked_list->count, result_linked_list->count );
 }
 
-#if defined( REPGAME_WASM )
+#if defined( REPGAME_WASM)  || defined(REPGAME_WINDOWS )
 void terrain_loading_thread_enqueue( Chunk *chunk, TRIP_ARGS( int new_chunk_ ), int persist ) {
     LinkedListValue value;
     value.valid = 1;
