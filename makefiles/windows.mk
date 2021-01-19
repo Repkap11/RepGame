@@ -12,7 +12,7 @@ LIBS_WINDOWS := windows_build/glew/lib/libglew32.a windows_build/sdl2/x86_64-w64
 INCLUDES_WINDOWS := -I windows_build/sdl2/x86_64-w64-mingw32/include -I windows_build/glew/include
 
 CC_WINDOWS := x86_64-w64-mingw32-g++
-#CC_WINDOWS := clang++
+# CC_WINDOWS := clang++
 
 ifeq ($(CC_WINDOWS),x86_64-w64-mingw32-g++)
 	ifeq ($(UBUNTU_VERSION),18.04)
@@ -36,9 +36,11 @@ SHADER_BLOBS_WINDOWS := $(patsubst src/shaders/%.glsl,out/windows/shaders/%.o,$(
 BITMAP_BLOBS_WINDOWS := $(patsubst bitmaps/%.bmp,out/windows/bitmaps/%.o,$(wildcard bitmaps/*.bmp))
 
 out/windows/shaders/%.o : src/shaders/%.glsl $(call GUARD,LD_WINDOWS) | out/windows
+	$(call CHECK,LD_WINDOWS)
 	$(LD_WINDOWS) -r -b binary $< -o $@
 
 out/windows/bitmaps/%.o : out/bitmaps/%.bin $(call GUARD,LD_WINDOWS) | out/windows
+	$(call CHECK,LD_WINDOWS)
 	$(LD_WINDOWS) -r -b binary $< -o $@
 	objcopy --rename-section .data=.rodata,CONTENTS,ALLOC,LOAD,READONLY,DATA --reverse-bytes=4 $@ $@
 
@@ -55,6 +57,7 @@ WINDOWS_DIRS = $(patsubst src%,out/windows%,$(shell find src -type d)) \
 	   out/windows/shaders out/windows/bitmaps
 
 out/windows/%.o: src/%.cpp $(call GUARD,CC_WINDOWS INCLUDES_WINDOWS INCLUDES_COMMON CFLAGS_WINDOWS) windows_build | out/windows
+	$(call CHECK,CC_WINDOWS INCLUDES_WINDOWS INCLUDES_COMMON CFLAGS_WINDOWS)
 	@#Use g++ to build o file and a dependecy tree .d file for every cpp file
 	$(CC_WINDOWS) $(INCLUDES_WINDOWS) $(INCLUDES_COMMON) $(CFLAGS_WINDOWS) -MMD -MP -MF $(patsubst %.o,%.d,$@) -MT $(patsubst %.d,%.o,$@) -c $< -o $@
 
@@ -65,6 +68,7 @@ out/windows/SDL2.dll: windows_build/sdl2/x86_64-w64-mingw32/bin/SDL2.dll windows
 	cp $< $@
 
 out/windows/$(TARGET).exe: windows_build out/windows/SDL2.dll $(OBJECTS_COMMON_WINDOWS) $(OBJECTS_WINDOWS) $(SHADER_BLOBS_WINDOWS) $(BITMAP_BLOBS_WINDOWS) $(call GUARD,CC_WINDOWS CFLAGS_WINDOWS LIBS_WINDOWS) | out/windows
+	$(call CHECK,CC_WINDOWS CFLAGS_WINDOWS LIBS_WINDOWS)
 	$(CC_WINDOWS) -flto $(CFLAGS_WINDOWS) $(OBJECTS_WINDOWS) $(OBJECTS_COMMON_WINDOWS) $(SHADER_BLOBS_WINDOWS) $(BITMAP_BLOBS_WINDOWS) $(LIBS_WINDOWS) -o $@
 
 windows-run: windows
@@ -76,6 +80,7 @@ clean-windows:
 	rm -rf out/windows
 
 out/windows: $(call GUARD,WINDOWS_DIRS) | out
+	$(call CHECK,WINDOWS_DIRS)
 	mkdir -p $(WINDOWS_DIRS)
 	touch $@
 

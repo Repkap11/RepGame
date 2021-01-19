@@ -27,6 +27,7 @@ check:
 	~/.local/bin/cpplint --filter=-whitespace,-legal/copyright,-readability/todo --quiet $(SRC_ALL_C) 
 
 GUARD = $(foreach VAR,$(1),out/vars/$(VAR).$(shell echo $($(VAR)) | md5sum | cut -d ' ' -f 1))
+CHECK = @$(foreach VAR,$(1),test -f out/vars/$(VAR).$(shell echo $($(VAR)) | md5sum | cut -d ' ' -f 1) || { echo Variable:"$(VAR)" changed after referenced; exit 1; } ;)
 
 out/vars/%: | out/vars
 	rm -rf $(basename $@).*

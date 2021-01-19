@@ -14,8 +14,8 @@ LIBS_LINUX := -l GLU -l SDL2 -l m -l GL -l GLEW -lpthread -l dl -static-libgcc -
 CC_LINUX := g++
 # CC_LINUX := clang++
 
-LD_LINUX := ld
-# LD_LINUX := gold
+# LD_LINUX := ld
+LD_LINUX := gold
 
 ifeq ($(CC_LINUX),g++)
 	ifeq ($(UBUNTU_VERSION),14.04)
@@ -40,11 +40,13 @@ DEPS_LINUX := $(patsubst src/%.cpp,out/linux/%.d, $(wildcard src/linux/*.cpp)) \
 SHADER_BLOBS_LINUX := $(patsubst src/shaders/%.glsl,out/linux/shaders/%.o,$(wildcard src/shaders/*.glsl))
 BITMAP_BLOBS_LINUX := $(patsubst bitmaps/%.bmp,out/linux/bitmaps/%.o,$(wildcard bitmaps/*.bmp))
 
-out/linux/shaders/%.o : src/shaders/%.glsl $(call GUARD,LD_LINUX) paul2.txt | out/linux
+out/linux/shaders/%.o : src/shaders/%.glsl $(call GUARD,LD_LINUX) | out/linux
+	$(call CHECK,LD_LINUX)
 	$(LD_LINUX) -r -b binary $< -o $@
 	objcopy --rename-section .data=.rodata,CONTENTS,ALLOC,LOAD,READONLY,DATA $@ $@
 
 out/linux/bitmaps/%.o : out/bitmaps/%.bin $(call GUARD,LD_LINUX) | out/linux
+	$(call CHECK,LD_LINUX)
 	$(LD_LINUX) -r -b binary $< -o $@
 	objcopy --rename-section .data=.rodata,CONTENTS,ALLOC,LOAD,READONLY,DATA --reverse-bytes=4 $@ $@
 
@@ -63,6 +65,7 @@ LINUX_DIRS := $(patsubst src%,out/linux%,$(shell find src -type d)) \
 include makefiles/cuda.mk
 
 out/linux/%.o: src/%.cpp $(call GUARD,CC_LINUX INCLUDES_COMMON CFLAGS_LINUX) | out/linux
+	$(call CHECK,CC_LINUX INCLUDES_COMMON CFLAGS_LINUX)
 	@#Use g++ to build o file and a dependecy tree .d file for every cpp file
 	$(CC_LINUX) $(INCLUDES_COMMON) $(CFLAGS_LINUX) -MMD -MP -MF $(patsubst %.o,%.d,$@) -MT $(patsubst %.d,%.o,$@) -c $< -o $@
 
@@ -71,6 +74,7 @@ out/linux/%.o: src/%.cpp $(call GUARD,CC_LINUX INCLUDES_COMMON CFLAGS_LINUX) | o
 
 
 out/linux/$(TARGET): $(OBJECTS_COMMON_LINUX) $(OBJECTS_LINUX) $(SHADER_BLOBS_LINUX) $(BITMAP_BLOBS_LINUX) $(call GUARD,CC_LINUX CFLAGS_LINUX LIBS_LINUX) | out/linux
+	$(call CHECK,CC_LINUX CFLAGS_LINUX LIBS_LINUX)
 	$(CC_LINUX) -flto $(CFLAGS_LINUX) $(OBJECTS_LINUX) $(OBJECTS_COMMON_LINUX) $(SHADER_BLOBS_LINUX) $(BITMAP_BLOBS_LINUX) $(LIBS_LINUX) -o $@
 
 linux-run: linux
@@ -91,6 +95,7 @@ clean-linux:
 	rm -rf out/linux
 
 out/linux: $(call GUARD,LINUX_DIRS) | out
+	$(call CHECK,LINUX_DIRS)
 	mkdir -p $(LINUX_DIRS)
 	touch $@
 
