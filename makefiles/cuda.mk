@@ -1,6 +1,4 @@
 #Linux Cuda
-REP_MAKEFILES += makefiles/cuda.mk
-
 REPGAME_PACKAGES += nvidia-cuda-toolkit
 
 OBJECTS_CUDA := $(patsubst src/linux/cuda/%.cu,out/linux/linux/cuda/%.o, $(wildcard src/linux/cuda/*.cu))
@@ -41,13 +39,13 @@ OBJECTS_COMMON_LINUX += $(LIB_TARGET_CUDA) $(LIB_DEVICE_CUDA)
 endif
 
 
-out/linux/linux/cuda/%.o: src/linux/cuda/%.cu $(HEADERS) $(REP_MAKEFILES) | out/linux
+out/linux/linux/cuda/%.o: src/linux/cuda/%.cu $(HEADERS) $(call GUARD,CC_CUDA CFLAGS_CUDA_COMPILE INCLUDES_COMMON CFLAGS_CUDA) | out/linux
 	$(CC_CUDA) $(CFLAGS_CUDA_COMPILE) $(INCLUDES_COMMON) $(CFLAGS_CUDA) $< -o $@
 
-$(LIB_TARGET_CUDA): $(LIB_DEVICE_CUDA) $(REP_MAKEFILES) | out
+$(LIB_TARGET_CUDA): $(LIB_DEVICE_CUDA) $(call GUARD,CC_CUDA CFLAGS_CUDA CFLAGS_CUDA_LINK_HOST LIB_DEVICE_CUDA) | out
 	$(CC_CUDA) $(CFLAGS_CUDA) $(CFLAGS_CUDA_LINK_HOST) $(LIB_DEVICE_CUDA) -o $@
 
-$(LIB_DEVICE_CUDA): $(OBJECTS_CUDA) $(REP_MAKEFILES) | out
+$(LIB_DEVICE_CUDA): $(OBJECTS_CUDA) $(call GUARD,CC_CUDA CFLAGS_CUDA CFLAGS_CUDA_LINK_DEVICE OBJECTS_CUDA) | out
 	$(CC_CUDA) $(CFLAGS_CUDA) $(CFLAGS_CUDA_LINK_DEVICE) $(OBJECTS_CUDA) -o $@
 
 cuda: $(LIB_TARGET_CUDA) $(LIB_DEVICE_CUDA)

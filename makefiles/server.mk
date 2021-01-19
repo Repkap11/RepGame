@@ -9,14 +9,14 @@ DEPS_SERVER := $(patsubst src/server/%.cpp,out/server/%.d, $(wildcard src/server
 SERVER_DIRS := $(patsubst src/server%,out/server%,$(shell find src/server -type d))
 
 
-out/server/$(REPSERVER): $(OBJECTS_SERVER) $(REP_MAKEFILES) | out/server
+out/server/$(REPSERVER): $(OBJECTS_SERVER) $(REP_MAKEFILES) $(call GUARD,CC_LINUX CFLAGS_LINUX) | out/server
 	$(CC_LINUX) -flto $(CFLAGS_LINUX) $(OBJECTS_SERVER) -o $@
 
 all: server
 
 server: out/server/$(REPSERVER)
 
-out/server/%.o: src/server/%.cpp $(REP_MAKEFILES) | out/server
+out/server/%.o: src/server/%.cpp $(call GUARD,CC_LINUX INCLUDES_COMMON CFLAGS_LINUX) | out/server
 	@#Use g++ to build o file and a dependecy tree .d file for every cpp file
 	$(CC_LINUX) $(INCLUDES_COMMON) $(CFLAGS_LINUX) -MMD -MP -MF $(patsubst %.o,%.d,$@) -MT $(patsubst %.d,%.o,$@) -c $< -o $@
 

@@ -1,6 +1,4 @@
 #Android app
-REP_MAKEFILES += makefiles/android.mk
-
 ANDROID_SHADERS = $(patsubst src/shaders/%.glsl,android/app/src/main/assets/%.glsl,$(wildcard src/shaders/*.glsl))
 ANDROID_BITMAPS = $(patsubst bitmaps/%.bmp,android/app/src/main/res/raw/%.bin,$(wildcard bitmaps/*.bmp))
 
@@ -15,7 +13,7 @@ all: android
 android-find-new-files:
 	touch ./android/app/CMakeLists.txt
 
-android: android-shaders android-bitmaps $(REP_MAKEFILES) android-find-new-files
+android: android-shaders android-bitmaps android-find-new-files
 	./android/gradlew --console=plain -q -p android assembleDebug
 
 android-run: android
@@ -44,10 +42,10 @@ android-shaders: $(ANDROID_SHADERS)
 
 android-bitmaps: $(ANDROID_BITMAPS)
 
-android/app/src/main/assets/%.glsl: src/shaders/%.glsl $(REP_MAKEFILES) | $(ANDROID_DIRS)
+android/app/src/main/assets/%.glsl: src/shaders/%.glsl | $(ANDROID_DIRS)
 	cp $< $@
 
-android/app/src/main/res/raw/%: out/bitmaps/% $(REP_MAKEFILES) | $(ANDROID_DIRS)
+android/app/src/main/res/raw/%: out/bitmaps/% | $(ANDROID_DIRS)
 	cp $< $@
 
 .PHONY: android android-run android-shaders clean-android android-deploy android-find-new-files

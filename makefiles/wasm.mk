@@ -1,6 +1,4 @@
 #WASM
-REP_MAKEFILES += makefiles/wasm.mk
-
 REPGAME_PACKAGES += npm
 
 CFLAGS_WASM := -DREPGAME_WASM \
@@ -55,10 +53,10 @@ WASM_DIRS = $(patsubst src%,out/wasm%,$(shell find src -type d)) \
 			out/wasm/fs/bitmaps \
 			out/wasm/delivery
 
-out/wasm/%.bc: src/%.cpp $(REP_MAKEFILES) $(HEADERS) src/linux/RepGameSDL2.cpp | out/wasm
+out/wasm/%.bc: src/%.cpp $(HEADERS) src/linux/RepGameSDL2.cpp $(call GUARD,CC_WASM INCLUDES_COMMON CFLAGS_WASM) | out/wasm
 	$(CC_WASM) $(INCLUDES_COMMON) $(CFLAGS_WASM) -c $< -o $@
 
-out/wasm/delivery/$(TARGET).js: $(OBJECTS_COMMON_WASM) $(OBJECTS_WASM) $(WASM_SHADERS) $(WASM_BITMAPS) $(REP_MAKEFILES) | out/wasm
+out/wasm/delivery/$(TARGET).js: $(OBJECTS_COMMON_WASM) $(OBJECTS_WASM) $(WASM_SHADERS) $(WASM_BITMAPS) $(call GUARD,CC_WASM CFLAGS_WASM ) | out/wasm
 	$(CC_WASM) -flto $(CFLAGS_WASM) $(OBJECTS_WASM) $(OBJECTS_COMMON_WASM) --preload-file out/wasm/fs@ -o $@
 
 out/wasm/delivery/index.html: src/wasm/index.html | out/wasm
@@ -70,10 +68,10 @@ out/wasm/delivery/index.js: src/wasm/index.js | out/wasm
 out/wasm/delivery/%.css: src/wasm/%.css | out/wasm
 	cp $< $@
 
-out/wasm/fs/src/shaders/%.glsl: src/shaders/%.glsl $(REP_MAKEFILES) | out/wasm
+out/wasm/fs/src/shaders/%.glsl: src/shaders/%.glsl | out/wasm
 	cp $< $@
 
-out/wasm/fs/bitmaps/% : out/bitmaps/% $(REP_MAKEFILES) | out/wasm
+out/wasm/fs/bitmaps/% : out/bitmaps/% | out/wasm
 	cp $< $@
 
 out/wasm/delivery/icon.png : bitmaps/icon.png | out/wasm

@@ -1,7 +1,6 @@
 BEFORE_VARS := $(.VARIABLES)
 
 #This target can be used to depend on the contents of the makefiles
-REP_MAKEFILES = Makefile
 
 CPUS ?= $(shell nproc || echo 1)
 
@@ -63,4 +62,8 @@ update-world:
 	ls -1 ~/.repgame/World1/ | grep "^chunk_" | xargs -n1 bash -c 'mv ~/.repgame/World1/new_$$0 ~/.repgame/World1/$$0'
 
 AFTER_VARS := $(.VARIABLES)
-#$(info $$DEPS_SERVER is [${DEPS_SERVER}])
+ALL_VARS := $(shell echo "$(BEFORE_VARS) $(AFTER_VARS)" | xargs -n1 | sort | uniq -u | grep -v "^GUARD$$" | grep -v "^BEFORE_VARS$$")
+ALL_VAR_DEPS = $(call GUARD,${ALL_VARS})
+.PRECIOUS: ${ALL_VAR_DEPS}
+
+# $(info Val: [${ALL_VAR_DEPS}])

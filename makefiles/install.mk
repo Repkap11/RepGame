@@ -1,5 +1,4 @@
 #Used to install platform build tools on linux host
-REP_MAKEFILES += makefiles/install.mk
 
 REPGAME_PACKAGES := libglm-dev libglm-doc rsync wget ccache clang
 

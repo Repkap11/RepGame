@@ -1,5 +1,4 @@
 #Shared between platforms
-REP_MAKEFILES += makefiles/common.mk
 
 USE_CCACHE ?= 1
 
@@ -9,7 +8,7 @@ INCLUDES_COMMON := -I include/ -I /usr/include/glm -I /usr/include/SDL2
 HEADERS := $(wildcard include/**/*.hpp)
 BITMAPS_NO_HEADER := $(patsubst bitmaps/%.bmp,out/bitmaps/%.bin,$(wildcard bitmaps/*.bmp))
 
-out/bitmaps/%.bin : bitmaps/%.bmp $(REP_MAKEFILES) | out/bitmaps
+out/bitmaps/%.bin : bitmaps/%.bmp | out/bitmaps
 	tail -c +139 $< > $@
 
 out/bitmaps: | out
@@ -26,6 +25,19 @@ check:
 	cppcheck -j$(CPUS) --quiet --enable=warning,style,performance,portability,information,missingInclude -Iinclude -DREPGAME_WASM src
 	~/.local/bin/cpplint --filter=-whitespace,-legal/copyright,-readability/todo --quiet $(SRC_ALL_C) 
 
-.PHONY: clean-bitmaps check
+GUARD = $(foreach VAR,$(1),out/vars/$(VAR).$(shell echo $($(VAR)) | md5sum | cut -d ' ' -f 1))
+
+out/vars/%: | out/vars
+	rm -rf $(basename $@).*
+	touch $@
+
+out/vars: | out
+	mkdir -p out/vars
+
+clean: clean-vars
+clean-vars:
+	rm -rf out/vars
+
+.PHONY: clean-bitmaps check clean-vars test-vars
 
 .PRECIOUS: $(BITMAPS_NO_HEADER)

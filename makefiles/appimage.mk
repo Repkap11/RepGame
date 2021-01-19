@@ -1,5 +1,4 @@
 #Used to install platform build tools on linux host
-REP_MAKEFILES += makefiles/appimage.mk
 
 appimage-run: appimage
 	out/appimage/$(TARGET)-1-x86_64.AppImage
@@ -19,7 +18,7 @@ appimage_build:
 	wget https://github.com/linuxdeploy/linuxdeploy/releases/download/continuous/linuxdeploy-x86_64.AppImage -O appimage_build/linuxdeploy-x86_64.AppImage
 	chmod +x appimage_build/linuxdeploy-x86_64.AppImage
 
-out/appimage/image: out/linux/$(TARGET) src/linux/$(TARGET).desktop bitmaps/icon_512.png appimage_build $(REP_MAKEFILES) | out
+out/appimage/image: out/linux/$(TARGET) src/linux/$(TARGET).desktop bitmaps/icon_512.png appimage_build | out
 	mkdir -p out/appimage/image
 	appimage_build/linuxdeploy-x86_64.AppImage \
 		--verbosity=2 \
@@ -28,7 +27,7 @@ out/appimage/image: out/linux/$(TARGET) src/linux/$(TARGET).desktop bitmaps/icon
 		--desktop-file src/linux/$(TARGET).desktop \
 		--icon-file bitmaps/icon_512.png
 
-out/appimage/$(TARGET)-1-x86_64.AppImage: $(REP_MAKEFILES) appimage_build out/appimage/image
+out/appimage/$(TARGET)-1-x86_64.AppImage: appimage_build out/appimage/image
 	VERSION=1 appimage_build/linuxdeploy-x86_64.AppImage \
 		--verbosity=2 \
 		--desktop-file src/linux/$(TARGET).desktop \
