@@ -27,6 +27,7 @@ out/server/%.o: src/server/%.cpp $(call GUARD,CC_LINUX INCLUDES_COMMON CFLAGS_LI
 
 out/server: | out
 	mkdir -p $(SERVER_DIRS)
+	touch $@
 
 server-run: server
 	./out/server/$(REPSERVER)

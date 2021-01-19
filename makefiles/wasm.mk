@@ -101,6 +101,7 @@ clean-wasm:
 
 out/wasm: | out
 	mkdir -p $(WASM_DIRS)
+	touch $@
 
 .PRECIOUS: $(TARGET) $(OBJECTS_WASM) $(OBJECTS_COMMON_WASM)
 

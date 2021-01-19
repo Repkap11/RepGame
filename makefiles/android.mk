@@ -7,6 +7,7 @@ ANDROID_DIRS = android/app/src/main/assets/shaders
 
 android/app/src/main/assets/shaders:
 	mkdir -p $@
+	touch $@
 
 all: android
 

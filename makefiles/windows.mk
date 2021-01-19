@@ -77,6 +77,7 @@ clean-windows:
 
 out/windows: $(call GUARD,WINDOWS_DIRS) | out
 	mkdir -p $(WINDOWS_DIRS)
+	touch $@
 
 install: windows_build
 windows_build:

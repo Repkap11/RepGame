@@ -92,6 +92,7 @@ clean-linux:
 
 out/linux: $(call GUARD,LINUX_DIRS) | out
 	mkdir -p $(LINUX_DIRS)
+	touch $@
 
 .PRECIOUS: out/linux/$(TARGET) $(OBJECTS_LINUX) $(OBJECTS_COMMON_LINUX) $(SHADER_BLOBS_LINUX) $(BITMAP_BLOBS_LINUX)
 

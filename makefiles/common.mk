@@ -13,6 +13,7 @@ out/bitmaps/%.bin : bitmaps/%.bmp | out/bitmaps
 
 out/bitmaps: | out
 	mkdir -p out/bitmaps
+	touch $@
 
 clean: clean-bitmaps
 clean-bitmaps:
@@ -32,7 +33,8 @@ out/vars/%: | out/vars
 	touch $@
 
 out/vars: | out
-	mkdir -p out/vars
+	mkdir -p $@
+	touch $@
 
 clean: clean-vars
 clean-vars:

@@ -41,7 +41,8 @@ include makefiles/server.mk #Must also include linux.mk
 include makefiles/docker.mk
 
 out:
-	mkdir -p out
+	mkdir -p $@
+	touch $@
 
 clean:
 	@echo "rm -fd out" ; rm -fd out || echo Forcing \'rm -rf out\'. An output was not cleaned up ; rm -rf out
