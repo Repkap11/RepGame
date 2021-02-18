@@ -30,6 +30,7 @@ GUARD = $(foreach VAR,$(1),out/vars/$(VAR).$(shell echo $($(VAR)) | md5sum | cut
 CHECK = @$(foreach VAR,$(1),test -f out/vars/$(VAR).$(shell echo $($(VAR)) | md5sum | cut -d ' ' -f 1) || { echo Variable:"$(VAR)" changed after referenced; exit 1; } ;)
 
 out/vars/%: | out/vars
+	@echo Changed var:$(notdir $(basename $@)):$($(notdir $(basename $@)))
 	rm -rf $(basename $@).*
 	touch $@
 
