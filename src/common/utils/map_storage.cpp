@@ -82,21 +82,27 @@ typedef struct {
     STORAGE_TYPE_NUM_BLOCKS num;
 } STORAGE_TYPE;
 
+#define PERSIST_DATA_BLOCK_SIZE 3
+
 void map_storage_persist( Chunk *chunk ) {
     if ( chunk->dirty ) {
+        BlockState *blocks = chunk->blocks;
+        if ( blocks == 0 ) {
+            return;
+        }
         int chunk_offset_x = chunk->chunk_x;
         int chunk_offset_y = chunk->chunk_y;
         int chunk_offset_z = chunk->chunk_z;
         char file_name[ CHUNK_NAME_LENGTH ];
         if ( snprintf( file_name, CHUNK_NAME_LENGTH, file_root_chunk, map_name, chunk_offset_x, chunk_offset_y, chunk_offset_z ) != CHUNK_NAME_LENGTH ) {
         }
+        FILE *write_ptr = fopen( file_name, "wb" );
+        uint32_t storage_type_size = sizeof( STORAGE_TYPE );
+        // uint32_t storage_type_size = 8;
+        fwrite( &storage_type_size, sizeof( uint32_t ), 1, write_ptr );
 
-        FILE *write_ptr;
-        STORAGE_TYPE persist_data[ CHUNK_BLOCK_SIZE ];
-        BlockState *blocks = chunk->blocks;
-        if ( blocks == 0 ) {
-            return;
-        }
+
+        STORAGE_TYPE *persist_data = ( STORAGE_TYPE * )malloc( sizeof( STORAGE_TYPE ) * PERSIST_DATA_BLOCK_SIZE );
         int persist_data_index = -1;
         STORAGE_TYPE_NUM_BLOCKS num_same_blocks = 0;
         int total_num_blocks = 0;
@@ -112,6 +118,10 @@ void map_storage_persist( Chunk *chunk ) {
                     total_num_blocks += num_same_blocks;
                 }
                 persist_data_index++;
+                if (persist_data_index >= PERSIST_DATA_BLOCK_SIZE){
+                    fwrite( persist_data, sizeof( STORAGE_TYPE ), PERSIST_DATA_BLOCK_SIZE, write_ptr );
+                    persist_data_index = 0;
+                }
                 previousBlockState = blockState;
                 num_same_blocks = 1;
             }
@@ -126,12 +136,9 @@ void map_storage_persist( Chunk *chunk ) {
         if ( total_num_blocks != expected_num_saved_blocks ) {
             pr_debug( "Didn't get enough blocks save" );
         }
-        write_ptr = fopen( file_name, "wb" );
-        uint32_t storage_type_size = sizeof( STORAGE_TYPE );
-        // uint32_t storage_type_size = 8;
-        fwrite( &storage_type_size, sizeof( uint32_t ), 1, write_ptr );
         fwrite( persist_data, sizeof( STORAGE_TYPE ), persist_data_index, write_ptr );
         fclose( write_ptr );
+        free(persist_data);
     }
 }
 

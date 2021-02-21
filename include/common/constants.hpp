@@ -34,6 +34,11 @@
 #define CHUNK_RADIUS_Z (100 / CHUNK_SIZE)
 #endif
 
+static_assert( CHUNK_RADIUS_X > 0, "CHUNK_RADIUS_X too small");
+static_assert( CHUNK_RADIUS_Y > 0, "CHUNK_RADIUS_Y too small");
+static_assert( CHUNK_RADIUS_Z > 0, "CHUNK_RADIUS_Z too small");
+
+
 #ifdef LOAD_WITH_CUDA
 #define LOAD_CHUNKDS_WITH_CUDA 1
 #else
