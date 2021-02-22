@@ -13,8 +13,8 @@
 
 #define CHUNK_NAME_LENGTH 200
 
-const char file_root_chunk[ CHUNK_NAME_LENGTH ] = "%s/chunk_%d_%d_%d";
-const char file_root_player_data[ CHUNK_NAME_LENGTH ] = "%s/player.dat";
+const char *file_root_chunk = "%s/chunk_%d_%d_%d";
+const char *file_root_player_data = "%s/player.dat";
 
 char map_name[ CHUNK_NAME_LENGTH ];
 
@@ -170,7 +170,11 @@ int map_storage_load( Chunk *chunk ) {
     BlockState *blocks = chunk->blocks;
     read_ptr = fopen( file_name, "rb" );
     uint32_t storage_type_size = 0;
-    fread( &storage_type_size, sizeof( uint32_t ), 1, read_ptr );
+    size_t result_size = fread( &storage_type_size, sizeof( uint32_t ), 1, read_ptr );
+    if (result_size != 1){
+        fclose( read_ptr );
+        return 0;
+    }
     // pr_debug( "Got storage size:%d", storage_type_size );
 
     char *persist_data = ( char * )calloc( CHUNK_BLOCK_SIZE, storage_type_size );
