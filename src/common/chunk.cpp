@@ -519,9 +519,9 @@ void chunk_calculate_popupated_blocks( Chunk *chunk ) {
 
                     BlockState blockState = chunk->blocks[ index ];
                     Block *block = block_definition_get_definition( blockState.display_id );
-                    if ( blockState.display_id == REDSTONE_CROSS ) {
-                        pr_debug( "Got cross" );
-                    }
+                    // if ( blockState.display_id == REDSTONE_CROSS ) {
+                    //     pr_debug( "Got cross" );
+                    // }
                     int visiable_block = workingSpace[ index ].visable;
                     int can_be_seen = workingSpace[ index ].can_be_seen;
                     int has_been_drawn = workingSpace[ index ].has_been_drawn;

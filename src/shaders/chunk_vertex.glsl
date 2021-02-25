@@ -32,6 +32,8 @@ flat out uint v_blockID;
 flat out int v_shouldDiscardNoLight;
 out float v_planarDot;
 out float v_corner_lighting;
+out vec3 v_world_coords;
+
 flat out int v_needs_rotate;
 flat out int v_block_auto_rotates;
 
@@ -89,7 +91,9 @@ void main( ) {
     adjusted_position.y += blockCoords_offset_adjust.y;
     adjusted_position.z += blockCoords_offset_adjust.z;
 
-    vec4 vertex = vec4( adjusted_position + blockCoords, 1 );
+    v_world_coords = adjusted_position + blockCoords;
+
+    vec4 vertex = vec4(v_world_coords, 1 );
     gl_Position = u_MVP * vertex;
     v_planarDot = dot( vertex, vec4( 0, 1, 0, u_ReflectionHeight ) );
 

@@ -24,11 +24,13 @@ out float v_light;
 flat out float v_blockID;
 flat out float v_id;
 out float v_planarDot;
+out vec4 v_world_coords;
+
 
 void main( ) {
-    vec4 vertex = transform * vec4( position, 1 );
-    gl_Position = u_MVP * vertex;
-    v_planarDot = dot( vertex, vec4( 0, 1, 0, u_ReflectionHeight ) );
+    v_world_coords = transform * vec4( position, 1 );
+    gl_Position = u_MVP * v_world_coords;
+    v_planarDot = dot( v_world_coords, vec4( 0, 1, 0, u_ReflectionHeight ) );
 
     v_tex_coords = texCoords;
     uint shift = ( faceType % 2u ) * 16u;

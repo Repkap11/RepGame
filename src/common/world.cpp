@@ -5,6 +5,10 @@
 #include "common/chunk.hpp"
 #include "common/chunk_loader.hpp"
 
+#define TINT_UNDER_WATER_OBJECT_NEVER 0
+#define TINT_UNDER_WATER_OBJECT_UNDER_Y_LEVEL 1
+#define TINT_UNDER_WATER_OBJECT_ALWAYS 2
+
 MK_SHADER( object_vertex );
 MK_SHADER( object_fragment );
 
@@ -50,7 +54,7 @@ void world_init( World *world, TRIP_ARGS( float camera_ ) ) {
 
     shader_set_uniform1fv( &world->loadedChunks.shader, "u_RandomRotationBlocks", random_rotation_blocks, MAX_ROTATABLE_BLOCK );
 
-    shader_init( &world->sky_shader, &object_vertex, &object_fragment );
+    shader_init( &world->object_shader, &object_vertex, &object_fragment );
 
     sky_box_init( &world->skyBox, &world->vbl_object_vertex, &world->vbl_object_position );
     world->mobs = Mobs( &world->vbl_object_vertex, &world->vbl_object_position );
@@ -69,30 +73,55 @@ void world_set_selected_block( World *world, int selected_x, int selected_y, int
     mouse_selection_set_block( &world->mouseSelection, TRIP_ARGS( selected_ ), shouldDraw, blockState );
 }
 
-void world_draw( World *world, Texture *blocksTexture, const glm::mat4 &mvp, const glm::mat4 &mvp_reflect, const glm::mat4 &mvp_sky, const glm::mat4 &mvp_sky_reflect, int debug, int draw_mouse_selection ) {
-
-    shader_set_uniform1f( &world->loadedChunks.shader, "u_ReflectionHeight", 0 );
-    shader_set_uniform1i( &world->sky_shader, "u_Texture", blocksTexture->slot );
-    shader_set_uniform1f( &world->sky_shader, "u_ExtraAlpha", 1.0 );
-    shader_set_uniform1f( &world->sky_shader, "u_ReflectionHeight", 0 );
-
-    world->mobs.draw( mvp, &world->renderer, &world->sky_shader );
-
-    shader_set_uniform1i( &world->loadedChunks.shader, "u_Texture", blocksTexture->slot );
+#define WATER_THRESHOLD_P 0.02
+#define WATER_THRESHOLD_N -0.01
+void world_draw( World *world, Texture *blocksTexture, const glm::mat4 &mvp, const glm::mat4 &mvp_reflect, const glm::mat4 &mvp_sky, const glm::mat4 &mvp_sky_reflect, int debug, int draw_mouse_selection, float y_height, bool headInWater ) {
+    int object_water_tint_type;
+    int block_water_tint_type = headInWater ? TINT_UNDER_WATER_OBJECT_ALWAYS : TINT_UNDER_WATER_OBJECT_NEVER;
+    double out_int_part;
+    float water_diff = modf( y_height, &out_int_part ) - ( WATER_HEIGHT );
+    if ( headInWater ) {
+        if ( water_diff > WATER_THRESHOLD_N && water_diff < WATER_THRESHOLD_P ) {
+            object_water_tint_type = TINT_UNDER_WATER_OBJECT_UNDER_Y_LEVEL;
+            block_water_tint_type = TINT_UNDER_WATER_OBJECT_UNDER_Y_LEVEL;
+        } else if ( water_diff < WATER_THRESHOLD_N ) {
+            object_water_tint_type = TINT_UNDER_WATER_OBJECT_ALWAYS;
+            block_water_tint_type = TINT_UNDER_WATER_OBJECT_ALWAYS;
+        } else {
+            object_water_tint_type = TINT_UNDER_WATER_OBJECT_NEVER;
+            block_water_tint_type = TINT_UNDER_WATER_OBJECT_NEVER;
+        }
+    } else {
+        object_water_tint_type = TINT_UNDER_WATER_OBJECT_NEVER;
+        block_water_tint_type = TINT_UNDER_WATER_OBJECT_NEVER;
+    }
     float debug_block_scale;
     if ( debug ) {
         debug_block_scale = BLOCK_SCALE_OFFSET;
     } else {
         debug_block_scale = 0.0f;
     }
-    shader_set_uniform3f( &world->loadedChunks.shader, "u_DebugScaleOffset", debug_block_scale, debug_block_scale, debug_block_scale );
-    sky_box_draw( &world->skyBox, &world->renderer, mvp_sky, &world->sky_shader );
+
+    shader_set_uniform1i( &world->object_shader, "u_Texture", blocksTexture->slot );
+    shader_set_uniform1f( &world->object_shader, "u_ExtraAlpha", 1.0 );
+    shader_set_uniform1f( &world->object_shader, "u_ReflectionHeight", 0 );
+    shader_set_uniform1i( &world->object_shader, "u_TintUnderWater", object_water_tint_type );
+    world->mobs.draw( mvp, &world->renderer, &world->object_shader );
+    sky_box_draw( &world->skyBox, &world->renderer, mvp_sky, &world->object_shader );
+
     chunk_loader_calculate_cull( &world->loadedChunks, mvp );
+    shader_set_uniform1f( &world->loadedChunks.shader, "u_ReflectionHeight", 0 );
+    shader_set_uniform1i( &world->loadedChunks.shader, "u_Texture", blocksTexture->slot );
+    shader_set_uniform3f( &world->loadedChunks.shader, "u_DebugScaleOffset", debug_block_scale, debug_block_scale, debug_block_scale );
     shader_set_uniform1ui( &world->loadedChunks.shader, "u_ScaleTextureBlock", 1 );
+    shader_set_uniform1i( &world->loadedChunks.shader, "u_TintUnderWater", block_water_tint_type );
     chunk_loader_draw_chunks( &world->loadedChunks, mvp, &world->renderer, false, false ); // Blocks
+
+    shader_set_uniform1i( &world->loadedChunks.shader, "u_TintUnderWater", 0 );
     if ( draw_mouse_selection ) {
         mouse_selection_draw( &world->mouseSelection, &world->renderer, &world->loadedChunks.shader );
     }
+
 #if defined( REPGAME_LINUX ) || defined( REPGAME_WINDOWS ) || defined( REPGAME_ANDROID )
 #if REFLECTIONS
     glEnable( GL_STENCIL_TEST );
@@ -110,19 +139,19 @@ void world_draw( World *world, Texture *blocksTexture, const glm::mat4 &mvp, con
     glClear( GL_DEPTH_BUFFER_BIT );
     float offset = 1.0 - WATER_HEIGHT;
     shader_set_uniform1f( &world->loadedChunks.shader, "u_ReflectionHeight", offset );
-    shader_set_uniform1f( &world->sky_shader, "u_ReflectionHeight", offset );
+    shader_set_uniform1f( &world->object_shader, "u_ReflectionHeight", offset );
 
     chunk_loader_calculate_cull( &world->loadedChunks, mvp_reflect );
     chunk_loader_draw_chunks( &world->loadedChunks, mvp_reflect, &world->renderer, false, true ); // Reflected blocks
-    shader_set_uniform1i( &world->sky_shader, "u_Texture", blocksTexture->slot );
+    shader_set_uniform1i( &world->object_shader, "u_Texture", blocksTexture->slot );
 
-    world->mobs.draw( mvp_reflect, &world->renderer, &world->sky_shader );
-    shader_set_uniform1f( &world->sky_shader, "u_ExtraAlpha", 0.5 );
-    sky_box_draw( &world->skyBox, &world->renderer, mvp_sky_reflect, &world->sky_shader );
+    world->mobs.draw( mvp_reflect, &world->renderer, &world->object_shader );
+    shader_set_uniform1f( &world->object_shader, "u_ExtraAlpha", 0.5 );
+    sky_box_draw( &world->skyBox, &world->renderer, mvp_sky_reflect, &world->object_shader );
 
     glDepthMask( GL_TRUE );
     shader_set_uniform1f( &world->loadedChunks.shader, "u_ReflectionHeight", 0 );
-    shader_set_uniform1f( &world->sky_shader, "u_ReflectionHeight", 0 );
+    shader_set_uniform1f( &world->object_shader, "u_ReflectionHeight", 0 );
 
     glCullFace( GL_BACK );
 #endif

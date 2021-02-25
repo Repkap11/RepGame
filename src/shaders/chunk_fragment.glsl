@@ -1,21 +1,29 @@
 #version 300 es
+#define MAX_ROTATABLE_BLOCK 100u
+#define eps 0.00001f
+#define TINT_UNDER_WATER_OBJECT_NEVER 0
+#define TINT_UNDER_WATER_OBJECT_UNDER_Y_LEVEL 1
+#define TINT_UNDER_WATER_OBJECT_ALWAYS 2
 
 precision highp float;
 precision lowp sampler2DArray;
 
-in vec2 v_TexCoordBlock;
-flat in uint v_blockID;
-in float v_corner_lighting;
-flat in int v_shouldDiscardNoLight;
-in float v_planarDot;
 uniform float u_shouldDiscardAlpha;
 uniform sampler2DArray u_Texture;
 uniform float u_ReflectionHeight;
+uniform float u_RandomRotationBlocks[ MAX_ROTATABLE_BLOCK ];
+uniform float u_ShowRotation;
+uniform int u_TintUnderWater;
+
+    in vec2 v_TexCoordBlock;
+in float v_corner_lighting;
+in float v_planarDot;
+in vec3 v_world_coords;
+
+flat in uint v_blockID;
+flat in int v_shouldDiscardNoLight;
 flat in int v_needs_rotate;
 flat in int v_block_auto_rotates;
-uniform float u_ShowRotation;
-#define MAX_ROTATABLE_BLOCK 100u
-uniform float u_RandomRotationBlocks[ MAX_ROTATABLE_BLOCK ];
 
 layout( location = 0 ) out vec4 color;
 
@@ -73,6 +81,9 @@ void main( ) {
     // }
     if ( u_ShowRotation != -2.0f ) {
         texColor.rgb *= adjusted_face;
+    }
+    if ( u_TintUnderWater == TINT_UNDER_WATER_OBJECT_ALWAYS || ( u_TintUnderWater == TINT_UNDER_WATER_OBJECT_UNDER_Y_LEVEL && v_world_coords.y < ( -0.125f - eps ) ) ) {
+        texColor = mix( texColor, vec4( 0.122f, 0.333f, 1.0f, 1.0f ), 0.7f );
     }
     float corner_light = v_corner_lighting;
     color = texColor * vec4( corner_light, corner_light, corner_light, 1 );
