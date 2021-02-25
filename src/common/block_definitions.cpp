@@ -28,9 +28,11 @@ void block_definitions_initilize_definitions( Texture *texture ) {
         }
         block->no_light = NO_LIGHT_NO_DRAW;
         block->casts_shadow = true;
-        block->hides_self = false; // like connected glass so you don't see the perpendicular panes, you probably need is_seethrough too.
+        block->hides_self = { false, false, false }; // like connected glass so you don't see the perpendicular panes, you probably need is_seethrough too.
         block->is_seethrough = false;
-        block->needs_place_on_solid = false;
+        for ( int face = FACE_TOP; face < NUM_FACES_IN_CUBE; face++ ) {
+            block->needs_place_on_any_solid[ face ] = false;
+        }
         block->rotate_on_placement = false;
         block->icon_is_isometric = true;
         block->is_pickable = true;
@@ -57,7 +59,7 @@ void block_definitions_initilize_definitions( Texture *texture ) {
         block_definitions[ id ].is_seethrough = true;
         block_definitions[ id ].casts_shadow = false;
         block_definitions[ id ].icon_is_isometric = false;
-        block_definitions[ id ].needs_place_on_solid = true;
+        block_definitions[ id ].needs_place_on_any_solid[ FACE_TOP ] = true;
         block_definitions[ id ].collides_with_player = false;
         block_definitions[ id ].breaks_in_liquid = false;
         block_definitions[ id ].rotate_on_placement = false;
@@ -101,7 +103,7 @@ void block_definitions_initilize_definitions( Texture *texture ) {
         block_definitions[ id ].is_seethrough = true;
         block_definitions[ id ].casts_shadow = false;
         block_definitions[ id ].icon_is_isometric = false;
-        block_definitions[ id ].needs_place_on_solid = false;
+        block_definitions[ id ].needs_place_on_any_solid[ FACE_FRONT ] = true;
         block_definitions[ id ].collides_with_player = false;
         block_definitions[ id ].breaks_in_liquid = true;
         block_definitions[ id ].rotate_on_placement = true;
@@ -136,7 +138,7 @@ void block_definitions_initilize_definitions( Texture *texture ) {
         block_definitions[ id ].is_seethrough = true;
         block_definitions[ id ].casts_shadow = true;
         block_definitions[ id ].icon_is_isometric = false;
-        block_definitions[ id ].needs_place_on_solid = true;
+        block_definitions[ id ].needs_place_on_any_solid[ FACE_TOP ] = true;
         block_definitions[ id ].collides_with_player = true;
         block_definitions[ id ].breaks_in_liquid = false;
         block_definitions[ id ].rotate_on_placement = true;
@@ -156,12 +158,13 @@ void block_definitions_initilize_definitions( Texture *texture ) {
         block_definitions[ id ].is_seethrough = true;
         block_definitions[ id ].casts_shadow = false;
         block_definitions[ id ].icon_is_isometric = false;
-        block_definitions[ id ].needs_place_on_solid = false;
+        block_definitions[ id ].needs_place_on_any_solid[ FACE_FRONT ] = true;
         block_definitions[ id ].collides_with_player = false;
         block_definitions[ id ].breaks_in_liquid = false;
         block_definitions[ id ].rotate_on_placement = true;
         block_definitions[ id ].textures[ FACE_TOP ] = AIR;
         block_definitions[ id ].textures[ FACE_BOTTOM ] = AIR;
+        block_definitions[ id ].hides_self = { false, false, false };
     }
     block_definitions[ LADDER ].textures[ FACE_TOP ] = LADDER_TOP;
     block_definitions[ LADDER ].textures[ FACE_BOTTOM ] = LADDER_TOP;
@@ -176,7 +179,7 @@ void block_definitions_initilize_definitions( Texture *texture ) {
         block_definitions[ id ].is_seethrough = true;
         block_definitions[ id ].casts_shadow = false;
         block_definitions[ id ].icon_is_isometric = false;
-        block_definitions[ id ].needs_place_on_solid = false;
+        block_definitions[ id ].needs_place_on_any_solid[ FACE_TOP ] = true;
         block_definitions[ id ].collides_with_player = false;
         block_definitions[ id ].breaks_in_liquid = false;
         block_definitions[ id ].rotate_on_placement = true;
@@ -216,7 +219,7 @@ void block_definitions_initilize_definitions( Texture *texture ) {
         block_definitions[ id ].casts_shadow = false;
         block_definitions[ id ].collides_with_player = false;
         block_definitions[ id ].icon_is_isometric = false;
-        block_definitions[ id ].needs_place_on_solid = true;
+        block_definitions[ id ].needs_place_on_any_solid[ FACE_TOP ] = true;
         block_definitions[ id ].breaks_in_liquid = true;
     }
     BlockID small_flower_shaped[] = { RED_FLOWER, YELLOW_FLOWER, BLUE_FLOWER, RED_MUSHROOM, BROWN_MUSHROOM, BLUE_FLOWER, TURTLE_EGGS1, TURTLE_EGGS2, EMPTY_POT, POPPY_FLOWER, LARGE_WHITE_FLOWER, BLACK_FLOWER };
@@ -292,7 +295,7 @@ void block_definitions_initilize_definitions( Texture *texture ) {
         block_definitions[ id ].is_seethrough = true;
         block_definitions[ id ].casts_shadow = false;
         block_definitions[ id ].icon_is_isometric = false;
-        block_definitions[ id ].needs_place_on_solid = true;
+        block_definitions[ id ].needs_place_on_any_solid[ FACE_TOP ] = true;
         block_definitions[ id ].collides_with_player = false;
         block_definitions[ id ].breaks_in_liquid = true;
         block_definitions[ id ].affected_by_redstone_power = true;
@@ -306,7 +309,7 @@ void block_definitions_initilize_definitions( Texture *texture ) {
 
         block_definitions[ id ].connects_to_redstone_dust = true;
         block_definitions[ id ].is_pickable = false;
-        block_definitions[ id ].hides_self = true;
+        block_definitions[ id ].hides_self = { false, true, false };
     }
     block_definitions[ REDSTONE_CROSS ].is_pickable = true;
     BlockID power_dust_shaped[] = { REDSTONE_LINE_1_POWERED,   REDSTONE_LINE_2_POWERED,   REDSTONE_CROSS_POWERED,    REDSTONE_DUST_L_Q1_POWERED, REDSTONE_DUST_L_Q2_POWERED, REDSTONE_DUST_L_Q3_POWERED, REDSTONE_DUST_L_Q4_POWERED, //
@@ -443,7 +446,7 @@ void block_definitions_initilize_definitions( Texture *texture ) {
     block_definitions[ JUNGLE_LEAF ].no_light = NO_LIGHT_DRAW;
     block_definitions[ LEAF ].no_light = NO_LIGHT_DRAW;
 
-    block_definitions[ GLASS ].hides_self = true;
+    block_definitions[ GLASS ].hides_self = { true, true, true };
 
     block_definitions[ FURNACE_LIT ].rotate_on_placement = true;
     block_definitions[ FURNACE_UNLIT ].rotate_on_placement = true;
@@ -473,7 +476,7 @@ void block_definitions_initilize_definitions( Texture *texture ) {
             block->is_seethrough = true;
             block->no_light = NO_LIGHT_BRIGHT;
             block->casts_shadow = false;
-            block->needs_place_on_solid = true;
+            block->needs_place_on_any_solid[ FACE_TOP ] = true;
             block->icon_is_isometric = false;
             block->is_pickable = true;
             block->collides_with_player = false;
@@ -485,7 +488,7 @@ void block_definitions_initilize_definitions( Texture *texture ) {
             block->no_light = NO_LIGHT_BRIGHT;
             block->casts_shadow = false;
             block->icon_is_isometric = false;
-            block->hides_self = true;
+            block->hides_self = { true, true, true };
             block->is_pickable = false;
             block->collides_with_player = false;
             block->can_be_placed_in = true;
@@ -500,18 +503,21 @@ void block_definitions_initilize_definitions( Texture *texture ) {
             block->affected_by_redstone_power = false;
             block->can_be_placed_in = true;
         }
-        if ( block->id == REDSTONE_CROSS ) {
+        if ( block->id == LEAF ) {
             pr_debug( "Got" );
         }
-        if ( block->is_seethrough && !block->hides_self ) { // leaves, flowers
-            // This block can't mesh with itself
-            block->calculated.can_mesh_x = false;
-            block->calculated.can_mesh_y = false;
-            block->calculated.can_mesh_z = false;
-        } else if ( block->is_seethrough ) { // glass
-            block->calculated.can_mesh_x = block->scale.x == 16 ? true : false;
-            block->calculated.can_mesh_y = block->scale.y == 16 ? true : false;
-            block->calculated.can_mesh_z = block->scale.z == 16 ? true : false;
+
+        block->calculated.hides_self[ FACE_TOP ] = block->hides_self.y;
+        block->calculated.hides_self[ FACE_BOTTOM ] = block->hides_self.y;
+        block->calculated.hides_self[ FACE_RIGHT ] = block->hides_self.x;
+        block->calculated.hides_self[ FACE_FRONT ] = block->hides_self.z;
+        block->calculated.hides_self[ FACE_LEFT ] = block->hides_self.x;
+        block->calculated.hides_self[ FACE_BACK ] = block->hides_self.z;
+
+        if ( block->is_seethrough ) { // glass, leaves, flowers
+            block->calculated.can_mesh_x = block->scale.x == 16 ? block->hides_self.x : false;
+            block->calculated.can_mesh_y = block->scale.y == 16 ? block->hides_self.y : false;
+            block->calculated.can_mesh_z = block->scale.z == 16 ? block->hides_self.z : false;
         } else { // other blocks, like dirt
             block->calculated.can_mesh_x = block->scale.x == 16 ? true : false;
             block->calculated.can_mesh_y = block->scale.y == 16 ? true : false;
@@ -531,13 +537,15 @@ void block_definitions_initilize_definitions( Texture *texture ) {
             block->calculated.is_seethrough_face[ FACE_BACK ] = ( block->offset.z ) == 0 ? ( block->scale.y != 16 || block->scale.x != 16 ) : true;
         }
     }
-    Block *slab_block = &block_definitions[ STONE_BRICK_SLAB ];
-    pr_debug( "Paul SLAB:%d ", slab_block->calculated.is_seethrough_face[ FACE_TOP ] );
+    // Block *slab_block = &block_definitions[ STONE_BRICK_SLAB ];
+    // pr_debug( "Paul SLAB:%d ", slab_block->calculated.is_seethrough_face[ FACE_TOP ] );
 
     // Exceptions
-    block_definitions[ SPIDER_WEB ].needs_place_on_solid = false;
-    block_definitions[ BARRIER ].needs_place_on_solid = false;
-    block_definitions[ DARK_BARRIER ].needs_place_on_solid = false;
+    for ( int face = FACE_TOP; face < NUM_FACES_IN_CUBE; face++ ) {
+        block_definitions[ SPIDER_WEB ].needs_place_on_any_solid[ face ] = false;
+        block_definitions[ BARRIER ].needs_place_on_any_solid[ face ] = false;
+        block_definitions[ DARK_BARRIER ].needs_place_on_any_solid[ face ] = false;
+    }
 
     block_definitions[ GRASS_TUFT ].casts_shadow = true;
     block_definitions[ GRASS_TUFT2 ].casts_shadow = true;

@@ -30,6 +30,14 @@ int find_largest_redstone_power_around( World *world, int x, int y, int z ) {
 #define NEXT_TO_STATE( i, j, k ) world_get_loaded_block( world, affecting_block_x + i, affecting_block_y + j, affecting_block_z + k )
 #define NEXT_TO_BLOCK( i, j, k ) block_definition_get_definition( world_get_loaded_block( world, affecting_block_x + i, affecting_block_y + j, affecting_block_z + k ).id )
 
+inline int get_rotated_face( int face, int rotation ) {
+    int result = face;
+    for ( int i = 0; i < rotation; i++ ) {
+        result = FACE_ROTATE_90[ result ];
+    }
+    return result;
+}
+
 void perform_checks( BlockUpdateQueue *blockUpdateQueue, World *world, long tick_number, //
                      int block_x, int block_y, int block_z,                              //
                      int affecting_block_x, int affecting_block_y, int affecting_block_z ) {
@@ -132,18 +140,25 @@ void perform_checks( BlockUpdateQueue *blockUpdateQueue, World *world, long tick
         }
     }
 
-    if ( updateing_block->needs_place_on_solid ) {
-        BlockID below_block_id = world_get_loaded_block( world, block_x, block_y - 1, block_z ).id;
-        bool block_below_is_good;
-        if ( updateing_block->needs_place_on_solid_but_can_stack_on_self && below_block_id == updateing_block_state.id ) {
-            block_below_is_good = true;
-        } else {
-            block_below_is_good = block_definition_get_definition( below_block_id )->collides_with_player;
+    bool block_is_ok_to_place = true;
+    for ( int face = FACE_TOP; face < NUM_FACES_IN_CUBE; face++ ) {
+        int rotated_face = get_rotated_face(face, updateing_block_state.rotation);
+        if ( updateing_block->needs_place_on_any_solid[ rotated_face ] ) {
+            BlockID next_to_block_id = world_get_loaded_block( world, block_x - FACE_DIR_X_OFFSETS[ face ], block_y - FACE_DIR_Y_OFFSETS[ face ], block_z - FACE_DIR_Z_OFFSETS[ face ] ).id;
+            if ( updateing_block->needs_place_on_solid_but_can_stack_on_self && next_to_block_id == updateing_block_state.id ) {
+                block_is_ok_to_place = true;
+                break;
+            } else {
+                block_is_ok_to_place = block_definition_get_definition( next_to_block_id )->collides_with_player;
+                if ( block_is_ok_to_place ) {
+                    break;
+                }
+            }
         }
-        if ( !block_below_is_good ) {
-            BlockUpdateEvent *blockPlacedEvent = new PlayerBlockPlacedEvent( tick_number, block_x, block_y, block_z, BLOCK_STATE_AIR, false );
-            blockUpdateQueue->addBlockUpdate( blockPlacedEvent );
-        }
+    }
+    if ( !block_is_ok_to_place ) {
+        BlockUpdateEvent *blockPlacedEvent = new PlayerBlockPlacedEvent( tick_number, block_x, block_y, block_z, BLOCK_STATE_AIR, false );
+        blockUpdateQueue->addBlockUpdate( blockPlacedEvent );
     }
 }
 

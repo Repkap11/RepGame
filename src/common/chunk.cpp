@@ -329,7 +329,7 @@ void chunk_calculate_popupated_blocks( Chunk *chunk ) {
                     opposing_face = OPPOSITE_FACE[ opposing_face ];
 
                     bool is_seethrough = block->calculated.is_seethrough_face[ face ];
-                    if ( is_seethrough && block->hides_self ) { // water and glass
+                    if ( is_seethrough && block->calculated.hides_self[face] ) { // water and glass
                         if ( face == FACE_TOP && block->renderOrder == RenderOrder_Water ) {
                             visible_from[ face ] = block_next_to->id != block->id;
                         } else {

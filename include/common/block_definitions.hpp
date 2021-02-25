@@ -305,9 +305,12 @@ typedef struct {
     int no_light;
     bool casts_shadow;
     bool is_seethrough;
-
-    bool hides_self;
-    bool needs_place_on_solid;
+    struct {
+        bool x;
+        bool y;
+        bool z;
+    } hides_self;
+    bool needs_place_on_any_solid[ NUM_FACES_IN_CUBE ];
     bool needs_place_on_solid_but_can_stack_on_self;
     bool rotate_on_placement;
     bool icon_is_isometric;
@@ -340,6 +343,7 @@ typedef struct {
         bool can_mesh_y;
         bool can_mesh_z;
         bool is_seethrough_face[ NUM_FACES_IN_CUBE ];
+        bool hides_self[NUM_FACES_IN_CUBE];
     } calculated;
     bool connects_to_redstone_dust;
     BlockID inventory_non_isometric_id;
