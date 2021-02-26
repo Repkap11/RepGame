@@ -92,7 +92,11 @@ int repgame_sdl2_main( const char *world_path, const char *host, bool connect_mu
 #if !defined( REPGAME_WASM )
 
     /* This makes our buffer swap syncronized with the monitor's vertical refresh */
+#if defined( REPGAME_FAST )
+    SDL_GL_SetSwapInterval( 0 );
+#else
     SDL_GL_SetSwapInterval( 1 );
+#endif
 
     if ( !GLEW_VERSION_3_3 ) { // check that the machine supports the 2.1 API.
         pr_debug( "GLEW version wrong" );

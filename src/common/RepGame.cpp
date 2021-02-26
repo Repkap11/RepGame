@@ -427,6 +427,7 @@ void repgame_draw( ) {
 
     world_draw( &globalGameState.world, &globalGameState.blocksTexture, mvp, mvp_reflect, mvp_sky, mvp_sky_reflect, globalGameState.input.debug_mode, !globalGameState.input.inventory_open, globalGameState.camera.y, headInWater );
     showErrors( );
+    glClear(GL_DEPTH_BUFFER_BIT);
     ui_overlay_draw( &globalGameState.ui_overlay, &globalGameState.world.renderer, &globalGameState.blocksTexture, &globalGameState.input, globalGameState.screen.ortho_center );
     showErrors( );
 }

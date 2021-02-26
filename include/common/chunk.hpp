@@ -29,7 +29,8 @@ typedef struct {
     int chunk_x, chunk_y, chunk_z;
     int dirty;
     int should_render;
-    int cached_cull;
+    int cached_cull_normal;
+    int cached_cull_reflect;
     int needs_repopulation;
     int chunk_mod_x, chunk_mod_y, chunk_mod_z;
 } Chunk;

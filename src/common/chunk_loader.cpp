@@ -195,7 +195,7 @@ void chunk_loader_render_chunks( LoadedChunks *loadedChunks, TRIP_ARGS( float ca
     }
     for ( int i = 0; i < MAX_LOADED_CHUNKS; i++ ) {
         Chunk *chunk = &loadedChunks->chunkArray[ i ];
-        if ( !chunk->is_loading && chunk->needs_repopulation && !chunk->cached_cull ) {
+        if ( chunk->needs_repopulation && !chunk->is_loading && !(chunk->cached_cull_normal && chunk->cached_cull_reflect) ) {
             chunk_unprogram_terrain( chunk );
             chunk_calculate_popupated_blocks( chunk );
             chunk_program_terrain( chunk );
@@ -205,7 +205,7 @@ void chunk_loader_render_chunks( LoadedChunks *loadedChunks, TRIP_ARGS( float ca
 }
 float chunk_diameter = ( CHUNK_SIZE + 1 ) * 1.73205080757; // sqrt(3)
 
-void chunk_loader_calculate_cull( LoadedChunks *loadedChunks, const glm::mat4 &mvp ) {
+void chunk_loader_calculate_cull( LoadedChunks *loadedChunks, const glm::mat4 &mvp, bool saveAsReflection ) {
     for ( int i = 0; i < MAX_LOADED_CHUNKS; i++ ) {
         int final_is_visiable = 1;
         Chunk *chunk = &loadedChunks->chunkArray[ i ];
@@ -228,7 +228,11 @@ void chunk_loader_calculate_cull( LoadedChunks *loadedChunks, const glm::mat4 &m
                 final_is_visiable = 1;
             }
         }
-        chunk->cached_cull = !final_is_visiable;
+        if ( saveAsReflection ) {
+            chunk->cached_cull_reflect = !final_is_visiable;
+        } else {
+            chunk->cached_cull_normal = !final_is_visiable;
+        }
     }
 }
 
@@ -243,8 +247,14 @@ void chunk_loader_draw_chunks( LoadedChunks *loadedChunks, const glm::mat4 &mvp,
             shader_set_uniform1f( &loadedChunks->shader, "u_shouldDiscardAlpha", renderOrder != RenderOrder_Water );
             for ( int i = 0; i < MAX_LOADED_CHUNKS; i++ ) {
                 Chunk *chunk = &loadedChunks->chunkArray[ i ];
-                if ( !chunk->cached_cull ) {
-                    chunk_render( &loadedChunks->chunkArray[ i ], renderer, &loadedChunks->shader, ( RenderOrder )renderOrder, draw_reflect );
+                if ( draw_reflect ) {
+                    if ( !chunk->cached_cull_reflect ) {
+                        chunk_render( &loadedChunks->chunkArray[ i ], renderer, &loadedChunks->shader, ( RenderOrder )renderOrder, draw_reflect );
+                    }
+                } else {
+                   if ( !chunk->cached_cull_normal ) {
+                        chunk_render( &loadedChunks->chunkArray[ i ], renderer, &loadedChunks->shader, ( RenderOrder )renderOrder, draw_reflect );
+                    }
                 }
             }
         }
