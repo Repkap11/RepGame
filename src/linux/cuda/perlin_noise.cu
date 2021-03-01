@@ -10,6 +10,12 @@ __device__ int noise2_cuda( int x, int y, int seed ) {
     return hash[ ( unsigned int )( tmp + x ) % 256 ];
 }
 
+__device__ int noise3_cuda( int x, int y, int z, int seed ) {
+    int tmp = hash[ ( unsigned int )( y + seed ) % 256 ];
+    int tmp2 = hash[ ( unsigned int )( tmp + z ) % 256 ];
+    return hash[ ( unsigned int )( tmp2 + x ) % 256 ];
+}
+
 __device__ float lin_inter_cuda( float x, float y, float s ) {
     return x + s * ( y - x );
 }
@@ -32,7 +38,35 @@ __device__ float noise2d_cuda( float x, float y, int seed ) {
     return smooth_inter_cuda( low, high, y_frac );
 }
 
-__device__ float perlin_noise_cuda( float x, float y, float freq, int depth, int seed ){
+__device__ float noise3d_cuda( float x, float y, float z, int seed ) {
+    int x_int = floor( x );
+    int y_int = floor( y );
+    int z_int = floor( z );
+    float x_frac = x - x_int;
+    float y_frac = y - y_int;
+    float z_frac = z - z_int;
+
+    int o = noise3_cuda( x_int, y_int, z_int, seed );
+    int p = noise3_cuda( x_int + 1, y_int, z_int, seed );
+    int q = noise3_cuda( x_int, y_int + 1, z_int, seed );
+    int r = noise3_cuda( x_int + 1, y_int + 1, z_int, seed );
+
+    float low1 = smooth_inter_cuda( o, p, x_frac );
+    float high1 = smooth_inter_cuda( q, r, x_frac );
+    float down = smooth_inter_cuda( low1, high1, y_frac );
+
+    int s = noise3_cuda( x_int, y_int, z_int + 1, seed );
+    int t = noise3_cuda( x_int + 1, y_int, z_int + 1, seed );
+    int u = noise3_cuda( x_int, y_int + 1, z_int + 1, seed );
+    int v = noise3_cuda( x_int + 1, y_int + 1, z_int + 1, seed );
+
+    float low2 = smooth_inter_cuda( s, t, x_frac );
+    float high2 = smooth_inter_cuda( u, v, x_frac );
+    float up = smooth_inter_cuda( low2, high2, y_frac );
+    return smooth_inter_cuda( down, up, z_frac );
+}
+
+__device__ float perlin_noise2d_cuda( float x, float y, float freq, int depth, int seed ){
     float xa = x * freq;
     float ya = y * freq;
     float amp = 1.0;
@@ -46,5 +80,26 @@ __device__ float perlin_noise_cuda( float x, float y, float freq, int depth, int
         xa *= 2;
         ya *= 2;
     }
+    return fin / div;
+}
+
+__device__ float perlin_noise3d_cuda( float x, float y, float z, float freq, int depth, int seed ) {
+    float xa = x * freq;
+    float ya = y * freq;
+    float za = z * freq;
+    float amp = 1.0;
+    float fin = 0;
+    float div = 0.0;
+
+    int i;
+    for ( i = 0; i < depth; i++ ) {
+        div += 256 * amp;
+        fin += noise3d_cuda( xa, ya, za, seed ) * amp;
+        amp /= 2;
+        xa *= 2;
+        ya *= 2;
+        za *= 2;
+    }
+
     return fin / div;
 }

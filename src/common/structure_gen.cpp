@@ -5,12 +5,12 @@
 #include "common/block_definitions.hpp"
 
 int structure_gen_is_forest( int x, int z ) {
-    float noise = perlin_noise( x, z, 0.02f, 3, MAP_SEED + 6 );
+    float noise = perlin_noise2d( x, z, 0.02f, 3, MAP_SEED + 6 );
     return noise > 0.7f;
 }
 
 int structure_gen_is_tree_roll( int x, int z, int max_tree_radius ) {
-    float noise = perlin_noise( x, z, 0.9f, 1, MAP_SEED + 7 );
+    float noise = perlin_noise2d( x, z, 0.9f, 1, MAP_SEED + 7 );
     if ( FOREST_DEBUG ) {
         return -1;
     }
@@ -50,13 +50,13 @@ BlockID structure_gen_is_long_grass_roll( int x, int z, int is_forest ) {
     if ( is_forest ) {
         is_tuftland = 1;
     } else {
-        float noise = perlin_noise( x, z, 0.03f, 1, MAP_SEED + 8 );
+        float noise = perlin_noise2d( x, z, 0.03f, 1, MAP_SEED + 8 );
         if ( noise > 0.7f ) {
             is_tuftland = 1;
         }
     }
     if ( is_tuftland ) {
-        float noise2 = perlin_noise( x, z, 1.0f, 3, MAP_SEED + 9 );
+        float noise2 = perlin_noise2d( x, z, 1.0f, 3, MAP_SEED + 9 );
         if ( noise2 > 0.95 ) {
             return YELLOW_FLOWER;
         }
@@ -78,7 +78,7 @@ BlockID structure_gen_is_long_grass_roll( int x, int z, int is_forest ) {
 }
 
 int structure_gen_is_reed_roll( int x, int z ) {
-    float noise = perlin_noise( x, z, 1.0f, 1, MAP_SEED + 10 );
+    float noise = perlin_noise2d( x, z, 1.0f, 1, MAP_SEED + 10 );
     return noise > 0.95f;
 }
 

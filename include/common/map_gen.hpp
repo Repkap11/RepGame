@@ -5,6 +5,7 @@
 #define WATER_LEVEL 0
 #define MOUNTAN_CAP_HEIGHT 20
 #define DIRT_SURFACE_THCKNESS 3
+#define CAVE_THRESHOLD 0.3f
 
 void map_gen_load_block_cuda( Chunk *chunk );
 void map_gen_load_block_c( Chunk *chunk );

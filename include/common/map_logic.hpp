@@ -44,6 +44,15 @@ if ( y < terrainHeight ) {
             finalBlockId = GRASS;
         }
     } // End near the surface
+    if ( y > -100 ) {
+        float cave_dencity = MAP_GEN( cave_density, x, y * 3.0f, z );
+        float cave_lerp = 1.0f - MAP_GEN( inverse_lerp, -20.0f, 40.0f, y - terrainHeight );
+        if ( cave_dencity < cave_lerp * CAVE_THRESHOLD ) {
+            finalBlockId = AIR;
+        }
+    } else {
+        finalBlockId = BEDROCK;
+    }
 } else {
     // There should not be a block here, but water is still possible at low height
     if ( y < WATER_LEVEL ) {

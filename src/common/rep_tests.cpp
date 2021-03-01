@@ -31,14 +31,14 @@ int test_mobs( ) {
     }
 
     for ( int mob_id = 0; mob_id < num_test_mobs; mob_id++ ) {
-        float rand = perlin_noise( 0.0f, 0.0f, 1.0, 1, mob_id );
+        float rand = perlin_noise2d( 0.0f, 0.0f, 1.0, 1, mob_id );
         if ( rand < 0.5f ) {
             mobs.remove( mob_id );
             inconsistent |= mobs.check_consistency( );
         }
     }
     for ( int mob_id = 0; mob_id < num_test_mobs; mob_id++ ) {
-        float rand = perlin_noise( 100.0f, 0.0f, 1.0, 1, mob_id );
+        float rand = perlin_noise2d( 100.0f, 0.0f, 1.0, 1, mob_id );
         if ( rand < 0.5f ) {
             mobs.remove( mob_id );
             inconsistent |= mobs.check_consistency( );
