@@ -196,11 +196,15 @@ void repgame_process_movement( ) {
         movement_vector_y = -TERMINAL_VELOCITY;
     }
     float movement_vector_z = movement_speed * globalGameState.input.movement.sizeH * globalGameState.camera.mz;
-    collision_check_move( &globalGameState.world, TRIP_ARGS( &movement_vector_ ), //
-                          globalGameState.camera.x,                               //
-                          globalGameState.camera.y,                               //
-                          globalGameState.camera.z,                               //
-                          &globalGameState.camera.standing_on_solid );
+    if ( globalGameState.input.no_clip ) {
+        globalGameState.camera.standing_on_solid = 0;
+    } else {
+        collision_check_move( &globalGameState.world, TRIP_ARGS( &movement_vector_ ), //
+                              globalGameState.camera.x,                               //
+                              globalGameState.camera.y,                               //
+                              globalGameState.camera.z,                               //
+                              &globalGameState.camera.standing_on_solid );
+    }
 
     globalGameState.camera.x += movement_vector_x;
     globalGameState.camera.y += movement_vector_y;
@@ -289,6 +293,7 @@ static inline void initilizeGameState( const char *world_name ) {
         globalGameState.camera.angle_H = saved_data.angle_H;
         globalGameState.camera.angle_V = saved_data.angle_V;
         globalGameState.input.player_flying = saved_data.flying;
+        globalGameState.input.no_clip = saved_data.no_clip;
     }
 }
 
@@ -422,12 +427,12 @@ void repgame_draw( ) {
     // glm::mat4 rotation = glm::rotate( glm::mat4( 1.0 ), glm::radians( 90.0f ), glm::vec3( 1, 0, 1 ) );
     // glm::mat4 mvp_reflect = mvp * rotation;
     // mvp_mirror = glm::translate( mvp_mirror, glm::vec3( 0, -10, 0 ) );
-    BlockState blockInHead = world_get_loaded_block( &globalGameState.world, round( globalGameState.camera.x - 0.5f ), round( globalGameState.camera.y - 0.5f ), round( globalGameState.camera.z - 0.5f) );
+    BlockState blockInHead = world_get_loaded_block( &globalGameState.world, round( globalGameState.camera.x - 0.5f ), round( globalGameState.camera.y - 0.5f ), round( globalGameState.camera.z - 0.5f ) );
     bool headInWater = blockInHead.id == WATER;
 
     world_draw( &globalGameState.world, &globalGameState.blocksTexture, mvp, mvp_reflect, mvp_sky, mvp_sky_reflect, globalGameState.input.debug_mode, !globalGameState.input.inventory_open, globalGameState.camera.y, headInWater );
     showErrors( );
-    glClear(GL_DEPTH_BUFFER_BIT);
+    glClear( GL_DEPTH_BUFFER_BIT );
     ui_overlay_draw( &globalGameState.ui_overlay, &globalGameState.world.renderer, &globalGameState.blocksTexture, &globalGameState.input, globalGameState.screen.ortho_center );
     showErrors( );
 }
@@ -451,6 +456,7 @@ void repgame_cleanup( ) {
     saved_data.angle_H = globalGameState.camera.angle_H;
     saved_data.angle_V = globalGameState.camera.angle_V;
     saved_data.flying = globalGameState.input.player_flying;
+    saved_data.no_clip = globalGameState.input.no_clip;
 
     saved_data.holdingBlock = globalGameState.block_selection.holdingBlock;
     map_storage_write_player_data( &saved_data );

@@ -2,7 +2,22 @@
 BlockID finalBlockId = AIR;
 if ( y < terrainHeight ) {
     if ( y + DIRT_SURFACE_THCKNESS < terrainHeight ) { // Deep underground
-        finalBlockId = STONE;
+        float should_be_iron_ore = MAP_GEN( is_iron_ore_instead_of_stone, x, y, z );
+        if ( should_be_iron_ore < 0.05 ) {
+            finalBlockId = IRON_ORE;
+        } else {
+            float should_be_coal_ore = MAP_GEN( is_coal_ore_instead_of_stone, x, y, z );
+            if ( should_be_coal_ore < 0.05 ) {
+                finalBlockId = COAL_ORE;
+            } else {
+                float should_be_gold_ore = MAP_GEN( is_gold_ore_instead_of_stone, x, y, z );
+                if ( should_be_gold_ore < 0.05 ) {
+                    finalBlockId = GOLD_ORE;
+                } else {
+                    finalBlockId = STONE;
+                }
+            }
+        }
     } else { // Near the surface
         finalBlockId = DIRT;
         if ( -2.3 + WATER_LEVEL < terrainHeight && terrainHeight < 0.3 + WATER_LEVEL ) {
@@ -45,12 +60,14 @@ if ( y < terrainHeight ) {
         }
     } // End near the surface
     if ( y > -100 ) {
-        float cave_dencity = MAP_GEN( cave_density, x, y * 3.0f, z );
+        // See if we need a cave
+        float cave_dencity = MAP_GEN( cave_density, x, y * 2.5f, z );
         float cave_lerp = 1.0f - MAP_GEN( inverse_lerp, -20.0f, 40.0f, y - terrainHeight );
         if ( cave_dencity < cave_lerp * CAVE_THRESHOLD ) {
             finalBlockId = AIR;
         }
     } else {
+        // Super low is bedrock, and no caves.
         finalBlockId = BEDROCK;
     }
 } else {

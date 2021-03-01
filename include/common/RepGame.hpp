@@ -87,6 +87,7 @@ typedef struct {
     float angle_H;
     float angle_V;
     bool flying;
+    bool no_clip;
 } PlayerData;
 
 void renderShaders( int x, int y, int z );

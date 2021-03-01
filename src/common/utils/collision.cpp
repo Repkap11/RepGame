@@ -99,10 +99,6 @@ void check_collides_with_player( World *world, TRIP_ARGS( float *movement_vec_ )
 }
 
 void collision_check_move( World *world, TRIP_ARGS( float *movement_vec_ ), TRIP_ARGS( float position_ ), int *out_standing ) {
-    if ( NO_CLIP ) {
-        *out_standing = 0;
-        return;
-    }
     int standing = 0;
     int *dirs_to_check = ( int * )calloc( NUM_FACES_IN_CUBE, sizeof( int ) );
     if ( *movement_vec_x > 0 ) {

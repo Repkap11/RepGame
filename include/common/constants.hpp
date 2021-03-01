@@ -52,7 +52,7 @@ static_assert( CHUNK_RADIUS_Z > 0, "CHUNK_RADIUS_Z too small");
 #define REFLECTIONS 1
 #define DEBUG_CYCLE_AUTO_ROTATING_BLOCKS 0
 
-#define NO_CLIP 0
+#define NO_CLIP 1
 #define MAP_SEED 0
 
 #define BLOCK_SCALE_OFFSET 0.2f

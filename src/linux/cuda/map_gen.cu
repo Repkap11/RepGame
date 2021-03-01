@@ -53,6 +53,24 @@ __device__ float map_gen_cave_density_cuda( int x, int y, int z ) {
     return noise;
 }
 
+__device__ float map_gen_is_iron_ore_instead_of_stone_cuda( int x, int y, int z ) {
+    float noise = perlin_noise3d_cuda( x, y, z, 0.2f, 4, MAP_SEED + 7 );
+    noise = noise * noise;
+    return noise;
+}
+
+__device__ float map_gen_is_coal_ore_instead_of_stone_cuda( int x, int y, int z ) {
+    float noise = perlin_noise3d_cuda( x, y, z, 0.2f, 4, MAP_SEED + 8 );
+    noise = noise * noise;
+    return noise;
+}
+
+__device__ float map_gen_is_gold_ore_instead_of_stone_cuda( int x, int y, int z ) {
+    float noise = perlin_noise3d_cuda( x, y, z, 0.2f, 4, MAP_SEED + 9 );
+    noise = noise * noise;
+    return noise;
+}
+
 __device__ float map_gen_inverse_lerp_cuda( float min, float max, float value ) {
     if ( value < min ) {
         return 0.0f;
@@ -62,7 +80,6 @@ __device__ float map_gen_inverse_lerp_cuda( float min, float max, float value ) 
     }
     return ( value - min ) / ( max - min );
 }
-
 
 #define MAP_GEN( func, ... ) map_gen_##func##_cuda( __VA_ARGS__ )
 
@@ -83,7 +100,7 @@ __global__ void cuda_set_block( BlockState *blocks, int chunk_x, int chunk_y, in
         float terrainHeight = level + mountians + hills + ground_noise;
 #include "common/map_logic.hpp"
 
-        blocks[ index ] = {finalBlockId, BLOCK_ROTATE_0, 0, finalBlockId};//Assumes all blocks don't spawn with redstone power
+        blocks[ index ] = { finalBlockId, BLOCK_ROTATE_0, 0, finalBlockId }; // Assumes all blocks don't spawn with redstone power
     }
 }
 

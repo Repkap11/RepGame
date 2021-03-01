@@ -53,6 +53,26 @@ float map_gen_cave_density( int x, int y, int z ) {
     return noise;
 }
 
+float map_gen_is_iron_ore_instead_of_stone( int x, int y, int z ) {
+    float noise = perlin_noise3d( x, y, z, 0.2f, 4, MAP_SEED + 7 );
+    noise = noise * noise;
+    return noise;
+}
+
+float map_gen_is_coal_ore_instead_of_stone( int x, int y, int z ) {
+    float noise = perlin_noise3d( x, y, z, 0.2f, 4, MAP_SEED + 8 );
+    noise = noise * noise;
+    return noise;
+}
+
+
+float map_gen_is_gold_ore_instead_of_stone( int x, int y, int z ) {
+    float noise = perlin_noise3d( x, y, z, 0.2f, 4, MAP_SEED + 9 );
+    noise = noise * noise;
+    return noise;
+}
+
+
 float map_gen_inverse_lerp( float min, float max, float value ) {
     if ( value < min ) {
         return 0.0f;

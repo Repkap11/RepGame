@@ -50,6 +50,9 @@ typedef enum {
     JUNGLE_SAPLING, // 39
     STONE_BRICK_SLAB = 41,
     OAK_SLAB = 42,
+    GOLD_ORE = 49,
+    IRON_ORE = 50,
+    COAL_ORE = 51,
     BOOK_CASE = 52,
     DARK_BARRIER = 55,
     DARK_DEAD_SAPPLING,

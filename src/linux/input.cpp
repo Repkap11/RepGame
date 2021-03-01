@@ -157,6 +157,11 @@ void input_keysInput( InputState *inputState, SDL_Keycode key, int pressed ) {
             if ( pressed ) {
                 inputState->player_flying = !inputState->player_flying;
             }
+            break;
+        case 'c':
+            if ( pressed ) {
+                inputState->no_clip = !inputState->no_clip;
+            }
 
             break;
         case 'm':
