@@ -14,8 +14,9 @@ uniform float u_ReflectionHeight;
 uniform float u_RandomRotationBlocks[ MAX_ROTATABLE_BLOCK ];
 uniform float u_ShowRotation;
 uniform int u_TintUnderWater;
+uniform float u_ReflectionDotSign;
 
-    in vec2 v_TexCoordBlock;
+in vec2 v_TexCoordBlock;
 in float v_corner_lighting;
 in float v_planarDot;
 in vec3 v_world_coords;
@@ -31,7 +32,7 @@ void main( ) {
     if ( v_shouldDiscardNoLight == 1 ) {
         discard;
     }
-    if ( v_planarDot < 0.0 && u_ReflectionHeight != 0.0 ) {
+    if ( v_planarDot * u_ReflectionDotSign < 0.0 && u_ReflectionHeight != 0.0 ) {
         discard;
     }
     vec2 working_fract = vec2( fract( v_TexCoordBlock.x ), fract( v_TexCoordBlock.y ) );

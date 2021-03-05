@@ -115,6 +115,9 @@ void world_draw( World *world, Texture *blocksTexture, const glm::mat4 &mvp, con
     shader_set_uniform3f( &world->loadedChunks.shader, "u_DebugScaleOffset", debug_block_scale, debug_block_scale, debug_block_scale );
     shader_set_uniform1ui( &world->loadedChunks.shader, "u_ScaleTextureBlock", 1 );
     shader_set_uniform1i( &world->loadedChunks.shader, "u_TintUnderWater", block_water_tint_type );
+    // shader_set_uniform1f( &world->loadedChunks.shader, "u_ReflectionDotSign", y_height < 0 ? -1.0f : 1.0f );
+    shader_set_uniform1f( &world->loadedChunks.shader, "u_ReflectionDotSign", 1.0f );
+
     chunk_loader_draw_chunks( &world->loadedChunks, mvp, &world->renderer, false, false ); // Blocks
 
     shader_set_uniform1i( &world->loadedChunks.shader, "u_TintUnderWater", 0 );
