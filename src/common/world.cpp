@@ -59,7 +59,24 @@ void world_init( World *world, TRIP_ARGS( float camera_ ) ) {
     sky_box_init( &world->skyBox, &world->vbl_object_vertex, &world->vbl_object_position );
     world->mobs = Mobs( &world->vbl_object_vertex, &world->vbl_object_position );
     mouse_selection_init( &world->mouseSelection, &world->vbl_block, &world->vbl_coords );
+
+    frame_buffer_init( &world->reflectionFrameBuffer );
+    render_buffer_init( &world->reflectionRenderBuffer );
+    render_buffer_set_storage( &world->reflectionRenderBuffer, 800,600);
+    frame_buffer_attach_render_buffer( &world->reflectionFrameBuffer, &world->reflectionRenderBuffer );
+    showErrors( );
+    if ( !frame_buffer_ok( &world->reflectionFrameBuffer ) ) {
+        pr_debug( "Frame buffer not ok" );
+        showErrors( );
+    }
+    render_buffer_unbind(&world->reflectionRenderBuffer );
+    frame_buffer_bind_display();
+    showErrors( );
 }
+
+void world_change_size(World *world, int width, int height){
+}
+
 void world_render( World *world, TRIP_ARGS( float camera_ ), int limit_render, const glm::mat4 &rotation ) {
     chunk_loader_render_chunks( &world->loadedChunks, TRIP_ARGS( camera_ ), limit_render );
     // world->mobs.update_position( 10, 10, 10, rotation );
@@ -109,7 +126,7 @@ void world_draw( World *world, Texture *blocksTexture, const glm::mat4 &mvp, con
     world->mobs.draw( mvp, &world->renderer, &world->object_shader );
     sky_box_draw( &world->skyBox, &world->renderer, mvp_sky, &world->object_shader );
 
-    chunk_loader_calculate_cull( &world->loadedChunks, mvp ,false);
+    chunk_loader_calculate_cull( &world->loadedChunks, mvp, false );
     shader_set_uniform1f( &world->loadedChunks.shader, "u_ReflectionHeight", 0 );
     shader_set_uniform1i( &world->loadedChunks.shader, "u_Texture", blocksTexture->slot );
     shader_set_uniform3f( &world->loadedChunks.shader, "u_DebugScaleOffset", debug_block_scale, debug_block_scale, debug_block_scale );
@@ -170,6 +187,8 @@ void world_cleanup( World *world ) {
     vertex_buffer_layout_destroy( &world->vbl_block );
     vertex_buffer_layout_destroy( &world->vbl_block );
     vertex_buffer_layout_destroy( &world->vbl_coords );
+    frame_buffer_destroy(&world->reflectionFrameBuffer);
+    render_buffer_destroy(&world->reflectionRenderBuffer);
 }
 
 int can_fixup_chunk( World *world, Chunk *chunk, TRIP_ARGS( int offset_ ) ) {

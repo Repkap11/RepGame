@@ -184,6 +184,14 @@ void texture_init( Texture *texture, const TextureSourceData *texture_source, in
     texture->m_RendererId = loadTexture( texture_source, blur_mag );
 }
 
+// void texture_init( Texture *texture, int width, int height, int blur_mag ) {
+//     glGenTextures( 1, &texture->m_RendererId );
+//     glBindTexture( GL_TEXTURE_2D, texture->m_RendererId );
+//     glTexImage2D( GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, NULL );
+//     glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR );
+//     glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR );
+// }
+
 void texture_bind( Texture *texture, unsigned int texture_slot ) {
     glActiveTexture( GL_TEXTURE0 + texture_slot );
     glBindTexture( GL_TEXTURE_2D_ARRAY, texture->m_RendererId );

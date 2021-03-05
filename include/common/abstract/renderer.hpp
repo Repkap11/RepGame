@@ -6,6 +6,8 @@
 #include "common/abstract/index_buffer.hpp"
 #include "common/abstract/vertex_buffer_layout.hpp"
 #include "common/abstract/shader.hpp"
+#include "common/abstract/render_buffer.hpp"
+#include "common/abstract/frame_buffer.hpp"
 
 typedef struct { unsigned int mRendererId; } Renderer;
 
