@@ -143,13 +143,12 @@ void world_draw( World *world, Texture *blocksTexture, const glm::mat4 &mvp, con
     if ( draw_mouse_selection ) {
         mouse_selection_draw( &world->mouseSelection, &world->renderer, &world->loadedChunks.shader );
     }
-    chunk_loader_draw_chunks( &world->loadedChunks, mvp, &world->renderer, true, false ); // Water
 
 #if defined( REPGAME_LINUX ) || defined( REPGAME_WINDOWS ) || defined( REPGAME_ANDROID )
 #if REFLECTIONS
-    frame_buffer_bind( &world->reflectionFrameBuffer );
-    glClearColor( 1.0f, 1.0f, 1.0f, 0.0f );
-    glClear( GL_COLOR_BUFFER_BIT );
+    // frame_buffer_bind( &world->reflectionFrameBuffer );
+    // glClearColor( 1.0f, 1.0f, 1.0f, 0.0f );
+    // glClear( GL_COLOR_BUFFER_BIT );
 
     glEnable( GL_STENCIL_TEST );
     glStencilFunc( GL_ALWAYS, 1, 0xff );
@@ -174,24 +173,23 @@ void world_draw( World *world, Texture *blocksTexture, const glm::mat4 &mvp, con
     chunk_loader_draw_chunks( &world->loadedChunks, mvp_reflect, &world->renderer, false, true ); // Reflected blocks
     shader_set_uniform1i( &world->object_shader, "u_Texture", blocksTexture->slot );
 
-    // world->mobs.draw( mvp_reflect, &world->renderer, &world->object_shader );
-    // shader_set_uniform1f( &world->object_shader, "u_ExtraAlpha", 0.5 );
-    // sky_box_draw( &world->skyBox, &world->renderer, mvp_sky_reflect, &world->object_shader );
+    world->mobs.draw( mvp_reflect, &world->renderer, &world->object_shader );
+    shader_set_uniform1f( &world->object_shader, "u_ExtraAlpha", 0.5 );
+    sky_box_draw( &world->skyBox, &world->renderer, mvp_sky_reflect, &world->object_shader );
 
     glDepthMask( GL_TRUE );
     shader_set_uniform1f( &world->loadedChunks.shader, "u_ReflectionHeight", 0 );
     shader_set_uniform1f( &world->object_shader, "u_ReflectionHeight", 0 );
 
     glCullFace( GL_BACK );
+
+    // frame_buffer_bind_display( );
+    // full_screen_quad_draw_texture( &world->fullScreenQuad, &world->renderer, &world->reflectionTexture );
+
+#endif
+#endif
+    chunk_loader_draw_chunks( &world->loadedChunks, mvp, &world->renderer, true, false ); // Water
     glDisable( GL_STENCIL_TEST );
-
-    frame_buffer_bind_display( );
-    glDisable( GL_DEPTH_TEST );
-    full_screen_quad_draw_texture( &world->fullScreenQuad, &world->renderer, &world->reflectionTexture );
-    glEnable( GL_DEPTH_TEST );
-
-#endif
-#endif
 }
 void world_cleanup( World *world ) {
 
