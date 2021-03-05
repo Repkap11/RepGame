@@ -19,7 +19,7 @@ typedef struct {
 #if defined( REPGAME_LINUX ) || defined( REPGAME_WINDOWS )
 #define MK_TEXTURE( name, width_, height_, tile_size_across_, tile_size_down_, header_size_ )                                                                                                                                                  \
     MK_BLOB( out_bitmaps, name, bin );                                                                                                                                                                                                         \
-    const TextureSourceData texture_source_##name = {.blob = &name, .width = width_, .height = height_, .tile_size_across = tile_size_across_, .tile_size_down = tile_size_down_, .header_size = 0}
+    const TextureSourceData texture_source_##name = { .blob = &name, .width = width_, .height = height_, .tile_size_across = tile_size_across_, .tile_size_down = tile_size_down_, .header_size = 0 }
 #else
 
 #define MK_TEXTURE( name, width_, height_, tile_size_across_, tile_size_down_, header_size_ )                                                                                                                                                  \
@@ -41,6 +41,9 @@ typedef struct {
 void textures_set_texture_data( unsigned int which_texture, unsigned char *textures, int textures_len );
 
 void texture_init( Texture *texture, const TextureSourceData *texture_source, int blur_mag );
+void texture_change_size( Texture *texture, int width, int height );
+void texture_init_empty( Texture *texture, int width, int height, int blur_mag );
+
 void texture_destroy( Texture *texture );
 void texture_bind( Texture *texture, unsigned int texture_slot );
 void texture_unbind( Texture *texture, unsigned int texture_slot );

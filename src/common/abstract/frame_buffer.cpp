@@ -18,9 +18,14 @@ void frame_buffer_bind_display( ) {
     glBindFramebuffer( GL_FRAMEBUFFER, 0 );
 }
 
-void frame_buffer_attach_render_buffer( const FrameBuffer *frameBuffer, const RenderBuffer *renderBuffer ) {
+// void frame_buffer_attach_render_buffer( const FrameBuffer *frameBuffer, const RenderBuffer *renderBuffer ) {
+//     frame_buffer_bind( frameBuffer );
+//     glFramebufferRenderbuffer( GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_RENDERBUFFER, renderBuffer->mRendererId );
+// }
+
+void frame_buffer_attach_texture( FrameBuffer *frameBuffer, Texture *texture ) {
     frame_buffer_bind( frameBuffer );
-    glFramebufferRenderbuffer( GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_RENDERBUFFER, renderBuffer->mRendererId );
+    glFramebufferTexture2D( GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, texture->m_RendererId, 0 );
 }
 
 void frame_buffer_unbind( const FrameBuffer *frameBuffer ) {

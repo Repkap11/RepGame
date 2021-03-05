@@ -4,6 +4,7 @@
 #include "block.hpp"
 #include "chunk_loader.hpp"
 #include "mobs.hpp"
+#include "common/abstract/full_screen_quad.hpp"
 
 typedef struct {
     LoadedChunks loadedChunks;
@@ -14,8 +15,9 @@ typedef struct {
     VertexBufferLayout vbl_coords;
     VertexBufferLayout vbl_object_vertex;
     VertexBufferLayout vbl_object_position;
-    RenderBuffer reflectionRenderBuffer;
+    Texture reflectionTexture;
     FrameBuffer reflectionFrameBuffer;
+    FullScreenQuad fullScreenQuad;
 
     MouseSelection mouseSelection;
     Shader object_shader;

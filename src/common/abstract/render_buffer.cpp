@@ -1,6 +1,7 @@
 #include "common/RepGame.hpp"
 #include "common/abstract/render_buffer.hpp"
 
+
 void render_buffer_init( RenderBuffer *renderBuffer ) {
     glGenRenderbuffers( 1, &renderBuffer->mRendererId );
     render_buffer_bind( renderBuffer );
