@@ -16,7 +16,8 @@ typedef struct {
     VertexBufferLayout vbl_object_vertex;
     VertexBufferLayout vbl_object_position;
     Texture reflectionTexture;
-    FrameBuffer reflectionFrameBuffer;
+    Texture blockTexture;
+    FrameBuffer frameBuffer;
     FullScreenQuad fullScreenQuad;
 
     MouseSelection mouseSelection;

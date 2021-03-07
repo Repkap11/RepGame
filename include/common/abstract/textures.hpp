@@ -36,13 +36,18 @@ typedef struct {
 typedef struct {
     unsigned int m_RendererId; //
     unsigned int slot;
+    unsigned int target;
+    int internalFormat;
+    unsigned int format;
+    unsigned int type;
 } Texture;
 
 void textures_set_texture_data( unsigned int which_texture, unsigned char *textures, int textures_len );
 
 void texture_init( Texture *texture, const TextureSourceData *texture_source, int blur_mag );
 void texture_change_size( Texture *texture, int width, int height );
-void texture_init_empty( Texture *texture, int width, int height, int blur_mag );
+void texture_init_empty_color( Texture *texture, int width, int height, int blur_mag );
+void texture_init_empty_depth_stencil( Texture *texture, int width, int height, int blur_mag );
 
 void texture_destroy( Texture *texture );
 void texture_bind( Texture *texture, unsigned int texture_slot );

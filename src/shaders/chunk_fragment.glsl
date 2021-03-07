@@ -27,6 +27,10 @@ flat in int v_needs_rotate;
 flat in int v_block_auto_rotates;
 
 layout( location = 0 ) out vec4 color;
+layout( location = 1 ) out vec4 reflection;
+
+// layout( location = 1 ) out vec4 color;
+// layout( location = 0 ) out vec4 reflection;
 
 void main( ) {
     if ( v_shouldDiscardNoLight == 1 ) {
@@ -87,5 +91,8 @@ void main( ) {
         texColor = mix( texColor, vec4( 0.122f, 0.333f, 1.0f, 1.0f ), 0.7f );
     }
     float corner_light = v_corner_lighting;
-    color = texColor * vec4( corner_light, corner_light, corner_light, 1 );
+    vec4 finalColor = texColor * vec4( corner_light, corner_light, corner_light, 1 );
+    color = finalColor;
+    finalColor.b *= 2.0f;
+    reflection = finalColor;
 }

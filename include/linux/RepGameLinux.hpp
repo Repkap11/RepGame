@@ -5,7 +5,7 @@
 #include "common/RepGameSDL2.hpp"
 
 #define REPGAME_PATH_DIVIDOR "/"
-#define pr_debug( fmt, ... ) fprintf( stdout, "%s:%d:%s():" fmt "\n", __FILE__, __LINE__, __func__, ##__VA_ARGS__ );
+#define pr_debug( fmt, ... ) fprintf( stdout, "%s:%d :%s():" fmt "\n", __FILE__, __LINE__, __func__, ##__VA_ARGS__ );
 #define pr_test( fmt, ... ) fprintf( stdout, fmt "\n", ##__VA_ARGS__ );
 #ifdef REPGAME_FAST
 #define showErrors( )

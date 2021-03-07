@@ -2,8 +2,18 @@
 #include "common/abstract/frame_buffer.hpp"
 
 void frame_buffer_init( FrameBuffer *frameBuffer ) {
+    // GLint maxColAttchments = 0;
+    // glGetIntegerv( GL_MAX_COLOR_ATTACHMENTS, &maxColAttchments );
+    // pr_debug( "Max attachments:%d", maxColAttchments );
     glGenFramebuffers( 1, &frameBuffer->mRendererId );
+    texture_init_empty_depth_stencil( &frameBuffer->depthStencilTexture, 800, 600, 0 );
     frame_buffer_bind( frameBuffer );
+    showErrors( );
+    // pr_debug( "Value:%d", frameBuffer->depthStencilTexture.m_RendererId );
+    glFramebufferTexture2D( GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, GL_TEXTURE_2D, frameBuffer->depthStencilTexture.m_RendererId, 0 );
+    showErrors( );
+    frame_buffer_bind_display( );
+    showErrors( );
 }
 
 void frame_buffer_destroy( const FrameBuffer *frameBuffer ) {
@@ -18,14 +28,16 @@ void frame_buffer_bind_display( ) {
     glBindFramebuffer( GL_FRAMEBUFFER, 0 );
 }
 
-// void frame_buffer_attach_render_buffer( const FrameBuffer *frameBuffer, const RenderBuffer *renderBuffer ) {
-//     frame_buffer_bind( frameBuffer );
-//     glFramebufferRenderbuffer( GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_RENDERBUFFER, renderBuffer->mRendererId );
-// }
+void frame_buffer_change_size( FrameBuffer *frameBuffer, int width, int height ) {
+    texture_change_size( &frameBuffer->depthStencilTexture, width, height );
+    showErrors( );
+}
 
-void frame_buffer_attach_texture( FrameBuffer *frameBuffer, Texture *texture ) {
+void frame_buffer_attach_texture( FrameBuffer *frameBuffer, Texture *texture, int which_attachment ) {
     frame_buffer_bind( frameBuffer );
-    glFramebufferTexture2D( GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, texture->m_RendererId, 0 );
+    showErrors( );
+    glFramebufferTexture2D( GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0 + which_attachment, GL_TEXTURE_2D, texture->m_RendererId, 0 );
+    showErrors( );
 }
 
 void frame_buffer_unbind( const FrameBuffer *frameBuffer ) {

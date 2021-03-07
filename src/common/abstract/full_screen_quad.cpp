@@ -9,7 +9,7 @@ typedef struct {
 #define FSQ_VERTEX_COUNT 4
 FullScreenQuadVertex vb_data[ FSQ_VERTEX_COUNT ] = {
     { -1, -1, 0, 0 }, //
-    { -1, 1, 0, 1 },   //
+    { -1, 1, 0, 1 },  //
     { 1, -1, 1, 0 },  //
     { 1, 1, 1, 1 }    //
 };
@@ -31,8 +31,8 @@ void full_screen_quad_init( FullScreenQuad *fsq ) {
     }
     {
         index_buffer_init( &fsq->ib );
-        // index_buffer_set_data( &fsq->ib, ib_data, FSQ_INDEX_COUNT );
-        index_buffer_set_data( &fsq->ib, ib_data, 3 );
+        index_buffer_set_data( &fsq->ib, ib_data, FSQ_INDEX_COUNT );
+        // index_buffer_set_data( &fsq->ib, ib_data, 3 );
     }
     {
         vertex_buffer_init( &fsq->vb );
@@ -47,6 +47,7 @@ void full_screen_quad_init( FullScreenQuad *fsq ) {
 }
 
 void full_screen_quad_draw_texture( FullScreenQuad *fsq, Renderer *renderer, Texture *texture ) {
+    pr_debug( "Drawing full quad with texture:%d", texture->slot );
     shader_set_uniform1i( &fsq->shader, "u_Texture", texture->slot );
     renderer_draw( renderer, &fsq->va, &fsq->ib, &fsq->shader, 1 );
 }

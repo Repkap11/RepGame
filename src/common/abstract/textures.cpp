@@ -73,7 +73,7 @@ unsigned char *readTextureDataFromCache( const char *filename, int mem_size ) {
 #endif
 
 #define BYTES_PER_PIXEL 4
-unsigned int loadTexture( const TextureSourceData *texture_source, int blur_mag ) {
+void loadTexture( Texture *texture, const TextureSourceData *texture_source, int blur_mag ) {
     int bmp_header = texture_source->header_size;
     unsigned char *data;
 
@@ -130,14 +130,13 @@ unsigned int loadTexture( const TextureSourceData *texture_source, int blur_mag 
     }
 
     unsigned int layer_count = textures_across * textures_down;
-    unsigned int texture;
-    glGenTextures( 1, &texture );
-    glBindTexture( GL_TEXTURE_2D_ARRAY, texture );
+    glGenTextures( 1, &texture->m_RendererId );
+    glBindTexture( GL_TEXTURE_2D_ARRAY, texture->m_RendererId );
     glTexImage3D( GL_TEXTURE_2D_ARRAY,                                              //
                   0,                                                                // mipLevelCount
-                  GL_RGBA8,                                                         //
+                  texture->internalFormat,                                          //
                   texture_source->tile_size_across, texture_source->tile_size_down, //
-                  layer_count, 0, GL_RGBA, GL_UNSIGNED_BYTE, NULL );
+                  layer_count, 0, texture->format, texture->type, NULL );
     showErrors( );
 
     glPixelStorei( GL_UNPACK_ROW_LENGTH, texture_source->width );
@@ -150,8 +149,8 @@ unsigned int loadTexture( const TextureSourceData *texture_source, int blur_mag 
                          0,                                                                   // Mipmap Level
                          0, 0, i,                                                             // offset
                          texture_source->tile_size_across, texture_source->tile_size_down, 1, //
-                         GL_RGBA,
-                         GL_UNSIGNED_BYTE, //
+                         texture->format,
+                         texture->type, //
                          working + bmp_header + text_coord_base * BYTES_PER_PIXEL );
         showErrors( );
     }
@@ -173,40 +172,59 @@ unsigned int loadTexture( const TextureSourceData *texture_source, int blur_mag 
     }
     glTexParameterf( GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MAX_ANISOTROPY_EXT, max_ani );
     glGenerateMipmap( GL_TEXTURE_2D_ARRAY );
-    return texture;
 }
 
 static int next_slot = 1;
 void texture_init( Texture *texture, const TextureSourceData *texture_source, int blur_mag ) {
     texture->slot = next_slot;
     next_slot++;
+    texture->target = GL_TEXTURE_2D_ARRAY;
+    texture->internalFormat = GL_RGBA8;
+    texture->format = GL_RGBA;
+    texture->type = GL_UNSIGNED_BYTE;
     glActiveTexture( GL_TEXTURE0 + texture->slot );
-    texture->m_RendererId = loadTexture( texture_source, blur_mag );
+    loadTexture( texture, texture_source, blur_mag );
 }
 
-void texture_init_empty( Texture *texture, int width, int height, int blur_mag ) {
+void texture_init_empty_base( Texture *texture, int width, int height, int blur_mag, int internalFormat, int format, int type ) {
     texture->slot = next_slot;
     next_slot++;
+    texture->target = GL_TEXTURE_2D;
+    texture->internalFormat = internalFormat;
+    texture->format = format;
+    texture->type = type;
     glActiveTexture( GL_TEXTURE0 + texture->slot );
     glGenTextures( 1, &texture->m_RendererId );
-    glBindTexture( GL_TEXTURE_2D, texture->m_RendererId );
-    glTexImage2D( GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, NULL );
-    glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR );
-    glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR );
+    glBindTexture( texture->target, texture->m_RendererId );
+    showErrors( );
+    glTexImage2D( texture->target, 0, internalFormat, width, height, 0, format, type, NULL );
+    showErrors( );
+    glTexParameteri( texture->target, GL_TEXTURE_MIN_FILTER, GL_LINEAR );
+    glTexParameteri( texture->target, GL_TEXTURE_MAG_FILTER, GL_LINEAR );
+    // glBindTexture( texture->target, 0 );
+    showErrors( );
+}
+
+void texture_init_empty_color( Texture *texture, int width, int height, int blur_mag ) {
+    texture_init_empty_base( texture, width, height, blur_mag, GL_RGBA8, GL_RGBA, GL_UNSIGNED_BYTE );
+}
+
+void texture_init_empty_depth_stencil( Texture *texture, int width, int height, int blur_mag ) {
+    texture_init_empty_base( texture, width, height, blur_mag, GL_DEPTH24_STENCIL8, GL_DEPTH_STENCIL, GL_UNSIGNED_INT_24_8 );
 }
 
 void texture_change_size( Texture *texture, int width, int height ) {
-    glBindTexture( GL_TEXTURE_2D, texture->m_RendererId );
-    glTexImage2D( GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, NULL );
+    glBindTexture( texture->target, texture->m_RendererId );
+    glTexImage2D( texture->target, 0, texture->internalFormat, width, height, 0, texture->format, texture->type, NULL );
 }
 
 void texture_bind( Texture *texture, unsigned int texture_slot ) {
     glActiveTexture( GL_TEXTURE0 + texture_slot );
-    glBindTexture( GL_TEXTURE_2D_ARRAY, texture->m_RendererId );
+    glBindTexture( texture->target, texture->m_RendererId );
 }
 void texture_unbind( Texture *texture, unsigned int texture_slot ) {
     glActiveTexture( GL_TEXTURE0 + texture_slot );
-    glBindTexture( GL_TEXTURE_2D_ARRAY, 0 );
+    glBindTexture( texture->target, 0 );
 }
 
 void texture_destroy( Texture *texture ) {

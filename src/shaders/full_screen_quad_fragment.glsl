@@ -3,14 +3,15 @@
 precision highp float;
 precision lowp sampler2DArray;
 
-out vec4 FragColor;
+layout( location = 0 ) out vec4 color;
 
 in vec2 TexCoords;
 
 uniform sampler2D u_Texture;
 
 void main( ) {
-    FragColor = texture( u_Texture, TexCoords );
-    // FragColor.a = 0.5;
-    // FragColor.r += TexCoords.x;
+    vec4 finalColor = texture( u_Texture, TexCoords );
+    // finalColor.g = TexCoords.x;
+
+    color = finalColor;
 }

@@ -503,9 +503,9 @@ void block_definitions_initilize_definitions( Texture *texture ) {
             block->affected_by_redstone_power = false;
             block->can_be_placed_in = true;
         }
-        if ( block->id == LEAF ) {
-            pr_debug( "Got" );
-        }
+        // if ( block->id == LEAF ) {
+        //     pr_debug( "Got" );
+        // }
 
         block->calculated.hides_self[ FACE_TOP ] = block->hides_self.y;
         block->calculated.hides_self[ FACE_BOTTOM ] = block->hides_self.y;

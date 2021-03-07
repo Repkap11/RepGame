@@ -42,7 +42,7 @@ void chunk_loader_init( LoadedChunks *loadedChunks, TRIP_ARGS( float camera_ ), 
     }
     loadedChunks->chunkArray = ( Chunk * )calloc( MAX_LOADED_CHUNKS, sizeof( Chunk ) );
     showErrors( );
-    pr_debug( "Num Total Chunks:%d", MAX_LOADED_CHUNKS );
+    // pr_debug( "Num Total Chunks:%d", MAX_LOADED_CHUNKS );
 
     shader_init( &loadedChunks->shader, &chunk_vertex, &chunk_fragment );
     if ( !DEBUG_CYCLE_AUTO_ROTATING_BLOCKS ) {
