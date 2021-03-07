@@ -218,17 +218,21 @@ void texture_init_empty_base( Texture *texture, int blur_mag, int target, int in
 }
 
 #if defined( REPGAME_ANDROID )
-int SAMPLE_TYPE = GL_TEXTURE_2D;
+int SAMPLE_TARGET = GL_TEXTURE_2D;
 #else
-int SAMPLE_TYPE = GL_TEXTURE_2D_MULTISAMPLE;
+int SAMPLE_TARGET = GL_TEXTURE_2D_MULTISAMPLE;
 #endif
 
 void texture_init_empty_color( Texture *texture, int blur_mag ) {
-    texture_init_empty_base( texture, blur_mag, SAMPLE_TYPE, GL_RGBA8, GL_RGBA, GL_UNSIGNED_BYTE );
+    texture_init_empty_base( texture, blur_mag, SAMPLE_TARGET, GL_RGBA8, GL_RGBA, GL_UNSIGNED_BYTE );
 }
 
-void texture_init_empty_depth_stencil( Texture *texture, int blur_mag ) {
-    texture_init_empty_base( texture, blur_mag, SAMPLE_TYPE, GL_DEPTH24_STENCIL8, GL_DEPTH_STENCIL, GL_UNSIGNED_INT_24_8 );
+void texture_init_empty_depth_stencil( Texture *depthTexture, int blur_mag ) {
+    texture_init_empty_base( depthTexture, blur_mag, SAMPLE_TARGET, GL_DEPTH24_STENCIL8, GL_DEPTH_STENCIL, GL_UNSIGNED_INT_24_8 );
+    showErrors( );
+    // glTexParameteri( SAMPLE_TARGET, GL_DEPTH_STENCIL_TEXTURE_MODE, GL_DEPTH_COMPONENT );
+    glTexParameteri( SAMPLE_TARGET, GL_DEPTH_STENCIL_TEXTURE_MODE, GL_STENCIL_INDEX );
+    showErrors( );
 }
 
 void texture_change_size( Texture *texture, int width, int height ) {

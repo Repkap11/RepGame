@@ -216,8 +216,8 @@ void world_draw( World *world, Texture *blocksTexture, const glm::mat4 &mvp, con
         glDisable( GL_DEPTH_TEST );
         glClear( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT );
 
-        full_screen_quad_draw_texture( &world->fullScreenQuad, &world->renderer, &world->blockTexture, 1.0, false );
-        full_screen_quad_draw_texture( &world->fullScreenQuad, &world->renderer, &world->reflectionTexture, y_height < 0 ? 0.1 : 0.2, true );
+        full_screen_quad_draw_texture( &world->fullScreenQuad, &world->renderer, &world->blockTexture, &world->depthStencilTexture, 1.0, false );
+        full_screen_quad_draw_texture( &world->fullScreenQuad, &world->renderer, &world->reflectionTexture, &world->depthStencilTexture, y_height < 0 ? 0.1 : 0.2, true );
         // full_screen_quad_draw_texture( &world->fullScreenQuad, &world->renderer, &world->depthStencilTexture, 1.0, false );
         glEnable( GL_DEPTH_TEST );
     }

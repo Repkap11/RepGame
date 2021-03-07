@@ -46,8 +46,9 @@ void full_screen_quad_init( FullScreenQuad *fsq ) {
     shader_init( &fsq->shader, &full_screen_quad_vertex, &full_screen_quad_fragment );
 }
 
-void full_screen_quad_draw_texture( FullScreenQuad *fsq, Renderer *renderer, Texture *texture, float extraAlpha, bool blur ) {
+void full_screen_quad_draw_texture( FullScreenQuad *fsq, Renderer *renderer, Texture *texture, Texture *stencilTexture, float extraAlpha, bool blur ) {
     shader_set_uniform1i( &fsq->shader, "u_Texture", texture->slot );
+    shader_set_uniform1i( &fsq->shader, "u_Stencil", stencilTexture->slot );
     shader_set_uniform1f( &fsq->shader, "u_ExtraAlpha", extraAlpha );
     shader_set_uniform1i( &fsq->shader, "u_TextureSamples", MULTI_SAMPLE_SCALE );
     shader_set_uniform1i( &fsq->shader, "u_Blur", blur );
