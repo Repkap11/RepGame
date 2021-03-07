@@ -70,17 +70,14 @@ void world_init( World *world, TRIP_ARGS( float camera_ ) ) {
         full_screen_quad_init( &world->fullScreenQuad );
         texture_init_empty_color( &world->reflectionTexture, 0 );
         texture_init_empty_color( &world->blockTexture, 0 );
+        texture_init_empty_depth_stencil( &world->depthStencilTexture, 0 );
+
         frame_buffer_init( &world->frameBuffer );
         frame_buffer_attach_texture( &world->frameBuffer, &world->blockTexture, 0 );
         frame_buffer_attach_texture( &world->frameBuffer, &world->reflectionTexture, 1 );
+        frame_buffer_attach_texture( &world->frameBuffer, &world->depthStencilTexture, 0 ); // 0 is fake
 
         showErrors( );
-        // // Crashes due to not haveing set the size yet...
-        // if ( !frame_buffer_ok( &world->frameBuffer ) ) {
-        //     pr_debug( "Frame buffer not ok" );
-        //     showErrors( );
-        //     exit( 1 );
-        // }
         frame_buffer_bind_display( );
     }
     showErrors( );
@@ -91,7 +88,13 @@ void world_change_size( World *world, int width, int height ) {
     world->screenHeight = height;
     texture_change_size( &world->blockTexture, width, height );
     texture_change_size( &world->reflectionTexture, width, height );
-    frame_buffer_change_size( &world->frameBuffer, width, height );
+    texture_change_size( &world->depthStencilTexture, width, height );
+
+    if ( !frame_buffer_ok( &world->frameBuffer ) ) {
+        pr_debug( "Frame buffer not ok" );
+        showErrors( );
+        exit( 1 );
+    }
 }
 
 void world_render( World *world, TRIP_ARGS( float camera_ ), int limit_render, const glm::mat4 &rotation ) {
@@ -238,6 +241,7 @@ void world_cleanup( World *world ) {
     if ( USES_FSQ_AND_FB ) {
         texture_destroy( &world->blockTexture );
         texture_destroy( &world->reflectionTexture );
+        texture_destroy( &world->depthStencilTexture );
         full_screen_quad_destroy( &world->fullScreenQuad );
     }
 }

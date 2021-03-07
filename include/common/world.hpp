@@ -17,6 +17,7 @@ typedef struct {
     VertexBufferLayout vbl_object_position;
     Texture reflectionTexture;
     Texture blockTexture;
+    Texture depthStencilTexture;
     FrameBuffer frameBuffer;
     FullScreenQuad fullScreenQuad;
     int screenWidth;
