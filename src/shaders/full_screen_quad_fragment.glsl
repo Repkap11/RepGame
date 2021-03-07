@@ -1,31 +1,69 @@
 #version 300 es
 
 precision highp float;
-precision lowp sampler2DArray;
 
 layout( location = 0 ) out vec4 color;
 
 uniform float u_ExtraAlpha;
-uniform float u_Blur;
+uniform int u_Blur;
+uniform int u_ViewportWidth;
+uniform int u_ViewportHeight;
 
 in vec2 TexCoords;
 
-uniform sampler2D u_Texture;
+uniform sampler2DMS u_Texture;
+uniform int u_TextureSamples;
+
+vec4 textureMultisample( ivec2 coord ) {
+    vec4 colorMS = vec4( 0.0 );
+    for ( int i = 0; i < u_TextureSamples; i++ )
+        colorMS += texelFetch( u_Texture, coord, i );
+    colorMS /= float( u_TextureSamples );
+    return colorMS;
+}
+
+vec4 textureSample( ivec2 coord ) {
+    return texelFetch( u_Texture, coord, 0 );
+}
+
+ivec2 tex_to_multisaple( vec2 texCoord ) {
+    ivec2 vpCoords = ivec2( u_ViewportWidth, u_ViewportHeight );
+    ivec2 texCoordMS;
+    texCoordMS.x = int( float( vpCoords.x ) * texCoord.x );
+    texCoordMS.y = int( float( vpCoords.y ) * texCoord.y );
+    return texCoordMS;
+}
 
 void main( ) {
-    vec4 color0 = texture( u_Texture, TexCoords + vec2( -1.0, -1.0 ) * u_Blur );
-    vec4 color1 = texture( u_Texture, TexCoords + vec2( -1.0, 0.0 ) * u_Blur );
-    vec4 color2 = texture( u_Texture, TexCoords + vec2( -1.0, 1.0 ) * u_Blur );
-    vec4 color3 = texture( u_Texture, TexCoords + vec2( 0.0, -1.0 ) * u_Blur );
-    vec4 color4 = texture( u_Texture, TexCoords + vec2( 0.0, 0.0 ) * u_Blur );
-    vec4 color5 = texture( u_Texture, TexCoords + vec2( 0.0, 1.0 ) * u_Blur );
-    vec4 color6 = texture( u_Texture, TexCoords + vec2( 1.0, -1.0 ) * u_Blur );
-    vec4 color7 = texture( u_Texture, TexCoords + vec2( 1.0, 0.0 ) * u_Blur );
-    vec4 color8 = texture( u_Texture, TexCoords + vec2( 1.0, 1.0 ) * u_Blur );
+    vec4 finalColor;
 
-    vec4 finalColor = ( color0 + color1 + color2 + color3 + color4 + color5 + color6 + color7 + color8 ) / 9.0f;
-    // vec4 finalColor = color2;
+    if ( u_Blur != 0 ) {
+        float blur_strength = 0.001;
+        // vec4 color0 = textureSample( tex_to_multisaple( TexCoords + vec2( -1, -1 ) * blur_strength ) );
+        // vec4 color1 = textureSample( tex_to_multisaple( TexCoords + vec2( -1, 0 ) * blur_strength ) );
+        // vec4 color2 = textureSample( tex_to_multisaple( TexCoords + vec2( -1, 1 ) * blur_strength ) );
+        // vec4 color3 = textureSample( tex_to_multisaple( TexCoords + vec2( 0, -1 ) * blur_strength ) );
+        // vec4 color4 = textureSample( tex_to_multisaple( TexCoords + vec2( 0, 0 ) * blur_strength ) );
+        // vec4 color5 = textureSample( tex_to_multisaple( TexCoords + vec2( 0, 1 ) * blur_strength ) );
+        // vec4 color6 = textureSample( tex_to_multisaple( TexCoords + vec2( 1, -1 ) * blur_strength ) );
+        // vec4 color7 = textureSample( tex_to_multisaple( TexCoords + vec2( 1, 0 ) * blur_strength ) );
+        // vec4 color8 = textureSample( tex_to_multisaple( TexCoords + vec2( 1, 1 ) * blur_strength ) );
+        ivec2 multiCoords = tex_to_multisaple( TexCoords );
+        int blurSize = 3;
+        vec4 color0 = textureSample( multiCoords + ivec2( -1, -1 ) * blurSize );
+        vec4 color1 = textureSample( multiCoords + ivec2( -1, 0 ) * blurSize );
+        vec4 color2 = textureSample( multiCoords + ivec2( -1, 1 ) * blurSize );
+        vec4 color3 = textureSample( multiCoords + ivec2( 0, -1 ) * blurSize );
+        vec4 color4 = textureSample( multiCoords + ivec2( 0, 0 ) * blurSize );
+        vec4 color5 = textureSample( multiCoords + ivec2( 0, 1 ) * blurSize );
+        vec4 color6 = textureSample( multiCoords + ivec2( 1, -1 ) * blurSize );
+        vec4 color7 = textureSample( multiCoords + ivec2( 1, 0 ) * blurSize );
+        vec4 color8 = textureSample( multiCoords + ivec2( 1, 1 ) * blurSize );
+        finalColor = ( color0 + color1 + color2 + color3 + color4 + color5 + color6 + color7 + color8 ) / 9.0f;
+
+    } else {
+        finalColor = textureMultisample( tex_to_multisaple( TexCoords ) );
+    }
     finalColor.a *= u_ExtraAlpha;
-
     color = finalColor;
 }

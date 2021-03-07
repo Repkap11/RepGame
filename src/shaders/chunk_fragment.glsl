@@ -77,6 +77,7 @@ void main( ) {
     vec2 working = working_int + working_fract;
 
     vec4 texColor = texture( u_Texture, vec3( working, v_blockID ) );
+    
     if ( texColor.a == 0.0 ) {
         discard;
     }

@@ -131,8 +131,8 @@ void loadTexture( Texture *texture, const TextureSourceData *texture_source, int
 
     unsigned int layer_count = textures_across * textures_down;
     glGenTextures( 1, &texture->m_RendererId );
-    glBindTexture( GL_TEXTURE_2D_ARRAY, texture->m_RendererId );
-    glTexImage3D( GL_TEXTURE_2D_ARRAY,                                              //
+    glBindTexture( texture->target, texture->m_RendererId );
+    glTexImage3D( texture->target,                                                  //
                   0,                                                                // mipLevelCount
                   texture->internalFormat,                                          //
                   texture_source->tile_size_across, texture_source->tile_size_down, //
@@ -145,7 +145,7 @@ void loadTexture( Texture *texture, const TextureSourceData *texture_source, int
         int tex_coord_x = ( i % textures_across );
         int tex_coord_y = ( textures_down - 1 ) - ( i / textures_across );
         int text_coord_base = tex_coord_x * texture_source->tile_size_across + tex_coord_y * texture_source->tile_size_down * texture_source->width;
-        glTexSubImage3D( GL_TEXTURE_2D_ARRAY,                                                 //
+        glTexSubImage3D( texture->target,                                                     //
                          0,                                                                   // Mipmap Level
                          0, 0, i,                                                             // offset
                          texture_source->tile_size_across, texture_source->tile_size_down, 1, //
@@ -156,13 +156,13 @@ void loadTexture( Texture *texture, const TextureSourceData *texture_source, int
     }
     free( working );
 
-    glTexParameterf( GL_TEXTURE_2D_ARRAY, GL_TEXTURE_WRAP_S, GL_REPEAT );
-    glTexParameterf( GL_TEXTURE_2D_ARRAY, GL_TEXTURE_WRAP_T, GL_REPEAT );
-    glTexParameterf( GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MIN_FILTER, GL_LINEAR );
+    glTexParameterf( texture->target, GL_TEXTURE_WRAP_S, GL_REPEAT );
+    glTexParameterf( texture->target, GL_TEXTURE_WRAP_T, GL_REPEAT );
+    glTexParameterf( texture->target, GL_TEXTURE_MIN_FILTER, GL_LINEAR );
     if ( blur_mag ) {
-        glTexParameterf( GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MAG_FILTER, GL_LINEAR );
+        glTexParameterf( texture->target, GL_TEXTURE_MAG_FILTER, GL_LINEAR );
     } else {
-        glTexParameterf( GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MAG_FILTER, GL_NEAREST );
+        glTexParameterf( texture->target, GL_TEXTURE_MAG_FILTER, GL_NEAREST );
     }
     float max_ani;
     glGetFloatv( GL_MAX_TEXTURE_MAX_ANISOTROPY_EXT, &max_ani );
@@ -170,8 +170,8 @@ void loadTexture( Texture *texture, const TextureSourceData *texture_source, int
     if ( TEXTURE_NEEDS_FREE ) {
         free( data );
     }
-    glTexParameterf( GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MAX_ANISOTROPY_EXT, max_ani );
-    glGenerateMipmap( GL_TEXTURE_2D_ARRAY );
+    glTexParameterf( texture->target, GL_TEXTURE_MAX_ANISOTROPY_EXT, max_ani );
+    // glGenerateMipmap( texture->target );
 }
 
 static int next_slot = 1;
@@ -197,33 +197,45 @@ void texture_init_empty_base( Texture *texture, int width, int height, int blur_
     glGenTextures( 1, &texture->m_RendererId );
     glBindTexture( texture->target, texture->m_RendererId );
     showErrors( );
-    glTexImage2D( texture->target, 0, internalFormat, width, height, 0, format, type, NULL );
-    showErrors( );
-    glTexParameteri( texture->target, GL_TEXTURE_MIN_FILTER, GL_LINEAR );
-    if ( blur_mag ) {
-        glTexParameterf( GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MAG_FILTER, GL_LINEAR );
+    if ( texture->target == GL_TEXTURE_2D_MULTISAMPLE ) {
+        glTexImage2DMultisample( texture->target, MULTI_SAMPLE_SCALE, internalFormat, width, height, false );
     } else {
-        glTexParameterf( GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MAG_FILTER, GL_NEAREST );
+        glTexImage2D( texture->target, 0, internalFormat, width, height, 0, format, type, NULL );
+        glTexParameteri( texture->target, GL_TEXTURE_MIN_FILTER, GL_LINEAR );
+        showErrors( );
+        if ( blur_mag ) {
+            glTexParameterf( texture->target, GL_TEXTURE_MAG_FILTER, GL_LINEAR );
+        } else {
+            glTexParameterf( texture->target, GL_TEXTURE_MAG_FILTER, GL_NEAREST );
+        }
+        glTexParameterf( texture->target, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE );
+        glTexParameterf( texture->target, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE );
+        float max_ani;
+        glGetFloatv( GL_MAX_TEXTURE_MAX_ANISOTROPY_EXT, &max_ani );
+        glTexParameterf( texture->target, GL_TEXTURE_MAX_ANISOTROPY_EXT, max_ani );
     }
-    glTexParameterf( texture->target, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE );
-    glTexParameterf( texture->target, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE );
+    showErrors( );
 
     // glBindTexture( texture->target, 0 );
     showErrors( );
 }
 
 void texture_init_empty_color( Texture *texture, int width, int height, int blur_mag ) {
-    texture_init_empty_base( texture, width, height, blur_mag, GL_TEXTURE_2D, GL_RGBA8, GL_RGBA, GL_UNSIGNED_BYTE );
     // texture_init_empty_base( texture, width, height, blur_mag, GL_TEXTURE_2D, GL_RGBA8, GL_RGBA, GL_UNSIGNED_BYTE );
+    texture_init_empty_base( texture, width, height, blur_mag, GL_TEXTURE_2D_MULTISAMPLE, GL_RGBA8, GL_RGBA, GL_UNSIGNED_BYTE );
 }
 
 void texture_init_empty_depth_stencil( Texture *texture, int width, int height, int blur_mag ) {
-    texture_init_empty_base( texture, width, height, blur_mag, GL_TEXTURE_2D, GL_DEPTH24_STENCIL8, GL_DEPTH_STENCIL, GL_UNSIGNED_INT_24_8 );
+    texture_init_empty_base( texture, width, height, blur_mag, GL_TEXTURE_2D_MULTISAMPLE, GL_DEPTH24_STENCIL8, GL_DEPTH_STENCIL, GL_UNSIGNED_INT_24_8 );
 }
 
 void texture_change_size( Texture *texture, int width, int height ) {
     glBindTexture( texture->target, texture->m_RendererId );
-    glTexImage2D( texture->target, 0, texture->internalFormat, width, height, 0, texture->format, texture->type, NULL );
+    if ( texture->target == GL_TEXTURE_2D_MULTISAMPLE ) {
+        glTexImage2DMultisample( texture->target, MULTI_SAMPLE_SCALE, texture->internalFormat, width, height, false );
+    } else {
+        glTexImage2D( texture->target, 0, texture->internalFormat, width, height, 0, texture->format, texture->type, NULL );
+    }
 }
 
 void texture_bind( Texture *texture, unsigned int texture_slot ) {

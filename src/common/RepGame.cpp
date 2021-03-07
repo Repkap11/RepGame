@@ -311,6 +311,7 @@ void repgame_init( const char *world_name, bool connect_multi, const char *host 
     glEnable( GL_CULL_FACE );
     glCullFace( GL_BACK );
     glEnable( GL_BLEND );
+    glEnable( GL_MULTISAMPLE );
     glBlendFunc( GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA );
     glBlendEquation( GL_FUNC_ADD );
 
@@ -353,7 +354,6 @@ void repgame_changeSize( int w, int h ) {
     globalGameState.input.mouse.previousPosition.x = w / 2;
     globalGameState.input.mouse.previousPosition.y = h / 2;
     ui_overlay_on_screen_size_change( &globalGameState.ui_overlay, w, h );
-    glViewport( 0, 0, w, h );
     globalGameState.screen.proj = glm::perspective<float>( glm::radians( CAMERA_FOV ), globalGameState.screen.width / globalGameState.screen.height, 0.1f, 800.0f );
     globalGameState.screen.ortho = glm::ortho<float>( 0.f, w, 0.f, h, -1.f, 1.f );
     globalGameState.screen.ortho_center = glm::ortho<float>( -w / 2, w / 2, -h / 2, h / 2, -1.f, 1.f );
@@ -431,7 +431,10 @@ void repgame_draw( ) {
     BlockState blockInHead = world_get_loaded_block( &globalGameState.world, round( globalGameState.camera.x - 0.5f ), round( globalGameState.camera.y - 0.5f ), round( globalGameState.camera.z - 0.5f ) );
     bool headInWater = blockInHead.id == WATER;
 
+    glViewport( 0, 0, globalGameState.screen.width, globalGameState.screen.height );
     world_draw( &globalGameState.world, &globalGameState.blocksTexture, mvp, mvp_reflect, mvp_sky, mvp_sky_reflect, globalGameState.input.debug_mode, !globalGameState.input.inventory_open, globalGameState.camera.y, headInWater );
+    glViewport( 0, 0, globalGameState.screen.width, globalGameState.screen.height );
+
     showErrors( );
     glClear( GL_DEPTH_BUFFER_BIT );
     ui_overlay_draw( &globalGameState.ui_overlay, &globalGameState.world.renderer, &globalGameState.blocksTexture, &globalGameState.input, globalGameState.screen.ortho_center );
