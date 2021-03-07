@@ -150,6 +150,7 @@ void world_draw( World *world, Texture *blocksTexture, const glm::mat4 &mvp, con
     // glEnable( GL_DEPTH_TEST );
 
     chunk_loader_calculate_cull( &world->loadedChunks, mvp, false );
+    shader_set_uniform1i( &world->loadedChunks.shader, "u_DrawToReflection", 0 );
     shader_set_uniform1f( &world->loadedChunks.shader, "u_ReflectionHeight", 0 );
     shader_set_uniform1i( &world->loadedChunks.shader, "u_Texture", blocksTexture->slot );
     shader_set_uniform3f( &world->loadedChunks.shader, "u_DebugScaleOffset", debug_block_scale, debug_block_scale, debug_block_scale );
@@ -174,26 +175,27 @@ void world_draw( World *world, Texture *blocksTexture, const glm::mat4 &mvp, con
     glStencilFunc( GL_EQUAL, 1, 0xff );
     glStencilOp( GL_KEEP, GL_KEEP, GL_KEEP );
 
-    // glCullFace( GL_FRONT );
-    // glClear( GL_DEPTH_BUFFER_BIT );
-    // float offset = 1.0 - WATER_HEIGHT;
-    // shader_set_uniform1f( &world->loadedChunks.shader, "u_ReflectionHeight", offset );
-    // shader_set_uniform1i( &world->loadedChunks.shader, "u_TintUnderWater", 0 );
+    glCullFace( GL_FRONT );
+    glClear( GL_DEPTH_BUFFER_BIT );
+    float offset = 1.0 - WATER_HEIGHT;
+    shader_set_uniform1i( &world->loadedChunks.shader, "u_DrawToReflection", 1 );
+    shader_set_uniform1f( &world->loadedChunks.shader, "u_ReflectionHeight", offset );
+    shader_set_uniform1i( &world->loadedChunks.shader, "u_TintUnderWater", 0 );
 
-    // shader_set_uniform1f( &world->object_shader, "u_ReflectionHeight", offset );
+    shader_set_uniform1f( &world->object_shader, "u_ReflectionHeight", offset );
 
-    // chunk_loader_calculate_cull( &world->loadedChunks, mvp_reflect, true );
-    // chunk_loader_draw_chunks( &world->loadedChunks, mvp_reflect, &world->renderer, false, true ); // Reflected blocks
-    // shader_set_uniform1i( &world->object_shader, "u_Texture", blocksTexture->slot );
+    chunk_loader_calculate_cull( &world->loadedChunks, mvp_reflect, true );
+    chunk_loader_draw_chunks( &world->loadedChunks, mvp_reflect, &world->renderer, false, true ); // Reflected blocks
+    shader_set_uniform1i( &world->object_shader, "u_Texture", blocksTexture->slot );
 
-    // world->mobs.draw( mvp_reflect, &world->renderer, &world->object_shader );
+    world->mobs.draw( mvp_reflect, &world->renderer, &world->object_shader );
     // shader_set_uniform1f( &world->object_shader, "u_ExtraAlpha", 0.5 );
-    // sky_box_draw( &world->skyBox, &world->renderer, mvp_sky_reflect, &world->object_shader );
+    sky_box_draw( &world->skyBox, &world->renderer, mvp_sky_reflect, &world->object_shader );
 
-    // shader_set_uniform1f( &world->loadedChunks.shader, "u_ReflectionHeight", 0 );
-    // shader_set_uniform1f( &world->object_shader, "u_ReflectionHeight", 0 );
+    shader_set_uniform1f( &world->loadedChunks.shader, "u_ReflectionHeight", 0 );
+    shader_set_uniform1f( &world->object_shader, "u_ReflectionHeight", 0 );
 
-    // glCullFace( GL_BACK );
+    glCullFace( GL_BACK );
     glDisable( GL_STENCIL_TEST );
 
     if ( usb_fb ) {
@@ -202,8 +204,8 @@ void world_draw( World *world, Texture *blocksTexture, const glm::mat4 &mvp, con
         glDisable( GL_DEPTH_TEST );
         glClear( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT );
 
-        full_screen_quad_draw_texture( &world->fullScreenQuad, &world->renderer, &world->blockTexture );
-        full_screen_quad_draw_texture( &world->fullScreenQuad, &world->renderer, &world->reflectionTexture );
+        full_screen_quad_draw_texture( &world->fullScreenQuad, &world->renderer, &world->blockTexture, 1.0 );
+        full_screen_quad_draw_texture( &world->fullScreenQuad, &world->renderer, &world->reflectionTexture, 0.5 );
         // full_screen_quad_draw_texture( &world->fullScreenQuad, &world->renderer, &world->frameBuffer.depthStencilTexture );
         glEnable( GL_DEPTH_TEST );
     }

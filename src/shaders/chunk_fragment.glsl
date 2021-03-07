@@ -15,6 +15,7 @@ uniform float u_RandomRotationBlocks[ MAX_ROTATABLE_BLOCK ];
 uniform float u_ShowRotation;
 uniform int u_TintUnderWater;
 uniform float u_ReflectionDotSign;
+uniform int u_DrawToReflection;
 
 in vec2 v_TexCoordBlock;
 in float v_corner_lighting;
@@ -91,8 +92,15 @@ void main( ) {
         texColor = mix( texColor, vec4( 0.122f, 0.333f, 1.0f, 1.0f ), 0.7f );
     }
     float corner_light = v_corner_lighting;
-    vec4 finalColor = texColor * vec4( corner_light, corner_light, corner_light, 1 );
+    vec4 lightedColor = texColor * vec4( corner_light, corner_light, corner_light, 1 );
+    
+    vec4 finalColor = lightedColor;
+    vec4 finalReflection = lightedColor;
+    if ( u_DrawToReflection == 1 ) {
+        finalColor.a *= 0.0f;
+    } else {
+        finalReflection.a *= 0.0f;
+    }
     color = finalColor;
-    finalColor.b *= 2.0f;
-    reflection = finalColor;
+    reflection = finalReflection;
 }

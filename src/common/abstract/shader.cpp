@@ -181,6 +181,7 @@ int get_uniform_location( Shader *shader, const char *name ) {
         if ( !printedUniform ) {
             printedUniform = 1;
             pr_debug( "Shader uniform not found. Name:%s", name );
+            exit(1);
         }
     }
     return result;
