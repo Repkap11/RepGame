@@ -46,9 +46,10 @@ void full_screen_quad_init( FullScreenQuad *fsq ) {
     shader_init( &fsq->shader, &full_screen_quad_vertex, &full_screen_quad_fragment );
 }
 
-void full_screen_quad_draw_texture( FullScreenQuad *fsq, Renderer *renderer, Texture *texture, float extraAlpha ) {
+void full_screen_quad_draw_texture( FullScreenQuad *fsq, Renderer *renderer, Texture *texture, float extraAlpha, bool blur ) {
     shader_set_uniform1i( &fsq->shader, "u_Texture", texture->slot );
     shader_set_uniform1f( &fsq->shader, "u_ExtraAlpha", extraAlpha );
+    shader_set_uniform1f( &fsq->shader, "u_Blur", blur ? 0.001 : 0.0 );
     renderer_draw( renderer, &fsq->va, &fsq->ib, &fsq->shader, 1 );
 }
 
