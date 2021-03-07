@@ -10,7 +10,7 @@ void frame_buffer_init( FrameBuffer *frameBuffer ) {
     frame_buffer_bind( frameBuffer );
     showErrors( );
     // pr_debug( "Value:%d", frameBuffer->depthStencilTexture.m_RendererId );
-    glFramebufferTexture2D( GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, GL_TEXTURE_2D, frameBuffer->depthStencilTexture.m_RendererId, 0 );
+    glFramebufferTexture2D( GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, frameBuffer->depthStencilTexture.target, frameBuffer->depthStencilTexture.m_RendererId, 0 );
     showErrors( );
     frame_buffer_bind_display( );
     showErrors( );
@@ -36,7 +36,7 @@ void frame_buffer_change_size( FrameBuffer *frameBuffer, int width, int height )
 void frame_buffer_attach_texture( FrameBuffer *frameBuffer, Texture *texture, int which_attachment ) {
     frame_buffer_bind( frameBuffer );
     showErrors( );
-    glFramebufferTexture2D( GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0 + which_attachment, GL_TEXTURE_2D, texture->m_RendererId, 0 );
+    glFramebufferTexture2D( GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0 + which_attachment, texture->target, texture->m_RendererId, 0 );
     showErrors( );
 }
 

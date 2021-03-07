@@ -186,10 +186,10 @@ void texture_init( Texture *texture, const TextureSourceData *texture_source, in
     loadTexture( texture, texture_source, blur_mag );
 }
 
-void texture_init_empty_base( Texture *texture, int width, int height, int blur_mag, int internalFormat, int format, int type ) {
+void texture_init_empty_base( Texture *texture, int width, int height, int blur_mag, int target, int internalFormat, int format, int type ) {
     texture->slot = next_slot;
     next_slot++;
-    texture->target = GL_TEXTURE_2D;
+    texture->target = target;
     texture->internalFormat = internalFormat;
     texture->format = format;
     texture->type = type;
@@ -197,20 +197,25 @@ void texture_init_empty_base( Texture *texture, int width, int height, int blur_
     glGenTextures( 1, &texture->m_RendererId );
     glBindTexture( texture->target, texture->m_RendererId );
     showErrors( );
-    glTexImage2D( texture->target, 0, internalFormat, width, height, 0, format, type, NULL );
-    showErrors( );
-    glTexParameteri( texture->target, GL_TEXTURE_MIN_FILTER, GL_LINEAR );
-    glTexParameteri( texture->target, GL_TEXTURE_MAG_FILTER, GL_LINEAR );
+    if ( target == GL_TEXTURE_2D ) {
+        glTexImage2D( texture->target, 0, internalFormat, width, height, 0, format, type, NULL );
+        showErrors( );
+        glTexParameteri( texture->target, GL_TEXTURE_MIN_FILTER, GL_LINEAR );
+        glTexParameteri( texture->target, GL_TEXTURE_MAG_FILTER, GL_LINEAR );
+    } else {
+        glTexImage2DMultisample( texture->target, 2, internalFormat, width, height, false );
+    }
     // glBindTexture( texture->target, 0 );
     showErrors( );
 }
 
 void texture_init_empty_color( Texture *texture, int width, int height, int blur_mag ) {
-    texture_init_empty_base( texture, width, height, blur_mag, GL_RGBA8, GL_RGBA, GL_UNSIGNED_BYTE );
+    texture_init_empty_base( texture, width, height, blur_mag, GL_TEXTURE_2D, GL_RGBA8, GL_RGBA, GL_UNSIGNED_BYTE );
+    // texture_init_empty_base( texture, width, height, blur_mag, GL_TEXTURE_2D, GL_RGBA8, GL_RGBA, GL_UNSIGNED_BYTE );
 }
 
 void texture_init_empty_depth_stencil( Texture *texture, int width, int height, int blur_mag ) {
-    texture_init_empty_base( texture, width, height, blur_mag, GL_DEPTH24_STENCIL8, GL_DEPTH_STENCIL, GL_UNSIGNED_INT_24_8 );
+    texture_init_empty_base( texture, width, height, blur_mag, GL_TEXTURE_2D, GL_DEPTH24_STENCIL8, GL_DEPTH_STENCIL, GL_UNSIGNED_INT_24_8 );
 }
 
 void texture_change_size( Texture *texture, int width, int height ) {

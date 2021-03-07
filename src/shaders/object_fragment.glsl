@@ -8,11 +8,12 @@ precision highp float;
 precision lowp sampler2DArray;
 
 uniform sampler2DArray u_Texture;
-uniform float u_ExtraAlpha;
 uniform float u_ReflectionHeight;
 uniform int u_TintUnderWater;
+uniform int u_DrawToReflection;
 
 layout( location = 0 ) out vec4 color;
+layout( location = 1 ) out vec4 reflection;
 
 in vec2 v_tex_coords;
 in float v_light;
@@ -32,5 +33,15 @@ void main( ) {
     if ( u_TintUnderWater == TINT_UNDER_WATER_OBJECT_ALWAYS || ( u_TintUnderWater == TINT_UNDER_WATER_OBJECT_UNDER_Y_LEVEL && v_world_coords.y < ( -0.125f - eps ) ) ) {
         texColor = mix( texColor, vec4( 0.122f, 0.333f, 1.0f, 1.0f ), 0.8f );
     }
-    color = texColor * vec4( v_light, v_light, v_light, u_ExtraAlpha );
+    vec4 lightedColor = texColor * vec4( v_light, v_light, v_light, 1.0f );
+
+    vec4 finalColor = lightedColor;
+    vec4 finalReflection = lightedColor;
+    if ( u_DrawToReflection == 1 ) {
+        finalColor.a *= 0.0f;
+    } else {
+        finalReflection.a *= 0.0f;
+    }
+    color = finalColor;
+    reflection = finalReflection;
 }
