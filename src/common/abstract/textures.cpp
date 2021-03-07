@@ -230,8 +230,13 @@ void texture_init_empty_color( Texture *texture, int blur_mag ) {
 void texture_init_empty_depth_stencil( Texture *depthTexture, int blur_mag ) {
     texture_init_empty_base( depthTexture, blur_mag, SAMPLE_TARGET, GL_DEPTH24_STENCIL8, GL_DEPTH_STENCIL, GL_UNSIGNED_INT_24_8 );
     showErrors( );
+#if defined( REPGAME_ANDROID ) || defined( REPGAME_WASM )
+    pr_debug( "Error multi sample not supported on Android" );
+    exit( 1 );
+#else
     // glTexParameteri( SAMPLE_TARGET, GL_DEPTH_STENCIL_TEXTURE_MODE, GL_DEPTH_COMPONENT );
     glTexParameteri( SAMPLE_TARGET, GL_DEPTH_STENCIL_TEXTURE_MODE, GL_STENCIL_INDEX );
+#endif
     showErrors( );
 }
 
@@ -242,7 +247,7 @@ void texture_change_size( Texture *texture, int width, int height ) {
         pr_debug( "Error multi sample not supported on Android" );
         exit( 1 );
 #else
-        glTexImage2DMultisample( texture->target, MULTI_SAMPLE_SCALE, texture->internalFormat, width, height, false );
+        glTexImage2DMultisample( texture->target, MULTI_SAMPLE_SCALE, texture->internalFormat, width, height, true );
 #endif
     } else {
         glTexImage2D( texture->target, 0, texture->internalFormat, width, height, 0, texture->format, texture->type, NULL );

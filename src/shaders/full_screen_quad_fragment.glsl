@@ -13,6 +13,7 @@ uniform sampler2DMS u_Texture;
 uniform usampler2DMS u_Stencil;
 // uniform sampler2DMS u_Stencil;
 uniform int u_TextureSamples;
+uniform int u_IgnoreStencil;
 
 vec4 textureMultisample( ivec2 coord ) {
     vec4 colorMS = vec4( 0.0 );
@@ -30,6 +31,14 @@ uint stecilSample( ivec2 coord ) {
     return texelFetch( u_Stencil, coord, 0 ).r;
 }
 
+uint stencilMultisample( ivec2 coord ) {
+    float colorMS = 0.0f;
+    for ( int i = 0; i < u_TextureSamples; i++ )
+        colorMS += float( texelFetch( u_Stencil, coord, i ).r );
+    colorMS /= float( u_TextureSamples );
+    return uint( colorMS );
+}
+
 ivec2 tex_to_multisaple( vec2 texCoord ) {
     ivec2 vpCoords = textureSize( u_Texture );
 
@@ -43,42 +52,22 @@ void main( ) {
     vec4 finalColor;
     ivec2 multiCoords = tex_to_multisaple( TexCoords );
 
-    uint stencil4 = stecilSample( multiCoords );
+    uint stencilCenter = stecilSample( multiCoords );
 
-    if ( u_Blur != 0 || stencil4 != 0u ) {
+    if ( u_Blur != 0 || stencilCenter != 0u ) {
         int blurSize = 2;
-        uint stencil0 = stecilSample( multiCoords + ivec2( -1, -1 ) * blurSize );
-        uint stencil1 = stecilSample( multiCoords + ivec2( -1, 0 ) * blurSize );
-        uint stencil2 = stecilSample( multiCoords + ivec2( -1, 1 ) * blurSize );
-        uint stencil3 = stecilSample( multiCoords + ivec2( 0, -1 ) * blurSize );
-        // uint stencil4 = stecilSample( multiCoords + ivec2( 0, 0 ) * blurSize );
-        uint stencil5 = stecilSample( multiCoords + ivec2( 0, 1 ) * blurSize );
-        uint stencil6 = stecilSample( multiCoords + ivec2( 1, -1 ) * blurSize );
-        uint stencil7 = stecilSample( multiCoords + ivec2( 1, 0 ) * blurSize );
-        uint stencil8 = stecilSample( multiCoords + ivec2( 1, 1 ) * blurSize );
-        uint numValid = stencil0 + stencil1 + stencil2 + stencil3 + stencil4 + stencil5 + stencil6 + stencil7 + stencil8;
-
-        vec4 color0 = textureSample( multiCoords + ivec2( -1, -1 ) * blurSize );
-        vec4 color1 = textureSample( multiCoords + ivec2( -1, 0 ) * blurSize );
-        vec4 color2 = textureSample( multiCoords + ivec2( -1, 1 ) * blurSize );
-        vec4 color3 = textureSample( multiCoords + ivec2( 0, -1 ) * blurSize );
-        vec4 color4 = textureSample( multiCoords + ivec2( 0, 0 ) * blurSize );
-        vec4 color5 = textureSample( multiCoords + ivec2( 0, 1 ) * blurSize );
-        vec4 color6 = textureSample( multiCoords + ivec2( 1, -1 ) * blurSize );
-        vec4 color7 = textureSample( multiCoords + ivec2( 1, 0 ) * blurSize );
-        vec4 color8 = textureSample( multiCoords + ivec2( 1, 1 ) * blurSize );
-        finalColor = (                                //
-                         float( stencil0 ) * color0 + //
-                         float( stencil1 ) * color1 + //
-                         float( stencil2 ) * color2 + //
-                         float( stencil3 ) * color3 + //
-                         float( stencil4 ) * color4 + //
-                         float( stencil5 ) * color5 + //
-                         float( stencil6 ) * color6 + //
-                         float( stencil7 ) * color7 + //
-                         float( stencil8 ) * color8 ) /
-                     float( numValid );
-
+        uint numValid = 0u;
+        for ( int i = -blurSize; i < blurSize + 1; i++ ) {
+            for ( int j = -blurSize; j < blurSize + 1; j++ ) {
+                ivec2 pixelCoords = multiCoords + ivec2( i, j );
+                uint stencil = stecilSample( pixelCoords );
+                vec4 textureColor = textureSample( pixelCoords );
+                bool valid = u_IgnoreStencil != 0 || stencilCenter == stencil;
+                numValid += uint( valid );
+                finalColor += float( valid ) * textureColor;
+            }
+        }
+        finalColor /= float( numValid );
     } else {
         finalColor = textureMultisample( multiCoords );
     }
