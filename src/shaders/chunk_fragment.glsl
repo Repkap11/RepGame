@@ -16,6 +16,7 @@ uniform float u_ShowRotation;
 uniform int u_TintUnderWater;
 uniform float u_ReflectionDotSign;
 uniform int u_DrawToReflection;
+uniform float u_ExtraAlpha;
 
 in vec2 v_TexCoordBlock;
 in float v_corner_lighting;
@@ -92,7 +93,7 @@ void main( ) {
         texColor = mix( texColor, vec4( 0.122f, 0.333f, 1.0f, 1.0f ), 0.7f );
     }
     float corner_light = v_corner_lighting;
-    vec4 lightedColor = texColor * vec4( corner_light, corner_light, corner_light, 1 );
+    vec4 lightedColor = texColor * vec4( corner_light, corner_light, corner_light, u_ExtraAlpha );
     
     vec4 finalColor = lightedColor;
     vec4 finalReflection = lightedColor;

@@ -197,20 +197,17 @@ void texture_init_empty_base( Texture *texture, int width, int height, int blur_
     glGenTextures( 1, &texture->m_RendererId );
     glBindTexture( texture->target, texture->m_RendererId );
     showErrors( );
-    if ( target == GL_TEXTURE_2D ) {
-        glTexImage2D( texture->target, 0, internalFormat, width, height, 0, format, type, NULL );
-        showErrors( );
-        glTexParameteri( texture->target, GL_TEXTURE_MIN_FILTER, GL_LINEAR );
-        if ( blur_mag ) {
-            glTexParameterf( GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MAG_FILTER, GL_LINEAR );
-        } else {
-            glTexParameterf( GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MAG_FILTER, GL_NEAREST );
-        }
-        glTexParameterf( texture->target, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE );
-        glTexParameterf( texture->target, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE );
+    glTexImage2D( texture->target, 0, internalFormat, width, height, 0, format, type, NULL );
+    showErrors( );
+    glTexParameteri( texture->target, GL_TEXTURE_MIN_FILTER, GL_LINEAR );
+    if ( blur_mag ) {
+        glTexParameterf( GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MAG_FILTER, GL_LINEAR );
     } else {
-        glTexImage2DMultisample( texture->target, 2, internalFormat, width, height, false );
+        glTexParameterf( GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MAG_FILTER, GL_NEAREST );
     }
+    glTexParameterf( texture->target, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE );
+    glTexParameterf( texture->target, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE );
+
     // glBindTexture( texture->target, 0 );
     showErrors( );
 }
