@@ -311,7 +311,6 @@ void repgame_init( const char *world_name, bool connect_multi, const char *host 
     glEnable( GL_CULL_FACE );
     glCullFace( GL_BACK );
     glEnable( GL_BLEND );
-    glEnable( GL_MULTISAMPLE );
     glBlendFunc( GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA );
     glBlendEquation( GL_FUNC_ADD );
 

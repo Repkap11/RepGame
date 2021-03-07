@@ -12,6 +12,12 @@
 MK_SHADER( object_vertex );
 MK_SHADER( object_fragment );
 
+#if ( USES_FRAME_BUFFER )
+bool USES_FSQ_AND_FB = true;
+#else
+bool USES_FSQ_AND_FB = false;
+#endif
+
 void world_init( World *world, TRIP_ARGS( float camera_ ) ) {
     // These are from CubeFace
     vertex_buffer_layout_init( &world->vbl_block );
@@ -60,22 +66,23 @@ void world_init( World *world, TRIP_ARGS( float camera_ ) ) {
     world->mobs = Mobs( &world->vbl_object_vertex, &world->vbl_object_position );
     mouse_selection_init( &world->mouseSelection, &world->vbl_block, &world->vbl_coords );
 
-    full_screen_quad_init( &world->fullScreenQuad );
+    if ( USES_FSQ_AND_FB ) {
+        full_screen_quad_init( &world->fullScreenQuad );
+        texture_init_empty_color( &world->reflectionTexture, 0 );
+        texture_init_empty_color( &world->blockTexture, 0 );
+        frame_buffer_init( &world->frameBuffer );
+        frame_buffer_attach_texture( &world->frameBuffer, &world->blockTexture, 0 );
+        frame_buffer_attach_texture( &world->frameBuffer, &world->reflectionTexture, 1 );
 
-    texture_init_empty_color( &world->reflectionTexture, 800, 600, 0 );
-    texture_init_empty_color( &world->blockTexture, 800, 600, 0 );
-
-    frame_buffer_init( &world->frameBuffer );
-
-    frame_buffer_attach_texture( &world->frameBuffer, &world->blockTexture, 0 );
-    frame_buffer_attach_texture( &world->frameBuffer, &world->reflectionTexture, 1 );
-    showErrors( );
-    if ( !frame_buffer_ok( &world->frameBuffer ) ) {
-        pr_debug( "Frame buffer not ok" );
         showErrors( );
-        exit( 1 );
+        // // Crashes due to not haveing set the size yet...
+        // if ( !frame_buffer_ok( &world->frameBuffer ) ) {
+        //     pr_debug( "Frame buffer not ok" );
+        //     showErrors( );
+        //     exit( 1 );
+        // }
+        frame_buffer_bind_display( );
     }
-    frame_buffer_bind_display( );
     showErrors( );
 }
 
@@ -129,8 +136,7 @@ void world_draw( World *world, Texture *blocksTexture, const glm::mat4 &mvp, con
         debug_block_scale = 0.0f;
     }
 
-    bool use_fb = 1;
-    if ( use_fb ) {
+    if ( USES_FSQ_AND_FB ) {
         frame_buffer_bind( &world->frameBuffer );
         glViewport( 0, 0, world->screenWidth, world->screenHeight );
 
@@ -171,8 +177,6 @@ void world_draw( World *world, Texture *blocksTexture, const glm::mat4 &mvp, con
         mouse_selection_draw( &world->mouseSelection, &world->renderer, &world->loadedChunks.shader );
     }
 
-#if defined( REPGAME_LINUX ) || defined( REPGAME_WINDOWS ) || defined( REPGAME_ANDROID )
-#if REFLECTIONS
     glEnable( GL_STENCIL_TEST );
     glStencilFunc( GL_ALWAYS, 1, 0xff );
     glStencilOp( GL_KEEP, GL_KEEP, GL_REPLACE );
@@ -181,30 +185,33 @@ void world_draw( World *world, Texture *blocksTexture, const glm::mat4 &mvp, con
     glStencilFunc( GL_EQUAL, 1, 0xff );
     glStencilOp( GL_KEEP, GL_KEEP, GL_KEEP );
 
-    glCullFace( GL_FRONT );
-    glClear( GL_DEPTH_BUFFER_BIT );
-    float offset = 1.0 - WATER_HEIGHT;
-    shader_set_uniform1i( &world->loadedChunks.shader, "u_DrawToReflection", use_fb );
-    shader_set_uniform1f( &world->loadedChunks.shader, "u_ExtraAlpha", use_fb ? 1.0f : 0.5f ); // this make reflections not solid...
-    shader_set_uniform1f( &world->loadedChunks.shader, "u_ReflectionHeight", offset );
-    shader_set_uniform1i( &world->loadedChunks.shader, "u_TintUnderWater", block_water_tint_type );
-    chunk_loader_calculate_cull( &world->loadedChunks, mvp_reflect, true );
-    chunk_loader_draw_chunks( &world->loadedChunks, mvp_reflect, &world->renderer, false, true ); // Reflected blocks
+    if ( USES_FSQ_AND_FB ) {
 
-    shader_set_uniform1i( &world->object_shader, "u_Texture", blocksTexture->slot );
-    shader_set_uniform1f( &world->object_shader, "u_ReflectionHeight", offset );
-    shader_set_uniform1f( &world->object_shader, "u_ExtraAlpha", use_fb ? 1.0f : 0.5f );
-    shader_set_uniform1i( &world->object_shader, "u_DrawToReflection", use_fb );
-    world->mobs.draw( mvp_reflect, &world->renderer, &world->object_shader );                 // Reflected mobs
-    sky_box_draw( &world->skyBox, &world->renderer, mvp_sky_reflect, &world->object_shader ); // Reflected sky
+        glCullFace( GL_FRONT );
+        glClear( GL_DEPTH_BUFFER_BIT );
+        float offset = 1.0 - WATER_HEIGHT;
+        shader_set_uniform1i( &world->loadedChunks.shader, "u_DrawToReflection", USES_FSQ_AND_FB );
+        shader_set_uniform1f( &world->loadedChunks.shader, "u_ExtraAlpha", USES_FSQ_AND_FB ? 1.0f : 0.5f ); // this make reflections not solid...
+        shader_set_uniform1f( &world->loadedChunks.shader, "u_ReflectionHeight", offset );
+        shader_set_uniform1i( &world->loadedChunks.shader, "u_TintUnderWater", block_water_tint_type );
+        chunk_loader_calculate_cull( &world->loadedChunks, mvp_reflect, true );
+        chunk_loader_draw_chunks( &world->loadedChunks, mvp_reflect, &world->renderer, false, true ); // Reflected blocks
 
-    shader_set_uniform1f( &world->loadedChunks.shader, "u_ReflectionHeight", 0 );
-    shader_set_uniform1f( &world->object_shader, "u_ReflectionHeight", 0 );
+        shader_set_uniform1i( &world->object_shader, "u_Texture", blocksTexture->slot );
+        shader_set_uniform1f( &world->object_shader, "u_ReflectionHeight", offset );
+        shader_set_uniform1f( &world->object_shader, "u_ExtraAlpha", USES_FSQ_AND_FB ? 1.0f : 0.5f );
+        shader_set_uniform1i( &world->object_shader, "u_DrawToReflection", USES_FSQ_AND_FB );
+        world->mobs.draw( mvp_reflect, &world->renderer, &world->object_shader );                 // Reflected mobs
+        sky_box_draw( &world->skyBox, &world->renderer, mvp_sky_reflect, &world->object_shader ); // Reflected sky
 
-    glCullFace( GL_BACK );
+        shader_set_uniform1f( &world->loadedChunks.shader, "u_ReflectionHeight", 0 );
+        shader_set_uniform1f( &world->object_shader, "u_ReflectionHeight", 0 );
+
+        glCullFace( GL_BACK );
+    }
     glDisable( GL_STENCIL_TEST );
 
-    if ( use_fb ) {
+    if ( USES_FSQ_AND_FB ) {
         frame_buffer_bind_display( );
         glViewport( 0, 0, world->screenWidth, world->screenHeight );
         showErrors( );
@@ -216,8 +223,6 @@ void world_draw( World *world, Texture *blocksTexture, const glm::mat4 &mvp, con
         // full_screen_quad_draw_texture( &world->fullScreenQuad, &world->renderer, &world->frameBuffer.depthStencilTexture );
         glEnable( GL_DEPTH_TEST );
     }
-#endif
-#endif
     // chunk_loader_draw_chunks( &world->loadedChunks, mvp, &world->renderer, true, false ); // Water
     glDisable( GL_STENCIL_TEST );
 }
@@ -230,9 +235,11 @@ void world_cleanup( World *world ) {
     vertex_buffer_layout_destroy( &world->vbl_block );
     vertex_buffer_layout_destroy( &world->vbl_coords );
     frame_buffer_destroy( &world->frameBuffer );
-    texture_destroy( &world->blockTexture );
-    texture_destroy( &world->reflectionTexture );
-    full_screen_quad_destroy( &world->fullScreenQuad );
+    if ( USES_FSQ_AND_FB ) {
+        texture_destroy( &world->blockTexture );
+        texture_destroy( &world->reflectionTexture );
+        full_screen_quad_destroy( &world->fullScreenQuad );
+    }
 }
 
 int can_fixup_chunk( World *world, Chunk *chunk, TRIP_ARGS( int offset_ ) ) {

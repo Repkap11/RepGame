@@ -36,18 +36,7 @@ ivec2 tex_to_multisaple( vec2 texCoord ) {
 
 void main( ) {
     vec4 finalColor;
-
     if ( u_Blur != 0 ) {
-        float blur_strength = 0.001;
-        // vec4 color0 = textureSample( tex_to_multisaple( TexCoords + vec2( -1, -1 ) * blur_strength ) );
-        // vec4 color1 = textureSample( tex_to_multisaple( TexCoords + vec2( -1, 0 ) * blur_strength ) );
-        // vec4 color2 = textureSample( tex_to_multisaple( TexCoords + vec2( -1, 1 ) * blur_strength ) );
-        // vec4 color3 = textureSample( tex_to_multisaple( TexCoords + vec2( 0, -1 ) * blur_strength ) );
-        // vec4 color4 = textureSample( tex_to_multisaple( TexCoords + vec2( 0, 0 ) * blur_strength ) );
-        // vec4 color5 = textureSample( tex_to_multisaple( TexCoords + vec2( 0, 1 ) * blur_strength ) );
-        // vec4 color6 = textureSample( tex_to_multisaple( TexCoords + vec2( 1, -1 ) * blur_strength ) );
-        // vec4 color7 = textureSample( tex_to_multisaple( TexCoords + vec2( 1, 0 ) * blur_strength ) );
-        // vec4 color8 = textureSample( tex_to_multisaple( TexCoords + vec2( 1, 1 ) * blur_strength ) );
         ivec2 multiCoords = tex_to_multisaple( TexCoords );
         int blurSize = 3;
         vec4 color0 = textureSample( multiCoords + ivec2( -1, -1 ) * blurSize );

@@ -50,7 +50,6 @@ static_assert( CHUNK_RADIUS_Z > 0, "CHUNK_RADIUS_Z too small");
 #define REMEMBER_BLOCKS 1
 #define CULL_NON_VISIBLE 1
 #define FOREST_DEBUG 0
-#define REFLECTIONS 1
 #define DEBUG_CYCLE_AUTO_ROTATING_BLOCKS 0
 
 #define NO_CLIP 1

@@ -5,6 +5,7 @@
 #include "common/RepGameSDL2.hpp"
 #include <emscripten.h>
 
+#define USES_FRAME_BUFFER 0
 #define REPGAME_PATH_DIVIDOR "/"
 //#define pr_debug( fmt, ... )
 #define pr_debug( fmt, ... ) fprintf( stdout, "%s:%d:%s():" fmt "\n", __FILE__, __LINE__, __func__, ##__VA_ARGS__ );

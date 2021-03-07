@@ -6,7 +6,7 @@ void frame_buffer_init( FrameBuffer *frameBuffer ) {
     // glGetIntegerv( GL_MAX_COLOR_ATTACHMENTS, &maxColAttchments );
     // pr_debug( "Max attachments:%d", maxColAttchments );
     glGenFramebuffers( 1, &frameBuffer->mRendererId );
-    texture_init_empty_depth_stencil( &frameBuffer->depthStencilTexture, 800, 600, 0 );
+    texture_init_empty_depth_stencil( &frameBuffer->depthStencilTexture, 0 );
     frame_buffer_bind( frameBuffer );
     showErrors( );
     // pr_debug( "Value:%d", frameBuffer->depthStencilTexture.m_RendererId );

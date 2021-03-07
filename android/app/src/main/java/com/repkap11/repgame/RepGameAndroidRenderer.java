@@ -76,11 +76,18 @@ public class RepGameAndroidRenderer implements GLSurfaceView.Renderer {
     public static class ConfigChooser implements GLSurfaceView.EGLConfigChooser {
         @Override
         public EGLConfig chooseConfig(EGL10 egl, EGLDisplay display) {
-            int attribs[] = { EGL10.EGL_LEVEL, 0, EGL10.EGL_RENDERABLE_TYPE, 4, // EGL_OPENGL_ES2_BIT
-                    EGL10.EGL_COLOR_BUFFER_TYPE, EGL10.EGL_RGB_BUFFER, EGL10.EGL_RED_SIZE, 8, EGL10.EGL_GREEN_SIZE, 8,
-                    EGL10.EGL_BLUE_SIZE, 8, EGL10.EGL_ALPHA_SIZE, 8, EGL10.EGL_DEPTH_SIZE, 24, EGL10.EGL_SAMPLE_BUFFERS,
-                    1, EGL10.EGL_SAMPLES, 4, // This is for 4x MSAA.
-                    EGL10.EGL_NONE };
+            int attribs[] = {
+                EGL10.EGL_LEVEL, 0,//
+                EGL10.EGL_RENDERABLE_TYPE, 4, // EGL_OPENGL_ES2_BIT
+                EGL10.EGL_COLOR_BUFFER_TYPE, EGL10.EGL_RGB_BUFFER, //
+                EGL10.EGL_RED_SIZE, 8, //
+                EGL10.EGL_GREEN_SIZE, 8,//
+                EGL10.EGL_BLUE_SIZE, 8,//
+                EGL10.EGL_ALPHA_SIZE, 8,//
+                EGL10.EGL_DEPTH_SIZE, 24, //
+                EGL10.EGL_SAMPLE_BUFFERS,1, //
+                EGL10.EGL_SAMPLES, 1, // This is for 1x MSAA.
+                EGL10.EGL_NONE };
             EGLConfig[] configs = new EGLConfig[1];
             int[] configCounts = new int[1];
             egl.eglChooseConfig(display, attribs, configs, 1, configCounts);

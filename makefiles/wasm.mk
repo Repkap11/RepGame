@@ -83,7 +83,7 @@ wasm-start-server:
 	http-server out/wasm/delivery -c-1 &
 	sleep 0.5
 
-WASM_START_COMMAND := google-chrome --app=http://localhost:8080 --start-fullscreen
+WASM_START_COMMAND := google-chrome --app=http://localhost:8081 --start-fullscreen
 #WASM_START_COMMAND := firefox http://localhost:8080
 
 wasm-run: wasm

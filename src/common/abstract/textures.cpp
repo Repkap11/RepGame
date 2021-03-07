@@ -186,7 +186,7 @@ void texture_init( Texture *texture, const TextureSourceData *texture_source, in
     loadTexture( texture, texture_source, blur_mag );
 }
 
-void texture_init_empty_base( Texture *texture, int width, int height, int blur_mag, int target, int internalFormat, int format, int type ) {
+void texture_init_empty_base( Texture *texture, int blur_mag, int target, int internalFormat, int format, int type ) {
     texture->slot = next_slot;
     next_slot++;
     texture->target = target;
@@ -197,10 +197,7 @@ void texture_init_empty_base( Texture *texture, int width, int height, int blur_
     glGenTextures( 1, &texture->m_RendererId );
     glBindTexture( texture->target, texture->m_RendererId );
     showErrors( );
-    if ( texture->target == GL_TEXTURE_2D_MULTISAMPLE ) {
-        glTexImage2DMultisample( texture->target, MULTI_SAMPLE_SCALE, internalFormat, width, height, false );
-    } else {
-        glTexImage2D( texture->target, 0, internalFormat, width, height, 0, format, type, NULL );
+    if ( texture->target == GL_TEXTURE_2D ) {
         glTexParameteri( texture->target, GL_TEXTURE_MIN_FILTER, GL_LINEAR );
         showErrors( );
         if ( blur_mag ) {
@@ -220,19 +217,29 @@ void texture_init_empty_base( Texture *texture, int width, int height, int blur_
     showErrors( );
 }
 
-void texture_init_empty_color( Texture *texture, int width, int height, int blur_mag ) {
-    // texture_init_empty_base( texture, width, height, blur_mag, GL_TEXTURE_2D, GL_RGBA8, GL_RGBA, GL_UNSIGNED_BYTE );
-    texture_init_empty_base( texture, width, height, blur_mag, GL_TEXTURE_2D_MULTISAMPLE, GL_RGBA8, GL_RGBA, GL_UNSIGNED_BYTE );
+#if defined( REPGAME_ANDROID )
+int SAMPLE_TYPE = GL_TEXTURE_2D;
+#else
+int SAMPLE_TYPE = GL_TEXTURE_2D_MULTISAMPLE;
+#endif
+
+void texture_init_empty_color( Texture *texture, int blur_mag ) {
+    texture_init_empty_base( texture, blur_mag, SAMPLE_TYPE, GL_RGBA8, GL_RGBA, GL_UNSIGNED_BYTE );
 }
 
-void texture_init_empty_depth_stencil( Texture *texture, int width, int height, int blur_mag ) {
-    texture_init_empty_base( texture, width, height, blur_mag, GL_TEXTURE_2D_MULTISAMPLE, GL_DEPTH24_STENCIL8, GL_DEPTH_STENCIL, GL_UNSIGNED_INT_24_8 );
+void texture_init_empty_depth_stencil( Texture *texture, int blur_mag ) {
+    texture_init_empty_base( texture, blur_mag, SAMPLE_TYPE, GL_DEPTH24_STENCIL8, GL_DEPTH_STENCIL, GL_UNSIGNED_INT_24_8 );
 }
 
 void texture_change_size( Texture *texture, int width, int height ) {
     glBindTexture( texture->target, texture->m_RendererId );
     if ( texture->target == GL_TEXTURE_2D_MULTISAMPLE ) {
+#if defined( REPGAME_ANDROID ) || defined( REPGAME_WASM )
+        pr_debug( "Error multi sample not supported on Android" );
+        exit( 1 );
+#else
         glTexImage2DMultisample( texture->target, MULTI_SAMPLE_SCALE, texture->internalFormat, width, height, false );
+#endif
     } else {
         glTexImage2D( texture->target, 0, texture->internalFormat, width, height, 0, texture->format, texture->type, NULL );
     }
