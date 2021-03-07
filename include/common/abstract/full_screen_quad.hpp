@@ -12,6 +12,6 @@ typedef struct {
 } FullScreenQuad;
 
 void full_screen_quad_init( FullScreenQuad *fullScreenQuad );
-void full_screen_quad_draw_texture( FullScreenQuad *fsq, Renderer *renderer, Texture *texture, float extraAlpha, bool blur, int width, int height );
+void full_screen_quad_draw_texture( FullScreenQuad *fsq, Renderer *renderer, Texture *texture, float extraAlpha, bool blur );
 void full_screen_quad_destroy( FullScreenQuad *fullScreenQuad );
 #endif

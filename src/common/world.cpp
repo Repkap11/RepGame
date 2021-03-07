@@ -84,8 +84,6 @@ void world_init( World *world, TRIP_ARGS( float camera_ ) ) {
 }
 
 void world_change_size( World *world, int width, int height ) {
-    world->screenWidth = width;
-    world->screenHeight = height;
     texture_change_size( &world->blockTexture, width, height );
     texture_change_size( &world->reflectionTexture, width, height );
     texture_change_size( &world->depthStencilTexture, width, height );
@@ -141,8 +139,6 @@ void world_draw( World *world, Texture *blocksTexture, const glm::mat4 &mvp, con
 
     if ( USES_FSQ_AND_FB ) {
         frame_buffer_bind( &world->frameBuffer );
-        glViewport( 0, 0, world->screenWidth, world->screenHeight );
-
         // glClearColor( 1.0f, 1.0f, 1.0f, 1.0f );
         // glClearColor( 0.0f, 0.0f, 0.0f, 0.0f );
         // glClearDepth
@@ -216,14 +212,13 @@ void world_draw( World *world, Texture *blocksTexture, const glm::mat4 &mvp, con
 
     if ( USES_FSQ_AND_FB ) {
         frame_buffer_bind_display( );
-        glViewport( 0, 0, world->screenWidth, world->screenHeight );
         showErrors( );
         glDisable( GL_DEPTH_TEST );
         glClear( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT );
 
-        full_screen_quad_draw_texture( &world->fullScreenQuad, &world->renderer, &world->blockTexture, 1.0, false, world->screenWidth, world->screenHeight );
-        full_screen_quad_draw_texture( &world->fullScreenQuad, &world->renderer, &world->reflectionTexture, y_height < 0 ? 0.1 : 0.2, true, world->screenWidth, world->screenHeight );
-        // full_screen_quad_draw_texture( &world->fullScreenQuad, &world->renderer, &world->frameBuffer.depthStencilTexture );
+        full_screen_quad_draw_texture( &world->fullScreenQuad, &world->renderer, &world->blockTexture, 1.0, false );
+        full_screen_quad_draw_texture( &world->fullScreenQuad, &world->renderer, &world->reflectionTexture, y_height < 0 ? 0.1 : 0.2, true );
+        // full_screen_quad_draw_texture( &world->fullScreenQuad, &world->renderer, &world->depthStencilTexture, 1.0, false );
         glEnable( GL_DEPTH_TEST );
     }
     // chunk_loader_draw_chunks( &world->loadedChunks, mvp, &world->renderer, true, false ); // Water

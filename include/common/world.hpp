@@ -20,8 +20,6 @@ typedef struct {
     Texture depthStencilTexture;
     FrameBuffer frameBuffer;
     FullScreenQuad fullScreenQuad;
-    int screenWidth;
-    int screenHeight;
     MouseSelection mouseSelection;
     Shader object_shader;
 } World;

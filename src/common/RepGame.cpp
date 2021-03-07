@@ -346,6 +346,7 @@ void repgame_changeSize( int w, int h ) {
     }
     globalGameState.screen.width = w;
     globalGameState.screen.height = h;
+    glViewport( 0, 0, w, h );
 
     globalGameState.input.mouse.currentPosition.x = w / 2;
     globalGameState.input.mouse.currentPosition.y = h / 2;
@@ -430,9 +431,7 @@ void repgame_draw( ) {
     BlockState blockInHead = world_get_loaded_block( &globalGameState.world, round( globalGameState.camera.x - 0.5f ), round( globalGameState.camera.y - 0.5f ), round( globalGameState.camera.z - 0.5f ) );
     bool headInWater = blockInHead.id == WATER;
 
-    glViewport( 0, 0, globalGameState.screen.width, globalGameState.screen.height );
     world_draw( &globalGameState.world, &globalGameState.blocksTexture, mvp, mvp_reflect, mvp_sky, mvp_sky_reflect, globalGameState.input.debug_mode, !globalGameState.input.inventory_open, globalGameState.camera.y, headInWater );
-    glViewport( 0, 0, globalGameState.screen.width, globalGameState.screen.height );
 
     showErrors( );
     glClear( GL_DEPTH_BUFFER_BIT );

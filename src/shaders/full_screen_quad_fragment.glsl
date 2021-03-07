@@ -6,8 +6,6 @@ layout( location = 0 ) out vec4 color;
 
 uniform float u_ExtraAlpha;
 uniform int u_Blur;
-uniform int u_ViewportWidth;
-uniform int u_ViewportHeight;
 
 in vec2 TexCoords;
 
@@ -27,7 +25,8 @@ vec4 textureSample( ivec2 coord ) {
 }
 
 ivec2 tex_to_multisaple( vec2 texCoord ) {
-    ivec2 vpCoords = ivec2( u_ViewportWidth, u_ViewportHeight );
+    ivec2 vpCoords = textureSize( u_Texture );
+
     ivec2 texCoordMS;
     texCoordMS.x = int( float( vpCoords.x ) * texCoord.x );
     texCoordMS.y = int( float( vpCoords.y ) * texCoord.y );
