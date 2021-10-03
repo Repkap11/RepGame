@@ -4,14 +4,13 @@ BEFORE_VARS := $(.VARIABLES)
 
 CPUS ?= $(shell nproc || echo 1)
 
-#Current version of Ubuntu running make
-UBUNTU_VERSION := $(shell "lsb_release -r -s || echo 20.04")
-#UBUNTU_VERSION := $(shell lsb_release -r -s)
+# Current version of Ubuntu running make
+UBUNTU_VERSION := $(shell lsb_release -r -s || echo 20.04)
 
 #Version of Ubuntu to target when build with docker
 DOCKER_UBUNTU_VERSION ?= ${UBUNTU_VERSION}
 
-# SHELL = sh -xv
+#SHELL = sh -xv
 
 # OLD_SHELL := $(SHELL)
 # SHELL = $(info [Paul: $@ ($^) ($?)])$(OLD_SHELL)
