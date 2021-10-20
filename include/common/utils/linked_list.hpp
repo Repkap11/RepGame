@@ -25,7 +25,10 @@ typedef struct {
     int count;
     LinkedListItem *head;
     LinkedListItem *tail;
-    // pthread_mutex_t mutex;
+#if defined( REPGAME_WASM) || defined(REPGAME_WINDOWS )
+#else
+    pthread_mutex_t mutex;
+ #endif
 } LinkedList;
 
 LinkedList *linked_list_create( );

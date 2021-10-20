@@ -10,13 +10,19 @@ LinkedList *linked_list_create( ) {
     l->count = 0;
     l->head = NULL;
     l->tail = NULL;
-    // pthread_mutex_init( &( l->mutex ), NULL );
+#if defined( REPGAME_WASM ) || defined( REPGAME_WINDOWS )
+#else
+    pthread_mutex_init( &( l->mutex ), NULL );
+#endif
     return l;
 }
 
 void linked_list_free( LinkedList *l ) {
     LinkedListItem *li, *tmp;
-    // pthread_mutex_lock( &( l->mutex ) );
+#if defined( REPGAME_WASM ) || defined( REPGAME_WINDOWS )
+#else
+    pthread_mutex_lock( &( l->mutex ) );
+#endif
 
     if ( l != NULL ) {
         li = l->head;
@@ -26,16 +32,21 @@ void linked_list_free( LinkedList *l ) {
             li = tmp;
         }
     }
-    // pthread_mutex_unlock( &( l->mutex ) );
-
-    // pthread_mutex_destroy( &( l->mutex ) );
+#if defined( REPGAME_WASM ) || defined( REPGAME_WINDOWS )
+#else
+    pthread_mutex_unlock( &( l->mutex ) );
+    pthread_mutex_destroy( &( l->mutex ) );
+#endif
     free( l );
 }
 
 // Add element to tail
 void linked_list_add_element( LinkedList *l, LinkedListValue value ) {
     LinkedListItem *li;
-    // pthread_mutex_lock( &( l->mutex ) );
+#if defined( REPGAME_WASM ) || defined( REPGAME_WINDOWS )
+#else
+    pthread_mutex_lock( &( l->mutex ) );
+#endif
 
     li = ( LinkedListItem * )malloc( sizeof( LinkedListItem ) );
     li->value = value;
@@ -50,14 +61,20 @@ void linked_list_add_element( LinkedList *l, LinkedListValue value ) {
     }
     l->tail = li;
     l->count++;
-    // pthread_mutex_unlock( &( l->mutex ) );
+#if defined( REPGAME_WASM ) || defined( REPGAME_WINDOWS )
+#else
+    pthread_mutex_unlock( &( l->mutex ) );
+#endif
 }
 
 // Pop off head
 LinkedListValue linked_list_pop_element( LinkedList *l ) {
     LinkedListValue result;
     result.valid = 0;
-    // pthread_mutex_lock( &( l->mutex ) );
+#if defined( REPGAME_WASM ) || defined( REPGAME_WINDOWS )
+#else
+    pthread_mutex_lock( &( l->mutex ) );
+#endif
 
     LinkedListItem *li = l->head;
     if ( li != NULL ) {
@@ -72,6 +89,9 @@ LinkedListValue linked_list_pop_element( LinkedList *l ) {
         result.valid = 1;
         free( li );
     }
-    // pthread_mutex_unlock( &( l->mutex ) );
+#if defined( REPGAME_WASM ) || defined( REPGAME_WINDOWS )
+#else
+    pthread_mutex_unlock( &( l->mutex ) );
+#endif
     return result;
 }
