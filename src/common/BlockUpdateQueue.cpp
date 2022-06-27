@@ -23,7 +23,6 @@ void BlockUpdateQueue::processAllBlockUpdates( World *world, long tick_number ) 
         if ( num_events > 10000 ) {
             pr_debug( "Error too many events!!!" );
             exit( 1 );
-            return;
         }
     }
 }

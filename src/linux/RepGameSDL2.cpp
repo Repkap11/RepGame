@@ -116,11 +116,9 @@ int repgame_sdl2_main( const char *world_path, const char *host, bool connect_mu
 int is_locking_pointer = 0;
 void repgame_linux_process_window_and_pointer_state( ) {
     int width, height;
-    repgame_get_screen_size( &width, &height );
     int should_lock_pointer = repgame_should_lock_pointer( );
     if ( should_lock_pointer != is_locking_pointer ) {
         SDL_SetRelativeMouseMode( should_lock_pointer ? SDL_TRUE : SDL_FALSE );
-        int width, height;
         SDL_GetWindowSize( sdl_window, &width, &height );
         SDL_WarpMouseInWindow( sdl_window, width / 2, height / 2 );
         is_locking_pointer = should_lock_pointer;
@@ -140,8 +138,9 @@ void main_loop_wasm( ) {
     return;
 }
 
+#define BE_NICE_AND_DONT_BURN_THE_CPU 1
+
 void main_loop_full( ) {
-    int be_nice_and_dont_burn_the_cpu = 1;
     int vsync_enabled = 1;
 
     Uint32 time_step_ms = 1000 / UPS_RATE;
@@ -169,7 +168,7 @@ void main_loop_full( ) {
             SDL_GL_SwapWindow( sdl_window );
         } else {
             // we're too fast, wait a bit.
-            if ( be_nice_and_dont_burn_the_cpu ) {
+            if ( BE_NICE_AND_DONT_BURN_THE_CPU ) {
                 SDL_Delay( next_game_step - now );
             }
         }

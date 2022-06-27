@@ -161,26 +161,28 @@ void chunk_loader_render_chunks( LoadedChunks *loadedChunks, TRIP_ARGS( float ca
     int chunk_diff_y = chunk_y - loaded_y;
     int chunk_diff_z = chunk_z - loaded_z;
 
-    Chunk *chunk;
-    do {
-        chunk = terrain_loading_thread_dequeue( );
-        // pr_debug( "Got chunk %p", chunk );
-        if ( chunk ) {
-            chunk->is_loading = 0;
-            int reloaded = reload_if_out_of_bounds( chunk, TRIP_ARGS( chunk_ ) );
-            if ( !reloaded ) {
-                // pr_debug( "Paul Loading terrain x:%d y%d: z:%d", chunk->chunk_x, chunk->chunk_y, chunk->chunk_z );
-                process_chunk_position( chunk, TRIP_ARGS( chunk_diff_ ), TRIP_ARGS( loaded_ ), TRIP_ARGS( chunk_ ), 1 );
-                chunk_program_terrain( chunk );
+    {
+        Chunk *chunk;
+        do {
+            chunk = terrain_loading_thread_dequeue( );
+            // pr_debug( "Got chunk %p", chunk );
+            if ( chunk ) {
+                chunk->is_loading = 0;
+                int reloaded = reload_if_out_of_bounds( chunk, TRIP_ARGS( chunk_ ) );
+                if ( !reloaded ) {
+                    // pr_debug( "Paul Loading terrain x:%d y%d: z:%d", chunk->chunk_x, chunk->chunk_y, chunk->chunk_z );
+                    process_chunk_position( chunk, TRIP_ARGS( chunk_diff_ ), TRIP_ARGS( loaded_ ), TRIP_ARGS( chunk_ ), 1 );
+                    chunk_program_terrain( chunk );
+                }
             }
-        }
-    } while ( chunk && !limit_render );
+        } while ( chunk && !limit_render );
+    }
     if ( 0 != chunk_diff_x || 0 != chunk_diff_y || 0 != chunk_diff_z ) {
         // pr_debug( "Moved outof chunk x:%d y:%d z:%d", TRIP_ARGS( loaded_ ) );
         // pr_debug( "Moved into  chunk x:%d y:%d z:%d", TRIP_ARGS( chunk_ ) );
 
         for ( int i = 0; i < MAX_LOADED_CHUNKS; i++ ) {
-            chunk = &loadedChunks->chunkArray[ i ];
+            Chunk *chunk = &loadedChunks->chunkArray[ i ];
             if ( chunk->is_loading ) {
                 continue;
             }
@@ -195,7 +197,7 @@ void chunk_loader_render_chunks( LoadedChunks *loadedChunks, TRIP_ARGS( float ca
     }
     for ( int i = 0; i < MAX_LOADED_CHUNKS; i++ ) {
         Chunk *chunk = &loadedChunks->chunkArray[ i ];
-        if ( chunk->needs_repopulation && !chunk->is_loading && !(chunk->cached_cull_normal && chunk->cached_cull_reflect) ) {
+        if ( chunk->needs_repopulation && !chunk->is_loading && !( chunk->cached_cull_normal && chunk->cached_cull_reflect ) ) {
             chunk_unprogram_terrain( chunk );
             chunk_calculate_popupated_blocks( chunk );
             chunk_program_terrain( chunk );
@@ -252,7 +254,7 @@ void chunk_loader_draw_chunks( LoadedChunks *loadedChunks, const glm::mat4 &mvp,
                         chunk_render( &loadedChunks->chunkArray[ i ], renderer, &loadedChunks->shader, ( RenderOrder )renderOrder, draw_reflect );
                     }
                 } else {
-                   if ( !chunk->cached_cull_normal ) {
+                    if ( !chunk->cached_cull_normal ) {
                         chunk_render( &loadedChunks->chunkArray[ i ], renderer, &loadedChunks->shader, ( RenderOrder )renderOrder, draw_reflect );
                     }
                 }

@@ -112,7 +112,7 @@ void world_set_selected_block( World *world, int selected_x, int selected_y, int
 #define WATER_THRESHOLD_N -0.01
 void world_draw( World *world, Texture *blocksTexture, const glm::mat4 &mvp, const glm::mat4 &mvp_reflect, const glm::mat4 &mvp_sky, const glm::mat4 &mvp_sky_reflect, int debug, int draw_mouse_selection, float y_height, bool headInWater ) {
     int object_water_tint_type;
-    int block_water_tint_type = headInWater ? TINT_UNDER_WATER_OBJECT_ALWAYS : TINT_UNDER_WATER_OBJECT_NEVER;
+    int block_water_tint_type;
     double out_int_part;
     float water_diff = modf( y_height, &out_int_part ) - ( WATER_HEIGHT );
     if ( headInWater ) {

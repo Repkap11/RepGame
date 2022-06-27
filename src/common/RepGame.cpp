@@ -24,7 +24,6 @@ RepGameState globalGameState;
 
 void change_block( int place, BlockState blockState ) {
     TRIP_STATE( int block_ );
-    Block *block = block_definition_get_definition( blockState.id );
 
     if ( place ) {
         block_x = globalGameState.block_selection.create_x;
@@ -89,7 +88,6 @@ void repgame_process_mouse_events( ) {
     }
     if ( globalGameState.block_selection.selectionInBounds && globalGameState.input.mouse.buttons.right && globalGameState.input.click_delay_right == 0 ) {
         unsigned char rotation = getPlacedRotation( globalGameState.block_selection.holdingBlock );
-        Block *held_block = block_definition_get_definition( globalGameState.block_selection.holdingBlock );
         change_block( 1, { globalGameState.block_selection.holdingBlock, rotation, 0, globalGameState.block_selection.holdingBlock } );
         globalGameState.input.click_delay_right = 30;
     }

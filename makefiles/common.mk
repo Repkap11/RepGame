@@ -20,11 +20,11 @@ clean-bitmaps:
 	rm -rf out/bitmaps
 
 check:
-	cppcheck -j$(CPUS) --quiet --enable=warning,style,performance,portability,information,missingInclude -Iinclude -DREPGAME_LINUX src
-	cppcheck -j$(CPUS) --quiet --enable=warning,style,performance,portability,information,missingInclude -Iinclude -DREPGAME_WINDOWS src
-	cppcheck -j$(CPUS) --quiet --enable=warning,style,performance,portability,information,missingInclude -Iinclude -DREPGAME_ANDROID src
-	cppcheck -j$(CPUS) --quiet --enable=warning,style,performance,portability,information,missingInclude -Iinclude -DREPGAME_WASM src
-	~/.local/bin/cpplint --filter=-whitespace,-legal/copyright,-readability/todo --quiet $(SRC_ALL_C) 
+	cppcheck -j$(CPUS) --quiet --enable=warning,style,performance,portability,information,missingInclude -iinclude/common/vendor -DREPGAME_LINUX src
+# cppcheck -j$(CPUS) --quiet --enable=warning,style,performance,portability,information,missingInclude -Iinclude -iinclude/common/vendor -DREPGAME_WINDOWS src
+# cppcheck -j$(CPUS) --quiet --enable=warning,style,performance,portability,information,missingInclude -Iinclude -iinclude/common/vendor -DREPGAME_ANDROID src
+# cppcheck -j$(CPUS) --quiet --enable=warning,style,performance,portability,information,missingInclude -Iinclude -iinclude/common/vendor -DREPGAME_WASM src
+# ~/.local/bin/cpplint --filter=-whitespace,-legal/copyright,-readability/todo --quiet $(SRC_ALL_C)
 
 GUARD = $(foreach VAR,$(1),out/vars/$(VAR).$(shell echo $($(VAR)) | md5sum | cut -d ' ' -f 1))
 CHECK = @$(foreach VAR,$(1),test -f out/vars/$(VAR).$(shell echo $($(VAR)) | md5sum | cut -d ' ' -f 1) || { echo Variable:"$(VAR)" changed after referenced; exit 1; } ;)

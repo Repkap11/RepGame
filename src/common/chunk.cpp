@@ -317,9 +317,9 @@ void chunk_calculate_popupated_blocks( Chunk *chunk ) {
 
             workingSpace[ index ].visable = render_order_is_visible( block->renderOrder );
 
-            int visible_from[ NUM_FACES_IN_CUBE ] = { 0, 0, 0, 0, 0, 0 };
-            int block_is_visiable = 0;
             if ( workingSpace[ index ].visable ) {
+                int block_is_visiable = 0;
+                int visible_from[ NUM_FACES_IN_CUBE ] = { 0, 0, 0, 0, 0, 0 };
                 for ( int face = FACE_TOP; face < NUM_FACES_IN_CUBE; face++ ) {
                     BlockState block_next_to_state = chunk->blocks[ chunk_get_index_from_coords( x + FACE_DIR_X_OFFSETS[ face ], y + FACE_DIR_Y_OFFSETS[ face ], z + FACE_DIR_Z_OFFSETS[ face ] ) ];
                     // TODO look at the blocks rotation...
