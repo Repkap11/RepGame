@@ -90,17 +90,14 @@ void map_storage_persist( Chunk *chunk ) {
         if ( blocks == 0 ) {
             return;
         }
-        int chunk_offset_x = chunk->chunk_x;
-        int chunk_offset_y = chunk->chunk_y;
-        int chunk_offset_z = chunk->chunk_z;
+        glm::ivec3 &chunk_offset = chunk->chunk_pos;
         char file_name[ CHUNK_NAME_LENGTH ];
-        if ( snprintf( file_name, CHUNK_NAME_LENGTH, file_root_chunk, map_name, chunk_offset_x, chunk_offset_y, chunk_offset_z ) != CHUNK_NAME_LENGTH ) {
+        if ( snprintf( file_name, CHUNK_NAME_LENGTH, file_root_chunk, map_name, chunk_offset.x, chunk_offset.y, chunk_offset.z ) != CHUNK_NAME_LENGTH ) {
         }
         FILE *write_ptr = fopen( file_name, "wb" );
         uint32_t storage_type_size = sizeof( STORAGE_TYPE );
         // uint32_t storage_type_size = 8;
         fwrite( &storage_type_size, sizeof( uint32_t ), 1, write_ptr );
-
 
         STORAGE_TYPE *persist_data = ( STORAGE_TYPE * )malloc( sizeof( STORAGE_TYPE ) * PERSIST_DATA_BLOCK_SIZE );
         int persist_data_index = -1;
@@ -118,7 +115,7 @@ void map_storage_persist( Chunk *chunk ) {
                     total_num_blocks += num_same_blocks;
                 }
                 persist_data_index++;
-                if (persist_data_index >= PERSIST_DATA_BLOCK_SIZE){
+                if ( persist_data_index >= PERSIST_DATA_BLOCK_SIZE ) {
                     fwrite( persist_data, sizeof( STORAGE_TYPE ), PERSIST_DATA_BLOCK_SIZE, write_ptr );
                     persist_data_index = 0;
                 }
@@ -138,13 +135,13 @@ void map_storage_persist( Chunk *chunk ) {
         }
         fwrite( persist_data, sizeof( STORAGE_TYPE ), persist_data_index, write_ptr );
         fclose( write_ptr );
-        free(persist_data);
+        free( persist_data );
     }
 }
 
-int check_if_chunk_exists( TRIP_ARGS( int chunk_offset_ ) ) {
+int check_if_chunk_exists( const glm::ivec3 &chunk_offset ) {
     char file_name[ CHUNK_NAME_LENGTH ];
-    if ( snprintf( file_name, CHUNK_NAME_LENGTH, file_root_chunk, map_name, chunk_offset_x, chunk_offset_y, chunk_offset_z ) != CHUNK_NAME_LENGTH ) {
+    if ( snprintf( file_name, CHUNK_NAME_LENGTH, file_root_chunk, map_name, chunk_offset.x, chunk_offset.y, chunk_offset.z ) != CHUNK_NAME_LENGTH ) {
     }
     if ( access( file_name, F_OK ) != -1 ) {
         return 1;
@@ -154,24 +151,22 @@ int check_if_chunk_exists( TRIP_ARGS( int chunk_offset_ ) ) {
 }
 
 int map_storage_load( Chunk *chunk ) {
-    int chunk_offset_x = chunk->chunk_x;
-    int chunk_offset_y = chunk->chunk_y;
-    int chunk_offset_z = chunk->chunk_z;
+    glm::ivec3 &chunk_offset = chunk->chunk_pos;
 
-    if ( !check_if_chunk_exists( chunk_offset_x, chunk_offset_y, chunk_offset_z ) ) {
+    if ( !check_if_chunk_exists( chunk_offset ) ) {
         // This chunk isn't in a file, return 0 so the chunk gets loaded
         return 0;
     }
 
     char file_name[ CHUNK_NAME_LENGTH ];
-    if ( snprintf( file_name, CHUNK_NAME_LENGTH, file_root_chunk, map_name, chunk_offset_x, chunk_offset_y, chunk_offset_z ) != CHUNK_NAME_LENGTH ) {
+    if ( snprintf( file_name, CHUNK_NAME_LENGTH, file_root_chunk, map_name, chunk_offset.x, chunk_offset.y, chunk_offset.z ) != CHUNK_NAME_LENGTH ) {
     }
     FILE *read_ptr;
     BlockState *blocks = chunk->blocks;
     read_ptr = fopen( file_name, "rb" );
     uint32_t storage_type_size = 0;
     size_t result_size = fread( &storage_type_size, sizeof( uint32_t ), 1, read_ptr );
-    if (result_size != 1){
+    if ( result_size != 1 ) {
         fclose( read_ptr );
         return 0;
     }
@@ -190,9 +185,9 @@ int map_storage_load( Chunk *chunk ) {
         chunk->dirty = true;
         pr_debug( "Loaded old chunk with state size:%d expected:%d", storage_block_state_size, ( int )sizeof( BlockState ) );
     }
-    if ( storage_block_state_size > (int)sizeof( BlockState ) ) {
+    if ( storage_block_state_size > ( int )sizeof( BlockState ) ) {
         pr_debug( "Smaller" );
-        storage_block_state_size = (int)sizeof( BlockState );
+        storage_block_state_size = ( int )sizeof( BlockState );
     }
     for ( unsigned int i = 0; i < persist_data_length; i++ ) {
         char *block_storage = &persist_data[ i * storage_type_size ];

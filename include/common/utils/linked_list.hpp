@@ -7,7 +7,7 @@
 
 typedef struct {
 	Chunk * chunk;
-	glm::ivec3 &new_chunk_pos;
+	glm::ivec3 new_chunk_pos;
 	int persist;
 	int valid;
 } LinkedListValue;

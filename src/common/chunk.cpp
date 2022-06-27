@@ -16,19 +16,19 @@ static unsigned int ib_data_flowers[] = {
     10, 9, 7,  //
 };
 
-void chunk_calculate_sides( Chunk *chunk, TRIP_ARGS( int center_next_ ) ) {
+void chunk_calculate_sides( Chunk *chunk, const glm::ivec3 &center_next ) {
     unsigned int *chunk_ib_data[ LAST_RENDER_ORDER ];
     unsigned int *chunk_ib_data_reflect[ LAST_RENDER_ORDER ];
     for ( int renderOrder = 0; renderOrder < LAST_RENDER_ORDER; renderOrder++ ) {
         chunk_ib_data[ renderOrder ] = ( unsigned int * )malloc( render_order_ib_size( ( RenderOrder )renderOrder ) * sizeof( unsigned int ) );
         chunk_ib_data_reflect[ renderOrder ] = ( unsigned int * )malloc( render_order_ib_size( ( RenderOrder )renderOrder ) * sizeof( unsigned int ) );
     }
-    int visable_top = chunk->chunk_y <= center_next_y;
-    int visable_bottom = chunk->chunk_y >= center_next_y;
-    int visable_right = chunk->chunk_x <= center_next_x;
-    int visable_left = chunk->chunk_x >= center_next_x;
-    int visable_front = chunk->chunk_z <= center_next_z;
-    int visable_back = chunk->chunk_z >= center_next_z;
+    int visable_top = chunk->chunk_pos.y <= center_next.y;
+    int visable_bottom = chunk->chunk_pos.y >= center_next.y;
+    int visable_right = chunk->chunk_pos.x <= center_next.x;
+    int visable_left = chunk->chunk_pos.x >= center_next.x;
+    int visable_front = chunk->chunk_pos.z <= center_next.z;
+    int visable_back = chunk->chunk_pos.z >= center_next.z;
 
     int ib_size[ LAST_RENDER_ORDER ] = { 0 };
     if ( visable_front ) {
@@ -157,7 +157,7 @@ void chunk_render( const Chunk *chunk, const Renderer *renderer, const Shader *s
     }
 }
 
-BlockState chunk_get_block( Chunk *chunk, int x, int y, int z ) {
+BlockState chunk_get_block( Chunk *chunk, const glm::ivec3 &pos ){
     if ( !REMEMBER_BLOCKS ) {
         return BLOCK_STATE_AIR;
     }
@@ -165,37 +165,37 @@ BlockState chunk_get_block( Chunk *chunk, int x, int y, int z ) {
         // pr_debug("Chunk has no blocks");
         return BLOCK_STATE_LAST_BLOCK_ID;
     }
-    if ( x > CHUNK_SIZE + 1 || //
-         y > CHUNK_SIZE + 1 || //
-         z > CHUNK_SIZE + 1 ) {
+    if ( pos.x > CHUNK_SIZE + 1 || //
+         pos.y > CHUNK_SIZE + 1 || //
+         pos.z > CHUNK_SIZE + 1 ) {
         return BLOCK_STATE_LAST_BLOCK_ID;
     }
-    if ( x < -1 || //
-         y < -1 || //
-         z < -1 ) {
+    if ( pos.x < -1 || //
+         pos.y < -1 || //
+         pos.z < -1 ) {
         return BLOCK_STATE_LAST_BLOCK_ID;
     }
-    return chunk->blocks[ chunk_get_index_from_coords( x, y, z ) ];
+    return chunk->blocks[ chunk_get_index_from_coords( pos ) ];
 }
 
-void chunk_set_block( Chunk *chunk, int x, int y, int z, BlockState blockState ) {
+void chunk_set_block( Chunk *chunk, const glm::ivec3 &pos, BlockState blockState ){
     if ( chunk->blocks == NULL ) {
         // pr_debug("Chunk has no blocks");
         return;
     }
-    if ( x > CHUNK_SIZE + 1 || //
-         y > CHUNK_SIZE + 1 || //
-         z > CHUNK_SIZE + 1 ) {
+    if ( pos.x > CHUNK_SIZE + 1 || //
+         pos.y > CHUNK_SIZE + 1 || //
+         pos.z > CHUNK_SIZE + 1 ) {
         return;
     }
-    if ( x < -1 || //
-         y < -1 || //
-         z < -1 ) {
+    if ( pos.x < -1 || //
+         pos.y < -1 || //
+         pos.z < -1 ) {
         return;
     }
 
     // Update the block in the client...
-    chunk->blocks[ chunk_get_index_from_coords( x, y, z ) ] = blockState;
+    chunk->blocks[ chunk_get_index_from_coords( pos ) ] = blockState;
 }
 
 void chunk_persist( Chunk *chunk ) {
@@ -233,15 +233,15 @@ typedef struct {
 
 } WorkingSpace;
 
-int chunk_can_extend_rect( Chunk *chunk, BlockState blockState, unsigned int *packed_lighting, WorkingSpace *workingSpace, TRIP_ARGS( int starting_ ), TRIP_ARGS( int size_ ), TRIP_ARGS( int dir_ ) ) {
+int chunk_can_extend_rect( Chunk *chunk, BlockState blockState, unsigned int *packed_lighting, WorkingSpace *workingSpace, const glm::ivec3 &starting, const glm::ivec3 &size, const glm::ivec3 &dir ) {
     if ( DISABLE_GROUPING_BLOCKS ) {
         return 0;
     }
-    if ( starting_x + size_x + dir_x > CHUNK_SIZE )
+    if ( starting.x + size.x + dir.x > CHUNK_SIZE )
         return 0;
-    if ( starting_y + size_y + dir_y > CHUNK_SIZE )
+    if ( starting.y + size.y + dir.y > CHUNK_SIZE )
         return 0;
-    if ( starting_z + size_z + dir_z > CHUNK_SIZE )
+    if ( starting.z + size.z + dir.z > CHUNK_SIZE )
         return 0;
     // if ( ( ( size_x > 1 ) + ( size_y > 1 ) + ( size_z > 1 ) ) == 3 ) {
     //     if ( !( size_x == 1 && size_y == 1 && size_z == 1 ) ) {
@@ -252,10 +252,10 @@ int chunk_can_extend_rect( Chunk *chunk, BlockState blockState, unsigned int *pa
         // pr_debug( "Trying to mesh" );
     }
     int num_checked_blocks = 0;
-    for ( int new_x = starting_x; new_x < starting_x + size_x; new_x++ ) {
-        for ( int new_y = starting_y; new_y < starting_y + size_y; new_y++ ) {
-            for ( int new_z = starting_z; new_z < starting_z + size_z; new_z++ ) {
-                int index = chunk_get_index_from_coords( new_x + dir_x, new_y + dir_y, new_z + dir_z );
+    for ( int new_x = starting.x; new_x < starting.x + size.x; new_x++ ) {
+        for ( int new_y = starting.y; new_y < starting.y + size.y; new_y++ ) {
+            for ( int new_z = starting.z; new_z < starting.z + size.z; new_z++ ) {
+                int index = chunk_get_index_from_coords( new_x + dir.x, new_y + dir.y, new_z + dir.z );
                 num_checked_blocks++;
                 if ( workingSpace[ index ].has_been_drawn ) {
                     return 0;
@@ -275,7 +275,7 @@ int chunk_can_extend_rect( Chunk *chunk, BlockState blockState, unsigned int *pa
             }
         }
     }
-    int expected_checked_blocks = size_x * size_y * size_z;
+    int expected_checked_blocks = size.x * size.y * size.z;
     if ( num_checked_blocks != expected_checked_blocks ) {
         pr_debug( "Error, Didnt check enough blocks" );
     }
@@ -546,19 +546,28 @@ void chunk_calculate_popupated_blocks( Chunk *chunk ) {
                         int can_extend_z = 0;
                         do {
                             if ( block->calculated.can_mesh_x ) {
-                                can_extend_x = chunk_can_extend_rect( chunk, blockState, packed_lighting, workingSpace, x + size_x - 1, y, z, 1, size_y, size_z, 1, 0, 0 );
+                                glm::ivec3 starting = glm::ivec3( x + size_x - 1, y, z );
+                                glm::ivec3 size = glm::vec3( 1, size_y, size_z );
+                                glm::ivec3 dir = glm::vec3( 1, 0, 0 );
+                                can_extend_x = chunk_can_extend_rect( chunk, blockState, packed_lighting, workingSpace, starting, size, dir );
                                 if ( can_extend_x ) {
                                     size_x++;
                                 }
                             }
                             if ( block->calculated.can_mesh_z ) {
-                                can_extend_z = chunk_can_extend_rect( chunk, blockState, packed_lighting, workingSpace, x, y, z + size_z - 1, size_x, size_y, 1, 0, 0, 1 );
+                                glm::ivec3 starting = glm::ivec3(x, y, z + size_z - 1);
+                                glm::ivec3 size = glm::vec3(size_x, size_y, 1 );
+                                glm::ivec3 dir = glm::vec3(  0, 0, 1 );
+                                can_extend_y = chunk_can_extend_rect( chunk, blockState, packed_lighting, workingSpace, starting, size, dir );
                                 if ( can_extend_z ) {
                                     size_z++;
                                 }
                             }
                             if ( block->calculated.can_mesh_y ) {
-                                can_extend_y = chunk_can_extend_rect( chunk, blockState, packed_lighting, workingSpace, x, y + size_y - 1, z, size_x, 1, size_z, 0, 1, 0 );
+                                glm::ivec3 starting = glm::ivec3( x, y + size_y - 1, z);
+                                glm::ivec3 size = glm::vec3( size_x, 1, size_z );
+                                glm::ivec3 dir = glm::vec3(  0, 1, 0);
+                                can_extend_z = chunk_can_extend_rect( chunk, blockState, packed_lighting, workingSpace, starting, size, dir );
                                 if ( can_extend_y ) {
                                     size_y++;
                                 }
@@ -580,9 +589,9 @@ void chunk_calculate_popupated_blocks( Chunk *chunk ) {
                         blockCoord = &chunk->layers[ block->renderOrder ].populated_blocks[ num_instances[ block->renderOrder ] ];
                         num_instances[ block->renderOrder ] += 1;
 
-                        blockCoord->x = chunk->chunk_x * CHUNK_SIZE + x;
-                        blockCoord->y = chunk->chunk_y * CHUNK_SIZE + y;
-                        blockCoord->z = chunk->chunk_z * CHUNK_SIZE + z;
+                        blockCoord->x = chunk->chunk_pos.x * CHUNK_SIZE + x;
+                        blockCoord->y = chunk->chunk_pos.y * CHUNK_SIZE + y;
+                        blockCoord->z = chunk->chunk_pos.z * CHUNK_SIZE + z;
 
                         blockCoord->mesh_x = size_x;
                         blockCoord->mesh_y = size_y;

@@ -24,16 +24,16 @@ typedef struct {
     Shader object_shader;
 } World;
 
-BlockState world_get_loaded_block( World *world, glm::ivec3 block );
-void world_set_loaded_block( World *world, glm::ivec3 block, BlockState blockState );
+BlockState world_get_loaded_block( World *world, const glm::ivec3 &block );
+void world_set_loaded_block( World *world, const glm::ivec3 &block, BlockState blockState );
 
-BlockState world_get_block_from_chunk( Chunk *chunk, glm::ivec3 block );
-Chunk *world_get_loaded_chunk( World *world, glm::ivec3 block );
-void world_init( World *world, glm::vec3 camera );
+BlockState world_get_block_from_chunk( Chunk *chunk, const glm::ivec3 &block );
+Chunk *world_get_loaded_chunk( World *world, const glm::ivec3 &block );
+void world_init( World *world, const glm::vec3 &camera_pos );
 void world_change_size( World *world, int width, int height );
 void world_render( World *world, const glm::vec3 &camera_pos, int limit_render, const glm::mat4 &rotation );
 void world_draw( World *world, Texture *blocksTexture, const glm::mat4 &mvp, const glm::mat4 &mvp_reflect, const glm::mat4 &mvp_sky, const glm::mat4 &mvp_sky_reflect, int debug, int draw_mouse_selection, float y_height, bool headInWater );
-void world_set_selected_block( World *world, glm::ivec3 selected, int shouldDraw );
+void world_set_selected_block( World *world, const glm::ivec3 &selected, int shouldDraw );
 void world_cleanup( World *world );
 
 #endif

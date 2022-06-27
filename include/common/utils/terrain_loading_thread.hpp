@@ -5,7 +5,7 @@
 #include "common/RepGame.hpp"
 
 int terrain_loading_thread_start( );
-void terrain_loading_thread_enqueue( Chunk *chunk, TRIP_ARGS(int new_chunk_) , int persist);
+void terrain_loading_thread_enqueue( Chunk *chunk, const glm::ivec3 &new_chunk_pos, int persist );
 Chunk *terrain_loading_thread_dequeue( );
 void terrain_loading_thread_stop( );
 

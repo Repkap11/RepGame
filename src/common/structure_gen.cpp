@@ -139,9 +139,8 @@ int structure_gen_is_next_to( Chunk *chunk, int x, int y, int z, BlockID block )
 void place_leaves( Chunk *chunk, int x, int y, int z, int tree_type, BlockState leaf_state );
 
 void structure_gen_place( Chunk *chunk ) {
-    int chunk_offset_x = chunk->chunk_x * CHUNK_SIZE;
-    int chunk_offset_y = chunk->chunk_y * CHUNK_SIZE;
-    int chunk_offset_z = chunk->chunk_z * CHUNK_SIZE;
+    glm::vec3 chunk_offset = chunk->chunk_pos * CHUNK_SIZE;
+
     Block *leaf = block_definition_get_definition( LEAF );
     Block *oak_log = block_definition_get_definition( OAK_LOG );
     Block *dirt = block_definition_get_definition( DIRT );
@@ -153,9 +152,9 @@ void structure_gen_place( Chunk *chunk ) {
     BlockState reed_state = { REED, 0, reed->initial_redstone_power, REED };
 
     for ( int x = 1; x < CHUNK_SIZE - 1; x++ ) {
-        int world_x = chunk_offset_x + x;
+        int world_x = chunk_offset.x + x;
         for ( int z = 1; z < CHUNK_SIZE - 1; z++ ) {
-            int world_z = chunk_offset_z + z;
+            int world_z = chunk_offset.z + z;
             int max_tree_radius;
             if ( x == 1 || z == 1 || z == CHUNK_SIZE - 1 || z == CHUNK_SIZE - 2 ) {
                 max_tree_radius = 2;

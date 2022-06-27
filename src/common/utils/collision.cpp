@@ -104,7 +104,7 @@ void collision_check_move( World *world, glm::vec3 &movement_vec, glm::vec3 &pos
     if ( movement_vec.x > 0 ) {
         dirs_to_check[ FACE_RIGHT ] = 1;
     }
-    if ( movement_vec.length < 0 ) {
+    if ( movement_vec.x < 0 ) {
         dirs_to_check[ FACE_LEFT ] = 1;
     }
     if ( movement_vec.y > 0 ) {

@@ -32,7 +32,7 @@ typedef struct {
     int cached_cull_normal;
     int cached_cull_reflect;
     int needs_repopulation;
-    int chunk_mod_x, chunk_mod_y, chunk_mod_z;
+    glm::ivec3 chunk_mod;
 } Chunk;
 
 void chunk_init( Chunk *chunk, VertexBuffer *vb_block_solid, VertexBuffer *vb_block_water, VertexBufferLayout *vbl_block, VertexBufferLayout *vbl_coords );
@@ -52,6 +52,10 @@ void chunk_calculate_popupated_blocks( Chunk *chunk );
 
 inline int chunk_get_index_from_coords( const glm::ivec3 &pos ) {
     return ( pos.y + 1 ) * CHUNK_SIZE_INTERNAL * CHUNK_SIZE_INTERNAL + ( pos.x + 1 ) * CHUNK_SIZE_INTERNAL + ( pos.z + 1 );
+}
+
+inline int chunk_get_index_from_coords( int x, int y, int z ) {
+    return ( y + 1 ) * CHUNK_SIZE_INTERNAL * CHUNK_SIZE_INTERNAL + ( x + 1 ) * CHUNK_SIZE_INTERNAL + ( z + 1 );
 }
 
 #endif

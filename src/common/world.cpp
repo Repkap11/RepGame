@@ -18,7 +18,7 @@ bool USES_FSQ_AND_FB = true;
 bool USES_FSQ_AND_FB = false;
 #endif
 
-void world_init( World *world, const glm::vec3 &camera_pos) {
+void world_init( World *world, const glm::vec3 &camera_pos ) {
     // These are from CubeFace
     vertex_buffer_layout_init( &world->vbl_block );
     vertex_buffer_layout_push_float( &world->vbl_block, 3 );        // Coords
@@ -242,7 +242,8 @@ void world_cleanup( World *world ) {
 }
 
 int can_fixup_chunk( World *world, Chunk *chunk, const glm::ivec3 &offset ) {
-    Chunk *fixupChunk = chunk_loader_get_chunk( &world->loadedChunks, chunk->chunk_x + offset_x, chunk->chunk_y + offset_y, chunk->chunk_z + offset_z );
+    glm::vec3 chunk_with_offset = chunk->chunk_pos + offset;
+    Chunk *fixupChunk = chunk_loader_get_chunk( &world->loadedChunks, chunk_with_offset );
     if ( fixupChunk ) {
         if ( !fixupChunk->is_loading ) {
             return 1;
@@ -253,7 +254,8 @@ int can_fixup_chunk( World *world, Chunk *chunk, const glm::ivec3 &offset ) {
 
 void fixup_chunk( World *world, Chunk *chunk, const glm::ivec3 &offset, const glm::ivec3 &pos, BlockState blockState ) {
     // pr_debug( "Fixup Offset: %d %d %d", x, y, z );
-    Chunk *fixupChunk = chunk_loader_get_chunk( &world->loadedChunks, chunk->chunk_x + offset_x, chunk->chunk_y + offset_y, chunk->chunk_z + offset_z );
+    glm::vec3 chunk_with_offset = chunk->chunk_pos + offset;
+    Chunk *fixupChunk = chunk_loader_get_chunk( &world->loadedChunks, chunk_with_offset );
     if ( fixupChunk ) {
         if ( fixupChunk->is_loading ) {
             // This shouldn't happen because can_fixup_chunk should be called first.
@@ -267,54 +269,45 @@ void fixup_chunk( World *world, Chunk *chunk, const glm::ivec3 &offset, const gl
 }
 
 Chunk *world_get_loaded_chunk( World *world, const glm::ivec3 &block_pos ) {
-    int chunk_x = floor( block_x / ( float )CHUNK_SIZE );
-    int chunk_y = floor( block_y / ( float )CHUNK_SIZE );
-    int chunk_z = floor( block_z / ( float )CHUNK_SIZE );
-    return chunk_loader_get_chunk( &world->loadedChunks, chunk_x, chunk_y, chunk_z );
+    glm::ivec3 chunk_pos = glm::floor( glm::vec3( block_pos ) / ( float )CHUNK_SIZE );
+    return chunk_loader_get_chunk( &world->loadedChunks, chunk_pos );
 }
 
-BlockState world_get_block_from_chunk( Chunk *chunk, const glm::ivec3 &block_pos ) ) {
-    int diff_x = block_x - chunk->chunk_x * CHUNK_SIZE;
-    int diff_y = block_y - chunk->chunk_y * CHUNK_SIZE;
-    int diff_z = block_z - chunk->chunk_z * CHUNK_SIZE;
-    return chunk_get_block( chunk, diff_x, diff_y, diff_z );
+BlockState world_get_block_from_chunk( Chunk *chunk, const glm::ivec3 &block_pos ) {
+    glm::ivec3 diff = block_pos - ( chunk->chunk_pos * CHUNK_SIZE );
+    return chunk_get_block( chunk, diff );
 }
 
-BlockState world_get_loaded_block( World *world, const glm::ivec3 &block_pos ) ) {
-    Chunk *chunk = world_get_loaded_chunk( world,  block_pos );
+BlockState world_get_loaded_block( World *world, const glm::ivec3 &block_pos ) {
+    Chunk *chunk = world_get_loaded_chunk( world, block_pos );
     if ( chunk ) {
         if ( chunk->is_loading ) {
             return BLOCK_STATE_LAST_BLOCK_ID;
         }
-        BlockState blockState = world_get_block_from_chunk( chunk,  block_pos );
+        BlockState blockState = world_get_block_from_chunk( chunk, block_pos );
         return blockState;
     }
     return BLOCK_STATE_LAST_BLOCK_ID;
 }
 
 void world_set_loaded_block( World *world, const glm::ivec3 &block_pos, BlockState blockState ) {
-    int chunk_x = floor( block_pos.x / ( float )CHUNK_SIZE );
-    int chunk_y = floor( block_pos.y / ( float )CHUNK_SIZE );
-    int chunk_z = floor( block_pos.z / ( float )CHUNK_SIZE );
+    glm::ivec3 chunk_pos = glm::floor( glm::vec3( block_pos ) / ( float )CHUNK_SIZE );
 
-    glm::ivec3 chunk_pos = glm::floor(glm::vec3(block_pos) / (float)CHUNK_SIZE);
-
-    Chunk *chunk = chunk_loader_get_chunk( &world->loadedChunks, chunk_pos);
+    Chunk *chunk = chunk_loader_get_chunk( &world->loadedChunks, chunk_pos );
     if ( chunk ) {
-        int diff_x = block_pos.x - chunk_x * CHUNK_SIZE;
-        int diff_y = block_pos.y - chunk_y * CHUNK_SIZE;
-        int diff_z = block_pos.z - chunk_z * CHUNK_SIZE;
+        glm::ivec3 diff = block_pos - chunk_pos * CHUNK_SIZE;
         // pr_debug( "Orig Offset: %d %d %d", diff_x, diff_y, diff_z );
 
         for ( int i = -1; i < 2; i++ ) {
             for ( int j = -1; j < 2; j++ ) {
                 for ( int k = -1; k < 2; k++ ) {
-                    int needs_update_x = ( ( i != 1 && diff_x == 0 ) || ( i != -1 && diff_x == ( CHUNK_SIZE - 1 ) ) ) || i == 0; //
-                    int needs_update_y = ( ( j != 1 && diff_y == 0 ) || ( j != -1 && diff_y == ( CHUNK_SIZE - 1 ) ) ) || j == 0; //
-                    int needs_update_z = ( ( k != 1 && diff_z == 0 ) || ( k != -1 && diff_z == ( CHUNK_SIZE - 1 ) ) ) || k == 0;
+                    int needs_update_x = ( ( i != 1 && diff.x == 0 ) || ( i != -1 && diff.x == ( CHUNK_SIZE - 1 ) ) ) || i == 0; //
+                    int needs_update_y = ( ( j != 1 && diff.y == 0 ) || ( j != -1 && diff.y == ( CHUNK_SIZE - 1 ) ) ) || j == 0; //
+                    int needs_update_z = ( ( k != 1 && diff.z == 0 ) || ( k != -1 && diff.z == ( CHUNK_SIZE - 1 ) ) ) || k == 0;
                     int needs_update = ( needs_update_x && needs_update_y && needs_update_z ) && !( i == 0 && j == 0 && k == 0 );
                     if ( needs_update ) {
-                        if ( !can_fixup_chunk( world, chunk, i, j, k ) ) {
+                        glm::ivec3 offset = glm::ivec3( i, j, k );
+                        if ( !can_fixup_chunk( world, chunk, offset ) ) {
                             pr_debug( "Ekk, can't fixup block, so not placing" );
                             return;
                         }
@@ -326,26 +319,29 @@ void world_set_loaded_block( World *world, const glm::ivec3 &block_pos, BlockSta
             for ( int j = -1; j < 2; j++ ) {
                 for ( int k = -1; k < 2; k++ ) {
 
-                    int needs_update_x = ( ( i != 1 && diff_x == 0 ) || ( i != -1 && diff_x == ( CHUNK_SIZE - 1 ) ) ) || i == 0; //
-                    int needs_update_y = ( ( j != 1 && diff_y == 0 ) || ( j != -1 && diff_y == ( CHUNK_SIZE - 1 ) ) ) || j == 0; //
-                    int needs_update_z = ( ( k != 1 && diff_z == 0 ) || ( k != -1 && diff_z == ( CHUNK_SIZE - 1 ) ) ) || k == 0;
+                    int needs_update_x = ( ( i != 1 && diff.x == 0 ) || ( i != -1 && diff.x == ( CHUNK_SIZE - 1 ) ) ) || i == 0; //
+                    int needs_update_y = ( ( j != 1 && diff.y == 0 ) || ( j != -1 && diff.y == ( CHUNK_SIZE - 1 ) ) ) || j == 0; //
+                    int needs_update_z = ( ( k != 1 && diff.z == 0 ) || ( k != -1 && diff.z == ( CHUNK_SIZE - 1 ) ) ) || k == 0;
 
                     int new_i = i * needs_update_x;
                     int new_j = j * needs_update_y;
                     int new_k = k * needs_update_z;
 
-                    int needs_update = TRIP_AND( needs_update_ ) && !( i == 0 && j == 0 && k == 0 );
+                    int needs_update = ( needs_update_x && needs_update_y && needs_update_z ) && !( i == 0 && j == 0 && k == 0 );
                     // pr_debug( "Chunk Dir: %d %d %d:%d", i, j, k, needs_update );
                     // pr_debug( "                    Needs Updates: %d %d %d:%d", needs_update_x, needs_update_y, needs_update_z, needs_update );
                     // pr_debug( "                                New Offset: %d %d %d:%d", new_i, new_j, new_k, needs_update );
 
                     if ( needs_update ) {
-                        fixup_chunk( world, chunk, i, j, k, diff_x - CHUNK_SIZE * new_i, diff_y - CHUNK_SIZE * new_j, diff_z - CHUNK_SIZE * new_k, blockState );
+                        glm::ivec3 new_pos = glm::ivec3( new_i, new_j, new_k );
+                        glm::ivec3 offset = glm::ivec3( i, j, k );
+                        glm::ivec3 pos = diff - CHUNK_SIZE * new_pos;
+                        fixup_chunk( world, chunk, offset, pos, blockState );
                     }
                 }
             }
         }
-        chunk_set_block( chunk, TRIP_ARGS( diff_ ), blockState );
+        chunk_set_block( chunk, diff, blockState );
         chunk->dirty = 1;
         chunk->needs_repopulation = 1;
 

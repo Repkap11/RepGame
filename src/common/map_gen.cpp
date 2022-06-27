@@ -65,13 +65,11 @@ float map_gen_is_coal_ore_instead_of_stone( int x, int y, int z ) {
     return noise;
 }
 
-
 float map_gen_is_gold_ore_instead_of_stone( int x, int y, int z ) {
     float noise = perlin_noise3d( x, y, z, 0.2f, 4, MAP_SEED + 9 );
     noise = noise * noise;
     return noise;
 }
-
 
 float map_gen_inverse_lerp( float min, float max, float value ) {
     if ( value < min ) {
@@ -86,11 +84,10 @@ float map_gen_inverse_lerp( float min, float max, float value ) {
 #define MAP_GEN( func, ... ) map_gen_##func( __VA_ARGS__ )
 
 void map_gen_load_block_c( Chunk *chunk ) {
-    int chunk_offset_x = chunk->chunk_x * CHUNK_SIZE;
-    int chunk_offset_y = chunk->chunk_y * CHUNK_SIZE;
-    int chunk_offset_z = chunk->chunk_z * CHUNK_SIZE;
-    for ( int x = chunk_offset_x - 1; x < chunk_offset_x + CHUNK_SIZE_INTERNAL - 1; x++ ) {
-        for ( int z = chunk_offset_z - 1; z < chunk_offset_z + CHUNK_SIZE_INTERNAL - 1; z++ ) {
+    glm::ivec3 chunk_offset = chunk->chunk_pos * CHUNK_SIZE;
+
+    for ( int x = chunk_offset.x - 1; x < chunk_offset.x + CHUNK_SIZE_INTERNAL - 1; x++ ) {
+        for ( int z = chunk_offset.z - 1; z < chunk_offset.z + CHUNK_SIZE_INTERNAL - 1; z++ ) {
             float ground_noise = map_gen_ground_noise( x, z );
             float hills = map_gen_hills( x, z );
             float mountians = map_gen_mountians( x, z );
@@ -98,8 +95,9 @@ void map_gen_load_block_c( Chunk *chunk ) {
             float terrainHeight = level + mountians + hills + ground_noise;
             // terrainHeight = biome;
 
-            for ( int y = chunk_offset_y - 1; y < chunk_offset_y + CHUNK_SIZE_INTERNAL - 1; y++ ) {
-                int index = chunk_get_index_from_coords( x - chunk_offset_x, y - chunk_offset_y, z - chunk_offset_z );
+            for ( int y = chunk_offset.y - 1; y < chunk_offset.y + CHUNK_SIZE_INTERNAL - 1; y++ ) {
+                glm::ivec3 offset = glm::ivec3( x, y, z );
+                int index = chunk_get_index_from_coords( offset - chunk_offset );
 #include "common/map_logic.hpp"
                 chunk->blocks[ index ] = { finalBlockId, BLOCK_ROTATE_0, 0, finalBlockId }; // Assumes all blocks don't spawn with redstone power
             }

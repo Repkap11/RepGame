@@ -5,16 +5,12 @@
 
 class BlockNextToChangeEvent : public BlockUpdateEvent {
   public:
-    BlockNextToChangeEvent( long tick_number, int x, int y, int z, int i, int j, int k );
+    BlockNextToChangeEvent( long tick_number, const glm::ivec3 &pos, const glm::ivec3 &offset );
     void performAction( BlockUpdateQueue *blockUpdateQueue, World *world ) override;
 
   private:
-    int block_x;
-    int block_y;
-    int block_z;
-    int affecting_block_x;
-    int affecting_block_y;
-    int affecting_block_z;
+    glm::ivec3 block_pos;
+    glm::ivec3 affecting_block_pos;
 };
 
 #endif

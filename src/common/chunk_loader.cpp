@@ -22,9 +22,9 @@ int mod( int x, int N ) {
 }
 int reload_if_out_of_bounds( Chunk *chunk, const glm::ivec3 &chunk_pos ) {
 
-    int new_chunk_x = ( int )floorf( ( ( float )( chunk_pos.x - chunk->chunk_mod_x + CHUNK_RADIUS_X ) ) / ( ( float )( CHUNK_RADIUS_X * 2 + 1 ) ) ) * ( CHUNK_RADIUS_X * 2 + 1 ) + chunk->chunk_mod_x;
-    int new_chunk_y = ( int )floorf( ( ( float )( chunk_pos.y - chunk->chunk_mod_y + CHUNK_RADIUS_Y ) ) / ( ( float )( CHUNK_RADIUS_Y * 2 + 1 ) ) ) * ( CHUNK_RADIUS_Y * 2 + 1 ) + chunk->chunk_mod_y;
-    int new_chunk_z = ( int )floorf( ( ( float )( chunk_pos.z - chunk->chunk_mod_z + CHUNK_RADIUS_Z ) ) / ( ( float )( CHUNK_RADIUS_Z * 2 + 1 ) ) ) * ( CHUNK_RADIUS_Z * 2 + 1 ) + chunk->chunk_mod_z;
+    int new_chunk_x = ( int )floorf( ( ( float )( chunk_pos.x - chunk->chunk_mod.x + CHUNK_RADIUS_X ) ) / ( ( float )( CHUNK_RADIUS_X * 2 + 1 ) ) ) * ( CHUNK_RADIUS_X * 2 + 1 ) + chunk->chunk_mod.x;
+    int new_chunk_y = ( int )floorf( ( ( float )( chunk_pos.y - chunk->chunk_mod.y + CHUNK_RADIUS_Y ) ) / ( ( float )( CHUNK_RADIUS_Y * 2 + 1 ) ) ) * ( CHUNK_RADIUS_Y * 2 + 1 ) + chunk->chunk_mod.y;
+    int new_chunk_z = ( int )floorf( ( ( float )( chunk_pos.z - chunk->chunk_mod.z + CHUNK_RADIUS_Z ) ) / ( ( float )( CHUNK_RADIUS_Z * 2 + 1 ) ) ) * ( CHUNK_RADIUS_Z * 2 + 1 ) + chunk->chunk_mod.z;
     int changed = new_chunk_x != chunk->chunk_pos.x || new_chunk_y != chunk->chunk_pos.y || new_chunk_z != chunk->chunk_pos.z;
     if ( changed ) {
         chunk_unprogram_terrain( chunk );
@@ -90,15 +90,14 @@ void chunk_loader_init( LoadedChunks *loadedChunks, const glm::vec3 &camera_pos,
                             int new_i = ( i * sign_i ) - ( sign_i == -1 );
                             int new_j = ( j * sign_j ) - ( sign_j == -1 );
                             int new_k = ( k * sign_k ) - ( sign_k == -1 );
+                            glm::ivec3 new_offset = glm::vec3(new_i,new_j,new_k);
 
                             Chunk *chunk = &loadedChunks->chunkArray[ nextChunk ];
-                            chunk->chunk_x = new_i + camera_chunk.x;
-                            chunk->chunk_y = new_j + camera_chunk.y;
-                            chunk->chunk_z = new_k + camera_chunk.z;
+                            chunk->chunk_pos = new_offset + camera_chuck;
 
-                            chunk->chunk_mod_x = mod( chunk->chunk_x, 2 * CHUNK_RADIUS_X + 1 );
-                            chunk->chunk_mod_y = mod( chunk->chunk_y, 2 * CHUNK_RADIUS_Y + 1 );
-                            chunk->chunk_mod_z = mod( chunk->chunk_z, 2 * CHUNK_RADIUS_Z + 1 );
+                            chunk->chunk_mod.x = mod( chunk->chunk_pos.x, 2 * CHUNK_RADIUS_X + 1 );
+                            chunk->chunk_mod.y = mod( chunk->chunk_pos.y, 2 * CHUNK_RADIUS_Y + 1 );
+                            chunk->chunk_mod.z = mod( chunk->chunk_pos.z, 2 * CHUNK_RADIUS_Z + 1 );
 
                             chunk->is_loading = 1;
                             terrain_loading_thread_enqueue( chunk, chunk->chunk_pos, 0 );
@@ -111,10 +110,10 @@ void chunk_loader_init( LoadedChunks *loadedChunks, const glm::vec3 &camera_pos,
     }
 }
 
-Chunk *chunk_loader_get_chunk( LoadedChunks *loadedChunks, const glm::ivec3 &chunk_pos ) ) {
+Chunk *chunk_loader_get_chunk( LoadedChunks *loadedChunks, const glm::ivec3 &chunk_pos) {
     for ( int i = 0; i < MAX_LOADED_CHUNKS; i++ ) {
         Chunk *chunk = &loadedChunks->chunkArray[ i ];
-        if ( chunk->chunk_x == chunk_x && chunk->chunk_y == chunk_y && chunk->chunk_z == chunk_z ) {
+        if ( chunk->chunk_pos.x == chunk_pos.x && chunk->chunk_pos.y == chunk_pos.y && chunk->chunk_pos.z == chunk_pos.z ) {
             return chunk;
         }
     }
@@ -128,9 +127,9 @@ inline int process_chunk_position( Chunk *chunk, const glm::ivec3 &chunk_diff, c
     int visiable_changed_z = 0;
 
     if ( !force_reload ) {
-        visiable_changed_x = ( chunk_diff.x != 0 ) && ( chunk->chunk_x == center_previous.x || chunk->chunk_x == center_next.x );
-        visiable_changed_y = ( chunk_diff.y != 0 ) && ( chunk->chunk_y == center_previous.y || chunk->chunk_y == center_next.y );
-        visiable_changed_z = ( chunk_diff.z != 0 ) && ( chunk->chunk_z == center_previous.z || chunk->chunk_z == center_next.z );
+        visiable_changed_x = ( chunk_diff.x != 0 ) && ( chunk->chunk_pos.x == center_previous.x || chunk->chunk_pos.x == center_next.x );
+        visiable_changed_y = ( chunk_diff.y != 0 ) && ( chunk->chunk_pos.y == center_previous.y || chunk->chunk_pos.y == center_next.y );
+        visiable_changed_z = ( chunk_diff.z != 0 ) && ( chunk->chunk_pos.z == center_previous.z || chunk->chunk_pos.z == center_next.z );
     }
     if ( force_reload || visiable_changed_x || visiable_changed_y || visiable_changed_z ) {
         // pr_debug( "Vis dir changed for %2d %2d %2d changed because of:%2d %2d %2d same:%2d %2d %2d", //
@@ -201,9 +200,9 @@ void chunk_loader_calculate_cull( LoadedChunks *loadedChunks, const glm::mat4 &m
         Chunk *chunk = &loadedChunks->chunkArray[ i ];
         if ( CULL_NON_VISIBLE ) {
             glm::vec4 chunk_coords = glm::vec4(               //
-                chunk->chunk_x * CHUNK_SIZE + CHUNK_SIZE / 2, //
-                chunk->chunk_y * CHUNK_SIZE + CHUNK_SIZE / 2, //
-                chunk->chunk_z * CHUNK_SIZE + CHUNK_SIZE / 2, 1 );
+                chunk->chunk_pos.x * CHUNK_SIZE + CHUNK_SIZE / 2, //
+                chunk->chunk_pos.y * CHUNK_SIZE + CHUNK_SIZE / 2, //
+                chunk->chunk_pos.z * CHUNK_SIZE + CHUNK_SIZE / 2, 1 );
             glm::vec4 result_v = mvp * chunk_coords;
             float adjusted_diameter = chunk_diameter / fabsf( result_v.w );
 

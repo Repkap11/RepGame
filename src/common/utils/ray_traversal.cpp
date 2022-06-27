@@ -159,8 +159,6 @@ int ray_traversal_find_block_from_to( World *world, Block *pixel_block,         
     glm::vec3 dir = v2 - v1;
     dir = glm::normalize(dir);
 
-    glm::ivec3 dir = glm::floor(v1);
-
     //TODO do this math with glm vec types.
     const float x1 = v1.x;
     const float y1 = v1.y;

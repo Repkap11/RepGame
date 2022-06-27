@@ -3,32 +3,41 @@
 #include "common/multiplayer.hpp"
 #include "common/block_update_events/PlayerBlockPlacedEvent.hpp"
 
-BlockNextToChangeEvent::BlockNextToChangeEvent( long tick_number, int x, int y, int z, int i, int j, int k )
-    : BlockUpdateEvent( tick_number ), block_x( x + i ), block_y( y + j ), block_z( z + k ), affecting_block_x( x ), affecting_block_y( y ), affecting_block_z( z ) {
+BlockNextToChangeEvent::BlockNextToChangeEvent( long tick_number, const glm::ivec3 &pos, const glm::ivec3 &offset ) : BlockUpdateEvent( tick_number ), block_pos( pos+offset ), affecting_block_pos( pos ) {
     this->name = "BlockNextToChangeEvent";
 }
 
-int find_largest_redstone_power_around( World *world, int x, int y, int z ) {
+int find_largest_redstone_power_around( World *world, const glm::ivec3 &pos ) {
     int max = 0;
+    glm::ivec3 working_pos = pos;
     for ( int j = -1; j < 2; j += 2 ) {
-        int new_power = world_get_loaded_block( world, x, y + j, z ).current_redstone_power;
+        working_pos.y = pos.y + j;
+        int new_power = world_get_loaded_block( world, working_pos ).current_redstone_power;
         max = new_power > max ? new_power : max;
     }
+    working_pos.y = pos.y;
+
     for ( int i = -1; i < 2; i += 2 ) {
-        int new_power = world_get_loaded_block( world, x + i, y, z ).current_redstone_power;
+        working_pos.x = pos.x + i;
+        int new_power = world_get_loaded_block( world, working_pos ).current_redstone_power;
         max = new_power > max ? new_power : max;
     }
+    working_pos.x = pos.x;
+
     for ( int k = -1; k < 2; k += 2 ) {
-        int new_power = world_get_loaded_block( world, x, y, z + k ).current_redstone_power;
+        working_pos.z = pos.z + k;
+        int new_power = world_get_loaded_block( world, working_pos ).current_redstone_power;
         max = new_power > max ? new_power : max;
     }
+    // working_pos.z = pos.z;
+
     return max;
 }
 
 #define REDSTONE_DELAY 0
 
-#define NEXT_TO_STATE( i, j, k ) world_get_loaded_block( world, affecting_block_x + i, affecting_block_y + j, affecting_block_z + k )
-#define NEXT_TO_BLOCK( i, j, k ) block_definition_get_definition( world_get_loaded_block( world, affecting_block_x + i, affecting_block_y + j, affecting_block_z + k ).id )
+#define NEXT_TO_STATE( i, j, k ) world_get_loaded_block( world, glm::ivec3( affecting_block_pos.x + i, affecting_block_pos.y + j, affecting_block_pos.z + k ) )
+#define NEXT_TO_BLOCK( i, j, k ) block_definition_get_definition( world_get_loaded_block( world, glm::ivec3( affecting_block_pos.x + i, affecting_block_pos.y + j, affecting_block_pos.z + k ) ).id )
 
 inline int get_rotated_face( int face, int rotation ) {
     int result = face;
@@ -39,22 +48,22 @@ inline int get_rotated_face( int face, int rotation ) {
 }
 
 void perform_checks( BlockUpdateQueue *blockUpdateQueue, World *world, long tick_number, //
-                     int block_x, int block_y, int block_z,                              //
-                     int affecting_block_x, int affecting_block_y, int affecting_block_z ) {
+                     const glm::ivec3 &block_pos,                                        //
+                     const glm::ivec3 &affecting_block_pos ) {
 
     // The updating block  was next to the updating one, and might need to change
-    const BlockState updateing_block_state = world_get_loaded_block( world, block_x, block_y, block_z );
+    const BlockState updateing_block_state = world_get_loaded_block( world, block_pos );
     const Block *updateing_block = block_definition_get_definition( updateing_block_state.id );
 
     // The affecting block is the one that origionally change
-    const BlockState affecting_block_state = world_get_loaded_block( world, affecting_block_x, affecting_block_y, affecting_block_z );
+    const BlockState affecting_block_state = world_get_loaded_block( world, affecting_block_pos );
     const Block *affecting_block = block_definition_get_definition( affecting_block_state.id );
 
     // Water flow needs to start when a block next to water is broken
-    if ( updateing_block->flows != 0 && affecting_block->breaks_in_liquid && affecting_block_y <= block_y ) {
-        pr_debug( "Expanding a water x:%d y:%d z:%d into x:%d y:%d z:%d ", block_x, block_y, block_z, affecting_block_x, affecting_block_y, affecting_block_z );
+    if ( updateing_block->flows != 0 && affecting_block->breaks_in_liquid && affecting_block_pos.y <= block_pos.y ) {
+        pr_debug( "Expanding a water x:%d y:%d z:%d into x:%d y:%d z:%d ", block_pos.x, block_pos.y, block_pos.z, affecting_block_pos.x, affecting_block_pos.y, affecting_block_pos.z );
         BlockState new_block_state = updateing_block_state;
-        BlockUpdateEvent *blockPlacedEvent = new PlayerBlockPlacedEvent( tick_number + updateing_block->flows, affecting_block_x, affecting_block_y, affecting_block_z, new_block_state, false );
+        BlockUpdateEvent *blockPlacedEvent = new PlayerBlockPlacedEvent( tick_number + updateing_block->flows, affecting_block_pos, new_block_state, false );
         blockUpdateQueue->addBlockUpdate( blockPlacedEvent );
     }
 
@@ -106,7 +115,7 @@ void perform_checks( BlockUpdateQueue *blockUpdateQueue, World *world, long tick
 
                     BlockState new_block_state = affecting_block_state;
                     new_block_state.display_id = new_display_block_id;
-                    BlockUpdateEvent *blockPlacedEvent = new PlayerBlockPlacedEvent( tick_number, affecting_block_x, affecting_block_y, affecting_block_z, new_block_state, true );
+                    BlockUpdateEvent *blockPlacedEvent = new PlayerBlockPlacedEvent( tick_number, affecting_block_pos, new_block_state, true );
                     blockUpdateQueue->addBlockUpdate( blockPlacedEvent );
                 }
             }
@@ -118,7 +127,7 @@ void perform_checks( BlockUpdateQueue *blockUpdateQueue, World *world, long tick
         if ( affecting_block->initial_redstone_power ) {
             new_power = affecting_block->initial_redstone_power;
         } else {
-            int maximum_power = find_largest_redstone_power_around( world, affecting_block_x, affecting_block_y, affecting_block_z );
+            int maximum_power = find_largest_redstone_power_around( world, affecting_block_pos );
             new_power = maximum_power > 1 ? maximum_power - 1 : 0;
             if ( !affecting_block->transmits_redstone_power ) {
                 if ( new_power > 0 ) {
@@ -135,16 +144,16 @@ void perform_checks( BlockUpdateQueue *blockUpdateQueue, World *world, long tick
             // pr_debug( "Queueing event1 with old:%d new:%d", affecting_block_state.current_redstone_power, new_power );
             BlockState new_block_state = affecting_block_state;
             new_block_state.current_redstone_power = new_power;
-            BlockUpdateEvent *blockPlacedEvent = new PlayerBlockPlacedEvent( tick_number + REDSTONE_DELAY, affecting_block_x, affecting_block_y, affecting_block_z, new_block_state, true );
+            BlockUpdateEvent *blockPlacedEvent = new PlayerBlockPlacedEvent( tick_number + REDSTONE_DELAY, affecting_block_pos, new_block_state, true );
             blockUpdateQueue->addBlockUpdate( blockPlacedEvent );
         }
     }
 
     bool block_is_ok_to_place = true;
     for ( int face = FACE_TOP; face < NUM_FACES_IN_CUBE; face++ ) {
-        int rotated_face = get_rotated_face(face, updateing_block_state.rotation);
+        int rotated_face = get_rotated_face( face, updateing_block_state.rotation );
         if ( updateing_block->needs_place_on_any_solid[ rotated_face ] ) {
-            BlockID next_to_block_id = world_get_loaded_block( world, block_x - FACE_DIR_X_OFFSETS[ face ], block_y - FACE_DIR_Y_OFFSETS[ face ], block_z - FACE_DIR_Z_OFFSETS[ face ] ).id;
+            BlockID next_to_block_id = world_get_loaded_block( world, glm::ivec3( block_pos.x - FACE_DIR_X_OFFSETS[ face ], block_pos.y - FACE_DIR_Y_OFFSETS[ face ], block_pos.z - FACE_DIR_Z_OFFSETS[ face ] ) ).id;
             if ( updateing_block->needs_place_on_solid_but_can_stack_on_self && next_to_block_id == updateing_block_state.id ) {
                 block_is_ok_to_place = true;
                 break;
@@ -157,17 +166,17 @@ void perform_checks( BlockUpdateQueue *blockUpdateQueue, World *world, long tick
         }
     }
     if ( !block_is_ok_to_place ) {
-        BlockUpdateEvent *blockPlacedEvent = new PlayerBlockPlacedEvent( tick_number, block_x, block_y, block_z, BLOCK_STATE_AIR, false );
+        BlockUpdateEvent *blockPlacedEvent = new PlayerBlockPlacedEvent( tick_number, block_pos, BLOCK_STATE_AIR, false );
         blockUpdateQueue->addBlockUpdate( blockPlacedEvent );
     }
 }
 
 void BlockNextToChangeEvent::performAction( BlockUpdateQueue *blockUpdateQueue, World *world ) {
 
-    perform_checks( blockUpdateQueue, world, this->tick_number,  //
-                    this->block_x, this->block_y, this->block_z, //
-                    this->affecting_block_x, this->affecting_block_y, this->affecting_block_z );
-    perform_checks( blockUpdateQueue, world, this->tick_number,                                //
-                    this->affecting_block_x, this->affecting_block_y, this->affecting_block_z, //
-                    this->block_x, this->block_y, this->block_z );
+    perform_checks( blockUpdateQueue, world, this->tick_number, //
+                    this->block_pos,                            //
+                    this->affecting_block_pos );
+    perform_checks( blockUpdateQueue, world, this->tick_number, //
+                    this->affecting_block_pos,                  //
+                    this->block_pos );
 }
