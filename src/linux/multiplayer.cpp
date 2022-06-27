@@ -76,7 +76,8 @@ void multiplayer_process_events( World *world ) {
                     BlockState *blockState = ( BlockState * )( update.data.block.blockState );
                     pr_debug( "Read message: block:%d", blockState->id );
 
-                    world_set_loaded_block( world, update.data.block.x, update.data.block.y, update.data.block.z, *blockState );
+                    glm::ivec3 block_pos = glm::ivec3(update.data.block.x, update.data.block.y, update.data.block.z);
+                    world_set_loaded_block( world, block_pos, *blockState );
                 } else if ( update.type == PLAYER_LOCATION ) {
                     // pr_debug( "Updating player location:%d", update.player_id );
                     glm::mat4 rotation = glm::make_mat4( update.data.player.rotation );
@@ -105,7 +106,7 @@ void multiplayer_set_block_send_packet( NetPacket *update ) {
     }
 }
 
-void multiplayer_set_block( int block_x, int block_y, int block_z, BlockState blockState ) {
+void multiplayer_set_block(const glm::ivec3 &block_pos, BlockState blockState ) {
     if ( active ) {
         // Log what the player is doing
         if ( blockState.id != AIR ) {
@@ -115,22 +116,22 @@ void multiplayer_set_block( int block_x, int block_y, int block_z, BlockState bl
         }
         NetPacket update;
         update.type = BLOCK_UPDATE;
-        update.data.block.x = block_x;
-        update.data.block.y = block_y;
-        update.data.block.z = block_z;
+        update.data.block.x = block_pos.x;
+        update.data.block.y = block_pos.y;
+        update.data.block.z = block_pos.z;
         memcpy( &update.data.block.blockState, &blockState, sizeof( BlockState ) );
 
         multiplayer_set_block_send_packet( &update );
     }
 }
 
-void multiplayer_update_players_position( float player_x, float player_y, float player_z, const glm::mat4 &rotation ) {
+void multiplayer_update_players_position( const glm::vec3 &player_pos, const glm::mat4 &rotation ) {
     if ( active ) {
         NetPacket update;
         update.type = PLAYER_LOCATION;
-        update.data.player.x = player_x;
-        update.data.player.y = player_y;
-        update.data.player.z = player_z;
+        update.data.player.x = player_pos.x;
+        update.data.player.y = player_pos.y;
+        update.data.player.z = player_pos.z;
         memcpy( update.data.player.rotation, ( float * )glm::value_ptr( rotation ), sizeof( glm::mat4 ) );
 
         multiplayer_set_block_send_packet( &update );

@@ -6,7 +6,7 @@
 #include "sky_box.hpp"
 
 typedef struct {
-    int chunk_center_x, chunk_center_y, chunk_center_z;
+    glm::ivec3 chunk_center;
     Chunk *chunkArray;
     Shader shader;
     struct {
@@ -17,12 +17,12 @@ typedef struct {
     } water;
 } LoadedChunks;
 
-void chunk_loader_init( LoadedChunks *loadedChunks, float camera_x, float camera_y, float camera_z, VertexBufferLayout *vbl_block, VertexBufferLayout *vbl_coords );
-void chunk_loader_render_chunks( LoadedChunks *loadedChunks, float camera_x, float camera_y, float camera_z, int limit_render );
+void chunk_loader_init( LoadedChunks *loadedChunks, const glm::vec3 &camera_pos, VertexBufferLayout *vbl_block, VertexBufferLayout *vbl_coords );
+void chunk_loader_render_chunks( LoadedChunks *loadedChunks, const glm::vec3 &camera_pos, int limit_render );
 void chunk_loader_repopulate_blocks( LoadedChunks *loadedChunks );
 void chunk_loader_calculate_cull( LoadedChunks *loadedChunks, const glm::mat4 &mvp, bool saveAsReflection );
 void chunk_loader_draw_chunks( LoadedChunks *loadedChunks, const glm::mat4 &mvp, Renderer *renderer, bool reflect_only, bool draw_reflect );
-Chunk *chunk_loader_get_chunk( LoadedChunks *loadedChunks, int pointed_x, int pointed_y, int pointed_z );
+Chunk *chunk_loader_get_chunk( LoadedChunks *loadedChunks, const glm::ivec3 &pointed );
 void chunk_loader_cleanup( LoadedChunks *loadedChunks );
 
 #endif

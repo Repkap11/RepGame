@@ -26,7 +26,7 @@ typedef struct {
     int is_loading;
     RenderLayer layers[ LAST_RENDER_ORDER ];
     BlockState *blocks;
-    int chunk_x, chunk_y, chunk_z;
+    glm::ivec3 chunk_pos;
     int dirty;
     int should_render;
     int cached_cull_normal;
@@ -40,18 +40,18 @@ void chunk_render( const Chunk *chunk, const Renderer *renderer, const Shader *s
 void chunk_load_terrain( Chunk *chunk );      // Load from file or map gen
 void chunk_program_terrain( Chunk *chunk );   // Program into GPU
 void chunk_unprogram_terrain( Chunk *chunk ); // Remove from GPU
-void chunk_calculate_sides( Chunk *chunk, int center_next_x, int center_next_y, int center_next_z );
-int chunk_get_coords_from_index( int index, int *out_x, int *out_y, int *out_z );
-int chunk_get_index_from_coords( int x, int y, int z );
+void chunk_calculate_sides( Chunk *chunk, const glm::ivec3 &center_next );
+int chunk_get_coords_from_index( int index, glm::ivec3 &out_pos );
+int chunk_get_index_from_coords( const glm::ivec3 &pos );
 // void chunk_draw( Chunk *chunk, int solid );
 void chunk_persist( Chunk *chunk );
 void chunk_destroy( Chunk *chunk );
-void chunk_set_block( Chunk *chunk, int x, int y, int z, BlockState blockState );
-BlockState chunk_get_block( Chunk *chunk, int x, int y, int z );
+void chunk_set_block( Chunk *chunk, const glm::ivec3 &pos, BlockState blockState );
+BlockState chunk_get_block( Chunk *chunk, const glm::ivec3 &pos );
 void chunk_calculate_popupated_blocks( Chunk *chunk );
 
-inline int chunk_get_index_from_coords( int x, int y, int z ) {
-    return ( y + 1 ) * CHUNK_SIZE_INTERNAL * CHUNK_SIZE_INTERNAL + ( x + 1 ) * CHUNK_SIZE_INTERNAL + ( z + 1 );
+inline int chunk_get_index_from_coords( const glm::ivec3 &pos ) {
+    return ( pos.y + 1 ) * CHUNK_SIZE_INTERNAL * CHUNK_SIZE_INTERNAL + ( pos.x + 1 ) * CHUNK_SIZE_INTERNAL + ( pos.z + 1 );
 }
 
 #endif

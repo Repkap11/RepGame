@@ -11,4 +11,4 @@ void dostuff( int );
 
 void multiplayer_process_events( World *world );
 void multiplayer_set_block( int block_x, int block_y, int block_z, BlockState blockState );
-void multiplayer_update_players_position( float block_x, float block_y, float block_z, const glm::mat4 &rotation );
+void multiplayer_update_players_position( const glm::vec3 &player_pos, const glm::mat4 &rotation );

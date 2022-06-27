@@ -18,7 +18,7 @@ bool USES_FSQ_AND_FB = true;
 bool USES_FSQ_AND_FB = false;
 #endif
 
-void world_init( World *world, TRIP_ARGS( float camera_ ) ) {
+void world_init( World *world, const glm::vec3 &camera_pos) {
     // These are from CubeFace
     vertex_buffer_layout_init( &world->vbl_block );
     vertex_buffer_layout_push_float( &world->vbl_block, 3 );        // Coords
@@ -53,7 +53,7 @@ void world_init( World *world, TRIP_ARGS( float camera_ ) ) {
     vertex_buffer_layout_push_float( &world->vbl_object_position, 4 );        // transform
     vertex_buffer_layout_push_float( &world->vbl_object_position, 4 );        // transform
 
-    chunk_loader_init( &world->loadedChunks, TRIP_ARGS( camera_ ), &world->vbl_block, &world->vbl_coords );
+    chunk_loader_init( &world->loadedChunks, camera_pos, &world->vbl_block, &world->vbl_coords );
 
     float *random_rotation_blocks;
     block_definitions_get_random_rotations( &random_rotation_blocks );
@@ -95,17 +95,17 @@ void world_change_size( World *world, int width, int height ) {
     }
 }
 
-void world_render( World *world, TRIP_ARGS( float camera_ ), int limit_render, const glm::mat4 &rotation ) {
-    chunk_loader_render_chunks( &world->loadedChunks, TRIP_ARGS( camera_ ), limit_render );
+void world_render( World *world, const glm::vec3 &camera_pos, int limit_render, const glm::mat4 &rotation ) {
+    chunk_loader_render_chunks( &world->loadedChunks, camera_pos, limit_render );
     // world->mobs.update_position( 10, 10, 10, rotation );
 }
 
-void world_set_selected_block( World *world, int selected_x, int selected_y, int selected_z, int shouldDraw ) {
-    BlockState blockState = world_get_loaded_block( world, TRIP_ARGS( selected_ ) );
+void world_set_selected_block( World *world, const glm::ivec3 &selected, int shouldDraw ) {
+    BlockState blockState = world_get_loaded_block( world, selected );
     if ( blockState.id == LAST_BLOCK_ID ) {
         return;
     }
-    mouse_selection_set_block( &world->mouseSelection, TRIP_ARGS( selected_ ), shouldDraw, blockState );
+    mouse_selection_set_block( &world->mouseSelection, selected, shouldDraw, blockState );
 }
 
 #define WATER_THRESHOLD_P 0.02
@@ -241,7 +241,7 @@ void world_cleanup( World *world ) {
     }
 }
 
-int can_fixup_chunk( World *world, Chunk *chunk, TRIP_ARGS( int offset_ ) ) {
+int can_fixup_chunk( World *world, Chunk *chunk, const glm::ivec3 &offset ) {
     Chunk *fixupChunk = chunk_loader_get_chunk( &world->loadedChunks, chunk->chunk_x + offset_x, chunk->chunk_y + offset_y, chunk->chunk_z + offset_z );
     if ( fixupChunk ) {
         if ( !fixupChunk->is_loading ) {
@@ -251,7 +251,7 @@ int can_fixup_chunk( World *world, Chunk *chunk, TRIP_ARGS( int offset_ ) ) {
     return 0;
 }
 
-void fixup_chunk( World *world, Chunk *chunk, TRIP_ARGS( int offset_ ), TRIP_ARGS( int pos_ ), BlockState blockState ) {
+void fixup_chunk( World *world, Chunk *chunk, const glm::ivec3 &offset, const glm::ivec3 &pos, BlockState blockState ) {
     // pr_debug( "Fixup Offset: %d %d %d", x, y, z );
     Chunk *fixupChunk = chunk_loader_get_chunk( &world->loadedChunks, chunk->chunk_x + offset_x, chunk->chunk_y + offset_y, chunk->chunk_z + offset_z );
     if ( fixupChunk ) {
@@ -260,48 +260,50 @@ void fixup_chunk( World *world, Chunk *chunk, TRIP_ARGS( int offset_ ), TRIP_ARG
             pr_debug( "Ekk, still loading. You'll probably get a lighting bug." );
             return;
         }
-        chunk_set_block( fixupChunk, TRIP_ARGS( pos_ ), blockState );
+        chunk_set_block( fixupChunk, pos, blockState );
         fixupChunk->dirty = 1;
         fixupChunk->needs_repopulation = 1;
     }
 }
 
-Chunk *world_get_loaded_chunk( World *world, TRIP_ARGS( int block_ ) ) {
+Chunk *world_get_loaded_chunk( World *world, const glm::ivec3 &block_pos ) {
     int chunk_x = floor( block_x / ( float )CHUNK_SIZE );
     int chunk_y = floor( block_y / ( float )CHUNK_SIZE );
     int chunk_z = floor( block_z / ( float )CHUNK_SIZE );
     return chunk_loader_get_chunk( &world->loadedChunks, chunk_x, chunk_y, chunk_z );
 }
 
-BlockState world_get_block_from_chunk( Chunk *chunk, TRIP_ARGS( int block_ ) ) {
+BlockState world_get_block_from_chunk( Chunk *chunk, const glm::ivec3 &block_pos ) ) {
     int diff_x = block_x - chunk->chunk_x * CHUNK_SIZE;
     int diff_y = block_y - chunk->chunk_y * CHUNK_SIZE;
     int diff_z = block_z - chunk->chunk_z * CHUNK_SIZE;
     return chunk_get_block( chunk, diff_x, diff_y, diff_z );
 }
 
-BlockState world_get_loaded_block( World *world, TRIP_ARGS( int block_ ) ) {
-    Chunk *chunk = world_get_loaded_chunk( world, TRIP_ARGS( block_ ) );
+BlockState world_get_loaded_block( World *world, const glm::ivec3 &block_pos ) ) {
+    Chunk *chunk = world_get_loaded_chunk( world,  block_pos );
     if ( chunk ) {
         if ( chunk->is_loading ) {
             return BLOCK_STATE_LAST_BLOCK_ID;
         }
-        BlockState blockState = world_get_block_from_chunk( chunk, TRIP_ARGS( block_ ) );
+        BlockState blockState = world_get_block_from_chunk( chunk,  block_pos );
         return blockState;
     }
     return BLOCK_STATE_LAST_BLOCK_ID;
 }
 
-void world_set_loaded_block( World *world, TRIP_ARGS( int block_ ), BlockState blockState ) {
-    int chunk_x = floor( block_x / ( float )CHUNK_SIZE );
-    int chunk_y = floor( block_y / ( float )CHUNK_SIZE );
-    int chunk_z = floor( block_z / ( float )CHUNK_SIZE );
+void world_set_loaded_block( World *world, const glm::ivec3 &block_pos, BlockState blockState ) {
+    int chunk_x = floor( block_pos.x / ( float )CHUNK_SIZE );
+    int chunk_y = floor( block_pos.y / ( float )CHUNK_SIZE );
+    int chunk_z = floor( block_pos.z / ( float )CHUNK_SIZE );
 
-    Chunk *chunk = chunk_loader_get_chunk( &world->loadedChunks, chunk_x, chunk_y, chunk_z );
+    glm::ivec3 chunk_pos = glm::floor(glm::vec3(block_pos) / (float)CHUNK_SIZE);
+
+    Chunk *chunk = chunk_loader_get_chunk( &world->loadedChunks, chunk_pos);
     if ( chunk ) {
-        int diff_x = block_x - chunk_x * CHUNK_SIZE;
-        int diff_y = block_y - chunk_y * CHUNK_SIZE;
-        int diff_z = block_z - chunk_z * CHUNK_SIZE;
+        int diff_x = block_pos.x - chunk_x * CHUNK_SIZE;
+        int diff_y = block_pos.y - chunk_y * CHUNK_SIZE;
+        int diff_z = block_pos.z - chunk_z * CHUNK_SIZE;
         // pr_debug( "Orig Offset: %d %d %d", diff_x, diff_y, diff_z );
 
         for ( int i = -1; i < 2; i++ ) {
@@ -310,7 +312,7 @@ void world_set_loaded_block( World *world, TRIP_ARGS( int block_ ), BlockState b
                     int needs_update_x = ( ( i != 1 && diff_x == 0 ) || ( i != -1 && diff_x == ( CHUNK_SIZE - 1 ) ) ) || i == 0; //
                     int needs_update_y = ( ( j != 1 && diff_y == 0 ) || ( j != -1 && diff_y == ( CHUNK_SIZE - 1 ) ) ) || j == 0; //
                     int needs_update_z = ( ( k != 1 && diff_z == 0 ) || ( k != -1 && diff_z == ( CHUNK_SIZE - 1 ) ) ) || k == 0;
-                    int needs_update = TRIP_AND( needs_update_ ) && !( i == 0 && j == 0 && k == 0 );
+                    int needs_update = ( needs_update_x && needs_update_y && needs_update_z ) && !( i == 0 && j == 0 && k == 0 );
                     if ( needs_update ) {
                         if ( !can_fixup_chunk( world, chunk, i, j, k ) ) {
                             pr_debug( "Ekk, can't fixup block, so not placing" );

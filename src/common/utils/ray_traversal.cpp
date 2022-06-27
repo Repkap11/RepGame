@@ -12,11 +12,11 @@ typedef struct {
     float z;
 } RayTemp;
 
-int contains_pixel( Block *pixel_block, BlockState *block_state, float dir_x, float dir_y, float dir_z, float initial_x, float initial_y, float initial_z, float block_x, float block_y, float block_z, int *which_face ) {
+int contains_pixel( Block *pixel_block, BlockState *block_state, const glm::vec3 &dir, const glm::vec3 &initial, const glm::vec3 &block, int *which_face ) {
     // r.dir is unit direction vector of ray
-    float dirfrac_x = 1.0f / dir_x;
-    float dirfrac_y = 1.0f / dir_y;
-    float dirfrac_z = 1.0f / dir_z;
+    float dirfrac_x = 1.0f / dir.x;
+    float dirfrac_y = 1.0f / dir.y;
+    float dirfrac_z = 1.0f / dir.z;
     // lb is the corner of AABB with minimal coordinates - left bottom, rt is maximal corner
     // r.org is origin of ray
 
@@ -40,25 +40,25 @@ int contains_pixel( Block *pixel_block, BlockState *block_state, float dir_x, fl
         offset_z = 16 - pixel_block->scale.x - pixel_block->offset.x;
     }
 
-    float c1_x = block_x + PIXEL_TO_FLOAT( offset_x );
-    float c1_z = block_z + PIXEL_TO_FLOAT( offset_z );
+    float c1_x = block.x + PIXEL_TO_FLOAT( offset_x );
+    float c1_z = block.z + PIXEL_TO_FLOAT( offset_z );
 
     float c2_x = c1_x + PIXEL_TO_FLOAT( scale_x );
     float c2_z = c1_z + PIXEL_TO_FLOAT( scale_z );
 
-    float c1_y = block_y + PIXEL_TO_FLOAT( pixel_block->offset.y );
+    float c1_y = block.y + PIXEL_TO_FLOAT( pixel_block->offset.y );
     float c2_y = c1_y + PIXEL_TO_FLOAT( pixel_block->scale.y );
 
     // pr_debug( "%f %f %f", lb.x, lb.y, lb.z );
     // pr_debug( "%f %f %f", rt.x, rt.y, rt.z );
     // float length = 0;
     float all_t[ NUM_FACES_IN_CUBE ];
-    all_t[ FACE_TOP ] = ( c2_y - initial_y ) * dirfrac_y;
-    all_t[ FACE_BOTTOM ] = ( c1_y - initial_y ) * dirfrac_y;
-    all_t[ FACE_RIGHT ] = ( c2_x - initial_x ) * dirfrac_x;
-    all_t[ FACE_BACK ] = ( c2_z - initial_z ) * dirfrac_z;
-    all_t[ FACE_LEFT ] = ( c1_x - initial_x ) * dirfrac_x;
-    all_t[ FACE_FRONT ] = ( c1_z - initial_z ) * dirfrac_z;
+    all_t[ FACE_TOP ] = ( c2_y - initial.y ) * dirfrac_y;
+    all_t[ FACE_BOTTOM ] = ( c1_y - initial.y ) * dirfrac_y;
+    all_t[ FACE_RIGHT ] = ( c2_x - initial.x ) * dirfrac_x;
+    all_t[ FACE_BACK ] = ( c2_z - initial.z ) * dirfrac_z;
+    all_t[ FACE_LEFT ] = ( c1_x - initial.x ) * dirfrac_x;
+    all_t[ FACE_FRONT ] = ( c1_z - initial.z ) * dirfrac_z;
 
     float rl_min;
     float rl_max;
@@ -130,8 +130,8 @@ int contains_pixel( Block *pixel_block, BlockState *block_state, float dir_x, fl
     return true;
 }
 
-int contains_block( World *world, float dir_x, float dir_y, float dir_z, float initial_x, float initial_y, float initial_z, int block_x, int block_y, int block_z, int collide_with_unloaded, int is_pick, int *which_face ) {
-    BlockState blockState = world_get_loaded_block( world, TRIP_ARGS( block_ ) );
+int contains_block( World *world, const glm::vec3 &dir, const glm::vec3 &initial, const glm::ivec3 &block_pos, int collide_with_unloaded, int is_pick, int *which_face ) {
+    BlockState blockState = world_get_loaded_block( world, block_pos );
     BlockID blockID = blockState.id;
     if ( blockID >= LAST_BLOCK_ID ) {
         return collide_with_unloaded;
@@ -144,29 +144,31 @@ int contains_block( World *world, float dir_x, float dir_y, float dir_z, float i
         result = block->collides_with_player;
     }
     if ( result && block->non_full_size ) {
-        return contains_pixel( block, &blockState, dir_x, dir_y, dir_z, initial_x, initial_y, initial_z, block_x, block_y, block_z, which_face );
+        return contains_pixel( block, &blockState, dir, initial, block_pos, which_face );
     } else {
         return result;
     }
 }
 
 int ray_traversal_find_block_from_to( World *world, Block *pixel_block,               //
-                                      const float x1, const float y1, const float z1, //
-                                      const float x2, const float y2, const float z2, //
-                                      int *out_x, int *out_y, int *out_z,             //
+                                      const glm::vec3 &v1, //
+                                      const glm::vec3 &v2, //
+                                      glm::ivec3 &out, //
                                       int *out_whichFace, int flag, int is_pick, int is_pixel ) {
 
-    float dir_x = x2 - x1;
-    float dir_y = y2 - y1;
-    float dir_z = z2 - z1;
-    float length = sqrtf( dir_x * dir_x + dir_y * dir_y + dir_z * dir_z );
-    dir_x /= length;
-    dir_y /= length;
-    dir_z /= length;
+    glm::vec3 dir = v2 - v1;
+    dir = glm::normalize(dir);
 
-    int i = ( int )floorf( x1 );
-    int j = ( int )floorf( y1 );
-    int k = ( int )floorf( z1 );
+    glm::ivec3 dir = glm::floor(v1);
+
+    //TODO do this math with glm vec types.
+    const float x1 = v1.x;
+    const float y1 = v1.y;
+    const float z1 = v1.z;
+    const float x2 = v2.x;
+    const float y2 = v2.y;
+    const float z2 = v2.z;
+
 
     const int iend = ( int )floorf( x2 );
     const int jend = ( int )floorf( y2 );
@@ -208,14 +210,12 @@ int ray_traversal_find_block_from_to( World *world, Block *pixel_block,         
     }
     for ( ;; ) {
         int which_face = -1;
-        int hit_block = contains_block( world, dir_x, dir_y, dir_z, x1, y1, z1, i, j, k, flag, is_pick, &which_face );
+        int hit_block = contains_block( world, dir, v1, dir, flag, is_pick, &which_face );
         if ( which_face != -1 ) {
             face = which_face;
         }
         if ( hit_block ) {
-            *out_x = i;
-            *out_y = j;
-            *out_z = k;
+            out = dir;
             if ( !flag ) {
                 *out_whichFace = face;
                 return 1;
@@ -225,10 +225,10 @@ int ray_traversal_find_block_from_to( World *world, Block *pixel_block,         
         }
 
         if ( tx <= ty && tx <= tz ) {
-            if ( i == iend )
+            if ( dir.x == iend )
                 break;
             tx += deltatx;
-            i += di;
+            dir.x += di;
             if ( di == 1 ) {
                 face = FACE_LEFT;
             }
@@ -237,10 +237,10 @@ int ray_traversal_find_block_from_to( World *world, Block *pixel_block,         
             }
 
         } else if ( ty <= tz ) {
-            if ( j == jend )
+            if ( dir.y == jend )
                 break;
             ty += deltaty;
-            j += dj;
+            dir.y += dj;
             if ( dj == 1 ) {
                 face = FACE_BOTTOM;
             }
@@ -249,10 +249,10 @@ int ray_traversal_find_block_from_to( World *world, Block *pixel_block,         
             }
 
         } else {
-            if ( k == kend )
+            if ( dir.z == kend )
                 break;
             tz += deltatz;
-            k += dk;
+            dir.z += dk;
             if ( dk == 1 ) {
                 face = FACE_FRONT;
             }

@@ -5,17 +5,15 @@
 
 class PlayerBlockPlacedEvent : public BlockUpdateEvent {
   public:
-    PlayerBlockPlacedEvent( long tick_number, int block_x, int block_y, int block_z, BlockState blockState, bool state_update );
+    PlayerBlockPlacedEvent( long tick_number, glm::ivec3 block, BlockState blockState, bool state_update );
     void performAction( BlockUpdateQueue *blockUpdateQueue, World *world ) override;
 
   private:
-    int block_x;
-    int block_y;
-    int block_z;
+    glm::ivec3 block;
     BlockState blockState;
     bool state_update;
 
-    void performActionToNeighbor( BlockUpdateQueue *blockUpdateQueue, World *world, int i, int j, int k );
+    void performActionToNeighbor( BlockUpdateQueue *blockUpdateQueue, World *world, glm::ivec3 offset);
 };
 
 #endif

@@ -10,21 +10,17 @@ LinkedList *result_linked_list;
 void process_value( LinkedListValue *value ) {
     Chunk *chunk = value->chunk;
     chunk_persist( chunk );
-    chunk->chunk_x = value->new_chunk_x;
-    chunk->chunk_y = value->new_chunk_y;
-    chunk->chunk_z = value->new_chunk_z;
+    chunk->chunk_pos = value->new_chunk_pos;
     chunk_load_terrain( chunk );
     // pr_debug( "Paul Loading terrain x:%d y%d: z:%d work:%d results:%d", chunk->chunk_x, chunk->chunk_y, chunk->chunk_z, work_linked_list->count, result_linked_list->count );
 }
 
 #if defined( REPGAME_WASM )
-void terrain_loading_thread_enqueue( Chunk *chunk, TRIP_ARGS( int new_chunk_ ), int persist ) {
+void terrain_loading_thread_enqueue( Chunk *chunk, const glm::ivec3 &new_chunk_pos ), int persist ) {
     LinkedListValue value;
     value.valid = 1;
     value.chunk = chunk;
-    value.new_chunk_x = new_chunk_x;
-    value.new_chunk_y = new_chunk_y;
-    value.new_chunk_z = new_chunk_z;
+    value.new_chunk_pos = new_chunk;
     value.persist = persist;
     if ( value.chunk ) {
         linked_list_add_element( result_linked_list, value );
@@ -86,12 +82,10 @@ int terrain_loading_thread_start( ) {
     return 0;
 }
 
-void terrain_loading_thread_enqueue( Chunk *chunk, TRIP_ARGS( int new_chunk_ ), int persist ) {
+void terrain_loading_thread_enqueue( Chunk *chunk, const glm::ivec3 &new_chunk_pos, int persist ) {
     LinkedListValue value;
     value.chunk = chunk;
-    value.new_chunk_x = new_chunk_x;
-    value.new_chunk_y = new_chunk_y;
-    value.new_chunk_z = new_chunk_z;
+    value.new_chunk_pos = new_chunk_pos;
     value.persist = persist;
     value.valid = 0;
     linked_list_add_element( work_linked_list, value );

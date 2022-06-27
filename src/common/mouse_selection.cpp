@@ -80,18 +80,18 @@ void mouse_selection_init( MouseSelection *mouseSelection, VertexBufferLayout *v
     mouseSelection->block.tex_offset_y = 0;
     mouseSelection->block.tex_offset_z = 0;
 }
-void mouse_selection_set_block( MouseSelection *mouseSelection, int x, int y, int z, int shouldDraw, BlockState blockState ) {
+void mouse_selection_set_block( MouseSelection *mouseSelection, const glm::ivec3 &pos, int shouldDraw, BlockState blockState ) {
     // y += 1;
     mouseSelection->shouldDraw = shouldDraw;
-    if ( mouseSelection->block.x != x ||                                        //
-         mouseSelection->block.y != y ||                                        //
-         mouseSelection->block.z != z ||                                        //
+    if ( mouseSelection->block.x != pos.x ||                                        //
+         mouseSelection->block.y != pos.y ||                                        //
+         mouseSelection->block.z != pos.z ||                                        //
          !BlockStates_equal( blockState, mouseSelection->selected_block_state ) //
     ) {
         Block *block = block_definition_get_definition( blockState.id );
-        mouseSelection->block.x = x;
-        mouseSelection->block.y = y;
-        mouseSelection->block.z = z;
+        mouseSelection->block.x = pos.x;
+        mouseSelection->block.y = pos.y;
+        mouseSelection->block.z = pos.z;
         mouseSelection->selected_block_state = blockState;
 
         mouseSelection->block.scale_x = PIXEL_TO_FLOAT( block->scale.x );

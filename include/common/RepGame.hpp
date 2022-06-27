@@ -30,14 +30,6 @@
 
 #define DEBUG 1
 
-#define TRIP_STATE( replace )                                                                                                                                                                                                                  \
-    replace##x;                                                                                                                                                                                                                                \
-    replace##y;                                                                                                                                                                                                                                \
-    replace##z
-#define TRIP_ARGS( replace ) replace##x, replace##y, replace##z
-#define TRIP_AND( replace ) ( replace##x && replace##y && replace##z )
-#define TRIP_OR( replace ) ( replace##x || replace##y || replace##z )
-
 #include "input.hpp"
 
 typedef struct {
@@ -48,10 +40,8 @@ typedef struct {
         float angle_V;
         glm::vec3 look;
         glm::mat4 rotation;
-        TRIP_STATE( float m );
-        float x;
-        float y;
-        float z;
+        glm::vec3 movement;
+        glm::vec3 pos;
         float y_speed;
         glm::mat4 view_look;
         glm::mat4 view_trans;
@@ -72,8 +62,8 @@ typedef struct {
         int selectionInBounds;
         int face;
         BlockID holdingBlock;
-        TRIP_STATE( int create_ );
-        TRIP_STATE( int destroy_ );
+        glm::ivec3 pos_create;
+        glm::ivec3 pos_destroy;
     } block_selection;
     BlockUpdateQueue blockUpdateQueue;
     long tick_number = 0;

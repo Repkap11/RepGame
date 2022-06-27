@@ -23,29 +23,27 @@
 RepGameState globalGameState;
 
 void change_block( int place, BlockState blockState ) {
-    TRIP_STATE( int block_ );
+
+    glm::ivec3 block;
 
     if ( place ) {
-        block_x = globalGameState.block_selection.create_x;
-        block_y = globalGameState.block_selection.create_y;
-        block_z = globalGameState.block_selection.create_z;
+        block = globalGameState.block_selection.pos_create;
         if ( block_definition_get_definition( blockState.id )->collides_with_player ) {
             // If the block collides with the player, make sure its not being placed where it would collide
-            if ( collision_check_collides_with_block( &globalGameState.world, globalGameState.camera.x, globalGameState.camera.y, globalGameState.camera.z, TRIP_ARGS( block_ ) ) ) {
+            if ( collision_check_collides_with_block( &globalGameState.world, globalGameState.camera.pos, block ) ) {
                 return;
             }
         }
-        BlockID under_blockID = world_get_loaded_block( &globalGameState.world, block_x, block_y - 1, block_z ).id;
+        glm::ivec3 block_under = glm::ivec3( block.x, block.y - 1, block.z );
+        BlockID under_blockID = world_get_loaded_block( &globalGameState.world, block_under ).id;
         if ( under_blockID == LAST_BLOCK_ID ) {
             return;
         }
 
     } else {
-        block_x = globalGameState.block_selection.destroy_x;
-        block_y = globalGameState.block_selection.destroy_y;
-        block_z = globalGameState.block_selection.destroy_z;
+        block = globalGameState.block_selection.pos_destroy;
     }
-    BlockUpdateEvent *blockPlacedEvent = new PlayerBlockPlacedEvent( globalGameState.tick_number, block_x, block_y, block_z, blockState, false );
+    BlockUpdateEvent *blockPlacedEvent = new PlayerBlockPlacedEvent( globalGameState.tick_number, block, blockState, false );
     globalGameState.blockUpdateQueue.addBlockUpdate( blockPlacedEvent );
 }
 
@@ -70,7 +68,7 @@ unsigned char getPlacedRotation( BlockID blockID ) {
 static bool was_middle = false;
 void repgame_process_mouse_events( ) {
     if ( globalGameState.block_selection.selectionInBounds && globalGameState.input.mouse.buttons.middle ) {
-        BlockState blockState = world_get_loaded_block( &globalGameState.world, TRIP_ARGS( globalGameState.block_selection.destroy_ ) );
+        BlockState blockState = world_get_loaded_block( &globalGameState.world, globalGameState.block_selection.pos_destroy );
         if ( blockState.id != globalGameState.block_selection.holdingBlock ) {
             globalGameState.block_selection.holdingBlock = blockState.id;
             ui_overlay_set_holding_block( &globalGameState.ui_overlay, globalGameState.block_selection.holdingBlock );
@@ -93,7 +91,7 @@ void repgame_process_mouse_events( ) {
     }
     if ( globalGameState.block_selection.selectionInBounds && globalGameState.input.mouse.currentPosition.wheel_counts != globalGameState.input.mouse.previousPosition.wheel_counts ) {
         int wheel_diff = globalGameState.input.mouse.currentPosition.wheel_counts > globalGameState.input.mouse.previousPosition.wheel_counts ? 1 : -1;
-        BlockState blockState = world_get_loaded_block( &globalGameState.world, TRIP_ARGS( globalGameState.block_selection.destroy_ ) );
+        BlockState blockState = world_get_loaded_block( &globalGameState.world, globalGameState.block_selection.pos_destroy );
         int blockID_int = ( int )blockState.id;
         if ( blockID_int != LAST_BLOCK_ID ) {
             do {
@@ -133,15 +131,15 @@ void repgame_process_camera_angle( ) {
     rotate = glm::rotate( rotate, glm::radians( globalGameState.camera.angle_V ), glm::vec3( 1.0f, 0.0f, 0.0f ) );
     globalGameState.camera.rotation = rotate;
 
-    globalGameState.camera.mx = sin( ( globalGameState.camera.angle_H + globalGameState.input.movement.angleH ) * ( M_PI / 180 ) );
-    globalGameState.camera.my = -tan( globalGameState.camera.angle_V * ( M_PI / 180 ) );
-    globalGameState.camera.mz = -cos( ( globalGameState.camera.angle_H + globalGameState.input.movement.angleH ) * ( M_PI / 180 ) );
+    globalGameState.camera.movement.x = sin( ( globalGameState.camera.angle_H + globalGameState.input.movement.angleH ) * ( M_PI / 180 ) );
+    globalGameState.camera.movement.y = -tan( globalGameState.camera.angle_V * ( M_PI / 180 ) );
+    globalGameState.camera.movement.z = -cos( ( globalGameState.camera.angle_H + globalGameState.input.movement.angleH ) * ( M_PI / 180 ) );
 
     globalGameState.camera.view_look = glm::lookAt( glm::vec3( 0.0f, 0.0f, 0.0f ), // From the origin
                                                     globalGameState.camera.look,   // Look at look vector
                                                     glm::vec3( 0.0f, 1.0f, 0.0f )  // Head is up (set to 0,-1,0 to look upside-down)
     );
-    globalGameState.camera.view_trans = glm::translate( glm::mat4( 1.0f ), glm::vec3( -globalGameState.camera.x, -globalGameState.camera.y, -globalGameState.camera.z ) );
+    globalGameState.camera.view_trans = glm::translate( glm::mat4( -1.0f ), globalGameState.camera.pos );
 }
 
 void repgame_process_movement( ) {
@@ -185,29 +183,26 @@ void repgame_process_movement( ) {
 
     float accel = -gravity;
 
-    float movement_vector_x = movement_speed * globalGameState.input.movement.sizeH * globalGameState.camera.mx;
-    float movement_vector_y = globalGameState.camera.y_speed + accel;
-    if ( movement_vector_y > TERMINAL_VELOCITY ) {
-        movement_vector_y = TERMINAL_VELOCITY;
+    glm::vec3 movement_vector = glm::vec3( );
+    movement_vector.x = movement_speed * globalGameState.input.movement.sizeH * globalGameState.camera.movement.x;
+    movement_vector.y = globalGameState.camera.y_speed + accel;
+    if ( movement_vector.y > TERMINAL_VELOCITY ) {
+        movement_vector.y = TERMINAL_VELOCITY;
     }
-    if ( movement_vector_y < -TERMINAL_VELOCITY ) {
-        movement_vector_y = -TERMINAL_VELOCITY;
+    if ( movement_vector.y < -TERMINAL_VELOCITY ) {
+        movement_vector.y = -TERMINAL_VELOCITY;
     }
-    float movement_vector_z = movement_speed * globalGameState.input.movement.sizeH * globalGameState.camera.mz;
+    movement_vector.z = movement_speed * globalGameState.input.movement.sizeH * globalGameState.camera.movement.z;
     if ( globalGameState.input.no_clip ) {
         globalGameState.camera.standing_on_solid = 0;
     } else {
-        collision_check_move( &globalGameState.world, TRIP_ARGS( &movement_vector_ ), //
-                              globalGameState.camera.x,                               //
-                              globalGameState.camera.y,                               //
-                              globalGameState.camera.z,                               //
+        collision_check_move( &globalGameState.world, movement_vector, //
+                              globalGameState.camera.pos,              //
                               &globalGameState.camera.standing_on_solid );
     }
 
-    globalGameState.camera.x += movement_vector_x;
-    globalGameState.camera.y += movement_vector_y;
-    globalGameState.camera.y_speed = movement_vector_y;
-    globalGameState.camera.z += movement_vector_z;
+    globalGameState.camera.pos = globalGameState.camera.pos + movement_vector;
+    globalGameState.camera.y_speed = movement_vector.y;
 }
 
 void repgame_process_block_updates( ) {
@@ -226,15 +221,18 @@ void repgame_tick( ) {
     if ( repgame_should_lock_pointer( ) ) {
         repgame_process_mouse_events( );
         int whichFace = 0;
+        glm::vec3 pos_with_reach = globalGameState.camera.pos + (globalGameState.camera.look * ((float)REACH_DISTANCE));
         globalGameState.block_selection.selectionInBounds = ray_traversal_find_block_from_to(
-            &globalGameState.world, NULL, globalGameState.camera.x, globalGameState.camera.y, globalGameState.camera.z, globalGameState.camera.x + globalGameState.camera.look.x * REACH_DISTANCE,
-            globalGameState.camera.y + globalGameState.camera.look.y * REACH_DISTANCE, globalGameState.camera.z + globalGameState.camera.look.z * REACH_DISTANCE, TRIP_ARGS( &globalGameState.block_selection.destroy_ ), &whichFace, 0, 1, 0 );
+            &globalGameState.world, NULL,
+            globalGameState.camera.pos,
+            pos_with_reach,
+            globalGameState.block_selection.pos_destroy, &whichFace, 0, 1, 0 );
 
-        globalGameState.block_selection.create_x = globalGameState.block_selection.destroy_x + ( whichFace == FACE_RIGHT ) - ( whichFace == FACE_LEFT );
-        globalGameState.block_selection.create_y = globalGameState.block_selection.destroy_y + ( whichFace == FACE_TOP ) - ( whichFace == FACE_BOTTOM );
-        globalGameState.block_selection.create_z = globalGameState.block_selection.destroy_z + ( whichFace == FACE_BACK ) - ( whichFace == FACE_FRONT );
+        globalGameState.block_selection.pos_create.x = globalGameState.block_selection.pos_destroy.x + ( whichFace == FACE_RIGHT ) - ( whichFace == FACE_LEFT );
+        globalGameState.block_selection.pos_create.y = globalGameState.block_selection.pos_destroy.y + ( whichFace == FACE_TOP ) - ( whichFace == FACE_BOTTOM );
+        globalGameState.block_selection.pos_create.z = globalGameState.block_selection.pos_destroy.z + ( whichFace == FACE_BACK ) - ( whichFace == FACE_FRONT );
 
-        world_set_selected_block( &globalGameState.world, TRIP_ARGS( globalGameState.block_selection.destroy_ ), globalGameState.block_selection.selectionInBounds );
+        world_set_selected_block( &globalGameState.world, globalGameState.block_selection.pos_destroy, globalGameState.block_selection.selectionInBounds );
         globalGameState.camera.angle_H += ( globalGameState.input.mouse.currentPosition.x - globalGameState.input.mouse.previousPosition.x ) * 0.08f;
         globalGameState.camera.angle_V += ( globalGameState.input.mouse.currentPosition.y - globalGameState.input.mouse.previousPosition.y ) * 0.08f;
         if ( globalGameState.camera.angle_H >= 360.0f ) {
@@ -274,18 +272,18 @@ static inline void initilizeGameState( const char *world_name ) {
     globalGameState.input.inventory_open = 0;
     globalGameState.camera.angle_H = 135.0f;
     globalGameState.camera.angle_V = 25.0f;
-    globalGameState.camera.x = 0.0f;
-    globalGameState.camera.y = 8.5f;
-    globalGameState.camera.z = 0.0f;
+    globalGameState.camera.pos.x = 0.0f;
+    globalGameState.camera.pos.y = 8.5f;
+    globalGameState.camera.pos.z = 0.0f;
     globalGameState.block_selection.holdingBlock = GRASS;
 
     map_storage_init( world_name );
     PlayerData saved_data;
     int has_saved_data = map_storage_read_player_data( &saved_data );
     if ( has_saved_data ) {
-        globalGameState.camera.x = saved_data.world_x;
-        globalGameState.camera.y = saved_data.world_y;
-        globalGameState.camera.z = saved_data.world_z;
+        globalGameState.camera.pos.x = saved_data.world_x;
+        globalGameState.camera.pos.y = saved_data.world_y;
+        globalGameState.camera.pos.z = saved_data.world_z;
         globalGameState.block_selection.holdingBlock = saved_data.holdingBlock;
         // globalGameState.block_selection.holdingBlock = WATER;
         globalGameState.camera.angle_H = saved_data.angle_H;
@@ -315,7 +313,7 @@ void repgame_init( const char *world_name, bool connect_multi, const char *host 
     initilizeGameState( world_name );
     texture_init( &globalGameState.blocksTexture, &texture_source_textures, 0 );
     block_definitions_initilize_definitions( &globalGameState.blocksTexture );
-    world_init( &globalGameState.world, globalGameState.camera.x, globalGameState.camera.y, globalGameState.camera.z );
+    world_init( &globalGameState.world, globalGameState.camera.pos );
     ui_overlay_init( &globalGameState.ui_overlay );
     ui_overlay_set_holding_block( &globalGameState.ui_overlay, globalGameState.block_selection.holdingBlock );
 
@@ -388,7 +386,7 @@ void repgame_draw( ) {
 
     // glm::mat4 flipped_trans = rotation * globalGameState.camera.view_trans;
     // TODO globalGameState.camera.y causes a strange jump, perhaps the vars are updated in the wrong order.
-    float height_above_water = globalGameState.camera.y + ( 1.0 - WATER_HEIGHT );
+    float height_above_water = globalGameState.camera.pos.y + ( 1.0 - WATER_HEIGHT );
     float offset = 2.0f * height_above_water;
     glm::mat4 flipped_trans = glm::translate( globalGameState.camera.view_trans, glm::vec3( 0.0, offset, 0.0 ) );
     // glm::mat4 flipped_trans = globalGameState.camera.view_trans;
@@ -398,7 +396,7 @@ void repgame_draw( ) {
     glm::mat4 mvp_reflect = globalGameState.screen.proj * flipped_look * flipped_trans;
 
     multiplayer_process_events( &globalGameState.world );
-    multiplayer_update_players_position( globalGameState.camera.x, globalGameState.camera.y, globalGameState.camera.z, globalGameState.camera.rotation );
+    multiplayer_update_players_position( globalGameState.camera.pos, globalGameState.camera.rotation );
 
 #if defined( REPGAME_WASM )
     bool limit_render = 1;
@@ -416,7 +414,7 @@ void repgame_draw( ) {
     bool limit_render = 0;
 #endif
     if ( do_render ) {
-        world_render( &globalGameState.world, globalGameState.camera.x, globalGameState.camera.y, globalGameState.camera.z, limit_render, globalGameState.camera.rotation );
+        world_render( &globalGameState.world, globalGameState.camera.pos, limit_render, globalGameState.camera.rotation );
     }
 
     showErrors( );
@@ -426,10 +424,11 @@ void repgame_draw( ) {
     // glm::mat4 rotation = glm::rotate( glm::mat4( 1.0 ), glm::radians( 90.0f ), glm::vec3( 1, 0, 1 ) );
     // glm::mat4 mvp_reflect = mvp * rotation;
     // mvp_mirror = glm::translate( mvp_mirror, glm::vec3( 0, -10, 0 ) );
-    BlockState blockInHead = world_get_loaded_block( &globalGameState.world, round( globalGameState.camera.x - 0.5f ), round( globalGameState.camera.y - 0.5f ), round( globalGameState.camera.z - 0.5f ) );
+    glm::ivec3 round_block = glm::round(globalGameState.camera.pos - 0.5f);
+    BlockState blockInHead = world_get_loaded_block( &globalGameState.world, round_block);
     bool headInWater = blockInHead.id == WATER;
 
-    world_draw( &globalGameState.world, &globalGameState.blocksTexture, mvp, mvp_reflect, mvp_sky, mvp_sky_reflect, globalGameState.input.debug_mode, !globalGameState.input.inventory_open, globalGameState.camera.y, headInWater );
+    world_draw( &globalGameState.world, &globalGameState.blocksTexture, mvp, mvp_reflect, mvp_sky, mvp_sky_reflect, globalGameState.input.debug_mode, !globalGameState.input.inventory_open, globalGameState.camera.pos.y, headInWater );
 
     showErrors( );
     glClear( GL_DEPTH_BUFFER_BIT );
@@ -450,9 +449,9 @@ void repgame_cleanup( ) {
     block_definitions_free_definitions( );
 
     PlayerData saved_data;
-    saved_data.world_x = globalGameState.camera.x;
-    saved_data.world_y = globalGameState.camera.y;
-    saved_data.world_z = globalGameState.camera.z;
+    saved_data.world_x = globalGameState.camera.pos.x;
+    saved_data.world_y = globalGameState.camera.pos.y;
+    saved_data.world_z = globalGameState.camera.pos.z;
     saved_data.angle_H = globalGameState.camera.angle_H;
     saved_data.angle_V = globalGameState.camera.angle_V;
     saved_data.flying = globalGameState.input.player_flying;

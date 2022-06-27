@@ -20,22 +20,22 @@ int mod( int x, int N ) {
     }
     return result;
 }
-int reload_if_out_of_bounds( Chunk *chunk, TRIP_ARGS( int chunk_ ) ) {
+int reload_if_out_of_bounds( Chunk *chunk, const glm::ivec3 &chunk_pos ) {
 
-    int new_chunk_x = ( int )floorf( ( ( float )( chunk_x - chunk->chunk_mod_x + CHUNK_RADIUS_X ) ) / ( ( float )( CHUNK_RADIUS_X * 2 + 1 ) ) ) * ( CHUNK_RADIUS_X * 2 + 1 ) + chunk->chunk_mod_x;
-    int new_chunk_y = ( int )floorf( ( ( float )( chunk_y - chunk->chunk_mod_y + CHUNK_RADIUS_Y ) ) / ( ( float )( CHUNK_RADIUS_Y * 2 + 1 ) ) ) * ( CHUNK_RADIUS_Y * 2 + 1 ) + chunk->chunk_mod_y;
-    int new_chunk_z = ( int )floorf( ( ( float )( chunk_z - chunk->chunk_mod_z + CHUNK_RADIUS_Z ) ) / ( ( float )( CHUNK_RADIUS_Z * 2 + 1 ) ) ) * ( CHUNK_RADIUS_Z * 2 + 1 ) + chunk->chunk_mod_z;
-    int changed = new_chunk_x != chunk->chunk_x || new_chunk_y != chunk->chunk_y || new_chunk_z != chunk->chunk_z;
-
+    int new_chunk_x = ( int )floorf( ( ( float )( chunk_pos.x - chunk->chunk_mod_x + CHUNK_RADIUS_X ) ) / ( ( float )( CHUNK_RADIUS_X * 2 + 1 ) ) ) * ( CHUNK_RADIUS_X * 2 + 1 ) + chunk->chunk_mod_x;
+    int new_chunk_y = ( int )floorf( ( ( float )( chunk_pos.y - chunk->chunk_mod_y + CHUNK_RADIUS_Y ) ) / ( ( float )( CHUNK_RADIUS_Y * 2 + 1 ) ) ) * ( CHUNK_RADIUS_Y * 2 + 1 ) + chunk->chunk_mod_y;
+    int new_chunk_z = ( int )floorf( ( ( float )( chunk_pos.z - chunk->chunk_mod_z + CHUNK_RADIUS_Z ) ) / ( ( float )( CHUNK_RADIUS_Z * 2 + 1 ) ) ) * ( CHUNK_RADIUS_Z * 2 + 1 ) + chunk->chunk_mod_z;
+    int changed = new_chunk_x != chunk->chunk_pos.x || new_chunk_y != chunk->chunk_pos.y || new_chunk_z != chunk->chunk_pos.z;
     if ( changed ) {
         chunk_unprogram_terrain( chunk );
         chunk->is_loading = 1;
-        terrain_loading_thread_enqueue( chunk, new_chunk_x, new_chunk_y, new_chunk_z, 1 );
+        glm::ivec3 new_chunk = glm::ivec3( new_chunk_x, new_chunk_y, new_chunk_z );
+        terrain_loading_thread_enqueue( chunk, new_chunk, 1 );
     }
     return changed;
 }
 
-void chunk_loader_init( LoadedChunks *loadedChunks, TRIP_ARGS( float camera_ ), VertexBufferLayout *vbl_block, VertexBufferLayout *vbl_coords ) {
+void chunk_loader_init( LoadedChunks *loadedChunks, const glm::vec3 &camera_pos, VertexBufferLayout *vbl_block, VertexBufferLayout *vbl_coords ) {
     int status = terrain_loading_thread_start( );
     if ( status ) {
         pr_debug( "Terrain loading thread failed to start." );
@@ -69,9 +69,7 @@ void chunk_loader_init( LoadedChunks *loadedChunks, TRIP_ARGS( float camera_ ), 
 
     showErrors( );
 
-    int camera_chunk_x = floor( camera_x / ( float )CHUNK_SIZE );
-    int camera_chunk_y = floor( camera_y / ( float )CHUNK_SIZE );
-    int camera_chunk_z = floor( camera_z / ( float )CHUNK_SIZE );
+    glm::ivec3 camera_chuck = glm::floor( camera_pos / ( float )CHUNK_SIZE );
 
     int nextChunk = 0;
     for ( int i = 0; i <= CHUNK_RADIUS_X; i++ ) {
@@ -94,16 +92,16 @@ void chunk_loader_init( LoadedChunks *loadedChunks, TRIP_ARGS( float camera_ ), 
                             int new_k = ( k * sign_k ) - ( sign_k == -1 );
 
                             Chunk *chunk = &loadedChunks->chunkArray[ nextChunk ];
-                            chunk->chunk_x = new_i + camera_chunk_x;
-                            chunk->chunk_y = new_j + camera_chunk_y;
-                            chunk->chunk_z = new_k + camera_chunk_z;
+                            chunk->chunk_x = new_i + camera_chunk.x;
+                            chunk->chunk_y = new_j + camera_chunk.y;
+                            chunk->chunk_z = new_k + camera_chunk.z;
 
                             chunk->chunk_mod_x = mod( chunk->chunk_x, 2 * CHUNK_RADIUS_X + 1 );
                             chunk->chunk_mod_y = mod( chunk->chunk_y, 2 * CHUNK_RADIUS_Y + 1 );
                             chunk->chunk_mod_z = mod( chunk->chunk_z, 2 * CHUNK_RADIUS_Z + 1 );
 
                             chunk->is_loading = 1;
-                            terrain_loading_thread_enqueue( chunk, TRIP_ARGS( chunk->chunk_ ), 0 );
+                            terrain_loading_thread_enqueue( chunk, chunk->chunk_pos, 0 );
                             nextChunk = ( nextChunk + 1 );
                         }
                     }
@@ -113,7 +111,7 @@ void chunk_loader_init( LoadedChunks *loadedChunks, TRIP_ARGS( float camera_ ), 
     }
 }
 
-Chunk *chunk_loader_get_chunk( LoadedChunks *loadedChunks, TRIP_ARGS( int chunk_ ) ) {
+Chunk *chunk_loader_get_chunk( LoadedChunks *loadedChunks, const glm::ivec3 &chunk_pos ) ) {
     for ( int i = 0; i < MAX_LOADED_CHUNKS; i++ ) {
         Chunk *chunk = &loadedChunks->chunkArray[ i ];
         if ( chunk->chunk_x == chunk_x && chunk->chunk_y == chunk_y && chunk->chunk_z == chunk_z ) {
@@ -123,16 +121,16 @@ Chunk *chunk_loader_get_chunk( LoadedChunks *loadedChunks, TRIP_ARGS( int chunk_
     return NULL;
 }
 
-inline int process_chunk_position( Chunk *chunk, TRIP_ARGS( int chunk_diff_ ), TRIP_ARGS( int center_previous_ ), TRIP_ARGS( int center_next_ ), int force_reload ) {
+inline int process_chunk_position( Chunk *chunk, const glm::ivec3 &chunk_diff, const glm::ivec3 &center_previous, const glm::ivec3 &center_next, int force_reload ) {
 
     int visiable_changed_x = 0;
     int visiable_changed_y = 0;
     int visiable_changed_z = 0;
 
     if ( !force_reload ) {
-        visiable_changed_x = ( chunk_diff_x != 0 ) && ( chunk->chunk_x == center_previous_x || chunk->chunk_x == center_next_x );
-        visiable_changed_y = ( chunk_diff_y != 0 ) && ( chunk->chunk_y == center_previous_y || chunk->chunk_y == center_next_y );
-        visiable_changed_z = ( chunk_diff_z != 0 ) && ( chunk->chunk_z == center_previous_z || chunk->chunk_z == center_next_z );
+        visiable_changed_x = ( chunk_diff.x != 0 ) && ( chunk->chunk_x == center_previous.x || chunk->chunk_x == center_next.x );
+        visiable_changed_y = ( chunk_diff.y != 0 ) && ( chunk->chunk_y == center_previous.y || chunk->chunk_y == center_next.y );
+        visiable_changed_z = ( chunk_diff.z != 0 ) && ( chunk->chunk_z == center_previous.z || chunk->chunk_z == center_next.z );
     }
     if ( force_reload || visiable_changed_x || visiable_changed_y || visiable_changed_z ) {
         // pr_debug( "Vis dir changed for %2d %2d %2d changed because of:%2d %2d %2d same:%2d %2d %2d", //
@@ -142,24 +140,16 @@ inline int process_chunk_position( Chunk *chunk, TRIP_ARGS( int chunk_diff_ ), T
         //           chunk->chunk_y == center_previous_y,                                               //
         //           chunk->chunk_z == center_previous_z                                                //
         // );
-        chunk_calculate_sides( chunk, TRIP_ARGS( center_next_ ) );
+        chunk_calculate_sides( chunk, center_next );
         return 1;
     }
     return 0;
 }
 
-void chunk_loader_render_chunks( LoadedChunks *loadedChunks, TRIP_ARGS( float camera_ ), int limit_render ) {
-    int chunk_x = floor( camera_x / ( float )CHUNK_SIZE );
-    int chunk_y = floor( camera_y / ( float )CHUNK_SIZE );
-    int chunk_z = floor( camera_z / ( float )CHUNK_SIZE );
-
-    int loaded_x = loadedChunks->chunk_center_x;
-    int loaded_y = loadedChunks->chunk_center_y;
-    int loaded_z = loadedChunks->chunk_center_z;
-
-    int chunk_diff_x = chunk_x - loaded_x;
-    int chunk_diff_y = chunk_y - loaded_y;
-    int chunk_diff_z = chunk_z - loaded_z;
+void chunk_loader_render_chunks( LoadedChunks *loadedChunks, const glm::vec3 &camera_pos, int limit_render ) {
+    glm::ivec3 chunk_pos = glm::floor( camera_pos / ( float )CHUNK_SIZE );
+    glm::ivec3 &loaded_pos = loadedChunks->chunk_center;
+    glm::ivec3 chunk_diff = chunk_pos - loaded_pos;
 
     {
         Chunk *chunk;
@@ -168,32 +158,30 @@ void chunk_loader_render_chunks( LoadedChunks *loadedChunks, TRIP_ARGS( float ca
             // pr_debug( "Got chunk %p", chunk );
             if ( chunk ) {
                 chunk->is_loading = 0;
-                int reloaded = reload_if_out_of_bounds( chunk, TRIP_ARGS( chunk_ ) );
+                int reloaded = reload_if_out_of_bounds( chunk, chunk_pos );
                 if ( !reloaded ) {
                     // pr_debug( "Paul Loading terrain x:%d y%d: z:%d", chunk->chunk_x, chunk->chunk_y, chunk->chunk_z );
-                    process_chunk_position( chunk, TRIP_ARGS( chunk_diff_ ), TRIP_ARGS( loaded_ ), TRIP_ARGS( chunk_ ), 1 );
+                    process_chunk_position( chunk, chunk_diff, loaded_pos, chunk_pos, 1 );
                     chunk_program_terrain( chunk );
                 }
             }
         } while ( chunk && !limit_render );
     }
-    if ( 0 != chunk_diff_x || 0 != chunk_diff_y || 0 != chunk_diff_z ) {
-        // pr_debug( "Moved outof chunk x:%d y:%d z:%d", TRIP_ARGS( loaded_ ) );
-        // pr_debug( "Moved into  chunk x:%d y:%d z:%d", TRIP_ARGS( chunk_ ) );
+    if ( 0 != chunk_diff.x || 0 != chunk_diff.y || 0 != chunk_diff.z ) {
+        // pr_debug( "Moved outof chunk x:%d y:%d z:%d", loaded_pos );
+        // pr_debug( "Moved into  chunk x:%d y:%d z:%d", chunk_pos );
 
         for ( int i = 0; i < MAX_LOADED_CHUNKS; i++ ) {
             Chunk *chunk = &loadedChunks->chunkArray[ i ];
             if ( chunk->is_loading ) {
                 continue;
             }
-            int reloaded = reload_if_out_of_bounds( chunk, TRIP_ARGS( chunk_ ) );
+            int reloaded = reload_if_out_of_bounds( chunk, chunk_pos );
             if ( !reloaded ) {
-                process_chunk_position( chunk, TRIP_ARGS( chunk_diff_ ), TRIP_ARGS( loaded_ ), TRIP_ARGS( chunk_ ), 0 );
+                process_chunk_position( chunk, chunk_diff, loaded_pos, chunk_pos, 0 );
             }
         }
-        loadedChunks->chunk_center_x = chunk_x;
-        loadedChunks->chunk_center_y = chunk_y;
-        loadedChunks->chunk_center_z = chunk_z;
+        loadedChunks->chunk_center = chunk_pos;
     }
     for ( int i = 0; i < MAX_LOADED_CHUNKS; i++ ) {
         Chunk *chunk = &loadedChunks->chunkArray[ i ];
