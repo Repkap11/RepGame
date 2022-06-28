@@ -159,6 +159,8 @@ int ray_traversal_find_block_from_to( World *world, Block *pixel_block,         
     glm::vec3 dir = v2 - v1;
     dir = glm::normalize(dir);
 
+    glm::ivec3 offset = glm::floor(v1);
+
     //TODO do this math with glm vec types.
     const float x1 = v1.x;
     const float y1 = v1.y;
@@ -223,10 +225,10 @@ int ray_traversal_find_block_from_to( World *world, Block *pixel_block,         
         }
 
         if ( tx <= ty && tx <= tz ) {
-            if ( dir.x == iend )
+            if ( offset.x == iend )
                 break;
             tx += deltatx;
-            dir.x += di;
+            offset.x += di;
             if ( di == 1 ) {
                 face = FACE_LEFT;
             }
@@ -235,10 +237,10 @@ int ray_traversal_find_block_from_to( World *world, Block *pixel_block,         
             }
 
         } else if ( ty <= tz ) {
-            if ( dir.y == jend )
+            if ( offset.y == jend )
                 break;
             ty += deltaty;
-            dir.y += dj;
+            offset.y += dj;
             if ( dj == 1 ) {
                 face = FACE_BOTTOM;
             }
@@ -247,10 +249,10 @@ int ray_traversal_find_block_from_to( World *world, Block *pixel_block,         
             }
 
         } else {
-            if ( dir.z == kend )
+            if ( offset.z == kend )
                 break;
             tz += deltatz;
-            dir.z += dk;
+            offset.z += dk;
             if ( dk == 1 ) {
                 face = FACE_FRONT;
             }

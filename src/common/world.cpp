@@ -262,7 +262,7 @@ void fixup_chunk( World *world, Chunk *chunk, const glm::ivec3 &offset, const gl
             pr_debug( "Ekk, still loading. You'll probably get a lighting bug." );
             return;
         }
-        chunk_set_block( fixupChunk, pos, blockState );
+    chunk_set_block( fixupChunk, pos, blockState );
         fixupChunk->dirty = 1;
         fixupChunk->needs_repopulation = 1;
     }
