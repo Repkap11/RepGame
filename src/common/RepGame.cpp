@@ -139,7 +139,7 @@ void repgame_process_camera_angle( ) {
                                                     globalGameState.camera.look,   // Look at look vector
                                                     glm::vec3( 0.0f, 1.0f, 0.0f )  // Head is up (set to 0,-1,0 to look upside-down)
     );
-    globalGameState.camera.view_trans = glm::translate( glm::mat4( -1.0f ), globalGameState.camera.pos );
+    globalGameState.camera.view_trans = glm::translate( glm::mat4( 1.0f ), -1.0f*globalGameState.camera.pos );
 }
 
 void repgame_process_movement( ) {
