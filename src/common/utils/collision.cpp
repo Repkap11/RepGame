@@ -28,7 +28,7 @@ int collision_check_collides_with_block( World *world, const glm::vec3 &player, 
 void check_collides_with_player( World *world, glm::vec3 &movement_vec, glm::vec3 &position ) {
     glm::ivec3 out_pos;
     int *faces = ( int * )calloc( NUM_FACES_IN_CUBE, sizeof( int ) );
-    position.y -= EYE_POSITION_OFFSET;
+    float position_y = position.y - EYE_POSITION_OFFSET;
 
     // For each point in the persons collision box, check the direction
     for ( int offset_x = -1; offset_x < 2; offset_x++ ) {
@@ -37,7 +37,7 @@ void check_collides_with_player( World *world, glm::vec3 &movement_vec, glm::vec
                 float half_off_x = offset_x * half_width_x;
                 float half_off_y = offset_y * half_width_y;
                 float half_off_z = offset_z * half_width_z;
-                glm::vec3 new_1 = position + glm::vec3( half_off_x, half_off_y, half_off_z );
+                glm::vec3 new_1 = position + glm::vec3( half_off_x, half_off_y - EYE_POSITION_OFFSET, half_off_z );
                 glm::vec3 new_2 = new_1 + movement_vec;
 
                 ray_traversal_find_block_from_to( //
@@ -67,7 +67,7 @@ void check_collides_with_player( World *world, glm::vec3 &movement_vec, glm::vec
     if ( faces[ FACE_TOP ] && movement_vec.y < 0 ) {
         pr_debug("Rounding top");
         float movement_vec_y_orig = movement_vec.y;
-        movement_vec.y = roundf( ( position.y - half_width_y ) + movement_vec.y ) - ( position.y - half_width_y );
+        movement_vec.y = roundf( ( position_y - half_width_y ) + movement_vec.y ) - ( position_y - half_width_y );
         if ( movement_vec.y != movement_vec_y_orig ) {
             movement_vec.y += .00001f;
         }
@@ -75,7 +75,7 @@ void check_collides_with_player( World *world, glm::vec3 &movement_vec, glm::vec
     if ( faces[ FACE_BOTTOM ] && movement_vec.y > 0 ) {
         pr_debug("Rounding bottom");
         float movement_vec_y_orig = movement_vec.y;
-        movement_vec.y = roundf( ( position.y + half_width_y ) + movement_vec.y ) - ( position.y + half_width_y );
+        movement_vec.y = roundf( ( position_y + half_width_y ) + movement_vec.y ) - ( position_y + half_width_y );
         if ( movement_vec.y != movement_vec_y_orig ) {
             movement_vec.y -= .00001f;
         }
@@ -94,7 +94,6 @@ void check_collides_with_player( World *world, glm::vec3 &movement_vec, glm::vec
             movement_vec.z -= .00001f;
         }
     }
-    position.y += EYE_POSITION_OFFSET;
     free( faces );
 }
 
