@@ -25,10 +25,7 @@ int collision_check_collides_with_block( World *world, const glm::vec3 &player, 
     return 0;
 }
 
-void check_collides_with_player( World *world, glm::vec3 movement_vec, glm::vec3 &position ) {
-    int out_x;
-    int out_y;
-    int out_z;
+void check_collides_with_player( World *world, glm::vec3 &movement_vec, glm::vec3 &position ) {
     glm::ivec3 out_pos;
     int *faces = ( int * )calloc( NUM_FACES_IN_CUBE, sizeof( int ) );
     position.y -= EYE_POSITION_OFFSET;
@@ -68,6 +65,7 @@ void check_collides_with_player( World *world, glm::vec3 movement_vec, glm::vec3
         }
     }
     if ( faces[ FACE_TOP ] && movement_vec.y < 0 ) {
+        pr_debug("Rounding top");
         float movement_vec_y_orig = movement_vec.y;
         movement_vec.y = roundf( ( position.y - half_width_y ) + movement_vec.y ) - ( position.y - half_width_y );
         if ( movement_vec.y != movement_vec_y_orig ) {
@@ -75,6 +73,7 @@ void check_collides_with_player( World *world, glm::vec3 movement_vec, glm::vec3
         }
     }
     if ( faces[ FACE_BOTTOM ] && movement_vec.y > 0 ) {
+        pr_debug("Rounding bottom");
         float movement_vec_y_orig = movement_vec.y;
         movement_vec.y = roundf( ( position.y + half_width_y ) + movement_vec.y ) - ( position.y + half_width_y );
         if ( movement_vec.y != movement_vec_y_orig ) {
@@ -95,6 +94,7 @@ void check_collides_with_player( World *world, glm::vec3 movement_vec, glm::vec3
             movement_vec.z -= .00001f;
         }
     }
+    position.y += EYE_POSITION_OFFSET;
     free( faces );
 }
 
@@ -122,27 +122,44 @@ void collision_check_move( World *world, glm::vec3 &movement_vec, glm::vec3 &pos
     // Check for collides in each direction
     float zero = 0;
     if ( dirs_to_check[ FACE_RIGHT ] ) {
-        check_collides_with_player( world, glm::vec3( movement_vec.x, 0, 0 ), position );
+        glm::vec3 temp( movement_vec.x, 0, 0 );
+        check_collides_with_player( world, temp, position );
+        movement_vec.x = temp.x;
     }
     if ( dirs_to_check[ FACE_LEFT ] ) {
-        check_collides_with_player( world, glm::vec3( movement_vec.x, 0, 0 ), position );
+        glm::vec3 temp(movement_vec.x, 0, 0);
+        check_collides_with_player( world, temp, position );
+        movement_vec.x = temp.x;
     }
     if ( dirs_to_check[ FACE_TOP ] ) {
-        check_collides_with_player( world, glm::vec3( 0, movement_vec.y, 0 ), position );
+        pr_debug("Checking top");
+        glm::vec3 temp(0, movement_vec.y, 0);
+        check_collides_with_player( world, temp, position );
+        movement_vec.y = temp.y;
     }
     if ( dirs_to_check[ FACE_BOTTOM ] ) {
+        pr_debug("Checking bottom");
         float before = movement_vec.y;
-        check_collides_with_player( world, glm::vec3( 0, movement_vec.y, 0 ), position );
+        glm::vec3 temp( 0, movement_vec.y, 0);
+        check_collides_with_player( world, temp, position );
+        movement_vec.y = temp.y;
+
         if ( before != movement_vec.y ) {
             standing = 1;
         }
     }
+    pr_debug("Move Y:%f", movement_vec.y)
     if ( dirs_to_check[ FACE_FRONT ] ) {
-        check_collides_with_player( world, glm::vec3( 0, 0, movement_vec.z ), position );
+        glm::vec3 temp( 0, 0, movement_vec.z);
+        check_collides_with_player( world, temp, position );
+        movement_vec.z = temp.z;
     }
     if ( dirs_to_check[ FACE_BACK ] ) {
-        check_collides_with_player( world, glm::vec3( 0, 0, movement_vec.z ), position );
+        glm::vec3 temp(0, 0, movement_vec.z);
+        check_collides_with_player( world, temp, position );
+        movement_vec.z = temp.z;
     }
     free( dirs_to_check );
+    pr_debug("Standing:%d", standing);
     *out_standing = standing;
 }
