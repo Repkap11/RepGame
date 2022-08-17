@@ -150,25 +150,27 @@ int contains_block( World *world, const glm::vec3 &dir, const glm::vec3 &initial
     }
 }
 
-int ray_traversal_find_block_from_to( World *world, Block *pixel_block,               //
-                                      const glm::vec3 &v1, //
-                                      const glm::vec3 &v2, //
-                                      glm::ivec3 &out, //
+int ray_traversal_find_block_from_to( World *world, Block *pixel_block, //
+                                      const glm::vec3 &v1,              //
+                                      const glm::vec3 &v2,              //
+                                      glm::ivec3 &out,                  //
                                       int *out_whichFace, int flag, int is_pick, int is_pixel ) {
 
     glm::vec3 dir = v2 - v1;
-    dir = glm::normalize(dir);
+    // dir = glm::normalize(dir);
+    float length = sqrtf( dir.x * dir.x + dir.y * dir.y + dir.z * dir.z );
+    dir /= length;
 
-    glm::ivec3 offset = glm::floor(v1);
+    // glm::ivec3 offset = glm::floor(v1);
+    glm::ivec3 offset( ( int )floorf( v1.x ), ( int )floorf( v1.y ), ( int )floorf( v1.z ) );
 
-    //TODO do this math with glm vec types.
+    // TODO do this math with glm vec types.
     const float x1 = v1.x;
     const float y1 = v1.y;
     const float z1 = v1.z;
     const float x2 = v2.x;
     const float y2 = v2.y;
     const float z2 = v2.z;
-
 
     const int iend = ( int )floorf( x2 );
     const int jend = ( int )floorf( y2 );
@@ -210,12 +212,12 @@ int ray_traversal_find_block_from_to( World *world, Block *pixel_block,         
     }
     for ( ;; ) {
         int which_face = -1;
-        int hit_block = contains_block( world, dir, v1, dir, flag, is_pick, &which_face );
+        int hit_block = contains_block( world, dir, v1, offset, flag, is_pick, &which_face );
         if ( which_face != -1 ) {
             face = which_face;
         }
         if ( hit_block ) {
-            out = dir;
+            out = offset;
             if ( !flag ) {
                 *out_whichFace = face;
                 return 1;

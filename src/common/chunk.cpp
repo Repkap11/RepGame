@@ -157,7 +157,7 @@ void chunk_render( const Chunk *chunk, const Renderer *renderer, const Shader *s
     }
 }
 
-BlockState chunk_get_block( Chunk *chunk, const glm::ivec3 &pos ){
+BlockState chunk_get_block( Chunk *chunk, const glm::ivec3 &pos ) {
     if ( !REMEMBER_BLOCKS ) {
         return BLOCK_STATE_AIR;
     }
@@ -178,7 +178,7 @@ BlockState chunk_get_block( Chunk *chunk, const glm::ivec3 &pos ){
     return chunk->blocks[ chunk_get_index_from_coords( pos ) ];
 }
 
-void chunk_set_block( Chunk *chunk, const glm::ivec3 &pos, BlockState blockState ){
+void chunk_set_block( Chunk *chunk, const glm::ivec3 &pos, BlockState blockState ) {
     if ( chunk->blocks == NULL ) {
         // pr_debug("Chunk has no blocks");
         return;
@@ -361,7 +361,8 @@ void chunk_calculate_popupated_blocks( Chunk *chunk ) {
                     block_is_visiable |= visible_from[ face ];
                 }
                 int can_be_shaded = render_order_can_be_shaded( block->renderOrder );
-                if ( can_be_shaded ) {
+                {
+
                     // 1 Offset
                     int xplus = x + 1;
                     int xminus = x - 1;
@@ -404,7 +405,8 @@ void chunk_calculate_popupated_blocks( Chunk *chunk ) {
                     int bbl = block_definition_get_definition( chunk->blocks[ chunk_get_index_from_coords( xminus, yminus, zminus ) ].id )->casts_shadow;
                     int bfr = block_definition_get_definition( chunk->blocks[ chunk_get_index_from_coords( xplus, yminus, zplus ) ].id )->casts_shadow;
                     int bbr = block_definition_get_definition( chunk->blocks[ chunk_get_index_from_coords( xplus, yminus, zminus ) ].id )->casts_shadow;
-                    if ( visible_from[ FACE_TOP ] ) {
+                    if ( visible_from[ FACE_TOP ] && can_be_shaded ) {
+
                         int top_tfr = ( tf && tr ? 3 : ( tf + tr + tfr ) ) + t;
                         int top_tfl = ( tf && tl ? 3 : ( tf + tl + tfl ) ) + t;
                         int top_tbr = ( tba && tr ? 3 : ( tba + tr + tbr ) ) + t;
@@ -421,7 +423,8 @@ void chunk_calculate_popupated_blocks( Chunk *chunk ) {
                     } else {
                         workingSpace[ index ].packed_lighting[ FACE_TOP ] = block->no_light;
                     }
-                    if ( visible_from[ FACE_BOTTOM ] ) {
+                    if ( visible_from[ FACE_BOTTOM ] && can_be_shaded ) {
+
                         int bottom_bfr = ( bof && bor ? 3 : ( bof + bor + bfr ) ) + bo;
                         int bottom_bfl = ( bof && bol ? 3 : ( bof + bol + bfl ) ) + bo;
                         int bottom_bbr = ( boba && bor ? 3 : ( boba + bor + bbr ) ) + bo;
@@ -438,7 +441,7 @@ void chunk_calculate_popupated_blocks( Chunk *chunk ) {
                     } else {
                         workingSpace[ index ].packed_lighting[ FACE_BOTTOM ] = block->no_light;
                     }
-                    if ( visible_from[ FACE_FRONT ] ) {
+                    if ( visible_from[ FACE_FRONT ] && can_be_shaded ) {
                         int front_tfr = ( tf && fr ? 3 : ( tf + fr + tfr ) ) + f;
                         int front_tfl = ( tf && fl ? 3 : ( tf + fl + tfl ) ) + f;
                         int front_bfr = ( bof && fr ? 3 : ( bof + fr + bfr ) ) + f;
@@ -455,7 +458,7 @@ void chunk_calculate_popupated_blocks( Chunk *chunk ) {
                     } else {
                         workingSpace[ index ].packed_lighting[ FACE_FRONT ] = block->no_light;
                     }
-                    if ( visible_from[ FACE_BACK ] ) {
+                    if ( visible_from[ FACE_BACK ] && can_be_shaded ) {
                         int back_tbr = ( tba && bar ? 3 : ( tba + bar + tbr ) ) + ba;
                         int back_tbl = ( tba && bal ? 3 : ( tba + bal + tbl ) ) + ba;
                         int back_bbr = ( boba && bar ? 3 : ( boba + bar + bbr ) ) + ba;
@@ -472,7 +475,7 @@ void chunk_calculate_popupated_blocks( Chunk *chunk ) {
                     } else {
                         workingSpace[ index ].packed_lighting[ FACE_BACK ] = block->no_light;
                     }
-                    if ( visible_from[ FACE_RIGHT ] ) {
+                    if ( visible_from[ FACE_RIGHT ] && can_be_shaded ) {
                         int right_tfr = ( tr && fr ? 3 : ( tr + fr + tfr ) ) + r;
                         int right_tbr = ( tr && bar ? 3 : ( tr + bar + tbr ) ) + r;
                         int right_bfr = ( bor && fr ? 3 : ( bor + fr + bfr ) ) + r;
@@ -489,7 +492,7 @@ void chunk_calculate_popupated_blocks( Chunk *chunk ) {
                     } else {
                         workingSpace[ index ].packed_lighting[ FACE_RIGHT ] = block->no_light;
                     }
-                    if ( visible_from[ FACE_LEFT ] ) {
+                    if ( visible_from[ FACE_LEFT ] && can_be_shaded ) {
                         int left_tfl = ( tl && fl ? 3 : ( tl + fl + tfl ) ) + l;
                         int left_tbl = ( tl && bal ? 3 : ( tl + bal + tbl ) ) + l;
                         int left_bfl = ( bol && fl ? 3 : ( bol + fl + bfl ) ) + l;
@@ -506,13 +509,6 @@ void chunk_calculate_popupated_blocks( Chunk *chunk ) {
                     } else {
                         workingSpace[ index ].packed_lighting[ FACE_LEFT ] = block->no_light;
                     }
-                } else {
-                    workingSpace[ index ].packed_lighting[ FACE_TOP ] = block->no_light;
-                    workingSpace[ index ].packed_lighting[ FACE_BOTTOM ] = block->no_light;
-                    workingSpace[ index ].packed_lighting[ FACE_FRONT ] = block->no_light;
-                    workingSpace[ index ].packed_lighting[ FACE_BACK ] = block->no_light;
-                    workingSpace[ index ].packed_lighting[ FACE_RIGHT ] = block->no_light;
-                    workingSpace[ index ].packed_lighting[ FACE_LEFT ] = block->no_light;
                 }
                 workingSpace[ index ].can_be_seen = block_is_visiable;
             } else {
@@ -547,26 +543,26 @@ void chunk_calculate_popupated_blocks( Chunk *chunk ) {
                         do {
                             if ( block->calculated.can_mesh_x ) {
                                 glm::ivec3 starting = glm::ivec3( x + size_x - 1, y, z );
-                                glm::ivec3 size = glm::vec3( 1, size_y, size_z );
-                                glm::ivec3 dir = glm::vec3( 1, 0, 0 );
+                                glm::ivec3 size = glm::ivec3( 1, size_y, size_z );
+                                glm::ivec3 dir = glm::ivec3( 1, 0, 0 );
                                 can_extend_x = chunk_can_extend_rect( chunk, blockState, packed_lighting, workingSpace, starting, size, dir );
                                 if ( can_extend_x ) {
                                     size_x++;
                                 }
                             }
                             if ( block->calculated.can_mesh_z ) {
-                                glm::ivec3 starting = glm::ivec3(x, y, z + size_z - 1);
-                                glm::ivec3 size = glm::vec3(size_x, size_y, 1 );
-                                glm::ivec3 dir = glm::vec3(  0, 0, 1 );
+                                glm::ivec3 starting = glm::ivec3( x, y, z + size_z - 1 );
+                                glm::ivec3 size = glm::ivec3( size_x, size_y, 1 );
+                                glm::ivec3 dir = glm::ivec3( 0, 0, 1 );
                                 can_extend_y = chunk_can_extend_rect( chunk, blockState, packed_lighting, workingSpace, starting, size, dir );
                                 if ( can_extend_z ) {
                                     size_z++;
                                 }
                             }
                             if ( block->calculated.can_mesh_y ) {
-                                glm::ivec3 starting = glm::ivec3( x, y + size_y - 1, z);
-                                glm::ivec3 size = glm::vec3( size_x, 1, size_z );
-                                glm::ivec3 dir = glm::vec3(  0, 1, 0);
+                                glm::ivec3 starting = glm::ivec3( x, y + size_y - 1, z );
+                                glm::ivec3 size = glm::ivec3( size_x, 1, size_z );
+                                glm::ivec3 dir = glm::ivec3( 0, 1, 0 );
                                 can_extend_z = chunk_can_extend_rect( chunk, blockState, packed_lighting, workingSpace, starting, size, dir );
                                 if ( can_extend_y ) {
                                     size_y++;
