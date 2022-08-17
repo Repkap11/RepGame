@@ -111,7 +111,7 @@ __host__ void map_gen_load_block_cuda( Chunk *chunk ) {
     BlockState *device_blocks;
     cudaMalloc( &device_blocks, CHUNK_BLOCK_SIZE * sizeof( BlockState ) );
 
-    cuda_set_block<<<( CHUNK_BLOCK_SIZE + ( NUM_THREADS_PER_BLOCK - 1 ) ) / NUM_THREADS_PER_BLOCK, NUM_THREADS_PER_BLOCK, 0>>>( device_blocks, chunk->chunk_x * CHUNK_SIZE, chunk->chunk_y * CHUNK_SIZE, chunk->chunk_z * CHUNK_SIZE );
+    cuda_set_block<<<( CHUNK_BLOCK_SIZE + ( NUM_THREADS_PER_BLOCK - 1 ) ) / NUM_THREADS_PER_BLOCK, NUM_THREADS_PER_BLOCK, 0>>>( device_blocks, chunk->chunk_pos.x * CHUNK_SIZE, chunk->chunk_pos.y * CHUNK_SIZE, chunk->chunk_pos.z * CHUNK_SIZE );
 
     cudaMemcpy( chunk->blocks, device_blocks, CHUNK_BLOCK_SIZE * sizeof( BlockState ), cudaMemcpyDeviceToHost );
     cudaFree( device_blocks );

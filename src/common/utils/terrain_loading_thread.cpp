@@ -16,11 +16,11 @@ void process_value( LinkedListValue *value ) {
 }
 
 #if defined( REPGAME_WASM )
-void terrain_loading_thread_enqueue( Chunk *chunk, const glm::ivec3 &new_chunk_pos ), int persist ) {
+void terrain_loading_thread_enqueue( Chunk *chunk, const glm::ivec3 &new_chunk_pos, int persist ) {
     LinkedListValue value;
     value.valid = 1;
     value.chunk = chunk;
-    value.new_chunk_pos = new_chunk;
+    value.new_chunk_pos = new_chunk_pos;
     value.persist = persist;
     if ( value.chunk ) {
         linked_list_add_element( result_linked_list, value );
