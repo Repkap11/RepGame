@@ -554,7 +554,7 @@ void chunk_calculate_popupated_blocks( Chunk *chunk ) {
                                 glm::ivec3 starting = glm::ivec3( x, y, z + size_z - 1 );
                                 glm::ivec3 size = glm::ivec3( size_x, size_y, 1 );
                                 glm::ivec3 dir = glm::ivec3( 0, 0, 1 );
-                                can_extend_y = chunk_can_extend_rect( chunk, blockState, packed_lighting, workingSpace, starting, size, dir );
+                                can_extend_z = chunk_can_extend_rect( chunk, blockState, packed_lighting, workingSpace, starting, size, dir );
                                 if ( can_extend_z ) {
                                     size_z++;
                                 }
@@ -563,7 +563,7 @@ void chunk_calculate_popupated_blocks( Chunk *chunk ) {
                                 glm::ivec3 starting = glm::ivec3( x, y + size_y - 1, z );
                                 glm::ivec3 size = glm::ivec3( size_x, 1, size_z );
                                 glm::ivec3 dir = glm::ivec3( 0, 1, 0 );
-                                can_extend_z = chunk_can_extend_rect( chunk, blockState, packed_lighting, workingSpace, starting, size, dir );
+                                can_extend_y = chunk_can_extend_rect( chunk, blockState, packed_lighting, workingSpace, starting, size, dir );
                                 if ( can_extend_y ) {
                                     size_y++;
                                 }
