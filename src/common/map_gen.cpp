@@ -104,3 +104,11 @@ void map_gen_load_block_c( Chunk *chunk ) {
         }
     }
 }
+int map_gen_supports_cuda( ) {
+
+#if !defined( REPGAME_BUILD_WITH_CUDA )
+    return 0;
+#else
+    return map_gen_host_supports_cuda();
+#endif
+}

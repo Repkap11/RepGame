@@ -116,3 +116,8 @@ __host__ void map_gen_load_block_cuda( Chunk *chunk ) {
     cudaMemcpy( chunk->blocks, device_blocks, CHUNK_BLOCK_SIZE * sizeof( BlockState ), cudaMemcpyDeviceToHost );
     cudaFree( device_blocks );
 }
+
+__host__ int map_gen_host_supports_cuda( ) {
+    int dev = 0;
+    return cudaGetDevice( &dev ) == cudaSuccess;
+}

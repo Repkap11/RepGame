@@ -10,4 +10,6 @@
 void map_gen_load_block_cuda( Chunk *chunk );
 void map_gen_load_block_c( Chunk *chunk );
 void map_gen_free_block( Chunk *chunk );
+int map_gen_supports_cuda();
+int map_gen_host_supports_cuda();
 #endif

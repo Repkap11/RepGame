@@ -65,7 +65,7 @@ void check_collides_with_player( World *world, glm::vec3 &movement_vec, glm::vec
         }
     }
     if ( faces[ FACE_TOP ] && movement_vec.y < 0 ) {
-        pr_debug("Rounding top");
+        // pr_debug("Rounding top");
         float movement_vec_y_orig = movement_vec.y;
         movement_vec.y = roundf( ( position_y - half_width_y ) + movement_vec.y ) - ( position_y - half_width_y );
         if ( movement_vec.y != movement_vec_y_orig ) {
@@ -73,7 +73,7 @@ void check_collides_with_player( World *world, glm::vec3 &movement_vec, glm::vec
         }
     }
     if ( faces[ FACE_BOTTOM ] && movement_vec.y > 0 ) {
-        pr_debug("Rounding bottom");
+        // pr_debug("Rounding bottom");
         float movement_vec_y_orig = movement_vec.y;
         movement_vec.y = roundf( ( position_y + half_width_y ) + movement_vec.y ) - ( position_y + half_width_y );
         if ( movement_vec.y != movement_vec_y_orig ) {
@@ -131,13 +131,13 @@ void collision_check_move( World *world, glm::vec3 &movement_vec, glm::vec3 &pos
         movement_vec.x = temp.x;
     }
     if ( dirs_to_check[ FACE_TOP ] ) {
-        pr_debug("Checking top");
+        // pr_debug("Checking top");
         glm::vec3 temp(0, movement_vec.y, 0);
         check_collides_with_player( world, temp, position );
         movement_vec.y = temp.y;
     }
     if ( dirs_to_check[ FACE_BOTTOM ] ) {
-        pr_debug("Checking bottom");
+        // pr_debug("Checking bottom");
         float before = movement_vec.y;
         glm::vec3 temp( 0, movement_vec.y, 0);
         check_collides_with_player( world, temp, position );
@@ -147,7 +147,7 @@ void collision_check_move( World *world, glm::vec3 &movement_vec, glm::vec3 &pos
             standing = 1;
         }
     }
-    pr_debug("Move Y:%f", movement_vec.y)
+    // pr_debug("Move Y:%f", movement_vec.y)
     if ( dirs_to_check[ FACE_FRONT ] ) {
         glm::vec3 temp( 0, 0, movement_vec.z);
         check_collides_with_player( world, temp, position );
@@ -159,6 +159,6 @@ void collision_check_move( World *world, glm::vec3 &movement_vec, glm::vec3 &pos
         movement_vec.z = temp.z;
     }
     free( dirs_to_check );
-    pr_debug("Standing:%d", standing);
+    // pr_debug("Standing:%d", standing);
     *out_standing = standing;
 }

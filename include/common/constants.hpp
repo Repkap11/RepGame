@@ -39,10 +39,10 @@ static_assert( CHUNK_RADIUS_Y > 0, "CHUNK_RADIUS_Y too small");
 static_assert( CHUNK_RADIUS_Z > 0, "CHUNK_RADIUS_Z too small");
 
 
-#ifdef LOAD_WITH_CUDA
-#define LOAD_CHUNKDS_WITH_CUDA 1
+#ifdef REPGAME_BUILD_WITH_CUDA
+#define LOAD_CHUNKS_SUPPORTS_CUDA 1
 #else
-#define LOAD_CHUNKDS_WITH_CUDA 0
+#define LOAD_CHUNKS_SUPPORTS_CUDA 0
 #endif
 
 #define MULTI_SAMPLE_SCALE 16

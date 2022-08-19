@@ -204,7 +204,8 @@ void chunk_persist( Chunk *chunk ) {
     }
 }
 
-int use_cuda = 0;
+int firstTime = 1;
+
 void chunk_load_terrain( Chunk *chunk ) {
     if ( !REMEMBER_BLOCKS ) {
         chunk->blocks = ( BlockState * )calloc( CHUNK_BLOCK_SIZE, sizeof( BlockState ) );
@@ -213,9 +214,17 @@ void chunk_load_terrain( Chunk *chunk ) {
     int loaded = map_storage_load( chunk );
     if ( !loaded ) {
         // We havn't loaded this chunk before, map gen it.
-        if ( LOAD_CHUNKDS_WITH_CUDA ) {
+        if ( LOAD_CHUNKS_SUPPORTS_CUDA && map_gen_supports_cuda() ) {
+            if (firstTime){
+                firstTime = 0;
+                pr_debug("Using CUDA");
+            }
             map_gen_load_block_cuda( chunk );
         } else {
+            if (firstTime){
+                firstTime = 0;
+                pr_debug("Using C");
+            }
             map_gen_load_block_c( chunk );
         }
         structure_gen_place( chunk );

@@ -203,7 +203,7 @@ void repgame_process_movement( ) {
 
     globalGameState.camera.pos = globalGameState.camera.pos + movement_vector;
     globalGameState.camera.y_speed = movement_vector.y;
-    pr_debug("Y speed:%f",globalGameState.camera.y_speed);
+    // pr_debug("Y speed:%f",globalGameState.camera.y_speed);
 }
 
 void repgame_process_block_updates( ) {
