@@ -62,7 +62,7 @@ linux_debug: out/linux/debug/$(TARGET)
 
 deploy: linux-deploy
 
-linux-deploy: out/linux/$(TARGET)
+linux-deploy: out/linux/release/$(TARGET)
 	rsync $< paul@repkap11.com:/home/paul/website/${TARGET_LOWER}
 
 LINUX_DIRS := $(patsubst src%,out/linux/release%,$(shell find src -type d)) \
@@ -120,6 +120,6 @@ out/linux: $(call GUARD,LINUX_DIRS) | out
 	mkdir -p $(LINUX_DIRS)
 	touch $@
 
-.PRECIOUS: out/linux/$(TARGET) $(OBJECTS_LINUX) $(OBJECTS_COMMON_LINUX) $(SHADER_BLOBS_LINUX) $(BITMAP_BLOBS_LINUX)
+.PRECIOUS: out/linux/release/$(TARGET) out/linux/debug/$(TARGET) $(OBJECTS_LINUX) $(OBJECTS_COMMON_LINUX) $(SHADER_BLOBS_LINUX) $(BITMAP_BLOBS_LINUX)
 
 .PHONY: linux linux-run clean-linux linux-deploy
