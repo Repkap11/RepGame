@@ -1,6 +1,6 @@
 #Linux x86_64 builds
 
-REPGAME_PACKAGES += freeglut3-dev libglew-dev libxi-dev g++ libsdl2-dev
+REPGAME_PACKAGES += libglew-dev libxi-dev g++ libsdl2-dev
 
 CFLAGS_LINUX := -Wall -Wextra -std=c++11 -Wno-unused-parameter -Wno-unused-variable -fno-pie -march=native
 # CFLAGS_LINUX += -DREPGAME_FAST #For maxing out FPS
@@ -10,7 +10,7 @@ CFLAGS_LINUX_DEBUG += -g
 
 
 CFLAGS_LINUX += -DREPGAME_LINUX
-LIBS_LINUX := -l GLU -l SDL2 -l m -l GL -l GLEW -lpthread -l dl -static-libgcc -static-libstdc++
+LIBS_LINUX := -L /app/lib/ -l GLU -l SDL2 -l m -l GL -l GLEW -lpthread -l dl -static-libgcc -static-libstdc++
 
 CC_LINUX := g++
 # CC_LINUX := clang++

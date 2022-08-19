@@ -1,0 +1,28 @@
+app-id: com.repkap11.repgame
+runtime: org.freedesktop.Platform
+runtime-version: '21.08'
+sdk: org.freedesktop.Sdk
+command: RepGame
+finish-args:
+  # https://docs.flatpak.org/en/latest/sandbox-permissions-reference.html
+  # X11 + XShm access
+  - --share=ipc
+  - --socket=x11
+  # Wayland access
+  - --socket=wayland
+  # OpenGL
+  - --device=dri
+  # Needs to talk to the network:
+  - --share=network
+modules:
+    - shared-modules/SDL/SDL-1.2.15.json
+    - shared-modules/glu/glu-9.json
+    - shared-modules/glew/glew.json
+    - name: RepGame
+      buildsystem: simple
+      build-commands:
+      - make linux
+      - cp out/linux/release/RepGame /app/bin/
+      sources:
+          - type: dir
+            path: ..

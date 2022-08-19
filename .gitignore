@@ -17,3 +17,5 @@ appimage_build
 .history/
 # Built Visual Studio Code Extensions
 *.vsix
+
+.flatpak-builder/
