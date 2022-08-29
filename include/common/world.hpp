@@ -22,6 +22,7 @@ typedef struct {
     FullScreenQuad fullScreenQuad;
     MouseSelection mouseSelection;
     Shader object_shader;
+    bool uses_fsq_and_fb;
 } World;
 
 BlockState world_get_loaded_block( World *world, const glm::ivec3 &block );
