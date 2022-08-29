@@ -62,9 +62,10 @@ int repgame_sdl2_main( const char *world_path, const char *host, bool connect_mu
     SDL_GL_SetAttribute( SDL_GL_DEPTH_SIZE, 24 );
     SDL_GL_SetAttribute( SDL_GL_STENCIL_SIZE, 8 );
     // SDL_GL_SetAttribute( SDL_GL_MULTISAMPLESAMPLES, MULTI_SAMPLE_SCALE );//Multi sample happens in FB
-
+    int default_width = 1600;
+    int default_height = 800;
     /* Create our window centered */
-    sdl_window = SDL_CreateWindow( "RepGame", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, 1600, 800, SDL_WINDOW_OPENGL | SDL_WINDOW_SHOWN | SDL_WINDOW_RESIZABLE );
+    sdl_window = SDL_CreateWindow( "RepGame", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, default_width, 800, SDL_WINDOW_OPENGL | SDL_WINDOW_SHOWN | SDL_WINDOW_RESIZABLE | SDL_WINDOW_MAXIMIZED );
     if ( !sdl_window ) {
         pr_debug( "Creating the SDL window failed" );
         exit( 1 );
@@ -102,6 +103,7 @@ int repgame_sdl2_main( const char *world_path, const char *host, bool connect_mu
         pr_debug( "GLEW version wrong" );
         exit( 1 ); // or handle the error in a nicer way
     }
+    repgame_changeSize( default_width, default_height);
     main_loop_full( );
     repgame_cleanup( );
     SDL_GL_DeleteContext( sdl_context );
