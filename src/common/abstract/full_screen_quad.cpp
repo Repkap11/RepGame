@@ -24,6 +24,7 @@ MK_SHADER( full_screen_quad_vertex );
 MK_SHADER( full_screen_quad_fragment );
 
 void full_screen_quad_init( FullScreenQuad *fsq ) {
+    showErrors( );
     {
         vertex_buffer_layout_init( &fsq->vbl );
         vertex_buffer_layout_push_float( &fsq->vbl, 2 ); // FullScreenQuadVertex pos
@@ -44,6 +45,7 @@ void full_screen_quad_init( FullScreenQuad *fsq ) {
     }
 
     shader_init( &fsq->shader, &full_screen_quad_vertex, &full_screen_quad_fragment );
+    showErrors( );
 }
 
 void full_screen_quad_draw_texture( FullScreenQuad *fsq, Renderer *renderer, Texture *texture, Texture *stencilTexture, float extraAlpha, bool blur, bool ignoreStencil ) {

@@ -139,7 +139,7 @@ void repgame_process_camera_angle( ) {
                                                     globalGameState.camera.look,   // Look at look vector
                                                     glm::vec3( 0.0f, 1.0f, 0.0f )  // Head is up (set to 0,-1,0 to look upside-down)
     );
-    globalGameState.camera.view_trans = glm::translate( glm::mat4( 1.0f ), -1.0f*globalGameState.camera.pos );
+    globalGameState.camera.view_trans = glm::translate( glm::mat4( 1.0f ), -1.0f * globalGameState.camera.pos );
 }
 
 void repgame_process_movement( ) {
@@ -222,12 +222,8 @@ void repgame_tick( ) {
     if ( repgame_should_lock_pointer( ) ) {
         repgame_process_mouse_events( );
         int whichFace = 0;
-        glm::vec3 pos_with_reach = globalGameState.camera.pos + (globalGameState.camera.look * ((float)REACH_DISTANCE));
-        globalGameState.block_selection.selectionInBounds = ray_traversal_find_block_from_to(
-            &globalGameState.world, NULL,
-            globalGameState.camera.pos,
-            pos_with_reach,
-            globalGameState.block_selection.pos_destroy, &whichFace, 0, 1, 0 );
+        glm::vec3 pos_with_reach = globalGameState.camera.pos + ( globalGameState.camera.look * ( ( float )REACH_DISTANCE ) );
+        globalGameState.block_selection.selectionInBounds = ray_traversal_find_block_from_to( &globalGameState.world, NULL, globalGameState.camera.pos, pos_with_reach, globalGameState.block_selection.pos_destroy, &whichFace, 0, 1, 0 );
 
         globalGameState.block_selection.pos_create.x = globalGameState.block_selection.pos_destroy.x + ( whichFace == FACE_RIGHT ) - ( whichFace == FACE_LEFT );
         globalGameState.block_selection.pos_create.y = globalGameState.block_selection.pos_destroy.y + ( whichFace == FACE_TOP ) - ( whichFace == FACE_BOTTOM );
@@ -425,8 +421,8 @@ void repgame_draw( ) {
     // glm::mat4 rotation = glm::rotate( glm::mat4( 1.0 ), glm::radians( 90.0f ), glm::vec3( 1, 0, 1 ) );
     // glm::mat4 mvp_reflect = mvp * rotation;
     // mvp_mirror = glm::translate( mvp_mirror, glm::vec3( 0, -10, 0 ) );
-    glm::ivec3 round_block = glm::round(globalGameState.camera.pos - 0.5f);
-    BlockState blockInHead = world_get_loaded_block( &globalGameState.world, round_block);
+    glm::ivec3 round_block = glm::round( globalGameState.camera.pos - 0.5f );
+    BlockState blockInHead = world_get_loaded_block( &globalGameState.world, round_block );
     bool headInWater = blockInHead.id == WATER;
 
     world_draw( &globalGameState.world, &globalGameState.blocksTexture, mvp, mvp_reflect, mvp_sky, mvp_sky_reflect, globalGameState.input.debug_mode, !globalGameState.input.inventory_open, globalGameState.camera.pos.y, headInWater );

@@ -12,12 +12,15 @@
 MK_SHADER( object_vertex );
 MK_SHADER( object_fragment );
 
+bool hasError( ) {
+    int errCode;
+    if ( ( errCode = glGetError( ) ) != GL_NO_ERROR ) {
+        return true;
+    }
+    return false;
+}
+
 void world_init( World *world, const glm::vec3 &camera_pos ) {
-#if ( USES_FRAME_BUFFER )
-    world->uses_fsq_and_fb = true;
-#else
-    world->uses_fsq_and_fb = false;
-#endif
     // These are from CubeFace
     vertex_buffer_layout_init( &world->vbl_block );
     vertex_buffer_layout_push_float( &world->vbl_block, 3 );        // Coords
@@ -65,20 +68,37 @@ void world_init( World *world, const glm::vec3 &camera_pos ) {
     world->mobs = Mobs( &world->vbl_object_vertex, &world->vbl_object_position );
     mouse_selection_init( &world->mouseSelection, &world->vbl_block, &world->vbl_coords );
 
+#if ( USES_FRAME_BUFFER )
+    // world->uses_fsq_and_fb = true;
+
+    frame_buffer_init( &world->frameBuffer );
+    frame_buffer_attach_texture( &world->frameBuffer, &world->blockTexture, 0 );
+    frame_buffer_attach_texture( &world->frameBuffer, &world->reflectionTexture, 1 );
+    frame_buffer_attach_texture( &world->frameBuffer, &world->depthStencilTexture, 0 ); // 0 is fake
+
+    frame_buffer_bind( &world->frameBuffer );
+    showErrors( );
+    glClear( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT );
+    if ( hasError( ) ) {
+        world->uses_fsq_and_fb = false;
+        frame_buffer_destroy( &world->frameBuffer );
+    } else {
+        world->uses_fsq_and_fb = true;
+    }
+#else
+    world->uses_fsq_and_fb = false;
+#endif
+
     if ( world->uses_fsq_and_fb ) {
         full_screen_quad_init( &world->fullScreenQuad );
         texture_init_empty_color( &world->reflectionTexture, 0 );
         texture_init_empty_color( &world->blockTexture, 0 );
         texture_init_empty_depth_stencil( &world->depthStencilTexture, 0 );
-
-        frame_buffer_init( &world->frameBuffer );
-        frame_buffer_attach_texture( &world->frameBuffer, &world->blockTexture, 0 );
-        frame_buffer_attach_texture( &world->frameBuffer, &world->reflectionTexture, 1 );
-        frame_buffer_attach_texture( &world->frameBuffer, &world->depthStencilTexture, 0 ); // 0 is fake
-
         showErrors( );
         frame_buffer_bind_display( );
+    } else {
     }
+
     showErrors( );
 }
 
@@ -144,6 +164,7 @@ void world_draw( World *world, Texture *blocksTexture, const glm::mat4 &mvp, con
         // glClearDepth
         showErrors( );
         glClear( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT );
+        showErrors( );
         GLenum bufs[ 2 ] = { GL_COLOR_ATTACHMENT0, GL_COLOR_ATTACHMENT1 };
         // glDrawBuffers( 1, bufs );
         glDrawBuffers( 2, bufs );
@@ -232,8 +253,8 @@ void world_cleanup( World *world ) {
     vertex_buffer_layout_destroy( &world->vbl_block );
     vertex_buffer_layout_destroy( &world->vbl_block );
     vertex_buffer_layout_destroy( &world->vbl_coords );
-    frame_buffer_destroy( &world->frameBuffer );
     if ( world->uses_fsq_and_fb ) {
+        frame_buffer_destroy( &world->frameBuffer );
         texture_destroy( &world->blockTexture );
         texture_destroy( &world->reflectionTexture );
         texture_destroy( &world->depthStencilTexture );
