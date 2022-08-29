@@ -68,42 +68,29 @@ void world_init( World *world, const glm::vec3 &camera_pos ) {
     world->mobs = Mobs( &world->vbl_object_vertex, &world->vbl_object_position );
     mouse_selection_init( &world->mouseSelection, &world->vbl_block, &world->vbl_coords );
 
-#if ( USES_FRAME_BUFFER )
-    // world->uses_fsq_and_fb = true;
-
+#if ( SUPPORTS_FRAME_BUFFER )
     frame_buffer_init( &world->frameBuffer );
+    frame_buffer_bind( &world->frameBuffer );
+    showErrors( );
+    texture_init_empty_color( &world->reflectionTexture, 0 );
+    texture_init_empty_color( &world->blockTexture, 0 );
+    texture_init_empty_depth_stencil( &world->depthStencilTexture, 0 );
+    showErrors( );
     frame_buffer_attach_texture( &world->frameBuffer, &world->blockTexture, 0 );
     frame_buffer_attach_texture( &world->frameBuffer, &world->reflectionTexture, 1 );
     frame_buffer_attach_texture( &world->frameBuffer, &world->depthStencilTexture, 0 ); // 0 is fake
-
-    frame_buffer_bind( &world->frameBuffer );
+    showErrors( );
+    full_screen_quad_init( &world->fullScreenQuad );
+    showErrors( );
+    frame_buffer_bind_display( );
     showErrors( );
     glClear( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT );
-    if ( hasError( ) ) {
-        world->uses_fsq_and_fb = false;
-        frame_buffer_destroy( &world->frameBuffer );
-    } else {
-        world->uses_fsq_and_fb = true;
-    }
-#else
-    world->uses_fsq_and_fb = false;
-#endif
-
-    if ( world->uses_fsq_and_fb ) {
-        full_screen_quad_init( &world->fullScreenQuad );
-        texture_init_empty_color( &world->reflectionTexture, 0 );
-        texture_init_empty_color( &world->blockTexture, 0 );
-        texture_init_empty_depth_stencil( &world->depthStencilTexture, 0 );
-        showErrors( );
-        frame_buffer_bind_display( );
-    } else {
-    }
-
     showErrors( );
+#endif
 }
 
 void world_change_size( World *world, int width, int height ) {
-    if ( world->uses_fsq_and_fb ) {
+    if ( SUPPORTS_FRAME_BUFFER ) {
         texture_change_size( &world->blockTexture, width, height );
         texture_change_size( &world->reflectionTexture, width, height );
         texture_change_size( &world->depthStencilTexture, width, height );
@@ -130,7 +117,10 @@ void world_set_selected_block( World *world, const glm::ivec3 &selected, int sho
 
 #define WATER_THRESHOLD_P 0.02
 #define WATER_THRESHOLD_N -0.01
-void world_draw( World *world, Texture *blocksTexture, const glm::mat4 &mvp, const glm::mat4 &mvp_reflect, const glm::mat4 &mvp_sky, const glm::mat4 &mvp_sky_reflect, int debug, int draw_mouse_selection, float y_height, bool headInWater ) {
+void world_draw( World *world, Texture *blocksTexture, const glm::mat4 &mvp, const glm::mat4 &mvp_reflect, const glm::mat4 &mvp_sky, const glm::mat4 &mvp_sky_reflect, int debug, int draw_mouse_selection, float y_height, bool headInWater,
+                 bool drawReflectionsIfSupported ) {
+
+    bool usingReflections = SUPPORTS_FRAME_BUFFER && drawReflectionsIfSupported;
     int object_water_tint_type;
     int block_water_tint_type;
     double out_int_part;
@@ -157,7 +147,7 @@ void world_draw( World *world, Texture *blocksTexture, const glm::mat4 &mvp, con
         debug_block_scale = 0.0f;
     }
 
-    if ( world->uses_fsq_and_fb ) {
+    if ( usingReflections ) {
         frame_buffer_bind( &world->frameBuffer );
         // glClearColor( 1.0f, 1.0f, 1.0f, 1.0f );
         // glClearColor( 0.0f, 0.0f, 0.0f, 0.0f );
@@ -169,6 +159,10 @@ void world_draw( World *world, Texture *blocksTexture, const glm::mat4 &mvp, con
         // glDrawBuffers( 1, bufs );
         glDrawBuffers( 2, bufs );
         showErrors( );
+    } else {
+        if ( SUPPORTS_FRAME_BUFFER ) {
+            frame_buffer_bind_display( );
+        }
     }
 
     shader_set_uniform1i( &world->object_shader, "u_DrawToReflection", 0 );
@@ -205,7 +199,7 @@ void world_draw( World *world, Texture *blocksTexture, const glm::mat4 &mvp, con
     glStencilFunc( GL_EQUAL, 1, 0xff );
     glStencilOp( GL_KEEP, GL_KEEP, GL_KEEP );
 
-    if ( world->uses_fsq_and_fb ) {
+    if ( usingReflections ) {
 
         glCullFace( GL_FRONT );
         glClear( GL_DEPTH_BUFFER_BIT );
@@ -231,14 +225,15 @@ void world_draw( World *world, Texture *blocksTexture, const glm::mat4 &mvp, con
     }
     glDisable( GL_STENCIL_TEST );
 
-    if ( world->uses_fsq_and_fb ) {
+    if ( usingReflections ) {
         frame_buffer_bind_display( );
         showErrors( );
         glDisable( GL_DEPTH_TEST );
         glClear( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT );
-
-        full_screen_quad_draw_texture( &world->fullScreenQuad, &world->renderer, &world->blockTexture, &world->depthStencilTexture, 1.0, headInWater, headInWater );
-        full_screen_quad_draw_texture( &world->fullScreenQuad, &world->renderer, &world->reflectionTexture, &world->depthStencilTexture, y_height < 0 ? 0.1 : 0.2, true, headInWater );
+        
+        bool blurWater = true;
+        full_screen_quad_draw_texture( &world->fullScreenQuad, &world->renderer, &world->blockTexture, &world->depthStencilTexture, 1.0, headInWater && blurWater, headInWater );
+        full_screen_quad_draw_texture( &world->fullScreenQuad, &world->renderer, &world->reflectionTexture, &world->depthStencilTexture, y_height < 0 ? 0.1 : 0.2, blurWater, headInWater );
         // full_screen_quad_draw_texture( &world->fullScreenQuad, &world->renderer, &world->depthStencilTexture, 1.0, false );
         glEnable( GL_DEPTH_TEST );
     }
@@ -253,7 +248,7 @@ void world_cleanup( World *world ) {
     vertex_buffer_layout_destroy( &world->vbl_block );
     vertex_buffer_layout_destroy( &world->vbl_block );
     vertex_buffer_layout_destroy( &world->vbl_coords );
-    if ( world->uses_fsq_and_fb ) {
+    if ( SUPPORTS_FRAME_BUFFER ) {
         frame_buffer_destroy( &world->frameBuffer );
         texture_destroy( &world->blockTexture );
         texture_destroy( &world->reflectionTexture );

@@ -61,7 +61,7 @@ int repgame_sdl2_main( const char *world_path, const char *host, bool connect_mu
     SDL_GL_SetAttribute( SDL_GL_DOUBLEBUFFER, 1 );
     SDL_GL_SetAttribute( SDL_GL_DEPTH_SIZE, 24 );
     SDL_GL_SetAttribute( SDL_GL_STENCIL_SIZE, 8 );
-    // SDL_GL_SetAttribute( SDL_GL_MULTISAMPLESAMPLES, MULTI_SAMPLE_SCALE );//Multi sample happens in FB
+    SDL_GL_SetAttribute( SDL_GL_MULTISAMPLESAMPLES, MULTI_SAMPLE_SCALE_SDL ); // Multi sample happens in FB
     int default_width = 1600;
     int default_height = 800;
     /* Create our window centered */
@@ -103,7 +103,7 @@ int repgame_sdl2_main( const char *world_path, const char *host, bool connect_mu
         pr_debug( "GLEW version wrong" );
         exit( 1 ); // or handle the error in a nicer way
     }
-    repgame_changeSize( default_width, default_height);
+    repgame_changeSize( default_width, default_height );
     main_loop_full( );
     repgame_cleanup( );
     SDL_GL_DeleteContext( sdl_context );

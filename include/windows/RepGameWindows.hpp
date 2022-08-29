@@ -8,7 +8,7 @@
 #define M_PI ( 3.14159265358979323846 )
 #endif
 
-#define USES_FRAME_BUFFER 1
+#define SUPPORTS_FRAME_BUFFER 1
 #define REPGAME_PATH_DIVIDOR "\\"
 #define pr_debug( fmt, ... ) fprintf( stdout, "%s:%d:%s():" fmt "\n", __FILE__, __LINE__, __func__, ##__VA_ARGS__ );
 #define pr_test( fmt, ... ) fprintf( stdout, fmt "\n", ##__VA_ARGS__ );

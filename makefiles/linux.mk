@@ -3,7 +3,7 @@
 REPGAME_PACKAGES += libglew-dev libxi-dev g++ libsdl2-dev
 
 CFLAGS_LINUX := -Wall -Wextra -std=c++11 -Wno-unused-parameter -Wno-unused-variable -fno-pie -march=native
-# CFLAGS_LINUX += -DREPGAME_FAST #For maxing out FPS
+CFLAGS_LINUX += -DREPGAME_FAST #For maxing out FPS
 
 CFLAGS_LINUX_RELEASE += -O3
 CFLAGS_LINUX_DEBUG += -g

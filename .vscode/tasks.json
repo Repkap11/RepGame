@@ -40,6 +40,13 @@
       "group": "build"
     },
     {
+      "label": "make linux_debug",
+      "type": "shell",
+      "command": "make linux_debug",
+      "problemMatcher": [],
+      "group": "build"
+    },
+    {
       "label": "make windows",
       "type": "shell",
       "command": "make windows",

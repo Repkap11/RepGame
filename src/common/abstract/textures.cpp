@@ -247,7 +247,7 @@ void texture_change_size( Texture *texture, int width, int height ) {
         pr_debug( "Error multi sample not supported on Android" );
         exit( 1 );
 #else
-        glTexImage2DMultisample( texture->target, MULTI_SAMPLE_SCALE, texture->internalFormat, width, height, true );
+        glTexImage2DMultisample( texture->target, MULTI_SAMPLE_SCALE_SDL, texture->internalFormat, width, height, true );
 #endif
     } else {
         glTexImage2D( texture->target, 0, texture->internalFormat, width, height, 0, texture->format, texture->type, NULL );

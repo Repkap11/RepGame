@@ -53,7 +53,7 @@ void full_screen_quad_draw_texture( FullScreenQuad *fsq, Renderer *renderer, Tex
     shader_set_uniform1i( &fsq->shader, "u_Stencil", stencilTexture->slot );
     shader_set_uniform1i( &fsq->shader, "u_IgnoreStencil", ignoreStencil );
     shader_set_uniform1f( &fsq->shader, "u_ExtraAlpha", extraAlpha );
-    shader_set_uniform1i( &fsq->shader, "u_TextureSamples", blur ? MULTI_SAMPLE_SCALE / 4 : MULTI_SAMPLE_SCALE );
+    shader_set_uniform1i( &fsq->shader, "u_TextureSamples", blur ? MULTI_SAMPLE_SCALE_FBO / 4 : MULTI_SAMPLE_SCALE_FBO );
     shader_set_uniform1i( &fsq->shader, "u_Blur", blur );
     renderer_draw( renderer, &fsq->va, &fsq->ib, &fsq->shader, 1 );
 }

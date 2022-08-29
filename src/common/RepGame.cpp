@@ -425,7 +425,8 @@ void repgame_draw( ) {
     BlockState blockInHead = world_get_loaded_block( &globalGameState.world, round_block );
     bool headInWater = blockInHead.id == WATER;
 
-    world_draw( &globalGameState.world, &globalGameState.blocksTexture, mvp, mvp_reflect, mvp_sky, mvp_sky_reflect, globalGameState.input.debug_mode, !globalGameState.input.inventory_open, globalGameState.camera.pos.y, headInWater );
+    world_draw( &globalGameState.world, &globalGameState.blocksTexture, mvp, mvp_reflect, mvp_sky, mvp_sky_reflect, globalGameState.input.debug_mode, !globalGameState.input.inventory_open, globalGameState.camera.pos.y, headInWater,
+                globalGameState.input.reflections_on );
 
     showErrors( );
     glClear( GL_DEPTH_BUFFER_BIT );

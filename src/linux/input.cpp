@@ -174,6 +174,11 @@ void input_keysInput( InputState *inputState, SDL_Keycode key, int pressed ) {
                 inputState->inventory_open = !inputState->inventory_open;
             }
             break;
+        case 'r':
+            if ( pressed ) {
+                inputState->reflections_on = !inputState->reflections_on;
+            }
+            break;
 
         default:
             if ( pressed ) {
