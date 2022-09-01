@@ -23,9 +23,9 @@ clean-flatpak:
 install: flatpak_build
 
 
-deploy: flatpak-deploy
+# deploy: flatpak-deploy
 
-flatpak-deploy: out/flatpak/$(TARGET)-1-x86_64.flatpak
-	echo TODO
+# flatpak-deploy: out/flatpak/$(TARGET)-1-x86_64.flatpak
+# 	echo TODO
 
 .PHONY: flatpak clean-flatpak flatpak-run flatpak_build
