@@ -214,16 +214,16 @@ void chunk_load_terrain( Chunk *chunk ) {
     int loaded = map_storage_load( chunk );
     if ( !loaded ) {
         // We havn't loaded this chunk before, map gen it.
-        if ( LOAD_CHUNKS_SUPPORTS_CUDA && map_gen_supports_cuda() ) {
-            if (firstTime){
+        if ( LOAD_CHUNKS_SUPPORTS_CUDA && map_gen_supports_cuda( ) ) {
+            if ( firstTime ) {
                 firstTime = 0;
-                pr_debug("Using CUDA");
+                pr_debug( "Using CUDA" );
             }
             map_gen_load_block_cuda( chunk );
         } else {
-            if (firstTime){
+            if ( firstTime ) {
                 firstTime = 0;
-                pr_debug("Using C");
+                pr_debug( "Using C" );
             }
             map_gen_load_block_c( chunk );
         }

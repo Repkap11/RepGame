@@ -34,6 +34,7 @@ void world_change_size( World *world, int width, int height );
 void world_render( World *world, const glm::vec3 &camera_pos, int limit_render, const glm::mat4 &rotation );
 void world_draw( World *world, Texture *blocksTexture, const glm::mat4 &mvp, const glm::mat4 &mvp_reflect, const glm::mat4 &mvp_sky, const glm::mat4 &mvp_sky_reflect, int debug, int draw_mouse_selection, float y_height, bool headInWater,
                  bool drawReflectionsIfSupported );
+void world_process_random_ticks(World *world);
 void world_set_selected_block( World *world, const glm::ivec3 &selected, int shouldDraw );
 void world_cleanup( World *world );
 

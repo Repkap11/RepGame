@@ -8,8 +8,6 @@
 #include "common/abstract/shader.hpp"
 #include "common/constants.hpp"
 
-#define MAX_LOADED_CHUNKS ( ( 2 * CHUNK_RADIUS_X + 1 ) * ( 2 * CHUNK_RADIUS_Y + 1 ) * ( 2 * CHUNK_RADIUS_Z + 1 ) )
-
 MK_SHADER( chunk_vertex );
 MK_SHADER( chunk_fragment );
 
@@ -261,6 +259,10 @@ void chunk_loader_draw_chunks( LoadedChunks *loadedChunks, const glm::mat4 &mvp,
     }
 
     shader_set_uniform1f( &loadedChunks->shader, "u_shouldDiscardAlpha", 1 );
+}
+
+void chunk_loader_process_random_ticks( LoadedChunks *loadedChunks ) {
+    
 }
 
 void chunk_loader_cleanup( LoadedChunks *loadedChunks ) {

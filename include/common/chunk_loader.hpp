@@ -17,6 +17,8 @@ typedef struct {
     } water;
 } LoadedChunks;
 
+#define MAX_LOADED_CHUNKS ( ( 2 * CHUNK_RADIUS_X + 1 ) * ( 2 * CHUNK_RADIUS_Y + 1 ) * ( 2 * CHUNK_RADIUS_Z + 1 ) )
+
 void chunk_loader_init( LoadedChunks *loadedChunks, const glm::vec3 &camera_pos, VertexBufferLayout *vbl_block, VertexBufferLayout *vbl_coords );
 void chunk_loader_render_chunks( LoadedChunks *loadedChunks, const glm::vec3 &camera_pos, int limit_render );
 void chunk_loader_repopulate_blocks( LoadedChunks *loadedChunks );

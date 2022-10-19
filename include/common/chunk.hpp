@@ -41,7 +41,9 @@ void chunk_load_terrain( Chunk *chunk );      // Load from file or map gen
 void chunk_program_terrain( Chunk *chunk );   // Program into GPU
 void chunk_unprogram_terrain( Chunk *chunk ); // Remove from GPU
 void chunk_calculate_sides( Chunk *chunk, const glm::ivec3 &center_next );
-int chunk_get_coords_from_index( int index, glm::ivec3 &out_pos );
+int chunk_get_coords_from_index_todo( int index, glm::ivec3 &out_pos );
+int chunk_get_coords_from_index( int index, int *out_x, int *out_y, int *out_z );
+
 int chunk_get_index_from_coords( const glm::ivec3 &pos );
 // void chunk_draw( Chunk *chunk, int solid );
 void chunk_persist( Chunk *chunk );

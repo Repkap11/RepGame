@@ -230,7 +230,7 @@ void world_draw( World *world, Texture *blocksTexture, const glm::mat4 &mvp, con
         showErrors( );
         glDisable( GL_DEPTH_TEST );
         glClear( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT );
-        
+
         bool blurWater = true;
         full_screen_quad_draw_texture( &world->fullScreenQuad, &world->renderer, &world->blockTexture, &world->depthStencilTexture, 1.0, headInWater && blurWater, headInWater );
         full_screen_quad_draw_texture( &world->fullScreenQuad, &world->renderer, &world->reflectionTexture, &world->depthStencilTexture, y_height < 0 ? 0.1 : 0.2, blurWater, headInWater );
@@ -364,5 +364,72 @@ void world_set_loaded_block( World *world, const glm::ivec3 &block_pos, BlockSta
     } else {
         // This just means mouse is not pointing at a block
         // pr_debug( "Could not find the pointed to chunk" );
+    }
+}
+
+bool world_do_random_tick2( Chunk *chunk, const glm::vec3 &pos, BlockState *blockState ) {
+    blockState->id = BlockID::DIRT;
+    blockState->display_id = blockState->id;
+    blockState->rotation = 0;
+    blockState->current_redstone_power = 0;
+    return true;
+}
+bool world_do_random_tick( Chunk *chunk, const glm::vec3 &pos, BlockState *blockState ) {
+    // pr_debug( "Ticking state" );
+    BlockID id = blockState->id;
+    // pr_debug( "Ticking id:%d", id );
+    if ( id == BlockID::GRASS ) {
+        pr_debug( "Ticked Grass!!" );
+        glm::vec3 pos_above = glm::vec3( pos );
+        pos_above.y += 1;
+        BlockState stateAbove = chunk_get_block( chunk, pos );
+        Block *blockAbove = block_definition_get_definition( stateAbove.id );
+        // if ( blockAbove->renderOrder != RenderOrder_Opaque ) {
+            blockState->id = BlockID::DIRT;
+            blockState->display_id = blockState->id;
+            return true;
+        // }
+    } else {
+        // pr_debug( "Not grass" );
+        // blockState->id = BlockID::DIAMOND_BLOCK;
+        // blockState->display_id = blockState->id;
+        // return true;
+    }
+    return false;
+}
+
+int counter = 0;
+bool world_process_random_ticks_on_chunk( World *world, Chunk *chunk ) {
+    bool anyBlockStateChanged = false;
+    int index = CHUNK_BLOCK_DRAW_START + ( counter % ( CHUNK_BLOCK_DRAW_STOP - CHUNK_BLOCK_DRAW_START ) );
+    counter++;
+    int x, y, z;
+    int drawn_block = chunk_get_coords_from_index( index, &x, &y, &z );
+    if ( drawn_block ) { // TODO re-try if this isn't a valid block coord
+                         // pr_debug( "Ticking index:%d", index );
+        glm::ivec3 pos = glm::ivec3( x, y, z );
+        BlockState blockState = chunk_get_block( chunk, pos );
+        bool changedState = world_do_random_tick( chunk, pos, &blockState );
+        // bool changedState = false;
+        if ( changedState ) {
+            world_set_loaded_block( world, pos, blockState );
+            anyBlockStateChanged = true;
+        }
+    }
+    return anyBlockStateChanged;
+}
+
+void world_process_random_ticks( World *world ) {
+    pr_debug( "Tick" );
+    for ( int i = 0; i < MAX_LOADED_CHUNKS; i++ ) {
+        // TODO randomly pick chunks.
+        Chunk *chunk = &world->loadedChunks.chunkArray[ i ];
+        if ( !chunk->is_loading ) {
+            bool anyStateChanged = world_process_random_ticks_on_chunk( world, chunk );
+            if ( anyStateChanged ) {
+                chunk->dirty = 1;
+                chunk->needs_repopulation = 1;
+            }
+        }
     }
 }
