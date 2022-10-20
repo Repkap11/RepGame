@@ -367,33 +367,67 @@ void world_set_loaded_block( World *world, const glm::ivec3 &block_pos, BlockSta
     }
 }
 
-bool world_do_random_tick2( Chunk *chunk, const glm::vec3 &pos, BlockState *blockState ) {
-    blockState->id = BlockID::DIRT;
-    blockState->display_id = blockState->id;
-    blockState->rotation = 0;
-    blockState->current_redstone_power = 0;
-    return true;
+// bool world_do_random_tick2( Chunk *chunk, const glm::vec3 &pos, BlockState *blockState ) {
+//     blockState->id = BlockID::DIRT;
+//     blockState->display_id = blockState->id;
+//     blockState->rotation = 0;
+//     blockState->current_redstone_power = 0;
+//     return true;
+// }
+
+bool world_any_neighbor_id( const Chunk *chunk, const glm::ivec3 &pos, BlockID id ) {
+    for ( int i = -1; i < 2; i++ ) {
+        for ( int j = -1; j < 2; j++ ) {
+            for ( int k = -1; k < 2; k++ ) {
+                if ( i == 0 && j == 0 && k == 0 ) {
+                    continue;
+                }
+                glm::ivec3 pos_offset = glm::ivec3( pos.x + i, pos.y + j, pos.z + k );
+                BlockState blockState = chunk_get_block( chunk, pos_offset );
+                if ( blockState.id == id ) {
+                    return true;
+                }
+            }
+        }
+    }
+    return false;
 }
+
 bool world_do_random_tick( Chunk *chunk, const glm::vec3 &pos, BlockState *blockState ) {
     // pr_debug( "Ticking state" );
     BlockID id = blockState->id;
+    if ( id == BlockID::AIR ) {
+        return false;
+    }
     // pr_debug( "Ticking id:%d", id );
+
+    BlockState stateUp = chunk_get_block( chunk, glm::vec3( pos.x + 0, pos.y + 1, pos.z + 0 ) );
+    // BlockState stateDown = chunk_get_block( chunk, glm::vec3( pos.x + 0, pos.y - 1, pos.z + 0 ) );
+    // BlockState stateLeft = chunk_get_block( chunk, glm::vec3( pos.x + 1, pos.y + 0, pos.z + 0 ) );
+    // BlockState stateRight = chunk_get_block( chunk, glm::vec3( pos.x - 1, pos.y + 0, pos.z + 0 ) );
+    // BlockState stateFront = chunk_get_block( chunk, glm::vec3( pos.x + 0, pos.y + 0, pos.z + 1 ) );
+    // BlockState stateBack = chunk_get_block( chunk, glm::vec3( pos.x + 0, pos.y + 0, pos.z - 1 ) );
+
+    Block *blockUp = block_definition_get_definition( stateUp.id );
+    // Block *blockDown = block_definition_get_definition( stateDown.id );
+    // Block *blockLeft = block_definition_get_definition( stateLeft.id );
+    // Block *blockRight = block_definition_get_definition( stateRight.id );
+    // Block *blockFront = block_definition_get_definition( stateFront.id );
+    // Block *blockBack = block_definition_get_definition( stateBack.id );
+
     if ( id == BlockID::GRASS ) {
-        pr_debug( "Ticked Grass!!" );
-        glm::vec3 pos_above = glm::vec3( pos );
-        pos_above.y += 1;
-        BlockState stateAbove = chunk_get_block( chunk, pos );
-        Block *blockAbove = block_definition_get_definition( stateAbove.id );
-        // if ( blockAbove->renderOrder != RenderOrder_Opaque ) {
+        if ( blockUp->renderOrder == RenderOrder_Opaque ) {
             blockState->id = BlockID::DIRT;
             blockState->display_id = blockState->id;
             return true;
-        // }
-    } else {
-        // pr_debug( "Not grass" );
-        // blockState->id = BlockID::DIAMOND_BLOCK;
-        // blockState->display_id = blockState->id;
-        // return true;
+        }
+    }
+    if ( id == BlockID::DIRT ) {
+        if ( blockUp->renderOrder != RenderOrder_Opaque && world_any_neighbor_id( chunk, pos, BlockID::GRASS ) ) {
+            blockState->id = BlockID::GRASS;
+            blockState->display_id = blockState->id;
+            return true;
+        }
     }
     return false;
 }
@@ -401,8 +435,7 @@ bool world_do_random_tick( Chunk *chunk, const glm::vec3 &pos, BlockState *block
 int counter = 0;
 bool world_process_random_ticks_on_chunk( World *world, Chunk *chunk ) {
     bool anyBlockStateChanged = false;
-    int index = CHUNK_BLOCK_DRAW_START + ( counter % ( CHUNK_BLOCK_DRAW_STOP - CHUNK_BLOCK_DRAW_START ) );
-    counter++;
+    int index = CHUNK_BLOCK_DRAW_START + ( counter % ( CHUNK_BLOCK_DRAW_STOP - CHUNK_BLOCK_DRAW_START+1 ) );
     int x, y, z;
     int drawn_block = chunk_get_coords_from_index( index, &x, &y, &z );
     if ( drawn_block ) { // TODO re-try if this isn't a valid block coord
@@ -412,7 +445,9 @@ bool world_process_random_ticks_on_chunk( World *world, Chunk *chunk ) {
         bool changedState = world_do_random_tick( chunk, pos, &blockState );
         // bool changedState = false;
         if ( changedState ) {
-            world_set_loaded_block( world, pos, blockState );
+            glm::ivec3 chunk_pos = chunk->chunk_pos * CHUNK_SIZE;
+            glm::ivec3 world_pos = pos + chunk_pos;
+            world_set_loaded_block( world, world_pos, blockState );
             anyBlockStateChanged = true;
         }
     }
@@ -421,11 +456,13 @@ bool world_process_random_ticks_on_chunk( World *world, Chunk *chunk ) {
 
 void world_process_random_ticks( World *world ) {
     pr_debug( "Tick" );
+    counter += 1;
     for ( int i = 0; i < MAX_LOADED_CHUNKS; i++ ) {
         // TODO randomly pick chunks.
         Chunk *chunk = &world->loadedChunks.chunkArray[ i ];
         if ( !chunk->is_loading ) {
-            bool anyStateChanged = world_process_random_ticks_on_chunk( world, chunk );
+            bool anyStateChanged = false;
+            anyStateChanged |= world_process_random_ticks_on_chunk( world, chunk );
             if ( anyStateChanged ) {
                 chunk->dirty = 1;
                 chunk->needs_repopulation = 1;

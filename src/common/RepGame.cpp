@@ -207,7 +207,9 @@ void repgame_process_movement( ) {
 }
 
 void repgame_process_block_updates( ) {
-    world_process_random_ticks(&globalGameState.world);
+    for ( size_t i = 0; i < 20; i++ ) {
+        world_process_random_ticks( &globalGameState.world );
+    }
     globalGameState.blockUpdateQueue.processAllBlockUpdates( &globalGameState.world, globalGameState.tick_number );
 }
 

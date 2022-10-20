@@ -157,7 +157,7 @@ void chunk_render( const Chunk *chunk, const Renderer *renderer, const Shader *s
     }
 }
 
-BlockState chunk_get_block( Chunk *chunk, const glm::ivec3 &pos ) {
+BlockState chunk_get_block( const Chunk *chunk, const glm::ivec3 &pos ) {
     if ( !REMEMBER_BLOCKS ) {
         return BLOCK_STATE_AIR;
     }

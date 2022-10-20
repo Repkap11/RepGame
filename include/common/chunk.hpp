@@ -49,7 +49,7 @@ int chunk_get_index_from_coords( const glm::ivec3 &pos );
 void chunk_persist( Chunk *chunk );
 void chunk_destroy( Chunk *chunk );
 void chunk_set_block( Chunk *chunk, const glm::ivec3 &pos, BlockState blockState );
-BlockState chunk_get_block( Chunk *chunk, const glm::ivec3 &pos );
+BlockState chunk_get_block( const Chunk *chunk, const glm::ivec3 &pos );
 void chunk_calculate_popupated_blocks( Chunk *chunk );
 
 inline int chunk_get_index_from_coords( const glm::ivec3 &pos ) {
