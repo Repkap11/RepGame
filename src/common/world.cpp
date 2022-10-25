@@ -435,7 +435,7 @@ bool world_do_random_tick( Chunk *chunk, const glm::vec3 &pos, BlockState *block
 int counter = 0;
 bool world_process_random_ticks_on_chunk( World *world, Chunk *chunk ) {
     bool anyBlockStateChanged = false;
-    int index = CHUNK_BLOCK_DRAW_START + ( counter % ( CHUNK_BLOCK_DRAW_STOP - CHUNK_BLOCK_DRAW_START+1 ) );
+    int index = CHUNK_BLOCK_DRAW_START + ( rand() % ( CHUNK_BLOCK_DRAW_STOP - CHUNK_BLOCK_DRAW_START+1 ) );
     int x, y, z;
     int drawn_block = chunk_get_coords_from_index( index, &x, &y, &z );
     if ( drawn_block ) { // TODO re-try if this isn't a valid block coord
@@ -456,6 +456,7 @@ bool world_process_random_ticks_on_chunk( World *world, Chunk *chunk ) {
 
 void world_process_random_ticks( World *world ) {
     pr_debug( "Tick" );
+    srand(counter);
     counter += 1;
     for ( int i = 0; i < MAX_LOADED_CHUNKS; i++ ) {
         // TODO randomly pick chunks.
