@@ -398,18 +398,92 @@ bool world_any_neighbor_id( const Chunk *chunk, const glm::ivec3 &pos, BlockID i
 }
 
 bool world_any_neighbor_diag_id( const Chunk *chunk, const glm::ivec3 &pos, BlockID id ) {
-    for ( int i = -1; i < 2; i++ ) {
-        for ( int j = -1; j < 2; j++ ) {
-            for ( int k = -1; k < 2; k++ ) {
-                if ( i == 0 && j == 0 && k == 0 ) {
-                    continue;
-                }
-                glm::ivec3 pos_offset = glm::ivec3( pos.x + i, pos.y + j, pos.z + k );
-                BlockState blockState = chunk_get_block( chunk, pos_offset );
-                if ( blockState.id == id ) {
-                    return true;
-                }
-            }
+    int offsets_len = ( 3 * 3 * 3 ) - 1;
+    glm::ivec3 offsets[ offsets_len ] = {
+        glm::ivec3( -1, -1, -1 ), //
+        glm::ivec3( -1, -1, 0 ),  //
+        glm::ivec3( -1, -1, 1 ),  //
+        glm::ivec3( -1, 0, -1 ),  //
+        glm::ivec3( -1, 0, 0 ),   //
+        glm::ivec3( -1, 0, 1 ),   //
+        glm::ivec3( -1, 1, -1 ),  //
+        glm::ivec3( -1, 1, 0 ),   //
+        glm::ivec3( -1, 1, 1 ),   //
+
+        glm::ivec3( 0, -1, -1 ), //
+        glm::ivec3( 0, -1, 0 ),  //
+        glm::ivec3( 0, -1, 1 ),  //
+        glm::ivec3( 0, 0, -1 ),  //
+        // glm::ivec3( 0, 0, 0 ),   //
+        glm::ivec3( 0, 0, 1 ),  //
+        glm::ivec3( 0, 1, -1 ), //
+        glm::ivec3( 0, 1, 0 ),  //
+        glm::ivec3( 0, 1, 1 ),  //
+
+        glm::ivec3( 1, -1, -1 ), //
+        glm::ivec3( 1, -1, 0 ),  //
+        glm::ivec3( 1, -1, 1 ),  //
+        glm::ivec3( 1, 0, -1 ),  //
+        glm::ivec3( 1, 0, 0 ),   //
+        glm::ivec3( 1, 0, 1 ),   //
+        glm::ivec3( 1, 1, -1 ),  //
+        glm::ivec3( 1, 1, 0 ),   //
+        glm::ivec3( 1, 1, 1 ),   //
+
+    };
+
+    for ( int i = 0; i < offsets_len; i++ ) {
+        glm::ivec3 offset = offsets[ i ];
+        glm::ivec3 pos_offset = glm::ivec3( pos.x + offset.x, pos.y + offset.y, pos.z + offset.z );
+        BlockState blockState = chunk_get_block( chunk, pos_offset );
+        if ( blockState.id == id ) {
+            return true;
+        }
+    }
+    return false;
+}
+
+bool world_any_neighbor_grass_id( const Chunk *chunk, const glm::ivec3 &pos, BlockID id ) {
+    int offsets_len = ( 3 * 3 * 3 ) - 1;
+    glm::ivec3 offsets[ offsets_len ] = {
+        // glm::ivec3( -1, -1, -1 ), //
+        glm::ivec3( -1, -1, 0 ),  //
+        // glm::ivec3( -1, -1, 1 ),  //
+        // glm::ivec3( -1, 0, -1 ),  //
+        glm::ivec3( -1, 0, 0 ),   //
+        // glm::ivec3( -1, 0, 1 ),   //
+        // glm::ivec3( -1, 1, -1 ),  //
+        glm::ivec3( -1, 1, 0 ),   //
+        // glm::ivec3( -1, 1, 1 ),   //
+
+        glm::ivec3( 0, -1, -1 ), //
+        glm::ivec3( 0, -1, 0 ),  //
+        glm::ivec3( 0, -1, 1 ),  //
+        glm::ivec3( 0, 0, -1 ),  //
+        // glm::ivec3( 0, 0, 0 ),   //
+        glm::ivec3( 0, 0, 1 ),  //
+        glm::ivec3( 0, 1, -1 ), //
+        glm::ivec3( 0, 1, 0 ),  //
+        glm::ivec3( 0, 1, 1 ),  //
+
+        // glm::ivec3( 1, -1, -1 ), //
+        glm::ivec3( 1, -1, 0 ),  //
+        // glm::ivec3( 1, -1, 1 ),  //
+        // glm::ivec3( 1, 0, -1 ),  //
+        glm::ivec3( 1, 0, 0 ),   //
+        // glm::ivec3( 1, 0, 1 ),   //
+        // glm::ivec3( 1, 1, -1 ),  //
+        glm::ivec3( 1, 1, 0 ),   //
+        // glm::ivec3( 1, 1, 1 ),   //
+
+    };
+
+    for ( int i = 0; i < offsets_len; i++ ) {
+        glm::ivec3 offset = offsets[ i ];
+        glm::ivec3 pos_offset = glm::ivec3( pos.x + offset.x, pos.y + offset.y, pos.z + offset.z );
+        BlockState blockState = chunk_get_block( chunk, pos_offset );
+        if ( blockState.id == id ) {
+            return true;
         }
     }
     return false;
@@ -445,8 +519,15 @@ bool world_do_random_tick( Chunk *chunk, const glm::vec3 &pos, BlockState *block
         }
     }
     if ( id == BlockID::DIRT ) {
-        if ( blockUp->renderOrder != RenderOrder_Opaque && world_any_neighbor_id( chunk, pos, BlockID::GRASS ) ) {
+        if ( blockUp->renderOrder != RenderOrder_Opaque && world_any_neighbor_grass_id( chunk, pos, BlockID::GRASS ) ) {
             blockState->id = BlockID::GRASS;
+            blockState->display_id = blockState->id;
+            return true;
+        }
+    }
+    if ( id == BlockID::DIRT ) {
+        if ( blockUp->renderOrder != RenderOrder_Opaque && world_any_neighbor_grass_id( chunk, pos, BlockID::PODZEL ) ) {
+            blockState->id = BlockID::PODZEL;
             blockState->display_id = blockState->id;
             return true;
         }
