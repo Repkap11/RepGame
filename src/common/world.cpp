@@ -376,6 +376,28 @@ void world_set_loaded_block( World *world, const glm::ivec3 &block_pos, BlockSta
 // }
 
 bool world_any_neighbor_id( const Chunk *chunk, const glm::ivec3 &pos, BlockID id ) {
+    int offsets_len = 6;
+    glm::ivec3 offsets[ offsets_len ] = {
+        glm::ivec3( -1, 0, 0 ), //
+        glm::ivec3( 1, 0, 0 ),  //
+        glm::ivec3( 0, -1, 0 ), //
+        glm::ivec3( 0, 1, 0 ),  //
+        glm::ivec3( 0, 0, -1 ), //
+        glm::ivec3( 0, 0, 1 ),  //
+    };
+
+    for ( int i = 0; i < offsets_len; i++ ) {
+        glm::ivec3 offset = offsets[ i ];
+        glm::ivec3 pos_offset = glm::ivec3( pos.x + offset.x, pos.y + offset.y, pos.z + offset.z );
+        BlockState blockState = chunk_get_block( chunk, pos_offset );
+        if ( blockState.id == id ) {
+            return true;
+        }
+    }
+    return false;
+}
+
+bool world_any_neighbor_diag_id( const Chunk *chunk, const glm::ivec3 &pos, BlockID id ) {
     for ( int i = -1; i < 2; i++ ) {
         for ( int j = -1; j < 2; j++ ) {
             for ( int k = -1; k < 2; k++ ) {
@@ -435,7 +457,7 @@ bool world_do_random_tick( Chunk *chunk, const glm::vec3 &pos, BlockState *block
 int counter = 0;
 bool world_process_random_ticks_on_chunk( World *world, Chunk *chunk ) {
     bool anyBlockStateChanged = false;
-    int index = CHUNK_BLOCK_DRAW_START + ( rand() % ( CHUNK_BLOCK_DRAW_STOP - CHUNK_BLOCK_DRAW_START+1 ) );
+    int index = CHUNK_BLOCK_DRAW_START + ( rand( ) % ( CHUNK_BLOCK_DRAW_STOP - CHUNK_BLOCK_DRAW_START + 1 ) );
     int x, y, z;
     int drawn_block = chunk_get_coords_from_index( index, &x, &y, &z );
     if ( drawn_block ) { // TODO re-try if this isn't a valid block coord
@@ -456,7 +478,7 @@ bool world_process_random_ticks_on_chunk( World *world, Chunk *chunk ) {
 
 void world_process_random_ticks( World *world ) {
     pr_debug( "Tick" );
-    srand(counter);
+    srand( counter );
     counter += 1;
     for ( int i = 0; i < MAX_LOADED_CHUNKS; i++ ) {
         // TODO randomly pick chunks.
