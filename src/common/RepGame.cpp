@@ -285,7 +285,7 @@ static inline void initilizeGameState( const char *world_name ) {
         globalGameState.camera.pos.y = saved_data.world_y;
         globalGameState.camera.pos.z = saved_data.world_z;
         globalGameState.block_selection.holdingBlock = saved_data.holdingBlock;
-        // globalGameState.block_selection.holdingBlock = WATER;
+        globalGameState.block_selection.holdingBlock = BlockID::PODZEL;
         globalGameState.camera.angle_H = saved_data.angle_H;
         globalGameState.camera.angle_V = saved_data.angle_V;
         globalGameState.input.player_flying = saved_data.flying;

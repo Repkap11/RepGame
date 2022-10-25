@@ -1,12 +1,26 @@
 #ifndef HEADER_UI_OVERLAY_H
 #define HEADER_UI_OVERLAY_H
-#include "common/inventory.hpp"
 #include "abstract/index_buffer.hpp"
 #include "abstract/vertex_buffer.hpp"
 #include "abstract/vertex_array.hpp"
 #include "abstract/renderer.hpp"
 #include "RepGame.hpp"
 #include "input.hpp"
+
+typedef struct {
+    float screen_x;
+    float screen_y;
+    unsigned int is_block;
+    struct {
+        float x, y, id;
+    } texture;
+    struct {
+        float r, g, b, a;
+    } tint;
+    unsigned int face_type;
+} UIOverlayVertex;
+
+#include "common/inventory.hpp"
 
 typedef struct {
     VertexBufferLayout vbl;
@@ -27,19 +41,6 @@ typedef struct {
     int screen_width;
     int screen_height;
 } UIOverlay;
-
-typedef struct {
-    float screen_x;
-    float screen_y;
-    unsigned int is_block;
-    struct {
-        float x, y, id;
-    } texture;
-    struct {
-        float r, g, b, a;
-    } tint;
-    unsigned int face_type;
-} UIOverlayVertex;
 
 void ui_overlay_init( UIOverlay *ui_overlay );
 void ui_overlay_on_screen_size_change( UIOverlay *ui_overlay, int width, int height );

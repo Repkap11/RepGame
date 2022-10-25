@@ -142,6 +142,7 @@ void ui_overlay_on_screen_size_change( UIOverlay *ui_overlay, int width, int hei
     ui_overlay->screen_height = height;
     // When the screen changes, we need to reprocess the held block graphics
     ui_overlay_set_holding_block( ui_overlay, ui_overlay->draw_holding_block.heldBlockID );
+    inventory_render(&ui_overlay->inventory, width, height);
 }
 
 void ui_overlay_set_holding_block( UIOverlay *ui_overlay, BlockID holding_block ) {
