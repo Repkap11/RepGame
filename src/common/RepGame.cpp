@@ -263,6 +263,7 @@ void repgame_tick( ) {
     globalGameState.input.mouse.previousPosition.y = globalGameState.input.mouse.currentPosition.y;
     globalGameState.input.mouse.previousPosition.wheel_counts = globalGameState.input.mouse.currentPosition.wheel_counts;
 
+    ui_overlay_process_inputs( &globalGameState.ui_overlay, &globalGameState.input );
     repgame_process_block_updates( );
 }
 

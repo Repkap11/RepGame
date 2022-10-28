@@ -18,8 +18,10 @@
 
 typedef struct {
     int slot_pos;
-    float screen_x;
-    float screen_y;
+    int screen_x;
+    int screen_y;
+    int screen_x_end;
+    int screen_y_end;
 } InventorySlotMesh;
 
 typedef struct {
@@ -47,7 +49,8 @@ typedef struct {
 
 void inventory_init( Inventory *inventory, VertexBufferLayout *ui_overlay_vbl );
 void inventory_render( Inventory *inventory, int width, int height );
-void inventory_draw( Inventory *inventory, Renderer *renderer, Texture *blocksTexture, InputState *input, const glm::mat4 &mvp_ui, Shader *shader );
+void inventory_process_inputs( Inventory *inventory, InputState *input );
+void inventory_draw( Inventory *inventory, Renderer *renderer, Texture *blocksTexture, const glm::mat4 &mvp_ui, Shader *shader );
 /**
  * Picks up an ItemBlock from the world and places it in the first available
  * InventorySlot (or stacks if applicable).

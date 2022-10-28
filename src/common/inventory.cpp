@@ -80,7 +80,7 @@ void inventory_render( Inventory *inventory, int width, int height ) {
         if ( block_id == BlockID::AIR ) {
             continue;
         }
-        Block *block = block_definition_get_definition( block_id);
+        Block *block = block_definition_get_definition( block_id );
 
         InventorySlotMesh *inventory_slots_mesh = inventory->slots_mesh;
         int block_grid_coord_x = slot_index % INVENTORY_BLOCKS_PER_ROW;
@@ -143,6 +143,8 @@ void inventory_render( Inventory *inventory, int width, int height ) {
         }
         inventory_slots_mesh->screen_x = block_corner_x;
         inventory_slots_mesh->screen_y = block_corner_y;
+        inventory_slots_mesh->screen_x_end = block_corner_x + icon_size;
+        inventory_slots_mesh->screen_y_end = block_corner_y + icon_size;
         inventory_slots_mesh->slot_pos = slot_index;
 
         current_ib_index += NUM_INDEXES_PER_BLOCK;
@@ -152,11 +154,39 @@ void inventory_render( Inventory *inventory, int width, int height ) {
     vertex_buffer_set_data( &inventory->UI.vb, inventory->UI.vb_data_inventory, sizeof( UIOverlayVertex ) * vb_size );
 }
 
-void inventory_draw( Inventory *inventory, Renderer *renderer, Texture *blocksTexture, InputState *input, const glm::mat4 &mvp_ui, Shader *shader ) {
-
-    if ( input->mouse.buttons.left ) {
-        printf( "Clicked!\n" );
+bool pos_within_slot( InventorySlotMesh *mesh, int x, int y ) {
+    if ( x < mesh->screen_x ) {
+        return false;
     }
+    if ( y < mesh->screen_y ) {
+        return false;
+    }
+    if ( x > mesh->screen_x_end ) {
+        return false;
+    }
+    if ( y > mesh->screen_y_end ) {
+        return false;
+    }
+    return true;
+}
+void inventory_process_inputs( Inventory *inventory, InputState *input ) {
+    if ( input->mouse.buttons.left ) {
+        int mouse_x = input->mouse.currentPosition.x;
+        int mouse_y = input->mouse.currentPosition.y;
+        for ( int i = 0; i < INVENTORY_MAX_SIZE; i++ ) {
+            InventorySlotMesh *slot_mesh = &inventory->slots_mesh[ i ];
+            InventorySlot slot = inventory->slots_items[ slot_mesh->slot_pos ];
+            if ( slot.block_id == BlockID::AIR ) {
+                continue;
+            }
+            if ( pos_within_slot( slot_mesh, mouse_x, mouse_y ) ) {
+                pr_debug( "You clicked on:%d", slot.block_id );
+            }
+        }
+    }
+}
+
+void inventory_draw( Inventory *inventory, Renderer *renderer, Texture *blocksTexture, const glm::mat4 &mvp_ui, Shader *shader ) {
     showErrors( );
     renderer_draw( renderer, &inventory->UI.va, &inventory->UI.ib, shader, 1 );
     showErrors( );

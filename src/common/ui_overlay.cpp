@@ -142,7 +142,7 @@ void ui_overlay_on_screen_size_change( UIOverlay *ui_overlay, int width, int hei
     ui_overlay->screen_height = height;
     // When the screen changes, we need to reprocess the held block graphics
     ui_overlay_set_holding_block( ui_overlay, ui_overlay->draw_holding_block.heldBlockID );
-    inventory_render(&ui_overlay->inventory, width, height);
+    inventory_render( &ui_overlay->inventory, width, height );
 }
 
 void ui_overlay_set_holding_block( UIOverlay *ui_overlay, BlockID holding_block ) {
@@ -171,13 +171,17 @@ void ui_overlay_set_holding_block( UIOverlay *ui_overlay, BlockID holding_block 
     vertex_buffer_set_data( &ui_overlay->draw_holding_block.vb, vb_data_holding_block, sizeof( UIOverlayVertex ) * UI_OVERLAY_VERTEX_COUNT_HOLDING_BLOCK );
 }
 
+void ui_overlay_process_inputs( UIOverlay *ui_overlay, InputState *input ) {
+    inventory_process_inputs( &ui_overlay->inventory, input );
+}
+
 void ui_overlay_draw( UIOverlay *ui_overlay, Renderer *renderer, Texture *blocksTexture, InputState *input, const glm::mat4 &mvp_ui ) {
 
     shader_set_uniform_mat4f( &ui_overlay->shader, "u_MVP", mvp_ui );
     shader_set_uniform1i( &ui_overlay->shader, "u_Texture", blocksTexture->slot );
 
     if ( input->inventory_open ) {
-        inventory_draw( &ui_overlay->inventory, renderer, blocksTexture, input, mvp_ui, &ui_overlay->shader );
+        inventory_draw( &ui_overlay->inventory, renderer, blocksTexture, mvp_ui, &ui_overlay->shader );
     } else {
         IndexBuffer *which_index_buffer;
         Block *heldBlock = block_definition_get_definition( ui_overlay->draw_holding_block.heldBlockID );
