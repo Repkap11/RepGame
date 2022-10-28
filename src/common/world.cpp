@@ -558,7 +558,7 @@ bool world_process_random_ticks_on_chunk( World *world, Chunk *chunk ) {
 }
 
 void world_process_random_ticks( World *world ) {
-    pr_debug( "Tick" );
+    // pr_debug( "Tick" );
     srand( counter );
     counter += 1;
     for ( int i = 0; i < MAX_LOADED_CHUNKS; i++ ) {

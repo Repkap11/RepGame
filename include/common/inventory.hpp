@@ -17,18 +17,19 @@
 // #define INVENTORY_BLOCK_SPACING 80
 
 typedef struct {
-    int stack;
     int slot_pos;
-    int is_active;
     float screen_x;
     float screen_y;
+} InventorySlotMesh;
+
+typedef struct {
+    int stack_count;
     BlockID block_id;
 } InventorySlot;
 
 typedef struct {
-    InventorySlot *slots[ INVENTORY_MAX_SIZE ];
-    unsigned int size;
-
+    InventorySlot slots_items[ INVENTORY_MAX_SIZE ];
+    InventorySlotMesh slots_mesh[ INVENTORY_MAX_SIZE ];
     struct {
         int screen_x;
         int screen_y;
