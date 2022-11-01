@@ -57,6 +57,9 @@ void inventory_init( Inventory *inventory, VertexBufferLayout *ui_overlay_vbl ) 
             current_inventory_index++;
         }
     } else {
+        // for ( int i = 0; i < INVENTORY_MAX_SIZE; i++ ) {
+        //     inventory->slots_items[ 0 ].block_id = BlockID::AIR;
+        // }
         inventory->slots_items[ 0 ].block_id = BlockID::DIRT;
         inventory->slots_items[ 1 ].block_id = BlockID::GRASS;
     }
@@ -72,7 +75,7 @@ void inventory_render( Inventory *inventory, int width, int height ) {
     int icon_size = item_size * 0.8;
     int icon_offset = ( icon_size - item_size ) / 2;
 
-    int shown_block_index = -1;
+    int used_slot_mesh_count = 0;
 
     int current_ib_index = 0;
     for ( int slot_index = 0; slot_index < INVENTORY_MAX_SIZE; slot_index++ ) {
@@ -82,7 +85,7 @@ void inventory_render( Inventory *inventory, int width, int height ) {
         }
         Block *block = block_definition_get_definition( block_id );
 
-        InventorySlotMesh *inventory_slots_mesh = inventory->slots_mesh;
+        InventorySlotMesh *inventory_slots_mesh = &inventory->slots_mesh[ used_slot_mesh_count ];
         int block_grid_coord_x = slot_index % INVENTORY_BLOCKS_PER_ROW;
         int block_grid_coord_y = slot_index / INVENTORY_BLOCKS_PER_ROW;
         int block_corner_x = inventory->UI.screen_x + block_grid_coord_x * item_size;
@@ -128,8 +131,8 @@ void inventory_render( Inventory *inventory, int width, int height ) {
 
                 if ( !block->icon_is_isometric ) {
                     // Like Reeds
-                    ui_vertex->screen_x = block_corner_x + icon_size * ( ui_vertex->texture.x * 0.98 );
-                    ui_vertex->screen_y = block_corner_y + icon_size * ( ui_vertex->texture.y * 0.98 );
+                    ui_vertex->screen_x = block_corner_x + icon_size * ( ui_vertex->texture.x * 1.0 );
+                    ui_vertex->screen_y = block_corner_y + icon_size * ( ui_vertex->texture.y * 1.0 );
 
                     ui_vertex->texture.id = block->inventory_non_isometric_id - 1;
                 } else {
@@ -141,20 +144,28 @@ void inventory_render( Inventory *inventory, int width, int height ) {
                 }
             }
         }
+        // Transform coords to system with 0x0 at top left, which is what SDL uses for mouse input.
+        block_corner_x += width / 2;
+        block_corner_y += height / 2;
+        block_corner_y = height - block_corner_y;
         inventory_slots_mesh->screen_x = block_corner_x;
-        inventory_slots_mesh->screen_y = block_corner_y;
+        inventory_slots_mesh->screen_y = block_corner_y - icon_size;
         inventory_slots_mesh->screen_x_end = block_corner_x + icon_size;
-        inventory_slots_mesh->screen_y_end = block_corner_y + icon_size;
+        inventory_slots_mesh->screen_y_end = block_corner_y;
         inventory_slots_mesh->slot_pos = slot_index;
+        used_slot_mesh_count++;
 
         current_ib_index += NUM_INDEXES_PER_BLOCK;
     }
+    inventory->used_slots_mesh_count = used_slot_mesh_count;
 
     index_buffer_set_data( &inventory->UI.ib, inventory->UI.ib_data_inventory, ib_size );
     vertex_buffer_set_data( &inventory->UI.vb, inventory->UI.vb_data_inventory, sizeof( UIOverlayVertex ) * vb_size );
 }
 
 bool pos_within_slot( InventorySlotMesh *mesh, int x, int y ) {
+    // pr_debug( "Checking within:%d:%d - %d:%d", mesh->screen_x, mesh->screen_y, mesh->screen_x_end, mesh->screen_y_end );
+
     if ( x < mesh->screen_x ) {
         return false;
     }
@@ -171,18 +182,22 @@ bool pos_within_slot( InventorySlotMesh *mesh, int x, int y ) {
 }
 void inventory_process_inputs( Inventory *inventory, InputState *input ) {
     if ( input->mouse.buttons.left ) {
-        int mouse_x = input->mouse.currentPosition.x;
-        int mouse_y = input->mouse.currentPosition.y;
-        for ( int i = 0; i < INVENTORY_MAX_SIZE; i++ ) {
+        int mouse_x = input->mouse.buttons.click_pos_x;
+        int mouse_y = input->mouse.buttons.click_pos_y;
+        for ( int i = 0; i < inventory->used_slots_mesh_count; i++ ) {
             InventorySlotMesh *slot_mesh = &inventory->slots_mesh[ i ];
-            InventorySlot slot = inventory->slots_items[ slot_mesh->slot_pos ];
-            if ( slot.block_id == BlockID::AIR ) {
+            InventorySlot *slot = &inventory->slots_items[ slot_mesh->slot_pos ];
+            if ( slot->block_id == BlockID::AIR ) {
+                pr_debug( "I don't think this should happen" );
                 continue;
             }
+            // pr_debug( "Checking:%d", slot->block_id );
             if ( pos_within_slot( slot_mesh, mouse_x, mouse_y ) ) {
-                pr_debug( "You clicked on:%d", slot.block_id );
+                pr_debug( "You clicked on:%d slot_pos:%d", slot->block_id, slot_mesh->slot_pos );
+                return;
             }
         }
+        // pr_debug( "Clicked on miss:%d:%d", mouse_x, mouse_y );
     }
 }
 

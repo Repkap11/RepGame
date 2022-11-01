@@ -32,6 +32,7 @@ typedef struct {
 typedef struct {
     InventorySlot slots_items[ INVENTORY_MAX_SIZE ];
     InventorySlotMesh slots_mesh[ INVENTORY_MAX_SIZE ];
+    int used_slots_mesh_count;
     struct {
         int screen_x;
         int screen_y;

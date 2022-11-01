@@ -53,7 +53,9 @@ void processMovement( InputState *inputState ) {
     inputState->movement.sizeH = sizeH;
 }
 
-void input_mouseInput( InputState *inputState, int button, int state ) {
+void input_mouseInput( InputState *inputState, int button, int state, int x, int y ) {
+    inputState->mouse.buttons.click_pos_x = x;
+    inputState->mouse.buttons.click_pos_y = y;
     switch ( button ) {
         case SDL_BUTTON_LEFT:
             inputState->mouse.buttons.left = !state;

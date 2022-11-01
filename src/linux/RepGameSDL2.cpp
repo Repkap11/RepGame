@@ -6,11 +6,12 @@
 
 void repgame_linux_process_sdl_events( ) {
     SDL_Event event;
+    InputState *inputState = repgame_getInputState( );
     while ( SDL_PollEvent( &event ) ) {
         switch ( event.type ) {
             case SDL_KEYDOWN:
             case SDL_KEYUP:
-                input_keysInput( repgame_getInputState( ), event.key.keysym.sym, event.type == SDL_KEYDOWN );
+                input_keysInput( inputState, event.key.keysym.sym, event.type == SDL_KEYDOWN );
                 break;
             case SDL_WINDOWEVENT:
                 if ( event.window.event == SDL_WINDOWEVENT_RESIZED ) {
@@ -19,13 +20,13 @@ void repgame_linux_process_sdl_events( ) {
                 break;
             case SDL_MOUSEBUTTONDOWN:
             case SDL_MOUSEBUTTONUP:
-                input_mouseInput( repgame_getInputState( ), event.button.button, event.type == SDL_MOUSEBUTTONUP );
+                input_mouseInput( inputState, event.button.button, event.type == SDL_MOUSEBUTTONUP, event.button.x, event.button.y );
                 break;
             case SDL_MOUSEWHEEL:
-                input_mouseWheel( repgame_getInputState( ), event.wheel.x, event.wheel.y );
+                input_mouseWheel( inputState, event.wheel.x, event.wheel.y );
                 break;
             case SDL_MOUSEMOTION:
-                input_lookMove( repgame_getInputState( ), event.motion.xrel, event.motion.yrel );
+                input_lookMove( inputState, event.motion.xrel, event.motion.yrel );
                 break;
         }
     }
