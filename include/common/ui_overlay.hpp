@@ -14,9 +14,7 @@ typedef struct {
     struct {
         float x, y, id;
     } texture;
-    struct {
-        float r, g, b, a;
-    } tint;
+    glm::vec4 tint;
     unsigned int face_type;
 } UIOverlayVertex;
 
