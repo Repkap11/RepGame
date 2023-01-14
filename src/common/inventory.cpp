@@ -26,8 +26,8 @@ int inventory_isometric_face[] = { FACE_TOP, FACE_FRONT, FACE_RIGHT };
 float tints_for_light[] = { 1, 0.8, 0.6 };
 int NUM_POINTS_PER_BLOCK = 4;
 int NUM_INDEXES_PER_BLOCK = 18;
-int ICON_GRID_VB_START = NUM_POINTS_PER_BLOCK; // Extra space needed for background of inventory.
-int ICON_GRID_IB_START = NUM_INDEXES_PER_BLOCK;
+int ICON_GRID_VB_START = 1 * 4;     // Extra space needed for background of inventory. (4 points in quad)
+int ICON_GRID_IB_START = 1 * 2 * 3; // 2 triangles
 int vb_size = ICON_GRID_VB_START + ( INVENTORY_MAX_SIZE * NUM_POINTS_PER_BLOCK * ISOMETRIC_FACES );
 int ib_size = ICON_GRID_IB_START + ( INVENTORY_MAX_SIZE * NUM_INDEXES_PER_BLOCK * ISOMETRIC_FACES );
 bool FIXED_INVENTORY = false;
@@ -62,10 +62,10 @@ void inventory_init( Inventory *inventory, VertexBufferLayout *ui_overlay_vbl ) 
         // for ( int i = 0; i < INVENTORY_MAX_SIZE; i++ ) {
         //     inventory->slots_items[ 0 ].block_id = BlockID::AIR;
         // }
-        inventory->slots_items[ 0 ].block_id = BlockID::DIRT;
+        inventory->slots_items[ 0 ].block_id = BlockID::TNT;
         inventory->slots_items[ 1 ].block_id = BlockID::GRASS;
-        inventory->slots_items[ 2 ].block_id = BlockID::OAK_PLANK;
-        inventory->slots_items[ 3 ].block_id = BlockID::TNT;
+        // inventory->slots_items[ 2 ].block_id = BlockID::RED_FLOWER;
+        inventory->slots_items[ 2 ].block_id = BlockID::SAND;
     }
 }
 
@@ -81,7 +81,7 @@ void inventory_render( Inventory *inventory, int width, int height ) {
 
     int used_slot_mesh_count = 0;
 
-    if (true){
+    if ( true ) {
         for ( int i = 0; i < ICON_GRID_VB_START; i++ ) {
             int x = i % 2;
             int y = i / 2;
@@ -89,7 +89,7 @@ void inventory_render( Inventory *inventory, int width, int height ) {
             ui_vertex->screen_x = inventory->UI.screen_x + x * inv_width;
             ui_vertex->screen_y = inventory->UI.screen_y + y * inv_height;
             ui_vertex->is_block = false;
-            ui_vertex->tint = glm::vec4( 1, 0, 0, 0.5 );
+            ui_vertex->tint = glm::vec4( 1.0, 0.0, 0.0, 0.5 );
         }
         unsigned int *ui_ib = &inventory->UI.ib_data_inventory[ 0 ];
         // ui_ib[ 0 ] = 0;
@@ -101,6 +101,7 @@ void inventory_render( Inventory *inventory, int width, int height ) {
     }
 
     int current_ib_index = ICON_GRID_IB_START;
+    int current_vb_index = ICON_GRID_VB_START;
     for ( int slot_index = 0; slot_index < INVENTORY_MAX_SIZE; slot_index++ ) {
         BlockID block_id = inventory->slots_items[ slot_index ].block_id;
         if ( block_id == BlockID::AIR ) {
@@ -136,12 +137,16 @@ void inventory_render( Inventory *inventory, int width, int height ) {
         ui_ib[ 15 ] = slot_index * NUM_POINTS_PER_BLOCK * ISOMETRIC_FACES + 11;
         ui_ib[ 16 ] = slot_index * NUM_POINTS_PER_BLOCK * ISOMETRIC_FACES + 8;
         ui_ib[ 17 ] = slot_index * NUM_POINTS_PER_BLOCK * ISOMETRIC_FACES + 10;
+        // Ending before NUM_INDEXES_PER_BLOCK
 
         for ( int face = 0; face < ISOMETRIC_FACES; face++ ) {
             for ( int i_point = 0; i_point < NUM_POINTS_PER_BLOCK; i_point++ ) {
                 // Get the block definition to see if it should be displayed isometrically or not.
                 int vb_index = ICON_GRID_VB_START + slot_index * NUM_POINTS_PER_BLOCK * ISOMETRIC_FACES + i_point + NUM_POINTS_PER_BLOCK * face;
-                UIOverlayVertex *ui_vertex = &inventory->UI.vb_data_inventory[ vb_index  ];
+                pr_debug( "vb_index:%d size:%d", vb_index, vb_size );
+                current_vb_index = vb_index;
+                UIOverlayVertex *ui_vertex_before = &inventory->UI.vb_data_inventory[ 0 ];
+                UIOverlayVertex *ui_vertex = &inventory->UI.vb_data_inventory[ vb_index ];
 
                 ui_vertex->texture.x = ( i_point / 2 );
                 ui_vertex->texture.y = ( i_point % 2 );
@@ -150,7 +155,7 @@ void inventory_render( Inventory *inventory, int width, int height ) {
                 if ( !block->casts_shadow ) {
                     tint_for_light = 1.0f;
                 }
-                ui_vertex->tint = { tint_for_light, tint_for_light, tint_for_light, 1 };
+                ui_vertex->tint = glm::vec4( tint_for_light, tint_for_light, tint_for_light, 1 );
 
                 if ( !block->icon_is_isometric ) {
                     // Like Reeds
@@ -182,8 +187,10 @@ void inventory_render( Inventory *inventory, int width, int height ) {
     }
     inventory->used_slots_mesh_count = used_slot_mesh_count;
 
-    index_buffer_set_data( &inventory->UI.ib, inventory->UI.ib_data_inventory, ib_size );
-    vertex_buffer_set_data( &inventory->UI.vb, inventory->UI.vb_data_inventory, sizeof( UIOverlayVertex ) * vb_size );
+    index_buffer_set_data( &inventory->UI.ib, inventory->UI.ib_data_inventory, current_ib_index - NUM_INDEXES_PER_BLOCK );
+    pr_debug( "Num IB:%d", current_ib_index - NUM_INDEXES_PER_BLOCK );
+    vertex_buffer_set_data( &inventory->UI.vb, inventory->UI.vb_data_inventory, sizeof( UIOverlayVertex ) * ( current_vb_index + 1 ) );
+    pr_debug( "Num VB:%d", current_vb_index + 1 );
 }
 
 bool pos_within_slot( InventorySlotMesh *mesh, int x, int y ) {
