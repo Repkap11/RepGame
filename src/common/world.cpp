@@ -376,7 +376,7 @@ void world_set_loaded_block( World *world, const glm::ivec3 &block_pos, BlockSta
 // }
 
 bool world_any_neighbor_id( const Chunk *chunk, const glm::ivec3 &pos, BlockID id ) {
-    int offsets_len = 6;
+    const int offsets_len = 6;
     glm::ivec3 offsets[ offsets_len ] = {
         glm::ivec3( -1, 0, 0 ), //
         glm::ivec3( 1, 0, 0 ),  //
@@ -398,7 +398,7 @@ bool world_any_neighbor_id( const Chunk *chunk, const glm::ivec3 &pos, BlockID i
 }
 
 bool world_any_neighbor_diag_id( const Chunk *chunk, const glm::ivec3 &pos, BlockID id ) {
-    int offsets_len = ( 3 * 3 * 3 ) - 1;
+    const int offsets_len = ( 3 * 3 * 3 ) - 1;
     glm::ivec3 offsets[ offsets_len ] = {
         glm::ivec3( -1, -1, -1 ), //
         glm::ivec3( -1, -1, 0 ),  //
@@ -444,7 +444,7 @@ bool world_any_neighbor_diag_id( const Chunk *chunk, const glm::ivec3 &pos, Bloc
 }
 
 bool world_any_neighbor_grass_id( const Chunk *chunk, const glm::ivec3 &pos, BlockID id ) {
-    int offsets_len = ( 3 * 3 * 3 ) - 1;
+    const int offsets_len = ( 3 * 3 * 3 ) - 1;
     glm::ivec3 offsets[ offsets_len ] = {
         // glm::ivec3( -1, -1, -1 ), //
         glm::ivec3( -1, -1, 0 ),  //
