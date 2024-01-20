@@ -4,6 +4,7 @@ ANDROID_BITMAPS = $(patsubst bitmaps/%.bmp,android/app/src/main/res/raw/%.bin,$(
 
 
 ANDROID_DIRS = android/app/src/main/assets/shaders
+JAVA_HOME_LOC = ~/.jdks/jbr-17.0.9
 
 android/app/src/main/assets/shaders:
 	mkdir -p $@
@@ -15,11 +16,11 @@ android-find-new-files:
 	touch ./android/app/CMakeLists.txt
 
 android: android-shaders android-bitmaps android-find-new-files
-	./android/gradlew --console=plain -q -p android assembleDebug
+	JAVA_HOME=${JAVA_HOME_LOC} ./android/gradlew --console=plain -q -p android assembleDebug
 
 android-run: android
 	adb shell input keyevent KEYCODE_WAKEUP
-	./android/gradlew --console=plain -q -p android installDebug
+	JAVA_HOME=${JAVA_HOME_LOC} ./android/gradlew --console=plain -q -p android installDebug
 	adb logcat -c
 	adb shell monkey -p com.repkap11.${TARGET_LOWER} -c android.intent.category.LAUNCHER 1
 	#adb logcat -s ${TARGET}Android -v brief
@@ -37,7 +38,7 @@ clean-android:
 	rm -f $(ANDROID_BITMAPS)
 	rm -rf $(ANDROID_DIRS)
 	rm -rf android/app/.externalNativeBuild
-	./android/gradlew --console=plain -q -p android clean
+	JAVA_HOME=${JAVA_HOME_LOC} ./android/gradlew --console=plain -q -p android clean
 
 android-shaders: $(ANDROID_SHADERS)
 
