@@ -643,7 +643,7 @@ void chunk_calculate_popupated_blocks( Chunk *chunk ) {
 
 void chunk_program_terrain( Chunk *chunk ) {
     for ( int renderOrder = 0; renderOrder < LAST_RENDER_ORDER; renderOrder++ ) {
-        if ( chunk - chunk->layers[ renderOrder ].num_instances != 0 ) {
+        if ( chunk->layers[ renderOrder ].num_instances != 0 ) {
             vertex_buffer_set_data( &chunk->layers[ renderOrder ].vb_coords, chunk->layers[ renderOrder ].populated_blocks, sizeof( BlockCoords ) * chunk->layers[ renderOrder ].num_instances );
             chunk->should_render = 1;
         }

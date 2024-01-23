@@ -90,8 +90,8 @@ windows_build:
 	rm -rf windows_build
 	mkdir -p windows_build/glew
 	mkdir -p windows_build/sdl2
-	wget -q https://www.libsdl.org/release/SDL2-devel-2.0.10-mingw.tar.gz -O sdl2.tar.gz
-	wget -q http://www.grhmedia.com/glew/glew-2.1.0-mingw-w64.zip -O glew.zip
+	wget -q https://repkap11.com/files/repgame/SDL2-devel-2.0.10-mingw.tar.gz -O sdl2.tar.gz
+	wget -q https://repkap11.com/files/repgame/glew-2.1.0-mingw-w64.zip -O glew.zip
 	bsdtar --strip-components=1 -xvzf glew.zip -C windows_build/glew
 	bsdtar --strip-components=1 -xvzf sdl2.tar.gz -C windows_build/sdl2
 	rm -rf sdl2.tar.gz
