@@ -1,6 +1,6 @@
 #Windows x86_64 builds
 
-REPGAME_PACKAGES += mingw-w64
+REPGAME_PACKAGES += mingw-w64 upx-ucl
 
 CFLAGS_WINDOWS := -Wall -Werror -std=c++11 -Wno-unused-variable -fno-pie -D GLEW_STATIC -mwindows
 
@@ -67,7 +67,12 @@ out/windows/%.o: src/%.cpp $(call GUARD,CC_WINDOWS INCLUDES_WINDOWS INCLUDES_COM
 out/windows/SDL2.dll: windows_build/sdl2/x86_64-w64-mingw32/bin/SDL2.dll windows_build  | out/windows
 	cp $< $@
 
-out/windows/$(TARGET).exe: windows_build out/windows/SDL2.dll $(OBJECTS_COMMON_WINDOWS) $(OBJECTS_WINDOWS) $(SHADER_BLOBS_WINDOWS) $(BITMAP_BLOBS_WINDOWS) $(call GUARD,CC_WINDOWS CFLAGS_WINDOWS LIBS_WINDOWS) | out/windows
+out/windows/$(TARGET).exe: out/windows/$(TARGET)_uncompressed.exe
+	rm -f $@
+	upx-ucl -q $< -o $@
+	touch $@
+
+out/windows/$(TARGET)_uncompressed.exe: windows_build out/windows/SDL2.dll $(OBJECTS_COMMON_WINDOWS) $(OBJECTS_WINDOWS) $(SHADER_BLOBS_WINDOWS) $(BITMAP_BLOBS_WINDOWS) $(call GUARD,CC_WINDOWS CFLAGS_WINDOWS LIBS_WINDOWS) | out/windows
 	$(call CHECK,CC_WINDOWS CFLAGS_WINDOWS LIBS_WINDOWS)
 	$(CC_WINDOWS) -flto $(CFLAGS_WINDOWS) $(OBJECTS_WINDOWS) $(OBJECTS_COMMON_WINDOWS) $(SHADER_BLOBS_WINDOWS) $(BITMAP_BLOBS_WINDOWS) $(LIBS_WINDOWS) -o $@
 

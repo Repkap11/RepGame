@@ -1,6 +1,6 @@
 #Linux x86_64 builds
 
-REPGAME_PACKAGES += libglew-dev libxi-dev g++ libsdl2-dev
+REPGAME_PACKAGES += libglew-dev libxi-dev g++ libsdl2-dev upx-ucl
 
 CFLAGS_LINUX := -Wall -Wextra -std=c++11 -Wno-unused-parameter -Wno-unused-variable -fno-pie -march=native
 CFLAGS_LINUX += -DREPGAME_FAST #For maxing out FPS
@@ -87,7 +87,13 @@ out/linux/debug/%.o: src/%.cpp $(call GUARD,CC_LINUX INCLUDES_COMMON CFLAGS_LINU
 -include $(DEPS_LINUX)
 
 
-out/linux/release/$(TARGET): $(OBJECTS_COMMON_LINUX_RELEASE) $(OBJECTS_LINUX) $(SHADER_BLOBS_LINUX) $(BITMAP_BLOBS_LINUX) $(call GUARD,CC_LINUX CFLAGS_LINUX CFLAGS_LINUX_RELEASE LIBS_LINUX) | out/linux
+out/linux/release/$(TARGET): out/linux/release/$(TARGET)_uncompressed
+	rm -f $@
+	upx-ucl -q $< -o $@
+	touch $@
+
+
+out/linux/release/$(TARGET)_uncompressed: $(OBJECTS_COMMON_LINUX_RELEASE) $(OBJECTS_LINUX) $(SHADER_BLOBS_LINUX) $(BITMAP_BLOBS_LINUX) $(call GUARD,CC_LINUX CFLAGS_LINUX CFLAGS_LINUX_RELEASE LIBS_LINUX) | out/linux
 	$(call CHECK,CC_LINUX CFLAGS_LINUX CFLAGS_LINUX_RELEASE LIBS_LINUX)
 	$(CC_LINUX) -flto $(CFLAGS_LINUX) $(CFLAGS_LINUX_RELEASE) $(OBJECTS_LINUX) $(OBJECTS_COMMON_LINUX_RELEASE) $(SHADER_BLOBS_LINUX) $(BITMAP_BLOBS_LINUX) $(LIBS_LINUX) -o $@
 
