@@ -69,7 +69,7 @@ static_assert( CHUNK_RADIUS_Z > 0, "CHUNK_RADIUS_Z too small");
 #define JUMP_STRENGTH 0.07f
 #define GRAVITY_STRENGTH 0.002f
 
-#define UPS_RATE 120
+#define UPS_RATE 144
 
 #define CAMERA_FOV 60.0f
 #if defined( REPGAME_WASM ) || defined( REPGAME_WINDOWS )
@@ -77,7 +77,6 @@ static_assert( CHUNK_RADIUS_Z > 0, "CHUNK_RADIUS_Z too small");
 #else
 #define NUM_RENDER_THREADS 15
 #endif
-#define CHUNK_RENDERS_PER_FRAME ( 2 * CHUNK_RADIUS_X * 2 * CHUNK_RADIUS_Y ) * 10000 // Render 1 face of the chunk cube per frame. This could be lowered to reduce studder
 
 #define PLAYER_HEIGHT 1.85f
 #define PLAYER_WIDTH 0.6f

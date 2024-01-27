@@ -96,10 +96,10 @@ out/linux/debug/$(TARGET): $(OBJECTS_COMMON_LINUX_DEBUG) $(OBJECTS_LINUX) $(SHAD
 	$(CC_LINUX) -flto $(CFLAGS_LINUX) $(CFLAGS_LINUX_DEBUG) $(OBJECTS_LINUX) $(OBJECTS_COMMON_LINUX_DEBUG) $(SHADER_BLOBS_LINUX) $(BITMAP_BLOBS_LINUX) $(LIBS_LINUX) -o $@
 
 linux-run: linux
-	./out/linux/release/$(TARGET) World1
+	./out/linux/release/$(TARGET) World1 www.repkap11.com
 
 linux_debug-run: linux_debug
-	./out/linux/debug/$(TARGET) World1
+	./out/linux/debug/$(TARGET) World1 www.repkap11.com
 
 tests: linux_debug
 	./out/linux/debug/$(TARGET) tests

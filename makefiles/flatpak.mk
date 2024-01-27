@@ -1,7 +1,7 @@
 REPGAME_PACKAGES += flatpak flatpak-builder
 
 flatpak_build:| packages
-	flatpak install flathub org.freedesktop.Platform//21.08 org.freedesktop.Sdk//21.08
+	flatpak install --user -y flathub org.freedesktop.Platform//23.08 org.freedesktop.Sdk//23.08
 
 flatpak:
 	flatpak-builder --user --install --force-clean --repo=out/flatpak/repo out/flatpak/build flatpak/com.repkap11.repgame.yml
