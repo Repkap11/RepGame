@@ -32,42 +32,42 @@ void chunk_calculate_sides( Chunk *chunk, const glm::ivec3 &center_next ) {
 
     int ib_size[ LAST_RENDER_ORDER ] = { 0 };
     if ( visable_front ) {
-        for ( int i = 0; i < 12; i++ ) {
-            chunk_ib_data_reflect[ RenderOrder_Opaque ][ ib_size[ RenderOrder_Opaque ] ] = ib_data_solid[ 12 * FACE_FRONT + i ];
+        for ( int i = 0; i < 6; i++ ) {
+            chunk_ib_data_reflect[ RenderOrder_Opaque ][ ib_size[ RenderOrder_Opaque ] ] = ib_data_solid[ 6 * FACE_FRONT + i ];
 
-            chunk_ib_data[ RenderOrder_Opaque ][ ib_size[ RenderOrder_Opaque ]++ ] = ib_data_solid[ 12 * FACE_FRONT + i ];
+            chunk_ib_data[ RenderOrder_Opaque ][ ib_size[ RenderOrder_Opaque ]++ ] = ib_data_solid[ 6 * FACE_FRONT + i ];
         }
     }
     if ( visable_right ) {
-        for ( int i = 0; i < 12; i++ ) {
-            chunk_ib_data_reflect[ RenderOrder_Opaque ][ ib_size[ RenderOrder_Opaque ] ] = ib_data_solid[ 12 * FACE_RIGHT + i ];
-            chunk_ib_data[ RenderOrder_Opaque ][ ib_size[ RenderOrder_Opaque ]++ ] = ib_data_solid[ 12 * FACE_RIGHT + i ];
+        for ( int i = 0; i < 6; i++ ) {
+            chunk_ib_data_reflect[ RenderOrder_Opaque ][ ib_size[ RenderOrder_Opaque ] ] = ib_data_solid[ 6 * FACE_RIGHT + i ];
+            chunk_ib_data[ RenderOrder_Opaque ][ ib_size[ RenderOrder_Opaque ]++ ] = ib_data_solid[ 6 * FACE_RIGHT + i ];
         }
     }
     if ( visable_back ) {
-        for ( int i = 0; i < 12; i++ ) {
-            chunk_ib_data_reflect[ RenderOrder_Opaque ][ ib_size[ RenderOrder_Opaque ] ] = ib_data_solid[ 12 * FACE_BACK + i ];
-            chunk_ib_data[ RenderOrder_Opaque ][ ib_size[ RenderOrder_Opaque ]++ ] = ib_data_solid[ 12 * FACE_BACK + i ];
+        for ( int i = 0; i < 6; i++ ) {
+            chunk_ib_data_reflect[ RenderOrder_Opaque ][ ib_size[ RenderOrder_Opaque ] ] = ib_data_solid[ 6 * FACE_BACK + i ];
+            chunk_ib_data[ RenderOrder_Opaque ][ ib_size[ RenderOrder_Opaque ]++ ] = ib_data_solid[ 6 * FACE_BACK + i ];
         }
     }
     if ( visable_left ) {
-        for ( int i = 0; i < 12; i++ ) {
-            chunk_ib_data_reflect[ RenderOrder_Opaque ][ ib_size[ RenderOrder_Opaque ] ] = ib_data_solid[ 12 * FACE_LEFT + i ];
-            chunk_ib_data[ RenderOrder_Opaque ][ ib_size[ RenderOrder_Opaque ]++ ] = ib_data_solid[ 12 * FACE_LEFT + i ];
+        for ( int i = 0; i < 6; i++ ) {
+            chunk_ib_data_reflect[ RenderOrder_Opaque ][ ib_size[ RenderOrder_Opaque ] ] = ib_data_solid[ 6 * FACE_LEFT + i ];
+            chunk_ib_data[ RenderOrder_Opaque ][ ib_size[ RenderOrder_Opaque ]++ ] = ib_data_solid[ 6 * FACE_LEFT + i ];
         }
     }
     if ( visable_top ) {
-        for ( int i = 0; i < 12; i++ ) {
-            chunk_ib_data_reflect[ RenderOrder_Opaque ][ ib_size[ RenderOrder_Opaque ] ] = ib_data_solid[ 12 * FACE_BOTTOM + i ];
-            chunk_ib_data[ RenderOrder_Opaque ][ ib_size[ RenderOrder_Opaque ]++ ] = ib_data_solid[ 12 * FACE_TOP + i ];
-            chunk_ib_data[ RenderOrder_Water ][ ib_size[ RenderOrder_Water ]++ ] = ib_data_water[ 12 * IB_POSITION_WATER_TOP + i ];
+        for ( int i = 0; i < 6; i++ ) {
+            chunk_ib_data_reflect[ RenderOrder_Opaque ][ ib_size[ RenderOrder_Opaque ] ] = ib_data_solid[ 6 * FACE_BOTTOM + i ];
+            chunk_ib_data[ RenderOrder_Opaque ][ ib_size[ RenderOrder_Opaque ]++ ] = ib_data_solid[ 6 * FACE_TOP + i ];
+            chunk_ib_data[ RenderOrder_Water ][ ib_size[ RenderOrder_Water ]++ ] = ib_data_water[ 6 * IB_POSITION_WATER_TOP + i ];
         }
     }
     if ( visable_bottom ) {
-        for ( int i = 0; i < 12; i++ ) {
-            chunk_ib_data_reflect[ RenderOrder_Opaque ][ ib_size[ RenderOrder_Opaque ] ] = ib_data_solid[ 12 * FACE_TOP + i ];
-            chunk_ib_data[ RenderOrder_Opaque ][ ib_size[ RenderOrder_Opaque ]++ ] = ib_data_solid[ 12 * FACE_BOTTOM + i ];
-            chunk_ib_data[ RenderOrder_Water ][ ib_size[ RenderOrder_Water ]++ ] = ib_data_water[ 12 * IB_POSITION_WATER_BOTTOM + i ];
+        for ( int i = 0; i < 6; i++ ) {
+            chunk_ib_data_reflect[ RenderOrder_Opaque ][ ib_size[ RenderOrder_Opaque ] ] = ib_data_solid[ 6 * FACE_TOP + i ];
+            chunk_ib_data[ RenderOrder_Opaque ][ ib_size[ RenderOrder_Opaque ]++ ] = ib_data_solid[ 6 * FACE_BOTTOM + i ];
+            chunk_ib_data[ RenderOrder_Water ][ ib_size[ RenderOrder_Water ]++ ] = ib_data_water[ 6 * IB_POSITION_WATER_BOTTOM + i ];
         }
     }
 
@@ -427,8 +427,7 @@ void chunk_calculate_popupated_blocks( Chunk *chunk ) {
                         int tcc = min( top_tfr, top_tfl, top_tbr, top_tbl );
                         workingSpace[ index ].packed_lighting[ FACE_TOP ] =                         //
                             ( ( top_tfr << CORNER_OFFSET_tfr ) | ( top_tfl << CORNER_OFFSET_tfl ) | //
-                              ( top_tbr << CORNER_OFFSET_tbr ) | ( top_tbl << CORNER_OFFSET_tbl ) | //
-                              tcc << CORNER_OFFSET_c );
+                              ( top_tbr << CORNER_OFFSET_tbr ) | ( top_tbl << CORNER_OFFSET_tbl ));
                     } else {
                         workingSpace[ index ].packed_lighting[ FACE_TOP ] = block->no_light;
                     }
@@ -445,8 +444,7 @@ void chunk_calculate_popupated_blocks( Chunk *chunk ) {
                         int bcc = min( bottom_bfr, bottom_bfl, bottom_bbr, bottom_bbl );
                         workingSpace[ index ].packed_lighting[ FACE_BOTTOM ] =                            //
                             ( ( bottom_bfr << CORNER_OFFSET_bfr ) | ( bottom_bfl << CORNER_OFFSET_bfl ) | //
-                              ( bottom_bbr << CORNER_OFFSET_bbr ) | ( bottom_bbl << CORNER_OFFSET_bbl ) | //
-                              bcc << CORNER_OFFSET_c );
+                              ( bottom_bbr << CORNER_OFFSET_bbr ) | ( bottom_bbl << CORNER_OFFSET_bbl ));
                     } else {
                         workingSpace[ index ].packed_lighting[ FACE_BOTTOM ] = block->no_light;
                     }
@@ -462,8 +460,7 @@ void chunk_calculate_popupated_blocks( Chunk *chunk ) {
                         int cfc = min( front_tfr, front_tfl, front_bfr, front_bfl );
                         workingSpace[ index ].packed_lighting[ FACE_FRONT ] =                           //
                             ( ( front_tfr << CORNER_OFFSET_tfr ) | ( front_tfl << CORNER_OFFSET_tfl ) | //
-                              ( front_bfr << CORNER_OFFSET_bfr ) | ( front_bfl << CORNER_OFFSET_bfl ) | //
-                              cfc << CORNER_OFFSET_c );
+                              ( front_bfr << CORNER_OFFSET_bfr ) | ( front_bfl << CORNER_OFFSET_bfl ));
                     } else {
                         workingSpace[ index ].packed_lighting[ FACE_FRONT ] = block->no_light;
                     }
@@ -479,8 +476,7 @@ void chunk_calculate_popupated_blocks( Chunk *chunk ) {
                         int cbc = min( back_tbr, back_tbl, back_bbr, back_bbl );
                         workingSpace[ index ].packed_lighting[ FACE_BACK ] =                          //
                             ( ( back_tbr << CORNER_OFFSET_tbr ) | ( back_tbl << CORNER_OFFSET_tbl ) | //
-                              ( back_bbr << CORNER_OFFSET_bbr ) | ( back_bbl << CORNER_OFFSET_bbl ) | //
-                              cbc << CORNER_OFFSET_c );
+                              ( back_bbr << CORNER_OFFSET_bbr ) | ( back_bbl << CORNER_OFFSET_bbl ) );
                     } else {
                         workingSpace[ index ].packed_lighting[ FACE_BACK ] = block->no_light;
                     }
@@ -496,8 +492,7 @@ void chunk_calculate_popupated_blocks( Chunk *chunk ) {
                         int ccr = min( right_tfr, right_tbr, right_bfr, right_bbr );
                         workingSpace[ index ].packed_lighting[ FACE_RIGHT ] =                           //
                             ( ( right_tfr << CORNER_OFFSET_tfr ) | ( right_tbr << CORNER_OFFSET_tbr ) | //
-                              ( right_bfr << CORNER_OFFSET_bfr ) | ( right_bbr << CORNER_OFFSET_bbr ) | //
-                              ccr << CORNER_OFFSET_c );
+                              ( right_bfr << CORNER_OFFSET_bfr ) | ( right_bbr << CORNER_OFFSET_bbr ) );
                     } else {
                         workingSpace[ index ].packed_lighting[ FACE_RIGHT ] = block->no_light;
                     }
@@ -513,8 +508,7 @@ void chunk_calculate_popupated_blocks( Chunk *chunk ) {
                         int ccl = min( left_tfl, left_tbl, left_bfl, left_bbl );
                         workingSpace[ index ].packed_lighting[ FACE_LEFT ] =                          //
                             ( ( left_tfl << CORNER_OFFSET_tfl ) | ( left_tbl << CORNER_OFFSET_tbl ) | //
-                              ( left_bfl << CORNER_OFFSET_bfl ) | ( left_bbl << CORNER_OFFSET_bbl ) | //
-                              ccl << CORNER_OFFSET_c );
+                              ( left_bfl << CORNER_OFFSET_bfl ) | ( left_bbl << CORNER_OFFSET_bbl ) );
                     } else {
                         workingSpace[ index ].packed_lighting[ FACE_LEFT ] = block->no_light;
                     }

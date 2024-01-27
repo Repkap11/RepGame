@@ -69,7 +69,7 @@ static_assert( CHUNK_RADIUS_Z > 0, "CHUNK_RADIUS_Z too small");
 #define JUMP_STRENGTH 0.07f
 #define GRAVITY_STRENGTH 0.002f
 
-#define UPS_RATE 200
+#define UPS_RATE 120
 
 #define CAMERA_FOV 60.0f
 #if defined( REPGAME_WASM ) || defined( REPGAME_WINDOWS )
@@ -108,8 +108,6 @@ static_assert( CHUNK_RADIUS_Z > 0, "CHUNK_RADIUS_Z too small");
 #define CORNER_OFFSET_bfr 10
 #define CORNER_OFFSET_bbl 12
 #define CORNER_OFFSET_bbr 14
-
-#define CORNER_OFFSET_c 16
 
 #define NO_LIGHT_DRAW 0x7ffff
 #define NO_LIGHT_NO_DRAW 0xfffff
