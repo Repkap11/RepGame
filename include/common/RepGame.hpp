@@ -66,7 +66,7 @@ typedef struct {
         glm::ivec3 pos_destroy;
     } block_selection;
     BlockUpdateQueue blockUpdateQueue;
-    long tick_number = 0;
+    long tick_number;
 } RepGameState;
 
 typedef struct {
