@@ -2,7 +2,7 @@ app-id: com.repkap11.repgame
 runtime: org.freedesktop.Platform
 runtime-version: '23.08'
 sdk: org.freedesktop.Sdk
-command: RepGame
+command: RepGame_uncompressed
 finish-args:
   # https://docs.flatpak.org/en/latest/sandbox-permissions-reference.html
   # X11 + XShm access
@@ -21,8 +21,8 @@ modules:
     - name: RepGame
       buildsystem: simple
       build-commands:
-      - make linux
-      - cp out/linux/release/RepGame /app/bin/
+      - make out/linux/release/RepGame_uncompressed
+      - cp out/linux/release/RepGame_uncompressed /app/bin/
       sources:
           - type: dir
             path: ..
