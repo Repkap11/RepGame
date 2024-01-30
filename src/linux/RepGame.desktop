@@ -3,6 +3,6 @@ Version=1.0
 Type=Application
 Terminal=false
 Name=RepGame
-Exec=RepGame
+Exec=RepGame_uncompressed
 Icon=icon_512
 Categories=Game;

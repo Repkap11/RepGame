@@ -18,12 +18,12 @@ appimage_build:
 	wget https://github.com/linuxdeploy/linuxdeploy/releases/download/continuous/linuxdeploy-x86_64.AppImage -O appimage_build/linuxdeploy-x86_64.AppImage
 	chmod +x appimage_build/linuxdeploy-x86_64.AppImage
 
-out/appimage/image: out/linux/release/$(TARGET) src/linux/$(TARGET).desktop bitmaps/icon_512.png appimage_build | out
+out/appimage/image: out/linux/release/$(TARGET)_uncompressed src/linux/$(TARGET).desktop bitmaps/icon_512.png appimage_build | out
 	mkdir -p out/appimage/image
 	appimage_build/linuxdeploy-x86_64.AppImage \
 		--verbosity=2 \
 		--appdir out/appimage/image \
-		--executable out/linux/release/$(TARGET) \
+		--executable out/linux/release/$(TARGET)_uncompressed \
 		--desktop-file src/linux/$(TARGET).desktop \
 		--icon-file bitmaps/icon_512.png
 
