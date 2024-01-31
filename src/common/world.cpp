@@ -76,6 +76,19 @@ void world_init( World *world, const glm::vec3 &camera_pos ) {
     texture_init_empty_color( &world->blockTexture, 0 );
     texture_init_empty_depth_stencil( &world->depthStencilTexture, 0 );
     showErrors( );
+
+    // int width;
+    // int height;
+    int width;
+    int height;
+    repgame_get_screen_size( &width, &height );
+    texture_change_size( &world->blockTexture, width, height );
+    showErrors( );
+    texture_change_size( &world->reflectionTexture, width, height );
+    showErrors( );
+    texture_change_size( &world->depthStencilTexture, width, height );
+    showErrors( );
+
     frame_buffer_attach_texture( &world->frameBuffer, &world->blockTexture, 0 );
     frame_buffer_attach_texture( &world->frameBuffer, &world->reflectionTexture, 1 );
     frame_buffer_attach_texture( &world->frameBuffer, &world->depthStencilTexture, 0 ); // 0 is fake
@@ -91,9 +104,18 @@ void world_init( World *world, const glm::vec3 &camera_pos ) {
 
 void world_change_size( World *world, int width, int height ) {
     if ( SUPPORTS_FRAME_BUFFER ) {
+        if ( !frame_buffer_ok( &world->frameBuffer ) ) {
+            pr_debug( "Frame buffer not ok" );
+            showErrors( );
+            exit( 1 );
+        }
         texture_change_size( &world->blockTexture, width, height );
+        showErrors( );
         texture_change_size( &world->reflectionTexture, width, height );
+        showErrors( );
         texture_change_size( &world->depthStencilTexture, width, height );
+        showErrors( );
+
         if ( !frame_buffer_ok( &world->frameBuffer ) ) {
             pr_debug( "Frame buffer not ok" );
             showErrors( );
@@ -447,13 +469,13 @@ bool world_any_neighbor_grass_id( const Chunk *chunk, const glm::ivec3 &pos, Blo
     const int offsets_len = ( 3 * 3 * 3 ) - 1;
     glm::ivec3 offsets[ offsets_len ] = {
         // glm::ivec3( -1, -1, -1 ), //
-        glm::ivec3( -1, -1, 0 ),  //
+        glm::ivec3( -1, -1, 0 ), //
         // glm::ivec3( -1, -1, 1 ),  //
         // glm::ivec3( -1, 0, -1 ),  //
-        glm::ivec3( -1, 0, 0 ),   //
+        glm::ivec3( -1, 0, 0 ), //
         // glm::ivec3( -1, 0, 1 ),   //
         // glm::ivec3( -1, 1, -1 ),  //
-        glm::ivec3( -1, 1, 0 ),   //
+        glm::ivec3( -1, 1, 0 ), //
         // glm::ivec3( -1, 1, 1 ),   //
 
         glm::ivec3( 0, -1, -1 ), //
@@ -467,13 +489,13 @@ bool world_any_neighbor_grass_id( const Chunk *chunk, const glm::ivec3 &pos, Blo
         glm::ivec3( 0, 1, 1 ),  //
 
         // glm::ivec3( 1, -1, -1 ), //
-        glm::ivec3( 1, -1, 0 ),  //
+        glm::ivec3( 1, -1, 0 ), //
         // glm::ivec3( 1, -1, 1 ),  //
         // glm::ivec3( 1, 0, -1 ),  //
-        glm::ivec3( 1, 0, 0 ),   //
+        glm::ivec3( 1, 0, 0 ), //
         // glm::ivec3( 1, 0, 1 ),   //
         // glm::ivec3( 1, 1, -1 ),  //
-        glm::ivec3( 1, 1, 0 ),   //
+        glm::ivec3( 1, 1, 0 ), //
         // glm::ivec3( 1, 1, 1 ),   //
 
     };

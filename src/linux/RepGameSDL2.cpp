@@ -31,8 +31,8 @@ void repgame_linux_process_sdl_events( ) {
     }
 }
 
-char *repgame_getShaderString( const char *filename ) {
-    return ( char * )"RepGame SDL doesn't support shaders from file";
+bool startsWith( const char *pre, const char *str ) {
+    return strncmp( pre, str, strlen( pre ) ) == 0;
 }
 
 void main_loop_wasm( );
@@ -61,9 +61,12 @@ int repgame_sdl2_main( const char *world_path, const char *host, bool connect_mu
     SDL_GL_SetAttribute( SDL_GL_DOUBLEBUFFER, 1 );
     SDL_GL_SetAttribute( SDL_GL_DEPTH_SIZE, 24 );
     SDL_GL_SetAttribute( SDL_GL_STENCIL_SIZE, 8 );
-    SDL_GL_SetAttribute( SDL_GL_MULTISAMPLESAMPLES, MULTI_SAMPLE_SCALE_SDL ); // Multi sample happens in FB
-    int default_width = 1600;
-    int default_height = 800;
+
+#if SUPPORTS_FRAME_BUFFER
+    SDL_GL_SetAttribute( SDL_GL_MULTISAMPLESAMPLES, 1 ); // Multi sample happens in FB
+#endif
+    int default_width = DEFAULT_WINDOW_WIDTH;
+    int default_height = DEFAULT_WINDOW_HEIGHT;
     /* Create our window centered */
     sdl_window = SDL_CreateWindow( "RepGame", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, default_width, 800, SDL_WINDOW_OPENGL | SDL_WINDOW_SHOWN | SDL_WINDOW_RESIZABLE | SDL_WINDOW_MAXIMIZED );
     if ( !sdl_window ) {
@@ -77,7 +80,11 @@ int repgame_sdl2_main( const char *world_path, const char *host, bool connect_mu
     }
 
     pr_debug( "Using OpenGL Version:%s", glGetString( GL_VERSION ) );
-    pr_debug( "Using OpenGL Renderer:%s", glGetString( GL_RENDERER ) );
+    const GLubyte *renderer = glGetString( GL_RENDERER );
+    bool supportsAnisotropicFiltering = !startsWith( "llvmpipe", ( const char * )renderer );
+    pr_debug( "Using OpenGL Renderer:%s", renderer );
+    pr_debug( "Using OpenGL Vendor:%s", glGetString( GL_VENDOR ) );
+
     glewExperimental = GL_TRUE;
     if ( glewInit( ) ) {
         pr_debug( "GLEW init failed" );
@@ -88,7 +95,7 @@ int repgame_sdl2_main( const char *world_path, const char *host, bool connect_mu
     if ( tests ) {
         return rep_tests_start( );
     }
-    repgame_init( world_path, connect_multi, host );
+    repgame_init( world_path, connect_multi, host, supportsAnisotropicFiltering);
 
 #if !defined( REPGAME_WASM )
 

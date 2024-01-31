@@ -296,7 +296,16 @@ static inline void initilizeGameState( const char *world_name ) {
 
 MK_TEXTURE( textures, 384, 832, 16, 16, 139 );
 
-void repgame_init( const char *world_name, bool connect_multi, const char *host ) {
+static bool supportsAnisotropic;
+
+bool repgame_supportsAnisotropic(){
+    return supportsAnisotropic;
+}
+
+void repgame_init( const char *world_name, bool connect_multi, const char *host, bool supportsAnisotropicFiltering ) {
+    globalGameState.screen.width = DEFAULT_WINDOW_WIDTH;
+    globalGameState.screen.height = DEFAULT_WINDOW_HEIGHT;
+    supportsAnisotropic = supportsAnisotropicFiltering;
 
     // Start broadcasting chunk updates
     if ( connect_multi ) {

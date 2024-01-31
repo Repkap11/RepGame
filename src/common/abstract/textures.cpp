@@ -156,21 +156,26 @@ void loadTexture( Texture *texture, const TextureSourceData *texture_source, int
     }
     free( working );
 
-    glTexParameterf( texture->target, GL_TEXTURE_WRAP_S, GL_REPEAT );
-    glTexParameterf( texture->target, GL_TEXTURE_WRAP_T, GL_REPEAT );
-    glTexParameterf( texture->target, GL_TEXTURE_MIN_FILTER, GL_LINEAR );
+    glTexParameteri( texture->target, GL_TEXTURE_WRAP_S, GL_REPEAT );
+    glTexParameteri( texture->target, GL_TEXTURE_WRAP_T, GL_REPEAT );
+    glTexParameteri( texture->target, GL_TEXTURE_MIN_FILTER, GL_LINEAR );
     if ( blur_mag ) {
-        glTexParameterf( texture->target, GL_TEXTURE_MAG_FILTER, GL_LINEAR );
+        glTexParameteri( texture->target, GL_TEXTURE_MAG_FILTER, GL_LINEAR );
     } else {
-        glTexParameterf( texture->target, GL_TEXTURE_MAG_FILTER, GL_NEAREST );
+        glTexParameteri( texture->target, GL_TEXTURE_MAG_FILTER, GL_NEAREST );
     }
-    float max_ani;
-    glGetFloatv( GL_MAX_TEXTURE_MAX_ANISOTROPY_EXT, &max_ani );
+    if ( repgame_supportsAnisotropic( ) ) {
+    }
+
     // pr_debug( "Max ani:%f", max_ani );
     if ( TEXTURE_NEEDS_FREE ) {
         free( data );
     }
-    glTexParameterf( texture->target, GL_TEXTURE_MAX_ANISOTROPY_EXT, max_ani );
+    if ( repgame_supportsAnisotropic( ) ) {
+        float max_ani;
+        glGetFloatv( GL_MAX_TEXTURE_MAX_ANISOTROPY_EXT, &max_ani );
+        glTexParameterf( texture->target, GL_TEXTURE_MAX_ANISOTROPY_EXT, max_ani ); // TYhis doesn't work on Linux Mesa driver... it blurs textures
+    }
     // glGenerateMipmap( texture->target );
 }
 
@@ -197,19 +202,21 @@ void texture_init_empty_base( Texture *texture, int blur_mag, int target, int in
     glGenTextures( 1, &texture->m_RendererId );
     glBindTexture( texture->target, texture->m_RendererId );
     showErrors( );
-    if ( texture->target == GL_TEXTURE_2D ) {
+    if ( texture->target == GL_TEXTURE_2D || texture->target == GL_TEXTURE_2D_MULTISAMPLE ) {
         glTexParameteri( texture->target, GL_TEXTURE_MIN_FILTER, GL_LINEAR );
         showErrors( );
         if ( blur_mag ) {
-            glTexParameterf( texture->target, GL_TEXTURE_MAG_FILTER, GL_LINEAR );
+            glTexParameteri( texture->target, GL_TEXTURE_MAG_FILTER, GL_LINEAR );
         } else {
-            glTexParameterf( texture->target, GL_TEXTURE_MAG_FILTER, GL_NEAREST );
+            glTexParameteri( texture->target, GL_TEXTURE_MAG_FILTER, GL_NEAREST );
         }
-        glTexParameterf( texture->target, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE );
-        glTexParameterf( texture->target, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE );
-        float max_ani;
-        glGetFloatv( GL_MAX_TEXTURE_MAX_ANISOTROPY_EXT, &max_ani );
-        glTexParameterf( texture->target, GL_TEXTURE_MAX_ANISOTROPY_EXT, max_ani );
+        glTexParameteri( texture->target, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE );
+        glTexParameteri( texture->target, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE );
+        if ( repgame_supportsAnisotropic( ) ) {
+            float max_ani;
+            glGetFloatv( GL_MAX_TEXTURE_MAX_ANISOTROPY_EXT, &max_ani );
+            glTexParameterf( texture->target, GL_TEXTURE_MAX_ANISOTROPY_EXT, max_ani );
+        }
     }
     showErrors( );
 
@@ -242,12 +249,16 @@ void texture_init_empty_depth_stencil( Texture *depthTexture, int blur_mag ) {
 
 void texture_change_size( Texture *texture, int width, int height ) {
     glBindTexture( texture->target, texture->m_RendererId );
+    // pr_debug( "Change size!!" );
     if ( texture->target == GL_TEXTURE_2D_MULTISAMPLE ) {
 #if defined( REPGAME_ANDROID ) || defined( REPGAME_WASM )
-        pr_debug( "Error multi sample not supported on Android" );
+        pr_debug( "Error multi sample not supported on Android or WASM" );
         exit( 1 );
 #else
-        glTexImage2DMultisample( texture->target, MULTI_SAMPLE_SCALE_SDL, texture->internalFormat, width, height, true );
+        GLint maxSamples;
+        glGetIntegerv( GL_MAX_SAMPLES, &maxSamples );
+        // pr_debug( "Max samples:%d", maxSamples );
+        glTexImage2DMultisample( texture->target, maxSamples, texture->internalFormat, width, height, true );
 #endif
     } else {
         glTexImage2D( texture->target, 0, texture->internalFormat, width, height, 0, texture->format, texture->type, NULL );

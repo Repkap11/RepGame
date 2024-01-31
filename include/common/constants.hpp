@@ -45,8 +45,10 @@ static_assert( CHUNK_RADIUS_Z > 0, "CHUNK_RADIUS_Z too small");
 #define LOAD_CHUNKS_SUPPORTS_CUDA 0
 #endif
 
-#define MULTI_SAMPLE_SCALE_FBO 16
-#define MULTI_SAMPLE_SCALE_SDL 16
+#define DEFAULT_WINDOW_WIDTH 1600
+#define DEFAULT_WINDOW_HEIGHT 800
+
+#define MULTI_SAMPLE_SCALE_FBO 16 // This can't be read at runtime, unless you hack and make a temporary window...
 #define PERSIST_ALL_CHUNKS 0
 #define REMEMBER_BLOCKS 1
 #define CULL_NON_VISIBLE 1

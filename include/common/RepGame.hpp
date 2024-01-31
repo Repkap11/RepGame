@@ -82,20 +82,20 @@ typedef struct {
 } PlayerData;
 
 void renderShaders( int x, int y, int z );
-void repgame_init( const char *world_name, bool connect_multi, const char *host );
+void repgame_init( const char *world_name, bool connect_multi, const char *host, bool supportsAnisotropicFiltering);
 void repgame_tick( );
 void repgame_clear( );
 void repgame_idle( );
 void repgame_draw( );
 void repgame_set_textures( unsigned int which_texture, unsigned char *textures, int textures_len );
 void repgame_cleanup( );
-char *repgame_getShaderString( const char *fileName );
 InputState *repgame_getInputState( );
 
 void repgame_changeSize( int x, int y );
 void repgame_get_screen_size( int *width, int *height );
 int repgame_shouldExit( );
 int repgame_should_lock_pointer( );
+bool repgame_supportsAnisotropic( );
 
 int rep_tests_start( );
 
