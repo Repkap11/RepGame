@@ -26,8 +26,13 @@ check:
 # cppcheck -j$(CPUS) --quiet --enable=warning,style,performance,portability,information,missingInclude -Iinclude -iinclude/common/vendor -DREPGAME_WASM src
 # ~/.local/bin/cpplint --filter=-whitespace,-legal/copyright,-readability/todo --quiet $(SRC_ALL_C)
 
+ifeq (${BUILD_DEBUG},1)
 GUARD = $(foreach VAR,$(1),out/vars/$(VAR).$(shell echo $($(VAR)) | md5sum | cut -d ' ' -f 1))
 CHECK = @$(foreach VAR,$(1),test -f out/vars/$(VAR).$(shell echo $($(VAR)) | md5sum | cut -d ' ' -f 1) || { echo Variable:"$(VAR)" changed after referenced; exit 1; } ;)
+else
+GUARD =
+CHECK =
+endif
 
 out/vars/%: | out/vars
 	@echo Changed var:$(notdir $(basename $@)):$($(notdir $(basename $@)))

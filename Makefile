@@ -1,4 +1,8 @@
+BUILD_DEBUG := 0
+
+ifeq (${BUILD_DEBUG},1)
 BEFORE_VARS := $(.VARIABLES)
+endif
 
 #This target can be used to depend on the contents of the makefiles
 
@@ -55,17 +59,22 @@ deploy:
 
 nothing:
 
-vars:
-	@echo "$(BEFORE_VARS) $(AFTER_VARS)" | xargs -n1 | sort | uniq -u
+
 
 
 update-world:
 	ls -1 ~/.repgame/World1/ | grep "^chunk_" | xargs -n1 bash -c 'printf "\x08\x0\x0\x0" | cat - ~/.repgame/World1/$$0 > ~/.repgame/World1/new_$$0'
 	ls -1 ~/.repgame/World1/ | grep "^chunk_" | xargs -n1 bash -c 'mv ~/.repgame/World1/new_$$0 ~/.repgame/World1/$$0'
 
+ifeq (${BUILD_DEBUG},1)
+
+vars:
+	@echo "$(BEFORE_VARS) $(AFTER_VARS)" | xargs -n1 | sort | uniq -u
+
 AFTER_VARS := $(.VARIABLES)
 ALL_VARS := $(shell echo "$(BEFORE_VARS) $(AFTER_VARS)" | xargs -n1 | sort | uniq -u | grep -v "^GUARD$$" | grep -v "^TEST_RULE$$" | grep -v "^CHECK$$" | grep -v "^BEFORE_VARS$$")
-ALL_VAR_DEPS = $(call GUARD,${ALL_VARS})
+# ALL_VAR_DEPS = $(call GUARD,${ALL_VARS})
 .PRECIOUS: ${ALL_VAR_DEPS}
+endif
 
 # $(info Val: [${ALL_VAR_DEPS}])
