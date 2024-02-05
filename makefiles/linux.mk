@@ -47,13 +47,13 @@ BITMAP_BLOBS_LINUX := $(patsubst bitmaps/%.bmp,out/linux/bitmaps/%.o,$(wildcard 
 
 out/linux/shaders/%.o : src/shaders/%.glsl $(call GUARD,LD_LINUX) | out/linux
 	$(call CHECK,LD_LINUX)
-	$(LD_LINUX) -r -b binary $< -o $@
-	objcopy --rename-section .data=.rodata,CONTENTS,ALLOC,LOAD,READONLY,DATA $@ $@
+	$(LD_LINUX) -r -b binary $< -o $@_no_section
+	objcopy --rename-section .data=.rodata,CONTENTS,ALLOC,LOAD,READONLY,DATA $@_no_section $@
 
 out/linux/bitmaps/%.o : out/bitmaps/%.bin $(call GUARD,LD_LINUX) | out/linux
 	$(call CHECK,LD_LINUX)
-	$(LD_LINUX) -r -b binary $< -o $@
-	objcopy --rename-section .data=.rodata,CONTENTS,ALLOC,LOAD,READONLY,DATA --reverse-bytes=4 $@ $@
+	$(LD_LINUX) -r -b binary $< -o $@_no_section
+	objcopy --rename-section .data=.rodata,CONTENTS,ALLOC,LOAD,READONLY,DATA --reverse-bytes=4 $@_no_section $@
 
 all: linux
 docker-internal: linux
