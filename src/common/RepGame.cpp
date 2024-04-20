@@ -65,6 +65,15 @@ unsigned char getPlacedRotation( BlockID blockID ) {
     return rotation;
 }
 
+static bool block_places_on_all_faces( Block *block ) {
+    for ( int face = FACE_TOP; face < NUM_FACES_IN_CUBE; face++ ) {
+        if ( block->needs_place_on_any_solid[ face ] ) {
+            return false;
+        }
+    }
+    return true;
+}
+
 static bool was_middle = false;
 void repgame_process_mouse_events( ) {
     if ( globalGameState.block_selection.selectionInBounds && globalGameState.input.mouse.buttons.middle ) {
@@ -94,6 +103,7 @@ void repgame_process_mouse_events( ) {
         BlockState blockState = world_get_loaded_block( &globalGameState.world, globalGameState.block_selection.pos_destroy );
         int blockID_int = ( int )blockState.id;
         if ( blockID_int != LAST_BLOCK_ID ) {
+            bool valid_scroll_block;
             do {
                 blockID_int += wheel_diff;
                 if ( blockID_int >= LAST_BLOCK_ID ) {
@@ -102,7 +112,11 @@ void repgame_process_mouse_events( ) {
                 if ( blockID_int <= 0 ) {
                     blockID_int = LAST_BLOCK_ID - 1;
                 }
-            } while ( !block_definition_get_definition( ( BlockID )blockID_int )->is_pickable );
+                Block *next_block = block_definition_get_definition( ( BlockID )blockID_int );
+                bool is_pickable = next_block->is_pickable;
+                bool places_on_any_face = block_places_on_all_faces( next_block );
+                valid_scroll_block = places_on_any_face && is_pickable;
+            } while ( !valid_scroll_block );
             blockState.id = ( BlockID )blockID_int;
             blockState.display_id = ( BlockID )blockID_int;
             // blockState.rotation = getPlacedRotation( blockState.id );
@@ -298,7 +312,7 @@ MK_TEXTURE( textures, 384, 832, 16, 16, 139 );
 
 static bool supportsAnisotropic;
 
-bool repgame_supportsAnisotropic(){
+bool repgame_supportsAnisotropic( ) {
     return supportsAnisotropic;
 }
 
