@@ -51,6 +51,8 @@ flat out int v_block_auto_rotates;
 
 #define NO_LIGHT_NO_DRAW 0xfffffu
 
+#define CORNER_OFFSET_c 16u
+
 // Different devices give different results when using the modulus operator with negative numbers. So I need this function.
 int rep_mod( int x, int y ) {
     return x - y * int( floor( float( x ) / float( y ) ) );
@@ -165,7 +167,13 @@ void main( ) {
     // light_divisor = 0.5;       // debug
 
     uint which_bits = 3u;
+    if ( corner_shift == CORNER_OFFSET_c ) {
+        which_bits = 7u;
+    }
     float corner_light = float( ( packed_lighting >> corner_shift ) & which_bits ) / light_divisor; // Has to be a float to be interped over the shader;
+    if ( corner_shift == CORNER_OFFSET_c ) {
+        corner_light /= 2.0;
+    }
     if ( packed_lighting == NO_LIGHT_NO_DRAW ) {
         v_shouldDiscardNoLight = 1;
     } else {

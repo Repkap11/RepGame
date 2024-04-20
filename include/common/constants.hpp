@@ -110,6 +110,8 @@ static_assert( CHUNK_RADIUS_Z > 0, "CHUNK_RADIUS_Z too small");
 #define CORNER_OFFSET_bbl 12
 #define CORNER_OFFSET_bbr 14
 
+#define CORNER_OFFSET_c 16
+
 #define NO_LIGHT_DRAW 0x7ffff
 #define NO_LIGHT_NO_DRAW 0xfffff
 #define NO_LIGHT_BRIGHT 0

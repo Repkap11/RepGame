@@ -358,7 +358,6 @@ int repgame_shouldExit( ) {
 
 int repgame_should_lock_pointer( ) {
     return !globalGameState.input.inventory_open;
-    // return false;
 }
 void repgame_changeSize( int w, int h ) {
     // pr_debug( "Screen Size Change:%dx%d", w, h );
