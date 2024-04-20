@@ -61,7 +61,7 @@ JNIEXPORT void JNICALL Java_com_repkap11_repgame_RepGameJNIWrapper_onSurfaceCrea
     repgame_set_textures( 1, texture, textures_len );
     assetManager = AAssetManager_fromJava( env, assetManager_java );
 
-    repgame_init( world_name, true, "repkap11.com" );
+    repgame_init( world_name, true, "repkap11.com", true );
     env->ReleaseStringUTFChars( world_name_java, world_name );
     next_game_step = now_ms( );
 }
