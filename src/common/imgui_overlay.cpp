@@ -39,6 +39,7 @@ void imgui_overlay_attach_to_window( ImGuiOverlay *ui_overlay, SDL_Window *windo
 }
 
 void imgui_overlay_handle_sdl2_event( ImGuiOverlay *ui_overlay, SDL_Event *event, bool *handledMouse, bool *handledKeyboard ) {
+    ImGui_ImplSDL2_ProcessEvent( event );
     ImGuiIO &io = ImGui::GetIO( );
     *handledMouse = io.WantCaptureMouse;
     *handledKeyboard = io.WantCaptureKeyboard;
@@ -52,8 +53,8 @@ void imgui_overlay_draw( ImGuiOverlay *imgui_overlay, InputState *input ) {
     if ( input->inventory_open ) {
         ImGuiIO &io = ImGui::GetIO( );
 
-        // ImGui::ShowDemoWindow( &input->inventory_open );
-        {
+        ImGui::ShowDemoWindow( &input->inventory_open );
+        if ( false ) {
             static float f = 0.0f;
             static int counter = 0;
 
