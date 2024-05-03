@@ -4,12 +4,21 @@
 
 #include "common/RepGame.hpp"
 
+static RepGameState *globalGameState;
+
 void repgame_linux_process_sdl_events( ) {
     SDL_Event event;
     while ( SDL_PollEvent( &event ) ) {
+        bool handledMouse;
+        bool handledKeyboard;
+        imgui_overlay_handle_sdl2_event( &globalGameState->imgui_overlay, &event, &handledMouse, &handledKeyboard );
+        pr_debug( "Event: mouse:%d keyboard:%d", handledMouse, handledKeyboard );
         switch ( event.type ) {
             case SDL_KEYDOWN:
             case SDL_KEYUP:
+                if ( handledKeyboard ) {
+                    break;
+                }
                 input_keysInput( repgame_getInputState( ), event.key.keysym.sym, event.type == SDL_KEYDOWN );
                 break;
             case SDL_WINDOWEVENT:
@@ -19,12 +28,21 @@ void repgame_linux_process_sdl_events( ) {
                 break;
             case SDL_MOUSEBUTTONDOWN:
             case SDL_MOUSEBUTTONUP:
+                if ( handledMouse ) {
+                    break;
+                }
                 input_mouseInput( repgame_getInputState( ), event.button.button, event.type == SDL_MOUSEBUTTONUP );
                 break;
             case SDL_MOUSEWHEEL:
+                if ( handledMouse ) {
+                    break;
+                }
                 input_mouseWheel( repgame_getInputState( ), event.wheel.x, event.wheel.y );
                 break;
             case SDL_MOUSEMOTION:
+                if ( handledMouse ) {
+                    break;
+                }
                 input_lookMove( repgame_getInputState( ), event.motion.xrel, event.motion.yrel );
                 break;
         }
@@ -95,8 +113,8 @@ int repgame_sdl2_main( const char *world_path, const char *host, bool connect_mu
     if ( tests ) {
         return rep_tests_start( );
     }
-    RepGameState* globalGameState = repgame_init( world_path, connect_multi, host, supportsAnisotropicFiltering);
-    imgui_overlay_attach_to_window(&globalGameState->imgui_overlay, sdl_window, sdl_context);
+    globalGameState = repgame_init( world_path, connect_multi, host, supportsAnisotropicFiltering );
+    imgui_overlay_attach_to_window( &globalGameState->imgui_overlay, sdl_window, sdl_context );
 
 #if !defined( REPGAME_WASM )
 

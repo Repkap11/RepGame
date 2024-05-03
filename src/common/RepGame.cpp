@@ -460,7 +460,7 @@ void repgame_draw( ) {
     showErrors( );
     glClear( GL_DEPTH_BUFFER_BIT );
     ui_overlay_draw( &globalGameState.ui_overlay, &globalGameState.world.renderer, &globalGameState.blocksTexture, &globalGameState.input, globalGameState.screen.ortho_center );
-    imgui_overlay_draw(&globalGameState.imgui_overlay);
+    imgui_overlay_draw(&globalGameState.imgui_overlay, &globalGameState.input);
     showErrors( );
 }
 

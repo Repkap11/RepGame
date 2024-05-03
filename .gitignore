@@ -5,6 +5,7 @@ World2
 windows_build
 appimage_build
 imgui_build
+imgui.ini
 
 # VS Code
 .vscode/*
