@@ -2,12 +2,13 @@
 #define HEADER_IMGUI_OVERLAY_H
 
 typedef struct {
-    int screen_width;
-    int screen_height;
+    bool show_demo_window;
 } ImGuiOverlay;
 
-void imgui_overlay_init( ImGuiOverlay *ui_overlay );
-void imgui_overlay_on_screen_size_change( ImGuiOverlay *ui_overlay, int width, int height );
+#include "RepGame.hpp"
+
+void imgui_overlay_init( ImGuiOverlay *imgui_overlay );
+void imgui_overlay_attach_to_window( ImGuiOverlay *ui_overlay, SDL_Window *window, SDL_GLContext gl_context );
 void imgui_overlay_draw( ImGuiOverlay *ui_overlay );
 void imgui_overlay_cleanup( ImGuiOverlay *ui_overlay );
 

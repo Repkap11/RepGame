@@ -316,7 +316,7 @@ bool repgame_supportsAnisotropic( ) {
     return supportsAnisotropic;
 }
 
-void repgame_init( const char *world_name, bool connect_multi, const char *host, bool supportsAnisotropicFiltering ) {
+RepGameState* repgame_init( const char *world_name, bool connect_multi, const char *host, bool supportsAnisotropicFiltering ) {
     globalGameState.screen.width = DEFAULT_WINDOW_WIDTH;
     globalGameState.screen.height = DEFAULT_WINDOW_HEIGHT;
     supportsAnisotropic = supportsAnisotropicFiltering;
@@ -347,6 +347,7 @@ void repgame_init( const char *world_name, bool connect_multi, const char *host,
     glGetIntegerv( GL_SAMPLE_BUFFERS, &iMultiSample );
     glGetIntegerv( GL_SAMPLES, &iNumSamples );
     pr_debug( "GL_SAMPLE_BUFFERS = %d, GL_SAMPLES = %d", iMultiSample, iNumSamples );
+    return &globalGameState;
 }
 
 void repgame_set_textures( unsigned int which_texture, unsigned char *textures, int textures_len ) {
@@ -375,7 +376,6 @@ void repgame_changeSize( int w, int h ) {
     globalGameState.input.mouse.previousPosition.x = w / 2;
     globalGameState.input.mouse.previousPosition.y = h / 2;
     ui_overlay_on_screen_size_change( &globalGameState.ui_overlay, w, h );
-    imgui_overlay_on_screen_size_change( &globalGameState.imgui_overlay, w, h );
     globalGameState.screen.proj = glm::perspective<float>( glm::radians( CAMERA_FOV ), globalGameState.screen.width / globalGameState.screen.height, 0.1f, 800.0f );
     globalGameState.screen.ortho = glm::ortho<float>( 0.f, w, 0.f, h, -1.f, 1.f );
     globalGameState.screen.ortho_center = glm::ortho<float>( -w / 2, w / 2, -h / 2, h / 2, -1.f, 1.f );

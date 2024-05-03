@@ -95,7 +95,8 @@ int repgame_sdl2_main( const char *world_path, const char *host, bool connect_mu
     if ( tests ) {
         return rep_tests_start( );
     }
-    repgame_init( world_path, connect_multi, host, supportsAnisotropicFiltering);
+    RepGameState* globalGameState = repgame_init( world_path, connect_multi, host, supportsAnisotropicFiltering);
+    imgui_overlay_attach_to_window(&globalGameState->imgui_overlay, sdl_window, sdl_context);
 
 #if !defined( REPGAME_WASM )
 
