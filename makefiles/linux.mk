@@ -95,7 +95,7 @@ out/linux/debug/imgui/%.o: imgui_build/%.cpp $(call GUARD,CC_LINUX INCLUDES_COMM
 	@#Use g++ to build o file and a dependecy tree .d file for every cpp file
 	$(CC_LINUX) $(INCLUDES_COMMON) $(CFLAGS_LINUX) $(CFLAGS_LINUX_DEBUG) -MMD -MP -MF $(patsubst %.o,%.d,$@) -MT $(patsubst %.d,%.o,$@) -c $< -o $@
 
-out/linux/debug/imgui/%.o: imgui_build/%.cpp $(call GUARD,CC_LINUX INCLUDES_COMMON CFLAGS_LINUX CFLAGS_LINUX_RELEASE) | out/linux
+out/linux/release/imgui/%.o: imgui_build/%.cpp $(call GUARD,CC_LINUX INCLUDES_COMMON CFLAGS_LINUX CFLAGS_LINUX_RELEASE) | out/linux
 	$(call CHECK,CC_LINUX INCLUDES_COMMON CFLAGS_LINUX CFLAGS_LINUX_RELEASE)
 	@#Use g++ to build o file and a dependecy tree .d file for every cpp file
 	$(CC_LINUX) $(INCLUDES_COMMON) $(CFLAGS_LINUX) $(CFLAGS_LINUX_RELEASE) -MMD -MP -MF $(patsubst %.o,%.d,$@) -MT $(patsubst %.d,%.o,$@) -c $< -o $@
