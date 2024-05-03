@@ -23,6 +23,7 @@ void imgui_overlay_attach_to_window( ImGuiOverlay *ui_overlay, SDL_Window *windo
     IMGUI_CHECKVERSION( );
     ImGui::CreateContext( );
     ImGuiIO &io = ImGui::GetIO( );
+    io.WantCaptureMouse = true;
     // io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard; // Enable Keyboard Controls
     // io.ConfigFlags |= ImGuiConfigFlags_NavEnableSetMousePos; // Enable Keyboard Controls
     // io.ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad;  // Enable Gamepad Controls
@@ -49,11 +50,34 @@ void imgui_overlay_draw( ImGuiOverlay *imgui_overlay, InputState *input ) {
     ImGui::NewFrame( );
 
     if ( input->inventory_open ) {
-        ImGui::ShowDemoWindow( &input->inventory_open );
+        ImGuiIO &io = ImGui::GetIO( );
+
+        // ImGui::ShowDemoWindow( &input->inventory_open );
+        {
+            static float f = 0.0f;
+            static int counter = 0;
+
+            ImGui::Begin( "Hello, world!" ); // Create a window called "Hello, world!" and append into it.
+
+            ImGui::Text( "This is some useful text." );               // Display some text (you can use a format strings too)
+            ImGui::Checkbox( "Demo Window", &input->inventory_open ); // Edit bools storing our window open/close state
+            ImGui::Checkbox( "Another Window", &input->inventory_open );
+
+            if ( ImGui::Button( "Button" ) ) // Buttons return true when clicked (most widgets return true when edited/activated)
+                counter++;
+            ImGui::SameLine( );
+            ImGui::Text( "counter = %d", counter );
+
+            ImGui::Text( "Application average %.3f ms/frame (%.1f FPS)", 1000.0f / io.Framerate, io.Framerate );
+            ImGui::End( );
+        }
     }
     ImGui::Render( );
     ImGui_ImplOpenGL3_RenderDrawData( ImGui::GetDrawData( ) );
 }
 
 void imgui_overlay_cleanup( ImGuiOverlay *imgui_overlay ) {
+    ImGui_ImplOpenGL3_Shutdown( );
+    ImGui_ImplSDL2_Shutdown( );
+    ImGui::DestroyContext( );
 }
