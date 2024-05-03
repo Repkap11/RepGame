@@ -2,9 +2,10 @@
 
 USE_CCACHE ?= 1
 
-SRC_COMMON := $(wildcard src/common/*.cpp) $(wildcard src/common/**/*.cpp)
+SRC_COMMON := $(wildcard src/common/*.cpp) $(wildcard src/common/**/*.cpp) 
+SRC_IMGUI := imgui_build/backends/imgui_impl_sdl2.cpp imgui_build/backends/imgui_impl_opengl3.cpp
 SRC_ALL_C := $(wildcard src/**/*.cpp) $(wildcard src/**/**/*.cpp) $(wildcard src/**/*.cu) $(wildcard src/**/**/*.cu)
-INCLUDES_COMMON := -I include/ -I include/glm -I /usr/include/SDL2
+INCLUDES_COMMON := -I include/ -I include/glm -I /usr/include/SDL2 -I imgui_build -I imgui_build/backends
 HEADERS := $(wildcard include/**/*.hpp)
 BITMAPS_NO_HEADER := $(patsubst bitmaps/%.bmp,out/bitmaps/%.bin,$(wildcard bitmaps/*.bmp))
 

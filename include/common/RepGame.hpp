@@ -84,7 +84,7 @@ typedef struct {
 } PlayerData;
 
 void renderShaders( int x, int y, int z );
-void repgame_init( const char *world_name, bool connect_multi, const char *host, bool supportsAnisotropicFiltering);
+RepGameState* repgame_init( const char *world_name, bool connect_multi, const char *host, bool supportsAnisotropicFiltering);
 void repgame_tick( );
 void repgame_clear( );
 void repgame_idle( );

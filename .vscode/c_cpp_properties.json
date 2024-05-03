@@ -36,6 +36,8 @@
                 "/usr/include/x86_64-linux-gnu",
                 "${workspaceRoot}",
                 "${workspaceRoot}/include",
+                "${workspaceRoot}/imgui_build",
+                "${workspaceRoot}/imgui_build/backends",
                 "/usr/include/glm",
                 "/usr/include/SDL2"
             ],
