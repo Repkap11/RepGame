@@ -4,7 +4,7 @@ World2
 .vscode/ipch/
 windows_build
 appimage_build
-
+imgui_build
 
 # VS Code
 .vscode/*
