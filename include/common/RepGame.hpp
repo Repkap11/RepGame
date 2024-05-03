@@ -20,6 +20,7 @@
 #include "world.hpp"
 #include "constants.hpp"
 #include "ui_overlay.hpp"
+#include "imgui_overlay.hpp"
 #include "inventory.hpp"
 #include "common/BlockUpdateQueue.hpp"
 
@@ -57,6 +58,7 @@ typedef struct {
     Texture blocksTexture;
     World world;
     UIOverlay ui_overlay;
+    ImGuiOverlay imgui_overlay;
     Inventory inventory;
     struct {
         int selectionInBounds;
