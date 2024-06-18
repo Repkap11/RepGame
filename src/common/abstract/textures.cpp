@@ -74,10 +74,9 @@ unsigned char *readTextureDataFromCache( const char *filename, int mem_size ) {
 
 #define BYTES_PER_PIXEL 4
 void loadTexture( Texture *texture, const TextureSourceData *texture_source, int blur_mag ) {
-    int bmp_header = texture_source->header_size;
     unsigned char *data;
 
-    int mem_size = texture_source->width * texture_source->height * BYTES_PER_PIXEL + bmp_header;
+    int mem_size = texture_source->width * texture_source->height * BYTES_PER_PIXEL;
 
 #if defined( REPGAME_LINUX ) || defined( REPGAME_WINDOWS )
 #define TEXTURE_NEEDS_FREE 0
@@ -103,7 +102,7 @@ void loadTexture( Texture *texture, const TextureSourceData *texture_source, int
     // Due to strange issues with block meshing and rotation, it's easier to flip images in the X direction here,
     // instead of in texture coordinates.
     int working_size = texture_source->width * texture_source->height * BYTES_PER_PIXEL * sizeof( char );
-    unsigned char *working = ( unsigned char * )malloc( working_size + bmp_header );
+    unsigned char *working = ( unsigned char * )malloc( working_size );
 
     for ( unsigned int y = 0; y < textures_down; y++ ) {
         for ( unsigned int x = 0; x < textures_across; x++ ) {
@@ -151,7 +150,7 @@ void loadTexture( Texture *texture, const TextureSourceData *texture_source, int
                          texture_source->tile_size_across, texture_source->tile_size_down, 1, //
                          texture->format,
                          texture->type, //
-                         working + bmp_header + text_coord_base * BYTES_PER_PIXEL );
+                         working + text_coord_base * BYTES_PER_PIXEL );
         showErrors( );
     }
     free( working );

@@ -308,7 +308,7 @@ static inline void initilizeGameState( const char *world_name ) {
     }
 }
 
-MK_TEXTURE( textures, 384, 832, 16, 16, 139 );
+MK_TEXTURE( textures, 384, 832, 16, 16 );
 
 static bool supportsAnisotropic;
 

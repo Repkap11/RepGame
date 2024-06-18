@@ -12,24 +12,22 @@ typedef struct {
     unsigned int height;
     unsigned int tile_size_across;
     unsigned int tile_size_down;
-    unsigned int header_size;
 } TextureSourceData;
 
 // header_size must match trim value in Makefile for linux and windows binaries
 #if defined( REPGAME_LINUX ) || defined( REPGAME_WINDOWS )
-#define MK_TEXTURE( name, width_, height_, tile_size_across_, tile_size_down_, header_size_ )                                                                                                                                                  \
+#define MK_TEXTURE( name, width_, height_, tile_size_across_, tile_size_down_ )                                                                                                                                                                \
     MK_BLOB( out_bitmaps, name, bin );                                                                                                                                                                                                         \
-    const TextureSourceData texture_source_##name = { .blob = &name, .width = width_, .height = height_, .tile_size_across = tile_size_across_, .tile_size_down = tile_size_down_, .header_size = 0 }
+    const TextureSourceData texture_source_##name = { .blob = &name, .width = width_, .height = height_, .tile_size_across = tile_size_across_, .tile_size_down = tile_size_down_ }
 #else
 
-#define MK_TEXTURE( name, width_, height_, tile_size_across_, tile_size_down_, header_size_ )                                                                                                                                                  \
+#define MK_TEXTURE( name, width_, height_, tile_size_across_, tile_size_down_ )                                                                                                                                                                \
     const TextureSourceData texture_source_##name = {                                                                                                                                                                                          \
         .filename = "bitmaps" REPGAME_PATH_DIVIDOR #name ".bin",                                                                                                                                                                               \
         .width = width_,                                                                                                                                                                                                                       \
         .height = height_,                                                                                                                                                                                                                     \
         .tile_size_across = tile_size_across_,                                                                                                                                                                                                 \
         .tile_size_down = tile_size_down_,                                                                                                                                                                                                     \
-        .header_size = 0,                                                                                                                                                                                                                      \
     }
 #endif
 

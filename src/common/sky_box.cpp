@@ -13,7 +13,7 @@
 #define SKY_BOX_TRIANGLES_COUNT ( ( Slices ) * ( Stacks + 1 ) )
 #define SKY_BOX_INDEX_COUNT ( SKY_BOX_TRIANGLES_COUNT * 6 )
 
-MK_TEXTURE( sky4, 2048, 1024, 2048, 1024, 70 );
+MK_TEXTURE( sky4, 2048, 1024, 2048, 1024 );
 
 void sky_box_init( SkyBox *skyBox, VertexBufferLayout *vbl_object_vertex, VertexBufferLayout *vbl_object_position ) {
     ParticleVertex *vb_data = ( ParticleVertex * )calloc( SKY_BOX_VERTEX_COUNT, sizeof( ParticleVertex ) );
