@@ -14,8 +14,9 @@ int test_ecs( ) {
 
     entt::registry registry;
 
-    entt::entity entity_3;
-    for ( std::size_t i = 0; i < 10; ++i ) {
+    entt::entity entity_3 = entt::null;
+
+    for ( int i = 0; i < 10; ++i ) {
         const entt::entity entity = registry.create( );
         registry.emplace<position>( entity, i, -i );
         if ( i == 3 ) {
@@ -31,8 +32,9 @@ int test_ecs( ) {
         pr_debug( "B pos:%d %d", pos[ i ].x, pos[ i ].y );
     }
 
-    registry.destroy( entity_3 );
-
+    if ( entity_3 != entt::null ) {
+        registry.destroy( entity_3 );
+    }
     size = group_pos.size( );
     for ( std::size_t i = 0; i < size; ++i ) {
         pr_debug( "A pos:%d %d", pos[ i ].x, pos[ i ].y );
