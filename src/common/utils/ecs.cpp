@@ -16,26 +16,43 @@ int test_ecs( ) {
     entt::registry registry;
 
     // we'll create 10 entities
+
+    const auto entity_3 = registry.create( );
     for ( std::size_t i = 0; i < 10; ++i ) {
-        const auto entity = registry.create( );
-        registry.emplace<position>( entity, i, -i );
-        if ( i % 2 == 0 ) {
-            registry.emplace<id>( entity, i );
+        entt::entity entity;
+        if ( i == 3 ) {
+            entity = entity_3;
+        } else {
+            entity = registry.create( );
         }
+        registry.emplace<position>( entity, i, -i );
+        registry.emplace<id>( entity, i );
     }
 
-    auto view_both = registry.view<const position, const id>( );
-    for ( auto [ entity, pos, id ] : view_both.each( ) ) {
-        pr_debug( "Id:%d pos:%d %d", id.id, pos.x, pos.y );
-    }
+    // auto view_both = registry.view<const position, const id>( );
+    // for ( auto [ entity, pos, id ] : view_both.each( ) ) {
+    //     pr_debug( "B Id:%d pos:%d %d", id.id, pos.x, pos.y );
+    // }
 
     auto group_pos = registry.group<position>( );
     auto size = group_pos.size( );
     auto pos = *group_pos.storage<position>( )->raw( );
 
     for ( std::size_t i = 0; i < size; ++i ) {
-        pr_debug( "pos:%d %d", pos[ i ].x, pos[ i ].y );
+        pr_debug( "B pos:%d %d", pos[ i ].x, pos[ i ].y );
     }
+    registry.destroy( entity_3 );
+
+    group_pos = registry.group<position>( );
+    size = group_pos.size( );
+    pos = *group_pos.storage<position>( )->raw( );
+    for ( std::size_t i = 0; i < size; ++i ) {
+        pr_debug( "A pos:%d %d", pos[ i ].x, pos[ i ].y );
+    }
+
+    // for ( auto [ entity, pos, id ] : view_both.each( ) ) {
+    //     pr_debug( "A Id:%d pos:%d %d", id.id, pos.x, pos.y );
+    // }
 
     return 0;
 }
