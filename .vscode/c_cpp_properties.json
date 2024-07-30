@@ -29,17 +29,15 @@
         {
             "name": "Linux",
             "includePath": [
-                "/usr/include/c++/6",
-                "/usr/include/x86_64-linux-gnu/c++/6",
                 "/usr/local/include",
                 "/usr/include",
                 "/usr/include/x86_64-linux-gnu",
-                "${workspaceRoot}",
                 "${workspaceRoot}/include",
                 "${workspaceRoot}/imgui_build",
                 "${workspaceRoot}/imgui_build/backends",
                 "/usr/include/glm",
-                "/usr/include/SDL2"
+                "/usr/include/SDL2",
+                "${workspaceRoot}/entt_build/single_include/"
             ],
             "defines": [],
             "intelliSenseMode": "clang-x64",

@@ -1,5 +1,6 @@
 {
     "files.associations": {
+        "*.d": "makefile",
         "*.h": "c",
         "*.cpp": "cpp",
         "cmath": "c",
@@ -80,7 +81,8 @@
         "*.ipp": "cpp",
         "regex": "cpp",
         "typeindex": "cpp",
-        "bit": "cpp"
+        "bit": "cpp",
+        "__node_handle": "cpp"
     },
     "git.ignoreLimitWarning": true
 }

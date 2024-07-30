@@ -23,6 +23,7 @@
 #include "imgui_overlay.hpp"
 #include "inventory.hpp"
 #include "common/BlockUpdateQueue.hpp"
+#include "common/utils/ecs.hpp"
 
 #include <glm.hpp>
 #define GLM_FORCE_RADIANS

@@ -44,6 +44,8 @@ include makefiles/common.mk
 -include makefiles/windows.mk
 -include makefiles/android.mk
 -include makefiles/docker.mk
+-include makefiles/imgui.mk
+-include makefiles/entt.mk
 
 out:
 	mkdir -p $@

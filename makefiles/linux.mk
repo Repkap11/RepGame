@@ -77,7 +77,6 @@ LINUX_DIRS := $(patsubst src%,out/linux/release%,$(shell find src -type d)) \
 		out/linux/debug/imgui/backends out/linux/release/imgui/backends
 
 -include makefiles/cuda.mk
--include makefiles/imgui.mk
 
 out/linux/release/%.o: src/%.cpp $(call GUARD,CC_LINUX INCLUDES_COMMON CFLAGS_LINUX CFLAGS_LINUX_RELEASE) | out/linux
 	$(call CHECK,CC_LINUX INCLUDES_COMMON CFLAGS_LINUX CFLAGS_LINUX_RELEASE)

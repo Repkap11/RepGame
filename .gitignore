@@ -6,6 +6,7 @@ windows_build
 appimage_build
 imgui_build
 imgui.ini
+entt_build
 
 # VS Code
 .vscode/*
