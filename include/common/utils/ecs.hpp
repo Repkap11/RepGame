@@ -3,4 +3,6 @@
 
 #include <entt/entt.hpp>
 
+int test_ecs( );
+
 #endif

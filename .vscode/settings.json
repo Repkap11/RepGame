@@ -82,7 +82,16 @@
         "regex": "cpp",
         "typeindex": "cpp",
         "bit": "cpp",
-        "__node_handle": "cpp"
+        "__node_handle": "cpp",
+        "charconv": "cpp",
+        "compare": "cpp",
+        "concepts": "cpp",
+        "numbers": "cpp",
+        "semaphore": "cpp",
+        "span": "cpp",
+        "stop_token": "cpp",
+        "format": "cpp",
+        "__nullptr": "cpp"
     },
     "git.ignoreLimitWarning": true
 }

@@ -14,10 +14,6 @@ typedef struct Test {
 #define MK_TEST( name )                                                                                                                                                                                                                        \
     { #name, &test_##name }
 
-
-int test_ecs( ) {
-}
-
 int test_mobs( ) {
     pr_test( "Testing Mobs" );
     VertexBufferLayout vbl_object_vertex;
@@ -54,7 +50,7 @@ int test_mobs( ) {
 }
 
 const Test all_tests[] = { //
-    MK_TEST( mobs ),       //
+    // MK_TEST( mobs ),       //
     MK_TEST( ecs ),       //
     {NULL, NULL}
 

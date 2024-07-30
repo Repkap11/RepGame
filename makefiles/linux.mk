@@ -2,7 +2,7 @@
 
 REPGAME_PACKAGES += libglew-dev libxi-dev g++ libsdl2-dev upx-ucl
 
-CFLAGS_LINUX := -Wall -Wextra -std=c++11 -Wno-unused-parameter -Wno-unused-variable -fno-pie -march=native
+CFLAGS_LINUX := -Wall -Wextra -std=c++17 -Wno-unused-parameter -Wno-unused-variable -fno-pie -march=native
 CFLAGS_LINUX += -DREPGAME_FAST #For maxing out FPS
 
 CFLAGS_LINUX_RELEASE += -O3
@@ -121,7 +121,7 @@ linux-run: linux
 	./out/linux/release/$(TARGET) World1 www.repkap11.com
 
 linux_debug-run: linux_debug
-	./out/linux/debug/$(TARGET) World1 www.repkap11.com
+	./out/linux/debug/$(TARGET) World1 localhost
 
 tests: linux_debug
 	./out/linux/debug/$(TARGET) tests

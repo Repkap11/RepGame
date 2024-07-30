@@ -4,7 +4,6 @@
 ParticleCollection::ParticleCollection( ) {
 }
 ParticleCollection::ParticleCollection( VertexBufferLayout *vbl_object_vertex, VertexBufferLayout *vbl_object_placement ) {
-
     {
         index_buffer_init( &this->ib );
         vertex_buffer_init( &this->vb_particle_shape );
@@ -23,6 +22,7 @@ ParticleCollection::ParticleCollection( VertexBufferLayout *vbl_object_vertex, V
     glm::mat4 scale = glm::scale( glm::mat4( 1.0 ), glm::vec3( 0.5f ) );
     glm::mat4 un_translate = glm::translate( glm::mat4( 1.0 ), glm::vec3( -0.5f, -0.5f, -0.5f ) );
     this->initial_mat = scale * un_translate;
+    this->vertex_buffer_dirty = true;
 }
 
 void ParticleCollection::remove( int particle_id ) {
@@ -72,7 +72,7 @@ void ParticleCollection::update_position( int particle_id, float x, float y, flo
 
     particle->transform = translate * rotation * this->initial_mat;
     // TODO only update part of the VB, or only update it once on draw.
-    vertex_buffer_set_data( &this->vb_particle_placement, this->particle_positions.data( ), sizeof( ParticlePosition ) * this->particle_positions.size( ) );
+    this->vertex_buffer_dirty = true;
 }
 
 int ParticleCollection::check_consistency( ) {
@@ -90,6 +90,9 @@ int ParticleCollection::check_consistency( ) {
 
 void ParticleCollection::draw( const glm::mat4 &mvp, Renderer *renderer, Shader *shader ) {
     if ( this->shouldDraw ) {
+        if ( this->vertex_buffer_dirty ) {
+            vertex_buffer_set_data( &this->vb_particle_placement, this->particle_positions.data( ), sizeof( ParticlePosition ) * this->particle_positions.size( ) );
+        }
         shader_set_uniform_mat4f( shader, "u_MVP", mvp );
         renderer_draw( renderer, &this->va, &this->ib, shader, this->particle_positions.size( ) );
     }

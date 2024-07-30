@@ -59,6 +59,9 @@ void main_loop_full( );
 SDL_Window *sdl_window = NULL;
 SDL_GLContext sdl_context = NULL;
 int repgame_sdl2_main( const char *world_path, const char *host, bool connect_multi, bool tests ) {
+    if ( tests ) {
+        return rep_tests_start( );
+    }
     if ( SDL_Init( SDL_INIT_VIDEO ) != 0 ) {    /* Initialize SDL's Video subsystem */
         pr_debug( "Unable to initialize SDL" ); /* Or die on error */
         exit( 1 );
@@ -110,9 +113,6 @@ int repgame_sdl2_main( const char *world_path, const char *host, bool connect_mu
     }
     ignoreErrors( );
 
-    if ( tests ) {
-        return rep_tests_start( );
-    }
     globalGameState = repgame_init( world_path, connect_multi, host, supportsAnisotropicFiltering );
     imgui_overlay_attach_to_window( &globalGameState->imgui_overlay, sdl_window, sdl_context );
 

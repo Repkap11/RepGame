@@ -21,6 +21,7 @@ class ParticleCollection {
     VertexBuffer vb_particle_shape;
     int shouldDraw;
     glm::mat4 initial_mat;
+    bool vertex_buffer_dirty;
 
   protected:
     virtual void init_particle( ParticlePosition *particle, int particle_id ) = 0;
