@@ -11,8 +11,7 @@ typedef struct Test {
     int ( *test_func )( );
 } Test;
 
-#define MK_TEST( name )                                                                                                                                                                                                                        \
-    { #name, &test_##name }
+#define MK_TEST( name ) { #name, &test_##name }
 
 int test_mobs( ) {
     pr_test( "Testing Mobs" );
@@ -49,10 +48,15 @@ int test_mobs( ) {
     return inconsistent;
 }
 
+int test_ecs( ) {
+    ECS ecs = ECS( );
+    return ecs.test_ecs( );
+}
+
 const Test all_tests[] = { //
-    // MK_TEST( mobs ),       //
-    MK_TEST( ecs ),       //
-    {NULL, NULL}
+                           // MK_TEST( mobs ),       //
+    MK_TEST( ecs ), //
+    { NULL, NULL }
 
 };
 
