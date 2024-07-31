@@ -16,6 +16,9 @@
 #include "wasm/RepGameWASM.hpp"
 #endif
 
+#include <entt/entt.hpp>
+#include <glm.hpp>
+
 #include "chunk_loader.hpp"
 #include "world.hpp"
 #include "constants.hpp"
@@ -23,9 +26,9 @@
 #include "imgui_overlay.hpp"
 #include "inventory.hpp"
 #include "common/BlockUpdateQueue.hpp"
+#include "common/ecs_renderer.hpp"
 #include "common/utils/ecs.hpp"
 
-#include <glm.hpp>
 #define GLM_FORCE_RADIANS
 #include <gtc/type_ptr.hpp>
 #include <gtc/matrix_transform.hpp>
@@ -85,7 +88,7 @@ typedef struct {
 } PlayerData;
 
 void renderShaders( int x, int y, int z );
-RepGameState* repgame_init( const char *world_name, bool connect_multi, const char *host, bool supportsAnisotropicFiltering);
+RepGameState *repgame_init( const char *world_name, bool connect_multi, const char *host, bool supportsAnisotropicFiltering );
 void repgame_tick( );
 void repgame_clear( );
 void repgame_idle( );

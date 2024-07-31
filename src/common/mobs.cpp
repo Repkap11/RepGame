@@ -1,10 +1,10 @@
 #include "common/mobs.hpp"
 #include "common/RepGame.hpp"
 
-Mobs::Mobs( ) : ParticleCollection( ) {
+Mobs::Mobs( ) : ECS_Renderer( ) {
 }
 
-Mobs::Mobs( VertexBufferLayout *vbl_object_vertex, VertexBufferLayout *vbl_object_placement ) : ParticleCollection( vbl_object_vertex, vbl_object_placement ) {
+Mobs::Mobs( VertexBufferLayout *vbl_object_vertex, VertexBufferLayout *vbl_object_placement ) : ECS_Renderer( vbl_object_vertex, vbl_object_placement ) {
 }
 
 void Mobs::init_particle( ParticlePosition *mob, int particle_id ) {

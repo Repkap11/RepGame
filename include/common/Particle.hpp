@@ -1,6 +1,10 @@
 
 #ifndef HEADER_PARTICLE_H
 #define HEADER_PARTICLE_H
+
+#include "common/constants.hpp"
+#include "glm.hpp"
+
 typedef struct {
     float x;
     float y;

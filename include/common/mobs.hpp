@@ -1,9 +1,10 @@
 #ifndef HEADER_MOBS_H
 #define HEADER_MOBS_H
 
-#include "common/ParticleCollection.hpp"
+#include "common/Particle.hpp"
+#include "common/ecs_renderer.hpp"
 
-class Mobs : public ParticleCollection {
+class Mobs : public ECS_Renderer {
   public:
     Mobs( );
     Mobs( VertexBufferLayout *vbl_object_vertex, VertexBufferLayout *vbl_object_position );
