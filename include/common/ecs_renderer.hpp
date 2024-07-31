@@ -20,6 +20,7 @@ class ECS_Renderer {
     VertexBuffer vb_particle_shape;
     glm::mat4 initial_mat;
     bool vertex_buffer_dirty;
+    entt::connection connection;
 
     std::map<unsigned int, entt::entity> entity_map;
 
