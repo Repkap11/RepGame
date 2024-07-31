@@ -30,18 +30,17 @@ ECS_Renderer::ECS_Renderer( VertexBufferLayout *vbl_object_vertex, VertexBufferL
     this->initial_mat = scale * un_translate;
     this->vertex_buffer_dirty = true;
 
-    // registry.on_construct<ParticlePosition>( ).connect<&ECS_Renderer::on_construct>( this );
-    registry.on_update<ParticlePosition>( ).connect<&ECS_Renderer::on_update>( *this );
-    // registry.on_destroy<ParticlePosition>( ).connect<&ECS_Renderer::on_destroy>( this );
+    // registry.on_construct<ParticlePosition>( ).connect<&ECS_Renderer::on_construct>( *this );
+    // registry.on_update<ParticlePosition>( ).connect<&ECS_Renderer::on_update>( *this );
+    // registry.on_destroy<ParticlePosition>( ).connect<&ECS_Renderer::on_destroy>( *this );
 }
 
 void ECS_Renderer::on_construct( entt::registry &registry, entt::entity entity ) {
     pr_debug( "ECS_Renderer::on_construct" );
-    // this->vertex_buffer_dirty = true;
+    this->vertex_buffer_dirty = true;
 }
 
 void ECS_Renderer::on_update( entt::registry &registry, entt::entity entity ) {
-    pr_debug( "ECS_Renderer::on_update:%p", this );
     // vertex_buffer_dirty = true;
     if ( this->vertex_buffer_dirty ) {
         pr_debug( "ECS_Renderer::nothing to do" );
@@ -60,21 +59,23 @@ void ECS_Renderer::on_update( entt::registry &registry, entt::entity entity ) {
     // const PlayerId &player_id = registry.get<const PlayerId>( entity );
 
     vertex_buffer_set_subdata( &this->vb_particle_placement, this_partiel_position, offset * sizeof( ParticlePosition ), sizeof( ParticlePosition ) );
-    pr_debug( "ECS_Renderer::on_update: offset:%d", offset);
+    pr_debug( "ECS_Renderer::on_update: offset:%d", offset );
 };
 
 void ECS_Renderer::on_destroy( entt::registry &registry, entt::entity entity ) {
     pr_debug( "ECS_Renderer::on_destroy" );
-    // this->vertex_buffer_dirty = true;
+    this->vertex_buffer_dirty = true;
 }
 
 void ECS_Renderer::add( unsigned int particle_id ) {
     pr_debug( "Adding particle_id:%d", particle_id );
+    this->vertex_buffer_dirty = true;
     const entt::entity entity = registry.create( );
-    registry.emplace<PlayerId>( entity, particle_id );
-    ParticlePosition &particle = registry.emplace<ParticlePosition>( entity );
-    init_particle( &particle, particle_id );
     entity_map.emplace( particle_id, entity );
+    registry.emplace<PlayerId>( entity, particle_id );
+    ParticlePosition particle;
+    init_particle( &particle, particle_id );
+    registry.emplace<ParticlePosition>( entity, particle );
 }
 void ECS_Renderer::update_position( int particle_id, float x, float y, float z, const glm::mat4 &rotation ) {
     pr_debug( "Updating particle_id:%d", particle_id );
@@ -89,12 +90,13 @@ void ECS_Renderer::update_position( int particle_id, float x, float y, float z, 
     ParticlePosition &particle = registry.get<ParticlePosition>( entity );
 
     particle.transform = translate * rotation * this->initial_mat;
-    registry.patch<ParticlePosition>( entity );
+    // registry.patch<ParticlePosition>( entity );
+    on_update( registry, entity );
 }
 
 void ECS_Renderer::remove( unsigned int particle_id ) {
     pr_debug( "Removing particle_id:%d", particle_id );
-
+    this->vertex_buffer_dirty = true;
     auto it = entity_map.find( particle_id );
     if ( it == entity_map.end( ) ) {
         // No player with that ID could be found.
@@ -124,11 +126,12 @@ void ECS_Renderer::draw( const glm::mat4 &mvp, Renderer *renderer, Shader *shade
         return;
     }
 
-    if ( vertex_buffer_dirty ) {
+    if ( this->vertex_buffer_dirty ) {
         vertex_buffer_set_data( &this->vb_particle_placement, particle_positions, sizeof( ParticlePosition ) * particle_count );
         vertex_buffer_dirty = false;
         pr_debug( "draw: Clearing vertex_buffer_ditry" );
     } else {
+        pr_debug( "draw: Not vertex_buffer_ditry" );
         vertex_buffer_bind( &this->vb_particle_placement );
     }
     shader_set_uniform_mat4f( shader, "u_MVP", mvp );
