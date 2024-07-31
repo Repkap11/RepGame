@@ -50,7 +50,7 @@ void imgui_overlay_draw( ImGuiOverlay *imgui_overlay, InputState *input ) {
     ImGui_ImplSDL2_NewFrame( );
     ImGui::NewFrame( );
 
-    if ( input->inventory_open ) {
+    if (USE_IMGUI_INVENTORY && input->inventory_open ) {
         ImGuiIO &io = ImGui::GetIO( );
 
         ImGui::ShowDemoWindow( &input->inventory_open );

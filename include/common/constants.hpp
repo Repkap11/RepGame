@@ -58,6 +58,8 @@ static_assert( CHUNK_RADIUS_Z > 0, "CHUNK_RADIUS_Z too small");
 #define NO_CLIP 1
 #define MAP_SEED 0
 
+#define USE_IMGUI_INVENTORY 0
+
 #define BLOCK_SCALE_OFFSET 0.2f
 
 #define DISABLE_GROUPING_BLOCKS 0
