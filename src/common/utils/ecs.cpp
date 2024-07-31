@@ -5,10 +5,12 @@ void ECS::print_group( const std::string &msg ) {
     pr_debug( "%s", msg.c_str( ) );
 
     // auto registry_group = registry.group<Tag, Position>( );
-    auto registry_group = registry.group<Position, Tag>( );
-    // auto registry_group = registry.group<Position>( entt::get<Tag> );
+    // auto registry_group = registry.group<Position, Tag>( );
+    auto registry_group = registry.group<Position>( entt::get<Tag> );
     // auto registry_group = registry.group<Tag>( entt::get<Position> );
     // auto registry_group = registry.group<>( entt::get<Position, Tag> );
+
+    registry_group.sort<Tag>( []( const Tag &lhs, const Tag &rhs ) { return lhs.id > rhs.id; } );
 
     Position *pos = *registry_group.storage<Position>( )->raw( );
     Tag *tag = *registry_group.storage<Tag>( )->raw( );
@@ -46,21 +48,25 @@ void ECS::print_view( const std::string &msg ) {
 int ECS::test_ecs( ) {
     pr_debug( "test_ecs" );
 
-    entt::entity to_remove = entt::null;
-    for ( int i = 0; i < 10; ++i ) {
+    entt::entity entity_3 = entt::null;
+    entt::entity entity_8 = entt::null;
+    for ( int i = 0; i < 20; ++i ) {
         const entt::entity entity = registry.create( );
         registry.emplace<Position>( entity, i, -i );
-        int group_id = ( i % 2 == 0 ) ? 0 : 1;
-        if ( group_id ) {
-            registry.emplace<Tag>( entity, 20 - i - ( i % 4 ) );
+        if ( i < 8 ) {
+            registry.emplace<Tag>( entity, ( i * i ) % 6 );
         }
+
         if ( i == 3 ) {
-            to_remove = entity;
+            entity_3 = entity;
+        } else if ( i == 8 ) {
+            entity_8 = entity;
         }
     }
     // registry.sort<Tag>( []( const Tag &lhs, const Tag &rhs ) { return lhs.id > rhs.id; } );
     print_group( "Before" );
-    registry.destroy( to_remove );
+    registry.destroy( entity_3 );
+    registry.destroy( entity_8 );
 
     // registry.sort<Tag>( []( const Tag &lhs, const Tag &rhs ) { return lhs.id > rhs.id; } );
     print_group( "After" );
