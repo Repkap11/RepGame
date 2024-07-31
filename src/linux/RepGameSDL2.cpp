@@ -12,7 +12,7 @@ void repgame_linux_process_sdl_events( ) {
         bool handledMouse;
         bool handledKeyboard;
         imgui_overlay_handle_sdl2_event( &globalGameState->imgui_overlay, &event, &handledMouse, &handledKeyboard );
-        pr_debug( "Event: mouse:%d keyboard:%d", handledMouse, handledKeyboard );
+        // pr_debug( "Event: mouse:%d keyboard:%d", handledMouse, handledKeyboard );
         switch ( event.type ) {
             case SDL_KEYDOWN:
             case SDL_KEYUP:

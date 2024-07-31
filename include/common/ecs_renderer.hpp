@@ -27,9 +27,9 @@ class ECS_Renderer {
   public:
     ECS_Renderer( );
     ECS_Renderer( VertexBufferLayout *vbl_object_vertex, VertexBufferLayout *vbl_object_placement );
-    void add( unsigned int player_id );
+    void add( unsigned int particle_id );
     void update_position( int particle_id, float x, float y, float z, const glm::mat4 &rotation );
-    void remove( unsigned int player_id );
+    void remove( unsigned int particle_id );
     void draw( const glm::mat4 &mvp, Renderer *renderer, Shader *shader );
     void cleanup( );
     int check_consistency( );
