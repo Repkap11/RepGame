@@ -5,9 +5,10 @@ void ECS::print_group( const std::string &msg ) {
     pr_debug( "%s", msg.c_str( ) );
 
     // auto registry_group = registry.group<Tag, Position>( );
-    // auto registry_group = registry.group<Position, Tag>( );
+    auto registry_group = registry.group<Position, Tag>( );
     // auto registry_group = registry.group<Position>( entt::get<Tag> );
-    auto registry_group = registry.group<Tag>( entt::get<Position> );
+    // auto registry_group = registry.group<Tag>( entt::get<Position> );
+    // auto registry_group = registry.group<>( entt::get<Position, Tag> );
 
     Position *pos = *registry_group.storage<Position>( )->raw( );
     Tag *tag = *registry_group.storage<Tag>( )->raw( );
@@ -31,7 +32,7 @@ void ECS::print_view( const std::string &msg ) {
     Position *pos = *registry_view.storage<Position>( )->raw( );
     Tag *tag = *registry_view.storage<Tag>( )->raw( );
     // std::size_t size = registry_view.storage<Position>( )->size( );
-    std::size_t size = registry_view.size_hint();
+    std::size_t size = registry_view.size_hint( );
 
     // for ( auto [ entity, tag, pos ] : registry_view.each( ) ) {
     //     pr_debug( "itr tag:%d pos:%d %d", tag.id, pos.x, pos.y );
@@ -57,11 +58,11 @@ int ECS::test_ecs( ) {
             to_remove = entity;
         }
     }
-    registry.sort<Tag>( []( const Tag &lhs, const Tag &rhs ) { return lhs.id > rhs.id; } );
-    print_view( "Before" );
+    // registry.sort<Tag>( []( const Tag &lhs, const Tag &rhs ) { return lhs.id > rhs.id; } );
+    print_group( "Before" );
     registry.destroy( to_remove );
-    
-    registry.sort<Tag>( []( const Tag &lhs, const Tag &rhs ) { return lhs.id > rhs.id; } );
-    print_view( "After" );
+
+    // registry.sort<Tag>( []( const Tag &lhs, const Tag &rhs ) { return lhs.id > rhs.id; } );
+    print_group( "After" );
     return 0;
 };
