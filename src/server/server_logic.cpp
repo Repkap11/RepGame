@@ -13,7 +13,7 @@ void server_logic_on_client_connected( int client_fd ) {
             // Don't tell this client that itself joined.
             continue;
         }
-        if ( server_is_client_connected( prop_id ) ) {
+        if ( server_get_data_if_client_connected( prop_id ) != NULL ) {
             pr_debug( "Notifying existing player:%d of new player:%d", prop_id, client_fd );
             NetPacket packet;
             // pr_debug( "Notifying2 existing player:%d of new player:%d", prop_id, client_fd );
@@ -32,10 +32,12 @@ void server_logic_on_client_connected( int client_fd ) {
             // Don't tell this client that itself joined.
             continue;
         }
-        if ( server_is_client_connected( online_id ) ) {
+        PacketType_DataPlayer *playerData = server_get_data_if_client_connected( online_id );
+        if ( playerData != NULL ) {
             NetPacket packet;
-            packet.type = PLAYER_CONNECTED;
+            packet.type = CLIENT_INIT;
             packet.player_id = online_id;
+            packet.data.player = *playerData;
             server_queue_packet( client_fd, &packet );
             pr_debug( "Notifying new player:%d of existing player:%d", client_fd, online_id );
         }
@@ -54,7 +56,7 @@ void server_logic_on_client_message( int client_fd, NetPacket *packet ) {
                 // Don't tell this client that itself joined.
                 continue;
             }
-            if ( server_is_client_connected( prop_id ) ) {
+            if ( server_get_data_if_client_connected( prop_id ) != NULL ) {
                 packet->player_id = client_fd;
                 server_queue_packet( prop_id, packet );
             }
@@ -63,14 +65,14 @@ void server_logic_on_client_message( int client_fd, NetPacket *packet ) {
 }
 
 void server_logic_on_client_disconnected( int client_fd ) {
-    //pr_debug( "%d", client_fd );
-    // Tell the other clients that this client disconnected.
+    // pr_debug( "%d", client_fd );
+    //  Tell the other clients that this client disconnected.
     for ( int prop_id = 0; prop_id < MAX_CLIENT_FDS; prop_id++ ) {
         if ( prop_id == client_fd ) {
             // Don't tell this client that itself joined.
             continue;
         }
-        if ( server_is_client_connected( prop_id ) ) {
+        if ( server_get_data_if_client_connected( prop_id ) != NULL ) {
             NetPacket packet;
             packet.type = PLAYER_DISCONNECTED;
             packet.player_id = client_fd;

@@ -2,12 +2,20 @@
 #define HEADER_SERVER_H
 
 #include <glm.hpp>
+#include <queue>
 
 #define MAX_CLIENT_FDS 100
 
 typedef enum { INVALID, PLAYER_LOCATION, BLOCK_UPDATE, CLIENT_INIT, PLAYER_CONNECTED, PLAYER_DISCONNECTED } PacketType;
 
 #define SERVER_BLOCK_DATA_SIZE 16
+
+typedef struct {
+    float x;
+    float y;
+    float z;
+    float rotation[ 4 * 4 ];
+} PacketType_DataPlayer;
 
 typedef struct {
     PacketType type;
@@ -19,16 +27,17 @@ typedef struct {
             int z;
             char blockState[ SERVER_BLOCK_DATA_SIZE ];
         } block;
-        struct {
-            float x;
-            float y;
-            float z;
-            float rotation[ 4 * 4 ];
-        } player;
+        PacketType_DataPlayer player;
     } data;
 } NetPacket;
 
+typedef struct {
+    int connected;
+    PacketType_DataPlayer player_data;
+    std::queue<NetPacket> pending_sends;
+} ClientData;
+
 void server_queue_packet( int client_fd, NetPacket *packet );
-int server_is_client_connected( int client_id );
+PacketType_DataPlayer *server_get_data_if_client_connected( int client_id );
 
 #endif

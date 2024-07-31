@@ -8,7 +8,6 @@
 #include <errno.h>
 #include <unistd.h>
 #include <string.h>
-#include <queue>
 
 #include "server/server.hpp"
 #include "server/server_logic.hpp"
@@ -19,10 +18,6 @@
 
 int epoll_fd = 0;
 
-typedef struct {
-    int connected;
-    std::queue<NetPacket> pending_sends;
-} ClientData;
 ClientData *client_data;
 
 int server_setup_inet_socket( int port ) {
@@ -82,7 +77,7 @@ void server_del_epoll( int client_fd ) {
     return;
 }
 void server_update_epoll( int client_fd ) {
-    struct epoll_event event = {0, {0}};
+    struct epoll_event event = { 0, { 0 } };
     event.data.fd = client_fd;
     event.events = EPOLLET;
     int size = client_data[ client_fd ].pending_sends.size( );
@@ -147,6 +142,9 @@ void server_handle_client_ready_for_read( int client_fd ) {
             pr_debug( "Only got a partial packet, darn" );
             break;
         }
+        if ( packet.type == PLAYER_LOCATION || packet.type == PLAYER_CONNECTED ) {
+            client_data[ client_fd ].player_data = packet.data.player;
+        }
         server_logic_on_client_message( client_fd, &packet );
     }
     if ( disconnected ) {
@@ -170,8 +168,11 @@ void server_queue_packet( int client_fd, NetPacket *packet ) {
     // pr_debug( "Got packet done with server_update_epoll" );
 }
 
-int server_is_client_connected( int client_id ) {
-    return client_data[ client_id ].connected;
+PacketType_DataPlayer *server_get_data_if_client_connected( int client_id ) {
+    if ( !client_data[ client_id ].connected ) {
+        return NULL;
+    }
+    return &client_data[ client_id ].player_data;
 }
 
 void server_handle_client_ready_for_write( int client_fd ) {

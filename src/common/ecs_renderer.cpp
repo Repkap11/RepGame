@@ -29,7 +29,6 @@ ECS_Renderer::ECS_Renderer( VertexBufferLayout *vbl_object_vertex, VertexBufferL
     glm::mat4 un_translate = glm::translate( glm::mat4( 1.0 ), glm::vec3( -0.5f, -0.5f, -0.5f ) );
     this->initial_mat = scale * un_translate;
     this->vertex_buffer_dirty = true;
-    this->vertex_buffer_particle_count = 0;
 
     registry.on_construct<ParticlePosition>( ).connect<&ECS_Renderer::on_construct>( this );
     registry.on_update<ParticlePosition>( ).connect<&ECS_Renderer::on_update>( this );
@@ -41,9 +40,22 @@ void ECS_Renderer::on_construct( entt::registry &registry, entt::entity entity )
 }
 
 void ECS_Renderer::on_update( entt::registry &registry, entt::entity entity ) {
-    const PlayerId &player_id = registry.get<const PlayerId>( entity );
-    const ParticlePosition &particle = registry.get<const ParticlePosition>( entity );
-    pr_debug( "ECS_Renderer::on_update:%d", player_id );
+    if ( vertex_buffer_dirty ) {
+        // No need for partial updates, and full update is about to happen.`
+        return;
+    }
+    auto registry_group = registry.group<const ParticlePosition>( );
+    const ParticlePosition *const *available_particles = registry_group.storage<const ParticlePosition>( )->raw( );
+    if ( available_particles == NULL ) {
+        pr_debug( "Somehow there is nothing???" );
+        return;
+    }
+    const ParticlePosition *first_particle_positions = *available_particles;
+    const ParticlePosition *this_partiel_position = &registry.get<const ParticlePosition>( entity );
+    int offset = this_partiel_position - first_particle_positions;
+    vertex_buffer_set_subdata( &this->vb_particle_placement, this_partiel_position, offset * sizeof( ParticlePosition ), sizeof( ParticlePosition ) );
+
+    pr_debug( "ECS_Renderer::on_update: offset:%d", offset );
 };
 
 void ECS_Renderer::on_destroy( entt::registry &registry, entt::entity entity ) {
@@ -61,7 +73,7 @@ void ECS_Renderer::add( unsigned int particle_id ) {
 void ECS_Renderer::update_position( int particle_id, float x, float y, float z, const glm::mat4 &rotation ) {
     auto it = entity_map.find( particle_id );
     if ( it == entity_map.end( ) ) {
-        // No player with that ID could be found.
+        pr_debug( "No player with that ID could be found." );
         return;
     }
     entt::entity entity = it->second;
@@ -69,7 +81,6 @@ void ECS_Renderer::update_position( int particle_id, float x, float y, float z, 
     ParticlePosition &particle = registry.get<ParticlePosition>( entity );
     registry.patch<ParticlePosition>( entity );
     particle.transform = translate * rotation * this->initial_mat;
-    vertex_buffer_dirty = true;
 }
 
 void ECS_Renderer::remove( unsigned int player_id ) {
@@ -98,9 +109,9 @@ void ECS_Renderer::draw( const glm::mat4 &mvp, Renderer *renderer, Shader *shade
         return;
     }
 
-    if ( vertex_buffer_particle_count != particle_count ) {
+    if ( vertex_buffer_dirty ) {
         vertex_buffer_set_data( &this->vb_particle_placement, particle_positions, sizeof( ParticlePosition ) * particle_count );
-        vertex_buffer_particle_count = particle_count;
+        vertex_buffer_dirty = false;
     }
     shader_set_uniform_mat4f( shader, "u_MVP", mvp );
     renderer_draw( renderer, &this->va, &this->ib, shader, particle_count );

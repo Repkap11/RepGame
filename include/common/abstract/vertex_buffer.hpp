@@ -10,5 +10,6 @@ void vertex_buffer_destroy( const VertexBuffer *vertexBuffer );
 void vertex_buffer_bind( const VertexBuffer *vertexBuffer );
 void vertex_buffer_unbind( const VertexBuffer *vertexBuffer );
 void vertex_buffer_set_data( VertexBuffer *vertexBuffer, const void *data, unsigned int size );
+void vertex_buffer_set_subdata( VertexBuffer *vertexBuffer, const void *data, unsigned int offset, unsigned int size );
 
 #endif

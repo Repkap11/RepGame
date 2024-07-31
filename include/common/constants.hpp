@@ -79,7 +79,7 @@ static_assert( CHUNK_RADIUS_Z > 0, "CHUNK_RADIUS_Z too small");
 #if defined( REPGAME_WASM ) || defined( REPGAME_WINDOWS )
 #define NUM_RENDER_THREADS 1
 #else
-#define NUM_RENDER_THREADS 15
+#define NUM_RENDER_THREADS 4
 #endif
 
 #define PLAYER_HEIGHT 1.85f

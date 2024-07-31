@@ -76,8 +76,12 @@ void multiplayer_process_events( World *world ) {
                     BlockState *blockState = ( BlockState * )( update.data.block.blockState );
                     pr_debug( "Read message: block:%d", blockState->id );
 
-                    glm::ivec3 block_pos = glm::ivec3(update.data.block.x, update.data.block.y, update.data.block.z);
+                    glm::ivec3 block_pos = glm::ivec3( update.data.block.x, update.data.block.y, update.data.block.z );
                     world_set_loaded_block( world, block_pos, *blockState );
+                } else if ( update.type == CLIENT_INIT ) {
+                    world->mobs.add( update.player_id );
+                    glm::mat4 rotation = glm::make_mat4( update.data.player.rotation );
+                    world->mobs.update_position( update.player_id, update.data.player.x, update.data.player.y, update.data.player.z, rotation );
                 } else if ( update.type == PLAYER_LOCATION ) {
                     // pr_debug( "Updating player location:%d", update.player_id );
                     glm::mat4 rotation = glm::make_mat4( update.data.player.rotation );
@@ -106,7 +110,7 @@ void multiplayer_set_block_send_packet( NetPacket *update ) {
     }
 }
 
-void multiplayer_set_block(const glm::ivec3 &block_pos, BlockState blockState ) {
+void multiplayer_set_block( const glm::ivec3 &block_pos, BlockState blockState ) {
     if ( active ) {
         // Log what the player is doing
         if ( blockState.id != AIR ) {
@@ -124,9 +128,16 @@ void multiplayer_set_block(const glm::ivec3 &block_pos, BlockState blockState ) 
         multiplayer_set_block_send_packet( &update );
     }
 }
+glm::vec3 prev_player_pos;
+glm::mat4 prev_rotation;
 
 void multiplayer_update_players_position( const glm::vec3 &player_pos, const glm::mat4 &rotation ) {
     if ( active ) {
+        if ( prev_player_pos == player_pos && prev_rotation == rotation ) {
+            return;
+        }
+        prev_player_pos = player_pos;
+        prev_rotation = rotation;
         NetPacket update;
         update.type = PLAYER_LOCATION;
         update.data.player.x = player_pos.x;
