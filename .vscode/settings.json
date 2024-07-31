@@ -97,7 +97,10 @@
         "__tree": "cpp",
         "queue": "cpp",
         "stack": "cpp",
-        "__locale": "cpp"
+        "__locale": "cpp",
+        "__config": "cpp",
+        "__threading_support": "cpp",
+        "locale": "cpp"
     },
     "git.ignoreLimitWarning": true
 }

@@ -60,7 +60,7 @@ void ECS_Renderer::on_update( entt::registry &registry, entt::entity entity ) {
     // const PlayerId &player_id = registry.get<const PlayerId>( entity );
 
     vertex_buffer_set_subdata( &this->vb_particle_placement, this_partiel_position, offset * sizeof( ParticlePosition ), sizeof( ParticlePosition ) );
-    pr_debug( "ECS_Renderer::on_update: offset:%d id:%d", offset, this_partiel_position->id );
+    pr_debug( "ECS_Renderer::on_update: offset:%d", offset);
 };
 
 void ECS_Renderer::on_destroy( entt::registry &registry, entt::entity entity ) {
@@ -105,7 +105,7 @@ void ECS_Renderer::remove( unsigned int particle_id ) {
 }
 
 void ECS_Renderer::draw( const glm::mat4 &mvp, Renderer *renderer, Shader *shader ) {
-    pr_debug( "draw:%p", this );
+    // pr_debug( "draw:%p", this );
 
     auto registry_group = registry.group<ParticlePosition>( );
     ParticlePosition **available_particles = registry_group.storage<ParticlePosition>( )->raw( );

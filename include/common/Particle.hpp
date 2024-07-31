@@ -57,7 +57,6 @@ static ParticleVertex vd_data_player_object[] = {
 #define VB_DATA_SIZE_PLAYER ( 5 * 6 )
 
 typedef struct {
-    unsigned int id;
     unsigned short face[ NUM_FACES_IN_CUBE ];
     glm::mat4 transform;
 } ParticlePosition;
