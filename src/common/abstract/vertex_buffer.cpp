@@ -11,6 +11,11 @@ void vertex_buffer_set_data( VertexBuffer *vertexBuffer, const void *data, unsig
     glBufferData( GL_ARRAY_BUFFER, size, data, GL_STATIC_DRAW );
 }
 
+void vertex_buffer_set_subdata( VertexBuffer *vertexBuffer, const void *data, unsigned int offset, unsigned int size ) {
+    vertex_buffer_bind( vertexBuffer );
+    glBufferSubData( GL_ARRAY_BUFFER, offset, size, data );
+}
+
 void vertex_buffer_destroy( const VertexBuffer *vertexBuffer ) {
     glDeleteBuffers( 1, &( vertexBuffer->mRendererId ) );
 }

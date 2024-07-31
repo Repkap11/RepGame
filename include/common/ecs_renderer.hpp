@@ -11,7 +11,6 @@
 #include "common/Particle.hpp"
 #include <entt/entt.hpp>
 
-
 class ECS_Renderer {
   private:
     entt::registry registry;
@@ -21,8 +20,13 @@ class ECS_Renderer {
     VertexBuffer vb_particle_shape;
     glm::mat4 initial_mat;
     bool vertex_buffer_dirty;
+    unsigned int vertex_buffer_particle_count;
 
     std::map<unsigned int, entt::entity> entity_map;
+
+    void on_construct( entt::registry &registry, entt::entity entity );
+    void on_update( entt::registry &registry, entt::entity entity );
+    void on_destroy( entt::registry &registry, entt::entity entity );
 
   public:
     ECS_Renderer( );
