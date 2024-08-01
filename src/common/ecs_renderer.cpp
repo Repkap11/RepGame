@@ -1,9 +1,5 @@
 #include "common/RepGame.hpp"
 
-struct PlayerId {
-    unsigned int player_id;
-};
-
 ECS_Renderer::ECS_Renderer( ) {
 }
 
@@ -67,54 +63,33 @@ void ECS_Renderer::on_destroy( entt::registry &registry, entt::entity entity ) {
     this->vertex_buffer_dirty = true;
 }
 
-void ECS_Renderer::add( unsigned int particle_id ) {
-    // pr_debug( "Adding particle_id:%d", particle_id );
+const std::pair<entt::entity, std::reference_wrapper<ParticlePosition>> ECS_Renderer::create( ) {
     const entt::entity entity = registry.create( );
-    entity_map.emplace( particle_id, entity );
-    registry.emplace<PlayerId>( entity, particle_id );
-    ParticlePosition particle;
-    init_particle( &particle, particle_id );
-    registry.emplace<ParticlePosition>( entity, particle );
+    ParticlePosition &particle = registry.emplace<ParticlePosition>( entity );
+    return std::pair<entt::entity, std::reference_wrapper<ParticlePosition>>( entity, particle );
 }
-void ECS_Renderer::update_position( int particle_id, float x, float y, float z, const glm::mat4 &rotation ) {
-    // pr_debug( "Updating particle_id:%d", particle_id );
-    auto it = entity_map.find( particle_id );
-    if ( it == entity_map.end( ) ) {
-        pr_debug( "No player with that ID could be found." );
-        return;
-    }
-    entt::entity entity = it->second;
+void ECS_Renderer::update_position( const entt::entity &entity, float x, float y, float z, const glm::mat4 &rotation ) {
     glm::mat4 translate = glm::translate( glm::mat4( 1.0 ), glm::vec3( x, y, z ) );
     ParticlePosition &particle = registry.get<ParticlePosition>( entity );
-
     particle.transform = translate * rotation * this->initial_mat;
     registry.patch<ParticlePosition>( entity );
 }
 
-void ECS_Renderer::remove( unsigned int particle_id ) {
-    // pr_debug( "Removing particle_id:%d", particle_id );
-    auto it = entity_map.find( particle_id );
-    if ( it == entity_map.end( ) ) {
-        // No player with that ID could be found.
-        return;
-    }
-    registry.destroy( it->second );
-    entity_map.erase( it );
+void ECS_Renderer::remove( const entt::entity &entity ) {
+    registry.destroy( entity );
 }
 
 void ECS_Renderer::draw( const glm::mat4 &mvp, Renderer *renderer, Shader *shader ) {
-    // pr_debug( "draw:%p", this );
-
     auto registry_group = registry.group<ParticlePosition>( );
     ParticlePosition **available_particles = registry_group.storage<ParticlePosition>( )->raw( );
     if ( available_particles == NULL ) {
-        pr_debug( "draw: No particles to draw." );
+        // pr_debug( "draw: No particles to draw." );
         return;
     }
     ParticlePosition *particle_positions = *available_particles;
     std::size_t particle_count = registry_group.size( );
     if ( particle_count == 0 ) {
-        pr_debug( "draw: No particles to draw" );
+        // pr_debug( "draw: No particles to draw" );
         return;
     }
     if ( particle_positions == NULL ) {
@@ -135,10 +110,5 @@ void ECS_Renderer::draw( const glm::mat4 &mvp, Renderer *renderer, Shader *shade
     showErrors( );
 }
 void ECS_Renderer::cleanup( ) {
-    entity_map.clear( );
     registry.clear( );
-}
-
-int ECS_Renderer::check_consistency( ) {
-    return true;
 }

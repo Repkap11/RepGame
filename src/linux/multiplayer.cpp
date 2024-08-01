@@ -79,19 +79,19 @@ void multiplayer_process_events( World *world ) {
                     glm::ivec3 block_pos = glm::ivec3( update.data.block.x, update.data.block.y, update.data.block.z );
                     world_set_loaded_block( world, block_pos, *blockState );
                 } else if ( update.type == CLIENT_INIT ) {
-                    world->mobs.add( update.player_id );
+                    world->multiplayer_avatars.add( update.player_id );
                     glm::mat4 rotation = glm::make_mat4( update.data.player.rotation );
-                    world->mobs.update_position( update.player_id, update.data.player.x, update.data.player.y, update.data.player.z, rotation );
+                    world->multiplayer_avatars.update_position( update.player_id, update.data.player.x, update.data.player.y, update.data.player.z, rotation );
                 } else if ( update.type == PLAYER_LOCATION ) {
                     // pr_debug( "Updating player location:%d", update.player_id );
                     glm::mat4 rotation = glm::make_mat4( update.data.player.rotation );
-                    world->mobs.update_position( update.player_id, update.data.player.x, update.data.player.y, update.data.player.z, rotation );
+                    world->multiplayer_avatars.update_position( update.player_id, update.data.player.x, update.data.player.y, update.data.player.z, rotation );
                 } else if ( update.type == PLAYER_CONNECTED ) {
                     pr_debug( "Updating player connected:%d", update.player_id );
-                    world->mobs.add( update.player_id );
+                    world->multiplayer_avatars.add( update.player_id );
                 } else if ( update.type == PLAYER_DISCONNECTED ) {
                     pr_debug( "Updating player disconected:%d", update.player_id );
-                    world->mobs.remove( update.player_id );
+                    world->multiplayer_avatars.remove( update.player_id );
                 } else {
                     pr_debug( "Saw unexpected packet:%d from:%d", update.type, update.player_id );
                 }

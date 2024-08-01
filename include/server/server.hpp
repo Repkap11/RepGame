@@ -3,8 +3,7 @@
 
 #include <glm.hpp>
 #include <queue>
-
-#define MAX_CLIENT_FDS 100
+#include <common/constants.hpp>
 
 typedef enum { INVALID, PLAYER_LOCATION, BLOCK_UPDATE, CLIENT_INIT, PLAYER_CONNECTED, PLAYER_DISCONNECTED } PacketType;
 

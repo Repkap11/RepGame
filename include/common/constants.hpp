@@ -8,36 +8,35 @@
 
 #ifdef REPGAME_LINUX
 #define CHUNK_SIZE 32
-#define CHUNK_RADIUS_X (200 / CHUNK_SIZE)
-#define CHUNK_RADIUS_Y (200 / CHUNK_SIZE)
-#define CHUNK_RADIUS_Z (200 / CHUNK_SIZE)
+#define CHUNK_RADIUS_X ( 200 / CHUNK_SIZE )
+#define CHUNK_RADIUS_Y ( 200 / CHUNK_SIZE )
+#define CHUNK_RADIUS_Z ( 200 / CHUNK_SIZE )
 #endif
 
 #ifdef REPGAME_WINDOWS
 #define CHUNK_SIZE 32
-#define CHUNK_RADIUS_X (100 / CHUNK_SIZE)
-#define CHUNK_RADIUS_Y (100 / CHUNK_SIZE)
-#define CHUNK_RADIUS_Z (100 / CHUNK_SIZE)
+#define CHUNK_RADIUS_X ( 100 / CHUNK_SIZE )
+#define CHUNK_RADIUS_Y ( 100 / CHUNK_SIZE )
+#define CHUNK_RADIUS_Z ( 100 / CHUNK_SIZE )
 #endif
 
 #ifdef REPGAME_WASM
 #define CHUNK_SIZE 32
-#define CHUNK_RADIUS_X (32 / CHUNK_SIZE)
-#define CHUNK_RADIUS_Y (32 / CHUNK_SIZE)
-#define CHUNK_RADIUS_Z (32 / CHUNK_SIZE)
+#define CHUNK_RADIUS_X ( 32 / CHUNK_SIZE )
+#define CHUNK_RADIUS_Y ( 32 / CHUNK_SIZE )
+#define CHUNK_RADIUS_Z ( 32 / CHUNK_SIZE )
 #endif
 
 #ifdef REPGAME_ANDROID
 #define CHUNK_SIZE 32
-#define CHUNK_RADIUS_X (100 / CHUNK_SIZE)
-#define CHUNK_RADIUS_Y (100 / CHUNK_SIZE)
-#define CHUNK_RADIUS_Z (100 / CHUNK_SIZE)
+#define CHUNK_RADIUS_X ( 100 / CHUNK_SIZE )
+#define CHUNK_RADIUS_Y ( 100 / CHUNK_SIZE )
+#define CHUNK_RADIUS_Z ( 100 / CHUNK_SIZE )
 #endif
 
-static_assert( CHUNK_RADIUS_X > 0, "CHUNK_RADIUS_X too small");
-static_assert( CHUNK_RADIUS_Y > 0, "CHUNK_RADIUS_Y too small");
-static_assert( CHUNK_RADIUS_Z > 0, "CHUNK_RADIUS_Z too small");
-
+static_assert( CHUNK_RADIUS_X > 0, "CHUNK_RADIUS_X too small" );
+static_assert( CHUNK_RADIUS_Y > 0, "CHUNK_RADIUS_Y too small" );
+static_assert( CHUNK_RADIUS_Z > 0, "CHUNK_RADIUS_Z too small" );
 
 #ifdef REPGAME_BUILD_WITH_CUDA
 #define LOAD_CHUNKS_SUPPORTS_CUDA 1
@@ -75,6 +74,9 @@ static_assert( CHUNK_RADIUS_Z > 0, "CHUNK_RADIUS_Z too small");
 
 #define UPS_RATE 144
 
+// Almost the number of clients, but some fd's are not clients so it's slightly less.
+#define MAX_CLIENT_FDS 100
+
 #define CAMERA_FOV 60.0f
 #if defined( REPGAME_WASM ) || defined( REPGAME_WINDOWS )
 #define NUM_RENDER_THREADS 1
@@ -86,7 +88,7 @@ static_assert( CHUNK_RADIUS_Z > 0, "CHUNK_RADIUS_Z too small");
 #define PLAYER_WIDTH 0.6f
 #define PLAYER_EYE_HEIGHT 1.62f
 
-//#define EYE_POSITION_OFFSET 0.1f
+// #define EYE_POSITION_OFFSET 0.1f
 #define EYE_POSITION_OFFSET ( PLAYER_EYE_HEIGHT - ( PLAYER_HEIGHT / 2.0f ) )
 
 #define FACE_TOP 0

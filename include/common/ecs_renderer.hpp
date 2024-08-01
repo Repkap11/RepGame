@@ -22,8 +22,6 @@ class ECS_Renderer {
     glm::mat4 initial_mat;
     bool vertex_buffer_dirty;
 
-    std::map<unsigned int, entt::entity> entity_map;
-
     void on_construct( entt::registry &registry, entt::entity entity );
     void on_update( entt::registry &registry, entt::entity entity );
     void on_destroy( entt::registry &registry, entt::entity entity );
@@ -31,15 +29,11 @@ class ECS_Renderer {
   public:
     ECS_Renderer( );
     void init( VertexBufferLayout *vbl_object_vertex, VertexBufferLayout *vbl_object_placement );
-    void add( unsigned int particle_id );
-    void update_position( int particle_id, float x, float y, float z, const glm::mat4 &rotation );
-    void remove( unsigned int particle_id );
+    const std::pair<entt::entity, std::reference_wrapper<ParticlePosition>> create( );
+    void update_position( const entt::entity &entity, float x, float y, float z, const glm::mat4 &rotation );
+    void remove( const entt::entity &entity );
     void draw( const glm::mat4 &mvp, Renderer *renderer, Shader *shader );
     void cleanup( );
-    int check_consistency( );
-
-  protected:
-    virtual void init_particle( ParticlePosition *particle, int particle_id ) = 0;
 };
 
 #endif
