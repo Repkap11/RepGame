@@ -3,6 +3,12 @@
 ECS_Renderer::ECS_Renderer( ) {
 }
 
+struct ParticleLife {
+    long lifetime;
+};
+
+long current_time = 0;
+
 void ECS_Renderer::init( VertexBufferLayout *vbl_object_vertex, VertexBufferLayout *vbl_object_placement ) {
     {
         index_buffer_init( &this->ib );
@@ -63,9 +69,12 @@ void ECS_Renderer::on_destroy( entt::registry &registry, entt::entity entity ) {
     this->vertex_buffer_dirty = true;
 }
 
-const std::pair<entt::entity, std::reference_wrapper<ParticlePosition>> ECS_Renderer::create( ) {
+const std::pair<entt::entity, std::reference_wrapper<ParticlePosition>> ECS_Renderer::create( long lifetime ) {
     const entt::entity entity = registry.create( );
     ParticlePosition &particle = registry.emplace<ParticlePosition>( entity );
+    if ( lifetime > 0 ) {
+        registry.emplace<ParticleLife>( entity, current_time + lifetime );
+    }
     return std::pair<entt::entity, std::reference_wrapper<ParticlePosition>>( entity, particle );
 }
 void ECS_Renderer::update_position( const entt::entity &entity, float x, float y, float z, const glm::mat4 &rotation ) {
@@ -80,18 +89,32 @@ void ECS_Renderer::remove( const entt::entity &entity ) {
 }
 
 void ECS_Renderer::draw( const glm::mat4 &mvp, Renderer *renderer, Shader *shader ) {
-    auto registry_group = registry.group<ParticlePosition>( );
-    ParticlePosition **available_particles = registry_group.storage<ParticlePosition>( )->raw( );
+    current_time = current_time + 1l;
+    auto lifetime_ordered_group = registry.group<ParticleLife>( );
+    auto positions_group = registry.group<ParticlePosition>( );
+
+    lifetime_ordered_group.sort<ParticleLife>( []( const ParticleLife &lhs, const ParticleLife &rhs ) { return lhs.lifetime > rhs.lifetime; } );
+
+    for ( auto [ entity, life ] : lifetime_ordered_group.each( ) ) {
+        if ( life.lifetime <= current_time ) {
+            pr_debug( "Deleting particle: current_time:%d lifetime:%d", current_time, life.lifetime );
+            registry.destroy( entity );
+            break;
+        }
+    }
+
+    ParticlePosition **available_particles = positions_group.storage<ParticlePosition>( )->raw( );
     if ( available_particles == NULL ) {
         // pr_debug( "draw: No particles to draw." );
         return;
     }
     ParticlePosition *particle_positions = *available_particles;
-    std::size_t particle_count = registry_group.size( );
+    std::size_t particle_count = positions_group.size( );
     if ( particle_count == 0 ) {
         // pr_debug( "draw: No particles to draw" );
         return;
     }
+    pr_debug( "particle_count:%d", particle_count );
     if ( particle_positions == NULL ) {
         pr_debug( "draw: Particle null" );
         return;

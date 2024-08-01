@@ -29,9 +29,11 @@ class ECS_Renderer {
   public:
     ECS_Renderer( );
     void init( VertexBufferLayout *vbl_object_vertex, VertexBufferLayout *vbl_object_placement );
-    const std::pair<entt::entity, std::reference_wrapper<ParticlePosition>> create( );
+
+    const std::pair<entt::entity, std::reference_wrapper<ParticlePosition>> create( long lifetime );
     void update_position( const entt::entity &entity, float x, float y, float z, const glm::mat4 &rotation );
     void remove( const entt::entity &entity );
+
     void draw( const glm::mat4 &mvp, Renderer *renderer, Shader *shader );
     void cleanup( );
 };

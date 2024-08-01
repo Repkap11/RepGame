@@ -6,7 +6,7 @@ void MultiplayerAvatars::init( ECS_Renderer *ecs_renderer ) {
 }
 
 void MultiplayerAvatars::add( unsigned int particle_id ) {
-    auto data = this->ecs_renderer->create( );
+    auto data = this->ecs_renderer->create( 0 );
     this->entity_map[ particle_id ] = data.first;
     this->init_particle( data.second );
 }
@@ -15,6 +15,10 @@ void MultiplayerAvatars::update_position( int particle_id, float x, float y, flo
     // pr_debug( "Updating particle_id:%d", particle_id );
     entt::entity &entity = this->entity_map[ particle_id ];
     this->ecs_renderer->update_position( entity, x, y, z, rotation );
+
+    auto data = this->ecs_renderer->create( 100 );
+    this->init_particle( data.second );
+    this->ecs_renderer->update_position( data.first, x, y, z, rotation );
 }
 
 void MultiplayerAvatars::remove( unsigned int particle_id ) {
