@@ -64,7 +64,7 @@ void world_init( World *world, const glm::vec3 &camera_pos ) {
     shader_init( &world->object_shader, &object_vertex, &object_fragment );
 
     sky_box_init( &world->skyBox, &world->vbl_object_vertex, &world->vbl_object_position );
-    world->mobs = Mobs( &world->vbl_object_vertex, &world->vbl_object_position );
+    world->mobs.init( &world->vbl_object_vertex, &world->vbl_object_position );
     mouse_selection_init( &world->mouseSelection, &world->vbl_block, &world->vbl_coords );
 
 #if ( SUPPORTS_FRAME_BUFFER )

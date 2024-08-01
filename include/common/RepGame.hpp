@@ -16,7 +16,7 @@
 #include "wasm/RepGameWASM.hpp"
 #endif
 
-#include <entt/entt.hpp>
+#include <entt/entity/registry.hpp>
 #include <glm.hpp>
 
 #include "chunk_loader.hpp"

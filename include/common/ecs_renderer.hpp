@@ -9,7 +9,8 @@
 #include "block.hpp"
 #include "chunk.hpp"
 #include "common/Particle.hpp"
-#include <entt/entt.hpp>
+#include <entt/entity/registry.hpp>
+#include <map>
 
 class ECS_Renderer {
   private:
@@ -29,7 +30,7 @@ class ECS_Renderer {
 
   public:
     ECS_Renderer( );
-    ECS_Renderer( VertexBufferLayout *vbl_object_vertex, VertexBufferLayout *vbl_object_placement );
+    void init( VertexBufferLayout *vbl_object_vertex, VertexBufferLayout *vbl_object_placement );
     void add( unsigned int particle_id );
     void update_position( int particle_id, float x, float y, float z, const glm::mat4 &rotation );
     void remove( unsigned int particle_id );

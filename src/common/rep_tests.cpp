@@ -23,7 +23,8 @@ int test_mobs( ) {
     int inconsistent = 0;
     int num_test_mobs = 1000;
 
-    Mobs mobs( &vbl_object_vertex, &vbl_object_placement );
+    Mobs mobs;
+    mobs.init( &vbl_object_vertex, &vbl_object_placement );
     for ( int mob_id = 0; mob_id < num_test_mobs; mob_id++ ) {
         mobs.add( mob_id );
         inconsistent |= mobs.check_consistency( );
