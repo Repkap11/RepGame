@@ -90,12 +90,12 @@ void ECS_Renderer::remove( const entt::entity &entity ) {
 
 void ECS_Renderer::draw( const glm::mat4 &mvp, Renderer *renderer, Shader *shader ) {
     current_time = current_time + 1l;
-    auto lifetime_ordered_group = registry.group<ParticleLife>( );
-    auto positions_group = registry.group<ParticlePosition>( );
+    auto timed_particles = registry.group<ParticleLife>( );
+    auto all_particles = registry.group<ParticlePosition>( );
 
-    lifetime_ordered_group.sort<ParticleLife>( []( const ParticleLife &lhs, const ParticleLife &rhs ) { return lhs.lifetime > rhs.lifetime; } );
+    timed_particles.sort<ParticleLife>( []( const ParticleLife &lhs, const ParticleLife &rhs ) { return lhs.lifetime > rhs.lifetime; } );
 
-    for ( auto [ entity, life ] : lifetime_ordered_group.each( ) ) {
+    for ( auto [ entity, life ] : timed_particles.each( ) ) {
         if ( life.lifetime <= current_time ) {
             pr_debug( "Deleting particle: current_time:%d lifetime:%d", current_time, life.lifetime );
             registry.destroy( entity );
@@ -103,13 +103,13 @@ void ECS_Renderer::draw( const glm::mat4 &mvp, Renderer *renderer, Shader *shade
         }
     }
 
-    ParticlePosition **available_particles = positions_group.storage<ParticlePosition>( )->raw( );
+    ParticlePosition **available_particles = all_particles.storage<ParticlePosition>( )->raw( );
     if ( available_particles == NULL ) {
         // pr_debug( "draw: No particles to draw." );
         return;
     }
     ParticlePosition *particle_positions = *available_particles;
-    std::size_t particle_count = positions_group.size( );
+    std::size_t particle_count = all_particles.size( );
     if ( particle_count == 0 ) {
         // pr_debug( "draw: No particles to draw" );
         return;

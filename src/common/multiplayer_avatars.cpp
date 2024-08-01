@@ -16,7 +16,8 @@ void MultiplayerAvatars::update_position( int particle_id, float x, float y, flo
     entt::entity &entity = this->entity_map[ particle_id ];
     this->ecs_renderer->update_position( entity, x, y, z, rotation );
 
-    auto data = this->ecs_renderer->create( 100 );
+    // Add a trail following the player over time
+    auto data = this->ecs_renderer->create( 1000 );
     this->init_particle( data.second );
     this->ecs_renderer->update_position( data.first, x, y, z, rotation );
 }
