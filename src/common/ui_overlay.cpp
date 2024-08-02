@@ -120,23 +120,17 @@ void ui_overlay_init( UIOverlay *ui_overlay ) {
     ui_overlay->render_chain_held_block.init( &ui_overlay->vbl, &vbl_instance, vb_data_holding_block, UI_OVERLAY_VERTEX_COUNT_HOLDING_BLOCK, NULL, 0 );
     ui_overlay->render_chain_held_block.create_instance( );
 
-    {
-        index_buffer_init( &ui_overlay->draw_holding_block.ib_isometric );
-        index_buffer_set_data( &ui_overlay->draw_holding_block.ib_isometric, ib_holding_block_isometric, UI_OVERLAY_INDEX_COUNT_HOLDING_BLOCK_ISOMETRIC );
+    index_buffer_init( &ui_overlay->draw_holding_block.ib_isometric );
+    index_buffer_set_data( &ui_overlay->draw_holding_block.ib_isometric, ib_holding_block_isometric, UI_OVERLAY_INDEX_COUNT_HOLDING_BLOCK_ISOMETRIC );
 
-        index_buffer_init( &ui_overlay->draw_holding_block.ib_square );
-        index_buffer_set_data( &ui_overlay->draw_holding_block.ib_square, ib_holding_block_square, UI_OVERLAY_INDEX_COUNT_HOLDING_BLOCK_SQUARE );
+    index_buffer_init( &ui_overlay->draw_holding_block.ib_square );
+    index_buffer_set_data( &ui_overlay->draw_holding_block.ib_square, ib_holding_block_square, UI_OVERLAY_INDEX_COUNT_HOLDING_BLOCK_SQUARE );
 
-        // vertex_buffer_init( &ui_overlay->draw_holding_block.vb );
-        // vertex_buffer_set_data( &ui_overlay->draw_holding_block.vb, vb_data_holding_block, sizeof( UIOverlayVertex ) * UI_OVERLAY_VERTEX_COUNT_HOLDING_BLOCK );
-        // vertex_array_init( &ui_overlay->draw_holding_block.va );
-        // vertex_array_add_buffer( &ui_overlay->draw_holding_block.va, &ui_overlay->draw_holding_block.vb, &ui_overlay->vbl, 0, 0 );
-    }
     showErrors( );
 
     shader_init( &ui_overlay->shader, &ui_overlay_vertex, &ui_overlay_fragment );
 
-    inventory_init( &ui_overlay->inventory, &ui_overlay->vbl );
+    inventory_init( &ui_overlay->inventory, &ui_overlay->vbl, &vbl_instance );
 }
 
 void ui_overlay_on_screen_size_change( UIOverlay *ui_overlay, int width, int height ) {

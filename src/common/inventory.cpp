@@ -30,14 +30,17 @@ int num_blocks = INVENTORY_MAX_SIZE;
 int vb_size = num_blocks * num_points_per_block * ISOMETRIC_FACES;
 int ib_size = num_blocks * num_index_per_block * ISOMETRIC_FACES;
 
-void inventory_init( Inventory *inventory, VertexBufferLayout *ui_overlay_vbl ) {
+void inventory_init( Inventory *inventory, VertexBufferLayout *ui_overlay_vbl_vertex, VertexBufferLayout *ui_overlay_vbl_instance ) {
+    inventory->render_chain_inventory.init( ui_overlay_vbl_vertex, ui_overlay_vbl_instance, NULL, 0, NULL, 0 );
+    inventory->render_chain_inventory.create_instance( );
+
     inventory->UI.ib_data_inventory = ( unsigned int * )calloc( ib_size, sizeof( unsigned int ) );
     inventory->UI.vb_data_inventory = ( UIOverlayVertex * )calloc( vb_size, sizeof( UIOverlayVertex ) );
 
     index_buffer_init( &inventory->UI.ib );
-    vertex_buffer_init( &inventory->UI.vb );
-    vertex_array_init( &inventory->UI.va );
-    vertex_array_add_buffer( &inventory->UI.va, &inventory->UI.vb, ui_overlay_vbl, 0, 0 );
+    // vertex_buffer_init( &inventory->UI.vb );
+    // vertex_array_init( &inventory->UI.va );
+    // vertex_array_add_buffer( &inventory->UI.va, &inventory->UI.vb, ui_overlay_vbl, 0, 0 );
 }
 
 void inventory_render( Inventory *inventory, int width, int height ) {
@@ -125,7 +128,7 @@ void inventory_render( Inventory *inventory, int width, int height ) {
     }
 
     index_buffer_set_data( &inventory->UI.ib, inventory->UI.ib_data_inventory, ib_size );
-    vertex_buffer_set_data( &inventory->UI.vb, inventory->UI.vb_data_inventory, sizeof( UIOverlayVertex ) * vb_size );
+    inventory->render_chain_inventory.update_element( inventory->UI.vb_data_inventory, vb_size );
 }
 
 void inventory_draw( Inventory *inventory, Renderer *renderer, Texture *blocksTexture, InputState *input, const glm::mat4 &mvp_ui, Shader *shader ) {
@@ -134,7 +137,7 @@ void inventory_draw( Inventory *inventory, Renderer *renderer, Texture *blocksTe
         printf( "Clicked!\n" );
     }
     showErrors( );
-    renderer_draw( renderer, &inventory->UI.va, &inventory->UI.ib, shader, 1 );
+    inventory->render_chain_inventory.draw( renderer, shader, &inventory->UI.ib );
     showErrors( );
 }
 

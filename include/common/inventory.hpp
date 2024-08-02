@@ -26,6 +26,8 @@ typedef struct {
 } InventorySlot;
 
 typedef struct {
+    RenderChain<UIOverlayVertex, UIOverlayInstance> render_chain_inventory;
+
     InventorySlot *slots[ INVENTORY_MAX_SIZE ];
     unsigned int size;
 
@@ -36,15 +38,15 @@ typedef struct {
         int text_spacing;
 
         IndexBuffer ib;
-        VertexArray va;
-        VertexBuffer vb;
+        // VertexArray va;
+        // VertexBuffer vb;
 
         unsigned int *ib_data_inventory;
         UIOverlayVertex *vb_data_inventory;
     } UI;
 } Inventory;
 
-void inventory_init( Inventory *inventory, VertexBufferLayout *ui_overlay_vbl );
+void inventory_init( Inventory *inventory, VertexBufferLayout *ui_overlay_vbl_vertex, VertexBufferLayout *ui_overlay_vbl_instance );
 void inventory_render( Inventory *inventory, int width, int height );
 void inventory_draw( Inventory *inventory, Renderer *renderer, Texture *blocksTexture, InputState *input, const glm::mat4 &mvp_ui, Shader *shader );
 /**
