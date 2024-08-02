@@ -30,11 +30,10 @@ typedef struct {
     VertexBufferLayout vbl;
     Shader shader;
     RenderChain<UIOverlayVertex, UIOverlayInstance> render_chain_crosshair;
+    RenderChain<UIOverlayVertex, UIOverlayInstance> render_chain_held_block;
     struct {
         IndexBuffer ib_isometric;
         IndexBuffer ib_square;
-        VertexArray va;
-        VertexBuffer vb;
         BlockID heldBlockID;
     } draw_holding_block;
     Inventory inventory;

@@ -117,6 +117,9 @@ void ui_overlay_init( UIOverlay *ui_overlay ) {
     ui_overlay->render_chain_crosshair.init( &ui_overlay->vbl, &vbl_instance, vb_data_crosshair, UI_OVERLAY_VERTEX_COUNT_CROSSHAIR, ib_data_crosshair, UI_OVERLAY_INDEX_COUNT_CROSSHAIR );
     ui_overlay->render_chain_crosshair.create_instance( );
 
+    ui_overlay->render_chain_held_block.init( &ui_overlay->vbl, &vbl_instance, vb_data_holding_block, UI_OVERLAY_VERTEX_COUNT_HOLDING_BLOCK, NULL, 0 );
+    ui_overlay->render_chain_held_block.create_instance( );
+
     {
         index_buffer_init( &ui_overlay->draw_holding_block.ib_isometric );
         index_buffer_set_data( &ui_overlay->draw_holding_block.ib_isometric, ib_holding_block_isometric, UI_OVERLAY_INDEX_COUNT_HOLDING_BLOCK_ISOMETRIC );
@@ -124,10 +127,10 @@ void ui_overlay_init( UIOverlay *ui_overlay ) {
         index_buffer_init( &ui_overlay->draw_holding_block.ib_square );
         index_buffer_set_data( &ui_overlay->draw_holding_block.ib_square, ib_holding_block_square, UI_OVERLAY_INDEX_COUNT_HOLDING_BLOCK_SQUARE );
 
-        vertex_buffer_init( &ui_overlay->draw_holding_block.vb );
-        vertex_buffer_set_data( &ui_overlay->draw_holding_block.vb, vb_data_holding_block, sizeof( UIOverlayVertex ) * UI_OVERLAY_VERTEX_COUNT_HOLDING_BLOCK );
-        vertex_array_init( &ui_overlay->draw_holding_block.va );
-        vertex_array_add_buffer( &ui_overlay->draw_holding_block.va, &ui_overlay->draw_holding_block.vb, &ui_overlay->vbl, 0, 0 );
+        // vertex_buffer_init( &ui_overlay->draw_holding_block.vb );
+        // vertex_buffer_set_data( &ui_overlay->draw_holding_block.vb, vb_data_holding_block, sizeof( UIOverlayVertex ) * UI_OVERLAY_VERTEX_COUNT_HOLDING_BLOCK );
+        // vertex_array_init( &ui_overlay->draw_holding_block.va );
+        // vertex_array_add_buffer( &ui_overlay->draw_holding_block.va, &ui_overlay->draw_holding_block.vb, &ui_overlay->vbl, 0, 0 );
     }
     showErrors( );
 
@@ -167,7 +170,7 @@ void ui_overlay_set_holding_block( UIOverlay *ui_overlay, BlockID holding_block 
         }
         vertex->texture.id = texture - 1;
     }
-    vertex_buffer_set_data( &ui_overlay->draw_holding_block.vb, vb_data_holding_block, sizeof( UIOverlayVertex ) * UI_OVERLAY_VERTEX_COUNT_HOLDING_BLOCK );
+    ui_overlay->render_chain_held_block.update_element( vb_data_holding_block, UI_OVERLAY_VERTEX_COUNT_HOLDING_BLOCK );
 }
 
 void ui_overlay_draw( UIOverlay *ui_overlay, Renderer *renderer, Texture *blocksTexture, InputState *input, const glm::mat4 &mvp_ui ) {
@@ -185,10 +188,10 @@ void ui_overlay_draw( UIOverlay *ui_overlay, Renderer *renderer, Texture *blocks
         } else {
             which_index_buffer = &ui_overlay->draw_holding_block.ib_square;
         }
-        renderer_draw( renderer, &ui_overlay->draw_holding_block.va, which_index_buffer, &ui_overlay->shader, 1 );
+        ui_overlay->render_chain_held_block.draw( renderer, &ui_overlay->shader, which_index_buffer );
+
         glBlendFunc( GL_ONE_MINUS_DST_COLOR, GL_ZERO );
         ui_overlay->render_chain_crosshair.draw( renderer, &ui_overlay->shader );
-        // renderer_draw( renderer, &ui_overlay->draw_crosshair.va, &ui_overlay->draw_crosshair.ib, &ui_overlay->shader, 1 );
         glBlendFunc( GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA );
     }
     showErrors( );

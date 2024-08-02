@@ -14,7 +14,6 @@
 #include "common/Platforms.hpp"
 #include "common/Logging.hpp"
 
-
 template <typename Element, typename Instance> class RenderChain {
     IndexBuffer ib;
     VertexArray va;
@@ -27,23 +26,31 @@ template <typename Element, typename Instance> class RenderChain {
     void init( VertexBufferLayout *vbl_element, VertexBufferLayout *vbl_instance, //
                const void *element_data, int element_data_count,                  //
                unsigned int *ib_data, unsigned int ib_data_count ) {
-        index_buffer_init( &this->ib );
+
+        if ( ib_data != NULL ) {
+            index_buffer_init( &this->ib );
+            index_buffer_set_data( &this->ib, ib_data, ib_data_count );
+        }
         vertex_buffer_init( &this->vb_instance );
         vertex_array_init( &this->va );
         vertex_buffer_init( &this->vb_element );
         vertex_array_add_buffer( &this->va, &this->vb_element, vbl_element, 0, 0 );
-        vertex_buffer_set_data( &this->vb_element, element_data, sizeof( Element ) * element_data_count );
+        this->update_element( element_data, element_data_count );
         if ( vbl_instance != NULL ) {
             vertex_array_add_buffer( &this->va, &this->vb_instance, vbl_instance, 1, vbl_element->current_size );
             vertex_buffer_set_data( &this->vb_instance, NULL, 0 );
         }
-        index_buffer_set_data( &this->ib, ib_data, ib_data_count );
         showErrors( );
 
         registry.on_construct<Instance>( ).template connect<&RenderChain<Element, Instance>::on_construct>( *this );
         registry.on_update<Instance>( ).template connect<&RenderChain<Element, Instance>::on_update>( *this );
         registry.on_destroy<Instance>( ).template connect<&RenderChain<Element, Instance>::on_destroy>( *this );
     }
+
+    void update_element( const void *element_data, int element_data_count ) {
+        vertex_buffer_set_data( &this->vb_element, element_data, sizeof( Element ) * element_data_count );
+    }
+
     std::pair<entt::entity, std::reference_wrapper<Instance>> create_instance( ) {
         const entt::entity entity = registry.create( );
         Instance &instance = registry.emplace<Instance>( entity );
@@ -60,7 +67,7 @@ template <typename Element, typename Instance> class RenderChain {
         registry.destroy( entity );
     }
 
-    void draw( Renderer *renderer, Shader *shader ) {
+    void draw( Renderer *renderer, Shader *shader, IndexBuffer *ib ) {
         auto all_instances = registry.group<Instance>( );
         std::size_t instance_count = all_instances.size( );
         if ( instance_count == 0 ) {
@@ -80,9 +87,14 @@ template <typename Element, typename Instance> class RenderChain {
             this->instance_count_changed = false;
         }
         // pr_debug( "RenderChaing drawing:%ld", instance_count );
-        renderer_draw( renderer, &this->va, &this->ib, shader, instance_count );
+        renderer_draw( renderer, &this->va, ib, shader, instance_count );
         showErrors( );
     }
+
+    void draw( Renderer *renderer, Shader *shader ) {
+        this->draw( renderer, shader, &this->ib );
+    }
+
     void cleanup( ) {
         registry.clear( );
     }
