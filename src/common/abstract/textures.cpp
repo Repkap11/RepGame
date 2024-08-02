@@ -201,7 +201,8 @@ void texture_init_empty_base( Texture *texture, int blur_mag, int target, int in
     glGenTextures( 1, &texture->m_RendererId );
     glBindTexture( texture->target, texture->m_RendererId );
     showErrors( );
-    if ( texture->target == GL_TEXTURE_2D || texture->target == GL_TEXTURE_2D_MULTISAMPLE ) {
+    // pr_debug("Texture target:0x%x", texture->target);
+    if ( texture->target == GL_TEXTURE_2D || texture->target == GL_TEXTURE_2D_ARRAY ) {
         glTexParameteri( texture->target, GL_TEXTURE_MIN_FILTER, GL_LINEAR );
         showErrors( );
         if ( blur_mag ) {
