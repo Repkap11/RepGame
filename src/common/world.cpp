@@ -63,10 +63,8 @@ void world_init( World *world, const glm::vec3 &camera_pos ) {
 
     shader_init( &world->object_shader, &object_vertex, &object_fragment );
 
-    world->mobs_render_chain.init( &world->vbl_object_vertex, &world->vbl_object_position, //
-                                   vd_data_player_object, VB_DATA_SIZE_PARTICLE, ib_data_solid, IB_SOLID_SIZE );
     sky_box_init( &world->skyBox, &world->vbl_object_vertex, &world->vbl_object_position );
-    world->multiplayer_avatars.init( &world->mobs_render_chain );
+    world->multiplayer_avatars.init( &world->vbl_object_vertex, &world->vbl_object_position );
     mouse_selection_init( &world->mouseSelection, &world->vbl_block, &world->vbl_coords );
 
 #if ( SUPPORTS_FRAME_BUFFER )
@@ -192,7 +190,7 @@ void world_draw( World *world, Texture *blocksTexture, const glm::mat4 &mvp, con
     shader_set_uniform1f( &world->object_shader, "u_ReflectionHeight", 0 );
     shader_set_uniform1i( &world->object_shader, "u_TintUnderWater", object_water_tint_type );
     shader_set_uniform1f( &world->object_shader, "u_ExtraAlpha", 1.0f );
-    world->mobs_render_chain.draw( mvp, &world->renderer, &world->object_shader );    // Mobs
+    world->multiplayer_avatars.draw( mvp, &world->renderer, &world->object_shader );  // Mobs
     sky_box_draw( &world->skyBox, &world->renderer, mvp_sky, &world->object_shader ); // Sky
     glEnable( GL_DEPTH_TEST );
 
@@ -237,7 +235,7 @@ void world_draw( World *world, Texture *blocksTexture, const glm::mat4 &mvp, con
         shader_set_uniform1f( &world->object_shader, "u_ReflectionHeight", offset );
         shader_set_uniform1f( &world->object_shader, "u_ExtraAlpha", 1.0f );
         shader_set_uniform1i( &world->object_shader, "u_DrawToReflection", 1 );
-        world->mobs_render_chain.draw( mvp_reflect, &world->renderer, &world->object_shader );         // Reflected mobs
+        world->multiplayer_avatars.draw( mvp_reflect, &world->renderer, &world->object_shader );  // Reflected mobs
         sky_box_draw( &world->skyBox, &world->renderer, mvp_sky_reflect, &world->object_shader ); // Reflected sky
 
         shader_set_uniform1f( &world->loadedChunks.shader, "u_ReflectionHeight", 0 );
@@ -266,7 +264,7 @@ void world_cleanup( World *world ) {
 
     chunk_loader_cleanup( &world->loadedChunks );
     sky_box_destroy( &world->skyBox );
-    world->mobs_render_chain.cleanup( );
+    world->multiplayer_avatars.cleanup( );
     vertex_buffer_layout_destroy( &world->vbl_block );
     vertex_buffer_layout_destroy( &world->vbl_block );
     vertex_buffer_layout_destroy( &world->vbl_coords );

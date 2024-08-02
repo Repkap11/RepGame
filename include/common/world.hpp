@@ -24,7 +24,6 @@ typedef struct {
     FullScreenQuad fullScreenQuad;
     MouseSelection mouseSelection;
     Shader object_shader;
-    MobsRenderChain mobs_render_chain;
 } World;
 
 BlockState world_get_loaded_block( World *world, const glm::ivec3 &block );
