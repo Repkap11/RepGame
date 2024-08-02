@@ -316,7 +316,7 @@ bool repgame_supportsAnisotropic( ) {
     return supportsAnisotropic;
 }
 
-RepGameState* repgame_init( const char *world_name, bool connect_multi, const char *host, bool supportsAnisotropicFiltering ) {
+RepGameState *repgame_init( const char *world_name, bool connect_multi, const char *host, bool supportsAnisotropicFiltering ) {
     globalGameState.screen.width = DEFAULT_WINDOW_WIDTH;
     globalGameState.screen.height = DEFAULT_WINDOW_HEIGHT;
     supportsAnisotropic = supportsAnisotropicFiltering;
@@ -460,7 +460,7 @@ void repgame_draw( ) {
     showErrors( );
     glClear( GL_DEPTH_BUFFER_BIT );
     ui_overlay_draw( &globalGameState.ui_overlay, &globalGameState.world.renderer, &globalGameState.blocksTexture, &globalGameState.input, globalGameState.screen.ortho_center );
-    imgui_overlay_draw(&globalGameState.imgui_overlay, &globalGameState.input);
+    imgui_overlay_draw( &globalGameState.imgui_overlay, &globalGameState.input );
     showErrors( );
 }
 

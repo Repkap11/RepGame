@@ -15,10 +15,14 @@
 class ECS_Renderer {
   private:
     entt::registry registry;
-    IndexBuffer ib;
-    VertexArray va;
+    IndexBuffer ib_particle;
+    IndexBuffer ib_face;
+    VertexArray va_particle;
+    VertexArray va_face;
     VertexBuffer vb_particle_placement;
+    VertexBuffer vb_face_placement;
     VertexBuffer vb_particle_shape;
+    VertexBuffer vb_face_shape;
     glm::mat4 initial_mat;
     bool vertex_buffer_dirty;
 
@@ -30,7 +34,8 @@ class ECS_Renderer {
     ECS_Renderer( );
     void init( VertexBufferLayout *vbl_object_vertex, VertexBufferLayout *vbl_object_placement );
 
-    const std::pair<entt::entity, std::reference_wrapper<ParticlePosition>> create( long lifetime );
+    const std::pair<entt::entity, std::reference_wrapper<ParticlePosition>> create_particle( long lifetime );
+    const std::pair<entt::entity, std::reference_wrapper<ParticlePosition>> create_face( long lifetime );
     void update_position( const entt::entity &entity, float x, float y, float z, const glm::mat4 &rotation );
     void remove( const entt::entity &entity );
 

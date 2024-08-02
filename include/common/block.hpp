@@ -49,9 +49,16 @@ static unsigned int ib_data_solid[] = {
     29, 1,  0,  // Back
     0,  3,  29, //
     29, 3,  2,  //
-
 };
 #define IB_SOLID_SIZE ( 3 * 4 * 6 )
+
+static unsigned int ib_data_face[] = {
+    2, 1, 4, //
+    4, 1, 0, // Back
+    0, 3, 4, //
+    4, 3, 2, //
+};
+#define IB_FACE_SIZE ( 3 * 4 )
 
 #define IB_POSITION_WATER_TOP 0
 #define IB_POSITION_WATER_BOTTOM 1
@@ -71,54 +78,54 @@ static unsigned int ib_data_water[] = {
 #define WATER_HEIGHT ( 0.875f )
 
 static CubeFace vd_data_water[] = {
-    {1.0f, WATER_HEIGHT, 0.0f, /*Coords  Texture coords*/ !0, 0, FACE_TOP, 0}, // 18 0
-    {0.0f, WATER_HEIGHT, 0.0f, /*Coords  Texture coords*/ !1, 0, FACE_TOP, 0}, // 19 1
+    { 1.0f, WATER_HEIGHT, 0.0f, /*Coords  Texture coords*/ !0, 0, FACE_TOP, 0 }, // 18 0
+    { 0.0f, WATER_HEIGHT, 0.0f, /*Coords  Texture coords*/ !1, 0, FACE_TOP, 0 }, // 19 1
 
-    {1.0f, WATER_HEIGHT, 1.0f, /*Coords  Texture coords*/ !0, 1, FACE_TOP, 0}, // 22 2
-    {0.0f, WATER_HEIGHT, 1.0f, /*Coords  Texture coords*/ !1, 1, FACE_TOP, 0}, // 23 3
+    { 1.0f, WATER_HEIGHT, 1.0f, /*Coords  Texture coords*/ !0, 1, FACE_TOP, 0 }, // 22 2
+    { 0.0f, WATER_HEIGHT, 1.0f, /*Coords  Texture coords*/ !1, 1, FACE_TOP, 0 }, // 23 3
 
-    {0.5f, WATER_HEIGHT, 0.5f, /*Coords  Texture coords*/ 0.5f, 0.5f, FACE_TOP, 0}, // 4
+    { 0.5f, WATER_HEIGHT, 0.5f, /*Coords  Texture coords*/ 0.5f, 0.5f, FACE_TOP, 0 }, // 4
 };
 #define VB_DATA_SIZE_WATER ( 2 * 2 + 1 )
 
 static CubeFace vd_data_solid[] = {
     // x=right/left, y=top/bottom, z=front/back : 1/0
-    {0.0f, 0.0f, 0.0f, /*Coords  Texture coords*/ !1, 0, FACE_BACK, CORNER_OFFSET_bbl}, // 0
-    {1.0f, 0.0f, 0.0f, /*Coords  Texture coords*/ !0, 0, FACE_BACK, CORNER_OFFSET_bbr}, // 1
-    {1.0f, 1.0f, 0.0f, /*Coords  Texture coords*/ !0, 1, FACE_BACK, CORNER_OFFSET_tbr}, // 2
-    {0.0f, 1.0f, 0.0f, /*Coords  Texture coords*/ !1, 1, FACE_BACK, CORNER_OFFSET_tbl}, // 3
+    { 0.0f, 0.0f, 0.0f, /*Coords  Texture coords*/ !1, 0, FACE_BACK, CORNER_OFFSET_bbl }, // 0
+    { 1.0f, 0.0f, 0.0f, /*Coords  Texture coords*/ !0, 0, FACE_BACK, CORNER_OFFSET_bbr }, // 1
+    { 1.0f, 1.0f, 0.0f, /*Coords  Texture coords*/ !0, 1, FACE_BACK, CORNER_OFFSET_tbr }, // 2
+    { 0.0f, 1.0f, 0.0f, /*Coords  Texture coords*/ !1, 1, FACE_BACK, CORNER_OFFSET_tbl }, // 3
 
-    {0.0f, 0.0f, 1.0f, /*Coords  Texture coords*/ !0, 0, FACE_FRONT, CORNER_OFFSET_bfl}, // 4
-    {1.0f, 0.0f, 1.0f, /*Coords  Texture coords*/ !1, 0, FACE_FRONT, CORNER_OFFSET_bfr}, // 5
-    {1.0f, 1.0f, 1.0f, /*Coords  Texture coords*/ !1, 1, FACE_FRONT, CORNER_OFFSET_tfr}, // 6
-    {0.0f, 1.0f, 1.0f, /*Coords  Texture coords*/ !0, 1, FACE_FRONT, CORNER_OFFSET_tfl}, // 7
+    { 0.0f, 0.0f, 1.0f, /*Coords  Texture coords*/ !0, 0, FACE_FRONT, CORNER_OFFSET_bfl }, // 4
+    { 1.0f, 0.0f, 1.0f, /*Coords  Texture coords*/ !1, 0, FACE_FRONT, CORNER_OFFSET_bfr }, // 5
+    { 1.0f, 1.0f, 1.0f, /*Coords  Texture coords*/ !1, 1, FACE_FRONT, CORNER_OFFSET_tfr }, // 6
+    { 0.0f, 1.0f, 1.0f, /*Coords  Texture coords*/ !0, 1, FACE_FRONT, CORNER_OFFSET_tfl }, // 7
 
-    {0.0f, 0.0f, 0.0f, /*Coords  Texture coords*/ !0, 0, FACE_LEFT, CORNER_OFFSET_bbl},  // 8
-    {1.0f, 0.0f, 0.0f, /*Coords  Texture coords*/ !1, 0, FACE_RIGHT, CORNER_OFFSET_bbr}, // 9
-    {1.0f, 1.0f, 0.0f, /*Coords  Texture coords*/ !1, 1, FACE_RIGHT, CORNER_OFFSET_tbr}, // 10
-    {0.0f, 1.0f, 0.0f, /*Coords  Texture coords*/ !0, 1, FACE_LEFT, CORNER_OFFSET_tbl},  // 11
+    { 0.0f, 0.0f, 0.0f, /*Coords  Texture coords*/ !0, 0, FACE_LEFT, CORNER_OFFSET_bbl },  // 8
+    { 1.0f, 0.0f, 0.0f, /*Coords  Texture coords*/ !1, 0, FACE_RIGHT, CORNER_OFFSET_bbr }, // 9
+    { 1.0f, 1.0f, 0.0f, /*Coords  Texture coords*/ !1, 1, FACE_RIGHT, CORNER_OFFSET_tbr }, // 10
+    { 0.0f, 1.0f, 0.0f, /*Coords  Texture coords*/ !0, 1, FACE_LEFT, CORNER_OFFSET_tbl },  // 11
 
-    {0.0f, 0.0f, 1.0f, /*Coords  Texture coords*/ !1, 0, FACE_LEFT, CORNER_OFFSET_bfl},  // 12
-    {1.0f, 0.0f, 1.0f, /*Coords  Texture coords*/ !0, 0, FACE_RIGHT, CORNER_OFFSET_bfr}, // 13
-    {1.0f, 1.0f, 1.0f, /*Coords  Texture coords*/ !0, 1, FACE_RIGHT, CORNER_OFFSET_tfr}, // 14
-    {0.0f, 1.0f, 1.0f, /*Coords  Texture coords*/ !1, 1, FACE_LEFT, CORNER_OFFSET_tfl},  // 15
+    { 0.0f, 0.0f, 1.0f, /*Coords  Texture coords*/ !1, 0, FACE_LEFT, CORNER_OFFSET_bfl },  // 12
+    { 1.0f, 0.0f, 1.0f, /*Coords  Texture coords*/ !0, 0, FACE_RIGHT, CORNER_OFFSET_bfr }, // 13
+    { 1.0f, 1.0f, 1.0f, /*Coords  Texture coords*/ !0, 1, FACE_RIGHT, CORNER_OFFSET_tfr }, // 14
+    { 0.0f, 1.0f, 1.0f, /*Coords  Texture coords*/ !1, 1, FACE_LEFT, CORNER_OFFSET_tfl },  // 15
 
-    {0.0f, 0.0f, 0.0f, /*Coords  Texture coords*/ !1, 1, FACE_BOTTOM, CORNER_OFFSET_bbl}, // 16
-    {1.0f, 0.0f, 0.0f, /*Coords  Texture coords*/ !0, 1, FACE_BOTTOM, CORNER_OFFSET_bbr}, // 17
-    {1.0f, 1.0f, 0.0f, /*Coords  Texture coords*/ !0, 0, FACE_TOP, CORNER_OFFSET_tbr},    // 18
-    {0.0f, 1.0f, 0.0f, /*Coords  Texture coords*/ !1, 0, FACE_TOP, CORNER_OFFSET_tbl},    // 19
+    { 0.0f, 0.0f, 0.0f, /*Coords  Texture coords*/ !1, 1, FACE_BOTTOM, CORNER_OFFSET_bbl }, // 16
+    { 1.0f, 0.0f, 0.0f, /*Coords  Texture coords*/ !0, 1, FACE_BOTTOM, CORNER_OFFSET_bbr }, // 17
+    { 1.0f, 1.0f, 0.0f, /*Coords  Texture coords*/ !0, 0, FACE_TOP, CORNER_OFFSET_tbr },    // 18
+    { 0.0f, 1.0f, 0.0f, /*Coords  Texture coords*/ !1, 0, FACE_TOP, CORNER_OFFSET_tbl },    // 19
 
-    {0.0f, 0.0f, 1.0f, /*Coords  Texture coords*/ !1, 0, FACE_BOTTOM, CORNER_OFFSET_bfl}, // 20
-    {1.0f, 0.0f, 1.0f, /*Coords  Texture coords*/ !0, 0, FACE_BOTTOM, CORNER_OFFSET_bfr}, // 21
-    {1.0f, 1.0f, 1.0f, /*Coords  Texture coords*/ !0, 1, FACE_TOP, CORNER_OFFSET_tfr},    // 22
-    {0.0f, 1.0f, 1.0f, /*Coords  Texture coords*/ !1, 1, FACE_TOP, CORNER_OFFSET_tfl},    // 23
+    { 0.0f, 0.0f, 1.0f, /*Coords  Texture coords*/ !1, 0, FACE_BOTTOM, CORNER_OFFSET_bfl }, // 20
+    { 1.0f, 0.0f, 1.0f, /*Coords  Texture coords*/ !0, 0, FACE_BOTTOM, CORNER_OFFSET_bfr }, // 21
+    { 1.0f, 1.0f, 1.0f, /*Coords  Texture coords*/ !0, 1, FACE_TOP, CORNER_OFFSET_tfr },    // 22
+    { 0.0f, 1.0f, 1.0f, /*Coords  Texture coords*/ !1, 1, FACE_TOP, CORNER_OFFSET_tfl },    // 23
 
-    {0.5f, 1.0f, 0.5f, /*Coords  Texture coords*/ 0.5f, 0.5f, FACE_TOP, CORNER_OFFSET_c},    // 24
-    {0.5f, 0.0f, 0.5f, /*Coords  Texture coords*/ 0.5f, 0.5f, FACE_BOTTOM, CORNER_OFFSET_c}, // 25
-    {1.0f, 0.5f, 0.5f, /*Coords  Texture coords*/ 0.5f, 0.5f, FACE_RIGHT, CORNER_OFFSET_c},  // 26
-    {0.5f, 0.5f, 1.0f, /*Coords  Texture coords*/ 0.5f, 0.5f, FACE_FRONT, CORNER_OFFSET_c},  // 27
-    {0.0f, 0.5f, 0.5f, /*Coords  Texture coords*/ 0.5f, 0.5f, FACE_LEFT, CORNER_OFFSET_c},   // 28
-    {0.5f, 0.5f, 0.0f, /*Coords  Texture coords*/ 0.5f, 0.5f, FACE_BACK, CORNER_OFFSET_c},   // 29
+    { 0.5f, 1.0f, 0.5f, /*Coords  Texture coords*/ 0.5f, 0.5f, FACE_TOP, CORNER_OFFSET_c },    // 24
+    { 0.5f, 0.0f, 0.5f, /*Coords  Texture coords*/ 0.5f, 0.5f, FACE_BOTTOM, CORNER_OFFSET_c }, // 25
+    { 1.0f, 0.5f, 0.5f, /*Coords  Texture coords*/ 0.5f, 0.5f, FACE_RIGHT, CORNER_OFFSET_c },  // 26
+    { 0.5f, 0.5f, 1.0f, /*Coords  Texture coords*/ 0.5f, 0.5f, FACE_FRONT, CORNER_OFFSET_c },  // 27
+    { 0.0f, 0.5f, 0.5f, /*Coords  Texture coords*/ 0.5f, 0.5f, FACE_LEFT, CORNER_OFFSET_c },   // 28
+    { 0.5f, 0.5f, 0.0f, /*Coords  Texture coords*/ 0.5f, 0.5f, FACE_BACK, CORNER_OFFSET_c },   // 29
 };
 #define VB_DATA_SIZE_SOLID ( 5 * 6 )
 
@@ -129,12 +136,12 @@ static CubeFace vd_data_solid[] = {
 #define FACE_LEFT 4
 #define FACE_BACK 5
 
-static int FACE_DIR_X_OFFSETS[ NUM_FACES_IN_CUBE ] = {0, 0, 1, 0, -1, 0};
-static int FACE_DIR_Y_OFFSETS[ NUM_FACES_IN_CUBE ] = {1, -1, 0, 0, 0, 0};
-static int FACE_DIR_Z_OFFSETS[ NUM_FACES_IN_CUBE ] = {0, 0, 0, 1, 0, -1};
-static int FACE_ROTATE_90[ NUM_FACES_IN_CUBE ] = {FACE_TOP, FACE_BOTTOM, FACE_BACK, FACE_RIGHT, FACE_FRONT, FACE_LEFT};
+static int FACE_DIR_X_OFFSETS[ NUM_FACES_IN_CUBE ] = { 0, 0, 1, 0, -1, 0 };
+static int FACE_DIR_Y_OFFSETS[ NUM_FACES_IN_CUBE ] = { 1, -1, 0, 0, 0, 0 };
+static int FACE_DIR_Z_OFFSETS[ NUM_FACES_IN_CUBE ] = { 0, 0, 0, 1, 0, -1 };
+static int FACE_ROTATE_90[ NUM_FACES_IN_CUBE ] = { FACE_TOP, FACE_BOTTOM, FACE_BACK, FACE_RIGHT, FACE_FRONT, FACE_LEFT };
 
-static int OPPOSITE_FACE[ NUM_FACES_IN_CUBE ] = {FACE_BOTTOM, FACE_TOP, FACE_LEFT, FACE_BACK, FACE_RIGHT, FACE_FRONT};
+static int OPPOSITE_FACE[ NUM_FACES_IN_CUBE ] = { FACE_BOTTOM, FACE_TOP, FACE_LEFT, FACE_BACK, FACE_RIGHT, FACE_FRONT };
 #define PIXEL_TO_FLOAT( pixel ) ( ( ( float )( pixel ) ) / ( 16.0f ) )
 
 // See world.cpp for vbl

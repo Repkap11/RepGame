@@ -6,7 +6,7 @@ void MultiplayerAvatars::init( ECS_Renderer *ecs_renderer ) {
 }
 
 void MultiplayerAvatars::add( unsigned int particle_id ) {
-    auto data = this->ecs_renderer->create( 0 );
+    auto data = this->ecs_renderer->create_particle( 0 );
     this->entity_map[ particle_id ] = data.first;
     this->init_particle( data.second );
 }
@@ -17,7 +17,7 @@ void MultiplayerAvatars::update_position( int particle_id, float x, float y, flo
     this->ecs_renderer->update_position( entity, x, y, z, rotation );
 
     // Add a trail following the player over time
-    auto data = this->ecs_renderer->create( 1000 );
+    auto data = this->ecs_renderer->create_face( 100 );
     this->init_particle( data.second );
     this->ecs_renderer->update_position( data.first, x, y, z, rotation );
 }
