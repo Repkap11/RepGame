@@ -27,14 +27,17 @@ template <typename Element, typename Instance> class RenderChain {
                const void *element_data, int element_data_count,                  //
                unsigned int *ib_data, unsigned int ib_data_count ) {
         index_buffer_init( &this->ib );
-        vertex_buffer_init( &this->vb_element );
         vertex_buffer_init( &this->vb_instance );
 
         vertex_array_init( &this->va );
-        vertex_array_add_buffer( &this->va, &this->vb_element, vbl_element, 0, 0 );
-        vertex_array_add_buffer( &this->va, &this->vb_instance, vbl_instance, 1, vbl_element->current_size );
-
-        vertex_buffer_set_data( &this->vb_element, element_data, sizeof( Element ) * element_data_count );
+        if ( vbl_element == NULL ) {
+            vertex_array_add_buffer( &this->va, &this->vb_instance, vbl_instance, 0, 0 );
+        } else {
+            vertex_buffer_init( &this->vb_element );
+            vertex_array_add_buffer( &this->va, &this->vb_element, vbl_element, 0, 0 );
+            vertex_array_add_buffer( &this->va, &this->vb_instance, vbl_instance, 1, vbl_element->current_size );
+            vertex_buffer_set_data( &this->vb_element, element_data, sizeof( Element ) * element_data_count );
+        }
         vertex_buffer_set_data( &this->vb_instance, NULL, 0 );
         index_buffer_set_data( &this->ib, ib_data, ib_data_count );
 
@@ -58,7 +61,7 @@ template <typename Element, typename Instance> class RenderChain {
         registry.destroy( entity );
     }
 
-    void draw(Renderer *renderer, Shader *shader ) {
+    void draw( Renderer *renderer, Shader *shader ) {
         auto all_instances = registry.group<Instance>( );
         std::size_t instance_count = all_instances.size( );
         if ( instance_count == 0 ) {
