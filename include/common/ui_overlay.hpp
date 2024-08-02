@@ -20,17 +20,16 @@ typedef struct {
     unsigned int face_type;
 } UIOverlayVertex;
 
+struct UIOverlayInstance {
+    int instance;
+};
+
 #include "common/inventory.hpp"
 
 typedef struct {
     VertexBufferLayout vbl;
     Shader shader;
-    // RenderChain<NoElement, UIOverlayVertex> render_chain_crosshair;
-    struct {
-        IndexBuffer ib;
-        VertexArray va;
-        VertexBuffer vb;
-    } draw_crosshair;
+    RenderChain<UIOverlayVertex, UIOverlayInstance> render_chain_crosshair;
     struct {
         IndexBuffer ib_isometric;
         IndexBuffer ib_square;

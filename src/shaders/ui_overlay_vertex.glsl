@@ -15,6 +15,8 @@ layout( location = 2 ) in vec3 texture_coord;
 layout( location = 3 ) in vec4 tint;
 layout( location = 4 ) in uint face_type;
 
+layout( location = 5 ) in uint instance;
+
 flat out uint v_is_block;
 out vec3 v_TexCoordBlock;
 out vec4 v_Tint;

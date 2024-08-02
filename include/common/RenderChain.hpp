@@ -14,7 +14,6 @@
 #include "common/Platforms.hpp"
 #include "common/Logging.hpp"
 
-struct NoElement {};
 
 template <typename Element, typename Instance> class RenderChain {
     IndexBuffer ib;
@@ -30,19 +29,14 @@ template <typename Element, typename Instance> class RenderChain {
                unsigned int *ib_data, unsigned int ib_data_count ) {
         index_buffer_init( &this->ib );
         vertex_buffer_init( &this->vb_instance );
-
         vertex_array_init( &this->va );
-        if ( vbl_element == NULL ) {
-            vertex_array_add_buffer( &this->va, &this->vb_instance, vbl_instance, 0, 0 );
-            showErrors( );
-        } else {
-            vertex_buffer_init( &this->vb_element );
-            vertex_array_add_buffer( &this->va, &this->vb_element, vbl_element, 0, 0 );
+        vertex_buffer_init( &this->vb_element );
+        vertex_array_add_buffer( &this->va, &this->vb_element, vbl_element, 0, 0 );
+        vertex_buffer_set_data( &this->vb_element, element_data, sizeof( Element ) * element_data_count );
+        if ( vbl_instance != NULL ) {
             vertex_array_add_buffer( &this->va, &this->vb_instance, vbl_instance, 1, vbl_element->current_size );
-            vertex_buffer_set_data( &this->vb_element, element_data, sizeof( Element ) * element_data_count );
-            showErrors( );
+            vertex_buffer_set_data( &this->vb_instance, NULL, 0 );
         }
-        vertex_buffer_set_data( &this->vb_instance, NULL, 0 );
         index_buffer_set_data( &this->ib, ib_data, ib_data_count );
         showErrors( );
 
@@ -99,7 +93,6 @@ template <typename Element, typename Instance> class RenderChain {
     }
     void on_update( entt::registry &registry, entt::entity entity ) {
         // pr_debug( "RenderChain::on_update" );
-
         if ( this->instance_count_changed ) {
             // No need for partial updates, and full update is about to happen.
             return;
