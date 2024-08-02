@@ -1,12 +1,15 @@
 #include "common/multiplayer_avatars.hpp"
 #include "common/RepGame.hpp"
 
-void MultiplayerAvatars::init( ECS_Renderer *ecs_renderer ) {
-    this->ecs_renderer = ecs_renderer;
+void MultiplayerAvatars::init( MobsRenderChain *render_chain ) {
+    this->render_chain = render_chain;
+    glm::mat4 scale = glm::scale( glm::mat4( 1.0 ), glm::vec3( 0.5f ) );
+    glm::mat4 un_translate = glm::translate( glm::mat4( 1.0 ), glm::vec3( -0.5f, -0.5f, -0.5f ) );
+    this->initial_mat = scale * un_translate;
 }
 
 void MultiplayerAvatars::add( unsigned int particle_id ) {
-    auto data = this->ecs_renderer->create_particle( 0 );
+    auto data = this->render_chain->create_instance( );
     this->entity_map[ particle_id ] = data.first;
     this->init_particle( data.second );
 }
@@ -14,17 +17,21 @@ void MultiplayerAvatars::add( unsigned int particle_id ) {
 void MultiplayerAvatars::update_position( int particle_id, float x, float y, float z, const glm::mat4 &rotation ) {
     // pr_debug( "Updating particle_id:%d", particle_id );
     entt::entity &entity = this->entity_map[ particle_id ];
-    this->ecs_renderer->update_position( entity, x, y, z, rotation );
 
-    // Add a trail following the player over time
-    auto data = this->ecs_renderer->create_face( 100 );
-    this->init_particle( data.second );
-    this->ecs_renderer->update_position( data.first, x, y, z, rotation );
+    ParticlePosition &particle = this->render_chain->get_instance( entity );
+    glm::mat4 translate = glm::translate( glm::mat4( 1.0 ), glm::vec3( x, y, z ) );
+    particle.transform = translate * rotation * this->initial_mat;
+    this->render_chain->invalidate( entity );
+
+    // // Add a trail following the player over time
+    // auto data = this->render_chain->create_face( 100 );
+    // this->init_particle( data.second );
+    // this->render_chain->update_position( data.first, x, y, z, rotation );
 }
 
 void MultiplayerAvatars::remove( unsigned int particle_id ) {
     entt::entity &entity = this->entity_map[ particle_id ];
-    this->ecs_renderer->remove( entity );
+    this->render_chain->remove( entity );
 }
 
 void MultiplayerAvatars::init_particle( ParticlePosition &mob ) {

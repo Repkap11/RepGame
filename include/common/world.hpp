@@ -3,9 +3,10 @@
 
 #include "block.hpp"
 #include "chunk_loader.hpp"
-#include "multiplayer_avatars.hpp"
+#include "common/multiplayer_avatars.hpp"
 #include "common/abstract/full_screen_quad.hpp"
 #include "common/ecs_renderer.hpp"
+#include "common/RenderChain.hpp"
 
 typedef struct {
     LoadedChunks loadedChunks;
@@ -23,7 +24,7 @@ typedef struct {
     FullScreenQuad fullScreenQuad;
     MouseSelection mouseSelection;
     Shader object_shader;
-    ECS_Renderer ecs_renderer;
+    MobsRenderChain mobs_render_chain;
 } World;
 
 BlockState world_get_loaded_block( World *world, const glm::ivec3 &block );
