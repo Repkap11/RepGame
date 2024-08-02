@@ -56,10 +56,10 @@ template <typename Element, typename Instance> class RenderChain {
         return std::pair<entt::entity, std::reference_wrapper<Instance>>( entity, instance );
     }
     Instance &get_instance( entt::entity entity ) {
-        return registry.get<ParticlePosition>( entity );
+        return registry.get<Instance>( entity );
     }
     void invalidate( entt::entity entity ) {
-        registry.patch<ParticlePosition>( entity );
+        registry.patch<Instance>( entity );
     }
 
     void remove( const entt::entity &entity ) {

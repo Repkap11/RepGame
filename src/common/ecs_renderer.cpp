@@ -139,7 +139,7 @@ void ECS_Renderer::draw( const glm::mat4 &mvp, Renderer *renderer, Shader *shade
 
     shader_set_uniform_mat4f( shader, "u_MVP", mvp );
 
-    pr_debug( "Got to 1" );
+    // pr_debug( "Got to 1" );
 
     ParticlePosition **available_particles = all_particles.storage<ParticlePosition>( )->raw( );
     if ( available_particles != NULL ) {
@@ -147,7 +147,7 @@ void ECS_Renderer::draw( const glm::mat4 &mvp, Renderer *renderer, Shader *shade
         std::size_t particle_count = all_particles.size( );
         if ( particle_count != 0 ) {
             if ( particle_positions != NULL ) {
-                pr_debug( "Got to 2" );
+                // pr_debug( "Got to 2" );
                 if ( this->vertex_buffer_dirty ) {
                     vertex_buffer_set_data( &this->vb_particle_placement, particle_positions, sizeof( ParticlePosition ) * particle_count );
                     // pr_debug( "draw: Clearing vertex_buffer_ditry" );
@@ -155,14 +155,14 @@ void ECS_Renderer::draw( const glm::mat4 &mvp, Renderer *renderer, Shader *shade
                     // pr_debug( "draw: Not vertex_buffer_ditry" );
                     // vertex_buffer_bind( &this->vb_particle_placement );
                 }
-                pr_debug( "Got to 3" );
+                // pr_debug( "Got to 3" );
 
                 renderer_draw( renderer, &this->va_particle, &this->ib_particle, shader, particle_count );
                 showErrors( );
             }
         }
     }
-    pr_debug( "Got to 4" );
+    // pr_debug( "Got to 4" );
 
     ParticlePosition **available_faces = all_faces.storage<ParticlePosition>( )->raw( );
     if ( available_faces != NULL ) {
@@ -170,7 +170,7 @@ void ECS_Renderer::draw( const glm::mat4 &mvp, Renderer *renderer, Shader *shade
         std::size_t face_count = all_faces.size( );
         if ( face_count != 0 ) {
             if ( face_positions != NULL ) {
-                pr_debug( "Got to 5" );
+                // pr_debug( "Got to 5" );
                 if ( this->vertex_buffer_dirty ) {
                     vertex_buffer_set_data( &this->vb_face_placement, face_positions, sizeof( ParticlePosition ) * face_count );
                     // pr_debug( "draw: Clearing vertex_buffer_ditry" );
@@ -178,7 +178,7 @@ void ECS_Renderer::draw( const glm::mat4 &mvp, Renderer *renderer, Shader *shade
                     // pr_debug( "draw: Not vertex_buffer_ditry" );
                     // vertex_buffer_bind( &this->vb_face_placement );
                 }
-                pr_debug( "Got to 6" );
+                // pr_debug( "Got to 6" );
                 renderer_draw( renderer, &this->va_face, &this->ib_face, shader, face_count );
                 showErrors( );
             }
