@@ -14,6 +14,8 @@
 #include "common/Platforms.hpp"
 #include "common/Logging.hpp"
 
+struct NoElement {};
+
 template <typename Element, typename Instance> class RenderChain {
     IndexBuffer ib;
     VertexArray va;
@@ -32,14 +34,17 @@ template <typename Element, typename Instance> class RenderChain {
         vertex_array_init( &this->va );
         if ( vbl_element == NULL ) {
             vertex_array_add_buffer( &this->va, &this->vb_instance, vbl_instance, 0, 0 );
+            showErrors( );
         } else {
             vertex_buffer_init( &this->vb_element );
             vertex_array_add_buffer( &this->va, &this->vb_element, vbl_element, 0, 0 );
             vertex_array_add_buffer( &this->va, &this->vb_instance, vbl_instance, 1, vbl_element->current_size );
             vertex_buffer_set_data( &this->vb_element, element_data, sizeof( Element ) * element_data_count );
+            showErrors( );
         }
         vertex_buffer_set_data( &this->vb_instance, NULL, 0 );
         index_buffer_set_data( &this->ib, ib_data, ib_data_count );
+        showErrors( );
 
         registry.on_construct<Instance>( ).template connect<&RenderChain<Element, Instance>::on_construct>( *this );
         registry.on_update<Instance>( ).template connect<&RenderChain<Element, Instance>::on_update>( *this );
@@ -80,6 +85,7 @@ template <typename Element, typename Instance> class RenderChain {
             showErrors( );
             this->instance_count_changed = false;
         }
+        // pr_debug( "RenderChaing drawing:%ld", instance_count );
         renderer_draw( renderer, &this->va, &this->ib, shader, instance_count );
         showErrors( );
     }

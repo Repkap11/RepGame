@@ -111,6 +111,12 @@ void ui_overlay_init( UIOverlay *ui_overlay ) {
     vertex_buffer_layout_push_unsigned_int( &ui_overlay->vbl, 1 ); // UIOverlayVertex face_type
 
     {
+        // ui_overlay->render_chain_crosshair.init( NULL, &ui_overlay->vbl, NULL, 0, ib_data_crosshair, UI_OVERLAY_INDEX_COUNT_CROSSHAIR );
+        // for ( int i = 0; i < UI_OVERLAY_VERTEX_COUNT_CROSSHAIR; i++ ) {
+        //     auto data = ui_overlay->render_chain_crosshair.create_instance( );
+        //     data.second = vb_data_crosshair[ i ];
+        // }
+
         index_buffer_init( &ui_overlay->draw_crosshair.ib );
         index_buffer_set_data( &ui_overlay->draw_crosshair.ib, ib_data_crosshair, UI_OVERLAY_INDEX_COUNT_CROSSHAIR );
         vertex_buffer_init( &ui_overlay->draw_crosshair.vb );
@@ -142,7 +148,7 @@ void ui_overlay_on_screen_size_change( UIOverlay *ui_overlay, int width, int hei
     ui_overlay->screen_height = height;
     // When the screen changes, we need to reprocess the held block graphics
     ui_overlay_set_holding_block( ui_overlay, ui_overlay->draw_holding_block.heldBlockID );
-    inventory_render(&ui_overlay->inventory, width, height);
+    inventory_render( &ui_overlay->inventory, width, height );
 }
 
 void ui_overlay_set_holding_block( UIOverlay *ui_overlay, BlockID holding_block ) {
@@ -188,6 +194,7 @@ void ui_overlay_draw( UIOverlay *ui_overlay, Renderer *renderer, Texture *blocks
         }
         renderer_draw( renderer, &ui_overlay->draw_holding_block.va, which_index_buffer, &ui_overlay->shader, 1 );
         glBlendFunc( GL_ONE_MINUS_DST_COLOR, GL_ZERO );
+        // ui_overlay->render_chain_crosshair.draw( renderer, &ui_overlay->shader );
         renderer_draw( renderer, &ui_overlay->draw_crosshair.va, &ui_overlay->draw_crosshair.ib, &ui_overlay->shader, 1 );
         glBlendFunc( GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA );
     }
