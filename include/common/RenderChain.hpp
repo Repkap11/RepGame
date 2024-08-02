@@ -58,7 +58,7 @@ template <typename Element, typename Instance> class RenderChain {
         registry.destroy( entity );
     }
 
-    void draw( const glm::mat4 &mvp, Renderer *renderer, Shader *shader ) {
+    void draw(Renderer *renderer, Shader *shader ) {
         auto all_instances = registry.group<Instance>( );
         std::size_t instance_count = all_instances.size( );
         if ( instance_count == 0 ) {
@@ -77,7 +77,6 @@ template <typename Element, typename Instance> class RenderChain {
             showErrors( );
             this->instance_count_changed = false;
         }
-        shader_set_uniform_mat4f( shader, "u_MVP", mvp );
         renderer_draw( renderer, &this->va, &this->ib, shader, instance_count );
         showErrors( );
     }

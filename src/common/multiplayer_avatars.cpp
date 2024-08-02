@@ -44,7 +44,8 @@ void MultiplayerAvatars::init_particle( ParticlePosition &mob ) {
 }
 
 void MultiplayerAvatars::draw( const glm::mat4 &mvp, Renderer *renderer, Shader *shader ) {
-    this->render_chain.draw( mvp, renderer, shader );
+    shader_set_uniform_mat4f( shader, "u_MVP", mvp );
+    this->render_chain.draw( renderer, shader );
 }
 
 void MultiplayerAvatars::cleanup( ) {
