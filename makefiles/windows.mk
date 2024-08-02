@@ -2,14 +2,14 @@
 
 REPGAME_PACKAGES += mingw-w64 upx-ucl
 
-CFLAGS_WINDOWS := -Wall -Werror -std=c++11 -Wno-unused-variable -fno-pie -D GLEW_STATIC -mwindows
+CFLAGS_WINDOWS := -Wall -Werror -std=c++17 -Wno-unused-variable -fno-pie -D GLEW_STATIC -mwindows -D _WIN32_WINNT=0x0A00
 
 #CFLAGS_WINDOWS += -O3 -DREPGAME_FAST
 CFLAGS_WINDOWS += -g
 
 CFLAGS_WINDOWS += -DREPGAME_WINDOWS
 LIBS_WINDOWS := windows_build/glew/lib/libglew32.a windows_build/sdl2/x86_64-w64-mingw32/bin/SDL2.dll -lopengl32 -lglu32 -Wl,-Bstatic -lpthread -Wl,-Bdynamic -static-libgcc -static-libstdc++
-INCLUDES_WINDOWS := -I windows_build/sdl2/x86_64-w64-mingw32/include -I windows_build/glew/include
+INCLUDES_WINDOWS := -I windows_build/sdl2/x86_64-w64-mingw32/include/SDL2 -I windows_build/sdl2/x86_64-w64-mingw32/include/ -I windows_build/glew/include
 
 CC_WINDOWS := x86_64-w64-mingw32-g++
 # CC_WINDOWS := clang++
@@ -28,6 +28,7 @@ LD_WINDOWS := ccache $(LD_WINDOWS)
 endif
 
 OBJECTS_COMMON_WINDOWS := $(patsubst src/common/%.cpp,out/windows/common/%.o, $(SRC_COMMON))
+OBJECTS_IMGUI_WINDOWS := $(patsubst imgui_build/%.cpp,out/windows/imgui/%.o, $(SRC_IMGUI))
 OBJECTS_WINDOWS := $(patsubst src/%.cpp,out/windows/%.o, $(wildcard src/windows/*.cpp))
 DEPS_WINDOWS := $(patsubst src/%.cpp,out/windows/%.d, $(wildcard src/windows/*.cpp)) \
 			$(patsubst src/common/%.cpp,out/windows/common/%.d, $(SRC_COMMON))
@@ -54,9 +55,16 @@ windows-deploy: out/windows/$(TARGET).exe
 	rsync $< paul@repkap11.com:/home/paul/website/${TARGET_LOWER}
 
 WINDOWS_DIRS = $(patsubst src%,out/windows%,$(shell find src -type d)) \
-	   out/windows/shaders out/windows/bitmaps
+		out/windows/shaders out/windows/bitmaps \
+		out/windows/imgui \
+		out/windows/imgui/backends
 
 out/windows/%.o: src/%.cpp $(call GUARD,CC_WINDOWS INCLUDES_WINDOWS INCLUDES_COMMON CFLAGS_WINDOWS) windows_build | out/windows
+	$(call CHECK,CC_WINDOWS INCLUDES_WINDOWS INCLUDES_COMMON CFLAGS_WINDOWS)
+	@#Use g++ to build o file and a dependecy tree .d file for every cpp file
+	$(CC_WINDOWS) $(INCLUDES_WINDOWS) $(INCLUDES_COMMON) $(CFLAGS_WINDOWS) -MMD -MP -MF $(patsubst %.o,%.d,$@) -MT $(patsubst %.d,%.o,$@) -c $< -o $@
+
+out/windows/imgui/%.o: imgui_build/%.cpp $(call GUARD,CC_WINDOWS INCLUDES_WINDOWS INCLUDES_COMMON CFLAGS_WINDOWS) windows_build | out/windows
 	$(call CHECK,CC_WINDOWS INCLUDES_WINDOWS INCLUDES_COMMON CFLAGS_WINDOWS)
 	@#Use g++ to build o file and a dependecy tree .d file for every cpp file
 	$(CC_WINDOWS) $(INCLUDES_WINDOWS) $(INCLUDES_COMMON) $(CFLAGS_WINDOWS) -MMD -MP -MF $(patsubst %.o,%.d,$@) -MT $(patsubst %.d,%.o,$@) -c $< -o $@
@@ -72,9 +80,9 @@ out/windows/$(TARGET).exe: out/windows/$(TARGET)_uncompressed.exe
 	upx-ucl -q $< -o $@
 	touch $@
 
-out/windows/$(TARGET)_uncompressed.exe: windows_build out/windows/SDL2.dll $(OBJECTS_COMMON_WINDOWS) $(OBJECTS_WINDOWS) $(SHADER_BLOBS_WINDOWS) $(BITMAP_BLOBS_WINDOWS) $(call GUARD,CC_WINDOWS CFLAGS_WINDOWS LIBS_WINDOWS) | out/windows
+out/windows/$(TARGET)_uncompressed.exe: windows_build out/windows/SDL2.dll $(OBJECTS_COMMON_WINDOWS) $(OBJECTS_IMGUI_WINDOWS) $(OBJECTS_WINDOWS) $(SHADER_BLOBS_WINDOWS) $(BITMAP_BLOBS_WINDOWS) $(call GUARD,CC_WINDOWS CFLAGS_WINDOWS LIBS_WINDOWS) | out/windows
 	$(call CHECK,CC_WINDOWS CFLAGS_WINDOWS LIBS_WINDOWS)
-	$(CC_WINDOWS) -flto $(CFLAGS_WINDOWS) $(OBJECTS_WINDOWS) $(OBJECTS_COMMON_WINDOWS) $(SHADER_BLOBS_WINDOWS) $(BITMAP_BLOBS_WINDOWS) $(LIBS_WINDOWS) -o $@
+	$(CC_WINDOWS) -flto $(CFLAGS_WINDOWS) $(OBJECTS_WINDOWS) $(OBJECTS_COMMON_WINDOWS) $(OBJECTS_IMGUI_WINDOWS) $(SHADER_BLOBS_WINDOWS) $(BITMAP_BLOBS_WINDOWS) $(LIBS_WINDOWS) -o $@
 
 windows-run: windows
 	wine out/windows/$(TARGET).exe "World1"
