@@ -5,7 +5,7 @@
 
 class Inventory {
     InventoryRenderer inventory_renderer;
-    InventorySlot *slots[ INVENTORY_MAX_SIZE ];
+    InventorySlot slots[ INVENTORY_MAX_SIZE ];
 
   public:
     void init( VertexBufferLayout *ui_overlay_vbl_vertex, VertexBufferLayout *ui_overlay_vbl_instance );

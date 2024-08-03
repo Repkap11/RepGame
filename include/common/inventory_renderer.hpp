@@ -17,7 +17,6 @@
 #define INVENTORY_MAX_SIZE ( INVENTORY_BLOCKS_PER_ROW * INVENTORY_BLOCKS_PER_COL )
 
 typedef struct {
-    bool is_populated;
     BlockID block_id;
 } InventorySlot;
 
@@ -34,7 +33,7 @@ class InventoryRenderer {
 
   public:
     void init( VertexBufferLayout *ui_overlay_vbl_vertex, VertexBufferLayout *ui_overlay_vbl_instance );
-    void render( int width, int height );
+    void render( int width, int height, InventorySlot *inventory_slots );
     void draw( Renderer *renderer, Texture *blocksTexture, const glm::mat4 &mvp_ui, Shader *shader );
     void cleanup( );
 };
