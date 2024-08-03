@@ -22,7 +22,7 @@ UIOverlayVertex vb_data_crosshair_element[ UI_OVERLAY_VERTEX_COUNT_CROSSHAIR ] =
     { WIDTH, -SCALE *WIDTH, CROSSHAIR_COLOR, 0 },  // 6
     { WIDTH, SCALE *WIDTH, CROSSHAIR_COLOR, 0 },   // 7
 };
-UIOverlayInstance vb_data_crosshair_instance = { 0, 0, 1, 1, 0, { 0, 0, 0 }, { 0, 0, 0, 0.5f } };
+UIOverlayInstance vb_data_crosshair_instance = { 0, 0, 1, 1, 0, { 0, 0, 0 }, { 0.5f, 0.5f, 0.5f, 0.5f } };
 
 float holding_alpha = 1.0f;
 
@@ -45,7 +45,7 @@ UIOverlayVertex vb_data_holding_block_element[ UI_OVERLAY_VERTEX_COUNT_HOLDING_B
     { 1, 1, { 0, 1 }, FACE_RIGHT }, // 11
 };
 
-UIOverlayInstance vb_data_holding_block_instance = { 0, 0, 0, 0, 1, { id, id, id }, { 0, 0, 0, holding_alpha } };
+UIOverlayInstance vb_data_holding_block_instance = { 0, 0, 0, 0, 1, { id, id, id }, { 1, 1, 1, holding_alpha } };
 
 int holding_block_vertex_face_map[] = {
     FACE_TOP,   FACE_TOP,   FACE_TOP,   FACE_TOP,
@@ -154,8 +154,8 @@ void ui_overlay_set_holding_block( UIOverlay *ui_overlay, BlockID holding_block 
     vb_data_holding_block_instance.width = 100;
     vb_data_holding_block_instance.height = 100;
 
-    vb_data_holding_block_instance.screen_x = -1.0 * ui_overlay->screen_width / 2;
-    vb_data_holding_block_instance.screen_y = -1.0 * ui_overlay->screen_height / 2;
+    vb_data_holding_block_instance.screen_x = -1.0 * ui_overlay->screen_width / 2 + 50;
+    vb_data_holding_block_instance.screen_y = -1.0 * ui_overlay->screen_height / 2 + 50;
 
     // vb_data_holding_block_instance.screen_x = 50;
     // vb_data_holding_block_instance.screen_y = 50;
