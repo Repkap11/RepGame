@@ -1,70 +1,18 @@
 #ifndef HEADER_INVENTORY_H
 #define HEADER_INVENTORY_H
 
-#include "abstract/index_buffer.hpp"
-#include "abstract/vertex_buffer.hpp"
-#include "abstract/vertex_array.hpp"
-#include "abstract/renderer.hpp"
-#include "RepGame.hpp"
-#include "input.hpp"
-#include "ui_overlay.hpp"
+#include "common/inventory_renderer.hpp"
 
-#define INVENTORY_BLOCKS_PER_ROW 20
-#define INVENTORY_BLOCKS_PER_COL 5
-#define INVENTORY_MAX_SIZE ( INVENTORY_BLOCKS_PER_ROW * INVENTORY_BLOCKS_PER_COL )
-
-// #define INVENTORY_BLOCK_SIZE 30
-// #define INVENTORY_BLOCK_SPACING 80
-
-typedef struct {
-    int stack;
-    int slot_pos;
-    int is_active;
-    float screen_x;
-    float screen_y;
-    BlockID block_id;
-} InventorySlot;
-
-typedef struct {
-    RenderChain<UIOverlayVertex, UIOverlayInstance> render_chain_inventory;
-
+class Inventory {
+    InventoryRenderer inventory_renderer;
     InventorySlot *slots[ INVENTORY_MAX_SIZE ];
-    unsigned int size;
 
-    struct {
-        int screen_x;
-        int screen_y;
-        int text_size;
-        int text_spacing;
-
-        IndexBuffer ib;
-        // VertexArray va;
-        // VertexBuffer vb;
-
-        unsigned int *ib_data_inventory;
-        UIOverlayVertex *vb_data_inventory;
-    } UI;
-} Inventory;
-
-void inventory_init( Inventory *inventory, VertexBufferLayout *ui_overlay_vbl_vertex, VertexBufferLayout *ui_overlay_vbl_instance );
-void inventory_render( Inventory *inventory, int width, int height );
-void inventory_draw( Inventory *inventory, Renderer *renderer, Texture *blocksTexture, InputState *input, const glm::mat4 &mvp_ui, Shader *shader );
-/**
- * Picks up an ItemBlock from the world and places it in the first available
- * InventorySlot (or stacks if applicable).
- *
- * Returns true if there was an empty inventory slot, false otherwise.
- */
-// bool inventory_pickup( Inventory *inventory, ItemBlock *item );
-/**
- * Drops an ItemBlock from the inventory to the world.
- */
-// void inventory_drop( Inventory *inventory, InventorySlot *item );
-/**
- * Swaps to ItemBlocks in the inventory.
- */
-// void inventory_swap( Inventory *inventory, InventorySlot *up_loc, InventorySlot *down_loc );
-
-void inventory_cleanup( Inventory *inventory );
+  public:
+    void init( VertexBufferLayout *ui_overlay_vbl_vertex, VertexBufferLayout *ui_overlay_vbl_instance );
+    void onScreenSizeChange( int width, int height );
+    void handleInput( InputState *inputState );
+    void draw( Renderer *renderer, Texture *blocksTexture, const glm::mat4 &mvp_ui, Shader *shader );
+    void cleanup( );
+};
 
 #endif

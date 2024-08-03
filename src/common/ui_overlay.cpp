@@ -130,7 +130,7 @@ void ui_overlay_init( UIOverlay *ui_overlay ) {
 
     shader_init( &ui_overlay->shader, &ui_overlay_vertex, &ui_overlay_fragment );
 
-    inventory_init( &ui_overlay->inventory, &ui_overlay->vbl, &vbl_instance );
+    ui_overlay->inventory.init( &ui_overlay->vbl, &vbl_instance );
 }
 
 void ui_overlay_on_screen_size_change( UIOverlay *ui_overlay, int width, int height ) {
@@ -138,7 +138,7 @@ void ui_overlay_on_screen_size_change( UIOverlay *ui_overlay, int width, int hei
     ui_overlay->screen_height = height;
     // When the screen changes, we need to reprocess the held block graphics
     ui_overlay_set_holding_block( ui_overlay, ui_overlay->draw_holding_block.heldBlockID );
-    inventory_render( &ui_overlay->inventory, width, height );
+    ui_overlay->inventory.onScreenSizeChange( width, height );
 }
 
 void ui_overlay_set_holding_block( UIOverlay *ui_overlay, BlockID holding_block ) {
@@ -173,7 +173,8 @@ void ui_overlay_draw( UIOverlay *ui_overlay, Renderer *renderer, Texture *blocks
     shader_set_uniform1i( &ui_overlay->shader, "u_Texture", blocksTexture->slot );
 
     if ( !USE_IMGUI_INVENTORY && input->inventory_open ) {
-        inventory_draw( &ui_overlay->inventory, renderer, blocksTexture, input, mvp_ui, &ui_overlay->shader );
+        ui_overlay->inventory.handleInput( input );
+        ui_overlay->inventory.draw( renderer, blocksTexture, mvp_ui, &ui_overlay->shader );
     } else {
         IndexBuffer *which_index_buffer;
         Block *heldBlock = block_definition_get_definition( ui_overlay->draw_holding_block.heldBlockID );
@@ -192,5 +193,5 @@ void ui_overlay_draw( UIOverlay *ui_overlay, Renderer *renderer, Texture *blocks
 }
 
 void ui_overlay_cleanup( UIOverlay *ui_overlay ) {
-    inventory_cleanup( &ui_overlay->inventory );
+    ui_overlay->inventory.cleanup( );
 }
