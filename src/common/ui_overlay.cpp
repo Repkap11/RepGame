@@ -22,7 +22,7 @@ UIOverlayVertex vb_data_crosshair_element[ UI_OVERLAY_VERTEX_COUNT_CROSSHAIR ] =
     { WIDTH, -SCALE *WIDTH, CROSSHAIR_COLOR, 0 },  // 6
     { WIDTH, SCALE *WIDTH, CROSSHAIR_COLOR, 0 },   // 7
 };
-UIOverlayInstance vb_data_crosshair_instance = { 0, 0, 1, 1, 0, { 0, 0, 0 }, { 0.5f, 0.5f, 0.5f, 0.5f } };
+UIOverlayInstance vb_data_crosshair_instance = { 0, 0, 1, 1, 0, { 0, 0, 0 }, { 1, 1, 1, 0.5f } };
 
 float holding_alpha = 1.0f;
 
