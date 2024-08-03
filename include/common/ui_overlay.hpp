@@ -10,18 +10,18 @@
 typedef struct {
     float screen_x;
     float screen_y;
-    unsigned int is_block;
     struct {
-        float x, y, id;
+        float x, y;
     } texture;
-    struct {
-        float r, g, b, a;
-    } tint;
     unsigned int face_type;
 } UIOverlayVertex;
 
 struct UIOverlayInstance {
-    int instance;
+    float screen_x;
+    float screen_y;
+    unsigned int is_block;
+    float id_isos[ 3 ];
+    float tint[ 3 ];
 };
 
 #include "common/inventory.hpp"

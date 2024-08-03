@@ -9,45 +9,43 @@
 
 #define UI_OVERLAY_VERTEX_COUNT_CROSSHAIR 8
 
-#define CROSSHAIR_COLOR                                                                                                                                                                                                                        \
-    { 0, 0, 0 }, {                                                                                                                                                                                                                             \
-        1, 1, 1, 0.5f                                                                                                                                                                                                                          \
-    }
+#define CROSSHAIR_COLOR { 0, 0 }
 
-UIOverlayVertex vb_data_crosshair[] = {
-    { -SCALE * WIDTH, -WIDTH, 0, CROSSHAIR_COLOR, 0 }, // 0
-    { -SCALE * WIDTH, WIDTH, 0, CROSSHAIR_COLOR, 0 },  // 1
-    { SCALE * WIDTH, -WIDTH, 0, CROSSHAIR_COLOR, 0 },  // 2
-    { SCALE * WIDTH, WIDTH, 0, CROSSHAIR_COLOR, 0 },   // 3
+UIOverlayVertex vb_data_crosshair_element[ UI_OVERLAY_VERTEX_COUNT_CROSSHAIR ] = {
+    { -SCALE * WIDTH, -WIDTH, CROSSHAIR_COLOR, 0 }, // 0
+    { -SCALE * WIDTH, WIDTH, CROSSHAIR_COLOR, 0 },  // 1
+    { SCALE * WIDTH, -WIDTH, CROSSHAIR_COLOR, 0 },  // 2
+    { SCALE * WIDTH, WIDTH, CROSSHAIR_COLOR, 0 },   // 3
 
-    { -WIDTH, -SCALE *WIDTH, 0, CROSSHAIR_COLOR, 0 }, // 4
-    { -WIDTH, SCALE *WIDTH, 0, CROSSHAIR_COLOR, 0 },  // 5
-    { WIDTH, -SCALE *WIDTH, 0, CROSSHAIR_COLOR, 0 },  // 6
-    { WIDTH, SCALE *WIDTH, 0, CROSSHAIR_COLOR, 0 },   // 7
-
+    { -WIDTH, -SCALE *WIDTH, CROSSHAIR_COLOR, 0 }, // 4
+    { -WIDTH, SCALE *WIDTH, CROSSHAIR_COLOR, 0 },  // 5
+    { WIDTH, -SCALE *WIDTH, CROSSHAIR_COLOR, 0 },  // 6
+    { WIDTH, SCALE *WIDTH, CROSSHAIR_COLOR, 0 },   // 7
 };
+UIOverlayInstance vb_data_crosshair_instance = { 0, 0, 0, { 0, 0, 0 }, { 0, 0, 0.5f } };
 
 float holding_alpha = 1.0f;
 
 float id = ( float )TNT;
 #define UI_OVERLAY_VERTEX_COUNT_HOLDING_BLOCK ( 4 * 3 )
-UIOverlayVertex vb_data_holding_block[] = {
-    { 0, 0, 1, { 1, 0, id }, { 1, 1, 1, holding_alpha }, FACE_TOP }, // 0
-    { 0, 0, 1, { 1, 1, id }, { 1, 1, 1, holding_alpha }, FACE_TOP }, // 1
-    { 0, 0, 1, { 0, 0, id }, { 1, 1, 1, holding_alpha }, FACE_TOP }, // 2
-    { 0, 0, 1, { 0, 1, id }, { 1, 1, 1, holding_alpha }, FACE_TOP }, // 3
+UIOverlayVertex vb_data_holding_block_element[ UI_OVERLAY_VERTEX_COUNT_HOLDING_BLOCK ] = {
+    { 0, 0, { 1, 0 }, FACE_TOP }, // 0
+    { 0, 0, { 1, 1 }, FACE_TOP }, // 1
+    { 0, 0, { 0, 0 }, FACE_TOP }, // 2
+    { 0, 0, { 0, 1 }, FACE_TOP }, // 3
 
-    { 0, 0, 1, { 1, 0, id }, { 1, 1, 1, holding_alpha }, FACE_FRONT }, // 4
-    { 0, 0, 1, { 1, 1, id }, { 1, 1, 1, holding_alpha }, FACE_FRONT }, // 5
-    { 0, 0, 1, { 0, 0, id }, { 1, 1, 1, holding_alpha }, FACE_FRONT }, // 6
-    { 0, 0, 1, { 0, 1, id }, { 1, 1, 1, holding_alpha }, FACE_FRONT }, // 7
+    { 0, 0, { 1, 0 }, FACE_FRONT }, // 4
+    { 0, 0, { 1, 1 }, FACE_FRONT }, // 5
+    { 0, 0, { 0, 0 }, FACE_FRONT }, // 6
+    { 0, 0, { 0, 1 }, FACE_FRONT }, // 7
 
-    { 0, 0, 1, { 1, 0, id }, { 1, 1, 1, holding_alpha }, FACE_RIGHT }, // 8
-    { 0, 0, 1, { 1, 1, id }, { 1, 1, 1, holding_alpha }, FACE_RIGHT }, // 9
-    { 0, 0, 1, { 0, 0, id }, { 1, 1, 1, holding_alpha }, FACE_RIGHT }, // 10
-    { 0, 0, 1, { 0, 1, id }, { 1, 1, 1, holding_alpha }, FACE_RIGHT }, // 11
-
+    { 0, 0, { 1, 0 }, FACE_RIGHT }, // 8
+    { 0, 0, { 1, 1 }, FACE_RIGHT }, // 9
+    { 0, 0, { 0, 0 }, FACE_RIGHT }, // 10
+    { 0, 0, { 0, 1 }, FACE_RIGHT }, // 11
 };
+
+UIOverlayInstance vb_data_holding_block_instance = { 0, 0, 1, { id, id, id }, { holding_alpha, holding_alpha, holding_alpha } };
 
 int holding_block_vertex_face_map[] = {
     FACE_TOP,   FACE_TOP,   FACE_TOP,   FACE_TOP,
@@ -105,21 +103,24 @@ void ui_overlay_init( UIOverlay *ui_overlay, Inventory *inventory ) {
 
     // These are from UIOverlayVertex
     vertex_buffer_layout_init( &ui_overlay->vbl );
-    vertex_buffer_layout_push_float( &ui_overlay->vbl, 2 );        // UIOverlayVertex screen_position
-    vertex_buffer_layout_push_unsigned_int( &ui_overlay->vbl, 1 ); // UIOverlayVertex is_block
-    vertex_buffer_layout_push_float( &ui_overlay->vbl, 3 );        // UIOverlayVertex texture
+    vertex_buffer_layout_push_float( &ui_overlay->vbl, 2 );        // UIOverlayVertex screen_x, screen_y
+    vertex_buffer_layout_push_float( &ui_overlay->vbl, 2 );        // UIOverlayVertex texture
     vertex_buffer_layout_push_float( &ui_overlay->vbl, 4 );        // UIOverlayVertex tint
     vertex_buffer_layout_push_unsigned_int( &ui_overlay->vbl, 1 ); // UIOverlayVertex face_type
 
     VertexBufferLayout vbl_instance;
     vertex_buffer_layout_init( &vbl_instance );
-    vertex_buffer_layout_push_unsigned_int( &vbl_instance, 1 ); // UIOverlayInatance screen_position
+    vertex_buffer_layout_push_float( &vbl_instance, 2 );        // UIOverlayInstance screen_x, screen_y
+    vertex_buffer_layout_push_unsigned_int( &vbl_instance, 1 ); // UIOverlayInstance is_block
+    vertex_buffer_layout_push_float( &vbl_instance, 1 );        // UIOverlayInstance block_id
 
-    ui_overlay->render_chain_crosshair.init( &ui_overlay->vbl, &vbl_instance, vb_data_crosshair, UI_OVERLAY_VERTEX_COUNT_CROSSHAIR, ib_data_crosshair, UI_OVERLAY_INDEX_COUNT_CROSSHAIR );
-    ui_overlay->render_chain_crosshair.create_instance( );
+    ui_overlay->render_chain_crosshair.init( &ui_overlay->vbl, &vbl_instance, vb_data_crosshair_element, UI_OVERLAY_VERTEX_COUNT_CROSSHAIR, ib_data_crosshair, UI_OVERLAY_INDEX_COUNT_CROSSHAIR );
+    auto pair_crosshair = ui_overlay->render_chain_crosshair.create_instance( );
+    pair_crosshair.second = vb_data_crosshair_instance;
 
-    ui_overlay->render_chain_held_block.init( &ui_overlay->vbl, &vbl_instance, vb_data_holding_block, UI_OVERLAY_VERTEX_COUNT_HOLDING_BLOCK, NULL, 0 );
-    ui_overlay->render_chain_held_block.create_instance( );
+    ui_overlay->render_chain_held_block.init( &ui_overlay->vbl, &vbl_instance, vb_data_holding_block_element, UI_OVERLAY_VERTEX_COUNT_HOLDING_BLOCK, NULL, 0 );
+    auto pair_block = ui_overlay->render_chain_held_block.create_instance( );
+    pair_block.second = vb_data_holding_block_instance;
 
     index_buffer_init( &ui_overlay->draw_holding_block.ib_isometric );
     index_buffer_set_data( &ui_overlay->draw_holding_block.ib_isometric, ib_holding_block_isometric, UI_OVERLAY_INDEX_COUNT_HOLDING_BLOCK_ISOMETRIC );
@@ -150,21 +151,24 @@ void ui_overlay_set_holding_block( UIOverlay *ui_overlay, BlockID holding_block 
     } else {
         which_shape = square_coords;
     }
-    for ( int i = 0; i < UI_OVERLAY_VERTEX_COUNT_HOLDING_BLOCK; i++ ) {
-        UIOverlayVertex *vertex = &vb_data_holding_block[ i ];
+    UIOverlayInstance *vertex = &vb_data_holding_block_instance;
 
-        vertex->screen_x = -1.0 * ui_overlay->screen_width / 2 + 50 * ( which_shape[ i ][ 0 ] + 2 );
-        vertex->screen_y = -1.0 * ui_overlay->screen_height / 2 + 50 * ( which_shape[ i ][ 1 ] + 2 );
+    vertex->screen_x = -1.0 * ui_overlay->screen_width / 2 + 50;
+    vertex->screen_y = -1.0 * ui_overlay->screen_height / 2 + 50;
 
-        BlockID texture;
-        if ( !holdingBlock->icon_is_isometric ) {
-            texture = holdingBlock->inventory_non_isometric_id;
-        } else {
-            texture = holdingBlock->textures[ holding_block_vertex_face_map[ i ] ];
-        }
-        vertex->texture.id = texture - 1;
+    BlockID texture;
+    if ( !holdingBlock->icon_is_isometric ) {
+        texture = holdingBlock->inventory_non_isometric_id;
+    } else {
+        texture = holdingBlock->textures[ holding_block_vertex_face_map[ 0 ] ];
     }
-    ui_overlay->render_chain_held_block.update_element( vb_data_holding_block, UI_OVERLAY_VERTEX_COUNT_HOLDING_BLOCK );
+
+    vb_data_holding_block_instance.id_isos[ 0 ] = texture - 1;
+    vb_data_holding_block_instance.id_isos[ 1 ] = texture - 1;
+    vb_data_holding_block_instance.id_isos[ 2 ] = texture - 1;
+    ui_overlay->render_chain_held_block.cleanup( );
+    auto pair = ui_overlay->render_chain_held_block.create_instance( );
+    pair.second = *vertex;
 }
 
 void ui_overlay_draw( UIOverlay *ui_overlay, Renderer *renderer, Texture *blocksTexture, InputState *input, const glm::mat4 &mvp_ui ) {

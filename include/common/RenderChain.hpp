@@ -24,7 +24,7 @@ template <typename Element, typename Instance> class RenderChain {
 
   public:
     void init( VertexBufferLayout *vbl_element, VertexBufferLayout *vbl_instance, //
-               const Element *element_data, int element_data_count,                  //
+               const Element *element_data, int element_data_count,               //
                unsigned int *ib_data, unsigned int ib_data_count ) {
 
         if ( ib_data != NULL ) {
@@ -51,10 +51,10 @@ template <typename Element, typename Instance> class RenderChain {
         vertex_buffer_set_data( &this->vb_element, element_data, sizeof( Element ) * element_data_count );
     }
 
-    std::pair<entt::entity, std::reference_wrapper<Instance>> create_instance( ) {
+    std::pair<entt::entity, Instance &> create_instance( ) {
         const entt::entity entity = registry.create( );
         Instance &instance = registry.emplace<Instance>( entity );
-        return std::pair<entt::entity, std::reference_wrapper<Instance>>( entity, instance );
+        return std::pair<entt::entity, Instance &>( entity, instance );
     }
     Instance &get_instance( entt::entity entity ) {
         return registry.get<Instance>( entity );

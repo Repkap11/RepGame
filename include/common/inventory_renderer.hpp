@@ -30,8 +30,6 @@ class InventoryRenderer {
 
     IndexBuffer ib_icons;
     IndexBuffer ib_background;
-    unsigned int *ib_icons_data;
-    UIOverlayVertex *vb_icons_data;
     RenderChain<UIOverlayVertex, UIOverlayInstance> render_chain_inventory_background;
     RenderChain<UIOverlayVertex, UIOverlayInstance> render_chain_inventory_icons;
 
