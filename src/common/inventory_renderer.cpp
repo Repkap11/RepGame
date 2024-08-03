@@ -95,9 +95,8 @@ int vb_max_size = num_blocks_max * num_points_per_block * ISOMETRIC_FACES;
 int ib_max_size = num_blocks_max * num_index_per_block * ISOMETRIC_FACES;
 
 void InventoryRenderer::init( VertexBufferLayout *ui_overlay_vbl_vertex, VertexBufferLayout *ui_overlay_vbl_instance ) {
-    this->render_chain_inventory_icons.init( ui_overlay_vbl_vertex, ui_overlay_vbl_instance, vb_isometric_quad, 16, ib_isometric_quad, 24 );
-
-    // this->render_chain_inventory_background.init( ui_overlay_vbl_vertex, ui_overlay_vbl_instance, NULL, 0, ib_quad, 6 );
+    this->render_chain_inventory_icons.init( ui_overlay_vbl_vertex, ui_overlay_vbl_instance, vb_isometric_quad, VB_ISOMETRIC_QUAD_SIZE, ib_isometric_quad, IB_ISOMETRIC_QUAD_SIZE );
+    this->render_chain_inventory_background.init( ui_overlay_vbl_vertex, ui_overlay_vbl_instance, vb_isometric_quad, VB_ISOMETRIC_QUAD_SIZE, ib_isometric_quad, IB_ISOMETRIC_QUAD_SIZE );
 }
 
 void InventoryRenderer::onSizeChange( int width, int height ) {
@@ -106,6 +105,29 @@ void InventoryRenderer::onSizeChange( int width, int height ) {
 
     this->inv_x = -width / 2 + ( width - this->inv_width ) / 2;
     this->inv_y = -height / 2 + ( height - this->inv_height ) / 2;
+
+    this->render_chain_inventory_background.cleanup( );
+    auto pair = this->render_chain_inventory_background.create_instance( );
+    UIOverlayInstance &ui_vertex = pair.second;
+    ui_vertex.screen_x = this->inv_x;
+    ui_vertex.screen_y = this->inv_y;
+    ui_vertex.width = this->inv_width;
+    ui_vertex.height = this->inv_height;
+
+    // ui_vertex.screen_x = 20;
+    // ui_vertex.screen_y = 20;
+    // ui_vertex.width = 100;
+    // ui_vertex.height = 100;
+
+    ui_vertex.tint[ 0 ] = 0.5f;
+    ui_vertex.tint[ 1 ] = 0.5f;
+    ui_vertex.tint[ 2 ] = 0.5f;
+    ui_vertex.tint[ 3 ] = 1.0f;
+    ui_vertex.id_isos[ 0 ] = BIRTCH_LEAVES;
+    ui_vertex.id_isos[ 1 ] = BIRTCH_LEAVES;
+    ui_vertex.id_isos[ 2 ] = BIRTCH_LEAVES;
+    ui_vertex.is_isometric = 0;
+    ui_vertex.is_block = 0;
 }
 
 void InventoryRenderer::render( InventorySlot *inventory_slots ) {
@@ -134,7 +156,6 @@ void InventoryRenderer::render( InventorySlot *inventory_slots ) {
         int block_corner_y = this->inv_y + block_grid_coord_y * item_size;
         int i_data = i_slot - skipped_blocks;
 
-        // for ( int i_point = 0; i_point < num_points_per_block; i_point++ ) {
         auto pair = this->render_chain_inventory_icons.create_instance( );
         UIOverlayInstance &ui_vertex = pair.second;
 
@@ -144,20 +165,12 @@ void InventoryRenderer::render( InventorySlot *inventory_slots ) {
         ui_vertex.is_block = 1;
 
         ui_vertex.is_isometric = block->icon_is_isometric;
-        // Like Reeds
         ui_vertex.screen_x = block_corner_x;
         ui_vertex.screen_y = block_corner_y;
         ui_vertex.width = icon_size * 0.98;
         ui_vertex.height = icon_size * 0.98;
-        // } else {
-        // Like grass
-        // ui_vertex.screen_x = block_corner_x + icon_size * ( verticies_isometric[ i_point + num_points_per_block * face ][ 0 ] / 2 + 0.5 );
-        // ui_vertex.screen_y = block_corner_y + icon_size * ( verticies_isometric[ i_point + num_points_per_block * face ][ 1 ] / 2 + 0.5 );
-        // }
 
         for ( int face = 0; face < ISOMETRIC_FACES; face++ ) {
-            // Get the block definition to see if it should be displayed isometrically or not.
-
             float tint_for_light = tints_for_light[ face ];
             if ( !block->casts_shadow ) {
                 tint_for_light = 1.0f;
@@ -171,7 +184,6 @@ void InventoryRenderer::render( InventorySlot *inventory_slots ) {
                 // Like grass
                 ui_vertex.id_isos[ face ] = ( block->textures[ inventory_isometric_face[ face ] ] - 1 );
             }
-            // }
         }
         ui_vertex.tint[ 3 ] = 1;
     }
@@ -180,11 +192,11 @@ void InventoryRenderer::render( InventorySlot *inventory_slots ) {
 void InventoryRenderer::draw( Renderer *renderer, Texture *blocksTexture, const glm::mat4 &mvp_ui, Shader *shader ) {
     showErrors( );
     this->render_chain_inventory_icons.draw( renderer, shader );
-    // this->render_chain_inventory_background.draw( renderer, shader );
+    this->render_chain_inventory_background.draw( renderer, shader );
     showErrors( );
 }
 
 void InventoryRenderer::cleanup( ) {
-    // this->render_chain_inventory_background.cleanup( );
+    this->render_chain_inventory_background.cleanup( );
     this->render_chain_inventory_icons.cleanup( );
 }

@@ -27,7 +27,7 @@ out vec3 v_TexCoordBlock;
 out vec4 v_Tint;
 
 void main() {
-    gl_Position = u_MVP * vec4(instance_position + element_position * instance_size, -0.1f, 1);
+    gl_Position = u_MVP * vec4(instance_position + element_position * instance_size, 0, 1);
     v_TexCoordBlock = vec3(element_texture_coords, instance_id_isos[element_face_type]);
     v_is_block = instance_is_block;
 

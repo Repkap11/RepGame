@@ -21,4 +21,7 @@ void main() {
     } else {
         color = v_Tint;
     }
+    if(color.a == 0.0f) {
+        discard;
+    }
 }
