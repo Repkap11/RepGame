@@ -45,15 +45,13 @@ unsigned int ib_isometric[] = {
     8,
     1,
 };
-#define ISO_FACE_TOP 0
-#define ISO_FACE_FRONT 1
-#define ISO_FACE_RIGHT 2
+
 
 UIOverlayVertex vb_quad[] = {
-    { 0, 0, 0, 0, ISO_FACE_TOP }, //
-    { 0, 1, 0, 1, ISO_FACE_TOP }, //
-    { 1, 0, 1, 0, ISO_FACE_TOP }, //
-    { 1, 1, 1, 1, ISO_FACE_TOP }  //
+    { 0, 0, { 0, 0 }, ISO_FACE_TOP }, //
+    { 0, 1, { 0, 1 }, ISO_FACE_TOP }, //
+    { 1, 0, { 1, 0 }, ISO_FACE_TOP }, //
+    { 1, 1, { 1, 1 }, ISO_FACE_TOP }  //
 };
 
 unsigned int ib_quad[ 3 * 2 ] = {
@@ -72,12 +70,8 @@ int ib_max_size = num_blocks_max * num_index_per_block * ISOMETRIC_FACES;
 
 void InventoryRenderer::init( VertexBufferLayout *ui_overlay_vbl_vertex, VertexBufferLayout *ui_overlay_vbl_instance ) {
     this->render_chain_inventory_icons.init( ui_overlay_vbl_vertex, ui_overlay_vbl_instance, vb_quad, 4, ib_quad, 6 );
-    this->render_chain_inventory_icons.create_instance( );
 
-    this->render_chain_inventory_background.init( ui_overlay_vbl_vertex, ui_overlay_vbl_instance, NULL, 0, NULL, 0 );
-    this->render_chain_inventory_background.create_instance( );
-
-    index_buffer_init( &this->ib_icons );
+    // this->render_chain_inventory_background.init( ui_overlay_vbl_vertex, ui_overlay_vbl_instance, NULL, 0, ib_quad, 6 );
 }
 
 void InventoryRenderer::onSizeChange( int width, int height ) {
@@ -94,7 +88,7 @@ void InventoryRenderer::render( InventorySlot *inventory_slots ) {
     int icon_offset = ( icon_size - item_size ) / 2;
 
     int skipped_blocks = 0;
-    render_chain_inventory_background.cleanup( );
+    render_chain_inventory_icons.cleanup( );
     for ( int i_slot = 0; i_slot < INVENTORY_MAX_SIZE; i_slot++ ) {
         InventorySlot *inventory_slot = &inventory_slots[ i_slot ];
         BlockID block_id = inventory_slot->block_id;
@@ -115,7 +109,7 @@ void InventoryRenderer::render( InventorySlot *inventory_slots ) {
         int i_data = i_slot - skipped_blocks;
 
         // for ( int i_point = 0; i_point < num_points_per_block; i_point++ ) {
-        auto pair = this->render_chain_inventory_background.create_instance( );
+        auto pair = this->render_chain_inventory_icons.create_instance( );
         UIOverlayInstance &ui_vertex = pair.second;
 
         int vb_index = i_data;
@@ -125,8 +119,10 @@ void InventoryRenderer::render( InventorySlot *inventory_slots ) {
 
         // if ( !block->icon_is_isometric ) {
         // Like Reeds
-        ui_vertex.screen_x = block_corner_x + icon_size * ( cell_x * 0.98 );
-        ui_vertex.screen_y = block_corner_y + icon_size * ( cell_y * 0.98 );
+        ui_vertex.screen_x = block_corner_x;
+        ui_vertex.screen_y = block_corner_y;
+        ui_vertex.width = icon_size * 0.98;
+        ui_vertex.height = icon_size * 0.98;
         // } else {
         // Like grass
         // ui_vertex.screen_x = block_corner_x + icon_size * ( verticies_isometric[ i_point + num_points_per_block * face ][ 0 ] / 2 + 0.5 );
@@ -152,18 +148,18 @@ void InventoryRenderer::render( InventorySlot *inventory_slots ) {
             }
             // }
         }
-        ui_vertex.tint[ 4 ] = 1;
+        ui_vertex.tint[ 3 ] = 1;
     }
 }
 
 void InventoryRenderer::draw( Renderer *renderer, Texture *blocksTexture, const glm::mat4 &mvp_ui, Shader *shader ) {
     showErrors( );
-    this->render_chain_inventory_icons.draw( renderer, shader, &this->ib_icons );
-    this->render_chain_inventory_background.draw( renderer, shader, &this->ib_background );
+    this->render_chain_inventory_icons.draw( renderer, shader );
+    // this->render_chain_inventory_background.draw( renderer, shader );
     showErrors( );
 }
 
 void InventoryRenderer::cleanup( ) {
-    this->render_chain_inventory_background.cleanup( );
+    // this->render_chain_inventory_background.cleanup( );
     this->render_chain_inventory_icons.cleanup( );
 }

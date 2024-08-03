@@ -46,7 +46,7 @@ void multiplayer_init( const char *hostname, int port ) {
 
     serv_addr.sin_port = htons( portno );
     if ( connect( sockfd, ( struct sockaddr * )&serv_addr, sizeof( serv_addr ) ) < 0 ) {
-        pr_debug( "Multiplayer failed to eonnect" );
+        pr_debug( "Multiplayer failed to connect" );
         return;
     } else {
         // We connected!

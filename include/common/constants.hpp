@@ -98,6 +98,10 @@ static_assert( CHUNK_RADIUS_Z > 0, "CHUNK_RADIUS_Z too small" );
 #define FACE_LEFT 4
 #define FACE_BACK 5
 
+#define ISO_FACE_TOP 0
+#define ISO_FACE_FRONT 1
+#define ISO_FACE_RIGHT 2
+
 #define BLOCK_ROTATE_0 0
 #define BLOCK_ROTATE_90 1
 #define BLOCK_ROTATE_180 2

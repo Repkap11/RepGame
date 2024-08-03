@@ -28,8 +28,6 @@ class InventoryRenderer {
     int text_size;
     int text_spacing;
 
-    IndexBuffer ib_icons;
-    IndexBuffer ib_background;
     RenderChain<UIOverlayVertex, UIOverlayInstance> render_chain_inventory_background;
     RenderChain<UIOverlayVertex, UIOverlayInstance> render_chain_inventory_icons;
 

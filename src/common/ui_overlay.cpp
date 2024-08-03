@@ -29,20 +29,20 @@ float holding_alpha = 1.0f;
 float id = ( float )TNT;
 #define UI_OVERLAY_VERTEX_COUNT_HOLDING_BLOCK ( 4 * 3 )
 UIOverlayVertex vb_data_holding_block_element[ UI_OVERLAY_VERTEX_COUNT_HOLDING_BLOCK ] = {
-    { 0, 0, { 1, 0 }, FACE_TOP }, // 0
-    { 0, 1, { 1, 1 }, FACE_TOP }, // 1
-    { 1, 0, { 0, 0 }, FACE_TOP }, // 2
-    { 1, 1, { 0, 1 }, FACE_TOP }, // 3
+    { 0, 0, { 1, 0 }, ISO_FACE_TOP }, // 0
+    { 0, 1, { 1, 1 }, ISO_FACE_TOP }, // 1
+    { 1, 0, { 0, 0 }, ISO_FACE_TOP }, // 2
+    { 1, 1, { 0, 1 }, ISO_FACE_TOP }, // 3
 
-    { 0, 0, { 1, 0 }, FACE_FRONT }, // 4
-    { 0, 1, { 1, 1 }, FACE_FRONT }, // 5
-    { 1, 0, { 0, 0 }, FACE_FRONT }, // 6
-    { 1, 1, { 0, 1 }, FACE_FRONT }, // 7
+    { 0, 0, { 1, 0 }, ISO_FACE_FRONT }, // 4
+    { 0, 1, { 1, 1 }, ISO_FACE_FRONT }, // 5
+    { 1, 0, { 0, 0 }, ISO_FACE_FRONT }, // 6
+    { 1, 1, { 0, 1 }, ISO_FACE_FRONT }, // 7
 
-    { 0, 0, { 1, 0 }, FACE_RIGHT }, // 8
-    { 0, 1, { 1, 1 }, FACE_RIGHT }, // 9
-    { 1, 0, { 0, 0 }, FACE_RIGHT }, // 10
-    { 1, 1, { 0, 1 }, FACE_RIGHT }, // 11
+    { 0, 0, { 1, 0 }, ISO_FACE_RIGHT }, // 8
+    { 0, 1, { 1, 1 }, ISO_FACE_RIGHT }, // 9
+    { 1, 0, { 0, 0 }, ISO_FACE_RIGHT }, // 10
+    { 1, 1, { 0, 1 }, ISO_FACE_RIGHT }, // 11
 };
 
 UIOverlayInstance vb_data_holding_block_instance = { 0, 0, 0, 0, 1, { id, id, id }, { 1, 1, 1, holding_alpha } };
