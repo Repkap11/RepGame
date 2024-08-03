@@ -22,7 +22,7 @@ UIOverlayVertex vb_data_crosshair_element[ UI_OVERLAY_VERTEX_COUNT_CROSSHAIR ] =
     { WIDTH, -SCALE *WIDTH, CROSSHAIR_COLOR, 0 },  // 6
     { WIDTH, SCALE *WIDTH, CROSSHAIR_COLOR, 0 },   // 7
 };
-UIOverlayInstance vb_data_crosshair_instance = { 0, 0, 0, { 0, 0, 0 }, { 0, 0, 0.5f } };
+UIOverlayInstance vb_data_crosshair_instance = { 0, 0, 1, 1, 0, { 0, 0, 0 }, { 0, 0, 0, 0.5f } };
 
 float holding_alpha = 1.0f;
 
@@ -30,22 +30,22 @@ float id = ( float )TNT;
 #define UI_OVERLAY_VERTEX_COUNT_HOLDING_BLOCK ( 4 * 3 )
 UIOverlayVertex vb_data_holding_block_element[ UI_OVERLAY_VERTEX_COUNT_HOLDING_BLOCK ] = {
     { 0, 0, { 1, 0 }, FACE_TOP }, // 0
-    { 0, 0, { 1, 1 }, FACE_TOP }, // 1
-    { 0, 0, { 0, 0 }, FACE_TOP }, // 2
-    { 0, 0, { 0, 1 }, FACE_TOP }, // 3
+    { 0, 1, { 1, 1 }, FACE_TOP }, // 1
+    { 1, 0, { 0, 0 }, FACE_TOP }, // 2
+    { 1, 1, { 0, 1 }, FACE_TOP }, // 3
 
     { 0, 0, { 1, 0 }, FACE_FRONT }, // 4
-    { 0, 0, { 1, 1 }, FACE_FRONT }, // 5
-    { 0, 0, { 0, 0 }, FACE_FRONT }, // 6
-    { 0, 0, { 0, 1 }, FACE_FRONT }, // 7
+    { 0, 1, { 1, 1 }, FACE_FRONT }, // 5
+    { 1, 0, { 0, 0 }, FACE_FRONT }, // 6
+    { 1, 1, { 0, 1 }, FACE_FRONT }, // 7
 
     { 0, 0, { 1, 0 }, FACE_RIGHT }, // 8
-    { 0, 0, { 1, 1 }, FACE_RIGHT }, // 9
-    { 0, 0, { 0, 0 }, FACE_RIGHT }, // 10
-    { 0, 0, { 0, 1 }, FACE_RIGHT }, // 11
+    { 0, 1, { 1, 1 }, FACE_RIGHT }, // 9
+    { 1, 0, { 0, 0 }, FACE_RIGHT }, // 10
+    { 1, 1, { 0, 1 }, FACE_RIGHT }, // 11
 };
 
-UIOverlayInstance vb_data_holding_block_instance = { 0, 0, 1, { id, id, id }, { holding_alpha, holding_alpha, holding_alpha } };
+UIOverlayInstance vb_data_holding_block_instance = { 0, 0, 0, 0, 1, { id, id, id }, { 0, 0, 0, holding_alpha } };
 
 int holding_block_vertex_face_map[] = {
     FACE_TOP,   FACE_TOP,   FACE_TOP,   FACE_TOP,
@@ -110,6 +110,7 @@ void ui_overlay_init( UIOverlay *ui_overlay, Inventory *inventory ) {
     VertexBufferLayout vbl_instance;
     vertex_buffer_layout_init( &vbl_instance );
     vertex_buffer_layout_push_float( &vbl_instance, 2 );        // UIOverlayInstance screen_x, screen_y
+    vertex_buffer_layout_push_float( &vbl_instance, 2 );        // UIOverlayInstance width, height
     vertex_buffer_layout_push_unsigned_int( &vbl_instance, 1 ); // UIOverlayInstance is_block
     vertex_buffer_layout_push_float( &vbl_instance, 3 );        // UIOverlayInstance id_isos
     vertex_buffer_layout_push_float( &vbl_instance, 4 );        // UIOverlayInstance tint
@@ -119,8 +120,6 @@ void ui_overlay_init( UIOverlay *ui_overlay, Inventory *inventory ) {
     pair_crosshair.second = vb_data_crosshair_instance;
 
     ui_overlay->render_chain_held_block.init( &ui_overlay->vbl, &vbl_instance, vb_data_holding_block_element, UI_OVERLAY_VERTEX_COUNT_HOLDING_BLOCK, NULL, 0 );
-    auto pair_block = ui_overlay->render_chain_held_block.create_instance( );
-    pair_block.second = vb_data_holding_block_instance;
 
     index_buffer_init( &ui_overlay->draw_holding_block.ib_isometric );
     index_buffer_set_data( &ui_overlay->draw_holding_block.ib_isometric, ib_holding_block_isometric, UI_OVERLAY_INDEX_COUNT_HOLDING_BLOCK_ISOMETRIC );
@@ -151,10 +150,15 @@ void ui_overlay_set_holding_block( UIOverlay *ui_overlay, BlockID holding_block 
     } else {
         which_shape = square_coords;
     }
-    UIOverlayInstance *vertex = &vb_data_holding_block_instance;
 
-    vertex->screen_x = -1.0 * ui_overlay->screen_width / 2 + 50;
-    vertex->screen_y = -1.0 * ui_overlay->screen_height / 2 + 50;
+    vb_data_holding_block_instance.width = 100;
+    vb_data_holding_block_instance.height = 100;
+
+    vb_data_holding_block_instance.screen_x = -1.0 * ui_overlay->screen_width / 2;
+    vb_data_holding_block_instance.screen_y = -1.0 * ui_overlay->screen_height / 2;
+
+    // vb_data_holding_block_instance.screen_x = 50;
+    // vb_data_holding_block_instance.screen_y = 50;
 
     BlockID texture;
     if ( !holdingBlock->icon_is_isometric ) {
@@ -168,7 +172,7 @@ void ui_overlay_set_holding_block( UIOverlay *ui_overlay, BlockID holding_block 
     vb_data_holding_block_instance.id_isos[ 2 ] = texture - 1;
     ui_overlay->render_chain_held_block.cleanup( );
     auto pair = ui_overlay->render_chain_held_block.create_instance( );
-    pair.second = *vertex;
+    pair.second = vb_data_holding_block_instance;
 }
 
 void ui_overlay_draw( UIOverlay *ui_overlay, Renderer *renderer, Texture *blocksTexture, InputState *input, const glm::mat4 &mvp_ui ) {

@@ -15,16 +15,17 @@ layout( location = 2 ) in uint face_type;
 
 // From UIOverlayInstance
 layout( location = 3 ) in vec2 instance_position;
-layout( location = 4 ) in uint is_block;
-layout( location = 5 ) in vec3 id_isos;
-layout( location = 5 ) in vec4 tint;
+layout( location = 4 ) in vec2 instance_size;
+layout( location = 5 ) in uint is_block;
+layout( location = 6 ) in vec3 id_isos;
+layout( location = 7 ) in vec4 tint;
 
 flat out uint v_is_block;
 out vec3 v_TexCoordBlock;
 out vec4 v_Tint;
 
 void main( ) {
-    gl_Position = u_MVP * vec4( instance_position + element_position, -0.1, 1 );
+    gl_Position = u_MVP * vec4( instance_position + element_position * instance_size, -0.1, 1 );
     if ( is_block != 0u ) {
         float face_light;
         if ( face_type == FACE_TOP ) {

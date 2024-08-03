@@ -19,6 +19,8 @@ typedef struct {
 struct UIOverlayInstance {
     float screen_x;
     float screen_y;
+    float width;
+    float height;
     unsigned int is_block;
     float id_isos[ 3 ];
     float tint[ 4 ];
