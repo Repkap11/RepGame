@@ -66,6 +66,9 @@ int holding_block_vertex_face_map[] = {
 //     { 0, 0 },   { 0, 0 },  { 0, 0 },  { 0, 0 },
 // };
 
+#define ISOMETRIC_FACES 3
+
+
 #define UI_OVERLAY_INDEX_COUNT_CROSSHAIR ( 3 * 2 * 2 )
 unsigned int ib_data_crosshair[] = {
     0, 3, 1, //
@@ -92,6 +95,8 @@ unsigned int ib_data_crosshair[] = {
 //     4, 7, 5, //
 //     7, 4, 6, //
 // };
+
+static int inventory_isometric_face[] = { FACE_TOP, FACE_FRONT, FACE_RIGHT };
 
 #define VB_ISOMETRIC_QUAD_SIZE 16
 static const UIOverlayVertex vb_isometric_quad[ VB_ISOMETRIC_QUAD_SIZE ] = {
@@ -196,19 +201,16 @@ void ui_overlay_set_holding_block( UIOverlay *ui_overlay, BlockID holding_block 
     vb_data_holding_block_instance.screen_x = -1.0 * ui_overlay->screen_width / 2 + 50;
     vb_data_holding_block_instance.screen_y = -1.0 * ui_overlay->screen_height / 2 + 50;
 
-    // vb_data_holding_block_instance.screen_x = 50;
-    // vb_data_holding_block_instance.screen_y = 50;
-
-    BlockID texture;
-    if ( !holdingBlock->icon_is_isometric ) {
-        texture = holdingBlock->inventory_non_isometric_id;
-    } else {
-        texture = holdingBlock->textures[ holding_block_vertex_face_map[ 0 ] ];
+    for ( int face = 0; face < ISOMETRIC_FACES; ++face ) {
+        if ( !holdingBlock->icon_is_isometric ) {
+            // Like Reeds
+            vb_data_holding_block_instance.id_isos[ face ] = holdingBlock->inventory_non_isometric_id - 1;
+        } else {
+            // Like grass
+            vb_data_holding_block_instance.id_isos[ face ] = ( holdingBlock->textures[ inventory_isometric_face[ face ] ] - 1 );
+        }
     }
 
-    vb_data_holding_block_instance.id_isos[ 0 ] = texture - 1;
-    vb_data_holding_block_instance.id_isos[ 1 ] = texture - 1;
-    vb_data_holding_block_instance.id_isos[ 2 ] = texture - 1;
     ui_overlay->render_chain_held_block.cleanup( );
     auto pair = ui_overlay->render_chain_held_block.create_instance( );
     pair.second = vb_data_holding_block_instance;

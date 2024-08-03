@@ -85,7 +85,7 @@ static const unsigned int ib_isometric_quad[ IB_ISOMETRIC_QUAD_SIZE ] = {
     13, 14, 15  //
 };
 
-int inventory_isometric_face[] = { FACE_TOP, FACE_FRONT, FACE_RIGHT };
+static int inventory_isometric_face[] = { FACE_TOP, FACE_FRONT, FACE_RIGHT };
 float tints_for_light[] = { 1, 0.8, 0.6 };
 int num_points_per_block = 4;
 int num_index_per_block = 18;
@@ -143,7 +143,7 @@ void InventoryRenderer::render( InventorySlot *inventory_slots ) {
         float cell_y = ( i_slot % 2 );
         ui_vertex.is_block = 1;
 
-        // if ( !block->icon_is_isometric ) {
+        ui_vertex.is_isometric = block->icon_is_isometric;
         // Like Reeds
         ui_vertex.screen_x = block_corner_x;
         ui_vertex.screen_y = block_corner_y;
