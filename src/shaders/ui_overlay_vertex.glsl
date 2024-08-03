@@ -35,10 +35,10 @@ void main( ) {
         } else {
             face_light = 0.6;
         }
-        v_TexCoordBlock = vec3(element_texture_coords, id_isos[0]);
+        v_TexCoordBlock = vec3(element_texture_coords, id_isos[face_type]);
         v_Tint = vec4( tint.rgb * face_light, tint.a );
     } else {
-        v_TexCoordBlock = vec3(element_texture_coords, id_isos[0]);
+        v_TexCoordBlock = vec3(element_texture_coords, id_isos[face_type]);
         v_Tint = tint;
     }
     v_is_block = is_block;

@@ -4,22 +4,21 @@
 
 #define ISOMETRIC_FACES 3
 
-float verticies_isometric[][ 2 ] = {
-    // Top
-    { 0, 0 },     // 0
-    { -1, 0.5f }, // 1
-    { 1, 0.5f },  // 2
-    { 0, 1 },     // 3
-    // Front
-    { -1, -0.5f }, // 4
-    { -1, 0.5f },
-    { 0, -1 }, // 5
-    { 0, 0 },
-    // Right
-    { 0, -1 },
-    { 0, 0 },
-    { 1, -0.5f }, // 6
-    { 1, 0.5f },
+UIOverlayVertex vb_isometric[ 12 ] = {
+    { 0, 0, { 0, 0 }, ISO_FACE_TOP },     // 0
+    { -1, 0.5f, { 0, 1 }, ISO_FACE_TOP }, // 1
+    { 1, 0.5f, { 1, 0 }, ISO_FACE_TOP },  // 2
+    { 0, 1, { 1, 1 }, ISO_FACE_TOP },     // 3
+
+    { -1, -0.5f, { 0, 0 }, ISO_FACE_FRONT }, // 4
+    { -1, 0.5f, { 0, 1 }, ISO_FACE_FRONT },  // a
+    { 0, -1, { 1, 0 }, ISO_FACE_FRONT },     // 5
+    { 0, 0, { 1, 1 }, ISO_FACE_FRONT },      // b
+
+    { 0, -1, { 0, 0 }, ISO_FACE_RIGHT },    // c
+    { 0, 0, { 0, 1 }, ISO_FACE_RIGHT },     // d
+    { 1, -0.5f, { 1, 0 }, ISO_FACE_RIGHT }, // 6
+    { 1, 0.5f, { 1, 1 }, ISO_FACE_RIGHT },  // e
 };
 
 unsigned int ib_isometric[] = {
@@ -46,7 +45,6 @@ unsigned int ib_isometric[] = {
     1,
 };
 
-
 UIOverlayVertex vb_quad[] = {
     { 0, 0, { 0, 0 }, ISO_FACE_TOP }, //
     { 0, 1, { 0, 1 }, ISO_FACE_TOP }, //
@@ -69,7 +67,7 @@ int vb_max_size = num_blocks_max * num_points_per_block * ISOMETRIC_FACES;
 int ib_max_size = num_blocks_max * num_index_per_block * ISOMETRIC_FACES;
 
 void InventoryRenderer::init( VertexBufferLayout *ui_overlay_vbl_vertex, VertexBufferLayout *ui_overlay_vbl_instance ) {
-    this->render_chain_inventory_icons.init( ui_overlay_vbl_vertex, ui_overlay_vbl_instance, vb_quad, 4, ib_quad, 6 );
+    this->render_chain_inventory_icons.init( ui_overlay_vbl_vertex, ui_overlay_vbl_instance, vb_isometric, 12, ib_isometric, 18 );
 
     // this->render_chain_inventory_background.init( ui_overlay_vbl_vertex, ui_overlay_vbl_instance, NULL, 0, ib_quad, 6 );
 }
@@ -143,7 +141,6 @@ void InventoryRenderer::render( InventorySlot *inventory_slots ) {
                 ui_vertex.id_isos[ face ] = block->inventory_non_isometric_id - 1;
             } else {
                 // Like grass
-                // ui_vertex.texture.id = ( block->textures[ inventory_isometric_face[ face ] ] - 1 );
                 ui_vertex.id_isos[ face ] = ( block->textures[ inventory_isometric_face[ face ] ] - 1 );
             }
             // }
