@@ -22,29 +22,25 @@
 
 RepGameState globalGameState;
 
-void change_block( int place, BlockState blockState ) {
+BlockID change_block( int place, BlockState blockState ) {
 
     glm::ivec3 block;
-
     if ( place ) {
         block = globalGameState.block_selection.pos_create;
         if ( block_definition_get_definition( blockState.id )->collides_with_player ) {
             // If the block collides with the player, make sure its not being placed where it would collide
             if ( collision_check_collides_with_block( &globalGameState.world, globalGameState.camera.pos, block ) ) {
-                return;
+                return LAST_BLOCK_ID;
             }
         }
-        glm::ivec3 block_under = glm::ivec3( block.x, block.y - 1, block.z );
-        BlockID under_blockID = world_get_loaded_block( &globalGameState.world, block_under ).id;
-        if ( under_blockID == LAST_BLOCK_ID ) {
-            return;
-        }
-
     } else {
         block = globalGameState.block_selection.pos_destroy;
     }
+    BlockID previous_block_id = world_get_loaded_block( &globalGameState.world, block ).id;
+
     BlockUpdateEvent *blockPlacedEvent = new PlayerBlockPlacedEvent( globalGameState.tick_number, block, blockState, false );
     globalGameState.blockUpdateQueue.addBlockUpdate( blockPlacedEvent );
+    return previous_block_id;
 }
 
 unsigned char getPlacedRotation( BlockID blockID ) {
@@ -90,12 +86,16 @@ void repgame_process_mouse_events( ) {
         was_middle = false;
     }
     if ( globalGameState.block_selection.selectionInBounds && globalGameState.input.mouse.buttons.left && globalGameState.input.click_delay_left == 0 ) {
-        change_block( 0, BLOCK_STATE_AIR );
+        // Mining a block
+        BlockID previous_block = change_block( 0, BLOCK_STATE_AIR );
+        globalGameState.inventory.addBlock( previous_block );
         globalGameState.input.click_delay_left = 30;
     }
     if ( globalGameState.block_selection.selectionInBounds && globalGameState.input.mouse.buttons.right && globalGameState.input.click_delay_right == 0 ) {
+        // Placeing a block
         unsigned char rotation = getPlacedRotation( globalGameState.block_selection.holdingBlock );
-        change_block( 1, { globalGameState.block_selection.holdingBlock, rotation, 0, globalGameState.block_selection.holdingBlock } );
+        BlockID previous_block = change_block( 1, { globalGameState.block_selection.holdingBlock, rotation, 0, globalGameState.block_selection.holdingBlock } );
+        globalGameState.inventory.addBlock( previous_block );
         globalGameState.input.click_delay_right = 30;
     }
     if ( globalGameState.block_selection.selectionInBounds && globalGameState.input.mouse.currentPosition.wheel_counts != globalGameState.input.mouse.previousPosition.wheel_counts ) {

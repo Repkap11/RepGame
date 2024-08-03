@@ -21,8 +21,10 @@ typedef struct {
 } InventorySlot;
 
 class InventoryRenderer {
-    int screen_x;
-    int screen_y;
+    int inv_x;
+    int inv_y;
+    int inv_width;
+    int inv_height;
     int text_size;
     int text_spacing;
 
@@ -33,7 +35,8 @@ class InventoryRenderer {
 
   public:
     void init( VertexBufferLayout *ui_overlay_vbl_vertex, VertexBufferLayout *ui_overlay_vbl_instance );
-    void render( int width, int height, InventorySlot *inventory_slots );
+    void onSizeChange( int width, int height );
+    void render( InventorySlot *inventory_slots );
     void draw( Renderer *renderer, Texture *blocksTexture, const glm::mat4 &mvp_ui, Shader *shader );
     void cleanup( );
 };

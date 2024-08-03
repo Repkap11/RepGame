@@ -40,13 +40,16 @@ void InventoryRenderer::init( VertexBufferLayout *ui_overlay_vbl_vertex, VertexB
     index_buffer_init( &this->ib );
 }
 
-void InventoryRenderer::render( int width, int height, InventorySlot *inventory_slots ) {
-    int inv_height = height * 0.8;
-    int inv_width = width * 0.8;
+void InventoryRenderer::onSizeChange( int width, int height ) {
+    this->inv_height = height * 0.8;
+    this->inv_width = width * 0.8;
 
-    this->screen_x = -width / 2 + ( width - inv_width ) / 2;
-    this->screen_y = -height / 2 + ( height - inv_height ) / 2;
-    int item_size = inv_width / INVENTORY_BLOCKS_PER_ROW;
+    this->inv_x = -width / 2 + ( width - this->inv_width ) / 2;
+    this->inv_y = -height / 2 + ( height - this->inv_height ) / 2;
+}
+
+void InventoryRenderer::render( InventorySlot *inventory_slots ) {
+    int item_size = this->inv_width / INVENTORY_BLOCKS_PER_ROW;
     int icon_size = item_size * 0.8;
     int icon_offset = ( icon_size - item_size ) / 2;
 
@@ -54,16 +57,17 @@ void InventoryRenderer::render( int width, int height, InventorySlot *inventory_
     for ( int i_slot = 0; i_slot < INVENTORY_MAX_SIZE; i_slot++ ) {
         InventorySlot *inventory_slot = &inventory_slots[ i_slot ];
         BlockID block_id = inventory_slot->block_id;
-        if ( block_id == AIR ) {
+        Block *block = block_definition_get_definition( block_id );
+
+        if ( block->renderOrder == RenderOrder_Transparent ) {
             skipped_blocks++;
             continue;
         }
-        Block *block = block_definition_get_definition( block_id );
 
         int block_grid_coord_x = i_slot % INVENTORY_BLOCKS_PER_ROW;
         int block_grid_coord_y = i_slot / INVENTORY_BLOCKS_PER_ROW;
-        int block_corner_x = this->screen_x + block_grid_coord_x * item_size;
-        int block_corner_y = this->screen_y + block_grid_coord_y * item_size;
+        int block_corner_x = this->inv_x + block_grid_coord_x * item_size;
+        int block_corner_y = this->inv_y + block_grid_coord_y * item_size;
         int i_data = i_slot - skipped_blocks;
 
         unsigned int *ui_ib = &this->ib_data_inventory[ i_data * num_index_per_block ];
