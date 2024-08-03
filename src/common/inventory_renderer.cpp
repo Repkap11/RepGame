@@ -142,23 +142,23 @@ void InventoryRenderer::setSize( UIOverlayInstance &vertex, float left, float bo
 }
 
 void InventoryRenderer::renderBackground( ) {
-    // Draw the inventory background
-
     // Coordinate system
     // 0,0 in the center of the screen.
     // X axis left to right
     // Y axis bottom to top
     this->render_chain_inventory_background.cleanup( );
 
-    int cell_offset = ( this->item_stride_size - this->item_icon_size ) / 4;
-
-    UIOverlayInstance &large_bg = this->init_background_gray_cell( 0.5f );
+    // Large background
+    UIOverlayInstance &large_bg = this->init_background_gray_cell( 0.4f );
     this->setSize( large_bg, this->inv_x, this->inv_y, this->inv_width, this->inv_height );
+
+    // Cells
+    int cell_offset = ( this->item_stride_size - this->item_icon_size ) / 4;
     float cell_start_x = this->inv_x + cell_offset;
     float cell_start_y = this->inv_y + cell_offset;
     float double_cell_offset = 2 * cell_offset;
     for ( int i = 0; i < INVENTORY_BLOCKS_PER_COL * INVENTORY_BLOCKS_PER_ROW; ++i ) {
-        UIOverlayInstance &cell_bg = this->init_background_gray_cell( 0.3f );
+        UIOverlayInstance &cell_bg = this->init_background_gray_cell( 0.5f );
         int block_grid_coord_x = i % INVENTORY_BLOCKS_PER_ROW;
         int block_grid_coord_y = i / INVENTORY_BLOCKS_PER_ROW;
         this->setSize( cell_bg,                                                    //
