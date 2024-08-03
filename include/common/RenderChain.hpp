@@ -25,7 +25,7 @@ template <typename Element, typename Instance> class RenderChain {
   public:
     void init( VertexBufferLayout *vbl_element, VertexBufferLayout *vbl_instance, //
                const Element *element_data, int element_data_count,               //
-               unsigned int *ib_data, unsigned int ib_data_count ) {
+               const unsigned int *ib_data, unsigned int ib_data_count ) {
 
         if ( ib_data != NULL ) {
             index_buffer_init( &this->ib );

@@ -13,6 +13,7 @@ typedef struct {
     struct {
         float x, y;
     } texture;
+    unsigned int is_isometric;
     unsigned int face_type;
 } UIOverlayVertex;
 
@@ -22,6 +23,7 @@ struct UIOverlayInstance {
     float width;
     float height;
     unsigned int is_block;
+    unsigned int is_isometric;
     float id_isos[ 3 ];
     float tint[ 4 ];
 };
@@ -34,8 +36,8 @@ typedef struct {
     RenderChain<UIOverlayVertex, UIOverlayInstance> render_chain_crosshair;
     RenderChain<UIOverlayVertex, UIOverlayInstance> render_chain_held_block;
     struct {
-        IndexBuffer ib_isometric;
-        IndexBuffer ib_square;
+        // IndexBuffer ib_isometric;
+        // IndexBuffer ib_square;
         BlockID heldBlockID;
     } draw_holding_block;
     Inventory *inventory;

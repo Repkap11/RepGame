@@ -7,7 +7,7 @@ void index_buffer_init( IndexBuffer *indexBuffer ) {
     glBindBuffer( GL_ELEMENT_ARRAY_BUFFER, indexBuffer->mRendererId );
 }
 
-void index_buffer_set_data( IndexBuffer *indexBuffer, unsigned int *data, unsigned int count ) {
+void index_buffer_set_data( IndexBuffer *indexBuffer, const unsigned int *data, unsigned int count ) {
     indexBuffer->count = count;
     glBindBuffer( GL_ELEMENT_ARRAY_BUFFER, indexBuffer->mRendererId );
     glBufferData( GL_ELEMENT_ARRAY_BUFFER, count * sizeof( unsigned int ), data, GL_STATIC_DRAW );

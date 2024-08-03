@@ -4,24 +4,72 @@
 
 #define ISOMETRIC_FACES 3
 
-UIOverlayVertex vb_isometric[ 12 ] = {
-    { 0, 0, { 1, 0 }, ISO_FACE_TOP },     // 0
-    { -1, 0.5f, { 1, 1 }, ISO_FACE_TOP }, // 1
-    { 1, 0.5f, { 0, 0 }, ISO_FACE_TOP },  // 2
-    { 0, 1, { 0, 1 }, ISO_FACE_TOP },     // 3
+// UIOverlayVertex vb_isometric[ 12 ] = {
+//     { 0, 0, { 1, 0 }, ISO_FACE_TOP },     // 0
+//     { -1, 0.5f, { 1, 1 }, ISO_FACE_TOP }, // 1
+//     { 1, 0.5f, { 0, 0 }, ISO_FACE_TOP },  // 2
+//     { 0, 1, { 0, 1 }, ISO_FACE_TOP },     // 3
 
-    { -1, -0.5f, { 1, 0 }, ISO_FACE_FRONT }, // 4
-    { -1, 0.5f, { 1, 1 }, ISO_FACE_FRONT },  // a
-    { 0, -1, { 0, 0 }, ISO_FACE_FRONT },     // 5
-    { 0, 0, { 0, 1 }, ISO_FACE_FRONT },      // b
+//     { -1, -0.5f, { 1, 0 }, ISO_FACE_FRONT }, // 4
+//     { -1, 0.5f, { 1, 1 }, ISO_FACE_FRONT },  // a
+//     { 0, -1, { 0, 0 }, ISO_FACE_FRONT },     // 5
+//     { 0, 0, { 0, 1 }, ISO_FACE_FRONT },      // b
 
-    { 0, -1, { 1, 0 }, ISO_FACE_RIGHT },    // c
-    { 0, 0, { 1, 1 }, ISO_FACE_RIGHT },     // d
-    { 1, -0.5f, { 0, 0 }, ISO_FACE_RIGHT }, // 6
-    { 1, 0.5f, { 0, 1 }, ISO_FACE_RIGHT },  // e
+//     { 0, -1, { 1, 0 }, ISO_FACE_RIGHT },    // c
+//     { 0, 0, { 1, 1 }, ISO_FACE_RIGHT },     // d
+//     { 1, -0.5f, { 0, 0 }, ISO_FACE_RIGHT }, // 6
+//     { 1, 0.5f, { 0, 1 }, ISO_FACE_RIGHT },  // e
+// };
+
+// unsigned int ib_isometric[ 18 ] = {
+//     // Top
+//     // 0, 3, 1, 3, 0, 2, 4, 7, 5, 7, 4, 6, 8, 11, 9, 11, 8, 10,
+//     0,  3,  1, //
+//     3,  0,  2, //
+
+//     4,  7,  5, //
+//     7,  4,  6, //
+
+//     8,  11, 9,  //
+//     11, 8,  10, //
+// };
+
+// UIOverlayVertex vb_quad[] = {
+
+// };
+
+// unsigned int ib_quad[ 3 * 2 ] = {
+//     1, 0, 2, //
+//     1, 2, 3  //
+// };
+
+#define VB_ISOMETRIC_QUAD_SIZE 16
+static const UIOverlayVertex vb_isometric_quad[ VB_ISOMETRIC_QUAD_SIZE ] = {
+    // Isometric
+    { 0, 0, { 1, 0 }, 1, ISO_FACE_TOP },     // 0
+    { -1, 0.5f, { 1, 1 }, 1, ISO_FACE_TOP }, // 1
+    { 1, 0.5f, { 0, 0 }, 1, ISO_FACE_TOP },  // 2
+    { 0, 1, { 0, 1 }, 1, ISO_FACE_TOP },     // 3
+
+    { -1, -0.5f, { 1, 0 }, 1, ISO_FACE_FRONT }, // 4
+    { -1, 0.5f, { 1, 1 }, 1, ISO_FACE_FRONT },  // a
+    { 0, -1, { 0, 0 }, 1, ISO_FACE_FRONT },     // 5
+    { 0, 0, { 0, 1 }, 1, ISO_FACE_FRONT },      // b
+
+    { 0, -1, { 1, 0 }, 1, ISO_FACE_RIGHT },    // c
+    { 0, 0, { 1, 1 }, 1, ISO_FACE_RIGHT },     // d
+    { 1, -0.5f, { 0, 0 }, 1, ISO_FACE_RIGHT }, // 6
+    { 1, 0.5f, { 0, 1 }, 1, ISO_FACE_RIGHT },  // e
+
+    // Quad
+    { 0, 0, { 0, 0 }, 0, ISO_FACE_FRONT }, //
+    { 0, 1, { 0, 1 }, 0, ISO_FACE_FRONT }, //
+    { 1, 0, { 1, 0 }, 0, ISO_FACE_FRONT }, //
+    { 1, 1, { 1, 1 }, 0, ISO_FACE_FRONT }  //
 };
 
-unsigned int ib_isometric[ 18 ] = {
+#define IB_ISOMETRIC_QUAD_SIZE 24
+static const unsigned int ib_isometric_quad[ IB_ISOMETRIC_QUAD_SIZE ] = {
     // Top
     // 0, 3, 1, 3, 0, 2, 4, 7, 5, 7, 4, 6, 8, 11, 9, 11, 8, 10,
     0,  3,  1, //
@@ -32,18 +80,9 @@ unsigned int ib_isometric[ 18 ] = {
 
     8,  11, 9,  //
     11, 8,  10, //
-};
 
-UIOverlayVertex vb_quad[] = {
-    { 0, 0, { 0, 0 }, ISO_FACE_TOP }, //
-    { 0, 1, { 0, 1 }, ISO_FACE_TOP }, //
-    { 1, 0, { 1, 0 }, ISO_FACE_TOP }, //
-    { 1, 1, { 1, 1 }, ISO_FACE_TOP }  //
-};
-
-unsigned int ib_quad[ 3 * 2 ] = {
-    1, 0, 2, //
-    1, 2, 3  //
+    13, 12, 14, //
+    13, 14, 15  //
 };
 
 int inventory_isometric_face[] = { FACE_TOP, FACE_FRONT, FACE_RIGHT };
@@ -56,7 +95,7 @@ int vb_max_size = num_blocks_max * num_points_per_block * ISOMETRIC_FACES;
 int ib_max_size = num_blocks_max * num_index_per_block * ISOMETRIC_FACES;
 
 void InventoryRenderer::init( VertexBufferLayout *ui_overlay_vbl_vertex, VertexBufferLayout *ui_overlay_vbl_instance ) {
-    this->render_chain_inventory_icons.init( ui_overlay_vbl_vertex, ui_overlay_vbl_instance, vb_isometric, 12, ib_isometric, 18 );
+    this->render_chain_inventory_icons.init( ui_overlay_vbl_vertex, ui_overlay_vbl_instance, vb_isometric_quad, 16, ib_isometric_quad, 24 );
 
     // this->render_chain_inventory_background.init( ui_overlay_vbl_vertex, ui_overlay_vbl_instance, NULL, 0, ib_quad, 6 );
 }
