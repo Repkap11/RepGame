@@ -98,8 +98,11 @@ void InventoryRenderer::render( InventorySlot *inventory_slots ) {
     for ( int i_slot = 0; i_slot < INVENTORY_MAX_SIZE; i_slot++ ) {
         InventorySlot *inventory_slot = &inventory_slots[ i_slot ];
         BlockID block_id = inventory_slot->block_id;
+        if ( block_id == LAST_BLOCK_ID ) {
+            skipped_blocks++;
+            continue;
+        }
         Block *block = block_definition_get_definition( block_id );
-
         if ( block->renderOrder == RenderOrder_Transparent ) {
             skipped_blocks++;
             continue;

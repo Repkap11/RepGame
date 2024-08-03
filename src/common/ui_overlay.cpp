@@ -105,14 +105,14 @@ void ui_overlay_init( UIOverlay *ui_overlay, Inventory *inventory ) {
     vertex_buffer_layout_init( &ui_overlay->vbl );
     vertex_buffer_layout_push_float( &ui_overlay->vbl, 2 );        // UIOverlayVertex screen_x, screen_y
     vertex_buffer_layout_push_float( &ui_overlay->vbl, 2 );        // UIOverlayVertex texture
-    vertex_buffer_layout_push_float( &ui_overlay->vbl, 4 );        // UIOverlayVertex tint
     vertex_buffer_layout_push_unsigned_int( &ui_overlay->vbl, 1 ); // UIOverlayVertex face_type
 
     VertexBufferLayout vbl_instance;
     vertex_buffer_layout_init( &vbl_instance );
     vertex_buffer_layout_push_float( &vbl_instance, 2 );        // UIOverlayInstance screen_x, screen_y
     vertex_buffer_layout_push_unsigned_int( &vbl_instance, 1 ); // UIOverlayInstance is_block
-    vertex_buffer_layout_push_float( &vbl_instance, 1 );        // UIOverlayInstance block_id
+    vertex_buffer_layout_push_float( &vbl_instance, 3 );        // UIOverlayInstance id_isos
+    vertex_buffer_layout_push_float( &vbl_instance, 3 );        // UIOverlayInstance tint
 
     ui_overlay->render_chain_crosshair.init( &ui_overlay->vbl, &vbl_instance, vb_data_crosshair_element, UI_OVERLAY_VERTEX_COUNT_CROSSHAIR, ib_data_crosshair, UI_OVERLAY_INDEX_COUNT_CROSSHAIR );
     auto pair_crosshair = ui_overlay->render_chain_crosshair.create_instance( );
