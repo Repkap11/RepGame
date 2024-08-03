@@ -152,6 +152,7 @@ void InventoryRenderer::render( InventorySlot *inventory_slots ) {
             }
             // }
         }
+        ui_vertex.tint[ 4 ] = 1;
     }
 }
 

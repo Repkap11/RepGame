@@ -9,20 +9,22 @@ uniform mat4 u_MVP;
 #define FACE_BACK 5u
 
 // From UIOverlayVertex
-layout( location = 0 ) in vec2 screen_position;
-layout( location = 1 ) in uint is_block;
-layout( location = 2 ) in vec3 texture_coord;
-layout( location = 3 ) in vec4 tint;
-layout( location = 4 ) in uint face_type;
+layout( location = 0 ) in vec2 element_position;
+layout( location = 1 ) in vec2 element_texture_coords;
+layout( location = 2 ) in uint face_type;
 
-layout( location = 5 ) in uint instance;
+// From UIOverlayInstance
+layout( location = 3 ) in vec2 instance_position;
+layout( location = 4 ) in uint is_block;
+layout( location = 5 ) in vec3 id_isos;
+layout( location = 5 ) in vec4 tint;
 
 flat out uint v_is_block;
 out vec3 v_TexCoordBlock;
 out vec4 v_Tint;
 
 void main( ) {
-    gl_Position = u_MVP * vec4( screen_position, -0.1, 1 );
+    gl_Position = u_MVP * vec4( instance_position + element_position, -0.1, 1 );
     if ( is_block != 0u ) {
         float face_light;
         if ( face_type == FACE_TOP ) {
@@ -32,10 +34,10 @@ void main( ) {
         } else {
             face_light = 0.6;
         }
-        v_TexCoordBlock = texture_coord;
+        v_TexCoordBlock = vec3(element_texture_coords, id_isos[0]);
         v_Tint = vec4( tint.rgb * face_light, tint.a );
     } else {
-        v_TexCoordBlock = texture_coord;
+        v_TexCoordBlock = vec3(element_texture_coords, id_isos[0]);
         v_Tint = tint;
     }
     v_is_block = is_block;

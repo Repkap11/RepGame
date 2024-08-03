@@ -21,7 +21,7 @@ struct UIOverlayInstance {
     float screen_y;
     unsigned int is_block;
     float id_isos[ 3 ];
-    float tint[ 3 ];
+    float tint[ 4 ];
 };
 
 #include "common/inventory.hpp"
