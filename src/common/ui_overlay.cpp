@@ -98,9 +98,10 @@ unsigned int ib_holding_block_square[] = {
 MK_SHADER( ui_overlay_vertex );
 MK_SHADER( ui_overlay_fragment );
 
-void ui_overlay_init( UIOverlay *ui_overlay ) {
+void ui_overlay_init( UIOverlay *ui_overlay, Inventory *inventory ) {
     // Calc The Vertices
     showErrors( );
+    ui_overlay->inventory = inventory;
 
     // These are from UIOverlayVertex
     vertex_buffer_layout_init( &ui_overlay->vbl );
@@ -130,7 +131,7 @@ void ui_overlay_init( UIOverlay *ui_overlay ) {
 
     shader_init( &ui_overlay->shader, &ui_overlay_vertex, &ui_overlay_fragment );
 
-    ui_overlay->inventory.init( &ui_overlay->vbl, &vbl_instance );
+    ui_overlay->inventory->init( &ui_overlay->vbl, &vbl_instance );
 }
 
 void ui_overlay_on_screen_size_change( UIOverlay *ui_overlay, int width, int height ) {
@@ -138,7 +139,6 @@ void ui_overlay_on_screen_size_change( UIOverlay *ui_overlay, int width, int hei
     ui_overlay->screen_height = height;
     // When the screen changes, we need to reprocess the held block graphics
     ui_overlay_set_holding_block( ui_overlay, ui_overlay->draw_holding_block.heldBlockID );
-    ui_overlay->inventory.onScreenSizeChange( width, height );
 }
 
 void ui_overlay_set_holding_block( UIOverlay *ui_overlay, BlockID holding_block ) {
@@ -173,8 +173,8 @@ void ui_overlay_draw( UIOverlay *ui_overlay, Renderer *renderer, Texture *blocks
     shader_set_uniform1i( &ui_overlay->shader, "u_Texture", blocksTexture->slot );
 
     if ( !USE_IMGUI_INVENTORY && input->inventory_open ) {
-        ui_overlay->inventory.handleInput( input );
-        ui_overlay->inventory.draw( renderer, blocksTexture, mvp_ui, &ui_overlay->shader );
+        ui_overlay->inventory->handleInput( input );
+        ui_overlay->inventory->draw( renderer, blocksTexture, mvp_ui, &ui_overlay->shader );
     } else {
         IndexBuffer *which_index_buffer;
         Block *heldBlock = block_definition_get_definition( ui_overlay->draw_holding_block.heldBlockID );
@@ -193,5 +193,4 @@ void ui_overlay_draw( UIOverlay *ui_overlay, Renderer *renderer, Texture *blocks
 }
 
 void ui_overlay_cleanup( UIOverlay *ui_overlay ) {
-    ui_overlay->inventory.cleanup( );
 }

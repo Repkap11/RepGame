@@ -36,12 +36,12 @@ typedef struct {
         IndexBuffer ib_square;
         BlockID heldBlockID;
     } draw_holding_block;
-    Inventory inventory;
+    Inventory *inventory;
     int screen_width;
     int screen_height;
 } UIOverlay;
 
-void ui_overlay_init( UIOverlay *ui_overlay );
+void ui_overlay_init( UIOverlay *ui_overlay, Inventory *inventory );
 void ui_overlay_on_screen_size_change( UIOverlay *ui_overlay, int width, int height );
 void ui_overlay_set_holding_block( UIOverlay *ui_overlay, BlockID holding_block );
 void ui_overlay_draw( UIOverlay *ui_overlay, Renderer *renderer, Texture *blocksTexture, InputState *input, const glm::mat4 &mvp_ui );

@@ -5,7 +5,8 @@ void Inventory::init( VertexBufferLayout *ui_overlay_vbl_vertex, VertexBufferLay
     this->inventory_renderer.init( ui_overlay_vbl_vertex, ui_overlay_vbl_instance );
     for ( int i_slot = 0; i_slot < INVENTORY_MAX_SIZE; i_slot++ ) {
         InventorySlot *slot = &this->slots[ i_slot ];
-        slot->block_id = AIR;
+        // slot->block_id = AIR;
+        slot->block_id = ( BlockID )( i_slot % 5 );
     }
     this->inventory_renderer.render( 100, 100, this->slots );
 }

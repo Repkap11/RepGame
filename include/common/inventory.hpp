@@ -15,7 +15,7 @@ class Inventory {
   public:
     void init( VertexBufferLayout *ui_overlay_vbl_vertex, VertexBufferLayout *ui_overlay_vbl_instance );
     void onScreenSizeChange( int width, int height );
-    void addBlock( BlockID blockId );
+    bool addBlock( BlockID blockId );
     void handleInput( InputState *inputState );
     void draw( Renderer *renderer, Texture *blocksTexture, const glm::mat4 &mvp_ui, Shader *shader );
     void cleanup( );

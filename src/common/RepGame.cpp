@@ -338,7 +338,8 @@ RepGameState *repgame_init( const char *world_name, bool connect_multi, const ch
     texture_init( &globalGameState.blocksTexture, &texture_source_textures, 0 );
     block_definitions_initilize_definitions( &globalGameState.blocksTexture );
     world_init( &globalGameState.world, globalGameState.camera.pos );
-    ui_overlay_init( &globalGameState.ui_overlay );
+
+    ui_overlay_init( &globalGameState.ui_overlay, &globalGameState.inventory );
     imgui_overlay_init( &globalGameState.imgui_overlay );
     ui_overlay_set_holding_block( &globalGameState.ui_overlay, globalGameState.block_selection.holdingBlock );
 
@@ -376,6 +377,7 @@ void repgame_changeSize( int w, int h ) {
     globalGameState.input.mouse.previousPosition.x = w / 2;
     globalGameState.input.mouse.previousPosition.y = h / 2;
     ui_overlay_on_screen_size_change( &globalGameState.ui_overlay, w, h );
+    globalGameState.inventory.onScreenSizeChange( w, h );
     globalGameState.screen.proj = glm::perspective<float>( glm::radians( CAMERA_FOV ), globalGameState.screen.width / globalGameState.screen.height, 0.1f, 800.0f );
     globalGameState.screen.ortho = glm::ortho<float>( 0.f, w, 0.f, h, -1.f, 1.f );
     globalGameState.screen.ortho_center = glm::ortho<float>( -w / 2, w / 2, -h / 2, h / 2, -1.f, 1.f );
@@ -474,6 +476,7 @@ void repgame_cleanup( ) {
     world_cleanup( &globalGameState.world );
     texture_destroy( &globalGameState.blocksTexture );
     ui_overlay_cleanup( &globalGameState.ui_overlay );
+    globalGameState.inventory.cleanup( );
     imgui_overlay_cleanup( &globalGameState.imgui_overlay );
     block_definitions_free_definitions( );
 
