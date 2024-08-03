@@ -47,6 +47,6 @@ void texture_change_size( Texture *texture, int width, int height );
 void texture_init_empty_color( Texture *texture, int blur_mag );
 void texture_init_empty_depth_stencil( Texture *depthTexture, int blur_mag );
 void texture_destroy( Texture *texture );
-void texture_bind( Texture *texture, unsigned int texture_slot );
-void texture_unbind( Texture *texture, unsigned int texture_slot );
+void texture_bind( Texture *texture );
+void texture_unbind( Texture *texture );
 #endif

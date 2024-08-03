@@ -25,11 +25,19 @@ class InventoryRenderer {
     int inv_y;
     int inv_width;
     int inv_height;
+    int inv_item_height;
+    int inv_item_width;
+    int item_stride_size;
+    int item_icon_size;
     int text_size;
     int text_spacing;
-
     RenderChain<UIOverlayVertex, UIOverlayInstance> render_chain_inventory_background;
     RenderChain<UIOverlayVertex, UIOverlayInstance> render_chain_inventory_icons;
+
+    UIOverlayInstance &init_background_cell( float r, float g, float b, float a );
+    UIOverlayInstance &init_background_gray_cell( float gray );
+    void renderBackground( );
+    void setSize( UIOverlayInstance &vertex, float left, float bottom, float width, float height );
 
   public:
     void init( VertexBufferLayout *ui_overlay_vbl_vertex, VertexBufferLayout *ui_overlay_vbl_instance );

@@ -99,41 +99,79 @@ void InventoryRenderer::init( VertexBufferLayout *ui_overlay_vbl_vertex, VertexB
     this->render_chain_inventory_background.init( ui_overlay_vbl_vertex, ui_overlay_vbl_instance, vb_isometric_quad, VB_ISOMETRIC_QUAD_SIZE, ib_isometric_quad, IB_ISOMETRIC_QUAD_SIZE );
 }
 
+UIOverlayInstance &InventoryRenderer::init_background_gray_cell( float gray ) {
+    return this->init_background_cell( gray, gray, gray, 1.0f );
+}
+
+UIOverlayInstance &InventoryRenderer::init_background_cell( float r, float g, float b, float a ) {
+    auto pair = this->render_chain_inventory_background.create_instance( );
+    UIOverlayInstance &ui_vertex = pair.second;
+    ui_vertex.tint[ 0 ] = r;
+    ui_vertex.tint[ 1 ] = g;
+    ui_vertex.tint[ 2 ] = b;
+    ui_vertex.tint[ 3 ] = a;
+    ui_vertex.is_isometric = 0;
+    ui_vertex.is_block = 0;
+    return ui_vertex;
+}
+
 void InventoryRenderer::onSizeChange( int width, int height ) {
     this->inv_height = height * 0.8;
     this->inv_width = width * 0.8;
 
     this->inv_x = -width / 2 + ( width - this->inv_width ) / 2;
     this->inv_y = -height / 2 + ( height - this->inv_height ) / 2;
+    this->inv_item_height = this->inv_height / 2.0f;
+    this->inv_item_width = this->inv_width;
+    int width_limit = this->inv_item_width / INVENTORY_BLOCKS_PER_ROW;
+    int height_limit = this->inv_item_height / INVENTORY_BLOCKS_PER_COL;
+    if ( height_limit < width_limit ) {
+        this->item_stride_size = height_limit;
+    } else {
+        this->item_stride_size = width_limit;
+    }
+    this->item_icon_size = item_stride_size * 0.8;
 
+    this->renderBackground( );
+}
+void InventoryRenderer::setSize( UIOverlayInstance &vertex, float left, float bottom, float width, float height ) {
+    vertex.screen_x = left;
+    vertex.screen_y = bottom;
+    vertex.width = width;
+    vertex.height = height;
+}
+
+void InventoryRenderer::renderBackground( ) {
+    // Draw the inventory background
+
+    // Coordinate system
+    // 0,0 in the center of the screen.
+    // X axis left to right
+    // Y axis bottom to top
     this->render_chain_inventory_background.cleanup( );
-    auto pair = this->render_chain_inventory_background.create_instance( );
-    UIOverlayInstance &ui_vertex = pair.second;
-    ui_vertex.screen_x = this->inv_x;
-    ui_vertex.screen_y = this->inv_y;
-    ui_vertex.width = this->inv_width;
-    ui_vertex.height = this->inv_height;
 
-    // ui_vertex.screen_x = 20;
-    // ui_vertex.screen_y = 20;
-    // ui_vertex.width = 100;
-    // ui_vertex.height = 100;
+    int cell_offset = ( this->item_stride_size - this->item_icon_size ) / 4;
 
-    ui_vertex.tint[ 0 ] = 0.5f;
-    ui_vertex.tint[ 1 ] = 0.5f;
-    ui_vertex.tint[ 2 ] = 0.5f;
-    ui_vertex.tint[ 3 ] = 1.0f;
-    ui_vertex.id_isos[ 0 ] = BIRTCH_LEAVES;
-    ui_vertex.id_isos[ 1 ] = BIRTCH_LEAVES;
-    ui_vertex.id_isos[ 2 ] = BIRTCH_LEAVES;
-    ui_vertex.is_isometric = 0;
-    ui_vertex.is_block = 0;
+    UIOverlayInstance &large_bg = this->init_background_gray_cell( 0.5f );
+    this->setSize( large_bg, this->inv_x, this->inv_y, this->inv_width, this->inv_height );
+    float cell_start_x = this->inv_x + cell_offset;
+    float cell_start_y = this->inv_y + cell_offset;
+    float double_cell_offset = 2 * cell_offset;
+    for ( int i = 0; i < INVENTORY_BLOCKS_PER_COL * INVENTORY_BLOCKS_PER_ROW; ++i ) {
+        UIOverlayInstance &cell_bg = this->init_background_gray_cell( 0.3f );
+        int block_grid_coord_x = i % INVENTORY_BLOCKS_PER_ROW;
+        int block_grid_coord_y = i / INVENTORY_BLOCKS_PER_ROW;
+        this->setSize( cell_bg,                                                    //
+                       cell_start_x + block_grid_coord_x * this->item_stride_size, //
+                       cell_start_y + block_grid_coord_y * this->item_stride_size, //
+                       this->item_stride_size - double_cell_offset,                //
+                       this->item_stride_size - double_cell_offset );
+    }
 }
 
 void InventoryRenderer::render( InventorySlot *inventory_slots ) {
-    int item_size = this->inv_width / INVENTORY_BLOCKS_PER_ROW;
-    int icon_size = item_size * 0.8;
-    int icon_offset = ( icon_size - item_size ) / 2;
+
+    int icon_offset = ( this->item_stride_size - this->item_icon_size ) / 2;
 
     int skipped_blocks = 0;
     render_chain_inventory_icons.cleanup( );
@@ -152,8 +190,8 @@ void InventoryRenderer::render( InventorySlot *inventory_slots ) {
 
         int block_grid_coord_x = i_slot % INVENTORY_BLOCKS_PER_ROW;
         int block_grid_coord_y = i_slot / INVENTORY_BLOCKS_PER_ROW;
-        int block_corner_x = this->inv_x + block_grid_coord_x * item_size;
-        int block_corner_y = this->inv_y + block_grid_coord_y * item_size;
+        int block_corner_x = this->inv_x + block_grid_coord_x * this->item_stride_size + icon_offset;
+        int block_corner_y = this->inv_y + block_grid_coord_y * this->item_stride_size + icon_offset;
         int i_data = i_slot - skipped_blocks;
 
         auto pair = this->render_chain_inventory_icons.create_instance( );
@@ -167,8 +205,8 @@ void InventoryRenderer::render( InventorySlot *inventory_slots ) {
         ui_vertex.is_isometric = block->icon_is_isometric;
         ui_vertex.screen_x = block_corner_x;
         ui_vertex.screen_y = block_corner_y;
-        ui_vertex.width = icon_size * 0.98;
-        ui_vertex.height = icon_size * 0.98;
+        ui_vertex.width = this->item_icon_size;
+        ui_vertex.height = this->item_icon_size;
 
         for ( int face = 0; face < ISOMETRIC_FACES; face++ ) {
             float tint_for_light = tints_for_light[ face ];
@@ -191,8 +229,13 @@ void InventoryRenderer::render( InventorySlot *inventory_slots ) {
 
 void InventoryRenderer::draw( Renderer *renderer, Texture *blocksTexture, const glm::mat4 &mvp_ui, Shader *shader ) {
     showErrors( );
-    this->render_chain_inventory_icons.draw( renderer, shader );
+
+    glDisable( GL_DEPTH_TEST );
     this->render_chain_inventory_background.draw( renderer, shader );
+    this->render_chain_inventory_icons.draw( renderer, shader );
+    glEnable( GL_DEPTH_TEST );
+    glClear( GL_DEPTH_BUFFER_BIT );
+
     showErrors( );
 }
 

@@ -157,6 +157,7 @@ void loadTexture( Texture *texture, const TextureSourceData *texture_source, int
 
     glTexParameteri( texture->target, GL_TEXTURE_WRAP_S, GL_REPEAT );
     glTexParameteri( texture->target, GL_TEXTURE_WRAP_T, GL_REPEAT );
+
     glTexParameteri( texture->target, GL_TEXTURE_MIN_FILTER, GL_LINEAR );
     if ( blur_mag ) {
         glTexParameteri( texture->target, GL_TEXTURE_MAG_FILTER, GL_LINEAR );
@@ -210,8 +211,8 @@ void texture_init_empty_base( Texture *texture, int blur_mag, int target, int in
         } else {
             glTexParameteri( texture->target, GL_TEXTURE_MAG_FILTER, GL_NEAREST );
         }
-        glTexParameteri( texture->target, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE );
-        glTexParameteri( texture->target, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE );
+        glTexParameteri( texture->target, GL_TEXTURE_WRAP_S, GL_CLAMP );
+        glTexParameteri( texture->target, GL_TEXTURE_WRAP_T, GL_CLAMP );
         if ( repgame_supportsAnisotropic( ) ) {
             float max_ani;
             glGetFloatv( GL_MAX_TEXTURE_MAX_ANISOTROPY_EXT, &max_ani );
@@ -265,12 +266,12 @@ void texture_change_size( Texture *texture, int width, int height ) {
     }
 }
 
-void texture_bind( Texture *texture, unsigned int texture_slot ) {
-    glActiveTexture( GL_TEXTURE0 + texture_slot );
+void texture_bind( Texture *texture ) {
+    glActiveTexture( GL_TEXTURE0 + texture->slot );
     glBindTexture( texture->target, texture->m_RendererId );
 }
-void texture_unbind( Texture *texture, unsigned int texture_slot ) {
-    glActiveTexture( GL_TEXTURE0 + texture_slot );
+void texture_unbind( Texture *texture ) {
+    glActiveTexture( GL_TEXTURE0 + texture->slot );
     glBindTexture( texture->target, 0 );
 }
 
