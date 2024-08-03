@@ -5,44 +5,33 @@
 #define ISOMETRIC_FACES 3
 
 UIOverlayVertex vb_isometric[ 12 ] = {
-    { 0, 0, { 0, 0 }, ISO_FACE_TOP },     // 0
-    { -1, 0.5f, { 0, 1 }, ISO_FACE_TOP }, // 1
-    { 1, 0.5f, { 1, 0 }, ISO_FACE_TOP },  // 2
-    { 0, 1, { 1, 1 }, ISO_FACE_TOP },     // 3
+    { 0, 0, { 1, 0 }, ISO_FACE_TOP },     // 0
+    { -1, 0.5f, { 1, 1 }, ISO_FACE_TOP }, // 1
+    { 1, 0.5f, { 0, 0 }, ISO_FACE_TOP },  // 2
+    { 0, 1, { 0, 1 }, ISO_FACE_TOP },     // 3
 
-    { -1, -0.5f, { 0, 0 }, ISO_FACE_FRONT }, // 4
-    { -1, 0.5f, { 0, 1 }, ISO_FACE_FRONT },  // a
-    { 0, -1, { 1, 0 }, ISO_FACE_FRONT },     // 5
-    { 0, 0, { 1, 1 }, ISO_FACE_FRONT },      // b
+    { -1, -0.5f, { 1, 0 }, ISO_FACE_FRONT }, // 4
+    { -1, 0.5f, { 1, 1 }, ISO_FACE_FRONT },  // a
+    { 0, -1, { 0, 0 }, ISO_FACE_FRONT },     // 5
+    { 0, 0, { 0, 1 }, ISO_FACE_FRONT },      // b
 
-    { 0, -1, { 0, 0 }, ISO_FACE_RIGHT },    // c
-    { 0, 0, { 0, 1 }, ISO_FACE_RIGHT },     // d
-    { 1, -0.5f, { 1, 0 }, ISO_FACE_RIGHT }, // 6
-    { 1, 0.5f, { 1, 1 }, ISO_FACE_RIGHT },  // e
+    { 0, -1, { 1, 0 }, ISO_FACE_RIGHT },    // c
+    { 0, 0, { 1, 1 }, ISO_FACE_RIGHT },     // d
+    { 1, -0.5f, { 0, 0 }, ISO_FACE_RIGHT }, // 6
+    { 1, 0.5f, { 0, 1 }, ISO_FACE_RIGHT },  // e
 };
 
-unsigned int ib_isometric[] = {
+unsigned int ib_isometric[ 18 ] = {
     // Top
-    0,
-    3,
-    1,
-    3,
-    0,
-    2,
-    // Front
-    4,
-    7,
-    5,
-    7,
-    4,
-    6,
-    // Right
-    8,
-    1,
-    9,
-    1,
-    8,
-    1,
+    // 0, 3, 1, 3, 0, 2, 4, 7, 5, 7, 4, 6, 8, 11, 9, 11, 8, 10,
+    0,  3,  1, //
+    3,  0,  2, //
+
+    4,  7,  5, //
+    7,  4,  6, //
+
+    8,  11, 9,  //
+    11, 8,  10, //
 };
 
 UIOverlayVertex vb_quad[] = {
