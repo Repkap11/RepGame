@@ -6,8 +6,9 @@ void Inventory::init( VertexBufferLayout *ui_overlay_vbl_vertex, VertexBufferLay
     for ( int i_slot = 0; i_slot < INVENTORY_MAX_SIZE; i_slot++ ) {
         InventorySlot *slot = &this->slots[ i_slot ];
         // slot->block_id = LAST_BLOCK_ID;
-        slot->block_id = TNT;
+        // slot->block_id = TNT;
         // slot->block_id = ( BlockID )( i_slot % 5 );
+        slot->block_id = ( BlockID )( i_slot );
     }
 }
 
