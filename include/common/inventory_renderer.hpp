@@ -28,10 +28,12 @@ class InventoryRenderer {
     int text_size;
     int text_spacing;
 
-    IndexBuffer ib;
-    unsigned int *ib_data_inventory;
-    UIOverlayVertex *vb_data_inventory;
-    RenderChain<UIOverlayVertex, UIOverlayInstance> render_chain_inventory;
+    IndexBuffer ib_icons;
+    IndexBuffer ib_background;
+    unsigned int *ib_icons_data;
+    UIOverlayVertex *vb_icons_data;
+    RenderChain<UIOverlayVertex, UIOverlayInstance> render_chain_inventory_background;
+    RenderChain<UIOverlayVertex, UIOverlayInstance> render_chain_inventory_icons;
 
   public:
     void init( VertexBufferLayout *ui_overlay_vbl_vertex, VertexBufferLayout *ui_overlay_vbl_instance );
