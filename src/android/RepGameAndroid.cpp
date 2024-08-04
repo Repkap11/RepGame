@@ -112,4 +112,8 @@ JNIEXPORT void JNICALL Java_com_repkap11_repgame_RepGameJNIWrapper_setJumpPresse
     input_setJumpPressed( repgame_getInputState( ), jumpPressed );
 }
 
+JNIEXPORT void JNICALL Java_com_repkap11_repgame_RepGameJNIWrapper_onInventoryClicked( JNIEnv *env, jobject obj ) {
+    input_onInventoryClicked( repgame_getInputState( ) );
+}
+
 } // End Extern C

@@ -44,6 +44,9 @@ public class UIOverlayView extends View implements View.OnTouchListener {
     private int mMouseRightX;
     private int mMouseRightY;
     private int mMouseRadius;
+    private int mInventoryX;
+    private int mInventoryY;
+    private int mInventoryRadius;
 
     public UIOverlayView(Context context, @Nullable AttributeSet attrs) {
         super(context, attrs);
@@ -66,6 +69,7 @@ public class UIOverlayView extends View implements View.OnTouchListener {
         canvas.drawCircle(mMouseLeftX, mMouseLeftY, mMouseRadius, mMovePaint);
         canvas.drawCircle(mMouseMiddleX, mMouseMiddleY, mMouseRadius, mMovePaint);
         canvas.drawCircle(mMouseRightX, mMouseRightY, mMouseRadius, mMovePaint);
+        canvas.drawCircle(mInventoryX, mInventoryY, mMouseRadius, mMovePaint);
     }
 
     @Override
@@ -81,6 +85,7 @@ public class UIOverlayView extends View implements View.OnTouchListener {
         mUpX = lookMaxRadius / 2;
         mUpX2 = w - mUpX;
 
+
         mUpY = lookMaxRadius / 2;
 
         mMouseLeftY = h - mUpRadius;
@@ -88,9 +93,13 @@ public class UIOverlayView extends View implements View.OnTouchListener {
         mMouseRightY = h - mUpRadius;
 
         mMouseRadius = mMoveRadius / 2;
-        mMouseLeftX = (int)(mMoveRadius * 2.5) + mMouseRadius;
+        mMouseLeftX = (int) (mMoveRadius * 2.8) + mMouseRadius;
         mMouseRightX = w - mMouseLeftX;
         mMouseMiddleX = (mMouseLeftX + mMouseRightX) / 2;
+
+        mInventoryRadius = lookMaxRadius / 2;
+        mInventoryX = w - mInventoryRadius;
+        mInventoryY = h - mInventoryRadius;
 
 
         super.onSizeChanged(w, h, oldw, oldh);
@@ -123,6 +132,17 @@ public class UIOverlayView extends View implements View.OnTouchListener {
         }
         return false;
     }
+
+    boolean eventWithinInventory(MotionEvent event, int pointerIndex) {
+        int x = (int) event.getX(pointerIndex);
+        int y = (int) event.getY(pointerIndex);
+        if ((Math.abs(x - mInventoryX) < mInventoryRadius) &&
+                (Math.abs(y - mInventoryY) < mInventoryRadius)) {
+            return true;
+        }
+        return false;
+    }
+
 
     private boolean eventWithinMouseLeft(MotionEvent event, int pointerIndex) {
         int x = (int) event.getX(pointerIndex);
@@ -177,6 +197,8 @@ public class UIOverlayView extends View implements View.OnTouchListener {
                 } else if (eventWithinMouseRight(event, actionIndex)) {
                     mMouseRightPointerId = actionPointer;
                     handleMouseButtons();
+                } else if (eventWithinInventory(event, actionIndex)) {
+                    handleInventoryButton();
                 } else {
                     handleLook((int) event.getX(actionIndex), (int) event.getY(actionIndex), true);
                     mLookPointerId = actionPointer;
@@ -235,6 +257,9 @@ public class UIOverlayView extends View implements View.OnTouchListener {
         int middle = mMouseMiddlePointerId == -1 ? 0 : 1;
         int right = mMouseRightPointerId == -1 ? 0 : 1;
         mRenderWrapper.setButtonState(left, middle, right);
+    }
+    private void handleInventoryButton(){
+        mRenderWrapper.onInventoryClicked();
     }
 
     private void handleJump() {

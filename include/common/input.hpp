@@ -45,6 +45,7 @@ void input_mouseWheel( InputState *inputState, int x_delta, int y_delta );
 void input_positionHMove( InputState *inputState, float sizeH, float angleH );
 void input_setJumpPressed( InputState *inputState, int jumpPressed );
 void input_setButtonState( InputState *inputState, int left, int middle, int right );
+void input_onInventoryClicked(InputState *inputState);
 #endif
 void input_lookMove( InputState *inputState, int x, int y );
 

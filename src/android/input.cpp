@@ -13,6 +13,10 @@ void input_setJumpPressed( InputState *inputState, int jumpPressed ) {
     inputState->movement.jumpPressed = jumpPressed;
 }
 
+void input_onInventoryClicked( InputState *inputState ) {
+    inputState->inventory_open = !inputState->inventory_open;
+}
+
 void input_setButtonState( InputState *inputState, int left, int middle, int right ) {
     inputState->mouse.buttons.left = left;
     inputState->mouse.buttons.middle = middle;

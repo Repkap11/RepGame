@@ -25,6 +25,8 @@ class RepGameJNIWrapper {
 
     public static native void setJumpPressed(int jumpPressed);
 
+    public static native void onInventoryClicked();
+
     public static native void setButtonState(int left, int middle, int right);
 
 }
