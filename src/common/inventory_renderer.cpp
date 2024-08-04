@@ -189,6 +189,9 @@ void InventoryRenderer::setSelectedSlot( int slot_index ) {
 }
 
 void InventoryRenderer::selectedSlotRender( ) {
+    if ( !this->options.shows_selection_slot ) {
+        return;
+    }
     if ( this->selected_slot_index == -1 ) {
         if ( this->selected_slot_bg != entt::null ) {
             this->render_chain_inventory_background.remove( this->selected_slot_bg );

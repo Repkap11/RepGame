@@ -21,6 +21,7 @@ typedef struct {
     float max_height_percent;
     float active_height_percent;
     bool gravity_bottom;
+    bool shows_selection_slot;
 } InventoryRenderOptions;
 
 class InventoryRenderer {

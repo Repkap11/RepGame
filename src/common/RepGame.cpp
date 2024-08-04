@@ -100,10 +100,11 @@ void repgame_process_mouse_events( ) {
     }
     if ( globalGameState.block_selection.selectionInBounds && globalGameState.input.mouse.buttons.right && globalGameState.input.click_delay_right == 0 ) {
         // Placeing a block
-        unsigned char rotation = getPlacedRotation( globalGameState.block_selection.holdingBlock );
-        BlockID previous_block = change_block( 1, { globalGameState.block_selection.holdingBlock, rotation, 0, globalGameState.block_selection.holdingBlock } );
-        repgame_add_to_an_inventory( previous_block );
-        globalGameState.input.click_delay_right = 30;
+        if ( globalGameState.block_selection.holdingBlock != LAST_BLOCK_ID ) {
+            unsigned char rotation = getPlacedRotation( globalGameState.block_selection.holdingBlock );
+            BlockID previous_block = change_block( 1, { globalGameState.block_selection.holdingBlock, rotation, 0, globalGameState.block_selection.holdingBlock } );
+            globalGameState.input.click_delay_right = 30;
+        }
     }
     // if ( globalGameState.block_selection.selectionInBounds && globalGameState.input.mouse.currentPosition.wheel_counts != globalGameState.input.mouse.previousPosition.wheel_counts ) {
     //     int wheel_diff = globalGameState.input.mouse.currentPosition.wheel_counts > globalGameState.input.mouse.previousPosition.wheel_counts ? 1 : -1;
@@ -307,11 +308,13 @@ static inline void initilizeGameState( const char *world_name ) {
     globalGameState.inventory.inventory_renderer.options.max_height_percent = 0.75f;
     globalGameState.inventory.inventory_renderer.options.max_width_percent = 0.75f;
     globalGameState.inventory.inventory_renderer.options.gravity_bottom = false;
+    globalGameState.inventory.inventory_renderer.options.shows_selection_slot = false;
 
     globalGameState.hotbar.inventory_renderer.options.active_height_percent = 1.0f;
     globalGameState.hotbar.inventory_renderer.options.max_height_percent = 0.1f;
     globalGameState.hotbar.inventory_renderer.options.max_width_percent = 0.75f;
     globalGameState.hotbar.inventory_renderer.options.gravity_bottom = true;
+    globalGameState.hotbar.inventory_renderer.options.shows_selection_slot = true;
 
     map_storage_init( world_name );
     PlayerData saved_data;
@@ -362,6 +365,7 @@ RepGameState *repgame_init( const char *world_name, bool connect_multi, const ch
     world_init( &globalGameState.world, globalGameState.camera.pos );
 
     ui_overlay_init( &globalGameState.ui_overlay, &globalGameState.inventory, &globalGameState.hotbar );
+    globalGameState.hotbar.setSelectedSlot( 0 );
     ui_overlay_set_holding_block( &globalGameState.ui_overlay, globalGameState.block_selection.holdingBlock );
 
     int iMultiSample = 0;
