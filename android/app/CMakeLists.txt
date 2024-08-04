@@ -4,6 +4,7 @@ find_library( log-lib log )
 find_library( android-lib android )
 include_directories(/usr/include/glm/)
 include_directories(../../include/)
+include_directories(../../entt_build/src/)
 
 add_definitions(-DREPGAME_ANDROID)
 file(GLOB REPGAME_SOURCES

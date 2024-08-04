@@ -211,8 +211,8 @@ void texture_init_empty_base( Texture *texture, int blur_mag, int target, int in
         } else {
             glTexParameteri( texture->target, GL_TEXTURE_MAG_FILTER, GL_NEAREST );
         }
-        glTexParameteri( texture->target, GL_TEXTURE_WRAP_S, GL_CLAMP );
-        glTexParameteri( texture->target, GL_TEXTURE_WRAP_T, GL_CLAMP );
+        glTexParameteri( texture->target, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE );
+        glTexParameteri( texture->target, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE );
         if ( repgame_supportsAnisotropic( ) ) {
             float max_ani;
             glGetFloatv( GL_MAX_TEXTURE_MAX_ANISOTROPY_EXT, &max_ani );
