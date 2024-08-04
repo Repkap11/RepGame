@@ -68,11 +68,12 @@ void Inventory::incrementSelectedSlot( int offset ) {
     this->inventory_renderer.setSelectedSlot( this->selected_slot );
 }
 
-void Inventory::handleInput( InputState *inputState ) {
-    int wheel_diff = inputState->mouse.previousPosition.wheel_counts - inputState->mouse.currentPosition.wheel_counts;
-    if ( wheel_diff != 0 ) {
-        this->incrementSelectedSlot( wheel_diff );
-    }
+void Inventory::setSelectedSlot( int selected_slot ) {
+    this->selected_slot = selected_slot;
+    this->inventory_renderer.setSelectedSlot( this->selected_slot );
+}
+
+void Inventory::handleMouseInput( InputState *inputState ) {
 }
 
 void Inventory::cleanup( ) {

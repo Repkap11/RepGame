@@ -221,7 +221,7 @@ void ui_overlay_draw( UIOverlay *ui_overlay, Renderer *renderer, Texture *blocks
     ui_overlay->hotbar->draw( renderer, blocksTexture, mvp_ui, &ui_overlay->shader );
 
     if ( input->inventory_open ) {
-        ui_overlay->inventory->handleInput( input );
+        ui_overlay->inventory->handleMouseInput( input );
         ui_overlay->inventory->draw( renderer, blocksTexture, mvp_ui, &ui_overlay->shader );
     } else {
         ui_overlay->render_chain_held_block.draw( renderer, &ui_overlay->shader );

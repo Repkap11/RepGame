@@ -14,14 +14,15 @@ class Inventory {
     int selected_slot;
 
     int findOpenSlot( );
-    void incrementSelectedSlot( int offset );
 
   public:
     InventoryRenderer inventory_renderer;
     void init( VertexBufferLayout *ui_overlay_vbl_vertex, VertexBufferLayout *ui_overlay_vbl_instance, int width, int height );
     void onScreenSizeChange( int width, int height );
     bool addBlock( BlockID blockId );
-    void handleInput( InputState *inputState );
+    void handleMouseInput( InputState *inputState );
+    void setSelectedSlot( int selected_slot );
+    void incrementSelectedSlot( int offset );
     void draw( Renderer *renderer, Texture *blocksTexture, const glm::mat4 &mvp_ui, Shader *shader );
     void cleanup( );
 };

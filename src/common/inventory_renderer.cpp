@@ -104,6 +104,7 @@ void InventoryRenderer::init( VertexBufferLayout *ui_overlay_vbl_vertex, VertexB
     this->ib_max_size = this->num_blocks_max * num_index_per_block * ISOMETRIC_FACES;
 
     this->selected_slot_bg = entt::null;
+    this->selected_slot_index = -1;
 
     this->render_chain_inventory_icons.init( ui_overlay_vbl_vertex, ui_overlay_vbl_instance, vb_isometric_quad, VB_ISOMETRIC_QUAD_SIZE, ib_isometric_quad, IB_ISOMETRIC_QUAD_SIZE );
     this->render_chain_inventory_background.init( ui_overlay_vbl_vertex, ui_overlay_vbl_instance, vb_isometric_quad, VB_ISOMETRIC_QUAD_SIZE, ib_isometric_quad, IB_ISOMETRIC_QUAD_SIZE );

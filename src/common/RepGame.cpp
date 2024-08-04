@@ -106,32 +106,32 @@ void repgame_process_mouse_events( ) {
         repgame_add_to_an_inventory( previous_block );
         globalGameState.input.click_delay_right = 30;
     }
-    if ( globalGameState.block_selection.selectionInBounds && globalGameState.input.mouse.currentPosition.wheel_counts != globalGameState.input.mouse.previousPosition.wheel_counts ) {
-        int wheel_diff = globalGameState.input.mouse.currentPosition.wheel_counts > globalGameState.input.mouse.previousPosition.wheel_counts ? 1 : -1;
-        BlockState blockState = world_get_loaded_block( &globalGameState.world, globalGameState.block_selection.pos_destroy );
-        int blockID_int = ( int )blockState.id;
-        if ( blockID_int != LAST_BLOCK_ID ) {
-            bool valid_scroll_block;
-            do {
-                blockID_int += wheel_diff;
-                if ( blockID_int >= LAST_BLOCK_ID ) {
-                    blockID_int = 1;
-                }
-                if ( blockID_int <= 0 ) {
-                    blockID_int = LAST_BLOCK_ID - 1;
-                }
-                Block *next_block = block_definition_get_definition( ( BlockID )blockID_int );
-                bool is_pickable = next_block->is_pickable;
-                bool places_on_any_face = block_places_on_all_faces( next_block );
-                valid_scroll_block = places_on_any_face && is_pickable;
-            } while ( !valid_scroll_block );
-            blockState.id = ( BlockID )blockID_int;
-            blockState.display_id = ( BlockID )blockID_int;
-            // blockState.rotation = getPlacedRotation( blockState.id );
-            change_block( 0, BLOCK_STATE_AIR );
-            change_block( 0, blockState );
-        }
-    }
+    // if ( globalGameState.block_selection.selectionInBounds && globalGameState.input.mouse.currentPosition.wheel_counts != globalGameState.input.mouse.previousPosition.wheel_counts ) {
+    //     int wheel_diff = globalGameState.input.mouse.currentPosition.wheel_counts > globalGameState.input.mouse.previousPosition.wheel_counts ? 1 : -1;
+    //     BlockState blockState = world_get_loaded_block( &globalGameState.world, globalGameState.block_selection.pos_destroy );
+    //     int blockID_int = ( int )blockState.id;
+    //     if ( blockID_int != LAST_BLOCK_ID ) {
+    //         bool valid_scroll_block;
+    //         do {
+    //             blockID_int += wheel_diff;
+    //             if ( blockID_int >= LAST_BLOCK_ID ) {
+    //                 blockID_int = 1;
+    //             }
+    //             if ( blockID_int <= 0 ) {
+    //                 blockID_int = LAST_BLOCK_ID - 1;
+    //             }
+    //             Block *next_block = block_definition_get_definition( ( BlockID )blockID_int );
+    //             bool is_pickable = next_block->is_pickable;
+    //             bool places_on_any_face = block_places_on_all_faces( next_block );
+    //             valid_scroll_block = places_on_any_face && is_pickable;
+    //         } while ( !valid_scroll_block );
+    //         blockState.id = ( BlockID )blockID_int;
+    //         blockState.display_id = ( BlockID )blockID_int;
+    //         // blockState.rotation = getPlacedRotation( blockState.id );
+    //         change_block( 0, BLOCK_STATE_AIR );
+    //         change_block( 0, blockState );
+    //     }
+    // }
     globalGameState.input.mouse.currentPosition.wheel_counts = 0;
 }
 
@@ -243,7 +243,11 @@ void repgame_tick( ) {
     globalGameState.tick_number++;
 
     multiplayer_process_events( &globalGameState.world );
-    globalGameState.hotbar.handleInput( &globalGameState.input );
+
+    int wheel_diff = globalGameState.input.mouse.previousPosition.wheel_counts - globalGameState.input.mouse.currentPosition.wheel_counts;
+    if ( wheel_diff != 0 ) {
+        globalGameState.hotbar.incrementSelectedSlot( wheel_diff);
+    }
 
     if ( repgame_should_lock_pointer( ) ) {
         repgame_process_mouse_events( );
