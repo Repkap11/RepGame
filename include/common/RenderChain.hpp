@@ -100,7 +100,8 @@ template <typename Element, typename Instance> class RenderChain {
     }
 
     void clear( ) {
-        registry.clear( );
+        registry.clear<Instance>( );
+        this->instance_count_changed = true;
     }
 
   private:

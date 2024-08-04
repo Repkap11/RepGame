@@ -6,6 +6,7 @@ void Inventory::init( VertexBufferLayout *ui_overlay_vbl_vertex, VertexBufferLay
     this->height = height;
     this->num_blocks_max = width * height;
     this->slots = ( InventorySlot * )calloc( this->num_blocks_max, sizeof( InventorySlot ) );
+    this->selected_slot = -1;
 
     this->inventory_renderer.init( ui_overlay_vbl_vertex, ui_overlay_vbl_instance, width, height );
     for ( int i_slot = 0; i_slot < this->num_blocks_max; i_slot++ ) {
@@ -49,7 +50,7 @@ bool Inventory::addBlock( BlockID blockId ) {
         blockId_to_slot_map.emplace( blockId, openSlot );
         InventorySlot &slot = this->slots[ openSlot ];
         slot.block_id = blockId;
-        this->inventory_renderer.reRenderSlot( openSlot, slot );
+        this->inventory_renderer.changeSlotItem( openSlot, slot );
 
     } else {
         // This is an existing block, picking it again removes it from the inventory for now
@@ -57,12 +58,21 @@ bool Inventory::addBlock( BlockID blockId ) {
         blockId_to_slot_map.erase( it );
         InventorySlot &slot = this->slots[ existingSlot ];
         slot.block_id = LAST_BLOCK_ID;
-        this->inventory_renderer.reRenderSlot( existingSlot, slot );
+        this->inventory_renderer.changeSlotItem( existingSlot, slot );
     }
     return true;
 };
+void Inventory::incrementSelectedSlot( int offset ) {
+    // Always positive modulo, so that we don't go out of bounds
+    this->selected_slot = ( this->selected_slot + this->num_blocks_max + offset ) % this->num_blocks_max;
+    this->inventory_renderer.setSelectedSlot( this->selected_slot );
+}
 
 void Inventory::handleInput( InputState *inputState ) {
+    int wheel_diff = inputState->mouse.previousPosition.wheel_counts - inputState->mouse.currentPosition.wheel_counts;
+    if ( wheel_diff != 0 ) {
+        this->incrementSelectedSlot( wheel_diff );
+    }
 }
 
 void Inventory::cleanup( ) {

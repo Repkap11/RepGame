@@ -12,7 +12,7 @@ layout(location = 2) in uint element_is_isometric;
 layout(location = 3) in uint element_face_type;
 
 // From UIOverlayInstance
-layout(location = 4) in vec2 instance_position;
+layout(location = 4) in vec3 instance_position;
 layout(location = 5) in vec2 instance_size;
 layout(location = 6) in uint instance_is_block;
 layout(location = 7) in uint instance_is_isometric;
@@ -24,7 +24,7 @@ out vec3 v_TexCoordBlock;
 out vec4 v_Tint;
 
 void main() {
-    gl_Position = u_MVP * vec4(instance_position + element_position * instance_size, 0, 1);
+    gl_Position = u_MVP * vec4(instance_position.xy + element_position * instance_size, instance_position.z, 1);
     v_TexCoordBlock = vec3(element_texture_coords, instance_id_isos[element_face_type]);
     v_is_block = instance_is_block;
 

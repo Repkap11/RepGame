@@ -243,6 +243,7 @@ void repgame_tick( ) {
     globalGameState.tick_number++;
 
     multiplayer_process_events( &globalGameState.world );
+    globalGameState.hotbar.handleInput( &globalGameState.input );
 
     if ( repgame_should_lock_pointer( ) ) {
         repgame_process_mouse_events( );

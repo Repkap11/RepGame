@@ -4,6 +4,11 @@
 
 #define ISOMETRIC_FACES 3
 
+#define ORDER_Z_ITEMS_BG 0.0f
+#define ORDER_Z_SELECTED_SLOT 0.1f
+#define ORDER_Z_SLOT_BG 0.2f
+#define ORDER_Z_BLOCKS 0.3f
+
 // UIOverlayVertex vb_isometric[ 12 ] = {
 //     { 0, 0, { 1, 0 }, ISO_FACE_TOP },     // 0
 //     { -1, 0.5f, { 1, 1 }, ISO_FACE_TOP }, // 1
@@ -98,6 +103,8 @@ void InventoryRenderer::init( VertexBufferLayout *ui_overlay_vbl_vertex, VertexB
     this->vb_max_size = this->num_blocks_max * num_points_per_block * ISOMETRIC_FACES;
     this->ib_max_size = this->num_blocks_max * num_index_per_block * ISOMETRIC_FACES;
 
+    this->selected_slot_bg = entt::null;
+
     this->render_chain_inventory_icons.init( ui_overlay_vbl_vertex, ui_overlay_vbl_instance, vb_isometric_quad, VB_ISOMETRIC_QUAD_SIZE, ib_isometric_quad, IB_ISOMETRIC_QUAD_SIZE );
     this->render_chain_inventory_background.init( ui_overlay_vbl_vertex, ui_overlay_vbl_instance, vb_isometric_quad, VB_ISOMETRIC_QUAD_SIZE, ib_isometric_quad, IB_ISOMETRIC_QUAD_SIZE );
 
@@ -164,17 +171,70 @@ void InventoryRenderer::onSizeChange( int width, int height, InventorySlot *inve
     this->inv_block_size = this->inv_cell_size * block_fraction;
     this->inv_block_offset = this->inv_cell_offset + ( this->inv_cell_size - this->inv_block_size ) / 2;
 
+    float selected_fraction = 1.15;
+    this->inv_selected_size = this->inv_cell_size * selected_fraction;
+    this->inv_selected_offset = this->inv_cell_offset + ( this->inv_cell_size - this->inv_selected_size ) / 2;
+
     this->renderBackground( );
     this->fullItemRender( inventory_slots );
 }
-void InventoryRenderer::setSize( UIOverlayInstance &vertex, float left, float bottom, float width, float height ) {
+
+void InventoryRenderer::setSelectedSlot( int slot_index ) {
+    if ( slot_index == this->selected_slot_index ) {
+        return;
+    }
+    this->selected_slot_index = slot_index;
+    this->selectedSlotRender( );
+}
+
+void InventoryRenderer::selectedSlotRender( ) {
+    if ( this->selected_slot_index == -1 ) {
+        if ( this->selected_slot_bg != entt::null ) {
+            this->render_chain_inventory_background.remove( this->selected_slot_bg );
+            this->selected_slot_bg = entt::null;
+        }
+        return;
+    }
+
+    UIOverlayInstance *ui_vertex_prt;
+    bool needsVertexInit = this->selected_slot_bg == entt::null;
+    if ( needsVertexInit ) {
+        auto pair = this->render_chain_inventory_background.create_instance( );
+        this->selected_slot_bg = pair.first;
+        ui_vertex_prt = &pair.second;
+    } else {
+        ui_vertex_prt = &this->render_chain_inventory_background.get_instance( this->selected_slot_bg );
+    }
+    UIOverlayInstance &ui_vertex = *ui_vertex_prt;
+    if ( needsVertexInit ) {
+        float gray_color = 0.6f;
+        ui_vertex.tint[ 0 ] = gray_color;
+        ui_vertex.tint[ 1 ] = gray_color;
+        ui_vertex.tint[ 2 ] = gray_color;
+        ui_vertex.tint[ 3 ] = 1.0f;
+        ui_vertex.is_isometric = 0;
+        ui_vertex.is_block = 0;
+        ui_vertex.width = this->inv_selected_size;
+        ui_vertex.height = this->inv_selected_size;
+    }
+    int block_grid_coord_x = this->selected_slot_index % this->width;
+    int block_grid_coord_y = this->selected_slot_index / this->width;
+    ui_vertex.screen_x = this->inv_items_x + block_grid_coord_x * this->inv_cell_stride + this->inv_selected_offset;
+    ui_vertex.screen_y = this->inv_items_y + block_grid_coord_y * this->inv_cell_stride + this->inv_selected_offset;
+    ui_vertex.screen_z = ORDER_Z_SELECTED_SLOT;
+
+    this->render_chain_inventory_background.invalidate( this->selected_slot_bg );
+}
+
+void InventoryRenderer::setSize( UIOverlayInstance &vertex, float left, float bottom, float width, float height, float order_z ) {
     vertex.screen_x = left;
     vertex.screen_y = bottom;
+    vertex.screen_z = order_z;
     vertex.width = width;
     vertex.height = height;
 }
 
-void InventoryRenderer::reRenderSlot( int slot_index, InventorySlot &slot ) {
+void InventoryRenderer::changeSlotItem( int slot_index, InventorySlot &slot ) {
     entt::entity &slot_entity = this->slots_entities[ slot_index ];
     this->singleItemRender( slot_index, slot );
 }
@@ -185,14 +245,18 @@ void InventoryRenderer::renderBackground( ) {
     // X axis left to right
     // Y axis bottom to top
     this->render_chain_inventory_background.clear( );
+    this->selected_slot_bg = entt::null;
 
     // Large background
     // UIOverlayInstance &inv_bg = this->init_background_gray_cell( 0.1f );
-    // this->setSize( inv_bg, this->inv_x, this->inv_y, this->inv_width, this->inv_height );
+    // setSize( inv_bg, this->inv_x, this->inv_y, this->inv_width, this->inv_height );
 
     // Items background
     UIOverlayInstance &items_bg = this->init_background_gray_cell( 0.4f );
-    this->setSize( items_bg, this->inv_items_x, this->inv_items_y, this->inv_items_width, this->inv_items_height );
+    setSize( items_bg, this->inv_items_x, this->inv_items_y, this->inv_items_width, this->inv_items_height, ORDER_Z_ITEMS_BG );
+
+    // Selected slot
+    this->selectedSlotRender( );
 
     // Cells
     float cell_start_x = this->inv_items_x + this->inv_cell_offset;
@@ -201,11 +265,12 @@ void InventoryRenderer::renderBackground( ) {
         UIOverlayInstance &cell_bg = this->init_background_gray_cell( 0.5f );
         int block_grid_coord_x = i % this->width;
         int block_grid_coord_y = i / this->width;
-        this->setSize( cell_bg,                                                   //
-                       cell_start_x + block_grid_coord_x * this->inv_cell_stride, //
-                       cell_start_y + block_grid_coord_y * this->inv_cell_stride, //
-                       this->inv_cell_size,                                       //
-                       this->inv_cell_size );
+        setSize( cell_bg,                                                   //
+                 cell_start_x + block_grid_coord_x * this->inv_cell_stride, //
+                 cell_start_y + block_grid_coord_y * this->inv_cell_stride, //
+                 this->inv_cell_size,                                       //
+                 this->inv_cell_size,                                       //
+                 ORDER_Z_SLOT_BG );
     }
 }
 
@@ -229,7 +294,8 @@ void InventoryRenderer::singleItemRender( int slot_index, const InventorySlot &i
         return;
     }
     UIOverlayInstance *ui_vertex_prt;
-    if ( slot_entity == entt::null ) {
+    bool needsVertexInit = slot_entity == entt::null;
+    if ( needsVertexInit ) {
         auto pair = this->render_chain_inventory_icons.create_instance( );
         slot_entity = pair.first;
         ui_vertex_prt = &pair.second;
@@ -238,14 +304,19 @@ void InventoryRenderer::singleItemRender( int slot_index, const InventorySlot &i
     }
     UIOverlayInstance &ui_vertex = *ui_vertex_prt;
 
+    if ( needsVertexInit ) {
+        ui_vertex.screen_z = ORDER_Z_BLOCKS;
+        ui_vertex.width = this->inv_block_size;
+        ui_vertex.height = this->inv_block_size;
+        ui_vertex.is_block = 1;
+    }
+
     int block_grid_coord_x = slot_index % this->width;
     int block_grid_coord_y = slot_index / this->width;
 
     ui_vertex.screen_x = this->inv_items_x + block_grid_coord_x * this->inv_cell_stride + this->inv_block_offset;
     ui_vertex.screen_y = this->inv_items_y + block_grid_coord_y * this->inv_cell_stride + this->inv_block_offset;
-    ui_vertex.width = this->inv_block_size;
-    ui_vertex.height = this->inv_block_size;
-    ui_vertex.is_block = 1;
+
     ui_vertex.is_isometric = block->icon_is_isometric;
 
     for ( int i = 0; i < 4; i++ ) {
@@ -275,18 +346,20 @@ void InventoryRenderer::fullItemRender( InventorySlot *inventory_slots ) {
 void InventoryRenderer::draw( Renderer *renderer, Texture *blocksTexture, const glm::mat4 &mvp_ui, Shader *shader ) {
     showErrors( );
 
-    glDisable( GL_DEPTH_TEST );
-    this->render_chain_inventory_background.draw( renderer, shader );
-    this->render_chain_inventory_icons.draw( renderer, shader );
-    // pr_debug( "Drawing num icons:%ld", this->render_chain_inventory_icons.length( ) );
-
+    // glDisable( GL_DEPTH_TEST );
     glEnable( GL_DEPTH_TEST );
     glClear( GL_DEPTH_BUFFER_BIT );
+    this->render_chain_inventory_background.draw( renderer, shader );
+    this->render_chain_inventory_icons.draw( renderer, shader );
+    // pr_debug( "Drawing num background:%d", this->render_chain_inventory_background.length( ) );
+    // pr_debug( "Drawing num icons:%ld", this->render_chain_inventory_icons.length( ) );
+    // glClear( GL_DEPTH_BUFFER_BIT );
 
     showErrors( );
 }
 
 void InventoryRenderer::cleanup( ) {
     this->render_chain_inventory_background.clear( );
+    this->selected_slot_bg = entt::null;
     this->render_chain_inventory_icons.clear( );
 }

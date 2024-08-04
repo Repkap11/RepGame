@@ -11,8 +11,10 @@ class Inventory {
     int num_blocks_max;
     InventorySlot *slots;
     std::map<BlockID, int> blockId_to_slot_map;
+    int selected_slot;
 
     int findOpenSlot( );
+    void incrementSelectedSlot( int offset );
 
   public:
     InventoryRenderer inventory_renderer;

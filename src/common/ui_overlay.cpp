@@ -12,17 +12,17 @@
 #define CROSSHAIR_COLOR { 0, 0 }
 
 UIOverlayVertex vb_data_crosshair_element[ UI_OVERLAY_VERTEX_COUNT_CROSSHAIR ] = {
-    { -SCALE * WIDTH, -WIDTH,{ 0, 0}, 0, ISO_FACE_TOP }, // 0
-    { -SCALE * WIDTH, WIDTH, {0, 0}, 0, ISO_FACE_TOP },  // 1
-    { SCALE * WIDTH, -WIDTH, {0, 0}, 0, ISO_FACE_TOP },  // 2
-    { SCALE * WIDTH, WIDTH, {0, 0}, 0, ISO_FACE_TOP },   // 3
+    { -SCALE * WIDTH, -WIDTH, { 0, 0 }, 0, ISO_FACE_TOP }, // 0
+    { -SCALE * WIDTH, WIDTH, { 0, 0 }, 0, ISO_FACE_TOP },  // 1
+    { SCALE * WIDTH, -WIDTH, { 0, 0 }, 0, ISO_FACE_TOP },  // 2
+    { SCALE * WIDTH, WIDTH, { 0, 0 }, 0, ISO_FACE_TOP },   // 3
 
-    { -WIDTH, -SCALE *WIDTH, {0, 0}, 0, ISO_FACE_TOP }, // 4
-    { -WIDTH, SCALE *WIDTH, {0, 0}, 0, ISO_FACE_TOP },  // 5
-    { WIDTH, -SCALE *WIDTH, {0, 0}, 0, ISO_FACE_TOP },  // 6
-    { WIDTH, SCALE *WIDTH, {0, 0}, 0, ISO_FACE_TOP },   // 7
+    { -WIDTH, -SCALE *WIDTH, { 0, 0 }, 0, ISO_FACE_TOP }, // 4
+    { -WIDTH, SCALE *WIDTH, { 0, 0 }, 0, ISO_FACE_TOP },  // 5
+    { WIDTH, -SCALE *WIDTH, { 0, 0 }, 0, ISO_FACE_TOP },  // 6
+    { WIDTH, SCALE *WIDTH, { 0, 0 }, 0, ISO_FACE_TOP },   // 7
 };
-UIOverlayInstance vb_data_crosshair_instance = { 0, 0, 1, 1, 0, 0, { 0, 0, 0 }, { 1, 1, 1, 0.5f } };
+UIOverlayInstance vb_data_crosshair_instance = { 0, 0, 0, 1, 1, 0, 0, { 0, 0, 0 }, { 1, 1, 1, 0.5f } };
 
 float holding_alpha = 1.0f;
 
@@ -45,7 +45,7 @@ float id = ( float )TNT;
 //     { 1, 1, { 0, 1 }, ISO_FACE_RIGHT, 1 }, // 11
 // };
 
-UIOverlayInstance vb_data_holding_block_instance = { 0, 0, 0, 0, 1, 0, { id, id, id }, { 1, 1, 1, holding_alpha } };
+UIOverlayInstance vb_data_holding_block_instance = { 0, 0, 0, 0, 0, 1, 0, { id, id, id }, { 1, 1, 1, holding_alpha } };
 
 int holding_block_vertex_face_map[] = {
     FACE_TOP,   FACE_TOP,   FACE_TOP,   FACE_TOP,
@@ -158,7 +158,7 @@ void ui_overlay_init( UIOverlay *ui_overlay, Inventory *inventory, Inventory *ho
 
     VertexBufferLayout vbl_instance;
     vertex_buffer_layout_init( &vbl_instance );
-    vertex_buffer_layout_push_float( &vbl_instance, 2 );        // UIOverlayInstance screen_x, screen_y
+    vertex_buffer_layout_push_float( &vbl_instance, 3 );        // UIOverlayInstance screen_x, screen_y, screen_z
     vertex_buffer_layout_push_float( &vbl_instance, 2 );        // UIOverlayInstance width, height
     vertex_buffer_layout_push_unsigned_int( &vbl_instance, 1 ); // UIOverlayInstance is_block
     vertex_buffer_layout_push_unsigned_int( &vbl_instance, 1 ); // UIOverlayInstance is_isometric
@@ -196,6 +196,7 @@ void ui_overlay_set_holding_block( UIOverlay *ui_overlay, BlockID holding_block 
 
     vb_data_holding_block_instance.screen_x = -1.0 * ui_overlay->screen_width / 2 + 50;
     vb_data_holding_block_instance.screen_y = -1.0 * ui_overlay->screen_height / 2 + 50;
+    vb_data_holding_block_instance.screen_z = 0;
 
     for ( int face = 0; face < ISOMETRIC_FACES; ++face ) {
         if ( !holdingBlock->icon_is_isometric ) {

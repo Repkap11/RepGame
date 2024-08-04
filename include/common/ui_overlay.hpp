@@ -20,6 +20,7 @@ typedef struct {
 struct UIOverlayInstance {
     float screen_x;
     float screen_y;
+    float screen_z;
     float width;
     float height;
     unsigned int is_block;
