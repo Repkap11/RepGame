@@ -183,12 +183,12 @@ void main_loop_full( ) {
             int computer_is_too_slow_limit = 10; // max number of advances per render, if you can't get 20 fps, slow the game's UPS
 
             // Loop until all steps are executed or computer_is_too_slow_limit is reached
-            int num_ticks_in_frame = 0;
+            // int num_ticks_in_frame = 0;
             while ( ( ( ( ( int )next_game_step - ( int )now ) <= 0 ) ) && ( computer_is_too_slow_limit-- ) ) {
                 repgame_linux_process_sdl_events( );
                 repgame_linux_process_window_and_pointer_state( );
                 repgame_tick( );
-                num_ticks_in_frame++;
+                // num_ticks_in_frame++;
                 next_game_step += time_step_ms; // count 1 game tick done
             }
             // pr_debug( "slow:%d num_ticks_in_frame:%d fps:%f", computer_is_too_slow_limit, num_ticks_in_frame, ( float )( UPS_RATE ) / ( float )num_ticks_in_frame );

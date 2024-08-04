@@ -12,15 +12,15 @@
 #define CROSSHAIR_COLOR { 0, 0 }
 
 UIOverlayVertex vb_data_crosshair_element[ UI_OVERLAY_VERTEX_COUNT_CROSSHAIR ] = {
-    { -SCALE * WIDTH, -WIDTH, 0, 0, 0, ISO_FACE_TOP }, // 0
-    { -SCALE * WIDTH, WIDTH, 0, 0, 0, ISO_FACE_TOP },  // 1
-    { SCALE * WIDTH, -WIDTH, 0, 0, 0, ISO_FACE_TOP },  // 2
-    { SCALE * WIDTH, WIDTH, 0, 0, 0, ISO_FACE_TOP },   // 3
+    { -SCALE * WIDTH, -WIDTH,{ 0, 0}, 0, ISO_FACE_TOP }, // 0
+    { -SCALE * WIDTH, WIDTH, {0, 0}, 0, ISO_FACE_TOP },  // 1
+    { SCALE * WIDTH, -WIDTH, {0, 0}, 0, ISO_FACE_TOP },  // 2
+    { SCALE * WIDTH, WIDTH, {0, 0}, 0, ISO_FACE_TOP },   // 3
 
-    { -WIDTH, -SCALE *WIDTH, 0, 0, 0, ISO_FACE_TOP }, // 4
-    { -WIDTH, SCALE *WIDTH, 0, 0, 0, ISO_FACE_TOP },  // 5
-    { WIDTH, -SCALE *WIDTH, 0, 0, 0, ISO_FACE_TOP },  // 6
-    { WIDTH, SCALE *WIDTH, 0, 0, 0, ISO_FACE_TOP },   // 7
+    { -WIDTH, -SCALE *WIDTH, {0, 0}, 0, ISO_FACE_TOP }, // 4
+    { -WIDTH, SCALE *WIDTH, {0, 0}, 0, ISO_FACE_TOP },  // 5
+    { WIDTH, -SCALE *WIDTH, {0, 0}, 0, ISO_FACE_TOP },  // 6
+    { WIDTH, SCALE *WIDTH, {0, 0}, 0, ISO_FACE_TOP },   // 7
 };
 UIOverlayInstance vb_data_crosshair_instance = { 0, 0, 1, 1, 0, 0, { 0, 0, 0 }, { 1, 1, 1, 0.5f } };
 
