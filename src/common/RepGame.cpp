@@ -366,6 +366,8 @@ RepGameState *repgame_init( const char *world_name, bool connect_multi, const ch
 
     ui_overlay_init( &globalGameState.ui_overlay, &globalGameState.inventory, &globalGameState.hotbar );
     globalGameState.hotbar.setSelectedSlot( 0 );
+    imgui_overlay_init( &globalGameState.imgui_overlay );
+
     ui_overlay_set_holding_block( &globalGameState.ui_overlay, globalGameState.block_selection.holdingBlock );
 
     int iMultiSample = 0;
@@ -494,6 +496,7 @@ void repgame_draw( ) {
     showErrors( );
     glClear( GL_DEPTH_BUFFER_BIT );
     ui_overlay_draw( &globalGameState.ui_overlay, &globalGameState.world.renderer, &globalGameState.blocksTexture, &globalGameState.input, globalGameState.screen.ortho_center );
+    imgui_overlay_draw( &globalGameState.imgui_overlay, &globalGameState.input );
     showErrors( );
 }
 
@@ -509,6 +512,7 @@ void repgame_cleanup( ) {
     ui_overlay_cleanup( &globalGameState.ui_overlay );
     globalGameState.inventory.cleanup( );
     globalGameState.hotbar.cleanup( );
+    imgui_overlay_cleanup( &globalGameState.imgui_overlay );
     block_definitions_free_definitions( );
 
     PlayerData saved_data;

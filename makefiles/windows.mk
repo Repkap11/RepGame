@@ -28,6 +28,7 @@ LD_WINDOWS := ccache $(LD_WINDOWS)
 endif
 
 OBJECTS_COMMON_WINDOWS := $(patsubst src/common/%.cpp,out/windows/common/%.o, $(SRC_COMMON))
+OBJECTS_IMGUI_WINDOWS := $(patsubst imgui_build/%.cpp,out/windows/imgui/%.o, $(SRC_IMGUI))
 OBJECTS_WINDOWS := $(patsubst src/%.cpp,out/windows/%.o, $(wildcard src/windows/*.cpp))
 DEPS_WINDOWS := $(patsubst src/%.cpp,out/windows/%.d, $(wildcard src/windows/*.cpp)) \
 			$(patsubst src/common/%.cpp,out/windows/common/%.d, $(SRC_COMMON))
@@ -54,9 +55,16 @@ windows-deploy: out/windows/$(TARGET).exe
 	rsync $< paul@repkap11.com:/home/paul/website/${TARGET_LOWER}
 
 WINDOWS_DIRS = $(patsubst src%,out/windows%,$(shell find src -type d)) \
-		out/windows/shaders out/windows/bitmaps
+		out/windows/shaders out/windows/bitmaps \
+		out/windows/imgui \
+		out/windows/imgui/backends
 
 out/windows/%.o: src/%.cpp $(call GUARD,CC_WINDOWS INCLUDES_WINDOWS INCLUDES_COMMON CFLAGS_WINDOWS) windows_build | out/windows
+	$(call CHECK,CC_WINDOWS INCLUDES_WINDOWS INCLUDES_COMMON CFLAGS_WINDOWS)
+	@#Use g++ to build o file and a dependecy tree .d file for every cpp file
+	$(CC_WINDOWS) $(INCLUDES_WINDOWS) $(INCLUDES_COMMON) $(CFLAGS_WINDOWS) -MMD -MP -MF $(patsubst %.o,%.d,$@) -MT $(patsubst %.d,%.o,$@) -c $< -o $@
+
+out/windows/imgui/%.o: imgui_build/%.cpp $(call GUARD,CC_WINDOWS INCLUDES_WINDOWS INCLUDES_COMMON CFLAGS_WINDOWS) windows_build | out/windows
 	$(call CHECK,CC_WINDOWS INCLUDES_WINDOWS INCLUDES_COMMON CFLAGS_WINDOWS)
 	@#Use g++ to build o file and a dependecy tree .d file for every cpp file
 	$(CC_WINDOWS) $(INCLUDES_WINDOWS) $(INCLUDES_COMMON) $(CFLAGS_WINDOWS) -MMD -MP -MF $(patsubst %.o,%.d,$@) -MT $(patsubst %.d,%.o,$@) -c $< -o $@
@@ -72,9 +80,9 @@ out/windows/$(TARGET).exe: out/windows/$(TARGET)_uncompressed.exe
 	upx-ucl -q $< -o $@
 	touch $@
 
-out/windows/$(TARGET)_uncompressed.exe: windows_build out/windows/SDL2.dll $(OBJECTS_COMMON_WINDOWS) $(OBJECTS_WINDOWS) $(SHADER_BLOBS_WINDOWS) $(BITMAP_BLOBS_WINDOWS) $(call GUARD,CC_WINDOWS CFLAGS_WINDOWS LIBS_WINDOWS) | out/windows
+out/windows/$(TARGET)_uncompressed.exe: windows_build out/windows/SDL2.dll $(OBJECTS_COMMON_WINDOWS) $(OBJECTS_IMGUI_WINDOWS) $(OBJECTS_WINDOWS) $(SHADER_BLOBS_WINDOWS) $(BITMAP_BLOBS_WINDOWS) $(call GUARD,CC_WINDOWS CFLAGS_WINDOWS LIBS_WINDOWS) | out/windows
 	$(call CHECK,CC_WINDOWS CFLAGS_WINDOWS LIBS_WINDOWS)
-	$(CC_WINDOWS) -flto $(CFLAGS_WINDOWS) $(OBJECTS_WINDOWS) $(OBJECTS_COMMON_WINDOWS) $(SHADER_BLOBS_WINDOWS) $(BITMAP_BLOBS_WINDOWS) $(LIBS_WINDOWS) -o $@
+	$(CC_WINDOWS) -flto $(CFLAGS_WINDOWS) $(OBJECTS_WINDOWS) $(OBJECTS_COMMON_WINDOWS) $(OBJECTS_IMGUI_WINDOWS) $(SHADER_BLOBS_WINDOWS) $(BITMAP_BLOBS_WINDOWS) $(LIBS_WINDOWS) -o $@
 
 windows-run: windows
 	wine out/windows/$(TARGET).exe "World1"
