@@ -211,7 +211,7 @@ void ui_overlay_set_holding_block( UIOverlay *ui_overlay, BlockID holding_block 
         }
     }
 
-    ui_overlay->render_chain_held_block.cleanup( );
+    ui_overlay->render_chain_held_block.clear( );
     auto pair = ui_overlay->render_chain_held_block.create_instance( );
     pair.second = vb_data_holding_block_instance;
 }

@@ -31,6 +31,8 @@ class InventoryRenderer {
     int item_icon_size;
     int text_size;
     int text_spacing;
+    int icon_offset;
+    entt::entity slots_entities[ INVENTORY_MAX_SIZE ];
     RenderChain<UIOverlayVertex, UIOverlayInstance> render_chain_inventory_background;
     RenderChain<UIOverlayVertex, UIOverlayInstance> render_chain_inventory_icons;
 
@@ -38,11 +40,13 @@ class InventoryRenderer {
     UIOverlayInstance &init_background_gray_cell( float gray );
     void renderBackground( );
     void setSize( UIOverlayInstance &vertex, float left, float bottom, float width, float height );
+    void fullItemRender( InventorySlot *inventory_slots );
+    void singleItemRender( int slot_index, const InventorySlot &inventory_slot );
 
   public:
     void init( VertexBufferLayout *ui_overlay_vbl_vertex, VertexBufferLayout *ui_overlay_vbl_instance );
-    void onSizeChange( int width, int height );
-    void render( InventorySlot *inventory_slots );
+    void onSizeChange( int width, int height, InventorySlot *inventory_slots );
+    void reRenderSlot( int slot_index, InventorySlot &slot );
     void draw( Renderer *renderer, Texture *blocksTexture, const glm::mat4 &mvp_ui, Shader *shader );
     void cleanup( );
 };

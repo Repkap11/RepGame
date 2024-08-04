@@ -13,8 +13,7 @@ void Inventory::init( VertexBufferLayout *ui_overlay_vbl_vertex, VertexBufferLay
 }
 
 void Inventory::onScreenSizeChange( int width, int height ) {
-    this->inventory_renderer.onSizeChange( width, height );
-    this->inventory_renderer.render( this->slots );
+    this->inventory_renderer.onSizeChange( width, height, this->slots );
 }
 
 void Inventory::draw( Renderer *renderer, Texture *blocksTexture, const glm::mat4 &mvp_ui, Shader *shader ) {
@@ -43,11 +42,18 @@ bool Inventory::addBlock( BlockID blockId ) {
             return false;
         }
         blockId_to_slot_map.emplace( blockId, openSlot );
-        this->slots[ openSlot ].block_id = blockId;
+        InventorySlot &slot = this->slots[ openSlot ];
+        slot.block_id = blockId;
+        this->inventory_renderer.reRenderSlot( openSlot, slot );
+
     } else {
-        // This is an existing block, we don't support stacking yet...
+        // This is an existing block, picking it again removes it from the inventory for now
+        int existingSlot = it->second;
+        blockId_to_slot_map.erase( it );
+        InventorySlot &slot = this->slots[ existingSlot ];
+        slot.block_id = LAST_BLOCK_ID;
+        this->inventory_renderer.reRenderSlot( existingSlot, slot );
     }
-    this->inventory_renderer.render( this->slots );
     return true;
 };
 

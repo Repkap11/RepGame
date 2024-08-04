@@ -49,5 +49,5 @@ void MultiplayerAvatars::draw( const glm::mat4 &mvp, Renderer *renderer, Shader 
 }
 
 void MultiplayerAvatars::cleanup( ) {
-    this->render_chain.cleanup( );
+    this->render_chain.clear( );
 }

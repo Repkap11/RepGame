@@ -56,15 +56,19 @@ template <typename Element, typename Instance> class RenderChain {
         Instance &instance = registry.emplace<Instance>( entity );
         return std::pair<entt::entity, Instance &>( entity, instance );
     }
-    Instance &get_instance( entt::entity entity ) {
+    Instance &get_instance( const entt::entity &entity ) {
         return registry.get<Instance>( entity );
     }
-    void invalidate( entt::entity entity ) {
+    void invalidate( const entt::entity &entity ) {
         registry.patch<Instance>( entity );
     }
 
     void remove( const entt::entity &entity ) {
         registry.destroy( entity );
+    }
+
+    std::size_t length( ) {
+        return registry.group<Instance>( ).size( );
     }
 
     void draw( Renderer *renderer, Shader *shader, IndexBuffer *ib ) {
@@ -95,7 +99,7 @@ template <typename Element, typename Instance> class RenderChain {
         this->draw( renderer, shader, &this->ib );
     }
 
-    void cleanup( ) {
+    void clear( ) {
         registry.clear( );
     }
 
