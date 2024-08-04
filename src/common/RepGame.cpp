@@ -298,7 +298,15 @@ static inline void initilizeGameState( const char *world_name ) {
     globalGameState.camera.pos.y = 8.5f;
     globalGameState.camera.pos.z = 0.0f;
     globalGameState.block_selection.holdingBlock = GRASS;
-    globalGameState.input.inventory_open = true;
+    globalGameState.inventory.inventory_renderer.options.active_height_percent = 0.5f;
+    globalGameState.inventory.inventory_renderer.options.max_height_percent = 0.75f;
+    globalGameState.inventory.inventory_renderer.options.max_width_percent = 0.75f;
+    globalGameState.inventory.inventory_renderer.options.gravity_bottom = false;
+
+    globalGameState.hotbar.inventory_renderer.options.active_height_percent = 1.0f;
+    globalGameState.hotbar.inventory_renderer.options.max_height_percent = 0.1f;
+    globalGameState.hotbar.inventory_renderer.options.max_width_percent = 0.75f;
+    globalGameState.hotbar.inventory_renderer.options.gravity_bottom = true;
 
     map_storage_init( world_name );
     PlayerData saved_data;

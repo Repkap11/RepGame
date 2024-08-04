@@ -16,6 +16,13 @@ typedef struct {
     BlockID block_id;
 } InventorySlot;
 
+typedef struct {
+    float max_width_percent;
+    float max_height_percent;
+    float active_height_percent;
+    bool gravity_bottom;
+} InventoryRenderOptions;
+
 class InventoryRenderer {
     // Cell layout
     int width;
@@ -56,6 +63,7 @@ class InventoryRenderer {
     void singleItemRender( int slot_index, const InventorySlot &inventory_slot );
 
   public:
+    InventoryRenderOptions options;
     void init( VertexBufferLayout *ui_overlay_vbl_vertex, VertexBufferLayout *ui_overlay_vbl_instance, int width, int height );
     void onSizeChange( int width, int height, InventorySlot *inventory_slots );
     void reRenderSlot( int slot_index, InventorySlot &slot );

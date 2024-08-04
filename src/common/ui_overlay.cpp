@@ -117,10 +117,10 @@ static const UIOverlayVertex vb_isometric_quad[ VB_ISOMETRIC_QUAD_SIZE ] = {
     { 1 * 0.5f + 0.5f, 0.5f * 0.5f + 0.5f, { 0, 1 }, 1, ISO_FACE_RIGHT },  // e
 
     // Quad
-    { 0, 0, { 0, 0 }, 0, ISO_FACE_FRONT }, //
-    { 0, 1, { 0, 1 }, 0, ISO_FACE_FRONT }, //
-    { 1, 0, { 1, 0 }, 0, ISO_FACE_FRONT }, //
-    { 1, 1, { 1, 1 }, 0, ISO_FACE_FRONT }  //
+    { 0, 0, { 0, 0 }, 0, ISO_FACE_TOP }, //
+    { 0, 1, { 0, 1 }, 0, ISO_FACE_TOP }, //
+    { 1, 0, { 1, 0 }, 0, ISO_FACE_TOP }, //
+    { 1, 1, { 1, 1 }, 0, ISO_FACE_TOP }  //
 };
 
 #define IB_ISOMETRIC_QUAD_SIZE 24
@@ -171,30 +171,24 @@ void ui_overlay_init( UIOverlay *ui_overlay, Inventory *inventory, Inventory *ho
 
     ui_overlay->render_chain_held_block.init( &ui_overlay->vbl, &vbl_instance, vb_isometric_quad, VB_ISOMETRIC_QUAD_SIZE, ib_isometric_quad, IB_ISOMETRIC_QUAD_SIZE );
 
-    // index_buffer_init( &ui_overlay->draw_holding_block.ib_isometric );
-    // index_buffer_set_data( &ui_overlay->draw_holding_block.ib_isometric, ib_holding_block_isometric, UI_OVERLAY_INDEX_COUNT_HOLDING_BLOCK_ISOMETRIC );
-
-    // index_buffer_init( &ui_overlay->draw_holding_block.ib_square );
-    // index_buffer_set_data( &ui_overlay->draw_holding_block.ib_square, ib_holding_block_square, UI_OVERLAY_INDEX_COUNT_HOLDING_BLOCK_SQUARE );
-
     showErrors( );
 
     shader_init( &ui_overlay->shader, &ui_overlay_vertex, &ui_overlay_fragment );
 
-    ui_overlay->inventory->init( &ui_overlay->vbl, &vbl_instance, 15, 5 );
-    ui_overlay->hotbar->init( &ui_overlay->vbl, &vbl_instance, 8, 1 );
+    ui_overlay->inventory->init( &ui_overlay->vbl, &vbl_instance, 10, 5 );
+    ui_overlay->hotbar->init( &ui_overlay->vbl, &vbl_instance, 10, 1 );
 }
 
 void ui_overlay_on_screen_size_change( UIOverlay *ui_overlay, int width, int height ) {
     ui_overlay->screen_width = width;
     ui_overlay->screen_height = height;
     // When the screen changes, we need to reprocess the held block graphics
-    ui_overlay_set_holding_block( ui_overlay, ui_overlay->draw_holding_block.heldBlockID );
+    ui_overlay_set_holding_block( ui_overlay, ui_overlay->heldBlockID );
 }
 
 void ui_overlay_set_holding_block( UIOverlay *ui_overlay, BlockID holding_block ) {
-    ui_overlay->draw_holding_block.heldBlockID = holding_block;
-    Block *holdingBlock = block_definition_get_definition( ui_overlay->draw_holding_block.heldBlockID );
+    ui_overlay->heldBlockID = holding_block;
+    Block *holdingBlock = block_definition_get_definition( ui_overlay->heldBlockID );
 
     vb_data_holding_block_instance.is_isometric = holdingBlock->icon_is_isometric;
     vb_data_holding_block_instance.width = 100;

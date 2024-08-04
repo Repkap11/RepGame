@@ -63,10 +63,10 @@ static const UIOverlayVertex vb_isometric_quad[ VB_ISOMETRIC_QUAD_SIZE ] = {
     { 1 * 0.5f + 0.5f, 0.5f * 0.5f + 0.5f, { 0, 1 }, 1, ISO_FACE_RIGHT },  // e
 
     // Quad
-    { 0, 0, { 0, 0 }, 0, ISO_FACE_FRONT }, //
-    { 0, 1, { 0, 1 }, 0, ISO_FACE_FRONT }, //
-    { 1, 0, { 1, 0 }, 0, ISO_FACE_FRONT }, //
-    { 1, 1, { 1, 1 }, 0, ISO_FACE_FRONT }  //
+    { 0, 0, { 0, 0 }, 0, ISO_FACE_TOP }, //
+    { 0, 1, { 0, 1 }, 0, ISO_FACE_TOP }, //
+    { 1, 0, { 1, 0 }, 0, ISO_FACE_TOP }, //
+    { 1, 1, { 1, 1 }, 0, ISO_FACE_TOP }  //
 };
 #define IB_ISOMETRIC_QUAD_SIZE 24
 static const unsigned int ib_isometric_quad[ IB_ISOMETRIC_QUAD_SIZE ] = {
@@ -125,16 +125,20 @@ UIOverlayInstance &InventoryRenderer::init_background_cell( float r, float g, fl
 }
 
 void InventoryRenderer::onSizeChange( int width, int height, InventorySlot *inventory_slots ) {
-    this->inv_height = height * 0.8;
-    this->inv_width = width * 0.8;
+    this->inv_height = height * this->options.max_height_percent;
+    this->inv_width = width * this->options.max_width_percent;
 
     this->inv_x = -this->inv_width / 2;
-    this->inv_y = -this->inv_height / 2;
+    if ( this->options.gravity_bottom ) {
+        this->inv_y = -height / 2;
+    } else {
+        this->inv_y = -this->inv_height / 2;
+    }
 
     float cell_fraction = 0.9;
     // Max stride of each cell.
     int width_limit = this->inv_width / this->width;
-    int height_limit = this->inv_height / ( this->height * 2 );
+    int height_limit = this->inv_height * this->options.active_height_percent / this->height;
     bool height_limited = height_limit < width_limit;
     if ( height_limited ) {
         this->inv_items_height = height_limit * this->height;
@@ -150,7 +154,7 @@ void InventoryRenderer::onSizeChange( int width, int height, InventorySlot *inve
         this->inv_items_height = inv_cell_stride * this->height + this->inv_cell_offset;
     }
     this->inv_items_x = this->inv_x - ( this->inv_items_width - this->inv_width ) / 2;
-    if ( height_limited ) {
+    if ( height_limited || this->options.gravity_bottom ) {
         this->inv_items_y = this->inv_y;
     } else {
         // This adjusts the bottom padding to match the horizontal padding when the horizontal padding has accumulated rounding error.
@@ -184,26 +188,27 @@ void InventoryRenderer::renderBackground( ) {
     this->render_chain_inventory_background.clear( );
 
     // Large background
-    UIOverlayInstance &inv_bg = this->init_background_gray_cell( 0.1f );
-    this->setSize( inv_bg, this->inv_x, this->inv_y, this->inv_width, this->inv_height );
+    // UIOverlayInstance &inv_bg = this->init_background_gray_cell( 0.1f );
+    // this->setSize( inv_bg, this->inv_x, this->inv_y, this->inv_width, this->inv_height );
 
     // Items background
-    UIOverlayInstance &items_bg = this->init_background_gray_cell( 0.4f );
-    this->setSize( items_bg, this->inv_items_x, this->inv_items_y, this->inv_items_width, this->inv_items_height );
+    // UIOverlayInstance &items_bg = this->init_background_gray_cell( 0.4f );
+    // this->setSize( items_bg, this->inv_items_x, this->inv_items_y, this->inv_items_width, this->inv_items_height );
+
 
     // Cells
-    float cell_start_x = this->inv_items_x + this->inv_cell_offset;
-    float cell_start_y = this->inv_items_y + this->inv_cell_offset;
-    for ( int i = 0; i < this->height * this->width; ++i ) {
-        UIOverlayInstance &cell_bg = this->init_background_gray_cell( 0.5f );
-        int block_grid_coord_x = i % this->width;
-        int block_grid_coord_y = i / this->width;
-        this->setSize( cell_bg,                                                   //
-                       cell_start_x + block_grid_coord_x * this->inv_cell_stride, //
-                       cell_start_y + block_grid_coord_y * this->inv_cell_stride, //
-                       this->inv_cell_size,                                       //
-                       this->inv_cell_size );
-    }
+    // float cell_start_x = this->inv_items_x + this->inv_cell_offset;
+    // float cell_start_y = this->inv_items_y + this->inv_cell_offset;
+    // for ( int i = 0; i < this->height * this->width; ++i ) {
+    //     UIOverlayInstance &cell_bg = this->init_background_gray_cell( 0.5f );
+    //     int block_grid_coord_x = i % this->width;
+    //     int block_grid_coord_y = i / this->width;
+    //     this->setSize( cell_bg,                                                   //
+    //                    cell_start_x + block_grid_coord_x * this->inv_cell_stride, //
+    //                    cell_start_y + block_grid_coord_y * this->inv_cell_stride, //
+    //                    this->inv_cell_size,                                       //
+    //                    this->inv_cell_size );
+    // }
 }
 
 void InventoryRenderer::singleItemRender( int slot_index, const InventorySlot &inventory_slot ) {
