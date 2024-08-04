@@ -21,8 +21,8 @@ class Inventory {
     void onScreenSizeChange( int width, int height );
     bool addBlock( BlockID blockId );
     void handleMouseInput( InputState *inputState );
-    void setSelectedSlot( int selected_slot );
-    void incrementSelectedSlot( int offset );
+    BlockID setSelectedSlot( int selected_slot );
+    BlockID incrementSelectedSlot( int offset );
     void draw( Renderer *renderer, Texture *blocksTexture, const glm::mat4 &mvp_ui, Shader *shader );
     void cleanup( );
 };

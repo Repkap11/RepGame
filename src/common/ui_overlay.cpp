@@ -188,6 +188,10 @@ void ui_overlay_on_screen_size_change( UIOverlay *ui_overlay, int width, int hei
 
 void ui_overlay_set_holding_block( UIOverlay *ui_overlay, BlockID holding_block ) {
     ui_overlay->heldBlockID = holding_block;
+    if ( ui_overlay->heldBlockID == LAST_BLOCK_ID ) {
+        ui_overlay->render_chain_held_block.clear( );
+        return;
+    }
     Block *holdingBlock = block_definition_get_definition( ui_overlay->heldBlockID );
 
     vb_data_holding_block_instance.is_isometric = holdingBlock->icon_is_isometric;

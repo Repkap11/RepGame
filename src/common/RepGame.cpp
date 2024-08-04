@@ -61,18 +61,21 @@ unsigned char getPlacedRotation( BlockID blockID ) {
     return rotation;
 }
 
-static bool block_places_on_all_faces( Block *block ) {
-    for ( int face = FACE_TOP; face < NUM_FACES_IN_CUBE; face++ ) {
-        if ( block->needs_place_on_any_solid[ face ] ) {
-            return false;
-        }
-    }
-    return true;
-}
+// static bool block_places_on_all_faces( Block *block ) {
+//     for ( int face = FACE_TOP; face < NUM_FACES_IN_CUBE; face++ ) {
+//         if ( block->needs_place_on_any_solid[ face ] ) {
+//             return false;
+//         }
+//     }
+//     return true;
+// }
 
 void repgame_add_to_an_inventory( BlockID blockId ) {
     bool didAdd = globalGameState.hotbar.addBlock( blockId );
-    if ( !didAdd ) {
+    if ( didAdd ) {
+        globalGameState.block_selection.holdingBlock = blockId;
+        ui_overlay_set_holding_block( &globalGameState.ui_overlay, globalGameState.block_selection.holdingBlock );
+    } else {
         globalGameState.inventory.addBlock( blockId );
     }
 }
@@ -81,11 +84,7 @@ static bool was_middle = false;
 void repgame_process_mouse_events( ) {
     if ( globalGameState.block_selection.selectionInBounds && globalGameState.input.mouse.buttons.middle ) {
         BlockState blockState = world_get_loaded_block( &globalGameState.world, globalGameState.block_selection.pos_destroy );
-        if ( blockState.id != globalGameState.block_selection.holdingBlock ) {
-            globalGameState.block_selection.holdingBlock = blockState.id;
-            ui_overlay_set_holding_block( &globalGameState.ui_overlay, globalGameState.block_selection.holdingBlock );
-            repgame_add_to_an_inventory( blockState.id );
-        }
+        repgame_add_to_an_inventory( blockState.id );
         if ( !was_middle ) {
             pr_debug( "Selected block:%d rotation:%d redstone_power:%d display:%d", blockState.id, blockState.rotation, blockState.current_redstone_power, blockState.display_id );
         }
@@ -246,7 +245,8 @@ void repgame_tick( ) {
 
     int wheel_diff = globalGameState.input.mouse.previousPosition.wheel_counts - globalGameState.input.mouse.currentPosition.wheel_counts;
     if ( wheel_diff != 0 ) {
-        globalGameState.hotbar.incrementSelectedSlot( wheel_diff);
+        globalGameState.block_selection.holdingBlock = globalGameState.hotbar.incrementSelectedSlot( wheel_diff );
+        ui_overlay_set_holding_block( &globalGameState.ui_overlay, globalGameState.block_selection.holdingBlock );
     }
 
     if ( repgame_should_lock_pointer( ) ) {

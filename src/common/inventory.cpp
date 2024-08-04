@@ -53,24 +53,31 @@ bool Inventory::addBlock( BlockID blockId ) {
         this->inventory_renderer.changeSlotItem( openSlot, slot );
 
     } else {
-        // This is an existing block, picking it again removes it from the inventory for now
         int existingSlot = it->second;
-        blockId_to_slot_map.erase( it );
-        InventorySlot &slot = this->slots[ existingSlot ];
-        slot.block_id = LAST_BLOCK_ID;
-        this->inventory_renderer.changeSlotItem( existingSlot, slot );
+        this->selected_slot = existingSlot;
+        this->inventory_renderer.setSelectedSlot( this->selected_slot );
+        // This is an existing block, do nothing for now.
+
+        // // This is an existing block, picking it again removes it from the inventory for now
+        // int existingSlot = it->second;
+        // blockId_to_slot_map.erase( it );
+        // InventorySlot &slot = this->slots[ existingSlot ];
+        // slot.block_id = LAST_BLOCK_ID;
+        // this->inventory_renderer.changeSlotItem( existingSlot, slot );
     }
     return true;
 };
-void Inventory::incrementSelectedSlot( int offset ) {
+BlockID Inventory::incrementSelectedSlot( int offset ) {
     // Always positive modulo, so that we don't go out of bounds
     this->selected_slot = ( this->selected_slot + this->num_blocks_max + offset ) % this->num_blocks_max;
     this->inventory_renderer.setSelectedSlot( this->selected_slot );
+    return this->slots[ this->selected_slot ].block_id;
 }
 
-void Inventory::setSelectedSlot( int selected_slot ) {
+BlockID Inventory::setSelectedSlot( int selected_slot ) {
     this->selected_slot = selected_slot;
     this->inventory_renderer.setSelectedSlot( this->selected_slot );
+    return this->slots[ this->selected_slot ].block_id;
 }
 
 void Inventory::handleMouseInput( InputState *inputState ) {
