@@ -149,11 +149,17 @@ void InventoryRenderer::onSizeChange( int width, int height, InventorySlot *inve
         this->inv_items_y = this->inv_y + ( ( this->inv_width - this->item_stride_size * INVENTORY_BLOCKS_PER_ROW ) / 2 );
     }
 
-    float cell_fraction = 0.9;
+    float cell_fraction = 0.90;
     float block_fraction = 0.8;
 
-    this->inv_cell_size = this->item_stride_size * cell_fraction;
+    // this->inv_cell_size = this->item_stride_size * INVENTORY_BLOCKS_PER_ROW / ( INVENTORY_BLOCKS_PER_ROW + cell_fraction * ( INVENTORY_BLOCKS_PER_ROW + 1 ) );
+    // this->inv_cell_size = this->item_stride_size * ( INVENTORY_BLOCKS_PER_ROW - cell_fraction * ( INVENTORY_BLOCKS_PER_ROW + 1 ) ) / INVENTORY_BLOCKS_PER_ROW;
+    // this->inv_cell_size = this->item_stride_size * ( INVENTORY_BLOCKS_PER_ROW + cell_fraction - 1.0f ) / INVENTORY_BLOCKS_PER_ROW;
+    // this->inv_cell_size = this->item_stride_size * ( INVENTORY_BLOCKS_PER_ROW - ( INVENTORY_BLOCKS_PER_ROW + 1 ) * ( 1.0f - cell_fraction ) ) / INVENTORY_BLOCKS_PER_ROW;
+    this->inv_cell_size = this->inv_items_width / ( INVENTORY_BLOCKS_PER_ROW + ( INVENTORY_BLOCKS_PER_ROW + 1 ) * ( 1.0f - cell_fraction ) );
+    this->inv_cell_stride = this->item_stride_size * cell_fraction;
     this->inv_cell_offset = ( this->item_stride_size - this->inv_cell_size ) / 2;
+    // this->inv_cell_offset = 0;
 
     this->inv_block_size = this->item_stride_size * block_fraction;
     this->inv_block_offset = ( this->item_stride_size - this->inv_block_size ) / 2;
@@ -195,10 +201,10 @@ void InventoryRenderer::renderBackground( ) {
         UIOverlayInstance &cell_bg = this->init_background_gray_cell( 0.5f );
         int block_grid_coord_x = i % INVENTORY_BLOCKS_PER_ROW;
         int block_grid_coord_y = i / INVENTORY_BLOCKS_PER_ROW;
-        this->setSize( cell_bg,                                                    //
-                       cell_start_x + block_grid_coord_x * this->item_stride_size, //
-                       cell_start_y + block_grid_coord_y * this->item_stride_size, //
-                       this->inv_cell_size,                                        //
+        this->setSize( cell_bg,                                                   //
+                       cell_start_x + block_grid_coord_x * this->inv_cell_stride, //
+                       cell_start_y + block_grid_coord_y * this->inv_cell_stride, //
+                       this->inv_cell_size,                                       //
                        this->inv_cell_size );
     }
 }
