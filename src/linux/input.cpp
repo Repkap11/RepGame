@@ -75,6 +75,10 @@ void input_mouseWheel( InputState *inputState, int x_delta, int y_delta ) {
     inputState->mouse.currentPosition.wheel_counts += y_delta;
 }
 
+void input_quit( InputState *inputState ) {
+    inputState->exitGame = 1;
+}
+
 void input_keysInput( InputState *inputState, SDL_Keycode key, int pressed ) {
 
     switch ( key ) {

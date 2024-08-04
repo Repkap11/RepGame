@@ -25,6 +25,8 @@ void repgame_linux_process_sdl_events( ) {
             case SDL_WINDOWEVENT:
                 if ( event.window.event == SDL_WINDOWEVENT_RESIZED ) {
                     repgame_changeSize( event.window.data1, event.window.data2 );
+                } else if ( event.window.event == SDL_WINDOWEVENT_CLOSE ) {
+                    input_quit( repgame_getInputState( ) );
                 }
                 break;
             case SDL_MOUSEBUTTONDOWN:
@@ -90,7 +92,7 @@ int repgame_sdl2_main( const char *world_path, const char *host, bool connect_mu
     int default_width = DEFAULT_WINDOW_WIDTH;
     int default_height = DEFAULT_WINDOW_HEIGHT;
     /* Create our window centered */
-    sdl_window = SDL_CreateWindow( "RepGame", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, default_width, 800, SDL_WINDOW_OPENGL | SDL_WINDOW_SHOWN | SDL_WINDOW_RESIZABLE | SDL_WINDOW_MAXIMIZED );
+    sdl_window = SDL_CreateWindow( "RepGame", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, default_width, default_height, SDL_WINDOW_OPENGL | SDL_WINDOW_SHOWN | SDL_WINDOW_RESIZABLE | SDL_WINDOW_FULLSCREEN_DESKTOP );
     if ( !sdl_window ) {
         pr_debug( "Creating the SDL window failed" );
         exit( 1 );
