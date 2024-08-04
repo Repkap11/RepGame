@@ -153,10 +153,10 @@ void InventoryRenderer::renderBackground( ) {
     this->setSize( large_bg, this->inv_x, this->inv_y, this->inv_width, this->inv_height );
 
     // Cells
-    int cell_offset = ( this->item_stride_size - this->item_icon_size ) / 4;
+    int cell_offset = ( this->item_stride_size - this->item_icon_size ) / 2;
     float cell_start_x = this->inv_x + cell_offset;
     float cell_start_y = this->inv_y + cell_offset;
-    float double_cell_offset = 2 * cell_offset;
+    float double_cell_offset = cell_offset;
     for ( int i = 0; i < INVENTORY_BLOCKS_PER_COL * INVENTORY_BLOCKS_PER_ROW; ++i ) {
         UIOverlayInstance &cell_bg = this->init_background_gray_cell( 0.5f );
         int block_grid_coord_x = i % INVENTORY_BLOCKS_PER_ROW;

@@ -77,6 +77,7 @@ void repgame_process_mouse_events( ) {
         if ( blockState.id != globalGameState.block_selection.holdingBlock ) {
             globalGameState.block_selection.holdingBlock = blockState.id;
             ui_overlay_set_holding_block( &globalGameState.ui_overlay, globalGameState.block_selection.holdingBlock );
+            globalGameState.inventory.addBlock( blockState.id ); // TODO remove
         }
         if ( !was_middle ) {
             pr_debug( "Selected block:%d rotation:%d redstone_power:%d display:%d", blockState.id, blockState.rotation, blockState.current_redstone_power, blockState.display_id );
