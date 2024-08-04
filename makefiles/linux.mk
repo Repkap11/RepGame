@@ -99,10 +99,12 @@ out/linux/release/$(TARGET)_uncompressed: $(OBJECTS_COMMON_LINUX_RELEASE) $(OBJE
 
 out/linux/debug/$(TARGET): $(OBJECTS_COMMON_LINUX_DEBUG) $(OBJECTS_LINUX) $(SHADER_BLOBS_LINUX) $(BITMAP_BLOBS_LINUX) $(call GUARD,CC_LINUX CFLAGS_LINUX CFLAGS_LINUX_DEBUG LIBS_LINUX) | out/linux
 	$(call CHECK,CC_LINUX CFLAGS_LINUX CFLAGS_LINUX_DEBUG LIBS_LINUX)
-	$(CC_LINUX) -flto $(CFLAGS_LINUX) $(CFLAGS_LINUX_DEBUG) $(OBJECTS_LINUX) $(OBJECTS_COMMON_LINUX_DEBUG) $(SHADER_BLOBS_LINUX) $(BITMAP_BLOBS_LINUX) $(LIBS_LINUX) -o $@
+	$(CC_LINUX) $(CFLAGS_LINUX) $(CFLAGS_LINUX_DEBUG) $(OBJECTS_LINUX) $(OBJECTS_COMMON_LINUX_DEBUG) $(SHADER_BLOBS_LINUX) $(BITMAP_BLOBS_LINUX) $(LIBS_LINUX) -o $@
 
 linux-run: linux
 	./out/linux/release/$(TARGET) World1 www.repkap11.com
+
+dev: linux_debug-run
 
 linux_debug-run: linux_debug
 	./out/linux/debug/$(TARGET) World1 localhost
@@ -128,4 +130,4 @@ out/linux: $(call GUARD,LINUX_DIRS) | out
 
 .PRECIOUS: out/linux/release/$(TARGET) out/linux/debug/$(TARGET) $(OBJECTS_LINUX) $(OBJECTS_COMMON_LINUX) $(SHADER_BLOBS_LINUX) $(BITMAP_BLOBS_LINUX)
 
-.PHONY: linux linux-run clean-linux linux-deploy
+.PHONY: linux linux-run clean-linux linux-deploy dev
