@@ -248,7 +248,7 @@ void InventoryRenderer::singleItemRender( int slot_index, const InventorySlot &i
     ui_vertex.is_block = 1;
     ui_vertex.is_isometric = block->icon_is_isometric;
 
-    for ( int i = 0; i < 5; i++ ) {
+    for ( int i = 0; i < 4; i++ ) {
         // set RGBA tint to no tint
         ui_vertex.tint[ i ] = 1.0f;
     }

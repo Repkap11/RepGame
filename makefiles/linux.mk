@@ -3,6 +3,7 @@
 REPGAME_PACKAGES += libglew-dev libxi-dev g++ libsdl2-dev upx-ucl
 
 CFLAGS_LINUX := -Wall -Wextra -std=c++17 -Wno-unused-parameter -Wno-unused-variable -fno-pie -march=native
+LFLAGS := -z noexecstack
 
 CFLAGS_LINUX_RELEASE += -O3 -DREPGAME_FAST #Ignore checking for errors to maxing out FPS
 CFLAGS_LINUX_DEBUG += -g
@@ -11,8 +12,8 @@ CFLAGS_LINUX_DEBUG += -g
 CFLAGS_LINUX += -DREPGAME_LINUX
 LIBS_LINUX := -L /app/lib/ -l GLU -l SDL2 -l m -l GL -l GLEW -lpthread -l dl -static-libgcc -static-libstdc++
 
-CC_LINUX := g++
-# CC_LINUX := clang++
+# CC_LINUX := g++
+CC_LINUX := clang++
 
 # LD_LINUX := ld
 LD_LINUX := gold
@@ -26,6 +27,8 @@ ifeq ($(CC_LINUX),g++)
 	ifeq ($(LD_LINUX),gold)
 		CFLAGS_LINUX += -fuse-ld=gold
 	endif
+else
+	CFLAGS_LINUX += -fPIE
 endif
 
 ifeq ($(USE_CCACHE),1)
@@ -45,14 +48,14 @@ DEPS_LINUX := $(patsubst src/%.cpp,out/linux/release/%.d, $(wildcard src/linux/*
 SHADER_BLOBS_LINUX := $(patsubst src/shaders/%.glsl,out/linux/shaders/%.o,$(wildcard src/shaders/*.glsl))
 BITMAP_BLOBS_LINUX := $(patsubst bitmaps/%.bmp,out/linux/bitmaps/%.o,$(wildcard bitmaps/*.bmp))
 
-out/linux/shaders/%.o : src/shaders/%.glsl $(call GUARD,LD_LINUX) | out/linux
-	$(call CHECK,LD_LINUX)
-	$(LD_LINUX) -r -b binary $< -o $@_no_section
+out/linux/shaders/%.o : src/shaders/%.glsl $(call GUARD,LD_LINUX,LFLAGS) | out/linux
+	$(call CHECK,LD_LINUX,LFLAGS)
+	$(LD_LINUX) $(LFLAGS) -r -b binary $< -o $@_no_section
 	objcopy --rename-section .data=.rodata,CONTENTS,ALLOC,LOAD,READONLY,DATA $@_no_section $@
 
-out/linux/bitmaps/%.o : out/bitmaps/%.bin $(call GUARD,LD_LINUX) | out/linux
-	$(call CHECK,LD_LINUX)
-	$(LD_LINUX) -r -b binary $< -o $@_no_section
+out/linux/bitmaps/%.o : out/bitmaps/%.bin $(call GUARD,LD_LINUX,LFLAGS) | out/linux
+	$(call CHECK,LD_LINUX,LFLAGS)
+	$(LD_LINUX) $(LFLAGS) -r -b binary $< -o $@_no_section
 	objcopy --rename-section .data=.rodata,CONTENTS,ALLOC,LOAD,READONLY,DATA --reverse-bytes=4 $@_no_section $@
 
 all: linux
