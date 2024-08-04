@@ -156,9 +156,12 @@ void InventoryRenderer::onSizeChange( int width, int height, InventorySlot *inve
     // this->inv_cell_size = this->item_stride_size * ( INVENTORY_BLOCKS_PER_ROW - cell_fraction * ( INVENTORY_BLOCKS_PER_ROW + 1 ) ) / INVENTORY_BLOCKS_PER_ROW;
     // this->inv_cell_size = this->item_stride_size * ( INVENTORY_BLOCKS_PER_ROW + cell_fraction - 1.0f ) / INVENTORY_BLOCKS_PER_ROW;
     // this->inv_cell_size = this->item_stride_size * ( INVENTORY_BLOCKS_PER_ROW - ( INVENTORY_BLOCKS_PER_ROW + 1 ) * ( 1.0f - cell_fraction ) ) / INVENTORY_BLOCKS_PER_ROW;
-    this->inv_cell_size = this->inv_items_width / ( INVENTORY_BLOCKS_PER_ROW + ( INVENTORY_BLOCKS_PER_ROW + 1 ) * ( 1.0f - cell_fraction ) );
-    this->inv_cell_stride = this->item_stride_size * cell_fraction;
-    this->inv_cell_offset = ( this->item_stride_size - this->inv_cell_size ) / 2;
+    // this->inv_cell_size = this->inv_items_width / ( INVENTORY_BLOCKS_PER_ROW + ( INVENTORY_BLOCKS_PER_ROW + 1 ) * ( 1.0f - cell_fraction ) );
+    
+    this->inv_cell_stride = this->inv_items_width / ( cell_fraction * INVENTORY_BLOCKS_PER_ROW + ( INVENTORY_BLOCKS_PER_ROW + 1 ) * ( 1.0f - cell_fraction ) );
+    // this->inv_cell_stride = this->inv_items_height / ( cell_fraction * INVENTORY_BLOCKS_PER_COL + ( INVENTORY_BLOCKS_PER_COL + 1 ) * ( 1.0f - cell_fraction ) );
+    this->inv_cell_size = this->inv_cell_stride * cell_fraction;
+    this->inv_cell_offset = this->inv_cell_stride * ( 1.0f - cell_fraction );
     // this->inv_cell_offset = 0;
 
     this->inv_block_size = this->item_stride_size * block_fraction;
