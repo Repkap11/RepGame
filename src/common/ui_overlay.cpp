@@ -68,7 +68,6 @@ int holding_block_vertex_face_map[] = {
 
 #define ISOMETRIC_FACES 3
 
-
 #define UI_OVERLAY_INDEX_COUNT_CROSSHAIR ( 3 * 2 * 2 )
 unsigned int ib_data_crosshair[] = {
     0, 3, 1, //
@@ -222,7 +221,7 @@ void ui_overlay_draw( UIOverlay *ui_overlay, Renderer *renderer, Texture *blocks
     shader_set_uniform_mat4f( &ui_overlay->shader, "u_MVP", mvp_ui );
     shader_set_uniform1i( &ui_overlay->shader, "u_Texture", blocksTexture->slot );
 
-    if ( !USE_IMGUI_INVENTORY && input->inventory_open ) {
+    if ( input->inventory_open ) {
         ui_overlay->inventory->handleInput( input );
         ui_overlay->inventory->draw( renderer, blocksTexture, mvp_ui, &ui_overlay->shader );
     } else {

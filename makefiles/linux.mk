@@ -34,8 +34,6 @@ endif
 
 OBJECTS_COMMON_LINUX_RELEASE := $(patsubst src/common/%.cpp,out/linux/release/common/%.o, $(SRC_COMMON))
 OBJECTS_COMMON_LINUX_DEBUG := $(patsubst src/common/%.cpp,out/linux/debug/common/%.o, $(SRC_COMMON))
-OBJECTS_IMGUI_LINUX_RELEASE := $(patsubst imgui_build/%.cpp,out/linux/release/imgui/%.o, $(SRC_IMGUI))
-OBJECTS_IMGUI_LINUX_DEBUG := $(patsubst imgui_build/%.cpp,out/linux/debug/imgui/%.o, $(SRC_IMGUI))
 
 OBJECTS_LINUX := $(patsubst src/%.cpp,out/linux/release/%.o, $(wildcard src/linux/*.cpp))
 OBJECTS_LINUX_DEBUG := $(patsubst src/%.cpp,out/linux/debug/%.o, $(wildcard src/linux/*.cpp))
@@ -71,9 +69,7 @@ LINUX_DIRS := $(patsubst src%,out/linux/release%,$(shell find src -type d)) \
 		$(patsubst src%,out/linux/debug%,$(shell find src -type d)) \
 		$(patsubst src%,out/linux%,$(shell find src -type d)) \
 		out/linux/debug out/linux/release \
-		out/linux/shaders out/linux/bitmaps \
-		out/linux/debug/imgui out/linux/release/imgui \
-		out/linux/debug/imgui/backends out/linux/release/imgui/backends
+		out/linux/shaders out/linux/bitmaps
 
 -include makefiles/cuda.mk
 
@@ -87,17 +83,6 @@ out/linux/debug/%.o: src/%.cpp $(call GUARD,CC_LINUX INCLUDES_COMMON CFLAGS_LINU
 	@#Use g++ to build o file and a dependecy tree .d file for every cpp file
 	$(CC_LINUX) $(INCLUDES_COMMON) $(CFLAGS_LINUX) $(CFLAGS_LINUX_DEBUG) -MMD -MP -MF $(patsubst %.o,%.d,$@) -MT $(patsubst %.d,%.o,$@) -c $< -o $@
 
-
-out/linux/debug/imgui/%.o: imgui_build/%.cpp $(call GUARD,CC_LINUX INCLUDES_COMMON CFLAGS_LINUX CFLAGS_LINUX_DEBUG) | out/linux
-	$(call CHECK,CC_LINUX INCLUDES_COMMON CFLAGS_LINUX CFLAGS_LINUX_DEBUG)
-	@#Use g++ to build o file and a dependecy tree .d file for every cpp file
-	$(CC_LINUX) $(INCLUDES_COMMON) $(CFLAGS_LINUX) $(CFLAGS_LINUX_DEBUG) -MMD -MP -MF $(patsubst %.o,%.d,$@) -MT $(patsubst %.d,%.o,$@) -c $< -o $@
-
-out/linux/release/imgui/%.o: imgui_build/%.cpp $(call GUARD,CC_LINUX INCLUDES_COMMON CFLAGS_LINUX CFLAGS_LINUX_RELEASE) | out/linux
-	$(call CHECK,CC_LINUX INCLUDES_COMMON CFLAGS_LINUX CFLAGS_LINUX_RELEASE)
-	@#Use g++ to build o file and a dependecy tree .d file for every cpp file
-	$(CC_LINUX) $(INCLUDES_COMMON) $(CFLAGS_LINUX) $(CFLAGS_LINUX_RELEASE) -MMD -MP -MF $(patsubst %.o,%.d,$@) -MT $(patsubst %.d,%.o,$@) -c $< -o $@
-
 #Include these .d files, so the dependicies are known for secondary builds.
 -include $(DEPS_LINUX)
 
@@ -108,13 +93,13 @@ out/linux/release/$(TARGET): out/linux/release/$(TARGET)_uncompressed
 	touch $@
 
 
-out/linux/release/$(TARGET)_uncompressed: $(OBJECTS_IMGUI_LINUX_RELEASE) $(OBJECTS_COMMON_LINUX_RELEASE) $(OBJECTS_LINUX) $(SHADER_BLOBS_LINUX) $(BITMAP_BLOBS_LINUX) $(call GUARD,CC_LINUX CFLAGS_LINUX CFLAGS_LINUX_RELEASE LIBS_LINUX) | out/linux
+out/linux/release/$(TARGET)_uncompressed: $(OBJECTS_COMMON_LINUX_RELEASE) $(OBJECTS_LINUX) $(SHADER_BLOBS_LINUX) $(BITMAP_BLOBS_LINUX) $(call GUARD,CC_LINUX CFLAGS_LINUX CFLAGS_LINUX_RELEASE LIBS_LINUX) | out/linux
 	$(call CHECK,CC_LINUX CFLAGS_LINUX CFLAGS_LINUX_RELEASE LIBS_LINUX)
-	$(CC_LINUX) -flto $(CFLAGS_LINUX) $(CFLAGS_LINUX_RELEASE) $(OBJECTS_LINUX) $(OBJECTS_IMGUI_LINUX_RELEASE) $(OBJECTS_COMMON_LINUX_RELEASE) $(SHADER_BLOBS_LINUX) $(BITMAP_BLOBS_LINUX) $(LIBS_LINUX) -o $@
+	$(CC_LINUX) -flto $(CFLAGS_LINUX) $(CFLAGS_LINUX_RELEASE) $(OBJECTS_LINUX) $(OBJECTS_COMMON_LINUX_RELEASE) $(SHADER_BLOBS_LINUX) $(BITMAP_BLOBS_LINUX) $(LIBS_LINUX) -o $@
 
-out/linux/debug/$(TARGET): $(OBJECTS_IMGUI_LINUX_DEBUG) $(OBJECTS_COMMON_LINUX_DEBUG) $(OBJECTS_LINUX) $(SHADER_BLOBS_LINUX) $(BITMAP_BLOBS_LINUX) $(call GUARD,CC_LINUX CFLAGS_LINUX CFLAGS_LINUX_DEBUG LIBS_LINUX) | out/linux
+out/linux/debug/$(TARGET): $(OBJECTS_COMMON_LINUX_DEBUG) $(OBJECTS_LINUX) $(SHADER_BLOBS_LINUX) $(BITMAP_BLOBS_LINUX) $(call GUARD,CC_LINUX CFLAGS_LINUX CFLAGS_LINUX_DEBUG LIBS_LINUX) | out/linux
 	$(call CHECK,CC_LINUX CFLAGS_LINUX CFLAGS_LINUX_DEBUG LIBS_LINUX)
-	$(CC_LINUX) -flto $(CFLAGS_LINUX) $(CFLAGS_LINUX_DEBUG) $(OBJECTS_LINUX) $(OBJECTS_IMGUI_LINUX_DEBUG) $(OBJECTS_COMMON_LINUX_DEBUG) $(SHADER_BLOBS_LINUX) $(BITMAP_BLOBS_LINUX) $(LIBS_LINUX) -o $@
+	$(CC_LINUX) -flto $(CFLAGS_LINUX) $(CFLAGS_LINUX_DEBUG) $(OBJECTS_LINUX) $(OBJECTS_COMMON_LINUX_DEBUG) $(SHADER_BLOBS_LINUX) $(BITMAP_BLOBS_LINUX) $(LIBS_LINUX) -o $@
 
 linux-run: linux
 	./out/linux/release/$(TARGET) World1 www.repkap11.com

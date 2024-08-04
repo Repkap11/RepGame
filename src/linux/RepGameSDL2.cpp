@@ -11,7 +11,8 @@ void repgame_linux_process_sdl_events( ) {
     while ( SDL_PollEvent( &event ) ) {
         bool handledMouse;
         bool handledKeyboard;
-        imgui_overlay_handle_sdl2_event( &globalGameState->imgui_overlay, &event, &handledMouse, &handledKeyboard );
+        handledMouse = false;
+        handledKeyboard = false;
         // pr_debug( "Event: mouse:%d keyboard:%d", handledMouse, handledKeyboard );
         switch ( event.type ) {
             case SDL_KEYDOWN:
@@ -114,7 +115,6 @@ int repgame_sdl2_main( const char *world_path, const char *host, bool connect_mu
     ignoreErrors( );
 
     globalGameState = repgame_init( world_path, connect_multi, host, supportsAnisotropicFiltering );
-    imgui_overlay_attach_to_window( &globalGameState->imgui_overlay, sdl_window, sdl_context );
 
 #if !defined( REPGAME_WASM )
 
