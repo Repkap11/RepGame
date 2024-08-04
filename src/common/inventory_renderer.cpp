@@ -153,7 +153,7 @@ void InventoryRenderer::onSizeChange( int width, int height, InventorySlot *inve
     float block_fraction = 0.8;
 
     this->inv_cell_size = this->item_stride_size * cell_fraction;
-    this->inv_cell_offset = ( this->item_stride_size - this->inv_cell_offset ) / 2;
+    this->inv_cell_offset = ( this->item_stride_size - this->inv_cell_size ) / 2;
 
     this->inv_block_size = this->item_stride_size * block_fraction;
     this->inv_block_offset = ( this->item_stride_size - this->inv_block_size ) / 2;
@@ -188,19 +188,19 @@ void InventoryRenderer::renderBackground( ) {
     UIOverlayInstance &items_bg = this->init_background_gray_cell( 0.4f );
     this->setSize( items_bg, this->inv_items_x, this->inv_items_y, this->inv_items_width, this->inv_items_height );
 
-    // // Cells
-    // float cell_start_x = this->inv_x + this->inv_cell_offset;
-    // float cell_start_y = this->inv_y + this->inv_cell_offset;
-    // for ( int i = 0; i < INVENTORY_BLOCKS_PER_COL * INVENTORY_BLOCKS_PER_ROW; ++i ) {
-    //     UIOverlayInstance &cell_bg = this->init_background_gray_cell( 0.5f );
-    //     int block_grid_coord_x = i % INVENTORY_BLOCKS_PER_ROW;
-    //     int block_grid_coord_y = i / INVENTORY_BLOCKS_PER_ROW;
-    //     this->setSize( cell_bg,                                                    //
-    //                    cell_start_x + block_grid_coord_x * this->item_stride_size, //
-    //                    cell_start_y + block_grid_coord_y * this->item_stride_size, //
-    //                    this->inv_cell_size,                                        //
-    //                    this->inv_cell_size );
-    // }
+    // Cells
+    float cell_start_x = this->inv_items_x + this->inv_cell_offset;
+    float cell_start_y = this->inv_items_y + this->inv_cell_offset;
+    for ( int i = 0; i < INVENTORY_BLOCKS_PER_COL * INVENTORY_BLOCKS_PER_ROW; ++i ) {
+        UIOverlayInstance &cell_bg = this->init_background_gray_cell( 0.5f );
+        int block_grid_coord_x = i % INVENTORY_BLOCKS_PER_ROW;
+        int block_grid_coord_y = i / INVENTORY_BLOCKS_PER_ROW;
+        this->setSize( cell_bg,                                                    //
+                       cell_start_x + block_grid_coord_x * this->item_stride_size, //
+                       cell_start_y + block_grid_coord_y * this->item_stride_size, //
+                       this->inv_cell_size,                                        //
+                       this->inv_cell_size );
+    }
 }
 
 void InventoryRenderer::singleItemRender( int slot_index, const InventorySlot &inventory_slot ) {
