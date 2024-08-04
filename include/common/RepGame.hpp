@@ -55,6 +55,7 @@ typedef struct {
     World world;
     UIOverlay ui_overlay;
     Inventory inventory;
+    Inventory hotbar;
     struct {
         int selectionInBounds;
         int face;

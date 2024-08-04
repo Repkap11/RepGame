@@ -1,9 +1,14 @@
 #include "common/RepGame.hpp"
 #include "common/inventory_renderer.hpp"
 
-void Inventory::init( VertexBufferLayout *ui_overlay_vbl_vertex, VertexBufferLayout *ui_overlay_vbl_instance ) {
-    this->inventory_renderer.init( ui_overlay_vbl_vertex, ui_overlay_vbl_instance );
-    for ( int i_slot = 0; i_slot < INVENTORY_MAX_SIZE; i_slot++ ) {
+void Inventory::init( VertexBufferLayout *ui_overlay_vbl_vertex, VertexBufferLayout *ui_overlay_vbl_instance, int width, int height ) {
+    this->width = width;
+    this->height = height;
+    this->num_blocks_max = width * height;
+    this->slots = ( InventorySlot * )calloc( this->num_blocks_max, sizeof( InventorySlot ) );
+
+    this->inventory_renderer.init( ui_overlay_vbl_vertex, ui_overlay_vbl_instance, width, height );
+    for ( int i_slot = 0; i_slot < this->num_blocks_max; i_slot++ ) {
         InventorySlot *slot = &this->slots[ i_slot ];
         slot->block_id = LAST_BLOCK_ID;
         // slot->block_id = TNT;
@@ -21,7 +26,7 @@ void Inventory::draw( Renderer *renderer, Texture *blocksTexture, const glm::mat
 }
 
 int Inventory::findOpenSlot( ) {
-    for ( int i_slot = 0; i_slot < INVENTORY_MAX_SIZE; i_slot++ ) {
+    for ( int i_slot = 0; i_slot < this->num_blocks_max; i_slot++ ) {
         if ( this->slots[ i_slot ].block_id == LAST_BLOCK_ID )
             return i_slot;
     }
@@ -62,4 +67,5 @@ void Inventory::handleInput( InputState *inputState ) {
 
 void Inventory::cleanup( ) {
     this->inventory_renderer.cleanup( );
+    free( this->slots );
 }

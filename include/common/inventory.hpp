@@ -6,14 +6,17 @@
 #include <map>
 
 class Inventory {
+    int width;
+    int height;
+    int num_blocks_max;
     InventoryRenderer inventory_renderer;
-    InventorySlot slots[ INVENTORY_MAX_SIZE ];
+    InventorySlot *slots;
     std::map<BlockID, int> blockId_to_slot_map;
 
     int findOpenSlot( );
 
   public:
-    void init( VertexBufferLayout *ui_overlay_vbl_vertex, VertexBufferLayout *ui_overlay_vbl_instance );
+    void init( VertexBufferLayout *ui_overlay_vbl_vertex, VertexBufferLayout *ui_overlay_vbl_instance, int width, int height );
     void onScreenSizeChange( int width, int height );
     bool addBlock( BlockID blockId );
     void handleInput( InputState *inputState );

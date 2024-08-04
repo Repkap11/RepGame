@@ -70,6 +70,13 @@ static bool block_places_on_all_faces( Block *block ) {
     return true;
 }
 
+void repgame_add_to_an_inventory( BlockID blockId ) {
+    bool didAdd = globalGameState.hotbar.addBlock( blockId );
+    if ( !didAdd ) {
+        globalGameState.inventory.addBlock( blockId );
+    }
+}
+
 static bool was_middle = false;
 void repgame_process_mouse_events( ) {
     if ( globalGameState.block_selection.selectionInBounds && globalGameState.input.mouse.buttons.middle ) {
@@ -77,7 +84,7 @@ void repgame_process_mouse_events( ) {
         if ( blockState.id != globalGameState.block_selection.holdingBlock ) {
             globalGameState.block_selection.holdingBlock = blockState.id;
             ui_overlay_set_holding_block( &globalGameState.ui_overlay, globalGameState.block_selection.holdingBlock );
-            globalGameState.inventory.addBlock( blockState.id ); // TODO remove
+            repgame_add_to_an_inventory( blockState.id );
         }
         if ( !was_middle ) {
             pr_debug( "Selected block:%d rotation:%d redstone_power:%d display:%d", blockState.id, blockState.rotation, blockState.current_redstone_power, blockState.display_id );
@@ -89,14 +96,14 @@ void repgame_process_mouse_events( ) {
     if ( globalGameState.block_selection.selectionInBounds && globalGameState.input.mouse.buttons.left && globalGameState.input.click_delay_left == 0 ) {
         // Mining a block
         BlockID previous_block = change_block( 0, BLOCK_STATE_AIR );
-        globalGameState.inventory.addBlock( previous_block );
+        repgame_add_to_an_inventory( previous_block );
         globalGameState.input.click_delay_left = 30;
     }
     if ( globalGameState.block_selection.selectionInBounds && globalGameState.input.mouse.buttons.right && globalGameState.input.click_delay_right == 0 ) {
         // Placeing a block
         unsigned char rotation = getPlacedRotation( globalGameState.block_selection.holdingBlock );
         BlockID previous_block = change_block( 1, { globalGameState.block_selection.holdingBlock, rotation, 0, globalGameState.block_selection.holdingBlock } );
-        globalGameState.inventory.addBlock( previous_block );
+        repgame_add_to_an_inventory( previous_block );
         globalGameState.input.click_delay_right = 30;
     }
     if ( globalGameState.block_selection.selectionInBounds && globalGameState.input.mouse.currentPosition.wheel_counts != globalGameState.input.mouse.previousPosition.wheel_counts ) {
@@ -341,7 +348,7 @@ RepGameState *repgame_init( const char *world_name, bool connect_multi, const ch
     block_definitions_initilize_definitions( &globalGameState.blocksTexture );
     world_init( &globalGameState.world, globalGameState.camera.pos );
 
-    ui_overlay_init( &globalGameState.ui_overlay, &globalGameState.inventory );
+    ui_overlay_init( &globalGameState.ui_overlay, &globalGameState.inventory, &globalGameState.hotbar );
     ui_overlay_set_holding_block( &globalGameState.ui_overlay, globalGameState.block_selection.holdingBlock );
 
     int iMultiSample = 0;
@@ -379,6 +386,7 @@ void repgame_changeSize( int w, int h ) {
     globalGameState.input.mouse.previousPosition.y = h / 2;
     ui_overlay_on_screen_size_change( &globalGameState.ui_overlay, w, h );
     globalGameState.inventory.onScreenSizeChange( w, h );
+    globalGameState.hotbar.onScreenSizeChange( w, h );
     globalGameState.screen.proj = glm::perspective<float>( glm::radians( CAMERA_FOV ), globalGameState.screen.width / globalGameState.screen.height, 0.1f, 800.0f );
     globalGameState.screen.ortho = glm::ortho<float>( 0.f, w, 0.f, h, -1.f, 1.f );
     globalGameState.screen.ortho_center = glm::ortho<float>( -w / 2, w / 2, -h / 2, h / 2, -1.f, 1.f );
@@ -483,6 +491,7 @@ void repgame_cleanup( ) {
     texture_destroy( &globalGameState.blocksTexture );
     ui_overlay_cleanup( &globalGameState.ui_overlay );
     globalGameState.inventory.cleanup( );
+    globalGameState.hotbar.cleanup( );
     block_definitions_free_definitions( );
 
     PlayerData saved_data;

@@ -143,10 +143,11 @@ static const unsigned int ib_isometric_quad[ IB_ISOMETRIC_QUAD_SIZE ] = {
 MK_SHADER( ui_overlay_vertex );
 MK_SHADER( ui_overlay_fragment );
 
-void ui_overlay_init( UIOverlay *ui_overlay, Inventory *inventory ) {
+void ui_overlay_init( UIOverlay *ui_overlay, Inventory *inventory, Inventory *hotbar ) {
     // Calc The Vertices
     showErrors( );
     ui_overlay->inventory = inventory;
+    ui_overlay->hotbar = hotbar;
 
     // These are from UIOverlayVertex
     vertex_buffer_layout_init( &ui_overlay->vbl );
@@ -180,7 +181,8 @@ void ui_overlay_init( UIOverlay *ui_overlay, Inventory *inventory ) {
 
     shader_init( &ui_overlay->shader, &ui_overlay_vertex, &ui_overlay_fragment );
 
-    ui_overlay->inventory->init( &ui_overlay->vbl, &vbl_instance );
+    ui_overlay->inventory->init( &ui_overlay->vbl, &vbl_instance, 15, 5 );
+    ui_overlay->hotbar->init( &ui_overlay->vbl, &vbl_instance, 8, 1 );
 }
 
 void ui_overlay_on_screen_size_change( UIOverlay *ui_overlay, int width, int height ) {
@@ -220,6 +222,8 @@ void ui_overlay_draw( UIOverlay *ui_overlay, Renderer *renderer, Texture *blocks
 
     shader_set_uniform_mat4f( &ui_overlay->shader, "u_MVP", mvp_ui );
     shader_set_uniform1i( &ui_overlay->shader, "u_Texture", blocksTexture->slot );
+
+    ui_overlay->hotbar->draw( renderer, blocksTexture, mvp_ui, &ui_overlay->shader );
 
     if ( input->inventory_open ) {
         ui_overlay->inventory->handleInput( input );

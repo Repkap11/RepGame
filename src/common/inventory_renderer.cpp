@@ -89,16 +89,20 @@ static int inventory_isometric_face[] = { FACE_TOP, FACE_FRONT, FACE_RIGHT };
 float tints_for_light[] = { 1, 0.8, 0.6 };
 int num_points_per_block = 4;
 int num_index_per_block = 18;
-int num_blocks_max = INVENTORY_MAX_SIZE;
 
-int vb_max_size = num_blocks_max * num_points_per_block * ISOMETRIC_FACES;
-int ib_max_size = num_blocks_max * num_index_per_block * ISOMETRIC_FACES;
+void InventoryRenderer::init( VertexBufferLayout *ui_overlay_vbl_vertex, VertexBufferLayout *ui_overlay_vbl_instance, int width, int height ) {
+    this->width = width;
+    this->height = height;
+    this->num_blocks_max = width * height;
+    this->slots_entities = ( entt::entity * )calloc( this->num_blocks_max, sizeof( entt::entity ) );
 
-void InventoryRenderer::init( VertexBufferLayout *ui_overlay_vbl_vertex, VertexBufferLayout *ui_overlay_vbl_instance ) {
+    this->vb_max_size = this->num_blocks_max * num_points_per_block * ISOMETRIC_FACES;
+    this->ib_max_size = this->num_blocks_max * num_index_per_block * ISOMETRIC_FACES;
+
     this->render_chain_inventory_icons.init( ui_overlay_vbl_vertex, ui_overlay_vbl_instance, vb_isometric_quad, VB_ISOMETRIC_QUAD_SIZE, ib_isometric_quad, IB_ISOMETRIC_QUAD_SIZE );
     this->render_chain_inventory_background.init( ui_overlay_vbl_vertex, ui_overlay_vbl_instance, vb_isometric_quad, VB_ISOMETRIC_QUAD_SIZE, ib_isometric_quad, IB_ISOMETRIC_QUAD_SIZE );
 
-    for ( int i_slot = 0; i_slot < INVENTORY_MAX_SIZE; i_slot++ ) {
+    for ( int i_slot = 0; i_slot < this->num_blocks_max; i_slot++ ) {
         auto pair = this->render_chain_inventory_icons.create_instance( );
         this->slots_entities[ i_slot ] = pair.first;
     }
@@ -129,21 +133,21 @@ void InventoryRenderer::onSizeChange( int width, int height, InventorySlot *inve
 
     float cell_fraction = 0.9;
     // Max stride of each cell.
-    int width_limit = this->inv_width / INVENTORY_BLOCKS_PER_ROW;
-    int height_limit = this->inv_height / ( INVENTORY_BLOCKS_PER_COL * 2 );
+    int width_limit = this->inv_width / this->width;
+    int height_limit = this->inv_height / ( this->height * 2 );
     bool height_limited = height_limit < width_limit;
     if ( height_limited ) {
-        this->inv_items_height = height_limit * INVENTORY_BLOCKS_PER_COL;
-        this->inv_cell_stride = this->inv_items_height / ( cell_fraction * INVENTORY_BLOCKS_PER_COL + ( INVENTORY_BLOCKS_PER_COL + 1 ) * ( 1.0f - cell_fraction ) );
+        this->inv_items_height = height_limit * this->height;
+        this->inv_cell_stride = this->inv_items_height / ( cell_fraction * this->height + ( this->height + 1 ) * ( 1.0f - cell_fraction ) );
         this->inv_cell_size = this->inv_cell_stride * cell_fraction;
         this->inv_cell_offset = this->inv_cell_stride * ( 1.0f - cell_fraction );
-        this->inv_items_width = inv_cell_stride * INVENTORY_BLOCKS_PER_ROW + this->inv_cell_offset;
+        this->inv_items_width = inv_cell_stride * this->width + this->inv_cell_offset;
     } else {
-        this->inv_items_width = width_limit * INVENTORY_BLOCKS_PER_ROW;
-        this->inv_cell_stride = this->inv_items_width / ( cell_fraction * INVENTORY_BLOCKS_PER_ROW + ( INVENTORY_BLOCKS_PER_ROW + 1 ) * ( 1.0f - cell_fraction ) );
+        this->inv_items_width = width_limit * this->width;
+        this->inv_cell_stride = this->inv_items_width / ( cell_fraction * this->width + ( this->width + 1 ) * ( 1.0f - cell_fraction ) );
         this->inv_cell_size = this->inv_cell_stride * cell_fraction;
         this->inv_cell_offset = this->inv_cell_stride * ( 1.0f - cell_fraction );
-        this->inv_items_height = inv_cell_stride * INVENTORY_BLOCKS_PER_COL + this->inv_cell_offset;
+        this->inv_items_height = inv_cell_stride * this->height + this->inv_cell_offset;
     }
     this->inv_items_x = this->inv_x - ( this->inv_items_width - this->inv_width ) / 2;
     if ( height_limited ) {
@@ -190,10 +194,10 @@ void InventoryRenderer::renderBackground( ) {
     // Cells
     float cell_start_x = this->inv_items_x + this->inv_cell_offset;
     float cell_start_y = this->inv_items_y + this->inv_cell_offset;
-    for ( int i = 0; i < INVENTORY_BLOCKS_PER_COL * INVENTORY_BLOCKS_PER_ROW; ++i ) {
+    for ( int i = 0; i < this->height * this->width; ++i ) {
         UIOverlayInstance &cell_bg = this->init_background_gray_cell( 0.5f );
-        int block_grid_coord_x = i % INVENTORY_BLOCKS_PER_ROW;
-        int block_grid_coord_y = i / INVENTORY_BLOCKS_PER_ROW;
+        int block_grid_coord_x = i % this->width;
+        int block_grid_coord_y = i / this->width;
         this->setSize( cell_bg,                                                   //
                        cell_start_x + block_grid_coord_x * this->inv_cell_stride, //
                        cell_start_y + block_grid_coord_y * this->inv_cell_stride, //
@@ -231,8 +235,8 @@ void InventoryRenderer::singleItemRender( int slot_index, const InventorySlot &i
     }
     UIOverlayInstance &ui_vertex = *ui_vertex_prt;
 
-    int block_grid_coord_x = slot_index % INVENTORY_BLOCKS_PER_ROW;
-    int block_grid_coord_y = slot_index / INVENTORY_BLOCKS_PER_ROW;
+    int block_grid_coord_x = slot_index % this->width;
+    int block_grid_coord_y = slot_index / this->width;
 
     ui_vertex.screen_x = this->inv_items_x + block_grid_coord_x * this->inv_cell_stride + this->inv_block_offset;
     ui_vertex.screen_y = this->inv_items_y + block_grid_coord_y * this->inv_cell_stride + this->inv_block_offset;
@@ -261,7 +265,7 @@ void InventoryRenderer::singleItemRender( int slot_index, const InventorySlot &i
 }
 
 void InventoryRenderer::fullItemRender( InventorySlot *inventory_slots ) {
-    for ( int slot_index = 0; slot_index < INVENTORY_MAX_SIZE; slot_index++ ) {
+    for ( int slot_index = 0; slot_index < this->num_blocks_max; slot_index++ ) {
         const InventorySlot &inventory_slot = inventory_slots[ slot_index ];
         this->singleItemRender( slot_index, inventory_slot );
     }

@@ -12,15 +12,18 @@
 // #define INVENTORY_BLOCK_SIZE 30
 // #define INVENTORY_BLOCK_SPACING 80
 
-#define INVENTORY_BLOCKS_PER_ROW 20
-#define INVENTORY_BLOCKS_PER_COL 5
-#define INVENTORY_MAX_SIZE ( INVENTORY_BLOCKS_PER_ROW * INVENTORY_BLOCKS_PER_COL )
-
 typedef struct {
     BlockID block_id;
 } InventorySlot;
 
 class InventoryRenderer {
+    // Cell layout
+    int width;
+    int height;
+    int num_blocks_max;
+    int vb_max_size;
+    int ib_max_size;
+
     // Inventory position and size.
     int inv_x;
     int inv_y;
@@ -41,7 +44,7 @@ class InventoryRenderer {
     int inv_block_size;
     int inv_block_offset;
 
-    entt::entity slots_entities[ INVENTORY_MAX_SIZE ];
+    entt::entity *slots_entities;
     RenderChain<UIOverlayVertex, UIOverlayInstance> render_chain_inventory_background;
     RenderChain<UIOverlayVertex, UIOverlayInstance> render_chain_inventory_icons;
 
@@ -53,7 +56,7 @@ class InventoryRenderer {
     void singleItemRender( int slot_index, const InventorySlot &inventory_slot );
 
   public:
-    void init( VertexBufferLayout *ui_overlay_vbl_vertex, VertexBufferLayout *ui_overlay_vbl_instance );
+    void init( VertexBufferLayout *ui_overlay_vbl_vertex, VertexBufferLayout *ui_overlay_vbl_instance, int width, int height );
     void onSizeChange( int width, int height, InventorySlot *inventory_slots );
     void reRenderSlot( int slot_index, InventorySlot &slot );
     void draw( Renderer *renderer, Texture *blocksTexture, const glm::mat4 &mvp_ui, Shader *shader );
