@@ -22,8 +22,8 @@ void Inventory::onScreenSizeChange( int width, int height ) {
     this->inventory_renderer.onSizeChange( width, height, this->slots );
 }
 
-void Inventory::draw( Renderer *renderer, Texture *blocksTexture, const glm::mat4 &mvp_ui, Shader *shader ) {
-    this->inventory_renderer.draw( renderer, blocksTexture, mvp_ui, shader );
+void Inventory::draw( Renderer *renderer, Texture *blocksTexture, Shader *shader ) {
+    this->inventory_renderer.draw( renderer, blocksTexture, shader );
 }
 
 int Inventory::findOpenSlot( ) {

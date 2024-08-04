@@ -78,7 +78,7 @@ class InventoryRenderer {
     void onSizeChange( int width, int height, InventorySlot *inventory_slots );
     void changeSlotItem( int slot_index, InventorySlot &slot );
     void setSelectedSlot( int slot_index );
-    void draw( Renderer *renderer, Texture *blocksTexture, const glm::mat4 &mvp_ui, Shader *shader );
+    void draw( Renderer *renderer, Texture *blocksTexture, Shader *shader );
     void cleanup( );
 };
 #endif

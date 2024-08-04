@@ -4,11 +4,6 @@
 
 #define ISOMETRIC_FACES 3
 
-#define ORDER_Z_ITEMS_BG 0.0f
-#define ORDER_Z_SELECTED_SLOT 0.1f
-#define ORDER_Z_SLOT_BG 0.2f
-#define ORDER_Z_BLOCKS 0.3f
-
 // UIOverlayVertex vb_isometric[ 12 ] = {
 //     { 0, 0, { 1, 0 }, ISO_FACE_TOP },     // 0
 //     { -1, 0.5f, { 1, 1 }, ISO_FACE_TOP }, // 1
@@ -225,7 +220,7 @@ void InventoryRenderer::selectedSlotRender( ) {
     int block_grid_coord_y = this->selected_slot_index / this->width;
     ui_vertex.screen_x = this->inv_items_x + block_grid_coord_x * this->inv_cell_stride + this->inv_selected_offset;
     ui_vertex.screen_y = this->inv_items_y + block_grid_coord_y * this->inv_cell_stride + this->inv_selected_offset;
-    ui_vertex.screen_z = ORDER_Z_SELECTED_SLOT;
+    ui_vertex.screen_z = ORDER_Z_INV_SELECTED_SLOT;
 
     this->render_chain_inventory_background.invalidate( this->selected_slot_bg );
 }
@@ -257,7 +252,7 @@ void InventoryRenderer::renderBackground( ) {
 
     // Items background
     UIOverlayInstance &items_bg = this->init_background_gray_cell( 0.4f );
-    setSize( items_bg, this->inv_items_x, this->inv_items_y, this->inv_items_width, this->inv_items_height, ORDER_Z_ITEMS_BG );
+    setSize( items_bg, this->inv_items_x, this->inv_items_y, this->inv_items_width, this->inv_items_height, ORDER_Z_INV_ITEMS_BG );
 
     // Selected slot
     this->selectedSlotRender( );
@@ -274,7 +269,7 @@ void InventoryRenderer::renderBackground( ) {
                  cell_start_y + block_grid_coord_y * this->inv_cell_stride, //
                  this->inv_cell_size,                                       //
                  this->inv_cell_size,                                       //
-                 ORDER_Z_SLOT_BG );
+                 ORDER_Z_INV_SLOT_BG );
     }
 }
 
@@ -309,7 +304,7 @@ void InventoryRenderer::singleItemRender( int slot_index, const InventorySlot &i
     UIOverlayInstance &ui_vertex = *ui_vertex_prt;
 
     if ( needsVertexInit ) {
-        ui_vertex.screen_z = ORDER_Z_BLOCKS;
+        ui_vertex.screen_z = ORDER_Z_INV_BLOCKS;
         ui_vertex.width = this->inv_block_size;
         ui_vertex.height = this->inv_block_size;
         ui_vertex.is_block = 1;
@@ -347,7 +342,7 @@ void InventoryRenderer::fullItemRender( InventorySlot *inventory_slots ) {
     }
 }
 
-void InventoryRenderer::draw( Renderer *renderer, Texture *blocksTexture, const glm::mat4 &mvp_ui, Shader *shader ) {
+void InventoryRenderer::draw( Renderer *renderer, Texture *blocksTexture, Shader *shader ) {
     showErrors( );
 
     // glDisable( GL_DEPTH_TEST );

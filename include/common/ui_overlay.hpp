@@ -7,6 +7,11 @@
 #include "RepGame.hpp"
 #include "input.hpp"
 
+#define ORDER_Z_INV_ITEMS_BG 0.0f
+#define ORDER_Z_INV_SELECTED_SLOT 0.1f
+#define ORDER_Z_INV_SLOT_BG 0.2f
+#define ORDER_Z_INV_BLOCKS 0.3f
+
 typedef struct {
     float screen_x;
     float screen_y;

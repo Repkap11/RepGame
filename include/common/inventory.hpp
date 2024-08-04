@@ -23,7 +23,7 @@ class Inventory {
     void handleMouseInput( InputState *inputState );
     BlockID setSelectedSlot( int selected_slot );
     BlockID incrementSelectedSlot( int offset );
-    void draw( Renderer *renderer, Texture *blocksTexture, const glm::mat4 &mvp_ui, Shader *shader );
+    void draw( Renderer *renderer, Texture *blocksTexture, Shader *shader );
     void cleanup( );
 };
 

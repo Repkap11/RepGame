@@ -222,11 +222,11 @@ void ui_overlay_draw( UIOverlay *ui_overlay, Renderer *renderer, Texture *blocks
     shader_set_uniform_mat4f( &ui_overlay->shader, "u_MVP", mvp_ui );
     shader_set_uniform1i( &ui_overlay->shader, "u_Texture", blocksTexture->slot );
 
-    ui_overlay->hotbar->draw( renderer, blocksTexture, mvp_ui, &ui_overlay->shader );
+    ui_overlay->hotbar->draw( renderer, blocksTexture, &ui_overlay->shader );
 
     if ( input->inventory_open ) {
         ui_overlay->inventory->handleMouseInput( input );
-        ui_overlay->inventory->draw( renderer, blocksTexture, mvp_ui, &ui_overlay->shader );
+        ui_overlay->inventory->draw( renderer, blocksTexture, &ui_overlay->shader );
     } else {
         ui_overlay->render_chain_held_block.draw( renderer, &ui_overlay->shader );
         glBlendFunc( GL_ONE_MINUS_DST_COLOR, GL_ZERO );
