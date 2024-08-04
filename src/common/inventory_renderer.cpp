@@ -127,9 +127,7 @@ void InventoryRenderer::onSizeChange( int width, int height, InventorySlot *inve
     this->inv_x = -this->inv_width / 2;
     this->inv_y = -this->inv_height / 2;
 
-    float cell_fraction = 0.90;
-    float block_fraction = 0.8;
-
+    float cell_fraction = 0.9;
     // Max stride of each cell.
     int width_limit = this->inv_width / INVENTORY_BLOCKS_PER_ROW;
     int height_limit = this->inv_height / ( INVENTORY_BLOCKS_PER_COL * 2 );
@@ -140,7 +138,6 @@ void InventoryRenderer::onSizeChange( int width, int height, InventorySlot *inve
         this->inv_cell_size = this->inv_cell_stride * cell_fraction;
         this->inv_cell_offset = this->inv_cell_stride * ( 1.0f - cell_fraction );
         this->inv_items_width = inv_cell_stride * INVENTORY_BLOCKS_PER_ROW + this->inv_cell_offset;
-
     } else {
         this->inv_items_width = width_limit * INVENTORY_BLOCKS_PER_ROW;
         this->inv_cell_stride = this->inv_items_width / ( cell_fraction * INVENTORY_BLOCKS_PER_ROW + ( INVENTORY_BLOCKS_PER_ROW + 1 ) * ( 1.0f - cell_fraction ) );
@@ -156,8 +153,9 @@ void InventoryRenderer::onSizeChange( int width, int height, InventorySlot *inve
         this->inv_items_y = this->inv_y + ( ( this->inv_width - inv_items_width ) / 2 );
     }
 
-    this->inv_block_size = this->inv_cell_stride * block_fraction;
-    this->inv_block_offset = ( this->inv_cell_stride - this->inv_block_size ) / 2;
+    float block_fraction = 0.9;
+    this->inv_block_size = this->inv_cell_size * block_fraction;
+    this->inv_block_offset = this->inv_cell_offset + ( this->inv_cell_size - this->inv_block_size ) / 2;
 
     this->renderBackground( );
     this->fullItemRender( inventory_slots );
@@ -235,18 +233,13 @@ void InventoryRenderer::singleItemRender( int slot_index, const InventorySlot &i
 
     int block_grid_coord_x = slot_index % INVENTORY_BLOCKS_PER_ROW;
     int block_grid_coord_y = slot_index / INVENTORY_BLOCKS_PER_ROW;
-    int block_corner_x = this->inv_x + block_grid_coord_x * this->inv_cell_stride + this->inv_block_offset;
-    int block_corner_y = this->inv_y + block_grid_coord_y * this->inv_cell_stride + this->inv_block_offset;
 
-    float cell_x = ( slot_index / 2 );
-    float cell_y = ( slot_index % 2 );
-    ui_vertex.is_block = 1;
-
-    ui_vertex.is_isometric = block->icon_is_isometric;
-    ui_vertex.screen_x = block_corner_x;
-    ui_vertex.screen_y = block_corner_y;
+    ui_vertex.screen_x = this->inv_items_x + block_grid_coord_x * this->inv_cell_stride + this->inv_block_offset;
+    ui_vertex.screen_y = this->inv_items_y + block_grid_coord_y * this->inv_cell_stride + this->inv_block_offset;
     ui_vertex.width = this->inv_block_size;
     ui_vertex.height = this->inv_block_size;
+    ui_vertex.is_block = 1;
+    ui_vertex.is_isometric = block->icon_is_isometric;
 
     for ( int face = 0; face < ISOMETRIC_FACES; face++ ) {
         float tint_for_light = tints_for_light[ face ];
