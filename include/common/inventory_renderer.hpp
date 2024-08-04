@@ -21,17 +21,27 @@ typedef struct {
 } InventorySlot;
 
 class InventoryRenderer {
+    // Inventory position and size.
     int inv_x;
     int inv_y;
     int inv_width;
     int inv_height;
-    int inv_item_height;
-    int inv_item_width;
+
+    // Region of the inventory that may show icons (unless aspect ratio constrained).
+    int inv_items_x;
+    int inv_items_y;
+    int inv_items_height;
+    int inv_items_width;
+
+    // Stride between cells and blocks in the inventory.
     int item_stride_size;
-    int item_icon_size;
-    int text_size;
-    int text_spacing;
-    int icon_offset;
+
+    // Offset and size of cells and blocks.
+    int inv_cell_size;
+    int inv_cell_offset;
+    int inv_block_size;
+    int inv_block_offset;
+
     entt::entity slots_entities[ INVENTORY_MAX_SIZE ];
     RenderChain<UIOverlayVertex, UIOverlayInstance> render_chain_inventory_background;
     RenderChain<UIOverlayVertex, UIOverlayInstance> render_chain_inventory_icons;

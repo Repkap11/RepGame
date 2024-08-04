@@ -124,19 +124,39 @@ void InventoryRenderer::onSizeChange( int width, int height, InventorySlot *inve
     this->inv_height = height * 0.8;
     this->inv_width = width * 0.8;
 
-    this->inv_x = -width / 2 + ( width - this->inv_width ) / 2;
-    this->inv_y = -height / 2 + ( height - this->inv_height ) / 2;
-    this->inv_item_height = this->inv_height / 2.0f;
-    this->inv_item_width = this->inv_width;
-    int width_limit = this->inv_item_width / INVENTORY_BLOCKS_PER_ROW;
-    int height_limit = this->inv_item_height / INVENTORY_BLOCKS_PER_COL;
-    if ( height_limit < width_limit ) {
+    // Max stride of each cell.
+    int width_limit = this->inv_width / INVENTORY_BLOCKS_PER_ROW;
+    int height_limit = this->inv_height / ( INVENTORY_BLOCKS_PER_COL * 2 );
+    bool height_limited = height_limit < width_limit;
+    if ( height_limited ) {
         this->item_stride_size = height_limit;
     } else {
         this->item_stride_size = width_limit;
     }
-    this->item_icon_size = item_stride_size * 0.8;
-    this->icon_offset = ( this->item_stride_size - this->item_icon_size ) / 2;
+
+    this->inv_x = -this->inv_width / 2;
+    this->inv_y = -this->inv_height / 2;
+
+    this->inv_items_width = this->item_stride_size * INVENTORY_BLOCKS_PER_ROW;
+    this->inv_items_height = this->item_stride_size * INVENTORY_BLOCKS_PER_COL;
+
+    this->inv_items_x = this->inv_x - ( this->inv_items_width - this->inv_width ) / 2;
+    // Position the inventory region so it's at the bottom, but add some extra pixels to make any rounding error horizontally
+    // match the padding vertically.
+    if ( height_limited ) {
+        this->inv_items_y = this->inv_y;
+    } else {
+        this->inv_items_y = this->inv_y + ( ( this->inv_width - this->item_stride_size * INVENTORY_BLOCKS_PER_ROW ) / 2 );
+    }
+
+    float cell_fraction = 0.9;
+    float block_fraction = 0.8;
+
+    this->inv_cell_size = this->item_stride_size * cell_fraction;
+    this->inv_cell_offset = ( this->item_stride_size - this->inv_cell_offset ) / 2;
+
+    this->inv_block_size = this->item_stride_size * block_fraction;
+    this->inv_block_offset = ( this->item_stride_size - this->inv_block_size ) / 2;
 
     this->renderBackground( );
     this->fullItemRender( inventory_slots );
@@ -161,24 +181,26 @@ void InventoryRenderer::renderBackground( ) {
     this->render_chain_inventory_background.clear( );
 
     // Large background
-    UIOverlayInstance &large_bg = this->init_background_gray_cell( 0.4f );
-    this->setSize( large_bg, this->inv_x, this->inv_y, this->inv_width, this->inv_height );
+    UIOverlayInstance &inv_bg = this->init_background_gray_cell( 0.1f );
+    this->setSize( inv_bg, this->inv_x, this->inv_y, this->inv_width, this->inv_height );
 
-    // Cells
-    int cell_offset = ( this->item_stride_size - this->item_icon_size ) / 2;
-    float cell_start_x = this->inv_x + cell_offset;
-    float cell_start_y = this->inv_y + cell_offset;
-    float double_cell_offset = cell_offset;
-    for ( int i = 0; i < INVENTORY_BLOCKS_PER_COL * INVENTORY_BLOCKS_PER_ROW; ++i ) {
-        UIOverlayInstance &cell_bg = this->init_background_gray_cell( 0.5f );
-        int block_grid_coord_x = i % INVENTORY_BLOCKS_PER_ROW;
-        int block_grid_coord_y = i / INVENTORY_BLOCKS_PER_ROW;
-        this->setSize( cell_bg,                                                    //
-                       cell_start_x + block_grid_coord_x * this->item_stride_size, //
-                       cell_start_y + block_grid_coord_y * this->item_stride_size, //
-                       this->item_stride_size - double_cell_offset,                //
-                       this->item_stride_size - double_cell_offset );
-    }
+    // Items background
+    UIOverlayInstance &items_bg = this->init_background_gray_cell( 0.4f );
+    this->setSize( items_bg, this->inv_items_x, this->inv_items_y, this->inv_items_width, this->inv_items_height );
+
+    // // Cells
+    // float cell_start_x = this->inv_x + this->inv_cell_offset;
+    // float cell_start_y = this->inv_y + this->inv_cell_offset;
+    // for ( int i = 0; i < INVENTORY_BLOCKS_PER_COL * INVENTORY_BLOCKS_PER_ROW; ++i ) {
+    //     UIOverlayInstance &cell_bg = this->init_background_gray_cell( 0.5f );
+    //     int block_grid_coord_x = i % INVENTORY_BLOCKS_PER_ROW;
+    //     int block_grid_coord_y = i / INVENTORY_BLOCKS_PER_ROW;
+    //     this->setSize( cell_bg,                                                    //
+    //                    cell_start_x + block_grid_coord_x * this->item_stride_size, //
+    //                    cell_start_y + block_grid_coord_y * this->item_stride_size, //
+    //                    this->inv_cell_size,                                        //
+    //                    this->inv_cell_size );
+    // }
 }
 
 void InventoryRenderer::singleItemRender( int slot_index, const InventorySlot &inventory_slot ) {
@@ -212,8 +234,8 @@ void InventoryRenderer::singleItemRender( int slot_index, const InventorySlot &i
 
     int block_grid_coord_x = slot_index % INVENTORY_BLOCKS_PER_ROW;
     int block_grid_coord_y = slot_index / INVENTORY_BLOCKS_PER_ROW;
-    int block_corner_x = this->inv_x + block_grid_coord_x * this->item_stride_size + icon_offset;
-    int block_corner_y = this->inv_y + block_grid_coord_y * this->item_stride_size + icon_offset;
+    int block_corner_x = this->inv_x + block_grid_coord_x * this->item_stride_size + this->inv_block_offset;
+    int block_corner_y = this->inv_y + block_grid_coord_y * this->item_stride_size + this->inv_block_offset;
 
     float cell_x = ( slot_index / 2 );
     float cell_y = ( slot_index % 2 );
@@ -222,8 +244,8 @@ void InventoryRenderer::singleItemRender( int slot_index, const InventorySlot &i
     ui_vertex.is_isometric = block->icon_is_isometric;
     ui_vertex.screen_x = block_corner_x;
     ui_vertex.screen_y = block_corner_y;
-    ui_vertex.width = this->item_icon_size;
-    ui_vertex.height = this->item_icon_size;
+    ui_vertex.width = this->inv_block_size;
+    ui_vertex.height = this->inv_block_size;
 
     for ( int face = 0; face < ISOMETRIC_FACES; face++ ) {
         float tint_for_light = tints_for_light[ face ];
