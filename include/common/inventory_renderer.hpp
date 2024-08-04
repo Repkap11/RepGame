@@ -12,8 +12,8 @@
 // #define INVENTORY_BLOCK_SIZE 30
 // #define INVENTORY_BLOCK_SPACING 80
 
-#define INVENTORY_BLOCKS_PER_ROW 5
-#define INVENTORY_BLOCKS_PER_COL 2
+#define INVENTORY_BLOCKS_PER_ROW 20
+#define INVENTORY_BLOCKS_PER_COL 5
 #define INVENTORY_MAX_SIZE ( INVENTORY_BLOCKS_PER_ROW * INVENTORY_BLOCKS_PER_COL )
 
 typedef struct {
@@ -32,14 +32,12 @@ class InventoryRenderer {
     int inv_items_y;
     int inv_items_height;
     int inv_items_width;
-    int inv_cell_stride;
-
-    // Stride between cells and blocks in the inventory.
-    int item_stride_size;
 
     // Offset and size of cells and blocks.
     int inv_cell_size;
     int inv_cell_offset;
+    float inv_cell_stride;
+
     int inv_block_size;
     int inv_block_offset;
 
