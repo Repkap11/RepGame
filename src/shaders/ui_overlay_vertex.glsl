@@ -1,12 +1,9 @@
 #version 300 es
 uniform mat4 u_MVP;
 
-#define FACE_TOP 0u
-#define FACE_BOTTOM 1u
-#define FACE_RIGHT 2u
-#define FACE_FRONT 3u
-#define FACE_LEFT 4u
-#define FACE_BACK 5u
+#define ISO_FACE_TOP 0u
+#define ISO_FACE_FRONT 1u
+#define ISO_FACE_RIGHT 2u
 
 // From UIOverlayVertex
 layout(location = 0) in vec2 element_position;
@@ -36,9 +33,9 @@ void main() {
     } else {
         if(instance_is_block != 0u) {
             float face_light;
-            if(element_face_type == FACE_TOP) {
+            if(element_face_type == ISO_FACE_TOP) {
                 face_light = 1.0f;
-            } else if(element_face_type == FACE_FRONT) {
+            } else if(element_face_type == ISO_FACE_FRONT) {
                 face_light = 0.8f;
             } else {
                 face_light = 0.6f;

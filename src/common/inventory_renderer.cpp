@@ -63,10 +63,10 @@ static const UIOverlayVertex vb_isometric_quad[ VB_ISOMETRIC_QUAD_SIZE ] = {
     { 1 * 0.5f + 0.5f, 0.5f * 0.5f + 0.5f, { 0, 1 }, 1, ISO_FACE_RIGHT },  // e
 
     // Quad
-    { 0, 0, { 0, 0 }, 0, ISO_FACE_TOP }, //
-    { 0, 1, { 0, 1 }, 0, ISO_FACE_TOP }, //
-    { 1, 0, { 1, 0 }, 0, ISO_FACE_TOP }, //
-    { 1, 1, { 1, 1 }, 0, ISO_FACE_TOP }  //
+    { 0, 0, { 0, 0 }, 0, ISO_FACE_FRONT }, //
+    { 0, 1, { 0, 1 }, 0, ISO_FACE_FRONT }, //
+    { 1, 0, { 1, 0 }, 0, ISO_FACE_FRONT }, //
+    { 1, 1, { 1, 1 }, 0, ISO_FACE_FRONT }  //
 };
 #define IB_ISOMETRIC_QUAD_SIZE 24
 static const unsigned int ib_isometric_quad[ IB_ISOMETRIC_QUAD_SIZE ] = {
@@ -86,7 +86,6 @@ static const unsigned int ib_isometric_quad[ IB_ISOMETRIC_QUAD_SIZE ] = {
 };
 
 static int inventory_isometric_face[] = { FACE_TOP, FACE_FRONT, FACE_RIGHT };
-float tints_for_light[] = { 1, 0.8, 0.6 };
 int num_points_per_block = 4;
 int num_index_per_block = 18;
 
@@ -192,23 +191,22 @@ void InventoryRenderer::renderBackground( ) {
     // this->setSize( inv_bg, this->inv_x, this->inv_y, this->inv_width, this->inv_height );
 
     // Items background
-    // UIOverlayInstance &items_bg = this->init_background_gray_cell( 0.4f );
-    // this->setSize( items_bg, this->inv_items_x, this->inv_items_y, this->inv_items_width, this->inv_items_height );
-
+    UIOverlayInstance &items_bg = this->init_background_gray_cell( 0.4f );
+    this->setSize( items_bg, this->inv_items_x, this->inv_items_y, this->inv_items_width, this->inv_items_height );
 
     // Cells
-    // float cell_start_x = this->inv_items_x + this->inv_cell_offset;
-    // float cell_start_y = this->inv_items_y + this->inv_cell_offset;
-    // for ( int i = 0; i < this->height * this->width; ++i ) {
-    //     UIOverlayInstance &cell_bg = this->init_background_gray_cell( 0.5f );
-    //     int block_grid_coord_x = i % this->width;
-    //     int block_grid_coord_y = i / this->width;
-    //     this->setSize( cell_bg,                                                   //
-    //                    cell_start_x + block_grid_coord_x * this->inv_cell_stride, //
-    //                    cell_start_y + block_grid_coord_y * this->inv_cell_stride, //
-    //                    this->inv_cell_size,                                       //
-    //                    this->inv_cell_size );
-    // }
+    float cell_start_x = this->inv_items_x + this->inv_cell_offset;
+    float cell_start_y = this->inv_items_y + this->inv_cell_offset;
+    for ( int i = 0; i < this->height * this->width; ++i ) {
+        UIOverlayInstance &cell_bg = this->init_background_gray_cell( 0.5f );
+        int block_grid_coord_x = i % this->width;
+        int block_grid_coord_y = i / this->width;
+        this->setSize( cell_bg,                                                   //
+                       cell_start_x + block_grid_coord_x * this->inv_cell_stride, //
+                       cell_start_y + block_grid_coord_y * this->inv_cell_stride, //
+                       this->inv_cell_size,                                       //
+                       this->inv_cell_size );
+    }
 }
 
 void InventoryRenderer::singleItemRender( int slot_index, const InventorySlot &inventory_slot ) {
@@ -250,13 +248,12 @@ void InventoryRenderer::singleItemRender( int slot_index, const InventorySlot &i
     ui_vertex.is_block = 1;
     ui_vertex.is_isometric = block->icon_is_isometric;
 
-    for ( int face = 0; face < ISOMETRIC_FACES; face++ ) {
-        float tint_for_light = tints_for_light[ face ];
-        if ( !block->casts_shadow ) {
-            tint_for_light = 1.0f;
-        }
-        ui_vertex.tint[ face ] = tint_for_light;
+    for ( int i = 0; i < 5; i++ ) {
+        // set RGBA tint to no tint
+        ui_vertex.tint[ i ] = 1.0f;
+    }
 
+    for ( int face = 0; face < ISOMETRIC_FACES; face++ ) {
         if ( !block->icon_is_isometric ) {
             // Like Reeds
             ui_vertex.id_isos[ face ] = block->inventory_non_isometric_id - 1;
@@ -265,7 +262,6 @@ void InventoryRenderer::singleItemRender( int slot_index, const InventorySlot &i
             ui_vertex.id_isos[ face ] = ( block->textures[ inventory_isometric_face[ face ] ] - 1 );
         }
     }
-    ui_vertex.tint[ 3 ] = 1;
     this->render_chain_inventory_icons.invalidate( slot_entity );
 }
 
