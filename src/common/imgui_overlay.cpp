@@ -1,5 +1,26 @@
 #include "common/imgui_overlay.hpp"
 
+ImGuiDebugVars debug_vars;
+
+ImGuiDebugVars &imgui_overlay_get_imgui_debug_vars( ) {
+    return debug_vars;
+}
+
+#if ( defined( REPGAME_WASM ) )
+
+void imgui_overlay_init( ImGuiOverlay *imgui_overlay ) {
+}
+void imgui_overlay_attach_to_window( ImGuiOverlay *ui_overlay, SDL_Window *window, SDL_GLContext gl_context ) {
+}
+void imgui_overlay_handle_sdl2_event( ImGuiOverlay *ui_overlay, SDL_Event *event, bool *handledMouse, bool *handledKeyboard ) {
+}
+void imgui_overlay_draw( ImGuiOverlay *ui_overlay, InputState *input ) {
+}
+void imgui_overlay_cleanup( ImGuiOverlay *ui_overlay ) {
+}
+
+#else
+
 #include "imgui.h"
 #include "imgui_impl_sdl2.h"
 #include "imgui_impl_opengl3.h"
@@ -53,11 +74,6 @@ void imgui_overlay_handle_sdl2_event( ImGuiOverlay *ui_overlay, SDL_Event *event
     *handledKeyboard = io.WantCaptureKeyboard;
 }
 
-ImGuiDebugVars debug_vars;
-ImGuiDebugVars &imgui_overlay_get_imgui_debug_vars( ) {
-    return debug_vars;
-}
-
 void imgui_overlay_draw( ImGuiOverlay *imgui_overlay, InputState *input ) {
     ImGui_ImplOpenGL3_NewFrame( );
     ImGui_ImplSDL2_NewFrame( );
@@ -98,3 +114,4 @@ void imgui_overlay_cleanup( ImGuiOverlay *imgui_overlay ) {
     ImGui_ImplSDL2_Shutdown( );
     ImGui::DestroyContext( );
 }
+#endif
