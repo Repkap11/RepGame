@@ -27,7 +27,6 @@ layout(location = 12) in vec3 texCoords_offset;
 
 out vec2 v_TexCoordBlock;
 flat out uint v_blockID;
-flat out int v_shouldDiscardNoLight;
 out float v_planarDot;
 out float v_corner_lighting;
 out vec3 v_world_coords;
