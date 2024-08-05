@@ -4,8 +4,8 @@ REPGAME_PACKAGES += mingw-w64 upx-ucl
 
 CFLAGS_WINDOWS := -Wall -Werror -std=c++17 -Wno-unused-variable -fno-pie -D GLEW_STATIC -mwindows -D _WIN32_WINNT=0x0A00
 
-#CFLAGS_WINDOWS += -O3 -DREPGAME_FAST
-CFLAGS_WINDOWS += -g
+CFLAGS_WINDOWS += -O3 -DREPGAME_SKIP_CHECK_FOR_GL_ERRORS -DREPGAME_HW_VSYNC
+# CFLAGS_WINDOWS += -g
 
 CFLAGS_WINDOWS += -DREPGAME_WINDOWS
 LIBS_WINDOWS := windows_build/glew/lib/libglew32.a windows_build/sdl2/x86_64-w64-mingw32/bin/SDL2.dll -lopengl32 -lglu32 -Wl,-Bstatic -lpthread -Wl,-Bdynamic -static-libgcc -static-libstdc++

@@ -120,11 +120,12 @@ int repgame_sdl2_main( const char *world_path, const char *host, bool connect_mu
 
 #if !defined( REPGAME_WASM )
 
-    /* This makes our buffer swap syncronized with the monitor's vertical refresh */
-#if defined( REPGAME_FAST )
-    SDL_GL_SetSwapInterval( 0 );
-#else
+#ifdef REPGAME_HW_VSYNC
     SDL_GL_SetSwapInterval( 1 );
+    // pr_debug( "Limiting FPS" );
+#else
+    SDL_GL_SetSwapInterval( 0 );
+    // pr_debug( "Unlimited FPS" );
 #endif
 
     if ( !GLEW_VERSION_3_3 ) { // check that the machine supports the 2.1 API.
@@ -168,10 +169,13 @@ void main_loop_wasm( ) {
     return;
 }
 
-#define BE_NICE_AND_DONT_BURN_THE_CPU 1
+#ifdef REPGAME_SW_VSYNC
+#define SW_VSYNC_ENABLED 1
+#else
+#define SW_VSYNC_ENABLED 0
+#endif
 
 void main_loop_full( ) {
-    int vsync_enabled = 1;
 
     Uint32 time_step_ms = 1000 / UPS_RATE;
     Uint32 next_game_step = SDL_GetTicks( ); // initial value
@@ -179,7 +183,7 @@ void main_loop_full( ) {
     while ( !repgame_shouldExit( ) ) {
         Uint32 now = SDL_GetTicks( );
 
-        if ( ( ( ( int )next_game_step - ( int )now ) <= 0 ) || vsync_enabled ) {
+        if ( ( ( ( int )next_game_step - ( int )now ) <= 0 ) || !SW_VSYNC_ENABLED ) {
             int computer_is_too_slow_limit = 10; // max number of advances per render, if you can't get 20 fps, slow the game's UPS
 
             // Loop until all steps are executed or computer_is_too_slow_limit is reached
@@ -197,10 +201,7 @@ void main_loop_full( ) {
             repgame_draw( );
             SDL_GL_SwapWindow( sdl_window );
         } else {
-            // we're too fast, wait a bit.
-            if ( BE_NICE_AND_DONT_BURN_THE_CPU ) {
-                SDL_Delay( next_game_step - now );
-            }
+            SDL_Delay( next_game_step - now );
         }
     }
 }

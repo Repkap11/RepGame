@@ -5,11 +5,14 @@ REPGAME_PACKAGES += libglew-dev libxi-dev g++ libsdl2-dev upx-ucl
 CFLAGS_LINUX := -Wall -Wextra -std=c++17 -Wno-unused-parameter -Wno-unused-variable -fno-pie -march=native
 LFLAGS := -z noexecstack
 
-CFLAGS_LINUX_RELEASE += -O3 -DREPGAME_FAST #Ignore checking for errors to maxing out FPS
-CFLAGS_LINUX_DEBUG += -g
-
+# In release mode, don't check for GL errors
+# Use SW vsync since HW vsync causes tearing (at least for me).
+CFLAGS_LINUX_RELEASE := -O3 -DREPGAME_SKIP_CHECK_FOR_GL_ERRORS -DREPGAME_SW_VSYNC
+# Show GL errors, and unlimit the FPS to measure perfornamce.
+CFLAGS_LINUX_DEBUG := -g
 
 CFLAGS_LINUX += -DREPGAME_LINUX
+
 LIBS_LINUX := -L /app/lib/ -l GLU -l SDL2 -l m -l GL -l GLEW -lpthread -l dl -static-libgcc -static-libstdc++
 
 # CC_LINUX := g++
@@ -40,7 +43,7 @@ OBJECTS_COMMON_LINUX_DEBUG := $(patsubst src/common/%.cpp,out/linux/debug/common
 OBJECTS_IMGUI_LINUX_RELEASE := $(patsubst imgui_build/%.cpp,out/linux/release/imgui/%.o, $(SRC_IMGUI))
 OBJECTS_IMGUI_LINUX_DEBUG := $(patsubst imgui_build/%.cpp,out/linux/debug/imgui/%.o, $(SRC_IMGUI))
 
-OBJECTS_LINUX := $(patsubst src/%.cpp,out/linux/release/%.o, $(wildcard src/linux/*.cpp))
+OBJECTS_LINUX_RELEASE := $(patsubst src/%.cpp,out/linux/release/%.o, $(wildcard src/linux/*.cpp))
 OBJECTS_LINUX_DEBUG := $(patsubst src/%.cpp,out/linux/debug/%.o, $(wildcard src/linux/*.cpp))
 DEPS_LINUX := $(patsubst src/%.cpp,out/linux/release/%.d, $(wildcard src/linux/*.cpp)) \
 			$(patsubst src/%.cpp,out/linux/debug/%.d, $(wildcard src/linux/*.cpp)) \
@@ -111,13 +114,13 @@ out/linux/release/$(TARGET): out/linux/release/$(TARGET)_uncompressed
 	touch $@
 
 
-out/linux/release/$(TARGET)_uncompressed: $(OBJECTS_IMGUI_LINUX_RELEASE) $(OBJECTS_COMMON_LINUX_RELEASE) $(OBJECTS_LINUX) $(SHADER_BLOBS_LINUX) $(BITMAP_BLOBS_LINUX) $(call GUARD,CC_LINUX CFLAGS_LINUX CFLAGS_LINUX_RELEASE LIBS_LINUX) | out/linux
+out/linux/release/$(TARGET)_uncompressed: $(OBJECTS_IMGUI_LINUX_RELEASE) $(OBJECTS_COMMON_LINUX_RELEASE) $(OBJECTS_LINUX_RELEASE) $(SHADER_BLOBS_LINUX) $(BITMAP_BLOBS_LINUX) $(call GUARD,CC_LINUX CFLAGS_LINUX CFLAGS_LINUX_RELEASE LIBS_LINUX) | out/linux
 	$(call CHECK,CC_LINUX CFLAGS_LINUX CFLAGS_LINUX_RELEASE LIBS_LINUX)
-	$(CC_LINUX) -flto $(CFLAGS_LINUX) $(CFLAGS_LINUX_RELEASE) $(OBJECTS_LINUX) $(OBJECTS_IMGUI_LINUX_RELEASE) $(OBJECTS_COMMON_LINUX_RELEASE) $(SHADER_BLOBS_LINUX) $(BITMAP_BLOBS_LINUX) $(LIBS_LINUX) -o $@
+	$(CC_LINUX) -flto $(CFLAGS_LINUX) $(CFLAGS_LINUX_RELEASE) $(OBJECTS_LINUX_RELEASE) $(OBJECTS_IMGUI_LINUX_RELEASE) $(OBJECTS_COMMON_LINUX_RELEASE) $(SHADER_BLOBS_LINUX) $(BITMAP_BLOBS_LINUX) $(LIBS_LINUX) -o $@
 
-out/linux/debug/$(TARGET): $(OBJECTS_IMGUI_LINUX_DEBUG) $(OBJECTS_COMMON_LINUX_DEBUG) $(OBJECTS_LINUX) $(SHADER_BLOBS_LINUX) $(BITMAP_BLOBS_LINUX) $(call GUARD,CC_LINUX CFLAGS_LINUX CFLAGS_LINUX_DEBUG LIBS_LINUX) | out/linux
+out/linux/debug/$(TARGET): $(OBJECTS_IMGUI_LINUX_DEBUG) $(OBJECTS_COMMON_LINUX_DEBUG) $(OBJECTS_LINUX_DEBUG) $(SHADER_BLOBS_LINUX) $(BITMAP_BLOBS_LINUX) $(call GUARD,CC_LINUX CFLAGS_LINUX CFLAGS_LINUX_DEBUG LIBS_LINUX) | out/linux
 	$(call CHECK,CC_LINUX CFLAGS_LINUX CFLAGS_LINUX_DEBUG LIBS_LINUX)
-	$(CC_LINUX) $(CFLAGS_LINUX) $(CFLAGS_LINUX_DEBUG) $(OBJECTS_LINUX) $(OBJECTS_IMGUI_LINUX_DEBUG) $(OBJECTS_COMMON_LINUX_DEBUG) $(SHADER_BLOBS_LINUX) $(BITMAP_BLOBS_LINUX) $(LIBS_LINUX) -o $@
+	$(CC_LINUX) $(CFLAGS_LINUX) $(CFLAGS_LINUX_DEBUG) $(OBJECTS_LINUX_DEBUG) $(OBJECTS_IMGUI_LINUX_DEBUG) $(OBJECTS_COMMON_LINUX_DEBUG) $(SHADER_BLOBS_LINUX) $(BITMAP_BLOBS_LINUX) $(LIBS_LINUX) -o $@
 
 linux-run: linux
 	./out/linux/release/$(TARGET) World1 www.repkap11.com
@@ -146,6 +149,6 @@ out/linux: $(call GUARD,LINUX_DIRS) | out
 	mkdir -p $(LINUX_DIRS)
 	touch $@
 
-.PRECIOUS: out/linux/release/$(TARGET) out/linux/debug/$(TARGET) $(OBJECTS_LINUX) $(OBJECTS_COMMON_LINUX) $(SHADER_BLOBS_LINUX) $(BITMAP_BLOBS_LINUX)
+.PRECIOUS: out/linux/release/$(TARGET) out/linux/debug/$(TARGET) $(OBJECTS_LINUX_DEBUG) $(OBJECTS_LINUX_RELEASE) $(OBJECTS_COMMON_LINUX) $(SHADER_BLOBS_LINUX) $(BITMAP_BLOBS_LINUX)
 
 .PHONY: linux linux-run clean-linux linux-deploy dev
