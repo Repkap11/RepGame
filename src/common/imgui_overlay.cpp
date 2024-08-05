@@ -36,6 +36,14 @@ void imgui_overlay_attach_to_window( ImGuiOverlay *ui_overlay, SDL_Window *windo
     // Setup Platform/Renderer backends
     ImGui_ImplSDL2_InitForOpenGL( window, gl_context );
     ImGui_ImplOpenGL3_Init( glsl_version );
+
+    float IMGUI_UI_SCALE = 2.0f;
+
+    ImGui::GetStyle( ).ScaleAllSizes( IMGUI_UI_SCALE );
+    ImFontConfig cfg;
+    cfg.SizePixels = 13 * IMGUI_UI_SCALE;
+    io.FontDefault = io.Fonts->AddFontDefault( &cfg );
+    ; //->DisplayOffset.y = IMGUI_UI_SCALE;
 }
 
 void imgui_overlay_handle_sdl2_event( ImGuiOverlay *ui_overlay, SDL_Event *event, bool *handledMouse, bool *handledKeyboard ) {
