@@ -204,7 +204,7 @@ void world_draw( World *world, Texture *blocksTexture, const glm::mat4 &mvp, con
     shader_set_uniform1i( &world->loadedChunks.shader, "u_TintUnderWater", block_water_tint_type );
     shader_set_uniform1f( &world->loadedChunks.shader, "u_ReflectionDotSign", y_height < 0 ? -1.0f : 1.0f );
     // shader_set_uniform1f( &world->loadedChunks.shader, "u_ReflectionDotSign", 1.0f );
-    chunk_loader_draw_chunks( &world->loadedChunks, mvp, &world->renderer, false, false ); // Blocks
+    chunk_loader_draw_chunks( &world->loadedChunks, mvp, &world->renderer, blocksTexture, false, false ); // Blocks
 
     shader_set_uniform1i( &world->loadedChunks.shader, "u_TintUnderWater", 0 );
     if ( draw_mouse_selection ) {
@@ -215,7 +215,7 @@ void world_draw( World *world, Texture *blocksTexture, const glm::mat4 &mvp, con
     glStencilFunc( GL_ALWAYS, 1, 0xff );
     glStencilOp( GL_KEEP, GL_KEEP, GL_REPLACE );
 
-    chunk_loader_draw_chunks( &world->loadedChunks, mvp, &world->renderer, true, false ); // Stencil water
+    chunk_loader_draw_chunks( &world->loadedChunks, mvp, &world->renderer, blocksTexture, true, false ); // Stencil water
     glStencilFunc( GL_EQUAL, 1, 0xff );
     glStencilOp( GL_KEEP, GL_KEEP, GL_KEEP );
 
@@ -229,7 +229,7 @@ void world_draw( World *world, Texture *blocksTexture, const glm::mat4 &mvp, con
         shader_set_uniform1f( &world->loadedChunks.shader, "u_ReflectionHeight", offset );
         shader_set_uniform1i( &world->loadedChunks.shader, "u_TintUnderWater", block_water_tint_type );
         chunk_loader_calculate_cull( &world->loadedChunks, mvp_reflect, true );
-        chunk_loader_draw_chunks( &world->loadedChunks, mvp_reflect, &world->renderer, false, true ); // Reflected blocks
+        chunk_loader_draw_chunks( &world->loadedChunks, mvp_reflect, &world->renderer, blocksTexture, false, true ); // Reflected blocks
 
         shader_set_uniform1i( &world->object_shader, "u_Texture", blocksTexture->slot );
         shader_set_uniform1f( &world->object_shader, "u_ReflectionHeight", offset );

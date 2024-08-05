@@ -23,7 +23,7 @@ void chunk_loader_init( LoadedChunks *loadedChunks, const glm::vec3 &camera_pos,
 void chunk_loader_render_chunks( LoadedChunks *loadedChunks, const glm::vec3 &camera_pos, int limit_render );
 void chunk_loader_repopulate_blocks( LoadedChunks *loadedChunks );
 void chunk_loader_calculate_cull( LoadedChunks *loadedChunks, const glm::mat4 &mvp, bool saveAsReflection );
-void chunk_loader_draw_chunks( LoadedChunks *loadedChunks, const glm::mat4 &mvp, Renderer *renderer, bool reflect_only, bool draw_reflect );
+void chunk_loader_draw_chunks( LoadedChunks *loadedChunks, const glm::mat4 &mvp, Renderer *renderer, const Texture *texture, bool reflect_only, bool draw_reflect );
 Chunk *chunk_loader_get_chunk( LoadedChunks *loadedChunks, const glm::ivec3 &pointed );
 void chunk_loader_cleanup( LoadedChunks *loadedChunks );
 

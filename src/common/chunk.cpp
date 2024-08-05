@@ -142,7 +142,7 @@ void chunk_destroy( Chunk *chunk ) {
     }
 }
 
-void chunk_render( const Chunk *chunk, const Renderer *renderer, const Shader *shader, RenderOrder renderOrder, bool draw_reflect ) {
+void chunk_draw( const Chunk *chunk, const Renderer *renderer, const Texture *texture, const Shader *shader, RenderOrder renderOrder, bool draw_reflect ) {
     if ( chunk->should_render && chunk->layers[ renderOrder ].num_instances != 0 ) {
         if ( chunk->is_loading ) {
             pr_debug( "Error, attempting to render loading chunk" );
@@ -152,6 +152,13 @@ void chunk_render( const Chunk *chunk, const Renderer *renderer, const Shader *s
             active_ib = &chunk->layers[ renderOrder ].ib_reflect;
         } else {
             active_ib = &chunk->layers[ renderOrder ].ib;
+        }
+        if ( renderOrder == RenderOrder_Flowers ) {
+            glTexParameteri( texture->target, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE );
+            glTexParameteri( texture->target, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE );
+        } else {
+            glTexParameteri( texture->target, GL_TEXTURE_WRAP_S, GL_REPEAT );
+            glTexParameteri( texture->target, GL_TEXTURE_WRAP_T, GL_REPEAT );
         }
         renderer_draw( renderer, &chunk->layers[ renderOrder ].va, active_ib, shader, chunk->layers[ renderOrder ].num_instances );
     }

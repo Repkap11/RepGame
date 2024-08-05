@@ -88,7 +88,7 @@ void chunk_loader_init( LoadedChunks *loadedChunks, const glm::vec3 &camera_pos,
                             int new_i = ( i * sign_i ) - ( sign_i == -1 );
                             int new_j = ( j * sign_j ) - ( sign_j == -1 );
                             int new_k = ( k * sign_k ) - ( sign_k == -1 );
-                            glm::ivec3 new_offset = glm::vec3(new_i,new_j,new_k);
+                            glm::ivec3 new_offset = glm::vec3( new_i, new_j, new_k );
 
                             Chunk *chunk = &loadedChunks->chunkArray[ nextChunk ];
                             chunk->chunk_pos = new_offset + camera_chuck;
@@ -108,7 +108,7 @@ void chunk_loader_init( LoadedChunks *loadedChunks, const glm::vec3 &camera_pos,
     }
 }
 
-Chunk *chunk_loader_get_chunk( LoadedChunks *loadedChunks, const glm::ivec3 &chunk_pos) {
+Chunk *chunk_loader_get_chunk( LoadedChunks *loadedChunks, const glm::ivec3 &chunk_pos ) {
     for ( int i = 0; i < MAX_LOADED_CHUNKS; i++ ) {
         Chunk *chunk = &loadedChunks->chunkArray[ i ];
         if ( chunk->chunk_pos.x == chunk_pos.x && chunk->chunk_pos.y == chunk_pos.y && chunk->chunk_pos.z == chunk_pos.z ) {
@@ -197,7 +197,7 @@ void chunk_loader_calculate_cull( LoadedChunks *loadedChunks, const glm::mat4 &m
         int final_is_visiable = 1;
         Chunk *chunk = &loadedChunks->chunkArray[ i ];
         if ( CULL_NON_VISIBLE ) {
-            glm::vec4 chunk_coords = glm::vec4(               //
+            glm::vec4 chunk_coords = glm::vec4(                   //
                 chunk->chunk_pos.x * CHUNK_SIZE + CHUNK_SIZE / 2, //
                 chunk->chunk_pos.y * CHUNK_SIZE + CHUNK_SIZE / 2, //
                 chunk->chunk_pos.z * CHUNK_SIZE + CHUNK_SIZE / 2, 1 );
@@ -225,7 +225,7 @@ void chunk_loader_calculate_cull( LoadedChunks *loadedChunks, const glm::mat4 &m
 
 int shouldInc = 0;
 int showRotation = 0;
-void chunk_loader_draw_chunks( LoadedChunks *loadedChunks, const glm::mat4 &mvp, Renderer *renderer, bool reflect_only, bool draw_reflect ) {
+void chunk_loader_draw_chunks( LoadedChunks *loadedChunks, const glm::mat4 &mvp, Renderer *renderer, const Texture *texture, bool reflect_only, bool draw_reflect ) {
     shader_set_uniform_mat4f( &loadedChunks->shader, "u_MVP", mvp );
 
     // pr_debug( "Drawing %d chunks", loadedChunks->numLoadedChunks );
@@ -236,11 +236,11 @@ void chunk_loader_draw_chunks( LoadedChunks *loadedChunks, const glm::mat4 &mvp,
                 Chunk *chunk = &loadedChunks->chunkArray[ i ];
                 if ( draw_reflect ) {
                     if ( !chunk->cached_cull_reflect ) {
-                        chunk_render( &loadedChunks->chunkArray[ i ], renderer, &loadedChunks->shader, ( RenderOrder )renderOrder, draw_reflect );
+                        chunk_draw( &loadedChunks->chunkArray[ i ], renderer, texture, &loadedChunks->shader, ( RenderOrder )renderOrder, draw_reflect );
                     }
                 } else {
                     if ( !chunk->cached_cull_normal ) {
-                        chunk_render( &loadedChunks->chunkArray[ i ], renderer, &loadedChunks->shader, ( RenderOrder )renderOrder, draw_reflect );
+                        chunk_draw( &loadedChunks->chunkArray[ i ], renderer, texture, &loadedChunks->shader, ( RenderOrder )renderOrder, draw_reflect );
                     }
                 }
             }
@@ -262,7 +262,6 @@ void chunk_loader_draw_chunks( LoadedChunks *loadedChunks, const glm::mat4 &mvp,
 }
 
 void chunk_loader_process_random_ticks( LoadedChunks *loadedChunks ) {
-    
 }
 
 void chunk_loader_cleanup( LoadedChunks *loadedChunks ) {
