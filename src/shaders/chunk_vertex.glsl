@@ -57,6 +57,17 @@ int rep_mod(int x, int y) {
 }
 
 void main() {
+    uint packed_lighting;
+    if(faceType == FACE_TOP || faceType == FACE_BOTTOM || faceType == FACE_RIGHT) {
+        packed_lighting = packed_lighting_1[faceType];
+    } else { // For FACE_FRONT FACE_LEFT FACE_BACK
+        packed_lighting = packed_lighting_2[faceType - 3u];
+    }
+    if(packed_lighting == NO_LIGHT_NO_DRAW) {
+        gl_Position = vec4(0, 0, 0, 0);
+        return;
+    }
+
     vec3 mesh_size = vec3((mesh_size_packed & 0xffu), (mesh_size_packed & 0xff00u) >> 8, (mesh_size_packed & 0xff0000u) >> 16);
     vec3 meshed_position = position * (mesh_size - u_DebugScaleOffset);
 
@@ -150,12 +161,6 @@ void main() {
         face_light = 0.75f;
     }
 
-    uint packed_lighting;
-    if(faceType == FACE_TOP || faceType == FACE_BOTTOM || faceType == FACE_RIGHT) {
-        packed_lighting = packed_lighting_1[faceType];
-    } else { // For FACE_FRONT FACE_LEFT FACE_BACK
-        packed_lighting = packed_lighting_2[faceType - 3u];
-    }
     float light_divisor = 1.3f; // good looking
     // light_divisor = 0.5;       // debug
 
@@ -166,11 +171,6 @@ void main() {
     float corner_light = float((packed_lighting >> corner_shift) & which_bits) / light_divisor; // Has to be a float to be interped over the shader;
     if(corner_shift == CORNER_OFFSET_c) {
         corner_light /= 2.0f;
-    }
-    if(packed_lighting == NO_LIGHT_NO_DRAW) {
-        v_shouldDiscardNoLight = 1;
-    } else {
-        v_shouldDiscardNoLight = 0;
     }
     corner_light = (3.9f - corner_light) / 3.9f;
 
