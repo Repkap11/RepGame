@@ -46,20 +46,20 @@
 #define VB_ISOMETRIC_QUAD_SIZE 16
 static const UIOverlayVertex vb_isometric_quad[ VB_ISOMETRIC_QUAD_SIZE ] = {
     // Isometric
-    { 0.5f, 0.5f, { 1, 0 }, 1, ISO_FACE_TOP },  // 0
-    { 0.0f, 0.75f, { 1, 1 }, 1, ISO_FACE_TOP }, // 1
-    { 1.0f, 0.75f, { 0, 0 }, 1, ISO_FACE_TOP }, // 2
-    { 0.5f, 1.0f, { 0, 1 }, 1, ISO_FACE_TOP },  // 3
+    { 0.5f, 0.625, { 1, 0 }, 1, ISO_FACE_TOP },   // 0
+    { 0.0f, 0.8125f, { 1, 1 }, 1, ISO_FACE_TOP }, // 1
+    { 1.0f, 0.8125f, { 0, 0 }, 1, ISO_FACE_TOP }, // 2
+    { 0.5f, 1.0f, { 0, 1 }, 1, ISO_FACE_TOP },    // 3
 
-    { 0.0f, 0.25f, { 1, 0 }, 1, ISO_FACE_FRONT }, // 4
-    { 0.0f, 0.75f, { 1, 1 }, 1, ISO_FACE_FRONT }, // a
-    { 0.5f, 0.0f, { 0, 0 }, 1, ISO_FACE_FRONT },  // 5
-    { 0.5f, 0.5f, { 0, 1 }, 1, ISO_FACE_FRONT },  // b
+    { 0.0f, 0.1875f, { 1, 0 }, 1, ISO_FACE_FRONT }, // 4
+    { 0.0f, 0.8125f, { 1, 1 }, 1, ISO_FACE_FRONT }, // a
+    { 0.5f, 0.0f, { 0, 0 }, 1, ISO_FACE_FRONT },    // 5
+    { 0.5f, 0.625, { 0, 1 }, 1, ISO_FACE_FRONT },   // b
 
-    { 0.5f, 0.0f, { 1, 0 }, 1, ISO_FACE_RIGHT },  // c
-    { 0.5f, 0.5f, { 1, 1 }, 1, ISO_FACE_RIGHT },  // d
-    { 1.0f, 0.25f, { 0, 0 }, 1, ISO_FACE_RIGHT }, // 6
-    { 1.0f, 0.75f, { 0, 1 }, 1, ISO_FACE_RIGHT }, // e
+    { 0.5f, 0.0f, { 1, 0 }, 1, ISO_FACE_RIGHT },    // c
+    { 0.5f, 0.625, { 1, 1 }, 1, ISO_FACE_RIGHT },   // d
+    { 1.0f, 0.1875f, { 0, 0 }, 1, ISO_FACE_RIGHT }, // 6
+    { 1.0f, 0.8125f, { 0, 1 }, 1, ISO_FACE_RIGHT }, // e
 
     // Quad
     { 0, 0, { 0, 0 }, 0, ISO_FACE_FRONT }, //
