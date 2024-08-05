@@ -24,12 +24,10 @@ out vec3 v_TexCoordBlock;
 out vec4 v_Tint;
 
 void main() {
-    gl_Position = u_MVP * vec4(instance_position.xy + element_position * instance_size, instance_position.z, 1);
-    v_TexCoordBlock = vec3(element_texture_coords, instance_id_isos[element_face_type]);
-    v_is_block = instance_is_block;
 
     if(element_is_isometric != instance_is_isometric) {
-        v_Tint = vec4(0, 0, 0, 0);
+        gl_Position = vec4(0);
+        return;
     } else {
         if(instance_is_block != 0u) {
             float face_light;
@@ -44,5 +42,12 @@ void main() {
         } else {
             v_Tint = instance_tint;
         }
+    }
+    if(v_Tint.a == 0.0f) {
+        gl_Position = vec4(0);
+    } else {
+        gl_Position = u_MVP * vec4(instance_position.xy + element_position * instance_size, instance_position.z, 1);
+        v_TexCoordBlock = vec3(element_texture_coords, instance_id_isos[element_face_type]);
+        v_is_block = instance_is_block;
     }
 }

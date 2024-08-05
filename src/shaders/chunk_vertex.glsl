@@ -63,7 +63,7 @@ void main() {
         packed_lighting = packed_lighting_2[faceType - 3u];
     }
     if(packed_lighting == NO_LIGHT_NO_DRAW) {
-        gl_Position = vec4(0, 0, 0, 0);
+        gl_Position = vec4(0);
         return;
     }
 
