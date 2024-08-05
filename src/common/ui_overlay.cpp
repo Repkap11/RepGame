@@ -101,19 +101,19 @@ static int inventory_isometric_face[] = { FACE_TOP, FACE_FRONT, FACE_RIGHT };
 static const UIOverlayVertex vb_isometric_quad[ VB_ISOMETRIC_QUAD_SIZE ] = {
     // Isometric
     { 0.5f, 0.5f, { 1, 0 }, 1, ISO_FACE_TOP },  // 0
-    { 0.0f, 0.75f, { 1, 1 }, 1, ISO_FACE_TOP }, // 1
-    { 1.0f, 0.75f, { 0, 0 }, 1, ISO_FACE_TOP }, // 2
-    { 0.5f, 1.0f, { 0, 1 }, 1, ISO_FACE_TOP },  // 3
+    { 0.0f, 0.65f, { 1, 1 }, 1, ISO_FACE_TOP }, // 1
+    { 1.0f, 0.65f, { 0, 0 }, 1, ISO_FACE_TOP }, // 2
+    { 0.5f, 0.8f, { 0, 1 }, 1, ISO_FACE_TOP },  // 3
 
-    { 0.0f, 0.25f, { 1, 0 }, 1, ISO_FACE_FRONT }, // 4
-    { 0.0f, 0.75f, { 1, 1 }, 1, ISO_FACE_FRONT }, // a
+    { 0.0f, 0.15f, { 1, 0 }, 1, ISO_FACE_FRONT }, // 4
+    { 0.0f, 0.65f, { 1, 1 }, 1, ISO_FACE_FRONT }, // a
     { 0.5f, 0.0f, { 0, 0 }, 1, ISO_FACE_FRONT },  // 5
     { 0.5f, 0.5f, { 0, 1 }, 1, ISO_FACE_FRONT },  // b
 
     { 0.5f, 0.0f, { 1, 0 }, 1, ISO_FACE_RIGHT },  // c
     { 0.5f, 0.5f, { 1, 1 }, 1, ISO_FACE_RIGHT },  // d
-    { 1.0f, 0.25f, { 0, 0 }, 1, ISO_FACE_RIGHT }, // 6
-    { 1.0f, 0.75f, { 0, 1 }, 1, ISO_FACE_RIGHT }, // e
+    { 1.0f, 0.15f, { 0, 0 }, 1, ISO_FACE_RIGHT }, // 6
+    { 1.0f, 0.65f, { 0, 1 }, 1, ISO_FACE_RIGHT }, // e
 
     // Quad
     { 0, 0, { 0, 0 }, 0, ISO_FACE_FRONT }, //
@@ -195,7 +195,7 @@ void ui_overlay_set_holding_block( UIOverlay *ui_overlay, BlockID holding_block 
 
     vb_data_holding_block_instance.is_isometric = holdingBlock->icon_is_isometric;
     vb_data_holding_block_instance.width = ui_overlay->screen_width / 4;
-    vb_data_holding_block_instance.height = ui_overlay->screen_width / 4;
+    vb_data_holding_block_instance.height = 1.25f * ui_overlay->screen_width / 4;
 
     vb_data_holding_block_instance.screen_x = -1.0 * ui_overlay->screen_width / 2;  // + 50;
     vb_data_holding_block_instance.screen_y = -1.0 * ui_overlay->screen_height / 2; // + 50;
