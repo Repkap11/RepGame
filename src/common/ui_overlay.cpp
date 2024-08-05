@@ -218,16 +218,30 @@ void ui_overlay_set_holding_block( UIOverlay *ui_overlay, BlockID holding_block 
 
 void ui_overlay_draw( UIOverlay *ui_overlay, Renderer *renderer, Texture *blocksTexture, InputState *input, const glm::mat4 &mvp_ui ) {
 
+    if ( true ) {
+        const ImGuiDebugVars &debug_vars = imgui_overlay_get_imgui_debug_vars( );
+        int which_vb;
+
+        which_vb = 1;
+        vb_isometric_quad[ which_vb ].screen_x = X_SCALE * debug_vars.corner1.x;
+        vb_isometric_quad[ which_vb ].screen_y = Y_SCALE * debug_vars.corner1.y;
+
+        which_vb = 3;
+        vb_isometric_quad[ which_vb ].screen_x = X_SCALE * debug_vars.corner3.x;
+        vb_isometric_quad[ which_vb ].screen_y = Y_SCALE * debug_vars.corner3.y;
+        ui_overlay->render_chain_held_block.update_element( vb_isometric_quad, IB_ISOMETRIC_QUAD_SIZE );
+    }
+
     shader_set_uniform_mat4f( &ui_overlay->shader, "u_MVP", mvp_ui );
     shader_set_uniform1i( &ui_overlay->shader, "u_Texture", blocksTexture->slot );
 
     ui_overlay->hotbar->draw( renderer, blocksTexture, &ui_overlay->shader );
+    ui_overlay->render_chain_held_block.draw( renderer, &ui_overlay->shader );
 
     if ( input->inventory_open ) {
         ui_overlay->inventory->handleMouseInput( input );
         ui_overlay->inventory->draw( renderer, blocksTexture, &ui_overlay->shader );
     } else {
-        ui_overlay->render_chain_held_block.draw( renderer, &ui_overlay->shader );
         glBlendFunc( GL_ONE_MINUS_DST_COLOR, GL_ZERO );
         ui_overlay->render_chain_crosshair.draw( renderer, &ui_overlay->shader );
         glBlendFunc( GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA );

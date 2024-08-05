@@ -45,6 +45,11 @@ void imgui_overlay_handle_sdl2_event( ImGuiOverlay *ui_overlay, SDL_Event *event
     *handledKeyboard = io.WantCaptureKeyboard;
 }
 
+ImGuiDebugVars debug_vars;
+ImGuiDebugVars &imgui_overlay_get_imgui_debug_vars( ) {
+    return debug_vars;
+}
+
 void imgui_overlay_draw( ImGuiOverlay *imgui_overlay, InputState *input ) {
     ImGui_ImplOpenGL3_NewFrame( );
     ImGui_ImplSDL2_NewFrame( );
@@ -52,24 +57,27 @@ void imgui_overlay_draw( ImGuiOverlay *imgui_overlay, InputState *input ) {
 
     if ( SHOW_IMGUI ) {
         ImGuiIO &io = ImGui::GetIO( );
-
-        ImGui::ShowDemoWindow( &input->inventory_open );
         if ( false ) {
-            static float f = 0.0f;
-            static int counter = 0;
+            ImGui::ShowDemoWindow( &input->inventory_open );
+        } else {
 
             ImGui::Begin( "Hello, world!" ); // Create a window called "Hello, world!" and append into it.
-
-            ImGui::Text( "This is some useful text." );               // Display some text (you can use a format strings too)
-            ImGui::Checkbox( "Demo Window", &input->inventory_open ); // Edit bools storing our window open/close state
-            ImGui::Checkbox( "Another Window", &input->inventory_open );
-
-            if ( ImGui::Button( "Button" ) ) // Buttons return true when clicked (most widgets return true when edited/activated)
-                counter++;
-            ImGui::SameLine( );
-            ImGui::Text( "counter = %d", counter );
-
             ImGui::Text( "Application average %.3f ms/frame (%.1f FPS)", 1000.0f / io.Framerate, io.Framerate );
+
+            ImGui::SliderFloat2( "Corner 1", &debug_vars.corner1.x, -0.5f, 1.5f );
+            ImGui::SliderFloat2( "Corner 3", &debug_vars.corner3.x, -0.5f, 1.5f );
+            // debug_vars.corner1.x = round( debug_vars.corner1.x * 20 ) / 20;
+            // debug_vars.corner1.y = round( debug_vars.corner1.y * 20 ) / 20;
+
+            // ImGui::Text( "This is some useful text." );               // Display some text (you can use a format strings too)
+            // ImGui::Checkbox( "Demo Window", &input->inventory_open ); // Edit bools storing our window open/close state
+            // ImGui::Checkbox( "Another Window", &input->inventory_open );
+
+            // if ( ImGui::Button( "Button" ) ) // Buttons return true when clicked (most widgets return true when edited/activated)
+            //     counter++;
+            // ImGui::SameLine( );
+            // ImGui::Text( "counter = %d", counter );
+
             ImGui::End( );
         }
     }

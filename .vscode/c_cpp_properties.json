@@ -37,7 +37,8 @@
                 "${workspaceRoot}/imgui_build/backends",
                 "/usr/include/glm",
                 "/usr/include/SDL2",
-                "${workspaceRoot}/entt_build/src/"
+                "${workspaceRoot}/entt_build/src/",
+                "${workspaceRoot}/imgui_build/"
             ],
             "defines": [],
             "intelliSenseMode": "clang-x64",
