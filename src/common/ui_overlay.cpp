@@ -116,10 +116,10 @@ static const UIOverlayVertex vb_isometric_quad[ VB_ISOMETRIC_QUAD_SIZE ] = {
     { 1.0f, 0.65f, { 0, 1 }, 1, ISO_FACE_RIGHT }, // e
 
     // Quad
-    { 0.5f, 0.0f, { 0, 0 }, 0, ISO_FACE_FRONT },  //
-    { 0.5f, 0.5f, { 0, 1 }, 0, ISO_FACE_FRONT },  //
-    { 1.0f, 0.15f, { 1, 0 }, 0, ISO_FACE_FRONT }, //
-    { 1.0f, 0.65f, { 1, 1 }, 0, ISO_FACE_FRONT }  //
+    { 0.5f, 0.0f + 0.18, { 0, 0 }, 0, ISO_FACE_FRONT },  //
+    { 0.5f, 0.5f + 0.18, { 0, 1 }, 0, ISO_FACE_FRONT },  //
+    { 1.0f, 0.15f + 0.18, { 1, 0 }, 0, ISO_FACE_FRONT }, //
+    { 1.0f, 0.65f + 0.18, { 1, 1 }, 0, ISO_FACE_FRONT }  //
 };
 
 #define IB_ISOMETRIC_QUAD_SIZE 24
@@ -195,10 +195,10 @@ void ui_overlay_set_holding_block( UIOverlay *ui_overlay, BlockID holding_block 
 
     vb_data_holding_block_instance.is_isometric = holdingBlock->icon_is_isometric;
     vb_data_holding_block_instance.width = ui_overlay->screen_width / 4;
-    vb_data_holding_block_instance.height = 1.25f * ui_overlay->screen_width / 4;
+    vb_data_holding_block_instance.height = 1.20f * ui_overlay->screen_width / 4;
 
-    vb_data_holding_block_instance.screen_x = -1.2 * ui_overlay->screen_width / 2;  // + 50;
-    vb_data_holding_block_instance.screen_y = -1.2 * ui_overlay->screen_height / 2; // + 50;
+    vb_data_holding_block_instance.screen_x = -1.2 * ui_overlay->screen_width / 2;
+    vb_data_holding_block_instance.screen_y = -1.3 * ui_overlay->screen_height / 2;
     vb_data_holding_block_instance.screen_z = 0;
 
     for ( int face = 0; face < ISOMETRIC_FACES; ++face ) {
