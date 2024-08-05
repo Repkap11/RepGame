@@ -69,7 +69,7 @@ void imgui_overlay_draw( ImGuiOverlay *imgui_overlay, InputState *input ) {
             ImGui::ShowDemoWindow( &input->inventory_open );
         } else {
 
-            ImGui::Begin( "Hello, world!" ); // Create a window called "Hello, world!" and append into it.
+            ImGui::Begin( "RepGame" ); // Create a window called "Hello, world!" and append into it.
             ImGui::Text( "Application average %.3f ms/frame (%.1f FPS)", 1000.0f / io.Framerate, io.Framerate );
 
             ImGui::SliderFloat2( "Corner 1", &debug_vars.corner1.x, -0.5f, 1.5f );

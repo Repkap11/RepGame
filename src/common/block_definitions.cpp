@@ -15,6 +15,12 @@ void block_definitions_get_random_rotations( float **out_supports_random_rotatio
     *out_supports_random_rotations = block_supports_random_rotations;
 }
 
+inline void centered_border( BlockID id, short border_size, short height ) {
+    block_definitions[ id ].scale = { ( short )( 16 - 2 * border_size ), height, ( short )( 16 - 2 * border_size ) };
+    block_definitions[ id ].offset = { border_size, 0, border_size };
+    block_definitions[ id ].tex_offset = { ( short )( -border_size ), 0, ( short )( -border_size ) };
+}
+
 void block_definitions_initilize_definitions( Texture *texture ) {
     block_definitions = ( Block * )calloc( LAST_BLOCK_ID, sizeof( Block ) );
     block_supports_random_rotations = ( float * )calloc( LAST_BLOCK_ID, sizeof( float ) );
@@ -53,9 +59,7 @@ void block_definitions_initilize_definitions( Texture *texture ) {
     BlockID pressure_plate_shaped[] = { PINE_PRESSURE_PLATE, BIRTCH_PRESSURE_PLATE, JUNGLE_PRESSURE_PLATE, ACACIA_PRESSURE_PLATE, DARK_OAK_PRESSURE_PLATE };
     for ( unsigned int i = 0; i < sizeof( pressure_plate_shaped ) / sizeof( BlockID ); i++ ) {
         BlockID id = pressure_plate_shaped[ i ];
-        block_definitions[ id ].scale = { 14, 1, 14 };
-        block_definitions[ id ].offset = { 1, 0, 1 };
-        block_definitions[ id ].tex_offset = { -1, 0, -1 };
+        centered_border( id, 1, 1 );
         block_definitions[ id ].is_seethrough = true;
         block_definitions[ id ].casts_shadow = false;
         block_definitions[ id ].icon_is_isometric = false;
@@ -212,9 +216,7 @@ void block_definitions_initilize_definitions( Texture *texture ) {
     BlockID torch_shaped[] = { TORCH, BURNT_OUT_TORCH, REDSTONE_TORCH, REDSTONE_TORCH_OFF, BLACK_TORCH, BLUE_TORCH, WHITE_TORCH, PURPLE_TORCH, RED_TORCH, CYAN_TORCH };
     for ( unsigned int i = 0; i < sizeof( torch_shaped ) / sizeof( BlockID ); i++ ) {
         BlockID id = torch_shaped[ i ];
-        block_definitions[ id ].scale = { 2, 10, 2 };
-        block_definitions[ id ].offset = { 7, 0, 7 };
-        block_definitions[ id ].tex_offset = { -7, 0, -7 };
+        centered_border( id, 7, 10 );
         // block_definitions[ id ].is_seethrough = true;
         block_definitions[ id ].casts_shadow = false;
         block_definitions[ id ].collides_with_player = false;
@@ -222,12 +224,31 @@ void block_definitions_initilize_definitions( Texture *texture ) {
         block_definitions[ id ].needs_place_on_any_solid[ FACE_TOP ] = true;
         block_definitions[ id ].breaks_in_liquid = true;
     }
-    BlockID small_flower_shaped[] = { RED_FLOWER, YELLOW_FLOWER, BLUE_FLOWER, RED_MUSHROOM, BROWN_MUSHROOM, BLUE_FLOWER, TURTLE_EGGS1, TURTLE_EGGS2, EMPTY_POT, POPPY_FLOWER, LARGE_WHITE_FLOWER, BLACK_FLOWER };
-    for ( unsigned int i = 0; i < sizeof( small_flower_shaped ) / sizeof( BlockID ); i++ ) {
-        BlockID id = small_flower_shaped[ i ];
-        block_definitions[ id ].scale = { 8, 11, 8 };
-        block_definitions[ id ].offset = { 4, 0, 4 };
-        block_definitions[ id ].tex_offset = { -4, 0, -4 };
+    BlockID flower_shaped[] = { RED_MUSHROOM, BROWN_MUSHROOM, BLUE_FLOWER, TURTLE_EGGS1, TURTLE_EGGS2, EMPTY_POT, POPPY_FLOWER, LARGE_WHITE_FLOWER, BLACK_FLOWER };
+    for ( unsigned int i = 0; i < sizeof( flower_shaped ) / sizeof( BlockID ); i++ ) {
+        BlockID id = flower_shaped[ i ];
+        centered_border( id, 4, 11 );
+    }
+    BlockID red_flower_shaped[] = { RED_FLOWER, BLUE_FLOWER };
+    for ( unsigned int i = 0; i < sizeof( red_flower_shaped ) / sizeof( BlockID ); i++ ) {
+        BlockID id = red_flower_shaped[ i ];
+        centered_border( id, 5, 11 );
+    }
+    BlockID yellow_flower_shaped[] = { YELLOW_FLOWER };
+    for ( unsigned int i = 0; i < sizeof( yellow_flower_shaped ) / sizeof( BlockID ); i++ ) {
+        BlockID id = yellow_flower_shaped[ i ];
+        centered_border( id, 5, 9 );
+    }
+    BlockID potted_flower_shaped[] = { RED_FLOWER_IN_POT };
+    for ( unsigned int i = 0; i < sizeof( potted_flower_shaped ) / sizeof( BlockID ); i++ ) {
+        BlockID id = potted_flower_shaped[ i ];
+        centered_border( id, 4, 16 );
+    }
+
+    BlockID grass_tuft_shaped[] = { GRASS_TUFT2 };
+    for ( unsigned int i = 0; i < sizeof( grass_tuft_shaped ) / sizeof( BlockID ); i++ ) {
+        BlockID id = grass_tuft_shaped[ i ];
+        centered_border( id, 1, 16 );
     }
 
     BlockID slab_shaped[] = { STONE_BRICK_SLAB, DARK_OAK_SLAB, OAK_SLAB, BIRTCH_SLAB, JUNGLE_SLAB, ACACIA_SLAB, RED_SANDSTONE_BRICK_SLAB, PINE_SLAB, COBBLESTONE_SLAB, SANDSTONE_SLAB };
@@ -289,9 +310,7 @@ void block_definitions_initilize_definitions( Texture *texture ) {
                               REDSTONE_DUST_T_L, REDSTONE_DUST_T_R, REDSTONE_DUST_T_F, REDSTONE_DUST_T_B };
     for ( unsigned int i = 0; i < sizeof( dust_shaped ) / sizeof( BlockID ); i++ ) {
         BlockID id = dust_shaped[ i ];
-        block_definitions[ id ].scale = { 16, 1, 16 };
-        block_definitions[ id ].offset = { 0, 0, 0 };
-        block_definitions[ id ].tex_offset = { 0, 0, 0 };
+        centered_border( id, 0, 1 );
         block_definitions[ id ].is_seethrough = true;
         block_definitions[ id ].casts_shadow = false;
         block_definitions[ id ].icon_is_isometric = false;
