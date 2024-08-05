@@ -197,8 +197,8 @@ void ui_overlay_set_holding_block( UIOverlay *ui_overlay, BlockID holding_block 
     vb_data_holding_block_instance.width = ui_overlay->screen_width / 4;
     vb_data_holding_block_instance.height = 1.25f * ui_overlay->screen_width / 4;
 
-    vb_data_holding_block_instance.screen_x = -1.0 * ui_overlay->screen_width / 2;  // + 50;
-    vb_data_holding_block_instance.screen_y = -1.0 * ui_overlay->screen_height / 2; // + 50;
+    vb_data_holding_block_instance.screen_x = -1.2 * ui_overlay->screen_width / 2;  // + 50;
+    vb_data_holding_block_instance.screen_y = -1.2 * ui_overlay->screen_height / 2; // + 50;
     vb_data_holding_block_instance.screen_z = 0;
 
     for ( int face = 0; face < ISOMETRIC_FACES; ++face ) {
