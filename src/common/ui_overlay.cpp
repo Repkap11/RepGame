@@ -194,11 +194,11 @@ void ui_overlay_set_holding_block( UIOverlay *ui_overlay, BlockID holding_block 
     Block *holdingBlock = block_definition_get_definition( ui_overlay->heldBlockID );
 
     vb_data_holding_block_instance.is_isometric = holdingBlock->icon_is_isometric;
-    vb_data_holding_block_instance.width = 100;
-    vb_data_holding_block_instance.height = 100;
+    vb_data_holding_block_instance.width = ui_overlay->screen_width / 4;
+    vb_data_holding_block_instance.height = ui_overlay->screen_width / 4;
 
-    vb_data_holding_block_instance.screen_x = -1.0 * ui_overlay->screen_width / 2 + 50;
-    vb_data_holding_block_instance.screen_y = -1.0 * ui_overlay->screen_height / 2 + 50;
+    vb_data_holding_block_instance.screen_x = -1.0 * ui_overlay->screen_width / 2;  // + 50;
+    vb_data_holding_block_instance.screen_y = -1.0 * ui_overlay->screen_height / 2; // + 50;
     vb_data_holding_block_instance.screen_z = 0;
 
     for ( int face = 0; face < ISOMETRIC_FACES; ++face ) {
