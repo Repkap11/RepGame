@@ -16,19 +16,19 @@ static unsigned int ib_data_flowers[] = {
     10, 9, 7,  //
 };
 
-void chunk_calculate_sides( Chunk *chunk, const glm::ivec3 &center_next ) {
+void Chunk::calculate_sides( const glm::ivec3 &center_next ) {
     unsigned int *chunk_ib_data[ LAST_RENDER_ORDER ];
     unsigned int *chunk_ib_data_reflect[ LAST_RENDER_ORDER ];
     for ( int renderOrder = 0; renderOrder < LAST_RENDER_ORDER; renderOrder++ ) {
         chunk_ib_data[ renderOrder ] = ( unsigned int * )malloc( render_order_ib_size( ( RenderOrder )renderOrder ) * sizeof( unsigned int ) );
         chunk_ib_data_reflect[ renderOrder ] = ( unsigned int * )malloc( render_order_ib_size( ( RenderOrder )renderOrder ) * sizeof( unsigned int ) );
     }
-    int visable_top = chunk->chunk_pos.y <= center_next.y;
-    int visable_bottom = chunk->chunk_pos.y >= center_next.y;
-    int visable_right = chunk->chunk_pos.x <= center_next.x;
-    int visable_left = chunk->chunk_pos.x >= center_next.x;
-    int visable_front = chunk->chunk_pos.z <= center_next.z;
-    int visable_back = chunk->chunk_pos.z >= center_next.z;
+    int visable_top = this->chunk_pos.y <= center_next.y;
+    int visable_bottom = this->chunk_pos.y >= center_next.y;
+    int visable_right = this->chunk_pos.x <= center_next.x;
+    int visable_left = this->chunk_pos.x >= center_next.x;
+    int visable_front = this->chunk_pos.z <= center_next.z;
+    int visable_back = this->chunk_pos.z >= center_next.z;
 
     int ib_size[ LAST_RENDER_ORDER ] = { 0 };
     if ( visable_front ) {
@@ -83,92 +83,99 @@ void chunk_calculate_sides( Chunk *chunk, const glm::ivec3 &center_next ) {
         } else {
             pr_debug( "Unexpected index buffer. Crash likely on WASM ro:%d", renderOrder );
         }
-        index_buffer_set_data( &chunk->layers[ renderOrder ].ib, ib_data, ib_new_size );
-        index_buffer_set_data( &chunk->layers[ renderOrder ].ib_reflect, ib_data_reflect, ib_new_size );
+        this->layers[ renderOrder ].ib.set_data( ib_data, ib_new_size );
+        this->layers[ renderOrder ].ib_reflect.set_data( ib_data_reflect, ib_new_size );
 
         free( chunk_ib_data[ renderOrder ] );
         free( chunk_ib_data_reflect[ renderOrder ] );
     }
 }
 
-int chunk_get_coords_from_index( int index, int *out_x, int *out_y, int *out_z ) {
+int Chunk::get_coords_from_index( int index, int &out_x, int &out_y, int &out_z ) {
     int y = ( index / ( CHUNK_SIZE_INTERNAL * CHUNK_SIZE_INTERNAL ) ) - 1;
     int x = ( ( index / CHUNK_SIZE_INTERNAL ) % CHUNK_SIZE_INTERNAL ) - 1;
     int z = ( index % ( CHUNK_SIZE_INTERNAL ) ) - 1;
     // return 1;
     int result = x >= 0 && y >= 0 && z >= 0 && x < CHUNK_SIZE && y < CHUNK_SIZE && z < CHUNK_SIZE;
-    *out_x = x;
-    *out_y = y;
-    *out_z = z;
+    out_x = x;
+    out_y = y;
+    out_z = z;
     return result;
 }
 
-void chunk_init( Chunk *chunk, VertexBuffer *vb_block_solid, VertexBuffer *vb_block_water, VertexBufferLayout *vbl_block, VertexBufferLayout *vbl_coords ) {
+void Chunk::init( const VertexBuffer &vb_block_solid, const VertexBuffer &vb_block_water, const VertexBufferLayout &vbl_block, const VertexBufferLayout &vbl_coords ) {
     if ( REMEMBER_BLOCKS ) {
-        chunk->blocks = ( BlockState * )calloc( CHUNK_BLOCK_SIZE, sizeof( BlockState ) );
+        this->blocks = ( BlockState * )calloc( CHUNK_BLOCK_SIZE, sizeof( BlockState ) );
     }
 
     for ( int renderOrder = 0; renderOrder < LAST_RENDER_ORDER; renderOrder++ ) {
-        VertexBuffer *vb;
+        const VertexBuffer *vb_prt;
         switch ( renderOrder ) {
             case RenderOrder_Water:
-                vb = vb_block_water;
+                vb_prt = &vb_block_water;
                 break;
             default:
-                vb = vb_block_solid;
+                vb_prt = &vb_block_solid;
         }
-        index_buffer_init( &chunk->layers[ renderOrder ].ib );
-        index_buffer_init( &chunk->layers[ renderOrder ].ib_reflect );
-        vertex_buffer_init( &chunk->layers[ renderOrder ].vb_coords );
-        vertex_array_init( &chunk->layers[ renderOrder ].va );
-        vertex_array_add_buffer( &chunk->layers[ renderOrder ].va, vb, vbl_block, 0, 0 );
-        vertex_array_add_buffer( &chunk->layers[ renderOrder ].va, &chunk->layers[ renderOrder ].vb_coords, vbl_coords, 1, vbl_block->current_size );
+        const VertexBuffer &vb = *vb_prt;
+
+        RenderLayer &renderLayer = this->layers[ renderOrder ];
+        renderLayer.ib.init( );
+        renderLayer.ib_reflect.init( );
+        renderLayer.vb_coords.init( );
+        renderLayer.va.init( );
+        renderLayer.va.add_buffer( vb, vbl_block );
+        renderLayer.va.add_buffer( renderLayer.vb_coords, vbl_coords );
     }
 }
 
-void chunk_destroy( Chunk *chunk ) {
+void Chunk::destroy( ) {
     if ( REMEMBER_BLOCKS ) {
-        free( chunk->blocks );
+        free( this->blocks );
     }
 
     for ( int renderOrder = 0; renderOrder < LAST_RENDER_ORDER; renderOrder++ ) {
-        if ( chunk->layers[ renderOrder ].populated_blocks ) {
-            free( chunk->layers[ renderOrder ].populated_blocks );
+        if ( this->layers[ renderOrder ].populated_blocks ) {
+            free( this->layers[ renderOrder ].populated_blocks );
         }
-        chunk->layers[ renderOrder ].populated_blocks = 0;
-        index_buffer_destroy( &chunk->layers[ renderOrder ].ib );
-        index_buffer_destroy( &chunk->layers[ renderOrder ].ib_reflect );
-        vertex_array_destroy( &chunk->layers[ renderOrder ].va );
+        this->layers[ renderOrder ].populated_blocks = 0;
+        RenderLayer &renderLayer = this->layers[ renderOrder ];
+        renderLayer.ib.destroy( );
+        renderLayer.ib_reflect.destroy( );
+        renderLayer.vb_coords.destroy( );
+        renderLayer.va.destroy( );
     }
 }
 
-void chunk_draw( const Chunk *chunk, const Renderer *renderer, const Texture *texture, const Shader *shader, RenderOrder renderOrder, bool draw_reflect ) {
-    if ( chunk->should_render && chunk->layers[ renderOrder ].num_instances != 0 ) {
-        if ( chunk->is_loading ) {
+void Chunk::draw( const Renderer &renderer, const Texture &texture, const Shader &shader, RenderOrder renderOrder, bool draw_reflect ) const {
+    const RenderLayer &renderLayer = this->layers[ renderOrder ];
+    if ( this->should_render && renderLayer.num_instances != 0 ) {
+        if ( this->is_loading ) {
             pr_debug( "Error, attempting to render loading chunk" );
         }
-        const IndexBuffer *active_ib;
+        const IndexBuffer *active_ib_prt;
         if ( draw_reflect ) {
-            active_ib = &chunk->layers[ renderOrder ].ib_reflect;
+            active_ib_prt = &renderLayer.ib_reflect;
         } else {
-            active_ib = &chunk->layers[ renderOrder ].ib;
+            active_ib_prt = &renderLayer.ib;
         }
+        const IndexBuffer &active_ib = *active_ib_prt;
         if ( renderOrder == RenderOrder_Flowers ) {
-            glTexParameteri( texture->target, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE );
-            glTexParameteri( texture->target, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE );
+            glTexParameteri( texture.target, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE );
+            glTexParameteri( texture.target, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE );
         } else {
-            glTexParameteri( texture->target, GL_TEXTURE_WRAP_S, GL_REPEAT );
-            glTexParameteri( texture->target, GL_TEXTURE_WRAP_T, GL_REPEAT );
+            glTexParameteri( texture.target, GL_TEXTURE_WRAP_S, GL_REPEAT );
+            glTexParameteri( texture.target, GL_TEXTURE_WRAP_T, GL_REPEAT );
         }
-        renderer_draw( renderer, &chunk->layers[ renderOrder ].va, active_ib, shader, chunk->layers[ renderOrder ].num_instances );
+        renderer.draw( renderLayer.va, active_ib, shader, renderLayer.num_instances );
     }
 }
 
-BlockState chunk_get_block( const Chunk *chunk, const glm::ivec3 &pos ) {
+BlockState Chunk::get_block( const glm::ivec3 &pos ) const {
     if ( !REMEMBER_BLOCKS ) {
         return BLOCK_STATE_AIR;
     }
-    if ( chunk->blocks == NULL ) {
+    if ( this->blocks == NULL ) {
         // pr_debug("Chunk has no blocks");
         return BLOCK_STATE_LAST_BLOCK_ID;
     }
@@ -182,11 +189,11 @@ BlockState chunk_get_block( const Chunk *chunk, const glm::ivec3 &pos ) {
          pos.z < -1 ) {
         return BLOCK_STATE_LAST_BLOCK_ID;
     }
-    return chunk->blocks[ chunk_get_index_from_coords( pos ) ];
+    return this->blocks[ get_index_from_coords( pos ) ];
 }
 
-void chunk_set_block( Chunk *chunk, const glm::ivec3 &pos, BlockState blockState ) {
-    if ( chunk->blocks == NULL ) {
+void Chunk::set_block( const glm::ivec3 &pos, BlockState blockState ) {
+    if ( this->blocks == NULL ) {
         // pr_debug("Chunk has no blocks");
         return;
     }
@@ -202,54 +209,45 @@ void chunk_set_block( Chunk *chunk, const glm::ivec3 &pos, BlockState blockState
     }
 
     // Update the block in the client...
-    chunk->blocks[ chunk_get_index_from_coords( pos ) ] = blockState;
+    this->blocks[ get_index_from_coords( pos ) ] = blockState;
 }
 
-void chunk_persist( Chunk *chunk ) {
+void Chunk::persist( ) {
     if ( REMEMBER_BLOCKS ) {
-        map_storage_persist( chunk );
+        MapStorage::persist( *this );
     }
 }
 
 int firstTime = 1;
 
-void chunk_load_terrain( Chunk *chunk ) {
+void Chunk::load_terrain( ) {
     if ( !REMEMBER_BLOCKS ) {
-        chunk->blocks = ( BlockState * )calloc( CHUNK_BLOCK_SIZE, sizeof( BlockState ) );
+        this->blocks = ( BlockState * )calloc( CHUNK_BLOCK_SIZE, sizeof( BlockState ) );
     }
-    // pr_debug( "Loading chunk terrain x:%d y:%d z:%d", chunk->chunk_x, chunk->chunk_y, chunk->chunk_z );
-    int loaded = map_storage_load( chunk );
+    // pr_debug( "Loading chunk terrain x:%d y:%d z:%d", this->chunk_x, this->chunk_y, this->chunk_z );
+    int loaded = MapStorage::load( *this );
     if ( !loaded ) {
         // We havn't loaded this chunk before, map gen it.
-        if ( LOAD_CHUNKS_SUPPORTS_CUDA && map_gen_supports_cuda( ) ) {
+        if ( LOAD_CHUNKS_SUPPORTS_CUDA && MapGen::supports_cuda( ) ) {
             if ( firstTime ) {
                 firstTime = 0;
                 pr_debug( "Using CUDA" );
             }
-            map_gen_load_block_cuda( chunk );
+            MapGen::load_block_cuda( this );
         } else {
             if ( firstTime ) {
                 firstTime = 0;
                 pr_debug( "Using C" );
             }
-            map_gen_load_block_c( chunk );
+            MapGen::load_block_c( this );
         }
-        structure_gen_place( chunk );
-        chunk->dirty = PERSIST_ALL_CHUNKS;
+        StructureGen::place( *this );
+        this->dirty = PERSIST_ALL_CHUNKS;
     }
-    chunk_calculate_popupated_blocks( chunk );
+    this->calculate_populated_blocks( );
 }
 
-typedef struct {
-    int can_be_seen;
-    int visable;
-    int has_been_drawn;
-    int solid;
-    unsigned int packed_lighting[ NUM_FACES_IN_CUBE ];
-
-} WorkingSpace;
-
-int chunk_can_extend_rect( Chunk *chunk, BlockState blockState, unsigned int *packed_lighting, WorkingSpace *workingSpace, const glm::ivec3 &starting, const glm::ivec3 &size, const glm::ivec3 &dir ) {
+int Chunk::can_extend_rect( BlockState blockState, unsigned int *packed_lighting, WorkingSpace *workingSpace, const glm::ivec3 &starting, const glm::ivec3 &size, const glm::ivec3 &dir ) {
     if ( DISABLE_GROUPING_BLOCKS ) {
         return 0;
     }
@@ -271,7 +269,7 @@ int chunk_can_extend_rect( Chunk *chunk, BlockState blockState, unsigned int *pa
     for ( int new_x = starting.x; new_x < starting.x + size.x; new_x++ ) {
         for ( int new_y = starting.y; new_y < starting.y + size.y; new_y++ ) {
             for ( int new_z = starting.z; new_z < starting.z + size.z; new_z++ ) {
-                int index = chunk_get_index_from_coords( new_x + dir.x, new_y + dir.y, new_z + dir.z );
+                int index = get_index_from_coords( new_x + dir.x, new_y + dir.y, new_z + dir.z );
                 num_checked_blocks++;
                 if ( workingSpace[ index ].has_been_drawn ) {
                     return 0;
@@ -279,7 +277,7 @@ int chunk_can_extend_rect( Chunk *chunk, BlockState blockState, unsigned int *pa
                 if ( !workingSpace[ index ].can_be_seen ) {
                     return 0;
                 }
-                BlockState new_blockState = chunk->blocks[ index ];
+                BlockState new_blockState = this->blocks[ index ];
                 if ( !BlockStates_equal( new_blockState, blockState ) ) {
                     return 0;
                 }
@@ -313,31 +311,31 @@ inline int get_rotated_face( int face, int rotation ) {
     return result;
 }
 
-void chunk_calculate_popupated_blocks( Chunk *chunk ) {
+void Chunk::calculate_populated_blocks( ) {
     int num_instances[ LAST_RENDER_ORDER ] = { 0 };
 
     for ( int renderOrder = 0; renderOrder < LAST_RENDER_ORDER; renderOrder++ ) {
-        if ( chunk->layers[ renderOrder ].populated_blocks ) {
+        if ( this->layers[ renderOrder ].populated_blocks ) {
             pr_debug( "Error, populated blocks already populated" );
         }
-        chunk->layers[ renderOrder ].populated_blocks = ( BlockCoords * )calloc( CHUNK_BLOCK_SIZE, sizeof( BlockCoords ) );
+        this->layers[ renderOrder ].populated_blocks = ( BlockCoords * )calloc( CHUNK_BLOCK_SIZE, sizeof( BlockCoords ) );
     }
     WorkingSpace *workingSpace = ( WorkingSpace * )calloc( CHUNK_BLOCK_SIZE, sizeof( WorkingSpace ) );
 
     for ( int index = CHUNK_BLOCK_DRAW_START; index < CHUNK_BLOCK_DRAW_STOP; index++ ) {
         int x, y, z;
-        int drawn_block = chunk_get_coords_from_index( index, &x, &y, &z );
+        int drawn_block = Chunk::get_coords_from_index( index, x, y, z );
         if ( drawn_block ) {
-            BlockID blockID = chunk->blocks[ index ].id;
+            BlockID blockID = this->blocks[ index ].id;
             Block *block = block_definition_get_definition( blockID );
 
-            workingSpace[ index ].visable = render_order_is_visible( block->renderOrder );
+            workingSpace[ index ].visible = render_order_is_visible( block->renderOrder );
 
-            if ( workingSpace[ index ].visable ) {
+            if ( workingSpace[ index ].visible ) {
                 int block_is_visiable = 0;
                 int visible_from[ NUM_FACES_IN_CUBE ] = { 0, 0, 0, 0, 0, 0 };
                 for ( int face = FACE_TOP; face < NUM_FACES_IN_CUBE; face++ ) {
-                    BlockState block_next_to_state = chunk->blocks[ chunk_get_index_from_coords( x + FACE_DIR_X_OFFSETS[ face ], y + FACE_DIR_Y_OFFSETS[ face ], z + FACE_DIR_Z_OFFSETS[ face ] ) ];
+                    BlockState block_next_to_state = this->blocks[ get_index_from_coords( x + FACE_DIR_X_OFFSETS[ face ], y + FACE_DIR_Y_OFFSETS[ face ], z + FACE_DIR_Z_OFFSETS[ face ] ) ];
                     // TODO look at the blocks rotation...
                     Block *block_next_to = block_definition_get_definition( block_next_to_state.id );
 
@@ -358,7 +356,7 @@ void chunk_calculate_popupated_blocks( Chunk *chunk ) {
                                 // It's the non_opposing_face and parallel with this face, don't count it
                                 continue;
                             }
-                            BlockState block_around_state = chunk->blocks[ chunk_get_index_from_coords( x + FACE_DIR_X_OFFSETS[ face_around ], y + FACE_DIR_Y_OFFSETS[ face_around ], z + FACE_DIR_Z_OFFSETS[ face_around ] ) ];
+                            BlockState block_around_state = this->blocks[ get_index_from_coords( x + FACE_DIR_X_OFFSETS[ face_around ], y + FACE_DIR_Y_OFFSETS[ face_around ], z + FACE_DIR_Z_OFFSETS[ face_around ] ) ];
                             Block *block_around = block_definition_get_definition( block_around_state.id );
                             int around_face = get_rotated_face( face_around, block_around_state.rotation );
                             around_face = OPPOSITE_FACE[ around_face ];
@@ -387,40 +385,40 @@ void chunk_calculate_popupated_blocks( Chunk *chunk ) {
                     int zplus = z + 1;
                     int zminus = z - 1;
 
-                    int t = block_definition_get_definition( chunk->blocks[ chunk_get_index_from_coords( x + 0, yplus, z + 0 ) ].id )->casts_shadow;
-                    int bo = block_definition_get_definition( chunk->blocks[ chunk_get_index_from_coords( x + 0, yminus, z + 0 ) ].id )->casts_shadow;
-                    int f = block_definition_get_definition( chunk->blocks[ chunk_get_index_from_coords( x + 0, y + 0, zplus ) ].id )->casts_shadow;
-                    int ba = block_definition_get_definition( chunk->blocks[ chunk_get_index_from_coords( x + 0, y + 0, zminus ) ].id )->casts_shadow;
-                    int r = block_definition_get_definition( chunk->blocks[ chunk_get_index_from_coords( xplus, y + 0, z + 0 ) ].id )->casts_shadow;
-                    int l = block_definition_get_definition( chunk->blocks[ chunk_get_index_from_coords( xminus, y + 0, z + 0 ) ].id )->casts_shadow;
+                    int t = block_definition_get_definition( this->blocks[ get_index_from_coords( x + 0, yplus, z + 0 ) ].id )->casts_shadow;
+                    int bo = block_definition_get_definition( this->blocks[ get_index_from_coords( x + 0, yminus, z + 0 ) ].id )->casts_shadow;
+                    int f = block_definition_get_definition( this->blocks[ get_index_from_coords( x + 0, y + 0, zplus ) ].id )->casts_shadow;
+                    int ba = block_definition_get_definition( this->blocks[ get_index_from_coords( x + 0, y + 0, zminus ) ].id )->casts_shadow;
+                    int r = block_definition_get_definition( this->blocks[ get_index_from_coords( xplus, y + 0, z + 0 ) ].id )->casts_shadow;
+                    int l = block_definition_get_definition( this->blocks[ get_index_from_coords( xminus, y + 0, z + 0 ) ].id )->casts_shadow;
 
                     // If the block is visible and can be shaded, check neighbors for shade and populated the packed lighting
                     // 2 Offsets
-                    int tl = block_definition_get_definition( chunk->blocks[ chunk_get_index_from_coords( xminus, yplus, z + 0 ) ].id )->casts_shadow;
-                    int tr = block_definition_get_definition( chunk->blocks[ chunk_get_index_from_coords( xplus, yplus, z + 0 ) ].id )->casts_shadow;
-                    int tf = block_definition_get_definition( chunk->blocks[ chunk_get_index_from_coords( x + 0, yplus, zplus ) ].id )->casts_shadow;
-                    int tba = block_definition_get_definition( chunk->blocks[ chunk_get_index_from_coords( x + 0, yplus, zminus ) ].id )->casts_shadow;
+                    int tl = block_definition_get_definition( this->blocks[ get_index_from_coords( xminus, yplus, z + 0 ) ].id )->casts_shadow;
+                    int tr = block_definition_get_definition( this->blocks[ get_index_from_coords( xplus, yplus, z + 0 ) ].id )->casts_shadow;
+                    int tf = block_definition_get_definition( this->blocks[ get_index_from_coords( x + 0, yplus, zplus ) ].id )->casts_shadow;
+                    int tba = block_definition_get_definition( this->blocks[ get_index_from_coords( x + 0, yplus, zminus ) ].id )->casts_shadow;
 
-                    int bol = block_definition_get_definition( chunk->blocks[ chunk_get_index_from_coords( xminus, yminus, z + 0 ) ].id )->casts_shadow;
-                    int bor = block_definition_get_definition( chunk->blocks[ chunk_get_index_from_coords( xplus, yminus, z + 0 ) ].id )->casts_shadow;
-                    int bof = block_definition_get_definition( chunk->blocks[ chunk_get_index_from_coords( x + 0, yminus, zplus ) ].id )->casts_shadow;
-                    int boba = block_definition_get_definition( chunk->blocks[ chunk_get_index_from_coords( x + 0, yminus, zminus ) ].id )->casts_shadow;
+                    int bol = block_definition_get_definition( this->blocks[ get_index_from_coords( xminus, yminus, z + 0 ) ].id )->casts_shadow;
+                    int bor = block_definition_get_definition( this->blocks[ get_index_from_coords( xplus, yminus, z + 0 ) ].id )->casts_shadow;
+                    int bof = block_definition_get_definition( this->blocks[ get_index_from_coords( x + 0, yminus, zplus ) ].id )->casts_shadow;
+                    int boba = block_definition_get_definition( this->blocks[ get_index_from_coords( x + 0, yminus, zminus ) ].id )->casts_shadow;
 
-                    int fl = block_definition_get_definition( chunk->blocks[ chunk_get_index_from_coords( xminus, y + 0, zplus ) ].id )->casts_shadow;
-                    int bal = block_definition_get_definition( chunk->blocks[ chunk_get_index_from_coords( xminus, y + 0, zminus ) ].id )->casts_shadow;
-                    int fr = block_definition_get_definition( chunk->blocks[ chunk_get_index_from_coords( xplus, y + 0, zplus ) ].id )->casts_shadow;
-                    int bar = block_definition_get_definition( chunk->blocks[ chunk_get_index_from_coords( xplus, y + 0, zminus ) ].id )->casts_shadow;
+                    int fl = block_definition_get_definition( this->blocks[ get_index_from_coords( xminus, y + 0, zplus ) ].id )->casts_shadow;
+                    int bal = block_definition_get_definition( this->blocks[ get_index_from_coords( xminus, y + 0, zminus ) ].id )->casts_shadow;
+                    int fr = block_definition_get_definition( this->blocks[ get_index_from_coords( xplus, y + 0, zplus ) ].id )->casts_shadow;
+                    int bar = block_definition_get_definition( this->blocks[ get_index_from_coords( xplus, y + 0, zminus ) ].id )->casts_shadow;
 
                     // 3 Offsetes
-                    int tfl = block_definition_get_definition( chunk->blocks[ chunk_get_index_from_coords( xminus, yplus, zplus ) ].id )->casts_shadow;
-                    int tbl = block_definition_get_definition( chunk->blocks[ chunk_get_index_from_coords( xminus, yplus, zminus ) ].id )->casts_shadow;
-                    int tfr = block_definition_get_definition( chunk->blocks[ chunk_get_index_from_coords( xplus, yplus, zplus ) ].id )->casts_shadow;
-                    int tbr = block_definition_get_definition( chunk->blocks[ chunk_get_index_from_coords( xplus, yplus, zminus ) ].id )->casts_shadow;
+                    int tfl = block_definition_get_definition( this->blocks[ get_index_from_coords( xminus, yplus, zplus ) ].id )->casts_shadow;
+                    int tbl = block_definition_get_definition( this->blocks[ get_index_from_coords( xminus, yplus, zminus ) ].id )->casts_shadow;
+                    int tfr = block_definition_get_definition( this->blocks[ get_index_from_coords( xplus, yplus, zplus ) ].id )->casts_shadow;
+                    int tbr = block_definition_get_definition( this->blocks[ get_index_from_coords( xplus, yplus, zminus ) ].id )->casts_shadow;
 
-                    int bfl = block_definition_get_definition( chunk->blocks[ chunk_get_index_from_coords( xminus, yminus, zplus ) ].id )->casts_shadow;
-                    int bbl = block_definition_get_definition( chunk->blocks[ chunk_get_index_from_coords( xminus, yminus, zminus ) ].id )->casts_shadow;
-                    int bfr = block_definition_get_definition( chunk->blocks[ chunk_get_index_from_coords( xplus, yminus, zplus ) ].id )->casts_shadow;
-                    int bbr = block_definition_get_definition( chunk->blocks[ chunk_get_index_from_coords( xplus, yminus, zminus ) ].id )->casts_shadow;
+                    int bfl = block_definition_get_definition( this->blocks[ get_index_from_coords( xminus, yminus, zplus ) ].id )->casts_shadow;
+                    int bbl = block_definition_get_definition( this->blocks[ get_index_from_coords( xminus, yminus, zminus ) ].id )->casts_shadow;
+                    int bfr = block_definition_get_definition( this->blocks[ get_index_from_coords( xplus, yminus, zplus ) ].id )->casts_shadow;
+                    int bbr = block_definition_get_definition( this->blocks[ get_index_from_coords( xplus, yminus, zminus ) ].id )->casts_shadow;
                     if ( visible_from[ FACE_TOP ] && can_be_shaded ) {
 
                         int top_tfr = ( tf && tr ? 3 : ( tf + tr + tfr ) ) + t;
@@ -535,15 +533,15 @@ void chunk_calculate_popupated_blocks( Chunk *chunk ) {
     for ( int y = 0; y < CHUNK_SIZE; y++ ) {
         for ( int x = 0; x < CHUNK_SIZE; x++ ) {
             for ( int z = 0; z < CHUNK_SIZE; z++ ) {
-                int index = chunk_get_index_from_coords( x, y, z );
+                int index = get_index_from_coords( x, y, z );
                 if ( !workingSpace[ index ].has_been_drawn ) {
 
-                    BlockState blockState = chunk->blocks[ index ];
+                    BlockState blockState = this->blocks[ index ];
                     Block *block = block_definition_get_definition( blockState.display_id );
                     // if ( blockState.display_id == REDSTONE_CROSS ) {
                     //     pr_debug( "Got cross" );
                     // }
-                    int visiable_block = workingSpace[ index ].visable;
+                    int visiable_block = workingSpace[ index ].visible;
                     int can_be_seen = workingSpace[ index ].can_be_seen;
                     int has_been_drawn = workingSpace[ index ].has_been_drawn;
                     unsigned int *packed_lighting = workingSpace[ index ].packed_lighting;
@@ -561,7 +559,7 @@ void chunk_calculate_popupated_blocks( Chunk *chunk ) {
                                 glm::ivec3 starting = glm::ivec3( x + size_x - 1, y, z );
                                 glm::ivec3 size = glm::ivec3( 1, size_y, size_z );
                                 glm::ivec3 dir = glm::ivec3( 1, 0, 0 );
-                                can_extend_x = chunk_can_extend_rect( chunk, blockState, packed_lighting, workingSpace, starting, size, dir );
+                                can_extend_x = this->can_extend_rect( blockState, packed_lighting, workingSpace, starting, size, dir );
                                 if ( can_extend_x ) {
                                     size_x++;
                                 }
@@ -570,7 +568,7 @@ void chunk_calculate_popupated_blocks( Chunk *chunk ) {
                                 glm::ivec3 starting = glm::ivec3( x, y, z + size_z - 1 );
                                 glm::ivec3 size = glm::ivec3( size_x, size_y, 1 );
                                 glm::ivec3 dir = glm::ivec3( 0, 0, 1 );
-                                can_extend_z = chunk_can_extend_rect( chunk, blockState, packed_lighting, workingSpace, starting, size, dir );
+                                can_extend_z = this->can_extend_rect( blockState, packed_lighting, workingSpace, starting, size, dir );
                                 if ( can_extend_z ) {
                                     size_z++;
                                 }
@@ -579,7 +577,7 @@ void chunk_calculate_popupated_blocks( Chunk *chunk ) {
                                 glm::ivec3 starting = glm::ivec3( x, y + size_y - 1, z );
                                 glm::ivec3 size = glm::ivec3( size_x, 1, size_z );
                                 glm::ivec3 dir = glm::ivec3( 0, 1, 0 );
-                                can_extend_y = chunk_can_extend_rect( chunk, blockState, packed_lighting, workingSpace, starting, size, dir );
+                                can_extend_y = this->can_extend_rect( blockState, packed_lighting, workingSpace, starting, size, dir );
                                 if ( can_extend_y ) {
                                     size_y++;
                                 }
@@ -589,7 +587,7 @@ void chunk_calculate_popupated_blocks( Chunk *chunk ) {
                         for ( int new_x = x; new_x < x + size_x; new_x++ ) {
                             for ( int new_z = z; new_z < z + size_z; new_z++ ) {
                                 for ( int new_y = y; new_y < y + size_y; new_y++ ) {
-                                    int index = chunk_get_index_from_coords( new_x, new_y, new_z );
+                                    int index = get_index_from_coords( new_x, new_y, new_z );
                                     workingSpace[ index ].has_been_drawn = 1;
                                 }
                             }
@@ -598,12 +596,12 @@ void chunk_calculate_popupated_blocks( Chunk *chunk ) {
 
                         BlockCoords *blockCoord;
 
-                        blockCoord = &chunk->layers[ block->renderOrder ].populated_blocks[ num_instances[ block->renderOrder ] ];
+                        blockCoord = &this->layers[ block->renderOrder ].populated_blocks[ num_instances[ block->renderOrder ] ];
                         num_instances[ block->renderOrder ] += 1;
 
-                        blockCoord->x = chunk->chunk_pos.x * CHUNK_SIZE + x;
-                        blockCoord->y = chunk->chunk_pos.y * CHUNK_SIZE + y;
-                        blockCoord->z = chunk->chunk_pos.z * CHUNK_SIZE + z;
+                        blockCoord->x = this->chunk_pos.x * CHUNK_SIZE + x;
+                        blockCoord->y = this->chunk_pos.y * CHUNK_SIZE + y;
+                        blockCoord->z = this->chunk_pos.z * CHUNK_SIZE + z;
 
                         blockCoord->mesh_x = size_x;
                         blockCoord->mesh_y = size_y;
@@ -639,32 +637,34 @@ void chunk_calculate_popupated_blocks( Chunk *chunk ) {
 
     if ( !REMEMBER_BLOCKS ) {
         if ( PERSIST_ALL_CHUNKS ) {
-            map_storage_persist( chunk );
+            MapStorage::persist( *this );
         }
-        free( chunk->blocks );
+        free( this->blocks );
     }
     for ( int renderOrder = 0; renderOrder < LAST_RENDER_ORDER; renderOrder++ ) {
-        chunk->layers[ renderOrder ].num_instances = num_instances[ renderOrder ];
-    }
-}
-
-void chunk_program_terrain( Chunk *chunk ) {
-    for ( int renderOrder = 0; renderOrder < LAST_RENDER_ORDER; renderOrder++ ) {
-        if ( chunk->layers[ renderOrder ].num_instances != 0 ) {
-            vertex_buffer_set_data( &chunk->layers[ renderOrder ].vb_coords, chunk->layers[ renderOrder ].populated_blocks, sizeof( BlockCoords ) * chunk->layers[ renderOrder ].num_instances );
-            chunk->should_render = 1;
-        }
-        free( chunk->layers[ renderOrder ].populated_blocks );
-        chunk->layers[ renderOrder ].populated_blocks = 0;
+        this->layers[ renderOrder ].num_instances = num_instances[ renderOrder ];
     }
 }
 
-void chunk_unprogram_terrain( Chunk *chunk ) {
-    chunk->should_render = 0;
+void Chunk::program_terrain( ) {
     for ( int renderOrder = 0; renderOrder < LAST_RENDER_ORDER; renderOrder++ ) {
-        if ( chunk->layers[ renderOrder ].populated_blocks ) {
-            free( chunk->layers[ renderOrder ].populated_blocks );
+        RenderLayer &renderLayer = this->layers[ renderOrder ];
+        if ( renderLayer.num_instances != 0 ) {
+            renderLayer.vb_coords.set_data( renderLayer.populated_blocks, sizeof( BlockCoords ) * renderLayer.num_instances );
+            this->should_render = 1;
         }
-        chunk->layers[ renderOrder ].populated_blocks = 0;
+        free( renderLayer.populated_blocks );
+        renderLayer.populated_blocks = 0;
+    }
+}
+
+void Chunk::unprogram_terrain( ) {
+    this->should_render = 0;
+    for ( int renderOrder = 0; renderOrder < LAST_RENDER_ORDER; renderOrder++ ) {
+        RenderLayer &renderLayer = this->layers[ renderOrder ];
+        if ( renderLayer.populated_blocks ) {
+            free( renderLayer.populated_blocks );
+        }
+        renderLayer.populated_blocks = 0;
     }
 }

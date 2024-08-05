@@ -31,22 +31,32 @@ typedef struct {
     }
 #endif
 
-typedef struct {
+class Texture {
+    friend class Shader;
+    friend class Chunk;
+    friend class FrameBuffer;
+    friend class RepGame;
+
     unsigned int m_RendererId; //
     unsigned int slot;
     unsigned int target;
     int internalFormat;
     unsigned int format;
     unsigned int type;
-} Texture;
 
-void textures_set_texture_data( unsigned int which_texture, unsigned char *textures, int textures_len );
+    void loadTexture( const TextureSourceData &texture_source, int blur_mag );
+    void init_empty_base( int blur_mag, int target, int internalFormat, int format, int type );
 
-void texture_init( Texture *texture, const TextureSourceData *texture_source, int blur_mag );
-void texture_change_size( Texture *texture, int width, int height );
-void texture_init_empty_color( Texture *texture, int blur_mag );
-void texture_init_empty_depth_stencil( Texture *depthTexture, int blur_mag );
-void texture_destroy( Texture *texture );
-void texture_bind( Texture *texture );
-void texture_unbind( Texture *texture );
+  public:
+    void init( const TextureSourceData &texture_source, int blur_mag );
+    void change_size( int width, int height );
+    void init_empty_color( int blur_mag );
+    void init_empty_depth_stencil( int blur_mag );
+    static void set_texture_data( unsigned int which_texture, unsigned char *textures, int textures_len );
+
+    void destroy( );
+    void bind( ) const;
+    void unbind( ) const;
+};
+
 #endif

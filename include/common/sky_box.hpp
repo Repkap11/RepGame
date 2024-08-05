@@ -5,18 +5,16 @@
 #include "abstract/vertex_buffer.hpp"
 #include "abstract/vertex_array.hpp"
 #include "abstract/renderer.hpp"
+#include "common/Particle.hpp"
 
-typedef struct {
-    IndexBuffer ib;
-    VertexArray va;
-    VertexBuffer vb_vertex;
-    VertexBuffer vb_position;
-    int vertex_size;
-    Shader shader;
+class SkyBox {
     Texture texture;
-} SkyBox;
+    RenderChain<ParticleVertex, ParticlePosition> render_chain_sky_box;
 
-void sky_box_init( SkyBox *skyBox, VertexBufferLayout *vbl_object_vertex, VertexBufferLayout *vbl_object_position );
-void sky_box_draw( SkyBox *skyBox, Renderer *renderer, const glm::mat4 &mvp_sky, Shader *sky_shader );
-void sky_box_destroy( SkyBox *skyBox );
+  public:
+    void init( const VertexBufferLayout &vbl_object_vertex, const VertexBufferLayout &vbl_object_position );
+    void draw( const Renderer &renderer, Shader &shader );
+    void destroy( );
+};
+
 #endif

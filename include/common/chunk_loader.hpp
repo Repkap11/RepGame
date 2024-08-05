@@ -5,7 +5,9 @@
 #include "mouse_selection.hpp"
 #include "sky_box.hpp"
 
-typedef struct {
+class ChunkLoader {
+    friend class World;
+    
     glm::ivec3 chunk_center;
     Chunk *chunkArray;
     Shader shader;
@@ -15,16 +17,21 @@ typedef struct {
     struct {
         VertexBuffer vb_block;
     } water;
-} LoadedChunks;
+
+    static inline int reload_if_out_of_bounds( Chunk &chunk, const glm::ivec3 &chunk_pos );
+    static inline int process_chunk_position( Chunk &chunk, const glm::ivec3 &chunk_diff, const glm::ivec3 &center_previous, const glm::ivec3 &center_next, int force_reload );
+    void process_random_ticks( );
+
+  public:
+    void init( const glm::vec3 &camera_pos, const VertexBufferLayout &vbl_block, const VertexBufferLayout &vbl_coords );
+    void render_chunks( const glm::vec3 &camera_pos, int limit_render );
+    void repopulate_blocks( );
+    void calculate_cull( const glm::mat4 &mvp, bool saveAsReflection );
+    void draw( const glm::mat4 &mvp, const Renderer &renderer, const Texture &texture, bool reflect_only, bool draw_reflect );
+    Chunk *get_chunk( const glm::ivec3 &pointed );
+    void cleanup( );
+};
 
 #define MAX_LOADED_CHUNKS ( ( 2 * CHUNK_RADIUS_X + 1 ) * ( 2 * CHUNK_RADIUS_Y + 1 ) * ( 2 * CHUNK_RADIUS_Z + 1 ) )
-
-void chunk_loader_init( LoadedChunks *loadedChunks, const glm::vec3 &camera_pos, VertexBufferLayout *vbl_block, VertexBufferLayout *vbl_coords );
-void chunk_loader_render_chunks( LoadedChunks *loadedChunks, const glm::vec3 &camera_pos, int limit_render );
-void chunk_loader_repopulate_blocks( LoadedChunks *loadedChunks );
-void chunk_loader_calculate_cull( LoadedChunks *loadedChunks, const glm::mat4 &mvp, bool saveAsReflection );
-void chunk_loader_draw_chunks( LoadedChunks *loadedChunks, const glm::mat4 &mvp, Renderer *renderer, const Texture *texture, bool reflect_only, bool draw_reflect );
-Chunk *chunk_loader_get_chunk( LoadedChunks *loadedChunks, const glm::ivec3 &pointed );
-void chunk_loader_cleanup( LoadedChunks *loadedChunks );
 
 #endif

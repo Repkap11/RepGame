@@ -61,15 +61,12 @@ int mkdir_p( const char *path ) {
     return 0;
 }
 
-void map_storage_init( const char *world_name ) {
+void MapStorage::init( const char *world_name ) {
     char *dir = getRepGamePath( );
     snprintf( map_name, CHUNK_NAME_LENGTH, "%s%s%s", dir, REPGAME_PATH_DIVIDOR, world_name );
     pr_debug( "Loading map from:%s", map_name );
     mkdir_p( map_name );
     free( dir );
-}
-
-void map_storage_cleanup( ) {
 }
 
 #define STORAGE_TYPE_SIZE_HEADER uint32_t
@@ -84,13 +81,13 @@ typedef struct {
 
 #define PERSIST_DATA_BLOCK_SIZE 3
 
-void map_storage_persist( Chunk *chunk ) {
-    if ( chunk->dirty ) {
-        BlockState *blocks = chunk->blocks;
+void MapStorage::persist( const Chunk &chunk ) {
+    if ( chunk.dirty ) {
+        BlockState *blocks = chunk.blocks;
         if ( blocks == 0 ) {
             return;
         }
-        glm::ivec3 &chunk_offset = chunk->chunk_pos;
+        const glm::ivec3 &chunk_offset = chunk.chunk_pos;
         char file_name[ CHUNK_NAME_LENGTH ];
         if ( snprintf( file_name, CHUNK_NAME_LENGTH, file_root_chunk, map_name, chunk_offset.x, chunk_offset.y, chunk_offset.z ) != CHUNK_NAME_LENGTH ) {
         }
@@ -150,8 +147,8 @@ int check_if_chunk_exists( const glm::ivec3 &chunk_offset ) {
     }
 }
 
-int map_storage_load( Chunk *chunk ) {
-    glm::ivec3 &chunk_offset = chunk->chunk_pos;
+int MapStorage::load( Chunk &chunk ) {
+    glm::ivec3 &chunk_offset = chunk.chunk_pos;
 
     if ( !check_if_chunk_exists( chunk_offset ) ) {
         // This chunk isn't in a file, return 0 so the chunk gets loaded
@@ -162,7 +159,7 @@ int map_storage_load( Chunk *chunk ) {
     if ( snprintf( file_name, CHUNK_NAME_LENGTH, file_root_chunk, map_name, chunk_offset.x, chunk_offset.y, chunk_offset.z ) != CHUNK_NAME_LENGTH ) {
     }
     FILE *read_ptr;
-    BlockState *blocks = chunk->blocks;
+    BlockState *blocks = chunk.blocks;
     read_ptr = fopen( file_name, "rb" );
     uint32_t storage_type_size = 0;
     size_t result_size = fread( &storage_type_size, sizeof( uint32_t ), 1, read_ptr );
@@ -182,7 +179,7 @@ int map_storage_load( Chunk *chunk ) {
 
     bool loading_old_format_chunk = storage_block_state_size != sizeof( BlockState );
     if ( loading_old_format_chunk ) {
-        chunk->dirty = true;
+        chunk.dirty = true;
         pr_debug( "Loaded old chunk with state size:%d expected:%d", storage_block_state_size, ( int )sizeof( BlockState ) );
     }
     if ( storage_block_state_size > ( int )sizeof( BlockState ) ) {
@@ -222,7 +219,7 @@ int map_storage_load( Chunk *chunk ) {
     return 1;
 }
 
-int map_storage_read_player_data( PlayerData *player_data ) {
+int MapStorage::read_player_data( PlayerData *player_data ) {
     char file_name[ CHUNK_NAME_LENGTH ];
     if ( snprintf( file_name, CHUNK_NAME_LENGTH, file_root_player_data, map_name ) != CHUNK_NAME_LENGTH ) {
     }
@@ -240,7 +237,7 @@ int map_storage_read_player_data( PlayerData *player_data ) {
     return 1;
 }
 
-void map_storage_write_player_data( PlayerData *player_data ) {
+void MapStorage::write_player_data( PlayerData *player_data ) {
     char file_name[ CHUNK_NAME_LENGTH ];
     if ( snprintf( file_name, CHUNK_NAME_LENGTH, file_root_player_data, map_name ) != CHUNK_NAME_LENGTH ) {
     }

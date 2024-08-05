@@ -1,7 +1,7 @@
-#ifndef HEADER_REMDER_CHAIN_H
-#define HEADER_REMDER_CHAIN_H
+#ifndef HEADER_RENDER_CHAIN_H
+#define HEADER_RENDER_CHAIN_H
 
-#include "common/abstract/textures.hpp"
+#include "common/abstract/texture.hpp"
 #include "common/abstract/vertex_buffer_layout.hpp"
 #include "common/abstract/vertex_buffer.hpp"
 #include "common/abstract/vertex_array.hpp"
@@ -23,23 +23,22 @@ template <typename Element, typename Instance> class RenderChain {
     bool instance_count_changed = false;
 
   public:
-    void init( VertexBufferLayout *vbl_element, VertexBufferLayout *vbl_instance, //
-               const Element *element_data, int element_data_count,               //
+    void init( const VertexBufferLayout &vbl_element, const VertexBufferLayout &vbl_instance, //
+               const Element *element_data, int element_data_count,                           //
                const unsigned int *ib_data, unsigned int ib_data_count ) {
 
         if ( ib_data != NULL ) {
-            index_buffer_init( &this->ib );
-            index_buffer_set_data( &this->ib, ib_data, ib_data_count );
+            this->ib.init( );
+            this->ib.set_data( ib_data, ib_data_count );
         }
-        vertex_buffer_init( &this->vb_instance );
-        vertex_array_init( &this->va );
-        vertex_buffer_init( &this->vb_element );
-        vertex_array_add_buffer( &this->va, &this->vb_element, vbl_element, 0, 0 );
+        this->va.init( );
+        this->vb_element.init( );
+        this->vb_instance.init( );
+        this->va.add_buffer( this->vb_element, vbl_element );
         this->update_element( element_data, element_data_count );
-        if ( vbl_instance != NULL ) {
-            vertex_array_add_buffer( &this->va, &this->vb_instance, vbl_instance, 1, vbl_element->current_size );
-            vertex_buffer_set_data( &this->vb_instance, NULL, 0 );
-        }
+
+        this->va.add_buffer( this->vb_instance, vbl_instance );
+        this->vb_instance.set_data( NULL, 0 );
         showErrors( );
 
         registry.on_construct<Instance>( ).template connect<&RenderChain<Element, Instance>::on_construct>( *this );
@@ -48,7 +47,7 @@ template <typename Element, typename Instance> class RenderChain {
     }
 
     void update_element( const void *element_data, int element_data_count ) {
-        vertex_buffer_set_data( &this->vb_element, element_data, sizeof( Element ) * element_data_count );
+        this->vb_element.set_data( element_data, sizeof( Element ) * element_data_count );
     }
 
     std::pair<entt::entity, Instance &> create_instance( ) {
@@ -71,7 +70,7 @@ template <typename Element, typename Instance> class RenderChain {
         return registry.group<Instance>( ).size( );
     }
 
-    void draw( Renderer *renderer, Shader *shader, IndexBuffer *ib ) {
+    void draw( const Renderer &renderer, const Shader &shader, const IndexBuffer &ib ) {
         auto all_instances = registry.group<Instance>( );
         std::size_t instance_count = all_instances.size( );
         if ( instance_count == 0 ) {
@@ -86,17 +85,17 @@ template <typename Element, typename Instance> class RenderChain {
             return;
         }
         if ( this->instance_count_changed ) {
-            vertex_buffer_set_data( &this->vb_instance, instances, sizeof( Instance ) * instance_count );
+            this->vb_instance.set_data( instances, sizeof( Instance ) * instance_count );
             showErrors( );
             this->instance_count_changed = false;
         }
         // pr_debug( "RenderChaing drawing:%ld", instance_count );
-        renderer_draw( renderer, &this->va, ib, shader, instance_count );
+        renderer.draw( this->va, ib, shader, instance_count );
         showErrors( );
     }
 
-    void draw( Renderer *renderer, Shader *shader ) {
-        this->draw( renderer, shader, &this->ib );
+    void draw( const Renderer &renderer, const Shader &shader ) {
+        this->draw( renderer, shader, this->ib );
     }
 
     void clear( ) {
@@ -122,7 +121,7 @@ template <typename Element, typename Instance> class RenderChain {
         const Instance *first_instance_positions = *available_instances;
         const Instance *this_instance_position = &registry.get<const Instance>( entity );
         int offset = this_instance_position - first_instance_positions;
-        vertex_buffer_set_subdata( &this->vb_instance, this_instance_position, offset * sizeof( Instance ), sizeof( Instance ) );
+        this->vb_instance.set_subdata( this_instance_position, offset * sizeof( Instance ), sizeof( Instance ) );
         showErrors( );
     }
     void on_destroy( entt::registry &registry, entt::entity entity ) {

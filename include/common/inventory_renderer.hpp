@@ -74,11 +74,11 @@ class InventoryRenderer {
 
   public:
     InventoryRenderOptions options;
-    void init( VertexBufferLayout *ui_overlay_vbl_vertex, VertexBufferLayout *ui_overlay_vbl_instance, int width, int height );
+    void init( const VertexBufferLayout &ui_overlay_vbl_vertex, const VertexBufferLayout &ui_overlay_vbl_instance, int width, int height );
     void onSizeChange( int width, int height, InventorySlot *inventory_slots );
     void changeSlotItem( int slot_index, InventorySlot &slot );
     void setSelectedSlot( int slot_index );
-    void draw( Renderer *renderer, Texture *blocksTexture, Shader *shader );
+    void draw( const Renderer &renderer, const Texture &blocksTexture, const Shader &shader );
     void cleanup( );
 };
 #endif

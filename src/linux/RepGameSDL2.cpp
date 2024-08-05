@@ -3,10 +3,11 @@
 #include <unistd.h>
 
 #include "common/RepGame.hpp"
+#include "common/rep_tests.hpp"
 
 static RepGameState *globalGameState;
 
-void repgame_linux_process_sdl_events( ) {
+void repgame_linux_process_sdl_events( RepGame &repgame ) {
     SDL_Event event;
     while ( SDL_PollEvent( &event ) ) {
         bool handledMouse;
@@ -19,13 +20,13 @@ void repgame_linux_process_sdl_events( ) {
                 if ( handledKeyboard ) {
                     break;
                 }
-                input_keysInput( repgame_getInputState( ), event.key.keysym.sym, event.type == SDL_KEYDOWN );
+                input_keysInput( repgame.getInputState( ), event.key.keysym.sym, event.type == SDL_KEYDOWN );
                 break;
             case SDL_WINDOWEVENT:
                 if ( event.window.event == SDL_WINDOWEVENT_RESIZED ) {
-                    repgame_changeSize( event.window.data1, event.window.data2 );
+                    repgame.changeSize( event.window.data1, event.window.data2 );
                 } else if ( event.window.event == SDL_WINDOWEVENT_CLOSE ) {
-                    input_quit( repgame_getInputState( ) );
+                    input_quit( repgame.getInputState( ) );
                 }
                 break;
             case SDL_MOUSEBUTTONDOWN:
@@ -33,19 +34,19 @@ void repgame_linux_process_sdl_events( ) {
                 if ( handledMouse ) {
                     break;
                 }
-                input_mouseInput( repgame_getInputState( ), event.button.button, event.type == SDL_MOUSEBUTTONUP );
+                input_mouseInput( repgame.getInputState( ), event.button.button, event.type == SDL_MOUSEBUTTONUP );
                 break;
             case SDL_MOUSEWHEEL:
                 if ( handledMouse ) {
                     break;
                 }
-                input_mouseWheel( repgame_getInputState( ), event.wheel.x, event.wheel.y );
+                input_mouseWheel( repgame.getInputState( ), event.wheel.x, event.wheel.y );
                 break;
             case SDL_MOUSEMOTION:
                 if ( handledMouse ) {
                     break;
                 }
-                input_lookMove( repgame_getInputState( ), event.motion.xrel, event.motion.yrel );
+                input_lookMove( repgame.getInputState( ), event.motion.xrel, event.motion.yrel );
                 break;
         }
     }
@@ -55,8 +56,8 @@ bool startsWith( const char *pre, const char *str ) {
     return strncmp( pre, str, strlen( pre ) ) == 0;
 }
 
-void main_loop_wasm( );
-void main_loop_full( );
+void main_loop_wasm( RepGame &repgame );
+void main_loop_full( RepGame &repgame );
 
 SDL_Window *sdl_window = NULL;
 SDL_GLContext sdl_context = NULL;
@@ -75,6 +76,7 @@ int repgame_sdl2_main( const char *world_path, const char *host, bool connect_mu
     // next line as per: http://stackoverflow.com/questions/11961116/opengl-3-x-context-creation-using-sdl2-on-osx-macbook-air-2012
     SDL_GL_SetAttribute( SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_CORE );
 #endif
+    SDL_GL_SetAttribute( SDL_GL_CONTEXT_FLAGS, SDL_GL_CONTEXT_FORWARD_COMPATIBLE_FLAG );
 
     /* Turn on double buffering with a 24bit Z buffer.
      * You may need to change this to 16 or 32 for your system */
@@ -114,8 +116,8 @@ int repgame_sdl2_main( const char *world_path, const char *host, bool connect_mu
         exit( 1 ); // or handle the error in a nicer way
     }
     ignoreErrors( );
-
-    globalGameState = repgame_init( world_path, connect_multi, host, supportsAnisotropicFiltering );
+    RepGame repgame;
+    globalGameState = repgame.init( world_path, connect_multi, host, supportsAnisotropicFiltering );
     imgui_overlay_attach_to_window( &globalGameState->imgui_overlay, sdl_window, sdl_context );
 
 #if !defined( REPGAME_WASM )
@@ -132,9 +134,9 @@ int repgame_sdl2_main( const char *world_path, const char *host, bool connect_mu
         pr_debug( "GLEW version wrong" );
         exit( 1 ); // or handle the error in a nicer way
     }
-    repgame_changeSize( default_width, default_height );
-    main_loop_full( );
-    repgame_cleanup( );
+    repgame.changeSize( default_width, default_height );
+    main_loop_full( repgame );
+    repgame.cleanup( );
     SDL_GL_DeleteContext( sdl_context );
     SDL_DestroyWindow( sdl_window );
     SDL_Quit( );
@@ -145,9 +147,9 @@ int repgame_sdl2_main( const char *world_path, const char *host, bool connect_mu
 }
 
 int is_locking_pointer = 0;
-void repgame_linux_process_window_and_pointer_state( ) {
+void repgame_linux_process_window_and_pointer_state( RepGame &repgame ) {
     int width, height;
-    int should_lock_pointer = repgame_should_lock_pointer( );
+    int should_lock_pointer = repgame.should_lock_pointer( );
     if ( should_lock_pointer != is_locking_pointer ) {
         SDL_SetRelativeMouseMode( should_lock_pointer ? SDL_TRUE : SDL_FALSE );
         SDL_GetWindowSize( sdl_window, &width, &height );
@@ -156,15 +158,15 @@ void repgame_linux_process_window_and_pointer_state( ) {
     }
 }
 
-void main_loop_wasm( ) {
-    if ( repgame_shouldExit( ) ) {
+void main_loop_wasm( RepGame &repgame ) {
+    if ( repgame.shouldExit( ) ) {
         return;
     } else {
-        repgame_linux_process_sdl_events( );
-        repgame_linux_process_window_and_pointer_state( );
-        repgame_clear( );
-        repgame_tick( );
-        repgame_draw( );
+        repgame_linux_process_sdl_events( repgame );
+        repgame_linux_process_window_and_pointer_state( repgame );
+        repgame.clear( );
+        repgame.tick( );
+        repgame.draw( );
     }
     return;
 }
@@ -175,12 +177,12 @@ void main_loop_wasm( ) {
 #define SW_VSYNC_ENABLED 0
 #endif
 
-void main_loop_full( ) {
+void main_loop_full( RepGame &repgame ) {
 
     Uint32 time_step_ms = 1000 / UPS_RATE;
     Uint32 next_game_step = SDL_GetTicks( ); // initial value
 
-    while ( !repgame_shouldExit( ) ) {
+    while ( !repgame.shouldExit( ) ) {
         Uint32 now = SDL_GetTicks( );
 
         if ( ( ( ( int )next_game_step - ( int )now ) <= 0 ) || !SW_VSYNC_ENABLED ) {
@@ -189,16 +191,16 @@ void main_loop_full( ) {
             // Loop until all steps are executed or computer_is_too_slow_limit is reached
             // int num_ticks_in_frame = 0;
             while ( ( ( ( ( int )next_game_step - ( int )now ) <= 0 ) ) && ( computer_is_too_slow_limit-- ) ) {
-                repgame_linux_process_sdl_events( );
-                repgame_linux_process_window_and_pointer_state( );
-                repgame_tick( );
+                repgame_linux_process_sdl_events( repgame );
+                repgame_linux_process_window_and_pointer_state( repgame );
+                repgame.tick( );
                 // num_ticks_in_frame++;
                 next_game_step += time_step_ms; // count 1 game tick done
             }
             // pr_debug( "slow:%d num_ticks_in_frame:%d fps:%f", computer_is_too_slow_limit, num_ticks_in_frame, ( float )( UPS_RATE ) / ( float )num_ticks_in_frame );
 
-            repgame_clear( );
-            repgame_draw( );
+            repgame.clear( );
+            repgame.draw( );
             SDL_GL_SwapWindow( sdl_window );
         } else {
             SDL_Delay( next_game_step - now );

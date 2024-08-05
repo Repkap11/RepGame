@@ -7,108 +7,104 @@
 
 static CubeFace vd_data_selection[] = {
     // x=right/left, y=top/bottom, z=front/back : 1/0
-    {0.0f - SELECTION_SIZE_OFFSET, 0.0f - SELECTION_SIZE_OFFSET, 0.0f - SELECTION_SIZE_OFFSET, /*Coords  Texture coords*/ 1, 0, FACE_BACK, CORNER_OFFSET_bbl}, // 0
-    {1.0f + SELECTION_SIZE_OFFSET, 0.0f - SELECTION_SIZE_OFFSET, 0.0f - SELECTION_SIZE_OFFSET, /*Coords  Texture coords*/ 0, 0, FACE_BACK, CORNER_OFFSET_bbr}, // 1
-    {1.0f + SELECTION_SIZE_OFFSET, 1.0f + SELECTION_SIZE_OFFSET, 0.0f - SELECTION_SIZE_OFFSET, /*Coords  Texture coords*/ 0, 1, FACE_BACK, CORNER_OFFSET_tbr}, // 2
-    {0.0f - SELECTION_SIZE_OFFSET, 1.0f + SELECTION_SIZE_OFFSET, 0.0f - SELECTION_SIZE_OFFSET, /*Coords  Texture coords*/ 1, 1, FACE_BACK, CORNER_OFFSET_tbl}, // 3
+    { 0.0f - SELECTION_SIZE_OFFSET, 0.0f - SELECTION_SIZE_OFFSET, 0.0f - SELECTION_SIZE_OFFSET, /*Coords  Texture coords*/ 1, 0, FACE_BACK, CORNER_OFFSET_bbl }, // 0
+    { 1.0f + SELECTION_SIZE_OFFSET, 0.0f - SELECTION_SIZE_OFFSET, 0.0f - SELECTION_SIZE_OFFSET, /*Coords  Texture coords*/ 0, 0, FACE_BACK, CORNER_OFFSET_bbr }, // 1
+    { 1.0f + SELECTION_SIZE_OFFSET, 1.0f + SELECTION_SIZE_OFFSET, 0.0f - SELECTION_SIZE_OFFSET, /*Coords  Texture coords*/ 0, 1, FACE_BACK, CORNER_OFFSET_tbr }, // 2
+    { 0.0f - SELECTION_SIZE_OFFSET, 1.0f + SELECTION_SIZE_OFFSET, 0.0f - SELECTION_SIZE_OFFSET, /*Coords  Texture coords*/ 1, 1, FACE_BACK, CORNER_OFFSET_tbl }, // 3
 
-    {0.0f - SELECTION_SIZE_OFFSET, 0.0f - SELECTION_SIZE_OFFSET, 1.0f + SELECTION_SIZE_OFFSET, /*Coords  Texture coords*/ 0, 0, FACE_FRONT, CORNER_OFFSET_bfl}, // 4
-    {1.0f + SELECTION_SIZE_OFFSET, 0.0f - SELECTION_SIZE_OFFSET, 1.0f + SELECTION_SIZE_OFFSET, /*Coords  Texture coords*/ 1, 0, FACE_FRONT, CORNER_OFFSET_bfr}, // 5
-    {1.0f + SELECTION_SIZE_OFFSET, 1.0f + SELECTION_SIZE_OFFSET, 1.0f + SELECTION_SIZE_OFFSET, /*Coords  Texture coords*/ 1, 1, FACE_FRONT, CORNER_OFFSET_tfr}, // 6
-    {0.0f - SELECTION_SIZE_OFFSET, 1.0f + SELECTION_SIZE_OFFSET, 1.0f + SELECTION_SIZE_OFFSET, /*Coords  Texture coords*/ 0, 1, FACE_FRONT, CORNER_OFFSET_tfl}, // 7
+    { 0.0f - SELECTION_SIZE_OFFSET, 0.0f - SELECTION_SIZE_OFFSET, 1.0f + SELECTION_SIZE_OFFSET, /*Coords  Texture coords*/ 0, 0, FACE_FRONT, CORNER_OFFSET_bfl }, // 4
+    { 1.0f + SELECTION_SIZE_OFFSET, 0.0f - SELECTION_SIZE_OFFSET, 1.0f + SELECTION_SIZE_OFFSET, /*Coords  Texture coords*/ 1, 0, FACE_FRONT, CORNER_OFFSET_bfr }, // 5
+    { 1.0f + SELECTION_SIZE_OFFSET, 1.0f + SELECTION_SIZE_OFFSET, 1.0f + SELECTION_SIZE_OFFSET, /*Coords  Texture coords*/ 1, 1, FACE_FRONT, CORNER_OFFSET_tfr }, // 6
+    { 0.0f - SELECTION_SIZE_OFFSET, 1.0f + SELECTION_SIZE_OFFSET, 1.0f + SELECTION_SIZE_OFFSET, /*Coords  Texture coords*/ 0, 1, FACE_FRONT, CORNER_OFFSET_tfl }, // 7
 
-    {0.0f - SELECTION_SIZE_OFFSET, 0.0f - SELECTION_SIZE_OFFSET, 0.0f - SELECTION_SIZE_OFFSET, /*Coords  Texture coords*/ 0, 0, FACE_LEFT, CORNER_OFFSET_bbl},  // 8
-    {1.0f + SELECTION_SIZE_OFFSET, 0.0f - SELECTION_SIZE_OFFSET, 0.0f - SELECTION_SIZE_OFFSET, /*Coords  Texture coords*/ 1, 0, FACE_RIGHT, CORNER_OFFSET_bbr}, // 9
-    {1.0f + SELECTION_SIZE_OFFSET, 1.0f + SELECTION_SIZE_OFFSET, 0.0f - SELECTION_SIZE_OFFSET, /*Coords  Texture coords*/ 1, 1, FACE_RIGHT, CORNER_OFFSET_tbr}, // 10
-    {0.0f - SELECTION_SIZE_OFFSET, 1.0f + SELECTION_SIZE_OFFSET, 0.0f - SELECTION_SIZE_OFFSET, /*Coords  Texture coords*/ 0, 1, FACE_LEFT, CORNER_OFFSET_tbl},  // 11
+    { 0.0f - SELECTION_SIZE_OFFSET, 0.0f - SELECTION_SIZE_OFFSET, 0.0f - SELECTION_SIZE_OFFSET, /*Coords  Texture coords*/ 0, 0, FACE_LEFT, CORNER_OFFSET_bbl },  // 8
+    { 1.0f + SELECTION_SIZE_OFFSET, 0.0f - SELECTION_SIZE_OFFSET, 0.0f - SELECTION_SIZE_OFFSET, /*Coords  Texture coords*/ 1, 0, FACE_RIGHT, CORNER_OFFSET_bbr }, // 9
+    { 1.0f + SELECTION_SIZE_OFFSET, 1.0f + SELECTION_SIZE_OFFSET, 0.0f - SELECTION_SIZE_OFFSET, /*Coords  Texture coords*/ 1, 1, FACE_RIGHT, CORNER_OFFSET_tbr }, // 10
+    { 0.0f - SELECTION_SIZE_OFFSET, 1.0f + SELECTION_SIZE_OFFSET, 0.0f - SELECTION_SIZE_OFFSET, /*Coords  Texture coords*/ 0, 1, FACE_LEFT, CORNER_OFFSET_tbl },  // 11
 
-    {0.0f - SELECTION_SIZE_OFFSET, 0.0f - SELECTION_SIZE_OFFSET, 1.0f + SELECTION_SIZE_OFFSET, /*Coords  Texture coords*/ 1, 0, FACE_LEFT, CORNER_OFFSET_bfl},  // 12
-    {1.0f + SELECTION_SIZE_OFFSET, 0.0f - SELECTION_SIZE_OFFSET, 1.0f + SELECTION_SIZE_OFFSET, /*Coords  Texture coords*/ 0, 0, FACE_RIGHT, CORNER_OFFSET_bfr}, // 13
-    {1.0f + SELECTION_SIZE_OFFSET, 1.0f + SELECTION_SIZE_OFFSET, 1.0f + SELECTION_SIZE_OFFSET, /*Coords  Texture coords*/ 0, 1, FACE_RIGHT, CORNER_OFFSET_tfr}, // 14
-    {0.0f - SELECTION_SIZE_OFFSET, 1.0f + SELECTION_SIZE_OFFSET, 1.0f + SELECTION_SIZE_OFFSET, /*Coords  Texture coords*/ 1, 1, FACE_LEFT, CORNER_OFFSET_tfl},  // 15
+    { 0.0f - SELECTION_SIZE_OFFSET, 0.0f - SELECTION_SIZE_OFFSET, 1.0f + SELECTION_SIZE_OFFSET, /*Coords  Texture coords*/ 1, 0, FACE_LEFT, CORNER_OFFSET_bfl },  // 12
+    { 1.0f + SELECTION_SIZE_OFFSET, 0.0f - SELECTION_SIZE_OFFSET, 1.0f + SELECTION_SIZE_OFFSET, /*Coords  Texture coords*/ 0, 0, FACE_RIGHT, CORNER_OFFSET_bfr }, // 13
+    { 1.0f + SELECTION_SIZE_OFFSET, 1.0f + SELECTION_SIZE_OFFSET, 1.0f + SELECTION_SIZE_OFFSET, /*Coords  Texture coords*/ 0, 1, FACE_RIGHT, CORNER_OFFSET_tfr }, // 14
+    { 0.0f - SELECTION_SIZE_OFFSET, 1.0f + SELECTION_SIZE_OFFSET, 1.0f + SELECTION_SIZE_OFFSET, /*Coords  Texture coords*/ 1, 1, FACE_LEFT, CORNER_OFFSET_tfl },  // 15
 
-    {0.0f - SELECTION_SIZE_OFFSET, 0.0f - SELECTION_SIZE_OFFSET, 0.0f - SELECTION_SIZE_OFFSET, /*Coords  Texture coords*/ 1, 1, FACE_BOTTOM, CORNER_OFFSET_bbl}, // 16
-    {1.0f + SELECTION_SIZE_OFFSET, 0.0f - SELECTION_SIZE_OFFSET, 0.0f - SELECTION_SIZE_OFFSET, /*Coords  Texture coords*/ 0, 1, FACE_BOTTOM, CORNER_OFFSET_bbr}, // 17
-    {1.0f + SELECTION_SIZE_OFFSET, 1.0f + SELECTION_SIZE_OFFSET, 0.0f - SELECTION_SIZE_OFFSET, /*Coords  Texture coords*/ 0, 0, FACE_TOP, CORNER_OFFSET_tbr},    // 18
-    {0.0f - SELECTION_SIZE_OFFSET, 1.0f + SELECTION_SIZE_OFFSET, 0.0f - SELECTION_SIZE_OFFSET, /*Coords  Texture coords*/ 1, 0, FACE_TOP, CORNER_OFFSET_tbl},    // 19
+    { 0.0f - SELECTION_SIZE_OFFSET, 0.0f - SELECTION_SIZE_OFFSET, 0.0f - SELECTION_SIZE_OFFSET, /*Coords  Texture coords*/ 1, 1, FACE_BOTTOM, CORNER_OFFSET_bbl }, // 16
+    { 1.0f + SELECTION_SIZE_OFFSET, 0.0f - SELECTION_SIZE_OFFSET, 0.0f - SELECTION_SIZE_OFFSET, /*Coords  Texture coords*/ 0, 1, FACE_BOTTOM, CORNER_OFFSET_bbr }, // 17
+    { 1.0f + SELECTION_SIZE_OFFSET, 1.0f + SELECTION_SIZE_OFFSET, 0.0f - SELECTION_SIZE_OFFSET, /*Coords  Texture coords*/ 0, 0, FACE_TOP, CORNER_OFFSET_tbr },    // 18
+    { 0.0f - SELECTION_SIZE_OFFSET, 1.0f + SELECTION_SIZE_OFFSET, 0.0f - SELECTION_SIZE_OFFSET, /*Coords  Texture coords*/ 1, 0, FACE_TOP, CORNER_OFFSET_tbl },    // 19
 
-    {0.0f - SELECTION_SIZE_OFFSET, 0.0f - SELECTION_SIZE_OFFSET, 1.0f + SELECTION_SIZE_OFFSET, /*Coords  Texture coords*/ 1, 0, FACE_BOTTOM, CORNER_OFFSET_bfl}, // 20
-    {1.0f + SELECTION_SIZE_OFFSET, 0.0f - SELECTION_SIZE_OFFSET, 1.0f + SELECTION_SIZE_OFFSET, /*Coords  Texture coords*/ 0, 0, FACE_BOTTOM, CORNER_OFFSET_bfr}, // 21
-    {1.0f + SELECTION_SIZE_OFFSET, 1.0f + SELECTION_SIZE_OFFSET, 1.0f + SELECTION_SIZE_OFFSET, /*Coords  Texture coords*/ 0, 1, FACE_TOP, CORNER_OFFSET_tfr},    // 22
-    {0.0f - SELECTION_SIZE_OFFSET, 1.0f + SELECTION_SIZE_OFFSET, 1.0f + SELECTION_SIZE_OFFSET, /*Coords  Texture coords*/ 1, 1, FACE_TOP, CORNER_OFFSET_tfl},    // 23
+    { 0.0f - SELECTION_SIZE_OFFSET, 0.0f - SELECTION_SIZE_OFFSET, 1.0f + SELECTION_SIZE_OFFSET, /*Coords  Texture coords*/ 1, 0, FACE_BOTTOM, CORNER_OFFSET_bfl }, // 20
+    { 1.0f + SELECTION_SIZE_OFFSET, 0.0f - SELECTION_SIZE_OFFSET, 1.0f + SELECTION_SIZE_OFFSET, /*Coords  Texture coords*/ 0, 0, FACE_BOTTOM, CORNER_OFFSET_bfr }, // 21
+    { 1.0f + SELECTION_SIZE_OFFSET, 1.0f + SELECTION_SIZE_OFFSET, 1.0f + SELECTION_SIZE_OFFSET, /*Coords  Texture coords*/ 0, 1, FACE_TOP, CORNER_OFFSET_tfr },    // 22
+    { 0.0f - SELECTION_SIZE_OFFSET, 1.0f + SELECTION_SIZE_OFFSET, 1.0f + SELECTION_SIZE_OFFSET, /*Coords  Texture coords*/ 1, 1, FACE_TOP, CORNER_OFFSET_tfl },    // 23
 
-    {0.5f, 1.0f + SELECTION_SIZE_OFFSET, 0.5f, /*Coords  Texture coords*/ 0.5f, 0.5f, FACE_TOP, CORNER_OFFSET_c},    // 24
-    {0.5f, 0.0f - SELECTION_SIZE_OFFSET, 0.5f, /*Coords  Texture coords*/ 0.5f, 0.5f, FACE_BOTTOM, CORNER_OFFSET_c}, // 25
-    {1.0f + SELECTION_SIZE_OFFSET, 0.5f, 0.5f, /*Coords  Texture coords*/ 0.5f, 0.5f, FACE_RIGHT, CORNER_OFFSET_c},  // 26
-    {0.5f, 0.5f, 1.0f + SELECTION_SIZE_OFFSET, /*Coords  Texture coords*/ 0.5f, 0.5f, FACE_FRONT, CORNER_OFFSET_c},  // 27
-    {0.0f - SELECTION_SIZE_OFFSET, 0.5f, 0.5f, /*Coords  Texture coords*/ 0.5f, 0.5f, FACE_LEFT, CORNER_OFFSET_c},   // 28
-    {0.5f, 0.5f, 0.0f - SELECTION_SIZE_OFFSET, /*Coords  Texture coords*/ 0.5f, 0.5f, FACE_BACK, CORNER_OFFSET_c},   // 29
+    { 0.5f, 1.0f + SELECTION_SIZE_OFFSET, 0.5f, /*Coords  Texture coords*/ 0.5f, 0.5f, FACE_TOP, CORNER_OFFSET_c },    // 24
+    { 0.5f, 0.0f - SELECTION_SIZE_OFFSET, 0.5f, /*Coords  Texture coords*/ 0.5f, 0.5f, FACE_BOTTOM, CORNER_OFFSET_c }, // 25
+    { 1.0f + SELECTION_SIZE_OFFSET, 0.5f, 0.5f, /*Coords  Texture coords*/ 0.5f, 0.5f, FACE_RIGHT, CORNER_OFFSET_c },  // 26
+    { 0.5f, 0.5f, 1.0f + SELECTION_SIZE_OFFSET, /*Coords  Texture coords*/ 0.5f, 0.5f, FACE_FRONT, CORNER_OFFSET_c },  // 27
+    { 0.0f - SELECTION_SIZE_OFFSET, 0.5f, 0.5f, /*Coords  Texture coords*/ 0.5f, 0.5f, FACE_LEFT, CORNER_OFFSET_c },   // 28
+    { 0.5f, 0.5f, 0.0f - SELECTION_SIZE_OFFSET, /*Coords  Texture coords*/ 0.5f, 0.5f, FACE_BACK, CORNER_OFFSET_c },   // 29
 };
 #define VB_DATA_SIZE_SELECTION ( 4 * 6 + 6 )
 
-void mouse_selection_init( MouseSelection *mouseSelection, VertexBufferLayout *vbl_block, VertexBufferLayout *vbl_coords ) {
-    index_buffer_init( &mouseSelection->ib );
-    index_buffer_set_data( &mouseSelection->ib, ib_data_solid, IB_SOLID_SIZE );
+void MouseSelection::init( const VertexBufferLayout &vbl_block, const VertexBufferLayout &vbl_coords ) {
+    this->render_chain_mouse_selection.init( vbl_block, vbl_coords, vd_data_selection, VB_DATA_SIZE_SELECTION, ib_data_solid, IB_SOLID_SIZE );
+    auto pair = this->render_chain_mouse_selection.create_instance( );
+    this->entity = pair.first;
+    BlockCoords &blockCoords = pair.second;
 
-    vertex_buffer_init( &mouseSelection->vb_block );
-    vertex_buffer_set_data( &mouseSelection->vb_block, vd_data_selection, sizeof( CubeFace ) * VB_DATA_SIZE_SELECTION );
-
-    vertex_buffer_init( &mouseSelection->vb_coords );
-    vertex_array_init( &mouseSelection->va );
-    vertex_array_add_buffer( &mouseSelection->va, &mouseSelection->vb_block, vbl_block, 0, 0 );
-    vertex_array_add_buffer( &mouseSelection->va, &mouseSelection->vb_coords, vbl_coords, 1, vbl_block->current_size );
     for ( int i = 0; i < NUM_FACES_IN_CUBE; i++ ) {
-        mouseSelection->block.face[ i ] = PLAYER_SELECTION - 1;
+        blockCoords.face[ i ] = PLAYER_SELECTION - 1;
     }
-    mouseSelection->block.x = 0;
-    mouseSelection->block.y = 0;
-    mouseSelection->block.z = 0;
-    mouseSelection->block.mesh_x = 1;
-    mouseSelection->block.mesh_y = 1;
-    mouseSelection->block.mesh_z = 1;
-    mouseSelection->shouldDraw = 0;
+    blockCoords.x = 0;
+    blockCoords.y = 0;
+    blockCoords.z = 0;
+    blockCoords.mesh_x = 1;
+    blockCoords.mesh_y = 1;
+    blockCoords.mesh_z = 1;
+    this->shouldDraw = 0;
 
-    mouseSelection->block.scale_x = 1;
-    mouseSelection->block.scale_y = 1;
-    mouseSelection->block.scale_z = 1;
+    blockCoords.scale_x = 1;
+    blockCoords.scale_y = 1;
+    blockCoords.scale_z = 1;
 
-    mouseSelection->block.offset_x = 0;
-    mouseSelection->block.offset_y = 0;
-    mouseSelection->block.offset_z = 0;
+    blockCoords.offset_x = 0;
+    blockCoords.offset_y = 0;
+    blockCoords.offset_z = 0;
 
-    mouseSelection->block.tex_offset_x = 0;
-    mouseSelection->block.tex_offset_y = 0;
-    mouseSelection->block.tex_offset_z = 0;
+    blockCoords.tex_offset_x = 0;
+    blockCoords.tex_offset_y = 0;
+    blockCoords.tex_offset_z = 0;
 }
-void mouse_selection_set_block( MouseSelection *mouseSelection, const glm::ivec3 &pos, int shouldDraw, BlockState blockState ) {
+void MouseSelection::set_block( const glm::ivec3 &pos, int shouldDraw, BlockState blockState ) {
+    BlockCoords &blockCoords = this->render_chain_mouse_selection.get_instance( this->entity );
     // y += 1;
-    mouseSelection->shouldDraw = shouldDraw;
-    if ( mouseSelection->block.x != pos.x ||                                        //
-         mouseSelection->block.y != pos.y ||                                        //
-         mouseSelection->block.z != pos.z ||                                        //
-         !BlockStates_equal( blockState, mouseSelection->selected_block_state ) //
+    this->shouldDraw = shouldDraw;
+    if ( blockCoords.x != pos.x ||                                    //
+         blockCoords.y != pos.y ||                                    //
+         blockCoords.z != pos.z ||                                    //
+         !BlockStates_equal( blockState, this->selected_block_state ) //
     ) {
         Block *block = block_definition_get_definition( blockState.id );
-        mouseSelection->block.x = pos.x;
-        mouseSelection->block.y = pos.y;
-        mouseSelection->block.z = pos.z;
-        mouseSelection->selected_block_state = blockState;
+        blockCoords.x = pos.x;
+        blockCoords.y = pos.y;
+        blockCoords.z = pos.z;
+        this->selected_block_state = blockState;
 
-        mouseSelection->block.scale_x = PIXEL_TO_FLOAT( block->scale.x );
-        mouseSelection->block.scale_y = PIXEL_TO_FLOAT( block->scale.y );
-        mouseSelection->block.scale_z = PIXEL_TO_FLOAT( block->scale.z );
+        blockCoords.scale_x = PIXEL_TO_FLOAT( block->scale.x );
+        blockCoords.scale_y = PIXEL_TO_FLOAT( block->scale.y );
+        blockCoords.scale_z = PIXEL_TO_FLOAT( block->scale.z );
 
-        mouseSelection->block.offset_x = PIXEL_TO_FLOAT( block->offset.x );
-        mouseSelection->block.offset_y = PIXEL_TO_FLOAT( block->offset.y );
-        mouseSelection->block.offset_z = PIXEL_TO_FLOAT( block->offset.z );
+        blockCoords.offset_x = PIXEL_TO_FLOAT( block->offset.x );
+        blockCoords.offset_y = PIXEL_TO_FLOAT( block->offset.y );
+        blockCoords.offset_z = PIXEL_TO_FLOAT( block->offset.z );
 
-        mouseSelection->block.face_shift = blockState.rotation;
+        blockCoords.face_shift = blockState.rotation;
 
-        vertex_buffer_set_data( &mouseSelection->vb_coords, &mouseSelection->block, sizeof( BlockCoords ) * 1 );
+        this->render_chain_mouse_selection.invalidate( this->entity );
     }
 }
-void mouse_selection_draw( MouseSelection *mouseSelection, Renderer *renderer, Shader *shader ) {
-    if ( mouseSelection->shouldDraw ) {
-        renderer_draw_lines( renderer, &mouseSelection->va, &mouseSelection->ib, shader, 1 );
+void MouseSelection::draw( const Renderer &renderer, const Shader &shader ) {
+    if ( this->shouldDraw ) {
+        this->render_chain_mouse_selection.draw( renderer, shader );
     }
 }

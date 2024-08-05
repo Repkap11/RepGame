@@ -3,14 +3,13 @@
 
 #include <stdio.h>
 
-
 #include "common/Platforms.hpp"
 #include "common/Logging.hpp"
 
-
-
 #include <entt/entity/registry.hpp>
 #include <glm.hpp>
+#include "common/RenderChain.hpp"
+#include "common/RenderLink.hpp"
 
 #include "chunk_loader.hpp"
 #include "world.hpp"
@@ -18,8 +17,9 @@
 #include "ui_overlay.hpp"
 #include "imgui_overlay.hpp"
 #include "inventory.hpp"
+#include "multiplayer.hpp"
 #include "common/BlockUpdateQueue.hpp"
-#include "common/ecs_renderer.hpp"
+
 #include "common/utils/ecs.hpp"
 
 #define GLM_FORCE_RADIANS
@@ -32,6 +32,7 @@
 
 typedef struct {
     double frame_rate;
+    Multiplayer multiplayer;
     InputState input;
     struct {
         float angle_H;
@@ -81,22 +82,32 @@ typedef struct {
     bool reflections_on;
 } PlayerData;
 
-void renderShaders( int x, int y, int z );
-RepGameState *repgame_init( const char *world_name, bool connect_multi, const char *host, bool supportsAnisotropicFiltering );
-void repgame_tick( );
-void repgame_clear( );
-void repgame_idle( );
-void repgame_draw( );
-void repgame_set_textures( unsigned int which_texture, unsigned char *textures, int textures_len );
-void repgame_cleanup( );
-InputState *repgame_getInputState( );
+class RepGame {
 
-void repgame_changeSize( int x, int y );
-void repgame_get_screen_size( int *width, int *height );
-int repgame_shouldExit( );
-int repgame_should_lock_pointer( );
-bool repgame_supportsAnisotropic( );
+    void add_to_an_inventory( BlockID blockId );
+    void process_mouse_events( );
+    void process_camera_angle( );
+    void process_movement( );
+    void process_block_updates( );
 
-int rep_tests_start( );
+  public:
+    void renderShaders( int x, int y, int z );
+    RepGameState *init( const char *world_name, bool connect_multi, const char *host, bool supportsAnisotropicFiltering );
+    void tick( );
+    void clear( );
+    void idle( );
+    void draw( );
+    void set_textures( unsigned int which_texture, unsigned char *textures, int textures_len );
+    void cleanup( );
+    InputState *getInputState( );
+
+    void changeSize( int x, int y );
+    void get_screen_size( int *width, int *height );
+    int shouldExit( );
+    int should_lock_pointer( );
+    static bool supportsAnisotropic( );
+
+    int rep_tests_start( );
+};
 
 #endif

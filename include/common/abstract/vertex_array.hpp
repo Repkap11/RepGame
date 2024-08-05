@@ -4,13 +4,17 @@
 #include "common/abstract/vertex_buffer.hpp"
 #include "common/abstract/vertex_buffer_layout.hpp"
 
-typedef struct {
+class VertexArray {
     unsigned int mRendererId;
-} VertexArray;
+    unsigned int divisor;
+    unsigned int stride;
 
-void vertex_array_init( VertexArray *vertexArray );
-void vertex_array_bind( const VertexArray *vertexArray );
-void vertex_array_add_buffer( VertexArray *vertexArray, const VertexBuffer *vertexBuffer, const VertexBufferLayout *vertexBufferLayout, unsigned int divisor, unsigned int stride );
-void vertex_array_destroy( VertexArray *vertexArray );
+  public:
+    void init( );
+    void bind( ) const;
+    void add_buffer( const VertexBuffer &vertexBuffer, const VertexBufferLayout &vertexBufferLayout );
+    void unbind( ) const;
+    void destroy( );
+};
 
 #endif

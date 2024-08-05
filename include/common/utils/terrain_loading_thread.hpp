@@ -3,10 +3,18 @@
 
 #include "common/chunk.hpp"
 #include "common/RepGame.hpp"
+#include "common/utils/linked_list.hpp"
 
-int terrain_loading_thread_start( );
-void terrain_loading_thread_enqueue( Chunk *chunk, const glm::ivec3 &new_chunk_pos, int persist );
-Chunk *terrain_loading_thread_dequeue( );
-void terrain_loading_thread_stop( );
+class TerrainLoadingThread {
+
+    static void process_value( LinkedListValue *value );
+    static void *process_background_tasks( void *arg );
+
+  public:
+    static int start( );
+    static void enqueue( Chunk *chunk, const glm::ivec3 &new_chunk_pos, int persist );
+    static Chunk *dequeue( );
+    static void stop( );
+};
 
 #endif

@@ -18,51 +18,46 @@ int mod( int x, int N ) {
     }
     return result;
 }
-int reload_if_out_of_bounds( Chunk *chunk, const glm::ivec3 &chunk_pos ) {
+int ChunkLoader::reload_if_out_of_bounds( Chunk &chunk, const glm::ivec3 &chunk_pos ) {
 
-    int new_chunk_x = ( int )floorf( ( ( float )( chunk_pos.x - chunk->chunk_mod.x + CHUNK_RADIUS_X ) ) / ( ( float )( CHUNK_RADIUS_X * 2 + 1 ) ) ) * ( CHUNK_RADIUS_X * 2 + 1 ) + chunk->chunk_mod.x;
-    int new_chunk_y = ( int )floorf( ( ( float )( chunk_pos.y - chunk->chunk_mod.y + CHUNK_RADIUS_Y ) ) / ( ( float )( CHUNK_RADIUS_Y * 2 + 1 ) ) ) * ( CHUNK_RADIUS_Y * 2 + 1 ) + chunk->chunk_mod.y;
-    int new_chunk_z = ( int )floorf( ( ( float )( chunk_pos.z - chunk->chunk_mod.z + CHUNK_RADIUS_Z ) ) / ( ( float )( CHUNK_RADIUS_Z * 2 + 1 ) ) ) * ( CHUNK_RADIUS_Z * 2 + 1 ) + chunk->chunk_mod.z;
-    int changed = new_chunk_x != chunk->chunk_pos.x || new_chunk_y != chunk->chunk_pos.y || new_chunk_z != chunk->chunk_pos.z;
+    int new_chunk_x = ( int )floorf( ( ( float )( chunk_pos.x - chunk.chunk_mod.x + CHUNK_RADIUS_X ) ) / ( ( float )( CHUNK_RADIUS_X * 2 + 1 ) ) ) * ( CHUNK_RADIUS_X * 2 + 1 ) + chunk.chunk_mod.x;
+    int new_chunk_y = ( int )floorf( ( ( float )( chunk_pos.y - chunk.chunk_mod.y + CHUNK_RADIUS_Y ) ) / ( ( float )( CHUNK_RADIUS_Y * 2 + 1 ) ) ) * ( CHUNK_RADIUS_Y * 2 + 1 ) + chunk.chunk_mod.y;
+    int new_chunk_z = ( int )floorf( ( ( float )( chunk_pos.z - chunk.chunk_mod.z + CHUNK_RADIUS_Z ) ) / ( ( float )( CHUNK_RADIUS_Z * 2 + 1 ) ) ) * ( CHUNK_RADIUS_Z * 2 + 1 ) + chunk.chunk_mod.z;
+    int changed = new_chunk_x != chunk.chunk_pos.x || new_chunk_y != chunk.chunk_pos.y || new_chunk_z != chunk.chunk_pos.z;
     if ( changed ) {
-        chunk_unprogram_terrain( chunk );
-        chunk->is_loading = 1;
+        chunk.unprogram_terrain( );
+        chunk.is_loading = 1;
         glm::ivec3 new_chunk = glm::ivec3( new_chunk_x, new_chunk_y, new_chunk_z );
-        terrain_loading_thread_enqueue( chunk, new_chunk, 1 );
+        TerrainLoadingThread::enqueue( &chunk, new_chunk, 1 );
     }
     return changed;
 }
 
-void chunk_loader_init( LoadedChunks *loadedChunks, const glm::vec3 &camera_pos, VertexBufferLayout *vbl_block, VertexBufferLayout *vbl_coords ) {
-    int status = terrain_loading_thread_start( );
+void ChunkLoader::init( const glm::vec3 &camera_pos, const VertexBufferLayout &vbl_block, const VertexBufferLayout &vbl_coords ) {
+    int status = TerrainLoadingThread::start( );
     if ( status ) {
         pr_debug( "Terrain loading thread failed to start." );
     }
-    loadedChunks->chunkArray = ( Chunk * )calloc( MAX_LOADED_CHUNKS, sizeof( Chunk ) );
+    this->chunkArray = ( Chunk * )calloc( MAX_LOADED_CHUNKS, sizeof( Chunk ) );
     showErrors( );
     // pr_debug( "Num Total Chunks:%d", MAX_LOADED_CHUNKS );
 
-    shader_init( &loadedChunks->shader, &chunk_vertex, &chunk_fragment );
+    Shader &shader = this->shader;
+    shader.init( &chunk_vertex, &chunk_fragment );
     if ( !DEBUG_CYCLE_AUTO_ROTATING_BLOCKS ) {
-        shader_set_uniform1f( &loadedChunks->shader, "u_ShowRotation", -2 );
+        shader.set_uniform1f( "u_ShowRotation", -2 );
     }
 
-    {
-        vertex_buffer_init( &loadedChunks->solid.vb_block );
-        vertex_buffer_set_data( &loadedChunks->solid.vb_block, vd_data_solid, sizeof( CubeFace ) * VB_DATA_SIZE_SOLID );
-    }
+    this->solid.vb_block.init( );
+    this->solid.vb_block.set_data( vd_data_solid, sizeof( CubeFace ) * VB_DATA_SIZE_SOLID );
 
-    {
-        vertex_buffer_init( &loadedChunks->water.vb_block );
-        vertex_buffer_set_data( &loadedChunks->water.vb_block, vd_data_water, sizeof( CubeFace ) * VB_DATA_SIZE_WATER );
-    }
+    this->water.vb_block.init( );
+    this->water.vb_block.set_data( vd_data_water, sizeof( CubeFace ) * VB_DATA_SIZE_WATER );
 
-    {
-        VertexBuffer *vb_block_solid = &loadedChunks->solid.vb_block;
-        VertexBuffer *vb_block_water = &loadedChunks->water.vb_block;
-        for ( int i = 0; i < MAX_LOADED_CHUNKS; i++ ) {
-            chunk_init( &loadedChunks->chunkArray[ i ], vb_block_solid, vb_block_water, vbl_block, vbl_coords );
-        }
+    VertexBuffer &vb_block_solid = this->solid.vb_block;
+    VertexBuffer &vb_block_water = this->water.vb_block;
+    for ( int i = 0; i < MAX_LOADED_CHUNKS; i++ ) {
+        this->chunkArray[ i ].init( vb_block_solid, vb_block_water, vbl_block, vbl_coords );
     }
 
     showErrors( );
@@ -90,15 +85,15 @@ void chunk_loader_init( LoadedChunks *loadedChunks, const glm::vec3 &camera_pos,
                             int new_k = ( k * sign_k ) - ( sign_k == -1 );
                             glm::ivec3 new_offset = glm::vec3( new_i, new_j, new_k );
 
-                            Chunk *chunk = &loadedChunks->chunkArray[ nextChunk ];
-                            chunk->chunk_pos = new_offset + camera_chuck;
+                            Chunk &chunk = this->chunkArray[ nextChunk ];
+                            chunk.chunk_pos = new_offset + camera_chuck;
 
-                            chunk->chunk_mod.x = mod( chunk->chunk_pos.x, 2 * CHUNK_RADIUS_X + 1 );
-                            chunk->chunk_mod.y = mod( chunk->chunk_pos.y, 2 * CHUNK_RADIUS_Y + 1 );
-                            chunk->chunk_mod.z = mod( chunk->chunk_pos.z, 2 * CHUNK_RADIUS_Z + 1 );
+                            chunk.chunk_mod.x = mod( chunk.chunk_pos.x, 2 * CHUNK_RADIUS_X + 1 );
+                            chunk.chunk_mod.y = mod( chunk.chunk_pos.y, 2 * CHUNK_RADIUS_Y + 1 );
+                            chunk.chunk_mod.z = mod( chunk.chunk_pos.z, 2 * CHUNK_RADIUS_Z + 1 );
 
-                            chunk->is_loading = 1;
-                            terrain_loading_thread_enqueue( chunk, chunk->chunk_pos, 0 );
+                            chunk.is_loading = 1;
+                            TerrainLoadingThread::enqueue( &chunk, chunk.chunk_pos, 0 );
                             nextChunk = ( nextChunk + 1 );
                         }
                     }
@@ -108,28 +103,28 @@ void chunk_loader_init( LoadedChunks *loadedChunks, const glm::vec3 &camera_pos,
     }
 }
 
-Chunk *chunk_loader_get_chunk( LoadedChunks *loadedChunks, const glm::ivec3 &chunk_pos ) {
+Chunk *ChunkLoader::get_chunk( const glm::ivec3 &chunk_pos ) {
     for ( int i = 0; i < MAX_LOADED_CHUNKS; i++ ) {
-        Chunk *chunk = &loadedChunks->chunkArray[ i ];
-        if ( chunk->chunk_pos.x == chunk_pos.x && chunk->chunk_pos.y == chunk_pos.y && chunk->chunk_pos.z == chunk_pos.z ) {
-            return chunk;
+        Chunk &chunk = this->chunkArray[ i ];
+        if ( chunk.chunk_pos.x == chunk_pos.x && chunk.chunk_pos.y == chunk_pos.y && chunk.chunk_pos.z == chunk_pos.z ) {
+            return &chunk;
         }
     }
     return NULL;
 }
 
-inline int process_chunk_position( Chunk *chunk, const glm::ivec3 &chunk_diff, const glm::ivec3 &center_previous, const glm::ivec3 &center_next, int force_reload ) {
+inline int ChunkLoader::process_chunk_position( Chunk &chunk, const glm::ivec3 &chunk_diff, const glm::ivec3 &center_previous, const glm::ivec3 &center_next, int force_reload ) {
 
-    int visiable_changed_x = 0;
-    int visiable_changed_y = 0;
-    int visiable_changed_z = 0;
+    int visible_changed_x = 0;
+    int visible_changed_y = 0;
+    int visible_changed_z = 0;
 
     if ( !force_reload ) {
-        visiable_changed_x = ( chunk_diff.x != 0 ) && ( chunk->chunk_pos.x == center_previous.x || chunk->chunk_pos.x == center_next.x );
-        visiable_changed_y = ( chunk_diff.y != 0 ) && ( chunk->chunk_pos.y == center_previous.y || chunk->chunk_pos.y == center_next.y );
-        visiable_changed_z = ( chunk_diff.z != 0 ) && ( chunk->chunk_pos.z == center_previous.z || chunk->chunk_pos.z == center_next.z );
+        visible_changed_x = ( chunk_diff.x != 0 ) && ( chunk.chunk_pos.x == center_previous.x || chunk.chunk_pos.x == center_next.x );
+        visible_changed_y = ( chunk_diff.y != 0 ) && ( chunk.chunk_pos.y == center_previous.y || chunk.chunk_pos.y == center_next.y );
+        visible_changed_z = ( chunk_diff.z != 0 ) && ( chunk.chunk_pos.z == center_previous.z || chunk.chunk_pos.z == center_next.z );
     }
-    if ( force_reload || visiable_changed_x || visiable_changed_y || visiable_changed_z ) {
+    if ( force_reload || visible_changed_x || visible_changed_y || visible_changed_z ) {
         // pr_debug( "Vis dir changed for %2d %2d %2d changed because of:%2d %2d %2d same:%2d %2d %2d", //
         //           TRIP_ARGS( chunk->chunk_ ),                                                        //
         //           TRIP_ARGS( chunk_diff_ ),                                                          //
@@ -137,40 +132,41 @@ inline int process_chunk_position( Chunk *chunk, const glm::ivec3 &chunk_diff, c
         //           chunk->chunk_y == center_previous_y,                                               //
         //           chunk->chunk_z == center_previous_z                                                //
         // );
-        chunk_calculate_sides( chunk, center_next );
+        chunk.calculate_sides( center_next );
         return 1;
     }
     return 0;
 }
 
-void chunk_loader_render_chunks( LoadedChunks *loadedChunks, const glm::vec3 &camera_pos, int limit_render ) {
+void ChunkLoader::render_chunks( const glm::vec3 &camera_pos, int limit_render ) {
     glm::ivec3 chunk_pos = glm::floor( camera_pos / ( float )CHUNK_SIZE );
-    glm::ivec3 &loaded_pos = loadedChunks->chunk_center;
+    glm::ivec3 &loaded_pos = this->chunk_center;
     glm::ivec3 chunk_diff = chunk_pos - loaded_pos;
 
     {
-        Chunk *chunk;
+        Chunk *chunk_ptr;
         do {
-            chunk = terrain_loading_thread_dequeue( );
+            chunk_ptr = TerrainLoadingThread::dequeue( );
             // pr_debug( "Got chunk %p", chunk );
-            if ( chunk ) {
-                chunk->is_loading = 0;
+            if ( chunk_ptr ) {
+                Chunk &chunk = *chunk_ptr;
+                chunk.is_loading = 0;
                 int reloaded = reload_if_out_of_bounds( chunk, chunk_pos );
                 if ( !reloaded ) {
                     // pr_debug( "Paul Loading terrain x:%d y%d: z:%d", chunk->chunk_x, chunk->chunk_y, chunk->chunk_z );
                     process_chunk_position( chunk, chunk_diff, loaded_pos, chunk_pos, 1 );
-                    chunk_program_terrain( chunk );
+                    chunk.program_terrain( );
                 }
             }
-        } while ( chunk && !limit_render );
+        } while ( chunk_ptr && !limit_render );
     }
     if ( 0 != chunk_diff.x || 0 != chunk_diff.y || 0 != chunk_diff.z ) {
         // pr_debug( "Moved outof chunk x:%d y:%d z:%d", loaded_pos );
         // pr_debug( "Moved into  chunk x:%d y:%d z:%d", chunk_pos );
 
         for ( int i = 0; i < MAX_LOADED_CHUNKS; i++ ) {
-            Chunk *chunk = &loadedChunks->chunkArray[ i ];
-            if ( chunk->is_loading ) {
+            Chunk &chunk = this->chunkArray[ i ];
+            if ( chunk.is_loading ) {
                 continue;
             }
             int reloaded = reload_if_out_of_bounds( chunk, chunk_pos );
@@ -178,24 +174,24 @@ void chunk_loader_render_chunks( LoadedChunks *loadedChunks, const glm::vec3 &ca
                 process_chunk_position( chunk, chunk_diff, loaded_pos, chunk_pos, 0 );
             }
         }
-        loadedChunks->chunk_center = chunk_pos;
+        this->chunk_center = chunk_pos;
     }
     for ( int i = 0; i < MAX_LOADED_CHUNKS; i++ ) {
-        Chunk *chunk = &loadedChunks->chunkArray[ i ];
-        if ( chunk->needs_repopulation && !chunk->is_loading && !( chunk->cached_cull_normal && chunk->cached_cull_reflect ) ) {
-            chunk_unprogram_terrain( chunk );
-            chunk_calculate_popupated_blocks( chunk );
-            chunk_program_terrain( chunk );
-            chunk->needs_repopulation = false;
+        Chunk &chunk = this->chunkArray[ i ];
+        if ( chunk.needs_repopulation && !chunk.is_loading && !( chunk.cached_cull_normal && chunk.cached_cull_reflect ) ) {
+            chunk.unprogram_terrain( );
+            chunk.calculate_populated_blocks( );
+            chunk.program_terrain( );
+            chunk.needs_repopulation = false;
         }
     }
 }
 float chunk_diameter = ( CHUNK_SIZE + 1 ) * 1.73205080757; // sqrt(3)
 
-void chunk_loader_calculate_cull( LoadedChunks *loadedChunks, const glm::mat4 &mvp, bool saveAsReflection ) {
+void ChunkLoader::calculate_cull( const glm::mat4 &mvp, bool saveAsReflection ) {
     for ( int i = 0; i < MAX_LOADED_CHUNKS; i++ ) {
         int final_is_visiable = 1;
-        Chunk *chunk = &loadedChunks->chunkArray[ i ];
+        Chunk *chunk = &this->chunkArray[ i ];
         if ( CULL_NON_VISIBLE ) {
             glm::vec4 chunk_coords = glm::vec4(                   //
                 chunk->chunk_pos.x * CHUNK_SIZE + CHUNK_SIZE / 2, //
@@ -225,22 +221,23 @@ void chunk_loader_calculate_cull( LoadedChunks *loadedChunks, const glm::mat4 &m
 
 int shouldInc = 0;
 int showRotation = 0;
-void chunk_loader_draw_chunks( LoadedChunks *loadedChunks, const glm::mat4 &mvp, Renderer *renderer, const Texture *texture, bool reflect_only, bool draw_reflect ) {
-    shader_set_uniform_mat4f( &loadedChunks->shader, "u_MVP", mvp );
+void ChunkLoader::draw( const glm::mat4 &mvp, const Renderer &renderer, const Texture &texture, bool reflect_only, bool draw_reflect ) {
+    Shader &shader = this->shader;
+    shader.set_uniform_mat4f( "u_MVP", mvp );
 
-    // pr_debug( "Drawing %d chunks", loadedChunks->numLoadedChunks );
+    // pr_debug( "Drawing %d chunks", this->numLoadedChunks );
     for ( int renderOrder = LAST_RENDER_ORDER - 1; renderOrder > 0; renderOrder-- ) {
         if ( reflect_only == ( renderOrder == RenderOrder_Water ) ) {
-            shader_set_uniform1f( &loadedChunks->shader, "u_shouldDiscardAlpha", renderOrder != RenderOrder_Water );
+            shader.set_uniform1f( "u_shouldDiscardAlpha", renderOrder != RenderOrder_Water );
             for ( int i = 0; i < MAX_LOADED_CHUNKS; i++ ) {
-                Chunk *chunk = &loadedChunks->chunkArray[ i ];
+                Chunk &chunk = this->chunkArray[ i ];
                 if ( draw_reflect ) {
-                    if ( !chunk->cached_cull_reflect ) {
-                        chunk_draw( &loadedChunks->chunkArray[ i ], renderer, texture, &loadedChunks->shader, ( RenderOrder )renderOrder, draw_reflect );
+                    if ( !chunk.cached_cull_reflect ) {
+                        chunk.draw( renderer, texture, shader, ( RenderOrder )renderOrder, draw_reflect );
                     }
                 } else {
-                    if ( !chunk->cached_cull_normal ) {
-                        chunk_draw( &loadedChunks->chunkArray[ i ], renderer, texture, &loadedChunks->shader, ( RenderOrder )renderOrder, draw_reflect );
+                    if ( !chunk.cached_cull_normal ) {
+                        chunk.draw( renderer, texture, shader, ( RenderOrder )renderOrder, draw_reflect );
                     }
                 }
             }
@@ -255,23 +252,22 @@ void chunk_loader_draw_chunks( LoadedChunks *loadedChunks, const glm::mat4 &mvp,
                 showRotation = 0;
             }
         }
-        shader_set_uniform1f( &loadedChunks->shader, "u_ShowRotation", showRotation );
+        shader.set_uniform1f( "u_ShowRotation", showRotation );
     }
-
-    shader_set_uniform1f( &loadedChunks->shader, "u_shouldDiscardAlpha", 1 );
+    shader.set_uniform1f( "u_shouldDiscardAlpha", 1 );
 }
 
-void chunk_loader_process_random_ticks( LoadedChunks *loadedChunks ) {
+void ChunkLoader::process_random_ticks( ) {
 }
 
-void chunk_loader_cleanup( LoadedChunks *loadedChunks ) {
-    terrain_loading_thread_stop( );
+void ChunkLoader::cleanup( ) {
+    TerrainLoadingThread::stop( );
     for ( int i = 0; i < MAX_LOADED_CHUNKS; i++ ) {
-        Chunk *chunk = &loadedChunks->chunkArray[ i ];
-        if ( !chunk->is_loading ) {
-            chunk_persist( chunk );
+        Chunk &chunk = this->chunkArray[ i ];
+        if ( !chunk.is_loading ) {
+            chunk.persist( );
         }
-        chunk_destroy( chunk );
+        chunk.destroy( );
     }
-    free( loadedChunks->chunkArray );
+    free( this->chunkArray );
 }

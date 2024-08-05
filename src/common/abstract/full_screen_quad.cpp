@@ -1,11 +1,6 @@
 #include "common/RepGame.hpp"
 #include "common/abstract/full_screen_quad.hpp"
 
-typedef struct {
-    float x, y;
-    float u, v;
-} FullScreenQuadVertex;
-
 #define FSQ_VERTEX_COUNT 4
 FullScreenQuadVertex vb_data[ FSQ_VERTEX_COUNT ] = {
     { -1, -1, 0, 0 }, //
@@ -23,45 +18,28 @@ unsigned int ib_data[ FSQ_INDEX_COUNT ] = {
 MK_SHADER( full_screen_quad_vertex );
 MK_SHADER( full_screen_quad_fragment );
 
-void full_screen_quad_init( FullScreenQuad *fsq ) {
+void FullScreenQuad::init( ) {
     showErrors( );
     {
-        vertex_buffer_layout_init( &fsq->vbl );
-        vertex_buffer_layout_push_float( &fsq->vbl, 2 ); // FullScreenQuadVertex pos
-        vertex_buffer_layout_push_float( &fsq->vbl, 2 ); // FullScreenQuadVertex uv
-    }
-    {
-        index_buffer_init( &fsq->ib );
-        index_buffer_set_data( &fsq->ib, ib_data, FSQ_INDEX_COUNT );
-        // index_buffer_set_data( &fsq->ib, ib_data, 3 );
-    }
-    {
-        vertex_buffer_init( &fsq->vb );
-        vertex_buffer_set_data( &fsq->vb, vb_data, sizeof( FullScreenQuadVertex ) * FSQ_VERTEX_COUNT );
-    }
-    {
-        vertex_array_init( &fsq->va );
-        vertex_array_add_buffer( &fsq->va, &fsq->vb, &fsq->vbl, 0, 0 );
+        this->vbl.init( );
+        this->vbl.push_float( 2 ); // FullScreenQuadVertex pos
+        this->vbl.push_float( 2 ); // FullScreenQuadVertex uv
     }
 
-    shader_init( &fsq->shader, &full_screen_quad_vertex, &full_screen_quad_fragment );
+    this->render_link_fsq.init( this->vbl, vb_data, FSQ_VERTEX_COUNT, ib_data, FSQ_INDEX_COUNT );
+    this->shader.init( &full_screen_quad_vertex, &full_screen_quad_fragment );
     showErrors( );
 }
 
-void full_screen_quad_draw_texture( FullScreenQuad *fsq, Renderer *renderer, Texture *texture, Texture *stencilTexture, float extraAlpha, bool blur, bool ignoreStencil ) {
-    shader_set_uniform1i( &fsq->shader, "u_Texture", texture->slot );
-    shader_set_uniform1i( &fsq->shader, "u_Stencil", stencilTexture->slot );
-    shader_set_uniform1i( &fsq->shader, "u_IgnoreStencil", ignoreStencil );
-    shader_set_uniform1f( &fsq->shader, "u_ExtraAlpha", extraAlpha );
-    shader_set_uniform1i( &fsq->shader, "u_TextureSamples", blur ? MULTI_SAMPLE_SCALE_FBO / 4 : MULTI_SAMPLE_SCALE_FBO );
-    shader_set_uniform1i( &fsq->shader, "u_Blur", blur );
-    renderer_draw( renderer, &fsq->va, &fsq->ib, &fsq->shader, 1 );
+void FullScreenQuad::draw_texture( const Renderer &renderer, const Texture &texture, const Texture &depthStencilTexture, float extraAlpha, bool blur, bool ignoreStencil ) {
+    this->shader.set_uniform1i_texture( "u_Texture", texture );
+    this->shader.set_uniform1i_texture( "u_Stencil", depthStencilTexture );
+    this->shader.set_uniform1i( "u_IgnoreStencil", ignoreStencil );
+    this->shader.set_uniform1f( "u_ExtraAlpha", extraAlpha );
+    this->shader.set_uniform1i( "u_TextureSamples", blur ? MULTI_SAMPLE_SCALE_FBO / 4 : MULTI_SAMPLE_SCALE_FBO );
+    this->shader.set_uniform1i( "u_Blur", blur );
+    this->render_link_fsq.draw( renderer, this->shader );
 }
 
-void full_screen_quad_destroy( FullScreenQuad *fsq ) {
-    vertex_buffer_layout_destroy( &fsq->vbl );
-    index_buffer_destroy( &fsq->ib );
-    shader_destroy( &fsq->shader );
-    vertex_array_destroy( &fsq->va );
-    vertex_buffer_destroy( &fsq->vb );
+void FullScreenQuad::destroy( ) {
 }

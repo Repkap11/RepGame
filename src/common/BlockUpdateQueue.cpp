@@ -3,13 +3,13 @@
 
 BlockUpdateQueue::BlockUpdateQueue( ) {
 }
-void BlockUpdateQueue::addBlockUpdate( BlockUpdateEvent *event ) {
+void BlockUpdateQueue::addBlockUpdate( BlockUpdateEvent &event ) {
     std::shared_ptr<BlockUpdateEvent> event_prt;
-    event_prt.reset( event );
+    event_prt.reset( &event );
     this->pending_events.push( event_prt );
 }
 
-void BlockUpdateQueue::processAllBlockUpdates( World *world, long tick_number ) {
+void BlockUpdateQueue::processAllBlockUpdates( World &world, long tick_number ) {
     int num_events = 0;
     this->current_tick = tick_number;
     while ( !this->pending_events.empty( ) ) {
@@ -18,7 +18,7 @@ void BlockUpdateQueue::processAllBlockUpdates( World *world, long tick_number ) 
             break;
         }
         this->pending_events.pop( );
-        event_prt->performAction( this, world );
+        event_prt->performAction( *this, world );
         num_events++;
         if ( num_events > 10000 ) {
             pr_debug( "Error too many events!!!" );
@@ -31,4 +31,4 @@ bool BlockUpdateOrderCompare::operator( )( std::shared_ptr<BlockUpdateEvent> a, 
     return a->tick_number > b->tick_number;
 }
 
-BlockUpdateEvent::BlockUpdateEvent( long tick_number ) : tick_number( tick_number ){};
+BlockUpdateEvent::BlockUpdateEvent( long tick_number ) : tick_number( tick_number ) {};

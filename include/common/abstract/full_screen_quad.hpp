@@ -2,16 +2,25 @@
 #define HEADER_FULL_SCREEN_QUAD_H
 
 #include "common/abstract/renderer.hpp"
+#include "common/RenderLink.hpp"
 
 typedef struct {
-    VertexArray va;
-    VertexBuffer vb;
-    VertexBufferLayout vbl;
-    IndexBuffer ib;
-    Shader shader;
-} FullScreenQuad;
+    float x, y;
+    float u, v;
+} FullScreenQuadVertex;
 
-void full_screen_quad_init( FullScreenQuad *fullScreenQuad );
-void full_screen_quad_draw_texture( FullScreenQuad *fsq, Renderer *renderer, Texture *texture, Texture *depthStencilTexture, float extraAlpha, bool blur, bool ignoreStencil );
-void full_screen_quad_destroy( FullScreenQuad *fullScreenQuad );
+typedef struct {
+} FullScreenQuadSingleInstance;
+
+class FullScreenQuad {
+    VertexBufferLayout vbl;
+    RenderLink<FullScreenQuadVertex> render_link_fsq;
+    Shader shader;
+
+  public:
+    void init( );
+    void draw_texture( const Renderer &renderer, const Texture &texture, const Texture &depthStencilTexture, float extraAlpha, bool blur, bool ignoreStencil );
+    void destroy( );
+};
+
 #endif

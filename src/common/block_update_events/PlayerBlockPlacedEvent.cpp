@@ -8,13 +8,13 @@ PlayerBlockPlacedEvent::PlayerBlockPlacedEvent( long tick_number, const glm::ive
     this->name = "PlayerBlockPlacedEvent";
 }
 
-void PlayerBlockPlacedEvent::performActionToNeighbor( BlockUpdateQueue *blockUpdateQueue, World *world, const glm::ivec3 &offset ) {
+void PlayerBlockPlacedEvent::performActionToNeighbor( BlockUpdateQueue &blockUpdateQueue, World &world, const glm::ivec3 &offset ) {
     BlockUpdateEvent *blockUpdatedEvent = new BlockNextToChangeEvent( this->tick_number, this->block_pos, offset );
-    blockUpdateQueue->addBlockUpdate( blockUpdatedEvent );
+    blockUpdateQueue.addBlockUpdate( *blockUpdatedEvent );
 }
 
-void PlayerBlockPlacedEvent::performAction( BlockUpdateQueue *blockUpdateQueue, World *world ) {
-    BlockState current_block_state = world_get_loaded_block( world, this->block_pos );
+void PlayerBlockPlacedEvent::performAction( BlockUpdateQueue &blockUpdateQueue, World &world ) {
+    BlockState current_block_state = world.get_loaded_block( this->block_pos );
     // State already matches, don't change anything
     if ( BlockStates_equal( blockState, current_block_state ) ) {
         return;
@@ -40,9 +40,8 @@ void PlayerBlockPlacedEvent::performAction( BlockUpdateQueue *blockUpdateQueue, 
         return;
     }
 
-    world_set_loaded_block( world, this->block_pos, this->blockState );
-
-    multiplayer_set_block( this->block_pos, this->blockState );
+    world.set_loaded_block( this->block_pos, this->blockState );
+    // multiplayer_set_block( this->block_pos, this->blockState );//TODO pass multiplayer
 
     for ( int j = -1; j < 2; j += 2 ) {
         performActionToNeighbor( blockUpdateQueue, world, glm::ivec3( 0, j, 0 ) );

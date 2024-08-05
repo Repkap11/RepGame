@@ -1,16 +1,18 @@
 #ifndef HEADER_FRAME_BUFFER_H
 #define HEADER_FRAME_BUFFER_H
 
-typedef struct {
+class FrameBuffer {
     unsigned int mRendererId;
-} FrameBuffer;
 
-void frame_buffer_init( FrameBuffer *frameBuffer );
-void frame_buffer_destroy( const FrameBuffer *frameBuffer );
-void frame_buffer_bind( const FrameBuffer *frameBuffer );
-void frame_buffer_bind_display( );
-void frame_buffer_attach_texture( FrameBuffer *frameBuffer, Texture *texture, int which_attachment );
-void frame_buffer_unbind( const FrameBuffer *frameBuffer );
-bool frame_buffer_ok( const FrameBuffer *frameBuffer );
+  public:
+    void init( );
+    void destroy( );
+    void bind( ) const;
+    static void bind_display( );
+    void attach_texture( const Texture &texture, int which_attachment ) const;
+    void unbind( ) const;
+    bool ok( ) const;
+
+};
 
 #endif

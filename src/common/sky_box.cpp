@@ -5,29 +5,29 @@
 #include "common/abstract/shader.hpp"
 #include "common/Particle.hpp"
 
-#define Stacks 20
-#define Slices 20
-#define Radius 750.0f
+#define STACK_COUNT 20
+#define SLICES_COUNT 20
+#define SKY_RADIUS 750.0f
 
-#define SKY_BOX_VERTEX_COUNT ( ( Slices + 2 ) * ( Stacks + 1 ) )
-#define SKY_BOX_TRIANGLES_COUNT ( ( Slices ) * ( Stacks + 1 ) )
+#define SKY_BOX_VERTEX_COUNT ( ( SLICES_COUNT + 2 ) * ( STACK_COUNT + 1 ) )
+#define SKY_BOX_TRIANGLES_COUNT ( ( SLICES_COUNT ) * ( STACK_COUNT + 1 ) )
 #define SKY_BOX_INDEX_COUNT ( SKY_BOX_TRIANGLES_COUNT * 6 )
 
 MK_TEXTURE( sky4, 2048, 1024, 2048, 1024 );
 
-void sky_box_init( SkyBox *skyBox, VertexBufferLayout *vbl_object_vertex, VertexBufferLayout *vbl_object_position ) {
+void SkyBox::init( const VertexBufferLayout &vbl_object_vertex, const VertexBufferLayout &vbl_object_position ) {
     ParticleVertex *vb_data = ( ParticleVertex * )calloc( SKY_BOX_VERTEX_COUNT, sizeof( ParticleVertex ) );
     // Calc The Vertices
-    for ( int i = 0; i <= Stacks; ++i ) {
+    for ( int i = 0; i <= STACK_COUNT; ++i ) {
 
-        float V = i / ( float )Stacks;
+        float V = i / ( float )STACK_COUNT;
         float phi = V * glm::pi<float>( );
         float y = -cosf( phi );
 
-        // Loop Through Slices
-        for ( int j = 0; j <= Slices + Stacks; ++j ) {
+        // Loop Through SLICES_COUNT
+        for ( int j = 0; j <= SLICES_COUNT + STACK_COUNT; ++j ) {
 
-            float U = ( j / ( ( float )Slices ) ); // * 0.75f + 0.05f;
+            float U = ( j / ( ( float )SLICES_COUNT ) ); // * 0.75f + 0.05f;
             float theta = U * ( glm::pi<float>( ) * 2 );
 
             // Calc The Vertex Positions
@@ -35,10 +35,10 @@ void sky_box_init( SkyBox *skyBox, VertexBufferLayout *vbl_object_vertex, Vertex
             float z = sinf( theta ) * sinf( phi );
 
             // Push Back Vertex Data
-            ParticleVertex *vertex = &vb_data[ i * ( Slices + 1 ) + j ];
-            vertex->x = x * Radius;
-            vertex->y = y * Radius;
-            vertex->z = z * Radius;
+            ParticleVertex *vertex = &vb_data[ i * ( SLICES_COUNT + 1 ) + j ];
+            vertex->x = x * SKY_RADIUS;
+            vertex->y = y * SKY_RADIUS;
+            vertex->z = z * SKY_RADIUS;
             vertex->u = U;
             vertex->v = V;
             vertex->which_face = FACE_TOP; // Top isn't affected by light
@@ -46,51 +46,35 @@ void sky_box_init( SkyBox *skyBox, VertexBufferLayout *vbl_object_vertex, Vertex
     }
 
     unsigned int *ib_data = ( unsigned int * )malloc( SKY_BOX_INDEX_COUNT * sizeof( unsigned int ) );
-    index_buffer_init( &skyBox->ib );
     // Calc The Index Positions
     for ( int i = 0; i < SKY_BOX_TRIANGLES_COUNT; ++i ) {
 
         ib_data[ i * 6 + 0 ] = i;
-        ib_data[ i * 6 + 1 ] = i + Slices + 1;
-        ib_data[ i * 6 + 2 ] = i + Slices;
+        ib_data[ i * 6 + 1 ] = i + SLICES_COUNT + 1;
+        ib_data[ i * 6 + 2 ] = i + SLICES_COUNT;
 
-        ib_data[ i * 6 + 3 ] = i + Slices + 1;
+        ib_data[ i * 6 + 3 ] = i + SLICES_COUNT + 1;
         ib_data[ i * 6 + 4 ] = i;
         ib_data[ i * 6 + 5 ] = i + 1;
         if ( i * 6 + 5 > SKY_BOX_INDEX_COUNT ) {
             pr_debug( "Out of bounds" );
         }
     }
-    index_buffer_set_data( &skyBox->ib, ib_data, SKY_BOX_INDEX_COUNT );
 
-    skyBox->vertex_size = SKY_BOX_VERTEX_COUNT;
+    this->render_chain_sky_box.init( vbl_object_vertex, vbl_object_position, vb_data, SKY_BOX_VERTEX_COUNT, ib_data, SKY_BOX_INDEX_COUNT );
+    auto pair = this->render_chain_sky_box.create_instance( );
+    ParticlePosition &sky_instance = pair.second;
+    sky_instance = { { }, glm::mat4( 1.0f ) }; // The sky's vertexes are scaled, no need to scale instance.
 
-    vertex_buffer_init( &skyBox->vb_vertex );
-    vertex_buffer_set_data( &skyBox->vb_vertex, vb_data, sizeof( ParticleVertex ) * skyBox->vertex_size );
-
-    vertex_buffer_init( &skyBox->vb_position );
-    ParticlePosition sky_position = {{}, glm::mat4( 1.0f )}; // The sky's vertexes are scaled, no neeed to scale instance.
-    vertex_buffer_set_data( &skyBox->vb_position, &sky_position, sizeof( ParticlePosition ) * 1 );
-    vertex_array_init( &skyBox->va );
-
-    vertex_array_add_buffer( &skyBox->va, &skyBox->vb_vertex, vbl_object_vertex, 0, 0 );
-    vertex_array_add_buffer( &skyBox->va, &skyBox->vb_position, vbl_object_position, vbl_object_vertex->current_size, 1 );
-    texture_init( &skyBox->texture, &texture_source_sky4, 1 );
-    free( ib_data );
-    free( vb_data );
+    this->texture.init( texture_source_sky4, 1 );
 }
 
-void sky_box_draw( SkyBox *skyBox, Renderer *renderer, const glm::mat4 &mvp_sky, Shader *sky_shader ) {
-    shader_set_uniform1i( sky_shader, "u_Texture", skyBox->texture.slot );
-    shader_set_uniform_mat4f( sky_shader, "u_MVP", mvp_sky );
-    renderer_draw( renderer, &skyBox->va, &skyBox->ib, sky_shader, 1 );
+void SkyBox::draw( const Renderer &renderer, Shader &shader ) {
+    shader.set_uniform1i_texture( "u_Texture", this->texture );
+    this->render_chain_sky_box.draw( renderer, shader );
 }
 
-void sky_box_destroy( SkyBox *skyBox ) {
-    index_buffer_destroy( &skyBox->ib );
-    vertex_array_destroy( &skyBox->va );
-    vertex_buffer_destroy( &skyBox->vb_position );
-    vertex_buffer_destroy( &skyBox->vb_vertex );
-    shader_destroy( &skyBox->shader );
-    texture_destroy( &skyBox->texture );
+void SkyBox::destroy( ) {
+    this->render_chain_sky_box.clear( );
+    this->texture.destroy( );
 }

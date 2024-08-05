@@ -16,8 +16,8 @@ class BlockUpdateOrderCompare {
 class BlockUpdateQueue {
   public:
     BlockUpdateQueue( );
-    void addBlockUpdate( BlockUpdateEvent *event );
-    void processAllBlockUpdates( World *world, long tick_number );
+    void addBlockUpdate( BlockUpdateEvent &event );
+    void processAllBlockUpdates( World &world, long tick_number );
 
   private:
     long current_tick;
@@ -28,7 +28,8 @@ class BlockUpdateEvent {
   public:
     BlockUpdateEvent( long tick_number );
     const char *name = "Unnamed BlockUpdateEvent";
-    virtual void performAction( BlockUpdateQueue *blockUpdateQueue, World *world ) = 0;
+    virtual void performAction( BlockUpdateQueue &blockUpdateQueue, World &world ) = 0;
+
     long tick_number;
     virtual ~BlockUpdateEvent( ) {
     }

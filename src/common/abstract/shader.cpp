@@ -156,27 +156,27 @@ unsigned int shaders_compile( const ShaderSourceData *vertex_path, const ShaderS
     return g_program;
 }
 
-void shader_init( Shader *shader, const ShaderSourceData *vertex, const ShaderSourceData *fragment ) {
-    shader->m_RendererId = shaders_compile( vertex, fragment );
+void Shader::init( const ShaderSourceData *vertex, const ShaderSourceData *fragment ) {
+    this->m_RendererId = shaders_compile( vertex, fragment );
 }
 
-void shader_bind( const Shader *shader ) {
-    glUseProgram( shader->m_RendererId );
+void Shader::bind( ) const {
+    glUseProgram( this->m_RendererId );
 }
 
-void shader_unbind( const Shader *shader ) {
+void Shader::unbind( ) const {
     glUseProgram( 0 );
 }
 
-void shader_destroy( Shader *shader ) {
-    glDeleteProgram( shader->m_RendererId );
-    shader->m_RendererId = 0;
+void Shader::destroy( ) {
+    glDeleteProgram( this->m_RendererId );
+    this->m_RendererId = 0;
 }
 
 int printedUniform = 0;
-int get_uniform_location( Shader *shader, const char *name ) {
+int Shader::get_uniform_location( const char *name ) {
     // TODO use cache
-    int result = glGetUniformLocation( shader->m_RendererId, name );
+    int result = glGetUniformLocation( this->m_RendererId, name );
     if ( result == -1 ) {
         if ( !printedUniform ) {
             printedUniform = 1;
@@ -187,37 +187,42 @@ int get_uniform_location( Shader *shader, const char *name ) {
     return result;
 }
 
-void shader_set_uniform4f( Shader *shader, const char *name, float f0, float f1, float f2, float f3 ) {
-    shader_bind( shader );
-    glUniform4f( get_uniform_location( shader, name ), f0, f1, f2, f3 );
+void Shader::set_uniform4f( const char *name, float f0, float f1, float f2, float f3 ) {
+    this->bind( );
+    glUniform4f( get_uniform_location( name ), f0, f1, f2, f3 );
 }
 
-void shader_set_uniform3f( Shader *shader, const char *name, float f0, float f1, float f2 ) {
-    shader_bind( shader );
-    glUniform3f( get_uniform_location( shader, name ), f0, f1, f2 );
+void Shader::set_uniform3f( const char *name, float f0, float f1, float f2 ) {
+    this->bind( );
+    glUniform3f( get_uniform_location( name ), f0, f1, f2 );
 }
 
-void shader_set_uniform1fv( Shader *shader, const char *name, float *f, int count ) {
-    shader_bind( shader );
-    glUniform1fv( get_uniform_location( shader, name ), count, f );
+void Shader::set_uniform1fv( const char *name, float *f, int count ) {
+    this->bind( );
+    glUniform1fv( get_uniform_location( name ), count, f );
 }
 
-void shader_set_uniform1f( Shader *shader, const char *name, float f ) {
-    shader_bind( shader );
-    glUniform1f( get_uniform_location( shader, name ), f );
+void Shader::set_uniform1f( const char *name, float f ) {
+    this->bind( );
+    glUniform1f( get_uniform_location( name ), f );
 }
 
-void shader_set_uniform1i( Shader *shader, const char *name, int i ) {
-    shader_bind( shader );
-    glUniform1i( get_uniform_location( shader, name ), i );
+void Shader::set_uniform1i_texture( const char *name, const Texture &texture ) {
+    this->bind( );
+    glUniform1i( get_uniform_location( name ), texture.slot );
 }
 
-void shader_set_uniform1ui( Shader *shader, const char *name, unsigned int i ) {
-    shader_bind( shader );
-    glUniform1ui( get_uniform_location( shader, name ), i );
+void Shader::set_uniform1i( const char *name, int i ) {
+    this->bind( );
+    glUniform1i( get_uniform_location( name ), i );
 }
 
-void shader_set_uniform_mat4f( Shader *shader, const char *name, const glm::mat4 &mat ) {
-    shader_bind( shader );
-    glUniformMatrix4fv( get_uniform_location( shader, name ), 1, GL_FALSE, &mat[ 0 ][ 0 ] );
+void Shader::set_uniform1ui( const char *name, unsigned int i ) {
+    this->bind( );
+    glUniform1ui( get_uniform_location( name ), i );
+}
+
+void Shader::set_uniform_mat4f( const char *name, const glm::mat4 &mat ) {
+    this->bind( );
+    glUniformMatrix4fv( get_uniform_location( name ), 1, GL_FALSE, &mat[ 0 ][ 0 ] );
 }

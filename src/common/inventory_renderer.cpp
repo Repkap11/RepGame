@@ -88,7 +88,7 @@ static int inventory_isometric_face[] = { FACE_TOP, FACE_FRONT, FACE_RIGHT };
 int num_points_per_block = 4;
 int num_index_per_block = 18;
 
-void InventoryRenderer::init( VertexBufferLayout *ui_overlay_vbl_vertex, VertexBufferLayout *ui_overlay_vbl_instance, int width, int height ) {
+void InventoryRenderer::init( const VertexBufferLayout &ui_overlay_vbl_vertex, const VertexBufferLayout &ui_overlay_vbl_instance, int width, int height ) {
     this->width = width;
     this->height = height;
     this->num_blocks_max = width * height;
@@ -340,7 +340,7 @@ void InventoryRenderer::fullItemRender( InventorySlot *inventory_slots ) {
     }
 }
 
-void InventoryRenderer::draw( Renderer *renderer, Texture *blocksTexture, Shader *shader ) {
+void InventoryRenderer::draw( const Renderer &renderer, const Texture &blocksTexture, const Shader &shader ) {
     showErrors( );
 
     // glDisable( GL_DEPTH_TEST );

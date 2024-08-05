@@ -1,7 +1,7 @@
 #include "common/RepGame.hpp"
 #include "common/inventory_renderer.hpp"
 
-void Inventory::init( VertexBufferLayout *ui_overlay_vbl_vertex, VertexBufferLayout *ui_overlay_vbl_instance, int width, int height ) {
+void Inventory::init( const VertexBufferLayout &ui_overlay_vbl_vertex, const VertexBufferLayout &ui_overlay_vbl_instance, int width, int height ) {
     this->width = width;
     this->height = height;
     this->num_blocks_max = width * height;
@@ -22,7 +22,7 @@ void Inventory::onScreenSizeChange( int width, int height ) {
     this->inventory_renderer.onSizeChange( width, height, this->slots );
 }
 
-void Inventory::draw( Renderer *renderer, Texture *blocksTexture, Shader *shader ) {
+void Inventory::draw( const Renderer &renderer, const Texture &blocksTexture, const Shader &shader ) {
     this->inventory_renderer.draw( renderer, blocksTexture, shader );
 }
 

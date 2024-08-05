@@ -1,7 +1,7 @@
 #include "common/multiplayer_avatars.hpp"
 #include "common/RepGame.hpp"
 
-void MultiplayerAvatars::init( VertexBufferLayout *vbl_object_vertex, VertexBufferLayout *vbl_object_position ) {
+void MultiplayerAvatars::init( const VertexBufferLayout &vbl_object_vertex, const VertexBufferLayout &vbl_object_position ) {
     this->render_chain.init( vbl_object_vertex, vbl_object_position, vd_data_player_object, VB_DATA_SIZE_PARTICLE, ib_data_solid, IB_SOLID_SIZE );
     glm::mat4 scale = glm::scale( glm::mat4( 1.0 ), glm::vec3( 0.5f ) );
     glm::mat4 un_translate = glm::translate( glm::mat4( 1.0 ), glm::vec3( -0.5f, -0.5f, -0.5f ) );
@@ -43,8 +43,7 @@ void MultiplayerAvatars::init_particle( ParticlePosition &mob ) {
     mob.face[ FACE_BACK ] = STEVE_HEAD_BACK - 1;
 }
 
-void MultiplayerAvatars::draw( const glm::mat4 &mvp, Renderer *renderer, Shader *shader ) {
-    shader_set_uniform_mat4f( shader, "u_MVP", mvp );
+void MultiplayerAvatars::draw( const Renderer &renderer, const Shader &shader ) {
     this->render_chain.draw( renderer, shader );
 }
 

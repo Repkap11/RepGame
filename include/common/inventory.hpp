@@ -17,13 +17,13 @@ class Inventory {
 
   public:
     InventoryRenderer inventory_renderer;
-    void init( VertexBufferLayout *ui_overlay_vbl_vertex, VertexBufferLayout *ui_overlay_vbl_instance, int width, int height );
+    void init( const VertexBufferLayout &ui_overlay_vbl_vertex, const VertexBufferLayout &ui_overlay_vbl_instance, int width, int height );
     void onScreenSizeChange( int width, int height );
     bool addBlock( BlockID blockId );
     void handleMouseInput( InputState *inputState );
     BlockID setSelectedSlot( int selected_slot );
     BlockID incrementSelectedSlot( int offset );
-    void draw( Renderer *renderer, Texture *blocksTexture, Shader *shader );
+    void draw( const Renderer &renderer, const Texture &blocksTexture, const Shader &shader );
     void cleanup( );
 };
 

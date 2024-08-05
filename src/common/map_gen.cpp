@@ -83,7 +83,7 @@ float map_gen_inverse_lerp( float min, float max, float value ) {
 
 #define MAP_GEN( func, ... ) map_gen_##func( __VA_ARGS__ )
 
-void map_gen_load_block_c( Chunk *chunk ) {
+void MapGen::load_block_c( Chunk *chunk ) {
     glm::ivec3 chunk_offset = chunk->chunk_pos * CHUNK_SIZE;
 
     for ( int x = chunk_offset.x - 1; x < chunk_offset.x + CHUNK_SIZE_INTERNAL - 1; x++ ) {
@@ -97,18 +97,18 @@ void map_gen_load_block_c( Chunk *chunk ) {
 
             for ( int y = chunk_offset.y - 1; y < chunk_offset.y + CHUNK_SIZE_INTERNAL - 1; y++ ) {
                 glm::ivec3 offset = glm::ivec3( x, y, z );
-                int index = chunk_get_index_from_coords( offset - chunk_offset );
+                int index = Chunk::get_index_from_coords( offset - chunk_offset );
 #include "common/map_logic.hpp"
                 chunk->blocks[ index ] = { finalBlockId, BLOCK_ROTATE_0, 0, finalBlockId }; // Assumes all blocks don't spawn with redstone power
             }
         }
     }
 }
-int map_gen_supports_cuda( ) {
+int MapGen::supports_cuda( ) {
 
 #if !defined( REPGAME_BUILD_WITH_CUDA )
     return 0;
 #else
-    return map_gen_host_supports_cuda();
+    return map_gen_host_supports_cuda( );
 #endif
 }

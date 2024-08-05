@@ -3,6 +3,7 @@
 #include "common/RepGame.hpp"
 #include "common/world.hpp"
 #include "common/render_order.hpp"
+#include "common/utils/ray_traversal.hpp"
 
 // https://bitbucket.org/volumesoffun/polyvox/src/9a71004b1e72d6cf92c41da8995e21b652e6b836/include/PolyVox/Raycast.inl?at=develop&fileviewer=file-view-default
 
@@ -12,7 +13,7 @@ typedef struct {
     float z;
 } RayTemp;
 
-int contains_pixel( Block *pixel_block, BlockState *block_state, const glm::vec3 &dir, const glm::vec3 &initial, const glm::vec3 &block, int *which_face ) {
+int contains_pixel( Block *pixel_block, BlockState &block_state, const glm::vec3 &dir, const glm::vec3 &initial, const glm::vec3 &block, int *which_face ) {
     // r.dir is unit direction vector of ray
     float dirfrac_x = 1.0f / dir.x;
     float dirfrac_y = 1.0f / dir.y;
@@ -24,16 +25,16 @@ int contains_pixel( Block *pixel_block, BlockState *block_state, const glm::vec3
     char scale_z = pixel_block->scale.z;
     char offset_x = pixel_block->offset.x;
     char offset_z = pixel_block->offset.z;
-    if ( block_state->rotation == BLOCK_ROTATE_0 ) {
-    } else if ( block_state->rotation == BLOCK_ROTATE_90 ) {
+    if ( block_state.rotation == BLOCK_ROTATE_0 ) {
+    } else if ( block_state.rotation == BLOCK_ROTATE_90 ) {
         scale_x = pixel_block->scale.z;
         scale_z = pixel_block->scale.x;
         offset_x = 16 - pixel_block->scale.z - pixel_block->offset.z;
         offset_z = pixel_block->offset.x;
-    } else if ( block_state->rotation == BLOCK_ROTATE_180 ) {
+    } else if ( block_state.rotation == BLOCK_ROTATE_180 ) {
         offset_x = 16 - pixel_block->scale.x - pixel_block->offset.x;
         offset_z = 16 - pixel_block->scale.z - pixel_block->offset.z;
-    } else if ( block_state->rotation == BLOCK_ROTATE_270 ) {
+    } else if ( block_state.rotation == BLOCK_ROTATE_270 ) {
         scale_x = pixel_block->scale.z;
         scale_z = pixel_block->scale.x;
         offset_x = pixel_block->offset.z;
@@ -130,8 +131,8 @@ int contains_pixel( Block *pixel_block, BlockState *block_state, const glm::vec3
     return true;
 }
 
-int contains_block( World *world, const glm::vec3 &dir, const glm::vec3 &initial, const glm::ivec3 &block_pos, int collide_with_unloaded, int is_pick, int *which_face ) {
-    BlockState blockState = world_get_loaded_block( world, block_pos );
+int contains_block( World &world, const glm::vec3 &dir, const glm::vec3 &initial, const glm::ivec3 &block_pos, int collide_with_unloaded, int is_pick, int *which_face ) {
+    BlockState blockState = world.get_loaded_block( block_pos );
     BlockID blockID = blockState.id;
     if ( blockID >= LAST_BLOCK_ID ) {
         return collide_with_unloaded;
@@ -144,16 +145,16 @@ int contains_block( World *world, const glm::vec3 &dir, const glm::vec3 &initial
         result = block->collides_with_player;
     }
     if ( result && block->non_full_size ) {
-        return contains_pixel( block, &blockState, dir, initial, block_pos, which_face );
+        return contains_pixel( block, blockState, dir, initial, block_pos, which_face );
     } else {
         return result;
     }
 }
 
-int ray_traversal_find_block_from_to( World *world, Block *pixel_block, //
-                                      const glm::vec3 &v1,              //
-                                      const glm::vec3 &v2,              //
-                                      glm::ivec3 &out,                  //
+int RayTraversal::find_block_from_to( World &world, Block *pixel_block, //
+                                      const glm::vec3 &v1,                    //
+                                      const glm::vec3 &v2,                    //
+                                      glm::ivec3 &out,                        //
                                       int *out_whichFace, int flag, int is_pick, int is_pixel ) {
 
     glm::vec3 dir = v2 - v1;

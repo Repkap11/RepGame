@@ -4,6 +4,7 @@
 #include "abstract/vertex_buffer.hpp"
 #include "abstract/vertex_array.hpp"
 #include "abstract/renderer.hpp"
+#include "common/RenderChain.hpp"
 #include "RepGame.hpp"
 #include "input.hpp"
 
@@ -36,7 +37,7 @@ struct UIOverlayInstance {
 
 #include "common/inventory.hpp"
 
-typedef struct {
+class UIOverlay {
     VertexBufferLayout vbl;
     Shader shader;
     RenderChain<UIOverlayVertex, UIOverlayInstance> render_chain_crosshair;
@@ -46,12 +47,13 @@ typedef struct {
     Inventory *hotbar;
     int screen_width;
     int screen_height;
-} UIOverlay;
 
-void ui_overlay_init( UIOverlay *ui_overlay, Inventory *inventory, Inventory *hotbar );
-void ui_overlay_on_screen_size_change( UIOverlay *ui_overlay, int width, int height );
-void ui_overlay_set_holding_block( UIOverlay *ui_overlay, BlockID holding_block );
-void ui_overlay_draw( UIOverlay *ui_overlay, Renderer *renderer, Texture *blocksTexture, InputState *input, const glm::mat4 &mvp_ui );
-void ui_overlay_cleanup( UIOverlay *ui_overlay );
+  public:
+    void init( Inventory *inventory, Inventory *hotbar );
+    void on_screen_size_change( int width, int height );
+    void set_holding_block( BlockID holding_block );
+    void draw( const Renderer &renderer, const Texture &blocksTexture, InputState *input, const glm::mat4 &mvp_ui );
+    void cleanup( );
+};
 
 #endif

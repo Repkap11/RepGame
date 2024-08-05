@@ -5,11 +5,13 @@
 #include "chunk_loader.hpp"
 #include "common/multiplayer_avatars.hpp"
 #include "common/abstract/full_screen_quad.hpp"
-#include "common/ecs_renderer.hpp"
 #include "common/RenderChain.hpp"
 
-typedef struct {
-    LoadedChunks loadedChunks;
+class World {
+    friend class RepGame;
+    friend class Multiplayer;
+
+    ChunkLoader chunkLoader;
     Renderer renderer;
     SkyBox skyBox;
     MultiplayerAvatars multiplayer_avatars;
@@ -24,20 +26,31 @@ typedef struct {
     FullScreenQuad fullScreenQuad;
     MouseSelection mouseSelection;
     Shader object_shader;
-} World;
 
-BlockState world_get_loaded_block( World *world, const glm::ivec3 &block );
-void world_set_loaded_block( World *world, const glm::ivec3 &block, BlockState blockState );
+    int can_fixup_chunk( Chunk &chunk, const glm::ivec3 &offset );
+    void fixup_chunk( Chunk &chunk, const glm::ivec3 &offset, const glm::ivec3 &pos, BlockState blockState );
+    static bool any_neighbor_adj_id( const Chunk &chunk, const glm::ivec3 &pos, BlockID id );
+    static bool any_neighbor_diag_id( const Chunk &chunk, const glm::ivec3 &pos, BlockID id );
+    static bool any_neighbor_grass_id( const Chunk &chunk, const glm::ivec3 &pos, BlockID id );
 
-BlockState world_get_block_from_chunk( Chunk *chunk, const glm::ivec3 &block );
-Chunk *world_get_loaded_chunk( World *world, const glm::ivec3 &block );
-void world_init( World *world, const glm::vec3 &camera_pos );
-void world_change_size( World *world, int width, int height );
-void world_render( World *world, const glm::vec3 &camera_pos, int limit_render, const glm::mat4 &rotation );
-void world_draw( World *world, Texture *blocksTexture, const glm::mat4 &mvp, const glm::mat4 &mvp_reflect, const glm::mat4 &mvp_sky, const glm::mat4 &mvp_sky_reflect, int debug, int draw_mouse_selection, float y_height, bool headInWater,
-                 bool drawReflectionsIfSupported );
-void world_process_random_ticks( World *world );
-void world_set_selected_block( World *world, const glm::ivec3 &selected, int shouldDraw );
-void world_cleanup( World *world );
+    bool process_random_ticks_on_chunk( Chunk &chunk );
+    bool do_random_tick_on_block( Chunk &chunk, const glm::vec3 &pos, BlockState &blockState );
+
+  public:
+    BlockState get_loaded_block( const glm::ivec3 &block );
+    
+    void set_loaded_block( const glm::ivec3 &block, BlockState blockState );
+
+    static BlockState get_block_from_chunk( const Chunk &chunk, const glm::ivec3 &block );
+    Chunk *get_loaded_chunk( const glm::ivec3 &block );
+    void init( const glm::vec3 &camera_pos, int width, int height );
+    void change_size( int width, int height );
+    void render( const glm::vec3 &camera_pos, int limit_render, const glm::mat4 &rotation );
+    void draw( const Texture &blocksTexture, const glm::mat4 &mvp, const glm::mat4 &mvp_reflect, const glm::mat4 &mvp_sky, const glm::mat4 &mvp_sky_reflect, int debug, int draw_mouse_selection, float y_height, bool headInWater,
+               bool drawReflectionsIfSupported );
+    void process_random_ticks( );
+    void set_selected_block( const glm::ivec3 &selected, int shouldDraw );
+    void cleanup( );
+};
 
 #endif

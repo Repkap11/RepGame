@@ -3,10 +3,7 @@
 
 #include <glm.hpp>
 #include "binary_blobs.hpp"
-
-typedef struct {
-    unsigned int m_RendererId; //
-} Shader;
+#include "common/abstract/texture.hpp"
 
 #if defined( REPGAME_LINUX ) || defined( REPGAME_WINDOWS )
 typedef BinaryBlob ShaderSourceData;
@@ -16,30 +13,33 @@ typedef BinaryBlob ShaderSourceData;
 typedef struct {
     const char *path;
 } ShaderSourceData;
-#define MK_SHADER( name ) ShaderSourceData name = {.path = #name ".glsl"}
+#define MK_SHADER( name ) ShaderSourceData name = { .path = #name ".glsl" }
 
 #elif defined( REPGAME_ANDROID )
 typedef struct {
     const char *resource_path;
 } ShaderSourceData;
-#define MK_SHADER( name ) ShaderSourceData name = {.resource_path = #name ".glsl"}
+#define MK_SHADER( name ) ShaderSourceData name = { .resource_path = #name ".glsl" }
 #endif
 
-#if defined( REPGAME_LINUX ) || defined( REPGAME_WINDOWS )
+class Shader {
 
-#else
+    unsigned int m_RendererId;
+    int get_uniform_location( const char *name );
 
-#endif
+  public:
+    void init( const ShaderSourceData *vertex, const ShaderSourceData *fragment );
+    void bind( ) const;
+    void unbind( ) const;
+    void destroy( );
+    void set_uniform4f( const char *name, float f0, float f1, float f2, float f3 );
+    void set_uniform3f( const char *name, float f0, float f1, float f2 );
+    void set_uniform1fv( const char *name, float *f, int count );
+    void set_uniform1f( const char *name, float f );
+    void set_uniform1i( const char *name, int i );
+    void set_uniform1i_texture( const char *name, const Texture &texture );
+    void set_uniform1ui( const char *name, unsigned int i );
+    void set_uniform_mat4f( const char *name, const glm::mat4 &mat );
+};
 
-void shader_init( Shader *shader, const ShaderSourceData *vertex, const ShaderSourceData *fragment );
-void shader_bind( const Shader *shader );
-void shader_unbind( const Shader *shader );
-void shader_destroy( Shader *shader );
-void shader_set_uniform4f( Shader *shader, const char *name, float f0, float f1, float f2, float f3 );
-void shader_set_uniform3f( Shader *shader, const char *name, float f0, float f1, float f2 );
-void shader_set_uniform1fv( Shader *shader, const char *name, float *f, int count );
-void shader_set_uniform1f( Shader *shader, const char *name, float f );
-void shader_set_uniform1i( Shader *shader, const char *name, int i );
-void shader_set_uniform1ui( Shader *shader, const char *name, unsigned int i );
-void shader_set_uniform_mat4f( Shader *shader, const char *name, const glm::mat4 &mat );
 #endif

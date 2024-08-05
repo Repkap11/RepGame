@@ -2,7 +2,7 @@
 #include <string.h>
 
 #include "common/block_definitions.hpp"
-#include "common/abstract/textures.hpp"
+#include "common/abstract/texture.hpp"
 #include "common/RepGame.hpp"
 
 Block *block_definitions;

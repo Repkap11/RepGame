@@ -10,19 +10,38 @@
 #define CHUNK_BLOCK_DRAW_START ( CHUNK_SIZE_INTERNAL * CHUNK_SIZE_INTERNAL )
 #define CHUNK_BLOCK_DRAW_STOP ( CHUNK_BLOCK_SIZE - CHUNK_BLOCK_DRAW_START )
 
-typedef struct {
+class RenderLayer {
+    friend class Chunk;
+
     VertexArray va;
     IndexBuffer ib;
     IndexBuffer ib_reflect;
     int num_instances;
     VertexBuffer vb_coords;
     BlockCoords *populated_blocks;
-} RenderLayer;
+};
 
 // This size must match, update the size in server.hpp if it doesn't
 static_assert( sizeof( BlockState ) == SERVER_BLOCK_DATA_SIZE, "Size of BlockState doesn't match server packet size." );
 
-typedef struct {
+class WorkingSpace {
+    friend class Chunk;
+
+    int can_be_seen;
+    int visible;
+    int has_been_drawn;
+    int solid;
+    unsigned int packed_lighting[ NUM_FACES_IN_CUBE ];
+};
+
+class Chunk {
+    friend class ChunkLoader;
+    friend class World;
+    friend class MapGen;
+    friend class StructureGen;
+    friend class MapStorage;
+    friend class TerrainLoadingThread;
+
     int is_loading;
     RenderLayer layers[ LAST_RENDER_ORDER ];
     BlockState *blocks;
@@ -33,30 +52,32 @@ typedef struct {
     int cached_cull_reflect;
     int needs_repopulation;
     glm::ivec3 chunk_mod;
-} Chunk;
 
-void chunk_init( Chunk *chunk, VertexBuffer *vb_block_solid, VertexBuffer *vb_block_water, VertexBufferLayout *vbl_block, VertexBufferLayout *vbl_coords );
-void chunk_draw( const Chunk *chunk, const Renderer *renderer, const Texture *texture, const Shader *shader, RenderOrder renderOrder, bool draw_reflect );
-void chunk_load_terrain( Chunk *chunk );      // Load from file or map gen
-void chunk_program_terrain( Chunk *chunk );   // Program into GPU
-void chunk_unprogram_terrain( Chunk *chunk ); // Remove from GPU
-void chunk_calculate_sides( Chunk *chunk, const glm::ivec3 &center_next );
-int chunk_get_coords_from_index_todo( int index, glm::ivec3 &out_pos );
-int chunk_get_coords_from_index( int index, int *out_x, int *out_y, int *out_z );
+    int can_extend_rect( BlockState blockState, unsigned int *packed_lighting, WorkingSpace *workingSpace, const glm::ivec3 &starting, const glm::ivec3 &size, const glm::ivec3 &dir );
 
-int chunk_get_index_from_coords( const glm::ivec3 &pos );
-void chunk_persist( Chunk *chunk );
-void chunk_destroy( Chunk *chunk );
-void chunk_set_block( Chunk *chunk, const glm::ivec3 &pos, BlockState blockState );
-BlockState chunk_get_block( const Chunk *chunk, const glm::ivec3 &pos );
-void chunk_calculate_popupated_blocks( Chunk *chunk );
+  public:
+    void init( const VertexBuffer &vb_block_solid, const VertexBuffer &vb_block_water, const VertexBufferLayout &vbl_block, const VertexBufferLayout &vbl_coords );
+    void draw( const Renderer &renderer, const Texture &texture, const Shader &shader, RenderOrder renderOrder, bool draw_reflect ) const;
+    void load_terrain( );      // Load from file or map gen
+    void program_terrain( );   // Program into GPU
+    void unprogram_terrain( ); // Remove from GPU
+    void calculate_sides( const glm::ivec3 &center_next );
+    static int get_coords_from_index_todo( int index, glm::ivec3 &out_pos );
+    static int get_coords_from_index( int index, int &out_x, int &out_y, int &out_z );
 
-inline int chunk_get_index_from_coords( const glm::ivec3 &pos ) {
-    return ( pos.y + 1 ) * CHUNK_SIZE_INTERNAL * CHUNK_SIZE_INTERNAL + ( pos.x + 1 ) * CHUNK_SIZE_INTERNAL + ( pos.z + 1 );
-}
+    void persist( );
+    void destroy( );
+    void set_block( const glm::ivec3 &pos, BlockState blockState );
+    BlockState get_block( const glm::ivec3 &pos ) const;
+    void calculate_populated_blocks( );
 
-inline int chunk_get_index_from_coords( int x, int y, int z ) {
-    return ( y + 1 ) * CHUNK_SIZE_INTERNAL * CHUNK_SIZE_INTERNAL + ( x + 1 ) * CHUNK_SIZE_INTERNAL + ( z + 1 );
-}
+    static inline int get_index_from_coords( const glm::ivec3 &pos ) {
+        return ( pos.y + 1 ) * CHUNK_SIZE_INTERNAL * CHUNK_SIZE_INTERNAL + ( pos.x + 1 ) * CHUNK_SIZE_INTERNAL + ( pos.z + 1 );
+    }
+
+    static inline int get_index_from_coords( int x, int y, int z ) {
+        return ( y + 1 ) * CHUNK_SIZE_INTERNAL * CHUNK_SIZE_INTERNAL + ( x + 1 ) * CHUNK_SIZE_INTERNAL + ( z + 1 );
+    }
+};
 
 #endif

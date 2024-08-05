@@ -9,28 +9,29 @@ typedef struct {
     unsigned char normalized;
 } VertexBufferElement;
 
-typedef struct {
+class VertexBufferLayout {
+    friend class VertexArray;
+    friend class Chunk;
+
     unsigned int mRendererId;
     unsigned int current_size;
     unsigned int stride;
     VertexBufferElement elements[ NUM_VERTEX_BUFFER_ELEMENTS ];
-} VertexBufferLayout;
+    static unsigned int size_of_type( unsigned int type );
+    static bool uses_I_attrib( unsigned int type );
 
-unsigned int vertex_buffer_layout_size_of_type( unsigned int type );
-bool vertex_buffer_layout_uses_I_attrib( unsigned int type );
+  public:
+    void init( );
+    void init_element( VertexBufferElement &vertexBufferElement, unsigned int type, unsigned int count, unsigned int normalized );
 
-void vertex_buffer_layout_init( VertexBufferLayout *vertexBufferLayout );
-void vertex_buffer_layout_init_element( VertexBufferElement *vertexBufferElement, unsigned int type, unsigned int count, unsigned int normalized );
-void vertex_buffer_layout_bind( const VertexBufferLayout *vertexBufferLayout );
+    void push_float( unsigned int count );
+    void push_unsigned_int( unsigned int count );
+    void push_int( unsigned int count );
+    void push_unsigned_bytes( unsigned int count );
+    void push_float_array( unsigned int count );
+    void push_byte( unsigned int count );
 
-void vertex_buffer_layout_push_float( VertexBufferLayout *vertexBufferLayout, unsigned int count );
-void vertex_buffer_layout_push_unsigned_int( VertexBufferLayout *vertexBufferLayout, unsigned int count );
-void vertex_buffer_layout_push_int( VertexBufferLayout *vertexBufferLayout, unsigned int count );
-void vertex_buffer_layout_push_unsigned_bytes( VertexBufferLayout *vertexBufferLayout, unsigned int count );
-void vertex_buffer_layout_push_float_array( VertexBufferLayout *vertexBufferLayout, unsigned int count );
-void vertex_buffer_layout_push_byte( VertexBufferLayout *vertexBufferLayout, unsigned int count );
-
-void vertex_buffer_layout_unbind( const VertexBufferLayout *vertexBufferLayout );
-void vertex_buffer_layout_destroy( const VertexBufferLayout *vertexBufferLayout );
+    void destroy( );
+};
 
 #endif

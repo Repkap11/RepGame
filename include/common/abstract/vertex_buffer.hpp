@@ -1,16 +1,17 @@
 #ifndef HEADER_VERTEX_BUFFER_H
 #define HEADER_VERTEX_BUFFER_H
 
-typedef struct {
+class VertexBuffer {
     unsigned int mRendererId;
     unsigned int size;
-} VertexBuffer;
 
-void vertex_buffer_init( VertexBuffer *vertexBuffer );
-void vertex_buffer_destroy( VertexBuffer *vertexBuffer );
-void vertex_buffer_bind( const VertexBuffer *vertexBuffer );
-void vertex_buffer_unbind( const VertexBuffer *vertexBuffer );
-void vertex_buffer_set_data( VertexBuffer *vertexBuffer, const void *data, unsigned int size );
-void vertex_buffer_set_subdata( VertexBuffer *vertexBuffer, const void *data, unsigned int offset, unsigned int size );
+  public:
+    void init( );
+    void destroy( );
+    void bind( ) const;
+    void unbind( ) const;
+    void set_data( const void *data, unsigned int size );
+    void set_subdata( const void *data, unsigned int offset, unsigned int size );
+};
 
 #endif
