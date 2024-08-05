@@ -301,14 +301,13 @@ void InventoryRenderer::singleItemRender( int slot_index, const InventorySlot &i
         ui_vertex_prt = &this->render_chain_inventory_icons.get_instance( slot_entity );
     }
     UIOverlayInstance &ui_vertex = *ui_vertex_prt;
-
     if ( needsVertexInit ) {
         ui_vertex.screen_z = ORDER_Z_INV_BLOCKS;
-        ui_vertex.width = this->inv_block_size;
-        ui_vertex.height = this->inv_block_size;
         ui_vertex.is_block = 1;
     }
 
+    ui_vertex.width = this->inv_block_size;
+    ui_vertex.height = this->inv_block_size;
     int block_grid_coord_x = slot_index % this->width;
     int block_grid_coord_y = slot_index / this->width;
 
