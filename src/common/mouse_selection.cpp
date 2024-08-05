@@ -109,7 +109,6 @@ void mouse_selection_set_block( MouseSelection *mouseSelection, const glm::ivec3
 }
 void mouse_selection_draw( MouseSelection *mouseSelection, Renderer *renderer, Shader *shader ) {
     if ( mouseSelection->shouldDraw ) {
-        shader_set_uniform1ui( shader, "u_ScaleTextureBlock", 0 );
         renderer_draw_lines( renderer, &mouseSelection->va, &mouseSelection->ib, shader, 1 );
     }
 }
