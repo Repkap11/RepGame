@@ -116,10 +116,10 @@ static const UIOverlayVertex vb_isometric_quad[ VB_ISOMETRIC_QUAD_SIZE ] = {
     { 1.0f, 0.65f, { 0, 1 }, 1, ISO_FACE_RIGHT }, // e
 
     // Quad
-    { 0, 0, { 0, 0 }, 0, ISO_FACE_FRONT }, //
-    { 0, 1, { 0, 1 }, 0, ISO_FACE_FRONT }, //
-    { 1, 0, { 1, 0 }, 0, ISO_FACE_FRONT }, //
-    { 1, 1, { 1, 1 }, 0, ISO_FACE_FRONT }  //
+    { 0.5f, 0.0f, { 0, 0 }, 0, ISO_FACE_FRONT },  //
+    { 0.5f, 0.5f, { 0, 1 }, 0, ISO_FACE_FRONT },  //
+    { 1.0f, 0.15f, { 1, 0 }, 0, ISO_FACE_FRONT }, //
+    { 1.0f, 0.65f, { 1, 1 }, 0, ISO_FACE_FRONT }  //
 };
 
 #define IB_ISOMETRIC_QUAD_SIZE 24
