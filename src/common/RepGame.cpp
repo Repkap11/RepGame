@@ -37,9 +37,9 @@ BlockID change_block( int place, BlockState blockState ) {
         block = globalGameState.block_selection.pos_destroy;
     }
     BlockID previous_block_id = globalGameState.world.get_loaded_block( block ).id;
-
-    BlockUpdateEvent *blockPlacedEvent = new PlayerBlockPlacedEvent( globalGameState.tick_number, block, blockState, false );
-    globalGameState.blockUpdateQueue.addBlockUpdate( *blockPlacedEvent );
+    // globalGameState.world.set_loaded_block( block, blockState );
+    auto blockPlacedEvent = std::make_shared<PlayerBlockPlacedEvent>( globalGameState.tick_number, block, blockState, false );
+    globalGameState.blockUpdateQueue.addBlockUpdate( blockPlacedEvent );
     return previous_block_id;
 }
 

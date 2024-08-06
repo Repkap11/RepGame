@@ -9,8 +9,8 @@ PlayerBlockPlacedEvent::PlayerBlockPlacedEvent( long tick_number, const glm::ive
 }
 
 void PlayerBlockPlacedEvent::performActionToNeighbor( BlockUpdateQueue &blockUpdateQueue, World &world, const glm::ivec3 &offset ) {
-    BlockUpdateEvent *blockUpdatedEvent = new BlockNextToChangeEvent( this->tick_number, this->block_pos, offset );
-    blockUpdateQueue.addBlockUpdate( *blockUpdatedEvent );
+    auto blockUpdatedEvent = std::make_shared<BlockNextToChangeEvent>( this->tick_number, this->block_pos, offset );
+    blockUpdateQueue.addBlockUpdate( blockUpdatedEvent );
 }
 
 void PlayerBlockPlacedEvent::performAction( BlockUpdateQueue &blockUpdateQueue, World &world ) {

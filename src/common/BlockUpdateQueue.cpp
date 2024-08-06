@@ -3,10 +3,8 @@
 
 BlockUpdateQueue::BlockUpdateQueue( ) {
 }
-void BlockUpdateQueue::addBlockUpdate( BlockUpdateEvent &event ) {
-    std::shared_ptr<BlockUpdateEvent> event_prt;
-    event_prt.reset( &event );
-    this->pending_events.push( event_prt );
+void BlockUpdateQueue::addBlockUpdate( std::shared_ptr<BlockUpdateEvent> event ) {
+    this->pending_events.push( event );
 }
 
 void BlockUpdateQueue::processAllBlockUpdates( World &world, long tick_number ) {

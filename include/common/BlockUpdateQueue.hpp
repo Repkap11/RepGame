@@ -16,7 +16,7 @@ class BlockUpdateOrderCompare {
 class BlockUpdateQueue {
   public:
     BlockUpdateQueue( );
-    void addBlockUpdate( BlockUpdateEvent &event );
+    void addBlockUpdate( std::shared_ptr<BlockUpdateEvent> event );
     void processAllBlockUpdates( World &world, long tick_number );
 
   private:

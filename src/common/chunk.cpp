@@ -336,7 +336,6 @@ void Chunk::calculate_populated_blocks( ) {
                 int visible_from[ NUM_FACES_IN_CUBE ] = { 0, 0, 0, 0, 0, 0 };
                 for ( int face = FACE_TOP; face < NUM_FACES_IN_CUBE; face++ ) {
                     BlockState block_next_to_state = this->blocks[ get_index_from_coords( x + FACE_DIR_X_OFFSETS[ face ], y + FACE_DIR_Y_OFFSETS[ face ], z + FACE_DIR_Z_OFFSETS[ face ] ) ];
-                    // TODO look at the blocks rotation...
                     Block *block_next_to = block_definition_get_definition( block_next_to_state.id );
 
                     int opposing_face = get_rotated_face( face, block_next_to_state.rotation );

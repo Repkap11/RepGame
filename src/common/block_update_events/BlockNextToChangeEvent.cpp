@@ -63,8 +63,8 @@ void perform_checks( BlockUpdateQueue &blockUpdateQueue, World &world, long tick
     if ( updateing_block->flows != 0 && affecting_block->breaks_in_liquid && affecting_block_pos.y <= block_pos.y ) {
         pr_debug( "Expanding a water x:%d y:%d z:%d into x:%d y:%d z:%d ", block_pos.x, block_pos.y, block_pos.z, affecting_block_pos.x, affecting_block_pos.y, affecting_block_pos.z );
         BlockState new_block_state = updateing_block_state;
-        BlockUpdateEvent *blockPlacedEvent = new PlayerBlockPlacedEvent( tick_number + updateing_block->flows, affecting_block_pos, new_block_state, false );
-        blockUpdateQueue.addBlockUpdate( *blockPlacedEvent );
+        auto blockPlacedEvent = std::make_shared<PlayerBlockPlacedEvent>( tick_number + updateing_block->flows, affecting_block_pos, new_block_state, false );
+        blockUpdateQueue.addBlockUpdate( blockPlacedEvent );
     }
 
     {
@@ -115,8 +115,8 @@ void perform_checks( BlockUpdateQueue &blockUpdateQueue, World &world, long tick
 
                     BlockState new_block_state = affecting_block_state;
                     new_block_state.display_id = new_display_block_id;
-                    BlockUpdateEvent *blockPlacedEvent = new PlayerBlockPlacedEvent( tick_number, affecting_block_pos, new_block_state, true );
-                    blockUpdateQueue.addBlockUpdate( *blockPlacedEvent );
+                    auto blockPlacedEvent = std::make_shared<PlayerBlockPlacedEvent>( tick_number, affecting_block_pos, new_block_state, true );
+                    blockUpdateQueue.addBlockUpdate( blockPlacedEvent );
                 }
             }
         }
@@ -144,8 +144,8 @@ void perform_checks( BlockUpdateQueue &blockUpdateQueue, World &world, long tick
             // pr_debug( "Queueing event1 with old:%d new:%d", affecting_block_state.current_redstone_power, new_power );
             BlockState new_block_state = affecting_block_state;
             new_block_state.current_redstone_power = new_power;
-            BlockUpdateEvent *blockPlacedEvent = new PlayerBlockPlacedEvent( tick_number + REDSTONE_DELAY, affecting_block_pos, new_block_state, true );
-            blockUpdateQueue.addBlockUpdate( *blockPlacedEvent );
+            auto blockPlacedEvent = std::make_shared<PlayerBlockPlacedEvent>( tick_number + REDSTONE_DELAY, affecting_block_pos, new_block_state, true );
+            blockUpdateQueue.addBlockUpdate( blockPlacedEvent );
         }
     }
 
@@ -166,8 +166,8 @@ void perform_checks( BlockUpdateQueue &blockUpdateQueue, World &world, long tick
         }
     }
     if ( !block_is_ok_to_place ) {
-        BlockUpdateEvent *blockPlacedEvent = new PlayerBlockPlacedEvent( tick_number, block_pos, BLOCK_STATE_AIR, false );
-        blockUpdateQueue.addBlockUpdate( *blockPlacedEvent );
+        auto blockPlacedEvent = std::make_shared<PlayerBlockPlacedEvent>( tick_number, block_pos, BLOCK_STATE_AIR, false );
+        blockUpdateQueue.addBlockUpdate( blockPlacedEvent );
     }
 }
 

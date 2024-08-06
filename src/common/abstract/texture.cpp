@@ -60,7 +60,6 @@ unsigned char *readTextureDataFromFile( const char *filename, int mem_size ) {
 #endif
 #if defined( REPGAME_ANDROID )
 unsigned char *readTextureDataFromCache( const char *filename, int mem_size ) {
-    // TODO this is such a hack
     pr_debug( "Returning texture for %s", filename );
     if ( strcmp( filename, "bitmaps/textures.bin" ) == 0 )
         return cached_texture[ 0 ];
