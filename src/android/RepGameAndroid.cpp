@@ -9,6 +9,7 @@
 #include "common/RepGame.hpp"
 
 AAssetManager *assetManager;
+RepGame repgame;
 
 char *repgame_android_getShaderString( const char *filename ) {
     AAssetDir *assetDir = AAssetManager_openDir( assetManager, "" );
@@ -56,18 +57,18 @@ JNIEXPORT void JNICALL Java_com_repkap11_repgame_RepGameJNIWrapper_onSurfaceCrea
     const char *world_name = env->GetStringUTFChars( world_name_java, 0 );
 
     texture = as_unsigned_char_array( env, texture_bytes0, &textures_len );
-    repgame_set_textures( 0, texture, textures_len );
+    repgame.set_textures( 0, texture, textures_len );
     texture = as_unsigned_char_array( env, texture_bytes1, &textures_len );
-    repgame_set_textures( 1, texture, textures_len );
+    repgame.set_textures( 1, texture, textures_len );
     assetManager = AAssetManager_fromJava( env, assetManager_java );
 
-    repgame_init( world_name, true, "repkap11.com", true );
+    repgame.init( world_name, true, "repkap11.com", true );
     env->ReleaseStringUTFChars( world_name_java, world_name );
     next_game_step = now_ms( );
 }
 
 JNIEXPORT void JNICALL Java_com_repkap11_repgame_RepGameJNIWrapper_onSurfaceDestroyed( JNIEnv *env, jobject obj ) {
-    repgame_cleanup( );
+    repgame.cleanup( );
 }
 
 int current_screen_width = 0;
@@ -76,7 +77,7 @@ int current_screen_height = 0;
 JNIEXPORT void JNICALL Java_com_repkap11_repgame_RepGameJNIWrapper_onSizeChanged( JNIEnv *env, jobject obj, jint width, jint height ) {
     current_screen_width = width;
     current_screen_height = height;
-    repgame_changeSize( ( int )width, ( int )height );
+    repgame.changeSize( ( int )width, ( int )height );
 }
 
 JNIEXPORT void JNICALL Java_com_repkap11_repgame_RepGameJNIWrapper_onDrawFrame( JNIEnv *env, jobject obj ) {
@@ -84,36 +85,36 @@ JNIEXPORT void JNICALL Java_com_repkap11_repgame_RepGameJNIWrapper_onDrawFrame( 
     int computer_is_too_slow_limit = 10; // max number of advances per render, if you can't get 20 fps, slow the game's UPS
     int num_ticks_in_frame = 0;
     while ( ( ( ( ( int )next_game_step - ( int )now ) <= 0 ) ) && ( computer_is_too_slow_limit-- ) ) {
-        repgame_tick( );
+        repgame.tick( );
         num_ticks_in_frame++;
         next_game_step += ( 1000 / UPS_RATE ); // count 1 game tick done
     }
     // pr_debug( "slow:%d num_ticks_in_frame:%d fps:%f", computer_is_too_slow_limit, num_ticks_in_frame, ( float )( UPS_RATE ) / ( float )num_ticks_in_frame );
 
-    repgame_clear( );
-    repgame_draw( );
+    repgame.clear( );
+    repgame.draw( );
 }
 
 #define ANDROID_PAN_SENSITIVITY 2
 
 JNIEXPORT void JNICALL Java_com_repkap11_repgame_RepGameJNIWrapper_lookInput( JNIEnv *env, jobject obj, jint xdiff, jint ydiff ) {
-    input_lookMove( repgame_getInputState( ), current_screen_width / 2 + xdiff * ANDROID_PAN_SENSITIVITY, current_screen_height / 2 + ydiff * ANDROID_PAN_SENSITIVITY );
+    input_lookMove( repgame.getInputState( ), current_screen_width / 2 + xdiff * ANDROID_PAN_SENSITIVITY, current_screen_height / 2 + ydiff * ANDROID_PAN_SENSITIVITY );
 }
 
 JNIEXPORT void JNICALL Java_com_repkap11_repgame_RepGameJNIWrapper_setButtonState( JNIEnv *env, jobject obj, jint left, jint middle, jint right ) {
-    input_setButtonState( repgame_getInputState( ), left, middle, right );
+    input_setButtonState( repgame.getInputState( ), left, middle, right );
 }
 
 #define ANDROID_MOVE_SENSITIVITY 1
 JNIEXPORT void JNICALL Java_com_repkap11_repgame_RepGameJNIWrapper_positionHInput( JNIEnv *env, jobject obj, jfloat sizeH, jfloat angleH ) {
-    input_positionHMove( repgame_getInputState( ), sizeH * ANDROID_MOVE_SENSITIVITY, angleH );
+    input_positionHMove( repgame.getInputState( ), sizeH * ANDROID_MOVE_SENSITIVITY, angleH );
 }
 JNIEXPORT void JNICALL Java_com_repkap11_repgame_RepGameJNIWrapper_setJumpPressed( JNIEnv *env, jobject obj, jint jumpPressed ) {
-    input_setJumpPressed( repgame_getInputState( ), jumpPressed );
+    input_setJumpPressed( repgame.getInputState( ), jumpPressed );
 }
 
 JNIEXPORT void JNICALL Java_com_repkap11_repgame_RepGameJNIWrapper_onInventoryClicked( JNIEnv *env, jobject obj ) {
-    input_onInventoryClicked( repgame_getInputState( ) );
+    input_onInventoryClicked( repgame.getInputState( ) );
 }
 
 } // End Extern C

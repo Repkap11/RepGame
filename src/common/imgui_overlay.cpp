@@ -6,20 +6,7 @@ ImGuiDebugVars &imgui_overlay_get_imgui_debug_vars( ) {
     return debug_vars;
 }
 
-#if ( defined( REPGAME_WASM ) )
-
-void imgui_overlay_init( ImGuiOverlay *imgui_overlay ) {
-}
-void imgui_overlay_attach_to_window( ImGuiOverlay *ui_overlay, SDL_Window *window, SDL_GLContext gl_context ) {
-}
-void imgui_overlay_handle_sdl2_event( ImGuiOverlay *ui_overlay, SDL_Event *event, bool *handledMouse, bool *handledKeyboard ) {
-}
-void imgui_overlay_draw( ImGuiOverlay *ui_overlay, InputState *input ) {
-}
-void imgui_overlay_cleanup( ImGuiOverlay *ui_overlay ) {
-}
-
-#else
+#if SUPPORTS_IMGUI_OVERLAY
 
 #include "imgui.h"
 #include "imgui_impl_sdl2.h"
@@ -113,5 +100,12 @@ void imgui_overlay_cleanup( ImGuiOverlay *imgui_overlay ) {
     ImGui_ImplOpenGL3_Shutdown( );
     ImGui_ImplSDL2_Shutdown( );
     ImGui::DestroyContext( );
+}
+#else
+void imgui_overlay_init( ImGuiOverlay *imgui_overlay ) {
+}
+void imgui_overlay_draw( ImGuiOverlay *ui_overlay, InputState *input ) {
+}
+void imgui_overlay_cleanup( ImGuiOverlay *ui_overlay ) {
 }
 #endif
