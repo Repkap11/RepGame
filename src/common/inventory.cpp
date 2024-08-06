@@ -43,20 +43,30 @@ bool Inventory::addBlock( BlockID blockId ) {
     auto it = this->blockId_to_slot_map.find( blockId );
     if ( it == this->blockId_to_slot_map.end( ) ) {
         // This is a new block
-        int openSlot = this->findOpenSlot( );
-        if ( openSlot == -1 ) {
+        int newSlot;
+        if ( this->selected_slot != -1 && this->slots[ this->selected_slot ].block_id == LAST_BLOCK_ID ) {
+            newSlot = this->selected_slot;
+        } else {
+            newSlot = findOpenSlot( );
+        }
+        if ( newSlot == -1 ) {
+            // No slots left, don't pick.
             return false;
         }
-        blockId_to_slot_map.emplace( blockId, openSlot );
-        InventorySlot &slot = this->slots[ openSlot ];
+        blockId_to_slot_map.emplace( blockId, newSlot );
+        InventorySlot &slot = this->slots[ newSlot ];
         slot.block_id = blockId;
-        this->inventory_renderer.changeSlotItem( openSlot, slot );
+        if ( newSlot != this->selected_slot ) {
+            this->selected_slot = newSlot;
+            this->inventory_renderer.setSelectedSlot( this->selected_slot );
+        }
+        this->inventory_renderer.changeSlotItem( this->selected_slot, slot );
 
     } else {
+        // This is an existing block, make that slot active.
         int existingSlot = it->second;
         this->selected_slot = existingSlot;
         this->inventory_renderer.setSelectedSlot( this->selected_slot );
-        // This is an existing block, do nothing for now.
 
         // // This is an existing block, picking it again removes it from the inventory for now
         // int existingSlot = it->second;
