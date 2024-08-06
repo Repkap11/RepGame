@@ -232,7 +232,7 @@ void RepGame::process_block_updates( ) {
     // for ( size_t i = 0; i < 20; i++ ) {
     //     world_process_random_ticks( &globalGameState.world );
     // }
-    globalGameState.blockUpdateQueue.processAllBlockUpdates( globalGameState.world, globalGameState.tick_number );
+    globalGameState.blockUpdateQueue.processAllBlockUpdates( globalGameState, globalGameState.tick_number );
 }
 
 void RepGame::tick( ) {

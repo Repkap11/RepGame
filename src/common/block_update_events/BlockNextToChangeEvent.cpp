@@ -171,12 +171,12 @@ void perform_checks( BlockUpdateQueue &blockUpdateQueue, World &world, long tick
     }
 }
 
-void BlockNextToChangeEvent::performAction( BlockUpdateQueue &blockUpdateQueue, World &world ) {
+void BlockNextToChangeEvent::performAction( BlockUpdateQueue &blockUpdateQueue, RepGameState &repGameState ) {
 
-    perform_checks( blockUpdateQueue, world, this->tick_number, //
-                    this->block_pos,                            //
+    perform_checks( blockUpdateQueue, repGameState.world, this->tick_number, //
+                    this->block_pos,                                         //
                     this->affecting_block_pos );
-    perform_checks( blockUpdateQueue, world, this->tick_number, //
-                    this->affecting_block_pos,                  //
+    perform_checks( blockUpdateQueue, repGameState.world, this->tick_number, //
+                    this->affecting_block_pos,                               //
                     this->block_pos );
 }

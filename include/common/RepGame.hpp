@@ -6,6 +6,8 @@
 #include "common/Platforms.hpp"
 #include "common/Logging.hpp"
 
+struct RepGameState;
+
 #include <entt/entity/registry.hpp>
 #include <glm.hpp>
 #include "common/RenderChain.hpp"
@@ -30,7 +32,7 @@
 
 #include "input.hpp"
 
-typedef struct {
+struct RepGameState {
     double frame_rate;
     Multiplayer multiplayer;
     InputState input;
@@ -68,7 +70,7 @@ typedef struct {
     } block_selection;
     BlockUpdateQueue blockUpdateQueue;
     long tick_number;
-} RepGameState;
+};
 
 typedef struct {
     BlockID holdingBlock;

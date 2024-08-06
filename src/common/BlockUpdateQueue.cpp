@@ -1,5 +1,5 @@
-#include "common/BlockUpdateQueue.hpp"
 #include "common/RepGame.hpp"
+#include "common/BlockUpdateQueue.hpp"
 
 BlockUpdateQueue::BlockUpdateQueue( ) {
 }
@@ -7,7 +7,7 @@ void BlockUpdateQueue::addBlockUpdate( std::shared_ptr<BlockUpdateEvent> event )
     this->pending_events.push( event );
 }
 
-void BlockUpdateQueue::processAllBlockUpdates( World &world, long tick_number ) {
+void BlockUpdateQueue::processAllBlockUpdates( RepGameState &repGameState, long tick_number ) {
     int num_events = 0;
     this->current_tick = tick_number;
     while ( !this->pending_events.empty( ) ) {
@@ -16,7 +16,7 @@ void BlockUpdateQueue::processAllBlockUpdates( World &world, long tick_number ) 
             break;
         }
         this->pending_events.pop( );
-        event_prt->performAction( *this, world );
+        event_prt->performAction( *this, repGameState );
         num_events++;
         if ( num_events > 10000 ) {
             pr_debug( "Error too many events!!!" );

@@ -13,8 +13,8 @@ void PlayerBlockPlacedEvent::performActionToNeighbor( BlockUpdateQueue &blockUpd
     blockUpdateQueue.addBlockUpdate( blockUpdatedEvent );
 }
 
-void PlayerBlockPlacedEvent::performAction( BlockUpdateQueue &blockUpdateQueue, World &world ) {
-    BlockState current_block_state = world.get_loaded_block( this->block_pos );
+void PlayerBlockPlacedEvent::performAction( BlockUpdateQueue &blockUpdateQueue, RepGameState &repGameState ) {
+    BlockState current_block_state = repGameState.world.get_loaded_block( this->block_pos );
     // State already matches, don't change anything
     if ( BlockStates_equal( blockState, current_block_state ) ) {
         return;
@@ -40,16 +40,16 @@ void PlayerBlockPlacedEvent::performAction( BlockUpdateQueue &blockUpdateQueue, 
         return;
     }
 
-    world.set_loaded_block( this->block_pos, this->blockState );
-    // multiplayer_set_block( this->block_pos, this->blockState );//TODO pass multiplayer
+    repGameState.world.set_loaded_block( this->block_pos, this->blockState );
+    repGameState.multiplayer.set_block( this->block_pos, this->blockState );
 
     for ( int j = -1; j < 2; j += 2 ) {
-        performActionToNeighbor( blockUpdateQueue, world, glm::ivec3( 0, j, 0 ) );
+        performActionToNeighbor( blockUpdateQueue, repGameState.world, glm::ivec3( 0, j, 0 ) );
     }
     for ( int i = -1; i < 2; i += 2 ) {
-        performActionToNeighbor( blockUpdateQueue, world, glm::ivec3( i, 0, 0 ) );
+        performActionToNeighbor( blockUpdateQueue, repGameState.world, glm::ivec3( i, 0, 0 ) );
     }
     for ( int k = -1; k < 2; k += 2 ) {
-        performActionToNeighbor( blockUpdateQueue, world, glm::ivec3( 0, 0, k ) );
+        performActionToNeighbor( blockUpdateQueue, repGameState.world, glm::ivec3( 0, 0, k ) );
     }
 }
