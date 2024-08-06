@@ -1,11 +1,8 @@
 #include <stdlib.h>
 
-// #include "common/RepGame.hpp"
-#include "common/map_gen.hpp"
-#include "common/block_definitions.hpp"
 #include "linux/cuda/perlin_noise.hpp"
-#include "common/chunk_loader.hpp"
-#include "common/chunk.hpp"
+
+#define MAP_SEED 0
 
 __device__ float map_gen_hills_cuda( int x, int z ) {
     float noise = perlin_noise2d_cuda( x, z, 0.02f, 3, MAP_SEED );
