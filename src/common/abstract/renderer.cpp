@@ -16,7 +16,7 @@ void Renderer::draw_lines( const VertexArray &vertexArray, const IndexBuffer &in
     vertexArray.bind( );
     indexBuffer.bind( );
     shader.bind( );
-    glLineWidth( 1 );
+    glLineWidth( 3 );
     glDrawElementsInstanced( GL_LINES, indexBuffer.count, GL_UNSIGNED_INT, NULL, num_instances );
     showErrors( );
 

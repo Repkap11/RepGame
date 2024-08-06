@@ -105,6 +105,6 @@ void MouseSelection::set_block( const glm::ivec3 &pos, int shouldDraw, BlockStat
 }
 void MouseSelection::draw( const Renderer &renderer, const Shader &shader ) {
     if ( this->shouldDraw ) {
-        this->render_chain_mouse_selection.draw( renderer, shader );
+        this->render_chain_mouse_selection.draw_lines( renderer, shader );
     }
 }

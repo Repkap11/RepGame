@@ -70,7 +70,7 @@ template <typename Element, typename Instance> class RenderChain {
         return registry.group<Instance>( ).size( );
     }
 
-    void draw( const Renderer &renderer, const Shader &shader, const IndexBuffer &ib ) {
+    void draw( const Renderer &renderer, const Shader &shader, const IndexBuffer &ib, bool drawLines ) {
         auto all_instances = registry.group<Instance>( );
         std::size_t instance_count = all_instances.size( );
         if ( instance_count == 0 ) {
@@ -90,12 +90,27 @@ template <typename Element, typename Instance> class RenderChain {
             this->instance_count_changed = false;
         }
         // pr_debug( "RenderChaing drawing:%ld", instance_count );
-        renderer.draw( this->va, ib, shader, instance_count );
+        if ( drawLines ) {
+            renderer.draw_lines( this->va, ib, shader, instance_count );
+        } else {
+            renderer.draw( this->va, ib, shader, instance_count );
+        }
         showErrors( );
     }
 
-    void draw( const Renderer &renderer, const Shader &shader ) {
-        this->draw( renderer, shader, this->ib );
+    inline void draw( const Renderer &renderer, const Shader &shader, const IndexBuffer &ib ) {
+        this->draw( renderer, shader, ib, false );
+    }
+    inline void draw_lines( const Renderer &renderer, const Shader &shader, const IndexBuffer &ib ) {
+        this->draw( renderer, shader, ib, true );
+    }
+
+    inline void draw( const Renderer &renderer, const Shader &shader ) {
+        this->draw( renderer, shader, this->ib, false );
+    }
+
+    inline void draw_lines( const Renderer &renderer, const Shader &shader ) {
+        this->draw( renderer, shader, this->ib, true );
     }
 
     void clear( ) {
