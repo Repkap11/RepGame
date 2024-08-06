@@ -24,7 +24,7 @@ void VertexBuffer::set_subdata( const void *data, unsigned int offset, unsigned 
 void VertexBuffer::destroy( ) {
     this->size = 0;
     this->mRendererId = 0;
-    glDeleteBuffers( 1, &( this->mRendererId ) );
+    glDeleteBuffers( 1, &this->mRendererId );
 }
 
 void VertexBuffer::bind( ) const {

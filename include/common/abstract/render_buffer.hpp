@@ -9,9 +9,7 @@ class RenderBuffer {
     void set_storage( int width, int height );
     void destroy( );
     void bind( ) const;
-    void bind_display( );
     void unbind( ) const;
-    bool ok( );
 };
 
 #endif

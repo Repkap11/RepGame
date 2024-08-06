@@ -274,7 +274,6 @@ void World::cleanup( ) {
         this->reflectionTexture.destroy( );
         this->depthStencilTexture.destroy( );
         this->fullScreenQuad.destroy( );
-        this->fullScreenQuad.destroy( );
     }
 }
 
@@ -480,7 +479,7 @@ static const glm::ivec3 offsets_grass[ OFFSETS_GRASS ] = {
 
 bool World::any_neighbor_adj_id( const Chunk &chunk, const glm::ivec3 &pos, BlockID id ) {
     for ( int i = 0; i < OFFSETS_LEN_ADJ; i++ ) {
-        glm::ivec3 offset = offsets_adj[ i ];
+        const glm::ivec3 &offset = offsets_adj[ i ];
         glm::ivec3 pos_offset = glm::ivec3( pos.x + offset.x, pos.y + offset.y, pos.z + offset.z );
         BlockState blockState = chunk.get_block( pos_offset );
         if ( blockState.id == id ) {
@@ -493,7 +492,7 @@ bool World::any_neighbor_adj_id( const Chunk &chunk, const glm::ivec3 &pos, Bloc
 bool world_any_neighbor_diag_id( const Chunk &chunk, const glm::ivec3 &pos, BlockID id ) {
 
     for ( int i = 0; i < OFFSETS_LEN_DIAG; i++ ) {
-        glm::ivec3 offset = offsets_diag[ i ];
+        const glm::ivec3 &offset = offsets_diag[ i ];
         glm::ivec3 pos_offset = glm::ivec3( pos.x + offset.x, pos.y + offset.y, pos.z + offset.z );
         BlockState blockState = chunk.get_block( pos_offset );
         if ( blockState.id == id ) {
@@ -505,7 +504,7 @@ bool world_any_neighbor_diag_id( const Chunk &chunk, const glm::ivec3 &pos, Bloc
 
 bool world_any_neighbor_grass_id( const Chunk &chunk, const glm::ivec3 &pos, BlockID id ) {
     for ( int i = 0; i < OFFSETS_GRASS; i++ ) {
-        glm::ivec3 offset = offsets_grass[ i ];
+        const glm::ivec3 &offset = offsets_grass[ i ];
         glm::ivec3 pos_offset = glm::ivec3( pos.x + offset.x, pos.y + offset.y, pos.z + offset.z );
         BlockState blockState = chunk.get_block( pos_offset );
         if ( blockState.id == id ) {

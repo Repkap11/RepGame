@@ -138,8 +138,8 @@ void Chunk::destroy( ) {
         if ( this->layers[ renderOrder ].populated_blocks ) {
             free( this->layers[ renderOrder ].populated_blocks );
         }
-        this->layers[ renderOrder ].populated_blocks = 0;
         RenderLayer &renderLayer = this->layers[ renderOrder ];
+        renderLayer.populated_blocks = 0;
         renderLayer.ib.destroy( );
         renderLayer.ib_reflect.destroy( );
         renderLayer.vb_coords.destroy( );
@@ -269,7 +269,7 @@ int Chunk::can_extend_rect( BlockState blockState, unsigned int *packed_lighting
     for ( int new_x = starting.x; new_x < starting.x + size.x; new_x++ ) {
         for ( int new_y = starting.y; new_y < starting.y + size.y; new_y++ ) {
             for ( int new_z = starting.z; new_z < starting.z + size.z; new_z++ ) {
-                int index = get_index_from_coords( new_x + dir.x, new_y + dir.y, new_z + dir.z );
+                int index = Chunk::get_index_from_coords( new_x + dir.x, new_y + dir.y, new_z + dir.z );
                 num_checked_blocks++;
                 if ( workingSpace[ index ].has_been_drawn ) {
                     return 0;
