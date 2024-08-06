@@ -2,8 +2,6 @@
 
 #include "linux/cuda/perlin_noise.hpp"
 
-#define MAP_SEED 0
-
 __device__ float map_gen_hills_cuda( int x, int z ) {
     float noise = perlin_noise2d_cuda( x, z, 0.02f, 3, MAP_SEED );
     return ( noise - 0.5f ) * 15;

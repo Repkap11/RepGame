@@ -83,12 +83,6 @@ float map_gen_inverse_lerp( float min, float max, float value ) {
 
 #define MAP_GEN( func, ... ) map_gen_##func( __VA_ARGS__ )
 
-void MapGen::load_block_cuda( Chunk *chunk ) {
-    glm::ivec3 *chunk_pos = &chunk->chunk_pos;
-    BlockState *blocks = chunk->blocks;
-    map_gen_load_block_cuda( chunk_pos, blocks );
-}
-
 void MapGen::load_block_c( Chunk *chunk ) {
     glm::ivec3 chunk_offset = chunk->chunk_pos * CHUNK_SIZE;
 
@@ -110,11 +104,25 @@ void MapGen::load_block_c( Chunk *chunk ) {
         }
     }
 }
-int MapGen::supports_cuda( ) {
 
 #if !defined( REPGAME_BUILD_WITH_CUDA )
+int MapGen::supports_cuda( ) {
     return 0;
-#else
-    return MapGen::host_supports_cuda( );
-#endif
 }
+void map_gen_load_block_cuda( glm::ivec3 *chunk_pos, BlockState *blocks ) {
+}
+void MapGen::load_block_cuda( Chunk *chunk ) {
+}
+
+#else
+int MapGen::supports_cuda( ) {
+    return MapGen::host_supports_cuda( );
+}
+
+void MapGen::load_block_cuda( Chunk *chunk ) {
+    glm::ivec3 *chunk_pos = &chunk->chunk_pos;
+    BlockState *blocks = chunk->blocks;
+    map_gen_load_block_cuda( chunk_pos, blocks );
+}
+
+#endif
