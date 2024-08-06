@@ -319,7 +319,7 @@ BlockState World::get_block_from_chunk( const Chunk &chunk, const glm::ivec3 &bl
 BlockState World::get_loaded_block( const glm::ivec3 &block_pos ) {
     Chunk *chunk_prt = this->get_loaded_chunk( block_pos );
     if ( chunk_prt ) {
-        Chunk chunk = *chunk_prt;
+        Chunk &chunk = *chunk_prt;
         if ( chunk.is_loading ) {
             return BLOCK_STATE_LAST_BLOCK_ID;
         }
@@ -334,7 +334,7 @@ void World::set_loaded_block( const glm::ivec3 &block_pos, BlockState blockState
 
     Chunk *chunk_prt = this->chunkLoader.get_chunk( chunk_pos );
     if ( chunk_prt ) {
-        Chunk chunk = *chunk_prt;
+        Chunk &chunk = *chunk_prt;
         glm::ivec3 diff = block_pos - chunk_pos * CHUNK_SIZE;
         // pr_debug( "Orig Offset: %d %d %d", diff_x, diff_y, diff_z );
 
