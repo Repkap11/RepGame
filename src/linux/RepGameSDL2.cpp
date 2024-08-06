@@ -10,9 +10,11 @@ static RepGameState *globalGameState;
 void repgame_linux_process_sdl_events( RepGame &repgame ) {
     SDL_Event event;
     while ( SDL_PollEvent( &event ) ) {
-        bool handledMouse;
-        bool handledKeyboard;
+        bool handledMouse = false;
+        bool handledKeyboard = false;
+#if SUPPORTS_IMGUI_OVERLAY
         imgui_overlay_handle_sdl2_event( &globalGameState->imgui_overlay, &event, &handledMouse, &handledKeyboard );
+#endif
         // pr_debug( "Event: mouse:%d keyboard:%d", handledMouse, handledKeyboard );
         switch ( event.type ) {
             case SDL_KEYDOWN:
@@ -56,7 +58,7 @@ bool startsWith( const char *pre, const char *str ) {
     return strncmp( pre, str, strlen( pre ) ) == 0;
 }
 
-void main_loop_wasm( RepGame &repgame );
+void main_loop_wasm( void *arg );
 void main_loop_full( RepGame &repgame );
 
 SDL_Window *sdl_window = NULL;
@@ -118,7 +120,9 @@ int repgame_sdl2_main( const char *world_path, const char *host, bool connect_mu
     ignoreErrors( );
     RepGame repgame;
     globalGameState = repgame.init( world_path, connect_multi, host, supportsAnisotropicFiltering );
+#if SUPPORTS_IMGUI_OVERLAY
     imgui_overlay_attach_to_window( &globalGameState->imgui_overlay, sdl_window, sdl_context );
+#endif
 
 #if !defined( REPGAME_WASM )
 
@@ -141,7 +145,7 @@ int repgame_sdl2_main( const char *world_path, const char *host, bool connect_mu
     SDL_DestroyWindow( sdl_window );
     SDL_Quit( );
 #else
-    emscripten_set_main_loop( main_loop_wasm, 0, 1 );
+    emscripten_set_main_loop_arg( main_loop_wasm, ( void * )&repgame, 0, 1 );
 #endif
     return 0;
 }
@@ -158,7 +162,8 @@ void repgame_linux_process_window_and_pointer_state( RepGame &repgame ) {
     }
 }
 
-void main_loop_wasm( RepGame &repgame ) {
+void main_loop_wasm( void *arg ) {
+    RepGame &repgame = *( RepGame * )arg;
     if ( repgame.shouldExit( ) ) {
         return;
     } else {
