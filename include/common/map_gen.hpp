@@ -15,5 +15,5 @@ class MapGen {
     static int supports_cuda( );
     static int host_supports_cuda( );
 };
-
+void map_gen_load_block_cuda( glm::ivec3 *chunk_pos, BlockState *blocks );
 #endif
