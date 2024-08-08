@@ -74,9 +74,8 @@ void imgui_overlay_draw( ImGuiOverlay *imgui_overlay, Input &input ) {
 
             ImGui::Begin( "RepGame" ); // Create a window called "Hello, world!" and append into it.
             ImGui::Text( "Application average %.3f ms/frame (%.1f FPS)", 1000.0f / io.Framerate, io.Framerate );
+            ImGui::Text( "Player Pos: %3.2f %3.2f %3.2f",debug_vars.player_pos.x, debug_vars.player_pos.y, debug_vars.player_pos.z );
 
-            ImGui::SliderFloat2( "Corner 1", &debug_vars.corner1.x, -0.5f, 1.5f );
-            ImGui::SliderFloat2( "Corner 3", &debug_vars.corner3.x, -0.5f, 1.5f );
             // debug_vars.corner1.x = round( debug_vars.corner1.x * 20 ) / 20;
             // debug_vars.corner1.y = round( debug_vars.corner1.y * 20 ) / 20;
 

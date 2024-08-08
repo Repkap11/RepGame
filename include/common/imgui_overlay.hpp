@@ -5,16 +5,11 @@ typedef struct {
     bool show_demo_window;
 } ImGuiOverlay;
 
-typedef struct {
-    struct {
-        float x, y;
-    } corner1;
-    struct {
-        float x, y;
-    } corner3;
-} ImGuiDebugVars;
-
 #include "RepGame.hpp"
+
+typedef struct {
+    glm::vec3 player_pos;
+} ImGuiDebugVars;
 
 #if ( defined( REPGAME_WINDOWS ) || defined( REPGAME_LINUX ) )
 #define SUPPORTS_IMGUI_OVERLAY 1

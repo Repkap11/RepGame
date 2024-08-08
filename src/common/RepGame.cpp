@@ -18,6 +18,7 @@
 #include "common/utils/ray_traversal.hpp"
 #include "common/utils/collision.hpp"
 #include "common/multiplayer.hpp"
+#include "common/map_gen.hpp"
 #include "common/block_update_events/PlayerBlockPlacedEvent.hpp"
 
 RepGameState globalGameState;
@@ -308,11 +309,13 @@ static inline void initilizeGameState( const char *world_name ) {
     globalGameState.input.exitGame = 0;
     globalGameState.input.player_flying = 0;
     globalGameState.input.inventory_open = 0;
-    globalGameState.camera.angle_H = 135.0f;
-    globalGameState.camera.angle_V = 25.0f;
-    globalGameState.camera.pos.x = 0.0f;
-    globalGameState.camera.pos.y = 8.0f;
-    globalGameState.camera.pos.z = 0.0f;
+    globalGameState.input.no_clip = 0;
+    globalGameState.camera.angle_H = 0.0f;
+    globalGameState.camera.angle_V = 0.0f;
+    globalGameState.camera.pos.x = 0.5f;
+    globalGameState.camera.pos.y = ceil( MapGen::calculateTerrainHeight( 0, 0 ) ) + PLAYER_EYE_HEIGHT + 0.5f;
+    pr_debug( "Intial height:%f", globalGameState.camera.pos.y );
+    globalGameState.camera.pos.z = 0.5f;
     globalGameState.camera.y_speed = 0.0f;
     globalGameState.main_inventory.inventory_renderer.options.active_height_percent = 0.5f;
     globalGameState.main_inventory.inventory_renderer.options.max_height_percent = 0.75f;
@@ -531,6 +534,8 @@ void RepGame::draw( ) {
     glClear( GL_DEPTH_BUFFER_BIT );
 
     globalGameState.ui_overlay.draw( globalGameState.main_inventory, globalGameState.hotbar, globalGameState.world.renderer, globalGameState.blocksTexture, globalGameState.input, globalGameState.screen.ortho_center );
+    ImGuiDebugVars &debugVars = imgui_overlay_get_imgui_debug_vars( );
+    debugVars.player_pos = globalGameState.camera.pos;
     imgui_overlay_draw( &globalGameState.imgui_overlay, globalGameState.input );
     showErrors( );
 }
