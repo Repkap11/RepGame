@@ -83,6 +83,7 @@ typedef struct {
     bool reflections_on;
     InventorySlot hotbar_inventory[ HOTBAR_WIDTH * HOTBAR_HEIGHT ];
     InventorySlot main_inventory[ MAIN_INVENTORY_WIDTH * MAIN_INVENTORY_HEIGHT ];
+    int selected_hotbar_slot;
 
 } PlayerData;
 

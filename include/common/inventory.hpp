@@ -24,6 +24,7 @@ class Inventory {
     BlockID incrementSelectedSlot( int offset );
     BlockID getSelectedBlock( );
     BlockID dropSelectedItem( );
+    int getSelectedSlot();
     void applySavedInventory( const InventorySlot *savedSlots );
     void saveInventory( InventorySlot *savedSlots );
     void draw( const Renderer &renderer, const Texture &blocksTexture, const Shader &shader );

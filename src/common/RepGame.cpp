@@ -343,6 +343,7 @@ static inline void initilizeGameState( const char *world_name ) {
         globalGameState.input.reflections_on = saved_data.reflections_on;
         globalGameState.hotbar.applySavedInventory( saved_data.hotbar_inventory );
         globalGameState.main_inventory.applySavedInventory( saved_data.main_inventory );
+        globalGameState.hotbar.setSelectedSlot( saved_data.selected_hotbar_slot );
     }
     BlockID selectedBlock = globalGameState.hotbar.getSelectedBlock( );
     globalGameState.ui_overlay.set_holding_block( selectedBlock );
@@ -557,6 +558,7 @@ void RepGame::cleanup( ) {
     saved_data.reflections_on = globalGameState.input.reflections_on;
     globalGameState.hotbar.saveInventory( saved_data.hotbar_inventory );
     globalGameState.main_inventory.saveInventory( saved_data.main_inventory );
+    saved_data.selected_hotbar_slot = globalGameState.hotbar.getSelectedSlot( );
 
     MapStorage::write_player_data( saved_data );
 #if defined( REPGAME_WASM )

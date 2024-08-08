@@ -92,6 +92,9 @@ BlockID Inventory::incrementSelectedSlot( int offset ) {
 BlockID Inventory::getSelectedBlock( ) {
     return this->slots[ this->selected_slot ].block_id;
 }
+int Inventory::getSelectedSlot( ) {
+    return this->selected_slot;
+};
 
 void Inventory::setSelectedSlot( int selected_slot ) {
     this->selected_slot = selected_slot;
