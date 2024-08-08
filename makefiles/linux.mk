@@ -1,6 +1,6 @@
 #Linux x86_64 builds
 
-REPGAME_PACKAGES += libglew-dev libxi-dev g++ libsdl2-dev upx-ucl
+REPGAME_PACKAGES += libglew-dev libxi-dev g++ libsdl2-dev upx-ucl cppcheck
 
 CFLAGS_LINUX := -Wall -Wextra -std=c++17 -Wno-unused-parameter -Wno-unused-variable -fno-pie -march=native
 LFLAGS := -z noexecstack
@@ -123,21 +123,21 @@ out/linux/debug/$(TARGET): $(OBJECTS_IMGUI_LINUX_DEBUG) $(OBJECTS_COMMON_LINUX_D
 	$(CC_LINUX) $(CFLAGS_LINUX) $(CFLAGS_LINUX_DEBUG) $(OBJECTS_LINUX_DEBUG) $(OBJECTS_IMGUI_LINUX_DEBUG) $(OBJECTS_COMMON_LINUX_DEBUG) $(SHADER_BLOBS_LINUX) $(BITMAP_BLOBS_LINUX) $(LIBS_LINUX) -o $@
 
 linux-run: linux
-	./out/linux/release/$(TARGET) World1 www.repkap11.com
+	./out/linux/release/$(TARGET) $(WORLD) www.repkap11.com
 
 dev: linux_debug-run
 
 linux_debug-run: linux_debug
-	./out/linux/debug/$(TARGET) World1 localhost
+	./out/linux/debug/$(TARGET) $(WORLD) localhost
 
 tests: linux_debug
 	./out/linux/debug/$(TARGET) tests
 
 # map:
-# 	rm -rf ~/.repgame/World1
+# 	rm -rf ~/.repgame/$(WORLD)
 
 player:
-	rm -rf ~/.repgame/World1/player.dat
+	rm -rf ~/.repgame/$(WORLD)/player.dat
 
 clean: clean-linux
 

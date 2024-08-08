@@ -92,11 +92,11 @@ void Chunk::calculate_sides( const glm::ivec3 &center_next ) {
 }
 
 int Chunk::get_coords_from_index( int index, int &out_x, int &out_y, int &out_z ) {
-    int y = ( index / ( CHUNK_SIZE_INTERNAL * CHUNK_SIZE_INTERNAL ) ) - 1;
-    int x = ( ( index / CHUNK_SIZE_INTERNAL ) % CHUNK_SIZE_INTERNAL ) - 1;
-    int z = ( index % ( CHUNK_SIZE_INTERNAL ) ) - 1;
+    int y = ( index / ( CHUNK_SIZE_INTERNAL_Z * CHUNK_SIZE_INTERNAL_X ) ) - 1;
+    int x = ( ( index / CHUNK_SIZE_INTERNAL_Z ) % CHUNK_SIZE_INTERNAL_X ) - 1;
+    int z = ( index % ( CHUNK_SIZE_INTERNAL_Z ) ) - 1;
     // return 1;
-    int result = x >= 0 && y >= 0 && z >= 0 && x < CHUNK_SIZE && y < CHUNK_SIZE && z < CHUNK_SIZE;
+    int result = x >= 0 && y >= 0 && z >= 0 && x < CHUNK_SIZE_X && y < CHUNK_SIZE_Y && z < CHUNK_SIZE_Z;
     out_x = x;
     out_y = y;
     out_z = z;
@@ -179,9 +179,9 @@ BlockState Chunk::get_block( const glm::ivec3 &pos ) const {
         // pr_debug("Chunk has no blocks");
         return BLOCK_STATE_LAST_BLOCK_ID;
     }
-    if ( pos.x > CHUNK_SIZE + 1 || //
-         pos.y > CHUNK_SIZE + 1 || //
-         pos.z > CHUNK_SIZE + 1 ) {
+    if ( pos.x > CHUNK_SIZE_X + 1 || //
+         pos.y > CHUNK_SIZE_Y + 1 || //
+         pos.z > CHUNK_SIZE_Z + 1 ) {
         return BLOCK_STATE_LAST_BLOCK_ID;
     }
     if ( pos.x < -1 || //
@@ -197,9 +197,9 @@ void Chunk::set_block( const glm::ivec3 &pos, BlockState blockState ) {
         // pr_debug("Chunk has no blocks");
         return;
     }
-    if ( pos.x > CHUNK_SIZE + 1 || //
-         pos.y > CHUNK_SIZE + 1 || //
-         pos.z > CHUNK_SIZE + 1 ) {
+    if ( pos.x > CHUNK_SIZE_X + 1 || //
+         pos.y > CHUNK_SIZE_Y + 1 || //
+         pos.z > CHUNK_SIZE_Z + 1 ) {
         return;
     }
     if ( pos.x < -1 || //
@@ -251,11 +251,11 @@ int Chunk::can_extend_rect( BlockState blockState, unsigned int *packed_lighting
     if ( DISABLE_GROUPING_BLOCKS ) {
         return 0;
     }
-    if ( starting.x + size.x + dir.x > CHUNK_SIZE )
+    if ( starting.x + size.x + dir.x > CHUNK_SIZE_X )
         return 0;
-    if ( starting.y + size.y + dir.y > CHUNK_SIZE )
+    if ( starting.y + size.y + dir.y > CHUNK_SIZE_Y )
         return 0;
-    if ( starting.z + size.z + dir.z > CHUNK_SIZE )
+    if ( starting.z + size.z + dir.z > CHUNK_SIZE_Z )
         return 0;
     // if ( ( ( size_x > 1 ) + ( size_y > 1 ) + ( size_z > 1 ) ) == 3 ) {
     //     if ( !( size_x == 1 && size_y == 1 && size_z == 1 ) ) {
@@ -529,9 +529,9 @@ void Chunk::calculate_populated_blocks( ) {
             }
         }
     }
-    for ( int y = 0; y < CHUNK_SIZE; y++ ) {
-        for ( int x = 0; x < CHUNK_SIZE; x++ ) {
-            for ( int z = 0; z < CHUNK_SIZE; z++ ) {
+    for ( int y = 0; y < CHUNK_SIZE_Y; y++ ) {
+        for ( int x = 0; x < CHUNK_SIZE_X; x++ ) {
+            for ( int z = 0; z < CHUNK_SIZE_Z; z++ ) {
                 int index = get_index_from_coords( x, y, z );
                 if ( !workingSpace[ index ].has_been_drawn ) {
 
@@ -598,9 +598,9 @@ void Chunk::calculate_populated_blocks( ) {
                         blockCoord = &this->layers[ block->renderOrder ].populated_blocks[ num_instances[ block->renderOrder ] ];
                         num_instances[ block->renderOrder ] += 1;
 
-                        blockCoord->x = this->chunk_pos.x * CHUNK_SIZE + x;
-                        blockCoord->y = this->chunk_pos.y * CHUNK_SIZE + y;
-                        blockCoord->z = this->chunk_pos.z * CHUNK_SIZE + z;
+                        blockCoord->x = this->chunk_pos.x * CHUNK_SIZE_X + x;
+                        blockCoord->y = this->chunk_pos.y * CHUNK_SIZE_Y + y;
+                        blockCoord->z = this->chunk_pos.z * CHUNK_SIZE_Z + z;
 
                         blockCoord->mesh_x = size_x;
                         blockCoord->mesh_y = size_y;

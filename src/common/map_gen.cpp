@@ -92,14 +92,15 @@ float MapGen::calculateTerrainHeight( int x, int z ) {
 }
 
 void MapGen::load_block_c( Chunk *chunk ) {
-    glm::ivec3 chunk_offset = chunk->chunk_pos * CHUNK_SIZE;
+    glm::ivec3 chunk_size = glm::vec3( CHUNK_SIZE_X, CHUNK_SIZE_Y, CHUNK_SIZE_Z );
+    glm::ivec3 chunk_offset = chunk->chunk_pos * chunk_size;
 
-    for ( int x = chunk_offset.x - 1; x < chunk_offset.x + CHUNK_SIZE_INTERNAL - 1; x++ ) {
-        for ( int z = chunk_offset.z - 1; z < chunk_offset.z + CHUNK_SIZE_INTERNAL - 1; z++ ) {
-            float terrainHeight = calculateTerrainHeight( x,z );
+    for ( int x = chunk_offset.x - 1; x < chunk_offset.x + CHUNK_SIZE_INTERNAL_X - 1; x++ ) {
+        for ( int z = chunk_offset.z - 1; z < chunk_offset.z + CHUNK_SIZE_INTERNAL_Z - 1; z++ ) {
+            float terrainHeight = calculateTerrainHeight( x, z );
             // terrainHeight = biome;
 
-            for ( int y = chunk_offset.y - 1; y < chunk_offset.y + CHUNK_SIZE_INTERNAL - 1; y++ ) {
+            for ( int y = chunk_offset.y - 1; y < chunk_offset.y + CHUNK_SIZE_INTERNAL_Y - 1; y++ ) {
                 glm::ivec3 offset = glm::ivec3( x, y, z );
                 int index = Chunk::get_index_from_coords( offset - chunk_offset );
 #include "common/map_logic.hpp"

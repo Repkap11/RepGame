@@ -85,7 +85,7 @@ out/windows/$(TARGET)_uncompressed.exe: windows_build out/windows/SDL2.dll $(OBJ
 	$(CC_WINDOWS) -flto $(CFLAGS_WINDOWS) $(OBJECTS_WINDOWS) $(OBJECTS_COMMON_WINDOWS) $(OBJECTS_IMGUI_WINDOWS) $(SHADER_BLOBS_WINDOWS) $(BITMAP_BLOBS_WINDOWS) $(LIBS_WINDOWS) -o $@
 
 windows-run: windows
-	wine out/windows/$(TARGET).exe "World1"
+	wine out/windows/$(TARGET).exe "$(WORLD)"
 
 clean: clean-windows
 

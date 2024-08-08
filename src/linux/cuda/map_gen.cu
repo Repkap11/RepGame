@@ -81,9 +81,9 @@ __device__ float map_gen_inverse_lerp_cuda( float min, float max, float value ) 
 __global__ void cuda_set_block( BlockState *blocks, int chunk_x, int chunk_y, int chunk_z ) {
     int index = blockIdx.x * blockDim.x + threadIdx.x;
     if ( index < CHUNK_BLOCK_SIZE ) {
-        int y = ( index / ( CHUNK_SIZE_INTERNAL * CHUNK_SIZE_INTERNAL ) ) - 1;
-        int x = ( ( index / CHUNK_SIZE_INTERNAL ) % CHUNK_SIZE_INTERNAL ) - 1;
-        int z = ( index % ( CHUNK_SIZE_INTERNAL ) ) - 1;
+        int y = ( index / ( CHUNK_SIZE_INTERNAL_Z * CHUNK_SIZE_INTERNAL_X ) ) - 1;
+        int x = ( ( index / CHUNK_SIZE_INTERNAL_Z ) % CHUNK_SIZE_INTERNAL_X ) - 1;
+        int z = ( index % ( CHUNK_SIZE_INTERNAL_Z ) ) - 1;
         x += chunk_x;
         y += chunk_y;
         z += chunk_z;
@@ -106,7 +106,7 @@ __host__ void map_gen_load_block_cuda( glm::ivec3 *chunk_pos, BlockState *blocks
     BlockState *device_blocks;
     cudaMalloc( &device_blocks, CHUNK_BLOCK_SIZE * sizeof( BlockState ) );
 
-    cuda_set_block<<<( CHUNK_BLOCK_SIZE + ( NUM_THREADS_PER_BLOCK - 1 ) ) / NUM_THREADS_PER_BLOCK, NUM_THREADS_PER_BLOCK, 0>>>( device_blocks, chunk_pos->x * CHUNK_SIZE, chunk_pos->y * CHUNK_SIZE, chunk_pos->z * CHUNK_SIZE );
+    cuda_set_block<<<( CHUNK_BLOCK_SIZE + ( NUM_THREADS_PER_BLOCK - 1 ) ) / NUM_THREADS_PER_BLOCK, NUM_THREADS_PER_BLOCK, 0>>>( device_blocks, chunk_pos->x * CHUNK_SIZE_X, chunk_pos->y * CHUNK_SIZE_Y, chunk_pos->z * CHUNK_SIZE_Z );
 
     cudaMemcpy( blocks, device_blocks, CHUNK_BLOCK_SIZE * sizeof( BlockState ), cudaMemcpyDeviceToHost );
     cudaFree( device_blocks );

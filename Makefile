@@ -27,6 +27,7 @@ MAKEFLAGS += --jobs=$(CPUS)
 MAKEFLAGS += --no-print-directory
 
 TARGET := RepGame
+WORLD := World1
 TARGET_LOWER := $(shell echo $(TARGET) | tr '[:upper:]' '[:lower:]')
 
 #Default target
@@ -65,8 +66,8 @@ nothing:
 
 
 update-world:
-	ls -1 ~/.repgame/World1/ | grep "^chunk_" | xargs -n1 bash -c 'printf "\x08\x0\x0\x0" | cat - ~/.repgame/World1/$$0 > ~/.repgame/World1/new_$$0'
-	ls -1 ~/.repgame/World1/ | grep "^chunk_" | xargs -n1 bash -c 'mv ~/.repgame/World1/new_$$0 ~/.repgame/World1/$$0'
+	ls -1 ~/.repgame/$(WORLD)/ | grep "^chunk_" | xargs -n1 bash -c 'printf "\x08\x0\x0\x0" | cat - ~/.repgame/$(WORLD)/$$0 > ~/.repgame/$(WORLD)/new_$$0'
+	ls -1 ~/.repgame/$(WORLD)/ | grep "^chunk_" | xargs -n1 bash -c 'mv ~/.repgame/$(WORLD)/new_$$0 ~/.repgame/$(WORLD)/$$0'
 
 ifeq (${BUILD_DEBUG},1)
 

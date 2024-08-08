@@ -5,9 +5,11 @@
 #include "abstract/renderer.hpp"
 #include "server/server.hpp"
 
-#define CHUNK_SIZE_INTERNAL ( CHUNK_SIZE + 2 )
-#define CHUNK_BLOCK_SIZE ( CHUNK_SIZE_INTERNAL * CHUNK_SIZE_INTERNAL * CHUNK_SIZE_INTERNAL )
-#define CHUNK_BLOCK_DRAW_START ( CHUNK_SIZE_INTERNAL * CHUNK_SIZE_INTERNAL )
+#define CHUNK_SIZE_INTERNAL_X ( CHUNK_SIZE_X + 2 )
+#define CHUNK_SIZE_INTERNAL_Y ( CHUNK_SIZE_Y + 2 )
+#define CHUNK_SIZE_INTERNAL_Z ( CHUNK_SIZE_Z + 2 )
+#define CHUNK_BLOCK_SIZE ( CHUNK_SIZE_INTERNAL_X * CHUNK_SIZE_INTERNAL_Y * CHUNK_SIZE_INTERNAL_Z )
+#define CHUNK_BLOCK_DRAW_START ( CHUNK_SIZE_INTERNAL_Z * CHUNK_SIZE_INTERNAL_X )
 #define CHUNK_BLOCK_DRAW_STOP ( CHUNK_BLOCK_SIZE - CHUNK_BLOCK_DRAW_START )
 
 class RenderLayer {
@@ -72,11 +74,11 @@ class Chunk {
     void calculate_populated_blocks( );
 
     static inline int get_index_from_coords( const glm::ivec3 &pos ) {
-        return ( pos.y + 1 ) * CHUNK_SIZE_INTERNAL * CHUNK_SIZE_INTERNAL + ( pos.x + 1 ) * CHUNK_SIZE_INTERNAL + ( pos.z + 1 );
+        return ( pos.y + 1 ) * CHUNK_SIZE_INTERNAL_X * CHUNK_SIZE_INTERNAL_Z + ( pos.x + 1 ) * CHUNK_SIZE_INTERNAL_Z + ( pos.z + 1 );
     }
 
     static inline int get_index_from_coords( int x, int y, int z ) {
-        return ( y + 1 ) * CHUNK_SIZE_INTERNAL * CHUNK_SIZE_INTERNAL + ( x + 1 ) * CHUNK_SIZE_INTERNAL + ( z + 1 );
+        return ( y + 1 ) * CHUNK_SIZE_INTERNAL_X * CHUNK_SIZE_INTERNAL_Z + ( x + 1 ) * CHUNK_SIZE_INTERNAL_Z + ( z + 1 );
     }
 };
 

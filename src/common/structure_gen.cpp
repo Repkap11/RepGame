@@ -83,7 +83,7 @@ int StructureGen::is_reed_roll( int x, int z ) {
 }
 
 int StructureGen::poll_fits( int x, int y, int z, int height ) {
-    if ( ( y + height ) >= CHUNK_SIZE_INTERNAL - 1 ) {
+    if ( ( y + height ) >= CHUNK_SIZE_INTERNAL_Y - 1 ) {
         return 0;
     }
     return 1;
@@ -91,7 +91,7 @@ int StructureGen::poll_fits( int x, int y, int z, int height ) {
 
 #define MAX_TREE_HEIGHT 6
 int StructureGen::tree_fits( Chunk &chunk, int x, int y, int z, int max_tree_radius ) {
-    if ( y + MAX_TREE_HEIGHT - 3 + max_tree_radius >= CHUNK_SIZE_INTERNAL - 1 ) {
+    if ( y + MAX_TREE_HEIGHT - 3 + max_tree_radius >= CHUNK_SIZE_INTERNAL_Y - 1 ) {
         return 0;
     }
     int num_colliding_leafs = 0;
@@ -139,7 +139,10 @@ int StructureGen::is_next_to( Chunk &chunk, int x, int y, int z, BlockID block )
 void place_leaves( Chunk &chunk, int x, int y, int z, int tree_type, BlockState leaf_state );
 
 void StructureGen::place( Chunk &chunk ) {
-    glm::vec3 chunk_offset = chunk.chunk_pos * CHUNK_SIZE;
+    float chunk_offset_x = chunk.chunk_pos.x * CHUNK_SIZE_X;
+    float chunk_offset_y = chunk.chunk_pos.y * CHUNK_SIZE_Y;
+    float chunk_offset_z = chunk.chunk_pos.z * CHUNK_SIZE_Z;
+    glm::vec3 chunk_offset = glm::vec3( chunk_offset_x, chunk_offset_y, chunk_offset_z );
 
     Block *leaf = block_definition_get_definition( LEAF );
     Block *oak_log = block_definition_get_definition( OAK_LOG );
@@ -151,19 +154,19 @@ void StructureGen::place( Chunk &chunk ) {
     BlockState dirt_state = { DIRT, 0, dirt->initial_redstone_power, DIRT };
     BlockState reed_state = { REED, 0, reed->initial_redstone_power, REED };
 
-    for ( int x = 1; x < CHUNK_SIZE - 1; x++ ) {
+    for ( int x = 1; x < CHUNK_SIZE_X - 1; x++ ) {
         int world_x = chunk_offset.x + x;
-        for ( int z = 1; z < CHUNK_SIZE - 1; z++ ) {
+        for ( int z = 1; z < CHUNK_SIZE_Z - 1; z++ ) {
             int world_z = chunk_offset.z + z;
             int max_tree_radius;
-            if ( x == 1 || z == 1 || z == CHUNK_SIZE - 1 || z == CHUNK_SIZE - 2 ) {
+            if ( x == 1 || z == 1 || z == CHUNK_SIZE_Z - 1 || z == CHUNK_SIZE_Z - 2 ) {
                 max_tree_radius = 2;
             } else {
                 max_tree_radius = 3;
             }
             int surface_y = -1;
             BlockID block_below = AIR;
-            for ( int y = CHUNK_SIZE - 1; y > -1; y-- ) {
+            for ( int y = CHUNK_SIZE_Y - 1; y > -1; y-- ) {
                 // If this block isn't air
                 if ( chunk.blocks[ chunk.get_index_from_coords( x, y, z ) ].id != AIR ) {
                     break;

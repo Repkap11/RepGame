@@ -7,7 +7,7 @@
             "request": "launch",
             "preLaunchTask": "make linux_debug",
             "program": "${workspaceRoot}/out/linux/debug/RepGame",
-            "args": ["World1","localhost"],
+            "args": ["World2","localhost"],
             "stopAtEntry": false,
             "cwd": "${workspaceRoot}",
             "environment": [],
