@@ -142,40 +142,19 @@ static const unsigned int ib_isometric_quad[ IB_ISOMETRIC_QUAD_SIZE ] = {
 MK_SHADER( ui_overlay_vertex );
 MK_SHADER( ui_overlay_fragment );
 
-void UIOverlay::init( Inventory *inventory, Inventory *hotbar ) {
+void UIOverlay::init( const VertexBufferLayout &ui_overlay_vbl_vertex, const VertexBufferLayout &ui_overlay_vbl_instance ) {
     // Calc The Vertices
     showErrors( );
-    this->inventory = inventory;
-    this->hotbar = hotbar;
 
-    // These are from UIOverlayVertex
-    this->vbl.init( );
-    this->vbl.push_float( 2 );        // UIOverlayVertex screen_x, screen_y
-    this->vbl.push_float( 2 );        // UIOverlayVertex texture
-    this->vbl.push_unsigned_int( 1 ); // UIOverlayVertex is_isometric
-    this->vbl.push_unsigned_int( 1 ); // UIOverlayVertex face_type
-
-    VertexBufferLayout vbl_instance;
-    vbl_instance.init( );
-    vbl_instance.push_float( 3 );        // UIOverlayInstance screen_x, screen_y, screen_z
-    vbl_instance.push_float( 2 );        // UIOverlayInstance width, height
-    vbl_instance.push_unsigned_int( 1 ); // UIOverlayInstance is_block
-    vbl_instance.push_unsigned_int( 1 ); // UIOverlayInstance is_isometric
-    vbl_instance.push_float( 3 );        // UIOverlayInstance id_isos
-    vbl_instance.push_float( 4 );        // UIOverlayInstance tint
-
-    this->render_chain_crosshair.init( this->vbl, vbl_instance, vb_data_crosshair_element, UI_OVERLAY_VERTEX_COUNT_CROSSHAIR, ib_data_crosshair, UI_OVERLAY_INDEX_COUNT_CROSSHAIR );
+    this->render_chain_crosshair.init( ui_overlay_vbl_vertex, ui_overlay_vbl_instance, vb_data_crosshair_element, UI_OVERLAY_VERTEX_COUNT_CROSSHAIR, ib_data_crosshair, UI_OVERLAY_INDEX_COUNT_CROSSHAIR );
     auto pair_crosshair = this->render_chain_crosshair.create_instance( );
     pair_crosshair.second = vb_data_crosshair_instance;
 
-    this->render_chain_held_block.init( this->vbl, vbl_instance, vb_isometric_quad, VB_ISOMETRIC_QUAD_SIZE, ib_isometric_quad, IB_ISOMETRIC_QUAD_SIZE );
+    this->render_chain_held_block.init( ui_overlay_vbl_vertex, ui_overlay_vbl_instance, vb_isometric_quad, VB_ISOMETRIC_QUAD_SIZE, ib_isometric_quad, IB_ISOMETRIC_QUAD_SIZE );
 
     showErrors( );
 
     this->shader.init( &ui_overlay_vertex, &ui_overlay_fragment );
-
-    this->inventory->init( this->vbl, vbl_instance, 10, 5 );
-    this->hotbar->init( this->vbl, vbl_instance, 10, 1 );
 }
 
 void UIOverlay::on_screen_size_change( int width, int height ) {
@@ -216,7 +195,7 @@ void UIOverlay::set_holding_block( BlockID holding_block ) {
     pair.second = vb_data_holding_block_instance;
 }
 
-void UIOverlay::draw( const Renderer &renderer, const Texture &blocksTexture, Input &input, const glm::mat4 &mvp_ui ) {
+void UIOverlay::draw( Inventory &inventory, Inventory &hotbar, const Renderer &renderer, const Texture &blocksTexture, Input &input, const glm::mat4 &mvp_ui ) {
 
     // if ( true ) {
     //     const ImGuiDebugVars &debug_vars = imgUIOverlay::get_imgui_debug_vars( );
@@ -235,12 +214,11 @@ void UIOverlay::draw( const Renderer &renderer, const Texture &blocksTexture, In
     this->shader.set_uniform_mat4f( "u_MVP", mvp_ui );
     this->shader.set_uniform1i_texture( "u_Texture", blocksTexture );
 
-    this->hotbar->draw( renderer, blocksTexture, this->shader );
-    this->render_chain_held_block.draw( renderer, this->shader );
+    hotbar.draw( renderer, blocksTexture, this->shader );
+    render_chain_held_block.draw( renderer, this->shader );
 
     if ( input.inventory_open ) {
-        this->inventory->handleMouseInput( input );
-        this->inventory->draw( renderer, blocksTexture, this->shader );
+        inventory.draw( renderer, blocksTexture, this->shader );
     } else {
         glBlendFunc( GL_ONE_MINUS_DST_COLOR, GL_ZERO );
         this->render_chain_crosshair.draw( renderer, this->shader );

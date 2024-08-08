@@ -38,21 +38,18 @@ struct UIOverlayInstance {
 #include "common/inventory.hpp"
 
 class UIOverlay {
-    VertexBufferLayout vbl;
     Shader shader;
     RenderChain<UIOverlayVertex, UIOverlayInstance> render_chain_crosshair;
     RenderChain<UIOverlayVertex, UIOverlayInstance> render_chain_held_block;
     BlockID heldBlockID;
-    Inventory *inventory;
-    Inventory *hotbar;
     int screen_width;
     int screen_height;
 
   public:
-    void init( Inventory *inventory, Inventory *hotbar );
+    void init( const VertexBufferLayout &ui_overlay_vbl_vertex, const VertexBufferLayout &ui_overlay_vbl_instance );
     void on_screen_size_change( int width, int height );
     void set_holding_block( BlockID holding_block );
-    void draw( const Renderer &renderer, const Texture &blocksTexture, Input &input, const glm::mat4 &mvp_ui );
+    void draw( Inventory &inventory, Inventory &hotbar, const Renderer &renderer, const Texture &blocksTexture, Input &input, const glm::mat4 &mvp_ui );
     void cleanup( );
 };
 

@@ -47,6 +47,15 @@ static_assert( CHUNK_RADIUS_Z > 0, "CHUNK_RADIUS_Z too small" );
 #define DEFAULT_WINDOW_WIDTH 1600
 #define DEFAULT_WINDOW_HEIGHT 800
 
+// These impact the save file size, so don't change them.
+#define MAIN_INVENTORY_WIDTH 10
+#define MAIN_INVENTORY_HEIGHT 5
+#define HOTBAR_WIDTH 10
+#define HOTBAR_HEIGHT 1
+
+// This can be useful when debugging and you want to stop at a breakpoint.
+#define ALLOW_GRAB_MOUSE 1
+
 #define MULTI_SAMPLE_SCALE_FBO 16 // This can't be read at runtime, unless you hack and make a temporary window...
 #define PERSIST_ALL_CHUNKS 0
 #define REMEMBER_BLOCKS 1

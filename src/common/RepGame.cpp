@@ -76,7 +76,7 @@ void RepGame::add_to_an_inventory( BlockID blockId ) {
         globalGameState.block_selection.holdingBlock = blockId;
         globalGameState.ui_overlay.set_holding_block( globalGameState.block_selection.holdingBlock );
     } else {
-        globalGameState.inventory.addBlock( blockId );
+        globalGameState.main_inventory.addBlock( blockId );
     }
 }
 
@@ -312,11 +312,11 @@ static inline void initilizeGameState( const char *world_name ) {
     globalGameState.camera.pos.y = 8.5f;
     globalGameState.camera.pos.z = 0.0f;
     globalGameState.block_selection.holdingBlock = LAST_BLOCK_ID;
-    globalGameState.inventory.inventory_renderer.options.active_height_percent = 0.5f;
-    globalGameState.inventory.inventory_renderer.options.max_height_percent = 0.75f;
-    globalGameState.inventory.inventory_renderer.options.max_width_percent = 0.75f;
-    globalGameState.inventory.inventory_renderer.options.gravity_bottom = false;
-    globalGameState.inventory.inventory_renderer.options.shows_selection_slot = false;
+    globalGameState.main_inventory.inventory_renderer.options.active_height_percent = 0.5f;
+    globalGameState.main_inventory.inventory_renderer.options.max_height_percent = 0.75f;
+    globalGameState.main_inventory.inventory_renderer.options.max_width_percent = 0.75f;
+    globalGameState.main_inventory.inventory_renderer.options.gravity_bottom = false;
+    globalGameState.main_inventory.inventory_renderer.options.shows_selection_slot = false;
 
     globalGameState.hotbar.inventory_renderer.options.active_height_percent = 1.0f;
     globalGameState.hotbar.inventory_renderer.options.max_height_percent = 0.1f;
@@ -326,17 +326,18 @@ static inline void initilizeGameState( const char *world_name ) {
 
     MapStorage::init( world_name );
     PlayerData saved_data;
-    int has_saved_data = MapStorage::read_player_data( &saved_data );
+    int has_saved_data = MapStorage::read_player_data( saved_data );
     if ( has_saved_data ) {
         globalGameState.camera.pos.x = saved_data.world_x;
         globalGameState.camera.pos.y = saved_data.world_y;
         globalGameState.camera.pos.z = saved_data.world_z;
-        globalGameState.block_selection.holdingBlock = saved_data.holdingBlock;
         globalGameState.camera.angle_H = saved_data.angle_H;
         globalGameState.camera.angle_V = saved_data.angle_V;
         globalGameState.input.player_flying = saved_data.flying;
         globalGameState.input.no_clip = saved_data.no_clip;
         globalGameState.input.reflections_on = saved_data.reflections_on;
+        globalGameState.hotbar.applySavedInventory( saved_data.hotbar_inventory );
+        globalGameState.main_inventory.applySavedInventory( saved_data.main_inventory );
     }
 }
 
@@ -366,12 +367,34 @@ RepGameState *RepGame::init( const char *world_name, bool connect_multi, const c
     glBlendFunc( GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA );
     glBlendEquation( GL_FUNC_ADD );
 
-    initilizeGameState( world_name );
+    VertexBufferLayout vbl_ui_overlay_vertex;
+    // These are from UIOverlayVertex
+    vbl_ui_overlay_vertex.init( );
+    vbl_ui_overlay_vertex.push_float( 2 );        // UIOverlayVertex screen_x, screen_y
+    vbl_ui_overlay_vertex.push_float( 2 );        // UIOverlayVertex texture
+    vbl_ui_overlay_vertex.push_unsigned_int( 1 ); // UIOverlayVertex is_isometric
+    vbl_ui_overlay_vertex.push_unsigned_int( 1 ); // UIOverlayVertex face_type
+
+    VertexBufferLayout vbl_ui_overlay_instance;
+    vbl_ui_overlay_instance.init( );
+    vbl_ui_overlay_instance.push_float( 3 );        // UIOverlayInstance screen_x, screen_y, screen_z
+    vbl_ui_overlay_instance.push_float( 2 );        // UIOverlayInstance width, height
+    vbl_ui_overlay_instance.push_unsigned_int( 1 ); // UIOverlayInstance is_block
+    vbl_ui_overlay_instance.push_unsigned_int( 1 ); // UIOverlayInstance is_isometric
+    vbl_ui_overlay_instance.push_float( 3 );        // UIOverlayInstance id_isos
+    vbl_ui_overlay_instance.push_float( 4 );        // UIOverlayInstance tint
+
     globalGameState.blocksTexture.init( texture_source_textures, 0 );
     block_definitions_initilize_definitions( &globalGameState.blocksTexture );
+
+    globalGameState.main_inventory.init( vbl_ui_overlay_vertex, vbl_ui_overlay_instance, MAIN_INVENTORY_WIDTH, MAIN_INVENTORY_HEIGHT );
+    globalGameState.hotbar.init( vbl_ui_overlay_vertex, vbl_ui_overlay_instance, HOTBAR_WIDTH, HOTBAR_HEIGHT );
+
+    initilizeGameState( world_name );
+
     globalGameState.world.init( globalGameState.camera.pos, globalGameState.screen.width, globalGameState.screen.height );
 
-    globalGameState.ui_overlay.init( &globalGameState.inventory, &globalGameState.hotbar );
+    globalGameState.ui_overlay.init( vbl_ui_overlay_vertex, vbl_ui_overlay_instance );
     globalGameState.hotbar.setSelectedSlot( 0 );
     imgui_overlay_init( &globalGameState.imgui_overlay );
 
@@ -411,7 +434,7 @@ void RepGame::changeSize( int w, int h ) {
     globalGameState.input.mouse.previousPosition.x = w / 2;
     globalGameState.input.mouse.previousPosition.y = h / 2;
     globalGameState.ui_overlay.on_screen_size_change( w, h );
-    globalGameState.inventory.onScreenSizeChange( w, h );
+    globalGameState.main_inventory.onScreenSizeChange( w, h );
     globalGameState.hotbar.onScreenSizeChange( w, h );
     globalGameState.screen.proj = glm::perspective<float>( glm::radians( CAMERA_FOV ), globalGameState.screen.width / globalGameState.screen.height, 0.1f, 800.0f );
     globalGameState.screen.ortho = glm::ortho<float>( 0.f, w, 0.f, h, -1.f, 1.f );
@@ -502,7 +525,8 @@ void RepGame::draw( ) {
     glTexParameteri( globalGameState.blocksTexture.target, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE );
     showErrors( );
     glClear( GL_DEPTH_BUFFER_BIT );
-    globalGameState.ui_overlay.draw( globalGameState.world.renderer, globalGameState.blocksTexture, globalGameState.input, globalGameState.screen.ortho_center );
+
+    globalGameState.ui_overlay.draw( globalGameState.main_inventory, globalGameState.hotbar, globalGameState.world.renderer, globalGameState.blocksTexture, globalGameState.input, globalGameState.screen.ortho_center );
     imgui_overlay_draw( &globalGameState.imgui_overlay, globalGameState.input );
     showErrors( );
 }
@@ -512,15 +536,6 @@ void RepGame::cleanup( ) {
     if ( clean_up_done ) {
         return;
     }
-    clean_up_done = 1;
-    globalGameState.multiplayer.cleanup( );
-    globalGameState.world.cleanup( );
-    globalGameState.blocksTexture.destroy( );
-    globalGameState.ui_overlay.cleanup( );
-    globalGameState.inventory.cleanup( );
-    globalGameState.hotbar.cleanup( );
-    imgui_overlay_cleanup( &globalGameState.imgui_overlay );
-    block_definitions_free_definitions( );
 
     PlayerData saved_data;
     saved_data.world_x = globalGameState.camera.pos.x;
@@ -531,12 +546,24 @@ void RepGame::cleanup( ) {
     saved_data.flying = globalGameState.input.player_flying;
     saved_data.no_clip = globalGameState.input.no_clip;
     saved_data.reflections_on = globalGameState.input.reflections_on;
+    globalGameState.hotbar.saveInventory( saved_data.hotbar_inventory );
+    globalGameState.main_inventory.saveInventory( saved_data.main_inventory );
 
-    saved_data.holdingBlock = globalGameState.block_selection.holdingBlock;
-    MapStorage::write_player_data( &saved_data );
+    MapStorage::write_player_data( saved_data );
 #if defined( REPGAME_WASM )
     EM_ASM( "FS.syncfs(false, err => {console.log(\"Sync done, its OK to close RepGame:\", err)});" );
 #endif
+
+    globalGameState.multiplayer.cleanup( );
+    globalGameState.world.cleanup( );
+    globalGameState.blocksTexture.destroy( );
+    globalGameState.ui_overlay.cleanup( );
+    globalGameState.main_inventory.cleanup( );
+    globalGameState.hotbar.cleanup( );
+    imgui_overlay_cleanup( &globalGameState.imgui_overlay );
+    block_definitions_free_definitions( );
+
+    clean_up_done = 1;
     // pr_debug( "RepGame cleanup done" );
 }
 

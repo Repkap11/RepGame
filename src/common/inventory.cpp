@@ -10,11 +10,26 @@ void Inventory::init( const VertexBufferLayout &ui_overlay_vbl_vertex, const Ver
 
     this->inventory_renderer.init( ui_overlay_vbl_vertex, ui_overlay_vbl_instance, width, height );
     for ( int i_slot = 0; i_slot < this->num_blocks_max; i_slot++ ) {
-        InventorySlot *slot = &this->slots[ i_slot ];
-        slot->block_id = LAST_BLOCK_ID;
-        // slot->block_id = TNT;
-        // slot->block_id = ( BlockID )( i_slot % 5 );
-        // slot->block_id = ( BlockID )( i_slot );
+        InventorySlot &slot = this->slots[ i_slot ];
+        slot.block_id = LAST_BLOCK_ID;
+        slot.quantity = 0;
+        // slot.block_id = TNT;
+        // slot.block_id = ( BlockID )( i_slot % 5 );
+        // slot.block_id = ( BlockID )( i_slot );
+    }
+}
+void Inventory::applySavedInventory( const InventorySlot *savedSlots ) {
+    for ( int i_slot = 0; i_slot < this->num_blocks_max; i_slot++ ) {
+        const InventorySlot &slot = savedSlots[ i_slot ];
+        this->slots[ i_slot ] = slot;
+        blockId_to_slot_map.emplace( slot.block_id, i_slot );
+        this->inventory_renderer.changeSlotItem( i_slot, slot );
+    }
+}
+
+void Inventory::saveInventory( InventorySlot *savedSlots ) {
+    for ( int i_slot = 0; i_slot < this->num_blocks_max; i_slot++ ) {
+        savedSlots[ i_slot ] = this->slots[ i_slot ];
     }
 }
 
@@ -96,9 +111,6 @@ BlockID Inventory::dropSelectedItem( ) {
     slot.block_id = LAST_BLOCK_ID;
     this->inventory_renderer.changeSlotItem( this->selected_slot, slot );
     return droppedBlock;
-}
-
-void Inventory::handleMouseInput( Input &inputState ) {
 }
 
 void Inventory::cleanup( ) {

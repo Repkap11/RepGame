@@ -59,7 +59,7 @@ struct RepGameState {
     World world;
     UIOverlay ui_overlay;
     ImGuiOverlay imgui_overlay;
-    Inventory inventory;
+    Inventory main_inventory;
     Inventory hotbar;
     struct {
         int selectionInBounds;
@@ -73,7 +73,7 @@ struct RepGameState {
 };
 
 typedef struct {
-    BlockID holdingBlock;
+    int reserved;
     float world_x;
     float world_y;
     float world_z;
@@ -82,6 +82,9 @@ typedef struct {
     bool flying;
     bool no_clip;
     bool reflections_on;
+    InventorySlot hotbar_inventory[ HOTBAR_WIDTH * HOTBAR_HEIGHT ];
+    InventorySlot main_inventory[ MAIN_INVENTORY_WIDTH * MAIN_INVENTORY_HEIGHT ];
+
 } PlayerData;
 
 class RepGame {

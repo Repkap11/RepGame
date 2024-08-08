@@ -104,8 +104,9 @@ void InventoryRenderer::init( const VertexBufferLayout &ui_overlay_vbl_vertex, c
     this->render_chain_inventory_background.init( ui_overlay_vbl_vertex, ui_overlay_vbl_instance, vb_isometric_quad, VB_ISOMETRIC_QUAD_SIZE, ib_isometric_quad, IB_ISOMETRIC_QUAD_SIZE );
 
     for ( int i_slot = 0; i_slot < this->num_blocks_max; i_slot++ ) {
-        auto pair = this->render_chain_inventory_icons.create_instance( );
-        this->slots_entities[ i_slot ] = pair.first;
+        // auto pair = this->render_chain_inventory_icons.create_instance( );
+        // this->slots_entities[ i_slot ] = pair.first;
+        this->slots_entities[ i_slot ] = entt::null;
     }
 }
 
@@ -232,8 +233,7 @@ void InventoryRenderer::setSize( UIOverlayInstance &vertex, float left, float bo
     vertex.height = height;
 }
 
-void InventoryRenderer::changeSlotItem( int slot_index, InventorySlot &slot ) {
-    entt::entity &slot_entity = this->slots_entities[ slot_index ];
+void InventoryRenderer::changeSlotItem( int slot_index, const InventorySlot &slot ) {
     this->singleItemRender( slot_index, slot );
 }
 

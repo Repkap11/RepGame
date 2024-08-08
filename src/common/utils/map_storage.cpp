@@ -219,17 +219,16 @@ int MapStorage::load( Chunk &chunk ) {
     return 1;
 }
 
-int MapStorage::read_player_data( PlayerData *player_data ) {
+int MapStorage::read_player_data( PlayerData &player_data ) {
     char file_name[ CHUNK_NAME_LENGTH ];
-    if ( snprintf( file_name, CHUNK_NAME_LENGTH, file_root_player_data, map_name ) != CHUNK_NAME_LENGTH ) {
-    }
+    snprintf( file_name, CHUNK_NAME_LENGTH, file_root_player_data, map_name );
     FILE *read_ptr = fopen( file_name, "rb" );
     if ( !read_ptr ) {
         pr_debug( "No player data:%s (%p)", file_name, read_ptr );
         return 0;
     }
-    memset( player_data, 0, sizeof( PlayerData ) );
-    int persist_data_length = fread( player_data, 1, sizeof( PlayerData ), read_ptr );
+    memset( &player_data, 0, sizeof( PlayerData ) );
+    int persist_data_length = fread( &player_data, 1, sizeof( PlayerData ), read_ptr );
     if ( persist_data_length != sizeof( PlayerData ) ) {
         pr_debug( "Warning, wrong size player data. Read:%d expected:%d", persist_data_length, ( int )sizeof( PlayerData ) );
     }
@@ -237,15 +236,14 @@ int MapStorage::read_player_data( PlayerData *player_data ) {
     return 1;
 }
 
-void MapStorage::write_player_data( PlayerData *player_data ) {
+void MapStorage::write_player_data( const PlayerData &player_data ) {
     char file_name[ CHUNK_NAME_LENGTH ];
-    if ( snprintf( file_name, CHUNK_NAME_LENGTH, file_root_player_data, map_name ) != CHUNK_NAME_LENGTH ) {
-    }
+    snprintf( file_name, CHUNK_NAME_LENGTH, file_root_player_data, map_name ) ;
     FILE *write_ptr = fopen( file_name, "wb" );
     if ( !write_ptr ) {
         pr_debug( "Can't write player:%s (%p)", file_name, write_ptr );
         return;
     }
-    fwrite( player_data, sizeof( PlayerData ), 1, write_ptr );
+    fwrite( &player_data, sizeof( PlayerData ), 1, write_ptr );
     fclose( write_ptr );
 }
