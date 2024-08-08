@@ -67,13 +67,6 @@ bool Inventory::addBlock( BlockID blockId ) {
         int existingSlot = it->second;
         this->selected_slot = existingSlot;
         this->inventory_renderer.setSelectedSlot( this->selected_slot );
-
-        // // This is an existing block, picking it again removes it from the inventory for now
-        // int existingSlot = it->second;
-        // blockId_to_slot_map.erase( it );
-        // InventorySlot &slot = this->slots[ existingSlot ];
-        // slot.block_id = LAST_BLOCK_ID;
-        // this->inventory_renderer.changeSlotItem( existingSlot, slot );
     }
     return true;
 };
@@ -88,6 +81,21 @@ BlockID Inventory::setSelectedSlot( int selected_slot ) {
     this->selected_slot = selected_slot;
     this->inventory_renderer.setSelectedSlot( this->selected_slot );
     return this->slots[ this->selected_slot ].block_id;
+}
+BlockID Inventory::dropSelectedItem( ) {
+    if ( this->selected_slot == -1 ) {
+        return LAST_BLOCK_ID;
+    }
+    InventorySlot &slot = this->slots[ this->selected_slot ];
+    BlockID droppedBlock = slot.block_id;
+    if ( droppedBlock == LAST_BLOCK_ID ) {
+        // There is no block, so we can't drop anything
+        return LAST_BLOCK_ID;
+    }
+    blockId_to_slot_map.erase( droppedBlock );
+    slot.block_id = LAST_BLOCK_ID;
+    this->inventory_renderer.changeSlotItem( this->selected_slot, slot );
+    return droppedBlock;
 }
 
 void Inventory::handleMouseInput( Input &inputState ) {

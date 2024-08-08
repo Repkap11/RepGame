@@ -23,6 +23,7 @@ class Inventory {
     void handleMouseInput( Input &inputState );
     BlockID setSelectedSlot( int selected_slot );
     BlockID incrementSelectedSlot( int offset );
+    BlockID dropSelectedItem( );
     void draw( const Renderer &renderer, const Texture &blocksTexture, const Shader &shader );
     void cleanup( );
 };

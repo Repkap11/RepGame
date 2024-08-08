@@ -235,6 +235,13 @@ void RepGame::process_block_updates( ) {
     globalGameState.blockUpdateQueue.processAllBlockUpdates( globalGameState, globalGameState.tick_number );
 }
 
+void RepGame::process_inventory_events( ) {
+    if ( globalGameState.input.drop_item ) {
+        globalGameState.input.drop_item = false;
+        globalGameState.hotbar.dropSelectedItem( );
+    }
+}
+
 void RepGame::tick( ) {
     if ( globalGameState.input.exitGame ) {
         // Don't bother updating the state if the game is exiting
@@ -291,6 +298,7 @@ void RepGame::tick( ) {
     globalGameState.input.mouse.previousPosition.y = globalGameState.input.mouse.currentPosition.y;
     globalGameState.input.mouse.previousPosition.wheel_counts = globalGameState.input.mouse.currentPosition.wheel_counts;
 
+    RepGame::process_inventory_events( );
     RepGame::process_block_updates( );
 }
 
@@ -303,7 +311,7 @@ static inline void initilizeGameState( const char *world_name ) {
     globalGameState.camera.pos.x = 0.0f;
     globalGameState.camera.pos.y = 8.5f;
     globalGameState.camera.pos.z = 0.0f;
-    globalGameState.block_selection.holdingBlock = GRASS;
+    globalGameState.block_selection.holdingBlock = LAST_BLOCK_ID;
     globalGameState.inventory.inventory_renderer.options.active_height_percent = 0.5f;
     globalGameState.inventory.inventory_renderer.options.max_height_percent = 0.75f;
     globalGameState.inventory.inventory_renderer.options.max_width_percent = 0.75f;

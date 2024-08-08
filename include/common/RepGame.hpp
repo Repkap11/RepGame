@@ -91,6 +91,7 @@ class RepGame {
     void process_camera_angle( );
     void process_movement( );
     void process_block_updates( );
+    void process_inventory_events( );
 
   public:
     void renderShaders( int x, int y, int z );
