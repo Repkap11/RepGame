@@ -1,6 +1,7 @@
 #include <string.h>
 #include <stdio.h>
 #include "common/RepGame.hpp"
+#include <signal.h>
 
 int main( int argc, char **argv ) {
     const char *world_path;
@@ -25,5 +26,10 @@ int main( int argc, char **argv ) {
         pr_debug( "\nusage: %s world_path\n\tWhere world_path is relitive to the executable.", argv[ 0 ] );
         return -1;
     }
+
+    struct sigaction action;
+    sigaction( SIGINT, NULL, &action );
+    SDL_Init( SDL_INIT_EVERYTHING );
+    sigaction( SIGINT, &action, NULL );
     return repgame_sdl2_main( world_path, host, connect_multi, tests );
 }
