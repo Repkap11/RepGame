@@ -1,24 +1,24 @@
 #include "common/RepGame.hpp"
 
-void input_lookMove( InputState *inputState, int x, int y ) {
-    inputState->mouse.currentPosition.x = x;
-    inputState->mouse.currentPosition.y = y;
+void Input::lookMove( int x, int y ) {
+    this->mouse.currentPosition.x = x;
+    this->mouse.currentPosition.y = y;
 }
-void input_positionHMove( InputState *inputState, float sizeH, float angleH ) {
-    inputState->movement.sizeH = sizeH;
-    inputState->movement.angleH = angleH;
-}
-
-void input_setJumpPressed( InputState *inputState, int jumpPressed ) {
-    inputState->movement.jumpPressed = jumpPressed;
+void Input::positionHMove( float sizeH, float angleH ) {
+    this->movement.sizeH = sizeH;
+    this->movement.angleH = angleH;
 }
 
-void input_onInventoryClicked( InputState *inputState ) {
-    inputState->inventory_open = !inputState->inventory_open;
+void Input::setJumpPressed( int jumpPressed ) {
+    this->movement.jumpPressed = jumpPressed;
 }
 
-void input_setButtonState( InputState *inputState, int left, int middle, int right ) {
-    inputState->mouse.buttons.left = left;
-    inputState->mouse.buttons.middle = middle;
-    inputState->mouse.buttons.right = right;
+void Input::onInventoryClicked( ) {
+    this->inventory_open = !this->inventory_open;
+}
+
+void Input::setButtonState( int left, int middle, int right ) {
+    this->mouse.buttons.left = left;
+    this->mouse.buttons.middle = middle;
+    this->mouse.buttons.right = right;
 }

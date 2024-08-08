@@ -16,19 +16,20 @@ void repgame_linux_process_sdl_events( RepGame &repgame ) {
         imgui_overlay_handle_sdl2_event( &globalGameState->imgui_overlay, &event, &handledMouse, &handledKeyboard );
 #endif
         // pr_debug( "Event: mouse:%d keyboard:%d", handledMouse, handledKeyboard );
+        Input &input = repgame.getInputState( );
         switch ( event.type ) {
             case SDL_KEYDOWN:
             case SDL_KEYUP:
                 if ( handledKeyboard ) {
                     break;
                 }
-                input_keysInput( repgame.getInputState( ), event.key.keysym.sym, event.type == SDL_KEYDOWN );
+                input.keysInput( event.key.keysym.sym, event.type == SDL_KEYDOWN );
                 break;
             case SDL_WINDOWEVENT:
                 if ( event.window.event == SDL_WINDOWEVENT_RESIZED ) {
                     repgame.changeSize( event.window.data1, event.window.data2 );
                 } else if ( event.window.event == SDL_WINDOWEVENT_CLOSE ) {
-                    input_quit( repgame.getInputState( ) );
+                    input.quit( );
                 }
                 break;
             case SDL_MOUSEBUTTONDOWN:
@@ -36,19 +37,19 @@ void repgame_linux_process_sdl_events( RepGame &repgame ) {
                 if ( handledMouse ) {
                     break;
                 }
-                input_mouseInput( repgame.getInputState( ), event.button.button, event.type == SDL_MOUSEBUTTONUP );
+                input.mouseInput( event.button.button, event.type == SDL_MOUSEBUTTONUP );
                 break;
             case SDL_MOUSEWHEEL:
                 if ( handledMouse ) {
                     break;
                 }
-                input_mouseWheel( repgame.getInputState( ), event.wheel.x, event.wheel.y );
+                input.mouseWheel( event.wheel.x, event.wheel.y );
                 break;
             case SDL_MOUSEMOTION:
                 if ( handledMouse ) {
                     break;
                 }
-                input_lookMove( repgame.getInputState( ), event.motion.xrel, event.motion.yrel );
+                input.lookMove( event.motion.xrel, event.motion.yrel );
                 break;
         }
     }

@@ -216,7 +216,7 @@ void UIOverlay::set_holding_block( BlockID holding_block ) {
     pair.second = vb_data_holding_block_instance;
 }
 
-void UIOverlay::draw( const Renderer &renderer, const Texture &blocksTexture, InputState *input, const glm::mat4 &mvp_ui ) {
+void UIOverlay::draw( const Renderer &renderer, const Texture &blocksTexture, Input &input, const glm::mat4 &mvp_ui ) {
 
     // if ( true ) {
     //     const ImGuiDebugVars &debug_vars = imgUIOverlay::get_imgui_debug_vars( );
@@ -238,7 +238,7 @@ void UIOverlay::draw( const Renderer &renderer, const Texture &blocksTexture, In
     this->hotbar->draw( renderer, blocksTexture, this->shader );
     this->render_chain_held_block.draw( renderer, this->shader );
 
-    if ( input->inventory_open ) {
+    if ( input.inventory_open ) {
         this->inventory->handleMouseInput( input );
         this->inventory->draw( renderer, blocksTexture, this->shader );
     } else {

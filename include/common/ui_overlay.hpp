@@ -52,7 +52,7 @@ class UIOverlay {
     void init( Inventory *inventory, Inventory *hotbar );
     void on_screen_size_change( int width, int height );
     void set_holding_block( BlockID holding_block );
-    void draw( const Renderer &renderer, const Texture &blocksTexture, InputState *input, const glm::mat4 &mvp_ui );
+    void draw( const Renderer &renderer, const Texture &blocksTexture, Input &input, const glm::mat4 &mvp_ui );
     void cleanup( );
 };
 

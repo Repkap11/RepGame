@@ -494,8 +494,8 @@ void RepGame::draw( ) {
     glTexParameteri( globalGameState.blocksTexture.target, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE );
     showErrors( );
     glClear( GL_DEPTH_BUFFER_BIT );
-    globalGameState.ui_overlay.draw( globalGameState.world.renderer, globalGameState.blocksTexture, &globalGameState.input, globalGameState.screen.ortho_center );
-    imgui_overlay_draw( &globalGameState.imgui_overlay, &globalGameState.input );
+    globalGameState.ui_overlay.draw( globalGameState.world.renderer, globalGameState.blocksTexture, globalGameState.input, globalGameState.screen.ortho_center );
+    imgui_overlay_draw( &globalGameState.imgui_overlay, globalGameState.input );
     showErrors( );
 }
 
@@ -532,6 +532,6 @@ void RepGame::cleanup( ) {
     // pr_debug( "RepGame cleanup done" );
 }
 
-InputState *RepGame::getInputState( ) {
-    return &globalGameState.input;
+Input &RepGame::getInputState( ) {
+    return globalGameState.input;
 }

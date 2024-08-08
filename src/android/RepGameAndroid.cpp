@@ -98,23 +98,28 @@ JNIEXPORT void JNICALL Java_com_repkap11_repgame_RepGameJNIWrapper_onDrawFrame( 
 #define ANDROID_PAN_SENSITIVITY 2
 
 JNIEXPORT void JNICALL Java_com_repkap11_repgame_RepGameJNIWrapper_lookInput( JNIEnv *env, jobject obj, jint xdiff, jint ydiff ) {
-    input_lookMove( repgame.getInputState( ), current_screen_width / 2 + xdiff * ANDROID_PAN_SENSITIVITY, current_screen_height / 2 + ydiff * ANDROID_PAN_SENSITIVITY );
+    Input &input = repgame.getInputState( );
+    input.lookMove(current_screen_width / 2 + xdiff * ANDROID_PAN_SENSITIVITY, current_screen_height / 2 + ydiff * ANDROID_PAN_SENSITIVITY );
 }
 
 JNIEXPORT void JNICALL Java_com_repkap11_repgame_RepGameJNIWrapper_setButtonState( JNIEnv *env, jobject obj, jint left, jint middle, jint right ) {
-    input_setButtonState( repgame.getInputState( ), left, middle, right );
+    Input &input = repgame.getInputState( );
+    input.setButtonState(left, middle, right );
 }
 
 #define ANDROID_MOVE_SENSITIVITY 1
 JNIEXPORT void JNICALL Java_com_repkap11_repgame_RepGameJNIWrapper_positionHInput( JNIEnv *env, jobject obj, jfloat sizeH, jfloat angleH ) {
-    input_positionHMove( repgame.getInputState( ), sizeH * ANDROID_MOVE_SENSITIVITY, angleH );
+    Input &input = repgame.getInputState( );
+    input.positionHMove(sizeH * ANDROID_MOVE_SENSITIVITY, angleH );
 }
 JNIEXPORT void JNICALL Java_com_repkap11_repgame_RepGameJNIWrapper_setJumpPressed( JNIEnv *env, jobject obj, jint jumpPressed ) {
-    input_setJumpPressed( repgame.getInputState( ), jumpPressed );
+    Input &input = repgame.getInputState( );
+    input.setJumpPressed(jumpPressed );
 }
 
 JNIEXPORT void JNICALL Java_com_repkap11_repgame_RepGameJNIWrapper_onInventoryClicked( JNIEnv *env, jobject obj ) {
-    input_onInventoryClicked( repgame.getInputState( ) );
+    Input &input = repgame.getInputState( );
+    repgame.getInputState( ).onInventoryClicked( );
 }
 
 } // End Extern C

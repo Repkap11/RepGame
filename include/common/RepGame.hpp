@@ -35,7 +35,7 @@ struct RepGameState;
 struct RepGameState {
     double frame_rate;
     Multiplayer multiplayer;
-    InputState input;
+    Input input;
     struct {
         float angle_H;
         float angle_V;
@@ -101,7 +101,7 @@ class RepGame {
     void draw( );
     void set_textures( unsigned int which_texture, unsigned char *textures, int textures_len );
     void cleanup( );
-    InputState *getInputState( );
+    Input &getInputState( );
 
     void changeSize( int x, int y );
     void get_screen_size( int *width, int *height );

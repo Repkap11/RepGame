@@ -61,7 +61,7 @@ void imgui_overlay_handle_sdl2_event( ImGuiOverlay *ui_overlay, SDL_Event *event
     *handledKeyboard = io.WantCaptureKeyboard;
 }
 
-void imgui_overlay_draw( ImGuiOverlay *imgui_overlay, InputState *input ) {
+void imgui_overlay_draw( ImGuiOverlay *imgui_overlay, Input &input ) {
     ImGui_ImplOpenGL3_NewFrame( );
     ImGui_ImplSDL2_NewFrame( );
     ImGui::NewFrame( );
@@ -69,7 +69,7 @@ void imgui_overlay_draw( ImGuiOverlay *imgui_overlay, InputState *input ) {
     if ( SHOW_IMGUI ) {
         ImGuiIO &io = ImGui::GetIO( );
         if ( false ) {
-            ImGui::ShowDemoWindow( &input->inventory_open );
+            ImGui::ShowDemoWindow( &input.inventory_open );
         } else {
 
             ImGui::Begin( "RepGame" ); // Create a window called "Hello, world!" and append into it.
@@ -81,8 +81,8 @@ void imgui_overlay_draw( ImGuiOverlay *imgui_overlay, InputState *input ) {
             // debug_vars.corner1.y = round( debug_vars.corner1.y * 20 ) / 20;
 
             // ImGui::Text( "This is some useful text." );               // Display some text (you can use a format strings too)
-            // ImGui::Checkbox( "Demo Window", &input->inventory_open ); // Edit bools storing our window open/close state
-            // ImGui::Checkbox( "Another Window", &input->inventory_open );
+            // ImGui::Checkbox( "Demo Window", &input.inventory_open ); // Edit bools storing our window open/close state
+            // ImGui::Checkbox( "Another Window", &input.inventory_open );
 
             // if ( ImGui::Button( "Button" ) ) // Buttons return true when clicked (most widgets return true when edited/activated)
             //     counter++;
@@ -104,7 +104,7 @@ void imgui_overlay_cleanup( ImGuiOverlay *imgui_overlay ) {
 #else
 void imgui_overlay_init( ImGuiOverlay *imgui_overlay ) {
 }
-void imgui_overlay_draw( ImGuiOverlay *ui_overlay, InputState *input ) {
+void imgui_overlay_draw( ImGuiOverlay *ui_overlay, Input &input ) {
 }
 void imgui_overlay_cleanup( ImGuiOverlay *ui_overlay ) {
 }

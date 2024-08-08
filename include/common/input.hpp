@@ -1,7 +1,10 @@
 #ifndef HEADER_INPUT_H
 #define HEADER_INPUT_H
 
-typedef struct {
+class Input {
+    void processMovement( );
+
+  public:
     struct {
         float sizeH;
         float angleH;
@@ -34,20 +37,20 @@ typedef struct {
     bool player_sprinting;
     bool no_clip;
     bool reflections_on;
-} InputState;
+    bool drop_item;
 
 #if defined( REPGAME_LINUX ) || defined( REPGAME_WINDOWS ) || defined( REPGAME_WASM )
-void input_mouseInput( InputState *inputState, int button, int state );
-void input_set_enable_mouse( int enable );
-void input_keysInput( InputState *inputState, SDL_Keycode key, int pressed );
-void input_mouseWheel( InputState *inputState, int x_delta, int y_delta );
-void input_quit( InputState *inputState );
+    void mouseInput( int button, int state );
+    void set_enable_mouse( int enable );
+    void keysInput( SDL_Keycode key, int pressed );
+    void mouseWheel( int x_delta, int y_delta );
+    void quit( );
 #else
-void input_positionHMove( InputState *inputState, float sizeH, float angleH );
-void input_setJumpPressed( InputState *inputState, int jumpPressed );
-void input_setButtonState( InputState *inputState, int left, int middle, int right );
-void input_onInventoryClicked( InputState *inputState );
+    void positionHMove( float sizeH, float angleH );
+    void setJumpPressed( int jumpPressed );
+    void setButtonState( int left, int middle, int right );
+    void onInventoryClicked( );
 #endif
-void input_lookMove( InputState *inputState, int x, int y );
-
+    void lookMove( int x, int y );
+};
 #endif

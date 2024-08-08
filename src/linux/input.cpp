@@ -2,7 +2,7 @@
 
 int front, back, left, right, up, down;
 
-void processMovement( InputState *inputState ) {
+void Input::processMovement( ) {
     float angleH = 0;
     int sizeH = 0;
     int jumpPressed = false;
@@ -47,44 +47,46 @@ void processMovement( InputState *inputState ) {
     if ( down ) {
         sneakPressed = true;
     }
-    inputState->movement.angleH = angleH;
-    inputState->movement.jumpPressed = jumpPressed;
-    inputState->movement.sneakPressed = sneakPressed;
-    inputState->movement.sizeH = sizeH;
+    this->movement.angleH = angleH;
+    this->movement.jumpPressed = jumpPressed;
+    this->movement.sneakPressed = sneakPressed;
+    this->movement.sizeH = sizeH;
 }
 
-void input_mouseInput( InputState *inputState, int button, int state ) {
+void Input::mouseInput( int button, int state ) {
     switch ( button ) {
         case SDL_BUTTON_LEFT:
-            inputState->mouse.buttons.left = !state;
+            this->mouse.buttons.left = !state;
             // pr_debug( "Left Click %d", !state );
             break;
         case SDL_BUTTON_RIGHT:
-            inputState->mouse.buttons.right = !state;
+            this->mouse.buttons.right = !state;
             // pr_debug( "Right Click %d", !state );
             break;
         case SDL_BUTTON_MIDDLE:
-            inputState->mouse.buttons.middle = !state;
+            this->mouse.buttons.middle = !state;
             // pr_debug( "Middle Click %d", !state );
             break;
 
             pr_debug( "Other mouse %d", button );
     }
 }
-void input_mouseWheel( InputState *inputState, int x_delta, int y_delta ) {
-    inputState->mouse.currentPosition.wheel_counts += y_delta;
+void Input::mouseWheel( int x_delta, int y_delta ) {
+    this->mouse.currentPosition.wheel_counts += y_delta;
 }
 
-void input_quit( InputState *inputState ) {
-    inputState->exitGame = 1;
+void Input::quit( ) {
+    this->exitGame = 1;
 }
 
-void input_keysInput( InputState *inputState, SDL_Keycode key, int pressed ) {
+void Input::keysInput( SDL_Keycode key, int pressed ) {
 
     switch ( key ) {
         case 'q':
+            this->drop_item = true;
+            break;
         case SDLK_ESCAPE: // escape
-            inputState->exitGame = 1;
+            this->exitGame = 1;
             break;
 
         case 'w':
@@ -136,7 +138,7 @@ void input_keysInput( InputState *inputState, SDL_Keycode key, int pressed ) {
             break;
 
         case 'p':
-            inputState->player_sprinting = pressed;
+            this->player_sprinting = pressed;
             break;
 
         case ' ':
@@ -159,28 +161,28 @@ void input_keysInput( InputState *inputState, SDL_Keycode key, int pressed ) {
 
         case 'f':
             if ( pressed ) {
-                inputState->player_flying = !inputState->player_flying;
+                this->player_flying = !this->player_flying;
             }
             break;
         case 'c':
             if ( pressed ) {
-                inputState->no_clip = !inputState->no_clip;
+                this->no_clip = !this->no_clip;
             }
 
             break;
         case 'm':
             if ( pressed ) {
-                inputState->debug_mode = !inputState->debug_mode;
+                this->debug_mode = !this->debug_mode;
             }
             break;
         case 'i':
             if ( pressed ) {
-                inputState->inventory_open = !inputState->inventory_open;
+                this->inventory_open = !this->inventory_open;
             }
             break;
         case 'r':
             if ( pressed ) {
-                inputState->reflections_on = !inputState->reflections_on;
+                this->reflections_on = !this->reflections_on;
             }
             break;
 
@@ -193,11 +195,11 @@ void input_keysInput( InputState *inputState, SDL_Keycode key, int pressed ) {
             }
             break;
     }
-    processMovement( inputState );
+    processMovement( );
 }
 
-void input_lookMove( InputState *inputState, int x, int y ) {
+void Input::lookMove( int x, int y ) {
     // pr_debug( "Using location %d %d", x, y );
-    inputState->mouse.currentPosition.x += x;
-    inputState->mouse.currentPosition.y += y;
+    this->mouse.currentPosition.x += x;
+    this->mouse.currentPosition.y += y;
 }

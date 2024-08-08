@@ -20,7 +20,7 @@ class Inventory {
     void init( const VertexBufferLayout &ui_overlay_vbl_vertex, const VertexBufferLayout &ui_overlay_vbl_instance, int width, int height );
     void onScreenSizeChange( int width, int height );
     bool addBlock( BlockID blockId );
-    void handleMouseInput( InputState *inputState );
+    void handleMouseInput( Input &inputState );
     BlockID setSelectedSlot( int selected_slot );
     BlockID incrementSelectedSlot( int offset );
     void draw( const Renderer &renderer, const Texture &blocksTexture, const Shader &shader );

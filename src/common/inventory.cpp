@@ -90,7 +90,7 @@ BlockID Inventory::setSelectedSlot( int selected_slot ) {
     return this->slots[ this->selected_slot ].block_id;
 }
 
-void Inventory::handleMouseInput( InputState *inputState ) {
+void Inventory::handleMouseInput( Input &inputState ) {
 }
 
 void Inventory::cleanup( ) {
