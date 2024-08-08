@@ -6,7 +6,6 @@ void Inventory::init( const VertexBufferLayout &ui_overlay_vbl_vertex, const Ver
     this->height = height;
     this->num_blocks_max = width * height;
     this->slots = ( InventorySlot * )calloc( this->num_blocks_max, sizeof( InventorySlot ) );
-    this->selected_slot = -1;
 
     this->inventory_renderer.init( ui_overlay_vbl_vertex, ui_overlay_vbl_instance, width, height );
     for ( int i_slot = 0; i_slot < this->num_blocks_max; i_slot++ ) {
@@ -17,6 +16,7 @@ void Inventory::init( const VertexBufferLayout &ui_overlay_vbl_vertex, const Ver
         // slot.block_id = ( BlockID )( i_slot % 5 );
         // slot.block_id = ( BlockID )( i_slot );
     }
+    setSelectedSlot( 0 );
 }
 void Inventory::applySavedInventory( const InventorySlot *savedSlots ) {
     for ( int i_slot = 0; i_slot < this->num_blocks_max; i_slot++ ) {
@@ -72,30 +72,31 @@ bool Inventory::addBlock( BlockID blockId ) {
         InventorySlot &slot = this->slots[ newSlot ];
         slot.block_id = blockId;
         if ( newSlot != this->selected_slot ) {
-            this->selected_slot = newSlot;
-            this->inventory_renderer.setSelectedSlot( this->selected_slot );
+            this->setSelectedSlot( newSlot );
         }
         this->inventory_renderer.changeSlotItem( this->selected_slot, slot );
 
     } else {
         // This is an existing block, make that slot active.
         int existingSlot = it->second;
-        this->selected_slot = existingSlot;
-        this->inventory_renderer.setSelectedSlot( this->selected_slot );
+        setSelectedSlot( existingSlot );
     }
     return true;
 };
 BlockID Inventory::incrementSelectedSlot( int offset ) {
     // Always positive modulo, so that we don't go out of bounds
-    this->selected_slot = ( this->selected_slot + this->num_blocks_max + offset ) % this->num_blocks_max;
-    this->inventory_renderer.setSelectedSlot( this->selected_slot );
+    this->setSelectedSlot( ( this->selected_slot + this->num_blocks_max + offset ) % this->num_blocks_max );
     return this->slots[ this->selected_slot ].block_id;
 }
 
-BlockID Inventory::setSelectedSlot( int selected_slot ) {
+BlockID Inventory::getSelectedBlock( ) {
+    return this->slots[ this->selected_slot ].block_id;
+}
+
+void Inventory::setSelectedSlot( int selected_slot ) {
     this->selected_slot = selected_slot;
     this->inventory_renderer.setSelectedSlot( this->selected_slot );
-    return this->slots[ this->selected_slot ].block_id;
+    return;
 }
 BlockID Inventory::dropSelectedItem( ) {
     if ( this->selected_slot == -1 ) {

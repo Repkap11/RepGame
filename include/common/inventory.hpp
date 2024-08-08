@@ -20,8 +20,9 @@ class Inventory {
     void init( const VertexBufferLayout &ui_overlay_vbl_vertex, const VertexBufferLayout &ui_overlay_vbl_instance, int width, int height );
     void onScreenSizeChange( int width, int height );
     bool addBlock( BlockID blockId );
-    BlockID setSelectedSlot( int selected_slot );
+    void setSelectedSlot( int selected_slot );
     BlockID incrementSelectedSlot( int offset );
+    BlockID getSelectedBlock( );
     BlockID dropSelectedItem( );
     void applySavedInventory( const InventorySlot *savedSlots );
     void saveInventory( InventorySlot *savedSlots );

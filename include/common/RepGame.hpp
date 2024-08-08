@@ -64,7 +64,6 @@ struct RepGameState {
     struct {
         int selectionInBounds;
         int face;
-        BlockID holdingBlock;
         glm::ivec3 pos_create;
         glm::ivec3 pos_destroy;
     } block_selection;

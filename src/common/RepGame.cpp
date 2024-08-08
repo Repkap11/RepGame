@@ -73,8 +73,7 @@ unsigned char getPlacedRotation( BlockID blockID ) {
 void RepGame::add_to_an_inventory( BlockID blockId ) {
     bool didAdd = globalGameState.hotbar.addBlock( blockId );
     if ( didAdd ) {
-        globalGameState.block_selection.holdingBlock = blockId;
-        globalGameState.ui_overlay.set_holding_block( globalGameState.block_selection.holdingBlock );
+        globalGameState.ui_overlay.set_holding_block( blockId );
     } else {
         globalGameState.main_inventory.addBlock( blockId );
     }
@@ -100,9 +99,10 @@ void RepGame::process_mouse_events( ) {
     }
     if ( globalGameState.block_selection.selectionInBounds && globalGameState.input.mouse.buttons.right && globalGameState.input.click_delay_right == 0 ) {
         // Placeing a block
-        if ( globalGameState.block_selection.holdingBlock != LAST_BLOCK_ID ) {
-            unsigned char rotation = getPlacedRotation( globalGameState.block_selection.holdingBlock );
-            BlockID previous_block = change_block( 1, { globalGameState.block_selection.holdingBlock, rotation, 0, globalGameState.block_selection.holdingBlock } );
+        BlockID holdingBlock = globalGameState.hotbar.getSelectedBlock( );
+        if ( holdingBlock != LAST_BLOCK_ID ) {
+            unsigned char rotation = getPlacedRotation( holdingBlock );
+            BlockID previous_block = change_block( 1, { holdingBlock, rotation, 0, holdingBlock } );
             globalGameState.input.click_delay_right = 30;
         }
     }
@@ -239,6 +239,8 @@ void RepGame::process_inventory_events( ) {
     if ( globalGameState.input.drop_item ) {
         globalGameState.input.drop_item = false;
         globalGameState.hotbar.dropSelectedItem( );
+        BlockID holdingBlock = globalGameState.hotbar.getSelectedBlock( );
+        globalGameState.ui_overlay.set_holding_block( holdingBlock );
     }
 }
 
@@ -253,8 +255,8 @@ void RepGame::tick( ) {
 
     int wheel_diff = globalGameState.input.mouse.previousPosition.wheel_counts - globalGameState.input.mouse.currentPosition.wheel_counts;
     if ( wheel_diff != 0 ) {
-        globalGameState.block_selection.holdingBlock = globalGameState.hotbar.incrementSelectedSlot( wheel_diff );
-        globalGameState.ui_overlay.set_holding_block( globalGameState.block_selection.holdingBlock );
+        BlockID holdingBlock = globalGameState.hotbar.incrementSelectedSlot( wheel_diff );
+        globalGameState.ui_overlay.set_holding_block( holdingBlock );
     }
 
     if ( RepGame::should_lock_pointer( ) ) {
@@ -309,9 +311,9 @@ static inline void initilizeGameState( const char *world_name ) {
     globalGameState.camera.angle_H = 135.0f;
     globalGameState.camera.angle_V = 25.0f;
     globalGameState.camera.pos.x = 0.0f;
-    globalGameState.camera.pos.y = 8.5f;
+    globalGameState.camera.pos.y = 8.0f;
     globalGameState.camera.pos.z = 0.0f;
-    globalGameState.block_selection.holdingBlock = LAST_BLOCK_ID;
+    globalGameState.camera.y_speed = 0.0f;
     globalGameState.main_inventory.inventory_renderer.options.active_height_percent = 0.5f;
     globalGameState.main_inventory.inventory_renderer.options.max_height_percent = 0.75f;
     globalGameState.main_inventory.inventory_renderer.options.max_width_percent = 0.75f;
@@ -339,6 +341,8 @@ static inline void initilizeGameState( const char *world_name ) {
         globalGameState.hotbar.applySavedInventory( saved_data.hotbar_inventory );
         globalGameState.main_inventory.applySavedInventory( saved_data.main_inventory );
     }
+    BlockID selectedBlock = globalGameState.hotbar.getSelectedBlock( );
+    globalGameState.ui_overlay.set_holding_block( selectedBlock );
 }
 
 MK_TEXTURE( textures, 384, 832, 16, 16 );
@@ -395,10 +399,10 @@ RepGameState *RepGame::init( const char *world_name, bool connect_multi, const c
     globalGameState.world.init( globalGameState.camera.pos, globalGameState.screen.width, globalGameState.screen.height );
 
     globalGameState.ui_overlay.init( vbl_ui_overlay_vertex, vbl_ui_overlay_instance );
-    globalGameState.hotbar.setSelectedSlot( 0 );
     imgui_overlay_init( &globalGameState.imgui_overlay );
 
-    globalGameState.ui_overlay.set_holding_block( globalGameState.block_selection.holdingBlock );
+    BlockID selectedBlock = globalGameState.hotbar.getSelectedBlock( );
+    globalGameState.ui_overlay.set_holding_block( selectedBlock );
 
     int iMultiSample = 0;
     int iNumSamples = 0;
