@@ -166,8 +166,9 @@ void Input::keysInput( SDL_Keycode key, int pressed ) {
             break;
         case 'c':
             if ( pressed ) {
-                bool shift_pressed = SDL_GetModState( ) | KMOD_CTRL;
-                if ( shift_pressed ) {
+                bool ctrl_pressed = SDL_GetModState( ) & KMOD_CTRL;
+                if ( ctrl_pressed ) {
+                    // ctrl-c exits
                     this->exitGame = true;
                 } else {
                     this->no_clip = !this->no_clip;

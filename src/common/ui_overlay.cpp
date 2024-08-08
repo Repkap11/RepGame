@@ -26,26 +26,7 @@ UIOverlayInstance vb_data_crosshair_instance = { 0, 0, 0, 1, 1, 0, 0, { 0, 0, 0 
 
 float holding_alpha = 1.0f;
 
-float id = ( float )TNT;
-// #define UI_OVERLAY_VERTEX_COUNT_HOLDING_BLOCK ( 4 * 3 )
-// UIOverlayVertex vb_data_holding_block_element[ UI_OVERLAY_VERTEX_COUNT_HOLDING_BLOCK ] = {
-//     { 0, 0, { 1, 0 }, ISO_FACE_TOP, 1 }, // 0
-//     { 0, 1, { 1, 1 }, ISO_FACE_TOP, 1 }, // 1
-//     { 1, 0, { 0, 0 }, ISO_FACE_TOP, 1 }, // 2
-//     { 1, 1, { 0, 1 }, ISO_FACE_TOP, 1 }, // 3
-
-//     { 0, 0, { 1, 0 }, ISO_FACE_FRONT, 1 }, // 4
-//     { 0, 1, { 1, 1 }, ISO_FACE_FRONT, 1 }, // 5
-//     { 1, 0, { 0, 0 }, ISO_FACE_FRONT, 1 }, // 6
-//     { 1, 1, { 0, 1 }, ISO_FACE_FRONT, 1 }, // 7
-
-//     { 0, 0, { 1, 0 }, ISO_FACE_RIGHT, 1 }, // 8
-//     { 0, 1, { 1, 1 }, ISO_FACE_RIGHT, 1 }, // 9
-//     { 1, 0, { 0, 0 }, ISO_FACE_RIGHT, 1 }, // 10
-//     { 1, 1, { 0, 1 }, ISO_FACE_RIGHT, 1 }, // 11
-// };
-
-UIOverlayInstance vb_data_holding_block_instance = { 0, 0, 0, 0, 0, 1, 0, { id, id, id }, { 1, 1, 1, holding_alpha } };
+UIOverlayInstance vb_data_holding_block_instance = { 0, 0, 0, 0, 0, 1, 0, { AIR, AIR, AIR }, { 1, 1, 1, holding_alpha } };
 
 int holding_block_vertex_face_map[] = {
     FACE_TOP,   FACE_TOP,   FACE_TOP,   FACE_TOP,
@@ -54,17 +35,6 @@ int holding_block_vertex_face_map[] = {
 
     FACE_RIGHT, FACE_RIGHT, FACE_RIGHT, FACE_RIGHT,
 };
-
-// float isometric_coords[][ 2 ]{
-//     { 0, 0 },      { -1, 0.5f }, { 1, 0.5f },  { 0, 1 }, //
-//     { -1, -0.5f }, { -1, 0.5f }, { 0, -1 },    { 0, 0 }, //
-//     { 0, -1 },     { 0, 0 },     { 1, -0.5f }, { 1, 0.5f },
-// };
-// float square_coords[][ 2 ]{
-//     { 0, 0 },   { 0, 0 },  { 0, 0 },  { 0, 0 }, //
-//     { -1, -1 }, { -1, 1 }, { 1, -1 }, { 1, 1 }, //
-//     { 0, 0 },   { 0, 0 },  { 0, 0 },  { 0, 0 },
-// };
 
 #define ISOMETRIC_FACES 3
 
