@@ -89,7 +89,7 @@ typedef struct {
 
 class RepGame {
 
-    void add_to_an_inventory( BlockID blockId );
+    void add_to_an_inventory( bool alsoSelect, BlockID blockId );
     void process_mouse_events( );
     void process_camera_angle( );
     void process_movement( );

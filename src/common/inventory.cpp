@@ -48,7 +48,7 @@ int Inventory::findOpenSlot( ) {
     }
     return -1;
 }
-bool Inventory::addBlock( BlockID blockId ) {
+bool Inventory::addBlock( bool alsoSelect, BlockID blockId ) {
     Block *block = block_definition_get_definition( blockId );
     RenderOrder renderOrder = block->renderOrder;
     if ( renderOrder == RenderOrder_Transparent || renderOrder == RenderOrder_Water ) {
@@ -56,10 +56,11 @@ bool Inventory::addBlock( BlockID blockId ) {
         return false;
     }
     auto it = this->blockId_to_slot_map.find( blockId );
+    int affectedSlot;
     if ( it == this->blockId_to_slot_map.end( ) ) {
         // This is a new block
         int newSlot;
-        if ( this->selected_slot != -1 && this->slots[ this->selected_slot ].block_id == LAST_BLOCK_ID ) {
+        if ( alsoSelect && this->slots[ this->selected_slot ].block_id == LAST_BLOCK_ID ) {
             newSlot = this->selected_slot;
         } else {
             newSlot = findOpenSlot( );
@@ -71,15 +72,16 @@ bool Inventory::addBlock( BlockID blockId ) {
         blockId_to_slot_map.emplace( blockId, newSlot );
         InventorySlot &slot = this->slots[ newSlot ];
         slot.block_id = blockId;
-        if ( newSlot != this->selected_slot ) {
-            this->setSelectedSlot( newSlot );
-        }
-        this->inventory_renderer.changeSlotItem( this->selected_slot, slot );
+        this->inventory_renderer.changeSlotItem( newSlot, slot );
+        affectedSlot = newSlot;
 
     } else {
-        // This is an existing block, make that slot active.
+        // This is an existing block, do nothing for now.
+        affectedSlot = it->second;
         int existingSlot = it->second;
-        setSelectedSlot( existingSlot );
+    }
+    if ( alsoSelect ) {
+        this->setSelectedSlot( affectedSlot );
     }
     return true;
 };
@@ -102,9 +104,6 @@ void Inventory::setSelectedSlot( int selected_slot ) {
     return;
 }
 BlockID Inventory::dropSelectedItem( ) {
-    if ( this->selected_slot == -1 ) {
-        return LAST_BLOCK_ID;
-    }
     InventorySlot &slot = this->slots[ this->selected_slot ];
     BlockID droppedBlock = slot.block_id;
     if ( droppedBlock == LAST_BLOCK_ID ) {

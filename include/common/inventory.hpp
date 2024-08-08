@@ -19,12 +19,12 @@ class Inventory {
     InventoryRenderer inventory_renderer;
     void init( const VertexBufferLayout &ui_overlay_vbl_vertex, const VertexBufferLayout &ui_overlay_vbl_instance, int width, int height );
     void onScreenSizeChange( int width, int height );
-    bool addBlock( BlockID blockId );
+    bool addBlock( bool alsoSelect, BlockID blockId );
     void setSelectedSlot( int selected_slot );
     BlockID incrementSelectedSlot( int offset );
     BlockID getSelectedBlock( );
     BlockID dropSelectedItem( );
-    int getSelectedSlot();
+    int getSelectedSlot( );
     void applySavedInventory( const InventorySlot *savedSlots );
     void saveInventory( InventorySlot *savedSlots );
     void draw( const Renderer &renderer, const Texture &blocksTexture, const Shader &shader );

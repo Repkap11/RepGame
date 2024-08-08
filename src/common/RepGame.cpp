@@ -71,20 +71,23 @@ unsigned char getPlacedRotation( BlockID blockID ) {
 //     return true;
 // }
 
-void RepGame::add_to_an_inventory( BlockID blockId ) {
-    bool didAdd = globalGameState.hotbar.addBlock( blockId );
+void RepGame::add_to_an_inventory( bool alsoSelect, BlockID blockId ) {
+    bool didAdd = globalGameState.hotbar.addBlock( alsoSelect, blockId );
     if ( didAdd ) {
-        globalGameState.ui_overlay.set_holding_block( blockId );
+        // The block we added might have gone into our selected slot.
+        BlockID selectedBlock = globalGameState.hotbar.getSelectedBlock( );
+        globalGameState.ui_overlay.set_holding_block( selectedBlock );
     } else {
-        globalGameState.main_inventory.addBlock( blockId );
+        globalGameState.main_inventory.addBlock( false, blockId );
     }
 }
 
 static bool was_middle = false;
 void RepGame::process_mouse_events( ) {
     if ( globalGameState.block_selection.selectionInBounds && globalGameState.input.mouse.buttons.middle ) {
+        // Picking a block
         BlockState blockState = globalGameState.world.get_loaded_block( globalGameState.block_selection.pos_destroy );
-        RepGame::add_to_an_inventory( blockState.id );
+        RepGame::add_to_an_inventory( true, blockState.id );
         if ( !was_middle ) {
             pr_debug( "Selected block:%d rotation:%d redstone_power:%d display:%d", blockState.id, blockState.rotation, blockState.current_redstone_power, blockState.display_id );
         }
@@ -95,7 +98,7 @@ void RepGame::process_mouse_events( ) {
     if ( globalGameState.block_selection.selectionInBounds && globalGameState.input.mouse.buttons.left && globalGameState.input.click_delay_left == 0 ) {
         // Mining a block
         BlockID previous_block = change_block( 0, BLOCK_STATE_AIR );
-        RepGame::add_to_an_inventory( previous_block );
+        RepGame::add_to_an_inventory( false, previous_block );
         globalGameState.input.click_delay_left = 30;
     }
     if ( globalGameState.block_selection.selectionInBounds && globalGameState.input.mouse.buttons.right && globalGameState.input.click_delay_right == 0 ) {
