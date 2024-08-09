@@ -36,7 +36,7 @@ class Input {
     bool player_flying;
     bool player_sprinting;
     bool no_clip;
-    bool reflections_on;
+    WorldDrawQuality worldDrawQuality;
     bool drop_item;
 
 #if defined( REPGAME_LINUX ) || defined( REPGAME_WINDOWS ) || defined( REPGAME_WASM )

@@ -187,7 +187,12 @@ void Input::keysInput( SDL_Keycode key, int pressed ) {
             break;
         case 'r':
             if ( pressed ) {
-                this->reflections_on = !this->reflections_on;
+                bool shift_pressed = SDL_GetModState( ) & KMOD_SHIFT;
+                if ( shift_pressed ) {
+                    this->worldDrawQuality = ( WorldDrawQuality )( ( this->worldDrawQuality - 1 + WorldDrawQuality::LAST ) % WorldDrawQuality::LAST );
+                } else {
+                    this->worldDrawQuality = ( WorldDrawQuality )( ( this->worldDrawQuality + 1 ) % WorldDrawQuality::LAST );
+                }
             }
             break;
 

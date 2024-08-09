@@ -134,9 +134,11 @@ void World::set_selected_block( const glm::ivec3 &selected, int shouldDraw ) {
 #define WATER_THRESHOLD_P 0.02
 #define WATER_THRESHOLD_N -0.01
 void World::draw( const Texture &blocksTexture, const glm::mat4 &mvp, const glm::mat4 &mvp_reflect, const glm::mat4 &mvp_sky, const glm::mat4 &mvp_sky_reflect, int debug, int draw_mouse_selection, float y_height, bool headInWater,
-                  bool drawReflectionsIfSupported ) {
+                  WorldDrawQuality worldDrawQuality ) {
 
-    bool usingReflections = SUPPORTS_FRAME_BUFFER && drawReflectionsIfSupported;
+    const bool useFrameBuffer = SUPPORTS_FRAME_BUFFER && ( worldDrawQuality >= WorldDrawQuality::MEDIUM );
+    const bool usingReflections = useFrameBuffer && ( worldDrawQuality >= WorldDrawQuality::HIGH );
+    const bool allowBlur = usingReflections && ( worldDrawQuality >= WorldDrawQuality::X_HIGH );
     int object_water_tint_type;
     int block_water_tint_type;
     double out_int_part;
@@ -163,7 +165,7 @@ void World::draw( const Texture &blocksTexture, const glm::mat4 &mvp, const glm:
         debug_block_scale = 0.0f;
     }
 
-    if ( usingReflections ) {
+    if ( useFrameBuffer ) {
         this->frameBuffer.bind( );
         // glClearColor( 1.0f, 1.0f, 1.0f, 1.0f );
         // glClearColor( 0.0f, 0.0f, 0.0f, 0.0f );
@@ -245,15 +247,15 @@ void World::draw( const Texture &blocksTexture, const glm::mat4 &mvp, const glm:
     }
     glDisable( GL_STENCIL_TEST );
 
-    if ( usingReflections ) {
+    if ( useFrameBuffer ) {
         FrameBuffer::bind_display( );
         showErrors( );
         glDisable( GL_DEPTH_TEST );
         glClear( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT );
 
         bool blurWater = true;
-        this->fullScreenQuad.draw_texture( this->renderer, this->blockTexture, this->depthStencilTexture, 1.0, headInWater && blurWater, headInWater );
-        this->fullScreenQuad.draw_texture( this->renderer, this->reflectionTexture, this->depthStencilTexture, y_height < 0 ? 0.1 : 0.2, blurWater, headInWater );
+        this->fullScreenQuad.draw_texture( this->renderer, this->blockTexture, this->depthStencilTexture, 1.0, allowBlur && headInWater && blurWater, headInWater );
+        this->fullScreenQuad.draw_texture( this->renderer, this->reflectionTexture, this->depthStencilTexture, y_height < 0 ? 0.1 : 0.2, allowBlur && blurWater, headInWater );
         // this->fullScreenQuad.draw_texture( &this->renderer, &this->depthStencilTexture, 1.0, false );
         glEnable( GL_DEPTH_TEST );
     }

@@ -320,6 +320,7 @@ static inline void initilizeGameState( const char *world_name ) {
     pr_debug( "Intial height:%f", globalGameState.camera.pos.y );
     globalGameState.camera.pos.z = 0.5f;
     globalGameState.camera.y_speed = 0.0f;
+    globalGameState.input.worldDrawQuality = WorldDrawQuality::MEDIUM;
     globalGameState.main_inventory.inventory_renderer.options.active_height_percent = 0.5f;
     globalGameState.main_inventory.inventory_renderer.options.max_height_percent = 0.75f;
     globalGameState.main_inventory.inventory_renderer.options.max_width_percent = 0.75f;
@@ -343,7 +344,7 @@ static inline void initilizeGameState( const char *world_name ) {
         globalGameState.camera.angle_V = saved_data.angle_V;
         globalGameState.input.player_flying = saved_data.flying;
         globalGameState.input.no_clip = saved_data.no_clip;
-        globalGameState.input.reflections_on = saved_data.reflections_on;
+        globalGameState.input.worldDrawQuality = ( WorldDrawQuality )saved_data.worldDrawQuality;
         globalGameState.hotbar.applySavedInventory( saved_data.hotbar_inventory );
         globalGameState.main_inventory.applySavedInventory( saved_data.main_inventory );
         globalGameState.hotbar.setSelectedSlot( saved_data.selected_hotbar_slot );
@@ -530,7 +531,7 @@ void RepGame::draw( ) {
     glTexParameteri( globalGameState.blocksTexture.target, GL_TEXTURE_WRAP_T, GL_REPEAT );
 
     globalGameState.world.draw( globalGameState.blocksTexture, mvp, mvp_reflect, mvp_sky, mvp_sky_reflect, globalGameState.input.debug_mode, !globalGameState.input.inventory_open, globalGameState.camera.pos.y, headInWater,
-                                globalGameState.input.reflections_on );
+                                globalGameState.input.worldDrawQuality );
 
     glTexParameteri( globalGameState.blocksTexture.target, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE );
     glTexParameteri( globalGameState.blocksTexture.target, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE );
@@ -558,7 +559,7 @@ void RepGame::cleanup( ) {
     saved_data.angle_V = globalGameState.camera.angle_V;
     saved_data.flying = globalGameState.input.player_flying;
     saved_data.no_clip = globalGameState.input.no_clip;
-    saved_data.reflections_on = globalGameState.input.reflections_on;
+    saved_data.worldDrawQuality = ( int )globalGameState.input.worldDrawQuality;
     globalGameState.hotbar.saveInventory( saved_data.hotbar_inventory );
     globalGameState.main_inventory.saveInventory( saved_data.main_inventory );
     saved_data.selected_hotbar_slot = globalGameState.hotbar.getSelectedSlot( );

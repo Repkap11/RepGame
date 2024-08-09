@@ -52,24 +52,24 @@ void main() {
     vec4 finalColor;
     ivec2 multiCoords = tex_to_multisaple(TexCoords);
 
-    uint stencilCenter = stecilSample(multiCoords);
+    if(u_Blur != 0) {
+        uint stencilCenter = stecilSample(multiCoords);
 
-    if(u_Blur != 0 || stencilCenter != 0u) {
-        // int blurSize = 3;
+        int blurSize = 3;
         uint numValid = 0u;
-        // for ( int i = -blurSize; i < blurSize + 1; i++ ) {
-            // for ( int j = -blurSize; j < blurSize + 1; j++ ) {
-        ivec2 pixelCoords = multiCoords;// + ivec2(i, j);
-        uint stencil = stecilSample(pixelCoords);
-        vec4 textureColor = textureSample(pixelCoords);
-        bool valid = u_IgnoreStencil != 0 || stencilCenter == stencil;
-        numValid += uint(valid);
-        finalColor += float(valid) * textureColor;
-            // }
-        // }
+        for(int i = -blurSize; i < blurSize + 1; i++) {
+            for(int j = -blurSize; j < blurSize + 1; j++) {
+                ivec2 pixelCoords = multiCoords + ivec2(i, j);
+                uint stencil = stecilSample(pixelCoords);
+                vec4 textureColor = textureSample(pixelCoords);
+                bool valid = u_IgnoreStencil != 0 || stencilCenter == stencil;
+                numValid += uint(valid);
+                finalColor += float(valid) * textureColor;
+            }
+        }
         finalColor /= float(numValid);
     } else {
-    finalColor = textureMultisample(multiCoords);
+        finalColor = textureMultisample(multiCoords);
     }
     finalColor.a *= u_ExtraAlpha;
     color = finalColor;

@@ -77,7 +77,7 @@ void main() {
     if(texColor.a == 0.0f) {
         discard;
     }
-    if(u_shouldDiscardAlpha == 1.0f && texColor.a < 0.7f) {
+    if(u_shouldDiscardAlpha == 1.0f && texColor.a < 0.8f) {
         discard;
     }
     // if ( float( mod_sum ) == u_ShowRotation ) {

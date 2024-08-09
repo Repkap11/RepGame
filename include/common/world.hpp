@@ -7,6 +7,8 @@
 #include "common/abstract/full_screen_quad.hpp"
 #include "common/RenderChain.hpp"
 
+enum WorldDrawQuality { LOW, MEDIUM, HIGH, X_HIGH, LAST };
+
 class World {
     friend class RepGame;
     friend class Multiplayer;
@@ -38,7 +40,7 @@ class World {
 
   public:
     BlockState get_loaded_block( const glm::ivec3 &block );
-    
+
     void set_loaded_block( const glm::ivec3 &block, BlockState blockState );
 
     static BlockState get_block_from_chunk( const Chunk &chunk, const glm::ivec3 &block );
@@ -47,7 +49,7 @@ class World {
     void change_size( int width, int height );
     void render( const glm::vec3 &camera_pos, int limit_render, const glm::mat4 &rotation );
     void draw( const Texture &blocksTexture, const glm::mat4 &mvp, const glm::mat4 &mvp_reflect, const glm::mat4 &mvp_sky, const glm::mat4 &mvp_sky_reflect, int debug, int draw_mouse_selection, float y_height, bool headInWater,
-               bool drawReflectionsIfSupported );
+               WorldDrawQuality worldDrawQuality );
     void process_random_ticks( );
     void set_selected_block( const glm::ivec3 &selected, int shouldDraw );
     void cleanup( );
