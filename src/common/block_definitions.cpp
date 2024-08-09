@@ -352,7 +352,7 @@ void block_definitions_initilize_definitions( Texture *texture ) {
     // block_supports_random_rotations[ GRAVEL ] = 1.0f;
     block_supports_random_rotations[ DIRT ] = 1.0f;
     // block_supports_random_rotations[ LEAF ] = 1.0f;
-    block_supports_random_rotations[ WATER ] = 1.0f;
+    // block_supports_random_rotations[ WATER ] = 1.0f;
     block_supports_random_rotations[ SNOW ] = 1.0f;
 
     block_definitions[ DOUBLE_SLAB ].textures[ FACE_TOP ] = SLAB_TOP;
