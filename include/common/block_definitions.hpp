@@ -262,7 +262,6 @@ typedef enum {
     STEVE_HEAD_BACK,
     LADDER_TOP = 1219,
 
-
     REDSTONE_DUST_T_F_UNPOWERED = 1220,
     REDSTONE_DUST_T_F = 1220,
     REDSTONE_DUST_T_R_UNPOWERED = 1221,
@@ -346,7 +345,7 @@ typedef struct {
         bool can_mesh_y;
         bool can_mesh_z;
         bool is_seethrough_face[ NUM_FACES_IN_CUBE ];
-        bool hides_self[NUM_FACES_IN_CUBE];
+        bool hides_self[ NUM_FACES_IN_CUBE ];
     } calculated;
     bool connects_to_redstone_dust;
     BlockID inventory_non_isometric_id;
@@ -368,7 +367,7 @@ bool BlockStates_equal( const BlockState &a, const BlockState &b );
 
 void block_definitions_initilize_definitions( Texture *texture );
 Block *block_definition_get_definition( BlockID blockID );
-void block_definitions_get_random_rotations( float **out_supports_random_rotations );
+float *block_definitions_get_random_rotations( );
 void block_definitions_free_definitions( );
 
 #endif

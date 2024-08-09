@@ -56,8 +56,7 @@ void World::init( const glm::vec3 &camera_pos, int width, int height ) {
 
     this->chunkLoader.init( camera_pos, this->vbl_block, this->vbl_coords );
 
-    float *random_rotation_blocks;
-    block_definitions_get_random_rotations( &random_rotation_blocks );
+    float *random_rotation_blocks = block_definitions_get_random_rotations( );
 
     this->chunkLoader.shader.set_uniform1fv( "u_RandomRotationBlocks", random_rotation_blocks, MAX_ROTATABLE_BLOCK );
 
@@ -253,10 +252,10 @@ void World::draw( const Texture &blocksTexture, const glm::mat4 &mvp, const glm:
         glDisable( GL_DEPTH_TEST );
         glClear( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT );
 
-        bool blurWater = true;
-        this->fullScreenQuad.draw_texture( this->renderer, this->blockTexture, this->depthStencilTexture, 1.0, allowBlur && headInWater && blurWater, headInWater );
-        this->fullScreenQuad.draw_texture( this->renderer, this->reflectionTexture, this->depthStencilTexture, y_height < 0 ? 0.1 : 0.2, allowBlur && blurWater, headInWater );
-        // this->fullScreenQuad.draw_texture( &this->renderer, &this->depthStencilTexture, 1.0, false );
+        this->fullScreenQuad.draw_texture( this->renderer, this->blockTexture, this->depthStencilTexture, 1.0, allowBlur && headInWater, headInWater );
+        if ( usingReflections ) {
+            this->fullScreenQuad.draw_texture( this->renderer, this->reflectionTexture, this->depthStencilTexture, y_height < 0 ? 0.1 : 0.2, allowBlur, headInWater );
+        }
         glEnable( GL_DEPTH_TEST );
     }
     // chunk_loader_draw_chunks( &this->loadedChunks, mvp, &this->renderer, true, false ); // Water
