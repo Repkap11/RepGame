@@ -1,7 +1,7 @@
 #ifndef HEADER_FULL_SCREEN_QUAD_H
 #define HEADER_FULL_SCREEN_QUAD_H
 
-#include "common/abstract/renderer.hpp"
+#include "common/renderer/renderer.hpp"
 #include "common/RenderLink.hpp"
 
 typedef struct {

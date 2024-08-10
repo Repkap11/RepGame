@@ -1,8 +1,8 @@
 #include "common/RepGame.hpp"
 
-#include "common/abstract/vertex_array.hpp"
-#include "common/abstract/vertex_buffer.hpp"
-#include "common/abstract/vertex_buffer_layout.hpp"
+#include "common/renderer/vertex_array.hpp"
+#include "common/renderer/vertex_buffer.hpp"
+#include "common/renderer/vertex_buffer_layout.hpp"
 
 void VertexArray::init( ) {
     glGenVertexArrays( 1, &this->mRendererId );

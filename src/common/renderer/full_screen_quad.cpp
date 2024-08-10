@@ -1,5 +1,5 @@
 #include "common/RepGame.hpp"
-#include "common/abstract/full_screen_quad.hpp"
+#include "common/renderer/full_screen_quad.hpp"
 
 #define FSQ_VERTEX_COUNT 4
 FullScreenQuadVertex vb_data[ FSQ_VERTEX_COUNT ] = {

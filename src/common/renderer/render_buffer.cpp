@@ -1,5 +1,5 @@
 #include "common/RepGame.hpp"
-#include "common/abstract/render_buffer.hpp"
+#include "common/renderer/render_buffer.hpp"
 
 void RenderBuffer::init( ) {
     glGenRenderbuffers( 1, &this->mRendererId );

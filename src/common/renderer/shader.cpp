@@ -1,4 +1,4 @@
-#include "common/abstract/shader.hpp"
+#include "common/renderer/shader.hpp"
 
 #include <stdio.h>
 #include <stdlib.h>

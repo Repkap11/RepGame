@@ -4,7 +4,7 @@
 #include "block.hpp"
 #include "chunk_loader.hpp"
 #include "common/multiplayer_avatars.hpp"
-#include "common/abstract/full_screen_quad.hpp"
+#include "common/renderer/full_screen_quad.hpp"
 #include "common/RenderChain.hpp"
 
 enum WorldDrawQuality { LOW, MEDIUM, HIGH, X_HIGH, LAST };

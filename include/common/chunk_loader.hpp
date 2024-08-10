@@ -1,7 +1,7 @@
 #ifndef HEADER_CHUNK_LOADER_H
 #define HEADER_CHUNK_LOADER_H
 #include "chunk.hpp"
-#include "abstract/renderer.hpp"
+#include "renderer/renderer.hpp"
 #include "mouse_selection.hpp"
 #include "sky_box.hpp"
 

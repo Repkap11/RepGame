@@ -1,13 +1,13 @@
 #ifndef HEADER_RENDER_LINK_H
 #define HEADER_RENDER_LINK_H
 
-#include "common/abstract/texture.hpp"
-#include "common/abstract/vertex_buffer_layout.hpp"
-#include "common/abstract/vertex_buffer.hpp"
-#include "common/abstract/vertex_array.hpp"
-#include "common/abstract/index_buffer.hpp"
-#include "common/abstract/renderer.hpp"
-#include "common/abstract/shader.hpp"
+#include "common/renderer/texture.hpp"
+#include "common/renderer/vertex_buffer_layout.hpp"
+#include "common/renderer/vertex_buffer.hpp"
+#include "common/renderer/vertex_array.hpp"
+#include "common/renderer/index_buffer.hpp"
+#include "common/renderer/renderer.hpp"
+#include "common/renderer/shader.hpp"
 
 #include "entt/entity/registry.hpp"
 

@@ -1,6 +1,6 @@
 #include "common/RepGame.hpp"
 #include "common/inventory_renderer.hpp"
-#include "common/abstract/shader.hpp"
+#include "common/renderer/shader.hpp"
 
 #define ISOMETRIC_FACES 3
 

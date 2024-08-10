@@ -5,7 +5,7 @@
 #include "common/chunk_loader.hpp"
 #include "common/utils/map_storage.hpp"
 #include "common/utils/terrain_loading_thread.hpp"
-#include "common/abstract/shader.hpp"
+#include "common/renderer/shader.hpp"
 #include "common/constants.hpp"
 
 MK_SHADER( chunk_vertex );

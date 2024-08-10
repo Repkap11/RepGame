@@ -2,7 +2,7 @@
 #define HEADER_CHUNK_H
 
 #include "block.hpp"
-#include "abstract/renderer.hpp"
+#include "renderer/renderer.hpp"
 #include "server/server.hpp"
 
 #define CHUNK_SIZE_INTERNAL_X ( CHUNK_SIZE_X + 2 )

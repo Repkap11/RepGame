@@ -4,7 +4,7 @@
 #include "common/utils/file_utils.hpp"
 
 #include "common/RepGame.hpp"
-#include "common/abstract/texture.hpp"
+#include "common/renderer/texture.hpp"
 
 #if defined( REPGAME_ANDROID )
 #define GL_TEXTURE_MAX_ANISOTROPY_EXT 0x84FE

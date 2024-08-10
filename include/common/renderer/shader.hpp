@@ -3,7 +3,7 @@
 
 #include <glm.hpp>
 #include "binary_blobs.hpp"
-#include "common/abstract/texture.hpp"
+#include "common/renderer/texture.hpp"
 
 #if defined( REPGAME_LINUX ) || defined( REPGAME_WINDOWS )
 typedef BinaryBlob ShaderSourceData;

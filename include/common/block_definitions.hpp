@@ -2,7 +2,7 @@
 #define HEADER_BLOCK_DEFINITIONS_H
 
 #include "constants.hpp"
-#include "abstract/texture.hpp"
+#include "renderer/texture.hpp"
 #include "common/render_order.hpp"
 
 // According to GIMP upper left pixel coord

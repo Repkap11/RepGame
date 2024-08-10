@@ -1,9 +1,9 @@
 #ifndef HEADER_UI_OVERLAY_H
 #define HEADER_UI_OVERLAY_H
-#include "abstract/index_buffer.hpp"
-#include "abstract/vertex_buffer.hpp"
-#include "abstract/vertex_array.hpp"
-#include "abstract/renderer.hpp"
+#include "renderer/index_buffer.hpp"
+#include "renderer/vertex_buffer.hpp"
+#include "renderer/vertex_array.hpp"
+#include "renderer/renderer.hpp"
 #include "common/RenderChain.hpp"
 #include "RepGame.hpp"
 #include "input.hpp"

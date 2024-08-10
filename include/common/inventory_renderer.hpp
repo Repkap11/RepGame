@@ -1,10 +1,10 @@
 #ifndef HEADER_INVENTORY_RENDERER_H
 #define HEADER_INVENTORY_RENDERER_H
 
-#include "abstract/index_buffer.hpp"
-#include "abstract/vertex_buffer.hpp"
-#include "abstract/vertex_array.hpp"
-#include "abstract/renderer.hpp"
+#include "renderer/index_buffer.hpp"
+#include "renderer/vertex_buffer.hpp"
+#include "renderer/vertex_array.hpp"
+#include "renderer/renderer.hpp"
 #include "RepGame.hpp"
 #include "input.hpp"
 #include "ui_overlay.hpp"

@@ -1,5 +1,5 @@
 #include "common/RepGame.hpp"
-#include "common/abstract/vertex_buffer.hpp"
+#include "common/renderer/vertex_buffer.hpp"
 
 void VertexBuffer::init( ) {
     glGenBuffers( 1, &this->mRendererId );

@@ -1,10 +1,10 @@
 #ifndef HEADER_SKY_BOX_H
 #define HEADER_SKY_BOX_H
 
-#include "abstract/index_buffer.hpp"
-#include "abstract/vertex_buffer.hpp"
-#include "abstract/vertex_array.hpp"
-#include "abstract/renderer.hpp"
+#include "renderer/index_buffer.hpp"
+#include "renderer/vertex_buffer.hpp"
+#include "renderer/vertex_array.hpp"
+#include "renderer/renderer.hpp"
 #include "common/Particle.hpp"
 
 class SkyBox {

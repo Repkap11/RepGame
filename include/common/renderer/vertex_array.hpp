@@ -1,8 +1,8 @@
 #ifndef HEADER_VERTEX_ARRAY_H
 #define HEADER_VERTEX_ARRAY_H
 
-#include "common/abstract/vertex_buffer.hpp"
-#include "common/abstract/vertex_buffer_layout.hpp"
+#include "common/renderer/vertex_buffer.hpp"
+#include "common/renderer/vertex_buffer_layout.hpp"
 
 class VertexArray {
     unsigned int mRendererId;

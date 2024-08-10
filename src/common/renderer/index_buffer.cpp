@@ -1,5 +1,5 @@
 #include "common/RepGame.hpp"
-#include "common/abstract/index_buffer.hpp"
+#include "common/renderer/index_buffer.hpp"
 
 void IndexBuffer::init( ) {
     this->count = 0;

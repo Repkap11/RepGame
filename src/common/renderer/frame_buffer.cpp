@@ -1,5 +1,5 @@
 #include "common/RepGame.hpp"
-#include "common/abstract/frame_buffer.hpp"
+#include "common/renderer/frame_buffer.hpp"
 
 void FrameBuffer::init( ) {
     glGenFramebuffers( 1, &this->mRendererId );

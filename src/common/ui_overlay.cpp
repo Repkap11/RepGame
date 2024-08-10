@@ -2,7 +2,7 @@
 
 #include "common/RepGame.hpp"
 #include "common/ui_overlay.hpp"
-#include "common/abstract/shader.hpp"
+#include "common/renderer/shader.hpp"
 
 #define WIDTH ( 1.5f )
 #define SCALE ( 10.0f )
@@ -46,24 +46,6 @@ unsigned int ib_data_crosshair[] = {
     4, 7, 5, //
     7, 4, 6, //
 };
-
-// #define UI_OVERLAY_INDEX_COUNT_HOLDING_BLOCK_ISOMETRIC ( 3 * 2 * 3 )
-// unsigned int ib_holding_block_isometric[] = {
-//     0,  3,  1, //
-//     3,  0,  2, //
-
-//     4,  7,  5, //
-//     7,  4,  6, //
-
-//     8,  11, 9,  //
-//     11, 8,  10, //
-// };
-
-// #define UI_OVERLAY_INDEX_COUNT_HOLDING_BLOCK_SQUARE ( 3 * 2 * 1 )
-// unsigned int ib_holding_block_square[] = {
-//     4, 7, 5, //
-//     7, 4, 6, //
-// };
 
 static int inventory_isometric_face[] = { FACE_TOP, FACE_FRONT, FACE_RIGHT };
 
@@ -166,21 +148,6 @@ void UIOverlay::set_holding_block( BlockID holding_block ) {
 }
 
 void UIOverlay::draw( Inventory &inventory, Inventory &hotbar, const Renderer &renderer, const Texture &blocksTexture, Input &input, const glm::mat4 &mvp_ui ) {
-
-    // if ( true ) {
-    //     const ImGuiDebugVars &debug_vars = imgUIOverlay::get_imgui_debug_vars( );
-    //     int which_vb;
-
-    //     which_vb = 1;
-    //     vb_isometric_quad[ which_vb ].screen_x = X_SCALE * debug_vars.corner1.x;
-    //     vb_isometric_quad[ which_vb ].screen_y = Y_SCALE * debug_vars.corner1.y;
-
-    //     which_vb = 3;
-    //     vb_isometric_quad[ which_vb ].screen_x = X_SCALE * debug_vars.corner3.x;
-    //     vb_isometric_quad[ which_vb ].screen_y = Y_SCALE * debug_vars.corner3.y;
-    //     this->render_chain_held_block.update_element( vb_isometric_quad, IB_ISOMETRIC_QUAD_SIZE );
-    // }
-
     this->shader.set_uniform_mat4f( "u_MVP", mvp_ui );
     this->shader.set_uniform1i_texture( "u_Texture", blocksTexture );
 

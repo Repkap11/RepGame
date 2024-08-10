@@ -2,7 +2,7 @@
 
 #include "common/RepGame.hpp"
 #include "common/sky_box.hpp"
-#include "common/abstract/shader.hpp"
+#include "common/renderer/shader.hpp"
 #include "common/Particle.hpp"
 
 #define STACK_COUNT 20
