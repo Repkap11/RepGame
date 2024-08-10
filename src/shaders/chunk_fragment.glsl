@@ -95,9 +95,9 @@ void main() {
     vec4 finalColor = lightedColor;
     vec4 finalReflection = lightedColor;
     if(u_DrawToReflection == 1) {
-        finalColor.a *= 0.0f;
+        finalColor.a = 0.0f;
     } else {
-        finalReflection.a *= 0.0f;
+        finalReflection.a = 0.0f;
     }
     color = finalColor;
     reflection = finalReflection;

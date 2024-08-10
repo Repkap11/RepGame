@@ -55,11 +55,11 @@ void main() {
     if(u_Blur != 0) {
         uint stencilCenter = stecilSample(multiCoords);
 
-        int blurSize = 3;
+        int blurSize = 1;
         uint numValid = 0u;
-        for(int i = -blurSize; i < blurSize + 1; i++) {
-            for(int j = -blurSize; j < blurSize + 1; j++) {
-                ivec2 pixelCoords = multiCoords + ivec2(i, j);
+        for(int i = -1; i < 2; i+=2) {
+            for(int j = -1; j < 2; j+=2) {
+                ivec2 pixelCoords = multiCoords + ivec2(i * 4, j * 4);
                 uint stencil = stecilSample(pixelCoords);
                 vec4 textureColor = textureSample(pixelCoords);
                 bool valid = u_IgnoreStencil != 0 || stencilCenter == stencil;

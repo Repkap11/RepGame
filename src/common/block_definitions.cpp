@@ -348,12 +348,12 @@ void block_definitions_initilize_definitions( Texture *texture ) {
     block_definitions[ GRASS ].textures[ FACE_BACK ] = GRASS_SIDE;
     block_definitions[ GRASS ].textures[ FACE_BOTTOM ] = DIRT;
     block_supports_random_rotations[ GRASS ] = 1.0f;
-    block_supports_random_rotations[ SAND ] = 1.0f;
+    // block_supports_random_rotations[ SAND ] = 1.0f;
     // block_supports_random_rotations[ GRAVEL ] = 1.0f;
-    block_supports_random_rotations[ DIRT ] = 1.0f;
+    // block_supports_random_rotations[ DIRT ] = 1.0f;
     // block_supports_random_rotations[ LEAF ] = 1.0f;
     // block_supports_random_rotations[ WATER ] = 1.0f;
-    block_supports_random_rotations[ SNOW ] = 1.0f;
+    // block_supports_random_rotations[ SNOW ] = 1.0f;
 
     block_definitions[ DOUBLE_SLAB ].textures[ FACE_TOP ] = SLAB_TOP;
     block_definitions[ DOUBLE_SLAB ].textures[ FACE_LEFT ] = DOUBLE_SLAB;
