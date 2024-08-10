@@ -72,12 +72,20 @@ unsigned char getPlacedRotation( BlockID blockID ) {
 // }
 
 void RepGame::add_to_an_inventory( bool alsoSelect, BlockID blockId ) {
+    if ( globalGameState.hotbar.getSelectedBlock( ) == blockId ) {
+        // We don't support having the same block in the hotbar or inventory more than once, until there are qtys.
+        return;
+    }
     bool didAdd = globalGameState.hotbar.addBlock( alsoSelect, blockId );
     if ( didAdd ) {
         // The block we added might have gone into our selected slot.
         BlockID selectedBlock = globalGameState.hotbar.getSelectedBlock( );
         globalGameState.ui_overlay.set_holding_block( selectedBlock );
     } else {
+        if ( globalGameState.main_inventory.getSelectedBlock( ) == blockId ) {
+            // We don't support having the same block in the hotbar or inventory more than once, until there are qtys.
+            return;
+        }
         globalGameState.main_inventory.addBlock( false, blockId );
     }
 }

@@ -75,7 +75,7 @@ public class RepGameAndroidRenderer implements GLSurfaceView.Renderer {
     }
 
 
-    public void onPause() {
+    public void onDestroy() {
         RepGameJNIWrapper.onSurfaceDestroyed();
     }
 

@@ -17,63 +17,69 @@ public class RepGameActivity extends AppCompatActivity {
     private GLSurfaceView glSurfaceView;
     private boolean mRendererSet;
     private RepGameAndroidRenderer mRenderWrapper;
-    private int mPreviousX;
-    private int mPreviousY;
     private UIOverlayView mUIOverlay;
 
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_rep_game);
         configureFullScreen();
-        {
-            //Configure the JNI wrapper
-            mRenderWrapper = new RepGameAndroidRenderer(getApplicationContext());
+
+        //Configure the JNI wrapper
+        mRenderWrapper = new RepGameAndroidRenderer(getApplicationContext());
+
+        //Verify that we support OpenGL ES 3.1
+        ConfigurationInfo configurationInfo = ((ActivityManager) getSystemService(Context.ACTIVITY_SERVICE)).getDeviceConfigurationInfo();
+        final boolean supportsEs31 = configurationInfo.reqGlEsVersion >= 0x30001;
+        if (!supportsEs31) {
+            // Should never be seen in production, since the manifest filters
+            // unsupported devices.
+            Toast.makeText(this, "This device does not support OpenGL ES 3.1.", Toast.LENGTH_LONG).show();
+            return;
         }
-        {
-            //Verify that we support OpenGL ES 3.1
-            ConfigurationInfo configurationInfo = ((ActivityManager) getSystemService(Context.ACTIVITY_SERVICE)).getDeviceConfigurationInfo();
-            final boolean supportsEs31 = configurationInfo.reqGlEsVersion >= 0x30001;
-            if (!supportsEs31) {
-                // Should never be seen in production, since the manifest filters
-                // unsupported devices.
-                Toast.makeText(this, "This device does not support OpenGL ES 3.1.", Toast.LENGTH_LONG).show();
-                return;
-            }
-        }
-        {
-            //Configure the Surface View
-            glSurfaceView = findViewById(R.id.repgame_surfaceview);
-            glSurfaceView.getKeepScreenOn();
-            glSurfaceView.setEGLContextClientVersion(3);
-            glSurfaceView.setEGLConfigChooser(new RepGameAndroidRenderer.ConfigChooser());
-            glSurfaceView.setRenderer(mRenderWrapper);
-            mRendererSet = true;
-        }
-        {
-            //Configure the UI overlay
-            mUIOverlay = findViewById(R.id.repgame_ui_overlay_view);
-        }
+
+
+        //Configure the Surface View
+        glSurfaceView = findViewById(R.id.repgame_surfaceview);
+        glSurfaceView.getKeepScreenOn();
+        glSurfaceView.setEGLContextClientVersion(3);
+        glSurfaceView.setEGLConfigChooser(new RepGameAndroidRenderer.ConfigChooser());
+        glSurfaceView.setRenderer(mRenderWrapper);
+        glSurfaceView.setPreserveEGLContextOnPause(true);
+
+        mRendererSet = true;
+
+        //Configure the UI overlay
+        mUIOverlay = findViewById(R.id.repgame_ui_overlay_view);
 
         mUIOverlay.setRenderer(mRenderWrapper);
     }
 
     @Override
-    protected void onPause() {
-        super.onPause();
+    protected void onStart() {
+        super.onStart();
+        configureFullScreen();
         if (mRendererSet) {
-            glSurfaceView.onPause();
-            mRenderWrapper.onPause();
+            glSurfaceView.onResume();
+
         }
     }
 
     @Override
-    protected void onResume() {
-        super.onResume();
-        configureFullScreen();
+    protected void onStop() {
+        super.onStop();
         if (mRendererSet) {
-            glSurfaceView.onResume();
+            glSurfaceView.onPause();
         }
     }
+
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+        if (mRendererSet) {
+            mRenderWrapper.onDestroy();
+        }
+    }
+
 
     private void configureFullScreen() {
         View decorView = getWindow().getDecorView();

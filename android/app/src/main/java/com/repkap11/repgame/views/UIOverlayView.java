@@ -258,7 +258,8 @@ public class UIOverlayView extends View implements View.OnTouchListener {
         int right = mMouseRightPointerId == -1 ? 0 : 1;
         mRenderWrapper.setButtonState(left, middle, right);
     }
-    private void handleInventoryButton(){
+
+    private void handleInventoryButton() {
         mRenderWrapper.onInventoryClicked();
     }
 
