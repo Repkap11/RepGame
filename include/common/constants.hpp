@@ -1,5 +1,4 @@
-#ifndef HEADER_CONSTANTS_H
-#define HEADER_CONSTANTS_H
+#pragma once
 
 #define MOVEMENT_SENSITIVITY_WALKING 0.0326f
 #define MOVEMENT_SENSITIVITY_SPRINTING 0.125f
@@ -142,5 +141,3 @@ static_assert( CHUNK_RADIUS_Z > 0, "CHUNK_RADIUS_Z too small" );
 #define NO_LIGHT_BRIGHT 0
 
 #define MAX_ROTATABLE_BLOCK 100
-
-#endif

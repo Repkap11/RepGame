@@ -1,5 +1,4 @@
-#ifndef HEADER_BLOCK_UPDATE_QUEUE_H
-#define HEADER_BLOCK_UPDATE_QUEUE_H
+#pragma once
 
 #include <queue>
 #include <memory>
@@ -34,5 +33,3 @@ class BlockUpdateEvent {
     virtual ~BlockUpdateEvent( ) {
     }
 };
-
-#endif

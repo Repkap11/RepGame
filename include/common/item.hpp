@@ -1,5 +1,4 @@
-#ifndef HEADER_ITEM_H
-#define HEADER_ITEM_H
+#pragma once
 
 typedef struct {
     BlockID id;
@@ -15,5 +14,3 @@ typedef struct {
 void item_init( Block *block );
 void item_update( );
 void item_cleanup( Item *item );
-
-#ifndef HEADER_ITEM_H

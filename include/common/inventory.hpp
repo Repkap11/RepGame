@@ -1,5 +1,4 @@
-#ifndef HEADER_INVENTORY_H
-#define HEADER_INVENTORY_H
+#pragma once
 
 #include "common/inventory_renderer.hpp"
 #include "common/block_definitions.hpp"
@@ -30,5 +29,3 @@ class Inventory {
     void draw( const Renderer &renderer, const Texture &blocksTexture, const Shader &shader );
     void cleanup( );
 };
-
-#endif

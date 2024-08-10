@@ -1,5 +1,4 @@
-#ifndef HEADER_BLOCK_DEFINITIONS_H
-#define HEADER_BLOCK_DEFINITIONS_H
+#pragma once
 
 #include "constants.hpp"
 #include "renderer/texture.hpp"
@@ -369,5 +368,3 @@ void block_definitions_initilize_definitions( Texture *texture );
 Block *block_definition_get_definition( BlockID blockID );
 float *block_definitions_get_random_rotations( );
 void block_definitions_free_definitions( );
-
-#endif

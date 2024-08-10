@@ -1,5 +1,4 @@
-#ifndef HEADER_INVENTORY_RENDERER_H
-#define HEADER_INVENTORY_RENDERER_H
+#pragma once
 
 #include "renderer/index_buffer.hpp"
 #include "renderer/vertex_buffer.hpp"
@@ -82,4 +81,3 @@ class InventoryRenderer {
     void draw( const Renderer &renderer, const Texture &blocksTexture, const Shader &shader );
     void cleanup( );
 };
-#endif

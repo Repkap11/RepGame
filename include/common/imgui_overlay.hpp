@@ -1,5 +1,4 @@
-#ifndef HEADER_IMGUI_OVERLAY_H
-#define HEADER_IMGUI_OVERLAY_H
+#pragma once
 
 typedef struct {
     bool show_demo_window;
@@ -25,5 +24,3 @@ void imgui_overlay_handle_sdl2_event( ImGuiOverlay *ui_overlay, SDL_Event *event
 void imgui_overlay_draw( ImGuiOverlay *ui_overlay, Input &input );
 void imgui_overlay_cleanup( ImGuiOverlay *ui_overlay );
 ImGuiDebugVars &imgui_overlay_get_imgui_debug_vars( );
-
-#endif

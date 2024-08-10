@@ -1,5 +1,4 @@
-#ifndef HEADER_CHUNK_H
-#define HEADER_CHUNK_H
+#pragma once
 
 #include "block.hpp"
 #include "renderer/renderer.hpp"
@@ -81,5 +80,3 @@ class Chunk {
         return ( y + 1 ) * CHUNK_SIZE_INTERNAL_X * CHUNK_SIZE_INTERNAL_Z + ( x + 1 ) * CHUNK_SIZE_INTERNAL_Z + ( z + 1 );
     }
 };
-
-#endif

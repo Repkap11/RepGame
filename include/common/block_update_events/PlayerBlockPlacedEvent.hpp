@@ -1,5 +1,5 @@
-#ifndef HEADER_PLAYER_BLOCK_PLACED_EVENT_H
-#define HEADER_PLAYER_BLOCK_PLACED_EVENT_H
+#pragma once
+
 
 #include "common/BlockUpdateQueue.hpp"
 
@@ -15,5 +15,3 @@ class PlayerBlockPlacedEvent : public BlockUpdateEvent {
 
     void performActionToNeighbor( BlockUpdateQueue &blockUpdateQueue, World &world, const glm::ivec3 &offset);
 };
-
-#endif

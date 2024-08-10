@@ -1,6 +1,4 @@
-#ifndef HEADER_REP_TESTS_H
-#define HEADER_REP_TESTS_H
+#pragma once
+
 
 int rep_tests_start( );
-
-#endif

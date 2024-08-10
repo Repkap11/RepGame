@@ -1,5 +1,4 @@
-#ifndef HEADER_WORLD_H
-#define HEADER_WORLD_H
+#pragma once
 
 #include "block.hpp"
 #include "chunk_loader.hpp"
@@ -54,5 +53,3 @@ class World {
     void set_selected_block( const glm::ivec3 &selected, int shouldDraw );
     void cleanup( );
 };
-
-#endif

@@ -1,5 +1,5 @@
-#ifndef HEADER_RENDER_BUFFER_H
-#define HEADER_RENDER_BUFFER_H
+#pragma once
+
 
 class RenderBuffer {
     unsigned int mRendererId;
@@ -11,5 +11,3 @@ class RenderBuffer {
     void bind( ) const;
     void unbind( ) const;
 };
-
-#endif

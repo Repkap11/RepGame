@@ -1,5 +1,5 @@
-#ifndef HEADER_REPGAMEANDROID_H
-#define HEADER_REPGAMEANDROID_H
+#pragma once
+
 
 #include <GLES3/gl31.h>
 #include <malloc.h>

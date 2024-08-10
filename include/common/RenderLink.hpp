@@ -1,5 +1,4 @@
-#ifndef HEADER_RENDER_LINK_H
-#define HEADER_RENDER_LINK_H
+#pragma once
 
 #include "common/renderer/texture.hpp"
 #include "common/renderer/vertex_buffer_layout.hpp"
@@ -20,7 +19,7 @@ template <typename Element> class RenderLink {
     VertexBuffer vb_element;
 
   public:
-    void init( const VertexBufferLayout &vbl_element,                       //
+    void init( const VertexBufferLayout &vbl_element,               //
                const Element *element_data, int element_data_count, //
                const unsigned int *ib_data, unsigned int ib_data_count ) {
 
@@ -30,7 +29,7 @@ template <typename Element> class RenderLink {
         }
         this->va.init( );
         this->vb_element.init( );
-        this->va.add_buffer( this->vb_element, vbl_element);
+        this->va.add_buffer( this->vb_element, vbl_element );
         this->update_element( element_data, element_data_count );
         showErrors( );
     }
@@ -48,5 +47,3 @@ template <typename Element> class RenderLink {
         this->draw( renderer, shader, this->ib );
     }
 };
-
-#endif

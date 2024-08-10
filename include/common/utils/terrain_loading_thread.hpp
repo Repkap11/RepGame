@@ -1,5 +1,4 @@
-#ifndef HEADER_TERRAIN_LOADING_H
-#define HEADER_TERRAIN_LOADING_H
+#pragma once
 
 #include "common/chunk.hpp"
 #include "common/RepGame.hpp"
@@ -16,5 +15,3 @@ class TerrainLoadingThread {
     static Chunk *dequeue( );
     static void stop( );
 };
-
-#endif

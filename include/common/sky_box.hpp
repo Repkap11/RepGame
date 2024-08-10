@@ -1,5 +1,4 @@
-#ifndef HEADER_SKY_BOX_H
-#define HEADER_SKY_BOX_H
+#pragma once
 
 #include "renderer/index_buffer.hpp"
 #include "renderer/vertex_buffer.hpp"
@@ -16,5 +15,3 @@ class SkyBox {
     void draw( const Renderer &renderer, Shader &shader );
     void destroy( );
 };
-
-#endif

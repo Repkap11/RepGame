@@ -1,5 +1,5 @@
-#ifndef HEADER_VERTEX_BUFFER_H
-#define HEADER_VERTEX_BUFFER_H
+#pragma once
+
 
 class VertexBuffer {
     unsigned int mRendererId;
@@ -13,5 +13,3 @@ class VertexBuffer {
     void set_data( const void *data, unsigned int size );
     void set_subdata( const void *data, unsigned int offset, unsigned int size );
 };
-
-#endif

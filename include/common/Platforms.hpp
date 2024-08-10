@@ -1,5 +1,4 @@
-#ifndef HEADER_PLATFORMS_H
-#define HEADER_PLATFORMS_H
+#pragma once
 
 #ifdef REPGAME_LINUX
 #include "linux/RepGameLinux.hpp"
@@ -12,6 +11,4 @@
 #endif
 #ifdef REPGAME_WASM
 #include "wasm/RepGameWASM.hpp"
-#endif
-
 #endif

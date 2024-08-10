@@ -1,5 +1,5 @@
-#ifndef HEADER_INDEX_BUFFER_H
-#define HEADER_INDEX_BUFFER_H
+#pragma once
+
 
 class IndexBuffer {
     friend class Renderer;
@@ -14,5 +14,3 @@ class IndexBuffer {
     void bind( ) const;
     void unbind( ) const;
 };
-
-#endif

@@ -1,5 +1,5 @@
-#ifndef HEADER_VERTEX_BUFFER_LAYOUT_H
-#define HEADER_VERTEX_BUFFER_LAYOUT_H
+#pragma once
+
 
 #define NUM_VERTEX_BUFFER_ELEMENTS 10
 
@@ -33,5 +33,3 @@ class VertexBufferLayout {
 
     void destroy( );
 };
-
-#endif

@@ -1,5 +1,4 @@
-#ifndef HEADER_LOGGING_H
-#define HEADER_LOGGING_H
+#pragma once
 
 #if defined( REPGAME_LINUX ) || defined( REPGAME_WINDOWS )
 #define pr_debug( fmt, ... ) fprintf( stdout, "%s:%d:%s():" fmt "\n", __FILE__, __LINE__, __func__, ##__VA_ARGS__ );
@@ -58,6 +57,4 @@
             pr_debug( "GL Ignoring Error:%d", errCode );                                                                                                                                                                                       \
         }                                                                                                                                                                                                                                      \
     }
-#endif
-
 #endif

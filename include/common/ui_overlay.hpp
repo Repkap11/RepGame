@@ -1,5 +1,5 @@
-#ifndef HEADER_UI_OVERLAY_H
-#define HEADER_UI_OVERLAY_H
+#pragma once
+
 #include "renderer/index_buffer.hpp"
 #include "renderer/vertex_buffer.hpp"
 #include "renderer/vertex_array.hpp"
@@ -52,5 +52,3 @@ class UIOverlay {
     void draw( Inventory &inventory, Inventory &hotbar, const Renderer &renderer, const Texture &blocksTexture, Input &input, const glm::mat4 &mvp_ui );
     void cleanup( );
 };
-
-#endif

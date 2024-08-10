@@ -1,6 +1,5 @@
 
-#ifndef HEADER_PARTICLE_H
-#define HEADER_PARTICLE_H
+#pragma once
 
 #include "common/constants.hpp"
 #include "glm.hpp"
@@ -71,5 +70,3 @@ typedef struct {
     unsigned short face[ NUM_FACES_IN_CUBE ];
     glm::mat4 transform;
 } ParticlePosition;
-
-#endif

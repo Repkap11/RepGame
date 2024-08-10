@@ -1,5 +1,4 @@
-#ifndef HEADER_RAY_TRAVERSAL_H
-#define HEADER_RAY_TRAVERSAL_H
+#pragma once
 
 #include "common/chunk_loader.hpp"
 
@@ -11,5 +10,3 @@ class RayTraversal {
                                    glm::ivec3 &out,                  //
                                    int *out_whichFace, int flag, int is_pick, int is_pixel );
 };
-
-#endif

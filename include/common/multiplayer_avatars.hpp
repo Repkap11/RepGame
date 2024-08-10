@@ -1,5 +1,4 @@
-#ifndef HEADER_MOBS_H
-#define HEADER_MOBS_H
+#pragma once
 
 #include "common/Particle.hpp"
 #include "common/RenderChain.hpp"
@@ -19,5 +18,3 @@ class MultiplayerAvatars {
     void draw( const Renderer &renderer, const Shader &shader );
     void cleanup( );
 };
-
-#endif

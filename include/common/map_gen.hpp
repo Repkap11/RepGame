@@ -1,5 +1,5 @@
-#ifndef HEADER_MAP_GEN_H
-#define HEADER_MAP_GEN_H
+#pragma once
+
 
 #include "chunk.hpp"
 #define WATER_LEVEL 0
@@ -17,4 +17,3 @@ class MapGen {
     static float calculateTerrainHeight( int x, int z );
 };
 void map_gen_load_block_cuda( glm::ivec3 *chunk_pos, BlockState *blocks );
-#endif

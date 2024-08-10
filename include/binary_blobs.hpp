@@ -1,5 +1,4 @@
-#ifndef HEADER_BINARY_BLOBS_H
-#define HEADER_BINARY_BLOBS_H
+#pragma once
 
 #include <stdint.h>
 
@@ -13,8 +12,8 @@ typedef struct {
 #else
 #define MK_BLOB( prefix, name, postfix )                                                                                                                                                                                                       \
     extern char _binary_##prefix##_##name##_##postfix##_start;                                                                                                                                                                                 \
-    extern char _binary_##prefix##_##name##_##postfix##_end;                                                                                                                                                                                \
-    const BinaryBlob name = {.source = ( &_binary_##prefix##_##name##_##postfix##_start ), .length = ( (int)(intptr_t)&_binary_##prefix##_##name##_##postfix##_end - (int)(intptr_t)&_binary_##prefix##_##name##_##postfix##_start )}
+    extern char _binary_##prefix##_##name##_##postfix##_end;                                                                                                                                                                                   \
+    const BinaryBlob name = { .source = ( &_binary_##prefix##_##name##_##postfix##_start ),                                                                                                                                                    \
+                              .length = ( ( int )( intptr_t ) & _binary_##prefix##_##name##_##postfix##_end - ( int )( intptr_t ) & _binary_##prefix##_##name##_##postfix##_start ) }
 
-#endif
 #endif

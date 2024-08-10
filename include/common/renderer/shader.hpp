@@ -1,5 +1,5 @@
-#ifndef HEADER_SHADER_H
-#define HEADER_SHADER_H
+#pragma once
+
 
 #include <glm.hpp>
 #include "binary_blobs.hpp"
@@ -41,5 +41,3 @@ class Shader {
     void set_uniform1ui( const char *name, unsigned int i );
     void set_uniform_mat4f( const char *name, const glm::mat4 &mat );
 };
-
-#endif

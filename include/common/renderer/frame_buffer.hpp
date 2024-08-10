@@ -1,5 +1,4 @@
-#ifndef HEADER_FRAME_BUFFER_H
-#define HEADER_FRAME_BUFFER_H
+#pragma once
 
 class FrameBuffer {
     unsigned int mRendererId;
@@ -14,5 +13,3 @@ class FrameBuffer {
     bool ok( ) const;
 
 };
-
-#endif

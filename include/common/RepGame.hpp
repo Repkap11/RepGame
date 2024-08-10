@@ -1,5 +1,4 @@
-#ifndef HEADER_REPGAME_H
-#define HEADER_REPGAME_H
+#pragma once
 
 #include <stdio.h>
 
@@ -115,5 +114,3 @@ class RepGame {
 
     int rep_tests_start( );
 };
-
-#endif

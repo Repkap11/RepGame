@@ -1,5 +1,5 @@
-#ifndef HEADER_VERTEX_ARRAY_H
-#define HEADER_VERTEX_ARRAY_H
+#pragma once
+
 
 #include "common/renderer/vertex_buffer.hpp"
 #include "common/renderer/vertex_buffer_layout.hpp"
@@ -16,5 +16,3 @@ class VertexArray {
     void unbind( ) const;
     void destroy( );
 };
-
-#endif

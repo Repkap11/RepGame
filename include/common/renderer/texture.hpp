@@ -1,5 +1,5 @@
-#ifndef HEADER_TEXTURES_H
-#define HEADER_TEXTURES_H
+#pragma once
+
 
 #include "binary_blobs.hpp"
 typedef struct {
@@ -58,5 +58,3 @@ class Texture {
     void bind( ) const;
     void unbind( ) const;
 };
-
-#endif

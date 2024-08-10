@@ -1,5 +1,5 @@
-#ifndef HEADER_LINKED_LIST_H
-#define HEADER_LINKED_LIST_H
+#pragma once
+
 
 #include "common/chunk.hpp"
 #include <pthread.h>
@@ -30,5 +30,3 @@ void linked_list_free( LinkedList *l );
 
 void linked_list_add_element( LinkedList *l, LinkedListValue value );
 LinkedListValue linked_list_pop_element( LinkedList *l );
-
-#endif

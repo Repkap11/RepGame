@@ -1,6 +1,3 @@
-#ifndef HEADER_FILE_UTILS_H
-#define HEADER_FILE_UTILS_H
+#pragma once
 
 char *getRepGamePath( );
-
-#endif

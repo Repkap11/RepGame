@@ -1,5 +1,4 @@
-#ifndef HEADER_BLOCK_H
-#define HEADER_BLOCK_H
+#pragma once
 
 #include "constants.hpp"
 #include "block_definitions.hpp"
@@ -174,5 +173,3 @@ typedef struct {
 } BlockCoords;
 
 void block_adjust_coord_based_on_state( const Block *block, const BlockState *blockState, BlockCoords *blockCoord );
-
-#endif

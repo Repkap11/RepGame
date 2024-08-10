@@ -1,5 +1,4 @@
-#ifndef HEADER_MULTIPLAYER_H
-#define HEADER_MULTIPLAYER_H
+#pragma once
 
 #include "common/RepGame.hpp"
 #include "common/block_definitions.hpp"
@@ -25,5 +24,3 @@ class Multiplayer {
     void set_block( const glm::ivec3 &block_pos, BlockState blockState );
     void update_players_position( const glm::vec3 &player_pos, const glm::mat4 &rotation );
 };
-
-#endif

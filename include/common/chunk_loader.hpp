@@ -1,5 +1,5 @@
-#ifndef HEADER_CHUNK_LOADER_H
-#define HEADER_CHUNK_LOADER_H
+#pragma once
+
 #include "chunk.hpp"
 #include "renderer/renderer.hpp"
 #include "mouse_selection.hpp"
@@ -7,7 +7,7 @@
 
 class ChunkLoader {
     friend class World;
-    
+
     glm::ivec3 chunk_center;
     Chunk *chunkArray;
     Shader shader;
@@ -33,5 +33,3 @@ class ChunkLoader {
 };
 
 #define MAX_LOADED_CHUNKS ( ( 2 * CHUNK_RADIUS_X + 1 ) * ( 2 * CHUNK_RADIUS_Y + 1 ) * ( 2 * CHUNK_RADIUS_Z + 1 ) )
-
-#endif

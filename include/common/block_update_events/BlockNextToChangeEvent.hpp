@@ -1,5 +1,5 @@
-#ifndef HEADER_BLOCK_NEXT_TO_CHANGED_EVENT_H
-#define HEADER_BLOCK_NEXT_TO_CHANGED_EVENT_H
+#pragma once
+
 
 #include "common/BlockUpdateQueue.hpp"
 
@@ -12,5 +12,3 @@ class BlockNextToChangeEvent : public BlockUpdateEvent {
     glm::ivec3 block_pos;
     glm::ivec3 affecting_block_pos;
 };
-
-#endif

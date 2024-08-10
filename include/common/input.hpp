@@ -1,5 +1,4 @@
-#ifndef HEADER_INPUT_H
-#define HEADER_INPUT_H
+#pragma once
 
 class Input {
     void processMovement( );
@@ -53,4 +52,3 @@ class Input {
 #endif
     void lookMove( int x, int y );
 };
-#endif

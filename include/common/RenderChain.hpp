@@ -1,5 +1,4 @@
-#ifndef HEADER_RENDER_CHAIN_H
-#define HEADER_RENDER_CHAIN_H
+#pragma once
 
 #include "common/renderer/texture.hpp"
 #include "common/renderer/vertex_buffer_layout.hpp"
@@ -143,5 +142,3 @@ template <typename Element, typename Instance> class RenderChain {
         this->instance_count_changed = true;
     }
 };
-
-#endif

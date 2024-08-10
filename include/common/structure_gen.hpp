@@ -1,5 +1,4 @@
-#ifndef HEADER_STRUCTURE_GEN_H
-#define HEADER_STRUCTURE_GEN_H
+#pragma once
 
 #include "common/chunk.hpp"
 
@@ -17,5 +16,3 @@ class StructureGen {
   public:
     static void place( Chunk &chunk );
 };
-
-#endif

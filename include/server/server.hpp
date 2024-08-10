@@ -1,5 +1,4 @@
-#ifndef HEADER_SERVER_H
-#define HEADER_SERVER_H
+#pragma once
 
 #include <glm.hpp>
 #include <queue>
@@ -38,5 +37,3 @@ typedef struct {
 
 void server_queue_packet( int client_fd, NetPacket *packet );
 PacketType_DataPlayer *server_get_data_if_client_connected( int client_id );
-
-#endif

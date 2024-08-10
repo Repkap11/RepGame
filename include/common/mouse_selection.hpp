@@ -1,5 +1,4 @@
-#ifndef HEADER_MOUSE_SELECTION_H
-#define HEADER_MOUSE_SELECTION_H
+#pragma once
 
 #include "common/RenderChain.hpp"
 
@@ -14,5 +13,3 @@ class MouseSelection {
     void set_block( const glm::ivec3 &pos, int shouldDraw, BlockState blockState );
     void draw( const Renderer &renderer, const Shader &shader );
 };
-
-#endif

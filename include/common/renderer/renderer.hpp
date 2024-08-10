@@ -1,5 +1,5 @@
-#ifndef HEADER_RENDERER_H
-#define HEADER_RENDERER_H
+#pragma once
+
 
 #include "common/renderer/vertex_buffer.hpp"
 #include "common/renderer/vertex_array.hpp"
@@ -13,4 +13,3 @@ class Renderer {
     void draw( const VertexArray &vertexArray, const IndexBuffer &indexBuffer, const Shader &shader, unsigned int num_instances ) const;
     void draw_lines( const VertexArray &vertexArray, const IndexBuffer &indexBuffer, const Shader &shader, unsigned int num_instances ) const;
 };
-#endif

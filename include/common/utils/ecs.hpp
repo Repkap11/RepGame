@@ -1,5 +1,4 @@
-#ifndef HEADER_ECS_H
-#define HEADER_ECS_H
+#pragma once
 
 #include <entt/entity/registry.hpp>
 
@@ -20,5 +19,3 @@ struct ECS {
     void print_group( const std::string &msg );
     void print_view( const std::string &msg );
 };
-
-#endif

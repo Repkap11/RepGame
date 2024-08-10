@@ -1,5 +1,5 @@
-#ifndef HEADER_FULL_SCREEN_QUAD_H
-#define HEADER_FULL_SCREEN_QUAD_H
+#pragma once
+
 
 #include "common/renderer/renderer.hpp"
 #include "common/RenderLink.hpp"
@@ -22,5 +22,3 @@ class FullScreenQuad {
     void draw_texture( const Renderer &renderer, const Texture &texture, const Texture &depthStencilTexture, float extraAlpha, bool blur, bool ignoreStencil );
     void destroy( );
 };
-
-#endif
