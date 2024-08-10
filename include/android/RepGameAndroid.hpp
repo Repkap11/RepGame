@@ -10,5 +10,3 @@ char *repgame_android_getShaderString( const char *filename );
 
 #define SUPPORTS_FRAME_BUFFER 0
 #define REPGAME_PATH_DIVIDOR "/"
-
-#endif

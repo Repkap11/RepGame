@@ -10,7 +10,7 @@ add_definitions(-DREPGAME_ANDROID)
 file(GLOB REPGAME_SOURCES
         ${CMAKE_CURRENT_SOURCE_DIR}/../../src/android/*.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/../../src/common/*.cpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/../../src/common/abstract/*.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/../../src/common/renderer/*.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/../../src/common/utils/*.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/../../src/common/vendor/*.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/../../src/common/block_update_events/*.cpp)
