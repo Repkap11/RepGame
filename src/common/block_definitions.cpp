@@ -725,5 +725,7 @@ void do_flowers( Block *block_definitions ) {
 }
 
 bool BlockStates_equal( const BlockState &a, const BlockState &b ) {
-    return !memcmp( &a, &b, sizeof( BlockState ) );
+    // Memcmp DOESN'T work, since there can be space inbetween the two structs!
+    // return !memcmp( &a, &b, sizeof( BlockState ) );
+    return a.id == b.id && a.display_id == b.display_id && a.rotation == b.rotation && a.current_redstone_power == b.current_redstone_power;
 }
