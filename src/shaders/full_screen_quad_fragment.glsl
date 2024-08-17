@@ -56,18 +56,23 @@ void main() {
         uint stencilCenter = stecilSample(multiCoords);
 
         int blurSize = 1;
-        uint numValid = 0u;
-        for(int i = -1; i < 2; i += 2) {
-            for(int j = -1; j < 2; j += 2) {
-                ivec2 pixelCoords = multiCoords + ivec2(i * 2, j * 2);
+        float numValid = 0u;
+        for(int i = -blurSize; i < blurSize + 1; i += 1) {
+            for(int j = -blurSize; j < blurSize + 1; j += 1) {
+                ivec2 offset = ivec2(i, j);
+                ivec2 pixelCoords = multiCoords + offset * 2;
                 uint stencil = stecilSample(pixelCoords);
                 vec4 textureColor = textureSample(pixelCoords);
                 bool valid = u_IgnoreStencil != 0 || stencilCenter == stencil;
-                numValid += uint(valid);
-                finalColor += float(valid) * textureColor;
+                if(valid) {
+                    float weight = (offset.x == 0 && offset.y == 0) ? 1.0 : 1.0 / (offset.x * offset.x + offset.y * offset.y);
+                    // float weight = 1.0f;
+                    numValid += weight;
+                    finalColor += weight * textureColor;
+                }
             }
         }
-        finalColor /= float(numValid);
+        finalColor /= numValid;
     } else {
         finalColor = textureMultisample(multiCoords);
     }
