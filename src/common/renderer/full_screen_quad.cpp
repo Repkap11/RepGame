@@ -25,6 +25,7 @@ void FullScreenQuad::init( ) {
         this->vbl.push_float( 2 ); // FullScreenQuadVertex pos
         this->vbl.push_float( 2 ); // FullScreenQuadVertex uv
     }
+    glGetIntegerv( GL_MAX_SAMPLES, &this->maxSamples );
 
     this->render_link_fsq.init( this->vbl, vb_data, FSQ_VERTEX_COUNT, ib_data, FSQ_INDEX_COUNT );
     this->shader.init( &full_screen_quad_vertex, &full_screen_quad_fragment );
@@ -36,7 +37,7 @@ void FullScreenQuad::draw_texture( const Renderer &renderer, const Texture &text
     this->shader.set_uniform1i_texture( "u_Stencil", depthStencilTexture );
     this->shader.set_uniform1i( "u_IgnoreStencil", ignoreStencil );
     this->shader.set_uniform1f( "u_ExtraAlpha", extraAlpha );
-    this->shader.set_uniform1i( "u_TextureSamples", blur ? MULTI_SAMPLE_SCALE_FBO / 4 : MULTI_SAMPLE_SCALE_FBO );
+    this->shader.set_uniform1i( "u_TextureSamples", blur ? 1 : this->maxSamples );//No point sampling more than our max number of samples from our textures.
     this->shader.set_uniform1i( "u_Blur", blur );
     this->render_link_fsq.draw( renderer, this->shader );
 }

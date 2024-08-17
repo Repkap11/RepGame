@@ -1,6 +1,5 @@
 #pragma once
 
-
 #include "common/renderer/renderer.hpp"
 #include "common/RenderLink.hpp"
 
@@ -13,6 +12,7 @@ typedef struct {
 } FullScreenQuadSingleInstance;
 
 class FullScreenQuad {
+    int maxSamples;
     VertexBufferLayout vbl;
     RenderLink<FullScreenQuadVertex> render_link_fsq;
     Shader shader;
