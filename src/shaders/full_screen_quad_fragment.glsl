@@ -57,9 +57,9 @@ void main() {
 
         int blurSize = 1;
         uint numValid = 0u;
-        for(int i = -1; i < 2; i+=2) {
-            for(int j = -1; j < 2; j+=2) {
-                ivec2 pixelCoords = multiCoords + ivec2(i * 4, j * 4);
+        for(int i = -1; i < 2; i += 2) {
+            for(int j = -1; j < 2; j += 2) {
+                ivec2 pixelCoords = multiCoords + ivec2(i * 2, j * 2);
                 uint stencil = stecilSample(pixelCoords);
                 vec4 textureColor = textureSample(pixelCoords);
                 bool valid = u_IgnoreStencil != 0 || stencilCenter == stencil;
@@ -70,6 +70,9 @@ void main() {
         finalColor /= float(numValid);
     } else {
         finalColor = textureMultisample(multiCoords);
+    }
+    if(finalColor.a == 0.0) {
+        discard;
     }
     finalColor.a *= u_ExtraAlpha;
     color = finalColor;

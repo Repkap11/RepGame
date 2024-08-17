@@ -252,7 +252,22 @@ void World::draw( const Texture &blocksTexture, const glm::mat4 &mvp, const glm:
         glDisable( GL_DEPTH_TEST );
         glClear( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT );
 
+        // glStencilFunc -> pass or discard
+        // glStencilOp -> action to do on the scencil buffer.
+
+        glEnable( GL_STENCIL_TEST );
+        glStencilFunc( GL_ALWAYS, 1, 0xFF );               // all fragments should pass the stencil test because we don't care.
+        glStencilOp( GL_REPLACE, GL_REPLACE, GL_REPLACE ); // Any drawing impacts the stencil buffer and writes a 1.
+        this->fullScreenQuad.draw_texture( this->renderer, this->reflectionTexture, this->depthStencilTexture, y_height < 0 ? 0.1 : 0.2, allowBlur, headInWater );
+        glClear( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT );
+
+        glStencilOp( GL_KEEP, GL_KEEP, GL_KEEP ); // Don't change the stencil buffer while we're using it.
+        glStencilFunc( GL_EQUAL, 1, 0xff );       // If the stencil value is 1, allow drawing.
+        this->fullScreenQuad.draw_texture( this->renderer, this->blockTexture, this->depthStencilTexture, 1.0, allowBlur, headInWater );
+        glStencilFunc( GL_NOTEQUAL, 1, 0xff ); // If the stencil value isn't 1 allow drawing.
         this->fullScreenQuad.draw_texture( this->renderer, this->blockTexture, this->depthStencilTexture, 1.0, false, headInWater );
+        glDisable( GL_STENCIL_TEST );
+
         if ( usingReflections ) {
             this->fullScreenQuad.draw_texture( this->renderer, this->reflectionTexture, this->depthStencilTexture, y_height < 0 ? 0.1 : 0.2, allowBlur, headInWater );
         }
