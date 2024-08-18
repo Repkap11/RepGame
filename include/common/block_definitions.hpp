@@ -352,7 +352,7 @@ typedef struct {
 } Block;
 
 // Keep in order to make save file backwards compatible
-struct BlockState {
+struct __attribute__( ( packed ) ) BlockState {
     BlockID id;
     unsigned char rotation;
     int current_redstone_power;

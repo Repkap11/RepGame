@@ -75,6 +75,8 @@ class Server {
   public:
     void init( int portnum );
     void serve( );
+    void kill( );
+    void cleanup( );
     void queue_packet( int client_fd, NetPacket *packet );
     PacketType_DataPlayer *get_data_if_client_connected( int client_id );
 };

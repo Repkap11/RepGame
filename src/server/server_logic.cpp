@@ -101,8 +101,9 @@ void ServerLogic::respondToChunkRequest( Server &server, int client_fd, const gl
 }
 
 void ServerLogic::persistCache( ) {
+    BlockState *blocks = ( BlockState * )malloc( CHUNK_BLOCK_SIZE * sizeof( BlockState ) );
+
     for ( auto [ chunk_pos, chunk_cache ] : this->world_cache ) {
-        BlockState *blocks = ( BlockState * )malloc( CHUNK_BLOCK_SIZE * sizeof( BlockState ) );
         for ( int i = 0; i < CHUNK_BLOCK_SIZE; ++i ) {
             blocks[ i ] = BLOCK_STATE_LAST_BLOCK_ID;
         }
@@ -110,9 +111,9 @@ void ServerLogic::persistCache( ) {
             blocks[ chunk_index ] = blockState;
         }
         this->map_storage.persist_dirty_blocks( chunk_pos, blocks );
-        free( blocks );
         // pr_debug( "Saving chunk:%d %d %d", chunk_pos.x, chunk_pos.y, chunk_pos.z );
     }
+    free( blocks );
     pr_debug( "World saved" );
     this->world_cache.clear( );
 }
@@ -129,7 +130,7 @@ std::map<int, BlockState> *ServerLogic::loadIntoCache( const glm::ivec3 &chunk_o
         return NULL;
     }
     std::map<int, BlockState> &chunk_cache = this->world_cache[ chunk_offset ];
-    pr_debug( "found chunk:%d %d %d size:%d", chunk_offset.x, chunk_offset.y, chunk_offset.z, chunk_cache.size( ) );
+    pr_debug( "found chunk:%d %d %d size:%ld", chunk_offset.x, chunk_offset.y, chunk_offset.z, chunk_cache.size( ) );
     chunk_cache.clear( );
     for ( int i = 0; i < CHUNK_BLOCK_SIZE; ++i ) {
         BlockState &blockState = blocks[ i ];

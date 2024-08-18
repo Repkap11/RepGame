@@ -153,7 +153,7 @@ void Server::handle_client_ready_for_read( int client_fd ) {
     }
     if ( disconnected ) {
         std::queue<NetPacket> empty;
-        std::swap( client_data[ client_fd ].pending_sends, empty );
+        client_data[ client_fd ].pending_sends.swap( empty );
         this->server_logic.on_client_disconnected( *this, client_fd );
         client_data[ client_fd ].connected = 0;
         Server::del_epoll( client_fd );
@@ -207,7 +207,7 @@ void Server::handle_client_ready_for_write( int client_fd ) {
 }
 
 void Server::init( int portnum ) {
-    this->server_logic.init( "World1" );
+    this->server_logic.init( "Server1" );
     this->inet_socket_fd = Server::setup_inet_socket( portnum );
     Server::make_socket_non_blocking( inet_socket_fd );
 
@@ -223,19 +223,25 @@ void Server::init( int portnum ) {
         pr_debug( "epoll_ctl EPOLL_CTL_ADD" );
     }
 
-    this->client_data = ( ClientData * )calloc( MAX_CLIENT_FDS, sizeof( ClientData ) );
-    for ( int i = 0; i < MAX_CLIENT_FDS; i++ ) {
-        new ( &client_data[ i ].pending_sends ) std::queue<NetPacket>( );
-        // client_data[ i ].pending_sends = std::queue<NetPacket>( );
-    }
-    this->events = ( struct epoll_event * )calloc( MAX_CLIENT_FDS, sizeof( struct epoll_event ) );
+    this->client_data = new ClientData[ MAX_CLIENT_FDS ];
+    this->events = new struct epoll_event[ MAX_CLIENT_FDS ];
     if ( events == NULL ) {
         pr_debug( "Unable to allocate memory for epoll_events" );
     }
 }
 
+void Server::cleanup( ) {
+    if ( this->epoll_fd >= 0 ) {
+        close( this->epoll_fd );
+        this->epoll_fd = -1;
+    }
+    close( this->inet_socket_fd );
+    delete[] this->client_data;
+    delete[] this->events;
+}
+
 void Server::serve( ) {
-    while ( 1 ) {
+    while ( this->epoll_fd >= 0 ) {
         int num_ready = epoll_wait( this->epoll_fd, this->events, MAX_CLIENT_FDS, -1 );
         // pr_debug( "epoll returned: %d", num_ready );
         for ( int i = 0; i < num_ready; i++ ) {
@@ -243,7 +249,8 @@ void Server::serve( ) {
             if ( this->events[ i ].events & EPOLLERR ) {
                 pr_debug( "epoll_wait returned EPOLLERR:%d", client_fd );
                 std::queue<NetPacket> empty;
-                std::swap( client_data[ client_fd ].pending_sends, empty );
+                // std::swap( client_data[ client_fd ].pending_sends, empty );
+                client_data[ client_fd ].pending_sends.swap( empty );
                 this->server_logic.on_client_disconnected( *this, client_fd );
                 client_data[ client_fd ].connected = 0;
                 Server::del_epoll( client_fd );
@@ -267,6 +274,25 @@ void Server::serve( ) {
             }
         }
     }
+    pr_debug( "Server Exiting" );
+}
+
+#include <signal.h>
+#include <stdlib.h>
+#include <stdio.h>
+#include <unistd.h>
+
+void Server::kill( ) {
+    int fd = this->epoll_fd;
+    this->epoll_fd = -1;
+    close( fd );
+}
+
+static Server server;
+
+void sig_handler( int s ) {
+    printf( "Caught signal %d\n", s );
+    server.kill( );
 }
 
 int main( int argc, const char **argv ) {
@@ -278,7 +304,15 @@ int main( int argc, const char **argv ) {
     }
     pr_debug( "Serving on port %d", portnum );
 
-    Server server;
+    struct sigaction sigIntHandler;
+
+    sigIntHandler.sa_handler = sig_handler;
+    sigemptyset( &sigIntHandler.sa_mask );
+    sigIntHandler.sa_flags = 0;
+
+    sigaction( SIGINT, &sigIntHandler, NULL );
+
     server.init( portnum );
     server.serve( );
+    server.cleanup( );
 }

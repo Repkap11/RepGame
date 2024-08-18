@@ -72,7 +72,7 @@ struct RepGameState {
     long tick_number;
 };
 
-struct PlayerData {
+struct  __attribute__( ( packed ) ) PlayerData {
     int reserved;
     float world_x;
     float world_y;
@@ -85,7 +85,7 @@ struct PlayerData {
     InventorySlot hotbar_inventory[ HOTBAR_WIDTH * HOTBAR_HEIGHT ];
     InventorySlot main_inventory[ MAIN_INVENTORY_WIDTH * MAIN_INVENTORY_HEIGHT ];
     int selected_hotbar_slot;
-} ;
+};
 
 class RepGame {
 

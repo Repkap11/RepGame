@@ -11,7 +11,7 @@
 // #define INVENTORY_BLOCK_SIZE 30
 // #define INVENTORY_BLOCK_SPACING 80
 
-typedef struct {
+typedef struct __attribute__( ( packed ) ) {
     BlockID block_id;
     int quantity;
 } InventorySlot;
