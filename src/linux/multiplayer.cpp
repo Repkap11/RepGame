@@ -74,15 +74,15 @@ void Multiplayer::process_events( World &world ) {
                     Chunk &chunk = *chunk_prt;
                     for ( int i = 0; i < update.data.chunk_diff.num_used_updates; ++i ) {
                         const PacketType_DataChunkDiff_Block &net_block = update.data.chunk_diff.blockUpdates[ i ];
-                        chunk.set_block_by_index( net_block.blocks_index, ( BlockState * )net_block.blockState );
+                        chunk.set_block_by_index( net_block.blocks_index, &net_block.blockState );
                     }
                     // update.data.;
                     // world.set_loaded_block();
                 } else if ( update.type == PacketType::BLOCK_UPDATE ) {
-                    BlockState *blockState = ( BlockState * )( update.data.block.blockState );
-                    pr_debug( "Read message: block:%d", blockState->id );
+                    BlockState &blockState = update.data.block.blockState;
+                    pr_debug( "Read message: block:%d", blockState.id );
                     glm::ivec3 block_pos = glm::ivec3( update.data.block.x, update.data.block.y, update.data.block.z );
-                    world.set_loaded_block( block_pos, *blockState );
+                    world.set_loaded_block( block_pos, blockState );
                 } else if ( update.type == PacketType::CLIENT_INIT ) {
                     world.multiplayer_avatars.add( update.player_id );
                     glm::mat4 rotation = glm::make_mat4( update.data.player.rotation );

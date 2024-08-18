@@ -1,12 +1,13 @@
 #pragma once
 
 #include <glm.hpp>
+#include "common/block.hpp"
 
 class Server;
 struct NetPacket;
 
 class ServerLogic {
-    void record_block( const glm::ivec3 &chunk_pos, int block_index );
+    void record_block( const glm::ivec3 &chunk_pos, int block_index, BlockState &block_state );
 
   public:
     void on_client_connected( Server &server, int client_fd );

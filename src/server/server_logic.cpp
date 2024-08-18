@@ -45,19 +45,19 @@ void ServerLogic::on_client_connected( Server &server, int client_fd ) {
     }
 }
 
-void ServerLogic::record_block( const glm::ivec3 &chunk_pos, int block_index ) {
-    
+void ServerLogic::record_block( const glm::ivec3 &chunk_pos, int block_index, BlockState &block_state ) {
 }
 
 void ServerLogic::on_client_message( Server &server, int client_fd, NetPacket *packet ) {
 
     // pr_debug( "Got message from:%d block:%d", client_fd, packet->blockID );
     if ( packet->type == PacketType::BLOCK_UPDATE ) {
-        glm::ivec3 block_pos = glm::ivec3( packet->data.block.x, packet->data.block.y, packet->data.block.z );
+        PacketType_DataBlock &block_data = packet->data.block;
+        glm::ivec3 block_pos = glm::ivec3( block_data.x, block_data.y, block_data.z );
         glm::ivec3 chunk_pos = glm::floor( glm::vec3( block_pos ) / CHUNK_SIZE_F );
         glm::ivec3 diff = block_pos - ( chunk_pos * CHUNK_SIZE_I );
         int blocks_index = Chunk::get_index_from_coords( diff );
-        this->record_block( chunk_pos, blocks_index );
+        this->record_block( chunk_pos, blocks_index, block_data.blockState );
     }
     if ( packet->type != INVALID ) {
         // Tell the other connected players about most types of messages, but mark the

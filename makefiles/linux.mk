@@ -9,7 +9,7 @@ LFLAGS := -z noexecstack
 # Use SW vsync since HW vsync causes tearing (at least for me).
 CFLAGS_LINUX_RELEASE := -O3 -DREPGAME_SKIP_CHECK_FOR_GL_ERRORS -DREPGAME_SW_VSYNC
 # Show GL errors, and unlimit the FPS to measure perfornamce.
-CFLAGS_LINUX_DEBUG := -g
+CFLAGS_LINUX_DEBUG := -g -DREPGAME_SW_VSYNC
 
 CFLAGS_LINUX += -DREPGAME_LINUX
 

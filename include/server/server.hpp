@@ -3,12 +3,13 @@
 #include <glm.hpp>
 #include <queue>
 #include <common/constants.hpp>
+#include <common/block.hpp>
 #include <server/server_logic.hpp>
 
 typedef enum { INVALID, PLAYER_LOCATION, BLOCK_UPDATE, CLIENT_INIT, PLAYER_CONNECTED, PLAYER_DISCONNECTED, CHUNK_DIFF } PacketType;
 
-#define SERVER_BLOCK_DATA_SIZE 16
 #define SERVER_BLOCK_CHUNK_DIFF_SIZE 10 // TODO this could be up to the total number of blocks in a chunk.... that would be a lot of data.
+
 struct PacketType_DataPlayer {
     float x;
     float y;
@@ -20,12 +21,12 @@ struct PacketType_DataBlock {
     int x;
     int y;
     int z;
-    char blockState[ SERVER_BLOCK_DATA_SIZE ];
+    BlockState blockState;
 };
 
 struct PacketType_DataChunkDiff_Block {
     int blocks_index;
-    char blockState[ SERVER_BLOCK_DATA_SIZE ];
+    BlockState blockState;
 };
 
 struct PacketType_DataChunkDiff {

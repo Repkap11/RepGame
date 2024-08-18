@@ -22,9 +22,6 @@ class RenderLayer {
     BlockCoords *populated_blocks;
 };
 
-// This size must match, update the size in server.hpp if it doesn't
-static_assert( sizeof( BlockState ) == SERVER_BLOCK_DATA_SIZE, "Size of BlockState doesn't match server packet size." );
-
 class WorkingSpace {
     friend class Chunk;
 
