@@ -362,7 +362,11 @@ typedef struct {
 static BlockState BLOCK_STATE_AIR = { AIR, BLOCK_ROTATE_0, 0, AIR };
 static BlockState BLOCK_STATE_LAST_BLOCK_ID = { LAST_BLOCK_ID, BLOCK_ROTATE_0, 0, LAST_BLOCK_ID };
 
-bool BlockStates_equal( const BlockState &a, const BlockState &b );
+static inline bool BlockStates_equal( const BlockState &a, const BlockState &b ) {
+    // Memcmp DOESN'T work, since there can be space inbetween the two structs!
+    // return !memcmp( &a, &b, sizeof( BlockState ) );
+    return a.id == b.id && a.display_id == b.display_id && a.rotation == b.rotation && a.current_redstone_power == b.current_redstone_power;
+}
 
 void block_definitions_initilize_definitions( Texture *texture );
 Block *block_definition_get_definition( BlockID blockID );

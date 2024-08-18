@@ -1,19 +1,14 @@
 
 #include "server/server_logic.hpp"
-#include "common/chunk.hpp"
-#include "common/utils/map_storage.hpp"
 #include "common/utils/file_utils.hpp"
+#include "common/RepGame.hpp"
 
 #include <stdio.h>
 
 #define pr_debug( fmt, ... ) fprintf( stdout, "%s:%d:%s():" fmt "\n", __FILE__, __LINE__, __func__, ##__VA_ARGS__ );
 
 void ServerLogic::init( const char *world_name ) {
-    char *dir = getRepGamePath( );
-    snprintf( this->map_name, CHUNK_NAME_MAX_LENGTH, "%s%s%s", dir, REPGAME_PATH_DIVIDOR, world_name );
-    pr_debug( "Loading map from:%s", this->map_name );
-    mkdir_p( map_name );
-    free( dir );
+    this->map_storage.init( world_name );
 }
 
 void ServerLogic::on_client_connected( Server &server, int client_fd ) {
@@ -57,19 +52,13 @@ void ServerLogic::on_client_connected( Server &server, int client_fd ) {
 }
 
 void ServerLogic::record_block( const glm::ivec3 &chunk_offset, int block_index, BlockState &block_state ) {
-    char file_name[ CHUNK_NAME_MAX_LENGTH ];
-    if ( snprintf( file_name, CHUNK_NAME_MAX_LENGTH, FILE_ROOT_CHUNK, this->map_name, chunk_offset.x, chunk_offset.y, chunk_offset.z ) != CHUNK_NAME_MAX_LENGTH ) {
-    }
-    auto &chunk_cache = this->world_cache[ file_name ];
+    auto &chunk_cache = this->world_cache[ chunk_offset ];
     chunk_cache[ block_index ] = block_state;
-    pr_debug( "Stored a block in:%s ", file_name );
 }
 
 void ServerLogic::respondToChunkRequest( Server &server, int client_fd, const glm::ivec3 &chunk_offset ) {
-    char file_name[ CHUNK_NAME_MAX_LENGTH ];
-    if ( snprintf( file_name, CHUNK_NAME_MAX_LENGTH, FILE_ROOT_CHUNK, this->map_name, chunk_offset.x, chunk_offset.y, chunk_offset.z ) != CHUNK_NAME_MAX_LENGTH ) {
-    }
-    const auto it_world = this->world_cache.find( file_name );
+
+    const auto it_world = this->world_cache.find( chunk_offset );
     if ( it_world == this->world_cache.end( ) ) {
         return;
     }
@@ -100,12 +89,11 @@ void ServerLogic::respondToChunkRequest( Server &server, int client_fd, const gl
         total_packets_sent += 1;
         // pr_debug( "Responding to client:%d with %d blocks", client_fd, packet_index );
     }
-    pr_debug( "Responded to:%s with total packets:%d for blocks:%ld", file_name, total_packets_sent, chunk_cache.size( ) );
+    pr_debug( "Respond with total packets:%d for blocks:%ld", total_packets_sent, chunk_cache.size( ) );
 }
 
 void ServerLogic::persistCache( ) {
     for ( auto [ file_name, chunk_cache ] : this->world_cache ) {
-
     }
 }
 

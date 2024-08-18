@@ -3,6 +3,7 @@
 #include <glm.hpp>
 #include "common/block.hpp"
 #include "common/constants.hpp"
+#include "common/utils/map_storage.hpp"
 
 #include <map>
 #include <string>
@@ -10,9 +11,24 @@
 class Server;
 struct NetPacket;
 
+struct Compare_I_Vec3 {
+    bool operator( )( const glm::ivec3 &a, const glm::ivec3 &b ) const {
+        int x_diff = a.x < b.x;
+        if ( x_diff != 0 ) {
+            return x_diff;
+        }
+        int y_diff = a.y < b.y;
+        if ( y_diff != 0 ) {
+            return y_diff;
+        }
+        int z_diff = a.z < b.z;
+        return y_diff;
+    }
+};
+
 class ServerLogic {
-    char map_name[ CHUNK_NAME_MAX_LENGTH ];
-    std::map<std::string, std::map<int, BlockState>> world_cache;
+    MapStorage map_storage;
+    std::map<glm::ivec3, std::map<int, BlockState>, Compare_I_Vec3> world_cache;
 
     void record_block( const glm::ivec3 &chunk_offset, int block_index, BlockState &block_state );
     void respondToChunkRequest( Server &server, int client_fd, const glm::ivec3 &chunk_offset );

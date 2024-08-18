@@ -105,7 +105,8 @@
         "ios": "cpp",
         "__bit_reference": "cpp",
         "__functional_base": "cpp",
-        "__memory": "cpp"
+        "__memory": "cpp",
+        "__string": "cpp"
     },
     "git.ignoreLimitWarning": true
 }

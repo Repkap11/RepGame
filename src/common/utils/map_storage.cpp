@@ -11,14 +11,16 @@
 #include "common/constants.hpp"
 #include "common/utils/file_utils.hpp"
 
-char map_name[ CHUNK_NAME_MAX_LENGTH ];
-
 void MapStorage::init( const char *world_name ) {
     char *dir = getRepGamePath( );
-    snprintf( map_name, CHUNK_NAME_MAX_LENGTH, "%s%s%s", dir, REPGAME_PATH_DIVIDOR, world_name );
+    snprintf( this->map_name, CHUNK_NAME_MAX_LENGTH, "%s%s%s", dir, REPGAME_PATH_DIVIDOR, world_name );
     pr_debug( "Loading map from:%s", map_name );
-    mkdir_p( map_name );
+    mkdir_p( this->map_name );
     free( dir );
+}
+
+char *MapStorage::get_map_name( ) {
+    return this->map_name;
 }
 
 #define STORAGE_TYPE_SIZE_HEADER uint32_t
@@ -88,7 +90,7 @@ void MapStorage::persist( const Chunk &chunk ) {
     }
 }
 
-int check_if_chunk_exists( const glm::ivec3 &chunk_offset ) {
+int MapStorage::check_if_chunk_exists( const glm::ivec3 &chunk_offset ) {
     char file_name[ CHUNK_NAME_MAX_LENGTH ];
     if ( snprintf( file_name, CHUNK_NAME_MAX_LENGTH, FILE_ROOT_CHUNK, map_name, chunk_offset.x, chunk_offset.y, chunk_offset.z ) != CHUNK_NAME_MAX_LENGTH ) {
     }
@@ -190,7 +192,7 @@ int MapStorage::read_player_data( PlayerData &player_data ) {
 
 void MapStorage::write_player_data( const PlayerData &player_data ) {
     char file_name[ CHUNK_NAME_MAX_LENGTH ];
-    snprintf( file_name, CHUNK_NAME_MAX_LENGTH, FILE_ROOT_PLAYER_DATA, map_name ) ;
+    snprintf( file_name, CHUNK_NAME_MAX_LENGTH, FILE_ROOT_PLAYER_DATA, map_name );
     FILE *write_ptr = fopen( file_name, "wb" );
     if ( !write_ptr ) {
         pr_debug( "Can't write player:%s (%p)", file_name, write_ptr );

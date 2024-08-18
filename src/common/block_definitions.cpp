@@ -723,9 +723,3 @@ void do_flowers( Block *block_definitions ) {
     block_definitions[ WHITE_FLOWER_SAPPLING_IN_POT ].renderOrder = RenderOrder_Flowers;
     block_definitions[ END_ROD ].renderOrder = RenderOrder_Flowers;
 }
-
-bool BlockStates_equal( const BlockState &a, const BlockState &b ) {
-    // Memcmp DOESN'T work, since there can be space inbetween the two structs!
-    // return !memcmp( &a, &b, sizeof( BlockState ) );
-    return a.id == b.id && a.display_id == b.display_id && a.rotation == b.rotation && a.current_redstone_power == b.current_redstone_power;
-}
