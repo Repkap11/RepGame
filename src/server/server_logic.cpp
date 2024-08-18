@@ -60,7 +60,36 @@ void ServerLogic::record_block( const glm::ivec3 &chunk_offset, int block_index,
     char file_name[ CHUNK_NAME_MAX_LENGTH ];
     if ( snprintf( file_name, CHUNK_NAME_MAX_LENGTH, FILE_ROOT_CHUNK, this->map_name, chunk_offset.x, chunk_offset.y, chunk_offset.z ) != CHUNK_NAME_MAX_LENGTH ) {
     }
-    this->world_cache.at( file_name );
+    auto chunk_cache = this->world_cache[ file_name ];
+    chunk_cache[ block_index ] = block_state;
+}
+
+void ServerLogic::respondToChunkRequest( Server &server, int client_fd, const glm::ivec3 &chunk_offset ) {
+    char file_name[ CHUNK_NAME_MAX_LENGTH ];
+    if ( snprintf( file_name, CHUNK_NAME_MAX_LENGTH, FILE_ROOT_CHUNK, this->map_name, chunk_offset.x, chunk_offset.y, chunk_offset.z ) != CHUNK_NAME_MAX_LENGTH ) {
+    }
+    const auto it_world = this->world_cache.find( file_name );
+    if ( it_world == this->world_cache.end( ) ) {
+        return;
+    }
+    const std::map<int, BlockState> &chunk_cache = it_world->second;
+    auto it_chunk = chunk_cache.begin( );
+    NetPacket packet;
+    packet.type = PacketType::CHUNK_DIFF_RESULT;
+    int packet_index = 0;
+    for ( auto [ blocks_index, blockState ] : chunk_cache ) {
+        PacketType_DataChunkDiff_Block &packet_data = packet.data.chunk_diff.blockUpdates[ packet_index ];
+        packet_data.blocks_index = blocks_index;
+        packet_data.blockState = blockState;
+        packet_index++;
+        if ( packet_index >= SERVER_BLOCK_CHUNK_DIFF_SIZE ) {
+            server.queue_packet( client_fd, &packet );
+            packet_index = 0;
+        }
+    }
+    if ( packet_index != 0 ) {
+        server.queue_packet( client_fd, &packet );
+    }
 }
 
 void ServerLogic::on_client_message( Server &server, int client_fd, NetPacket *packet ) {
@@ -73,6 +102,9 @@ void ServerLogic::on_client_message( Server &server, int client_fd, NetPacket *p
         glm::ivec3 diff = block_pos - ( chunk_pos * CHUNK_SIZE_I );
         int blocks_index = Chunk::get_index_from_coords( diff );
         this->record_block( chunk_pos, blocks_index, block_data.blockState );
+    } else if ( packet->type == PacketType::CHUNK_DIFF_REQUEST ) {
+        glm::ivec3 chunk_pos = glm::ivec3( packet->data.chunk_diff.chunk_x, packet->data.chunk_diff.chunk_y, packet->data.chunk_diff.chunk_z );
+        this->respondToChunkRequest( server, client_fd, chunk_pos );
     }
     if ( packet->type != INVALID ) {
         // Tell the other connected players about most types of messages, but mark the

@@ -5,6 +5,8 @@
 #include "mouse_selection.hpp"
 #include "sky_box.hpp"
 
+class Multiplayer;
+
 class ChunkLoader {
     friend class World;
 
@@ -24,7 +26,7 @@ class ChunkLoader {
 
   public:
     void init( const glm::vec3 &camera_pos, const VertexBufferLayout &vbl_block, const VertexBufferLayout &vbl_coords );
-    void render_chunks( const glm::vec3 &camera_pos, int limit_render );
+    void render_chunks( Multiplayer &multiplayer, const glm::vec3 &camera_pos, int limit_render );
     void repopulate_blocks( );
     void calculate_cull( const glm::mat4 &mvp, bool saveAsReflection );
     void draw( const glm::mat4 &mvp, const Renderer &renderer, const Texture &texture, bool reflect_only, bool draw_reflect );

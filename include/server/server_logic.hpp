@@ -14,7 +14,8 @@ class ServerLogic {
     char map_name[ CHUNK_NAME_MAX_LENGTH ];
     std::map<std::string, std::map<int, BlockState>> world_cache;
 
-    void record_block( const glm::ivec3 &chunk_pos, int block_index, BlockState &block_state );
+    void record_block( const glm::ivec3 &chunk_offset, int block_index, BlockState &block_state );
+    void respondToChunkRequest( Server &server, int client_fd, const glm::ivec3 &chunk_offset );
 
   public:
     void init( const char *world_name );

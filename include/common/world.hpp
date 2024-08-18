@@ -47,7 +47,7 @@ class World {
     Chunk *get_loaded_chunk( const glm::ivec3 &block );
     void init( const glm::vec3 &camera_pos, int width, int height );
     void change_size( int width, int height );
-    void render( const glm::vec3 &camera_pos, int limit_render, const glm::mat4 &rotation );
+    void render(  Multiplayer &multiplayer,const glm::vec3 &camera_pos, int limit_render, const glm::mat4 &rotation );
     void draw( const Texture &blocksTexture, const glm::mat4 &mvp, const glm::mat4 &mvp_reflect, const glm::mat4 &mvp_sky, const glm::mat4 &mvp_sky_reflect, int debug, int draw_mouse_selection, float y_height, bool headInWater,
                WorldDrawQuality worldDrawQuality );
     void process_random_ticks( );

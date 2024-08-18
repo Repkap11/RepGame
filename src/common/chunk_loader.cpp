@@ -139,7 +139,7 @@ inline int ChunkLoader::process_chunk_position( Chunk &chunk, const glm::ivec3 &
     return 0;
 }
 
-void ChunkLoader::render_chunks( const glm::vec3 &camera_pos, int limit_render ) {
+void ChunkLoader::render_chunks( Multiplayer &multiplayer, const glm::vec3 &camera_pos, int limit_render ) {
     glm::vec3 chunk_size = glm::vec3( CHUNK_SIZE_X, CHUNK_SIZE_Y, CHUNK_SIZE_Z );
 
     glm::ivec3 chunk_pos = glm::floor( camera_pos / chunk_size );
@@ -154,6 +154,7 @@ void ChunkLoader::render_chunks( const glm::vec3 &camera_pos, int limit_render )
             if ( chunk_ptr ) {
                 Chunk &chunk = *chunk_ptr;
                 chunk.is_loading = 0;
+                multiplayer.request_chunk( chunk.chunk_pos );
                 int reloaded = reload_if_out_of_bounds( chunk, chunk_pos );
                 if ( !reloaded ) {
                     // pr_debug( "Paul Loading terrain x:%d y%d: z:%d", chunk->chunk_x, chunk->chunk_y, chunk->chunk_z );
@@ -193,12 +194,11 @@ void ChunkLoader::render_chunks( const glm::vec3 &camera_pos, int limit_render )
 float chunk_diameter = ( CHUNK_SIZE_Z + 1 ) * 1.73205080757; // sqrt(3)
 
 void ChunkLoader::calculate_cull( const glm::mat4 &mvp, bool saveAsReflection ) {
-    glm::ivec3 chunk_size = glm::vec3( CHUNK_SIZE_X, CHUNK_SIZE_Y, CHUNK_SIZE_Z );
     for ( int i = 0; i < MAX_LOADED_CHUNKS; i++ ) {
         int final_is_visiable = 1;
         Chunk *chunk = &this->chunkArray[ i ];
         if ( CULL_NON_VISIBLE ) {
-            glm::vec4 chunk_coords = glm::vec4( chunk->chunk_pos * chunk_size + chunk_size / 2, 1 );
+            glm::vec4 chunk_coords = glm::vec4( chunk->chunk_pos * CHUNK_SIZE_I + CHUNK_SIZE_I / 2, 1 );
             glm::vec4 result_v = mvp * chunk_coords;
             float adjusted_diameter = chunk_diameter / fabsf( result_v.w );
 

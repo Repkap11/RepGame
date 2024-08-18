@@ -520,7 +520,7 @@ void RepGame::draw( ) {
     bool limit_render = 0;
 #endif
     if ( do_render ) {
-        globalGameState.world.render( globalGameState.camera.pos, limit_render, globalGameState.camera.rotation );
+        globalGameState.world.render(globalGameState.multiplayer, globalGameState.camera.pos, limit_render, globalGameState.camera.rotation );
     }
 
     showErrors( );

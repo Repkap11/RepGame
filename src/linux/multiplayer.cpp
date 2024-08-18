@@ -64,7 +64,7 @@ void Multiplayer::process_events( World &world ) {
                 // This is fine, it just means there are no messages;
                 return;
             } else {
-                if ( update.type == PacketType::CHUNK_DIFF ) {
+                if ( update.type == PacketType::CHUNK_DIFF_RESULT ) {
                     glm::ivec3 chunk_pos = glm::ivec3( update.data.chunk_diff.chunk_x, update.data.chunk_diff.chunk_y, update.data.chunk_diff.chunk_z );
                     Chunk *chunk_prt = world.chunkLoader.get_chunk( chunk_pos );
                     if ( chunk_prt == NULL ) {
@@ -107,7 +107,7 @@ void Multiplayer::process_events( World &world ) {
     }
 }
 
-void Multiplayer::set_block_send_packet( const NetPacket &update ) {
+void Multiplayer::send_packet( const NetPacket &update ) {
     // Send updates to the server
     int status = write( this->sockfd, ( void * )&update, sizeof( NetPacket ) );
     if ( status < 0 ) {
@@ -116,42 +116,57 @@ void Multiplayer::set_block_send_packet( const NetPacket &update ) {
 }
 
 void Multiplayer::set_block( const glm::ivec3 &block_pos, BlockState blockState ) {
-    if ( this->active ) {
-        // Log what the player is doing
-        if ( blockState.id != AIR ) {
-            // pr_debug( "Player placed %i at %i, %i, %i", blockState.id, block_x, block_y, block_z );
-        } else {
-            // pr_debug( "Player broke the block at %i, %i, %i", block_x, block_y, block_z );
-        }
-        NetPacket update;
-        update.type = BLOCK_UPDATE;
-        update.data.block.x = block_pos.x;
-        update.data.block.y = block_pos.y;
-        update.data.block.z = block_pos.z;
-        memcpy( &update.data.block.blockState, &blockState, sizeof( BlockState ) );
-
-        Multiplayer::set_block_send_packet( update );
+    if ( !this->active ) {
+        return;
     }
+    // Log what the player is doing
+    if ( blockState.id != AIR ) {
+        // pr_debug( "Player placed %i at %i, %i, %i", blockState.id, block_x, block_y, block_z );
+    } else {
+        // pr_debug( "Player broke the block at %i, %i, %i", block_x, block_y, block_z );
+    }
+    NetPacket update;
+    update.type = PacketType::BLOCK_UPDATE;
+    update.data.block.x = block_pos.x;
+    update.data.block.y = block_pos.y;
+    update.data.block.z = block_pos.z;
+    memcpy( &update.data.block.blockState, &blockState, sizeof( BlockState ) );
+
+    this->send_packet( update );
 }
+
+void Multiplayer::request_chunk( const glm::ivec3 &chunk_pos ) {
+    if ( !this->active ) {
+        return;
+    }
+    NetPacket update;
+    update.type = PacketType::CHUNK_DIFF_REQUEST;
+    update.data.chunk_diff.chunk_x = chunk_pos.x;
+    update.data.chunk_diff.chunk_y = chunk_pos.y;
+    update.data.chunk_diff.chunk_z = chunk_pos.z;
+    this->send_packet( update );
+}
+
 glm::vec3 prev_player_pos;
 glm::mat4 prev_rotation;
 
 void Multiplayer::update_players_position( const glm::vec3 &player_pos, const glm::mat4 &rotation ) {
-    if ( this->active ) {
-        if ( prev_player_pos == player_pos && prev_rotation == rotation ) {
-            return;
-        }
-        prev_player_pos = player_pos;
-        prev_rotation = rotation;
-        NetPacket update;
-        update.type = PLAYER_LOCATION;
-        update.data.player.x = player_pos.x;
-        update.data.player.y = player_pos.y;
-        update.data.player.z = player_pos.z;
-        memcpy( update.data.player.rotation, ( float * )glm::value_ptr( rotation ), sizeof( glm::mat4 ) );
-
-        Multiplayer::set_block_send_packet( update );
+    if ( !this->active ) {
+        return;
     }
+    if ( prev_player_pos == player_pos && prev_rotation == rotation ) {
+        return;
+    }
+    prev_player_pos = player_pos;
+    prev_rotation = rotation;
+    NetPacket update;
+    update.type = PacketType::PLAYER_LOCATION;
+    update.data.player.x = player_pos.x;
+    update.data.player.y = player_pos.y;
+    update.data.player.z = player_pos.z;
+    memcpy( update.data.player.rotation, ( float * )glm::value_ptr( rotation ), sizeof( glm::mat4 ) );
+
+    this->send_packet( update );
 }
 
 void Multiplayer::cleanup( ) {

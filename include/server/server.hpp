@@ -6,7 +6,7 @@
 #include <common/block.hpp>
 #include <server/server_logic.hpp>
 
-typedef enum { INVALID, PLAYER_LOCATION, BLOCK_UPDATE, CLIENT_INIT, PLAYER_CONNECTED, PLAYER_DISCONNECTED, CHUNK_DIFF } PacketType;
+typedef enum { INVALID, PLAYER_LOCATION, BLOCK_UPDATE, CLIENT_INIT, PLAYER_CONNECTED, PLAYER_DISCONNECTED, CHUNK_DIFF_RESULT, CHUNK_DIFF_REQUEST } PacketType;
 
 #define SERVER_BLOCK_CHUNK_DIFF_SIZE 10 // TODO this could be up to the total number of blocks in a chunk.... that would be a lot of data.
 

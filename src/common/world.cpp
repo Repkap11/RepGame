@@ -118,8 +118,8 @@ void World::change_size( int width, int height ) {
     }
 }
 
-void World::render( const glm::vec3 &camera_pos, int limit_render, const glm::mat4 &rotation ) {
-    this->chunkLoader.render_chunks( camera_pos, limit_render );
+void World::render( Multiplayer &multiplayer, const glm::vec3 &camera_pos, int limit_render, const glm::mat4 &rotation ) {
+    this->chunkLoader.render_chunks( multiplayer, camera_pos, limit_render );
 }
 
 void World::set_selected_block( const glm::ivec3 &selected, int shouldDraw ) {
