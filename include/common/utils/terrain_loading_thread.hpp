@@ -1,17 +1,21 @@
 #pragma once
 
 #include "common/chunk.hpp"
-#include "common/RepGame.hpp"
-#include "common/utils/linked_list.hpp"
+
+struct LinkedList;
+struct LinkedListValue;
 
 class TerrainLoadingThread {
+    MapStorage map_storage;
+    LinkedList *work_linked_list;
+    LinkedList *result_linked_list;
 
-    static void process_value( LinkedListValue *value );
+    void process_value( LinkedListValue *value );
     static void *process_background_tasks( void *arg );
 
   public:
-    static int start( );
-    static void enqueue( Chunk *chunk, const glm::ivec3 &new_chunk_pos, int persist );
-    static Chunk *dequeue( );
-    static void stop( );
+    int start( MapStorage &map_storage );
+    void enqueue( Chunk *chunk, const glm::ivec3 &new_chunk_pos, int persist );
+    Chunk *dequeue( );
+    void stop( );
 };

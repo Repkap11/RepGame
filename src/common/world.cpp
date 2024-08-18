@@ -20,7 +20,7 @@ bool hasError( ) {
     return false;
 }
 
-void World::init( const glm::vec3 &camera_pos, int width, int height ) {
+void World::init( const glm::vec3 &camera_pos, int width, int height, MapStorage &map_storage ) {
     // These are from CubeFace
     this->vbl_block.init( );
     this->vbl_block.push_float( 3 );        // Coords
@@ -54,7 +54,7 @@ void World::init( const glm::vec3 &camera_pos, int width, int height ) {
     this->vbl_object_position.push_float( 4 );        // transform
     this->vbl_object_position.push_float( 4 );        // transform
 
-    this->chunkLoader.init( camera_pos, this->vbl_block, this->vbl_coords );
+    this->chunkLoader.init( camera_pos, this->vbl_block, this->vbl_coords, map_storage );
 
     float *random_rotation_blocks = block_definitions_get_random_rotations( );
 
@@ -280,9 +280,9 @@ void World::draw( const Texture &blocksTexture, const glm::mat4 &mvp, const glm:
     // chunk_loader_draw_chunks( &this->loadedChunks, mvp, &this->renderer, true, false ); // Water
     glDisable( GL_STENCIL_TEST );
 }
-void World::cleanup( ) {
+void World::cleanup( MapStorage &map_storage ) {
 
-    this->chunkLoader.cleanup( );
+    this->chunkLoader.cleanup( map_storage );
     this->skyBox.destroy( );
     this->multiplayer_avatars.cleanup( );
 

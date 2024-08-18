@@ -341,9 +341,9 @@ static inline void initilizeGameState( const char *world_name ) {
     globalGameState.hotbar.inventory_renderer.options.gravity_bottom = true;
     globalGameState.hotbar.inventory_renderer.options.shows_selection_slot = true;
 
-    MapStorage::init( world_name );
+    globalGameState.map_storage.init( world_name );
     PlayerData saved_data;
-    int has_saved_data = MapStorage::read_player_data( saved_data );
+    int has_saved_data = globalGameState.map_storage.read_player_data( saved_data );
     if ( has_saved_data ) {
         globalGameState.camera.pos.x = saved_data.world_x;
         globalGameState.camera.pos.y = saved_data.world_y;
@@ -412,7 +412,7 @@ RepGameState *RepGame::init( const char *world_name, bool connect_multi, const c
 
     initilizeGameState( world_name );
 
-    globalGameState.world.init( globalGameState.camera.pos, globalGameState.screen.width, globalGameState.screen.height );
+    globalGameState.world.init( globalGameState.camera.pos, globalGameState.screen.width, globalGameState.screen.height, globalGameState.map_storage );
 
     globalGameState.ui_overlay.init( vbl_ui_overlay_vertex, vbl_ui_overlay_instance );
     imgui_overlay_init( &globalGameState.imgui_overlay );
@@ -520,7 +520,7 @@ void RepGame::draw( ) {
     bool limit_render = 0;
 #endif
     if ( do_render ) {
-        globalGameState.world.render(globalGameState.multiplayer, globalGameState.camera.pos, limit_render, globalGameState.camera.rotation );
+        globalGameState.world.render( globalGameState.multiplayer, globalGameState.camera.pos, limit_render, globalGameState.camera.rotation );
     }
 
     showErrors( );
@@ -572,13 +572,13 @@ void RepGame::cleanup( ) {
     globalGameState.main_inventory.saveInventory( saved_data.main_inventory );
     saved_data.selected_hotbar_slot = globalGameState.hotbar.getSelectedSlot( );
 
-    MapStorage::write_player_data( saved_data );
+    globalGameState.map_storage.write_player_data( saved_data );
 #if defined( REPGAME_WASM )
     EM_ASM( "FS.syncfs(false, err => {console.log(\"Sync done, its OK to close RepGame:\", err)});" );
 #endif
 
     globalGameState.multiplayer.cleanup( );
-    globalGameState.world.cleanup( );
+    globalGameState.world.cleanup( globalGameState.map_storage );
     globalGameState.blocksTexture.destroy( );
     globalGameState.ui_overlay.cleanup( );
     globalGameState.main_inventory.cleanup( );

@@ -103,6 +103,12 @@ void ServerLogic::respondToChunkRequest( Server &server, int client_fd, const gl
     pr_debug( "Responded to:%s with total packets:%d for blocks:%ld", file_name, total_packets_sent, chunk_cache.size( ) );
 }
 
+void ServerLogic::persistCache( ) {
+    for ( auto [ file_name, chunk_cache ] : this->world_cache ) {
+
+    }
+}
+
 void ServerLogic::on_client_message( Server &server, int client_fd, NetPacket *packet ) {
 
     // pr_debug( "Got message from:%d block:%d", client_fd, packet->blockID );
@@ -153,4 +159,6 @@ void ServerLogic::on_client_disconnected( Server &server, int client_fd ) {
             pr_debug( "Notifying existing player:%d of removed player:%d", prop_id, client_fd );
         }
     }
+    // A client is gone, this is a good time to save the world.
+    this->persistCache( );
 }

@@ -214,7 +214,7 @@ void Chunk::set_block( const glm::ivec3 &pos, BlockState blockState ) {
 
 void Chunk::set_block_by_index_if_different( int index, const BlockState *blockState ) {
     BlockState &oldBlockState = this->blocks[ index ];
-    if (BlockStates_equal( oldBlockState, *blockState)) {
+    if ( BlockStates_equal( oldBlockState, *blockState ) ) {
         return;
     }
     this->blocks[ index ] = *blockState;
@@ -222,20 +222,20 @@ void Chunk::set_block_by_index_if_different( int index, const BlockState *blockS
     this->needs_repopulation = true;
 }
 
-void Chunk::persist( ) {
+void Chunk::persist( MapStorage &map_storage ) {
     if ( REMEMBER_BLOCKS ) {
-        MapStorage::persist( *this );
+        map_storage.persist( *this );
     }
 }
 
 int firstTime = 1;
 
-void Chunk::load_terrain( ) {
+void Chunk::load_terrain( MapStorage &map_storage ) {
     if ( !REMEMBER_BLOCKS ) {
         this->blocks = ( BlockState * )calloc( CHUNK_BLOCK_SIZE, sizeof( BlockState ) );
     }
     // pr_debug( "Loading chunk terrain x:%d y:%d z:%d", this->chunk_x, this->chunk_y, this->chunk_z );
-    int loaded = MapStorage::load( *this );
+    int loaded = map_storage.load( *this );
     if ( !loaded ) {
         // We havn't loaded this chunk before, map gen it.
         if ( LOAD_CHUNKS_SUPPORTS_CUDA && MapGen::supports_cuda( ) ) {
@@ -252,7 +252,7 @@ void Chunk::load_terrain( ) {
             MapGen::load_block_c( this );
         }
         StructureGen::place( *this );
-        this->dirty = PERSIST_ALL_CHUNKS;
+        this->dirty = 0;
     }
     this->calculate_populated_blocks( );
 }
@@ -645,9 +645,6 @@ void Chunk::calculate_populated_blocks( ) {
     free( workingSpace );
 
     if ( !REMEMBER_BLOCKS ) {
-        if ( PERSIST_ALL_CHUNKS ) {
-            MapStorage::persist( *this );
-        }
         free( this->blocks );
     }
     for ( int renderOrder = 0; renderOrder < LAST_RENDER_ORDER; renderOrder++ ) {

@@ -12,6 +12,7 @@ struct RepGameState;
 #include "common/RenderChain.hpp"
 #include "common/RenderLink.hpp"
 
+#include "common/utils/map_storage.hpp"
 #include "chunk_loader.hpp"
 #include "world.hpp"
 #include "constants.hpp"
@@ -32,6 +33,7 @@ struct RepGameState;
 #include "input.hpp"
 
 struct RepGameState {
+    MapStorage map_storage;
     double frame_rate;
     Multiplayer multiplayer;
     Input input;
@@ -70,7 +72,7 @@ struct RepGameState {
     long tick_number;
 };
 
-typedef struct {
+struct PlayerData {
     int reserved;
     float world_x;
     float world_y;
@@ -83,8 +85,7 @@ typedef struct {
     InventorySlot hotbar_inventory[ HOTBAR_WIDTH * HOTBAR_HEIGHT ];
     InventorySlot main_inventory[ MAIN_INVENTORY_WIDTH * MAIN_INVENTORY_HEIGHT ];
     int selected_hotbar_slot;
-
-} PlayerData;
+} ;
 
 class RepGame {
 

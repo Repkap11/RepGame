@@ -1,29 +1,28 @@
 #pragma once
 
-
 #include "common/chunk.hpp"
 #include <pthread.h>
 #include "common/RepGame.hpp"
 
-typedef struct {
-	Chunk * chunk;
-	glm::ivec3 new_chunk_pos;
-	int persist;
-	int valid;
-} LinkedListValue;
+struct LinkedListValue {
+    Chunk *chunk;
+    glm::ivec3 new_chunk_pos;
+    int persist;
+    int valid;
+};
 
-typedef struct _list_item {
+struct LinkedListItem {
     LinkedListValue value;
-    struct _list_item *prev;
-    struct _list_item *next;
-} LinkedListItem;
+    struct LinkedListItem *prev;
+    struct LinkedListItem *next;
+};
 
-typedef struct {
+struct LinkedList {
     int count;
     LinkedListItem *head;
     LinkedListItem *tail;
     pthread_mutex_t mutex;
-} LinkedList;
+};
 
 LinkedList *linked_list_create( );
 void linked_list_free( LinkedList *l );

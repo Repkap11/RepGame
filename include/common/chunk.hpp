@@ -1,6 +1,7 @@
 #pragma once
 
 #include "block.hpp"
+#include "common/utils/map_storage.hpp"
 #include "renderer/renderer.hpp"
 #include "server/server.hpp"
 
@@ -57,14 +58,14 @@ class Chunk {
   public:
     void init( const VertexBuffer &vb_block_solid, const VertexBuffer &vb_block_water, const VertexBufferLayout &vbl_block, const VertexBufferLayout &vbl_coords );
     void draw( const Renderer &renderer, const Texture &texture, const Shader &shader, RenderOrder renderOrder, bool draw_reflect ) const;
-    void load_terrain( );      // Load from file or map gen
-    void program_terrain( );   // Program into GPU
-    void unprogram_terrain( ); // Remove from GPU
+    void load_terrain( MapStorage &map_storage ); // Load from file or map gen
+    void program_terrain( );                      // Program into GPU
+    void unprogram_terrain( );                    // Remove from GPU
     void calculate_sides( const glm::ivec3 &center_next );
     static int get_coords_from_index_todo( int index, glm::ivec3 &out_pos );
     static int get_coords_from_index( int index, int &out_x, int &out_y, int &out_z );
 
-    void persist( );
+    void persist( MapStorage &map_storage );
     void destroy( );
     void set_block( const glm::ivec3 &pos, BlockState blockState );
     void set_block_by_index_if_different( int index, const BlockState *blockState );

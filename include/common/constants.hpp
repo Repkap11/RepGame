@@ -68,7 +68,6 @@ static_assert( CHUNK_RADIUS_Z > 0, "CHUNK_RADIUS_Z too small" );
 // This can be useful when debugging and you want to stop at a breakpoint.
 #define ALLOW_GRAB_MOUSE 1
 
-#define PERSIST_ALL_CHUNKS 0
 #define REMEMBER_BLOCKS 1
 #define CULL_NON_VISIBLE 1
 #define FOREST_DEBUG 0

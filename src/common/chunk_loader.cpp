@@ -28,13 +28,13 @@ int ChunkLoader::reload_if_out_of_bounds( Chunk &chunk, const glm::ivec3 &chunk_
         chunk.unprogram_terrain( );
         chunk.is_loading = 1;
         glm::ivec3 new_chunk = glm::ivec3( new_chunk_x, new_chunk_y, new_chunk_z );
-        TerrainLoadingThread::enqueue( &chunk, new_chunk, 1 );
+        this->terrain_loading_thread.enqueue( &chunk, new_chunk, 1 );
     }
     return changed;
 }
 
-void ChunkLoader::init( const glm::vec3 &camera_pos, const VertexBufferLayout &vbl_block, const VertexBufferLayout &vbl_coords ) {
-    int status = TerrainLoadingThread::start( );
+void ChunkLoader::init( const glm::vec3 &camera_pos, const VertexBufferLayout &vbl_block, const VertexBufferLayout &vbl_coords, MapStorage &map_storage ) {
+    int status = this->terrain_loading_thread.start( map_storage );
     if ( status ) {
         pr_debug( "Terrain loading thread failed to start." );
     }
@@ -94,7 +94,7 @@ void ChunkLoader::init( const glm::vec3 &camera_pos, const VertexBufferLayout &v
                             chunk.chunk_mod.z = mod( chunk.chunk_pos.z, 2 * CHUNK_RADIUS_Z + 1 );
 
                             chunk.is_loading = 1;
-                            TerrainLoadingThread::enqueue( &chunk, chunk.chunk_pos, 0 );
+                            this->terrain_loading_thread.enqueue( &chunk, chunk.chunk_pos, 0 );
                             nextChunk = ( nextChunk + 1 );
                         }
                     }
@@ -149,7 +149,7 @@ void ChunkLoader::render_chunks( Multiplayer &multiplayer, const glm::vec3 &came
     {
         Chunk *chunk_ptr;
         do {
-            chunk_ptr = TerrainLoadingThread::dequeue( );
+            chunk_ptr = this->terrain_loading_thread.dequeue( );
             // pr_debug( "Got chunk %p", chunk );
             if ( chunk_ptr ) {
                 Chunk &chunk = *chunk_ptr;
@@ -262,12 +262,12 @@ void ChunkLoader::draw( const glm::mat4 &mvp, const Renderer &renderer, const Te
 void ChunkLoader::process_random_ticks( ) {
 }
 
-void ChunkLoader::cleanup( ) {
-    TerrainLoadingThread::stop( );
+void ChunkLoader::cleanup( MapStorage &map_storage ) {
+    this->terrain_loading_thread.stop( );
     for ( int i = 0; i < MAX_LOADED_CHUNKS; i++ ) {
         Chunk &chunk = this->chunkArray[ i ];
         if ( !chunk.is_loading ) {
-            chunk.persist( );
+            chunk.persist( map_storage );
         }
         chunk.destroy( );
     }

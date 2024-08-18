@@ -16,6 +16,7 @@ class ServerLogic {
 
     void record_block( const glm::ivec3 &chunk_offset, int block_index, BlockState &block_state );
     void respondToChunkRequest( Server &server, int client_fd, const glm::ivec3 &chunk_offset );
+    void persistCache( );
 
   public:
     void init( const char *world_name );

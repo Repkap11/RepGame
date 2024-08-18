@@ -4,14 +4,11 @@
 #include "common/chunk.hpp"
 #include "common/utils/linked_list.hpp"
 
-LinkedList *work_linked_list;
-LinkedList *result_linked_list;
-
 void TerrainLoadingThread::process_value( LinkedListValue *value ) {
     Chunk &chunk = *value->chunk;
-    chunk.persist( );
+    chunk.persist( this->map_storage );
     chunk.chunk_pos = value->new_chunk_pos;
-    chunk.load_terrain( );
+    chunk.load_terrain( this->map_storage );
     // pr_debug( "Paul Loading terrain x:%d y%d: z:%d work:%d results:%d", chunk->chunk_x, chunk->chunk_y, chunk->chunk_z, work_linked_list->count, result_linked_list->count );
 }
 
@@ -36,7 +33,7 @@ Chunk *TerrainLoadingThread::dequeue( ) {
         return NULL;
     }
 }
-int TerrainLoadingThread::start( ) {
+int TerrainLoadingThread::start( MapStorage &map_storage ) {
     result_linked_list = linked_list_create( );
 
     return 0;
@@ -53,15 +50,16 @@ volatile int cancelThread = 0;
 pthread_t background_threads[ NUM_RENDER_THREADS ];
 
 void *TerrainLoadingThread::process_background_tasks( void *arg ) {
+    TerrainLoadingThread &self = *( TerrainLoadingThread * )arg;
     while ( !cancelThread ) {
         // pr_debug( "Working..." );
         // sleep( 1 );
         // pr_debug( "Working2... Work Size: %d", work_linked_list->count );
-        LinkedListValue value = linked_list_pop_element( work_linked_list );
+        LinkedListValue value = linked_list_pop_element( self.work_linked_list );
         if ( value.valid ) {
-            TerrainLoadingThread::process_value( &value );
+            self.process_value( &value );
             if ( value.chunk ) {
-                linked_list_add_element( result_linked_list, value );
+                linked_list_add_element( self.result_linked_list, value );
             }
         } else {
             usleep( 100000 );
@@ -70,11 +68,12 @@ void *TerrainLoadingThread::process_background_tasks( void *arg ) {
     return 0;
 }
 
-int TerrainLoadingThread::start( ) {
+int TerrainLoadingThread::start( MapStorage &map_storage ) {
+    this->map_storage = map_storage;
     work_linked_list = linked_list_create( );
     result_linked_list = linked_list_create( );
     for ( int i = 0; i < NUM_RENDER_THREADS; i++ ) {
-        if ( pthread_create( &background_threads[ i ], NULL, &TerrainLoadingThread::process_background_tasks, NULL ) ) {
+        if ( pthread_create( &background_threads[ i ], NULL, &TerrainLoadingThread::process_background_tasks, this ) ) {
             pr_debug( "Error creating background thread %d", i );
             return -1;
         }
