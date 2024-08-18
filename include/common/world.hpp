@@ -41,6 +41,7 @@ class World {
     BlockState get_loaded_block( const glm::ivec3 &block );
 
     void set_loaded_block( const glm::ivec3 &block, BlockState blockState );
+    // void overlay_blocks( const glm::ivec3 &block_pos, BlockState *blockStates, int numBlockStates );
 
     static BlockState get_block_from_chunk( const Chunk &chunk, const glm::ivec3 &block );
     Chunk *get_loaded_chunk( const glm::ivec3 &block );

@@ -351,56 +351,111 @@ BlockState World::get_loaded_block( const glm::ivec3 &block_pos ) {
     return BLOCK_STATE_LAST_BLOCK_ID;
 }
 
+// void World::overlay_blocks( const glm::ivec3 *block_poses, BlockState *blockStates, int numBlocks ) {
+//     const glm::ivec3 CHUNK_SIZE = glm::ivec3( CHUNK_SIZE_X, CHUNK_SIZE_Y, CHUNK_SIZE_Z );
+//     for ( int bi = 0; bi < numBlocks; bi++ ) {
+//         BlockState &blockState = blockStates[ bi ];
+//         const glm::ivec3 &block_pos = block_poses[ bi ];
+//         glm::ivec3 chunk_pos = glm::floor( glm::vec3( block_pos ) / glm::vec3( CHUNK_SIZE ) );
+//         Chunk *chunk_prt = this->chunkLoader.get_chunk( chunk_pos );
+//         if ( chunk_prt ) {
+//             Chunk &chunk = *chunk_prt;
+//             glm::ivec3 diff = block_pos - chunk_pos * CHUNK_SIZE;
+//             // pr_debug( "Orig Offset: %d %d %d", diff_x, diff_y, diff_z );
+
+//             for ( int i = -1; i < 2; i++ ) {
+//                 const int needs_update_x = ( ( i != 1 && diff.x == 0 ) || ( i != -1 && diff.x == ( CHUNK_SIZE_X - 1 ) ) ) || i == 0;
+//                 if ( !needs_update_x ) {
+//                     continue;
+//                 }
+//                 for ( int j = -1; j < 2; j++ ) {
+//                     const int needs_update_y = ( ( j != 1 && diff.y == 0 ) || ( j != -1 && diff.y == ( CHUNK_SIZE_Y - 1 ) ) ) || j == 0;
+//                     if ( !needs_update_y ) {
+//                         continue;
+//                     }
+//                     for ( int k = -1; k < 2; k++ ) {
+//                         const int needs_update_z = ( ( k != 1 && diff.z == 0 ) || ( k != -1 && diff.z == ( CHUNK_SIZE_Z - 1 ) ) ) || k == 0;
+//                         if ( !needs_update_z ) {
+//                             continue;
+//                         }
+//                         // pr_debug( "Chunk Dir: %d %d %d:%d", i, j, k, needs_update );
+//                         // pr_debug( "                    Needs Updates: %d %d %d:%d", needs_update_x, needs_update_y, needs_update_z, needs_update );
+//                         // pr_debug( "                                New Offset: %d %d %d:%d", new_i, new_j, new_k, needs_update );
+
+//                         glm::ivec3 new_pos = glm::ivec3( i * needs_update_x, j * needs_update_y, k * needs_update_z );
+//                         glm::ivec3 offset = glm::ivec3( i, j, k );
+//                         glm::ivec3 pos = diff - CHUNK_SIZE * new_pos;
+//                         fixup_chunk( chunk, offset, pos, blockState );
+//                     }
+//                 }
+//             }
+//             chunk.set_block( diff, blockState );
+//             chunk.dirty = 1;
+//             chunk.needs_repopulation = 1;
+
+//         } else {
+//             // This just means mouse is not pointing at a block
+//             // pr_debug( "Could not find the pointed to chunk" );
+//         }
+//     }
+// }
 void World::set_loaded_block( const glm::ivec3 &block_pos, BlockState blockState ) {
-    glm::ivec3 chunk_size = glm::ivec3( CHUNK_SIZE_X, CHUNK_SIZE_Y, CHUNK_SIZE_Z );
-    glm::ivec3 chunk_pos = glm::floor( glm::vec3( block_pos ) / glm::vec3( chunk_size ) );
+    const glm::ivec3 CHUNK_SIZE = glm::ivec3( CHUNK_SIZE_X, CHUNK_SIZE_Y, CHUNK_SIZE_Z );
+    glm::ivec3 chunk_pos = glm::floor( glm::vec3( block_pos ) / glm::vec3( CHUNK_SIZE ) );
 
     Chunk *chunk_prt = this->chunkLoader.get_chunk( chunk_pos );
     if ( chunk_prt ) {
         Chunk &chunk = *chunk_prt;
-        glm::ivec3 diff = block_pos - chunk_pos * chunk_size;
+        glm::ivec3 diff = block_pos - chunk_pos * CHUNK_SIZE;
         // pr_debug( "Orig Offset: %d %d %d", diff_x, diff_y, diff_z );
 
         for ( int i = -1; i < 2; i++ ) {
+            const int needs_update_x = ( ( i != 1 && diff.x == 0 ) || ( i != -1 && diff.x == ( CHUNK_SIZE_X - 1 ) ) ) || i == 0;
+            if ( !needs_update_x ) {
+                continue;
+            }
             for ( int j = -1; j < 2; j++ ) {
+                const int needs_update_y = ( ( j != 1 && diff.y == 0 ) || ( j != -1 && diff.y == ( CHUNK_SIZE_Y - 1 ) ) ) || j == 0;
+                if ( !needs_update_y ) {
+                    continue;
+                }
                 for ( int k = -1; k < 2; k++ ) {
-                    int needs_update_x = ( ( i != 1 && diff.x == 0 ) || ( i != -1 && diff.x == ( CHUNK_SIZE_X - 1 ) ) ) || i == 0; //
-                    int needs_update_y = ( ( j != 1 && diff.y == 0 ) || ( j != -1 && diff.y == ( CHUNK_SIZE_Y - 1 ) ) ) || j == 0; //
-                    int needs_update_z = ( ( k != 1 && diff.z == 0 ) || ( k != -1 && diff.z == ( CHUNK_SIZE_Z - 1 ) ) ) || k == 0;
-                    int needs_update = ( needs_update_x && needs_update_y && needs_update_z ) && !( i == 0 && j == 0 && k == 0 );
-                    if ( needs_update ) {
-                        glm::ivec3 offset = glm::ivec3( i, j, k );
-                        if ( !can_fixup_chunk( chunk, offset ) ) {
-                            pr_debug( "Ekk, can't fixup block, so not placing" );
-                            return;
-                        }
+                    const int needs_update_z = ( ( k != 1 && diff.z == 0 ) || ( k != -1 && diff.z == ( CHUNK_SIZE_Z - 1 ) ) ) || k == 0;
+                    if ( !needs_update_z ) {
+                        continue;
+                    }
+                    glm::ivec3 offset = glm::ivec3( i, j, k );
+                    if ( !can_fixup_chunk( chunk, offset ) ) {
+                        pr_debug( "Ekk, can't fixup block, so not placing" );
+                        return;
                     }
                 }
             }
         }
         for ( int i = -1; i < 2; i++ ) {
+            const int needs_update_x = ( ( i != 1 && diff.x == 0 ) || ( i != -1 && diff.x == ( CHUNK_SIZE_X - 1 ) ) ) || i == 0;
+            if ( !needs_update_x ) {
+                continue;
+            }
             for ( int j = -1; j < 2; j++ ) {
+                const int needs_update_y = ( ( j != 1 && diff.y == 0 ) || ( j != -1 && diff.y == ( CHUNK_SIZE_Y - 1 ) ) ) || j == 0;
+                if ( !needs_update_y ) {
+                    continue;
+                }
                 for ( int k = -1; k < 2; k++ ) {
+                    const int needs_update_z = ( ( k != 1 && diff.z == 0 ) || ( k != -1 && diff.z == ( CHUNK_SIZE_Z - 1 ) ) ) || k == 0;
+                    if ( !needs_update_z ) {
+                        continue;
+                    }
 
-                    int needs_update_x = ( ( i != 1 && diff.x == 0 ) || ( i != -1 && diff.x == ( CHUNK_SIZE_X - 1 ) ) ) || i == 0; //
-                    int needs_update_y = ( ( j != 1 && diff.y == 0 ) || ( j != -1 && diff.y == ( CHUNK_SIZE_Y - 1 ) ) ) || j == 0; //
-                    int needs_update_z = ( ( k != 1 && diff.z == 0 ) || ( k != -1 && diff.z == ( CHUNK_SIZE_Z - 1 ) ) ) || k == 0;
-
-                    int new_i = i * needs_update_x;
-                    int new_j = j * needs_update_y;
-                    int new_k = k * needs_update_z;
-
-                    int needs_update = ( needs_update_x && needs_update_y && needs_update_z ) && !( i == 0 && j == 0 && k == 0 );
                     // pr_debug( "Chunk Dir: %d %d %d:%d", i, j, k, needs_update );
                     // pr_debug( "                    Needs Updates: %d %d %d:%d", needs_update_x, needs_update_y, needs_update_z, needs_update );
                     // pr_debug( "                                New Offset: %d %d %d:%d", new_i, new_j, new_k, needs_update );
 
-                    if ( needs_update ) {
-                        glm::ivec3 new_pos = glm::ivec3( new_i, new_j, new_k );
-                        glm::ivec3 offset = glm::ivec3( i, j, k );
-                        glm::ivec3 pos = diff - glm::ivec3( CHUNK_SIZE_X, CHUNK_SIZE_Y, CHUNK_SIZE_Z ) * new_pos;
-                        fixup_chunk( chunk, offset, pos, blockState );
-                    }
+                    glm::ivec3 new_pos = glm::ivec3( i * needs_update_x, j * needs_update_y, k * needs_update_z );
+                    glm::ivec3 offset = glm::ivec3( i, j, k );
+                    glm::ivec3 pos = diff - CHUNK_SIZE * new_pos;
+                    fixup_chunk( chunk, offset, pos, blockState );
                 }
             }
         }

@@ -62,27 +62,39 @@ void Multiplayer::process_events( World &world ) {
             int status = read( this->sockfd, &update, sizeof( NetPacket ) );
             if ( status < 0 ) {
                 // This is fine, it just means there are no messages;
-                // pr_debug( "Unable to read message from socket" );
                 return;
             } else {
-                if ( update.type == BLOCK_UPDATE ) {
+                if ( update.type == PacketType::CHUNK_DIFF ) {
+                    glm::ivec3 chunk_pos = glm::ivec3( update.data.chunk_diff.chunk_x, update.data.chunk_diff.chunk_y, update.data.chunk_diff.chunk_z );
+                    Chunk *chunk_prt = world.chunkLoader.get_chunk( chunk_pos );
+                    if ( chunk_prt == NULL ) {
+                        // This chunk is not loaded anymore, ignore this update.
+                        continue;
+                    }
+                    Chunk &chunk = *chunk_prt;
+                    for ( int i = 0; i < update.data.chunk_diff.num_used_updates; ++i ) {
+                        const PacketType_DataChunkDiff_Block &net_block = update.data.chunk_diff.blockUpdates[ i ];
+                        chunk.set_block_by_index( net_block.blocks_index, ( BlockState * )net_block.blockState );
+                    }
+                    // update.data.;
+                    // world.set_loaded_block();
+                } else if ( update.type == PacketType::BLOCK_UPDATE ) {
                     BlockState *blockState = ( BlockState * )( update.data.block.blockState );
                     pr_debug( "Read message: block:%d", blockState->id );
-
                     glm::ivec3 block_pos = glm::ivec3( update.data.block.x, update.data.block.y, update.data.block.z );
                     world.set_loaded_block( block_pos, *blockState );
-                } else if ( update.type == CLIENT_INIT ) {
+                } else if ( update.type == PacketType::CLIENT_INIT ) {
                     world.multiplayer_avatars.add( update.player_id );
                     glm::mat4 rotation = glm::make_mat4( update.data.player.rotation );
                     world.multiplayer_avatars.update_position( update.player_id, update.data.player.x, update.data.player.y, update.data.player.z, rotation );
-                } else if ( update.type == PLAYER_LOCATION ) {
+                } else if ( update.type == PacketType::PLAYER_LOCATION ) {
                     // pr_debug( "Updating player location:%d", update.player_id );
                     glm::mat4 rotation = glm::make_mat4( update.data.player.rotation );
                     world.multiplayer_avatars.update_position( update.player_id, update.data.player.x, update.data.player.y, update.data.player.z, rotation );
-                } else if ( update.type == PLAYER_CONNECTED ) {
+                } else if ( update.type == PacketType::PLAYER_CONNECTED ) {
                     pr_debug( "Updating player connected:%d", update.player_id );
                     world.multiplayer_avatars.add( update.player_id );
-                } else if ( update.type == PLAYER_DISCONNECTED ) {
+                } else if ( update.type == PacketType::PLAYER_DISCONNECTED ) {
                     pr_debug( "Updating player disconected:%d", update.player_id );
                     world.multiplayer_avatars.remove( update.player_id );
                 } else {
