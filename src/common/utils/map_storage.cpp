@@ -23,14 +23,9 @@ char *MapStorage::get_map_name( ) {
     return this->map_name;
 }
 
-#define STORAGE_TYPE_SIZE_HEADER uint32_t
-
-#define STORAGE_TYPE_BLOCK_ID BlockState
-#define STORAGE_TYPE_NUM_BLOCKS unsigned int
-
-typedef struct {
-    STORAGE_TYPE_BLOCK_ID blockState;
-    STORAGE_TYPE_NUM_BLOCKS num;
+typedef struct __attribute__( ( packed ) ) {
+    BlockState blockState;
+    unsigned int num;
 } STORAGE_TYPE;
 
 void MapStorage::persist_chunk( const Chunk &chunk ) {
@@ -57,7 +52,7 @@ void MapStorage::persist_dirty_blocks( const glm::ivec3 &chunk_offset, const Blo
     fflush( write_ptr );
 
     STORAGE_TYPE &persist_data = *( STORAGE_TYPE * )calloc( sizeof( STORAGE_TYPE ), 1 );
-    STORAGE_TYPE_NUM_BLOCKS num_same_blocks = 0;
+    unsigned int num_same_blocks = 0;
     int total_num_blocks = 0;
     BlockState previousBlockState = { BLOCK_STATE_LAST_BLOCK_ID };
     for ( int i = 0; i < CHUNK_BLOCK_SIZE; i++ ) {
@@ -126,26 +121,29 @@ int MapStorage::load_blocks( const glm::ivec3 &chunk_offset, BlockState *blocks,
     }
     // pr_debug( "Got storage size:%d", storage_type_size );
 
+    int block_index = 0;
+
+    bool loading_old_format_chunk = storage_type_size != sizeof( STORAGE_TYPE );
+    if ( loading_old_format_chunk ) {
+        dirty = true;
+        pr_debug( "Loaded old chunk:%s with state size:%d expected:%d", file_name, storage_type_size, ( int )sizeof( STORAGE_TYPE ) );
+    }
+
+    int storage_block_state_size = storage_type_size - sizeof( unsigned int );
+
     char *persist_data = ( char * )calloc( CHUNK_BLOCK_SIZE, storage_type_size );
     unsigned int persist_data_length = fread( persist_data, storage_type_size, CHUNK_BLOCK_SIZE, read_ptr );
     // pr_debug( "Got data length:%d", persist_data_length );
     fclose( read_ptr );
 
-    int block_index = 0;
-    int storage_block_state_size = storage_type_size - sizeof( unsigned int );
-
-    bool loading_old_format_chunk = storage_block_state_size != sizeof( BlockState );
-    if ( loading_old_format_chunk ) {
-        dirty = true;
-        pr_debug( "Loaded old chunk with state size:%d expected:%d", storage_block_state_size, ( int )sizeof( BlockState ) );
-    }
     if ( storage_block_state_size > ( int )sizeof( BlockState ) ) {
         pr_debug( "Smaller" );
         storage_block_state_size = ( int )sizeof( BlockState );
     }
+
     for ( unsigned int i = 0; i < persist_data_length; i++ ) {
         char *block_storage = &persist_data[ i * storage_type_size ];
-        unsigned int block_storage_num = *( unsigned int * )&persist_data[ ( ( i + 1 ) * storage_type_size ) - sizeof( STORAGE_TYPE_NUM_BLOCKS ) ];
+        unsigned int block_storage_num = *( unsigned int * )&persist_data[ ( ( i + 1 ) * storage_type_size ) - sizeof( unsigned int ) ];
 
         BlockState blockState = BLOCK_STATE_AIR;
         memset( &blockState, 0, sizeof( BlockState ) );
@@ -157,7 +155,7 @@ int MapStorage::load_blocks( const glm::ivec3 &chunk_offset, BlockState *blocks,
         memcpy( &blockState, block_storage, storage_block_state_size - storage_offset_size );
         if ( loading_old_format_chunk ) {
             // Per block state mitigations
-            if ( storage_block_state_size <= 12 ) {
+            if ( storage_block_state_size <= 16 ) {
                 blockState.display_id = blockState.id;
             }
         }
