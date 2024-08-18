@@ -223,8 +223,8 @@ void Server::init( int portnum ) {
         pr_debug( "epoll_ctl EPOLL_CTL_ADD" );
     }
 
-    this->client_data = new ClientData[ MAX_CLIENT_FDS ];
-    this->events = new struct epoll_event[ MAX_CLIENT_FDS ];
+    this->client_data = new ClientData[ MAX_CLIENT_FDS ]( );
+    this->events = new struct epoll_event[ MAX_CLIENT_FDS ]( );
     if ( events == NULL ) {
         pr_debug( "Unable to allocate memory for epoll_events" );
     }
