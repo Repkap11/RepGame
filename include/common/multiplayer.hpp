@@ -6,6 +6,8 @@
 #include "server/server.hpp"
 
 class Multiplayer {
+    NetPacket pending_packet;
+    int pending_packet_len;
     friend class World;
 
     int sockfd;

@@ -2,12 +2,15 @@
     "version": "0.2.0",
     "configurations": [
         {
-            "name": "(gdb) Launch",
+            "name": "RepGame Debug World2",
             "type": "cppdbg",
             "request": "launch",
             "preLaunchTask": "make linux_debug",
             "program": "${workspaceRoot}/out/linux/debug/RepGame",
-            "args": ["World2","localhost"],
+            "args": [
+                "World2",
+                "localhost"
+            ],
             "stopAtEntry": false,
             "cwd": "${workspaceRoot}",
             "environment": [],
@@ -20,6 +23,26 @@
                     "ignoreFailures": true
                 }
             ]
-        }
+        },
+        {
+            "name": "RepGameServer",
+            "type": "cppdbg",
+            "request": "launch",
+            "preLaunchTask": "make server",
+            "program": "${workspaceRoot}/out/server/RepGameServer",
+            "args": [],
+            "stopAtEntry": false,
+            "cwd": "${workspaceRoot}",
+            "environment": [],
+            "externalConsole": false,
+            "MIMode": "gdb",
+            "setupCommands": [
+                {
+                    "description": "Enable pretty-printing for gdb",
+                    "text": "-enable-pretty-printing",
+                    "ignoreFailures": true
+                }
+            ]
+        },
     ]
 }

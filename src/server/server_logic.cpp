@@ -59,17 +59,25 @@ void ServerLogic::record_block( const glm::ivec3 &chunk_offset, int block_index,
 void ServerLogic::respondToChunkRequest( Server &server, int client_fd, const glm::ivec3 &chunk_offset ) {
 
     const auto it_world = this->world_cache.find( chunk_offset );
+
+    std::map<int, BlockState> *chunk_cache_prt;
     if ( it_world == this->world_cache.end( ) ) {
+        chunk_cache_prt = this->loadIntoCache( chunk_offset );
+    } else {
+        chunk_cache_prt = &it_world->second;
+    }
+    if ( chunk_cache_prt == NULL ) {
+        // We don't have any blocks for this chunk.
         return;
     }
-    const std::map<int, BlockState> &chunk_cache = it_world->second;
+    const std::map<int, BlockState> &chunk_cache = *chunk_cache_prt;
     NetPacket packet;
     packet.data.chunk_diff.chunk_x = chunk_offset.x;
     packet.data.chunk_diff.chunk_y = chunk_offset.y;
     packet.data.chunk_diff.chunk_z = chunk_offset.z;
     packet.type = PacketType::CHUNK_DIFF_RESULT;
     int packet_index = 0;
-    int total_packets_sent = 0;
+    // int total_packets_sent = 0;
     for ( auto [ blocks_index, blockState ] : chunk_cache ) {
         PacketType_DataChunkDiff_Block &packet_data = packet.data.chunk_diff.blockUpdates[ packet_index ];
         packet_data.blocks_index = blocks_index;
@@ -80,21 +88,57 @@ void ServerLogic::respondToChunkRequest( Server &server, int client_fd, const gl
             server.queue_packet( client_fd, &packet );
             // pr_debug( "Responding to client:%d with %d blocks", client_fd, packet_index );
             packet_index = 0;
-            total_packets_sent += 1;
+            // total_packets_sent += 1;
         }
     }
     if ( packet_index != 0 ) {
         packet.data.chunk_diff.num_used_updates = packet_index;
         server.queue_packet( client_fd, &packet );
-        total_packets_sent += 1;
+        // total_packets_sent += 1;
         // pr_debug( "Responding to client:%d with %d blocks", client_fd, packet_index );
     }
-    pr_debug( "Respond with total packets:%d for blocks:%ld", total_packets_sent, chunk_cache.size( ) );
+    // pr_debug( "Respond with total packets:%d for blocks:%ld", total_packets_sent, chunk_cache.size( ) );
 }
 
 void ServerLogic::persistCache( ) {
-    for ( auto [ file_name, chunk_cache ] : this->world_cache ) {
+    for ( auto [ chunk_pos, chunk_cache ] : this->world_cache ) {
+        BlockState *blocks = ( BlockState * )malloc( CHUNK_BLOCK_SIZE * sizeof( BlockState ) );
+        for ( int i = 0; i < CHUNK_BLOCK_SIZE; ++i ) {
+            blocks[ i ] = BLOCK_STATE_LAST_BLOCK_ID;
+        }
+        for ( auto [ chunk_index, blockState ] : chunk_cache ) {
+            blocks[ chunk_index ] = blockState;
+        }
+        this->map_storage.persist_dirty_blocks( chunk_pos, blocks );
+        free( blocks );
+        // pr_debug( "Saving chunk:%d %d %d", chunk_pos.x, chunk_pos.y, chunk_pos.z );
     }
+    pr_debug( "World saved" );
+    this->world_cache.clear( );
+}
+std::map<int, BlockState> *ServerLogic::loadIntoCache( const glm::ivec3 &chunk_offset ) {
+    BlockState *blocks = ( BlockState * )malloc( CHUNK_BLOCK_SIZE * sizeof( BlockState ) );
+    for ( int i = 0; i < CHUNK_BLOCK_SIZE; ++i ) {
+        blocks[ i ] = BLOCK_STATE_LAST_BLOCK_ID;
+    }
+    int dirty = 0; // They can be dirty if they are in the old chunk format, we don't really care.
+    int ret = this->map_storage.load_blocks( chunk_offset, blocks, dirty, true );
+    if ( ret == 0 ) {
+        free( blocks );
+        // Couldn't read anything...
+        return NULL;
+    }
+    std::map<int, BlockState> &chunk_cache = this->world_cache[ chunk_offset ];
+    pr_debug( "found chunk:%d %d %d size:%d", chunk_offset.x, chunk_offset.y, chunk_offset.z, chunk_cache.size( ) );
+    chunk_cache.clear( );
+    for ( int i = 0; i < CHUNK_BLOCK_SIZE; ++i ) {
+        BlockState &blockState = blocks[ i ];
+        if ( blockState.id != LAST_BLOCK_ID ) {
+            chunk_cache[ i ] = blockState;
+        }
+    }
+    free( blocks );
+    return &chunk_cache;
 }
 
 void ServerLogic::on_client_message( Server &server, int client_fd, NetPacket *packet ) {

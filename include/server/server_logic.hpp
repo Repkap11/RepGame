@@ -10,19 +10,20 @@
 
 class Server;
 struct NetPacket;
+// struct BlockState;
 
 struct Compare_I_Vec3 {
     bool operator( )( const glm::ivec3 &a, const glm::ivec3 &b ) const {
-        int x_diff = a.x < b.x;
+        int x_diff = a.x - b.x;
         if ( x_diff != 0 ) {
-            return x_diff;
+            return x_diff < 0;
         }
-        int y_diff = a.y < b.y;
+        int y_diff = a.y - b.y;
         if ( y_diff != 0 ) {
-            return y_diff;
+            return y_diff < 0;
         }
-        int z_diff = a.z < b.z;
-        return y_diff;
+        int z_diff = a.z - b.z;
+        return z_diff < 0;
     }
 };
 
@@ -33,6 +34,7 @@ class ServerLogic {
     void record_block( const glm::ivec3 &chunk_offset, int block_index, BlockState &block_state );
     void respondToChunkRequest( Server &server, int client_fd, const glm::ivec3 &chunk_offset );
     void persistCache( );
+    std::map<int, BlockState> *loadIntoCache( const glm::ivec3 &chunk_offset );
 
   public:
     void init( const char *world_name );

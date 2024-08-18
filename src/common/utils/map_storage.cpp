@@ -35,59 +35,61 @@ typedef struct {
 
 #define PERSIST_DATA_BLOCK_SIZE 3
 
-void MapStorage::persist( const Chunk &chunk ) {
+void MapStorage::persist_chunk( const Chunk &chunk ) {
     if ( chunk.dirty ) {
-        BlockState *blocks = chunk.blocks;
-        if ( blocks == 0 ) {
-            return;
-        }
-        const glm::ivec3 &chunk_offset = chunk.chunk_pos;
-        char file_name[ CHUNK_NAME_MAX_LENGTH ];
-        if ( snprintf( file_name, CHUNK_NAME_MAX_LENGTH, FILE_ROOT_CHUNK, map_name, chunk_offset.x, chunk_offset.y, chunk_offset.z ) != CHUNK_NAME_MAX_LENGTH ) {
-        }
-        FILE *write_ptr = fopen( file_name, "wb" );
-        uint32_t storage_type_size = sizeof( STORAGE_TYPE );
-        // uint32_t storage_type_size = 8;
-        fwrite( &storage_type_size, sizeof( uint32_t ), 1, write_ptr );
-
-        STORAGE_TYPE *persist_data = ( STORAGE_TYPE * )malloc( sizeof( STORAGE_TYPE ) * PERSIST_DATA_BLOCK_SIZE );
-        int persist_data_index = -1;
-        STORAGE_TYPE_NUM_BLOCKS num_same_blocks = 0;
-        int total_num_blocks = 0;
-        BlockState previousBlockState = { BLOCK_STATE_LAST_BLOCK_ID };
-        for ( int i = 0; i < CHUNK_BLOCK_SIZE; i++ ) {
-            BlockState blockState = blocks[ i ];
-            if ( BlockStates_equal( blockState, previousBlockState ) ) {
-                num_same_blocks++;
-            } else {
-                if ( num_same_blocks > 0 ) {
-                    persist_data[ persist_data_index ].blockState = previousBlockState;
-                    persist_data[ persist_data_index ].num = num_same_blocks;
-                    total_num_blocks += num_same_blocks;
-                }
-                persist_data_index++;
-                if ( persist_data_index >= PERSIST_DATA_BLOCK_SIZE ) {
-                    fwrite( persist_data, sizeof( STORAGE_TYPE ), PERSIST_DATA_BLOCK_SIZE, write_ptr );
-                    persist_data_index = 0;
-                }
-                previousBlockState = blockState;
-                num_same_blocks = 1;
-            }
-        }
-        persist_data[ persist_data_index ].blockState = previousBlockState;
-        persist_data[ persist_data_index ].num = num_same_blocks;
-        total_num_blocks += num_same_blocks;
-
-        persist_data_index++;
-
-        int expected_num_saved_blocks = CHUNK_BLOCK_SIZE;
-        if ( total_num_blocks != expected_num_saved_blocks ) {
-            pr_debug( "Didn't get enough blocks save" );
-        }
-        fwrite( persist_data, sizeof( STORAGE_TYPE ), persist_data_index, write_ptr );
-        fclose( write_ptr );
-        free( persist_data );
+        this->persist_dirty_blocks( chunk.chunk_pos, chunk.blocks );
     }
+}
+
+void MapStorage::persist_dirty_blocks( const glm::ivec3 &chunk_offset, const BlockState *blocks ) {
+    if ( blocks == NULL ) {
+        return;
+    }
+    char file_name[ CHUNK_NAME_MAX_LENGTH ];
+    if ( snprintf( file_name, CHUNK_NAME_MAX_LENGTH, FILE_ROOT_CHUNK, map_name, chunk_offset.x, chunk_offset.y, chunk_offset.z ) != CHUNK_NAME_MAX_LENGTH ) {
+    }
+    FILE *write_ptr = fopen( file_name, "wb" );
+    uint32_t storage_type_size = sizeof( STORAGE_TYPE );
+    // uint32_t storage_type_size = 8;
+    fwrite( &storage_type_size, sizeof( uint32_t ), 1, write_ptr );
+
+    STORAGE_TYPE *persist_data = ( STORAGE_TYPE * )malloc( sizeof( STORAGE_TYPE ) * PERSIST_DATA_BLOCK_SIZE );
+    int persist_data_index = -1;
+    STORAGE_TYPE_NUM_BLOCKS num_same_blocks = 0;
+    int total_num_blocks = 0;
+    BlockState previousBlockState = { BLOCK_STATE_LAST_BLOCK_ID };
+    for ( int i = 0; i < CHUNK_BLOCK_SIZE; i++ ) {
+        BlockState blockState = blocks[ i ];
+        if ( BlockStates_equal( blockState, previousBlockState ) ) {
+            num_same_blocks++;
+        } else {
+            if ( num_same_blocks > 0 ) {
+                persist_data[ persist_data_index ].blockState = previousBlockState;
+                persist_data[ persist_data_index ].num = num_same_blocks;
+                total_num_blocks += num_same_blocks;
+            }
+            persist_data_index++;
+            if ( persist_data_index >= PERSIST_DATA_BLOCK_SIZE ) {
+                fwrite( persist_data, sizeof( STORAGE_TYPE ), PERSIST_DATA_BLOCK_SIZE, write_ptr );
+                persist_data_index = 0;
+            }
+            previousBlockState = blockState;
+            num_same_blocks = 1;
+        }
+    }
+    persist_data[ persist_data_index ].blockState = previousBlockState;
+    persist_data[ persist_data_index ].num = num_same_blocks;
+    total_num_blocks += num_same_blocks;
+
+    persist_data_index++;
+
+    int expected_num_saved_blocks = CHUNK_BLOCK_SIZE;
+    if ( total_num_blocks != expected_num_saved_blocks ) {
+        pr_debug( "Didn't get enough blocks save" );
+    }
+    fwrite( persist_data, sizeof( STORAGE_TYPE ), persist_data_index, write_ptr );
+    fclose( write_ptr );
+    free( persist_data );
 }
 
 int MapStorage::check_if_chunk_exists( const glm::ivec3 &chunk_offset ) {
@@ -101,8 +103,10 @@ int MapStorage::check_if_chunk_exists( const glm::ivec3 &chunk_offset ) {
     }
 }
 
-int MapStorage::load( Chunk &chunk ) {
-    glm::ivec3 &chunk_offset = chunk.chunk_pos;
+int MapStorage::load_chunk( Chunk &chunk ) {
+    return this->load_blocks( chunk.chunk_pos, chunk.blocks, chunk.dirty, false );
+}
+int MapStorage::load_blocks( const glm::ivec3 &chunk_offset, BlockState *blocks, int &dirty, bool expect_empty_blocks ) {
 
     if ( !check_if_chunk_exists( chunk_offset ) ) {
         // This chunk isn't in a file, return 0 so the chunk gets loaded
@@ -113,7 +117,6 @@ int MapStorage::load( Chunk &chunk ) {
     if ( snprintf( file_name, CHUNK_NAME_MAX_LENGTH, FILE_ROOT_CHUNK, map_name, chunk_offset.x, chunk_offset.y, chunk_offset.z ) != CHUNK_NAME_MAX_LENGTH ) {
     }
     FILE *read_ptr;
-    BlockState *blocks = chunk.blocks;
     read_ptr = fopen( file_name, "rb" );
     uint32_t storage_type_size = 0;
     size_t result_size = fread( &storage_type_size, sizeof( uint32_t ), 1, read_ptr );
@@ -133,7 +136,7 @@ int MapStorage::load( Chunk &chunk ) {
 
     bool loading_old_format_chunk = storage_block_state_size != sizeof( BlockState );
     if ( loading_old_format_chunk ) {
-        chunk.dirty = true;
+        dirty = true;
         pr_debug( "Loaded old chunk with state size:%d expected:%d", storage_block_state_size, ( int )sizeof( BlockState ) );
     }
     if ( storage_block_state_size > ( int )sizeof( BlockState ) ) {
@@ -158,7 +161,7 @@ int MapStorage::load( Chunk &chunk ) {
                 blockState.display_id = blockState.id;
             }
         }
-        if ( blockState.id >= LAST_BLOCK_ID ) {
+        if ( !expect_empty_blocks && blockState.id >= LAST_BLOCK_ID ) {
             pr_debug( "Got strange block in %s :%d", file_name, blockState.id );
             // blockState.id = GOLD_BLOCK;
         }

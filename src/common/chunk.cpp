@@ -224,7 +224,7 @@ void Chunk::set_block_by_index_if_different( int index, const BlockState *blockS
 
 void Chunk::persist( MapStorage &map_storage ) {
     if ( REMEMBER_BLOCKS ) {
-        map_storage.persist( *this );
+        map_storage.persist_chunk( *this );
     }
 }
 
@@ -235,7 +235,7 @@ void Chunk::load_terrain( MapStorage &map_storage ) {
         this->blocks = ( BlockState * )calloc( CHUNK_BLOCK_SIZE, sizeof( BlockState ) );
     }
     // pr_debug( "Loading chunk terrain x:%d y:%d z:%d", this->chunk_x, this->chunk_y, this->chunk_z );
-    int loaded = map_storage.load( *this );
+    int loaded = map_storage.load_chunk( *this );
     if ( !loaded ) {
         // We havn't loaded this chunk before, map gen it.
         if ( LOAD_CHUNKS_SUPPORTS_CUDA && MapGen::supports_cuda( ) ) {

@@ -352,12 +352,12 @@ typedef struct {
 } Block;
 
 // Keep in order to make save file backwards compatible
-typedef struct {
+struct BlockState {
     BlockID id;
     unsigned char rotation;
     int current_redstone_power;
     BlockID display_id;
-} BlockState;
+};
 
 static BlockState BLOCK_STATE_AIR = { AIR, BLOCK_ROTATE_0, 0, AIR };
 static BlockState BLOCK_STATE_LAST_BLOCK_ID = { LAST_BLOCK_ID, BLOCK_ROTATE_0, 0, LAST_BLOCK_ID };

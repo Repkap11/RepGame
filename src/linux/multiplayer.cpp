@@ -55,18 +55,29 @@ void Multiplayer::init( const char *hostname, int port ) {
 }
 
 void Multiplayer::process_events( World &world ) {
+    int event_count = 0;
     if ( this->active ) {
-        while ( true ) {
+        while ( event_count < 100 ) {
             // Send updates to the server
-            NetPacket update;
-            int status = read( this->sockfd, &update, sizeof( NetPacket ) );
+            NetPacket &packet = this->pending_packet;
+
+            int &pending_read_len = this->pending_packet_len;
+            char *read_start = ( ( char * )&packet ) + pending_read_len;
+            size_t size_needed = sizeof( NetPacket ) - pending_read_len;
+
+            event_count++;
+            int status = read( this->sockfd, read_start, size_needed );
             if ( status < 0 ) {
                 // This is fine, it just means there are no messages;
                 return;
             } else {
-                if ( update.type == PacketType::CHUNK_DIFF_RESULT ) {
-                    pr_debug( "Got a diff result back!!" );
-                    const PacketType_DataChunkDiff &chunk_diuff = update.data.chunk_diff;
+                pending_read_len += status;
+                if ( pending_read_len < ( int )sizeof( NetPacket ) ) {
+                    continue;
+                }
+                pending_read_len = 0;
+                if ( packet.type == PacketType::CHUNK_DIFF_RESULT ) {
+                    const PacketType_DataChunkDiff &chunk_diuff = packet.data.chunk_diff;
                     glm::ivec3 chunk_pos = glm::ivec3( chunk_diuff.chunk_x, chunk_diuff.chunk_y, chunk_diuff.chunk_z );
                     Chunk *chunk_prt = world.chunkLoader.get_chunk( chunk_pos );
                     if ( chunk_prt == NULL ) {
@@ -74,34 +85,33 @@ void Multiplayer::process_events( World &world ) {
                         continue;
                     }
                     Chunk &chunk = *chunk_prt;
-                    pr_debug( "Got a diff result num:%d", chunk_diuff.num_used_updates );
 
-                    for ( int i = 0; i < update.data.chunk_diff.num_used_updates; ++i ) {
-                        const PacketType_DataChunkDiff_Block &net_block = update.data.chunk_diff.blockUpdates[ i ];
+                    for ( int i = 0; i < packet.data.chunk_diff.num_used_updates; ++i ) {
+                        const PacketType_DataChunkDiff_Block &net_block = packet.data.chunk_diff.blockUpdates[ i ];
                         chunk.set_block_by_index_if_different( net_block.blocks_index, &net_block.blockState );
                     }
                     // world.set_loaded_block();
-                } else if ( update.type == PacketType::BLOCK_UPDATE ) {
-                    BlockState &blockState = update.data.block.blockState;
+                } else if ( packet.type == PacketType::BLOCK_UPDATE ) {
+                    BlockState &blockState = packet.data.block.blockState;
                     pr_debug( "Read message: block:%d", blockState.id );
-                    glm::ivec3 block_pos = glm::ivec3( update.data.block.x, update.data.block.y, update.data.block.z );
+                    glm::ivec3 block_pos = glm::ivec3( packet.data.block.x, packet.data.block.y, packet.data.block.z );
                     world.set_loaded_block( block_pos, blockState );
-                } else if ( update.type == PacketType::CLIENT_INIT ) {
-                    world.multiplayer_avatars.add( update.player_id );
-                    glm::mat4 rotation = glm::make_mat4( update.data.player.rotation );
-                    world.multiplayer_avatars.update_position( update.player_id, update.data.player.x, update.data.player.y, update.data.player.z, rotation );
-                } else if ( update.type == PacketType::PLAYER_LOCATION ) {
+                } else if ( packet.type == PacketType::CLIENT_INIT ) {
+                    world.multiplayer_avatars.add( packet.player_id );
+                    glm::mat4 rotation = glm::make_mat4( packet.data.player.rotation );
+                    world.multiplayer_avatars.update_position( packet.player_id, packet.data.player.x, packet.data.player.y, packet.data.player.z, rotation );
+                } else if ( packet.type == PacketType::PLAYER_LOCATION ) {
                     // pr_debug( "Updating player location:%d", update.player_id );
-                    glm::mat4 rotation = glm::make_mat4( update.data.player.rotation );
-                    world.multiplayer_avatars.update_position( update.player_id, update.data.player.x, update.data.player.y, update.data.player.z, rotation );
-                } else if ( update.type == PacketType::PLAYER_CONNECTED ) {
-                    pr_debug( "Updating player connected:%d", update.player_id );
-                    world.multiplayer_avatars.add( update.player_id );
-                } else if ( update.type == PacketType::PLAYER_DISCONNECTED ) {
-                    pr_debug( "Updating player disconected:%d", update.player_id );
-                    world.multiplayer_avatars.remove( update.player_id );
+                    glm::mat4 rotation = glm::make_mat4( packet.data.player.rotation );
+                    world.multiplayer_avatars.update_position( packet.player_id, packet.data.player.x, packet.data.player.y, packet.data.player.z, rotation );
+                } else if ( packet.type == PacketType::PLAYER_CONNECTED ) {
+                    pr_debug( "Updating player connected:%d", packet.player_id );
+                    world.multiplayer_avatars.add( packet.player_id );
+                } else if ( packet.type == PacketType::PLAYER_DISCONNECTED ) {
+                    pr_debug( "Updating player disconected:%d", packet.player_id );
+                    world.multiplayer_avatars.remove( packet.player_id );
                 } else {
-                    pr_debug( "Saw unexpected packet:%d from:%d", update.type, update.player_id );
+                    pr_debug( "Saw unexpected packet:%d from:%d", packet.type, packet.player_id );
                 }
             }
         }

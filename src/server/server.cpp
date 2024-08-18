@@ -116,6 +116,7 @@ void Server::handle_new_client_event( int inet_socket_fd ) {
     ClientData &clientData = client_data[ client_fd ];
     clientData.connected = 1;
     clientData.pending_receive_len = 0;
+    clientData.pending_send_len = 0;
     this->server_logic.on_client_connected( *this, client_fd );
 }
 
@@ -181,27 +182,32 @@ PacketType_DataPlayer *Server::get_data_if_client_connected( int client_id ) {
 void Server::handle_client_ready_for_write( int client_fd ) {
     // pr_debug( "server_handle_client_ready_for_write" );
     std::queue<NetPacket> &pending_sends = this->client_data[ client_fd ].pending_sends;
+    int &pending_send_len = this->client_data[ client_fd ].pending_send_len;
     while ( !pending_sends.empty( ) ) {
         NetPacket &packet = pending_sends.front( );
-        pending_sends.pop( );
-        int nsent = send( client_fd, &packet, sizeof( NetPacket ), 0 );
-        if ( nsent == -1 ) {
+        char *send_start = ( ( char * )&packet ) + pending_send_len;
+        size_t size_needed = sizeof( NetPacket ) - pending_send_len;
+
+        int nsent = send( client_fd, send_start, size_needed, 0 );
+        if ( nsent < 0 ) {
             if ( errno == EAGAIN || errno == EWOULDBLOCK ) {
                 break;
             } else {
                 pr_debug( "send" );
             }
         }
-        if ( nsent < ( int )sizeof( NetPacket ) ) {
-            pr_debug( "Sent less than a packet" );
-            break;
+        pending_send_len += nsent;
+        if ( pending_send_len < ( int )sizeof( NetPacket ) ) {
+            continue;
         }
+        pending_sends.pop( );
+        pending_send_len = 0;
     }
     this->update_epoll( client_fd );
 }
 
 void Server::init( int portnum ) {
-    this->server_logic.init( "Server1" );
+    this->server_logic.init( "World1" );
     this->inet_socket_fd = Server::setup_inet_socket( portnum );
     Server::make_socket_non_blocking( inet_socket_fd );
 
@@ -236,6 +242,13 @@ void Server::serve( ) {
             int client_fd = this->events[ i ].data.fd;
             if ( this->events[ i ].events & EPOLLERR ) {
                 pr_debug( "epoll_wait returned EPOLLERR:%d", client_fd );
+                std::queue<NetPacket> empty;
+                std::swap( client_data[ client_fd ].pending_sends, empty );
+                this->server_logic.on_client_disconnected( *this, client_fd );
+                client_data[ client_fd ].connected = 0;
+                Server::del_epoll( client_fd );
+                close( client_fd );
+                continue;
             }
 
             if ( client_fd == inet_socket_fd ) {
