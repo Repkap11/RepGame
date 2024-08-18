@@ -3,6 +3,9 @@
 #include "common/chunk.hpp"
 #include "common/RepGame.hpp"
 
+#define FILE_ROOT_CHUNK "%s/chunk_%d_%d_%d"
+#define FILE_ROOT_PLAYER_DATA "%s/player.dat"
+
 class MapStorage {
   public:
     static void init( const char *world_name );

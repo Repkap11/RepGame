@@ -1,9 +1,20 @@
 
 #include "server/server_logic.hpp"
 #include "common/chunk.hpp"
+#include "common/utils/map_storage.hpp"
+#include "common/utils/file_utils.hpp"
+
 #include <stdio.h>
 
 #define pr_debug( fmt, ... ) fprintf( stdout, "%s:%d:%s():" fmt "\n", __FILE__, __LINE__, __func__, ##__VA_ARGS__ );
+
+void ServerLogic::init( const char *world_name ) {
+    char *dir = getRepGamePath( );
+    snprintf( map_name, CHUNK_NAME_MAX_LENGTH, "%s%s%s", dir, REPGAME_PATH_DIVIDOR, world_name );
+    pr_debug( "Loading map from:%s", map_name );
+    mkdir_p( map_name );
+    free( dir );
+}
 
 void ServerLogic::on_client_connected( Server &server, int client_fd ) {
     pr_debug( "%d", client_fd );
@@ -45,7 +56,11 @@ void ServerLogic::on_client_connected( Server &server, int client_fd ) {
     }
 }
 
-void ServerLogic::record_block( const glm::ivec3 &chunk_pos, int block_index, BlockState &block_state ) {
+void ServerLogic::record_block( const glm::ivec3 &chunk_offset, int block_index, BlockState &block_state ) {
+    char file_name[ CHUNK_NAME_MAX_LENGTH ];
+    if ( snprintf( file_name, CHUNK_NAME_MAX_LENGTH, FILE_ROOT_CHUNK, this->map_name, chunk_offset.x, chunk_offset.y, chunk_offset.z ) != CHUNK_NAME_MAX_LENGTH ) {
+    }
+    this->world_cache.at( file_name );
 }
 
 void ServerLogic::on_client_message( Server &server, int client_fd, NetPacket *packet ) {

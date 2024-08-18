@@ -4,7 +4,7 @@ REP_MAKEFILES += makefiles/server.mk
 
 REPSERVER := $(TARGET)Server
 
-OBJECTS_SERVER = $(patsubst src/server/%.cpp,out/server/%.o, $(wildcard src/server/*.cpp))
+OBJECTS_SERVER = $(patsubst src/server/%.cpp,out/server/%.o, $(wildcard src/server/*.cpp) out/linux/release/common/utils/file_utils.o)
 DEPS_SERVER := $(patsubst src/server/%.cpp,out/server/%.d, $(wildcard src/server/*.cpp))
 SERVER_DIRS := $(patsubst src/server%,out/server%,$(shell find src/server -type d))
 

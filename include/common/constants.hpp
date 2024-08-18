@@ -145,3 +145,5 @@ static_assert( CHUNK_RADIUS_Z > 0, "CHUNK_RADIUS_Z too small" );
 #define NO_LIGHT_BRIGHT 0
 
 #define MAX_ROTATABLE_BLOCK 100
+
+#define CHUNK_NAME_MAX_LENGTH 200

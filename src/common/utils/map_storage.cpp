@@ -11,59 +11,11 @@
 #include "common/constants.hpp"
 #include "common/utils/file_utils.hpp"
 
-#define CHUNK_NAME_LENGTH 200
-
-const char *file_root_chunk = "%s/chunk_%d_%d_%d";
-const char *file_root_player_data = "%s/player.dat";
-
-char map_name[ CHUNK_NAME_LENGTH ];
-
-#if defined( REPGAME_WINDOWS )
-#define MKDIR_ETRA_FLAGS
-#else
-#define MKDIR_ETRA_FLAGS , S_IRWXU
-#endif
-
-int mkdir_p( const char *path ) {
-    const size_t len = strlen( path );
-    char _path[ PATH_MAX ];
-    char *p;
-
-    errno = 0;
-
-    /* Copy string so its mutable */
-    if ( len > sizeof( _path ) - 1 ) {
-        errno = ENAMETOOLONG;
-        return -1;
-    }
-    snprintf( _path, PATH_MAX, "%s", path );
-
-    /* Iterate the string */
-    for ( p = _path + 1; *p; p++ ) {
-        if ( *p == '/' ) {
-            /* Temporarily truncate */
-            *p = '\0';
-
-            if ( mkdir( _path MKDIR_ETRA_FLAGS ) != 0 ) {
-                if ( errno != EEXIST )
-                    return -1;
-            }
-
-            *p = '/';
-        }
-    }
-
-    if ( mkdir( _path MKDIR_ETRA_FLAGS ) != 0 ) {
-        if ( errno != EEXIST )
-            return -1;
-    }
-
-    return 0;
-}
+char map_name[ CHUNK_NAME_MAX_LENGTH ];
 
 void MapStorage::init( const char *world_name ) {
     char *dir = getRepGamePath( );
-    snprintf( map_name, CHUNK_NAME_LENGTH, "%s%s%s", dir, REPGAME_PATH_DIVIDOR, world_name );
+    snprintf( map_name, CHUNK_NAME_MAX_LENGTH, "%s%s%s", dir, REPGAME_PATH_DIVIDOR, world_name );
     pr_debug( "Loading map from:%s", map_name );
     mkdir_p( map_name );
     free( dir );
@@ -88,8 +40,8 @@ void MapStorage::persist( const Chunk &chunk ) {
             return;
         }
         const glm::ivec3 &chunk_offset = chunk.chunk_pos;
-        char file_name[ CHUNK_NAME_LENGTH ];
-        if ( snprintf( file_name, CHUNK_NAME_LENGTH, file_root_chunk, map_name, chunk_offset.x, chunk_offset.y, chunk_offset.z ) != CHUNK_NAME_LENGTH ) {
+        char file_name[ CHUNK_NAME_MAX_LENGTH ];
+        if ( snprintf( file_name, CHUNK_NAME_MAX_LENGTH, FILE_ROOT_CHUNK, map_name, chunk_offset.x, chunk_offset.y, chunk_offset.z ) != CHUNK_NAME_MAX_LENGTH ) {
         }
         FILE *write_ptr = fopen( file_name, "wb" );
         uint32_t storage_type_size = sizeof( STORAGE_TYPE );
@@ -137,8 +89,8 @@ void MapStorage::persist( const Chunk &chunk ) {
 }
 
 int check_if_chunk_exists( const glm::ivec3 &chunk_offset ) {
-    char file_name[ CHUNK_NAME_LENGTH ];
-    if ( snprintf( file_name, CHUNK_NAME_LENGTH, file_root_chunk, map_name, chunk_offset.x, chunk_offset.y, chunk_offset.z ) != CHUNK_NAME_LENGTH ) {
+    char file_name[ CHUNK_NAME_MAX_LENGTH ];
+    if ( snprintf( file_name, CHUNK_NAME_MAX_LENGTH, FILE_ROOT_CHUNK, map_name, chunk_offset.x, chunk_offset.y, chunk_offset.z ) != CHUNK_NAME_MAX_LENGTH ) {
     }
     if ( access( file_name, F_OK ) != -1 ) {
         return 1;
@@ -155,8 +107,8 @@ int MapStorage::load( Chunk &chunk ) {
         return 0;
     }
 
-    char file_name[ CHUNK_NAME_LENGTH ];
-    if ( snprintf( file_name, CHUNK_NAME_LENGTH, file_root_chunk, map_name, chunk_offset.x, chunk_offset.y, chunk_offset.z ) != CHUNK_NAME_LENGTH ) {
+    char file_name[ CHUNK_NAME_MAX_LENGTH ];
+    if ( snprintf( file_name, CHUNK_NAME_MAX_LENGTH, FILE_ROOT_CHUNK, map_name, chunk_offset.x, chunk_offset.y, chunk_offset.z ) != CHUNK_NAME_MAX_LENGTH ) {
     }
     FILE *read_ptr;
     BlockState *blocks = chunk.blocks;
@@ -220,8 +172,8 @@ int MapStorage::load( Chunk &chunk ) {
 }
 
 int MapStorage::read_player_data( PlayerData &player_data ) {
-    char file_name[ CHUNK_NAME_LENGTH ];
-    snprintf( file_name, CHUNK_NAME_LENGTH, file_root_player_data, map_name );
+    char file_name[ CHUNK_NAME_MAX_LENGTH ];
+    snprintf( file_name, CHUNK_NAME_MAX_LENGTH, FILE_ROOT_PLAYER_DATA, map_name );
     FILE *read_ptr = fopen( file_name, "rb" );
     if ( !read_ptr ) {
         pr_debug( "No player data:%s (%p)", file_name, read_ptr );
@@ -237,8 +189,8 @@ int MapStorage::read_player_data( PlayerData &player_data ) {
 }
 
 void MapStorage::write_player_data( const PlayerData &player_data ) {
-    char file_name[ CHUNK_NAME_LENGTH ];
-    snprintf( file_name, CHUNK_NAME_LENGTH, file_root_player_data, map_name ) ;
+    char file_name[ CHUNK_NAME_MAX_LENGTH ];
+    snprintf( file_name, CHUNK_NAME_MAX_LENGTH, FILE_ROOT_PLAYER_DATA, map_name ) ;
     FILE *write_ptr = fopen( file_name, "wb" );
     if ( !write_ptr ) {
         pr_debug( "Can't write player:%s (%p)", file_name, write_ptr );
