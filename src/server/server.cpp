@@ -194,6 +194,7 @@ void Server::handle_client_ready_for_write( int client_fd ) {
 }
 
 void Server::init( int portnum ) {
+    this->server_logic.init("Server1");
     this->inet_socket_fd = Server::setup_inet_socket( portnum );
     Server::make_socket_non_blocking( inet_socket_fd );
 
@@ -220,7 +221,7 @@ void Server::init( int portnum ) {
     }
 }
 
-void Server::server( ) {
+void Server::serve( ) {
     while ( 1 ) {
         int num_ready = epoll_wait( this->epoll_fd, this->events, MAX_CLIENT_FDS, -1 );
         // pr_debug( "epoll returned: %d", num_ready );
@@ -259,5 +260,5 @@ int main( int argc, const char **argv ) {
 
     Server server;
     server.init( portnum );
-    server.server( );
+    server.serve( );
 }

@@ -65,18 +65,22 @@ void Multiplayer::process_events( World &world ) {
                 return;
             } else {
                 if ( update.type == PacketType::CHUNK_DIFF_RESULT ) {
-                    glm::ivec3 chunk_pos = glm::ivec3( update.data.chunk_diff.chunk_x, update.data.chunk_diff.chunk_y, update.data.chunk_diff.chunk_z );
+                    pr_debug( "Got a diff result back!!" );
+                    const PacketType_DataChunkDiff &chunk_diuff = update.data.chunk_diff;
+                    glm::ivec3 chunk_pos = glm::ivec3( chunk_diuff.chunk_x, chunk_diuff.chunk_y, chunk_diuff.chunk_z );
                     Chunk *chunk_prt = world.chunkLoader.get_chunk( chunk_pos );
                     if ( chunk_prt == NULL ) {
                         // This chunk is not loaded anymore, ignore this update.
                         continue;
                     }
                     Chunk &chunk = *chunk_prt;
+                    pr_debug( "Got a diff result num:%d", chunk_diuff.num_used_updates );
+
                     for ( int i = 0; i < update.data.chunk_diff.num_used_updates; ++i ) {
                         const PacketType_DataChunkDiff_Block &net_block = update.data.chunk_diff.blockUpdates[ i ];
                         chunk.set_block_by_index( net_block.blocks_index, &net_block.blockState );
                     }
-                    // update.data.;
+                    chunk.needs_repopulation = true;
                     // world.set_loaded_block();
                 } else if ( update.type == PacketType::BLOCK_UPDATE ) {
                     BlockState &blockState = update.data.block.blockState;

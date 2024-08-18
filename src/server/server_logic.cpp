@@ -10,8 +10,8 @@
 
 void ServerLogic::init( const char *world_name ) {
     char *dir = getRepGamePath( );
-    snprintf( map_name, CHUNK_NAME_MAX_LENGTH, "%s%s%s", dir, REPGAME_PATH_DIVIDOR, world_name );
-    pr_debug( "Loading map from:%s", map_name );
+    snprintf( this->map_name, CHUNK_NAME_MAX_LENGTH, "%s%s%s", dir, REPGAME_PATH_DIVIDOR, world_name );
+    pr_debug( "Loading map from:%s", this->map_name );
     mkdir_p( map_name );
     free( dir );
 }
@@ -47,7 +47,7 @@ void ServerLogic::on_client_connected( Server &server, int client_fd ) {
         PacketType_DataPlayer *playerData = server.get_data_if_client_connected( online_id );
         if ( playerData != NULL ) {
             NetPacket packet;
-            packet.type = CLIENT_INIT;
+            packet.type = PacketType::CLIENT_INIT;
             packet.player_id = online_id;
             packet.data.player = *playerData;
             server.queue_packet( client_fd, &packet );
@@ -60,8 +60,9 @@ void ServerLogic::record_block( const glm::ivec3 &chunk_offset, int block_index,
     char file_name[ CHUNK_NAME_MAX_LENGTH ];
     if ( snprintf( file_name, CHUNK_NAME_MAX_LENGTH, FILE_ROOT_CHUNK, this->map_name, chunk_offset.x, chunk_offset.y, chunk_offset.z ) != CHUNK_NAME_MAX_LENGTH ) {
     }
-    auto chunk_cache = this->world_cache[ file_name ];
+    auto &chunk_cache = this->world_cache[ file_name ];
     chunk_cache[ block_index ] = block_state;
+    pr_debug( "Stored a block in:%s ", file_name );
 }
 
 void ServerLogic::respondToChunkRequest( Server &server, int client_fd, const glm::ivec3 &chunk_offset ) {
@@ -73,23 +74,33 @@ void ServerLogic::respondToChunkRequest( Server &server, int client_fd, const gl
         return;
     }
     const std::map<int, BlockState> &chunk_cache = it_world->second;
-    auto it_chunk = chunk_cache.begin( );
     NetPacket packet;
+    packet.data.chunk_diff.chunk_x = chunk_offset.x;
+    packet.data.chunk_diff.chunk_y = chunk_offset.y;
+    packet.data.chunk_diff.chunk_z = chunk_offset.z;
     packet.type = PacketType::CHUNK_DIFF_RESULT;
     int packet_index = 0;
+    int total_packets_sent = 0;
     for ( auto [ blocks_index, blockState ] : chunk_cache ) {
         PacketType_DataChunkDiff_Block &packet_data = packet.data.chunk_diff.blockUpdates[ packet_index ];
         packet_data.blocks_index = blocks_index;
         packet_data.blockState = blockState;
         packet_index++;
         if ( packet_index >= SERVER_BLOCK_CHUNK_DIFF_SIZE ) {
+            packet.data.chunk_diff.num_used_updates = packet_index;
             server.queue_packet( client_fd, &packet );
+            // pr_debug( "Responding to client:%d with %d blocks", client_fd, packet_index );
             packet_index = 0;
+            total_packets_sent += 1;
         }
     }
     if ( packet_index != 0 ) {
+        packet.data.chunk_diff.num_used_updates = packet_index;
         server.queue_packet( client_fd, &packet );
+        total_packets_sent += 1;
+        // pr_debug( "Responding to client:%d with %d blocks", client_fd, packet_index );
     }
+    pr_debug( "Responded to:%s with total packets:%d for blocks:%ld", file_name, total_packets_sent, chunk_cache.size( ) );
 }
 
 void ServerLogic::on_client_message( Server &server, int client_fd, NetPacket *packet ) {
@@ -106,7 +117,9 @@ void ServerLogic::on_client_message( Server &server, int client_fd, NetPacket *p
         glm::ivec3 chunk_pos = glm::ivec3( packet->data.chunk_diff.chunk_x, packet->data.chunk_diff.chunk_y, packet->data.chunk_diff.chunk_z );
         this->respondToChunkRequest( server, client_fd, chunk_pos );
     }
-    if ( packet->type != INVALID ) {
+
+    // Forward packets from a client to all other clients.
+    if ( packet->type == PacketType::BLOCK_UPDATE || packet->type == PacketType::PLAYER_LOCATION ) {
         // Tell the other connected players about most types of messages, but mark the
         // packet as from the player that sent it.
 

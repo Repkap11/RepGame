@@ -6,7 +6,7 @@
 #include <common/block.hpp>
 #include <server/server_logic.hpp>
 
-typedef enum { INVALID, PLAYER_LOCATION, BLOCK_UPDATE, CLIENT_INIT, PLAYER_CONNECTED, PLAYER_DISCONNECTED, CHUNK_DIFF_RESULT, CHUNK_DIFF_REQUEST } PacketType;
+typedef enum { PLAYER_LOCATION, BLOCK_UPDATE, CLIENT_INIT, PLAYER_CONNECTED, PLAYER_DISCONNECTED, CHUNK_DIFF_RESULT, CHUNK_DIFF_REQUEST } PacketType;
 
 #define SERVER_BLOCK_CHUNK_DIFF_SIZE 10 // TODO this could be up to the total number of blocks in a chunk.... that would be a lot of data.
 
@@ -71,7 +71,7 @@ class Server {
 
   public:
     void init( int portnum );
-    void server( );
+    void serve( );
     void queue_packet( int client_fd, NetPacket *packet );
     PacketType_DataPlayer *get_data_if_client_connected( int client_id );
 };

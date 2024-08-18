@@ -39,6 +39,7 @@ class Chunk {
     friend class StructureGen;
     friend class MapStorage;
     friend class TerrainLoadingThread;
+    friend class Multiplayer;
 
     int is_loading;
     RenderLayer layers[ LAST_RENDER_ORDER ];

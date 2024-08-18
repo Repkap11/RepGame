@@ -126,9 +126,13 @@ linux-run: linux
 	./out/linux/release/$(TARGET) $(WORLD) www.repkap11.com
 
 dev: linux_debug-run
+dev2: linux_debug-run2
 
 linux_debug-run: linux_debug
 	./out/linux/debug/$(TARGET) $(WORLD) localhost
+
+linux_debug-run2: linux_debug
+	./out/linux/debug/$(TARGET) World2 localhost
 
 tests: linux_debug
 	./out/linux/debug/$(TARGET) tests
