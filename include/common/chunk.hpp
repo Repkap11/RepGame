@@ -67,7 +67,7 @@ class Chunk {
     void persist( );
     void destroy( );
     void set_block( const glm::ivec3 &pos, BlockState blockState );
-    void set_block_by_index( int index, const BlockState *blockState );
+    void set_block_by_index_if_different( int index, const BlockState *blockState );
     BlockState get_block( const glm::ivec3 &pos ) const;
     void calculate_populated_blocks( );
 

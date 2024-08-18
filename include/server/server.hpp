@@ -50,6 +50,8 @@ struct NetPacket {
 struct ClientData {
     int connected;
     PacketType_DataPlayer player_data;
+    int pending_receive_len = 0;
+    NetPacket pending_receive;
     std::queue<NetPacket> pending_sends;
 };
 

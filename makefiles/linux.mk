@@ -125,6 +125,9 @@ out/linux/debug/$(TARGET): $(OBJECTS_IMGUI_LINUX_DEBUG) $(OBJECTS_COMMON_LINUX_D
 linux-run: linux
 	./out/linux/release/$(TARGET) $(WORLD) www.repkap11.com
 
+linux-run2: linux
+	./out/linux/release/$(TARGET) World2 www.repkap11.com
+
 dev: linux_debug-run
 dev2: linux_debug-run2
 

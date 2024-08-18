@@ -121,8 +121,11 @@ void Server::handle_client_ready_for_read( int client_fd ) {
     // pr_debug( "server_handle_client_ready_for_read" );
     int disconnected = 0;
     while ( true ) {
-        NetPacket packet;
-        int nbytes = recv( client_fd, &packet, sizeof( NetPacket ), 0 );
+        NetPacket &packet = client_data[ client_fd ].pending_receive;
+        int &pending_receive_len = client_data[ client_fd ].pending_receive_len;
+        char *recv_start = ( ( char * )&packet ) + pending_receive_len;
+        size_t size_needed = sizeof( NetPacket ) - pending_receive_len;
+        int nbytes = recv( client_fd, recv_start, size_needed, 0 );
         if ( nbytes == 0 ) {
             // The client disconnected.
             disconnected = 1;
@@ -134,10 +137,12 @@ void Server::handle_client_ready_for_read( int client_fd ) {
             }
             pr_debug( "recv got negitive bytes, darn" );
             break;
-        } else if ( nbytes != sizeof( NetPacket ) ) {
-            pr_debug( "Only got a partial packet, darn" );
-            break;
         }
+        pending_receive_len += nbytes;
+        if ( pending_receive_len != sizeof( NetPacket ) ) {
+            continue;
+        }
+        pending_receive_len = 0;
         if ( packet.type == PLAYER_LOCATION || packet.type == PLAYER_CONNECTED ) {
             client_data[ client_fd ].player_data = packet.data.player;
         }
@@ -194,7 +199,7 @@ void Server::handle_client_ready_for_write( int client_fd ) {
 }
 
 void Server::init( int portnum ) {
-    this->server_logic.init("Server1");
+    this->server_logic.init( "Server1" );
     this->inet_socket_fd = Server::setup_inet_socket( portnum );
     Server::make_socket_non_blocking( inet_socket_fd );
 

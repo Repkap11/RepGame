@@ -78,9 +78,8 @@ void Multiplayer::process_events( World &world ) {
 
                     for ( int i = 0; i < update.data.chunk_diff.num_used_updates; ++i ) {
                         const PacketType_DataChunkDiff_Block &net_block = update.data.chunk_diff.blockUpdates[ i ];
-                        chunk.set_block_by_index( net_block.blocks_index, &net_block.blockState );
+                        chunk.set_block_by_index_if_different( net_block.blocks_index, &net_block.blockState );
                     }
-                    chunk.needs_repopulation = true;
                     // world.set_loaded_block();
                 } else if ( update.type == PacketType::BLOCK_UPDATE ) {
                     BlockState &blockState = update.data.block.blockState;

@@ -211,8 +211,15 @@ void Chunk::set_block( const glm::ivec3 &pos, BlockState blockState ) {
     // Update the block in the client...
     this->blocks[ get_index_from_coords( pos ) ] = blockState;
 }
-void Chunk::set_block_by_index( int index, const BlockState *blockState ) {
+
+void Chunk::set_block_by_index_if_different( int index, const BlockState *blockState ) {
+    BlockState &oldBlockState = this->blocks[ index ];
+    if (BlockStates_equal( oldBlockState, *blockState)) {
+        return;
+    }
     this->blocks[ index ] = *blockState;
+    this->dirty = true;
+    this->needs_repopulation = true;
 }
 
 void Chunk::persist( ) {
