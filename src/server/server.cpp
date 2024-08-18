@@ -16,11 +16,7 @@
 
 #define INET_SOCKET_BACKLOG 64
 
-int epoll_fd = 0;
-
-ClientData *client_data;
-
-int server_setup_inet_socket( int port ) {
+int Server::setup_inet_socket( int port ) {
     int sockfd = socket( AF_INET, SOCK_STREAM, 0 );
     if ( sockfd < 0 ) {
         pr_debug( "ERROR opening socket" );
@@ -47,7 +43,7 @@ int server_setup_inet_socket( int port ) {
     return sockfd;
 }
 
-void make_socket_non_blocking( int sockfd ) {
+void Server::make_socket_non_blocking( int sockfd ) {
     int flags = fcntl( sockfd, F_GETFL, 0 );
     if ( flags == -1 ) {
         pr_debug( "fcntl F_GETFL" );
@@ -58,25 +54,25 @@ void make_socket_non_blocking( int sockfd ) {
     }
 }
 
-void server_add_epoll( int client_fd ) {
+void Server::add_epoll( int client_fd ) {
     struct epoll_event accept_event;
     accept_event.data.fd = client_fd;
     accept_event.events = EPOLLOUT | EPOLLET;
-    if ( epoll_ctl( epoll_fd, EPOLL_CTL_ADD, client_fd, &accept_event ) < 0 ) {
+    if ( epoll_ctl( this->epoll_fd, EPOLL_CTL_ADD, client_fd, &accept_event ) < 0 ) {
         pr_debug( "epoll_ctl EPOLL_CTL_ADD" );
     }
     // pr_debug( "Epoll add:%d", client_fd );
     return;
 }
 
-void server_del_epoll( int client_fd ) {
-    if ( epoll_ctl( epoll_fd, EPOLL_CTL_DEL, client_fd, NULL ) < 0 ) {
+void Server::del_epoll( int client_fd ) {
+    if ( epoll_ctl( this->epoll_fd, EPOLL_CTL_DEL, client_fd, NULL ) < 0 ) {
         pr_debug( "epoll_ctl EPOLL_CTL_DEL" );
     }
     // pr_debug( "Epoll del:%d", client_fd );
     return;
 }
-void server_update_epoll( int client_fd ) {
+void Server::update_epoll( int client_fd ) {
     struct epoll_event event = { 0, { 0 } };
     event.data.fd = client_fd;
     event.events = EPOLLET;
@@ -91,14 +87,14 @@ void server_update_epoll( int client_fd ) {
         return;
     }
     // pr_debug( "About to epoll_ctl mod" );
-    int status = epoll_ctl( epoll_fd, EPOLL_CTL_MOD, client_fd, &event );
+    int status = epoll_ctl( this->epoll_fd, EPOLL_CTL_MOD, client_fd, &event );
     if ( status < 0 ) {
         pr_debug( "epoll_ctl EPOLL_CTL_MOD status:%d:%s", status, strerror( status ) );
     }
     // pr_debug( "About to epoll_ctl mod done" );
 }
 
-void server_handle_new_client_event( int inet_socket_fd ) {
+void Server::handle_new_client_event( int inet_socket_fd ) {
     struct sockaddr_in client_addr;
     socklen_t client_addr_len = sizeof( client_addr );
     int client_fd = accept( inet_socket_fd, ( struct sockaddr * )&client_addr, &client_addr_len );
@@ -115,13 +111,13 @@ void server_handle_new_client_event( int inet_socket_fd ) {
     if ( client_fd >= MAX_CLIENT_FDS ) {
         pr_debug( "socket fd (%d) >= MAX 0NT_FDS (%d)", client_fd, MAX_CLIENT_FDS );
     }
-    make_socket_non_blocking( client_fd );
-    server_add_epoll( client_fd );
+    Server::make_socket_non_blocking( client_fd );
+    Server::add_epoll( client_fd );
     client_data[ client_fd ].connected = 1;
-    server_logic_on_client_connected( client_fd );
+    this->server_logic.on_client_connected( *this, client_fd );
 }
 
-void server_handle_client_ready_for_read( int client_fd ) {
+void Server::handle_client_ready_for_read( int client_fd ) {
     // pr_debug( "server_handle_client_ready_for_read" );
     int disconnected = 0;
     while ( true ) {
@@ -145,39 +141,39 @@ void server_handle_client_ready_for_read( int client_fd ) {
         if ( packet.type == PLAYER_LOCATION || packet.type == PLAYER_CONNECTED ) {
             client_data[ client_fd ].player_data = packet.data.player;
         }
-        server_logic_on_client_message( client_fd, &packet );
+        this->server_logic.on_client_message( *this, client_fd, &packet );
     }
     if ( disconnected ) {
         std::queue<NetPacket> empty;
         std::swap( client_data[ client_fd ].pending_sends, empty );
-        server_logic_on_client_disconnected( client_fd );
+        this->server_logic.on_client_disconnected( *this, client_fd );
         client_data[ client_fd ].connected = 0;
-        server_del_epoll( client_fd );
+        Server::del_epoll( client_fd );
         close( client_fd );
     } else {
-        server_update_epoll( client_fd );
+        Server::update_epoll( client_fd );
     }
 
     return;
 }
 
-void server_queue_packet( int client_fd, NetPacket *packet ) {
-    client_data[ client_fd ].pending_sends.push( *packet );
+void Server::queue_packet( int client_fd, NetPacket *packet ) {
+    this->client_data[ client_fd ].pending_sends.push( *packet );
     // pr_debug( "Queueing packet on %d length:%ld", client_fd, client_data[ client_fd ].pending_sends.size( ) );
-    server_update_epoll( client_fd );
+    this->update_epoll( client_fd );
     // pr_debug( "Got packet done with server_update_epoll" );
 }
 
-PacketType_DataPlayer *server_get_data_if_client_connected( int client_id ) {
-    if ( !client_data[ client_id ].connected ) {
+PacketType_DataPlayer *Server::get_data_if_client_connected( int client_id ) {
+    if ( !this->client_data[ client_id ].connected ) {
         return NULL;
     }
-    return &client_data[ client_id ].player_data;
+    return &this->client_data[ client_id ].player_data;
 }
 
-void server_handle_client_ready_for_write( int client_fd ) {
+void Server::handle_client_ready_for_write( int client_fd ) {
     // pr_debug( "server_handle_client_ready_for_write" );
-    std::queue<NetPacket> &pending_sends = client_data[ client_fd ].pending_sends;
+    std::queue<NetPacket> &pending_sends = this->client_data[ client_fd ].pending_sends;
     while ( !pending_sends.empty( ) ) {
         NetPacket &packet = pending_sends.front( );
         pending_sends.pop( );
@@ -194,7 +190,62 @@ void server_handle_client_ready_for_write( int client_fd ) {
             break;
         }
     }
-    server_update_epoll( client_fd );
+    this->update_epoll( client_fd );
+}
+
+void Server::init( int portnum ) {
+    this->inet_socket_fd = Server::setup_inet_socket( portnum );
+    Server::make_socket_non_blocking( inet_socket_fd );
+
+    this->epoll_fd = epoll_create1( 0 );
+    if ( this->epoll_fd < 0 ) {
+        pr_debug( "epoll_create1" );
+    }
+
+    struct epoll_event accept_event;
+    accept_event.data.fd = inet_socket_fd;
+    accept_event.events = EPOLLIN;
+    if ( epoll_ctl( this->epoll_fd, EPOLL_CTL_ADD, inet_socket_fd, &accept_event ) < 0 ) {
+        pr_debug( "epoll_ctl EPOLL_CTL_ADD" );
+    }
+
+    this->client_data = ( ClientData * )calloc( MAX_CLIENT_FDS, sizeof( ClientData ) );
+    for ( int i = 0; i < MAX_CLIENT_FDS; i++ ) {
+        new ( &client_data[ i ].pending_sends ) std::queue<NetPacket>( );
+        // client_data[ i ].pending_sends = std::queue<NetPacket>( );
+    }
+    this->events = ( struct epoll_event * )calloc( MAX_CLIENT_FDS, sizeof( struct epoll_event ) );
+    if ( events == NULL ) {
+        pr_debug( "Unable to allocate memory for epoll_events" );
+    }
+}
+
+void Server::server( ) {
+    while ( 1 ) {
+        int num_ready = epoll_wait( this->epoll_fd, this->events, MAX_CLIENT_FDS, -1 );
+        // pr_debug( "epoll returned: %d", num_ready );
+        for ( int i = 0; i < num_ready; i++ ) {
+            int client_fd = this->events[ i ].data.fd;
+            if ( this->events[ i ].events & EPOLLERR ) {
+                pr_debug( "epoll_wait returned EPOLLERR:%d", client_fd );
+            }
+
+            if ( client_fd == inet_socket_fd ) {
+                // The listening socket is ready; this means a new peer is connecting.
+                this->handle_new_client_event( inet_socket_fd );
+            } else {
+                uint32_t epoll_events = events[ i ].events;
+                // A peer socket is ready.
+                if ( epoll_events & EPOLLIN ) {
+                    // Ready for reading.
+                    this->handle_client_ready_for_read( client_fd );
+                } else if ( epoll_events & EPOLLOUT ) {
+                    // Ready for writing.
+                    this->handle_client_ready_for_write( client_fd );
+                }
+            }
+        }
+    }
 }
 
 int main( int argc, const char **argv ) {
@@ -206,54 +257,7 @@ int main( int argc, const char **argv ) {
     }
     pr_debug( "Serving on port %d", portnum );
 
-    int inet_socket_fd = server_setup_inet_socket( portnum );
-
-    make_socket_non_blocking( inet_socket_fd );
-
-    epoll_fd = epoll_create1( 0 );
-    if ( epoll_fd < 0 ) {
-        pr_debug( "epoll_create1" );
-    }
-
-    struct epoll_event accept_event;
-    accept_event.data.fd = inet_socket_fd;
-    accept_event.events = EPOLLIN;
-    if ( epoll_ctl( epoll_fd, EPOLL_CTL_ADD, inet_socket_fd, &accept_event ) < 0 ) {
-        pr_debug( "epoll_ctl EPOLL_CTL_ADD" );
-    }
-
-    client_data = ( ClientData * )calloc( MAX_CLIENT_FDS, sizeof( ClientData ) );
-    for ( int i = 0; i < MAX_CLIENT_FDS; i++ ) {
-        new ( &client_data[ i ].pending_sends ) std::queue<NetPacket>( );
-        // client_data[ i ].pending_sends = std::queue<NetPacket>( );
-    }
-    struct epoll_event *events = ( struct epoll_event * )calloc( MAX_CLIENT_FDS, sizeof( struct epoll_event ) );
-    if ( events == NULL ) {
-        pr_debug( "Unable to allocate memory for epoll_events" );
-    }
-    while ( 1 ) {
-        int num_ready = epoll_wait( epoll_fd, events, MAX_CLIENT_FDS, -1 );
-        // pr_debug( "epoll returned: %d", num_ready );
-        for ( int i = 0; i < num_ready; i++ ) {
-            int client_fd = events[ i ].data.fd;
-            if ( events[ i ].events & EPOLLERR ) {
-                pr_debug( "epoll_wait returned EPOLLERR:%d", client_fd );
-            }
-
-            if ( client_fd == inet_socket_fd ) {
-                // The listening socket is ready; this means a new peer is connecting.
-                server_handle_new_client_event( inet_socket_fd );
-            } else {
-                uint32_t epoll_events = events[ i ].events;
-                // A peer socket is ready.
-                if ( epoll_events & EPOLLIN ) {
-                    // Ready for reading.
-                    server_handle_client_ready_for_read( client_fd );
-                } else if ( epoll_events & EPOLLOUT ) {
-                    // Ready for writing.
-                    server_handle_client_ready_for_write( client_fd );
-                }
-            }
-        }
-    }
+    Server server;
+    server.init( portnum );
+    server.server( );
 }

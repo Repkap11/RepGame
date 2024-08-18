@@ -45,6 +45,11 @@ static_assert( CHUNK_RADIUS_X > 0, "CHUNK_RADIUS_X too small" );
 static_assert( CHUNK_RADIUS_Y > 0, "CHUNK_RADIUS_Y too small" );
 static_assert( CHUNK_RADIUS_Z > 0, "CHUNK_RADIUS_Z too small" );
 
+
+#define CHUNK_SIZE_I glm::ivec3( CHUNK_SIZE_X, CHUNK_SIZE_Y, CHUNK_SIZE_Z )
+#define CHUNK_SIZE_F glm::vec3( CHUNK_SIZE_X, CHUNK_SIZE_Y, CHUNK_SIZE_Z )
+
+
 #ifdef REPGAME_BUILD_WITH_CUDA
 #define LOAD_CHUNKS_SUPPORTS_CUDA 1
 #else

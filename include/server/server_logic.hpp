@@ -1,7 +1,15 @@
 #pragma once
 
-#include "server/server.hpp"
+#include <glm.hpp>
 
-void server_logic_on_client_connected( int client_fd );
-void server_logic_on_client_message( int client_fd, NetPacket *packet );
-void server_logic_on_client_disconnected( int client_fd );
+class Server;
+struct NetPacket;
+
+class ServerLogic {
+    void record_block( const glm::ivec3 &chunk_pos, int block_index );
+
+  public:
+    void on_client_connected( Server &server, int client_fd );
+    void on_client_message( Server &server, int client_fd, NetPacket *packet );
+    void on_client_disconnected( Server &server, int client_fd );
+};
