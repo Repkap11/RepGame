@@ -113,7 +113,9 @@ void Server::handle_new_client_event( int inet_socket_fd ) {
     }
     Server::make_socket_non_blocking( client_fd );
     Server::add_epoll( client_fd );
-    client_data[ client_fd ].connected = 1;
+    ClientData &clientData = client_data[ client_fd ];
+    clientData.connected = 1;
+    clientData.pending_receive_len = 0;
     this->server_logic.on_client_connected( *this, client_fd );
 }
 
@@ -135,7 +137,7 @@ void Server::handle_client_ready_for_read( int client_fd ) {
                 // The socket is not *really* ready for recv; wait until it is.
                 break;
             }
-            pr_debug( "recv got negitive bytes, darn" );
+            pr_debug( "recv got negitive bytes:%d, darn errno:%d", nbytes, errno );
             break;
         }
         pending_receive_len += nbytes;
