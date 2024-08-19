@@ -259,6 +259,34 @@ void block_definitions_initilize_definitions( Texture *texture ) {
         // block_definitions[ id ].is_seethrough = true;
     }
 
+    BlockID portal_shaped[] = { PORTAL };
+    for ( unsigned int i = 0; i < sizeof( portal_shaped ) / sizeof( BlockID ); i++ ) {
+        BlockID id = portal_shaped[ i ];
+        block_definitions[ id ].scale = { 16, 16, 4 };
+        block_definitions[ id ].offset = { 0, 0, 6 };
+        block_definitions[ id ].tex_offset = { 0, -8, 0 };
+        block_definitions[ id ].collides_with_player = false;
+        block_definitions[ id ].casts_shadow = false;
+        block_definitions[ id ].rotate_on_placement = true;
+        block_definitions[ id ].hides_self = { false, true, true };
+        // block_definitions[ id ].is_seethrough = true;
+    }
+
+    BlockID left_chest[] = { DOUBLE_CHEST_LEFT_LATCH };
+    for ( unsigned int i = 0; i < sizeof( left_chest ) / sizeof( BlockID ); i++ ) {
+        BlockID id = left_chest[ i ];
+        block_definitions[ id ].scale = { 15, 14, 15 };
+        block_definitions[ id ].offset = { 1, 0, 0 };
+        block_definitions[ id ].tex_offset = { 0, 0, 0 };
+    }
+    BlockID right_chest[] = { DOUBLE_CHEST_RIGHT_LATCH };
+    for ( unsigned int i = 0; i < sizeof( right_chest ) / sizeof( BlockID ); i++ ) {
+        BlockID id = right_chest[ i ];
+        block_definitions[ id ].scale = { 15, 14, 15 };
+        block_definitions[ id ].offset = { 0, 0, 0 };
+        block_definitions[ id ].tex_offset = { 0, 0, -1 };
+    }
+
     block_definitions[ GLASS_PANE ].textures[ FACE_FRONT ] = GLASS;
     block_definitions[ GLASS_PANE ].textures[ FACE_BACK ] = GLASS;
 
