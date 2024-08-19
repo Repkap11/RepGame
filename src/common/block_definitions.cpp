@@ -275,16 +275,18 @@ void block_definitions_initilize_definitions( Texture *texture ) {
     BlockID left_chest[] = { DOUBLE_CHEST_LEFT_LATCH };
     for ( unsigned int i = 0; i < sizeof( left_chest ) / sizeof( BlockID ); i++ ) {
         BlockID id = left_chest[ i ];
-        block_definitions[ id ].scale = { 15, 14, 15 };
-        block_definitions[ id ].offset = { 1, 0, 0 };
-        block_definitions[ id ].tex_offset = { 0, 0, 0 };
+        block_definitions[ id ].scale = { 15, 15, 14 };
+        block_definitions[ id ].offset = { 1, 0, 1 };
+        block_definitions[ id ].tex_offset = { -1, 0, 0 };
     }
     BlockID right_chest[] = { DOUBLE_CHEST_RIGHT_LATCH };
     for ( unsigned int i = 0; i < sizeof( right_chest ) / sizeof( BlockID ); i++ ) {
         BlockID id = right_chest[ i ];
-        block_definitions[ id ].scale = { 15, 14, 15 };
-        block_definitions[ id ].offset = { 0, 0, 0 };
+        block_definitions[ id ].scale = { 15, 15, 14 };
+        block_definitions[ id ].offset = { 0, 0, 1 };
         block_definitions[ id ].tex_offset = { 0, 0, -1 };
+        block_definitions[ id ].textures[ FACE_TOP ] = DOUBLE_CHEST_RIGHT_TOP;
+        block_definitions[ id ].textures[ FACE_BACK ] = DOUBLE_CHEST_RIGHT_BACK;
     }
 
     block_definitions[ GLASS_PANE ].textures[ FACE_FRONT ] = GLASS;
@@ -449,8 +451,8 @@ void block_definitions_initilize_definitions( Texture *texture ) {
     block_definitions[ DOUBLE_CHEST_RIGHT_LATCH ].textures[ FACE_TOP ] = DOUBLE_CHEST_RIGHT_TOP;
     block_definitions[ DOUBLE_CHEST_RIGHT_LATCH ].textures[ FACE_FRONT ] = DOUBLE_CHEST_RIGHT_LATCH;
     block_definitions[ DOUBLE_CHEST_RIGHT_LATCH ].textures[ FACE_BACK ] = DOUBLE_CHEST_RIGHT_BACK;
-    block_definitions[ DOUBLE_CHEST_RIGHT_LATCH ].textures[ FACE_LEFT ] = CHEST_SIDE;
-    block_definitions[ DOUBLE_CHEST_RIGHT_LATCH ].textures[ FACE_RIGHT ] = CHEST_SIDE;
+    block_definitions[ DOUBLE_CHEST_RIGHT_LATCH ].textures[ FACE_LEFT ] = DOUBLE_CHEST_RIGHT_SIDE;
+    block_definitions[ DOUBLE_CHEST_RIGHT_LATCH ].textures[ FACE_RIGHT ] = DOUBLE_CHEST_RIGHT_SIDE;
     block_definitions[ DOUBLE_CHEST_RIGHT_LATCH ].textures[ FACE_BOTTOM ] = DOUBLE_CHEST_RIGHT_TOP;
 
     // SINGLE_CHEST_TOP = 162, CHEST_SIDE = 163, SINGLE_CHEST_LATCH = 164, DOUBLE_CHEST_LEFT_LATCH = 165, DOUBLE_CHEST_RIGHT_LATCH = 166, DOUBLE_CHEST_LEFT_BACK = 167, DOUBLE_CHEST_RIGHT_BACK = 168,
