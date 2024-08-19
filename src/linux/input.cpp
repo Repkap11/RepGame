@@ -57,6 +57,7 @@ void Input::mouseInput( int button, int state ) {
     switch ( button ) {
         case SDL_BUTTON_LEFT:
             this->mouse.buttons.left = !state;
+            this->mouse.buttons.left_click_handled = state;
             // pr_debug( "Left Click %d", !state );
             break;
         case SDL_BUTTON_RIGHT:
@@ -212,4 +213,9 @@ void Input::lookMove( int x, int y ) {
     // pr_debug( "Using location %d %d", x, y );
     this->mouse.currentPosition.x += x;
     this->mouse.currentPosition.y += y;
+}
+
+void Input::mousePosition( int x, int y ) {
+    this->mouse.absPosition.x = x;
+    this->mouse.absPosition.y = y;
 }

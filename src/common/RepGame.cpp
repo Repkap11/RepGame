@@ -248,6 +248,15 @@ void RepGame::process_inventory_events( ) {
         BlockID holdingBlock = globalGameState.hotbar.getSelectedBlock( );
         globalGameState.ui_overlay.set_holding_block( holdingBlock );
     }
+    if ( globalGameState.input.inventory_open ) {
+        if ( globalGameState.input.mouse.buttons.left && globalGameState.input.mouse.buttons.left_click_handled == false ) {
+            globalGameState.input.mouse.buttons.left_click_handled = true;
+            pr_debug( "Clicked on %d %d", globalGameState.input.mouse.absPosition.x, globalGameState.input.mouse.absPosition.y );
+        }
+    } else {
+        //Steal any left click events so they don't trigger right when we open the inventory.
+        globalGameState.input.mouse.buttons.left_click_handled = true;
+    }
 }
 
 void RepGame::tick( ) {

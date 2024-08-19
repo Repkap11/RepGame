@@ -50,6 +50,7 @@ void repgame_linux_process_sdl_events( RepGame &repgame ) {
                     break;
                 }
                 input.lookMove( event.motion.xrel, event.motion.yrel );
+                input.mousePosition( event.motion.x, event.motion.y );
                 break;
         }
     }

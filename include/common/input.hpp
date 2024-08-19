@@ -15,6 +15,7 @@ class Input {
             int left;
             int right;
             int middle;
+            bool left_click_handled;
         } buttons;
         struct {
             int x;
@@ -26,6 +27,10 @@ class Input {
             int y;
             int wheel_counts;
         } previousPosition;
+        struct {
+            int x;
+            int y;
+        } absPosition;
     } mouse;
     bool exitGame;
     int click_delay_left;
@@ -43,6 +48,7 @@ class Input {
     void set_enable_mouse( int enable );
     void keysInput( SDL_Keycode key, int pressed );
     void mouseWheel( int x_delta, int y_delta );
+    void mousePosition( int x, int y );
     void quit( );
 #else
     void positionHMove( float sizeH, float angleH );
