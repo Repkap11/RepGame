@@ -261,8 +261,12 @@ void RepGame::tick( ) {
 
     int wheel_diff = globalGameState.input.mouse.previousPosition.wheel_counts - globalGameState.input.mouse.currentPosition.wheel_counts;
     if ( wheel_diff != 0 ) {
-        BlockID holdingBlock = globalGameState.hotbar.incrementSelectedSlot( wheel_diff );
-        globalGameState.ui_overlay.set_holding_block( holdingBlock );
+        if ( globalGameState.input.inventory_open ) {
+            globalGameState.main_inventory.incrementSelectedPage( wheel_diff );
+        } else {
+            BlockID holdingBlock = globalGameState.hotbar.incrementSelectedSlot( wheel_diff );
+            globalGameState.ui_overlay.set_holding_block( holdingBlock );
+        }
     }
 
     if ( RepGame::should_lock_pointer( ) ) {
@@ -323,7 +327,7 @@ static inline void initilizeGameState( const char *world_name ) {
     globalGameState.camera.pos.z = 0.5f;
     globalGameState.camera.y_speed = 0.0f;
     globalGameState.input.worldDrawQuality = WorldDrawQuality::MEDIUM;
-    globalGameState.main_inventory.inventory_renderer.options.active_height_percent = 0.5f;
+    globalGameState.main_inventory.inventory_renderer.options.active_height_percent = 0.75f;
     globalGameState.main_inventory.inventory_renderer.options.max_height_percent = 0.75f;
     globalGameState.main_inventory.inventory_renderer.options.max_width_percent = 0.75f;
     globalGameState.main_inventory.inventory_renderer.options.gravity_bottom = false;

@@ -8,24 +8,48 @@ void CreativeInventory::init( const VertexBufferLayout &ui_overlay_vbl_vertex, c
     this->slots = ( InventorySlot * )calloc( this->num_blocks_max, sizeof( InventorySlot ) );
 
     this->inventory_renderer.init( ui_overlay_vbl_vertex, ui_overlay_vbl_instance, width, height );
-    load_blocks_for_page( 0 );
+    this->selected_page = 0;
+    this->load_blocks_for_selected_page( );
 }
-void CreativeInventory::load_blocks_for_page( int index ) {
-    int i_block = 0;
+void CreativeInventory::incrementSelectedPage( int offset ) {
+    this->selected_page += offset;
+    this->load_blocks_for_selected_page( );
+}
+
+void CreativeInventory::load_blocks_for_selected_page( ) {
+    if ( this->selected_page < 0 ) {
+        this->selected_page = LAST_BLOCK_ID / this->num_blocks_max;
+    }
+    int starting_block = this->selected_page * this->num_blocks_max;
+
+    if ( starting_block >= LAST_BLOCK_ID ) {
+        starting_block = 0;
+        this->selected_page = 0;
+    }
+    int i_block = starting_block;
     for ( int y = this->height - 1; y >= 0; y-- ) {
         for ( int x = 0; x < this->width; x++ ) {
             int i_slot = y * this->width + x;
             InventorySlot &slot = this->slots[ i_slot ];
-            // slot.block_id = LAST_BLOCK_ID;
-            // slot.block_id = TNT;
-            // slot.block_id = ( BlockID )( i_slot % 5 );
-            bool is_pickable = false;
-            do {
-                i_block++;
-                Block *block = block_definition_get_definition( ( BlockID )i_block );
-                is_pickable = block->is_pickable;
-            } while ( !is_pickable );
-            slot.block_id = ( BlockID )( i_block );
+
+            // bool is_pickable = false;
+            // do {
+            //     i_block++;
+            //     Block *block = block_definition_get_definition( ( BlockID )i_block );
+            //     is_pickable = block->is_pickable;
+            // } while ( !is_pickable );
+
+            i_block++;
+            BlockID blockId = ( BlockID )i_block;
+            if ( blockId > LAST_BLOCK_ID ) {
+                blockId = LAST_BLOCK_ID;
+            } else {
+                Block *block = block_definition_get_definition( blockId );
+                if ( !block->is_pickable ) {
+                    blockId = LAST_BLOCK_ID;
+                }
+            }
+            slot.block_id = blockId;
             slot.quantity = 0;
             this->inventory_renderer.changeSlotItem( i_slot, slot );
         }

@@ -60,8 +60,8 @@ static_assert( CHUNK_RADIUS_Z > 0, "CHUNK_RADIUS_Z too small" );
 #define DEFAULT_WINDOW_HEIGHT 800
 
 // These impact the save file size, so don't change them.
-#define MAIN_INVENTORY_WIDTH 10
-#define MAIN_INVENTORY_HEIGHT 5
+#define MAIN_INVENTORY_WIDTH 12
+#define MAIN_INVENTORY_HEIGHT 6
 #define HOTBAR_WIDTH 10
 #define HOTBAR_HEIGHT 1
 
