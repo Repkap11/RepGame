@@ -9,7 +9,6 @@ class CreativeInventory {
     int height;
     int num_blocks_max;
     InventorySlot *slots;
-    std::map<BlockID, int> blockId_to_slot_map;
     int selected_page;
     void load_blocks_for_selected_page( );
 
@@ -19,5 +18,6 @@ class CreativeInventory {
     void onScreenSizeChange( int width, int height );
     void draw( const Renderer &renderer, const Texture &blocksTexture, const Shader &shader );
     void incrementSelectedPage( int offset );
+    BlockID whichBlockClicked( int screen_x, int screen_y );
     void cleanup( );
 };

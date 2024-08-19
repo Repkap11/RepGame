@@ -66,12 +66,13 @@ bool Hotbar::addBlock( bool alsoSelect, BlockID blockId ) {
             newSlot = findOpenSlot( );
         }
         if ( newSlot == -1 ) {
-            // No slots left, don't pick.
-            return false;
+            // No slots left, just use the selected slot.
+            newSlot = this->selected_slot;
         }
-        blockId_to_slot_map.emplace( blockId, newSlot );
         InventorySlot &slot = this->slots[ newSlot ];
+        blockId_to_slot_map.erase( slot.block_id );
         slot.block_id = blockId;
+        blockId_to_slot_map.emplace( blockId, newSlot );
         this->inventory_renderer.changeSlotItem( newSlot, slot );
         affectedSlot = newSlot;
 

@@ -87,13 +87,15 @@ UIOverlayInstance &InventoryRenderer::init_background_cell( float r, float g, fl
     return ui_vertex;
 }
 
-void InventoryRenderer::onSizeChange( int width, int height, InventorySlot *inventory_slots ) {
-    this->inv_height = height * this->options.max_height_percent;
-    this->inv_width = width * this->options.max_width_percent;
+void InventoryRenderer::onSizeChange( int screen_width, int screen_height, InventorySlot *inventory_slots ) {
+    this->screen_width = screen_width;
+    this->screen_height = screen_height;
+    this->inv_height = this->screen_height * this->options.max_height_percent;
+    this->inv_width = this->screen_width * this->options.max_width_percent;
 
     this->inv_x = -this->inv_width / 2;
     if ( this->options.gravity_bottom ) {
-        this->inv_y = -height / 2;
+        this->inv_y = -this->screen_height / 2;
     } else {
         this->inv_y = -this->inv_height / 2;
     }
@@ -196,6 +198,43 @@ void InventoryRenderer::setSize( UIOverlayInstance &vertex, float left, float bo
 
 void InventoryRenderer::changeSlotItem( int slot_index, const InventorySlot &slot ) {
     this->singleItemRender( slot_index, slot );
+}
+
+int InventoryRenderer::whichSlotClicked( int screen_x, int screen_y ) {
+    // pr_debug( "adjusted_pos:  %d %d", this->screen_width, this->screen_height );
+
+    screen_x = screen_x - this->screen_width / 2;
+    screen_y = screen_y - this->screen_height / 2;
+    screen_y = -screen_y;
+    // pr_debug( "adjusted_pos:  %d %d", screen_x, screen_y );
+
+    // pr_debug( "inv_items:  %d %d", this->inv_items_x, this->inv_items_y );
+
+    int cell_start_x = this->inv_items_x + this->inv_cell_offset;
+    int cell_start_y = this->inv_items_y + this->inv_cell_offset;
+    int cell_offset_x = screen_x - cell_start_x;
+    int cell_offset_y = screen_y - cell_start_y;
+    if ( cell_offset_x < 0 || cell_offset_y < 0 ) {
+        // pr_debug( "Coord too low" );
+        return -1;
+    }
+    int block_grid_coord_x = cell_offset_x / this->inv_cell_stride;
+    int block_grid_coord_y = cell_offset_y / this->inv_cell_stride;
+
+    float remaining_x = cell_offset_x - block_grid_coord_x * this->inv_cell_stride;
+    float remaining_y = cell_offset_y - block_grid_coord_y * this->inv_cell_stride;
+    if ( remaining_x > this->inv_cell_size || remaining_y > this->inv_cell_size ) {
+        // pr_debug( "Coord goes into border" );
+        return -1;
+    }
+
+    if ( block_grid_coord_x > this->width || block_grid_coord_y > this->height ) {
+        // pr_debug( "Coord too high %d %d", block_grid_coord_x, block_grid_coord_y );
+        return -1;
+    }
+    int slot_index = block_grid_coord_x + ( block_grid_coord_y * this->width );
+    // pr_debug( "Found slot:%d %d   %d", block_grid_coord_x, block_grid_coord_y, slot_index );
+    return slot_index;
 }
 
 void InventoryRenderer::renderBackground( ) {

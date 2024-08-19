@@ -32,6 +32,10 @@ class InventoryRenderer {
     int vb_max_size;
     int ib_max_size;
 
+    // Total screen size
+    int screen_width;
+    int screen_height;
+
     // Inventory position and size.
     int inv_x;
     int inv_y;
@@ -79,5 +83,6 @@ class InventoryRenderer {
     void changeSlotItem( int slot_index, const InventorySlot &slot );
     void setSelectedSlot( int slot_index );
     void draw( const Renderer &renderer, const Texture &blocksTexture, const Shader &shader );
+    int whichSlotClicked( int screen_x, int screen_y );
     void cleanup( );
 };

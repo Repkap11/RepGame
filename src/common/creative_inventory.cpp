@@ -16,6 +16,14 @@ void CreativeInventory::incrementSelectedPage( int offset ) {
     this->load_blocks_for_selected_page( );
 }
 
+BlockID CreativeInventory::whichBlockClicked( int screen_x, int screen_y ) {
+    int slot = this->inventory_renderer.whichSlotClicked( screen_x, screen_y );
+    if ( slot < 0 || slot > LAST_BLOCK_ID ) {
+        return LAST_BLOCK_ID;
+    }
+    return this->slots[ slot ].block_id;
+}
+
 void CreativeInventory::load_blocks_for_selected_page( ) {
     if ( this->selected_page < 0 ) {
         this->selected_page = LAST_BLOCK_ID / this->num_blocks_max;

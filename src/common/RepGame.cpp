@@ -251,10 +251,14 @@ void RepGame::process_inventory_events( ) {
     if ( globalGameState.input.inventory_open ) {
         if ( globalGameState.input.mouse.buttons.left && globalGameState.input.mouse.buttons.left_click_handled == false ) {
             globalGameState.input.mouse.buttons.left_click_handled = true;
-            pr_debug( "Clicked on %d %d", globalGameState.input.mouse.absPosition.x, globalGameState.input.mouse.absPosition.y );
+            BlockID blockId = globalGameState.main_inventory.whichBlockClicked( globalGameState.input.mouse.absPosition.x, globalGameState.input.mouse.absPosition.y );
+            // pr_debug( "Clicked on %d %d blockID:%d", globalGameState.input.mouse.absPosition.x, globalGameState.input.mouse.absPosition.y, blockId );
+            if ( blockId != LAST_BLOCK_ID ) {
+                add_to_hotbar( true, blockId );
+            }
         }
     } else {
-        //Steal any left click events so they don't trigger right when we open the inventory.
+        // Steal any left click events so they don't trigger right when we open the inventory.
         globalGameState.input.mouse.buttons.left_click_handled = true;
     }
 }
