@@ -51,9 +51,43 @@ void ServerLogic::on_client_connected( Server &server, int client_fd ) {
     }
 }
 
-void ServerLogic::record_block( const glm::ivec3 &chunk_offset, int block_index, BlockState &block_state ) {
-    auto &chunk_cache = this->world_cache[ chunk_offset ];
-    chunk_cache[ block_index ] = block_state;
+void ServerLogic::record_block( const glm::ivec3 &block_pos, BlockState &block_state ) {
+    glm::ivec3 chunk_pos = glm::floor( glm::vec3( block_pos ) / CHUNK_SIZE_F );
+    glm::ivec3 diff = block_pos - ( chunk_pos * CHUNK_SIZE_I );
+    int block_index = Chunk::get_index_from_coords( diff );
+
+    // auto &chunk_cache = this->world_cache[ chunk_pos ];
+    // chunk_cache[ block_index ] = block_state;
+    // pr_debug( "Updating center chunk: %d %d %d  %d", chunk_pos.x, chunk_pos.y, chunk_pos.z, block_index );
+
+    for ( int i = -1; i < 2; i++ ) {
+        const int needs_update_x = ( ( i != 1 && diff.x == 0 ) || ( i != -1 && diff.x == ( CHUNK_SIZE_X - 1 ) ) ) || i == 0;
+        if ( !needs_update_x ) {
+            continue;
+        }
+        for ( int j = -1; j < 2; j++ ) {
+            const int needs_update_y = ( ( j != 1 && diff.y == 0 ) || ( j != -1 && diff.y == ( CHUNK_SIZE_Y - 1 ) ) ) || j == 0;
+            if ( !needs_update_y ) {
+                continue;
+            }
+            for ( int k = -1; k < 2; k++ ) {
+                const int needs_update_z = ( ( k != 1 && diff.z == 0 ) || ( k != -1 && diff.z == ( CHUNK_SIZE_Z - 1 ) ) ) || k == 0;
+                if ( !needs_update_z ) {
+                    continue;
+                }
+
+                // pr_debug( "Chunk Dir: %d %d %d:%d", i, j, k, needs_update );
+
+                glm::ivec3 new_chunk_pos = chunk_pos + glm::ivec3( i * needs_update_x, j * needs_update_y, k * needs_update_z );
+                glm::ivec3 new_diff = block_pos - ( new_chunk_pos * CHUNK_SIZE_I );
+                int new_block_index = Chunk::get_index_from_coords( new_diff );
+
+                pr_debug( "Updating chunk: %d %d %d  %d", new_chunk_pos.x, new_chunk_pos.y, new_chunk_pos.z, new_block_index );
+                auto &new_chunk_cache = this->world_cache[ new_chunk_pos ];
+                new_chunk_cache[ new_block_index ] = block_state;
+            }
+        }
+    }
 }
 
 void ServerLogic::respondToChunkRequest( Server &server, int client_fd, const glm::ivec3 &chunk_offset ) {
@@ -148,10 +182,7 @@ void ServerLogic::on_client_message( Server &server, int client_fd, NetPacket *p
     if ( packet->type == PacketType::BLOCK_UPDATE ) {
         PacketType_DataBlock &block_data = packet->data.block;
         glm::ivec3 block_pos = glm::ivec3( block_data.x, block_data.y, block_data.z );
-        glm::ivec3 chunk_pos = glm::floor( glm::vec3( block_pos ) / CHUNK_SIZE_F );
-        glm::ivec3 diff = block_pos - ( chunk_pos * CHUNK_SIZE_I );
-        int blocks_index = Chunk::get_index_from_coords( diff );
-        this->record_block( chunk_pos, blocks_index, block_data.blockState );
+        this->record_block( block_pos, block_data.blockState );
     } else if ( packet->type == PacketType::CHUNK_DIFF_REQUEST ) {
         glm::ivec3 chunk_pos = glm::ivec3( packet->data.chunk_diff.chunk_x, packet->data.chunk_diff.chunk_y, packet->data.chunk_diff.chunk_z );
         this->respondToChunkRequest( server, client_fd, chunk_pos );

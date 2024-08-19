@@ -400,13 +400,12 @@ BlockState World::get_loaded_block( const glm::ivec3 &block_pos ) {
 //     }
 // }
 void World::set_loaded_block( const glm::ivec3 &block_pos, BlockState blockState ) {
-    const glm::ivec3 CHUNK_SIZE = glm::ivec3( CHUNK_SIZE_X, CHUNK_SIZE_Y, CHUNK_SIZE_Z );
-    glm::ivec3 chunk_pos = glm::floor( glm::vec3( block_pos ) / glm::vec3( CHUNK_SIZE ) );
+    glm::ivec3 chunk_pos = glm::floor( glm::vec3( block_pos ) / CHUNK_SIZE_F );
 
     Chunk *chunk_prt = this->chunkLoader.get_chunk( chunk_pos );
     if ( chunk_prt ) {
         Chunk &chunk = *chunk_prt;
-        glm::ivec3 diff = block_pos - chunk_pos * CHUNK_SIZE;
+        glm::ivec3 diff = block_pos - chunk_pos * CHUNK_SIZE_I;
         // pr_debug( "Orig Offset: %d %d %d", diff_x, diff_y, diff_z );
 
         for ( int i = -1; i < 2; i++ ) {
@@ -454,7 +453,7 @@ void World::set_loaded_block( const glm::ivec3 &block_pos, BlockState blockState
 
                     glm::ivec3 new_pos = glm::ivec3( i * needs_update_x, j * needs_update_y, k * needs_update_z );
                     glm::ivec3 offset = glm::ivec3( i, j, k );
-                    glm::ivec3 pos = diff - CHUNK_SIZE * new_pos;
+                    glm::ivec3 pos = diff - CHUNK_SIZE_I * new_pos;
                     fixup_chunk( chunk, offset, pos, blockState );
                 }
             }

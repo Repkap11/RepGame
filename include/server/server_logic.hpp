@@ -31,7 +31,7 @@ class ServerLogic {
     MapStorage map_storage;
     std::map<glm::ivec3, std::map<int, BlockState>, Compare_I_Vec3> world_cache;
 
-    void record_block( const glm::ivec3 &chunk_offset, int block_index, BlockState &block_state );
+    void record_block( const glm::ivec3 &block_pos, BlockState &block_state );
     void respondToChunkRequest( Server &server, int client_fd, const glm::ivec3 &chunk_offset );
     void persistCache( );
     std::map<int, BlockState> *loadIntoCache( const glm::ivec3 &chunk_offset );
