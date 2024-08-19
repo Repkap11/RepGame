@@ -33,7 +33,7 @@ CFLAGS_CUDA_LINK_HOST := -dlink
 SUPPORTS_CUDA := $(shell lspci | grep VGA | grep -i nvidia | wc -l )
 
 # ifeq ($(SUPPORTS_CUDA),1) #If the current linux GPU has cuda, use CUDA to accelerate terrain gen
-LIBS_LINUX += -lcudart
+LIBS_LINUX += -lcudart_static
 CFLAGS_LINUX += -DREPGAME_BUILD_WITH_CUDA
 OBJECTS_COMMON_LINUX_RELEASE += $(LIB_TARGET_CUDA) $(LIB_DEVICE_CUDA)
 OBJECTS_COMMON_LINUX_DEBUG += $(LIB_TARGET_CUDA) $(LIB_DEVICE_CUDA)
