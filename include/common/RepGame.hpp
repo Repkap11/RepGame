@@ -19,6 +19,7 @@ struct RepGameState;
 #include "ui_overlay.hpp"
 #include "imgui_overlay.hpp"
 #include "inventory.hpp"
+#include "hotbar.hpp"
 #include "multiplayer.hpp"
 #include "common/BlockUpdateQueue.hpp"
 
@@ -61,7 +62,7 @@ struct RepGameState {
     UIOverlay ui_overlay;
     ImGuiOverlay imgui_overlay;
     Inventory main_inventory;
-    Inventory hotbar;
+    Hotbar hotbar;
     struct {
         int selectionInBounds;
         int face;

@@ -147,7 +147,7 @@ void UIOverlay::set_holding_block( BlockID holding_block ) {
     pair.second = vb_data_holding_block_instance;
 }
 
-void UIOverlay::draw( Inventory &inventory, Inventory &hotbar, const Renderer &renderer, const Texture &blocksTexture, Input &input, const glm::mat4 &mvp_ui ) {
+void UIOverlay::draw( Inventory &inventory, Hotbar &hotbar, const Renderer &renderer, const Texture &blocksTexture, Input &input, const glm::mat4 &mvp_ui ) {
     this->shader.set_uniform_mat4f( "u_MVP", mvp_ui );
     this->shader.set_uniform1i_texture( "u_Texture", blocksTexture );
 

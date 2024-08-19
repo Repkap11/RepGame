@@ -36,6 +36,7 @@ struct UIOverlayInstance {
 };
 
 #include "common/inventory.hpp"
+#include "common/hotbar.hpp"
 
 class UIOverlay {
     Shader shader;
@@ -49,6 +50,6 @@ class UIOverlay {
     void init( const VertexBufferLayout &ui_overlay_vbl_vertex, const VertexBufferLayout &ui_overlay_vbl_instance );
     void on_screen_size_change( int width, int height );
     void set_holding_block( BlockID holding_block );
-    void draw( Inventory &inventory, Inventory &hotbar, const Renderer &renderer, const Texture &blocksTexture, Input &input, const glm::mat4 &mvp_ui );
+    void draw( Inventory &inventory, Hotbar &hotbar, const Renderer &renderer, const Texture &blocksTexture, Input &input, const glm::mat4 &mvp_ui );
     void cleanup( );
 };
