@@ -71,7 +71,7 @@ unsigned char getPlacedRotation( BlockID blockID ) {
 //     return true;
 // }
 
-void RepGame::add_to_an_inventory( bool alsoSelect, BlockID blockId ) {
+void RepGame::add_to_hotbar( bool alsoSelect, BlockID blockId ) {
     if ( globalGameState.hotbar.getSelectedBlock( ) == blockId ) {
         // We don't support having the same block in the hotbar or inventory more than once, until there are qtys.
         return;
@@ -81,12 +81,6 @@ void RepGame::add_to_an_inventory( bool alsoSelect, BlockID blockId ) {
         // The block we added might have gone into our selected slot.
         BlockID selectedBlock = globalGameState.hotbar.getSelectedBlock( );
         globalGameState.ui_overlay.set_holding_block( selectedBlock );
-    } else {
-        if ( globalGameState.main_inventory.getSelectedBlock( ) == blockId ) {
-            // We don't support having the same block in the hotbar or inventory more than once, until there are qtys.
-            return;
-        }
-        globalGameState.main_inventory.addBlock( false, blockId );
     }
 }
 
@@ -95,7 +89,7 @@ void RepGame::process_mouse_events( ) {
     if ( globalGameState.block_selection.selectionInBounds && globalGameState.input.mouse.buttons.middle ) {
         // Picking a block
         BlockState blockState = globalGameState.world.get_loaded_block( globalGameState.block_selection.pos_destroy );
-        RepGame::add_to_an_inventory( true, blockState.id );
+        RepGame::add_to_hotbar( true, blockState.id );
         if ( !was_middle ) {
             pr_debug( "Selected block:%d rotation:%d redstone_power:%d display:%d", blockState.id, blockState.rotation, blockState.current_redstone_power, blockState.display_id );
         }
@@ -106,7 +100,7 @@ void RepGame::process_mouse_events( ) {
     if ( globalGameState.block_selection.selectionInBounds && globalGameState.input.mouse.buttons.left && globalGameState.input.click_delay_left == 0 ) {
         // Mining a block
         BlockID previous_block = change_block( 0, BLOCK_STATE_AIR );
-        RepGame::add_to_an_inventory( false, previous_block );
+        RepGame::add_to_hotbar( false, previous_block );
         globalGameState.input.click_delay_left = 30;
     }
     if ( globalGameState.block_selection.selectionInBounds && globalGameState.input.mouse.buttons.right && globalGameState.input.click_delay_right == 0 ) {
@@ -354,7 +348,6 @@ static inline void initilizeGameState( const char *world_name ) {
         globalGameState.input.no_clip = saved_data.no_clip;
         globalGameState.input.worldDrawQuality = ( WorldDrawQuality )saved_data.worldDrawQuality;
         globalGameState.hotbar.applySavedInventory( saved_data.hotbar_inventory );
-        globalGameState.main_inventory.applySavedInventory( saved_data.main_inventory );
         globalGameState.hotbar.setSelectedSlot( saved_data.selected_hotbar_slot );
     }
     BlockID selectedBlock = globalGameState.hotbar.getSelectedBlock( );
@@ -569,7 +562,6 @@ void RepGame::cleanup( ) {
     saved_data.no_clip = globalGameState.input.no_clip;
     saved_data.worldDrawQuality = ( int )globalGameState.input.worldDrawQuality;
     globalGameState.hotbar.saveInventory( saved_data.hotbar_inventory );
-    globalGameState.main_inventory.saveInventory( saved_data.main_inventory );
     saved_data.selected_hotbar_slot = globalGameState.hotbar.getSelectedSlot( );
 
     globalGameState.map_storage.write_player_data( saved_data );

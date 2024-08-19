@@ -160,9 +160,7 @@ void repgame_linux_process_window_and_pointer_state( RepGame &repgame ) {
         SDL_SetRelativeMouseMode( should_lock_pointer ? SDL_TRUE : SDL_FALSE );
 #endif
         SDL_GetWindowSize( sdl_window, &width, &height );
-#if NEVER_GRAB_MOUSE
         SDL_WarpMouseInWindow( sdl_window, width / 2, height / 2 );
-#endif
         is_locking_pointer = should_lock_pointer;
     }
 }

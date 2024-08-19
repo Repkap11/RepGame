@@ -18,7 +18,7 @@ struct RepGameState;
 #include "constants.hpp"
 #include "ui_overlay.hpp"
 #include "imgui_overlay.hpp"
-#include "inventory.hpp"
+#include "creative_inventory.hpp"
 #include "hotbar.hpp"
 #include "multiplayer.hpp"
 #include "common/BlockUpdateQueue.hpp"
@@ -61,7 +61,7 @@ struct RepGameState {
     World world;
     UIOverlay ui_overlay;
     ImGuiOverlay imgui_overlay;
-    Inventory main_inventory;
+    CreativeInventory main_inventory;
     Hotbar hotbar;
     struct {
         int selectionInBounds;
@@ -84,13 +84,12 @@ struct  __attribute__( ( packed ) ) PlayerData {
     bool no_clip;
     int worldDrawQuality;
     InventorySlot hotbar_inventory[ HOTBAR_WIDTH * HOTBAR_HEIGHT ];
-    InventorySlot main_inventory[ MAIN_INVENTORY_WIDTH * MAIN_INVENTORY_HEIGHT ];
     int selected_hotbar_slot;
 };
 
 class RepGame {
 
-    void add_to_an_inventory( bool alsoSelect, BlockID blockId );
+    void add_to_hotbar( bool alsoSelect, BlockID blockId );
     void process_mouse_events( );
     void process_camera_angle( );
     void process_movement( );
