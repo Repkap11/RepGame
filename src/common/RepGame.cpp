@@ -100,7 +100,7 @@ void RepGame::process_mouse_events( ) {
     if ( globalGameState.block_selection.selectionInBounds && globalGameState.input.mouse.buttons.left && globalGameState.input.click_delay_left == 0 ) {
         // Mining a block
         BlockID previous_block = change_block( 0, BLOCK_STATE_AIR );
-        RepGame::add_to_hotbar( false, previous_block );
+        // RepGame::add_to_hotbar( false, previous_block );
         globalGameState.input.click_delay_left = 30;
     }
     if ( globalGameState.block_selection.selectionInBounds && globalGameState.input.mouse.buttons.right && globalGameState.input.click_delay_right == 0 ) {

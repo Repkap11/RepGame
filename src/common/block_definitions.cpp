@@ -272,6 +272,14 @@ void block_definitions_initilize_definitions( Texture *texture ) {
         // block_definitions[ id ].is_seethrough = true;
     }
 
+    BlockID single_chest[] = { SINGLE_CHEST_LATCH };
+    for ( unsigned int i = 0; i < sizeof( single_chest ) / sizeof( BlockID ); i++ ) {
+        BlockID id = single_chest[ i ];
+        block_definitions[ id ].scale = { 14, 15, 14 };
+        block_definitions[ id ].offset = { 1, 0, 1 };
+        block_definitions[ id ].tex_offset = { -1, 0, -1 };
+    }
+
     BlockID left_chest[] = { DOUBLE_CHEST_LEFT_LATCH };
     for ( unsigned int i = 0; i < sizeof( left_chest ) / sizeof( BlockID ); i++ ) {
         BlockID id = left_chest[ i ];
