@@ -8,7 +8,8 @@ CFLAGS_WINDOWS += -O3 -DREPGAME_SKIP_CHECK_FOR_GL_ERRORS -DREPGAME_HW_VSYNC
 # CFLAGS_WINDOWS += -g
 
 CFLAGS_WINDOWS += -DREPGAME_WINDOWS
-LIBS_WINDOWS := windows_build/glew/lib/libglew32.a windows_build/sdl2/x86_64-w64-mingw32/bin/SDL2.dll -lopengl32 -lglu32 -Wl,-Bstatic -lpthread -Wl,-Bdynamic -static-libgcc -static-libstdc++
+LIBS_WINDOWS_SDL2 := windows_build/sdl2/x86_64-w64-mingw32/lib/libSDL2.a windows_build/sdl2/x86_64-w64-mingw32/lib/libSDL2main.a -Wl,--no-undefined -Wl,--dynamicbase -Wl,--nxcompat -Wl,--high-entropy-va -lm -ldinput8 -ldxguid -ldxerr8 -luser32 -lgdi32 -lwinmm -limm32 -lole32 -loleaut32 -lshell32 -lsetupapi -lversion -luuid
+LIBS_WINDOWS := windows_build/glew/lib/libglew32.a $(LIBS_WINDOWS_SDL2) -lopengl32 -lglu32 -Wl,-Bstatic -lpthread -Wl,-Bdynamic -static-libgcc -static-libstdc++
 INCLUDES_WINDOWS := -I windows_build/sdl2/x86_64-w64-mingw32/include/SDL2 -I windows_build/sdl2/x86_64-w64-mingw32/include/ -I windows_build/glew/include
 
 CC_WINDOWS := x86_64-w64-mingw32-g++
@@ -72,15 +73,12 @@ out/windows/imgui/%.o: imgui_build/%.cpp $(call GUARD,CC_WINDOWS INCLUDES_WINDOW
 #Include these .d files, so the dependicies are known for secondary builds.
 -include $(DEPS_WINDOWS)
 
-out/windows/SDL2.dll: windows_build/sdl2/x86_64-w64-mingw32/bin/SDL2.dll windows_build  | out/windows
-	cp $< $@
-
 out/windows/$(TARGET).exe: out/windows/$(TARGET)_uncompressed.exe
 	rm -f $@
 	upx-ucl -q $< -o $@
 	touch $@
 
-out/windows/$(TARGET)_uncompressed.exe: windows_build out/windows/SDL2.dll $(OBJECTS_COMMON_WINDOWS) $(OBJECTS_IMGUI_WINDOWS) $(OBJECTS_WINDOWS) $(SHADER_BLOBS_WINDOWS) $(BITMAP_BLOBS_WINDOWS) $(call GUARD,CC_WINDOWS CFLAGS_WINDOWS LIBS_WINDOWS) | out/windows
+out/windows/$(TARGET)_uncompressed.exe: windows_build $(OBJECTS_COMMON_WINDOWS) $(OBJECTS_IMGUI_WINDOWS) $(OBJECTS_WINDOWS) $(SHADER_BLOBS_WINDOWS) $(BITMAP_BLOBS_WINDOWS) $(call GUARD,CC_WINDOWS CFLAGS_WINDOWS LIBS_WINDOWS) | out/windows
 	$(call CHECK,CC_WINDOWS CFLAGS_WINDOWS LIBS_WINDOWS)
 	$(CC_WINDOWS) -flto $(CFLAGS_WINDOWS) $(OBJECTS_WINDOWS) $(OBJECTS_COMMON_WINDOWS) $(OBJECTS_IMGUI_WINDOWS) $(SHADER_BLOBS_WINDOWS) $(BITMAP_BLOBS_WINDOWS) $(LIBS_WINDOWS) -o $@
 

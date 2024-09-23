@@ -22,7 +22,6 @@ docker-compile: | docker-image
 		-v $(shell pwd):/home/$(shell whoami)/RepGame \
 		--env="DISPLAY" \
 		--env="QT_X11_NO_MITSHM=1" \
-		--gpus all \
 		--volume="/tmp/.X11-unix:/tmp/.X11-unix:rw" \
 		--privileged \
 	repgame make docker-internal
