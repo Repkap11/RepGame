@@ -21,9 +21,8 @@
 #include "common/map_gen.hpp"
 #include "common/block_update_events/PlayerBlockPlacedEvent.hpp"
 
-RepGameState globalGameState;
 
-BlockID change_block( int place, BlockState blockState ) {
+BlockID RepGame::change_block( int place, BlockState blockState ) {
 
     glm::ivec3 block;
     if ( place ) {
@@ -44,7 +43,7 @@ BlockID change_block( int place, BlockState blockState ) {
     return previous_block_id;
 }
 
-unsigned char getPlacedRotation( BlockID blockID ) {
+unsigned char RepGame::getPlacedRotation( BlockID blockID ) {
     unsigned char rotation = BLOCK_ROTATE_0;
     if ( block_definition_get_definition( blockID )->rotate_on_placement ) {
         if ( globalGameState.camera.angle_H < 45 ) {
@@ -327,7 +326,7 @@ void RepGame::tick( ) {
     RepGame::process_block_updates( );
 }
 
-static inline void initilizeGameState( const char *world_name ) {
+void RepGame::initilizeGameState( const char *world_name ) {
     globalGameState.input.exitGame = 0;
     globalGameState.input.player_flying = 0;
     globalGameState.input.inventory_open = 0;

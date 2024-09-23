@@ -213,7 +213,7 @@ int RayTraversal::find_block_from_to( World &world, Block *pixel_block, //
     }
     for ( ;; ) {
         int which_face = -1;
-        int hit_block = contains_block( world, dir, v1, offset, flag, is_pick, &which_face );
+        int hit_block = contains_block( world, dir, v1, offset, 1, is_pick, &which_face );
         if ( which_face != -1 ) {
             face = which_face;
         }

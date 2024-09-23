@@ -8,8 +8,8 @@
 
 #include "common/RepGame.hpp"
 
-AAssetManager *assetManager;
-RepGame repgame;
+static AAssetManager *assetManager;
+static RepGame repgame;
 
 char *repgame_android_getShaderString( const char *filename ) {
     AAssetDir *assetDir = AAssetManager_openDir( assetManager, "" );
@@ -72,8 +72,8 @@ JNIEXPORT void JNICALL Java_com_repkap11_repgame_RepGameJNIWrapper_onSurfaceDest
     repgame.cleanup( );
 }
 
-int current_screen_width = 0;
-int current_screen_height = 0;
+static int current_screen_width = 0;
+static int current_screen_height = 0;
 
 JNIEXPORT void JNICALL Java_com_repkap11_repgame_RepGameJNIWrapper_onSizeChanged( JNIEnv *env, jobject obj, jint width, jint height ) {
     current_screen_width = width;

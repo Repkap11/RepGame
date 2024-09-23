@@ -73,7 +73,7 @@ struct RepGameState {
     long tick_number;
 };
 
-struct  __attribute__( ( packed ) ) PlayerData {
+struct __attribute__( ( packed ) ) PlayerData {
     int reserved;
     float world_x;
     float world_y;
@@ -88,7 +88,11 @@ struct  __attribute__( ( packed ) ) PlayerData {
 };
 
 class RepGame {
+    RepGameState globalGameState;
 
+    BlockID change_block( int place, BlockState blockState );
+    unsigned char getPlacedRotation( BlockID blockID );
+    void initilizeGameState( const char *world_name );
     void add_to_hotbar( bool alsoSelect, BlockID blockId );
     void process_mouse_events( );
     void process_camera_angle( );

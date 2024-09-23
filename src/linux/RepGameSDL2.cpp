@@ -63,8 +63,8 @@ bool startsWith( const char *pre, const char *str ) {
 void main_loop_wasm( void *arg );
 void main_loop_full( RepGame &repgame );
 
-SDL_Window *sdl_window = NULL;
-SDL_GLContext sdl_context = NULL;
+static SDL_Window *sdl_window = NULL;
+static SDL_GLContext sdl_context = NULL;
 int repgame_sdl2_main( const char *world_path, const char *host, bool connect_multi, bool tests ) {
     if ( tests ) {
         return rep_tests_start( );
@@ -80,6 +80,8 @@ int repgame_sdl2_main( const char *world_path, const char *host, bool connect_mu
     // next line as per: http://stackoverflow.com/questions/11961116/opengl-3-x-context-creation-using-sdl2-on-osx-macbook-air-2012
     SDL_GL_SetAttribute( SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_CORE );
 #endif
+
+    // I use glDrawElementsInstanced( GL_LINES, ...) which isn't allowed anymore... but it makes a nice crosshair.
     // SDL_GL_SetAttribute( SDL_GL_CONTEXT_FLAGS, SDL_GL_CONTEXT_FORWARD_COMPATIBLE_FLAG );
 
     /* Turn on double buffering with a 24bit Z buffer.
@@ -96,7 +98,6 @@ int repgame_sdl2_main( const char *world_path, const char *host, bool connect_mu
 #endif
     int default_width = DEFAULT_WINDOW_WIDTH;
     int default_height = DEFAULT_WINDOW_HEIGHT;
-    /* Create our window centered */
     sdl_window = SDL_CreateWindow( "RepGame", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, default_width, default_height, SDL_WINDOW_OPENGL | SDL_WINDOW_SHOWN | SDL_WINDOW_RESIZABLE | SDL_WINDOW_FULLSCREEN_DESKTOP );
     if ( !sdl_window ) {
         pr_debug( "Creating the SDL window failed" );
@@ -120,7 +121,8 @@ int repgame_sdl2_main( const char *world_path, const char *host, bool connect_mu
         exit( 1 ); // or handle the error in a nicer way
     }
     ignoreErrors( );
-    RepGame repgame;
+    RepGame *repgamePrt = new RepGame();
+    RepGame &repgame = *repgamePrt;
     globalGameState = repgame.init( world_path, connect_multi, host, supportsAnisotropicFiltering );
 #if SUPPORTS_IMGUI_OVERLAY
     imgui_overlay_attach_to_window( &globalGameState->imgui_overlay, sdl_window, sdl_context );
@@ -136,13 +138,14 @@ int repgame_sdl2_main( const char *world_path, const char *host, bool connect_mu
     // pr_debug( "Unlimited FPS" );
 #endif
 
-    if ( !GLEW_VERSION_3_3 ) { // check that the machine supports the 2.1 API.
+    if ( !GLEW_VERSION_3_3 ) { // check that the machine supports the OpenGL 3.3
         pr_debug( "GLEW version wrong" );
         exit( 1 ); // or handle the error in a nicer way
     }
     repgame.changeSize( default_width, default_height );
     main_loop_full( repgame );
     repgame.cleanup( );
+    delete repgamePrt;
     SDL_GL_DeleteContext( sdl_context );
     SDL_DestroyWindow( sdl_window );
     SDL_Quit( );

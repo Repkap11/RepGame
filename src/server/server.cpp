@@ -224,8 +224,11 @@ void Server::init( int portnum ) {
     }
 
     this->client_data = new ClientData[ MAX_CLIENT_FDS ]( );
+    if ( this->client_data == NULL ) {
+        pr_debug( "Unable to allocate memory for client_data" );
+    }
     this->events = new struct epoll_event[ MAX_CLIENT_FDS ]( );
-    if ( events == NULL ) {
+    if ( this->events == NULL ) {
         pr_debug( "Unable to allocate memory for epoll_events" );
     }
 }

@@ -1,6 +1,6 @@
 #include "common/RepGame.hpp"
 
-int front, back, left, right, up, down;
+static int front, back, left, right, up, down;
 
 void Input::processMovement( ) {
     float angleH = 0;
@@ -182,6 +182,7 @@ void Input::keysInput( SDL_Keycode key, int pressed ) {
             }
             break;
         case 'i':
+        case 'e':
             if ( pressed ) {
                 this->inventory_open = !this->inventory_open;
             }
