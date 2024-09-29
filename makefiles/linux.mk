@@ -50,12 +50,10 @@ SHADER_BLOBS_LINUX := $(patsubst src/shaders/%.glsl,out/linux/shaders/%.o,$(wild
 BITMAP_BLOBS_LINUX := $(patsubst bitmaps/%.bmp,out/linux/bitmaps/%.o,$(wildcard bitmaps/*.bmp))
 
 out/linux/shaders/%.o : src/shaders/%.glsl | out/linux
-	
 	$(LD_LINUX) $(LFLAGS) -r -b binary $< -o $@_no_section
 	objcopy --rename-section .data=.rodata,CONTENTS,ALLOC,LOAD,READONLY,DATA $@_no_section $@
 
 out/linux/bitmaps/%.o : out/bitmaps/%.bin | out/linux
-	
 	$(LD_LINUX) $(LFLAGS) -r -b binary $< -o $@_no_section
 	objcopy --rename-section .data=.rodata,CONTENTS,ALLOC,LOAD,READONLY,DATA --reverse-bytes=4 $@_no_section $@
 
@@ -141,7 +139,6 @@ clean-linux:
 	rm -rf out/linux
 
 out/linux: | out
-	
 	mkdir -p $(LINUX_DIRS)
 	touch $@
 
