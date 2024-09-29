@@ -65,17 +65,6 @@ function draw_mark() {
     ctx.drawImage(img, intro.width / 2 - size / 2, intro.height / 2 - size / 2, size, size);
   };
   img.src = "icon.png";
-  ctx.fillStyle = "black";
-  ctx.font = "100px Arial";
-
-  var textString = "Press and Hold Any Key To Play";
-  var textWidth = ctx.measureText(textString).width;
-
-  var textString2 = "RepGame";
-  var textWidth2 = ctx.measureText(textString2).width;
-
-  ctx.fillText(textString, intro.width / 2 - textWidth / 2, 100);
-  ctx.fillText(textString2, intro.width / 2 - textWidth2 / 2, 210);
 }
 
 function setup_click_handler() {
