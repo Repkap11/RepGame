@@ -2,7 +2,7 @@
 
 REPGAME_PACKAGES += libglew-dev libxi-dev g++ libsdl2-dev upx-ucl cppcheck
 
-CFLAGS_LINUX := -Wall -Wextra -std=c++17 -Wno-unused-parameter -Wno-unused-variable -fno-pie -march=native
+CFLAGS_LINUX := -Wall -Wextra -std=c++17 -Wno-unused-parameter -Wno-unused-variable -fno-pie
 LFLAGS := -z noexecstack
 
 # In release mode, don't check for GL errors
@@ -12,21 +12,17 @@ CFLAGS_LINUX_RELEASE := -O3 -DREPGAME_SKIP_CHECK_FOR_GL_ERRORS -DREPGAME_SW_VSYN
 CFLAGS_LINUX_DEBUG := -g -DREPGAME_SW_VSYNC
 
 CFLAGS_LINUX += -DREPGAME_LINUX
+# SDL2 is dynamically linked, because it's too hard to statically link against X11, and I don't want to compile it from source.
+LIBS_LINUX := -lSDL2 -Wl,-Bstatic -lGLEW -lGLU -Wl,-Bdynamic -lGL -lpthread -lm -ldl -static-libgcc -static-libstdc++
 
-LIBS_LINUX := -L /app/lib/ -l GLU -l SDL2 -l m -l GL -l GLEW -lpthread -l dl -static-libgcc -static-libstdc++
+CC_LINUX := g++
+# CC_LINUX := clang++
 
-# CC_LINUX := g++
-CC_LINUX := clang++
-
-# LD_LINUX := ld
-LD_LINUX := gold
+LD_LINUX := ld
+# LD_LINUX := gold
 
 ifeq ($(CC_LINUX),g++)
-	ifeq ($(UBUNTU_VERSION),14.04)
-	else ifeq ($(UBUNTU_VERSION),16.04)
-	else
 		CFLAGS_LINUX += -no-pie
-	endif
 	ifeq ($(LD_LINUX),gold)
 		CFLAGS_LINUX += -fuse-ld=gold
 	endif

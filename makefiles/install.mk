@@ -1,14 +1,6 @@
 #Used to install platform build tools on linux host
 
-REPGAME_PACKAGES := libglm-dev libglm-doc rsync wget ccache clang
-
-ifeq ($(DOCKER_UBUNTU_VERSION),14.04)
-	DOCKER_ONLY_REPGAME_PACKAGES += bsdtar
-else ifeq ($(DOCKER_UBUNTU_VERSION),16.04)
-	DOCKER_ONLY_REPGAME_PACKAGES += bsdtar
-else
-	DOCKER_ONLY_REPGAME_PACKAGES += libarchive-tools
-endif
+REPGAME_PACKAGES := libglm-dev libglm-doc rsync wget ccache clang libarchive-tools
 
 install: packages
 

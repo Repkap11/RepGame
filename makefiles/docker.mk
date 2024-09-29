@@ -1,3 +1,6 @@
+#Version of Ubuntu to target when build with docker
+DOCKER_UBUNTU_VERSION ?= 22.04
+
 #This create the docker image "repgame"
 docker-image: $(call GUARD,DOCKER_ONLY_REPGAME_PACKAGES REPGAME_PACKAGES DOCKER_UBUNTU_VERSION)
 	$(call CHECK,DOCKER_ONLY_REPGAME_PACKAGES REPGAME_PACKAGES DOCKER_UBUNTU_VERSION)
@@ -15,17 +18,23 @@ docker-save: docker-image
 	docker save repgame | gzip -c > repgame_docker.tar.gz
 
 #This builds the code using the docker image "repgame".
+# --privileged only needed for building AppImage because of fuse.
 docker-compile: | docker-image
 	docker run \
 		--user $(shell id -u):$(shell id -g) \
 		--rm -it --init \
 		-v $(shell pwd):/home/$(shell whoami)/RepGame \
-		--env="DISPLAY" \
-		--env="QT_X11_NO_MITSHM=1" \
-		--volume="/tmp/.X11-unix:/tmp/.X11-unix:rw" \
 		--privileged \
 	repgame make docker-internal
 
+docker-shell: | docker-image
+	docker run \
+		--user $(shell id -u):$(shell id -g) \
+		--rm -it --init \
+		-v $(shell pwd):/home/$(shell whoami)/RepGame \
+	repgame bash
+
+#This runs the code inside a container, which is rather silly.
 docker-run: | docker-image
 	docker run \
 		--user $(shell id -u):$(shell id -g) \

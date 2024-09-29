@@ -15,12 +15,6 @@ INCLUDES_WINDOWS := -I windows_build/sdl2/x86_64-w64-mingw32/include/SDL2 -I win
 CC_WINDOWS := x86_64-w64-mingw32-g++
 # CC_WINDOWS := clang++
 
-ifeq ($(CC_WINDOWS),x86_64-w64-mingw32-g++)
-	ifeq ($(UBUNTU_VERSION),18.04)
-		CFLAGS_WINDOWS += -no-pie
-	endif
-endif
-
 LD_WINDOWS := x86_64-w64-mingw32-ld
 
 ifeq ($(USE_CCACHE),1)

@@ -11,9 +11,6 @@ CPUS ?= $(shell nproc || echo 1)
 #Current version of Ubuntu running make
 UBUNTU_VERSION := $(shell lsb_release -r -s)
 
-#Version of Ubuntu to target when build with docker
-DOCKER_UBUNTU_VERSION ?= 24.04
-
 #SHELL = sh -xv
 
 # OLD_SHELL := $(SHELL)
