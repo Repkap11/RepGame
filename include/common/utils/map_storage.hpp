@@ -4,7 +4,8 @@ class Chunk;
 struct PlayerData;
 struct BlockState;
 
-#define CHUNK_NAME_MAX_LENGTH 200
+#define MAP_NAME_MAX_LENGTH 200
+#define CHUNK_NAME_MAX_LENGTH 256
 #define FILE_ROOT_CHUNK "%s/chunk_%d_%d_%d"
 #define FILE_ROOT_PLAYER_DATA "%s/player.dat"
 #include <glm.hpp>
@@ -12,7 +13,7 @@ struct BlockState;
 struct PlayerData;
 
 class MapStorage {
-    char map_name[ CHUNK_NAME_MAX_LENGTH ];
+    char map_name[ MAP_NAME_MAX_LENGTH ];
     int check_if_chunk_exists( const glm::ivec3 &chunk_offset );
 
   public:

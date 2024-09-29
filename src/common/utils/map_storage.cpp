@@ -13,8 +13,8 @@
 
 void MapStorage::init( const char *world_name ) {
     char *dir = getRepGamePath( );
-    snprintf( this->map_name, CHUNK_NAME_MAX_LENGTH, "%s%s%s", dir, REPGAME_PATH_DIVIDOR, world_name );
-    pr_debug( "Loading map from:%s", map_name );
+    snprintf( this->map_name, MAP_NAME_MAX_LENGTH, "%s%s%s", dir, REPGAME_PATH_DIVIDOR, world_name );
+    pr_debug( "Loading map from:%s", this->map_name );
     mkdir_p( this->map_name );
     free( dir );
 }
@@ -39,8 +39,7 @@ void MapStorage::persist_dirty_blocks( const glm::ivec3 &chunk_offset, const Blo
         return;
     }
     char file_name[ CHUNK_NAME_MAX_LENGTH ];
-    if ( snprintf( file_name, CHUNK_NAME_MAX_LENGTH, FILE_ROOT_CHUNK, map_name, chunk_offset.x, chunk_offset.y, chunk_offset.z ) != CHUNK_NAME_MAX_LENGTH ) {
-    }
+    snprintf( file_name, CHUNK_NAME_MAX_LENGTH, FILE_ROOT_CHUNK, this->map_name, chunk_offset.x, chunk_offset.y, chunk_offset.z );
     FILE *write_ptr = fopen( file_name, "wb" );
     if ( write_ptr == NULL ) {
         pr_debug( "fopen failed for chunk:%s", file_name );
@@ -89,8 +88,7 @@ void MapStorage::persist_dirty_blocks( const glm::ivec3 &chunk_offset, const Blo
 
 int MapStorage::check_if_chunk_exists( const glm::ivec3 &chunk_offset ) {
     char file_name[ CHUNK_NAME_MAX_LENGTH ];
-    if ( snprintf( file_name, CHUNK_NAME_MAX_LENGTH, FILE_ROOT_CHUNK, map_name, chunk_offset.x, chunk_offset.y, chunk_offset.z ) != CHUNK_NAME_MAX_LENGTH ) {
-    }
+    snprintf( file_name, CHUNK_NAME_MAX_LENGTH, FILE_ROOT_CHUNK, this->map_name, chunk_offset.x, chunk_offset.y, chunk_offset.z );
     if ( access( file_name, F_OK ) != -1 ) {
         return 1;
     } else {
@@ -109,8 +107,7 @@ int MapStorage::load_blocks( const glm::ivec3 &chunk_offset, BlockState *blocks,
     }
 
     char file_name[ CHUNK_NAME_MAX_LENGTH ];
-    if ( snprintf( file_name, CHUNK_NAME_MAX_LENGTH, FILE_ROOT_CHUNK, map_name, chunk_offset.x, chunk_offset.y, chunk_offset.z ) != CHUNK_NAME_MAX_LENGTH ) {
-    }
+    snprintf( file_name, CHUNK_NAME_MAX_LENGTH, FILE_ROOT_CHUNK, this->map_name, chunk_offset.x, chunk_offset.y, chunk_offset.z );
     FILE *read_ptr;
     read_ptr = fopen( file_name, "rb" );
     uint32_t storage_type_size = 0;
@@ -177,7 +174,7 @@ int MapStorage::load_blocks( const glm::ivec3 &chunk_offset, BlockState *blocks,
 
 int MapStorage::read_player_data( PlayerData &player_data ) {
     char file_name[ CHUNK_NAME_MAX_LENGTH ];
-    snprintf( file_name, CHUNK_NAME_MAX_LENGTH, FILE_ROOT_PLAYER_DATA, map_name );
+    snprintf( file_name, CHUNK_NAME_MAX_LENGTH, FILE_ROOT_PLAYER_DATA, this->map_name );
     FILE *read_ptr = fopen( file_name, "rb" );
     if ( !read_ptr ) {
         pr_debug( "No player data:%s (%p)", file_name, read_ptr );
@@ -194,7 +191,7 @@ int MapStorage::read_player_data( PlayerData &player_data ) {
 
 void MapStorage::write_player_data( const PlayerData &player_data ) {
     char file_name[ CHUNK_NAME_MAX_LENGTH ];
-    snprintf( file_name, CHUNK_NAME_MAX_LENGTH, FILE_ROOT_PLAYER_DATA, map_name );
+    snprintf( file_name, CHUNK_NAME_MAX_LENGTH, FILE_ROOT_PLAYER_DATA, this->map_name );
     FILE *write_ptr = fopen( file_name, "wb" );
     if ( !write_ptr ) {
         pr_debug( "Can't write player:%s (%p)", file_name, write_ptr );
