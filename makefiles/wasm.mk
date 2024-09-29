@@ -53,12 +53,10 @@ WASM_DIRS = $(patsubst src%,out/wasm%,$(shell find src -type d)) \
 			out/wasm/fs/bitmaps \
 			out/wasm/delivery
 
-out/wasm/%.o: src/%.cpp $(HEADERS) src/linux/RepGameSDL2.cpp $(call GUARD,CC_WASM INCLUDES_COMMON CFLAGS_WASM) | out/wasm
-	$(call CHECK,CC_WASM INCLUDES_COMMON CFLAGS_WASM)
+out/wasm/%.o: src/%.cpp $(HEADERS) src/linux/RepGameSDL2.cpp | out/wasm
 	$(CC_WASM) $(INCLUDES_COMMON) $(CFLAGS_WASM) -c $< -o $@
 
-out/wasm/delivery/$(TARGET).js: $(OBJECTS_COMMON_WASM) $(OBJECTS_WASM) $(WASM_SHADERS) $(WASM_BITMAPS) $(call GUARD,CC_WASM CFLAGS_LINK_WASM ) | out/wasm
-	$(call CHECK,CC_WASM CFLAGS_LINK_WASM )
+out/wasm/delivery/$(TARGET).js: $(OBJECTS_COMMON_WASM) $(OBJECTS_WASM) $(WASM_SHADERS) $(WASM_BITMAPS) | out/wasm
 	$(CC_WASM) -flto $(CFLAGS_LINK_WASM) $(OBJECTS_WASM) $(OBJECTS_COMMON_WASM) --preload-file out/wasm/fs@ -o $@
 
 out/wasm/delivery/index.html: src/wasm/index.html | out/wasm

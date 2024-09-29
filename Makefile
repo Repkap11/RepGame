@@ -72,9 +72,8 @@ vars:
 	@echo "$(BEFORE_VARS) $(AFTER_VARS)" | xargs -n1 | sort | uniq -u
 
 AFTER_VARS := $(.VARIABLES)
-ALL_VARS := $(shell echo "$(BEFORE_VARS) $(AFTER_VARS)" | xargs -n1 | sort | uniq -u | grep -v "^GUARD$$" | grep -v "^TEST_RULE$$" | grep -v "^CHECK$$" | grep -v "^BEFORE_VARS$$")
-# ALL_VAR_DEPS = $(call GUARD,${ALL_VARS})
-.PRECIOUS: ${ALL_VAR_DEPS}
+ALL_VARS := $(shell echo "$(BEFORE_VARS) $(AFTER_VARS)" | xargs -n1 | sort | uniq -u | grep -v "^BEFORE_VARS$$")
+# $(info Val: [${ALL_VARS}])
+$(info Val: [${CFLAGS_LINUX}])
 endif
 
-# $(info Val: [${ALL_VAR_DEPS}])

@@ -2,8 +2,7 @@
 DOCKER_UBUNTU_VERSION ?= 22.04
 
 #This create the docker image "repgame"
-docker-image: $(call GUARD,DOCKER_ONLY_REPGAME_PACKAGES REPGAME_PACKAGES DOCKER_UBUNTU_VERSION)
-	$(call CHECK,DOCKER_ONLY_REPGAME_PACKAGES REPGAME_PACKAGES DOCKER_UBUNTU_VERSION)
+docker-image:
 	docker images -aq -f 'dangling=true' | xargs -r docker rmi || true
 	docker volume ls -q -f 'dangling=true' | xargs -r docker volume rm || true
 	docker build -t repgame \

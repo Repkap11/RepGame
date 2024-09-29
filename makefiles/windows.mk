@@ -31,12 +31,10 @@ DEPS_WINDOWS := $(patsubst src/%.cpp,out/windows/%.d, $(wildcard src/windows/*.c
 SHADER_BLOBS_WINDOWS := $(patsubst src/shaders/%.glsl,out/windows/shaders/%.o,$(wildcard src/shaders/*.glsl))
 BITMAP_BLOBS_WINDOWS := $(patsubst bitmaps/%.bmp,out/windows/bitmaps/%.o,$(wildcard bitmaps/*.bmp))
 
-out/windows/shaders/%.o : src/shaders/%.glsl $(call GUARD,LD_WINDOWS) | out/windows
-	$(call CHECK,LD_WINDOWS)
+out/windows/shaders/%.o : src/shaders/%.glsl | out/windows
 	$(LD_WINDOWS) -r -b binary $< -o $@
 
-out/windows/bitmaps/%.o : out/bitmaps/%.bin $(call GUARD,LD_WINDOWS) | out/windows
-	$(call CHECK,LD_WINDOWS)
+out/windows/bitmaps/%.o : out/bitmaps/%.bin | out/windows
 	$(LD_WINDOWS) -r -b binary $< -o $@
 	objcopy --rename-section .data=.rodata,CONTENTS,ALLOC,LOAD,READONLY,DATA --reverse-bytes=4 $@ $@
 
@@ -54,13 +52,11 @@ WINDOWS_DIRS = $(patsubst src%,out/windows%,$(shell find src -type d)) \
 		out/windows/imgui \
 		out/windows/imgui/backends
 
-out/windows/%.o: src/%.cpp $(call GUARD,CC_WINDOWS INCLUDES_WINDOWS INCLUDES_COMMON CFLAGS_WINDOWS) windows_build | out/windows
-	$(call CHECK,CC_WINDOWS INCLUDES_WINDOWS INCLUDES_COMMON CFLAGS_WINDOWS)
+out/windows/%.o: src/%.cpp windows_build | out/windows
 	@#Use g++ to build o file and a dependecy tree .d file for every cpp file
 	$(CC_WINDOWS) $(INCLUDES_WINDOWS) $(INCLUDES_COMMON) $(CFLAGS_WINDOWS) -MMD -MP -MF $(patsubst %.o,%.d,$@) -MT $(patsubst %.d,%.o,$@) -c $< -o $@
 
-out/windows/imgui/%.o: imgui_build/%.cpp $(call GUARD,CC_WINDOWS INCLUDES_WINDOWS INCLUDES_COMMON CFLAGS_WINDOWS) windows_build | out/windows
-	$(call CHECK,CC_WINDOWS INCLUDES_WINDOWS INCLUDES_COMMON CFLAGS_WINDOWS)
+out/windows/imgui/%.o: imgui_build/%.cpp windows_build | out/windows
 	@#Use g++ to build o file and a dependecy tree .d file for every cpp file
 	$(CC_WINDOWS) $(INCLUDES_WINDOWS) $(INCLUDES_COMMON) $(CFLAGS_WINDOWS) -MMD -MP -MF $(patsubst %.o,%.d,$@) -MT $(patsubst %.d,%.o,$@) -c $< -o $@
 
@@ -72,8 +68,7 @@ out/windows/$(TARGET).exe: out/windows/$(TARGET)_uncompressed.exe
 	upx-ucl -q $< -o $@
 	touch $@
 
-out/windows/$(TARGET)_uncompressed.exe: windows_build $(OBJECTS_COMMON_WINDOWS) $(OBJECTS_IMGUI_WINDOWS) $(OBJECTS_WINDOWS) $(SHADER_BLOBS_WINDOWS) $(BITMAP_BLOBS_WINDOWS) $(call GUARD,CC_WINDOWS CFLAGS_WINDOWS LIBS_WINDOWS) | out/windows
-	$(call CHECK,CC_WINDOWS CFLAGS_WINDOWS LIBS_WINDOWS)
+out/windows/$(TARGET)_uncompressed.exe: windows_build $(OBJECTS_COMMON_WINDOWS) $(OBJECTS_IMGUI_WINDOWS) $(OBJECTS_WINDOWS) $(SHADER_BLOBS_WINDOWS) $(BITMAP_BLOBS_WINDOWS) | out/windows
 	$(CC_WINDOWS) -flto $(CFLAGS_WINDOWS) $(OBJECTS_WINDOWS) $(OBJECTS_COMMON_WINDOWS) $(OBJECTS_IMGUI_WINDOWS) $(SHADER_BLOBS_WINDOWS) $(BITMAP_BLOBS_WINDOWS) $(LIBS_WINDOWS) -o $@
 
 windows-run: windows
@@ -84,8 +79,7 @@ clean: clean-windows
 clean-windows:
 	rm -rf out/windows
 
-out/windows: $(call GUARD,WINDOWS_DIRS) | out
-	$(call CHECK,WINDOWS_DIRS)
+out/windows: | out
 	mkdir -p $(WINDOWS_DIRS)
 	touch $@
 

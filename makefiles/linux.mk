@@ -49,13 +49,13 @@ DEPS_LINUX := $(patsubst src/%.cpp,out/linux/release/%.d, $(wildcard src/linux/*
 SHADER_BLOBS_LINUX := $(patsubst src/shaders/%.glsl,out/linux/shaders/%.o,$(wildcard src/shaders/*.glsl))
 BITMAP_BLOBS_LINUX := $(patsubst bitmaps/%.bmp,out/linux/bitmaps/%.o,$(wildcard bitmaps/*.bmp))
 
-out/linux/shaders/%.o : src/shaders/%.glsl $(call GUARD,LD_LINUX,LFLAGS) | out/linux
-	$(call CHECK,LD_LINUX,LFLAGS)
+out/linux/shaders/%.o : src/shaders/%.glsl | out/linux
+	
 	$(LD_LINUX) $(LFLAGS) -r -b binary $< -o $@_no_section
 	objcopy --rename-section .data=.rodata,CONTENTS,ALLOC,LOAD,READONLY,DATA $@_no_section $@
 
-out/linux/bitmaps/%.o : out/bitmaps/%.bin $(call GUARD,LD_LINUX,LFLAGS) | out/linux
-	$(call CHECK,LD_LINUX,LFLAGS)
+out/linux/bitmaps/%.o : out/bitmaps/%.bin | out/linux
+	
 	$(LD_LINUX) $(LFLAGS) -r -b binary $< -o $@_no_section
 	objcopy --rename-section .data=.rodata,CONTENTS,ALLOC,LOAD,READONLY,DATA --reverse-bytes=4 $@_no_section $@
 
@@ -79,30 +79,25 @@ LINUX_DIRS := $(patsubst src%,out/linux/release%,$(shell find src -type d)) \
 
 -include makefiles/cuda.mk
 
-out/linux/release/%.o: src/%.cpp $(call GUARD,CC_LINUX INCLUDES_COMMON CFLAGS_LINUX CFLAGS_LINUX_RELEASE) | out/linux
-	$(call CHECK,CC_LINUX INCLUDES_COMMON CFLAGS_LINUX CFLAGS_LINUX_RELEASE)
+out/linux/release/%.o: src/%.cpp | out/linux
 	@#Use g++ to build o file and a dependecy tree .d file for every cpp file
 	$(CC_LINUX) $(INCLUDES_COMMON) $(CFLAGS_LINUX) $(CFLAGS_LINUX_RELEASE) -MMD -MP -MF $(patsubst %.o,%.d,$@) -MT $(patsubst %.d,%.o,$@) -c $< -o $@
 
-out/linux/debug/%.o: src/%.cpp $(call GUARD,CC_LINUX INCLUDES_COMMON CFLAGS_LINUX CFLAGS_LINUX_DEBUG) | out/linux
-	$(call CHECK,CC_LINUX INCLUDES_COMMON CFLAGS_LINUX CFLAGS_LINUX_DEBUG)
+out/linux/debug/%.o: src/%.cpp | out/linux
 	@#Use g++ to build o file and a dependecy tree .d file for every cpp file
 	$(CC_LINUX) $(INCLUDES_COMMON) $(CFLAGS_LINUX) $(CFLAGS_LINUX_DEBUG) -MMD -MP -MF $(patsubst %.o,%.d,$@) -MT $(patsubst %.d,%.o,$@) -c $< -o $@
 
 
-out/linux/debug/imgui/%.o: imgui_build/%.cpp $(call GUARD,CC_LINUX INCLUDES_COMMON CFLAGS_LINUX CFLAGS_LINUX_DEBUG) | out/linux
-	$(call CHECK,CC_LINUX INCLUDES_COMMON CFLAGS_LINUX CFLAGS_LINUX_DEBUG)
+out/linux/debug/imgui/%.o: imgui_build/%.cpp | out/linux
 	@#Use g++ to build o file and a dependecy tree .d file for every cpp file
 	$(CC_LINUX) $(INCLUDES_COMMON) $(CFLAGS_LINUX) $(CFLAGS_LINUX_DEBUG) -MMD -MP -MF $(patsubst %.o,%.d,$@) -MT $(patsubst %.d,%.o,$@) -c $< -o $@
 
-out/linux/release/imgui/%.o: imgui_build/%.cpp $(call GUARD,CC_LINUX INCLUDES_COMMON CFLAGS_LINUX CFLAGS_LINUX_RELEASE) | out/linux
-	$(call CHECK,CC_LINUX INCLUDES_COMMON CFLAGS_LINUX CFLAGS_LINUX_RELEASE)
+out/linux/release/imgui/%.o: imgui_build/%.cpp | out/linux
 	@#Use g++ to build o file and a dependecy tree .d file for every cpp file
 	$(CC_LINUX) $(INCLUDES_COMMON) $(CFLAGS_LINUX) $(CFLAGS_LINUX_RELEASE) -MMD -MP -MF $(patsubst %.o,%.d,$@) -MT $(patsubst %.d,%.o,$@) -c $< -o $@
 
 #Include these .d files, so the dependicies are known for secondary builds.
 -include $(DEPS_LINUX)
-
 
 out/linux/release/$(TARGET): out/linux/release/$(TARGET)_uncompressed
 	rm -f $@
@@ -110,12 +105,10 @@ out/linux/release/$(TARGET): out/linux/release/$(TARGET)_uncompressed
 	touch $@
 
 
-out/linux/release/$(TARGET)_uncompressed: $(OBJECTS_IMGUI_LINUX_RELEASE) $(OBJECTS_COMMON_LINUX_RELEASE) $(OBJECTS_LINUX_RELEASE) $(SHADER_BLOBS_LINUX) $(BITMAP_BLOBS_LINUX) $(call GUARD,CC_LINUX CFLAGS_LINUX CFLAGS_LINUX_RELEASE LIBS_LINUX) | out/linux
-	$(call CHECK,CC_LINUX CFLAGS_LINUX CFLAGS_LINUX_RELEASE LIBS_LINUX)
+out/linux/release/$(TARGET)_uncompressed: $(OBJECTS_IMGUI_LINUX_RELEASE) $(OBJECTS_COMMON_LINUX_RELEASE) $(OBJECTS_LINUX_RELEASE) $(SHADER_BLOBS_LINUX) $(BITMAP_BLOBS_LINUX) | out/linux
 	$(CC_LINUX) -flto $(CFLAGS_LINUX) $(CFLAGS_LINUX_RELEASE) $(OBJECTS_LINUX_RELEASE) $(OBJECTS_IMGUI_LINUX_RELEASE) $(OBJECTS_COMMON_LINUX_RELEASE) $(SHADER_BLOBS_LINUX) $(BITMAP_BLOBS_LINUX) $(LIBS_LINUX) -o $@
 
-out/linux/debug/$(TARGET): $(OBJECTS_IMGUI_LINUX_DEBUG) $(OBJECTS_COMMON_LINUX_DEBUG) $(OBJECTS_LINUX_DEBUG) $(SHADER_BLOBS_LINUX) $(BITMAP_BLOBS_LINUX) $(call GUARD,CC_LINUX CFLAGS_LINUX CFLAGS_LINUX_DEBUG LIBS_LINUX) | out/linux
-	$(call CHECK,CC_LINUX CFLAGS_LINUX CFLAGS_LINUX_DEBUG LIBS_LINUX)
+out/linux/debug/$(TARGET): $(OBJECTS_IMGUI_LINUX_DEBUG) $(OBJECTS_COMMON_LINUX_DEBUG) $(OBJECTS_LINUX_DEBUG) $(SHADER_BLOBS_LINUX) $(BITMAP_BLOBS_LINUX) | out/linux
 	$(CC_LINUX) $(CFLAGS_LINUX) $(CFLAGS_LINUX_DEBUG) $(OBJECTS_LINUX_DEBUG) $(OBJECTS_IMGUI_LINUX_DEBUG) $(OBJECTS_COMMON_LINUX_DEBUG) $(SHADER_BLOBS_LINUX) $(BITMAP_BLOBS_LINUX) $(LIBS_LINUX) -o $@
 
 linux-run: linux
@@ -147,8 +140,8 @@ clean: clean-linux
 clean-linux:
 	rm -rf out/linux
 
-out/linux: $(call GUARD,LINUX_DIRS) | out
-	$(call CHECK,LINUX_DIRS)
+out/linux: | out
+	
 	mkdir -p $(LINUX_DIRS)
 	touch $@
 
