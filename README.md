@@ -54,9 +54,13 @@ To play the game, run the final executable with a name for the world save, and a
 ```bash
 ./out/linux/release/RepGame World1 www.repkap11.com
 ```
+On linux_debug version is compiled with "-g", no "-flto", no optimizations, and no FPS cap (to more easily see performance regressions).
+The other builds are FPS caped so they don't burn your CPU/GPU.
+
 Or use one of the make targets to build and run in 1 step:
 ```bash
 make linux-run
+make linux_debug-run
 make appimage-run
 make wasm-run
 make windows-run #If you have wine installed.
