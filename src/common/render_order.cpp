@@ -17,6 +17,7 @@ int render_order_ib_size( RenderOrder renderOrder ) {
 int render_order_can_be_shaded( RenderOrder renderOrder ) {
     switch ( renderOrder ) {
         case RenderOrder_Opaque:
+        case RenderOrder_Translucent:
             return true;
         default:
             return false;
@@ -35,6 +36,7 @@ int render_order_can_mesh( RenderOrder renderOrder ) {
     switch ( renderOrder ) {
         case RenderOrder_Opaque:
         case RenderOrder_Water:
+        case RenderOrder_Translucent:
             return true;
         default:
             return false;

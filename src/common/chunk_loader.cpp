@@ -230,7 +230,7 @@ void ChunkLoader::draw( const glm::mat4 &mvp, const Renderer &renderer, const Te
     // pr_debug( "Drawing %d chunks", this->numLoadedChunks );
     for ( int renderOrder = LAST_RENDER_ORDER - 1; renderOrder > 0; renderOrder-- ) {
         if ( reflect_only == ( renderOrder == RenderOrder_Water ) ) {
-            shader.set_uniform1f( "u_shouldDiscardAlpha", renderOrder != RenderOrder_Water );
+            shader.set_uniform1f( "u_shouldDiscardAlpha", renderOrder != RenderOrder_Water && renderOrder != RenderOrder_Translucent);
             for ( int i = 0; i < MAX_LOADED_CHUNKS; i++ ) {
                 Chunk &chunk = this->chunkArray[ i ];
                 if ( draw_reflect ) {

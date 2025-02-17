@@ -23,6 +23,33 @@ void Chunk::calculate_sides( const glm::ivec3 &center_next ) {
         chunk_ib_data[ renderOrder ] = ( unsigned int * )malloc( render_order_ib_size( ( RenderOrder )renderOrder ) * sizeof( unsigned int ) );
         chunk_ib_data_reflect[ renderOrder ] = ( unsigned int * )malloc( render_order_ib_size( ( RenderOrder )renderOrder ) * sizeof( unsigned int ) );
     }
+    int ib_size[ LAST_RENDER_ORDER ] = { 0 };
+
+    for ( int i = 0; i < 12; i++ ) {
+        chunk_ib_data_reflect[ RenderOrder_Translucent ][ ib_size[ RenderOrder_Translucent ] ] = ib_data_solid[ 12 * FACE_FRONT + i ];
+        chunk_ib_data[ RenderOrder_Translucent ][ ib_size[ RenderOrder_Translucent ]++ ] = ib_data_solid[ 12 * FACE_FRONT + i ];
+    }
+    for ( int i = 0; i < 12; i++ ) {
+        chunk_ib_data_reflect[ RenderOrder_Translucent ][ ib_size[ RenderOrder_Translucent ] ] = ib_data_solid[ 12 * FACE_RIGHT + i ];
+        chunk_ib_data[ RenderOrder_Translucent ][ ib_size[ RenderOrder_Translucent ]++ ] = ib_data_solid[ 12 * FACE_RIGHT + i ];
+    }
+    for ( int i = 0; i < 12; i++ ) {
+        chunk_ib_data_reflect[ RenderOrder_Translucent ][ ib_size[ RenderOrder_Translucent ] ] = ib_data_solid[ 12 * FACE_BACK + i ];
+        chunk_ib_data[ RenderOrder_Translucent ][ ib_size[ RenderOrder_Translucent ]++ ] = ib_data_solid[ 12 * FACE_BACK + i ];
+    }
+    for ( int i = 0; i < 12; i++ ) {
+        chunk_ib_data_reflect[ RenderOrder_Translucent ][ ib_size[ RenderOrder_Translucent ] ] = ib_data_solid[ 12 * FACE_LEFT + i ];
+        chunk_ib_data[ RenderOrder_Translucent ][ ib_size[ RenderOrder_Translucent ]++ ] = ib_data_solid[ 12 * FACE_LEFT + i ];
+    }
+    for ( int i = 0; i < 12; i++ ) {
+        chunk_ib_data_reflect[ RenderOrder_Translucent ][ ib_size[ RenderOrder_Translucent ] ] = ib_data_solid[ 12 * FACE_BOTTOM + i ];
+        chunk_ib_data[ RenderOrder_Translucent ][ ib_size[ RenderOrder_Translucent ]++ ] = ib_data_solid[ 12 * FACE_TOP + i ];
+    }
+    for ( int i = 0; i < 12; i++ ) {
+        chunk_ib_data_reflect[ RenderOrder_Translucent ][ ib_size[ RenderOrder_Translucent ] ] = ib_data_solid[ 12 * FACE_TOP + i ];
+        chunk_ib_data[ RenderOrder_Translucent ][ ib_size[ RenderOrder_Translucent ]++ ] = ib_data_solid[ 12 * FACE_BOTTOM + i ];
+    }
+
     int visable_top = this->chunk_pos.y <= center_next.y;
     int visable_bottom = this->chunk_pos.y >= center_next.y;
     int visable_right = this->chunk_pos.x <= center_next.x;
@@ -30,11 +57,9 @@ void Chunk::calculate_sides( const glm::ivec3 &center_next ) {
     int visable_front = this->chunk_pos.z <= center_next.z;
     int visable_back = this->chunk_pos.z >= center_next.z;
 
-    int ib_size[ LAST_RENDER_ORDER ] = { 0 };
     if ( visable_front ) {
         for ( int i = 0; i < 12; i++ ) {
             chunk_ib_data_reflect[ RenderOrder_Opaque ][ ib_size[ RenderOrder_Opaque ] ] = ib_data_solid[ 12 * FACE_FRONT + i ];
-
             chunk_ib_data[ RenderOrder_Opaque ][ ib_size[ RenderOrder_Opaque ]++ ] = ib_data_solid[ 12 * FACE_FRONT + i ];
         }
     }
@@ -79,7 +104,7 @@ void Chunk::calculate_sides( const glm::ivec3 &center_next ) {
             ib_data = ib_data_flowers;
             ib_data_reflect = ib_data_flowers;
             ib_new_size = render_order_ib_size( ( RenderOrder )renderOrder );
-        } else if ( renderOrder == RenderOrder_Opaque || renderOrder == RenderOrder_Water ) {
+        } else if ( renderOrder == RenderOrder_Opaque || renderOrder == RenderOrder_Water || renderOrder == RenderOrder_Translucent ) {
         } else {
             pr_debug( "Unexpected index buffer. Crash likely on WASM ro:%d", renderOrder );
         }
@@ -336,7 +361,8 @@ void Chunk::calculate_populated_blocks( ) {
         int x, y, z;
         int drawn_block = Chunk::get_coords_from_index( index, x, y, z );
         if ( drawn_block ) {
-            BlockID blockID = this->blocks[ index ].id;
+            BlockState blockState = this->blocks[ index ];
+            BlockID blockID = blockState.id;
             Block *block = block_definition_get_definition( blockID );
 
             workingSpace[ index ].visible = render_order_is_visible( block->renderOrder );
@@ -345,14 +371,16 @@ void Chunk::calculate_populated_blocks( ) {
                 int block_is_visiable = 0;
                 int visible_from[ NUM_FACES_IN_CUBE ] = { 0, 0, 0, 0, 0, 0 };
                 for ( int face = FACE_TOP; face < NUM_FACES_IN_CUBE; face++ ) {
+                    int rotated_face = get_rotated_face(face, blockState.rotation);
                     BlockState block_next_to_state = this->blocks[ get_index_from_coords( x + FACE_DIR_X_OFFSETS[ face ], y + FACE_DIR_Y_OFFSETS[ face ], z + FACE_DIR_Z_OFFSETS[ face ] ) ];
+
                     Block *block_next_to = block_definition_get_definition( block_next_to_state.id );
 
                     int opposing_face = get_rotated_face( face, block_next_to_state.rotation );
                     opposing_face = OPPOSITE_FACE[ opposing_face ];
 
-                    bool is_seethrough = block->calculated.is_seethrough_face[ face ];
-                    if ( is_seethrough && block->calculated.hides_self[ face ] ) { // water and glass
+                    bool is_seethrough = block->calculated.is_seethrough_face[ rotated_face ];
+                    if ( is_seethrough && block->calculated.hides_self[ rotated_face ] ) { // water and glass
                         if ( face == FACE_TOP && block->renderOrder == RenderOrder_Water ) {
                             visible_from[ face ] = block_next_to->id != block->id;
                         } else {
@@ -557,6 +585,20 @@ void Chunk::calculate_populated_blocks( ) {
 
                     if ( visiable_block && can_be_seen && !has_been_drawn ) {
 
+                        int block_can_mesh_x;
+                        int block_can_mesh_y;
+                        int block_can_mesh_z;
+    
+                        if (blockState.rotation == BLOCK_ROTATE_0 || blockState.rotation == BLOCK_ROTATE_180){
+                            block_can_mesh_x = block->calculated.can_mesh_x;
+                            block_can_mesh_y = block->calculated.can_mesh_y;
+                            block_can_mesh_z = block->calculated.can_mesh_z;
+                        } else {
+                            block_can_mesh_x = block->calculated.can_mesh_z;
+                            block_can_mesh_y = block->calculated.can_mesh_y;
+                            block_can_mesh_z = block->calculated.can_mesh_x;
+                        }
+
                         int size_x = 1;
                         int size_y = 1;
                         int size_z = 1;
@@ -564,7 +606,7 @@ void Chunk::calculate_populated_blocks( ) {
                         int can_extend_y = 0;
                         int can_extend_z = 0;
                         do {
-                            if ( block->calculated.can_mesh_x ) {
+                            if ( block_can_mesh_x ) {
                                 glm::ivec3 starting = glm::ivec3( x + size_x - 1, y, z );
                                 glm::ivec3 size = glm::ivec3( 1, size_y, size_z );
                                 glm::ivec3 dir = glm::ivec3( 1, 0, 0 );
@@ -573,7 +615,7 @@ void Chunk::calculate_populated_blocks( ) {
                                     size_x++;
                                 }
                             }
-                            if ( block->calculated.can_mesh_z ) {
+                            if ( block_can_mesh_z ) {
                                 glm::ivec3 starting = glm::ivec3( x, y, z + size_z - 1 );
                                 glm::ivec3 size = glm::ivec3( size_x, size_y, 1 );
                                 glm::ivec3 dir = glm::ivec3( 0, 0, 1 );
@@ -582,7 +624,7 @@ void Chunk::calculate_populated_blocks( ) {
                                     size_z++;
                                 }
                             }
-                            if ( block->calculated.can_mesh_y ) {
+                            if ( block_can_mesh_y ) {
                                 glm::ivec3 starting = glm::ivec3( x, y + size_y - 1, z );
                                 glm::ivec3 size = glm::ivec3( size_x, 1, size_z );
                                 glm::ivec3 dir = glm::ivec3( 0, 1, 0 );

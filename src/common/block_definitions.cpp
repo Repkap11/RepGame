@@ -268,9 +268,9 @@ void block_definitions_initilize_definitions( Texture *texture ) {
         block_definitions[ id ].collides_with_player = false;
         block_definitions[ id ].casts_shadow = false;
         block_definitions[ id ].rotate_on_placement = true;
-        block_definitions[ id ].hides_self = { false, true, true };
-        // block_definitions[ id ].is_seethrough = true;
+        block_definitions[ id ].hides_self = { true, true, false };
     }
+    block_definitions[ PORTAL ].breaks_in_liquid = true;
 
     BlockID single_chest[] = { SINGLE_CHEST_LATCH };
     for ( unsigned int i = 0; i < sizeof( single_chest ) / sizeof( BlockID ); i++ ) {
@@ -509,12 +509,20 @@ void block_definitions_initilize_definitions( Texture *texture ) {
     block_definitions[ LEAF ].no_light = NO_LIGHT_DRAW;
 
     block_definitions[ GLASS ].hides_self = { true, true, true };
+    block_definitions[ GLASS_GREEN ].hides_self = { true, true, true };
+    block_definitions[ GLASS_GRAY ].hides_self = { true, true, true };
+    block_definitions[ GLASS_BROWN ].hides_self = { true, true, true };
 
     block_definitions[ FURNACE_LIT ].rotate_on_placement = true;
     block_definitions[ FURNACE_UNLIT ].rotate_on_placement = true;
     block_definitions[ SINGLE_CHEST_LATCH ].rotate_on_placement = true;
     block_definitions[ DOUBLE_CHEST_LEFT_LATCH ].rotate_on_placement = true;
     block_definitions[ DOUBLE_CHEST_RIGHT_LATCH ].rotate_on_placement = true;
+
+    block_definitions[PORTAL].renderOrder = RenderOrder_Translucent;
+    block_definitions[GLASS_BROWN].renderOrder = RenderOrder_Translucent;
+    block_definitions[GLASS_GRAY].renderOrder = RenderOrder_Translucent;
+    block_definitions[GLASS_GREEN].renderOrder = RenderOrder_Translucent;
 
     // Start flower section
     do_flowers( block_definitions );
@@ -544,8 +552,7 @@ void block_definitions_initilize_definitions( Texture *texture ) {
             block->collides_with_player = false;
             block->breaks_in_liquid = true;
             block->affected_by_redstone_power = false;
-        }
-        if ( block->renderOrder == RenderOrder_Water ) {
+        } else if ( block->renderOrder == RenderOrder_Water ) {
             block->is_seethrough = true;
             block->no_light = NO_LIGHT_BRIGHT;
             block->casts_shadow = false;
@@ -554,8 +561,7 @@ void block_definitions_initilize_definitions( Texture *texture ) {
             block->is_pickable = false;
             block->collides_with_player = false;
             block->can_be_placed_in = true;
-        }
-        if ( block->renderOrder == RenderOrder_Transparent ) {
+        } else if ( block->renderOrder == RenderOrder_Transparent ) {
             block->is_seethrough = true;
             block->no_light = NO_LIGHT_DRAW;
             block->casts_shadow = false;
@@ -564,6 +570,14 @@ void block_definitions_initilize_definitions( Texture *texture ) {
             block->breaks_in_liquid = true;
             block->affected_by_redstone_power = false;
             block->can_be_placed_in = true;
+        } else if ( block->renderOrder == RenderOrder_Translucent ) {
+            block->is_seethrough = true;
+            block->no_light = NO_LIGHT_NO_DRAW;
+            block->casts_shadow = false;
+            block->is_pickable = true;
+            block->breaks_in_liquid = false;
+            block->affected_by_redstone_power = false;
+            block->can_be_placed_in = false;
         }
         // if ( block->id == LEAF ) {
         //     pr_debug( "Got" );
@@ -585,6 +599,7 @@ void block_definitions_initilize_definitions( Texture *texture ) {
             block->calculated.can_mesh_y = block->scale.y == 16 ? true : false;
             block->calculated.can_mesh_z = block->scale.z == 16 ? true : false;
         }
+
         if ( block->is_seethrough ) { // leaves, flowers, glass
             for ( int face = FACE_TOP; face < NUM_FACES_IN_CUBE; face++ ) {
                 block->calculated.is_seethrough_face[ face ] = true;
@@ -608,11 +623,11 @@ void block_definitions_initilize_definitions( Texture *texture ) {
         block_definitions[ BARRIER ].needs_place_on_any_solid[ face ] = false;
         block_definitions[ DARK_BARRIER ].needs_place_on_any_solid[ face ] = false;
     }
-
     block_definitions[ GRASS_TUFT ].casts_shadow = true;
     block_definitions[ GRASS_TUFT2 ].casts_shadow = true;
     block_definitions[ GRASS_TUFT3 ].casts_shadow = true;
     block_definitions[ GRASS_TUFT4 ].casts_shadow = true;
+
 }
 
 Block *block_definition_get_definition( BlockID blockID ) {

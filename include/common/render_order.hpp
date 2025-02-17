@@ -1,6 +1,6 @@
 #pragma once
 
-typedef enum { RenderOrder_Transparent, RenderOrder_Water, RenderOrder_Flowers, RenderOrder_Opaque, LAST_RENDER_ORDER } RenderOrder;
+typedef enum { RenderOrder_Transparent, RenderOrder_Translucent, RenderOrder_Water, RenderOrder_Flowers, RenderOrder_Opaque, LAST_RENDER_ORDER } RenderOrder;
 
 int render_order_ib_size( RenderOrder renderOrder );
 int render_order_casts_shadow( RenderOrder renderOrder );
