@@ -375,6 +375,12 @@ void block_definitions_initilize_definitions( Texture *texture ) {
         block_definitions[ id ].is_pickable = false;
     }
 
+    BlockID translucent_glass[] = {GLASS_BLACK, GLASS_BLUE, GLASS_BROWN, GLASS_LIGHT_BLUE, GLASS_GRAY, GLASS_DARK_GREEN, GLASS_LIGHT_GREEN, GLASS_TINT_GREEN, GLASS_PALE_BLUE, GLASS_WHITE};
+    for ( unsigned int i = 0; i < sizeof( translucent_glass ) / sizeof( BlockID ); i++ ) {
+        BlockID id = translucent_glass[ i ];
+        block_definitions[ id ].renderOrder = RenderOrder_Translucent;
+    }
+
     block_definitions[ WATER ].renderOrder = RenderOrder_Water;
     block_definitions[ WATER ].flows = 20;
     block_definitions[ LAVA ].renderOrder = RenderOrder_Water;
@@ -509,9 +515,6 @@ void block_definitions_initilize_definitions( Texture *texture ) {
     block_definitions[ LEAF ].no_light = NO_LIGHT_DRAW;
 
     block_definitions[ GLASS ].hides_self = { true, true, true };
-    block_definitions[ GLASS_GREEN ].hides_self = { true, true, true };
-    block_definitions[ GLASS_GRAY ].hides_self = { true, true, true };
-    block_definitions[ GLASS_BROWN ].hides_self = { true, true, true };
 
     block_definitions[ FURNACE_LIT ].rotate_on_placement = true;
     block_definitions[ FURNACE_UNLIT ].rotate_on_placement = true;
@@ -520,9 +523,6 @@ void block_definitions_initilize_definitions( Texture *texture ) {
     block_definitions[ DOUBLE_CHEST_RIGHT_LATCH ].rotate_on_placement = true;
 
     block_definitions[PORTAL].renderOrder = RenderOrder_Translucent;
-    block_definitions[GLASS_BROWN].renderOrder = RenderOrder_Translucent;
-    block_definitions[GLASS_GRAY].renderOrder = RenderOrder_Translucent;
-    block_definitions[GLASS_GREEN].renderOrder = RenderOrder_Translucent;
 
     // Start flower section
     do_flowers( block_definitions );
