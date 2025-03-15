@@ -365,7 +365,8 @@ void block_definitions_initilize_definitions( Texture *texture ) {
 
         block_definitions[ id ].connects_to_redstone_dust = true;
         block_definitions[ id ].is_pickable = false;
-        block_definitions[ id ].hides_self = { false, true, false };
+        block_definitions[ id ].hides_self = { false, false, false };
+
     }
     block_definitions[ REDSTONE_CROSS ].is_pickable = true;
     BlockID power_dust_shaped[] = { REDSTONE_LINE_1_POWERED,   REDSTONE_LINE_2_POWERED,   REDSTONE_CROSS_POWERED,    REDSTONE_DUST_L_Q1_POWERED, REDSTONE_DUST_L_Q2_POWERED, REDSTONE_DUST_L_Q3_POWERED, REDSTONE_DUST_L_Q4_POWERED, //
