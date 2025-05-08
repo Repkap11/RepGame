@@ -26,10 +26,10 @@ class RenderLayer {
 class WorkingSpace {
     friend class Chunk;
 
-    int can_be_seen;
-    int visible;
-    int has_been_drawn;
-    int solid;
+    bool can_be_seen;
+    bool visible;
+    bool has_been_drawn;
+    bool solid;
     unsigned int packed_lighting[ NUM_FACES_IN_CUBE ];
 };
 
@@ -53,7 +53,7 @@ class Chunk {
     int needs_repopulation;
     glm::ivec3 chunk_mod;
 
-    int can_extend_rect( BlockState blockState, unsigned int *packed_lighting, WorkingSpace *workingSpace, const glm::ivec3 &starting, const glm::ivec3 &size, const glm::ivec3 &dir );
+    int can_extend_rect( const BlockState &blockState, const unsigned int *packed_lighting, const WorkingSpace *workingSpace, const glm::ivec3 &starting, const glm::ivec3 &size, const glm::ivec3 &dir ) const;
 
   public:
     void init( const VertexBuffer &vb_block_solid, const VertexBuffer &vb_block_water, const VertexBufferLayout &vbl_block, const VertexBufferLayout &vbl_coords );
@@ -65,9 +65,9 @@ class Chunk {
     static int get_coords_from_index_todo( int index, glm::ivec3 &out_pos );
     static int get_coords_from_index( int index, int &out_x, int &out_y, int &out_z );
 
-    void persist( MapStorage &map_storage );
+    void persist( MapStorage &map_storage ) const;
     void destroy( );
-    void set_block( const glm::ivec3 &pos, BlockState blockState );
+    void set_block( const glm::ivec3 &pos, const BlockState &blockState ) const;
     void set_block_by_index_if_different( int index, const BlockState *blockState );
     BlockState get_block( const glm::ivec3 &pos ) const;
     void calculate_populated_blocks( );

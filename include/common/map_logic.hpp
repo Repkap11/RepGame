@@ -1,7 +1,7 @@
 // Included by c and cuda version of map_gen
 BlockID finalBlockId = AIR;
 if ( y < terrainHeight ) {
-    if ( y + DIRT_SURFACE_THCKNESS < terrainHeight ) { // Deep underground
+    if ( y + DIRT_SURFACE_THICKNESS < terrainHeight ) { // Deep underground
         float should_be_iron_ore = MAP_GEN( is_iron_ore_instead_of_stone, x, y, z );
         if ( should_be_iron_ore < 0.05 ) {
             finalBlockId = IRON_ORE;
@@ -25,9 +25,9 @@ if ( y < terrainHeight ) {
         } else if ( terrainHeight < WATER_LEVEL + 0.3 ) {
             float under_water = MAP_GEN( under_water_block, x, z );
             finalBlockId = under_water > 0.5 ? GRAVEL : SAND;
-        } else if ( terrainHeight > MOUNTAN_CAP_HEIGHT ) { // Tall enough to be a mountian
-            float diff = terrainHeight - MOUNTAN_CAP_HEIGHT;
-            float depth_of_dirt = DIRT_SURFACE_THCKNESS - ( diff / 30.0f );
+        } else if ( terrainHeight > MOUNTAIN_CAP_HEIGHT ) { // Tall enough to be a mountian
+            float diff = terrainHeight - MOUNTAIN_CAP_HEIGHT;
+            float depth_of_dirt = DIRT_SURFACE_THICKNESS - ( diff / 30.0f );
             // 0 -> 4
             // 2 -> 3
             // 4 -> 2
@@ -38,14 +38,14 @@ if ( y < terrainHeight ) {
             if ( y + depth_of_dirt < terrainHeight ) { // Not the top block of a mountian
                 finalBlockId = STONE;
             } else { // Surface blocks of mountian
-                float mountian_block = MAP_GEN( mountian_block, x, z );
-                if ( mountian_block * ( terrainHeight - MOUNTAN_CAP_HEIGHT ) > 20 ) {
+                float mountian_block = MAP_GEN( mountains_block, x, z );
+                if ( mountian_block * ( terrainHeight - MOUNTAIN_CAP_HEIGHT ) > 20 ) {
                     if ( y + 1 < terrainHeight ) { // Only snow on very top
                         finalBlockId = DIRT;
                     } else {
                         finalBlockId = SNOW;
                     }
-                } else if ( depth_of_dirt == 1 && mountian_block * ( terrainHeight - MOUNTAN_CAP_HEIGHT ) > 10 ) {
+                } else if ( depth_of_dirt == 1 && mountian_block * ( terrainHeight - MOUNTAIN_CAP_HEIGHT ) > 10 ) {
                     finalBlockId = DIRT;
                 } else {
                     if ( y + 1 < terrainHeight ) { // Only grass on very top

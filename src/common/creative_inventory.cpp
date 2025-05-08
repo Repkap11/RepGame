@@ -1,11 +1,11 @@
 #include "common/RepGame.hpp"
 #include "common/inventory_renderer.hpp"
 
-void CreativeInventory::init( const VertexBufferLayout &ui_overlay_vbl_vertex, const VertexBufferLayout &ui_overlay_vbl_instance, int width, int height ) {
+void CreativeInventory::init( const VertexBufferLayout &ui_overlay_vbl_vertex, const VertexBufferLayout &ui_overlay_vbl_instance, const int width, const int height ) {
     this->width = width;
     this->height = height;
     this->num_blocks_max = width * height;
-    this->slots = ( InventorySlot * )calloc( this->num_blocks_max, sizeof( InventorySlot ) );
+    this->slots = static_cast<InventorySlot *>( calloc( this->num_blocks_max, sizeof( InventorySlot ) ) );
 
     this->inventory_renderer.init( ui_overlay_vbl_vertex, ui_overlay_vbl_instance, width, height );
     this->selected_page = 0;
@@ -16,8 +16,8 @@ void CreativeInventory::incrementSelectedPage( int offset ) {
     this->load_blocks_for_selected_page( );
 }
 
-BlockID CreativeInventory::whichBlockClicked( int screen_x, int screen_y ) {
-    int slot = this->inventory_renderer.whichSlotClicked( screen_x, screen_y );
+BlockID CreativeInventory::whichBlockClicked( const int screen_x, const int screen_y ) {
+    const int slot = this->inventory_renderer.whichSlotClicked( screen_x, screen_y );
     if ( slot < 0 || slot > LAST_BLOCK_ID ) {
         return LAST_BLOCK_ID;
     }
@@ -37,7 +37,7 @@ void CreativeInventory::load_blocks_for_selected_page( ) {
     int i_block = starting_block;
     for ( int y = this->height - 1; y >= 0; y-- ) {
         for ( int x = 0; x < this->width; x++ ) {
-            int i_slot = y * this->width + x;
+            const int i_slot = y * this->width + x;
             InventorySlot &slot = this->slots[ i_slot ];
 
             // bool is_pickable = false;
@@ -48,11 +48,11 @@ void CreativeInventory::load_blocks_for_selected_page( ) {
             // } while ( !is_pickable );
 
             i_block++;
-            BlockID blockId = ( BlockID )i_block;
+            BlockID blockId = static_cast<BlockID>( i_block );
             if ( blockId > LAST_BLOCK_ID ) {
                 blockId = LAST_BLOCK_ID;
             } else {
-                Block *block = block_definition_get_definition( blockId );
+                const Block *block = block_definition_get_definition( blockId );
                 if ( !block->is_pickable ) {
                     blockId = LAST_BLOCK_ID;
                 }

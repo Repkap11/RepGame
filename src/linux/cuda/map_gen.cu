@@ -7,12 +7,12 @@ __device__ float map_gen_hills_cuda( int x, int z ) {
     return ( noise - 0.5f ) * 15;
 }
 
-__device__ float map_gen_ground_noise_cuda( int x, int z ) {
+__device__ float map_gen_ground_noise_cuda( const int x, const int z ) {
     float noise = perlin_noise2d_cuda( x, z, 0.1f, 2, MAP_SEED + 1 );
     return ( noise - 0.5f ) * 2;
 }
 
-__device__ float map_gen_mountians_cuda( int x, int z ) {
+__device__ float map_gen_mountains_cuda( const int x, const int z ) {
     float noise = perlin_noise2d_cuda( x, z, 0.008f, 3, MAP_SEED + 2 );
     noise = noise - 0.5f;
     if ( noise < 0 ) {
@@ -22,17 +22,17 @@ __device__ float map_gen_mountians_cuda( int x, int z ) {
     return mountians;
 }
 
-__device__ float map_gen_mountian_block_cuda( int x, int z ) {
+__device__ float map_gen_mountains_block_cuda( const int x, const int z ) {
     float noise = perlin_noise2d_cuda( x, z, 0.4f, 2, MAP_SEED + 3 );
     return noise;
 }
 
-__device__ float map_gen_under_water_block_cuda( int x, int z ) {
+__device__ float map_gen_under_water_block_cuda( const int x, const int z ) {
     float noise = perlin_noise2d_cuda( x, z, 0.2f, 2, MAP_SEED + 4 );
     return noise;
 }
 
-__device__ float map_gen_level_cuda( int x, int z ) {
+__device__ float map_gen_level_cuda( const int x, const int z ) {
     float noise_orig = perlin_noise2d_cuda( x, z, 0.004f, 2, MAP_SEED + 5 );
     noise_orig = ( noise_orig - 0.5f ) * 10;
     float noise = fabs( noise_orig );
@@ -90,7 +90,7 @@ __global__ void cuda_set_block( BlockState *blocks, int chunk_x, int chunk_y, in
 
         float ground_noise = map_gen_ground_noise_cuda( x, z );
         float hills = map_gen_hills_cuda( x, z );
-        float mountians = map_gen_mountians_cuda( x, z );
+        float mountians = map_gen_mountains_cuda( x, z );
         float level = map_gen_level_cuda( x, z );
         float terrainHeight = level + mountians + hills + ground_noise;
 #include "common/map_logic.hpp"

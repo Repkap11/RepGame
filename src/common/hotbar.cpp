@@ -5,7 +5,7 @@ void Hotbar::init( const VertexBufferLayout &ui_overlay_vbl_vertex, const Vertex
     this->width = width;
     this->height = height;
     this->num_blocks_max = width * height;
-    this->slots = ( InventorySlot * )calloc( this->num_blocks_max, sizeof( InventorySlot ) );
+    this->slots = static_cast<InventorySlot *>( calloc( this->num_blocks_max, sizeof( InventorySlot ) ) );
 
     this->inventory_renderer.init( ui_overlay_vbl_vertex, ui_overlay_vbl_instance, width, height );
     for ( int i_slot = 0; i_slot < this->num_blocks_max; i_slot++ ) {
@@ -27,13 +27,13 @@ void Hotbar::applySavedInventory( const InventorySlot *savedSlots ) {
     }
 }
 
-void Hotbar::saveInventory( InventorySlot *savedSlots ) {
+void Hotbar::saveInventory( InventorySlot *savedSlots ) const {
     for ( int i_slot = 0; i_slot < this->num_blocks_max; i_slot++ ) {
         savedSlots[ i_slot ] = this->slots[ i_slot ];
     }
 }
 
-void Hotbar::onScreenSizeChange( int width, int height ) {
+void Hotbar::onScreenSizeChange( const int width, const int height ) {
     this->inventory_renderer.onSizeChange( width, height, this->slots );
 }
 
@@ -41,21 +41,21 @@ void Hotbar::draw( const Renderer &renderer, const Texture &blocksTexture, const
     this->inventory_renderer.draw( renderer, blocksTexture, shader );
 }
 
-int Hotbar::findOpenSlot( ) {
+int Hotbar::findOpenSlot( ) const {
     for ( int i_slot = 0; i_slot < this->num_blocks_max; i_slot++ ) {
         if ( this->slots[ i_slot ].block_id == LAST_BLOCK_ID )
             return i_slot;
     }
     return -1;
 }
-bool Hotbar::addBlock( bool alsoSelect, BlockID blockId ) {
-    Block *block = block_definition_get_definition( blockId );
-    RenderOrder renderOrder = block->renderOrder;
+bool Hotbar::addBlock( const bool alsoSelect, BlockID blockId ) {
+    const Block *block = block_definition_get_definition( blockId );
+    const RenderOrder renderOrder = block->renderOrder;
     if ( renderOrder == RenderOrder_Transparent || renderOrder == RenderOrder_Water ) {
         // You can't keep transparent blocks or liquid blocks in the inventory
         return false;
     }
-    auto it = this->blockId_to_slot_map.find( blockId );
+    const auto it = this->blockId_to_slot_map.find( blockId );
     int affectedSlot;
     if ( it == this->blockId_to_slot_map.end( ) ) {
         // This is a new block
@@ -79,7 +79,7 @@ bool Hotbar::addBlock( bool alsoSelect, BlockID blockId ) {
     } else {
         // This is an existing block, do nothing for now.
         affectedSlot = it->second;
-        int existingSlot = it->second;
+        // int existingSlot = it->second;
     }
     if ( alsoSelect ) {
         this->setSelectedSlot( affectedSlot );
@@ -92,17 +92,16 @@ BlockID Hotbar::incrementSelectedSlot( int offset ) {
     return this->slots[ this->selected_slot ].block_id;
 }
 
-BlockID Hotbar::getSelectedBlock( ) {
+BlockID Hotbar::getSelectedBlock( ) const {
     return this->slots[ this->selected_slot ].block_id;
 }
-int Hotbar::getSelectedSlot( ) {
+int Hotbar::getSelectedSlot( ) const {
     return this->selected_slot;
 };
 
-void Hotbar::setSelectedSlot( int selected_slot ) {
+void Hotbar::setSelectedSlot( const int selected_slot ) {
     this->selected_slot = selected_slot;
     this->inventory_renderer.setSelectedSlot( this->selected_slot );
-    return;
 }
 BlockID Hotbar::dropSelectedItem( ) {
     InventorySlot &slot = this->slots[ this->selected_slot ];

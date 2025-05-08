@@ -71,18 +71,18 @@ class InventoryRenderer {
     UIOverlayInstance &init_background_cell( float r, float g, float b, float a );
     UIOverlayInstance &init_background_gray_cell( float gray );
     void renderBackground( );
-    void setSize( UIOverlayInstance &vertex, float left, float bottom, float width, float height, float order_z );
-    void fullItemRender( InventorySlot *inventory_slots );
+    static void setSize( UIOverlayInstance &vertex, float left, float bottom, float width, float height, float order_z );
+    void fullItemRender( const InventorySlot *inventory_slots );
     void singleItemRender( int slot_index, const InventorySlot &inventory_slot );
     void selectedSlotRender( );
 
   public:
     InventoryRenderOptions options;
     void init( const VertexBufferLayout &ui_overlay_vbl_vertex, const VertexBufferLayout &ui_overlay_vbl_instance, int width, int height );
-    void onSizeChange( int width, int height, InventorySlot *inventory_slots );
+    void onSizeChange( int width, int height, const InventorySlot *inventory_slots );
     void changeSlotItem( int slot_index, const InventorySlot &slot );
     void setSelectedSlot( int slot_index );
     void draw( const Renderer &renderer, const Texture &blocksTexture, const Shader &shader );
-    int whichSlotClicked( int screen_x, int screen_y );
+    int whichSlotClicked( int screen_x, int screen_y ) const;
     void cleanup( );
 };

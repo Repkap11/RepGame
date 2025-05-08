@@ -53,7 +53,7 @@ void InventoryRenderer::init( const VertexBufferLayout &ui_overlay_vbl_vertex, c
     this->width = width;
     this->height = height;
     this->num_blocks_max = width * height;
-    this->slots_entities = ( entt::entity * )calloc( this->num_blocks_max, sizeof( entt::entity ) );
+    this->slots_entities = static_cast<entt::entity *>( calloc( this->num_blocks_max, sizeof( entt::entity ) ) );
 
     this->vb_max_size = this->num_blocks_max * num_points_per_block * ISOMETRIC_FACES;
     this->ib_max_size = this->num_blocks_max * num_index_per_block * ISOMETRIC_FACES;
@@ -75,9 +75,9 @@ UIOverlayInstance &InventoryRenderer::init_background_gray_cell( float gray ) {
     return this->init_background_cell( gray, gray, gray, 1.0f );
 }
 
-UIOverlayInstance &InventoryRenderer::init_background_cell( float r, float g, float b, float a ) {
-    auto pair = this->render_chain_inventory_background.create_instance( );
-    UIOverlayInstance &ui_vertex = pair.second;
+UIOverlayInstance &InventoryRenderer::init_background_cell( const float r, const float g, const float b, const float a ) {
+    auto [fst, snd ] = this->render_chain_inventory_background.create_instance( );
+    UIOverlayInstance &ui_vertex = snd;
     ui_vertex.tint[ 0 ] = r;
     ui_vertex.tint[ 1 ] = g;
     ui_vertex.tint[ 2 ] = b;
@@ -87,7 +87,7 @@ UIOverlayInstance &InventoryRenderer::init_background_cell( float r, float g, fl
     return ui_vertex;
 }
 
-void InventoryRenderer::onSizeChange( int screen_width, int screen_height, InventorySlot *inventory_slots ) {
+void InventoryRenderer::onSizeChange( const int screen_width, const int screen_height, const InventorySlot *inventory_slots ) {
     this->screen_width = screen_width;
     this->screen_height = screen_height;
     this->inv_height = this->screen_height * this->options.max_height_percent;
@@ -100,11 +100,11 @@ void InventoryRenderer::onSizeChange( int screen_width, int screen_height, Inven
         this->inv_y = -this->inv_height / 2;
     }
 
-    float cell_fraction = 0.9;
+    constexpr float cell_fraction = 0.9;
     // Max stride of each cell.
-    int width_limit = this->inv_width / this->width;
-    int height_limit = this->inv_height * this->options.active_height_percent / this->height;
-    bool height_limited = height_limit < width_limit;
+    const int width_limit = this->inv_width / this->width;
+    const int height_limit = this->inv_height * this->options.active_height_percent / this->height;
+    const bool height_limited = height_limit < width_limit;
     if ( height_limited ) {
         this->inv_items_height = height_limit * this->height;
         this->inv_cell_stride = this->inv_items_height / ( cell_fraction * this->height + ( this->height + 1 ) * ( 1.0f - cell_fraction ) );
@@ -200,7 +200,7 @@ void InventoryRenderer::changeSlotItem( int slot_index, const InventorySlot &slo
     this->singleItemRender( slot_index, slot );
 }
 
-int InventoryRenderer::whichSlotClicked( int screen_x, int screen_y ) {
+int InventoryRenderer::whichSlotClicked( int screen_x, int screen_y ) const {
     // pr_debug( "adjusted_pos:  %d %d", this->screen_width, this->screen_height );
 
     screen_x = screen_x - this->screen_width / 2;
@@ -210,19 +210,19 @@ int InventoryRenderer::whichSlotClicked( int screen_x, int screen_y ) {
 
     // pr_debug( "inv_items:  %d %d", this->inv_items_x, this->inv_items_y );
 
-    int cell_start_x = this->inv_items_x + this->inv_cell_offset;
-    int cell_start_y = this->inv_items_y + this->inv_cell_offset;
-    int cell_offset_x = screen_x - cell_start_x;
-    int cell_offset_y = screen_y - cell_start_y;
+    const int cell_start_x = this->inv_items_x + this->inv_cell_offset;
+    const int cell_start_y = this->inv_items_y + this->inv_cell_offset;
+    const int cell_offset_x = screen_x - cell_start_x;
+    const int cell_offset_y = screen_y - cell_start_y;
     if ( cell_offset_x < 0 || cell_offset_y < 0 ) {
         // pr_debug( "Coord too low" );
         return -1;
     }
-    int block_grid_coord_x = cell_offset_x / this->inv_cell_stride;
-    int block_grid_coord_y = cell_offset_y / this->inv_cell_stride;
+    const int block_grid_coord_x = cell_offset_x / this->inv_cell_stride;
+    const int block_grid_coord_y = cell_offset_y / this->inv_cell_stride;
 
-    float remaining_x = cell_offset_x - block_grid_coord_x * this->inv_cell_stride;
-    float remaining_y = cell_offset_y - block_grid_coord_y * this->inv_cell_stride;
+    const float remaining_x = cell_offset_x - block_grid_coord_x * this->inv_cell_stride;
+    const float remaining_y = cell_offset_y - block_grid_coord_y * this->inv_cell_stride;
     if ( remaining_x > this->inv_cell_size || remaining_y > this->inv_cell_size ) {
         // pr_debug( "Coord goes into border" );
         return -1;
@@ -333,7 +333,7 @@ void InventoryRenderer::singleItemRender( int slot_index, const InventorySlot &i
     this->render_chain_inventory_icons.invalidate( slot_entity );
 }
 
-void InventoryRenderer::fullItemRender( InventorySlot *inventory_slots ) {
+void InventoryRenderer::fullItemRender( const InventorySlot *inventory_slots ) {
     for ( int slot_index = 0; slot_index < this->num_blocks_max; slot_index++ ) {
         const InventorySlot &inventory_slot = inventory_slots[ slot_index ];
         this->singleItemRender( slot_index, inventory_slot );

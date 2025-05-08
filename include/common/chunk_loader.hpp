@@ -30,9 +30,9 @@ class ChunkLoader {
     void init( const glm::vec3 &camera_pos, const VertexBufferLayout &vbl_block, const VertexBufferLayout &vbl_coords, MapStorage &map_storage );
     void render_chunks( Multiplayer &multiplayer, const glm::vec3 &camera_pos, int limit_render );
     void repopulate_blocks( );
-    void calculate_cull( const glm::mat4 &mvp, bool saveAsReflection );
+    void calculate_cull( const glm::mat4 &mvp, bool saveAsReflection ) const;
     void draw( const glm::mat4 &mvp, const Renderer &renderer, const Texture &texture, bool reflect_only, bool draw_reflect );
-    Chunk *get_chunk( const glm::ivec3 &pointed );
+    Chunk *get_chunk( const glm::ivec3 &pointed ) const;
     void cleanup( MapStorage &map_storage );
 };
 

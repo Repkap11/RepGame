@@ -8,13 +8,13 @@ struct RepGameState;
 
 class BlockUpdateOrderCompare {
   public:
-    bool operator( )( std::shared_ptr<BlockUpdateEvent> a, std::shared_ptr<BlockUpdateEvent> b );
+    bool operator( )( const std::shared_ptr<BlockUpdateEvent> &a, const std::shared_ptr<BlockUpdateEvent> &b ) const;
 };
 
 class BlockUpdateQueue {
   public:
     BlockUpdateQueue( );
-    void addBlockUpdate( std::shared_ptr<BlockUpdateEvent> event );
+    void addBlockUpdate( const std::shared_ptr<BlockUpdateEvent> &event );
     void processAllBlockUpdates( RepGameState &repGameState, long tick_number );
 
   private:

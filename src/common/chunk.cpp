@@ -4,7 +4,7 @@
 #include "common/utils/map_storage.hpp"
 #include "common/structure_gen.hpp"
 
-static unsigned int ib_data_flowers[] = {
+constexpr static unsigned int ib_data_flowers[] = {
     14, 0, 13, // Right, Back, Right
     13, 0, 14, //
     14, 0, 3,  // Right, Back, Back
@@ -20,8 +20,8 @@ void Chunk::calculate_sides( const glm::ivec3 &center_next ) {
     unsigned int *chunk_ib_data[ LAST_RENDER_ORDER ];
     unsigned int *chunk_ib_data_reflect[ LAST_RENDER_ORDER ];
     for ( int renderOrder = 0; renderOrder < LAST_RENDER_ORDER; renderOrder++ ) {
-        chunk_ib_data[ renderOrder ] = ( unsigned int * )malloc( render_order_ib_size( ( RenderOrder )renderOrder ) * sizeof( unsigned int ) );
-        chunk_ib_data_reflect[ renderOrder ] = ( unsigned int * )malloc( render_order_ib_size( ( RenderOrder )renderOrder ) * sizeof( unsigned int ) );
+        chunk_ib_data[ renderOrder ] = static_cast<unsigned int *>( malloc( render_order_ib_size( static_cast<RenderOrder>( renderOrder ) ) * sizeof( unsigned int ) ) );
+        chunk_ib_data_reflect[ renderOrder ] = static_cast<unsigned int *>( malloc( render_order_ib_size( static_cast<RenderOrder>( renderOrder ) ) * sizeof( unsigned int ) ) );
     }
     int ib_size[ LAST_RENDER_ORDER ] = { 0 };
 
@@ -50,45 +50,45 @@ void Chunk::calculate_sides( const glm::ivec3 &center_next ) {
         chunk_ib_data[ RenderOrder_Translucent ][ ib_size[ RenderOrder_Translucent ]++ ] = ib_data_solid[ 12 * FACE_BOTTOM + i ];
     }
 
-    int visable_top = this->chunk_pos.y <= center_next.y;
-    int visable_bottom = this->chunk_pos.y >= center_next.y;
-    int visable_right = this->chunk_pos.x <= center_next.x;
-    int visable_left = this->chunk_pos.x >= center_next.x;
-    int visable_front = this->chunk_pos.z <= center_next.z;
-    int visable_back = this->chunk_pos.z >= center_next.z;
+    const bool visible_top = this->chunk_pos.y <= center_next.y;
+    const bool visible_bottom = this->chunk_pos.y >= center_next.y;
+    const bool visible_right = this->chunk_pos.x <= center_next.x;
+    const bool visible_left = this->chunk_pos.x >= center_next.x;
+    const bool visible_front = this->chunk_pos.z <= center_next.z;
+    const bool visible_back = this->chunk_pos.z >= center_next.z;
 
-    if ( visable_front ) {
+    if ( visible_front ) {
         for ( int i = 0; i < 12; i++ ) {
             chunk_ib_data_reflect[ RenderOrder_Opaque ][ ib_size[ RenderOrder_Opaque ] ] = ib_data_solid[ 12 * FACE_FRONT + i ];
             chunk_ib_data[ RenderOrder_Opaque ][ ib_size[ RenderOrder_Opaque ]++ ] = ib_data_solid[ 12 * FACE_FRONT + i ];
         }
     }
-    if ( visable_right ) {
+    if ( visible_right ) {
         for ( int i = 0; i < 12; i++ ) {
             chunk_ib_data_reflect[ RenderOrder_Opaque ][ ib_size[ RenderOrder_Opaque ] ] = ib_data_solid[ 12 * FACE_RIGHT + i ];
             chunk_ib_data[ RenderOrder_Opaque ][ ib_size[ RenderOrder_Opaque ]++ ] = ib_data_solid[ 12 * FACE_RIGHT + i ];
         }
     }
-    if ( visable_back ) {
+    if ( visible_back ) {
         for ( int i = 0; i < 12; i++ ) {
             chunk_ib_data_reflect[ RenderOrder_Opaque ][ ib_size[ RenderOrder_Opaque ] ] = ib_data_solid[ 12 * FACE_BACK + i ];
             chunk_ib_data[ RenderOrder_Opaque ][ ib_size[ RenderOrder_Opaque ]++ ] = ib_data_solid[ 12 * FACE_BACK + i ];
         }
     }
-    if ( visable_left ) {
+    if ( visible_left ) {
         for ( int i = 0; i < 12; i++ ) {
             chunk_ib_data_reflect[ RenderOrder_Opaque ][ ib_size[ RenderOrder_Opaque ] ] = ib_data_solid[ 12 * FACE_LEFT + i ];
             chunk_ib_data[ RenderOrder_Opaque ][ ib_size[ RenderOrder_Opaque ]++ ] = ib_data_solid[ 12 * FACE_LEFT + i ];
         }
     }
-    if ( visable_top ) {
+    if ( visible_top ) {
         for ( int i = 0; i < 12; i++ ) {
             chunk_ib_data_reflect[ RenderOrder_Opaque ][ ib_size[ RenderOrder_Opaque ] ] = ib_data_solid[ 12 * FACE_BOTTOM + i ];
             chunk_ib_data[ RenderOrder_Opaque ][ ib_size[ RenderOrder_Opaque ]++ ] = ib_data_solid[ 12 * FACE_TOP + i ];
             chunk_ib_data[ RenderOrder_Water ][ ib_size[ RenderOrder_Water ]++ ] = ib_data_water[ 12 * IB_POSITION_WATER_TOP + i ];
         }
     }
-    if ( visable_bottom ) {
+    if ( visible_bottom ) {
         for ( int i = 0; i < 12; i++ ) {
             chunk_ib_data_reflect[ RenderOrder_Opaque ][ ib_size[ RenderOrder_Opaque ] ] = ib_data_solid[ 12 * FACE_TOP + i ];
             chunk_ib_data[ RenderOrder_Opaque ][ ib_size[ RenderOrder_Opaque ]++ ] = ib_data_solid[ 12 * FACE_BOTTOM + i ];
@@ -97,13 +97,13 @@ void Chunk::calculate_sides( const glm::ivec3 &center_next ) {
     }
 
     for ( int renderOrder = 1; renderOrder < LAST_RENDER_ORDER; renderOrder++ ) {
-        unsigned int *ib_data = chunk_ib_data[ renderOrder ];
-        unsigned int *ib_data_reflect = chunk_ib_data_reflect[ renderOrder ];
+        const unsigned int *ib_data = chunk_ib_data[ renderOrder ];
+        const unsigned int *ib_data_reflect = chunk_ib_data_reflect[ renderOrder ];
         unsigned int ib_new_size = ib_size[ renderOrder ];
         if ( renderOrder == RenderOrder_Flowers ) {
             ib_data = ib_data_flowers;
             ib_data_reflect = ib_data_flowers;
-            ib_new_size = render_order_ib_size( ( RenderOrder )renderOrder );
+            ib_new_size = render_order_ib_size( static_cast<RenderOrder>( renderOrder ) );
         } else if ( renderOrder == RenderOrder_Opaque || renderOrder == RenderOrder_Water || renderOrder == RenderOrder_Translucent ) {
         } else {
             pr_debug( "Unexpected index buffer. Crash likely on WASM ro:%d", renderOrder );
@@ -116,12 +116,12 @@ void Chunk::calculate_sides( const glm::ivec3 &center_next ) {
     }
 }
 
-int Chunk::get_coords_from_index( int index, int &out_x, int &out_y, int &out_z ) {
-    int y = ( index / ( CHUNK_SIZE_INTERNAL_Z * CHUNK_SIZE_INTERNAL_X ) ) - 1;
-    int x = ( ( index / CHUNK_SIZE_INTERNAL_Z ) % CHUNK_SIZE_INTERNAL_X ) - 1;
-    int z = ( index % ( CHUNK_SIZE_INTERNAL_Z ) ) - 1;
+int Chunk::get_coords_from_index( const int index, int &out_x, int &out_y, int &out_z ) {
+    const int y = ( index / ( CHUNK_SIZE_INTERNAL_Z * CHUNK_SIZE_INTERNAL_X ) ) - 1;
+    const int x = ( ( index / CHUNK_SIZE_INTERNAL_Z ) % CHUNK_SIZE_INTERNAL_X ) - 1;
+    const int z = ( index % ( CHUNK_SIZE_INTERNAL_Z ) ) - 1;
     // return 1;
-    int result = x >= 0 && y >= 0 && z >= 0 && x < CHUNK_SIZE_X && y < CHUNK_SIZE_Y && z < CHUNK_SIZE_Z;
+    const int result = x >= 0 && y >= 0 && z >= 0 && x < CHUNK_SIZE_X && y < CHUNK_SIZE_Y && z < CHUNK_SIZE_Z;
     out_x = x;
     out_y = y;
     out_z = z;
@@ -129,8 +129,8 @@ int Chunk::get_coords_from_index( int index, int &out_x, int &out_y, int &out_z 
 }
 
 void Chunk::init( const VertexBuffer &vb_block_solid, const VertexBuffer &vb_block_water, const VertexBufferLayout &vbl_block, const VertexBufferLayout &vbl_coords ) {
-    if ( REMEMBER_BLOCKS ) {
-        this->blocks = ( BlockState * )calloc( CHUNK_BLOCK_SIZE, sizeof( BlockState ) );
+    if constexpr ( REMEMBER_BLOCKS ) {
+        this->blocks = static_cast<BlockState *>( calloc( CHUNK_BLOCK_SIZE, sizeof( BlockState ) ) );
     }
 
     for ( int renderOrder = 0; renderOrder < LAST_RENDER_ORDER; renderOrder++ ) {
@@ -155,16 +155,16 @@ void Chunk::init( const VertexBuffer &vb_block_solid, const VertexBuffer &vb_blo
 }
 
 void Chunk::destroy( ) {
-    if ( REMEMBER_BLOCKS ) {
+    if constexpr ( REMEMBER_BLOCKS ) {
         free( this->blocks );
     }
 
-    for ( int renderOrder = 0; renderOrder < LAST_RENDER_ORDER; renderOrder++ ) {
-        if ( this->layers[ renderOrder ].populated_blocks ) {
-            free( this->layers[ renderOrder ].populated_blocks );
+    for ( RenderLayer &layer : this->layers ) {
+        if ( layer.populated_blocks ) {
+            free( layer.populated_blocks );
         }
-        RenderLayer &renderLayer = this->layers[ renderOrder ];
-        renderLayer.populated_blocks = 0;
+        RenderLayer &renderLayer = layer;
+        renderLayer.populated_blocks = nullptr;
         renderLayer.ib.destroy( );
         renderLayer.ib_reflect.destroy( );
         renderLayer.vb_coords.destroy( );
@@ -197,10 +197,10 @@ void Chunk::draw( const Renderer &renderer, const Texture &texture, const Shader
 }
 
 BlockState Chunk::get_block( const glm::ivec3 &pos ) const {
-    if ( !REMEMBER_BLOCKS ) {
+    if constexpr ( !REMEMBER_BLOCKS ) {
         return BLOCK_STATE_AIR;
     }
-    if ( this->blocks == NULL ) {
+    if ( this->blocks == nullptr ) {
         // pr_debug("Chunk has no blocks");
         return BLOCK_STATE_LAST_BLOCK_ID;
     }
@@ -217,8 +217,8 @@ BlockState Chunk::get_block( const glm::ivec3 &pos ) const {
     return this->blocks[ get_index_from_coords( pos ) ];
 }
 
-void Chunk::set_block( const glm::ivec3 &pos, BlockState blockState ) {
-    if ( this->blocks == NULL ) {
+void Chunk::set_block( const glm::ivec3 &pos, const BlockState &blockState ) const {
+    if ( this->blocks == nullptr ) {
         // pr_debug("Chunk has no blocks");
         return;
     }
@@ -247,8 +247,8 @@ void Chunk::set_block_by_index_if_different( int index, const BlockState *blockS
     this->needs_repopulation = true;
 }
 
-void Chunk::persist( MapStorage &map_storage ) {
-    if ( REMEMBER_BLOCKS ) {
+void Chunk::persist( MapStorage &map_storage ) const {
+    if constexpr ( REMEMBER_BLOCKS ) {
         map_storage.persist_chunk( *this );
     }
 }
@@ -256,13 +256,13 @@ void Chunk::persist( MapStorage &map_storage ) {
 int firstTime = 1;
 
 void Chunk::load_terrain( MapStorage &map_storage ) {
-    if ( !REMEMBER_BLOCKS ) {
-        this->blocks = ( BlockState * )calloc( CHUNK_BLOCK_SIZE, sizeof( BlockState ) );
+    if constexpr ( !REMEMBER_BLOCKS ) {
+        this->blocks = static_cast<BlockState *>( calloc( CHUNK_BLOCK_SIZE, sizeof( BlockState ) ) );
     }
     // pr_debug( "Loading chunk terrain x:%d y:%d z:%d", this->chunk_x, this->chunk_y, this->chunk_z );
-    int loaded = map_storage.load_chunk( *this );
+    const int loaded = map_storage.load_chunk( *this );
     if ( !loaded ) {
-        // We havn't loaded this chunk before, map gen it.
+        // We haven't loaded this chunk before, map gen it.
         if ( LOAD_CHUNKS_SUPPORTS_CUDA && MapGen::supports_cuda( ) ) {
             if ( firstTime ) {
                 firstTime = 0;
@@ -282,8 +282,8 @@ void Chunk::load_terrain( MapStorage &map_storage ) {
     this->calculate_populated_blocks( );
 }
 
-int Chunk::can_extend_rect( BlockState blockState, unsigned int *packed_lighting, WorkingSpace *workingSpace, const glm::ivec3 &starting, const glm::ivec3 &size, const glm::ivec3 &dir ) {
-    if ( DISABLE_GROUPING_BLOCKS ) {
+int Chunk::can_extend_rect( const BlockState &blockState, const unsigned int *packed_lighting, const WorkingSpace *workingSpace, const glm::ivec3 &starting, const glm::ivec3 &size, const glm::ivec3 &dir ) const {
+    if constexpr ( DISABLE_GROUPING_BLOCKS ) {
         return 0;
     }
     if ( starting.x + size.x + dir.x > CHUNK_SIZE_X )
@@ -304,7 +304,7 @@ int Chunk::can_extend_rect( BlockState blockState, unsigned int *packed_lighting
     for ( int new_x = starting.x; new_x < starting.x + size.x; new_x++ ) {
         for ( int new_y = starting.y; new_y < starting.y + size.y; new_y++ ) {
             for ( int new_z = starting.z; new_z < starting.z + size.z; new_z++ ) {
-                int index = Chunk::get_index_from_coords( new_x + dir.x, new_y + dir.y, new_z + dir.z );
+                const int index = Chunk::get_index_from_coords( new_x + dir.x, new_y + dir.y, new_z + dir.z );
                 num_checked_blocks++;
                 if ( workingSpace[ index ].has_been_drawn ) {
                     return 0;
@@ -331,14 +331,14 @@ int Chunk::can_extend_rect( BlockState blockState, unsigned int *packed_lighting
     return 1;
 }
 
-inline int min( int a, int b, int c, int d ) {
-    int diag1 = ( a ) + ( d );
-    int diag2 = ( b ) + ( c );
-    int result = ( diag1 < diag2 ? diag1 : diag2 );
+inline int min( const int a, const int b, const int c, const int d ) {
+    const int diag1 = ( a ) + ( d );
+    const int diag2 = ( b ) + ( c );
+    const int result = ( diag1 < diag2 ? diag1 : diag2 );
     return result;
 }
 
-inline int get_rotated_face( int face, int rotation ) {
+inline int get_rotated_face( const int face, const int rotation ) {
     int result = face;
     for ( int i = 0; i < rotation; i++ ) {
         result = FACE_ROTATE_90[ result ];
@@ -349,18 +349,17 @@ inline int get_rotated_face( int face, int rotation ) {
 void Chunk::calculate_populated_blocks( ) {
     int num_instances[ LAST_RENDER_ORDER ] = { 0 };
 
-    for ( int renderOrder = 0; renderOrder < LAST_RENDER_ORDER; renderOrder++ ) {
-        if ( this->layers[ renderOrder ].populated_blocks ) {
+    for ( RenderLayer &layer : this->layers ) {
+        if ( layer.populated_blocks ) {
             pr_debug( "Error, populated blocks already populated" );
         }
-        this->layers[ renderOrder ].populated_blocks = ( BlockCoords * )calloc( CHUNK_BLOCK_SIZE, sizeof( BlockCoords ) );
+        layer.populated_blocks = static_cast<BlockCoords *>( calloc( CHUNK_BLOCK_SIZE, sizeof( BlockCoords ) ) );
     }
-    WorkingSpace *workingSpace = ( WorkingSpace * )calloc( CHUNK_BLOCK_SIZE, sizeof( WorkingSpace ) );
+    WorkingSpace *workingSpace = static_cast<WorkingSpace *>( calloc( CHUNK_BLOCK_SIZE, sizeof( WorkingSpace ) ) );
 
     for ( int index = CHUNK_BLOCK_DRAW_START; index < CHUNK_BLOCK_DRAW_STOP; index++ ) {
         int x, y, z;
-        int drawn_block = Chunk::get_coords_from_index( index, x, y, z );
-        if ( drawn_block ) {
+        if ( Chunk::get_coords_from_index( index, x, y, z ) ) {
             BlockState blockState = this->blocks[ index ];
             BlockID blockID = blockState.id;
             Block *block = block_definition_get_definition( blockID );
@@ -371,7 +370,7 @@ void Chunk::calculate_populated_blocks( ) {
                 int block_is_visiable = 0;
                 int visible_from[ NUM_FACES_IN_CUBE ] = { 0, 0, 0, 0, 0, 0 };
                 for ( int face = FACE_TOP; face < NUM_FACES_IN_CUBE; face++ ) {
-                    int rotated_face = get_rotated_face(face, blockState.rotation);
+                    int rotated_face = get_rotated_face( face, blockState.rotation );
                     BlockState block_next_to_state = this->blocks[ get_index_from_coords( x + FACE_DIR_X_OFFSETS[ face ], y + FACE_DIR_Y_OFFSETS[ face ], z + FACE_DIR_Z_OFFSETS[ face ] ) ];
 
                     Block *block_next_to = block_definition_get_definition( block_next_to_state.id );
@@ -397,8 +396,7 @@ void Chunk::calculate_populated_blocks( ) {
                             Block *block_around = block_definition_get_definition( block_around_state.id );
                             int around_face = get_rotated_face( face_around, block_around_state.rotation );
                             around_face = OPPOSITE_FACE[ around_face ];
-                            bool visible_towards_me = block_around->calculated.is_seethrough_face[ around_face ];
-                            if ( visible_towards_me ) {
+                            if ( block_around->calculated.is_seethrough_face[ around_face ] ) {
                                 visable_through_opposing = true;
                                 break;
                             }
@@ -411,8 +409,8 @@ void Chunk::calculate_populated_blocks( ) {
                     }
                     block_is_visiable |= visible_from[ face ];
                 }
-                int can_be_shaded = render_order_can_be_shaded( block->renderOrder );
                 {
+                    int can_be_shaded = render_order_can_be_shaded( block->renderOrder );
 
                     // 1 Offset
                     int xplus = x + 1;
@@ -563,7 +561,7 @@ void Chunk::calculate_populated_blocks( ) {
                 }
                 workingSpace[ index ].can_be_seen = block_is_visiable;
             } else {
-                workingSpace[ index ].can_be_seen = 0;
+                workingSpace[ index ].can_be_seen = false;
             }
         }
     }
@@ -578,9 +576,9 @@ void Chunk::calculate_populated_blocks( ) {
                     // if ( blockState.display_id == REDSTONE_CROSS ) {
                     //     pr_debug( "Got cross" );
                     // }
-                    int visiable_block = workingSpace[ index ].visible;
-                    int can_be_seen = workingSpace[ index ].can_be_seen;
-                    int has_been_drawn = workingSpace[ index ].has_been_drawn;
+                    bool visiable_block = workingSpace[ index ].visible;
+                    bool can_be_seen = workingSpace[ index ].can_be_seen;
+                    bool has_been_drawn = workingSpace[ index ].has_been_drawn;
                     unsigned int *packed_lighting = workingSpace[ index ].packed_lighting;
 
                     if ( visiable_block && can_be_seen && !has_been_drawn ) {
@@ -588,8 +586,8 @@ void Chunk::calculate_populated_blocks( ) {
                         int block_can_mesh_x;
                         int block_can_mesh_y;
                         int block_can_mesh_z;
-    
-                        if (blockState.rotation == BLOCK_ROTATE_0 || blockState.rotation == BLOCK_ROTATE_180){
+
+                        if ( blockState.rotation == BLOCK_ROTATE_0 || blockState.rotation == BLOCK_ROTATE_180 ) {
                             block_can_mesh_x = block->calculated.can_mesh_x;
                             block_can_mesh_y = block->calculated.can_mesh_y;
                             block_can_mesh_z = block->calculated.can_mesh_z;
@@ -638,12 +636,12 @@ void Chunk::calculate_populated_blocks( ) {
                         for ( int new_x = x; new_x < x + size_x; new_x++ ) {
                             for ( int new_z = z; new_z < z + size_z; new_z++ ) {
                                 for ( int new_y = y; new_y < y + size_y; new_y++ ) {
-                                    int index = get_index_from_coords( new_x, new_y, new_z );
-                                    workingSpace[ index ].has_been_drawn = 1;
+                                    int index2 = get_index_from_coords( new_x, new_y, new_z );
+                                    workingSpace[ index2 ].has_been_drawn = true;
                                 }
                             }
                         }
-                        workingSpace[ index ].has_been_drawn = 1;
+                        workingSpace[ index ].has_been_drawn = true;
 
                         BlockCoords *blockCoord;
 
@@ -686,7 +684,7 @@ void Chunk::calculate_populated_blocks( ) {
     }
     free( workingSpace );
 
-    if ( !REMEMBER_BLOCKS ) {
+    if constexpr ( !REMEMBER_BLOCKS ) {
         free( this->blocks );
     }
     for ( int renderOrder = 0; renderOrder < LAST_RENDER_ORDER; renderOrder++ ) {
@@ -702,7 +700,7 @@ void Chunk::program_terrain( ) {
             this->should_render = 1;
         }
         free( renderLayer.populated_blocks );
-        renderLayer.populated_blocks = 0;
+        renderLayer.populated_blocks = nullptr;
     }
 }
 
@@ -713,6 +711,6 @@ void Chunk::unprogram_terrain( ) {
         if ( renderLayer.populated_blocks ) {
             free( renderLayer.populated_blocks );
         }
-        renderLayer.populated_blocks = 0;
+        renderLayer.populated_blocks = nullptr;
     }
 }

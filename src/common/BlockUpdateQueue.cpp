@@ -1,13 +1,13 @@
 #include "common/RepGame.hpp"
 #include "common/BlockUpdateQueue.hpp"
 
-BlockUpdateQueue::BlockUpdateQueue( ) {
+BlockUpdateQueue::BlockUpdateQueue( ) : current_tick( 0 ) {
 }
-void BlockUpdateQueue::addBlockUpdate( std::shared_ptr<BlockUpdateEvent> event ) {
+void BlockUpdateQueue::addBlockUpdate( const std::shared_ptr<BlockUpdateEvent> &event ) {
     this->pending_events.push( event );
 }
 
-void BlockUpdateQueue::processAllBlockUpdates( RepGameState &repGameState, long tick_number ) {
+void BlockUpdateQueue::processAllBlockUpdates( RepGameState &repGameState, const long tick_number ) {
     int num_events = 0;
     this->current_tick = tick_number;
     while ( !this->pending_events.empty( ) ) {
@@ -25,8 +25,8 @@ void BlockUpdateQueue::processAllBlockUpdates( RepGameState &repGameState, long 
     }
 }
 
-bool BlockUpdateOrderCompare::operator( )( std::shared_ptr<BlockUpdateEvent> a, std::shared_ptr<BlockUpdateEvent> b ) {
+bool BlockUpdateOrderCompare::operator( )( const std::shared_ptr<BlockUpdateEvent> &a, const std::shared_ptr<BlockUpdateEvent> &b ) const {
     return a->tick_number > b->tick_number;
 }
 
-BlockUpdateEvent::BlockUpdateEvent( long tick_number ) : tick_number( tick_number ) {};
+BlockUpdateEvent::BlockUpdateEvent( const long tick_number ) : tick_number( tick_number ) {};

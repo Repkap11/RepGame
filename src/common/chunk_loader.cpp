@@ -11,8 +11,8 @@
 MK_SHADER( chunk_vertex );
 MK_SHADER( chunk_fragment );
 
-int mod( int x, int N ) {
-    int result = ( x % N + N ) % N;
+int mod( const int x, const int N ) {
+    const int result = ( x % N + N ) % N;
     if ( result < 0 ) {
         pr_debug( "Bad Mod:%d", result );
     }
@@ -20,31 +20,30 @@ int mod( int x, int N ) {
 }
 int ChunkLoader::reload_if_out_of_bounds( Chunk &chunk, const glm::ivec3 &chunk_pos ) {
 
-    int new_chunk_x = ( int )floorf( ( ( float )( chunk_pos.x - chunk.chunk_mod.x + CHUNK_RADIUS_X ) ) / ( ( float )( CHUNK_RADIUS_X * 2 + 1 ) ) ) * ( CHUNK_RADIUS_X * 2 + 1 ) + chunk.chunk_mod.x;
-    int new_chunk_y = ( int )floorf( ( ( float )( chunk_pos.y - chunk.chunk_mod.y + CHUNK_RADIUS_Y ) ) / ( ( float )( CHUNK_RADIUS_Y * 2 + 1 ) ) ) * ( CHUNK_RADIUS_Y * 2 + 1 ) + chunk.chunk_mod.y;
-    int new_chunk_z = ( int )floorf( ( ( float )( chunk_pos.z - chunk.chunk_mod.z + CHUNK_RADIUS_Z ) ) / ( ( float )( CHUNK_RADIUS_Z * 2 + 1 ) ) ) * ( CHUNK_RADIUS_Z * 2 + 1 ) + chunk.chunk_mod.z;
-    int changed = new_chunk_x != chunk.chunk_pos.x || new_chunk_y != chunk.chunk_pos.y || new_chunk_z != chunk.chunk_pos.z;
+    const int new_chunk_x = static_cast<int>( floorf( static_cast<float>( chunk_pos.x - chunk.chunk_mod.x + CHUNK_RADIUS_X ) / static_cast<float>( ( CHUNK_RADIUS_X * 2 + 1 ) ) ) ) * ( CHUNK_RADIUS_X * 2 + 1 ) + chunk.chunk_mod.x;
+    const int new_chunk_y = static_cast<int>( floorf( static_cast<float>( chunk_pos.y - chunk.chunk_mod.y + CHUNK_RADIUS_Y ) / static_cast<float>( ( CHUNK_RADIUS_Y * 2 + 1 ) ) ) ) * ( CHUNK_RADIUS_Y * 2 + 1 ) + chunk.chunk_mod.y;
+    const int new_chunk_z = static_cast<int>( floorf( static_cast<float>( chunk_pos.z - chunk.chunk_mod.z + CHUNK_RADIUS_Z ) / static_cast<float>( ( CHUNK_RADIUS_Z * 2 + 1 ) ) ) ) * ( CHUNK_RADIUS_Z * 2 + 1 ) + chunk.chunk_mod.z;
+    const int changed = new_chunk_x != chunk.chunk_pos.x || new_chunk_y != chunk.chunk_pos.y || new_chunk_z != chunk.chunk_pos.z;
     if ( changed ) {
         chunk.unprogram_terrain( );
         chunk.is_loading = 1;
-        glm::ivec3 new_chunk = glm::ivec3( new_chunk_x, new_chunk_y, new_chunk_z );
+        const glm::ivec3 new_chunk = glm::ivec3( new_chunk_x, new_chunk_y, new_chunk_z );
         this->terrain_loading_thread.enqueue( &chunk, new_chunk, 1 );
     }
     return changed;
 }
 
 void ChunkLoader::init( const glm::vec3 &camera_pos, const VertexBufferLayout &vbl_block, const VertexBufferLayout &vbl_coords, MapStorage &map_storage ) {
-    int status = this->terrain_loading_thread.start( map_storage );
-    if ( status ) {
+    if ( this->terrain_loading_thread.start( map_storage ) ) {
         pr_debug( "Terrain loading thread failed to start." );
     }
-    this->chunkArray = ( Chunk * )calloc( MAX_LOADED_CHUNKS, sizeof( Chunk ) );
+    this->chunkArray = static_cast<Chunk *>( calloc( MAX_LOADED_CHUNKS, sizeof( Chunk ) ) );
     showErrors( );
     // pr_debug( "Num Total Chunks:%d", MAX_LOADED_CHUNKS );
 
     Shader &shader = this->shader;
     shader.init( &chunk_vertex, &chunk_fragment );
-    if ( !DEBUG_CYCLE_AUTO_ROTATING_BLOCKS ) {
+    if constexpr ( !DEBUG_CYCLE_AUTO_ROTATING_BLOCKS ) {
         shader.set_uniform1f( "u_ShowRotation", -2 );
     }
 
@@ -54,8 +53,8 @@ void ChunkLoader::init( const glm::vec3 &camera_pos, const VertexBufferLayout &v
     this->water.vb_block.init( );
     this->water.vb_block.set_data( vd_data_water, sizeof( CubeFace ) * VB_DATA_SIZE_WATER );
 
-    VertexBuffer &vb_block_solid = this->solid.vb_block;
-    VertexBuffer &vb_block_water = this->water.vb_block;
+    const VertexBuffer &vb_block_solid = this->solid.vb_block;
+    const VertexBuffer &vb_block_water = this->water.vb_block;
     for ( int i = 0; i < MAX_LOADED_CHUNKS; i++ ) {
         this->chunkArray[ i ].init( vb_block_solid, vb_block_water, vbl_block, vbl_coords );
     }
@@ -104,14 +103,14 @@ void ChunkLoader::init( const glm::vec3 &camera_pos, const VertexBufferLayout &v
     }
 }
 
-Chunk *ChunkLoader::get_chunk( const glm::ivec3 &chunk_pos ) {
+Chunk *ChunkLoader::get_chunk( const glm::ivec3 &chunk_pos ) const {
     for ( int i = 0; i < MAX_LOADED_CHUNKS; i++ ) {
         Chunk &chunk = this->chunkArray[ i ];
         if ( chunk.chunk_pos.x == chunk_pos.x && chunk.chunk_pos.y == chunk_pos.y && chunk.chunk_pos.z == chunk_pos.z ) {
             return &chunk;
         }
     }
-    return NULL;
+    return nullptr;
 }
 
 inline int ChunkLoader::process_chunk_position( Chunk &chunk, const glm::ivec3 &chunk_diff, const glm::ivec3 &center_previous, const glm::ivec3 &center_next, int force_reload ) {
@@ -193,14 +192,14 @@ void ChunkLoader::render_chunks( Multiplayer &multiplayer, const glm::vec3 &came
 // float chunk_diameter = ( CHUNK_SIZE + 1 ) * 1.73205080757; // sqrt(3)
 float chunk_diameter = ( CHUNK_SIZE_Z + 1 ) * 1.73205080757; // sqrt(3)
 
-void ChunkLoader::calculate_cull( const glm::mat4 &mvp, bool saveAsReflection ) {
+void ChunkLoader::calculate_cull( const glm::mat4 &mvp, const bool saveAsReflection ) const {
     for ( int i = 0; i < MAX_LOADED_CHUNKS; i++ ) {
-        int final_is_visiable = 1;
+        int final_is_visible;
         Chunk *chunk = &this->chunkArray[ i ];
-        if ( CULL_NON_VISIBLE ) {
+        if constexpr ( CULL_NON_VISIBLE ) {
             glm::vec4 chunk_coords = glm::vec4( chunk->chunk_pos * CHUNK_SIZE_I + CHUNK_SIZE_I / 2, 1 );
             glm::vec4 result_v = mvp * chunk_coords;
-            float adjusted_diameter = chunk_diameter / fabsf( result_v.w );
+            const float adjusted_diameter = chunk_diameter / fabsf( result_v.w );
 
             result_v.x /= result_v.w;
             result_v.y /= result_v.w;
@@ -208,15 +207,15 @@ void ChunkLoader::calculate_cull( const glm::mat4 &mvp, bool saveAsReflection ) 
             if ( fabsf( result_v.x ) > 1 + adjusted_diameter || //
                  fabsf( result_v.y ) > 1 + adjusted_diameter || //
                  fabsf( result_v.z ) > 1 + adjusted_diameter ) {
-                final_is_visiable = 0;
+                final_is_visible = 0;
             } else {
-                final_is_visiable = 1;
+                final_is_visible = 1;
             }
         }
         if ( saveAsReflection ) {
-            chunk->cached_cull_reflect = !final_is_visiable;
+            chunk->cached_cull_reflect = !final_is_visible;
         } else {
-            chunk->cached_cull_normal = !final_is_visiable;
+            chunk->cached_cull_normal = !final_is_visible;
         }
     }
 }
@@ -235,17 +234,17 @@ void ChunkLoader::draw( const glm::mat4 &mvp, const Renderer &renderer, const Te
                 Chunk &chunk = this->chunkArray[ i ];
                 if ( draw_reflect ) {
                     if ( !chunk.cached_cull_reflect ) {
-                        chunk.draw( renderer, texture, shader, ( RenderOrder )renderOrder, draw_reflect );
+                        chunk.draw( renderer, texture, shader, static_cast<RenderOrder>( renderOrder ), draw_reflect );
                     }
                 } else {
                     if ( !chunk.cached_cull_normal ) {
-                        chunk.draw( renderer, texture, shader, ( RenderOrder )renderOrder, draw_reflect );
+                        chunk.draw( renderer, texture, shader, static_cast<RenderOrder>( renderOrder ), draw_reflect );
                     }
                 }
             }
         }
     }
-    if ( DEBUG_CYCLE_AUTO_ROTATING_BLOCKS ) {
+    if constexpr ( DEBUG_CYCLE_AUTO_ROTATING_BLOCKS ) {
         shouldInc++;
         if ( shouldInc > 100 ) {
             shouldInc = 0;

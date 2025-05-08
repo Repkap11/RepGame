@@ -12,7 +12,7 @@ class Hotbar {
     std::map<BlockID, int> blockId_to_slot_map;
     int selected_slot;
 
-    int findOpenSlot( );
+    int findOpenSlot( ) const;
 
   public:
     InventoryRenderer inventory_renderer;
@@ -21,11 +21,11 @@ class Hotbar {
     bool addBlock( bool alsoSelect, BlockID blockId );
     void setSelectedSlot( int selected_slot );
     BlockID incrementSelectedSlot( int offset );
-    BlockID getSelectedBlock( );
+    BlockID getSelectedBlock( ) const;
     BlockID dropSelectedItem( );
-    int getSelectedSlot( );
+    int getSelectedSlot( ) const;
     void applySavedInventory( const InventorySlot *savedSlots );
-    void saveInventory( InventorySlot *savedSlots );
+    void saveInventory( InventorySlot *savedSlots ) const;
     void draw( const Renderer &renderer, const Texture &blocksTexture, const Shader &shader );
     void cleanup( );
 };
