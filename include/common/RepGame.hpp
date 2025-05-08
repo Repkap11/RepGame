@@ -113,8 +113,8 @@ class RepGame {
 
     void changeSize( int x, int y );
     void get_screen_size( int *width, int *height ) const;
-    int shouldExit( ) const;
-    int should_lock_pointer( ) const;
+    bool shouldExit( ) const;
+    bool should_lock_pointer( ) const;
     static bool supportsAnisotropic( );
 
     int rep_tests_start( );

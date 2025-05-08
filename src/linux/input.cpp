@@ -1,6 +1,6 @@
 #include "common/RepGame.hpp"
 
-static int front, back, left, right, up, down;
+static bool front, back, left, right, up, down;
 
 void Input::processMovement( ) {
     float angleH = 0;
@@ -53,7 +53,7 @@ void Input::processMovement( ) {
     this->movement.sizeH = sizeH;
 }
 
-void Input::mouseInput( int button, int state ) {
+void Input::mouseInput( const int button, const int state ) {
     switch ( button ) {
         case SDL_BUTTON_LEFT:
             this->mouse.buttons.left = !state;
@@ -70,35 +70,33 @@ void Input::mouseInput( int button, int state ) {
             break;
 
             pr_debug( "Other mouse %d", button );
+        default:
+            break;
     }
 }
-void Input::mouseWheel( int x_delta, int y_delta ) {
+void Input::mouseWheel( const int x_delta, const int y_delta ) {
     this->mouse.currentPosition.wheel_counts += y_delta;
 }
 
 void Input::quit( ) {
-    this->exitGame = 1;
+    this->exitGame = true;
 }
 
-void Input::keysInput( SDL_Keycode key, int pressed ) {
+void Input::keysInput( const SDL_Keycode key, const bool pressed ) {
 
     switch ( key ) {
         case 'q':
             this->drop_item = true;
             break;
         case SDLK_ESCAPE: // escape
-            this->exitGame = 1;
+            this->exitGame = true;
             break;
 
         case 'w':
         case 'o':
         case SDLK_UP:
 
-            if ( pressed ) {
-                front = 1;
-            } else {
-                front = 0;
-            }
+            front = pressed;
 
             break;
 
@@ -106,11 +104,7 @@ void Input::keysInput( SDL_Keycode key, int pressed ) {
         case 'k':
         case SDLK_LEFT:
 
-            if ( pressed ) {
-                left = 1;
-            } else {
-                left = 0;
-            }
+            left = pressed;
 
             break;
 
@@ -118,11 +112,7 @@ void Input::keysInput( SDL_Keycode key, int pressed ) {
         case 'l':
         case SDLK_DOWN:
 
-            if ( pressed ) {
-                back = 1;
-            } else {
-                back = 0;
-            }
+            back = pressed;
 
             break;
 
@@ -130,11 +120,7 @@ void Input::keysInput( SDL_Keycode key, int pressed ) {
         case ';':
         case SDLK_RIGHT:
 
-            if ( pressed ) {
-                right = 1;
-            } else {
-                right = 0;
-            }
+            right = pressed;
 
             break;
 
@@ -144,19 +130,15 @@ void Input::keysInput( SDL_Keycode key, int pressed ) {
 
         case ' ':
             if ( pressed ) {
-                up = 1;
+                up = true;
             } else {
-                up = 0;
+                up = false;
             }
 
             break;
 
         case '\'':
-            if ( pressed ) {
-                down = 1;
-            } else {
-                down = 0;
-            }
+            down = pressed;
 
             break;
 
@@ -167,8 +149,7 @@ void Input::keysInput( SDL_Keycode key, int pressed ) {
             break;
         case 'c':
             if ( pressed ) {
-                bool ctrl_pressed = SDL_GetModState( ) & KMOD_CTRL;
-                if ( ctrl_pressed ) {
+                if ( SDL_GetModState( ) & KMOD_CTRL ) {
                     // ctrl-c exits
                     this->exitGame = true;
                 } else {
@@ -189,11 +170,10 @@ void Input::keysInput( SDL_Keycode key, int pressed ) {
             break;
         case 'r':
             if ( pressed ) {
-                bool shift_pressed = SDL_GetModState( ) & KMOD_SHIFT;
-                if ( shift_pressed ) {
-                    this->worldDrawQuality = ( WorldDrawQuality )( ( this->worldDrawQuality - 1 + WorldDrawQuality::LAST ) % WorldDrawQuality::LAST );
+                if ( SDL_GetModState( ) & KMOD_SHIFT ) {
+                    this->worldDrawQuality = static_cast<WorldDrawQuality>( ( this->worldDrawQuality - 1 + WorldDrawQuality::LAST ) % WorldDrawQuality::LAST );
                 } else {
-                    this->worldDrawQuality = ( WorldDrawQuality )( ( this->worldDrawQuality + 1 ) % WorldDrawQuality::LAST );
+                    this->worldDrawQuality = static_cast<WorldDrawQuality>( ( this->worldDrawQuality + 1 ) % WorldDrawQuality::LAST );
                 }
             }
             break;
@@ -210,13 +190,13 @@ void Input::keysInput( SDL_Keycode key, int pressed ) {
     processMovement( );
 }
 
-void Input::lookMove( int x, int y ) {
+void Input::lookMove( const int x, const int y ) {
     // pr_debug( "Using location %d %d", x, y );
     this->mouse.currentPosition.x += x;
     this->mouse.currentPosition.y += y;
 }
 
-void Input::mousePosition( int x, int y ) {
+void Input::mousePosition( const int x, const int y ) {
     this->mouse.absPosition.x = x;
     this->mouse.absPosition.y = y;
 }

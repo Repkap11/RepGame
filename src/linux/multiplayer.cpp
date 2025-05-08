@@ -13,11 +13,10 @@
 #include "common/chunk.hpp"
 #include "common/multiplayer.hpp"
 
-void Multiplayer::init( const char *hostname, int port ) {
+void Multiplayer::init( const char *hostname, const int port ) {
     pr_debug( "using server %s:%i", hostname, port );
 
     struct sockaddr_in serv_addr;
-    struct hostent *server;
 
     this->active = false;
     this->portno = port;
@@ -26,8 +25,8 @@ void Multiplayer::init( const char *hostname, int port ) {
         pr_debug( "Unable to allocate socket" );
         return;
     }
-    server = gethostbyname( hostname );
-    if ( server == NULL ) {
+    const struct hostent *server = gethostbyname( hostname );
+    if ( server == nullptr ) {
         pr_debug( "Unable to get hostname from string" );
         return;
     }
@@ -35,10 +34,10 @@ void Multiplayer::init( const char *hostname, int port ) {
     bzero( ( char * )&serv_addr, sizeof( serv_addr ) );
     serv_addr.sin_family = AF_INET;
 
-    bcopy( ( char * )server->h_addr, ( char * )&serv_addr.sin_addr.s_addr, server->h_length );
+    bcopy( server->h_addr, &serv_addr.sin_addr.s_addr, server->h_length );
 
     serv_addr.sin_port = htons( this->portno );
-    if ( connect( this->sockfd, ( struct sockaddr * )&serv_addr, sizeof( serv_addr ) ) < 0 ) {
+    if ( connect( this->sockfd, reinterpret_cast<sockaddr *>( &serv_addr ), sizeof( serv_addr ) ) < 0 ) {
         pr_debug( "Multiplayer failed to connect" );
         return;
     } else {
@@ -65,25 +64,25 @@ void Multiplayer::process_events( World &world ) {
         NetPacket &packet = this->pending_packet;
 
         int &pending_read_len = this->pending_packet_len;
-        char *read_start = ( ( char * )&packet ) + pending_read_len;
-        size_t size_needed = sizeof( NetPacket ) - pending_read_len;
+        char *read_start = reinterpret_cast<char *>( &packet ) + pending_read_len;
+        const size_t size_needed = sizeof( NetPacket ) - pending_read_len;
 
         event_count++;
-        int status = read( this->sockfd, read_start, size_needed );
+        const int status = read( this->sockfd, read_start, size_needed );
         if ( status < 0 ) {
             // This is fine, it just means there are no messages;
             return;
         } else {
             pending_read_len += status;
-            if ( pending_read_len < ( int )sizeof( NetPacket ) ) {
+            if ( pending_read_len < static_cast<int>( sizeof( NetPacket ) ) ) {
                 continue;
             }
             pending_read_len = 0;
             if ( packet.type == PacketType::CHUNK_DIFF_RESULT ) {
-                const PacketType_DataChunkDiff &chunk_diuff = packet.data.chunk_diff;
-                glm::ivec3 chunk_pos = glm::ivec3( chunk_diuff.chunk_x, chunk_diuff.chunk_y, chunk_diuff.chunk_z );
+                const PacketType_DataChunkDiff &chunk_diff = packet.data.chunk_diff;
+                glm::ivec3 chunk_pos = glm::ivec3( chunk_diff.chunk_x, chunk_diff.chunk_y, chunk_diff.chunk_z );
                 Chunk *chunk_prt = world.chunkLoader.get_chunk( chunk_pos );
-                if ( chunk_prt == NULL ) {
+                if ( chunk_prt == nullptr ) {
                     // This chunk is not loaded anymore, ignore this update.
                     continue;
                 }
@@ -120,7 +119,7 @@ void Multiplayer::process_events( World &world ) {
     }
 }
 
-void Multiplayer::send_packet( const NetPacket &update ) {
+void Multiplayer::send_packet( const NetPacket &update ) const {
     if ( !this->active ) {
         return;
     }
@@ -131,7 +130,7 @@ void Multiplayer::send_packet( const NetPacket &update ) {
     }
 }
 
-void Multiplayer::set_block( const glm::ivec3 &block_pos, BlockState blockState ) {
+void Multiplayer::set_block( const glm::ivec3 &block_pos, BlockState blockState ) const {
     if ( !this->active ) {
         return;
     }
@@ -151,7 +150,7 @@ void Multiplayer::set_block( const glm::ivec3 &block_pos, BlockState blockState 
     this->send_packet( update );
 }
 
-void Multiplayer::request_chunk( const glm::ivec3 &chunk_pos ) {
+void Multiplayer::request_chunk( const glm::ivec3 &chunk_pos ) const {
     if ( !this->active ) {
         return;
     }
@@ -166,7 +165,7 @@ void Multiplayer::request_chunk( const glm::ivec3 &chunk_pos ) {
 glm::vec3 prev_player_pos;
 glm::mat4 prev_rotation;
 
-void Multiplayer::update_players_position( const glm::vec3 &player_pos, const glm::mat4 &rotation ) {
+void Multiplayer::update_players_position( const glm::vec3 &player_pos, const glm::mat4 &rotation ) const {
     if ( !this->active ) {
         return;
     }

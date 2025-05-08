@@ -430,11 +430,11 @@ void RepGame::set_textures( const unsigned int which_texture, unsigned char *tex
     Texture::set_texture_data( which_texture, textures, textures_len );
 }
 
-int RepGame::shouldExit( ) const {
+bool RepGame::shouldExit( ) const {
     return globalGameState.input.exitGame;
 }
 
-int RepGame::should_lock_pointer( ) const {
+bool RepGame::should_lock_pointer( ) const {
     return !globalGameState.input.inventory_open;
 }
 void RepGame::changeSize( const int w, const int h ) {

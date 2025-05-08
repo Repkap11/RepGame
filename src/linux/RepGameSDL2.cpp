@@ -52,6 +52,8 @@ void repgame_linux_process_sdl_events( RepGame &repgame ) {
                 input.lookMove( event.motion.xrel, event.motion.yrel );
                 input.mousePosition( event.motion.x, event.motion.y );
                 break;
+            default:
+                break;
         }
     }
 }
@@ -63,9 +65,9 @@ bool startsWith( const char *pre, const char *str ) {
 void main_loop_wasm( void *arg );
 void main_loop_full( RepGame &repgame );
 
-static SDL_Window *sdl_window = NULL;
-static SDL_GLContext sdl_context = NULL;
-int repgame_sdl2_main( const char *world_path, const char *host, bool connect_multi, bool tests ) {
+static SDL_Window *sdl_window = nullptr;
+static SDL_GLContext sdl_context = nullptr;
+int repgame_sdl2_main( const char *world_path, const char *host, const bool connect_multi, const bool tests ) {
     if ( tests ) {
         return rep_tests_start( );
     }
@@ -109,11 +111,13 @@ int repgame_sdl2_main( const char *world_path, const char *host, bool connect_mu
         exit( 1 );
     }
 
-    pr_debug( "Using OpenGL Version:%s", glGetString( GL_VERSION ) );
-    const GLubyte *renderer = glGetString( GL_RENDERER );
-    bool supportsAnisotropicFiltering = !startsWith( "llvmpipe", ( const char * )renderer );
-    pr_debug( "Using OpenGL Renderer:%s", renderer );
-    pr_debug( "Using OpenGL Vendor:%s", glGetString( GL_VENDOR ) );
+    const char *opengl_version = reinterpret_cast<const char *>( glGetString( GL_VERSION ) );
+    pr_debug( "Using OpenGL Version:%s", opengl_version );
+    const char *opengl_renderer = reinterpret_cast<const char *>( glGetString( GL_RENDERER ) );
+    const bool supportsAnisotropicFiltering = !startsWith( "llvmpipe", opengl_renderer );
+    pr_debug( "Using OpenGL Renderer:%s", opengl_renderer );
+    const char *opengl_vendor = reinterpret_cast<const char *>( glGetString( GL_VENDOR ) );
+    pr_debug( "Using OpenGL Vendor:%s", opengl_vendor );
 
     glewExperimental = GL_TRUE;
     if ( glewInit( ) ) {
@@ -121,7 +125,7 @@ int repgame_sdl2_main( const char *world_path, const char *host, bool connect_mu
         exit( 1 ); // or handle the error in a nicer way
     }
     ignoreErrors( );
-    RepGame *repgamePrt = new RepGame();
+    RepGame *repgamePrt = new RepGame( );
     RepGame &repgame = *repgamePrt;
     globalGameState = repgame.init( world_path, connect_multi, host, supportsAnisotropicFiltering );
 #if SUPPORTS_IMGUI_OVERLAY
@@ -156,9 +160,9 @@ int repgame_sdl2_main( const char *world_path, const char *host, bool connect_mu
 }
 
 int is_locking_pointer = 0;
-void repgame_linux_process_window_and_pointer_state( RepGame &repgame ) {
+void repgame_linux_process_window_and_pointer_state( const RepGame &repgame ) {
     int width, height;
-    int should_lock_pointer = repgame.should_lock_pointer( );
+    const bool should_lock_pointer = repgame.should_lock_pointer( );
     if ( should_lock_pointer != is_locking_pointer ) {
 #if ALLOW_GRAB_MOUSE
         SDL_SetRelativeMouseMode( should_lock_pointer ? SDL_TRUE : SDL_FALSE );
@@ -170,7 +174,7 @@ void repgame_linux_process_window_and_pointer_state( RepGame &repgame ) {
 }
 
 void main_loop_wasm( void *arg ) {
-    RepGame &repgame = *( RepGame * )arg;
+    RepGame &repgame = *static_cast<RepGame *>( arg );
     if ( repgame.shouldExit( ) ) {
         return;
     } else {
@@ -191,18 +195,18 @@ void main_loop_wasm( void *arg ) {
 
 void main_loop_full( RepGame &repgame ) {
 
-    Uint32 time_step_ms = 1000 / UPS_RATE;
-    Uint32 next_game_step = SDL_GetTicks( ); // initial value
+    constexpr int time_step_ms = 1000 / UPS_RATE;
+    int next_game_step = SDL_GetTicks( ); // initial value
 
     while ( !repgame.shouldExit( ) ) {
-        Uint32 now = SDL_GetTicks( );
+        const int now = SDL_GetTicks( );
 
-        if ( ( ( ( int )next_game_step - ( int )now ) <= 0 ) || !SW_VSYNC_ENABLED ) {
+        if ( ( ( next_game_step - now ) <= 0 ) || !SW_VSYNC_ENABLED ) {
             int computer_is_too_slow_limit = 10; // max number of advances per render, if you can't get 20 fps, slow the game's UPS
 
             // Loop until all steps are executed or computer_is_too_slow_limit is reached
             // int num_ticks_in_frame = 0;
-            while ( ( ( ( ( int )next_game_step - ( int )now ) <= 0 ) ) && ( computer_is_too_slow_limit-- ) ) {
+            while ( ( ( ( next_game_step - now ) <= 0 ) ) && ( computer_is_too_slow_limit-- ) ) {
                 repgame_linux_process_sdl_events( repgame );
                 repgame_linux_process_window_and_pointer_state( repgame );
                 repgame.tick( );

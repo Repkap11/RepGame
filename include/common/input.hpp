@@ -45,9 +45,9 @@ class Input {
 
 #if defined( REPGAME_LINUX ) || defined( REPGAME_WINDOWS ) || defined( REPGAME_WASM )
     void mouseInput( int button, int state );
-    void set_enable_mouse( int enable );
-    void keysInput( SDL_Keycode key, int pressed );
-    void mouseWheel( int x_delta, int y_delta );
+    void set_enable_mouse( bool enable );
+    void keysInput( const SDL_Keycode key, const bool pressed );
+    void mouseWheel( const int x_delta, const int y_delta );
     void mousePosition( int x, int y );
     void quit( );
 #else
