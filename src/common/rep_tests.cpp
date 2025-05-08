@@ -17,9 +17,9 @@ int test_ecs( ) {
     return ecs.test_ecs( );
 }
 
-const Test all_tests[] = { //
+constexpr Test all_tests[] = { //
     MK_TEST( ecs ), //
-    { NULL, NULL }
+    { nullptr, nullptr }
 
 };
 
@@ -34,8 +34,7 @@ int rep_tests_start( ) {
         i++;
         another_test = test->name && test->test_func;
         if ( another_test ) {
-            int result = test->test_func( );
-            if ( result ) {
+            if ( const int result = test->test_func( ) ) {
                 failed = 1;
                 pr_test( "Test \"%s\" failed with %d", test->name, result );
             } else {

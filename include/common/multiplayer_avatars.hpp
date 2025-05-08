@@ -8,7 +8,7 @@ class MultiplayerAvatars {
     glm::mat4 initial_mat;
     RenderChain<ParticleVertex, ParticlePosition> render_chain;
 
-    void init_particle( ParticlePosition &mob );
+    static void init_particle( ParticlePosition &mob );
 
   public:
     void init( const VertexBufferLayout &vbl_object_vertex, const VertexBufferLayout &vbl_object_position );

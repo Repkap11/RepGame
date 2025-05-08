@@ -15,13 +15,13 @@
 #include "common/map_gen.hpp"
 #include "common/block_update_events/PlayerBlockPlacedEvent.hpp"
 
-BlockID RepGame::change_block( int place, BlockState blockState ) {
+BlockID RepGame::change_block( const int place, BlockState blockState ) {
 
     glm::ivec3 block;
     if ( place ) {
         block = globalGameState.block_selection.pos_create;
         if ( block_definition_get_definition( blockState.id )->collides_with_player ) {
-            // If the block collides with the player, make sure its not being placed where it would collide
+            // If the block collides with the player, make sure it's not being placed where it would collide
             if ( Collision::check_collides_with_block( globalGameState.world, globalGameState.camera.pos, block ) ) {
                 return LAST_BLOCK_ID;
             }
@@ -36,7 +36,7 @@ BlockID RepGame::change_block( int place, BlockState blockState ) {
     return previous_block_id;
 }
 
-unsigned char RepGame::getPlacedRotation( BlockID blockID ) const {
+unsigned char RepGame::getPlacedRotation( const BlockID blockID ) const {
     unsigned char rotation = BLOCK_ROTATE_0;
     if ( block_definition_get_definition( blockID )->rotate_on_placement ) {
         if ( globalGameState.camera.angle_H < 45 ) {
@@ -63,7 +63,7 @@ unsigned char RepGame::getPlacedRotation( BlockID blockID ) const {
 //     return true;
 // }
 
-void RepGame::add_to_hotbar( bool alsoSelect, BlockID blockId ) {
+void RepGame::add_to_hotbar( const bool alsoSelect, const BlockID blockId ) {
     if ( globalGameState.hotbar.getSelectedBlock( ) == blockId ) {
         // We don't support having the same block in the hotbar or inventory more than once, until there are qtys.
         return;
@@ -95,10 +95,10 @@ void RepGame::process_mouse_events( ) {
         globalGameState.input.click_delay_left = 30;
     }
     if ( globalGameState.block_selection.selectionInBounds && globalGameState.input.mouse.buttons.right && globalGameState.input.click_delay_right == 0 ) {
-        // Placeing a block
+        // Placing a block
         BlockID holdingBlock = globalGameState.hotbar.getSelectedBlock( );
         if ( holdingBlock != LAST_BLOCK_ID ) {
-            unsigned char rotation = getPlacedRotation( holdingBlock );
+            const unsigned char rotation = getPlacedRotation( holdingBlock );
             change_block( 1, { holdingBlock, rotation, 0, holdingBlock } );
             globalGameState.input.click_delay_right = 30;
         }
@@ -318,7 +318,7 @@ void RepGame::tick( ) {
     RepGame::process_block_updates( );
 }
 
-void RepGame::initilizeGameState( const char *world_name ) {
+void RepGame::initializeGameState( const char *world_name ) {
     globalGameState.input.exitGame = false;
     globalGameState.input.player_flying = false;
     globalGameState.input.inventory_open = false;
@@ -327,7 +327,7 @@ void RepGame::initilizeGameState( const char *world_name ) {
     globalGameState.camera.angle_V = 0.0f;
     globalGameState.camera.pos.x = 0.5f;
     globalGameState.camera.pos.y = ceil( MapGen::calculateTerrainHeight( 0, 0 ) ) + PLAYER_EYE_HEIGHT + 0.5f;
-    pr_debug( "Intial height:%f", globalGameState.camera.pos.y );
+    pr_debug( "Initial height:%f", globalGameState.camera.pos.y );
     globalGameState.camera.pos.z = 0.5f;
     globalGameState.camera.y_speed = 0.0f;
     globalGameState.input.worldDrawQuality = WorldDrawQuality::MEDIUM;
@@ -408,7 +408,7 @@ RepGameState *RepGame::init( const char *world_name, const bool connect_multi, c
     globalGameState.main_inventory.init( vbl_ui_overlay_vertex, vbl_ui_overlay_instance, MAIN_INVENTORY_WIDTH, MAIN_INVENTORY_HEIGHT );
     globalGameState.hotbar.init( vbl_ui_overlay_vertex, vbl_ui_overlay_instance, HOTBAR_WIDTH, HOTBAR_HEIGHT );
 
-    initilizeGameState( world_name );
+    initializeGameState( world_name );
 
     globalGameState.world.init( globalGameState.camera.pos, globalGameState.screen.width, globalGameState.screen.height, globalGameState.map_storage );
 
@@ -426,7 +426,7 @@ RepGameState *RepGame::init( const char *world_name, const bool connect_multi, c
     return &globalGameState;
 }
 
-void RepGame::set_textures( unsigned int which_texture, unsigned char *textures, int textures_len ) {
+void RepGame::set_textures( const unsigned int which_texture, unsigned char *textures, const int textures_len ) {
     Texture::set_texture_data( which_texture, textures, textures_len );
 }
 
@@ -468,24 +468,23 @@ void RepGame::get_screen_size( int *width, int *height ) const {
     *height = globalGameState.screen.height;
 }
 
-// int should_upate_count = 0;
 void RepGame::draw( ) {
     if ( globalGameState.input.exitGame ) {
         // Don't bother draw the state if the game is exiting
         return;
     }
-    glm::mat4 mvp_sky = globalGameState.screen.proj * globalGameState.camera.view_look;
+    const glm::mat4 mvp_sky = globalGameState.screen.proj * globalGameState.camera.view_look;
     // glm::mat4 mvp_sky_reflect = globalGameState.screen.proj * globalGameState.camera.view_look;
 
-    glm::mat4 mvp = mvp_sky * globalGameState.camera.view_trans;
-    glm::mat4 rotation = glm::mat4( //
-        1, 0, 0, 0,                 //
-        0, -1, 0, 0,                //
-        0, 0, 1, 0,                 //
-        0, 0, 0, 1                  //
+    const glm::mat4 mvp = mvp_sky * globalGameState.camera.view_trans;
+    constexpr glm::mat4 rotation = glm::mat4( //
+        1, 0, 0, 0,                           //
+        0, -1, 0, 0,                          //
+        0, 0, 1, 0,                           //
+        0, 0, 0, 1                            //
     );
 
-    glm::mat4 flipped_look = globalGameState.camera.view_look * rotation;
+    const glm::mat4 flipped_look = globalGameState.camera.view_look * rotation;
     // glm::mat4 flipped_look = rotation * globalGameState.camera.view_look;
 
     // glm::mat4 flipped_trans = rotation * globalGameState.camera.view_trans;
@@ -552,7 +551,7 @@ void RepGame::draw( ) {
 }
 
 void RepGame::cleanup( ) {
-    static int clean_up_done = 0;
+    static bool clean_up_done = false;
     if ( clean_up_done ) {
         return;
     }
@@ -583,7 +582,7 @@ void RepGame::cleanup( ) {
     imgui_overlay_cleanup( &globalGameState.imgui_overlay );
     block_definitions_free_definitions( );
 
-    clean_up_done = 1;
+    clean_up_done = true;
     // pr_debug( "RepGame cleanup done" );
 }
 

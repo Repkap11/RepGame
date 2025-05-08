@@ -1,11 +1,12 @@
 #include "common/RepGame.hpp"
 #include "common/mouse_selection.hpp"
-#include "common/renderer/renderer.hpp"
 #include "common/block.hpp"
+#include "common/block_update_events/BlockNextToChangeEvent.hpp"
+#include "common/block_update_events/BlockNextToChangeEvent.hpp"
 
 #define SELECTION_SIZE_OFFSET ( 0.0003f )
 
-static CubeFace vd_data_selection[] = {
+constexpr static CubeFace vd_data_selection[] = {
     // x=right/left, y=top/bottom, z=front/back : 1/0
     { 0.0f - SELECTION_SIZE_OFFSET, 0.0f - SELECTION_SIZE_OFFSET, 0.0f - SELECTION_SIZE_OFFSET, /*Coords  Texture coords*/ 1, 0, FACE_BACK, CORNER_OFFSET_bbl }, // 0
     { 1.0f + SELECTION_SIZE_OFFSET, 0.0f - SELECTION_SIZE_OFFSET, 0.0f - SELECTION_SIZE_OFFSET, /*Coords  Texture coords*/ 0, 0, FACE_BACK, CORNER_OFFSET_bbr }, // 1
@@ -48,7 +49,7 @@ static CubeFace vd_data_selection[] = {
 
 void MouseSelection::init( const VertexBufferLayout &vbl_block, const VertexBufferLayout &vbl_coords ) {
     this->render_chain_mouse_selection.init( vbl_block, vbl_coords, vd_data_selection, VB_DATA_SIZE_SELECTION, ib_data_solid, IB_SOLID_SIZE );
-    auto pair = this->render_chain_mouse_selection.create_instance( );
+    const auto pair = this->render_chain_mouse_selection.create_instance( );
     this->entity = pair.first;
     BlockCoords &blockCoords = pair.second;
 
@@ -75,7 +76,7 @@ void MouseSelection::init( const VertexBufferLayout &vbl_block, const VertexBuff
     blockCoords.tex_offset_y = 0;
     blockCoords.tex_offset_z = 0;
 }
-void MouseSelection::set_block( const glm::ivec3 &pos, int shouldDraw, BlockState blockState ) {
+void MouseSelection::set_block( const glm::ivec3 &pos, const bool shouldDraw, const BlockState &blockState ) {
     BlockCoords &blockCoords = this->render_chain_mouse_selection.get_instance( this->entity );
     // y += 1;
     this->shouldDraw = shouldDraw;

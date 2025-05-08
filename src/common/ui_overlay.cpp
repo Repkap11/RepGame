@@ -11,7 +11,7 @@
 
 #define CROSSHAIR_COLOR { 0, 0 }
 
-UIOverlayVertex vb_data_crosshair_element[ UI_OVERLAY_VERTEX_COUNT_CROSSHAIR ] = {
+constexpr UIOverlayVertex vb_data_crosshair_element[ UI_OVERLAY_VERTEX_COUNT_CROSSHAIR ] = {
     { -SCALE * WIDTH, -WIDTH, { 0, 0 }, 0, ISO_FACE_TOP }, // 0
     { -SCALE * WIDTH, WIDTH, { 0, 0 }, 0, ISO_FACE_TOP },  // 1
     { SCALE * WIDTH, -WIDTH, { 0, 0 }, 0, ISO_FACE_TOP },  // 2
@@ -22,7 +22,7 @@ UIOverlayVertex vb_data_crosshair_element[ UI_OVERLAY_VERTEX_COUNT_CROSSHAIR ] =
     { WIDTH, -SCALE *WIDTH, { 0, 0 }, 0, ISO_FACE_TOP },  // 6
     { WIDTH, SCALE *WIDTH, { 0, 0 }, 0, ISO_FACE_TOP },   // 7
 };
-UIOverlayInstance vb_data_crosshair_instance = { 0, 0, 0, 1, 1, 0, 0, { 0, 0, 0 }, { 1, 1, 1, 0.5f } };
+constexpr UIOverlayInstance vb_data_crosshair_instance = { 0, 0, 0, 1, 1, 0, 0, { 0, 0, 0 }, { 1, 1, 1, 0.5f } };
 
 float holding_alpha = 1.0f;
 
@@ -39,7 +39,7 @@ int holding_block_vertex_face_map[] = {
 #define ISOMETRIC_FACES 3
 
 #define UI_OVERLAY_INDEX_COUNT_CROSSHAIR ( 3 * 2 * 2 )
-unsigned int ib_data_crosshair[] = {
+constexpr unsigned int ib_data_crosshair[] = {
     0, 3, 1, //
     3, 0, 2, //
 
@@ -47,10 +47,10 @@ unsigned int ib_data_crosshair[] = {
     7, 4, 6, //
 };
 
-static int inventory_isometric_face[] = { FACE_TOP, FACE_FRONT, FACE_RIGHT };
+constexpr static int inventory_isometric_face[] = { FACE_TOP, FACE_FRONT, FACE_RIGHT };
 
 #define VB_ISOMETRIC_QUAD_SIZE 16
-static const UIOverlayVertex vb_isometric_quad[ VB_ISOMETRIC_QUAD_SIZE ] = {
+constexpr static UIOverlayVertex vb_isometric_quad[ VB_ISOMETRIC_QUAD_SIZE ] = {
     // Isometric
     { 0.5f, 0.625, { 1, 0 }, 1, ISO_FACE_TOP },   // 0
     { 0.0f, 0.8125f, { 1, 1 }, 1, ISO_FACE_TOP }, // 1
@@ -75,7 +75,7 @@ static const UIOverlayVertex vb_isometric_quad[ VB_ISOMETRIC_QUAD_SIZE ] = {
 };
 
 #define IB_ISOMETRIC_QUAD_SIZE 24
-static const unsigned int ib_isometric_quad[ IB_ISOMETRIC_QUAD_SIZE ] = {
+static constexpr unsigned int ib_isometric_quad[ IB_ISOMETRIC_QUAD_SIZE ] = {
     // Top
     // 0, 3, 1, 3, 0, 2, 4, 7, 5, 7, 4, 6, 8, 11, 9, 11, 8, 10,
     0,  3,  1, //

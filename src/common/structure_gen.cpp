@@ -4,12 +4,12 @@
 #include "common/constants.hpp"
 #include "common/block_definitions.hpp"
 
-int StructureGen::is_forest( int x, int z ) {
-    float noise = perlin_noise2d( x, z, 0.02f, 3, MAP_SEED + 6 );
+int StructureGen::is_forest( const int x, const int z ) {
+    const float noise = perlin_noise2d( x, z, 0.02f, 3, MAP_SEED + 6 );
     return noise > 0.7f;
 }
 
-int StructureGen::is_tree_roll( int x, int z, int max_tree_radius ) {
+int StructureGen::is_tree_roll( const int x, const int z, const int max_tree_radius ) {
     float noise = perlin_noise2d( x, z, 0.9f, 1, MAP_SEED + 7 );
     if ( FOREST_DEBUG ) {
         return -1;
@@ -50,13 +50,13 @@ BlockID StructureGen::is_long_grass_roll( int x, int z, int is_forest ) {
     if ( is_forest ) {
         is_tuftland = 1;
     } else {
-        float noise = perlin_noise2d( x, z, 0.03f, 1, MAP_SEED + 8 );
+        const float noise = perlin_noise2d( x, z, 0.03f, 1, MAP_SEED + 8 );
         if ( noise > 0.7f ) {
             is_tuftland = 1;
         }
     }
     if ( is_tuftland ) {
-        float noise2 = perlin_noise2d( x, z, 1.0f, 3, MAP_SEED + 9 );
+        const float noise2 = perlin_noise2d( x, z, 1.0f, 3, MAP_SEED + 9 );
         if ( noise2 > 0.95 ) {
             return YELLOW_FLOWER;
         }
@@ -82,7 +82,7 @@ int StructureGen::is_reed_roll( int x, int z ) {
     return noise > 0.95f;
 }
 
-int StructureGen::poll_fits( int x, int y, int z, int height ) {
+int StructureGen::poll_fits( int x, int y, int z, const int height ) {
     if ( ( y + height ) >= CHUNK_SIZE_INTERNAL_Y - 1 ) {
         return 0;
     }
@@ -90,7 +90,7 @@ int StructureGen::poll_fits( int x, int y, int z, int height ) {
 }
 
 #define MAX_TREE_HEIGHT 6
-int StructureGen::tree_fits( Chunk &chunk, int x, int y, int z, int max_tree_radius ) {
+auto StructureGen::tree_fits( const Chunk &chunk, int x, const int y, const int z, const int max_tree_radius ) -> int {
     if ( y + MAX_TREE_HEIGHT - 3 + max_tree_radius >= CHUNK_SIZE_INTERNAL_Y - 1 ) {
         return 0;
     }
@@ -104,12 +104,12 @@ int StructureGen::tree_fits( Chunk &chunk, int x, int y, int z, int max_tree_rad
                 if ( abs( bound_x ) + abs( bound_z ) > max_tree_radius ) {
                     continue;
                 }
-                BlockID colliding_blockid = chunk.blocks[ chunk.get_index_from_coords( x + bound_x, y + bound_y, z + bound_z ) ].id;
-                if ( colliding_blockid == LEAF ) {
+                BlockID colliding_block_id = chunk.blocks[ chunk.get_index_from_coords( x + bound_x, y + bound_y, z + bound_z ) ].id;
+                if ( colliding_block_id == LEAF ) {
                     num_colliding_leafs++;
                     continue;
                 }
-                if ( colliding_blockid != AIR ) {
+                if ( colliding_block_id != AIR ) {
                     return 0;
                 }
             }
@@ -122,7 +122,7 @@ int StructureGen::tree_fits( Chunk &chunk, int x, int y, int z, int max_tree_rad
     }
 }
 
-int StructureGen::is_next_to( Chunk &chunk, int x, int y, int z, BlockID block ) {
+int StructureGen::is_next_to( const Chunk &chunk, const int x, const int y, const int z, const BlockID block ) {
     for ( int i = -1; i < 2; i++ ) {
         for ( int j = -1; j < 2; j++ ) {
             if ( i == 0 && j == 0 ) {
@@ -139,27 +139,27 @@ int StructureGen::is_next_to( Chunk &chunk, int x, int y, int z, BlockID block )
 void place_leaves( Chunk &chunk, int x, int y, int z, int tree_type, BlockState leaf_state );
 
 void StructureGen::place( Chunk &chunk ) {
-    float chunk_offset_x = chunk.chunk_pos.x * CHUNK_SIZE_X;
-    float chunk_offset_y = chunk.chunk_pos.y * CHUNK_SIZE_Y;
-    float chunk_offset_z = chunk.chunk_pos.z * CHUNK_SIZE_Z;
-    glm::vec3 chunk_offset = glm::vec3( chunk_offset_x, chunk_offset_y, chunk_offset_z );
+    const float chunk_offset_x = chunk.chunk_pos.x * CHUNK_SIZE_X;
+    const float chunk_offset_y = chunk.chunk_pos.y * CHUNK_SIZE_Y;
+    const float chunk_offset_z = chunk.chunk_pos.z * CHUNK_SIZE_Z;
+    const glm::vec3 chunk_offset = glm::vec3( chunk_offset_x, chunk_offset_y, chunk_offset_z );
 
-    Block *leaf = block_definition_get_definition( LEAF );
-    Block *oak_log = block_definition_get_definition( OAK_LOG );
-    Block *dirt = block_definition_get_definition( DIRT );
-    Block *reed = block_definition_get_definition( REED );
+    const Block *leaf = block_definition_get_definition( LEAF );
+    const Block *oak_log = block_definition_get_definition( OAK_LOG );
+    const Block *dirt = block_definition_get_definition( DIRT );
+    const Block *reed = block_definition_get_definition( REED );
 
-    BlockState leaf_state = { LEAF, 0, leaf->initial_redstone_power, LEAF };
-    BlockState oak_log_state = { OAK_LOG, 0, oak_log->initial_redstone_power, OAK_LOG };
-    BlockState dirt_state = { DIRT, 0, dirt->initial_redstone_power, DIRT };
-    BlockState reed_state = { REED, 0, reed->initial_redstone_power, REED };
+    const BlockState leaf_state = { LEAF, 0, leaf->initial_redstone_power, LEAF };
+    const BlockState oak_log_state = { OAK_LOG, 0, oak_log->initial_redstone_power, OAK_LOG };
+    const BlockState dirt_state = { DIRT, 0, dirt->initial_redstone_power, DIRT };
+    const BlockState reed_state = { REED, 0, reed->initial_redstone_power, REED };
 
     for ( int x = 1; x < CHUNK_SIZE_X - 1; x++ ) {
-        int world_x = chunk_offset.x + x;
+        const int world_x = chunk_offset.x + x;
         for ( int z = 1; z < CHUNK_SIZE_Z - 1; z++ ) {
-            int world_z = chunk_offset.z + z;
+            const int world_z = chunk_offset.z + z;
             int max_tree_radius;
-            if ( x == 1 || z == 1 || z == CHUNK_SIZE_Z - 1 || z == CHUNK_SIZE_Z - 2 ) {
+            if ( x == 1 || z == 1 || z == CHUNK_SIZE_Z - 2 ) {
                 max_tree_radius = 2;
             } else {
                 max_tree_radius = 3;
@@ -182,7 +182,7 @@ void StructureGen::place( Chunk &chunk ) {
             if ( surface_y == -1 ) {
                 continue;
             }
-            int y = surface_y;
+            const int y = surface_y;
             if ( block_below == GRASS && y != 0 ) {
                 int is_forest = 0;
                 int placed_tree = 0;
@@ -249,7 +249,7 @@ void StructureGen::place( Chunk &chunk ) {
     }
 }
 
-void StructureGen::place_leaves( Chunk &chunk, int x, int y, int z, int tree_type, BlockState leaf_state ) {
+void StructureGen::place_leaves( const Chunk &chunk, const int x, const int y, const int z, const int tree_type, const BlockState &leaf_state ) {
     if ( tree_type == 1 ) { // This is a small tree, place up to 4 tall
         chunk.blocks[ chunk.get_index_from_coords( x - 1, y + 3, z ) ] = leaf_state;
         chunk.blocks[ chunk.get_index_from_coords( x + 1, y + 3, z ) ] = leaf_state;

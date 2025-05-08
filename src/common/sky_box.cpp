@@ -16,23 +16,23 @@
 MK_TEXTURE( sky4, 2048, 1024, 2048, 1024 );
 
 void SkyBox::init( const VertexBufferLayout &vbl_object_vertex, const VertexBufferLayout &vbl_object_position ) {
-    ParticleVertex *vb_data = ( ParticleVertex * )calloc( SKY_BOX_VERTEX_COUNT, sizeof( ParticleVertex ) );
+    ParticleVertex *vb_data = static_cast<ParticleVertex *>( calloc( SKY_BOX_VERTEX_COUNT, sizeof( ParticleVertex ) ) );
     // Calc The Vertices
     for ( int i = 0; i <= STACK_COUNT; ++i ) {
 
-        float V = i / ( float )STACK_COUNT;
+        float V = i / static_cast<float>( STACK_COUNT );
         float phi = V * glm::pi<float>( );
         float y = -cosf( phi );
 
         // Loop Through SLICES_COUNT
         for ( int j = 0; j <= SLICES_COUNT + STACK_COUNT; ++j ) {
 
-            float U = ( j / ( ( float )SLICES_COUNT ) ); // * 0.75f + 0.05f;
+            float U = ( j / static_cast<float>( SLICES_COUNT ) ); // * 0.75f + 0.05f;
             float theta = U * ( glm::pi<float>( ) * 2 );
 
             // Calc The Vertex Positions
-            float x = cosf( theta ) * sinf( phi );
-            float z = sinf( theta ) * sinf( phi );
+            const float x = cosf( theta ) * sinf( phi );
+            const float z = sinf( theta ) * sinf( phi );
 
             // Push Back Vertex Data
             ParticleVertex *vertex = &vb_data[ i * ( SLICES_COUNT + 1 ) + j ];
@@ -45,7 +45,7 @@ void SkyBox::init( const VertexBufferLayout &vbl_object_vertex, const VertexBuff
         }
     }
 
-    unsigned int *ib_data = ( unsigned int * )malloc( SKY_BOX_INDEX_COUNT * sizeof( unsigned int ) );
+    unsigned int *ib_data = static_cast<unsigned int *>( malloc( SKY_BOX_INDEX_COUNT * sizeof( unsigned int ) ) );
     // Calc The Index Positions
     for ( int i = 0; i < SKY_BOX_TRIANGLES_COUNT; ++i ) {
 

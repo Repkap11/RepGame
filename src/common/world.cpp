@@ -2,6 +2,8 @@
 #include "common/RepGame.hpp"
 #include "common/chunk.hpp"
 #include "common/chunk_loader.hpp"
+#include "common/block_update_events/BlockNextToChangeEvent.hpp"
+#include "common/block_update_events/BlockNextToChangeEvent.hpp"
 
 #define TINT_UNDER_WATER_OBJECT_NEVER 0
 #define TINT_UNDER_WATER_OBJECT_UNDER_Y_LEVEL 1
@@ -11,8 +13,7 @@ MK_SHADER( object_vertex );
 MK_SHADER( object_fragment );
 
 bool hasError( ) {
-    unsigned int errCode;
-    if ( ( errCode = glGetError( ) ) != GL_NO_ERROR ) {
+    if ( ( glGetError( ) ) != GL_NO_ERROR ) {
         return true;
     }
     return false;
@@ -112,23 +113,22 @@ void World::change_size( int width, int height ) {
     }
 }
 
-void World::render( Multiplayer &multiplayer, const glm::vec3 &camera_pos, int limit_render, const glm::mat4 &rotation ) {
+void World::render( Multiplayer &multiplayer, const glm::vec3 &camera_pos, const int limit_render, const glm::mat4 &rotation ) {
     this->chunkLoader.render_chunks( multiplayer, camera_pos, limit_render );
 }
 
-void World::set_selected_block( const glm::ivec3 &selected, int shouldDraw ) {
-    BlockState blockState = get_loaded_block( selected );
+void World::set_selected_block( const glm::ivec3 &selected, const bool shouldDraw ) {
+    const BlockState blockState = get_loaded_block( selected );
     if ( blockState.id == LAST_BLOCK_ID ) {
         return;
     }
     this->mouseSelection.set_block( selected, shouldDraw, blockState );
 }
 
-#define WATER_THRESHOLD_P (0.02)
-#define WATER_THRESHOLD_N (-0.01)
+#define WATER_THRESHOLD_P ( 0.02 )
+#define WATER_THRESHOLD_N ( -0.01 )
 void World::draw( const Texture &blocksTexture, const glm::mat4 &mvp, const glm::mat4 &mvp_reflect, const glm::mat4 &mvp_sky, const glm::mat4 &mvp_sky_reflect, const int debug, const int draw_mouse_selection, const float y_height,
-                  const bool headInWater,
-                  WorldDrawQuality worldDrawQuality ) {
+                  const bool headInWater, WorldDrawQuality worldDrawQuality ) {
 
     const bool useFrameBuffer = SUPPORTS_FRAME_BUFFER && ( worldDrawQuality >= WorldDrawQuality::MEDIUM );
     const bool usingReflections = useFrameBuffer && ( worldDrawQuality >= WorldDrawQuality::HIGH );
@@ -252,7 +252,7 @@ void World::draw( const Texture &blocksTexture, const glm::mat4 &mvp, const glm:
             // glStencilOp -> action to do on the scencil buffer.
 
             glEnable( GL_STENCIL_TEST );
-            glStencilFunc( GL_ALWAYS, 1, 0xFF );               // All fragments should pass the stencil buffer. It's empty anyways.
+            glStencilFunc( GL_ALWAYS, 1, 0xFF );               // All fragments should pass the stencil buffer. It's empty anyway.
             glStencilOp( GL_REPLACE, GL_REPLACE, GL_REPLACE ); // Any drawing impacts the stencil buffer and writes a 1
             this->fullScreenQuad.draw_texture( this->renderer, this->reflectionTexture, this->depthStencilTexture, y_height < 0 ? 0.1 : 0.2, false, false );
             glClear( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT );
@@ -292,7 +292,7 @@ void World::cleanup( MapStorage &map_storage ) {
     }
 }
 
-int World::can_fixup_chunk( const Chunk &chunk, const glm::ivec3 &offset ) {
+int World::can_fixup_chunk( const Chunk &chunk, const glm::ivec3 &offset ) const {
     const glm::vec3 chunk_with_offset = chunk.chunk_pos + offset;
     if ( const Chunk *fixupChunk_prt = this->chunkLoader.get_chunk( chunk_with_offset ) ) {
         const Chunk &fixupChunk = *fixupChunk_prt;
@@ -303,7 +303,7 @@ int World::can_fixup_chunk( const Chunk &chunk, const glm::ivec3 &offset ) {
     return 0;
 }
 
-void World::fixup_chunk( const Chunk &chunk, const glm::ivec3 &offset, const glm::ivec3 &pos, const BlockState &blockState ) {
+void World::fixup_chunk( const Chunk &chunk, const glm::ivec3 &offset, const glm::ivec3 &pos, const BlockState &blockState ) const {
     // pr_debug( "Fixup Offset: %d %d %d", x, y, z );
     const glm::vec3 chunk_with_offset = chunk.chunk_pos + offset;
     if ( Chunk *fixupChunk_prt = this->chunkLoader.get_chunk( chunk_with_offset ) ) {
@@ -319,25 +319,25 @@ void World::fixup_chunk( const Chunk &chunk, const glm::ivec3 &offset, const glm
     }
 }
 
-Chunk *World::get_loaded_chunk( const glm::ivec3 &block_pos ) {
-    glm::vec3 chunk_size = glm::vec3( CHUNK_SIZE_X, CHUNK_SIZE_Y, CHUNK_SIZE_Z );
-    glm::ivec3 chunk_pos = glm::floor( glm::vec3( block_pos ) / chunk_size );
+Chunk *World::get_loaded_chunk( const glm::ivec3 &block_pos ) const {
+    constexpr glm::vec3 chunk_size = glm::vec3( CHUNK_SIZE_X, CHUNK_SIZE_Y, CHUNK_SIZE_Z );
+    const glm::ivec3 chunk_pos = glm::floor( glm::vec3( block_pos ) / chunk_size );
     return this->chunkLoader.get_chunk( chunk_pos );
 }
 
 BlockState World::get_block_from_chunk( const Chunk &chunk, const glm::ivec3 &block_pos ) {
-    glm::ivec3 chunk_size = glm::ivec3( CHUNK_SIZE_X, CHUNK_SIZE_Y, CHUNK_SIZE_Z );
-    glm::ivec3 diff = block_pos - ( chunk.chunk_pos * chunk_size );
+    constexpr glm::ivec3 chunk_size = glm::ivec3( CHUNK_SIZE_X, CHUNK_SIZE_Y, CHUNK_SIZE_Z );
+    const glm::ivec3 diff = block_pos - ( chunk.chunk_pos * chunk_size );
     return chunk.get_block( diff );
 }
 
-BlockState World::get_loaded_block( const glm::ivec3 &block_pos ) {
-    if ( Chunk *chunk_prt = this->get_loaded_chunk( block_pos ) ) {
-        Chunk &chunk = *chunk_prt;
+BlockState World::get_loaded_block( const glm::ivec3 &block_pos ) const {
+    if ( const Chunk *chunk_prt = this->get_loaded_chunk( block_pos ) ) {
+        const Chunk &chunk = *chunk_prt;
         if ( chunk.is_loading ) {
             return BLOCK_STATE_LAST_BLOCK_ID;
         }
-        BlockState blockState = get_block_from_chunk( chunk, block_pos );
+        const BlockState blockState = get_block_from_chunk( chunk, block_pos );
         return blockState;
     }
     return BLOCK_STATE_LAST_BLOCK_ID;
@@ -391,7 +391,7 @@ BlockState World::get_loaded_block( const glm::ivec3 &block_pos ) {
 //         }
 //     }
 // }
-void World::set_loaded_block( const glm::ivec3 &block_pos, BlockState blockState ) {
+void World::set_loaded_block( const glm::ivec3 &block_pos, BlockState blockState ) const {
     glm::ivec3 chunk_pos = glm::floor( glm::vec3( block_pos ) / CHUNK_SIZE_F );
 
     if ( Chunk *chunk_prt = this->chunkLoader.get_chunk( chunk_pos ) ) {
@@ -545,8 +545,8 @@ static constexpr glm::ivec3 offsets_grass[ OFFSETS_GRASS ] = {
 
 };
 
-bool World::any_neighbor_adj_id( const Chunk &chunk, const glm::ivec3 &pos, BlockID id ) {
-    for ( const glm::ivec3 offset : offsets_adj) {
+bool World::any_neighbor_adj_id( const Chunk &chunk, const glm::ivec3 &pos, const BlockID id ) {
+    for ( const glm::ivec3 offset : offsets_adj ) {
         glm::ivec3 pos_offset = glm::ivec3( pos.x + offset.x, pos.y + offset.y, pos.z + offset.z );
         const BlockState blockState = chunk.get_block( pos_offset );
         if ( blockState.id == id ) {
@@ -556,9 +556,9 @@ bool World::any_neighbor_adj_id( const Chunk &chunk, const glm::ivec3 &pos, Bloc
     return false;
 }
 
-bool world_any_neighbor_diag_id( const Chunk &chunk, const glm::ivec3 &pos, BlockID id ) {
+bool world_any_neighbor_diag_id( const Chunk &chunk, const glm::ivec3 &pos, const BlockID id ) {
 
-    for ( const glm::ivec3 offset : offsets_diag) {
+    for ( const glm::ivec3 offset : offsets_diag ) {
         glm::ivec3 pos_offset = glm::ivec3( pos.x + offset.x, pos.y + offset.y, pos.z + offset.z );
         const BlockState blockState = chunk.get_block( pos_offset );
         if ( blockState.id == id ) {
@@ -568,8 +568,8 @@ bool world_any_neighbor_diag_id( const Chunk &chunk, const glm::ivec3 &pos, Bloc
     return false;
 }
 
-bool world_any_neighbor_grass_id( const Chunk &chunk, const glm::ivec3 &pos, BlockID id ) {
-    for ( const glm::ivec3 offset : offsets_grass) {
+bool world_any_neighbor_grass_id( const Chunk &chunk, const glm::ivec3 &pos, const BlockID id ) {
+    for ( const glm::ivec3 offset : offsets_grass ) {
         glm::ivec3 pos_offset = glm::ivec3( pos.x + offset.x, pos.y + offset.y, pos.z + offset.z );
         const BlockState blockState = chunk.get_block( pos_offset );
         if ( blockState.id == id ) {
@@ -626,13 +626,13 @@ bool World::do_random_tick_on_block( const Chunk &chunk, const glm::vec3 &pos, B
 }
 
 int counter = 0;
-bool World::process_random_ticks_on_chunk( const Chunk &chunk ) {
+bool World::process_random_ticks_on_chunk( const Chunk &chunk ) const {
     bool anyBlockStateChanged = false;
     const int index = CHUNK_BLOCK_DRAW_START + ( rand( ) % ( CHUNK_BLOCK_DRAW_STOP - CHUNK_BLOCK_DRAW_START + 1 ) );
     int x, y, z;
     if ( const int drawn_block = Chunk::get_coords_from_index( index, x, y, z ) ) { // TODO re-try if this isn't a valid block coord
-                         // pr_debug( "Ticking index:%d", index );
-        glm::ivec3 pos = glm::ivec3( x, y, z );
+                                                                                    // pr_debug( "Ticking index:%d", index );
+        const glm::ivec3 pos = glm::ivec3( x, y, z );
         BlockState blockState = chunk.get_block( pos );
         // bool changedState = false;
         if ( do_random_tick_on_block( chunk, pos, blockState ) ) {
@@ -647,7 +647,7 @@ bool World::process_random_ticks_on_chunk( const Chunk &chunk ) {
     return anyBlockStateChanged;
 }
 
-void World::process_random_ticks( ) {
+void World::process_random_ticks( ) const {
     pr_debug( "Tick" );
     srand( counter );
     counter += 1;

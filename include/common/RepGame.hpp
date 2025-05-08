@@ -92,7 +92,7 @@ class RepGame {
 
     BlockID change_block( int place, BlockState blockState );
     unsigned char getPlacedRotation( BlockID blockID ) const;
-    void initilizeGameState( const char *world_name );
+    void initializeGameState( const char *world_name );
     void add_to_hotbar( bool alsoSelect, BlockID blockId );
     void process_mouse_events( );
     void process_camera_angle( );
