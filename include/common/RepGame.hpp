@@ -91,7 +91,7 @@ class RepGame {
     RepGameState globalGameState;
 
     BlockID change_block( int place, BlockState blockState );
-    unsigned char getPlacedRotation( BlockID blockID );
+    unsigned char getPlacedRotation( BlockID blockID ) const;
     void initilizeGameState( const char *world_name );
     void add_to_hotbar( bool alsoSelect, BlockID blockId );
     void process_mouse_events( );
@@ -104,17 +104,17 @@ class RepGame {
     void renderShaders( int x, int y, int z );
     RepGameState *init( const char *world_name, bool connect_multi, const char *host, bool supportsAnisotropicFiltering );
     void tick( );
-    void clear( );
+    static void clear( );
     void idle( );
     void draw( );
-    void set_textures( unsigned int which_texture, unsigned char *textures, int textures_len );
+    static void set_textures( unsigned int which_texture, unsigned char *textures, int textures_len );
     void cleanup( );
     Input &getInputState( );
 
     void changeSize( int x, int y );
-    void get_screen_size( int *width, int *height );
-    int shouldExit( );
-    int should_lock_pointer( );
+    void get_screen_size( int *width, int *height ) const;
+    int shouldExit( ) const;
+    int should_lock_pointer( ) const;
     static bool supportsAnisotropic( );
 
     int rep_tests_start( );

@@ -21,7 +21,6 @@ MK_SHADER( full_screen_quad_fragment );
 void FullScreenQuad::init( ) {
     showErrors( );
     {
-        this->vbl.init( );
         this->vbl.push_float( 2 ); // FullScreenQuadVertex pos
         this->vbl.push_float( 2 ); // FullScreenQuadVertex uv
     }
@@ -37,10 +36,12 @@ void FullScreenQuad::draw_texture( const Renderer &renderer, const Texture &text
     this->shader.set_uniform1i_texture( "u_Stencil", depthStencilTexture );
     this->shader.set_uniform1i( "u_IgnoreStencil", ignoreStencil );
     this->shader.set_uniform1f( "u_ExtraAlpha", extraAlpha );
-    this->shader.set_uniform1i( "u_TextureSamples", blur ? 1 : this->maxSamples );//No point sampling more than our max number of samples from our textures.
+    this->shader.set_uniform1i( "u_TextureSamples", blur ? 1 : this->maxSamples ); // No point sampling more than our max number of samples from our textures.
     this->shader.set_uniform1i( "u_Blur", blur );
     this->render_link_fsq.draw( renderer, this->shader );
 }
 
 void FullScreenQuad::destroy( ) {
+    this->shader.destroy( );
+    this->vbl.destroy( );
 }

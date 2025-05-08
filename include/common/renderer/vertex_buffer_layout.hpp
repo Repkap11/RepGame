@@ -21,8 +21,8 @@ class VertexBufferLayout {
     static bool uses_I_attrib( unsigned int type );
 
   public:
-    void init( );
-    void init_element( VertexBufferElement &vertexBufferElement, unsigned int type, unsigned int count, unsigned int normalized );
+    VertexBufferLayout( );
+    static void init_element( VertexBufferElement &vertexBufferElement, unsigned int type, unsigned int count, unsigned int normalized );
 
     void push_float( unsigned int count );
     void push_unsigned_int( unsigned int count );

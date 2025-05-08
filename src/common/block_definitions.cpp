@@ -1,5 +1,5 @@
-#include <stdlib.h>
-#include <string.h>
+#include <cstdlib>
+#include <cstring>
 
 #include "common/block_definitions.hpp"
 #include "common/renderer/texture.hpp"
@@ -16,27 +16,27 @@ float *block_definitions_get_random_rotations( ) {
     return &block_supports_random_rotations[ 1 ];
 }
 
-inline void centered_border( BlockID id, short border_size, short height ) {
-    block_definitions[ id ].scale = { ( short )( 16 - 2 * border_size ), height, ( short )( 16 - 2 * border_size ) };
+inline void centered_border( const BlockID id, const short border_size, const short height ) {
+    block_definitions[ id ].scale = { static_cast<short>( 16 - 2 * border_size ), height, static_cast<short>( 16 - 2 * border_size ) };
     block_definitions[ id ].offset = { border_size, 0, border_size };
-    block_definitions[ id ].tex_offset = { ( short )( -border_size ), 0, ( short )( -border_size ) };
+    block_definitions[ id ].tex_offset = { static_cast<short>( -border_size ), 0, static_cast<short>( -border_size ) };
 }
 
 void block_definitions_initilize_definitions( Texture *texture ) {
-    block_definitions = ( Block * )calloc( LAST_BLOCK_ID, sizeof( Block ) );
+    block_definitions = static_cast<Block *>( calloc( LAST_BLOCK_ID, sizeof( Block ) ) );
     for ( int block_id = 0; block_id < LAST_BLOCK_ID; block_id++ ) {
         Block *block = &block_definitions[ block_id ];
-        block->id = ( BlockID )block_id;
+        block->id = static_cast<BlockID>( block_id );
         block->renderOrder = RenderOrder_Opaque;
-        for ( int i = 0; i < NUM_FACES_IN_CUBE; i++ ) {
-            block->textures[ i ] = ( BlockID )block_id;
+        for ( BlockID &texture_face : block->textures ) {
+            texture_face = static_cast<BlockID>( block_id );
         }
         block->no_light = NO_LIGHT_NO_DRAW;
         block->casts_shadow = true;
         block->hides_self = { false, false, false }; // like connected glass so you don't see the perpendicular panes, you probably need is_seethrough too.
         block->is_seethrough = false;
-        for ( int face = FACE_TOP; face < NUM_FACES_IN_CUBE; face++ ) {
-            block->needs_place_on_any_solid[ face ] = false;
+        for ( bool &face : block->needs_place_on_any_solid ) {
+            face = false;
         }
         block->rotate_on_placement = false;
         block->icon_is_isometric = true;
@@ -48,16 +48,15 @@ void block_definitions_initilize_definitions( Texture *texture ) {
         block->tex_offset = { 0, 0, 0 };
         block->breaks_in_liquid = false;
         block->initial_redstone_power = 0;       // redstone block
-        block->affected_by_redstone_power = 1;   // dust, piston, all solid blocks
+        block->affected_by_redstone_power = true;   // dust, piston, all solid blocks
         block->transmits_redstone_power = false; // dust
         block->needs_place_on_solid_but_can_stack_on_self = false;
         block->can_be_placed_in = false;
-        block->inventory_non_isometric_id = ( BlockID )block_id;
+        block->inventory_non_isometric_id = static_cast<BlockID>( block_id );
     }
 
     BlockID pressure_plate_shaped[] = { PINE_PRESSURE_PLATE, BIRTCH_PRESSURE_PLATE, JUNGLE_PRESSURE_PLATE, ACACIA_PRESSURE_PLATE, DARK_OAK_PRESSURE_PLATE };
-    for ( unsigned int i = 0; i < sizeof( pressure_plate_shaped ) / sizeof( BlockID ); i++ ) {
-        BlockID id = pressure_plate_shaped[ i ];
+    for ( BlockID id : pressure_plate_shaped ) {
         centered_border( id, 1, 1 );
         block_definitions[ id ].is_seethrough = true;
         block_definitions[ id ].casts_shadow = false;
@@ -97,9 +96,8 @@ void block_definitions_initilize_definitions( Texture *texture ) {
     block_definitions[ DARK_OAK_PRESSURE_PLATE ].textures[ FACE_RIGHT ] = DARK_OAK_PLANK;
     block_definitions[ DARK_OAK_PRESSURE_PLATE ].textures[ FACE_LEFT ] = DARK_OAK_PLANK;
 
-    BlockID button_shaped[] = { OAK_BUTTON, PINE_BUTTON, BIRTCH_BUTTON, JUNGLE_BUTTON, ACACIA_BUTTON, DARK_OAK_BUTTON, STONE_BUTTON };
-    for ( unsigned int i = 0; i < sizeof( button_shaped ) / sizeof( BlockID ); i++ ) {
-        BlockID id = button_shaped[ i ];
+    constexpr BlockID button_shaped[] = { OAK_BUTTON, PINE_BUTTON, BIRTCH_BUTTON, JUNGLE_BUTTON, ACACIA_BUTTON, DARK_OAK_BUTTON, STONE_BUTTON };
+    for ( const BlockID id : button_shaped ) {
         block_definitions[ id ].scale = { 6, 4, 2 };
         block_definitions[ id ].offset = { 5, 6, 0 };
         block_definitions[ id ].tex_offset = { -7, -6, -5 };
@@ -132,9 +130,8 @@ void block_definitions_initilize_definitions( Texture *texture ) {
     block_definitions[ STONE_BUTTON ].textures[ FACE_TOP ] = STONE;
     block_definitions[ STONE_BUTTON ].textures[ FACE_BOTTOM ] = STONE;
 
-    BlockID cake_shaped[] = { CAKE };
-    for ( unsigned int i = 0; i < sizeof( cake_shaped ) / sizeof( BlockID ); i++ ) {
-        BlockID id = cake_shaped[ i ];
+    constexpr BlockID cake_shaped[] = { CAKE };
+    for ( const BlockID id : cake_shaped ) {
         block_definitions[ id ].scale = { 14, 8, 14 };
         block_definitions[ id ].offset = { 1, 0, 1 };
         block_definitions[ id ].tex_offset = { -1, 0, -1 };
@@ -152,9 +149,8 @@ void block_definitions_initilize_definitions( Texture *texture ) {
     block_definitions[ CAKE ].textures[ FACE_LEFT ] = CAKE_SIDE;
     block_definitions[ CAKE ].textures[ FACE_BOTTOM ] = CAKE_BOTTOM;
 
-    BlockID ladder_shaped[] = { LADDER };
-    for ( unsigned int i = 0; i < sizeof( ladder_shaped ) / sizeof( BlockID ); i++ ) {
-        BlockID id = ladder_shaped[ i ];
+    constexpr BlockID ladder_shaped[] = { LADDER };
+    for ( const BlockID id : ladder_shaped ) {
         block_definitions[ id ].scale = { 14, 16, 1 };
         block_definitions[ id ].offset = { 1, 0, 0 };
         block_definitions[ id ].tex_offset = { -5, 0, -1 };
@@ -172,10 +168,10 @@ void block_definitions_initilize_definitions( Texture *texture ) {
     block_definitions[ LADDER ].textures[ FACE_TOP ] = LADDER_TOP;
     block_definitions[ LADDER ].textures[ FACE_BOTTOM ] = LADDER_TOP;
 
-    BlockID door_shaped[] = { ( BlockID )146, ( BlockID )523, ( BlockID )147, ( BlockID )524, ( BlockID )525, ( BlockID )526, ( BlockID )527,
-                              ( BlockID )122, ( BlockID )499, ( BlockID )123, ( BlockID )500, ( BlockID )501, ( BlockID )502, ( BlockID )503 };
-    for ( unsigned int i = 0; i < sizeof( door_shaped ) / sizeof( BlockID ); i++ ) {
-        BlockID id = door_shaped[ i ];
+    constexpr BlockID door_shaped[] = { static_cast<BlockID>( 146 ), static_cast<BlockID>( 523 ), static_cast<BlockID>( 147 ), static_cast<BlockID>( 524 ), static_cast<BlockID>( 525 ),
+                                        static_cast<BlockID>( 526 ), static_cast<BlockID>( 527 ), static_cast<BlockID>( 122 ), static_cast<BlockID>( 499 ), static_cast<BlockID>( 123 ),
+                                        static_cast<BlockID>( 500 ), static_cast<BlockID>( 501 ), static_cast<BlockID>( 502 ), static_cast<BlockID>( 503 ) };
+    for ( const BlockID id : door_shaped ) {
         block_definitions[ id ].scale = { 16, 16, 1 };
         block_definitions[ id ].offset = { 0, 0, 0 };
         block_definitions[ id ].tex_offset = { 0, 0, 0 };
@@ -201,8 +197,7 @@ void block_definitions_initilize_definitions( Texture *texture ) {
     block_definitions[ REDSTONE_TORCH ].transmits_redstone_power = true;
 
     BlockID pane_shaped[] = { GLASS_PANE };
-    for ( unsigned int i = 0; i < sizeof( pane_shaped ) / sizeof( BlockID ); i++ ) {
-        BlockID id = pane_shaped[ i ];
+    for ( const BlockID id : pane_shaped ) {
         block_definitions[ id ].scale = { 16, 16, 2 };
         block_definitions[ id ].offset = { 0, 0, 7 };
         block_definitions[ id ].tex_offset = { -7, 0, 0 };
@@ -212,9 +207,8 @@ void block_definitions_initilize_definitions( Texture *texture ) {
         // block_definitions[ id ].hides_self = true;
     }
 
-    BlockID torch_shaped[] = { TORCH, BURNT_OUT_TORCH, REDSTONE_TORCH, REDSTONE_TORCH_OFF, BLACK_TORCH, BLUE_TORCH, WHITE_TORCH, PURPLE_TORCH, RED_TORCH, CYAN_TORCH };
-    for ( unsigned int i = 0; i < sizeof( torch_shaped ) / sizeof( BlockID ); i++ ) {
-        BlockID id = torch_shaped[ i ];
+    constexpr BlockID torch_shaped[] = { TORCH, BURNT_OUT_TORCH, REDSTONE_TORCH, REDSTONE_TORCH_OFF, BLACK_TORCH, BLUE_TORCH, WHITE_TORCH, PURPLE_TORCH, RED_TORCH, CYAN_TORCH };
+    for ( const BlockID id : torch_shaped ) {
         centered_border( id, 7, 10 );
         // block_definitions[ id ].is_seethrough = true;
         block_definitions[ id ].casts_shadow = false;
@@ -223,45 +217,38 @@ void block_definitions_initilize_definitions( Texture *texture ) {
         block_definitions[ id ].needs_place_on_any_solid[ FACE_TOP ] = true;
         block_definitions[ id ].breaks_in_liquid = true;
     }
-    BlockID flower_shaped[] = { RED_MUSHROOM, BROWN_MUSHROOM, BLUE_FLOWER, TURTLE_EGGS1, TURTLE_EGGS2, EMPTY_POT, POPPY_FLOWER, LARGE_WHITE_FLOWER, BLACK_FLOWER };
-    for ( unsigned int i = 0; i < sizeof( flower_shaped ) / sizeof( BlockID ); i++ ) {
-        BlockID id = flower_shaped[ i ];
+    constexpr BlockID flower_shaped[] = { RED_MUSHROOM, BROWN_MUSHROOM, BLUE_FLOWER, TURTLE_EGGS1, TURTLE_EGGS2, EMPTY_POT, POPPY_FLOWER, LARGE_WHITE_FLOWER, BLACK_FLOWER };
+    for ( const BlockID id : flower_shaped ) {
         centered_border( id, 4, 11 );
     }
-    BlockID red_flower_shaped[] = { RED_FLOWER, BLUE_FLOWER };
-    for ( unsigned int i = 0; i < sizeof( red_flower_shaped ) / sizeof( BlockID ); i++ ) {
-        BlockID id = red_flower_shaped[ i ];
+    constexpr BlockID red_flower_shaped[] = { RED_FLOWER, BLUE_FLOWER };
+    for ( const BlockID id : red_flower_shaped ) {
         centered_border( id, 5, 11 );
     }
-    BlockID yellow_flower_shaped[] = { YELLOW_FLOWER };
-    for ( unsigned int i = 0; i < sizeof( yellow_flower_shaped ) / sizeof( BlockID ); i++ ) {
-        BlockID id = yellow_flower_shaped[ i ];
+    constexpr BlockID yellow_flower_shaped[] = { YELLOW_FLOWER };
+    for ( const BlockID id : yellow_flower_shaped ) {
         centered_border( id, 5, 9 );
     }
-    BlockID potted_flower_shaped[] = { RED_FLOWER_IN_POT };
-    for ( unsigned int i = 0; i < sizeof( potted_flower_shaped ) / sizeof( BlockID ); i++ ) {
-        BlockID id = potted_flower_shaped[ i ];
+    constexpr BlockID potted_flower_shaped[] = { RED_FLOWER_IN_POT };
+    for ( const BlockID id : potted_flower_shaped ) {
         centered_border( id, 4, 16 );
     }
 
-    BlockID grass_tuft_shaped[] = { GRASS_TUFT2 };
-    for ( unsigned int i = 0; i < sizeof( grass_tuft_shaped ) / sizeof( BlockID ); i++ ) {
-        BlockID id = grass_tuft_shaped[ i ];
+    constexpr BlockID grass_tuft_shaped[] = { GRASS_TUFT2 };
+    for ( const BlockID id : grass_tuft_shaped ) {
         centered_border( id, 1, 16 );
     }
 
-    BlockID slab_shaped[] = { STONE_BRICK_SLAB, DARK_OAK_SLAB, OAK_SLAB, BIRTCH_SLAB, JUNGLE_SLAB, ACACIA_SLAB, RED_SANDSTONE_BRICK_SLAB, PINE_SLAB, COBBLESTONE_SLAB, SANDSTONE_SLAB };
-    for ( unsigned int i = 0; i < sizeof( slab_shaped ) / sizeof( BlockID ); i++ ) {
-        BlockID id = slab_shaped[ i ];
+    constexpr BlockID slab_shaped[] = { STONE_BRICK_SLAB, DARK_OAK_SLAB, OAK_SLAB, BIRTCH_SLAB, JUNGLE_SLAB, ACACIA_SLAB, RED_SANDSTONE_BRICK_SLAB, PINE_SLAB, COBBLESTONE_SLAB, SANDSTONE_SLAB };
+    for ( const BlockID id : slab_shaped ) {
         block_definitions[ id ].scale = { 16, 8, 16 };
         block_definitions[ id ].offset = { 0, 0, 0 };
         block_definitions[ id ].tex_offset = { 0, -4, 0 };
         // block_definitions[ id ].is_seethrough = true;
     }
 
-    BlockID portal_shaped[] = { PORTAL };
-    for ( unsigned int i = 0; i < sizeof( portal_shaped ) / sizeof( BlockID ); i++ ) {
-        BlockID id = portal_shaped[ i ];
+    constexpr BlockID portal_shaped[] = { PORTAL };
+    for ( const BlockID id : portal_shaped ) {
         block_definitions[ id ].scale = { 16, 16, 4 };
         block_definitions[ id ].offset = { 0, 0, 6 };
         block_definitions[ id ].tex_offset = { 0, -8, 0 };
@@ -272,24 +259,21 @@ void block_definitions_initilize_definitions( Texture *texture ) {
     }
     block_definitions[ PORTAL ].breaks_in_liquid = true;
 
-    BlockID single_chest[] = { SINGLE_CHEST_LATCH };
-    for ( unsigned int i = 0; i < sizeof( single_chest ) / sizeof( BlockID ); i++ ) {
-        BlockID id = single_chest[ i ];
+    constexpr BlockID single_chest[] = { SINGLE_CHEST_LATCH };
+    for ( const BlockID id : single_chest ) {
         block_definitions[ id ].scale = { 14, 15, 14 };
         block_definitions[ id ].offset = { 1, 0, 1 };
         block_definitions[ id ].tex_offset = { -1, 0, -1 };
     }
 
-    BlockID left_chest[] = { DOUBLE_CHEST_LEFT_LATCH };
-    for ( unsigned int i = 0; i < sizeof( left_chest ) / sizeof( BlockID ); i++ ) {
-        BlockID id = left_chest[ i ];
+    constexpr BlockID left_chest[] = { DOUBLE_CHEST_LEFT_LATCH };
+    for ( const BlockID id : left_chest ) {
         block_definitions[ id ].scale = { 15, 15, 14 };
         block_definitions[ id ].offset = { 1, 0, 1 };
         block_definitions[ id ].tex_offset = { -1, 0, 0 };
     }
-    BlockID right_chest[] = { DOUBLE_CHEST_RIGHT_LATCH };
-    for ( unsigned int i = 0; i < sizeof( right_chest ) / sizeof( BlockID ); i++ ) {
-        BlockID id = right_chest[ i ];
+    constexpr BlockID right_chest[] = { DOUBLE_CHEST_RIGHT_LATCH };
+    for ( const BlockID id : right_chest ) {
         block_definitions[ id ].scale = { 15, 15, 14 };
         block_definitions[ id ].offset = { 0, 0, 1 };
         block_definitions[ id ].tex_offset = { 0, 0, -1 };
@@ -330,9 +314,8 @@ void block_definitions_initilize_definitions( Texture *texture ) {
     block_definitions[ SANDSTONE_SLAB ].textures[ FACE_TOP ] = SANDSTONE_BRICK_TOP;
     block_definitions[ SANDSTONE_SLAB ].textures[ FACE_BOTTOM ] = SANDSTONE_BRICK_BOTTOM;
 
-    BlockID head_shaped[] = { SKELETON_HEAD, WHITHER_SKELETON_HEAD, ZOMBIE_HEAD, PLAYER_HEAD, CREEPER_HEAD };
-    for ( unsigned int i = 0; i < sizeof( head_shaped ) / sizeof( BlockID ); i++ ) {
-        BlockID id = head_shaped[ i ];
+    constexpr BlockID head_shaped[] = { SKELETON_HEAD, WHITHER_SKELETON_HEAD, ZOMBIE_HEAD, PLAYER_HEAD, CREEPER_HEAD };
+    for ( const BlockID id : head_shaped ) {
         block_definitions[ id ].scale = { 8, 8, 8 };
         block_definitions[ id ].offset = { 4, 0, 4 };
         block_definitions[ id ].tex_offset = { -4, -4, -4 };
@@ -343,10 +326,9 @@ void block_definitions_initilize_definitions( Texture *texture ) {
         block_definitions[ id ].rotate_on_placement = true;
         block_definitions[ id ].icon_is_isometric = false;
     }
-    BlockID dust_shaped[] = { REDSTONE_LINE_1,   REDSTONE_LINE_2,   REDSTONE_CROSS,    REDSTONE_DUST_L_Q1, REDSTONE_DUST_L_Q2, REDSTONE_DUST_L_Q3, REDSTONE_DUST_L_Q4, //
-                              REDSTONE_DUST_T_L, REDSTONE_DUST_T_R, REDSTONE_DUST_T_F, REDSTONE_DUST_T_B };
-    for ( unsigned int i = 0; i < sizeof( dust_shaped ) / sizeof( BlockID ); i++ ) {
-        BlockID id = dust_shaped[ i ];
+    constexpr BlockID dust_shaped[] = { REDSTONE_LINE_1,   REDSTONE_LINE_2,   REDSTONE_CROSS,    REDSTONE_DUST_L_Q1, REDSTONE_DUST_L_Q2, REDSTONE_DUST_L_Q3, REDSTONE_DUST_L_Q4, //
+                                        REDSTONE_DUST_T_L, REDSTONE_DUST_T_R, REDSTONE_DUST_T_F, REDSTONE_DUST_T_B };
+    for ( const BlockID id : dust_shaped ) {
         centered_border( id, 0, 1 );
         block_definitions[ id ].is_seethrough = true;
         block_definitions[ id ].casts_shadow = false;
@@ -366,19 +348,17 @@ void block_definitions_initilize_definitions( Texture *texture ) {
         block_definitions[ id ].connects_to_redstone_dust = true;
         block_definitions[ id ].is_pickable = false;
         block_definitions[ id ].hides_self = { false, false, false };
-
     }
     block_definitions[ REDSTONE_CROSS ].is_pickable = true;
-    BlockID power_dust_shaped[] = { REDSTONE_LINE_1_POWERED,   REDSTONE_LINE_2_POWERED,   REDSTONE_CROSS_POWERED,    REDSTONE_DUST_L_Q1_POWERED, REDSTONE_DUST_L_Q2_POWERED, REDSTONE_DUST_L_Q3_POWERED, REDSTONE_DUST_L_Q4_POWERED, //
-                                    REDSTONE_DUST_T_L_POWERED, REDSTONE_DUST_T_R_POWERED, REDSTONE_DUST_T_F_POWERED, REDSTONE_DUST_T_B_POWERED };
-    for ( unsigned int i = 0; i < sizeof( power_dust_shaped ) / sizeof( BlockID ); i++ ) {
-        BlockID id = power_dust_shaped[ i ];
+    constexpr BlockID power_dust_shaped[] = { REDSTONE_LINE_1_POWERED,    REDSTONE_LINE_2_POWERED,    REDSTONE_CROSS_POWERED,     REDSTONE_DUST_L_Q1_POWERED,
+                                              REDSTONE_DUST_L_Q2_POWERED, REDSTONE_DUST_L_Q3_POWERED, REDSTONE_DUST_L_Q4_POWERED, //
+                                              REDSTONE_DUST_T_L_POWERED,  REDSTONE_DUST_T_R_POWERED,  REDSTONE_DUST_T_F_POWERED,  REDSTONE_DUST_T_B_POWERED };
+    for ( const BlockID id : power_dust_shaped ) {
         block_definitions[ id ].is_pickable = false;
     }
 
-    BlockID translucent_glass[] = {GLASS_BLACK, GLASS_BLUE, GLASS_BROWN, GLASS_LIGHT_BLUE, GLASS_GRAY, GLASS_DARK_GREEN, GLASS_LIGHT_GREEN, GLASS_TINT_GREEN, GLASS_PALE_BLUE, GLASS_WHITE};
-    for ( unsigned int i = 0; i < sizeof( translucent_glass ) / sizeof( BlockID ); i++ ) {
-        BlockID id = translucent_glass[ i ];
+    constexpr BlockID translucent_glass[] = { GLASS_BLACK, GLASS_BLUE, GLASS_BROWN, GLASS_LIGHT_BLUE, GLASS_GRAY, GLASS_DARK_GREEN, GLASS_LIGHT_GREEN, GLASS_TINT_GREEN, GLASS_PALE_BLUE, GLASS_WHITE };
+    for ( const BlockID id : translucent_glass ) {
         block_definitions[ id ].renderOrder = RenderOrder_Translucent;
     }
 
@@ -523,7 +503,7 @@ void block_definitions_initilize_definitions( Texture *texture ) {
     block_definitions[ DOUBLE_CHEST_LEFT_LATCH ].rotate_on_placement = true;
     block_definitions[ DOUBLE_CHEST_RIGHT_LATCH ].rotate_on_placement = true;
 
-    block_definitions[PORTAL].renderOrder = RenderOrder_Translucent;
+    block_definitions[ PORTAL ].renderOrder = RenderOrder_Translucent;
 
     // Start flower section
     do_flowers( block_definitions );
@@ -602,8 +582,8 @@ void block_definitions_initilize_definitions( Texture *texture ) {
         }
 
         if ( block->is_seethrough ) { // leaves, flowers, glass
-            for ( int face = FACE_TOP; face < NUM_FACES_IN_CUBE; face++ ) {
-                block->calculated.is_seethrough_face[ face ] = true;
+            for (bool & face : block->calculated.is_seethrough_face) {
+                face = true;
             }
         } else { // other blocks, like dirt, slabs
 
@@ -628,7 +608,6 @@ void block_definitions_initilize_definitions( Texture *texture ) {
     block_definitions[ GRASS_TUFT2 ].casts_shadow = true;
     block_definitions[ GRASS_TUFT3 ].casts_shadow = true;
     block_definitions[ GRASS_TUFT4 ].casts_shadow = true;
-
 }
 
 Block *block_definition_get_definition( BlockID blockID ) {

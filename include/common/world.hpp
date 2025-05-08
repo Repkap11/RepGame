@@ -30,14 +30,14 @@ class World {
     MouseSelection mouseSelection;
     Shader object_shader;
 
-    int can_fixup_chunk( Chunk &chunk, const glm::ivec3 &offset );
-    void fixup_chunk( Chunk &chunk, const glm::ivec3 &offset, const glm::ivec3 &pos, BlockState blockState );
+    int can_fixup_chunk( const Chunk &chunk, const glm::ivec3 &offset );
+    void fixup_chunk( const Chunk &chunk, const glm::ivec3 &offset, const glm::ivec3 &pos, const BlockState &blockState );
     static bool any_neighbor_adj_id( const Chunk &chunk, const glm::ivec3 &pos, BlockID id );
     static bool any_neighbor_diag_id( const Chunk &chunk, const glm::ivec3 &pos, BlockID id );
     static bool any_neighbor_grass_id( const Chunk &chunk, const glm::ivec3 &pos, BlockID id );
 
-    bool process_random_ticks_on_chunk( Chunk &chunk );
-    bool do_random_tick_on_block( Chunk &chunk, const glm::vec3 &pos, BlockState &blockState );
+    bool process_random_ticks_on_chunk( const Chunk &chunk );
+    static bool do_random_tick_on_block( const Chunk &chunk, const glm::vec3 &pos, BlockState &blockState );
 
   public:
     BlockState get_loaded_block( const glm::ivec3 &block );

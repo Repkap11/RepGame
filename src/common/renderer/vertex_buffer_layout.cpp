@@ -1,9 +1,7 @@
 #include "common/RepGame.hpp"
 #include "common/renderer/vertex_buffer_layout.hpp"
 
-void VertexBufferLayout::init( ) {
-    this->current_size = 0;
-    this->stride = 0;
+VertexBufferLayout::VertexBufferLayout( ) : mRendererId( 0 ), current_size(0 ), stride(0 ), elements{ } {
 }
 
 unsigned int VertexBufferLayout::size_of_type( unsigned int type ) {
@@ -37,7 +35,7 @@ bool VertexBufferLayout::uses_I_attrib( unsigned int type ) {
     }
 }
 
-inline void VertexBufferLayout::init_element( VertexBufferElement &vertexBufferElement, unsigned int type, unsigned int count, unsigned int normalized ) {
+inline void VertexBufferLayout::init_element( VertexBufferElement &vertexBufferElement, const unsigned int type, const unsigned int count, const unsigned int normalized ) {
     vertexBufferElement.type = type;
     vertexBufferElement.count = count;
     vertexBufferElement.normalized = normalized;
@@ -57,13 +55,13 @@ void VertexBufferLayout::push_float( unsigned int count ) {
     }
 }
 
-void VertexBufferLayout::push_float_array( unsigned int count ) {
+void VertexBufferLayout::push_float_array( const unsigned int count ) {
     for ( unsigned int i = 0; i < count; i++ ) {
         VertexBufferLayout::push_float( 1 );
     }
 }
 
-void VertexBufferLayout::push_unsigned_int( unsigned int count ) {
+void VertexBufferLayout::push_unsigned_int( const unsigned int count ) {
     if ( this->current_size < NUM_VERTEX_BUFFER_ELEMENTS ) {
         VertexBufferLayout::init_element(         //
             this->elements[ this->current_size ], //

@@ -1,26 +1,19 @@
 
-#include <math.h>
-#include <time.h>
+#include <cmath>
+#include <ctime>
 #include <unistd.h>
 
 #include "common/RepGame.hpp"
 #include "common/block_definitions.hpp"
-#include "common/chunk.hpp"
 #include "common/utils/map_storage.hpp"
 #include "common/renderer/texture.hpp"
 #include "common/world.hpp"
-#include "common/renderer/shader.hpp"
-#include "common/renderer/vertex_buffer.hpp"
-#include "common/renderer/index_buffer.hpp"
 #include "common/renderer/vertex_buffer_layout.hpp"
-#include "common/renderer/vertex_array.hpp"
-#include "common/renderer/renderer.hpp"
 #include "common/utils/ray_traversal.hpp"
 #include "common/utils/collision.hpp"
 #include "common/multiplayer.hpp"
 #include "common/map_gen.hpp"
 #include "common/block_update_events/PlayerBlockPlacedEvent.hpp"
-
 
 BlockID RepGame::change_block( int place, BlockState blockState ) {
 
@@ -43,7 +36,7 @@ BlockID RepGame::change_block( int place, BlockState blockState ) {
     return previous_block_id;
 }
 
-unsigned char RepGame::getPlacedRotation( BlockID blockID ) {
+unsigned char RepGame::getPlacedRotation( BlockID blockID ) const {
     unsigned char rotation = BLOCK_ROTATE_0;
     if ( block_definition_get_definition( blockID )->rotate_on_placement ) {
         if ( globalGameState.camera.angle_H < 45 ) {
@@ -75,10 +68,9 @@ void RepGame::add_to_hotbar( bool alsoSelect, BlockID blockId ) {
         // We don't support having the same block in the hotbar or inventory more than once, until there are qtys.
         return;
     }
-    bool didAdd = globalGameState.hotbar.addBlock( alsoSelect, blockId );
-    if ( didAdd ) {
+    if ( globalGameState.hotbar.addBlock( alsoSelect, blockId ) ) {
         // The block we added might have gone into our selected slot.
-        BlockID selectedBlock = globalGameState.hotbar.getSelectedBlock( );
+        const BlockID selectedBlock = globalGameState.hotbar.getSelectedBlock( );
         globalGameState.ui_overlay.set_holding_block( selectedBlock );
     }
 }
@@ -98,7 +90,7 @@ void RepGame::process_mouse_events( ) {
     }
     if ( globalGameState.block_selection.selectionInBounds && globalGameState.input.mouse.buttons.left && globalGameState.input.click_delay_left == 0 ) {
         // Mining a block
-        BlockID previous_block = change_block( 0, BLOCK_STATE_AIR );
+        change_block( 0, BLOCK_STATE_AIR );
         // RepGame::add_to_hotbar( false, previous_block );
         globalGameState.input.click_delay_left = 30;
     }
@@ -107,7 +99,7 @@ void RepGame::process_mouse_events( ) {
         BlockID holdingBlock = globalGameState.hotbar.getSelectedBlock( );
         if ( holdingBlock != LAST_BLOCK_ID ) {
             unsigned char rotation = getPlacedRotation( holdingBlock );
-            BlockID previous_block = change_block( 1, { holdingBlock, rotation, 0, holdingBlock } );
+            change_block( 1, { holdingBlock, rotation, 0, holdingBlock } );
             globalGameState.input.click_delay_right = 30;
         }
     }
@@ -158,9 +150,9 @@ void RepGame::process_camera_angle( ) {
     rotate = glm::rotate( rotate, glm::radians( globalGameState.camera.angle_V ), glm::vec3( 1.0f, 0.0f, 0.0f ) );
     globalGameState.camera.rotation = rotate;
 
-    globalGameState.camera.movement.x = sin( ( globalGameState.camera.angle_H + globalGameState.input.movement.angleH ) * ( M_PI / 180 ) );
-    globalGameState.camera.movement.y = -tan( globalGameState.camera.angle_V * ( M_PI / 180 ) );
-    globalGameState.camera.movement.z = -cos( ( globalGameState.camera.angle_H + globalGameState.input.movement.angleH ) * ( M_PI / 180 ) );
+    globalGameState.camera.movement.x = sinf( ( globalGameState.camera.angle_H + globalGameState.input.movement.angleH ) * static_cast<float>( ( M_PI / 180 ) ) );
+    globalGameState.camera.movement.y = -tanf( globalGameState.camera.angle_V * static_cast<float>( ( M_PI / 180 ) ) );
+    globalGameState.camera.movement.z = -cosf( ( globalGameState.camera.angle_H + globalGameState.input.movement.angleH ) * static_cast<float>( ( M_PI / 180 ) ) );
 
     globalGameState.camera.view_look = glm::lookAt( glm::vec3( 0.0f, 0.0f, 0.0f ), // From the origin
                                                     globalGameState.camera.look,   // Look at look vector
@@ -284,16 +276,16 @@ void RepGame::tick( ) {
     if ( RepGame::should_lock_pointer( ) ) {
         RepGame::process_mouse_events( );
         int whichFace = 0;
-        glm::vec3 pos_with_reach = globalGameState.camera.pos + ( globalGameState.camera.look * ( ( float )REACH_DISTANCE ) );
-        globalGameState.block_selection.selectionInBounds = RayTraversal::find_block_from_to( globalGameState.world, NULL, globalGameState.camera.pos, pos_with_reach, globalGameState.block_selection.pos_destroy, &whichFace, 0, 1, 0 );
+        glm::vec3 pos_with_reach = globalGameState.camera.pos + ( globalGameState.camera.look * static_cast<float>( REACH_DISTANCE ) );
+        globalGameState.block_selection.selectionInBounds = RayTraversal::find_block_from_to( globalGameState.world, nullptr, globalGameState.camera.pos, pos_with_reach, globalGameState.block_selection.pos_destroy, &whichFace, 0, 1, 0 );
 
         globalGameState.block_selection.pos_create.x = globalGameState.block_selection.pos_destroy.x + ( whichFace == FACE_RIGHT ) - ( whichFace == FACE_LEFT );
         globalGameState.block_selection.pos_create.y = globalGameState.block_selection.pos_destroy.y + ( whichFace == FACE_TOP ) - ( whichFace == FACE_BOTTOM );
         globalGameState.block_selection.pos_create.z = globalGameState.block_selection.pos_destroy.z + ( whichFace == FACE_BACK ) - ( whichFace == FACE_FRONT );
 
         globalGameState.world.set_selected_block( globalGameState.block_selection.pos_destroy, globalGameState.block_selection.selectionInBounds );
-        globalGameState.camera.angle_H += ( globalGameState.input.mouse.currentPosition.x - globalGameState.input.mouse.previousPosition.x ) * MOUSE_SENSITIVITY;
-        globalGameState.camera.angle_V += ( globalGameState.input.mouse.currentPosition.y - globalGameState.input.mouse.previousPosition.y ) * MOUSE_SENSITIVITY;
+        globalGameState.camera.angle_H += static_cast<float>( globalGameState.input.mouse.currentPosition.x - globalGameState.input.mouse.previousPosition.x ) * MOUSE_SENSITIVITY;
+        globalGameState.camera.angle_V += static_cast<float>( globalGameState.input.mouse.currentPosition.y - globalGameState.input.mouse.previousPosition.y ) * MOUSE_SENSITIVITY;
         if ( globalGameState.camera.angle_H >= 360.0f ) {
             globalGameState.camera.angle_H -= 360.0f;
         }
@@ -301,8 +293,8 @@ void RepGame::tick( ) {
             globalGameState.camera.angle_H += 360.0f;
         }
     }
-    globalGameState.input.mouse.currentPosition.x = globalGameState.screen.width / 2;
-    globalGameState.input.mouse.currentPosition.y = globalGameState.screen.height / 2;
+    globalGameState.input.mouse.currentPosition.x = globalGameState.screen.width / 2.0f;
+    globalGameState.input.mouse.currentPosition.y = globalGameState.screen.height / 2.0f;
 
     RepGame::process_movement( );
     RepGame::process_camera_angle( );
@@ -327,10 +319,10 @@ void RepGame::tick( ) {
 }
 
 void RepGame::initilizeGameState( const char *world_name ) {
-    globalGameState.input.exitGame = 0;
-    globalGameState.input.player_flying = 0;
-    globalGameState.input.inventory_open = 0;
-    globalGameState.input.no_clip = 0;
+    globalGameState.input.exitGame = false;
+    globalGameState.input.player_flying = false;
+    globalGameState.input.inventory_open = false;
+    globalGameState.input.no_clip = false;
     globalGameState.camera.angle_H = 0.0f;
     globalGameState.camera.angle_V = 0.0f;
     globalGameState.camera.pos.x = 0.5f;
@@ -353,8 +345,7 @@ void RepGame::initilizeGameState( const char *world_name ) {
 
     globalGameState.map_storage.init( world_name );
     PlayerData saved_data;
-    int has_saved_data = globalGameState.map_storage.read_player_data( saved_data );
-    if ( has_saved_data ) {
+    if ( globalGameState.map_storage.read_player_data( saved_data ) ) {
         globalGameState.camera.pos.x = saved_data.world_x;
         globalGameState.camera.pos.y = saved_data.world_y;
         globalGameState.camera.pos.z = saved_data.world_z;
@@ -362,7 +353,7 @@ void RepGame::initilizeGameState( const char *world_name ) {
         globalGameState.camera.angle_V = saved_data.angle_V;
         globalGameState.input.player_flying = saved_data.flying;
         globalGameState.input.no_clip = saved_data.no_clip;
-        globalGameState.input.worldDrawQuality = ( WorldDrawQuality )saved_data.worldDrawQuality;
+        globalGameState.input.worldDrawQuality = static_cast<WorldDrawQuality>( saved_data.worldDrawQuality );
         globalGameState.hotbar.applySavedInventory( saved_data.hotbar_inventory );
         globalGameState.hotbar.setSelectedSlot( saved_data.selected_hotbar_slot );
     }
@@ -378,7 +369,7 @@ bool RepGame::supportsAnisotropic( ) {
     return globalSupportsAnisotropic;
 }
 
-RepGameState *RepGame::init( const char *world_name, bool connect_multi, const char *host, bool supportsAnisotropicFiltering ) {
+RepGameState *RepGame::init( const char *world_name, const bool connect_multi, const char *host, const bool supportsAnisotropicFiltering ) {
     globalGameState.screen.width = DEFAULT_WINDOW_WIDTH;
     globalGameState.screen.height = DEFAULT_WINDOW_HEIGHT;
     globalSupportsAnisotropic = supportsAnisotropicFiltering;
@@ -398,14 +389,12 @@ RepGameState *RepGame::init( const char *world_name, bool connect_multi, const c
 
     VertexBufferLayout vbl_ui_overlay_vertex;
     // These are from UIOverlayVertex
-    vbl_ui_overlay_vertex.init( );
     vbl_ui_overlay_vertex.push_float( 2 );        // UIOverlayVertex screen_x, screen_y
     vbl_ui_overlay_vertex.push_float( 2 );        // UIOverlayVertex texture
     vbl_ui_overlay_vertex.push_unsigned_int( 1 ); // UIOverlayVertex is_isometric
     vbl_ui_overlay_vertex.push_unsigned_int( 1 ); // UIOverlayVertex face_type
 
     VertexBufferLayout vbl_ui_overlay_instance;
-    vbl_ui_overlay_instance.init( );
     vbl_ui_overlay_instance.push_float( 3 );        // UIOverlayInstance screen_x, screen_y, screen_z
     vbl_ui_overlay_instance.push_float( 2 );        // UIOverlayInstance width, height
     vbl_ui_overlay_instance.push_unsigned_int( 1 ); // UIOverlayInstance is_block
@@ -441,20 +430,20 @@ void RepGame::set_textures( unsigned int which_texture, unsigned char *textures,
     Texture::set_texture_data( which_texture, textures, textures_len );
 }
 
-int RepGame::shouldExit( ) {
+int RepGame::shouldExit( ) const {
     return globalGameState.input.exitGame;
 }
 
-int RepGame::should_lock_pointer( ) {
+int RepGame::should_lock_pointer( ) const {
     return !globalGameState.input.inventory_open;
 }
-void RepGame::changeSize( int w, int h ) {
+void RepGame::changeSize( const int w, const int h ) {
     // pr_debug( "Screen Size Change:%dx%d", w, h );
     if ( w == 0 || h == 0 ) {
         return;
     }
-    globalGameState.screen.width = w;
-    globalGameState.screen.height = h;
+    globalGameState.screen.width = static_cast<float>( w );
+    globalGameState.screen.height = static_cast<float>( h );
     glViewport( 0, 0, w, h );
 
     globalGameState.input.mouse.currentPosition.x = w / 2;
@@ -467,14 +456,14 @@ void RepGame::changeSize( int w, int h ) {
     globalGameState.hotbar.onScreenSizeChange( w, h );
     globalGameState.screen.proj = glm::perspective<float>( glm::radians( CAMERA_FOV ), globalGameState.screen.width / globalGameState.screen.height, 0.1f, 800.0f );
     globalGameState.screen.ortho = glm::ortho<float>( 0.f, w, 0.f, h, -1.f, 1.f );
-    globalGameState.screen.ortho_center = glm::ortho<float>( -w / 2, w / 2, -h / 2, h / 2, -1.f, 1.f );
+    globalGameState.screen.ortho_center = glm::ortho<float>( -w / 2.0f, w / 2.0f, -h / 2.0f, h / 2.0f, -1.f, 1.f );
     globalGameState.world.change_size( w, h );
 }
 
 void RepGame::clear( ) {
     glClear( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT );
 }
-void RepGame::get_screen_size( int *width, int *height ) {
+void RepGame::get_screen_size( int *width, int *height ) const {
     *width = globalGameState.screen.width;
     *height = globalGameState.screen.height;
 }
@@ -501,32 +490,32 @@ void RepGame::draw( ) {
 
     // glm::mat4 flipped_trans = rotation * globalGameState.camera.view_trans;
     // TODO globalGameState.camera.y causes a strange jump, perhaps the vars are updated in the wrong order.
-    float height_above_water = globalGameState.camera.pos.y + ( 1.0 - WATER_HEIGHT );
-    float offset = 2.0f * height_above_water;
-    glm::mat4 flipped_trans = glm::translate( globalGameState.camera.view_trans, glm::vec3( 0.0, offset, 0.0 ) );
+    const float height_above_water = globalGameState.camera.pos.y + ( 1.0f - WATER_HEIGHT );
+    const float offset = 2.0f * height_above_water;
+    const glm::mat4 flipped_trans = glm::translate( globalGameState.camera.view_trans, glm::vec3( 0.0, offset, 0.0 ) );
     // glm::mat4 flipped_trans = globalGameState.camera.view_trans;
 
-    glm::mat4 mvp_sky_reflect = globalGameState.screen.proj * flipped_look;
+    const glm::mat4 mvp_sky_reflect = globalGameState.screen.proj * flipped_look;
 
-    glm::mat4 mvp_reflect = globalGameState.screen.proj * flipped_look * flipped_trans;
+    const glm::mat4 mvp_reflect = globalGameState.screen.proj * flipped_look * flipped_trans;
 
     globalGameState.multiplayer.process_events( globalGameState.world );
     globalGameState.multiplayer.update_players_position( globalGameState.camera.pos, globalGameState.camera.rotation );
 
 #if defined( REPGAME_WASM )
-    bool limit_render = 1;
+    bool limit_render = true;
     bool do_render;
     static int should_update_count = 0;
     if ( should_update_count > 20 ) {
         should_update_count = 0;
-        do_render = 1;
+        do_render = true;
     } else {
-        do_render = 0;
+        do_render = false;
     }
     should_update_count++;
 #else
-    bool do_render = 1;
-    bool limit_render = 0;
+    bool do_render = true;
+    bool limit_render = false;
 #endif
     if ( do_render ) {
         globalGameState.world.render( globalGameState.multiplayer, globalGameState.camera.pos, limit_render, globalGameState.camera.rotation );
@@ -576,7 +565,7 @@ void RepGame::cleanup( ) {
     saved_data.angle_V = globalGameState.camera.angle_V;
     saved_data.flying = globalGameState.input.player_flying;
     saved_data.no_clip = globalGameState.input.no_clip;
-    saved_data.worldDrawQuality = ( int )globalGameState.input.worldDrawQuality;
+    saved_data.worldDrawQuality = static_cast<int>( globalGameState.input.worldDrawQuality );
     globalGameState.hotbar.saveInventory( saved_data.hotbar_inventory );
     saved_data.selected_hotbar_slot = globalGameState.hotbar.getSelectedSlot( );
 
