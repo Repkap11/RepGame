@@ -9,14 +9,14 @@ ImGuiDebugVars &imgui_overlay_get_imgui_debug_vars( ) {
 #if SUPPORTS_IMGUI_OVERLAY
 
 #include "imgui.h"
-#include "imgui_impl_sdl2.h"
+#include "imgui_impl_sdl3.h"
 #include "imgui_impl_opengl3.h"
 #include <stdio.h>
-#include <SDL.h>
+#include <SDL3/SDL.h>
 #if defined( IMGUI_IMPL_OPENGL_ES2 )
-#include <SDL_opengles2.h>
+#include <SDL3/SDL_opengles2.h>
 #else
-#include <SDL_opengl.h>
+#include <SDL3/SDL_opengl.h>
 #endif
 // This example can also compile and run with Emscripten! See 'Makefile.emscripten' for details.
 #ifdef __EMSCRIPTEN__
@@ -42,7 +42,7 @@ void imgui_overlay_attach_to_window( ImGuiOverlay *ui_overlay, SDL_Window *windo
     const char *glsl_version = "#version 300 es";
 
     // Setup Platform/Renderer backends
-    ImGui_ImplSDL2_InitForOpenGL( window, gl_context );
+    ImGui_ImplSDL3_InitForOpenGL( window, gl_context );
     ImGui_ImplOpenGL3_Init( glsl_version );
 
     float IMGUI_UI_SCALE = 2.0f;
@@ -54,8 +54,8 @@ void imgui_overlay_attach_to_window( ImGuiOverlay *ui_overlay, SDL_Window *windo
     ; //->DisplayOffset.y = IMGUI_UI_SCALE;
 }
 
-void imgui_overlay_handle_sdl2_event( ImGuiOverlay *ui_overlay, SDL_Event *event, bool *handledMouse, bool *handledKeyboard ) {
-    ImGui_ImplSDL2_ProcessEvent( event );
+void imgui_overlay_handle_sdl3_event( ImGuiOverlay *ui_overlay, SDL_Event *event, bool *handledMouse, bool *handledKeyboard ) {
+    ImGui_ImplSDL3_ProcessEvent( event );
     ImGuiIO &io = ImGui::GetIO( );
     *handledMouse = io.WantCaptureMouse;
     *handledKeyboard = io.WantCaptureKeyboard;
@@ -63,7 +63,7 @@ void imgui_overlay_handle_sdl2_event( ImGuiOverlay *ui_overlay, SDL_Event *event
 
 void imgui_overlay_draw( ImGuiOverlay *imgui_overlay, Input &input ) {
     ImGui_ImplOpenGL3_NewFrame( );
-    ImGui_ImplSDL2_NewFrame( );
+    ImGui_ImplSDL3_NewFrame( );
     ImGui::NewFrame( );
 
     if ( SHOW_IMGUI ) {
@@ -97,7 +97,7 @@ void imgui_overlay_draw( ImGuiOverlay *imgui_overlay, Input &input ) {
 
 void imgui_overlay_cleanup( ImGuiOverlay *imgui_overlay ) {
     ImGui_ImplOpenGL3_Shutdown( );
-    ImGui_ImplSDL2_Shutdown( );
+    ImGui_ImplSDL3_Shutdown( );
     ImGui::DestroyContext( );
 }
 #else

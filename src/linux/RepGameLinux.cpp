@@ -29,7 +29,7 @@ int main( int argc, char **argv ) {
 
     struct sigaction action;
     sigaction( SIGINT, nullptr, &action );
-    SDL_Init( SDL_INIT_EVERYTHING );
+    SDL_Init( SDL_INIT_VIDEO | SDL_INIT_AUDIO | SDL_INIT_EVENTS );
     sigaction( SIGINT, &action, nullptr );
-    return repgame_sdl2_main( world_path, host, connect_multi, tests );
+    return repgame_sdl3_main( world_path, host, connect_multi, tests );
 }

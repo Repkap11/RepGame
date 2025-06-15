@@ -2,6 +2,7 @@
 #include <time.h>
 #include <unistd.h>
 
+#include <SDL3/SDL.h>
 #include "common/RepGame.hpp"
 #include "common/rep_tests.hpp"
 
@@ -13,39 +14,38 @@ void repgame_linux_process_sdl_events( RepGame &repgame ) {
         bool handledMouse = false;
         bool handledKeyboard = false;
 #if SUPPORTS_IMGUI_OVERLAY
-        imgui_overlay_handle_sdl2_event( &globalGameState->imgui_overlay, &event, &handledMouse, &handledKeyboard );
+        imgui_overlay_handle_sdl3_event( &globalGameState->imgui_overlay, &event, &handledMouse, &handledKeyboard );
 #endif
         // pr_debug( "Event: mouse:%d keyboard:%d", handledMouse, handledKeyboard );
         Input &input = repgame.getInputState( );
         switch ( event.type ) {
-            case SDL_KEYDOWN:
-            case SDL_KEYUP:
+            case SDL_EVENT_KEY_DOWN:
+            case SDL_EVENT_KEY_UP:
                 if ( handledKeyboard ) {
                     break;
                 }
-                input.keysInput( event.key.keysym.sym, event.type == SDL_KEYDOWN );
+                input.keysInput( event.key.key, event.type == SDL_EVENT_KEY_DOWN );
                 break;
-            case SDL_WINDOWEVENT:
-                if ( event.window.event == SDL_WINDOWEVENT_RESIZED ) {
-                    repgame.changeSize( event.window.data1, event.window.data2 );
-                } else if ( event.window.event == SDL_WINDOWEVENT_CLOSE ) {
-                    input.quit( );
-                }
+            case SDL_EVENT_WINDOW_RESIZED:
+                repgame.changeSize( event.window.data1, event.window.data2 );
                 break;
-            case SDL_MOUSEBUTTONDOWN:
-            case SDL_MOUSEBUTTONUP:
+            case SDL_EVENT_WINDOW_CLOSE_REQUESTED:
+                input.quit( );
+                break;
+            case SDL_EVENT_MOUSE_BUTTON_DOWN:
+            case SDL_EVENT_MOUSE_BUTTON_UP:
                 if ( handledMouse ) {
                     break;
                 }
-                input.mouseInput( event.button.button, event.type == SDL_MOUSEBUTTONUP );
+                input.mouseInput( event.button.button, event.type == SDL_EVENT_MOUSE_BUTTON_UP );
                 break;
-            case SDL_MOUSEWHEEL:
+            case SDL_EVENT_MOUSE_WHEEL:
                 if ( handledMouse ) {
                     break;
                 }
                 input.mouseWheel( event.wheel.x, event.wheel.y );
                 break;
-            case SDL_MOUSEMOTION:
+            case SDL_EVENT_MOUSE_MOTION:
                 if ( handledMouse ) {
                     break;
                 }
@@ -67,12 +67,12 @@ void main_loop_full( RepGame &repgame );
 
 static SDL_Window *sdl_window = nullptr;
 static SDL_GLContext sdl_context = nullptr;
-int repgame_sdl2_main( const char *world_path, const char *host, const bool connect_multi, const bool tests ) {
+int repgame_sdl3_main( const char *world_path, const char *host, const bool connect_multi, const bool tests ) {
     if ( tests ) {
         return rep_tests_start( );
     }
     if ( SDL_Init( SDL_INIT_VIDEO ) != 0 ) {    /* Initialize SDL's Video subsystem */
-        pr_debug( "Unable to initialize SDL" ); /* Or die on error */
+        pr_debug( "Unable to initialize SDL: %s", SDL_GetError() ); /* Or die on error */
         exit( 1 );
     }
 
@@ -100,7 +100,7 @@ int repgame_sdl2_main( const char *world_path, const char *host, const bool conn
 #endif
     int default_width = DEFAULT_WINDOW_WIDTH;
     int default_height = DEFAULT_WINDOW_HEIGHT;
-    sdl_window = SDL_CreateWindow( "RepGame", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, default_width, default_height, SDL_WINDOW_OPENGL | SDL_WINDOW_SHOWN | SDL_WINDOW_RESIZABLE | SDL_WINDOW_FULLSCREEN_DESKTOP );
+    sdl_window = SDL_CreateWindow( "RepGame", default_width, default_height, SDL_WINDOW_OPENGL | SDL_WINDOW_RESIZABLE | SDL_WINDOW_FULLSCREEN );
     if ( !sdl_window ) {
         pr_debug( "Creating the SDL window failed" );
         exit( 1 );
@@ -150,7 +150,7 @@ int repgame_sdl2_main( const char *world_path, const char *host, const bool conn
     main_loop_full( repgame );
     repgame.cleanup( );
     delete repgamePrt;
-    SDL_GL_DeleteContext( sdl_context );
+    SDL_GL_DestroyContext( sdl_context );
     SDL_DestroyWindow( sdl_window );
     SDL_Quit( );
 #else
@@ -165,7 +165,7 @@ void repgame_linux_process_window_and_pointer_state( const RepGame &repgame ) {
     const bool should_lock_pointer = repgame.should_lock_pointer( );
     if ( should_lock_pointer != is_locking_pointer ) {
 #if ALLOW_GRAB_MOUSE
-        SDL_SetRelativeMouseMode( should_lock_pointer ? SDL_TRUE : SDL_FALSE );
+        SDL_SetWindowRelativeMouseMode( sdl_window, should_lock_pointer );
 #endif
         SDL_GetWindowSize( sdl_window, &width, &height );
         SDL_WarpMouseInWindow( sdl_window, width / 2, height / 2 );
@@ -196,10 +196,10 @@ void main_loop_wasm( void *arg ) {
 void main_loop_full( RepGame &repgame ) {
 
     constexpr int time_step_ms = 1000 / UPS_RATE;
-    int next_game_step = SDL_GetTicks( ); // initial value
+    Uint64 next_game_step = SDL_GetTicks( ); // initial value
 
     while ( !repgame.shouldExit( ) ) {
-        const int now = SDL_GetTicks( );
+        const Uint64 now = SDL_GetTicks( );
 
         if ( ( ( next_game_step - now ) <= 0 ) || !SW_VSYNC_ENABLED ) {
             int computer_is_too_slow_limit = 10; // max number of advances per render, if you can't get 20 fps, slow the game's UPS

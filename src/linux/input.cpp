@@ -149,7 +149,7 @@ void Input::keysInput( const SDL_Keycode key, const bool pressed ) {
             break;
         case 'c':
             if ( pressed ) {
-                if ( SDL_GetModState( ) & KMOD_CTRL ) {
+                if ( SDL_GetModState( ) & SDL_KMOD_CTRL ) {
                     // ctrl-c exits
                     this->exitGame = true;
                 } else {
@@ -170,7 +170,7 @@ void Input::keysInput( const SDL_Keycode key, const bool pressed ) {
             break;
         case 'r':
             if ( pressed ) {
-                if ( SDL_GetModState( ) & KMOD_SHIFT ) {
+                if ( SDL_GetModState( ) & SDL_KMOD_SHIFT ) {
                     this->worldDrawQuality = static_cast<WorldDrawQuality>( ( this->worldDrawQuality - 1 + WorldDrawQuality::LAST ) % WorldDrawQuality::LAST );
                 } else {
                     this->worldDrawQuality = static_cast<WorldDrawQuality>( ( this->worldDrawQuality + 1 ) % WorldDrawQuality::LAST );

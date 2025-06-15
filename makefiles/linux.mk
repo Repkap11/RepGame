@@ -1,6 +1,6 @@
-#Linux x86_64 builds
+#Linux x86_64 # SDL3 is dynamically linked, because it's too hard to statically link against X11, and I don't want to compile it from source.
 
-REPGAME_PACKAGES += libglew-dev libxi-dev g++ libsdl2-dev upx-ucl cppcheck
+REPGAME_PACKAGES += libglew-dev libxi-dev g++ upx-ucl cppcheck
 
 CFLAGS_LINUX := -Wall -Wextra -std=c++17 -Wno-unused-parameter -Wno-unused-variable -fno-pie
 LFLAGS := -z noexecstack
@@ -12,8 +12,8 @@ CFLAGS_LINUX_RELEASE := -O3 -DREPGAME_SKIP_CHECK_FOR_GL_ERRORS -DREPGAME_SW_VSYN
 CFLAGS_LINUX_DEBUG := -g
 
 CFLAGS_LINUX += -DREPGAME_LINUX
-# SDL2 is dynamically linked, because it's too hard to statically link against X11, and I don't want to compile it from source.
-LIBS_LINUX := -lSDL2 -Wl,-Bstatic -lGLEW -lGLU -Wl,-Bdynamic -lGL -lpthread -lm -ldl -static-libgcc -static-libstdc++
+# SDL3 is dynamically linked, because it's too hard to statically link against X11, and I don't want to compile it from source.
+LIBS_LINUX := -L/usr/local/lib -Wl,-Bdynamic -lSDL3 -Wl,-Bstatic -lGLEW -lGLU -Wl,-Bdynamic -lGL -lpthread -lm -ldl -static-libgcc -static-libstdc++
 
 CC_LINUX := g++
 # CC_LINUX := clang++
