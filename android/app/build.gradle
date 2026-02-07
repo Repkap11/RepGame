@@ -3,11 +3,11 @@ plugins {
 }
 
 android {
-    compileSdkVersion 33
     defaultConfig {
         applicationId "com.repkap11.repgame"
         minSdkVersion 21
-        targetSdkVersion 33
+        targetSdkVersion 35
+        compileSdk 35
         versionCode 1
         versionName "1.0"
         setProperty("archivesBaseName", "RepGame")
