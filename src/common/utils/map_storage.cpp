@@ -182,11 +182,15 @@ int MapStorage::read_player_data( PlayerData &player_data ) {
     }
     memset( &player_data, 0, sizeof( PlayerData ) );
     int persist_data_length = fread( &player_data, 1, sizeof( PlayerData ), read_ptr );
+    int ret;
     if ( persist_data_length != sizeof( PlayerData ) ) {
         pr_debug( "Warning, wrong size player data. Read:%d expected:%d", persist_data_length, ( int )sizeof( PlayerData ) );
+        ret = 0;
+    } else {
+        ret = 1;
     }
     fclose( read_ptr );
-    return 1;
+    return ret;
 }
 
 void MapStorage::write_player_data( const PlayerData &player_data ) {

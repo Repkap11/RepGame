@@ -327,7 +327,6 @@ void RepGame::initializeGameState( const char *world_name ) {
     globalGameState.camera.angle_V = 0.0f;
     globalGameState.camera.pos.x = 0.5f;
     globalGameState.camera.pos.y = ceil( MapGen::calculateTerrainHeight( 0, 0 ) ) + PLAYER_EYE_HEIGHT + 0.5f;
-    pr_debug( "Initial height:%f", globalGameState.camera.pos.y );
     globalGameState.camera.pos.z = 0.5f;
     globalGameState.camera.y_speed = 0.0f;
     globalGameState.input.worldDrawQuality = WorldDrawQuality::MEDIUM;

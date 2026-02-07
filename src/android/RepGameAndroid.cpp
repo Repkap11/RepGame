@@ -96,11 +96,11 @@ JNIEXPORT void JNICALL Java_com_repkap11_repgame_RepGameJNIWrapper_onDrawFrame( 
     repgame.draw( );
 }
 
-#define ANDROID_PAN_SENSITIVITY 2
+#define ANDROID_PAN_SENSITIVITY 1.25f
 
 JNIEXPORT void JNICALL Java_com_repkap11_repgame_RepGameJNIWrapper_lookInput( JNIEnv *env, jobject obj, jint xdiff, jint ydiff ) {
     Input &input = repgame.getInputState( );
-    input.lookMove(current_screen_width / 2 + xdiff * ANDROID_PAN_SENSITIVITY, current_screen_height / 2 + ydiff * ANDROID_PAN_SENSITIVITY );
+    input.lookMove(current_screen_width / 2.0f + xdiff * ANDROID_PAN_SENSITIVITY, current_screen_height / 2.0f + ydiff * ANDROID_PAN_SENSITIVITY );
 }
 
 JNIEXPORT void JNICALL Java_com_repkap11_repgame_RepGameJNIWrapper_setButtonState( JNIEnv *env, jobject obj, jint left, jint middle, jint right ) {
