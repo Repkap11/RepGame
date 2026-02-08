@@ -32,6 +32,23 @@ out/server: | out
 server-run: server
 	./out/server/$(REPSERVER)
 
+server-systemd-install: server
+	sudo cp $(REPSERVER).service /etc/systemd/system/$(REPSERVER).service
+	sudo systemctl daemon-reload
+	sudo systemctl enable $(REPSERVER).service
+	sudo systemctl restart $(REPSERVER).service
+
+server-systemd-status:
+	sudo systemctl status $(REPSERVER).service
+
+server-systemd-logs:
+	journalctl -u $(REPSERVER).service -f
+
+server-systemd-uninstall:
+	sudo systemctl disable --now $(REPSERVER).service
+	sudo rm /etc/systemd/system/$(REPSERVER).service
+	sudo systemctl daemon-reload
+
 clean: clean-server
 
 clean-server:

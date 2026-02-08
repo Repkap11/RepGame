@@ -1,0 +1,14 @@
+[Unit]
+Description=RepGame Server
+After=network.target
+
+[Service]
+Type=simple
+User=paul
+WorkingDirectory=/home/paul/Software/RepGame/RepGame/out/server
+ExecStart=/home/paul/Software/RepGame/RepGame/out/server/RepGameServer
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target
