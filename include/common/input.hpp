@@ -31,6 +31,9 @@ class Input {
             int x;
             int y;
         } absPosition;
+        // Low-pass filtered look deltas, persisted across ticks.
+        float smoothed_dx;
+        float smoothed_dy;
     } mouse;
     bool exitGame;
     int click_delay_left;

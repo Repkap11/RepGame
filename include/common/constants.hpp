@@ -1,6 +1,10 @@
 #pragma once
 
 #define MOUSE_SENSITIVITY 0.18f
+// Low-pass filter factor for look deltas. Each tick the applied delta is blended
+// with the previous smoothed delta: smoothed = smoothed*(1-X) + raw*X.
+// 1.0 = no smoothing (raw input), lower = more smoothing (less slow-pan jitter, more lag).
+#define MOUSE_SMOOTHING 0.5f
 #define MOVEMENT_SENSITIVITY_WALKING 0.0326f
 #define MOVEMENT_SENSITIVITY_SPRINTING 0.125f
 #define MOVEMENT_SENSITIVITY_FLYING 0.5f

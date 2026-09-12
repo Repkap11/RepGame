@@ -295,8 +295,15 @@ void RepGame::tick( ) {
         globalGameState.block_selection.pos_create.z = globalGameState.block_selection.pos_destroy.z + ( whichFace == FACE_BACK ) - ( whichFace == FACE_FRONT );
 
         globalGameState.world.set_selected_block( globalGameState.block_selection.pos_destroy, globalGameState.block_selection.selectionInBounds );
-        globalGameState.camera.angle_H += static_cast<float>( globalGameState.input.mouse.currentPosition.x - globalGameState.input.mouse.previousPosition.x ) * MOUSE_SENSITIVITY;
-        globalGameState.camera.angle_V += static_cast<float>( globalGameState.input.mouse.currentPosition.y - globalGameState.input.mouse.previousPosition.y ) * MOUSE_SENSITIVITY;
+        const float raw_dx = static_cast<float>( globalGameState.input.mouse.currentPosition.x - globalGameState.input.mouse.previousPosition.x );
+        const float raw_dy = static_cast<float>( globalGameState.input.mouse.currentPosition.y - globalGameState.input.mouse.previousPosition.y );
+        // Low-pass filter the per-tick look delta so that sub-pixel / slow-pan motion
+        // (where integer mouse deltas alternate 0,1,0,1) becomes a steady fractional
+        // velocity instead of a stuttered step. Adds a small amount of input latency.
+        globalGameState.input.mouse.smoothed_dx = globalGameState.input.mouse.smoothed_dx * ( 1.0f - MOUSE_SMOOTHING ) + raw_dx * MOUSE_SMOOTHING;
+        globalGameState.input.mouse.smoothed_dy = globalGameState.input.mouse.smoothed_dy * ( 1.0f - MOUSE_SMOOTHING ) + raw_dy * MOUSE_SMOOTHING;
+        globalGameState.camera.angle_H += globalGameState.input.mouse.smoothed_dx * MOUSE_SENSITIVITY;
+        globalGameState.camera.angle_V += globalGameState.input.mouse.smoothed_dy * MOUSE_SENSITIVITY;
         if ( globalGameState.camera.angle_H >= 360.0f ) {
             globalGameState.camera.angle_H -= 360.0f;
         }
@@ -334,6 +341,8 @@ void RepGame::initializeGameState( const char *world_name ) {
     globalGameState.input.player_flying = false;
     globalGameState.input.inventory_open = false;
     globalGameState.input.no_clip = false;
+    globalGameState.input.mouse.smoothed_dx = 0.0f;
+    globalGameState.input.mouse.smoothed_dy = 0.0f;
     globalGameState.camera.angle_H = 0.0f;
     globalGameState.camera.angle_V = 0.0f;
     globalGameState.camera.pos.x = 0.5f;
