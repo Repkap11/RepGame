@@ -198,6 +198,9 @@ void main_loop_full( RepGame &repgame ) {
     constexpr int time_step_ms = 1000 / UPS_RATE;
     long next_game_step = SDL_GetTicks64( ); // initial value
 
+    long fps_last_report_time = SDL_GetTicks64( );
+    long fps_frame_count = 0;
+
     while ( !repgame.shouldExit( ) ) {
         const long now = SDL_GetTicks64( );
 
@@ -218,6 +221,16 @@ void main_loop_full( RepGame &repgame ) {
             repgame.clear( );
             repgame.draw( );
             SDL_GL_SwapWindow( sdl_window );
+
+            fps_frame_count++;
+            const long fps_now = SDL_GetTicks64( );
+            const long fps_elapsed = fps_now - fps_last_report_time;
+            if ( fps_elapsed >= 1000 ) {
+                const float fps = static_cast<float>( fps_frame_count * 1000 ) / static_cast<float>( fps_elapsed );
+                pr_debug( "FPS: %.1f", fps );
+                fps_frame_count = 0;
+                fps_last_report_time = fps_now;
+            }
         } else {
             SDL_Delay( next_game_step - now );
         }

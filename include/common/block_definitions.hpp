@@ -3,6 +3,7 @@
 #include "constants.hpp"
 #include "renderer/texture.hpp"
 #include "common/render_order.hpp"
+#include "Logging.hpp"
 
 // According to GIMP upper left pixel coord
 // X/16 + 24*(Y/16) + 1
@@ -381,6 +382,18 @@ static inline bool BlockStates_equal( const BlockState &a, const BlockState &b )
 }
 
 void block_definitions_initilize_definitions( Texture *texture );
-Block *block_definition_get_definition( BlockID blockID );
 float *block_definitions_get_random_rotations( );
 void block_definitions_free_definitions( );
+
+// Global block definition table (allocated in block_definitions.cpp).
+extern Block *block_definitions;
+
+// Inlined for hot meshing paths (called ~26x per block in calculate_populated_blocks).
+static inline Block *block_definition_get_definition( BlockID blockID ) {
+    if ( blockID < LAST_BLOCK_ID ) {
+        return &block_definitions[ blockID ];
+    } else {
+        pr_debug( "Invalid block id:%d", blockID );
+        return &block_definitions[ AIR ];
+    }
+}

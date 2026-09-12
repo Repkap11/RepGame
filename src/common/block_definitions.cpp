@@ -6,6 +6,8 @@
 #include "common/RepGame.hpp"
 
 Block *block_definitions;
+
+// block_definition_get_definition is now inlined in block_definitions.hpp
 float block_supports_random_rotations[ MAX_ROTATABLE_BLOCK + 1 ];
 
 void do_disable( Block *block_definitions );
@@ -608,15 +610,6 @@ void block_definitions_initilize_definitions( Texture *texture ) {
     block_definitions[ GRASS_TUFT2 ].casts_shadow = true;
     block_definitions[ GRASS_TUFT3 ].casts_shadow = true;
     block_definitions[ GRASS_TUFT4 ].casts_shadow = true;
-}
-
-Block *block_definition_get_definition( BlockID blockID ) {
-    if ( blockID < LAST_BLOCK_ID ) {
-        return &block_definitions[ blockID ];
-    } else {
-        pr_debug( "Invalid block id:%d", blockID );
-        return &block_definitions[ AIR ];
-    }
 }
 
 void block_definitions_free_definitions( ) {

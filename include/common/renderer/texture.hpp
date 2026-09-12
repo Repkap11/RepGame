@@ -34,6 +34,7 @@ typedef struct {
 class Texture {
     friend class Shader;
     friend class Chunk;
+    friend class ChunkLoader;
     friend class FrameBuffer;
     friend class RepGame;
 

@@ -38,6 +38,8 @@ void ChunkLoader::init( const glm::vec3 &camera_pos, const VertexBufferLayout &v
         pr_debug( "Terrain loading thread failed to start." );
     }
     this->chunkArray = static_cast<Chunk *>( calloc( MAX_LOADED_CHUNKS, sizeof( Chunk ) ) );
+    this->drawable_chunks = static_cast<Chunk **>( calloc( MAX_LOADED_CHUNKS, sizeof( Chunk * ) ) );
+    this->num_drawable = 0;
     showErrors( );
     // pr_debug( "Num Total Chunks:%d", MAX_LOADED_CHUNKS );
 
@@ -85,12 +87,17 @@ void ChunkLoader::init( const glm::vec3 &camera_pos, const VertexBufferLayout &v
                             int new_k = ( k * sign_k ) - ( sign_k == -1 );
                             glm::ivec3 new_offset = glm::vec3( new_i, new_j, new_k );
 
-                            Chunk &chunk = this->chunkArray[ nextChunk ];
-                            chunk.chunk_pos = new_offset + camera_chuck;
+                            glm::ivec3 chunk_pos = new_offset + camera_chuck;
 
-                            chunk.chunk_mod.x = mod( chunk.chunk_pos.x, 2 * CHUNK_RADIUS_X + 1 );
-                            chunk.chunk_mod.y = mod( chunk.chunk_pos.y, 2 * CHUNK_RADIUS_Y + 1 );
-                            chunk.chunk_mod.z = mod( chunk.chunk_pos.z, 2 * CHUNK_RADIUS_Z + 1 );
+                            glm::ivec3 chunk_mod;
+                            chunk_mod.x = mod( chunk_pos.x, 2 * CHUNK_RADIUS_X + 1 );
+                            chunk_mod.y = mod( chunk_pos.y, 2 * CHUNK_RADIUS_Y + 1 );
+                            chunk_mod.z = mod( chunk_pos.z, 2 * CHUNK_RADIUS_Z + 1 );
+
+                            int slot = chunk_slot_from_mod( chunk_mod );
+                            Chunk &chunk = this->chunkArray[ slot ];
+                            chunk.chunk_pos = chunk_pos;
+                            chunk.chunk_mod = chunk_mod;
 
                             chunk.is_loading = 1;
                             this->terrain_loading_thread.enqueue( &chunk, chunk.chunk_pos, 0 );
@@ -101,14 +108,14 @@ void ChunkLoader::init( const glm::vec3 &camera_pos, const VertexBufferLayout &v
             }
         }
     }
+    this->rebuild_drawable_list( );
 }
 
 Chunk *ChunkLoader::get_chunk( const glm::ivec3 &chunk_pos ) const {
-    for ( int i = 0; i < MAX_LOADED_CHUNKS; i++ ) {
-        Chunk &chunk = this->chunkArray[ i ];
-        if ( chunk.chunk_pos.x == chunk_pos.x && chunk.chunk_pos.y == chunk_pos.y && chunk.chunk_pos.z == chunk_pos.z ) {
-            return &chunk;
-        }
+    const int slot = chunk_slot_from_pos( chunk_pos );
+    Chunk &chunk = this->chunkArray[ slot ];
+    if ( chunk.chunk_pos == chunk_pos ) {
+        return &chunk;
     }
     return nullptr;
 }
@@ -179,13 +186,25 @@ void ChunkLoader::render_chunks( Multiplayer &multiplayer, const glm::vec3 &came
         }
         this->chunk_center = chunk_pos;
     }
-    for ( int i = 0; i < MAX_LOADED_CHUNKS; i++ ) {
-        Chunk &chunk = this->chunkArray[ i ];
-        if ( chunk.needs_repopulation && !chunk.is_loading && !( chunk.cached_cull_normal && chunk.cached_cull_reflect ) ) {
+    this->rebuild_drawable_list( );
+    for ( int i = 0; i < this->num_drawable; i++ ) {
+        Chunk &chunk = *this->drawable_chunks[ i ];
+        if ( chunk.needs_repopulation && !( chunk.cached_cull_normal && chunk.cached_cull_reflect ) ) {
             chunk.unprogram_terrain( );
             chunk.calculate_populated_blocks( );
             chunk.program_terrain( );
             chunk.needs_repopulation = false;
+        }
+    }
+    this->rebuild_drawable_list( );
+}
+
+void ChunkLoader::rebuild_drawable_list( ) {
+    this->num_drawable = 0;
+    for ( int i = 0; i < MAX_LOADED_CHUNKS; i++ ) {
+        Chunk &chunk = this->chunkArray[ i ];
+        if ( !chunk.is_loading && chunk.should_render ) {
+            this->drawable_chunks[ this->num_drawable++ ] = &chunk;
         }
     }
 }
@@ -193,9 +212,9 @@ void ChunkLoader::render_chunks( Multiplayer &multiplayer, const glm::vec3 &came
 float chunk_diameter = ( CHUNK_SIZE_Z + 1 ) * 1.73205080757; // sqrt(3)
 
 void ChunkLoader::calculate_cull( const glm::mat4 &mvp, const bool saveAsReflection ) const {
-    for ( int i = 0; i < MAX_LOADED_CHUNKS; i++ ) {
+    for ( int i = 0; i < this->num_drawable; i++ ) {
         int final_is_visible;
-        Chunk *chunk = &this->chunkArray[ i ];
+        Chunk *chunk = this->drawable_chunks[ i ];
         if constexpr ( CULL_NON_VISIBLE ) {
             glm::vec4 chunk_coords = glm::vec4( chunk->chunk_pos * CHUNK_SIZE_I + CHUNK_SIZE_I / 2, 1 );
             glm::vec4 result_v = mvp * chunk_coords;
@@ -230,8 +249,16 @@ void ChunkLoader::draw( const glm::mat4 &mvp, const Renderer &renderer, const Te
     for ( int renderOrder = LAST_RENDER_ORDER - 1; renderOrder > 0; renderOrder-- ) {
         if ( reflect_only == ( renderOrder == RenderOrder_Water ) ) {
             shader.set_uniform1f( "u_shouldDiscardAlpha", renderOrder != RenderOrder_Water && renderOrder != RenderOrder_Translucent);
-            for ( int i = 0; i < MAX_LOADED_CHUNKS; i++ ) {
-                Chunk &chunk = this->chunkArray[ i ];
+            // Set texture wrap mode once per render order instead of per chunk draw call.
+            if ( renderOrder == RenderOrder_Flowers ) {
+                glTexParameteri( texture.target, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE );
+                glTexParameteri( texture.target, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE );
+            } else {
+                glTexParameteri( texture.target, GL_TEXTURE_WRAP_S, GL_REPEAT );
+                glTexParameteri( texture.target, GL_TEXTURE_WRAP_T, GL_REPEAT );
+            }
+            for ( int i = 0; i < this->num_drawable; i++ ) {
+                Chunk &chunk = *this->drawable_chunks[ i ];
                 if ( draw_reflect ) {
                     if ( !chunk.cached_cull_reflect ) {
                         chunk.draw( renderer, texture, shader, static_cast<RenderOrder>( renderOrder ), draw_reflect );
@@ -271,4 +298,5 @@ void ChunkLoader::cleanup( MapStorage &map_storage ) {
         chunk.destroy( );
     }
     free( this->chunkArray );
+    free( this->drawable_chunks );
 }

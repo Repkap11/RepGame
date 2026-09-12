@@ -6,6 +6,7 @@ class IndexBuffer {
 
     unsigned int mRendererId;
     unsigned int count;
+    unsigned int size;
 
   public:
     void init( );

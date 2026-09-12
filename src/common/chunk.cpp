@@ -17,12 +17,11 @@ constexpr static unsigned int ib_data_flowers[] = {
 };
 
 void Chunk::calculate_sides( const glm::ivec3 &center_next ) {
-    unsigned int *chunk_ib_data[ LAST_RENDER_ORDER ];
-    unsigned int *chunk_ib_data_reflect[ LAST_RENDER_ORDER ];
-    for ( int renderOrder = 0; renderOrder < LAST_RENDER_ORDER; renderOrder++ ) {
-        chunk_ib_data[ renderOrder ] = static_cast<unsigned int *>( malloc( render_order_ib_size( static_cast<RenderOrder>( renderOrder ) ) * sizeof( unsigned int ) ) );
-        chunk_ib_data_reflect[ renderOrder ] = static_cast<unsigned int *>( malloc( render_order_ib_size( static_cast<RenderOrder>( renderOrder ) ) * sizeof( unsigned int ) ) );
-    }
+    // Use fixed-size stack buffers instead of malloc/free per call.
+    // IB_SOLID_SIZE (72) is the largest index buffer size across render orders.
+    static constexpr int MAX_IB_SIZE = IB_SOLID_SIZE;
+    unsigned int chunk_ib_data[ LAST_RENDER_ORDER ][ MAX_IB_SIZE ];
+    unsigned int chunk_ib_data_reflect[ LAST_RENDER_ORDER ][ MAX_IB_SIZE ];
     int ib_size[ LAST_RENDER_ORDER ] = { 0 };
 
     for ( int i = 0; i < 12; i++ ) {
@@ -110,9 +109,6 @@ void Chunk::calculate_sides( const glm::ivec3 &center_next ) {
         }
         this->layers[ renderOrder ].ib.set_data( ib_data, ib_new_size );
         this->layers[ renderOrder ].ib_reflect.set_data( ib_data_reflect, ib_new_size );
-
-        free( chunk_ib_data[ renderOrder ] );
-        free( chunk_ib_data_reflect[ renderOrder ] );
     }
 }
 
@@ -185,13 +181,7 @@ void Chunk::draw( const Renderer &renderer, const Texture &texture, const Shader
             active_ib_prt = &renderLayer.ib;
         }
         const IndexBuffer &active_ib = *active_ib_prt;
-        if ( renderOrder == RenderOrder_Flowers ) {
-            glTexParameteri( texture.target, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE );
-            glTexParameteri( texture.target, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE );
-        } else {
-            glTexParameteri( texture.target, GL_TEXTURE_WRAP_S, GL_REPEAT );
-            glTexParameteri( texture.target, GL_TEXTURE_WRAP_T, GL_REPEAT );
-        }
+        // Texture wrap mode is now set once per render order in ChunkLoader::draw.
         renderer.draw( renderLayer.va, active_ib, shader, renderLayer.num_instances );
     }
 }

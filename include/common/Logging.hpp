@@ -1,5 +1,7 @@
 #pragma once
 
+#include <cstdio>
+
 #if defined( REPGAME_LINUX ) || defined( REPGAME_WINDOWS )
 #define pr_debug( fmt, ... ) fprintf( stdout, "%s:%d:%s():" fmt "\n", __FILE__, __LINE__, __func__, ##__VA_ARGS__ );
 #define pr_test( fmt, ... ) fprintf( stdout, fmt "\n", ##__VA_ARGS__ );
