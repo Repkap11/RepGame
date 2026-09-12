@@ -4,9 +4,26 @@
 #include "common/chunk.hpp"
 #include "common/utils/linked_list.hpp"
 
+#if TERRAIN_GEN_PROFILING
+#include <chrono>
+#include <atomic>
+std::atomic<long long> terrain_persist_us{ 0 };
+static inline long long now_us_terrain( ) {
+    return std::chrono::duration_cast<std::chrono::microseconds>(
+        std::chrono::steady_clock::now( ).time_since_epoch( ) ).count( );
+}
+#endif
+
 void TerrainLoadingThread::process_value( LinkedListValue *value ) {
     Chunk &chunk = *value->chunk;
+#if TERRAIN_GEN_PROFILING
+    long long t_persist_start = now_us_terrain( );
+#endif
     chunk.persist( this->map_storage );
+#if TERRAIN_GEN_PROFILING
+    long long t_persist = now_us_terrain( ) - t_persist_start;
+    terrain_persist_us.fetch_add( t_persist, std::memory_order_relaxed );
+#endif
     chunk.chunk_pos = value->new_chunk_pos;
     chunk.load_terrain( this->map_storage );
     // pr_debug( "Paul Loading terrain x:%d y%d: z:%d work:%d results:%d", chunk->chunk_x, chunk->chunk_y, chunk->chunk_z, work_linked_list->count, result_linked_list->count );

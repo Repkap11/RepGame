@@ -3,6 +3,9 @@
 #include "common/map_gen.hpp"
 #include "common/utils/map_storage.hpp"
 #include "common/structure_gen.hpp"
+#if defined( REPGAME_BUILD_WITH_HIP )
+#include "linux/hip/mesh_gen.hpp"
+#endif
 
 constexpr static unsigned int ib_data_flowers[] = {
     14, 0, 13, // Right, Back, Right
@@ -245,14 +248,47 @@ void Chunk::persist( MapStorage &map_storage ) const {
 
 int firstTime = 1;
 
+#if TERRAIN_GEN_PROFILING
+#include <chrono>
+#include <atomic>
+static std::atomic<int> profiling_chunk_count{ 0 };
+static std::atomic<long long> profiling_total_us{ 0 };
+static std::atomic<long long> profiling_load_disk_us{ 0 };
+static std::atomic<long long> profiling_map_gen_us{ 0 };
+static std::atomic<long long> profiling_structure_gen_us{ 0 };
+static std::atomic<long long> profiling_populated_blocks_us{ 0 };
+static std::atomic<long long> profiling_mesh_vis_light_us{ 0 };
+static std::atomic<long long> profiling_mesh_greedy_us{ 0 };
+static std::atomic<int> profiling_map_gen_count{ 0 };
+static std::atomic<int> profiling_disk_load_count{ 0 };
+extern std::atomic<long long> terrain_persist_us;
+
+static inline long long now_us( ) {
+    return std::chrono::duration_cast<std::chrono::microseconds>(
+        std::chrono::steady_clock::now( ).time_since_epoch( ) ).count( );
+}
+#endif
+
 void Chunk::load_terrain( MapStorage &map_storage ) {
     if constexpr ( !REMEMBER_BLOCKS ) {
         this->blocks = static_cast<BlockState *>( calloc( CHUNK_BLOCK_SIZE, sizeof( BlockState ) ) );
     }
+#if TERRAIN_GEN_PROFILING
+    long long t_start = now_us( );
+    long long t_load_disk = 0, t_map_gen = 0, t_struct = 0, t_pop = 0;
+    long long t0 = now_us( );
+#endif
     // pr_debug( "Loading chunk terrain x:%d y:%d z:%d", this->chunk_x, this->chunk_y, this->chunk_z );
     const int loaded = map_storage.load_chunk( *this );
+#if TERRAIN_GEN_PROFILING
+    t_load_disk = now_us( ) - t0;
+    if ( loaded ) profiling_disk_load_count.fetch_add( 1, std::memory_order_relaxed );
+#endif
     if ( !loaded ) {
         // We haven't loaded this chunk before, map gen it.
+#if TERRAIN_GEN_PROFILING
+        t0 = now_us( );
+#endif
         if ( LOAD_CHUNKS_SUPPORTS_CUDA && MapGen::supports_cuda( ) ) {
             if ( firstTime ) {
                 firstTime = 0;
@@ -272,10 +308,52 @@ void Chunk::load_terrain( MapStorage &map_storage ) {
             }
             MapGen::load_block_c( this );
         }
+#if TERRAIN_GEN_PROFILING
+        t_map_gen = now_us( ) - t0;
+        profiling_map_gen_count.fetch_add( 1, std::memory_order_relaxed );
+        t0 = now_us( );
+#endif
         StructureGen::place( *this );
+#if TERRAIN_GEN_PROFILING
+        t_struct = now_us( ) - t0;
+#endif
         this->dirty = 0;
     }
+#if TERRAIN_GEN_PROFILING
+    t0 = now_us( );
+#endif
     this->calculate_populated_blocks( );
+#if TERRAIN_GEN_PROFILING
+    t_pop = now_us( ) - t0;
+
+    long long total = now_us( ) - t_start;
+    int count = profiling_chunk_count.fetch_add( 1, std::memory_order_relaxed ) + 1;
+    profiling_total_us.fetch_add( total, std::memory_order_relaxed );
+    profiling_load_disk_us.fetch_add( t_load_disk, std::memory_order_relaxed );
+    profiling_map_gen_us.fetch_add( t_map_gen, std::memory_order_relaxed );
+    profiling_structure_gen_us.fetch_add( t_struct, std::memory_order_relaxed );
+    profiling_populated_blocks_us.fetch_add( t_pop, std::memory_order_relaxed );
+
+    if ( count % 100 == 0 ) {
+        long long tot = profiling_total_us.load( std::memory_order_relaxed );
+        long long disk = profiling_load_disk_us.load( std::memory_order_relaxed );
+        long long gen = profiling_map_gen_us.load( std::memory_order_relaxed );
+        long long struc = profiling_structure_gen_us.load( std::memory_order_relaxed );
+        long long pop = profiling_populated_blocks_us.load( std::memory_order_relaxed );
+        int gen_count = profiling_map_gen_count.load( std::memory_order_relaxed );
+        int disk_count = profiling_disk_load_count.load( std::memory_order_relaxed );
+        long long pers = terrain_persist_us.load( std::memory_order_relaxed );
+        long long mesh_vl = profiling_mesh_vis_light_us.load( std::memory_order_relaxed );
+        long long mesh_gr = profiling_mesh_greedy_us.load( std::memory_order_relaxed );
+        pr_debug( "Terrain profiling: %d chunks | total=%.1fms avg=%.2fms | persist=%.1fms | disk=%.1fms (%d hits) | map_gen=%.1fms (%d gens) | struct=%.1fms | mesh=%.1fms (vis_light=%.1fms greedy=%.1fms)",
+            count, tot / 1000.0, ( tot / 1000.0 ) / count,
+            pers / 1000.0,
+            disk / 1000.0, disk_count,
+            gen / 1000.0, gen_count,
+            struc / 1000.0, pop / 1000.0,
+            mesh_vl / 1000.0, mesh_gr / 1000.0 );
+    }
+#endif
 }
 
 int Chunk::can_extend_rect( const BlockState &blockState, const unsigned int *packed_lighting, const WorkingSpace *workingSpace, const glm::ivec3 &starting, const glm::ivec3 &size, const glm::ivec3 &dir ) const {
@@ -334,25 +412,74 @@ inline int min( const int a, const int b, const int c, const int d ) {
     return result;
 }
 
+// Precomputed rotation table: ROTATED_FACE[rotation][face]
+// FACE_ROTATE_90 = { FACE_TOP, FACE_BOTTOM, FACE_BACK, FACE_RIGHT, FACE_FRONT, FACE_LEFT }
+static constexpr int ROTATED_FACE_TABLE[ 4 ][ NUM_FACES_IN_CUBE ] = {
+    { FACE_TOP, FACE_BOTTOM, FACE_RIGHT, FACE_FRONT, FACE_LEFT, FACE_BACK }, // rotation 0
+    { FACE_TOP, FACE_BOTTOM, FACE_BACK, FACE_RIGHT, FACE_FRONT, FACE_LEFT }, // rotation 1
+    { FACE_TOP, FACE_BOTTOM, FACE_LEFT, FACE_BACK, FACE_RIGHT, FACE_FRONT }, // rotation 2
+    { FACE_TOP, FACE_BOTTOM, FACE_FRONT, FACE_LEFT, FACE_BACK, FACE_RIGHT }, // rotation 3
+};
+
 inline int get_rotated_face( const int face, const int rotation ) {
-    int result = face;
-    for ( int i = 0; i < rotation; i++ ) {
-        result = FACE_ROTATE_90[ result ];
-    }
-    return result;
+    return ROTATED_FACE_TABLE[ rotation & 3 ][ face ];
 }
 
 void Chunk::calculate_populated_blocks( ) {
     int num_instances[ LAST_RENDER_ORDER ] = { 0 };
 
+    // populated_blocks are filled sequentially (only num_instances entries are read later),
+    // so malloc suffices — no need to zero ~18.8MB per chunk.
     for ( RenderLayer &layer : this->layers ) {
         if ( layer.populated_blocks ) {
             pr_debug( "Error, populated blocks already populated" );
         }
-        layer.populated_blocks = static_cast<BlockCoords *>( calloc( CHUNK_BLOCK_SIZE, sizeof( BlockCoords ) ) );
+        layer.populated_blocks = static_cast<BlockCoords *>( malloc( CHUNK_BLOCK_SIZE * sizeof( BlockCoords ) ) );
     }
-    WorkingSpace *workingSpace = static_cast<WorkingSpace *>( calloc( CHUNK_BLOCK_SIZE, sizeof( WorkingSpace ) ) );
+    // workingSpace needs has_been_drawn=false initially; reuse a thread-local buffer
+    // to avoid calloc's page-mapping overhead. memset on resident pages is much faster.
+    static thread_local WorkingSpace *tls_workingSpace = nullptr;
+    if ( !tls_workingSpace ) {
+        tls_workingSpace = static_cast<WorkingSpace *>( malloc( CHUNK_BLOCK_SIZE * sizeof( WorkingSpace ) ) );
+    }
+    WorkingSpace *workingSpace = tls_workingSpace;
+    memset( workingSpace, 0, CHUNK_BLOCK_SIZE * sizeof( WorkingSpace ) );
 
+    // Pre-compute a tiny casts_shadow lookup table indexed by block ID (~1.2KB, stays in L1).
+    // This replaces 26 block_definition_get_definition()->casts_shadow struct dereferences per block.
+    bool block_id_casts_shadow[ LAST_BLOCK_ID ];
+    for ( int i = 0; i < LAST_BLOCK_ID; i++ ) {
+        block_id_casts_shadow[ i ] = block_definitions[ i ].casts_shadow;
+    }
+
+#if TERRAIN_GEN_PROFILING
+    long long t_mesh_start = now_us( );
+    long long t_phase1 = 0, t_phase2 = 0;
+    long long t_ph1 = now_us( );
+#endif
+
+    bool used_gpu_mesh = false;
+#if defined( REPGAME_BUILD_WITH_HIP )
+    if ( LOAD_CHUNKS_SUPPORTS_HIP && MapGen::supports_hip( ) ) {
+        used_gpu_mesh = mesh_gen_calculate_hip( this->blocks, workingSpace );
+    }
+#endif
+
+#if MESH_VERIFY
+    if ( used_gpu_mesh ) {
+        // Save GPU results, then run CPU meshing and compare
+        WorkingSpace *gpu_results = static_cast<WorkingSpace *>( malloc( CHUNK_BLOCK_SIZE * sizeof( WorkingSpace ) ) );
+        memcpy( gpu_results, workingSpace, CHUNK_BLOCK_SIZE * sizeof( WorkingSpace ) );
+        memset( workingSpace, 0, CHUNK_BLOCK_SIZE * sizeof( WorkingSpace ) );
+        // Fall through to CPU meshing by setting used_gpu_mesh = false for the CPU path
+        used_gpu_mesh = false;
+        // But remember we need to compare after
+        static int verify_mismatches = 0;
+        static int verify_chunks = 0;
+        verify_chunks++;
+#endif
+
+    if ( !used_gpu_mesh ) {
     for ( int index = CHUNK_BLOCK_DRAW_START; index < CHUNK_BLOCK_DRAW_STOP; index++ ) {
         int x, y, z;
         if ( Chunk::get_coords_from_index( index, x, y, z ) ) {
@@ -416,40 +543,40 @@ void Chunk::calculate_populated_blocks( ) {
                     int zplus = z + 1;
                     int zminus = z - 1;
 
-                    int t = block_definition_get_definition( this->blocks[ get_index_from_coords( x + 0, yplus, z + 0 ) ].id )->casts_shadow;
-                    int bo = block_definition_get_definition( this->blocks[ get_index_from_coords( x + 0, yminus, z + 0 ) ].id )->casts_shadow;
-                    int f = block_definition_get_definition( this->blocks[ get_index_from_coords( x + 0, y + 0, zplus ) ].id )->casts_shadow;
-                    int ba = block_definition_get_definition( this->blocks[ get_index_from_coords( x + 0, y + 0, zminus ) ].id )->casts_shadow;
-                    int r = block_definition_get_definition( this->blocks[ get_index_from_coords( xplus, y + 0, z + 0 ) ].id )->casts_shadow;
-                    int l = block_definition_get_definition( this->blocks[ get_index_from_coords( xminus, y + 0, z + 0 ) ].id )->casts_shadow;
+                    int t = block_id_casts_shadow[ this->blocks[ get_index_from_coords( x + 0, yplus, z + 0 ) ].id ];
+                    int bo = block_id_casts_shadow[ this->blocks[ get_index_from_coords( x + 0, yminus, z + 0 ) ].id ];
+                    int f = block_id_casts_shadow[ this->blocks[ get_index_from_coords( x + 0, y + 0, zplus ) ].id ];
+                    int ba = block_id_casts_shadow[ this->blocks[ get_index_from_coords( x + 0, y + 0, zminus ) ].id ];
+                    int r = block_id_casts_shadow[ this->blocks[ get_index_from_coords( xplus, y + 0, z + 0 ) ].id ];
+                    int l = block_id_casts_shadow[ this->blocks[ get_index_from_coords( xminus, y + 0, z + 0 ) ].id ];
 
                     // If the block is visible and can be shaded, check neighbors for shade and populated the packed lighting
                     // 2 Offsets
-                    int tl = block_definition_get_definition( this->blocks[ get_index_from_coords( xminus, yplus, z + 0 ) ].id )->casts_shadow;
-                    int tr = block_definition_get_definition( this->blocks[ get_index_from_coords( xplus, yplus, z + 0 ) ].id )->casts_shadow;
-                    int tf = block_definition_get_definition( this->blocks[ get_index_from_coords( x + 0, yplus, zplus ) ].id )->casts_shadow;
-                    int tba = block_definition_get_definition( this->blocks[ get_index_from_coords( x + 0, yplus, zminus ) ].id )->casts_shadow;
+                    int tl = block_id_casts_shadow[ this->blocks[ get_index_from_coords( xminus, yplus, z + 0 ) ].id ];
+                    int tr = block_id_casts_shadow[ this->blocks[ get_index_from_coords( xplus, yplus, z + 0 ) ].id ];
+                    int tf = block_id_casts_shadow[ this->blocks[ get_index_from_coords( x + 0, yplus, zplus ) ].id ];
+                    int tba = block_id_casts_shadow[ this->blocks[ get_index_from_coords( x + 0, yplus, zminus ) ].id ];
 
-                    int bol = block_definition_get_definition( this->blocks[ get_index_from_coords( xminus, yminus, z + 0 ) ].id )->casts_shadow;
-                    int bor = block_definition_get_definition( this->blocks[ get_index_from_coords( xplus, yminus, z + 0 ) ].id )->casts_shadow;
-                    int bof = block_definition_get_definition( this->blocks[ get_index_from_coords( x + 0, yminus, zplus ) ].id )->casts_shadow;
-                    int boba = block_definition_get_definition( this->blocks[ get_index_from_coords( x + 0, yminus, zminus ) ].id )->casts_shadow;
+                    int bol = block_id_casts_shadow[ this->blocks[ get_index_from_coords( xminus, yminus, z + 0 ) ].id ];
+                    int bor = block_id_casts_shadow[ this->blocks[ get_index_from_coords( xplus, yminus, z + 0 ) ].id ];
+                    int bof = block_id_casts_shadow[ this->blocks[ get_index_from_coords( x + 0, yminus, zplus ) ].id ];
+                    int boba = block_id_casts_shadow[ this->blocks[ get_index_from_coords( x + 0, yminus, zminus ) ].id ];
 
-                    int fl = block_definition_get_definition( this->blocks[ get_index_from_coords( xminus, y + 0, zplus ) ].id )->casts_shadow;
-                    int bal = block_definition_get_definition( this->blocks[ get_index_from_coords( xminus, y + 0, zminus ) ].id )->casts_shadow;
-                    int fr = block_definition_get_definition( this->blocks[ get_index_from_coords( xplus, y + 0, zplus ) ].id )->casts_shadow;
-                    int bar = block_definition_get_definition( this->blocks[ get_index_from_coords( xplus, y + 0, zminus ) ].id )->casts_shadow;
+                    int fl = block_id_casts_shadow[ this->blocks[ get_index_from_coords( xminus, y + 0, zplus ) ].id ];
+                    int bal = block_id_casts_shadow[ this->blocks[ get_index_from_coords( xminus, y + 0, zminus ) ].id ];
+                    int fr = block_id_casts_shadow[ this->blocks[ get_index_from_coords( xplus, y + 0, zplus ) ].id ];
+                    int bar = block_id_casts_shadow[ this->blocks[ get_index_from_coords( xplus, y + 0, zminus ) ].id ];
 
                     // 3 Offsetes
-                    int tfl = block_definition_get_definition( this->blocks[ get_index_from_coords( xminus, yplus, zplus ) ].id )->casts_shadow;
-                    int tbl = block_definition_get_definition( this->blocks[ get_index_from_coords( xminus, yplus, zminus ) ].id )->casts_shadow;
-                    int tfr = block_definition_get_definition( this->blocks[ get_index_from_coords( xplus, yplus, zplus ) ].id )->casts_shadow;
-                    int tbr = block_definition_get_definition( this->blocks[ get_index_from_coords( xplus, yplus, zminus ) ].id )->casts_shadow;
+                    int tfl = block_id_casts_shadow[ this->blocks[ get_index_from_coords( xminus, yplus, zplus ) ].id ];
+                    int tbl = block_id_casts_shadow[ this->blocks[ get_index_from_coords( xminus, yplus, zminus ) ].id ];
+                    int tfr = block_id_casts_shadow[ this->blocks[ get_index_from_coords( xplus, yplus, zplus ) ].id ];
+                    int tbr = block_id_casts_shadow[ this->blocks[ get_index_from_coords( xplus, yplus, zminus ) ].id ];
 
-                    int bfl = block_definition_get_definition( this->blocks[ get_index_from_coords( xminus, yminus, zplus ) ].id )->casts_shadow;
-                    int bbl = block_definition_get_definition( this->blocks[ get_index_from_coords( xminus, yminus, zminus ) ].id )->casts_shadow;
-                    int bfr = block_definition_get_definition( this->blocks[ get_index_from_coords( xplus, yminus, zplus ) ].id )->casts_shadow;
-                    int bbr = block_definition_get_definition( this->blocks[ get_index_from_coords( xplus, yminus, zminus ) ].id )->casts_shadow;
+                    int bfl = block_id_casts_shadow[ this->blocks[ get_index_from_coords( xminus, yminus, zplus ) ].id ];
+                    int bbl = block_id_casts_shadow[ this->blocks[ get_index_from_coords( xminus, yminus, zminus ) ].id ];
+                    int bfr = block_id_casts_shadow[ this->blocks[ get_index_from_coords( xplus, yminus, zplus ) ].id ];
+                    int bbr = block_id_casts_shadow[ this->blocks[ get_index_from_coords( xplus, yminus, zminus ) ].id ];
                     if ( visible_from[ FACE_TOP ] && can_be_shaded ) {
 
                         int top_tfr = ( tf && tr ? 3 : ( tf + tr + tfr ) ) + t;
@@ -561,6 +688,46 @@ void Chunk::calculate_populated_blocks( ) {
             }
         }
     }
+    } // end if ( !used_gpu_mesh )
+#if MESH_VERIFY
+        // Compare CPU results (in workingSpace) with GPU results (in gpu_results)
+        for ( int index = 0; index < CHUNK_BLOCK_SIZE; index++ ) {
+            if ( workingSpace[ index ].visible != gpu_results[ index ].visible ||
+                 workingSpace[ index ].can_be_seen != gpu_results[ index ].can_be_seen ) {
+                int x, y, z;
+                Chunk::get_coords_from_index( index, x, y, z );
+                pr_debug( "MESH MISMATCH at (%d,%d,%d): visible cpu=%d gpu=%d, can_be_seen cpu=%d gpu=%d",
+                    x, y, z,
+                    (int)workingSpace[ index ].visible, (int)gpu_results[ index ].visible,
+                    (int)workingSpace[ index ].can_be_seen, (int)gpu_results[ index ].can_be_seen );
+                verify_mismatches++;
+                break;
+            }
+            for ( int f = 0; f < NUM_FACES_IN_CUBE; f++ ) {
+                if ( workingSpace[ index ].packed_lighting[ f ] != gpu_results[ index ].packed_lighting[ f ] ) {
+                    int x, y, z;
+                    Chunk::get_coords_from_index( index, x, y, z );
+                    pr_debug( "MESH MISMATCH at (%d,%d,%d) face %d: lighting cpu=%u gpu=%u",
+                        x, y, z, f,
+                        workingSpace[ index ].packed_lighting[ f ],
+                        gpu_results[ index ].packed_lighting[ f ] );
+                    verify_mismatches++;
+                    break;
+                }
+            }
+        }
+        if ( verify_chunks % 100 == 0 ) {
+            pr_debug( "MESH VERIFY: %d chunks checked, %d mismatches", verify_chunks, verify_mismatches );
+        }
+        free( gpu_results );
+        // Use the CPU results (workingSpace already has them)
+    }
+#endif
+#if TERRAIN_GEN_PROFILING
+    t_phase1 = now_us( ) - t_ph1;
+    profiling_mesh_vis_light_us.fetch_add( t_phase1, std::memory_order_relaxed );
+    t_ph1 = now_us( );
+#endif
     for ( int y = 0; y < CHUNK_SIZE_Y; y++ ) {
         for ( int x = 0; x < CHUNK_SIZE_X; x++ ) {
             for ( int z = 0; z < CHUNK_SIZE_Z; z++ ) {
@@ -678,7 +845,12 @@ void Chunk::calculate_populated_blocks( ) {
             }
         }
     }
-    free( workingSpace );
+    // workingSpace is thread-local and reused — do not free
+
+#if TERRAIN_GEN_PROFILING
+    t_phase2 = now_us( ) - t_ph1;
+    profiling_mesh_greedy_us.fetch_add( t_phase2, std::memory_order_relaxed );
+#endif
 
     if constexpr ( !REMEMBER_BLOCKS ) {
         free( this->blocks );
