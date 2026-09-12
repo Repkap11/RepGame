@@ -14,9 +14,9 @@
 #define CHUNK_SIZE_X 32
 #define CHUNK_SIZE_Y 32
 #define CHUNK_SIZE_Z 32
-#define CHUNK_RADIUS_X ( 512 / CHUNK_SIZE_X )
+#define CHUNK_RADIUS_X ( 256 / CHUNK_SIZE_X )
 #define CHUNK_RADIUS_Y ( 256 / CHUNK_SIZE_Y )
-#define CHUNK_RADIUS_Z ( 512 / CHUNK_SIZE_Z )
+#define CHUNK_RADIUS_Z ( 256 / CHUNK_SIZE_Z )
 #endif
 
 #ifdef REPGAME_WINDOWS
