@@ -191,14 +191,14 @@ void RepGame::process_movement( ) {
             globalGameState.camera.y_speed = JUMP_STRENGTH;
         }
     } else {
+        const float fly_vspeed = player_sprinting ? FLY_SPRINT_VERTICAL_SPEED : FLY_VERTICAL_SPEED;
         if ( globalGameState.input.movement.sneakPressed && globalGameState.input.movement.jumpPressed ) {
             globalGameState.camera.y_speed = 0;
         } else {
             if ( globalGameState.input.movement.sneakPressed ) {
-                globalGameState.camera.y_speed = -1.0f * ( JUMP_STRENGTH + TERMINAL_VELOCITY ) / 4.0f;
+                globalGameState.camera.y_speed = -fly_vspeed;
             } else if ( globalGameState.input.movement.jumpPressed ) {
-                globalGameState.camera.y_speed = ( JUMP_STRENGTH + TERMINAL_VELOCITY ) / 4.0f;
-                ;
+                globalGameState.camera.y_speed = fly_vspeed;
             } else {
                 globalGameState.camera.y_speed = 0;
             }
@@ -242,11 +242,15 @@ void RepGame::process_movement( ) {
     glm::vec3 movement_vector = glm::vec3( );
     movement_vector.x = globalGameState.camera.horizontal_vel.x;
     movement_vector.y = globalGameState.camera.y_speed + accel;
-    if ( movement_vector.y > TERMINAL_VELOCITY ) {
-        movement_vector.y = TERMINAL_VELOCITY;
-    }
-    if ( movement_vector.y < -TERMINAL_VELOCITY ) {
-        movement_vector.y = -TERMINAL_VELOCITY;
+    // Terminal velocity only applies to gravity-driven falling, not to flying
+    // (which sets y_speed directly from input).
+    if ( !player_flying ) {
+        if ( movement_vector.y > TERMINAL_VELOCITY ) {
+            movement_vector.y = TERMINAL_VELOCITY;
+        }
+        if ( movement_vector.y < -TERMINAL_VELOCITY ) {
+            movement_vector.y = -TERMINAL_VELOCITY;
+        }
     }
     movement_vector.z = globalGameState.camera.horizontal_vel.y;
     if ( globalGameState.input.no_clip ) {

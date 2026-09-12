@@ -9,6 +9,9 @@
 #define MOVEMENT_SENSITIVITY_SPRINTING 0.125f
 #define MOVEMENT_SENSITIVITY_FLYING 0.5f
 #define MOVEMENT_SENSITIVITY_FLYING_SPRINTING 2.0f
+// Vertical fly speed (blocks/tick) when ascending/descending with jump/sneak.
+#define FLY_VERTICAL_SPEED 0.5f
+#define FLY_SPRINT_VERTICAL_SPEED 2.0f
 
 #ifdef REPGAME_LINUX
 #define CHUNK_SIZE_X 32
