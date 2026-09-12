@@ -79,23 +79,25 @@ __device__ float map_gen_inverse_lerp_cuda( float min, float max, float value ) 
 #define MAP_GEN( func, ... ) map_gen_##func##_cuda( __VA_ARGS__ )
 
 __global__ void cuda_set_block( BlockState *blocks, int chunk_x, int chunk_y, int chunk_z ) {
-    int index = blockIdx.x * blockDim.x + threadIdx.x;
-    if ( index < CHUNK_BLOCK_SIZE ) {
-        int y = ( index / ( CHUNK_SIZE_INTERNAL_Z * CHUNK_SIZE_INTERNAL_X ) ) - 1;
-        int x = ( ( index / CHUNK_SIZE_INTERNAL_Z ) % CHUNK_SIZE_INTERNAL_X ) - 1;
-        int z = ( index % ( CHUNK_SIZE_INTERNAL_Z ) ) - 1;
-        x += chunk_x;
-        y += chunk_y;
-        z += chunk_z;
+    int col = blockIdx.x * blockDim.x + threadIdx.x;
+    if ( col < CHUNK_SIZE_INTERNAL_X * CHUNK_SIZE_INTERNAL_Z ) {
+        int x = ( col / CHUNK_SIZE_INTERNAL_Z ) - 1 + chunk_x;
+        int z = ( col % CHUNK_SIZE_INTERNAL_Z ) - 1 + chunk_z;
 
+        // Compute 2D terrain height once per column (10 octaves of noise)
         float ground_noise = map_gen_ground_noise_cuda( x, z );
         float hills = map_gen_hills_cuda( x, z );
         float mountians = map_gen_mountains_cuda( x, z );
         float level = map_gen_level_cuda( x, z );
         float terrainHeight = level + mountians + hills + ground_noise;
+
+        // Loop over Y; only 3D noise (caves, ores) is recomputed per Y
+        for ( int y = chunk_y - 1; y < chunk_y + CHUNK_SIZE_Y + 1; y++ ) {
+            int index = ( y - chunk_y + 1 ) * CHUNK_SIZE_INTERNAL_Z * CHUNK_SIZE_INTERNAL_X + col;
 #include "common/map_logic.hpp"
 
-        blocks[ index ] = { finalBlockId, BLOCK_ROTATE_0, 0, finalBlockId }; // Assumes all blocks don't spawn with redstone power
+            blocks[ index ] = { finalBlockId, BLOCK_ROTATE_0, 0, finalBlockId }; // Assumes all blocks don't spawn with redstone power
+        }
     }
 }
 
@@ -106,7 +108,8 @@ __host__ void map_gen_load_block_cuda( glm::ivec3 *chunk_pos, BlockState *blocks
     BlockState *device_blocks;
     cudaMalloc( &device_blocks, CHUNK_BLOCK_SIZE * sizeof( BlockState ) );
 
-    cuda_set_block<<<( CHUNK_BLOCK_SIZE + ( NUM_THREADS_PER_BLOCK - 1 ) ) / NUM_THREADS_PER_BLOCK, NUM_THREADS_PER_BLOCK, 0>>>( device_blocks, chunk_pos->x * CHUNK_SIZE_X, chunk_pos->y * CHUNK_SIZE_Y, chunk_pos->z * CHUNK_SIZE_Z );
+    int num_columns = CHUNK_SIZE_INTERNAL_X * CHUNK_SIZE_INTERNAL_Z;
+    cuda_set_block<<<( num_columns + ( NUM_THREADS_PER_BLOCK - 1 ) ) / NUM_THREADS_PER_BLOCK, NUM_THREADS_PER_BLOCK, 0>>>( device_blocks, chunk_pos->x * CHUNK_SIZE_X, chunk_pos->y * CHUNK_SIZE_Y, chunk_pos->z * CHUNK_SIZE_Z );
 
     cudaMemcpy( blocks, device_blocks, CHUNK_BLOCK_SIZE * sizeof( BlockState ), cudaMemcpyDeviceToHost );
     cudaFree( device_blocks );

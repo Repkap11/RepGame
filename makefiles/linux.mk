@@ -76,6 +76,7 @@ LINUX_DIRS := $(patsubst src%,out/linux/release%,$(shell find src -type d)) \
 		out/linux/debug/imgui/backends out/linux/release/imgui/backends
 
 -include makefiles/cuda.mk
+-include makefiles/hip.mk
 
 out/linux/release/%.o: src/%.cpp | out/linux
 	@#Use g++ to build o file and a dependecy tree .d file for every cpp file

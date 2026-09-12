@@ -259,6 +259,12 @@ void Chunk::load_terrain( MapStorage &map_storage ) {
                 pr_debug( "Using CUDA" );
             }
             MapGen::load_block_cuda( this );
+        } else if ( LOAD_CHUNKS_SUPPORTS_HIP && MapGen::supports_hip( ) ) {
+            if ( firstTime ) {
+                firstTime = 0;
+                pr_debug( "Using HIP" );
+            }
+            MapGen::load_block_hip( this );
         } else {
             if ( firstTime ) {
                 firstTime = 0;
