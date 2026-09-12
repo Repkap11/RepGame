@@ -142,6 +142,6 @@ out/linux: | out
 	mkdir -p $(LINUX_DIRS)
 	touch $@
 
-.PRECIOUS: out/linux/release/$(TARGET) out/linux/debug/$(TARGET) $(OBJECTS_LINUX_DEBUG) $(OBJECTS_LINUX_RELEASE) $(OBJECTS_COMMON_LINUX) $(SHADER_BLOBS_LINUX) $(BITMAP_BLOBS_LINUX)
+.PRECIOUS: out/linux/release/$(TARGET) out/linux/debug/$(TARGET) $(OBJECTS_LINUX_DEBUG) $(OBJECTS_LINUX_RELEASE) $(OBJECTS_COMMON_LINUX_RELEASE) $(OBJECTS_COMMON_LINUX_DEBUG) $(SHADER_BLOBS_LINUX) $(BITMAP_BLOBS_LINUX)
 
 .PHONY: linux linux-run clean-linux linux-deploy dev

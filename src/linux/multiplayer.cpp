@@ -3,6 +3,7 @@
 #include <stdlib.h>
 #include <netdb.h>
 #include <string.h>
+#include <errno.h>
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
@@ -16,38 +17,60 @@
 void Multiplayer::init( const char *hostname, const int port ) {
     pr_debug( "using server %s:%i", hostname, port );
 
-    struct sockaddr_in serv_addr;
+    struct addrinfo hints;
+    struct addrinfo *result = nullptr;
 
     this->active = false;
     this->portno = port;
+    this->pending_packet_len = 0;
+    this->pending_send_len = 0;
+    this->prev_player_pos = glm::vec3( 0.0f );
+    this->prev_rotation = glm::mat4( 1.0f );
+
+    memset( &hints, 0, sizeof( hints ) );
+    hints.ai_family = AF_INET;
+    hints.ai_socktype = SOCK_STREAM;
+
+    int gai_status = getaddrinfo( hostname, nullptr, &hints, &result );
+    if ( gai_status != 0 ) {
+        pr_debug( "Unable to resolve hostname: %s", gai_strerror( gai_status ) );
+        return;
+    }
+
     this->sockfd = socket( AF_INET, SOCK_STREAM, 0 );
     if ( this->sockfd < 0 ) {
         pr_debug( "Unable to allocate socket" );
-        return;
-    }
-    const struct hostent *server = gethostbyname( hostname );
-    if ( server == nullptr ) {
-        pr_debug( "Unable to get hostname from string" );
+        freeaddrinfo( result );
         return;
     }
 
-    bzero( ( char * )&serv_addr, sizeof( serv_addr ) );
+    struct sockaddr_in serv_addr;
+    memset( &serv_addr, 0, sizeof( serv_addr ) );
     serv_addr.sin_family = AF_INET;
-
-    bcopy( server->h_addr, &serv_addr.sin_addr.s_addr, server->h_length );
-
+    memcpy( &serv_addr.sin_addr, &reinterpret_cast<struct sockaddr_in *>( result->ai_addr )->sin_addr, sizeof( serv_addr.sin_addr ) );
     serv_addr.sin_port = htons( this->portno );
+    freeaddrinfo( result );
+
     if ( connect( this->sockfd, reinterpret_cast<sockaddr *>( &serv_addr ), sizeof( serv_addr ) ) < 0 ) {
         pr_debug( "Multiplayer failed to connect" );
+        close( this->sockfd );
         return;
     } else {
         // We connected!
         this->active = true;
 
         int flags = fcntl( this->sockfd, F_GETFL );
+        if ( flags < 0 ) {
+            pr_debug( "Unable to get socket flags" );
+            close( this->sockfd );
+            this->active = false;
+            return;
+        }
         int status = fcntl( this->sockfd, F_SETFL, flags | O_NONBLOCK );
         if ( status < 0 ) {
             pr_debug( "Unable to set non-blocking" );
+            close( this->sockfd );
+            this->active = false;
             return;
         }
     }
@@ -59,6 +82,8 @@ void Multiplayer::process_events( World &world ) {
         // pr_debug( "Not this->active..." );
         return;
     }
+    // Drain any pending sends first so the outbound queue doesn't grow unbounded.
+    this->flush_send_queue( );
     while ( event_count < 100 ) {
         // Send updates to the server
         NetPacket &packet = this->pending_packet;
@@ -68,9 +93,21 @@ void Multiplayer::process_events( World &world ) {
         const size_t size_needed = sizeof( NetPacket ) - pending_read_len;
 
         event_count++;
-        const int status = read( this->sockfd, read_start, size_needed );
+        const int status = recv( this->sockfd, read_start, size_needed, 0 );
         if ( status < 0 ) {
-            // This is fine, it just means there are no messages;
+            if ( errno == EAGAIN || errno == EWOULDBLOCK ) {
+                // No more messages right now.
+                return;
+            }
+            pr_debug( "recv error: %s", strerror( errno ) );
+            this->active = false;
+            close( this->sockfd );
+            return;
+        } else if ( status == 0 ) {
+            // Server closed the connection.
+            pr_debug( "Server disconnected" );
+            this->active = false;
+            close( this->sockfd );
             return;
         } else {
             pending_read_len += status;
@@ -119,18 +156,42 @@ void Multiplayer::process_events( World &world ) {
     }
 }
 
-void Multiplayer::send_packet( const NetPacket &update ) const {
-    if ( !this->active ) {
-        return;
-    }
-    // Send updates to the server
-    int status = write( this->sockfd, ( void * )&update, sizeof( NetPacket ) );
-    if ( status < 0 ) {
-        pr_debug( "Unable to send message to socket" );
+void Multiplayer::flush_send_queue( ) {
+    while ( !this->send_queue.empty( ) ) {
+        NetPacket &packet = this->send_queue.front( );
+        char *send_start = reinterpret_cast<char *>( &packet ) + this->pending_send_len;
+        const size_t size_needed = sizeof( NetPacket ) - this->pending_send_len;
+
+        int nsent = send( this->sockfd, send_start, size_needed, 0 );
+        if ( nsent < 0 ) {
+            if ( errno == EAGAIN || errno == EWOULDBLOCK ) {
+                // Socket send buffer is full; try again next frame.
+                return;
+            }
+            pr_debug( "send error: %s", strerror( errno ) );
+            this->active = false;
+            close( this->sockfd );
+            return;
+        }
+        this->pending_send_len += nsent;
+        if ( this->pending_send_len < static_cast<int>( sizeof( NetPacket ) ) ) {
+            // Partial write; the rest will be sent on the next flush.
+            continue;
+        }
+        this->send_queue.pop( );
+        this->pending_send_len = 0;
     }
 }
 
-void Multiplayer::set_block( const glm::ivec3 &block_pos, BlockState blockState ) const {
+void Multiplayer::send_packet( const NetPacket &update ) {
+    if ( !this->active ) {
+        return;
+    }
+    this->send_queue.push( update );
+    this->flush_send_queue( );
+}
+
+void Multiplayer::set_block( const glm::ivec3 &block_pos, BlockState blockState ) {
     if ( !this->active ) {
         return;
     }
@@ -150,7 +211,7 @@ void Multiplayer::set_block( const glm::ivec3 &block_pos, BlockState blockState 
     this->send_packet( update );
 }
 
-void Multiplayer::request_chunk( const glm::ivec3 &chunk_pos ) const {
+void Multiplayer::request_chunk( const glm::ivec3 &chunk_pos ) {
     if ( !this->active ) {
         return;
     }
@@ -162,10 +223,7 @@ void Multiplayer::request_chunk( const glm::ivec3 &chunk_pos ) const {
     this->send_packet( update );
 }
 
-glm::vec3 prev_player_pos;
-glm::mat4 prev_rotation;
-
-void Multiplayer::update_players_position( const glm::vec3 &player_pos, const glm::mat4 &rotation ) const {
+void Multiplayer::update_players_position( const glm::vec3 &player_pos, const glm::mat4 &rotation ) {
     if ( !this->active ) {
         return;
     }
@@ -189,5 +247,8 @@ void Multiplayer::cleanup( ) {
     if ( this->active ) {
         close( this->sockfd );
         this->active = false;
+    }
+    while ( !this->send_queue.empty( ) ) {
+        this->send_queue.pop( );
     }
 }

@@ -109,7 +109,9 @@ void Server::handle_new_client_event( int inet_socket_fd ) {
         return;
     }
     if ( client_fd >= MAX_CLIENT_FDS ) {
-        pr_debug( "socket fd (%d) >= MAX 0NT_FDS (%d)", client_fd, MAX_CLIENT_FDS );
+        pr_debug( "socket fd (%d) >= MAX_CLIENT_FDS (%d)", client_fd, MAX_CLIENT_FDS );
+        close( client_fd );
+        return;
     }
     Server::make_socket_non_blocking( client_fd );
     Server::add_epoll( client_fd );

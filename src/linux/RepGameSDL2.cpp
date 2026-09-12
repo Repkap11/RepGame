@@ -196,10 +196,10 @@ void main_loop_wasm( void *arg ) {
 void main_loop_full( RepGame &repgame ) {
 
     constexpr int time_step_ms = 1000 / UPS_RATE;
-    int next_game_step = SDL_GetTicks( ); // initial value
+    long next_game_step = SDL_GetTicks64( ); // initial value
 
     while ( !repgame.shouldExit( ) ) {
-        const int now = SDL_GetTicks( );
+        const long now = SDL_GetTicks64( );
 
         if ( ( ( next_game_step - now ) <= 0 ) || !SW_VSYNC_ENABLED ) {
             int computer_is_too_slow_limit = 10; // max number of advances per render, if you can't get 20 fps, slow the game's UPS

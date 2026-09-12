@@ -4,24 +4,30 @@
 #include "common/block_definitions.hpp"
 #include "common/chunk.hpp"
 #include "server/server.hpp"
+#include <queue>
 
 class Multiplayer {
     NetPacket pending_packet;
     int pending_packet_len;
+    int pending_send_len;
+    std::queue<NetPacket> send_queue;
+    glm::vec3 prev_player_pos;
+    glm::mat4 prev_rotation;
     friend class World;
 
     int sockfd;
     int portno;
     bool active;
 
-    void send_packet( const NetPacket &update ) const;
+    void flush_send_queue( );
+    void send_packet( const NetPacket &update );
 
   public:
     void init( const char *hostname, int port );
     void cleanup( );
 
     void process_events( World &world );
-    void set_block( const glm::ivec3 &block_pos, BlockState blockState ) const;
-    void update_players_position( const glm::vec3 &player_pos, const glm::mat4 &rotation ) const;
-    void request_chunk( const glm::ivec3 &chunk_pos ) const;
+    void set_block( const glm::ivec3 &block_pos, BlockState blockState );
+    void update_players_position( const glm::vec3 &player_pos, const glm::mat4 &rotation );
+    void request_chunk( const glm::ivec3 &chunk_pos );
 };
