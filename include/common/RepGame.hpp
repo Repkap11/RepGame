@@ -49,6 +49,11 @@ struct RepGameState {
         glm::mat4 view_look;
         glm::mat4 view_trans;
         int standing_on_solid;
+        // Snapshot of the camera transform at the start of the most recent tick,
+        // used to interpolate the rendered camera between the previous and current tick.
+        glm::vec3 prev_pos;
+        float prev_angle_H;
+        float prev_angle_V;
     } camera;
     struct {
         float width;
@@ -96,6 +101,9 @@ class RepGame {
     void add_to_hotbar( bool alsoSelect, BlockID blockId );
     void process_mouse_events( );
     void process_camera_angle( );
+    // Builds the camera's look vector, rotation matrix, and view matrices from the
+    // given angles and position. Shared by the simulation tick and the interpolated render path.
+    void build_camera_view( float angle_H, float angle_V, const glm::vec3 &pos, glm::vec3 &look, glm::mat4 &rotation, glm::mat4 &view_look, glm::mat4 &view_trans ) const;
     void process_movement( );
     void process_block_updates( );
     void process_inventory_events( );
@@ -106,7 +114,7 @@ class RepGame {
     void tick( );
     static void clear( );
     void idle( );
-    void draw( );
+    void draw( float alpha );
     static void set_textures( unsigned int which_texture, unsigned char *textures, int textures_len );
     void cleanup( );
     Input &getInputState( );

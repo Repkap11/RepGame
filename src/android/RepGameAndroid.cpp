@@ -85,22 +85,32 @@ JNIEXPORT void JNICALL Java_com_repkap11_repgame_RepGameJNIWrapper_onDrawFrame( 
     int now = now_ms( );
     int computer_is_too_slow_limit = 10; // max number of advances per render, if you can't get 20 fps, slow the game's UPS
     int num_ticks_in_frame = 0;
+    constexpr int time_step_ms = 1000 / UPS_RATE;
     while ( ( ( ( ( int )next_game_step - ( int )now ) <= 0 ) ) && ( computer_is_too_slow_limit-- ) ) {
         repgame.tick( );
         num_ticks_in_frame++;
-        next_game_step += ( 1000 / UPS_RATE ); // count 1 game tick done
+        next_game_step += time_step_ms; // count 1 game tick done
     }
     // pr_debug( "slow:%d num_ticks_in_frame:%d fps:%f", computer_is_too_slow_limit, num_ticks_in_frame, ( float )( UPS_RATE ) / ( float )num_ticks_in_frame );
 
+    // Interpolation factor between the last executed tick and the next scheduled tick.
+    const int render_now = now_ms( );
+    float alpha = static_cast<float>( render_now - ( ( int )next_game_step - time_step_ms ) ) / static_cast<float>( time_step_ms );
+    if ( alpha < 0.0f ) {
+        alpha = 0.0f;
+    } else if ( alpha > 1.0f ) {
+        alpha = 1.0f;
+    }
+
     repgame.clear( );
-    repgame.draw( );
+    repgame.draw( alpha );
 }
 
 #define ANDROID_PAN_SENSITIVITY 1.25f
 
 JNIEXPORT void JNICALL Java_com_repkap11_repgame_RepGameJNIWrapper_lookInput( JNIEnv *env, jobject obj, jint xdiff, jint ydiff ) {
     Input &input = repgame.getInputState( );
-    input.lookMove(current_screen_width / 2.0f + xdiff * ANDROID_PAN_SENSITIVITY, current_screen_height / 2.0f + ydiff * ANDROID_PAN_SENSITIVITY );
+    input.lookMove(xdiff * ANDROID_PAN_SENSITIVITY, ydiff * ANDROID_PAN_SENSITIVITY );
 }
 
 JNIEXPORT void JNICALL Java_com_repkap11_repgame_RepGameJNIWrapper_setButtonState( JNIEnv *env, jobject obj, jint left, jint middle, jint right ) {

@@ -132,6 +132,23 @@ void RepGame::process_mouse_events( ) {
     globalGameState.input.mouse.currentPosition.wheel_counts = 0;
 }
 
+void RepGame::build_camera_view( float angle_H, float angle_V, const glm::vec3 &pos, glm::vec3 &look, glm::mat4 &rotation, glm::mat4 &view_look, glm::mat4 &view_trans ) const {
+    look = glm::normalize( glm::vec3(        //
+        sin( ( angle_H ) * ( M_PI / 180 ) ), //
+        -tan( angle_V * ( M_PI / 180 ) ),    //
+        -cos( ( angle_H ) * ( M_PI / 180 ) ) ) );
+
+    glm::mat4 rotate = glm::rotate( glm::mat4( 1.0f ), glm::radians( -angle_H + 180 ), glm::vec3( 0.0f, 1.0f, 0.0f ) );
+    rotate = glm::rotate( rotate, glm::radians( angle_V ), glm::vec3( 1.0f, 0.0f, 0.0f ) );
+    rotation = rotate;
+
+    view_look = glm::lookAt( glm::vec3( 0.0f, 0.0f, 0.0f ), // From the origin
+                             look,                         // Look at look vector
+                             glm::vec3( 0.0f, 1.0f, 0.0f )  // Head is up (set to 0,-1,0 to look upside-down)
+    );
+    view_trans = glm::translate( glm::mat4( 1.0f ), -1.0f * pos );
+}
+
 void RepGame::process_camera_angle( ) {
     float upAngleLimit = 90 - 0.001f;
     if ( globalGameState.camera.angle_V > upAngleLimit ) {
@@ -141,24 +158,12 @@ void RepGame::process_camera_angle( ) {
     if ( globalGameState.camera.angle_V < downAngleLimit ) {
         globalGameState.camera.angle_V = downAngleLimit;
     }
-    globalGameState.camera.look = glm::normalize( glm::vec3(        //
-        sin( ( globalGameState.camera.angle_H ) * ( M_PI / 180 ) ), //
-        -tan( globalGameState.camera.angle_V * ( M_PI / 180 ) ),    //
-        -cos( ( globalGameState.camera.angle_H ) * ( M_PI / 180 ) ) ) );
-
-    glm::mat4 rotate = glm::rotate( glm::mat4( 1.0f ), glm::radians( -globalGameState.camera.angle_H + 180 ), glm::vec3( 0.0f, 1.0f, 0.0f ) );
-    rotate = glm::rotate( rotate, glm::radians( globalGameState.camera.angle_V ), glm::vec3( 1.0f, 0.0f, 0.0f ) );
-    globalGameState.camera.rotation = rotate;
+    build_camera_view( globalGameState.camera.angle_H, globalGameState.camera.angle_V, globalGameState.camera.pos, //
+                       globalGameState.camera.look, globalGameState.camera.rotation, globalGameState.camera.view_look, globalGameState.camera.view_trans );
 
     globalGameState.camera.movement.x = sinf( ( globalGameState.camera.angle_H + globalGameState.input.movement.angleH ) * static_cast<float>( ( M_PI / 180 ) ) );
     globalGameState.camera.movement.y = -tanf( globalGameState.camera.angle_V * static_cast<float>( ( M_PI / 180 ) ) );
     globalGameState.camera.movement.z = -cosf( ( globalGameState.camera.angle_H + globalGameState.input.movement.angleH ) * static_cast<float>( ( M_PI / 180 ) ) );
-
-    globalGameState.camera.view_look = glm::lookAt( glm::vec3( 0.0f, 0.0f, 0.0f ), // From the origin
-                                                    globalGameState.camera.look,   // Look at look vector
-                                                    glm::vec3( 0.0f, 1.0f, 0.0f )  // Head is up (set to 0,-1,0 to look upside-down)
-    );
-    globalGameState.camera.view_trans = glm::translate( glm::mat4( 1.0f ), -1.0f * globalGameState.camera.pos );
 }
 
 void RepGame::process_movement( ) {
@@ -261,6 +266,12 @@ void RepGame::tick( ) {
     }
     globalGameState.tick_number++;
 
+    // Snapshot the camera transform as it was at the end of the previous tick, so the
+    // render loop can interpolate between this and the freshly-computed transform below.
+    globalGameState.camera.prev_pos = globalGameState.camera.pos;
+    globalGameState.camera.prev_angle_H = globalGameState.camera.angle_H;
+    globalGameState.camera.prev_angle_V = globalGameState.camera.angle_V;
+
     globalGameState.multiplayer.process_events( globalGameState.world );
 
     int wheel_diff = globalGameState.input.mouse.previousPosition.wheel_counts - globalGameState.input.mouse.currentPosition.wheel_counts;
@@ -356,6 +367,10 @@ void RepGame::initializeGameState( const char *world_name ) {
         globalGameState.hotbar.applySavedInventory( saved_data.hotbar_inventory );
         globalGameState.hotbar.setSelectedSlot( saved_data.selected_hotbar_slot );
     }
+    // Seed the interpolation snapshot so the first rendered frame doesn't blend from zeroes.
+    globalGameState.camera.prev_pos = globalGameState.camera.pos;
+    globalGameState.camera.prev_angle_H = globalGameState.camera.angle_H;
+    globalGameState.camera.prev_angle_V = globalGameState.camera.angle_V;
     BlockID selectedBlock = globalGameState.hotbar.getSelectedBlock( );
     globalGameState.ui_overlay.set_holding_block( selectedBlock );
 }
@@ -467,15 +482,47 @@ void RepGame::get_screen_size( int *width, int *height ) const {
     *height = globalGameState.screen.height;
 }
 
-void RepGame::draw( ) {
+void RepGame::draw( float alpha ) {
     if ( globalGameState.input.exitGame ) {
         // Don't bother draw the state if the game is exiting
         return;
     }
-    const glm::mat4 mvp_sky = globalGameState.screen.proj * globalGameState.camera.view_look;
+    // Interpolate the rendered camera between the previous tick's transform (prev_*) and the
+    // current tick's transform. This decouples the visual camera from the fixed-timestep
+    // simulation, so panning/walking stays smooth even when the render rate exceeds UPS_RATE
+    // or when per-tick input deltas (e.g. mouse motion) are non-uniform.
+    if ( alpha < 0.0f ) {
+        alpha = 0.0f;
+    } else if ( alpha > 1.0f ) {
+        alpha = 1.0f;
+    }
+    const glm::vec3 render_pos = glm::mix( globalGameState.camera.prev_pos, globalGameState.camera.pos, alpha );
+    const float render_angle_V = glm::mix( globalGameState.camera.prev_angle_V, globalGameState.camera.angle_V, alpha );
+    // angle_H wraps around 360, so interpolate along the shortest angular path.
+    float angle_diff = globalGameState.camera.angle_H - globalGameState.camera.prev_angle_H;
+    while ( angle_diff > 180.0f ) {
+        angle_diff -= 360.0f;
+    }
+    while ( angle_diff < -180.0f ) {
+        angle_diff += 360.0f;
+    }
+    float render_angle_H = globalGameState.camera.prev_angle_H + angle_diff * alpha;
+    while ( render_angle_H < 0.0f ) {
+        render_angle_H += 360.0f;
+    }
+    while ( render_angle_H >= 360.0f ) {
+        render_angle_H -= 360.0f;
+    }
+    glm::vec3 render_look;
+    glm::mat4 render_rotation;
+    glm::mat4 render_view_look;
+    glm::mat4 render_view_trans;
+    build_camera_view( render_angle_H, render_angle_V, render_pos, render_look, render_rotation, render_view_look, render_view_trans );
+
+    const glm::mat4 mvp_sky = globalGameState.screen.proj * render_view_look;
     // glm::mat4 mvp_sky_reflect = globalGameState.screen.proj * globalGameState.camera.view_look;
 
-    const glm::mat4 mvp = mvp_sky * globalGameState.camera.view_trans;
+    const glm::mat4 mvp = mvp_sky * render_view_trans;
     constexpr glm::mat4 rotation = glm::mat4( //
         1, 0, 0, 0,                           //
         0, -1, 0, 0,                          //
@@ -483,14 +530,14 @@ void RepGame::draw( ) {
         0, 0, 0, 1                            //
     );
 
-    const glm::mat4 flipped_look = globalGameState.camera.view_look * rotation;
+    const glm::mat4 flipped_look = render_view_look * rotation;
     // glm::mat4 flipped_look = rotation * globalGameState.camera.view_look;
 
     // glm::mat4 flipped_trans = rotation * globalGameState.camera.view_trans;
     // TODO globalGameState.camera.y causes a strange jump, perhaps the vars are updated in the wrong order.
-    const float height_above_water = globalGameState.camera.pos.y + ( 1.0f - WATER_HEIGHT );
+    const float height_above_water = render_pos.y + ( 1.0f - WATER_HEIGHT );
     const float offset = 2.0f * height_above_water;
-    const glm::mat4 flipped_trans = glm::translate( globalGameState.camera.view_trans, glm::vec3( 0.0, offset, 0.0 ) );
+    const glm::mat4 flipped_trans = glm::translate( render_view_trans, glm::vec3( 0.0, offset, 0.0 ) );
     // glm::mat4 flipped_trans = globalGameState.camera.view_trans;
 
     const glm::mat4 mvp_sky_reflect = globalGameState.screen.proj * flipped_look;
@@ -498,7 +545,7 @@ void RepGame::draw( ) {
     const glm::mat4 mvp_reflect = globalGameState.screen.proj * flipped_look * flipped_trans;
 
     globalGameState.multiplayer.process_events( globalGameState.world );
-    globalGameState.multiplayer.update_players_position( globalGameState.camera.pos, globalGameState.camera.rotation );
+    globalGameState.multiplayer.update_players_position( render_pos, render_rotation );
 
 #if defined( REPGAME_WASM )
     bool limit_render = true;
@@ -516,7 +563,7 @@ void RepGame::draw( ) {
     bool limit_render = false;
 #endif
     if ( do_render ) {
-        globalGameState.world.render( globalGameState.multiplayer, globalGameState.camera.pos, limit_render, globalGameState.camera.rotation );
+        globalGameState.world.render( globalGameState.multiplayer, render_pos, limit_render, render_rotation );
     }
 
     showErrors( );
@@ -526,7 +573,7 @@ void RepGame::draw( ) {
     // glm::mat4 rotation = glm::rotate( glm::mat4( 1.0 ), glm::radians( 90.0f ), glm::vec3( 1, 0, 1 ) );
     // glm::mat4 mvp_reflect = mvp * rotation;
     // mvp_mirror = glm::translate( mvp_mirror, glm::vec3( 0, -10, 0 ) );
-    glm::ivec3 round_block = glm::round( globalGameState.camera.pos - 0.5f );
+    glm::ivec3 round_block = glm::round( render_pos - 0.5f );
     BlockState blockInHead = globalGameState.world.get_loaded_block( round_block );
     bool headInWater = blockInHead.id == WATER;
 
@@ -534,7 +581,7 @@ void RepGame::draw( ) {
     glTexParameteri( globalGameState.blocksTexture.target, GL_TEXTURE_WRAP_S, GL_REPEAT );
     glTexParameteri( globalGameState.blocksTexture.target, GL_TEXTURE_WRAP_T, GL_REPEAT );
 
-    globalGameState.world.draw( globalGameState.blocksTexture, mvp, mvp_reflect, mvp_sky, mvp_sky_reflect, globalGameState.input.debug_mode, !globalGameState.input.inventory_open, globalGameState.camera.pos.y, headInWater,
+    globalGameState.world.draw( globalGameState.blocksTexture, mvp, mvp_reflect, mvp_sky, mvp_sky_reflect, globalGameState.input.debug_mode, !globalGameState.input.inventory_open, render_pos.y, headInWater,
                                 globalGameState.input.worldDrawQuality );
 
     glTexParameteri( globalGameState.blocksTexture.target, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE );

@@ -182,7 +182,7 @@ void main_loop_wasm( void *arg ) {
         repgame_linux_process_window_and_pointer_state( repgame );
         repgame.clear( );
         repgame.tick( );
-        repgame.draw( );
+        repgame.draw( 1.0f );
     }
     return;
 }
@@ -218,8 +218,18 @@ void main_loop_full( RepGame &repgame ) {
             }
             // pr_debug( "slow:%d num_ticks_in_frame:%d fps:%f", computer_is_too_slow_limit, num_ticks_in_frame, ( float )( UPS_RATE ) / ( float )num_ticks_in_frame );
 
+            // Interpolation factor: how far we are between the last executed tick
+            // (at next_game_step - time_step_ms) and the next scheduled tick (next_game_step).
+            const long render_now = SDL_GetTicks64( );
+            float alpha = static_cast<float>( render_now - ( next_game_step - time_step_ms ) ) / static_cast<float>( time_step_ms );
+            if ( alpha < 0.0f ) {
+                alpha = 0.0f;
+            } else if ( alpha > 1.0f ) {
+                alpha = 1.0f;
+            }
+
             repgame.clear( );
-            repgame.draw( );
+            repgame.draw( alpha );
             SDL_GL_SwapWindow( sdl_window );
 
             fps_frame_count++;

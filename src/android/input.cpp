@@ -1,8 +1,8 @@
 #include "common/RepGame.hpp"
 
 void Input::lookMove( int x, int y ) {
-    this->mouse.currentPosition.x = x;
-    this->mouse.currentPosition.y = y;
+    this->mouse.currentPosition.x += x;
+    this->mouse.currentPosition.y += y;
 }
 void Input::positionHMove( float sizeH, float angleH ) {
     this->movement.sizeH = sizeH;
