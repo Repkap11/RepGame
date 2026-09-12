@@ -46,6 +46,9 @@ struct RepGameState {
         glm::vec3 movement;
         glm::vec3 pos;
         float y_speed;
+        // Horizontal (x/z) velocity for momentum-based movement. Y is owned by
+        // y_speed + gravity; this vector is only x and z.
+        glm::vec2 horizontal_vel;
         glm::mat4 view_look;
         glm::mat4 view_trans;
         int standing_on_solid;

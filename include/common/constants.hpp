@@ -104,6 +104,27 @@ static_assert( CHUNK_RADIUS_Z > 0, "CHUNK_RADIUS_Z too small" );
 #define JUMP_STRENGTH 0.07f
 #define GRAVITY_STRENGTH 0.002f
 
+// Collision: max distance the player may move on a single axis per collision
+// substep. Must stay below the smallest player AABB half-dimension (PLAYER_WIDTH/2
+// = 0.3) so a single substep can never tunnel through a 1-block-thick wall.
+#define COLLISION_MAX_SUBSTEP 0.27f
+// Collision: how high the player can step up without jumping. Covers slabs
+// (0.5) and snow layers; full blocks (1.0) still require a jump. Set slightly
+// above 0.5 so floating-point error doesn't prevent stepping a half slab.
+#define STEP_HEIGHT 0.6f
+
+// Movement feel: horizontal velocity is accelerated toward a target velocity
+// derived from input and decelerated by friction when no input is held. All
+// values are in blocks/tick. Ground accel is high so walking still feels
+// responsive; air accel is lower for some in-air control; friction brings the
+// player to rest quickly on the ground. Flying uses a much higher accel so it
+// stays snappy.
+#define PLAYER_GROUND_ACCEL 0.4f
+#define PLAYER_AIR_ACCEL 0.08f
+#define PLAYER_GROUND_FRICTION 0.25f
+#define PLAYER_AIR_FRICTION 0.02f
+#define PLAYER_FLY_ACCEL 1.0f
+
 #define UPS_RATE 144
 
 // Almost the number of clients, but some fd's are not clients so it's slightly less.

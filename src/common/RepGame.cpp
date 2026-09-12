@@ -207,8 +207,40 @@ void RepGame::process_movement( ) {
 
     float accel = -gravity;
 
+    // Build the target horizontal velocity from input. movement.x/z are the
+    // unit forward/right direction derived from the camera yaw; sizeH is the
+    // analog input magnitude (0..1 on keyboard). The target is clamped to the
+    // selected movement speed so acceleration can never push us past it.
+    const float target_vx = movement_speed * globalGameState.input.movement.sizeH * globalGameState.camera.movement.x;
+    const float target_vz = movement_speed * globalGameState.input.movement.sizeH * globalGameState.camera.movement.z;
+    const glm::vec2 target_vel = glm::vec2( target_vx, target_vz );
+
+    // Pick the rate at which horizontal_vel approaches target_vel. When input
+    // is held we accelerate; when it is released we apply (usually higher)
+    // friction to bring the player to rest. Flying uses a high rate so it
+    // stays snappy and effectively reaches target in a single tick.
+    const bool has_input = globalGameState.input.movement.sizeH > 0.001f;
+    float rate;
+    if ( player_flying ) {
+        rate = PLAYER_FLY_ACCEL;
+    } else if ( has_input ) {
+        rate = globalGameState.camera.standing_on_solid ? PLAYER_GROUND_ACCEL : PLAYER_AIR_ACCEL;
+    } else {
+        rate = globalGameState.camera.standing_on_solid ? PLAYER_GROUND_FRICTION : PLAYER_AIR_FRICTION;
+    }
+
+    // Accelerate horizontal_vel toward target_vel, clamping the per-tick
+    // velocity change to `rate` so the approach is smooth.
+    glm::vec2 dvel = target_vel - globalGameState.camera.horizontal_vel;
+    float dvel_len = glm::length( dvel );
+    if ( dvel_len <= rate || rate <= 0.0f ) {
+        globalGameState.camera.horizontal_vel = target_vel;
+    } else {
+        globalGameState.camera.horizontal_vel += dvel * ( rate / dvel_len );
+    }
+
     glm::vec3 movement_vector = glm::vec3( );
-    movement_vector.x = movement_speed * globalGameState.input.movement.sizeH * globalGameState.camera.movement.x;
+    movement_vector.x = globalGameState.camera.horizontal_vel.x;
     movement_vector.y = globalGameState.camera.y_speed + accel;
     if ( movement_vector.y > TERMINAL_VELOCITY ) {
         movement_vector.y = TERMINAL_VELOCITY;
@@ -216,7 +248,7 @@ void RepGame::process_movement( ) {
     if ( movement_vector.y < -TERMINAL_VELOCITY ) {
         movement_vector.y = -TERMINAL_VELOCITY;
     }
-    movement_vector.z = movement_speed * globalGameState.input.movement.sizeH * globalGameState.camera.movement.z;
+    movement_vector.z = globalGameState.camera.horizontal_vel.y;
     if ( globalGameState.input.no_clip ) {
         globalGameState.camera.standing_on_solid = 0;
     } else {
@@ -227,6 +259,10 @@ void RepGame::process_movement( ) {
 
     globalGameState.camera.pos = globalGameState.camera.pos + movement_vector;
     globalGameState.camera.y_speed = movement_vector.y;
+    // If a horizontal axis was blocked by collision, zero that component of
+    // the persisted velocity so we don't keep pushing into the wall.
+    globalGameState.camera.horizontal_vel.x = movement_vector.x;
+    globalGameState.camera.horizontal_vel.y = movement_vector.z;
     // pr_debug("Y speed:%f",globalGameState.camera.y_speed);
 }
 
@@ -349,6 +385,7 @@ void RepGame::initializeGameState( const char *world_name ) {
     globalGameState.camera.pos.y = ceil( MapGen::calculateTerrainHeight( 0, 0 ) ) + PLAYER_EYE_HEIGHT + 0.5f;
     globalGameState.camera.pos.z = 0.5f;
     globalGameState.camera.y_speed = 0.0f;
+    globalGameState.camera.horizontal_vel = glm::vec2( 0.0f, 0.0f );
     globalGameState.input.worldDrawQuality = WorldDrawQuality::MEDIUM;
     globalGameState.main_inventory.inventory_renderer.options.active_height_percent = 0.75f;
     globalGameState.main_inventory.inventory_renderer.options.max_height_percent = 0.75f;
