@@ -7,24 +7,45 @@
 #include "common/chunk_loader.hpp"
 #include "common/chunk.hpp"
 
-float map_gen_hills( const int x, const int z ) {
-    const float noise = perlin_noise2d( x, z, 0.02f, 3, MAP_SEED );
+// Transforms: pure functions of perlin noise (which returns [0, 1]).
+// Separated from the map_gen_* functions so maxTerrainHeight() can compute
+// the exact max of each by evaluating across the [0, 1] noise range.
+static inline float hills_transform( const float noise ) {
     return ( noise - 0.5f ) * 15;
 }
-
-float map_gen_ground_noise( const int x, const int z ) {
-    const float noise = perlin_noise2d( x, z, 0.1f, 2, MAP_SEED + 1 );
+static inline float ground_noise_transform( const float noise ) {
     return ( noise - 0.5f ) * 2;
 }
-
-float map_gen_mountains( const int x, const int z ) {
-    float noise = perlin_noise2d( x, z, 0.008f, 3, MAP_SEED + 2 );
+static inline float mountains_transform( float noise ) {
     noise = noise - 0.5f;
     if ( noise < 0 ) {
         noise = 0;
     }
     const float mountains = noise * noise * noise * 1000;
     return mountains;
+}
+static inline float level_transform( float noise ) {
+    noise = ( noise - 0.5f ) * 10;
+    float n = fabs( noise );
+    n = n * noise;
+    n = n > 1 ? 1 : n;
+    n = n < -1 ? -1 : n;
+    return n * 10;
+}
+
+float map_gen_hills( const int x, const int z ) {
+    const float noise = perlin_noise2d( x, z, 0.02f, 3, MAP_SEED );
+    return hills_transform( noise );
+}
+
+float map_gen_ground_noise( const int x, const int z ) {
+    const float noise = perlin_noise2d( x, z, 0.1f, 2, MAP_SEED + 1 );
+    return ground_noise_transform( noise );
+}
+
+float map_gen_mountains( const int x, const int z ) {
+    float noise = perlin_noise2d( x, z, 0.008f, 3, MAP_SEED + 2 );
+    return mountains_transform( noise );
 }
 
 float map_gen_mountains_block( const int x, const int z ) {
@@ -38,14 +59,8 @@ float map_gen_under_water_block( const int x, const int z ) {
 }
 
 float map_gen_level( const int x, const int z ) {
-    float noise_orig = perlin_noise2d( x, z, 0.004f, 2, MAP_SEED + 5 );
-    noise_orig = ( noise_orig - 0.5f ) * 10;
-    float noise = fabs( noise_orig );
-    noise = noise * noise_orig;
-    noise = noise > 1 ? 1 : noise;
-    noise = noise < -1 ? -1 : noise;
-
-    return noise * 10;
+    float noise = perlin_noise2d( x, z, 0.004f, 2, MAP_SEED + 5 );
+    return level_transform( noise );
 }
 
 float map_gen_cave_density( const int x, const int y, const int z ) {
@@ -89,6 +104,30 @@ float MapGen::calculateTerrainHeight( const int x, const int z ) {
     const float mountains = map_gen_mountains( x, z );
     const float level = map_gen_level( x, z );
     return level + mountains + hills + ground_noise;
+}
+
+float MapGen::maxTerrainHeight( ) {
+    // perlin_noise2d returns values in [0, 1]. Each terrain component applies a pure
+    // transformation to that bounded input. We compute the exact max of each transform
+    // by evaluating it across the [0, 1] noise range at startup, then sum them.
+    // This is pure arithmetic — no perlin noise evaluation, no world sampling.
+    // If a transform formula changes, the max updates automatically.
+    static const float max_height = [] {
+        constexpr int STEPS = 10000;
+        float max_ground = -1e30f, max_hills = -1e30f, max_mountains = -1e30f, max_level = -1e30f;
+        for ( int i = 0; i <= STEPS; i++ ) {
+            float noise = (float)i / STEPS; // [0, 1]
+            max_ground = fmax( max_ground, ground_noise_transform( noise ) );
+            max_hills = fmax( max_hills, hills_transform( noise ) );
+            max_mountains = fmax( max_mountains, mountains_transform( noise ) );
+            max_level = fmax( max_level, level_transform( noise ) );
+        }
+        float bound = max_ground + max_hills + max_mountains + max_level;
+        pr_debug( "maxTerrainHeight: ground=%.2f hills=%.2f mountains=%.2f level=%.2f → %.2f",
+            max_ground, max_hills, max_mountains, max_level, bound );
+        return bound;
+    }( );
+    return max_height;
 }
 
 void MapGen::load_block_c( const Chunk *chunk ) {

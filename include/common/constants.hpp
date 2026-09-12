@@ -79,7 +79,7 @@ static_assert( CHUNK_RADIUS_Z > 0, "CHUNK_RADIUS_Z too small" );
 #define CULL_NON_VISIBLE 1
 #define FOREST_DEBUG 0
 #define DEBUG_CYCLE_AUTO_ROTATING_BLOCKS 0
-#define TERRAIN_GEN_PROFILING 1
+#define TERRAIN_GEN_PROFILING 0
 #define MESH_VERIFY 0 // When 1, runs both CPU and GPU meshing and compares results
 
 #define NO_CLIP 1

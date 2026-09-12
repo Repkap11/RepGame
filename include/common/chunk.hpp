@@ -43,6 +43,7 @@ class Chunk {
     friend class Multiplayer;
 
     int is_loading;
+    bool is_empty_chunk;
     RenderLayer layers[ LAST_RENDER_ORDER ];
     BlockState *blocks;
     glm::ivec3 chunk_pos;

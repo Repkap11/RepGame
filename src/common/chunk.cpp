@@ -273,6 +273,7 @@ void Chunk::load_terrain( MapStorage &map_storage ) {
     if constexpr ( !REMEMBER_BLOCKS ) {
         this->blocks = static_cast<BlockState *>( calloc( CHUNK_BLOCK_SIZE, sizeof( BlockState ) ) );
     }
+    this->is_empty_chunk = false;
 #if TERRAIN_GEN_PROFILING
     long long t_start = now_us( );
     long long t_load_disk = 0, t_map_gen = 0, t_struct = 0, t_pop = 0;
@@ -286,6 +287,50 @@ void Chunk::load_terrain( MapStorage &map_storage ) {
 #endif
     if ( !loaded ) {
         // We haven't loaded this chunk before, map gen it.
+        // Cheap CPU-side check: if the entire chunk is above the terrain surface,
+        // every block is air. Skip GPU map gen, structure gen, and meshing entirely.
+        const int min_y = this->chunk_pos.y * CHUNK_SIZE_Y - 1; // include -1 border
+        if ( min_y >= WATER_LEVEL ) {
+            // If the chunk is above the theoretical max terrain height, it's guaranteed
+            // empty with zero perlin noise evaluation. The bound is derived from the
+            // terrain formulas in map_gen.cpp — see MapGen::maxTerrainHeight().
+            if ( (float)min_y >= MapGen::maxTerrainHeight( ) ) {
+                for ( int i = 0; i < CHUNK_BLOCK_SIZE; i++ ) {
+                    this->blocks[ i ] = { AIR, BLOCK_ROTATE_0, 0, AIR };
+                }
+                this->is_empty_chunk = true;
+                this->dirty = 0;
+#if TERRAIN_GEN_PROFILING
+                t_map_gen = now_us( ) - t0;
+                profiling_map_gen_count.fetch_add( 1, std::memory_order_relaxed );
+#endif
+                goto skip_to_mesh;
+            }
+            // Below the theoretical max but still above water: compute actual terrain height
+            // per column to catch chunks that are empty at lower altitudes.
+            const int x_start = this->chunk_pos.x * CHUNK_SIZE_X - 1;
+            const int z_start = this->chunk_pos.z * CHUNK_SIZE_Z - 1;
+            float max_terrain_height = -1e30f;
+            for ( int x = x_start; x < x_start + CHUNK_SIZE_INTERNAL_X; x++ ) {
+                for ( int z = z_start; z < z_start + CHUNK_SIZE_INTERNAL_Z; z++ ) {
+                    float h = MapGen::calculateTerrainHeight( x, z );
+                    if ( h > max_terrain_height ) max_terrain_height = h;
+                }
+            }
+            if ( (float)min_y >= max_terrain_height ) {
+                // Entire chunk (including border) is above terrain → all air
+                for ( int i = 0; i < CHUNK_BLOCK_SIZE; i++ ) {
+                    this->blocks[ i ] = { AIR, BLOCK_ROTATE_0, 0, AIR };
+                }
+                this->is_empty_chunk = true;
+                this->dirty = 0;
+#if TERRAIN_GEN_PROFILING
+                t_map_gen = now_us( ) - t0;
+                profiling_map_gen_count.fetch_add( 1, std::memory_order_relaxed );
+#endif
+                goto skip_to_mesh;
+            }
+        }
 #if TERRAIN_GEN_PROFILING
         t0 = now_us( );
 #endif
@@ -319,6 +364,7 @@ void Chunk::load_terrain( MapStorage &map_storage ) {
 #endif
         this->dirty = 0;
     }
+skip_to_mesh:
 #if TERRAIN_GEN_PROFILING
     t0 = now_us( );
 #endif
@@ -444,6 +490,18 @@ void Chunk::calculate_populated_blocks( ) {
     }
     WorkingSpace *workingSpace = tls_workingSpace;
     memset( workingSpace, 0, CHUNK_BLOCK_SIZE * sizeof( WorkingSpace ) );
+
+    // Empty chunks (all air): skip meshing entirely. workingSpace is already zeroed
+    // (visible=false, can_be_seen=false), so greedy meshing would produce 0 instances.
+    if ( this->is_empty_chunk ) {
+        if constexpr ( !REMEMBER_BLOCKS ) {
+            free( this->blocks );
+        }
+        for ( int renderOrder = 0; renderOrder < LAST_RENDER_ORDER; renderOrder++ ) {
+            this->layers[ renderOrder ].num_instances = 0;
+        }
+        return;
+    }
 
     // Pre-compute a tiny casts_shadow lookup table indexed by block ID (~1.2KB, stays in L1).
     // This replaces 26 block_definition_get_definition()->casts_shadow struct dereferences per block.
