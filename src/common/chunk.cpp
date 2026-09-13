@@ -673,10 +673,12 @@ void Chunk::calculate_populated_blocks( ) {
                         top_tbr = top_tbr > 3 ? 3 : top_tbr;
                         top_tbl = top_tbl > 3 ? 3 : top_tbl;
                         int tcc = min( top_tfr, top_tfl, top_tbr, top_tbl );
+                        int tavg = ( top_tfr + top_tfl + top_tbr + top_tbl ) / 4;
                         workingSpace[ index ].packed_lighting[ FACE_TOP ] =                         //
                             ( ( top_tfr << CORNER_OFFSET_tfr ) | ( top_tfl << CORNER_OFFSET_tfl ) | //
                               ( top_tbr << CORNER_OFFSET_tbr ) | ( top_tbl << CORNER_OFFSET_tbl ) | //
-                              tcc << CORNER_OFFSET_c );
+                              tcc << CORNER_OFFSET_c | //
+                              tavg << CORNER_OFFSET_avg );
                     } else {
                         workingSpace[ index ].packed_lighting[ FACE_TOP ] = block->no_light;
                     }
@@ -691,10 +693,12 @@ void Chunk::calculate_populated_blocks( ) {
                         bottom_bbr = bottom_bbr > 3 ? 3 : bottom_bbr;
                         bottom_bbl = bottom_bbl > 3 ? 3 : bottom_bbl;
                         int bcc = min( bottom_bfr, bottom_bfl, bottom_bbr, bottom_bbl );
+                        int bavg = ( bottom_bfr + bottom_bfl + bottom_bbr + bottom_bbl ) / 4;
                         workingSpace[ index ].packed_lighting[ FACE_BOTTOM ] =                            //
                             ( ( bottom_bfr << CORNER_OFFSET_bfr ) | ( bottom_bfl << CORNER_OFFSET_bfl ) | //
                               ( bottom_bbr << CORNER_OFFSET_bbr ) | ( bottom_bbl << CORNER_OFFSET_bbl ) | //
-                              bcc << CORNER_OFFSET_c );
+                              bcc << CORNER_OFFSET_c | //
+                              bavg << CORNER_OFFSET_avg );
                     } else {
                         workingSpace[ index ].packed_lighting[ FACE_BOTTOM ] = block->no_light;
                     }
@@ -708,10 +712,12 @@ void Chunk::calculate_populated_blocks( ) {
                         front_bfr = front_bfr > 3 ? 3 : front_bfr;
                         front_bfl = front_bfl > 3 ? 3 : front_bfl;
                         int cfc = min( front_tfr, front_tfl, front_bfr, front_bfl );
+                        int favg = ( front_tfr + front_tfl + front_bfr + front_bfl ) / 4;
                         workingSpace[ index ].packed_lighting[ FACE_FRONT ] =                           //
                             ( ( front_tfr << CORNER_OFFSET_tfr ) | ( front_tfl << CORNER_OFFSET_tfl ) | //
                               ( front_bfr << CORNER_OFFSET_bfr ) | ( front_bfl << CORNER_OFFSET_bfl ) | //
-                              cfc << CORNER_OFFSET_c );
+                              cfc << CORNER_OFFSET_c | //
+                              favg << CORNER_OFFSET_avg );
                     } else {
                         workingSpace[ index ].packed_lighting[ FACE_FRONT ] = block->no_light;
                     }
@@ -725,10 +731,12 @@ void Chunk::calculate_populated_blocks( ) {
                         back_bbr = back_bbr > 3 ? 3 : back_bbr;
                         back_bbl = back_bbl > 3 ? 3 : back_bbl;
                         int cbc = min( back_tbr, back_tbl, back_bbr, back_bbl );
+                        int baavg = ( back_tbr + back_tbl + back_bbr + back_bbl ) / 4;
                         workingSpace[ index ].packed_lighting[ FACE_BACK ] =                          //
                             ( ( back_tbr << CORNER_OFFSET_tbr ) | ( back_tbl << CORNER_OFFSET_tbl ) | //
                               ( back_bbr << CORNER_OFFSET_bbr ) | ( back_bbl << CORNER_OFFSET_bbl ) | //
-                              cbc << CORNER_OFFSET_c );
+                              cbc << CORNER_OFFSET_c | //
+                              baavg << CORNER_OFFSET_avg );
                     } else {
                         workingSpace[ index ].packed_lighting[ FACE_BACK ] = block->no_light;
                     }
@@ -742,10 +750,12 @@ void Chunk::calculate_populated_blocks( ) {
                         right_bfr = right_bfr > 3 ? 3 : right_bfr;
                         right_bbr = right_bbr > 3 ? 3 : right_bbr;
                         int ccr = min( right_tfr, right_tbr, right_bfr, right_bbr );
+                        int ravg = ( right_tfr + right_tbr + right_bfr + right_bbr ) / 4;
                         workingSpace[ index ].packed_lighting[ FACE_RIGHT ] =                           //
                             ( ( right_tfr << CORNER_OFFSET_tfr ) | ( right_tbr << CORNER_OFFSET_tbr ) | //
                               ( right_bfr << CORNER_OFFSET_bfr ) | ( right_bbr << CORNER_OFFSET_bbr ) | //
-                              ccr << CORNER_OFFSET_c );
+                              ccr << CORNER_OFFSET_c | //
+                              ravg << CORNER_OFFSET_avg );
                     } else {
                         workingSpace[ index ].packed_lighting[ FACE_RIGHT ] = block->no_light;
                     }
@@ -759,10 +769,12 @@ void Chunk::calculate_populated_blocks( ) {
                         left_bfl = left_bfl > 3 ? 3 : left_bfl;
                         left_bbl = left_bbl > 3 ? 3 : left_bbl;
                         int ccl = min( left_tfl, left_tbl, left_bfl, left_bbl );
+                        int lavg = ( left_tfl + left_tbl + left_bfl + left_bbl ) / 4;
                         workingSpace[ index ].packed_lighting[ FACE_LEFT ] =                          //
                             ( ( left_tfl << CORNER_OFFSET_tfl ) | ( left_tbl << CORNER_OFFSET_tbl ) | //
                               ( left_bfl << CORNER_OFFSET_bfl ) | ( left_bbl << CORNER_OFFSET_bbl ) | //
-                              ccl << CORNER_OFFSET_c );
+                              ccl << CORNER_OFFSET_c | //
+                              lavg << CORNER_OFFSET_avg );
                     } else {
                         workingSpace[ index ].packed_lighting[ FACE_LEFT ] = block->no_light;
                     }

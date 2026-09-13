@@ -29,6 +29,7 @@ out vec2 v_TexCoordBlock;
 flat out uint v_blockID;
 out float v_planarDot;
 out float v_corner_lighting;
+flat out float v_center_lighting;
 out vec3 v_world_coords;
 
 flat out int v_needs_rotate;
@@ -174,6 +175,14 @@ void main() {
     corner_light = (3.9f - corner_light) / 3.9f;
 
     v_corner_lighting = face_light * corner_light;
+
+    // Average of all 4 corner light values for this face (flat, same for
+    // all vertices). Precomputed on the CPU and packed at CORNER_OFFSET_avg.
+    // Used at grazing angles to avoid shimmer from perspective-correct
+    // interpolation of per-corner lighting.
+    float avg_light = float((packed_lighting >> 21u) & 3u) / light_divisor;
+    avg_light = (3.9f - avg_light) / 3.9f;
+    v_center_lighting = face_light * avg_light;
     v_TexCoordBlock = texCoordBlock_adjust * face_scale - face_shift;
 
     uint shift = (faceType_rotated % 2u) * 16u;

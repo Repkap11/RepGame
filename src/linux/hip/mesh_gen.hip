@@ -38,6 +38,7 @@ __device__ static constexpr int ROTATED_FACE_TABLE_D[ 4 ][ 6 ] = {
 #define CORNER_OFFSET_bbl_D 12
 #define CORNER_OFFSET_bbr_D 14
 #define CORNER_OFFSET_c_D 16
+#define CORNER_OFFSET_avg_D 21
 
 // RenderOrder enum values (from render_order.hpp)
 #define RENDER_ORDER_TRANSPARENT 0
@@ -172,10 +173,12 @@ __global__ void hip_calculate_mesh_kernel( const BlockState *blocks,
         top_tbr = top_tbr > 3 ? 3 : top_tbr;
         top_tbl = top_tbl > 3 ? 3 : top_tbl;
         int tcc = min4_d( top_tfr, top_tfl, top_tbr, top_tbl );
+        int tavg = ( top_tfr + top_tfl + top_tbr + top_tbl ) / 4;
         results[ index ].packed_lighting[ FACE_TOP_D ] =
             ( ( top_tfr << CORNER_OFFSET_tfr_D ) | ( top_tfl << CORNER_OFFSET_tfl_D ) |
               ( top_tbr << CORNER_OFFSET_tbr_D ) | ( top_tbl << CORNER_OFFSET_tbl_D ) |
-              tcc << CORNER_OFFSET_c_D );
+              tcc << CORNER_OFFSET_c_D |
+              tavg << CORNER_OFFSET_avg_D );
     } else {
         results[ index ].packed_lighting[ FACE_TOP_D ] = block.no_light;
     }
@@ -189,10 +192,12 @@ __global__ void hip_calculate_mesh_kernel( const BlockState *blocks,
         bottom_bbr = bottom_bbr > 3 ? 3 : bottom_bbr;
         bottom_bbl = bottom_bbl > 3 ? 3 : bottom_bbl;
         int bcc = min4_d( bottom_bfr, bottom_bfl, bottom_bbr, bottom_bbl );
+        int bavg = ( bottom_bfr + bottom_bfl + bottom_bbr + bottom_bbl ) / 4;
         results[ index ].packed_lighting[ FACE_BOTTOM_D ] =
             ( ( bottom_bfr << CORNER_OFFSET_bfr_D ) | ( bottom_bfl << CORNER_OFFSET_bfl_D ) |
               ( bottom_bbr << CORNER_OFFSET_bbr_D ) | ( bottom_bbl << CORNER_OFFSET_bbl_D ) |
-              bcc << CORNER_OFFSET_c_D );
+              bcc << CORNER_OFFSET_c_D |
+              bavg << CORNER_OFFSET_avg_D );
     } else {
         results[ index ].packed_lighting[ FACE_BOTTOM_D ] = block.no_light;
     }
@@ -206,10 +211,12 @@ __global__ void hip_calculate_mesh_kernel( const BlockState *blocks,
         front_bfr = front_bfr > 3 ? 3 : front_bfr;
         front_bfl = front_bfl > 3 ? 3 : front_bfl;
         int cfc = min4_d( front_tfr, front_tfl, front_bfr, front_bfl );
+        int favg = ( front_tfr + front_tfl + front_bfr + front_bfl ) / 4;
         results[ index ].packed_lighting[ FACE_FRONT_D ] =
             ( ( front_tfr << CORNER_OFFSET_tfr_D ) | ( front_tfl << CORNER_OFFSET_tfl_D ) |
               ( front_bfr << CORNER_OFFSET_bfr_D ) | ( front_bfl << CORNER_OFFSET_bfl_D ) |
-              cfc << CORNER_OFFSET_c_D );
+              cfc << CORNER_OFFSET_c_D |
+              favg << CORNER_OFFSET_avg_D );
     } else {
         results[ index ].packed_lighting[ FACE_FRONT_D ] = block.no_light;
     }
@@ -223,10 +230,12 @@ __global__ void hip_calculate_mesh_kernel( const BlockState *blocks,
         back_bbr = back_bbr > 3 ? 3 : back_bbr;
         back_bbl = back_bbl > 3 ? 3 : back_bbl;
         int cbc = min4_d( back_tbr, back_tbl, back_bbr, back_bbl );
+        int baavg = ( back_tbr + back_tbl + back_bbr + back_bbl ) / 4;
         results[ index ].packed_lighting[ FACE_BACK_D ] =
             ( ( back_tbr << CORNER_OFFSET_tbr_D ) | ( back_tbl << CORNER_OFFSET_tbl_D ) |
               ( back_bbr << CORNER_OFFSET_bbr_D ) | ( back_bbl << CORNER_OFFSET_bbl_D ) |
-              cbc << CORNER_OFFSET_c_D );
+              cbc << CORNER_OFFSET_c_D |
+              baavg << CORNER_OFFSET_avg_D );
     } else {
         results[ index ].packed_lighting[ FACE_BACK_D ] = block.no_light;
     }
@@ -240,10 +249,12 @@ __global__ void hip_calculate_mesh_kernel( const BlockState *blocks,
         right_bfr = right_bfr > 3 ? 3 : right_bfr;
         right_bbr = right_bbr > 3 ? 3 : right_bbr;
         int ccr = min4_d( right_tfr, right_tbr, right_bfr, right_bbr );
+        int ravg = ( right_tfr + right_tbr + right_bfr + right_bbr ) / 4;
         results[ index ].packed_lighting[ FACE_RIGHT_D ] =
             ( ( right_tfr << CORNER_OFFSET_tfr_D ) | ( right_tbr << CORNER_OFFSET_tbr_D ) |
               ( right_bfr << CORNER_OFFSET_bfr_D ) | ( right_bbr << CORNER_OFFSET_bbr_D ) |
-              ccr << CORNER_OFFSET_c_D );
+              ccr << CORNER_OFFSET_c_D |
+              ravg << CORNER_OFFSET_avg_D );
     } else {
         results[ index ].packed_lighting[ FACE_RIGHT_D ] = block.no_light;
     }
@@ -257,10 +268,12 @@ __global__ void hip_calculate_mesh_kernel( const BlockState *blocks,
         left_bfl = left_bfl > 3 ? 3 : left_bfl;
         left_bbl = left_bbl > 3 ? 3 : left_bbl;
         int ccl = min4_d( left_tfl, left_tbl, left_bfl, left_bbl );
+        int lavg = ( left_tfl + left_tbl + left_bfl + left_bbl ) / 4;
         results[ index ].packed_lighting[ FACE_LEFT_D ] =
             ( ( left_tfl << CORNER_OFFSET_tfl_D ) | ( left_tbl << CORNER_OFFSET_tbl_D ) |
               ( left_bfl << CORNER_OFFSET_bfl_D ) | ( left_bbl << CORNER_OFFSET_bbl_D ) |
-              ccl << CORNER_OFFSET_c_D );
+              ccl << CORNER_OFFSET_c_D |
+              lavg << CORNER_OFFSET_avg_D );
     } else {
         results[ index ].packed_lighting[ FACE_LEFT_D ] = block.no_light;
     }

@@ -158,9 +158,8 @@ void Texture::loadTexture( const TextureSourceData &texture_source, int blur_mag
     glTexParameteri( this->target, GL_TEXTURE_WRAP_T, GL_REPEAT );
 
     // Mipmaps eliminate distant texture aliasing/shimmer on high-frequency
-    // textures (dirt, grass, leaves). GL_LINEAR_MIPMAP_NEAREST keeps the
-    // blocky pixel-art look up close while blending between mip levels at
-    // distance. Anisotropic filtering (when supported) sharpens oblique views.
+    // textures (dirt, grass, leaves). Anisotropic filtering (when supported)
+    // sharpens oblique views without blurring head-on surfaces.
     glGenerateMipmap( this->target );
     glTexParameteri( this->target, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR );
     if ( blur_mag ) {
@@ -176,7 +175,7 @@ void Texture::loadTexture( const TextureSourceData &texture_source, int blur_mag
     if ( RepGame::supportsAnisotropic( ) ) {
         float max_ani;
         glGetFloatv( GL_MAX_TEXTURE_MAX_ANISOTROPY_EXT, &max_ani );
-        glTexParameterf( this->target, GL_TEXTURE_MAX_ANISOTROPY_EXT, max_ani ); // TYhis doesn't work on Linux Mesa driver... it blurs textures
+        glTexParameterf( this->target, GL_TEXTURE_MAX_ANISOTROPY_EXT, max_ani );
     }
 }
 

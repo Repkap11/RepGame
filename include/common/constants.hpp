@@ -181,8 +181,10 @@ static_assert( CHUNK_RADIUS_Z > 0, "CHUNK_RADIUS_Z too small" );
 
 #define CORNER_OFFSET_c 16
 
-#define NO_LIGHT_DRAW 0x7ffff
-#define NO_LIGHT_NO_DRAW 0xfffff
+#define CORNER_OFFSET_avg 21
+
+#define NO_LIGHT_DRAW 0x67ffff
+#define NO_LIGHT_NO_DRAW 0x6fffff
 #define NO_LIGHT_BRIGHT 0
 
 #define MAX_ROTATABLE_BLOCK 100

@@ -28,6 +28,7 @@ uniform sampler2DArray u_SkyTexture;
 
 in vec2 v_TexCoordBlock;
 in float v_corner_lighting;
+flat in float v_center_lighting;
 in float v_planarDot;
 in vec3 v_world_coords;
 
@@ -108,6 +109,14 @@ void main() {
         texColor = mix(texColor, vec4(0.122f, 0.333f, 1.0f, 1.0f), 0.7f);
     }
     float corner_light = v_corner_lighting;
+    // At grazing angles, perspective-correct interpolation of per-corner
+    // lighting creates high-frequency brightness shimmer. Detect this
+    // with fwidth (rate of change across neighboring pixels) and blend
+    // toward the flat average only where the gradient is steep. Head-on
+    // faces have near-zero fwidth and keep smooth corner interpolation.
+    float lightWidth = fwidth(v_corner_lighting);
+    float lightBlend = smoothstep(0.02f, 0.15f, lightWidth);
+    corner_light = mix(corner_light, v_center_lighting, lightBlend);
     vec4 lightedColor = texColor * vec4(corner_light, corner_light, corner_light, u_ExtraAlpha);
 
     vec4 finalColor = lightedColor;
