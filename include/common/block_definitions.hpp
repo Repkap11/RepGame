@@ -360,6 +360,7 @@ typedef struct {
         bool hides_self[ NUM_FACES_IN_CUBE ];
     } calculated;
     bool connects_to_redstone_dust;
+    bool is_redstone_dust;
     BlockID inventory_non_isometric_id;
 
 } Block;

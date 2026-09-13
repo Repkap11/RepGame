@@ -54,6 +54,8 @@ void block_definitions_initilize_definitions( Texture *texture ) {
         block->transmits_redstone_power = false; // dust
         block->needs_place_on_solid_but_can_stack_on_self = false;
         block->can_be_placed_in = false;
+        block->connects_to_redstone_dust = false;
+        block->is_redstone_dust = false;
         block->inventory_non_isometric_id = static_cast<BlockID>( block_id );
     }
 
@@ -192,11 +194,13 @@ void block_definitions_initilize_definitions( Texture *texture ) {
 
     block_definitions[ REDSTONE_LAMP ].affected_by_redstone_power = true;
 
-    block_definitions[ REDSTONE_BLOCK ].initial_redstone_power = 10;
+    block_definitions[ REDSTONE_BLOCK ].initial_redstone_power = 15;
     block_definitions[ REDSTONE_BLOCK ].affected_by_redstone_power = false;
+    block_definitions[ REDSTONE_BLOCK ].connects_to_redstone_dust = true;
 
     block_definitions[ REDSTONE_TORCH ].affected_by_redstone_power = true;
     block_definitions[ REDSTONE_TORCH ].transmits_redstone_power = true;
+    block_definitions[ REDSTONE_TORCH ].connects_to_redstone_dust = true;
 
     BlockID pane_shaped[] = { GLASS_PANE };
     for ( const BlockID id : pane_shaped ) {
@@ -348,6 +352,7 @@ void block_definitions_initilize_definitions( Texture *texture ) {
         block_definitions[ id ].textures[ FACE_BOTTOM ] = AIR;
 
         block_definitions[ id ].connects_to_redstone_dust = true;
+        block_definitions[ id ].is_redstone_dust = true;
         block_definitions[ id ].is_pickable = false;
         block_definitions[ id ].hides_self = { false, false, false };
     }

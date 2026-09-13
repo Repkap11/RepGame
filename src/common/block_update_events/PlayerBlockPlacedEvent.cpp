@@ -52,4 +52,29 @@ void PlayerBlockPlacedEvent::performAction( BlockUpdateQueue &blockUpdateQueue, 
     for ( int k = -1; k < 2; k += 2 ) {
         performActionToNeighbor( blockUpdateQueue, repGameState.world, glm::ivec3( 0, 0, k ) );
     }
+
+    // Also notify extended neighbors for vertical dust connections.
+    // Dust can connect up over solid blocks or down below non-solid blocks.
+    // When a block changes, dust at a different elevation (2 blocks away) may need to update.
+    const glm::ivec3 horiz_offsets[ 4 ] = {
+        glm::ivec3( 1, 0, 0 ),  //
+        glm::ivec3( -1, 0, 0 ), //
+        glm::ivec3( 0, 0, 1 ),  //
+        glm::ivec3( 0, 0, -1 ), //
+    };
+    for ( const glm::ivec3 &horiz : horiz_offsets ) {
+        glm::ivec3 neighbor_pos = this->block_pos + horiz;
+        BlockState neighbor = repGameState.world.get_loaded_block( neighbor_pos );
+        if ( neighbor.id == LAST_BLOCK_ID ) {
+            continue;
+        }
+        const Block *neighbor_block = block_definition_get_definition( neighbor.id );
+        if ( neighbor_block->collides_with_player ) {
+            // Solid neighbor: dust on top might connect via this solid block
+            performActionToNeighbor( blockUpdateQueue, repGameState.world, horiz + glm::ivec3( 0, 1, 0 ) );
+        } else if ( !neighbor_block->is_redstone_dust ) {
+            // Non-solid neighbor: dust below might connect via this air block
+            performActionToNeighbor( blockUpdateQueue, repGameState.world, horiz + glm::ivec3( 0, -1, 0 ) );
+        }
+    }
 }

@@ -933,6 +933,50 @@ void Chunk::calculate_populated_blocks( ) {
                             blockCoord->face[ i ] = block->textures[ i ];
                         }
                         block_adjust_coord_based_on_state( block, &blockState, blockCoord );
+
+                        // Render redstone dust on the sides of dust blocks for vertical connections.
+                        // When dust has air to the side and dust below that air, the dust's side face
+                        // is visible and shows a dust strip on the side of the solid block below.
+                        if ( block->is_redstone_dust ) {
+                            // Use LINE_2 (perpendicular to LINE_1) so the line appears vertical on side faces
+                            BlockID side_texture = blockState.current_redstone_power > 0 ? REDSTONE_LINE_2_POWERED : REDSTONE_LINE_2_UNPOWERED;
+                            const int horiz_dx[ 4 ] = { 1, -1, 0, 0 };
+                            const int horiz_dz[ 4 ] = { 0, 0, 1, -1 };
+                            const int horiz_face[ 4 ] = { FACE_RIGHT, FACE_LEFT, FACE_FRONT, FACE_BACK };
+                            bool has_vertical_connection = false;
+                            for ( int d = 0; d < 4; d++ ) {
+                                int nx = x + horiz_dx[ d ];
+                                int nz = z + horiz_dz[ d ];
+                                BlockState neighbor = this->blocks[ get_index_from_coords( nx, y, nz ) ];
+                                const Block *neighbor_block = block_definition_get_definition( neighbor.display_id );
+                                // Only render side face when neighbor is non-solid and not dust (air)
+                                if ( !neighbor_block->collides_with_player && !neighbor_block->is_redstone_dust ) {
+                                    BlockState below = this->blocks[ get_index_from_coords( nx, y - 1, nz ) ];
+                                    const Block *below_block = block_definition_get_definition( below.display_id );
+                                    if ( below_block->is_redstone_dust ) {
+                                        blockCoord->face[ horiz_face[ d ] ] = side_texture;
+                                        blockCoord->packed_lighting[ horiz_face[ d ] ] = NO_LIGHT_BRIGHT;
+                                        has_vertical_connection = true;
+                                    }
+                                }
+                            }
+                            // Extend the dust block downward to cover the solid block below,
+                            // so the side face is visible as a full-height strip.
+                            // Outset slightly (1 pixel) so the dust face renders in front of
+                            // the solid block's face, preventing z-fighting and ensuring visibility.
+                            // tex_offset is set to keep the texture centered (opposite of centered_border).
+                            if ( has_vertical_connection ) {
+                                blockCoord->scale_y = 1.0f;
+                                blockCoord->offset_y = -15.0f / 16.0f;
+                                blockCoord->scale_x = 18.0f / 16.0f;
+                                blockCoord->offset_x = -1.0f / 16.0f;
+                                blockCoord->scale_z = 18.0f / 16.0f;
+                                blockCoord->offset_z = -1.0f / 16.0f;
+                                blockCoord->tex_offset_x = 1.0f / 16.0f;
+                                blockCoord->tex_offset_z = 1.0f / 16.0f;
+                            }
+                        }
+
                         // They are offset by 1 in the shader...
                         for ( int i = 0; i < NUM_FACES_IN_CUBE; i++ ) {
                             blockCoord->face[ i ] = blockCoord->face[ i ] - 1;

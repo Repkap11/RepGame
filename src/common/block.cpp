@@ -56,7 +56,7 @@ void block_adjust_coord_based_on_state( const Block *block, const BlockState *bl
     //         change_all_textures_to( blockCoord->face, REDSTONE_CROSS_UNPOWERED );
     //     }
     // }
-    if ( blockState->display_id == REDSTONE_TORCH && blockState->current_redstone_power > 0 ) {
+    if ( blockState->display_id == REDSTONE_TORCH && blockState->current_redstone_power == 0 ) {
         change_all_textures_to( blockCoord->face, REDSTONE_TORCH_OFF );
     }
 }

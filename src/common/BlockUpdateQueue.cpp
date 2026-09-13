@@ -18,7 +18,7 @@ void BlockUpdateQueue::processAllBlockUpdates( RepGameState &repGameState, const
         this->pending_events.pop( );
         event_prt->performAction( *this, repGameState );
         num_events++;
-        if ( num_events > 10000 ) {
+        if ( num_events > 100000 ) {
             pr_debug( "Error too many events!!!" );
             exit( 1 );
         }
