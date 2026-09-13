@@ -27,6 +27,7 @@ uniform int u_TintUnderWater;
 uniform float u_ReflectionDotSign;
 uniform int u_DrawToReflection;
 uniform float u_ExtraAlpha;
+#if !defined(REPGAME_LOW_GRAPHICS)
 uniform int u_OpaqueFog;
 uniform int u_AlphaToCoverage;
 
@@ -35,10 +36,13 @@ uniform float u_FogNear;
 uniform float u_FogFar;
 uniform vec3 u_CameraPos;
 uniform vec3 u_SkyAvgColor;
+#endif
 
 in vec2 v_TexCoordBlock;
 in float v_corner_lighting;
+#if !defined(REPGAME_LOW_GRAPHICS)
 flat in float v_center_lighting;
+#endif
 in float v_planarDot;
 in vec3 v_world_coords;
 
@@ -47,8 +51,8 @@ flat in int v_needs_rotate;
 flat in int v_block_auto_rotates;
 
 layout(location = 0) out vec4 color;
-#if !defined(REPGAME_LOW_GRAPHICS)
 layout(location = 1) out vec4 reflection;
+#if !defined(REPGAME_LOW_GRAPHICS)
 layout(location = 2) out vec4 fogFactor;
 layout(location = 3) out vec4 skyColor;
 #endif
@@ -57,11 +61,9 @@ layout(location = 3) out vec4 skyColor;
 // layout( location = 0 ) out vec4 reflection;
 
 void main() {
-#if !defined(REPGAME_LOW_GRAPHICS)
     if(v_planarDot * u_ReflectionDotSign < 0.0f && u_ReflectionHeight != 0.0f) {
         discard;
     }
-#endif
     vec2 working_fract = vec2(fract(v_TexCoordBlock.x), fract(v_TexCoordBlock.y));
     vec2 working_int = vec2(v_TexCoordBlock.x - working_fract.x, v_TexCoordBlock.y - working_fract.y);
     // working_fract = vec2( 1.0 - working_fract.x, working_fract.y );
@@ -107,23 +109,20 @@ void main() {
     // premultiplies and lowers the alpha. Un-premultiply by dividing RGB
     // by alpha to recover the original opaque colour, then snap alpha to
     // 1.0 so surviving pixels render fully opaque (no sky bleed-through).
-    if(u_shouldDiscardAlpha == 1.0f) {
 #if defined(REPGAME_LOW_GRAPHICS)
-        // Low graphics: simple early-out discard at 0.8 to reduce overdraw.
-        // The un-premultiply + 0.1 threshold lets many semi-transparent edge
-        // fragments through to full shading, which is expensive on tile-based
-        // mobile GPUs. The 0.8 threshold discards them early.
-        if(texColor.a < 0.8f) {
-            discard;
-        }
+    // Low graphics: simple early-out discard at 0.8 to reduce overdraw.
+    if(u_shouldDiscardAlpha == 1.0f && texColor.a < 0.8f) {
+        discard;
+    }
 #else
+    if(u_shouldDiscardAlpha == 1.0f) {
         if(texColor.a < 0.1f) {
             discard;
         }
         texColor.rgb /= texColor.a;
         texColor.a = 1.0f;
-#endif
     }
+#endif
     // if ( float( mod_sum ) == u_ShowRotation ) {
     //     texColor.r *= 2.1f;
     // }
@@ -147,14 +146,12 @@ void main() {
     vec4 lightedColor = texColor * vec4(corner_light, corner_light, corner_light, u_ExtraAlpha);
 
     vec4 finalColor = lightedColor;
-#if !defined(REPGAME_LOW_GRAPHICS)
     vec4 finalReflection = lightedColor;
     if(u_DrawToReflection == 1) {
         finalColor.a = 0.0f;
     } else {
         finalReflection.a = 0.0f;
     }
-#endif
 
     // Distance fog: blend terrain color toward fog color AND reduce alpha.
     // The color blend reaches full fog color before the alpha fade starts,
@@ -200,10 +197,10 @@ void main() {
         fogFactor = vec4(0.0f, 0.0f, 0.0f, 0.0f);
     }
 
-    reflection = finalReflection;
     // Chunks are never sky; write black to preserve the sky color attachment
     // (replace blending keeps the sky color written by the sky pass).
     skyColor = vec4(0.0);
 #endif
     color = finalColor;
+    reflection = finalReflection;
 }

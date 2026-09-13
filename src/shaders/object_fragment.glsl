@@ -12,6 +12,7 @@ uniform float u_ReflectionHeight;
 uniform int u_TintUnderWater;
 uniform int u_DrawToReflection;
 uniform float u_ExtraAlpha;
+#if !defined(REPGAME_LOW_GRAPHICS)
 uniform int u_OpaqueFog;
 
 uniform vec3 u_FogColor;
@@ -20,10 +21,11 @@ uniform float u_FogFar;
 uniform vec3 u_CameraPos;
 uniform int u_IsSky;
 uniform vec3 u_SkyAvgColor;
+#endif
 
 layout( location = 0 ) out vec4 color;
-#if !defined(REPGAME_LOW_GRAPHICS)
 layout( location = 1 ) out vec4 reflection;
+#if !defined(REPGAME_LOW_GRAPHICS)
 layout( location = 2 ) out vec4 fogFactor;
 layout( location = 3 ) out vec4 skyColor;
 #endif
@@ -35,11 +37,9 @@ in float v_planarDot;
 in vec4 v_world_coords;
 
 void main( ) {
-#if !defined(REPGAME_LOW_GRAPHICS)
     if ( v_planarDot < 0.0 && u_ReflectionHeight != 0.0 ) {
         discard;
     }
-#endif
     vec4 texColor = texture( u_Texture, vec3( v_tex_coords, v_blockID ) );
     // vec4 texColor = vec4( 1, 0, 0, 1 );
     if ( texColor.a == 0.0 ) {
@@ -51,7 +51,6 @@ void main( ) {
     vec4 lightedColor = texColor * vec4( v_light, v_light, v_light, u_ExtraAlpha );
 
     vec4 finalColor = lightedColor;
-#if !defined(REPGAME_LOW_GRAPHICS)
     vec4 finalReflection = lightedColor;
     if ( u_DrawToReflection == 1 ) {
         finalColor.a *= 0.0f;
@@ -59,6 +58,7 @@ void main( ) {
         finalReflection.a *= 0.0f;
     }
 
+#if !defined(REPGAME_LOW_GRAPHICS)
     // Distance fog for non-sky objects (mobs/avatars).
     // Color reaches full fog color before alpha fade starts.
     // Fog color is sampled from the sky texture at the horizon.
@@ -101,7 +101,7 @@ void main( ) {
     // black (preserved by replace blending so the sky color stays).
     skyColor = (u_IsSky == 1 && u_DrawToReflection == 0) ? vec4(finalColor.rgb, 1.0) : vec4(0.0);
 
-    reflection = finalReflection;
 #endif
     color = finalColor;
+    reflection = finalReflection;
 }
