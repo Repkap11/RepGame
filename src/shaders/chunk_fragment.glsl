@@ -18,6 +18,12 @@ uniform float u_ReflectionDotSign;
 uniform int u_DrawToReflection;
 uniform float u_ExtraAlpha;
 
+uniform vec3 u_FogColor;
+uniform float u_FogNear;
+uniform float u_FogFar;
+uniform vec3 u_CameraPos;
+uniform sampler2DArray u_SkyTexture;
+
 in vec2 v_TexCoordBlock;
 in float v_corner_lighting;
 in float v_planarDot;
@@ -99,6 +105,36 @@ void main() {
     } else {
         finalReflection.a = 0.0f;
     }
+
+    // Distance fog: blend terrain color toward fog color AND reduce alpha.
+    // The color blend reaches full fog color before the alpha fade starts,
+    // so terrain is fully fog-colored before it blends with the sky.
+    // The fog color is sampled from the sky texture at the horizon in the
+    // view direction, so it matches the actual sky color behind the terrain.
+    float dist = distance(v_world_coords, u_CameraPos);
+    float fogLinear = clamp((dist - u_FogNear) / (u_FogFar - u_FogNear), 0.0f, 1.0f);
+    // Color blend: reaches 100% fog color by 50% of the fog range.
+    float colorFog = clamp(fogLinear / 0.5f, 0.0f, 1.0f);
+    colorFog = colorFog * colorFog * (3.0f - 2.0f * colorFog);
+    // Alpha fade: starts at 50% of the fog range, reaches full at the edge.
+    float alphaFog = clamp((fogLinear - 0.5f) / 0.5f, 0.0f, 1.0f);
+    alphaFog = alphaFog * alphaFog * (3.0f - 2.0f * alphaFog);
+
+    // Sample the sky texture at the horizon (V=0.5) in the view direction
+    // to get a fog color that matches the actual sky behind the terrain.
+    vec3 viewDir = normalize(v_world_coords - u_CameraPos);
+    float skyTheta = atan(viewDir.z, viewDir.x);
+    float skyU = fract(skyTheta / 6.28318531f);
+    vec3 dynamicFogColor = texture(u_SkyTexture, vec3(skyU, 0.5f, 0.0f)).rgb;
+
+    if(u_DrawToReflection == 0) {
+        finalColor.rgb = mix(finalColor.rgb, dynamicFogColor, colorFog);
+        finalColor.a *= (1.0f - alphaFog);
+    } else {
+        finalReflection.rgb = mix(finalReflection.rgb, dynamicFogColor, colorFog);
+        finalReflection.a *= (1.0f - alphaFog);
+    }
+
     color = finalColor;
     reflection = finalReflection;
 }

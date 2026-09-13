@@ -13,6 +13,13 @@ uniform int u_TintUnderWater;
 uniform int u_DrawToReflection;
 uniform float u_ExtraAlpha;
 
+uniform vec3 u_FogColor;
+uniform float u_FogNear;
+uniform float u_FogFar;
+uniform vec3 u_CameraPos;
+uniform int u_IsSky;
+uniform sampler2DArray u_SkyTexture;
+
 layout( location = 0 ) out vec4 color;
 layout( location = 1 ) out vec4 reflection;
 
@@ -43,6 +50,30 @@ void main( ) {
     } else {
         finalReflection.a *= 0.0f;
     }
+
+    // Distance fog for non-sky objects (mobs/avatars).
+    // Color reaches full fog color before alpha fade starts.
+    // Fog color is sampled from the sky texture at the horizon.
+    if(u_IsSky == 0) {
+        float dist = distance(v_world_coords.xyz, u_CameraPos);
+        float fogLinear = clamp((dist - u_FogNear) / (u_FogFar - u_FogNear), 0.0, 1.0);
+        float colorFog = clamp(fogLinear / 0.5, 0.0, 1.0);
+        colorFog = colorFog * colorFog * (3.0 - 2.0 * colorFog);
+        float alphaFog = clamp((fogLinear - 0.5) / 0.5, 0.0, 1.0);
+        alphaFog = alphaFog * alphaFog * (3.0 - 2.0 * alphaFog);
+        vec3 viewDir = normalize(v_world_coords.xyz - u_CameraPos);
+        float skyTheta = atan(viewDir.z, viewDir.x);
+        float skyU = fract(skyTheta / 6.28318531);
+        vec3 dynamicFogColor = texture(u_SkyTexture, vec3(skyU, 0.5, 0.0)).rgb;
+        if(u_DrawToReflection == 0) {
+            finalColor.rgb = mix(finalColor.rgb, dynamicFogColor, colorFog);
+            finalColor.a *= (1.0 - alphaFog);
+        } else {
+            finalReflection.rgb = mix(finalReflection.rgb, dynamicFogColor, colorFog);
+            finalReflection.a *= (1.0 - alphaFog);
+        }
+    }
+
     color = finalColor;
     reflection = finalReflection;
 }

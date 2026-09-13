@@ -128,7 +128,7 @@ void World::set_selected_block( const glm::ivec3 &selected, const bool shouldDra
 #define WATER_THRESHOLD_P ( 0.02 )
 #define WATER_THRESHOLD_N ( -0.01 )
 void World::draw( const Texture &blocksTexture, const glm::mat4 &mvp, const glm::mat4 &mvp_reflect, const glm::mat4 &mvp_sky, const glm::mat4 &mvp_sky_reflect, const int debug, const int draw_mouse_selection, const float y_height,
-                  const bool headInWater, WorldDrawQuality worldDrawQuality ) {
+                  const bool headInWater, WorldDrawQuality worldDrawQuality, const glm::vec3 &camera_pos ) {
 
     const bool useFrameBuffer = SUPPORTS_FRAME_BUFFER && ( worldDrawQuality >= WorldDrawQuality::MEDIUM );
     const bool usingReflections = useFrameBuffer && ( worldDrawQuality >= WorldDrawQuality::HIGH );
@@ -159,11 +159,33 @@ void World::draw( const Texture &blocksTexture, const glm::mat4 &mvp, const glm:
         debug_block_scale = 0.0f;
     }
 
+    // Distance fog: blend terrain toward the sky color near the render edge.
+    // Fog reaches full opacity at the render distance edge so chunk pop-in is
+    // hidden, while most of the terrain closer than that stays clear.
+    const float render_distance = static_cast<float>( CHUNK_RADIUS_X * CHUNK_SIZE_X );
+    const float fog_near = render_distance * 0.60f;
+    const float fog_far = render_distance * 0.98f;
+    const glm::vec3 fog_color( 0.50f, 0.70f, 0.95f );
+
+    this->chunkLoader.shader.set_uniform3f( "u_FogColor", fog_color.r, fog_color.g, fog_color.b );
+    this->chunkLoader.shader.set_uniform1f( "u_FogNear", fog_near );
+    this->chunkLoader.shader.set_uniform1f( "u_FogFar", fog_far );
+    this->chunkLoader.shader.set_uniform3f( "u_CameraPos", camera_pos.x, camera_pos.y, camera_pos.z );
+    this->chunkLoader.shader.set_uniform1i_texture( "u_SkyTexture", this->skyBox.get_texture( ) );
+
+    this->object_shader.set_uniform3f( "u_FogColor", fog_color.r, fog_color.g, fog_color.b );
+    this->object_shader.set_uniform1f( "u_FogNear", fog_near );
+    this->object_shader.set_uniform1f( "u_FogFar", fog_far );
+    this->object_shader.set_uniform3f( "u_CameraPos", camera_pos.x, camera_pos.y, camera_pos.z );
+    this->object_shader.set_uniform1i_texture( "u_SkyTexture", this->skyBox.get_texture( ) );
+
     if ( useFrameBuffer ) {
         this->frameBuffer.bind( );
-        // glClearColor( 1.0f, 1.0f, 1.0f, 1.0f );
-        // glClearColor( 0.0f, 0.0f, 0.0f, 0.0f );
-        // glClearDepth
+        // Clear to opaque black (alpha=1) so the FBO alpha is 1.0 before the
+        // sky is drawn. The sky then sets alpha=1.0 everywhere, and the
+        // terrain pass uses glBlendFuncSeparate to preserve that alpha while
+        // blending color — so the FBO always has alpha=1.0 for compositing.
+        glClearColor( 0.0f, 0.0f, 0.0f, 1.0f );
         showErrors( );
         glClear( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT );
         showErrors( );
@@ -183,10 +205,17 @@ void World::draw( const Texture &blocksTexture, const glm::mat4 &mvp, const glm:
     this->object_shader.set_uniform1i( "u_TintUnderWater", object_water_tint_type );
     this->object_shader.set_uniform1f( "u_ExtraAlpha", 1.0f );
     this->object_shader.set_uniform_mat4f( "u_MVP", mvp );
+    this->object_shader.set_uniform1i( "u_IsSky", 0 );
     this->multiplayer_avatars.draw( this->renderer, this->object_shader ); // Mobs
     this->object_shader.set_uniform_mat4f( "u_MVP", mvp_sky );
+    this->object_shader.set_uniform1i( "u_IsSky", 1 );
     this->skyBox.draw( this->renderer, this->object_shader ); // Sky
     glEnable( GL_DEPTH_TEST );
+
+    // Use separate blend function for terrain: blend color normally (so
+    // fogged terrain blends with the sky already in the FBO) but preserve
+    // the destination alpha (so the FBO always has alpha=1.0 for compositing).
+    glBlendFuncSeparate( GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA, GL_ZERO, GL_ONE );
 
     this->chunkLoader.calculate_cull( mvp, false );
     this->chunkLoader.shader.set_uniform1f( "u_ExtraAlpha", 1.0f );
@@ -229,9 +258,11 @@ void World::draw( const Texture &blocksTexture, const glm::mat4 &mvp, const glm:
         this->object_shader.set_uniform1f( "u_ExtraAlpha", 1.0f );
         this->object_shader.set_uniform1i( "u_DrawToReflection", 1 );
         this->object_shader.set_uniform_mat4f( "u_MVP", mvp_reflect );
+        this->object_shader.set_uniform1i( "u_IsSky", 0 );
         this->multiplayer_avatars.draw( this->renderer, this->object_shader ); // Reflected mobs
 
         this->object_shader.set_uniform_mat4f( "u_MVP", mvp_sky_reflect );
+        this->object_shader.set_uniform1i( "u_IsSky", 1 );
         this->skyBox.draw( this->renderer, this->object_shader ); // Reflected sky
 
         this->chunkLoader.shader.set_uniform1f( "u_ReflectionHeight", 0 );
@@ -240,6 +271,9 @@ void World::draw( const Texture &blocksTexture, const glm::mat4 &mvp, const glm:
         glCullFace( GL_BACK );
     }
     glDisable( GL_STENCIL_TEST );
+
+    // Restore normal alpha blending for the compositing pass.
+    glBlendFunc( GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA );
 
     if ( useFrameBuffer ) {
         FrameBuffer::bind_display( );

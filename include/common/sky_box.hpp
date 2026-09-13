@@ -14,4 +14,5 @@ class SkyBox {
     void init( const VertexBufferLayout &vbl_object_vertex, const VertexBufferLayout &vbl_object_position );
     void draw( const Renderer &renderer, Shader &shader );
     void destroy( );
+    const Texture &get_texture( ) const { return this->texture; }
 };
