@@ -108,11 +108,21 @@ void main() {
     // by alpha to recover the original opaque colour, then snap alpha to
     // 1.0 so surviving pixels render fully opaque (no sky bleed-through).
     if(u_shouldDiscardAlpha == 1.0f) {
+#if defined(REPGAME_LOW_GRAPHICS)
+        // Low graphics: simple early-out discard at 0.8 to reduce overdraw.
+        // The un-premultiply + 0.1 threshold lets many semi-transparent edge
+        // fragments through to full shading, which is expensive on tile-based
+        // mobile GPUs. The 0.8 threshold discards them early.
+        if(texColor.a < 0.8f) {
+            discard;
+        }
+#else
         if(texColor.a < 0.1f) {
             discard;
         }
         texColor.rgb /= texColor.a;
         texColor.a = 1.0f;
+#endif
     }
     // if ( float( mod_sum ) == u_ShowRotation ) {
     //     texColor.r *= 2.1f;
