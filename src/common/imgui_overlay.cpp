@@ -71,10 +71,17 @@ void imgui_overlay_draw( ImGuiOverlay *imgui_overlay, Input &input ) {
         if ( false ) {
             ImGui::ShowDemoWindow( &input.inventory_open );
         } else {
+            const char *worldDrawQualityNames[] = { "LOW", "MEDIUM", "HIGH", "X_HIGH" };
+            const char *qualityName = worldDrawQualityNames[ static_cast<int>( input.worldDrawQuality ) ];
 
-            ImGui::Begin( "RepGame" ); // Create a window called "Hello, world!" and append into it.
+            // Black background, 50% transparent; no title bar, not movable/selectable.
+            ImGui::PushStyleColor( ImGuiCol_WindowBg, ImVec4( 0.0f, 0.0f, 0.0f, 0.5f ) );
+            ImGuiWindowFlags windowFlags = ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoBringToFrontOnFocus | ImGuiWindowFlags_NoNav | ImGuiWindowFlags_NoMouseInputs;
+
+            ImGui::Begin( "RepGame", nullptr, windowFlags );
             ImGui::Text( "Application average %.3f ms/frame (%.1f FPS)", 1000.0f / io.Framerate, io.Framerate );
-            ImGui::Text( "Player Pos: %3.2f %3.2f %3.2f",debug_vars.player_pos.x, debug_vars.player_pos.y, debug_vars.player_pos.z );
+            ImGui::Text( "Player Pos: %3.2f %3.2f %3.2f", debug_vars.player_pos.x, debug_vars.player_pos.y, debug_vars.player_pos.z );
+            ImGui::Text( "Render Mode: %s", qualityName );
 
             // debug_vars.corner1.x = round( debug_vars.corner1.x * 20 ) / 20;
             // debug_vars.corner1.y = round( debug_vars.corner1.y * 20 ) / 20;
@@ -89,6 +96,7 @@ void imgui_overlay_draw( ImGuiOverlay *imgui_overlay, Input &input ) {
             // ImGui::Text( "counter = %d", counter );
 
             ImGui::End( );
+            ImGui::PopStyleColor( );
         }
     }
     ImGui::Render( );
