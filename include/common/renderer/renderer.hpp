@@ -11,5 +11,4 @@
 class Renderer {
   public:
     void draw( const VertexArray &vertexArray, const IndexBuffer &indexBuffer, const Shader &shader, unsigned int num_instances ) const;
-    void draw_lines( const VertexArray &vertexArray, const IndexBuffer &indexBuffer, const Shader &shader, unsigned int num_instances ) const;
 };

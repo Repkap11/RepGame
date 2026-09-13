@@ -285,7 +285,7 @@ void World::draw( const Texture &blocksTexture, const glm::mat4 &mvp, const glm:
 
     this->chunkLoader.shader.set_uniform1i( "u_TintUnderWater", 0 );
     if ( draw_mouse_selection ) {
-        this->mouseSelection.draw( this->renderer, this->chunkLoader.shader );
+        this->mouseSelection.draw( this->renderer, mvp );
     }
 
     // Per-attachment blend is already set correctly: color uses normal alpha
@@ -424,6 +424,7 @@ void World::cleanup( MapStorage &map_storage ) {
     this->chunkLoader.cleanup( map_storage );
     this->skyBox.destroy( );
     this->multiplayer_avatars.cleanup( );
+    this->mouseSelection.destroy( );
 
     this->vbl_block.destroy( );
     this->vbl_coords.destroy( );

@@ -4,6 +4,9 @@
 #include "common/block_update_events/BlockNextToChangeEvent.hpp"
 #include "common/block_update_events/BlockNextToChangeEvent.hpp"
 
+MK_SHADER( selection_vertex );
+MK_SHADER( selection_fragment );
+
 #define SELECTION_SIZE_OFFSET ( 0.0003f )
 
 constexpr static CubeFace vd_data_selection[] = {
@@ -75,6 +78,8 @@ void MouseSelection::init( const VertexBufferLayout &vbl_block, const VertexBuff
     blockCoords.tex_offset_x = 0;
     blockCoords.tex_offset_y = 0;
     blockCoords.tex_offset_z = 0;
+
+    this->shader.init( &selection_vertex, &selection_fragment );
 }
 void MouseSelection::set_block( const glm::ivec3 &pos, const bool shouldDraw, const BlockState &blockState ) {
     BlockCoords &blockCoords = this->render_chain_mouse_selection.get_instance( this->entity );
@@ -104,8 +109,13 @@ void MouseSelection::set_block( const glm::ivec3 &pos, const bool shouldDraw, co
         this->render_chain_mouse_selection.invalidate( this->entity );
     }
 }
-void MouseSelection::draw( const Renderer &renderer, const Shader &shader ) {
+void MouseSelection::draw( const Renderer &renderer, const glm::mat4 &mvp ) {
     if ( this->shouldDraw ) {
-        this->render_chain_mouse_selection.draw_lines( renderer, shader );
+        this->shader.set_uniform_mat4f( "u_MVP", mvp );
+        this->shader.set_uniform1f( "u_LineWidth", 3.0f );
+        this->render_chain_mouse_selection.draw( renderer, this->shader );
     }
+}
+void MouseSelection::destroy( ) {
+    this->shader.destroy( );
 }

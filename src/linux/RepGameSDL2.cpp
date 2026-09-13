@@ -136,10 +136,14 @@ int repgame_sdl2_main( const char *world_path, const char *host, const bool conn
     SDL_GL_SetAttribute( SDL_GL_CONTEXT_MINOR_VERSION, 3 );
     // next line as per: http://stackoverflow.com/questions/11961116/opengl-3-x-context-creation-using-sdl2-on-osx-macbook-air-2012
     SDL_GL_SetAttribute( SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_CORE );
-#endif
 
-    // I use glDrawElementsInstanced( GL_LINES, ...) which isn't allowed anymore... but it makes a nice crosshair.
-    // SDL_GL_SetAttribute( SDL_GL_CONTEXT_FLAGS, SDL_GL_CONTEXT_FORWARD_COMPATIBLE_FLAG );
+    // The block selection outline used to use glDrawElementsInstanced( GL_LINES, ...)
+    // with glLineWidth, which is deprecated in OpenGL 3.3+ core profile. It has been
+    // replaced with a screen-space wireframe shader using GL_TRIANGLES, so the
+    // forward-compatible flag can now be enabled to enforce a strict core profile.
+    // Skipped on WASM: WebGL2 (Emscripten) does not support this flag.
+    SDL_GL_SetAttribute( SDL_GL_CONTEXT_FLAGS, SDL_GL_CONTEXT_FORWARD_COMPATIBLE_FLAG );
+#endif
 
     /* Turn on double buffering with a 24bit Z buffer.
      * You may need to change this to 16 or 32 for your system */

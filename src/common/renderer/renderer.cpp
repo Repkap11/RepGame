@@ -9,13 +9,3 @@ void Renderer::draw( const VertexArray &vertexArray, const IndexBuffer &indexBuf
 
     // pr_debug("Drawing a chunk");
 }
-
-void Renderer::draw_lines( const VertexArray &vertexArray, const IndexBuffer &indexBuffer, const Shader &shader, unsigned int num_instances ) const {
-    vertexArray.bind( );
-    indexBuffer.bind( );
-    shader.bind( );
-    glLineWidth( 3 );
-    glDrawElementsInstanced( GL_LINES, indexBuffer.count, GL_UNSIGNED_INT, NULL, num_instances );
-
-    // pr_debug("Drawing a chunk");
-}
