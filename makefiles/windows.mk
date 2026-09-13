@@ -29,10 +29,21 @@ DEPS_WINDOWS := $(patsubst src/%.cpp,out/windows/%.d, $(wildcard src/windows/*.c
 			$(patsubst src/common/%.cpp,out/windows/common/%.d, $(SRC_COMMON))
 
 SHADER_BLOBS_WINDOWS := $(patsubst src/shaders/%.glsl,out/windows/shaders/%.o,$(wildcard src/shaders/*.glsl))
+SHADER_PROCESSED_WINDOWS := $(patsubst src/shaders/%.glsl,out/windows/shaders/%.glsl,$(wildcard src/shaders/*.glsl))
 BITMAP_BLOBS_WINDOWS := $(patsubst bitmaps/%.bmp,out/windows/bitmaps/%.o,$(wildcard bitmaps/*.bmp))
 
-out/windows/shaders/%.o : src/shaders/%.glsl | out/windows
-	$(LD_WINDOWS) -r -b binary $< -o $@
+# Preprocess shaders through the C preprocessor at build time. Blob symbols are
+# renamed to match what MK_BLOB(src_shaders, <name>, glsl) expects.
+out/windows/shaders/%.glsl: src/shaders/%.glsl | out/windows
+	@mkdir -p $(dir $@)
+	$(SHADER_PP) $< -o $@
+
+out/windows/shaders/%.o : out/windows/shaders/%.glsl | out/windows
+	$(LD_WINDOWS) -r -b binary $< -o $@_no_section
+	x86_64-w64-mingw32-objcopy \
+		--redefine-sym _binary_out_windows_shaders_$*_glsl_start=_binary_src_shaders_$*_glsl_start \
+		--redefine-sym _binary_out_windows_shaders_$*_glsl_end=_binary_src_shaders_$*_glsl_end \
+		$@_no_section $@
 
 out/windows/bitmaps/%.o : out/bitmaps/%.bin | out/windows
 	$(LD_WINDOWS) -r -b binary $< -o $@
@@ -96,6 +107,6 @@ windows_build:
 	rm -rf sdl2.tar.gz
 	rm -rf glew.zip
 
-.PRECIOUS: out/windows/$(TARGET).exe $(OBJECTS_WINDOWS) $(OBJECTS_COMMON_WINDOWS) $(SHADER_BLOBS_WINDOWS) $(BITMAP_BLOBS_WINDOWS)
+.PRECIOUS: out/windows/$(TARGET).exe $(OBJECTS_WINDOWS) $(OBJECTS_COMMON_WINDOWS) $(SHADER_BLOBS_WINDOWS) $(SHADER_PROCESSED_WINDOWS) $(BITMAP_BLOBS_WINDOWS)
 
 .PHONY: windows windows-run clean-windows windows-deploy

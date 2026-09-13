@@ -44,7 +44,7 @@ android-shaders: $(ANDROID_SHADERS)
 android-bitmaps: $(ANDROID_BITMAPS)
 
 android/app/src/main/assets/%.glsl: src/shaders/%.glsl | $(ANDROID_DIRS)
-	cp $< $@
+	$(SHADER_PP) -DREPGAME_LOW_GRAPHICS $< -o $@
 
 android/app/src/main/res/raw/%: out/bitmaps/% | $(ANDROID_DIRS)
 	cp $< $@

@@ -1,6 +1,16 @@
 #version 300 es
 #define MAX_ROTATABLE_BLOCK 100u
 #define eps 0.00001f
+// Toggle the fwidth-based lighting blend that fights shimmer at grazing
+// angles. fwidth is a derivative instruction that costs register bandwidth
+// and can lower occupancy on tile-based mobile GPUs. Disabled on LOW
+// graphics platforms (Android/WASM) where other aliasing artifacts dominate
+// and the ~8% fragment cost is not worth it.
+#if !defined(REPGAME_LOW_GRAPHICS)
+#define USE_FWIDTH_LIGHTING 1
+#else
+#define USE_FWIDTH_LIGHTING 0
+#endif
 #define TINT_UNDER_WATER_OBJECT_NEVER 0
 #define TINT_UNDER_WATER_OBJECT_UNDER_Y_LEVEL 1
 #define TINT_UNDER_WATER_OBJECT_ALWAYS 2
@@ -110,6 +120,7 @@ void main() {
         texColor = mix(texColor, vec4(0.122f, 0.333f, 1.0f, 1.0f), 0.7f);
     }
     float corner_light = v_corner_lighting;
+#if USE_FWIDTH_LIGHTING
     // At grazing angles, perspective-correct interpolation of per-corner
     // lighting creates high-frequency brightness shimmer. Detect this
     // with fwidth (rate of change across neighboring pixels) and blend
@@ -118,6 +129,7 @@ void main() {
     float lightWidth = fwidth(v_corner_lighting);
     float lightBlend = smoothstep(0.02f, 0.15f, lightWidth);
     corner_light = mix(corner_light, v_center_lighting, lightBlend);
+#endif
     vec4 lightedColor = texColor * vec4(corner_light, corner_light, corner_light, u_ExtraAlpha);
 
     vec4 finalColor = lightedColor;

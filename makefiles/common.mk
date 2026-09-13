@@ -2,6 +2,14 @@
 
 USE_CCACHE ?= 1
 
+# Shader preprocessor: runs the C preprocessor on GLSL sources at build time.
+# -x assembler-with-cpp passes #version through untouched (it's not a valid C
+# preprocessor directive) while still expanding #define/#if/#ifdef/#endif.
+# -P suppresses line markers for clean GLSL output.
+# -nostdinc prevents system headers from leaking into shader preprocessing.
+# Per-platform makefiles append -D flags (e.g. -DREPGAME_LOW_GRAPHICS).
+SHADER_PP := gcc -E -P -x assembler-with-cpp -nostdinc
+
 SRC_COMMON := $(wildcard src/common/*.cpp) $(wildcard src/common/**/*.cpp) 
 SRC_IMGUI := imgui_build/backends/imgui_impl_sdl2.cpp $(wildcard imgui_build/imgui*.cpp)  imgui_build/backends/imgui_impl_opengl3.cpp
 SRC_ALL_C := $(wildcard src/**/*.cpp) $(wildcard src/**/**/*.cpp) $(wildcard src/**/*.cu) $(wildcard src/**/**/*.cu)

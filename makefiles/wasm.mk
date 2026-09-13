@@ -69,7 +69,7 @@ out/wasm/delivery/%.css: src/wasm/%.css | out/wasm
 	cp $< $@
 
 out/wasm/fs/src/shaders/%.glsl: src/shaders/%.glsl | out/wasm
-	cp $< $@
+	$(SHADER_PP) -DREPGAME_LOW_GRAPHICS $< -o $@
 
 out/wasm/fs/bitmaps/% : out/bitmaps/% | out/wasm
 	cp $< $@

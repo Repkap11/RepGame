@@ -47,11 +47,22 @@ DEPS_LINUX := $(patsubst src/%.cpp,out/linux/release/%.d, $(wildcard src/linux/*
 			$(patsubst src/common/%.cpp,out/linux/release/common/%.d, $(SRC_COMMON))
 
 SHADER_BLOBS_LINUX := $(patsubst src/shaders/%.glsl,out/linux/shaders/%.o,$(wildcard src/shaders/*.glsl))
+SHADER_PROCESSED_LINUX := $(patsubst src/shaders/%.glsl,out/linux/shaders/%.glsl,$(wildcard src/shaders/*.glsl))
 BITMAP_BLOBS_LINUX := $(patsubst bitmaps/%.bmp,out/linux/bitmaps/%.o,$(wildcard bitmaps/*.bmp))
 
-out/linux/shaders/%.o : src/shaders/%.glsl | out/linux
+# Preprocess shaders through the C preprocessor at build time. The preprocessed
+# .glsl file lives in out/linux/shaders/ alongside the .o blob. The blob symbols
+# are renamed to match what MK_BLOB(src_shaders, <name>, glsl) expects.
+out/linux/shaders/%.glsl: src/shaders/%.glsl | out/linux
+	@mkdir -p $(dir $@)
+	$(SHADER_PP) $< -o $@
+
+out/linux/shaders/%.o : out/linux/shaders/%.glsl | out/linux
 	$(LD_LINUX) $(LFLAGS) -r -b binary $< -o $@_no_section
-	objcopy --rename-section .data=.rodata,CONTENTS,ALLOC,LOAD,READONLY,DATA $@_no_section $@
+	objcopy --rename-section .data=.rodata,CONTENTS,ALLOC,LOAD,READONLY,DATA \
+		--redefine-sym _binary_out_linux_shaders_$*_glsl_start=_binary_src_shaders_$*_glsl_start \
+		--redefine-sym _binary_out_linux_shaders_$*_glsl_end=_binary_src_shaders_$*_glsl_end \
+		$@_no_section $@
 
 out/linux/bitmaps/%.o : out/bitmaps/%.bin | out/linux
 	$(LD_LINUX) $(LFLAGS) -r -b binary $< -o $@_no_section
@@ -143,6 +154,6 @@ out/linux: | out
 	mkdir -p $(LINUX_DIRS)
 	touch $@
 
-.PRECIOUS: out/linux/release/$(TARGET) out/linux/debug/$(TARGET) $(OBJECTS_LINUX_DEBUG) $(OBJECTS_LINUX_RELEASE) $(OBJECTS_COMMON_LINUX_RELEASE) $(OBJECTS_COMMON_LINUX_DEBUG) $(SHADER_BLOBS_LINUX) $(BITMAP_BLOBS_LINUX)
+.PRECIOUS: out/linux/release/$(TARGET) out/linux/debug/$(TARGET) $(OBJECTS_LINUX_DEBUG) $(OBJECTS_LINUX_RELEASE) $(OBJECTS_COMMON_LINUX_RELEASE) $(OBJECTS_COMMON_LINUX_DEBUG) $(SHADER_BLOBS_LINUX) $(SHADER_PROCESSED_LINUX) $(BITMAP_BLOBS_LINUX)
 
 .PHONY: linux linux-run clean-linux linux-deploy dev
