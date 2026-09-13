@@ -112,14 +112,29 @@ void main() {
         if(u_DiscardZeroAlpha != 0 && finalColor.a == 0.0) {
             discard;
         }
-        float fogFactor = fogFactorMultisample(multiCoords);
+        // For the main terrain compositing, the fog factor comes from the
+        // dedicated fog texture (water surface distance). For the reflection
+        // compositing, the fog factor is the max of the water surface distance
+        // (from the fog texture) and the reflected geometry's distance (from
+        // the reflection texture's alpha). This accounts for the full light
+        // path (object -> water -> eye) and hides pop-in at the render edge:
+        // if either the water or the reflected chunk is far, the reflection
+        // is fully fogged out.
+        float waterFog = fogFactorMultisample(multiCoords);
+        float reflectedFog = 1.0 - finalColor.a;
+        float fogFactor = (u_DiscardZeroAlpha != 0) ? max(waterFog, reflectedFog) : waterFog;
         vec3 skyColor = reconstructSky(TexCoords);
         vec3 result = mix(finalColor.rgb, skyColor, fogFactor);
         // Main terrain compositing (u_DiscardZeroAlpha==0) outputs alpha=1.0
         // since the FBO already has the complete rendered image. Reflection
         // compositing (u_DiscardZeroAlpha==1) is semi-transparent so the
-        // water/terrain beneath shows through.
-        float outAlpha = (u_DiscardZeroAlpha != 0) ? finalColor.a * u_ExtraAlpha : 1.0;
+        // water/terrain beneath shows through. The reflection's alpha also
+        // decreases with the fog factor, so reflections (including the
+        // reflected sky) fade out entirely as the water surface approaches
+        // the fog edge — without this, the reflected sky would stay visible
+        // at a constant opacity since its RGB is already the sky color and
+        // blending it toward the sky color is a no-op.
+        float outAlpha = (u_DiscardZeroAlpha != 0) ? finalColor.a * u_ExtraAlpha * (1.0 - fogFactor) : 1.0;
         color = vec4(result, outAlpha);
         return;
     }

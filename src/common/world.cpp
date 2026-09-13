@@ -274,24 +274,28 @@ void World::draw( const Texture &blocksTexture, const glm::mat4 &mvp, const glm:
         // Mask out the fog attachment (index 2) during the reflection pass.
         glColorMaski( 2, GL_FALSE, GL_FALSE, GL_FALSE, GL_FALSE );
         float offset = 1.0 - WATER_HEIGHT;
+
+        // Draw the reflected sky FIRST, so reflected terrain blends with the
+        // sky in the reflection texture (matching the normal pass order).
+        // Otherwise distant reflected terrain blends with the black background.
+        this->object_shader.set_uniform1i_texture( "u_Texture", blocksTexture );
+        this->object_shader.set_uniform1f( "u_ReflectionHeight", offset );
+        this->object_shader.set_uniform1f( "u_ExtraAlpha", 1.0f );
+        this->object_shader.set_uniform1i( "u_DrawToReflection", 1 );
+        this->object_shader.set_uniform_mat4f( "u_MVP", mvp_sky_reflect );
+        this->object_shader.set_uniform1i( "u_IsSky", 1 );
+        this->skyBox.draw( this->renderer, this->object_shader ); // Reflected sky
+
+        this->object_shader.set_uniform_mat4f( "u_MVP", mvp_reflect );
+        this->object_shader.set_uniform1i( "u_IsSky", 0 );
+        this->multiplayer_avatars.draw( this->renderer, this->object_shader ); // Reflected mobs
+
         this->chunkLoader.shader.set_uniform1i( "u_DrawToReflection", true );
         this->chunkLoader.shader.set_uniform1f( "u_ExtraAlpha", 1.0f ); // this make reflections not solid...
         this->chunkLoader.shader.set_uniform1f( "u_ReflectionHeight", offset );
         this->chunkLoader.shader.set_uniform1i( "u_TintUnderWater", block_water_tint_type );
         this->chunkLoader.calculate_cull( mvp_reflect, true );
         this->chunkLoader.draw( mvp_reflect, this->renderer, blocksTexture, false, true ); // Reflected blocks
-
-        this->object_shader.set_uniform1i_texture( "u_Texture", blocksTexture );
-        this->object_shader.set_uniform1f( "u_ReflectionHeight", offset );
-        this->object_shader.set_uniform1f( "u_ExtraAlpha", 1.0f );
-        this->object_shader.set_uniform1i( "u_DrawToReflection", 1 );
-        this->object_shader.set_uniform_mat4f( "u_MVP", mvp_reflect );
-        this->object_shader.set_uniform1i( "u_IsSky", 0 );
-        this->multiplayer_avatars.draw( this->renderer, this->object_shader ); // Reflected mobs
-
-        this->object_shader.set_uniform_mat4f( "u_MVP", mvp_sky_reflect );
-        this->object_shader.set_uniform1i( "u_IsSky", 1 );
-        this->skyBox.draw( this->renderer, this->object_shader ); // Reflected sky
 
         this->chunkLoader.shader.set_uniform1f( "u_ReflectionHeight", 0 );
         this->object_shader.set_uniform1f( "u_ReflectionHeight", 0 );

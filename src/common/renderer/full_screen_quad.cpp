@@ -34,6 +34,10 @@ void FullScreenQuad::init( ) {
 void FullScreenQuad::draw_texture( const Renderer &renderer, const Texture &texture, const Texture &depthStencilTexture, float extraAlpha, bool blur, bool ignoreStencil ) {
     this->shader.set_uniform1i_texture( "u_Texture", texture );
     this->shader.set_uniform1i_texture( "u_Stencil", depthStencilTexture );
+    // Bind u_FogTexture to the same multisample texture as u_Texture to avoid
+    // driver validation errors from unbound samplers, even though it's not
+    // sampled in the non-fog-blend path.
+    this->shader.set_uniform1i_texture( "u_FogTexture", texture );
     this->shader.set_uniform1i( "u_IgnoreStencil", ignoreStencil );
     this->shader.set_uniform1f( "u_ExtraAlpha", extraAlpha );
     this->shader.set_uniform1i( "u_TextureSamples", blur ? 1 : this->maxSamples ); // No point sampling more than our max number of samples from our textures.
