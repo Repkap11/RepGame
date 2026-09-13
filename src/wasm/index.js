@@ -36,11 +36,14 @@ window.addEventListener("unhandledrejection", function(e) {
   showError("Promise rejection: " + (e.reason && e.reason.message ? e.reason.message : e.reason));
 });
 
-// Called from C++ when the game exits. Reload the page to restore the
-// starting page (title, download links, icon, click-to-start).
+// Called from C++ when the game exits. Replace the page to restore the
+// startup page (title, download links, icon, click-to-start). Using
+// replace() instead of reload() replaces the current history entry, so
+// no forward button appears after exiting.
 function show_exit_screen() {
   document.exitPointerLock();
-  location.reload();
+  gameRunning = false;
+  location.replace(location.href);
 }
 
 // Track whether the game is running so we only react to pointer lock loss
@@ -64,6 +67,18 @@ document.addEventListener("pointerlockchange", function() {
       // The game wants pointer lock but lost it — this is ESC. Exit the game.
       show_exit_screen();
     }
+  }
+});
+
+// On mobile, the back button should exit the game back to the startup page.
+// Push a history state when the game starts so pressing back fires popstate
+// instead of navigating away from the page.
+window.addEventListener("popstate", function() {
+  if (gameRunning) {
+    // Back button was pressed during the game. Exit the game.
+    // show_exit_screen uses location.replace() which replaces the current
+    // (game) history entry with a fresh page load, clearing forward entries.
+    show_exit_screen();
   }
 });
 
@@ -159,6 +174,9 @@ function setup_click_handler() {
 
       first_time = 0;
       gameRunning = true;
+      // Push a history state so the back button fires popstate (which exits
+      // the game) instead of navigating away from the page.
+      history.pushState({ game: true }, "");
       FS.mkdir("/repgame_wasm");
       FS.mount(IDBFS, {}, "/repgame_wasm");
       FS.syncfs(true, err => {
