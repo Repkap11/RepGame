@@ -104,6 +104,18 @@ JNIEXPORT void JNICALL Java_com_repkap11_repgame_RepGameJNIWrapper_onDrawFrame( 
 
     repgame.clear( );
     repgame.draw( alpha );
+
+    static int fps_frame_count = 0;
+    static long fps_last_report_time = now_ms( );
+    fps_frame_count++;
+    const long fps_now = now_ms( );
+    const long fps_elapsed = fps_now - fps_last_report_time;
+    if ( fps_elapsed >= 1000 ) {
+        const float fps = static_cast<float>( fps_frame_count * 1000 ) / static_cast<float>( fps_elapsed );
+        pr_debug( "FPS: %.1f", fps );
+        fps_frame_count = 0;
+        fps_last_report_time = fps_now;
+    }
 }
 
 #define ANDROID_PAN_SENSITIVITY 1.25f

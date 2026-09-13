@@ -23,8 +23,7 @@ android-run: android
 	JAVA_HOME=${JAVA_HOME_LOC} ./android/gradlew --console=plain -q -p android installDebug
 	adb logcat -c
 	adb shell monkey -p com.repkap11.${TARGET_LOWER} -c android.intent.category.LAUNCHER 1
-	#adb logcat -s ${TARGET}Android -v brief
-	#adb logcat -v brief | grep ${TARGET}
+	adb logcat -s ${TARGET}Android -v brief
 
 deploy: android-deploy
 

@@ -219,11 +219,13 @@ void World::draw( const Texture &blocksTexture, const glm::mat4 &mvp, const glm:
     // Reflection attachment uses replace mode so the fog factor stored in its
     // alpha is written directly without being alpha-blended (which would
     // corrupt it to alphaFog^2).
+#if ( SUPPORTS_FRAME_BUFFER )
     if ( useFrameBuffer ) {
         glBlendFuncSeparatei( 0, GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA, GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA );
         glBlendFuncSeparatei( 1, GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA, GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA );
         glBlendFuncSeparatei( 2, GL_ONE, GL_ZERO, GL_ONE, GL_ZERO );
     }
+#endif
 
     this->object_shader.set_uniform1i( "u_DrawToReflection", 0 );
     this->object_shader.set_uniform1i_texture( "u_Texture", blocksTexture );
@@ -272,7 +274,9 @@ void World::draw( const Texture &blocksTexture, const glm::mat4 &mvp, const glm:
         glClear( GL_DEPTH_BUFFER_BIT );
         // Don't overwrite the fog factors written during the normal pass.
         // Mask out the fog attachment (index 2) during the reflection pass.
+#if ( SUPPORTS_FRAME_BUFFER )
         glColorMaski( 2, GL_FALSE, GL_FALSE, GL_FALSE, GL_FALSE );
+#endif
         float offset = 1.0 - WATER_HEIGHT;
 
         // Draw the reflected sky FIRST, so reflected terrain blends with the
@@ -301,7 +305,9 @@ void World::draw( const Texture &blocksTexture, const glm::mat4 &mvp, const glm:
         this->object_shader.set_uniform1f( "u_ReflectionHeight", 0 );
 
         // Restore fog attachment writing.
+#if ( SUPPORTS_FRAME_BUFFER )
         glColorMaski( 2, GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE );
+#endif
 
         glCullFace( GL_BACK );
     }
