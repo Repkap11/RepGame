@@ -58,7 +58,6 @@ void main( ) {
     } else {
         finalReflection.a *= 0.0f;
     }
-#endif
 
     // Distance fog for non-sky objects (mobs/avatars).
     // Color reaches full fog color before alpha fade starts.
@@ -71,10 +70,6 @@ void main( ) {
         float alphaFog = clamp((fogLinear - 0.5) / 0.5, 0.0, 1.0);
         alphaFog = alphaFog * alphaFog * (3.0 - 2.0 * alphaFog);
         vec3 dynamicFogColor = u_SkyAvgColor;
-#if defined(REPGAME_LOW_GRAPHICS)
-        finalColor.rgb = mix(finalColor.rgb, dynamicFogColor, colorFog);
-        finalColor.a *= (1.0 - alphaFog);
-#else
         if(u_DrawToReflection == 0) {
             // Color blend toward dynamicFogColor over first half, alpha fade
             // over second half. Fullscreen shader then blends toward actual
@@ -92,9 +87,7 @@ void main( ) {
             finalReflection.a *= (1.0 - alphaFog);
             fogFactor = vec4(0.0, 0.0, 0.0, 0.0);
         }
-#endif
     }
-#if !defined(REPGAME_LOW_GRAPHICS)
     else {
         // Sky: fog factor 1.0 (fully "fogged" = fully sky). This ensures
         // MSAA-resolved edge pixels between sky and terrain have a high fog

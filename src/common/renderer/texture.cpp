@@ -160,8 +160,16 @@ void Texture::loadTexture( const TextureSourceData &texture_source, int blur_mag
     // Mipmaps eliminate distant texture aliasing/shimmer on high-frequency
     // textures (dirt, grass, leaves). Anisotropic filtering (when supported)
     // sharpens oblique views without blurring head-on surfaces.
+#if defined( REPGAME_ANDROID ) || defined( REPGAME_WASM )
+    // Low graphics: skip mipmaps. Mipmapped sampling adds derivative
+    // calculations and potentially 2x texture fetches per fragment on
+    // tile-based mobile GPUs, which is a significant cost when rendering
+    // hundreds of chunks. The blocky pixel-art look is acceptable.
+    glTexParameteri( this->target, GL_TEXTURE_MIN_FILTER, GL_NEAREST );
+#else
     glGenerateMipmap( this->target );
     glTexParameteri( this->target, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR );
+#endif
     if ( blur_mag ) {
         glTexParameteri( this->target, GL_TEXTURE_MAG_FILTER, GL_LINEAR );
     } else {

@@ -151,6 +151,7 @@ void main() {
     // so terrain is fully fog-colored before it blends with the sky.
     // The fog color is sampled from the sky texture at the horizon in the
     // view direction, so it matches the actual sky color behind the terrain.
+#if !defined(REPGAME_LOW_GRAPHICS)
     float dist = distance(v_world_coords, u_CameraPos);
     float fogLinear = clamp((dist - u_FogNear) / (u_FogFar - u_FogNear), 0.0f, 1.0f);
     // Color blend: reaches 100% fog color by 50% of the fog range.
@@ -163,12 +164,6 @@ void main() {
     // Use the pre-computed average sky color as the fog color.
     vec3 dynamicFogColor = u_SkyAvgColor;
 
-#if defined(REPGAME_LOW_GRAPHICS)
-    // LOW quality (Android/WASM): no FBO, no reflection pass. Blend terrain
-    // toward the average sky color and fade alpha directly per fragment.
-    finalColor.rgb = mix(finalColor.rgb, dynamicFogColor, colorFog);
-    finalColor.a *= (1.0f - alphaFog);
-#else
     if(u_DrawToReflection == 0) {
         // Color blend: terrain → dynamicFogColor (average sky color) over
         // the first half of the fog range. Alpha fade over the second half.
