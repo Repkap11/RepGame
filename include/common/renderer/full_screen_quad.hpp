@@ -20,6 +20,6 @@ class FullScreenQuad {
   public:
     void init( );
     void draw_texture( const Renderer &renderer, const Texture &texture, const Texture &depthStencilTexture, float extraAlpha, bool blur, bool ignoreStencil );
-    void draw_texture_fog( const Renderer &renderer, const Texture &texture, const Texture &depthStencilTexture, const Texture &fogTexture, const Texture &skyTexture, const glm::mat4 &invMVPSky, float extraAlpha, bool blur, bool ignoreStencil );
+    void draw_texture_fog( const Renderer &renderer, const Texture &texture, const Texture &depthStencilTexture, const Texture &fogTexture, const Texture &skyTexture, const glm::mat4 &invMVPSky, float extraAlpha, bool blur, bool ignoreStencil, int discardZeroAlpha = 0 );
     void destroy( );
 };

@@ -68,6 +68,7 @@ void World::init( const glm::vec3 &camera_pos, int width, int height, MapStorage
     showErrors( );
     this->reflectionTexture.init_empty_color( 0 );
     this->blockTexture.init_empty_color( 0 );
+    this->fogTexture.init_empty_color( 0 );
     this->depthStencilTexture.init_empty_depth_stencil( 0 );
     showErrors( );
 
@@ -75,11 +76,14 @@ void World::init( const glm::vec3 &camera_pos, int width, int height, MapStorage
     showErrors( );
     this->reflectionTexture.change_size( width, height );
     showErrors( );
+    this->fogTexture.change_size( width, height );
+    showErrors( );
     this->depthStencilTexture.change_size( width, height );
     showErrors( );
 
     this->frameBuffer.attach_texture( this->blockTexture, 0 );
     this->frameBuffer.attach_texture( this->reflectionTexture, 1 );
+    this->frameBuffer.attach_texture( this->fogTexture, 2 );
     this->frameBuffer.attach_texture( this->depthStencilTexture, 0 ); // 0 is fake
     showErrors( );
     this->fullScreenQuad.init( );
@@ -101,6 +105,8 @@ void World::change_size( int width, int height ) {
         this->blockTexture.change_size( width, height );
         showErrors( );
         this->reflectionTexture.change_size( width, height );
+        showErrors( );
+        this->fogTexture.change_size( width, height );
         showErrors( );
         this->depthStencilTexture.change_size( width, height );
         showErrors( );
@@ -172,10 +178,9 @@ void World::draw( const Texture &blocksTexture, const glm::mat4 &mvp, const glm:
     this->chunkLoader.shader.set_uniform1f( "u_FogFar", fog_far );
     this->chunkLoader.shader.set_uniform3f( "u_CameraPos", camera_pos.x, camera_pos.y, camera_pos.z );
     this->chunkLoader.shader.set_uniform1i_texture( "u_SkyTexture", this->skyBox.get_texture( ) );
-    // Opaque fog stores the fog factor in alpha for post-process sky blending.
-    // Only enabled when the fullscreen fog compositing pass will actually run
-    // (framebuffer mode, head above water). Otherwise the legacy per-fragment
-    // alpha path is used so terrain stays visible.
+    // Opaque fog stores the fog factor in a dedicated fog texture (attachment 2)
+    // for post-process sky blending. Works in all framebuffer modes since the
+    // fog texture is separate from the reflection texture.
     const bool useFogBlend = useFrameBuffer && !headInWater;
     this->chunkLoader.shader.set_uniform1i( "u_OpaqueFog", useFogBlend ? 1 : 0 );
 
@@ -188,17 +193,20 @@ void World::draw( const Texture &blocksTexture, const glm::mat4 &mvp, const glm:
 
     if ( useFrameBuffer ) {
         this->frameBuffer.bind( );
-        // Clear to opaque black (alpha=1) so the FBO alpha is 1.0 before the
-        // sky is drawn. The sky then sets alpha=1.0 everywhere, and the
-        // terrain pass uses glBlendFuncSeparate to preserve that alpha while
-        // blending color — so the FBO always has alpha=1.0 for compositing.
-        glClearColor( 0.0f, 0.0f, 0.0f, 1.0f );
+        // Clear each attachment separately:
+        // - Color (0): alpha=1 so the FBO is opaque for compositing.
+        // - Reflection (1): alpha=0 so non-water pixels are discarded during
+        //   reflection compositing (only water reflections should show).
+        // - Fog (2): alpha=1 so unwritten pixels show full sky in fog compositing.
+        GLfloat clearColor[ 4 ] = { 0.0f, 0.0f, 0.0f, 1.0f };
+        GLfloat clearReflection[ 4 ] = { 0.0f, 0.0f, 0.0f, 0.0f };
+        glClearBufferfv( GL_COLOR, 0, clearColor );
+        glClearBufferfv( GL_COLOR, 1, clearReflection );
+        glClearBufferfv( GL_COLOR, 2, clearColor );
+        glClearBufferfi( GL_DEPTH_STENCIL, 0, 1.0f, 0 );
         showErrors( );
-        glClear( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT );
-        showErrors( );
-        GLenum bufs[ 2 ] = { GL_COLOR_ATTACHMENT0, GL_COLOR_ATTACHMENT1 };
-        // glDrawBuffers( 1, bufs );
-        glDrawBuffers( 2, bufs );
+        GLenum bufs[ 3 ] = { GL_COLOR_ATTACHMENT0, GL_COLOR_ATTACHMENT1, GL_COLOR_ATTACHMENT2 };
+        glDrawBuffers( 3, bufs );
         showErrors( );
     } else {
         if constexpr ( SUPPORTS_FRAME_BUFFER ) {
@@ -213,7 +221,8 @@ void World::draw( const Texture &blocksTexture, const glm::mat4 &mvp, const glm:
     // corrupt it to alphaFog^2).
     if ( useFrameBuffer ) {
         glBlendFuncSeparatei( 0, GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA, GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA );
-        glBlendFuncSeparatei( 1, GL_ONE, GL_ZERO, GL_ONE, GL_ZERO );
+        glBlendFuncSeparatei( 1, GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA, GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA );
+        glBlendFuncSeparatei( 2, GL_ONE, GL_ZERO, GL_ONE, GL_ZERO );
     }
 
     this->object_shader.set_uniform1i( "u_DrawToReflection", 0 );
@@ -261,6 +270,9 @@ void World::draw( const Texture &blocksTexture, const glm::mat4 &mvp, const glm:
 
         glCullFace( GL_FRONT );
         glClear( GL_DEPTH_BUFFER_BIT );
+        // Don't overwrite the fog factors written during the normal pass.
+        // Mask out the fog attachment (index 2) during the reflection pass.
+        glColorMaski( 2, GL_FALSE, GL_FALSE, GL_FALSE, GL_FALSE );
         float offset = 1.0 - WATER_HEIGHT;
         this->chunkLoader.shader.set_uniform1i( "u_DrawToReflection", true );
         this->chunkLoader.shader.set_uniform1f( "u_ExtraAlpha", 1.0f ); // this make reflections not solid...
@@ -283,6 +295,9 @@ void World::draw( const Texture &blocksTexture, const glm::mat4 &mvp, const glm:
 
         this->chunkLoader.shader.set_uniform1f( "u_ReflectionHeight", 0 );
         this->object_shader.set_uniform1f( "u_ReflectionHeight", 0 );
+
+        // Restore fog attachment writing.
+        glColorMaski( 2, GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE );
 
         glCullFace( GL_BACK );
     }
@@ -318,21 +333,25 @@ void World::draw( const Texture &blocksTexture, const glm::mat4 &mvp, const glm:
             this->fullScreenQuad.draw_texture( this->renderer, this->blockTexture, this->depthStencilTexture, 1.0, true, headInWater );
             glStencilFunc( GL_NOTEQUAL, 1, 0xff ); // If the stencil value isn't 1 allow drawing.
             if ( useFogBlend ) {
-                this->fullScreenQuad.draw_texture_fog( this->renderer, this->blockTexture, this->depthStencilTexture, this->reflectionTexture, skyTexture, invMVPSky, 1.0, false, headInWater );
+                this->fullScreenQuad.draw_texture_fog( this->renderer, this->blockTexture, this->depthStencilTexture, this->fogTexture, skyTexture, invMVPSky, 1.0, false, headInWater );
             } else {
                 this->fullScreenQuad.draw_texture( this->renderer, this->blockTexture, this->depthStencilTexture, 1.0, false, headInWater );
             }
             glDisable( GL_STENCIL_TEST );
         } else {
             if ( useFogBlend ) {
-                this->fullScreenQuad.draw_texture_fog( this->renderer, this->blockTexture, this->depthStencilTexture, this->reflectionTexture, skyTexture, invMVPSky, 1.0, allowBlur, headInWater );
+                this->fullScreenQuad.draw_texture_fog( this->renderer, this->blockTexture, this->depthStencilTexture, this->fogTexture, skyTexture, invMVPSky, 1.0, allowBlur, headInWater );
             } else {
                 this->fullScreenQuad.draw_texture( this->renderer, this->blockTexture, this->depthStencilTexture, 1.0, allowBlur, headInWater );
             }
         }
 
         if ( usingReflections ) {
-            this->fullScreenQuad.draw_texture( this->renderer, this->reflectionTexture, this->depthStencilTexture, y_height < 0 ? 0.1 : 0.2, allowBlur, headInWater );
+            if ( useFogBlend ) {
+                this->fullScreenQuad.draw_texture_fog( this->renderer, this->reflectionTexture, this->depthStencilTexture, this->fogTexture, skyTexture, invMVPSky, y_height < 0 ? 0.1 : 0.2, allowBlur, headInWater, 1 );
+            } else {
+                this->fullScreenQuad.draw_texture( this->renderer, this->reflectionTexture, this->depthStencilTexture, y_height < 0 ? 0.1 : 0.2, allowBlur, headInWater );
+            }
         }
         glEnable( GL_DEPTH_TEST );
     }
@@ -351,6 +370,7 @@ void World::cleanup( MapStorage &map_storage ) {
         this->frameBuffer.destroy( );
         this->blockTexture.destroy( );
         this->reflectionTexture.destroy( );
+        this->fogTexture.destroy( );
         this->depthStencilTexture.destroy( );
         this->fullScreenQuad.destroy( );
     }

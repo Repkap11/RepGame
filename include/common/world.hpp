@@ -24,6 +24,7 @@ class World {
     VertexBufferLayout vbl_object_position;
     Texture reflectionTexture;
     Texture blockTexture;
+    Texture fogTexture;
     Texture depthStencilTexture;
     FrameBuffer frameBuffer;
     FullScreenQuad fullScreenQuad;

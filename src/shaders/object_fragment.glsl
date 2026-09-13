@@ -23,6 +23,7 @@ uniform sampler2DArray u_SkyTexture;
 
 layout( location = 0 ) out vec4 color;
 layout( location = 1 ) out vec4 reflection;
+layout( location = 2 ) out vec4 fogFactor;
 
 in vec2 v_tex_coords;
 in float v_light;
@@ -69,15 +70,19 @@ void main( ) {
         if(u_DrawToReflection == 0) {
             finalColor.rgb = mix(finalColor.rgb, dynamicFogColor, colorFog);
             if(u_OpaqueFog == 1) {
-                finalReflection.a = alphaFog;
+                fogFactor = vec4(0.0, 0.0, 0.0, alphaFog);
                 finalColor.a = 1.0;
             } else {
                 finalColor.a *= (1.0 - alphaFog);
+                fogFactor = vec4(0.0, 0.0, 0.0, 0.0);
             }
         } else {
             finalReflection.rgb = mix(finalReflection.rgb, dynamicFogColor, colorFog);
             finalReflection.a *= (1.0 - alphaFog);
+            fogFactor = vec4(0.0, 0.0, 0.0, 0.0);
         }
+    } else {
+        fogFactor = vec4(0.0, 0.0, 0.0, 0.0);
     }
 
     color = finalColor;

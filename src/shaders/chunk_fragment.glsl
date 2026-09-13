@@ -36,6 +36,7 @@ flat in int v_block_auto_rotates;
 
 layout(location = 0) out vec4 color;
 layout(location = 1) out vec4 reflection;
+layout(location = 2) out vec4 fogFactor;
 
 // layout( location = 1 ) out vec4 color;
 // layout( location = 0 ) out vec4 reflection;
@@ -131,11 +132,11 @@ void main() {
     if(u_DrawToReflection == 0) {
         finalColor.rgb = mix(finalColor.rgb, dynamicFogColor, colorFog);
         if(u_OpaqueFog == 1) {
-            // Store fog factor in reflection alpha (unused during normal pass)
-            // for post-process sky blending. Color alpha stays at 1.0 for
+            // Store fog factor in dedicated fog texture (location 2) for
+            // post-process sky blending. Color alpha stays at 1.0 for
             // opaque terrain (no see-through to caves) and natural alpha for
             // water (blends with terrain behind it).
-            finalReflection.a = alphaFog;
+            fogFactor = vec4(0.0f, 0.0f, 0.0f, alphaFog);
             if(u_shouldDiscardAlpha == 1.0f) {
                 finalColor.a = 1.0f;
             } else {
@@ -144,10 +145,12 @@ void main() {
         } else {
             // LOW quality: per-fragment alpha reduction.
             finalColor.a *= (1.0f - alphaFog);
+            fogFactor = vec4(0.0f, 0.0f, 0.0f, 0.0f);
         }
     } else {
         finalReflection.rgb = mix(finalReflection.rgb, dynamicFogColor, colorFog);
         finalReflection.a *= (1.0f - alphaFog);
+        fogFactor = vec4(0.0f, 0.0f, 0.0f, 0.0f);
     }
 
     color = finalColor;

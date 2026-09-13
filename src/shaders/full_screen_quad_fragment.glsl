@@ -7,6 +7,7 @@ layout(location = 0) out vec4 color;
 uniform float u_ExtraAlpha;
 uniform int u_Blur;
 uniform int u_FogBlend;
+uniform int u_DiscardZeroAlpha;
 uniform sampler2DArray u_SkyTexture;
 uniform sampler2DMS u_FogTexture;
 uniform mat4 u_InvMVPSky;
@@ -106,10 +107,20 @@ void main() {
         // sky using the fog factor stored in the fog texture's alpha channel.
         // The color texture's alpha is used for normal blending (opaque=1,
         // water=natural alpha) and is not the fog factor.
+        // Discard pixels with alpha=0 (e.g. non-water pixels in the reflection
+        // texture) so only valid content is composited.
+        if(u_DiscardZeroAlpha != 0 && finalColor.a == 0.0) {
+            discard;
+        }
         float fogFactor = fogFactorMultisample(multiCoords);
         vec3 skyColor = reconstructSky(TexCoords);
         vec3 result = mix(finalColor.rgb, skyColor, fogFactor);
-        color = vec4(result, 1.0);
+        // Main terrain compositing (u_DiscardZeroAlpha==0) outputs alpha=1.0
+        // since the FBO already has the complete rendered image. Reflection
+        // compositing (u_DiscardZeroAlpha==1) is semi-transparent so the
+        // water/terrain beneath shows through.
+        float outAlpha = (u_DiscardZeroAlpha != 0) ? finalColor.a * u_ExtraAlpha : 1.0;
+        color = vec4(result, outAlpha);
         return;
     }
 
