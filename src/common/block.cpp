@@ -58,6 +58,14 @@ void block_adjust_coord_based_on_state( const Block *block, const BlockState *bl
     //     }
     // }
     if ( blockState->display_id == REDSTONE_TORCH && blockState->current_redstone_power == 0 ) {
-        change_all_textures_to( blockCoord->face, REDSTONE_TORCH_OFF );
+        // Switch side faces to the off texture, but keep the top and bottom
+        // using their dedicated textures.
+        for ( int i = 0; i < NUM_FACES_IN_CUBE; i++ ) {
+            if ( i != FACE_TOP && i != FACE_BOTTOM ) {
+                blockCoord->face[ i ] = REDSTONE_TORCH_OFF;
+            }
+        }
+        blockCoord->face[ FACE_TOP ] = REDSTONE_TORCH_OFF_TOP;
+        blockCoord->face[ FACE_BOTTOM ] = REDSTONE_TORCH_BOTTOM;
     }
 }

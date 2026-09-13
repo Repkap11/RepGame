@@ -224,6 +224,13 @@ void block_definitions_initilize_definitions( Texture *texture ) {
         block_definitions[ id ].breaks_in_liquid = true;
         block_definitions[ id ].is_torch = true;
     }
+    // Assign separate top-face textures for redstone torches so the top
+    // can show a flame dot independent of the side texture.
+    block_definitions[ REDSTONE_TORCH ].textures[ FACE_TOP ] = REDSTONE_TORCH_TOP;
+    block_definitions[ REDSTONE_TORCH_OFF ].textures[ FACE_TOP ] = REDSTONE_TORCH_OFF_TOP;
+    // Bottom face: neutral gray dot, no red tint.
+    block_definitions[ REDSTONE_TORCH ].textures[ FACE_BOTTOM ] = REDSTONE_TORCH_BOTTOM;
+    block_definitions[ REDSTONE_TORCH_OFF ].textures[ FACE_BOTTOM ] = REDSTONE_TORCH_BOTTOM;
     constexpr BlockID flower_shaped[] = { RED_MUSHROOM, BROWN_MUSHROOM, BLUE_FLOWER, TURTLE_EGGS1, TURTLE_EGGS2, EMPTY_POT, POPPY_FLOWER, LARGE_WHITE_FLOWER, BLACK_FLOWER };
     for ( const BlockID id : flower_shaped ) {
         centered_border( id, 4, 11 );
