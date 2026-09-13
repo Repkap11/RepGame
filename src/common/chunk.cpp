@@ -924,17 +924,17 @@ void Chunk::calculate_populated_blocks( ) {
                         blockCoord->mesh_y = size_y;
                         blockCoord->mesh_z = size_z;
                         blockCoord->face_shift = blockState.rotation;
-                        blockCoord->scale_x = PIXEL_TO_FLOAT( block->scale.x );
-                        blockCoord->scale_y = PIXEL_TO_FLOAT( block->scale.y );
-                        blockCoord->scale_z = PIXEL_TO_FLOAT( block->scale.z );
+                        blockCoord->scale_x = block->scale.x;
+                        blockCoord->scale_y = block->scale.y;
+                        blockCoord->scale_z = block->scale.z;
 
-                        blockCoord->offset_x = PIXEL_TO_FLOAT( block->offset.x );
-                        blockCoord->offset_y = PIXEL_TO_FLOAT( block->offset.y );
-                        blockCoord->offset_z = PIXEL_TO_FLOAT( block->offset.z );
+                        blockCoord->offset_x = block->offset.x;
+                        blockCoord->offset_y = block->offset.y;
+                        blockCoord->offset_z = block->offset.z;
 
-                        blockCoord->tex_offset_x = PIXEL_TO_FLOAT( block->tex_offset.x );
-                        blockCoord->tex_offset_y = PIXEL_TO_FLOAT( block->tex_offset.y );
-                        blockCoord->tex_offset_z = PIXEL_TO_FLOAT( block->tex_offset.z );
+                        blockCoord->tex_offset_x = block->tex_offset.x;
+                        blockCoord->tex_offset_y = block->tex_offset.y;
+                        blockCoord->tex_offset_z = block->tex_offset.z;
 
                         for ( int i = 0; i < NUM_FACES_IN_CUBE; i++ ) {
                             blockCoord->packed_lighting[ i ] = workingSpace[ index ].packed_lighting[ i ];
@@ -974,14 +974,14 @@ void Chunk::calculate_populated_blocks( ) {
                             // the solid block's face, preventing z-fighting and ensuring visibility.
                             // tex_offset is set to keep the texture centered (opposite of centered_border).
                             if ( has_vertical_connection ) {
-                                blockCoord->scale_y = 1.0f;
-                                blockCoord->offset_y = -15.0f / 16.0f;
-                                blockCoord->scale_x = 18.0f / 16.0f;
-                                blockCoord->offset_x = -1.0f / 16.0f;
-                                blockCoord->scale_z = 18.0f / 16.0f;
-                                blockCoord->offset_z = -1.0f / 16.0f;
-                                blockCoord->tex_offset_x = 1.0f / 16.0f;
-                                blockCoord->tex_offset_z = 1.0f / 16.0f;
+                                blockCoord->scale_y = 16;
+                                blockCoord->offset_y = -15;
+                                blockCoord->scale_x = 18;
+                                blockCoord->offset_x = -1;
+                                blockCoord->scale_z = 18;
+                                blockCoord->offset_z = -1;
+                                blockCoord->tex_offset_x = 1;
+                                blockCoord->tex_offset_z = 1;
                             }
                         }
 
@@ -994,16 +994,16 @@ void Chunk::calculate_populated_blocks( ) {
                             // or 14 (=16-2) on the opposite side
                             if ( blockState.rotation == 4 ) {
                                 // Attached LEFT: push to left wall
-                                blockCoord->offset_x = 0.0f;
+                                blockCoord->offset_x = 0;
                             } else if ( blockState.rotation == 5 ) {
                                 // Attached FRONT: push to back (towards wall at z+1)
-                                blockCoord->offset_z = 14.0f / 16.0f;
+                                blockCoord->offset_z = 14;
                             } else if ( blockState.rotation == 6 ) {
                                 // Attached RIGHT: push to right wall
-                                blockCoord->offset_x = 14.0f / 16.0f;
+                                blockCoord->offset_x = 14;
                             } else if ( blockState.rotation == 7 ) {
                                 // Attached BACK: push to front (towards wall at z-1)
-                                blockCoord->offset_z = 0.0f;
+                                blockCoord->offset_z = 0;
                             }
                         }
 

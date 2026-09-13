@@ -117,5 +117,19 @@ void VertexBufferLayout::push_unsigned_bytes( unsigned int count ) {
     }
 }
 
+void VertexBufferLayout::push_signed_byte( unsigned int count ) {
+    if ( this->current_size < NUM_VERTEX_BUFFER_ELEMENTS ) {
+        VertexBufferLayout::init_element(         //
+            this->elements[ this->current_size ], //
+            GL_BYTE,                              //
+            count,                                //
+            GL_FALSE );
+        this->current_size += 1;
+        this->stride += count * VertexBufferLayout::size_of_type( GL_BYTE );
+    } else {
+        pr_debug( "Error, too meny elements in VertexBufferLayout, just increase the hardcoded limit" );
+    }
+}
+
 void VertexBufferLayout::destroy( ) {
 }

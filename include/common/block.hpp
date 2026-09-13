@@ -158,17 +158,21 @@ typedef struct {
     unsigned int packed_lighting[ NUM_FACES_IN_CUBE ];
     unsigned int face_shift;
 
-    float scale_x;
-    float scale_y;
-    float scale_z;
+    // Pixel values (0-16 range, offset can be slightly negative for outsets).
+    // Uploaded as signed bytes; the shader divides by 16.0 to get floats.
+    signed char scale_x;
+    signed char scale_y;
+    signed char scale_z;
 
-    float offset_x;
-    float offset_y;
-    float offset_z;
+    signed char offset_x;
+    signed char offset_y;
+    signed char offset_z;
 
-    float tex_offset_x;
-    float tex_offset_y;
-    float tex_offset_z;
+    signed char tex_offset_x;
+    signed char tex_offset_y;
+    signed char tex_offset_z;
+
+    signed char pad[ 3 ]; // Align struct to 4 bytes (stride = 68)
 
 } BlockCoords;
 

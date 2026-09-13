@@ -28,6 +28,7 @@ class VertexBufferLayout {
     void push_unsigned_int( unsigned int count );
     void push_int( unsigned int count );
     void push_unsigned_bytes( unsigned int count );
+    void push_signed_byte( unsigned int count );
     void push_float_array( unsigned int count );
     void push_byte( unsigned int count );
 

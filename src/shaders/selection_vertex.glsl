@@ -16,9 +16,9 @@ layout( location = 6 ) in uvec3 blockTexture;
 layout( location = 7 ) in uvec3 packed_lighting_1;
 layout( location = 8 ) in uvec3 packed_lighting_2;
 layout( location = 9 ) in uint rotation;
-layout( location = 10 ) in vec3 blockCoords_scale;
-layout( location = 11 ) in vec3 blockCoords_offset;
-layout( location = 12 ) in vec3 texCoords_offset;
+layout( location = 10 ) in ivec3 blockCoords_scale;
+layout( location = 11 ) in ivec3 blockCoords_offset;
+layout( location = 12 ) in ivec3 texCoords_offset;
 
 // Raw (pre-transform) position passed to the fragment shader so it can
 // compute screen-space distance to the cube edges (at -s and 1+s).
@@ -36,23 +36,26 @@ void main( ) {
 
     vec3 adjusted_position = meshed_position;
 
-    vec3 blockCoords_scale_adjust = blockCoords_scale;
-    vec3 blockCoords_offset_adjust = blockCoords_offset;
+    vec3 blockCoords_scale_f = vec3( blockCoords_scale ) / 16.0f;
+    vec3 blockCoords_offset_f = vec3( blockCoords_offset ) / 16.0f;
+
+    vec3 blockCoords_scale_adjust = blockCoords_scale_f;
+    vec3 blockCoords_offset_adjust = blockCoords_offset_f;
 
     if ( rotation == BLOCK_ROTATE_0 ) {
-        blockCoords_scale_adjust.xz = blockCoords_scale.xz;
+        blockCoords_scale_adjust.xz = blockCoords_scale_f.xz;
     } else if ( rotation == BLOCK_ROTATE_90 ) {
-        blockCoords_scale_adjust.xz = blockCoords_scale.zx;
-        blockCoords_offset_adjust.x = 1.0f - blockCoords_scale.z - blockCoords_offset.z;
-        blockCoords_offset_adjust.z = blockCoords_offset.x;
+        blockCoords_scale_adjust.xz = blockCoords_scale_f.zx;
+        blockCoords_offset_adjust.x = 1.0f - blockCoords_scale_f.z - blockCoords_offset_f.z;
+        blockCoords_offset_adjust.z = blockCoords_offset_f.x;
     } else if ( rotation == BLOCK_ROTATE_180 ) {
-        blockCoords_scale_adjust.xz = blockCoords_scale.xz;
-        blockCoords_offset_adjust.x = 1.0f - blockCoords_scale.x - blockCoords_offset.x;
-        blockCoords_offset_adjust.z = 1.0f - blockCoords_scale.z - blockCoords_offset.z;
+        blockCoords_scale_adjust.xz = blockCoords_scale_f.xz;
+        blockCoords_offset_adjust.x = 1.0f - blockCoords_scale_f.x - blockCoords_offset_f.x;
+        blockCoords_offset_adjust.z = 1.0f - blockCoords_scale_f.z - blockCoords_offset_f.z;
     } else if ( rotation == BLOCK_ROTATE_270 ) {
-        blockCoords_scale_adjust.xz = blockCoords_scale.zx;
-        blockCoords_offset_adjust.x = blockCoords_offset.z;
-        blockCoords_offset_adjust.z = 1.0f - blockCoords_scale.x - blockCoords_offset.x;
+        blockCoords_scale_adjust.xz = blockCoords_scale_f.zx;
+        blockCoords_offset_adjust.x = blockCoords_offset_f.z;
+        blockCoords_offset_adjust.z = 1.0f - blockCoords_scale_f.x - blockCoords_offset_f.x;
     }
 
     adjusted_position.x *= blockCoords_scale_adjust.x;

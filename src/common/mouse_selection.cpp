@@ -67,9 +67,9 @@ void MouseSelection::init( const VertexBufferLayout &vbl_block, const VertexBuff
     blockCoords.mesh_z = 1;
     this->shouldDraw = 0;
 
-    blockCoords.scale_x = 1;
-    blockCoords.scale_y = 1;
-    blockCoords.scale_z = 1;
+    blockCoords.scale_x = 16;
+    blockCoords.scale_y = 16;
+    blockCoords.scale_z = 16;
 
     blockCoords.offset_x = 0;
     blockCoords.offset_y = 0;
@@ -96,24 +96,24 @@ void MouseSelection::set_block( const glm::ivec3 &pos, const bool shouldDraw, co
         blockCoords.z = pos.z;
         this->selected_block_state = blockState;
 
-        blockCoords.scale_x = PIXEL_TO_FLOAT( block->scale.x );
-        blockCoords.scale_y = PIXEL_TO_FLOAT( block->scale.y );
-        blockCoords.scale_z = PIXEL_TO_FLOAT( block->scale.z );
+        blockCoords.scale_x = block->scale.x;
+        blockCoords.scale_y = block->scale.y;
+        blockCoords.scale_z = block->scale.z;
 
-        blockCoords.offset_x = PIXEL_TO_FLOAT( block->offset.x );
-        blockCoords.offset_y = PIXEL_TO_FLOAT( block->offset.y );
-        blockCoords.offset_z = PIXEL_TO_FLOAT( block->offset.z );
+        blockCoords.offset_x = block->offset.x;
+        blockCoords.offset_y = block->offset.y;
+        blockCoords.offset_z = block->offset.z;
 
         // Offset selection box for side-mounted torches
         if ( block->is_torch && blockState.rotation >= 4 ) {
             if ( blockState.rotation == 4 ) {
-                blockCoords.offset_x = 0.0f;
+                blockCoords.offset_x = 0;
             } else if ( blockState.rotation == 5 ) {
-                blockCoords.offset_z = PIXEL_TO_FLOAT( 16 - block->scale.z );
+                blockCoords.offset_z = 16 - block->scale.z;
             } else if ( blockState.rotation == 6 ) {
-                blockCoords.offset_x = PIXEL_TO_FLOAT( 16 - block->scale.x );
+                blockCoords.offset_x = 16 - block->scale.x;
             } else if ( blockState.rotation == 7 ) {
-                blockCoords.offset_z = 0.0f;
+                blockCoords.offset_z = 0;
             }
         }
 

@@ -36,9 +36,10 @@ void World::init( const glm::vec3 &camera_pos, int width, int height, MapStorage
     this->vbl_coords.push_unsigned_int( 3 ); // packed lighting
     this->vbl_coords.push_unsigned_int( 3 ); // packed lightingMOB_ROTATION
     this->vbl_coords.push_unsigned_int( 1 ); // face_shift for face rotation
-    this->vbl_coords.push_float( 3 );        // block shape scale
-    this->vbl_coords.push_float( 3 );        // block shape offset
-    this->vbl_coords.push_float( 3 );        // texture shape offset
+    this->vbl_coords.push_signed_byte( 3 );  // block shape scale (pixels)
+    this->vbl_coords.push_signed_byte( 3 );  // block shape offset (pixels)
+    this->vbl_coords.push_signed_byte( 3 );  // texture shape offset (pixels)
+    this->vbl_coords.push_byte( 3 );         // padding to 4-byte stride
 
     // These are from ParticleVertex
     this->vbl_object_vertex.push_float( 3 );        // Coords
