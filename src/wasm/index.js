@@ -37,9 +37,9 @@ window.addEventListener("unhandledrejection", function(e) {
 });
 
 // Called from C++ when the game exits. Replace the page to restore the
-// startup page (title, download links, icon, click-to-start). Using
-// replace() instead of reload() replaces the current history entry, so
-// no forward button appears after exiting.
+// startup page (title, download links, click-to-start). Using replace()
+// instead of reload() replaces the current history entry, so no forward
+// button appears after exiting.
 function show_exit_screen() {
   document.exitPointerLock();
   gameRunning = false;
@@ -114,66 +114,27 @@ function set_canvas_size() {
 
 function onModuleReady() {
   console.log("Module ready");
+  Module.canvas = document.getElementById("canvas");
   setup_click_handler();
-  draw_mark();
-  canvas.focus();
   window.onresize = set_canvas_size;
-}
-
-function reset_canvas() {
-  var canvas_holder = document.getElementById("canvas_holder");
-  while (canvas_holder.firstChild) {
-    canvas_holder.removeChild(canvas_holder.firstChild);
-  }
-  var canvas = document.createElement("canvas");
-  canvas.id = "canvas";
-  canvas.addEventListener(
-    "contextmenu",
-    function(event) {
-      event.preventDefault();
-    },
-    false
-  );
-  canvas_holder.appendChild(canvas);
-  set_canvas_size();
-  Module.canvas = canvas;
-}
-
-function draw_mark() {
-  // Print out some pretty text on the canvas
-  var intro = document.getElementById("canvas");
-  intro.width = window.innerWidth;
-  intro.height = window.innerHeight;
-
-  var ctx = intro.getContext("2d");
-  var img = new Image();
-  img.onload = function() {
-    var size = 400;
-    ctx.drawImage(img, intro.width / 2 - size / 2, intro.height / 2 - size / 2, size, size);
-  };
-  img.src = "icon.png";
 }
 
 function setup_click_handler() {
   var first_time = 1;
   var canvas = document.getElementById("canvas");
+  var playButton = document.getElementById("play_button");
 
   function callback(event) {
     console.log("Got a press");
-    if (first_time) {
-      reset_canvas();
-    }
-    var canvas = document.getElementById("canvas");
-
-    // var hasPointerLock = document.pointerLockElement === canvas;
-    // if (!hasPointerLock) {
     canvas.requestPointerLock();
-    // }
     if (first_time) {
       document.addEventListener("keydown", callback);
 
       first_time = 0;
       gameRunning = true;
+      // Hide the startup screen so the game canvas is visible.
+      document.getElementById("startup").classList.add("hidden");
+      document.getElementById("download").classList.add("hidden");
       // Push a history state so the back button fires popstate (which exits
       // the game) instead of navigating away from the page.
       history.pushState({ game: true }, "");
@@ -185,9 +146,9 @@ function setup_click_handler() {
       });
     }
   }
-  // Click works on both desktop and mobile. A user gesture is required to
-  // request pointer lock, so the game can't start automatically.
-  document.addEventListener("click", callback);
+  // A user gesture is required to request pointer lock, so the game can't
+  // start automatically. Listen on the button so download links still work.
+  playButton.addEventListener("click", callback);
 }
 
 // Webkit/Blink will fire this on load, but Gecko doesn't.

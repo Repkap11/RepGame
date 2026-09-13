@@ -1,20 +1,100 @@
-#title {
+body {
+    background: #1a1a2e;
+    color: #e0e0e0;
+}
+
+#canvas_holder {
+    position: relative;
+    width: 100vw;
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+}
+
+/* On mobile, 100vh includes the area behind the address bar, which shifts
+   the centered content down. Use 100dvh (dynamic viewport height) which
+   accounts for the address bar. */
+@supports (height: 100dvh) {
+    #canvas_holder {
+        height: 100dvh;
+    }
+}
+
+#startup {
     position: absolute;
     top: 0;
-    margin-left: auto;
-    margin-right: auto;
     left: 0;
     right: 0;
-    text-align: center;
-    padding: 40px;
-    font-family: Arial, Helvetica, sans-serif;
-    font-size: 400%
+    bottom: 0;
+    z-index: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+}
+
+#startup.hidden {
+    display: none;
+}
+
+#play_button {
+    font-family: 'Segoe UI', Arial, Helvetica, sans-serif;
+    font-size: 5vmin;
+    font-weight: 600;
+    color: #ffffff;
+    background: #16213e;
+    border: 2px solid #6a9fd9;
+    border-radius: 12px;
+    padding: 2vh 4vw;
+    cursor: pointer;
+    text-shadow: 0 0 20px rgba(100, 150, 255, 0.5);
+    transition: background 0.2s, border-color 0.2s;
+}
+
+#play_button:hover {
+    background: #1a2745;
+    border-color: #8ab4f0;
+}
+
+#canvas {
+    display: block;
+    position: absolute;
+    top: 0;
+    left: 0;
+    z-index: 0;
 }
 
 #download {
-    position: absolute;
+    position: fixed;
     bottom: 0;
-    padding: 40px;
-    font-family: Arial, Helvetica, sans-serif;
-    font-size: 200%
+    left: 0;
+    right: 0;
+    z-index: 1;
+    text-align: center;
+    padding: 2vh 2vw;
+    font-family: 'Segoe UI', Arial, Helvetica, sans-serif;
+    font-size: 2.5vmin;
+    color: #c0c0d0;
+}
+
+/* Use a larger font on touch/mobile devices */
+@media (pointer: coarse) {
+    #download {
+        font-size: 4vmin;
+    }
+}
+
+#download.hidden {
+    display: none;
+}
+
+#download a {
+    color: #6a9fd9;
+    text-decoration: none;
+}
+
+#download a:hover {
+    text-decoration: underline;
 }
