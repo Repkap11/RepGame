@@ -12,6 +12,7 @@ uniform float u_ReflectionHeight;
 uniform int u_TintUnderWater;
 uniform int u_DrawToReflection;
 uniform float u_ExtraAlpha;
+uniform int u_OpaqueFog;
 
 uniform vec3 u_FogColor;
 uniform float u_FogNear;
@@ -67,7 +68,12 @@ void main( ) {
         vec3 dynamicFogColor = texture(u_SkyTexture, vec3(skyU, 0.5, 0.0)).rgb;
         if(u_DrawToReflection == 0) {
             finalColor.rgb = mix(finalColor.rgb, dynamicFogColor, colorFog);
-            finalColor.a *= (1.0 - alphaFog);
+            if(u_OpaqueFog == 1) {
+                finalReflection.a = alphaFog;
+                finalColor.a = 1.0;
+            } else {
+                finalColor.a *= (1.0 - alphaFog);
+            }
         } else {
             finalReflection.rgb = mix(finalReflection.rgb, dynamicFogColor, colorFog);
             finalReflection.a *= (1.0 - alphaFog);

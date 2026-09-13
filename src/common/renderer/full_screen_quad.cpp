@@ -38,6 +38,21 @@ void FullScreenQuad::draw_texture( const Renderer &renderer, const Texture &text
     this->shader.set_uniform1f( "u_ExtraAlpha", extraAlpha );
     this->shader.set_uniform1i( "u_TextureSamples", blur ? 1 : this->maxSamples ); // No point sampling more than our max number of samples from our textures.
     this->shader.set_uniform1i( "u_Blur", blur );
+    this->shader.set_uniform1i( "u_FogBlend", 0 );
+    this->render_link_fsq.draw( renderer, this->shader );
+}
+
+void FullScreenQuad::draw_texture_fog( const Renderer &renderer, const Texture &texture, const Texture &depthStencilTexture, const Texture &fogTexture, const Texture &skyTexture, const glm::mat4 &invMVPSky, float extraAlpha, bool blur, bool ignoreStencil ) {
+    this->shader.set_uniform1i_texture( "u_Texture", texture );
+    this->shader.set_uniform1i_texture( "u_Stencil", depthStencilTexture );
+    this->shader.set_uniform1i_texture( "u_FogTexture", fogTexture );
+    this->shader.set_uniform1i_texture( "u_SkyTexture", skyTexture );
+    this->shader.set_uniform1i( "u_IgnoreStencil", ignoreStencil );
+    this->shader.set_uniform1f( "u_ExtraAlpha", extraAlpha );
+    this->shader.set_uniform1i( "u_TextureSamples", blur ? 1 : this->maxSamples );
+    this->shader.set_uniform1i( "u_Blur", blur );
+    this->shader.set_uniform1i( "u_FogBlend", 1 );
+    this->shader.set_uniform_mat4f( "u_InvMVPSky", invMVPSky );
     this->render_link_fsq.draw( renderer, this->shader );
 }
 

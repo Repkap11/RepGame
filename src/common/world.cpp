@@ -172,12 +172,19 @@ void World::draw( const Texture &blocksTexture, const glm::mat4 &mvp, const glm:
     this->chunkLoader.shader.set_uniform1f( "u_FogFar", fog_far );
     this->chunkLoader.shader.set_uniform3f( "u_CameraPos", camera_pos.x, camera_pos.y, camera_pos.z );
     this->chunkLoader.shader.set_uniform1i_texture( "u_SkyTexture", this->skyBox.get_texture( ) );
+    // Opaque fog stores the fog factor in alpha for post-process sky blending.
+    // Only enabled when the fullscreen fog compositing pass will actually run
+    // (framebuffer mode, head above water). Otherwise the legacy per-fragment
+    // alpha path is used so terrain stays visible.
+    const bool useFogBlend = useFrameBuffer && !headInWater;
+    this->chunkLoader.shader.set_uniform1i( "u_OpaqueFog", useFogBlend ? 1 : 0 );
 
     this->object_shader.set_uniform3f( "u_FogColor", fog_color.r, fog_color.g, fog_color.b );
     this->object_shader.set_uniform1f( "u_FogNear", fog_near );
     this->object_shader.set_uniform1f( "u_FogFar", fog_far );
     this->object_shader.set_uniform3f( "u_CameraPos", camera_pos.x, camera_pos.y, camera_pos.z );
     this->object_shader.set_uniform1i_texture( "u_SkyTexture", this->skyBox.get_texture( ) );
+    this->object_shader.set_uniform1i( "u_OpaqueFog", useFogBlend ? 1 : 0 );
 
     if ( useFrameBuffer ) {
         this->frameBuffer.bind( );
@@ -199,6 +206,16 @@ void World::draw( const Texture &blocksTexture, const glm::mat4 &mvp, const glm:
         }
     }
 
+    // Per-attachment blend control: color attachment uses normal alpha blending
+    // (opaque terrain overwrites sky, water blends with terrain behind it).
+    // Reflection attachment uses replace mode so the fog factor stored in its
+    // alpha is written directly without being alpha-blended (which would
+    // corrupt it to alphaFog^2).
+    if ( useFrameBuffer ) {
+        glBlendFuncSeparatei( 0, GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA, GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA );
+        glBlendFuncSeparatei( 1, GL_ONE, GL_ZERO, GL_ONE, GL_ZERO );
+    }
+
     this->object_shader.set_uniform1i( "u_DrawToReflection", 0 );
     this->object_shader.set_uniform1i_texture( "u_Texture", blocksTexture );
     this->object_shader.set_uniform1f( "u_ReflectionHeight", 0 );
@@ -211,11 +228,6 @@ void World::draw( const Texture &blocksTexture, const glm::mat4 &mvp, const glm:
     this->object_shader.set_uniform1i( "u_IsSky", 1 );
     this->skyBox.draw( this->renderer, this->object_shader ); // Sky
     glEnable( GL_DEPTH_TEST );
-
-    // Use separate blend function for terrain: blend color normally (so
-    // fogged terrain blends with the sky already in the FBO) but preserve
-    // the destination alpha (so the FBO always has alpha=1.0 for compositing).
-    glBlendFuncSeparate( GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA, GL_ZERO, GL_ONE );
 
     this->chunkLoader.calculate_cull( mvp, false );
     this->chunkLoader.shader.set_uniform1f( "u_ExtraAlpha", 1.0f );
@@ -232,6 +244,10 @@ void World::draw( const Texture &blocksTexture, const glm::mat4 &mvp, const glm:
     if ( draw_mouse_selection ) {
         this->mouseSelection.draw( this->renderer, this->chunkLoader.shader );
     }
+
+    // Per-attachment blend is already set correctly: color uses normal alpha
+    // blending (water blends with terrain behind it), reflection uses replace
+    // (fog factor written directly). No need to restore here.
 
     glEnable( GL_STENCIL_TEST );
     glStencilFunc( GL_ALWAYS, 1, 0xff );
@@ -281,6 +297,12 @@ void World::draw( const Texture &blocksTexture, const glm::mat4 &mvp, const glm:
         glDisable( GL_DEPTH_TEST );
         glClear( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT );
 
+        // Fog compositing blends the opaque terrain (with fog factor in the
+        // reflection texture alpha) with the actual sky in post-processing.
+        // Disabled when head is in water (stencil can't separate water).
+        const glm::mat4 invMVPSky = glm::inverse( mvp_sky );
+        const Texture &skyTexture = this->skyBox.get_texture( );
+
         if ( allowBlur && !headInWater ) {
             // glStencilFunc -> pass or discard
             // glStencilOp -> action to do on the scencil buffer.
@@ -295,10 +317,18 @@ void World::draw( const Texture &blocksTexture, const glm::mat4 &mvp, const glm:
             glStencilFunc( GL_EQUAL, 1, 0xff );       // If the stencil value is 1, allow drawing.
             this->fullScreenQuad.draw_texture( this->renderer, this->blockTexture, this->depthStencilTexture, 1.0, true, headInWater );
             glStencilFunc( GL_NOTEQUAL, 1, 0xff ); // If the stencil value isn't 1 allow drawing.
-            this->fullScreenQuad.draw_texture( this->renderer, this->blockTexture, this->depthStencilTexture, 1.0, false, headInWater );
+            if ( useFogBlend ) {
+                this->fullScreenQuad.draw_texture_fog( this->renderer, this->blockTexture, this->depthStencilTexture, this->reflectionTexture, skyTexture, invMVPSky, 1.0, false, headInWater );
+            } else {
+                this->fullScreenQuad.draw_texture( this->renderer, this->blockTexture, this->depthStencilTexture, 1.0, false, headInWater );
+            }
             glDisable( GL_STENCIL_TEST );
         } else {
-            this->fullScreenQuad.draw_texture( this->renderer, this->blockTexture, this->depthStencilTexture, 1.0, allowBlur, headInWater );
+            if ( useFogBlend ) {
+                this->fullScreenQuad.draw_texture_fog( this->renderer, this->blockTexture, this->depthStencilTexture, this->reflectionTexture, skyTexture, invMVPSky, 1.0, allowBlur, headInWater );
+            } else {
+                this->fullScreenQuad.draw_texture( this->renderer, this->blockTexture, this->depthStencilTexture, 1.0, allowBlur, headInWater );
+            }
         }
 
         if ( usingReflections ) {

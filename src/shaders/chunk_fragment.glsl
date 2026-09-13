@@ -17,6 +17,7 @@ uniform int u_TintUnderWater;
 uniform float u_ReflectionDotSign;
 uniform int u_DrawToReflection;
 uniform float u_ExtraAlpha;
+uniform int u_OpaqueFog;
 
 uniform vec3 u_FogColor;
 uniform float u_FogNear;
@@ -129,7 +130,21 @@ void main() {
 
     if(u_DrawToReflection == 0) {
         finalColor.rgb = mix(finalColor.rgb, dynamicFogColor, colorFog);
-        finalColor.a *= (1.0f - alphaFog);
+        if(u_OpaqueFog == 1) {
+            // Store fog factor in reflection alpha (unused during normal pass)
+            // for post-process sky blending. Color alpha stays at 1.0 for
+            // opaque terrain (no see-through to caves) and natural alpha for
+            // water (blends with terrain behind it).
+            finalReflection.a = alphaFog;
+            if(u_shouldDiscardAlpha == 1.0f) {
+                finalColor.a = 1.0f;
+            } else {
+                finalColor.a *= (1.0f - alphaFog);
+            }
+        } else {
+            // LOW quality: per-fragment alpha reduction.
+            finalColor.a *= (1.0f - alphaFog);
+        }
     } else {
         finalReflection.rgb = mix(finalReflection.rgb, dynamicFogColor, colorFog);
         finalReflection.a *= (1.0f - alphaFog);

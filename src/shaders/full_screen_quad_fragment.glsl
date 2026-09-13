@@ -6,6 +6,10 @@ layout(location = 0) out vec4 color;
 
 uniform float u_ExtraAlpha;
 uniform int u_Blur;
+uniform int u_FogBlend;
+uniform sampler2DArray u_SkyTexture;
+uniform sampler2DMS u_FogTexture;
+uniform mat4 u_InvMVPSky;
 
 in vec2 TexCoords;
 
@@ -48,6 +52,26 @@ ivec2 tex_to_multisaple(vec2 texCoord) {
     return texCoordMS;
 }
 
+vec3 reconstructSky(vec2 texCoords) {
+    vec2 ndc = texCoords * 2.0 - 1.0;
+    vec4 skyPos = u_InvMVPSky * vec4(ndc, 1.0, 1.0);
+    vec3 dir = normalize(skyPos.xyz / skyPos.w);
+    float phi = acos(clamp(-dir.y, -1.0, 1.0));
+    float V = phi / 3.14159265;
+    float theta = atan(dir.z, dir.x);
+    float U = fract(theta / 6.28318531);
+    return texture(u_SkyTexture, vec3(U, V, 0.0)).rgb;
+}
+
+float fogFactorMultisample(ivec2 coord) {
+    float fogMS = 0.0;
+    for(int i = 0; i < u_TextureSamples; i++) {
+        fogMS += texelFetch(u_FogTexture, coord, i).a;
+    }
+    fogMS /= float(u_TextureSamples);
+    return fogMS;
+}
+
 void main() {
     vec4 finalColor;
     ivec2 multiCoords = tex_to_multisaple(TexCoords);
@@ -76,6 +100,19 @@ void main() {
     } else {
         finalColor = textureMultisample(multiCoords);
     }
+
+    if(u_FogBlend != 0) {
+        // Fog compositing: blend the opaque terrain/water (RGB) with the actual
+        // sky using the fog factor stored in the fog texture's alpha channel.
+        // The color texture's alpha is used for normal blending (opaque=1,
+        // water=natural alpha) and is not the fog factor.
+        float fogFactor = fogFactorMultisample(multiCoords);
+        vec3 skyColor = reconstructSky(TexCoords);
+        vec3 result = mix(finalColor.rgb, skyColor, fogFactor);
+        color = vec4(result, 1.0);
+        return;
+    }
+
     if(finalColor.a == 0.0) {
         discard;
     }
