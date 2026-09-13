@@ -1,5 +1,6 @@
 #include <math.h>
 #include <stdlib.h>
+#include <chrono>
 
 #include "common/RepGame.hpp"
 #include "common/chunk_loader.hpp"
@@ -10,6 +11,16 @@
 
 MK_SHADER( chunk_vertex );
 MK_SHADER( chunk_fragment );
+
+// When limit_render is set (WASM, no background loading thread), cap how long
+// render_chunks spends generating/loading chunks per frame so the main thread
+// keeps up a steady frame rate while still making progress every frame.
+static constexpr long long WASM_LOAD_BUDGET_US = 4000; // 4 ms
+
+static inline long long now_us( ) {
+    return std::chrono::duration_cast<std::chrono::microseconds>(
+        std::chrono::steady_clock::now( ).time_since_epoch( ) ).count( );
+}
 
 int mod( const int x, const int N ) {
     const int result = ( x % N + N ) % N;
@@ -155,6 +166,7 @@ void ChunkLoader::render_chunks( Multiplayer &multiplayer, const glm::vec3 &came
 
     {
         Chunk *chunk_ptr;
+        const long long t_budget_start = now_us( );
         do {
             chunk_ptr = this->terrain_loading_thread.dequeue( );
             // pr_debug( "Got chunk %p", chunk );
@@ -172,7 +184,11 @@ void ChunkLoader::render_chunks( Multiplayer &multiplayer, const glm::vec3 &came
                     chunk.program_terrain( );
                 }
             }
-        } while ( chunk_ptr && !limit_render );
+            // On WASM the terrain is generated inline in dequeue() on the main
+            // thread, so limit how many chunks we load per frame to a time budget.
+            // On native (limit_render == false) the budget check is skipped and
+            // we drain all chunks already finished by the background threads.
+        } while ( chunk_ptr && !limit_render && ( now_us( ) - t_budget_start < WASM_LOAD_BUDGET_US ) );
     }
     if ( 0 != chunk_diff.x || 0 != chunk_diff.y || 0 != chunk_diff.z ) {
         // pr_debug( "Moved outof chunk x:%d y:%d z:%d", loaded_pos );

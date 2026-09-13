@@ -612,19 +612,14 @@ void RepGame::draw( float alpha ) {
     globalGameState.multiplayer.update_players_position( render_pos, render_rotation );
 
 #if defined( REPGAME_WASM )
-    bool limit_render = true;
-    bool do_render;
-    static int should_update_count = 0;
-    if ( should_update_count > 20 ) {
-        should_update_count = 0;
-        do_render = true;
-    } else {
-        do_render = false;
-    }
-    should_update_count++;
+    // No background loading thread on WASM: terrain is generated on the main
+    // thread, but render_chunks self-limits to a time budget per frame, so it
+    // is safe (and much faster) to run every frame instead of throttling here.
+    const bool limit_render = true;
+    const bool do_render = true;
 #else
-    bool do_render = true;
-    bool limit_render = false;
+    const bool do_render = true;
+    const bool limit_render = false;
 #endif
     if ( do_render ) {
         const long long t_render_start = now_us( );
