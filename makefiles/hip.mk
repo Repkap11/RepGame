@@ -25,7 +25,7 @@ CFLAGS_HIP :=  --offload-arch=gfx9-generic \
 				--offload-arch=gfx10-3-generic \
 				--offload-arch=gfx11-generic \
 				--offload-arch=gfx12-generic \
-				-Xcompiler -fPIC -DREPGAME_LINUX
+				-fPIC -DREPGAME_LINUX
 CFLAGS_HIP_COMPILE := -x hip -c -fno-rtti
 
 

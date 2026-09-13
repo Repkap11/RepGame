@@ -50,7 +50,7 @@ void MapStorage::persist_dirty_blocks( const glm::ivec3 &chunk_offset, const Blo
     fwrite( &storage_type_size, sizeof( uint32_t ), 1, write_ptr );
     fflush( write_ptr );
 
-    STORAGE_TYPE &persist_data = *( STORAGE_TYPE * )calloc( sizeof( STORAGE_TYPE ), 1 );
+    STORAGE_TYPE &persist_data = *( STORAGE_TYPE * )calloc( 1, sizeof( STORAGE_TYPE ) );
     unsigned int num_same_blocks = 0;
     int total_num_blocks = 0;
     BlockState previousBlockState = { BLOCK_STATE_LAST_BLOCK_ID };
