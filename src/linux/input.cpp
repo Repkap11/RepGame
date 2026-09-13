@@ -1,5 +1,15 @@
 #include "common/RepGame.hpp"
 
+// SDL3 renamed KMOD_CTRL/KMOD_SHIFT to SDL_KMOD_CTRL/SDL_KMOD_SHIFT.
+// WASM still uses SDL2 which only has the old names. Provide compat
+// for SDL2 (SDL3 already defines SDL_KMOD_CTRL/SDL_KMOD_SHIFT).
+#ifndef SDL_KMOD_CTRL
+#define SDL_KMOD_CTRL KMOD_CTRL
+#endif
+#ifndef SDL_KMOD_SHIFT
+#define SDL_KMOD_SHIFT KMOD_SHIFT
+#endif
+
 static bool front, back, left, right, up, down;
 
 void Input::processMovement( ) {
@@ -149,7 +159,7 @@ void Input::keysInput( const SDL_Keycode key, const bool pressed ) {
             break;
         case 'c':
             if ( pressed ) {
-                if ( SDL_GetModState( ) & KMOD_CTRL ) {
+                if ( SDL_GetModState( ) & SDL_KMOD_CTRL ) {
                     // ctrl-c exits
                     this->exitGame = true;
                 } else {
@@ -170,7 +180,7 @@ void Input::keysInput( const SDL_Keycode key, const bool pressed ) {
             break;
         case 'r':
             if ( pressed ) {
-                if ( SDL_GetModState( ) & KMOD_SHIFT ) {
+                if ( SDL_GetModState( ) & SDL_KMOD_SHIFT ) {
                     this->worldDrawQuality = static_cast<WorldDrawQuality>( ( this->worldDrawQuality - 1 + WorldDrawQuality::LAST ) % WorldDrawQuality::LAST );
                 } else {
                     this->worldDrawQuality = static_cast<WorldDrawQuality>( ( this->worldDrawQuality + 1 ) % WorldDrawQuality::LAST );
