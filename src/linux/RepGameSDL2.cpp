@@ -96,7 +96,16 @@ int repgame_sdl2_main( const char *world_path, const char *host, const bool conn
     SDL_GL_SetAttribute( SDL_GL_STENCIL_SIZE, 8 );
 
 #if SUPPORTS_FRAME_BUFFER
-    SDL_GL_SetAttribute( SDL_GL_MULTISAMPLESAMPLES, 1 ); // Multi sample happens in FB
+    // MSAA happens in the FBO (see MSAA_SAMPLES in constants.hpp), so the
+    // default framebuffer doesn't need it. Requesting MSAA here caused some
+    // drivers to allocate 2x MSAA anyway, which produces flashing/edge
+    // artifacts in the ImGui overlay (its semi-transparent window background
+    // resolves differently per sample at swap time). glDisable(GL_MULTISAMPLE)
+    // only disables per-fragment rasterization, not the multisampled storage
+    // or the swap-time resolve, so it doesn't fix the glitching. Explicitly
+    // request 0 samples. LOW mode loses edge AA on Linux/Windows as a result.
+    SDL_GL_SetAttribute( SDL_GL_MULTISAMPLEBUFFERS, 0 );
+    SDL_GL_SetAttribute( SDL_GL_MULTISAMPLESAMPLES, 0 );
 #endif
     int default_width = DEFAULT_WINDOW_WIDTH;
     int default_height = DEFAULT_WINDOW_HEIGHT;

@@ -639,7 +639,11 @@ void RepGame::draw( float alpha ) {
     glTexParameteri( globalGameState.blocksTexture.target, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE );
     glTexParameteri( globalGameState.blocksTexture.target, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE );
     showErrors( );
-    glClear( GL_DEPTH_BUFFER_BIT );
+    // Clear depth and stencil before drawing the UI/ImGui overlays. The world
+    // compositing pass uses stencil on the default framebuffer (for the
+    // water-blur separation) and leaves stencil values behind; clearing it
+    // here ensures a clean state for the overlays.
+    glClear( GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT );
 
     globalGameState.ui_overlay.draw( globalGameState.main_inventory, globalGameState.hotbar, globalGameState.world.renderer, globalGameState.blocksTexture, globalGameState.input, globalGameState.screen.ortho_center );
     ImGuiDebugVars &debugVars = imgui_overlay_get_imgui_debug_vars( );
