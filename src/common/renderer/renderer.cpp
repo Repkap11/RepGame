@@ -5,9 +5,7 @@ void Renderer::draw( const VertexArray &vertexArray, const IndexBuffer &indexBuf
     vertexArray.bind( );
     indexBuffer.bind( );
     shader.bind( );
-    showErrors( );
     glDrawElementsInstanced( GL_TRIANGLES, indexBuffer.count, GL_UNSIGNED_INT, NULL, num_instances );
-    showErrors( );
 
     // pr_debug("Drawing a chunk");
 }
@@ -18,7 +16,6 @@ void Renderer::draw_lines( const VertexArray &vertexArray, const IndexBuffer &in
     shader.bind( );
     glLineWidth( 3 );
     glDrawElementsInstanced( GL_LINES, indexBuffer.count, GL_UNSIGNED_INT, NULL, num_instances );
-    showErrors( );
 
     // pr_debug("Drawing a chunk");
 }

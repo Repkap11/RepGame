@@ -82,15 +82,14 @@ public class RepGameAndroidRenderer implements GLSurfaceView.Renderer {
     public static class ConfigChooser implements GLSurfaceView.EGLConfigChooser {
         @Override
         public EGLConfig chooseConfig(EGL10 egl, EGLDisplay display) {
-            // Try 2x MSAA first; fall back to no MSAA if the device doesn't
-            // support it. Android is always in LOW quality (no FBO path),
-            // so MSAA on the default framebuffer is the only edge AA.
-            // ImGui is not used on Android, so there's no glitching concern.
-            EGLConfig config = chooseConfigWithSamples(egl, display, 2);
-            if (config == null) {
-                Log.w(TAG, "2x MSAA not available, falling back to no MSAA");
-                config = chooseConfigWithSamples(egl, display, 0);
-            }
+            // No MSAA on Android. The device was upgrading 2x requests to 4x,
+            // and 4x MSAA quadruples fragment-shading cost on tile-based mobile
+            // GPUs — the GPU is the frame bottleneck (profiling showed ~94 FPS
+            // with GPU-bound frames). Disabling MSAA recovers that cost. Edge
+            // aliasing is acceptable on a small mobile screen, and the game
+            // uses alpha-tested foliage (not alpha-to-coverage) so MSAA wasn't
+            // smoothing foliage edges anyway.
+            EGLConfig config = chooseConfigWithSamples(egl, display, 0);
             return config;
         }
 

@@ -47,17 +47,21 @@ flat in int v_needs_rotate;
 flat in int v_block_auto_rotates;
 
 layout(location = 0) out vec4 color;
+#if !defined(REPGAME_LOW_GRAPHICS)
 layout(location = 1) out vec4 reflection;
 layout(location = 2) out vec4 fogFactor;
 layout(location = 3) out vec4 skyColor;
+#endif
 
 // layout( location = 1 ) out vec4 color;
 // layout( location = 0 ) out vec4 reflection;
 
 void main() {
+#if !defined(REPGAME_LOW_GRAPHICS)
     if(v_planarDot * u_ReflectionDotSign < 0.0f && u_ReflectionHeight != 0.0f) {
         discard;
     }
+#endif
     vec2 working_fract = vec2(fract(v_TexCoordBlock.x), fract(v_TexCoordBlock.y));
     vec2 working_int = vec2(v_TexCoordBlock.x - working_fract.x, v_TexCoordBlock.y - working_fract.y);
     // working_fract = vec2( 1.0 - working_fract.x, working_fract.y );
@@ -133,12 +137,14 @@ void main() {
     vec4 lightedColor = texColor * vec4(corner_light, corner_light, corner_light, u_ExtraAlpha);
 
     vec4 finalColor = lightedColor;
+#if !defined(REPGAME_LOW_GRAPHICS)
     vec4 finalReflection = lightedColor;
     if(u_DrawToReflection == 1) {
         finalColor.a = 0.0f;
     } else {
         finalReflection.a = 0.0f;
     }
+#endif
 
     // Distance fog: blend terrain color toward fog color AND reduce alpha.
     // The color blend reaches full fog color before the alpha fade starts,
@@ -157,6 +163,12 @@ void main() {
     // Use the pre-computed average sky color as the fog color.
     vec3 dynamicFogColor = u_SkyAvgColor;
 
+#if defined(REPGAME_LOW_GRAPHICS)
+    // LOW quality (Android/WASM): no FBO, no reflection pass. Blend terrain
+    // toward the average sky color and fade alpha directly per fragment.
+    finalColor.rgb = mix(finalColor.rgb, dynamicFogColor, colorFog);
+    finalColor.a *= (1.0f - alphaFog);
+#else
     if(u_DrawToReflection == 0) {
         // Color blend: terrain → dynamicFogColor (average sky color) over
         // the first half of the fog range. Alpha fade over the second half.
@@ -183,9 +195,10 @@ void main() {
         fogFactor = vec4(0.0f, 0.0f, 0.0f, 0.0f);
     }
 
-    color = finalColor;
     reflection = finalReflection;
     // Chunks are never sky; write black to preserve the sky color attachment
     // (replace blending keeps the sky color written by the sky pass).
     skyColor = vec4(0.0);
+#endif
+    color = finalColor;
 }

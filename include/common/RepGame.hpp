@@ -112,6 +112,18 @@ class RepGame {
     void process_inventory_events( );
 
   public:
+    // Per-frame profiling data (microseconds). Updated by draw() and read by
+    // the platform frame loop to report a timing breakdown alongside FPS.
+    struct FrameProfiling {
+        long long us_tick;
+        long long us_render;      // world.render (chunk loading/meshing on render thread)
+        long long us_world_draw;  // world.draw (GL draw calls)
+        long long us_ui_draw;     // ui_overlay + imgui
+        long long us_total_draw;  // entire draw() call
+        int num_drawable_chunks;
+        int num_chunks_remeshed;
+    } profiling;
+
     void renderShaders( int x, int y, int z );
     RepGameState *init( const char *world_name, bool connect_multi, const char *host, bool supportsAnisotropicFiltering );
     void tick( );

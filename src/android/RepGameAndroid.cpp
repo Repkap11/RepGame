@@ -40,6 +40,12 @@ static double now_ms( void ) {
     return ( int )( 1000.0 * res.tv_sec + ( double )res.tv_nsec / 1e6 );
 }
 
+static inline long long now_us( void ) {
+    struct timespec res;
+    clock_gettime( CLOCK_MONOTONIC, &res );
+    return ( long long )res.tv_sec * 1000000LL + ( long long )res.tv_nsec / 1000LL;
+}
+
 unsigned char *as_unsigned_char_array( JNIEnv *env, jbyteArray array, int *out_size ) {
     int len = env->GetArrayLength( array );
     unsigned char *buf = new unsigned char[ len ];
@@ -86,11 +92,13 @@ JNIEXPORT void JNICALL Java_com_repkap11_repgame_RepGameJNIWrapper_onDrawFrame( 
     int computer_is_too_slow_limit = 10; // max number of advances per render, if you can't get 20 fps, slow the game's UPS
     int num_ticks_in_frame = 0;
     constexpr int time_step_ms = 1000 / UPS_RATE;
+    const long long t_tick_start = now_us( );
     while ( ( ( ( ( int )next_game_step - ( int )now ) <= 0 ) ) && ( computer_is_too_slow_limit-- ) ) {
         repgame.tick( );
         num_ticks_in_frame++;
         next_game_step += time_step_ms; // count 1 game tick done
     }
+    const long long us_tick = now_us( ) - t_tick_start;
     // pr_debug( "slow:%d num_ticks_in_frame:%d fps:%f", computer_is_too_slow_limit, num_ticks_in_frame, ( float )( UPS_RATE ) / ( float )num_ticks_in_frame );
 
     // Interpolation factor between the last executed tick and the next scheduled tick.
@@ -107,14 +115,43 @@ JNIEXPORT void JNICALL Java_com_repkap11_repgame_RepGameJNIWrapper_onDrawFrame( 
 
     static int fps_frame_count = 0;
     static long fps_last_report_time = now_ms( );
+    static long long acc_tick = 0;
+    static long long acc_render = 0;
+    static long long acc_world_draw = 0;
+    static long long acc_ui_draw = 0;
+    static long long acc_total_draw = 0;
+    static int acc_remeshed = 0;
+    static int max_drawable = 0;
     fps_frame_count++;
+    acc_tick += us_tick;
+    acc_render += repgame.profiling.us_render;
+    acc_world_draw += repgame.profiling.us_world_draw;
+    acc_ui_draw += repgame.profiling.us_ui_draw;
+    acc_total_draw += repgame.profiling.us_total_draw;
+    acc_remeshed += repgame.profiling.num_chunks_remeshed;
+    if ( repgame.profiling.num_drawable_chunks > max_drawable ) {
+        max_drawable = repgame.profiling.num_drawable_chunks;
+    }
     const long fps_now = now_ms( );
     const long fps_elapsed = fps_now - fps_last_report_time;
     if ( fps_elapsed >= 1000 ) {
         const float fps = static_cast<float>( fps_frame_count * 1000 ) / static_cast<float>( fps_elapsed );
-        pr_debug( "FPS: %.1f", fps );
+        const float inv_frames = 1.0f / static_cast<float>( fps_frame_count );
+        pr_debug( "FPS: %.1f | tick:%.2fms render:%.2fms worldDraw:%.2fms ui:%.2fms totalDraw:%.2fms | chunks:%d remeshed:%d ticks/frame:%.1f",
+            fps,
+            acc_tick * inv_frames / 1000.0f,
+            acc_render * inv_frames / 1000.0f,
+            acc_world_draw * inv_frames / 1000.0f,
+            acc_ui_draw * inv_frames / 1000.0f,
+            acc_total_draw * inv_frames / 1000.0f,
+            max_drawable,
+            acc_remeshed,
+            ( float )num_ticks_in_frame );
         fps_frame_count = 0;
         fps_last_report_time = fps_now;
+        acc_tick = acc_render = acc_world_draw = acc_ui_draw = acc_total_draw = 0;
+        acc_remeshed = 0;
+        max_drawable = 0;
     }
 }
 

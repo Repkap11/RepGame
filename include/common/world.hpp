@@ -58,4 +58,6 @@ class World {
     void set_selected_block( const glm::ivec3 &selected, bool shouldDraw );
     void screenshot( const std::string &prefix ) const;
     void cleanup( MapStorage &map_storage );
+    int get_num_drawable_chunks( ) const { return chunkLoader.num_drawable; }
+    int get_num_remeshed_chunks( ) const { return chunkLoader.num_remeshed_this_frame; }
 };

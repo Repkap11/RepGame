@@ -3,6 +3,7 @@
 #include <ctime>
 #include <string>
 #include <unistd.h>
+#include <chrono>
 
 #include "common/RepGame.hpp"
 #include "common/block_definitions.hpp"
@@ -15,6 +16,11 @@
 #include "common/multiplayer.hpp"
 #include "common/map_gen.hpp"
 #include "common/block_update_events/PlayerBlockPlacedEvent.hpp"
+
+static inline long long now_us( ) {
+    return std::chrono::duration_cast<std::chrono::microseconds>(
+        std::chrono::steady_clock::now( ).time_since_epoch( ) ).count( );
+}
 
 BlockID RepGame::change_block( const int place, BlockState blockState ) {
 
@@ -539,6 +545,12 @@ void RepGame::draw( float alpha ) {
         // Don't bother draw the state if the game is exiting
         return;
     }
+    const long long t_draw_start = now_us( );
+    profiling.us_render = 0;
+    profiling.us_world_draw = 0;
+    profiling.us_ui_draw = 0;
+    profiling.num_drawable_chunks = 0;
+    profiling.num_chunks_remeshed = 0;
     // Interpolate the rendered camera between the previous tick's transform (prev_*) and the
     // current tick's transform. This decouples the visual camera from the fixed-timestep
     // simulation, so panning/walking stays smooth even when the render rate exceeds UPS_RATE
@@ -615,7 +627,11 @@ void RepGame::draw( float alpha ) {
     bool limit_render = false;
 #endif
     if ( do_render ) {
+        const long long t_render_start = now_us( );
         globalGameState.world.render( globalGameState.multiplayer, render_pos, limit_render, render_rotation );
+        profiling.us_render = now_us( ) - t_render_start;
+        profiling.num_drawable_chunks = globalGameState.world.get_num_drawable_chunks( );
+        profiling.num_chunks_remeshed = globalGameState.world.get_num_remeshed_chunks( );
     }
 
     showErrors( );
@@ -633,8 +649,12 @@ void RepGame::draw( float alpha ) {
     glTexParameteri( globalGameState.blocksTexture.target, GL_TEXTURE_WRAP_S, GL_REPEAT );
     glTexParameteri( globalGameState.blocksTexture.target, GL_TEXTURE_WRAP_T, GL_REPEAT );
 
-    globalGameState.world.draw( globalGameState.blocksTexture, mvp, mvp_reflect, mvp_sky, mvp_sky_reflect, globalGameState.input.debug_mode, !globalGameState.input.inventory_open, render_pos.y, headInWater,
-                                globalGameState.input.worldDrawQuality, render_pos );
+    {
+        const long long t_world_draw_start = now_us( );
+        globalGameState.world.draw( globalGameState.blocksTexture, mvp, mvp_reflect, mvp_sky, mvp_sky_reflect, globalGameState.input.debug_mode, !globalGameState.input.inventory_open, render_pos.y, headInWater,
+                                    globalGameState.input.worldDrawQuality, render_pos );
+        profiling.us_world_draw = now_us( ) - t_world_draw_start;
+    }
 
     glTexParameteri( globalGameState.blocksTexture.target, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE );
     glTexParameteri( globalGameState.blocksTexture.target, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE );
@@ -645,10 +665,14 @@ void RepGame::draw( float alpha ) {
     // here ensures a clean state for the overlays.
     glClear( GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT );
 
-    globalGameState.ui_overlay.draw( globalGameState.main_inventory, globalGameState.hotbar, globalGameState.world.renderer, globalGameState.blocksTexture, globalGameState.input, globalGameState.screen.ortho_center );
-    ImGuiDebugVars &debugVars = imgui_overlay_get_imgui_debug_vars( );
-    debugVars.player_pos = globalGameState.camera.pos;
-    imgui_overlay_draw( &globalGameState.imgui_overlay, globalGameState.input );
+    {
+        const long long t_ui_start = now_us( );
+        globalGameState.ui_overlay.draw( globalGameState.main_inventory, globalGameState.hotbar, globalGameState.world.renderer, globalGameState.blocksTexture, globalGameState.input, globalGameState.screen.ortho_center );
+        ImGuiDebugVars &debugVars = imgui_overlay_get_imgui_debug_vars( );
+        debugVars.player_pos = globalGameState.camera.pos;
+        imgui_overlay_draw( &globalGameState.imgui_overlay, globalGameState.input );
+        profiling.us_ui_draw = now_us( ) - t_ui_start;
+    }
     showErrors( );
 
     if ( globalGameState.input.screenshot_requested ) {
@@ -657,6 +681,7 @@ void RepGame::draw( float alpha ) {
         std::string prefix = "screenshot_" + std::to_string( screenshot_counter++ );
         globalGameState.world.screenshot( prefix );
     }
+    profiling.us_total_draw = now_us( ) - t_draw_start;
 }
 
 void RepGame::cleanup( ) {

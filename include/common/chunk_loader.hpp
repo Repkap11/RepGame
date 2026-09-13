@@ -27,6 +27,7 @@ class ChunkLoader {
     // instead of scanning all MAX_LOADED_CHUNKS slots every pass.
     Chunk **drawable_chunks;
     int num_drawable;
+    int num_remeshed_this_frame;
 
     int reload_if_out_of_bounds( Chunk &chunk, const glm::ivec3 &chunk_pos );
     static inline int process_chunk_position( Chunk &chunk, const glm::ivec3 &chunk_diff, const glm::ivec3 &center_previous, const glm::ivec3 &center_next, int force_reload );

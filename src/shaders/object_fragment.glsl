@@ -22,9 +22,11 @@ uniform int u_IsSky;
 uniform vec3 u_SkyAvgColor;
 
 layout( location = 0 ) out vec4 color;
+#if !defined(REPGAME_LOW_GRAPHICS)
 layout( location = 1 ) out vec4 reflection;
 layout( location = 2 ) out vec4 fogFactor;
 layout( location = 3 ) out vec4 skyColor;
+#endif
 
 in vec2 v_tex_coords;
 in float v_light;
@@ -33,9 +35,11 @@ in float v_planarDot;
 in vec4 v_world_coords;
 
 void main( ) {
+#if !defined(REPGAME_LOW_GRAPHICS)
     if ( v_planarDot < 0.0 && u_ReflectionHeight != 0.0 ) {
         discard;
     }
+#endif
     vec4 texColor = texture( u_Texture, vec3( v_tex_coords, v_blockID ) );
     // vec4 texColor = vec4( 1, 0, 0, 1 );
     if ( texColor.a == 0.0 ) {
@@ -47,12 +51,14 @@ void main( ) {
     vec4 lightedColor = texColor * vec4( v_light, v_light, v_light, u_ExtraAlpha );
 
     vec4 finalColor = lightedColor;
+#if !defined(REPGAME_LOW_GRAPHICS)
     vec4 finalReflection = lightedColor;
     if ( u_DrawToReflection == 1 ) {
         finalColor.a *= 0.0f;
     } else {
         finalReflection.a *= 0.0f;
     }
+#endif
 
     // Distance fog for non-sky objects (mobs/avatars).
     // Color reaches full fog color before alpha fade starts.
@@ -65,6 +71,10 @@ void main( ) {
         float alphaFog = clamp((fogLinear - 0.5) / 0.5, 0.0, 1.0);
         alphaFog = alphaFog * alphaFog * (3.0 - 2.0 * alphaFog);
         vec3 dynamicFogColor = u_SkyAvgColor;
+#if defined(REPGAME_LOW_GRAPHICS)
+        finalColor.rgb = mix(finalColor.rgb, dynamicFogColor, colorFog);
+        finalColor.a *= (1.0 - alphaFog);
+#else
         if(u_DrawToReflection == 0) {
             // Color blend toward dynamicFogColor over first half, alpha fade
             // over second half. Fullscreen shader then blends toward actual
@@ -82,7 +92,10 @@ void main( ) {
             finalReflection.a *= (1.0 - alphaFog);
             fogFactor = vec4(0.0, 0.0, 0.0, 0.0);
         }
-    } else {
+#endif
+    }
+#if !defined(REPGAME_LOW_GRAPHICS)
+    else {
         // Sky: fog factor 1.0 (fully "fogged" = fully sky). This ensures
         // MSAA-resolved edge pixels between sky and terrain have a high fog
         // factor, so the fullscreen shader blends them toward the sky color
@@ -95,6 +108,7 @@ void main( ) {
     // black (preserved by replace blending so the sky color stays).
     skyColor = (u_IsSky == 1 && u_DrawToReflection == 0) ? vec4(finalColor.rgb, 1.0) : vec4(0.0);
 
-    color = finalColor;
     reflection = finalReflection;
+#endif
+    color = finalColor;
 }

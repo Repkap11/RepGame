@@ -146,6 +146,7 @@ inline int ChunkLoader::process_chunk_position( Chunk &chunk, const glm::ivec3 &
 }
 
 void ChunkLoader::render_chunks( Multiplayer &multiplayer, const glm::vec3 &camera_pos, int limit_render ) {
+    this->num_remeshed_this_frame = 0;
     glm::vec3 chunk_size = glm::vec3( CHUNK_SIZE_X, CHUNK_SIZE_Y, CHUNK_SIZE_Z );
 
     glm::ivec3 chunk_pos = glm::floor( camera_pos / chunk_size );
@@ -197,6 +198,7 @@ void ChunkLoader::render_chunks( Multiplayer &multiplayer, const glm::vec3 &came
             chunk.calculate_populated_blocks( );
             chunk.program_terrain( );
             chunk.needs_repopulation = false;
+            this->num_remeshed_this_frame++;
         }
     }
     this->rebuild_drawable_list( );

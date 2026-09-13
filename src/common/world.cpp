@@ -292,13 +292,21 @@ void World::draw( const Texture &blocksTexture, const glm::mat4 &mvp, const glm:
     // blending (water blends with terrain behind it), reflection uses replace
     // (fog factor written directly). No need to restore here.
 
-    glEnable( GL_STENCIL_TEST );
-    glStencilFunc( GL_ALWAYS, 1, 0xff );
-    glStencilOp( GL_KEEP, GL_KEEP, GL_REPLACE );
+    // The stencil buffer separates water from terrain for the reflection
+    // compositing pass. On platforms without reflections (Android/WASM),
+    // skip the stencil setup — the water still draws to the color buffer,
+    // but without the per-fragment stencil write overhead.
+    if ( usingReflections ) {
+        glEnable( GL_STENCIL_TEST );
+        glStencilFunc( GL_ALWAYS, 1, 0xff );
+        glStencilOp( GL_KEEP, GL_KEEP, GL_REPLACE );
+    }
 
     this->chunkLoader.draw( mvp, this->renderer, blocksTexture, true, false, useFrameBuffer ); // Stencil water
-    glStencilFunc( GL_EQUAL, 1, 0xff );
-    glStencilOp( GL_KEEP, GL_KEEP, GL_KEEP );
+    if ( usingReflections ) {
+        glStencilFunc( GL_EQUAL, 1, 0xff );
+        glStencilOp( GL_KEEP, GL_KEEP, GL_KEEP );
+    }
 
     if ( usingReflections ) {
 
