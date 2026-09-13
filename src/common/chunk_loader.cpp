@@ -244,7 +244,7 @@ void ChunkLoader::calculate_cull( const glm::mat4 &mvp, const bool saveAsReflect
 
 int shouldInc = 0;
 int showRotation = 0;
-void ChunkLoader::draw( const glm::mat4 &mvp, const Renderer &renderer, const Texture &texture, bool reflect_only, bool draw_reflect ) {
+void ChunkLoader::draw( const glm::mat4 &mvp, const Renderer &renderer, const Texture &texture, bool reflect_only, bool draw_reflect, bool use_frame_buffer ) {
     Shader &shader = this->shader;
     shader.set_uniform_mat4f( "u_MVP", mvp );
 
@@ -252,6 +252,12 @@ void ChunkLoader::draw( const glm::mat4 &mvp, const Renderer &renderer, const Te
     for ( int renderOrder = LAST_RENDER_ORDER - 1; renderOrder > 0; renderOrder-- ) {
         if ( reflect_only == ( renderOrder == RenderOrder_Water ) ) {
             shader.set_uniform1f( "u_shouldDiscardAlpha", renderOrder != RenderOrder_Water && renderOrder != RenderOrder_Translucent);
+            // Alpha-to-coverage is disabled: it converts fragment alpha into
+            // per-sample coverage masks, but mip-averaged foliage alpha (~0.5)
+            // creates partial coverage so uncovered MSAA samples show the sky,
+            // making flowers translucent. Instead, the shader snaps alpha to
+            // 1.0 for alpha-tested passes, so all samples are fully covered.
+            shader.set_uniform1i( "u_AlphaToCoverage", 0 );
             // Set texture wrap mode once per render order instead of per chunk draw call.
             if ( renderOrder == RenderOrder_Flowers ) {
                 glTexParameteri( texture.target, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE );
@@ -286,6 +292,7 @@ void ChunkLoader::draw( const glm::mat4 &mvp, const Renderer &renderer, const Te
         shader.set_uniform1f( "u_ShowRotation", showRotation );
     }
     shader.set_uniform1f( "u_shouldDiscardAlpha", 1 );
+    shader.set_uniform1i( "u_AlphaToCoverage", 0 );
 }
 
 void ChunkLoader::process_random_ticks( ) {

@@ -18,6 +18,7 @@ uniform float u_ReflectionDotSign;
 uniform int u_DrawToReflection;
 uniform float u_ExtraAlpha;
 uniform int u_OpaqueFog;
+uniform int u_AlphaToCoverage;
 
 uniform vec3 u_FogColor;
 uniform float u_FogNear;
@@ -85,8 +86,17 @@ void main() {
     if(texColor.a == 0.0f) {
         discard;
     }
-    if(u_shouldDiscardAlpha == 1.0f && texColor.a < 0.8f) {
-        discard;
+    // Alpha-tested passes (opaque + flowers): mipmaps average opaque pixels
+    // (alpha=1) with transparent neighbours (alpha=0, RGB=0), which
+    // premultiplies and lowers the alpha. Un-premultiply by dividing RGB
+    // by alpha to recover the original opaque colour, then snap alpha to
+    // 1.0 so surviving pixels render fully opaque (no sky bleed-through).
+    if(u_shouldDiscardAlpha == 1.0f) {
+        if(texColor.a < 0.1f) {
+            discard;
+        }
+        texColor.rgb /= texColor.a;
+        texColor.a = 1.0f;
     }
     // if ( float( mod_sum ) == u_ShowRotation ) {
     //     texColor.r *= 2.1f;
@@ -135,9 +145,16 @@ void main() {
             // Store fog factor in dedicated fog texture (location 2) for
             // post-process sky blending. Color alpha stays at 1.0 for
             // opaque terrain (no see-through to caves) and natural alpha for
-            // water (blends with terrain behind it).
+            // water (blends with terrain behind it). With alpha-to-coverage
+            // the natural alpha is kept so the hardware can convert it to
+            // per-sample coverage; fog still reduces it at distance.
             fogFactor = vec4(0.0f, 0.0f, 0.0f, alphaFog);
             if(u_shouldDiscardAlpha == 1.0f) {
+                // Opaque + alpha-tested foliage: keep alpha at 1.0 so the
+                // post-process fog composite handles distance fade. With
+                // alpha-to-coverage the per-sample coverage is already
+                // determined by the natural alpha before this point, so
+                // forcing alpha to 1.0 here doesn't undo the edge smoothing.
                 finalColor.a = 1.0f;
             } else {
                 finalColor.a *= (1.0f - alphaFog);

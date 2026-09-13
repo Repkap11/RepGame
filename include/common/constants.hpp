@@ -130,6 +130,11 @@ static_assert( CHUNK_RADIUS_Z > 0, "CHUNK_RADIUS_Z too small" );
 
 #define UPS_RATE 144
 
+// MSAA sample count for the offscreen FBO. Capped at 4x: above that the
+// per-sample cost grows steeply while geometric edge quality barely improves.
+// Alpha-to-coverage for foliage also gets 4 levels of edge smoothing at 4x.
+#define MSAA_SAMPLES 4
+
 // Almost the number of clients, but some fd's are not clients so it's slightly less.
 #define MAX_CLIENT_FDS 100
 

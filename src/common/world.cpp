@@ -249,7 +249,7 @@ void World::draw( const Texture &blocksTexture, const glm::mat4 &mvp, const glm:
     this->chunkLoader.shader.set_uniform1i( "u_TintUnderWater", block_water_tint_type );
     this->chunkLoader.shader.set_uniform1f( "u_ReflectionDotSign", y_height < 0 ? -1.0f : 1.0f );
     // shader_set_uniform1f( &this->loadedChunks.shader, "u_ReflectionDotSign", 1.0f );
-    this->chunkLoader.draw( mvp, this->renderer, blocksTexture, false, false ); // Blocks
+    this->chunkLoader.draw( mvp, this->renderer, blocksTexture, false, false, useFrameBuffer ); // Blocks
 
     this->chunkLoader.shader.set_uniform1i( "u_TintUnderWater", 0 );
     if ( draw_mouse_selection ) {
@@ -264,7 +264,7 @@ void World::draw( const Texture &blocksTexture, const glm::mat4 &mvp, const glm:
     glStencilFunc( GL_ALWAYS, 1, 0xff );
     glStencilOp( GL_KEEP, GL_KEEP, GL_REPLACE );
 
-    this->chunkLoader.draw( mvp, this->renderer, blocksTexture, true, false ); // Stencil water
+    this->chunkLoader.draw( mvp, this->renderer, blocksTexture, true, false, useFrameBuffer ); // Stencil water
     glStencilFunc( GL_EQUAL, 1, 0xff );
     glStencilOp( GL_KEEP, GL_KEEP, GL_KEEP );
 
@@ -299,7 +299,7 @@ void World::draw( const Texture &blocksTexture, const glm::mat4 &mvp, const glm:
         this->chunkLoader.shader.set_uniform1f( "u_ReflectionHeight", offset );
         this->chunkLoader.shader.set_uniform1i( "u_TintUnderWater", block_water_tint_type );
         this->chunkLoader.calculate_cull( mvp_reflect, true );
-        this->chunkLoader.draw( mvp_reflect, this->renderer, blocksTexture, false, true ); // Reflected blocks
+        this->chunkLoader.draw( mvp_reflect, this->renderer, blocksTexture, false, true, useFrameBuffer ); // Reflected blocks
 
         this->chunkLoader.shader.set_uniform1f( "u_ReflectionHeight", 0 );
         this->object_shader.set_uniform1f( "u_ReflectionHeight", 0 );

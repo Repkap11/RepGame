@@ -157,7 +157,12 @@ void Texture::loadTexture( const TextureSourceData &texture_source, int blur_mag
     glTexParameteri( this->target, GL_TEXTURE_WRAP_S, GL_REPEAT );
     glTexParameteri( this->target, GL_TEXTURE_WRAP_T, GL_REPEAT );
 
-    glTexParameteri( this->target, GL_TEXTURE_MIN_FILTER, GL_LINEAR );
+    // Mipmaps eliminate distant texture aliasing/shimmer on high-frequency
+    // textures (dirt, grass, leaves). GL_LINEAR_MIPMAP_NEAREST keeps the
+    // blocky pixel-art look up close while blending between mip levels at
+    // distance. Anisotropic filtering (when supported) sharpens oblique views.
+    glGenerateMipmap( this->target );
+    glTexParameteri( this->target, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR );
     if ( blur_mag ) {
         glTexParameteri( this->target, GL_TEXTURE_MAG_FILTER, GL_LINEAR );
     } else {
@@ -173,7 +178,6 @@ void Texture::loadTexture( const TextureSourceData &texture_source, int blur_mag
         glGetFloatv( GL_MAX_TEXTURE_MAX_ANISOTROPY_EXT, &max_ani );
         glTexParameterf( this->target, GL_TEXTURE_MAX_ANISOTROPY_EXT, max_ani ); // TYhis doesn't work on Linux Mesa driver... it blurs textures
     }
-    // glGenerateMipmap( this->target );
 }
 
 static int next_slot = 1;
@@ -255,6 +259,7 @@ void Texture::change_size( int width, int height ) {
 #else
         GLint maxSamples;
         glGetIntegerv( GL_MAX_SAMPLES, &maxSamples );
+        maxSamples = ( maxSamples < MSAA_SAMPLES ) ? maxSamples : MSAA_SAMPLES;
         // pr_debug( "Max samples:%d", maxSamples );
         glTexImage2DMultisample( this->target, maxSamples, this->internalFormat, width, height, true );
 #endif

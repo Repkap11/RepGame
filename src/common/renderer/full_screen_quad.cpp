@@ -25,6 +25,7 @@ void FullScreenQuad::init( ) {
         this->vbl.push_float( 2 ); // FullScreenQuadVertex uv
     }
     glGetIntegerv( GL_MAX_SAMPLES, &this->maxSamples );
+    this->maxSamples = ( this->maxSamples < MSAA_SAMPLES ) ? this->maxSamples : MSAA_SAMPLES;
 
     this->render_link_fsq.init( this->vbl, vb_data, FSQ_VERTEX_COUNT, ib_data, FSQ_INDEX_COUNT );
     this->shader.init( &full_screen_quad_vertex, &full_screen_quad_fragment );
