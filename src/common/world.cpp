@@ -186,7 +186,7 @@ void World::draw( const Texture &blocksTexture, const glm::mat4 &mvp, const glm:
     this->chunkLoader.shader.set_uniform1f( "u_FogNear", fog_near );
     this->chunkLoader.shader.set_uniform1f( "u_FogFar", fog_far );
     this->chunkLoader.shader.set_uniform3f( "u_CameraPos", camera_pos.x, camera_pos.y, camera_pos.z );
-    this->chunkLoader.shader.set_uniform1i_texture( "u_SkyTexture", this->skyBox.get_texture( ) );
+    this->chunkLoader.shader.set_uniform3f( "u_SkyAvgColor", this->skyBox.get_avg_color( ).r, this->skyBox.get_avg_color( ).g, this->skyBox.get_avg_color( ).b );
     // Opaque fog stores the fog factor in a dedicated fog texture (attachment 2)
     // for post-process sky blending. Works in all framebuffer modes since the
     // fog texture is separate from the reflection texture.
@@ -197,7 +197,7 @@ void World::draw( const Texture &blocksTexture, const glm::mat4 &mvp, const glm:
     this->object_shader.set_uniform1f( "u_FogNear", fog_near );
     this->object_shader.set_uniform1f( "u_FogFar", fog_far );
     this->object_shader.set_uniform3f( "u_CameraPos", camera_pos.x, camera_pos.y, camera_pos.z );
-    this->object_shader.set_uniform1i_texture( "u_SkyTexture", this->skyBox.get_texture( ) );
+    this->object_shader.set_uniform3f( "u_SkyAvgColor", this->skyBox.get_avg_color( ).r, this->skyBox.get_avg_color( ).g, this->skyBox.get_avg_color( ).b );
     this->object_shader.set_uniform1i( "u_OpaqueFog", useFogBlend ? 1 : 0 );
 
     if ( useFrameBuffer ) {

@@ -1,4 +1,5 @@
 #include <math.h>
+#include <cstdlib>
 
 #include "common/RepGame.hpp"
 #include "common/sky_box.hpp"
@@ -69,6 +70,34 @@ void SkyBox::init( const VertexBufferLayout &vbl_object_vertex, const VertexBuff
     sky_instance = { { }, glm::mat4( 1.0f ) }; // The sky's vertexes are scaled, no need to scale instance.
 
     this->texture.init( texture_source_sky4, 1 );
+
+    // Pre-compute the average color of the entire sky texture for use as the
+    // fog color. This gives a single uniform color that is representative of
+    // the sky without being tied to any particular direction.
+    // To recompute after changing the sky texture, set SKY_DEBUG_COMPUTE_AVG to 1.
+#define SKY_DEBUG_COMPUTE_AVG 0
+#if ( defined( REPGAME_LINUX ) || defined( REPGAME_WINDOWS ) ) && SKY_DEBUG_COMPUTE_AVG
+    {
+        const int sky_w = 2048, sky_h = 1024;
+        unsigned char *sky_data = ( unsigned char * )malloc( sky_w * sky_h * 4 );
+        this->texture.bind( );
+        glGetTexImage( GL_TEXTURE_2D_ARRAY, 0, GL_RGBA, GL_UNSIGNED_BYTE, sky_data );
+        float r = 0, g = 0, b = 0;
+        for ( int i = 0; i < sky_w * sky_h; i++ ) {
+            r += sky_data[ i * 4 + 0 ];
+            g += sky_data[ i * 4 + 1 ];
+            b += sky_data[ i * 4 + 2 ];
+        }
+        float count = sky_w * sky_h;
+        m_avgColor = glm::vec3( r / count / 255.0f, g / count / 255.0f, b / count / 255.0f );
+        pr_debug( "SkyBox avg color: %f, %f, %f", m_avgColor.r, m_avgColor.g, m_avgColor.b );
+        free( sky_data );
+    }
+#else
+    // Hardcoded average of all pixels in the sky texture.
+    // Recompute by setting SKY_DEBUG_COMPUTE_AVG to 1 above.
+    m_avgColor = glm::vec3( 0.729091f, 0.788694f, 0.851192f );
+#endif
 }
 
 void SkyBox::draw( const Renderer &renderer, Shader &shader ) {

@@ -19,7 +19,7 @@ uniform float u_FogNear;
 uniform float u_FogFar;
 uniform vec3 u_CameraPos;
 uniform int u_IsSky;
-uniform sampler2DArray u_SkyTexture;
+uniform vec3 u_SkyAvgColor;
 
 layout( location = 0 ) out vec4 color;
 layout( location = 1 ) out vec4 reflection;
@@ -64,10 +64,7 @@ void main( ) {
         colorFog = colorFog * colorFog * (3.0 - 2.0 * colorFog);
         float alphaFog = clamp((fogLinear - 0.5) / 0.5, 0.0, 1.0);
         alphaFog = alphaFog * alphaFog * (3.0 - 2.0 * alphaFog);
-        vec3 viewDir = normalize(v_world_coords.xyz - u_CameraPos);
-        float skyTheta = atan(viewDir.z, viewDir.x);
-        float skyU = fract(skyTheta / 6.28318531);
-        vec3 dynamicFogColor = texture(u_SkyTexture, vec3(skyU, 0.5, 0.0)).rgb;
+        vec3 dynamicFogColor = u_SkyAvgColor;
         if(u_DrawToReflection == 0) {
             // Color blend toward dynamicFogColor over first half, alpha fade
             // over second half. Fullscreen shader then blends toward actual

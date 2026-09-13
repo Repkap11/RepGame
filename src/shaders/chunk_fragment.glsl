@@ -24,7 +24,7 @@ uniform vec3 u_FogColor;
 uniform float u_FogNear;
 uniform float u_FogFar;
 uniform vec3 u_CameraPos;
-uniform sampler2DArray u_SkyTexture;
+uniform vec3 u_SkyAvgColor;
 
 in vec2 v_TexCoordBlock;
 in float v_corner_lighting;
@@ -142,15 +142,11 @@ void main() {
     float alphaFog = clamp((fogLinear - 0.5f) / 0.5f, 0.0f, 1.0f);
     alphaFog = alphaFog * alphaFog * (3.0f - 2.0f * alphaFog);
 
-    // Sample the sky texture at the horizon (V=0.5) in the view direction
-    // to get a fog color that matches the actual sky behind the terrain.
-    vec3 viewDir = normalize(v_world_coords - u_CameraPos);
-    float skyTheta = atan(viewDir.z, viewDir.x);
-    float skyU = fract(skyTheta / 6.28318531f);
-    vec3 dynamicFogColor = texture(u_SkyTexture, vec3(skyU, 0.5f, 0.0f)).rgb;
+    // Use the pre-computed average sky color as the fog color.
+    vec3 dynamicFogColor = u_SkyAvgColor;
 
     if(u_DrawToReflection == 0) {
-        // Color blend: terrain → dynamicFogColor (horizon sky sample) over
+        // Color blend: terrain → dynamicFogColor (average sky color) over
         // the first half of the fog range. Alpha fade over the second half.
         // In framebuffer mode, the fullscreen shader then blends the fog-colored
         // terrain toward the actual sky color (from the sky color attachment)
