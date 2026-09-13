@@ -315,7 +315,17 @@ void RepGame::process_movement( ) {
     }
 
     globalGameState.camera.pos = globalGameState.camera.pos + movement_vector;
-    globalGameState.camera.y_speed = movement_vector.y;
+    // A grounded player has no vertical velocity: the applied Y displacement
+    // is either the gravity substep clamped to ~0, or — after a step-up onto a
+    // slab/snow layer — the full step height (~+0.5). Letting the latter
+    // become y_speed launches the player into the air, so reset it here. The
+    // position update above still uses the full movement_vector, so the player
+    // correctly ends up on top of the stepped block.
+    if ( globalGameState.camera.standing_on_solid ) {
+        globalGameState.camera.y_speed = 0.0f;
+    } else {
+        globalGameState.camera.y_speed = movement_vector.y;
+    }
     // If a horizontal axis was blocked by collision, zero that component of
     // the persisted velocity so we don't keep pushing into the wall.
     globalGameState.camera.horizontal_vel.x = movement_vector.x;
