@@ -39,6 +39,7 @@ flat in int v_block_auto_rotates;
 layout(location = 0) out vec4 color;
 layout(location = 1) out vec4 reflection;
 layout(location = 2) out vec4 fogFactor;
+layout(location = 3) out vec4 skyColor;
 
 // layout( location = 1 ) out vec4 color;
 // layout( location = 0 ) out vec4 reflection;
@@ -149,27 +150,22 @@ void main() {
     vec3 dynamicFogColor = texture(u_SkyTexture, vec3(skyU, 0.5f, 0.0f)).rgb;
 
     if(u_DrawToReflection == 0) {
+        // Color blend: terrain → dynamicFogColor (horizon sky sample) over
+        // the first half of the fog range. Alpha fade over the second half.
+        // In framebuffer mode, the fullscreen shader then blends the fog-colored
+        // terrain toward the actual sky color (from the sky color attachment)
+        // using alphaFog, so distant terrain seamlessly merges with the skybox.
         finalColor.rgb = mix(finalColor.rgb, dynamicFogColor, colorFog);
         if(u_OpaqueFog == 1) {
-            // Store fog factor in dedicated fog texture (location 2) for
-            // post-process sky blending. Color alpha stays at 1.0 for
-            // opaque terrain (no see-through to caves) and natural alpha for
-            // water (blends with terrain behind it). With alpha-to-coverage
-            // the natural alpha is kept so the hardware can convert it to
-            // per-sample coverage; fog still reduces it at distance.
+            // Store alphaFog in the fog texture for the post-process sky blend.
             fogFactor = vec4(0.0f, 0.0f, 0.0f, alphaFog);
             if(u_shouldDiscardAlpha == 1.0f) {
-                // Opaque + alpha-tested foliage: keep alpha at 1.0 so the
-                // post-process fog composite handles distance fade. With
-                // alpha-to-coverage the per-sample coverage is already
-                // determined by the natural alpha before this point, so
-                // forcing alpha to 1.0 here doesn't undo the edge smoothing.
                 finalColor.a = 1.0f;
             } else {
                 finalColor.a *= (1.0f - alphaFog);
             }
         } else {
-            // LOW quality: per-fragment alpha reduction.
+            // LOW quality: per-fragment alpha reduction, no post-process.
             finalColor.a *= (1.0f - alphaFog);
             fogFactor = vec4(0.0f, 0.0f, 0.0f, 0.0f);
         }
@@ -181,4 +177,7 @@ void main() {
 
     color = finalColor;
     reflection = finalReflection;
+    // Chunks are never sky; write black to preserve the sky color attachment
+    // (replace blending keeps the sky color written by the sky pass).
+    skyColor = vec4(0.0);
 }

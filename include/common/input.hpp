@@ -45,6 +45,7 @@ class Input {
     bool no_clip;
     WorldDrawQuality worldDrawQuality;
     bool drop_item;
+    bool screenshot_requested;
 
 #if defined( REPGAME_LINUX ) || defined( REPGAME_WINDOWS ) || defined( REPGAME_WASM )
     void mouseInput( int button, int state );

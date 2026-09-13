@@ -24,6 +24,7 @@ uniform sampler2DArray u_SkyTexture;
 layout( location = 0 ) out vec4 color;
 layout( location = 1 ) out vec4 reflection;
 layout( location = 2 ) out vec4 fogFactor;
+layout( location = 3 ) out vec4 skyColor;
 
 in vec2 v_tex_coords;
 in float v_light;
@@ -68,6 +69,9 @@ void main( ) {
         float skyU = fract(skyTheta / 6.28318531);
         vec3 dynamicFogColor = texture(u_SkyTexture, vec3(skyU, 0.5, 0.0)).rgb;
         if(u_DrawToReflection == 0) {
+            // Color blend toward dynamicFogColor over first half, alpha fade
+            // over second half. Fullscreen shader then blends toward actual
+            // sky color using alphaFog.
             finalColor.rgb = mix(finalColor.rgb, dynamicFogColor, colorFog);
             if(u_OpaqueFog == 1) {
                 fogFactor = vec4(0.0, 0.0, 0.0, alphaFog);
@@ -82,8 +86,17 @@ void main( ) {
             fogFactor = vec4(0.0, 0.0, 0.0, 0.0);
         }
     } else {
-        fogFactor = vec4(0.0, 0.0, 0.0, 0.0);
+        // Sky: fog factor 1.0 (fully "fogged" = fully sky). This ensures
+        // MSAA-resolved edge pixels between sky and terrain have a high fog
+        // factor, so the fullscreen shader blends them toward the sky color
+        // instead of leaving a visible border.
+        fogFactor = vec4(0.0, 0.0, 0.0, 1.0);
     }
+
+    // The sky color attachment captures the actual rendered sky for exact
+    // fog-blend matching. The sky writes its color; non-sky objects write
+    // black (preserved by replace blending so the sky color stays).
+    skyColor = (u_IsSky == 1 && u_DrawToReflection == 0) ? vec4(finalColor.rgb, 1.0) : vec4(0.0);
 
     color = finalColor;
     reflection = finalReflection;

@@ -25,6 +25,7 @@ class World {
     Texture reflectionTexture;
     Texture blockTexture;
     Texture fogTexture;
+    Texture skyColorTexture;
     Texture depthStencilTexture;
     FrameBuffer frameBuffer;
     FullScreenQuad fullScreenQuad;
@@ -55,5 +56,6 @@ class World {
                WorldDrawQuality worldDrawQuality, const glm::vec3 &camera_pos );
     void process_random_ticks( ) const;
     void set_selected_block( const glm::ivec3 &selected, bool shouldDraw );
+    void screenshot( const std::string &prefix ) const;
     void cleanup( MapStorage &map_storage );
 };

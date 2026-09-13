@@ -11,5 +11,6 @@ class FrameBuffer {
     void attach_texture( const Texture &texture, int which_attachment ) const;
     void unbind( ) const;
     bool ok( ) const;
+    unsigned int id( ) const { return mRendererId; }
 
 };

@@ -2,8 +2,11 @@
 #include "common/RepGame.hpp"
 #include "common/chunk.hpp"
 #include "common/chunk_loader.hpp"
+#include "common/renderer/screenshot.hpp"
 #include "common/block_update_events/BlockNextToChangeEvent.hpp"
 #include "common/block_update_events/BlockNextToChangeEvent.hpp"
+
+#include <string>
 
 #define TINT_UNDER_WATER_OBJECT_NEVER 0
 #define TINT_UNDER_WATER_OBJECT_UNDER_Y_LEVEL 1
@@ -69,6 +72,7 @@ void World::init( const glm::vec3 &camera_pos, int width, int height, MapStorage
     this->reflectionTexture.init_empty_color( 0 );
     this->blockTexture.init_empty_color( 0 );
     this->fogTexture.init_empty_color( 0 );
+    this->skyColorTexture.init_empty_color( 0 );
     this->depthStencilTexture.init_empty_depth_stencil( 0 );
     showErrors( );
 
@@ -78,12 +82,15 @@ void World::init( const glm::vec3 &camera_pos, int width, int height, MapStorage
     showErrors( );
     this->fogTexture.change_size( width, height );
     showErrors( );
+    this->skyColorTexture.change_size( width, height );
+    showErrors( );
     this->depthStencilTexture.change_size( width, height );
     showErrors( );
 
     this->frameBuffer.attach_texture( this->blockTexture, 0 );
     this->frameBuffer.attach_texture( this->reflectionTexture, 1 );
     this->frameBuffer.attach_texture( this->fogTexture, 2 );
+    this->frameBuffer.attach_texture( this->skyColorTexture, 3 );
     this->frameBuffer.attach_texture( this->depthStencilTexture, 0 ); // 0 is fake
     showErrors( );
     this->fullScreenQuad.init( );
@@ -107,6 +114,8 @@ void World::change_size( int width, int height ) {
         this->reflectionTexture.change_size( width, height );
         showErrors( );
         this->fogTexture.change_size( width, height );
+        showErrors( );
+        this->skyColorTexture.change_size( width, height );
         showErrors( );
         this->depthStencilTexture.change_size( width, height );
         showErrors( );
@@ -203,10 +212,11 @@ void World::draw( const Texture &blocksTexture, const glm::mat4 &mvp, const glm:
         glClearBufferfv( GL_COLOR, 0, clearColor );
         glClearBufferfv( GL_COLOR, 1, clearReflection );
         glClearBufferfv( GL_COLOR, 2, clearColor );
+        glClearBufferfv( GL_COLOR, 3, clearColor );
         glClearBufferfi( GL_DEPTH_STENCIL, 0, 1.0f, 0 );
         showErrors( );
-        GLenum bufs[ 3 ] = { GL_COLOR_ATTACHMENT0, GL_COLOR_ATTACHMENT1, GL_COLOR_ATTACHMENT2 };
-        glDrawBuffers( 3, bufs );
+        GLenum bufs[ 4 ] = { GL_COLOR_ATTACHMENT0, GL_COLOR_ATTACHMENT1, GL_COLOR_ATTACHMENT2, GL_COLOR_ATTACHMENT3 };
+        glDrawBuffers( 4, bufs );
         showErrors( );
     } else {
         if constexpr ( SUPPORTS_FRAME_BUFFER ) {
@@ -224,6 +234,7 @@ void World::draw( const Texture &blocksTexture, const glm::mat4 &mvp, const glm:
         glBlendFuncSeparatei( 0, GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA, GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA );
         glBlendFuncSeparatei( 1, GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA, GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA );
         glBlendFuncSeparatei( 2, GL_ONE, GL_ZERO, GL_ONE, GL_ZERO );
+        glBlendFuncSeparatei( 3, GL_ONE, GL_ZERO, GL_ONE, GL_ZERO );
     }
 #endif
 
@@ -234,10 +245,31 @@ void World::draw( const Texture &blocksTexture, const glm::mat4 &mvp, const glm:
     this->object_shader.set_uniform1f( "u_ExtraAlpha", 1.0f );
     this->object_shader.set_uniform_mat4f( "u_MVP", mvp );
     this->object_shader.set_uniform1i( "u_IsSky", 0 );
+#if ( SUPPORTS_FRAME_BUFFER )
+    if ( useFrameBuffer ) {
+        // Only the sky pass should write to the sky color attachment (3).
+        // Mask it out during mobs so they don't overwrite the cleared black
+        // before the sky draws.
+        glColorMaski( 3, GL_FALSE, GL_FALSE, GL_FALSE, GL_FALSE );
+    }
+#endif
     this->multiplayer_avatars.draw( this->renderer, this->object_shader ); // Mobs
+#if ( SUPPORTS_FRAME_BUFFER )
+    if ( useFrameBuffer ) {
+        // Enable sky color attachment writing for the sky pass only.
+        glColorMaski( 3, GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE );
+    }
+#endif
     this->object_shader.set_uniform_mat4f( "u_MVP", mvp_sky );
     this->object_shader.set_uniform1i( "u_IsSky", 1 );
     this->skyBox.draw( this->renderer, this->object_shader ); // Sky
+#if ( SUPPORTS_FRAME_BUFFER )
+    if ( useFrameBuffer ) {
+        // Mask out sky color attachment for terrain so the sky color written
+        // by the sky pass is preserved (terrain would overwrite it with black).
+        glColorMaski( 3, GL_FALSE, GL_FALSE, GL_FALSE, GL_FALSE );
+    }
+#endif
     glEnable( GL_DEPTH_TEST );
 
     this->chunkLoader.calculate_cull( mvp, false );
@@ -272,10 +304,12 @@ void World::draw( const Texture &blocksTexture, const glm::mat4 &mvp, const glm:
 
         glCullFace( GL_FRONT );
         glClear( GL_DEPTH_BUFFER_BIT );
-        // Don't overwrite the fog factors written during the normal pass.
-        // Mask out the fog attachment (index 2) during the reflection pass.
+        // Don't overwrite the fog factors or sky color written during the
+        // normal pass. Mask out the fog attachment (index 2) and sky color
+        // attachment (index 3) during the reflection pass.
 #if ( SUPPORTS_FRAME_BUFFER )
         glColorMaski( 2, GL_FALSE, GL_FALSE, GL_FALSE, GL_FALSE );
+        glColorMaski( 3, GL_FALSE, GL_FALSE, GL_FALSE, GL_FALSE );
 #endif
         float offset = 1.0 - WATER_HEIGHT;
 
@@ -304,9 +338,10 @@ void World::draw( const Texture &blocksTexture, const glm::mat4 &mvp, const glm:
         this->chunkLoader.shader.set_uniform1f( "u_ReflectionHeight", 0 );
         this->object_shader.set_uniform1f( "u_ReflectionHeight", 0 );
 
-        // Restore fog attachment writing.
+        // Restore fog and sky color attachment writing.
 #if ( SUPPORTS_FRAME_BUFFER )
         glColorMaski( 2, GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE );
+        glColorMaski( 3, GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE );
 #endif
 
         glCullFace( GL_BACK );
@@ -325,8 +360,9 @@ void World::draw( const Texture &blocksTexture, const glm::mat4 &mvp, const glm:
         // Fog compositing blends the opaque terrain (with fog factor in the
         // reflection texture alpha) with the actual sky in post-processing.
         // Disabled when head is in water (stencil can't separate water).
-        const glm::mat4 invMVPSky = glm::inverse( mvp_sky );
-        const Texture &skyTexture = this->skyBox.get_texture( );
+        // The sky color is sampled from a dedicated attachment that captured
+        // the actual rendered sky before terrain was drawn, so it matches the
+        // skybox exactly (no reconstruction math needed).
 
         if ( allowBlur && !headInWater ) {
             // glStencilFunc -> pass or discard
@@ -344,20 +380,20 @@ void World::draw( const Texture &blocksTexture, const glm::mat4 &mvp, const glm:
                 // Use fog blend for water areas too, so the terrain/water
                 // fades into the sky and outputs opaque alpha (no blending
                 // with the black background cleared above).
-                this->fullScreenQuad.draw_texture_fog( this->renderer, this->blockTexture, this->depthStencilTexture, this->fogTexture, skyTexture, invMVPSky, 1.0, true, headInWater );
+                this->fullScreenQuad.draw_texture_fog( this->renderer, this->blockTexture, this->depthStencilTexture, this->fogTexture, this->skyColorTexture, 1.0, true, headInWater );
             } else {
                 this->fullScreenQuad.draw_texture( this->renderer, this->blockTexture, this->depthStencilTexture, 1.0, true, headInWater );
             }
             glStencilFunc( GL_NOTEQUAL, 1, 0xff ); // If the stencil value isn't 1 allow drawing.
             if ( useFogBlend ) {
-                this->fullScreenQuad.draw_texture_fog( this->renderer, this->blockTexture, this->depthStencilTexture, this->fogTexture, skyTexture, invMVPSky, 1.0, false, headInWater );
+                this->fullScreenQuad.draw_texture_fog( this->renderer, this->blockTexture, this->depthStencilTexture, this->fogTexture, this->skyColorTexture, 1.0, false, headInWater );
             } else {
                 this->fullScreenQuad.draw_texture( this->renderer, this->blockTexture, this->depthStencilTexture, 1.0, false, headInWater );
             }
             glDisable( GL_STENCIL_TEST );
         } else {
             if ( useFogBlend ) {
-                this->fullScreenQuad.draw_texture_fog( this->renderer, this->blockTexture, this->depthStencilTexture, this->fogTexture, skyTexture, invMVPSky, 1.0, allowBlur, headInWater );
+                this->fullScreenQuad.draw_texture_fog( this->renderer, this->blockTexture, this->depthStencilTexture, this->fogTexture, this->skyColorTexture, 1.0, allowBlur, headInWater );
             } else {
                 this->fullScreenQuad.draw_texture( this->renderer, this->blockTexture, this->depthStencilTexture, 1.0, allowBlur, headInWater );
             }
@@ -365,7 +401,7 @@ void World::draw( const Texture &blocksTexture, const glm::mat4 &mvp, const glm:
 
         if ( usingReflections ) {
             if ( useFogBlend ) {
-                this->fullScreenQuad.draw_texture_fog( this->renderer, this->reflectionTexture, this->depthStencilTexture, this->fogTexture, skyTexture, invMVPSky, y_height < 0 ? 0.1 : 0.2, allowBlur, headInWater, 1 );
+                this->fullScreenQuad.draw_texture_fog( this->renderer, this->reflectionTexture, this->depthStencilTexture, this->fogTexture, this->skyColorTexture, y_height < 0 ? 0.1 : 0.2, allowBlur, headInWater, 1 );
             } else {
                 this->fullScreenQuad.draw_texture( this->renderer, this->reflectionTexture, this->depthStencilTexture, y_height < 0 ? 0.1 : 0.2, allowBlur, headInWater );
             }
@@ -388,10 +424,20 @@ void World::cleanup( MapStorage &map_storage ) {
         this->blockTexture.destroy( );
         this->reflectionTexture.destroy( );
         this->fogTexture.destroy( );
+        this->skyColorTexture.destroy( );
         this->depthStencilTexture.destroy( );
         this->fullScreenQuad.destroy( );
     }
 }
+
+#if ( SUPPORTS_FRAME_BUFFER )
+void World::screenshot( const std::string &prefix ) const {
+    take_screenshot( this->frameBuffer.id( ), prefix );
+}
+#else
+void World::screenshot( const std::string &prefix ) const {
+}
+#endif
 
 int World::can_fixup_chunk( const Chunk &chunk, const glm::ivec3 &offset ) const {
     const glm::vec3 chunk_with_offset = chunk.chunk_pos + offset;

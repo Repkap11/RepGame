@@ -8,9 +8,8 @@ uniform float u_ExtraAlpha;
 uniform int u_Blur;
 uniform int u_FogBlend;
 uniform int u_DiscardZeroAlpha;
-uniform sampler2DArray u_SkyTexture;
 uniform sampler2DMS u_FogTexture;
-uniform mat4 u_InvMVPSky;
+uniform sampler2DMS u_SkyColorTexture;
 
 in vec2 TexCoords;
 
@@ -53,15 +52,13 @@ ivec2 tex_to_multisaple(vec2 texCoord) {
     return texCoordMS;
 }
 
-vec3 reconstructSky(vec2 texCoords) {
-    vec2 ndc = texCoords * 2.0 - 1.0;
-    vec4 skyPos = u_InvMVPSky * vec4(ndc, 1.0, 1.0);
-    vec3 dir = normalize(skyPos.xyz / skyPos.w);
-    float phi = acos(clamp(-dir.y, -1.0, 1.0));
-    float V = phi / 3.14159265;
-    float theta = atan(dir.z, dir.x);
-    float U = fract(theta / 6.28318531);
-    return texture(u_SkyTexture, vec3(U, V, 0.0)).rgb;
+vec3 skyColorMultisample(ivec2 coord) {
+    vec3 skyMS = vec3(0.0);
+    for(int i = 0; i < u_TextureSamples; i++) {
+        skyMS += texelFetch(u_SkyColorTexture, coord, i).rgb;
+    }
+    skyMS /= float(u_TextureSamples);
+    return skyMS;
 }
 
 float fogFactorMultisample(ivec2 coord) {
@@ -123,8 +120,14 @@ void main() {
         float waterFog = fogFactorMultisample(multiCoords);
         float reflectedFog = 1.0 - finalColor.a;
         float fogFactor = (u_DiscardZeroAlpha != 0) ? max(waterFog, reflectedFog) : waterFog;
-        vec3 skyColor = reconstructSky(TexCoords);
-        vec3 result = mix(finalColor.rgb, skyColor, fogFactor);
+        vec3 skyColor = skyColorMultisample(multiCoords);
+        // Blend toward the actual sky color faster than the alpha fades, so
+        // the terrain color matches the sky before it becomes fully
+        // transparent. This hides the silhouette edge of mountains at the
+        // render boundary where the horizon fog color (used in the chunk
+        // shader) doesn't match the actual sky at that elevation.
+        float colorBlend = clamp(pow(fogFactor, 0.5), 0.0, 1.0);
+        vec3 result = mix(finalColor.rgb, skyColor, colorBlend);
         // Main terrain compositing (u_DiscardZeroAlpha==0) outputs alpha=1.0
         // since the FBO already has the complete rendered image. Reflection
         // compositing (u_DiscardZeroAlpha==1) is semi-transparent so the

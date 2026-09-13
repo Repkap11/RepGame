@@ -1,6 +1,7 @@
 
 #include <cmath>
 #include <ctime>
+#include <string>
 #include <unistd.h>
 
 #include "common/RepGame.hpp"
@@ -533,6 +534,7 @@ void RepGame::get_screen_size( int *width, int *height ) const {
 }
 
 void RepGame::draw( float alpha ) {
+    static int screenshot_counter = 0;
     if ( globalGameState.input.exitGame ) {
         // Don't bother draw the state if the game is exiting
         return;
@@ -644,6 +646,13 @@ void RepGame::draw( float alpha ) {
     debugVars.player_pos = globalGameState.camera.pos;
     imgui_overlay_draw( &globalGameState.imgui_overlay, globalGameState.input );
     showErrors( );
+
+    if ( globalGameState.input.screenshot_requested ) {
+        globalGameState.input.screenshot_requested = false;
+        // Capture intermediate framebuffer attachments for debugging.
+        std::string prefix = "screenshot_" + std::to_string( screenshot_counter++ );
+        globalGameState.world.screenshot( prefix );
+    }
 }
 
 void RepGame::cleanup( ) {

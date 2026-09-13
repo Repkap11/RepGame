@@ -177,6 +177,11 @@ void Input::keysInput( const SDL_Keycode key, const bool pressed ) {
                 }
             }
             break;
+        case SDLK_F12:
+            if ( pressed ) {
+                this->screenshot_requested = true;
+            }
+            break;
 
         default:
             if ( pressed ) {
