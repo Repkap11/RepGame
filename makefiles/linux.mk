@@ -6,8 +6,8 @@ CFLAGS_LINUX := -Wall -Wextra -std=c++17 -Wno-unused-parameter -Wno-unused-varia
 LFLAGS := -z noexecstack
 
 # In release mode, don't check for GL errors
-# Use SW vsync since HW vsync causes tearing (at least for me).
-CFLAGS_LINUX_RELEASE := -O3 -DREPGAME_SKIP_CHECK_FOR_GL_ERRORS -DREPGAME_SW_VSYNC
+# Use HW vsync to sync to display refresh rate.
+CFLAGS_LINUX_RELEASE := -O3 -DREPGAME_SKIP_CHECK_FOR_GL_ERRORS -DREPGAME_HW_VSYNC
 # Show GL errors, and unlimit the FPS to measure perfornamce.
 CFLAGS_LINUX_DEBUG := -g
 
