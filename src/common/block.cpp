@@ -24,6 +24,7 @@ void block_adjust_coord_based_on_state( const Block *block, const BlockState *bl
     REDSTONE_DUST_IF( REDSTONE_LINE_1 )
     REDSTONE_DUST_IF( REDSTONE_LINE_2 )
     REDSTONE_DUST_IF( REDSTONE_CROSS )
+    REDSTONE_DUST_IF( REDSTONE_DOT )
 
     REDSTONE_DUST_IF( REDSTONE_DUST_L_Q1 )
     REDSTONE_DUST_IF( REDSTONE_DUST_L_Q2 )

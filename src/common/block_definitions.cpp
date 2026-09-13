@@ -333,7 +333,7 @@ void block_definitions_initilize_definitions( Texture *texture ) {
         block_definitions[ id ].rotate_on_placement = true;
         block_definitions[ id ].icon_is_isometric = false;
     }
-    constexpr BlockID dust_shaped[] = { REDSTONE_LINE_1,   REDSTONE_LINE_2,   REDSTONE_CROSS,    REDSTONE_DUST_L_Q1, REDSTONE_DUST_L_Q2, REDSTONE_DUST_L_Q3, REDSTONE_DUST_L_Q4, //
+    constexpr BlockID dust_shaped[] = { REDSTONE_LINE_1,   REDSTONE_LINE_2,   REDSTONE_CROSS,    REDSTONE_DOT,    REDSTONE_DUST_L_Q1, REDSTONE_DUST_L_Q2, REDSTONE_DUST_L_Q3, REDSTONE_DUST_L_Q4, //
                                         REDSTONE_DUST_T_L, REDSTONE_DUST_T_R, REDSTONE_DUST_T_F, REDSTONE_DUST_T_B };
     for ( const BlockID id : dust_shaped ) {
         centered_border( id, 0, 1 );
@@ -358,7 +358,7 @@ void block_definitions_initilize_definitions( Texture *texture ) {
         block_definitions[ id ].hides_self = { false, false, false };
     }
     block_definitions[ REDSTONE_CROSS ].is_pickable = true;
-    constexpr BlockID power_dust_shaped[] = { REDSTONE_LINE_1_POWERED,    REDSTONE_LINE_2_POWERED,    REDSTONE_CROSS_POWERED,     REDSTONE_DUST_L_Q1_POWERED,
+    constexpr BlockID power_dust_shaped[] = { REDSTONE_LINE_1_POWERED,    REDSTONE_LINE_2_POWERED,    REDSTONE_CROSS_POWERED,     REDSTONE_DOT_POWERED,     REDSTONE_DUST_L_Q1_POWERED,
                                               REDSTONE_DUST_L_Q2_POWERED, REDSTONE_DUST_L_Q3_POWERED, REDSTONE_DUST_L_Q4_POWERED, //
                                               REDSTONE_DUST_T_L_POWERED,  REDSTONE_DUST_T_R_POWERED,  REDSTONE_DUST_T_F_POWERED,  REDSTONE_DUST_T_B_POWERED };
     for ( const BlockID id : power_dust_shaped ) {

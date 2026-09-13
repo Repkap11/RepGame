@@ -120,13 +120,40 @@ void RepGame::process_mouse_events( ) {
         // Placing a block
         BlockID holdingBlock = globalGameState.hotbar.getSelectedBlock( );
         if ( holdingBlock != LAST_BLOCK_ID ) {
-            const unsigned char rotation = getPlacedRotation( holdingBlock );
             const Block *holdingBlockDef = block_definition_get_definition( holdingBlock );
-            if ( holdingBlockDef->is_torch ) {
-                pr_debug( "Placing torch face:%d rotation:%d", globalGameState.block_selection.face, rotation );
+            bool did_toggle_dust = false;
+
+            // Toggle redstone dust between cross and dot when right-clicking an existing dust block with dust in hand
+            if ( holdingBlockDef->is_redstone_dust ) {
+                BlockState targetBlock = globalGameState.world.get_loaded_block( globalGameState.block_selection.pos_destroy );
+                const Block *targetBlockDef = block_definition_get_definition( targetBlock.id );
+                if ( targetBlockDef->is_redstone_dust ) {
+                    BlockState new_block_state = targetBlock;
+                    if ( targetBlock.display_id == REDSTONE_CROSS ) {
+                        new_block_state.display_id = REDSTONE_DOT;
+                    } else if ( targetBlock.display_id == REDSTONE_DOT ) {
+                        new_block_state.display_id = REDSTONE_CROSS;
+                    } else {
+                        // Has connections, can't toggle — fall through to place new dust
+                        new_block_state.display_id = LAST_BLOCK_ID; // sentinel: don't toggle
+                    }
+                    if ( new_block_state.display_id != LAST_BLOCK_ID ) {
+                        auto blockPlacedEvent = std::make_shared<PlayerBlockPlacedEvent>( globalGameState.tick_number, globalGameState.block_selection.pos_destroy, new_block_state, true );
+                        globalGameState.blockUpdateQueue.addBlockUpdate( blockPlacedEvent );
+                        globalGameState.input.click_delay_right = 30;
+                        did_toggle_dust = true;
+                    }
+                }
             }
-            change_block( 1, { holdingBlock, rotation, 0, holdingBlock } );
-            globalGameState.input.click_delay_right = 30;
+
+            if ( !did_toggle_dust ) {
+                const unsigned char rotation = getPlacedRotation( holdingBlock );
+                if ( holdingBlockDef->is_torch ) {
+                    pr_debug( "Placing torch face:%d rotation:%d", globalGameState.block_selection.face, rotation );
+                }
+                change_block( 1, { holdingBlock, rotation, 0, holdingBlock } );
+                globalGameState.input.click_delay_right = 30;
+            }
         }
     }
     // if ( globalGameState.block_selection.selectionInBounds && globalGameState.input.mouse.currentPosition.wheel_counts != globalGameState.input.mouse.previousPosition.wheel_counts ) {

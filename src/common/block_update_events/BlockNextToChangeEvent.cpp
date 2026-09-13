@@ -7,6 +7,37 @@ BlockNextToChangeEvent::BlockNextToChangeEvent( long tick_number, const glm::ive
     this->name = "BlockNextToChangeEvent";
 }
 
+// Returns true if the given dust display_id points toward the given horizontal direction,
+// i.e. the dust would weakly power a solid block in that direction.
+// dir_from_dust points from the dust toward the block being powered.
+// Mapping: x+1=left, x-1=right, z+1=front, z-1=back (matching the connection naming in perform_checks).
+// A dot (REDSTONE_DOT) points nowhere horizontally — it only powers the block below it.
+inline bool dust_points_toward( BlockID display_id, const glm::ivec3 &dir_from_dust ) {
+    if ( dir_from_dust.y != 0 ) {
+        return false; // vertical power is handled separately
+    }
+    bool points_left  = ( dir_from_dust.x == 1 );   // dust connects toward x+1
+    bool points_right = ( dir_from_dust.x == -1 );   // dust connects toward x-1
+    bool points_front = ( dir_from_dust.z == 1 );    // dust connects toward z+1
+    bool points_back  = ( dir_from_dust.z == -1 );    // dust connects toward z-1
+
+    switch ( display_id ) {
+        case REDSTONE_CROSS:     return true;
+        case REDSTONE_LINE_1:    return points_left || points_right;
+        case REDSTONE_LINE_2:    return points_front || points_back;
+        case REDSTONE_DUST_L_Q1: return points_right || points_front;  // x-1, z+1
+        case REDSTONE_DUST_L_Q2: return points_left || points_front;   // x+1, z+1
+        case REDSTONE_DUST_L_Q3: return points_left || points_back;    // x+1, z-1
+        case REDSTONE_DUST_L_Q4: return points_right || points_back;   // x-1, z-1
+        case REDSTONE_DUST_T_B:  return points_left || points_right || points_front;  // missing back
+        case REDSTONE_DUST_T_R:  return points_left || points_front || points_back;   // missing right
+        case REDSTONE_DUST_T_F:  return points_right || points_left || points_back;    // missing front
+        case REDSTONE_DUST_T_L:  return points_right || points_front || points_back;   // missing left
+        case REDSTONE_DOT:       return false;  // dot powers only the block below
+        default:                 return true;   // fallback: power all sides
+    }
+}
+
 int find_largest_redstone_power_around( World &world, const glm::ivec3 &pos, bool skip_torch_above, bool for_dust ) {
     int max = 0;
 
@@ -44,6 +75,10 @@ int find_largest_redstone_power_around( World &world, const glm::ivec3 &pos, boo
         if ( for_dust && !neighbor_block->transmits_redstone_power && neighbor.current_redstone_power <= 1 ) {
             continue;
         }
+        // Skip dust that doesn't point toward this position (e.g. dot, or shape doesn't connect here)
+        if ( neighbor_block->is_redstone_dust && !dust_points_toward( neighbor.display_id, -dir ) ) {
+            continue;
+        }
         if ( neighbor.current_redstone_power > max ) {
             max = neighbor.current_redstone_power;
         }
@@ -66,10 +101,10 @@ int find_largest_redstone_power_around( World &world, const glm::ivec3 &pos, boo
 
         // Up: solid block at neighbor_pos with dust on top
         if ( neighbor_block->collides_with_player ) {
-            BlockState above = world.get_loaded_block( neighbor_pos + glm::ivec3( 0, 1, 0 ) );
+            BlockState above = world.get_loaded_block( neighbor_pos + glm::ivec3( 0, 1,  0 ) );
             if ( above.id != LAST_BLOCK_ID ) {
                 const Block *above_block = block_definition_get_definition( above.id );
-                if ( above_block->is_redstone_dust && above.current_redstone_power > max ) {
+                if ( above_block->is_redstone_dust && dust_points_toward( above.display_id, -dir ) && above.current_redstone_power > max ) {
                     max = above.current_redstone_power;
                 }
             }
@@ -80,7 +115,7 @@ int find_largest_redstone_power_around( World &world, const glm::ivec3 &pos, boo
             BlockState below = world.get_loaded_block( neighbor_pos + glm::ivec3( 0, -1, 0 ) );
             if ( below.id != LAST_BLOCK_ID ) {
                 const Block *below_block = block_definition_get_definition( below.id );
-                if ( below_block->is_redstone_dust && below.current_redstone_power > max ) {
+                if ( below_block->is_redstone_dust && dust_points_toward( below.display_id, -dir ) && below.current_redstone_power > max ) {
                     max = below.current_redstone_power;
                 }
             }
@@ -198,7 +233,8 @@ void perform_checks( BlockUpdateQueue &blockUpdateQueue, World &world, long tick
                 } else if ( connects_front || connects_back ) {
                     new_display_block_id = REDSTONE_LINE_2;
                 } else {
-                    new_display_block_id = REDSTONE_CROSS;
+                    // No connections: preserve dot state if toggled, otherwise default to cross
+                    new_display_block_id = ( affecting_block_state.display_id == REDSTONE_DOT ) ? REDSTONE_DOT : REDSTONE_CROSS;
                 }
 
                 if ( new_display_block_id != affecting_block_state.display_id ) {
@@ -219,8 +255,8 @@ void perform_checks( BlockUpdateQueue &blockUpdateQueue, World &world, long tick
             // Redstone block: always emits power
             new_power = affecting_block->initial_redstone_power;
         } else if ( affecting_block_state.id == REDSTONE_TORCH ) {
-            // Torch turns off only when its attachment block is STRONGLY powered.
-            // Weak power (from dust) does NOT turn off a torch.
+            // Torch turns off when its attachment block is powered at all (weakly OR strongly).
+            // Redstone dust pointing into the attachment block weakly powers it, which DOES turn off the torch.
             // The torch does NOT power its own attachment block, so no self-feedback.
             // Attachment direction: rotation 0=below, 4=left, 5=front, 6=right, 7=back
             glm::ivec3 attach_pos = affecting_block_pos;
@@ -236,8 +272,9 @@ void perform_checks( BlockUpdateQueue &blockUpdateQueue, World &world, long tick
                 attach_pos.z += 1;
             }
             BlockState attach_state = world.get_loaded_block( attach_pos );
-            // Power > 1 means hard power (from torch/redstone block); power 1 is soft (from dust)
-            new_power = attach_state.current_redstone_power > 1 ? 0 : REDSTONE_TORCH_POWER;
+            // Any power (> 0) to the attachment block turns the torch off: hard power (> 1) from a
+            // torch/redstone block, or soft power (1) from dust pointing into the block.
+            new_power = attach_state.current_redstone_power > 0 ? 0 : REDSTONE_TORCH_POWER;
         } else if ( affecting_block->transmits_redstone_power ) {
             // Dust: power = max(neighbors) - 1, skipping soft-powered solid blocks
             int maximum_power = find_largest_redstone_power_around( world, affecting_block_pos, false, true );
@@ -313,8 +350,13 @@ void perform_checks( BlockUpdateQueue &blockUpdateQueue, World &world, long tick
                     }
                     const Block *neighbor_block = block_definition_get_definition( neighbor.id );
                     if ( neighbor_block->is_redstone_dust && neighbor.current_redstone_power > 0 ) {
-                        new_power = 1; // Soft power from dust
-                        break;
+                        // Dust above (dir.y==1) always powers the block below it, regardless of shape.
+                        // Dust to the side (dir.y==0) only powers if its shape points toward this block.
+                        // Dust below (dir.y==-1) never powers the block above it.
+                        if ( dir.y == 1 || ( dir.y == 0 && dust_points_toward( neighbor.display_id, -dir ) ) ) {
+                            new_power = 1; // Soft power from dust
+                            break;
+                        }
                     }
                     // Torch to the side (not attached to this block) gives soft power
                     if ( neighbor.id == REDSTONE_TORCH && neighbor.current_redstone_power > 0 ) {
