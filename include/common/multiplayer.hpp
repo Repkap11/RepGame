@@ -4,23 +4,28 @@
 #include "common/block_definitions.hpp"
 #include "common/chunk.hpp"
 #include "server/server.hpp"
+#include <atomic>
 #include <queue>
+#include <string>
+#include <thread>
 
 class Multiplayer {
     NetPacket pending_packet;
-    int pending_packet_len;
-    int pending_send_len;
+    int pending_packet_len = 0;
+    int pending_send_len = 0;
     std::queue<NetPacket> send_queue;
     glm::vec3 prev_player_pos;
     glm::mat4 prev_rotation;
     friend class World;
 
-    int sockfd;
-    int portno;
-    bool active;
+    int sockfd = -1;
+    int portno = 0;
+    std::atomic<bool> active{ false };
+    std::thread connect_thread;
 
     void flush_send_queue( );
     void send_packet( const NetPacket &update );
+    void connect_async( const std::string &hostname );
 
   public:
     void init( const char *hostname, int port );
