@@ -184,11 +184,12 @@ void ChunkLoader::render_chunks( Multiplayer &multiplayer, const glm::vec3 &came
                     chunk.program_terrain( );
                 }
             }
-            // On WASM the terrain is generated inline in dequeue() on the main
-            // thread, so limit how many chunks we load per frame to a time budget.
-            // On native (limit_render == false) the budget check is skipped and
-            // we drain all chunks already finished by the background threads.
-        } while ( chunk_ptr && !limit_render && ( now_us( ) - t_budget_start < WASM_LOAD_BUDGET_US ) );
+            // When limit_render is true (WASM without pthreads), terrain is
+            // generated inline in dequeue() on the main thread, so cap the work
+            // per frame to a time budget. When limit_render is false (native, or
+            // WASM with pthreads), the budget term short-circuits and we drain all
+            // chunks already finished by the background threads.
+        } while ( chunk_ptr && ( !limit_render || ( now_us( ) - t_budget_start < WASM_LOAD_BUDGET_US ) ) );
     }
     if ( 0 != chunk_diff.x || 0 != chunk_diff.y || 0 != chunk_diff.z ) {
         // pr_debug( "Moved outof chunk x:%d y:%d z:%d", loaded_pos );

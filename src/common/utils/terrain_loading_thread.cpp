@@ -29,7 +29,7 @@ void TerrainLoadingThread::process_value( LinkedListValue *value ) {
     // pr_debug( "Paul Loading terrain x:%d y%d: z:%d work:%d results:%d", chunk->chunk_x, chunk->chunk_y, chunk->chunk_z, work_linked_list->count, result_linked_list->count );
 }
 
-#if defined( REPGAME_WASM )
+#if defined( REPGAME_WASM ) && !defined( __EMSCRIPTEN_PTHREADS__ )
 void TerrainLoadingThread::enqueue( Chunk *chunk, const glm::ivec3 &new_chunk_pos, int persist ) {
     LinkedListValue value;
     value.valid = 1;
@@ -65,6 +65,7 @@ void TerrainLoadingThread::stop( ) {
 
 volatile int cancelThread = 0;
 pthread_t background_threads[ NUM_RENDER_THREADS ];
+int num_background_threads = 0;
 
 void *TerrainLoadingThread::process_background_tasks( void *arg ) {
     TerrainLoadingThread &self = *( TerrainLoadingThread * )arg;
@@ -89,11 +90,18 @@ int TerrainLoadingThread::start( MapStorage &map_storage ) {
     this->map_storage = map_storage;
     work_linked_list = linked_list_create( );
     result_linked_list = linked_list_create( );
+    // Try to spawn up to NUM_RENDER_THREADS workers, but gracefully degrade if
+    // the pthread pool is smaller (e.g. low-core WASM browser). Blocking here
+    // would deadlock, so on failure we stop trying and use what we got.
     for ( int i = 0; i < NUM_RENDER_THREADS; i++ ) {
         if ( pthread_create( &background_threads[ i ], NULL, &TerrainLoadingThread::process_background_tasks, this ) ) {
-            pr_debug( "Error creating background thread %d", i );
-            return -1;
+            pr_debug( "Error creating background thread %d (using %d)", i, num_background_threads );
+            break;
         }
+        num_background_threads++;
+    }
+    if ( num_background_threads == 0 ) {
+        return -1;
     }
     return 0;
 }
@@ -110,9 +118,10 @@ void TerrainLoadingThread::enqueue( Chunk *chunk, const glm::ivec3 &new_chunk_po
 
 void TerrainLoadingThread::stop( ) {
     cancelThread = 1;
-    for ( int i = 0; i < NUM_RENDER_THREADS; i++ ) {
+    for ( int i = 0; i < num_background_threads; i++ ) {
         pthread_join( background_threads[ i ], NULL );
     }
+    num_background_threads = 0;
     cancelThread = 0;
     linked_list_free( work_linked_list );
     linked_list_free( result_linked_list );

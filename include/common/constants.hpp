@@ -32,12 +32,12 @@
 #endif
 
 #ifdef REPGAME_WASM
-#define CHUNK_SIZE_X 16
-#define CHUNK_SIZE_Y 16
-#define CHUNK_SIZE_Z 16
-#define CHUNK_RADIUS_X ( 32 / CHUNK_SIZE_X )
-#define CHUNK_RADIUS_Y ( 32 / CHUNK_SIZE_Y )
-#define CHUNK_RADIUS_Z ( 32 / CHUNK_SIZE_Z )
+#define CHUNK_SIZE_X 32
+#define CHUNK_SIZE_Y 32
+#define CHUNK_SIZE_Z 32
+#define CHUNK_RADIUS_X ( 128 / CHUNK_SIZE_X )
+#define CHUNK_RADIUS_Y ( 128 / CHUNK_SIZE_Y )
+#define CHUNK_RADIUS_Z ( 128 / CHUNK_SIZE_Z )
 #endif
 
 #ifdef REPGAME_ANDROID
@@ -139,10 +139,10 @@ static_assert( CHUNK_RADIUS_Z > 0, "CHUNK_RADIUS_Z too small" );
 #define MAX_CLIENT_FDS 100
 
 #define CAMERA_FOV 60.0f
-#if defined( REPGAME_WASM ) || defined( REPGAME_WINDOWS )
+#if defined( REPGAME_WINDOWS )
 #define NUM_RENDER_THREADS 1
 #else
-#define NUM_RENDER_THREADS 4
+#define NUM_RENDER_THREADS 8
 #endif
 
 #define PLAYER_HEIGHT 1.85f

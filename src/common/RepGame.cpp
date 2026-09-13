@@ -612,10 +612,15 @@ void RepGame::draw( float alpha ) {
     globalGameState.multiplayer.update_players_position( render_pos, render_rotation );
 
 #if defined( REPGAME_WASM )
-    // No background loading thread on WASM: terrain is generated on the main
-    // thread, but render_chunks self-limits to a time budget per frame, so it
-    // is safe (and much faster) to run every frame instead of throttling here.
+    // With pthreads enabled, terrain generation runs on background workers and
+    // the main thread just drains finished chunks (like native). Without
+    // pthreads, generation happens inline in dequeue(), so limit_render keeps
+    // the time-budgeted loop in render_chunks from blocking the frame.
+#  if defined( __EMSCRIPTEN_PTHREADS__ )
+    const bool limit_render = false;
+#  else
     const bool limit_render = true;
+#  endif
     const bool do_render = true;
 #else
     const bool do_render = true;

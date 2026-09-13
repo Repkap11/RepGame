@@ -1,23 +1,19 @@
 #WASM
 REPGAME_PACKAGES += npm
 
-CFLAGS_WASM := -DREPGAME_WASM
+CFLAGS_WASM := -DREPGAME_WASM -pthread
 
 
 CFLAGS_LINK_WASM := -s USE_WEBGL2=1 \
 			-s USE_SDL=2 \
 			-lidbfs.js \
 			-s EXPORTED_FUNCTIONS='["_main"]' \
-			-s EXPORTED_RUNTIME_METHODS='["ccall", "cwrap"]'
+			-s EXPORTED_RUNTIME_METHODS='["ccall", "cwrap"]' \
+			-pthread \
+			-s PTHREAD_POOL_SIZE=navigator.hardwareConcurrency
 
 #Works OK
 CFLAGS_LINK_WASM += -s ALLOW_MEMORY_GROWTH=1
-
-#Locks up GPU
-# CFLAGS_LINK_WASM += -s USE_PTHREADS=1 -s TOTAL_MEMORY=512MB
-
-#Basically not supported
-# CFLAGS_LINK_WASM += -s USE_PTHREADS=1 -s ALLOW_MEMORY_GROWTH=1 -s WASM_MEM_MAX=1024MB
 
 # Clone emsdk from
 #git clone https://github.com/emscripten-core/emsdk.git
@@ -57,7 +53,7 @@ out/wasm/%.o: src/%.cpp $(HEADERS) src/linux/RepGameSDL2.cpp | out/wasm
 	$(CC_WASM) $(INCLUDES_COMMON) $(CFLAGS_WASM) -c $< -o $@
 
 out/wasm/delivery/$(TARGET).js: $(OBJECTS_COMMON_WASM) $(OBJECTS_WASM) $(WASM_SHADERS) $(WASM_BITMAPS) | out/wasm
-	$(CC_WASM) -flto $(CFLAGS_LINK_WASM) $(OBJECTS_WASM) $(OBJECTS_COMMON_WASM) --preload-file out/wasm/fs@ -o $@
+	$(CC_WASM) $(CFLAGS_LINK_WASM) $(OBJECTS_WASM) $(OBJECTS_COMMON_WASM) --preload-file out/wasm/fs@ -o $@
 
 out/wasm/delivery/index.html: src/wasm/index.html | out/wasm
 	cp $< $@
@@ -78,7 +74,10 @@ out/wasm/delivery/icon.png : bitmaps/icon.png | out/wasm
 	cp $< $@
 
 wasm-start-server:
-	http-server out/wasm/delivery -c-1 &
+	-pkill -f "wasm_server.py" 2>/dev/null || true
+	-pkill -f "http-server" 2>/dev/null || true
+	sleep 0.2
+	python3 wasm_server.py out/wasm/delivery 8080 &
 	sleep 0.5
 
 # WASM_START_COMMAND := google-chrome --app=http://localhost:8081 --start-fullscreen

@@ -109,7 +109,15 @@ int repgame_sdl2_main( const char *world_path, const char *host, const bool conn
 #endif
     int default_width = DEFAULT_WINDOW_WIDTH;
     int default_height = DEFAULT_WINDOW_HEIGHT;
-    sdl_window = SDL_CreateWindow( "RepGame", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, default_width, default_height, SDL_WINDOW_OPENGL | SDL_WINDOW_SHOWN | SDL_WINDOW_RESIZABLE | SDL_WINDOW_FULLSCREEN_DESKTOP );
+    // SDL_WINDOW_FULLSCREEN_DESKTOP triggers an unaligned atomic access in
+    // SDL2's emscripten backend when pthreads are enabled. On WASM the canvas
+    // is already sized to the full window via CSS in index.js, so fullscreen
+    // is redundant there.
+    Uint32 window_flags = SDL_WINDOW_OPENGL | SDL_WINDOW_SHOWN | SDL_WINDOW_RESIZABLE;
+#if !defined( REPGAME_WASM )
+    window_flags |= SDL_WINDOW_FULLSCREEN_DESKTOP;
+#endif
+    sdl_window = SDL_CreateWindow( "RepGame", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, default_width, default_height, window_flags );
     if ( !sdl_window ) {
         pr_debug( "Creating the SDL window failed" );
         exit( 1 );
