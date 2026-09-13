@@ -10,7 +10,7 @@
 class MapGen {
   public:
     static void load_block_cuda( Chunk *chunk );
-    static void load_block_hip( Chunk *chunk );
+    static bool load_block_hip( Chunk *chunk );
     static void load_block_c( const Chunk *chunk );
     static void free_block( Chunk *chunk );
     static int supports_cuda( );
@@ -23,4 +23,4 @@ class MapGen {
     static float maxTerrainHeight( );
 };
 void map_gen_load_block_cuda( glm::ivec3 *chunk_pos, BlockState *blocks );
-void map_gen_load_block_hip( glm::ivec3 *chunk_pos, BlockState *blocks );
+bool map_gen_load_block_hip( glm::ivec3 *chunk_pos, BlockState *blocks );

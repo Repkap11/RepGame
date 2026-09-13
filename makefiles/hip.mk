@@ -16,10 +16,15 @@ ifeq ($(USE_CCACHE),1)
 CC_HIP := ccache $(CC_HIP)
 endif
 
-CFLAGS_HIP :=  --offload-arch=gfx1201 \
-				--offload-arch=gfx1100 \
-				--offload-arch=gfx1030 \
-				--offload-arch=gfx1010 \
+# Generic code objects target an entire GPU family with one arch, so a single
+# binary runs on every supported AMD GPU (including future ones within each
+# family) without listing each chip individually. Requires Code Object V6
+# (ROCm 6.0+); gfx12-generic / gfx1151 need a newer ROCm on the build machine.
+CFLAGS_HIP :=  --offload-arch=gfx9-generic \
+				--offload-arch=gfx10-1-generic \
+				--offload-arch=gfx10-3-generic \
+				--offload-arch=gfx11-generic \
+				--offload-arch=gfx12-generic \
 				-Xcompiler -fPIC -DREPGAME_LINUX
 CFLAGS_HIP_COMPILE := -x hip -c -fno-rtti
 

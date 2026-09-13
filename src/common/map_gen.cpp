@@ -176,9 +176,11 @@ void MapGen::load_block_cuda( Chunk *chunk ) {
 int MapGen::supports_hip( ) {
     return 0;
 }
-void map_gen_load_block_hip( glm::ivec3 *chunk_pos, BlockState *blocks ) {
+bool map_gen_load_block_hip( glm::ivec3 *chunk_pos, BlockState *blocks ) {
+    return false;
 }
-void MapGen::load_block_hip( Chunk *chunk ) {
+bool MapGen::load_block_hip( Chunk *chunk ) {
+    return false;
 }
 
 #else
@@ -186,10 +188,10 @@ int MapGen::supports_hip( ) {
     return MapGen::host_supports_hip( );
 }
 
-void MapGen::load_block_hip( Chunk *chunk ) {
+bool MapGen::load_block_hip( Chunk *chunk ) {
     glm::ivec3 *chunk_pos = &chunk->chunk_pos;
     BlockState *blocks = chunk->blocks;
-    map_gen_load_block_hip( chunk_pos, blocks );
+    return map_gen_load_block_hip( chunk_pos, blocks );
 }
 
 #endif

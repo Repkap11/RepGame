@@ -2,6 +2,7 @@
 
 #include <hip/hip_runtime.h>
 
+#include "common/Logging.hpp"
 #include "linux/hip/perlin_noise.hpp"
 #include "perlin_noise_impl.inl"
 
@@ -106,16 +107,31 @@ __global__ void hip_set_block( BlockState *blocks, int chunk_x, int chunk_y, int
 
 #define NUM_THREADS_PER_BLOCK 256
 
-__host__ void map_gen_load_block_hip( glm::ivec3 *chunk_pos, BlockState *blocks ) {
+#define HIP_CHECK( expr )                                                                                              \
+    do {                                                                                                                \
+        hipError_t err = ( expr );                                                                                      \
+        if ( err != hipSuccess ) {                                                                                      \
+            pr_debug( "HIP error at %s:%d: %s", __FILE__, __LINE__, hipGetErrorString( err ) );                          \
+            return false;                                                                                               \
+        }                                                                                                               \
+    } while ( 0 )
+
+__host__ bool map_gen_load_block_hip( glm::ivec3 *chunk_pos, BlockState *blocks ) {
 
     BlockState *device_blocks;
-    hipMalloc( &device_blocks, CHUNK_BLOCK_SIZE * sizeof( BlockState ) );
+    HIP_CHECK( hipMalloc( &device_blocks, CHUNK_BLOCK_SIZE * sizeof( BlockState ) ) );
 
     int num_columns = CHUNK_SIZE_INTERNAL_X * CHUNK_SIZE_INTERNAL_Z;
     hip_set_block<<<( num_columns + ( NUM_THREADS_PER_BLOCK - 1 ) ) / NUM_THREADS_PER_BLOCK, NUM_THREADS_PER_BLOCK, 0>>>( device_blocks, chunk_pos->x * CHUNK_SIZE_X, chunk_pos->y * CHUNK_SIZE_Y, chunk_pos->z * CHUNK_SIZE_Z );
+    // Kernel launch errors (e.g. no code object for this GPU's arch) are
+    // reported asynchronously; check both the launch and the execution.
+    HIP_CHECK( hipGetLastError( ) );
+    HIP_CHECK( hipDeviceSynchronize( ) );
 
-    hipMemcpy( blocks, device_blocks, CHUNK_BLOCK_SIZE * sizeof( BlockState ), hipMemcpyDeviceToHost );
-    hipFree( device_blocks );
+    HIP_CHECK( hipMemcpy( blocks, device_blocks, CHUNK_BLOCK_SIZE * sizeof( BlockState ), hipMemcpyDeviceToHost ) );
+    HIP_CHECK( hipFree( device_blocks ) );
+
+    return true;
 }
 
 __host__ int MapGen::host_supports_hip( ) {

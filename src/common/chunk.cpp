@@ -376,7 +376,11 @@ void Chunk::load_terrain( MapStorage &map_storage ) {
                 firstTime = 0;
                 pr_debug( "Using HIP" );
             }
-            MapGen::load_block_hip( this );
+            if ( !MapGen::load_block_hip( this ) ) {
+                // HIP failed (e.g. no code object for this GPU's arch); fall
+                // back to the CPU path instead of leaving blocks uninitialized.
+                MapGen::load_block_c( this );
+            }
         } else {
             if ( firstTime ) {
                 firstTime = 0;
