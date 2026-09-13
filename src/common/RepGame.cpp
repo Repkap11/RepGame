@@ -45,7 +45,8 @@ BlockID RepGame::change_block( const int place, BlockState blockState ) {
 
 unsigned char RepGame::getPlacedRotation( const BlockID blockID ) const {
     unsigned char rotation = BLOCK_ROTATE_0;
-    if ( block_definition_get_definition( blockID )->rotate_on_placement ) {
+    const Block *block = block_definition_get_definition( blockID );
+    if ( block->rotate_on_placement ) {
         if ( globalGameState.camera.angle_H < 45 ) {
             rotation = BLOCK_ROTATE_0;
         } else if ( globalGameState.camera.angle_H < 135 ) {
@@ -56,6 +57,20 @@ unsigned char RepGame::getPlacedRotation( const BlockID blockID ) const {
             rotation = BLOCK_ROTATE_270;
         } else {
             rotation = BLOCK_ROTATE_0;
+        }
+    }
+    // Torches can be placed on the sides of blocks.
+    // rotation >= 4 encodes attachment face: 4=LEFT, 5=FRONT, 6=RIGHT, 7=BACK
+    if ( block->is_torch ) {
+        int face = globalGameState.block_selection.face;
+        if ( face == FACE_RIGHT ) {
+            rotation = 4;       // attached LEFT (solid block is to the left)
+        } else if ( face == FACE_FRONT ) {
+            rotation = 5;       // attached FRONT (solid block is in front)
+        } else if ( face == FACE_LEFT ) {
+            rotation = 6;       // attached RIGHT (solid block is to the right)
+        } else if ( face == FACE_BACK ) {
+            rotation = 7;       // attached BACK (solid block is behind)
         }
     }
     return rotation;
@@ -106,6 +121,10 @@ void RepGame::process_mouse_events( ) {
         BlockID holdingBlock = globalGameState.hotbar.getSelectedBlock( );
         if ( holdingBlock != LAST_BLOCK_ID ) {
             const unsigned char rotation = getPlacedRotation( holdingBlock );
+            const Block *holdingBlockDef = block_definition_get_definition( holdingBlock );
+            if ( holdingBlockDef->is_torch ) {
+                pr_debug( "Placing torch face:%d rotation:%d", globalGameState.block_selection.face, rotation );
+            }
             change_block( 1, { holdingBlock, rotation, 0, holdingBlock } );
             globalGameState.input.click_delay_right = 30;
         }
@@ -337,6 +356,7 @@ void RepGame::tick( ) {
         glm::vec3 pos_with_reach = globalGameState.camera.pos + ( globalGameState.camera.look * static_cast<float>( REACH_DISTANCE ) );
         globalGameState.block_selection.selectionInBounds = RayTraversal::find_block_from_to( globalGameState.world, nullptr, globalGameState.camera.pos, pos_with_reach, globalGameState.block_selection.pos_destroy, &whichFace, 0, 1, 0 );
 
+        globalGameState.block_selection.face = whichFace;
         globalGameState.block_selection.pos_create.x = globalGameState.block_selection.pos_destroy.x + ( whichFace == FACE_RIGHT ) - ( whichFace == FACE_LEFT );
         globalGameState.block_selection.pos_create.y = globalGameState.block_selection.pos_destroy.y + ( whichFace == FACE_TOP ) - ( whichFace == FACE_BOTTOM );
         globalGameState.block_selection.pos_create.z = globalGameState.block_selection.pos_destroy.z + ( whichFace == FACE_BACK ) - ( whichFace == FACE_FRONT );

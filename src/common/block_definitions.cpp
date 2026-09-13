@@ -222,6 +222,7 @@ void block_definitions_initilize_definitions( Texture *texture ) {
         block_definitions[ id ].icon_is_isometric = false;
         block_definitions[ id ].needs_place_on_any_solid[ FACE_TOP ] = true;
         block_definitions[ id ].breaks_in_liquid = true;
+        block_definitions[ id ].is_torch = true;
     }
     constexpr BlockID flower_shaped[] = { RED_MUSHROOM, BROWN_MUSHROOM, BLUE_FLOWER, TURTLE_EGGS1, TURTLE_EGGS2, EMPTY_POT, POPPY_FLOWER, LARGE_WHITE_FLOWER, BLACK_FLOWER };
     for ( const BlockID id : flower_shaped ) {

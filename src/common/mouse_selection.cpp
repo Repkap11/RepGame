@@ -104,6 +104,19 @@ void MouseSelection::set_block( const glm::ivec3 &pos, const bool shouldDraw, co
         blockCoords.offset_y = PIXEL_TO_FLOAT( block->offset.y );
         blockCoords.offset_z = PIXEL_TO_FLOAT( block->offset.z );
 
+        // Offset selection box for side-mounted torches
+        if ( block->is_torch && blockState.rotation >= 4 ) {
+            if ( blockState.rotation == 4 ) {
+                blockCoords.offset_x = 0.0f;
+            } else if ( blockState.rotation == 5 ) {
+                blockCoords.offset_z = PIXEL_TO_FLOAT( 16 - block->scale.z );
+            } else if ( blockState.rotation == 6 ) {
+                blockCoords.offset_x = PIXEL_TO_FLOAT( 16 - block->scale.x );
+            } else if ( blockState.rotation == 7 ) {
+                blockCoords.offset_z = 0.0f;
+            }
+        }
+
         blockCoords.face_shift = blockState.rotation;
 
         this->render_chain_mouse_selection.invalidate( this->entity );

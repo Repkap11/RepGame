@@ -24,9 +24,20 @@ int find_largest_redstone_power_around( World &world, const glm::ivec3 &pos, boo
         if ( neighbor.id == LAST_BLOCK_ID ) {
             continue;
         }
-        // Always skip a torch above - torches don't power their attachment block
-        if ( dir.y == 1 && neighbor.id == REDSTONE_TORCH ) {
-            continue;
+        // Skip torches that are attached to this position (torch doesn't power attachment)
+        if ( neighbor.id == REDSTONE_TORCH ) {
+            // rotation 0: attached below, so torch above (dir.y==1) is attached
+            // rotation 4: attached left, so torch to the right (dir.x==1) is attached
+            // rotation 5: attached front, so torch behind (dir.z==1) is attached
+            // rotation 6: attached right, so torch to the left (dir.x==-1) is attached
+            // rotation 7: attached back, so torch in front (dir.z==-1) is attached
+            if ( ( neighbor.rotation == 0 && dir.y == 1 ) ||
+                 ( neighbor.rotation == 4 && dir.x == 1 ) ||
+                 ( neighbor.rotation == 5 && dir.z == 1 ) ||
+                 ( neighbor.rotation == 6 && dir.x == -1 ) ||
+                 ( neighbor.rotation == 7 && dir.z == -1 ) ) {
+                continue;
+            }
         }
         const Block *neighbor_block = block_definition_get_definition( neighbor.id );
         // For dust: skip soft-powered solid blocks (power <= 1)
@@ -208,13 +219,25 @@ void perform_checks( BlockUpdateQueue &blockUpdateQueue, World &world, long tick
             // Redstone block: always emits power
             new_power = affecting_block->initial_redstone_power;
         } else if ( affecting_block_state.id == REDSTONE_TORCH ) {
-            // Torch turns off only when its attachment block (below) is STRONGLY powered.
+            // Torch turns off only when its attachment block is STRONGLY powered.
             // Weak power (from dust) does NOT turn off a torch.
             // The torch does NOT power its own attachment block, so no self-feedback.
-            glm::ivec3 below_pos = glm::ivec3( affecting_block_pos.x, affecting_block_pos.y - 1, affecting_block_pos.z );
-            BlockState below_state = world.get_loaded_block( below_pos );
+            // Attachment direction: rotation 0=below, 4=left, 5=front, 6=right, 7=back
+            glm::ivec3 attach_pos = affecting_block_pos;
+            if ( affecting_block_state.rotation == 0 ) {
+                attach_pos.y -= 1;
+            } else if ( affecting_block_state.rotation == 4 ) {
+                attach_pos.x -= 1;
+            } else if ( affecting_block_state.rotation == 5 ) {
+                attach_pos.z -= 1;
+            } else if ( affecting_block_state.rotation == 6 ) {
+                attach_pos.x += 1;
+            } else if ( affecting_block_state.rotation == 7 ) {
+                attach_pos.z += 1;
+            }
+            BlockState attach_state = world.get_loaded_block( attach_pos );
             // Power > 1 means hard power (from torch/redstone block); power 1 is soft (from dust)
-            new_power = below_state.current_redstone_power > 1 ? 0 : REDSTONE_TORCH_POWER;
+            new_power = attach_state.current_redstone_power > 1 ? 0 : REDSTONE_TORCH_POWER;
         } else if ( affecting_block->transmits_redstone_power ) {
             // Dust: power = max(neighbors) - 1, skipping soft-powered solid blocks
             int maximum_power = find_largest_redstone_power_around( world, affecting_block_pos, false, true );
@@ -233,15 +256,13 @@ void perform_checks( BlockUpdateQueue &blockUpdateQueue, World &world, long tick
             // Check for hard power sources:
             // - Redstone block (any direction): hard power 15
             // - Torch below (dir.y == -1): hard power 15 (torch strongly powers block above)
-            // Torch above (dir.y == 1) is skipped: torch doesn't power its attachment block.
-            // Torch to the side gives soft power, handled below.
+            // - Torch above (dir.y == 1) with rotation 0: skip (torch doesn't power attachment)
+            // - Torch to the side attached to this block: skip (doesn't power attachment)
+            // Torch to the side NOT attached to this block: soft power, handled below.
             for ( const glm::ivec3 &dir : directions ) {
                 BlockState neighbor = world.get_loaded_block( affecting_block_pos + dir );
                 if ( neighbor.id == LAST_BLOCK_ID ) {
                     continue;
-                }
-                if ( dir.y == 1 && neighbor.id == REDSTONE_TORCH ) {
-                    continue; // Torch doesn't power its attachment
                 }
                 const Block *neighbor_block = block_definition_get_definition( neighbor.id );
                 if ( neighbor_block->initial_redstone_power > 0 ) {
@@ -251,13 +272,31 @@ void perform_checks( BlockUpdateQueue &blockUpdateQueue, World &world, long tick
                     }
                 }
                 if ( neighbor.id == REDSTONE_TORCH && neighbor.current_redstone_power > 0 ) {
+                    // Check if this torch is attached to this block (skip if so)
+                    // Torch attachment offset: rotation 0=(0,-1,0), 4=(-1,0,0), 5=(0,0,-1), 6=(1,0,0), 7=(0,0,1)
+                    // Torch is attached to this block if attachment_offset == -dir
+                    bool is_attached = false;
+                    if ( neighbor.rotation == 0 && dir.y == 1 ) {
+                        is_attached = true;
+                    } else if ( neighbor.rotation == 4 && dir.x == 1 ) {
+                        is_attached = true;
+                    } else if ( neighbor.rotation == 5 && dir.z == 1 ) {
+                        is_attached = true;
+                    } else if ( neighbor.rotation == 6 && dir.x == -1 ) {
+                        is_attached = true;
+                    } else if ( neighbor.rotation == 7 && dir.z == -1 ) {
+                        is_attached = true;
+                    }
+                    if ( is_attached ) {
+                        continue; // Torch doesn't power its attachment block
+                    }
                     if ( dir.y == -1 ) {
                         // Torch below: strongly powers this block (hard power 15)
                         if ( REDSTONE_TORCH_POWER > new_power ) {
                             new_power = REDSTONE_TORCH_POWER;
                         }
                     }
-                    // Torch to the side: weakly powers (soft power 1), handled below
+                    // Torch to the side (not attached): weakly powers (soft power 1), handled below
                 }
             }
 
@@ -266,7 +305,7 @@ void perform_checks( BlockUpdateQueue &blockUpdateQueue, World &world, long tick
                 // Dust will read this and decay by 1.
             } else if ( affecting_block->affected_by_redstone_power ) {
                 new_power = 0;
-                // Check for soft power (dust adjacent, or torch to the side)
+                // Check for soft power (dust adjacent, or torch to the side not attached)
                 for ( const glm::ivec3 &dir : directions ) {
                     BlockState neighbor = world.get_loaded_block( affecting_block_pos + dir );
                     if ( neighbor.id == LAST_BLOCK_ID ) {
@@ -277,10 +316,24 @@ void perform_checks( BlockUpdateQueue &blockUpdateQueue, World &world, long tick
                         new_power = 1; // Soft power from dust
                         break;
                     }
-                    // Torch to the side gives soft power (weak power)
-                    if ( dir.y == 0 && neighbor.id == REDSTONE_TORCH && neighbor.current_redstone_power > 0 ) {
-                        new_power = 1; // Soft power from torch side
-                        break;
+                    // Torch to the side (not attached to this block) gives soft power
+                    if ( neighbor.id == REDSTONE_TORCH && neighbor.current_redstone_power > 0 ) {
+                        bool is_attached = false;
+                        if ( neighbor.rotation == 0 && dir.y == 1 ) {
+                            is_attached = true;
+                        } else if ( neighbor.rotation == 4 && dir.x == 1 ) {
+                            is_attached = true;
+                        } else if ( neighbor.rotation == 5 && dir.z == 1 ) {
+                            is_attached = true;
+                        } else if ( neighbor.rotation == 6 && dir.x == -1 ) {
+                            is_attached = true;
+                        } else if ( neighbor.rotation == 7 && dir.z == -1 ) {
+                            is_attached = true;
+                        }
+                        if ( !is_attached && dir.y == 0 ) {
+                            new_power = 1; // Soft power from torch side
+                            break;
+                        }
                     }
                 }
             }
@@ -302,17 +355,31 @@ void perform_checks( BlockUpdateQueue &blockUpdateQueue, World &world, long tick
     }
 
     bool block_is_ok_to_place = true;
-    for ( int face = FACE_TOP; face < NUM_FACES_IN_CUBE; face++ ) {
-        int rotated_face = get_rotated_face( face, updateing_block_state.rotation );
-        if ( updateing_block->needs_place_on_any_solid[ rotated_face ] ) {
-            BlockID next_to_block_id = world.get_loaded_block( glm::ivec3( block_pos.x - FACE_DIR_X_OFFSETS[ face ], block_pos.y - FACE_DIR_Y_OFFSETS[ face ], block_pos.z - FACE_DIR_Z_OFFSETS[ face ] ) ).id;
-            if ( updateing_block->needs_place_on_solid_but_can_stack_on_self && next_to_block_id == updateing_block_state.id ) {
-                block_is_ok_to_place = true;
-                break;
-            } else {
-                block_is_ok_to_place = block_definition_get_definition( next_to_block_id )->collides_with_player;
-                if ( block_is_ok_to_place ) {
+    if ( updateing_block->is_torch && updateing_block_state.rotation >= 4 ) {
+        // Side-mounted torch: check the attachment block is still solid.
+        // rotation 4=attached LEFT(solid at x-1), 5=FRONT(z-1), 6=RIGHT(x+1), 7=BACK(z+1)
+        // The formula checks block_pos - FACE_DIR_OFFSETS[face], so we need the OPPOSITE face:
+        //   solid at x-1 → need face with offset +1 → FACE_RIGHT
+        //   solid at z-1 → need face with offset +1 → FACE_FRONT
+        //   solid at x+1 → need face with offset -1 → FACE_LEFT
+        //   solid at z+1 → need face with offset -1 → FACE_BACK
+        static const int rot_to_face[ 4 ] = { FACE_RIGHT, FACE_BACK, FACE_LEFT, FACE_FRONT };
+        int attach_face = rot_to_face[ updateing_block_state.rotation - 4 ];
+        BlockID next_to_block_id = world.get_loaded_block( glm::ivec3( block_pos.x - FACE_DIR_X_OFFSETS[ attach_face ], block_pos.y - FACE_DIR_Y_OFFSETS[ attach_face ], block_pos.z - FACE_DIR_Z_OFFSETS[ attach_face ] ) ).id;
+        block_is_ok_to_place = block_definition_get_definition( next_to_block_id )->collides_with_player;
+    } else {
+        for ( int face = FACE_TOP; face < NUM_FACES_IN_CUBE; face++ ) {
+            int rotated_face = get_rotated_face( face, updateing_block_state.rotation );
+            if ( updateing_block->needs_place_on_any_solid[ rotated_face ] ) {
+                BlockID next_to_block_id = world.get_loaded_block( glm::ivec3( block_pos.x - FACE_DIR_X_OFFSETS[ face ], block_pos.y - FACE_DIR_Y_OFFSETS[ face ], block_pos.z - FACE_DIR_Z_OFFSETS[ face ] ) ).id;
+                if ( updateing_block->needs_place_on_solid_but_can_stack_on_self && next_to_block_id == updateing_block_state.id ) {
+                    block_is_ok_to_place = true;
                     break;
+                } else {
+                    block_is_ok_to_place = block_definition_get_definition( next_to_block_id )->collides_with_player;
+                    if ( block_is_ok_to_place ) {
+                        break;
+                    }
                 }
             }
         }

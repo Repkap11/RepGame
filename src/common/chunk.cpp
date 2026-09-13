@@ -977,6 +977,28 @@ void Chunk::calculate_populated_blocks( ) {
                             }
                         }
 
+                        // Offset torches that are mounted on the side of blocks.
+                        // rotation 4=attached LEFT, 5=attached FRONT, 6=attached RIGHT, 7=attached BACK
+                        // Push the torch towards the wall it's attached to.
+                        if ( block->is_torch && blockState.rotation >= 4 ) {
+                            // Torch scale is (2, 10, 2), offset is (7, 0, 7)
+                            // Push towards the wall: set offset to 0 on the wall side,
+                            // or 14 (=16-2) on the opposite side
+                            if ( blockState.rotation == 4 ) {
+                                // Attached LEFT: push to left wall
+                                blockCoord->offset_x = 0.0f;
+                            } else if ( blockState.rotation == 5 ) {
+                                // Attached FRONT: push to back (towards wall at z+1)
+                                blockCoord->offset_z = 14.0f / 16.0f;
+                            } else if ( blockState.rotation == 6 ) {
+                                // Attached RIGHT: push to right wall
+                                blockCoord->offset_x = 14.0f / 16.0f;
+                            } else if ( blockState.rotation == 7 ) {
+                                // Attached BACK: push to front (towards wall at z-1)
+                                blockCoord->offset_z = 0.0f;
+                            }
+                        }
+
                         // They are offset by 1 in the shader...
                         for ( int i = 0; i < NUM_FACES_IN_CUBE; i++ ) {
                             blockCoord->face[ i ] = blockCoord->face[ i ] - 1;

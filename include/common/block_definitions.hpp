@@ -361,6 +361,7 @@ typedef struct {
     } calculated;
     bool connects_to_redstone_dust;
     bool is_redstone_dust;
+    bool is_torch;
     BlockID inventory_non_isometric_id;
 
 } Block;

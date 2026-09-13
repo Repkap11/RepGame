@@ -39,6 +39,18 @@ int contains_pixel( Block *pixel_block, BlockState &block_state, const glm::vec3
         scale_z = pixel_block->scale.x;
         offset_x = pixel_block->offset.z;
         offset_z = 16 - pixel_block->scale.x - pixel_block->offset.x;
+    } else if ( block_state.rotation >= 4 ) {
+        // Side-mounted torch: push bounding box towards the wall
+        // rotation 4=attached LEFT, 5=attached FRONT, 6=attached RIGHT, 7=attached BACK
+        if ( block_state.rotation == 4 ) {
+            offset_x = 0;
+        } else if ( block_state.rotation == 5 ) {
+            offset_z = 16 - pixel_block->scale.z;
+        } else if ( block_state.rotation == 6 ) {
+            offset_x = 16 - pixel_block->scale.x;
+        } else if ( block_state.rotation == 7 ) {
+            offset_z = 0;
+        }
     }
 
     float c1_x = block.x + PIXEL_TO_FLOAT( offset_x );
