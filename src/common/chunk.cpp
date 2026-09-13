@@ -260,6 +260,10 @@ void Chunk::set_block_by_index_if_different( int index, const BlockState *blockS
     this->dirty = true;
     this->needs_repopulation = true;
     this->is_empty_chunk = false;
+    // Ensure the chunk enters the drawable list so the remeshing loop visits
+    // it. An empty chunk has should_render == 0; without this, a block placed
+    // in it (e.g. via a multiplayer chunk diff) wouldn't render until reload.
+    this->should_render = 1;
 }
 
 void Chunk::persist( MapStorage &map_storage ) const {

@@ -614,6 +614,12 @@ void World::set_loaded_block( const glm::ivec3 &block_pos, BlockState blockState
         chunk.dirty = 1;
         chunk.needs_repopulation = 1;
         chunk.is_empty_chunk = false;
+        // An empty chunk has should_render == 0 (program_terrain only sets it
+        // when a layer has instances), so it's excluded from the drawable list
+        // the remeshing loop walks. Set it here so the chunk enters the list
+        // and gets remeshed this frame. Safe: Chunk::draw also guards on
+        // num_instances != 0, so no stale geometry draws before remeshing.
+        chunk.should_render = 1;
 
     } else {
         // This just means mouse is not pointing at a block
