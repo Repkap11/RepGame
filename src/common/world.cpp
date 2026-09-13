@@ -536,6 +536,7 @@ void World::set_loaded_block( const glm::ivec3 &block_pos, BlockState blockState
         chunk.set_block( diff, blockState );
         chunk.dirty = 1;
         chunk.needs_repopulation = 1;
+        chunk.is_empty_chunk = false;
 
     } else {
         // This just means mouse is not pointing at a block

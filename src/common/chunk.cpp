@@ -238,6 +238,7 @@ void Chunk::set_block_by_index_if_different( int index, const BlockState *blockS
     this->blocks[ index ] = *blockState;
     this->dirty = true;
     this->needs_repopulation = true;
+    this->is_empty_chunk = false;
 }
 
 void Chunk::persist( MapStorage &map_storage ) const {
