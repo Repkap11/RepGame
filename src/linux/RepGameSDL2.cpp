@@ -9,6 +9,23 @@ static RepGameState *globalGameState;
 
 void repgame_linux_process_sdl_events( RepGame &repgame ) {
     SDL_Event event;
+    Input &input = repgame.getInputState( );
+#if defined( REPGAME_WASM )
+    // On mobile, SDL2 converts touch to mouse events. A touch-drag to look
+    // around would be interpreted as holding left-click (mining blocks).
+    // Track touch movement to distinguish tap (break block) from drag (look).
+    static bool touch_active = false;
+    static int touch_start_x = 0, touch_start_y = 0;
+    static bool touch_moved = false;
+    static bool tap_break_pending = false;
+    const int TAP_THRESHOLD_PX = 10;
+    // Clear any pending tap-break from the previous frame so left-click is
+    // only held for one tick (enough to break one block).
+    if ( tap_break_pending ) {
+        input.mouseInput( SDL_BUTTON_LEFT, true );
+        tap_break_pending = false;
+    }
+#endif
     while ( SDL_PollEvent( &event ) ) {
         bool handledMouse = false;
         bool handledKeyboard = false;
@@ -16,7 +33,6 @@ void repgame_linux_process_sdl_events( RepGame &repgame ) {
         imgui_overlay_handle_sdl2_event( &globalGameState->imgui_overlay, &event, &handledMouse, &handledKeyboard );
 #endif
         // pr_debug( "Event: mouse:%d keyboard:%d", handledMouse, handledKeyboard );
-        Input &input = repgame.getInputState( );
         switch ( event.type ) {
             case SDL_KEYDOWN:
             case SDL_KEYUP:
@@ -37,7 +53,33 @@ void repgame_linux_process_sdl_events( RepGame &repgame ) {
                 if ( handledMouse ) {
                     break;
                 }
+#if defined( REPGAME_WASM )
+                if ( event.button.which == SDL_TOUCH_MOUSEID ) {
+                    // Touch-synthesized mouse event — apply tap-vs-drag logic.
+                    if ( event.type == SDL_MOUSEBUTTONDOWN ) {
+                        touch_active = true;
+                        touch_start_x = event.button.x;
+                        touch_start_y = event.button.y;
+                        touch_moved = false;
+                    } else { // SDL_MOUSEBUTTONUP
+                        if ( touch_active ) {
+                            touch_active = false;
+                            if ( !touch_moved ) {
+                                // Tap: forward as a brief left-click so the
+                                // game breaks one block on the next tick.
+                                input.mouseInput( SDL_BUTTON_LEFT, false );
+                                tap_break_pending = true;
+                            }
+                            // Drag: don't forward — camera already moved.
+                        }
+                    }
+                } else {
+                    // Real mouse event (desktop WASM) — forward normally.
+                    input.mouseInput( event.button.button, event.type == SDL_MOUSEBUTTONUP );
+                }
+#else
                 input.mouseInput( event.button.button, event.type == SDL_MOUSEBUTTONUP );
+#endif
                 break;
             case SDL_MOUSEWHEEL:
                 if ( handledMouse ) {
@@ -51,6 +93,15 @@ void repgame_linux_process_sdl_events( RepGame &repgame ) {
                 }
                 input.lookMove( event.motion.xrel, event.motion.yrel );
                 input.mousePosition( event.motion.x, event.motion.y );
+#if defined( REPGAME_WASM )
+                if ( touch_active ) {
+                    int dx = event.motion.x - touch_start_x;
+                    int dy = event.motion.y - touch_start_y;
+                    if ( dx * dx + dy * dy > TAP_THRESHOLD_PX * TAP_THRESHOLD_PX ) {
+                        touch_moved = true;
+                    }
+                }
+#endif
                 break;
             default:
                 break;

@@ -1,9 +1,38 @@
 //clear_fullscreen_functions();
 set_canvas_size();
 
+// On-screen error log for mobile debugging (no DevTools available).
+// Errors are shown as a red overlay at the top of the page.
+var errorOverlay = null;
+function showError(msg) {
+  console.error(msg);
+  if (!errorOverlay) {
+    errorOverlay = document.createElement("div");
+    errorOverlay.style.cssText = "position:fixed;top:0;left:0;right:0;z-index:9999;background:red;color:white;font-family:monospace;font-size:12px;padding:8px;white-space:pre-wrap;max-height:50vh;overflow:auto;";
+    document.body.appendChild(errorOverlay);
+  }
+  errorOverlay.textContent += msg + "\n";
+}
+window.addEventListener("error", function(e) {
+  // emscripten_set_main_loop throws a C++ "unwind" exception each frame to
+  // yield to the browser event loop. It's caught internally by emscripten,
+  // but the global error handler fires first. Suppress it.
+  if (e.message && e.message.includes("unwind")) return;
+  showError(e.message + (e.filename ? " (" + e.filename + ":" + e.lineno + ")" : ""));
+});
+window.addEventListener("unhandledrejection", function(e) {
+  showError("Promise rejection: " + (e.reason && e.reason.message ? e.reason.message : e.reason));
+});
+
 var Module = {
-  print: console.log,
-  printErr: console.error,
+  print: function(msg) { console.log(msg); },
+  printErr: function(msg) {
+    // emscripten_set_main_loop uses a C++ exception to unwind back to the
+    // browser event loop each frame. This shows up as "unwind" in printErr
+    // and is harmless, so suppress it to avoid cluttering the error overlay.
+    if (msg === "unwind") return;
+    showError(msg);
+  },
   onRuntimeInitialized: onModuleReady,
   noInitialRun: true
 };
@@ -106,8 +135,9 @@ function setup_click_handler() {
       });
     }
   }
-  document.addEventListener("keydown", callback);
-  //canvas.onkeydown = callback;
+  // Click works on both desktop and mobile. A user gesture is required to
+  // request pointer lock, so the game can't start automatically.
+  document.addEventListener("click", callback);
 }
 
 // Webkit/Blink will fire this on load, but Gecko doesn't.
