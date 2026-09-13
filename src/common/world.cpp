@@ -143,7 +143,12 @@ void World::set_selected_block( const glm::ivec3 &selected, const bool shouldDra
 #define WATER_THRESHOLD_P ( 0.02 )
 #define WATER_THRESHOLD_N ( -0.01 )
 void World::draw( const Texture &blocksTexture, const glm::mat4 &mvp, const glm::mat4 &mvp_reflect, const glm::mat4 &mvp_sky, const glm::mat4 &mvp_sky_reflect, const int debug, const int draw_mouse_selection, const float y_height,
-                  const bool headInWater, WorldDrawQuality worldDrawQuality, const glm::vec3 &camera_pos ) {
+                  const bool headInWater, WorldDrawQuality worldDrawQuality, const glm::vec3 &camera_pos, const glm::ivec3 &renderOrigin ) {
+
+    const glm::vec3 renderOriginF = glm::vec3( renderOrigin );
+    // Camera and block positions are rebased by u_Origin in the vertex shaders,
+    // so u_CameraPos must also be relative to the origin for fog distance.
+    const glm::vec3 camera_pos_rebased = camera_pos - renderOriginF;
 
     const bool useFrameBuffer = SUPPORTS_FRAME_BUFFER && ( worldDrawQuality >= WorldDrawQuality::MEDIUM );
     const bool usingReflections = useFrameBuffer && ( worldDrawQuality >= WorldDrawQuality::HIGH );
@@ -190,7 +195,8 @@ void World::draw( const Texture &blocksTexture, const glm::mat4 &mvp, const glm:
     this->chunkLoader.shader.set_uniform3f( "u_FogColor", fog_color.r, fog_color.g, fog_color.b );
     this->chunkLoader.shader.set_uniform1f( "u_FogNear", fog_near );
     this->chunkLoader.shader.set_uniform1f( "u_FogFar", fog_far );
-    this->chunkLoader.shader.set_uniform3f( "u_CameraPos", camera_pos.x, camera_pos.y, camera_pos.z );
+    this->chunkLoader.shader.set_uniform3f( "u_CameraPos", camera_pos_rebased.x, camera_pos_rebased.y, camera_pos_rebased.z );
+    this->chunkLoader.shader.set_uniform3f( "u_Origin", renderOriginF.x, renderOriginF.y, renderOriginF.z );
     this->chunkLoader.shader.set_uniform3f( "u_SkyAvgColor", fog_blend_color.r, fog_blend_color.g, fog_blend_color.b );
     // Opaque fog stores the fog factor in a dedicated fog texture (attachment 2)
     // for post-process sky blending. Works in all framebuffer modes since the
@@ -201,7 +207,8 @@ void World::draw( const Texture &blocksTexture, const glm::mat4 &mvp, const glm:
     this->object_shader.set_uniform3f( "u_FogColor", fog_color.r, fog_color.g, fog_color.b );
     this->object_shader.set_uniform1f( "u_FogNear", fog_near );
     this->object_shader.set_uniform1f( "u_FogFar", fog_far );
-    this->object_shader.set_uniform3f( "u_CameraPos", camera_pos.x, camera_pos.y, camera_pos.z );
+    this->object_shader.set_uniform3f( "u_CameraPos", camera_pos_rebased.x, camera_pos_rebased.y, camera_pos_rebased.z );
+    this->object_shader.set_uniform3f( "u_Origin", renderOriginF.x, renderOriginF.y, renderOriginF.z );
     this->object_shader.set_uniform3f( "u_SkyAvgColor", fog_blend_color.r, fog_blend_color.g, fog_blend_color.b );
     this->object_shader.set_uniform1i( "u_OpaqueFog", useFogBlend ? 1 : 0 );
 
@@ -267,6 +274,8 @@ void World::draw( const Texture &blocksTexture, const glm::mat4 &mvp, const glm:
 #endif
     this->object_shader.set_uniform_mat4f( "u_MVP", mvp_sky );
     this->object_shader.set_uniform1i( "u_IsSky", 1 );
+    // Sky uses mvp_sky (no view translation), so it must NOT be rebased.
+    this->object_shader.set_uniform3f( "u_Origin", 0.0f, 0.0f, 0.0f );
     this->skyBox.draw( this->renderer, this->object_shader ); // Sky
 #if ( SUPPORTS_FRAME_BUFFER )
     if ( useFrameBuffer ) {
@@ -277,7 +286,7 @@ void World::draw( const Texture &blocksTexture, const glm::mat4 &mvp, const glm:
 #endif
     glEnable( GL_DEPTH_TEST );
 
-    this->chunkLoader.calculate_cull( mvp, false );
+    this->chunkLoader.calculate_cull( mvp, false, renderOrigin );
     this->chunkLoader.shader.set_uniform1f( "u_ExtraAlpha", 1.0f );
     this->chunkLoader.shader.set_uniform1i( "u_DrawToReflection", 0 );
     this->chunkLoader.shader.set_uniform1f( "u_ReflectionHeight", 0 );
@@ -290,7 +299,7 @@ void World::draw( const Texture &blocksTexture, const glm::mat4 &mvp, const glm:
 
     this->chunkLoader.shader.set_uniform1i( "u_TintUnderWater", 0 );
     if ( draw_mouse_selection ) {
-        this->mouseSelection.draw( this->renderer, mvp );
+        this->mouseSelection.draw( this->renderer, mvp, renderOriginF );
     }
 
     // Per-attachment blend is already set correctly: color uses normal alpha
@@ -335,17 +344,24 @@ void World::draw( const Texture &blocksTexture, const glm::mat4 &mvp, const glm:
         this->object_shader.set_uniform1i( "u_DrawToReflection", 1 );
         this->object_shader.set_uniform_mat4f( "u_MVP", mvp_sky_reflect );
         this->object_shader.set_uniform1i( "u_IsSky", 1 );
+        // Reflected sky: no view translation, so u_Origin = 0 and u_ReflectionHeight
+        // stays in absolute (unrebased) space.
+        this->object_shader.set_uniform3f( "u_Origin", 0.0f, 0.0f, 0.0f );
         this->skyBox.draw( this->renderer, this->object_shader ); // Reflected sky
 
         this->object_shader.set_uniform_mat4f( "u_MVP", mvp_reflect );
         this->object_shader.set_uniform1i( "u_IsSky", 0 );
+        // Reflected mobs: rebased like normal mobs. u_ReflectionHeight must be
+        // rebased so v_planarDot = (worldY - origin.y) + (offset + origin.y) = worldY + offset.
+        this->object_shader.set_uniform3f( "u_Origin", renderOriginF.x, renderOriginF.y, renderOriginF.z );
+        this->object_shader.set_uniform1f( "u_ReflectionHeight", offset + renderOriginF.y );
         this->multiplayer_avatars.draw( this->renderer, this->object_shader ); // Reflected mobs
 
         this->chunkLoader.shader.set_uniform1i( "u_DrawToReflection", true );
         this->chunkLoader.shader.set_uniform1f( "u_ExtraAlpha", 1.0f ); // this make reflections not solid...
-        this->chunkLoader.shader.set_uniform1f( "u_ReflectionHeight", offset );
+        this->chunkLoader.shader.set_uniform1f( "u_ReflectionHeight", offset + renderOriginF.y );
         this->chunkLoader.shader.set_uniform1i( "u_TintUnderWater", block_water_tint_type );
-        this->chunkLoader.calculate_cull( mvp_reflect, true );
+        this->chunkLoader.calculate_cull( mvp_reflect, true, renderOrigin );
         this->chunkLoader.draw( mvp_reflect, this->renderer, blocksTexture, false, true, useFrameBuffer ); // Reflected blocks
 
         this->chunkLoader.shader.set_uniform1f( "u_ReflectionHeight", 0 );

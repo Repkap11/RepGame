@@ -27,6 +27,7 @@ uniform int u_TintUnderWater;
 uniform float u_ReflectionDotSign;
 uniform int u_DrawToReflection;
 uniform float u_ExtraAlpha;
+uniform vec3 u_Origin;
 #if !defined(REPGAME_LOW_GRAPHICS)
 uniform int u_OpaqueFog;
 uniform int u_AlphaToCoverage;
@@ -129,7 +130,7 @@ void main() {
     if(u_ShowRotation != -2.0f) {
         texColor.rgb *= adjusted_face;
     }
-    if(u_TintUnderWater == TINT_UNDER_WATER_OBJECT_ALWAYS || (u_TintUnderWater == TINT_UNDER_WATER_OBJECT_UNDER_Y_LEVEL && v_world_coords.y < (-0.125f - eps))) {
+    if(u_TintUnderWater == TINT_UNDER_WATER_OBJECT_ALWAYS || (u_TintUnderWater == TINT_UNDER_WATER_OBJECT_UNDER_Y_LEVEL && v_world_coords.y < (-0.125f - u_Origin.y - eps))) {
         texColor = mix(texColor, vec4(0.122f, 0.333f, 1.0f, 1.0f), 0.7f);
     }
     float corner_light = v_corner_lighting;

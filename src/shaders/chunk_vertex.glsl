@@ -2,6 +2,11 @@
 uniform mat4 u_MVP;
 uniform vec3 u_DebugScaleOffset;
 uniform float u_ReflectionHeight;
+// Floating-origin offset (integer-valued, snapped to chunk grid). Subtracted
+// from absolute block coordinates so all GPU math stays near zero regardless
+// of how far the player is from the world origin. Exact in float32 because
+// both blockCoords and u_Origin are integer-valued and < 2^24.
+uniform vec3 u_Origin;
 
 #define MAX_ROTATABLE_BLOCK 100u
 uniform float u_RandomRotationBlocks[MAX_ROTATABLE_BLOCK];
@@ -102,7 +107,7 @@ void main() {
     adjusted_position.y += blockCoords_offset_adjust.y;
     adjusted_position.z += blockCoords_offset_adjust.z;
 
-    v_world_coords = adjusted_position + blockCoords;
+    v_world_coords = adjusted_position + blockCoords - u_Origin;
 
     vec4 vertex = vec4(v_world_coords, 1);
     gl_Position = u_MVP * vertex;

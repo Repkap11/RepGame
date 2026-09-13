@@ -1,6 +1,7 @@
 #version 300 es
 
 uniform mat4 u_MVP;
+uniform vec3 u_Origin;
 
 // See CubeFace in block.h
 layout( location = 0 ) in vec3 position;
@@ -62,7 +63,7 @@ void main( ) {
     adjusted_position.y += blockCoords_offset_adjust.y;
     adjusted_position.z += blockCoords_offset_adjust.z;
 
-    vec3 world_coords = adjusted_position + blockCoords;
+    vec3 world_coords = adjusted_position + blockCoords - u_Origin;
     gl_Position = u_MVP * vec4( world_coords, 1.0f );
 
     v_local_pos = position;

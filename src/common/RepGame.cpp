@@ -630,6 +630,17 @@ void RepGame::draw( float alpha ) {
     glm::mat4 render_view_trans;
     build_camera_view( render_angle_H, render_angle_V, render_pos, render_look, render_rotation, render_view_look, render_view_trans );
 
+    // Floating origin: snap an integer origin to the chunk grid so all
+    // coordinates fed to the GPU stay near zero regardless of how far the
+    // player is from the world origin. blockCoords in the VBO are
+    // integer-valued floats, so subtracting the integer u_Origin in the
+    // shader is exact in float32 (both < 2^24). The view translation also
+    // becomes small, eliminating the large-float cancellation that caused
+    // Z-fighting between the selection outline and terrain at distance.
+    const glm::ivec3 renderOrigin = glm::ivec3( glm::floor( render_pos / CHUNK_SIZE_F ) ) * CHUNK_SIZE_I;
+    const glm::vec3 renderOriginF = glm::vec3( renderOrigin );
+    render_view_trans = glm::translate( glm::mat4( 1.0f ), -1.0f * ( render_pos - renderOriginF ) );
+
     const glm::mat4 mvp_sky = globalGameState.screen.proj * render_view_look;
     // glm::mat4 mvp_sky_reflect = globalGameState.screen.proj * globalGameState.camera.view_look;
 
@@ -699,7 +710,7 @@ void RepGame::draw( float alpha ) {
     {
         const long long t_world_draw_start = now_us( );
         globalGameState.world.draw( globalGameState.blocksTexture, mvp, mvp_reflect, mvp_sky, mvp_sky_reflect, globalGameState.input.debug_mode, !globalGameState.input.inventory_open, render_pos.y, headInWater,
-                                    globalGameState.input.worldDrawQuality, render_pos );
+                                    globalGameState.input.worldDrawQuality, render_pos, renderOrigin );
         profiling.us_world_draw = now_us( ) - t_world_draw_start;
     }
 

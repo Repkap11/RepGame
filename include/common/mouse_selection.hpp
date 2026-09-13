@@ -13,6 +13,6 @@ class MouseSelection {
   public:
     void init( const VertexBufferLayout &vbl_block, const VertexBufferLayout &vbl_coords );
     void set_block( const glm::ivec3 &pos, bool shouldDraw, const BlockState &blockState );
-    void draw( const Renderer &renderer, const glm::mat4 &mvp );
+    void draw( const Renderer &renderer, const glm::mat4 &mvp, const glm::vec3 &origin );
     void destroy( );
 };

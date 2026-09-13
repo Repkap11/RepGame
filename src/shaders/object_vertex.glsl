@@ -1,6 +1,7 @@
 #version 300 es
 uniform mat4 u_MVP;
 uniform float u_ReflectionHeight;
+uniform vec3 u_Origin;
 
 #define FACE_TOP 0u
 #define FACE_BOTTOM 1u
@@ -27,7 +28,7 @@ out vec4 v_world_coords;
 
 
 void main( ) {
-    v_world_coords = transform * vec4( position, 1 );
+    v_world_coords = transform * vec4( position, 1 ) - vec4( u_Origin, 0.0 );
     gl_Position = u_MVP * v_world_coords;
     v_planarDot = dot( v_world_coords, vec4( 0, 1, 0, u_ReflectionHeight ) );
 

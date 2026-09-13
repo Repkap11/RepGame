@@ -233,12 +233,12 @@ void ChunkLoader::rebuild_drawable_list( ) {
 // float chunk_diameter = ( CHUNK_SIZE + 1 ) * 1.73205080757; // sqrt(3)
 float chunk_diameter = ( CHUNK_SIZE_Z + 1 ) * 1.73205080757; // sqrt(3)
 
-void ChunkLoader::calculate_cull( const glm::mat4 &mvp, const bool saveAsReflection ) const {
+void ChunkLoader::calculate_cull( const glm::mat4 &mvp, const bool saveAsReflection, const glm::ivec3 &renderOrigin ) const {
     for ( int i = 0; i < this->num_drawable; i++ ) {
         int final_is_visible;
         Chunk *chunk = this->drawable_chunks[ i ];
         if constexpr ( CULL_NON_VISIBLE ) {
-            glm::vec4 chunk_coords = glm::vec4( chunk->chunk_pos * CHUNK_SIZE_I + CHUNK_SIZE_I / 2, 1 );
+            glm::vec4 chunk_coords = glm::vec4( chunk->chunk_pos * CHUNK_SIZE_I + CHUNK_SIZE_I / 2 - renderOrigin, 1 );
             glm::vec4 result_v = mvp * chunk_coords;
             const float adjusted_diameter = chunk_diameter / fabsf( result_v.w );
 

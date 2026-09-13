@@ -12,6 +12,7 @@ uniform float u_ReflectionHeight;
 uniform int u_TintUnderWater;
 uniform int u_DrawToReflection;
 uniform float u_ExtraAlpha;
+uniform vec3 u_Origin;
 #if !defined(REPGAME_LOW_GRAPHICS)
 uniform int u_OpaqueFog;
 
@@ -45,7 +46,7 @@ void main( ) {
     if ( texColor.a == 0.0 ) {
         discard;
     }
-    if ( u_TintUnderWater == TINT_UNDER_WATER_OBJECT_ALWAYS || ( u_TintUnderWater == TINT_UNDER_WATER_OBJECT_UNDER_Y_LEVEL && v_world_coords.y < ( -0.125f - eps ) ) ) {
+    if ( u_TintUnderWater == TINT_UNDER_WATER_OBJECT_ALWAYS || ( u_TintUnderWater == TINT_UNDER_WATER_OBJECT_UNDER_Y_LEVEL && v_world_coords.y < ( -0.125f - u_Origin.y - eps ) ) ) {
         texColor = mix( texColor, vec4( 0.122f, 0.333f, 1.0f, 1.0f ), 0.8f );
     }
     vec4 lightedColor = texColor * vec4( v_light, v_light, v_light, u_ExtraAlpha );

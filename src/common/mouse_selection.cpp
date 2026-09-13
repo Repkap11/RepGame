@@ -122,10 +122,11 @@ void MouseSelection::set_block( const glm::ivec3 &pos, const bool shouldDraw, co
         this->render_chain_mouse_selection.invalidate( this->entity );
     }
 }
-void MouseSelection::draw( const Renderer &renderer, const glm::mat4 &mvp ) {
+void MouseSelection::draw( const Renderer &renderer, const glm::mat4 &mvp, const glm::vec3 &origin ) {
     if ( this->shouldDraw ) {
         this->shader.set_uniform_mat4f( "u_MVP", mvp );
         this->shader.set_uniform1f( "u_LineWidth", 3.0f );
+        this->shader.set_uniform3f( "u_Origin", origin.x, origin.y, origin.z );
         this->render_chain_mouse_selection.draw( renderer, this->shader );
     }
 }
