@@ -163,6 +163,9 @@ void ChunkLoader::render_chunks( Multiplayer &multiplayer, const glm::vec3 &came
                 multiplayer.request_chunk( chunk.chunk_pos );
                 int reloaded = reload_if_out_of_bounds( chunk, chunk_pos );
                 if ( !reloaded ) {
+                    // Lazily create this chunk's GL objects on first load so the
+                    // startup loop doesn't block the first frame.
+                    chunk.ensure_gl_init( );
                     // pr_debug( "Paul Loading terrain x:%d y%d: z:%d", chunk->chunk_x, chunk->chunk_y, chunk->chunk_z );
                     process_chunk_position( chunk, chunk_diff, loaded_pos, chunk_pos, 1 );
                     chunk.program_terrain( );

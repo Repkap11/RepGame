@@ -43,6 +43,7 @@ class Chunk {
     friend class Multiplayer;
 
     int is_loading;
+    int gl_initialized;
     bool is_empty_chunk;
     RenderLayer layers[ LAST_RENDER_ORDER ];
     BlockState *blocks;
@@ -58,6 +59,7 @@ class Chunk {
 
   public:
     void init( const VertexBuffer &vb_block_solid, const VertexBuffer &vb_block_water, const VertexBufferLayout &vbl_block, const VertexBufferLayout &vbl_coords );
+    void ensure_gl_init( );
     void draw( const Renderer &renderer, const Texture &texture, const Shader &shader, RenderOrder renderOrder, bool draw_reflect ) const;
     void load_terrain( MapStorage &map_storage ); // Load from file or map gen
     void program_terrain( );                      // Program into GPU

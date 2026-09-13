@@ -127,19 +127,40 @@ int Chunk::get_coords_from_index( const int index, int &out_x, int &out_y, int &
     return result;
 }
 
-void Chunk::init( const VertexBuffer &vb_block_solid, const VertexBuffer &vb_block_water, const VertexBufferLayout &vbl_block, const VertexBufferLayout &vbl_coords ) {
-    if constexpr ( REMEMBER_BLOCKS ) {
-        this->blocks = static_cast<BlockState *>( calloc( CHUNK_BLOCK_SIZE, sizeof( BlockState ) ) );
-    }
+// The shared block vertex buffers and layouts are identical for every chunk, so
+// they are stashed here during ChunkLoader::init and reused when each chunk
+// lazily creates its GL objects on first load (see ensure_gl_init). Deferring
+// GL object creation out of the startup loop avoids ~18k * 20 glGen* calls
+// blocking the first frame.
+static const VertexBuffer *s_vb_block_solid = nullptr;
+static const VertexBuffer *s_vb_block_water = nullptr;
+static const VertexBufferLayout *s_vbl_block = nullptr;
+static const VertexBufferLayout *s_vbl_coords = nullptr;
 
+void Chunk::init( const VertexBuffer &vb_block_solid, const VertexBuffer &vb_block_water, const VertexBufferLayout &vbl_block, const VertexBufferLayout &vbl_coords ) {
+    s_vb_block_solid = &vb_block_solid;
+    s_vb_block_water = &vb_block_water;
+    s_vbl_block = &vbl_block;
+    s_vbl_coords = &vbl_coords;
+    // GL objects and the blocks array are created lazily (see ensure_gl_init /
+    // load_terrain) so the startup loop over MAX_LOADED_CHUNKS doesn't block
+    // the first frame with tens of thousands of glGen*/calloc calls.
+    this->gl_initialized = 0;
+}
+
+void Chunk::ensure_gl_init( ) {
+    if ( this->gl_initialized ) {
+        return;
+    }
+    this->gl_initialized = 1;
     for ( int renderOrder = 0; renderOrder < LAST_RENDER_ORDER; renderOrder++ ) {
         const VertexBuffer *vb_prt;
         switch ( renderOrder ) {
             case RenderOrder_Water:
-                vb_prt = &vb_block_water;
+                vb_prt = s_vb_block_water;
                 break;
             default:
-                vb_prt = &vb_block_solid;
+                vb_prt = s_vb_block_solid;
         }
         const VertexBuffer &vb = *vb_prt;
 
@@ -148,8 +169,8 @@ void Chunk::init( const VertexBuffer &vb_block_solid, const VertexBuffer &vb_blo
         renderLayer.ib_reflect.init( );
         renderLayer.vb_coords.init( );
         renderLayer.va.init( );
-        renderLayer.va.add_buffer( vb, vbl_block );
-        renderLayer.va.add_buffer( renderLayer.vb_coords, vbl_coords );
+        renderLayer.va.add_buffer( vb, *s_vbl_block );
+        renderLayer.va.add_buffer( renderLayer.vb_coords, *s_vbl_coords );
     }
 }
 
@@ -272,6 +293,11 @@ static inline long long now_us( ) {
 
 void Chunk::load_terrain( MapStorage &map_storage ) {
     if constexpr ( !REMEMBER_BLOCKS ) {
+        this->blocks = static_cast<BlockState *>( calloc( CHUNK_BLOCK_SIZE, sizeof( BlockState ) ) );
+    } else if ( this->blocks == nullptr ) {
+        // Lazily allocate the blocks array on first load (on the background
+        // thread) instead of upfront for all MAX_LOADED_CHUNKS chunks during
+        // startup, which blocked the first frame for ~0.9s of calloc calls.
         this->blocks = static_cast<BlockState *>( calloc( CHUNK_BLOCK_SIZE, sizeof( BlockState ) ) );
     }
     this->is_empty_chunk = false;
