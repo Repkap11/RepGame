@@ -31,6 +31,9 @@ void imgui_overlay_attach_to_window( ImGuiOverlay *ui_overlay, SDL_Window *windo
     IMGUI_CHECKVERSION( );
     ImGui::CreateContext( );
     ImGuiIO &io = ImGui::GetIO( );
+    // Don't persist window layout to imgui.ini — the overlay is fixed and
+    // a leftover ini can shrink the window or add a scrollbar on next launch.
+    io.IniFilename = nullptr;
     io.WantCaptureMouse = true;
     // io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard; // Enable Keyboard Controls
     // io.ConfigFlags |= ImGuiConfigFlags_NavEnableSetMousePos; // Enable Keyboard Controls
@@ -82,6 +85,8 @@ void imgui_overlay_draw( ImGuiOverlay *imgui_overlay, Input &input ) {
             ImGui::Text( "Application average %.3f ms/frame (%.1f FPS)", 1000.0f / io.Framerate, io.Framerate );
             ImGui::Text( "Player Pos: %3.2f %3.2f %3.2f", debug_vars.player_pos.x, debug_vars.player_pos.y, debug_vars.player_pos.z );
             ImGui::Text( "Render Mode: %s", qualityName );
+            const char *video_driver = SDL_GetCurrentVideoDriver( );
+            ImGui::Text( "Video Driver: %s", video_driver ? video_driver : "unknown" );
 
             // debug_vars.corner1.x = round( debug_vars.corner1.x * 20 ) / 20;
             // debug_vars.corner1.y = round( debug_vars.corner1.y * 20 ) / 20;

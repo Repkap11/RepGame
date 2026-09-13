@@ -196,9 +196,17 @@ int repgame_sdl2_main( const char *world_path, const char *host, const bool conn
     pr_debug( "Using OpenGL Vendor:%s", opengl_vendor );
 
     glewExperimental = GL_TRUE;
-    if ( glewInit( ) ) {
-        pr_debug( "GLEW init failed" );
-        exit( 1 ); // or handle the error in a nicer way
+    if ( GLenum glew_err = glewInit( ) ) {
+        // glewInit() calls glxewInit() on Unix, which fails with
+        // GLEW_ERROR_NO_GLX_DISPLAY (4) when SDL2 created an EGL context
+        // (e.g. the Wayland video driver). The core GL function pointers
+        // are already loaded by that point (glewContextInit succeeded), so
+        // this particular error is harmless — the game doesn't use GLX.
+        if ( glew_err != GLEW_ERROR_NO_GLX_DISPLAY ) {
+            pr_debug( "GLEW init failed: %s (driver=%s)", glewGetErrorString( glew_err ), SDL_GetCurrentVideoDriver( ) );
+            exit( 1 ); // or handle the error in a nicer way
+        }
+        pr_debug( "GLEW init: GLX unavailable on %s, using EGL-loaded core functions", SDL_GetCurrentVideoDriver( ) );
     }
     ignoreErrors( );
     RepGame *repgamePrt = new RepGame( );
