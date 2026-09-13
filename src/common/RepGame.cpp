@@ -387,6 +387,13 @@ void RepGame::tick( ) {
         }
     }
 
+    // Apply pending block updates before recomputing the selection so the
+    // cursor reflects the post-destruction world. Player clicks queue events
+    // tagged with the current tick, which processAllBlockUpdates defers until
+    // the next tick (it skips events with tick_number >= current_tick); so
+    // the destroy queued last tick is applied here, before the ray cast below.
+    RepGame::process_block_updates( );
+
     if ( RepGame::should_lock_pointer( ) ) {
         RepGame::process_mouse_events( );
         int whichFace = 0;
@@ -437,7 +444,6 @@ void RepGame::tick( ) {
     globalGameState.input.mouse.previousPosition.wheel_counts = globalGameState.input.mouse.currentPosition.wheel_counts;
 
     RepGame::process_inventory_events( );
-    RepGame::process_block_updates( );
 }
 
 void RepGame::initializeGameState( const char *world_name ) {
