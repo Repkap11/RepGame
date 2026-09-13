@@ -32,7 +32,7 @@ void FullScreenQuad::init( ) {
     showErrors( );
 }
 
-void FullScreenQuad::draw_texture( const Renderer &renderer, const Texture &texture, const Texture &depthStencilTexture, float extraAlpha, bool blur, bool ignoreStencil ) {
+void FullScreenQuad::draw_texture( const Renderer &renderer, const Texture &texture, const Texture &depthStencilTexture, float extraAlpha, bool blur, bool ignoreStencil, int discardZeroAlpha ) {
     this->shader.set_uniform1i_texture( "u_Texture", texture );
     this->shader.set_uniform1i_texture( "u_Stencil", depthStencilTexture );
     // Bind u_FogTexture and u_SkyColorTexture to the same multisample texture
@@ -45,7 +45,7 @@ void FullScreenQuad::draw_texture( const Renderer &renderer, const Texture &text
     this->shader.set_uniform1i( "u_TextureSamples", blur ? 1 : this->maxSamples ); // No point sampling more than our max number of samples from our textures.
     this->shader.set_uniform1i( "u_Blur", blur );
     this->shader.set_uniform1i( "u_FogBlend", 0 );
-    this->shader.set_uniform1i( "u_DiscardZeroAlpha", 0 );
+    this->shader.set_uniform1i( "u_DiscardZeroAlpha", discardZeroAlpha );
     this->render_link_fsq.draw( renderer, this->shader );
 }
 

@@ -181,12 +181,17 @@ void World::draw( const Texture &blocksTexture, const glm::mat4 &mvp, const glm:
     const float fog_near = render_distance * 0.60f;
     const float fog_far = render_distance * 0.98f;
     const glm::vec3 fog_color( 0.50f, 0.70f, 0.95f );
+    // When underwater, the fog-blend post-process is disabled (stencil can't
+    // separate water), so terrain fades toward the fog color directly. Use
+    // the water tint color instead of the sky color so distant terrain
+    // blends into the water rather than the sky.
+    const glm::vec3 &fog_blend_color = headInWater ? glm::vec3( 0.122f, 0.333f, 1.0f ) : this->skyBox.get_avg_color( );
 
     this->chunkLoader.shader.set_uniform3f( "u_FogColor", fog_color.r, fog_color.g, fog_color.b );
     this->chunkLoader.shader.set_uniform1f( "u_FogNear", fog_near );
     this->chunkLoader.shader.set_uniform1f( "u_FogFar", fog_far );
     this->chunkLoader.shader.set_uniform3f( "u_CameraPos", camera_pos.x, camera_pos.y, camera_pos.z );
-    this->chunkLoader.shader.set_uniform3f( "u_SkyAvgColor", this->skyBox.get_avg_color( ).r, this->skyBox.get_avg_color( ).g, this->skyBox.get_avg_color( ).b );
+    this->chunkLoader.shader.set_uniform3f( "u_SkyAvgColor", fog_blend_color.r, fog_blend_color.g, fog_blend_color.b );
     // Opaque fog stores the fog factor in a dedicated fog texture (attachment 2)
     // for post-process sky blending. Works in all framebuffer modes since the
     // fog texture is separate from the reflection texture.
@@ -197,7 +202,7 @@ void World::draw( const Texture &blocksTexture, const glm::mat4 &mvp, const glm:
     this->object_shader.set_uniform1f( "u_FogNear", fog_near );
     this->object_shader.set_uniform1f( "u_FogFar", fog_far );
     this->object_shader.set_uniform3f( "u_CameraPos", camera_pos.x, camera_pos.y, camera_pos.z );
-    this->object_shader.set_uniform3f( "u_SkyAvgColor", this->skyBox.get_avg_color( ).r, this->skyBox.get_avg_color( ).g, this->skyBox.get_avg_color( ).b );
+    this->object_shader.set_uniform3f( "u_SkyAvgColor", fog_blend_color.r, fog_blend_color.g, fog_blend_color.b );
     this->object_shader.set_uniform1i( "u_OpaqueFog", useFogBlend ? 1 : 0 );
 
     if ( useFrameBuffer ) {
@@ -379,7 +384,7 @@ void World::draw( const Texture &blocksTexture, const glm::mat4 &mvp, const glm:
             glEnable( GL_STENCIL_TEST );
             glStencilFunc( GL_ALWAYS, 1, 0xFF );               // All fragments should pass the stencil buffer. It's empty anyway.
             glStencilOp( GL_REPLACE, GL_REPLACE, GL_REPLACE ); // Any drawing impacts the stencil buffer and writes a 1
-            this->fullScreenQuad.draw_texture( this->renderer, this->reflectionTexture, this->depthStencilTexture, y_height < 0 ? 0.1 : 0.2, false, false );
+            this->fullScreenQuad.draw_texture( this->renderer, this->reflectionTexture, this->depthStencilTexture, y_height < 0 ? 0.1 : 0.2, false, false, 1 );
             glClear( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT );
 
             glStencilOp( GL_KEEP, GL_KEEP, GL_KEEP ); // Don't change the stencil buffer while we're using it.
@@ -411,7 +416,7 @@ void World::draw( const Texture &blocksTexture, const glm::mat4 &mvp, const glm:
             if ( useFogBlend ) {
                 this->fullScreenQuad.draw_texture_fog( this->renderer, this->reflectionTexture, this->depthStencilTexture, this->fogTexture, this->skyColorTexture, y_height < 0 ? 0.1 : 0.2, allowBlur, headInWater, 1 );
             } else {
-                this->fullScreenQuad.draw_texture( this->renderer, this->reflectionTexture, this->depthStencilTexture, y_height < 0 ? 0.1 : 0.2, allowBlur, headInWater );
+                this->fullScreenQuad.draw_texture( this->renderer, this->reflectionTexture, this->depthStencilTexture, y_height < 0 ? 0.1 : 0.2, allowBlur, headInWater, 1 );
             }
         }
         glEnable( GL_DEPTH_TEST );

@@ -142,9 +142,18 @@ void main() {
         return;
     }
 
-    if(finalColor.a == 0.0) {
-        discard;
+    if(u_DiscardZeroAlpha != 0) {
+        // Reflection compositing: preserve semi-transparency for reflections
+        // blended over the terrain/water beneath.
+        if(finalColor.a == 0.0) {
+            discard;
+        }
+        color = vec4(finalColor.rgb, finalColor.a * u_ExtraAlpha);
+    } else {
+        // Main terrain compositing (non-fog-blend path, e.g. underwater):
+        // the FBO already contains the complete composited image (sky + terrain
+        // with fog blended in-shader), so output opaque to avoid darkening
+        // from the screen clear color where the FBO alpha is < 1.
+        color = vec4(finalColor.rgb, 1.0);
     }
-    finalColor.a *= u_ExtraAlpha;
-    color = finalColor;
 }
