@@ -88,7 +88,7 @@ void main() {
                 ivec2 pixelCoords = multiCoords + offset;
                 uint stencil = stecilSample(pixelCoords);
                 vec4 textureColor = textureSample(pixelCoords);
-                bool valid = u_IgnoreStencil != 0 || stencilCenter == stencil;
+                bool valid = (u_IgnoreStencil != 0 || stencilCenter == stencil) && textureColor.a > 0.0;
                 if(valid) {
                     float weight = (offset.x == 0 && offset.y == 0) ? 1.0 : 1.0 / (offset.x * offset.x + offset.y * offset.y);
                     // float weight = 1.0f;

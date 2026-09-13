@@ -334,7 +334,14 @@ void World::draw( const Texture &blocksTexture, const glm::mat4 &mvp, const glm:
 
             glStencilOp( GL_KEEP, GL_KEEP, GL_KEEP ); // Don't change the stencil buffer while we're using it.
             glStencilFunc( GL_EQUAL, 1, 0xff );       // If the stencil value is 1, allow drawing.
-            this->fullScreenQuad.draw_texture( this->renderer, this->blockTexture, this->depthStencilTexture, 1.0, true, headInWater );
+            if ( useFogBlend ) {
+                // Use fog blend for water areas too, so the terrain/water
+                // fades into the sky and outputs opaque alpha (no blending
+                // with the black background cleared above).
+                this->fullScreenQuad.draw_texture_fog( this->renderer, this->blockTexture, this->depthStencilTexture, this->fogTexture, skyTexture, invMVPSky, 1.0, true, headInWater );
+            } else {
+                this->fullScreenQuad.draw_texture( this->renderer, this->blockTexture, this->depthStencilTexture, 1.0, true, headInWater );
+            }
             glStencilFunc( GL_NOTEQUAL, 1, 0xff ); // If the stencil value isn't 1 allow drawing.
             if ( useFogBlend ) {
                 this->fullScreenQuad.draw_texture_fog( this->renderer, this->blockTexture, this->depthStencilTexture, this->fogTexture, skyTexture, invMVPSky, 1.0, false, headInWater );
