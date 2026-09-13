@@ -1,6 +1,18 @@
 //clear_fullscreen_functions();
 set_canvas_size();
 
+// Let F-keys (except F12, which the game uses for screenshots) pass through to
+// the browser. SDL2/emscripten calls preventDefault on all key events, which
+// steals F5 (reload), F11 (fullscreen), etc. This capture-phase listener runs
+// before SDL2's handler and stops propagation for F1-F11 so the browser can
+// handle them normally.
+window.addEventListener("keydown", function(e) {
+  // F1=112 ... F11=122, F12=123
+  if (e.keyCode >= 112 && e.keyCode <= 122 && e.keyCode !== 123) {
+    e.stopPropagation();
+  }
+}, true);
+
 // On-screen error log for mobile debugging (no DevTools available).
 // Errors are shown as a red overlay at the top of the page.
 var errorOverlay = null;
@@ -22,6 +34,37 @@ window.addEventListener("error", function(e) {
 });
 window.addEventListener("unhandledrejection", function(e) {
   showError("Promise rejection: " + (e.reason && e.reason.message ? e.reason.message : e.reason));
+});
+
+// Called from C++ when the game exits. Reload the page to restore the
+// starting page (title, download links, icon, click-to-start).
+function show_exit_screen() {
+  document.exitPointerLock();
+  location.reload();
+}
+
+// Track whether the game is running so we only react to pointer lock loss
+// during gameplay, not on the intro page.
+var gameRunning = false;
+// Updated by C++ every frame: true when the game wants pointer lock (normal
+// gameplay), false when it doesn't (inventory open). The pointerlockchange
+// listener uses this to distinguish ESC from game-initiated unlocks.
+var gameWantsPointerLock = false;
+
+// When pointer lock is active, ESC is consumed by the browser to break
+// pointer lock — the game never sees the keypress. Listen for the resulting
+// pointerlockchange and exit the game. Skip if the window lost focus (alt-tab),
+// since that also breaks pointer lock but isn't an exit request. Also skip
+// if the game released pointer lock on purpose (e.g. inventory open).
+document.addEventListener("pointerlockchange", function() {
+  if (gameRunning && !document.pointerLockElement && document.hasFocus()) {
+    if (!gameWantsPointerLock) {
+      // The game intentionally released pointer lock (e.g. inventory). Don't exit.
+    } else {
+      // The game wants pointer lock but lost it — this is ESC. Exit the game.
+      show_exit_screen();
+    }
+  }
 });
 
 var Module = {
@@ -104,18 +147,6 @@ function setup_click_handler() {
     console.log("Got a press");
     if (first_time) {
       reset_canvas();
-    } else {
-      console.log("got key" + event.keyCode);
-      //F5
-      if (event.keyCode == 116) {
-        location.reload();
-      }
-      //Q
-      if (event.keyCode == 81) {
-        //Native game will stop, so release the okii lock
-        //document.exitPointerLock();
-        close();
-      }
     }
     var canvas = document.getElementById("canvas");
 
@@ -127,6 +158,7 @@ function setup_click_handler() {
       document.addEventListener("keydown", callback);
 
       first_time = 0;
+      gameRunning = true;
       FS.mkdir("/repgame_wasm");
       FS.mount(IDBFS, {}, "/repgame_wasm");
       FS.syncfs(true, err => {

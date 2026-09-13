@@ -2,6 +2,10 @@
 #include <time.h>
 #include <unistd.h>
 
+#if defined( REPGAME_WASM )
+#include <emscripten.h>
+#endif
+
 #include "common/RepGame.hpp"
 #include "common/rep_tests.hpp"
 
@@ -231,6 +235,12 @@ int is_locking_pointer = 0;
 void repgame_linux_process_window_and_pointer_state( const RepGame &repgame ) {
     int width, height;
     const bool should_lock_pointer = repgame.should_lock_pointer( );
+#if defined( REPGAME_WASM )
+    // Sync the game's expected pointer lock state to JS every frame. The
+    // pointerlockchange listener in index.js checks this to distinguish
+    // game-initiated unlocks (e.g. opening inventory) from ESC presses.
+    EM_ASM_INT( { gameWantsPointerLock = $0; return 0; }, should_lock_pointer ? 1 : 0 );
+#endif
     if ( should_lock_pointer != is_locking_pointer ) {
 #if ALLOW_GRAB_MOUSE
         SDL_SetRelativeMouseMode( should_lock_pointer ? SDL_TRUE : SDL_FALSE );
@@ -244,6 +254,12 @@ void repgame_linux_process_window_and_pointer_state( const RepGame &repgame ) {
 void main_loop_wasm( void *arg ) {
     RepGame &repgame = *static_cast<RepGame *>( arg );
     if ( repgame.shouldExit( ) ) {
+        // Show the exit screen and stop the main loop so the browser can
+        // handle the page normally (instead of leaving a black canvas).
+#if defined( REPGAME_WASM )
+        EM_ASM( show_exit_screen( ); );
+        emscripten_cancel_main_loop( );
+#endif
         return;
     } else {
         repgame_linux_process_sdl_events( repgame );
