@@ -524,8 +524,13 @@ void RepGame::tick( ) {
     globalGameState.input.mouse.currentPosition.x = globalGameState.screen.width / 2.0f;
     globalGameState.input.mouse.currentPosition.y = globalGameState.screen.height / 2.0f;
 
-    RepGame::process_movement( );
+    // Refresh camera.movement (and the view matrices) from the current angle_H
+    // before consuming it: process_movement builds the player's velocity from
+    // camera.movement, so it must reflect this tick's angle_H rather than the
+    // previous tick's. Running camera angle first keeps the walk direction in
+    // sync with the look direction.
     RepGame::process_camera_angle( );
+    RepGame::process_movement( );
 
     if ( globalGameState.input.click_delay_right > 0 ) {
         globalGameState.input.click_delay_right--;
