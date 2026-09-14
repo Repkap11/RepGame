@@ -197,6 +197,9 @@ void ChunkLoader::render_chunks( Multiplayer &multiplayer, const glm::vec3 &came
                     // startup loop doesn't block the first frame.
                     chunk.ensure_gl_init( );
                     process_chunk_position( chunk, chunk_diff, loaded_pos, chunk_pos, 1 );
+                    // Apply any chunk diffs that arrived from the server before
+                    // this chunk's terrain gen finished (Phase 2 eager requests).
+                    multiplayer.apply_pending_diffs( chunk );
                     chunk.program_terrain( );
                 }
             }

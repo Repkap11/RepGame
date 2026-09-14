@@ -19,5 +19,11 @@ void Multiplayer::request_chunk( const glm::ivec3 &chunk_pos ) {
 void Multiplayer::request_chunks_box( const glm::ivec3 &min, uint8_t sx, uint8_t sy, uint8_t sz ) {
 }
 
+void Multiplayer::queue_pending_diff( const NetChunkDiffResultPayload &diff ) {
+}
+
+void Multiplayer::apply_pending_diffs( Chunk &chunk ) {
+}
+
 void Multiplayer::cleanup( ) {
 }

@@ -178,15 +178,14 @@ void Multiplayer::process_events( World &world ) {
                 glm::ivec3 chunk_pos = glm::ivec3( diff.chunk_x, diff.chunk_y, diff.chunk_z );
                 Chunk *chunk_prt = world.chunkLoader.get_chunk( chunk_pos );
                 if ( chunk_prt == nullptr ) {
-                    // This chunk is not loaded anymore, ignore this update.
+                    // Chunk isn't loaded yet (terrain gen still running).
+                    // Queue the diff to apply when the chunk finishes loading.
+                    this->queue_pending_diff( diff );
                     continue;
                 }
                 Chunk &chunk = *chunk_prt;
                 for ( uint32_t i = 0; i < diff.num_diffs; i++ ) {
                     const NetChunkDiffEntry &entry = diff.diffs[ i ];
-                    // Defense in depth: set_block_by_index_if_different also
-                    // bounds-checks, but reject here too so we can log the
-                    // specific bad index without touching chunk memory.
                     if ( entry.blocks_index >= static_cast<uint32_t>( NET_CHUNK_BLOCK_SIZE ) ) {
                         pr_debug( "CHUNK_DIFF_RESULT bad blocks_index:%u (max:%d)", entry.blocks_index, NET_CHUNK_BLOCK_SIZE );
                         continue;
@@ -346,4 +345,38 @@ void Multiplayer::cleanup( ) {
         this->sockfd = -1;
         this->active = false;
     }
+    this->pending_diffs.clear( );
+}
+
+void Multiplayer::queue_pending_diff( const NetChunkDiffResultPayload &diff ) {
+    glm::ivec3 chunk_pos = glm::ivec3( diff.chunk_x, diff.chunk_y, diff.chunk_z );
+    // If a diff for this chunk is already pending (e.g. server sent two
+    // frames for the same chunk), merge the new entries into the existing
+    // pending diff. This is rare but handles it correctly.
+    auto it = this->pending_diffs.find( chunk_pos );
+    if ( it != this->pending_diffs.end( ) ) {
+        for ( const auto &entry : diff.diffs ) {
+            it->second.diffs.push_back( entry );
+        }
+        it->second.num_diffs = static_cast<uint32_t>( it->second.diffs.size( ) );
+    } else {
+        this->pending_diffs[ chunk_pos ] = diff;
+    }
+}
+
+void Multiplayer::apply_pending_diffs( Chunk &chunk ) {
+    auto it = this->pending_diffs.find( chunk.chunk_pos );
+    if ( it == this->pending_diffs.end( ) ) {
+        return;
+    }
+    const NetChunkDiffResultPayload &diff = it->second;
+    for ( uint32_t i = 0; i < diff.num_diffs; i++ ) {
+        const NetChunkDiffEntry &entry = diff.diffs[ i ];
+        if ( entry.blocks_index >= static_cast<uint32_t>( NET_CHUNK_BLOCK_SIZE ) ) {
+            pr_debug( "Pending diff bad blocks_index:%u (max:%d)", entry.blocks_index, NET_CHUNK_BLOCK_SIZE );
+            continue;
+        }
+        chunk.set_block_by_index_if_different( static_cast<int>( entry.blocks_index ), &entry.blockState );
+    }
+    this->pending_diffs.erase( it );
 }
