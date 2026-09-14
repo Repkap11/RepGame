@@ -4,10 +4,14 @@ ANDROID_BITMAPS = $(patsubst bitmaps/%.bmp,android/app/src/main/res/raw/%.bin,$(
 ANDROID_FONTS = $(patsubst fonts/%.ttf,android/app/src/main/assets/fonts/%.ttf,$(wildcard fonts/*.ttf))
 
 
-ANDROID_DIRS = android/app/src/main/assets/shaders
+ANDROID_DIRS = android/app/src/main/assets/shaders android/app/src/main/assets/fonts
 JAVA_HOME_LOC = ~/.jdks/jbr-17.0.9
 
 android/app/src/main/assets/shaders:
+	mkdir -p $@
+	touch $@
+
+android/app/src/main/assets/fonts:
 	mkdir -p $@
 	touch $@
 
