@@ -252,6 +252,13 @@ void Chunk::set_block( const glm::ivec3 &pos, const BlockState &blockState ) con
 }
 
 void Chunk::set_block_by_index_if_different( int index, const BlockState *blockState ) {
+    // Defensive bounds check: index comes from the network (multiplayer chunk
+    // diffs). An out-of-range value would write to arbitrary chunk memory and
+    // corrupt the world. Drop the update silently rather than crash.
+    if ( index < 0 || index >= CHUNK_BLOCK_SIZE ) {
+        pr_debug( "Ignoring out-of-range block index:%d (max:%d)", index, CHUNK_BLOCK_SIZE );
+        return;
+    }
     BlockState &oldBlockState = this->blocks[ index ];
     if ( BlockStates_equal( oldBlockState, *blockState ) ) {
         return;
