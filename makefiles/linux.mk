@@ -13,8 +13,9 @@ CFLAGS_LINUX_DEBUG := -g
 
 CFLAGS_LINUX += -DREPGAME_LINUX
 CFLAGS_LINUX += $(shell pkg-config --cflags sdl3)
+CFLAGS_LINUX += $(shell pkg-config --cflags wayland-client)
 # SDL3 is dynamically linked, because it's too hard to statically link against X11, and I don't want to compile it from source.
-LIBS_LINUX := -lSDL3 -Wl,-Bstatic -lGLEW -lGLU -Wl,-Bdynamic -lGL -lpthread -lm -ldl -static-libgcc -static-libstdc++
+LIBS_LINUX := -lSDL3 -Wl,-Bstatic -lGLEW -lGLU -Wl,-Bdynamic -lGL -lpthread -lm -ldl -static-libgcc -static-libstdc++ -lwayland-client
 
 CC_LINUX := g++
 # CC_LINUX := clang++

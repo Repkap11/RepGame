@@ -5,6 +5,9 @@
 
 #include "common/RepGame.hpp"
 #include "common/rep_tests.hpp"
+#ifdef REPGAME_LINUX
+#include "linux/wayland_cursor_warp.hpp"
+#endif
 
 static RepGameState *globalGameState;
 
@@ -195,15 +198,50 @@ int repgame_sdl2_main( const char *world_path, const char *host, const bool conn
 }
 
 int is_locking_pointer = 0;
-void repgame_linux_process_window_and_pointer_state( const RepGame &repgame ) {
+void repgame_linux_process_window_and_pointer_state( RepGame &repgame ) {
     int width, height;
     const bool should_lock_pointer = repgame.should_lock_pointer( );
     if ( should_lock_pointer != is_locking_pointer ) {
-#if ALLOW_GRAB_MOUSE
-        SDL_SetWindowRelativeMouseMode( sdl_window, should_lock_pointer );
-#endif
         SDL_GetWindowSize( sdl_window, &width, &height );
-        SDL_WarpMouseInWindow( sdl_window, static_cast<float>( width / 2 ), static_cast<float>( height / 2 ) );
+        const int center_x = width / 2;
+        const int center_y = height / 2;
+#if ALLOW_GRAB_MOUSE
+        if ( should_lock_pointer ) {
+            // Closing inventory → entering gameplay: warp to center, then
+            // enable relative mode. On X11 this centers the cursor; on
+            // Wayland the warp may fail but relative mode hides the cursor
+            // anyway, so the visual result is the same.
+            SDL_WarpMouseInWindow( sdl_window, static_cast<float>( center_x ), static_cast<float>( center_y ) );
+            SDL_SetWindowRelativeMouseMode( sdl_window, true );
+        } else {
+            // Opening inventory → leaving gameplay: exit relative mode
+            // first (SDL destroys its zwp_locked_pointer_v1), then warp.
+            SDL_SetWindowRelativeMouseMode( sdl_window, false );
+#ifdef REPGAME_LINUX
+            // On GNOME Wayland, SDL_WarpMouseInWindow uses wp_pointer_warp_v1
+            // which Mutter only honors while a mouse button is held, so it
+            // silently fails. Use the zwp_pointer_constraints_v1 lock→hint→
+            // unlock approach directly: Mutter warps the cursor to the hint
+            // position when the one-shot lock is destroyed.
+            {
+                SDL_PropertiesID props = SDL_GetWindowProperties( sdl_window );
+                struct wl_display *wl_dpy = static_cast<struct wl_display *>( SDL_GetPointerProperty( props, SDL_PROP_WINDOW_WAYLAND_DISPLAY_POINTER, nullptr ) );
+                struct wl_surface *wl_surf = static_cast<struct wl_surface *>( SDL_GetPointerProperty( props, SDL_PROP_WINDOW_WAYLAND_SURFACE_POINTER, nullptr ) );
+                if ( !wayland_warp_cursor( wl_dpy, wl_surf, center_x, center_y ) )
+#endif
+                {
+                    // Not Wayland, no pointer constraints support, or non-Linux:
+                    // use SDL warp (works on X11 and Windows).
+                    SDL_WarpMouseInWindow( sdl_window, static_cast<float>( center_x ), static_cast<float>( center_y ) );
+                }
+#ifdef REPGAME_LINUX
+            }
+#endif
+        }
+#endif
+        // Warping does not always generate a MOUSE_MOTION event, so update
+        // the inventory's absolute click position manually.
+        repgame.getInputState( ).mousePosition( center_x, center_y );
         is_locking_pointer = should_lock_pointer;
     }
 }
