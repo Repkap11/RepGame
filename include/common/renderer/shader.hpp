@@ -19,7 +19,7 @@ typedef struct {
 typedef struct {
     const char *resource_path;
 } ShaderSourceData;
-#define MK_SHADER( name ) ShaderSourceData name = { .resource_path = #name ".glsl" }
+#define MK_SHADER( name ) ShaderSourceData name = { .resource_path = "shaders/" #name ".glsl" }
 #endif
 
 class Shader {
