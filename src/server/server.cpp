@@ -11,6 +11,7 @@
 
 #include "server/server.hpp"
 #include "server/server_logic.hpp"
+#include "common/net/packet.hpp"
 
 #define pr_debug( fmt, ... ) fprintf( stdout, "%s:%d:%s():" fmt "\n", __FILE__, __LINE__, __func__, ##__VA_ARGS__ );
 
@@ -61,7 +62,6 @@ void Server::add_epoll( int client_fd ) {
     if ( epoll_ctl( this->epoll_fd, EPOLL_CTL_ADD, client_fd, &accept_event ) < 0 ) {
         pr_debug( "epoll_ctl EPOLL_CTL_ADD" );
     }
-    // pr_debug( "Epoll add:%d", client_fd );
     return;
 }
 
@@ -69,29 +69,22 @@ void Server::del_epoll( int client_fd ) {
     if ( epoll_ctl( this->epoll_fd, EPOLL_CTL_DEL, client_fd, NULL ) < 0 ) {
         pr_debug( "epoll_ctl EPOLL_CTL_DEL" );
     }
-    // pr_debug( "Epoll del:%d", client_fd );
     return;
 }
 void Server::update_epoll( int client_fd ) {
     struct epoll_event event = { 0, { 0 } };
     event.data.fd = client_fd;
     event.events = EPOLLET;
-    int size = client_data[ client_fd ].pending_sends.size( );
-    if ( size == 1 ) {
+    bool has_outbound = this->client_data[ client_fd ].socket.has_outbound( );
+    if ( has_outbound ) {
         event.events |= EPOLLOUT;
-        // pr_debug( "Update to out" );
-    } else if ( size == 0 ) {
-        event.events |= EPOLLIN;
-        // pr_debug( "Update to in" );
     } else {
-        return;
+        event.events |= EPOLLIN;
     }
-    // pr_debug( "About to epoll_ctl mod" );
     int status = epoll_ctl( this->epoll_fd, EPOLL_CTL_MOD, client_fd, &event );
     if ( status < 0 ) {
         pr_debug( "epoll_ctl EPOLL_CTL_MOD status:%d:%s", status, strerror( status ) );
     }
-    // pr_debug( "About to epoll_ctl mod done" );
 }
 
 void Server::handle_new_client_event( int inet_socket_fd ) {
@@ -100,9 +93,6 @@ void Server::handle_new_client_event( int inet_socket_fd ) {
     int client_fd = accept( inet_socket_fd, ( struct sockaddr * )&client_addr, &client_addr_len );
     if ( client_fd < 0 ) {
         if ( errno == EAGAIN || errno == EWOULDBLOCK ) {
-            // This can happen due to the nonblocking socket mode; in this
-            // case don't do anything, but print a notice (since these events
-            // are extremely rare and interesting to observe...)
             pr_debug( "accept returned EAGAIN or EWOULDBLOCK" );
         }
         pr_debug( "Failed to get client FD" );
@@ -117,45 +107,58 @@ void Server::handle_new_client_event( int inet_socket_fd ) {
     Server::add_epoll( client_fd );
     ClientData &clientData = client_data[ client_fd ];
     clientData.connected = 1;
-    clientData.pending_receive_len = 0;
-    clientData.pending_send_len = 0;
+    clientData.socket.adopt( client_fd );
     this->server_logic.on_client_connected( *this, client_fd );
 }
 
 void Server::handle_client_ready_for_read( int client_fd ) {
-    // pr_debug( "server_handle_client_ready_for_read" );
     int disconnected = 0;
     while ( true ) {
-        NetPacket &packet = client_data[ client_fd ].pending_receive;
-        int &pending_receive_len = client_data[ client_fd ].pending_receive_len;
-        char *recv_start = ( ( char * )&packet ) + pending_receive_len;
-        size_t size_needed = sizeof( NetPacket ) - pending_receive_len;
-        int nbytes = recv( client_fd, recv_start, size_needed, 0 );
-        if ( nbytes == 0 ) {
-            // The client disconnected.
+        auto payload = this->client_data[ client_fd ].socket.recv_message( );
+        if ( this->client_data[ client_fd ].socket.had_error( ) ) {
+            // recv error or peer closed or bad frame.
+            this->client_data[ client_fd ].socket.clear_error( );
             disconnected = 1;
             break;
-        } else if ( nbytes < 0 ) {
-            if ( errno == EAGAIN || errno == EWOULDBLOCK ) {
-                // The socket is not *really* ready for recv; wait until it is.
-                break;
-            }
-            pr_debug( "recv got negitive bytes:%d, darn errno:%d", nbytes, errno );
+        }
+        if ( !payload ) {
+            // No more complete frames right now.
             break;
         }
-        pending_receive_len += nbytes;
-        if ( pending_receive_len != sizeof( NetPacket ) ) {
+        // Parse the fixed payload header: version(1) type(1) player_id(4)
+        if ( payload->size( ) < 6 ) {
+            pr_debug( "Received too-short frame payload: %zu", payload->size( ) );
             continue;
         }
-        pending_receive_len = 0;
-        if ( packet.type == PLAYER_LOCATION || packet.type == PLAYER_CONNECTED ) {
-            client_data[ client_fd ].player_data = packet.data.player;
+        const uint8_t version = ( *payload )[ 0 ];
+        const NetMsgType type = static_cast<NetMsgType>( ( *payload )[ 1 ] );
+        const int32_t player_id = static_cast<int32_t>(
+            static_cast<uint32_t>( ( *payload )[ 2 ] )
+            | ( static_cast<uint32_t>( ( *payload )[ 3 ] ) << 8 )
+            | ( static_cast<uint32_t>( ( *payload )[ 4 ] ) << 16 )
+            | ( static_cast<uint32_t>( ( *payload )[ 5 ] ) << 24 ) );
+        if ( version != NET_PROTOCOL_VERSION ) {
+            pr_debug( "Protocol version mismatch: got %u expected %u", version, NET_PROTOCOL_VERSION );
+            continue;
         }
-        this->server_logic.on_client_message( *this, client_fd, &packet );
+
+        // Store player position for PLAYER_LOCATION so on_client_connected can
+        // send it to new joiners.
+        if ( type == NetMsgType::PLAYER_LOCATION ) {
+            PacketReader r( payload->data( ) + 6, payload->size( ) - 6 );
+            NetPlayerPayload p;
+            if ( net_deserialize_player( r, p ) ) {
+                client_data[ client_fd ].player_data.x = p.x;
+                client_data[ client_fd ].player_data.y = p.y;
+                client_data[ client_fd ].player_data.z = p.z;
+                memcpy( client_data[ client_fd ].player_data.rotation, p.rotation, sizeof( p.rotation ) );
+            }
+        }
+
+        std::vector<uint8_t> type_payload( payload->begin( ) + 6, payload->end( ) );
+        this->server_logic.on_client_message( *this, client_fd, type, player_id, type_payload );
     }
     if ( disconnected ) {
-        std::queue<NetPacket> empty;
-        client_data[ client_fd ].pending_sends.swap( empty );
         this->server_logic.on_client_disconnected( *this, client_fd );
         client_data[ client_fd ].connected = 0;
         Server::del_epoll( client_fd );
@@ -163,15 +166,16 @@ void Server::handle_client_ready_for_read( int client_fd ) {
     } else {
         Server::update_epoll( client_fd );
     }
-
-    return;
 }
 
-void Server::queue_packet( int client_fd, NetPacket *packet ) {
-    this->client_data[ client_fd ].pending_sends.push( *packet );
-    // pr_debug( "Queueing packet on %d length:%ld", client_fd, client_data[ client_fd ].pending_sends.size( ) );
+void Server::queue_message( int client_fd, NetMsgType type, int32_t player_id, const std::vector<uint8_t> &payload ) {
+    this->client_data[ client_fd ].socket.send_message( type, player_id, payload );
     this->update_epoll( client_fd );
-    // pr_debug( "Got packet done with server_update_epoll" );
+}
+
+void Server::queue_empty( int client_fd, NetMsgType type, int32_t player_id ) {
+    this->client_data[ client_fd ].socket.send_empty( type, player_id );
+    this->update_epoll( client_fd );
 }
 
 PacketType_DataPlayer *Server::get_data_if_client_connected( int client_id ) {
@@ -182,28 +186,14 @@ PacketType_DataPlayer *Server::get_data_if_client_connected( int client_id ) {
 }
 
 void Server::handle_client_ready_for_write( int client_fd ) {
-    // pr_debug( "server_handle_client_ready_for_write" );
-    std::queue<NetPacket> &pending_sends = this->client_data[ client_fd ].pending_sends;
-    int &pending_send_len = this->client_data[ client_fd ].pending_send_len;
-    while ( !pending_sends.empty( ) ) {
-        NetPacket &packet = pending_sends.front( );
-        char *send_start = ( ( char * )&packet ) + pending_send_len;
-        size_t size_needed = sizeof( NetPacket ) - pending_send_len;
-
-        int nsent = send( client_fd, send_start, size_needed, 0 );
-        if ( nsent < 0 ) {
-            if ( errno == EAGAIN || errno == EWOULDBLOCK ) {
-                break;
-            } else {
-                pr_debug( "send" );
-            }
-        }
-        pending_send_len += nsent;
-        if ( pending_send_len < ( int )sizeof( NetPacket ) ) {
-            continue;
-        }
-        pending_sends.pop( );
-        pending_send_len = 0;
+    this->client_data[ client_fd ].socket.flush( );
+    if ( this->client_data[ client_fd ].socket.had_error( ) ) {
+        this->client_data[ client_fd ].socket.clear_error( );
+        this->server_logic.on_client_disconnected( *this, client_fd );
+        client_data[ client_fd ].connected = 0;
+        Server::del_epoll( client_fd );
+        close( client_fd );
+        return;
     }
     this->update_epoll( client_fd );
 }
@@ -248,14 +238,10 @@ void Server::cleanup( ) {
 void Server::serve( ) {
     while ( this->epoll_fd >= 0 ) {
         int num_ready = epoll_wait( this->epoll_fd, this->events, MAX_CLIENT_FDS, -1 );
-        // pr_debug( "epoll returned: %d", num_ready );
         for ( int i = 0; i < num_ready; i++ ) {
             int client_fd = this->events[ i ].data.fd;
             if ( this->events[ i ].events & EPOLLERR ) {
                 pr_debug( "epoll_wait returned EPOLLERR:%d", client_fd );
-                std::queue<NetPacket> empty;
-                // std::swap( client_data[ client_fd ].pending_sends, empty );
-                client_data[ client_fd ].pending_sends.swap( empty );
                 this->server_logic.on_client_disconnected( *this, client_fd );
                 client_data[ client_fd ].connected = 0;
                 Server::del_epoll( client_fd );
@@ -264,16 +250,12 @@ void Server::serve( ) {
             }
 
             if ( client_fd == inet_socket_fd ) {
-                // The listening socket is ready; this means a new peer is connecting.
                 this->handle_new_client_event( inet_socket_fd );
             } else {
                 uint32_t epoll_events = events[ i ].events;
-                // A peer socket is ready.
                 if ( epoll_events & EPOLLIN ) {
-                    // Ready for reading.
                     this->handle_client_ready_for_read( client_fd );
                 } else if ( epoll_events & EPOLLOUT ) {
-                    // Ready for writing.
                     this->handle_client_ready_for_write( client_fd );
                 }
             }
@@ -301,8 +283,6 @@ void sig_handler( int s ) {
 }
 
 int main( int argc, const char **argv ) {
-    // setvbuf( stdout, NULL, _IONBF, 0 );
-
     int portnum = 25566;
     if ( argc >= 2 ) {
         portnum = atoi( argv[ 1 ] );

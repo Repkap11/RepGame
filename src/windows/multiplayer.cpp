@@ -16,5 +16,8 @@ void Multiplayer::update_players_position( const glm::vec3 &player_pos, const gl
 void Multiplayer::request_chunk( const glm::ivec3 &chunk_pos ) {
 }
 
+void Multiplayer::request_chunks_box( const glm::ivec3 &min, uint8_t sx, uint8_t sy, uint8_t sz ) {
+}
+
 void Multiplayer::cleanup( ) {
 }

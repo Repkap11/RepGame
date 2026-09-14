@@ -2,6 +2,7 @@
 #include "server/server_logic.hpp"
 #include "common/utils/file_utils.hpp"
 #include "common/RepGame.hpp"
+#include "common/net/packet.hpp"
 
 #include <stdio.h>
 
@@ -17,35 +18,29 @@ void ServerLogic::on_client_connected( Server &server, int client_fd ) {
     // Tell the other clients about this new client
     for ( int prop_id = 0; prop_id < MAX_CLIENT_FDS; prop_id++ ) {
         if ( prop_id == client_fd ) {
-            // Don't tell this client that itself joined.
             continue;
         }
         if ( server.get_data_if_client_connected( prop_id ) != NULL ) {
             pr_debug( "Notifying existing player:%d of new player:%d", prop_id, client_fd );
-            NetPacket packet;
-            // pr_debug( "Notifying2 existing player:%d of new player:%d", prop_id, client_fd );
-            packet.type = PLAYER_CONNECTED;
-            // pr_debug( "Notifying3 existing player:%d of new player:%d", prop_id, client_fd );
-            packet.player_id = client_fd;
-            // pr_debug( "Notifying4 existing player:%d of new player:%d", prop_id, client_fd );
-            server.queue_packet( prop_id, &packet );
-            // pr_debug( "Notifying5 existing player:%d of new player:%d", prop_id, client_fd );
+            server.queue_empty( prop_id, NetMsgType::PLAYER_CONNECTED, client_fd );
         }
     }
 
     // Tell this client about the other clients already online
     for ( int online_id = 0; online_id < MAX_CLIENT_FDS; online_id++ ) {
         if ( online_id == client_fd ) {
-            // Don't tell this client that itself joined.
             continue;
         }
         PacketType_DataPlayer *playerData = server.get_data_if_client_connected( online_id );
         if ( playerData != NULL ) {
-            NetPacket packet;
-            packet.type = PacketType::CLIENT_INIT;
-            packet.player_id = online_id;
-            packet.data.player = *playerData;
-            server.queue_packet( client_fd, &packet );
+            NetPlayerPayload p;
+            p.x = playerData->x;
+            p.y = playerData->y;
+            p.z = playerData->z;
+            memcpy( p.rotation, playerData->rotation, sizeof( p.rotation ) );
+            PacketWriter w;
+            net_serialize_player( w, p );
+            server.queue_message( client_fd, NetMsgType::CLIENT_INIT, online_id, w.take_buf( ) );
             pr_debug( "Notifying new player:%d of existing player:%d", client_fd, online_id );
         }
     }
@@ -55,10 +50,6 @@ void ServerLogic::record_block( const glm::ivec3 &block_pos, BlockState &block_s
     glm::ivec3 chunk_pos = glm::floor( glm::vec3( block_pos ) / CHUNK_SIZE_F );
     glm::ivec3 diff = block_pos - ( chunk_pos * CHUNK_SIZE_I );
     int block_index = Chunk::get_index_from_coords( diff );
-
-    // auto &chunk_cache = this->world_cache[ chunk_pos ];
-    // chunk_cache[ block_index ] = block_state;
-    // pr_debug( "Updating center chunk: %d %d %d  %d", chunk_pos.x, chunk_pos.y, chunk_pos.z, block_index );
 
     for ( int i = -1; i < 2; i++ ) {
         const int needs_update_x = ( ( i != 1 && diff.x == 0 ) || ( i != -1 && diff.x == ( CHUNK_SIZE_X - 1 ) ) ) || i == 0;
@@ -75,8 +66,6 @@ void ServerLogic::record_block( const glm::ivec3 &block_pos, BlockState &block_s
                 if ( !needs_update_z ) {
                     continue;
                 }
-
-                // pr_debug( "Chunk Dir: %d %d %d:%d", i, j, k, needs_update );
 
                 glm::ivec3 new_chunk_pos = chunk_pos + glm::ivec3( i * needs_update_x, j * needs_update_y, k * needs_update_z );
                 glm::ivec3 new_diff = block_pos - ( new_chunk_pos * CHUNK_SIZE_I );
@@ -105,33 +94,28 @@ void ServerLogic::respondToChunkRequest( Server &server, int client_fd, const gl
         return;
     }
     const std::map<int, BlockState> &chunk_cache = *chunk_cache_prt;
-    NetPacket packet;
-    packet.data.chunk_diff.chunk_x = chunk_offset.x;
-    packet.data.chunk_diff.chunk_y = chunk_offset.y;
-    packet.data.chunk_diff.chunk_z = chunk_offset.z;
-    packet.type = PacketType::CHUNK_DIFF_RESULT;
-    int packet_index = 0;
-    // int total_packets_sent = 0;
+    if ( chunk_cache.empty( ) ) {
+        // No diffs for this chunk; emit no frame.
+        return;
+    }
+
+    NetChunkDiffResultPayload diff;
+    diff.chunk_x = chunk_offset.x;
+    diff.chunk_y = chunk_offset.y;
+    diff.chunk_z = chunk_offset.z;
+    diff.diffs.clear( );
+    diff.diffs.reserve( chunk_cache.size( ) );
     for ( auto [ blocks_index, blockState ] : chunk_cache ) {
-        PacketType_DataChunkDiff_Block &packet_data = packet.data.chunk_diff.blockUpdates[ packet_index ];
-        packet_data.blocks_index = blocks_index;
-        packet_data.blockState = blockState;
-        packet_index++;
-        if ( packet_index >= SERVER_BLOCK_CHUNK_DIFF_SIZE ) {
-            packet.data.chunk_diff.num_used_updates = packet_index;
-            server.queue_packet( client_fd, &packet );
-            // pr_debug( "Responding to client:%d with %d blocks", client_fd, packet_index );
-            packet_index = 0;
-            // total_packets_sent += 1;
-        }
+        NetChunkDiffEntry entry;
+        entry.blocks_index = static_cast<uint32_t>( blocks_index );
+        entry.blockState = blockState;
+        diff.diffs.push_back( entry );
     }
-    if ( packet_index != 0 ) {
-        packet.data.chunk_diff.num_used_updates = packet_index;
-        server.queue_packet( client_fd, &packet );
-        // total_packets_sent += 1;
-        // pr_debug( "Responding to client:%d with %d blocks", client_fd, packet_index );
-    }
-    // pr_debug( "Respond with total packets:%d for blocks:%ld", total_packets_sent, chunk_cache.size( ) );
+    diff.num_diffs = static_cast<uint32_t>( diff.diffs.size( ) );
+
+    PacketWriter w;
+    net_serialize_chunk_diff_result( w, diff );
+    server.queue_message( client_fd, NetMsgType::CHUNK_DIFF_RESULT, 0, w.take_buf( ) );
 }
 
 void ServerLogic::persistCache( ) {
@@ -145,7 +129,6 @@ void ServerLogic::persistCache( ) {
             blocks[ chunk_index ] = blockState;
         }
         this->map_storage.persist_dirty_blocks( chunk_pos, blocks );
-        // pr_debug( "Saving chunk:%d %d %d", chunk_pos.x, chunk_pos.y, chunk_pos.z );
     }
     free( blocks );
     pr_debug( "World saved" );
@@ -156,11 +139,10 @@ std::map<int, BlockState> *ServerLogic::loadIntoCache( const glm::ivec3 &chunk_o
     for ( int i = 0; i < CHUNK_BLOCK_SIZE; ++i ) {
         blocks[ i ] = BLOCK_STATE_LAST_BLOCK_ID;
     }
-    int dirty = 0; // They can be dirty if they are in the old chunk format, we don't really care.
+    int dirty = 0;
     int ret = this->map_storage.load_blocks( chunk_offset, blocks, dirty, true );
     if ( ret == 0 ) {
         free( blocks );
-        // Couldn't read anything...
         return NULL;
     }
     std::map<int, BlockState> &chunk_cache = this->world_cache[ chunk_offset ];
@@ -176,50 +158,77 @@ std::map<int, BlockState> *ServerLogic::loadIntoCache( const glm::ivec3 &chunk_o
     return &chunk_cache;
 }
 
-void ServerLogic::on_client_message( Server &server, int client_fd, NetPacket *packet ) {
+void ServerLogic::on_client_message( Server &server, int client_fd, NetMsgType type, int32_t player_id, const std::vector<uint8_t> &payload ) {
 
-    // pr_debug( "Got message from:%d block:%d", client_fd, packet->blockID );
-    if ( packet->type == PacketType::BLOCK_UPDATE ) {
-        PacketType_DataBlock &block_data = packet->data.block;
-        glm::ivec3 block_pos = glm::ivec3( block_data.x, block_data.y, block_data.z );
-        this->record_block( block_pos, block_data.blockState );
-    } else if ( packet->type == PacketType::CHUNK_DIFF_REQUEST ) {
-        glm::ivec3 chunk_pos = glm::ivec3( packet->data.chunk_diff.chunk_x, packet->data.chunk_diff.chunk_y, packet->data.chunk_diff.chunk_z );
-        this->respondToChunkRequest( server, client_fd, chunk_pos );
-    }
+    PacketReader r( payload.data( ), payload.size( ) );
 
-    // Forward packets from a client to all other clients.
-    if ( packet->type == PacketType::BLOCK_UPDATE || packet->type == PacketType::PLAYER_LOCATION ) {
-        // Tell the other connected players about most types of messages, but mark the
-        // packet as from the player that sent it.
+    if ( type == NetMsgType::BLOCK_UPDATE ) {
+        NetBlockUpdatePayload bu;
+        if ( !net_deserialize_block_update( r, bu ) ) {
+            pr_debug( "Malformed BLOCK_UPDATE from:%d", client_fd );
+            return;
+        }
+        glm::ivec3 block_pos = glm::ivec3( bu.x, bu.y, bu.z );
+        this->record_block( block_pos, bu.blockState );
 
-        // Tell the other clients that this client disconnected.
+        // Forward to all other clients.
+        PacketWriter w;
+        net_serialize_block_update( w, bu );
         for ( int prop_id = 0; prop_id < MAX_CLIENT_FDS; prop_id++ ) {
             if ( prop_id == client_fd ) {
-                // Don't tell this client that itself joined.
                 continue;
             }
             if ( server.get_data_if_client_connected( prop_id ) != NULL ) {
-                packet->player_id = client_fd;
-                server.queue_packet( prop_id, packet );
+                server.queue_message( prop_id, NetMsgType::BLOCK_UPDATE, client_fd, w.buf( ) );
+            }
+        }
+    } else if ( type == NetMsgType::CHUNK_DIFF_REQUEST ) {
+        NetChunkDiffRequestPayload req;
+        if ( !net_deserialize_chunk_diff_request( r, req ) ) {
+            pr_debug( "Malformed CHUNK_DIFF_REQUEST from:%d", client_fd );
+            return;
+        }
+        // Validate box dimensions.
+        if ( req.size_x > NET_MAX_BOX_DIM || req.size_y > NET_MAX_BOX_DIM || req.size_z > NET_MAX_BOX_DIM ) {
+            pr_debug( "CHUNK_DIFF_REQUEST box too large: %u x %u x %u from:%d", req.size_x, req.size_y, req.size_z, client_fd );
+            return;
+        }
+        // Respond for each chunk in the box.
+        for ( uint8_t dx = 0; dx < req.size_x; dx++ ) {
+            for ( uint8_t dy = 0; dy < req.size_y; dy++ ) {
+                for ( uint8_t dz = 0; dz < req.size_z; dz++ ) {
+                    glm::ivec3 chunk_pos = glm::ivec3( req.min_x + dx, req.min_y + dy, req.min_z + dz );
+                    this->respondToChunkRequest( server, client_fd, chunk_pos );
+                }
+            }
+        }
+    } else if ( type == NetMsgType::PLAYER_LOCATION ) {
+        NetPlayerPayload p;
+        if ( !net_deserialize_player( r, p ) ) {
+            pr_debug( "Malformed PLAYER_LOCATION from:%d", client_fd );
+            return;
+        }
+        // Forward to all other clients.
+        PacketWriter w;
+        net_serialize_player( w, p );
+        for ( int prop_id = 0; prop_id < MAX_CLIENT_FDS; prop_id++ ) {
+            if ( prop_id == client_fd ) {
+                continue;
+            }
+            if ( server.get_data_if_client_connected( prop_id ) != NULL ) {
+                server.queue_message( prop_id, NetMsgType::PLAYER_LOCATION, client_fd, w.buf( ) );
             }
         }
     }
 }
 
 void ServerLogic::on_client_disconnected( Server &server, int client_fd ) {
-    // pr_debug( "%d", client_fd );
-    //  Tell the other clients that this client disconnected.
     for ( int prop_id = 0; prop_id < MAX_CLIENT_FDS; prop_id++ ) {
         if ( prop_id == client_fd ) {
-            // Don't tell this client that itself joined.
             continue;
         }
         if ( server.get_data_if_client_connected( prop_id ) != NULL ) {
-            NetPacket packet;
-            packet.type = PLAYER_DISCONNECTED;
-            packet.player_id = client_fd;
-            server.queue_packet( prop_id, &packet );
+            server.queue_empty( prop_id, NetMsgType::PLAYER_DISCONNECTED, client_fd );
             pr_debug( "Notifying existing player:%d of removed player:%d", prop_id, client_fd );
         }
     }

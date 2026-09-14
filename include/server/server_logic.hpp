@@ -3,14 +3,13 @@
 #include <glm.hpp>
 #include "common/block.hpp"
 #include "common/constants.hpp"
+#include "common/net/framed_socket.hpp"
 #include "common/utils/map_storage.hpp"
 
 #include <map>
 #include <string>
 
 class Server;
-struct NetPacket;
-// struct BlockState;
 
 struct Compare_I_Vec3 {
     bool operator( )( const glm::ivec3 &a, const glm::ivec3 &b ) const {
@@ -39,6 +38,6 @@ class ServerLogic {
   public:
     void init( const char *world_name );
     void on_client_connected( Server &server, int client_fd );
-    void on_client_message( Server &server, int client_fd, NetPacket *packet );
+    void on_client_message( Server &server, int client_fd, NetMsgType type, int32_t player_id, const std::vector<uint8_t> &payload );
     void on_client_disconnected( Server &server, int client_fd );
 };

@@ -15,14 +15,13 @@
 #include "common/chunk.hpp"
 #include "common/constants.hpp"
 #include "common/multiplayer.hpp"
+#include "common/net/packet.hpp"
 
 void Multiplayer::init( const char *hostname, const int port ) {
     pr_debug( "using server %s:%i", hostname, port );
 
     this->active = false;
     this->portno = port;
-    this->pending_packet_len = 0;
-    this->pending_send_len = 0;
     this->prev_player_pos = glm::vec3( 0.0f );
     this->prev_rotation = glm::mat4( 1.0f );
 
@@ -76,6 +75,7 @@ void Multiplayer::connect_async( const std::string &hostname ) {
     int rc = connect( this->sockfd, reinterpret_cast<sockaddr *>( &serv_addr ), sizeof( serv_addr ) );
     if ( rc == 0 ) {
         // Immediate success (e.g. localhost).
+        this->framed_socket.adopt( this->sockfd );
         this->active = true;
         return;
     }
@@ -110,124 +110,139 @@ void Multiplayer::connect_async( const std::string &hostname ) {
         return;
     }
 
-    // Connected. Publish via the atomic with release ordering so the game
-    // thread, on observing active==true, also sees the initialized sockfd.
+    // Connected. Adopt the fd into the FramedSocket and publish via the
+    // atomic with release ordering so the game thread, on observing
+    // active==true, also sees the initialized socket.
+    this->framed_socket.adopt( this->sockfd );
     this->active = true;
 }
 
 void Multiplayer::process_events( World &world ) {
-    int event_count = 0;
     if ( !this->active ) {
-        // pr_debug( "Not this->active..." );
         return;
     }
     // Drain any pending sends first so the outbound queue doesn't grow unbounded.
-    this->flush_send_queue( );
+    this->framed_socket.flush( );
+    if ( this->framed_socket.had_error( ) ) {
+        pr_debug( "Multiplayer send error, disconnecting" );
+        this->active = false;
+        close( this->sockfd );
+        this->sockfd = -1;
+        return;
+    }
+
+    int event_count = 0;
     while ( event_count < 100 ) {
-        // Send updates to the server
-        NetPacket &packet = this->pending_packet;
-
-        int &pending_read_len = this->pending_packet_len;
-        char *read_start = reinterpret_cast<char *>( &packet ) + pending_read_len;
-        const size_t size_needed = sizeof( NetPacket ) - pending_read_len;
-
         event_count++;
-        const int status = recv( this->sockfd, read_start, size_needed, 0 );
-        if ( status < 0 ) {
-            if ( errno == EAGAIN || errno == EWOULDBLOCK ) {
-                // No more messages right now.
-                return;
-            }
-            pr_debug( "recv error: %s", strerror( errno ) );
+        auto payload = this->framed_socket.recv_message( );
+        if ( this->framed_socket.had_error( ) ) {
+            pr_debug( "Multiplayer recv error, disconnecting" );
+            this->framed_socket.clear_error( );
             this->active = false;
             close( this->sockfd );
+            this->sockfd = -1;
             return;
-        } else if ( status == 0 ) {
-            // Server closed the connection.
-            pr_debug( "Server disconnected" );
-            this->active = false;
-            close( this->sockfd );
+        }
+        if ( !payload ) {
+            // No more complete frames right now.
             return;
-        } else {
-            pending_read_len += status;
-            if ( pending_read_len < static_cast<int>( sizeof( NetPacket ) ) ) {
-                continue;
-            }
-            pending_read_len = 0;
-            if ( packet.type == PacketType::CHUNK_DIFF_RESULT ) {
-                const PacketType_DataChunkDiff &chunk_diff = packet.data.chunk_diff;
-                glm::ivec3 chunk_pos = glm::ivec3( chunk_diff.chunk_x, chunk_diff.chunk_y, chunk_diff.chunk_z );
+        }
+
+        // Parse the fixed payload header: version(1) type(1) player_id(4)
+        if ( payload->size( ) < 6 ) {
+            pr_debug( "Received too-short frame payload: %zu", payload->size( ) );
+            continue;
+        }
+        const uint8_t version = ( *payload )[ 0 ];
+        const NetMsgType type = static_cast<NetMsgType>( ( *payload )[ 1 ] );
+        const int32_t player_id = static_cast<int32_t>(
+            static_cast<uint32_t>( ( *payload )[ 2 ] )
+            | ( static_cast<uint32_t>( ( *payload )[ 3 ] ) << 8 )
+            | ( static_cast<uint32_t>( ( *payload )[ 4 ] ) << 16 )
+            | ( static_cast<uint32_t>( ( *payload )[ 5 ] ) << 24 ) );
+        if ( version != NET_PROTOCOL_VERSION ) {
+            pr_debug( "Protocol version mismatch: got %u expected %u", version, NET_PROTOCOL_VERSION );
+            continue;
+        }
+
+        // Reader over the type-specific payload (after the 6-byte fixed header).
+        PacketReader r( payload->data( ) + 6, payload->size( ) - 6 );
+
+        switch ( type ) {
+            case NetMsgType::CHUNK_DIFF_RESULT: {
+                NetChunkDiffResultPayload diff;
+                if ( !net_deserialize_chunk_diff_result( r, diff ) ) {
+                    pr_debug( "Malformed CHUNK_DIFF_RESULT, skipping" );
+                    continue;
+                }
+                glm::ivec3 chunk_pos = glm::ivec3( diff.chunk_x, diff.chunk_y, diff.chunk_z );
                 Chunk *chunk_prt = world.chunkLoader.get_chunk( chunk_pos );
                 if ( chunk_prt == nullptr ) {
                     // This chunk is not loaded anymore, ignore this update.
                     continue;
                 }
                 Chunk &chunk = *chunk_prt;
-
-                for ( int i = 0; i < packet.data.chunk_diff.num_used_updates; ++i ) {
-                    const PacketType_DataChunkDiff_Block &net_block = packet.data.chunk_diff.blockUpdates[ i ];
-                    chunk.set_block_by_index_if_different( net_block.blocks_index, &net_block.blockState );
+                for ( uint32_t i = 0; i < diff.num_diffs; i++ ) {
+                    const NetChunkDiffEntry &entry = diff.diffs[ i ];
+                    // Defense in depth: set_block_by_index_if_different also
+                    // bounds-checks, but reject here too so we can log the
+                    // specific bad index without touching chunk memory.
+                    if ( entry.blocks_index >= static_cast<uint32_t>( NET_CHUNK_BLOCK_SIZE ) ) {
+                        pr_debug( "CHUNK_DIFF_RESULT bad blocks_index:%u (max:%d)", entry.blocks_index, NET_CHUNK_BLOCK_SIZE );
+                        continue;
+                    }
+                    chunk.set_block_by_index_if_different( static_cast<int>( entry.blocks_index ), &entry.blockState );
                 }
-                // world.set_loaded_block();
-            } else if ( packet.type == PacketType::BLOCK_UPDATE ) {
-                BlockState &blockState = packet.data.block.blockState;
-                pr_debug( "Read message: block:%d", blockState.id );
-                glm::ivec3 block_pos = glm::ivec3( packet.data.block.x, packet.data.block.y, packet.data.block.z );
-                world.set_loaded_block( block_pos, blockState );
-            } else if ( packet.type == PacketType::CLIENT_INIT ) {
-                world.multiplayer_avatars.add( packet.player_id );
-                glm::mat4 rotation = glm::make_mat4( packet.data.player.rotation );
-                world.multiplayer_avatars.update_position( packet.player_id, packet.data.player.x, packet.data.player.y, packet.data.player.z, rotation );
-            } else if ( packet.type == PacketType::PLAYER_LOCATION ) {
-                // pr_debug( "Updating player location:%d", update.player_id );
-                glm::mat4 rotation = glm::make_mat4( packet.data.player.rotation );
-                world.multiplayer_avatars.update_position( packet.player_id, packet.data.player.x, packet.data.player.y, packet.data.player.z, rotation );
-            } else if ( packet.type == PacketType::PLAYER_CONNECTED ) {
-                pr_debug( "Updating player connected:%d", packet.player_id );
-                world.multiplayer_avatars.add( packet.player_id );
-            } else if ( packet.type == PacketType::PLAYER_DISCONNECTED ) {
-                pr_debug( "Updating player disconected:%d", packet.player_id );
-                world.multiplayer_avatars.remove( packet.player_id );
-            } else {
-                pr_debug( "Saw unexpected packet:%d from:%d", packet.type, packet.player_id );
+                break;
+            }
+            case NetMsgType::BLOCK_UPDATE: {
+                NetBlockUpdatePayload bu;
+                if ( !net_deserialize_block_update( r, bu ) ) {
+                    pr_debug( "Malformed BLOCK_UPDATE, skipping" );
+                    continue;
+                }
+                pr_debug( "Read message: block:%d", bu.blockState.id );
+                glm::ivec3 block_pos = glm::ivec3( bu.x, bu.y, bu.z );
+                world.set_loaded_block( block_pos, bu.blockState );
+                break;
+            }
+            case NetMsgType::CLIENT_INIT: {
+                NetPlayerPayload p;
+                if ( !net_deserialize_player( r, p ) ) {
+                    pr_debug( "Malformed CLIENT_INIT, skipping" );
+                    continue;
+                }
+                world.multiplayer_avatars.add( player_id );
+                glm::mat4 rotation = glm::make_mat4( p.rotation );
+                world.multiplayer_avatars.update_position( player_id, p.x, p.y, p.z, rotation );
+                break;
+            }
+            case NetMsgType::PLAYER_LOCATION: {
+                NetPlayerPayload p;
+                if ( !net_deserialize_player( r, p ) ) {
+                    pr_debug( "Malformed PLAYER_LOCATION, skipping" );
+                    continue;
+                }
+                glm::mat4 rotation = glm::make_mat4( p.rotation );
+                world.multiplayer_avatars.update_position( player_id, p.x, p.y, p.z, rotation );
+                break;
+            }
+            case NetMsgType::PLAYER_CONNECTED: {
+                pr_debug( "Updating player connected:%d", player_id );
+                world.multiplayer_avatars.add( player_id );
+                break;
+            }
+            case NetMsgType::PLAYER_DISCONNECTED: {
+                pr_debug( "Updating player disconected:%d", player_id );
+                world.multiplayer_avatars.remove( player_id );
+                break;
+            }
+            default: {
+                pr_debug( "Saw unexpected packet type:%d from:%d", static_cast<int>( type ), player_id );
+                break;
             }
         }
     }
-}
-
-void Multiplayer::flush_send_queue( ) {
-    while ( !this->send_queue.empty( ) ) {
-        NetPacket &packet = this->send_queue.front( );
-        char *send_start = reinterpret_cast<char *>( &packet ) + this->pending_send_len;
-        const size_t size_needed = sizeof( NetPacket ) - this->pending_send_len;
-
-        int nsent = send( this->sockfd, send_start, size_needed, 0 );
-        if ( nsent < 0 ) {
-            if ( errno == EAGAIN || errno == EWOULDBLOCK ) {
-                // Socket send buffer is full; try again next frame.
-                return;
-            }
-            pr_debug( "send error: %s", strerror( errno ) );
-            this->active = false;
-            close( this->sockfd );
-            return;
-        }
-        this->pending_send_len += nsent;
-        if ( this->pending_send_len < static_cast<int>( sizeof( NetPacket ) ) ) {
-            // Partial write; the rest will be sent on the next flush.
-            continue;
-        }
-        this->send_queue.pop( );
-        this->pending_send_len = 0;
-    }
-}
-
-void Multiplayer::send_packet( const NetPacket &update ) {
-    if ( !this->active ) {
-        return;
-    }
-    this->send_queue.push( update );
-    this->flush_send_queue( );
 }
 
 void Multiplayer::set_block( const glm::ivec3 &block_pos, BlockState blockState ) {
@@ -240,26 +255,51 @@ void Multiplayer::set_block( const glm::ivec3 &block_pos, BlockState blockState 
     } else {
         // pr_debug( "Player broke the block at %i, %i, %i", block_x, block_y, block_z );
     }
-    NetPacket update;
-    update.type = PacketType::BLOCK_UPDATE;
-    update.data.block.x = block_pos.x;
-    update.data.block.y = block_pos.y;
-    update.data.block.z = block_pos.z;
-    memcpy( &update.data.block.blockState, &blockState, sizeof( BlockState ) );
+    NetBlockUpdatePayload p;
+    p.x = block_pos.x;
+    p.y = block_pos.y;
+    p.z = block_pos.z;
+    p.blockState = blockState;
 
-    this->send_packet( update );
+    PacketWriter w;
+    net_serialize_block_update( w, p );
+    this->framed_socket.send_message( NetMsgType::BLOCK_UPDATE, 0, w.take_buf( ) );
+    this->framed_socket.flush( );
+    if ( this->framed_socket.had_error( ) ) {
+        pr_debug( "Multiplayer send error in set_block, disconnecting" );
+        this->active = false;
+        close( this->sockfd );
+        this->sockfd = -1;
+    }
 }
 
 void Multiplayer::request_chunk( const glm::ivec3 &chunk_pos ) {
+    // Phase 1: send a 1x1x1 box. Phase 2 will batch via request_chunks_box.
+    request_chunks_box( chunk_pos, 1, 1, 1 );
+}
+
+void Multiplayer::request_chunks_box( const glm::ivec3 &min, uint8_t sx, uint8_t sy, uint8_t sz ) {
     if ( !this->active ) {
         return;
     }
-    NetPacket update;
-    update.type = PacketType::CHUNK_DIFF_REQUEST;
-    update.data.chunk_diff.chunk_x = chunk_pos.x;
-    update.data.chunk_diff.chunk_y = chunk_pos.y;
-    update.data.chunk_diff.chunk_z = chunk_pos.z;
-    this->send_packet( update );
+    NetChunkDiffRequestPayload p;
+    p.min_x = min.x;
+    p.min_y = min.y;
+    p.min_z = min.z;
+    p.size_x = sx;
+    p.size_y = sy;
+    p.size_z = sz;
+
+    PacketWriter w;
+    net_serialize_chunk_diff_request( w, p );
+    this->framed_socket.send_message( NetMsgType::CHUNK_DIFF_REQUEST, 0, w.take_buf( ) );
+    this->framed_socket.flush( );
+    if ( this->framed_socket.had_error( ) ) {
+        pr_debug( "Multiplayer send error in request_chunks_box, disconnecting" );
+        this->active = false;
+        close( this->sockfd );
+        this->sockfd = -1;
+    }
 }
 
 void Multiplayer::update_players_position( const glm::vec3 &player_pos, const glm::mat4 &rotation ) {
@@ -271,14 +311,22 @@ void Multiplayer::update_players_position( const glm::vec3 &player_pos, const gl
     }
     prev_player_pos = player_pos;
     prev_rotation = rotation;
-    NetPacket update;
-    update.type = PacketType::PLAYER_LOCATION;
-    update.data.player.x = player_pos.x;
-    update.data.player.y = player_pos.y;
-    update.data.player.z = player_pos.z;
-    memcpy( update.data.player.rotation, ( float * )glm::value_ptr( rotation ), sizeof( glm::mat4 ) );
+    NetPlayerPayload p;
+    p.x = player_pos.x;
+    p.y = player_pos.y;
+    p.z = player_pos.z;
+    memcpy( p.rotation, glm::value_ptr( rotation ), sizeof( glm::mat4 ) );
 
-    this->send_packet( update );
+    PacketWriter w;
+    net_serialize_player( w, p );
+    this->framed_socket.send_message( NetMsgType::PLAYER_LOCATION, 0, w.take_buf( ) );
+    this->framed_socket.flush( );
+    if ( this->framed_socket.had_error( ) ) {
+        pr_debug( "Multiplayer send error in update_players_position, disconnecting" );
+        this->active = false;
+        close( this->sockfd );
+        this->sockfd = -1;
+    }
 }
 
 void Multiplayer::cleanup( ) {
@@ -297,8 +345,5 @@ void Multiplayer::cleanup( ) {
         close( this->sockfd );
         this->sockfd = -1;
         this->active = false;
-    }
-    while ( !this->send_queue.empty( ) ) {
-        this->send_queue.pop( );
     }
 }

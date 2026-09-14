@@ -4,12 +4,13 @@
 #include <queue>
 #include <common/constants.hpp>
 #include <common/block.hpp>
+#include <common/net/framed_socket.hpp>
 #include <server/server_logic.hpp>
 
-typedef enum { PLAYER_LOCATION, BLOCK_UPDATE, CLIENT_INIT, PLAYER_CONNECTED, PLAYER_DISCONNECTED, CHUNK_DIFF_RESULT, CHUNK_DIFF_REQUEST } PacketType;
+// Legacy PacketType enum kept temporarily for reference during migration.
+// The new wire protocol uses NetMsgType (see common/net/packet.hpp).
 
-#define SERVER_BLOCK_CHUNK_DIFF_SIZE 10 // TODO this could be up to the total number of blocks in a chunk.... that would be a lot of data.
-
+// Player data storage (still used for tracking connected clients' positions).
 struct PacketType_DataPlayer {
     float x;
     float y;
@@ -17,43 +18,10 @@ struct PacketType_DataPlayer {
     float rotation[ 4 * 4 ];
 };
 
-struct PacketType_DataBlock {
-    int x;
-    int y;
-    int z;
-    BlockState blockState;
-};
-
-struct PacketType_DataChunkDiff_Block {
-    int blocks_index;
-    BlockState blockState;
-};
-
-struct PacketType_DataChunkDiff {
-    int chunk_x;
-    int chunk_y;
-    int chunk_z;
-    int num_used_updates;
-    PacketType_DataChunkDiff_Block blockUpdates[ SERVER_BLOCK_CHUNK_DIFF_SIZE ];
-};
-
-struct NetPacket {
-    PacketType type;
-    int player_id;
-    union {
-        PacketType_DataBlock block;
-        PacketType_DataPlayer player;
-        PacketType_DataChunkDiff chunk_diff;
-    } data;
-};
-
 struct ClientData {
     int connected;
     PacketType_DataPlayer player_data;
-    int pending_receive_len;
-    NetPacket pending_receive;
-    int pending_send_len;
-    std::queue<NetPacket> pending_sends;
+    FramedSocket socket;
 };
 
 class Server {
@@ -77,6 +45,7 @@ class Server {
     void serve( );
     void kill( );
     void cleanup( );
-    void queue_packet( int client_fd, NetPacket *packet );
+    void queue_message( int client_fd, NetMsgType type, int32_t player_id, const std::vector<uint8_t> &payload );
+    void queue_empty( int client_fd, NetMsgType type, int32_t player_id );
     PacketType_DataPlayer *get_data_if_client_connected( int client_id );
 };
