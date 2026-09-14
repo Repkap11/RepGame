@@ -91,7 +91,7 @@ out/windows/$(TARGET)_uncompressed.exe: windows_build $(OBJECTS_COMMON_WINDOWS) 
 	cp windows_build/sdl3/x86_64-w64-mingw32/bin/SDL3.dll out/windows/
 
 windows-run: windows
-	wine out/windows/$(TARGET).exe "$(WORLD)"
+	wine out/windows/$(TARGET).exe "$(WORLD_DEBUG)"
 
 clean: clean-windows
 

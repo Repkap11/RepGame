@@ -97,7 +97,7 @@ void ServerLogic::record_block( const glm::ivec3 &block_pos, BlockState &block_s
                 glm::ivec3 new_diff = block_pos - ( new_chunk_pos * CHUNK_SIZE_I );
                 int new_block_index = Chunk::get_index_from_coords( new_diff );
 
-                pr_debug( "Updating chunk: %d %d %d  %d", new_chunk_pos.x, new_chunk_pos.y, new_chunk_pos.z, new_block_index );
+                // pr_debug( "Updating chunk: %d %d %d  %d", new_chunk_pos.x, new_chunk_pos.y, new_chunk_pos.z, new_block_index );
                 auto &entry = this->world_cache[ new_chunk_pos ];
                 entry.blocks[ new_block_index ] = block_state;
                 entry.last_edit_time = std::chrono::steady_clock::now( );
@@ -236,7 +236,7 @@ ChunkCacheEntry *ServerLogic::loadIntoCache( const glm::ivec3 &chunk_offset ) {
         return &entry;
     }
     ChunkCacheEntry &entry = this->world_cache[ chunk_offset ];
-    pr_debug( "found chunk:%d %d %d size:%ld", chunk_offset.x, chunk_offset.y, chunk_offset.z, entry.blocks.size( ) );
+    // pr_debug( "found chunk:%d %d %d size:%ld", chunk_offset.x, chunk_offset.y, chunk_offset.z, entry.blocks.size( ) );
     entry.blocks.clear( );
     for ( int i = 0; i < CHUNK_BLOCK_SIZE; ++i ) {
         BlockState &blockState = blocks[ i ];

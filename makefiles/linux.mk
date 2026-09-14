@@ -135,16 +135,12 @@ linux-run: linux
 	./$(LINUX_OUT)/release/$(TARGET) $(WORLD) www.repkap11.com
 
 linux-run2: linux
-	./$(LINUX_OUT)/release/$(TARGET) World2 www.repkap11.com
+	./$(LINUX_OUT)/release/$(TARGET) $(WORLD_DEBUG) www.repkap11.com
 
 dev: linux_debug-run
-dev2: linux_debug-run2
 
 linux_debug-run: linux_debug
-	./$(LINUX_OUT)/debug/$(TARGET) $(WORLD) localhost
-
-linux_debug-run2: linux_debug
-	./$(LINUX_OUT)/debug/$(TARGET) World2 localhost
+	./$(LINUX_OUT)/debug/$(TARGET) $(WORLD_DEBUG) localhost
 
 tests: linux_debug
 	./$(LINUX_OUT)/debug/$(TARGET) tests
