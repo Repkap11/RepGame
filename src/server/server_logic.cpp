@@ -211,6 +211,16 @@ int ServerLogic::nextWakeTimeoutMs( ) const {
 }
 
 ChunkCacheEntry *ServerLogic::loadIntoCache( const glm::ivec3 &chunk_offset ) {
+    // Check file existence before allocating a 350KB buffer. For a fresh
+    // world where most chunks have no file, this avoids both a malloc/free
+    // and a wasted fread attempt per chunk.
+    if ( !this->map_storage.check_if_chunk_exists( chunk_offset ) ) {
+        // Cache the "no file" result so subsequent requests for this chunk
+        // skip the disk check entirely.
+        ChunkCacheEntry &entry = this->world_cache[ chunk_offset ];
+        entry.blocks.clear( );
+        return &entry;
+    }
     BlockState *blocks = ( BlockState * )malloc( CHUNK_BLOCK_SIZE * sizeof( BlockState ) );
     for ( int i = 0; i < CHUNK_BLOCK_SIZE; ++i ) {
         blocks[ i ] = BLOCK_STATE_LAST_BLOCK_ID;
@@ -219,7 +229,11 @@ ChunkCacheEntry *ServerLogic::loadIntoCache( const glm::ivec3 &chunk_offset ) {
     int ret = this->map_storage.load_blocks( chunk_offset, blocks, dirty, true );
     if ( ret == 0 ) {
         free( blocks );
-        return NULL;
+        // File existed according to check_if_chunk_exists but load_blocks
+        // returned 0 (race or read error). Cache as empty to avoid retrying.
+        ChunkCacheEntry &entry = this->world_cache[ chunk_offset ];
+        entry.blocks.clear( );
+        return &entry;
     }
     ChunkCacheEntry &entry = this->world_cache[ chunk_offset ];
     pr_debug( "found chunk:%d %d %d size:%ld", chunk_offset.x, chunk_offset.y, chunk_offset.z, entry.blocks.size( ) );

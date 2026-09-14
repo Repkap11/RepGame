@@ -14,12 +14,12 @@ struct PlayerData;
 
 class MapStorage {
     char map_name[ MAP_NAME_MAX_LENGTH ];
-    int check_if_chunk_exists( const glm::ivec3 &chunk_offset );
 
   public:
     void init( const char *world_name );
     void persist_chunk( const Chunk &chunk );
     void persist_dirty_blocks( const glm::ivec3 &chunk_offset, const BlockState *blocks );
+    int check_if_chunk_exists( const glm::ivec3 &chunk_offset );
 
     int load_chunk( Chunk &chunk );
     int load_blocks( const glm::ivec3 &chunk_offset, BlockState *blocks, int &dirty, bool expect_empty_blocks );
