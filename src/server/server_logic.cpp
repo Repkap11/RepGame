@@ -174,10 +174,15 @@ void ServerLogic::persistAll( ) {
     if ( this->world_cache.empty( ) ) {
         return;
     }
+    size_t saved = 0;
     for ( auto [ chunk_pos, entry ] : this->world_cache ) {
+        if ( entry.blocks.empty( ) ) {
+            continue;
+        }
         this->persistChunk( chunk_pos );
+        saved++;
     }
-    pr_debug( "World saved (%zu chunks)", this->world_cache.size( ) );
+    pr_debug( "World saved (%zu chunks)", saved );
     this->world_cache.clear( );
     this->wake_schedule.clear( );
     this->chunk_wake.clear( );
