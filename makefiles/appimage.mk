@@ -37,7 +37,7 @@ appimage_build:
 	wget https://github.com/linuxdeploy/linuxdeploy/releases/download/continuous/linuxdeploy-x86_64.AppImage -O appimage_build/linuxdeploy-x86_64.AppImage
 	chmod +x appimage_build/linuxdeploy-x86_64.AppImage
 
-$(APPIMAGE_OUT)/image/.stamp: $(LINUX_OUT)/release/$(TARGET)_uncompressed src/linux/$(TARGET).desktop bitmaps/icon_512.png appimage_build | out
+$(APPIMAGE_OUT)/image/.stamp: $(LINUX_OUT)/release/$(TARGET)_uncompressed src/linux/$(TARGET).desktop src/linux/$(TARGET)AppRun bitmaps/icon_512.png appimage_build | out
 	rm -rf $(APPIMAGE_OUT)/image
 	mkdir -p $(APPIMAGE_OUT)/image
 # Exclude Wayland/libdecor libs from bundling so the AppImage uses the host's
@@ -53,6 +53,12 @@ $(APPIMAGE_OUT)/image/.stamp: $(LINUX_OUT)/release/$(TARGET)_uncompressed src/li
 		--exclude-library='libwayland-cursor.so*' \
 		--exclude-library='libwayland-egl.so*' \
 		--exclude-library='libdecor-0.so*'
+# Replace linuxdeploy's default AppRun (which ignores the desktop file's
+# Exec= args) with a custom one that defaults to World1 + repkap11.com when
+# the AppImage is launched with no arguments. Explicit CLI args still win.
+	rm -f $(APPIMAGE_OUT)/image/AppRun
+	cp src/linux/$(TARGET)AppRun $(APPIMAGE_OUT)/image/AppRun
+	chmod +x $(APPIMAGE_OUT)/image/AppRun
 	touch $@
 
 $(APPIMAGE_OUT)/$(TARGET)-1-x86_64.AppImage: appimage_build $(APPIMAGE_OUT)/image/.stamp

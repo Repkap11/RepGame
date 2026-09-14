@@ -1,0 +1,18 @@
+#!/bin/sh
+# Custom AppRun for the RepGame AppImage.
+#
+# linuxdeploy's default AppRun execs the bundled binary with the caller's
+# argv verbatim and ignores the Exec= line in the .desktop file (see
+# AppImageKit issues #357/#376). When the AppImage is double-clicked or run
+# with no arguments, we want it to connect to the public server by default;
+# any explicit arguments from the CLI still win via "$@" fallthrough.
+HERE="$(dirname "$(readlink -f "${0}")")"
+# Derive the bundled binary name from the desktop file's Exec= line so this
+# script stays in sync with TARGET without hardcoding it.
+EXEC_BIN=$(grep -m1 '^Exec=' "${HERE}"/usr/share/applications/*.desktop \
+    | sed 's/^Exec=//; s/ .*//; s|.*/||')
+if [ "$#" -eq 0 ]; then
+    exec "${HERE}/usr/bin/${EXEC_BIN}" World1 repkap11.com
+else
+    exec "${HERE}/usr/bin/${EXEC_BIN}" "$@"
+fi
