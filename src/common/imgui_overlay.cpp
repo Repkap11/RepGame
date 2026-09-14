@@ -1,4 +1,5 @@
 #include "common/imgui_overlay.hpp"
+#include "common/map_gen.hpp"
 
 ImGuiDebugVars debug_vars;
 
@@ -87,6 +88,15 @@ void imgui_overlay_draw( ImGuiOverlay *imgui_overlay, Input &input ) {
             ImGui::Text( "Render Mode: %s", qualityName );
             const char *video_driver = SDL_GetCurrentVideoDriver( );
             ImGui::Text( "Video Driver: %s", video_driver ? video_driver : "unknown" );
+            const char *acceleration;
+            if ( LOAD_CHUNKS_SUPPORTS_CUDA && MapGen::supports_cuda( ) ) {
+                acceleration = "CUDA";
+            } else if ( LOAD_CHUNKS_SUPPORTS_HIP && MapGen::supports_hip( ) ) {
+                acceleration = "HIP";
+            } else {
+                acceleration = "CPU";
+            }
+            ImGui::Text( "Acceleration: %s", acceleration );
 
             // debug_vars.corner1.x = round( debug_vars.corner1.x * 20 ) / 20;
             // debug_vars.corner1.y = round( debug_vars.corner1.y * 20 ) / 20;
