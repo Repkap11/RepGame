@@ -57,7 +57,6 @@ out/windows/fonts/%.o : fonts/%.ttf | out/windows
 	objcopy --rename-section .data=.rodata,CONTENTS,ALLOC,LOAD,READONLY,DATA $@ $@
 
 all: windows
-docker-internal: windows
 windows:  out/windows/$(TARGET).exe
 
 deploy: windows-deploy

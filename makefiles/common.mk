@@ -2,6 +2,13 @@
 
 USE_CCACHE ?= 1
 
+# Output directory for Linux build artifacts. The portable (Docker) build
+# overrides this to out/linux-portable so host and Docker .o files don't clobber.
+LINUX_OUT ?= out/linux
+# Output directory for AppImage artifacts. The portable (Docker) build overrides
+# this to out/appimage-portable so host and Docker AppImages don't clobber.
+APPIMAGE_OUT ?= out/appimage
+
 # Shader preprocessor: runs the C preprocessor on GLSL sources at build time.
 # -x assembler-with-cpp passes #version through untouched (it's not a valid C
 # preprocessor directive) while still expanding #define/#if/#ifdef/#endif.

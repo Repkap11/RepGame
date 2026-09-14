@@ -39,15 +39,14 @@ Once you've narrowed down your build platforms, you can can install the needed d
 make install
 make
 ```
-Alternitivly, if you don't want to install packages on your Linux distro, you can build for Windows and Linux (including AppImage) inside docker.
-Currently docker targets Ubuntu 22.04. This can be useful to create a more compatible Linux executable.
-You can attempt to build for older Linux versions with docker, but linking GLEW can be problematic.
+Alternitivly, if you don't want to install packages on your Linux distro, you can build a portable AppImage inside docker.
+The docker image targets Ubuntu 24.04 and builds SDL3 from source, so the resulting AppImage has a glibc floor of 2.38 and runs on most modern x86_64 Linux distros.
 ```bash
 # Setup docker...
 # Install the dependencies which aren't system dependencies.
 make entt_build imgui_build appimage_build
 # Building the docker image automatically cleans up any danging docker images or volumes, including non RepGame ones.
-make docker-compile
+make appimage-portable
 ```
 ## Running the Game
 To play the game, run the final executable with a name for the world save, and a multiplayer server url. On Linux, worlds will be saved in ~/.repgame. On Windows, they are stored in the current directory.
@@ -61,13 +60,12 @@ Or use one of the make targets to build and run in 1 step:
 ```bash
 make linux-run
 make linux_debug-run
-make appimage-run
+make appimage-host-run
 make wasm-run
 make windows-run #If you have wine installed.
 ```
-Non-docker builds share files with docker builds using a volume.
-You should do a clean build when switching to or from docker based builds.
-Similarly, when adding or removing CUDA support, you should do a clean build.
+Host and portable (Docker) builds use separate output directories (`out/linux` and `out/linux-portable`), so you can switch between them without a clean build.
+However, when adding or removing CUDA support on the host, you should still do a clean build:
 ```bash
 make clean
 make

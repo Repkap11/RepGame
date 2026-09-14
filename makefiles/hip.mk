@@ -5,7 +5,7 @@ REPGAME_PACKAGES += hipcc libamdhip64-dev
 hip-install:
 	sudo apt-get install -y hipcc libamdhip64-dev
 
-OBJECTS_HIP := $(patsubst src/linux/hip/%.hip,out/linux/linux/hip/%.o, $(wildcard src/linux/hip/*.hip))
+OBJECTS_HIP := $(patsubst src/linux/hip/%.hip,$(LINUX_OUT)/linux/hip/%.o, $(wildcard src/linux/hip/*.hip))
 CLEAN_HIP := $(OBJECTS_HIP)
 
 CC_HIP := /usr/bin/hipcc
@@ -39,7 +39,7 @@ OBJECTS_COMMON_LINUX_DEBUG += $(OBJECTS_HIP)
 # endif
 
 
-out/linux/linux/hip/%.o: src/linux/hip/%.hip $(HEADERS) | out/linux
+$(LINUX_OUT)/linux/hip/%.o: src/linux/hip/%.hip $(HEADERS) | $(LINUX_OUT)
 	$(CC_HIP) $(CFLAGS_HIP_COMPILE) $(INCLUDES_COMMON) $(CFLAGS_HIP) $< -o $@
 
 hip: $(OBJECTS_HIP)

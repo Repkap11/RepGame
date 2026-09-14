@@ -75,7 +75,7 @@ int repgame_sdl2_main( const char *world_path, const char *host, const bool conn
     // Video driver hint is set in main() (RepGameLinux.cpp) before the first
     // SDL_Init, since SDL_Init is idempotent and locks in the driver early.
     if ( !SDL_Init( SDL_INIT_VIDEO ) ) {    /* Initialize SDL's Video subsystem */
-        pr_debug( "Unable to initialize SDL" ); /* Or die on error */
+        pr_debug( "Unable to initialize SDL: %s", SDL_GetError( ) ); /* Or die on error */
         exit( 1 );
     }
     pr_debug( "SDL video driver: %s (hint=%s)", SDL_GetCurrentVideoDriver( ), SDL_GetHint( SDL_HINT_VIDEO_DRIVER ) );
@@ -135,14 +135,14 @@ int repgame_sdl2_main( const char *world_path, const char *host, const bool conn
 
     sdl_window = SDL_CreateWindow( "RepGame", default_width, default_height, window_flags );
     if ( !sdl_window ) {
-        pr_debug( "Creating the SDL window failed" );
+        pr_debug( "Creating the SDL window failed: %s", SDL_GetError( ) );
         exit( 1 );
     }
     SDL_SetWindowPosition( sdl_window, window_x, window_y );
     pr_debug( "Window on display: %d", SDL_GetDisplayForWindow( sdl_window ) );
     sdl_context = SDL_GL_CreateContext( sdl_window );
     if ( !sdl_context ) {
-        pr_debug( "Creating the SDL context failed" );
+        pr_debug( "Creating the SDL context failed: %s", SDL_GetError( ) );
         exit( 1 );
     }
 
