@@ -14,7 +14,8 @@ file(GLOB REPGAME_SOURCES
         ${CMAKE_CURRENT_SOURCE_DIR}/../../src/common/renderer/*.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/../../src/common/utils/*.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/../../src/common/vendor/*.cpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/../../src/common/block_update_events/*.cpp)
+        ${CMAKE_CURRENT_SOURCE_DIR}/../../src/common/block_update_events/*.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/../../src/linux/framed_socket.cpp)
 #message(ERROR "REPGAME_SOURCES:${REPGAME_SOURCES}End")
 add_library( RepGameAndroid SHARED ${REPGAME_SOURCES} )
 
