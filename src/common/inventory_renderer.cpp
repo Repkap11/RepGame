@@ -237,6 +237,18 @@ int InventoryRenderer::whichSlotClicked( int screen_x, int screen_y ) const {
     return slot_index;
 }
 
+bool InventoryRenderer::getSlotPosition( int slot_index, float &out_x, float &out_y ) const {
+    if ( slot_index < 0 || slot_index >= this->num_blocks_max ) {
+        return false;
+    }
+    int grid_x = slot_index % this->width;
+    int grid_y = slot_index / this->width;
+    // Bottom-right corner of the cell (in centered screen coords).
+    out_x = this->inv_items_x + grid_x * this->inv_cell_stride + this->inv_cell_offset + this->inv_cell_size;
+    out_y = this->inv_items_y + grid_y * this->inv_cell_stride + this->inv_cell_offset;
+    return true;
+}
+
 void InventoryRenderer::renderBackground( ) {
     // Coordinate system
     // 0,0 in the center of the screen.

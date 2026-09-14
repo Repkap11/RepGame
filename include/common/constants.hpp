@@ -78,6 +78,11 @@ static_assert( CHUNK_RADIUS_Z > 0, "CHUNK_RADIUS_Z too small" );
 #define MAIN_INVENTORY_HEIGHT 6
 #define HOTBAR_WIDTH 10
 #define HOTBAR_HEIGHT 1
+// Survival inventory grid dimensions (Minecraft-style 9x3 main grid).
+#define SURVIVAL_INVENTORY_WIDTH 9
+#define SURVIVAL_INVENTORY_HEIGHT 3
+// Maximum stack size for survival mode.
+#define MAX_STACK_SIZE 64
 
 // This can be useful when debugging and you want to stop at a breakpoint.
 #define ALLOW_GRAB_MOUSE 1

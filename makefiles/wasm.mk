@@ -31,6 +31,7 @@ endif
 
 WASM_SHADERS = $(patsubst src/shaders/%.glsl,out/wasm/fs/src/shaders/%.glsl,$(wildcard src/shaders/*.glsl))
 WASM_BITMAPS = $(patsubst bitmaps/%.bmp,out/wasm/fs/bitmaps/%.bin,$(wildcard bitmaps/*.bmp))
+WASM_FONTS = $(patsubst fonts/%.ttf,out/wasm/fs/fonts/%.ttf,$(wildcard fonts/*.ttf))
 
 OBJECTS_COMMON_WASM := $(patsubst src/common/%.cpp,out/wasm/common/%.o, $(SRC_COMMON))
 OBJECTS_WASM := $(patsubst src/%.cpp,out/wasm/%.o, $(wildcard src/wasm/*.cpp))
@@ -47,12 +48,13 @@ WASM_DIRS = $(patsubst src%,out/wasm%,$(shell find src -type d)) \
 			out/wasm/fs/src \
 			out/wasm/fs/src/shaders \
 			out/wasm/fs/bitmaps \
+			out/wasm/fs/fonts \
 			out/wasm/delivery
 
 out/wasm/%.o: src/%.cpp $(HEADERS) src/wasm/RepGameSDL2.cpp | out/wasm
 	$(CC_WASM) $(INCLUDES_COMMON) $(CFLAGS_WASM) -c $< -o $@
 
-out/wasm/delivery/$(TARGET).js: $(OBJECTS_COMMON_WASM) $(OBJECTS_WASM) $(WASM_SHADERS) $(WASM_BITMAPS) | out/wasm
+out/wasm/delivery/$(TARGET).js: $(OBJECTS_COMMON_WASM) $(OBJECTS_WASM) $(WASM_SHADERS) $(WASM_BITMAPS) $(WASM_FONTS) | out/wasm
 	$(CC_WASM) $(CFLAGS_LINK_WASM) $(OBJECTS_WASM) $(OBJECTS_COMMON_WASM) --preload-file out/wasm/fs@ -o $@
 
 out/wasm/delivery/index.html: src/wasm/index.html | out/wasm
@@ -68,6 +70,9 @@ out/wasm/fs/src/shaders/%.glsl: src/shaders/%.glsl | out/wasm
 	$(SHADER_PP) -DREPGAME_LOW_GRAPHICS $< -o $@
 
 out/wasm/fs/bitmaps/% : out/bitmaps/% | out/wasm
+	cp $< $@
+
+out/wasm/fs/fonts/% : fonts/% | out/wasm
 	cp $< $@
 
 out/wasm/delivery/icon.png : bitmaps/icon.png | out/wasm

@@ -7,6 +7,7 @@
 #include <android/log.h>
 
 char *repgame_android_getShaderString( const char *filename );
+unsigned char *repgame_android_getAssetBytes( const char *filename, int *out_size );
 
 #define SUPPORTS_FRAME_BUFFER 0
 #define REPGAME_PATH_DIVIDOR "/"

@@ -16,6 +16,7 @@ class Input {
             int right;
             int middle;
             bool left_click_handled;
+            bool middle_click_handled;
         } buttons;
         struct {
             int x;
@@ -38,6 +39,7 @@ class Input {
     bool exitGame;
     int click_delay_left;
     int click_delay_right;
+    int click_delay_middle;
     bool debug_mode;
     bool inventory_open;
     bool player_flying;
@@ -46,6 +48,7 @@ class Input {
     WorldDrawQuality worldDrawQuality;
     bool drop_item;
     bool screenshot_requested;
+    bool toggle_game_mode;
 
 #if defined( REPGAME_LINUX ) || defined( REPGAME_WINDOWS ) || defined( REPGAME_WASM )
     void mouseInput( int button, int state );

@@ -50,6 +50,7 @@ DEPS_LINUX := $(patsubst src/%.cpp,out/linux/release/%.d, $(wildcard src/linux/*
 SHADER_BLOBS_LINUX := $(patsubst src/shaders/%.glsl,out/linux/shaders/%.o,$(wildcard src/shaders/*.glsl))
 SHADER_PROCESSED_LINUX := $(patsubst src/shaders/%.glsl,out/linux/shaders/%.glsl,$(wildcard src/shaders/*.glsl))
 BITMAP_BLOBS_LINUX := $(patsubst bitmaps/%.bmp,out/linux/bitmaps/%.o,$(wildcard bitmaps/*.bmp))
+FONT_BLOBS_LINUX := $(patsubst fonts/%.ttf,out/linux/fonts/%.o,$(wildcard fonts/*.ttf))
 
 # Preprocess shaders through the C preprocessor at build time. The preprocessed
 # .glsl file lives in out/linux/shaders/ alongside the .o blob. The blob symbols
@@ -69,6 +70,10 @@ out/linux/bitmaps/%.o : out/bitmaps/%.bin | out/linux
 	$(LD_LINUX) $(LFLAGS) -r -b binary $< -o $@_no_section
 	objcopy --rename-section .data=.rodata,CONTENTS,ALLOC,LOAD,READONLY,DATA --reverse-bytes=4 $@_no_section $@
 
+out/linux/fonts/%.o : fonts/%.ttf | out/linux
+	$(LD_LINUX) $(LFLAGS) -r -b binary $< -o $@_no_section
+	objcopy --rename-section .data=.rodata,CONTENTS,ALLOC,LOAD,READONLY,DATA $@_no_section $@
+
 all: linux
 docker-internal: linux
 linux: out/linux/release/$(TARGET)
@@ -83,7 +88,7 @@ LINUX_DIRS := $(patsubst src%,out/linux/release%,$(shell find src -type d)) \
 		$(patsubst src%,out/linux/debug%,$(shell find src -type d)) \
 		$(patsubst src%,out/linux%,$(shell find src -type d)) \
 		out/linux/debug out/linux/release \
-		out/linux/shaders out/linux/bitmaps \
+		out/linux/shaders out/linux/bitmaps out/linux/fonts \
 		out/linux/debug/imgui out/linux/release/imgui \
 		out/linux/debug/imgui/backends out/linux/release/imgui/backends
 
@@ -116,11 +121,11 @@ out/linux/release/$(TARGET): out/linux/release/$(TARGET)_uncompressed
 	touch $@
 
 
-out/linux/release/$(TARGET)_uncompressed: $(OBJECTS_IMGUI_LINUX_RELEASE) $(OBJECTS_COMMON_LINUX_RELEASE) $(OBJECTS_LINUX_RELEASE) $(SHADER_BLOBS_LINUX) $(BITMAP_BLOBS_LINUX) | out/linux
-	$(CC_LINUX) -flto $(CFLAGS_LINUX) $(CFLAGS_LINUX_RELEASE) $(OBJECTS_LINUX_RELEASE) $(OBJECTS_IMGUI_LINUX_RELEASE) $(OBJECTS_COMMON_LINUX_RELEASE) $(SHADER_BLOBS_LINUX) $(BITMAP_BLOBS_LINUX) $(LIBS_LINUX) -o $@
+out/linux/release/$(TARGET)_uncompressed: $(OBJECTS_IMGUI_LINUX_RELEASE) $(OBJECTS_COMMON_LINUX_RELEASE) $(OBJECTS_LINUX_RELEASE) $(SHADER_BLOBS_LINUX) $(BITMAP_BLOBS_LINUX) $(FONT_BLOBS_LINUX) | out/linux
+	$(CC_LINUX) -flto $(CFLAGS_LINUX) $(CFLAGS_LINUX_RELEASE) $(OBJECTS_LINUX_RELEASE) $(OBJECTS_IMGUI_LINUX_RELEASE) $(OBJECTS_COMMON_LINUX_RELEASE) $(SHADER_BLOBS_LINUX) $(BITMAP_BLOBS_LINUX) $(FONT_BLOBS_LINUX) $(LIBS_LINUX) -o $@
 
-out/linux/debug/$(TARGET): $(OBJECTS_IMGUI_LINUX_DEBUG) $(OBJECTS_COMMON_LINUX_DEBUG) $(OBJECTS_LINUX_DEBUG) $(SHADER_BLOBS_LINUX) $(BITMAP_BLOBS_LINUX) | out/linux
-	$(CC_LINUX) $(CFLAGS_LINUX) $(CFLAGS_LINUX_DEBUG) $(OBJECTS_LINUX_DEBUG) $(OBJECTS_IMGUI_LINUX_DEBUG) $(OBJECTS_COMMON_LINUX_DEBUG) $(SHADER_BLOBS_LINUX) $(BITMAP_BLOBS_LINUX) $(LIBS_LINUX) -o $@
+out/linux/debug/$(TARGET): $(OBJECTS_IMGUI_LINUX_DEBUG) $(OBJECTS_COMMON_LINUX_DEBUG) $(OBJECTS_LINUX_DEBUG) $(SHADER_BLOBS_LINUX) $(BITMAP_BLOBS_LINUX) $(FONT_BLOBS_LINUX) | out/linux
+	$(CC_LINUX) $(CFLAGS_LINUX) $(CFLAGS_LINUX_DEBUG) $(OBJECTS_LINUX_DEBUG) $(OBJECTS_IMGUI_LINUX_DEBUG) $(OBJECTS_COMMON_LINUX_DEBUG) $(SHADER_BLOBS_LINUX) $(BITMAP_BLOBS_LINUX) $(FONT_BLOBS_LINUX) $(LIBS_LINUX) -o $@
 
 linux-run: linux
 	./out/linux/release/$(TARGET) $(WORLD) www.repkap11.com
@@ -155,6 +160,6 @@ out/linux: | out
 	mkdir -p $(LINUX_DIRS)
 	touch $@
 
-.PRECIOUS: out/linux/release/$(TARGET) out/linux/debug/$(TARGET) $(OBJECTS_LINUX_DEBUG) $(OBJECTS_LINUX_RELEASE) $(OBJECTS_COMMON_LINUX_RELEASE) $(OBJECTS_COMMON_LINUX_DEBUG) $(SHADER_BLOBS_LINUX) $(SHADER_PROCESSED_LINUX) $(BITMAP_BLOBS_LINUX)
+.PRECIOUS: out/linux/release/$(TARGET) out/linux/debug/$(TARGET) $(OBJECTS_LINUX_DEBUG) $(OBJECTS_LINUX_RELEASE) $(OBJECTS_COMMON_LINUX_RELEASE) $(OBJECTS_COMMON_LINUX_DEBUG) $(SHADER_BLOBS_LINUX) $(SHADER_PROCESSED_LINUX) $(BITMAP_BLOBS_LINUX) $(FONT_BLOBS_LINUX)
 
 .PHONY: linux linux-run clean-linux linux-deploy dev

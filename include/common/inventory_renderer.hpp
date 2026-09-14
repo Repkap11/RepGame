@@ -84,5 +84,9 @@ class InventoryRenderer {
     void setSelectedSlot( int slot_index );
     void draw( const Renderer &renderer, const Texture &blocksTexture, const Shader &shader );
     int whichSlotClicked( int screen_x, int screen_y ) const;
+    // Returns the screen-space position of the bottom-right corner of the given
+    // slot (for rendering quantity text). Returns false if the slot index is
+    // out of bounds.
+    bool getSlotPosition( int slot_index, float &out_x, float &out_y ) const;
     void cleanup( );
 };

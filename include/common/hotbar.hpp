@@ -4,6 +4,8 @@
 #include "common/block_definitions.hpp"
 #include <map>
 
+class FontRenderer;
+
 class Hotbar {
     int width;
     int height;
@@ -19,6 +21,10 @@ class Hotbar {
     void init( const VertexBufferLayout &ui_overlay_vbl_vertex, const VertexBufferLayout &ui_overlay_vbl_instance, int width, int height );
     void onScreenSizeChange( int width, int height );
     bool addBlock( bool alsoSelect, BlockID blockId );
+    bool addBlockWithQuantity( BlockID blockId, int quantity );
+    bool canPlaceSelected( ) const;
+    bool consumeSelected( int amount );
+    int getSelectedQuantity( ) const;
     void setSelectedSlot( int selected_slot );
     BlockID incrementSelectedSlot( int offset );
     BlockID getSelectedBlock( ) const;
@@ -27,5 +33,6 @@ class Hotbar {
     void applySavedInventory( const InventorySlot *savedSlots );
     void saveInventory( InventorySlot *savedSlots ) const;
     void draw( const Renderer &renderer, const Texture &blocksTexture, const Shader &shader );
+    void drawQuantities( const Renderer &renderer, FontRenderer &font, const glm::mat4 &mvp );
     void cleanup( );
 };

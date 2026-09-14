@@ -97,23 +97,39 @@ void RepGame::add_to_hotbar( const bool alsoSelect, const BlockID blockId ) {
     }
 }
 
-static bool was_middle = false;
 void RepGame::process_mouse_events( ) {
-    if ( globalGameState.block_selection.selectionInBounds && globalGameState.input.mouse.buttons.middle ) {
-        // Picking a block
+    if ( !globalGameState.input.inventory_open && globalGameState.block_selection.selectionInBounds && globalGameState.input.mouse.buttons.middle && globalGameState.input.click_delay_middle == 0 ) {
         BlockState blockState = globalGameState.world.get_loaded_block( globalGameState.block_selection.pos_destroy );
-        RepGame::add_to_hotbar( true, blockState.id );
-        if ( !was_middle ) {
-            pr_debug( "Selected block:%d rotation:%d redstone_power:%d display:%d", blockState.id, blockState.rotation, blockState.current_redstone_power, blockState.display_id );
+        pr_debug( "Selected block:%d rotation:%d redstone_power:%d display:%d", blockState.id, blockState.rotation, blockState.current_redstone_power, blockState.display_id );
+        globalGameState.input.click_delay_middle = 30;
+        if ( globalGameState.game_mode == GameMode_Survival ) {
+            // In survival mode, middle-clicking a block moves the stack from
+            // the survival inventory to the hotbar (if available).
+            if ( !globalGameState.survival_inventory.moveBlockToHotbar( blockState.id, globalGameState.hotbar ) ) {
+                // Fallback: give 1 of the block (debug feature).
+                globalGameState.hotbar.addBlockWithQuantity( blockState.id, 1 );
+                BlockID selectedBlock = globalGameState.hotbar.getSelectedBlock( );
+                globalGameState.ui_overlay.set_holding_block( selectedBlock );
+            }
+        } else {
+            // Creative mode: always give the block.
+            RepGame::add_to_hotbar( true, blockState.id );
         }
-        was_middle = true;
-    } else {
-        was_middle = false;
     }
     if ( globalGameState.block_selection.selectionInBounds && globalGameState.input.mouse.buttons.left && globalGameState.input.click_delay_left == 0 ) {
         // Mining a block
-        change_block( 0, BLOCK_STATE_AIR );
-        // RepGame::add_to_hotbar( false, previous_block );
+        BlockID previous_block = change_block( 0, BLOCK_STATE_AIR );
+        if ( globalGameState.game_mode == GameMode_Survival && previous_block != LAST_BLOCK_ID && previous_block != AIR ) {
+            // In survival mode, add the mined block to the hotbar first, then
+            // fall back to the survival inventory.
+            const Block *blockDef = block_definition_get_definition( previous_block );
+            if ( blockDef->is_pickable && blockDef->renderOrder != RenderOrder_Transparent && blockDef->renderOrder != RenderOrder_Water ) {
+                bool added = globalGameState.hotbar.addBlockWithQuantity( previous_block, 1 );
+                if ( !added ) {
+                    globalGameState.survival_inventory.addBlock( previous_block, 1 );
+                }
+            }
+        }
         globalGameState.input.click_delay_left = 30;
     }
     if ( globalGameState.block_selection.selectionInBounds && globalGameState.input.mouse.buttons.right && globalGameState.input.click_delay_right == 0 ) {
@@ -151,8 +167,20 @@ void RepGame::process_mouse_events( ) {
                 if ( holdingBlockDef->is_torch ) {
                     pr_debug( "Placing torch face:%d rotation:%d", globalGameState.block_selection.face, rotation );
                 }
-                change_block( 1, { holdingBlock, rotation, 0, holdingBlock } );
-                globalGameState.input.click_delay_right = 30;
+                // In survival mode, check that we have a block to place and consume it.
+                bool can_place = true;
+                if ( globalGameState.game_mode == GameMode_Survival ) {
+                    can_place = globalGameState.hotbar.canPlaceSelected( );
+                }
+                if ( can_place ) {
+                    BlockID placed_block = change_block( 1, { holdingBlock, rotation, 0, holdingBlock } );
+                    if ( placed_block != LAST_BLOCK_ID && globalGameState.game_mode == GameMode_Survival ) {
+                        globalGameState.hotbar.consumeSelected( 1 );
+                        BlockID newHolding = globalGameState.hotbar.getSelectedBlock( );
+                        globalGameState.ui_overlay.set_holding_block( newHolding );
+                    }
+                    globalGameState.input.click_delay_right = 30;
+                }
             }
         }
     }
@@ -341,6 +369,15 @@ void RepGame::process_block_updates( ) {
 }
 
 void RepGame::process_inventory_events( ) {
+    if ( globalGameState.input.toggle_game_mode ) {
+        globalGameState.input.toggle_game_mode = false;
+        if ( globalGameState.game_mode == GameMode_Creative ) {
+            globalGameState.game_mode = GameMode_Survival;
+        } else {
+            globalGameState.game_mode = GameMode_Creative;
+        }
+        pr_debug( "Game mode toggled to: %s", globalGameState.game_mode == GameMode_Creative ? "Creative" : "Survival" );
+    }
     if ( globalGameState.input.drop_item ) {
         globalGameState.input.drop_item = false;
         globalGameState.hotbar.dropSelectedItem( );
@@ -350,15 +387,31 @@ void RepGame::process_inventory_events( ) {
     if ( globalGameState.input.inventory_open ) {
         if ( globalGameState.input.mouse.buttons.left && globalGameState.input.mouse.buttons.left_click_handled == false ) {
             globalGameState.input.mouse.buttons.left_click_handled = true;
-            BlockID blockId = globalGameState.main_inventory.whichBlockClicked( globalGameState.input.mouse.absPosition.x, globalGameState.input.mouse.absPosition.y );
-            // pr_debug( "Clicked on %d %d blockID:%d", globalGameState.input.mouse.absPosition.x, globalGameState.input.mouse.absPosition.y, blockId );
-            if ( blockId != LAST_BLOCK_ID ) {
-                add_to_hotbar( true, blockId );
+            if ( globalGameState.game_mode == GameMode_Creative ) {
+                BlockID blockId = globalGameState.main_inventory.whichBlockClicked( globalGameState.input.mouse.absPosition.x, globalGameState.input.mouse.absPosition.y );
+                // pr_debug( "Clicked on %d %d blockID:%d", globalGameState.input.mouse.absPosition.x, globalGameState.input.mouse.absPosition.y, blockId );
+                if ( blockId != LAST_BLOCK_ID ) {
+                    add_to_hotbar( true, blockId );
+                }
+            }
+        }
+        if ( globalGameState.input.mouse.buttons.middle && globalGameState.input.mouse.buttons.middle_click_handled == false ) {
+            globalGameState.input.mouse.buttons.middle_click_handled = true;
+            if ( globalGameState.game_mode == GameMode_Survival ) {
+                // Survival mode: middle-clicking a survival inventory slot moves
+                // the stack to the hotbar.
+                int slot = globalGameState.survival_inventory.whichSlotClicked( globalGameState.input.mouse.absPosition.x, globalGameState.input.mouse.absPosition.y );
+                if ( slot >= 0 ) {
+                    globalGameState.survival_inventory.moveToHotbar( slot, globalGameState.hotbar );
+                    BlockID selectedBlock = globalGameState.hotbar.getSelectedBlock( );
+                    globalGameState.ui_overlay.set_holding_block( selectedBlock );
+                }
             }
         }
     } else {
-        // Steal any left click events so they don't trigger right when we open the inventory.
+        // Steal any left/middle click events so they don't trigger right when we open the inventory.
         globalGameState.input.mouse.buttons.left_click_handled = true;
+        globalGameState.input.mouse.buttons.middle_click_handled = true;
     }
 }
 
@@ -379,9 +432,9 @@ void RepGame::tick( ) {
 
     int wheel_diff = globalGameState.input.mouse.previousPosition.wheel_counts - globalGameState.input.mouse.currentPosition.wheel_counts;
     if ( wheel_diff != 0 ) {
-        if ( globalGameState.input.inventory_open ) {
+        if ( globalGameState.input.inventory_open && globalGameState.game_mode == GameMode_Creative ) {
             globalGameState.main_inventory.incrementSelectedPage( wheel_diff );
-        } else {
+        } else if ( !globalGameState.input.inventory_open ) {
             BlockID holdingBlock = globalGameState.hotbar.incrementSelectedSlot( wheel_diff );
             globalGameState.ui_overlay.set_holding_block( holdingBlock );
         }
@@ -438,6 +491,11 @@ void RepGame::tick( ) {
     } else {
         globalGameState.input.click_delay_left = 0;
     }
+    if ( globalGameState.input.click_delay_middle > 0 ) {
+        globalGameState.input.click_delay_middle--;
+    } else {
+        globalGameState.input.click_delay_middle = 0;
+    }
 
     globalGameState.input.mouse.previousPosition.x = globalGameState.input.mouse.currentPosition.x;
     globalGameState.input.mouse.previousPosition.y = globalGameState.input.mouse.currentPosition.y;
@@ -486,6 +544,8 @@ void RepGame::initializeGameState( const char *world_name ) {
         globalGameState.input.worldDrawQuality = static_cast<WorldDrawQuality>( saved_data.worldDrawQuality );
         globalGameState.hotbar.applySavedInventory( saved_data.hotbar_inventory );
         globalGameState.hotbar.setSelectedSlot( saved_data.selected_hotbar_slot );
+        globalGameState.game_mode = saved_data.game_mode;
+        globalGameState.survival_inventory.applySavedInventory( saved_data.survival_inventory );
     }
     // Seed the interpolation snapshot so the first rendered frame doesn't blend from zeroes.
     globalGameState.camera.prev_pos = globalGameState.camera.pos;
@@ -540,7 +600,9 @@ RepGameState *RepGame::init( const char *world_name, const bool connect_multi, c
     block_definitions_initilize_definitions( &globalGameState.blocksTexture );
 
     globalGameState.main_inventory.init( vbl_ui_overlay_vertex, vbl_ui_overlay_instance, MAIN_INVENTORY_WIDTH, MAIN_INVENTORY_HEIGHT );
+    globalGameState.survival_inventory.init( vbl_ui_overlay_vertex, vbl_ui_overlay_instance, SURVIVAL_INVENTORY_WIDTH, SURVIVAL_INVENTORY_HEIGHT );
     globalGameState.hotbar.init( vbl_ui_overlay_vertex, vbl_ui_overlay_instance, HOTBAR_WIDTH, HOTBAR_HEIGHT );
+    globalGameState.game_mode = GameMode_Creative;
 
     initializeGameState( world_name );
 
@@ -548,6 +610,7 @@ RepGameState *RepGame::init( const char *world_name, const bool connect_multi, c
 
     globalGameState.ui_overlay.init( vbl_ui_overlay_vertex, vbl_ui_overlay_instance );
     imgui_overlay_init( &globalGameState.imgui_overlay );
+    globalGameState.font_renderer.init( );
 
     BlockID selectedBlock = globalGameState.hotbar.getSelectedBlock( );
     globalGameState.ui_overlay.set_holding_block( selectedBlock );
@@ -587,6 +650,7 @@ void RepGame::changeSize( const int w, const int h ) {
     globalGameState.input.mouse.previousPosition.y = h / 2;
     globalGameState.ui_overlay.on_screen_size_change( w, h );
     globalGameState.main_inventory.onScreenSizeChange( w, h );
+    globalGameState.survival_inventory.onScreenSizeChange( w, h );
     globalGameState.hotbar.onScreenSizeChange( w, h );
     globalGameState.screen.proj = glm::perspective<float>( glm::radians( CAMERA_FOV ), globalGameState.screen.width / globalGameState.screen.height, 0.1f, 800.0f );
     globalGameState.screen.ortho = glm::ortho<float>( 0.f, w, 0.f, h, -1.f, 1.f );
@@ -741,7 +805,7 @@ void RepGame::draw( float alpha ) {
 
     {
         const long long t_ui_start = now_us( );
-        globalGameState.ui_overlay.draw( globalGameState.main_inventory, globalGameState.hotbar, globalGameState.world.renderer, globalGameState.blocksTexture, globalGameState.input, globalGameState.screen.ortho_center );
+        globalGameState.ui_overlay.draw( globalGameState.main_inventory, globalGameState.survival_inventory, globalGameState.hotbar, globalGameState.game_mode, globalGameState.world.renderer, globalGameState.blocksTexture, globalGameState.input, globalGameState.font_renderer, globalGameState.screen.ortho_center );
         ImGuiDebugVars &debugVars = imgui_overlay_get_imgui_debug_vars( );
         debugVars.player_pos = globalGameState.camera.pos;
         imgui_overlay_draw( &globalGameState.imgui_overlay, globalGameState.input );
@@ -775,6 +839,8 @@ void RepGame::cleanup( ) {
     saved_data.worldDrawQuality = static_cast<int>( globalGameState.input.worldDrawQuality );
     globalGameState.hotbar.saveInventory( saved_data.hotbar_inventory );
     saved_data.selected_hotbar_slot = globalGameState.hotbar.getSelectedSlot( );
+    saved_data.game_mode = globalGameState.game_mode;
+    globalGameState.survival_inventory.saveInventory( saved_data.survival_inventory );
 
     globalGameState.map_storage.write_player_data( saved_data );
 #if defined( REPGAME_WASM )
@@ -785,7 +851,9 @@ void RepGame::cleanup( ) {
     globalGameState.world.cleanup( globalGameState.map_storage );
     globalGameState.blocksTexture.destroy( );
     globalGameState.ui_overlay.cleanup( );
+    globalGameState.font_renderer.cleanup( );
     globalGameState.main_inventory.cleanup( );
+    globalGameState.survival_inventory.cleanup( );
     globalGameState.hotbar.cleanup( );
     imgui_overlay_cleanup( &globalGameState.imgui_overlay );
     block_definitions_free_definitions( );

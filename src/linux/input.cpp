@@ -76,6 +76,7 @@ void Input::mouseInput( const int button, const int state ) {
             break;
         case SDL_BUTTON_MIDDLE:
             this->mouse.buttons.middle = !state;
+            this->mouse.buttons.middle_click_handled = state;
             // pr_debug( "Middle Click %d", !state );
             break;
 
@@ -185,6 +186,11 @@ void Input::keysInput( const SDL_Keycode key, const bool pressed ) {
                 } else {
                     this->worldDrawQuality = static_cast<WorldDrawQuality>( ( this->worldDrawQuality + 1 ) % WorldDrawQuality::LAST );
                 }
+            }
+            break;
+        case SDLK_F5:
+            if ( pressed ) {
+                this->toggle_game_mode = true;
             }
             break;
         case SDLK_F12:

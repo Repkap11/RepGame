@@ -32,6 +32,22 @@ char *repgame_android_getShaderString( const char *filename ) {
     return buf;
 }
 
+unsigned char *repgame_android_getAssetBytes( const char *filename, int *out_size ) {
+    AAsset *asset = AAssetManager_open( assetManager, filename, AASSET_MODE_STREAMING );
+    if ( !asset ) {
+        pr_debug( "Failed to open asset %s", filename );
+        *out_size = 0;
+        return nullptr;
+    }
+    int size = ( int )AAsset_getLength( asset );
+    unsigned char *buf = ( unsigned char * )malloc( size );
+    int read_size = AAsset_read( asset, buf, size );
+    AAsset_close( asset );
+    pr_debug( "Read binary asset %s size:%d/%d", filename, read_size, size );
+    *out_size = read_size;
+    return buf;
+}
+
 extern "C" {
 
 static double now_ms( void ) {

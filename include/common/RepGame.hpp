@@ -7,6 +7,11 @@
 
 struct RepGameState;
 
+typedef enum {
+    GameMode_Creative = 0,
+    GameMode_Survival = 1,
+} GameMode;
+
 #include <entt/entity/registry.hpp>
 #include <glm.hpp>
 #include "common/RenderChain.hpp"
@@ -20,6 +25,8 @@ struct RepGameState;
 #include "imgui_overlay.hpp"
 #include "creative_inventory.hpp"
 #include "hotbar.hpp"
+#include "survival_inventory.hpp"
+#include "font_renderer.hpp"
 #include "multiplayer.hpp"
 #include "common/BlockUpdateQueue.hpp"
 
@@ -69,8 +76,11 @@ struct RepGameState {
     World world;
     UIOverlay ui_overlay;
     ImGuiOverlay imgui_overlay;
+    FontRenderer font_renderer;
     CreativeInventory main_inventory;
+    SurvivalInventory survival_inventory;
     Hotbar hotbar;
+    GameMode game_mode;
     struct {
         int selectionInBounds;
         int face;
@@ -93,6 +103,11 @@ struct __attribute__( ( packed ) ) PlayerData {
     int worldDrawQuality;
     InventorySlot hotbar_inventory[ HOTBAR_WIDTH * HOTBAR_HEIGHT ];
     int selected_hotbar_slot;
+    // Survival inventory (added after the original fields to preserve
+    // backwards compatibility with older save files — old saves simply
+    // won't have these bytes and the loader handles the shorter size).
+    GameMode game_mode;
+    InventorySlot survival_inventory[ SURVIVAL_INVENTORY_WIDTH * SURVIVAL_INVENTORY_HEIGHT ];
 };
 
 class RepGame {

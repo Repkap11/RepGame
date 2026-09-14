@@ -147,15 +147,25 @@ void UIOverlay::set_holding_block( BlockID holding_block ) {
     pair.second = vb_data_holding_block_instance;
 }
 
-void UIOverlay::draw( CreativeInventory &inventory, Hotbar &hotbar, const Renderer &renderer, const Texture &blocksTexture, Input &input, const glm::mat4 &mvp_ui ) {
+void UIOverlay::draw( CreativeInventory &creative_inventory, SurvivalInventory &survival_inventory, Hotbar &hotbar, GameMode game_mode, const Renderer &renderer, const Texture &blocksTexture, Input &input, FontRenderer &font, const glm::mat4 &mvp_ui ) {
     this->shader.set_uniform_mat4f( "u_MVP", mvp_ui );
     this->shader.set_uniform1i_texture( "u_Texture", blocksTexture );
 
     hotbar.draw( renderer, blocksTexture, this->shader );
     render_chain_held_block.draw( renderer, this->shader );
 
+    // Render quantity text on the hotbar (survival mode only).
+    if ( game_mode == GameMode_Survival ) {
+        hotbar.drawQuantities( renderer, font, mvp_ui );
+    }
+
     if ( input.inventory_open ) {
-        inventory.draw( renderer, blocksTexture, this->shader );
+        if ( game_mode == GameMode_Creative ) {
+            creative_inventory.draw( renderer, blocksTexture, this->shader );
+        } else {
+            survival_inventory.draw( renderer, blocksTexture, this->shader );
+            survival_inventory.drawQuantities( renderer, font, mvp_ui );
+        }
     } else {
         glBlendFunc( GL_ONE_MINUS_DST_COLOR, GL_ZERO );
         this->render_chain_crosshair.draw( renderer, this->shader );

@@ -33,6 +33,7 @@ DEPS_WINDOWS := $(patsubst src/%.cpp,out/windows/%.d, $(wildcard src/windows/*.c
 SHADER_BLOBS_WINDOWS := $(patsubst src/shaders/%.glsl,out/windows/shaders/%.o,$(wildcard src/shaders/*.glsl))
 SHADER_PROCESSED_WINDOWS := $(patsubst src/shaders/%.glsl,out/windows/shaders/%.glsl,$(wildcard src/shaders/*.glsl))
 BITMAP_BLOBS_WINDOWS := $(patsubst bitmaps/%.bmp,out/windows/bitmaps/%.o,$(wildcard bitmaps/*.bmp))
+FONT_BLOBS_WINDOWS := $(patsubst fonts/%.ttf,out/windows/fonts/%.o,$(wildcard fonts/*.ttf))
 
 # Preprocess shaders through the C preprocessor at build time. Blob symbols are
 # renamed to match what MK_BLOB(src_shaders, <name>, glsl) expects.
@@ -51,6 +52,10 @@ out/windows/bitmaps/%.o : out/bitmaps/%.bin | out/windows
 	$(LD_WINDOWS) -r -b binary $< -o $@
 	objcopy --rename-section .data=.rodata,CONTENTS,ALLOC,LOAD,READONLY,DATA --reverse-bytes=4 $@ $@
 
+out/windows/fonts/%.o : fonts/%.ttf | out/windows
+	$(LD_WINDOWS) -r -b binary $< -o $@
+	objcopy --rename-section .data=.rodata,CONTENTS,ALLOC,LOAD,READONLY,DATA $@ $@
+
 all: windows
 docker-internal: windows
 windows:  out/windows/$(TARGET).exe
@@ -61,7 +66,7 @@ windows-deploy: out/windows/$(TARGET).exe
 	rsync $< paul@repkap11.com:/home/paul/website/${TARGET_LOWER}
 
 WINDOWS_DIRS = $(patsubst src%,out/windows%,$(shell find src -type d)) \
-		out/windows/shaders out/windows/bitmaps \
+		out/windows/shaders out/windows/bitmaps out/windows/fonts \
 		out/windows/imgui \
 		out/windows/imgui/backends
 
@@ -81,8 +86,8 @@ out/windows/$(TARGET).exe: out/windows/$(TARGET)_uncompressed.exe
 	upx-ucl -q $< -o $@
 	touch $@
 
-out/windows/$(TARGET)_uncompressed.exe: windows_build $(OBJECTS_COMMON_WINDOWS) $(OBJECTS_IMGUI_WINDOWS) $(OBJECTS_WINDOWS) $(SHADER_BLOBS_WINDOWS) $(BITMAP_BLOBS_WINDOWS) | out/windows
-	$(CC_WINDOWS) -flto $(CFLAGS_WINDOWS) $(OBJECTS_WINDOWS) $(OBJECTS_COMMON_WINDOWS) $(OBJECTS_IMGUI_WINDOWS) $(SHADER_BLOBS_WINDOWS) $(BITMAP_BLOBS_WINDOWS) $(LIBS_WINDOWS) -o $@
+out/windows/$(TARGET)_uncompressed.exe: windows_build $(OBJECTS_COMMON_WINDOWS) $(OBJECTS_IMGUI_WINDOWS) $(OBJECTS_WINDOWS) $(SHADER_BLOBS_WINDOWS) $(BITMAP_BLOBS_WINDOWS) $(FONT_BLOBS_WINDOWS) | out/windows
+	$(CC_WINDOWS) -flto $(CFLAGS_WINDOWS) $(OBJECTS_WINDOWS) $(OBJECTS_COMMON_WINDOWS) $(OBJECTS_IMGUI_WINDOWS) $(SHADER_BLOBS_WINDOWS) $(BITMAP_BLOBS_WINDOWS) $(FONT_BLOBS_WINDOWS) $(LIBS_WINDOWS) -o $@
 	# SDL3 is dynamically linked on Windows, so ship SDL3.dll next to the exe.
 	cp windows_build/sdl3/x86_64-w64-mingw32/bin/SDL3.dll out/windows/
 
@@ -111,6 +116,6 @@ windows_build:
 	rm -rf sdl3.tar.gz
 	rm -rf glew.zip
 
-.PRECIOUS: out/windows/$(TARGET).exe $(OBJECTS_WINDOWS) $(OBJECTS_COMMON_WINDOWS) $(SHADER_BLOBS_WINDOWS) $(SHADER_PROCESSED_WINDOWS) $(BITMAP_BLOBS_WINDOWS)
+.PRECIOUS: out/windows/$(TARGET).exe $(OBJECTS_WINDOWS) $(OBJECTS_COMMON_WINDOWS) $(SHADER_BLOBS_WINDOWS) $(SHADER_PROCESSED_WINDOWS) $(BITMAP_BLOBS_WINDOWS) $(FONT_BLOBS_WINDOWS)
 
 .PHONY: windows windows-run clean-windows windows-deploy
