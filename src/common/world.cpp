@@ -186,14 +186,12 @@ void World::draw( const Texture &blocksTexture, const glm::mat4 &mvp, const glm:
     const float render_distance = static_cast<float>( CHUNK_RADIUS_X * CHUNK_SIZE_X );
     const float fog_near = render_distance * 0.60f;
     const float fog_far = render_distance * 0.98f;
-    const glm::vec3 fog_color( 0.50f, 0.70f, 0.95f );
     // When underwater, the fog-blend post-process is disabled (stencil can't
     // separate water), so terrain fades toward the fog color directly. Use
     // the water tint color instead of the sky color so distant terrain
     // blends into the water rather than the sky.
     const glm::vec3 &fog_blend_color = headInWater ? glm::vec3( 0.122f, 0.333f, 1.0f ) : this->skyBox.get_avg_color( );
 
-    this->chunkLoader.shader.set_uniform3f( "u_FogColor", fog_color.r, fog_color.g, fog_color.b );
     this->chunkLoader.shader.set_uniform1f( "u_FogNear", fog_near );
     this->chunkLoader.shader.set_uniform1f( "u_FogFar", fog_far );
     this->chunkLoader.shader.set_uniform3f( "u_CameraPos", camera_pos_rebased.x, camera_pos_rebased.y, camera_pos_rebased.z );
@@ -205,7 +203,6 @@ void World::draw( const Texture &blocksTexture, const glm::mat4 &mvp, const glm:
     const bool useFogBlend = useFrameBuffer && !headInWater;
     this->chunkLoader.shader.set_uniform1i( "u_OpaqueFog", useFogBlend ? 1 : 0 );
 
-    this->object_shader.set_uniform3f( "u_FogColor", fog_color.r, fog_color.g, fog_color.b );
     this->object_shader.set_uniform1f( "u_FogNear", fog_near );
     this->object_shader.set_uniform1f( "u_FogFar", fog_far );
     this->object_shader.set_uniform3f( "u_CameraPos", camera_pos_rebased.x, camera_pos_rebased.y, camera_pos_rebased.z );

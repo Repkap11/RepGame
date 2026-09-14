@@ -16,7 +16,6 @@ uniform vec3 u_Origin;
 #if !defined(REPGAME_LOW_GRAPHICS)
 uniform int u_OpaqueFog;
 
-uniform vec3 u_FogColor;
 uniform float u_FogNear;
 uniform float u_FogFar;
 uniform vec3 u_CameraPos;
