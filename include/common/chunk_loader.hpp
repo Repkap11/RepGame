@@ -28,8 +28,12 @@ class ChunkLoader {
     Chunk **drawable_chunks;
     int num_drawable;
     int num_remeshed_this_frame;
+    // Set in init; cleared after the first render_chunks fires a box request
+    // for the initial visible area. Lets us batch the initial chunk-diff
+    // request into one frame instead of per-chunk as terrain gen finishes.
+    bool initial_chunk_request_pending = false;
 
-    int reload_if_out_of_bounds( Chunk &chunk, const glm::ivec3 &chunk_pos );
+    int reload_if_out_of_bounds( Chunk &chunk, const glm::ivec3 &chunk_pos, glm::ivec3 *out_new_pos = nullptr );
     static inline int process_chunk_position( Chunk &chunk, const glm::ivec3 &chunk_diff, const glm::ivec3 &center_previous, const glm::ivec3 &center_next, int force_reload );
     void process_random_ticks( );
     void rebuild_drawable_list( );

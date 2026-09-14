@@ -1,9 +1,12 @@
 #include <math.h>
 #include <stdlib.h>
 #include <chrono>
+#include <vector>
 
 #include "common/RepGame.hpp"
 #include "common/chunk_loader.hpp"
+#include "common/multiplayer.hpp"
+#include "common/net/packet.hpp"
 #include "common/utils/map_storage.hpp"
 #include "common/utils/terrain_loading_thread.hpp"
 #include "common/renderer/shader.hpp"
@@ -29,7 +32,7 @@ int mod( const int x, const int N ) {
     }
     return result;
 }
-int ChunkLoader::reload_if_out_of_bounds( Chunk &chunk, const glm::ivec3 &chunk_pos ) {
+int ChunkLoader::reload_if_out_of_bounds( Chunk &chunk, const glm::ivec3 &chunk_pos, glm::ivec3 *out_new_pos ) {
 
     const int new_chunk_x = static_cast<int>( floorf( static_cast<float>( chunk_pos.x - chunk.chunk_mod.x + CHUNK_RADIUS_X ) / static_cast<float>( ( CHUNK_RADIUS_X * 2 + 1 ) ) ) ) * ( CHUNK_RADIUS_X * 2 + 1 ) + chunk.chunk_mod.x;
     const int new_chunk_y = static_cast<int>( floorf( static_cast<float>( chunk_pos.y - chunk.chunk_mod.y + CHUNK_RADIUS_Y ) / static_cast<float>( ( CHUNK_RADIUS_Y * 2 + 1 ) ) ) ) * ( CHUNK_RADIUS_Y * 2 + 1 ) + chunk.chunk_mod.y;
@@ -39,6 +42,9 @@ int ChunkLoader::reload_if_out_of_bounds( Chunk &chunk, const glm::ivec3 &chunk_
         chunk.unprogram_terrain( );
         chunk.is_loading = 1;
         const glm::ivec3 new_chunk = glm::ivec3( new_chunk_x, new_chunk_y, new_chunk_z );
+        if ( out_new_pos ) {
+            *out_new_pos = new_chunk;
+        }
         this->terrain_loading_thread.enqueue( &chunk, new_chunk, 1 );
     }
     return changed;
@@ -120,6 +126,7 @@ void ChunkLoader::init( const glm::vec3 &camera_pos, const VertexBufferLayout &v
         }
     }
     this->rebuild_drawable_list( );
+    this->initial_chunk_request_pending = true;
 }
 
 Chunk *ChunkLoader::get_chunk( const glm::ivec3 &chunk_pos ) const {
@@ -164,22 +171,31 @@ void ChunkLoader::render_chunks( Multiplayer &multiplayer, const glm::vec3 &came
     glm::ivec3 &loaded_pos = this->chunk_center;
     glm::ivec3 chunk_diff = chunk_pos - loaded_pos;
 
+    // Phase 2: fire one box request for the initial visible area instead of
+    // per-chunk requests as terrain gen finishes. This overlaps the network
+    // round-trip with GPU terrain gen.
+    if ( this->initial_chunk_request_pending ) {
+        this->initial_chunk_request_pending = false;
+        glm::ivec3 box_min = chunk_pos - glm::ivec3( CHUNK_RADIUS_X, CHUNK_RADIUS_Y, CHUNK_RADIUS_Z );
+        multiplayer.request_chunks_box( box_min,
+                                        static_cast<uint8_t>( 2 * CHUNK_RADIUS_X + 1 ),
+                                        static_cast<uint8_t>( 2 * CHUNK_RADIUS_Y + 1 ),
+                                        static_cast<uint8_t>( 2 * CHUNK_RADIUS_Z + 1 ) );
+    }
+
     {
         Chunk *chunk_ptr;
         const long long t_budget_start = now_us( );
         do {
             chunk_ptr = this->terrain_loading_thread.dequeue( );
-            // pr_debug( "Got chunk %p", chunk );
             if ( chunk_ptr ) {
                 Chunk &chunk = *chunk_ptr;
                 chunk.is_loading = 0;
-                multiplayer.request_chunk( chunk.chunk_pos );
                 int reloaded = reload_if_out_of_bounds( chunk, chunk_pos );
                 if ( !reloaded ) {
                     // Lazily create this chunk's GL objects on first load so the
                     // startup loop doesn't block the first frame.
                     chunk.ensure_gl_init( );
-                    // pr_debug( "Paul Loading terrain x:%d y%d: z:%d", chunk->chunk_x, chunk->chunk_y, chunk->chunk_z );
                     process_chunk_position( chunk, chunk_diff, loaded_pos, chunk_pos, 1 );
                     chunk.program_terrain( );
                 }
@@ -192,18 +208,39 @@ void ChunkLoader::render_chunks( Multiplayer &multiplayer, const glm::vec3 &came
         } while ( chunk_ptr && ( !limit_render || ( now_us( ) - t_budget_start < WASM_LOAD_BUDGET_US ) ) );
     }
     if ( 0 != chunk_diff.x || 0 != chunk_diff.y || 0 != chunk_diff.z ) {
-        // pr_debug( "Moved outof chunk x:%d y:%d z:%d", loaded_pos );
-        // pr_debug( "Moved into  chunk x:%d y:%d z:%d", chunk_pos );
-
+        // Collect new chunk positions from the reload loop so we can fire one
+        // box request for all of them at once (Phase 2).
+        std::vector<glm::ivec3> new_positions;
         for ( int i = 0; i < MAX_LOADED_CHUNKS; i++ ) {
             Chunk &chunk = this->chunkArray[ i ];
             if ( chunk.is_loading ) {
                 continue;
             }
-            int reloaded = reload_if_out_of_bounds( chunk, chunk_pos );
+            glm::ivec3 new_pos;
+            int reloaded = reload_if_out_of_bounds( chunk, chunk_pos, &new_pos );
             if ( !reloaded ) {
                 process_chunk_position( chunk, chunk_diff, loaded_pos, chunk_pos, 0 );
+            } else {
+                new_positions.push_back( new_pos );
             }
+        }
+        // Fire one box request covering all newly loaded chunks. The box may
+        // include chunks that don't need loading; the server just returns no
+        // diffs for those, so it's harmless.
+        if ( !new_positions.empty( ) ) {
+            glm::ivec3 box_min = new_positions[ 0 ];
+            glm::ivec3 box_max = new_positions[ 0 ];
+            for ( const auto &p : new_positions ) {
+                box_min = glm::min( box_min, p );
+                box_max = glm::max( box_max, p );
+            }
+            glm::ivec3 box_size = box_max - box_min + glm::ivec3( 1 );
+            // Clamp to NET_MAX_BOX_DIM per axis (shouldn't exceed on any platform,
+            // but guard against pathological cases).
+            uint8_t sx = static_cast<uint8_t>( std::min( box_size.x, static_cast<int>( NET_MAX_BOX_DIM ) ) );
+            uint8_t sy = static_cast<uint8_t>( std::min( box_size.y, static_cast<int>( NET_MAX_BOX_DIM ) ) );
+            uint8_t sz = static_cast<uint8_t>( std::min( box_size.z, static_cast<int>( NET_MAX_BOX_DIM ) ) );
+            multiplayer.request_chunks_box( box_min, sx, sy, sz );
         }
         this->chunk_center = chunk_pos;
     }
