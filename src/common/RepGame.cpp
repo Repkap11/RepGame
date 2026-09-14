@@ -393,6 +393,38 @@ void RepGame::process_inventory_events( ) {
                 if ( blockId != LAST_BLOCK_ID ) {
                     add_to_hotbar( true, blockId );
                 }
+            } else {
+                // Survival mode
+                bool shift_held = globalGameState.input.shift_held;
+                if ( shift_held ) {
+                    // Shift-click: move the stack to the other inventory.
+                    int slot = globalGameState.survival_inventory.whichSlotClicked( globalGameState.input.mouse.absPosition.x, globalGameState.input.mouse.absPosition.y );
+                    if ( slot >= 0 ) {
+                        globalGameState.survival_inventory.moveToHotbar( slot, globalGameState.hotbar );
+                        BlockID selectedBlock = globalGameState.hotbar.getSelectedBlock( );
+                        globalGameState.ui_overlay.set_holding_block( selectedBlock );
+                    } else {
+                        int hotbar_slot = globalGameState.hotbar.inventory_renderer.whichSlotClicked( globalGameState.input.mouse.absPosition.x, globalGameState.input.mouse.absPosition.y );
+                        if ( hotbar_slot >= 0 ) {
+                            globalGameState.hotbar.moveToSurvivalInventory( hotbar_slot, globalGameState.survival_inventory );
+                            BlockID selectedBlock = globalGameState.hotbar.getSelectedBlock( );
+                            globalGameState.ui_overlay.set_holding_block( selectedBlock );
+                        }
+                    }
+                } else {
+                    // Normal click: Minecraft-style pick-up / place / swap.
+                    int slot = globalGameState.survival_inventory.whichSlotClicked( globalGameState.input.mouse.absPosition.x, globalGameState.input.mouse.absPosition.y );
+                    if ( slot >= 0 ) {
+                        globalGameState.survival_inventory.pickupOrSwapSlot( slot, globalGameState.held_inventory_slot, globalGameState.is_holding_inventory_slot );
+                    } else {
+                        int hotbar_slot = globalGameState.hotbar.inventory_renderer.whichSlotClicked( globalGameState.input.mouse.absPosition.x, globalGameState.input.mouse.absPosition.y );
+                        if ( hotbar_slot >= 0 ) {
+                            globalGameState.hotbar.pickupOrSwapSlot( hotbar_slot, globalGameState.held_inventory_slot, globalGameState.is_holding_inventory_slot );
+                            BlockID selectedBlock = globalGameState.hotbar.getSelectedBlock( );
+                            globalGameState.ui_overlay.set_holding_block( selectedBlock );
+                        }
+                    }
+                }
             }
         }
         if ( globalGameState.input.mouse.buttons.middle && globalGameState.input.mouse.buttons.middle_click_handled == false ) {
@@ -412,6 +444,17 @@ void RepGame::process_inventory_events( ) {
         // Steal any left/middle click events so they don't trigger right when we open the inventory.
         globalGameState.input.mouse.buttons.left_click_handled = true;
         globalGameState.input.mouse.buttons.middle_click_handled = true;
+        // If we were holding an inventory item when the inventory closed, return
+        // it to the survival inventory to avoid item loss.
+        if ( globalGameState.is_holding_inventory_slot ) {
+            int leftover = globalGameState.survival_inventory.addBlock( globalGameState.held_inventory_slot.block_id, globalGameState.held_inventory_slot.quantity );
+            if ( leftover > 0 ) {
+                globalGameState.hotbar.addBlockWithQuantity( globalGameState.held_inventory_slot.block_id, leftover );
+            }
+            globalGameState.held_inventory_slot.block_id = LAST_BLOCK_ID;
+            globalGameState.held_inventory_slot.quantity = 0;
+            globalGameState.is_holding_inventory_slot = false;
+        }
     }
 }
 
@@ -434,6 +477,9 @@ void RepGame::tick( ) {
     if ( wheel_diff != 0 ) {
         if ( globalGameState.input.inventory_open && globalGameState.game_mode == GameMode_Creative ) {
             globalGameState.main_inventory.incrementSelectedPage( wheel_diff );
+        } else if ( globalGameState.input.inventory_open && globalGameState.game_mode == GameMode_Survival ) {
+            BlockID holdingBlock = globalGameState.hotbar.incrementSelectedSlot( wheel_diff );
+            globalGameState.ui_overlay.set_holding_block( holdingBlock );
         } else if ( !globalGameState.input.inventory_open ) {
             BlockID holdingBlock = globalGameState.hotbar.incrementSelectedSlot( wheel_diff );
             globalGameState.ui_overlay.set_holding_block( holdingBlock );
@@ -511,6 +557,7 @@ void RepGame::initializeGameState( const char *world_name ) {
     globalGameState.input.no_clip = false;
     globalGameState.input.mouse.smoothed_dx = 0.0f;
     globalGameState.input.mouse.smoothed_dy = 0.0f;
+    globalGameState.input.shift_held = false;
     globalGameState.camera.angle_H = 0.0f;
     globalGameState.camera.angle_V = 0.0f;
     globalGameState.camera.pos.x = 0.5f;
@@ -603,6 +650,9 @@ RepGameState *RepGame::init( const char *world_name, const bool connect_multi, c
     globalGameState.survival_inventory.init( vbl_ui_overlay_vertex, vbl_ui_overlay_instance, SURVIVAL_INVENTORY_WIDTH, SURVIVAL_INVENTORY_HEIGHT );
     globalGameState.hotbar.init( vbl_ui_overlay_vertex, vbl_ui_overlay_instance, HOTBAR_WIDTH, HOTBAR_HEIGHT );
     globalGameState.game_mode = GameMode_Creative;
+    globalGameState.held_inventory_slot.block_id = LAST_BLOCK_ID;
+    globalGameState.held_inventory_slot.quantity = 0;
+    globalGameState.is_holding_inventory_slot = false;
 
     initializeGameState( world_name );
 
@@ -806,6 +856,11 @@ void RepGame::draw( float alpha ) {
     {
         const long long t_ui_start = now_us( );
         globalGameState.ui_overlay.draw( globalGameState.main_inventory, globalGameState.survival_inventory, globalGameState.hotbar, globalGameState.game_mode, globalGameState.world.renderer, globalGameState.blocksTexture, globalGameState.input, globalGameState.font_renderer, globalGameState.screen.ortho_center );
+        if ( globalGameState.is_holding_inventory_slot ) {
+            int block_size, block_offset, cell_size, cell_offset;
+            globalGameState.survival_inventory.inventory_renderer.getBlockMetrics( block_size, block_offset, cell_size, cell_offset );
+            globalGameState.ui_overlay.draw_held_inventory_item( globalGameState.held_inventory_slot, globalGameState.is_holding_inventory_slot, globalGameState.input.mouse.absPosition.x, globalGameState.input.mouse.absPosition.y, block_size, block_offset, cell_size, cell_offset, globalGameState.world.renderer, globalGameState.blocksTexture, globalGameState.font_renderer, globalGameState.screen.ortho_center );
+        }
         ImGuiDebugVars &debugVars = imgui_overlay_get_imgui_debug_vars( );
         debugVars.player_pos = globalGameState.camera.pos;
         imgui_overlay_draw( &globalGameState.imgui_overlay, globalGameState.input );

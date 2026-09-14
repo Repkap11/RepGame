@@ -49,6 +49,7 @@ class Input {
     bool drop_item;
     bool screenshot_requested;
     bool toggle_game_mode;
+    bool shift_held;
 
 #if defined( REPGAME_LINUX ) || defined( REPGAME_WINDOWS ) || defined( REPGAME_WASM )
     void mouseInput( int button, int state );

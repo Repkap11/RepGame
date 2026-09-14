@@ -81,6 +81,11 @@ struct RepGameState {
     SurvivalInventory survival_inventory;
     Hotbar hotbar;
     GameMode game_mode;
+    // Item stack currently being dragged with the mouse (Minecraft-style
+    // click-to-pick-up / click-to-place). When is_holding_inventory_slot is
+    // true, held_inventory_slot contains the stack picked up from a slot.
+    InventorySlot held_inventory_slot;
+    bool is_holding_inventory_slot;
     struct {
         int selectionInBounds;
         int face;

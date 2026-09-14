@@ -44,6 +44,7 @@ class UIOverlay {
     Shader shader;
     RenderChain<UIOverlayVertex, UIOverlayInstance> render_chain_crosshair;
     RenderChain<UIOverlayVertex, UIOverlayInstance> render_chain_held_block;
+    RenderChain<UIOverlayVertex, UIOverlayInstance> render_chain_dragged_item;
     BlockID heldBlockID;
     int screen_width;
     int screen_height;
@@ -53,5 +54,6 @@ class UIOverlay {
     void on_screen_size_change( int width, int height );
     void set_holding_block( BlockID holding_block );
     void draw( CreativeInventory &creative_inventory, SurvivalInventory &survival_inventory, Hotbar &hotbar, GameMode game_mode, const Renderer &renderer, const Texture &blocksTexture, Input &input, FontRenderer &font, const glm::mat4 &mvp_ui );
+    void draw_held_inventory_item( const InventorySlot &held, bool is_holding, int mouse_x, int mouse_y, int block_size, int block_offset, int cell_size, int cell_offset, const Renderer &renderer, const Texture &blocksTexture, FontRenderer &font, const glm::mat4 &mvp_ui );
     void cleanup( );
 };

@@ -103,6 +103,7 @@ void UIOverlay::init( const VertexBufferLayout &ui_overlay_vbl_vertex, const Ver
     pair_crosshair.second = vb_data_crosshair_instance;
 
     this->render_chain_held_block.init( ui_overlay_vbl_vertex, ui_overlay_vbl_instance, vb_isometric_quad, VB_ISOMETRIC_QUAD_SIZE, ib_isometric_quad, IB_ISOMETRIC_QUAD_SIZE );
+    this->render_chain_dragged_item.init( ui_overlay_vbl_vertex, ui_overlay_vbl_instance, vb_isometric_quad, VB_ISOMETRIC_QUAD_SIZE, ib_isometric_quad, IB_ISOMETRIC_QUAD_SIZE );
 
     showErrors( );
 
@@ -171,6 +172,76 @@ void UIOverlay::draw( CreativeInventory &creative_inventory, SurvivalInventory &
         this->render_chain_crosshair.draw( renderer, this->shader );
         glBlendFunc( GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA );
     }
+    showErrors( );
+}
+
+void UIOverlay::draw_held_inventory_item( const InventorySlot &held, bool is_holding, int mouse_x, int mouse_y, int block_size, int block_offset, int cell_size, int cell_offset, const Renderer &renderer, const Texture &blocksTexture, FontRenderer &font, const glm::mat4 &mvp_ui ) {
+    if ( !is_holding || held.block_id == LAST_BLOCK_ID || held.quantity <= 0 ) {
+        return;
+    }
+    // The font renderer (called from drawQuantities) binds its own texture on
+    // GL_TEXTURE0 and changes GL state. Re-bind the blocks texture and restore
+    // GL state before drawing the dragged item.
+    blocksTexture.bind( );
+    glEnable( GL_DEPTH_TEST );
+    glClear( GL_DEPTH_BUFFER_BIT );
+
+    this->shader.set_uniform_mat4f( "u_MVP", mvp_ui );
+    this->shader.set_uniform1i_texture( "u_Texture", blocksTexture );
+
+    Block *holdingBlock = block_definition_get_definition( held.block_id );
+
+    // Convert mouse screen coords (top-left origin, Y-down) to centered
+    // UI coords (center origin, Y-up).
+    float centered_x = static_cast<float>( mouse_x ) - this->screen_width / 2.0f;
+    float centered_y = this->screen_height / 2.0f - static_cast<float>( mouse_y );
+
+    // Treat the mouse as the center of a virtual cell, matching how
+    // inventory icons and quantity text are laid out within a cell.
+    float cell_start_x = centered_x - cell_size / 2.0f;
+    float cell_start_y = centered_y - cell_size / 2.0f;
+
+    this->render_chain_dragged_item.clear( );
+    auto [ entity, ui_vertex ] = this->render_chain_dragged_item.create_instance( );
+
+    // Set fields individually, matching InventoryRenderer::singleItemRender.
+    ui_vertex.screen_x = cell_start_x + block_offset;
+    ui_vertex.screen_y = cell_start_y + block_offset;
+    ui_vertex.screen_z = ORDER_Z_INV_BLOCKS + 0.1f;
+    ui_vertex.width = block_size;
+    ui_vertex.height = block_size;
+    ui_vertex.is_block = 1;
+    ui_vertex.is_isometric = holdingBlock->icon_is_isometric ? 1u : 0u;
+
+    for ( int i = 0; i < 4; i++ ) {
+        ui_vertex.tint[ i ] = 1.0f;
+    }
+
+    for ( int face = 0; face < ISOMETRIC_FACES; ++face ) {
+        if ( !holdingBlock->icon_is_isometric ) {
+            // Like Reeds
+            ui_vertex.id_isos[ face ] = holdingBlock->inventory_non_isometric_id - 1;
+        } else {
+            // Like grass
+            ui_vertex.id_isos[ face ] = ( holdingBlock->textures[ inventory_isometric_face[ face ] ] - 1 );
+        }
+    }
+
+    this->render_chain_dragged_item.draw( renderer, this->shader );
+
+    // Render the quantity text at the bottom-right of the cell, matching
+    // the in-inventory text placement: slot_x - text_width - 2, slot_y + 2.
+    float slot_x = cell_start_x + cell_offset + cell_size;
+    float slot_y = cell_start_y + cell_offset;
+    char buf[ 16 ];
+    snprintf( buf, sizeof( buf ), "%d", held.quantity );
+    float text_size = 24.0f;
+    float text_width = font.getTextWidth( buf, text_size );
+    float tx = slot_x - text_width - 2.0f;
+    float ty = slot_y + 2.0f;
+    float tint[ 4 ] = { 1.0f, 1.0f, 1.0f, 1.0f };
+    font.drawString( renderer, buf, tx, ty, text_size, tint, mvp_ui );
+
     showErrors( );
 }
 

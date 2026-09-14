@@ -76,7 +76,7 @@ bool SurvivalInventory::moveToHotbar( int slot_index, class Hotbar &hotbar ) {
     if ( slot.block_id == LAST_BLOCK_ID || slot.quantity <= 0 ) {
         return false;
     }
-    bool added = hotbar.addBlockWithQuantity( slot.block_id, slot.quantity );
+    bool added = hotbar.addBlockWithQuantity( slot.block_id, slot.quantity, false );
     if ( !added ) {
         return false;
     }
@@ -105,6 +105,35 @@ void SurvivalInventory::swapSlot( int slot_index, InventorySlot &held ) {
     slot = held;
     held = tmp;
     this->inventory_renderer.changeSlotItem( slot_index, slot );
+}
+
+void SurvivalInventory::pickupOrSwapSlot( int slot_index, InventorySlot &held, bool &is_holding ) {
+    if ( slot_index < 0 || slot_index >= this->num_slots ) {
+        return;
+    }
+    InventorySlot &slot = this->slots[ slot_index ];
+    if ( !is_holding ) {
+        // Pick up the slot's contents.
+        if ( slot.block_id == LAST_BLOCK_ID || slot.quantity <= 0 ) {
+            return; // Nothing to pick up.
+        }
+        held = slot;
+        slot.block_id = LAST_BLOCK_ID;
+        slot.quantity = 0;
+        this->inventory_renderer.changeSlotItem( slot_index, slot );
+        is_holding = true;
+    } else {
+        // Place / swap.
+        InventorySlot tmp = slot;
+        slot = held;
+        held = tmp;
+        this->inventory_renderer.changeSlotItem( slot_index, slot );
+        // If we placed into an empty slot, we're no longer holding.
+        // If we swapped, we're now holding the swapped-out stack.
+        if ( held.block_id == LAST_BLOCK_ID || held.quantity <= 0 ) {
+            is_holding = false;
+        }
+    }
 }
 
 const InventorySlot *SurvivalInventory::getSlots( ) const {

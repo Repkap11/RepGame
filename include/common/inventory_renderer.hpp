@@ -88,5 +88,8 @@ class InventoryRenderer {
     // slot (for rendering quantity text). Returns false if the slot index is
     // out of bounds.
     bool getSlotPosition( int slot_index, float &out_x, float &out_y ) const;
+    // Returns the block icon size and offset within a cell (for rendering
+    // dragged items at the same size as in-inventory icons).
+    void getBlockMetrics( int &out_block_size, int &out_block_offset, int &out_cell_size, int &out_cell_offset ) const;
     void cleanup( );
 };

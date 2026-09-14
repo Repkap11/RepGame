@@ -33,6 +33,11 @@ class SurvivalInventory {
     // click-to-move within the inventory).
     void swapSlot( int slot_index, InventorySlot &held );
 
+    // Minecraft-style click-to-pick-up / click-to-place. If held is empty,
+    // picks up the slot's contents into held. If held has items, swaps held
+    // with the slot's contents. Updates is_holding accordingly.
+    void pickupOrSwapSlot( int slot_index, InventorySlot &held, bool &is_holding );
+
     // Returns a pointer to the slot data (for save/load and rendering).
     const InventorySlot *getSlots( ) const;
     InventorySlot *getSlotsMut( );

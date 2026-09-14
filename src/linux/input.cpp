@@ -64,6 +64,7 @@ void Input::processMovement( ) {
 }
 
 void Input::mouseInput( const int button, const int state ) {
+    this->shift_held = ( SDL_GetModState( ) & SDL_KMOD_SHIFT ) != 0;
     switch ( button ) {
         case SDL_BUTTON_LEFT:
             this->mouse.buttons.left = !state;
@@ -94,6 +95,8 @@ void Input::quit( ) {
 }
 
 void Input::keysInput( const SDL_Keycode key, const bool pressed ) {
+
+    this->shift_held = ( SDL_GetModState( ) & SDL_KMOD_SHIFT ) != 0;
 
     switch ( key ) {
         case 'q':

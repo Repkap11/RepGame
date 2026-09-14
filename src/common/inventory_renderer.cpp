@@ -249,6 +249,13 @@ bool InventoryRenderer::getSlotPosition( int slot_index, float &out_x, float &ou
     return true;
 }
 
+void InventoryRenderer::getBlockMetrics( int &out_block_size, int &out_block_offset, int &out_cell_size, int &out_cell_offset ) const {
+    out_block_size = this->inv_block_size;
+    out_block_offset = this->inv_block_offset;
+    out_cell_size = this->inv_cell_size;
+    out_cell_offset = this->inv_cell_offset;
+}
+
 void InventoryRenderer::renderBackground( ) {
     // Coordinate system
     // 0,0 in the center of the screen.
