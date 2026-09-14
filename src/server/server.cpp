@@ -226,6 +226,8 @@ void Server::init( int portnum ) {
 }
 
 void Server::cleanup( ) {
+    // Save any unsaved dirty chunks before shutting down (handles SIGINT).
+    this->server_logic.flushAll( );
     if ( this->epoll_fd >= 0 ) {
         close( this->epoll_fd );
         this->epoll_fd = -1;
@@ -237,7 +239,8 @@ void Server::cleanup( ) {
 
 void Server::serve( ) {
     while ( this->epoll_fd >= 0 ) {
-        int num_ready = epoll_wait( this->epoll_fd, this->events, MAX_CLIENT_FDS, -1 );
+        int timeout_ms = this->server_logic.nextWakeTimeoutMs( );
+        int num_ready = epoll_wait( this->epoll_fd, this->events, MAX_CLIENT_FDS, timeout_ms );
         for ( int i = 0; i < num_ready; i++ ) {
             int client_fd = this->events[ i ].data.fd;
             if ( this->events[ i ].events & EPOLLERR ) {
@@ -260,6 +263,10 @@ void Server::serve( ) {
                 }
             }
         }
+        // Process expired idle-save timers regardless of whether epoll
+        // returned events or a timeout. This is cheap (O(k log n) where k
+        // is the number of chunks whose timers just expired).
+        this->server_logic.processTimers( );
     }
     pr_debug( "Server Exiting" );
 }
