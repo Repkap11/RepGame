@@ -2,6 +2,7 @@
 
 #include "common/RepGame.hpp"
 #include "common/ui_overlay.hpp"
+#include "common/ui_overlay_buffers.hpp"
 #include "common/renderer/shader.hpp"
 
 #define WIDTH ( 1.5f )
@@ -36,8 +37,6 @@ int holding_block_vertex_face_map[] = {
     FACE_RIGHT, FACE_RIGHT, FACE_RIGHT, FACE_RIGHT,
 };
 
-#define ISOMETRIC_FACES 3
-
 #define UI_OVERLAY_INDEX_COUNT_CROSSHAIR ( 3 * 2 * 2 )
 constexpr unsigned int ib_data_crosshair[] = {
     0, 3, 1, //
@@ -45,50 +44,6 @@ constexpr unsigned int ib_data_crosshair[] = {
 
     4, 7, 5, //
     7, 4, 6, //
-};
-
-constexpr static int inventory_isometric_face[] = { FACE_TOP, FACE_FRONT, FACE_RIGHT };
-
-#define VB_ISOMETRIC_QUAD_SIZE 16
-constexpr static UIOverlayVertex vb_isometric_quad[ VB_ISOMETRIC_QUAD_SIZE ] = {
-    // Isometric
-    { 0.5f, 0.625, { 1, 0 }, 1, ISO_FACE_TOP },   // 0
-    { 0.0f, 0.8125f, { 1, 1 }, 1, ISO_FACE_TOP }, // 1
-    { 1.0f, 0.8125f, { 0, 0 }, 1, ISO_FACE_TOP }, // 2
-    { 0.5f, 1.0f, { 0, 1 }, 1, ISO_FACE_TOP },    // 3
-
-    { 0.0f, 0.1875f, { 1, 0 }, 1, ISO_FACE_FRONT }, // 4
-    { 0.0f, 0.8125f, { 1, 1 }, 1, ISO_FACE_FRONT }, // a
-    { 0.5f, 0.0f, { 0, 0 }, 1, ISO_FACE_FRONT },    // 5
-    { 0.5f, 0.625, { 0, 1 }, 1, ISO_FACE_FRONT },   // b
-
-    { 0.5f, 0.0f, { 1, 0 }, 1, ISO_FACE_RIGHT },    // c
-    { 0.5f, 0.625, { 1, 1 }, 1, ISO_FACE_RIGHT },   // d
-    { 1.0f, 0.1875f, { 0, 0 }, 1, ISO_FACE_RIGHT }, // 6
-    { 1.0f, 0.8125f, { 0, 1 }, 1, ISO_FACE_RIGHT }, // e
-
-    // Quad
-    { 0.5f, 0.0f + 0.24, { 0, 0 }, 0, ISO_FACE_FRONT },    //
-    { 0.5f, 0.625f + 0.24, { 0, 1 }, 0, ISO_FACE_FRONT },  //
-    { 1.0f, 0.1875f + 0.24, { 1, 0 }, 0, ISO_FACE_FRONT }, //
-    { 1.0f, 0.8125f + 0.24, { 1, 1 }, 0, ISO_FACE_FRONT }  //
-};
-
-#define IB_ISOMETRIC_QUAD_SIZE 24
-static constexpr unsigned int ib_isometric_quad[ IB_ISOMETRIC_QUAD_SIZE ] = {
-    // Top
-    // 0, 3, 1, 3, 0, 2, 4, 7, 5, 7, 4, 6, 8, 11, 9, 11, 8, 10,
-    0,  3,  1, //
-    3,  0,  2, //
-
-    4,  7,  5, //
-    7,  4,  6, //
-
-    8,  11, 9,  //
-    11, 8,  10, //
-
-    13, 12, 14, //
-    13, 14, 15  //
 };
 
 MK_SHADER( ui_overlay_vertex );
@@ -102,8 +57,8 @@ void UIOverlay::init( const VertexBufferLayout &ui_overlay_vbl_vertex, const Ver
     auto pair_crosshair = this->render_chain_crosshair.create_instance( );
     pair_crosshair.second = vb_data_crosshair_instance;
 
-    this->render_chain_held_block.init( ui_overlay_vbl_vertex, ui_overlay_vbl_instance, vb_isometric_quad, VB_ISOMETRIC_QUAD_SIZE, ib_isometric_quad, IB_ISOMETRIC_QUAD_SIZE );
-    this->render_chain_dragged_item.init( ui_overlay_vbl_vertex, ui_overlay_vbl_instance, vb_isometric_quad, VB_ISOMETRIC_QUAD_SIZE, ib_isometric_quad, IB_ISOMETRIC_QUAD_SIZE );
+    this->render_chain_held_block.init( ui_overlay_vbl_vertex, ui_overlay_vbl_instance, vb_isometric_quad_held, VB_ISOMETRIC_QUAD_SIZE, ib_isometric_quad, IB_ISOMETRIC_QUAD_SIZE );
+    this->render_chain_dragged_item.init( ui_overlay_vbl_vertex, ui_overlay_vbl_instance, vb_isometric_quad_inventory, VB_ISOMETRIC_QUAD_SIZE, ib_isometric_quad, IB_ISOMETRIC_QUAD_SIZE );
 
     showErrors( );
 
@@ -125,7 +80,6 @@ void UIOverlay::set_holding_block( BlockID holding_block ) {
     }
     Block *holdingBlock = block_definition_get_definition( this->heldBlockID );
 
-    vb_data_holding_block_instance.is_isometric = holdingBlock->icon_is_isometric;
     vb_data_holding_block_instance.width = this->screen_width / 4;
     vb_data_holding_block_instance.height = this->screen_width / 4;
 
@@ -133,15 +87,7 @@ void UIOverlay::set_holding_block( BlockID holding_block ) {
     vb_data_holding_block_instance.screen_y = -1.3 * this->screen_height / 2;
     vb_data_holding_block_instance.screen_z = 0;
 
-    for ( int face = 0; face < ISOMETRIC_FACES; ++face ) {
-        if ( !holdingBlock->icon_is_isometric ) {
-            // Like Reeds
-            vb_data_holding_block_instance.id_isos[ face ] = holdingBlock->inventory_non_isometric_id - 1;
-        } else {
-            // Like grass
-            vb_data_holding_block_instance.id_isos[ face ] = ( holdingBlock->textures[ inventory_isometric_face[ face ] ] - 1 );
-        }
-    }
+    set_block_icon( vb_data_holding_block_instance, holdingBlock );
 
     this->render_chain_held_block.clear( );
     auto pair = this->render_chain_held_block.create_instance( );
@@ -211,21 +157,8 @@ void UIOverlay::draw_held_inventory_item( const InventorySlot &held, bool is_hol
     ui_vertex.width = block_size;
     ui_vertex.height = block_size;
     ui_vertex.is_block = 1;
-    ui_vertex.is_isometric = holdingBlock->icon_is_isometric ? 1u : 0u;
 
-    for ( int i = 0; i < 4; i++ ) {
-        ui_vertex.tint[ i ] = 1.0f;
-    }
-
-    for ( int face = 0; face < ISOMETRIC_FACES; ++face ) {
-        if ( !holdingBlock->icon_is_isometric ) {
-            // Like Reeds
-            ui_vertex.id_isos[ face ] = holdingBlock->inventory_non_isometric_id - 1;
-        } else {
-            // Like grass
-            ui_vertex.id_isos[ face ] = ( holdingBlock->textures[ inventory_isometric_face[ face ] ] - 1 );
-        }
-    }
+    set_block_icon( ui_vertex, holdingBlock );
 
     this->render_chain_dragged_item.draw( renderer, this->shader );
 

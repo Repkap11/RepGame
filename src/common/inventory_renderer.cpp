@@ -1,51 +1,8 @@
 #include "common/RepGame.hpp"
 #include "common/inventory_renderer.hpp"
+#include "common/ui_overlay_buffers.hpp"
 #include "common/renderer/shader.hpp"
 
-#define ISOMETRIC_FACES 3
-
-#define VB_ISOMETRIC_QUAD_SIZE 16
-static const UIOverlayVertex vb_isometric_quad[ VB_ISOMETRIC_QUAD_SIZE ] = {
-    // Isometric
-    { 0.5f, 0.625, { 1, 0 }, 1, ISO_FACE_TOP },   // 0
-    { 0.0f, 0.8125f, { 1, 1 }, 1, ISO_FACE_TOP }, // 1
-    { 1.0f, 0.8125f, { 0, 0 }, 1, ISO_FACE_TOP }, // 2
-    { 0.5f, 1.0f, { 0, 1 }, 1, ISO_FACE_TOP },    // 3
-
-    { 0.0f, 0.1875f, { 1, 0 }, 1, ISO_FACE_FRONT }, // 4
-    { 0.0f, 0.8125f, { 1, 1 }, 1, ISO_FACE_FRONT }, // a
-    { 0.5f, 0.0f, { 0, 0 }, 1, ISO_FACE_FRONT },    // 5
-    { 0.5f, 0.625, { 0, 1 }, 1, ISO_FACE_FRONT },   // b
-
-    { 0.5f, 0.0f, { 1, 0 }, 1, ISO_FACE_RIGHT },    // c
-    { 0.5f, 0.625, { 1, 1 }, 1, ISO_FACE_RIGHT },   // d
-    { 1.0f, 0.1875f, { 0, 0 }, 1, ISO_FACE_RIGHT }, // 6
-    { 1.0f, 0.8125f, { 0, 1 }, 1, ISO_FACE_RIGHT }, // e
-
-    // Quad
-    { 0, 0, { 0, 0 }, 0, ISO_FACE_FRONT }, //
-    { 0, 1, { 0, 1 }, 0, ISO_FACE_FRONT }, //
-    { 1, 0, { 1, 0 }, 0, ISO_FACE_FRONT }, //
-    { 1, 1, { 1, 1 }, 0, ISO_FACE_FRONT }  //
-};
-#define IB_ISOMETRIC_QUAD_SIZE 24
-static const unsigned int ib_isometric_quad[ IB_ISOMETRIC_QUAD_SIZE ] = {
-    // Top
-    // 0, 3, 1, 3, 0, 2, 4, 7, 5, 7, 4, 6, 8, 11, 9, 11, 8, 10,
-    0,  3,  1, //
-    3,  0,  2, //
-
-    4,  7,  5, //
-    7,  4,  6, //
-
-    8,  11, 9,  //
-    11, 8,  10, //
-
-    13, 12, 14, //
-    13, 14, 15  //
-};
-
-static int inventory_isometric_face[] = { FACE_TOP, FACE_FRONT, FACE_RIGHT };
 int num_points_per_block = 4;
 int num_index_per_block = 18;
 
@@ -61,8 +18,8 @@ void InventoryRenderer::init( const VertexBufferLayout &ui_overlay_vbl_vertex, c
     this->selected_slot_bg = entt::null;
     this->selected_slot_index = -1;
 
-    this->render_chain_inventory_icons.init( ui_overlay_vbl_vertex, ui_overlay_vbl_instance, vb_isometric_quad, VB_ISOMETRIC_QUAD_SIZE, ib_isometric_quad, IB_ISOMETRIC_QUAD_SIZE );
-    this->render_chain_inventory_background.init( ui_overlay_vbl_vertex, ui_overlay_vbl_instance, vb_isometric_quad, VB_ISOMETRIC_QUAD_SIZE, ib_isometric_quad, IB_ISOMETRIC_QUAD_SIZE );
+    this->render_chain_inventory_icons.init( ui_overlay_vbl_vertex, ui_overlay_vbl_instance, vb_isometric_quad_inventory, VB_ISOMETRIC_QUAD_SIZE, ib_isometric_quad, IB_ISOMETRIC_QUAD_SIZE );
+    this->render_chain_inventory_background.init( ui_overlay_vbl_vertex, ui_overlay_vbl_instance, vb_isometric_quad_inventory, VB_ISOMETRIC_QUAD_SIZE, ib_isometric_quad, IB_ISOMETRIC_QUAD_SIZE );
 
     for ( int i_slot = 0; i_slot < this->num_blocks_max; i_slot++ ) {
         // auto pair = this->render_chain_inventory_icons.create_instance( );
@@ -333,22 +290,8 @@ void InventoryRenderer::singleItemRender( int slot_index, const InventorySlot &i
     ui_vertex.screen_x = this->inv_items_x + block_grid_coord_x * this->inv_cell_stride + this->inv_block_offset;
     ui_vertex.screen_y = this->inv_items_y + block_grid_coord_y * this->inv_cell_stride + this->inv_block_offset;
 
-    ui_vertex.is_isometric = block->icon_is_isometric;
+    set_block_icon( ui_vertex, block );
 
-    for ( int i = 0; i < 4; i++ ) {
-        // set RGBA tint to no tint
-        ui_vertex.tint[ i ] = 1.0f;
-    }
-
-    for ( int face = 0; face < ISOMETRIC_FACES; face++ ) {
-        if ( !block->icon_is_isometric ) {
-            // Like Reeds
-            ui_vertex.id_isos[ face ] = block->inventory_non_isometric_id - 1;
-        } else {
-            // Like grass
-            ui_vertex.id_isos[ face ] = ( block->textures[ inventory_isometric_face[ face ] ] - 1 );
-        }
-    }
     this->render_chain_inventory_icons.invalidate( slot_entity );
 }
 
