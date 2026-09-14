@@ -177,9 +177,10 @@ void Multiplayer::process_events( World &world ) {
                 }
                 glm::ivec3 chunk_pos = glm::ivec3( diff.chunk_x, diff.chunk_y, diff.chunk_z );
                 Chunk *chunk_prt = world.chunkLoader.get_chunk( chunk_pos );
-                if ( chunk_prt == nullptr ) {
-                    // Chunk isn't loaded yet (terrain gen still running).
-                    // Queue the diff to apply when the chunk finishes loading.
+                if ( chunk_prt == nullptr || chunk_prt->is_loading ) {
+                    // Chunk isn't loaded yet (terrain gen still running, or
+                    // no chunk slot at this position). Queue the diff to apply
+                    // when the chunk finishes loading.
                     this->queue_pending_diff( diff );
                     continue;
                 }
