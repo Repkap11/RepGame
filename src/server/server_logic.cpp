@@ -153,6 +153,12 @@ void ServerLogic::persistChunk( const glm::ivec3 &chunk_pos ) {
         return;
     }
     const std::map<int, BlockState> &chunk_cache = it->second.blocks;
+    if ( chunk_cache.empty( ) ) {
+        // No edits for this chunk — don't write a file full of LAST_BLOCK_ID.
+        // This happens for chunks that were looked up (cached as "no file")
+        // but never edited.
+        return;
+    }
     BlockState *blocks = ( BlockState * )malloc( CHUNK_BLOCK_SIZE * sizeof( BlockState ) );
     for ( int i = 0; i < CHUNK_BLOCK_SIZE; ++i ) {
         blocks[ i ] = BLOCK_STATE_LAST_BLOCK_ID;
