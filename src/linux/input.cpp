@@ -191,7 +191,11 @@ void Input::keysInput( const SDL_Keycode key, const bool pressed ) {
                 }
             }
             break;
-        case SDLK_F5:
+#ifdef REPGAME_WASM
+        case SDLK_BACKQUOTE:
+#else
+        case SDLK_GRAVE:
+#endif
             if ( pressed ) {
                 this->toggle_game_mode = true;
             }
