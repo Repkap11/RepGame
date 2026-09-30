@@ -34,8 +34,8 @@ int SurvivalInventory::addBlock( BlockID blockId, int quantity ) {
     }
     const Block *block = block_definition_get_definition( blockId );
     const RenderOrder renderOrder = block->renderOrder;
-    if ( renderOrder == RenderOrder_Transparent || renderOrder == RenderOrder_Water ) {
-        // Can't collect transparent or liquid blocks.
+    if ( renderOrder == RenderOrder_Transparent ) {
+        // Can't collect transparent blocks.
         return quantity;
     }
 

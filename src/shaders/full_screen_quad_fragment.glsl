@@ -32,6 +32,8 @@ uniform vec3 u_SunDir;
 // Sea level water surface in absolute world Y: WATER_LEVEL(0) + WATER_HEIGHT - 1.
 const float SEA_SURFACE_Y = -0.125;
 
+
+
 vec4 textureMultisample(ivec2 coord) {
     vec4 colorMS = vec4(0.0);
     for(int i = 0; i < u_TextureSamples; i++) {
@@ -117,8 +119,13 @@ vec2 rippleOffset(ivec2 coord, float scale) {
 vec3 ssrReflection(vec3 waterPos, vec3 rayDir) {
     vec3 reflDir = normalize(rayDir * vec3(1.0, -1.0, 1.0));
     vec2 tsize = vec2(textureSize(u_DepthTexture));
-    const int MAX_STEPS = 60;
-    const float STEP = 0.6;
+    const int MAX_STEPS = 80;
+    const float STEP = 0.45;
+    // Depth is hyperbolic (near=0.1, far=800): one march step changes rayD by
+    // only ~4e-4 near geometry, so a fixed positive bias swallows every hit.
+    // Allow a small under-shoot instead; the binary refine resolves the real
+    // crossing point before sampling.
+    const float HIT_EPS = 0.0008;
     vec3 pos = waterPos + reflDir * 0.2;
     vec2 lastUV = TexCoords;
     for(int i = 0; i < MAX_STEPS; i++) {
@@ -139,7 +146,7 @@ vec3 ssrReflection(vec3 waterPos, vec3 rayDir) {
         }
         float sceneD = depthMultisample(ic);
         float rayD = nd.z * 0.5 + 0.5;
-        if(rayD > sceneD + 0.0015) {
+        if(rayD > sceneD - HIT_EPS && sceneD < 0.9999) {
             // Binary refine between the last free point and the hit point.
             vec3 lo = pos - reflDir * STEP;
             vec3 hi = pos;
@@ -181,7 +188,9 @@ void waterMain(ivec2 multiCoords) {
     vec3 rayDir = normalize(w1.xyz / w1.w - w0.xyz / w0.w);
 
     // Fresnel against the horizontal surface; abs() covers underwater views too.
-    float fresnel = 0.02 + 0.98 * pow(1.0 - clamp(abs(rayDir.y), 0.0, 1.0), 5.0);
+    // The base/exponent are tuned up from physical values — real water's 0.02
+    // Schlick F0 reads as fully transparent at this game's scale.
+    float fresnel = 0.18 + 0.82 * pow(1.0 - clamp(abs(rayDir.y), 0.0, 1.0), 3.0);
 
     // The water pass writes depth, so the stored depth here is the fluid
     // surface itself. Unproject it to recover the surface point + its height.

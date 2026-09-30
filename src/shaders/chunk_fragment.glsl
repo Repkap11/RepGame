@@ -125,8 +125,12 @@ void main() {
             // Fresnel: transparent looking straight down, opaque at grazing
             // angles. Water only — lava must stay opaque.
             vec3 viewDir = normalize(u_CameraPos - v_world_coords);
-            float fresnel = 0.02f + 0.98f * pow(1.0f - clamp(abs(viewDir.y), 0.0f, 1.0f), 5.0f);
-            texColor.a *= 0.3f + 0.7f * fresnel;
+            float fresnel = 0.18f + 0.82f * pow(1.0f - clamp(abs(viewDir.y), 0.0f, 1.0f), 3.0f);
+            // Push the water texel toward a deeper blue and keep most of the
+            // surface coverage even looking straight down — the terrain blend
+            // underneath reads as "transparent" otherwise.
+            texColor.rgb = mix(texColor.rgb, vec3(0.09f, 0.28f, 0.62f), 0.45f);
+            texColor.a *= 0.55f + 0.45f * fresnel;
         } else if(v_blockID == 93u) { // LAVA top texture
             vec2 flow = vec2(u_Time * 0.008f, u_Time * 0.011f);
             vec2 warp = vec2(sin(wpos.x * 0.9f + u_Time * 0.45f), sin(wpos.y * 1.1f + u_Time * 0.38f)) * 0.07f;

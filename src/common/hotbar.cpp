@@ -73,8 +73,8 @@ int Hotbar::findOpenSlot( ) const {
 bool Hotbar::addBlock( const bool alsoSelect, BlockID blockId ) {
     const Block *block = block_definition_get_definition( blockId );
     const RenderOrder renderOrder = block->renderOrder;
-    if ( renderOrder == RenderOrder_Transparent || renderOrder == RenderOrder_Water ) {
-        // You can't keep transparent blocks or liquid blocks in the inventory
+    if ( renderOrder == RenderOrder_Transparent ) {
+        // You can't keep transparent blocks in the inventory
         return false;
     }
     const auto it = this->blockId_to_slot_map.find( blockId );
@@ -120,7 +120,7 @@ bool Hotbar::addBlockWithQuantity( BlockID blockId, int quantity, bool prefer_se
     }
     const Block *block = block_definition_get_definition( blockId );
     const RenderOrder renderOrder = block->renderOrder;
-    if ( renderOrder == RenderOrder_Transparent || renderOrder == RenderOrder_Water ) {
+    if ( renderOrder == RenderOrder_Transparent ) {
         return false;
     }
 
