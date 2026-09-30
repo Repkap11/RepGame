@@ -26,12 +26,13 @@ class FullScreenQuad {
     // refraction wobble in draw_texture_fog and draw_water can unproject
     // pixels into world space. Uniforms persist on the shared program.
     void set_water_frame_uniforms( const Texture &depthTexture, const glm::mat4 &inv_mvp, const glm::vec3 &camera_pos_rebased, const glm::vec3 &origin );
-    // Water composite pass for X_HIGH: draws the reflection texture (planar for
-    // sea-level water, screen-space ray marched for elevated fluids), weighted
-    // by fresnel, over stencil==1 pixels. Requires the plain depth attachment
-    // (depthTexture) for SSR.
+    // Water composite pass for HIGH/X_HIGH: draws the reflection texture
+    // (planar for sea-level water, screen-space ray marched for elevated
+    // fluids), weighted by fresnel, over stencil==1 pixels. Requires the plain
+    // depth attachment (depthTexture) for SSR. animate enables the rippled
+    // reflection fetch (X_HIGH); HIGH passes false for a still mirror.
     void draw_water( const Renderer &renderer, const Texture &reflectionTexture, const Texture &depthStencilTexture, const Texture &fogTexture, const Texture &skyColorTexture,
                      const Texture &sceneTexture, const Texture &depthTexture, float extraAlpha, float time_s, const glm::mat4 &mvp, const glm::mat4 &inv_mvp,
-                     const glm::vec3 &origin, const glm::vec3 &sun_dir, const glm::vec3 &camera_pos_rebased );
+                     const glm::vec3 &origin, const glm::vec3 &camera_pos_rebased, bool animate );
     void destroy( );
 };

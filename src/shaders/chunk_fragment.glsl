@@ -129,8 +129,8 @@ void main() {
             // Push the water texel toward a deeper blue and keep most of the
             // surface coverage even looking straight down — the terrain blend
             // underneath reads as "transparent" otherwise.
-            texColor.rgb = mix(texColor.rgb, vec3(0.09f, 0.28f, 0.62f), 0.65f);
-            texColor.a *= 0.7f + 0.3f * fresnel;
+            texColor.rgb = mix(texColor.rgb, vec3(0.04f, 0.18f, 0.58f), 0.78f);
+            texColor.a *= 0.8f + 0.2f * fresnel;
         } else if(v_blockID == 93u) { // LAVA top texture
             vec2 flow = vec2(u_Time * 0.008f, u_Time * 0.011f);
             vec2 warp = vec2(sin(wpos.x * 0.9f + u_Time * 0.45f), sin(wpos.y * 1.1f + u_Time * 0.38f)) * 0.07f;

@@ -456,11 +456,11 @@ void World::draw( const Texture &blocksTexture, const glm::mat4 &mvp, const glm:
             } else {
                 this->fullScreenQuad.draw_texture( this->renderer, this->blockTexture, this->depthStencilTexture, 1.0, true, headInWater );
             }
-            // Water FX overlay: rippled + fresnel-weighted reflection (planar
-            // for sea-level fluids, screen-space marched for elevated ones)
-            // and a sun glint, blended over the scene just drawn.
+            // Water FX overlay: fresnel-weighted reflection (planar for
+            // sea-level fluids, screen-space marched for elevated ones),
+            // blended over the scene just drawn.
             this->fullScreenQuad.draw_water( this->renderer, this->reflectionTexture, this->depthStencilTexture, this->fogTexture, this->skyColorTexture, this->blockTexture, this->depthTexture,
-                                             y_height < 0 ? 0.4f : 0.6f, time_s, mvp, inv_mvp, renderOriginF, this->skyBox.get_sun_dir( ), camera_pos_rebased );
+                                             y_height < 0 ? 0.4f : 0.6f, time_s, mvp, inv_mvp, renderOriginF, camera_pos_rebased, allowBlur );
             glStencilFunc( GL_NOTEQUAL, 1, 0xff ); // If the stencil value isn't 1 allow drawing.
             if ( useFogBlend ) {
                 this->fullScreenQuad.draw_texture_fog( this->renderer, this->blockTexture, this->depthStencilTexture, this->fogTexture, this->skyColorTexture, 1.0, false, headInWater );

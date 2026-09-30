@@ -28,7 +28,6 @@ uniform mat4 u_MVP;
 uniform mat4 u_InvMVP;
 uniform float u_OriginY;
 uniform vec2 u_OriginXZ;
-uniform vec3 u_SunDir;
 uniform vec3 u_CameraPos;
 
 // Sea level water surface in absolute world Y: WATER_LEVEL(0) + WATER_HEIGHT - 1.
@@ -188,9 +187,9 @@ vec3 ssrReflection(vec3 waterPos, vec3 rayDir) {
     return skyColorMultisample(sc);
 }
 
-// X_HIGH water composite: runs only on stencil==1 (fluid) pixels over the
-// already-composited scene. Adds a rippled, fresnel-weighted reflection and a
-// sun glint; output alpha blends it over the scene beneath.
+// Water composite: runs only on stencil==1 (fluid) pixels over the
+// already-composited scene. Adds a fresnel-weighted reflection (rippled at
+// X_HIGH); output alpha blends it over the scene beneath.
 void waterMain(ivec2 multiCoords) {
     vec2 ndc = TexCoords * 2.0 - 1.0;
 
@@ -212,8 +211,9 @@ void waterMain(ivec2 multiCoords) {
     float waterY = waterPos.y + u_OriginY;
 
     // Ripple attenuates with surface distance so far water doesn't shimmer.
+    // HIGH keeps a still mirror — u_Ripple distinguishes it from X_HIGH.
     float surfDist = length(waterPos - u_CameraPos);
-    ivec2 rip = ivec2(ripplePhaseOffset(waterPos.xz + u_OriginXZ, 7.0 / (1.0 + surfDist * 0.12)));
+    ivec2 rip = (u_Ripple != 0) ? ivec2(ripplePhaseOffset(waterPos.xz + u_OriginXZ, 7.0 / (1.0 + surfDist * 0.12))) : ivec2(0);
 
     vec3 reflColor;
     float reflAlpha;
@@ -227,15 +227,15 @@ void waterMain(ivec2 multiCoords) {
         reflAlpha = 1.0;
     }
 
+    // Water absorbs warm wavelengths: blue-shift the reflected scene so
+    // grazing reflections read as water rather than a neutral mirror.
+    reflColor *= vec3(0.6f, 0.75f, 1.05f);
+
     // Fade the reflection out near the fog edge (same factor as the old path).
     float fogF = fogFactorMultisample(multiCoords);
     float weight = reflAlpha * fresnel * u_ExtraAlpha * (1.0 - fogF);
 
-    // Sun glint along the reflected view direction.
-    vec3 reflDir = normalize(rayDir * vec3(1.0, -1.0, 1.0));
-    float spec = pow(clamp(dot(reflDir, u_SunDir), 0.0, 1.0), 600.0) * (1.0 - fogF);
-
-    color = vec4(reflColor + vec3(spec), weight);
+    color = vec4(reflColor, weight);
 }
 
 void main() {
