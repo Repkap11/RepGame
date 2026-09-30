@@ -115,7 +115,7 @@ void main() {
         vec2 wpos = v_world_coords.xz;
         if(v_blockID == 94u) { // WATER top texture (WATER block id - 1)
             vec2 flow = vec2(u_Time * 0.045f, u_Time * 0.032f);
-            vec2 warp = vec2(sin(wpos.x * 1.7f + u_Time * 1.8f), sin(wpos.y * 1.5f + u_Time * 1.4f)) * 0.12f;
+            vec2 warp = vec2(sin(wpos.x * 1.7f + u_Time * 1.8f), sin(wpos.y * 1.5f + u_Time * 1.4f)) * 0.18f;
             vec4 c1 = texture(u_Texture, vec3(working + flow + warp, v_blockID));
             vec4 c2 = texture(u_Texture, vec3(working * 0.63f - flow * 1.3f - warp * 0.7f, v_blockID));
             texColor = mix(c1, c2, 0.5f);
@@ -129,8 +129,8 @@ void main() {
             // Push the water texel toward a deeper blue and keep most of the
             // surface coverage even looking straight down — the terrain blend
             // underneath reads as "transparent" otherwise.
-            texColor.rgb = mix(texColor.rgb, vec3(0.09f, 0.28f, 0.62f), 0.45f);
-            texColor.a *= 0.55f + 0.45f * fresnel;
+            texColor.rgb = mix(texColor.rgb, vec3(0.09f, 0.28f, 0.62f), 0.65f);
+            texColor.a *= 0.7f + 0.3f * fresnel;
         } else if(v_blockID == 93u) { // LAVA top texture
             vec2 flow = vec2(u_Time * 0.008f, u_Time * 0.011f);
             vec2 warp = vec2(sin(wpos.x * 0.9f + u_Time * 0.45f), sin(wpos.y * 1.1f + u_Time * 0.38f)) * 0.07f;

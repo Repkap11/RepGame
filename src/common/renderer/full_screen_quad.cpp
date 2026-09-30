@@ -69,9 +69,17 @@ void FullScreenQuad::draw_texture_fog( const Renderer &renderer, const Texture &
     this->render_link_fsq.draw( renderer, this->shader );
 }
 
+void FullScreenQuad::set_water_frame_uniforms( const Texture &depthTexture, const glm::mat4 &inv_mvp, const glm::vec3 &camera_pos_rebased, const glm::vec3 &origin ) {
+    this->shader.set_uniform1i_texture( "u_DepthTexture", depthTexture );
+    this->shader.set_uniform_mat4f( "u_InvMVP", inv_mvp );
+    this->shader.set_uniform1f( "u_OriginY", origin.y );
+    this->shader.set_uniform2f( "u_OriginXZ", origin.x, origin.z );
+    this->shader.set_uniform3f( "u_CameraPos", camera_pos_rebased.x, camera_pos_rebased.y, camera_pos_rebased.z );
+}
+
 void FullScreenQuad::draw_water( const Renderer &renderer, const Texture &reflectionTexture, const Texture &depthStencilTexture, const Texture &fogTexture, const Texture &skyColorTexture,
                                  const Texture &sceneTexture, const Texture &depthTexture, float extraAlpha, float time_s, const glm::mat4 &mvp, const glm::mat4 &inv_mvp,
-                                 float origin_y, const glm::vec3 &sun_dir ) {
+                                 const glm::vec3 &origin, const glm::vec3 &sun_dir, const glm::vec3 &camera_pos_rebased ) {
     this->shader.set_uniform1i_texture( "u_Texture", sceneTexture );
     this->shader.set_uniform1i_texture( "u_Stencil", depthStencilTexture );
     this->shader.set_uniform1i_texture( "u_FogTexture", fogTexture );
@@ -89,8 +97,10 @@ void FullScreenQuad::draw_water( const Renderer &renderer, const Texture &reflec
     this->shader.set_uniform1f( "u_Time", time_s );
     this->shader.set_uniform_mat4f( "u_MVP", mvp );
     this->shader.set_uniform_mat4f( "u_InvMVP", inv_mvp );
-    this->shader.set_uniform1f( "u_OriginY", origin_y );
+    this->shader.set_uniform1f( "u_OriginY", origin.y );
+    this->shader.set_uniform2f( "u_OriginXZ", origin.x, origin.z );
     this->shader.set_uniform3f( "u_SunDir", sun_dir.x, sun_dir.y, sun_dir.z );
+    this->shader.set_uniform3f( "u_CameraPos", camera_pos_rebased.x, camera_pos_rebased.y, camera_pos_rebased.z );
     this->render_link_fsq.draw( renderer, this->shader );
 }
 

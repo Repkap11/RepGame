@@ -339,7 +339,7 @@ void World::draw( const Texture &blocksTexture, const glm::mat4 &mvp, const glm:
     this->chunkLoader.shader.set_uniform1i( "u_FluidAnim", 0 );
 
 #if ( SUPPORTS_FRAME_BUFFER )
-    if ( allowBlur && !headInWater ) {
+    if ( usingReflections && !headInWater ) {
         // Snapshot the scene depth for the water shader's screen-space
         // reflections. Must happen here: the reflection pass below clears
         // the depth buffer and rewrites it with mirrored-world depths.
@@ -427,7 +427,11 @@ void World::draw( const Texture &blocksTexture, const glm::mat4 &mvp, const glm:
         // the actual rendered sky before terrain was drawn, so it matches the
         // skybox exactly (no reconstruction math needed).
 
-        if ( allowBlur && !headInWater ) {
+        if ( usingReflections && !headInWater ) {
+            // Bind the SSR/water frame state once: the refraction wobble in the
+            // fog-composite draw and the water overlay both unproject with it.
+            this->fullScreenQuad.set_water_frame_uniforms( this->depthTexture, inv_mvp, camera_pos_rebased, renderOriginF );
+
             // glStencilFunc -> pass or discard
             // glStencilOp -> action to do on the scencil buffer.
 
@@ -448,7 +452,7 @@ void World::draw( const Texture &blocksTexture, const glm::mat4 &mvp, const glm:
                 // fades into the sky and outputs opaque alpha (no blending
                 // with the black background cleared above). The ripple flag
                 // wobbles the fetch, so submerged terrain shimmers.
-                this->fullScreenQuad.draw_texture_fog( this->renderer, this->blockTexture, this->depthStencilTexture, this->fogTexture, this->skyColorTexture, 1.0, true, headInWater, 0, time_s, true );
+                this->fullScreenQuad.draw_texture_fog( this->renderer, this->blockTexture, this->depthStencilTexture, this->fogTexture, this->skyColorTexture, 1.0, true, headInWater, 0, time_s, allowBlur );
             } else {
                 this->fullScreenQuad.draw_texture( this->renderer, this->blockTexture, this->depthStencilTexture, 1.0, true, headInWater );
             }
@@ -456,7 +460,7 @@ void World::draw( const Texture &blocksTexture, const glm::mat4 &mvp, const glm:
             // for sea-level fluids, screen-space marched for elevated ones)
             // and a sun glint, blended over the scene just drawn.
             this->fullScreenQuad.draw_water( this->renderer, this->reflectionTexture, this->depthStencilTexture, this->fogTexture, this->skyColorTexture, this->blockTexture, this->depthTexture,
-                                             y_height < 0 ? 0.4f : 0.6f, time_s, mvp, inv_mvp, renderOriginF.y, this->skyBox.get_sun_dir( ) );
+                                             y_height < 0 ? 0.4f : 0.6f, time_s, mvp, inv_mvp, renderOriginF, this->skyBox.get_sun_dir( ), camera_pos_rebased );
             glStencilFunc( GL_NOTEQUAL, 1, 0xff ); // If the stencil value isn't 1 allow drawing.
             if ( useFogBlend ) {
                 this->fullScreenQuad.draw_texture_fog( this->renderer, this->blockTexture, this->depthStencilTexture, this->fogTexture, this->skyColorTexture, 1.0, false, headInWater );
@@ -472,9 +476,9 @@ void World::draw( const Texture &blocksTexture, const glm::mat4 &mvp, const glm:
             }
         }
 
-        // HIGH and underwater keep the simple uniform-strength reflection
-        // overlay; X_HIGH already composited reflections inside draw_water.
-        if ( usingReflections && !( allowBlur && !headInWater ) ) {
+        // Underwater keeps the simple uniform-strength reflection overlay;
+        // above water, draw_water already composited the reflections.
+        if ( usingReflections && headInWater ) {
             if ( useFogBlend ) {
                 this->fullScreenQuad.draw_texture_fog( this->renderer, this->reflectionTexture, this->depthStencilTexture, this->fogTexture, this->skyColorTexture, y_height < 0 ? 0.1 : 0.2, allowBlur, headInWater, 1 );
             } else {

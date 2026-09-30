@@ -27,7 +27,9 @@ uniform float u_Time;
 uniform mat4 u_MVP;
 uniform mat4 u_InvMVP;
 uniform float u_OriginY;
+uniform vec2 u_OriginXZ;
 uniform vec3 u_SunDir;
+uniform vec3 u_CameraPos;
 
 // Sea level water surface in absolute world Y: WATER_LEVEL(0) + WATER_HEIGHT - 1.
 const float SEA_SURFACE_Y = -0.125;
@@ -110,6 +112,16 @@ vec2 rippleOffset(ivec2 coord, float scale) {
     float y = float(coord.y);
     return scale * vec2(sin(y * 0.041 + u_Time * 1.9) + sin((x + y) * 0.023 + u_Time * 1.3),
                         sin(x * 0.037 + u_Time * 1.6) + sin((x - y) * 0.029 + u_Time * 1.1));
+}
+
+// World-space ripple: the phase comes from the surface's absolute XZ so the
+// wave pattern is anchored in the world and doesn't swim when the camera
+// moves. scale is still the peak pixel offset.
+vec2 ripplePhaseOffset(vec2 worldXZ, float scale) {
+    float x = worldXZ.x;
+    float y = worldXZ.y;
+    return scale * vec2(sin(y * 0.75 + u_Time * 1.9) + sin((x + y) * 0.42 + u_Time * 1.3),
+                        sin(x * 0.68 + u_Time * 1.6) + sin((x - y) * 0.5 + u_Time * 1.1));
 }
 
 // Screen-space reflection for fluids whose surface is NOT at sea level: the
@@ -199,7 +211,9 @@ void waterMain(ivec2 multiCoords) {
     vec3 waterPos = wp.xyz / wp.w;
     float waterY = waterPos.y + u_OriginY;
 
-    ivec2 rip = ivec2(rippleOffset(multiCoords, 2.5));
+    // Ripple attenuates with surface distance so far water doesn't shimmer.
+    float surfDist = length(waterPos - u_CameraPos);
+    ivec2 rip = ivec2(ripplePhaseOffset(waterPos.xz + u_OriginXZ, 7.0 / (1.0 + surfDist * 0.12)));
 
     vec3 reflColor;
     float reflAlpha;
@@ -234,9 +248,14 @@ void main() {
     }
 
     // Refraction wobble for the water-region scene draw: the whole pixel
-    // (color + stencil + fog lookups) shifts coherently.
+    // (color + stencil + fog lookups) shifts coherently. The ripple phase is
+    // anchored to the surface's world position and fades with distance.
     if(u_Ripple != 0) {
-        multiCoords += ivec2(rippleOffset(multiCoords, 2.0));
+        float surfDepth = depthMultisample(multiCoords);
+        vec4 wp = u_InvMVP * vec4(TexCoords * 2.0 - 1.0, surfDepth * 2.0 - 1.0, 1.0);
+        vec3 wpos = wp.xyz / wp.w;
+        float dist = length(wpos - u_CameraPos);
+        multiCoords += ivec2(ripplePhaseOffset(wpos.xz + u_OriginXZ, 5.0 / (1.0 + dist * 0.12)));
     }
 
     if(u_Blur != 0) {

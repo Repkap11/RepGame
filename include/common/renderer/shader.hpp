@@ -34,6 +34,7 @@ class Shader {
     void destroy( );
     void set_uniform4f( const char *name, float f0, float f1, float f2, float f3 );
     void set_uniform3f( const char *name, float f0, float f1, float f2 );
+    void set_uniform2f( const char *name, float f0, float f1 );
     void set_uniform1fv( const char *name, float *f, int count );
     void set_uniform1f( const char *name, float f );
     void set_uniform1i( const char *name, int i );
