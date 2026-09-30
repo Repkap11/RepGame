@@ -73,6 +73,7 @@ void Input::mouseInput( const int button, const int state ) {
             break;
         case SDL_BUTTON_RIGHT:
             this->mouse.buttons.right = !state;
+            this->mouse.buttons.right_click_handled = state;
             // pr_debug( "Right Click %d", !state );
             break;
         case SDL_BUTTON_MIDDLE:

@@ -104,14 +104,26 @@ void RepGame::process_mouse_events( ) {
         pr_debug( "Selected block:%d rotation:%d redstone_power:%d display:%d", blockState.id, blockState.rotation, blockState.current_redstone_power, blockState.display_id );
         globalGameState.input.click_delay_middle = 30;
         if ( globalGameState.game_mode == GameMode_Survival ) {
-            // In survival mode, middle-clicking a block moves the stack from
-            // the survival inventory to the hotbar (if available).
-            if ( !globalGameState.survival_inventory.moveBlockToHotbar( blockState.id, globalGameState.hotbar ) ) {
-                // Fallback: give 1 of the block (debug feature).
-                globalGameState.hotbar.addBlockWithQuantity( blockState.id, 1 );
-                BlockID selectedBlock = globalGameState.hotbar.getSelectedBlock( );
-                globalGameState.ui_overlay.set_holding_block( selectedBlock );
+            // In survival mode, middle-clicking picks the block onto the
+            // hotbar. If a non-full stack is already on the bar, just select
+            // it (nothing is pulled from the survival inventory); only move a
+            // whole stack when the bar's stacks are full (or the block isn't
+            // on the bar at all).
+            int bar_slot = globalGameState.hotbar.findSlotWithBlock( blockState.id, true );
+            if ( bar_slot >= 0 ) {
+                globalGameState.hotbar.setSelectedSlot( bar_slot );
+            } else if ( !globalGameState.survival_inventory.moveBlockToHotbar( blockState.id, globalGameState.hotbar, true ) ) {
+                // Nothing to move: select an existing (full) stack on the bar.
+                int full_slot = globalGameState.hotbar.findSlotWithBlock( blockState.id, false );
+                if ( full_slot >= 0 ) {
+                    globalGameState.hotbar.setSelectedSlot( full_slot );
+                }
             }
+            // Debug feature: also give 1 of the picked block so spamming
+            // middle-click restocks the bar without mining.
+            globalGameState.hotbar.addBlockWithQuantity( blockState.id, 1 );
+            BlockID selectedBlock = globalGameState.hotbar.getSelectedBlock( );
+            globalGameState.ui_overlay.set_holding_block( selectedBlock );
         } else {
             // Creative mode: always give the block.
             RepGame::add_to_hotbar( true, blockState.id );
@@ -481,7 +493,7 @@ void RepGame::process_inventory_events( ) {
                     // Shift-click: move the stack to the other inventory.
                     int slot = globalGameState.survival_inventory.whichSlotClicked( globalGameState.input.mouse.absPosition.x, globalGameState.input.mouse.absPosition.y );
                     if ( slot >= 0 ) {
-                        globalGameState.survival_inventory.moveToHotbar( slot, globalGameState.hotbar );
+                        globalGameState.survival_inventory.moveToHotbar( slot, globalGameState.hotbar, false );
                         BlockID selectedBlock = globalGameState.hotbar.getSelectedBlock( );
                         globalGameState.ui_overlay.set_holding_block( selectedBlock );
                     } else {
@@ -515,15 +527,47 @@ void RepGame::process_inventory_events( ) {
                 // the stack to the hotbar.
                 int slot = globalGameState.survival_inventory.whichSlotClicked( globalGameState.input.mouse.absPosition.x, globalGameState.input.mouse.absPosition.y );
                 if ( slot >= 0 ) {
-                    globalGameState.survival_inventory.moveToHotbar( slot, globalGameState.hotbar );
+                    globalGameState.survival_inventory.moveToHotbar( slot, globalGameState.hotbar, false );
                     BlockID selectedBlock = globalGameState.hotbar.getSelectedBlock( );
                     globalGameState.ui_overlay.set_holding_block( selectedBlock );
+                }
+            }
+        }
+        if ( globalGameState.input.mouse.buttons.right && globalGameState.input.mouse.buttons.right_click_handled == false ) {
+            globalGameState.input.mouse.buttons.right_click_handled = true;
+            if ( globalGameState.game_mode == GameMode_Survival ) {
+                int slot = globalGameState.survival_inventory.whichSlotClicked( globalGameState.input.mouse.absPosition.x, globalGameState.input.mouse.absPosition.y );
+                if ( globalGameState.input.shift_held ) {
+                    // Shift-right-click: transfer half of the stack (rounded
+                    // up) between the survival inventory and the hotbar.
+                    if ( slot >= 0 ) {
+                        globalGameState.survival_inventory.moveHalfToHotbar( slot, globalGameState.hotbar );
+                    } else {
+                        int hotbar_slot = globalGameState.hotbar.inventory_renderer.whichSlotClicked( globalGameState.input.mouse.absPosition.x, globalGameState.input.mouse.absPosition.y );
+                        if ( hotbar_slot >= 0 ) {
+                            globalGameState.hotbar.moveHalfToSurvivalInventory( hotbar_slot, globalGameState.survival_inventory );
+                        }
+                    }
+                    BlockID selectedBlock = globalGameState.hotbar.getSelectedBlock( );
+                    globalGameState.ui_overlay.set_holding_block( selectedBlock );
+                } else if ( slot >= 0 ) {
+                    // Right-click picks up half a stack (rounded up), or
+                    // places a single held block into the slot.
+                    globalGameState.survival_inventory.rightClickSlot( slot, globalGameState.held_inventory_slot, globalGameState.is_holding_inventory_slot );
+                } else {
+                    int hotbar_slot = globalGameState.hotbar.inventory_renderer.whichSlotClicked( globalGameState.input.mouse.absPosition.x, globalGameState.input.mouse.absPosition.y );
+                    if ( hotbar_slot >= 0 ) {
+                        globalGameState.hotbar.rightClickSlot( hotbar_slot, globalGameState.held_inventory_slot, globalGameState.is_holding_inventory_slot );
+                        BlockID selectedBlock = globalGameState.hotbar.getSelectedBlock( );
+                        globalGameState.ui_overlay.set_holding_block( selectedBlock );
+                    }
                 }
             }
         }
     } else {
         // Steal any left/middle click events so they don't trigger right when we open the inventory.
         globalGameState.input.mouse.buttons.left_click_handled = true;
+        globalGameState.input.mouse.buttons.right_click_handled = true;
         globalGameState.input.mouse.buttons.middle_click_handled = true;
         // If we were holding an inventory item when the inventory closed, return
         // it to the survival inventory to avoid item loss.

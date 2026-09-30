@@ -16,6 +16,7 @@ class Input {
             int right;
             int middle;
             bool left_click_handled;
+            bool right_click_handled;
             bool middle_click_handled;
         } buttons;
         struct {

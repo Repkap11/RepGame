@@ -231,6 +231,29 @@ int Hotbar::getSelectedSlot( ) const {
     return this->selected_slot;
 };
 
+int Hotbar::findSlotWithBlock( BlockID blockId, bool require_non_full ) const {
+    for ( int i_slot = 0; i_slot < this->num_blocks_max; i_slot++ ) {
+        const InventorySlot &slot = this->slots[ i_slot ];
+        if ( slot.block_id == blockId && slot.quantity > 0 && ( !require_non_full || slot.quantity < MAX_STACK_SIZE ) ) {
+            return i_slot;
+        }
+    }
+    return -1;
+}
+
+int Hotbar::spaceFor( BlockID blockId ) const {
+    int space = 0;
+    for ( int i_slot = 0; i_slot < this->num_blocks_max; i_slot++ ) {
+        const InventorySlot &slot = this->slots[ i_slot ];
+        if ( slot.block_id == LAST_BLOCK_ID || slot.quantity <= 0 ) {
+            space += MAX_STACK_SIZE;
+        } else if ( slot.block_id == blockId ) {
+            space += MAX_STACK_SIZE - slot.quantity;
+        }
+    }
+    return space;
+}
+
 void Hotbar::setSelectedSlot( const int selected_slot ) {
     this->selected_slot = selected_slot;
     this->inventory_renderer.setSelectedSlot( this->selected_slot );
@@ -270,6 +293,20 @@ void Hotbar::pickupOrSwapSlot( int slot_index, InventorySlot &held, bool &is_hol
         this->inventory_renderer.changeSlotItem( slot_index, slot );
         is_holding = true;
     } else {
+        // Same block type: merge into the slot's stack up to MAX_STACK_SIZE,
+        // with any leftover staying on the cursor.
+        if ( slot.block_id == held.block_id && slot.quantity > 0 && slot.quantity < MAX_STACK_SIZE ) {
+            int space = MAX_STACK_SIZE - slot.quantity;
+            int to_move = ( held.quantity < space ) ? held.quantity : space;
+            slot.quantity += to_move;
+            held.quantity -= to_move;
+            this->inventory_renderer.changeSlotItem( slot_index, slot );
+            if ( held.quantity <= 0 ) {
+                held.block_id = LAST_BLOCK_ID;
+                is_holding = false;
+            }
+            return;
+        }
         // Place / swap. Remove old map entries for both the held block and
         // the target slot's block (if any), then re-insert after the swap.
         if ( slot.block_id != LAST_BLOCK_ID && slot.quantity > 0 ) {
@@ -283,6 +320,50 @@ void Hotbar::pickupOrSwapSlot( int slot_index, InventorySlot &held, bool &is_hol
         }
         this->inventory_renderer.changeSlotItem( slot_index, slot );
         if ( held.block_id == LAST_BLOCK_ID || held.quantity <= 0 ) {
+            is_holding = false;
+        }
+    }
+}
+
+void Hotbar::rightClickSlot( int slot_index, InventorySlot &held, bool &is_holding ) {
+    if ( slot_index < 0 || slot_index >= this->num_blocks_max ) {
+        return;
+    }
+    InventorySlot &slot = this->slots[ slot_index ];
+    if ( !is_holding ) {
+        // Pick up half of the stack, rounded up.
+        if ( slot.block_id == LAST_BLOCK_ID || slot.quantity <= 0 ) {
+            return;
+        }
+        int take = ( slot.quantity + 1 ) / 2;
+        held.block_id = slot.block_id;
+        held.quantity = take;
+        slot.quantity -= take;
+        if ( slot.quantity <= 0 ) {
+            this->blockId_to_slot_map.erase( slot.block_id );
+            slot.block_id = LAST_BLOCK_ID;
+            slot.quantity = 0;
+        }
+        this->inventory_renderer.changeSlotItem( slot_index, slot );
+        is_holding = true;
+    } else {
+        // Place a single block into the slot.
+        if ( slot.block_id == LAST_BLOCK_ID || slot.quantity <= 0 ) {
+            slot.block_id = held.block_id;
+            slot.quantity = 1;
+            const BlockID held_id = held.block_id;
+            this->blockId_to_slot_map.emplace( held_id, slot_index );
+            held.quantity--;
+        } else if ( slot.block_id == held.block_id && slot.quantity < MAX_STACK_SIZE ) {
+            slot.quantity++;
+            held.quantity--;
+        } else {
+            // Different block type or a full stack: nothing to do.
+            return;
+        }
+        this->inventory_renderer.changeSlotItem( slot_index, slot );
+        if ( held.quantity <= 0 ) {
+            held.block_id = LAST_BLOCK_ID;
             is_holding = false;
         }
     }
@@ -311,6 +392,30 @@ bool Hotbar::moveToSurvivalInventory( int slot_index, class SurvivalInventory &s
     this->blockId_to_slot_map.erase( slot.block_id );
     slot.block_id = LAST_BLOCK_ID;
     slot.quantity = 0;
+    this->inventory_renderer.changeSlotItem( slot_index, slot );
+    return true;
+}
+
+bool Hotbar::moveHalfToSurvivalInventory( int slot_index, class SurvivalInventory &survival_inventory ) {
+    if ( slot_index < 0 || slot_index >= this->num_blocks_max ) {
+        return false;
+    }
+    InventorySlot &slot = this->slots[ slot_index ];
+    if ( slot.block_id == LAST_BLOCK_ID || slot.quantity <= 0 ) {
+        return false;
+    }
+    int to_move = ( slot.quantity + 1 ) / 2;
+    int leftover = survival_inventory.addBlock( slot.block_id, to_move );
+    int moved = to_move - leftover;
+    if ( moved <= 0 ) {
+        return false;
+    }
+    slot.quantity -= moved;
+    if ( slot.quantity <= 0 ) {
+        this->blockId_to_slot_map.erase( slot.block_id );
+        slot.block_id = LAST_BLOCK_ID;
+        slot.quantity = 0;
+    }
     this->inventory_renderer.changeSlotItem( slot_index, slot );
     return true;
 }

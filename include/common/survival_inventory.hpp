@@ -22,21 +22,34 @@ class SurvivalInventory {
     int addBlock( BlockID blockId, int quantity );
 
     // Moves the entire stack from the given slot to the hotbar. Returns true if
-    // the move succeeded.
-    bool moveToHotbar( int slot_index, class Hotbar &hotbar );
+    // the move succeeded. prefer_selected_slot is forwarded to
+    // Hotbar::addBlockWithQuantity (also selects the slot that received items).
+    bool moveToHotbar( int slot_index, class Hotbar &hotbar, bool prefer_selected_slot );
 
-    // Finds the given block in the inventory and moves the stack to the hotbar.
-    // Returns true if the block was found and moved.
-    bool moveBlockToHotbar( BlockID blockId, class Hotbar &hotbar );
+    // Finds the given block in the inventory and moves the stack to the
+    // hotbar, preferring non-full stacks over full ones. Returns true if the
+    // block was found and moved.
+    bool moveBlockToHotbar( BlockID blockId, class Hotbar &hotbar, bool prefer_selected_slot );
+
+    // Moves half of the given slot's stack (rounded up) to the hotbar.
+    // Returns true if anything moved.
+    bool moveHalfToHotbar( int slot_index, class Hotbar &hotbar );
 
     // Swaps the given slot's contents with the provided slot data (for
     // click-to-move within the inventory).
     void swapSlot( int slot_index, InventorySlot &held );
 
     // Minecraft-style click-to-pick-up / click-to-place. If held is empty,
-    // picks up the slot's contents into held. If held has items, swaps held
-    // with the slot's contents. Updates is_holding accordingly.
+    // picks up the slot's contents into held. If held has the same block type,
+    // merges into the slot's stack up to MAX_STACK_SIZE with any leftover
+    // staying in held. Otherwise swaps held with the slot's contents.
+    // Updates is_holding accordingly.
     void pickupOrSwapSlot( int slot_index, InventorySlot &held, bool &is_holding );
+
+    // Minecraft-style right-click. If held is empty, picks up half of the
+    // slot's stack (rounded up). If held has items, places a single block into
+    // the slot if it is empty or has the same block type with room.
+    void rightClickSlot( int slot_index, InventorySlot &held, bool &is_holding );
 
     // Returns a pointer to the slot data (for save/load and rendering).
     const InventorySlot *getSlots( ) const;
