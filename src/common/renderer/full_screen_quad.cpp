@@ -32,7 +32,8 @@ void FullScreenQuad::init( ) {
     showErrors( );
 }
 
-void FullScreenQuad::draw_texture( const Renderer &renderer, const Texture &texture, const Texture &depthStencilTexture, float extraAlpha, bool blur, bool ignoreStencil, int discardZeroAlpha ) {
+void FullScreenQuad::draw_texture( const Renderer &renderer, const Texture &texture, const Texture &depthStencilTexture, float extraAlpha, bool blur, bool ignoreStencil, int discardZeroAlpha, bool underwater,
+                                   float time_s, bool ripple ) {
     this->shader.set_uniform1i_texture( "u_Texture", texture );
     this->shader.set_uniform1i_texture( "u_Stencil", depthStencilTexture );
     // Bind u_FogTexture and u_SkyColorTexture to the same multisample texture
@@ -47,8 +48,9 @@ void FullScreenQuad::draw_texture( const Renderer &renderer, const Texture &text
     this->shader.set_uniform1i( "u_FogBlend", 0 );
     this->shader.set_uniform1i( "u_DiscardZeroAlpha", discardZeroAlpha );
     this->shader.set_uniform1i( "u_WaterPass", 0 );
-    this->shader.set_uniform1i( "u_Ripple", 0 );
-    this->shader.set_uniform1f( "u_Time", 0.0f );
+    this->shader.set_uniform1i( "u_Ripple", ripple ? 1 : 0 );
+    this->shader.set_uniform1i( "u_Underwater", underwater ? 1 : 0 );
+    this->shader.set_uniform1f( "u_Time", time_s );
     this->render_link_fsq.draw( renderer, this->shader );
 }
 

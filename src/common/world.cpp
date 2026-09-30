@@ -202,14 +202,34 @@ void World::draw( const Texture &blocksTexture, const glm::mat4 &mvp, const glm:
     const float render_distance = static_cast<float>( CHUNK_RADIUS_X * CHUNK_SIZE_X );
     const float fog_near = render_distance * 0.60f;
     const float fog_far = render_distance * 0.98f;
+    // Underwater murk: while the camera is in water, fragments below the
+    // surface plane fog over this much shorter range. The shaders pick the
+    // water range per-fragment using the same predicate as the water tint,
+    // so a half-submerged view still splits at the waterline.
+    const float water_fog_near = 8.0f;
+    const float water_fog_far = 45.0f;
     // When underwater, the fog-blend post-process is disabled (stencil can't
     // separate water), so terrain fades toward the fog color directly. Use
     // the water tint color instead of the sky color so distant terrain
-    // blends into the water rather than the sky.
-    const glm::vec3 &fog_blend_color = headInWater ? glm::vec3( 0.122f, 0.333f, 1.0f ) : this->skyBox.get_avg_color( );
+    // blends into the water rather than the sky; the color darkens toward
+    // navy as the camera descends below the surface.
+    glm::vec3 fog_blend_color = this->skyBox.get_avg_color( );
+    if ( headInWater ) {
+        const float depthBelow = ( WATER_HEIGHT - 1.0f ) - y_height; // WATER_LEVEL(0) + WATER_HEIGHT - 1 = surface Y
+        const float depthF = glm::clamp( depthBelow / 30.0f, 0.0f, 1.0f );
+        fog_blend_color = glm::mix( glm::vec3( 0.122f, 0.333f, 1.0f ), glm::vec3( 0.02f, 0.08f, 0.30f ), depthF );
+    }
 
     this->chunkLoader.shader.set_uniform1f( "u_FogNear", fog_near );
     this->chunkLoader.shader.set_uniform1f( "u_FogFar", fog_far );
+    this->chunkLoader.shader.set_uniform1f( "u_WaterFogNear", water_fog_near );
+    this->chunkLoader.shader.set_uniform1f( "u_WaterFogFar", water_fog_far );
+    // Framebuffer tiers apply the underwater blue wash in the composite pass;
+    // LOW renders forward, so the object/chunk shaders apply it in-shader
+    // instead. Same uniform name on purpose: only one of the two is ever
+    // active for a given draw.
+    const int underwater_wash = ( headInWater && !useFrameBuffer && block_water_tint_type == TINT_UNDER_WATER_OBJECT_ALWAYS ) ? 1 : 0;
+    this->chunkLoader.shader.set_uniform1i( "u_Underwater", underwater_wash );
     this->chunkLoader.shader.set_uniform3f( "u_CameraPos", camera_pos_rebased.x, camera_pos_rebased.y, camera_pos_rebased.z );
     this->chunkLoader.shader.set_uniform3f( "u_Origin", renderOriginF.x, renderOriginF.y, renderOriginF.z );
     this->chunkLoader.shader.set_uniform3f( "u_SkyAvgColor", fog_blend_color.r, fog_blend_color.g, fog_blend_color.b );
@@ -221,6 +241,9 @@ void World::draw( const Texture &blocksTexture, const glm::mat4 &mvp, const glm:
 
     this->object_shader.set_uniform1f( "u_FogNear", fog_near );
     this->object_shader.set_uniform1f( "u_FogFar", fog_far );
+    this->object_shader.set_uniform1f( "u_WaterFogNear", water_fog_near );
+    this->object_shader.set_uniform1f( "u_WaterFogFar", water_fog_far );
+    this->object_shader.set_uniform1i( "u_Underwater", underwater_wash );
     this->object_shader.set_uniform3f( "u_CameraPos", camera_pos_rebased.x, camera_pos_rebased.y, camera_pos_rebased.z );
     this->object_shader.set_uniform3f( "u_Origin", renderOriginF.x, renderOriginF.y, renderOriginF.z );
     this->object_shader.set_uniform3f( "u_SkyAvgColor", fog_blend_color.r, fog_blend_color.g, fog_blend_color.b );
@@ -339,10 +362,11 @@ void World::draw( const Texture &blocksTexture, const glm::mat4 &mvp, const glm:
     this->chunkLoader.shader.set_uniform1i( "u_FluidAnim", 0 );
 
 #if ( SUPPORTS_FRAME_BUFFER )
-    if ( usingReflections && !headInWater ) {
+    if ( usingReflections ) {
         // Snapshot the scene depth for the water shader's screen-space
-        // reflections. Must happen here: the reflection pass below clears
-        // the depth buffer and rewrites it with mirrored-world depths.
+        // reflections (and the underwater reflection wobble). Must happen
+        // here: the reflection pass below clears the depth buffer and
+        // rewrites it with mirrored-world depths.
         glBindFramebuffer( GL_READ_FRAMEBUFFER, this->frameBuffer.id( ) );
         glBindFramebuffer( GL_DRAW_FRAMEBUFFER, this->depthFrameBuffer.id( ) );
         glBlitFramebuffer( 0, 0, this->fboWidth, this->fboHeight, 0, 0, this->fboWidth, this->fboHeight, GL_DEPTH_BUFFER_BIT, GL_NEAREST );
@@ -427,11 +451,14 @@ void World::draw( const Texture &blocksTexture, const glm::mat4 &mvp, const glm:
         // the actual rendered sky before terrain was drawn, so it matches the
         // skybox exactly (no reconstruction math needed).
 
-        if ( usingReflections && !headInWater ) {
+        if ( usingReflections ) {
             // Bind the SSR/water frame state once: the refraction wobble in the
-            // fog-composite draw and the water overlay both unproject with it.
+            // fog-composite draw, the water overlay, and the underwater
+            // reflection wobble all unproject with it.
             this->fullScreenQuad.set_water_frame_uniforms( this->depthTexture, inv_mvp, camera_pos_rebased, renderOriginF );
+        }
 
+        if ( usingReflections && !headInWater ) {
             // glStencilFunc -> pass or discard
             // glStencilOp -> action to do on the scencil buffer.
 
@@ -472,7 +499,10 @@ void World::draw( const Texture &blocksTexture, const glm::mat4 &mvp, const glm:
             if ( useFogBlend ) {
                 this->fullScreenQuad.draw_texture_fog( this->renderer, this->blockTexture, this->depthStencilTexture, this->fogTexture, this->skyColorTexture, 1.0, allowBlur, headInWater );
             } else {
-                this->fullScreenQuad.draw_texture( this->renderer, this->blockTexture, this->depthStencilTexture, 1.0, allowBlur, headInWater );
+                // u_Underwater (blue wash) only when fully submerged — the
+                // straddle band keeps the above-water half of the view clean.
+                this->fullScreenQuad.draw_texture( this->renderer, this->blockTexture, this->depthStencilTexture, 1.0, allowBlur, headInWater, 0,
+                                                   block_water_tint_type == TINT_UNDER_WATER_OBJECT_ALWAYS );
             }
         }
 
@@ -482,7 +512,9 @@ void World::draw( const Texture &blocksTexture, const glm::mat4 &mvp, const glm:
             if ( useFogBlend ) {
                 this->fullScreenQuad.draw_texture_fog( this->renderer, this->reflectionTexture, this->depthStencilTexture, this->fogTexture, this->skyColorTexture, y_height < 0 ? 0.1 : 0.2, allowBlur, headInWater, 1 );
             } else {
-                this->fullScreenQuad.draw_texture( this->renderer, this->reflectionTexture, this->depthStencilTexture, y_height < 0 ? 0.1 : 0.2, allowBlur, headInWater, 1 );
+                // X_HIGH wobbles the mirrored fetch, matching the land-side
+                // rippled reflections; HIGH keeps it still.
+                this->fullScreenQuad.draw_texture( this->renderer, this->reflectionTexture, this->depthStencilTexture, y_height < 0 ? 0.1 : 0.2, allowBlur, headInWater, 1, false, time_s, allowBlur );
             }
         }
         glEnable( GL_DEPTH_TEST );

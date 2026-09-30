@@ -17,6 +17,7 @@ uniform sampler2DMS u_Texture;
 uniform usampler2DMS u_Stencil;
 uniform int u_TextureSamples;
 uniform int u_IgnoreStencil;
+uniform int u_Underwater;
 
 // Water composite (X_HIGH) uniforms.
 uniform sampler2DMS u_ReflectionTex;
@@ -338,6 +339,13 @@ void main() {
         // the FBO already contains the complete composited image (sky + terrain
         // with fog blended in-shader), so output opaque to avoid darkening
         // from the screen clear color where the FBO alpha is < 1.
+        if(u_Underwater != 0) {
+            // Wash everything toward blue — including sky seen through the
+            // surface (it's invisible from below: backface-culled) — so the
+            // whole view reads as underwater. Only set when fully submerged,
+            // so the above-water half of a straddled view stays clean.
+            finalColor.rgb = mix(finalColor.rgb, vec3(0.06f, 0.22f, 0.65f), 0.45f);
+        }
         color = vec4(finalColor.rgb, 1.0);
     }
 }

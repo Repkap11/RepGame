@@ -10,6 +10,7 @@ precision lowp sampler2DArray;
 uniform sampler2DArray u_Texture;
 uniform float u_ReflectionHeight;
 uniform int u_TintUnderWater;
+uniform int u_Underwater;
 uniform int u_DrawToReflection;
 uniform float u_ExtraAlpha;
 uniform vec3 u_Origin;
@@ -18,6 +19,8 @@ uniform int u_OpaqueFog;
 
 uniform float u_FogNear;
 uniform float u_FogFar;
+uniform float u_WaterFogNear;
+uniform float u_WaterFogFar;
 uniform vec3 u_CameraPos;
 uniform int u_IsSky;
 uniform vec3 u_SkyAvgColor;
@@ -46,7 +49,7 @@ void main( ) {
         discard;
     }
     if ( u_TintUnderWater == TINT_UNDER_WATER_OBJECT_ALWAYS || ( u_TintUnderWater == TINT_UNDER_WATER_OBJECT_UNDER_Y_LEVEL && v_world_coords.y < ( -0.125f - u_Origin.y - eps ) ) ) {
-        texColor = mix( texColor, vec4( 0.122f, 0.333f, 1.0f, 1.0f ), 0.8f );
+        texColor = mix( texColor, vec4( 0.122f, 0.333f, 1.0f, 1.0f ), 0.5f );
     }
     vec4 lightedColor = texColor * vec4( v_light, v_light, v_light, u_ExtraAlpha );
 
@@ -64,7 +67,12 @@ void main( ) {
     // Fog color is sampled from the sky texture at the horizon.
     if(u_IsSky == 0) {
         float dist = distance(v_world_coords.xyz, u_CameraPos);
-        float fogLinear = clamp((dist - u_FogNear) / (u_FogFar - u_FogNear), 0.0, 1.0);
+        // Underwater murk: same per-fragment gate as the chunk shader.
+        bool belowWater = u_TintUnderWater == TINT_UNDER_WATER_OBJECT_ALWAYS ||
+                          (u_TintUnderWater == TINT_UNDER_WATER_OBJECT_UNDER_Y_LEVEL && v_world_coords.y < (-0.125f - u_Origin.y - eps));
+        float fogNear = belowWater ? u_WaterFogNear : u_FogNear;
+        float fogFar = belowWater ? u_WaterFogFar : u_FogFar;
+        float fogLinear = clamp((dist - fogNear) / (fogFar - fogNear), 0.0, 1.0);
         float colorFog = clamp(fogLinear / 0.5, 0.0, 1.0);
         colorFog = colorFog * colorFog * (3.0 - 2.0 * colorFog);
         float alphaFog = clamp((fogLinear - 0.5) / 0.5, 0.0, 1.0);
@@ -79,7 +87,11 @@ void main( ) {
                 fogFactor = vec4(0.0, 0.0, 0.0, alphaFog);
                 finalColor.a = 1.0;
             } else {
-                finalColor.a *= (1.0 - alphaFog);
+                // Skip the alpha fade underwater — see the chunk shader: it
+                // reveals the untinted sky and breaks alpha>0 validity checks.
+                if(!belowWater) {
+                    finalColor.a *= (1.0 - alphaFog);
+                }
                 fogFactor = vec4(0.0, 0.0, 0.0, 0.0);
             }
         } else {
@@ -102,6 +114,11 @@ void main( ) {
     skyColor = (u_IsSky == 1 && u_DrawToReflection == 0) ? vec4(finalColor.rgb, 1.0) : vec4(0.0);
 
 #endif
+    // Underwater on tiers without the framebuffer composite: apply the blue
+    // screen wash here — covers the sky too (it draws through this shader).
+    if(u_Underwater != 0) {
+        finalColor.rgb = mix(finalColor.rgb, vec3(0.06f, 0.22f, 0.65f), 0.45f);
+    }
     color = finalColor;
     reflection = finalReflection;
 }

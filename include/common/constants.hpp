@@ -7,7 +7,7 @@
 #define MOUSE_SMOOTHING 0.5f
 #define MOVEMENT_SENSITIVITY_WALKING 0.0326f
 #define MOVEMENT_SENSITIVITY_SPRINTING 0.125f
-#define MOVEMENT_SENSITIVITY_FLYING 0.5f
+#define MOVEMENT_SENSITIVITY_FLYING 0.3f
 #define MOVEMENT_SENSITIVITY_FLYING_SPRINTING 2.0f
 // Vertical fly speed (blocks/tick) when ascending/descending with jump/sneak.
 #define FLY_VERTICAL_SPEED 0.5f
