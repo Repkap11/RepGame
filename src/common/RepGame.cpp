@@ -927,7 +927,6 @@ void RepGame::draw( float alpha ) {
     // becomes small, eliminating the large-float cancellation that caused
     // Z-fighting between the selection outline and terrain at distance.
     const glm::ivec3 renderOrigin = glm::ivec3( glm::floor( render_pos / glm::dvec3( CHUNK_SIZE_F ) ) ) * CHUNK_SIZE_I;
-    const glm::vec3 renderOriginF = glm::vec3( renderOrigin );
     // Subtract the integer origin in double so the small rebased offset keeps
     // full precision, then cast to float for the view matrix.
     render_view_trans = glm::translate( glm::mat4( 1.0f ), glm::vec3( -( render_pos - glm::dvec3( renderOrigin ) ) ) );
