@@ -13,11 +13,11 @@ typedef struct {
     float z;
 } RayTemp;
 
-int contains_pixel( Block *pixel_block, BlockState &block_state, const glm::vec3 &dir, const glm::vec3 &initial, const glm::vec3 &block, int *which_face ) {
+int contains_pixel( Block *pixel_block, BlockState &block_state, const glm::dvec3 &dir, const glm::dvec3 &initial, const glm::dvec3 &block, int *which_face ) {
     // r.dir is unit direction vector of ray
-    float dirfrac_x = 1.0f / dir.x;
-    float dirfrac_y = 1.0f / dir.y;
-    float dirfrac_z = 1.0f / dir.z;
+    double dirfrac_x = 1.0 / dir.x;
+    double dirfrac_y = 1.0 / dir.y;
+    double dirfrac_z = 1.0 / dir.z;
     // lb is the corner of AABB with minimal coordinates - left bottom, rt is maximal corner
     // r.org is origin of ray
 
@@ -53,19 +53,19 @@ int contains_pixel( Block *pixel_block, BlockState &block_state, const glm::vec3
         }
     }
 
-    float c1_x = block.x + PIXEL_TO_FLOAT( offset_x );
-    float c1_z = block.z + PIXEL_TO_FLOAT( offset_z );
+    double c1_x = block.x + PIXEL_TO_FLOAT( offset_x );
+    double c1_z = block.z + PIXEL_TO_FLOAT( offset_z );
 
-    float c2_x = c1_x + PIXEL_TO_FLOAT( scale_x );
-    float c2_z = c1_z + PIXEL_TO_FLOAT( scale_z );
+    double c2_x = c1_x + PIXEL_TO_FLOAT( scale_x );
+    double c2_z = c1_z + PIXEL_TO_FLOAT( scale_z );
 
-    float c1_y = block.y + PIXEL_TO_FLOAT( pixel_block->offset.y );
-    float c2_y = c1_y + PIXEL_TO_FLOAT( pixel_block->scale.y );
+    double c1_y = block.y + PIXEL_TO_FLOAT( pixel_block->offset.y );
+    double c2_y = c1_y + PIXEL_TO_FLOAT( pixel_block->scale.y );
 
     // pr_debug( "%f %f %f", lb.x, lb.y, lb.z );
     // pr_debug( "%f %f %f", rt.x, rt.y, rt.z );
     // float length = 0;
-    float all_t[ NUM_FACES_IN_CUBE ];
+    double all_t[ NUM_FACES_IN_CUBE ];
     all_t[ FACE_TOP ] = ( c2_y - initial.y ) * dirfrac_y;
     all_t[ FACE_BOTTOM ] = ( c1_y - initial.y ) * dirfrac_y;
     all_t[ FACE_RIGHT ] = ( c2_x - initial.x ) * dirfrac_x;
@@ -73,9 +73,9 @@ int contains_pixel( Block *pixel_block, BlockState &block_state, const glm::vec3
     all_t[ FACE_LEFT ] = ( c1_x - initial.x ) * dirfrac_x;
     all_t[ FACE_FRONT ] = ( c1_z - initial.z ) * dirfrac_z;
 
-    float rl_min;
-    float rl_max;
-    float rl_face;
+    double rl_min;
+    double rl_max;
+    double rl_face;
     if ( all_t[ FACE_RIGHT ] < all_t[ FACE_LEFT ] ) {
         rl_face = FACE_RIGHT;
         rl_min = all_t[ FACE_RIGHT ];
@@ -86,9 +86,9 @@ int contains_pixel( Block *pixel_block, BlockState &block_state, const glm::vec3
         rl_min = all_t[ FACE_LEFT ];
     }
 
-    float tb_min;
-    float tb_max;
-    float tb_face;
+    double tb_min;
+    double tb_max;
+    double tb_face;
     if ( all_t[ FACE_TOP ] < all_t[ FACE_BOTTOM ] ) {
         tb_face = FACE_TOP;
         tb_min = all_t[ FACE_TOP ];
@@ -99,9 +99,9 @@ int contains_pixel( Block *pixel_block, BlockState &block_state, const glm::vec3
         tb_min = all_t[ FACE_BOTTOM ];
     }
 
-    float fb_min;
-    float fb_max;
-    float fb_face;
+    double fb_min;
+    double fb_max;
+    double fb_face;
     if ( all_t[ FACE_FRONT ] < all_t[ FACE_BACK ] ) {
         fb_face = FACE_FRONT;
         fb_min = all_t[ FACE_FRONT ];
@@ -112,8 +112,8 @@ int contains_pixel( Block *pixel_block, BlockState &block_state, const glm::vec3
         fb_min = all_t[ FACE_BACK ];
     }
 
-    float min;
-    float face;
+    double min;
+    double face;
     if ( rl_min > tb_min ) {
         face = rl_face;
         min = rl_min;
@@ -125,7 +125,7 @@ int contains_pixel( Block *pixel_block, BlockState &block_state, const glm::vec3
         face = fb_face;
         min = fb_min;
     }
-    float max = fmin( fmin( rl_max, tb_max ), fb_max );
+    double max = fmin( fmin( rl_max, tb_max ), fb_max );
 
     // The whole AABB is behind us
     if ( max < 0 ) {
@@ -143,7 +143,7 @@ int contains_pixel( Block *pixel_block, BlockState &block_state, const glm::vec3
     return true;
 }
 
-int contains_block( World &world, const glm::vec3 &dir, const glm::vec3 &initial, const glm::ivec3 &block_pos, int collide_with_unloaded, int is_pick, int *which_face ) {
+int contains_block( World &world, const glm::dvec3 &dir, const glm::dvec3 &initial, const glm::ivec3 &block_pos, int collide_with_unloaded, int is_pick, int *which_face ) {
     BlockState blockState = world.get_loaded_block( block_pos );
     BlockID blockID = blockState.id;
     if ( blockID >= LAST_BLOCK_ID ) {
@@ -157,52 +157,52 @@ int contains_block( World &world, const glm::vec3 &dir, const glm::vec3 &initial
         result = block->collides_with_player;
     }
     if ( result && block->non_full_size ) {
-        return contains_pixel( block, blockState, dir, initial, block_pos, which_face );
+        return contains_pixel( block, blockState, dir, initial, glm::dvec3( block_pos ), which_face );
     } else {
         return result;
     }
 }
 
 int RayTraversal::find_block_from_to( World &world, Block *pixel_block, //
-                                      const glm::vec3 &v1,                    //
-                                      const glm::vec3 &v2,                    //
+                                      const glm::dvec3 &v1,                   //
+                                      const glm::dvec3 &v2,                   //
                                       glm::ivec3 &out,                        //
                                       int *out_whichFace, int flag, int is_pick, int is_pixel ) {
 
-    glm::vec3 dir = v2 - v1;
+    glm::dvec3 dir = v2 - v1;
     // dir = glm::normalize(dir);
-    float length = sqrtf( dir.x * dir.x + dir.y * dir.y + dir.z * dir.z );
+    double length = sqrt( dir.x * dir.x + dir.y * dir.y + dir.z * dir.z );
     dir /= length;
 
     // glm::ivec3 offset = glm::floor(v1);
-    glm::ivec3 offset( ( int )floorf( v1.x ), ( int )floorf( v1.y ), ( int )floorf( v1.z ) );
+    glm::ivec3 offset( ( int )floor( v1.x ), ( int )floor( v1.y ), ( int )floor( v1.z ) );
 
     // TODO do this math with glm vec types.
-    const float x1 = v1.x;
-    const float y1 = v1.y;
-    const float z1 = v1.z;
-    const float x2 = v2.x;
-    const float y2 = v2.y;
-    const float z2 = v2.z;
+    const double x1 = v1.x;
+    const double y1 = v1.y;
+    const double z1 = v1.z;
+    const double x2 = v2.x;
+    const double y2 = v2.y;
+    const double z2 = v2.z;
 
-    const int iend = ( int )floorf( x2 );
-    const int jend = ( int )floorf( y2 );
-    const int kend = ( int )floorf( z2 );
+    const int iend = ( int )floor( x2 );
+    const int jend = ( int )floor( y2 );
+    const int kend = ( int )floor( z2 );
 
     const int di = ( ( x1 < x2 ) ? 1 : ( ( x1 > x2 ) ? -1 : 0 ) );
     const int dj = ( ( y1 < y2 ) ? 1 : ( ( y1 > y2 ) ? -1 : 0 ) );
     const int dk = ( ( z1 < z2 ) ? 1 : ( ( z1 > z2 ) ? -1 : 0 ) );
 
-    const float deltatx = 1.0f / std::abs( x2 - x1 );
-    const float deltaty = 1.0f / std::abs( y2 - y1 );
-    const float deltatz = 1.0f / std::abs( z2 - z1 );
+    const double deltatx = 1.0 / std::abs( x2 - x1 );
+    const double deltaty = 1.0 / std::abs( y2 - y1 );
+    const double deltatz = 1.0 / std::abs( z2 - z1 );
 
-    const float minx = floorf( x1 ), maxx = minx + 1.0f;
-    float tx = ( ( x1 > x2 ) ? ( x1 - minx ) : ( maxx - x1 ) ) * deltatx;
-    const float miny = floorf( y1 ), maxy = miny + 1.0f;
-    float ty = ( ( y1 > y2 ) ? ( y1 - miny ) : ( maxy - y1 ) ) * deltaty;
-    const float minz = floorf( z1 ), maxz = minz + 1.0f;
-    float tz = ( ( z1 > z2 ) ? ( z1 - minz ) : ( maxz - z1 ) ) * deltatz;
+    const double minx = floor( x1 ), maxx = minx + 1.0;
+    double tx = ( ( x1 > x2 ) ? ( x1 - minx ) : ( maxx - x1 ) ) * deltatx;
+    const double miny = floor( y1 ), maxy = miny + 1.0;
+    double ty = ( ( y1 > y2 ) ? ( y1 - miny ) : ( maxy - y1 ) ) * deltaty;
+    const double minz = floor( z1 ), maxz = minz + 1.0;
+    double tz = ( ( z1 > z2 ) ? ( z1 - minz ) : ( maxz - z1 ) ) * deltatz;
 
     int face = FACE_TOP;
     if ( di == 1 ) {

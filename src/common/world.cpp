@@ -22,7 +22,7 @@ bool hasError( ) {
     return false;
 }
 
-void World::init( const glm::vec3 &camera_pos, int width, int height, MapStorage &map_storage ) {
+void World::init( const glm::dvec3 &camera_pos, int width, int height, MapStorage &map_storage ) {
     // These are from CubeFace
     this->vbl_block.push_float( 3 );        // Coords
     this->vbl_block.push_float( 2 );        // Texture coords
@@ -129,7 +129,7 @@ void World::change_size( int width, int height ) {
     }
 }
 
-void World::render( Multiplayer &multiplayer, const glm::vec3 &camera_pos, const int limit_render, const glm::mat4 &rotation ) {
+void World::render( Multiplayer &multiplayer, const glm::dvec3 &camera_pos, const int limit_render, const glm::mat4 &rotation ) {
     this->chunkLoader.render_chunks( multiplayer, camera_pos, limit_render );
 }
 
@@ -144,12 +144,13 @@ void World::set_selected_block( const glm::ivec3 &selected, const bool shouldDra
 #define WATER_THRESHOLD_P ( 0.02 )
 #define WATER_THRESHOLD_N ( -0.01 )
 void World::draw( const Texture &blocksTexture, const glm::mat4 &mvp, const glm::mat4 &mvp_reflect, const glm::mat4 &mvp_sky, const glm::mat4 &mvp_sky_reflect, const int debug, const int draw_mouse_selection, const float y_height,
-                  const bool headInWater, WorldDrawQuality worldDrawQuality, const glm::vec3 &camera_pos, const glm::ivec3 &renderOrigin ) {
+                  const bool headInWater, WorldDrawQuality worldDrawQuality, const glm::dvec3 &camera_pos, const glm::ivec3 &renderOrigin ) {
 
     const glm::vec3 renderOriginF = glm::vec3( renderOrigin );
     // Camera and block positions are rebased by u_Origin in the vertex shaders,
     // so u_CameraPos must also be relative to the origin for fog distance.
-    const glm::vec3 camera_pos_rebased = camera_pos - renderOriginF;
+    // Subtract in double so the rebased position keeps full precision.
+    const glm::vec3 camera_pos_rebased = glm::vec3( camera_pos - glm::dvec3( renderOrigin ) );
 
     const bool useFrameBuffer = SUPPORTS_FRAME_BUFFER && ( worldDrawQuality >= WorldDrawQuality::MEDIUM );
     const bool usingReflections = useFrameBuffer && ( worldDrawQuality >= WorldDrawQuality::HIGH );

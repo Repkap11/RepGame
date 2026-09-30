@@ -214,7 +214,7 @@ void RepGame::process_mouse_events( ) {
     globalGameState.input.mouse.currentPosition.wheel_counts = 0;
 }
 
-void RepGame::build_camera_view( float angle_H, float angle_V, const glm::vec3 &pos, glm::vec3 &look, glm::mat4 &rotation, glm::mat4 &view_look, glm::mat4 &view_trans ) const {
+void RepGame::build_camera_view( float angle_H, float angle_V, const glm::dvec3 &pos, glm::vec3 &look, glm::mat4 &rotation, glm::mat4 &view_look, glm::mat4 &view_trans ) const {
     look = glm::normalize( glm::vec3(        //
         sin( ( angle_H ) * ( M_PI / 180 ) ), //
         -tan( angle_V * ( M_PI / 180 ) ),    //
@@ -228,7 +228,7 @@ void RepGame::build_camera_view( float angle_H, float angle_V, const glm::vec3 &
                              look,                         // Look at look vector
                              glm::vec3( 0.0f, 1.0f, 0.0f )  // Head is up (set to 0,-1,0 to look upside-down)
     );
-    view_trans = glm::translate( glm::mat4( 1.0f ), -1.0f * pos );
+    view_trans = glm::translate( glm::mat4( 1.0f ), glm::vec3( -pos ) );
 }
 
 void RepGame::process_camera_angle( ) {
@@ -295,7 +295,7 @@ void RepGame::process_movement( ) {
     // selected movement speed so acceleration can never push us past it.
     const float target_vx = movement_speed * globalGameState.input.movement.sizeH * globalGameState.camera.movement.x;
     const float target_vz = movement_speed * globalGameState.input.movement.sizeH * globalGameState.camera.movement.z;
-    const glm::vec2 target_vel = glm::vec2( target_vx, target_vz );
+    const glm::dvec2 target_vel = glm::dvec2( target_vx, target_vz );
 
     // Pick the rate at which horizontal_vel approaches target_vel. When input
     // is held we accelerate; when it is released we apply (usually higher)
@@ -313,15 +313,15 @@ void RepGame::process_movement( ) {
 
     // Accelerate horizontal_vel toward target_vel, clamping the per-tick
     // velocity change to `rate` so the approach is smooth.
-    glm::vec2 dvel = target_vel - globalGameState.camera.horizontal_vel;
-    float dvel_len = glm::length( dvel );
+    glm::dvec2 dvel = target_vel - globalGameState.camera.horizontal_vel;
+    double dvel_len = glm::length( dvel );
     if ( dvel_len <= rate || rate <= 0.0f ) {
         globalGameState.camera.horizontal_vel = target_vel;
     } else {
         globalGameState.camera.horizontal_vel += dvel * ( rate / dvel_len );
     }
 
-    glm::vec3 movement_vector = glm::vec3( );
+    glm::dvec3 movement_vector = glm::dvec3( );
     movement_vector.x = globalGameState.camera.horizontal_vel.x;
     movement_vector.y = globalGameState.camera.y_speed + accel;
     // Terminal velocity only applies to gravity-driven falling, not to flying
@@ -505,7 +505,7 @@ void RepGame::tick( ) {
     if ( RepGame::should_lock_pointer( ) ) {
         RepGame::process_mouse_events( );
         int whichFace = 0;
-        glm::vec3 pos_with_reach = globalGameState.camera.pos + ( globalGameState.camera.look * static_cast<float>( REACH_DISTANCE ) );
+        glm::dvec3 pos_with_reach = globalGameState.camera.pos + ( glm::dvec3( globalGameState.camera.look ) * static_cast<double>( REACH_DISTANCE ) );
         globalGameState.block_selection.selectionInBounds = RayTraversal::find_block_from_to( globalGameState.world, nullptr, globalGameState.camera.pos, pos_with_reach, globalGameState.block_selection.pos_destroy, &whichFace, 0, 1, 0 );
 
         globalGameState.block_selection.face = whichFace;
@@ -549,7 +549,7 @@ void RepGame::tick( ) {
             int sprint = 0;
             if ( sscanf( tp, "%f,%f,%f,%f,%d,%f", &tx, &ty, &tz, &ta, &sprint, &spin ) >= 4 ) {
                 if ( globalGameState.tick_number == 1 ) {
-                    globalGameState.camera.pos = glm::vec3( tx, ty, tz );
+                    globalGameState.camera.pos = glm::dvec3( tx, ty, tz );
                     globalGameState.camera.angle_V = 0.0f;
                     globalGameState.camera.y_speed = 0.0f;
                     globalGameState.input.player_sprinting = sprint != 0;
@@ -607,7 +607,7 @@ void RepGame::initializeGameState( const char *world_name ) {
     globalGameState.camera.pos.y = ceil( MapGen::calculateTerrainHeight( 0, 0 ) ) + PLAYER_EYE_HEIGHT + 0.5f;
     globalGameState.camera.pos.z = 0.5f;
     globalGameState.camera.y_speed = 0.0f;
-    globalGameState.camera.horizontal_vel = glm::vec2( 0.0f, 0.0f );
+    globalGameState.camera.horizontal_vel = glm::dvec2( 0.0, 0.0 );
     globalGameState.input.worldDrawQuality = WorldDrawQuality::MEDIUM;
     globalGameState.main_inventory.inventory_renderer.options.active_height_percent = 0.75f;
     globalGameState.main_inventory.inventory_renderer.options.max_height_percent = 0.75f;
@@ -780,7 +780,7 @@ void RepGame::draw( float alpha ) {
     } else if ( alpha > 1.0f ) {
         alpha = 1.0f;
     }
-    const glm::vec3 render_pos = glm::mix( globalGameState.camera.prev_pos, globalGameState.camera.pos, alpha );
+    const glm::dvec3 render_pos = glm::mix( globalGameState.camera.prev_pos, globalGameState.camera.pos, static_cast<double>( alpha ) );
     const float render_angle_V = glm::mix( globalGameState.camera.prev_angle_V, globalGameState.camera.angle_V, alpha );
     // angle_H wraps around 360, so interpolate along the shortest angular path.
     float angle_diff = globalGameState.camera.angle_H - globalGameState.camera.prev_angle_H;
@@ -810,9 +810,11 @@ void RepGame::draw( float alpha ) {
     // shader is exact in float32 (both < 2^24). The view translation also
     // becomes small, eliminating the large-float cancellation that caused
     // Z-fighting between the selection outline and terrain at distance.
-    const glm::ivec3 renderOrigin = glm::ivec3( glm::floor( render_pos / CHUNK_SIZE_F ) ) * CHUNK_SIZE_I;
+    const glm::ivec3 renderOrigin = glm::ivec3( glm::floor( render_pos / glm::dvec3( CHUNK_SIZE_F ) ) ) * CHUNK_SIZE_I;
     const glm::vec3 renderOriginF = glm::vec3( renderOrigin );
-    render_view_trans = glm::translate( glm::mat4( 1.0f ), -1.0f * ( render_pos - renderOriginF ) );
+    // Subtract the integer origin in double so the small rebased offset keeps
+    // full precision, then cast to float for the view matrix.
+    render_view_trans = glm::translate( glm::mat4( 1.0f ), glm::vec3( -( render_pos - glm::dvec3( renderOrigin ) ) ) );
 
     const glm::mat4 mvp_sky = globalGameState.screen.proj * render_view_look;
     // glm::mat4 mvp_sky_reflect = globalGameState.screen.proj * globalGameState.camera.view_look;
@@ -830,7 +832,7 @@ void RepGame::draw( float alpha ) {
 
     // glm::mat4 flipped_trans = rotation * globalGameState.camera.view_trans;
     // TODO globalGameState.camera.y causes a strange jump, perhaps the vars are updated in the wrong order.
-    const float height_above_water = render_pos.y + ( 1.0f - WATER_HEIGHT );
+    const float height_above_water = static_cast<float>( render_pos.y ) + ( 1.0f - WATER_HEIGHT );
     const float offset = 2.0f * height_above_water;
     const glm::mat4 flipped_trans = glm::translate( render_view_trans, glm::vec3( 0.0, offset, 0.0 ) );
     // glm::mat4 flipped_trans = globalGameState.camera.view_trans;
@@ -840,7 +842,7 @@ void RepGame::draw( float alpha ) {
     const glm::mat4 mvp_reflect = globalGameState.screen.proj * flipped_look * flipped_trans;
 
     globalGameState.multiplayer.process_events( globalGameState.world );
-    globalGameState.multiplayer.update_players_position( render_pos, render_rotation );
+    globalGameState.multiplayer.update_players_position( glm::vec3( render_pos ), render_rotation );
 
 #if defined( REPGAME_WASM )
     // With pthreads enabled, terrain generation runs on background workers and
@@ -872,7 +874,7 @@ void RepGame::draw( float alpha ) {
     // glm::mat4 rotation = glm::rotate( glm::mat4( 1.0 ), glm::radians( 90.0f ), glm::vec3( 1, 0, 1 ) );
     // glm::mat4 mvp_reflect = mvp * rotation;
     // mvp_mirror = glm::translate( mvp_mirror, glm::vec3( 0, -10, 0 ) );
-    glm::ivec3 round_block = glm::round( render_pos - 0.5f );
+    glm::ivec3 round_block = glm::ivec3( glm::round( render_pos - 0.5 ) );
     BlockState blockInHead = globalGameState.world.get_loaded_block( round_block );
     bool headInWater = blockInHead.id == WATER;
 
@@ -905,7 +907,7 @@ void RepGame::draw( float alpha ) {
             globalGameState.ui_overlay.draw_held_inventory_item( globalGameState.held_inventory_slot, globalGameState.is_holding_inventory_slot, globalGameState.input.mouse.absPosition.x, globalGameState.input.mouse.absPosition.y, block_size, block_offset, cell_size, cell_offset, globalGameState.world.renderer, globalGameState.blocksTexture, globalGameState.font_renderer, globalGameState.screen.ortho_center );
         }
         ImGuiDebugVars &debugVars = imgui_overlay_get_imgui_debug_vars( );
-        debugVars.player_pos = globalGameState.camera.pos;
+        debugVars.player_pos = glm::vec3( globalGameState.camera.pos );
         imgui_overlay_draw( &globalGameState.imgui_overlay, globalGameState.input );
         profiling.us_ui_draw = now_us( ) - t_ui_start;
     }

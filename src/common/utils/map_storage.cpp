@@ -172,6 +172,24 @@ int MapStorage::load_blocks( const glm::ivec3 &chunk_offset, BlockState *blocks,
     return 1;
 }
 
+// Layout written by versions before world position switched float -> double.
+// Old save files are still accepted and their fields widened on load.
+struct __attribute__( ( packed ) ) PlayerDataLegacy {
+    int reserved;
+    float world_x;
+    float world_y;
+    float world_z;
+    float angle_H;
+    float angle_V;
+    bool flying;
+    bool no_clip;
+    int worldDrawQuality;
+    InventorySlot hotbar_inventory[ HOTBAR_WIDTH * HOTBAR_HEIGHT ];
+    int selected_hotbar_slot;
+    GameMode game_mode;
+    InventorySlot survival_inventory[ SURVIVAL_INVENTORY_WIDTH * SURVIVAL_INVENTORY_HEIGHT ];
+};
+
 int MapStorage::read_player_data( PlayerData &player_data ) {
     char file_name[ CHUNK_NAME_MAX_LENGTH ];
     snprintf( file_name, CHUNK_NAME_MAX_LENGTH, FILE_ROOT_PLAYER_DATA, this->map_name );
@@ -181,16 +199,32 @@ int MapStorage::read_player_data( PlayerData &player_data ) {
         return 0;
     }
     memset( &player_data, 0, sizeof( PlayerData ) );
-    int persist_data_length = fread( &player_data, 1, sizeof( PlayerData ), read_ptr );
-    int ret;
-    if ( persist_data_length != sizeof( PlayerData ) ) {
-        pr_debug( "Warning, wrong size player data. Read:%d expected:%d", persist_data_length, ( int )sizeof( PlayerData ) );
-        ret = 0;
-    } else {
-        ret = 1;
-    }
+    unsigned char buffer[ sizeof( PlayerData ) ];
+    size_t persist_data_length = fread( buffer, 1, sizeof( buffer ), read_ptr );
     fclose( read_ptr );
-    return ret;
+    if ( persist_data_length == sizeof( PlayerData ) ) {
+        memcpy( &player_data, buffer, sizeof( PlayerData ) );
+        return 1;
+    }
+    if ( persist_data_length == sizeof( PlayerDataLegacy ) ) {
+        PlayerDataLegacy legacy;
+        memcpy( &legacy, buffer, sizeof( PlayerDataLegacy ) );
+        player_data.world_x = legacy.world_x;
+        player_data.world_y = legacy.world_y;
+        player_data.world_z = legacy.world_z;
+        player_data.angle_H = legacy.angle_H;
+        player_data.angle_V = legacy.angle_V;
+        player_data.flying = legacy.flying;
+        player_data.no_clip = legacy.no_clip;
+        player_data.worldDrawQuality = legacy.worldDrawQuality;
+        memcpy( player_data.hotbar_inventory, legacy.hotbar_inventory, sizeof( legacy.hotbar_inventory ) );
+        player_data.selected_hotbar_slot = legacy.selected_hotbar_slot;
+        player_data.game_mode = legacy.game_mode;
+        memcpy( player_data.survival_inventory, legacy.survival_inventory, sizeof( legacy.survival_inventory ) );
+        return 1;
+    }
+    pr_debug( "Warning, wrong size player data. Read:%d expected:%d or %d", ( int )persist_data_length, ( int )sizeof( PlayerData ), ( int )sizeof( PlayerDataLegacy ) );
+    return 0;
 }
 
 void MapStorage::write_player_data( const PlayerData &player_data ) {

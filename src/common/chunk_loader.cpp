@@ -50,7 +50,7 @@ int ChunkLoader::reload_if_out_of_bounds( Chunk &chunk, const glm::ivec3 &chunk_
     return changed;
 }
 
-void ChunkLoader::init( const glm::vec3 &camera_pos, const VertexBufferLayout &vbl_block, const VertexBufferLayout &vbl_coords, MapStorage &map_storage ) {
+void ChunkLoader::init( const glm::dvec3 &camera_pos, const VertexBufferLayout &vbl_block, const VertexBufferLayout &vbl_coords, MapStorage &map_storage ) {
     if ( this->terrain_loading_thread.start( map_storage ) ) {
         pr_debug( "Terrain loading thread failed to start." );
     }
@@ -80,7 +80,7 @@ void ChunkLoader::init( const glm::vec3 &camera_pos, const VertexBufferLayout &v
 
     showErrors( );
 
-    glm::vec3 chunk_size = glm::vec3( CHUNK_SIZE_X, CHUNK_SIZE_Y, CHUNK_SIZE_Z );
+    glm::dvec3 chunk_size = glm::dvec3( CHUNK_SIZE_X, CHUNK_SIZE_Y, CHUNK_SIZE_Z );
     glm::ivec3 camera_chuck = glm::floor( camera_pos / chunk_size );
 
     int nextChunk = 0;
@@ -163,9 +163,9 @@ inline int ChunkLoader::process_chunk_position( Chunk &chunk, const glm::ivec3 &
     return 0;
 }
 
-void ChunkLoader::render_chunks( Multiplayer &multiplayer, const glm::vec3 &camera_pos, int limit_render ) {
+void ChunkLoader::render_chunks( Multiplayer &multiplayer, const glm::dvec3 &camera_pos, int limit_render ) {
     this->num_remeshed_this_frame = 0;
-    glm::vec3 chunk_size = glm::vec3( CHUNK_SIZE_X, CHUNK_SIZE_Y, CHUNK_SIZE_Z );
+    glm::dvec3 chunk_size = glm::dvec3( CHUNK_SIZE_X, CHUNK_SIZE_Y, CHUNK_SIZE_Z );
 
     glm::ivec3 chunk_pos = glm::floor( camera_pos / chunk_size );
     glm::ivec3 &loaded_pos = this->chunk_center;

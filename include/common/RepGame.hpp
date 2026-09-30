@@ -51,17 +51,20 @@ struct RepGameState {
         glm::vec3 look;
         glm::mat4 rotation;
         glm::vec3 movement;
-        glm::vec3 pos;
-        float y_speed;
+        // World-space position/velocity is double precision so movement and
+        // collision stay correct at large coordinates (float32 would quantize
+        // sub-block motion beyond ~2^24, and even walking speed at ~4M).
+        glm::dvec3 pos;
+        double y_speed;
         // Horizontal (x/z) velocity for momentum-based movement. Y is owned by
         // y_speed + gravity; this vector is only x and z.
-        glm::vec2 horizontal_vel;
+        glm::dvec2 horizontal_vel;
         glm::mat4 view_look;
         glm::mat4 view_trans;
         int standing_on_solid;
         // Snapshot of the camera transform at the start of the most recent tick,
         // used to interpolate the rendered camera between the previous and current tick.
-        glm::vec3 prev_pos;
+        glm::dvec3 prev_pos;
         float prev_angle_H;
         float prev_angle_V;
     } camera;
@@ -98,9 +101,9 @@ struct RepGameState {
 
 struct __attribute__( ( packed ) ) PlayerData {
     int reserved;
-    float world_x;
-    float world_y;
-    float world_z;
+    double world_x;
+    double world_y;
+    double world_z;
     float angle_H;
     float angle_V;
     bool flying;
@@ -126,7 +129,7 @@ class RepGame {
     void process_camera_angle( );
     // Builds the camera's look vector, rotation matrix, and view matrices from the
     // given angles and position. Shared by the simulation tick and the interpolated render path.
-    void build_camera_view( float angle_H, float angle_V, const glm::vec3 &pos, glm::vec3 &look, glm::mat4 &rotation, glm::mat4 &view_look, glm::mat4 &view_trans ) const;
+    void build_camera_view( float angle_H, float angle_V, const glm::dvec3 &pos, glm::vec3 &look, glm::mat4 &rotation, glm::mat4 &view_look, glm::mat4 &view_trans ) const;
     void process_movement( );
     void process_block_updates( );
     void process_inventory_events( );
