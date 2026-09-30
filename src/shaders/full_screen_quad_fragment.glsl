@@ -18,6 +18,7 @@ uniform usampler2DMS u_Stencil;
 uniform int u_TextureSamples;
 uniform int u_IgnoreStencil;
 uniform int u_Underwater;
+uniform vec3 u_WaterFogColor;
 
 // Water composite (X_HIGH) uniforms.
 uniform sampler2DMS u_ReflectionTex;
@@ -256,7 +257,7 @@ void main() {
         vec4 wp = u_InvMVP * vec4(TexCoords * 2.0 - 1.0, surfDepth * 2.0 - 1.0, 1.0);
         vec3 wpos = wp.xyz / wp.w;
         float dist = length(wpos - u_CameraPos);
-        multiCoords += ivec2(ripplePhaseOffset(wpos.xz + u_OriginXZ, 5.0 / (1.0 + dist * 0.12)));
+        multiCoords += ivec2(ripplePhaseOffset(wpos.xz + u_OriginXZ, 2.0 / (1.0 + dist * 0.12)));
     }
 
     if(u_Blur != 0) {
@@ -272,7 +273,9 @@ void main() {
                 vec4 textureColor = textureSample(pixelCoords);
                 bool valid = (u_IgnoreStencil != 0 || stencilCenter == stencil) && textureColor.a > 0.0;
                 if(valid) {
-                    float weight = (offset.x == 0 && offset.y == 0) ? 1.0 : 1.0 / (offset.x * offset.x + offset.y * offset.y);
+                    // Center-dominant weights: enough to smooth edges without
+                    // smearing the water/terrain texture.
+                    float weight = (offset.x == 0 && offset.y == 0) ? 1.0 : 0.25 / (offset.x * offset.x + offset.y * offset.y);
                     // float weight = 1.0f;
                     numValid += weight;
                     finalColor += weight * textureColor;
@@ -312,7 +315,14 @@ void main() {
         // render boundary where the horizon fog color (used in the chunk
         // shader) doesn't match the actual sky at that elevation.
         float colorBlend = clamp(pow(fogFactor, 0.5), 0.0, 1.0);
-        vec3 result = mix(finalColor.rgb, skyColor, colorBlend);
+        // Underwater the blend target is the water murk (the same depth-graded
+        // color the in-shader phase blends toward), not the sky attachment.
+        vec3 fogTarget = (u_Underwater != 0) ? u_WaterFogColor : skyColor;
+        vec3 result = mix(finalColor.rgb, fogTarget, colorBlend);
+        if(u_Underwater != 0) {
+            // The wash still applies so the whole view keeps the blue cast.
+            result = mix(result, vec3(0.04f, 0.16f, 0.55f), 0.45f);
+        }
         // Main terrain compositing (u_DiscardZeroAlpha==0) outputs alpha=1.0
         // since the FBO already has the complete rendered image. Reflection
         // compositing (u_DiscardZeroAlpha==1) is semi-transparent so the
@@ -344,7 +354,7 @@ void main() {
             // surface (it's invisible from below: backface-culled) — so the
             // whole view reads as underwater. Only set when fully submerged,
             // so the above-water half of a straddled view stays clean.
-            finalColor.rgb = mix(finalColor.rgb, vec3(0.06f, 0.22f, 0.65f), 0.45f);
+            finalColor.rgb = mix(finalColor.rgb, vec3(0.04f, 0.16f, 0.55f), 0.45f);
         }
         color = vec4(finalColor.rgb, 1.0);
     }

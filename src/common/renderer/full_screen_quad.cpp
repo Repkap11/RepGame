@@ -54,7 +54,8 @@ void FullScreenQuad::draw_texture( const Renderer &renderer, const Texture &text
     this->render_link_fsq.draw( renderer, this->shader );
 }
 
-void FullScreenQuad::draw_texture_fog( const Renderer &renderer, const Texture &texture, const Texture &depthStencilTexture, const Texture &fogTexture, const Texture &skyColorTexture, float extraAlpha, bool blur, bool ignoreStencil, int discardZeroAlpha, float time_s, bool ripple ) {
+void FullScreenQuad::draw_texture_fog( const Renderer &renderer, const Texture &texture, const Texture &depthStencilTexture, const Texture &fogTexture, const Texture &skyColorTexture, float extraAlpha, bool blur, bool ignoreStencil, int discardZeroAlpha, float time_s, bool ripple,
+                                       bool underwater, const glm::vec3 &underwater_fog_color ) {
     this->shader.set_uniform1i_texture( "u_Texture", texture );
     this->shader.set_uniform1i_texture( "u_Stencil", depthStencilTexture );
     this->shader.set_uniform1i_texture( "u_FogTexture", fogTexture );
@@ -67,6 +68,8 @@ void FullScreenQuad::draw_texture_fog( const Renderer &renderer, const Texture &
     this->shader.set_uniform1i( "u_DiscardZeroAlpha", discardZeroAlpha );
     this->shader.set_uniform1i( "u_WaterPass", 0 );
     this->shader.set_uniform1i( "u_Ripple", ripple );
+    this->shader.set_uniform1i( "u_Underwater", underwater ? 1 : 0 );
+    this->shader.set_uniform3f( "u_WaterFogColor", underwater_fog_color.r, underwater_fog_color.g, underwater_fog_color.b );
     this->shader.set_uniform1f( "u_Time", time_s );
     this->render_link_fsq.draw( renderer, this->shader );
 }

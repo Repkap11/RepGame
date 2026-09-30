@@ -201,14 +201,16 @@ void main() {
     // view direction, so it matches the actual sky color behind the terrain.
 #if !defined(REPGAME_LOW_GRAPHICS)
     float dist = distance(v_world_coords, u_CameraPos);
-    // Underwater murk: while the camera is in water, fragments below the
-    // surface plane fog over a much shorter range. Same per-fragment
-    // predicate as the water tint, so a half-submerged view still splits
-    // at the waterline.
+    // Underwater murk: the fog range is determined by the medium the
+    // *camera* is in — with the head under water, even blocks above the
+    // surface are viewed through water and fog over the short range.
+    bool cameraUnderWater = u_TintUnderWater != TINT_UNDER_WATER_OBJECT_NEVER;
+    // Per-fragment "below the surface" still gates the water tint and the
+    // alpha-fade skip, so a straddled view keeps its waterline split.
     bool belowWater = u_TintUnderWater == TINT_UNDER_WATER_OBJECT_ALWAYS ||
                       (u_TintUnderWater == TINT_UNDER_WATER_OBJECT_UNDER_Y_LEVEL && v_world_coords.y < (-0.125f - u_Origin.y - eps));
-    float fogNear = belowWater ? u_WaterFogNear : u_FogNear;
-    float fogFar = belowWater ? u_WaterFogFar : u_FogFar;
+    float fogNear = cameraUnderWater ? u_WaterFogNear : u_FogNear;
+    float fogFar = cameraUnderWater ? u_WaterFogFar : u_FogFar;
     float fogLinear = clamp((dist - fogNear) / (fogFar - fogNear), 0.0f, 1.0f);
     // Color blend: reaches 100% fog color by 50% of the fog range.
     float colorFog = clamp(fogLinear / 0.5f, 0.0f, 1.0f);
@@ -228,20 +230,23 @@ void main() {
         // using alphaFog, so distant terrain seamlessly merges with the skybox.
         finalColor.rgb = mix(finalColor.rgb, dynamicFogColor, colorFog);
         if(u_OpaqueFog == 1) {
-            // Store alphaFog in the fog texture for the post-process sky blend.
+            // Store alphaFog in the fog texture for the post-process sky
+            // blend (above water this is the sky; underwater it's the
+            // water-range fog so the composite fades toward the sky
+            // attachment's "seen through water" content).
             fogFactor = vec4(0.0f, 0.0f, 0.0f, alphaFog);
-            if(u_shouldDiscardAlpha == 1.0f) {
+            // Underwater fragments skip the alpha fade: it was designed to
+            // dissolve terrain into the sky, but underwater the murk comes
+            // from the color blend and reduced alpha reveals untinted sky /
+            // breaks alpha>0 validity checks (visible block edges).
+            if(u_shouldDiscardAlpha == 1.0f || belowWater) {
                 finalColor.a = 1.0f;
             } else {
                 finalColor.a *= (1.0f - alphaFog);
             }
         } else {
-            // LOW quality / underwater: per-fragment alpha reduction, no
-            // post-process. Underwater fragments skip the alpha fade: it was
-            // designed to dissolve terrain into the sky, but underwater the
-            // murk comes from the color blend and the reduced alpha both
-            // reveals the untinted sky behind and breaks the composite's
-            // alpha>0 validity checks (visible block edges).
+            // LOW quality / no framebuffer: per-fragment alpha reduction, no
+            // post-process.
             if(!belowWater) {
                 finalColor.a *= (1.0f - alphaFog);
             }
@@ -260,7 +265,7 @@ void main() {
     // Underwater on tiers without the framebuffer composite: apply the blue
     // screen wash here instead (the FSQ composite handles it otherwise).
     if(u_Underwater != 0) {
-        finalColor.rgb = mix(finalColor.rgb, vec3(0.06f, 0.22f, 0.65f), 0.45f);
+        finalColor.rgb = mix(finalColor.rgb, vec3(0.04f, 0.16f, 0.55f), 0.45f);
     }
     color = finalColor;
     reflection = finalReflection;

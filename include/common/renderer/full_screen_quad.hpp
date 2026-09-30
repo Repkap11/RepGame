@@ -21,7 +21,8 @@ class FullScreenQuad {
     void init( );
     void draw_texture( const Renderer &renderer, const Texture &texture, const Texture &depthStencilTexture, float extraAlpha, bool blur, bool ignoreStencil, int discardZeroAlpha = 0, bool underwater = false,
                        float time_s = 0.0f, bool ripple = false );
-    void draw_texture_fog( const Renderer &renderer, const Texture &texture, const Texture &depthStencilTexture, const Texture &fogTexture, const Texture &skyColorTexture, float extraAlpha, bool blur, bool ignoreStencil, int discardZeroAlpha = 0, float time_s = 0.0f, bool ripple = false );
+    void draw_texture_fog( const Renderer &renderer, const Texture &texture, const Texture &depthStencilTexture, const Texture &fogTexture, const Texture &skyColorTexture, float extraAlpha, bool blur, bool ignoreStencil, int discardZeroAlpha = 0, float time_s = 0.0f, bool ripple = false,
+                           bool underwater = false, const glm::vec3 &underwater_fog_color = glm::vec3( 0.0f ) );
     // Binds the per-frame water/SSR state (depth snapshot, inv_mvp, camera,
     // render origin). Called once before the compositing block so both the
     // refraction wobble in draw_texture_fog and draw_water can unproject

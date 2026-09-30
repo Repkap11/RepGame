@@ -67,11 +67,13 @@ void main( ) {
     // Fog color is sampled from the sky texture at the horizon.
     if(u_IsSky == 0) {
         float dist = distance(v_world_coords.xyz, u_CameraPos);
-        // Underwater murk: same per-fragment gate as the chunk shader.
+        // Underwater murk: same gates as the chunk shader — the camera's
+        // medium picks the fog range, the fragment's position picks the tint.
+        bool cameraUnderWater = u_TintUnderWater != TINT_UNDER_WATER_OBJECT_NEVER;
         bool belowWater = u_TintUnderWater == TINT_UNDER_WATER_OBJECT_ALWAYS ||
                           (u_TintUnderWater == TINT_UNDER_WATER_OBJECT_UNDER_Y_LEVEL && v_world_coords.y < (-0.125f - u_Origin.y - eps));
-        float fogNear = belowWater ? u_WaterFogNear : u_FogNear;
-        float fogFar = belowWater ? u_WaterFogFar : u_FogFar;
+        float fogNear = cameraUnderWater ? u_WaterFogNear : u_FogNear;
+        float fogFar = cameraUnderWater ? u_WaterFogFar : u_FogFar;
         float fogLinear = clamp((dist - fogNear) / (fogFar - fogNear), 0.0, 1.0);
         float colorFog = clamp(fogLinear / 0.5, 0.0, 1.0);
         colorFog = colorFog * colorFog * (3.0 - 2.0 * colorFog);
@@ -117,7 +119,7 @@ void main( ) {
     // Underwater on tiers without the framebuffer composite: apply the blue
     // screen wash here — covers the sky too (it draws through this shader).
     if(u_Underwater != 0) {
-        finalColor.rgb = mix(finalColor.rgb, vec3(0.06f, 0.22f, 0.65f), 0.45f);
+        finalColor.rgb = mix(finalColor.rgb, vec3(0.04f, 0.16f, 0.55f), 0.45f);
     }
     color = finalColor;
     reflection = finalReflection;
