@@ -4,6 +4,7 @@
 #include <string>
 #include <unistd.h>
 #include <chrono>
+#include <stdlib.h>
 
 #include "common/RepGame.hpp"
 #include "common/block_definitions.hpp"
@@ -342,6 +343,14 @@ void RepGame::process_movement( ) {
                                &globalGameState.camera.standing_on_solid );
     }
 
+    static const bool walktest_log = getenv( "REPGAME_WALKTEST" ) != nullptr;
+    if ( walktest_log ) {
+        fprintf( stderr, "WT %ld pos %.5f %.5f %.5f req %.5f %.5f applied %.5f %.5f %.5f yspeed %.5f standing %d angle %.2f\n", //
+                 globalGameState.tick_number, globalGameState.camera.pos.x, globalGameState.camera.pos.y, globalGameState.camera.pos.z, //
+                 globalGameState.camera.horizontal_vel.x, globalGameState.camera.horizontal_vel.y,                                     //
+                 movement_vector.x, movement_vector.y, movement_vector.z,                                                              //
+                 globalGameState.camera.y_speed, globalGameState.camera.standing_on_solid, globalGameState.camera.angle_H );
+    }
     globalGameState.camera.pos = globalGameState.camera.pos + movement_vector;
     // A grounded player has no vertical velocity: the applied Y displacement
     // is either the gravity substep clamped to ~0, or — after a step-up onto a
@@ -524,6 +533,35 @@ void RepGame::tick( ) {
     globalGameState.input.mouse.currentPosition.x = globalGameState.screen.width / 2.0f;
     globalGameState.input.mouse.currentPosition.y = globalGameState.screen.height / 2.0f;
 
+    static const bool walktest = getenv( "REPGAME_WALKTEST" ) != nullptr;
+    if ( walktest ) {
+        // REPGAME_WALKTEST_TICKS=n: exit after n ticks (timeout/SIGTERM gets
+        // swallowed by SDL, so cap the test length deterministically).
+        static const long walktest_ticks = getenv( "REPGAME_WALKTEST_TICKS" ) ? atol( getenv( "REPGAME_WALKTEST_TICKS" ) ) : 0;
+        if ( walktest_ticks && globalGameState.tick_number >= walktest_ticks ) {
+            exit( 0 );
+        }
+        // REPGAME_TELEPORT="x,y,z,angle,sprint,spin_deg_per_tick": teleport on
+        // the first tick, then hold forward each tick (angle optionally spins).
+        const char *tp = getenv( "REPGAME_TELEPORT" );
+        if ( tp ) {
+            float tx, ty, tz, ta, spin = 0.0f;
+            int sprint = 0;
+            if ( sscanf( tp, "%f,%f,%f,%f,%d,%f", &tx, &ty, &tz, &ta, &sprint, &spin ) >= 4 ) {
+                if ( globalGameState.tick_number == 1 ) {
+                    globalGameState.camera.pos = glm::vec3( tx, ty, tz );
+                    globalGameState.camera.angle_V = 0.0f;
+                    globalGameState.camera.y_speed = 0.0f;
+                    globalGameState.input.player_sprinting = sprint != 0;
+                }
+                globalGameState.camera.angle_H = ta + spin * globalGameState.tick_number;
+            }
+        }
+        globalGameState.input.movement.sizeH = 1.0f;
+        globalGameState.input.movement.angleH = 0.0f;
+        globalGameState.input.movement.jumpPressed = false;
+        globalGameState.input.movement.sneakPressed = false;
+    }
     // Refresh camera.movement (and the view matrices) from the current angle_H
     // before consuming it: process_movement builds the player's velocity from
     // camera.movement, so it must reflect this tick's angle_H rather than the

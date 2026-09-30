@@ -108,5 +108,6 @@
         "__memory": "cpp",
         "__string": "cpp"
     },
-    "git.ignoreLimitWarning": true
+    "git.ignoreLimitWarning": true,
+    "cmake.sourceDirectory": "/home/paul/Software/Rep/RepGame/entt_build"
 }

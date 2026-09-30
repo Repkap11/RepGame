@@ -265,18 +265,24 @@ void Collision::check_move( World &world, glm::vec3 &movement_vec, glm::vec3 &po
 
         // X with step-up. Only attempt step-up when the player is standing on
         // the ground this tick — otherwise jumping/falling next to a wall would
-        // launch the player up and over the wall.
+        // launch the player up and over the wall. The trigger is the `hit` flag
+        // from resolve_axis rather than a magnitude comparison: at large world
+        // coordinates float rounding makes |amin - before| land just under
+        // |step| even on an unobstructed move, which would fire step-up every
+        // tick and double the player's speed.
         glm::vec3 before = amin;
         resolve_axis( world, amin, amax, 0, step.x, hit, standing );
-        if ( standing && std::fabs( amin.x - before.x ) < std::fabs( step.x ) - 1e-5f ) {
-            try_step_up( world, amin, amax, 0, step.x );
+        if ( standing && hit ) {
+            // Step forward by only the unapplied remainder of this substep's
+            // move so the total displacement never exceeds what was requested.
+            try_step_up( world, amin, amax, 0, step.x - ( amin.x - before.x ) );
         }
 
         // Z with step-up.
         before = amin;
         resolve_axis( world, amin, amax, 2, step.z, hit, standing );
-        if ( standing && std::fabs( amin.z - before.z ) < std::fabs( step.z ) - 1e-5f ) {
-            try_step_up( world, amin, amax, 2, step.z );
+        if ( standing && hit ) {
+            try_step_up( world, amin, amax, 2, step.z - ( amin.z - before.z ) );
         }
     }
 
