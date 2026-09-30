@@ -112,6 +112,24 @@ static_assert( CHUNK_RADIUS_Z > 0, "CHUNK_RADIUS_Z too small" );
 #define JUMP_STRENGTH 0.07f
 #define GRAVITY_STRENGTH 0.002f
 
+// Swimming: active while the player's body (not just feet) is in a liquid.
+// Horizontal propulsion follows the 3D look vector, so looking up + forward
+// swims up; jump/sneak add vertical assist on top.
+#define MOVEMENT_SENSITIVITY_SWIMMING 0.016f
+#define MOVEMENT_SENSITIVITY_SWIMMING_SPRINTING 0.05f
+// Feet in water but body above the surface: slowed walk, normal jump.
+#define MOVEMENT_SENSITIVITY_WADING 0.022f
+#define MOVEMENT_SENSITIVITY_WADING_SPRINTING 0.06f
+#define SWIM_VERTICAL_SPEED 0.045f
+#define SWIM_SINK_SPEED 0.06f
+// Gravity is much weaker in water and vertical velocity decays each tick, so
+// idle players sink gently and fall momentum from above dies quickly.
+#define WATER_GRAVITY_STRENGTH 0.0004f
+#define WATER_VERTICAL_DRAG 0.9f
+#define SWIM_TERMINAL_VELOCITY 0.15f
+#define PLAYER_WATER_ACCEL 0.05f
+#define PLAYER_WATER_FRICTION 0.04f
+
 // Collision: max distance the player may move on a single axis per collision
 // substep. Must stay below the smallest player AABB half-dimension (PLAYER_WIDTH/2
 // = 0.3) so a single substep can never tunnel through a 1-block-thick wall.

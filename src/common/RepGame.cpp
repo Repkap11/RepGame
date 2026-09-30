@@ -251,14 +251,41 @@ void RepGame::process_camera_angle( ) {
 void RepGame::process_movement( ) {
     bool player_flying = globalGameState.input.player_flying;
     bool player_sprinting = globalGameState.input.player_sprinting;
-    bool needs_ground_to_jump = !player_flying;
-    float gravity = player_flying ? 0 : GRAVITY_STRENGTH;
+
+    // Swimming engages only when the body center is *below the surface plane*
+    // of a liquid block — water tops out at WATER_HEIGHT within its block, so
+    // in 1-deep water the center sits above the surface and the player wades
+    // (slowed walk, normal jump) instead of swimming. camera.pos is the eye;
+    // the body center is EYE_POSITION_OFFSET below it.
+    const glm::dvec3 body_center = globalGameState.camera.pos - glm::dvec3( 0.0, EYE_POSITION_OFFSET, 0.0 );
+    const glm::ivec3 body_block_pos = glm::ivec3( glm::round( body_center - glm::dvec3( 0.5 ) ) );
+    const BlockState body_block = globalGameState.world.get_loaded_block( body_block_pos );
+    const bool body_in_liquid = body_block.id < LAST_BLOCK_ID && block_definition_get_definition( body_block.id )->flows != 0;
+    // A water block is only partially full when it's the surface: if the block
+    // above is also liquid, the column fills it completely.
+    const BlockState above_block = globalGameState.world.get_loaded_block( body_block_pos + glm::ivec3( 0, 1, 0 ) );
+    const bool liquid_above = above_block.id < LAST_BLOCK_ID && block_definition_get_definition( above_block.id )->flows != 0;
+    const bool player_swimming = !player_flying && body_in_liquid && ( liquid_above || body_center.y < static_cast<double>( body_block_pos.y ) + WATER_HEIGHT );
+    // Wading: feet in a liquid but body above the surface (e.g. 1-deep water).
+    const glm::ivec3 feet_block_pos = glm::ivec3( glm::round( globalGameState.camera.pos - glm::dvec3( 0.0, PLAYER_EYE_HEIGHT - 0.05, 0.0 ) - glm::dvec3( 0.5 ) ) );
+    const BlockState feet_block = globalGameState.world.get_loaded_block( feet_block_pos );
+    const bool player_wading = !player_flying && !player_swimming && feet_block.id < LAST_BLOCK_ID && block_definition_get_definition( feet_block.id )->flows != 0;
+
+    float gravity = player_flying ? 0 : ( player_swimming ? WATER_GRAVITY_STRENGTH : GRAVITY_STRENGTH );
 
     float movement_speed;
     if ( player_flying && player_sprinting ) {
         movement_speed = MOVEMENT_SENSITIVITY_FLYING_SPRINTING;
     } else if ( player_flying && !player_sprinting ) {
         movement_speed = MOVEMENT_SENSITIVITY_FLYING;
+    } else if ( player_swimming && player_sprinting ) {
+        movement_speed = MOVEMENT_SENSITIVITY_SWIMMING_SPRINTING;
+    } else if ( player_swimming && !player_sprinting ) {
+        movement_speed = MOVEMENT_SENSITIVITY_SWIMMING;
+    } else if ( player_wading && player_sprinting ) {
+        movement_speed = MOVEMENT_SENSITIVITY_WADING_SPRINTING;
+    } else if ( player_wading ) {
+        movement_speed = MOVEMENT_SENSITIVITY_WADING;
     } else if ( !player_flying && player_sprinting ) {
         movement_speed = MOVEMENT_SENSITIVITY_SPRINTING;
     } else if ( !player_flying && !player_sprinting ) {
@@ -268,11 +295,14 @@ void RepGame::process_movement( ) {
         pr_debug( "Invalid sprint fly combo" );
     }
 
-    if ( needs_ground_to_jump ) {
-        if ( globalGameState.input.movement.jumpPressed && globalGameState.camera.standing_on_solid && globalGameState.camera.y_speed < 0.01f && globalGameState.camera.y_speed > -0.01f ) {
-            globalGameState.camera.y_speed = JUMP_STRENGTH;
-        }
-    } else {
+    // Decompose the polar stick input (sizeH magnitude, angleH direction
+    // relative to facing) into forward/strafe fractions. angleH convention:
+    // W=0, D=+90, S=180, A=-90, diagonals in between.
+    const float input_angle = globalGameState.input.movement.angleH * ( M_PI / 180.0f );
+    const float input_forward = globalGameState.input.movement.sizeH * cosf( input_angle );
+    const float input_strafe = globalGameState.input.movement.sizeH * sinf( input_angle );
+
+    if ( player_flying ) {
         const float fly_vspeed = player_sprinting ? FLY_SPRINT_VERTICAL_SPEED : FLY_VERTICAL_SPEED;
         if ( globalGameState.input.movement.sneakPressed && globalGameState.input.movement.jumpPressed ) {
             globalGameState.camera.y_speed = 0;
@@ -285,26 +315,66 @@ void RepGame::process_movement( ) {
                 globalGameState.camera.y_speed = 0;
             }
         }
+    } else if ( player_swimming ) {
+        // MC-style 3D steering: the forward input fraction propels along the
+        // look vector, so looking up + forward swims up, looking down dives,
+        // and backwards reverses it (looking up + back sinks). Strafe
+        // contributes no vertical motion. Jump/sneak add vertical assist;
+        // idle players drift toward a gentle sink via the drag below.
+        double swim_y_target = static_cast<double>( movement_speed ) * static_cast<double>( input_forward ) * globalGameState.camera.look.y;
+        if ( globalGameState.input.movement.jumpPressed ) {
+            swim_y_target += SWIM_VERTICAL_SPEED;
+        }
+        if ( globalGameState.input.movement.sneakPressed ) {
+            swim_y_target -= SWIM_SINK_SPEED;
+        }
+        if ( fabs( swim_y_target ) > 1e-4 ) {
+            const double dy = swim_y_target - globalGameState.camera.y_speed;
+            globalGameState.camera.y_speed += glm::clamp( dy, -static_cast<double>( PLAYER_WATER_ACCEL ), static_cast<double>( PLAYER_WATER_ACCEL ) );
+        } else {
+            globalGameState.camera.y_speed *= WATER_VERTICAL_DRAG;
+        }
+    } else {
+        if ( globalGameState.input.movement.jumpPressed && globalGameState.camera.standing_on_solid && globalGameState.camera.y_speed < 0.01f && globalGameState.camera.y_speed > -0.01f ) {
+            globalGameState.camera.y_speed = JUMP_STRENGTH;
+        }
     }
 
     float accel = -gravity;
 
-    // Build the target horizontal velocity from input. movement.x/z are the
-    // unit forward/right direction derived from the camera yaw; sizeH is the
-    // analog input magnitude (0..1 on keyboard). The target is clamped to the
-    // selected movement speed so acceleration can never push us past it.
-    const float target_vx = movement_speed * globalGameState.input.movement.sizeH * globalGameState.camera.movement.x;
-    const float target_vz = movement_speed * globalGameState.input.movement.sizeH * globalGameState.camera.movement.z;
-    const glm::dvec2 target_vel = glm::dvec2( target_vx, target_vz );
+    // Build the target horizontal velocity from input. Normally movement.x/z
+    // are the unit forward/right direction derived from the camera yaw; while
+    // swimming the look vector's x/z are used instead so pitch steers the
+    // horizontal component (looking straight up moves purely vertically).
+    // sizeH is the analog input magnitude (0..1 on keyboard). The target is
+    // clamped to the selected movement speed so acceleration can never push
+    // us past it.
+    glm::dvec2 target_vel;
+    if ( player_swimming ) {
+        // The forward fraction moves along look.x/z — pitch scales it, so
+        // looking straight up gives no horizontal motion. The strafe
+        // fraction moves along the yaw-right vector (the direction
+        // angleH=+90 produces on land) and stays horizontal.
+        const float yaw = globalGameState.camera.angle_H * ( M_PI / 180.0f );
+        const glm::dvec2 yaw_right = glm::dvec2( cosf( yaw ), sinf( yaw ) );
+        target_vel = static_cast<double>( movement_speed ) * ( static_cast<double>( input_forward ) * glm::dvec2( globalGameState.camera.look.x, globalGameState.camera.look.z ) + static_cast<double>( input_strafe ) * yaw_right );
+    } else {
+        const float target_vx = movement_speed * globalGameState.input.movement.sizeH * globalGameState.camera.movement.x;
+        const float target_vz = movement_speed * globalGameState.input.movement.sizeH * globalGameState.camera.movement.z;
+        target_vel = glm::dvec2( target_vx, target_vz );
+    }
 
     // Pick the rate at which horizontal_vel approaches target_vel. When input
     // is held we accelerate; when it is released we apply (usually higher)
     // friction to bring the player to rest. Flying uses a high rate so it
-    // stays snappy and effectively reaches target in a single tick.
+    // stays snappy and effectively reaches target in a single tick. Water
+    // uses a low rate for a damped, drifting feel.
     const bool has_input = globalGameState.input.movement.sizeH > 0.001f;
     float rate;
     if ( player_flying ) {
         rate = PLAYER_FLY_ACCEL;
+    } else if ( player_swimming ) {
+        rate = has_input ? PLAYER_WATER_ACCEL : PLAYER_WATER_FRICTION;
     } else if ( has_input ) {
         rate = globalGameState.camera.standing_on_solid ? PLAYER_GROUND_ACCEL : PLAYER_AIR_ACCEL;
     } else {
@@ -325,13 +395,15 @@ void RepGame::process_movement( ) {
     movement_vector.x = globalGameState.camera.horizontal_vel.x;
     movement_vector.y = globalGameState.camera.y_speed + accel;
     // Terminal velocity only applies to gravity-driven falling, not to flying
-    // (which sets y_speed directly from input).
+    // (which sets y_speed directly from input). Swimming has its own much
+    // lower cap.
     if ( !player_flying ) {
-        if ( movement_vector.y > TERMINAL_VELOCITY ) {
-            movement_vector.y = TERMINAL_VELOCITY;
+        const double terminal = player_swimming ? SWIM_TERMINAL_VELOCITY : TERMINAL_VELOCITY;
+        if ( movement_vector.y > terminal ) {
+            movement_vector.y = terminal;
         }
-        if ( movement_vector.y < -TERMINAL_VELOCITY ) {
-            movement_vector.y = -TERMINAL_VELOCITY;
+        if ( movement_vector.y < -terminal ) {
+            movement_vector.y = -terminal;
         }
     }
     movement_vector.z = globalGameState.camera.horizontal_vel.y;
