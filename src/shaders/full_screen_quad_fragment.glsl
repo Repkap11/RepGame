@@ -15,9 +15,22 @@ in vec2 TexCoords;
 
 uniform sampler2DMS u_Texture;
 uniform usampler2DMS u_Stencil;
-// uniform sampler2DMS u_Stencil;
 uniform int u_TextureSamples;
 uniform int u_IgnoreStencil;
+
+// Water composite (X_HIGH) uniforms.
+uniform sampler2DMS u_ReflectionTex;
+uniform sampler2DMS u_DepthTexture;
+uniform int u_WaterPass;
+uniform int u_Ripple;
+uniform float u_Time;
+uniform mat4 u_MVP;
+uniform mat4 u_InvMVP;
+uniform float u_OriginY;
+uniform vec3 u_SunDir;
+
+// Sea level water surface in absolute world Y: WATER_LEVEL(0) + WATER_HEIGHT - 1.
+const float SEA_SURFACE_Y = -0.125;
 
 vec4 textureMultisample(ivec2 coord) {
     vec4 colorMS = vec4(0.0);
@@ -70,9 +83,152 @@ float fogFactorMultisample(ivec2 coord) {
     return fogMS;
 }
 
+vec4 reflectionMultisample(ivec2 coord) {
+    vec4 reflMS = vec4(0.0);
+    for(int i = 0; i < u_TextureSamples; i++) {
+        reflMS += texelFetch(u_ReflectionTex, coord, i);
+    }
+    reflMS /= float(u_TextureSamples);
+    return reflMS;
+}
+
+float depthMultisample(ivec2 coord) {
+    float depthMS = 0.0;
+    for(int i = 0; i < u_TextureSamples; i++) {
+        depthMS += texelFetch(u_DepthTexture, coord, i).r;
+    }
+    depthMS /= float(u_TextureSamples);
+    return depthMS;
+}
+
+// Animated pixel-space ripple in screen space. scale is the peak offset in
+// pixels; two crossed sine frequencies keep it from looking like a slide.
+vec2 rippleOffset(ivec2 coord, float scale) {
+    float x = float(coord.x);
+    float y = float(coord.y);
+    return scale * vec2(sin(y * 0.041 + u_Time * 1.9) + sin((x + y) * 0.023 + u_Time * 1.3),
+                        sin(x * 0.037 + u_Time * 1.6) + sin((x - y) * 0.029 + u_Time * 1.1));
+}
+
+// Screen-space reflection for fluids whose surface is NOT at sea level: the
+// planar reflection texture is mirrored about the sea plane only, so elevated
+// ponds/streams/lava ray-march the already-rendered scene instead. Water
+// pixels (stencil != 0) are skipped so the ray sees past other fluid surfaces.
+vec3 ssrReflection(vec3 waterPos, vec3 rayDir) {
+    vec3 reflDir = normalize(rayDir * vec3(1.0, -1.0, 1.0));
+    vec2 tsize = vec2(textureSize(u_DepthTexture));
+    const int MAX_STEPS = 60;
+    const float STEP = 0.6;
+    vec3 pos = waterPos + reflDir * 0.2;
+    vec2 lastUV = TexCoords;
+    for(int i = 0; i < MAX_STEPS; i++) {
+        pos += reflDir * STEP;
+        vec4 clip = u_MVP * vec4(pos, 1.0);
+        if(clip.w <= 0.0) {
+            break;
+        }
+        vec3 nd = clip.xyz / clip.w;
+        vec2 uv = nd.xy * 0.5 + 0.5;
+        if(uv.x < 0.0 || uv.x > 1.0 || uv.y < 0.0 || uv.y > 1.0) {
+            break;
+        }
+        lastUV = uv;
+        ivec2 ic = ivec2(uv * tsize);
+        if(stecilSample(ic) != 0u) {
+            continue;
+        }
+        float sceneD = depthMultisample(ic);
+        float rayD = nd.z * 0.5 + 0.5;
+        if(rayD > sceneD + 0.0015) {
+            // Binary refine between the last free point and the hit point.
+            vec3 lo = pos - reflDir * STEP;
+            vec3 hi = pos;
+            for(int j = 0; j < 4; j++) {
+                vec3 mid = (lo + hi) * 0.5;
+                vec4 mc = u_MVP * vec4(mid, 1.0);
+                vec3 mn = mc.xyz / mc.w;
+                vec2 muv = mn.xy * 0.5 + 0.5;
+                ivec2 mic = ivec2(clamp(muv, vec2(0.0), vec2(1.0)) * tsize);
+                float md = depthMultisample(mic);
+                if(mn.z * 0.5 + 0.5 > md) {
+                    hi = mid;
+                } else {
+                    lo = mid;
+                }
+            }
+            vec4 fc = u_MVP * vec4(hi, 1.0);
+            vec2 fuv = (fc.xyz / fc.w).xy * 0.5 + 0.5;
+            ivec2 fic = ivec2(clamp(fuv, vec2(0.0), vec2(1.0)) * tsize);
+            return textureMultisample(fic).rgb;
+        }
+    }
+    // Miss: the reflected ray left the frame (or hit nothing within range) —
+    // use the rendered sky at the exit point, a good approximation of the sky
+    // in the reflected direction.
+    ivec2 sc = ivec2(clamp(lastUV, vec2(0.0), vec2(1.0)) * tsize);
+    return skyColorMultisample(sc);
+}
+
+// X_HIGH water composite: runs only on stencil==1 (fluid) pixels over the
+// already-composited scene. Adds a rippled, fresnel-weighted reflection and a
+// sun glint; output alpha blends it over the scene beneath.
+void waterMain(ivec2 multiCoords) {
+    vec2 ndc = TexCoords * 2.0 - 1.0;
+
+    // View ray in the rebased world frame (matches v_world_coords space).
+    vec4 w0 = u_InvMVP * vec4(ndc, -1.0, 1.0);
+    vec4 w1 = u_InvMVP * vec4(ndc, 1.0, 1.0);
+    vec3 rayDir = normalize(w1.xyz / w1.w - w0.xyz / w0.w);
+
+    // Fresnel against the horizontal surface; abs() covers underwater views too.
+    float fresnel = 0.02 + 0.98 * pow(1.0 - clamp(abs(rayDir.y), 0.0, 1.0), 5.0);
+
+    // The water pass writes depth, so the stored depth here is the fluid
+    // surface itself. Unproject it to recover the surface point + its height.
+    float surfDepth = depthMultisample(multiCoords);
+    vec4 wp = u_InvMVP * vec4(ndc, surfDepth * 2.0 - 1.0, 1.0);
+    vec3 waterPos = wp.xyz / wp.w;
+    float waterY = waterPos.y + u_OriginY;
+
+    ivec2 rip = ivec2(rippleOffset(multiCoords, 2.5));
+
+    vec3 reflColor;
+    float reflAlpha;
+    if(abs(waterY - SEA_SURFACE_Y) < 0.06) {
+        // Sea-level fluid: the mirrored-world pass is exact.
+        vec4 r = reflectionMultisample(multiCoords + rip);
+        reflColor = r.rgb;
+        reflAlpha = r.a;
+    } else {
+        reflColor = ssrReflection(waterPos, rayDir);
+        reflAlpha = 1.0;
+    }
+
+    // Fade the reflection out near the fog edge (same factor as the old path).
+    float fogF = fogFactorMultisample(multiCoords);
+    float weight = reflAlpha * fresnel * u_ExtraAlpha * (1.0 - fogF);
+
+    // Sun glint along the reflected view direction.
+    vec3 reflDir = normalize(rayDir * vec3(1.0, -1.0, 1.0));
+    float spec = pow(clamp(dot(reflDir, u_SunDir), 0.0, 1.0), 600.0) * (1.0 - fogF);
+
+    color = vec4(reflColor + vec3(spec), weight);
+}
+
 void main() {
     vec4 finalColor;
     ivec2 multiCoords = tex_to_multisaple(TexCoords);
+
+    if(u_WaterPass != 0) {
+        waterMain(multiCoords);
+        return;
+    }
+
+    // Refraction wobble for the water-region scene draw: the whole pixel
+    // (color + stencil + fog lookups) shifts coherently.
+    if(u_Ripple != 0) {
+        multiCoords += ivec2(rippleOffset(multiCoords, 2.0));
+    }
 
     if(u_Blur != 0) {
         uint stencilCenter = stecilSample(multiCoords);

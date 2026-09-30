@@ -35,6 +35,11 @@ uniform float u_FogNear;
 uniform float u_FogFar;
 uniform vec3 u_CameraPos;
 uniform vec3 u_SkyAvgColor;
+
+// X_HIGH fluid effects: set only during the dedicated water pass (which draws
+// both WATER and LAVA, RenderOrder_Water). u_Time is always 0 unless u_FluidAnim.
+uniform float u_Time;
+uniform int u_FluidAnim;
 #endif
 
 in vec2 v_TexCoordBlock;
@@ -103,6 +108,36 @@ void main() {
     if(texColor.a == 0.0f) {
         discard;
     }
+#if !defined(REPGAME_LOW_GRAPHICS)
+    // X_HIGH animated fluids: scrolling + sine-warped UVs. Only runs during
+    // the dedicated water pass (u_FluidAnim), which contains just water/lava.
+    if(u_FluidAnim == 1) {
+        vec2 wpos = v_world_coords.xz;
+        if(v_blockID == 94u) { // WATER top texture (WATER block id - 1)
+            vec2 flow = vec2(u_Time * 0.045f, u_Time * 0.032f);
+            vec2 warp = vec2(sin(wpos.x * 1.7f + u_Time * 1.8f), sin(wpos.y * 1.5f + u_Time * 1.4f)) * 0.12f;
+            vec4 c1 = texture(u_Texture, vec3(working + flow + warp, v_blockID));
+            vec4 c2 = texture(u_Texture, vec3(working * 0.63f - flow * 1.3f - warp * 0.7f, v_blockID));
+            texColor = mix(c1, c2, 0.5f);
+            if(texColor.a == 0.0f) {
+                discard;
+            }
+            // Fresnel: transparent looking straight down, opaque at grazing
+            // angles. Water only — lava must stay opaque.
+            vec3 viewDir = normalize(u_CameraPos - v_world_coords);
+            float fresnel = 0.02f + 0.98f * pow(1.0f - clamp(abs(viewDir.y), 0.0f, 1.0f), 5.0f);
+            texColor.a *= 0.3f + 0.7f * fresnel;
+        } else if(v_blockID == 93u) { // LAVA top texture
+            vec2 flow = vec2(u_Time * 0.008f, u_Time * 0.011f);
+            vec2 warp = vec2(sin(wpos.x * 0.9f + u_Time * 0.45f), sin(wpos.y * 1.1f + u_Time * 0.38f)) * 0.07f;
+            texColor = texture(u_Texture, vec3(working + flow + warp, v_blockID));
+            texColor.rgb *= 0.96f + 0.07f * sin(u_Time * 1.3f + (wpos.x + wpos.y) * 0.6f);
+            if(texColor.a == 0.0f) {
+                discard;
+            }
+        }
+    }
+#endif
     // Alpha-tested passes (opaque + flowers): mipmaps average opaque pixels
     // (alpha=1) with transparent neighbours (alpha=0, RGB=0), which
     // premultiplies and lowers the alpha. Un-premultiply by dividing RGB

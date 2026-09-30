@@ -75,6 +75,7 @@ void World::init( const glm::dvec3 &camera_pos, int width, int height, MapStorag
     this->fogTexture.init_empty_color( 0 );
     this->skyColorTexture.init_empty_color( 0 );
     this->depthStencilTexture.init_empty_depth_stencil( 0 );
+    this->depthTexture.init_empty_depth( 0 );
     showErrors( );
 
     this->blockTexture.change_size( width, height );
@@ -87,12 +88,20 @@ void World::init( const glm::dvec3 &camera_pos, int width, int height, MapStorag
     showErrors( );
     this->depthStencilTexture.change_size( width, height );
     showErrors( );
+    this->depthTexture.change_size( width, height );
+    showErrors( );
 
     this->frameBuffer.attach_texture( this->blockTexture, 0 );
     this->frameBuffer.attach_texture( this->reflectionTexture, 1 );
     this->frameBuffer.attach_texture( this->fogTexture, 2 );
     this->frameBuffer.attach_texture( this->skyColorTexture, 3 );
     this->frameBuffer.attach_texture( this->depthStencilTexture, 0 ); // 0 is fake
+    // A depth-only sibling framebuffer that gets a blit of the scene depth
+    // each frame, so the water shader can ray-march it for reflections.
+    this->depthFrameBuffer.init( );
+    this->depthFrameBuffer.attach_texture( this->depthTexture, 0 ); // -> GL_DEPTH_ATTACHMENT
+    this->fboWidth = width;
+    this->fboHeight = height;
     showErrors( );
     this->fullScreenQuad.init( );
     showErrors( );
@@ -120,6 +129,12 @@ void World::change_size( int width, int height ) {
         showErrors( );
         this->depthStencilTexture.change_size( width, height );
         showErrors( );
+        // The attachment refers to the texture object, not its storage, so a
+        // plain change_size keeps it attached.
+        this->depthTexture.change_size( width, height );
+        showErrors( );
+        this->fboWidth = width;
+        this->fboHeight = height;
 
         if ( !this->frameBuffer.ok( ) ) {
             pr_debug( "Frame buffer not ok" );
@@ -143,8 +158,8 @@ void World::set_selected_block( const glm::ivec3 &selected, const bool shouldDra
 
 #define WATER_THRESHOLD_P ( 0.02 )
 #define WATER_THRESHOLD_N ( -0.01 )
-void World::draw( const Texture &blocksTexture, const glm::mat4 &mvp, const glm::mat4 &mvp_reflect, const glm::mat4 &mvp_sky, const glm::mat4 &mvp_sky_reflect, const int debug, const int draw_mouse_selection, const float y_height,
-                  const bool headInWater, WorldDrawQuality worldDrawQuality, const glm::dvec3 &camera_pos, const glm::ivec3 &renderOrigin ) {
+void World::draw( const Texture &blocksTexture, const glm::mat4 &mvp, const glm::mat4 &inv_mvp, const glm::mat4 &mvp_reflect, const glm::mat4 &mvp_sky, const glm::mat4 &mvp_sky_reflect, const int debug, const int draw_mouse_selection, const float y_height,
+                  const bool headInWater, WorldDrawQuality worldDrawQuality, const glm::dvec3 &camera_pos, const glm::ivec3 &renderOrigin, const float time_s ) {
 
     const glm::vec3 renderOriginF = glm::vec3( renderOrigin );
     // Camera and block positions are rebased by u_Origin in the vertex shaders,
@@ -315,7 +330,27 @@ void World::draw( const Texture &blocksTexture, const glm::mat4 &mvp, const glm:
         glStencilOp( GL_KEEP, GL_KEEP, GL_REPLACE );
     }
 
+    // X_HIGH: animated fluid shading (scrolling UVs + fresnel alpha). Only the
+    // water pass contains RenderOrder_Water fragments, so this only affects
+    // water/lava top faces.
+    this->chunkLoader.shader.set_uniform1f( "u_Time", time_s );
+    this->chunkLoader.shader.set_uniform1i( "u_FluidAnim", allowBlur ? 1 : 0 );
     this->chunkLoader.draw( mvp, this->renderer, blocksTexture, true, false, useFrameBuffer ); // Stencil water
+    this->chunkLoader.shader.set_uniform1i( "u_FluidAnim", 0 );
+
+#if ( SUPPORTS_FRAME_BUFFER )
+    if ( allowBlur && !headInWater ) {
+        // Snapshot the scene depth for the water shader's screen-space
+        // reflections. Must happen here: the reflection pass below clears
+        // the depth buffer and rewrites it with mirrored-world depths.
+        glBindFramebuffer( GL_READ_FRAMEBUFFER, this->frameBuffer.id( ) );
+        glBindFramebuffer( GL_DRAW_FRAMEBUFFER, this->depthFrameBuffer.id( ) );
+        glBlitFramebuffer( 0, 0, this->fboWidth, this->fboHeight, 0, 0, this->fboWidth, this->fboHeight, GL_DEPTH_BUFFER_BIT, GL_NEAREST );
+        this->frameBuffer.bind( );
+        showErrors( );
+    }
+#endif
+
     if ( usingReflections ) {
         glStencilFunc( GL_EQUAL, 1, 0xff );
         glStencilOp( GL_KEEP, GL_KEEP, GL_KEEP );
@@ -399,19 +434,29 @@ void World::draw( const Texture &blocksTexture, const glm::mat4 &mvp, const glm:
             glEnable( GL_STENCIL_TEST );
             glStencilFunc( GL_ALWAYS, 1, 0xFF );               // All fragments should pass the stencil buffer. It's empty anyway.
             glStencilOp( GL_REPLACE, GL_REPLACE, GL_REPLACE ); // Any drawing impacts the stencil buffer and writes a 1
-            this->fullScreenQuad.draw_texture( this->renderer, this->reflectionTexture, this->depthStencilTexture, y_height < 0 ? 0.1 : 0.2, false, false, 1 );
-            glClear( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT );
+            // Mark the default framebuffer's stencil wherever the reflection
+            // texture has content (= fluid pixels). Color writes are masked —
+            // the shading result of this draw is not needed.
+            glColorMask( GL_FALSE, GL_FALSE, GL_FALSE, GL_FALSE );
+            this->fullScreenQuad.draw_texture( this->renderer, this->reflectionTexture, this->depthStencilTexture, 1.0, false, false, 1 );
+            glColorMask( GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE );
 
             glStencilOp( GL_KEEP, GL_KEEP, GL_KEEP ); // Don't change the stencil buffer while we're using it.
             glStencilFunc( GL_EQUAL, 1, 0xff );       // If the stencil value is 1, allow drawing.
             if ( useFogBlend ) {
                 // Use fog blend for water areas too, so the terrain/water
                 // fades into the sky and outputs opaque alpha (no blending
-                // with the black background cleared above).
-                this->fullScreenQuad.draw_texture_fog( this->renderer, this->blockTexture, this->depthStencilTexture, this->fogTexture, this->skyColorTexture, 1.0, true, headInWater );
+                // with the black background cleared above). The ripple flag
+                // wobbles the fetch, so submerged terrain shimmers.
+                this->fullScreenQuad.draw_texture_fog( this->renderer, this->blockTexture, this->depthStencilTexture, this->fogTexture, this->skyColorTexture, 1.0, true, headInWater, 0, time_s, true );
             } else {
                 this->fullScreenQuad.draw_texture( this->renderer, this->blockTexture, this->depthStencilTexture, 1.0, true, headInWater );
             }
+            // Water FX overlay: rippled + fresnel-weighted reflection (planar
+            // for sea-level fluids, screen-space marched for elevated ones)
+            // and a sun glint, blended over the scene just drawn.
+            this->fullScreenQuad.draw_water( this->renderer, this->reflectionTexture, this->depthStencilTexture, this->fogTexture, this->skyColorTexture, this->blockTexture, this->depthTexture,
+                                             y_height < 0 ? 0.4f : 0.6f, time_s, mvp, inv_mvp, renderOriginF.y, this->skyBox.get_sun_dir( ) );
             glStencilFunc( GL_NOTEQUAL, 1, 0xff ); // If the stencil value isn't 1 allow drawing.
             if ( useFogBlend ) {
                 this->fullScreenQuad.draw_texture_fog( this->renderer, this->blockTexture, this->depthStencilTexture, this->fogTexture, this->skyColorTexture, 1.0, false, headInWater );
@@ -427,7 +472,9 @@ void World::draw( const Texture &blocksTexture, const glm::mat4 &mvp, const glm:
             }
         }
 
-        if ( usingReflections ) {
+        // HIGH and underwater keep the simple uniform-strength reflection
+        // overlay; X_HIGH already composited reflections inside draw_water.
+        if ( usingReflections && !( allowBlur && !headInWater ) ) {
             if ( useFogBlend ) {
                 this->fullScreenQuad.draw_texture_fog( this->renderer, this->reflectionTexture, this->depthStencilTexture, this->fogTexture, this->skyColorTexture, y_height < 0 ? 0.1 : 0.2, allowBlur, headInWater, 1 );
             } else {
@@ -455,6 +502,8 @@ void World::cleanup( MapStorage &map_storage ) {
         this->fogTexture.destroy( );
         this->skyColorTexture.destroy( );
         this->depthStencilTexture.destroy( );
+        this->depthTexture.destroy( );
+        this->depthFrameBuffer.destroy( );
         this->fullScreenQuad.destroy( );
     }
 }

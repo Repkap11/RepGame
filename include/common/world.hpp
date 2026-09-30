@@ -27,7 +27,15 @@ class World {
     Texture fogTexture;
     Texture skyColorTexture;
     Texture depthStencilTexture;
+    // Copy of the scene depth used by the water shader for screen-space
+    // reflections. Filled by a depth blit into depthFrameBuffer after the
+    // scene pass (multisample depth-stencil views and split depth/stencil
+    // attachments are unsupported on some drivers).
+    Texture depthTexture;
     FrameBuffer frameBuffer;
+    FrameBuffer depthFrameBuffer;
+    int fboWidth = 0;
+    int fboHeight = 0;
     FullScreenQuad fullScreenQuad;
     MouseSelection mouseSelection;
     Shader object_shader;
@@ -52,8 +60,8 @@ class World {
     void init( const glm::dvec3 &camera_pos, int width, int height, MapStorage &map_storage );
     void change_size( int width, int height );
     void render( Multiplayer &multiplayer, const glm::dvec3 &camera_pos, int limit_render, const glm::mat4 &rotation );
-    void draw( const Texture &blocksTexture, const glm::mat4 &mvp, const glm::mat4 &mvp_reflect, const glm::mat4 &mvp_sky, const glm::mat4 &mvp_sky_reflect, int debug, int draw_mouse_selection, float y_height, bool headInWater,
-               WorldDrawQuality worldDrawQuality, const glm::dvec3 &camera_pos, const glm::ivec3 &renderOrigin );
+    void draw( const Texture &blocksTexture, const glm::mat4 &mvp, const glm::mat4 &inv_mvp, const glm::mat4 &mvp_reflect, const glm::mat4 &mvp_sky, const glm::mat4 &mvp_sky_reflect, int debug, int draw_mouse_selection, float y_height, bool headInWater,
+               WorldDrawQuality worldDrawQuality, const glm::dvec3 &camera_pos, const glm::ivec3 &renderOrigin, float time_s );
     void process_random_ticks( ) const;
     void set_selected_block( const glm::ivec3 &selected, bool shouldDraw );
     void screenshot( const std::string &prefix ) const;

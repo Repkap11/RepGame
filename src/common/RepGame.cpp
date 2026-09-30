@@ -884,8 +884,13 @@ void RepGame::draw( float alpha ) {
 
     {
         const long long t_world_draw_start = now_us( );
-        globalGameState.world.draw( globalGameState.blocksTexture, mvp, mvp_reflect, mvp_sky, mvp_sky_reflect, globalGameState.input.debug_mode, !globalGameState.input.inventory_open, render_pos.y, headInWater,
-                                    globalGameState.input.worldDrawQuality, render_pos, renderOrigin );
+        // inv_mvp lets the fullscreen water shader unproject pixels to the
+        // rebased world frame for screen-space reflections.
+        const glm::mat4 inv_mvp = glm::inverse( mvp );
+        // Wrapped to an hour so shader sine functions keep float precision.
+        const float time_s = static_cast<float>( fmod( now_us( ) / 1.0e6, 3600.0 ) );
+        globalGameState.world.draw( globalGameState.blocksTexture, mvp, inv_mvp, mvp_reflect, mvp_sky, mvp_sky_reflect, globalGameState.input.debug_mode, !globalGameState.input.inventory_open, render_pos.y, headInWater,
+                                    globalGameState.input.worldDrawQuality, render_pos, renderOrigin, time_s );
         profiling.us_world_draw = now_us( ) - t_world_draw_start;
     }
 

@@ -256,6 +256,10 @@ void Texture::init_empty_depth_stencil( int blur_mag ) {
     showErrors( );
 }
 
+void Texture::init_empty_depth( int blur_mag ) {
+    Texture::init_empty_base( blur_mag, SAMPLE_TARGET, GL_DEPTH_COMPONENT24, GL_DEPTH_COMPONENT, GL_FLOAT );
+}
+
 void Texture::change_size( int width, int height ) {
     glBindTexture( this->target, this->m_RendererId );
     // pr_debug( "Change size!!" );

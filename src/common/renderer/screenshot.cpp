@@ -89,7 +89,7 @@ void take_screenshot( unsigned int frameBufferId, const std::string &prefix ) {
 
     // Also capture the display framebuffer (final composited result).
     glBindFramebuffer( GL_FRAMEBUFFER, 0 );
-    glReadBuffer( GL_FRONT );
+    glReadBuffer( GL_BACK );
     glReadPixels( 0, 0, width, height, GL_RGBA, GL_UNSIGNED_BYTE, pixels.data( ) );
     saveTGA( "screenshots/" + prefix + "_display.tga", width, height, pixels.data( ) );
 

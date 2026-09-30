@@ -53,6 +53,10 @@ class Texture {
     void change_size( int width, int height );
     void init_empty_color( int blur_mag );
     void init_empty_depth_stencil( int blur_mag );
+    // Plain depth texture attached to GL_DEPTH_ATTACHMENT, alongside the
+    // depth-stencil texture which stays attached for stencil only. Lets the
+    // water shader read scene depth (for SSR) without texture views.
+    void init_empty_depth( int blur_mag );
     static void set_texture_data( unsigned int which_texture, unsigned char *textures, int textures_len );
 
     void destroy( );

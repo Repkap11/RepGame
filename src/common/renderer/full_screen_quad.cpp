@@ -46,10 +46,13 @@ void FullScreenQuad::draw_texture( const Renderer &renderer, const Texture &text
     this->shader.set_uniform1i( "u_Blur", blur );
     this->shader.set_uniform1i( "u_FogBlend", 0 );
     this->shader.set_uniform1i( "u_DiscardZeroAlpha", discardZeroAlpha );
+    this->shader.set_uniform1i( "u_WaterPass", 0 );
+    this->shader.set_uniform1i( "u_Ripple", 0 );
+    this->shader.set_uniform1f( "u_Time", 0.0f );
     this->render_link_fsq.draw( renderer, this->shader );
 }
 
-void FullScreenQuad::draw_texture_fog( const Renderer &renderer, const Texture &texture, const Texture &depthStencilTexture, const Texture &fogTexture, const Texture &skyColorTexture, float extraAlpha, bool blur, bool ignoreStencil, int discardZeroAlpha ) {
+void FullScreenQuad::draw_texture_fog( const Renderer &renderer, const Texture &texture, const Texture &depthStencilTexture, const Texture &fogTexture, const Texture &skyColorTexture, float extraAlpha, bool blur, bool ignoreStencil, int discardZeroAlpha, float time_s, bool ripple ) {
     this->shader.set_uniform1i_texture( "u_Texture", texture );
     this->shader.set_uniform1i_texture( "u_Stencil", depthStencilTexture );
     this->shader.set_uniform1i_texture( "u_FogTexture", fogTexture );
@@ -60,6 +63,34 @@ void FullScreenQuad::draw_texture_fog( const Renderer &renderer, const Texture &
     this->shader.set_uniform1i( "u_Blur", blur );
     this->shader.set_uniform1i( "u_FogBlend", 1 );
     this->shader.set_uniform1i( "u_DiscardZeroAlpha", discardZeroAlpha );
+    this->shader.set_uniform1i( "u_WaterPass", 0 );
+    this->shader.set_uniform1i( "u_Ripple", ripple );
+    this->shader.set_uniform1f( "u_Time", time_s );
+    this->render_link_fsq.draw( renderer, this->shader );
+}
+
+void FullScreenQuad::draw_water( const Renderer &renderer, const Texture &reflectionTexture, const Texture &depthStencilTexture, const Texture &fogTexture, const Texture &skyColorTexture,
+                                 const Texture &sceneTexture, const Texture &depthTexture, float extraAlpha, float time_s, const glm::mat4 &mvp, const glm::mat4 &inv_mvp,
+                                 float origin_y, const glm::vec3 &sun_dir ) {
+    this->shader.set_uniform1i_texture( "u_Texture", sceneTexture );
+    this->shader.set_uniform1i_texture( "u_Stencil", depthStencilTexture );
+    this->shader.set_uniform1i_texture( "u_FogTexture", fogTexture );
+    this->shader.set_uniform1i_texture( "u_SkyColorTexture", skyColorTexture );
+    this->shader.set_uniform1i_texture( "u_ReflectionTex", reflectionTexture );
+    this->shader.set_uniform1i_texture( "u_DepthTexture", depthTexture );
+    this->shader.set_uniform1i( "u_IgnoreStencil", 1 );
+    this->shader.set_uniform1f( "u_ExtraAlpha", extraAlpha );
+    this->shader.set_uniform1i( "u_TextureSamples", this->maxSamples );
+    this->shader.set_uniform1i( "u_Blur", 0 );
+    this->shader.set_uniform1i( "u_FogBlend", 1 );
+    this->shader.set_uniform1i( "u_DiscardZeroAlpha", 0 );
+    this->shader.set_uniform1i( "u_WaterPass", 1 );
+    this->shader.set_uniform1i( "u_Ripple", 1 );
+    this->shader.set_uniform1f( "u_Time", time_s );
+    this->shader.set_uniform_mat4f( "u_MVP", mvp );
+    this->shader.set_uniform_mat4f( "u_InvMVP", inv_mvp );
+    this->shader.set_uniform1f( "u_OriginY", origin_y );
+    this->shader.set_uniform3f( "u_SunDir", sun_dir.x, sun_dir.y, sun_dir.z );
     this->render_link_fsq.draw( renderer, this->shader );
 }
 

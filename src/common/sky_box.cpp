@@ -76,26 +76,51 @@ void SkyBox::init( const VertexBufferLayout &vbl_object_vertex, const VertexBuff
     // the sky without being tied to any particular direction.
     // To recompute after changing the sky texture, set SKY_DEBUG_COMPUTE_AVG to 1.
 #define SKY_DEBUG_COMPUTE_AVG 0
-#if ( defined( REPGAME_LINUX ) || defined( REPGAME_WINDOWS ) ) && SKY_DEBUG_COMPUTE_AVG
+#if ( defined( REPGAME_LINUX ) || defined( REPGAME_WINDOWS ) )
     {
         const int sky_w = 2048, sky_h = 1024;
         unsigned char *sky_data = ( unsigned char * )malloc( sky_w * sky_h * 4 );
         this->texture.bind( );
         glGetTexImage( GL_TEXTURE_2D_ARRAY, 0, GL_RGBA, GL_UNSIGNED_BYTE, sky_data );
+        // Brightest texel gives the sun's direction on the sky sphere (used for
+        // water specular). Average color is only recomputed under the debug flag.
+        int best_lum = -1;
+        int best_x = 0, best_y = 0;
         float r = 0, g = 0, b = 0;
-        for ( int i = 0; i < sky_w * sky_h; i++ ) {
-            r += sky_data[ i * 4 + 0 ];
-            g += sky_data[ i * 4 + 1 ];
-            b += sky_data[ i * 4 + 2 ];
+        for ( int y = 0; y < sky_h; y++ ) {
+            for ( int x = 0; x < sky_w; x++ ) {
+                int i = y * sky_w + x;
+                int lum = sky_data[ i * 4 + 0 ] + sky_data[ i * 4 + 1 ] + sky_data[ i * 4 + 2 ];
+                if ( lum > best_lum ) {
+                    best_lum = lum;
+                    best_x = x;
+                    best_y = y;
+                }
+#if SKY_DEBUG_COMPUTE_AVG
+                r += sky_data[ i * 4 + 0 ];
+                g += sky_data[ i * 4 + 1 ];
+                b += sky_data[ i * 4 + 2 ];
+#endif
+            }
         }
+        // Same mapping as the sky sphere vertices: theta = 2*pi*u, phi = pi*v.
+        const float sun_u = ( best_x + 0.5f ) / sky_w;
+        const float sun_v = ( best_y + 0.5f ) / sky_h;
+        const float theta = sun_u * glm::pi<float>( ) * 2.0f;
+        const float phi = sun_v * glm::pi<float>( );
+        m_sunDir = glm::vec3( cosf( theta ) * sinf( phi ), -cosf( phi ), sinf( theta ) * sinf( phi ) );
+        pr_debug( "SkyBox sun dir: %f, %f, %f (u=%f v=%f)", m_sunDir.x, m_sunDir.y, m_sunDir.z, sun_u, sun_v );
+#if SKY_DEBUG_COMPUTE_AVG
         float count = sky_w * sky_h;
         m_avgColor = glm::vec3( r / count / 255.0f, g / count / 255.0f, b / count / 255.0f );
         pr_debug( "SkyBox avg color: %f, %f, %f", m_avgColor.r, m_avgColor.g, m_avgColor.b );
+#else
+        m_avgColor = glm::vec3( 0.729091f, 0.788694f, 0.851192f );
+#endif
         free( sky_data );
     }
 #else
     // Hardcoded average of all pixels in the sky texture.
-    // Recompute by setting SKY_DEBUG_COMPUTE_AVG to 1 above.
     m_avgColor = glm::vec3( 0.729091f, 0.788694f, 0.851192f );
 #endif
 }

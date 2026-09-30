@@ -25,6 +25,8 @@ void FrameBuffer::attach_texture( const Texture &texture, int which_attachment )
     int attachment;
     if ( texture.format == GL_DEPTH_STENCIL ) {
         attachment = GL_DEPTH_STENCIL_ATTACHMENT;
+    } else if ( texture.format == GL_DEPTH_COMPONENT ) {
+        attachment = GL_DEPTH_ATTACHMENT;
     } else {
         attachment = GL_COLOR_ATTACHMENT0 + which_attachment;
     }
@@ -39,5 +41,9 @@ void FrameBuffer::unbind( ) const {
 
 bool FrameBuffer::ok( ) const {
     bind( );
-    return ( glCheckFramebufferStatus( GL_FRAMEBUFFER ) == GL_FRAMEBUFFER_COMPLETE );
+    const GLenum status = glCheckFramebufferStatus( GL_FRAMEBUFFER );
+    if ( status != GL_FRAMEBUFFER_COMPLETE ) {
+        pr_debug( "Framebuffer status:0x%x", status );
+    }
+    return ( status == GL_FRAMEBUFFER_COMPLETE );
 }
