@@ -121,7 +121,7 @@ void UIOverlay::draw( CreativeInventory &creative_inventory, SurvivalInventory &
     showErrors( );
 }
 
-void UIOverlay::draw_held_inventory_item( const InventorySlot &held, bool is_holding, int mouse_x, int mouse_y, int block_size, int block_offset, int cell_size, int cell_offset, const Renderer &renderer, const Texture &blocksTexture, FontRenderer &font, const glm::mat4 &mvp_ui ) {
+void UIOverlay::draw_held_inventory_item( const InventorySlot &held, bool is_holding, int mouse_x, int mouse_y, int block_size, int cell_size, const Renderer &renderer, const Texture &blocksTexture, FontRenderer &font, const glm::mat4 &mvp_ui ) {
     if ( !is_holding || held.block_id == LAST_BLOCK_ID || held.quantity <= 0 ) {
         return;
     }
@@ -151,8 +151,11 @@ void UIOverlay::draw_held_inventory_item( const InventorySlot &held, bool is_hol
     auto [ entity, ui_vertex ] = this->render_chain_dragged_item.create_instance( );
 
     // Set fields individually, matching InventoryRenderer::singleItemRender.
-    ui_vertex.screen_x = cell_start_x + block_offset;
-    ui_vertex.screen_y = cell_start_y + block_offset;
+    // The block icon is centered within the cell, so it is centered on the
+    // cursor. block_offset isn't used here since it is relative to the items
+    // background edge, not the cell corner.
+    ui_vertex.screen_x = cell_start_x + ( cell_size - block_size ) / 2.0f;
+    ui_vertex.screen_y = cell_start_y + ( cell_size - block_size ) / 2.0f;
     ui_vertex.screen_z = ORDER_Z_INV_BLOCKS + 0.1f;
     ui_vertex.width = block_size;
     ui_vertex.height = block_size;
@@ -164,8 +167,8 @@ void UIOverlay::draw_held_inventory_item( const InventorySlot &held, bool is_hol
 
     // Render the quantity text at the bottom-right of the cell, matching
     // the in-inventory text placement: slot_x - text_width - 2, slot_y + 2.
-    float slot_x = cell_start_x + cell_offset + cell_size;
-    float slot_y = cell_start_y + cell_offset;
+    float slot_x = cell_start_x + cell_size;
+    float slot_y = cell_start_y;
     char buf[ 16 ];
     snprintf( buf, sizeof( buf ), "%d", held.quantity );
     float text_size = 24.0f;

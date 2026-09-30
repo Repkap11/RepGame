@@ -979,9 +979,9 @@ void RepGame::draw( float alpha ) {
         const long long t_ui_start = now_us( );
         globalGameState.ui_overlay.draw( globalGameState.main_inventory, globalGameState.survival_inventory, globalGameState.hotbar, globalGameState.game_mode, globalGameState.world.renderer, globalGameState.blocksTexture, globalGameState.input, globalGameState.font_renderer, globalGameState.screen.ortho_center );
         if ( globalGameState.is_holding_inventory_slot ) {
-            int block_size, block_offset, cell_size, cell_offset;
-            globalGameState.survival_inventory.inventory_renderer.getBlockMetrics( block_size, block_offset, cell_size, cell_offset );
-            globalGameState.ui_overlay.draw_held_inventory_item( globalGameState.held_inventory_slot, globalGameState.is_holding_inventory_slot, globalGameState.input.mouse.absPosition.x, globalGameState.input.mouse.absPosition.y, block_size, block_offset, cell_size, cell_offset, globalGameState.world.renderer, globalGameState.blocksTexture, globalGameState.font_renderer, globalGameState.screen.ortho_center );
+            int block_size, cell_size;
+            globalGameState.survival_inventory.inventory_renderer.getBlockMetrics( block_size, cell_size );
+            globalGameState.ui_overlay.draw_held_inventory_item( globalGameState.held_inventory_slot, globalGameState.is_holding_inventory_slot, globalGameState.input.mouse.absPosition.x, globalGameState.input.mouse.absPosition.y, block_size, cell_size, globalGameState.world.renderer, globalGameState.blocksTexture, globalGameState.font_renderer, globalGameState.screen.ortho_center );
         }
         ImGuiDebugVars &debugVars = imgui_overlay_get_imgui_debug_vars( );
         debugVars.player_pos = glm::vec3( globalGameState.camera.pos );
