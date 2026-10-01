@@ -19,6 +19,12 @@ void PlayerBlockPlacedEvent::performAction( BlockUpdateQueue &blockUpdateQueue, 
     if ( BlockStates_equal( blockState, current_block_state ) ) {
         return;
     }
+    // A state update only makes sense for the block it was computed on. If the
+    // block is gone (e.g. just broken while a stale update was still queued),
+    // drop it instead of resurrecting the block.
+    if ( this->state_update && this->blockState.id != current_block_state.id ) {
+        return;
+    }
     Block *new_block = block_definition_get_definition( this->blockState.id );
     Block *current_block = block_definition_get_definition( current_block_state.id );
 
