@@ -1,5 +1,7 @@
 #pragma once
 
+#include <glm/glm.hpp>
+
 #include "constants.hpp"
 #include "block_definitions.hpp"
 
@@ -141,6 +143,55 @@ static int FACE_DIR_Z_OFFSETS[ NUM_FACES_IN_CUBE ] = { 0, 0, 0, 1, 0, -1 };
 static int FACE_ROTATE_90[ NUM_FACES_IN_CUBE ] = { FACE_TOP, FACE_BOTTOM, FACE_BACK, FACE_RIGHT, FACE_FRONT, FACE_LEFT };
 
 static int OPPOSITE_FACE[ NUM_FACES_IN_CUBE ] = { FACE_BOTTOM, FACE_TOP, FACE_LEFT, FACE_BACK, FACE_RIGHT, FACE_FRONT };
+
+// Piston rotations encode the direction the head points: 0-3 are the usual yaw
+// rotations (the shader face-shifts FACE_FRONT onto +z,-x,-z,+x respectively)
+// and 4/5 are the vertical extensions.
+#define PISTON_ROTATE_UP 4
+#define PISTON_ROTATE_DOWN 5
+
+// World face the head end of a piston points at for a given rotation.
+static inline int piston_head_face( unsigned char rotation ) {
+    static const int head_faces[ 6 ] = { FACE_FRONT, FACE_LEFT, FACE_BACK, FACE_RIGHT, FACE_TOP, FACE_BOTTOM };
+    return head_faces[ rotation < 6 ? rotation : 0 ];
+}
+
+// Unit offset from a piston base toward where its head extends.
+static inline glm::ivec3 piston_facing_dir( unsigned char rotation ) {
+    const int face = piston_head_face( rotation );
+    return glm::ivec3( FACE_DIR_X_OFFSETS[ face ], FACE_DIR_Y_OFFSETS[ face ], FACE_DIR_Z_OFFSETS[ face ] );
+}
+
+// Pixel-space (0-16) box of a piston head plate for each rotation. The mesh
+// shader already yaws scale/offset for rotations 0-3, so block_adjust only
+// needs this for 4/5; collision and ray code consume all six.
+static inline void piston_head_shape( unsigned char rotation, short scale[ 3 ], short offset[ 3 ] ) {
+    scale[ 0 ] = 16;
+    scale[ 1 ] = 16;
+    scale[ 2 ] = 16;
+    offset[ 0 ] = 0;
+    offset[ 1 ] = 0;
+    offset[ 2 ] = 0;
+    const int face = piston_head_face( rotation );
+    // The plate is 4 pixels thick against the head-side face of the cell.
+    if ( face == FACE_TOP ) {
+        scale[ 1 ] = 4;
+        offset[ 1 ] = 12;
+    } else if ( face == FACE_BOTTOM ) {
+        scale[ 1 ] = 4;
+    } else if ( face == FACE_RIGHT ) {
+        scale[ 0 ] = 4;
+        offset[ 0 ] = 12;
+    } else if ( face == FACE_LEFT ) {
+        scale[ 0 ] = 4;
+    } else if ( face == FACE_FRONT ) {
+        scale[ 2 ] = 4;
+        offset[ 2 ] = 12;
+    } else { // FACE_BACK
+        scale[ 2 ] = 4;
+    }
+}
+
 #define PIXEL_TO_FLOAT( pixel ) ( ( ( float )( pixel ) ) / ( 16.0f ) )
 
 // See world.cpp for vbl

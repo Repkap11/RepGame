@@ -54,11 +54,24 @@ static bool block_collision_aabb( World &world, const glm::ivec3 &block_pos, glm
     // ray_traversal's contains_pixel so partial blocks (slabs, fences, etc.)
     // collide with the correct footprint.
     short scale_x = block->scale.x;
+    short scale_y = block->scale.y;
     short scale_z = block->scale.z;
     short offset_x = block->offset.x;
+    short offset_y = block->offset.y;
     short offset_z = block->offset.z;
     const unsigned char rot = blockState.rotation;
-    if ( rot == BLOCK_ROTATE_90 ) {
+    if ( block->is_piston_head ) {
+        // The yaw cases below only remap x/z; piston heads also face up/down,
+        // so take the whole plate box from the shared helper.
+        short head_scale[ 3 ], head_offset[ 3 ];
+        piston_head_shape( rot, head_scale, head_offset );
+        scale_x = head_scale[ 0 ];
+        scale_y = head_scale[ 1 ];
+        scale_z = head_scale[ 2 ];
+        offset_x = head_offset[ 0 ];
+        offset_y = head_offset[ 1 ];
+        offset_z = head_offset[ 2 ];
+    } else if ( rot == BLOCK_ROTATE_90 ) {
         scale_x = block->scale.z;
         scale_z = block->scale.x;
         offset_x = 16 - block->scale.z - block->offset.z;
@@ -76,8 +89,8 @@ static bool block_collision_aabb( World &world, const glm::ivec3 &block_pos, glm
     out_max.x = out_min.x + PIXEL_TO_FLOAT( scale_x );
     out_min.z = static_cast<double>( block_pos.z ) + PIXEL_TO_FLOAT( offset_z );
     out_max.z = out_min.z + PIXEL_TO_FLOAT( scale_z );
-    out_min.y = static_cast<double>( block_pos.y ) + PIXEL_TO_FLOAT( block->offset.y );
-    out_max.y = out_min.y + PIXEL_TO_FLOAT( block->scale.y );
+    out_min.y = static_cast<double>( block_pos.y ) + PIXEL_TO_FLOAT( offset_y );
+    out_max.y = out_min.y + PIXEL_TO_FLOAT( scale_y );
     return true;
 }
 

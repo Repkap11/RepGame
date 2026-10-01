@@ -76,4 +76,52 @@ void block_adjust_coord_based_on_state( const Block *block, const BlockState *bl
     } else if ( block->is_button && blockState->current_redstone_power > 0 ) {
         blockCoord->scale_z = 1;
     }
+
+    if ( block->is_piston ) {
+        // The head-end face texture: the retracted look is the head tile, the
+        // extended look is the throat/hole the arm slides through.
+        const BlockID face_tile = blockState->current_redstone_power > 0 ? PISTON_FRONT_EXTENDED
+                                                                       : ( block->is_sticky_piston ? PISTON_HEAD_STICKY_FACE : PISTON_HEAD_FACE );
+        const unsigned char rot = blockState->rotation;
+        if ( rot == PISTON_ROTATE_UP || rot == PISTON_ROTATE_DOWN ) {
+            // Head faces straight up/down: the shader only yaws, so permute the
+            // face textures here. All laterals get the same band variant, so
+            // the shader's rot-5 lateral index shift is harmless.
+            const int head_slot = rot == PISTON_ROTATE_UP ? FACE_TOP : FACE_BOTTOM;
+            const int back_slot = rot == PISTON_ROTATE_UP ? FACE_BOTTOM : FACE_TOP;
+            const BlockID side = rot == PISTON_ROTATE_UP ? PISTON_SIDE_UP : PISTON_SIDE_DOWN;
+            blockCoord->face[ head_slot ] = face_tile;
+            blockCoord->face[ back_slot ] = PISTON_BACK;
+            blockCoord->face[ FACE_RIGHT ] = side;
+            blockCoord->face[ FACE_LEFT ] = side;
+            blockCoord->face[ FACE_FRONT ] = side;
+            blockCoord->face[ FACE_BACK ] = side;
+        } else {
+            // Horizontal (rot 0-3): the shader's face-shift lands FACE_FRONT's
+            // texture on the head-facing world face. The side tiles are
+            // pre-rotated variants; pick per rotation so the wooden band ends
+            // up on the edge adjacent to the head (band edge per tile:
+            // LEFT=u0, DOWN=v0, RIGHT=u1, UP=v1; face UVs are fixed except
+            // TOP/BOTTOM, which the shader rotates for rot 1/2/3).
+            blockCoord->face[ FACE_FRONT ] = face_tile;
+            blockCoord->face[ FACE_BACK ] = PISTON_BACK;
+            // The shader rotates TOP/BOTTOM texcoords with the block, so the
+            // head-side edge is v1 on TOP and v0 on BOTTOM for all rotations.
+            blockCoord->face[ FACE_TOP ] = PISTON_SIDE_UP;
+            blockCoord->face[ FACE_BOTTOM ] = PISTON_SIDE_DOWN;
+            blockCoord->face[ FACE_RIGHT ] = ( rot == BLOCK_ROTATE_90 || rot == BLOCK_ROTATE_270 ) ? PISTON_SIDE_RIGHT : PISTON_SIDE_LEFT;
+            blockCoord->face[ FACE_LEFT ] = ( rot == BLOCK_ROTATE_90 || rot == BLOCK_ROTATE_270 ) ? PISTON_SIDE_LEFT : PISTON_SIDE_RIGHT;
+        }
+    }
+
+    if ( block->is_piston_head && blockState->rotation >= PISTON_ROTATE_UP ) {
+        // Head facing straight up/down: the shader only applies yaw to the
+        // canonical forward-facing plate, so bake the vertical plate here.
+        blockCoord->face[ blockState->rotation == PISTON_ROTATE_UP ? FACE_TOP : FACE_BOTTOM ] = blockCoord->face[ FACE_FRONT ];
+        blockCoord->face[ FACE_FRONT ] = PISTON_HEAD_SIDE;
+        blockCoord->scale_y = 4;
+        blockCoord->scale_z = 16;
+        blockCoord->offset_z = 0;
+        blockCoord->offset_y = blockState->rotation == PISTON_ROTATE_UP ? 12 : 0;
+    }
 }

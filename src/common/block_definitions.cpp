@@ -210,6 +210,54 @@ void block_definitions_initilize_definitions( Texture *texture ) {
     block_definitions[ REDSTONE_TORCH ].transmits_redstone_power = true;
     block_definitions[ REDSTONE_TORCH ].connects_to_redstone_dust = true;
 
+    // Pistons. The base is a plain solid block: the generic solid-block path in
+    // BlockNextToChangeEvent computes its stored power, and PistonEvent
+    // extends/retracts it on power edges (power > 0 = extended). rotation is
+    // the head direction (0-3 yaw as usual, 4=up, 5=down). The default
+    // textures below are the canonical rot-0 layout; block_adjust_coord_based_on_state
+    // swaps variants per rotation so the wooden band always points at the head.
+    constexpr BlockID piston_shaped[] = { PISTON, STICKY_PISTON };
+    for ( const BlockID id : piston_shaped ) {
+        block_definitions[ id ].is_piston = true;
+        block_definitions[ id ].rotate_on_placement = true;
+        block_definitions[ id ].connects_to_redstone_dust = true;
+        block_definitions[ id ].textures[ FACE_TOP ] = PISTON_SIDE_UP;
+        block_definitions[ id ].textures[ FACE_BOTTOM ] = PISTON_SIDE_DOWN;
+        block_definitions[ id ].textures[ FACE_RIGHT ] = PISTON_SIDE_LEFT;
+        block_definitions[ id ].textures[ FACE_LEFT ] = PISTON_SIDE_RIGHT;
+        block_definitions[ id ].textures[ FACE_FRONT ] = PISTON_HEAD_FACE;
+        block_definitions[ id ].textures[ FACE_BACK ] = PISTON_BACK;
+    }
+    block_definitions[ STICKY_PISTON ].is_sticky_piston = true;
+    block_definitions[ STICKY_PISTON ].textures[ FACE_FRONT ] = PISTON_HEAD_STICKY_FACE;
+
+    // Piston heads occupy the cell in front of an extended base. A thin plate
+    // at the head edge; canonical shape faces FACE_FRONT (+z). Not pickable —
+    // clicks pass through to the base, and it auto-breaks when orphaned.
+    constexpr BlockID piston_head_shaped[] = { PISTON_HEAD, PISTON_HEAD_STICKY };
+    for ( const BlockID id : piston_head_shaped ) {
+        block_definitions[ id ].is_piston_head = true;
+        block_definitions[ id ].is_pickable = false;
+        block_definitions[ id ].casts_shadow = false;
+        block_definitions[ id ].icon_is_isometric = false;
+        block_definitions[ id ].scale = { 16, 16, 4 };
+        block_definitions[ id ].offset = { 0, 0, 12 };
+        for ( int face = FACE_TOP; face < NUM_FACES_IN_CUBE; face++ ) {
+            block_definitions[ id ].textures[ face ] = PISTON_HEAD_SIDE;
+        }
+        block_definitions[ id ].textures[ FACE_FRONT ] = PISTON_HEAD_FACE;
+        block_definitions[ id ].piston_immovable = true;
+    }
+    block_definitions[ PISTON_HEAD_STICKY ].textures[ FACE_FRONT ] = PISTON_HEAD_STICKY_FACE;
+
+    // Blocks pistons refuse to move. Powered pistons and piston heads are
+    // handled separately inside PistonEvent.
+    constexpr BlockID piston_immovable_blocks[] = { BEDROCK, BARRIER, DARK_BARRIER, PORTAL, EMPTY_SPAWNER,
+                                                    SINGLE_CHEST_LATCH, DOUBLE_CHEST_LEFT_LATCH, DOUBLE_CHEST_RIGHT_LATCH };
+    for ( const BlockID id : piston_immovable_blocks ) {
+        block_definitions[ id ].piston_immovable = true;
+    }
+
     BlockID pane_shaped[] = { GLASS_PANE };
     for ( const BlockID id : pane_shaped ) {
         block_definitions[ id ].scale = { 16, 16, 2 };

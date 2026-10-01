@@ -22,10 +22,23 @@ int contains_pixel( Block *pixel_block, BlockState &block_state, const glm::dvec
     // r.org is origin of ray
 
     char scale_x = pixel_block->scale.x;
+    char scale_y = pixel_block->scale.y;
     char scale_z = pixel_block->scale.z;
     char offset_x = pixel_block->offset.x;
+    char offset_y = pixel_block->offset.y;
     char offset_z = pixel_block->offset.z;
-    if ( block_state.rotation == BLOCK_ROTATE_0 ) {
+    if ( pixel_block->is_piston_head ) {
+        // The yaw cases below only remap x/z; piston heads also face up/down,
+        // so take the whole plate box from the shared helper.
+        short head_scale[ 3 ], head_offset[ 3 ];
+        piston_head_shape( block_state.rotation, head_scale, head_offset );
+        scale_x = head_scale[ 0 ];
+        scale_y = head_scale[ 1 ];
+        scale_z = head_scale[ 2 ];
+        offset_x = head_offset[ 0 ];
+        offset_y = head_offset[ 1 ];
+        offset_z = head_offset[ 2 ];
+    } else if ( block_state.rotation == BLOCK_ROTATE_0 ) {
     } else if ( block_state.rotation == BLOCK_ROTATE_90 ) {
         scale_x = pixel_block->scale.z;
         scale_z = pixel_block->scale.x;
@@ -59,8 +72,8 @@ int contains_pixel( Block *pixel_block, BlockState &block_state, const glm::dvec
     double c2_x = c1_x + PIXEL_TO_FLOAT( scale_x );
     double c2_z = c1_z + PIXEL_TO_FLOAT( scale_z );
 
-    double c1_y = block.y + PIXEL_TO_FLOAT( pixel_block->offset.y );
-    double c2_y = c1_y + PIXEL_TO_FLOAT( pixel_block->scale.y );
+    double c1_y = block.y + PIXEL_TO_FLOAT( offset_y );
+    double c2_y = c1_y + PIXEL_TO_FLOAT( scale_y );
 
     // pr_debug( "%f %f %f", lb.x, lb.y, lb.z );
     // pr_debug( "%f %f %f", rt.x, rt.y, rt.z );

@@ -75,6 +75,15 @@ unsigned char RepGame::getPlacedRotation( const BlockID blockID ) const {
             rotation = 7;       // attached BACK (solid block is behind)
         }
     }
+    // Pistons can also face up/down: the head points at the player, so looking
+    // steeply down places an upward-facing piston, steeply up a downward one.
+    if ( block->is_piston ) {
+        if ( globalGameState.camera.angle_V > 60 ) {
+            rotation = PISTON_ROTATE_UP;
+        } else if ( globalGameState.camera.angle_V < -60 ) {
+            rotation = PISTON_ROTATE_DOWN;
+        }
+    }
     return rotation;
 }
 

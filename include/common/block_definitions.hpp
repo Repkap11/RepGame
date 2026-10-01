@@ -86,6 +86,11 @@ typedef enum {
     MYCELIUM_SIDE = 110,
     MYCELIUM = 111,
     BIRTCH_SAPPLING = 112,
+    // Piston body side tiles: the wooden band marks the edge toward the head.
+    PISTON_SIDE_LEFT = 113,
+    PISTON_SIDE_DOWN,
+    PISTON_SIDE_RIGHT,
+    PISTON_SIDE_UP,
     BLUE_FLOWER = 119,
     REDSTONE_DUST_L_Q4_POWERED = 120,
     TORCH = 121,
@@ -99,7 +104,18 @@ typedef enum {
     WHEAT_6 = 135,
     WHEAT_7 = 136,
     BIRTCH_LEAVES = 140,
+    // Piston block ids (unused enum slots; every face texture is overridden
+    // in the block definitions so the slot's own tile is never drawn).
+    PISTON = 141,
+    STICKY_PISTON = 142,
+    PISTON_HEAD = 143,
+    PISTON_HEAD_STICKY = 144,
     BURNT_OUT_TORCH = 145,
+    PISTON_HEAD_STICKY_FACE = 155,
+    PISTON_HEAD_FACE = 156,
+    PISTON_SIDE_UP_2 = 157,
+    PISTON_BACK = 158,
+    PISTON_FRONT_EXTENDED = 159,
     MELLON_STEM = 160,
     SINGLE_CHEST_TOP = 162,
     CHEST_SIDE = 163,
@@ -216,6 +232,7 @@ typedef enum {
     RED_SANDSTONE_BRICK_BOTTOM = 492,
     RED_SANDSTONE_BRICK_SLAB = 493,
     CACTUS_IN_POT = 543,
+    PISTON_HEAD_SIDE = 550,
     PURPLE_CORAL2 = 555,
     UNDERWATER_TUFT_SHORT = 573,
     UNDERWATER_TUFT_TALL,
@@ -380,6 +397,17 @@ typedef struct {
     // thickness (see block_adjust_coord_based_on_state).
     bool is_button;
     bool is_pressure_plate;
+    // Piston base: current_redstone_power > 0 means extended. rotation encodes
+    // the head direction: 0=+z(front) 1=-x(left) 2=-z(back) 3=+x(right)
+    // 4=+y(up) 5=-y(down).
+    bool is_piston;
+    bool is_sticky_piston;
+    // Internal cell block placed in front of an extended piston. Not pickable,
+    // not in inventories, breaks automatically when its base is removed.
+    bool is_piston_head;
+    // PistonEvent refuses to push/pull these (plus powered pistons, heads,
+    // and unloaded LAST_BLOCK_ID cells, which are handled there).
+    bool piston_immovable;
     BlockID inventory_non_isometric_id;
 
 } Block;
