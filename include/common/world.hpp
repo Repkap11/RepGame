@@ -5,6 +5,7 @@ class World;
 #include "block.hpp"
 #include "chunk_loader.hpp"
 #include "common/multiplayer_avatars.hpp"
+#include "common/block_debris.hpp"
 #include "common/renderer/full_screen_quad.hpp"
 #include "common/RenderChain.hpp"
 
@@ -18,10 +19,12 @@ class World {
     Renderer renderer;
     SkyBox skyBox;
     MultiplayerAvatars multiplayer_avatars;
+    BlockDebris blockDebris;
     VertexBufferLayout vbl_block;
     VertexBufferLayout vbl_coords;
     VertexBufferLayout vbl_object_vertex;
     VertexBufferLayout vbl_object_position;
+    VertexBufferLayout vbl_debris_instance;
     Texture reflectionTexture;
     Texture blockTexture;
     Texture fogTexture;
@@ -39,6 +42,7 @@ class World {
     FullScreenQuad fullScreenQuad;
     MouseSelection mouseSelection;
     Shader object_shader;
+    Shader debris_shader;
 
     int can_fixup_chunk( const Chunk &chunk, const glm::ivec3 &offset ) const;
     void fixup_chunk( const Chunk &chunk, const glm::ivec3 &offset, const glm::ivec3 &pos, const BlockState &blockState ) const;

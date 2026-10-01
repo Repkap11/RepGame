@@ -70,3 +70,14 @@ typedef struct {
     unsigned short face[ NUM_FACES_IN_CUBE ];
     glm::mat4 transform;
 } ParticlePosition;
+
+// Per-instance data for GPU-animated particles (block-break debris). Written
+// once at spawn and never patched in flight: the vertex shader computes the
+// transform from u_Time, so animation costs zero CPU updates/uploads. See
+// vbl_debris_instance in world.cpp and the attribs in debris_vertex.glsl.
+typedef struct {
+    unsigned short face[ NUM_FACES_IN_CUBE ]; // texture layer per face (packed uvec3)
+    glm::vec3 spawn;                          // world-space spawn position
+    glm::vec3 velocity;                       // initial velocity, blocks/second
+    glm::vec4 anim;                           // x=spawn_time (u_Time clock), y=life seconds, z=size, w=seed
+} DebrisInstance;

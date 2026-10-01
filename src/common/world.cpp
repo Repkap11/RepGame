@@ -14,6 +14,7 @@
 
 MK_SHADER( object_vertex );
 MK_SHADER( object_fragment );
+MK_SHADER( debris_vertex );
 
 bool hasError( ) {
     if ( ( glGetError( ) ) != GL_NO_ERROR ) {
@@ -53,6 +54,12 @@ void World::init( const glm::dvec3 &camera_pos, int width, int height, MapStorag
     this->vbl_object_position.push_float( 4 );        // transform
     this->vbl_object_position.push_float( 4 );        // transform
 
+    // These are from DebrisInstance
+    this->vbl_debris_instance.push_unsigned_int( 3 ); // which texture
+    this->vbl_debris_instance.push_float( 3 );        // spawn
+    this->vbl_debris_instance.push_float( 3 );        // velocity
+    this->vbl_debris_instance.push_float( 4 );        // anim (spawn_time, life, size, seed)
+
     this->chunkLoader.init( camera_pos, this->vbl_block, this->vbl_coords, map_storage );
 
     float *random_rotation_blocks = block_definitions_get_random_rotations( );
@@ -60,9 +67,11 @@ void World::init( const glm::dvec3 &camera_pos, int width, int height, MapStorag
     this->chunkLoader.shader.set_uniform1fv( "u_RandomRotationBlocks", random_rotation_blocks, MAX_ROTATABLE_BLOCK );
 
     this->object_shader.init( &object_vertex, &object_fragment );
+    this->debris_shader.init( &debris_vertex, &object_fragment );
 
     this->skyBox.init( this->vbl_object_vertex, this->vbl_object_position );
     this->multiplayer_avatars.init( this->vbl_object_vertex, this->vbl_object_position );
+    this->blockDebris.init( this->vbl_object_vertex, this->vbl_debris_instance );
     this->mouseSelection.init( this->vbl_block, this->vbl_coords );
 
 #if ( SUPPORTS_FRAME_BUFFER )
@@ -249,6 +258,17 @@ void World::draw( const Texture &blocksTexture, const glm::mat4 &mvp, const glm:
     this->object_shader.set_uniform3f( "u_SkyAvgColor", fog_blend_color.r, fog_blend_color.g, fog_blend_color.b );
     this->object_shader.set_uniform1i( "u_OpaqueFog", useFogBlend ? 1 : 0 );
 
+    // Debris shares object_fragment.glsl, so it needs the same fog/water set.
+    this->debris_shader.set_uniform1f( "u_FogNear", fog_near );
+    this->debris_shader.set_uniform1f( "u_FogFar", fog_far );
+    this->debris_shader.set_uniform1f( "u_WaterFogNear", water_fog_near );
+    this->debris_shader.set_uniform1f( "u_WaterFogFar", water_fog_far );
+    this->debris_shader.set_uniform1i( "u_Underwater", underwater_wash );
+    this->debris_shader.set_uniform3f( "u_CameraPos", camera_pos_rebased.x, camera_pos_rebased.y, camera_pos_rebased.z );
+    this->debris_shader.set_uniform3f( "u_SkyAvgColor", fog_blend_color.r, fog_blend_color.g, fog_blend_color.b );
+    this->debris_shader.set_uniform1i( "u_OpaqueFog", useFogBlend ? 1 : 0 );
+    this->debris_shader.set_uniform1f( "u_Time", time_s );
+
     if ( useFrameBuffer ) {
         this->frameBuffer.bind( );
         // Clear each attachment separately:
@@ -294,6 +314,15 @@ void World::draw( const Texture &blocksTexture, const glm::mat4 &mvp, const glm:
     this->object_shader.set_uniform1f( "u_ExtraAlpha", 1.0f );
     this->object_shader.set_uniform_mat4f( "u_MVP", mvp );
     this->object_shader.set_uniform1i( "u_IsSky", 0 );
+
+    this->debris_shader.set_uniform1i( "u_DrawToReflection", 0 );
+    this->debris_shader.set_uniform1i_texture( "u_Texture", blocksTexture );
+    this->debris_shader.set_uniform1f( "u_ReflectionHeight", 0 );
+    this->debris_shader.set_uniform1i( "u_TintUnderWater", object_water_tint_type );
+    this->debris_shader.set_uniform1f( "u_ExtraAlpha", 1.0f );
+    this->debris_shader.set_uniform_mat4f( "u_MVP", mvp );
+    this->debris_shader.set_uniform1i( "u_IsSky", 0 );
+    this->debris_shader.set_uniform3f( "u_Origin", renderOriginF.x, renderOriginF.y, renderOriginF.z );
 #if ( SUPPORTS_FRAME_BUFFER )
     if ( useFrameBuffer ) {
         // Only the sky pass should write to the sky color attachment (3).
@@ -303,6 +332,7 @@ void World::draw( const Texture &blocksTexture, const glm::mat4 &mvp, const glm:
     }
 #endif
     this->multiplayer_avatars.draw( this->renderer, this->object_shader ); // Mobs
+    this->blockDebris.draw( this->renderer, this->debris_shader, time_s );  // Break particles
 #if ( SUPPORTS_FRAME_BUFFER )
     if ( useFrameBuffer ) {
         // Enable sky color attachment writing for the sky pass only.
@@ -420,6 +450,15 @@ void World::draw( const Texture &blocksTexture, const glm::mat4 &mvp, const glm:
         this->object_shader.set_uniform1f( "u_ReflectionHeight", offset + renderOriginF.y );
         this->multiplayer_avatars.draw( this->renderer, this->object_shader ); // Reflected mobs
 
+        this->debris_shader.set_uniform1i_texture( "u_Texture", blocksTexture );
+        this->debris_shader.set_uniform1f( "u_ExtraAlpha", 1.0f );
+        this->debris_shader.set_uniform1i( "u_DrawToReflection", 1 );
+        this->debris_shader.set_uniform1i( "u_IsSky", 0 );
+        this->debris_shader.set_uniform_mat4f( "u_MVP", mvp_reflect );
+        this->debris_shader.set_uniform3f( "u_Origin", renderOriginF.x, renderOriginF.y, renderOriginF.z );
+        this->debris_shader.set_uniform1f( "u_ReflectionHeight", offset + renderOriginF.y );
+        this->blockDebris.draw( this->renderer, this->debris_shader, time_s ); // Reflected debris
+
         this->chunkLoader.shader.set_uniform1i( "u_DrawToReflection", true );
         this->chunkLoader.shader.set_uniform1f( "u_ExtraAlpha", 1.0f ); // this make reflections not solid...
         this->chunkLoader.shader.set_uniform1f( "u_ReflectionHeight", offset + renderOriginF.y );
@@ -526,10 +565,13 @@ void World::cleanup( MapStorage &map_storage ) {
     this->chunkLoader.cleanup( map_storage );
     this->skyBox.destroy( );
     this->multiplayer_avatars.cleanup( );
+    this->blockDebris.cleanup( );
     this->mouseSelection.destroy( );
+    this->debris_shader.destroy( );
 
     this->vbl_block.destroy( );
     this->vbl_coords.destroy( );
+    this->vbl_debris_instance.destroy( );
     if constexpr ( SUPPORTS_FRAME_BUFFER ) {
         this->frameBuffer.destroy( );
         this->blockTexture.destroy( );
