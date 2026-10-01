@@ -13,6 +13,8 @@
 precision highp float;
 
 uniform float u_LineWidth;
+// Survival-mode mining progress, 0 = no damage, 1 = about to break.
+uniform float u_BreakProgress;
 
 in vec3 v_local_pos;
 flat in uint v_faceType;
@@ -61,14 +63,34 @@ void main( ) {
     float pixel_dist = min( pixel_dist_u, pixel_dist_v );
 
     float lineWidth = u_LineWidth;
-    if ( pixel_dist > lineWidth ) {
-        discard;
+    vec3 lineColor = vec3( 0.0f, 0.0f, 0.0f );
+
+    // Damage overlay covering the whole face (0 alpha unless mining): the
+    // face is quantized into a 16x16 grid matching the block's texel grid,
+    // and cells crack in a fixed random order as u_BreakProgress advances.
+    float overlay_alpha = 0.0f;
+    if ( u_BreakProgress > 0.0f ) {
+        // face_pos overshoots the face by SELECTION_SIZE_OFFSET on each side;
+        // clamp it so those slivers fold into the edge cells instead of
+        // hashing as separate cells and speckling the border.
+        vec2 cell = floor( clamp( face_pos, 0.0f, 1.0f ) * 16.0f );
+        float h = fract( sin( dot( cell + vec2( float( v_faceType ) * 19.0f ), vec2( 12.9898f, 78.233f ) ) ) * 43758.5453f );
+        // Cap coverage below 1.0 so the block breaks before the overlay fully
+        // covers the face, like Minecraft's crack animation.
+        if ( h < u_BreakProgress * 0.75f ) {
+            // Flat semi-transparent fill — same alpha for every cracked texel.
+            overlay_alpha = 0.4f;
+        }
     }
 
-    // 1-pixel anti-aliased edge.
-    float alpha = 1.0f - smoothstep( lineWidth - 1.0f, lineWidth, pixel_dist );
-
-    vec3 lineColor = vec3( 0.0f, 0.0f, 0.0f );
+    // The outline's 1-pixel anti-aliased falloff fades to alpha 0 exactly
+    // where the overlay region begins; taking max() keeps the crack overlay
+    // behind the fading edge so no transparent hairline seam appears.
+    float edge_alpha = 1.0f - smoothstep( lineWidth - 1.0f, lineWidth, pixel_dist );
+    float alpha = max( edge_alpha, overlay_alpha );
+    if ( alpha <= 0.0f ) {
+        discard;
+    }
     color = vec4( lineColor, alpha );
     reflection = vec4( 0.0f, 0.0f, 0.0f, 0.0f );
 #if !defined( REPGAME_LOW_GRAPHICS )

@@ -79,7 +79,11 @@ void MouseSelection::init( const VertexBufferLayout &vbl_block, const VertexBuff
     blockCoords.tex_offset_y = 0;
     blockCoords.tex_offset_z = 0;
 
+    this->break_progress = 0.0f;
     this->shader.init( &selection_vertex, &selection_fragment );
+}
+void MouseSelection::set_break_progress( const float progress ) {
+    this->break_progress = progress;
 }
 void MouseSelection::set_block( const glm::ivec3 &pos, const bool shouldDraw, const BlockState &blockState ) {
     BlockCoords &blockCoords = this->render_chain_mouse_selection.get_instance( this->entity );
@@ -126,6 +130,7 @@ void MouseSelection::draw( const Renderer &renderer, const glm::mat4 &mvp, const
     if ( this->shouldDraw ) {
         this->shader.set_uniform_mat4f( "u_MVP", mvp );
         this->shader.set_uniform1f( "u_LineWidth", 3.0f );
+        this->shader.set_uniform1f( "u_BreakProgress", this->break_progress );
         this->shader.set_uniform3f( "u_Origin", origin.x, origin.y, origin.z );
         this->render_chain_mouse_selection.draw( renderer, this->shader );
     }

@@ -98,6 +98,21 @@ void RepGame::add_to_hotbar( const bool alsoSelect, const BlockID blockId ) {
     }
 }
 
+// Breaks the block under the cursor. In survival mode the mined block is
+// added to the hotbar first, then falls back to the survival inventory.
+void RepGame::break_selected_block( ) {
+    BlockID previous_block = change_block( 0, BLOCK_STATE_AIR );
+    if ( globalGameState.game_mode == GameMode_Survival && previous_block != LAST_BLOCK_ID && previous_block != AIR ) {
+        const Block *blockDef = block_definition_get_definition( previous_block );
+        if ( blockDef->is_pickable && blockDef->renderOrder != RenderOrder_Transparent && blockDef->renderOrder != RenderOrder_Water ) {
+            bool added = globalGameState.hotbar.addBlockWithQuantity( previous_block, 1 );
+            if ( !added ) {
+                globalGameState.survival_inventory.addBlock( previous_block, 1 );
+            }
+        }
+    }
+}
+
 void RepGame::process_mouse_events( ) {
     if ( !globalGameState.input.inventory_open && globalGameState.block_selection.selectionInBounds && globalGameState.input.mouse.buttons.middle && globalGameState.input.click_delay_middle == 0 ) {
         BlockState blockState = globalGameState.world.get_loaded_block( globalGameState.block_selection.pos_destroy );
@@ -129,21 +144,40 @@ void RepGame::process_mouse_events( ) {
             RepGame::add_to_hotbar( true, blockState.id );
         }
     }
-    if ( globalGameState.block_selection.selectionInBounds && globalGameState.input.mouse.buttons.left && globalGameState.input.click_delay_left == 0 ) {
+    const bool holding_break = globalGameState.block_selection.selectionInBounds && globalGameState.input.mouse.buttons.left;
+    if ( holding_break && globalGameState.input.click_delay_left == 0 ) {
         // Mining a block
-        BlockID previous_block = change_block( 0, BLOCK_STATE_AIR );
-        if ( globalGameState.game_mode == GameMode_Survival && previous_block != LAST_BLOCK_ID && previous_block != AIR ) {
-            // In survival mode, add the mined block to the hotbar first, then
-            // fall back to the survival inventory.
-            const Block *blockDef = block_definition_get_definition( previous_block );
-            if ( blockDef->is_pickable && blockDef->renderOrder != RenderOrder_Transparent && blockDef->renderOrder != RenderOrder_Water ) {
-                bool added = globalGameState.hotbar.addBlockWithQuantity( previous_block, 1 );
-                if ( !added ) {
-                    globalGameState.survival_inventory.addBlock( previous_block, 1 );
+        if ( globalGameState.game_mode == GameMode_Survival ) {
+            // Survival mode: blocks take time to break. Accumulate progress
+            // each tick the button is held on the same block.
+            const glm::ivec3 target_pos = globalGameState.block_selection.pos_destroy;
+            const BlockState target_state = globalGameState.world.get_loaded_block( target_pos );
+            const Block *target_def = block_definition_get_definition( target_state.id );
+            // hardness < 0 is unbreakable (bedrock/barrier); 0 breaks instantly.
+            if ( target_def->hardness >= 0.0f ) {
+                // Aiming at a different block (or the block at the position
+                // changing) restarts progress.
+                if ( globalGameState.block_mining.pos != target_pos || globalGameState.block_mining.id != target_state.id ) {
+                    globalGameState.block_mining.progress_ticks = 0.0f;
+                }
+                globalGameState.block_mining.pos = target_pos;
+                globalGameState.block_mining.id = target_state.id;
+                globalGameState.block_mining.progress_ticks += 1.0f;
+                if ( globalGameState.block_mining.progress_ticks >= target_def->hardness * static_cast<float>( UPS_RATE ) ) {
+                    break_selected_block( );
+                    globalGameState.block_mining.progress_ticks = 0.0f;
+                    globalGameState.input.click_delay_left = 30;
                 }
             }
+        } else {
+            // Creative mode breaks instantly.
+            break_selected_block( );
+            globalGameState.input.click_delay_left = 30;
         }
-        globalGameState.input.click_delay_left = 30;
+    }
+    if ( !holding_break ) {
+        // Released the mouse or looked away: abandon mining progress.
+        globalGameState.block_mining.progress_ticks = 0.0f;
     }
     if ( globalGameState.block_selection.selectionInBounds && globalGameState.input.mouse.buttons.right && globalGameState.input.click_delay_right == 0 ) {
         // Placing a block
@@ -645,7 +679,20 @@ void RepGame::tick( ) {
         if ( globalGameState.camera.angle_H < 0.0f ) {
             globalGameState.camera.angle_H += 360.0f;
         }
+    } else {
+        // Pointer unlocked (inventory open): abandon any in-progress mining.
+        globalGameState.block_mining.progress_ticks = 0.0f;
     }
+
+    // Feed mining progress to the selection overlay so the block shows crack
+    // damage while the left button is held.
+    float break_progress = 0.0f;
+    if ( globalGameState.block_mining.progress_ticks > 0.0f ) {
+        const float break_ticks = block_definition_get_definition( globalGameState.block_mining.id )->hardness * static_cast<float>( UPS_RATE );
+        break_progress = break_ticks > 0.0f ? globalGameState.block_mining.progress_ticks / break_ticks : 0.0f;
+    }
+    globalGameState.world.mouseSelection.set_break_progress( break_progress );
+
     globalGameState.input.mouse.currentPosition.x = globalGameState.screen.width / 2.0f;
     globalGameState.input.mouse.currentPosition.y = globalGameState.screen.height / 2.0f;
 
@@ -717,6 +764,9 @@ void RepGame::initializeGameState( const char *world_name ) {
     globalGameState.input.mouse.smoothed_dx = 0.0f;
     globalGameState.input.mouse.smoothed_dy = 0.0f;
     globalGameState.input.shift_held = false;
+    globalGameState.block_mining.pos = glm::ivec3( 0 );
+    globalGameState.block_mining.id = AIR;
+    globalGameState.block_mining.progress_ticks = 0.0f;
     globalGameState.camera.angle_H = 0.0f;
     globalGameState.camera.angle_V = 0.0f;
     globalGameState.camera.pos.x = 0.5f;

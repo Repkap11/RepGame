@@ -95,6 +95,15 @@ struct RepGameState {
         glm::ivec3 pos_create;
         glm::ivec3 pos_destroy;
     } block_selection;
+    // Survival-mode mining: while the left button is held on the same block,
+    // progress_ticks accumulates once per tick until it reaches the block's
+    // hardness * UPS_RATE, then the block breaks. Releasing the button,
+    // aiming at a different block, or opening the inventory resets it.
+    struct {
+        glm::ivec3 pos;
+        BlockID id;
+        float progress_ticks;
+    } block_mining;
     BlockUpdateQueue blockUpdateQueue;
     long tick_number;
 };
@@ -122,6 +131,7 @@ class RepGame {
     RepGameState globalGameState;
 
     BlockID change_block( int place, BlockState blockState );
+    void break_selected_block( );
     unsigned char getPlacedRotation( BlockID blockID ) const;
     void initializeGameState( const char *world_name );
     void add_to_hotbar( bool alsoSelect, BlockID blockId );

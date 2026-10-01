@@ -361,6 +361,9 @@ typedef struct {
     bool affected_by_redstone_power;
     bool transmits_redstone_power;
     bool can_be_placed_in;
+    // Seconds to break by hand in survival mode. 0 breaks instantly,
+    // negative means unbreakable (e.g. bedrock).
+    float hardness;
     struct {
         bool can_mesh_x;
         bool can_mesh_y;

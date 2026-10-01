@@ -54,6 +54,7 @@ void block_definitions_initilize_definitions( Texture *texture ) {
         block->transmits_redstone_power = false; // dust
         block->needs_place_on_solid_but_can_stack_on_self = false;
         block->can_be_placed_in = false;
+        block->hardness = 1.5f;
         block->connects_to_redstone_dust = false;
         block->is_redstone_dust = false;
         block->inventory_non_isometric_id = static_cast<BlockID>( block_id );
@@ -223,6 +224,7 @@ void block_definitions_initilize_definitions( Texture *texture ) {
         block_definitions[ id ].needs_place_on_any_solid[ FACE_TOP ] = true;
         block_definitions[ id ].breaks_in_liquid = true;
         block_definitions[ id ].is_torch = true;
+        block_definitions[ id ].hardness = 0.0f;
     }
     // Assign separate top-face textures for redstone torches so the top
     // can show a flame dot independent of the side texture.
@@ -362,6 +364,7 @@ void block_definitions_initilize_definitions( Texture *texture ) {
         block_definitions[ id ].connects_to_redstone_dust = true;
         block_definitions[ id ].is_redstone_dust = true;
         block_definitions[ id ].is_pickable = false;
+        block_definitions[ id ].hardness = 0.0f;
         block_definitions[ id ].hides_self = { false, false, false };
     }
     block_definitions[ REDSTONE_CROSS ].is_pickable = true;
@@ -548,6 +551,7 @@ void block_definitions_initilize_definitions( Texture *texture ) {
             block->collides_with_player = false;
             block->breaks_in_liquid = true;
             block->affected_by_redstone_power = false;
+            block->hardness = 0.0f;
         } else if ( block->renderOrder == RenderOrder_Water ) {
             block->is_seethrough = true;
             block->no_light = NO_LIGHT_BRIGHT;
@@ -557,6 +561,7 @@ void block_definitions_initilize_definitions( Texture *texture ) {
             block->is_pickable = false;
             block->collides_with_player = false;
             block->can_be_placed_in = true;
+            block->hardness = 0.0f;
         } else if ( block->renderOrder == RenderOrder_Transparent ) {
             block->is_seethrough = true;
             block->no_light = NO_LIGHT_DRAW;
@@ -566,6 +571,7 @@ void block_definitions_initilize_definitions( Texture *texture ) {
             block->breaks_in_liquid = true;
             block->affected_by_redstone_power = false;
             block->can_be_placed_in = true;
+            block->hardness = 0.0f;
         } else if ( block->renderOrder == RenderOrder_Translucent ) {
             block->is_seethrough = true;
             block->no_light = NO_LIGHT_NO_DRAW;
@@ -623,6 +629,57 @@ void block_definitions_initilize_definitions( Texture *texture ) {
     block_definitions[ GRASS_TUFT2 ].casts_shadow = true;
     block_definitions[ GRASS_TUFT3 ].casts_shadow = true;
     block_definitions[ GRASS_TUFT4 ].casts_shadow = true;
+
+    // Survival-mode break times in seconds (bare hands). Foliage, transparent
+    // and liquid blocks were set to instant (0) in the render-order pass
+    // above; negative means unbreakable.
+    block_definitions[ BEDROCK ].hardness = -1.0f;
+    block_definitions[ BARRIER ].hardness = -1.0f;
+    block_definitions[ DARK_BARRIER ].hardness = -1.0f;
+    block_definitions[ PORTAL ].hardness = -1.0f;
+    block_definitions[ TNT ].hardness = 0.0f;
+
+    constexpr BlockID hardness_dirt[] = { DIRT, GRASS, SNOWY_GRASS, MYCELIUM, PODZEL, SAND, ORANGE_SAND, GRAVEL };
+    for ( const BlockID id : hardness_dirt ) {
+        block_definitions[ id ].hardness = 0.75f;
+    }
+    block_definitions[ SNOW ].hardness = 0.5f;
+
+    constexpr BlockID hardness_leaves[] = { LEAF, BIRTCH_LEAVES, JUNGLE_LEAF, PINE_LEAF };
+    for ( const BlockID id : hardness_leaves ) {
+        block_definitions[ id ].hardness = 0.35f;
+    }
+
+    constexpr BlockID hardness_glass[] = { GLASS,           GLASS_PANE,        GLASS_BLACK,  GLASS_BLUE,  GLASS_BROWN,     GLASS_LIGHT_BLUE, //
+                                           GLASS_GRAY,      GLASS_DARK_GREEN,  GLASS_LIGHT_GREEN, GLASS_TINT_GREEN, GLASS_PALE_BLUE, GLASS_WHITE, //
+                                           REDSTONE_LAMP,   REDSTONE_LAMP_POWERED };
+    for ( const BlockID id : hardness_glass ) {
+        block_definitions[ id ].hardness = 0.45f;
+    }
+
+    constexpr BlockID hardness_wood[] = { OAK_PLANK, PINE_PLANK, JUNGLE_PLANK, BIRTCH_PLANK, ACACIA_PLANK, DARK_OAK_PLANK, //
+                                          OAK_LOG,   BIRTCH_LOG, JUNGLE_LOG,   ACACIA_LOG,   DARK_OAK_LOG,               //
+                                          OAK_SLAB,  PINE_SLAB,  BIRTCH_SLAB,  JUNGLE_SLAB,  ACACIA_SLAB,  DARK_OAK_SLAB, //
+                                          CRAFTING_BENCH, BOOK_CASE, SINGLE_CHEST_LATCH, DOUBLE_CHEST_LEFT_LATCH, DOUBLE_CHEST_RIGHT_LATCH };
+    for ( const BlockID id : hardness_wood ) {
+        block_definitions[ id ].hardness = 2.0f;
+    }
+
+    constexpr BlockID hardness_stone[] = { STONE,              COBBLESTONE,           STONE_BRICK,               BRICK,                  DOUBLE_SLAB,          EMPTY_SPAWNER,         //
+                                           BRICK_SLAB,         SANDSTONE_SLAB,        COBBLESTONE_SLAB,          STONE_BRICK_SLAB,       RED_SANDSTONE_BRICK_SLAB,                    //
+                                           SANDSTONE_BRICK,    SANDSTONE_BRICK_CREEPER,                          RED_SANDSTONE_BRICK,    RED_SANDSTONE_BRICK_WITHER, RED_SANDSTONE_BRICK_POLISHED, //
+                                           FURNACE_UNLIT,      FURNACE_LIT,           GOLD_ORE,                  IRON_ORE,               COAL_ORE,                                  //
+                                           IRON_BLOCK,         GOLD_BLOCK,            DIAMOND_BLOCK,             EMERALD_BLOCK,          REDSTONE_BLOCK };
+    for ( const BlockID id : hardness_stone ) {
+        block_definitions[ id ].hardness = 4.0f;
+    }
+
+    constexpr BlockID hardness_quick[] = { OAK_BUTTON,           PINE_BUTTON,           BIRTCH_BUTTON,           JUNGLE_BUTTON,          ACACIA_BUTTON,        DARK_OAK_BUTTON, STONE_BUTTON, //
+                                           PINE_PRESSURE_PLATE,  BIRTCH_PRESSURE_PLATE, JUNGLE_PRESSURE_PLATE,   ACACIA_PRESSURE_PLATE,  DARK_OAK_PRESSURE_PLATE,                       //
+                                           LADDER,              CAKE,                  BED };
+    for ( const BlockID id : hardness_quick ) {
+        block_definitions[ id ].hardness = 0.5f;
+    }
 }
 
 void block_definitions_free_definitions( ) {
