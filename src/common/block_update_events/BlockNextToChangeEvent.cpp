@@ -1,3 +1,9 @@
+#include <queue>
+#include <unordered_map>
+#include <vector>
+#define GLM_ENABLE_EXPERIMENTAL
+#include <glm/gtx/hash.hpp>
+
 #include "common/block_update_events/BlockNextToChangeEvent.hpp"
 #include "common/RepGame.hpp"
 #include "common/multiplayer.hpp"
@@ -38,10 +44,15 @@ inline bool dust_points_toward( BlockID display_id, const glm::ivec3 &dir_from_d
     }
 }
 
-int find_largest_redstone_power_around( World &world, const glm::ivec3 &pos, bool skip_torch_above, bool for_dust ) {
-    int max = 0;
+#define REDSTONE_DELAY 1
+#define REDSTONE_TORCH_POWER 15
 
-    // All 6 directions. Always skip a torch above (torch doesn't power attachment block).
+// Returns the strongest power the dust at `pos` can read from adjacent non-dust
+// blocks (redstone blocks, torches, hard powered blocks). Soft powered blocks
+// (power <= 1) and torches attached to `pos` don't count. Dust neighbors are
+// handled by compute_dust_power's graph search instead of being read here.
+static int dust_adjacent_source_power( World &world, const glm::ivec3 &pos ) {
+    int max = 0;
     static constexpr glm::ivec3 directions[ 6 ] = {
         glm::ivec3( 0, 1, 0 ),  //
         glm::ivec3( 0, -1, 0 ), //
@@ -71,20 +82,23 @@ int find_largest_redstone_power_around( World &world, const glm::ivec3 &pos, boo
             }
         }
         const Block *neighbor_block = block_definition_get_definition( neighbor.id );
-        // For dust: skip soft-powered solid blocks (power <= 1)
-        if ( for_dust && !neighbor_block->transmits_redstone_power && neighbor.current_redstone_power <= 1 ) {
+        if ( neighbor_block->is_redstone_dust ) {
             continue;
         }
-        // Skip dust that doesn't point toward this position (e.g. dot, or shape doesn't connect here)
-        if ( neighbor_block->is_redstone_dust && !dust_points_toward( neighbor.display_id, -dir ) ) {
+        if ( !neighbor_block->transmits_redstone_power && neighbor.current_redstone_power <= 1 ) {
             continue;
         }
         if ( neighbor.current_redstone_power > max ) {
             max = neighbor.current_redstone_power;
         }
     }
+    return max;
+}
 
-    // Horizontal neighbors: check vertical dust connections (up over solid, down below non-solid)
+// Appends the positions of dust that feed power directly into the dust at
+// `pos`: horizontal neighbors whose shape points at `pos`, plus the vertical
+// connections over solid blocks and under non-solid ones.
+static void dust_feeders( World &world, const glm::ivec3 &pos, std::vector<glm::ivec3> &feeders ) {
     static constexpr glm::ivec3 horiz_dirs[ 4 ] = {
         glm::ivec3( 1, 0, 0 ),  //
         glm::ivec3( -1, 0, 0 ), //
@@ -98,34 +112,65 @@ int find_largest_redstone_power_around( World &world, const glm::ivec3 &pos, boo
             continue;
         }
         const Block *neighbor_block = block_definition_get_definition( neighbor.id );
-
-        // Up: solid block at neighbor_pos with dust on top
-        if ( neighbor_block->collides_with_player ) {
-            BlockState above = world.get_loaded_block( neighbor_pos + glm::ivec3( 0, 1,  0 ) );
-            if ( above.id != LAST_BLOCK_ID ) {
-                const Block *above_block = block_definition_get_definition( above.id );
-                if ( above_block->is_redstone_dust && dust_points_toward( above.display_id, -dir ) && above.current_redstone_power > max ) {
-                    max = above.current_redstone_power;
-                }
+        if ( neighbor_block->is_redstone_dust ) {
+            if ( dust_points_toward( neighbor.display_id, -dir ) ) {
+                feeders.push_back( neighbor_pos );
             }
-        }
-
-        // Down: non-solid block at neighbor_pos with dust below
-        if ( !neighbor_block->collides_with_player && !neighbor_block->is_redstone_dust ) {
-            BlockState below = world.get_loaded_block( neighbor_pos + glm::ivec3( 0, -1, 0 ) );
-            if ( below.id != LAST_BLOCK_ID ) {
-                const Block *below_block = block_definition_get_definition( below.id );
-                if ( below_block->is_redstone_dust && dust_points_toward( below.display_id, -dir ) && below.current_redstone_power > max ) {
-                    max = below.current_redstone_power;
-                }
+        } else if ( neighbor_block->collides_with_player ) {
+            // Up: dust on top of a solid neighbor connects down to pos
+            glm::ivec3 above_pos = neighbor_pos + glm::ivec3( 0, 1, 0 );
+            BlockState above = world.get_loaded_block( above_pos );
+            if ( above.id != LAST_BLOCK_ID && block_definition_get_definition( above.id )->is_redstone_dust && dust_points_toward( above.display_id, -dir ) ) {
+                feeders.push_back( above_pos );
+            }
+        } else {
+            // Down: dust below a non-solid neighbor connects up to pos
+            glm::ivec3 below_pos = neighbor_pos + glm::ivec3( 0, -1, 0 );
+            BlockState below = world.get_loaded_block( below_pos );
+            if ( below.id != LAST_BLOCK_ID && block_definition_get_definition( below.id )->is_redstone_dust && dust_points_toward( below.display_id, -dir ) ) {
+                feeders.push_back( below_pos );
             }
         }
     }
-    return max;
 }
 
-#define REDSTONE_DELAY 1
-#define REDSTONE_TORCH_POWER 15
+// Computes the power the dust at `pos` should have: the strongest source
+// reachable through the dust connection graph, minus one per hop.
+// Other dust's stored power is deliberately ignored: it is stale while a power
+// change is still propagating, and reading it let loops of dust keep each
+// other powered (or flicker) instead of settling.
+static int compute_dust_power( World &world, const glm::ivec3 &pos ) {
+    std::unordered_map<glm::ivec3, int> distances;
+    std::queue<glm::ivec3> pending;
+    std::vector<glm::ivec3> feeders;
+    distances.emplace( pos, 0 );
+    pending.push( pos );
+    int best = 0;
+    while ( !pending.empty( ) ) {
+        glm::ivec3 cur = pending.front( );
+        pending.pop( );
+        int dist = distances[ cur ];
+        int contribution = dust_adjacent_source_power( world, cur ) - ( dist + 1 );
+        if ( contribution > best ) {
+            best = contribution;
+            if ( best >= REDSTONE_TORCH_POWER - 1 ) {
+                break; // Dust can't get more power than this
+            }
+        }
+        // A dust one hop further out can contribute at most 15 - (dist + 2)
+        if ( dist + 2 >= REDSTONE_TORCH_POWER ) {
+            continue;
+        }
+        feeders.clear( );
+        dust_feeders( world, cur, feeders );
+        for ( const glm::ivec3 &feeder : feeders ) {
+            if ( distances.emplace( feeder, dist + 1 ).second ) {
+                pending.push( feeder );
+            }
+        }
+    }
+    return best > 0 ? best : 0;
+}
 
 #define NEXT_TO_STATE( i, j, k ) world.get_loaded_block( glm::ivec3( affecting_block_pos.x + i, affecting_block_pos.y + j, affecting_block_pos.z + k ) )
 #define NEXT_TO_BLOCK( i, j, k ) block_definition_get_definition( world.get_loaded_block( glm::ivec3( affecting_block_pos.x + i, affecting_block_pos.y + j, affecting_block_pos.z + k ) ).id )
@@ -158,6 +203,10 @@ void perform_checks( BlockUpdateQueue &blockUpdateQueue, World &world, long tick
         blockUpdateQueue.addBlockUpdate( blockPlacedEvent );
     }
 
+    // The state change (if any) to apply to the affecting block. Display and
+    // power updates are merged into one event so a stale payload can't undo
+    // the other change when it applies.
+    BlockState new_block_state = affecting_block_state;
     {
         if ( affecting_block->is_redstone_dust ) {
             BlockID new_display_block_id = affecting_block_state.display_id;
@@ -237,14 +286,7 @@ void perform_checks( BlockUpdateQueue &blockUpdateQueue, World &world, long tick
                     new_display_block_id = ( affecting_block_state.display_id == REDSTONE_DOT ) ? REDSTONE_DOT : REDSTONE_CROSS;
                 }
 
-                if ( new_display_block_id != affecting_block_state.display_id ) {
-                    // pr_debug( "Dust" );
-
-                    BlockState new_block_state = affecting_block_state;
-                    new_block_state.display_id = new_display_block_id;
-                    auto blockPlacedEvent = std::make_shared<PlayerBlockPlacedEvent>( tick_number + REDSTONE_DELAY, affecting_block_pos, new_block_state, true );
-                    blockUpdateQueue.addBlockUpdate( blockPlacedEvent );
-                }
+                new_block_state.display_id = new_display_block_id;
             }
         }
     }
@@ -276,9 +318,9 @@ void perform_checks( BlockUpdateQueue &blockUpdateQueue, World &world, long tick
             // torch/redstone block, or soft power (1) from dust pointing into the block.
             new_power = attach_state.current_redstone_power > 0 ? 0 : REDSTONE_TORCH_POWER;
         } else if ( affecting_block->transmits_redstone_power ) {
-            // Dust: power = max(neighbors) - 1, skipping soft-powered solid blocks
-            int maximum_power = find_largest_redstone_power_around( world, affecting_block_pos, false, true );
-            new_power = maximum_power > 1 ? maximum_power - 1 : 0;
+            // Dust: power = strongest source reachable through the dust
+            // connection graph, minus one per hop.
+            new_power = compute_dust_power( world, affecting_block_pos );
         } else {
             // Solid block: distinguish hard power (from torches above/redstone blocks) and soft power (from dust/torch sides)
             new_power = 0;
@@ -381,19 +423,13 @@ void perform_checks( BlockUpdateQueue &blockUpdateQueue, World &world, long tick
             }
         }
 
-        if ( affecting_block->transmits_redstone_power && new_power < affecting_block_state.current_redstone_power ) {
-            // Power decreased: set to 0 so downstream blocks also lose power.
-            // Power will come back from remaining sources on the next recalculation.
-            new_power = 0;
-        }
+        new_block_state.current_redstone_power = new_power;
+    }
 
-        if ( new_power != affecting_block_state.current_redstone_power ) {
-            // pr_debug( "Queueing event1 with old:%d new:%d", affecting_block_state.current_redstone_power, new_power );
-            BlockState new_block_state = affecting_block_state;
-            new_block_state.current_redstone_power = new_power;
-            auto blockPlacedEvent = std::make_shared<PlayerBlockPlacedEvent>( tick_number + REDSTONE_DELAY, affecting_block_pos, new_block_state, true );
-            blockUpdateQueue.addBlockUpdate( blockPlacedEvent );
-        }
+    if ( !BlockStates_equal( new_block_state, affecting_block_state ) ) {
+        // pr_debug( "Queueing event1 with old:%d new:%d", affecting_block_state.current_redstone_power, new_block_state.current_redstone_power );
+        auto blockPlacedEvent = std::make_shared<PlayerBlockPlacedEvent>( tick_number + REDSTONE_DELAY, affecting_block_pos, new_block_state, true );
+        blockUpdateQueue.addBlockUpdate( blockPlacedEvent );
     }
 
     bool block_is_ok_to_place = true;
