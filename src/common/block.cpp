@@ -98,19 +98,18 @@ void block_adjust_coord_based_on_state( const Block *block, const BlockState *bl
             blockCoord->face[ FACE_BACK ] = side;
         } else {
             // Horizontal (rot 0-3): the shader's face-shift lands FACE_FRONT's
-            // texture on the head-facing world face. The side tiles are
-            // pre-rotated variants; pick per rotation so the wooden band ends
-            // up on the edge adjacent to the head (band edge per tile:
-            // LEFT=u0, DOWN=v0, RIGHT=u1, UP=v1; face UVs are fixed except
-            // TOP/BOTTOM, which the shader rotates for rot 1/2/3).
+            // texture on the head-facing world face. The lateral slots never
+            // need per-rotation variants: as the rotation permutes which
+            // geometric face a slot lands on, the band edge each slot needs
+            // stays the same (RIGHT slot's band edge is always u1, LEFT's u0;
+            // TOP always wants the band at v1, BOTTOM at v0 — the shader
+            // rotates top/bottom texcoords with the block).
             blockCoord->face[ FACE_FRONT ] = face_tile;
             blockCoord->face[ FACE_BACK ] = PISTON_BACK;
-            // The shader rotates TOP/BOTTOM texcoords with the block, so the
-            // head-side edge is v1 on TOP and v0 on BOTTOM for all rotations.
             blockCoord->face[ FACE_TOP ] = PISTON_SIDE_UP;
             blockCoord->face[ FACE_BOTTOM ] = PISTON_SIDE_DOWN;
-            blockCoord->face[ FACE_RIGHT ] = ( rot == BLOCK_ROTATE_90 || rot == BLOCK_ROTATE_270 ) ? PISTON_SIDE_RIGHT : PISTON_SIDE_LEFT;
-            blockCoord->face[ FACE_LEFT ] = ( rot == BLOCK_ROTATE_90 || rot == BLOCK_ROTATE_270 ) ? PISTON_SIDE_LEFT : PISTON_SIDE_RIGHT;
+            blockCoord->face[ FACE_RIGHT ] = PISTON_SIDE_LEFT;
+            blockCoord->face[ FACE_LEFT ] = PISTON_SIDE_RIGHT;
         }
     }
 
