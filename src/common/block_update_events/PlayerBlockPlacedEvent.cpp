@@ -34,6 +34,12 @@ void PlayerBlockPlacedEvent::performAction( BlockUpdateQueue &blockUpdateQueue, 
             return;
         }
     }
+    // Don't place a block that can't survive here (e.g. dust above dust, a
+    // torch on a missing attachment): it would sit for a tick and then pop
+    // off, spawning break debris for a block that was never really placed.
+    if ( !this->state_update && !block_can_survive_at( repGameState.world, this->block_pos, this->blockState ) ) {
+        return;
+    }
     // If you're destroying a block, the destroyed block must have can_be_destroyed
     // if (this->blockState.id == AIR && !current_block->can_be_destroyed){
     if ( current_block_state.id == AIR && !1 ) {

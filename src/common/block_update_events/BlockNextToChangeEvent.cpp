@@ -183,6 +183,43 @@ inline int get_rotated_face( int face, int rotation ) {
     return result;
 }
 
+// Returns false if a block with the given state couldn't survive at block_pos
+// (no required solid face/attachment). Used to reject invalid placements and
+// to break blocks whose support was removed.
+bool block_can_survive_at( World &world, const glm::ivec3 &block_pos, const BlockState &block_state ) {
+    const Block *block = block_definition_get_definition( block_state.id );
+    if ( block->is_torch && block_state.rotation >= 4 ) {
+        // Side-mounted torch: check the attachment block is still solid.
+        // rotation 4=attached LEFT(solid at x-1), 5=FRONT(z-1), 6=RIGHT(x+1), 7=BACK(z+1)
+        // The formula checks block_pos - FACE_DIR_OFFSETS[face], so we need the OPPOSITE face:
+        //   solid at x-1 → need face with offset +1 → FACE_RIGHT
+        //   solid at z-1 → need face with offset +1 → FACE_FRONT
+        //   solid at x+1 → need face with offset -1 → FACE_LEFT
+        //   solid at z+1 → need face with offset -1 → FACE_BACK
+        static const int rot_to_face[ 4 ] = { FACE_RIGHT, FACE_BACK, FACE_LEFT, FACE_FRONT };
+        int attach_face = rot_to_face[ block_state.rotation - 4 ];
+        BlockID next_to_block_id = world.get_loaded_block( glm::ivec3( block_pos.x - FACE_DIR_X_OFFSETS[ attach_face ], block_pos.y - FACE_DIR_Y_OFFSETS[ attach_face ], block_pos.z - FACE_DIR_Z_OFFSETS[ attach_face ] ) ).id;
+        return block_definition_get_definition( next_to_block_id )->collides_with_player;
+    }
+    bool block_is_ok_to_place = true;
+    for ( int face = FACE_TOP; face < NUM_FACES_IN_CUBE; face++ ) {
+        int rotated_face = get_rotated_face( face, block_state.rotation );
+        if ( block->needs_place_on_any_solid[ rotated_face ] ) {
+            BlockID next_to_block_id = world.get_loaded_block( glm::ivec3( block_pos.x - FACE_DIR_X_OFFSETS[ face ], block_pos.y - FACE_DIR_Y_OFFSETS[ face ], block_pos.z - FACE_DIR_Z_OFFSETS[ face ] ) ).id;
+            if ( block->needs_place_on_solid_but_can_stack_on_self && next_to_block_id == block_state.id ) {
+                block_is_ok_to_place = true;
+                break;
+            } else {
+                block_is_ok_to_place = block_definition_get_definition( next_to_block_id )->collides_with_player;
+                if ( block_is_ok_to_place ) {
+                    break;
+                }
+            }
+        }
+    }
+    return block_is_ok_to_place;
+}
+
 void perform_checks( BlockUpdateQueue &blockUpdateQueue, World &world, long tick_number, //
                      const glm::ivec3 &block_pos,                                        //
                      const glm::ivec3 &affecting_block_pos ) {
@@ -432,37 +469,7 @@ void perform_checks( BlockUpdateQueue &blockUpdateQueue, World &world, long tick
         blockUpdateQueue.addBlockUpdate( blockPlacedEvent );
     }
 
-    bool block_is_ok_to_place = true;
-    if ( updateing_block->is_torch && updateing_block_state.rotation >= 4 ) {
-        // Side-mounted torch: check the attachment block is still solid.
-        // rotation 4=attached LEFT(solid at x-1), 5=FRONT(z-1), 6=RIGHT(x+1), 7=BACK(z+1)
-        // The formula checks block_pos - FACE_DIR_OFFSETS[face], so we need the OPPOSITE face:
-        //   solid at x-1 → need face with offset +1 → FACE_RIGHT
-        //   solid at z-1 → need face with offset +1 → FACE_FRONT
-        //   solid at x+1 → need face with offset -1 → FACE_LEFT
-        //   solid at z+1 → need face with offset -1 → FACE_BACK
-        static const int rot_to_face[ 4 ] = { FACE_RIGHT, FACE_BACK, FACE_LEFT, FACE_FRONT };
-        int attach_face = rot_to_face[ updateing_block_state.rotation - 4 ];
-        BlockID next_to_block_id = world.get_loaded_block( glm::ivec3( block_pos.x - FACE_DIR_X_OFFSETS[ attach_face ], block_pos.y - FACE_DIR_Y_OFFSETS[ attach_face ], block_pos.z - FACE_DIR_Z_OFFSETS[ attach_face ] ) ).id;
-        block_is_ok_to_place = block_definition_get_definition( next_to_block_id )->collides_with_player;
-    } else {
-        for ( int face = FACE_TOP; face < NUM_FACES_IN_CUBE; face++ ) {
-            int rotated_face = get_rotated_face( face, updateing_block_state.rotation );
-            if ( updateing_block->needs_place_on_any_solid[ rotated_face ] ) {
-                BlockID next_to_block_id = world.get_loaded_block( glm::ivec3( block_pos.x - FACE_DIR_X_OFFSETS[ face ], block_pos.y - FACE_DIR_Y_OFFSETS[ face ], block_pos.z - FACE_DIR_Z_OFFSETS[ face ] ) ).id;
-                if ( updateing_block->needs_place_on_solid_but_can_stack_on_self && next_to_block_id == updateing_block_state.id ) {
-                    block_is_ok_to_place = true;
-                    break;
-                } else {
-                    block_is_ok_to_place = block_definition_get_definition( next_to_block_id )->collides_with_player;
-                    if ( block_is_ok_to_place ) {
-                        break;
-                    }
-                }
-            }
-        }
-    }
-    if ( !block_is_ok_to_place ) {
+    if ( !block_can_survive_at( world, block_pos, updateing_block_state ) ) {
         auto blockPlacedEvent = std::make_shared<PlayerBlockPlacedEvent>( tick_number, block_pos, BLOCK_STATE_AIR, false );
         blockUpdateQueue.addBlockUpdate( blockPlacedEvent );
     }
