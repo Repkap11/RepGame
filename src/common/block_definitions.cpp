@@ -57,12 +57,15 @@ void block_definitions_initilize_definitions( Texture *texture ) {
         block->hardness = 1.5f;
         block->connects_to_redstone_dust = false;
         block->is_redstone_dust = false;
+        block->is_button = false;
+        block->is_pressure_plate = false;
         block->inventory_non_isometric_id = static_cast<BlockID>( block_id );
     }
 
+    // 2 pixels thick when unpressed so the pressed state can visibly shrink to 1.
     BlockID pressure_plate_shaped[] = { PINE_PRESSURE_PLATE, BIRTCH_PRESSURE_PLATE, JUNGLE_PRESSURE_PLATE, ACACIA_PRESSURE_PLATE, DARK_OAK_PRESSURE_PLATE };
     for ( BlockID id : pressure_plate_shaped ) {
-        centered_border( id, 1, 1 );
+        centered_border( id, 1, 2 );
         block_definitions[ id ].is_seethrough = true;
         block_definitions[ id ].casts_shadow = false;
         block_definitions[ id ].icon_is_isometric = false;
@@ -70,6 +73,8 @@ void block_definitions_initilize_definitions( Texture *texture ) {
         block_definitions[ id ].collides_with_player = false;
         block_definitions[ id ].breaks_in_liquid = false;
         block_definitions[ id ].rotate_on_placement = false;
+        block_definitions[ id ].is_pressure_plate = true;
+        block_definitions[ id ].connects_to_redstone_dust = true;
     }
     // block_definitions[ OAK_PRESSURE_PLATE ].textures[ FACE_FRONT ] = OAK_PLANK;
     // block_definitions[ OAK_PRESSURE_PLATE ].textures[ FACE_BACK ] = OAK_PLANK;
@@ -113,6 +118,8 @@ void block_definitions_initilize_definitions( Texture *texture ) {
         block_definitions[ id ].collides_with_player = false;
         block_definitions[ id ].breaks_in_liquid = true;
         block_definitions[ id ].rotate_on_placement = true;
+        block_definitions[ id ].is_button = true;
+        block_definitions[ id ].connects_to_redstone_dust = true;
     }
     block_definitions[ OAK_BUTTON ].textures[ FACE_TOP ] = OAK_PLANK;
     block_definitions[ OAK_BUTTON ].textures[ FACE_BOTTOM ] = OAK_PLANK;

@@ -220,6 +220,25 @@ bool block_can_survive_at( World &world, const glm::ivec3 &block_pos, const Bloc
     return block_is_ok_to_place;
 }
 
+// Returns true if a button/pressure plate at activator_pos is attached to
+// target_pos. Uses the same needs_place_on_any_solid logic as
+// block_can_survive_at: for each required face, the supporting block sits at
+// activator_pos - FACE_DIR_OFFSETS[face].
+static bool activator_attached_to( const glm::ivec3 &activator_pos, const BlockState &activator_state, const glm::ivec3 &target_pos ) {
+    const Block *activator = block_definition_get_definition( activator_state.id );
+    for ( int face = FACE_TOP; face < NUM_FACES_IN_CUBE; face++ ) {
+        int rotated_face = get_rotated_face( face, activator_state.rotation );
+        if ( activator->needs_place_on_any_solid[ rotated_face ] ) {
+            if ( activator_pos.x - FACE_DIR_X_OFFSETS[ face ] == target_pos.x && //
+                 activator_pos.y - FACE_DIR_Y_OFFSETS[ face ] == target_pos.y && //
+                 activator_pos.z - FACE_DIR_Z_OFFSETS[ face ] == target_pos.z ) {
+                return true;
+            }
+        }
+    }
+    return false;
+}
+
 void perform_checks( BlockUpdateQueue &blockUpdateQueue, World &world, long tick_number, //
                      const glm::ivec3 &block_pos,                                        //
                      const glm::ivec3 &affecting_block_pos ) {
@@ -354,6 +373,10 @@ void perform_checks( BlockUpdateQueue &blockUpdateQueue, World &world, long tick
             // Any power (> 0) to the attachment block turns the torch off: hard power (> 1) from a
             // torch/redstone block, or soft power (1) from dust pointing into the block.
             new_power = attach_state.current_redstone_power > 0 ? 0 : REDSTONE_TORCH_POWER;
+        } else if ( affecting_block->is_button || affecting_block->is_pressure_plate ) {
+            // Buttons and pressure plates own their power through their press
+            // state — neighboring redstone can't change it.
+            new_power = affecting_block_state.current_redstone_power;
         } else if ( affecting_block->transmits_redstone_power ) {
             // Dust: power = strongest source reachable through the dust
             // connection graph, minus one per hop.
@@ -413,6 +436,12 @@ void perform_checks( BlockUpdateQueue &blockUpdateQueue, World &world, long tick
                         }
                     }
                     // Torch to the side (not attached): weakly powers (soft power 1), handled below
+                }
+                if ( ( neighbor_block->is_button || neighbor_block->is_pressure_plate ) && neighbor.current_redstone_power > 0 ) {
+                    // Pressed button/plate: strongly powers the block it's attached to.
+                    if ( activator_attached_to( affecting_block_pos + dir, neighbor, affecting_block_pos ) && REDSTONE_TORCH_POWER > new_power ) {
+                        new_power = REDSTONE_TORCH_POWER;
+                    }
                 }
             }
 

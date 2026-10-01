@@ -193,6 +193,9 @@ static_assert( CHUNK_RADIUS_Z > 0, "CHUNK_RADIUS_Z too small" );
 
 #define NUM_FACES_IN_CUBE 6
 
+// Redstone power emitted by a pressed button/pressure plate (same as a torch).
+#define REDSTONE_SOURCE_POWER 15
+
 #define CORNER_OFFSET_tfl 0
 #define CORNER_OFFSET_tfr 2
 #define CORNER_OFFSET_tbl 4

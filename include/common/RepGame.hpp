@@ -13,7 +13,10 @@ typedef enum {
 } GameMode;
 
 #include <entt/entity/registry.hpp>
+#include <unordered_set>
+#define GLM_ENABLE_EXPERIMENTAL
 #include <glm.hpp>
+#include <gtx/hash.hpp>
 #include "common/RenderChain.hpp"
 #include "common/RenderLink.hpp"
 
@@ -106,6 +109,11 @@ struct RepGameState {
     } block_mining;
     BlockUpdateQueue blockUpdateQueue;
     long tick_number;
+    // Pressure plates with a live PressurePlateEvent check chain. Positions
+    // are added when the player steps on a plate and removed by the event
+    // when nobody is on it (or it was broken/unloaded), so exactly one check
+    // chain exists per plate.
+    std::unordered_set<glm::ivec3> watched_pressure_plates;
 };
 
 struct __attribute__( ( packed ) ) PlayerData {
@@ -143,6 +151,9 @@ class RepGame {
     void process_movement( );
     void process_block_updates( );
     void process_inventory_events( );
+    // Queues a PressurePlateEvent for each unpressed pressure plate the
+    // player's feet overlap; pressed plates re-check themselves via the event.
+    void process_pressure_plates( );
 
   public:
     // Per-frame profiling data (microseconds). Updated by draw() and read by

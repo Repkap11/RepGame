@@ -374,6 +374,12 @@ typedef struct {
     bool connects_to_redstone_dust;
     bool is_redstone_dust;
     bool is_torch;
+    // Blocks that emit full redstone power while "pressed": buttons (pressed by
+    // right-click, time out) and pressure plates (pressed while stood on).
+    // current_redstone_power > 0 means pressed, and also shrinks the rendered
+    // thickness (see block_adjust_coord_based_on_state).
+    bool is_button;
+    bool is_pressure_plate;
     BlockID inventory_non_isometric_id;
 
 } Block;

@@ -17,6 +17,7 @@
 #include "common/multiplayer.hpp"
 #include "common/map_gen.hpp"
 #include "common/block_update_events/PlayerBlockPlacedEvent.hpp"
+#include "common/block_update_events/PressurePlateEvent.hpp"
 
 static inline long long now_us( ) {
     return std::chrono::duration_cast<std::chrono::microseconds>(
@@ -180,6 +181,30 @@ void RepGame::process_mouse_events( ) {
     if ( !holding_break ) {
         // Released the mouse or looked away: abandon mining progress.
         globalGameState.block_mining.progress_ticks = 0.0f;
+    }
+    if ( globalGameState.block_selection.selectionInBounds && globalGameState.input.mouse.buttons.right && globalGameState.input.click_delay_right == 0 ) {
+        const BlockState target_state = globalGameState.world.get_loaded_block( globalGameState.block_selection.pos_destroy );
+        if ( block_definition_get_definition( target_state.id )->is_button ) {
+            // Right-click presses a button instead of placing against it:
+            // powered for a timeout, then released. Wood stays pressed ~1.5s,
+            // stone ~1s. The click delay also swallows the placement attempt
+            // below.
+            const long press_ticks = target_state.id == STONE_BUTTON ? UPS_RATE : UPS_RATE + UPS_RATE / 2;
+            BlockState released_state = target_state;
+            released_state.current_redstone_power = 0;
+            if ( target_state.current_redstone_power == 0 ) {
+                BlockState pressed_state = target_state;
+                pressed_state.current_redstone_power = REDSTONE_SOURCE_POWER;
+                auto pressEvent = std::make_shared<PlayerBlockPlacedEvent>( globalGameState.tick_number, globalGameState.block_selection.pos_destroy, pressed_state, true );
+                globalGameState.blockUpdateQueue.addBlockUpdate( pressEvent );
+            }
+            // Always (re)queue the release: idempotent while unpressed, and it
+            // revives a button saved while pressed (queued events don't
+            // persist across loads).
+            auto releaseEvent = std::make_shared<PlayerBlockPlacedEvent>( globalGameState.tick_number + press_ticks, globalGameState.block_selection.pos_destroy, released_state, true );
+            globalGameState.blockUpdateQueue.addBlockUpdate( releaseEvent );
+            globalGameState.input.click_delay_right = 30;
+        }
     }
     if ( globalGameState.block_selection.selectionInBounds && globalGameState.input.mouse.buttons.right && globalGameState.input.click_delay_right == 0 ) {
         // Placing a block
@@ -497,6 +522,37 @@ void RepGame::process_block_updates( ) {
     globalGameState.blockUpdateQueue.processAllBlockUpdates( globalGameState, globalGameState.tick_number );
 }
 
+void RepGame::process_pressure_plates( ) {
+    const glm::dvec3 &eye = globalGameState.camera.pos;
+    const double half_w = PLAYER_WIDTH / 2.0;
+    const double feet_y = eye.y - EYE_POSITION_OFFSET - PLAYER_HEIGHT / 2.0;
+    // Cells overlapped by the player's feet; the plate lives in the same cell
+    // as the feet when standing on it (it doesn't collide, so feet rest at
+    // the supporting block's top face).
+    const double eps = 1e-4;
+    const int y = static_cast<int>( floor( feet_y ) );
+    const int x0 = static_cast<int>( floor( eye.x - half_w ) );
+    const int x1 = static_cast<int>( floor( eye.x + half_w - eps ) );
+    const int z0 = static_cast<int>( floor( eye.z - half_w ) );
+    const int z1 = static_cast<int>( floor( eye.z + half_w - eps ) );
+    for ( int x = x0; x <= x1; x++ ) {
+        for ( int z = z0; z <= z1; z++ ) {
+            const glm::ivec3 block_pos( x, y, z );
+            const BlockState block_state = globalGameState.world.get_loaded_block( block_pos );
+            if ( block_state.id == LAST_BLOCK_ID ) {
+                continue;
+            }
+            // First time standing on this plate starts a check chain; the
+            // event reschedules itself until nobody is on it. Watching is what
+            // bounds this to one chain per plate.
+            if ( block_definition_get_definition( block_state.id )->is_pressure_plate && globalGameState.watched_pressure_plates.insert( block_pos ).second ) {
+                auto plateEvent = std::make_shared<PressurePlateEvent>( globalGameState.tick_number, block_pos );
+                globalGameState.blockUpdateQueue.addBlockUpdate( plateEvent );
+            }
+        }
+    }
+}
+
 void RepGame::process_inventory_events( ) {
     if ( globalGameState.input.toggle_game_mode ) {
         globalGameState.input.toggle_game_mode = false;
@@ -734,6 +790,7 @@ void RepGame::tick( ) {
     // sync with the look direction.
     RepGame::process_camera_angle( );
     RepGame::process_movement( );
+    RepGame::process_pressure_plates( );
 
     if ( globalGameState.input.click_delay_right > 0 ) {
         globalGameState.input.click_delay_right--;
@@ -769,6 +826,7 @@ void RepGame::initializeGameState( const char *world_name ) {
     globalGameState.block_mining.pos = glm::ivec3( 0 );
     globalGameState.block_mining.id = AIR;
     globalGameState.block_mining.progress_ticks = 0.0f;
+    globalGameState.watched_pressure_plates.clear( );
     globalGameState.camera.angle_H = 0.0f;
     globalGameState.camera.angle_V = 0.0f;
     globalGameState.camera.pos.x = 0.5f;

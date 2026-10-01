@@ -68,4 +68,12 @@ void block_adjust_coord_based_on_state( const Block *block, const BlockState *bl
         blockCoord->face[ FACE_TOP ] = REDSTONE_TORCH_OFF_TOP;
         blockCoord->face[ FACE_BOTTOM ] = REDSTONE_TORCH_BOTTOM;
     }
+
+    // Pressed activators get thinner: plates squash down, buttons sink into
+    // their wall (the unrotated z axis is the attachment direction).
+    if ( block->is_pressure_plate && blockState->current_redstone_power > 0 ) {
+        blockCoord->scale_y = 1;
+    } else if ( block->is_button && blockState->current_redstone_power > 0 ) {
+        blockCoord->scale_z = 1;
+    }
 }
