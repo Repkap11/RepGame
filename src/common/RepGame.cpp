@@ -101,10 +101,13 @@ void RepGame::add_to_hotbar( const bool alsoSelect, const BlockID blockId ) {
 // Breaks the block under the cursor. In survival mode the mined block is
 // added to the hotbar first, then falls back to the survival inventory.
 void RepGame::break_selected_block( ) {
+    // Grab the state before the break so debris can use display-adjusted
+    // textures (powered lamps, redstone dust shapes).
+    const BlockState prev_state = globalGameState.world.get_loaded_block( globalGameState.block_selection.pos_destroy );
     BlockID previous_block = change_block( 0, BLOCK_STATE_AIR );
     if ( previous_block != LAST_BLOCK_ID && previous_block != AIR ) {
         const float time_s = static_cast<float>( fmod( now_us( ) / 1.0e6, 3600.0 ) );
-        globalGameState.world.blockDebris.spawn_block_break( globalGameState.block_selection.pos_destroy, previous_block, time_s );
+        globalGameState.world.blockDebris.spawn_block_break( globalGameState.block_selection.pos_destroy, prev_state, time_s );
     }
     if ( globalGameState.game_mode == GameMode_Survival && previous_block != LAST_BLOCK_ID && previous_block != AIR ) {
         const Block *blockDef = block_definition_get_definition( previous_block );

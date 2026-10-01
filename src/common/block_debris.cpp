@@ -5,7 +5,7 @@
 
 #include <stdlib.h>
 
-#define DEBRIS_PER_BLOCK 16
+#define DEBRIS_PER_BLOCK 32
 // Lifetime seconds.
 #define DEBRIS_LIFE_MIN 0.45f
 #define DEBRIS_LIFE_SPREAD 0.4f
@@ -17,8 +17,8 @@
 #define DEBRIS_VEL_UP_MIN 1.2f
 #define DEBRIS_VEL_UP_SPREAD 1.6f
 // Particle size as a fraction of a block.
-#define DEBRIS_SIZE_MIN 0.04f
-#define DEBRIS_SIZE_SPREAD 0.06f
+#define DEBRIS_SIZE_MIN 0.03f
+#define DEBRIS_SIZE_SPREAD 0.04f
 // Range of the per-particle seed feeding the shader's tumble hash.
 #define DEBRIS_SEED_RANGE 1000.0f
 // u_Time is fmod(now, 3600) in RepGame::draw; sweep must match that clock.
@@ -32,15 +32,38 @@ void BlockDebris::init( const VertexBufferLayout &vbl_object_vertex, const Verte
     this->render_chain.init( vbl_object_vertex, vbl_debris_instance, vd_data_player_object, VB_DATA_SIZE_PARTICLE, ib_data_solid, IB_SOLID_SIZE );
 }
 
-void BlockDebris::spawn_block_break( const glm::ivec3 &block_pos, const BlockID block_id, const float time_s ) {
-    const Block *block = block_definition_get_definition( block_id );
+void BlockDebris::spawn_block_break( const glm::ivec3 &block_pos, const BlockState &blockState, const float time_s ) {
+    const Block *block = block_definition_get_definition( blockState.id );
+    // Resolve the displayed textures the same way chunk meshing does
+    // (chunk.cpp): per-face lookup, then state-based adjustment.
+    BlockCoords coords = {};
+    for ( int f = 0; f < NUM_FACES_IN_CUBE; f++ ) {
+        coords.face[ f ] = block->textures[ f ];
+    }
+    block_adjust_coord_based_on_state( block, &blockState, &coords );
+
+    // Keep only faces that actually render: AIR marks faces that never draw
+    // (dust sides, door tops/bottoms, cross-rendered flower tops/bottoms).
+    unsigned short candidates[ NUM_FACES_IN_CUBE ];
+    int num_candidates = 0;
+    for ( int f = 0; f < NUM_FACES_IN_CUBE; f++ ) {
+        if ( coords.face[ f ] == AIR ) {
+            continue;
+        }
+        candidates[ num_candidates++ ] = coords.face[ f ];
+    }
+    if ( num_candidates == 0 ) {
+        return;
+    }
     const glm::vec3 center = glm::vec3( block_pos ) + 0.5f;
     for ( int i = 0; i < DEBRIS_PER_BLOCK; i++ ) {
         const std::pair<entt::entity, DebrisInstance &> data = this->render_chain.create_instance( );
         DebrisInstance &d = data.second;
+        // Cycle candidates across the 6 slots so the shader's random face pick
+        // only ever lands on a real texture, weighted by real-face count.
         for ( int f = 0; f < NUM_FACES_IN_CUBE; f++ ) {
             // Same -1 as chunk meshing (chunk.cpp): the shader offsets by 1.
-            d.face[ f ] = block->textures[ f ] - 1;
+            d.face[ f ] = candidates[ f % num_candidates ] - 1;
         }
         // Spawn jittered inside the block; drift radially out from its center.
         d.spawn = center + glm::vec3( frand( ) - 0.5f, frand( ) - 0.5f, frand( ) - 0.5f ) * DEBRIS_SPAWN_SPREAD;

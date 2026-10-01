@@ -540,8 +540,10 @@ void block_definitions_initilize_definitions( Texture *texture ) {
         }
 
         if ( block->renderOrder == RenderOrder_Flowers ) {
-            block->textures[ FACE_TOP ] = TNT;
-            block->textures[ FACE_BOTTOM ] = TNT;
+            // Cross-rendered: only the 4 side faces draw. Mark top/bottom AIR
+            // like other never-rendered faces (doors, redstone dust).
+            block->textures[ FACE_TOP ] = AIR;
+            block->textures[ FACE_BOTTOM ] = AIR;
             block->is_seethrough = true;
             block->no_light = NO_LIGHT_BRIGHT;
             block->casts_shadow = false;

@@ -30,6 +30,9 @@ out vec4 v_world_coords;
 #define DEBRIS_ROT_SPEED_SPREAD 6.0f
 // Fraction of lifetime at which the particle starts shrinking out.
 #define DEBRIS_SHRINK_START 0.6f
+// Block texture tiles are 16x16 (MK_TEXTURE in RepGame.cpp); particles sample
+// a single texel so MAG_NEAREST gives a clean flat color.
+#define DEBRIS_TEXTURE_PIXELS 16.0f
 // u_Time is fmod(now, 3600) in RepGame::draw; keep ages positive across the wrap.
 #define TIME_WRAP 3600.0f
 
@@ -69,8 +72,13 @@ void main( ) {
     gl_Position = u_MVP * v_world_coords;
     v_planarDot = dot( v_world_coords, vec4( 0, 1, 0, u_ReflectionHeight ) );
 
-    v_tex_coords = texCoords;
-    uint shift = ( faceType % 2u ) * 16u;
+    // Instead of the block's texture, each particle shows one solid color: a
+    // single texel of a randomly chosen face texture, identical for every
+    // vertex of the instance.
+    v_tex_coords = ( floor( vec2( fract( seed * 0.2317f ), fract( seed * 0.7193f ) ) * DEBRIS_TEXTURE_PIXELS ) + 0.5f ) / DEBRIS_TEXTURE_PIXELS;
+    uint pickFace = uint( fract( seed * 0.4171f ) * 6.0f ); // one of the 6 face textures
+    pickFace = min( pickFace, 5u );
+    uint pickShift = ( pickFace % 2u ) * 16u;
     // 0xffffu is max short 16u is sizeof(short)
 
     float face_light;
@@ -82,5 +90,5 @@ void main( ) {
         face_light = 0.75;
     }
     v_light = face_light;
-    v_blockID = float( ( blockTexture[ faceType / 2u ] & ( 0xffffu << shift ) ) >> shift );
+    v_blockID = float( ( blockTexture[ pickFace / 2u ] & ( 0xffffu << pickShift ) ) >> pickShift );
 }
