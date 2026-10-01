@@ -5,3 +5,5 @@
 
 #define SUPPORTS_FRAME_BUFFER 1
 #define REPGAME_PATH_DIVIDOR "/"
+
+void repgame_linux_install_signal_handlers( );

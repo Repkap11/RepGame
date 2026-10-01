@@ -1,7 +1,6 @@
 #include <string.h>
 #include <stdio.h>
 #include "common/RepGame.hpp"
-#include <signal.h>
 
 int main( int argc, char **argv ) {
     const char *world_path;
@@ -27,8 +26,6 @@ int main( int argc, char **argv ) {
         return -1;
     }
 
-    struct sigaction action;
-    sigaction( SIGINT, nullptr, &action );
     // Prefer native Wayland over Xwayland when available, but fall back to
     // X11. Must be set before the first SDL_Init below — SDL_Init is
     // idempotent, so the video driver chosen here can't be changed later.
@@ -39,6 +36,6 @@ int main( int argc, char **argv ) {
         SDL_SetHintWithPriority( SDL_HINT_VIDEO_DRIVER, "wayland,x11", SDL_HINT_OVERRIDE );
     }
     SDL_Init( SDL_INIT_VIDEO );
-    sigaction( SIGINT, &action, nullptr );
+    repgame_linux_install_signal_handlers( );
     return repgame_sdl2_main( world_path, host, connect_multi, tests );
 }

@@ -756,11 +756,14 @@ void RepGame::tick( ) {
 
     static const bool walktest = getenv( "REPGAME_WALKTEST" ) != nullptr;
     if ( walktest ) {
-        // REPGAME_WALKTEST_TICKS=n: exit after n ticks (timeout/SIGTERM gets
-        // swallowed by SDL, so cap the test length deterministically).
+        // REPGAME_WALKTEST_TICKS=n: quit after n ticks (timeout/SIGTERM gets
+        // swallowed by SDL, so cap the test length deterministically). Go
+        // through the normal exit path so cleanup() joins the terrain
+        // threads — exit() here tears down libamdhip64 while a worker may be
+        // inside map_gen_load_block_hip, segfaulting during shutdown.
         static const long walktest_ticks = getenv( "REPGAME_WALKTEST_TICKS" ) ? atol( getenv( "REPGAME_WALKTEST_TICKS" ) ) : 0;
         if ( walktest_ticks && globalGameState.tick_number >= walktest_ticks ) {
-            exit( 0 );
+            globalGameState.input.quit( );
         }
         // REPGAME_TELEPORT="x,y,z,angle,sprint,spin_deg_per_tick": teleport on
         // the first tick, then hold forward each tick (angle optionally spins).

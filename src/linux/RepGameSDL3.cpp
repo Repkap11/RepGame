@@ -11,6 +11,39 @@
 
 static RepGameState *globalGameState;
 
+// Set by the SIGINT/SIGTERM handler; the main loop polls it each frame.
+// Kept separate from Input::exitGame so the handler only needs one
+// async-signal-safe store. (Also compiled into the Windows build, which
+// never sets it.)
+static volatile int exit_signal_received = 0;
+
+#ifdef REPGAME_LINUX
+#include <signal.h>
+static void repgame_linux_signal_handler( int sig ) {
+    if ( exit_signal_received ) {
+        // Second signal during cleanup: restore the default disposition and
+        // re-raise so a hung shutdown can still be force-killed.
+        signal( sig, SIG_DFL );
+        raise( sig );
+    }
+    exit_signal_received = 1;
+}
+
+void repgame_linux_install_signal_handlers( ) {
+    // SDL_Init installed its own SIGINT/SIGTERM handlers; replace them so a
+    // signal requests a clean shutdown (main loop exits → cleanup() joins
+    // the terrain threads) instead of killing the process mid-write.
+    // SA_RESTART keeps interrupted syscalls from failing with EINTR — the
+    // flag is polled every frame anyway.
+    struct sigaction action = {};
+    action.sa_handler = repgame_linux_signal_handler;
+    sigemptyset( &action.sa_mask );
+    action.sa_flags = SA_RESTART;
+    sigaction( SIGINT, &action, nullptr );
+    sigaction( SIGTERM, &action, nullptr );
+}
+#endif
+
 void repgame_linux_process_sdl_events( RepGame &repgame ) {
     SDL_Event event;
     Input &input = repgame.getInputState( );
@@ -260,7 +293,7 @@ void main_loop_full( RepGame &repgame ) {
     long fps_last_report_time = static_cast<long>( SDL_GetTicks( ) );
     long fps_frame_count = 0;
 
-    while ( !repgame.shouldExit( ) ) {
+    while ( !repgame.shouldExit( ) && !exit_signal_received ) {
         const long now = static_cast<long>( SDL_GetTicks( ) );
 
         if ( ( ( next_game_step - now ) <= 0 ) || !SW_VSYNC_ENABLED ) {
