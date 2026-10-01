@@ -512,8 +512,9 @@ void World::draw( const Texture &blocksTexture, const glm::mat4 &mvp, const glm:
         // above water, draw_water already composited the reflections.
         if ( usingReflections && headInWater ) {
             // X_HIGH wobbles the mirrored fetch, matching the land-side
-            // rippled reflections; HIGH keeps it still.
-            this->fullScreenQuad.draw_texture( this->renderer, this->reflectionTexture, this->depthStencilTexture, y_height < 0 ? 0.1 : 0.2, allowBlur, headInWater, 1, false, time_s, allowBlur );
+            // rippled reflections; HIGH keeps it still. Kept faint so the
+            // surface doesn't mirror away the world above.
+            this->fullScreenQuad.draw_texture( this->renderer, this->reflectionTexture, this->depthStencilTexture, y_height < 0 ? 0.05 : 0.1, allowBlur, headInWater, 1, false, time_s, allowBlur );
         }
         glEnable( GL_DEPTH_TEST );
     }

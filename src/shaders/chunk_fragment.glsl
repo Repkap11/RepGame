@@ -238,9 +238,14 @@ void main() {
             // Underwater fragments skip the alpha fade: it was designed to
             // dissolve terrain into the sky, but underwater the murk comes
             // from the color blend and reduced alpha reveals untinted sky /
-            // breaks alpha>0 validity checks (visible block edges).
-            if(u_shouldDiscardAlpha == 1.0f || belowWater) {
+            // breaks alpha>0 validity checks (visible block edges). Below-water
+            // translucent fragments (the water surface) keep a fraction of
+            // their texture alpha so the sky and terrain above the surface
+            // stay clearly visible through it.
+            if(u_shouldDiscardAlpha == 1.0f) {
                 finalColor.a = 1.0f;
+            } else if(belowWater) {
+                finalColor.a *= 0.5f;
             } else {
                 finalColor.a *= (1.0f - alphaFog);
             }
@@ -249,6 +254,10 @@ void main() {
             // post-process.
             if(!belowWater) {
                 finalColor.a *= (1.0f - alphaFog);
+            } else if(u_shouldDiscardAlpha != 1.0f) {
+                // Same see-through surface as the framebuffer path, but only
+                // for translucent fragments — opaque terrain keeps alpha 1.
+                finalColor.a *= 0.5f;
             }
             fogFactor = vec4(0.0f, 0.0f, 0.0f, 0.0f);
         }
