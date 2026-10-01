@@ -21,7 +21,7 @@ class BlockDebris {
 
   public:
     void init( const VertexBufferLayout &vbl_object_vertex, const VertexBufferLayout &vbl_debris_instance );
-    void spawn_block_break( const glm::ivec3 &block_pos, const BlockState &blockState, float time_s );
+    void spawn_block_break( const glm::ivec3 &block_pos, const BlockState &blockState );
     void draw( const Renderer &renderer, const Shader &shader, float time_s );
     void cleanup( );
 };

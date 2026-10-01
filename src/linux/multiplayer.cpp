@@ -203,7 +203,9 @@ void Multiplayer::process_events( World &world ) {
                 }
                 pr_debug( "Read message: block:%d", bu.blockState.id );
                 glm::ivec3 block_pos = glm::ivec3( bu.x, bu.y, bu.z );
+                const BlockState prev_state = world.get_loaded_block( block_pos );
                 world.set_loaded_block( block_pos, bu.blockState );
+                world.spawn_block_debris( block_pos, prev_state, bu.blockState.id );
                 break;
             }
             case NetMsgType::CLIENT_INIT: {

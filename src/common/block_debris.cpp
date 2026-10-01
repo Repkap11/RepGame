@@ -4,6 +4,9 @@
 #include "common/block_definitions.hpp"
 
 #include <stdlib.h>
+#include <math.h>
+
+#include <chrono>
 
 #define DEBRIS_PER_BLOCK 32
 // Lifetime seconds.
@@ -24,6 +27,11 @@
 // u_Time is fmod(now, 3600) in RepGame::draw; sweep must match that clock.
 #define TIME_WRAP 3600.0f
 
+static inline long long now_us( ) {
+    return std::chrono::duration_cast<std::chrono::microseconds>(
+        std::chrono::steady_clock::now( ).time_since_epoch( ) ).count( );
+}
+
 static float frand( ) {
     return static_cast<float>( rand( ) ) / static_cast<float>( RAND_MAX );
 }
@@ -32,7 +40,8 @@ void BlockDebris::init( const VertexBufferLayout &vbl_object_vertex, const Verte
     this->render_chain.init( vbl_object_vertex, vbl_debris_instance, vd_data_player_object, VB_DATA_SIZE_PARTICLE, ib_data_solid, IB_SOLID_SIZE );
 }
 
-void BlockDebris::spawn_block_break( const glm::ivec3 &block_pos, const BlockState &blockState, const float time_s ) {
+void BlockDebris::spawn_block_break( const glm::ivec3 &block_pos, const BlockState &blockState ) {
+    const float time_s = static_cast<float>( fmod( now_us( ) / 1.0e6, TIME_WRAP ) );
     const Block *block = block_definition_get_definition( blockState.id );
     // Resolve the displayed textures the same way chunk meshing does
     // (chunk.cpp): per-face lookup, then state-based adjustment.

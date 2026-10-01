@@ -57,6 +57,9 @@ class World {
     BlockState get_loaded_block( const glm::ivec3 &block_pos ) const;
 
     void set_loaded_block( const glm::ivec3 &block_pos, BlockState blockState ) const;
+    // Spawns break particles if prev_state was a real block that new_id
+    // removed. No-op for air, same-id state changes, and liquids.
+    void spawn_block_debris( const glm::ivec3 &block_pos, const BlockState &prev_state, BlockID new_id );
     // void overlay_blocks( const glm::ivec3 &block_pos, BlockState *blockStates, int numBlockStates );
 
     static BlockState get_block_from_chunk( const Chunk &chunk, const glm::ivec3 &block );

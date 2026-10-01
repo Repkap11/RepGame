@@ -42,6 +42,7 @@ void PlayerBlockPlacedEvent::performAction( BlockUpdateQueue &blockUpdateQueue, 
 
     repGameState.world.set_loaded_block( this->block_pos, this->blockState );
     repGameState.multiplayer.set_block( this->block_pos, this->blockState );
+    repGameState.world.spawn_block_debris( this->block_pos, current_block_state, this->blockState.id );
 
     for ( int j = -1; j < 2; j += 2 ) {
         performActionToNeighbor( blockUpdateQueue, repGameState.world, glm::ivec3( 0, j, 0 ) );

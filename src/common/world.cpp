@@ -645,6 +645,17 @@ BlockState World::get_loaded_block( const glm::ivec3 &block_pos ) const {
     return BLOCK_STATE_LAST_BLOCK_ID;
 }
 
+void World::spawn_block_debris( const glm::ivec3 &block_pos, const BlockState &prev_state, const BlockID new_id ) {
+    if ( prev_state.id == AIR || prev_state.id == LAST_BLOCK_ID || prev_state.id == new_id ) {
+        return;
+    }
+    const Block *prev_block = block_definition_get_definition( prev_state.id );
+    if ( prev_block->renderOrder == RenderOrder_Water ) {
+        return;
+    }
+    this->blockDebris.spawn_block_break( block_pos, prev_state );
+}
+
 // void World::overlay_blocks( const glm::ivec3 *block_poses, BlockState *blockStates, int numBlocks ) {
 //     const glm::ivec3 CHUNK_SIZE = glm::ivec3( CHUNK_SIZE_X, CHUNK_SIZE_Y, CHUNK_SIZE_Z );
 //     for ( int bi = 0; bi < numBlocks; bi++ ) {
