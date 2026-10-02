@@ -42,7 +42,7 @@ void repgame_linux_process_sdl_events( RepGame &repgame ) {
                 if ( event.window.event == SDL_WINDOWEVENT_RESIZED ) {
                     repgame.changeSize( event.window.data1, event.window.data2 );
                 } else if ( event.window.event == SDL_WINDOWEVENT_CLOSE ) {
-                    input.quit( );
+                    input.exitGame = true;
                 }
                 break;
             case SDL_MOUSEBUTTONDOWN:

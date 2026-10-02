@@ -2,11 +2,11 @@ cmake_minimum_required(VERSION 3.4.1)
 
 find_library( log-lib log )
 find_library( android-lib android )
-include_directories(/usr/include/glm/)
+include_directories(../../include/glm/)
 include_directories(../../include/)
 include_directories(../../entt_build/src/)
 
-add_definitions(-DREPGAME_ANDROID)
+add_definitions(-DREPGAME_ANDROID -DGLM_FORCE_CXX17)
 file(GLOB REPGAME_SOURCES
         ${CMAKE_CURRENT_SOURCE_DIR}/../../src/android/*.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/../../src/common/*.cpp

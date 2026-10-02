@@ -91,10 +91,6 @@ void Input::mouseWheel( const int x_delta, const int y_delta ) {
     this->mouse.currentPosition.wheel_counts += y_delta;
 }
 
-void Input::quit( ) {
-    this->exitGame = true;
-}
-
 void Input::keysInput( const SDL_Keycode key, const bool pressed ) {
 
     this->shift_held = ( SDL_GetModState( ) & SDL_KMOD_SHIFT ) != 0;

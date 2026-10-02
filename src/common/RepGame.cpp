@@ -772,7 +772,7 @@ void RepGame::tick( ) {
         // inside map_gen_load_block_hip, segfaulting during shutdown.
         static const long walktest_ticks = getenv( "REPGAME_WALKTEST_TICKS" ) ? atol( getenv( "REPGAME_WALKTEST_TICKS" ) ) : 0;
         if ( walktest_ticks && globalGameState.tick_number >= walktest_ticks ) {
-            globalGameState.input.quit( );
+            globalGameState.input.exitGame = true;
         }
         // REPGAME_TELEPORT="x,y,z,angle,sprint,spin_deg_per_tick": teleport on
         // the first tick, then hold forward each tick (angle optionally spins).

@@ -65,7 +65,7 @@ void repgame_linux_process_sdl_events( RepGame &repgame ) {
                 repgame.changeSize( event.window.data1, event.window.data2 );
                 break;
             case SDL_EVENT_WINDOW_CLOSE_REQUESTED:
-                input.quit( );
+                input.exitGame = true;
                 break;
             case SDL_EVENT_MOUSE_BUTTON_DOWN:
             case SDL_EVENT_MOUSE_BUTTON_UP:

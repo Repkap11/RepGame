@@ -58,7 +58,6 @@ class Input {
     void keysInput( const SDL_Keycode key, const bool pressed );
     void mouseWheel( const int x_delta, const int y_delta );
     void mousePosition( int x, int y );
-    void quit( );
 #else
     void positionHMove( float sizeH, float angleH );
     void setJumpPressed( int jumpPressed );
