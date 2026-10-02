@@ -97,6 +97,16 @@ int test_redstone( ) {
     world.set_loaded_block( glm::ivec3( 25, 10, 10 ), stone ); // s4 tread
     world.set_loaded_block( glm::ivec3( 26, 11, 10 ), stone ); // s5 tread
 
+    // Blocked staircases: the corner cell above the lower dust gates the
+    // diagonal edge. A solid corner blocks it entirely; a glass corner stays
+    // open. All inside the 32-wide test chunk.
+    world.set_loaded_block( glm::ivec3( 28, 10, 10 ), stone ); // b1 tread
+    world.set_loaded_block( glm::ivec3( 29, 11, 10 ), stone ); // stair (b2 support)
+    world.set_loaded_block( glm::ivec3( 28, 12, 10 ), stone ); // solid corner above b1
+    world.set_loaded_block( glm::ivec3( 28, 10, 14 ), stone ); // b3 tread
+    world.set_loaded_block( glm::ivec3( 29, 11, 14 ), stone ); // stair (b4 support)
+    world.set_loaded_block( glm::ivec3( 28, 12, 14 ), glass ); // glass corner above b3
+
     // Redstone components placed through the real event path so power updates
     // propagate exactly as in gameplay.
     auto place = [ & ]( const glm::ivec3 &pos, const BlockState &block_state ) {
@@ -126,6 +136,14 @@ int test_redstone( ) {
     place( glm::ivec3( 26, 12, 10 ), { REDSTONE_CROSS, 0, 0, REDSTONE_CROSS } ); // s5
     place( glm::ivec3( 26, 12, 11 ), { REDSTONE_BLOCK, 0, 0, REDSTONE_BLOCK } ); // source beside s5
 
+    // Blocked staircases.
+    place( glm::ivec3( 28, 11, 10 ), { REDSTONE_CROSS, 0, 0, REDSTONE_CROSS } ); // b1
+    place( glm::ivec3( 29, 12, 10 ), { REDSTONE_CROSS, 0, 0, REDSTONE_CROSS } ); // b2 (blocked)
+    place( glm::ivec3( 28, 11, 11 ), { REDSTONE_BLOCK, 0, 0, REDSTONE_BLOCK } ); // source beside b1
+    place( glm::ivec3( 28, 11, 14 ), { REDSTONE_CROSS, 0, 0, REDSTONE_CROSS } ); // b3
+    place( glm::ivec3( 29, 12, 14 ), { REDSTONE_CROSS, 0, 0, REDSTONE_CROSS } ); // b4 (glass corner)
+    place( glm::ivec3( 28, 11, 15 ), { REDSTONE_BLOCK, 0, 0, REDSTONE_BLOCK } ); // source beside b3
+
     for ( int i = 0; i < 40; i++ ) {
         gs.tick_number++;
         gs.blockUpdateQueue.processAllBlockUpdates( gs, gs.tick_number );
@@ -152,9 +170,16 @@ int test_redstone( ) {
     failures += check_power( world, "s5: dust on stone stair top (sourced)", glm::ivec3( 26, 12, 10 ), 14 );
     failures += check_power( world, "s4: dust descending stone stair", glm::ivec3( 25, 11, 10 ), 13 );
 
+    failures += check_power( world, "b1: dust below blocked corner", glm::ivec3( 28, 11, 10 ), 14 );
+    failures += check_power( world, "b2: dust past solid corner (blocked)", glm::ivec3( 29, 12, 10 ), 0 );
+    failures += check_power( world, "b3: dust below glass corner", glm::ivec3( 28, 11, 14 ), 14 );
+    failures += check_power( world, "b4: dust past glass corner (open)", glm::ivec3( 29, 12, 14 ), 13 );
+
     // Teardown phase: breaking the source must unpower the whole glass
-    // staircase — a missed diagonal update would leave it stuck on.
+    // staircase — a missed diagonal update would leave it stuck on. Blocking
+    // the corner above s4 must cut the stone staircase's downward feed.
     place( glm::ivec3( 20, 11, 11 ), BLOCK_STATE_AIR );
+    place( glm::ivec3( 25, 12, 10 ), stone );
     for ( int i = 0; i < 40; i++ ) {
         gs.tick_number++;
         gs.blockUpdateQueue.processAllBlockUpdates( gs, gs.tick_number );
@@ -162,6 +187,7 @@ int test_redstone( ) {
     failures += check_power( world, "s1 after source removed", glm::ivec3( 20, 11, 10 ), 0 );
     failures += check_power( world, "s2 after source removed", glm::ivec3( 21, 12, 10 ), 0 );
     failures += check_power( world, "s3 after source removed", glm::ivec3( 22, 13, 10 ), 0 );
+    failures += check_power( world, "s4 after corner blocked", glm::ivec3( 25, 11, 10 ), 0 );
     return failures;
 }
 

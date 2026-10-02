@@ -105,6 +105,10 @@ static void dust_feeders( World &world, const glm::ivec3 &pos, std::vector<glm::
         glm::ivec3( 0, 0, 1 ),  //
         glm::ivec3( 0, 0, -1 ), //
     };
+    // A solid block directly above pos pinches every diagonal that climbs
+    // over a neighbor: the corner cell must stay open for power to step up.
+    const BlockState head_state = world.get_loaded_block( pos + glm::ivec3( 0, 1, 0 ) );
+    const bool covered = head_state.id != LAST_BLOCK_ID && block_definition_get_definition( head_state.id )->is_solid;
     for ( const glm::ivec3 &dir : horiz_dirs ) {
         glm::ivec3 neighbor_pos = pos + dir;
         BlockState neighbor = world.get_loaded_block( neighbor_pos );
@@ -112,19 +116,21 @@ static void dust_feeders( World &world, const glm::ivec3 &pos, std::vector<glm::
             continue;
         }
         const Block *neighbor_block = block_definition_get_definition( neighbor.id );
-        if ( neighbor_block->is_redstone_dust ) {
-            if ( dust_points_toward( neighbor.display_id, -dir ) ) {
-                feeders.push_back( neighbor_pos );
-            }
-        } else if ( neighbor_block->is_solid ) {
-            // Up: dust on top of a solid neighbor connects down to pos
-            glm::ivec3 above_pos = neighbor_pos + glm::ivec3( 0, 1, 0 );
-            BlockState above = world.get_loaded_block( above_pos );
-            if ( above.id != LAST_BLOCK_ID && block_definition_get_definition( above.id )->is_redstone_dust && dust_points_toward( above.display_id, -dir ) ) {
-                feeders.push_back( above_pos );
+        if ( neighbor_block->is_redstone_dust && dust_points_toward( neighbor.display_id, -dir ) ) {
+            feeders.push_back( neighbor_pos );
+        }
+        if ( neighbor_block->is_solid ) {
+            // Up: dust on top of a solid neighbor feeds pos while the corner
+            // above pos is open
+            if ( !covered ) {
+                glm::ivec3 above_pos = neighbor_pos + glm::ivec3( 0, 1, 0 );
+                BlockState above = world.get_loaded_block( above_pos );
+                if ( above.id != LAST_BLOCK_ID && block_definition_get_definition( above.id )->is_redstone_dust && dust_points_toward( above.display_id, -dir ) ) {
+                    feeders.push_back( above_pos );
+                }
             }
         } else {
-            // Down: dust below a non-solid neighbor connects up to pos
+            // Down: dust below an open side cell feeds pos
             glm::ivec3 below_pos = neighbor_pos + glm::ivec3( 0, -1, 0 );
             BlockState below = world.get_loaded_block( below_pos );
             if ( below.id != LAST_BLOCK_ID && block_definition_get_definition( below.id )->is_redstone_dust && dust_points_toward( below.display_id, -dir ) ) {
@@ -287,49 +293,44 @@ void perform_checks( BlockUpdateQueue &blockUpdateQueue, World &world, long tick
                 bool connects_front = NEXT_TO_BLOCK( 0, 0, 1 )->connects_to_redstone_dust;
                 bool connects_back = NEXT_TO_BLOCK( 0, 0, -1 )->connects_to_redstone_dust;
 
-                // Vertical diagonal connections. A dust edge between pos and
-                // pos+dir+up exists if either endpoint's rule holds: pos can
-                // climb a solid side block, or the upper dust can see down to
-                // pos through a clear cell above pos. Same for pos+dir+down:
-                // pos sees it through a non-solid side cell, or it climbs the
-                // solid block under pos. This asymmetry is what lets a glass
-                // staircase carry power upward but not down.
+                // Vertical diagonal connections are gated by the corner cell
+                // between the two dusts. The edge to pos+dir+up exists iff
+                // the cell above pos is open (the upper dust sees down through
+                // it, and pos can only climb a solid side block while it's
+                // open); the edge to pos+dir+down exists iff the side cell
+                // itself is open. A solid corner cuts the wire.
                 const BlockState above_state = NEXT_TO_STATE( 0, 1, 0 );
-                const Block *above = block_definition_get_definition( above_state.id );
-                const bool gap_above = above_state.id != LAST_BLOCK_ID && !above->is_solid && !above->is_redstone_dust;
-                const BlockState below_state = NEXT_TO_STATE( 0, -1, 0 );
-                const Block *below = block_definition_get_definition( below_state.id );
-                const bool base_solid = below_state.id != LAST_BLOCK_ID && below->is_solid;
+                const bool gap_above = above_state.id == LAST_BLOCK_ID || !block_definition_get_definition( above_state.id )->is_solid;
 
                 if ( !connects_left ) {
                     const Block *nb = NEXT_TO_BLOCK( 1, 0, 0 );
-                    if ( NEXT_TO_BLOCK( 1, 1, 0 )->is_redstone_dust && ( nb->is_solid || gap_above ) ) {
+                    if ( NEXT_TO_BLOCK( 1, 1, 0 )->is_redstone_dust && gap_above ) {
                         connects_left = true;
-                    } else if ( NEXT_TO_BLOCK( 1, -1, 0 )->is_redstone_dust && ( ( !nb->is_solid && !nb->is_redstone_dust ) || base_solid ) ) {
+                    } else if ( NEXT_TO_BLOCK( 1, -1, 0 )->is_redstone_dust && !nb->is_solid ) {
                         connects_left = true;
                     }
                 }
                 if ( !connects_right ) {
                     const Block *nb = NEXT_TO_BLOCK( -1, 0, 0 );
-                    if ( NEXT_TO_BLOCK( -1, 1, 0 )->is_redstone_dust && ( nb->is_solid || gap_above ) ) {
+                    if ( NEXT_TO_BLOCK( -1, 1, 0 )->is_redstone_dust && gap_above ) {
                         connects_right = true;
-                    } else if ( NEXT_TO_BLOCK( -1, -1, 0 )->is_redstone_dust && ( ( !nb->is_solid && !nb->is_redstone_dust ) || base_solid ) ) {
+                    } else if ( NEXT_TO_BLOCK( -1, -1, 0 )->is_redstone_dust && !nb->is_solid ) {
                         connects_right = true;
                     }
                 }
                 if ( !connects_front ) {
                     const Block *nb = NEXT_TO_BLOCK( 0, 0, 1 );
-                    if ( NEXT_TO_BLOCK( 0, 1, 1 )->is_redstone_dust && ( nb->is_solid || gap_above ) ) {
+                    if ( NEXT_TO_BLOCK( 0, 1, 1 )->is_redstone_dust && gap_above ) {
                         connects_front = true;
-                    } else if ( NEXT_TO_BLOCK( 0, -1, 1 )->is_redstone_dust && ( ( !nb->is_solid && !nb->is_redstone_dust ) || base_solid ) ) {
+                    } else if ( NEXT_TO_BLOCK( 0, -1, 1 )->is_redstone_dust && !nb->is_solid ) {
                         connects_front = true;
                     }
                 }
                 if ( !connects_back ) {
                     const Block *nb = NEXT_TO_BLOCK( 0, 0, -1 );
-                    if ( NEXT_TO_BLOCK( 0, 1, -1 )->is_redstone_dust && ( nb->is_solid || gap_above ) ) {
+                    if ( NEXT_TO_BLOCK( 0, 1, -1 )->is_redstone_dust && gap_above ) {
                         connects_back = true;
-                    } else if ( NEXT_TO_BLOCK( 0, -1, -1 )->is_redstone_dust && ( ( !nb->is_solid && !nb->is_redstone_dust ) || base_solid ) ) {
+                    } else if ( NEXT_TO_BLOCK( 0, -1, -1 )->is_redstone_dust && !nb->is_solid ) {
                         connects_back = true;
                     }
                 }

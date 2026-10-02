@@ -22,21 +22,14 @@ void queue_neighbor_block_updates( BlockUpdateQueue &blockUpdateQueue, World &wo
         blockUpdateQueue.addBlockUpdate( std::make_shared<BlockNextToChangeEvent>( tick_number, pos, offset ) );
     }
 
-    // Also notify extended neighbors for vertical dust connections.
-    // Dust at pos+horiz+up or pos+horiz+down may have pos in its feeder set,
-    // and its rendered shape may connect toward pos. An edge between pos and
-    // pos+horiz+up exists when pos can climb a solid side block OR the upper
-    // dust can see down through a clear cell above pos; an edge between pos
-    // and pos+horiz+down exists when pos sees it through a non-solid side
-    // cell OR it climbs the solid block under pos. Check the real pivots —
-    // conditioning on the side cell alone misses the glass/gap cases and
-    // leaves diagonal dust stale (stuck on, or never powering).
+    // Also notify the dust cells diagonally away: dust at pos+horiz+up or
+    // pos+horiz+down may feed on pos or render a connection toward it. Each
+    // diagonal edge is gated by the corner cell between the two dusts — the
+    // cell above pos for the up-and-over edge, the side cell for the
+    // down-and-over edge — so only wake a diagonal dust while its corner is
+    // open. Missing a wake left dust stuck powered or dark beside glass.
     const BlockState above_state = world.get_loaded_block( pos + glm::ivec3( 0, 1, 0 ) );
-    const Block *above = block_definition_get_definition( above_state.id );
-    const bool gap_above = above_state.id != LAST_BLOCK_ID && !above->is_solid && !above->is_redstone_dust;
-    const BlockState below_state = world.get_loaded_block( pos + glm::ivec3( 0, -1, 0 ) );
-    const Block *below = block_definition_get_definition( below_state.id );
-    const bool base_solid = below_state.id != LAST_BLOCK_ID && below->is_solid;
+    const bool corner_above_open = above_state.id == LAST_BLOCK_ID || !block_definition_get_definition( above_state.id )->is_solid;
     const glm::ivec3 horiz_offsets[ 4 ] = {
         glm::ivec3( 1, 0, 0 ),  //
         glm::ivec3( -1, 0, 0 ), //
@@ -49,10 +42,10 @@ void queue_neighbor_block_updates( BlockUpdateQueue &blockUpdateQueue, World &wo
             continue;
         }
         const Block *side = block_definition_get_definition( side_state.id );
-        if ( side->is_solid || gap_above ) {
+        if ( corner_above_open ) {
             blockUpdateQueue.addBlockUpdate( std::make_shared<BlockNextToChangeEvent>( tick_number, pos, horiz + glm::ivec3( 0, 1, 0 ) ) );
         }
-        if ( ( !side->is_solid && !side->is_redstone_dust ) || base_solid ) {
+        if ( !side->is_solid ) {
             blockUpdateQueue.addBlockUpdate( std::make_shared<BlockNextToChangeEvent>( tick_number, pos, horiz + glm::ivec3( 0, -1, 0 ) ) );
         }
     }
