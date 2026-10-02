@@ -116,7 +116,7 @@ static void dust_feeders( World &world, const glm::ivec3 &pos, std::vector<glm::
             if ( dust_points_toward( neighbor.display_id, -dir ) ) {
                 feeders.push_back( neighbor_pos );
             }
-        } else if ( neighbor_block->collides_with_player ) {
+        } else if ( neighbor_block->is_solid ) {
             // Up: dust on top of a solid neighbor connects down to pos
             glm::ivec3 above_pos = neighbor_pos + glm::ivec3( 0, 1, 0 );
             BlockState above = world.get_loaded_block( above_pos );
@@ -287,36 +287,49 @@ void perform_checks( BlockUpdateQueue &blockUpdateQueue, World &world, long tick
                 bool connects_front = NEXT_TO_BLOCK( 0, 0, 1 )->connects_to_redstone_dust;
                 bool connects_back = NEXT_TO_BLOCK( 0, 0, -1 )->connects_to_redstone_dust;
 
-                // Vertical connections: dust connects up over solid blocks and down below non-solid blocks
+                // Vertical diagonal connections. A dust edge between pos and
+                // pos+dir+up exists if either endpoint's rule holds: pos can
+                // climb a solid side block, or the upper dust can see down to
+                // pos through a clear cell above pos. Same for pos+dir+down:
+                // pos sees it through a non-solid side cell, or it climbs the
+                // solid block under pos. This asymmetry is what lets a glass
+                // staircase carry power upward but not down.
+                const BlockState above_state = NEXT_TO_STATE( 0, 1, 0 );
+                const Block *above = block_definition_get_definition( above_state.id );
+                const bool gap_above = above_state.id != LAST_BLOCK_ID && !above->is_solid && !above->is_redstone_dust;
+                const BlockState below_state = NEXT_TO_STATE( 0, -1, 0 );
+                const Block *below = block_definition_get_definition( below_state.id );
+                const bool base_solid = below_state.id != LAST_BLOCK_ID && below->is_solid;
+
                 if ( !connects_left ) {
                     const Block *nb = NEXT_TO_BLOCK( 1, 0, 0 );
-                    if ( nb->collides_with_player && NEXT_TO_BLOCK( 1, 1, 0 )->is_redstone_dust ) {
+                    if ( NEXT_TO_BLOCK( 1, 1, 0 )->is_redstone_dust && ( nb->is_solid || gap_above ) ) {
                         connects_left = true;
-                    } else if ( !nb->collides_with_player && !nb->is_redstone_dust && NEXT_TO_BLOCK( 1, -1, 0 )->is_redstone_dust ) {
+                    } else if ( NEXT_TO_BLOCK( 1, -1, 0 )->is_redstone_dust && ( ( !nb->is_solid && !nb->is_redstone_dust ) || base_solid ) ) {
                         connects_left = true;
                     }
                 }
                 if ( !connects_right ) {
                     const Block *nb = NEXT_TO_BLOCK( -1, 0, 0 );
-                    if ( nb->collides_with_player && NEXT_TO_BLOCK( -1, 1, 0 )->is_redstone_dust ) {
+                    if ( NEXT_TO_BLOCK( -1, 1, 0 )->is_redstone_dust && ( nb->is_solid || gap_above ) ) {
                         connects_right = true;
-                    } else if ( !nb->collides_with_player && !nb->is_redstone_dust && NEXT_TO_BLOCK( -1, -1, 0 )->is_redstone_dust ) {
+                    } else if ( NEXT_TO_BLOCK( -1, -1, 0 )->is_redstone_dust && ( ( !nb->is_solid && !nb->is_redstone_dust ) || base_solid ) ) {
                         connects_right = true;
                     }
                 }
                 if ( !connects_front ) {
                     const Block *nb = NEXT_TO_BLOCK( 0, 0, 1 );
-                    if ( nb->collides_with_player && NEXT_TO_BLOCK( 0, 1, 1 )->is_redstone_dust ) {
+                    if ( NEXT_TO_BLOCK( 0, 1, 1 )->is_redstone_dust && ( nb->is_solid || gap_above ) ) {
                         connects_front = true;
-                    } else if ( !nb->collides_with_player && !nb->is_redstone_dust && NEXT_TO_BLOCK( 0, -1, 1 )->is_redstone_dust ) {
+                    } else if ( NEXT_TO_BLOCK( 0, -1, 1 )->is_redstone_dust && ( ( !nb->is_solid && !nb->is_redstone_dust ) || base_solid ) ) {
                         connects_front = true;
                     }
                 }
                 if ( !connects_back ) {
                     const Block *nb = NEXT_TO_BLOCK( 0, 0, -1 );
-                    if ( nb->collides_with_player && NEXT_TO_BLOCK( 0, 1, -1 )->is_redstone_dust ) {
+                    if ( NEXT_TO_BLOCK( 0, 1, -1 )->is_redstone_dust && ( nb->is_solid || gap_above ) ) {
                         connects_back = true;
-                    } else if ( !nb->collides_with_player && !nb->is_redstone_dust && NEXT_TO_BLOCK( 0, -1, -1 )->is_redstone_dust ) {
+                    } else if ( NEXT_TO_BLOCK( 0, -1, -1 )->is_redstone_dust && ( ( !nb->is_solid && !nb->is_redstone_dust ) || base_solid ) ) {
                         connects_back = true;
                     }
                 }
@@ -389,12 +402,14 @@ void perform_checks( BlockUpdateQueue &blockUpdateQueue, World &world, long tick
             // Dust: power = strongest source reachable through the dust
             // connection graph, minus one per hop.
             new_power = compute_dust_power( world, affecting_block_pos );
-        } else if ( affecting_block->collides_with_player ) {
+        } else if ( affecting_block->is_solid || affecting_block->is_redstone_mechanism ) {
             // Solid block: hard power (>1) from redstone blocks, a torch below,
             // or an attached pressed button/plate; soft power (1) from dust
             // pointing in or a torch's sides; mechanisms activate next to any
             // powered block. Only solid blocks hold power — non-solids (air,
-            // water, foliage) stay 0 so they can't masquerade as a power source.
+            // water, glass, foliage) stay 0 so they can't act as a power source.
+            // Mechanisms that aren't solid (pistons) still activate here but
+            // are capped below so they never transmit power themselves.
             new_power = 0;
             static constexpr glm::ivec3 directions[ 6 ] = {
                 glm::ivec3( 0, 1, 0 ),  //
@@ -497,10 +512,11 @@ void perform_checks( BlockUpdateQueue &blockUpdateQueue, World &world, long tick
                 }
                 // Mechanisms (pistons, lamps) also activate when an adjacent
                 // block is powered at all — a powered block feeds mechanism
-                // components whether its power is weak or strong. Dust and
-                // torches are skipped here: their directional rules were
-                // already applied above (dust must point in, a torch never
-                // powers the block it's attached to or the one below it).
+                // components whether its power is weak or strong. Only blocks
+                // that emit power count: powered solids (including lit lamps),
+                // pressed buttons and plates. Dust and torches have their own
+                // directional rules above; powered pistons are non-solid and
+                // transmit nothing.
                 if ( new_power == 0 && affecting_block->is_redstone_mechanism ) {
                     for ( const glm::ivec3 &dir : directions ) {
                         const BlockState neighbor = world.get_loaded_block( affecting_block_pos + dir );
@@ -508,11 +524,10 @@ void perform_checks( BlockUpdateQueue &blockUpdateQueue, World &world, long tick
                             continue;
                         }
                         const Block *neighbor_block = block_definition_get_definition( neighbor.id );
-                        if ( neighbor_block->is_redstone_dust || neighbor.id == REDSTONE_TORCH ) {
-                            continue;
+                        if ( neighbor_block->is_solid || neighbor_block->is_button || neighbor_block->is_pressure_plate ) {
+                            new_power = 1;
+                            break;
                         }
-                        new_power = 1;
-                        break;
                     }
                 }
             }

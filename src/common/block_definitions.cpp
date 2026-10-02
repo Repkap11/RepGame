@@ -60,6 +60,7 @@ void block_definitions_initilize_definitions( Texture *texture ) {
         block->is_button = false;
         block->is_pressure_plate = false;
         block->is_redstone_mechanism = false;
+        block->is_solid = true;
         block->inventory_non_isometric_id = static_cast<BlockID>( block_id );
     }
 
@@ -645,6 +646,13 @@ void block_definitions_initilize_definitions( Texture *texture ) {
             block->affected_by_redstone_power = false;
             block->can_be_placed_in = false;
         }
+
+        // A block can hold redstone power only if it's a full opaque cube.
+        // Transparent blocks (glass, leaves), non-full blocks (slabs, plates,
+        // flowers), and non-colliding blocks (air, water, torches, dust) are
+        // never powered. Pistons are opaque but are excluded too — a powered
+        // piston must not transmit power to anything.
+        block->is_solid = block->collides_with_player && !block->is_seethrough && !block->non_full_size && !block->is_piston && !block->is_piston_head;
         // if ( block->id == LEAF ) {
         //     pr_debug( "Got" );
         // }

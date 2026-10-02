@@ -378,6 +378,12 @@ typedef struct {
     bool non_full_size;
     bool is_pickable;
     bool collides_with_player;
+    // Whether the block is a full opaque cube for redstone purposes: solid
+    // blocks can hold power (strong or weak), and dust can connect up over
+    // them. Glass, leaves, slabs, and other transparent or non-full blocks —
+    // plus pistons, which are opaque but must never transmit power — are
+    // non-solid. Defaults to true, finalized in the render-order pass.
+    bool is_solid;
     bool breaks_in_liquid;
     int initial_redstone_power;
     bool affected_by_redstone_power;

@@ -50,10 +50,12 @@ static int check_id( const World &world, const char *name, const glm::ivec3 &pos
 
 // Redstone mechanics, focused on the redstone torch:
 //
-//        dust(D2)        y=13
-//  torch(T2) B dust(D) piston lamp  y=12   T2 attached to B's -x face
-//           T1  S       dust(D3)   y=11/12 D3 sits beside the lamp
-//           S0                     y=10
+//        dust(D2) lamp2  dust(G_d)  y=13
+//  torch(T2) B dust(D) piston lamp glass  y=12   T2 attached to B's -x face
+//           T1  S       dust(D3)   T3      y=11
+//           S0                     S2      y=10
+//
+//   lamp3 sits at (9,12,11), beside the powered piston and the OFF torch.
 //
 // Minecraft semantics being verified:
 //  - A torch strongly ("hard") powers the block directly above it: B=15.
@@ -62,6 +64,11 @@ static int check_id( const World &world, const char *name, const glm::ivec3 &pos
 //  - A powered block (weak or strong) activates adjacent mechanisms: the
 //    piston extends a head and the lamp lights, both storing "activated" (1).
 //  - A powered mechanism does NOT emit: dust beside the lit lamp stays 0.
+//  - Only solid blocks hold power: glass above T3 stays 0, so dust on top
+//    of the glass is not powered either.
+//  - Powered opaque-but-non-solid blocks transmit nothing: the powered
+//    piston does not activate the lamp beside it; the lit lamp (solid)
+//    DOES activate lamp2 above it.
 int test_redstone( ) {
     if ( block_definitions == nullptr ) {
         block_definitions_initilize_definitions( nullptr );
@@ -78,6 +85,17 @@ int test_redstone( ) {
     world.set_loaded_block( glm::ivec3( 10, 12, 10 ), stone ); // B: block above the torch
     world.set_loaded_block( glm::ivec3( 11, 11, 10 ), stone ); // support under D
     world.set_loaded_block( glm::ivec3( 10, 11, 8 ), stone );  // support under D3
+    world.set_loaded_block( glm::ivec3( 13, 10, 10 ), stone ); // S2: T3 support
+
+    // Dust staircases at x=20-27: glass treads carry power up but not down
+    // (the gap above a lower dust, not the side block, decides the diagonal
+    // edge); stone treads carry both ways.
+    const BlockState glass = { GLASS, 0, 0, GLASS };
+    world.set_loaded_block( glm::ivec3( 20, 10, 10 ), stone ); // s1 tread
+    world.set_loaded_block( glm::ivec3( 21, 11, 10 ), glass ); // s2 tread
+    world.set_loaded_block( glm::ivec3( 22, 12, 10 ), glass ); // s3 tread
+    world.set_loaded_block( glm::ivec3( 25, 10, 10 ), stone ); // s4 tread
+    world.set_loaded_block( glm::ivec3( 26, 11, 10 ), stone ); // s5 tread
 
     // Redstone components placed through the real event path so power updates
     // propagate exactly as in gameplay.
@@ -91,6 +109,22 @@ int test_redstone( ) {
     place( glm::ivec3( 10, 12, 11 ), { PISTON, 0, 0, PISTON } );                // piston beside B, faces +z
     place( glm::ivec3( 10, 12, 9 ), { REDSTONE_LAMP, 0, 0, REDSTONE_LAMP } );   // lamp beside B
     place( glm::ivec3( 10, 12, 8 ), { REDSTONE_CROSS, 0, 0, REDSTONE_CROSS } ); // D3: dust beside lamp
+    place( glm::ivec3( 13, 11, 10 ), { REDSTONE_TORCH, 0, 0, REDSTONE_TORCH } ); // T3: floor torch under glass
+    place( glm::ivec3( 13, 12, 10 ), { GLASS, 0, 0, GLASS } );                  // glass above T3: can't be powered
+    place( glm::ivec3( 13, 13, 10 ), { REDSTONE_CROSS, 0, 0, REDSTONE_CROSS } ); // G_d: dust on glass
+    place( glm::ivec3( 10, 13, 9 ), { REDSTONE_LAMP, 0, 0, REDSTONE_LAMP } );   // lamp2 above lit lamp
+    place( glm::ivec3( 9, 12, 11 ), { REDSTONE_LAMP, 0, 0, REDSTONE_LAMP } );   // lamp3 beside powered piston
+
+    // Glass staircase: source at the bottom must climb it.
+    place( glm::ivec3( 20, 11, 10 ), { REDSTONE_CROSS, 0, 0, REDSTONE_CROSS } ); // s1
+    place( glm::ivec3( 21, 12, 10 ), { REDSTONE_CROSS, 0, 0, REDSTONE_CROSS } ); // s2
+    place( glm::ivec3( 22, 13, 10 ), { REDSTONE_CROSS, 0, 0, REDSTONE_CROSS } ); // s3
+    place( glm::ivec3( 20, 11, 11 ), { REDSTONE_BLOCK, 0, 0, REDSTONE_BLOCK } ); // source beside s1
+
+    // Stone staircase: source at the top must descend it.
+    place( glm::ivec3( 25, 11, 10 ), { REDSTONE_CROSS, 0, 0, REDSTONE_CROSS } ); // s4
+    place( glm::ivec3( 26, 12, 10 ), { REDSTONE_CROSS, 0, 0, REDSTONE_CROSS } ); // s5
+    place( glm::ivec3( 26, 12, 11 ), { REDSTONE_BLOCK, 0, 0, REDSTONE_BLOCK } ); // source beside s5
 
     for ( int i = 0; i < 40; i++ ) {
         gs.tick_number++;
@@ -107,6 +141,27 @@ int test_redstone( ) {
     failures += check_power( world, "lamp beside powered block", glm::ivec3( 10, 12, 9 ), 1 );
     failures += check_id( world, "piston head extended into (10,12,12)", glm::ivec3( 10, 12, 12 ), PISTON_HEAD );
     failures += check_power( world, "D3: dust beside powered lamp (no emit)", glm::ivec3( 10, 12, 8 ), 0 );
+    failures += check_power( world, "glass above torch (non-solid, no power)", glm::ivec3( 13, 12, 10 ), 0 );
+    failures += check_power( world, "dust on glass (no power through glass)", glm::ivec3( 13, 13, 10 ), 0 );
+    failures += check_power( world, "lamp2 above powered lamp (chained)", glm::ivec3( 10, 13, 9 ), 1 );
+    failures += check_power( world, "lamp3 beside powered piston (no relay)", glm::ivec3( 9, 12, 11 ), 0 );
+
+    failures += check_power( world, "s1: dust at glass staircase base", glm::ivec3( 20, 11, 10 ), 14 );
+    failures += check_power( world, "s2: dust climbing glass stair 1", glm::ivec3( 21, 12, 10 ), 13 );
+    failures += check_power( world, "s3: dust climbing glass stair 2", glm::ivec3( 22, 13, 10 ), 12 );
+    failures += check_power( world, "s5: dust on stone stair top (sourced)", glm::ivec3( 26, 12, 10 ), 14 );
+    failures += check_power( world, "s4: dust descending stone stair", glm::ivec3( 25, 11, 10 ), 13 );
+
+    // Teardown phase: breaking the source must unpower the whole glass
+    // staircase — a missed diagonal update would leave it stuck on.
+    place( glm::ivec3( 20, 11, 11 ), BLOCK_STATE_AIR );
+    for ( int i = 0; i < 40; i++ ) {
+        gs.tick_number++;
+        gs.blockUpdateQueue.processAllBlockUpdates( gs, gs.tick_number );
+    }
+    failures += check_power( world, "s1 after source removed", glm::ivec3( 20, 11, 10 ), 0 );
+    failures += check_power( world, "s2 after source removed", glm::ivec3( 21, 12, 10 ), 0 );
+    failures += check_power( world, "s3 after source removed", glm::ivec3( 22, 13, 10 ), 0 );
     return failures;
 }
 

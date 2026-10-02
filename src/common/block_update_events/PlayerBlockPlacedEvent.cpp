@@ -23,8 +23,20 @@ void queue_neighbor_block_updates( BlockUpdateQueue &blockUpdateQueue, World &wo
     }
 
     // Also notify extended neighbors for vertical dust connections.
-    // Dust can connect up over solid blocks or down below non-solid blocks.
-    // When a block changes, dust at a different elevation (2 blocks away) may need to update.
+    // Dust at pos+horiz+up or pos+horiz+down may have pos in its feeder set,
+    // and its rendered shape may connect toward pos. An edge between pos and
+    // pos+horiz+up exists when pos can climb a solid side block OR the upper
+    // dust can see down through a clear cell above pos; an edge between pos
+    // and pos+horiz+down exists when pos sees it through a non-solid side
+    // cell OR it climbs the solid block under pos. Check the real pivots —
+    // conditioning on the side cell alone misses the glass/gap cases and
+    // leaves diagonal dust stale (stuck on, or never powering).
+    const BlockState above_state = world.get_loaded_block( pos + glm::ivec3( 0, 1, 0 ) );
+    const Block *above = block_definition_get_definition( above_state.id );
+    const bool gap_above = above_state.id != LAST_BLOCK_ID && !above->is_solid && !above->is_redstone_dust;
+    const BlockState below_state = world.get_loaded_block( pos + glm::ivec3( 0, -1, 0 ) );
+    const Block *below = block_definition_get_definition( below_state.id );
+    const bool base_solid = below_state.id != LAST_BLOCK_ID && below->is_solid;
     const glm::ivec3 horiz_offsets[ 4 ] = {
         glm::ivec3( 1, 0, 0 ),  //
         glm::ivec3( -1, 0, 0 ), //
@@ -32,17 +44,15 @@ void queue_neighbor_block_updates( BlockUpdateQueue &blockUpdateQueue, World &wo
         glm::ivec3( 0, 0, -1 ), //
     };
     for ( const glm::ivec3 &horiz : horiz_offsets ) {
-        glm::ivec3 neighbor_pos = pos + horiz;
-        BlockState neighbor = world.get_loaded_block( neighbor_pos );
-        if ( neighbor.id == LAST_BLOCK_ID ) {
+        const BlockState side_state = world.get_loaded_block( pos + horiz );
+        if ( side_state.id == LAST_BLOCK_ID ) {
             continue;
         }
-        const Block *neighbor_block = block_definition_get_definition( neighbor.id );
-        if ( neighbor_block->collides_with_player ) {
-            // Solid neighbor: dust on top might connect via this solid block
+        const Block *side = block_definition_get_definition( side_state.id );
+        if ( side->is_solid || gap_above ) {
             blockUpdateQueue.addBlockUpdate( std::make_shared<BlockNextToChangeEvent>( tick_number, pos, horiz + glm::ivec3( 0, 1, 0 ) ) );
-        } else if ( !neighbor_block->is_redstone_dust ) {
-            // Non-solid neighbor: dust below might connect via this air block
+        }
+        if ( ( !side->is_solid && !side->is_redstone_dust ) || base_solid ) {
             blockUpdateQueue.addBlockUpdate( std::make_shared<BlockNextToChangeEvent>( tick_number, pos, horiz + glm::ivec3( 0, -1, 0 ) ) );
         }
     }
