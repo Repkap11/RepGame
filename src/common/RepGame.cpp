@@ -31,7 +31,8 @@ BlockID RepGame::change_block( const int place, BlockState blockState ) {
         block = globalGameState.block_selection.pos_create;
         if ( block_definition_get_definition( blockState.id )->collides_with_player ) {
             // If the block collides with the player, make sure it's not being placed where it would collide
-            if ( Collision::check_collides_with_block( globalGameState.world, globalGameState.camera.pos, block ) ) {
+            if ( Collision::check_collides_with_block( globalGameState.world, globalGameState.camera.pos, block, //
+                                                       globalGameState.camera.player_height, globalGameState.camera.eye_height ) ) {
                 return LAST_BLOCK_ID;
             }
         }
@@ -338,8 +339,12 @@ void RepGame::process_movement( ) {
     // of a liquid block — water tops out at WATER_HEIGHT within its block, so
     // in 1-deep water the center sits above the surface and the player wades
     // (slowed walk, normal jump) instead of swimming. camera.pos is the eye;
-    // the body center is EYE_POSITION_OFFSET below it.
-    const glm::dvec3 body_center = globalGameState.camera.pos - glm::dvec3( 0.0, EYE_POSITION_OFFSET, 0.0 );
+    // feet are eye_height below it. The swim check uses the STANDING body
+    // center (feet + PLAYER_HEIGHT/2) so it is pose-independent — a crouched
+    // player dipping their actual center below the surface must not flip into
+    // swimming, which would cancel the sneak and oscillate every tick.
+    const double body_center_y = globalGameState.camera.pos.y - globalGameState.camera.eye_height + PLAYER_HEIGHT / 2.0;
+    const glm::dvec3 body_center( globalGameState.camera.pos.x, body_center_y, globalGameState.camera.pos.z );
     const glm::ivec3 body_block_pos = glm::ivec3( glm::round( body_center - glm::dvec3( 0.5 ) ) );
     const BlockState body_block = globalGameState.world.get_loaded_block( body_block_pos );
     const bool body_in_liquid = body_block.id < LAST_BLOCK_ID && block_definition_get_definition( body_block.id )->flows != 0;
@@ -349,9 +354,35 @@ void RepGame::process_movement( ) {
     const bool liquid_above = above_block.id < LAST_BLOCK_ID && block_definition_get_definition( above_block.id )->flows != 0;
     const bool player_swimming = !player_flying && body_in_liquid && ( liquid_above || body_center.y < static_cast<double>( body_block_pos.y ) + WATER_HEIGHT );
     // Wading: feet in a liquid but body above the surface (e.g. 1-deep water).
-    const glm::ivec3 feet_block_pos = glm::ivec3( glm::round( globalGameState.camera.pos - glm::dvec3( 0.0, PLAYER_EYE_HEIGHT - 0.05, 0.0 ) - glm::dvec3( 0.5 ) ) );
+    const glm::ivec3 feet_block_pos = glm::ivec3( glm::round( globalGameState.camera.pos - glm::dvec3( 0.0, globalGameState.camera.eye_height - 0.05, 0.0 ) - glm::dvec3( 0.5 ) ) );
     const BlockState feet_block = globalGameState.world.get_loaded_block( feet_block_pos );
     const bool player_wading = !player_flying && !player_swimming && feet_block.id < LAST_BLOCK_ID && block_definition_get_definition( feet_block.id )->flows != 0;
+
+    // Sneak pose transitions. The sneak key doubles as "move down" while
+    // flying, and while swimming it crouches AND sinks (the swim branch below
+    // still applies its sink assist). Feet stay planted: the eye
+    // (camera.pos.y) shifts by the eye-height difference.
+    const bool wants_sneak = globalGameState.input.movement.sneakPressed && !player_flying && !globalGameState.input.no_clip;
+    if ( wants_sneak && !globalGameState.camera.sneaking ) {
+        globalGameState.camera.sneaking = 1;
+        globalGameState.camera.player_height = PLAYER_SNEAK_HEIGHT;
+        globalGameState.camera.eye_height = PLAYER_SNEAK_EYE_HEIGHT;
+        globalGameState.camera.pos.y -= PLAYER_SNEAK_EYE_DROP;
+    } else if ( !wants_sneak && globalGameState.camera.sneaking ) {
+        // Stand up only if the taller box has headroom; otherwise stay
+        // crouched. Rechecked every tick, so the player stands as soon as
+        // they walk out from under a low ceiling.
+        const glm::dvec3 stand_eye = globalGameState.camera.pos + glm::dvec3( 0.0, PLAYER_SNEAK_EYE_DROP, 0.0 );
+        if ( !Collision::collides_at( globalGameState.world, stand_eye, PLAYER_HEIGHT, PLAYER_EYE_HEIGHT ) ) {
+            globalGameState.camera.sneaking = 0;
+            globalGameState.camera.player_height = PLAYER_HEIGHT;
+            globalGameState.camera.eye_height = PLAYER_EYE_HEIGHT;
+            globalGameState.camera.pos.y += PLAYER_SNEAK_EYE_DROP;
+        }
+    }
+    // Ease the rendered eye height toward the pose target so the camera
+    // glides instead of snapping; applied in draw(), not used by physics.
+    globalGameState.camera.eye_height_render += ( globalGameState.camera.eye_height - globalGameState.camera.eye_height_render ) * 0.3;
 
     float gravity = player_flying ? 0 : ( player_swimming ? WATER_GRAVITY_STRENGTH : GRAVITY_STRENGTH );
 
@@ -364,6 +395,10 @@ void RepGame::process_movement( ) {
         movement_speed = MOVEMENT_SENSITIVITY_SWIMMING_SPRINTING;
     } else if ( player_swimming && !player_sprinting ) {
         movement_speed = MOVEMENT_SENSITIVITY_SWIMMING;
+    } else if ( globalGameState.camera.sneaking && player_sprinting ) {
+        movement_speed = MOVEMENT_SENSITIVITY_SNEAKING_SPRINTING;
+    } else if ( globalGameState.camera.sneaking ) {
+        movement_speed = MOVEMENT_SENSITIVITY_SNEAKING;
     } else if ( player_wading && player_sprinting ) {
         movement_speed = MOVEMENT_SENSITIVITY_WADING_SPRINTING;
     } else if ( player_wading ) {
@@ -492,9 +527,11 @@ void RepGame::process_movement( ) {
     if ( globalGameState.input.no_clip ) {
         globalGameState.camera.standing_on_solid = 0;
     } else {
-        Collision::check_move( globalGameState.world, movement_vector, //
-                               globalGameState.camera.pos,             //
-                               &globalGameState.camera.standing_on_solid );
+        Collision::check_move( globalGameState.world, movement_vector,                                     //
+                               globalGameState.camera.pos,                                                 //
+                               &globalGameState.camera.standing_on_solid,                                  //
+                               globalGameState.camera.player_height, globalGameState.camera.eye_height,    //
+                               globalGameState.camera.sneaking != 0 );
     }
 
     static const bool walktest_log = getenv( "REPGAME_WALKTEST" ) != nullptr;
@@ -534,7 +571,7 @@ void RepGame::process_block_updates( ) {
 void RepGame::process_pressure_plates( ) {
     const glm::dvec3 &eye = globalGameState.camera.pos;
     const double half_w = PLAYER_WIDTH / 2.0;
-    const double feet_y = eye.y - EYE_POSITION_OFFSET - PLAYER_HEIGHT / 2.0;
+    const double feet_y = eye.y - globalGameState.camera.eye_height;
     // Cells overlapped by the player's feet; the plate lives in the same cell
     // as the feet when standing on it (it doesn't collide, so feet rest at
     // the supporting block's top face).
@@ -694,6 +731,7 @@ void RepGame::tick( ) {
     // Snapshot the camera transform as it was at the end of the previous tick, so the
     // render loop can interpolate between this and the freshly-computed transform below.
     globalGameState.camera.prev_pos = globalGameState.camera.pos;
+    globalGameState.camera.prev_eye_height = globalGameState.camera.eye_height;
     globalGameState.camera.prev_angle_H = globalGameState.camera.angle_H;
     globalGameState.camera.prev_angle_V = globalGameState.camera.angle_V;
 
@@ -846,6 +884,10 @@ void RepGame::initializeGameState( const char *world_name ) {
     globalGameState.camera.pos.z = 0.5f;
     globalGameState.camera.y_speed = 0.0f;
     globalGameState.camera.horizontal_vel = glm::dvec2( 0.0, 0.0 );
+    globalGameState.camera.sneaking = 0;
+    globalGameState.camera.player_height = PLAYER_HEIGHT;
+    globalGameState.camera.eye_height = PLAYER_EYE_HEIGHT;
+    globalGameState.camera.eye_height_render = PLAYER_EYE_HEIGHT;
     globalGameState.input.worldDrawQuality = WorldDrawQuality::MEDIUM;
     globalGameState.main_inventory.inventory_renderer.options.active_height_percent = 0.75f;
     globalGameState.main_inventory.inventory_renderer.options.max_height_percent = 0.75f;
@@ -877,6 +919,7 @@ void RepGame::initializeGameState( const char *world_name ) {
     }
     // Seed the interpolation snapshot so the first rendered frame doesn't blend from zeroes.
     globalGameState.camera.prev_pos = globalGameState.camera.pos;
+    globalGameState.camera.prev_eye_height = globalGameState.camera.eye_height;
     globalGameState.camera.prev_angle_H = globalGameState.camera.angle_H;
     globalGameState.camera.prev_angle_V = globalGameState.camera.angle_V;
     BlockID selectedBlock = globalGameState.hotbar.getSelectedBlock( );
@@ -1018,7 +1061,13 @@ void RepGame::draw( float alpha ) {
     } else if ( alpha > 1.0f ) {
         alpha = 1.0f;
     }
-    const glm::dvec3 render_pos = glm::mix( globalGameState.camera.prev_pos, globalGameState.camera.pos, static_cast<double>( alpha ) );
+    glm::dvec3 render_pos = glm::mix( globalGameState.camera.prev_pos, globalGameState.camera.pos, static_cast<double>( alpha ) );
+    // Interpolate the feet (not the eye) so a sneak-pose change doesn't shift
+    // the ground plane, then add the render-eased eye height so the camera
+    // glides down/up over a few ticks instead of snapping.
+    const double prev_feet_y = globalGameState.camera.prev_pos.y - globalGameState.camera.prev_eye_height;
+    const double feet_y = globalGameState.camera.pos.y - globalGameState.camera.eye_height;
+    render_pos.y = glm::mix( prev_feet_y, feet_y, static_cast<double>( alpha ) ) + globalGameState.camera.eye_height_render;
     const float render_angle_V = glm::mix( globalGameState.camera.prev_angle_V, globalGameState.camera.angle_V, alpha );
     // angle_H wraps around 360, so interpolate along the shortest angular path.
     float angle_diff = globalGameState.camera.angle_H - globalGameState.camera.prev_angle_H;

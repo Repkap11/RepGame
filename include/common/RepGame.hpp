@@ -65,9 +65,20 @@ struct RepGameState {
         glm::mat4 view_look;
         glm::mat4 view_trans;
         int standing_on_solid;
+        // Sneak pose: while sneaking the collision box is shorter and the eye
+        // sits lower. eye_height is the feet-to-eye distance used to derive the
+        // AABB (feet = pos.y - eye_height). sneaking may stay set after the key
+        // is released if there's no headroom to stand.
+        int sneaking = 0;
+        double player_height = PLAYER_HEIGHT;
+        double eye_height = PLAYER_EYE_HEIGHT;
+        // Render-only smoothed eye height so the camera glides down/up over a
+        // few ticks on pose changes instead of snapping.
+        double eye_height_render = PLAYER_EYE_HEIGHT;
         // Snapshot of the camera transform at the start of the most recent tick,
         // used to interpolate the rendered camera between the previous and current tick.
         glm::dvec3 prev_pos;
+        double prev_eye_height = PLAYER_EYE_HEIGHT;
         float prev_angle_H;
         float prev_angle_V;
     } camera;

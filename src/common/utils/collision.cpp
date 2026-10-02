@@ -4,10 +4,9 @@
 #include <cmath>
 
 // Player collision AABB half-extents. The camera position is the eye; the body
-// is centered on (pos.x, pos.z) and spans PLAYER_HEIGHT tall with the eye
-// EYE_POSITION_OFFSET above the body center.
+// is centered on (pos.x, pos.z) with the feet eye_height below the eye and the
+// head (player_height - eye_height) above it.
 static const double HALF_WIDTH = PLAYER_WIDTH / 2.0;
-static const double HALF_HEIGHT = PLAYER_HEIGHT / 2.0;
 // Small skin kept between the player and block faces so floating-point error
 // never causes a re-collision on the next substep.
 static const double SKIN = 1e-4;
@@ -16,9 +15,9 @@ static const double NO_CLAMP_POS = 1e9;
 static const double NO_CLAMP_NEG = -1e9;
 
 // Build the player collision AABB from the eye position.
-static void player_aabb( const glm::dvec3 &eye, glm::dvec3 &out_min, glm::dvec3 &out_max ) {
-    out_min = glm::dvec3( eye.x - HALF_WIDTH, eye.y - EYE_POSITION_OFFSET - HALF_HEIGHT, eye.z - HALF_WIDTH );
-    out_max = glm::dvec3( eye.x + HALF_WIDTH, eye.y - EYE_POSITION_OFFSET + HALF_HEIGHT, eye.z + HALF_WIDTH );
+static void player_aabb( const glm::dvec3 &eye, double player_height, double eye_height, glm::dvec3 &out_min, glm::dvec3 &out_max ) {
+    out_min = glm::dvec3( eye.x - HALF_WIDTH, eye.y - eye_height, eye.z - HALF_WIDTH );
+    out_max = glm::dvec3( eye.x + HALF_WIDTH, out_min.y + player_height, eye.z + HALF_WIDTH );
 }
 
 // True if two AABBs overlap (strict inequalities so flush contact does not
@@ -250,7 +249,62 @@ static void try_step_up( World &world, glm::dvec3 &amin, glm::dvec3 &amax, int a
     ( void ) standing;
 }
 
-int Collision::check_collides_with_block( World &world, const glm::dvec3 &player, const glm::ivec3 &block ) {
+// True if something solid exists within STEP_HEIGHT below the player AABB —
+// i.e. the move leaves the player over a surface they could still step back
+// onto. STEP_HEIGHT matches step-up range, so sneaking can descend slabs and
+// stairs (0.5 drops) but is stopped at drops of a full block or more.
+static bool has_support_below( World &world, const glm::dvec3 &amin, const glm::dvec3 &amax ) {
+    const glm::dvec3 probe_min( amin.x, amin.y - STEP_HEIGHT, amin.z );
+    return aabb_collides_world( world, probe_min, amax );
+}
+
+// Moves the player AABB by `delta` on a horizontal axis (0=x, 2=z), resolving
+// collisions and attempting a step-up over small ledges. When edge_guard is
+// set and the player is standing, the move is clamped so the AABB never ends
+// fully past the edge of its support (sneak edge protection).
+static void move_horizontal_axis( World &world, glm::dvec3 &amin, glm::dvec3 &amax, int axis, double delta, bool standing, bool edge_guard ) {
+    if ( delta == 0.0 ) {
+        return;
+    }
+    const glm::dvec3 pre_min = amin;
+    const glm::dvec3 pre_max = amax;
+    bool hit = false;
+    resolve_axis( world, amin, amax, axis, delta, hit, standing );
+    // The clamped (non-stepped) position, kept so a stepped position that
+    // turned out to be over a void can be rolled back to it.
+    const glm::dvec3 clamped_min = amin;
+    const glm::dvec3 clamped_max = amax;
+    if ( standing && hit ) {
+        // Step forward by only the unapplied remainder of this substep's
+        // move so the total displacement never exceeds what was requested.
+        try_step_up( world, amin, amax, axis, delta - ( amin[ axis ] - pre_min[ axis ] ) );
+    }
+    if ( !edge_guard || !standing || has_support_below( world, amin, amax ) ) {
+        return;
+    }
+    // The move (possibly via step-up) left the player with no support below.
+    // Go back to the clamped position and binary-search the largest fraction
+    // of that axis move that still has ground underneath.
+    amin = clamped_min;
+    amax = clamped_max;
+    double lo = 0.0, hi = 1.0;
+    for ( int i = 0; i < 10; i++ ) {
+        const double mid = ( lo + hi ) * 0.5;
+        glm::dvec3 tmin = pre_min;
+        glm::dvec3 tmax = pre_max;
+        tmin[ axis ] += mid * ( clamped_min[ axis ] - pre_min[ axis ] );
+        tmax[ axis ] += mid * ( clamped_max[ axis ] - pre_max[ axis ] );
+        if ( has_support_below( world, tmin, tmax ) ) {
+            lo = mid;
+        } else {
+            hi = mid;
+        }
+    }
+    amin[ axis ] = pre_min[ axis ] + lo * ( clamped_min[ axis ] - pre_min[ axis ] );
+    amax[ axis ] = pre_max[ axis ] + lo * ( clamped_max[ axis ] - pre_max[ axis ] );
+}
+
+int Collision::check_collides_with_block( World &world, const glm::dvec3 &player, const glm::ivec3 &block, double player_height, double eye_height ) {
     // Used by block placement validation: reject if the player overlaps the
     // target block cell. Treat the target as a full 1x1x1 block (the caller
     // already gated on collides_with_player), matching the original behavior.
@@ -258,15 +312,22 @@ int Collision::check_collides_with_block( World &world, const glm::dvec3 &player
     const glm::dvec3 block_max = block_min + glm::dvec3( 1.0 );
 
     glm::dvec3 pmin, pmax;
-    player_aabb( player, pmin, pmax );
+    player_aabb( player, player_height, eye_height, pmin, pmax );
     return aabb_overlap( pmin, pmax, block_min, block_max ) ? 1 : 0;
 }
 
-void Collision::check_move( World &world, glm::dvec3 &movement_vec, glm::dvec3 &position, int *out_standing ) {
+bool Collision::collides_at( World &world, const glm::dvec3 &eye, double player_height, double eye_height ) {
+    glm::dvec3 amin, amax;
+    player_aabb( eye, player_height, eye_height, amin, amax );
+    return aabb_collides_world( world, amin, amax );
+}
+
+void Collision::check_move( World &world, glm::dvec3 &movement_vec, glm::dvec3 &position, int *out_standing,
+                            double player_height, double eye_height, bool edge_guard ) {
     bool standing = false;
 
     glm::dvec3 amin, amax;
-    player_aabb( position, amin, amax );
+    player_aabb( position, player_height, eye_height, amin, amax );
     const glm::dvec3 initial_center = ( amin + amax ) * 0.5;
 
     // Substep so no single resolve moves more than COLLISION_MAX_SUBSTEP on any
@@ -284,27 +345,13 @@ void Collision::check_move( World &world, glm::dvec3 &movement_vec, glm::dvec3 &
         // moves and so step-up has a stable base to work from.
         resolve_axis( world, amin, amax, 1, step.y, hit, standing );
 
-        // X with step-up. Only attempt step-up when the player is standing on
-        // the ground this tick — otherwise jumping/falling next to a wall would
-        // launch the player up and over the wall. The trigger is the `hit` flag
-        // from resolve_axis rather than a magnitude comparison: at large world
-        // coordinates float rounding makes |amin - before| land just under
-        // |step| even on an unobstructed move, which would fire step-up every
-        // tick and double the player's speed.
-        glm::dvec3 before = amin;
-        resolve_axis( world, amin, amax, 0, step.x, hit, standing );
-        if ( standing && hit ) {
-            // Step forward by only the unapplied remainder of this substep's
-            // move so the total displacement never exceeds what was requested.
-            try_step_up( world, amin, amax, 0, step.x - ( amin.x - before.x ) );
-        }
-
-        // Z with step-up.
-        before = amin;
-        resolve_axis( world, amin, amax, 2, step.z, hit, standing );
-        if ( standing && hit ) {
-            try_step_up( world, amin, amax, 2, step.z - ( amin.z - before.z ) );
-        }
+        // Step-up only applies when the player is standing on the ground this
+        // tick — otherwise jumping/falling next to a wall would launch the
+        // player up and over it. Edge guard (sneaking) likewise only clamps
+        // while standing: airborne players can drift past edges and land
+        // beyond them.
+        move_horizontal_axis( world, amin, amax, 0, step.x, standing, edge_guard );
+        move_horizontal_axis( world, amin, amax, 2, step.z, standing, edge_guard );
     }
 
     // Write back the actual applied displacement (eye-space). The caller adds

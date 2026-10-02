@@ -12,11 +12,12 @@ PressurePlateEvent::PressurePlateEvent( long tick_number, const glm::ivec3 &pos 
 
 // The plate counts as stood on while the player's AABB overlaps the plate's
 // detection box: its footprint, extended up to a quarter block so feet
-// resting exactly on its top surface still count.
-static bool player_stands_on_plate( const glm::dvec3 &eye, const glm::ivec3 &plate_pos ) {
+// resting exactly on its top surface still count. eye_height is the
+// feet-to-eye distance (lower while sneaking).
+static bool player_stands_on_plate( const glm::dvec3 &eye, double player_height, double eye_height, const glm::ivec3 &plate_pos ) {
     const double half_w = PLAYER_WIDTH / 2.0;
-    const glm::dvec3 pmin( eye.x - half_w, eye.y - EYE_POSITION_OFFSET - PLAYER_HEIGHT / 2.0, eye.z - half_w );
-    const glm::dvec3 pmax( eye.x + half_w, eye.y - EYE_POSITION_OFFSET + PLAYER_HEIGHT / 2.0, eye.z + half_w );
+    const glm::dvec3 pmin( eye.x - half_w, eye.y - eye_height, eye.z - half_w );
+    const glm::dvec3 pmax( eye.x + half_w, eye.y - eye_height + player_height, eye.z + half_w );
     const glm::dvec3 bmin( plate_pos.x + 1.0 / 16.0, plate_pos.y, plate_pos.z + 1.0 / 16.0 );
     const glm::dvec3 bmax( plate_pos.x + 15.0 / 16.0, plate_pos.y + 4.0 / 16.0, plate_pos.z + 15.0 / 16.0 );
     return pmin.x < bmax.x && pmax.x > bmin.x && //
@@ -27,7 +28,7 @@ static bool player_stands_on_plate( const glm::dvec3 &eye, const glm::ivec3 &pla
 void PressurePlateEvent::performAction( BlockUpdateQueue &blockUpdateQueue, RepGameState &repGameState ) {
     const BlockState current_state = repGameState.world.get_loaded_block( this->block_pos );
     const bool still_pressed_area = block_definition_get_definition( current_state.id )->is_pressure_plate &&
-                                    player_stands_on_plate( repGameState.camera.pos, this->block_pos );
+                                    player_stands_on_plate( repGameState.camera.pos, repGameState.camera.player_height, repGameState.camera.eye_height, this->block_pos );
     if ( still_pressed_area ) {
         if ( current_state.current_redstone_power == 0 ) {
             BlockState pressed_state = current_state;

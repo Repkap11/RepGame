@@ -81,6 +81,7 @@ make
 - "m" to show meshing debug view
 - "q" to clear a hotbar slot
 - "p" to sprint
+- "'" to sneak (prevents walking off edges), descend while flying, or sink while swimming
 - "f" to fly
 - "c" to no-clip
 - "ESC" to exit

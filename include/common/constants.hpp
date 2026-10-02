@@ -172,6 +172,17 @@ static_assert( CHUNK_RADIUS_Z > 0, "CHUNK_RADIUS_Z too small" );
 #define PLAYER_WIDTH 0.6f
 #define PLAYER_EYE_HEIGHT 1.62f
 
+// Sneaking pose (Minecraft-like): shorter body, lower eye. The 0.23 gap
+// between eye and head stays the same as standing, so only the feet-to-eye
+// distance changes.
+#define PLAYER_SNEAK_HEIGHT 1.5f
+#define PLAYER_SNEAK_EYE_HEIGHT 1.27f
+#define PLAYER_SNEAK_EYE_DROP ( PLAYER_EYE_HEIGHT - PLAYER_SNEAK_EYE_HEIGHT )
+// Sneaking walks at half normal speed; sprint-sneaking is faster but still
+// well below a full sprint.
+#define MOVEMENT_SENSITIVITY_SNEAKING ( MOVEMENT_SENSITIVITY_WALKING * 0.5f )
+#define MOVEMENT_SENSITIVITY_SNEAKING_SPRINTING ( MOVEMENT_SENSITIVITY_WALKING * 1.5f )
+
 // #define EYE_POSITION_OFFSET 0.1f
 #define EYE_POSITION_OFFSET ( PLAYER_EYE_HEIGHT - ( PLAYER_HEIGHT / 2.0f ) )
 
