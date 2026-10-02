@@ -8,8 +8,10 @@
 #include "common/utils/map_storage.hpp"
 
 class Multiplayer;
+class World;
 class ChunkLoader {
     friend class World;
+    friend void test_setup_world( World &world );
 
     TerrainLoadingThread terrain_loading_thread;
     glm::ivec3 chunk_center;

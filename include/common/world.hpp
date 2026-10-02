@@ -14,6 +14,7 @@ enum WorldDrawQuality { LOW, MEDIUM, HIGH, X_HIGH, LAST };
 class World {
     friend class RepGame;
     friend class Multiplayer;
+    friend void test_setup_world( World &world );
 
     ChunkLoader chunkLoader;
     Renderer renderer;

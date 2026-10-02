@@ -402,6 +402,11 @@ typedef struct {
     // thickness (see block_adjust_coord_based_on_state).
     bool is_button;
     bool is_pressure_plate;
+    // Mechanism components (pistons, lamps): they activate when an adjacent
+    // block is powered at all — powered blocks feed mechanisms without the
+    // mechanism re-emitting power of its own, so their stored level is capped
+    // at 1 in BlockNextToChangeEvent.
+    bool is_redstone_mechanism;
     // Piston base: current_redstone_power > 0 means extended. rotation encodes
     // the head direction: 0=+z(front) 1=-x(left) 2=-z(back) 3=+x(right)
     // 4=+y(up) 5=-y(down).

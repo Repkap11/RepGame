@@ -5,6 +5,8 @@
 #include "renderer/renderer.hpp"
 #include "server/server.hpp"
 
+class World;
+
 #define CHUNK_SIZE_INTERNAL_X ( CHUNK_SIZE_X + 2 )
 #define CHUNK_SIZE_INTERNAL_Y ( CHUNK_SIZE_Y + 2 )
 #define CHUNK_SIZE_INTERNAL_Z ( CHUNK_SIZE_Z + 2 )
@@ -41,6 +43,7 @@ class Chunk {
     friend class MapStorage;
     friend class TerrainLoadingThread;
     friend class Multiplayer;
+    friend void test_setup_world( World &world );
 
     int is_loading;
     int gl_initialized;

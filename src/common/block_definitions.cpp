@@ -59,6 +59,7 @@ void block_definitions_initilize_definitions( Texture *texture ) {
         block->is_redstone_dust = false;
         block->is_button = false;
         block->is_pressure_plate = false;
+        block->is_redstone_mechanism = false;
         block->inventory_non_isometric_id = static_cast<BlockID>( block_id );
     }
 
@@ -201,6 +202,7 @@ void block_definitions_initilize_definitions( Texture *texture ) {
     block_definitions[ REED ].needs_place_on_solid_but_can_stack_on_self = true;
 
     block_definitions[ REDSTONE_LAMP ].affected_by_redstone_power = true;
+    block_definitions[ REDSTONE_LAMP ].is_redstone_mechanism = true;
 
     block_definitions[ REDSTONE_BLOCK ].initial_redstone_power = 15;
     block_definitions[ REDSTONE_BLOCK ].affected_by_redstone_power = false;
@@ -219,6 +221,7 @@ void block_definitions_initilize_definitions( Texture *texture ) {
     constexpr BlockID piston_shaped[] = { PISTON, STICKY_PISTON };
     for ( const BlockID id : piston_shaped ) {
         block_definitions[ id ].is_piston = true;
+        block_definitions[ id ].is_redstone_mechanism = true;
         block_definitions[ id ].rotate_on_placement = true;
         block_definitions[ id ].connects_to_redstone_dust = true;
         block_definitions[ id ].textures[ FACE_TOP ] = PISTON_SIDE_UP;

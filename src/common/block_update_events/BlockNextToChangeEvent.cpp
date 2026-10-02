@@ -389,8 +389,12 @@ void perform_checks( BlockUpdateQueue &blockUpdateQueue, World &world, long tick
             // Dust: power = strongest source reachable through the dust
             // connection graph, minus one per hop.
             new_power = compute_dust_power( world, affecting_block_pos );
-        } else {
-            // Solid block: distinguish hard power (from torches above/redstone blocks) and soft power (from dust/torch sides)
+        } else if ( affecting_block->collides_with_player ) {
+            // Solid block: hard power (>1) from redstone blocks, a torch below,
+            // or an attached pressed button/plate; soft power (1) from dust
+            // pointing in or a torch's sides; mechanisms activate next to any
+            // powered block. Only solid blocks hold power — non-solids (air,
+            // water, foliage) stay 0 so they can't masquerade as a power source.
             new_power = 0;
             static constexpr glm::ivec3 directions[ 6 ] = {
                 glm::ivec3( 0, 1, 0 ),  //
@@ -453,10 +457,7 @@ void perform_checks( BlockUpdateQueue &blockUpdateQueue, World &world, long tick
                 }
             }
 
-            if ( new_power > 1 ) {
-                // Hard power: store at source level (no decay).
-                // Dust will read this and decay by 1.
-            } else if ( affecting_block->affected_by_redstone_power ) {
+            if ( new_power <= 1 && affecting_block->affected_by_redstone_power ) {
                 new_power = 0;
                 // Check for soft power (dust adjacent, or torch to the side not attached)
                 for ( const glm::ivec3 &dir : directions ) {
@@ -494,7 +495,36 @@ void perform_checks( BlockUpdateQueue &blockUpdateQueue, World &world, long tick
                         }
                     }
                 }
+                // Mechanisms (pistons, lamps) also activate when an adjacent
+                // block is powered at all — a powered block feeds mechanism
+                // components whether its power is weak or strong. Dust and
+                // torches are skipped here: their directional rules were
+                // already applied above (dust must point in, a torch never
+                // powers the block it's attached to or the one below it).
+                if ( new_power == 0 && affecting_block->is_redstone_mechanism ) {
+                    for ( const glm::ivec3 &dir : directions ) {
+                        const BlockState neighbor = world.get_loaded_block( affecting_block_pos + dir );
+                        if ( neighbor.id == LAST_BLOCK_ID || neighbor.current_redstone_power == 0 ) {
+                            continue;
+                        }
+                        const Block *neighbor_block = block_definition_get_definition( neighbor.id );
+                        if ( neighbor_block->is_redstone_dust || neighbor.id == REDSTONE_TORCH ) {
+                            continue;
+                        }
+                        new_power = 1;
+                        break;
+                    }
+                }
             }
+            // A powered mechanism doesn't emit power of its own, so cap the
+            // stored level at "activated": otherwise dust would read the
+            // mechanism as a hard power source.
+            if ( affecting_block->is_redstone_mechanism && new_power > 1 ) {
+                new_power = 1;
+            }
+        } else {
+            // Non-solid blocks (air, water, foliage) are never powered.
+            new_power = 0;
         }
 
         new_block_state.current_redstone_power = new_power;
