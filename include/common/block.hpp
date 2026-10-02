@@ -192,6 +192,46 @@ static inline void piston_head_shape( unsigned char rotation, short scale[ 3 ], 
     }
 }
 
+// The cell-boundary face of an extended piston base that still fully covers
+// its boundary: the one opposite the head end. Given as a def-space face index
+// (the rotated_face/opposing_face space the meshers' coverage checks use):
+// horizontal bases always cover their FACE_BACK slot, rot4 covers the world
+// bottom (yaw table maps it to def BOTTOM), rot5 covers the world top.
+static inline int piston_base_covered_face( unsigned char rotation ) {
+    static const int covered[ 6 ] = { FACE_BACK, FACE_BACK, FACE_BACK, FACE_BACK, FACE_BOTTOM, FACE_TOP };
+    return covered[ rotation < 6 ? rotation : 0 ];
+}
+
+// Pixel-space (0-16) box of an extended piston base: the full cube minus the
+// 4-pixel slab at the head end, recessing the throat the arm slides through.
+// Collision and ray code consume all six rotations; the mesh shader yaws
+// scale/offset for rotations 0-3 so block_adjust only needs z for those.
+static inline void piston_base_shape( unsigned char rotation, short scale[ 3 ], short offset[ 3 ] ) {
+    scale[ 0 ] = 16;
+    scale[ 1 ] = 16;
+    scale[ 2 ] = 16;
+    offset[ 0 ] = 0;
+    offset[ 1 ] = 0;
+    offset[ 2 ] = 0;
+    const int face = piston_head_face( rotation );
+    if ( face == FACE_TOP ) {
+        scale[ 1 ] = 12;
+    } else if ( face == FACE_BOTTOM ) {
+        scale[ 1 ] = 12;
+        offset[ 1 ] = 4;
+    } else if ( face == FACE_RIGHT ) {
+        scale[ 0 ] = 12;
+    } else if ( face == FACE_LEFT ) {
+        scale[ 0 ] = 12;
+        offset[ 0 ] = 4;
+    } else if ( face == FACE_FRONT ) {
+        scale[ 2 ] = 12;
+    } else { // FACE_BACK
+        scale[ 2 ] = 12;
+        offset[ 2 ] = 4;
+    }
+}
+
 #define PIXEL_TO_FLOAT( pixel ) ( ( ( float )( pixel ) ) / ( 16.0f ) )
 
 // See world.cpp for vbl

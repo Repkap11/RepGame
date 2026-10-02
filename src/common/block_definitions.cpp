@@ -232,8 +232,11 @@ void block_definitions_initilize_definitions( Texture *texture ) {
     block_definitions[ STICKY_PISTON ].textures[ FACE_FRONT ] = PISTON_HEAD_STICKY_FACE;
 
     // Piston heads occupy the cell in front of an extended base. A thin plate
-    // at the head edge; canonical shape faces FACE_FRONT (+z). Not pickable —
-    // clicks pass through to the base, and it auto-breaks when orphaned.
+    // at the head edge; canonical shape faces FACE_FRONT (+z). Textures here
+    // are just defaults: block_adjust_coord_based_on_state reassigns the thin
+    // rim faces to the banded body tiles per rotation so the plate edge reads
+    // as a plain wood strip. Not pickable — clicks pass through to the base,
+    // and it auto-breaks when orphaned.
     constexpr BlockID piston_head_shaped[] = { PISTON_HEAD, PISTON_HEAD_STICKY };
     for ( const BlockID id : piston_head_shaped ) {
         block_definitions[ id ].is_piston_head = true;
@@ -243,12 +246,13 @@ void block_definitions_initilize_definitions( Texture *texture ) {
         block_definitions[ id ].scale = { 16, 16, 4 };
         block_definitions[ id ].offset = { 0, 0, 12 };
         for ( int face = FACE_TOP; face < NUM_FACES_IN_CUBE; face++ ) {
-            block_definitions[ id ].textures[ face ] = PISTON_HEAD_SIDE;
+            block_definitions[ id ].textures[ face ] = PISTON_HEAD_FACE;
         }
-        block_definitions[ id ].textures[ FACE_FRONT ] = PISTON_HEAD_FACE;
         block_definitions[ id ].piston_immovable = true;
     }
-    block_definitions[ PISTON_HEAD_STICKY ].textures[ FACE_FRONT ] = PISTON_HEAD_STICKY_FACE;
+    for ( int face = FACE_TOP; face < NUM_FACES_IN_CUBE; face++ ) {
+        block_definitions[ PISTON_HEAD_STICKY ].textures[ face ] = PISTON_HEAD_STICKY_FACE;
+    }
 
     // Blocks pistons refuse to move. Powered pistons and piston heads are
     // handled separately inside PistonEvent.

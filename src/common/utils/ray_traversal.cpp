@@ -38,6 +38,16 @@ int contains_pixel( Block *pixel_block, BlockState &block_state, const glm::dvec
         offset_x = head_offset[ 0 ];
         offset_y = head_offset[ 1 ];
         offset_z = head_offset[ 2 ];
+    } else if ( pixel_block->is_piston && block_state.current_redstone_power > 0 ) {
+        // Extended base: full cube minus the 4px slab at the head end.
+        short base_scale[ 3 ], base_offset[ 3 ];
+        piston_base_shape( block_state.rotation, base_scale, base_offset );
+        scale_x = base_scale[ 0 ];
+        scale_y = base_scale[ 1 ];
+        scale_z = base_scale[ 2 ];
+        offset_x = base_offset[ 0 ];
+        offset_y = base_offset[ 1 ];
+        offset_z = base_offset[ 2 ];
     } else if ( block_state.rotation == BLOCK_ROTATE_0 ) {
     } else if ( block_state.rotation == BLOCK_ROTATE_90 ) {
         scale_x = pixel_block->scale.z;
@@ -169,7 +179,7 @@ int contains_block( World &world, const glm::dvec3 &dir, const glm::dvec3 &initi
     } else {
         result = block->collides_with_player;
     }
-    if ( result && block->non_full_size ) {
+    if ( result && ( block->non_full_size || ( block->is_piston && blockState.current_redstone_power > 0 ) ) ) {
         return contains_pixel( block, blockState, dir, initial, glm::dvec3( block_pos ), which_face );
     } else {
         return result;

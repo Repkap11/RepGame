@@ -57,6 +57,18 @@ __device__ static inline int min4_d( const int a, const int b, const int c, cons
     return ( diag1 < diag2 ? diag1 : diag2 );
 }
 
+// Mirror of face_is_seethrough in chunk.cpp: a powered piston base recesses
+// 4px at its head end, so every def-space face except the covered back face
+// lets neighbor faces show through. Only used for covering-block lookups.
+__device__ static inline int face_is_seethrough_d( const GPUBlockDef &block, const BlockState &state, int face ) {
+    if ( block.is_piston && state.current_redstone_power > 0 ) {
+        // piston_base_covered_face: 0-3 -> FACE_BACK, 4 -> FACE_BOTTOM, 5 -> FACE_TOP
+        int covered = state.rotation >= 4 ? ( state.rotation == 4 ? FACE_BOTTOM_D : FACE_TOP_D ) : FACE_BACK_D;
+        return face != covered;
+    }
+    return block.is_seethrough_face[ face ];
+}
+
 __global__ void hip_calculate_mesh_kernel( const BlockState *blocks,
                                             const GPUBlockDef *block_defs,
                                             const int *casts_shadow,
@@ -101,7 +113,7 @@ __global__ void hip_calculate_mesh_kernel( const BlockState *blocks,
             if ( face == FACE_TOP_D && block.renderOrder == RENDER_ORDER_WATER ) {
                 visible_from[ face ] = ( neighbor_block.id != block.id );
             } else {
-                visible_from[ face ] = ( neighbor_block.is_seethrough_face[ opposing_face ] && neighbor_state.id != blockState.id );
+                visible_from[ face ] = ( face_is_seethrough_d( neighbor_block, neighbor_state, opposing_face ) && neighbor_state.id != blockState.id );
             }
         } else if ( is_seethrough ) {
             int visable_through_opposing = 0;
@@ -112,14 +124,14 @@ __global__ void hip_calculate_mesh_kernel( const BlockState *blocks,
                 BlockState block_around_state = blocks[ around_idx ];
                 GPUBlockDef block_around = block_defs[ block_around_state.id ];
                 int around_face = OPPOSITE_FACE_D[ ROTATED_FACE_TABLE_D[ block_around_state.rotation & 3 ][ face_around ] ];
-                if ( block_around.is_seethrough_face[ around_face ] ) {
+                if ( face_is_seethrough_d( block_around, block_around_state, around_face ) ) {
                     visable_through_opposing = 1;
                     break;
                 }
             }
             visible_from[ face ] = visable_through_opposing;
         } else {
-            visible_from[ face ] = neighbor_block.is_seethrough_face[ opposing_face ];
+            visible_from[ face ] = face_is_seethrough_d( neighbor_block, neighbor_state, opposing_face );
         }
         block_is_visiable |= visible_from[ face ];
     }
@@ -315,6 +327,7 @@ bool mesh_gen_init_hip( ) {
             host_defs[ i ].renderOrder = block_definitions[ i ].renderOrder;
             host_defs[ i ].no_light = block_definitions[ i ].no_light;
             host_defs[ i ].id = block_definitions[ i ].id;
+            host_defs[ i ].is_piston = block_definitions[ i ].is_piston ? 1 : 0;
             for ( int j = 0; j < NUM_FACES_IN_CUBE; j++ ) {
                 host_defs[ i ].is_seethrough_face[ j ] = block_definitions[ i ].calculated.is_seethrough_face[ j ];
                 host_defs[ i ].hides_self[ j ] = block_definitions[ i ].calculated.hides_self[ j ];

@@ -45,7 +45,9 @@ static bool block_collision_aabb( World &world, const glm::ivec3 &block_pos, glm
     if ( !block->collides_with_player ) {
         return false;
     }
-    if ( !block->non_full_size ) {
+    const unsigned char rot = blockState.rotation;
+    const bool piston_extended = block->is_piston && blockState.current_redstone_power > 0;
+    if ( !block->non_full_size && !piston_extended ) {
         out_min = glm::dvec3( block_pos );
         out_max = glm::dvec3( block_pos ) + glm::dvec3( 1.0 );
         return true;
@@ -59,7 +61,6 @@ static bool block_collision_aabb( World &world, const glm::ivec3 &block_pos, glm
     short offset_x = block->offset.x;
     short offset_y = block->offset.y;
     short offset_z = block->offset.z;
-    const unsigned char rot = blockState.rotation;
     if ( block->is_piston_head ) {
         // The yaw cases below only remap x/z; piston heads also face up/down,
         // so take the whole plate box from the shared helper.
@@ -71,6 +72,16 @@ static bool block_collision_aabb( World &world, const glm::ivec3 &block_pos, glm
         offset_x = head_offset[ 0 ];
         offset_y = head_offset[ 1 ];
         offset_z = head_offset[ 2 ];
+    } else if ( piston_extended ) {
+        // Same deal: the base recesses 4px at its head end, including up/down.
+        short base_scale[ 3 ], base_offset[ 3 ];
+        piston_base_shape( rot, base_scale, base_offset );
+        scale_x = base_scale[ 0 ];
+        scale_y = base_scale[ 1 ];
+        scale_z = base_scale[ 2 ];
+        offset_x = base_offset[ 0 ];
+        offset_y = base_offset[ 1 ];
+        offset_z = base_offset[ 2 ];
     } else if ( rot == BLOCK_ROTATE_90 ) {
         scale_x = block->scale.z;
         scale_z = block->scale.x;

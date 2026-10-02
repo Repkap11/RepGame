@@ -8,6 +8,7 @@ struct GPUBlockDef {
     int renderOrder;
     int no_light;
     int id; // BlockID
+    int is_piston;
     int is_seethrough_face[ NUM_FACES_IN_CUBE ];
     int hides_self[ NUM_FACES_IN_CUBE ];
 };

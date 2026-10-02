@@ -513,6 +513,19 @@ inline int get_rotated_face( const int face, const int rotation ) {
     return ROTATED_FACE_TABLE[ rotation & 3 ][ face ];
 }
 
+// Whether `block`'s def-space face (post get_rotated_face) leaves its cell
+// boundary partially open. Extended piston bases recess 4px at the head end,
+// so every face except the covered back face lets neighbor faces show through.
+// Only used for the covering-block lookups; the block's own faces keep the
+// static table so a buried base doesn't z-fight its neighbors on the part of
+// the boundary it still covers.
+static inline bool face_is_seethrough( const Block *block, const BlockState &state, int face ) {
+    if ( block->is_piston && state.current_redstone_power > 0 ) {
+        return face != piston_base_covered_face( state.rotation );
+    }
+    return block->calculated.is_seethrough_face[ face ];
+}
+
 void Chunk::calculate_populated_blocks( ) {
     int num_instances[ LAST_RENDER_ORDER ] = { 0 };
 
@@ -606,7 +619,7 @@ void Chunk::calculate_populated_blocks( ) {
                         if ( face == FACE_TOP && block->renderOrder == RenderOrder_Water ) {
                             visible_from[ face ] = block_next_to->id != block->id;
                         } else {
-                            visible_from[ face ] = block_next_to->calculated.is_seethrough_face[ opposing_face ] && block_next_to_state.id != blockID;
+                            visible_from[ face ] = face_is_seethrough( block_next_to, block_next_to_state, opposing_face ) && block_next_to_state.id != blockID;
                         }
                     } else if ( is_seethrough ) { // The current block is seethough on this face. Check all the directions not opposing it;
                         bool visable_through_opposing = false;
@@ -619,7 +632,7 @@ void Chunk::calculate_populated_blocks( ) {
                             Block *block_around = block_definition_get_definition( block_around_state.id );
                             int around_face = get_rotated_face( face_around, block_around_state.rotation );
                             around_face = OPPOSITE_FACE[ around_face ];
-                            if ( block_around->calculated.is_seethrough_face[ around_face ] ) {
+                            if ( face_is_seethrough( block_around, block_around_state, around_face ) ) {
                                 visable_through_opposing = true;
                                 break;
                             }
@@ -627,7 +640,7 @@ void Chunk::calculate_populated_blocks( ) {
                         visible_from[ face ] = visable_through_opposing;
 
                     } else {
-                        bool visable_through_opposing = block_next_to->calculated.is_seethrough_face[ opposing_face ];
+                        bool visable_through_opposing = face_is_seethrough( block_next_to, block_next_to_state, opposing_face );
                         visible_from[ face ] = visable_through_opposing;
                     }
                     block_is_visiable |= visible_from[ face ];
