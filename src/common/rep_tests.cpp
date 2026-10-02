@@ -67,8 +67,9 @@ static int check_id( const World &world, const char *name, const glm::ivec3 &pos
 //  - Only solid blocks hold power: glass above T3 stays 0, so dust on top
 //    of the glass is not powered either.
 //  - Powered opaque-but-non-solid blocks transmit nothing: the powered
-//    piston does not activate the lamp beside it; the lit lamp (solid)
-//    DOES activate lamp2 above it.
+//    piston does not activate the lamp beside it. A powered mechanism is
+//    activated, not emitting: the lit lamp does not activate lamp2 above it,
+//    so two lamps can't latch each other once their source is gone.
 int test_redstone( ) {
     if ( block_definitions == nullptr ) {
         block_definitions_initilize_definitions( nullptr );
@@ -144,6 +145,12 @@ int test_redstone( ) {
     place( glm::ivec3( 29, 12, 14 ), { REDSTONE_CROSS, 0, 0, REDSTONE_CROSS } ); // b4 (glass corner)
     place( glm::ivec3( 28, 11, 15 ), { REDSTONE_BLOCK, 0, 0, REDSTONE_BLOCK } ); // source beside b3
 
+    // Latch regression: two adjacent lamps must not sustain each other once
+    // the source is removed — a powered mechanism is activated, not emitting.
+    place( glm::ivec3( 28, 11, 18 ), { REDSTONE_LAMP, 0, 0, REDSTONE_LAMP } );   // M1 (sourced)
+    place( glm::ivec3( 29, 11, 18 ), { REDSTONE_LAMP, 0, 0, REDSTONE_LAMP } );   // M2 (only neighbor is M1)
+    place( glm::ivec3( 28, 11, 19 ), { REDSTONE_BLOCK, 0, 0, REDSTONE_BLOCK } ); // source beside M1
+
     for ( int i = 0; i < 40; i++ ) {
         gs.tick_number++;
         gs.blockUpdateQueue.processAllBlockUpdates( gs, gs.tick_number );
@@ -161,7 +168,7 @@ int test_redstone( ) {
     failures += check_power( world, "D3: dust beside powered lamp (no emit)", glm::ivec3( 10, 12, 8 ), 0 );
     failures += check_power( world, "glass above torch (non-solid, no power)", glm::ivec3( 13, 12, 10 ), 0 );
     failures += check_power( world, "dust on glass (no power through glass)", glm::ivec3( 13, 13, 10 ), 0 );
-    failures += check_power( world, "lamp2 above powered lamp (chained)", glm::ivec3( 10, 13, 9 ), 1 );
+    failures += check_power( world, "lamp2 above powered lamp (no relay)", glm::ivec3( 10, 13, 9 ), 0 );
     failures += check_power( world, "lamp3 beside powered piston (no relay)", glm::ivec3( 9, 12, 11 ), 0 );
 
     failures += check_power( world, "s1: dust at glass staircase base", glm::ivec3( 20, 11, 10 ), 14 );
@@ -175,11 +182,15 @@ int test_redstone( ) {
     failures += check_power( world, "b3: dust below glass corner", glm::ivec3( 28, 11, 14 ), 14 );
     failures += check_power( world, "b4: dust past glass corner (open)", glm::ivec3( 29, 12, 14 ), 13 );
 
+    failures += check_power( world, "M1: lamp beside source", glm::ivec3( 28, 11, 18 ), 1 );
+    failures += check_power( world, "M2: lamp beside powered lamp (no chain)", glm::ivec3( 29, 11, 18 ), 0 );
+
     // Teardown phase: breaking the source must unpower the whole glass
     // staircase — a missed diagonal update would leave it stuck on. Blocking
     // the corner above s4 must cut the stone staircase's downward feed.
     place( glm::ivec3( 20, 11, 11 ), BLOCK_STATE_AIR );
     place( glm::ivec3( 25, 12, 10 ), stone );
+    place( glm::ivec3( 28, 11, 19 ), BLOCK_STATE_AIR );
     for ( int i = 0; i < 40; i++ ) {
         gs.tick_number++;
         gs.blockUpdateQueue.processAllBlockUpdates( gs, gs.tick_number );
@@ -188,6 +199,8 @@ int test_redstone( ) {
     failures += check_power( world, "s2 after source removed", glm::ivec3( 21, 12, 10 ), 0 );
     failures += check_power( world, "s3 after source removed", glm::ivec3( 22, 13, 10 ), 0 );
     failures += check_power( world, "s4 after corner blocked", glm::ivec3( 25, 11, 10 ), 0 );
+    failures += check_power( world, "M1 after source removed (no latch)", glm::ivec3( 28, 11, 18 ), 0 );
+    failures += check_power( world, "M2 after source removed (no latch)", glm::ivec3( 29, 11, 18 ), 0 );
     return failures;
 }
 

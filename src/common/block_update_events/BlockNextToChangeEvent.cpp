@@ -514,10 +514,12 @@ void perform_checks( BlockUpdateQueue &blockUpdateQueue, World &world, long tick
                 // Mechanisms (pistons, lamps) also activate when an adjacent
                 // block is powered at all — a powered block feeds mechanism
                 // components whether its power is weak or strong. Only blocks
-                // that emit power count: powered solids (including lit lamps),
-                // pressed buttons and plates. Dust and torches have their own
-                // directional rules above; powered pistons are non-solid and
-                // transmit nothing.
+                // that emit power count: powered solids, pressed buttons and
+                // plates. A powered mechanism (lit lamp, extended piston) is
+                // activated, not emitting — counting it would let two adjacent
+                // mechanisms latch each other on forever after their source is
+                // gone. Dust and torches have their own directional rules
+                // above.
                 if ( new_power == 0 && affecting_block->is_redstone_mechanism ) {
                     for ( const glm::ivec3 &dir : directions ) {
                         const BlockState neighbor = world.get_loaded_block( affecting_block_pos + dir );
@@ -525,7 +527,7 @@ void perform_checks( BlockUpdateQueue &blockUpdateQueue, World &world, long tick
                             continue;
                         }
                         const Block *neighbor_block = block_definition_get_definition( neighbor.id );
-                        if ( neighbor_block->is_solid || neighbor_block->is_button || neighbor_block->is_pressure_plate ) {
+                        if ( ( neighbor_block->is_solid && !neighbor_block->is_redstone_mechanism ) || neighbor_block->is_button || neighbor_block->is_pressure_plate ) {
                             new_power = 1;
                             break;
                         }
