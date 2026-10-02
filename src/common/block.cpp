@@ -82,14 +82,36 @@ void block_adjust_coord_based_on_state( const Block *block, const BlockState *bl
         const unsigned char rot = blockState->rotation;
         if ( extended ) {
             // Extended: the body pulls back 4px from the head end so the throat
-            // the arm slides through sits recessed, and the sides switch to the
-            // plain body tile — the wooden band is the retracted plate, which
-            // is now out in the head cell.
+            // the arm slides through sits recessed. The shrink clips the
+            // texture's UV window to [0, 0.75] on the thin axis, so each slot
+            // needs the band variant with the wood band on the clipped
+            // UV-high edge. Faces that already used such a variant keep their
+            // tile (pixel-identical to the retracted face); faces that used a
+            // UV-low band variant get the *_EXT tile — the same body pixels
+            // shifted 4px, so every side keeps its retracted texture.
             const int head_slot = rot == PISTON_ROTATE_UP ? FACE_TOP : rot == PISTON_ROTATE_DOWN ? FACE_BOTTOM : FACE_FRONT;
-            for ( int face = FACE_TOP; face < NUM_FACES_IN_CUBE; face++ ) {
-                blockCoord->face[ face ] = PISTON_BACK;
+            if ( rot == PISTON_ROTATE_UP || rot == PISTON_ROTATE_DOWN ) {
+                // Vertical: all four laterals are v-thin (v runs along y).
+                const BlockID side = rot == PISTON_ROTATE_UP ? PISTON_SIDE_UP : PISTON_SIDE_DOWN_EXT;
+                blockCoord->face[ FACE_RIGHT ] = side;
+                blockCoord->face[ FACE_LEFT ] = side;
+                blockCoord->face[ FACE_FRONT ] = side;
+                blockCoord->face[ FACE_BACK ] = side;
+                blockCoord->face[ head_slot ] = PISTON_FRONT_EXTENDED;
+                blockCoord->face[ head_slot == FACE_TOP ? FACE_BOTTOM : FACE_TOP ] = PISTON_BACK;
+            } else {
+                // Horizontal: the shader rotates the TOP/BOTTOM texcoords with
+                // the block yaw, so the thin axis always lands on the slot's
+                // band edge — the assignment is rotation-invariant, matching
+                // the retracted one with each UV-low-band tile swapped for its
+                // *_EXT variant.
+                blockCoord->face[ FACE_TOP ] = PISTON_SIDE_UP;
+                blockCoord->face[ FACE_BOTTOM ] = PISTON_SIDE_DOWN_EXT;
+                blockCoord->face[ FACE_RIGHT ] = PISTON_SIDE_LEFT;
+                blockCoord->face[ FACE_LEFT ] = PISTON_SIDE_RIGHT_EXT;
+                blockCoord->face[ FACE_FRONT ] = PISTON_FRONT_EXTENDED;
+                blockCoord->face[ FACE_BACK ] = PISTON_BACK;
             }
-            blockCoord->face[ head_slot ] = PISTON_FRONT_EXTENDED;
             if ( rot == PISTON_ROTATE_UP ) {
                 blockCoord->scale_y = 12;
             } else if ( rot == PISTON_ROTATE_DOWN ) {

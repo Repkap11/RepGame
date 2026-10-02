@@ -116,6 +116,11 @@ typedef enum {
     PISTON_SIDE_UP_2 = 157,
     PISTON_BACK = 158,
     PISTON_FRONT_EXTENDED = 159,
+    // Generated variants for the extended base: same body pixels as
+    // SIDE_DOWN/SIDE_RIGHT but with the wood band on the UV-high edge, so the
+    // shrunken box clips it and the visible region matches the retracted face.
+    PISTON_SIDE_DOWN_EXT = 1235,
+    PISTON_SIDE_RIGHT_EXT = 1236,
     MELLON_STEM = 160,
     SINGLE_CHEST_TOP = 162,
     CHEST_SIDE = 163,
