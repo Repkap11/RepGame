@@ -111,7 +111,9 @@ void Chunk::calculate_sides( const glm::ivec3 &center_next ) {
             pr_debug( "Unexpected index buffer. Crash likely on WASM ro:%d", renderOrder );
         }
         this->layers[ renderOrder ].ib.set_data( ib_data, ib_new_size );
-        this->layers[ renderOrder ].ib_reflect.set_data( ib_data_reflect, ib_new_size );
+        if constexpr ( SUPPORTS_FRAME_BUFFER ) {
+            this->layers[ renderOrder ].ib_reflect.set_data( ib_data_reflect, ib_new_size );
+        }
     }
 }
 
@@ -166,7 +168,9 @@ void Chunk::ensure_gl_init( ) {
 
         RenderLayer &renderLayer = this->layers[ renderOrder ];
         renderLayer.ib.init( );
-        renderLayer.ib_reflect.init( );
+        if constexpr ( SUPPORTS_FRAME_BUFFER ) {
+            renderLayer.ib_reflect.init( );
+        }
         renderLayer.vb_coords.init( );
         renderLayer.va.init( );
         renderLayer.va.add_buffer( vb, *s_vbl_block );
@@ -186,7 +190,9 @@ void Chunk::destroy( ) {
         RenderLayer &renderLayer = layer;
         renderLayer.populated_blocks = nullptr;
         renderLayer.ib.destroy( );
-        renderLayer.ib_reflect.destroy( );
+        if constexpr ( SUPPORTS_FRAME_BUFFER ) {
+            renderLayer.ib_reflect.destroy( );
+        }
         renderLayer.vb_coords.destroy( );
         renderLayer.va.destroy( );
     }

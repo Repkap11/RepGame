@@ -20,6 +20,27 @@ MK_SHADER( chunk_fragment );
 // keeps up a steady frame rate while still making progress every frame.
 static constexpr long long WASM_LOAD_BUDGET_US = 4000; // 4 ms
 
+// On native (workers do terrain gen off-thread), the dequeue loop below still
+// runs per-chunk GL work on the render thread: glGen*/attrib setup in
+// ensure_gl_init, index uploads in calculate_sides, and vertex uploads in
+// program_terrain. Workers finish in bursts (initial load, fast flight), so
+// draining the whole result queue in one frame causes hitches — most visibly
+// on mobile GPUs where per-call driver overhead is high. Bound the finalize
+// work per frame; undrained chunks stay in the result queue and stream in
+// over the next frames (fog hides the pop-in).
+// Desktop drivers handle uploads cheaply, so they get a larger budget to
+// keep the (much larger) chunk grid loading fast.
+#if defined( REPGAME_LINUX ) || defined( REPGAME_WINDOWS )
+static constexpr long long CHUNK_FINALIZE_BUDGET_US = 8000; // 8 ms
+#else
+static constexpr long long CHUNK_FINALIZE_BUDGET_US = 3000; // 3 ms
+#endif
+
+// Similarly bound the needs_repopulation re-mesh loop: calculate_populated_blocks
+// is full CPU meshing done on the render thread, and bursts of dirty chunks
+// (multiplayer diffs, block edits) would otherwise all re-mesh in one frame.
+static constexpr long long CHUNK_REMESH_BUDGET_US = 2000; // 2 ms
+
 static inline long long now_us( ) {
     return std::chrono::duration_cast<std::chrono::microseconds>(
         std::chrono::steady_clock::now( ).time_since_epoch( ) ).count( );
@@ -205,10 +226,9 @@ void ChunkLoader::render_chunks( Multiplayer &multiplayer, const glm::dvec3 &cam
             }
             // When limit_render is true (WASM without pthreads), terrain is
             // generated inline in dequeue() on the main thread, so cap the work
-            // per frame to a time budget. When limit_render is false (native, or
-            // WASM with pthreads), the budget term short-circuits and we drain all
-            // chunks already finished by the background threads.
-        } while ( chunk_ptr && ( !limit_render || ( now_us( ) - t_budget_start < WASM_LOAD_BUDGET_US ) ) );
+            // per frame to a time budget. On native the budget bounds the
+            // per-chunk GL finalize work so load-in bursts don't hitch frames.
+        } while ( chunk_ptr && ( now_us( ) - t_budget_start < ( limit_render ? WASM_LOAD_BUDGET_US : CHUNK_FINALIZE_BUDGET_US ) ) );
     }
     if ( 0 != chunk_diff.x || 0 != chunk_diff.y || 0 != chunk_diff.z ) {
         // Collect new chunk positions from the reload loop so we can fire one
@@ -248,6 +268,7 @@ void ChunkLoader::render_chunks( Multiplayer &multiplayer, const glm::dvec3 &cam
         this->chunk_center = chunk_pos;
     }
     this->rebuild_drawable_list( );
+    const long long t_remesh_start = now_us( );
     for ( int i = 0; i < this->num_drawable; i++ ) {
         Chunk &chunk = *this->drawable_chunks[ i ];
         if ( chunk.needs_repopulation && !( chunk.cached_cull_normal && chunk.cached_cull_reflect ) ) {
@@ -256,6 +277,12 @@ void ChunkLoader::render_chunks( Multiplayer &multiplayer, const glm::dvec3 &cam
             chunk.program_terrain( );
             chunk.needs_repopulation = false;
             this->num_remeshed_this_frame++;
+            // Stop once the remesh budget is spent; remaining chunks keep
+            // needs_repopulation set and render their old mesh until a later
+            // frame re-meshes them.
+            if ( now_us( ) - t_remesh_start >= CHUNK_REMESH_BUDGET_US ) {
+                break;
+            }
         }
     }
     this->rebuild_drawable_list( );

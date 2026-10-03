@@ -22,6 +22,10 @@ android {
         release {
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
+            // Sign release with the debug key so assembleRelease/installRelease
+            // produce an installable APK without a real keystore. The signature
+            // matches debug builds, so installing over them works too.
+            signingConfig signingConfigs.debug
         }
     }
     externalNativeBuild {

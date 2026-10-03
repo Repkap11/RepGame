@@ -20,10 +20,24 @@ all: android
 android-find-new-files:
 	touch ./android/app/CMakeLists.txt
 
+# Release is the everyday build: optimized native code (CMake Release =>
+# -O3 -DNDEBUG) signed with the debug key so it installs without a keystore.
 android: android-shaders android-bitmaps android-fonts android-find-new-files
+	JAVA_HOME=${JAVA_HOME_LOC} ./android/gradlew --console=plain -q -p android assembleRelease
+
+# Debug build keeps normal debug flags (no -O) so the native code is
+# debuggable — use this when you need gdb/lldb on device.
+android_debug: android-shaders android-bitmaps android-fonts android-find-new-files
 	JAVA_HOME=${JAVA_HOME_LOC} ./android/gradlew --console=plain -q -p android assembleDebug
 
 android-run: android
+	adb shell input keyevent KEYCODE_WAKEUP
+	JAVA_HOME=${JAVA_HOME_LOC} ./android/gradlew --console=plain -q -p android installRelease
+	adb logcat -c
+	adb shell monkey -p com.repkap11.${TARGET_LOWER} -c android.intent.category.LAUNCHER 1
+	adb logcat -s ${TARGET}Android -v brief
+
+android_debug-run: android_debug
 	adb shell input keyevent KEYCODE_WAKEUP
 	JAVA_HOME=${JAVA_HOME_LOC} ./android/gradlew --console=plain -q -p android installDebug
 	adb logcat -c
@@ -33,7 +47,7 @@ android-run: android
 deploy: android-deploy
 
 android-deploy: android
-	rsync android/app/build/outputs/apk/debug/${TARGET}-debug.apk paul@repkap11.com:/home/paul/website/${TARGET_LOWER}/${TARGET}.apk
+	rsync android/app/build/outputs/apk/release/${TARGET}-release.apk paul@repkap11.com:/home/paul/website/${TARGET_LOWER}/${TARGET}.apk
 
 clean: clean-android
 
@@ -60,4 +74,4 @@ android/app/src/main/res/raw/%: out/bitmaps/% | $(ANDROID_DIRS)
 android/app/src/main/assets/fonts/%.ttf: fonts/%.ttf | $(ANDROID_DIRS)
 	cp $< $@
 
-.PHONY: android android-run android-shaders clean-android android-deploy android-find-new-files android-fonts
+.PHONY: android android_debug android-run android_debug-run android-shaders clean-android android-deploy android-find-new-files android-fonts
