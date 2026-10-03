@@ -257,7 +257,7 @@ void RepGame::process_mouse_events( ) {
                     can_place = globalGameState.hotbar.canPlaceSelected( );
                 }
                 if ( can_place ) {
-                    BlockID placed_block = change_block( 1, { holdingBlock, rotation, 0, holdingBlock } );
+                    BlockID placed_block = change_block( 1, { holdingBlock, rotation, 0, holdingBlock, 0 } );
                     if ( placed_block != LAST_BLOCK_ID && globalGameState.game_mode == GameMode_Survival ) {
                         globalGameState.hotbar.consumeSelected( 1 );
                         BlockID newHolding = globalGameState.hotbar.getSelectedBlock( );
@@ -833,21 +833,27 @@ void RepGame::tick( ) {
         if ( walktest_ticks && globalGameState.tick_number >= walktest_ticks ) {
             globalGameState.input.exitGame = true;
         }
-        // REPGAME_TELEPORT="x,y,z,angle,sprint,spin_deg_per_tick": teleport on
+        // REPGAME_TELEPORT="x,y,z,angle,sprint,spin_deg_per_tick[,pitch]": teleport on
         // the first tick, then hold forward each tick (angle optionally spins).
         const char *tp = getenv( "REPGAME_TELEPORT" );
         if ( tp ) {
-            float tx, ty, tz, ta, spin = 0.0f;
+            float tx, ty, tz, ta, spin = 0.0f, pitch = 0.0f;
             int sprint = 0;
-            if ( sscanf( tp, "%f,%f,%f,%f,%d,%f", &tx, &ty, &tz, &ta, &sprint, &spin ) >= 4 ) {
+            if ( sscanf( tp, "%f,%f,%f,%f,%d,%f,%f", &tx, &ty, &tz, &ta, &sprint, &spin, &pitch ) >= 4 ) {
                 if ( globalGameState.tick_number == 1 ) {
                     globalGameState.camera.pos = glm::dvec3( tx, ty, tz );
-                    globalGameState.camera.angle_V = 0.0f;
+                    globalGameState.camera.angle_V = pitch;
                     globalGameState.camera.y_speed = 0.0f;
                     globalGameState.input.player_sprinting = sprint != 0;
                 }
                 globalGameState.camera.angle_H = ta + spin * globalGameState.tick_number;
             }
+        }
+        // REPGAME_SCREENSHOT_TICK=n: request a framebuffer screenshot on tick n
+        // (screenshots land in ./screenshots/).
+        static const long screenshot_tick = getenv( "REPGAME_SCREENSHOT_TICK" ) ? atol( getenv( "REPGAME_SCREENSHOT_TICK" ) ) : 0;
+        if ( screenshot_tick > 0 && globalGameState.tick_number == screenshot_tick ) {
+            globalGameState.input.screenshot_requested = true;
         }
         globalGameState.input.movement.sizeH = 1.0f;
         globalGameState.input.movement.angleH = 0.0f;
@@ -886,6 +892,16 @@ void RepGame::tick( ) {
     RepGame::process_inventory_events( );
 }
 
+// Whether either cell a standing player would occupy at (x, y, z) is solid
+// terrain — used to keep the spawn point out of overhang stone.
+static inline bool spawn_cell_blocked( const int x, const int y, const int z ) {
+    const BlockID feet = MapGen::gen_block_id( x, y, z );
+    const BlockID head = MapGen::gen_block_id( x, y + 1, z );
+    const Block *feet_def = block_definition_get_definition( feet );
+    const Block *head_def = block_definition_get_definition( head );
+    return feet_def->collides_with_player || head_def->collides_with_player;
+}
+
 void RepGame::initializeGameState( const char *world_name ) {
     globalGameState.input.exitGame = false;
     globalGameState.input.player_flying = false;
@@ -902,7 +918,13 @@ void RepGame::initializeGameState( const char *world_name ) {
     globalGameState.camera.angle_H = 0.0f;
     globalGameState.camera.angle_V = 0.0f;
     globalGameState.camera.pos.x = 0.5f;
-    globalGameState.camera.pos.y = ceil( MapGen::calculateTerrainHeight( 0, 0 ) ) + PLAYER_EYE_HEIGHT + 0.5f;
+    // Overhang noise can put solid blocks above the heightmap — walk up from
+    // the terrain height until the spawn cell and the one above it are clear.
+    double spawn_y = ceil( MapGen::calculateTerrainHeight( 0, 0 ) );
+    while ( spawn_cell_blocked( 0, (int)spawn_y, 0 ) ) {
+        spawn_y += 1.0;
+    }
+    globalGameState.camera.pos.y = spawn_y + PLAYER_EYE_HEIGHT + 0.5f;
     globalGameState.camera.pos.z = 0.5f;
     globalGameState.camera.y_speed = 0.0f;
     globalGameState.camera.horizontal_vel = glm::dvec2( 0.0, 0.0 );

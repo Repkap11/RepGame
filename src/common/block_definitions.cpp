@@ -49,6 +49,7 @@ void block_definitions_initilize_definitions( Texture *texture ) {
         block->offset = { 0, 0, 0 };
         block->tex_offset = { 0, 0, 0 };
         block->breaks_in_liquid = false;
+        block->waterloggable = false;
         block->initial_redstone_power = 0;       // redstone block
         block->affected_by_redstone_power = true;   // dust, piston, all solid blocks
         block->transmits_redstone_power = false; // dust
@@ -454,12 +455,14 @@ void block_definitions_initilize_definitions( Texture *texture ) {
     block_definitions[ GRASS ].textures[ FACE_BACK ] = GRASS_SIDE;
     block_definitions[ GRASS ].textures[ FACE_BOTTOM ] = DIRT;
     block_supports_random_rotations[ GRASS ] = 1.0f;
-    // block_supports_random_rotations[ SAND ] = 1.0f;
+    block_supports_random_rotations[ SNOW ] = 1.0f;
+    block_supports_random_rotations[ SAND ] = 1.0f;
+    block_supports_random_rotations[ ORANGE_SAND ] = 1.0f;
     // block_supports_random_rotations[ GRAVEL ] = 1.0f;
-    // block_supports_random_rotations[ DIRT ] = 1.0f;
-    // block_supports_random_rotations[ LEAF ] = 1.0f;
+    block_supports_random_rotations[ DIRT ] = 1.0f;
+    block_supports_random_rotations[ LEAF ] = 1.0f;
     // block_supports_random_rotations[ WATER ] = 1.0f;
-    // block_supports_random_rotations[ SNOW ] = 1.0f;
+    block_supports_random_rotations[ SNOW ] = 1.0f;
 
     block_definitions[ DOUBLE_SLAB ].textures[ FACE_TOP ] = SLAB_TOP;
     block_definitions[ DOUBLE_SLAB ].textures[ FACE_LEFT ] = DOUBLE_SLAB;
@@ -890,4 +893,21 @@ void do_flowers( Block *block_definitions ) {
     block_definitions[ DARK_OAK_SAPPLING_IN_POT ].renderOrder = RenderOrder_Flowers;
     block_definitions[ WHITE_FLOWER_SAPPLING_IN_POT ].renderOrder = RenderOrder_Flowers;
     block_definitions[ END_ROD ].renderOrder = RenderOrder_Flowers;
+
+    // Underwater plants: these block types may occupy a water cell. Whether
+    // an individual cell is actually waterlogged is BlockState::waterlogged,
+    // set by Chunk::set_block when the block is placed into water.
+    static const BlockID waterloggable_blocks[] = {
+        SEAWEED,            UNDERWATER_TUFT_SHORT, UNDERWATER_TUFT_TALL,
+        BLUE_CORAL,         BLUE_CORAL2,           RED_CORAL,
+        RED_CORAL2,         PURPLE_CORAL,          PURPLE_CORAL2,
+        PURPLE_CORAL3,      YELLOW_CORAL,          YELLOW_CORAL2,
+        GRAYCALE_CORAL_1,   GRAYCALE_CORAL_2,      GRAYCALE_CORAL_3,
+        GRAYCALE_CORAL_4,   GRAYCALE_CORAL_5,      GRAYCALE_CORAL_6,
+        GRAYCALE_CORAL_7,   GRAYCALE_CORAL_8,      GRAYCALE_CORAL_9,
+        GRAYCALE_CORAL_10,
+    };
+    for ( BlockID id : waterloggable_blocks ) {
+        block_definitions[ id ].waterloggable = true;
+    }
 }

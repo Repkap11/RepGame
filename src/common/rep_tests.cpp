@@ -6,6 +6,7 @@
 #include <cmath>
 
 #include "common/perlin_noise.hpp"
+#include "common/map_gen.hpp"
 #include "common/block_update_events/PlayerBlockPlacedEvent.hpp"
 #include "common/utils/collision.hpp"
 
@@ -84,7 +85,7 @@ int test_redstone( ) {
     World &world = gs.world;
 
     // Static terrain: written directly, like a chunk load.
-    const BlockState stone = { STONE, 0, 0, STONE };
+    const BlockState stone = { STONE, 0, 0, STONE, 0 };
     world.set_loaded_block( glm::ivec3( 10, 10, 10 ), stone ); // S0: torch support
     world.set_loaded_block( glm::ivec3( 10, 12, 10 ), stone ); // B: block above the torch
     world.set_loaded_block( glm::ivec3( 11, 11, 10 ), stone ); // support under D
@@ -94,7 +95,7 @@ int test_redstone( ) {
     // Dust staircases at x=20-27: glass treads carry power up but not down
     // (the gap above a lower dust, not the side block, decides the diagonal
     // edge); stone treads carry both ways.
-    const BlockState glass = { GLASS, 0, 0, GLASS };
+    const BlockState glass = { GLASS, 0, 0, GLASS, 0 };
     world.set_loaded_block( glm::ivec3( 20, 10, 10 ), stone ); // s1 tread
     world.set_loaded_block( glm::ivec3( 21, 11, 10 ), glass ); // s2 tread
     world.set_loaded_block( glm::ivec3( 22, 12, 10 ), glass ); // s3 tread
@@ -116,43 +117,43 @@ int test_redstone( ) {
     auto place = [ & ]( const glm::ivec3 &pos, const BlockState &block_state ) {
         gs.blockUpdateQueue.addBlockUpdate( std::make_shared<PlayerBlockPlacedEvent>( gs.tick_number, pos, block_state, false ) );
     };
-    place( glm::ivec3( 10, 11, 10 ), { REDSTONE_TORCH, 0, 0, REDSTONE_TORCH } );  // T1: floor torch
-    place( glm::ivec3( 11, 12, 10 ), { REDSTONE_CROSS, 0, 0, REDSTONE_CROSS } ); // D: dust beside B
-    place( glm::ivec3( 10, 13, 10 ), { REDSTONE_CROSS, 0, 0, REDSTONE_CROSS } ); // D2: dust on top of B
-    place( glm::ivec3( 9, 12, 10 ), { REDSTONE_TORCH, 6, 0, REDSTONE_TORCH } );  // T2: attached to B
-    place( glm::ivec3( 10, 12, 11 ), { PISTON, 0, 0, PISTON } );                // piston beside B, faces +z
-    place( glm::ivec3( 10, 12, 9 ), { REDSTONE_LAMP, 0, 0, REDSTONE_LAMP } );   // lamp beside B
-    place( glm::ivec3( 10, 12, 8 ), { REDSTONE_CROSS, 0, 0, REDSTONE_CROSS } ); // D3: dust beside lamp
-    place( glm::ivec3( 13, 11, 10 ), { REDSTONE_TORCH, 0, 0, REDSTONE_TORCH } ); // T3: floor torch under glass
-    place( glm::ivec3( 13, 12, 10 ), { GLASS, 0, 0, GLASS } );                  // glass above T3: can't be powered
-    place( glm::ivec3( 13, 13, 10 ), { REDSTONE_CROSS, 0, 0, REDSTONE_CROSS } ); // G_d: dust on glass
-    place( glm::ivec3( 10, 13, 9 ), { REDSTONE_LAMP, 0, 0, REDSTONE_LAMP } );   // lamp2 above lit lamp
-    place( glm::ivec3( 9, 12, 11 ), { REDSTONE_LAMP, 0, 0, REDSTONE_LAMP } );   // lamp3 beside powered piston
+    place( glm::ivec3( 10, 11, 10 ), { REDSTONE_TORCH, 0, 0, REDSTONE_TORCH, 0 } );  // T1: floor torch
+    place( glm::ivec3( 11, 12, 10 ), { REDSTONE_CROSS, 0, 0, REDSTONE_CROSS, 0 } ); // D: dust beside B
+    place( glm::ivec3( 10, 13, 10 ), { REDSTONE_CROSS, 0, 0, REDSTONE_CROSS, 0 } ); // D2: dust on top of B
+    place( glm::ivec3( 9, 12, 10 ), { REDSTONE_TORCH, 6, 0, REDSTONE_TORCH, 0 } );  // T2: attached to B
+    place( glm::ivec3( 10, 12, 11 ), { PISTON, 0, 0, PISTON, 0 } );                // piston beside B, faces +z
+    place( glm::ivec3( 10, 12, 9 ), { REDSTONE_LAMP, 0, 0, REDSTONE_LAMP, 0 } );   // lamp beside B
+    place( glm::ivec3( 10, 12, 8 ), { REDSTONE_CROSS, 0, 0, REDSTONE_CROSS, 0 } ); // D3: dust beside lamp
+    place( glm::ivec3( 13, 11, 10 ), { REDSTONE_TORCH, 0, 0, REDSTONE_TORCH, 0 } ); // T3: floor torch under glass
+    place( glm::ivec3( 13, 12, 10 ), { GLASS, 0, 0, GLASS, 0 } );                  // glass above T3: can't be powered
+    place( glm::ivec3( 13, 13, 10 ), { REDSTONE_CROSS, 0, 0, REDSTONE_CROSS, 0 } ); // G_d: dust on glass
+    place( glm::ivec3( 10, 13, 9 ), { REDSTONE_LAMP, 0, 0, REDSTONE_LAMP, 0 } );   // lamp2 above lit lamp
+    place( glm::ivec3( 9, 12, 11 ), { REDSTONE_LAMP, 0, 0, REDSTONE_LAMP, 0 } );   // lamp3 beside powered piston
 
     // Glass staircase: source at the bottom must climb it.
-    place( glm::ivec3( 20, 11, 10 ), { REDSTONE_CROSS, 0, 0, REDSTONE_CROSS } ); // s1
-    place( glm::ivec3( 21, 12, 10 ), { REDSTONE_CROSS, 0, 0, REDSTONE_CROSS } ); // s2
-    place( glm::ivec3( 22, 13, 10 ), { REDSTONE_CROSS, 0, 0, REDSTONE_CROSS } ); // s3
-    place( glm::ivec3( 20, 11, 11 ), { REDSTONE_BLOCK, 0, 0, REDSTONE_BLOCK } ); // source beside s1
+    place( glm::ivec3( 20, 11, 10 ), { REDSTONE_CROSS, 0, 0, REDSTONE_CROSS, 0 } ); // s1
+    place( glm::ivec3( 21, 12, 10 ), { REDSTONE_CROSS, 0, 0, REDSTONE_CROSS, 0 } ); // s2
+    place( glm::ivec3( 22, 13, 10 ), { REDSTONE_CROSS, 0, 0, REDSTONE_CROSS, 0 } ); // s3
+    place( glm::ivec3( 20, 11, 11 ), { REDSTONE_BLOCK, 0, 0, REDSTONE_BLOCK, 0 } ); // source beside s1
 
     // Stone staircase: source at the top must descend it.
-    place( glm::ivec3( 25, 11, 10 ), { REDSTONE_CROSS, 0, 0, REDSTONE_CROSS } ); // s4
-    place( glm::ivec3( 26, 12, 10 ), { REDSTONE_CROSS, 0, 0, REDSTONE_CROSS } ); // s5
-    place( glm::ivec3( 26, 12, 11 ), { REDSTONE_BLOCK, 0, 0, REDSTONE_BLOCK } ); // source beside s5
+    place( glm::ivec3( 25, 11, 10 ), { REDSTONE_CROSS, 0, 0, REDSTONE_CROSS, 0 } ); // s4
+    place( glm::ivec3( 26, 12, 10 ), { REDSTONE_CROSS, 0, 0, REDSTONE_CROSS, 0 } ); // s5
+    place( glm::ivec3( 26, 12, 11 ), { REDSTONE_BLOCK, 0, 0, REDSTONE_BLOCK, 0 } ); // source beside s5
 
     // Blocked staircases.
-    place( glm::ivec3( 28, 11, 10 ), { REDSTONE_CROSS, 0, 0, REDSTONE_CROSS } ); // b1
-    place( glm::ivec3( 29, 12, 10 ), { REDSTONE_CROSS, 0, 0, REDSTONE_CROSS } ); // b2 (blocked)
-    place( glm::ivec3( 28, 11, 11 ), { REDSTONE_BLOCK, 0, 0, REDSTONE_BLOCK } ); // source beside b1
-    place( glm::ivec3( 28, 11, 14 ), { REDSTONE_CROSS, 0, 0, REDSTONE_CROSS } ); // b3
-    place( glm::ivec3( 29, 12, 14 ), { REDSTONE_CROSS, 0, 0, REDSTONE_CROSS } ); // b4 (glass corner)
-    place( glm::ivec3( 28, 11, 15 ), { REDSTONE_BLOCK, 0, 0, REDSTONE_BLOCK } ); // source beside b3
+    place( glm::ivec3( 28, 11, 10 ), { REDSTONE_CROSS, 0, 0, REDSTONE_CROSS, 0 } ); // b1
+    place( glm::ivec3( 29, 12, 10 ), { REDSTONE_CROSS, 0, 0, REDSTONE_CROSS, 0 } ); // b2 (blocked)
+    place( glm::ivec3( 28, 11, 11 ), { REDSTONE_BLOCK, 0, 0, REDSTONE_BLOCK, 0 } ); // source beside b1
+    place( glm::ivec3( 28, 11, 14 ), { REDSTONE_CROSS, 0, 0, REDSTONE_CROSS, 0 } ); // b3
+    place( glm::ivec3( 29, 12, 14 ), { REDSTONE_CROSS, 0, 0, REDSTONE_CROSS, 0 } ); // b4 (glass corner)
+    place( glm::ivec3( 28, 11, 15 ), { REDSTONE_BLOCK, 0, 0, REDSTONE_BLOCK, 0 } ); // source beside b3
 
     // Latch regression: two adjacent lamps must not sustain each other once
     // the source is removed — a powered mechanism is activated, not emitting.
-    place( glm::ivec3( 28, 11, 18 ), { REDSTONE_LAMP, 0, 0, REDSTONE_LAMP } );   // M1 (sourced)
-    place( glm::ivec3( 29, 11, 18 ), { REDSTONE_LAMP, 0, 0, REDSTONE_LAMP } );   // M2 (only neighbor is M1)
-    place( glm::ivec3( 28, 11, 19 ), { REDSTONE_BLOCK, 0, 0, REDSTONE_BLOCK } ); // source beside M1
+    place( glm::ivec3( 28, 11, 18 ), { REDSTONE_LAMP, 0, 0, REDSTONE_LAMP, 0 } );   // M1 (sourced)
+    place( glm::ivec3( 29, 11, 18 ), { REDSTONE_LAMP, 0, 0, REDSTONE_LAMP, 0 } );   // M2 (only neighbor is M1)
+    place( glm::ivec3( 28, 11, 19 ), { REDSTONE_BLOCK, 0, 0, REDSTONE_BLOCK, 0 } ); // source beside M1
 
     for ( int i = 0; i < 40; i++ ) {
         gs.tick_number++;
@@ -224,8 +225,8 @@ int test_sneak( ) {
     test_setup_world( gs.world );
     World &world = gs.world;
 
-    const BlockState stone = { STONE, 0, 0, STONE };
-    const BlockState slab = { STONE_BRICK_SLAB, 0, 0, STONE_BRICK_SLAB };
+    const BlockState stone = { STONE, 0, 0, STONE, 0 };
+    const BlockState slab = { STONE_BRICK_SLAB, 0, 0, STONE_BRICK_SLAB, 0 };
     for ( int x = 10; x <= 12; x++ ) {
         for ( int z = 10; z <= 12; z++ ) {
             world.set_loaded_block( glm::ivec3( x, 10, z ), stone );
@@ -297,10 +298,167 @@ int test_sneak( ) {
     return failures;
 }
 
+// Terrain generator invariants, checked through the public single-cell API
+// (MapGen::gen_block_id is the same code the CUDA/HIP kernels share via
+// map_gen_fields.hpp). Seed is fixed so every check is deterministic.
+int test_mapgen( ) {
+    int failures = 0;
+    auto check_bool = [ & ]( const char *name, bool cond ) {
+        pr_test( "  %-55s %s", name, cond ? "PASS" : "FAIL" );
+        if ( !cond ) {
+            failures++;
+        }
+    };
+
+    const float max_h = MapGen::maxTerrainHeight( );
+    int lava = 0, ores = 0, overhangs = 0, above_max = 0, bedrock_gaps = 0;
+    int grass = 0, sand_like = 0, snow_like = 0;
+    for ( int x = -256; x < 256; x += 2 ) {
+        for ( int z = -256; z < 256; z += 2 ) {
+            const float h = MapGen::calculateTerrainHeight( x, z );
+            int top_solid = -10000;
+            for ( int y = -110; y <= (int)max_h; y++ ) {
+                const BlockID b = MapGen::gen_block_id( x, y, z );
+                if ( y <= BEDROCK_LEVEL - 4 && b != BEDROCK ) {
+                    bedrock_gaps++;
+                }
+                if ( b == LAVA ) {
+                    lava++;
+                }
+                if ( b == COAL_ORE || b == IRON_ORE || b == GOLD_ORE ) {
+                    ores++;
+                }
+                if ( b != AIR && b != WATER ) {
+                    if ( (float)y > max_h ) {
+                        above_max++;
+                    }
+                    top_solid = y;
+                }
+            }
+            if ( top_solid > (int)ceilf( h ) + 2 &&
+                 MapGen::gen_block_id( x, (int)ceilf( h ) + 1, z ) == AIR &&
+                 MapGen::gen_block_id( x, (int)ceilf( h ) + 2, z ) == AIR ) {
+                overhangs++;
+            }
+            if ( top_solid > -10000 ) {
+                const BlockID surf = MapGen::gen_block_id( x, top_solid, z );
+                if ( surf == GRASS || surf == PODZEL || surf == MYCELIUM ) grass++;
+                if ( surf == SAND || surf == ORANGE_SAND || surf == GRAVEL ) sand_like++;
+                if ( surf == SNOW || surf == SNOWY_GRASS ) snow_like++;
+            }
+        }
+    }
+    // Mountains are sparse, so the snowline needs a wider (cheap) survey: the
+    // heightmap alone finds tall columns, then a short y-scan finds the top
+    // block. No per-y scan over the whole area. The same pass verifies
+    // overhangs: they intentionally only form in rough/mountain terrain now
+    // (flat land stays walkably smooth), so mountain columns are where they
+    // must exist.
+    for ( int x = -2048; x < 2048; x += 8 ) {
+        for ( int z = -2048; z < 2048; z += 8 ) {
+            const float h = MapGen::calculateTerrainHeight( x, z );
+            if ( h <= MOUNTAIN_ROCK_LINE ) {
+                continue;
+            }
+            int top_solid = -10000;
+            for ( int y = (int)h + (int)OVERHANG_MAX_RISE; y >= (int)h - 5; y-- ) {
+                const BlockID b = MapGen::gen_block_id( x, y, z );
+                if ( b != AIR && b != WATER ) {
+                    top_solid = y;
+                    if ( b == SNOW || b == SNOWY_GRASS ) {
+                        snow_like++;
+                    }
+                    break;
+                }
+            }
+            if ( top_solid > (int)ceilf( h ) + 2 &&
+                 MapGen::gen_block_id( x, (int)ceilf( h ) + 1, z ) == AIR &&
+                 MapGen::gen_block_id( x, (int)ceilf( h ) + 2, z ) == AIR ) {
+                overhangs++;
+            }
+        }
+    }
+
+    check_bool( "nothing solid above maxTerrainHeight", above_max == 0 );
+    check_bool( "bedrock floor has no gaps", bedrock_gaps == 0 );
+    check_bool( "lava layer exists below LAVA_LEVEL", lava > 0 );
+    check_bool( "ores generate", ores > 0 );
+    check_bool( "terrain overhangs exist", overhangs > 0 );
+    check_bool( "grassy surfaces exist", grass > 0 );
+    check_bool( "sandy surfaces exist", sand_like > 0 );
+    check_bool( "snowy surfaces exist", snow_like > 0 );
+    return failures;
+}
+
+// Waterlogging: the per-cell `waterlogged` flag vs the per-type
+// `waterloggable` property, and the water-expansion loop regression — an
+// expansion into an already-waterlogged cell used to re-queue forever,
+// spawning debris each cycle until the event queue overflowed.
+int test_waterlog( ) {
+    if ( block_definitions == nullptr ) {
+        block_definitions_initilize_definitions( nullptr );
+    }
+    RepGameState gs;
+    gs.tick_number = 0;
+    gs.camera.pos = glm::dvec3( 0, 0, 0 );
+    test_setup_world( gs.world );
+    World &world = gs.world;
+
+    const BlockState stone = { STONE, 0, 0, STONE, 0 };
+    world.set_loaded_block( glm::ivec3( 10, 9, 10 ), stone );  // floor under coral
+    world.set_loaded_block( glm::ivec3( 20, 9, 20 ), stone );  // floor under dry coral
+    world.set_loaded_block( glm::ivec3( 11, 10, 10 ), { WATER, 0, 0, WATER, 0 } );
+    world.set_loaded_block( glm::ivec3( 10, 10, 10 ), { WATER, 0, 0, WATER, 0 } );
+
+    int failures = 0;
+    auto check_bool = [ & ]( const char *name, bool cond ) {
+        pr_test( "  %-55s %s", name, cond ? "PASS" : "FAIL" );
+        if ( !cond ) {
+            failures++;
+        }
+    };
+
+    // Coral written into a water cell becomes waterlogged; on dry land it
+    // does not (the original "always waterlogged" bug).
+    world.set_loaded_block( glm::ivec3( 10, 10, 10 ), { SEAWEED, 0, 0, SEAWEED, 0 } );
+    const BlockState wet = world.get_loaded_block( glm::ivec3( 10, 10, 10 ) );
+    check_bool( "plant placed in water keeps id", wet.id == SEAWEED );
+    check_bool( "plant placed in water is waterlogged", wet.waterlogged == 1 );
+    world.set_loaded_block( glm::ivec3( 20, 10, 20 ), { SEAWEED, 0, 0, SEAWEED, 0 } );
+    const BlockState dry = world.get_loaded_block( glm::ivec3( 20, 10, 20 ) );
+    check_bool( "plant placed on land is not waterlogged", dry.id == SEAWEED && dry.waterlogged == 0 );
+
+    // Water expanding onto a waterloggable block waterlogs it instead of
+    // replacing it; into an already-waterlogged cell it must not fire at
+    // all — that was the infinite re-queue/debris loop.
+    auto place = [ & ]( const glm::ivec3 &pos, const BlockState &block_state ) {
+        gs.blockUpdateQueue.addBlockUpdate( std::make_shared<PlayerBlockPlacedEvent>( gs.tick_number, pos, block_state, false ) );
+    };
+    place( glm::ivec3( 10, 10, 10 ), { WATER, 0, 0, WATER, 0 } ); // water "onto" the wet coral
+    place( glm::ivec3( 12, 10, 10 ), { STONE, 0, 0, STONE, 0 } ); // a change beside the water
+    for ( int i = 0; i < 60; i++ ) {
+        gs.tick_number++;
+        gs.blockUpdateQueue.processAllBlockUpdates( gs, gs.tick_number );
+    }
+    // With the loop, ~14 neighbor updates per expansion re-arm every 20
+    // ticks and the queue explodes past the 100k-event guard (exit). The
+    // state must also hold: coral stays waterlogged, neighbor stays water.
+    const BlockState after = world.get_loaded_block( glm::ivec3( 10, 10, 10 ) );
+    check_bool( "waterlogged coral survives water expansion", after.id == SEAWEED && after.waterlogged == 1 );
+    failures += check_id( world, "water cell beside coral stays water", glm::ivec3( 11, 10, 10 ), WATER );
+
+    // Breaking a waterlogged block leaves its water behind.
+    world.set_loaded_block( glm::ivec3( 10, 10, 10 ), BLOCK_STATE_AIR );
+    failures += check_id( world, "breaking waterlogged plant leaves water", glm::ivec3( 10, 10, 10 ), WATER );
+    return failures;
+}
+
 constexpr Test all_tests[] = { //
     MK_TEST( ecs ),            //
     MK_TEST( redstone ),       //
     MK_TEST( sneak ),          //
+    MK_TEST( mapgen ),         //
+    MK_TEST( waterlog ),       //
     { nullptr, nullptr }
 
 };

@@ -385,6 +385,9 @@ typedef struct {
     // non-solid. Defaults to true, finalized in the render-order pass.
     bool is_solid;
     bool breaks_in_liquid;
+    // Block type can exist inside a water cell (corals, seaweed, etc.). The
+    // actual per-cell waterlogged state lives on BlockState::waterlogged.
+    bool waterloggable;
     int initial_redstone_power;
     bool affected_by_redstone_power;
     bool transmits_redstone_power;
@@ -434,16 +437,27 @@ struct __attribute__( ( packed ) ) BlockState {
     unsigned char rotation;
     int current_redstone_power;
     BlockID display_id;
+    // This cell also contains water: the block was placed/generated into a
+    // water cell and the block type is waterloggable. Set by Chunk::set_block.
+    unsigned char waterlogged;
 };
 
-static BlockState BLOCK_STATE_AIR = { AIR, BLOCK_ROTATE_0, 0, AIR };
-static BlockState BLOCK_STATE_LAST_BLOCK_ID = { LAST_BLOCK_ID, BLOCK_ROTATE_0, 0, LAST_BLOCK_ID };
+static BlockState BLOCK_STATE_AIR = { AIR, BLOCK_ROTATE_0, 0, AIR, 0 };
+static BlockState BLOCK_STATE_LAST_BLOCK_ID = { LAST_BLOCK_ID, BLOCK_ROTATE_0, 0, LAST_BLOCK_ID, 0 };
 
 static inline bool BlockStates_equal( const BlockState &a, const BlockState &b ) {
     // Memcmp DOESN'T work, since there can be space inbetween the two structs!
     // return !memcmp( &a, &b, sizeof( BlockState ) );
-    return a.id == b.id && a.display_id == b.display_id && a.rotation == b.rotation && a.current_redstone_power == b.current_redstone_power;
+    return a.id == b.id && a.display_id == b.display_id && a.rotation == b.rotation && a.current_redstone_power == b.current_redstone_power && a.waterlogged == b.waterlogged;
 }
+
+// Applies the waterlogging rules for writing `state` into a cell currently
+// holding `cur`. waterlogged is per-cell state (the cell holds water + the
+// block); waterloggable is the per-type property saying the block may live
+// inside water. NOT idempotent — each physical cell must be written through
+// this at most once per logical set (World::set_loaded_block relies on that).
+// Declared here (defined after `block_definition_get_definition` below).
+static inline BlockState block_state_normalize( const BlockState &cur, BlockState state );
 
 void block_definitions_initilize_definitions( Texture *texture );
 float *block_definitions_get_random_rotations( );
@@ -460,4 +474,25 @@ static inline Block *block_definition_get_definition( BlockID blockID ) {
         pr_debug( "Invalid block id:%d", blockID );
         return &block_definitions[ AIR ];
     }
+}
+
+static inline BlockState block_state_normalize( const BlockState &cur, BlockState state ) {
+    if ( state.id == WATER ) {
+        // Water placed/flowing into a waterloggable cell waterlogs the block
+        // instead of replacing it.
+        if ( block_definition_get_definition( cur.id )->waterloggable ) {
+            state = cur;
+            state.waterlogged = 1;
+        }
+    } else if ( block_definition_get_definition( state.id )->waterloggable ) {
+        // A waterloggable block keeps water only if the cell held water.
+        state.waterlogged = cur.id == WATER || cur.waterlogged;
+    } else {
+        if ( state.id == AIR && cur.waterlogged ) {
+            // Breaking a waterlogged block leaves the water behind.
+            state = { WATER, BLOCK_ROTATE_0, 0, WATER, 0 };
+        }
+        state.waterlogged = 0;
+    }
+    return state;
 }

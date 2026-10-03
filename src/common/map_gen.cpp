@@ -7,103 +7,13 @@
 #include "common/chunk_loader.hpp"
 #include "common/chunk.hpp"
 
-// Transforms: pure functions of perlin noise (which returns [0, 1]).
-// Separated from the map_gen_* functions so maxTerrainHeight() can compute
-// the exact max of each by evaluating across the [0, 1] noise range.
-static inline float hills_transform( const float noise ) {
-    return ( noise - 0.5f ) * 15;
-}
-static inline float ground_noise_transform( const float noise ) {
-    return ( noise - 0.5f ) * 2;
-}
-static inline float mountains_transform( float noise ) {
-    noise = noise - 0.5f;
-    if ( noise < 0 ) {
-        noise = 0;
-    }
-    const float mountains = noise * noise * noise * 1000;
-    return mountains;
-}
-static inline float level_transform( float noise ) {
-    noise = ( noise - 0.5f ) * 10;
-    float n = fabs( noise );
-    n = n * noise;
-    n = n > 1 ? 1 : n;
-    n = n < -1 ? -1 : n;
-    return n * 10;
-}
-
-float map_gen_hills( const int x, const int z ) {
-    const float noise = perlin_noise2d( x, z, 0.02f, 3, MAP_SEED );
-    return hills_transform( noise );
-}
-
-float map_gen_ground_noise( const int x, const int z ) {
-    const float noise = perlin_noise2d( x, z, 0.1f, 2, MAP_SEED + 1 );
-    return ground_noise_transform( noise );
-}
-
-float map_gen_mountains( const int x, const int z ) {
-    float noise = perlin_noise2d( x, z, 0.008f, 3, MAP_SEED + 2 );
-    return mountains_transform( noise );
-}
-
-float map_gen_mountains_block( const int x, const int z ) {
-    const float noise = perlin_noise2d( x, z, 0.4f, 2, MAP_SEED + 3 );
-    return noise;
-}
-
-float map_gen_under_water_block( const int x, const int z ) {
-    float noise = perlin_noise2d( x, z, 0.2f, 2, MAP_SEED + 4 );
-    return noise;
-}
-
-float map_gen_level( const int x, const int z ) {
-    float noise = perlin_noise2d( x, z, 0.004f, 2, MAP_SEED + 5 );
-    return level_transform( noise );
-}
-
-float map_gen_cave_density( const int x, const int y, const int z ) {
-    float noise = perlin_noise3d( x, y, z, 0.03f, 3, MAP_SEED + 6 );
-    return noise;
-}
-
-float map_gen_is_iron_ore_instead_of_stone( const int x, const int y, const int z ) {
-    float noise = perlin_noise3d( x, y, z, 0.2f, 4, MAP_SEED + 7 );
-    noise = noise * noise;
-    return noise;
-}
-
-float map_gen_is_coal_ore_instead_of_stone( const int x, const int y, const int z ) {
-    float noise = perlin_noise3d( x, y, z, 0.2f, 4, MAP_SEED + 8 );
-    noise = noise * noise;
-    return noise;
-}
-
-float map_gen_is_gold_ore_instead_of_stone( const int x, const int y, const int z ) {
-    float noise = perlin_noise3d( x, y, z, 0.2f, 4, MAP_SEED + 9 );
-    noise = noise * noise;
-    return noise;
-}
-
-float map_gen_inverse_lerp( const float min, const float max, const float value ) {
-    if ( value < min ) {
-        return 0.0f;
-    }
-    if ( value > max ) {
-        return 1.0f;
-    }
-    return ( value - min ) / ( max - min );
-}
-
-#define MAP_GEN( func, ... ) map_gen_##func( __VA_ARGS__ )
+#define MAP_GEN_QUAL static inline
+#define MAP_GEN_PERLIN2D( x, z, f, d, s ) perlin_noise2d( x, z, f, d, s )
+#define MAP_GEN_PERLIN3D( x, y, z, f, d, s ) perlin_noise3d( x, y, z, f, d, s )
+#include "common/map_gen_fields.hpp"
 
 float MapGen::calculateTerrainHeight( const int x, const int z ) {
-    const float ground_noise = map_gen_ground_noise( x, z );
-    const float hills = map_gen_hills( x, z );
-    const float mountains = map_gen_mountains( x, z );
-    const float level = map_gen_level( x, z );
-    return level + mountains + hills + ground_noise;
+    return mg_base_height( x, z );
 }
 
 float MapGen::maxTerrainHeight( ) {
@@ -114,20 +24,28 @@ float MapGen::maxTerrainHeight( ) {
     // If a transform formula changes, the max updates automatically.
     static const float max_height = [] {
         constexpr int STEPS = 10000;
-        float max_ground = -1e30f, max_hills = -1e30f, max_mountains = -1e30f, max_level = -1e30f;
+        float max_ground = -1e30f, max_hills = -1e30f, max_mask = -1e30f, max_ridge = -1e30f, max_level = -1e30f, max_rolling = -1e30f;
         for ( int i = 0; i <= STEPS; i++ ) {
             float noise = (float)i / STEPS; // [0, 1]
-            max_ground = fmax( max_ground, ground_noise_transform( noise ) );
-            max_hills = fmax( max_hills, hills_transform( noise ) );
-            max_mountains = fmax( max_mountains, mountains_transform( noise ) );
-            max_level = fmax( max_level, level_transform( noise ) );
+            max_ground = fmax( max_ground, mg_ground_transform( noise ) );
+            max_hills = fmax( max_hills, mg_hills_transform( noise ) );
+            max_mask = fmax( max_mask, mg_mountain_mask( noise ) );
+            max_ridge = fmax( max_ridge, mg_mountain_ridge( noise ) );
+            max_level = fmax( max_level, mg_level_transform( noise ) );
+            max_rolling = fmax( max_rolling, mg_rolling_transform( noise ) );
         }
-        float bound = max_ground + max_hills + max_mountains + max_level;
-        pr_debug( "maxTerrainHeight: ground=%.2f hills=%.2f mountains=%.2f level=%.2f → %.2f",
-            max_ground, max_hills, max_mountains, max_level, bound );
+        const float mountains = max_mask * max_ridge * MAX_MOUNTAIN_HEIGHT;
+        const float bound = max_ground + max_hills + max_level + max_rolling + mountains + OVERHANG_MAX_RISE;
+        pr_debug( "maxTerrainHeight: ground=%.2f hills=%.2f level=%.2f rolling=%.2f mountains=%.2f overhang=%.2f → %.2f",
+            max_ground, max_hills, max_level, max_rolling, mountains, OVERHANG_MAX_RISE, bound );
         return bound;
     }( );
     return max_height;
+}
+
+BlockID MapGen::gen_block_id( const int x, const int y, const int z ) {
+    const MapGenColumn col = mg_column_info( x, z );
+    return mg_pick_block( x, y, z, col );
 }
 
 void MapGen::load_block_c( const Chunk *chunk ) {
@@ -136,15 +54,13 @@ void MapGen::load_block_c( const Chunk *chunk ) {
 
     for ( int x = chunk_offset.x - 1; x < chunk_offset.x + CHUNK_SIZE_INTERNAL_X - 1; x++ ) {
         for ( int z = chunk_offset.z - 1; z < chunk_offset.z + CHUNK_SIZE_INTERNAL_Z - 1; z++ ) {
-            const float terrainHeight = calculateTerrainHeight( x, z );
-            // terrainHeight = biome;
-
+            const MapGenColumn col = mg_column_info( x, z );
             for ( int y = chunk_offset.y - 1; y < chunk_offset.y + CHUNK_SIZE_INTERNAL_Y - 1; y++ ) {
                 glm::ivec3 offset = glm::ivec3( x, y, z );
                 const int index = Chunk::get_index_from_coords( offset - chunk_offset );
 #include "common/map_logic.hpp"
 
-                chunk->blocks[ index ] = { finalBlockId, BLOCK_ROTATE_0, 0, finalBlockId }; // Assumes all blocks don't spawn with redstone power
+                chunk->blocks[ index ] = { finalBlockId, BLOCK_ROTATE_0, 0, finalBlockId, 0 }; // Assumes all blocks don't spawn with redstone power
             }
         }
     }

@@ -100,7 +100,11 @@ void PlayerBlockPlacedEvent::performAction( BlockUpdateQueue &blockUpdateQueue, 
 
     repGameState.world.set_loaded_block( this->block_pos, this->blockState );
     repGameState.multiplayer.set_block( this->block_pos, this->blockState );
-    repGameState.world.spawn_block_debris( this->block_pos, current_block_state, this->blockState.id );
+    // Water flowing into a waterloggable block waterlogs it instead of
+    // breaking it — no debris, nothing was destroyed.
+    if ( !( this->blockState.id == WATER && current_block->waterloggable ) ) {
+        repGameState.world.spawn_block_debris( this->block_pos, current_block_state, this->blockState.id );
+    }
 
     queue_neighbor_block_updates( blockUpdateQueue, repGameState.world, this->tick_number, this->block_pos );
 

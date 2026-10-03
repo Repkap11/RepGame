@@ -206,7 +206,11 @@ void main() {
     // } else {
     //     v_blockID = blockTexture2[ faceType - 3u ];
     // }
-    if(v_blockID > MAX_ROTATABLE_BLOCK) {
+    if(v_blockID >= MAX_ROTATABLE_BLOCK) {
+        // v_blockID is the texture layer (textures[face] - 1): ids >=
+        // MAX_ROTATABLE_BLOCK index past the end of this 100-element array
+        // (e.g. SNOWY_GRASS sides = 100), reading whatever adjacent uniform
+        // the driver hands back and randomly rotating those faces.
         v_block_auto_rotates = 0;
     } else {
         v_block_auto_rotates = int(u_RandomRotationBlocks[v_blockID] == 1.0f);

@@ -106,7 +106,7 @@ void PistonEvent::performAction( BlockUpdateQueue &blockUpdateQueue, RepGameStat
         if ( destroy ) {
             world.spawn_block_debris( destroy_pos, destroy_state, dest_i >= 2 ? chain[ dest_i - 2 ].id : head_id );
         }
-        const BlockState head_block_state = { head_id, base_state.rotation, 0, head_id };
+        const BlockState head_block_state = { head_id, base_state.rotation, 0, head_id, 0 };
         piston_set_block( blockUpdateQueue, repGameState, head_pos, head_block_state );
     } else {
         // Unpowered: retract the head, and sticky pistons pull back the block

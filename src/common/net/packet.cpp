@@ -55,12 +55,14 @@ void PacketWriter::write_bytes( const void *data, size_t len ) {
 
 void PacketWriter::write_block_state( const BlockState &bs ) {
     // Field-by-field; BlockState is { BlockID id; unsigned char rotation;
-    // int current_redstone_power; BlockID display_id; }. We serialize the
-    // logical fields, not the raw struct, so padding/endianness can't drift.
+    // int current_redstone_power; BlockID display_id; unsigned char
+    // waterlogged; }. We serialize the logical fields, not the raw struct, so
+    // padding/endianness can't drift.
     write_u32( static_cast<uint32_t>( bs.id ) );
     write_u8( bs.rotation );
     write_i32( bs.current_redstone_power );
     write_u32( static_cast<uint32_t>( bs.display_id ) );
+    write_u8( bs.waterlogged );
 }
 
 // ---------------------------------------------------------------------------
@@ -115,6 +117,9 @@ bool PacketReader::read_block_state( BlockState &out ) {
     out.rotation = rotation;
     out.current_redstone_power = power;
     out.display_id = static_cast<BlockID>( display_id );
+    uint8_t waterlogged = 0;
+    read_u8( waterlogged ); // older peers don't send it — absence means dry
+    out.waterlogged = waterlogged;
     return true;
 }
 

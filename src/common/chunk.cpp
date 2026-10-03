@@ -224,9 +224,9 @@ BlockState Chunk::get_block( const glm::ivec3 &pos ) const {
         // pr_debug("Chunk has no blocks");
         return BLOCK_STATE_LAST_BLOCK_ID;
     }
-    if ( pos.x > CHUNK_SIZE_X + 1 || //
-         pos.y > CHUNK_SIZE_Y + 1 || //
-         pos.z > CHUNK_SIZE_Z + 1 ) {
+    if ( pos.x >= CHUNK_SIZE_X + 1 || //
+         pos.y >= CHUNK_SIZE_Y + 1 || //
+         pos.z >= CHUNK_SIZE_Z + 1 ) {
         return BLOCK_STATE_LAST_BLOCK_ID;
     }
     if ( pos.x < -1 || //
@@ -242,9 +242,9 @@ void Chunk::set_block( const glm::ivec3 &pos, const BlockState &blockState ) con
         // pr_debug("Chunk has no blocks");
         return;
     }
-    if ( pos.x > CHUNK_SIZE_X + 1 || //
-         pos.y > CHUNK_SIZE_Y + 1 || //
-         pos.z > CHUNK_SIZE_Z + 1 ) {
+    if ( pos.x >= CHUNK_SIZE_X + 1 || //
+         pos.y >= CHUNK_SIZE_Y + 1 || //
+         pos.z >= CHUNK_SIZE_Z + 1 ) {
         return;
     }
     if ( pos.x < -1 || //
@@ -253,8 +253,8 @@ void Chunk::set_block( const glm::ivec3 &pos, const BlockState &blockState ) con
         return;
     }
 
-    // Update the block in the client...
-    this->blocks[ get_index_from_coords( pos ) ] = blockState;
+    const int index = get_index_from_coords( pos );
+    this->blocks[ index ] = block_state_normalize( this->blocks[ index ], blockState );
 }
 
 void Chunk::set_block_by_index_if_different( int index, const BlockState *blockState ) {
@@ -335,12 +335,13 @@ void Chunk::load_terrain( MapStorage &map_storage ) {
         // every block is air. Skip GPU map gen, structure gen, and meshing entirely.
         const int min_y = this->chunk_pos.y * CHUNK_SIZE_Y - 1; // include -1 border
         if ( min_y >= WATER_LEVEL ) {
-            // If the chunk is above the theoretical max terrain height, it's guaranteed
-            // empty with zero perlin noise evaluation. The bound is derived from the
-            // terrain formulas in map_gen.cpp — see MapGen::maxTerrainHeight().
-            if ( (float)min_y >= MapGen::maxTerrainHeight( ) ) {
+            // If the chunk is above the theoretical max terrain height + the
+            // reach of a tree growing on it, it's guaranteed empty with zero
+            // perlin noise evaluation. The bound is derived from the terrain
+            // formulas in map_gen.cpp — see MapGen::maxTerrainHeight().
+            if ( (float)min_y >= MapGen::maxTerrainHeight( ) + MAPGEN_MAX_TREE_REACH ) {
                 for ( int i = 0; i < CHUNK_BLOCK_SIZE; i++ ) {
-                    this->blocks[ i ] = { AIR, BLOCK_ROTATE_0, 0, AIR };
+                    this->blocks[ i ] = { AIR, BLOCK_ROTATE_0, 0, AIR, 0 };
                 }
                 this->is_empty_chunk = true;
                 this->dirty = 0;
@@ -361,10 +362,13 @@ void Chunk::load_terrain( MapStorage &map_storage ) {
                     if ( h > max_terrain_height ) max_terrain_height = h;
                 }
             }
-            if ( (float)min_y >= max_terrain_height ) {
+            // Overhang noise can add solid blocks up to OVERHANG_MAX_RISE above
+            // the heightmap, and tree canopies reach a bit higher still — the
+            // empty bound must include both.
+            if ( (float)min_y >= max_terrain_height + OVERHANG_MAX_RISE + MAPGEN_MAX_TREE_REACH ) {
                 // Entire chunk (including border) is above terrain → all air
                 for ( int i = 0; i < CHUNK_BLOCK_SIZE; i++ ) {
-                    this->blocks[ i ] = { AIR, BLOCK_ROTATE_0, 0, AIR };
+                    this->blocks[ i ] = { AIR, BLOCK_ROTATE_0, 0, AIR, 0 };
                 }
                 this->is_empty_chunk = true;
                 this->dirty = 0;
@@ -622,10 +626,13 @@ void Chunk::calculate_populated_blocks( ) {
 
                     bool is_seethrough = block->calculated.is_seethrough_face[ rotated_face ];
                     if ( is_seethrough && block->calculated.hides_self[ rotated_face ] ) { // water and glass
+                        // Waterlogged cells count as water: water (and lava)
+                        // draws no surface faces against them.
+                        const bool liquid_boundary = block->renderOrder == RenderOrder_Water && block_next_to_state.waterlogged;
                         if ( face == FACE_TOP && block->renderOrder == RenderOrder_Water ) {
-                            visible_from[ face ] = block_next_to->id != block->id;
+                            visible_from[ face ] = block_next_to->id != block->id && !liquid_boundary;
                         } else {
-                            visible_from[ face ] = face_is_seethrough( block_next_to, block_next_to_state, opposing_face ) && block_next_to_state.id != blockID;
+                            visible_from[ face ] = face_is_seethrough( block_next_to, block_next_to_state, opposing_face ) && block_next_to_state.id != blockID && !liquid_boundary;
                         }
                     } else if ( is_seethrough ) { // The current block is seethough on this face. Check all the directions not opposing it;
                         bool visable_through_opposing = false;
@@ -1036,6 +1043,42 @@ void Chunk::calculate_populated_blocks( ) {
                         // They are offset by 1 in the shader...
                         for ( int i = 0; i < NUM_FACES_IN_CUBE; i++ ) {
                             blockCoord->face[ i ] = blockCoord->face[ i ] - 1;
+                        }
+                    }
+
+                    // A waterlogged block at the top of a water column (no
+                    // liquid above it) still needs the water surface drawn on
+                    // its cell — emit a water instance for it. This runs on the
+                    // CPU for both meshers: the HIP kernel only fills
+                    // workingSpace.
+                    if ( block->waterloggable && blockState.waterlogged ) {
+                        const BlockState above_state = this->blocks[ get_index_from_coords( x, y + 1, z ) ];
+                        if ( above_state.id != WATER && !above_state.waterlogged ) {
+                            Block *water = block_definition_get_definition( WATER );
+                            BlockCoords *waterCoord = &this->layers[ RenderOrder_Water ].populated_blocks[ num_instances[ RenderOrder_Water ] ];
+                            num_instances[ RenderOrder_Water ] += 1;
+
+                            waterCoord->x = this->chunk_pos.x * CHUNK_SIZE_X + x;
+                            waterCoord->y = this->chunk_pos.y * CHUNK_SIZE_Y + y;
+                            waterCoord->z = this->chunk_pos.z * CHUNK_SIZE_Z + z;
+
+                            waterCoord->mesh_x = 1;
+                            waterCoord->mesh_y = 1;
+                            waterCoord->mesh_z = 1;
+                            waterCoord->face_shift = BLOCK_ROTATE_0;
+                            waterCoord->scale_x = water->scale.x;
+                            waterCoord->scale_y = water->scale.y;
+                            waterCoord->scale_z = water->scale.z;
+                            waterCoord->offset_x = water->offset.x;
+                            waterCoord->offset_y = water->offset.y;
+                            waterCoord->offset_z = water->offset.z;
+                            waterCoord->tex_offset_x = water->tex_offset.x;
+                            waterCoord->tex_offset_y = water->tex_offset.y;
+                            waterCoord->tex_offset_z = water->tex_offset.z;
+                            for ( int i = 0; i < NUM_FACES_IN_CUBE; i++ ) {
+                                waterCoord->face[ i ] = water->textures[ i ] - 1;
+                                waterCoord->packed_lighting[ i ] = i == FACE_TOP ? NO_LIGHT_BRIGHT : NO_LIGHT_NO_DRAW;
+                            }
                         }
                     }
                 }

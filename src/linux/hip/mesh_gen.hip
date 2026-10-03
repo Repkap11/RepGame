@@ -110,10 +110,12 @@ __global__ void hip_calculate_mesh_kernel( const BlockState *blocks,
 
         int is_seethrough = block.is_seethrough_face[ rotated_face ];
         if ( is_seethrough && block.hides_self[ rotated_face ] ) {
+            // Waterlogged cells count as water: no surface faces against them.
+            int liquid_boundary = ( block.renderOrder == RENDER_ORDER_WATER && neighbor_state.waterlogged );
             if ( face == FACE_TOP_D && block.renderOrder == RENDER_ORDER_WATER ) {
-                visible_from[ face ] = ( neighbor_block.id != block.id );
+                visible_from[ face ] = ( neighbor_block.id != block.id && !liquid_boundary );
             } else {
-                visible_from[ face ] = ( face_is_seethrough_d( neighbor_block, neighbor_state, opposing_face ) && neighbor_state.id != blockState.id );
+                visible_from[ face ] = ( face_is_seethrough_d( neighbor_block, neighbor_state, opposing_face ) && neighbor_state.id != blockState.id && !liquid_boundary );
             }
         } else if ( is_seethrough ) {
             int visable_through_opposing = 0;

@@ -750,6 +750,15 @@ void World::set_loaded_block( const glm::ivec3 &block_pos, BlockState blockState
                     if ( !needs_update_z ) {
                         continue;
                     }
+                    if ( i == 0 && j == 0 && k == 0 ) {
+                        // The (0,0,0) offset is this same cell — the
+                        // chunk.set_block below writes it. Writing it here too
+                        // would apply set_block's waterlogging normalization
+                        // twice (e.g. breaking a waterlogged plant normalizes
+                        // AIR->WATER, then a second write into that WATER
+                        // would store raw AIR or restore the plant).
+                        continue;
+                    }
 
                     // pr_debug( "Chunk Dir: %d %d %d:%d", i, j, k, needs_update );
                     // pr_debug( "                    Needs Updates: %d %d %d:%d", needs_update_x, needs_update_y, needs_update_z, needs_update );
