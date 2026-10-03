@@ -198,4 +198,31 @@ JNIEXPORT void JNICALL Java_com_repkap11_repgame_RepGameJNIWrapper_onInventoryCl
     repgame.getInputState( ).onInventoryClicked( );
 }
 
+JNIEXPORT void JNICALL Java_com_repkap11_repgame_RepGameJNIWrapper_setMousePosition( JNIEnv *env, jobject obj, jint x, jint y ) {
+    Input &input = repgame.getInputState( );
+    input.mouse.absPosition.x = x;
+    input.mouse.absPosition.y = y;
+}
+
+JNIEXPORT void JNICALL Java_com_repkap11_repgame_RepGameJNIWrapper_screenTapped( JNIEnv *env, jobject obj, jint x, jint y ) {
+    Input &input = repgame.getInputState( );
+    input.mouse.absPosition.x = x;
+    input.mouse.absPosition.y = y;
+    input.screen_tap_pending = true;
+}
+
+JNIEXPORT void JNICALL Java_com_repkap11_repgame_RepGameJNIWrapper_setSneakPressed( JNIEnv *env, jobject obj, jint sneakPressed ) {
+    Input &input = repgame.getInputState( );
+    input.movement.sneakPressed = sneakPressed;
+}
+
+JNIEXPORT void JNICALL Java_com_repkap11_repgame_RepGameJNIWrapper_toggleGameMode( JNIEnv *env, jobject obj ) {
+    Input &input = repgame.getInputState( );
+    input.toggle_game_mode = true;
+}
+
+JNIEXPORT jint JNICALL Java_com_repkap11_repgame_RepGameJNIWrapper_getGameMode( JNIEnv *env, jobject obj ) {
+    return ( jint )repgame.getGameMode( );
+}
+
 } // End Extern C

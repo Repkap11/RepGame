@@ -188,6 +188,7 @@ class RepGame {
     static void set_textures( unsigned int which_texture, unsigned char *textures, int textures_len );
     void cleanup( );
     Input &getInputState( );
+    GameMode getGameMode( ) const;
 
     void changeSize( int x, int y );
     void get_screen_size( int *width, int *height ) const;

@@ -74,6 +74,26 @@ public class RepGameAndroidRenderer implements GLSurfaceView.Renderer {
         RepGameJNIWrapper.onInventoryClicked();
     }
 
+    public void setMousePosition(int x, int y) {
+        RepGameJNIWrapper.setMousePosition(x, y);
+    }
+
+    public void screenTapped(int x, int y) {
+        RepGameJNIWrapper.screenTapped(x, y);
+    }
+
+    public void setSneakPressed(int sneakPressed) {
+        RepGameJNIWrapper.setSneakPressed(sneakPressed);
+    }
+
+    public void toggleGameMode() {
+        RepGameJNIWrapper.toggleGameMode();
+    }
+
+    public int getGameMode() {
+        return RepGameJNIWrapper.getGameMode();
+    }
+
 
     public void onDestroy() {
         RepGameJNIWrapper.onSurfaceDestroyed();

@@ -615,14 +615,26 @@ void RepGame::process_inventory_events( ) {
         BlockID holdingBlock = globalGameState.hotbar.getSelectedBlock( );
         globalGameState.ui_overlay.set_holding_block( holdingBlock );
     }
+    // A screen tap (touch platforms) is a click at absPosition while the
+    // inventory is open, or a hotbar slot tap-select while it is closed.
+    const bool screen_tap = globalGameState.input.screen_tap_pending;
+    globalGameState.input.screen_tap_pending = false;
     if ( globalGameState.input.inventory_open ) {
-        if ( globalGameState.input.mouse.buttons.left && globalGameState.input.mouse.buttons.left_click_handled == false ) {
+        if ( ( globalGameState.input.mouse.buttons.left && globalGameState.input.mouse.buttons.left_click_handled == false ) || screen_tap ) {
             globalGameState.input.mouse.buttons.left_click_handled = true;
             if ( globalGameState.game_mode == GameMode_Creative ) {
                 BlockID blockId = globalGameState.main_inventory.whichBlockClicked( globalGameState.input.mouse.absPosition.x, globalGameState.input.mouse.absPosition.y );
                 // pr_debug( "Clicked on %d %d blockID:%d", globalGameState.input.mouse.absPosition.x, globalGameState.input.mouse.absPosition.y, blockId );
                 if ( blockId != LAST_BLOCK_ID ) {
                     add_to_hotbar( true, blockId );
+                } else {
+                    // Clicks on the visible hotbar select its slots too.
+                    const int hotbar_slot = globalGameState.hotbar.inventory_renderer.whichSlotClicked( globalGameState.input.mouse.absPosition.x, globalGameState.input.mouse.absPosition.y );
+                    if ( hotbar_slot >= 0 ) {
+                        globalGameState.hotbar.setSelectedSlot( hotbar_slot );
+                        const BlockID selectedBlock = globalGameState.hotbar.getSelectedBlock( );
+                        globalGameState.ui_overlay.set_holding_block( selectedBlock );
+                    }
                 }
             } else {
                 // Survival mode
@@ -703,6 +715,15 @@ void RepGame::process_inventory_events( ) {
             }
         }
     } else {
+        if ( screen_tap ) {
+            // Tapping a rendered hotbar slot selects it.
+            const int slot = globalGameState.hotbar.inventory_renderer.whichSlotClicked( globalGameState.input.mouse.absPosition.x, globalGameState.input.mouse.absPosition.y );
+            if ( slot >= 0 ) {
+                globalGameState.hotbar.setSelectedSlot( slot );
+                const BlockID selectedBlock = globalGameState.hotbar.getSelectedBlock( );
+                globalGameState.ui_overlay.set_holding_block( selectedBlock );
+            }
+        }
         // Steal any left/middle click events so they don't trigger right when we open the inventory.
         globalGameState.input.mouse.buttons.left_click_handled = true;
         globalGameState.input.mouse.buttons.right_click_handled = true;
@@ -873,6 +894,7 @@ void RepGame::initializeGameState( const char *world_name ) {
     globalGameState.input.mouse.smoothed_dx = 0.0f;
     globalGameState.input.mouse.smoothed_dy = 0.0f;
     globalGameState.input.shift_held = false;
+    globalGameState.input.screen_tap_pending = false;
     globalGameState.block_mining.pos = glm::ivec3( 0 );
     globalGameState.block_mining.id = AIR;
     globalGameState.block_mining.progress_ticks = 0.0f;
@@ -889,15 +911,21 @@ void RepGame::initializeGameState( const char *world_name ) {
     globalGameState.camera.eye_height = PLAYER_EYE_HEIGHT;
     globalGameState.camera.eye_height_render = PLAYER_EYE_HEIGHT;
     globalGameState.input.worldDrawQuality = WorldDrawQuality::MEDIUM;
+    // The hotbar's rendered height as a fraction of the UI height basis.
+    // Centered inventories reserve the same amount at the bottom of the
+    // screen so they never cover it.
+    constexpr float hotbar_height_percent = 0.1f;
     globalGameState.main_inventory.inventory_renderer.options.active_height_percent = 0.75f;
     globalGameState.main_inventory.inventory_renderer.options.max_height_percent = 0.75f;
     globalGameState.main_inventory.inventory_renderer.options.max_width_percent = 0.75f;
+    globalGameState.main_inventory.inventory_renderer.options.bottom_reserved_percent = hotbar_height_percent;
     globalGameState.main_inventory.inventory_renderer.options.gravity_bottom = false;
     globalGameState.main_inventory.inventory_renderer.options.shows_selection_slot = false;
 
     globalGameState.hotbar.inventory_renderer.options.active_height_percent = 1.0f;
-    globalGameState.hotbar.inventory_renderer.options.max_height_percent = 0.1f;
+    globalGameState.hotbar.inventory_renderer.options.max_height_percent = hotbar_height_percent;
     globalGameState.hotbar.inventory_renderer.options.max_width_percent = 0.75f;
+    globalGameState.hotbar.inventory_renderer.options.bottom_reserved_percent = 0.0f;
     globalGameState.hotbar.inventory_renderer.options.gravity_bottom = true;
     globalGameState.hotbar.inventory_renderer.options.shows_selection_slot = true;
 
@@ -1251,6 +1279,10 @@ void RepGame::cleanup( ) {
 
     clean_up_done = true;
     // pr_debug( "RepGame cleanup done" );
+}
+
+GameMode RepGame::getGameMode( ) const {
+    return globalGameState.game_mode;
 }
 
 Input &RepGame::getInputState( ) {

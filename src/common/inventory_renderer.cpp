@@ -1,3 +1,5 @@
+#include <math.h>
+
 #include "common/RepGame.hpp"
 #include "common/inventory_renderer.hpp"
 #include "common/ui_overlay_buffers.hpp"
@@ -47,7 +49,14 @@ UIOverlayInstance &InventoryRenderer::init_background_cell( const float r, const
 void InventoryRenderer::onSizeChange( const int screen_width, const int screen_height, const InventorySlot *inventory_slots ) {
     this->screen_width = screen_width;
     this->screen_height = screen_height;
-    this->inv_height = this->screen_height * this->options.max_height_percent;
+    // Inventory sizes are a fraction of screen height, so displays wider than
+    // 16:9 (e.g. phones) shrink the UI relative to the world. Scale the height
+    // basis up to what a 16:9 display of this width would have, making the UI
+    // a constant fraction of screen width on wide screens; 16:9 and narrower
+    // are unchanged. Capped at the real height so extreme aspects don't
+    // overflow vertically.
+    const float ui_height_basis = fmaxf( ( float )screen_height, screen_width * ( 9.0f / 16.0f ) );
+    this->inv_height = fminf( ui_height_basis * this->options.max_height_percent, ( float )screen_height );
     this->inv_width = this->screen_width * this->options.max_width_percent;
 
     this->inv_x = -this->inv_width / 2;
@@ -75,6 +84,16 @@ void InventoryRenderer::onSizeChange( const int screen_width, const int screen_h
         this->inv_cell_offset = this->inv_cell_stride * ( 1.0f - cell_fraction );
         this->inv_items_height = inv_cell_stride * this->height + this->inv_cell_offset;
     }
+    if ( !this->options.gravity_bottom ) {
+        // Stay above UI pinned to the bottom of the screen (e.g. the hotbar),
+        // with a gap the thickness of one cell border.
+        const int bottom_reserved = ( int )( ui_height_basis * this->options.bottom_reserved_percent ) + this->inv_cell_offset;
+        const int inv_y_min = -this->screen_height / 2 + bottom_reserved;
+        if ( this->inv_y < inv_y_min ) {
+            this->inv_y = inv_y_min;
+        }
+    }
+
     this->inv_items_x = this->inv_x - ( this->inv_items_width - this->inv_width ) / 2;
     if ( height_limited || this->options.gravity_bottom ) {
         this->inv_items_y = this->inv_y;

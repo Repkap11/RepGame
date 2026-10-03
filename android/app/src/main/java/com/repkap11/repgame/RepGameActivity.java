@@ -40,7 +40,7 @@ public class RepGameActivity extends AppCompatActivity {
 
         //Configure the Surface View
         glSurfaceView = findViewById(R.id.repgame_surfaceview);
-        glSurfaceView.getKeepScreenOn();
+        glSurfaceView.setKeepScreenOn(true);
         glSurfaceView.setEGLContextClientVersion(3);
         glSurfaceView.setEGLConfigChooser(new RepGameAndroidRenderer.ConfigChooser());
         glSurfaceView.setRenderer(mRenderWrapper);
@@ -69,6 +69,15 @@ public class RepGameActivity extends AppCompatActivity {
         super.onStop();
         if (mRendererSet) {
             glSurfaceView.onPause();
+        }
+    }
+
+    @Override
+    public void onBackPressed() {
+        if (mUIOverlay != null && mUIOverlay.isInventoryOpen()) {
+            mUIOverlay.closeInventory();
+        } else {
+            super.onBackPressed();
         }
     }
 

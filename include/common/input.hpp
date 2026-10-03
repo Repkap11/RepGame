@@ -51,6 +51,10 @@ class Input {
     bool screenshot_requested;
     bool toggle_game_mode;
     bool shift_held;
+    // Set by touch platforms when the screen is tapped. Consumed once per tick:
+    // acts as a click at absPosition when the inventory is open, or a hotbar
+    // slot tap-select when it is closed.
+    bool screen_tap_pending;
 
 #if defined( REPGAME_LINUX ) || defined( REPGAME_WINDOWS ) || defined( REPGAME_WASM )
     void mouseInput( int button, int state );

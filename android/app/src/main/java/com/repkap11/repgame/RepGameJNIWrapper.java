@@ -29,4 +29,14 @@ class RepGameJNIWrapper {
 
     public static native void setButtonState(int left, int middle, int right);
 
+    public static native void setMousePosition(int x, int y);
+
+    public static native void screenTapped(int x, int y);
+
+    public static native void setSneakPressed(int sneakPressed);
+
+    public static native void toggleGameMode();
+
+    public static native int getGameMode();
+
 }

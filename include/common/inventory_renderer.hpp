@@ -20,6 +20,10 @@ typedef struct {
     float max_width_percent;
     float max_height_percent;
     float active_height_percent;
+    // Fraction of the UI height basis to keep clear at the bottom of the
+    // screen (e.g. the hotbar strip). Only affects centered (non
+    // gravity_bottom) inventories, which shift up to stay above it.
+    float bottom_reserved_percent;
     bool gravity_bottom;
     bool shows_selection_slot;
 } InventoryRenderOptions;
