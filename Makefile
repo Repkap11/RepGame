@@ -25,7 +25,7 @@ MAKEFLAGS += --no-print-directory
 
 TARGET := RepGame
 WORLD := World1
-WORLD_DEBUG := World2
+WORLD_DEBUG := World1
 TARGET_LOWER := $(shell echo $(TARGET) | tr '[:upper:]' '[:lower:]')
 
 #Default target

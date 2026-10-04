@@ -487,9 +487,13 @@ void StructureGen::place_decorations( Chunk &chunk, const int cox, const int coy
 }
 
 void StructureGen::place( Chunk &chunk ) {
+#if defined( REPGAME_MAP_GEN_LEGACY )
+    place_legacy( chunk );
+#else
     const int cox = chunk.chunk_pos.x * CHUNK_SIZE_X;
     const int coy = chunk.chunk_pos.y * CHUNK_SIZE_Y;
     const int coz = chunk.chunk_pos.z * CHUNK_SIZE_Z;
     place_trees( chunk, cox, coy, coz );
     place_decorations( chunk, cox, coy, coz );
+#endif
 }

@@ -13,7 +13,11 @@
 #include "common/map_gen_fields.hpp"
 
 float MapGen::calculateTerrainHeight( const int x, const int z ) {
+#if defined( REPGAME_MAP_GEN_LEGACY )
+    return mgl_base_height( x, z );
+#else
     return mg_base_height( x, z );
+#endif
 }
 
 float MapGen::maxTerrainHeight( ) {
@@ -24,7 +28,22 @@ float MapGen::maxTerrainHeight( ) {
     // If a transform formula changes, the max updates automatically.
     static const float max_height = [] {
         constexpr int STEPS = 10000;
-        float max_ground = -1e30f, max_hills = -1e30f, max_mask = -1e30f, max_ridge = -1e30f, max_level = -1e30f, max_rolling = -1e30f;
+        float max_ground = -1e30f, max_hills = -1e30f, max_level = -1e30f;
+#if defined( REPGAME_MAP_GEN_LEGACY )
+        float max_mountains = -1e30f;
+        for ( int i = 0; i <= STEPS; i++ ) {
+            float noise = (float)i / STEPS; // [0, 1]
+            max_ground = fmax( max_ground, mgl_ground_transform( noise ) );
+            max_hills = fmax( max_hills, mgl_hills_transform( noise ) );
+            max_mountains = fmax( max_mountains, mgl_mountains_transform( noise ) );
+            max_level = fmax( max_level, mgl_level_transform( noise ) );
+        }
+        const float bound = max_ground + max_hills + max_mountains + max_level;
+        pr_debug( "maxTerrainHeight (legacy): ground=%.2f hills=%.2f mountains=%.2f level=%.2f → %.2f",
+            max_ground, max_hills, max_mountains, max_level, bound );
+        return bound;
+#else
+        float max_mask = -1e30f, max_ridge = -1e30f, max_rolling = -1e30f;
         for ( int i = 0; i <= STEPS; i++ ) {
             float noise = (float)i / STEPS; // [0, 1]
             max_ground = fmax( max_ground, mg_ground_transform( noise ) );
@@ -39,13 +58,18 @@ float MapGen::maxTerrainHeight( ) {
         pr_debug( "maxTerrainHeight: ground=%.2f hills=%.2f level=%.2f rolling=%.2f mountains=%.2f overhang=%.2f → %.2f",
             max_ground, max_hills, max_level, max_rolling, mountains, OVERHANG_MAX_RISE, bound );
         return bound;
+#endif
     }( );
     return max_height;
 }
 
 BlockID MapGen::gen_block_id( const int x, const int y, const int z ) {
+#if defined( REPGAME_MAP_GEN_LEGACY )
+    return mgl_pick_block( x, y, z, mgl_base_height( x, z ) );
+#else
     const MapGenColumn col = mg_column_info( x, z );
     return mg_pick_block( x, y, z, col );
+#endif
 }
 
 void MapGen::load_block_c( const Chunk *chunk ) {
@@ -54,7 +78,11 @@ void MapGen::load_block_c( const Chunk *chunk ) {
 
     for ( int x = chunk_offset.x - 1; x < chunk_offset.x + CHUNK_SIZE_INTERNAL_X - 1; x++ ) {
         for ( int z = chunk_offset.z - 1; z < chunk_offset.z + CHUNK_SIZE_INTERNAL_Z - 1; z++ ) {
+#if defined( REPGAME_MAP_GEN_LEGACY )
+            const float terrainHeight = mgl_base_height( x, z );
+#else
             const MapGenColumn col = mg_column_info( x, z );
+#endif
             for ( int y = chunk_offset.y - 1; y < chunk_offset.y + CHUNK_SIZE_INTERNAL_Y - 1; y++ ) {
                 glm::ivec3 offset = glm::ivec3( x, y, z );
                 const int index = Chunk::get_index_from_coords( offset - chunk_offset );

@@ -25,6 +25,9 @@ CFLAGS_CUDA :=  -arch=sm_50 \
 				-gencode=arch=compute_75,code=sm_75 \
 				-gencode=arch=compute_75,code=compute_75 \
 				-Xcompiler -fPIC -DREPGAME_LINUX
+ifeq ($(LEGACY_TERRAIN),1)
+CFLAGS_CUDA += -DREPGAME_MAP_GEN_LEGACY
+endif
 CFLAGS_CUDA_COMPILE := -x cu -dc -c
 CFLAGS_CUDA_LINK_DEVICE := --lib
 CFLAGS_CUDA_LINK_HOST := -dlink

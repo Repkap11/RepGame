@@ -14,7 +14,11 @@ __global__ void cuda_set_block( BlockState *blocks, int chunk_x, int chunk_y, in
         int z = ( col_idx % CHUNK_SIZE_INTERNAL_Z ) - 1 + chunk_z;
 
         // Compute 2D column context once per column (biome, height, steepness).
+#if defined( REPGAME_MAP_GEN_LEGACY )
+        const float terrainHeight = mgl_base_height( x, z );
+#else
         const MapGenColumn col = mg_column_info( x, z );
+#endif
 
         // Loop over Y; only 3D noise (overhang, caves, ores) is recomputed per Y
         for ( int y = chunk_y - 1; y < chunk_y + CHUNK_SIZE_Y + 1; y++ ) {

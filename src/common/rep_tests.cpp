@@ -381,12 +381,20 @@ int test_mapgen( ) {
 
     check_bool( "nothing solid above maxTerrainHeight", above_max == 0 );
     check_bool( "bedrock floor has no gaps", bedrock_gaps == 0 );
+#if defined( REPGAME_MAP_GEN_LEGACY )
+    // The legacy generator has no lava layer or overhangs, and snow only
+    // appears on rare tall mountain caps — none are guaranteed in a survey.
+    (void)lava;
+    (void)overhangs;
+    (void)snow_like;
+#else
     check_bool( "lava layer exists below LAVA_LEVEL", lava > 0 );
-    check_bool( "ores generate", ores > 0 );
     check_bool( "terrain overhangs exist", overhangs > 0 );
+    check_bool( "snowy surfaces exist", snow_like > 0 );
+#endif
+    check_bool( "ores generate", ores > 0 );
     check_bool( "grassy surfaces exist", grass > 0 );
     check_bool( "sandy surfaces exist", sand_like > 0 );
-    check_bool( "snowy surfaces exist", snow_like > 0 );
     return failures;
 }
 

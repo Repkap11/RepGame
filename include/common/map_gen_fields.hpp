@@ -16,6 +16,11 @@
 #include "common/block_definitions.hpp"
 #include "common/constants.hpp"
 
+#if defined( REPGAME_MAP_GEN_LEGACY )
+// The pre-overhaul generator (fields + block picker live in the legacy file).
+#include "common/map_gen_fields_legacy.hpp"
+#else
+
 // ---------------------------------------------------------------------------
 // Small helpers
 // ---------------------------------------------------------------------------
@@ -335,3 +340,5 @@ MAP_GEN_QUAL BlockID mg_pick_block( const int x, const int y, const int z, const
     }
     return block;
 }
+
+#endif // REPGAME_MAP_GEN_LEGACY
