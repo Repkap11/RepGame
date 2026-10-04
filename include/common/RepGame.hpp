@@ -181,6 +181,7 @@ class RepGame {
         long long us_world_draw;  // world.draw (GL draw calls)
         long long us_ui_draw;     // ui_overlay + imgui
         long long us_total_draw;  // entire draw() call
+        long long us_swap;        // SDL_GL_SwapWindow (GPU queue backpressure)
         int num_drawable_chunks;
         int num_chunks_remeshed;
     } profiling;

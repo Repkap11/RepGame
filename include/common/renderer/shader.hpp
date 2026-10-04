@@ -25,9 +25,9 @@ typedef struct {
 class Shader {
 
     unsigned int m_RendererId;
-    int get_uniform_location( const char *name );
 
   public:
+    int get_uniform_location( const char *name );
     void init( const ShaderSourceData *vertex, const ShaderSourceData *fragment );
     void bind( ) const;
     void unbind( ) const;

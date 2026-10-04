@@ -56,6 +56,12 @@ static inline long long now_us( ) {
         std::chrono::steady_clock::now( ).time_since_epoch( ) ).count( );
 }
 
+// TEMP diagnostics: phase timing accumulators (defined in light.cpp, printed
+// by light_dbg_stats every ~2s from the LIGHT probe).
+extern long long light_dbg_us_finalize, light_dbg_us_remesh, light_dbg_us_drain,
+    light_dbg_us_bfs, light_dbg_us_upload, light_dbg_us_bind, light_dbg_us_ensure,
+    light_dbg_n_upload, light_dbg_n_ensure, light_dbg_us_light_fin;
+
 int mod( const int x, const int N ) {
     const int result = ( x % N + N ) % N;
     if ( result < 0 ) {
@@ -237,7 +243,9 @@ void ChunkLoader::render_chunks( Multiplayer &multiplayer, const glm::dvec3 &cam
                     multiplayer.apply_pending_diffs( chunk );
                     // Blocks are final now: drain recorded diffs, resolve
                     // skylight columns, and sync border mirrors with neighbors.
+                    const long long t_lfin = now_us( );
                     this->light_finalize_chunk( chunk );
+                    light_dbg_us_light_fin += now_us( ) - t_lfin;
                     chunk.program_terrain( );
                 }
             }
@@ -246,6 +254,7 @@ void ChunkLoader::render_chunks( Multiplayer &multiplayer, const glm::dvec3 &cam
             // per frame to a time budget. On native the budget bounds the
             // per-chunk GL finalize work so load-in bursts don't hitch frames.
         } while ( chunk_ptr && ( now_us( ) - t_budget_start < ( limit_render ? WASM_LOAD_BUDGET_US : CHUNK_FINALIZE_BUDGET_US ) ) );
+        light_dbg_us_finalize += now_us( ) - t_budget_start;
     }
     if ( 0 != chunk_diff.x || 0 != chunk_diff.y || 0 != chunk_diff.z ) {
         // Collect new chunk positions from the reload loop so we can fire one
@@ -302,9 +311,12 @@ void ChunkLoader::render_chunks( Multiplayer &multiplayer, const glm::dvec3 &cam
             }
         }
     }
+    light_dbg_us_remesh += now_us( ) - t_remesh_start;
     // Flood-fill lighting: convert recorded per-cell changes to recheck seeds,
     // run the BFS queues, then push dirty regions into the 3D textures.
+    const long long t_drain = now_us( );
     this->light_drain_pending( );
+    light_dbg_us_drain += now_us( ) - t_drain;
     // Scale the propagation budget with backlog: under-overhang/cave floods
     // legitimately cover every underground air cell within ~15 of lit space,
     // which is millions of steps during mass load-in. A fixed 1ms budget left
@@ -312,7 +324,9 @@ void ChunkLoader::render_chunks( Multiplayer &multiplayer, const glm::dvec3 &cam
     // in a few frames and steady-state edits stay cheap.
     const size_t light_backlog = this->light_add_queue_size( ) + this->light_remove_queue.size( );
     const long long light_budget = light_backlog > 200000 ? 8000 : light_backlog > 20000 ? 3000 : LIGHT_PROPAGATE_BUDGET_US;
+    const long long t_bfs = now_us( );
     this->light_process_queue( light_budget );
+    light_dbg_us_bfs += now_us( ) - t_bfs;
     this->light_upload_dirty( LIGHT_MAX_UPLOADS_PER_FRAME );
     this->rebuild_drawable_list( );
 }
@@ -365,12 +379,20 @@ void ChunkLoader::draw( const glm::mat4 &mvp, const Renderer &renderer, const Te
     // All per-chunk light volumes share one reserved texture unit; each chunk
     // binds its 3D texture + u_LightBase right before drawing (Chunk::draw).
     shader.set_uniform1i( "u_LightTex", light_texture_unit( ) );
+    glActiveTexture( GL_TEXTURE0 + light_texture_unit( ) );
+    // glGetUniformLocation once per draw instead of once per chunk — the
+    // per-chunk set_uniform3f it replaced cost ~6000 lookups/frame.
+    const int light_base_loc = shader.get_uniform_location( "u_LightBase" );
 
     // pr_debug( "Drawing %d chunks", this->numLoadedChunks );
     for ( int renderOrder = LAST_RENDER_ORDER - 1; renderOrder > 0; renderOrder-- ) {
         if ( reflect_only == ( renderOrder == RenderOrder_Water ) ) {
             shader.set_uniform1f( "u_shouldDiscardAlpha", renderOrder != RenderOrder_Water && renderOrder != RenderOrder_Translucent);
             // Set texture wrap mode once per render order instead of per chunk draw call.
+            // glTexParameteri edits the texture bound on the *active* unit, so
+            // re-bind the atlas first — the per-chunk loop leaves the light
+            // unit active from the previous order.
+            texture.bind( );
             if ( renderOrder == RenderOrder_Flowers ) {
                 glTexParameteri( texture.target, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE );
                 glTexParameteri( texture.target, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE );
@@ -378,15 +400,19 @@ void ChunkLoader::draw( const glm::mat4 &mvp, const Renderer &renderer, const Te
                 glTexParameteri( texture.target, GL_TEXTURE_WRAP_S, GL_REPEAT );
                 glTexParameteri( texture.target, GL_TEXTURE_WRAP_T, GL_REPEAT );
             }
+            // Select the shared light unit once per pass — the glTexParameteri
+            // calls above must run first, then per-chunk draws only need a
+            // glBindTexture (Chunk::draw).
+            glActiveTexture( GL_TEXTURE0 + light_texture_unit( ) );
             for ( int i = 0; i < this->num_drawable; i++ ) {
                 Chunk &chunk = *this->drawable_chunks[ i ];
                 if ( draw_reflect ) {
                     if ( !chunk.cached_cull_reflect ) {
-                        chunk.draw( renderer, texture, shader, static_cast<RenderOrder>( renderOrder ), draw_reflect, render_origin );
+                        chunk.draw( renderer, texture, shader, static_cast<RenderOrder>( renderOrder ), draw_reflect, render_origin, light_base_loc );
                     }
                 } else {
                     if ( !chunk.cached_cull_normal ) {
-                        chunk.draw( renderer, texture, shader, static_cast<RenderOrder>( renderOrder ), draw_reflect, render_origin );
+                        chunk.draw( renderer, texture, shader, static_cast<RenderOrder>( renderOrder ), draw_reflect, render_origin, light_base_loc );
                     }
                 }
             }

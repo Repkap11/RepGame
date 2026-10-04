@@ -22,9 +22,13 @@
 // Column flags live in chunk->light_columns: [0, flags_count) is column_open
 // (no light-blocking cell in this chunk's vertical column),
 // [flags_count, 2*flags_count) is sky_open_above (no blocker anywhere above
-// inside the loaded grid). Indexed by interior (x,z) in [0,CHUNK_SIZE).
+// inside the loaded grid), and [2*flags_count, 3*flags_count) is fill_from —
+// the first y skylight reaches (one past the topmost opaque cell; 0 for a
+// fully-open column), so the cascade fill needs no per-cell opacity reads.
+// Indexed by interior (x,z) in [0,CHUNK_SIZE).
 #define LIGHT_FLAGS_COUNT ( CHUNK_SIZE_X * CHUNK_SIZE_Z )
 #define LIGHT_COLUMN_INDEX( x, z ) ( (x)*CHUNK_SIZE_Z + ( z ) )
+#define LIGHT_FILL_FROM_INDEX( x, z ) ( 2 * LIGHT_FLAGS_COUNT + LIGHT_COLUMN_INDEX( x, z ) )
 
 // Index into Chunk::light[] for internal coords x,y,z in [-1, CHUNK_SIZE].
 // X-fastest layout so a dirty sub-box can be uploaded to the 3D texture

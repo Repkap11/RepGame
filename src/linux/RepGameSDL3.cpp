@@ -2,6 +2,7 @@
 #include <time.h>
 #include <unistd.h>
 #include <stdlib.h>
+#include <chrono>
 
 #include "common/RepGame.hpp"
 #include "common/rep_tests.hpp"
@@ -230,6 +231,11 @@ int repgame_sdl2_main( const char *world_path, const char *host, const bool conn
     return 0;
 }
 
+static inline long long now_us( ) {
+    return std::chrono::duration_cast<std::chrono::microseconds>(
+        std::chrono::steady_clock::now( ).time_since_epoch( ) ).count( );
+}
+
 int is_locking_pointer = 0;
 void repgame_linux_process_window_and_pointer_state( RepGame &repgame ) {
     int width, height;
@@ -304,7 +310,9 @@ void main_loop_full( RepGame &repgame ) {
             while ( ( ( ( next_game_step - now ) <= 0 ) ) && ( computer_is_too_slow_limit-- ) ) {
                 repgame_linux_process_sdl_events( repgame );
                 repgame_linux_process_window_and_pointer_state( repgame );
+                const long long t_tick = now_us( );
                 repgame.tick( );
+                repgame.profiling.us_tick = now_us( ) - t_tick;
                 // num_ticks_in_frame++;
                 next_game_step += time_step_ms; // count 1 game tick done
             }
@@ -322,16 +330,32 @@ void main_loop_full( RepGame &repgame ) {
 
             repgame.clear( );
             repgame.draw( alpha );
+            const long long t_swap = now_us( );
             SDL_GL_SwapWindow( sdl_window );
+            repgame.profiling.us_swap = now_us( ) - t_swap;
 
             fps_frame_count++;
+            // Accumulate phase times so the report prints per-frame averages.
+            static long long acc_render = 0, acc_world_draw = 0, acc_ui_draw = 0,
+                             acc_total_draw = 0, acc_swap = 0, acc_tick = 0;
+            acc_render += repgame.profiling.us_render;
+            acc_world_draw += repgame.profiling.us_world_draw;
+            acc_ui_draw += repgame.profiling.us_ui_draw;
+            acc_total_draw += repgame.profiling.us_total_draw;
+            acc_swap += repgame.profiling.us_swap;
+            acc_tick += repgame.profiling.us_tick;
             const long fps_now = static_cast<long>( SDL_GetTicks( ) );
             const long fps_elapsed = fps_now - fps_last_report_time;
             if ( fps_elapsed >= 1000 ) {
                 const float fps = static_cast<float>( fps_frame_count * 1000 ) / static_cast<float>( fps_elapsed );
-                pr_debug( "FPS: %.1f", fps );
+                const double n = fps_frame_count;
+                pr_debug( "FPS: %.1f | us/frame: tick=%.0f render=%.0f world_draw=%.0f ui=%.0f total_draw=%.0f swap=%.0f",
+                          fps,
+                          acc_tick / n, acc_render / n, acc_world_draw / n,
+                          acc_ui_draw / n, acc_total_draw / n, acc_swap / n );
                 fps_frame_count = 0;
                 fps_last_report_time = fps_now;
+                acc_render = acc_world_draw = acc_ui_draw = acc_total_draw = acc_swap = acc_tick = 0;
             }
         } else {
             SDL_Delay( next_game_step - now );

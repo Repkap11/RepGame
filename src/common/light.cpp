@@ -1,6 +1,7 @@
 #include <chrono>
 #include <cstring>
 #include <math.h>
+#include <mutex>
 #include <vector>
 
 #include "common/RepGame.hpp" // GL headers + platform macros
@@ -71,12 +72,28 @@ static inline bool light_opaque_id( BlockID id ) {
 static long long light_dbg_pushes = 0, light_dbg_pops = 0, light_dbg_finalize = 0,
                  light_dbg_cascade_seed = 0, light_dbg_border_seed = 0,
                  light_dbg_recheck_seed = 0, light_dbg_step_push = 0, light_dbg_remove_seed = 0;
+// TEMP frame-phase timing (µs accumulated between probes) + call counts.
+long long light_dbg_us_finalize = 0, light_dbg_us_remesh = 0, light_dbg_us_drain = 0,
+          light_dbg_us_bfs = 0, light_dbg_us_upload = 0, light_dbg_us_bind = 0,
+          light_dbg_us_ensure = 0, light_dbg_n_upload = 0, light_dbg_n_ensure = 0,
+          light_dbg_us_light_fin = 0, light_dbg_us_fin_fill = 0, light_dbg_us_fin_casc = 0,
+          light_dbg_us_fin_bscan = 0, light_dbg_us_fin_border = 0;
 void ChunkLoader::light_dbg_stats( char *buf, size_t n ) {
-    snprintf( buf, n, "push=%lld pop=%lld fin=%lld casc=%lld bord=%lld rech=%lld step=%lld rem=%lld",
+    snprintf( buf, n, "push=%lld pop=%lld fin=%lld casc=%lld bord=%lld rech=%lld step=%lld rem=%lld"
+                      " | us: fin=%lld(lfin=%lld[fill=%lld casc=%lld bscan=%lld border=%lld]) remesh=%lld drain=%lld bfs=%lld upl=%lld(n=%lld) bind=%lld ensure=%lld(n=%lld)",
               light_dbg_pushes, light_dbg_pops, light_dbg_finalize, light_dbg_cascade_seed,
-              light_dbg_border_seed, light_dbg_recheck_seed, light_dbg_step_push, light_dbg_remove_seed );
+              light_dbg_border_seed, light_dbg_recheck_seed, light_dbg_step_push, light_dbg_remove_seed,
+              light_dbg_us_finalize, light_dbg_us_light_fin, light_dbg_us_fin_fill,
+              light_dbg_us_fin_casc, light_dbg_us_fin_bscan, light_dbg_us_fin_border,
+              light_dbg_us_remesh, light_dbg_us_drain,
+              light_dbg_us_bfs, light_dbg_us_upload, light_dbg_n_upload, light_dbg_us_bind,
+              light_dbg_us_ensure, light_dbg_n_ensure );
     light_dbg_pushes = light_dbg_pops = light_dbg_finalize = light_dbg_cascade_seed =
         light_dbg_border_seed = light_dbg_recheck_seed = light_dbg_step_push = light_dbg_remove_seed = 0;
+    light_dbg_us_finalize = light_dbg_us_remesh = light_dbg_us_drain = light_dbg_us_bfs =
+        light_dbg_us_upload = light_dbg_us_bind = light_dbg_us_ensure = light_dbg_n_upload =
+            light_dbg_n_ensure = light_dbg_us_light_fin = light_dbg_us_fin_fill =
+                light_dbg_us_fin_casc = light_dbg_us_fin_bscan = light_dbg_us_fin_border = 0;
 }
 
 size_t ChunkLoader::light_add_queue_size( ) const {
@@ -122,16 +139,38 @@ BlockID ChunkLoader::light_block_id_at( const glm::ivec3 &block_pos ) const {
     return chunk->get_block( block_pos - chunk->chunk_pos * CHUNK_SIZE_I ).id;
 }
 
+// Chunks whose light volume needs a texture upload. All producers run on the
+// render thread, so a plain vector suffices — scanning all MAX_LOADED_CHUNKS
+// for the dirty flag cost ~200us/frame.
+static std::vector<Chunk *> light_dirty_list;
+
 void ChunkLoader::light_mark_dirty( Chunk &chunk, const glm::ivec3 &local ) {
     const glm::ivec3 texel = local + glm::ivec3( 1 ); // internal -> texture coords
     if ( !chunk.light_dirty ) {
         chunk.light_dirty = 1;
         chunk.light_dirty_min = texel;
         chunk.light_dirty_max = texel;
-        return;
+    } else {
+        chunk.light_dirty_min = glm::min( chunk.light_dirty_min, texel );
+        chunk.light_dirty_max = glm::max( chunk.light_dirty_max, texel );
     }
-    chunk.light_dirty_min = glm::min( chunk.light_dirty_min, texel );
-    chunk.light_dirty_max = glm::max( chunk.light_dirty_max, texel );
+    if ( !chunk.light_upload_listed ) {
+        chunk.light_upload_listed = 1;
+        light_dirty_list.push_back( &chunk );
+    }
+}
+
+// Whole-volume variant for finalize/reseed paths that rewrite everything.
+// Dirty coords are texel-space (internal+1), so the full 34^3 texture is
+// 0..CHUNK_SIZE_INTERNAL_-1 inclusive.
+void ChunkLoader::light_mark_dirty_all( Chunk &chunk ) {
+    chunk.light_dirty = 1;
+    chunk.light_dirty_min = glm::ivec3( 0 );
+    chunk.light_dirty_max = glm::ivec3( CHUNK_SIZE_INTERNAL_X - 1, CHUNK_SIZE_INTERNAL_Y - 1, CHUNK_SIZE_INTERNAL_Z - 1 );
+    if ( !chunk.light_upload_listed ) {
+        chunk.light_upload_listed = 1;
+        light_dirty_list.push_back( &chunk );
+    }
 }
 
 // Write to the cell's interior owner AND to every loaded neighbor whose halo
@@ -167,6 +206,50 @@ void ChunkLoader::light_set( const glm::ivec3 &block_pos, const int channel, con
                     if ( !c || c->is_loading || !c->light ) {
                         continue;
                     }
+                }
+                const glm::ivec3 c_local = block_pos - c->chunk_pos * CHUNK_SIZE_I;
+                const int idx = light_index( c_local.x, c_local.y, c_local.z );
+                unsigned char &cell = c->light[ idx ];
+                const unsigned char nv = channel == LIGHT_CHANNEL_BLOCK //
+                    ? static_cast<unsigned char>( ( cell & 0xF0 ) | value )
+                    : static_cast<unsigned char>( ( cell & 0x0F ) | ( value << 4 ) );
+                if ( nv != cell ) {
+                    cell = nv;
+                    light_mark_dirty( *c, c_local );
+                }
+            }
+        }
+    }
+}
+
+// light_set variant for hot loops: mirror chunks resolve from a pre-built
+// 27-entry neighborhood cache around the owning chunk (index
+// (dx+1)*9+(dy+1)*3+(dz+1)) instead of per-mirror get_chunk lookups. All
+// mirrors of a cell live in its owner's 3x3x3 neighborhood by construction.
+void ChunkLoader::light_set_nb( Chunk *const nb_cache[ 27 ], Chunk &owner, const glm::ivec3 &block_pos, const int channel, const int value ) {
+    const glm::ivec3 local = block_pos - owner.chunk_pos * CHUNK_SIZE_I;
+    int axis_opts[ 3 ][ 2 ];
+    int axis_count[ 3 ] = { 1, 1, 1 };
+    axis_opts[ 0 ][ 0 ] = 0;
+    axis_opts[ 1 ][ 0 ] = 0;
+    axis_opts[ 2 ][ 0 ] = 0;
+    constexpr int axis_size[ 3 ] = { CHUNK_SIZE_X, CHUNK_SIZE_Y, CHUNK_SIZE_Z };
+    for ( int axis = 0; axis < 3; axis++ ) {
+        if ( local[ axis ] == 0 ) {
+            axis_opts[ axis ][ axis_count[ axis ]++ ] = -1;
+        } else if ( local[ axis ] == axis_size[ axis ] - 1 ) {
+            axis_opts[ axis ][ axis_count[ axis ]++ ] = 1;
+        }
+    }
+    for ( int ix = 0; ix < axis_count[ 0 ]; ix++ ) {
+        for ( int iy = 0; iy < axis_count[ 1 ]; iy++ ) {
+            for ( int iz = 0; iz < axis_count[ 2 ]; iz++ ) {
+                const int ox = axis_opts[ 0 ][ ix ];
+                const int oy = axis_opts[ 1 ][ iy ];
+                const int oz = axis_opts[ 2 ][ iz ];
+                Chunk *c = ( ox || oy || oz ) ? nb_cache[ ( ox + 1 ) * 9 + ( oy + 1 ) * 3 + ( oz + 1 ) ] : &owner;
+                if ( !c || c->is_loading || !c->light ) {
+                    continue;
                 }
                 const glm::ivec3 c_local = block_pos - c->chunk_pos * CHUNK_SIZE_I;
                 const int idx = light_index( c_local.x, c_local.y, c_local.z );
@@ -337,9 +420,28 @@ void ChunkLoader::light_process_queue( const long long budget_us ) {
 
 void ChunkLoader::light_ensure_columns( Chunk &chunk ) {
     if ( !chunk.light_columns ) {
-        chunk.light_columns = static_cast<unsigned char *>( calloc( 2 * LIGHT_FLAGS_COUNT, 1 ) );
+        chunk.light_columns = static_cast<unsigned char *>( calloc( 3 * LIGHT_FLAGS_COUNT, 1 ) );
         light_compute_column_open( chunk );
     }
+}
+
+// Scan one interior column top-down: column_open=1 iff no casts_shadow cell,
+// and fill_from = one past the topmost opaque cell (the first y skylight
+// reaches). The scan stops at the first opaque cell, so closed columns cost
+// just the air above the surface; fully-open columns get fill_from=0.
+void ChunkLoader::light_compute_one_column( Chunk &chunk, const int x, const int z ) {
+    unsigned char open = 1;
+    int fill_from = 0;
+    for ( int y = CHUNK_SIZE_Y - 1; y >= 0; y-- ) {
+        if ( light_opaque_id( chunk.blocks[ Chunk::get_index_from_coords( x, y, z ) ].id ) ) {
+            open = 0;
+            fill_from = y + 1;
+            break;
+        }
+    }
+    const int ci = LIGHT_COLUMN_INDEX( x, z );
+    chunk.light_columns[ ci ] = open;
+    chunk.light_columns[ LIGHT_FILL_FROM_INDEX( x, z ) ] = static_cast<unsigned char>( fill_from );
 }
 
 // column_open[x][z] == 1 iff no casts_shadow cell exists anywhere in this
@@ -351,15 +453,7 @@ void ChunkLoader::light_compute_column_open( Chunk &chunk ) {
     }
     for ( int x = 0; x < CHUNK_SIZE_X; x++ ) {
         for ( int z = 0; z < CHUNK_SIZE_Z; z++ ) {
-            bool open = true;
-            for ( int y = 0; y < CHUNK_SIZE_Y; y++ ) {
-                const int idx = chunk.get_index_from_coords( x, y, z );
-                if ( light_opaque_id( chunk.blocks[ idx ].id ) ) {
-                    open = false;
-                    break;
-                }
-            }
-            chunk.light_columns[ LIGHT_COLUMN_INDEX( x, z ) ] = open;
+            light_compute_one_column( chunk, x, z );
         }
     }
 }
@@ -395,12 +489,12 @@ void ChunkLoader::light_cascade_column( const int world_x, const int world_z ) {
                 // Lateral seeding (into caves/overhang pockets) is deferred to
                 // the post-cascade boundary scan in light_finalize_chunk:
                 // probing here would race the column processing order, since
-                // not-yet-cascaded neighbors still read 0.
-                for ( int y = CHUNK_SIZE_Y - 1; y >= 0; y-- ) {
+                // not-yet-cascaded neighbors still read 0. fill_from is one
+                // past the topmost opaque cell (see light.hpp), so the fill
+                // needs no per-cell blocks[] reads.
+                const int fill_from = chunk->light_columns[ LIGHT_FILL_FROM_INDEX( lx, lz ) ];
+                for ( int y = CHUNK_SIZE_Y - 1; y >= fill_from; y-- ) {
                     const glm::ivec3 pos( world_x, cy * CHUNK_SIZE_Y + y, world_z );
-                    if ( light_opaque_id( chunk->blocks[ chunk->get_index_from_coords( lx, y, lz ) ].id ) ) {
-                        break;
-                    }
                     this->light_set( pos, LIGHT_CHANNEL_SKY, LIGHT_MAX_LEVEL );
                 }
             } else {
@@ -431,11 +525,12 @@ void ChunkLoader::light_cascade_column( const int world_x, const int world_z ) {
 // columns on the x/z shell). Per-column ordering is identical to the
 // single-column version: each column's flag/fill sequence only depends on
 // chunks above it, so interleaving columns across cy iterations is safe.
-void ChunkLoader::light_cascade_columns( Chunk &start_chunk ) {
+int ChunkLoader::light_cascade_columns( Chunk &start_chunk ) {
     constexpr int N_LEVELS = 2 * CHUNK_RADIUS_Y + 1;
     Chunk *stack[ N_LEVELS ];
     const int cx = start_chunk.chunk_pos.x;
     const int cz = start_chunk.chunk_pos.z;
+    int cells_filled = 0;
     for ( int i = 0; i < N_LEVELS; i++ ) {
         stack[ i ] = this->get_chunk( glm::ivec3( cx, this->chunk_center.y + CHUNK_RADIUS_Y - i, cz ) );
     }
@@ -454,32 +549,54 @@ void ChunkLoader::light_cascade_columns( Chunk &start_chunk ) {
         const int base_y = chunk->chunk_pos.y * CHUNK_SIZE_Y;
         const int base_x = chunk->chunk_pos.x * CHUNK_SIZE_X;
         const int base_z = chunk->chunk_pos.z * CHUNK_SIZE_Z;
+        // Fill writes to shell cells mirror into neighbors; resolve the 3x3x3
+        // neighborhood once per chunk instead of per-mirror get_chunk calls.
+        Chunk *nb_cache[ 27 ];
+        nb_cache[ ( 0 + 1 ) * 9 + ( 0 + 1 ) * 3 + ( 0 + 1 ) ] = chunk;
+        for ( int dx = -1; dx <= 1; dx++ ) {
+            for ( int dy = -1; dy <= 1; dy++ ) {
+                for ( int dz = -1; dz <= 1; dz++ ) {
+                    if ( !dx && !dy && !dz ) {
+                        continue;
+                    }
+                    nb_cache[ ( dx + 1 ) * 9 + ( dy + 1 ) * 3 + ( dz + 1 ) ] =
+                        this->get_chunk( chunk->chunk_pos + glm::ivec3( dx, dy, dz ) );
+                }
+            }
+        }
+        int level_cells = cells_filled;
         for ( int x = 0; x < CHUNK_SIZE_X; x++ ) {
             for ( int z = 0; z < CHUNK_SIZE_Z; z++ ) {
                 const int ci = LIGHT_COLUMN_INDEX( x, z );
                 const int was_open = open[ ci ];
                 unsigned char &above_flag = flags[ LIGHT_FLAGS_COUNT + ci ];
+                if ( !was_open && !above_flag ) {
+                    continue; // closed above and already marked closed
+                }
                 if ( above_flag != was_open ) {
                     above_flag = static_cast<unsigned char>( was_open );
                     if ( was_open ) {
                         // Sky flows straight down at full strength — write the
                         // descent directly instead of seeding BFS floods (see
                         // light_cascade_column for the ordering rationale).
+                        // fill_from (computed on the worker) is one past the
+                        // topmost opaque cell, so the fill is a pure range
+                        // write with no per-cell blocks[] reads. Dirty marking
+                        // is batched: the whole volume is flagged once at the
+                        // end instead of per cell.
+                        const int fill_from = flags[ LIGHT_FILL_FROM_INDEX( x, z ) ];
                         const bool col_interior = x > 0 && x < CHUNK_SIZE_X - 1 && z > 0 && z < CHUNK_SIZE_Z - 1;
-                        for ( int y = CHUNK_SIZE_Y - 1; y >= 0; y-- ) {
-                            if ( light_opaque_id( chunk->blocks[ chunk->get_index_from_coords( x, y, z ) ].id ) ) {
-                                break;
-                            }
+                        for ( int y = CHUNK_SIZE_Y - 1; y >= fill_from; y-- ) {
                             if ( col_interior && y > 0 && y < CHUNK_SIZE_Y - 1 ) {
                                 unsigned char &cell = chunk->light[ light_index( x, y, z ) ];
                                 cell = static_cast<unsigned char>( ( cell & 0x0F ) | ( LIGHT_MAX_LEVEL << 4 ) );
-                                light_mark_dirty( *chunk, glm::ivec3( x, y, z ) );
                             } else {
                                 // y-shell cells mirror into the chunks
                                 // above/below; x/z shell cells mirror
-                                // sideways. Those need light_set.
-                                this->light_set( glm::ivec3( base_x + x, base_y + y, base_z + z ), LIGHT_CHANNEL_SKY, LIGHT_MAX_LEVEL );
+                                // sideways. Those need the mirror write.
+                                this->light_set_nb( nb_cache, *chunk, glm::ivec3( base_x + x, base_y + y, base_z + z ), LIGHT_CHANNEL_SKY, LIGHT_MAX_LEVEL );
                             }
+                            cells_filled++;
                         }
                     } else {
                         // Flag flipped closed: find the first lit cell and
@@ -500,7 +617,13 @@ void ChunkLoader::light_cascade_columns( Chunk &start_chunk ) {
                 open[ ci ] = static_cast<unsigned char>( was_open && flags[ ci ] );
             }
         }
+        if ( cells_filled != level_cells ) {
+            // Interior fill cells skip per-cell dirty marking; flag the whole
+            // volume for upload instead.
+            ChunkLoader::light_mark_dirty_all( *chunk );
+        }
     }
+    return cells_filled;
 }
 
 // ---------------------------------------------------------------------------
@@ -524,18 +647,12 @@ void ChunkLoader::light_recheck_block( const glm::ivec3 &block_pos ) {
 
     // Opacity changes can open/close a sky column.
     if ( chunk->light_columns ) {
-        bool now_open = true;
-        for ( int y = 0; y < CHUNK_SIZE_Y; y++ ) {
-            if ( light_opaque_id( chunk->blocks[ Chunk::get_index_from_coords( local.x, y, local.z ) ].id ) ) {
-                now_open = false;
-                break;
-            }
-        }
         unsigned char &col_flag = chunk->light_columns[ LIGHT_COLUMN_INDEX( local.x, local.z ) ];
-        if ( ( col_flag != 0 ) != now_open ) {
-            col_flag = now_open;
+        const bool was_open = col_flag != 0;
+        light_compute_one_column( *chunk, local.x, local.z );
+        if ( was_open != ( col_flag != 0 ) ) {
             this->light_cascade_column( block_pos.x, block_pos.z );
-            if ( now_open ) {
+            if ( !was_open ) {
                 this->light_seed_column_boundary( block_pos.x, block_pos.z );
             }
         }
@@ -585,6 +702,7 @@ void ChunkLoader::light_finalize_chunk( Chunk &chunk ) {
         return;
     }
     light_dbg_finalize++;
+    const long long t0 = light_now_us( );
     if ( chunk.light_reseed ) {
         light_fill_chunk( chunk ); // refill emitters + column_open
         chunk.light_reseed = 0;
@@ -596,15 +714,25 @@ void ChunkLoader::light_finalize_chunk( Chunk &chunk ) {
         this->light_recheck_block( chunk.chunk_pos * CHUNK_SIZE_I + glm::ivec3( x, y, z ) );
     }
     chunk.light_pending_count = 0;
+    const long long t1 = light_now_us( );
+    light_dbg_us_fin_fill += t1 - t0;
 
-    this->light_cascade_columns( chunk );
-    this->light_seed_interior_boundary( chunk );
+    const int cells_filled = this->light_cascade_columns( chunk );
+    const long long t2 = light_now_us( );
+    light_dbg_us_fin_casc += t2 - t1;
+    // The interior scan only seeds spreads from lit cells; if the cascade
+    // wrote no skylight (fully underground/solid chunk), interior sky is all
+    // zero and the scan can only waste 32k iterations — skip it.
+    if ( cells_filled > 0 ) {
+        this->light_seed_interior_boundary( chunk );
+    }
+    const long long t3 = light_now_us( );
+    light_dbg_us_fin_bscan += t3 - t2;
     this->light_border_sync( chunk );
+    light_dbg_us_fin_border += light_now_us( ) - t3;
 
     // Whole volume needs uploading on first draw.
-    chunk.light_dirty = 1;
-    chunk.light_dirty_min = glm::ivec3( 0 );
-    chunk.light_dirty_max = glm::ivec3( CHUNK_SIZE_INTERNAL_X - 1, CHUNK_SIZE_INTERNAL_Y - 1, CHUNK_SIZE_INTERNAL_Z - 1 );
+    ChunkLoader::light_mark_dirty_all( chunk );
 }
 
 // The direct-fill cascade writes skylight without BFS, so anything it borders
@@ -618,32 +746,139 @@ void ChunkLoader::light_finalize_chunk( Chunk &chunk ) {
 // Sky channel only: the worker's light_fill_chunk already BFS'd block light
 // over this whole volume, so no interior block-lit cell can border under-lit
 // non-opaque space — cross-chunk block spreads are seeded by border sync.
+// After the direct-fill cascade, interior skylight is exactly "column lit iff
+// y >= lit_top" (lit_top = fill_from when sky_open_above, else nothing lit).
+// A lit cell can therefore only border under-lit space where a lateral
+// neighbor column is shallower (y < neighbor lit_top) or across the chunk
+// boundary — vertical neighbors are contiguous within a fill (up is always
+// lit; down is lit or the opaque cell that capped the fill). This scans only
+// the thin bands where adjacent fill depths differ plus the boundary shell,
+// instead of the whole volume.
 void ChunkLoader::light_seed_interior_boundary( Chunk &chunk ) {
+    if ( !chunk.light_columns ) {
+        return;
+    }
     const glm::ivec3 base = chunk.chunk_pos * CHUNK_SIZE_I;
-    for ( int x = 0; x < CHUNK_SIZE_X; x++ ) {
-        for ( int y = 0; y < CHUNK_SIZE_Y; y++ ) {
-            for ( int z = 0; z < CHUNK_SIZE_Z; z++ ) {
-                const int cv = light_get_sky( chunk.light[ light_index( x, y, z ) ] );
-                if ( cv <= 1 ) {
-                    continue; // offered would be <= 0 — can't feed anything
+    const unsigned char *flags = chunk.light_columns;
+
+    // Boundary cells probe across chunk edges; resolve the 3x3x3 neighborhood
+    // once instead of a get_chunk per light_get/light_block_id_at call.
+    Chunk *nb_cache[ 27 ];
+    nb_cache[ ( 0 + 1 ) * 9 + ( 0 + 1 ) * 3 + ( 0 + 1 ) ] = &chunk;
+    for ( int dx = -1; dx <= 1; dx++ ) {
+        for ( int dy = -1; dy <= 1; dy++ ) {
+            for ( int dz = -1; dz <= 1; dz++ ) {
+                if ( !dx && !dy && !dz ) {
+                    continue;
                 }
-                for ( int d = 0; d < 6; d++ ) {
-                    const glm::ivec3 n_local = glm::ivec3( x, y, z ) + light_dirs[ d ];
-                    const int offered = ( d == LIGHT_DIR_DOWN && cv == LIGHT_MAX_LEVEL ) ? LIGHT_MAX_LEVEL : cv - 1;
-                    int nv;
-                    BlockID n_id;
-                    if ( n_local.x >= 0 && n_local.x < CHUNK_SIZE_X && n_local.y >= 0 && n_local.y < CHUNK_SIZE_Y && n_local.z >= 0 && n_local.z < CHUNK_SIZE_Z ) {
-                        nv = light_get_sky( chunk.light[ light_index( n_local.x, n_local.y, n_local.z ) ] );
-                        n_id = chunk.blocks[ chunk.get_index_from_coords( n_local.x, n_local.y, n_local.z ) ].id;
-                    } else {
-                        const glm::ivec3 n = base + glm::ivec3( x, y, z ) + light_dirs[ d ];
-                        nv = this->light_get( n, LIGHT_CHANNEL_SKY );
-                        n_id = this->light_block_id_at( n );
+                nb_cache[ ( dx + 1 ) * 9 + ( dy + 1 ) * 3 + ( dz + 1 ) ] =
+                    this->get_chunk( chunk.chunk_pos + glm::ivec3( dx, dy, dz ) );
+            }
+        }
+    }
+
+    // lit_top per column (x,z): the first lit y, or CHUNK_SIZE_Y when unlit.
+    static const glm::ivec2 xz_dirs[ 4 ] = { glm::ivec2( 1, 0 ), glm::ivec2( -1, 0 ), glm::ivec2( 0, 1 ), glm::ivec2( 0, -1 ) };
+    for ( int x = 0; x < CHUNK_SIZE_X; x++ ) {
+        for ( int z = 0; z < CHUNK_SIZE_Z; z++ ) {
+            const int ci = LIGHT_COLUMN_INDEX( x, z );
+            const int lit_top = flags[ LIGHT_FLAGS_COUNT + ci ] ? flags[ LIGHT_FILL_FROM_INDEX( x, z ) ] : CHUNK_SIZE_Y;
+            if ( lit_top >= CHUNK_SIZE_Y ) {
+                continue; // no lit cells in this column
+            }
+            // Per lateral dir: interior columns get a lit_top cutoff; shell
+            // dirs need a per-cell cross-chunk check.
+            int nlt[ 4 ];
+            int m = CHUNK_SIZE_Y;
+            for ( int d = 0; d < 4; d++ ) {
+                const int nx = x + xz_dirs[ d ].x;
+                const int nz = z + xz_dirs[ d ].y;
+                if ( nx >= 0 && nx < CHUNK_SIZE_X && nz >= 0 && nz < CHUNK_SIZE_Z ) {
+                    const int nci = LIGHT_COLUMN_INDEX( nx, nz );
+                    nlt[ d ] = flags[ LIGHT_FLAGS_COUNT + nci ] ? flags[ LIGHT_FILL_FROM_INDEX( nx, nz ) ] : CHUNK_SIZE_Y;
+                    if ( nlt[ d ] < m ) {
+                        m = nlt[ d ];
                     }
-                    if ( nv >= 0 && nv < offered && !light_opaque_id( n_id ) ) {
+                } else {
+                    nlt[ d ] = -1; // shell dir: per-cell cross-chunk check
+                }
+            }
+            // Interior lateral bands: our lit cells below a neighbor's lit_top
+            // border below-fill cells (stored sky=0 in a fresh volume).
+            for ( int y = lit_top; y < m; y++ ) {
+                for ( int d = 0; d < 4; d++ ) {
+                    if ( nlt[ d ] < 0 || y >= nlt[ d ] ) {
+                        continue;
+                    }
+                    const int nx = x + xz_dirs[ d ].x;
+                    const int nz = z + xz_dirs[ d ].y;
+                    const int cv = light_get_sky( chunk.light[ light_index( x, y, z ) ] );
+                    if ( light_get_sky( chunk.light[ light_index( nx, y, nz ) ] ) >= cv - 1 ) {
+                        continue;
+                    }
+                    if ( light_opaque_id( chunk.blocks[ chunk.get_index_from_coords( nx, y, nz ) ].id ) ) {
+                        continue;
+                    }
+                    light_dbg_cascade_seed++;
+                    this->light_add_seed( base + glm::ivec3( x, y, z ), LIGHT_CHANNEL_SKY, cv );
+                    break;
+                }
+            }
+            // Boundary cells: lit cells on the volume edge can border
+            // under-lit cells in neighboring chunks regardless of column
+            // fills. Up is the cell at y=31; down is y=0 (only reachable in a
+            // fully-lit column); lateral shell dirs check every lit cell. The
+            // neighbor of an axis-aligned dir crosses exactly one chunk face,
+            // so it lands in nb_cache[(dir+1)] with the local coord wrapped.
+            for ( int d = 2; d <= 3; d++ ) {
+                const int y = ( d == 2 ) ? CHUNK_SIZE_Y - 1 : 0;
+                if ( y < lit_top ) {
+                    continue;
+                }
+                const glm::ivec3 dir = light_dirs[ d ];
+                const Chunk *nchunk = nb_cache[ ( dir.x + 1 ) * 9 + ( dir.y + 1 ) * 3 + ( dir.z + 1 ) ];
+                if ( !nchunk || nchunk->is_loading || !nchunk->light ) {
+                    continue;
+                }
+                const int cv = light_get_sky( chunk.light[ light_index( x, y, z ) ] );
+                const int offered = ( d == LIGHT_DIR_DOWN && cv == LIGHT_MAX_LEVEL ) ? LIGHT_MAX_LEVEL : cv - 1;
+                const int ny = y + dir.y;
+                const int nwy = ny < 0 ? CHUNK_SIZE_Y - 1 : ny >= CHUNK_SIZE_Y ? 0 : ny;
+                const int nv = light_get_sky( nchunk->light[ light_index( x, nwy, z ) ] );
+                if ( cv > 1 && offered > 0 && nv < offered ) {
+                    const BlockID n_id = nchunk->blocks ? nchunk->blocks[ nchunk->get_index_from_coords( x, nwy, z ) ].id : LAST_BLOCK_ID;
+                    if ( !light_opaque_id( n_id ) ) {
                         light_dbg_cascade_seed++;
                         this->light_add_seed( base + glm::ivec3( x, y, z ), LIGHT_CHANNEL_SKY, cv );
-                        break;
+                    }
+                }
+            }
+            for ( int d = 0; d < 4; d++ ) {
+                if ( nlt[ d ] >= 0 ) {
+                    continue; // interior dir — covered by the band loop above
+                }
+                const glm::ivec2 dir2 = xz_dirs[ d ];
+                const Chunk *nchunk = nb_cache[ ( dir2.x + 1 ) * 9 + ( 0 + 1 ) * 3 + ( dir2.y + 1 ) ];
+                if ( !nchunk || nchunk->is_loading || !nchunk->light ) {
+                    continue;
+                }
+                const int nx = x + dir2.x;
+                const int nz = z + dir2.y;
+                const int nwx = nx < 0 ? CHUNK_SIZE_X - 1 : nx >= CHUNK_SIZE_X ? 0 : nx;
+                const int nwz = nz < 0 ? CHUNK_SIZE_Z - 1 : nz >= CHUNK_SIZE_Z ? 0 : nz;
+                for ( int y = lit_top; y < CHUNK_SIZE_Y; y++ ) {
+                    const int cv = light_get_sky( chunk.light[ light_index( x, y, z ) ] );
+                    if ( cv <= 1 ) {
+                        continue;
+                    }
+                    const int nv = light_get_sky( nchunk->light[ light_index( nwx, y, nwz ) ] );
+                    if ( nv < cv - 1 ) {
+                        const BlockID n_id = nchunk->blocks ? nchunk->blocks[ nchunk->get_index_from_coords( nwx, y, nwz ) ].id : LAST_BLOCK_ID;
+                        if ( !light_opaque_id( n_id ) ) {
+                            light_dbg_cascade_seed++;
+                            this->light_add_seed( base + glm::ivec3( x, y, z ), LIGHT_CHANNEL_SKY, cv );
+                            break;
+                        }
                     }
                 }
             }
@@ -698,21 +933,34 @@ void ChunkLoader::light_border_sync( Chunk &chunk ) {
     }
     const glm::ivec3 base = chunk.chunk_pos * CHUNK_SIZE_I;
 
+    // Resolve the 26 neighbors once: both passes would otherwise call
+    // get_chunk per halo/shell cell (~10k+ lookups per chunk).
+    Chunk *nb_cache[ 27 ];
+    for ( int dx = -1; dx <= 1; dx++ ) {
+        for ( int dy = -1; dy <= 1; dy++ ) {
+            for ( int dz = -1; dz <= 1; dz++ ) {
+                const int ci = ( dx + 1 ) * 9 + ( dy + 1 ) * 3 + ( dz + 1 );
+                nb_cache[ ci ] = ( dx || dy || dz ) ? this->get_chunk( chunk.chunk_pos + glm::ivec3( dx, dy, dz ) ) : &chunk;
+            }
+        }
+    }
+
     // Pass 1: our border shell <- canonical owners.
     for ( int x = -1; x <= CHUNK_SIZE_X; x++ ) {
+        const int ox = x < 0 ? -1 : x >= CHUNK_SIZE_X ? 1 : 0;
         for ( int y = -1; y <= CHUNK_SIZE_Y; y++ ) {
+            const int oy = y < 0 ? -1 : y >= CHUNK_SIZE_Y ? 1 : 0;
             for ( int z = -1; z <= CHUNK_SIZE_Z; z++ ) {
-                const bool border = x < 0 || x >= CHUNK_SIZE_X || y < 0 || y >= CHUNK_SIZE_Y || z < 0 || z >= CHUNK_SIZE_Z;
-                if ( !border ) {
+                const int oz = z < 0 ? -1 : z >= CHUNK_SIZE_Z ? 1 : 0;
+                if ( !ox && !oy && !oz ) {
                     continue;
                 }
-                const glm::ivec3 w = base + glm::ivec3( x, y, z );
-                const Chunk *owner = this->get_chunk( light_chunk_pos_of( w ) );
+                const Chunk *owner = nb_cache[ ( ox + 1 ) * 9 + ( oy + 1 ) * 3 + ( oz + 1 ) ];
                 if ( !owner || owner->is_loading || !owner->light ) {
                     continue;
                 }
-                const glm::ivec3 o_local = w - owner->chunk_pos * CHUNK_SIZE_I;
-                const unsigned char canon = owner->light[ light_index( o_local.x, o_local.y, o_local.z ) ];
+                // owner's local = our (x,y,z) minus the chunk offset * 32.
+                const unsigned char canon = owner->light[ light_index( x - ox * CHUNK_SIZE_X, y - oy * CHUNK_SIZE_Y, z - oz * CHUNK_SIZE_Z ) ];
                 unsigned char &mirror = chunk.light[ light_index( x, y, z ) ];
                 if ( mirror != canon ) {
                     mirror = canon;
@@ -748,12 +996,32 @@ void ChunkLoader::light_border_sync( Chunk &chunk ) {
                     }
                     for ( int i = 0; i < inward_count; i++ ) {
                         const int d = inward_dirs[ i ];
-                        const glm::ivec3 n = w + light_dirs[ d ];
                         const int offered = ( ch == LIGHT_CHANNEL_SKY && d == LIGHT_DIR_DOWN && cv == LIGHT_MAX_LEVEL ) ? LIGHT_MAX_LEVEL : cv - 1;
-                        const int nv = this->light_get( n, ch );
-                        if ( nv >= 0 && nv < offered && !light_opaque_id( this->light_block_id_at( n ) ) ) {
+                        const glm::ivec3 n_local = glm::ivec3( x, y, z ) + light_dirs[ d ];
+                        int nv;
+                        BlockID n_id;
+                        if ( n_local.x >= 0 && n_local.x < CHUNK_SIZE_X && n_local.y >= 0 && n_local.y < CHUNK_SIZE_Y && n_local.z >= 0 && n_local.z < CHUNK_SIZE_Z ) {
+                            // Inward lands in our interior: direct array reads
+                            // instead of light_get's per-call chunk lookup.
+                            // blocks[] is only consulted when the neighbor can
+                            // actually gain light.
+                            nv = ch == LIGHT_CHANNEL_BLOCK ? light_get_block( chunk.light[ light_index( n_local.x, n_local.y, n_local.z ) ] )
+                                                           : light_get_sky( chunk.light[ light_index( n_local.x, n_local.y, n_local.z ) ] );
+                            if ( nv >= offered ) {
+                                continue;
+                            }
+                            n_id = chunk.blocks ? chunk.blocks[ chunk.get_index_from_coords( n_local.x, n_local.y, n_local.z ) ].id : LAST_BLOCK_ID;
+                        } else {
+                            const glm::ivec3 n = base + glm::ivec3( x, y, z ) + light_dirs[ d ];
+                            nv = this->light_get( n, ch );
+                            if ( nv < 0 || nv >= offered ) {
+                                continue;
+                            }
+                            n_id = this->light_block_id_at( n );
+                        }
+                        if ( nv >= 0 && nv < offered && !light_opaque_id( n_id ) ) {
                             light_dbg_border_seed++;
-                            this->light_add_seed( w, ch, cv );
+                            this->light_add_seed( base + glm::ivec3( x, y, z ), ch, cv );
                             break;
                         }
                     }
@@ -790,11 +1058,13 @@ void ChunkLoader::light_border_sync( Chunk &chunk ) {
                 for ( int ix = 0; ix < axis_count[ 0 ]; ix++ ) {
                     for ( int iy = 0; iy < axis_count[ 1 ]; iy++ ) {
                         for ( int iz = 0; iz < axis_count[ 2 ]; iz++ ) {
-                            const glm::ivec3 off( axis_opts[ 0 ][ ix ], axis_opts[ 1 ][ iy ], axis_opts[ 2 ][ iz ] );
-                            if ( off == glm::ivec3( 0 ) ) {
+                            const int ox = axis_opts[ 0 ][ ix ];
+                            const int oy = axis_opts[ 1 ][ iy ];
+                            const int oz = axis_opts[ 2 ][ iz ];
+                            if ( !ox && !oy && !oz ) {
                                 continue;
                             }
-                            Chunk *nb = this->get_chunk( chunk.chunk_pos + off );
+                            Chunk *nb = nb_cache[ ( ox + 1 ) * 9 + ( oy + 1 ) * 3 + ( oz + 1 ) ];
                             if ( !nb || nb->is_loading || !nb->light ) {
                                 continue;
                             }
@@ -829,14 +1099,38 @@ void ChunkLoader::light_border_sync( Chunk &chunk ) {
     }
 }
 
+// Chunks with pending light work get pushed here by
+// set_block_by_index_if_different (network thread); the old code scanned all
+// MAX_LOADED_CHUNKS slots every frame just to find the handful with diffs.
+static std::mutex light_pending_mutex;
+static std::vector<Chunk *> light_pending_list;
+
+void light_pending_enqueue( Chunk &chunk ) {
+    std::lock_guard<std::mutex> lock( light_pending_mutex );
+    if ( chunk.light_pending_listed ) {
+        return;
+    }
+    chunk.light_pending_listed = 1;
+    light_pending_list.push_back( &chunk );
+}
+
 // Multiplayer diffs (set_block_by_index_if_different) only record cell
 // indices on the chunk; turn them into rechecks here on the render thread.
 void ChunkLoader::light_drain_pending( ) {
-    for ( int i = 0; i < MAX_LOADED_CHUNKS; i++ ) {
-        Chunk &chunk = this->chunkArray[ i ];
-        if ( chunk.light_pending_count == 0 && !chunk.light_reseed ) {
-            continue;
-        }
+    if ( light_pending_list.empty( ) ) {
+        return; // racing producers push under the lock; an empty peek is safe
+    }
+    std::vector<Chunk *> list;
+    {
+        std::lock_guard<std::mutex> lock( light_pending_mutex );
+        list.swap( light_pending_list );
+    }
+    for ( Chunk *chunk_ptr : list ) {
+        Chunk &chunk = *chunk_ptr;
+        // Clear the listed flag BEFORE reading the pending fields: a producer
+        // that activates the chunk between the two must observe listed==0 and
+        // re-enqueue, so no pending batch is ever dropped.
+        chunk.light_pending_listed = 0;
         if ( chunk.is_loading || !chunk.light ) {
             continue; // loading chunks drain their queue in light_finalize_chunk
         }
@@ -847,12 +1141,11 @@ void ChunkLoader::light_drain_pending( ) {
             // whole volume was rewritten, so mark it all dirty for upload.
             light_fill_chunk( chunk );
             chunk.light_reseed = 0;
-            this->light_cascade_columns( chunk );
-            this->light_seed_interior_boundary( chunk );
+            if ( this->light_cascade_columns( chunk ) > 0 ) {
+                this->light_seed_interior_boundary( chunk );
+            }
             this->light_border_sync( chunk );
-            chunk.light_dirty = 1;
-            chunk.light_dirty_min = glm::ivec3( 0 );
-            chunk.light_dirty_max = glm::ivec3( CHUNK_SIZE_INTERNAL_X - 1, CHUNK_SIZE_INTERNAL_Y - 1, CHUNK_SIZE_INTERNAL_Z - 1 );
+            ChunkLoader::light_mark_dirty_all( chunk );
         }
         for ( int p = 0; p < chunk.light_pending_count; p++ ) {
             int x, y, z;
@@ -968,6 +1261,7 @@ void Chunk::light_ensure_texture( ) {
     if ( this->light_texture != 0 || !this->light ) {
         return;
     }
+    const long long t0 = light_now_us( );
     glGenTextures( 1, &this->light_texture );
     glActiveTexture( GL_TEXTURE0 + light_texture_unit( ) );
     glBindTexture( GL_TEXTURE_3D, this->light_texture );
@@ -991,12 +1285,23 @@ void Chunk::light_ensure_texture( ) {
     glTexParameteri( GL_TEXTURE_3D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE );
     glTexParameteri( GL_TEXTURE_3D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE );
     glTexParameteri( GL_TEXTURE_3D, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE );
+    light_dbg_n_ensure++;
+    light_dbg_us_ensure += light_now_us( ) - t0;
 }
 
 void ChunkLoader::light_upload_dirty( const int max_uploads ) {
+    const long long t0 = light_now_us( );
+    if ( light_dirty_list.empty( ) ) {
+        light_dbg_us_upload += light_now_us( ) - t0;
+        return;
+    }
+    std::vector<Chunk *> list;
+    list.swap( light_dirty_list );
     int uploads = 0;
-    for ( int i = 0; i < MAX_LOADED_CHUNKS && uploads < max_uploads; i++ ) {
-        Chunk &chunk = this->chunkArray[ i ];
+    size_t i = 0;
+    for ( ; i < list.size( ) && uploads < max_uploads; i++ ) {
+        Chunk &chunk = *list[ i ];
+        chunk.light_upload_listed = 0;
         if ( !chunk.light_dirty || chunk.is_loading || !chunk.light ) {
             continue;
         }
@@ -1030,6 +1335,13 @@ void ChunkLoader::light_upload_dirty( const int max_uploads ) {
         glPixelStorei( GL_UNPACK_ALIGNMENT, 4 );
         chunk.light_dirty = 0;
     }
+    // Entries past the upload cap stay dirty and keep their listed flag —
+    // push them back for next frame.
+    for ( ; i < list.size( ); i++ ) {
+        light_dirty_list.push_back( list[ i ] );
+    }
+    light_dbg_n_upload += uploads;
+    light_dbg_us_upload += light_now_us( ) - t0;
 }
 
 // ---------------------------------------------------------------------------

@@ -1,4 +1,5 @@
 #include <string.h>
+#include <chrono>
 
 #include "common/RepGame.hpp"
 #include "common/chunk.hpp"
@@ -206,7 +207,7 @@ void Chunk::destroy( ) {
     }
 }
 
-void Chunk::draw( const Renderer &renderer, const Texture &texture, Shader &shader, RenderOrder renderOrder, bool draw_reflect, const glm::vec3 &render_origin ) {
+void Chunk::draw( const Renderer &renderer, const Texture &texture, Shader &shader, RenderOrder renderOrder, bool draw_reflect, const glm::vec3 &render_origin, int light_base_loc ) {
     const RenderLayer &renderLayer = this->layers[ renderOrder ];
     if ( this->should_render && renderLayer.num_instances != 0 ) {
         if ( this->is_loading ) {
@@ -222,13 +223,22 @@ void Chunk::draw( const Renderer &renderer, const Texture &texture, Shader &shad
         // Bind this chunk's light volume to the shared light texture unit.
         // u_LightBase is the chunk's world origin in the rebased (u_Origin)
         // coordinate frame the shader uses; see chunk_fragment.glsl.
+        extern long long light_dbg_us_bind;
+        const long long t_bind = std::chrono::duration_cast<std::chrono::microseconds>(
+            std::chrono::steady_clock::now( ).time_since_epoch( ) ).count( );
         this->light_ensure_texture( );
         if ( this->light_texture != 0 ) {
-            glActiveTexture( GL_TEXTURE0 + light_texture_unit( ) );
+            // The light unit's glActiveTexture is hoisted to
+            // ChunkLoader::draw — nothing between chunk draws reselects it.
             glBindTexture( GL_TEXTURE_3D, this->light_texture );
             const glm::vec3 light_base = glm::vec3( this->chunk_pos * CHUNK_SIZE_I ) - render_origin;
-            shader.set_uniform3f( "u_LightBase", light_base.x, light_base.y, light_base.z );
+            // Direct glUniform3f on the cached location — set_uniform3f does a
+            // glGetUniformLocation every call, which costs ~us per chunk per
+            // render pass (~6000 lookups/frame).
+            glUniform3f( light_base_loc, light_base.x, light_base.y, light_base.z );
         }
+        light_dbg_us_bind += std::chrono::duration_cast<std::chrono::microseconds>(
+            std::chrono::steady_clock::now( ).time_since_epoch( ) ).count( ) - t_bind;
         // Texture wrap mode is now set once per render order in ChunkLoader::draw.
         renderer.draw( renderLayer.va, active_ib, shader, renderLayer.num_instances );
     }
@@ -297,6 +307,7 @@ void Chunk::set_block_by_index_if_different( int index, const BlockState *blockS
     } else {
         this->light_reseed = 1;
     }
+    light_pending_enqueue( *this );
     this->is_empty_chunk = false;
     // Ensure the chunk enters the drawable list so the remeshing loop visits
     // it. An empty chunk has should_render == 0; without this, a block placed
@@ -349,9 +360,9 @@ void Chunk::load_terrain( MapStorage &map_storage ) {
         this->light = static_cast<unsigned char *>( calloc( CHUNK_BLOCK_SIZE, 1 ) );
     }
     if ( this->light_columns == nullptr ) {
-        this->light_columns = static_cast<unsigned char *>( calloc( 2 * LIGHT_FLAGS_COUNT, 1 ) );
+        this->light_columns = static_cast<unsigned char *>( calloc( 3 * LIGHT_FLAGS_COUNT, 1 ) );
     } else {
-        memset( this->light_columns, 0, 2 * LIGHT_FLAGS_COUNT );
+        memset( this->light_columns, 0, 3 * LIGHT_FLAGS_COUNT );
     }
     this->light_pending_count = 0;
     this->light_reseed = 0;

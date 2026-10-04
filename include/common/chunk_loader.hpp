@@ -73,16 +73,21 @@ class ChunkLoader {
     static int light_emit_at( const Chunk &chunk, int index );
     int light_get( const glm::ivec3 &block_pos, int channel ) const;
     void light_set( const glm::ivec3 &block_pos, int channel, int value );
+    void light_set_nb( Chunk *const nb_cache[ 27 ], Chunk &owner, const glm::ivec3 &block_pos, int channel, int value );
     BlockID light_block_id_at( const glm::ivec3 &block_pos ) const;
     static void light_mark_dirty( Chunk &chunk, const glm::ivec3 &local );
+    static void light_mark_dirty_all( Chunk &chunk );
     void light_add_seed( const glm::ivec3 &block_pos, int channel, int level );
     void light_add_step( const LightSeed &seed );
     void light_remove_step( const LightRemoveSeed &seed );
     void light_process_queue( long long budget_us );
     static void light_ensure_columns( Chunk &chunk );
     static void light_compute_column_open( Chunk &chunk );
+    static void light_compute_one_column( Chunk &chunk, int x, int z );
     void light_cascade_column( int world_x, int world_z );
-    void light_cascade_columns( Chunk &chunk );
+    // Returns the number of cells skylight was written into (0 => the chunk's
+    // interior has no skylight, so callers can skip the boundary scan).
+    int light_cascade_columns( Chunk &chunk );
     void light_seed_column_boundary( int world_x, int world_z );
     void light_seed_interior_boundary( Chunk &chunk );
     void light_recheck_block( const glm::ivec3 &block_pos );

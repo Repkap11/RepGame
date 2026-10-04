@@ -45,6 +45,7 @@ class Chunk {
     friend class Multiplayer;
     friend void test_setup_world( World &world );
     friend void light_fill_chunk( Chunk &chunk );
+    friend void light_pending_enqueue( Chunk &chunk );
     friend int test_lighting( );
 
     int is_loading;
@@ -81,6 +82,11 @@ class Chunk {
     int light_pending[ 256 ];
     int light_pending_count;
     int light_reseed;
+    // Set while the chunk sits in the pending-light drain list (see
+    // light_pending_enqueue) so producers don't enqueue it twice.
+    int light_pending_listed;
+    // Same, for the dirty-light-volume upload list (render thread only).
+    int light_upload_listed;
 
     int can_extend_rect( const BlockState &blockState, const unsigned int *packed_lighting, const WorkingSpace *workingSpace, const glm::ivec3 &starting, const glm::ivec3 &size, const glm::ivec3 &dir ) const;
 
@@ -88,7 +94,7 @@ class Chunk {
     void init( const VertexBuffer &vb_block_solid, const VertexBuffer &vb_block_water, const VertexBufferLayout &vbl_block, const VertexBufferLayout &vbl_coords );
     void ensure_gl_init( );
     void light_ensure_texture( ); // lazily create the 3D light texture (GL thread)
-    void draw( const Renderer &renderer, const Texture &texture, Shader &shader, RenderOrder renderOrder, bool draw_reflect, const glm::vec3 &render_origin );
+    void draw( const Renderer &renderer, const Texture &texture, Shader &shader, RenderOrder renderOrder, bool draw_reflect, const glm::vec3 &render_origin, int light_base_loc );
     void load_terrain( MapStorage &map_storage ); // Load from file or map gen
     void program_terrain( );                      // Program into GPU
     void unprogram_terrain( );                    // Remove from GPU
@@ -111,3 +117,8 @@ class Chunk {
         return ( y + 1 ) * CHUNK_SIZE_INTERNAL_X * CHUNK_SIZE_INTERNAL_Z + ( x + 1 ) * CHUNK_SIZE_INTERNAL_Z + ( z + 1 );
     }
 };
+
+// Enqueue a chunk for render-thread light draining (light_drain_pending).
+// Called by Chunk::set_block_by_index_if_different from network/worker
+// threads; no-ops when the chunk is already listed.
+void light_pending_enqueue( Chunk &chunk );
