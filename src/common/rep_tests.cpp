@@ -453,12 +453,95 @@ int test_waterlog( ) {
     return failures;
 }
 
+// Flood-fill lighting (src/common/light.cpp): torch emission + decay/removal
+// on the block channel, and the column cascade + occlusion on the sky
+// channel. Runs without GL — propagation works purely on Chunk::light[].
+int test_lighting( ) {
+    if ( block_definitions == nullptr ) {
+        block_definitions_initilize_definitions( nullptr );
+    }
+    RepGameState gs;
+    gs.tick_number = 0;
+    gs.camera.pos = glm::dvec3( 0, 0, 0 );
+    test_setup_world( gs.world );
+    World &world = gs.world;
+    ChunkLoader &cl = world.chunkLoader;
+    cl.chunk_center = glm::ivec3( 0, 0, 0 );
+    Chunk &chunk = cl.chunkArray[ chunk_slot_from_pos( glm::ivec3( 0, 0, 0 ) ) ];
+    chunk.light = static_cast<unsigned char *>( calloc( CHUNK_BLOCK_SIZE, 1 ) );
+
+    int failures = 0;
+    auto check_light = [ & ]( const char *name, const glm::ivec3 &pos, int channel, int expected ) {
+        const int v = cl.light_get( pos, channel );
+        const bool ok = v == expected;
+        pr_test( "  %-55s light=%-2d expected=%-2d  %s", name, v, expected, ok ? "PASS" : "FAIL" );
+        if ( !ok ) {
+            failures++;
+        }
+    };
+
+    // --- Block channel: torch emits 14, decays 1 per BFS step.
+    world.set_loaded_block( glm::ivec3( 10, 10, 10 ), { TORCH, 0, 0, TORCH, 0 } );
+    cl.light_process_queue( 1000000 );
+    check_light( "torch cell", glm::ivec3( 10, 10, 10 ), LIGHT_CHANNEL_BLOCK, 14 );
+    check_light( "adjacent to torch", glm::ivec3( 11, 10, 10 ), LIGHT_CHANNEL_BLOCK, 13 );
+    check_light( "above torch", glm::ivec3( 10, 11, 10 ), LIGHT_CHANNEL_BLOCK, 13 );
+    check_light( "diagonal two steps", glm::ivec3( 11, 11, 10 ), LIGHT_CHANNEL_BLOCK, 12 );
+    check_light( "past light range", glm::ivec3( 25, 10, 10 ), LIGHT_CHANNEL_BLOCK, 0 );
+
+    // An opaque wall blocks the direct path; light detours over it.
+    const BlockState stone = { STONE, 0, 0, STONE, 0 };
+    world.set_loaded_block( glm::ivec3( 12, 10, 10 ), stone );
+    cl.light_process_queue( 1000000 );
+    check_light( "behind wall detours (5 steps)", glm::ivec3( 13, 10, 10 ), LIGHT_CHANNEL_BLOCK, 9 );
+
+    // Breaking the torch removes its light entirely.
+    world.set_loaded_block( glm::ivec3( 10, 10, 10 ), BLOCK_STATE_AIR );
+    cl.light_process_queue( 1000000 );
+    check_light( "torch cell after break", glm::ivec3( 10, 10, 10 ), LIGHT_CHANNEL_BLOCK, 0 );
+    check_light( "adjacent after break", glm::ivec3( 11, 10, 10 ), LIGHT_CHANNEL_BLOCK, 0 );
+    check_light( "detoured cell after break", glm::ivec3( 13, 10, 10 ), LIGHT_CHANNEL_BLOCK, 0 );
+
+    // Block stacked directly on a torch: the air cells beside the block
+    // (what its +/-z faces sample) must stay lit around the obstruction —
+    // two steps from the torch via the cells beside it.
+    world.set_loaded_block( glm::ivec3( 10, 10, 10 ), { TORCH, 0, 0, TORCH, 0 } );
+    world.set_loaded_block( glm::ivec3( 10, 11, 10 ), stone );
+    cl.light_process_queue( 1000000 );
+    check_light( "beside block +z over torch", glm::ivec3( 10, 11, 11 ), LIGHT_CHANNEL_BLOCK, 12 );
+    check_light( "beside block -z over torch", glm::ivec3( 10, 11, 9 ), LIGHT_CHANNEL_BLOCK, 12 );
+    check_light( "beside block +x over torch", glm::ivec3( 11, 11, 10 ), LIGHT_CHANNEL_BLOCK, 12 );
+    check_light( "above block over torch", glm::ivec3( 10, 12, 10 ), LIGHT_CHANNEL_BLOCK, 10 );
+    world.set_loaded_block( glm::ivec3( 10, 11, 10 ), BLOCK_STATE_AIR );
+    world.set_loaded_block( glm::ivec3( 10, 10, 10 ), BLOCK_STATE_AIR );
+    cl.light_process_queue( 1000000 );
+
+    // --- Sky channel: finalize runs the per-column cascade. All-air chunk
+    // opens every column, so skylight reaches the bottom at full strength.
+    cl.light_finalize_chunk( chunk );
+    cl.light_process_queue( 1000000 );
+    check_light( "open column top", glm::ivec3( 20, 31, 20 ), LIGHT_CHANNEL_SKY, 15 );
+    check_light( "open column bottom", glm::ivec3( 20, 0, 20 ), LIGHT_CHANNEL_SKY, 15 );
+
+    // A blocker near the top of a column closes it: the column loses its
+    // vertical sky feed and re-settles at side-lit 14, while the neighbor
+    // column keeps its full 15. (y=30, not 31: the top interior cell needs
+    // the chunk above for halo fixup, which this test world lacks.)
+    world.set_loaded_block( glm::ivec3( 20, 30, 20 ), stone );
+    cl.light_process_queue( 1000000 );
+    check_light( "under sky blocker", glm::ivec3( 20, 29, 20 ), LIGHT_CHANNEL_SKY, 14 );
+    check_light( "deep under sky blocker", glm::ivec3( 20, 0, 20 ), LIGHT_CHANNEL_SKY, 14 );
+    check_light( "open neighbor column", glm::ivec3( 21, 30, 20 ), LIGHT_CHANNEL_SKY, 15 );
+    return failures;
+}
+
 constexpr Test all_tests[] = { //
     MK_TEST( ecs ),            //
     MK_TEST( redstone ),       //
     MK_TEST( sneak ),          //
     MK_TEST( mapgen ),         //
     MK_TEST( waterlog ),       //
+    MK_TEST( lighting ),       //
     { nullptr, nullptr }
 
 };

@@ -748,6 +748,8 @@ void RepGame::tick( ) {
         return;
     }
     globalGameState.tick_number++;
+    // Day/night clock; light_daylight_factor() maps it to u_Daylight.
+    globalGameState.world_time++;
 
     // Snapshot the camera transform as it was at the end of the previous tick, so the
     // render loop can interpolate between this and the freshly-computed transform below.
@@ -911,6 +913,8 @@ void RepGame::initializeGameState( const char *world_name ) {
     globalGameState.input.mouse.smoothed_dy = 0.0f;
     globalGameState.input.shift_held = false;
     globalGameState.input.screen_tap_pending = false;
+    // Start a fresh world at dawn; a save may overwrite this below.
+    globalGameState.world_time = 0;
     globalGameState.block_mining.pos = glm::ivec3( 0 );
     globalGameState.block_mining.id = AIR;
     globalGameState.block_mining.progress_ticks = 0.0f;
@@ -966,6 +970,7 @@ void RepGame::initializeGameState( const char *world_name ) {
         globalGameState.hotbar.setSelectedSlot( saved_data.selected_hotbar_slot );
         globalGameState.game_mode = saved_data.game_mode;
         globalGameState.survival_inventory.applySavedInventory( saved_data.survival_inventory );
+        globalGameState.world_time = saved_data.world_time;
     }
     // Seed the interpolation snapshot so the first rendered frame doesn't blend from zeroes.
     globalGameState.camera.prev_pos = globalGameState.camera.pos;
@@ -1203,6 +1208,24 @@ void RepGame::draw( float alpha ) {
         profiling.num_chunks_remeshed = globalGameState.world.get_num_remeshed_chunks( );
     }
 
+    { // TEMP light diagnostic
+        static int light_dbg = 0;
+        if ( ++light_dbg % 120 == 0 ) {
+            const glm::ivec3 p = glm::ivec3( glm::floor( render_pos ) );
+            const glm::ivec3 up = p + glm::ivec3( 0, 5, 0 );
+            char dbg[ 256 ];
+            globalGameState.world.chunkLoader.light_dbg_stats( dbg, sizeof( dbg ) );
+            pr_debug( "LIGHT probe p=(%d,%d,%d) id=%d sky=%d blk=%d | up id=%d sky=%d | q=%zu | %s",
+                      p.x, p.y, p.z,
+                      globalGameState.world.chunkLoader.light_probe_id( p ),
+                      globalGameState.world.chunkLoader.light_probe( p, LIGHT_CHANNEL_SKY ),
+                      globalGameState.world.chunkLoader.light_probe( p, LIGHT_CHANNEL_BLOCK ),
+                      globalGameState.world.chunkLoader.light_probe_id( up ),
+                      globalGameState.world.chunkLoader.light_probe( up, LIGHT_CHANNEL_SKY ),
+                      globalGameState.world.chunkLoader.light_queue_sizes( ), dbg );
+        }
+    }
+
     showErrors( );
 
     // glm::mat4 mvp_mirror = glm::translate( mvp, glm::vec3( 0, -10, 0 ) );
@@ -1218,6 +1241,10 @@ void RepGame::draw( float alpha ) {
     glTexParameteri( globalGameState.blocksTexture.target, GL_TEXTURE_WRAP_S, GL_REPEAT );
     glTexParameteri( globalGameState.blocksTexture.target, GL_TEXTURE_WRAP_T, GL_REPEAT );
 
+    // 0.04 (deep night) .. 1.0 (noon) — scales the sky-light nibble in the
+    // chunk shader and dims sky/mobs in the object shader.
+    const float daylight = light_daylight_factor( globalGameState.world_time );
+
     {
         const long long t_world_draw_start = now_us( );
         // inv_mvp lets the fullscreen water shader unproject pixels to the
@@ -1226,7 +1253,7 @@ void RepGame::draw( float alpha ) {
         // Wrapped to an hour so shader sine functions keep float precision.
         const float time_s = static_cast<float>( fmod( now_us( ) / 1.0e6, 3600.0 ) );
         globalGameState.world.draw( globalGameState.blocksTexture, mvp, inv_mvp, mvp_reflect, mvp_sky, mvp_sky_reflect, globalGameState.input.debug_mode, !globalGameState.input.inventory_open, render_pos.y, headInWater,
-                                    globalGameState.input.worldDrawQuality, render_pos, renderOrigin, time_s );
+                                    globalGameState.input.worldDrawQuality, render_pos, renderOrigin, time_s, daylight );
         profiling.us_world_draw = now_us( ) - t_world_draw_start;
     }
 
@@ -1249,7 +1276,22 @@ void RepGame::draw( float alpha ) {
         }
         ImGuiDebugVars &debugVars = imgui_overlay_get_imgui_debug_vars( );
         debugVars.player_pos = glm::vec3( globalGameState.camera.pos );
+        debugVars.world_time = globalGameState.world_time;
+        debugVars.daylight = daylight;
         imgui_overlay_draw( &globalGameState.imgui_overlay, globalGameState.input );
+        // The overlay's time-of-day slider writes world_time_override while
+        // dragged; apply it so lighting updates without a restart.
+        if ( debugVars.world_time_override >= 0 ) {
+            globalGameState.world_time = debugVars.world_time_override;
+            debugVars.world_time_override = -1;
+        }
+        // PageUp/PageDown nudges: ±1 hour per keypress (±6 with Shift),
+        // accumulated on the input side. Wrap into one day cycle.
+        if ( globalGameState.input.time_skip_hours != 0 ) {
+            globalGameState.world_time += static_cast<long>( globalGameState.input.time_skip_hours ) * ( DAY_LENGTH_TICKS / 24 );
+            globalGameState.input.time_skip_hours = 0;
+            globalGameState.world_time = ( ( globalGameState.world_time % DAY_LENGTH_TICKS ) + DAY_LENGTH_TICKS ) % DAY_LENGTH_TICKS;
+        }
         profiling.us_ui_draw = now_us( ) - t_ui_start;
     }
     showErrors( );
@@ -1282,6 +1324,7 @@ void RepGame::cleanup( ) {
     saved_data.selected_hotbar_slot = globalGameState.hotbar.getSelectedSlot( );
     saved_data.game_mode = globalGameState.game_mode;
     globalGameState.survival_inventory.saveInventory( saved_data.survival_inventory );
+    saved_data.world_time = globalGameState.world_time;
 
     globalGameState.map_storage.write_player_data( saved_data );
 #if defined( REPGAME_WASM )

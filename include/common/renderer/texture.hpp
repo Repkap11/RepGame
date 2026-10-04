@@ -63,3 +63,6 @@ class Texture {
     void bind( ) const;
     void unbind( ) const;
 };
+
+// Reserve a texture unit with no associated Texture object (see texture.cpp).
+int texture_reserve_unit( );

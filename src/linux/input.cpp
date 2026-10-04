@@ -202,6 +202,17 @@ void Input::keysInput( const SDL_Keycode key, const bool pressed ) {
                 this->screenshot_requested = true;
             }
             break;
+        case SDLK_PAGEUP:
+            if ( pressed ) {
+                // Key-repeat events keep nudging while held. Shift = 6 hours.
+                this->time_skip_hours += this->shift_held ? 6 : 1;
+            }
+            break;
+        case SDLK_PAGEDOWN:
+            if ( pressed ) {
+                this->time_skip_hours -= this->shift_held ? 6 : 1;
+            }
+            break;
 
         default:
             if ( pressed ) {

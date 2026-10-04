@@ -1,6 +1,9 @@
 #pragma once
 
+#include <deque>
+
 #include "chunk.hpp"
+#include "common/light.hpp"
 #include "renderer/renderer.hpp"
 #include "mouse_selection.hpp"
 #include "sky_box.hpp"
@@ -9,9 +12,26 @@
 
 class Multiplayer;
 class World;
+
+// Light propagation queue entries. A LightSeed spreads the cell's stored
+// value to neighbors; a LightRemoveSeed clears light that had been fed
+// through the cell when it held old_value. Channels: LIGHT_CHANNEL_BLOCK /
+// LIGHT_CHANNEL_SKY (light.hpp).
+struct LightSeed {
+    glm::ivec3 pos;
+    unsigned char channel;
+};
+struct LightRemoveSeed {
+    glm::ivec3 pos;
+    unsigned char channel;
+    unsigned char old_value;
+};
+
 class ChunkLoader {
     friend class World;
     friend void test_setup_world( World &world );
+    friend int test_lighting( );
+    friend void light_fill_chunk( Chunk &chunk );
 
     TerrainLoadingThread terrain_loading_thread;
     glm::ivec3 chunk_center;
@@ -40,13 +60,49 @@ class ChunkLoader {
     void process_random_ticks( );
     void rebuild_drawable_list( );
 
+    // Flood-fill lighting (implemented in light.cpp). All run on the render
+    // thread: the queues only ever get pushed from render-thread code.
+    //
+    // Add seeds are bucketed by the light level written at push time and
+    // popped highest-level-first (light_add_queue[channel][level]). Processing
+    // strictly descending means a cell settles at its final value on first
+    // visit — with plain FIFO a cell could be re-offered a better value later
+    // and re-walk its neighbors, so the load-in flood never converged.
+    std::deque<LightSeed> light_add_queue[ 2 ][ LIGHT_MAX_LEVEL + 1 ];
+    std::deque<LightRemoveSeed> light_remove_queue;
+    static int light_emit_at( const Chunk &chunk, int index );
+    int light_get( const glm::ivec3 &block_pos, int channel ) const;
+    void light_set( const glm::ivec3 &block_pos, int channel, int value );
+    BlockID light_block_id_at( const glm::ivec3 &block_pos ) const;
+    static void light_mark_dirty( Chunk &chunk, const glm::ivec3 &local );
+    void light_add_seed( const glm::ivec3 &block_pos, int channel, int level );
+    void light_add_step( const LightSeed &seed );
+    void light_remove_step( const LightRemoveSeed &seed );
+    void light_process_queue( long long budget_us );
+    static void light_ensure_columns( Chunk &chunk );
+    static void light_compute_column_open( Chunk &chunk );
+    void light_cascade_column( int world_x, int world_z );
+    void light_seed_column_boundary( int world_x, int world_z );
+    void light_seed_interior_boundary( Chunk &chunk );
+    void light_recheck_block( const glm::ivec3 &block_pos );
+    void light_finalize_chunk( Chunk &chunk );
+    void light_border_sync( Chunk &chunk );
+    void light_drain_pending( );
+    void light_upload_dirty( int max_uploads );
+
   public:
     void init( const glm::dvec3 &camera_pos, const VertexBufferLayout &vbl_block, const VertexBufferLayout &vbl_coords, MapStorage &map_storage );
     void render_chunks( Multiplayer &multiplayer, const glm::dvec3 &camera_pos, int limit_render );
     void repopulate_blocks( );
     void calculate_cull( const glm::mat4 &mvp, bool saveAsReflection, const glm::ivec3 &renderOrigin ) const;
-    void draw( const glm::mat4 &mvp, const Renderer &renderer, const Texture &texture, bool reflect_only, bool draw_reflect, bool use_frame_buffer );
+    void draw( const glm::mat4 &mvp, const Renderer &renderer, const Texture &texture, bool reflect_only, bool draw_reflect, bool use_frame_buffer, const glm::vec3 &render_origin );
     Chunk *get_chunk( const glm::ivec3 &pointed ) const;
+    // TEMP diagnostic for the flood-fill lighting bring-up.
+    int light_probe( const glm::ivec3 &pos, int channel ) { return this->light_get( pos, channel ); }
+    BlockID light_probe_id( const glm::ivec3 &pos ) { return this->light_block_id_at( pos ); }
+    size_t light_add_queue_size( ) const;
+    void light_dbg_stats( char *buf, size_t n );
+    size_t light_queue_sizes( ) { return this->light_add_queue_size( ) + this->light_remove_queue.size( ); }
     void cleanup( MapStorage &map_storage );
 };
 

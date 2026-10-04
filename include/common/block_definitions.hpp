@@ -405,6 +405,11 @@ typedef struct {
     bool connects_to_redstone_dust;
     bool is_redstone_dust;
     bool is_torch;
+    // Flood-fill light emitted by this block, 0-15 (torches 14, lava/lamps 15,
+    // lit furnace 13, portal 11, redstone torch 7). Stored in the chunk's
+    // light[] volume and sampled by the fragment shader — never baked into the
+    // mesh, so light changes don't trigger remeshing.
+    unsigned char emits_light;
     // Blocks that emit full redstone power while "pressed": buttons (pressed by
     // right-click, time out) and pressure plates (pressed while stood on).
     // current_redstone_power > 0 means pressed, and also shrinks the rendered

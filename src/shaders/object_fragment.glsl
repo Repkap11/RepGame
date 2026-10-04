@@ -8,6 +8,7 @@ precision highp float;
 precision lowp sampler2DArray;
 
 uniform sampler2DArray u_Texture;
+uniform float u_Daylight;
 uniform float u_ReflectionHeight;
 uniform int u_TintUnderWater;
 uniform int u_Underwater;
@@ -51,7 +52,10 @@ void main( ) {
     if ( u_TintUnderWater == TINT_UNDER_WATER_OBJECT_ALWAYS || ( u_TintUnderWater == TINT_UNDER_WATER_OBJECT_UNDER_Y_LEVEL && v_world_coords.y < ( -0.125f - u_Origin.y - eps ) ) ) {
         texColor = mix( texColor, vec4( 0.122f, 0.333f, 1.0f, 1.0f ), 0.5f );
     }
-    vec4 lightedColor = texColor * vec4( v_light, v_light, v_light, u_ExtraAlpha );
+    // u_Daylight dims mobs/debris at night and darkens the sky texture itself
+    // (the sky draws through this shader with u_IsSky=1).
+    float scene_light = v_light * u_Daylight;
+    vec4 lightedColor = texColor * vec4( scene_light, scene_light, scene_light, u_ExtraAlpha );
 
     vec4 finalColor = lightedColor;
     vec4 finalReflection = lightedColor;

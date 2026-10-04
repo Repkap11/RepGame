@@ -17,9 +17,17 @@
 
 precision highp float;
 precision lowp sampler2DArray;
+precision lowp sampler3D;
 
 uniform float u_shouldDiscardAlpha;
 uniform sampler2DArray u_Texture;
+// Flood-fill lighting: per-chunk 34^3 GL_RG8 volume (R=sky, G=block, both
+// pre-scaled to 0-1), bound to a shared texture unit per chunk draw.
+// u_LightBase = chunk block-origin in u_Origin-rebased coords, u_Daylight
+// scales the sky channel for day/night.
+uniform sampler3D u_LightTex;
+uniform vec3 u_LightBase;
+uniform float u_Daylight;
 uniform float u_ReflectionHeight;
 uniform float u_RandomRotationBlocks[MAX_ROTATABLE_BLOCK];
 uniform float u_ShowRotation;
@@ -52,6 +60,7 @@ flat in float v_center_lighting;
 #endif
 in float v_planarDot;
 in vec3 v_world_coords;
+flat in vec3 v_face_normal;
 
 flat in uint v_blockID;
 flat in int v_needs_rotate;
@@ -184,7 +193,18 @@ void main() {
     float lightBlend = smoothstep(0.02f, 0.15f, lightWidth);
     corner_light = mix(corner_light, v_center_lighting, lightBlend);
 #endif
-    vec4 lightedColor = texColor * vec4(corner_light, corner_light, corner_light, u_ExtraAlpha);
+    // Flood-fill light: v_world_coords + 0.5*normal lands on the center of
+    // the air cell this face points at. +1.0 is the halo offset mapping
+    // world->34^3 texel space (cell centers already sit at +0.5, and texel
+    // centers are sampled at (i+0.5)/34). GL_LINEAR then interpolates along
+    // the face plane for smooth gradients across merged quads.
+    vec3 light_coord = (v_world_coords + v_face_normal * 0.5 - u_LightBase + 1.0) / 34.0;
+    // Two independent channels (r=sky, g=block, both already 0-1): keeping
+    // them separate matters because GL_LINEAR interpolates raw texel values —
+    // a packed byte would cross-contaminate the nibbles mid-gradient.
+    vec2 light_sample = texture(u_LightTex, light_coord).rg;
+    float scene_light = max(light_sample.r * u_Daylight, light_sample.g);
+    vec4 lightedColor = texColor * vec4(corner_light * scene_light, corner_light * scene_light, corner_light * scene_light, u_ExtraAlpha);
 
     vec4 finalColor = lightedColor;
     vec4 finalReflection = lightedColor;

@@ -38,6 +38,9 @@ out float v_corner_lighting;
 flat out float v_center_lighting;
 #endif
 out vec3 v_world_coords;
+// Outward face normal (post block rotation). The fragment shader samples the
+// flood-fill light volume at the air cell this face points into.
+flat out vec3 v_face_normal;
 
 flat out int v_needs_rotate;
 flat out int v_block_auto_rotates;
@@ -172,6 +175,25 @@ void main() {
         face_light = 0.75f;
     }
 
+    // FACE_RIGHT/FRONT/LEFT/BACK = +x/+z/-x/-z. vd_data_solid puts FRONT
+    // vertices at z=1.0 / BACK at z=0.0, and chunk.cpp's shading checks the
+    // z+1 neighbor for FRONT (f) and z-1 for BACK (ba).
+    vec3 face_normal;
+    if(faceType_rotated == FACE_TOP) {
+        face_normal = vec3(0.0, 1.0, 0.0);
+    } else if(faceType_rotated == FACE_BOTTOM) {
+        face_normal = vec3(0.0, -1.0, 0.0);
+    } else if(faceType_rotated == FACE_RIGHT) {
+        face_normal = vec3(1.0, 0.0, 0.0);
+    } else if(faceType_rotated == FACE_LEFT) {
+        face_normal = vec3(-1.0, 0.0, 0.0);
+    } else if(faceType_rotated == FACE_FRONT) {
+        face_normal = vec3(0.0, 0.0, 1.0);
+    } else { // FACE_BACK
+        face_normal = vec3(0.0, 0.0, -1.0);
+    }
+    v_face_normal = face_normal;
+
     float light_divisor = 1.3f; // good looking
     // light_divisor = 0.5;       // debug
 
@@ -183,7 +205,11 @@ void main() {
     if(corner_shift == CORNER_OFFSET_c) {
         corner_light /= 2.0f;
     }
-    corner_light = (3.9f - corner_light) / 3.9f;
+    // AO strength halved: the flood-fill light field now provides the real
+    // spatial shadowing, so ambient occlusion only needs to add subtle
+    // crevice darkening instead of acting as the primary shadow source
+    // (stacking both at full strength double-darkened occluded corners).
+    corner_light = (3.9f - corner_light * 0.5f) / 3.9f;
 
     v_corner_lighting = face_light * corner_light;
 
@@ -193,7 +219,7 @@ void main() {
     // interpolation of per-corner lighting.
 #if !defined(REPGAME_LOW_GRAPHICS)
     float avg_light = float((packed_lighting >> 21u) & 3u) / light_divisor;
-    avg_light = (3.9f - avg_light) / 3.9f;
+    avg_light = (3.9f - avg_light * 0.5f) / 3.9f;
     v_center_lighting = face_light * avg_light;
 #endif
     v_TexCoordBlock = texCoordBlock_adjust * face_scale - face_shift;

@@ -190,6 +190,23 @@ struct __attribute__( ( packed ) ) PlayerDataLegacy {
     InventorySlot survival_inventory[ SURVIVAL_INVENTORY_WIDTH * SURVIVAL_INVENTORY_HEIGHT ];
 };
 
+// Layout written before world_time (day/night clock) was appended.
+struct __attribute__( ( packed ) ) PlayerDataNoTime {
+    int reserved;
+    double world_x;
+    double world_y;
+    double world_z;
+    float angle_H;
+    float angle_V;
+    bool flying;
+    bool no_clip;
+    int worldDrawQuality;
+    InventorySlot hotbar_inventory[ HOTBAR_WIDTH * HOTBAR_HEIGHT ];
+    int selected_hotbar_slot;
+    GameMode game_mode;
+    InventorySlot survival_inventory[ SURVIVAL_INVENTORY_WIDTH * SURVIVAL_INVENTORY_HEIGHT ];
+};
+
 int MapStorage::read_player_data( PlayerData &player_data ) {
     char file_name[ CHUNK_NAME_MAX_LENGTH ];
     snprintf( file_name, CHUNK_NAME_MAX_LENGTH, FILE_ROOT_PLAYER_DATA, this->map_name );
@@ -204,6 +221,25 @@ int MapStorage::read_player_data( PlayerData &player_data ) {
     fclose( read_ptr );
     if ( persist_data_length == sizeof( PlayerData ) ) {
         memcpy( &player_data, buffer, sizeof( PlayerData ) );
+        return 1;
+    }
+    if ( persist_data_length == sizeof( PlayerDataNoTime ) ) {
+        // Saves from before world_time existed: copy everything but the
+        // appended clock; world_time stays 0 (dawn) from the memset above.
+        PlayerDataNoTime legacy;
+        memcpy( &legacy, buffer, sizeof( PlayerDataNoTime ) );
+        player_data.world_x = legacy.world_x;
+        player_data.world_y = legacy.world_y;
+        player_data.world_z = legacy.world_z;
+        player_data.angle_H = legacy.angle_H;
+        player_data.angle_V = legacy.angle_V;
+        player_data.flying = legacy.flying;
+        player_data.no_clip = legacy.no_clip;
+        player_data.worldDrawQuality = legacy.worldDrawQuality;
+        memcpy( player_data.hotbar_inventory, legacy.hotbar_inventory, sizeof( legacy.hotbar_inventory ) );
+        player_data.selected_hotbar_slot = legacy.selected_hotbar_slot;
+        player_data.game_mode = legacy.game_mode;
+        memcpy( player_data.survival_inventory, legacy.survival_inventory, sizeof( legacy.survival_inventory ) );
         return 1;
     }
     if ( persist_data_length == sizeof( PlayerDataLegacy ) ) {
@@ -223,7 +259,7 @@ int MapStorage::read_player_data( PlayerData &player_data ) {
         memcpy( player_data.survival_inventory, legacy.survival_inventory, sizeof( legacy.survival_inventory ) );
         return 1;
     }
-    pr_debug( "Warning, wrong size player data. Read:%d expected:%d or %d", ( int )persist_data_length, ( int )sizeof( PlayerData ), ( int )sizeof( PlayerDataLegacy ) );
+    pr_debug( "Warning, wrong size player data. Read:%d expected:%d %d or %d", ( int )persist_data_length, ( int )sizeof( PlayerData ), ( int )sizeof( PlayerDataNoTime ), ( int )sizeof( PlayerDataLegacy ) );
     return 0;
 }
 

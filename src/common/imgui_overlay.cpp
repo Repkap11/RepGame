@@ -97,6 +97,15 @@ void imgui_overlay_draw( ImGuiOverlay *imgui_overlay, Input &input ) {
                 acceleration = "CPU";
             }
             ImGui::Text( "Acceleration: %s", acceleration );
+            // Day/night clock: slider edits world_time within one day cycle;
+            // RepGame applies world_time_override back to the game state.
+            int time_of_day = static_cast<int>( debug_vars.world_time % DAY_LENGTH_TICKS );
+            if ( ImGui::SliderInt( "Time of Day", &time_of_day, 0, DAY_LENGTH_TICKS - 1 ) ) {
+                const long day_base = debug_vars.world_time - ( debug_vars.world_time % DAY_LENGTH_TICKS );
+                debug_vars.world_time_override = day_base + time_of_day;
+            }
+            const int clock_minutes = static_cast<int>( ( debug_vars.world_time % DAY_LENGTH_TICKS ) * 24 * 60 / DAY_LENGTH_TICKS );
+            ImGui::Text( "Time: %02d:%02d (daylight %.2f)  [PgUp/PgDn]", clock_minutes / 60, clock_minutes % 60, debug_vars.daylight );
 
             // debug_vars.corner1.x = round( debug_vars.corner1.x * 20 ) / 20;
             // debug_vars.corner1.y = round( debug_vars.corner1.y * 20 ) / 20;

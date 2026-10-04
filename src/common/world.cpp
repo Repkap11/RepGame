@@ -168,7 +168,7 @@ void World::set_selected_block( const glm::ivec3 &selected, const bool shouldDra
 #define WATER_THRESHOLD_P ( 0.02 )
 #define WATER_THRESHOLD_N ( -0.01 )
 void World::draw( const Texture &blocksTexture, const glm::mat4 &mvp, const glm::mat4 &inv_mvp, const glm::mat4 &mvp_reflect, const glm::mat4 &mvp_sky, const glm::mat4 &mvp_sky_reflect, const int debug, const int draw_mouse_selection, const float y_height,
-                  const bool headInWater, WorldDrawQuality worldDrawQuality, const glm::dvec3 &camera_pos, const glm::ivec3 &renderOrigin, const float time_s ) {
+                  const bool headInWater, WorldDrawQuality worldDrawQuality, const glm::dvec3 &camera_pos, const glm::ivec3 &renderOrigin, const float time_s, const float daylight ) {
 
     const glm::vec3 renderOriginF = glm::vec3( renderOrigin );
     // Camera and block positions are rebased by u_Origin in the vertex shaders,
@@ -226,6 +226,10 @@ void World::draw( const Texture &blocksTexture, const glm::mat4 &mvp, const glm:
         const float depthF = glm::clamp( depthBelow / 30.0f, 0.0f, 1.0f );
         fog_blend_color = glm::mix( glm::vec3( 0.07f, 0.20f, 0.68f ), glm::vec3( 0.015f, 0.05f, 0.22f ), depthF );
     }
+    // The rendered sky is the sky texture dimmed by u_Daylight, so the fog
+    // target must dim the same way or distant terrain blends toward a
+    // day-bright color at night.
+    fog_blend_color *= daylight;
 
     this->chunkLoader.shader.set_uniform1f( "u_FogNear", fog_near );
     this->chunkLoader.shader.set_uniform1f( "u_FogFar", fog_far );
@@ -247,6 +251,9 @@ void World::draw( const Texture &blocksTexture, const glm::mat4 &mvp, const glm:
     // terrain converges to the same "water background" as the surface/sky.
     const bool useFogBlend = useFrameBuffer;
     this->chunkLoader.shader.set_uniform1i( "u_OpaqueFog", useFogBlend ? 1 : 0 );
+    // Daylight scales the sky-light nibble sampled from each chunk's 3D light
+    // volume (chunk_fragment) and dims sky/mobs/debris (object_fragment).
+    this->chunkLoader.shader.set_uniform1f( "u_Daylight", daylight );
 
     this->object_shader.set_uniform1f( "u_FogNear", fog_near );
     this->object_shader.set_uniform1f( "u_FogFar", fog_far );
@@ -257,6 +264,7 @@ void World::draw( const Texture &blocksTexture, const glm::mat4 &mvp, const glm:
     this->object_shader.set_uniform3f( "u_Origin", renderOriginF.x, renderOriginF.y, renderOriginF.z );
     this->object_shader.set_uniform3f( "u_SkyAvgColor", fog_blend_color.r, fog_blend_color.g, fog_blend_color.b );
     this->object_shader.set_uniform1i( "u_OpaqueFog", useFogBlend ? 1 : 0 );
+    this->object_shader.set_uniform1f( "u_Daylight", daylight );
 
     // Debris shares object_fragment.glsl, so it needs the same fog/water set.
     this->debris_shader.set_uniform1f( "u_FogNear", fog_near );
@@ -267,6 +275,7 @@ void World::draw( const Texture &blocksTexture, const glm::mat4 &mvp, const glm:
     this->debris_shader.set_uniform3f( "u_CameraPos", camera_pos_rebased.x, camera_pos_rebased.y, camera_pos_rebased.z );
     this->debris_shader.set_uniform3f( "u_SkyAvgColor", fog_blend_color.r, fog_blend_color.g, fog_blend_color.b );
     this->debris_shader.set_uniform1i( "u_OpaqueFog", useFogBlend ? 1 : 0 );
+    this->debris_shader.set_uniform1f( "u_Daylight", daylight );
     this->debris_shader.set_uniform1f( "u_Time", time_s );
 
     if ( useFrameBuffer ) {
@@ -362,7 +371,7 @@ void World::draw( const Texture &blocksTexture, const glm::mat4 &mvp, const glm:
     this->chunkLoader.shader.set_uniform1i( "u_TintUnderWater", block_water_tint_type );
     this->chunkLoader.shader.set_uniform1f( "u_ReflectionDotSign", y_height < 0 ? -1.0f : 1.0f );
     // shader_set_uniform1f( &this->loadedChunks.shader, "u_ReflectionDotSign", 1.0f );
-    this->chunkLoader.draw( mvp, this->renderer, blocksTexture, false, false, useFrameBuffer ); // Blocks
+    this->chunkLoader.draw( mvp, this->renderer, blocksTexture, false, false, useFrameBuffer, renderOriginF ); // Blocks
 
     this->chunkLoader.shader.set_uniform1i( "u_TintUnderWater", 0 );
     if ( draw_mouse_selection ) {
@@ -392,7 +401,7 @@ void World::draw( const Texture &blocksTexture, const glm::mat4 &mvp, const glm:
     this->chunkLoader.shader.set_uniform1f( "u_Time", time_s );
     this->chunkLoader.shader.set_uniform1i( "u_FluidAnim", allowBlur ? 1 : 0 );
     this->chunkLoader.shader.set_uniform1i( "u_TintUnderWater", block_water_tint_type );
-    this->chunkLoader.draw( mvp, this->renderer, blocksTexture, true, false, useFrameBuffer ); // Stencil water
+    this->chunkLoader.draw( mvp, this->renderer, blocksTexture, true, false, useFrameBuffer, renderOriginF ); // Stencil water
     this->chunkLoader.shader.set_uniform1i( "u_FluidAnim", 0 );
     this->chunkLoader.shader.set_uniform1i( "u_TintUnderWater", 0 );
 
@@ -464,7 +473,7 @@ void World::draw( const Texture &blocksTexture, const glm::mat4 &mvp, const glm:
         this->chunkLoader.shader.set_uniform1f( "u_ReflectionHeight", offset + renderOriginF.y );
         this->chunkLoader.shader.set_uniform1i( "u_TintUnderWater", block_water_tint_type );
         this->chunkLoader.calculate_cull( mvp_reflect, true, renderOrigin );
-        this->chunkLoader.draw( mvp_reflect, this->renderer, blocksTexture, false, true, useFrameBuffer ); // Reflected blocks
+        this->chunkLoader.draw( mvp_reflect, this->renderer, blocksTexture, false, true, useFrameBuffer, renderOriginF ); // Reflected blocks
 
         this->chunkLoader.shader.set_uniform1f( "u_ReflectionHeight", 0 );
         this->object_shader.set_uniform1f( "u_ReflectionHeight", 0 );
@@ -704,7 +713,7 @@ void World::spawn_block_debris( const glm::ivec3 &block_pos, const BlockState &p
 //         }
 //     }
 // }
-void World::set_loaded_block( const glm::ivec3 &block_pos, BlockState blockState ) const {
+void World::set_loaded_block( const glm::ivec3 &block_pos, BlockState blockState ) {
     glm::ivec3 chunk_pos = glm::floor( glm::vec3( block_pos ) / CHUNK_SIZE_F );
 
     if ( Chunk *chunk_prt = this->chunkLoader.get_chunk( chunk_pos ) ) {
@@ -781,6 +790,10 @@ void World::set_loaded_block( const glm::ivec3 &block_pos, BlockState blockState
         // and gets remeshed this frame. Safe: Chunk::draw also guards on
         // num_instances != 0, so no stale geometry draws before remeshing.
         chunk.should_render = 1;
+
+        // Flood-fill light: seed the propagation queues for this cell (block
+        // + sky channels). No-op while the chunk still has no light volume.
+        this->chunkLoader.light_recheck_block( block_pos );
 
     } else {
         // This just means mouse is not pointing at a block
@@ -955,7 +968,7 @@ bool World::do_random_tick_on_block( const Chunk &chunk, const glm::vec3 &pos, B
 }
 
 int counter = 0;
-bool World::process_random_ticks_on_chunk( const Chunk &chunk ) const {
+bool World::process_random_ticks_on_chunk( const Chunk &chunk ) {
     bool anyBlockStateChanged = false;
     const int index = CHUNK_BLOCK_DRAW_START + ( rand( ) % ( CHUNK_BLOCK_DRAW_STOP - CHUNK_BLOCK_DRAW_START + 1 ) );
     int x, y, z;
@@ -976,7 +989,7 @@ bool World::process_random_ticks_on_chunk( const Chunk &chunk ) const {
     return anyBlockStateChanged;
 }
 
-void World::process_random_ticks( ) const {
+void World::process_random_ticks( ) {
     pr_debug( "Tick" );
     srand( counter );
     counter += 1;

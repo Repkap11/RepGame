@@ -16,6 +16,8 @@ class World {
     friend class Multiplayer;
     friend void test_setup_world( World &world );
 
+    friend int test_lighting( );
+
     ChunkLoader chunkLoader;
     Renderer renderer;
     SkyBox skyBox;
@@ -51,13 +53,14 @@ class World {
     static bool any_neighbor_diag_id( const Chunk &chunk, const glm::ivec3 &pos, BlockID id );
     static bool any_neighbor_grass_id( const Chunk &chunk, const glm::ivec3 &pos, BlockID id );
 
-    bool process_random_ticks_on_chunk( const Chunk &chunk ) const;
+    bool process_random_ticks_on_chunk( const Chunk &chunk );
     static bool do_random_tick_on_block( const Chunk &chunk, const glm::vec3 &pos, BlockState &blockState );
 
   public:
     BlockState get_loaded_block( const glm::ivec3 &block_pos ) const;
 
-    void set_loaded_block( const glm::ivec3 &block_pos, BlockState blockState ) const;
+    // Non-const: block edits seed the light propagation queues on chunkLoader.
+    void set_loaded_block( const glm::ivec3 &block_pos, BlockState blockState );
     // Spawns break particles if prev_state was a real block that new_id
     // removed. No-op for air, same-id state changes, and liquids.
     void spawn_block_debris( const glm::ivec3 &block_pos, const BlockState &prev_state, BlockID new_id );
@@ -69,8 +72,8 @@ class World {
     void change_size( int width, int height );
     void render( Multiplayer &multiplayer, const glm::dvec3 &camera_pos, int limit_render, const glm::mat4 &rotation );
     void draw( const Texture &blocksTexture, const glm::mat4 &mvp, const glm::mat4 &inv_mvp, const glm::mat4 &mvp_reflect, const glm::mat4 &mvp_sky, const glm::mat4 &mvp_sky_reflect, int debug, int draw_mouse_selection, float y_height, bool headInWater,
-               WorldDrawQuality worldDrawQuality, const glm::dvec3 &camera_pos, const glm::ivec3 &renderOrigin, float time_s );
-    void process_random_ticks( ) const;
+               WorldDrawQuality worldDrawQuality, const glm::dvec3 &camera_pos, const glm::ivec3 &renderOrigin, float time_s, float daylight );
+    void process_random_ticks( );
     void set_selected_block( const glm::ivec3 &selected, bool shouldDraw );
     void screenshot( const std::string &prefix ) const;
     void cleanup( MapStorage &map_storage );

@@ -58,6 +58,7 @@ void block_definitions_initilize_definitions( Texture *texture ) {
         block->hardness = 1.5f;
         block->connects_to_redstone_dust = false;
         block->is_redstone_dust = false;
+        block->emits_light = 0;
         block->is_button = false;
         block->is_pressure_plate = false;
         block->is_redstone_mechanism = false;
@@ -277,6 +278,19 @@ void block_definitions_initilize_definitions( Texture *texture ) {
         block_definitions[ id ].casts_shadow = false;
         // block_definitions[ id ].hides_self = true;
     }
+
+    // Flood-fill light emitters. Value is the source level (0-15); the light
+    // engine (light.cpp) propagates it into Chunk::light[] volumes.
+    constexpr BlockID torch_emitters[] = { TORCH, BLACK_TORCH, BLUE_TORCH, WHITE_TORCH, PURPLE_TORCH, RED_TORCH, CYAN_TORCH };
+    for ( const BlockID id : torch_emitters ) {
+        block_definitions[ id ].emits_light = 14;
+    }
+    block_definitions[ LAVA ].emits_light = 15;
+    block_definitions[ FIRE ].emits_light = 15;
+    block_definitions[ FURNACE_LIT ].emits_light = 13;
+    block_definitions[ REDSTONE_LAMP_POWERED ].emits_light = 15;
+    block_definitions[ REDSTONE_TORCH ].emits_light = 7;
+    block_definitions[ PORTAL ].emits_light = 11;
 
     constexpr BlockID torch_shaped[] = { TORCH, BURNT_OUT_TORCH, REDSTONE_TORCH, REDSTONE_TORCH_OFF, BLACK_TORCH, BLUE_TORCH, WHITE_TORCH, PURPLE_TORCH, RED_TORCH, CYAN_TORCH };
     for ( const BlockID id : torch_shaped ) {

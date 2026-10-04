@@ -8,6 +8,12 @@ typedef struct {
 
 typedef struct {
     glm::vec3 player_pos;
+    // Day/night clock (see light.hpp) — displayed and editable in the overlay.
+    long world_time;
+    float daylight;
+    // Set by the overlay's time slider when the user drags it; RepGame reads
+    // this back and applies it to globalGameState.world_time. -1 = untouched.
+    long world_time_override = -1;
 } ImGuiDebugVars;
 
 #if ( defined( REPGAME_WINDOWS ) || defined( REPGAME_LINUX ) )

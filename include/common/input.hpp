@@ -51,6 +51,9 @@ class Input {
     bool screenshot_requested;
     bool toggle_game_mode;
     bool shift_held;
+    // Accumulated PageUp/PageDown time-of-day nudges (in day-fraction steps);
+    // consumed by RepGame each frame and applied to world_time.
+    int time_skip_hours;
     // Set by touch platforms when the screen is tapped. Consumed once per tick:
     // acts as a click at absPosition when the inventory is open, or a hotbar
     // slot tap-select when it is closed.

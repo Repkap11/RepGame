@@ -120,6 +120,9 @@ struct RepGameState {
     } block_mining;
     BlockUpdateQueue blockUpdateQueue;
     long tick_number;
+    // Day/night clock in ticks (see DAY_LENGTH_TICKS in light.hpp).
+    // Persisted in player.dat via PlayerData::world_time.
+    long world_time;
     // Pressure plates with a live PressurePlateEvent check chain. Positions
     // are added when the player steps on a plate and removed by the event
     // when nobody is on it (or it was broken/unloaded), so exactly one check
@@ -144,6 +147,9 @@ struct __attribute__( ( packed ) ) PlayerData {
     // won't have these bytes and the loader handles the shorter size).
     GameMode game_mode;
     InventorySlot survival_inventory[ SURVIVAL_INVENTORY_WIDTH * SURVIVAL_INVENTORY_HEIGHT ];
+    // Day/night clock; appended last so old player.dat files keep loading
+    // (map_storage accepts the pre-world_time layout separately).
+    long world_time;
 };
 
 class RepGame {

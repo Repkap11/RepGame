@@ -152,6 +152,8 @@ void Texture::loadTexture( const TextureSourceData &texture_source, int blur_mag
                          working + text_coord_base * BYTES_PER_PIXEL );
         showErrors( );
     }
+    glPixelStorei( GL_UNPACK_ROW_LENGTH, 0 );
+    glPixelStorei( GL_UNPACK_IMAGE_HEIGHT, 0 );
     free( working );
 
     glTexParameteri( this->target, GL_TEXTURE_WRAP_S, GL_REPEAT );
@@ -188,6 +190,15 @@ void Texture::loadTexture( const TextureSourceData &texture_source, int blur_mag
 }
 
 static int next_slot = 1;
+
+// Reserve a texture unit without an associated Texture — used for the shared
+// per-chunk 3D light volume unit (light.cpp binds a different texture to it
+// before every chunk draw). Shares the next_slot counter so it can't collide
+// with regular textures.
+int texture_reserve_unit( ) {
+    return next_slot++;
+}
+
 void Texture::init( const TextureSourceData &texture_source, int blur_mag ) {
     this->slot = next_slot;
     next_slot++;

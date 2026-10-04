@@ -41,6 +41,15 @@ static constexpr long long CHUNK_FINALIZE_BUDGET_US = 3000; // 3 ms
 // (multiplayer diffs, block edits) would otherwise all re-mesh in one frame.
 static constexpr long long CHUNK_REMESH_BUDGET_US = 2000; // 2 ms
 
+// Bound the per-frame light propagation work: edit seeds are tiny, but chunk
+// load-in border syncs can enqueue large BFS fronts — spreading them over a
+// few frames keeps load-in smooth.
+static constexpr long long LIGHT_PROPAGATE_BUDGET_US = 1000; // 1 ms
+// Cap dirty light-volume uploads per frame; a first-draw upload covers the
+// full volume anyway (Chunk::light_ensure_texture), so this only throttles
+// propagation updates.
+static constexpr int LIGHT_MAX_UPLOADS_PER_FRAME = 32;
+
 static inline long long now_us( ) {
     return std::chrono::duration_cast<std::chrono::microseconds>(
         std::chrono::steady_clock::now( ).time_since_epoch( ) ).count( );
@@ -103,6 +112,10 @@ void ChunkLoader::init( const glm::dvec3 &camera_pos, const VertexBufferLayout &
 
     glm::dvec3 chunk_size = glm::dvec3( CHUNK_SIZE_X, CHUNK_SIZE_Y, CHUNK_SIZE_Z );
     glm::ivec3 camera_chuck = glm::floor( camera_pos / chunk_size );
+    // render_chunks maintains chunk_center across moves; seed it here so the
+    // skylight cascade (which scans center +/- CHUNK_RADIUS_Y) is correct from
+    // the very first finalize.
+    this->chunk_center = camera_chuck;
 
     int nextChunk = 0;
     for ( int i = 0; i <= CHUNK_RADIUS_X; i++ ) {
@@ -221,6 +234,9 @@ void ChunkLoader::render_chunks( Multiplayer &multiplayer, const glm::dvec3 &cam
                     // Apply any chunk diffs that arrived from the server before
                     // this chunk's terrain gen finished (Phase 2 eager requests).
                     multiplayer.apply_pending_diffs( chunk );
+                    // Blocks are final now: drain recorded diffs, resolve
+                    // skylight columns, and sync border mirrors with neighbors.
+                    this->light_finalize_chunk( chunk );
                     chunk.program_terrain( );
                 }
             }
@@ -285,6 +301,18 @@ void ChunkLoader::render_chunks( Multiplayer &multiplayer, const glm::dvec3 &cam
             }
         }
     }
+    // Flood-fill lighting: convert recorded per-cell changes to recheck seeds,
+    // run the BFS queues, then push dirty regions into the 3D textures.
+    this->light_drain_pending( );
+    // Scale the propagation budget with backlog: under-overhang/cave floods
+    // legitimately cover every underground air cell within ~15 of lit space,
+    // which is millions of steps during mass load-in. A fixed 1ms budget left
+    // the queue growing for minutes; spending more while backlogged converges
+    // in a few frames and steady-state edits stay cheap.
+    const size_t light_backlog = this->light_add_queue_size( ) + this->light_remove_queue.size( );
+    const long long light_budget = light_backlog > 200000 ? 16000 : light_backlog > 20000 ? 6000 : LIGHT_PROPAGATE_BUDGET_US;
+    this->light_process_queue( light_budget );
+    this->light_upload_dirty( LIGHT_MAX_UPLOADS_PER_FRAME );
     this->rebuild_drawable_list( );
 }
 
@@ -330,9 +358,12 @@ void ChunkLoader::calculate_cull( const glm::mat4 &mvp, const bool saveAsReflect
 
 int shouldInc = 0;
 int showRotation = 0;
-void ChunkLoader::draw( const glm::mat4 &mvp, const Renderer &renderer, const Texture &texture, bool reflect_only, bool draw_reflect, bool use_frame_buffer ) {
+void ChunkLoader::draw( const glm::mat4 &mvp, const Renderer &renderer, const Texture &texture, bool reflect_only, bool draw_reflect, bool use_frame_buffer, const glm::vec3 &render_origin ) {
     Shader &shader = this->shader;
     shader.set_uniform_mat4f( "u_MVP", mvp );
+    // All per-chunk light volumes share one reserved texture unit; each chunk
+    // binds its 3D texture + u_LightBase right before drawing (Chunk::draw).
+    shader.set_uniform1i( "u_LightTex", light_texture_unit( ) );
 
     // pr_debug( "Drawing %d chunks", this->numLoadedChunks );
     for ( int renderOrder = LAST_RENDER_ORDER - 1; renderOrder > 0; renderOrder-- ) {
@@ -350,11 +381,11 @@ void ChunkLoader::draw( const glm::mat4 &mvp, const Renderer &renderer, const Te
                 Chunk &chunk = *this->drawable_chunks[ i ];
                 if ( draw_reflect ) {
                     if ( !chunk.cached_cull_reflect ) {
-                        chunk.draw( renderer, texture, shader, static_cast<RenderOrder>( renderOrder ), draw_reflect );
+                        chunk.draw( renderer, texture, shader, static_cast<RenderOrder>( renderOrder ), draw_reflect, render_origin );
                     }
                 } else {
                     if ( !chunk.cached_cull_normal ) {
-                        chunk.draw( renderer, texture, shader, static_cast<RenderOrder>( renderOrder ), draw_reflect );
+                        chunk.draw( renderer, texture, shader, static_cast<RenderOrder>( renderOrder ), draw_reflect, render_origin );
                     }
                 }
             }

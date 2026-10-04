@@ -1,3 +1,5 @@
+#include <string.h>
+
 #include "common/RepGame.hpp"
 #include "common/chunk.hpp"
 #include "common/map_gen.hpp"
@@ -182,6 +184,12 @@ void Chunk::destroy( ) {
     if constexpr ( REMEMBER_BLOCKS ) {
         free( this->blocks );
     }
+    free( this->light );
+    free( this->light_columns );
+    if ( this->light_texture ) {
+        glDeleteTextures( 1, &this->light_texture );
+        this->light_texture = 0;
+    }
 
     for ( RenderLayer &layer : this->layers ) {
         if ( layer.populated_blocks ) {
@@ -198,7 +206,7 @@ void Chunk::destroy( ) {
     }
 }
 
-void Chunk::draw( const Renderer &renderer, const Texture &texture, const Shader &shader, RenderOrder renderOrder, bool draw_reflect ) const {
+void Chunk::draw( const Renderer &renderer, const Texture &texture, Shader &shader, RenderOrder renderOrder, bool draw_reflect, const glm::vec3 &render_origin ) {
     const RenderLayer &renderLayer = this->layers[ renderOrder ];
     if ( this->should_render && renderLayer.num_instances != 0 ) {
         if ( this->is_loading ) {
@@ -211,6 +219,16 @@ void Chunk::draw( const Renderer &renderer, const Texture &texture, const Shader
             active_ib_prt = &renderLayer.ib;
         }
         const IndexBuffer &active_ib = *active_ib_prt;
+        // Bind this chunk's light volume to the shared light texture unit.
+        // u_LightBase is the chunk's world origin in the rebased (u_Origin)
+        // coordinate frame the shader uses; see chunk_fragment.glsl.
+        this->light_ensure_texture( );
+        if ( this->light_texture != 0 ) {
+            glActiveTexture( GL_TEXTURE0 + light_texture_unit( ) );
+            glBindTexture( GL_TEXTURE_3D, this->light_texture );
+            const glm::vec3 light_base = glm::vec3( this->chunk_pos * CHUNK_SIZE_I ) - render_origin;
+            shader.set_uniform3f( "u_LightBase", light_base.x, light_base.y, light_base.z );
+        }
         // Texture wrap mode is now set once per render order in ChunkLoader::draw.
         renderer.draw( renderLayer.va, active_ib, shader, renderLayer.num_instances );
     }
@@ -272,6 +290,13 @@ void Chunk::set_block_by_index_if_different( int index, const BlockState *blockS
     this->blocks[ index ] = *blockState;
     this->dirty = true;
     this->needs_repopulation = true;
+    // Record the change for the light engine; converted to a world-space
+    // recheck seed on the render thread (ChunkLoader::light_drain_pending).
+    if ( this->light_pending_count < static_cast<int>( sizeof( this->light_pending ) / sizeof( this->light_pending[ 0 ] ) ) ) {
+        this->light_pending[ this->light_pending_count++ ] = index;
+    } else {
+        this->light_reseed = 1;
+    }
     this->is_empty_chunk = false;
     // Ensure the chunk enters the drawable list so the remeshing loop visits
     // it. An empty chunk has should_render == 0; without this, a block placed
@@ -317,6 +342,19 @@ void Chunk::load_terrain( MapStorage &map_storage ) {
         // startup, which blocked the first frame for ~0.9s of calloc calls.
         this->blocks = static_cast<BlockState *>( calloc( CHUNK_BLOCK_SIZE, sizeof( BlockState ) ) );
     }
+    // Flood-fill light volume + column flags (see light.cpp). The light
+    // texture itself is created lazily on the render thread
+    // (Chunk::light_ensure_texture).
+    if ( this->light == nullptr ) {
+        this->light = static_cast<unsigned char *>( calloc( CHUNK_BLOCK_SIZE, 1 ) );
+    }
+    if ( this->light_columns == nullptr ) {
+        this->light_columns = static_cast<unsigned char *>( calloc( 2 * LIGHT_FLAGS_COUNT, 1 ) );
+    } else {
+        memset( this->light_columns, 0, 2 * LIGHT_FLAGS_COUNT );
+    }
+    this->light_pending_count = 0;
+    this->light_reseed = 0;
     this->is_empty_chunk = false;
 #if TERRAIN_GEN_PROFILING
     long long t_start = now_us( );
@@ -417,6 +455,9 @@ void Chunk::load_terrain( MapStorage &map_storage ) {
         this->dirty = 0;
     }
 skip_to_mesh:
+    // Flood-fill emitters + column_open flags on the worker. Skylight is
+    // resolved on the render thread by ChunkLoader::light_finalize_chunk.
+    light_fill_chunk( *this );
 #if TERRAIN_GEN_PROFILING
     t0 = now_us( );
 #endif

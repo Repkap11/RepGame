@@ -44,6 +44,8 @@ class Chunk {
     friend class TerrainLoadingThread;
     friend class Multiplayer;
     friend void test_setup_world( World &world );
+    friend void light_fill_chunk( Chunk &chunk );
+    friend int test_lighting( );
 
     int is_loading;
     int gl_initialized;
@@ -58,12 +60,35 @@ class Chunk {
     int needs_repopulation;
     glm::ivec3 chunk_mod;
 
+    // ---- Flood-fill lighting (light.cpp) ----
+    // Per-cell light volume covering the same 34^3 internal region as blocks.
+    // Each byte packs skylight in the high nibble and block light in the low
+    // nibble. Kept out of the mesh entirely so light changes never force a
+    // remesh: the fragment shader samples the matching 3D texture instead.
+    unsigned char *light;
+    // Per interior column (x,z) in [0,CHUNK_SIZE): two flag arrays packed into
+    // one buffer — column_open (no opaque cell in this chunk's column) then
+    // sky_open_above (no opaque cell anywhere above in the loaded grid).
+    unsigned char *light_columns;
+    unsigned int light_texture; // GL_TEXTURE_3D, 0 = not created yet
+    // Dirty region of light[] not yet uploaded, in texel coords [0,34).
+    // light_dirty == 0 means clean.
+    int light_dirty;
+    glm::ivec3 light_dirty_min;
+    glm::ivec3 light_dirty_max;
+    // Cell indices (into blocks[]) changed by multiplayer diffs; converted to
+    // light recheck seeds on the render thread. Overflow sets light_reseed.
+    int light_pending[ 256 ];
+    int light_pending_count;
+    int light_reseed;
+
     int can_extend_rect( const BlockState &blockState, const unsigned int *packed_lighting, const WorkingSpace *workingSpace, const glm::ivec3 &starting, const glm::ivec3 &size, const glm::ivec3 &dir ) const;
 
   public:
     void init( const VertexBuffer &vb_block_solid, const VertexBuffer &vb_block_water, const VertexBufferLayout &vbl_block, const VertexBufferLayout &vbl_coords );
     void ensure_gl_init( );
-    void draw( const Renderer &renderer, const Texture &texture, const Shader &shader, RenderOrder renderOrder, bool draw_reflect ) const;
+    void light_ensure_texture( ); // lazily create the 3D light texture (GL thread)
+    void draw( const Renderer &renderer, const Texture &texture, Shader &shader, RenderOrder renderOrder, bool draw_reflect, const glm::vec3 &render_origin );
     void load_terrain( MapStorage &map_storage ); // Load from file or map gen
     void program_terrain( );                      // Program into GPU
     void unprogram_terrain( );                    // Remove from GPU
