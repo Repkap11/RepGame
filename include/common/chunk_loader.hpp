@@ -82,6 +82,7 @@ class ChunkLoader {
     static void light_ensure_columns( Chunk &chunk );
     static void light_compute_column_open( Chunk &chunk );
     void light_cascade_column( int world_x, int world_z );
+    void light_cascade_columns( Chunk &chunk );
     void light_seed_column_boundary( int world_x, int world_z );
     void light_seed_interior_boundary( Chunk &chunk );
     void light_recheck_block( const glm::ivec3 &block_pos );

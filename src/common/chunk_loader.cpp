@@ -47,8 +47,9 @@ static constexpr long long CHUNK_REMESH_BUDGET_US = 2000; // 2 ms
 static constexpr long long LIGHT_PROPAGATE_BUDGET_US = 1000; // 1 ms
 // Cap dirty light-volume uploads per frame; a first-draw upload covers the
 // full volume anyway (Chunk::light_ensure_texture), so this only throttles
-// propagation updates.
-static constexpr int LIGHT_MAX_UPLOADS_PER_FRAME = 32;
+// propagation updates. Whole-volume updates (chunk re-finalizes) cost a
+// 78KB expansion + glTexSubImage3D each, so keep the cap tight.
+static constexpr int LIGHT_MAX_UPLOADS_PER_FRAME = 8;
 
 static inline long long now_us( ) {
     return std::chrono::duration_cast<std::chrono::microseconds>(
@@ -310,7 +311,7 @@ void ChunkLoader::render_chunks( Multiplayer &multiplayer, const glm::dvec3 &cam
     // the queue growing for minutes; spending more while backlogged converges
     // in a few frames and steady-state edits stay cheap.
     const size_t light_backlog = this->light_add_queue_size( ) + this->light_remove_queue.size( );
-    const long long light_budget = light_backlog > 200000 ? 16000 : light_backlog > 20000 ? 6000 : LIGHT_PROPAGATE_BUDGET_US;
+    const long long light_budget = light_backlog > 200000 ? 8000 : light_backlog > 20000 ? 3000 : LIGHT_PROPAGATE_BUDGET_US;
     this->light_process_queue( light_budget );
     this->light_upload_dirty( LIGHT_MAX_UPLOADS_PER_FRAME );
     this->rebuild_drawable_list( );
