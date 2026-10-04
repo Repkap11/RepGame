@@ -70,13 +70,64 @@ Chunks >=3 apart in x or z are fully independent.
 - atomics/fences: is_loading should be release-store on publish, acquire on
   read (probably fine on x86 today but should be made explicit).
 
-## Later: sharding (only if load-in throughput still lags)
+## Status: worker pool (claims) implemented
 
-Prefer region shards over job claims: K light threads each own a fixed set of
-(x,z) column ranges; a mirror write into a foreign chunk becomes a tiny
-"set cell" message to the owning shard; BFS seeds crossing a border get posted
-to the owner's queue. Race-free by construction. The single-thread job-queue
-interface is designed so this is "run K instances", not a rewrite.
+The pool uses a **column-claim grid** rather than the 3x3 coloring or region
+shards discussed earlier:
+
+- K workers (`LIGHT_WORKER_COUNT` = 4 std::threads) pull jobs under
+  `light_work_mutex`. A job's conflict domain is its 5x5 column footprint;
+  the worker stamps all 25 (x,z) column keys into `light_claims`
+  (unordered_set) all-or-nothing. Blocked jobs stay queued and are skipped in
+  the scan; releasing a claim `notify_all`s so waiters rescan.
+- Job column: FINALIZE claims the chunk_pos captured at submit (execution
+  validates `chunk->chunk_pos == job.pos` — a recycled slot's fresh dequeue
+  re-submits, so skipping loses nothing). RECHECK claims the block's column.
+  Pending-diff chunks in `light_pending_list` are claimed the same way —
+  the list entry is erased and `light_pending_listed` cleared under the lock
+  at claim time so producers re-enqueue fresh entries.
+- The cv predicate only wakes for *runnable* work (some claimable job/pending
+  entry, or BFS-runnable) — a queue of all-blocked jobs must not spin.
+- **BFS exclusion**: shared `light_add_queue`/`light_remove_queue` deques
+  can't be claimed per-seed, so `light_process_queue` runs only while no
+  claims are in flight (`light_claims.empty()`) and marks `light_bfs_active`
+  so no claim starts mid-drain. Seeds pushed by claimed jobs wait for a
+  claims-free window — same interleaving the single thread had.
+- Push sites on the shared deques take `light_seed_lock` (atomic_flag
+  spinlock — tiny critical section) since concurrent claimed jobs push
+  simultaneously. Pops are unlocked: they only happen in the BFS drain.
+- `light_bfs_pending` (atomic) counts queued seeds so the cv predicate can
+  test queue-nonempty without touching deque internals from another thread.
+- BFS drains in 2ms slices but keeps the slot while seeds remain and no
+  jobs/pending wait; yields the moment either appears or on stop.
+- Start: `light_thread_running` is set to the spawned count BEFORE workers
+  spawn (a thread never sees the flag while producers still inline). Stop:
+  flag + notify_all + join all, then inline drain of leftovers — unchanged.
+- `light_process_pending_chunk(Chunk&)` extracted from `light_drain_pending`
+  (the latter remains the serial fallback path).
+
+Bug found during bring-up: concurrent `push_back` on the shared
+`light_add_queue`/`light_remove_queue` deques from two claimed jobs
+corrupted deque internals (SEGV writing to a null slot). Fixed by
+`light_seed_lock`.
+
+Measured (legacy terrain, ~2s probe intervals, 4 workers):
+
+- fin ~800-1500 finalizes/interval during load-in bursts (parallel).
+- BFS pops ~400-800k seeds/interval once claims pause — drain converges in
+  the gaps between bursts (BFS is inherently serial under this model).
+- FPS ~75-155 during the heaviest load-in burst, ~165 steady — unchanged
+  vs single thread (render path was already free; the pool buys light-side
+  throughput + recheck latency, not render time).
+- 90s runtime clean; all Rep tests pass.
+
+## Later: sharding (only if throughput still lags)
+
+Prefer region shards over more claim tuning: K light threads each own a
+fixed set of (x,z) column ranges; a mirror write into a foreign chunk
+becomes a tiny "set cell" message to the owning shard; BFS seeds crossing a
+border get posted to the owner's queue — which also parallelizes the BFS
+itself, the current serial bottleneck.
 
 ## Also pending
 

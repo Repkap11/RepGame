@@ -61,8 +61,9 @@ class ChunkLoader {
     void rebuild_drawable_list( );
 
     // Flood-fill lighting (implemented in light.cpp). Light-state mutation is
-    // single-writer: the dedicated lighting thread when it runs, otherwise the
-    // calling thread (tests, WASM without pthreads).
+    // owned by the lighting worker pool when it runs — workers process jobs
+    // under 5x5 column claims (see light.cpp) — otherwise the calling thread
+    // (tests, WASM without pthreads) does everything inline.
     //
     // Add seeds are bucketed by the light level written at push time and
     // popped highest-level-first (light_add_queue[channel][level]). Processing
@@ -94,6 +95,7 @@ class ChunkLoader {
     void light_recheck_block( const glm::ivec3 &block_pos );
     void light_finalize_chunk( Chunk &chunk );
     void light_border_sync( Chunk &chunk );
+    void light_process_pending_chunk( Chunk &chunk );
     void light_drain_pending( );
     void light_upload_dirty( int max_uploads );
 
