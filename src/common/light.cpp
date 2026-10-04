@@ -1,7 +1,11 @@
 #include <chrono>
+#include <condition_variable>
+#include <deque>
 #include <cstring>
+#include <limits>
 #include <math.h>
 #include <mutex>
+#include <thread>
 #include <vector>
 
 #include "common/RepGame.hpp" // GL headers + platform macros
@@ -69,6 +73,8 @@ static inline bool light_opaque_id( BlockID id ) {
 }
 
 // TEMP diagnostics: which producer feeds the queue.
+static long long light_dbg_pq_calls = 0, light_dbg_pq_nonempty = 0;
+static long long light_dbg_loop_top = 0, light_dbg_after_jobs = 0, light_dbg_jobs_n = 0;
 static long long light_dbg_pushes = 0, light_dbg_pops = 0, light_dbg_finalize = 0,
                  light_dbg_cascade_seed = 0, light_dbg_border_seed = 0,
                  light_dbg_recheck_seed = 0, light_dbg_step_push = 0, light_dbg_remove_seed = 0;
@@ -79,8 +85,10 @@ long long light_dbg_us_finalize = 0, light_dbg_us_remesh = 0, light_dbg_us_drain
           light_dbg_us_light_fin = 0, light_dbg_us_fin_fill = 0, light_dbg_us_fin_casc = 0,
           light_dbg_us_fin_bscan = 0, light_dbg_us_fin_border = 0;
 void ChunkLoader::light_dbg_stats( char *buf, size_t n ) {
-    snprintf( buf, n, "push=%lld pop=%lld fin=%lld casc=%lld bord=%lld rech=%lld step=%lld rem=%lld"
+    snprintf( buf, n, "loop=%lld aj=%lld jn=%lld pq=%lld/%lld push=%lld pop=%lld fin=%lld casc=%lld bord=%lld rech=%lld step=%lld rem=%lld"
                       " | us: fin=%lld(lfin=%lld[fill=%lld casc=%lld bscan=%lld border=%lld]) remesh=%lld drain=%lld bfs=%lld upl=%lld(n=%lld) bind=%lld ensure=%lld(n=%lld)",
+              light_dbg_loop_top, light_dbg_after_jobs, light_dbg_jobs_n,
+              light_dbg_pq_calls, light_dbg_pq_nonempty,
               light_dbg_pushes, light_dbg_pops, light_dbg_finalize, light_dbg_cascade_seed,
               light_dbg_border_seed, light_dbg_recheck_seed, light_dbg_step_push, light_dbg_remove_seed,
               light_dbg_us_finalize, light_dbg_us_light_fin, light_dbg_us_fin_fill,
@@ -90,6 +98,8 @@ void ChunkLoader::light_dbg_stats( char *buf, size_t n ) {
               light_dbg_us_ensure, light_dbg_n_ensure );
     light_dbg_pushes = light_dbg_pops = light_dbg_finalize = light_dbg_cascade_seed =
         light_dbg_border_seed = light_dbg_recheck_seed = light_dbg_step_push = light_dbg_remove_seed = 0;
+    // loop/aj/jn/pq are cumulative (not reset) — reset races with the light
+    // thread would otherwise print impossible combinations.
     light_dbg_us_finalize = light_dbg_us_remesh = light_dbg_us_drain = light_dbg_us_bfs =
         light_dbg_us_upload = light_dbg_us_bind = light_dbg_us_ensure = light_dbg_n_upload =
             light_dbg_n_ensure = light_dbg_us_light_fin = light_dbg_us_fin_fill =
@@ -118,6 +128,13 @@ void ChunkLoader::light_add_seed( const glm::ivec3 &block_pos, const int channel
 // Cell access
 // ---------------------------------------------------------------------------
 
+// Internal coords -1..CHUNK_SIZE_* index into the 34^3 volume. A cached Chunk*
+// can refer to a slot recycled mid-access (chunk_pos torn), producing a
+// garbage local — guard before indexing or it writes/reads out of bounds.
+static inline bool light_local_ok( const glm::ivec3 &l ) {
+    return l.x >= -1 && l.x <= CHUNK_SIZE_X && l.y >= -1 && l.y <= CHUNK_SIZE_Y && l.z >= -1 && l.z <= CHUNK_SIZE_Z;
+}
+
 // Read the canonical (interior-owner) light value. Returns -1 when the cell's
 // owner chunk isn't loaded / is still generating / has no light volume — the
 // propagation treats it as out-of-bounds.
@@ -127,6 +144,9 @@ int ChunkLoader::light_get( const glm::ivec3 &block_pos, const int channel ) con
         return -1;
     }
     const glm::ivec3 local = block_pos - chunk->chunk_pos * CHUNK_SIZE_I;
+    if ( !light_local_ok( local ) ) {
+        return -1; // chunk_pos raced with slot reuse; treat as out-of-bounds
+    }
     const unsigned char v = chunk->light[ light_index( local.x, local.y, local.z ) ];
     return channel == LIGHT_CHANNEL_BLOCK ? light_get_block( v ) : light_get_sky( v );
 }
@@ -136,13 +156,39 @@ BlockID ChunkLoader::light_block_id_at( const glm::ivec3 &block_pos ) const {
     if ( !chunk || chunk->is_loading || !chunk->blocks ) {
         return LAST_BLOCK_ID;
     }
-    return chunk->get_block( block_pos - chunk->chunk_pos * CHUNK_SIZE_I ).id;
+    const glm::ivec3 local = block_pos - chunk->chunk_pos * CHUNK_SIZE_I;
+    if ( !light_local_ok( local ) ) {
+        return LAST_BLOCK_ID; // chunk_pos raced with slot reuse
+    }
+    return chunk->get_block( local ).id;
 }
 
-// Chunks whose light volume needs a texture upload. All producers run on the
-// render thread, so a plain vector suffices — scanning all MAX_LOADED_CHUNKS
-// for the dirty flag cost ~200us/frame.
+// ---------------------------------------------------------------------------
+// Lighting thread work queue (docs/lighting-thread-plan.md)
+//
+// All light[]/light_columns mutation happens on ONE thread — the dedicated
+// lighting thread on native, or the calling thread when it isn't running
+// (tests, WASM without pthreads). Cross-thread traffic is three lists under
+// light_work_mutex: jobs (finalize/recheck), pending-diff chunks (produced by
+// network/worker threads via light_pending_enqueue), and dirty-upload chunks
+// (produced by the light thread, consumed by render's light_upload_dirty).
+// ---------------------------------------------------------------------------
+
+enum LightJobType { LIGHT_JOB_FINALIZE, LIGHT_JOB_RECHECK };
+struct LightJob {
+    LightJobType type;
+    Chunk *chunk;
+    glm::ivec3 pos;
+};
+
+static std::mutex light_work_mutex;
+static std::condition_variable light_work_cv;
+static std::deque<LightJob> light_jobs;
+static std::vector<Chunk *> light_pending_list;
 static std::vector<Chunk *> light_dirty_list;
+static std::thread light_thread;
+static volatile int light_thread_running = 0;
+static volatile int light_thread_stop_flag = 0;
 
 void ChunkLoader::light_mark_dirty( Chunk &chunk, const glm::ivec3 &local ) {
     const glm::ivec3 texel = local + glm::ivec3( 1 ); // internal -> texture coords
@@ -154,9 +200,13 @@ void ChunkLoader::light_mark_dirty( Chunk &chunk, const glm::ivec3 &local ) {
         chunk.light_dirty_min = glm::min( chunk.light_dirty_min, texel );
         chunk.light_dirty_max = glm::max( chunk.light_dirty_max, texel );
     }
+    // Hot path: only the first mark per chunk takes the lock.
     if ( !chunk.light_upload_listed ) {
-        chunk.light_upload_listed = 1;
-        light_dirty_list.push_back( &chunk );
+        std::lock_guard<std::mutex> lock( light_work_mutex );
+        if ( !chunk.light_upload_listed ) {
+            chunk.light_upload_listed = 1;
+            light_dirty_list.push_back( &chunk );
+        }
     }
 }
 
@@ -168,8 +218,11 @@ void ChunkLoader::light_mark_dirty_all( Chunk &chunk ) {
     chunk.light_dirty_min = glm::ivec3( 0 );
     chunk.light_dirty_max = glm::ivec3( CHUNK_SIZE_INTERNAL_X - 1, CHUNK_SIZE_INTERNAL_Y - 1, CHUNK_SIZE_INTERNAL_Z - 1 );
     if ( !chunk.light_upload_listed ) {
-        chunk.light_upload_listed = 1;
-        light_dirty_list.push_back( &chunk );
+        std::lock_guard<std::mutex> lock( light_work_mutex );
+        if ( !chunk.light_upload_listed ) {
+            chunk.light_upload_listed = 1;
+            light_dirty_list.push_back( &chunk );
+        }
     }
 }
 
@@ -208,6 +261,9 @@ void ChunkLoader::light_set( const glm::ivec3 &block_pos, const int channel, con
                     }
                 }
                 const glm::ivec3 c_local = block_pos - c->chunk_pos * CHUNK_SIZE_I;
+                if ( !light_local_ok( c_local ) ) {
+                    continue; // slot recycled mid-write; torn chunk_pos
+                }
                 const int idx = light_index( c_local.x, c_local.y, c_local.z );
                 unsigned char &cell = c->light[ idx ];
                 const unsigned char nv = channel == LIGHT_CHANNEL_BLOCK //
@@ -252,6 +308,9 @@ void ChunkLoader::light_set_nb( Chunk *const nb_cache[ 27 ], Chunk &owner, const
                     continue;
                 }
                 const glm::ivec3 c_local = block_pos - c->chunk_pos * CHUNK_SIZE_I;
+                if ( !light_local_ok( c_local ) ) {
+                    continue; // slot recycled mid-write; torn chunk_pos
+                }
                 const int idx = light_index( c_local.x, c_local.y, c_local.z );
                 unsigned char &cell = c->light[ idx ];
                 const unsigned char nv = channel == LIGHT_CHANNEL_BLOCK //
@@ -380,6 +439,10 @@ void ChunkLoader::light_remove_step( const LightRemoveSeed &seed ) {
 
 void ChunkLoader::light_process_queue( const long long budget_us ) {
     const long long start = light_now_us( );
+    if ( this->light_add_queue_size( ) + this->light_remove_queue.size( ) > 0 ) {
+        light_dbg_pq_nonempty++;
+    }
+    light_dbg_pq_calls++;
     for ( ;; ) {
         if ( light_now_us( ) - start >= budget_us ) {
             return;
@@ -1069,6 +1132,9 @@ void ChunkLoader::light_border_sync( Chunk &chunk ) {
                                 continue;
                             }
                             const glm::ivec3 n_local = w - nb->chunk_pos * CHUNK_SIZE_I;
+                            if ( !light_local_ok( n_local ) ) {
+                                continue; // slot recycled mid-write; torn chunk_pos
+                            }
                             unsigned char &mirror = nb->light[ light_index( n_local.x, n_local.y, n_local.z ) ];
                             if ( mirror == canon ) {
                                 continue;
@@ -1099,19 +1165,16 @@ void ChunkLoader::light_border_sync( Chunk &chunk ) {
     }
 }
 
-// Chunks with pending light work get pushed here by
-// set_block_by_index_if_different (network thread); the old code scanned all
-// MAX_LOADED_CHUNKS slots every frame just to find the handful with diffs.
-static std::mutex light_pending_mutex;
-static std::vector<Chunk *> light_pending_list;
-
 void light_pending_enqueue( Chunk &chunk ) {
-    std::lock_guard<std::mutex> lock( light_pending_mutex );
-    if ( chunk.light_pending_listed ) {
-        return;
+    {
+        std::lock_guard<std::mutex> lock( light_work_mutex );
+        if ( chunk.light_pending_listed ) {
+            return;
+        }
+        chunk.light_pending_listed = 1;
+        light_pending_list.push_back( &chunk );
     }
-    chunk.light_pending_listed = 1;
-    light_pending_list.push_back( &chunk );
+    light_work_cv.notify_one( );
 }
 
 // Multiplayer diffs (set_block_by_index_if_different) only record cell
@@ -1122,7 +1185,7 @@ void ChunkLoader::light_drain_pending( ) {
     }
     std::vector<Chunk *> list;
     {
-        std::lock_guard<std::mutex> lock( light_pending_mutex );
+        std::lock_guard<std::mutex> lock( light_work_mutex );
         list.swap( light_pending_list );
     }
     for ( Chunk *chunk_ptr : list ) {
@@ -1224,10 +1287,24 @@ void light_fill_chunk( Chunk &chunk ) {
         }
     }
     ChunkLoader::light_compute_column_open( chunk );
-    // The memset above wiped skylight; force every sky_open_above flag back
-    // to 0 so the next cascade sees a flip and reseeds columns that are open.
     if ( chunk.light_columns ) {
-        memset( chunk.light_columns + LIGHT_FLAGS_COUNT, 0, LIGHT_FLAGS_COUNT );
+        // Optimistic skylight: assume open above so the chunk doesn't draw
+        // black in the window between terrain upload and light finalize.
+        // Cells above the topmost opaque cell get a direct sky=15 fill, and
+        // sky_open_above=1 records the assumption — if above turns out
+        // closed, the cascade flips the flag and the removal BFS clears it.
+        unsigned char *flags = chunk.light_columns;
+        for ( int x = 0; x < CHUNK_SIZE_X; x++ ) {
+            for ( int z = 0; z < CHUNK_SIZE_Z; z++ ) {
+                const int ci = LIGHT_COLUMN_INDEX( x, z );
+                flags[ LIGHT_FLAGS_COUNT + ci ] = 1;
+                const int fill_from = flags[ LIGHT_FILL_FROM_INDEX( x, z ) ];
+                for ( int y = fill_from; y < CHUNK_SIZE_Y; y++ ) {
+                    unsigned char &cell = chunk.light[ light_index( x, y, z ) ];
+                    cell = static_cast<unsigned char>( ( cell & 0x0F ) | ( LIGHT_MAX_LEVEL << 4 ) );
+                }
+            }
+        }
     }
 }
 
@@ -1296,7 +1373,10 @@ void ChunkLoader::light_upload_dirty( const int max_uploads ) {
         return;
     }
     std::vector<Chunk *> list;
-    list.swap( light_dirty_list );
+    {
+        std::lock_guard<std::mutex> lock( light_work_mutex );
+        list.swap( light_dirty_list );
+    }
     int uploads = 0;
     size_t i = 0;
     for ( ; i < list.size( ) && uploads < max_uploads; i++ ) {
@@ -1312,10 +1392,23 @@ void ChunkLoader::light_upload_dirty( const int max_uploads ) {
             continue;
         }
         uploads++;
+        // The light thread keeps marking while we upload. Box reads can tear
+        // (producers write fields without the lock): clamp into the volume and
+        // skip inverted ranges without clearing dirty so they retry next
+        // frame. A mark landing between the box read and dirty=0 is lost for
+        // this frame but self-heals on the next mark — tolerable for a light
+        // texture.
+        const glm::ivec3 lo = glm::clamp( chunk.light_dirty_min, glm::ivec3( 0 ),
+                                        glm::ivec3( CHUNK_SIZE_INTERNAL_X - 1, CHUNK_SIZE_INTERNAL_Y - 1, CHUNK_SIZE_INTERNAL_Z - 1 ) );
+        const glm::ivec3 hi = glm::clamp( chunk.light_dirty_max, glm::ivec3( 0 ),
+                                        glm::ivec3( CHUNK_SIZE_INTERNAL_X - 1, CHUNK_SIZE_INTERNAL_Y - 1, CHUNK_SIZE_INTERNAL_Z - 1 ) );
+        if ( hi.x < lo.x || hi.y < lo.y || hi.z < lo.z ) {
+            continue;
+        }
+        chunk.light_dirty = 0;
+        const glm::ivec3 sz = hi - lo + glm::ivec3( 1 );
         glActiveTexture( GL_TEXTURE0 + light_texture_unit( ) );
         glBindTexture( GL_TEXTURE_3D, chunk.light_texture );
-        const glm::ivec3 lo = chunk.light_dirty_min;
-        const glm::ivec3 sz = chunk.light_dirty_max - lo + glm::ivec3( 1 );
         // Expand the packed (sky<<4|block) dirty region to RG so the two
         // channels filter independently — see light_expand_cell. The scratch
         // is tightly packed so the default unpack stride applies.
@@ -1333,12 +1426,15 @@ void ChunkLoader::light_upload_dirty( const int max_uploads ) {
         glPixelStorei( GL_UNPACK_ALIGNMENT, 1 );
         glTexSubImage3D( GL_TEXTURE_3D, 0, lo.x, lo.y, lo.z, sz.x, sz.y, sz.z, GL_RG, GL_UNSIGNED_BYTE, s_light_upload_scratch );
         glPixelStorei( GL_UNPACK_ALIGNMENT, 4 );
-        chunk.light_dirty = 0;
     }
     // Entries past the upload cap stay dirty and keep their listed flag —
-    // push them back for next frame.
-    for ( ; i < list.size( ); i++ ) {
-        light_dirty_list.push_back( list[ i ] );
+    // push them back for next frame. Under the mutex: the light thread
+    // push_backs into the same vector.
+    if ( i < list.size( ) ) {
+        std::lock_guard<std::mutex> lock( light_work_mutex );
+        for ( ; i < list.size( ); i++ ) {
+            light_dirty_list.push_back( list[ i ] );
+        }
     }
     light_dbg_n_upload += uploads;
     light_dbg_us_upload += light_now_us( ) - t0;
@@ -1360,4 +1456,125 @@ float light_daylight_factor( const long world_time ) {
     // so caves without torches are still faintly visible.
     float d = glm::clamp( ( sun + 0.06f ) * 4.0f, 0.0f, 1.0f );
     return 0.04f + 0.96f * d;
+}
+
+// ---------------------------------------------------------------------------
+// Dedicated lighting thread
+// ---------------------------------------------------------------------------
+
+bool ChunkLoader::light_async_active( ) {
+    return light_thread_running != 0;
+}
+
+void ChunkLoader::light_submit_finalize( Chunk &chunk ) {
+    if ( !light_thread_running ) {
+        this->light_finalize_chunk( chunk );
+        return;
+    }
+    {
+        std::lock_guard<std::mutex> lock( light_work_mutex );
+        light_jobs.push_back( LightJob{ LIGHT_JOB_FINALIZE, &chunk, glm::ivec3( 0 ) } );
+    }
+    light_work_cv.notify_one( );
+}
+
+void ChunkLoader::light_submit_recheck( const glm::ivec3 &block_pos ) {
+    Chunk *chunk = this->get_chunk( light_chunk_pos_of( block_pos ) );
+    if ( chunk == nullptr || chunk->is_loading || !chunk->light ) {
+        return;
+    }
+    if ( !light_thread_running ) {
+        this->light_recheck_block( block_pos );
+        return;
+    }
+    {
+        std::lock_guard<std::mutex> lock( light_work_mutex );
+        light_jobs.push_back( LightJob{ LIGHT_JOB_RECHECK, chunk, block_pos } );
+    }
+    light_work_cv.notify_one( );
+}
+
+void ChunkLoader::light_thread_loop( ) {
+    for ( ;; ) {
+        light_dbg_loop_top++;
+        std::deque<LightJob> jobs;
+        {
+            std::unique_lock<std::mutex> lock( light_work_mutex );
+            light_work_cv.wait( lock, [ this ] {
+                // The BFS queues are written only on this thread, so including
+                // them here can't miss a producer wakeup — it just keeps the
+                // loop iterating until a backlog drains fully.
+                return light_thread_stop_flag || !light_jobs.empty( ) || !light_pending_list.empty( ) ||
+                       this->light_queue_sizes( ) > 0;
+            } );
+            if ( light_thread_stop_flag ) {
+                return;
+            }
+            jobs.swap( light_jobs );
+        }
+        this->light_drain_pending( );
+        for ( LightJob &job : jobs ) {
+            if ( job.type == LIGHT_JOB_FINALIZE ) {
+                // Slot may have been recycled mid-regeneration since submit;
+                // the new dequeue submits its own finalize, so skip stale jobs.
+                if ( !job.chunk->is_loading ) {
+                    this->light_finalize_chunk( *job.chunk );
+                }
+            } else {
+                // get_chunk re-validates the slot still holds that position.
+                if ( this->get_chunk( light_chunk_pos_of( job.pos ) ) == job.chunk ) {
+                    this->light_recheck_block( job.pos );
+                }
+            }
+        }
+        light_dbg_after_jobs++;
+        light_dbg_jobs_n += jobs.size( );
+        // Bounded slice per iteration: during load-in the BFS backlog can be
+        // millions of seeds — an unbounded drain would starve new finalize
+        // jobs. The queue stays warm across iterations and still drains at
+        // full speed when the job/pending lists are empty.
+        this->light_process_queue( 2000 );
+    }
+}
+
+void ChunkLoader::light_thread_start( ) {
+#if LIGHT_ON_THREAD
+    if ( light_thread_running ) {
+        return;
+    }
+    light_thread_stop_flag = 0;
+    light_thread_running = 1;
+    light_thread = std::thread( &ChunkLoader::light_thread_loop, this );
+#endif
+}
+
+void ChunkLoader::light_thread_stop( ) {
+#if LIGHT_ON_THREAD
+    if ( !light_thread_running ) {
+        return;
+    }
+    {
+        std::lock_guard<std::mutex> lock( light_work_mutex );
+        light_thread_stop_flag = 1;
+    }
+    light_work_cv.notify_all( );
+    light_thread.join( );
+    light_thread_running = 0;
+    // Drain leftovers inline so nothing is lost across the stop boundary.
+    std::deque<LightJob> jobs;
+    {
+        std::lock_guard<std::mutex> lock( light_work_mutex );
+        jobs.swap( light_jobs );
+    }
+    this->light_drain_pending( );
+    for ( LightJob &job : jobs ) {
+        if ( job.type == LIGHT_JOB_FINALIZE ) {
+            this->light_finalize_chunk( *job.chunk );
+        } else if ( this->get_chunk( light_chunk_pos_of( job.pos ) ) == job.chunk ) {
+            this->light_recheck_block( job.pos );
+        }
+    }
+    // Bound the shutdown drain — leftover seeds are moot once chunks unload.
+    this->light_process_queue( 100000 );
+#endif
 }

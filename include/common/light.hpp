@@ -9,10 +9,15 @@
 // chunk so the fragment shader can sample light per face-adjacent air cell;
 // nothing here touches the mesh, so light updates never cause a remesh.
 //
-// All propagation runs on the render thread through ChunkLoader's queued
-// light_* methods. Workers only do the initial emitter fill in load_terrain;
-// skylight is resolved later once neighbor chunks are known (see
-// ChunkLoader::light_finalize_chunk).
+// Light mutation is single-writer: on native builds a dedicated lighting
+// thread runs finalize/propagation (docs/lighting-thread-plan.md); without it
+// (WASM without pthreads, tests) the same methods run inline on the calling
+// thread. Workers only do the initial fill in load_terrain.
+#if defined( REPGAME_WASM ) && !defined( __EMSCRIPTEN_PTHREADS__ )
+#define LIGHT_ON_THREAD 0
+#else
+#define LIGHT_ON_THREAD 1
+#endif
 
 #define LIGHT_CHANNEL_BLOCK 0
 #define LIGHT_CHANNEL_SKY 1
@@ -59,6 +64,7 @@ int light_texture_unit( );
 class Chunk;
 // Initial per-chunk light fill, run on the terrain worker from
 // Chunk::load_terrain: zeroes the volume, flood-fills emitters (block channel
-// only), and computes column_open flags. Skylight is resolved later on the
-// render thread by ChunkLoader::light_finalize_chunk.
+// only), computes column_open/fill_from, and prefills an optimistic skylight
+// assumption. Skylight is verified later on the lighting thread by
+// ChunkLoader::light_finalize_chunk.
 void light_fill_chunk( Chunk &chunk );

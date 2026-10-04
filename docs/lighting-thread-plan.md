@@ -87,3 +87,44 @@ interface is designed so this is "run K instances", not a rewrite.
   glBindTexture(GL_TEXTURE_3D)+u_LightBase per pass. Real fix is a 3D light
   texture atlas (bind once per pass) -- significant refactor.
 - light_bind/u_LightTex: glActiveTexture hoisted per render-order already.
+
+## Status: implemented (single thread)
+
+Done on branch `lighting`:
+
+- `LIGHT_ON_THREAD` in light.hpp: 1 on native, 0 on WASM-no-pthreads.
+- `ChunkLoader::light_thread_start/stop/loop` + `light_submit_finalize` /
+  `light_submit_recheck` in light.cpp. One mutex+cv (`light_work_mutex`)
+  guards jobs, pending list, dirty-upload list. Statics are file-scope —
+  ChunkLoader is effectively a singleton.
+- Render loop: `light_submit_finalize` replaces inline finalize;
+  `light_drain_pending`/`light_process_queue` only run when
+  `light_async_active()` is false (tests/WASM inline fallback preserved).
+- `world.cpp` edits enqueue `LIGHT_JOB_RECHECK` via `light_submit_recheck`.
+- Worker optimistic prefill: `light_fill_chunk` sets `sky_open_above=1` and
+  writes sky=15 from `fill_from` up so chunks never draw black between mesh
+  upload and light finalize; the cascade corrects wrong assumptions via the
+  flag-flip removal path.
+- Loop order per wake: drain pending -> jobs -> process_queue(2ms slice).
+  Predicate also wakes on non-empty BFS queues (they're light-thread-owned).
+- `cleanup()` joins the light thread BEFORE `chunk.destroy()` frees volumes.
+
+Bugs found and fixed during bring-up:
+
+- light_upload_dirty re-queued unprocessed chunks into light_dirty_list
+  WITHOUT the mutex -> concurrent vector push_back corrupted the heap
+  (malloc(): unaligned tcache chunk detected on the light thread).
+- Mirror writes via cached Chunk* (light_set_nb, border sync pass 2) used a
+  chunk_pos-derived local -> torn chunk_pos on slot reuse indexed light[]
+  OOB. All sites now validate with light_local_ok().
+- Same torn-local guard added to light_get/light_block_id_at (render-side
+  probe calls these).
+
+Measured (legacy terrain, ~2s probe intervals):
+
+- fin (dequeue+submit on render thread): ~50us/frame, was ~14ms.
+- Load-in FPS ~155-165 (was ~50-75 pre-thread, ~250 on master).
+- world_draw remains ~5.3ms/frame: ~1.3ms is per-chunk 3D-texture binds.
+- Light BFS drain ~340k seeds/s; mass load-in pushes a multi-M backlog that
+  converges in the background (visual border seams resolve late during
+  bursts).

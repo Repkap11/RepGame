@@ -301,7 +301,7 @@ void Chunk::set_block_by_index_if_different( int index, const BlockState *blockS
     this->dirty = true;
     this->needs_repopulation = true;
     // Record the change for the light engine; converted to a world-space
-    // recheck seed on the render thread (ChunkLoader::light_drain_pending).
+    // recheck seed by the lighting thread (ChunkLoader::light_drain_pending).
     if ( this->light_pending_count < static_cast<int>( sizeof( this->light_pending ) / sizeof( this->light_pending[ 0 ] ) ) ) {
         this->light_pending[ this->light_pending_count++ ] = index;
     } else {
@@ -467,7 +467,7 @@ void Chunk::load_terrain( MapStorage &map_storage ) {
     }
 skip_to_mesh:
     // Flood-fill emitters + column_open flags on the worker. Skylight is
-    // resolved on the render thread by ChunkLoader::light_finalize_chunk.
+    // resolved on the lighting thread by ChunkLoader::light_finalize_chunk.
     light_fill_chunk( *this );
 #if TERRAIN_GEN_PROFILING
     t0 = now_us( );

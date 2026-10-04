@@ -791,9 +791,10 @@ void World::set_loaded_block( const glm::ivec3 &block_pos, BlockState blockState
         // num_instances != 0, so no stale geometry draws before remeshing.
         chunk.should_render = 1;
 
-        // Flood-fill light: seed the propagation queues for this cell (block
-        // + sky channels). No-op while the chunk still has no light volume.
-        this->chunkLoader.light_recheck_block( block_pos );
+        // Flood-fill light: queue a recheck for this cell on the lighting
+        // thread (inline when it isn't running). No-op while the chunk has
+        // no light volume.
+        this->chunkLoader.light_submit_recheck( block_pos );
 
     } else {
         // This just means mouse is not pointing at a block

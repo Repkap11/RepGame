@@ -94,6 +94,7 @@ void ChunkLoader::init( const glm::dvec3 &camera_pos, const VertexBufferLayout &
     this->chunkArray = static_cast<Chunk *>( calloc( MAX_LOADED_CHUNKS, sizeof( Chunk ) ) );
     this->drawable_chunks = static_cast<Chunk **>( calloc( MAX_LOADED_CHUNKS, sizeof( Chunk * ) ) );
     this->num_drawable = 0;
+    this->light_thread_start( );
     showErrors( );
     // pr_debug( "Num Total Chunks:%d", MAX_LOADED_CHUNKS );
 
@@ -241,10 +242,11 @@ void ChunkLoader::render_chunks( Multiplayer &multiplayer, const glm::dvec3 &cam
                     // Apply any chunk diffs that arrived from the server before
                     // this chunk's terrain gen finished (Phase 2 eager requests).
                     multiplayer.apply_pending_diffs( chunk );
-                    // Blocks are final now: drain recorded diffs, resolve
-                    // skylight columns, and sync border mirrors with neighbors.
+                    // Blocks are final now: hand the chunk to the lighting
+                    // thread (cascade/border sync/propagation). Inline when
+                    // no light thread is running (tests, WASM).
                     const long long t_lfin = now_us( );
-                    this->light_finalize_chunk( chunk );
+                    this->light_submit_finalize( chunk );
                     light_dbg_us_light_fin += now_us( ) - t_lfin;
                     chunk.program_terrain( );
                 }
@@ -312,21 +314,22 @@ void ChunkLoader::render_chunks( Multiplayer &multiplayer, const glm::dvec3 &cam
         }
     }
     light_dbg_us_remesh += now_us( ) - t_remesh_start;
-    // Flood-fill lighting: convert recorded per-cell changes to recheck seeds,
-    // run the BFS queues, then push dirty regions into the 3D textures.
-    const long long t_drain = now_us( );
-    this->light_drain_pending( );
-    light_dbg_us_drain += now_us( ) - t_drain;
-    // Scale the propagation budget with backlog: under-overhang/cave floods
-    // legitimately cover every underground air cell within ~15 of lit space,
-    // which is millions of steps during mass load-in. A fixed 1ms budget left
-    // the queue growing for minutes; spending more while backlogged converges
-    // in a few frames and steady-state edits stay cheap.
-    const size_t light_backlog = this->light_add_queue_size( ) + this->light_remove_queue.size( );
-    const long long light_budget = light_backlog > 200000 ? 8000 : light_backlog > 20000 ? 3000 : LIGHT_PROPAGATE_BUDGET_US;
-    const long long t_bfs = now_us( );
-    this->light_process_queue( light_budget );
-    light_dbg_us_bfs += now_us( ) - t_bfs;
+    // Light mutation lives on the lighting thread when one runs; the inline
+    // path below is the no-thread fallback (tests, WASM without pthreads).
+    if ( !ChunkLoader::light_async_active( ) ) {
+        const long long t_drain = now_us( );
+        this->light_drain_pending( );
+        light_dbg_us_drain += now_us( ) - t_drain;
+        // Scale the propagation budget with backlog: under-overhang/cave floods
+        // legitimately cover every underground air cell within ~15 of lit
+        // space, which is millions of steps during mass load-in.
+        const size_t light_backlog = this->light_add_queue_size( ) + this->light_remove_queue.size( );
+        const long long light_budget = light_backlog > 200000 ? 8000 : light_backlog > 20000 ? 3000 : LIGHT_PROPAGATE_BUDGET_US;
+        const long long t_bfs = now_us( );
+        this->light_process_queue( light_budget );
+        light_dbg_us_bfs += now_us( ) - t_bfs;
+    }
+    // GL uploads stay render-thread-owned regardless of who marked dirty.
     this->light_upload_dirty( LIGHT_MAX_UPLOADS_PER_FRAME );
     this->rebuild_drawable_list( );
 }
@@ -437,6 +440,9 @@ void ChunkLoader::process_random_ticks( ) {
 
 void ChunkLoader::cleanup( MapStorage &map_storage ) {
     this->terrain_loading_thread.stop( );
+    // Join the light thread (draining queued work inline) before chunk.destroy
+    // frees the light volumes it may still reference.
+    this->light_thread_stop( );
     for ( int i = 0; i < MAX_LOADED_CHUNKS; i++ ) {
         Chunk &chunk = this->chunkArray[ i ];
         if ( !chunk.is_loading ) {

@@ -85,7 +85,7 @@ class Chunk {
     // Set while the chunk sits in the pending-light drain list (see
     // light_pending_enqueue) so producers don't enqueue it twice.
     int light_pending_listed;
-    // Same, for the dirty-light-volume upload list (render thread only).
+    // Same, for the dirty-light-volume upload list.
     int light_upload_listed;
 
     int can_extend_rect( const BlockState &blockState, const unsigned int *packed_lighting, const WorkingSpace *workingSpace, const glm::ivec3 &starting, const glm::ivec3 &size, const glm::ivec3 &dir ) const;
@@ -118,7 +118,7 @@ class Chunk {
     }
 };
 
-// Enqueue a chunk for render-thread light draining (light_drain_pending).
+// Enqueue a chunk for lighting-thread draining (light_drain_pending).
 // Called by Chunk::set_block_by_index_if_different from network/worker
 // threads; no-ops when the chunk is already listed.
 void light_pending_enqueue( Chunk &chunk );

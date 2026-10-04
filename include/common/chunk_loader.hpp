@@ -60,8 +60,9 @@ class ChunkLoader {
     void process_random_ticks( );
     void rebuild_drawable_list( );
 
-    // Flood-fill lighting (implemented in light.cpp). All run on the render
-    // thread: the queues only ever get pushed from render-thread code.
+    // Flood-fill lighting (implemented in light.cpp). Light-state mutation is
+    // single-writer: the dedicated lighting thread when it runs, otherwise the
+    // calling thread (tests, WASM without pthreads).
     //
     // Add seeds are bucketed by the light level written at push time and
     // popped highest-level-first (light_add_queue[channel][level]). Processing
@@ -95,6 +96,17 @@ class ChunkLoader {
     void light_border_sync( Chunk &chunk );
     void light_drain_pending( );
     void light_upload_dirty( int max_uploads );
+
+    // Lighting-thread plumbing (docs/lighting-thread-plan.md). When the
+    // thread is running, finalize/recheck calls enqueue instead of running
+    // inline; without it (tests, WASM without pthreads) everything stays
+    // synchronous on the calling thread.
+    void light_submit_finalize( Chunk &chunk );
+    void light_submit_recheck( const glm::ivec3 &block_pos );
+    static bool light_async_active( );
+    void light_thread_start( );
+    void light_thread_stop( );
+    void light_thread_loop( );
 
   public:
     void init( const glm::dvec3 &camera_pos, const VertexBufferLayout &vbl_block, const VertexBufferLayout &vbl_coords, MapStorage &map_storage );
