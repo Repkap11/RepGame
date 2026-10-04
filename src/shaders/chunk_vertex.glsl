@@ -178,16 +178,24 @@ void main() {
     // FACE_RIGHT/FRONT/LEFT/BACK = +x/+z/-x/-z. vd_data_solid puts FRONT
     // vertices at z=1.0 / BACK at z=0.0, and chunk.cpp's shading checks the
     // z+1 neighbor for FRONT (f) and z-1 for BACK (ba).
+    //
+    // Use faceType, NOT faceType_rotated: the rotation transform only
+    // rescales/repositions the box via scale/offset, so a quad's plane never
+    // leaves its axis — a LEFT quad is always the -x-most plane whatever the
+    // yaw. faceType_rotated picks which texture slot shows on that plane;
+    // using it here made rotated blocks sample light 90 degrees off-axis
+    // (and wall torches, which encode attachment as rotation 4-7, sampled
+    // straight into their own wall).
     vec3 face_normal;
-    if(faceType_rotated == FACE_TOP) {
+    if(faceType == FACE_TOP) {
         face_normal = vec3(0.0, 1.0, 0.0);
-    } else if(faceType_rotated == FACE_BOTTOM) {
+    } else if(faceType == FACE_BOTTOM) {
         face_normal = vec3(0.0, -1.0, 0.0);
-    } else if(faceType_rotated == FACE_RIGHT) {
+    } else if(faceType == FACE_RIGHT) {
         face_normal = vec3(1.0, 0.0, 0.0);
-    } else if(faceType_rotated == FACE_LEFT) {
+    } else if(faceType == FACE_LEFT) {
         face_normal = vec3(-1.0, 0.0, 0.0);
-    } else if(faceType_rotated == FACE_FRONT) {
+    } else if(faceType == FACE_FRONT) {
         face_normal = vec3(0.0, 0.0, 1.0);
     } else { // FACE_BACK
         face_normal = vec3(0.0, 0.0, -1.0);
