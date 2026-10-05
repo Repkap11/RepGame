@@ -91,6 +91,8 @@ static std::atomic<long long> light_dbg_dropped{ 0 };
 static std::atomic<long long> light_dbg_max_lag_us{ 0 };
 static std::atomic<long long> light_dbg_late_jobs{ 0 };
 static std::atomic<long long> light_dbg_max_lag_near_us{ 0 }; // lag of jobs that were near the player AT EXECUTION
+static std::atomic<long long> light_dbg_sync{ 0 };    // rechecks run synchronously on the calling thread
+static std::atomic<long long> light_dbg_rej{ 0 };     // rechecks that failed the sync claim and went async
 // TEMP frame-phase timing (µs accumulated between probes) + call counts.
 long long light_dbg_us_finalize = 0, light_dbg_us_remesh = 0, light_dbg_us_drain = 0,
           light_dbg_us_bfs = 0, light_dbg_us_upload = 0, light_dbg_us_bind = 0,
@@ -103,7 +105,7 @@ void ChunkLoader::light_dbg_stats( char *buf, size_t n ) {
     size_t jobs_now = light_jobs_depth( );
     int terrain_work = 0, terrain_results = 0;
     this->terrain_loading_thread.queue_sizes( &terrain_work, &terrain_results );
-    snprintf( buf, n, "loop=%lld aj=%lld jn=%lld pq=%lld/%lld push=%lld pop=%lld fin=%lld casc=%lld bord=%lld rech=%lld step=%lld rem=%lld drop=%lld jobs=%zu jlag=%lld jlate=%lld njlag=%lld tw=%d tr=%d"
+    snprintf( buf, n, "loop=%lld aj=%lld jn=%lld pq=%lld/%lld push=%lld pop=%lld fin=%lld casc=%lld bord=%lld rech=%lld step=%lld rem=%lld drop=%lld jobs=%zu jlag=%lld jlate=%lld njlag=%lld syn=%lld rej=%lld tw=%d tr=%d"
                       " | us: fin=%lld(lfin=%lld[fill=%lld casc=%lld bscan=%lld border=%lld]) remesh=%lld drain=%lld bfs=%lld upl=%lld(n=%lld) bind=%lld ensure=%lld(n=%lld)",
               light_dbg_loop_top, light_dbg_after_jobs, light_dbg_jobs_n,
               light_dbg_pq_calls, light_dbg_pq_nonempty,
@@ -111,6 +113,7 @@ void ChunkLoader::light_dbg_stats( char *buf, size_t n ) {
               light_dbg_border_seed, light_dbg_recheck_seed, light_dbg_step_push, light_dbg_remove_seed,
               light_dbg_dropped.load( ), jobs_now,
               light_dbg_max_lag_us.load( ), light_dbg_late_jobs.load( ), light_dbg_max_lag_near_us.load( ),
+              light_dbg_sync.load( ), light_dbg_rej.load( ),
               terrain_work, terrain_results,
               light_dbg_us_finalize, light_dbg_us_light_fin, light_dbg_us_fin_fill,
               light_dbg_us_fin_casc, light_dbg_us_fin_bscan, light_dbg_us_fin_border,
@@ -120,6 +123,8 @@ void ChunkLoader::light_dbg_stats( char *buf, size_t n ) {
     light_dbg_max_lag_us = 0;
     light_dbg_late_jobs = 0;
     light_dbg_max_lag_near_us = 0;
+    light_dbg_sync = 0;
+    light_dbg_rej = 0;
     light_dbg_pushes = light_dbg_pops = light_dbg_finalize = light_dbg_cascade_seed =
         light_dbg_border_seed = light_dbg_recheck_seed = light_dbg_step_push = light_dbg_remove_seed = 0;
     // loop/aj/jn/pq are cumulative (not reset) — reset races with the light
@@ -1873,9 +1878,11 @@ void ChunkLoader::light_submit_recheck( const glm::ivec3 &block_pos ) {
         }
     }
     if ( !claimed ) {
+        light_dbg_rej++;
         light_work_cv.notify_one( );
         return;
     }
+    light_dbg_sync++;
     this->light_recheck_block( block_pos );
     bool drain = false;
     {
