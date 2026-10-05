@@ -366,6 +366,9 @@ void Chunk::load_terrain( MapStorage &map_storage ) {
     }
     this->light_pending_count = 0;
     this->light_reseed = 0;
+    this->light_pending_listed = 0;
+    this->light_upload_listed = 0;
+    this->light_dirty_box.store( LIGHT_BOX_EMPTY, std::memory_order_relaxed );
     this->is_empty_chunk = false;
 #if TERRAIN_GEN_PROFILING
     long long t_start = now_us( );

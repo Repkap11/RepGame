@@ -1,5 +1,8 @@
 #pragma once
 
+#include <atomic>
+#include <cstdint>
+
 #include "block.hpp"
 #include "common/utils/map_storage.hpp"
 #include "renderer/renderer.hpp"
@@ -34,6 +37,10 @@ class WorkingSpace {
     bool solid;
     unsigned int packed_lighting[ NUM_FACES_IN_CUBE ];
 };
+
+// Empty sentinel for Chunk::light_dirty_box — min fields = 63 > max = 0, so
+// any decoded box with min > max on an axis is "nothing dirty".
+#define LIGHT_BOX_EMPTY 0x3FFFFULL
 
 class Chunk {
     friend class ChunkLoader;
@@ -72,11 +79,14 @@ class Chunk {
     // sky_open_above (no opaque cell anywhere above in the loaded grid).
     unsigned char *light_columns;
     unsigned int light_texture; // GL_TEXTURE_3D, 0 = not created yet
-    // Dirty region of light[] not yet uploaded, in texel coords [0,34).
-    // light_dirty == 0 means clean.
-    int light_dirty;
-    glm::ivec3 light_dirty_min;
-    glm::ivec3 light_dirty_max;
+    // Dirty texel box of light[] not yet uploaded, in texel coords [0,34):
+    // min.xyz in bits [0:5]/[6:11]/[12:17], max.xyz in [18:23]/[24:29]/[30:35]
+    // (6 bits per coord). Marks CAS-merge their texel into the box; the render
+    // thread exchanges the whole word for LIGHT_BOX_EMPTY while popping the
+    // upload list under the work mutex, so a racing mark is always either in
+    // the upload's snapshot or visibly unlisted (never lost between a box
+    // read and a flag clear).
+    std::atomic<uint64_t> light_dirty_box;
     // Cell indices (into blocks[]) changed by multiplayer diffs; converted to
     // light recheck seeds on the render thread. Overflow sets light_reseed.
     int light_pending[ 256 ];
@@ -85,8 +95,9 @@ class Chunk {
     // Set while the chunk sits in the pending-light drain list (see
     // light_pending_enqueue) so producers don't enqueue it twice.
     int light_pending_listed;
-    // Same, for the dirty-light-volume upload list.
-    int light_upload_listed;
+    // Same, for the dirty-light-volume upload list. Atomic because
+    // light_mark_dirty checks it lock-free on the hot path.
+    std::atomic<int> light_upload_listed;
 
     int can_extend_rect( const BlockState &blockState, const unsigned int *packed_lighting, const WorkingSpace *workingSpace, const glm::ivec3 &starting, const glm::ivec3 &size, const glm::ivec3 &dir ) const;
 

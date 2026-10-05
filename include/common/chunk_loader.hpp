@@ -96,6 +96,7 @@ class ChunkLoader {
     BlockID light_block_id_at( const glm::ivec3 &block_pos ) const;
     static void light_mark_dirty( Chunk &chunk, const glm::ivec3 &local );
     static void light_mark_dirty_all( Chunk &chunk );
+    static void light_upload_enqueue( Chunk &chunk );
     void light_add_seed( const glm::ivec3 &block_pos, int channel, int level );
     void light_add_step( const LightSeed &seed );
     void light_remove_step( const LightRemoveSeed &seed );

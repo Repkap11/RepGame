@@ -293,18 +293,36 @@ static std::thread light_threads[ LIGHT_WORKER_COUNT ];
 static volatile int light_thread_running = 0;
 static volatile int light_thread_stop_flag = 0;
 
-void ChunkLoader::light_mark_dirty( Chunk &chunk, const glm::ivec3 &local ) {
-    const glm::ivec3 texel = local + glm::ivec3( 1 ); // internal -> texture coords
-    if ( !chunk.light_dirty ) {
-        chunk.light_dirty = 1;
-        chunk.light_dirty_min = texel;
-        chunk.light_dirty_max = texel;
-    } else {
-        chunk.light_dirty_min = glm::min( chunk.light_dirty_min, texel );
-        chunk.light_dirty_max = glm::max( chunk.light_dirty_max, texel );
+// Pack/unpack helpers for Chunk::light_dirty_box (layout in chunk.hpp).
+// Texel coords are in [0,34) so 6 bits per component; LIGHT_BOX_EMPTY has
+// min=63 > max=0.
+static inline uint64_t light_box_pack( const glm::ivec3 &mn, const glm::ivec3 &mx ) {
+    return static_cast<uint64_t>( mn.x & 63 ) | ( static_cast<uint64_t>( mn.y & 63 ) << 6 ) |
+           ( static_cast<uint64_t>( mn.z & 63 ) << 12 ) | ( static_cast<uint64_t>( mx.x & 63 ) << 18 ) |
+           ( static_cast<uint64_t>( mx.y & 63 ) << 24 ) | ( static_cast<uint64_t>( mx.z & 63 ) << 30 );
+}
+
+static inline glm::ivec3 light_box_min( const uint64_t box ) {
+    return glm::ivec3( static_cast<int>( box & 63 ), static_cast<int>( ( box >> 6 ) & 63 ),
+                       static_cast<int>( ( box >> 12 ) & 63 ) );
+}
+
+static inline glm::ivec3 light_box_max( const uint64_t box ) {
+    return glm::ivec3( static_cast<int>( ( box >> 18 ) & 63 ), static_cast<int>( ( box >> 24 ) & 63 ),
+                       static_cast<int>( ( box >> 30 ) & 63 ) );
+}
+
+static inline uint64_t light_box_merge( const uint64_t box, const glm::ivec3 &texel ) {
+    const glm::ivec3 mn = light_box_min( box );
+    if ( mn.x > light_box_max( box ).x ) {
+        return light_box_pack( texel, texel ); // EMPTY
     }
+    return light_box_pack( glm::min( mn, texel ), glm::max( light_box_max( box ), texel ) );
+}
+
+void ChunkLoader::light_upload_enqueue( Chunk &chunk ) {
     // Hot path: only the first mark per chunk takes the lock.
-    if ( !chunk.light_upload_listed ) {
+    if ( !chunk.light_upload_listed.load( std::memory_order_acquire ) ) {
         std::lock_guard<std::mutex> lock( light_work_mutex );
         if ( !chunk.light_upload_listed ) {
             chunk.light_upload_listed = 1;
@@ -313,20 +331,38 @@ void ChunkLoader::light_mark_dirty( Chunk &chunk, const glm::ivec3 &local ) {
     }
 }
 
+void ChunkLoader::light_mark_dirty( Chunk &chunk, const glm::ivec3 &local ) {
+    const glm::ivec3 texel = local + glm::ivec3( 1 ); // internal -> texture coords
+    // CAS-merge the texel into the dirty box BEFORE the listed check: the
+    // render thread clears listed and exchanges the box in the same critical
+    // section, so a mark whose CAS misses that exchange is guaranteed to
+    // observe listed==0 and re-add the chunk — no lost updates. The CAS runs
+    // even when the box already covers the texel: as an acquire RMW it both
+    // orders the caller's light[] byte store ahead of the uploader's copy
+    // and synchronizes with the exchange so the listed==0 check below is
+    // reliable.
+    uint64_t box = chunk.light_dirty_box.load( std::memory_order_relaxed );
+    for ( ;; ) {
+        const uint64_t merged = light_box_merge( box, texel );
+        if ( chunk.light_dirty_box.compare_exchange_weak( box, merged, std::memory_order_acq_rel,
+                                                          std::memory_order_relaxed ) ) {
+            break;
+        }
+    }
+    light_upload_enqueue( chunk );
+}
+
 // Whole-volume variant for finalize/reseed paths that rewrite everything.
 // Dirty coords are texel-space (internal+1), so the full 34^3 texture is
 // 0..CHUNK_SIZE_INTERNAL_-1 inclusive.
 void ChunkLoader::light_mark_dirty_all( Chunk &chunk ) {
-    chunk.light_dirty = 1;
-    chunk.light_dirty_min = glm::ivec3( 0 );
-    chunk.light_dirty_max = glm::ivec3( CHUNK_SIZE_INTERNAL_X - 1, CHUNK_SIZE_INTERNAL_Y - 1, CHUNK_SIZE_INTERNAL_Z - 1 );
-    if ( !chunk.light_upload_listed ) {
-        std::lock_guard<std::mutex> lock( light_work_mutex );
-        if ( !chunk.light_upload_listed ) {
-            chunk.light_upload_listed = 1;
-            light_dirty_list.push_back( &chunk );
-        }
-    }
+    // The full-volume box is the union lattice's top element — a plain store
+    // can't lose a concurrent mark (any merge into it is a no-op).
+    chunk.light_dirty_box.store(
+        light_box_pack( glm::ivec3( 0 ),
+                        glm::ivec3( CHUNK_SIZE_INTERNAL_X - 1, CHUNK_SIZE_INTERNAL_Y - 1, CHUNK_SIZE_INTERNAL_Z - 1 ) ),
+        std::memory_order_release );
+    light_upload_enqueue( chunk );
 }
 
 // Write to the cell's interior owner AND to every loaded neighbor whose halo
@@ -1530,6 +1566,10 @@ void Chunk::light_ensure_texture( ) {
     // The block atlas (Texture::loadTexture) leaves UNPACK_ROW_LENGTH /
     // UNPACK_IMAGE_HEIGHT set, and the default UNPACK_ALIGNMENT=4 pads our
     // rows — set all three explicitly or the upload reads garbage.
+    // Consume the dirty box BEFORE copying so marks landing mid-upload stay
+    // pending (the chunk may not be in the list, but a mark sees listed==0
+    // or the queued entry itself picks them up next pass).
+    this->light_dirty_box.exchange( LIGHT_BOX_EMPTY, std::memory_order_acq_rel );
     for ( int i = 0; i < CHUNK_BLOCK_SIZE; i++ ) {
         light_expand_cell( this->light[ i ], s_light_upload_scratch + 2 * i );
     }
@@ -1538,7 +1578,6 @@ void Chunk::light_ensure_texture( ) {
     glPixelStorei( GL_UNPACK_ALIGNMENT, 1 );
     glTexImage3D( GL_TEXTURE_3D, 0, GL_RG8, CHUNK_SIZE_INTERNAL_X, CHUNK_SIZE_INTERNAL_Y, CHUNK_SIZE_INTERNAL_Z, 0, GL_RG, GL_UNSIGNED_BYTE, s_light_upload_scratch );
     glPixelStorei( GL_UNPACK_ALIGNMENT, 4 );
-    this->light_dirty = 0;
     glTexParameteri( GL_TEXTURE_3D, GL_TEXTURE_MIN_FILTER, GL_LINEAR );
     glTexParameteri( GL_TEXTURE_3D, GL_TEXTURE_MAG_FILTER, GL_LINEAR );
     glTexParameteri( GL_TEXTURE_3D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE );
@@ -1554,40 +1593,50 @@ void ChunkLoader::light_upload_dirty( const int max_uploads ) {
         light_dbg_us_upload += light_now_us( ) - t0;
         return;
     }
-    std::vector<Chunk *> list;
+    struct LightUploadEntry {
+        Chunk *chunk;
+        uint64_t box;
+    };
+    static std::vector<LightUploadEntry> entries;
+    entries.clear( );
     {
+        // Clear listed AND snapshot the dirty box in the same critical
+        // section that detaches the chunk from the list: a mark whose CAS
+        // misses this exchange necessarily enters the mutex after us, sees
+        // listed==0, and re-adds the chunk — the next frame's exchange picks
+        // its texel up. Entries beyond the cap stay in the list untouched.
         std::lock_guard<std::mutex> lock( light_work_mutex );
-        list.swap( light_dirty_list );
+        const size_t n = light_dirty_list.size( ) > static_cast<size_t>( max_uploads )
+                             ? static_cast<size_t>( max_uploads )
+                             : light_dirty_list.size( );
+        entries.reserve( n );
+        for ( size_t i = 0; i < n; i++ ) {
+            Chunk *chunk = light_dirty_list[ i ];
+            chunk->light_upload_listed.store( 0, std::memory_order_release );
+            entries.push_back( { chunk, chunk->light_dirty_box.exchange( LIGHT_BOX_EMPTY, std::memory_order_acq_rel ) } );
+        }
+        light_dirty_list.erase( light_dirty_list.begin( ), light_dirty_list.begin( ) + n );
     }
     int uploads = 0;
-    size_t i = 0;
-    for ( ; i < list.size( ) && uploads < max_uploads; i++ ) {
-        Chunk &chunk = *list[ i ];
-        chunk.light_upload_listed = 0;
-        if ( !chunk.light_dirty || chunk.is_loading || !chunk.light ) {
+    for ( const LightUploadEntry &e : entries ) {
+        Chunk &chunk = *e.chunk;
+        if ( e.box == LIGHT_BOX_EMPTY || chunk.is_loading || !chunk.light ) {
             continue;
         }
         // No texture yet: light_ensure_texture's full upload at first draw
-        // already covers every queued dirty region — skip the allocation here
-        // so never-drawn (faceless) chunks don't pay 38KB of VRAM.
+        // already covers every dirty texel — skip the allocation here so
+        // never-drawn (faceless) chunks don't pay 38KB of VRAM.
         if ( chunk.light_texture == 0 ) {
             continue;
         }
         uploads++;
-        // The light thread keeps marking while we upload. Box reads can tear
-        // (producers write fields without the lock): clamp into the volume and
-        // skip inverted ranges without clearing dirty so they retry next
-        // frame. A mark landing between the box read and dirty=0 is lost for
-        // this frame but self-heals on the next mark — tolerable for a light
-        // texture.
-        const glm::ivec3 lo = glm::clamp( chunk.light_dirty_min, glm::ivec3( 0 ),
+        const glm::ivec3 lo = glm::clamp( light_box_min( e.box ), glm::ivec3( 0 ),
                                         glm::ivec3( CHUNK_SIZE_INTERNAL_X - 1, CHUNK_SIZE_INTERNAL_Y - 1, CHUNK_SIZE_INTERNAL_Z - 1 ) );
-        const glm::ivec3 hi = glm::clamp( chunk.light_dirty_max, glm::ivec3( 0 ),
+        const glm::ivec3 hi = glm::clamp( light_box_max( e.box ), glm::ivec3( 0 ),
                                         glm::ivec3( CHUNK_SIZE_INTERNAL_X - 1, CHUNK_SIZE_INTERNAL_Y - 1, CHUNK_SIZE_INTERNAL_Z - 1 ) );
         if ( hi.x < lo.x || hi.y < lo.y || hi.z < lo.z ) {
             continue;
         }
-        chunk.light_dirty = 0;
         const glm::ivec3 sz = hi - lo + glm::ivec3( 1 );
         glActiveTexture( GL_TEXTURE0 + light_texture_unit( ) );
         glBindTexture( GL_TEXTURE_3D, chunk.light_texture );
@@ -1608,15 +1657,6 @@ void ChunkLoader::light_upload_dirty( const int max_uploads ) {
         glPixelStorei( GL_UNPACK_ALIGNMENT, 1 );
         glTexSubImage3D( GL_TEXTURE_3D, 0, lo.x, lo.y, lo.z, sz.x, sz.y, sz.z, GL_RG, GL_UNSIGNED_BYTE, s_light_upload_scratch );
         glPixelStorei( GL_UNPACK_ALIGNMENT, 4 );
-    }
-    // Entries past the upload cap stay dirty and keep their listed flag —
-    // push them back for next frame. Under the mutex: the light thread
-    // push_backs into the same vector.
-    if ( i < list.size( ) ) {
-        std::lock_guard<std::mutex> lock( light_work_mutex );
-        for ( ; i < list.size( ); i++ ) {
-            light_dirty_list.push_back( list[ i ] );
-        }
     }
     light_dbg_n_upload += uploads;
     light_dbg_us_upload += light_now_us( ) - t0;
