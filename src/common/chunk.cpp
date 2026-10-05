@@ -457,7 +457,7 @@ void Chunk::load_terrain( MapStorage &map_storage ) {
                 pr_debug( "Using CUDA" );
             }
             MapGen::load_block_cuda( this );
-        } else if ( LOAD_CHUNKS_SUPPORTS_HIP && MapGen::supports_hip( ) ) {
+        } else if ( LOAD_CHUNKS_SUPPORTS_HIP && MapGen::supports_hip( ) && getenv( "REPGAME_NO_HIP_MAPGEN" ) == nullptr ) {
             if ( firstTime ) {
                 firstTime = 0;
                 pr_debug( "Using HIP" );
@@ -655,7 +655,7 @@ void Chunk::calculate_populated_blocks( ) {
 
     bool used_gpu_mesh = false;
 #if defined( REPGAME_BUILD_WITH_HIP )
-    if ( LOAD_CHUNKS_SUPPORTS_HIP && MapGen::supports_hip( ) ) {
+    if ( LOAD_CHUNKS_SUPPORTS_HIP && MapGen::supports_hip( ) && getenv( "REPGAME_NO_HIP_MESH" ) == nullptr ) {
         used_gpu_mesh = mesh_gen_calculate_hip( this->blocks, workingSpace );
     }
 #endif
@@ -1173,9 +1173,37 @@ void Chunk::calculate_populated_blocks( ) {
 }
 
 void Chunk::program_terrain( ) {
+    // REPGAME_VALIDATE_INSTANCES=1: sanity-check every BlockCoords before
+    // upload. Catches host-memory corruption (stray DMA writes from
+    // concurrent GPU compute) before it reaches the GPU as garbage
+    // instances / stray fragments.
+    static const int validate_instances = getenv( "REPGAME_VALIDATE_INSTANCES" ) != nullptr;
     for ( int renderOrder = 0; renderOrder < LAST_RENDER_ORDER; renderOrder++ ) {
         RenderLayer &renderLayer = this->layers[ renderOrder ];
         if ( renderLayer.num_instances != 0 ) {
+            if ( validate_instances ) {
+                static int reported = 0;
+                const int ox = this->chunk_pos.x * CHUNK_SIZE_X;
+                const int oy = this->chunk_pos.y * CHUNK_SIZE_Y;
+                const int oz = this->chunk_pos.z * CHUNK_SIZE_Z;
+                for ( int i = 0; i < renderLayer.num_instances && reported < 40; i++ ) {
+                    const BlockCoords &b = renderLayer.populated_blocks[ i ];
+                    int bad = b.mesh_x < 1 || b.mesh_x > 32 || b.mesh_y < 1 || b.mesh_y > 32 || b.mesh_z < 1 || b.mesh_z > 32;
+                    bad |= b.face_shift > 7u;
+                    bad |= ( b.x < ox - 1.0f ) || ( b.x > ox + CHUNK_SIZE_X + 1.0f );
+                    bad |= ( b.y < oy - 1.0f ) || ( b.y > oy + CHUNK_SIZE_Y + 1.0f );
+                    bad |= ( b.z < oz - 1.0f ) || ( b.z > oz + CHUNK_SIZE_Z + 1.0f );
+                    for ( int f = 0; f < NUM_FACES_IN_CUBE; f++ ) {
+                        bad |= b.face[ f ] > 1500;
+                    }
+                    if ( bad ) {
+                        reported++;
+                        pr_debug( "VALIDATE: bad instance chunk=(%d,%d,%d) order=%d i=%d mesh=(%d,%d,%d) pos=(%.1f,%.1f,%.1f) faces=(%u,%u,%u,%u,%u,%u) shift=%u",
+                                  this->chunk_pos.x, this->chunk_pos.y, this->chunk_pos.z, renderOrder, i, b.mesh_x, b.mesh_y, b.mesh_z, b.x, b.y, b.z,
+                                  b.face[ 0 ], b.face[ 1 ], b.face[ 2 ], b.face[ 3 ], b.face[ 4 ], b.face[ 5 ], b.face_shift );
+                    }
+                }
+            }
             renderLayer.vb_coords.set_data( renderLayer.populated_blocks, sizeof( BlockCoords ) * renderLayer.num_instances );
             this->should_render = 1;
         }

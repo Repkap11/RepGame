@@ -45,20 +45,25 @@ __global__ void hip_set_block( BlockState *blocks, int chunk_x, int chunk_y, int
         }                                                                                                               \
     } while ( 0 )
 
+// Persistent per-worker device buffer — avoids hipMalloc/hipFree page-table
+// churn for every chunk during load-in. Same pattern as mesh_gen.hip's
+// thread_local buffers.
+static thread_local BlockState *d_mapgen_blocks = nullptr;
+
 __host__ bool map_gen_load_block_hip( glm::ivec3 *chunk_pos, BlockState *blocks ) {
 
-    BlockState *device_blocks;
-    HIP_CHECK( hipMalloc( &device_blocks, CHUNK_BLOCK_SIZE * sizeof( BlockState ) ) );
+    if ( !d_mapgen_blocks ) {
+        HIP_CHECK( hipMalloc( &d_mapgen_blocks, CHUNK_BLOCK_SIZE * sizeof( BlockState ) ) );
+    }
 
     int num_columns = CHUNK_SIZE_INTERNAL_X * CHUNK_SIZE_INTERNAL_Z;
-    hip_set_block<<<( num_columns + ( NUM_THREADS_PER_BLOCK - 1 ) ) / NUM_THREADS_PER_BLOCK, NUM_THREADS_PER_BLOCK, 0>>>( device_blocks, chunk_pos->x * CHUNK_SIZE_X, chunk_pos->y * CHUNK_SIZE_Y, chunk_pos->z * CHUNK_SIZE_Z );
+    hip_set_block<<<( num_columns + ( NUM_THREADS_PER_BLOCK - 1 ) ) / NUM_THREADS_PER_BLOCK, NUM_THREADS_PER_BLOCK, 0>>>( d_mapgen_blocks, chunk_pos->x * CHUNK_SIZE_X, chunk_pos->y * CHUNK_SIZE_Y, chunk_pos->z * CHUNK_SIZE_Z );
     // Kernel launch errors (e.g. no code object for this GPU's arch) are
     // reported asynchronously; check both the launch and the execution.
     HIP_CHECK( hipGetLastError( ) );
     HIP_CHECK( hipDeviceSynchronize( ) );
 
-    HIP_CHECK( hipMemcpy( blocks, device_blocks, CHUNK_BLOCK_SIZE * sizeof( BlockState ), hipMemcpyDeviceToHost ) );
-    HIP_CHECK( hipFree( device_blocks ) );
+    HIP_CHECK( hipMemcpy( blocks, d_mapgen_blocks, CHUNK_BLOCK_SIZE * sizeof( BlockState ), hipMemcpyDeviceToHost ) );
 
     return true;
 }

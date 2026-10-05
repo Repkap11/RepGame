@@ -74,7 +74,10 @@ void main() {
         packed_lighting = packed_lighting_2[faceType - 3u];
     }
     if(packed_lighting == NO_LIGHT_NO_DRAW) {
-        gl_Position = vec4(0);
+        // Emit a vertex strictly outside the clip volume (z > w) instead of
+        // vec4(0): w=0 produces NaN clip coordinates whose rasterization is
+        // undefined on some drivers.
+        gl_Position = vec4(0.0, 0.0, 2.0, 1.0);
         return;
     }
 

@@ -129,6 +129,12 @@ bool MapGen::load_block_hip( Chunk *chunk ) {
 
 #else
 int MapGen::supports_hip( ) {
+    // REPGAME_NO_HIP=1 forces the CPU path — used to isolate GPU memory
+    // corruption seen as rare single-frame garbage pixels during load-in.
+    static const int hip_disabled = getenv( "REPGAME_NO_HIP" ) != nullptr;
+    if ( hip_disabled ) {
+        return 0;
+    }
     return MapGen::host_supports_hip( );
 }
 

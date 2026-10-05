@@ -1305,6 +1305,64 @@ void RepGame::draw( float alpha ) {
         std::string prefix = "screenshot_" + std::to_string( screenshot_counter++ );
         globalGameState.world.screenshot( prefix );
     }
+
+    // REPGAME_CAPTURE_ANOMALY=1: every frame, read back the display and scan
+    // for isolated outlier pixels (the rare single-frame "random RGB" specks
+    // reported on water in MEDIUM+). On a hit, dump all FBO attachments +
+    // display via the normal screenshot path for forensics. Costs a
+    // glReadPixels per frame — diagnostic only, off by default.
+    static const int capture_anomaly = getenv( "REPGAME_CAPTURE_ANOMALY" ) != nullptr;
+    if ( capture_anomaly ) {
+        GLint viewport[ 4 ];
+        glGetIntegerv( GL_VIEWPORT, viewport );
+        const int w = viewport[ 2 ], h = viewport[ 3 ];
+        static std::vector<unsigned char> px;
+        px.resize( w * h * 4 );
+        glBindFramebuffer( GL_FRAMEBUFFER, 0 );
+        glReadBuffer( GL_BACK );
+        glReadPixels( 0, 0, w, h, GL_RGBA, GL_UNSIGNED_BYTE, px.data( ) );
+        static int anomaly_hits = 0, frames_since_hit = 999;
+        frames_since_hit++;
+        // Skip the top-left debug overlay block (imgui text is sharp enough to
+        // trip the outlier test). Origin is bottom-left.
+        const int skip_y = h - 400, skip_x = 720;
+        for ( int y = 1; y < h - 1 && anomaly_hits < 24 && frames_since_hit > 30; y++ ) {
+            for ( int x = 1; x < w - 1; x++ ) {
+                if ( y > skip_y && x < skip_x ) {
+                    continue;
+                }
+                const unsigned char *c = &px[ ( y * w + x ) * 4 ];
+                const int lum = c[ 0 ] + c[ 1 ] + c[ 2 ];
+                if ( lum < 200 ) {
+                    continue; // only bright specks
+                }
+                int worst_diff = 1000000;
+                for ( int dy = -1; dy <= 1; dy++ ) {
+                    for ( int dx = -1; dx <= 1; dx++ ) {
+                        if ( dx == 0 && dy == 0 ) {
+                            continue;
+                        }
+                        const unsigned char *n = &px[ ( ( y + dy ) * w + ( x + dx ) ) * 4 ];
+                        int d = abs( c[ 0 ] - n[ 0 ] );
+                        d = std::max( d, abs( c[ 1 ] - n[ 1 ] ) );
+                        d = std::max( d, abs( c[ 2 ] - n[ 2 ] ) );
+                        worst_diff = std::min( worst_diff, d );
+                    }
+                }
+                // Isolated: differs strongly from EVERY neighbor.
+                if ( worst_diff > 140 ) {
+                    anomaly_hits++;
+                    frames_since_hit = 0;
+                    pr_debug( "ANOMALY pixel at (%d,%d) rgb=(%d,%d,%d) min_nbr_diff=%d — dumping attachments",
+                              x, y, c[ 0 ], c[ 1 ], c[ 2 ], worst_diff );
+                    std::string prefix = "anomaly_" + std::to_string( screenshot_counter++ );
+                    globalGameState.world.screenshot( prefix );
+                    goto anomaly_done;
+                }
+            }
+        }
+    anomaly_done:;
+    }
     profiling.us_total_draw = now_us( ) - t_draw_start;
 }
 
