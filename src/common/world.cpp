@@ -168,7 +168,7 @@ void World::set_selected_block( const glm::ivec3 &selected, const bool shouldDra
 #define WATER_THRESHOLD_P ( 0.02 )
 #define WATER_THRESHOLD_N ( -0.01 )
 void World::draw( const Texture &blocksTexture, const glm::mat4 &mvp, const glm::mat4 &inv_mvp, const glm::mat4 &mvp_reflect, const glm::mat4 &mvp_sky, const glm::mat4 &mvp_sky_reflect, const int debug, const int draw_mouse_selection, const float y_height,
-                  const bool headInWater, WorldDrawQuality worldDrawQuality, const glm::dvec3 &camera_pos, const glm::ivec3 &renderOrigin, const float time_s, const float daylight ) {
+                  const bool headInWater, WorldDrawQuality worldDrawQuality, const glm::dvec3 &camera_pos, const glm::ivec3 &renderOrigin, const float time_s, const float daylight, const float min_ambient ) {
 
     const glm::vec3 renderOriginF = glm::vec3( renderOrigin );
     // Camera and block positions are rebased by u_Origin in the vertex shaders,
@@ -253,7 +253,9 @@ void World::draw( const Texture &blocksTexture, const glm::mat4 &mvp, const glm:
     this->chunkLoader.shader.set_uniform1i( "u_OpaqueFog", useFogBlend ? 1 : 0 );
     // Daylight scales the sky-light nibble sampled from each chunk's 3D light
     // volume (chunk_fragment) and dims sky/mobs/debris (object_fragment).
+    // u_MinAmbient is an absolute light floor so unlit caves are never black.
     this->chunkLoader.shader.set_uniform1f( "u_Daylight", daylight );
+    this->chunkLoader.shader.set_uniform1f( "u_MinAmbient", min_ambient );
 
     this->object_shader.set_uniform1f( "u_FogNear", fog_near );
     this->object_shader.set_uniform1f( "u_FogFar", fog_far );
@@ -265,6 +267,7 @@ void World::draw( const Texture &blocksTexture, const glm::mat4 &mvp, const glm:
     this->object_shader.set_uniform3f( "u_SkyAvgColor", fog_blend_color.r, fog_blend_color.g, fog_blend_color.b );
     this->object_shader.set_uniform1i( "u_OpaqueFog", useFogBlend ? 1 : 0 );
     this->object_shader.set_uniform1f( "u_Daylight", daylight );
+    this->object_shader.set_uniform1f( "u_MinAmbient", min_ambient );
 
     // Debris shares object_fragment.glsl, so it needs the same fog/water set.
     this->debris_shader.set_uniform1f( "u_FogNear", fog_near );
@@ -276,6 +279,7 @@ void World::draw( const Texture &blocksTexture, const glm::mat4 &mvp, const glm:
     this->debris_shader.set_uniform3f( "u_SkyAvgColor", fog_blend_color.r, fog_blend_color.g, fog_blend_color.b );
     this->debris_shader.set_uniform1i( "u_OpaqueFog", useFogBlend ? 1 : 0 );
     this->debris_shader.set_uniform1f( "u_Daylight", daylight );
+    this->debris_shader.set_uniform1f( "u_MinAmbient", min_ambient );
     this->debris_shader.set_uniform1f( "u_Time", time_s );
 
     if ( useFrameBuffer ) {

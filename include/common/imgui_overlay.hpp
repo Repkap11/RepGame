@@ -14,6 +14,11 @@ typedef struct {
     // Set by the overlay's time slider when the user drags it; RepGame reads
     // this back and applies it to globalGameState.world_time. -1 = untouched.
     long world_time_override = -1;
+    // Minimum light levels (0-1): min_ambient is an absolute floor applied in
+    // the chunk/object shaders so pitch-black caves stay faintly visible;
+    // night_ambient is a floor on the daylight factor, i.e. "moonlight".
+    float min_ambient = 0.06f;
+    float night_ambient = 0.10f;
     // Chunk-loading and lighting queue depths, refreshed once per frame by
     // RepGame::draw (see LoaderDebugStats in chunk_loader.hpp).
     LoaderDebugStats loader;

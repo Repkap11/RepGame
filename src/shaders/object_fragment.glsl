@@ -9,12 +9,17 @@ precision lowp sampler2DArray;
 
 uniform sampler2DArray u_Texture;
 uniform float u_Daylight;
+uniform float u_MinAmbient;
 uniform float u_ReflectionHeight;
 uniform int u_TintUnderWater;
 uniform int u_Underwater;
 uniform int u_DrawToReflection;
 uniform float u_ExtraAlpha;
 uniform vec3 u_Origin;
+// u_IsSky is set unconditionally by world.cpp (the sky draws through this
+// shader on every tier), so it must be declared unconditionally too — the
+// min-ambient floor uses it to keep the night sky from washing out.
+uniform int u_IsSky;
 #if !defined(REPGAME_LOW_GRAPHICS)
 uniform int u_OpaqueFog;
 
@@ -23,7 +28,6 @@ uniform float u_FogFar;
 uniform float u_WaterFogNear;
 uniform float u_WaterFogFar;
 uniform vec3 u_CameraPos;
-uniform int u_IsSky;
 uniform vec3 u_SkyAvgColor;
 #endif
 
@@ -53,8 +57,13 @@ void main( ) {
         texColor = mix( texColor, vec4( 0.122f, 0.333f, 1.0f, 1.0f ), 0.5f );
     }
     // u_Daylight dims mobs/debris at night and darkens the sky texture itself
-    // (the sky draws through this shader with u_IsSky=1).
+    // (the sky draws through this shader with u_IsSky=1). u_MinAmbient floors
+    // non-sky objects so unlit mobs/debris in caves aren't invisible — the
+    // sky itself is excluded or the night sky would wash out.
     float scene_light = v_light * u_Daylight;
+    if ( u_IsSky == 0 ) {
+        scene_light = max( scene_light, u_MinAmbient );
+    }
     vec4 lightedColor = texColor * vec4( scene_light, scene_light, scene_light, u_ExtraAlpha );
 
     vec4 finalColor = lightedColor;

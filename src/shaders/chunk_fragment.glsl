@@ -24,10 +24,12 @@ uniform sampler2DArray u_Texture;
 // Flood-fill lighting: per-chunk 34^3 GL_RG8 volume (R=sky, G=block, both
 // pre-scaled to 0-1), bound to a shared texture unit per chunk draw.
 // u_LightBase = chunk block-origin in u_Origin-rebased coords, u_Daylight
-// scales the sky channel for day/night.
+// scales the sky channel for day/night, u_MinAmbient is a light floor so
+// unlit caves are never fully black.
 uniform sampler3D u_LightTex;
 uniform vec3 u_LightBase;
 uniform float u_Daylight;
+uniform float u_MinAmbient;
 uniform float u_ReflectionHeight;
 uniform float u_RandomRotationBlocks[MAX_ROTATABLE_BLOCK];
 uniform float u_ShowRotation;
@@ -203,7 +205,9 @@ void main() {
     // them separate matters because GL_LINEAR interpolates raw texel values —
     // a packed byte would cross-contaminate the nibbles mid-gradient.
     vec2 light_sample = texture(u_LightTex, light_coord).rg;
-    float scene_light = max(light_sample.r * u_Daylight, light_sample.g);
+    // u_MinAmbient floors the result: cells with no skylight and no block
+    // light (deep caves) still get a faint ambient instead of pure black.
+    float scene_light = max(max(light_sample.r * u_Daylight, light_sample.g), u_MinAmbient);
     vec4 lightedColor = texColor * vec4(corner_light * scene_light, corner_light * scene_light, corner_light * scene_light, u_ExtraAlpha);
 
     vec4 finalColor = lightedColor;

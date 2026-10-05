@@ -1241,9 +1241,12 @@ void RepGame::draw( float alpha ) {
     glTexParameteri( globalGameState.blocksTexture.target, GL_TEXTURE_WRAP_S, GL_REPEAT );
     glTexParameteri( globalGameState.blocksTexture.target, GL_TEXTURE_WRAP_T, GL_REPEAT );
 
-    // 0.04 (deep night) .. 1.0 (noon) — scales the sky-light nibble in the
-    // chunk shader and dims sky/mobs in the object shader.
-    const float daylight = light_daylight_factor( globalGameState.world_time );
+    // ~0.04..night_ambient (deep night) .. 1.0 (noon) — scales the sky-light
+    // nibble in the chunk shader and dims sky/mobs in the object shader.
+    // The night_ambient floor is moonlight: it lifts terrain, sky, mobs, and
+    // fog together since they all scale by this same factor.
+    ImGuiDebugVars &debugVars = imgui_overlay_get_imgui_debug_vars( );
+    const float daylight = glm::max( light_daylight_factor( globalGameState.world_time ), debugVars.night_ambient );
 
     {
         const long long t_world_draw_start = now_us( );
@@ -1253,7 +1256,7 @@ void RepGame::draw( float alpha ) {
         // Wrapped to an hour so shader sine functions keep float precision.
         const float time_s = static_cast<float>( fmod( now_us( ) / 1.0e6, 3600.0 ) );
         globalGameState.world.draw( globalGameState.blocksTexture, mvp, inv_mvp, mvp_reflect, mvp_sky, mvp_sky_reflect, globalGameState.input.debug_mode, !globalGameState.input.inventory_open, render_pos.y, headInWater,
-                                    globalGameState.input.worldDrawQuality, render_pos, renderOrigin, time_s, daylight );
+                                    globalGameState.input.worldDrawQuality, render_pos, renderOrigin, time_s, daylight, debugVars.min_ambient );
         profiling.us_world_draw = now_us( ) - t_world_draw_start;
     }
 
@@ -1274,7 +1277,6 @@ void RepGame::draw( float alpha ) {
             globalGameState.survival_inventory.inventory_renderer.getBlockMetrics( block_size, cell_size );
             globalGameState.ui_overlay.draw_held_inventory_item( globalGameState.held_inventory_slot, globalGameState.is_holding_inventory_slot, globalGameState.input.mouse.absPosition.x, globalGameState.input.mouse.absPosition.y, block_size, cell_size, globalGameState.world.renderer, globalGameState.blocksTexture, globalGameState.font_renderer, globalGameState.screen.ortho_center );
         }
-        ImGuiDebugVars &debugVars = imgui_overlay_get_imgui_debug_vars( );
         debugVars.player_pos = glm::vec3( globalGameState.camera.pos );
         debugVars.world_time = globalGameState.world_time;
         debugVars.daylight = daylight;
