@@ -118,13 +118,24 @@ shards discussed earlier:
   flag + notify_all + join all, then inline drain of leftovers — unchanged.
 - `light_process_pending_chunk(Chunk&)` extracted from `light_drain_pending`
   (the latter remains the serial fallback path).
-- Near-player priority is at SUBMIT time, not claim time: jobs within
-  LIGHT_NEAR_COL_DIST (6 columns) of chunk_center and all rechecks
-  push_front into light_jobs; the first-claimable scan then finds them
-  first. A per-claim nearest-scan was tried and reverted — the O(queue x
+- Near-player priority uses two FIFO lanes (light_jobs_near /
+  light_jobs_far): near jobs append to the near lane, rechecks push its
+  front (interactive), the claim scan walks near-then-far. An earlier
+  single-deque push_front design made the near segment LIFO — the ~2900
+  near jobs at load-in pushed the earliest (most visible) chunks to the
+  back, so light next to the player converged last (njlag ~4.5s). A
+  per-claim nearest-scan was also tried and reverted — the O(queue x
   25-hash) scan under light_work_mutex convoyed the render thread's lock
-  acquisitions at load-in depths (~20 FPS). Front-insertion is O(1) and
-  self-corrects as the player moves.
+  acquisitions at load-in depths (~20 FPS).
+- light_reprioritize_jobs() runs when chunk_center changes (once per
+  chunk-boundary crossing, under the work mutex): a single pass moves
+  far-lane jobs that are now near to the back of the near lane, and
+  repartitions the dirty-upload lists the same way. Jobs never demote —
+  stale near work is harmless and demotion would churn the queues.
+- Dirty GPU uploads split the same way (light_dirty_list_near/_far):
+  uploads are capped at LIGHT_MAX_UPLOADS_PER_FRAME per frame, so a near
+  chunk marked during load-in must not FIFO-wait behind the far backlog.
+  light_upload_enqueue routes by chunk_center at mark time.
 - Seeds get the same treatment: pushes whose target column is within
   LIGHT_NEAR_COL_DIST land in light_add_queue_pri / light_remove_queue_pri,
   which light_process_queue drains strictly before the shared queues.

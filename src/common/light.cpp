@@ -85,25 +85,41 @@ static long long light_dbg_pushes = 0, light_dbg_pops = 0, light_dbg_finalize = 
 // nonzero count is not itself a bug — but a high count plus persistent dark
 // areas means dropped work that nothing re-covered.
 static std::atomic<long long> light_dbg_dropped{ 0 };
+// Per-interval max age of a job when it actually ran (submit -> execute), and
+// how many jobs waited >1s — exposes priority inversions where a visible
+// chunk's finalize sits behind a deep queue.
+static std::atomic<long long> light_dbg_max_lag_us{ 0 };
+static std::atomic<long long> light_dbg_late_jobs{ 0 };
+static std::atomic<long long> light_dbg_max_lag_near_us{ 0 }; // lag of jobs that were near the player AT EXECUTION
 // TEMP frame-phase timing (µs accumulated between probes) + call counts.
 long long light_dbg_us_finalize = 0, light_dbg_us_remesh = 0, light_dbg_us_drain = 0,
           light_dbg_us_bfs = 0, light_dbg_us_upload = 0, light_dbg_us_bind = 0,
           light_dbg_us_ensure = 0, light_dbg_n_upload = 0, light_dbg_n_ensure = 0,
           light_dbg_us_light_fin = 0, light_dbg_us_fin_fill = 0, light_dbg_us_fin_casc = 0,
           light_dbg_us_fin_bscan = 0, light_dbg_us_fin_border = 0;
+static size_t light_jobs_depth( );
+
 void ChunkLoader::light_dbg_stats( char *buf, size_t n ) {
-    snprintf( buf, n, "loop=%lld aj=%lld jn=%lld pq=%lld/%lld push=%lld pop=%lld fin=%lld casc=%lld bord=%lld rech=%lld step=%lld rem=%lld drop=%lld"
+    size_t jobs_now = light_jobs_depth( );
+    int terrain_work = 0, terrain_results = 0;
+    this->terrain_loading_thread.queue_sizes( &terrain_work, &terrain_results );
+    snprintf( buf, n, "loop=%lld aj=%lld jn=%lld pq=%lld/%lld push=%lld pop=%lld fin=%lld casc=%lld bord=%lld rech=%lld step=%lld rem=%lld drop=%lld jobs=%zu jlag=%lld jlate=%lld njlag=%lld tw=%d tr=%d"
                       " | us: fin=%lld(lfin=%lld[fill=%lld casc=%lld bscan=%lld border=%lld]) remesh=%lld drain=%lld bfs=%lld upl=%lld(n=%lld) bind=%lld ensure=%lld(n=%lld)",
               light_dbg_loop_top, light_dbg_after_jobs, light_dbg_jobs_n,
               light_dbg_pq_calls, light_dbg_pq_nonempty,
               light_dbg_pushes, light_dbg_pops, light_dbg_finalize, light_dbg_cascade_seed,
               light_dbg_border_seed, light_dbg_recheck_seed, light_dbg_step_push, light_dbg_remove_seed,
-              light_dbg_dropped.load( ),
+              light_dbg_dropped.load( ), jobs_now,
+              light_dbg_max_lag_us.load( ), light_dbg_late_jobs.load( ), light_dbg_max_lag_near_us.load( ),
+              terrain_work, terrain_results,
               light_dbg_us_finalize, light_dbg_us_light_fin, light_dbg_us_fin_fill,
               light_dbg_us_fin_casc, light_dbg_us_fin_bscan, light_dbg_us_fin_border,
               light_dbg_us_remesh, light_dbg_us_drain,
               light_dbg_us_bfs, light_dbg_us_upload, light_dbg_n_upload, light_dbg_us_bind,
               light_dbg_us_ensure, light_dbg_n_ensure );
+    light_dbg_max_lag_us = 0;
+    light_dbg_late_jobs = 0;
+    light_dbg_max_lag_near_us = 0;
     light_dbg_pushes = light_dbg_pops = light_dbg_finalize = light_dbg_cascade_seed =
         light_dbg_border_seed = light_dbg_recheck_seed = light_dbg_step_push = light_dbg_remove_seed = 0;
     // loop/aj/jn/pq are cumulative (not reset) — reset races with the light
@@ -153,12 +169,15 @@ struct LightSeedGuard {
 // in terrain-load order.
 #define LIGHT_NEAR_COL_DIST 6
 
-// Is block_pos's column within the near-player radius of center?
+// Is chunk_col within the near-player radius of center?
 // chunk_center is a racy render-thread read — fine for a priority hint, and
 // stale routing self-corrects as the player moves.
+static inline bool light_near_col( const glm::ivec3 &center, const glm::ivec3 &chunk_col ) {
+    const glm::ivec3 d = chunk_col - center;
+    return d.x * d.x + d.z * d.z <= LIGHT_NEAR_COL_DIST * LIGHT_NEAR_COL_DIST;
+}
 static inline bool light_near_center( const glm::ivec3 &center, const glm::ivec3 &block_pos ) {
-    const glm::ivec3 col = light_chunk_pos_of( block_pos ) - center;
-    return col.x * col.x + col.z * col.z <= LIGHT_NEAR_COL_DIST * LIGHT_NEAR_COL_DIST;
+    return light_near_col( center, light_chunk_pos_of( block_pos ) );
 }
 
 // level is the light value the cell holds at push time; it only determines
@@ -245,13 +264,29 @@ struct LightJob {
     LightJobType type;
     Chunk *chunk;
     glm::ivec3 pos; // FINALIZE: expected chunk_pos; RECHECK: block pos
+    long long submit_us;
 };
 
 static std::mutex light_work_mutex;
 static std::condition_variable light_work_cv;
-static std::deque<LightJob> light_jobs;
+// Two FIFO lanes: near-player jobs run before far ones, preserving submit
+// order within each lane. A single deque + push_front near-lane inverted the
+// order (LIFO) — during load-in the ~2900 near jobs pushed the earliest (and
+// most visible) chunks to the back of the near segment, so light next to the
+// player was the LAST to converge.
+static std::deque<LightJob> light_jobs_near;
+static std::deque<LightJob> light_jobs_far;
+static size_t light_jobs_depth( ) {
+    std::lock_guard<std::mutex> lock( light_work_mutex );
+    return light_jobs_near.size( ) + light_jobs_far.size( );
+}
 static std::vector<Chunk *> light_pending_list;
-static std::vector<Chunk *> light_dirty_list;
+// Dirty light volumes awaiting GPU upload, split by distance to the player —
+// uploads are capped per frame so a near chunk marked during load-in must not
+// sit behind thousands of far entries (that alone added seconds of stale
+// lighting next to the player).
+static std::vector<Chunk *> light_dirty_list_near;
+static std::vector<Chunk *> light_dirty_list_far;
 
 // Parallel workers (docs/lighting-thread-plan.md). Two jobs conflict iff
 // their chunk columns are <=2 apart in x AND z (halo mirrors reach +-1
@@ -370,10 +405,11 @@ static inline uint64_t light_box_merge( const uint64_t box, const glm::ivec3 &te
 void ChunkLoader::light_upload_enqueue( Chunk &chunk ) {
     // Hot path: only the first mark per chunk takes the lock.
     if ( !chunk.light_upload_listed.load( std::memory_order_acquire ) ) {
+        const bool near = light_near_col( this->chunk_center, chunk.chunk_pos );
         std::lock_guard<std::mutex> lock( light_work_mutex );
         if ( !chunk.light_upload_listed ) {
             chunk.light_upload_listed = 1;
-            light_dirty_list.push_back( &chunk );
+            ( near ? light_dirty_list_near : light_dirty_list_far ).push_back( &chunk );
         }
     }
 }
@@ -1646,7 +1682,7 @@ void Chunk::light_ensure_texture( ) {
 
 void ChunkLoader::light_upload_dirty( const int max_uploads ) {
     const long long t0 = light_now_us( );
-    if ( light_dirty_list.empty( ) ) {
+    if ( light_dirty_list_near.empty( ) && light_dirty_list_far.empty( ) ) {
         light_dbg_us_upload += light_now_us( ) - t0;
         return;
     }
@@ -1663,16 +1699,23 @@ void ChunkLoader::light_upload_dirty( const int max_uploads ) {
         // listed==0, and re-adds the chunk — the next frame's exchange picks
         // its texel up. Entries beyond the cap stay in the list untouched.
         std::lock_guard<std::mutex> lock( light_work_mutex );
-        const size_t n = light_dirty_list.size( ) > static_cast<size_t>( max_uploads )
-                             ? static_cast<size_t>( max_uploads )
-                             : light_dirty_list.size( );
-        entries.reserve( n );
-        for ( size_t i = 0; i < n; i++ ) {
-            Chunk *chunk = light_dirty_list[ i ];
-            chunk->light_upload_listed.store( 0, std::memory_order_release );
-            entries.push_back( { chunk, chunk->light_dirty_box.exchange( LIGHT_BOX_EMPTY, std::memory_order_acq_rel ) } );
+        size_t n = max_uploads;
+        // Near uploads first — the visible region must not wait behind the
+        // far backlog when the per-frame cap is binding.
+        for ( std::vector<Chunk *> *list : { &light_dirty_list_near, &light_dirty_list_far } ) {
+            const size_t take = list->size( ) > n ? n : list->size( );
+            entries.reserve( entries.size( ) + take );
+            for ( size_t i = 0; i < take; i++ ) {
+                Chunk *chunk = ( *list )[ i ];
+                chunk->light_upload_listed.store( 0, std::memory_order_release );
+                entries.push_back( { chunk, chunk->light_dirty_box.exchange( LIGHT_BOX_EMPTY, std::memory_order_acq_rel ) } );
+            }
+            list->erase( list->begin( ), list->begin( ) + take );
+            n -= take;
+            if ( n == 0 ) {
+                break;
+            }
         }
-        light_dirty_list.erase( light_dirty_list.begin( ), light_dirty_list.begin( ) + n );
     }
     int uploads = 0;
     for ( const LightUploadEntry &e : entries ) {
@@ -1745,19 +1788,45 @@ bool ChunkLoader::light_async_active( ) {
     return light_thread_running != 0;
 }
 
-// Push where the claim scan finds it early: near-player columns to the front,
-// everything else to the back. chunk_center is a racy render-thread read —
-// fine for a priority hint, and stale ordering self-corrects as the player
-// moves (only a snapshot of the backlog can be mis-ordered).
-static void light_submit_job( const glm::ivec3 &center, const LightJob &job ) {
+// Route by distance to the player: near columns append to the near lane
+// (FIFO — preserves submit order), everything else to the far lane. Rechecks
+// are interactive edits so they jump the near lane's own backlog too.
+// chunk_center is a racy render-thread read — fine for a priority hint; jobs
+// submitted while far get re-promoted by light_reprioritize_jobs on moves.
+static void light_submit_job( const glm::ivec3 &center, const LightJob &job_in ) {
+    LightJob job = job_in;
+    job.submit_us = light_now_us( );
     const glm::ivec3 col = job.type == LIGHT_JOB_FINALIZE ? job.pos : light_chunk_pos_of( job.pos );
-    const int dx = col.x - center.x;
-    const int dz = col.z - center.z;
-    const bool near = dx * dx + dz * dz <= LIGHT_NEAR_COL_DIST * LIGHT_NEAR_COL_DIST;
-    if ( job.type == LIGHT_JOB_RECHECK || near ) {
-        light_jobs.push_front( job );
+    const bool near = light_near_col( center, col );
+    if ( job.type == LIGHT_JOB_RECHECK ) {
+        light_jobs_near.push_front( job );
+    } else if ( near ) {
+        light_jobs_near.push_back( job );
     } else {
-        light_jobs.push_back( job );
+        light_jobs_far.push_back( job );
+    }
+}
+
+// Called when chunk_center moves: promote queued far-lane jobs (and dirty
+// uploads) that are now near the player so the visible ring converges first
+// even when the player outran the queue. Jobs never demote — stale near work
+// is harmless.
+void ChunkLoader::light_reprioritize_jobs( ) {
+    if ( !light_thread_running ) {
+        return;
+    }
+    std::lock_guard<std::mutex> lock( light_work_mutex );
+    const glm::ivec3 center = this->chunk_center;
+    std::deque<LightJob> still_far;
+    still_far.swap( light_jobs_far );
+    for ( LightJob &j : still_far ) {
+        const glm::ivec3 col = j.type == LIGHT_JOB_FINALIZE ? j.pos : light_chunk_pos_of( j.pos );
+        ( light_near_col( center, col ) ? light_jobs_near : light_jobs_far ).push_back( j );
+    }
+    std::vector<Chunk *> still_dirty;
+    still_dirty.swap( light_dirty_list_far );
+    for ( Chunk *c : still_dirty ) {
+        ( light_near_col( center, c->chunk_pos ) ? light_dirty_list_near : light_dirty_list_far ).push_back( c );
     }
 }
 
@@ -1770,7 +1839,7 @@ void ChunkLoader::light_submit_finalize( Chunk &chunk ) {
         std::lock_guard<std::mutex> lock( light_work_mutex );
         // pos identifies the column to claim AND validates the slot still
         // holds this chunk at execution time (slots recycle).
-        light_submit_job( this->chunk_center, LightJob{ LIGHT_JOB_FINALIZE, &chunk, chunk.chunk_pos } );
+        light_submit_job( this->chunk_center, LightJob{ LIGHT_JOB_FINALIZE, &chunk, chunk.chunk_pos, 0 } );
     }
     light_work_cv.notify_one( );
 }
@@ -1787,7 +1856,7 @@ void ChunkLoader::light_submit_recheck( const glm::ivec3 &block_pos ) {
     {
         std::lock_guard<std::mutex> lock( light_work_mutex );
         // Edits are interactive — always the front lane.
-        light_submit_job( this->chunk_center, LightJob{ LIGHT_JOB_RECHECK, chunk, block_pos } );
+        light_submit_job( this->chunk_center, LightJob{ LIGHT_JOB_RECHECK, chunk, block_pos, 0 } );
     }
     light_work_cv.notify_one( );
 }
@@ -1823,8 +1892,15 @@ void ChunkLoader::light_thread_loop( ) {
                     light_bfs_starve = 1;
                 }
                 // Wake only for *runnable* work — a queue full of
-                // claim-blocked jobs must not spin this loop.
-                for ( const LightJob &j : light_jobs ) {
+                // claim-blocked jobs must not spin this loop. Near lane
+                // first so workers prefer it even when both have work.
+                for ( const LightJob &j : light_jobs_near ) {
+                    const glm::ivec3 col = j.type == LIGHT_JOB_FINALIZE ? j.pos : light_chunk_pos_of( j.pos );
+                    if ( light_claim_free( col.x, col.z, j.type != LIGHT_JOB_FINALIZE ) ) {
+                        return true;
+                    }
+                }
+                for ( const LightJob &j : light_jobs_far ) {
                     const glm::ivec3 col = j.type == LIGHT_JOB_FINALIZE ? j.pos : light_chunk_pos_of( j.pos );
                     if ( light_claim_free( col.x, col.z, j.type != LIGHT_JOB_FINALIZE ) ) {
                         return true;
@@ -1840,13 +1916,18 @@ void ChunkLoader::light_thread_loop( ) {
             if ( light_thread_stop_flag ) {
                 return;
             }
-            for ( auto it = light_jobs.begin( ); it != light_jobs.end( ); ++it ) {
-                const glm::ivec3 col = it->type == LIGHT_JOB_FINALIZE ? it->pos : light_chunk_pos_of( it->pos );
-                if ( light_try_claim( col.x, col.z, it->type != LIGHT_JOB_FINALIZE ) ) {
-                    job = *it;
-                    light_jobs.erase( it );
-                    claim_col = col;
-                    have_job = claimed = true;
+            for ( std::deque<LightJob> *jobs : { &light_jobs_near, &light_jobs_far } ) {
+                for ( auto it = jobs->begin( ); it != jobs->end( ); ++it ) {
+                    const glm::ivec3 col = it->type == LIGHT_JOB_FINALIZE ? it->pos : light_chunk_pos_of( it->pos );
+                    if ( light_try_claim( col.x, col.z, it->type != LIGHT_JOB_FINALIZE ) ) {
+                        job = *it;
+                        jobs->erase( it );
+                        claim_col = col;
+                        have_job = claimed = true;
+                        break;
+                    }
+                }
+                if ( have_job ) {
                     break;
                 }
             }
@@ -1881,6 +1962,22 @@ void ChunkLoader::light_thread_loop( ) {
             }
         }
         if ( have_job ) {
+            const long long lag = light_now_us( ) - job.submit_us;
+            long long cur_lag = light_dbg_max_lag_us.load( std::memory_order_relaxed );
+            while ( lag > cur_lag &&
+                    !light_dbg_max_lag_us.compare_exchange_weak( cur_lag, lag, std::memory_order_relaxed ) ) {
+            }
+            const glm::ivec3 jcol = job.type == LIGHT_JOB_FINALIZE ? job.pos : light_chunk_pos_of( job.pos );
+            const glm::ivec3 jd = jcol - this->chunk_center;
+            if ( jd.x * jd.x + jd.z * jd.z <= LIGHT_NEAR_COL_DIST * LIGHT_NEAR_COL_DIST ) {
+                long long cn = light_dbg_max_lag_near_us.load( std::memory_order_relaxed );
+                while ( lag > cn &&
+                        !light_dbg_max_lag_near_us.compare_exchange_weak( cn, lag, std::memory_order_relaxed ) ) {
+                }
+            }
+            if ( lag > 1000000 ) {
+                light_dbg_late_jobs++;
+            }
             if ( job.type == LIGHT_JOB_FINALIZE ) {
                 // Claim was staked on the pos captured at submit — the slot
                 // must still hold that chunk or our writes aren't under the
@@ -1930,7 +2027,8 @@ void ChunkLoader::light_thread_loop( ) {
                             light_bfs_active = 0;
                             break;
                         }
-                    } else if ( light_bfs_pending.load( ) <= 0 || !light_jobs.empty( ) || !light_pending_list.empty( ) ) {
+                    } else if ( light_bfs_pending.load( ) <= 0 ||
+                                ( !light_jobs_near.empty( ) || !light_jobs_far.empty( ) ) || !light_pending_list.empty( ) ) {
                         light_bfs_active = 0;
                         break;
                     }
@@ -1966,7 +2064,11 @@ void ChunkLoader::light_thread_start( ) {
         std::deque<LightJob> jobs;
         {
             std::lock_guard<std::mutex> lock( light_work_mutex );
-            jobs.swap( light_jobs );
+            jobs.swap( light_jobs_near );
+            for ( LightJob &j : light_jobs_far ) {
+                jobs.push_back( j );
+            }
+            light_jobs_far.clear( );
         }
         for ( LightJob &job : jobs ) {
             if ( job.type == LIGHT_JOB_FINALIZE ) {
@@ -2002,14 +2104,19 @@ void ChunkLoader::light_thread_stop( ) {
     // same process doesn't see stale chunk pointers or seeds.
     {
         std::lock_guard<std::mutex> lock( light_work_mutex );
-        light_jobs.clear( );
+        light_jobs_near.clear( );
+        light_jobs_far.clear( );
         light_pending_list.clear( );
-        light_dirty_list.clear( );
+        light_dirty_list_near.clear( );
+        light_dirty_list_far.clear( );
         light_claims.clear( );
         light_bfs_active = 0;
         light_bfs_priority = 0;
         light_bfs_starve = 0;
         light_bfs_last_drain_us = 0;
+        light_dbg_max_lag_us = 0;
+        light_dbg_late_jobs = 0;
+        light_dbg_max_lag_near_us = 0;
         for ( int ch = 0; ch < 2; ch++ ) {
             for ( int level = 0; level <= LIGHT_MAX_LEVEL; level++ ) {
                 this->light_add_queue[ ch ][ level ].clear( );
@@ -2036,10 +2143,10 @@ void ChunkLoader::debug_loader_stats( LoaderDebugStats *out ) const {
     }
     {
         std::lock_guard<std::mutex> lock( light_work_mutex );
-        out->light_jobs = static_cast<int>( light_jobs.size( ) );
+        out->light_jobs = static_cast<int>( light_jobs_near.size( ) + light_jobs_far.size( ) );
         out->light_pending = static_cast<int>( light_pending_list.size( ) );
         out->light_claims = static_cast<int>( light_claims.size( ) / 25 );
-        out->light_dirty = static_cast<int>( light_dirty_list.size( ) );
+        out->light_dirty = static_cast<int>( light_dirty_list_near.size( ) + light_dirty_list_far.size( ) );
     }
     out->light_bfs_active = light_bfs_active;
     out->light_seeds = light_bfs_pending.load( );

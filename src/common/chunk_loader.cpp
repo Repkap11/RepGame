@@ -294,6 +294,9 @@ void ChunkLoader::render_chunks( Multiplayer &multiplayer, const glm::dvec3 &cam
             multiplayer.request_chunks_box( box_min, sx, sy, sz );
         }
         this->chunk_center = chunk_pos;
+        // Jobs queued while this region was far must catch up with the
+        // player — promote them into the near lane (bounded single pass).
+        this->light_reprioritize_jobs( );
     }
     this->rebuild_drawable_list( );
     const long long t_remesh_start = now_us( );

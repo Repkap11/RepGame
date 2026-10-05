@@ -103,9 +103,9 @@ class ChunkLoader {
     void light_set( const glm::ivec3 &block_pos, int channel, int value );
     void light_set_nb( Chunk *const nb_cache[ 27 ], Chunk &owner, const glm::ivec3 &block_pos, int channel, int value );
     BlockID light_block_id_at( const glm::ivec3 &block_pos ) const;
-    static void light_mark_dirty( Chunk &chunk, const glm::ivec3 &local );
-    static void light_mark_dirty_all( Chunk &chunk );
-    static void light_upload_enqueue( Chunk &chunk );
+    void light_mark_dirty( Chunk &chunk, const glm::ivec3 &local );
+    void light_mark_dirty_all( Chunk &chunk );
+    void light_upload_enqueue( Chunk &chunk );
     void light_add_seed( const glm::ivec3 &block_pos, int channel, int level );
     void light_add_step( const LightSeed &seed );
     void light_remove_step( const LightRemoveSeed &seed );
@@ -132,6 +132,10 @@ class ChunkLoader {
     // synchronous on the calling thread.
     void light_submit_finalize( Chunk &chunk );
     void light_submit_recheck( const glm::ivec3 &block_pos );
+    // Called after chunk_center moves: promotes far-lane jobs that are now
+    // near so the visible ring converges first even when the queue outran
+    // the player. Jobs never demote (stale near work is harmless).
+    void light_reprioritize_jobs( );
     static bool light_async_active( );
     void light_thread_start( );
     void light_thread_stop( );
