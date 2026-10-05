@@ -2078,6 +2078,16 @@ void ChunkLoader::light_thread_loop( ) {
                             light_bfs_active = 0;
                             break;
                         }
+                        // Rechecks bypass the priority window at claim time —
+                        // if one is queued, yield the slot so it runs now
+                        // instead of waiting out the whole drain (~25ms).
+                        // The window stays set: the drainer resumes next pass.
+                        for ( const LightJob &j : light_jobs_near ) {
+                            if ( j.type == LIGHT_JOB_RECHECK ) {
+                                light_bfs_active = 0;
+                                goto light_drain_done;
+                            }
+                        }
                     } else if ( light_bfs_pending.load( ) <= 0 ||
                                 ( !light_jobs_near.empty( ) || !light_jobs_far.empty( ) ) || !light_pending_list.empty( ) ) {
                         light_bfs_active = 0;
@@ -2085,6 +2095,7 @@ void ChunkLoader::light_thread_loop( ) {
                     }
                 }
             }
+        light_drain_done:
             light_bfs_last_drain_us.store( light_now_us( ), std::memory_order_relaxed );
             light_work_cv.notify_all( );
         }

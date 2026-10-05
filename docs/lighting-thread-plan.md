@@ -148,7 +148,10 @@ shards discussed earlier:
   otherwise, so seeds accumulated for the entire load-in and only drained
   when it stopped (pop=0 for tens of seconds; backlog ~226k). Starve
   windows drain to empty with a ~25ms cap (light_bfs_starve distinguishes
-  the exit target from the HI-triggered LO watermark).
+  the exit target from the HI-triggered LO watermark). A priority drain
+  also yields early when a RECHECK job is queued — rechecks bypass the
+  priority window at claim time, so holding the slot just delays edits up
+  to the cap.
 
 Bug found during bring-up: `light_seed_interior_boundary` was gated on
 `cells_filled > 0`, but the optimistic prefill means a correctly-predicted
