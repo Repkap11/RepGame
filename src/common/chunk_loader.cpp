@@ -28,13 +28,9 @@ static constexpr long long WASM_LOAD_BUDGET_US = 4000; // 4 ms
 // on mobile GPUs where per-call driver overhead is high. Bound the finalize
 // work per frame; undrained chunks stay in the result queue and stream in
 // over the next frames (fog hides the pop-in).
-// Desktop drivers handle uploads cheaply, so they get a larger budget to
-// keep the (much larger) chunk grid loading fast.
-#if defined( REPGAME_LINUX ) || defined( REPGAME_WINDOWS )
-static constexpr long long CHUNK_FINALIZE_BUDGET_US = 8000; // 8 ms
-#else
+// Kept tight enough that a burst of finished chunks can't eat a whole frame:
+// the load-in tail streams in over a few extra frames instead of hitching.
 static constexpr long long CHUNK_FINALIZE_BUDGET_US = 3000; // 3 ms
-#endif
 
 // Similarly bound the needs_repopulation re-mesh loop: calculate_populated_blocks
 // is full CPU meshing done on the render thread, and bursts of dirty chunks
