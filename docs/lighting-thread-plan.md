@@ -119,7 +119,12 @@ shards discussed earlier:
 - `light_process_pending_chunk(Chunk&)` extracted from `light_drain_pending`
   (the latter remains the serial fallback path).
 
-Bug found during bring-up: concurrent `push_back` on the shared
+Bug found during bring-up: `light_seed_interior_boundary` was gated on
+`cells_filled > 0`, but the optimistic prefill means a correctly-predicted
+chunk flips no flags — the scan never ran and canopy-shaded columns stayed
+black until an unrelated edit re-seeded them. Both call sites now run it
+unconditionally (the per-column lit_top early-out already covers the
+fully-dark case). Same class of bug: concurrent `push_back` on the shared
 `light_add_queue`/`light_remove_queue` deques from two claimed jobs
 corrupted deque internals (SEGV writing to a null slot). Fixed by
 `light_seed_lock`.
