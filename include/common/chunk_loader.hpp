@@ -27,6 +27,23 @@ struct LightRemoveSeed {
     unsigned char old_value;
 };
 
+// Snapshot of chunk-loading and lighting work-queue depth for the debug
+// overlay. All fields are point-in-time reads — the counts can race the
+// worker pools by a frame, which is fine for a HUD.
+struct LoaderDebugStats {
+    int terrain_queued;    // chunks waiting for a terrain worker
+    int terrain_results;   // generated chunks waiting for the render thread
+    int chunks_loading;    // slots with is_loading set
+    int chunks_drawable;
+    int light_jobs;        // queued finalize/recheck jobs
+    int light_pending;     // chunks with recorded block diffs awaiting drain
+    int light_claims;      // column-claimed jobs in flight on light workers
+    int light_dirty;       // light volumes waiting for GPU upload
+    int light_bfs_active;  // a worker is draining the seed queues
+    long long light_seeds; // pending flood-fill seeds
+    long long light_dropped; // seeds lost to missing/loading chunks (cumulative)
+};
+
 class ChunkLoader {
     friend class World;
     friend void test_setup_world( World &world );
@@ -123,6 +140,7 @@ class ChunkLoader {
     size_t light_add_queue_size( ) const;
     void light_dbg_stats( char *buf, size_t n );
     size_t light_queue_sizes( ) { return this->light_add_queue_size( ) + this->light_remove_queue.size( ); }
+    void debug_loader_stats( LoaderDebugStats *out ) const;
     void cleanup( MapStorage &map_storage );
 };
 

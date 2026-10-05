@@ -14,6 +14,9 @@ typedef struct {
     // Set by the overlay's time slider when the user drags it; RepGame reads
     // this back and applies it to globalGameState.world_time. -1 = untouched.
     long world_time_override = -1;
+    // Chunk-loading and lighting queue depths, refreshed once per frame by
+    // RepGame::draw (see LoaderDebugStats in chunk_loader.hpp).
+    LoaderDebugStats loader;
 } ImGuiDebugVars;
 
 #if ( defined( REPGAME_WINDOWS ) || defined( REPGAME_LINUX ) )

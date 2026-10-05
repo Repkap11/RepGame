@@ -1278,6 +1278,7 @@ void RepGame::draw( float alpha ) {
         debugVars.player_pos = glm::vec3( globalGameState.camera.pos );
         debugVars.world_time = globalGameState.world_time;
         debugVars.daylight = daylight;
+        globalGameState.world.chunkLoader.debug_loader_stats( &debugVars.loader );
         imgui_overlay_draw( &globalGameState.imgui_overlay, globalGameState.input );
         // The overlay's time-of-day slider writes world_time_override while
         // dragged; apply it so lighting updates without a restart.

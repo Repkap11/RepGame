@@ -80,6 +80,11 @@ static long long light_dbg_loop_top = 0, light_dbg_after_jobs = 0, light_dbg_job
 static long long light_dbg_pushes = 0, light_dbg_pops = 0, light_dbg_finalize = 0,
                  light_dbg_cascade_seed = 0, light_dbg_border_seed = 0,
                  light_dbg_recheck_seed = 0, light_dbg_step_push = 0, light_dbg_remove_seed = 0;
+// Seeds that died because their cell's chunk was missing/still loading when
+// popped. The receiving chunk's own finalize normally re-seeds coverage, so a
+// nonzero count is not itself a bug — but a high count plus persistent dark
+// areas means dropped work that nothing re-covered.
+static std::atomic<long long> light_dbg_dropped{ 0 };
 // TEMP frame-phase timing (µs accumulated between probes) + call counts.
 long long light_dbg_us_finalize = 0, light_dbg_us_remesh = 0, light_dbg_us_drain = 0,
           light_dbg_us_bfs = 0, light_dbg_us_upload = 0, light_dbg_us_bind = 0,
@@ -87,12 +92,13 @@ long long light_dbg_us_finalize = 0, light_dbg_us_remesh = 0, light_dbg_us_drain
           light_dbg_us_light_fin = 0, light_dbg_us_fin_fill = 0, light_dbg_us_fin_casc = 0,
           light_dbg_us_fin_bscan = 0, light_dbg_us_fin_border = 0;
 void ChunkLoader::light_dbg_stats( char *buf, size_t n ) {
-    snprintf( buf, n, "loop=%lld aj=%lld jn=%lld pq=%lld/%lld push=%lld pop=%lld fin=%lld casc=%lld bord=%lld rech=%lld step=%lld rem=%lld"
+    snprintf( buf, n, "loop=%lld aj=%lld jn=%lld pq=%lld/%lld push=%lld pop=%lld fin=%lld casc=%lld bord=%lld rech=%lld step=%lld rem=%lld drop=%lld"
                       " | us: fin=%lld(lfin=%lld[fill=%lld casc=%lld bscan=%lld border=%lld]) remesh=%lld drain=%lld bfs=%lld upl=%lld(n=%lld) bind=%lld ensure=%lld(n=%lld)",
               light_dbg_loop_top, light_dbg_after_jobs, light_dbg_jobs_n,
               light_dbg_pq_calls, light_dbg_pq_nonempty,
               light_dbg_pushes, light_dbg_pops, light_dbg_finalize, light_dbg_cascade_seed,
               light_dbg_border_seed, light_dbg_recheck_seed, light_dbg_step_push, light_dbg_remove_seed,
+              light_dbg_dropped.load( ),
               light_dbg_us_finalize, light_dbg_us_light_fin, light_dbg_us_fin_fill,
               light_dbg_us_fin_casc, light_dbg_us_fin_bscan, light_dbg_us_fin_border,
               light_dbg_us_remesh, light_dbg_us_drain,
@@ -434,6 +440,7 @@ void ChunkLoader::light_add_step( const LightSeed &seed ) {
     const glm::ivec3 cp = light_chunk_pos_of( seed.pos );
     Chunk *chunk = this->get_chunk( cp );
     if ( !chunk || chunk->is_loading || !chunk->light || !chunk->blocks ) {
+        light_dbg_dropped++;
         return;
     }
     const glm::ivec3 local = seed.pos - cp * CHUNK_SIZE_I;
@@ -486,6 +493,7 @@ void ChunkLoader::light_remove_step( const LightRemoveSeed &seed ) {
     const glm::ivec3 cp = light_chunk_pos_of( seed.pos );
     Chunk *chunk = this->get_chunk( cp );
     if ( !chunk || chunk->is_loading || !chunk->light || !chunk->blocks ) {
+        light_dbg_dropped++;
         return;
     }
     const glm::ivec3 local = seed.pos - cp * CHUNK_SIZE_I;
@@ -967,14 +975,19 @@ void ChunkLoader::light_seed_interior_boundary( Chunk &chunk ) {
             // Per lateral dir: interior columns get a lit_top cutoff; shell
             // dirs need a per-cell cross-chunk check.
             int nlt[ 4 ];
-            int m = CHUNK_SIZE_Y;
+            int m = lit_top;
             for ( int d = 0; d < 4; d++ ) {
                 const int nx = x + xz_dirs[ d ].x;
                 const int nz = z + xz_dirs[ d ].y;
                 if ( nx >= 0 && nx < CHUNK_SIZE_X && nz >= 0 && nz < CHUNK_SIZE_Z ) {
                     const int nci = LIGHT_COLUMN_INDEX( nx, nz );
                     nlt[ d ] = flags[ LIGHT_FLAGS_COUNT + nci ] ? flags[ LIGHT_FILL_FROM_INDEX( nx, nz ) ] : CHUNK_SIZE_Y;
-                    if ( nlt[ d ] < m ) {
+                    // Bound is the DEEPEST dark neighbor: our lit cell at y
+                    // borders darkness iff y < nlt[d] for some dir, so the
+                    // scan must reach max(nlt), not min — with min, a column
+                    // between open and shadowed neighbors (e.g. under a tree
+                    // canopy) seeded nothing and the shadow stayed dark.
+                    if ( nlt[ d ] > m ) {
                         m = nlt[ d ];
                     }
                 } else {
@@ -1879,4 +1892,27 @@ void ChunkLoader::light_thread_stop( ) {
         light_bfs_pending = 0;
     }
 #endif
+}
+
+// Point-in-time snapshot for the debug overlay. Queue/container reads take the
+// work mutex briefly; chunk/terrain counts are racy-but-harmless reads.
+void ChunkLoader::debug_loader_stats( LoaderDebugStats *out ) const {
+    memset( out, 0, sizeof( *out ) );
+    this->terrain_loading_thread.queue_sizes( &out->terrain_queued, &out->terrain_results );
+    out->chunks_drawable = this->num_drawable;
+    for ( int i = 0; i < MAX_LOADED_CHUNKS; i++ ) {
+        if ( this->chunkArray[ i ].is_loading ) {
+            out->chunks_loading++;
+        }
+    }
+    {
+        std::lock_guard<std::mutex> lock( light_work_mutex );
+        out->light_jobs = static_cast<int>( light_jobs.size( ) );
+        out->light_pending = static_cast<int>( light_pending_list.size( ) );
+        out->light_claims = static_cast<int>( light_claims.size( ) / 25 );
+        out->light_dirty = static_cast<int>( light_dirty_list.size( ) );
+    }
+    out->light_bfs_active = light_bfs_active;
+    out->light_seeds = light_bfs_pending.load( );
+    out->light_dropped = light_dbg_dropped.load( );
 }

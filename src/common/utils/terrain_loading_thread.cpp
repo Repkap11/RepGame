@@ -56,6 +56,11 @@ int TerrainLoadingThread::start( MapStorage &map_storage ) {
     return 0;
 }
 
+void TerrainLoadingThread::queue_sizes( int *work, int *results ) const {
+    *work = 0;
+    *results = result_linked_list ? result_linked_list->count : 0;
+}
+
 void TerrainLoadingThread::stop( ) {
 }
 
@@ -134,6 +139,17 @@ Chunk *TerrainLoadingThread::dequeue( ) {
     } else {
         return NULL;
     }
+}
+
+void TerrainLoadingThread::queue_sizes( int *work, int *results ) const {
+    // count is only mutated under each list's own mutex; lock briefly so the
+    // overlay doesn't read a torn value mid-push/pop.
+    pthread_mutex_lock( &this->work_linked_list->mutex );
+    *work = this->work_linked_list->count;
+    pthread_mutex_unlock( &this->work_linked_list->mutex );
+    pthread_mutex_lock( &this->result_linked_list->mutex );
+    *results = this->result_linked_list->count;
+    pthread_mutex_unlock( &this->result_linked_list->mutex );
 }
 
 #endif // else REPGAME_WASM

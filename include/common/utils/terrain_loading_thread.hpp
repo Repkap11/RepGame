@@ -18,4 +18,5 @@ class TerrainLoadingThread {
     void enqueue( Chunk *chunk, const glm::ivec3 &new_chunk_pos, int persist );
     Chunk *dequeue( );
     void stop( );
+    void queue_sizes( int *work, int *results ) const;
 };

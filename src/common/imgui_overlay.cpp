@@ -107,6 +107,16 @@ void imgui_overlay_draw( ImGuiOverlay *imgui_overlay, Input &input ) {
             const int clock_minutes = static_cast<int>( ( debug_vars.world_time % DAY_LENGTH_TICKS ) * 24 * 60 / DAY_LENGTH_TICKS );
             ImGui::Text( "Time: %02d:%02d (daylight %.2f)  [PgUp/PgDn]", clock_minutes / 60, clock_minutes % 60, debug_vars.daylight );
 
+            ImGui::Separator( );
+            ImGui::Text( "Chunks: loading %d (queued %d, results %d), drawable %d",
+                         debug_vars.loader.chunks_loading, debug_vars.loader.terrain_queued,
+                         debug_vars.loader.terrain_results, debug_vars.loader.chunks_drawable );
+            ImGui::Text( "Light: jobs %d, pending %d, seeds %lld, claims %d, dirty %d%s",
+                         debug_vars.loader.light_jobs, debug_vars.loader.light_pending,
+                         debug_vars.loader.light_seeds, debug_vars.loader.light_claims,
+                         debug_vars.loader.light_dirty, debug_vars.loader.light_bfs_active ? " [BFS]" : "" );
+            ImGui::Text( "Light dropped: %lld (seeds lost to loading chunks)", debug_vars.loader.light_dropped );
+
             // debug_vars.corner1.x = round( debug_vars.corner1.x * 20 ) / 20;
             // debug_vars.corner1.y = round( debug_vars.corner1.y * 20 ) / 20;
 

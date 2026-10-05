@@ -524,6 +524,15 @@ int test_lighting( ) {
     world.set_loaded_block( glm::ivec3( 10, 10, 10 ), BLOCK_STATE_AIR );
     cl.light_process_queue( 1000000 );
 
+    // Regression: an overhang present BEFORE finalize must still get lateral
+    // skylight — the interior band scan seeds lit cells facing deeper-dark
+    // neighbor columns. Writing the block directly (not set_loaded_block)
+    // keeps it out of the recheck path, which would seed around it and mask
+    // the scan; light_finalize_chunk is the path terrain features take.
+    chunk.blocks[ chunk.get_index_from_coords( 5, 30, 5 ) ] = stone;
+    cl.light_ensure_columns( chunk );
+    cl.light_compute_one_column( chunk, 5, 5 );
+
     // --- Sky channel: finalize runs the per-column cascade. All-air chunk
     // opens every column, so skylight reaches the bottom at full strength.
     cl.light_finalize_chunk( chunk );
@@ -540,6 +549,8 @@ int test_lighting( ) {
     check_light( "under sky blocker", glm::ivec3( 20, 29, 20 ), LIGHT_CHANNEL_SKY, 14 );
     check_light( "deep under sky blocker", glm::ivec3( 20, 0, 20 ), LIGHT_CHANNEL_SKY, 14 );
     check_light( "open neighbor column", glm::ivec3( 21, 30, 20 ), LIGHT_CHANNEL_SKY, 15 );
+    check_light( "under finalize-time canopy", glm::ivec3( 5, 29, 5 ), LIGHT_CHANNEL_SKY, 14 );
+    check_light( "deep under finalize-time canopy", glm::ivec3( 5, 0, 5 ), LIGHT_CHANNEL_SKY, 14 );
     return failures;
 }
 

@@ -714,10 +714,10 @@ void block_definitions_initilize_definitions( Texture *texture ) {
         block_definitions[ BARRIER ].needs_place_on_any_solid[ face ] = false;
         block_definitions[ DARK_BARRIER ].needs_place_on_any_solid[ face ] = false;
     }
-    block_definitions[ GRASS_TUFT ].casts_shadow = true;
-    block_definitions[ GRASS_TUFT2 ].casts_shadow = true;
-    block_definitions[ GRASS_TUFT3 ].casts_shadow = true;
-    block_definitions[ GRASS_TUFT4 ].casts_shadow = true;
+    // block_definitions[ GRASS_TUFT ].casts_shadow = true;
+    // block_definitions[ GRASS_TUFT2 ].casts_shadow = true;
+    // block_definitions[ GRASS_TUFT3 ].casts_shadow = true;
+    // block_definitions[ GRASS_TUFT4 ].casts_shadow = true;
 
     // Survival-mode break times in seconds (bare hands). Foliage, transparent
     // and liquid blocks were set to instant (0) in the render-order pass
