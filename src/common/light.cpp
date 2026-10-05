@@ -119,6 +119,7 @@ size_t ChunkLoader::light_add_queue_size( ) const {
     for ( int ch = 0; ch < 2; ch++ ) {
         for ( int level = 0; level <= LIGHT_MAX_LEVEL; level++ ) {
             total += this->light_add_queue[ ch ][ level ].size( );
+            total += this->light_add_queue_pri[ ch ][ level ].size( );
         }
     }
     return total;
@@ -145,13 +146,47 @@ struct LightSeedGuard {
     }
 };
 
+// Near-player radius in chunk columns for the priority lanes (seeds below)
+// and the front-of-queue job lane (light_submit_job). A chunk's lighting only
+// converges once its neighborhood is processed, so a few chunks around the
+// player jump the backlog and their block ring settles together instead of
+// in terrain-load order.
+#define LIGHT_NEAR_COL_DIST 6
+
+// Is block_pos's column within the near-player radius of center?
+// chunk_center is a racy render-thread read — fine for a priority hint, and
+// stale routing self-corrects as the player moves.
+static inline bool light_near_center( const glm::ivec3 &center, const glm::ivec3 &block_pos ) {
+    const glm::ivec3 col = light_chunk_pos_of( block_pos ) - center;
+    return col.x * col.x + col.z * col.z <= LIGHT_NEAR_COL_DIST * LIGHT_NEAR_COL_DIST;
+}
+
 // level is the light value the cell holds at push time; it only determines
 // which bucket the seed lands in (higher first), not what gets propagated.
+// Near-player seeds go to the priority lane drained first by
+// light_process_queue — otherwise they FIFO-mix behind the whole streaming
+// backlog and the chunk under the player updates last.
 void ChunkLoader::light_add_seed( const glm::ivec3 &block_pos, const int channel, const int level ) {
     const int clamped = level < 0 ? 0 : level > LIGHT_MAX_LEVEL ? LIGHT_MAX_LEVEL : level;
     light_dbg_pushes++;
     LightSeedGuard guard;
-    this->light_add_queue[ channel ][ clamped ].push_back( { block_pos, static_cast<unsigned char>( channel ) } );
+    if ( light_near_center( this->chunk_center, block_pos ) ) {
+        this->light_add_queue_pri[ channel ][ clamped ].push_back( { block_pos, static_cast<unsigned char>( channel ) } );
+    } else {
+        this->light_add_queue[ channel ][ clamped ].push_back( { block_pos, static_cast<unsigned char>( channel ) } );
+    }
+    light_bfs_pending++;
+}
+
+void ChunkLoader::light_push_remove_seed( const glm::ivec3 &block_pos, const int channel, const int old_value ) {
+    LightSeedGuard guard;
+    if ( light_near_center( this->chunk_center, block_pos ) ) {
+        this->light_remove_queue_pri.push_back(
+            { block_pos, static_cast<unsigned char>( channel ), static_cast<unsigned char>( old_value ) } );
+    } else {
+        this->light_remove_queue.push_back(
+            { block_pos, static_cast<unsigned char>( channel ), static_cast<unsigned char>( old_value ) } );
+    }
     light_bfs_pending++;
 }
 
@@ -234,6 +269,18 @@ static volatile int light_bfs_priority = 0;
 #define LIGHT_BFS_PRI_HI 3000000
 #define LIGHT_BFS_PRI_LO 400000
 #define LIGHT_BFS_PRI_MAX_US 100000
+
+// Starvation window: a drain also needs light_claims.empty(), which during
+// continuous streaming effectively never happens — the backlog then sits
+// (pop=0 for whole seconds) and even near-player light only converges when
+// streaming stops. If the BFS hasn't run for STARVE_US with a non-trivial
+// backlog, open the same priority window: finalize claims pause, in-flight
+// claims finish, the drainer runs until the backlog empties or the cap.
+static volatile int light_bfs_starve = 0; // priority window was time-triggered
+static std::atomic<long long> light_bfs_last_drain_us{ 0 };
+#define LIGHT_BFS_STARVE_MIN 2048     // backlog worth interrupting claims for
+#define LIGHT_BFS_STARVE_US 100000    // max time between drains during streaming
+#define LIGHT_BFS_STARVE_MAX_US 25000 // drain cap inside a starve window
 
 static inline long long light_col_key( int cx, int cz ) {
     return ( static_cast<long long>( cx ) << 32 ) | static_cast<unsigned int>( cz );
@@ -568,11 +615,7 @@ void ChunkLoader::light_remove_step( const LightRemoveSeed &seed ) {
                 this->light_set( n, seed.channel, floor_v );
             }
             light_dbg_remove_seed++;
-            {
-                LightSeedGuard guard;
-                this->light_remove_queue.push_back( { n, seed.channel, static_cast<unsigned char>( nv ) } );
-                light_bfs_pending++;
-            }
+            this->light_push_remove_seed( n, seed.channel, nv );
             if ( floor_v > 0 ) {
                 this->light_add_seed( n, seed.channel, floor_v );
             }
@@ -592,6 +635,34 @@ void ChunkLoader::light_process_queue( const long long budget_us ) {
         if ( light_now_us( ) - start >= budget_us ) {
             return;
         }
+        // Near-player lanes first: the chunk ring around the player converges
+        // during streaming instead of when the far backlog finally empties.
+        if ( !this->light_remove_queue_pri.empty( ) ) {
+            const LightRemoveSeed seed = this->light_remove_queue_pri.front( );
+            this->light_remove_queue_pri.pop_front( );
+            light_bfs_pending--;
+            light_dbg_pops++;
+            this->light_remove_step( seed );
+            continue;
+        }
+        bool did_work = false;
+        for ( int level = LIGHT_MAX_LEVEL; level >= 0 && !did_work; level-- ) {
+            for ( int ch = 0; ch < 2; ch++ ) {
+                std::deque<LightSeed> &bucket = this->light_add_queue_pri[ ch ][ level ];
+                if ( !bucket.empty( ) ) {
+                    const LightSeed seed = bucket.front( );
+                    bucket.pop_front( );
+                    light_bfs_pending--;
+                    light_dbg_pops++;
+                    this->light_add_step( seed );
+                    did_work = true;
+                    break;
+                }
+            }
+        }
+        if ( did_work ) {
+            continue;
+        }
         if ( !this->light_remove_queue.empty( ) ) {
             const LightRemoveSeed seed = this->light_remove_queue.front( );
             this->light_remove_queue.pop_front( );
@@ -603,7 +674,6 @@ void ChunkLoader::light_process_queue( const long long budget_us ) {
         // Highest-level-first: a cell that pops here can't be offered a better
         // value later (any better offer would route through a higher-level
         // seed that was already processed), so each cell settles once.
-        bool did_work = false;
         for ( int level = LIGHT_MAX_LEVEL; level >= 0 && !did_work; level-- ) {
             for ( int ch = 0; ch < 2; ch++ ) {
                 std::deque<LightSeed> &bucket = this->light_add_queue[ ch ][ level ];
@@ -718,11 +788,7 @@ void ChunkLoader::light_cascade_column( const int world_x, const int world_z ) {
                     if ( v > 0 ) {
                         this->light_set( pos, LIGHT_CHANNEL_SKY, 0 );
                         light_dbg_remove_seed++;
-                        {
-                            LightSeedGuard guard;
-                            this->light_remove_queue.push_back( { pos, LIGHT_CHANNEL_SKY, static_cast<unsigned char>( v ) } );
-                            light_bfs_pending++;
-                        }
+                        this->light_push_remove_seed( pos, LIGHT_CHANNEL_SKY, v );
                         break;
                     }
                 }
@@ -822,11 +888,7 @@ int ChunkLoader::light_cascade_columns( Chunk &start_chunk ) {
                             if ( v > 0 ) {
                                 this->light_set( pos, LIGHT_CHANNEL_SKY, 0 );
                                 light_dbg_remove_seed++;
-                                {
-                                    LightSeedGuard guard;
-                                    this->light_remove_queue.push_back( { pos, LIGHT_CHANNEL_SKY, static_cast<unsigned char>( v ) } );
-                                    light_bfs_pending++;
-                                }
+                                this->light_push_remove_seed( pos, LIGHT_CHANNEL_SKY, v );
                                 break;
                             }
                         }
@@ -887,11 +949,7 @@ void ChunkLoader::light_recheck_block( const glm::ivec3 &block_pos ) {
             this->light_set( block_pos, ch, floor_v );
             if ( floor_v < old_v ) {
                 light_dbg_remove_seed++;
-                {
-                    LightSeedGuard guard;
-                    this->light_remove_queue.push_back( { block_pos, static_cast<unsigned char>( ch ), static_cast<unsigned char>( old_v ) } );
-                    light_bfs_pending++;
-                }
+                this->light_push_remove_seed( block_pos, ch, old_v );
             }
         }
         // Re-pull from neighbors: pushes into this cell whatever they offer,
@@ -1326,9 +1384,7 @@ void ChunkLoader::light_border_sync( Chunk &chunk ) {
                     const int new_v = ch == LIGHT_CHANNEL_BLOCK ? light_get_block( canon ) : light_get_sky( canon );
                     if ( rem_old[ ch ] > new_v ) {
                         light_dbg_remove_seed++;
-                        LightSeedGuard guard;
-                        this->light_remove_queue.push_back( { w, static_cast<unsigned char>( ch ), static_cast<unsigned char>( rem_old[ ch ] ) } );
-                        light_bfs_pending++;
+                        this->light_push_remove_seed( w, ch, rem_old[ ch ] );
                     }
                     if ( new_v <= 1 ) {
                         continue; // offered = new_v-1 can't light anything
@@ -1689,12 +1745,6 @@ bool ChunkLoader::light_async_active( ) {
     return light_thread_running != 0;
 }
 
-// Near-player radius in chunk columns for the front-of-queue lane. A chunk's
-// lighting only converges once its neighborhood is processed, so a few chunks
-// around the player jump the (possibly thousands-deep) backlog and their
-// block ring settles together instead of in terrain-load order.
-#define LIGHT_NEAR_COL_DIST 6
-
 // Push where the claim scan finds it early: near-player columns to the front,
 // everything else to the back. chunk_center is a racy render-thread read —
 // fine for a priority hint, and stale ordering self-corrects as the player
@@ -1763,8 +1813,14 @@ void ChunkLoader::light_thread_loop( ) {
                 if ( light_thread_stop_flag ) {
                     return true;
                 }
-                if ( light_bfs_pending.load( ) > LIGHT_BFS_PRI_HI ) {
+                const long long pend = light_bfs_pending.load( );
+                if ( pend > LIGHT_BFS_PRI_HI ) {
                     light_bfs_priority = 1;
+                    light_bfs_starve = 0;
+                } else if ( pend > LIGHT_BFS_STARVE_MIN &&
+                            light_now_us( ) - light_bfs_last_drain_us.load( std::memory_order_relaxed ) > LIGHT_BFS_STARVE_US ) {
+                    light_bfs_priority = 1;
+                    light_bfs_starve = 1;
                 }
                 // Wake only for *runnable* work — a queue full of
                 // claim-blocked jobs must not spin this loop.
@@ -1853,7 +1909,9 @@ void ChunkLoader::light_thread_loop( ) {
             // no jobs/pending are waiting — yielding each slice would just
             // ping-pong the slot while other workers stand idle. In a
             // priority window jobs are claim-blocked anyway: drain to the low
-            // watermark or the time cap, whichever first.
+            // watermark or the time cap, whichever first. A starve-triggered
+            // window drains to empty (bounded by a shorter cap) — the backlog
+            // it interrupts is small by definition.
             const long long pri_start = light_now_us( );
             for ( ;; ) {
                 this->light_process_queue( 2000 );
@@ -1864,9 +1922,11 @@ void ChunkLoader::light_thread_loop( ) {
                         break;
                     }
                     if ( light_bfs_priority ) {
-                        if ( light_bfs_pending.load( ) <= LIGHT_BFS_PRI_LO ||
-                             light_now_us( ) - pri_start > LIGHT_BFS_PRI_MAX_US ) {
+                        const long long floor = light_bfs_starve ? 0 : LIGHT_BFS_PRI_LO;
+                        const long long cap = light_bfs_starve ? LIGHT_BFS_STARVE_MAX_US : LIGHT_BFS_PRI_MAX_US;
+                        if ( light_bfs_pending.load( ) <= floor || light_now_us( ) - pri_start > cap ) {
                             light_bfs_priority = 0;
+                            light_bfs_starve = 0;
                             light_bfs_active = 0;
                             break;
                         }
@@ -1876,6 +1936,7 @@ void ChunkLoader::light_thread_loop( ) {
                     }
                 }
             }
+            light_bfs_last_drain_us.store( light_now_us( ), std::memory_order_relaxed );
             light_work_cv.notify_all( );
         }
     }
@@ -1947,12 +2008,16 @@ void ChunkLoader::light_thread_stop( ) {
         light_claims.clear( );
         light_bfs_active = 0;
         light_bfs_priority = 0;
+        light_bfs_starve = 0;
+        light_bfs_last_drain_us = 0;
         for ( int ch = 0; ch < 2; ch++ ) {
             for ( int level = 0; level <= LIGHT_MAX_LEVEL; level++ ) {
                 this->light_add_queue[ ch ][ level ].clear( );
+                this->light_add_queue_pri[ ch ][ level ].clear( );
             }
         }
         this->light_remove_queue.clear( );
+        this->light_remove_queue_pri.clear( );
         light_bfs_pending = 0;
     }
 #endif

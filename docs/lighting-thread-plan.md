@@ -125,6 +125,19 @@ shards discussed earlier:
   25-hash) scan under light_work_mutex convoyed the render thread's lock
   acquisitions at load-in depths (~20 FPS). Front-insertion is O(1) and
   self-corrects as the player moves.
+- Seeds get the same treatment: pushes whose target column is within
+  LIGHT_NEAR_COL_DIST land in light_add_queue_pri / light_remove_queue_pri,
+  which light_process_queue drains strictly before the shared queues.
+  Without this, near seeds FIFO-mix behind the whole streaming backlog and
+  the chunk under the player converges last even though its job ran first.
+- A STARVATION window complements the backlog-size window: if
+  light_bfs_pending > LIGHT_BFS_STARVE_MIN and no drain has run for
+  LIGHT_BFS_STARVE_US (~100ms), light_bfs_priority opens even below the HI
+  watermark — during streaming claims.empty() basically never happens
+  otherwise, so seeds accumulated for the entire load-in and only drained
+  when it stopped (pop=0 for tens of seconds; backlog ~226k). Starve
+  windows drain to empty with a ~25ms cap (light_bfs_starve distinguishes
+  the exit target from the HI-triggered LO watermark).
 
 Bug found during bring-up: `light_seed_interior_boundary` was gated on
 `cells_filled > 0`, but the optimistic prefill means a correctly-predicted

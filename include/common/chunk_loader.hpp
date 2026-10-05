@@ -89,6 +89,15 @@ class ChunkLoader {
     // and re-walk its neighbors, so the load-in flood never converged.
     std::deque<LightSeed> light_add_queue[ 2 ][ LIGHT_MAX_LEVEL + 1 ];
     std::deque<LightRemoveSeed> light_remove_queue;
+    // Near-player lanes (see LIGHT_NEAR_COL_DIST in light.cpp): seeds whose
+    // target column sits near chunk_center are pushed here instead and
+    // drained before the shared queues, so the region around the player
+    // converges during streaming rather than when the whole backlog empties.
+    // Same bucketing as the normal queues; light_bfs_pending covers both.
+    std::deque<LightSeed> light_add_queue_pri[ 2 ][ LIGHT_MAX_LEVEL + 1 ];
+    std::deque<LightRemoveSeed> light_remove_queue_pri;
+    // push_back a remove seed under light_seed_lock, routed by distance.
+    void light_push_remove_seed( const glm::ivec3 &block_pos, int channel, int old_value );
     static int light_emit_at( const Chunk &chunk, int index );
     int light_get( const glm::ivec3 &block_pos, int channel ) const;
     void light_set( const glm::ivec3 &block_pos, int channel, int value );
@@ -140,7 +149,7 @@ class ChunkLoader {
     BlockID light_probe_id( const glm::ivec3 &pos ) { return this->light_block_id_at( pos ); }
     size_t light_add_queue_size( ) const;
     void light_dbg_stats( char *buf, size_t n );
-    size_t light_queue_sizes( ) { return this->light_add_queue_size( ) + this->light_remove_queue.size( ); }
+    size_t light_queue_sizes( ) { return this->light_add_queue_size( ) + this->light_remove_queue.size( ) + this->light_remove_queue_pri.size( ); }
     void debug_loader_stats( LoaderDebugStats *out ) const;
     void cleanup( MapStorage &map_storage );
 };
