@@ -318,6 +318,16 @@ static volatile int light_bfs_priority = 0;
 // claims finish, the drainer runs until the backlog empties or the cap.
 static volatile int light_bfs_starve = 0; // priority window was time-triggered
 static std::atomic<long long> light_bfs_last_drain_us{ 0 };
+
+// A recheck's own writes (the emit cell, mirror cells, cascade clears) mark
+// dirty the moment they run, but their propagation spread only writes when a
+// BFS drain pops the seeds — during load-in that is frames later, so the
+// torch cell appears lit while the halo around it is still dark. While
+// light_defer_marks > 0, light_mark_dirty appends to this list instead; the
+// marks flush at the start of the next drain so the emit cell and its spread
+// upload in the same pass. Guarded by light_work_mutex.
+static std::atomic<int> light_defer_marks{ 0 };
+static std::vector<std::pair<Chunk *, glm::ivec3>> light_deferred_marks;
 #define LIGHT_BFS_STARVE_MIN 2048     // backlog worth interrupting claims for
 #define LIGHT_BFS_STARVE_US 100000    // max time between drains during streaming
 #define LIGHT_BFS_STARVE_MAX_US 25000 // drain cap inside a starve window
@@ -419,7 +429,7 @@ void ChunkLoader::light_upload_enqueue( Chunk &chunk ) {
     }
 }
 
-void ChunkLoader::light_mark_dirty( Chunk &chunk, const glm::ivec3 &local ) {
+void ChunkLoader::light_mark_dirty_now( Chunk &chunk, const glm::ivec3 &local ) {
     const glm::ivec3 texel = local + glm::ivec3( 1 ); // internal -> texture coords
     // CAS-merge the texel into the dirty box BEFORE the listed check: the
     // render thread clears listed and exchanges the box in the same critical
@@ -438,6 +448,31 @@ void ChunkLoader::light_mark_dirty( Chunk &chunk, const glm::ivec3 &local ) {
         }
     }
     light_upload_enqueue( chunk );
+}
+
+void ChunkLoader::light_mark_dirty( Chunk &chunk, const glm::ivec3 &local ) {
+    if ( light_defer_marks.load( std::memory_order_relaxed ) > 0 ) {
+        std::lock_guard<std::mutex> lock( light_work_mutex );
+        light_deferred_marks.push_back( { &chunk, local } );
+        return;
+    }
+    light_mark_dirty_now( chunk, local );
+}
+
+void ChunkLoader::light_flush_deferred_marks( ) {
+    std::vector<std::pair<Chunk *, glm::ivec3>> pending;
+    {
+        std::lock_guard<std::mutex> lock( light_work_mutex );
+        pending.swap( light_deferred_marks );
+    }
+    for ( const auto &e : pending ) {
+        // The slot may have recycled between recheck and drain — a stale mark
+        // on a recycled chunk is harmless (extra texel region), but skip
+        // chunks with no live volume.
+        if ( e.first->light && !e.first->is_loading ) {
+            light_mark_dirty_now( *e.first, e.second );
+        }
+    }
 }
 
 // Whole-volume variant for finalize/reseed paths that rewrite everything.
@@ -674,6 +709,7 @@ void ChunkLoader::light_process_queue( const long long budget_us ) {
     light_dbg_pq_calls++;
     for ( ;; ) {
         if ( light_now_us( ) - start >= budget_us ) {
+            this->light_flush_deferred_marks( );
             return;
         }
         // Near-player lanes first: the chunk ring around the player converges
@@ -730,13 +766,14 @@ void ChunkLoader::light_process_queue( const long long budget_us ) {
             }
         }
         if ( !did_work ) {
+            // Deferred recheck marks ride the end of a drain: the emit cell's
+            // mark lands after the spread marks its seeds just wrote, so the
+            // source can't upload a frame ahead of its own halo.
+            this->light_flush_deferred_marks( );
             return;
         }
     }
 }
-
-// ---------------------------------------------------------------------------
-// Columns / skylight
 // ---------------------------------------------------------------------------
 
 void ChunkLoader::light_ensure_columns( Chunk &chunk ) {
@@ -966,6 +1003,12 @@ void ChunkLoader::light_recheck_block( const glm::ivec3 &block_pos ) {
     }
     const Block *def = block_definition_get_definition( st.id );
 
+    // Defer this edit's dirty marks to the next drain (see light_defer_marks):
+    // the emit cell then uploads together with the spread it seeds instead of
+    // lighting a frame or more before it.
+    const long long pend_before = light_bfs_pending.load( std::memory_order_relaxed );
+    light_defer_marks++;
+
     // Opacity changes can open/close a sky column.
     if ( chunk->light_columns ) {
         unsigned char &col_flag = chunk->light_columns[ LIGHT_COLUMN_INDEX( local.x, local.z ) ];
@@ -1007,6 +1050,14 @@ void ChunkLoader::light_recheck_block( const glm::ivec3 &block_pos ) {
             light_dbg_recheck_seed++;
             this->light_add_seed( block_pos, ch, self_v );
         }
+    }
+
+    light_defer_marks--;
+    // No seeds -> no drain is coming to flush the deferred marks; do it now.
+    // (Pops can't run while we hold our claim, so pending only grew if we
+    // or a concurrent claimed job pushed.)
+    if ( light_bfs_pending.load( std::memory_order_relaxed ) <= pend_before ) {
+        this->light_flush_deferred_marks( );
     }
 }
 
@@ -2188,6 +2239,8 @@ void ChunkLoader::light_thread_stop( ) {
         this->light_remove_queue.clear( );
         this->light_remove_queue_pri.clear( );
         light_bfs_pending = 0;
+        light_deferred_marks.clear( );
+        light_defer_marks = 0;
     }
 #endif
 }

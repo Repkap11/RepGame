@@ -179,6 +179,15 @@ GPU upload handoff (atomic dirty box):
   same reason (marks mid-upload stay pending). The per-frame upload cap
   bounds the pop itself, so unprocessed entries keep their boxes — no
   requeue path that could strand consumed marks.
+- Recheck-source marks defer (`light_defer_marks`/`light_deferred_marks`):
+  a `light_recheck_block` writes the edited cell's emit value directly, so
+  its dirty mark would otherwise reach the GPU a few frames before the BFS
+  spread it seeded (visually: lone bright torch, then the halo pops in).
+  Marks made under a recheck instead queue in `light_deferred_marks` and
+  flush at the top of the next `light_process_queue` — before that drain
+  pops the recheck's seeds — so the source texel and its propagated halo
+  enter the upload list in the same drain and upload together. A recheck
+  that produced zero seeds flushes immediately (no drain will come).
 
 Measured (legacy terrain, ~2s probe intervals, 4 workers):
 
