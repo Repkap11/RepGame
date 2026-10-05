@@ -1,5 +1,6 @@
 #include <string.h>
 #include <chrono>
+#include <vector>
 
 #include "common/RepGame.hpp"
 #include "common/chunk.hpp"
@@ -22,102 +23,129 @@ constexpr static unsigned int ib_data_flowers[] = {
     10, 9, 7,  //
 };
 
+// ---- Shared index buffer --------------------------------------------------
+// A chunk's index data is a pure function of its 6-bit face-visibility mask
+// (which cube faces point toward the player), so instead of every chunk owning
+// per-layer GL buffers — re-uploaded whenever a center plane crossing flipped
+// a chunk's visibility row — all variants live in one shared element buffer
+// and each layer stores a {byte offset, element count} pair. calculate_sides
+// becomes pure CPU (~free) and can run on any thread.
+
+// Mask bits in the order the old per-chunk buffers appended faces.
+#define VIS_FRONT 1u
+#define VIS_RIGHT 2u
+#define VIS_BACK 4u
+#define VIS_LEFT 8u
+#define VIS_TOP 16u
+#define VIS_BOTTOM 32u
+
+static IndexBuffer s_chunk_ib;
+static bool s_chunk_ib_ready = false;
+static std::vector<unsigned int> s_ib_data;
+static unsigned int s_ib_opaque_off[ 64 ], s_ib_opaque_cnt[ 64 ];
+static unsigned int s_ib_water_off[ 4 ], s_ib_water_cnt[ 4 ];
+static unsigned int s_ib_translucent_off[ 2 ]; // [0]=normal, [1]=reflect — 72 elements each
+static unsigned int s_ib_flowers_off;
+static bool s_ib_tables_ready = false;
+
+// Pure CPU: fills the variant tables and s_ib_data. Bit order within each
+// variant matches the old append order: front, right, back, left, top, bottom.
+static void chunk_ib_init_tables( ) {
+    if ( s_ib_tables_ready ) {
+        return;
+    }
+    s_ib_tables_ready = true;
+    static const int face_for_bit[ 6 ] = { FACE_FRONT, FACE_RIGHT, FACE_BACK, FACE_LEFT, FACE_TOP, FACE_BOTTOM };
+    const auto append_face = [&]( const unsigned int *src ) {
+        s_ib_data.insert( s_ib_data.end( ), src, src + 12 );
+    };
+    for ( unsigned int mask = 0; mask < 64; mask++ ) {
+        s_ib_opaque_off[ mask ] = static_cast<unsigned int>( s_ib_data.size( ) ) * sizeof( unsigned int );
+        unsigned int n = 0;
+        for ( int bit = 0; bit < 6; bit++ ) {
+            if ( mask & ( 1u << bit ) ) {
+                append_face( ib_data_solid + 12 * face_for_bit[ bit ] );
+                n += 12;
+            }
+        }
+        s_ib_opaque_cnt[ mask ] = n;
+    }
+    // Translucent always draws all six faces; the reflect variant swaps the
+    // top/bottom faces because the mirrored world flips y.
+    static const int trans_order[ 2 ][ 6 ] = {
+        { FACE_FRONT, FACE_RIGHT, FACE_BACK, FACE_LEFT, FACE_TOP, FACE_BOTTOM },
+        { FACE_FRONT, FACE_RIGHT, FACE_BACK, FACE_LEFT, FACE_BOTTOM, FACE_TOP },
+    };
+    for ( int v = 0; v < 2; v++ ) {
+        s_ib_translucent_off[ v ] = static_cast<unsigned int>( s_ib_data.size( ) ) * sizeof( unsigned int );
+        for ( int f = 0; f < 6; f++ ) {
+            append_face( ib_data_solid + 12 * trans_order[ v ][ f ] );
+        }
+    }
+    // Water only has top/bottom faces and no reflect variant (the old path
+    // left its ib_reflect empty, and the reflect pass skips water anyway).
+    for ( unsigned int mask = 0; mask < 4; mask++ ) {
+        s_ib_water_off[ mask ] = static_cast<unsigned int>( s_ib_data.size( ) ) * sizeof( unsigned int );
+        unsigned int n = 0;
+        if ( mask & 1u ) {
+            append_face( ib_data_water + 12 * IB_POSITION_WATER_TOP );
+            n += 12;
+        }
+        if ( mask & 2u ) {
+            append_face( ib_data_water + 12 * IB_POSITION_WATER_BOTTOM );
+            n += 12;
+        }
+        s_ib_water_cnt[ mask ] = n;
+    }
+    s_ib_flowers_off = static_cast<unsigned int>( s_ib_data.size( ) ) * sizeof( unsigned int );
+    s_ib_data.insert( s_ib_data.end( ), ib_data_flowers, ib_data_flowers + sizeof( ib_data_flowers ) / sizeof( ib_data_flowers[ 0 ] ) );
+}
+
+// GL upload of the shared buffer — idempotent, called from ensure_gl_init
+// (which already runs on the context-owning render thread).
+static void chunk_ib_upload( ) {
+    chunk_ib_init_tables( );
+    if ( s_chunk_ib_ready ) {
+        return;
+    }
+    s_chunk_ib.init( );
+    s_chunk_ib.set_data( s_ib_data.data( ), static_cast<unsigned int>( s_ib_data.size( ) ) );
+    s_chunk_ib_ready = true;
+}
+
 void Chunk::calculate_sides( const glm::ivec3 &center_next ) {
-    // Use fixed-size stack buffers instead of malloc/free per call.
-    // IB_SOLID_SIZE (72) is the largest index buffer size across render orders.
-    static constexpr int MAX_IB_SIZE = IB_SOLID_SIZE;
-    unsigned int chunk_ib_data[ LAST_RENDER_ORDER ][ MAX_IB_SIZE ];
-    unsigned int chunk_ib_data_reflect[ LAST_RENDER_ORDER ][ MAX_IB_SIZE ];
-    int ib_size[ LAST_RENDER_ORDER ] = { 0 };
+    chunk_ib_init_tables( );
+    const unsigned int vis_top = this->chunk_pos.y <= center_next.y;
+    const unsigned int vis_bottom = this->chunk_pos.y >= center_next.y;
+    const unsigned int vis_right = this->chunk_pos.x <= center_next.x;
+    const unsigned int vis_left = this->chunk_pos.x >= center_next.x;
+    const unsigned int vis_front = this->chunk_pos.z <= center_next.z;
+    const unsigned int vis_back = this->chunk_pos.z >= center_next.z;
+    const unsigned int mask = vis_front | ( vis_right << 1 ) | ( vis_back << 2 ) | ( vis_left << 3 ) | ( vis_top << 4 ) | ( vis_bottom << 5 );
+    // The reflected world flips y: the reflect variant swaps top/bottom.
+    const unsigned int mask_reflect = ( mask & ~( VIS_TOP | VIS_BOTTOM ) ) | ( ( mask & VIS_TOP ) << 1 ) | ( ( mask & VIS_BOTTOM ) >> 1 );
 
-    for ( int i = 0; i < 12; i++ ) {
-        chunk_ib_data_reflect[ RenderOrder_Translucent ][ ib_size[ RenderOrder_Translucent ] ] = ib_data_solid[ 12 * FACE_FRONT + i ];
-        chunk_ib_data[ RenderOrder_Translucent ][ ib_size[ RenderOrder_Translucent ]++ ] = ib_data_solid[ 12 * FACE_FRONT + i ];
-    }
-    for ( int i = 0; i < 12; i++ ) {
-        chunk_ib_data_reflect[ RenderOrder_Translucent ][ ib_size[ RenderOrder_Translucent ] ] = ib_data_solid[ 12 * FACE_RIGHT + i ];
-        chunk_ib_data[ RenderOrder_Translucent ][ ib_size[ RenderOrder_Translucent ]++ ] = ib_data_solid[ 12 * FACE_RIGHT + i ];
-    }
-    for ( int i = 0; i < 12; i++ ) {
-        chunk_ib_data_reflect[ RenderOrder_Translucent ][ ib_size[ RenderOrder_Translucent ] ] = ib_data_solid[ 12 * FACE_BACK + i ];
-        chunk_ib_data[ RenderOrder_Translucent ][ ib_size[ RenderOrder_Translucent ]++ ] = ib_data_solid[ 12 * FACE_BACK + i ];
-    }
-    for ( int i = 0; i < 12; i++ ) {
-        chunk_ib_data_reflect[ RenderOrder_Translucent ][ ib_size[ RenderOrder_Translucent ] ] = ib_data_solid[ 12 * FACE_LEFT + i ];
-        chunk_ib_data[ RenderOrder_Translucent ][ ib_size[ RenderOrder_Translucent ]++ ] = ib_data_solid[ 12 * FACE_LEFT + i ];
-    }
-    for ( int i = 0; i < 12; i++ ) {
-        chunk_ib_data_reflect[ RenderOrder_Translucent ][ ib_size[ RenderOrder_Translucent ] ] = ib_data_solid[ 12 * FACE_BOTTOM + i ];
-        chunk_ib_data[ RenderOrder_Translucent ][ ib_size[ RenderOrder_Translucent ]++ ] = ib_data_solid[ 12 * FACE_TOP + i ];
-    }
-    for ( int i = 0; i < 12; i++ ) {
-        chunk_ib_data_reflect[ RenderOrder_Translucent ][ ib_size[ RenderOrder_Translucent ] ] = ib_data_solid[ 12 * FACE_TOP + i ];
-        chunk_ib_data[ RenderOrder_Translucent ][ ib_size[ RenderOrder_Translucent ]++ ] = ib_data_solid[ 12 * FACE_BOTTOM + i ];
-    }
+    RenderLayer &opaque = this->layers[ RenderOrder_Opaque ];
+    opaque.ib_offset[ 0 ] = s_ib_opaque_off[ mask ];
+    opaque.ib_count[ 0 ] = s_ib_opaque_cnt[ mask ];
+    opaque.ib_offset[ 1 ] = s_ib_opaque_off[ mask_reflect ];
+    opaque.ib_count[ 1 ] = s_ib_opaque_cnt[ mask_reflect ];
 
-    const bool visible_top = this->chunk_pos.y <= center_next.y;
-    const bool visible_bottom = this->chunk_pos.y >= center_next.y;
-    const bool visible_right = this->chunk_pos.x <= center_next.x;
-    const bool visible_left = this->chunk_pos.x >= center_next.x;
-    const bool visible_front = this->chunk_pos.z <= center_next.z;
-    const bool visible_back = this->chunk_pos.z >= center_next.z;
+    RenderLayer &translucent = this->layers[ RenderOrder_Translucent ];
+    translucent.ib_offset[ 0 ] = s_ib_translucent_off[ 0 ];
+    translucent.ib_offset[ 1 ] = s_ib_translucent_off[ 1 ];
+    translucent.ib_count[ 0 ] = translucent.ib_count[ 1 ] = IB_SOLID_SIZE;
 
-    if ( visible_front ) {
-        for ( int i = 0; i < 12; i++ ) {
-            chunk_ib_data_reflect[ RenderOrder_Opaque ][ ib_size[ RenderOrder_Opaque ] ] = ib_data_solid[ 12 * FACE_FRONT + i ];
-            chunk_ib_data[ RenderOrder_Opaque ][ ib_size[ RenderOrder_Opaque ]++ ] = ib_data_solid[ 12 * FACE_FRONT + i ];
-        }
-    }
-    if ( visible_right ) {
-        for ( int i = 0; i < 12; i++ ) {
-            chunk_ib_data_reflect[ RenderOrder_Opaque ][ ib_size[ RenderOrder_Opaque ] ] = ib_data_solid[ 12 * FACE_RIGHT + i ];
-            chunk_ib_data[ RenderOrder_Opaque ][ ib_size[ RenderOrder_Opaque ]++ ] = ib_data_solid[ 12 * FACE_RIGHT + i ];
-        }
-    }
-    if ( visible_back ) {
-        for ( int i = 0; i < 12; i++ ) {
-            chunk_ib_data_reflect[ RenderOrder_Opaque ][ ib_size[ RenderOrder_Opaque ] ] = ib_data_solid[ 12 * FACE_BACK + i ];
-            chunk_ib_data[ RenderOrder_Opaque ][ ib_size[ RenderOrder_Opaque ]++ ] = ib_data_solid[ 12 * FACE_BACK + i ];
-        }
-    }
-    if ( visible_left ) {
-        for ( int i = 0; i < 12; i++ ) {
-            chunk_ib_data_reflect[ RenderOrder_Opaque ][ ib_size[ RenderOrder_Opaque ] ] = ib_data_solid[ 12 * FACE_LEFT + i ];
-            chunk_ib_data[ RenderOrder_Opaque ][ ib_size[ RenderOrder_Opaque ]++ ] = ib_data_solid[ 12 * FACE_LEFT + i ];
-        }
-    }
-    if ( visible_top ) {
-        for ( int i = 0; i < 12; i++ ) {
-            chunk_ib_data_reflect[ RenderOrder_Opaque ][ ib_size[ RenderOrder_Opaque ] ] = ib_data_solid[ 12 * FACE_BOTTOM + i ];
-            chunk_ib_data[ RenderOrder_Opaque ][ ib_size[ RenderOrder_Opaque ]++ ] = ib_data_solid[ 12 * FACE_TOP + i ];
-            chunk_ib_data[ RenderOrder_Water ][ ib_size[ RenderOrder_Water ]++ ] = ib_data_water[ 12 * IB_POSITION_WATER_TOP + i ];
-        }
-    }
-    if ( visible_bottom ) {
-        for ( int i = 0; i < 12; i++ ) {
-            chunk_ib_data_reflect[ RenderOrder_Opaque ][ ib_size[ RenderOrder_Opaque ] ] = ib_data_solid[ 12 * FACE_TOP + i ];
-            chunk_ib_data[ RenderOrder_Opaque ][ ib_size[ RenderOrder_Opaque ]++ ] = ib_data_solid[ 12 * FACE_BOTTOM + i ];
-            chunk_ib_data[ RenderOrder_Water ][ ib_size[ RenderOrder_Water ]++ ] = ib_data_water[ 12 * IB_POSITION_WATER_BOTTOM + i ];
-        }
-    }
+    RenderLayer &water = this->layers[ RenderOrder_Water ];
+    const unsigned int water_mask = vis_top | ( vis_bottom << 1 );
+    water.ib_offset[ 0 ] = s_ib_water_off[ water_mask ];
+    water.ib_count[ 0 ] = s_ib_water_cnt[ water_mask ];
+    water.ib_offset[ 1 ] = 0;
+    water.ib_count[ 1 ] = 0;
 
-    for ( int renderOrder = 1; renderOrder < LAST_RENDER_ORDER; renderOrder++ ) {
-        const unsigned int *ib_data = chunk_ib_data[ renderOrder ];
-        const unsigned int *ib_data_reflect = chunk_ib_data_reflect[ renderOrder ];
-        unsigned int ib_new_size = ib_size[ renderOrder ];
-        if ( renderOrder == RenderOrder_Flowers ) {
-            ib_data = ib_data_flowers;
-            ib_data_reflect = ib_data_flowers;
-            ib_new_size = render_order_ib_size( static_cast<RenderOrder>( renderOrder ) );
-        } else if ( renderOrder == RenderOrder_Opaque || renderOrder == RenderOrder_Water || renderOrder == RenderOrder_Translucent ) {
-        } else {
-            pr_debug( "Unexpected index buffer. Crash likely on WASM ro:%d", renderOrder );
-        }
-        this->layers[ renderOrder ].ib.set_data( ib_data, ib_new_size );
-        if constexpr ( SUPPORTS_FRAME_BUFFER ) {
-            this->layers[ renderOrder ].ib_reflect.set_data( ib_data_reflect, ib_new_size );
-        }
-    }
+    RenderLayer &flowers = this->layers[ RenderOrder_Flowers ];
+    flowers.ib_offset[ 0 ] = flowers.ib_offset[ 1 ] = s_ib_flowers_off;
+    flowers.ib_count[ 0 ] = flowers.ib_count[ 1 ] = render_order_ib_size( RenderOrder_Flowers );
 }
 
 int Chunk::get_coords_from_index( const int index, int &out_x, int &out_y, int &out_z ) {
@@ -170,15 +198,13 @@ void Chunk::ensure_gl_init( ) {
         const VertexBuffer &vb = *vb_prt;
 
         RenderLayer &renderLayer = this->layers[ renderOrder ];
-        renderLayer.ib.init( );
-        if constexpr ( SUPPORTS_FRAME_BUFFER ) {
-            renderLayer.ib_reflect.init( );
-        }
         renderLayer.vb_coords.init( );
         renderLayer.va.init( );
         renderLayer.va.add_buffer( vb, *s_vbl_block );
         renderLayer.va.add_buffer( renderLayer.vb_coords, *s_vbl_coords );
     }
+    // Index data comes from the shared per-mask buffer — upload it once.
+    chunk_ib_upload( );
 }
 
 void Chunk::destroy( ) {
@@ -198,10 +224,6 @@ void Chunk::destroy( ) {
         }
         RenderLayer &renderLayer = layer;
         renderLayer.populated_blocks = nullptr;
-        renderLayer.ib.destroy( );
-        if constexpr ( SUPPORTS_FRAME_BUFFER ) {
-            renderLayer.ib_reflect.destroy( );
-        }
         renderLayer.vb_coords.destroy( );
         renderLayer.va.destroy( );
     }
@@ -213,13 +235,7 @@ void Chunk::draw( const Renderer &renderer, const Texture &texture, Shader &shad
         if ( this->is_loading ) {
             pr_debug( "Error, attempting to render loading chunk" );
         }
-        const IndexBuffer *active_ib_prt;
-        if ( draw_reflect ) {
-            active_ib_prt = &renderLayer.ib_reflect;
-        } else {
-            active_ib_prt = &renderLayer.ib;
-        }
-        const IndexBuffer &active_ib = *active_ib_prt;
+        const unsigned int ib_pass = draw_reflect ? 1 : 0;
         // Bind this chunk's light volume to the shared light texture unit.
         // u_LightBase is the chunk's world origin in the rebased (u_Origin)
         // coordinate frame the shader uses; see chunk_fragment.glsl.
@@ -240,7 +256,8 @@ void Chunk::draw( const Renderer &renderer, const Texture &texture, Shader &shad
         light_dbg_us_bind += std::chrono::duration_cast<std::chrono::microseconds>(
             std::chrono::steady_clock::now( ).time_since_epoch( ) ).count( ) - t_bind;
         // Texture wrap mode is now set once per render order in ChunkLoader::draw.
-        renderer.draw( renderLayer.va, active_ib, shader, renderLayer.num_instances );
+        renderer.draw( renderLayer.va, s_chunk_ib, shader, renderLayer.num_instances,
+                       renderLayer.ib_count[ ib_pass ], renderLayer.ib_offset[ ib_pass ] );
     }
 }
 
