@@ -1853,12 +1853,56 @@ void ChunkLoader::light_submit_recheck( const glm::ivec3 &block_pos ) {
         this->light_recheck_block( block_pos );
         return;
     }
+    // Fast path for interactive edits: if this column's footprint is claimable
+    // right now (no conflicting claim and no BFS drain — light_try_claim
+    // enforces both), run the recheck on the calling thread and drain the
+    // seeds it produced immediately. A torch's spread is a few hundred cells,
+    // so this finishes in well under the 2 ms slice cap, and the dirty marks
+    // it leaves get picked up by this frame's light_upload_dirty — the edit's
+    // light lands in the SAME frame instead of waiting out the
+    // submit → wake → claim → BFS chain (~1-2 frames). If the footprint is
+    // busy (load-in, starve-window drain, another worker's job), fall back to
+    // the async lane — correctness is identical, just slower.
+    const glm::ivec3 col = light_chunk_pos_of( block_pos );
+    bool claimed = false;
     {
         std::lock_guard<std::mutex> lock( light_work_mutex );
-        // Edits are interactive — always the front lane.
-        light_submit_job( this->chunk_center, LightJob{ LIGHT_JOB_RECHECK, chunk, block_pos, 0 } );
+        claimed = light_try_claim( col.x, col.z, true );
+        if ( !claimed ) {
+            light_submit_job( this->chunk_center, LightJob{ LIGHT_JOB_RECHECK, chunk, block_pos, 0 } );
+        }
     }
-    light_work_cv.notify_one( );
+    if ( !claimed ) {
+        light_work_cv.notify_one( );
+        return;
+    }
+    this->light_recheck_block( block_pos );
+    bool drain = false;
+    {
+        std::lock_guard<std::mutex> lock( light_work_mutex );
+        light_release_claim( col.x, col.z );
+        // Take the BFS slot ourselves only if nothing else is in flight —
+        // the drainer requires light_claims.empty() since a popped seed can
+        // write anywhere. Otherwise the workers drain our seeds normally.
+        if ( !light_bfs_active && light_claims.empty( ) && light_bfs_pending.load( ) > 0 ) {
+            light_bfs_active = 1;
+            drain = true;
+        }
+    }
+    if ( drain ) {
+        this->light_process_queue( 2000 );
+        {
+            std::lock_guard<std::mutex> lock( light_work_mutex );
+            // Clear any priority window too: it exists to get a drainer
+            // running, and our drain just handled that — the wait predicate
+            // re-opens it if a real backlog remains.
+            light_bfs_active = 0;
+            light_bfs_priority = 0;
+            light_bfs_starve = 0;
+        }
+        light_bfs_last_drain_us.store( light_now_us( ), std::memory_order_relaxed );
+    }
+    light_work_cv.notify_all( );
 }
 
 // Worker loop: claim a job's 5x5 column footprint, run it without the lock,
