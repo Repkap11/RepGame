@@ -220,15 +220,24 @@ static std::vector<Chunk *> light_dirty_list;
 // is mutually exclusive with claimed work via light_bfs_active.
 static std::unordered_set<long long> light_claims; // claimed (x,z) columns
 static volatile int light_bfs_active = 0;
+// Backlog-priority window: while set, no NEW finalize claims are granted so
+// in-flight claims drain and a BFS drain can run; interactive work (rechecks,
+// pending diffs) still claims so block edits stay responsive. Hysteresis
+// (HI/LO) plus a time cap keep the window from starving finalizes forever.
+static volatile int light_bfs_priority = 0;
+#define LIGHT_BFS_PRI_HI 3000000
+#define LIGHT_BFS_PRI_LO 400000
+#define LIGHT_BFS_PRI_MAX_US 100000
 
 static inline long long light_col_key( int cx, int cz ) {
     return ( static_cast<long long>( cx ) << 32 ) | static_cast<unsigned int>( cz );
 }
 
 // Footprint is free (no claim in flight overlapping cx,cz +-2)? Also requires
-// no BFS drain running — a popped seed writes cells anywhere, unconstrained.
-static bool light_claim_free( int cx, int cz ) {
-    if ( light_bfs_active ) {
+// no BFS drain running — a popped seed writes cells anywhere, unconstrained —
+// and, unless bypass_priority, that no backlog-priority window is in effect.
+static bool light_claim_free( int cx, int cz, const bool bypass_priority ) {
+    if ( light_bfs_active || ( light_bfs_priority && !bypass_priority ) ) {
         return false;
     }
     for ( int dx = -2; dx <= 2; dx++ ) {
@@ -244,8 +253,8 @@ static bool light_claim_free( int cx, int cz ) {
 // Stamp the 5x5 footprint. Caller holds light_work_mutex. On conflict,
 // already-inserted keys are rolled back (only ours — erase could otherwise
 // remove a co-claimer's key).
-static bool light_try_claim( int cx, int cz ) {
-    if ( light_bfs_active ) {
+static bool light_try_claim( int cx, int cz, const bool bypass_priority ) {
+    if ( light_bfs_active || ( light_bfs_priority && !bypass_priority ) ) {
         return false;
     }
     long long claimed[ 25 ];
@@ -1209,6 +1218,7 @@ void ChunkLoader::light_border_sync( Chunk &chunk ) {
                 }
                 const glm::ivec3 w = base + glm::ivec3( x, y, z );
                 const unsigned char canon = chunk.light[ light_index( x, y, z ) ];
+                int rem_old[ 2 ] = { 0, 0 };
 
                 int axis_opts[ 3 ][ 2 ];
                 int axis_count[ 3 ] = { 1, 1, 1 };
@@ -1251,22 +1261,65 @@ void ChunkLoader::light_border_sync( Chunk &chunk ) {
                             for ( int ch = 0; ch < 2; ch++ ) {
                                 const int old_v = ch == LIGHT_CHANNEL_BLOCK ? light_get_block( old_mirror ) : light_get_sky( old_mirror );
                                 const int new_v = ch == LIGHT_CHANNEL_BLOCK ? light_get_block( canon ) : light_get_sky( canon );
-                                if ( old_v > new_v ) {
-                                    // The mirror reflects what neighbors last
-                                    // propagated with — removal of the stale
-                                    // value cleans their interior.
-                                    light_dbg_remove_seed++;
-                                    {
-                                        LightSeedGuard guard;
-                                        this->light_remove_queue.push_back( { w, static_cast<unsigned char>( ch ), static_cast<unsigned char>( old_v ) } );
-                                        light_bfs_pending++;
-                                    }
-                                }
-                                if ( new_v > 0 ) {
-                                    light_dbg_border_seed++;
-                                    this->light_add_seed( w, ch, new_v );
+                                // The mirror reflects what neighbors last
+                                // propagated with — removal of the stale
+                                // value cleans their interior. Dedup: push at
+                                // most one remove seed per (cell, channel),
+                                // with the largest stale value seen.
+                                if ( old_v > new_v && old_v > rem_old[ ch ] ) {
+                                    rem_old[ ch ] = old_v;
                                 }
                             }
+                        }
+                    }
+                }
+                for ( int ch = 0; ch < 2; ch++ ) {
+                    const int new_v = ch == LIGHT_CHANNEL_BLOCK ? light_get_block( canon ) : light_get_sky( canon );
+                    if ( rem_old[ ch ] > new_v ) {
+                        light_dbg_remove_seed++;
+                        LightSeedGuard guard;
+                        this->light_remove_queue.push_back( { w, static_cast<unsigned char>( ch ), static_cast<unsigned char>( rem_old[ ch ] ) } );
+                        light_bfs_pending++;
+                    }
+                    if ( new_v <= 1 ) {
+                        continue; // offered = new_v-1 can't light anything
+                    }
+                    // Seed only if the spread would actually go somewhere: a
+                    // foreign-interior cell adjacent to w (across a face we
+                    // sit on) that is under-lit and non-opaque. Mass load-in
+                    // otherwise pushes thousands of no-op seeds per chunk —
+                    // mirrors that needed syncing but whose interiors are
+                    // already lit.
+                    for ( int a = 0; a < 3; a++ ) {
+                        const int off = local3[ a ] == 0 ? -1 : local3[ a ] == axis_size[ a ] - 1 ? 1 : 0;
+                        if ( !off ) {
+                            continue;
+                        }
+                        glm::ivec3 axo( 0 );
+                        axo[ a ] = off;
+                        const Chunk *nax = nb_cache[ ( axo.x + 1 ) * 9 + ( axo.y + 1 ) * 3 + ( axo.z + 1 ) ];
+                        if ( !nax || nax->is_loading || !nax->light ) {
+                            continue;
+                        }
+                        const glm::ivec3 n_pos = w + axo;
+                        const glm::ivec3 n_loc = n_pos - nax->chunk_pos * CHUNK_SIZE_I;
+                        if ( !light_local_ok( n_loc ) ||
+                             n_loc.x < 0 || n_loc.x >= CHUNK_SIZE_X || n_loc.y < 0 || n_loc.y >= CHUNK_SIZE_Y || n_loc.z < 0 ||
+                             n_loc.z >= CHUNK_SIZE_Z ) {
+                            continue; // torn chunk_pos, or not nax's interior
+                        }
+                        const glm::ivec3 dir = light_dirs[ off > 0 ? a * 2 : a * 2 + 1 ];
+                        const int offered = ( ch == LIGHT_CHANNEL_SKY && dir.y == -1 && new_v == LIGHT_MAX_LEVEL ) ? LIGHT_MAX_LEVEL : new_v - 1;
+                        const int nv = ch == LIGHT_CHANNEL_BLOCK ? light_get_block( nax->light[ light_index( n_loc.x, n_loc.y, n_loc.z ) ] )
+                                                                 : light_get_sky( nax->light[ light_index( n_loc.x, n_loc.y, n_loc.z ) ] );
+                        if ( nv >= offered ) {
+                            continue;
+                        }
+                        const BlockID n_id = nax->blocks ? nax->blocks[ nax->get_index_from_coords( n_loc.x, n_loc.y, n_loc.z ) ].id : LAST_BLOCK_ID;
+                        if ( !light_opaque_id( n_id ) ) {
+                            light_dbg_border_seed++;
+                            this->light_add_seed( w, ch, new_v );
+                            break;
                         }
                     }
                 }
@@ -1633,16 +1686,19 @@ void ChunkLoader::light_thread_loop( ) {
                 if ( light_thread_stop_flag ) {
                     return true;
                 }
+                if ( light_bfs_pending.load( ) > LIGHT_BFS_PRI_HI ) {
+                    light_bfs_priority = 1;
+                }
                 // Wake only for *runnable* work — a queue full of
                 // claim-blocked jobs must not spin this loop.
                 for ( const LightJob &j : light_jobs ) {
                     const glm::ivec3 col = j.type == LIGHT_JOB_FINALIZE ? j.pos : light_chunk_pos_of( j.pos );
-                    if ( light_claim_free( col.x, col.z ) ) {
+                    if ( light_claim_free( col.x, col.z, j.type != LIGHT_JOB_FINALIZE ) ) {
                         return true;
                     }
                 }
                 for ( const Chunk *pc : light_pending_list ) {
-                    if ( light_claim_free( pc->chunk_pos.x, pc->chunk_pos.z ) ) {
+                    if ( light_claim_free( pc->chunk_pos.x, pc->chunk_pos.z, true ) ) {
                         return true;
                     }
                 }
@@ -1653,7 +1709,7 @@ void ChunkLoader::light_thread_loop( ) {
             }
             for ( auto it = light_jobs.begin( ); it != light_jobs.end( ); ++it ) {
                 const glm::ivec3 col = it->type == LIGHT_JOB_FINALIZE ? it->pos : light_chunk_pos_of( it->pos );
-                if ( light_try_claim( col.x, col.z ) ) {
+                if ( light_try_claim( col.x, col.z, it->type != LIGHT_JOB_FINALIZE ) ) {
                     job = *it;
                     light_jobs.erase( it );
                     claim_col = col;
@@ -1671,7 +1727,7 @@ void ChunkLoader::light_thread_loop( ) {
                         continue;
                     }
                     const glm::ivec3 col = pc->chunk_pos;
-                    if ( !light_try_claim( col.x, col.z ) ) {
+                    if ( !light_try_claim( col.x, col.z, true ) ) {
                         ++it;
                         continue;
                     }
@@ -1718,15 +1774,26 @@ void ChunkLoader::light_thread_loop( ) {
         } else if ( run_bfs ) {
             // Bounded slices, but keep draining while we own the BFS slot and
             // no jobs/pending are waiting — yielding each slice would just
-            // ping-pong the slot while other workers stand idle. New seeds
-            // pushed by claimed jobs during the drain are fine: they're only
-            // queued, never popped until a drain pass.
+            // ping-pong the slot while other workers stand idle. In a
+            // priority window jobs are claim-blocked anyway: drain to the low
+            // watermark or the time cap, whichever first.
+            const long long pri_start = light_now_us( );
             for ( ;; ) {
                 this->light_process_queue( 2000 );
                 {
                     std::lock_guard<std::mutex> lock( light_work_mutex );
-                    if ( light_thread_stop_flag || light_bfs_pending.load( ) <= 0 || !light_jobs.empty( ) ||
-                         !light_pending_list.empty( ) ) {
+                    if ( light_thread_stop_flag ) {
+                        light_bfs_active = 0;
+                        break;
+                    }
+                    if ( light_bfs_priority ) {
+                        if ( light_bfs_pending.load( ) <= LIGHT_BFS_PRI_LO ||
+                             light_now_us( ) - pri_start > LIGHT_BFS_PRI_MAX_US ) {
+                            light_bfs_priority = 0;
+                            light_bfs_active = 0;
+                            break;
+                        }
+                    } else if ( light_bfs_pending.load( ) <= 0 || !light_jobs.empty( ) || !light_pending_list.empty( ) ) {
                         light_bfs_active = 0;
                         break;
                     }
@@ -1790,22 +1857,26 @@ void ChunkLoader::light_thread_stop( ) {
         light_threads[ i ].join( );
     }
     light_thread_running = 0;
-    // Drain leftovers inline so nothing is lost across the stop boundary
-    // (all workers are joined — serial access is safe, claims unneeded).
-    std::deque<LightJob> jobs;
+    // Drop all queued work — stop() is only called from cleanup() right
+    // before every chunk's light volume is freed, so processing leftover
+    // finalizes/rechecks/seeds is wasted work (and takes seconds when quit
+    // happens mid load-in). Clear the containers so a later init() in the
+    // same process doesn't see stale chunk pointers or seeds.
     {
         std::lock_guard<std::mutex> lock( light_work_mutex );
-        jobs.swap( light_jobs );
-    }
-    this->light_drain_pending( );
-    for ( LightJob &job : jobs ) {
-        if ( job.type == LIGHT_JOB_FINALIZE ) {
-            this->light_finalize_chunk( *job.chunk );
-        } else if ( this->get_chunk( light_chunk_pos_of( job.pos ) ) == job.chunk ) {
-            this->light_recheck_block( job.pos );
+        light_jobs.clear( );
+        light_pending_list.clear( );
+        light_dirty_list.clear( );
+        light_claims.clear( );
+        light_bfs_active = 0;
+        light_bfs_priority = 0;
+        for ( int ch = 0; ch < 2; ch++ ) {
+            for ( int level = 0; level <= LIGHT_MAX_LEVEL; level++ ) {
+                this->light_add_queue[ ch ][ level ].clear( );
+            }
         }
+        this->light_remove_queue.clear( );
+        light_bfs_pending = 0;
     }
-    // Bound the shutdown drain — leftover seeds are moot once chunks unload.
-    this->light_process_queue( 100000 );
 #endif
 }
