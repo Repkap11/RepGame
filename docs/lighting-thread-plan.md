@@ -118,6 +118,13 @@ shards discussed earlier:
   flag + notify_all + join all, then inline drain of leftovers — unchanged.
 - `light_process_pending_chunk(Chunk&)` extracted from `light_drain_pending`
   (the latter remains the serial fallback path).
+- Near-player priority is at SUBMIT time, not claim time: jobs within
+  LIGHT_NEAR_COL_DIST (6 columns) of chunk_center and all rechecks
+  push_front into light_jobs; the first-claimable scan then finds them
+  first. A per-claim nearest-scan was tried and reverted — the O(queue x
+  25-hash) scan under light_work_mutex convoyed the render thread's lock
+  acquisitions at load-in depths (~20 FPS). Front-insertion is O(1) and
+  self-corrects as the player moves.
 
 Bug found during bring-up: `light_seed_interior_boundary` was gated on
 `cells_filled > 0`, but the optimistic prefill means a correctly-predicted
