@@ -1306,37 +1306,75 @@ void RepGame::draw( float alpha ) {
         globalGameState.world.screenshot( prefix );
     }
 
-    // REPGAME_CAPTURE_ANOMALY=1: every frame, read back the display and scan
-    // for isolated outlier pixels (the rare single-frame "random RGB" specks
-    // reported on water in MEDIUM+). On a hit, dump all FBO attachments +
-    // display via the normal screenshot path for forensics. Costs a
-    // glReadPixels per frame — diagnostic only, off by default.
-    static const int capture_anomaly = getenv( "REPGAME_CAPTURE_ANOMALY" ) != nullptr;
+    // REPGAME_CAPTURE_PERIODIC=n: dump all FBO attachments + display every n
+    // frames regardless of anomalies — samples whatever is on screen for
+    // offline corruption scans (e.g. during daytime with terrain visible).
+    static const char *periodic_env = getenv( "REPGAME_CAPTURE_PERIODIC" );
+    static const int capture_periodic = periodic_env ? atoi( periodic_env ) : 0;
+    static int periodic_frame = 0;
+    if ( capture_periodic > 0 && ( periodic_frame++ % capture_periodic ) == 0 ) {
+        std::string prefix = "periodic_" + std::to_string( screenshot_counter++ );
+        globalGameState.world.screenshot( prefix );
+    }
+
+    // REPGAME_CAPTURE_ANOMALY=1: per-frame display readback, scans for
+    // isolated bright RGB outliers (cheap, mild pipeline stall).
+    // REPGAME_CAPTURE_ANOMALY=2: additionally blit-resolves FBO attachment 0
+    // and scans its alpha for isolated outliers (heavy — halves framerate —
+    // but the fog-alpha signature fires on ANY backdrop, textured terrain
+    // included, where bright-speck detection is blind).
+    // On a hit, dump all FBO attachments + display for forensics.
+    static const char *anomaly_env = getenv( "REPGAME_CAPTURE_ANOMALY" );
+    static const int capture_anomaly = anomaly_env ? atoi( anomaly_env ) : 0;
     if ( capture_anomaly ) {
         GLint viewport[ 4 ];
         glGetIntegerv( GL_VIEWPORT, viewport );
         const int w = viewport[ 2 ], h = viewport[ 3 ];
         static std::vector<unsigned char> px;
         px.resize( w * h * 4 );
-        glBindFramebuffer( GL_FRAMEBUFFER, 0 );
-        glReadBuffer( GL_BACK );
-        glReadPixels( 0, 0, w, h, GL_RGBA, GL_UNSIGNED_BYTE, px.data( ) );
+        // Level 1 scans the display: skip the top-left debug overlay block
+        // (imgui text trips the outlier test). Level 2 scans attachment 0,
+        // which contains no UI — no skip needed.
+        const int skip_y = capture_anomaly >= 2 ? -1 : h - 400, skip_x = 720;
+        const bool check_alpha = capture_anomaly >= 2; // display alpha is 0/255, meaningless
+        if ( capture_anomaly >= 2 ) {
+            static GLuint resolveFBO = 0, resolveTex = 0;
+            if ( !resolveFBO ) {
+                glGenFramebuffers( 1, &resolveFBO );
+                glGenTextures( 1, &resolveTex );
+                glBindTexture( GL_TEXTURE_2D, resolveTex );
+                glTexImage2D( GL_TEXTURE_2D, 0, GL_RGBA8, w, h, 0, GL_RGBA, GL_UNSIGNED_BYTE, nullptr );
+                glBindFramebuffer( GL_FRAMEBUFFER, resolveFBO );
+                glFramebufferTexture2D( GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, resolveTex, 0 );
+            }
+            glBindFramebuffer( GL_READ_FRAMEBUFFER, globalGameState.world.frameBuffer.id( ) );
+            glReadBuffer( GL_COLOR_ATTACHMENT0 );
+            glBindFramebuffer( GL_DRAW_FRAMEBUFFER, resolveFBO );
+            glDrawBuffer( GL_COLOR_ATTACHMENT0 );
+            const bool fbo_ok = glCheckFramebufferStatus( GL_READ_FRAMEBUFFER ) == GL_FRAMEBUFFER_COMPLETE &&
+                                glCheckFramebufferStatus( GL_DRAW_FRAMEBUFFER ) == GL_FRAMEBUFFER_COMPLETE;
+            if ( !fbo_ok ) {
+                goto anomaly_done; // LOW mode: no FBO path, nothing to scan
+            }
+            glBlitFramebuffer( 0, 0, w, h, 0, 0, w, h, GL_COLOR_BUFFER_BIT, GL_NEAREST );
+            glBindFramebuffer( GL_READ_FRAMEBUFFER, resolveFBO );
+            glReadBuffer( GL_COLOR_ATTACHMENT0 );
+            glReadPixels( 0, 0, w, h, GL_RGBA, GL_UNSIGNED_BYTE, px.data( ) );
+            glBindFramebuffer( GL_FRAMEBUFFER, 0 );
+        } else {
+            glBindFramebuffer( GL_FRAMEBUFFER, 0 );
+            glReadBuffer( GL_BACK );
+            glReadPixels( 0, 0, w, h, GL_RGBA, GL_UNSIGNED_BYTE, px.data( ) );
+        }
         static int anomaly_hits = 0, frames_since_hit = 999;
         frames_since_hit++;
-        // Skip the top-left debug overlay block (imgui text is sharp enough to
-        // trip the outlier test). Origin is bottom-left.
-        const int skip_y = h - 400, skip_x = 720;
-        for ( int y = 1; y < h - 1 && anomaly_hits < 24 && frames_since_hit > 30; y++ ) {
+        for ( int y = 1; y < h - 1 && anomaly_hits < 200 && frames_since_hit > 30; y++ ) {
             for ( int x = 1; x < w - 1; x++ ) {
                 if ( y > skip_y && x < skip_x ) {
                     continue;
                 }
                 const unsigned char *c = &px[ ( y * w + x ) * 4 ];
-                const int lum = c[ 0 ] + c[ 1 ] + c[ 2 ];
-                if ( lum < 200 ) {
-                    continue; // only bright specks
-                }
-                int worst_diff = 1000000;
+                int worst_diff = 1000000, worst_alpha = 1000000;
                 for ( int dy = -1; dy <= 1; dy++ ) {
                     for ( int dx = -1; dx <= 1; dx++ ) {
                         if ( dx == 0 && dy == 0 ) {
@@ -1345,16 +1383,15 @@ void RepGame::draw( float alpha ) {
                         const unsigned char *n = &px[ ( ( y + dy ) * w + ( x + dx ) ) * 4 ];
                         int d = abs( c[ 0 ] - n[ 0 ] );
                         d = std::max( d, abs( c[ 1 ] - n[ 1 ] ) );
-                        d = std::max( d, abs( c[ 2 ] - n[ 2 ] ) );
-                        worst_diff = std::min( worst_diff, d );
+                        worst_diff = std::min( worst_diff, std::max( d, abs( c[ 2 ] - n[ 2 ] ) ) );
+                        worst_alpha = std::min( worst_alpha, abs( c[ 3 ] - n[ 3 ] ) );
                     }
                 }
-                // Isolated: differs strongly from EVERY neighbor.
-                if ( worst_diff > 140 ) {
+                if ( ( c[ 0 ] + c[ 1 ] + c[ 2 ] >= 200 && worst_diff > 140 ) || ( check_alpha && worst_alpha > 80 ) ) {
                     anomaly_hits++;
                     frames_since_hit = 0;
-                    pr_debug( "ANOMALY pixel at (%d,%d) rgb=(%d,%d,%d) min_nbr_diff=%d — dumping attachments",
-                              x, y, c[ 0 ], c[ 1 ], c[ 2 ], worst_diff );
+                    pr_debug( "ANOMALY pixel at (%d,%d) rgba=(%d,%d,%d,%d) min_rgb_diff=%d min_alpha_diff=%d — dumping attachments",
+                              x, y, c[ 0 ], c[ 1 ], c[ 2 ], c[ 3 ], worst_diff, worst_alpha );
                     std::string prefix = "anomaly_" + std::to_string( screenshot_counter++ );
                     globalGameState.world.screenshot( prefix );
                     goto anomaly_done;
