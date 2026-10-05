@@ -939,15 +939,15 @@ void ChunkLoader::light_finalize_chunk( Chunk &chunk ) {
     const long long t1 = light_now_us( );
     light_dbg_us_fin_fill += t1 - t0;
 
-    const int cells_filled = this->light_cascade_columns( chunk );
+    this->light_cascade_columns( chunk );
     const long long t2 = light_now_us( );
     light_dbg_us_fin_casc += t2 - t1;
-    // The interior scan only seeds spreads from lit cells; if the cascade
-    // wrote no skylight (fully underground/solid chunk), interior sky is all
-    // zero and the scan can only waste 32k iterations — skip it.
-    if ( cells_filled > 0 ) {
-        this->light_seed_interior_boundary( chunk );
-    }
+    // Run unconditionally: the worker's optimistic prefill already wrote
+    // sky=15 and set sky_open_above, so the cascade fills nothing
+    // (cells_filled==0) in the common case — yet lit cells still border
+    // canopy-shaded columns that only get light via this scan's seeds.
+    // Fully-dark chunks cost just the per-column lit_top early-out.
+    this->light_seed_interior_boundary( chunk );
     const long long t3 = light_now_us( );
     light_dbg_us_fin_bscan += t3 - t2;
     this->light_border_sync( chunk );
@@ -1406,9 +1406,10 @@ void ChunkLoader::light_process_pending_chunk( Chunk &chunk ) {
         // whole volume was rewritten, so mark it all dirty for upload.
         light_fill_chunk( chunk );
         chunk.light_reseed = 0;
-        if ( this->light_cascade_columns( chunk ) > 0 ) {
-            this->light_seed_interior_boundary( chunk );
-        }
+        this->light_cascade_columns( chunk );
+        // Always scan — the refill's optimistic sky_open_above leaves the
+        // cascade with nothing to fill, but shaded columns still need seeds.
+        this->light_seed_interior_boundary( chunk );
         this->light_border_sync( chunk );
         ChunkLoader::light_mark_dirty_all( chunk );
     }

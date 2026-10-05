@@ -551,6 +551,17 @@ int test_lighting( ) {
     check_light( "open neighbor column", glm::ivec3( 21, 30, 20 ), LIGHT_CHANNEL_SKY, 15 );
     check_light( "under finalize-time canopy", glm::ivec3( 5, 29, 5 ), LIGHT_CHANNEL_SKY, 14 );
     check_light( "deep under finalize-time canopy", glm::ivec3( 5, 0, 5 ), LIGHT_CHANNEL_SKY, 14 );
+
+    // Regression: the worker's optimistic prefill sets sky_open_above=1
+    // before finalize, so the cascade fills nothing (cells_filled==0) — the
+    // interior boundary scan must still seed canopy-shaded cells or they
+    // stay dark until an unrelated edit. light_fill_chunk is the path the
+    // terrain worker takes (the canopy stone is still in blocks[]).
+    light_fill_chunk( chunk );
+    cl.light_finalize_chunk( chunk );
+    cl.light_process_queue( 1000000 );
+    check_light( "under canopy after optimistic refill", glm::ivec3( 5, 29, 5 ), LIGHT_CHANNEL_SKY, 14 );
+    check_light( "deep under canopy after optimistic refill", glm::ivec3( 5, 0, 5 ), LIGHT_CHANNEL_SKY, 14 );
     return failures;
 }
 
