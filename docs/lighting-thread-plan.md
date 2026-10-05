@@ -124,6 +124,23 @@ Bug found during bring-up: concurrent `push_back` on the shared
 corrupted deque internals (SEGV writing to a null slot). Fixed by
 `light_seed_lock`.
 
+GPU upload handoff (atomic dirty box):
+
+- `Chunk::light_dirty_box` packs the dirty texel min/max into one atomic
+  uint64 (6 bits/coord; LIGHT_BOX_EMPTY = min>max). Marks CAS-merge their
+  texel; the uploader clears `light_upload_listed` AND exchanges the box in
+  the same critical section that pops the chunk from `light_dirty_list`.
+- Why: the old flag+min/max scheme wiped `light_dirty` AFTER reading the
+  box, so a racing mark had its flag cleared while the chunk was already
+  unlisted — the re-pushed entry was then skipped as clean and the mark was
+  lost permanently (converged-but-black patches under trees that survived
+  an empty queue). A mark's CAS either lands inside the pop's snapshot or
+  orders after it and observes listed==0, re-adding the chunk.
+- `light_ensure_texture` exchanges the box before its full upload for the
+  same reason (marks mid-upload stay pending). The per-frame upload cap
+  bounds the pop itself, so unprocessed entries keep their boxes — no
+  requeue path that could strand consumed marks.
+
 Measured (legacy terrain, ~2s probe intervals, 4 workers):
 
 - fin ~800-1500 finalizes/interval during load-in bursts (parallel).
