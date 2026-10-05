@@ -1689,6 +1689,28 @@ bool ChunkLoader::light_async_active( ) {
     return light_thread_running != 0;
 }
 
+// Near-player radius in chunk columns for the front-of-queue lane. A chunk's
+// lighting only converges once its neighborhood is processed, so a few chunks
+// around the player jump the (possibly thousands-deep) backlog and their
+// block ring settles together instead of in terrain-load order.
+#define LIGHT_NEAR_COL_DIST 6
+
+// Push where the claim scan finds it early: near-player columns to the front,
+// everything else to the back. chunk_center is a racy render-thread read —
+// fine for a priority hint, and stale ordering self-corrects as the player
+// moves (only a snapshot of the backlog can be mis-ordered).
+static void light_submit_job( const glm::ivec3 &center, const LightJob &job ) {
+    const glm::ivec3 col = job.type == LIGHT_JOB_FINALIZE ? job.pos : light_chunk_pos_of( job.pos );
+    const int dx = col.x - center.x;
+    const int dz = col.z - center.z;
+    const bool near = dx * dx + dz * dz <= LIGHT_NEAR_COL_DIST * LIGHT_NEAR_COL_DIST;
+    if ( job.type == LIGHT_JOB_RECHECK || near ) {
+        light_jobs.push_front( job );
+    } else {
+        light_jobs.push_back( job );
+    }
+}
+
 void ChunkLoader::light_submit_finalize( Chunk &chunk ) {
     if ( !light_thread_running ) {
         this->light_finalize_chunk( chunk );
@@ -1698,7 +1720,7 @@ void ChunkLoader::light_submit_finalize( Chunk &chunk ) {
         std::lock_guard<std::mutex> lock( light_work_mutex );
         // pos identifies the column to claim AND validates the slot still
         // holds this chunk at execution time (slots recycle).
-        light_jobs.push_back( LightJob{ LIGHT_JOB_FINALIZE, &chunk, chunk.chunk_pos } );
+        light_submit_job( this->chunk_center, LightJob{ LIGHT_JOB_FINALIZE, &chunk, chunk.chunk_pos } );
     }
     light_work_cv.notify_one( );
 }
@@ -1714,7 +1736,8 @@ void ChunkLoader::light_submit_recheck( const glm::ivec3 &block_pos ) {
     }
     {
         std::lock_guard<std::mutex> lock( light_work_mutex );
-        light_jobs.push_back( LightJob{ LIGHT_JOB_RECHECK, chunk, block_pos } );
+        // Edits are interactive — always the front lane.
+        light_submit_job( this->chunk_center, LightJob{ LIGHT_JOB_RECHECK, chunk, block_pos } );
     }
     light_work_cv.notify_one( );
 }
