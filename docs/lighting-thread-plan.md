@@ -100,6 +100,19 @@ shards discussed earlier:
   test queue-nonempty without touching deque internals from another thread.
 - BFS drains in 2ms slices but keeps the slot while seeds remain and no
   jobs/pending wait; yields the moment either appears or on stop.
+- Backlog-priority window (light_bfs_priority): when pending seeds exceed
+  LIGHT_BFS_PRI_HI (~3M) new FINALIZE claims pause until a drain pass drops
+  the backlog under LIGHT_BFS_PRI_LO or ~100ms elapses. RECHECK and pending
+  diffs bypass the pause so block edits stay responsive. Without this, a
+  sustained job flow starved the BFS entirely — border seams, overhang
+  shading and torch spreads sat unlit for ~a minute during load-in.
+- Border-sync pass 2 seeds only when a foreign-interior cell adjacent to
+  the shell cell could actually gain light (was: one seed per differing
+  mirror cell, up to 7 dups per corner). Cut seed pushes ~1000x during
+  load-in (~1.8M -> ~2k seeds per 2s interval); backlog stays ~0.
+- light_thread_stop drops queued work instead of draining it — cleanup()
+  frees all light volumes right after, so draining was seconds of wasted
+  finalizes on quit-during-load-in. Containers are cleared for re-init.
 - Start: `light_thread_running` is set to the spawned count BEFORE workers
   spawn (a thread never sees the flag while producers still inline). Stop:
   flag + notify_all + join all, then inline drain of leftovers — unchanged.
