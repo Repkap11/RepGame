@@ -3,7 +3,7 @@
 // Legacy terrain-generation fields: the pre-overhaul generator as it existed
 // at commit 101a348, ported onto the same MAP_GEN_QUAL / MAP_GEN_PERLIN2D /
 // MAP_GEN_PERLIN3D macro pattern so one file covers all three backends.
-// Selected when REPGAME_MAP_GEN_LEGACY is defined (see map_gen.hpp).
+// Selected when REPGAME_MAP_GEN_LEGACY is 1 (see constants.hpp).
 //
 // Interface contract shared with map_gen_fields.hpp so the backend loops and
 // MapGen methods can dispatch without knowing which generator is live:

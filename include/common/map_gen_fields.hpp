@@ -16,7 +16,7 @@
 #include "common/block_definitions.hpp"
 #include "common/constants.hpp"
 
-#if defined( REPGAME_MAP_GEN_LEGACY )
+#if REPGAME_MAP_GEN_LEGACY
 // The pre-overhaul generator (fields + block picker live in the legacy file).
 #include "common/map_gen_fields_legacy.hpp"
 #else

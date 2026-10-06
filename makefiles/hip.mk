@@ -26,9 +26,6 @@ CFLAGS_HIP :=  --offload-arch=gfx9-generic \
 				--offload-arch=gfx11-generic \
 				--offload-arch=gfx12-generic \
 				-fPIC -DREPGAME_LINUX
-ifeq ($(LEGACY_TERRAIN),1)
-CFLAGS_HIP += -DREPGAME_MAP_GEN_LEGACY
-endif
 CFLAGS_HIP_COMPILE := -x hip -c -fno-rtti
 
 

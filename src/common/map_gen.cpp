@@ -13,7 +13,7 @@
 #include "common/map_gen_fields.hpp"
 
 float MapGen::calculateTerrainHeight( const int x, const int z ) {
-#if defined( REPGAME_MAP_GEN_LEGACY )
+#if REPGAME_MAP_GEN_LEGACY
     return mgl_base_height( x, z );
 #else
     return mg_base_height( x, z );
@@ -29,7 +29,7 @@ float MapGen::maxTerrainHeight( ) {
     static const float max_height = [] {
         constexpr int STEPS = 10000;
         float max_ground = -1e30f, max_hills = -1e30f, max_level = -1e30f;
-#if defined( REPGAME_MAP_GEN_LEGACY )
+#if REPGAME_MAP_GEN_LEGACY
         float max_mountains = -1e30f;
         for ( int i = 0; i <= STEPS; i++ ) {
             float noise = (float)i / STEPS; // [0, 1]
@@ -64,7 +64,7 @@ float MapGen::maxTerrainHeight( ) {
 }
 
 BlockID MapGen::gen_block_id( const int x, const int y, const int z ) {
-#if defined( REPGAME_MAP_GEN_LEGACY )
+#if REPGAME_MAP_GEN_LEGACY
     return mgl_pick_block( x, y, z, mgl_base_height( x, z ) );
 #else
     const MapGenColumn col = mg_column_info( x, z );
@@ -78,7 +78,7 @@ void MapGen::load_block_c( const Chunk *chunk ) {
 
     for ( int x = chunk_offset.x - 1; x < chunk_offset.x + CHUNK_SIZE_INTERNAL_X - 1; x++ ) {
         for ( int z = chunk_offset.z - 1; z < chunk_offset.z + CHUNK_SIZE_INTERNAL_Z - 1; z++ ) {
-#if defined( REPGAME_MAP_GEN_LEGACY )
+#if REPGAME_MAP_GEN_LEGACY
             const float terrainHeight = mgl_base_height( x, z );
 #else
             const MapGenColumn col = mg_column_info( x, z );

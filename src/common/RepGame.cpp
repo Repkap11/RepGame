@@ -1324,6 +1324,7 @@ void RepGame::draw( float alpha ) {
     // but the fog-alpha signature fires on ANY backdrop, textured terrain
     // included, where bright-speck detection is blind).
     // On a hit, dump all FBO attachments + display for forensics.
+#if ( SUPPORTS_FRAME_BUFFER )
     static const char *anomaly_env = getenv( "REPGAME_CAPTURE_ANOMALY" );
     static const int capture_anomaly = anomaly_env ? atoi( anomaly_env ) : 0;
     if ( capture_anomaly ) {
@@ -1400,6 +1401,7 @@ void RepGame::draw( float alpha ) {
         }
     anomaly_done:;
     }
+#endif
     profiling.us_total_draw = now_us( ) - t_draw_start;
 }
 

@@ -381,7 +381,7 @@ int test_mapgen( ) {
 
     check_bool( "nothing solid above maxTerrainHeight", above_max == 0 );
     check_bool( "bedrock floor has no gaps", bedrock_gaps == 0 );
-#if defined( REPGAME_MAP_GEN_LEGACY )
+#if REPGAME_MAP_GEN_LEGACY
     // The legacy generator has no lava layer or overhangs, and snow only
     // appears on rare tall mountain caps — none are guaranteed in a survey.
     (void)lava;

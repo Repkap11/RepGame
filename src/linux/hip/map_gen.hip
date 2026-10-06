@@ -18,7 +18,7 @@ __global__ void hip_set_block( BlockState *blocks, int chunk_x, int chunk_y, int
         int z = ( col_idx % CHUNK_SIZE_INTERNAL_Z ) - 1 + chunk_z;
 
         // Compute 2D column context once per column (biome, height, steepness).
-#if defined( REPGAME_MAP_GEN_LEGACY )
+#if REPGAME_MAP_GEN_LEGACY
         const float terrainHeight = mgl_base_height( x, z );
 #else
         const MapGenColumn col = mg_column_info( x, z );

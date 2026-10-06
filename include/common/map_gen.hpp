@@ -3,13 +3,12 @@
 
 #include "chunk.hpp"
 
-// Compile-time terrain generator switch. Default builds the reworked
+// Compile-time terrain generator switch: REPGAME_MAP_GEN_LEGACY in
+// constants.hpp selects the pre-overhaul generator (the code live at commit
+// 101a348, fields in map_gen_fields_legacy.hpp); 0 selects the reworked
 // generator (shared CPU/CUDA/HIP fields in map_gen_fields.hpp: noodly caves,
-// overhangs, biomes, lava layer, ...). Define REPGAME_MAP_GEN_LEGACY —
-// either here or via -DREPGAME_MAP_GEN_LEGACY on the compile line — to build
-// the pre-overhaul generator (the code live at commit 101a348). The rest of
-// the world (structures, waterlogging, meshing) is unchanged either way.
-// #define REPGAME_MAP_GEN_LEGACY
+// overhangs, biomes, lava layer, ...). The rest of the world (structures,
+// waterlogging, meshing) is unchanged either way.
 
 // ---- World layout ----------------------------------------------------------
 #define WATER_LEVEL 0        // Sea level: air cells below this become WATER.

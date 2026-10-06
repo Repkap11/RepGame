@@ -97,6 +97,13 @@ static_assert( CHUNK_RADIUS_Z > 0, "CHUNK_RADIUS_Z too small" );
 #define NO_CLIP 1
 #define MAP_SEED 0
 
+// Compile-time terrain generator selection, shared by all platforms and all
+// map_gen backends (CPU, CUDA, HIP). 1 builds the pre-overhaul generator
+// (map_gen_fields_legacy.hpp, the code live at commit 101a348); 0 builds the
+// reworked generator (noodly caves, overhangs, biomes, lava layer) in
+// map_gen_fields.hpp.
+#define REPGAME_MAP_GEN_LEGACY 1
+
 #define SHOW_IMGUI 1
 
 #define BLOCK_SCALE_OFFSET 0.2f

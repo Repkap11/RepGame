@@ -17,25 +17,6 @@ CFLAGS_LINUX_DEBUG := -g
 
 CFLAGS_LINUX += -DREPGAME_LINUX
 
-# Compile-time terrain generator selection (see REPGAME_MAP_GEN_LEGACY in
-# include/common/map_gen.hpp): `make linux_debug LEGACY_TERRAIN=1` builds the
-# pre-overhaul generator (commit 101a348). The define lives in CFLAGS, which
-# .d files can't track, so objects from the other mode must not be reused —
-# the stamp below wipes the object dirs whenever the mode changes.
-LEGACY_TERRAIN ?= 1
-ifeq ($(LEGACY_TERRAIN),1)
-CFLAGS_LINUX += -DREPGAME_MAP_GEN_LEGACY
-MAPGEN_MODE := legacy
-else
-MAPGEN_MODE := new
-endif
-MAPGEN_MODE_STAMP := out/.mapgen_mode_$(TARGET)
-ifneq ($(shell cat $(MAPGEN_MODE_STAMP) 2>/dev/null),$(MAPGEN_MODE))
-# Removing $(LINUX_OUT) entirely re-triggers its order-only prerequisite,
-# which recreates every object directory (LINUX_DIRS) before compilation.
-$(shell mkdir -p out && rm -rf $(LINUX_OUT) && echo $(MAPGEN_MODE) > $(MAPGEN_MODE_STAMP))
-endif
-
 CFLAGS_LINUX += $(shell pkg-config --cflags sdl3)
 CFLAGS_LINUX += $(shell pkg-config --cflags wayland-client)
 # SDL3 is dynamically linked, because it's too hard to statically link against X11, and I don't want to compile it from source.

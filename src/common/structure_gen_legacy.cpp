@@ -1,6 +1,6 @@
 // Legacy structure generation: the pre-overhaul trees/flowers/reeds as they
-// existed at commit 101a348, selected when REPGAME_MAP_GEN_LEGACY is defined
-// (see map_gen.hpp). This file compiles to nothing in new-terrain builds.
+// existed at commit 101a348, selected when REPGAME_MAP_GEN_LEGACY is 1
+// (see constants.hpp). This file compiles to nothing in new-terrain builds.
 //
 // Faithful port, with two mechanical adaptations only:
 //   - chunk.blocks[] direct access -> Chunk::get_block / set_block, which
@@ -8,8 +8,9 @@
 //     and carry the waterlogged-normalization rules.
 //   - BlockState gained the trailing `waterlogged` field.
 #include "common/structure_gen.hpp"
+#include "common/constants.hpp"
 
-#if defined( REPGAME_MAP_GEN_LEGACY )
+#if REPGAME_MAP_GEN_LEGACY
 
 #include "common/RepGame.hpp"
 #include "common/perlin_noise.hpp"
