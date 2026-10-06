@@ -1,8 +1,12 @@
 app-id: com.repkap11.repgame
 runtime: org.freedesktop.Platform
-runtime-version: '24.08'
+runtime-version: '26.08'
 sdk: org.freedesktop.Sdk
 command: RepGame_uncompressed
+build-options:
+  # RepGame's link rules take libs from LIBS_LINUX only; this makes the module
+  # libs (GLEW under /app/lib) visible to ld via LDFLAGS.
+  ldflags: -L/app/lib
 finish-args:
   # https://docs.flatpak.org/en/latest/sandbox-permissions-reference.html
   # X11 + XShm access
@@ -15,14 +19,20 @@ finish-args:
   # Needs to talk to the network:
   - --share=network
 modules:
-    - shared-modules/SDL/SDL-1.2.15.json
-    - shared-modules/glu/glu-9.json
+    # SDL3 comes from the runtime: freedesktop >=25.08 ships libSDL3.so.0 and
+    # the matching Sdk ships headers + sdl3.pc, satisfying -lSDL3 in
+    # LIBS_LINUX (makefiles/linux.mk).
     - shared-modules/glew/glew.json
     - name: RepGame
       buildsystem: simple
       build-commands:
+      # The dir source above copies the host's out/ tree into the sandbox,
+      # which would let make skip the compile and ship the host binary (built
+      # against host libs like libamdhip64 that the runtime lacks). Wipe it
+      # so the binary is always compiled inside the sandbox.
+      - rm -rf out
       - make out/linux/release/RepGame_uncompressed
-      - cp out/linux/release/RepGame_uncompressed /app/bin/
+      - install -Dm755 out/linux/release/RepGame_uncompressed /app/bin/RepGame_uncompressed
       sources:
           - type: dir
             path: ..

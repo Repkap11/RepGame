@@ -106,8 +106,6 @@ void imgui_overlay_draw( ImGuiOverlay *imgui_overlay, Input &input ) {
             }
             const int clock_minutes = static_cast<int>( ( debug_vars.world_time % DAY_LENGTH_TICKS ) * 24 * 60 / DAY_LENGTH_TICKS );
             ImGui::Text( "Time: %02d:%02d (daylight %.2f)  [PgUp/PgDn]", clock_minutes / 60, clock_minutes % 60, debug_vars.daylight );
-            ImGui::SliderFloat( "Cave ambient", &debug_vars.min_ambient, 0.0f, 0.3f, "%.3f" );
-            ImGui::SliderFloat( "Night ambient", &debug_vars.night_ambient, 0.0f, 0.5f, "%.3f" );
 
             ImGui::Separator( );
             ImGui::Text( "Chunks: loading %d (queued %d, results %d), drawable %d",

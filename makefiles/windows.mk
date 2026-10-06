@@ -2,7 +2,7 @@
 
 REPGAME_PACKAGES += mingw-w64 upx-ucl
 
-CFLAGS_WINDOWS := -Wall -Werror -std=c++17 -Wno-unused-variable -fno-pie -D GLEW_STATIC -mwindows -D _WIN32_WINNT=0x0A00
+CFLAGS_WINDOWS := -Wall -Werror -std=c++17 -Wno-unused-variable -fno-pie -D GLEW_STATIC -D GLEW_NO_GLU -mwindows -D _WIN32_WINNT=0x0A00
 
 CFLAGS_WINDOWS += -O3 -DREPGAME_SKIP_CHECK_FOR_GL_ERRORS -DREPGAME_HW_VSYNC
 # CFLAGS_WINDOWS += -g
@@ -11,7 +11,7 @@ CFLAGS_WINDOWS += -DREPGAME_WINDOWS
 # SDL3 MinGW devel only ships a shared library (libSDL3.dll.a + SDL3.dll),
 # so Windows now dynamically links SDL3 and ships SDL3.dll next to the exe.
 LIBS_WINDOWS_SDL3 := windows_build/sdl3/x86_64-w64-mingw32/lib/libSDL3.dll.a -Wl,--no-undefined -Wl,--dynamicbase -Wl,--nxcompat -Wl,--high-entropy-va -lm -luser32 -lgdi32 -lwinmm -limm32 -lole32 -loleaut32 -lshell32 -lsetupapi -lversion -luuid
-LIBS_WINDOWS := windows_build/glew/lib/libglew32.a $(LIBS_WINDOWS_SDL3) -lopengl32 -lglu32 -Wl,-Bstatic -lpthread -Wl,-Bdynamic -static-libgcc -static-libstdc++
+LIBS_WINDOWS := windows_build/glew/lib/libglew32.a $(LIBS_WINDOWS_SDL3) -lopengl32 -Wl,-Bstatic -lpthread -Wl,-Bdynamic -static-libgcc -static-libstdc++
 INCLUDES_WINDOWS := -I windows_build/sdl3/x86_64-w64-mingw32/include/SDL3 -I windows_build/sdl3/x86_64-w64-mingw32/include -I windows_build/glew/include
 
 CC_WINDOWS := x86_64-w64-mingw32-g++

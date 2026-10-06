@@ -16,11 +16,18 @@ CFLAGS_LINUX_RELEASE := -O3 -DREPGAME_SKIP_CHECK_FOR_GL_ERRORS -DREPGAME_HW_VSYN
 CFLAGS_LINUX_DEBUG := -g
 
 CFLAGS_LINUX += -DREPGAME_LINUX
+# Nothing uses GLU (gluErrorString has a local replacement in Logging.hpp);
+# this stops glew.h from pulling in <GL/glu.h>.
+CFLAGS_LINUX += -DGLEW_NO_GLU
 
 CFLAGS_LINUX += $(shell pkg-config --cflags sdl3)
 CFLAGS_LINUX += $(shell pkg-config --cflags wayland-client)
+# Honored on the link line; ?= silences the undefined-variable warning when
+# the environment doesn't set it (e.g. flatpak-builder passes -L/app/lib).
+LDFLAGS ?=
+
 # SDL3 is dynamically linked, because it's too hard to statically link against X11, and I don't want to compile it from source.
-LIBS_LINUX := -lSDL3 -Wl,-Bstatic -lGLEW -lGLU -Wl,-Bdynamic -lGL -lpthread -lm -ldl -static-libgcc -static-libstdc++ -lwayland-client
+LIBS_LINUX := -lSDL3 -Wl,-Bstatic -lGLEW -Wl,-Bdynamic -lGL -lpthread -lm -ldl -static-libgcc -static-libstdc++ -lwayland-client
 
 CC_LINUX := g++
 # CC_LINUX := clang++
@@ -127,10 +134,10 @@ $(LINUX_OUT)/release/$(TARGET): $(LINUX_OUT)/release/$(TARGET)_uncompressed
 
 
 $(LINUX_OUT)/release/$(TARGET)_uncompressed: $(OBJECTS_IMGUI_LINUX_RELEASE) $(OBJECTS_COMMON_LINUX_RELEASE) $(OBJECTS_LINUX_RELEASE) $(SHADER_BLOBS_LINUX) $(BITMAP_BLOBS_LINUX) $(FONT_BLOBS_LINUX) | $(LINUX_OUT)
-	$(CC_LINUX) -flto $(CFLAGS_LINUX) $(CFLAGS_LINUX_RELEASE) $(OBJECTS_LINUX_RELEASE) $(OBJECTS_IMGUI_LINUX_RELEASE) $(OBJECTS_COMMON_LINUX_RELEASE) $(SHADER_BLOBS_LINUX) $(BITMAP_BLOBS_LINUX) $(FONT_BLOBS_LINUX) $(LIBS_LINUX) -o $@
+	$(CC_LINUX) -flto $(CFLAGS_LINUX) $(CFLAGS_LINUX_RELEASE) $(OBJECTS_LINUX_RELEASE) $(OBJECTS_IMGUI_LINUX_RELEASE) $(OBJECTS_COMMON_LINUX_RELEASE) $(SHADER_BLOBS_LINUX) $(BITMAP_BLOBS_LINUX) $(FONT_BLOBS_LINUX) $(LDFLAGS) $(LIBS_LINUX) -o $@
 
 $(LINUX_OUT)/debug/$(TARGET): $(OBJECTS_IMGUI_LINUX_DEBUG) $(OBJECTS_COMMON_LINUX_DEBUG) $(OBJECTS_LINUX_DEBUG) $(SHADER_BLOBS_LINUX) $(BITMAP_BLOBS_LINUX) $(FONT_BLOBS_LINUX) | $(LINUX_OUT)
-	$(CC_LINUX) $(CFLAGS_LINUX) $(CFLAGS_LINUX_DEBUG) $(OBJECTS_LINUX_DEBUG) $(OBJECTS_IMGUI_LINUX_DEBUG) $(OBJECTS_COMMON_LINUX_DEBUG) $(SHADER_BLOBS_LINUX) $(BITMAP_BLOBS_LINUX) $(FONT_BLOBS_LINUX) $(LIBS_LINUX) -o $@
+	$(CC_LINUX) $(CFLAGS_LINUX) $(CFLAGS_LINUX_DEBUG) $(OBJECTS_LINUX_DEBUG) $(OBJECTS_IMGUI_LINUX_DEBUG) $(OBJECTS_COMMON_LINUX_DEBUG) $(SHADER_BLOBS_LINUX) $(BITMAP_BLOBS_LINUX) $(FONT_BLOBS_LINUX) $(LDFLAGS) $(LIBS_LINUX) -o $@
 
 linux-run: linux
 	./$(LINUX_OUT)/release/$(TARGET) $(WORLD) www.repkap11.com

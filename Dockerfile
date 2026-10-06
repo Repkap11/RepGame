@@ -13,7 +13,7 @@ RUN apt-get update && \
         libx11-dev libxext-dev libxrandr-dev libxss-dev libxtst-dev libxi-dev \
         libxcursor-dev libxinerama-dev libxrender-dev libxfixes-dev \
         libwayland-dev wayland-protocols libxkbcommon-dev libdbus-1-dev \
-        libgl-dev libegl-dev libgles-dev libglu1-mesa-dev \
+        libgl-dev libegl-dev libgles-dev \
         libasound2-dev libpulse-dev libdecor-0-dev && \
     rm -rf /var/lib/apt/lists/*
 
