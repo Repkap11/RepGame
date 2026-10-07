@@ -913,8 +913,9 @@ void RepGame::initializeGameState( const char *world_name ) {
     globalGameState.input.mouse.smoothed_dy = 0.0f;
     globalGameState.input.shift_held = false;
     globalGameState.input.screen_tap_pending = false;
-    // Start a fresh world at dawn; a save may overwrite this below.
-    globalGameState.world_time = 0;
+    // Start a fresh world at noon (fully inside the daylight plateau); a
+    // save may overwrite this below.
+    globalGameState.world_time = DAY_LENGTH_TICKS / 4;
     globalGameState.block_mining.pos = glm::ivec3( 0 );
     globalGameState.block_mining.id = AIR;
     globalGameState.block_mining.progress_ticks = 0.0f;
