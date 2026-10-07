@@ -194,6 +194,9 @@ class RepGame {
     void draw( float alpha );
     static void set_textures( unsigned int which_texture, unsigned char *textures, int textures_len );
     void cleanup( );
+    // Writes current position/inventory/mode/clock to player.dat. Called by
+    // cleanup() and, on WASM, periodically so crashes don't lose player state.
+    void save_player_data( );
     Input &getInputState( );
     GameMode getGameMode( ) const;
 

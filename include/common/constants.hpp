@@ -38,6 +38,10 @@
 #define CHUNK_RADIUS_X ( 128 / CHUNK_SIZE_X )
 #define CHUNK_RADIUS_Y ( 128 / CHUNK_SIZE_Y )
 #define CHUNK_RADIUS_Z ( 128 / CHUNK_SIZE_Z )
+// Cap the worker->render result queue: each undrained chunk holds MBs of
+// populated_blocks/blocks data, so an unbounded backlog blows the 2GB heap
+// during initial load-in.
+#define WASM_TERRAIN_RESULT_BACKLOG 16
 #endif
 
 #ifdef REPGAME_ANDROID

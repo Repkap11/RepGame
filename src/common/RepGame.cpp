@@ -1405,12 +1405,7 @@ void RepGame::draw( float alpha ) {
     profiling.us_total_draw = now_us( ) - t_draw_start;
 }
 
-void RepGame::cleanup( ) {
-    static bool clean_up_done = false;
-    if ( clean_up_done ) {
-        return;
-    }
-
+void RepGame::save_player_data( ) {
     PlayerData saved_data;
     saved_data.world_x = globalGameState.camera.pos.x;
     saved_data.world_y = globalGameState.camera.pos.y;
@@ -1427,9 +1422,15 @@ void RepGame::cleanup( ) {
     saved_data.world_time = globalGameState.world_time;
 
     globalGameState.map_storage.write_player_data( saved_data );
-#if defined( REPGAME_WASM )
-    EM_ASM( "FS.syncfs(false, err => {console.log(\"Sync done, its OK to close RepGame:\", err)});" );
-#endif
+}
+
+void RepGame::cleanup( ) {
+    static bool clean_up_done = false;
+    if ( clean_up_done ) {
+        return;
+    }
+
+    save_player_data( );
 
     globalGameState.multiplayer.cleanup( );
     globalGameState.world.cleanup( globalGameState.map_storage );

@@ -46,6 +46,30 @@ function show_exit_screen() {
   location.replace(location.href);
 }
 
+// Ask the game to exit: sets exitGame so the main loop runs cleanup()
+// (saving world + player data to OPFS) and then calls show_exit_screen().
+function request_exit() {
+  Module.ccall("repgame_wasm_request_exit");
+}
+
+// Called from C++ once the /repgame_wasm OPFS mount is ready (or failed, in
+// which case it fell back to in-memory and the game runs without saving).
+function repgameStorageReady(persistent) {
+  console.log("World storage ready, persistent:", persistent);
+  // Defer: this runs inside a worker->main-thread proxied op, so
+  // PThread.currentProxiedOperationCallerThread is the (soon-exited) storage
+  // thread. SDL's html5 event handlers register with
+  // EM_CALLBACK_THREAD_CONTEXT_CALLING_THREAD and would capture that dead
+  // thread as their dispatch target; every later DOM event would then fail
+  // emscripten_proxy_async. A fresh task sees a clean calling context.
+  setTimeout(function() { Module.ccall("main"); }, 0);
+}
+
+// Ask the browser not to evict our OPFS data under storage pressure.
+if (navigator.storage && navigator.storage.persist) {
+  navigator.storage.persist();
+}
+
 // Track whether the game is running so we only react to pointer lock loss
 // during gameplay, not on the intro page.
 var gameRunning = false;
@@ -65,7 +89,7 @@ document.addEventListener("pointerlockchange", function() {
       // The game intentionally released pointer lock (e.g. inventory). Don't exit.
     } else {
       // The game wants pointer lock but lost it — this is ESC. Exit the game.
-      show_exit_screen();
+      request_exit();
     }
   }
 });
@@ -75,10 +99,10 @@ document.addEventListener("pointerlockchange", function() {
 // instead of navigating away from the page.
 window.addEventListener("popstate", function() {
   if (gameRunning) {
-    // Back button was pressed during the game. Exit the game.
-    // show_exit_screen uses location.replace() which replaces the current
-    // (game) history entry with a fresh page load, clearing forward entries.
-    show_exit_screen();
+    // Back button was pressed during the game. Exit the game (the C++ cleanup
+    // path calls show_exit_screen, which uses location.replace() and so
+    // clears forward entries).
+    request_exit();
   }
 });
 
@@ -89,6 +113,11 @@ var Module = {
     // browser event loop each frame. This shows up as "unwind" in printErr
     // and is harmless, so suppress it to avoid cluttering the error overlay.
     if (msg === "unwind") return;
+    // WasmFS ops on the OPFS-backed /repgame_wasm proxy to a dedicated worker
+    // and briefly block the main thread by design; emscripten warns about it
+    // once ("Blocking on the main thread is very dangerous..."). Harmless
+    // here, so don't show it on the overlay.
+    if (typeof msg === "string" && msg.includes("Blocking on the main thread")) return;
     showError(msg);
   },
   onRuntimeInitialized: onModuleReady,
@@ -138,12 +167,10 @@ function setup_click_handler() {
       // Push a history state so the back button fires popstate (which exits
       // the game) instead of navigating away from the page.
       history.pushState({ game: true }, "");
-      FS.mkdir("/repgame_wasm");
-      FS.mount(IDBFS, {}, "/repgame_wasm");
-      FS.syncfs(true, err => {
-        console.log("Before:", err);
-        Module.ccall("main");
-      });
+      // Mount /repgame_wasm on OPFS (done on a helper thread in C++ since the
+      // backend constructor can't run on the browser main thread). C++ calls
+      // repgameStorageReady() when the mount is in place.
+      Module.ccall("repgame_wasm_start_storage");
     }
   }
   // A user gesture is required to request pointer lock, so the game can't

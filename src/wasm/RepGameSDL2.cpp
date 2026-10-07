@@ -170,6 +170,20 @@ int repgame_sdl2_main( const char *world_path, const char *host, const bool conn
     return 0;
 }
 
+// Called from JS (index.js) when the user exits via ESC pointer-lock loss or
+// the mobile back button — routes those exits through the normal C++ exit
+// path so cleanup() saves the world before the page reloads.
+extern "C" EMSCRIPTEN_KEEPALIVE void repgame_wasm_request_exit( ) {
+    if ( globalGameState ) {
+        globalGameState->input.exitGame = true;
+    }
+}
+
+// How often player.dat is rewritten during play, so a crash or tab close
+// loses at most this much position/inventory progress. Chunk edits already
+// persist continuously via the terrain loading threads.
+#define WASM_SAVE_INTERVAL_MS 15000
+
 int is_locking_pointer = 0;
 void repgame_linux_process_window_and_pointer_state( const RepGame &repgame ) {
     int width, height;
@@ -191,17 +205,24 @@ void repgame_linux_process_window_and_pointer_state( const RepGame &repgame ) {
 void main_loop_wasm( void *arg ) {
     RepGame &repgame = *static_cast<RepGame *>( arg );
     if ( repgame.shouldExit( ) ) {
-        // Show the exit screen and stop the main loop so the browser can
-        // handle the page normally (instead of leaving a black canvas).
+        // Save player.dat and persist all dirty chunks (writes go to the OPFS
+        // backend and are durable on close), then show the exit screen and
+        // stop the main loop so the browser can handle the page normally.
+        repgame.cleanup( );
         EM_ASM( show_exit_screen( ); );
         emscripten_cancel_main_loop( );
         return;
-    } else {
-        repgame_linux_process_sdl_events( repgame );
-        repgame_linux_process_window_and_pointer_state( repgame );
-        repgame.clear( );
-        repgame.tick( );
-        repgame.draw( 1.0f );
     }
+    static double last_save_ms = 0;
+    const double now_ms = emscripten_get_now( );
+    if ( now_ms - last_save_ms > WASM_SAVE_INTERVAL_MS ) {
+        last_save_ms = now_ms;
+        repgame.save_player_data( );
+    }
+    repgame_linux_process_sdl_events( repgame );
+    repgame_linux_process_window_and_pointer_state( repgame );
+    repgame.clear( );
+    repgame.tick( );
+    repgame.draw( 1.0f );
     return;
 }

@@ -11,11 +11,23 @@
 #include "common/constants.hpp"
 #include "common/utils/file_utils.hpp"
 
+// WasmFS opens O_RDONLY OPFS files via a Blob and reads it with
+// slice().arrayBuffer(), which in Firefox needs the main thread's event
+// loop. When the reader IS the main thread (blocked waiting on the proxy
+// worker) that deadlocks. O_RDWR uses FileSystemSyncAccessHandle instead,
+// which never touches the main thread.
+#if defined( REPGAME_WASM )
+#define MAP_READ_MODE "r+b"
+#else
+#define MAP_READ_MODE "rb"
+#endif
+
 void MapStorage::init( const char *world_name ) {
     char *dir = getRepGamePath( );
     snprintf( this->map_name, MAP_NAME_MAX_LENGTH, "%s%s%s", dir, REPGAME_PATH_DIVIDOR, world_name );
     pr_debug( "Loading map from:%s", this->map_name );
     mkdir_p( this->map_name );
+    pr_debug( "Map dir ready:%s", this->map_name );
     free( dir );
 }
 
@@ -82,6 +94,11 @@ void MapStorage::persist_dirty_blocks( const glm::ivec3 &chunk_offset, const Blo
     }
     fwrite( &persist_data, sizeof( STORAGE_TYPE ), 1, write_ptr );
     fflush( write_ptr );
+#if defined( REPGAME_WASM )
+    // File lives on the OPFS backend; fdatasync forces the
+    // FileSystemSyncAccessHandle flush so the write survives a tab crash.
+    fdatasync( fileno( write_ptr ) );
+#endif
     fclose( write_ptr );
     free( &persist_data );
 }
@@ -89,11 +106,9 @@ void MapStorage::persist_dirty_blocks( const glm::ivec3 &chunk_offset, const Blo
 int MapStorage::check_if_chunk_exists( const glm::ivec3 &chunk_offset ) {
     char file_name[ CHUNK_NAME_MAX_LENGTH ];
     snprintf( file_name, CHUNK_NAME_MAX_LENGTH, FILE_ROOT_CHUNK, this->map_name, chunk_offset.x, chunk_offset.y, chunk_offset.z );
-    if ( access( file_name, F_OK ) != -1 ) {
-        return 1;
-    } else {
-        return 0;
-    }
+    struct stat st;
+    // stat (not access(2)): WasmFS doesn't implement faccessat.
+    return stat( file_name, &st ) == 0;
 }
 
 int MapStorage::load_chunk( Chunk &chunk ) {
@@ -109,7 +124,7 @@ int MapStorage::load_blocks( const glm::ivec3 &chunk_offset, BlockState *blocks,
     char file_name[ CHUNK_NAME_MAX_LENGTH ];
     snprintf( file_name, CHUNK_NAME_MAX_LENGTH, FILE_ROOT_CHUNK, this->map_name, chunk_offset.x, chunk_offset.y, chunk_offset.z );
     FILE *read_ptr;
-    read_ptr = fopen( file_name, "rb" );
+    read_ptr = fopen( file_name, MAP_READ_MODE );
     uint32_t storage_type_size = 0;
     size_t result_size = fread( &storage_type_size, sizeof( uint32_t ), 1, read_ptr );
     if ( result_size != 1 ) {
@@ -210,7 +225,7 @@ struct __attribute__( ( packed ) ) PlayerDataNoTime {
 int MapStorage::read_player_data( PlayerData &player_data ) {
     char file_name[ CHUNK_NAME_MAX_LENGTH ];
     snprintf( file_name, CHUNK_NAME_MAX_LENGTH, FILE_ROOT_PLAYER_DATA, this->map_name );
-    FILE *read_ptr = fopen( file_name, "rb" );
+    FILE *read_ptr = fopen( file_name, MAP_READ_MODE );
     if ( !read_ptr ) {
         pr_debug( "No player data:%s (%p)", file_name, read_ptr );
         return 0;
@@ -219,6 +234,7 @@ int MapStorage::read_player_data( PlayerData &player_data ) {
     unsigned char buffer[ sizeof( PlayerData ) ];
     size_t persist_data_length = fread( buffer, 1, sizeof( buffer ), read_ptr );
     fclose( read_ptr );
+    pr_debug( "Read player data:%s (%d bytes)", file_name, ( int )persist_data_length );
     if ( persist_data_length == sizeof( PlayerData ) ) {
         memcpy( &player_data, buffer, sizeof( PlayerData ) );
         return 1;
@@ -272,5 +288,9 @@ void MapStorage::write_player_data( const PlayerData &player_data ) {
         return;
     }
     fwrite( &player_data, sizeof( PlayerData ), 1, write_ptr );
+#if defined( REPGAME_WASM )
+    // See persist_dirty_blocks: force the OPFS sync-access-handle flush.
+    fdatasync( fileno( write_ptr ) );
+#endif
     fclose( write_ptr );
 }

@@ -78,6 +78,18 @@ void *TerrainLoadingThread::process_background_tasks( void *arg ) {
         // pr_debug( "Working..." );
         // sleep( 1 );
         // pr_debug( "Working2... Work Size: %d", work_linked_list->count );
+#ifdef REPGAME_WASM
+        // Backpressure for wasm32's 2GB heap cap: each undrained result holds
+        // its blocks + populated_blocks until program_terrain frees them on
+        // the render thread, so an unbounded load-in backlog can OOM the
+        // whole process.
+        int work_pending, results_pending;
+        self.queue_sizes( &work_pending, &results_pending );
+        if ( results_pending >= WASM_TERRAIN_RESULT_BACKLOG ) {
+            usleep( 20000 );
+            continue;
+        }
+#endif
         LinkedListValue value = linked_list_pop_element( self.work_linked_list );
         if ( value.valid ) {
             self.process_value( &value );

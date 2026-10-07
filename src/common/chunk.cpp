@@ -1169,6 +1169,19 @@ void Chunk::calculate_populated_blocks( ) {
     }
     for ( int renderOrder = 0; renderOrder < LAST_RENDER_ORDER; renderOrder++ ) {
         this->layers[ renderOrder ].num_instances = num_instances[ renderOrder ];
+        // populated_blocks was allocated at full CHUNK_BLOCK_SIZE capacity but
+        // only num_instances entries were used. Shrink it before the chunk
+        // sits in the worker->render result queue, where the excess would be
+        // held until program_terrain frees it.
+        if ( num_instances[ renderOrder ] == 0 ) {
+            free( this->layers[ renderOrder ].populated_blocks );
+            this->layers[ renderOrder ].populated_blocks = nullptr;
+        } else {
+            BlockCoords *shrunk = static_cast<BlockCoords *>( realloc( this->layers[ renderOrder ].populated_blocks, num_instances[ renderOrder ] * sizeof( BlockCoords ) ) );
+            if ( shrunk ) {
+                this->layers[ renderOrder ].populated_blocks = shrunk;
+            }
+        }
     }
 }
 

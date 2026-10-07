@@ -1,13 +1,17 @@
 #WASM
 REPGAME_PACKAGES += npm
 
-CFLAGS_WASM := -DREPGAME_WASM -pthread
+# USE_SDL is needed at compile time too: modern emscripten ports are no
+# longer installed into the shared sysroot, the flag injects the SDL2
+# include path.
+CFLAGS_WASM := -DREPGAME_WASM -pthread -s USE_SDL=2
 
 
-CFLAGS_LINK_WASM := -s USE_WEBGL2=1 \
+CFLAGS_LINK_WASM := -s WASMFS=1 \
 			-s USE_SDL=2 \
-			-lidbfs.js \
-			-s EXPORTED_FUNCTIONS='["_main"]' \
+			-s MAX_WEBGL_VERSION=2 \
+			-s ASSERTIONS=1 \
+			-s EXPORTED_FUNCTIONS='["_main", "_repgame_wasm_start_storage", "_repgame_wasm_request_exit"]' \
 			-s EXPORTED_RUNTIME_METHODS='["ccall", "cwrap"]' \
 			-pthread \
 			-s PTHREAD_POOL_SIZE=navigator.hardwareConcurrency
