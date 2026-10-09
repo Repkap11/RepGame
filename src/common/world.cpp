@@ -53,12 +53,14 @@ void World::init( const glm::dvec3 &camera_pos, int width, int height, MapStorag
     this->vbl_object_position.push_float( 4 );        // transform
     this->vbl_object_position.push_float( 4 );        // transform
     this->vbl_object_position.push_float( 4 );        // transform
+    this->vbl_object_position.push_float( 2 );        // light (sky, block)
 
     // These are from DebrisInstance
     this->vbl_debris_instance.push_unsigned_int( 3 ); // which texture
     this->vbl_debris_instance.push_float( 3 );        // spawn
     this->vbl_debris_instance.push_float( 3 );        // velocity
     this->vbl_debris_instance.push_float( 4 );        // anim (spawn_time, life, size, seed)
+    this->vbl_debris_instance.push_float( 2 );        // light (sky, block)
 
     this->chunkLoader.init( camera_pos, this->vbl_block, this->vbl_coords, map_storage );
 
@@ -344,6 +346,12 @@ void World::draw( const Texture &blocksTexture, const glm::mat4 &mvp, const glm:
         glColorMaski( 3, GL_FALSE, GL_FALSE, GL_FALSE, GL_FALSE );
     }
 #endif
+    // Refresh baked-in light samples before drawing. Avatars get no position
+    // updates while standing still; debris spawns while the broken cell's
+    // recheck is still queued — per-frame resampling covers both. Runs on
+    // the render thread like the light probes.
+    this->multiplayer_avatars.update_lighting( this->chunkLoader );
+    this->blockDebris.update_lighting( this->chunkLoader );
     this->multiplayer_avatars.draw( this->renderer, this->object_shader ); // Mobs
     this->blockDebris.draw( this->renderer, this->debris_shader, time_s );  // Break particles
 #if ( SUPPORTS_FRAME_BUFFER )
@@ -666,7 +674,10 @@ void World::spawn_block_debris( const glm::ivec3 &block_pos, const BlockState &p
     if ( prev_block->renderOrder == RenderOrder_Water ) {
         return;
     }
-    this->blockDebris.spawn_block_break( block_pos, prev_state );
+    // Particles live <1s and stay near their cell, so a single light sample at
+    // the (now-air) block center is baked into every instance.
+    this->blockDebris.spawn_block_break( block_pos, prev_state,
+                                         this->chunkLoader.light_sample( glm::vec3( block_pos ) + 0.5f ) );
 }
 
 // void World::overlay_blocks( const glm::ivec3 *block_poses, BlockState *blockStates, int numBlocks ) {

@@ -40,6 +40,9 @@ layout( location = 3 ) out vec4 skyColor;
 
 in vec2 v_tex_coords;
 in float v_light;
+// Per-instance flood-fill light (x=sky, y=block, 0-1), baked into instance
+// data on the CPU. Unused by the sky (u_IsSky=1 takes the old path).
+flat in vec2 v_light_field;
 flat in float v_blockID;
 in float v_planarDot;
 in vec4 v_world_coords;
@@ -56,13 +59,17 @@ void main( ) {
     if ( u_TintUnderWater == TINT_UNDER_WATER_OBJECT_ALWAYS || ( u_TintUnderWater == TINT_UNDER_WATER_OBJECT_UNDER_Y_LEVEL && v_world_coords.y < ( -0.125f - u_Origin.y - eps ) ) ) {
         texColor = mix( texColor, vec4( 0.122f, 0.333f, 1.0f, 1.0f ), 0.5f );
     }
-    // u_Daylight dims mobs/debris at night and darkens the sky texture itself
-    // (the sky draws through this shader with u_IsSky=1). u_MinAmbient floors
-    // non-sky objects so unlit mobs/debris in caves aren't invisible — the
-    // sky itself is excluded or the night sky would wash out.
-    float scene_light = v_light * u_Daylight;
+    // Non-sky objects (mobs, debris) modulate their CPU-sampled flood-fill
+    // light: the sky channel scales with the day/night factor, the block
+    // channel (torches etc.) doesn't — same combine as chunk_fragment.
+    // v_light is the per-face directional shade applied on top. u_MinAmbient
+    // floors non-sky objects so unlit caves aren't invisible; the sky itself
+    // keeps the old path (v_light * daylight) or the night sky would wash out.
+    float scene_light;
     if ( u_IsSky == 0 ) {
-        scene_light = max( scene_light, u_MinAmbient );
+        scene_light = v_light * max( max( v_light_field.x * u_Daylight, v_light_field.y ), u_MinAmbient );
+    } else {
+        scene_light = v_light * u_Daylight;
     }
     vec4 lightedColor = texColor * vec4( scene_light, scene_light, scene_light, u_ExtraAlpha );
 

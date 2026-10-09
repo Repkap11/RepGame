@@ -6,6 +6,8 @@
 #include "common/RenderChain.hpp"
 #include "common/block_definitions.hpp"
 
+class ChunkLoader;
+
 // GPU-animated debris particles spawned when blocks break. Instances are
 // write-once (position/rotation computed in debris_vertex.glsl from u_Time),
 // so the only CPU work is creating entities on break and sweeping expired
@@ -21,7 +23,14 @@ class BlockDebris {
 
   public:
     void init( const VertexBufferLayout &vbl_object_vertex, const VertexBufferLayout &vbl_debris_instance );
-    void spawn_block_break( const glm::ivec3 &block_pos, const BlockState &blockState );
+    // light is the (sky, block) flood-fill sample at block_pos, baked into
+    // every spawned instance (see Particle.hpp's DebrisInstance).
+    void spawn_block_break( const glm::ivec3 &block_pos, const BlockState &blockState, const glm::vec2 &light );
+    // Re-sample the light field at each live particle's spawn point. The
+    // broken cell is dark until its removal recheck lands, which can lag
+    // whole seconds behind a deep lighting queue — a spawn-time-only sample
+    // stays black for the particle's whole life.
+    void update_lighting( const ChunkLoader &chunk_loader );
     void draw( const Renderer &renderer, const Shader &shader, float time_s );
     void cleanup( );
 };

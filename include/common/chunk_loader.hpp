@@ -153,6 +153,9 @@ class ChunkLoader {
     // TEMP diagnostic for the flood-fill lighting bring-up.
     int light_probe( const glm::ivec3 &pos, int channel ) { return this->light_get( pos, channel ); }
     BlockID light_probe_id( const glm::ivec3 &pos ) { return this->light_block_id_at( pos ); }
+    // Trilinear (sky, block) light sample at a world position, normalized to
+    // [0,1]. For dynamic objects baked into instance data (avatars, debris).
+    glm::vec2 light_sample( const glm::vec3 &pos ) const;
     size_t light_add_queue_size( ) const;
     void light_dbg_stats( char *buf, size_t n );
     size_t light_queue_sizes( ) { return this->light_add_queue_size( ) + this->light_remove_queue.size( ) + this->light_remove_queue_pri.size( ); }

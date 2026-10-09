@@ -17,9 +17,12 @@ layout( location = 3 ) in uvec3 blockTexture;
 layout( location = 4 ) in vec3 spawnPos;
 layout( location = 5 ) in vec3 velocity;
 layout( location = 6 ) in vec4 anim; // x=spawn time, y=life, z=size, w=seed
+// Per-instance flood-fill light at the broken block (x=sky, y=block, 0-1).
+layout( location = 7 ) in vec2 instance_light;
 
 out vec2 v_tex_coords;
 out float v_light;
+flat out vec2 v_light_field;
 flat out float v_blockID;
 out float v_planarDot;
 out vec4 v_world_coords;
@@ -90,5 +93,6 @@ void main( ) {
         face_light = 0.75;
     }
     v_light = face_light;
+    v_light_field = instance_light;
     v_blockID = float( ( blockTexture[ pickFace / 2u ] & ( 0xffffu << pickShift ) ) >> pickShift );
 }

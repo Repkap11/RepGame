@@ -2,6 +2,7 @@
 #include "common/block_debris.hpp"
 #include "common/block.hpp"
 #include "common/block_definitions.hpp"
+#include "common/chunk_loader.hpp"
 
 #include <stdlib.h>
 #include <math.h>
@@ -40,7 +41,7 @@ void BlockDebris::init( const VertexBufferLayout &vbl_object_vertex, const Verte
     this->render_chain.init( vbl_object_vertex, vbl_debris_instance, vd_data_player_object, VB_DATA_SIZE_PARTICLE, ib_data_solid, IB_SOLID_SIZE );
 }
 
-void BlockDebris::spawn_block_break( const glm::ivec3 &block_pos, const BlockState &blockState ) {
+void BlockDebris::spawn_block_break( const glm::ivec3 &block_pos, const BlockState &blockState, const glm::vec2 &light ) {
     const float time_s = static_cast<float>( fmod( now_us( ) / 1.0e6, TIME_WRAP ) );
     const Block *block = block_definition_get_definition( blockState.id );
     // Resolve the displayed textures the same way chunk meshing does
@@ -82,7 +83,22 @@ void BlockDebris::spawn_block_break( const glm::ivec3 &block_pos, const BlockSta
                                 radial.z * DEBRIS_VEL_RADIAL + ( frand( ) - 0.5f ) * DEBRIS_VEL_JITTER );
         const float life = DEBRIS_LIFE_MIN + frand( ) * DEBRIS_LIFE_SPREAD;
         d.anim = glm::vec4( time_s, life, DEBRIS_SIZE_MIN + frand( ) * DEBRIS_SIZE_SPREAD, frand( ) * DEBRIS_SEED_RANGE );
+        d.light = light;
         this->live.push_back( { data.first, time_s, life } );
+    }
+}
+
+void BlockDebris::update_lighting( const ChunkLoader &chunk_loader ) {
+    for ( const LiveParticle &p : this->live ) {
+        DebrisInstance &d = this->render_chain.get_instance( p.entity );
+        // The spawn point sits inside the broken cell — the trilinear sample
+        // blends in its already-lit neighbors, then converges to the cell's
+        // true value once the recheck writes it.
+        const glm::vec2 light = chunk_loader.light_sample( d.spawn );
+        if ( d.light != light ) {
+            d.light = light;
+            this->render_chain.invalidate( p.entity );
+        }
     }
 }
 

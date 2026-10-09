@@ -67,7 +67,7 @@ void SkyBox::init( const VertexBufferLayout &vbl_object_vertex, const VertexBuff
     free( vb_data );
     auto pair = this->render_chain_sky_box.create_instance( );
     ParticlePosition &sky_instance = pair.second;
-    sky_instance = { { }, glm::mat4( 1.0f ) }; // The sky's vertexes are scaled, no need to scale instance.
+    sky_instance = { { }, glm::mat4( 1.0f ), glm::vec2( 0.0f ) }; // The sky's vertexes are scaled, no need to scale instance.
 
     this->texture.init( texture_source_sky4, 1 );
 

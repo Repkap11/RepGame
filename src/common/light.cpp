@@ -253,6 +253,36 @@ BlockID ChunkLoader::light_block_id_at( const glm::ivec3 &block_pos ) const {
     return chunk->get_block( local ).id;
 }
 
+// Trilinear sample of the light volume for non-terrain draws (player avatars,
+// block-break debris) — those draw all instances in one call and can't bind a
+// per-chunk 3D texture, so they bake this CPU sample into instance data.
+// Light cells sit at block centers (integer+0.5), matching the texel-center
+// convention the chunk shader samples the GPU volume with. Returns
+// normalized (sky, block) in [0,1]; missing/unloaded cells contribute 0.
+glm::vec2 ChunkLoader::light_sample( const glm::vec3 &pos ) const {
+    const glm::vec3 q = pos - 0.5f;
+    const glm::ivec3 base = glm::ivec3( glm::floor( q ) );
+    const glm::vec3 f = q - glm::vec3( base );
+    glm::vec2 accum( 0.0f );
+    for ( int dz = 0; dz <= 1; dz++ ) {
+        for ( int dy = 0; dy <= 1; dy++ ) {
+            for ( int dx = 0; dx <= 1; dx++ ) {
+                const float w = ( dx ? f.x : 1.0f - f.x ) * ( dy ? f.y : 1.0f - f.y ) * ( dz ? f.z : 1.0f - f.z );
+                const glm::ivec3 cell = base + glm::ivec3( dx, dy, dz );
+                const int sky = this->light_get( cell, LIGHT_CHANNEL_SKY );
+                const int blk = this->light_get( cell, LIGHT_CHANNEL_BLOCK );
+                if ( sky > 0 ) {
+                    accum.x += w * static_cast<float>( sky );
+                }
+                if ( blk > 0 ) {
+                    accum.y += w * static_cast<float>( blk );
+                }
+            }
+        }
+    }
+    return accum / static_cast<float>( LIGHT_MAX_LEVEL );
+}
+
 // ---------------------------------------------------------------------------
 // Lighting thread work queue (docs/lighting-thread-plan.md)
 //

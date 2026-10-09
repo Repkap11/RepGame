@@ -18,9 +18,13 @@ layout( location = 2 ) in uint faceType;
 // See ParticlePosition in chunk.hpp
 layout( location = 3 ) in uvec3 blockTexture;
 layout( location = 4 ) in mat4 transform;
+// Per-instance flood-fill light sampled on the CPU (x=sky, y=block, 0-1);
+// the mat4 above takes locations 4-7.
+layout( location = 8 ) in vec2 instance_light;
 
 out vec2 v_tex_coords;
 out float v_light;
+flat out vec2 v_light_field;
 flat out float v_blockID;
 flat out float v_id;
 out float v_planarDot;
@@ -45,5 +49,6 @@ void main( ) {
         face_light = 0.75;
     }
     v_light = face_light;
+    v_light_field = instance_light;
     v_blockID = float( ( blockTexture[ faceType / 2u ] & ( 0xffffu << shift ) ) >> shift );
 }

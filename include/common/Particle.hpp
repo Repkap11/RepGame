@@ -69,6 +69,10 @@ static ParticleVertex vd_data_player_object[] = {
 typedef struct {
     unsigned short face[ NUM_FACES_IN_CUBE ];
     glm::mat4 transform;
+    // Flood-fill light at the object's position, x=sky y=block, normalized
+    // [0,1] (ChunkLoader::light_sample). Refreshed per-frame for avatars so
+    // torch edits near a standing player still relight them.
+    glm::vec2 light;
 } ParticlePosition;
 
 // Per-instance data for GPU-animated particles (block-break debris). Written
@@ -80,4 +84,5 @@ typedef struct {
     glm::vec3 spawn;                          // world-space spawn position
     glm::vec3 velocity;                       // initial velocity, blocks/second
     glm::vec4 anim;                           // x=spawn_time (u_Time clock), y=life seconds, z=size, w=seed
+    glm::vec2 light;                          // flood-fill light at spawn cell: x=sky, y=block, [0,1]
 } DebrisInstance;
