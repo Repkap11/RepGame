@@ -11,7 +11,8 @@ CFLAGS_LINK_WASM := -s WASMFS=1 \
 			-s USE_SDL=2 \
 			-s MAX_WEBGL_VERSION=2 \
 			-s ASSERTIONS=1 \
-			-s EXPORTED_FUNCTIONS='["_main", "_repgame_wasm_start_storage", "_repgame_wasm_request_exit"]' \
+			-s EXPORTED_FUNCTIONS='["_main", "_repgame_wasm_start_storage", "_repgame_wasm_request_exit", "_repgame_wasm_set_server"]' \
+			-lwebsocket.js \
 			-s EXPORTED_RUNTIME_METHODS='["ccall", "cwrap"]' \
 			-pthread \
 			-s PTHREAD_POOL_SIZE=navigator.hardwareConcurrency

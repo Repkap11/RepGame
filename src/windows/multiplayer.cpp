@@ -1,28 +1,21 @@
 #include "common/RepGame.hpp"
 #include "common/multiplayer.hpp"
 
+// Windows has no multiplayer transport; the shared send-side and dispatch
+// code lives in src/common/multiplayer_common.cpp and these are the
+// platform hooks it needs. Multiplayer is never initialized, so active is
+// always false and nothing here is reachable.
+
 void Multiplayer::init( const char *hostname, int port ) {
 }
 
 void Multiplayer::process_events( World &world ) {
 }
 
-void Multiplayer::set_block( const glm::ivec3 &block_pos, BlockState blockState ) {
+void Multiplayer::flush_outbound( ) {
 }
 
-void Multiplayer::update_players_position( const glm::vec3 &player_pos, const glm::mat4 &rotation ) {
-}
-
-void Multiplayer::request_chunk( const glm::ivec3 &chunk_pos ) {
-}
-
-void Multiplayer::request_chunks_box( const glm::ivec3 &min, uint8_t sx, uint8_t sy, uint8_t sz ) {
-}
-
-void Multiplayer::queue_pending_diff( const NetChunkDiffResultPayload &diff ) {
-}
-
-void Multiplayer::apply_pending_diffs( Chunk &chunk ) {
+void Multiplayer::disconnect( ) {
 }
 
 void Multiplayer::cleanup( ) {

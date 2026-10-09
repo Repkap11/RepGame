@@ -213,12 +213,14 @@ void ChunkLoader::render_chunks( Multiplayer &multiplayer, const glm::dvec3 &cam
     // per-chunk requests as terrain gen finishes. This overlaps the network
     // round-trip with GPU terrain gen.
     if ( this->initial_chunk_request_pending ) {
-        this->initial_chunk_request_pending = false;
         glm::ivec3 box_min = chunk_pos - glm::ivec3( CHUNK_RADIUS_X, CHUNK_RADIUS_Y, CHUNK_RADIUS_Z );
-        multiplayer.request_chunks_box( box_min,
-                                        static_cast<uint8_t>( 2 * CHUNK_RADIUS_X + 1 ),
-                                        static_cast<uint8_t>( 2 * CHUNK_RADIUS_Y + 1 ),
-                                        static_cast<uint8_t>( 2 * CHUNK_RADIUS_Z + 1 ) );
+        // Only consume the one-shot flag if the request actually went out.
+        // On WASM the WebSocket may still be connecting when the first
+        // frame renders; retry next frame rather than dropping the request.
+        this->initial_chunk_request_pending = !multiplayer.request_chunks_box( box_min,
+                                                                               static_cast<uint8_t>( 2 * CHUNK_RADIUS_X + 1 ),
+                                                                               static_cast<uint8_t>( 2 * CHUNK_RADIUS_Y + 1 ),
+                                                                               static_cast<uint8_t>( 2 * CHUNK_RADIUS_Z + 1 ) );
     }
 
     {

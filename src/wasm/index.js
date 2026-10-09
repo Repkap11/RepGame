@@ -52,10 +52,65 @@ function request_exit() {
   Module.ccall("repgame_wasm_request_exit");
 }
 
+// The wasmfs OPFS backend mounts the browser's OPFS root at /repgame_wasm, so
+// the saved world (/repgame_wasm/World1 — chunk_* files plus player.dat)
+// appears as a top-level "World1" directory in OPFS. Deleting it recursively
+// resets the world exactly like `rm -rf World1` on the native build. This can
+// run before the module even loads since it talks to OPFS directly.
+async function clearSavedWorld() {
+  var status = document.getElementById("clear_status");
+  if (!window.confirm("Delete the saved world and player data? This cannot be undone.")) {
+    return;
+  }
+  if (!navigator.storage || !navigator.storage.getDirectory) {
+    status.textContent = "Nothing to clear (persistent storage unsupported).";
+    return;
+  }
+  try {
+    var root = await navigator.storage.getDirectory();
+    await root.removeEntry("World1", { recursive: true });
+    status.textContent = "Saved world deleted.";
+    console.log("Deleted OPFS World1");
+  } catch (e) {
+    if (e && e.name === "NotFoundError") {
+      status.textContent = "No saved world found.";
+    } else {
+      status.textContent = "Clear failed: " + e.message;
+      showError("clearSavedWorld: " + (e && e.message ? e.message : e));
+    }
+  }
+}
+
+document.getElementById("clear_button").addEventListener("click", function(e) {
+  e.stopPropagation(); // Never let this count as a play gesture.
+  clearSavedWorld();
+});
+
+// Multiplayer server as a WebSocket URL. Override with ?server=ws://host:port/
+// or disable multiplayer entirely with ?server=off. Defaults:
+//  - served from localhost: a local websockify bridge on :25567 (in front of
+//    a `make server` TCP server on :25566).
+//  - anywhere else (e.g. repkap11.com): wss://<host>/repgame-ws, where nginx
+//    terminates TLS and proxies to websockify -> TCP :25566.
+function repgameServerUrl() {
+  var param = new URLSearchParams(location.search).get("server");
+  if (param === "off") return null;
+  if (param) return param;
+  if (location.hostname === "localhost" || location.hostname === "127.0.0.1") {
+    return "ws://" + location.hostname + ":25567";
+  }
+  return "wss://" + location.host + "/repgame-ws";
+}
+
 // Called from C++ once the /repgame_wasm OPFS mount is ready (or failed, in
 // which case it fell back to in-memory and the game runs without saving).
 function repgameStorageReady(persistent) {
   console.log("World storage ready, persistent:", persistent);
+  var serverUrl = repgameServerUrl();
+  if (serverUrl) {
+    console.log("Multiplayer server:", serverUrl);
+    Module.ccall("repgame_wasm_set_server", null, ["string"], [serverUrl]);
+  }
   // Defer: this runs inside a worker->main-thread proxied op, so
   // PThread.currentProxiedOperationCallerThread is the (soon-exited) storage
   // thread. SDL's html5 event handlers register with

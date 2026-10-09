@@ -58,6 +58,49 @@ body {
     border-color: #8ab4f0;
 }
 
+/* Pinned to the bottom of the #startup overlay, just above the #download
+   links bar. Hides together with #startup once the game starts. */
+#clear_area {
+    position: absolute;
+    bottom: 9vh;
+    left: 0;
+    right: 0;
+    text-align: center;
+}
+
+#clear_button {
+    font-family: 'Segoe UI', Arial, Helvetica, sans-serif;
+    font-size: 2vmin;
+    color: #c0c0d0;
+    background: transparent;
+    border: 1px solid #555;
+    border-radius: 6px;
+    padding: 1vh 2vw;
+    cursor: pointer;
+}
+
+#clear_button:hover {
+    border-color: #d96a6a;
+    color: #f0b0b0;
+}
+
+#clear_status {
+    margin-top: 1vh;
+    font-family: 'Segoe UI', Arial, Helvetica, sans-serif;
+    font-size: 1.8vmin;
+    color: #8ab48a;
+    min-height: 2.5vmin;
+}
+
+@media (pointer: coarse) {
+    #clear_button {
+        font-size: 3.5vmin;
+    }
+    #clear_status {
+        font-size: 3vmin;
+    }
+}
+
 #canvas {
     display: block;
     position: absolute;

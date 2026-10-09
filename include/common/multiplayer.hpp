@@ -9,6 +9,7 @@
 #include <map>
 #include <string>
 #include <thread>
+#include <vector>
 
 class Multiplayer {
     FramedSocket framed_socket;
@@ -17,6 +18,9 @@ class Multiplayer {
     friend class World;
 
     int sockfd = -1;
+    // WASM: browser WebSocket handle (EMSCRIPTEN_WEBSOCKET_T, an int).
+    // Unused on other platforms.
+    int ws_handle = -1;
     int portno = 0;
     std::atomic<bool> active{ false };
     std::thread connect_thread;
@@ -28,6 +32,20 @@ class Multiplayer {
 
     void connect_async( const std::string &hostname );
 
+    // Dispatch one complete frame payload (version|type|player_id|body).
+    // Shared by the POSIX and WASM transports.
+    void handle_frame( World &world, const std::vector<uint8_t> &payload );
+
+    // Per-platform: push queued outbound frames to the transport, and mark
+    // the connection dead / release transport resources. Implemented in the
+    // platform multiplayer.cpp.
+    void flush_outbound( );
+    void disconnect( );
+
+    // Defined in src/wasm/multiplayer.cpp: the emscripten WebSocket event
+    // callbacks need access to framed_socket/active/ws_handle.
+    friend struct WasmMultiplayerHooks;
+
   public:
     void init( const char *hostname, int port );
     void cleanup( );
@@ -36,7 +54,10 @@ class Multiplayer {
     void set_block( const glm::ivec3 &block_pos, BlockState blockState );
     void update_players_position( const glm::vec3 &player_pos, const glm::mat4 &rotation );
     void request_chunk( const glm::ivec3 &chunk_pos );
-    void request_chunks_box( const glm::ivec3 &min, uint8_t sx, uint8_t sy, uint8_t sz );
+    // Returns false (and queues nothing) when not connected, so callers
+    // retrying one-shot requests (initial_chunk_request_pending) can keep
+    // their retry flag set.
+    bool request_chunks_box( const glm::ivec3 &min, uint8_t sx, uint8_t sy, uint8_t sz );
 
     // Queue a chunk diff for a chunk that isn't loaded yet. Called from
     // process_events when get_chunk returns nullptr.
