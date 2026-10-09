@@ -65,7 +65,6 @@ in vec3 v_world_coords;
 flat in vec3 v_face_normal;
 
 flat in uint v_blockID;
-flat in int v_needs_rotate;
 flat in int v_block_auto_rotates;
 
 layout(location = 0) out vec4 color;
@@ -88,10 +87,16 @@ void main() {
     int mod_sum = -1;
     vec3 adjusted_face = vec3(1, 1, 1);
     if(bool(v_block_auto_rotates)) {
-        // if ( v_blockID == 0u ) {//Grass
-        int x_mod = int(working_int.x) % 32;
-        int y_mod = int(working_int.y) % 32;
-        mod_sum = (27 * x_mod + y_mod + v_needs_rotate) % 32;
+        // Hash the world cell this face fragment covers so the rotation is a
+        // pure function of position — the same no matter how greedy meshing
+        // merged the block into quads. Stepping half a cell against the face
+        // normal lands inside the block the face belongs to. (The old scheme
+        // hashed the merged quad's origin in the vertex shader and corrected
+        // per-texel with 27*tile_x + tile_y, which only reproduces the world
+        // hash for top/bottom faces merged along x/z — side faces merged
+        // along y/z rotated differently depending on run placement.)
+        vec3 cell = floor(v_world_coords + u_Origin - v_face_normal * 0.5);
+        mod_sum = int(mod(27.0 * mod(cell.x, 32.0) + 3.0 * mod(cell.y, 32.0) + mod(cell.z, 32.0), 32.0));
         if(mod_sum >= 8 && mod_sum < 16) {
             int offset = 1 - (mod_sum % 2);
             mod_sum = (mod_sum + 2 * offset) % 8;

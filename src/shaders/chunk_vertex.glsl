@@ -42,7 +42,6 @@ out vec3 v_world_coords;
 // flood-fill light volume at the air cell this face points into.
 flat out vec3 v_face_normal;
 
-flat out int v_needs_rotate;
 flat out int v_block_auto_rotates;
 
 #define FACE_TOP 0u
@@ -60,11 +59,6 @@ flat out int v_block_auto_rotates;
 #define NO_LIGHT_NO_DRAW 0x6fffffu
 
 #define CORNER_OFFSET_c 16u
-
-// Different devices give different results when using the modulus operator with negative numbers. So I need this function.
-int rep_mod(int x, int y) {
-    return x - y * int(floor(float(x) / float(y)));
-}
 
 void main() {
     uint packed_lighting;
@@ -251,12 +245,5 @@ void main() {
         v_block_auto_rotates = 0;
     } else {
         v_block_auto_rotates = int(u_RandomRotationBlocks[v_blockID] == 1.0f);
-    }
-    if(bool(v_block_auto_rotates)) {
-        int x_mod = rep_mod(int(blockCoords.x), 32);
-        int y_mod = rep_mod(int(blockCoords.y), 32);
-        int z_mod = rep_mod(int(blockCoords.z), 32);
-
-        v_needs_rotate = rep_mod(27 * x_mod + 3 * y_mod + z_mod, 32);
     }
 }
