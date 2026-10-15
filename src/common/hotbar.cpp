@@ -419,3 +419,25 @@ bool Hotbar::moveHalfToSurvivalInventory( int slot_index, class SurvivalInventor
     this->inventory_renderer.changeSlotItem( slot_index, slot );
     return true;
 }
+
+InventorySlot Hotbar::getSlotContents( int slot_index ) const {
+    if ( slot_index < 0 || slot_index >= this->num_blocks_max ) {
+        return { LAST_BLOCK_ID, 0 };
+    }
+    return this->slots[ slot_index ];
+}
+
+void Hotbar::setSlotContents( int slot_index, const InventorySlot &value ) {
+    if ( slot_index < 0 || slot_index >= this->num_blocks_max ) {
+        return;
+    }
+    InventorySlot &slot = this->slots[ slot_index ];
+    if ( slot.block_id != LAST_BLOCK_ID && slot.block_id != value.block_id ) {
+        this->blockId_to_slot_map.erase( slot.block_id );
+    }
+    slot = value;
+    if ( value.block_id != LAST_BLOCK_ID && value.quantity > 0 ) {
+        this->blockId_to_slot_map[ value.block_id ] = slot_index;
+    }
+    this->inventory_renderer.changeSlotItem( slot_index, slot );
+}

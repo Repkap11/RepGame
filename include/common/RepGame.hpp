@@ -103,6 +103,18 @@ struct RepGameState {
     // true, held_inventory_slot contains the stack picked up from a slot.
     InventorySlot held_inventory_slot;
     bool is_holding_inventory_slot;
+    // Chest container the player currently has open (at most one). Contents
+    // live in the owning chunk (World::get_chest_contents); this renderer
+    // draws them as a top-aligned panel.
+    struct {
+        bool open;
+        glm::ivec3 pos;
+        InventoryRenderer inventory_renderer;
+    } chest;
+    // Chests this player broke while connected to a server: the server answers
+    // the block removal with a CHEST_CONTENTS snapshot used for looting, so
+    // contents are never lost to a client that never opened the chest.
+    std::unordered_set<glm::ivec3> pending_chest_loot;
     struct {
         int selectionInBounds;
         int face;
@@ -171,6 +183,9 @@ class RepGame {
     // Queues a PressurePlateEvent for each unpressed pressure plate the
     // player's feet overlap; pressed plates re-check themselves via the event.
     void process_pressure_plates( );
+    // Chest open/close (sends CHEST_OPEN/CHEST_CLOSE when connected).
+    void open_chest( const glm::ivec3 &pos );
+    void close_chest( );
 
   public:
     // Per-frame profiling data (microseconds). Updated by draw() and read by
@@ -208,3 +223,8 @@ class RepGame {
 
     int rep_tests_start( );
 };
+
+// Moves every non-empty slot of a chest into the player's inventories
+// (survival first, hotbar for the overflow). Used for chest-break looting;
+// the multiplayer packet path calls this with the server's snapshot.
+void repgame_loot_chest_contents( RepGameState &state, const ChestContents &contents );

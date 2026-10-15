@@ -94,7 +94,7 @@ void UIOverlay::set_holding_block( BlockID holding_block ) {
     pair.second = vb_data_holding_block_instance;
 }
 
-void UIOverlay::draw( CreativeInventory &creative_inventory, SurvivalInventory &survival_inventory, Hotbar &hotbar, GameMode game_mode, const Renderer &renderer, const Texture &blocksTexture, Input &input, FontRenderer &font, const glm::mat4 &mvp_ui ) {
+void UIOverlay::draw( CreativeInventory &creative_inventory, SurvivalInventory &survival_inventory, Hotbar &hotbar, GameMode game_mode, const Renderer &renderer, const Texture &blocksTexture, Input &input, FontRenderer &font, const glm::mat4 &mvp_ui, InventoryRenderer *chest_renderer, const ChestContents *chest_contents ) {
     this->shader.set_uniform_mat4f( "u_MVP", mvp_ui );
     this->shader.set_uniform1i_texture( "u_Texture", blocksTexture );
 
@@ -106,12 +106,35 @@ void UIOverlay::draw( CreativeInventory &creative_inventory, SurvivalInventory &
         hotbar.drawQuantities( renderer, font, mvp_ui );
     }
 
+    const bool chest_open = chest_renderer != nullptr && chest_contents != nullptr;
     if ( input.inventory_open ) {
-        if ( game_mode == GameMode_Creative ) {
+        if ( game_mode == GameMode_Creative && !chest_open ) {
             creative_inventory.draw( renderer, blocksTexture, this->shader );
         } else {
             survival_inventory.draw( renderer, blocksTexture, this->shader );
             survival_inventory.drawQuantities( renderer, font, mvp_ui );
+        }
+        if ( chest_open ) {
+            // Chest panel on top, then its stack-size labels.
+            chest_renderer->draw( renderer, blocksTexture, this->shader );
+            for ( int i = 0; i < CHEST_SLOTS; i++ ) {
+                const InventorySlot &slot = chest_contents->slots[ i ];
+                if ( slot.block_id == LAST_BLOCK_ID || slot.quantity <= 0 ) {
+                    continue;
+                }
+                float slot_x, slot_y;
+                if ( !chest_renderer->getSlotPosition( i, slot_x, slot_y ) ) {
+                    continue;
+                }
+                char buf[ 16 ];
+                snprintf( buf, sizeof( buf ), "%d", slot.quantity );
+                const float text_size = 24.0f;
+                const float text_width = font.getTextWidth( buf, text_size );
+                const float tx = slot_x - text_width - 2.0f;
+                const float ty = slot_y + 2.0f;
+                float tint[ 4 ] = { 1.0f, 1.0f, 1.0f, 1.0f };
+                font.drawString( renderer, buf, tx, ty, text_size, tint, mvp_ui );
+            }
         }
     } else {
         glBlendFunc( GL_ONE_MINUS_DST_COLOR, GL_ZERO );

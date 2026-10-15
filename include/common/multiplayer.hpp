@@ -33,8 +33,9 @@ class Multiplayer {
     void connect_async( const std::string &hostname );
 
     // Dispatch one complete frame payload (version|type|player_id|body).
-    // Shared by the POSIX and WASM transports.
-    void handle_frame( World &world, const std::vector<uint8_t> &payload );
+    // Shared by the POSIX and WASM transports. Takes RepGameState (not just
+    // World) because chest packets also touch inventories and chest UI state.
+    void handle_frame( RepGameState &state, const std::vector<uint8_t> &payload );
 
     // Per-platform: push queued outbound frames to the transport, and mark
     // the connection dead / release transport resources. Implemented in the
@@ -50,8 +51,13 @@ class Multiplayer {
     void init( const char *hostname, int port );
     void cleanup( );
 
-    void process_events( World &world );
+    void process_events( RepGameState &state );
     void set_block( const glm::ivec3 &block_pos, BlockState blockState );
+    // Chest container protocol. Senders no-op when not connected.
+    void chest_open( const glm::ivec3 &chest_pos );
+    void chest_close( const glm::ivec3 &chest_pos );
+    void chest_set_slot( const glm::ivec3 &chest_pos, uint32_t slot_index, const InventorySlot &value );
+    bool is_active( ) const { return this->active.load( ); }
     void update_players_position( const glm::vec3 &player_pos, const glm::mat4 &rotation );
     void request_chunk( const glm::ivec3 &chunk_pos );
     // Returns false (and queues nothing) when not connected, so callers

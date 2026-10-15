@@ -130,7 +130,7 @@ void Multiplayer::disconnect( ) {
     }
 }
 
-void Multiplayer::process_events( World &world ) {
+void Multiplayer::process_events( RepGameState &state ) {
     if ( !this->active ) {
         return;
     }
@@ -156,7 +156,7 @@ void Multiplayer::process_events( World &world ) {
             // No more complete frames right now.
             return;
         }
-        this->handle_frame( world, *payload );
+        this->handle_frame( state, *payload );
     }
 }
 

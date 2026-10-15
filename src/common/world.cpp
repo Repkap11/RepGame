@@ -666,6 +666,62 @@ BlockState World::get_loaded_block( const glm::ivec3 &block_pos ) const {
     return BLOCK_STATE_LAST_BLOCK_ID;
 }
 
+const ChestContents *World::get_chest_contents( const glm::ivec3 &block_pos ) const {
+    if ( const Chunk *chunk_prt = this->get_loaded_chunk( block_pos ) ) {
+        const Chunk &chunk = *chunk_prt;
+        if ( chunk.is_loading ) {
+            return nullptr;
+        }
+        const glm::ivec3 diff = block_pos - chunk.chunk_pos * CHUNK_SIZE_I;
+        const auto it = chunk.chests.find( Chunk::get_index_from_coords( diff ) );
+        return it == chunk.chests.end( ) ? nullptr : &it->second;
+    }
+    return nullptr;
+}
+
+ChestContents *World::get_or_create_chest_contents( const glm::ivec3 &block_pos ) {
+    if ( Chunk *chunk_prt = this->get_loaded_chunk( block_pos ) ) {
+        Chunk &chunk = *chunk_prt;
+        if ( chunk.is_loading ) {
+            return nullptr;
+        }
+        if ( !block_is_chest( get_block_from_chunk( chunk, block_pos ).id ) ) {
+            return nullptr;
+        }
+        const glm::ivec3 diff = block_pos - chunk.chunk_pos * CHUNK_SIZE_I;
+        const int index = Chunk::get_index_from_coords( diff );
+        chunk.chests_loaded = 1;
+        return &chunk.chests[ index ]; // default-constructs an empty chest
+    }
+    return nullptr;
+}
+
+bool World::set_chest_slot( const glm::ivec3 &block_pos, int slot, const InventorySlot &value ) {
+    if ( slot < 0 || slot >= CHEST_SLOTS ) {
+        return false;
+    }
+    ChestContents *contents = this->get_or_create_chest_contents( block_pos );
+    if ( contents == nullptr ) {
+        return false;
+    }
+    contents->slots[ slot ] = value;
+    if ( Chunk *chunk_prt = this->get_loaded_chunk( block_pos ) ) {
+        chunk_prt->dirty = 1;
+    }
+    return true;
+}
+
+void World::set_chest_contents( const glm::ivec3 &block_pos, const ChestContents &contents ) {
+    ChestContents *dst = this->get_or_create_chest_contents( block_pos );
+    if ( dst == nullptr ) {
+        return;
+    }
+    *dst = contents;
+    if ( Chunk *chunk_prt = this->get_loaded_chunk( block_pos ) ) {
+        chunk_prt->dirty = 1;
+    }
+}
+
 void World::spawn_block_debris( const glm::ivec3 &block_pos, const BlockState &prev_state, const BlockID new_id ) {
     if ( prev_state.id == AIR || prev_state.id == LAST_BLOCK_ID || prev_state.id == new_id ) {
         return;

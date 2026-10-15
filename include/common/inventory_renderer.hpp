@@ -1,5 +1,7 @@
 #pragma once
 
+#include <limits.h>
+
 #include "renderer/index_buffer.hpp"
 #include "renderer/vertex_buffer.hpp"
 #include "renderer/vertex_array.hpp"
@@ -11,10 +13,8 @@
 // #define INVENTORY_BLOCK_SIZE 30
 // #define INVENTORY_BLOCK_SPACING 80
 
-typedef struct __attribute__( ( packed ) ) {
-    BlockID block_id;
-    int quantity;
-} InventorySlot;
+// Disables the pin_*_y overrides below (panel placed by gravity/centering).
+#define INV_PIN_Y_DISABLED INT_MIN
 
 typedef struct {
     float max_width_percent;
@@ -25,7 +25,16 @@ typedef struct {
     // gravity_bottom) inventories, which shift up to stay above it.
     float bottom_reserved_percent;
     bool gravity_bottom;
+    // Pin the panel to the top of the screen (chest UI sits above the player
+    // inventory, which keeps its normal centered/bottom-anchored layout).
+    bool gravity_top;
     bool shows_selection_slot;
+    // Pixel-space (centered-origin) edge anchors applied in onSizeChange when
+    // not INV_PIN_DISABLED, taking precedence over gravity/centering. Set
+    // these after another panel's layout so edges align: pin_bottom_y is the
+    // panel's bottom edge, pin_top_y its top edge.
+    int pin_bottom_y;
+    int pin_top_y;
 } InventoryRenderOptions;
 
 class InventoryRenderer {
@@ -88,6 +97,10 @@ class InventoryRenderer {
     void setSelectedSlot( int slot_index );
     void draw( const Renderer &renderer, const Texture &blocksTexture, const Shader &shader );
     int whichSlotClicked( int screen_x, int screen_y ) const;
+    // Panel edges in centered screen coords (set by onSizeChange) so other
+    // panels can align to them via options.pin_bottom_y / pin_top_y.
+    int getInvBottom( ) const;
+    int getInvTop( ) const;
     // Returns the screen-space position of the bottom-right corner of the given
     // slot (for rendering quantity text). Returns false if the slot index is
     // out of bounds.

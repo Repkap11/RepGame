@@ -1,5 +1,6 @@
 #include <errno.h>
 #include <limits.h> /* PATH_MAX */
+#include <stddef.h> /* offsetof */
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -43,6 +44,19 @@ typedef struct __attribute__( ( packed ) ) {
 void MapStorage::persist_chunk( const Chunk &chunk ) {
     if ( chunk.dirty ) {
         this->persist_dirty_blocks( chunk.chunk_pos, chunk.blocks );
+        if ( chunk.chests_loaded ) {
+            // Chest sidecar file is keyed by world block position.
+            ChestContentsMap chest_world_map;
+            const glm::ivec3 chunk_origin = chunk.chunk_pos * CHUNK_SIZE_I;
+            for ( const auto &pair : chunk.chests ) {
+                const int index = pair.first;
+                const glm::ivec3 internal_pos( ( ( index / CHUNK_SIZE_INTERNAL_Z ) % CHUNK_SIZE_INTERNAL_X ) - 1,
+                                               ( index / ( CHUNK_SIZE_INTERNAL_Z * CHUNK_SIZE_INTERNAL_X ) ) - 1,
+                                               ( index % CHUNK_SIZE_INTERNAL_Z ) - 1 );
+                chest_world_map[ chunk_origin + internal_pos ] = pair.second;
+            }
+            this->persist_chests( chunk.chunk_pos, chest_world_map );
+        }
     }
 }
 
@@ -109,6 +123,95 @@ int MapStorage::check_if_chunk_exists( const glm::ivec3 &chunk_offset ) {
     struct stat st;
     // stat (not access(2)): WasmFS doesn't implement faccessat.
     return stat( file_name, &st ) == 0;
+}
+
+// Chest file layout: u32 record_size (forward-compat, like the chunk
+// STORAGE_TYPE trick), u32 num_chests, then per chest:
+//   { i32 x, i32 y, i32 z (world block pos), InventorySlot slots[CHEST_SLOTS] }.
+struct __attribute__( ( packed ) ) ChestFileRecord {
+    int x;
+    int y;
+    int z;
+    InventorySlot slots[ CHEST_SLOTS ];
+};
+
+void MapStorage::persist_chests( const glm::ivec3 &chunk_offset, const ChestContentsMap &chests ) {
+    char file_name[ CHUNK_NAME_MAX_LENGTH ];
+    snprintf( file_name, CHUNK_NAME_MAX_LENGTH, FILE_ROOT_CHEST, this->map_name, chunk_offset.x, chunk_offset.y, chunk_offset.z );
+    if ( chests.empty( ) ) {
+        // No chests left in this chunk — remove the file so deleted chests
+        // don't resurrect on the next load.
+        remove( file_name );
+        return;
+    }
+    FILE *write_ptr = fopen( file_name, "wb" );
+    if ( write_ptr == NULL ) {
+        pr_debug( "fopen failed for chest file:%s", file_name );
+        return;
+    }
+    uint32_t record_size = sizeof( ChestFileRecord );
+    fwrite( &record_size, sizeof( uint32_t ), 1, write_ptr );
+    uint32_t num_chests = static_cast<uint32_t>( chests.size( ) );
+    fwrite( &num_chests, sizeof( uint32_t ), 1, write_ptr );
+    for ( const auto &pair : chests ) {
+        ChestFileRecord record;
+        record.x = pair.first.x;
+        record.y = pair.first.y;
+        record.z = pair.first.z;
+        memcpy( record.slots, pair.second.slots, sizeof( record.slots ) );
+        fwrite( &record, sizeof( ChestFileRecord ), 1, write_ptr );
+    }
+#if defined( REPGAME_WASM )
+    fdatasync( fileno( write_ptr ) );
+#endif
+    fclose( write_ptr );
+}
+
+int MapStorage::load_chests( const glm::ivec3 &chunk_offset, ChestContentsMap &out ) {
+    char file_name[ CHUNK_NAME_MAX_LENGTH ];
+    snprintf( file_name, CHUNK_NAME_MAX_LENGTH, FILE_ROOT_CHEST, this->map_name, chunk_offset.x, chunk_offset.y, chunk_offset.z );
+    FILE *read_ptr = fopen( file_name, MAP_READ_MODE );
+    if ( read_ptr == NULL ) {
+        return 0;
+    }
+    uint32_t record_size = 0;
+    if ( fread( &record_size, sizeof( uint32_t ), 1, read_ptr ) != 1 ) {
+        fclose( read_ptr );
+        return 0;
+    }
+    uint32_t num_chests = 0;
+    if ( fread( &num_chests, sizeof( uint32_t ), 1, read_ptr ) != 1 || num_chests > CHUNK_BLOCK_SIZE ) {
+        fclose( read_ptr );
+        return 0;
+    }
+    // Read whatever the file's record holds; older/newer builds may have a
+    // different record size, so copy only the shared prefix per record.
+    const int slot_prefix = offsetof( ChestFileRecord, slots );
+    char *raw = static_cast<char *>( calloc( num_chests, record_size ) );
+    size_t num_read = fread( raw, record_size, num_chests, read_ptr );
+    fclose( read_ptr );
+    for ( size_t i = 0; i < num_read; i++ ) {
+        const char *record = &raw[ i * record_size ];
+        ChestContents contents; // default: all empty
+        glm::ivec3 pos( 0 );
+        memcpy( &pos, record, sizeof( glm::ivec3 ) <= (size_t)record_size ? sizeof( glm::ivec3 ) : (size_t)record_size );
+        if ( record_size > (uint32_t)slot_prefix ) {
+            int slot_bytes = record_size - slot_prefix;
+            if ( slot_bytes > (int)sizeof( contents.slots ) ) {
+                slot_bytes = (int)sizeof( contents.slots );
+            }
+            memcpy( contents.slots, record + slot_prefix, slot_bytes );
+        }
+        for ( int s = 0; s < CHEST_SLOTS; s++ ) {
+            if ( contents.slots[ s ].block_id >= LAST_BLOCK_ID ) {
+                contents.slots[ s ].block_id = LAST_BLOCK_ID;
+                contents.slots[ s ].quantity = 0;
+            }
+        }
+        out[ pos ] = contents;
+    }
+    free( raw );
+    return 1;
 }
 
 int MapStorage::load_chunk( Chunk &chunk ) {

@@ -59,4 +59,9 @@ class Hotbar {
     // Moves half of the given hotbar slot's stack (rounded up) to the survival
     // inventory. Returns true if anything moved.
     bool moveHalfToSurvivalInventory( int slot_index, class SurvivalInventory &survival_inventory );
+
+    // Read/replace a slot's whole stack, keeping blockId_to_slot_map and the
+    // icon renderer consistent. Used by chest transfers.
+    InventorySlot getSlotContents( int slot_index ) const;
+    void setSlotContents( int slot_index, const InventorySlot &value );
 };

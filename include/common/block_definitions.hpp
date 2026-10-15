@@ -450,6 +450,14 @@ struct __attribute__( ( packed ) ) BlockState {
 static BlockState BLOCK_STATE_AIR = { AIR, BLOCK_ROTATE_0, 0, AIR, 0 };
 static BlockState BLOCK_STATE_LAST_BLOCK_ID = { LAST_BLOCK_ID, BLOCK_ROTATE_0, 0, LAST_BLOCK_ID, 0 };
 
+// One inventory stack. Used by the hotbar, survival/creative inventories,
+// chest contents, player.dat, and the chest wire protocol — lives here so
+// storage and net code can use it without renderer headers.
+typedef struct __attribute__( ( packed ) ) {
+    BlockID block_id;
+    int quantity;
+} InventorySlot;
+
 static inline bool BlockStates_equal( const BlockState &a, const BlockState &b ) {
     // Memcmp DOESN'T work, since there can be space inbetween the two structs!
     // return !memcmp( &a, &b, sizeof( BlockState ) );

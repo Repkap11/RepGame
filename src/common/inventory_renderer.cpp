@@ -60,8 +60,16 @@ void InventoryRenderer::onSizeChange( const int screen_width, const int screen_h
     this->inv_width = this->screen_width * this->options.max_width_percent;
 
     this->inv_x = -this->inv_width / 2;
-    if ( this->options.gravity_bottom ) {
+    const bool pinned_bottom = this->options.pin_bottom_y != INV_PIN_Y_DISABLED;
+    const bool pinned_top = this->options.pin_top_y != INV_PIN_Y_DISABLED;
+    if ( pinned_bottom ) {
+        this->inv_y = this->options.pin_bottom_y;
+    } else if ( pinned_top ) {
+        this->inv_y = this->options.pin_top_y - this->inv_height;
+    } else if ( this->options.gravity_bottom ) {
         this->inv_y = -this->screen_height / 2;
+    } else if ( this->options.gravity_top ) {
+        this->inv_y = this->screen_height / 2 - this->inv_height;
     } else {
         this->inv_y = -this->inv_height / 2;
     }
@@ -84,7 +92,7 @@ void InventoryRenderer::onSizeChange( const int screen_width, const int screen_h
         this->inv_cell_offset = this->inv_cell_stride * ( 1.0f - cell_fraction );
         this->inv_items_height = inv_cell_stride * this->height + this->inv_cell_offset;
     }
-    if ( !this->options.gravity_bottom ) {
+    if ( !pinned_bottom && !pinned_top && !this->options.gravity_bottom && !this->options.gravity_top ) {
         // Stay above UI pinned to the bottom of the screen (e.g. the hotbar),
         // with a gap the thickness of one cell border.
         const int bottom_reserved = ( int )( ui_height_basis * this->options.bottom_reserved_percent ) + this->inv_cell_offset;
@@ -95,7 +103,10 @@ void InventoryRenderer::onSizeChange( const int screen_width, const int screen_h
     }
 
     this->inv_items_x = this->inv_x - ( this->inv_items_width - this->inv_width ) / 2;
-    if ( height_limited || this->options.gravity_bottom ) {
+    if ( this->options.gravity_top ) {
+        // Items region hugs the top of the panel.
+        this->inv_items_y = this->inv_y + this->inv_height - this->inv_items_height;
+    } else if ( height_limited || this->options.gravity_bottom ) {
         this->inv_items_y = this->inv_y;
     } else {
         // This adjusts the bottom padding to match the horizontal padding when the horizontal padding has accumulated rounding error.
@@ -112,6 +123,14 @@ void InventoryRenderer::onSizeChange( const int screen_width, const int screen_h
 
     this->renderBackground( );
     this->fullItemRender( inventory_slots );
+}
+
+int InventoryRenderer::getInvBottom( ) const {
+    return this->inv_y;
+}
+
+int InventoryRenderer::getInvTop( ) const {
+    return this->inv_y + this->inv_height;
 }
 
 void InventoryRenderer::setSelectedSlot( int slot_index ) {

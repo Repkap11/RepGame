@@ -61,6 +61,16 @@ class World {
 
     // Non-const: block edits seed the light propagation queues on chunkLoader.
     void set_loaded_block( const glm::ivec3 &block_pos, BlockState blockState );
+
+    // Chest containers. Contents for the chest at block_pos, or nullptr when
+    // the block isn't a chest, its chunk isn't loaded, or no contents exist.
+    const ChestContents *get_chest_contents( const glm::ivec3 &block_pos ) const;
+    // Same, but creates an empty entry when the block is a chest with none.
+    ChestContents *get_or_create_chest_contents( const glm::ivec3 &block_pos );
+    // Optimistic per-slot write; false when not a chest / chunk unloaded.
+    bool set_chest_slot( const glm::ivec3 &block_pos, int slot, const InventorySlot &value );
+    // Full-state write (CHEST_CONTENTS packet / local open); null when not a chest.
+    void set_chest_contents( const glm::ivec3 &block_pos, const ChestContents &contents );
     // Spawns break particles if prev_state was a real block that new_id
     // removed. No-op for air, same-id state changes, and liquids.
     void spawn_block_debris( const glm::ivec3 &block_pos, const BlockState &prev_state, BlockID new_id );

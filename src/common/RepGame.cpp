@@ -109,12 +109,298 @@ void RepGame::add_to_hotbar( const bool alsoSelect, const BlockID blockId ) {
     }
 }
 
+// Moves every non-empty chest slot into the player inventories (survival
+// first, hotbar for overflow). Items that fit nowhere vanish — there are no
+// dropped-item entities, consistent with the inventory-close/drop paths.
+void repgame_loot_chest_contents( RepGameState &state, const ChestContents &contents ) {
+    for ( int i = 0; i < CHEST_SLOTS; i++ ) {
+        const InventorySlot &slot = contents.slots[ i ];
+        if ( slot.block_id == LAST_BLOCK_ID || slot.quantity <= 0 ) {
+            continue;
+        }
+        int leftover = state.survival_inventory.addBlock( slot.block_id, slot.quantity );
+        if ( leftover > 0 ) {
+            const int hotbar_space = state.hotbar.spaceFor( slot.block_id );
+            const int to_hotbar = leftover < hotbar_space ? leftover : hotbar_space;
+            if ( to_hotbar > 0 ) {
+                state.hotbar.addBlockWithQuantity( slot.block_id, to_hotbar, false );
+            }
+        }
+    }
+    state.ui_overlay.set_holding_block( state.hotbar.getSelectedBlock( ) );
+}
+
+void RepGame::open_chest( const glm::ivec3 &pos ) {
+    if ( globalGameState.chest.open && globalGameState.chest.pos != pos ) {
+        // Unsubscribes from the previous chest in multiplayer.
+        this->close_chest( );
+    }
+    globalGameState.chest.open = true;
+    globalGameState.chest.pos = pos;
+    globalGameState.input.inventory_open = true;
+    // An open cancels a pending loot snapshot for the same position.
+    globalGameState.pending_chest_loot.erase( pos );
+    if ( globalGameState.multiplayer.is_active( ) ) {
+        globalGameState.multiplayer.chest_open( pos );
+    }
+    // Ensure a local entry exists (empty until CHEST_CONTENTS arrives in
+    // multiplayer; the chest file contents in singleplayer) and repaint.
+    const ChestContents *contents = globalGameState.world.get_or_create_chest_contents( pos );
+    if ( contents != nullptr ) {
+        for ( int i = 0; i < CHEST_SLOTS; i++ ) {
+            globalGameState.chest.inventory_renderer.changeSlotItem( i, contents->slots[ i ] );
+        }
+    }
+}
+
+void RepGame::close_chest( ) {
+    if ( !globalGameState.chest.open ) {
+        return;
+    }
+    globalGameState.chest.open = false;
+    if ( globalGameState.multiplayer.is_active( ) ) {
+        globalGameState.multiplayer.chest_close( globalGameState.chest.pos );
+    }
+}
+
+// --- Chest slot interaction helpers -----------------------------------------
+// These mirror SurvivalInventory::pickupOrSwapSlot / rightClickSlot but run on
+// ChestContents; every mutation funnels through chest_sync_slot so the chunk
+// gets dirtied, the icon repaints, and the server hears about it.
+
+static void chest_sync_slot( RepGameState &state, int slot_index, const InventorySlot &slot ) {
+    state.world.set_chest_slot( state.chest.pos, slot_index, slot );
+    state.chest.inventory_renderer.changeSlotItem( slot_index, slot );
+    state.multiplayer.chest_set_slot( state.chest.pos, static_cast<uint32_t>( slot_index ), slot );
+}
+
+static void chest_pickup_or_swap( RepGameState &state, int slot_index ) {
+    ChestContents *contents = state.world.get_or_create_chest_contents( state.chest.pos );
+    if ( contents == nullptr ) {
+        return;
+    }
+    InventorySlot slot = contents->slots[ slot_index ];
+    InventorySlot &held = state.held_inventory_slot;
+    if ( !state.is_holding_inventory_slot ) {
+        if ( slot.block_id == LAST_BLOCK_ID || slot.quantity <= 0 ) {
+            return;
+        }
+        held = slot;
+        slot.block_id = LAST_BLOCK_ID;
+        slot.quantity = 0;
+        state.is_holding_inventory_slot = true;
+    } else if ( slot.block_id == held.block_id && slot.quantity > 0 && slot.quantity < MAX_STACK_SIZE ) {
+        const int space = MAX_STACK_SIZE - slot.quantity;
+        const int to_move = held.quantity < space ? held.quantity : space;
+        slot.quantity += to_move;
+        held.quantity -= to_move;
+        if ( held.quantity <= 0 ) {
+            held.block_id = LAST_BLOCK_ID;
+            state.is_holding_inventory_slot = false;
+        }
+    } else {
+        const InventorySlot tmp = slot;
+        slot = held;
+        held = tmp;
+        if ( held.block_id == LAST_BLOCK_ID || held.quantity <= 0 ) {
+            state.is_holding_inventory_slot = false;
+        }
+    }
+    chest_sync_slot( state, slot_index, slot );
+}
+
+static void chest_right_click( RepGameState &state, int slot_index ) {
+    ChestContents *contents = state.world.get_or_create_chest_contents( state.chest.pos );
+    if ( contents == nullptr ) {
+        return;
+    }
+    InventorySlot slot = contents->slots[ slot_index ];
+    InventorySlot &held = state.held_inventory_slot;
+    if ( !state.is_holding_inventory_slot ) {
+        // Pick up half the stack, rounded up.
+        if ( slot.block_id == LAST_BLOCK_ID || slot.quantity <= 0 ) {
+            return;
+        }
+        const int take = ( slot.quantity + 1 ) / 2;
+        held.block_id = slot.block_id;
+        held.quantity = take;
+        slot.quantity -= take;
+        if ( slot.quantity <= 0 ) {
+            slot.block_id = LAST_BLOCK_ID;
+            slot.quantity = 0;
+        }
+        state.is_holding_inventory_slot = true;
+    } else {
+        // Place one held item into an empty or matching non-full slot.
+        if ( slot.block_id == LAST_BLOCK_ID || slot.quantity <= 0 ) {
+            slot.block_id = held.block_id;
+            slot.quantity = 1;
+            held.quantity--;
+        } else if ( slot.block_id == held.block_id && slot.quantity < MAX_STACK_SIZE ) {
+            slot.quantity++;
+            held.quantity--;
+        } else {
+            return;
+        }
+        if ( held.quantity <= 0 ) {
+            held.block_id = LAST_BLOCK_ID;
+            state.is_holding_inventory_slot = false;
+        }
+    }
+    chest_sync_slot( state, slot_index, slot );
+}
+
+// Merge a stack into the chest (shift-click from a player inventory). Returns
+// the leftover count that didn't fit.
+static int chest_add( RepGameState &state, BlockID block_id, int quantity ) {
+    ChestContents *contents = state.world.get_or_create_chest_contents( state.chest.pos );
+    if ( contents == nullptr ) {
+        return quantity;
+    }
+    int remaining = quantity;
+    for ( int i = 0; i < CHEST_SLOTS && remaining > 0; i++ ) {
+        InventorySlot &slot = contents->slots[ i ];
+        if ( slot.block_id == block_id && slot.quantity > 0 && slot.quantity < MAX_STACK_SIZE ) {
+            const int space = MAX_STACK_SIZE - slot.quantity;
+            const int to_add = remaining < space ? remaining : space;
+            slot.quantity += to_add;
+            remaining -= to_add;
+            chest_sync_slot( state, i, slot );
+        }
+    }
+    for ( int i = 0; i < CHEST_SLOTS && remaining > 0; i++ ) {
+        InventorySlot &slot = contents->slots[ i ];
+        if ( slot.block_id == LAST_BLOCK_ID || slot.quantity <= 0 ) {
+            const int to_add = remaining < MAX_STACK_SIZE ? remaining : MAX_STACK_SIZE;
+            slot.block_id = block_id;
+            slot.quantity = to_add;
+            remaining -= to_add;
+            chest_sync_slot( state, i, slot );
+        }
+    }
+    return remaining;
+}
+
+// Shift-click on a chest slot: move the whole stack to the player inventory.
+static void chest_slot_to_player( RepGameState &state, int slot_index ) {
+    ChestContents *contents = state.world.get_or_create_chest_contents( state.chest.pos );
+    if ( contents == nullptr ) {
+        return;
+    }
+    InventorySlot slot = contents->slots[ slot_index ];
+    if ( slot.block_id == LAST_BLOCK_ID || slot.quantity <= 0 ) {
+        return;
+    }
+    int leftover = state.survival_inventory.addBlock( slot.block_id, slot.quantity );
+    if ( leftover > 0 ) {
+        const int hotbar_space = state.hotbar.spaceFor( slot.block_id );
+        const int to_hotbar = leftover < hotbar_space ? leftover : hotbar_space;
+        if ( to_hotbar > 0 ) {
+            state.hotbar.addBlockWithQuantity( slot.block_id, to_hotbar, false );
+            leftover -= to_hotbar;
+        }
+    }
+    if ( leftover <= 0 ) {
+        slot.block_id = LAST_BLOCK_ID;
+        slot.quantity = 0;
+    } else {
+        slot.quantity = leftover;
+    }
+    chest_sync_slot( state, slot_index, slot );
+}
+
+// Shift-click variants of the above: `half` moves half the stack (rounded up)
+// instead of the whole stack.
+static void chest_move_to_player( RepGameState &state, int slot_index, bool half ) {
+    if ( !half ) {
+        chest_slot_to_player( state, slot_index );
+        return;
+    }
+    ChestContents *contents = state.world.get_or_create_chest_contents( state.chest.pos );
+    if ( contents == nullptr ) {
+        return;
+    }
+    InventorySlot slot = contents->slots[ slot_index ];
+    if ( slot.block_id == LAST_BLOCK_ID || slot.quantity <= 0 ) {
+        return;
+    }
+    const int want = ( slot.quantity + 1 ) / 2;
+    int moved = want - state.survival_inventory.addBlock( slot.block_id, want );
+    // addBlock returns the leftover; moved = want - leftover.
+    if ( moved <= 0 ) {
+        return;
+    }
+    slot.quantity -= moved;
+    if ( slot.quantity <= 0 ) {
+        slot.block_id = LAST_BLOCK_ID;
+        slot.quantity = 0;
+    }
+    chest_sync_slot( state, slot_index, slot );
+}
+
+// Shift-click on a survival-inventory slot while a chest is open: move the
+// stack (or half, for right-shift-click) into the chest.
+static void survival_slot_to_chest( RepGameState &state, int slot_index, bool half ) {
+    InventorySlot &slot = state.survival_inventory.getSlotsMut( )[ slot_index ];
+    if ( slot.block_id == LAST_BLOCK_ID || slot.quantity <= 0 ) {
+        return;
+    }
+    const int want = half ? ( slot.quantity + 1 ) / 2 : slot.quantity;
+    const int moved = want - chest_add( state, slot.block_id, want );
+    if ( moved <= 0 ) {
+        return;
+    }
+    slot.quantity -= moved;
+    if ( slot.quantity <= 0 ) {
+        slot.block_id = LAST_BLOCK_ID;
+        slot.quantity = 0;
+    }
+    state.survival_inventory.inventory_renderer.changeSlotItem( slot_index, slot );
+}
+
+static void hotbar_slot_to_chest( RepGameState &state, int slot_index, bool half ) {
+    InventorySlot slot = state.hotbar.getSlotContents( slot_index );
+    if ( slot.block_id == LAST_BLOCK_ID || slot.quantity <= 0 ) {
+        return;
+    }
+    const int want = half ? ( slot.quantity + 1 ) / 2 : slot.quantity;
+    const int moved = want - chest_add( state, slot.block_id, want );
+    if ( moved <= 0 ) {
+        return;
+    }
+    slot.quantity -= moved;
+    if ( slot.quantity <= 0 ) {
+        slot.block_id = LAST_BLOCK_ID;
+        slot.quantity = 0;
+    }
+    state.hotbar.setSlotContents( slot_index, slot );
+    state.ui_overlay.set_holding_block( state.hotbar.getSelectedBlock( ) );
+}
+
 // Breaks the block under the cursor. In survival mode the mined block is
 // added to the hotbar first, then falls back to the survival inventory.
 void RepGame::break_selected_block( ) {
     // Debris is spawned by the queued PlayerBlockPlacedEvent, which covers all
     // block-removal paths (mining, support loss, water, remote edits).
     BlockID previous_block = change_block( 0, BLOCK_STATE_AIR );
+    if ( block_is_chest( previous_block ) ) {
+        const glm::ivec3 chest_pos = globalGameState.block_selection.pos_destroy;
+        if ( globalGameState.multiplayer.is_active( ) ) {
+            // The server answers the block removal with a CHEST_CONTENTS
+            // snapshot to loot — contents are server-authoritative.
+            globalGameState.pending_chest_loot.insert( chest_pos );
+        } else {
+            const ChestContents *contents = globalGameState.world.get_chest_contents( chest_pos );
+            if ( contents != nullptr ) {
+                repgame_loot_chest_contents( globalGameState, *contents );
+            }
+            // The chunk erases the map entry when the block write lands.
+        }
+        if ( globalGameState.chest.open && globalGameState.chest.pos == chest_pos ) {
+            this->close_chest( );
+            globalGameState.input.inventory_open = false;
+        }
+    }
     if ( globalGameState.game_mode == GameMode_Survival && previous_block != LAST_BLOCK_ID && previous_block != AIR ) {
         const Block *blockDef = block_definition_get_definition( previous_block );
         if ( blockDef->is_pickable && blockDef->renderOrder != RenderOrder_Transparent && blockDef->renderOrder != RenderOrder_Water ) {
@@ -213,6 +499,14 @@ void RepGame::process_mouse_events( ) {
             // persist across loads).
             auto releaseEvent = std::make_shared<PlayerBlockPlacedEvent>( globalGameState.tick_number + press_ticks, globalGameState.block_selection.pos_destroy, released_state, true );
             globalGameState.blockUpdateQueue.addBlockUpdate( releaseEvent );
+            globalGameState.input.click_delay_right = 30;
+        }
+    }
+    if ( globalGameState.block_selection.selectionInBounds && globalGameState.input.mouse.buttons.right && globalGameState.input.click_delay_right == 0 ) {
+        // Right-clicking a chest opens it instead of placing against it.
+        const BlockState target_state = globalGameState.world.get_loaded_block( globalGameState.block_selection.pos_destroy );
+        if ( block_is_chest( target_state.id ) ) {
+            this->open_chest( globalGameState.block_selection.pos_destroy );
             globalGameState.input.click_delay_right = 30;
         }
     }
@@ -622,7 +916,36 @@ void RepGame::process_inventory_events( ) {
     if ( globalGameState.input.inventory_open ) {
         if ( ( globalGameState.input.mouse.buttons.left && globalGameState.input.mouse.buttons.left_click_handled == false ) || screen_tap ) {
             globalGameState.input.mouse.buttons.left_click_handled = true;
-            if ( globalGameState.game_mode == GameMode_Creative ) {
+            if ( globalGameState.chest.open ) {
+                // Chest UI: chest slots win, then survival, then hotbar.
+                const int chest_slot = globalGameState.chest.inventory_renderer.whichSlotClicked( globalGameState.input.mouse.absPosition.x, globalGameState.input.mouse.absPosition.y );
+                if ( chest_slot >= 0 && chest_slot < CHEST_SLOTS ) {
+                    if ( globalGameState.input.shift_held ) {
+                        chest_slot_to_player( globalGameState, chest_slot );
+                    } else {
+                        chest_pickup_or_swap( globalGameState, chest_slot );
+                    }
+                } else {
+                    const int slot = globalGameState.survival_inventory.whichSlotClicked( globalGameState.input.mouse.absPosition.x, globalGameState.input.mouse.absPosition.y );
+                    if ( slot >= 0 ) {
+                        if ( globalGameState.input.shift_held ) {
+                            survival_slot_to_chest( globalGameState, slot, false );
+                        } else {
+                            globalGameState.survival_inventory.pickupOrSwapSlot( slot, globalGameState.held_inventory_slot, globalGameState.is_holding_inventory_slot );
+                        }
+                    } else {
+                        const int hotbar_slot = globalGameState.hotbar.inventory_renderer.whichSlotClicked( globalGameState.input.mouse.absPosition.x, globalGameState.input.mouse.absPosition.y );
+                        if ( hotbar_slot >= 0 ) {
+                            if ( globalGameState.input.shift_held ) {
+                                hotbar_slot_to_chest( globalGameState, hotbar_slot, false );
+                            } else {
+                                globalGameState.hotbar.pickupOrSwapSlot( hotbar_slot, globalGameState.held_inventory_slot, globalGameState.is_holding_inventory_slot );
+                            }
+                            globalGameState.ui_overlay.set_holding_block( globalGameState.hotbar.getSelectedBlock( ) );
+                        }
+                    }
+                }
+            } else if ( globalGameState.game_mode == GameMode_Creative ) {
                 BlockID blockId = globalGameState.main_inventory.whichBlockClicked( globalGameState.input.mouse.absPosition.x, globalGameState.input.mouse.absPosition.y );
                 // pr_debug( "Clicked on %d %d blockID:%d", globalGameState.input.mouse.absPosition.x, globalGameState.input.mouse.absPosition.y, blockId );
                 if ( blockId != LAST_BLOCK_ID ) {
@@ -672,7 +995,13 @@ void RepGame::process_inventory_events( ) {
         }
         if ( globalGameState.input.mouse.buttons.middle && globalGameState.input.mouse.buttons.middle_click_handled == false ) {
             globalGameState.input.mouse.buttons.middle_click_handled = true;
-            if ( globalGameState.game_mode == GameMode_Survival ) {
+            if ( globalGameState.chest.open ) {
+                // Middle-click on a chest slot moves the stack to the player.
+                const int chest_slot = globalGameState.chest.inventory_renderer.whichSlotClicked( globalGameState.input.mouse.absPosition.x, globalGameState.input.mouse.absPosition.y );
+                if ( chest_slot >= 0 && chest_slot < CHEST_SLOTS ) {
+                    chest_slot_to_player( globalGameState, chest_slot );
+                }
+            } else if ( globalGameState.game_mode == GameMode_Survival ) {
                 // Survival mode: middle-clicking a survival inventory slot moves
                 // the stack to the hotbar.
                 int slot = globalGameState.survival_inventory.whichSlotClicked( globalGameState.input.mouse.absPosition.x, globalGameState.input.mouse.absPosition.y );
@@ -685,7 +1014,35 @@ void RepGame::process_inventory_events( ) {
         }
         if ( globalGameState.input.mouse.buttons.right && globalGameState.input.mouse.buttons.right_click_handled == false ) {
             globalGameState.input.mouse.buttons.right_click_handled = true;
-            if ( globalGameState.game_mode == GameMode_Survival ) {
+            if ( globalGameState.chest.open ) {
+                const int chest_slot = globalGameState.chest.inventory_renderer.whichSlotClicked( globalGameState.input.mouse.absPosition.x, globalGameState.input.mouse.absPosition.y );
+                if ( chest_slot >= 0 && chest_slot < CHEST_SLOTS ) {
+                    if ( globalGameState.input.shift_held ) {
+                        chest_move_to_player( globalGameState, chest_slot, true );
+                    } else {
+                        chest_right_click( globalGameState, chest_slot );
+                    }
+                } else {
+                    const int slot = globalGameState.survival_inventory.whichSlotClicked( globalGameState.input.mouse.absPosition.x, globalGameState.input.mouse.absPosition.y );
+                    if ( slot >= 0 ) {
+                        if ( globalGameState.input.shift_held ) {
+                            survival_slot_to_chest( globalGameState, slot, true );
+                        } else {
+                            globalGameState.survival_inventory.rightClickSlot( slot, globalGameState.held_inventory_slot, globalGameState.is_holding_inventory_slot );
+                        }
+                    } else {
+                        const int hotbar_slot = globalGameState.hotbar.inventory_renderer.whichSlotClicked( globalGameState.input.mouse.absPosition.x, globalGameState.input.mouse.absPosition.y );
+                        if ( hotbar_slot >= 0 ) {
+                            if ( globalGameState.input.shift_held ) {
+                                hotbar_slot_to_chest( globalGameState, hotbar_slot, true );
+                            } else {
+                                globalGameState.hotbar.rightClickSlot( hotbar_slot, globalGameState.held_inventory_slot, globalGameState.is_holding_inventory_slot );
+                            }
+                            globalGameState.ui_overlay.set_holding_block( globalGameState.hotbar.getSelectedBlock( ) );
+                        }
+                    }
+                }
+            } else if ( globalGameState.game_mode == GameMode_Survival ) {
                 int slot = globalGameState.survival_inventory.whichSlotClicked( globalGameState.input.mouse.absPosition.x, globalGameState.input.mouse.absPosition.y );
                 if ( globalGameState.input.shift_held ) {
                     // Shift-right-click: transfer half of the stack (rounded
@@ -728,6 +1085,8 @@ void RepGame::process_inventory_events( ) {
         globalGameState.input.mouse.buttons.left_click_handled = true;
         globalGameState.input.mouse.buttons.right_click_handled = true;
         globalGameState.input.mouse.buttons.middle_click_handled = true;
+        // Closing the inventory (E / tap) also closes any open chest.
+        this->close_chest( );
         // If we were holding an inventory item when the inventory closed, return
         // it to the survival inventory to avoid item loss.
         if ( globalGameState.is_holding_inventory_slot ) {
@@ -758,7 +1117,7 @@ void RepGame::tick( ) {
     globalGameState.camera.prev_angle_H = globalGameState.camera.angle_H;
     globalGameState.camera.prev_angle_V = globalGameState.camera.angle_V;
 
-    globalGameState.multiplayer.process_events( globalGameState.world );
+    globalGameState.multiplayer.process_events( globalGameState );
 
     int wheel_diff = globalGameState.input.mouse.previousPosition.wheel_counts - globalGameState.input.mouse.currentPosition.wheel_counts;
     if ( wheel_diff != 0 ) {
@@ -779,6 +1138,18 @@ void RepGame::tick( ) {
     // the next tick (it skips events with tick_number >= current_tick); so
     // the destroy queued last tick is applied here, before the ray cast below.
     RepGame::process_block_updates( );
+
+    // Close an open chest when the block is gone (broken by anyone), its
+    // chunk unloaded, or the player walked out of reach.
+    if ( globalGameState.chest.open ) {
+        const BlockState chest_state = globalGameState.world.get_loaded_block( globalGameState.chest.pos );
+        const glm::dvec3 chest_center = glm::dvec3( globalGameState.chest.pos ) + glm::dvec3( 0.5 );
+        const double dist = glm::length( globalGameState.camera.pos - chest_center );
+        if ( !block_is_chest( chest_state.id ) || dist > REACH_DISTANCE + 2.0 ) {
+            this->close_chest( );
+            globalGameState.input.inventory_open = false;
+        }
+    }
 
     if ( RepGame::should_lock_pointer( ) ) {
         RepGame::process_mouse_events( );
@@ -908,6 +1279,8 @@ void RepGame::initializeGameState( const char *world_name ) {
     globalGameState.input.exitGame = false;
     globalGameState.input.player_flying = false;
     globalGameState.input.inventory_open = false;
+    globalGameState.chest.open = false;
+    globalGameState.pending_chest_loot.clear( );
     globalGameState.input.no_clip = false;
     globalGameState.input.mouse.smoothed_dx = 0.0f;
     globalGameState.input.mouse.smoothed_dy = 0.0f;
@@ -947,6 +1320,9 @@ void RepGame::initializeGameState( const char *world_name ) {
     globalGameState.main_inventory.inventory_renderer.options.max_width_percent = 0.75f;
     globalGameState.main_inventory.inventory_renderer.options.bottom_reserved_percent = hotbar_height_percent;
     globalGameState.main_inventory.inventory_renderer.options.gravity_bottom = false;
+    globalGameState.main_inventory.inventory_renderer.options.gravity_top = false;
+    globalGameState.main_inventory.inventory_renderer.options.pin_bottom_y = INV_PIN_Y_DISABLED;
+    globalGameState.main_inventory.inventory_renderer.options.pin_top_y = INV_PIN_Y_DISABLED;
     globalGameState.main_inventory.inventory_renderer.options.shows_selection_slot = false;
 
     globalGameState.hotbar.inventory_renderer.options.active_height_percent = 1.0f;
@@ -954,7 +1330,22 @@ void RepGame::initializeGameState( const char *world_name ) {
     globalGameState.hotbar.inventory_renderer.options.max_width_percent = 0.75f;
     globalGameState.hotbar.inventory_renderer.options.bottom_reserved_percent = 0.0f;
     globalGameState.hotbar.inventory_renderer.options.gravity_bottom = true;
+    globalGameState.hotbar.inventory_renderer.options.gravity_top = false;
+    globalGameState.hotbar.inventory_renderer.options.pin_bottom_y = INV_PIN_Y_DISABLED;
+    globalGameState.hotbar.inventory_renderer.options.pin_top_y = INV_PIN_Y_DISABLED;
     globalGameState.hotbar.inventory_renderer.options.shows_selection_slot = true;
+
+    // Chest panel pinned to the top of the screen; the player inventory and
+    // hotbar render below it.
+    globalGameState.chest.inventory_renderer.options.active_height_percent = 0.5f;
+    globalGameState.chest.inventory_renderer.options.max_height_percent = 0.5f;
+    globalGameState.chest.inventory_renderer.options.max_width_percent = 0.6f;
+    globalGameState.chest.inventory_renderer.options.bottom_reserved_percent = 0.0f;
+    globalGameState.chest.inventory_renderer.options.gravity_bottom = false;
+    globalGameState.chest.inventory_renderer.options.gravity_top = true;
+    globalGameState.chest.inventory_renderer.options.pin_bottom_y = INV_PIN_Y_DISABLED;
+    globalGameState.chest.inventory_renderer.options.pin_top_y = INV_PIN_Y_DISABLED;
+    globalGameState.chest.inventory_renderer.options.shows_selection_slot = false;
 
     globalGameState.map_storage.init( world_name );
     PlayerData saved_data;
@@ -1029,6 +1420,7 @@ RepGameState *RepGame::init( const char *world_name, const bool connect_multi, c
     globalGameState.main_inventory.init( vbl_ui_overlay_vertex, vbl_ui_overlay_instance, MAIN_INVENTORY_WIDTH, MAIN_INVENTORY_HEIGHT );
     globalGameState.survival_inventory.init( vbl_ui_overlay_vertex, vbl_ui_overlay_instance, SURVIVAL_INVENTORY_WIDTH, SURVIVAL_INVENTORY_HEIGHT );
     globalGameState.hotbar.init( vbl_ui_overlay_vertex, vbl_ui_overlay_instance, HOTBAR_WIDTH, HOTBAR_HEIGHT );
+    globalGameState.chest.inventory_renderer.init( vbl_ui_overlay_vertex, vbl_ui_overlay_instance, CHEST_INVENTORY_WIDTH, CHEST_INVENTORY_HEIGHT );
     globalGameState.game_mode = GameMode_Creative;
     globalGameState.held_inventory_slot.block_id = LAST_BLOCK_ID;
     globalGameState.held_inventory_slot.quantity = 0;
@@ -1080,8 +1472,26 @@ void RepGame::changeSize( const int w, const int h ) {
     globalGameState.input.mouse.previousPosition.y = h / 2;
     globalGameState.ui_overlay.on_screen_size_change( w, h );
     globalGameState.main_inventory.onScreenSizeChange( w, h );
+    // Align the survival panel's bottom edge with the creative panel's bottom,
+    // and the chest panel's top edge with the creative panel's top, so the
+    // combined chest+player-inventory view spans the creative panel's area.
+    globalGameState.survival_inventory.inventory_renderer.options.pin_bottom_y = globalGameState.main_inventory.inventory_renderer.getInvBottom( );
     globalGameState.survival_inventory.onScreenSizeChange( w, h );
     globalGameState.hotbar.onScreenSizeChange( w, h );
+    {
+        // The renderer needs a slots array to rebuild icons on resize; use the
+        // live chest contents when one is open, an empty chest otherwise.
+        static const ChestContents empty_chest;
+        const ChestContents *chest_contents = &empty_chest;
+        if ( globalGameState.chest.open ) {
+            const ChestContents *live = globalGameState.world.get_chest_contents( globalGameState.chest.pos );
+            if ( live != nullptr ) {
+                chest_contents = live;
+            }
+        }
+        globalGameState.chest.inventory_renderer.options.pin_top_y = globalGameState.main_inventory.inventory_renderer.getInvTop( );
+        globalGameState.chest.inventory_renderer.onSizeChange( w, h, chest_contents->slots );
+    }
     globalGameState.screen.proj = glm::perspective<float>( glm::radians( CAMERA_FOV ), globalGameState.screen.width / globalGameState.screen.height, 0.1f, 800.0f );
     globalGameState.screen.ortho = glm::ortho<float>( 0.f, w, 0.f, h, -1.f, 1.f );
     globalGameState.screen.ortho_center = glm::ortho<float>( -w / 2.0f, w / 2.0f, -h / 2.0f, h / 2.0f, -1.f, 1.f );
@@ -1183,7 +1593,7 @@ void RepGame::draw( float alpha ) {
 
     const glm::mat4 mvp_reflect = globalGameState.screen.proj * flipped_look * flipped_trans;
 
-    globalGameState.multiplayer.process_events( globalGameState.world );
+    globalGameState.multiplayer.process_events( globalGameState );
     globalGameState.multiplayer.update_players_position( glm::vec3( render_pos ), render_rotation );
 
 #if defined( REPGAME_WASM )
@@ -1275,7 +1685,13 @@ void RepGame::draw( float alpha ) {
 
     {
         const long long t_ui_start = now_us( );
-        globalGameState.ui_overlay.draw( globalGameState.main_inventory, globalGameState.survival_inventory, globalGameState.hotbar, globalGameState.game_mode, globalGameState.world.renderer, globalGameState.blocksTexture, globalGameState.input, globalGameState.font_renderer, globalGameState.screen.ortho_center );
+        {
+            const ChestContents *chest_contents = nullptr;
+            if ( globalGameState.chest.open ) {
+                chest_contents = globalGameState.world.get_chest_contents( globalGameState.chest.pos );
+            }
+            globalGameState.ui_overlay.draw( globalGameState.main_inventory, globalGameState.survival_inventory, globalGameState.hotbar, globalGameState.game_mode, globalGameState.world.renderer, globalGameState.blocksTexture, globalGameState.input, globalGameState.font_renderer, globalGameState.screen.ortho_center, chest_contents ? &globalGameState.chest.inventory_renderer : nullptr, chest_contents );
+        }
         if ( globalGameState.is_holding_inventory_slot ) {
             int block_size, cell_size;
             globalGameState.survival_inventory.inventory_renderer.getBlockMetrics( block_size, cell_size );
@@ -1444,6 +1860,7 @@ void RepGame::cleanup( ) {
     globalGameState.main_inventory.cleanup( );
     globalGameState.survival_inventory.cleanup( );
     globalGameState.hotbar.cleanup( );
+    globalGameState.chest.inventory_renderer.cleanup( );
     imgui_overlay_cleanup( &globalGameState.imgui_overlay );
     block_definitions_free_definitions( );
 

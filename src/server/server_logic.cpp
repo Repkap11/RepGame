@@ -147,33 +147,178 @@ void ServerLogic::respondToChunkRequest( Server &server, int client_fd, const gl
     server.queue_message( client_fd, NetMsgType::CHUNK_DIFF_RESULT, 0, w.take_buf( ) );
 }
 
+// ---------------------------------------------------------------------------
+// Chests: contents live in a per-chunk sidecar file, cached here per chunk and
+// shared (with a subscriber set per chest) across clients. The model is
+// optimistic per-slot: the server trusts a subscribed client's slot writes,
+// broadcasts them to the other viewers, and snapshots the whole chest to a
+// client that breaks a chest so it can loot the items.
+// ---------------------------------------------------------------------------
+
+ChestChunkState &ServerLogic::ensureChestChunk( const glm::ivec3 &chunk_pos ) {
+    ChestChunkState &cs = this->chest_chunks[ chunk_pos ];
+    if ( !cs.loaded ) {
+        cs.loaded = true;
+        this->map_storage.load_chests( chunk_pos, cs.chests );
+    }
+    return cs;
+}
+
+void ServerLogic::persistChestChunk( const glm::ivec3 &chunk_pos ) {
+    auto it = this->chest_chunks.find( chunk_pos );
+    if ( it == this->chest_chunks.end( ) || !it->second.dirty ) {
+        return;
+    }
+    this->map_storage.persist_chests( chunk_pos, it->second.chests );
+    it->second.dirty = false;
+}
+
+bool ServerLogic::chestChunkHasSubscribers( const glm::ivec3 &chunk_pos ) const {
+    const auto cit = this->chest_chunks.find( chunk_pos );
+    if ( cit == this->chest_chunks.end( ) ) {
+        return false;
+    }
+    for ( const auto &pair : cit->second.chests ) {
+        const auto sit = this->chest_subscribers.find( pair.first );
+        if ( sit != this->chest_subscribers.end( ) && !sit->second.empty( ) ) {
+            return true;
+        }
+    }
+    return false;
+}
+
+void ServerLogic::sendChestContents( Server &server, int client_fd, const glm::ivec3 &chest_pos, const ChestContents &contents ) {
+    NetChestContentsPayload p;
+    p.x = chest_pos.x;
+    p.y = chest_pos.y;
+    p.z = chest_pos.z;
+    p.contents = contents;
+    PacketWriter w;
+    net_serialize_chest_contents( w, p );
+    server.queue_message( client_fd, NetMsgType::CHEST_CONTENTS, 0, w.take_buf( ) );
+}
+
+void ServerLogic::unsubscribeChest( int client_fd ) {
+    const auto it = this->client_open_chest.find( client_fd );
+    if ( it == this->client_open_chest.end( ) ) {
+        return;
+    }
+    const glm::ivec3 chest_pos = it->second;
+    this->client_open_chest.erase( it );
+    const auto sit = this->chest_subscribers.find( chest_pos );
+    if ( sit != this->chest_subscribers.end( ) ) {
+        sit->second.erase( client_fd );
+        if ( sit->second.empty( ) ) {
+            this->chest_subscribers.erase( sit );
+        }
+    }
+    const glm::ivec3 chunk_pos = glm::floor( glm::vec3( chest_pos ) / CHUNK_SIZE_F );
+    if ( !this->chestChunkHasSubscribers( chunk_pos ) ) {
+        // Last viewer closed: evict an unmodified cache now, or let the idle
+        // timer write+evict a dirty one.
+        const auto cit = this->chest_chunks.find( chunk_pos );
+        if ( cit != this->chest_chunks.end( ) && !cit->second.dirty ) {
+            this->chest_chunks.erase( cit );
+        } else if ( cit != this->chest_chunks.end( ) ) {
+            this->scheduleChunkSave( chunk_pos );
+        }
+    }
+}
+
+void ServerLogic::handleChestOpen( Server &server, int client_fd, const glm::ivec3 &chest_pos ) {
+    // A client can only have one chest open; swap subscriptions.
+    this->unsubscribeChest( client_fd );
+    const glm::ivec3 chunk_pos = glm::floor( glm::vec3( chest_pos ) / CHUNK_SIZE_F );
+    ChestChunkState &cs = this->ensureChestChunk( chunk_pos );
+    // Trust the client that a chest block is here — the server has no terrain
+    // view. Empty default entry for a chest first opened before anything was
+    // put in it.
+    ChestContents &contents = cs.chests[ chest_pos ];
+    this->chest_subscribers[ chest_pos ].insert( client_fd );
+    this->client_open_chest[ client_fd ] = chest_pos;
+    this->sendChestContents( server, client_fd, chest_pos, contents );
+}
+
+void ServerLogic::handleChestSetSlot( Server &server, int client_fd, const glm::ivec3 &chest_pos, uint32_t slot_index, const InventorySlot &value ) {
+    const auto it = this->client_open_chest.find( client_fd );
+    if ( it == this->client_open_chest.end( ) || it->second != chest_pos ) {
+        pr_debug( "CHEST_SET_SLOT from unsubscribed client:%d", client_fd );
+        return;
+    }
+    InventorySlot clean = value;
+    if ( clean.block_id >= LAST_BLOCK_ID || clean.quantity <= 0 ) {
+        clean.block_id = LAST_BLOCK_ID;
+        clean.quantity = 0;
+    } else if ( clean.quantity > MAX_STACK_SIZE ) {
+        clean.quantity = MAX_STACK_SIZE;
+    }
+    const glm::ivec3 chunk_pos = glm::floor( glm::vec3( chest_pos ) / CHUNK_SIZE_F );
+    ChestChunkState &cs = this->ensureChestChunk( chunk_pos );
+    cs.chests[ chest_pos ].slots[ slot_index ] = clean;
+    cs.dirty = true;
+    this->scheduleChunkSave( chunk_pos );
+
+    // Broadcast the slot write to the other viewers.
+    NetChestSetSlotPayload p;
+    p.x = chest_pos.x;
+    p.y = chest_pos.y;
+    p.z = chest_pos.z;
+    p.slot_index = slot_index;
+    p.slot_value = clean;
+    PacketWriter w;
+    net_serialize_chest_set_slot( w, p );
+    const auto sit = this->chest_subscribers.find( chest_pos );
+    if ( sit != this->chest_subscribers.end( ) ) {
+        for ( int fd : sit->second ) {
+            if ( fd != client_fd ) {
+                server.queue_message( fd, NetMsgType::CHEST_SET_SLOT, client_fd, w.buf( ) );
+            }
+        }
+    }
+}
+
+// A block update turned a chest into something else. Send the contents to the
+// breaker so it can loot them, drop the entry, and persist.
+void ServerLogic::handleChestRemoved( Server &server, int client_fd, const glm::ivec3 &chest_pos ) {
+    const glm::ivec3 chunk_pos = glm::floor( glm::vec3( chest_pos ) / CHUNK_SIZE_F );
+    ChestChunkState &cs = this->ensureChestChunk( chunk_pos );
+    const auto it = cs.chests.find( chest_pos );
+    if ( it == cs.chests.end( ) ) {
+        return;
+    }
+    this->sendChestContents( server, client_fd, chest_pos, it->second );
+    cs.chests.erase( it );
+    cs.dirty = true;
+    this->scheduleChunkSave( chunk_pos );
+    const auto sit = this->chest_subscribers.find( chest_pos );
+    if ( sit != this->chest_subscribers.end( ) ) {
+        for ( int fd : sit->second ) {
+            this->client_open_chest.erase( fd );
+        }
+        this->chest_subscribers.erase( sit );
+    }
+}
+
 void ServerLogic::persistChunk( const glm::ivec3 &chunk_pos ) {
     auto it = this->world_cache.find( chunk_pos );
-    if ( it == this->world_cache.end( ) ) {
-        return;
+    if ( it != this->world_cache.end( ) && !it->second.blocks.empty( ) ) {
+        const std::map<int, BlockState> &chunk_cache = it->second.blocks;
+        BlockState *blocks = ( BlockState * )malloc( CHUNK_BLOCK_SIZE * sizeof( BlockState ) );
+        for ( int i = 0; i < CHUNK_BLOCK_SIZE; ++i ) {
+            blocks[ i ] = BLOCK_STATE_LAST_BLOCK_ID;
+        }
+        for ( auto [ chunk_index, blockState ] : chunk_cache ) {
+            blocks[ chunk_index ] = blockState;
+        }
+        this->map_storage.persist_dirty_blocks( chunk_pos, blocks );
+        free( blocks );
     }
-    const std::map<int, BlockState> &chunk_cache = it->second.blocks;
-    if ( chunk_cache.empty( ) ) {
-        // No edits for this chunk — don't write a file full of LAST_BLOCK_ID.
-        // This happens for chunks that were looked up (cached as "no file")
-        // but never edited.
-        return;
-    }
-    BlockState *blocks = ( BlockState * )malloc( CHUNK_BLOCK_SIZE * sizeof( BlockState ) );
-    for ( int i = 0; i < CHUNK_BLOCK_SIZE; ++i ) {
-        blocks[ i ] = BLOCK_STATE_LAST_BLOCK_ID;
-    }
-    for ( auto [ chunk_index, blockState ] : chunk_cache ) {
-        blocks[ chunk_index ] = blockState;
-    }
-    this->map_storage.persist_dirty_blocks( chunk_pos, blocks );
-    free( blocks );
+    // Chest sidecar is independent of the block cache — a chunk can have
+    // chest edits without block edits (pure inventory changes).
+    this->persistChestChunk( chunk_pos );
 }
 
 void ServerLogic::persistAll( ) {
-    if ( this->world_cache.empty( ) ) {
-        return;
-    }
     size_t saved = 0;
     for ( auto [ chunk_pos, entry ] : this->world_cache ) {
         if ( entry.blocks.empty( ) ) {
@@ -182,6 +327,14 @@ void ServerLogic::persistAll( ) {
         this->persistChunk( chunk_pos );
         saved++;
     }
+    // Chest chunks may exist without a block-cache entry.
+    for ( auto [ chunk_pos, entry ] : this->chest_chunks ) {
+        (void)entry;
+        this->persistChestChunk( chunk_pos );
+    }
+    this->chest_chunks.clear( );
+    this->chest_subscribers.clear( );
+    this->client_open_chest.clear( );
     pr_debug( "World saved (%zu chunks)", saved );
     this->world_cache.clear( );
     this->wake_schedule.clear( );
@@ -202,6 +355,12 @@ void ServerLogic::processTimers( ) {
         pr_debug( "Idle-saving chunk:%d %d %d", chunk_pos.x, chunk_pos.y, chunk_pos.z );
         this->persistChunk( chunk_pos );
         this->world_cache.erase( chunk_pos );
+        // Chest data survives eviction only while nobody is viewing it;
+        // subscribers keep the entry (and its file stays saved) so an open
+        // chest remains editable.
+        if ( !this->chestChunkHasSubscribers( chunk_pos ) ) {
+            this->chest_chunks.erase( chunk_pos );
+        }
     }
 }
 
@@ -272,6 +431,15 @@ void ServerLogic::on_client_message( Server &server, int client_fd, NetMsgType t
             return;
         }
         glm::ivec3 block_pos = glm::ivec3( bu.x, bu.y, bu.z );
+        // A chest block being overwritten destroys its container: hand the
+        // contents to the breaker for looting.
+        if ( !block_is_chest( bu.blockState.id ) ) {
+            const glm::ivec3 chunk_pos = glm::floor( glm::vec3( block_pos ) / CHUNK_SIZE_F );
+            ChestChunkState &cs = this->ensureChestChunk( chunk_pos );
+            if ( cs.chests.find( block_pos ) != cs.chests.end( ) ) {
+                this->handleChestRemoved( server, client_fd, block_pos );
+            }
+        }
         this->record_block( block_pos, bu.blockState );
 
         // Forward to all other clients.
@@ -322,10 +490,32 @@ void ServerLogic::on_client_message( Server &server, int client_fd, NetMsgType t
                 server.queue_message( prop_id, NetMsgType::PLAYER_LOCATION, client_fd, w.buf( ) );
             }
         }
+    } else if ( type == NetMsgType::CHEST_OPEN ) {
+        NetChestPosPayload p;
+        if ( !net_deserialize_chest_pos( r, p ) ) {
+            pr_debug( "Malformed CHEST_OPEN from:%d", client_fd );
+            return;
+        }
+        this->handleChestOpen( server, client_fd, glm::ivec3( p.x, p.y, p.z ) );
+    } else if ( type == NetMsgType::CHEST_CLOSE ) {
+        NetChestPosPayload p;
+        if ( !net_deserialize_chest_pos( r, p ) ) {
+            pr_debug( "Malformed CHEST_CLOSE from:%d", client_fd );
+            return;
+        }
+        this->unsubscribeChest( client_fd );
+    } else if ( type == NetMsgType::CHEST_SET_SLOT ) {
+        NetChestSetSlotPayload p;
+        if ( !net_deserialize_chest_set_slot( r, p ) ) {
+            pr_debug( "Malformed CHEST_SET_SLOT from:%d", client_fd );
+            return;
+        }
+        this->handleChestSetSlot( server, client_fd, glm::ivec3( p.x, p.y, p.z ), p.slot_index, p.slot_value );
     }
 }
 
 void ServerLogic::on_client_disconnected( Server &server, int client_fd ) {
+    this->unsubscribeChest( client_fd );
     for ( int prop_id = 0; prop_id < MAX_CLIENT_FDS; prop_id++ ) {
         if ( prop_id == client_fd ) {
             continue;

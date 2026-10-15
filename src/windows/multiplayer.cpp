@@ -9,7 +9,7 @@
 void Multiplayer::init( const char *hostname, int port ) {
 }
 
-void Multiplayer::process_events( World &world ) {
+void Multiplayer::process_events( RepGameState &state ) {
 }
 
 void Multiplayer::flush_outbound( ) {

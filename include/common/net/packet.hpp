@@ -17,6 +17,7 @@
 #include <vector>
 
 #include "common/block.hpp"
+#include "common/chest.hpp"
 #include "common/constants.hpp"
 
 // CHUNK_BLOCK_SIZE is defined in chunk.hpp as (CHUNK_SIZE_INTERNAL_X *
@@ -44,6 +45,10 @@ enum class NetMsgType : uint8_t {
     PLAYER_DISCONNECTED = 4,
     CHUNK_DIFF_REQUEST = 5,
     CHUNK_DIFF_RESULT = 6,
+    CHEST_OPEN = 7,
+    CHEST_CLOSE = 8,
+    CHEST_CONTENTS = 9,
+    CHEST_SET_SLOT = 10,
 };
 
 // ---------------------------------------------------------------------------
@@ -148,3 +153,28 @@ struct NetChunkDiffResultPayload {
 };
 void net_serialize_chunk_diff_result( PacketWriter &w, const NetChunkDiffResultPayload &p );
 bool net_deserialize_chunk_diff_result( PacketReader &r, NetChunkDiffResultPayload &p );
+
+// CHEST_OPEN / CHEST_CLOSE share one payload: the chest's world block pos.
+struct NetChestPosPayload {
+    int32_t x, y, z;
+};
+void net_serialize_chest_pos( PacketWriter &w, const NetChestPosPayload &p );
+bool net_deserialize_chest_pos( PacketReader &r, NetChestPosPayload &p );
+
+// CHEST_CONTENTS (server -> client): full fixed-size slot array, always
+// CHEST_SLOTS entries.
+struct NetChestContentsPayload {
+    int32_t x, y, z;
+    ChestContents contents;
+};
+void net_serialize_chest_contents( PacketWriter &w, const NetChestContentsPayload &p );
+bool net_deserialize_chest_contents( PacketReader &r, NetChestContentsPayload &p );
+
+// CHEST_SET_SLOT (both directions): one optimistic slot write.
+struct NetChestSetSlotPayload {
+    int32_t x, y, z;
+    uint32_t slot_index;
+    InventorySlot slot_value;
+};
+void net_serialize_chest_set_slot( PacketWriter &w, const NetChestSetSlotPayload &p );
+bool net_deserialize_chest_set_slot( PacketReader &r, NetChestSetSlotPayload &p );

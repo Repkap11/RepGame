@@ -2,6 +2,7 @@
 
 #include <glm.hpp>
 #include "common/block.hpp"
+#include "common/chest.hpp"
 #include "common/constants.hpp"
 #include "common/net/framed_socket.hpp"
 #include "common/utils/map_storage.hpp"
@@ -13,20 +14,7 @@
 
 class Server;
 
-struct Compare_I_Vec3 {
-    bool operator( )( const glm::ivec3 &a, const glm::ivec3 &b ) const {
-        int x_diff = a.x - b.x;
-        if ( x_diff != 0 ) {
-            return x_diff < 0;
-        }
-        int y_diff = a.y - b.y;
-        if ( y_diff != 0 ) {
-            return y_diff < 0;
-        }
-        int z_diff = a.z - b.z;
-        return z_diff < 0;
-    }
-};
+// Compare_I_Vec3 lives in common/chest.hpp (shared with the client).
 
 // Per-chunk in-memory cache of edits (diffs against generated terrain).
 // last_edit_time drives the idle-timer save: when a chunk hasn't been
@@ -41,9 +29,25 @@ struct ChunkCacheEntry {
 // disk and evicts it from the in-memory cache.
 static constexpr int CHUNK_IDLE_SAVE_SECONDS = 30;
 
+// All chest contents in one chunk, keyed by world block position (the same
+// shape MapStorage's chest file uses). `loaded` means the chunk's chest file
+// was read (or confirmed absent) — the first chest access in a chunk pulls in
+// every chest in it so persisting writes the complete set.
+struct ChestChunkState {
+    bool loaded = false;
+    bool dirty = false;
+    ChestContentsMap chests;
+};
+
 class ServerLogic {
     MapStorage map_storage;
     std::map<glm::ivec3, ChunkCacheEntry, Compare_I_Vec3> world_cache;
+    // Chest state per chunk, populated lazily by ensureChestChunk.
+    std::map<glm::ivec3, ChestChunkState, Compare_I_Vec3> chest_chunks;
+    // chest world pos -> client fds currently viewing it (one chest open per
+    // client; reverse index below).
+    std::map<glm::ivec3, std::set<int>, Compare_I_Vec3> chest_subscribers;
+    std::map<int, glm::ivec3> client_open_chest;
 
     // Sorted wake-up schedule: time -> set of chunk positions whose idle
     // timer expires at that time. This is the "sorted list of times to
@@ -60,6 +64,16 @@ class ServerLogic {
     ChunkCacheEntry *loadIntoCache( const glm::ivec3 &chunk_offset );
     void scheduleChunkSave( const glm::ivec3 &chunk_pos );
     void cancelChunkSave( const glm::ivec3 &chunk_pos );
+
+    // Chests
+    ChestChunkState &ensureChestChunk( const glm::ivec3 &chunk_pos );
+    void persistChestChunk( const glm::ivec3 &chunk_pos );
+    bool chestChunkHasSubscribers( const glm::ivec3 &chunk_pos ) const;
+    void sendChestContents( Server &server, int client_fd, const glm::ivec3 &chest_pos, const ChestContents &contents );
+    void unsubscribeChest( int client_fd );
+    void handleChestOpen( Server &server, int client_fd, const glm::ivec3 &chest_pos );
+    void handleChestSetSlot( Server &server, int client_fd, const glm::ivec3 &chest_pos, uint32_t slot_index, const InventorySlot &value );
+    void handleChestRemoved( Server &server, int client_fd, const glm::ivec3 &chest_pos );
 
   public:
     void init( const char *world_name );

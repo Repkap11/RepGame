@@ -299,7 +299,11 @@ void Chunk::set_block( const glm::ivec3 &pos, const BlockState &blockState ) con
     }
 
     const int index = get_index_from_coords( pos );
-    this->blocks[ index ] = block_state_normalize( this->blocks[ index ], blockState );
+    const BlockState old_state = this->blocks[ index ];
+    if ( block_is_chest( old_state.id ) && !block_is_chest( blockState.id ) ) {
+        this->chests.erase( index );
+    }
+    this->blocks[ index ] = block_state_normalize( old_state, blockState );
 }
 
 void Chunk::set_block_by_index_if_different( int index, const BlockState *blockState ) {
@@ -313,6 +317,9 @@ void Chunk::set_block_by_index_if_different( int index, const BlockState *blockS
     BlockState &oldBlockState = this->blocks[ index ];
     if ( BlockStates_equal( oldBlockState, *blockState ) ) {
         return;
+    }
+    if ( block_is_chest( oldBlockState.id ) && !block_is_chest( blockState->id ) ) {
+        this->chests.erase( index );
     }
     this->blocks[ index ] = *blockState;
     this->dirty = true;
@@ -486,6 +493,19 @@ void Chunk::load_terrain( MapStorage &map_storage ) {
         this->dirty = 0;
     }
 skip_to_mesh:
+    // Chest contents live in a per-chunk sidecar file (world-pos keyed);
+    // convert to the block-index keying used by chests[].
+    this->chests.clear( );
+    ChestContentsMap chest_world_map;
+    this->chests_loaded = map_storage.load_chests( this->chunk_pos, chest_world_map ) ? 1 : 0;
+    for ( const auto &pair : chest_world_map ) {
+        const glm::ivec3 diff = pair.first - this->chunk_pos * CHUNK_SIZE_I;
+        // Entries must fall inside this chunk (file corruption guard).
+        if ( diff.x < 0 || diff.x >= CHUNK_SIZE_X || diff.y < 0 || diff.y >= CHUNK_SIZE_Y || diff.z < 0 || diff.z >= CHUNK_SIZE_Z ) {
+            continue;
+        }
+        this->chests[ Chunk::get_index_from_coords( diff ) ] = pair.second;
+    }
     // Flood-fill emitters + column_open flags on the worker. Skylight is
     // resolved on the lighting thread by ChunkLoader::light_finalize_chunk.
     light_fill_chunk( *this );

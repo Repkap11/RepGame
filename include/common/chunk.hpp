@@ -2,8 +2,10 @@
 
 #include <atomic>
 #include <cstdint>
+#include <map>
 
 #include "block.hpp"
+#include "common/chest.hpp"
 #include "common/utils/map_storage.hpp"
 #include "renderer/renderer.hpp"
 #include "server/server.hpp"
@@ -66,6 +68,16 @@ class Chunk {
     BlockState *blocks;
     glm::ivec3 chunk_pos;
     int dirty;
+    // Container contents for chest blocks in this chunk, keyed by in-chunk
+    // block index (same space as blocks[]). Loaded from the chunk's chest
+    // file in load_terrain, persisted in Chunk::persist; edits mark dirty.
+    // Mutable: Chunk::set_block (a const path used by World::set_loaded_block)
+    // erases entries when a chest block is overwritten.
+    mutable std::map<int, ChestContents> chests;
+    // Whether this chunk's chest file was read (or chest data created) during
+    // load_terrain/afterwards — persist_chests only runs when set so a chunk
+    // whose chest file failed to read doesn't get its file clobbered.
+    mutable int chests_loaded;
     int should_render;
     int cached_cull_normal;
     int cached_cull_reflect;

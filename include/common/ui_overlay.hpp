@@ -36,9 +36,12 @@ struct UIOverlayInstance {
 };
 
 #include "common/creative_inventory.hpp"
+#include "common/chest.hpp"
 #include "common/hotbar.hpp"
 #include "common/survival_inventory.hpp"
 #include "common/font_renderer.hpp"
+
+class InventoryRenderer;
 
 class UIOverlay {
     Shader shader;
@@ -53,7 +56,10 @@ class UIOverlay {
     void init( const VertexBufferLayout &ui_overlay_vbl_vertex, const VertexBufferLayout &ui_overlay_vbl_instance );
     void on_screen_size_change( int width, int height );
     void set_holding_block( BlockID holding_block );
-    void draw( CreativeInventory &creative_inventory, SurvivalInventory &survival_inventory, Hotbar &hotbar, GameMode game_mode, const Renderer &renderer, const Texture &blocksTexture, Input &input, FontRenderer &font, const glm::mat4 &mvp_ui );
+    // chest_renderer/chest_contents are non-null while a chest is open: the
+    // creative palette is suppressed and the chest panel draws on top of the
+    // player inventory.
+    void draw( CreativeInventory &creative_inventory, SurvivalInventory &survival_inventory, Hotbar &hotbar, GameMode game_mode, const Renderer &renderer, const Texture &blocksTexture, Input &input, FontRenderer &font, const glm::mat4 &mvp_ui, InventoryRenderer *chest_renderer, const ChestContents *chest_contents );
     void draw_held_inventory_item( const InventorySlot &held, bool is_holding, int mouse_x, int mouse_y, int block_size, int cell_size, const Renderer &renderer, const Texture &blocksTexture, FontRenderer &font, const glm::mat4 &mvp_ui );
     void cleanup( );
 };

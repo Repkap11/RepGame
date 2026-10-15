@@ -13,7 +13,8 @@
 #include "common/multiplayer.hpp"
 #include "common/net/packet.hpp"
 
-void Multiplayer::handle_frame( World &world, const std::vector<uint8_t> &payload ) {
+void Multiplayer::handle_frame( RepGameState &state, const std::vector<uint8_t> &payload ) {
+    World &world = state.world;
     // Parse the fixed payload header: version(1) type(1) player_id(4)
     if ( payload.size( ) < 6 ) {
         pr_debug( "Received too-short frame payload: %zu", payload.size( ) );
@@ -105,6 +106,44 @@ void Multiplayer::handle_frame( World &world, const std::vector<uint8_t> &payloa
             world.multiplayer_avatars.remove( player_id );
             break;
         }
+        case NetMsgType::CHEST_CONTENTS: {
+            NetChestContentsPayload p;
+            if ( !net_deserialize_chest_contents( r, p ) ) {
+                pr_debug( "Malformed CHEST_CONTENTS, skipping" );
+                return;
+            }
+            const glm::ivec3 chest_pos( p.x, p.y, p.z );
+            // Two roles: the answer to a CHEST_OPEN for a live chest, or the
+            // loot snapshot for a chest we broke (pending_chest_loot). The
+            // pending flag is consumed either way so a stale entry can't loot
+            // a future chest at the same position.
+            if ( state.pending_chest_loot.erase( chest_pos ) ) {
+                if ( !block_is_chest( world.get_loaded_block( chest_pos ).id ) ) {
+                    repgame_loot_chest_contents( state, p.contents );
+                }
+            } else if ( block_is_chest( world.get_loaded_block( chest_pos ).id ) ) {
+                world.set_chest_contents( chest_pos, p.contents );
+                if ( state.chest.open && state.chest.pos == chest_pos ) {
+                    for ( int i = 0; i < CHEST_SLOTS; i++ ) {
+                        state.chest.inventory_renderer.changeSlotItem( i, p.contents.slots[ i ] );
+                    }
+                }
+            }
+            break;
+        }
+        case NetMsgType::CHEST_SET_SLOT: {
+            NetChestSetSlotPayload p;
+            if ( !net_deserialize_chest_set_slot( r, p ) ) {
+                pr_debug( "Malformed CHEST_SET_SLOT, skipping" );
+                return;
+            }
+            const glm::ivec3 chest_pos( p.x, p.y, p.z );
+            if ( world.set_chest_slot( chest_pos, static_cast<int>( p.slot_index ), p.slot_value ) &&
+                 state.chest.open && state.chest.pos == chest_pos ) {
+                state.chest.inventory_renderer.changeSlotItem( static_cast<int>( p.slot_index ), p.slot_value );
+            }
+            break;
+        }
         default: {
             pr_debug( "Saw unexpected packet type:%d from:%d", static_cast<int>( type ), player_id );
             break;
@@ -187,6 +226,62 @@ void Multiplayer::update_players_position( const glm::vec3 &player_pos, const gl
     this->flush_outbound( );
     if ( this->framed_socket.had_error( ) ) {
         pr_debug( "Multiplayer send error in update_players_position, disconnecting" );
+        this->disconnect( );
+    }
+}
+
+void Multiplayer::chest_open( const glm::ivec3 &chest_pos ) {
+    if ( !this->active ) {
+        return;
+    }
+    NetChestPosPayload p;
+    p.x = chest_pos.x;
+    p.y = chest_pos.y;
+    p.z = chest_pos.z;
+    PacketWriter w;
+    net_serialize_chest_pos( w, p );
+    this->framed_socket.send_message( NetMsgType::CHEST_OPEN, 0, w.take_buf( ) );
+    this->flush_outbound( );
+    if ( this->framed_socket.had_error( ) ) {
+        pr_debug( "Multiplayer send error in chest_open, disconnecting" );
+        this->disconnect( );
+    }
+}
+
+void Multiplayer::chest_close( const glm::ivec3 &chest_pos ) {
+    if ( !this->active ) {
+        return;
+    }
+    NetChestPosPayload p;
+    p.x = chest_pos.x;
+    p.y = chest_pos.y;
+    p.z = chest_pos.z;
+    PacketWriter w;
+    net_serialize_chest_pos( w, p );
+    this->framed_socket.send_message( NetMsgType::CHEST_CLOSE, 0, w.take_buf( ) );
+    this->flush_outbound( );
+    if ( this->framed_socket.had_error( ) ) {
+        pr_debug( "Multiplayer send error in chest_close, disconnecting" );
+        this->disconnect( );
+    }
+}
+
+void Multiplayer::chest_set_slot( const glm::ivec3 &chest_pos, uint32_t slot_index, const InventorySlot &value ) {
+    if ( !this->active ) {
+        return;
+    }
+    NetChestSetSlotPayload p;
+    p.x = chest_pos.x;
+    p.y = chest_pos.y;
+    p.z = chest_pos.z;
+    p.slot_index = slot_index;
+    p.slot_value = value;
+    PacketWriter w;
+    net_serialize_chest_set_slot( w, p );
+    this->framed_socket.send_message( NetMsgType::CHEST_SET_SLOT, 0, w.take_buf( ) );
+    this->flush_outbound( );
+    if ( this->framed_socket.had_error( ) ) {
+        pr_debug( "Multiplayer send error in chest_set_slot, disconnecting" );
         this->disconnect( );
     }
 }

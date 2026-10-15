@@ -16,6 +16,9 @@ void SurvivalInventory::init( const VertexBufferLayout &ui_overlay_vbl_vertex, c
     this->inventory_renderer.options.active_height_percent = 0.5f;
     this->inventory_renderer.options.bottom_reserved_percent = 0.1f;
     this->inventory_renderer.options.gravity_bottom = false;
+    this->inventory_renderer.options.gravity_top = false;
+    this->inventory_renderer.options.pin_bottom_y = INV_PIN_Y_DISABLED;
+    this->inventory_renderer.options.pin_top_y = INV_PIN_Y_DISABLED;
     this->inventory_renderer.options.shows_selection_slot = false;
 
     for ( int i_slot = 0; i_slot < this->num_slots; i_slot++ ) {
