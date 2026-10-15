@@ -1261,6 +1261,9 @@ void RepGame::draw( float alpha ) {
         profiling.us_world_draw = now_us( ) - t_world_draw_start;
     }
 
+    // glTexParameteri edits the texture bound on the *active* unit, so
+    // re-bind the atlas first — world.draw leaves the light unit active.
+    globalGameState.blocksTexture.bind( );
     glTexParameteri( globalGameState.blocksTexture.target, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE );
     glTexParameteri( globalGameState.blocksTexture.target, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE );
     showErrors( );
