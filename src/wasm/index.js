@@ -149,6 +149,17 @@ document.addEventListener("pointerlockchange", function() {
   }
 });
 
+// When the pointer isn't locked (e.g. inventory open), a right-click opens
+// the browser's context menu. The menu swallows the mouseup, so SDL never
+// sees the button released and the game treats right-click as held forever
+// (continuous block placement, broken inventory clicks). Suppress the menu
+// during gameplay so down/up events always arrive in pairs.
+document.addEventListener("contextmenu", function(e) {
+  if (gameRunning) {
+    e.preventDefault();
+  }
+});
+
 // On mobile, the back button should exit the game back to the startup page.
 // Push a history state when the game starts so pressing back fires popstate
 // instead of navigating away from the page.

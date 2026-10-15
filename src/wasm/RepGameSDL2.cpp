@@ -185,7 +185,7 @@ extern "C" EMSCRIPTEN_KEEPALIVE void repgame_wasm_request_exit( ) {
 #define WASM_SAVE_INTERVAL_MS 15000
 
 int is_locking_pointer = 0;
-void repgame_linux_process_window_and_pointer_state( const RepGame &repgame ) {
+void repgame_linux_process_window_and_pointer_state( RepGame &repgame ) {
     int width, height;
     const bool should_lock_pointer = repgame.should_lock_pointer( );
     // Sync the game's expected pointer lock state to JS every frame. The
@@ -193,6 +193,16 @@ void repgame_linux_process_window_and_pointer_state( const RepGame &repgame ) {
     // game-initiated unlocks (e.g. opening inventory) from ESC presses.
     EM_ASM_INT( { gameWantsPointerLock = $0; return 0; }, should_lock_pointer ? 1 : 0 );
     if ( should_lock_pointer != is_locking_pointer ) {
+        // Drop all button state on lock transitions. If a mouseup was ever
+        // lost (e.g. swallowed by a native context menu or released outside
+        // the window), the button would otherwise stay "held" forever.
+        Input &input = repgame.getInputState( );
+        input.mouse.buttons.left = 0;
+        input.mouse.buttons.right = 0;
+        input.mouse.buttons.middle = 0;
+        input.mouse.buttons.left_click_handled = true;
+        input.mouse.buttons.right_click_handled = true;
+        input.mouse.buttons.middle_click_handled = true;
 #if ALLOW_GRAB_MOUSE
         SDL_SetRelativeMouseMode( should_lock_pointer ? SDL_TRUE : SDL_FALSE );
 #endif
