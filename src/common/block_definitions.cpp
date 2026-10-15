@@ -62,6 +62,7 @@ void block_definitions_initilize_definitions( Texture *texture ) {
         block->is_button = false;
         block->is_pressure_plate = false;
         block->is_redstone_mechanism = false;
+        block->is_tnt = false;
         block->is_solid = true;
         block->inventory_non_isometric_id = static_cast<BlockID>( block_id );
     }
@@ -502,6 +503,12 @@ void block_definitions_initilize_definitions( Texture *texture ) {
 
     block_definitions[ TNT ].textures[ FACE_TOP ] = TNT_TOP;
     block_definitions[ TNT ].textures[ FACE_BOTTOM ] = TNT_BOTTOM;
+    // TNT is a redstone mechanism: it ignites when powered directly or
+    // adjacent to an emitting powered block, and dust connects toward it.
+    // Stored power caps at 1 like other mechanisms so it never re-emits.
+    block_definitions[ TNT ].is_tnt = true;
+    block_definitions[ TNT ].is_redstone_mechanism = true;
+    block_definitions[ TNT ].connects_to_redstone_dust = true;
 
     block_definitions[ OAK_LOG ].textures[ FACE_TOP ] = OAK_LOG_TOP;
     block_definitions[ OAK_LOG ].textures[ FACE_BOTTOM ] = OAK_LOG_TOP;

@@ -8,6 +8,10 @@
 
 class ChunkLoader;
 
+// Particles spawned per destroyed block by default. Explosions pass a lower
+// count — a large blast would otherwise create thousands of instances.
+#define DEBRIS_PER_BLOCK 48
+
 // GPU-animated debris particles spawned when blocks break. Instances are
 // write-once (position/rotation computed in debris_vertex.glsl from u_Time),
 // so the only CPU work is creating entities on break and sweeping expired
@@ -25,12 +29,14 @@ class BlockDebris {
     void init( const VertexBufferLayout &vbl_object_vertex, const VertexBufferLayout &vbl_debris_instance );
     // light is the (sky, block) flood-fill sample at block_pos, baked into
     // every spawned instance (see Particle.hpp's DebrisInstance).
-    void spawn_block_break( const glm::ivec3 &block_pos, const BlockState &blockState, const glm::vec2 &light );
+    void spawn_block_break( const glm::ivec3 &block_pos, const BlockState &blockState, const glm::vec2 &light, int num_particles = DEBRIS_PER_BLOCK );
     // Re-sample the light field at each live particle's spawn point. The
     // broken cell is dark until its removal recheck lands, which can lag
     // whole seconds behind a deep lighting queue — a spawn-time-only sample
     // stays black for the particle's whole life.
     void update_lighting( const ChunkLoader &chunk_loader );
     void draw( const Renderer &renderer, const Shader &shader, float time_s );
+    // Live instance count, for the debug overlay.
+    size_t count( ) { return this->render_chain.length( ); }
     void cleanup( );
 };

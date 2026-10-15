@@ -429,6 +429,10 @@ typedef struct {
     // Internal cell block placed in front of an extended piston. Not pickable,
     // not in inventories, breaks automatically when its base is removed.
     bool is_piston_head;
+    // TNT: a redstone mechanism that ignites on a rising power edge — the
+    // block leaves the world as a primed entity (PrimedTnt) and a
+    // TntExplodeEvent lands when the fuse ends.
+    bool is_tnt;
     // PistonEvent refuses to push/pull these (plus powered pistons, heads,
     // and unloaded LAST_BLOCK_ID cells, which are handled there).
     bool piston_immovable;

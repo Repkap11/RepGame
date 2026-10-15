@@ -8,6 +8,7 @@
 #include "common/perlin_noise.hpp"
 #include "common/map_gen.hpp"
 #include "common/block_update_events/PlayerBlockPlacedEvent.hpp"
+#include "common/block_update_events/TntExplodeEvent.hpp"
 #include "common/utils/collision.hpp"
 
 typedef struct Test {
@@ -565,6 +566,70 @@ int test_lighting( ) {
     return failures;
 }
 
+// TNT: a powered TNT ignites — the cell goes air while the primed entity
+// (a renderer-side cube, not a block) flashes — and the fuse event blasts a
+// sphere that destroys stone, spares bedrock, and chain-ignites a second
+// TNT which launches away and detonates on a shorter fuse.
+int test_tnt( ) {
+    if ( block_definitions == nullptr ) {
+        block_definitions_initilize_definitions( nullptr );
+    }
+    RepGameState gs;
+    gs.tick_number = 0;
+    gs.camera.pos = glm::dvec3( 0, 0, 0 );
+    test_setup_world( gs.world );
+    World &world = gs.world;
+
+    const BlockState stone = { STONE, 0, 0, STONE, 0 };
+    const BlockState bedrock = { BEDROCK, 0, 0, BEDROCK, 0 };
+    // Stone floor on an indestructible bedrock slab.
+    for ( int x = 6; x <= 16; x++ ) {
+        for ( int z = 6; z <= 16; z++ ) {
+            world.set_loaded_block( glm::ivec3( x, 9, z ), bedrock );
+            world.set_loaded_block( glm::ivec3( x, 10, z ), stone );
+        }
+    }
+    // Chain-ignition target inside the blast radius but NOT adjacent to the
+    // redstone block (which would ignite it directly). Launches +x (away
+    // from the blast center) and lands ~4-5 blocks out, over the platform.
+    world.set_loaded_block( glm::ivec3( 13, 11, 10 ), { TNT, 0, 0, TNT, 0 } );
+    // Far TNT behind the launch direction: survives both blasts.
+    world.set_loaded_block( glm::ivec3( 8, 11, 16 ), { TNT, 0, 0, TNT, 0 } );
+    // Stone well outside every blast radius.
+    world.set_loaded_block( glm::ivec3( 25, 10, 25 ), stone );
+
+    auto place = [ & ]( const glm::ivec3 &pos, const BlockState &block_state ) {
+        gs.blockUpdateQueue.addBlockUpdate( std::make_shared<PlayerBlockPlacedEvent>( gs.tick_number, pos, block_state, false ) );
+    };
+    place( glm::ivec3( 10, 11, 10 ), { TNT, 0, 0, TNT, 0 } );
+    place( glm::ivec3( 11, 11, 10 ), { REDSTONE_BLOCK, 0, 0, REDSTONE_BLOCK, 0 } );
+
+    int failures = 0;
+    // Ignition propagates within a few ticks — the powered TNT cell turns to
+    // air long before the fuse event lands.
+    for ( int i = 0; i < 10; i++ ) {
+        gs.tick_number++;
+        gs.blockUpdateQueue.processAllBlockUpdates( gs, gs.tick_number );
+    }
+    failures += check_id( world, "ignited TNT cell is air", glm::ivec3( 10, 11, 10 ), AIR );
+    failures += check_id( world, "chain TNT not yet blasted", glm::ivec3( 13, 11, 10 ), TNT );
+    failures += check_id( world, "platform intact before blast", glm::ivec3( 10, 10, 10 ), STONE );
+
+    // Outlast the main fuse plus the longest possible chain fuse.
+    const long wait = TNT_FUSE_TICKS + TNT_CHAIN_FUSE_MIN_TICKS + TNT_CHAIN_FUSE_SPREAD_TICKS + 40;
+    for ( long i = 0; i < wait; i++ ) {
+        gs.tick_number++;
+        gs.blockUpdateQueue.processAllBlockUpdates( gs, gs.tick_number );
+    }
+    failures += check_id( world, "blast cell stays air", glm::ivec3( 10, 11, 10 ), AIR );
+    failures += check_id( world, "stone under blast destroyed", glm::ivec3( 10, 10, 10 ), AIR );
+    failures += check_id( world, "bedrock survives blast", glm::ivec3( 10, 9, 10 ), BEDROCK );
+    failures += check_id( world, "chained TNT detonated", glm::ivec3( 13, 11, 10 ), AIR );
+    failures += check_id( world, "far TNT untouched", glm::ivec3( 8, 11, 16 ), TNT );
+    failures += check_id( world, "distant stone untouched", glm::ivec3( 25, 10, 25 ), STONE );
+    return failures;
+}
+
 constexpr Test all_tests[] = { //
     MK_TEST( ecs ),            //
     MK_TEST( redstone ),       //
@@ -572,6 +637,7 @@ constexpr Test all_tests[] = { //
     MK_TEST( mapgen ),         //
     MK_TEST( waterlog ),       //
     MK_TEST( lighting ),       //
+    MK_TEST( tnt ),            //
     { nullptr, nullptr }
 
 };

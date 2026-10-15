@@ -1,8 +1,15 @@
+#include <stdlib.h>
+
 #include "common/block_update_events/PlayerBlockPlacedEvent.hpp"
 #include "common/RepGame.hpp"
 #include "common/multiplayer.hpp"
 #include "common/block_update_events/BlockNextToChangeEvent.hpp"
 #include "common/block_update_events/PistonEvent.hpp"
+#include "common/block_update_events/TntExplodeEvent.hpp"
+
+static float frand( ) {
+    return static_cast<float>( rand( ) ) / static_cast<float>( RAND_MAX );
+}
 
 PlayerBlockPlacedEvent::PlayerBlockPlacedEvent( long tick_number, const glm::ivec3 &offset, BlockState blockState, bool state_update ) //
     : BlockUpdateEvent( tick_number ), block_pos( offset ), blockState( blockState ), state_update( state_update ) {
@@ -113,5 +120,13 @@ void PlayerBlockPlacedEvent::performAction( BlockUpdateQueue &blockUpdateQueue, 
     // so stale triggers are harmless.
     if ( new_block->is_piston && ( current_block_state.current_redstone_power > 0 ) != ( this->blockState.current_redstone_power > 0 ) ) {
         blockUpdateQueue.addBlockUpdate( std::make_shared<PistonEvent>( this->tick_number + 1, this->block_pos ) );
+    }
+
+    // TNT ignites on a rising power edge: tnt_ignite removes the block,
+    // spawns the primed (flashing) entity with a small hop like MC, and
+    // queues the explosion at the predicted landing cell.
+    if ( new_block->is_tnt && current_block_state.current_redstone_power == 0 && this->blockState.current_redstone_power > 0 ) {
+        const glm::vec3 hop( ( frand( ) - 0.5f ) * 0.6f, 1.5f, ( frand( ) - 0.5f ) * 0.6f );
+        tnt_ignite( blockUpdateQueue, repGameState, glm::vec3( this->block_pos ) + 0.5f, hop, TNT_FUSE_TICKS );
     }
 }

@@ -44,6 +44,9 @@ in float v_light;
 // data on the CPU. Unused by the sky (u_IsSky=1 takes the old path).
 flat in vec2 v_light_field;
 flat in float v_blockID;
+// Primed TNT drives this from its fuse clock (primed_tnt_vertex); other
+// programs sharing this fragment output 0.
+flat in float v_flash;
 in float v_planarDot;
 in vec4 v_world_coords;
 
@@ -56,6 +59,8 @@ void main( ) {
     if ( texColor.a == 0.0 ) {
         discard;
     }
+    // White flash overlay for primed TNT (v_flash toggles over the fuse).
+    texColor.rgb = mix( texColor.rgb, vec3( 1.0 ), v_flash );
     if ( u_TintUnderWater == TINT_UNDER_WATER_OBJECT_ALWAYS || ( u_TintUnderWater == TINT_UNDER_WATER_OBJECT_UNDER_Y_LEVEL && v_world_coords.y < ( -0.125f - u_Origin.y - eps ) ) ) {
         texColor = mix( texColor, vec4( 0.122f, 0.333f, 1.0f, 1.0f ), 0.5f );
     }

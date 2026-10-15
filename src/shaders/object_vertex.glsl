@@ -27,6 +27,7 @@ out float v_light;
 flat out vec2 v_light_field;
 flat out float v_blockID;
 flat out float v_id;
+flat out float v_flash;
 out float v_planarDot;
 out vec4 v_world_coords;
 
@@ -50,5 +51,7 @@ void main( ) {
     }
     v_light = face_light;
     v_light_field = instance_light;
+    // Avatars and the sky never flash; primed TNT does (primed_tnt_vertex).
+    v_flash = 0.0f;
     v_blockID = float( ( blockTexture[ faceType / 2u ] & ( 0xffffu << shift ) ) >> shift );
 }

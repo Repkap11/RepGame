@@ -19,6 +19,9 @@ typedef struct {
     // Chunk-loading and lighting queue depths, refreshed once per frame by
     // RepGame::draw (see LoaderDebugStats in chunk_loader.hpp).
     LoaderDebugStats loader;
+    // Live instanced-particle counts, refreshed once per frame.
+    int debris_particles;
+    int primed_tnt;
 } ImGuiDebugVars;
 
 #if ( defined( REPGAME_WINDOWS ) || defined( REPGAME_LINUX ) )

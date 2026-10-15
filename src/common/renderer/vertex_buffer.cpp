@@ -21,6 +21,14 @@ void VertexBuffer::set_subdata( const void *data, unsigned int offset, unsigned 
     glBufferSubData( GL_ARRAY_BUFFER, offset, size, data );
 }
 
+void VertexBuffer::reserve( const unsigned int size ) {
+    VertexBuffer::bind( );
+    if ( this->size != size ) {
+        glBufferData( GL_ARRAY_BUFFER, size, NULL, GL_STATIC_DRAW );
+        this->size = size;
+    }
+}
+
 void VertexBuffer::destroy( ) {
     this->size = 0;
     this->mRendererId = 0;

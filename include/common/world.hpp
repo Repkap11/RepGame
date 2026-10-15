@@ -6,6 +6,7 @@ class World;
 #include "chunk_loader.hpp"
 #include "common/multiplayer_avatars.hpp"
 #include "common/block_debris.hpp"
+#include "common/primed_tnt.hpp"
 #include "common/renderer/full_screen_quad.hpp"
 #include "common/RenderChain.hpp"
 
@@ -23,11 +24,13 @@ class World {
     SkyBox skyBox;
     MultiplayerAvatars multiplayer_avatars;
     BlockDebris blockDebris;
+    PrimedTnt primedTnt;
     VertexBufferLayout vbl_block;
     VertexBufferLayout vbl_coords;
     VertexBufferLayout vbl_object_vertex;
     VertexBufferLayout vbl_object_position;
     VertexBufferLayout vbl_debris_instance;
+    VertexBufferLayout vbl_primed_tnt_instance;
     Texture reflectionTexture;
     Texture blockTexture;
     Texture fogTexture;
@@ -46,6 +49,7 @@ class World {
     MouseSelection mouseSelection;
     Shader object_shader;
     Shader debris_shader;
+    Shader primed_tnt_shader;
 
     int can_fixup_chunk( const Chunk &chunk, const glm::ivec3 &offset ) const;
     void fixup_chunk( const Chunk &chunk, const glm::ivec3 &offset, const glm::ivec3 &pos, const BlockState &blockState ) const;
@@ -73,7 +77,14 @@ class World {
     void set_chest_contents( const glm::ivec3 &block_pos, const ChestContents &contents );
     // Spawns break particles if prev_state was a real block that new_id
     // removed. No-op for air, same-id state changes, and liquids.
-    void spawn_block_debris( const glm::ivec3 &block_pos, const BlockState &prev_state, BlockID new_id );
+    void spawn_block_debris( const glm::ivec3 &block_pos, const BlockState &prev_state, BlockID new_id, int num_particles = DEBRIS_PER_BLOCK );
+    // Spawns a primed (flying + flashing) TNT entity. center is the
+    // world-space cube center; ground_t is the predicted terrain-impact time
+    // clamping the shader's ballistic flight (>= life_s for free flight).
+    // Returns the entity so its detonation can despawn it.
+    entt::entity spawn_primed_tnt( const glm::vec3 &center, const glm::vec3 &velocity, float life_s, float ground_t );
+    // Removes a live primed TNT entity (the blast it was fusing for fired).
+    void despawn_primed_tnt( entt::entity entity );
     // void overlay_blocks( const glm::ivec3 &block_pos, BlockState *blockStates, int numBlockStates );
 
     static BlockState get_block_from_chunk( const Chunk &chunk, const glm::ivec3 &block );

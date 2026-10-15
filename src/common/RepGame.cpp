@@ -1706,6 +1706,8 @@ void RepGame::draw( float alpha ) {
         debugVars.world_time = globalGameState.world_time;
         debugVars.daylight = daylight;
         globalGameState.world.chunkLoader.debug_loader_stats( &debugVars.loader );
+        debugVars.debris_particles = static_cast<int>( globalGameState.world.blockDebris.count( ) );
+        debugVars.primed_tnt = static_cast<int>( globalGameState.world.primedTnt.count( ) );
         imgui_overlay_draw( &globalGameState.imgui_overlay, globalGameState.input );
         // PageUp/PageDown nudges: ±1 hour per keypress (±6 with Shift),
         // accumulated on the input side. Wrap into one day cycle.

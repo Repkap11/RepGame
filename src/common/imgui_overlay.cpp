@@ -107,11 +107,16 @@ void imgui_overlay_draw( ImGuiOverlay *imgui_overlay, Input &input ) {
             ImGui::Text( "Chunks: loading %d (queued %d, results %d), drawable %d",
                          debug_vars.loader.chunks_loading, debug_vars.loader.terrain_queued,
                          debug_vars.loader.terrain_results, debug_vars.loader.chunks_drawable );
-            ImGui::Text( "Light: jobs %d, pending %d, seeds %lld, claims %d, dirty %d%s",
+            // j=queued jobs p=pending drains s=flood seeds c=in-flight claims
+            // d=dirty (awaiting GPU upload) x=dropped seeds
+            ImGui::Text( "Light: j:%d p:%d s:%lld c:%d d:%d x:%lld%s",
                          debug_vars.loader.light_jobs, debug_vars.loader.light_pending,
                          debug_vars.loader.light_seeds, debug_vars.loader.light_claims,
-                         debug_vars.loader.light_dirty, debug_vars.loader.light_bfs_active ? " [BFS]" : "" );
-            ImGui::Text( "Light dropped: %lld (seeds lost to loading chunks)", debug_vars.loader.light_dropped );
+                         debug_vars.loader.light_dirty, debug_vars.loader.light_dropped,
+                         debug_vars.loader.light_bfs_active ? " [BFS]" : "" );
+            ImGui::Text( "Particles: %d (%d debris, %d primed TNT)",
+                         debug_vars.debris_particles + debug_vars.primed_tnt,
+                         debug_vars.debris_particles, debug_vars.primed_tnt );
 
             // debug_vars.corner1.x = round( debug_vars.corner1.x * 20 ) / 20;
             // debug_vars.corner1.y = round( debug_vars.corner1.y * 20 ) / 20;

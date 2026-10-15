@@ -15,6 +15,7 @@
 MK_SHADER( object_vertex );
 MK_SHADER( object_fragment );
 MK_SHADER( debris_vertex );
+MK_SHADER( primed_tnt_vertex );
 
 bool hasError( ) {
     if ( ( glGetError( ) ) != GL_NO_ERROR ) {
@@ -61,6 +62,14 @@ void World::init( const glm::dvec3 &camera_pos, int width, int height, MapStorag
     this->vbl_debris_instance.push_float( 3 );        // velocity
     this->vbl_debris_instance.push_float( 4 );        // anim (spawn_time, life, size, seed)
     this->vbl_debris_instance.push_float( 2 );        // light (sky, block)
+    this->vbl_debris_instance.push_float( 2 );        // texel (drawn-window texel center)
+
+    // These are from PrimedTntInstance
+    this->vbl_primed_tnt_instance.push_unsigned_int( 3 ); // which texture
+    this->vbl_primed_tnt_instance.push_float( 3 );        // spawn (cube center)
+    this->vbl_primed_tnt_instance.push_float( 3 );        // velocity
+    this->vbl_primed_tnt_instance.push_float( 4 );        // anim (spawn_time, life, ground_t, seed)
+    this->vbl_primed_tnt_instance.push_float( 2 );        // light (sky, block)
 
     this->chunkLoader.init( camera_pos, this->vbl_block, this->vbl_coords, map_storage );
 
@@ -70,10 +79,12 @@ void World::init( const glm::dvec3 &camera_pos, int width, int height, MapStorag
 
     this->object_shader.init( &object_vertex, &object_fragment );
     this->debris_shader.init( &debris_vertex, &object_fragment );
+    this->primed_tnt_shader.init( &primed_tnt_vertex, &object_fragment );
 
     this->skyBox.init( this->vbl_object_vertex, this->vbl_object_position );
     this->multiplayer_avatars.init( this->vbl_object_vertex, this->vbl_object_position );
     this->blockDebris.init( this->vbl_object_vertex, this->vbl_debris_instance );
+    this->primedTnt.init( this->vbl_object_vertex, this->vbl_primed_tnt_instance );
     this->mouseSelection.init( this->vbl_block, this->vbl_coords );
 
 #if ( SUPPORTS_FRAME_BUFFER )
@@ -284,6 +295,19 @@ void World::draw( const Texture &blocksTexture, const glm::mat4 &mvp, const glm:
     this->debris_shader.set_uniform1f( "u_MinAmbient", min_ambient );
     this->debris_shader.set_uniform1f( "u_Time", time_s );
 
+    // Primed TNT also shares object_fragment.glsl — same fog/water set.
+    this->primed_tnt_shader.set_uniform1f( "u_FogNear", fog_near );
+    this->primed_tnt_shader.set_uniform1f( "u_FogFar", fog_far );
+    this->primed_tnt_shader.set_uniform1f( "u_WaterFogNear", water_fog_near );
+    this->primed_tnt_shader.set_uniform1f( "u_WaterFogFar", water_fog_far );
+    this->primed_tnt_shader.set_uniform1i( "u_Underwater", underwater_wash );
+    this->primed_tnt_shader.set_uniform3f( "u_CameraPos", camera_pos_rebased.x, camera_pos_rebased.y, camera_pos_rebased.z );
+    this->primed_tnt_shader.set_uniform3f( "u_SkyAvgColor", fog_blend_color.r, fog_blend_color.g, fog_blend_color.b );
+    this->primed_tnt_shader.set_uniform1i( "u_OpaqueFog", useFogBlend ? 1 : 0 );
+    this->primed_tnt_shader.set_uniform1f( "u_Daylight", daylight );
+    this->primed_tnt_shader.set_uniform1f( "u_MinAmbient", min_ambient );
+    this->primed_tnt_shader.set_uniform1f( "u_Time", time_s );
+
     if ( useFrameBuffer ) {
         this->frameBuffer.bind( );
         // Clear each attachment separately:
@@ -338,6 +362,15 @@ void World::draw( const Texture &blocksTexture, const glm::mat4 &mvp, const glm:
     this->debris_shader.set_uniform_mat4f( "u_MVP", mvp );
     this->debris_shader.set_uniform1i( "u_IsSky", 0 );
     this->debris_shader.set_uniform3f( "u_Origin", renderOriginF.x, renderOriginF.y, renderOriginF.z );
+
+    this->primed_tnt_shader.set_uniform1i( "u_DrawToReflection", 0 );
+    this->primed_tnt_shader.set_uniform1i_texture( "u_Texture", blocksTexture );
+    this->primed_tnt_shader.set_uniform1f( "u_ReflectionHeight", 0 );
+    this->primed_tnt_shader.set_uniform1i( "u_TintUnderWater", object_water_tint_type );
+    this->primed_tnt_shader.set_uniform1f( "u_ExtraAlpha", 1.0f );
+    this->primed_tnt_shader.set_uniform_mat4f( "u_MVP", mvp );
+    this->primed_tnt_shader.set_uniform1i( "u_IsSky", 0 );
+    this->primed_tnt_shader.set_uniform3f( "u_Origin", renderOriginF.x, renderOriginF.y, renderOriginF.z );
 #if ( SUPPORTS_FRAME_BUFFER )
     if ( useFrameBuffer ) {
         // Only the sky pass should write to the sky color attachment (3).
@@ -352,8 +385,10 @@ void World::draw( const Texture &blocksTexture, const glm::mat4 &mvp, const glm:
     // the render thread like the light probes.
     this->multiplayer_avatars.update_lighting( this->chunkLoader );
     this->blockDebris.update_lighting( this->chunkLoader );
-    this->multiplayer_avatars.draw( this->renderer, this->object_shader ); // Mobs
-    this->blockDebris.draw( this->renderer, this->debris_shader, time_s );  // Break particles
+    this->primedTnt.update_lighting( this->chunkLoader );
+    this->multiplayer_avatars.draw( this->renderer, this->object_shader );      // Mobs
+    this->blockDebris.draw( this->renderer, this->debris_shader, time_s );      // Break particles
+    this->primedTnt.draw( this->renderer, this->primed_tnt_shader, time_s );    // Ignited TNT
 #if ( SUPPORTS_FRAME_BUFFER )
     if ( useFrameBuffer ) {
         // Enable sky color attachment writing for the sky pass only.
@@ -480,6 +515,16 @@ void World::draw( const Texture &blocksTexture, const glm::mat4 &mvp, const glm:
         this->debris_shader.set_uniform1f( "u_ReflectionHeight", offset + renderOriginF.y );
         this->blockDebris.draw( this->renderer, this->debris_shader, time_s ); // Reflected debris
 
+        this->primed_tnt_shader.set_uniform1i_texture( "u_Texture", blocksTexture );
+        this->primed_tnt_shader.set_uniform1f( "u_ExtraAlpha", 1.0f );
+        this->primed_tnt_shader.set_uniform1i( "u_DrawToReflection", 1 );
+        this->primed_tnt_shader.set_uniform1i( "u_IsSky", 0 );
+        this->primed_tnt_shader.set_uniform_mat4f( "u_MVP", mvp_reflect );
+        this->primed_tnt_shader.set_uniform3f( "u_Origin", renderOriginF.x, renderOriginF.y, renderOriginF.z );
+        this->primed_tnt_shader.set_uniform1f( "u_ReflectionHeight", offset + renderOriginF.y );
+        this->primed_tnt_shader.set_uniform1i( "u_TintUnderWater", object_water_tint_type );
+        this->primedTnt.draw( this->renderer, this->primed_tnt_shader, time_s ); // Reflected primed TNT
+
         this->chunkLoader.shader.set_uniform1i( "u_DrawToReflection", true );
         this->chunkLoader.shader.set_uniform1f( "u_ExtraAlpha", 1.0f ); // this make reflections not solid...
         this->chunkLoader.shader.set_uniform1f( "u_ReflectionHeight", offset + renderOriginF.y );
@@ -587,8 +632,10 @@ void World::cleanup( MapStorage &map_storage ) {
     this->skyBox.destroy( );
     this->multiplayer_avatars.cleanup( );
     this->blockDebris.cleanup( );
+    this->primedTnt.cleanup( );
     this->mouseSelection.destroy( );
     this->debris_shader.destroy( );
+    this->primed_tnt_shader.destroy( );
 
     this->vbl_block.destroy( );
     this->vbl_coords.destroy( );
@@ -722,7 +769,7 @@ void World::set_chest_contents( const glm::ivec3 &block_pos, const ChestContents
     }
 }
 
-void World::spawn_block_debris( const glm::ivec3 &block_pos, const BlockState &prev_state, const BlockID new_id ) {
+void World::spawn_block_debris( const glm::ivec3 &block_pos, const BlockState &prev_state, const BlockID new_id, const int num_particles ) {
     if ( prev_state.id == AIR || prev_state.id == LAST_BLOCK_ID || prev_state.id == new_id ) {
         return;
     }
@@ -733,7 +780,15 @@ void World::spawn_block_debris( const glm::ivec3 &block_pos, const BlockState &p
     // Particles live <1s and stay near their cell, so a single light sample at
     // the (now-air) block center is baked into every instance.
     this->blockDebris.spawn_block_break( block_pos, prev_state,
-                                         this->chunkLoader.light_sample( glm::vec3( block_pos ) + 0.5f ) );
+                                         this->chunkLoader.light_sample( glm::vec3( block_pos ) + 0.5f ), num_particles );
+}
+
+entt::entity World::spawn_primed_tnt( const glm::vec3 &center, const glm::vec3 &velocity, const float life_s, const float ground_t ) {
+    return this->primedTnt.spawn( center, velocity, life_s, ground_t, this->chunkLoader.light_sample( center ) );
+}
+
+void World::despawn_primed_tnt( const entt::entity entity ) {
+    this->primedTnt.despawn( entity );
 }
 
 // void World::overlay_blocks( const glm::ivec3 *block_poses, BlockState *blockStates, int numBlocks ) {

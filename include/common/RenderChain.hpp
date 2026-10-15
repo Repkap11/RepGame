@@ -66,25 +66,30 @@ template <typename Element, typename Instance> class RenderChain {
     }
 
     std::size_t length( ) {
-        return registry.group<Instance>( ).size( );
+        return registry.storage<Instance>( ).size( );
     }
 
     void draw( const Renderer &renderer, const Shader &shader, const IndexBuffer &ib ) {
-        auto all_instances = registry.group<Instance>( );
-        std::size_t instance_count = all_instances.size( );
+        auto &pool = registry.storage<Instance>( );
+        const std::size_t instance_count = pool.size( );
         if ( instance_count == 0 ) {
             return;
         }
-        Instance **available_instances = all_instances.template storage<Instance>( )->raw( );
-        if ( available_instances == NULL ) {
-            return;
-        }
-        Instance *instances = *available_instances;
-        if ( instances == NULL ) {
-            return;
-        }
         if ( this->instance_count_changed ) {
-            this->vb_instance.set_data( instances, sizeof( Instance ) * instance_count );
+            // basic_storage is paginated (ENTT_PACKED_PAGE=1024): raw() is the
+            // page table, so size the buffer then upload each contiguous page
+            // in place — no staging copy, still one draw call.
+            constexpr std::size_t page_size = entt::component_traits<Instance>::page_size;
+            static_assert( page_size > 0u, "RenderChain expects paginated component storage" );
+            Instance *const *pages = pool.raw( );
+            this->vb_instance.reserve( static_cast<unsigned int>( sizeof( Instance ) * instance_count ) );
+            for ( std::size_t base = 0; base < instance_count; base += page_size ) {
+                const std::size_t remaining = instance_count - base;
+                const std::size_t count = remaining < page_size ? remaining : page_size;
+                this->vb_instance.set_subdata( pages[ base / page_size ],
+                                               static_cast<unsigned int>( base * sizeof( Instance ) ),
+                                               static_cast<unsigned int>( count * sizeof( Instance ) ) );
+            }
             showErrors( );
             this->instance_count_changed = false;
         }
@@ -112,15 +117,12 @@ template <typename Element, typename Instance> class RenderChain {
             // No need for partial updates, and full update is about to happen.
             return;
         }
-        auto all_instances = registry.group<const Instance>( );
-        const Instance *const *available_instances = all_instances.template storage<const Instance>( )->raw( );
-        if ( available_instances == NULL ) {
-            return;
-        }
-        const Instance *first_instance_positions = *available_instances;
-        const Instance *this_instance_position = &registry.get<const Instance>( entity );
-        int offset = this_instance_position - first_instance_positions;
-        this->vb_instance.set_subdata( this_instance_position, offset * sizeof( Instance ), sizeof( Instance ) );
+        auto &pool = registry.storage<Instance>( );
+        // The buffer is indexed by packed position — a raw()-base pointer diff
+        // is garbage for instances on page 1+ (paginated storage), which made
+        // glBufferSubData write out of range once a chain passed 1024.
+        const std::size_t offset = pool.index( entity );
+        this->vb_instance.set_subdata( &pool.get( entity ), offset * sizeof( Instance ), sizeof( Instance ) );
         showErrors( );
     }
     void on_destroy( entt::registry &registry, entt::entity entity ) {

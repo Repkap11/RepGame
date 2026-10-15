@@ -85,4 +85,21 @@ typedef struct {
     glm::vec3 velocity;                       // initial velocity, blocks/second
     glm::vec4 anim;                           // x=spawn_time (u_Time clock), y=life seconds, z=size, w=seed
     glm::vec2 light;                          // flood-fill light at spawn cell: x=sky, y=block, [0,1]
+    // Texel center the fragment samples — picked on the CPU inside the face's
+    // drawn window (block scale/tex_offset), so cropped sprites like torches
+    // don't spawn particles that land on transparent texels.
+    glm::vec2 texel;
 } DebrisInstance;
+
+// Per-instance data for primed (ignited, not yet exploded) TNT. Same
+// write-once/GPU-animated pattern as DebrisInstance: primed_tnt_vertex.glsl
+// computes the ballistic position and white flash from u_Time. anim.z is the
+// ground-impact time the CPU predicted by marching the path — the shader
+// clamps travel there so the cube rests on terrain instead of clipping in.
+typedef struct {
+    unsigned short face[ NUM_FACES_IN_CUBE ]; // texture layer per face (packed uvec3)
+    glm::vec3 spawn;                          // world-space spawn position (cube center)
+    glm::vec3 velocity;                       // launch velocity, blocks/second
+    glm::vec4 anim;                           // x=spawn_time (u_Time clock), y=life seconds, z=ground-clamp time, w=seed
+    glm::vec2 light;                          // flood-fill light at spawn cell: x=sky, y=block, [0,1]
+} PrimedTntInstance;

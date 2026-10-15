@@ -19,11 +19,16 @@ layout( location = 5 ) in vec3 velocity;
 layout( location = 6 ) in vec4 anim; // x=spawn time, y=life, z=size, w=seed
 // Per-instance flood-fill light at the broken block (x=sky, y=block, 0-1).
 layout( location = 7 ) in vec2 instance_light;
+// Texel center the particle samples — chosen on the CPU inside the drawn
+// texel window of the picked face (block scale/tex_offset), so cropped
+// sprites don't emit invisible particles from transparent texels.
+layout( location = 8 ) in vec2 texel;
 
 out vec2 v_tex_coords;
 out float v_light;
 flat out vec2 v_light_field;
 flat out float v_blockID;
+flat out float v_flash;
 out float v_planarDot;
 out vec4 v_world_coords;
 
@@ -33,9 +38,6 @@ out vec4 v_world_coords;
 #define DEBRIS_ROT_SPEED_SPREAD 6.0f
 // Fraction of lifetime at which the particle starts shrinking out.
 #define DEBRIS_SHRINK_START 0.6f
-// Block texture tiles are 16x16 (MK_TEXTURE in RepGame.cpp); particles sample
-// a single texel so MAG_NEAREST gives a clean flat color.
-#define DEBRIS_TEXTURE_PIXELS 16.0f
 // u_Time is fmod(now, 3600) in RepGame::draw; keep ages positive across the wrap.
 #define TIME_WRAP 3600.0f
 
@@ -75,15 +77,10 @@ void main( ) {
     gl_Position = u_MVP * v_world_coords;
     v_planarDot = dot( v_world_coords, vec4( 0, 1, 0, u_ReflectionHeight ) );
 
-    // Instead of the block's texture, each particle shows one solid color: a
-    // single texel of a randomly chosen face texture, identical for every
-    // vertex of the instance.
-    v_tex_coords = ( floor( vec2( fract( seed * 0.2317f ), fract( seed * 0.7193f ) ) * DEBRIS_TEXTURE_PIXELS ) + 0.5f ) / DEBRIS_TEXTURE_PIXELS;
-    uint pickFace = uint( fract( seed * 0.4171f ) * 6.0f ); // one of the 6 face textures
-    pickFace = min( pickFace, 5u );
-    uint pickShift = ( pickFace % 2u ) * 16u;
-    // 0xffffu is max short 16u is sizeof(short)
-
+    // Each particle shows one solid color: the texel the CPU picked inside the
+    // drawn window of a randomly chosen face, identical for every vertex.
+    v_tex_coords = texel;
+    // Every face slot carries the picked face's texture, so slot 0 works.
     float face_light;
     if ( faceType == FACE_TOP ) {
         face_light = 1.0;
@@ -94,5 +91,7 @@ void main( ) {
     }
     v_light = face_light;
     v_light_field = instance_light;
-    v_blockID = float( ( blockTexture[ pickFace / 2u ] & ( 0xffffu << pickShift ) ) >> pickShift );
+    // Debris never flashes; primed TNT does (primed_tnt_vertex).
+    v_flash = 0.0f;
+    v_blockID = float( blockTexture.x & 0xffffu );
 }
