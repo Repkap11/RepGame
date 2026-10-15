@@ -21,6 +21,11 @@ typedef struct {
     } texture;
     unsigned int is_isometric;
     unsigned int face_type;
+    // Unit-cube corner (0-1) this vertex represents. Only used by isometric
+    // block icons, which project it after applying the block's scale/offset.
+    struct {
+        float x, y, z;
+    } cube_position;
 } UIOverlayVertex;
 
 struct UIOverlayInstance {
@@ -33,6 +38,12 @@ struct UIOverlayInstance {
     unsigned int is_isometric;
     float id_isos[ 3 ];
     float tint[ 4 ];
+    // Block shape in pixels (0-16), matching Block::scale/offset/tex_offset.
+    // Used to project isometric icon verts and adjust their UVs like the
+    // chunk mesh does.
+    float block_scale[ 3 ];
+    float block_offset[ 3 ];
+    float block_tex_offset[ 3 ];
 };
 
 #include "common/creative_inventory.hpp"

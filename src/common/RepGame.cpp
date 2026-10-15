@@ -504,8 +504,9 @@ void RepGame::process_mouse_events( ) {
     }
     if ( globalGameState.block_selection.selectionInBounds && globalGameState.input.mouse.buttons.right && globalGameState.input.click_delay_right == 0 ) {
         // Right-clicking a chest opens it instead of placing against it.
+        // Sneaking skips the interaction so the block can be placed.
         const BlockState target_state = globalGameState.world.get_loaded_block( globalGameState.block_selection.pos_destroy );
-        if ( block_is_chest( target_state.id ) ) {
+        if ( block_is_chest( target_state.id ) && !globalGameState.input.movement.sneakPressed ) {
             this->open_chest( globalGameState.block_selection.pos_destroy );
             globalGameState.input.click_delay_right = 30;
         }
@@ -1405,6 +1406,7 @@ RepGameState *RepGame::init( const char *world_name, const bool connect_multi, c
     vbl_ui_overlay_vertex.push_float( 2 );        // UIOverlayVertex texture
     vbl_ui_overlay_vertex.push_unsigned_int( 1 ); // UIOverlayVertex is_isometric
     vbl_ui_overlay_vertex.push_unsigned_int( 1 ); // UIOverlayVertex face_type
+    vbl_ui_overlay_vertex.push_float( 3 );        // UIOverlayVertex cube_position
 
     VertexBufferLayout vbl_ui_overlay_instance;
     vbl_ui_overlay_instance.push_float( 3 );        // UIOverlayInstance screen_x, screen_y, screen_z
@@ -1413,6 +1415,9 @@ RepGameState *RepGame::init( const char *world_name, const bool connect_multi, c
     vbl_ui_overlay_instance.push_unsigned_int( 1 ); // UIOverlayInstance is_isometric
     vbl_ui_overlay_instance.push_float( 3 );        // UIOverlayInstance id_isos
     vbl_ui_overlay_instance.push_float( 4 );        // UIOverlayInstance tint
+    vbl_ui_overlay_instance.push_float( 3 );        // UIOverlayInstance block_scale
+    vbl_ui_overlay_instance.push_float( 3 );        // UIOverlayInstance block_offset
+    vbl_ui_overlay_instance.push_float( 3 );        // UIOverlayInstance block_tex_offset
 
     globalGameState.blocksTexture.init( texture_source_textures, 0 );
     block_definitions_initilize_definitions( &globalGameState.blocksTexture );
