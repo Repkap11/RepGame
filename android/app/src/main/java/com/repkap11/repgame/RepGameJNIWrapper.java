@@ -27,6 +27,8 @@ class RepGameJNIWrapper {
 
     public static native void onInventoryClicked();
 
+    public static native void inventoryPageScrolled(int direction);
+
     public static native void setButtonState(int left, int middle, int right);
 
     public static native void setMousePosition(int x, int y);

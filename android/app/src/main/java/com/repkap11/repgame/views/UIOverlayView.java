@@ -67,6 +67,10 @@ public class UIOverlayView extends View implements View.OnTouchListener {
     private int mModeX;
     private int mModeY;
     private int mModeRadius;
+    private int mPagePrevX;
+    private int mPageNextX;
+    private int mPageY;
+    private int mPageButtonRadius;
     private int mHotbarTop;
 
     public UIOverlayView(Context context, @Nullable AttributeSet attrs) {
@@ -99,8 +103,12 @@ public class UIOverlayView extends View implements View.OnTouchListener {
         super.onDraw(canvas);
         if (mInventoryOpen) {
             drawButton(canvas, mInventoryX, mInventoryY, mInventoryRadius, "Close", false);
-            String mode = mRenderWrapper.getGameMode() == 0 ? "Creative" : "Survival";
-            drawButton(canvas, mModeX, mModeY, mModeRadius, mode, false);
+            boolean creative = mRenderWrapper.getGameMode() == 0;
+            drawButton(canvas, mModeX, mModeY, mModeRadius, creative ? "Creative" : "Survival", false);
+            if (creative) {
+                drawButton(canvas, mPagePrevX, mPageY, mPageButtonRadius, "<", false);
+                drawButton(canvas, mPageNextX, mPageY, mPageButtonRadius, ">", false);
+            }
             return;
         }
         canvas.drawCircle(mMoveX, mMoveY, mMoveRadius, mButtonPaint);
@@ -150,6 +158,13 @@ public class UIOverlayView extends View implements View.OnTouchListener {
         mModeX = mJumpX;
         mModeY = mJumpY;
 
+        // Creative-inventory page arrows sit in the side margins beside the
+        // centered inventory grid (capped at 75% of screen width natively).
+        mPageButtonRadius = (int) (w * 0.045f);
+        mPagePrevX = (int) (w * 0.0625f) + mPageButtonRadius;
+        mPageNextX = w - mPagePrevX;
+        mPageY = h / 2;
+
         mTextPaint.setTextSize(mMouseRadius * 0.45f);
 
         super.onSizeChanged(w, h, oldw, oldh);
@@ -185,6 +200,7 @@ public class UIOverlayView extends View implements View.OnTouchListener {
             case MotionEvent.ACTION_DOWN:
             case MotionEvent.ACTION_POINTER_DOWN:
                 if (mInventoryOpen) {
+                    boolean creative = mRenderWrapper.getGameMode() == 0;
                     if (withinCircle(event, actionIndex, mInventoryX, mInventoryY, mInventoryRadius)) {
                         handleInventoryButton();
                     } else if (withinCircle(event, actionIndex, mModeX, mModeY, mModeRadius)) {
@@ -192,6 +208,10 @@ public class UIOverlayView extends View implements View.OnTouchListener {
                         // The game applies the toggle on its next tick; redraw
                         // shortly after so the label shows the new mode.
                         postInvalidateDelayed(150);
+                    } else if (creative && withinCircle(event, actionIndex, mPagePrevX, mPageY, mPageButtonRadius)) {
+                        mRenderWrapper.inventoryPageScrolled(-1);
+                    } else if (creative && withinCircle(event, actionIndex, mPageNextX, mPageY, mPageButtonRadius)) {
+                        mRenderWrapper.inventoryPageScrolled(1);
                     } else {
                         mInventoryTouchPointerId = actionPointer;
                         mInventoryDownX = (int) event.getX(actionIndex);

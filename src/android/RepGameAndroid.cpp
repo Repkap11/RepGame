@@ -198,6 +198,13 @@ JNIEXPORT void JNICALL Java_com_repkap11_repgame_RepGameJNIWrapper_onInventoryCl
     repgame.getInputState( ).onInventoryClicked( );
 }
 
+JNIEXPORT void JNICALL Java_com_repkap11_repgame_RepGameJNIWrapper_inventoryPageScrolled( JNIEnv *env, jobject obj, jint direction ) {
+    Input &input = repgame.getInputState( );
+    // Feed the wheel counter so the tick loop applies the same page/hotbar
+    // logic as a desktop scroll (wheel_diff = previous - current).
+    input.mouse.currentPosition.wheel_counts -= direction;
+}
+
 JNIEXPORT void JNICALL Java_com_repkap11_repgame_RepGameJNIWrapper_setMousePosition( JNIEnv *env, jobject obj, jint x, jint y ) {
     Input &input = repgame.getInputState( );
     input.mouse.absPosition.x = x;

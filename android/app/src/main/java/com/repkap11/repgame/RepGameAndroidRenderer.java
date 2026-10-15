@@ -74,6 +74,10 @@ public class RepGameAndroidRenderer implements GLSurfaceView.Renderer {
         RepGameJNIWrapper.onInventoryClicked();
     }
 
+    public void inventoryPageScrolled(int direction) {
+        RepGameJNIWrapper.inventoryPageScrolled(direction);
+    }
+
     public void setMousePosition(int x, int y) {
         RepGameJNIWrapper.setMousePosition(x, y);
     }
