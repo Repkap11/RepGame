@@ -42,6 +42,13 @@ void PacketWriter::write_i32( int32_t v ) {
     write_u32( static_cast<uint32_t>( v ) );
 }
 
+void PacketWriter::write_i64( int64_t v ) {
+    const uint64_t u = static_cast<uint64_t>( v );
+    for ( int i = 0; i < 8; i++ ) {
+        buf_.push_back( static_cast<uint8_t>( u >> ( i * 8 ) ) );
+    }
+}
+
 void PacketWriter::write_f32( float v ) {
     uint32_t u;
     std::memcpy( &u, &v, sizeof( u ) );
@@ -88,6 +95,17 @@ bool PacketReader::read_i32( int32_t &out ) {
     uint32_t u;
     if ( !read_u32( u ) ) return false;
     out = static_cast<int32_t>( u );
+    return true;
+}
+
+bool PacketReader::read_i64( int64_t &out ) {
+    if ( pos_ + 8 > len_ ) return false;
+    uint64_t u = 0;
+    for ( int i = 0; i < 8; i++ ) {
+        u |= static_cast<uint64_t>( data_[ pos_ + i ] ) << ( i * 8 );
+    }
+    pos_ += 8;
+    out = static_cast<int64_t>( u );
     return true;
 }
 
@@ -309,4 +327,12 @@ bool net_deserialize_chest_set_slot( PacketReader &r, NetChestSetSlotPayload &p 
     }
     if ( !net_read_inventory_slot( r, p.slot_value ) ) return false;
     return true;
+}
+
+void net_serialize_world_time( PacketWriter &w, const NetWorldTimePayload &p ) {
+    w.write_i64( p.world_time );
+}
+
+bool net_deserialize_world_time( PacketReader &r, NetWorldTimePayload &p ) {
+    return r.read_i64( p.world_time );
 }

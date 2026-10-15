@@ -144,6 +144,17 @@ void Multiplayer::handle_frame( RepGameState &state, const std::vector<uint8_t> 
             }
             break;
         }
+        case NetMsgType::WORLD_TIME: {
+            NetWorldTimePayload p;
+            if ( !net_deserialize_world_time( r, p ) ) {
+                pr_debug( "Malformed WORLD_TIME, skipping" );
+                return;
+            }
+            // Snap to the server's authoritative clock. The tick loop keeps
+            // advancing world_time locally; these syncs only correct drift.
+            state.world_time = static_cast<long>( p.world_time );
+            break;
+        }
         default: {
             pr_debug( "Saw unexpected packet type:%d from:%d", static_cast<int>( type ), player_id );
             break;
@@ -282,6 +293,22 @@ void Multiplayer::chest_set_slot( const glm::ivec3 &chest_pos, uint32_t slot_ind
     this->flush_outbound( );
     if ( this->framed_socket.had_error( ) ) {
         pr_debug( "Multiplayer send error in chest_set_slot, disconnecting" );
+        this->disconnect( );
+    }
+}
+
+void Multiplayer::send_world_time( long world_time ) {
+    if ( !this->active ) {
+        return;
+    }
+    NetWorldTimePayload p;
+    p.world_time = static_cast<int64_t>( world_time );
+    PacketWriter w;
+    net_serialize_world_time( w, p );
+    this->framed_socket.send_message( NetMsgType::WORLD_TIME, 0, w.take_buf( ) );
+    this->flush_outbound( );
+    if ( this->framed_socket.had_error( ) ) {
+        pr_debug( "Multiplayer send error in send_world_time, disconnecting" );
         this->disconnect( );
     }
 }

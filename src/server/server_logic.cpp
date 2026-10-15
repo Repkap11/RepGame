@@ -2,6 +2,7 @@
 #include "server/server_logic.hpp"
 #include "common/utils/file_utils.hpp"
 #include "common/RepGame.hpp"
+#include "common/light.hpp"
 #include "common/net/packet.hpp"
 
 #include <climits>
@@ -11,10 +12,54 @@
 
 void ServerLogic::init( const char *world_name ) {
     this->map_storage.init( world_name );
+    int64_t saved_world_time = 0;
+    if ( this->map_storage.read_world_time( saved_world_time ) ) {
+        this->world_time_base = saved_world_time;
+    } else {
+        // Fresh world starts at noon, same default as the client.
+        this->world_time_base = DAY_LENGTH_TICKS / 4;
+    }
+}
+
+int64_t ServerLogic::worldTimeNow( ) const {
+    if ( !this->world_time_running ) {
+        return this->world_time_base;
+    }
+    const auto elapsed_us = std::chrono::duration_cast<std::chrono::microseconds>(
+        std::chrono::steady_clock::now( ) - this->world_time_anchor )
+                                .count( );
+    return this->world_time_base + static_cast<int64_t>( ( elapsed_us * UPS_RATE ) / 1000000 );
+}
+
+void ServerLogic::sendWorldTime( Server &server, int client_fd ) {
+    NetWorldTimePayload p{ this->worldTimeNow( ) };
+    PacketWriter w;
+    net_serialize_world_time( w, p );
+    server.queue_message( client_fd, NetMsgType::WORLD_TIME, 0, w.take_buf( ) );
+}
+
+void ServerLogic::broadcastWorldTime( Server &server ) {
+    NetWorldTimePayload p{ this->worldTimeNow( ) };
+    PacketWriter w;
+    net_serialize_world_time( w, p );
+    for ( int fd = 0; fd < MAX_CLIENT_FDS; fd++ ) {
+        if ( server.get_data_if_client_connected( fd ) != NULL ) {
+            server.queue_message( fd, NetMsgType::WORLD_TIME, 0, w.buf( ) );
+        }
+    }
 }
 
 void ServerLogic::on_client_connected( Server &server, int client_fd ) {
     pr_debug( "%d", client_fd );
+
+    // First client of a session starts the clock (it freezes again when the
+    // last one leaves); everyone gets told the current time right away.
+    if ( !this->world_time_running ) {
+        this->world_time_running = true;
+        this->world_time_anchor = std::chrono::steady_clock::now( );
+        this->next_time_broadcast = this->world_time_anchor + std::chrono::seconds( WORLD_TIME_SYNC_SECONDS );
+    }
+    this->sendWorldTime( server, client_fd );
 
     // Tell the other clients about this new client
     for ( int prop_id = 0; prop_id < MAX_CLIENT_FDS; prop_id++ ) {
@@ -319,6 +364,7 @@ void ServerLogic::persistChunk( const glm::ivec3 &chunk_pos ) {
 }
 
 void ServerLogic::persistAll( ) {
+    this->map_storage.write_world_time( this->worldTimeNow( ) );
     size_t saved = 0;
     for ( auto [ chunk_pos, entry ] : this->world_cache ) {
         if ( entry.blocks.empty( ) ) {
@@ -345,7 +391,7 @@ void ServerLogic::flushAll( ) {
     this->persistAll( );
 }
 
-void ServerLogic::processTimers( ) {
+void ServerLogic::processTimers( Server &server ) {
     auto now = std::chrono::steady_clock::now( );
     while ( !this->wake_schedule.empty( ) && this->wake_schedule.begin( )->first <= now ) {
         auto it = this->wake_schedule.begin( );
@@ -362,14 +408,30 @@ void ServerLogic::processTimers( ) {
             this->chest_chunks.erase( chunk_pos );
         }
     }
+    if ( this->world_time_running && now >= this->next_time_broadcast ) {
+        this->next_time_broadcast += std::chrono::seconds( WORLD_TIME_SYNC_SECONDS );
+        // If we fell a full interval behind (long event loop stall), don't
+        // fire a burst of catch-up broadcasts.
+        if ( now >= this->next_time_broadcast ) {
+            this->next_time_broadcast = now + std::chrono::seconds( WORLD_TIME_SYNC_SECONDS );
+        }
+        this->broadcastWorldTime( server );
+    }
 }
 
 int ServerLogic::nextWakeTimeoutMs( ) const {
-    if ( this->wake_schedule.empty( ) ) {
+    auto wake = std::chrono::steady_clock::time_point::max( );
+    if ( !this->wake_schedule.empty( ) ) {
+        wake = this->wake_schedule.begin( )->first;
+    }
+    if ( this->world_time_running && this->next_time_broadcast < wake ) {
+        wake = this->next_time_broadcast;
+    }
+    if ( wake == std::chrono::steady_clock::time_point::max( ) ) {
         return -1;
     }
     auto now = std::chrono::steady_clock::now( );
-    auto delta = std::chrono::duration_cast<std::chrono::milliseconds>( this->wake_schedule.begin( )->first - now );
+    auto delta = std::chrono::duration_cast<std::chrono::milliseconds>( wake - now );
     long long ms = delta.count( );
     if ( ms < 0 ) {
         return 0;
@@ -511,6 +573,27 @@ void ServerLogic::on_client_message( Server &server, int client_fd, NetMsgType t
             return;
         }
         this->handleChestSetSlot( server, client_fd, glm::ivec3( p.x, p.y, p.z ), p.slot_index, p.slot_value );
+    } else if ( type == NetMsgType::WORLD_TIME ) {
+        NetWorldTimePayload p;
+        if ( !net_deserialize_world_time( r, p ) ) {
+            pr_debug( "Malformed WORLD_TIME from:%d", client_fd );
+            return;
+        }
+        // A client set the time (e.g. PageUp/PgDn): adopt it as the new
+        // clock base and forward to the other clients so everyone snaps to
+        // the same value.
+        this->world_time_base = p.world_time;
+        this->world_time_anchor = std::chrono::steady_clock::now( );
+        PacketWriter w;
+        net_serialize_world_time( w, p );
+        for ( int prop_id = 0; prop_id < MAX_CLIENT_FDS; prop_id++ ) {
+            if ( prop_id == client_fd ) {
+                continue;
+            }
+            if ( server.get_data_if_client_connected( prop_id ) != NULL ) {
+                server.queue_message( prop_id, NetMsgType::WORLD_TIME, client_fd, w.buf( ) );
+            }
+        }
     }
 }
 
@@ -538,6 +621,9 @@ void ServerLogic::on_client_disconnected( Server &server, int client_fd ) {
         }
     }
     if ( !any_connected ) {
+        // Freeze the world clock where it is; flushAll persists it.
+        this->world_time_base = this->worldTimeNow( );
+        this->world_time_running = false;
         pr_debug( "Last client disconnected; flushing all chunks to disk" );
         this->flushAll( );
     }

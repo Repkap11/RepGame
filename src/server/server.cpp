@@ -266,7 +266,7 @@ void Server::serve( ) {
         // Process expired idle-save timers regardless of whether epoll
         // returned events or a timeout. This is cheap (O(k log n) where k
         // is the number of chunks whose timers just expired).
-        this->server_logic.processTimers( );
+        this->server_logic.processTimers( *this );
     }
     pr_debug( "Server Exiting" );
 }

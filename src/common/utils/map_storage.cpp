@@ -397,3 +397,35 @@ void MapStorage::write_player_data( const PlayerData &player_data ) {
 #endif
     fclose( write_ptr );
 }
+
+// Server-side world clock. A bare int64: the day/night tick count
+// (DAY_LENGTH_TICKS per day, see light.hpp). Read returns 0 when the file is
+// absent so the caller can apply its own default.
+int MapStorage::read_world_time( int64_t &world_time ) {
+    char file_name[ CHUNK_NAME_MAX_LENGTH ];
+    snprintf( file_name, CHUNK_NAME_MAX_LENGTH, FILE_ROOT_WORLD_DATA, this->map_name );
+    FILE *read_ptr = fopen( file_name, MAP_READ_MODE );
+    if ( !read_ptr ) {
+        return 0;
+    }
+    const size_t len = fread( &world_time, 1, sizeof( int64_t ), read_ptr );
+    fclose( read_ptr );
+    if ( len != sizeof( int64_t ) ) {
+        pr_debug( "Warning, wrong size world data:%s (%d bytes)", file_name, ( int )len );
+        return 0;
+    }
+    pr_debug( "Read world time:%s (%lld)", file_name, ( long long )world_time );
+    return 1;
+}
+
+void MapStorage::write_world_time( int64_t world_time ) {
+    char file_name[ CHUNK_NAME_MAX_LENGTH ];
+    snprintf( file_name, CHUNK_NAME_MAX_LENGTH, FILE_ROOT_WORLD_DATA, this->map_name );
+    FILE *write_ptr = fopen( file_name, "wb" );
+    if ( !write_ptr ) {
+        pr_debug( "Can't write world:%s (%p)", file_name, write_ptr );
+        return;
+    }
+    fwrite( &world_time, sizeof( int64_t ), 1, write_ptr );
+    fclose( write_ptr );
+}

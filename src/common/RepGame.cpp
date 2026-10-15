@@ -1702,18 +1702,15 @@ void RepGame::draw( float alpha ) {
         debugVars.daylight = daylight;
         globalGameState.world.chunkLoader.debug_loader_stats( &debugVars.loader );
         imgui_overlay_draw( &globalGameState.imgui_overlay, globalGameState.input );
-        // The overlay's time-of-day slider writes world_time_override while
-        // dragged; apply it so lighting updates without a restart.
-        if ( debugVars.world_time_override >= 0 ) {
-            globalGameState.world_time = debugVars.world_time_override;
-            debugVars.world_time_override = -1;
-        }
         // PageUp/PageDown nudges: ±1 hour per keypress (±6 with Shift),
         // accumulated on the input side. Wrap into one day cycle.
         if ( globalGameState.input.time_skip_hours != 0 ) {
             globalGameState.world_time += static_cast<long>( globalGameState.input.time_skip_hours ) * ( DAY_LENGTH_TICKS / 24 );
             globalGameState.input.time_skip_hours = 0;
             globalGameState.world_time = ( ( globalGameState.world_time % DAY_LENGTH_TICKS ) + DAY_LENGTH_TICKS ) % DAY_LENGTH_TICKS;
+            // When connected, push the new time to the server so every
+            // player on it sees the change.
+            globalGameState.multiplayer.send_world_time( globalGameState.world_time );
         }
         profiling.us_ui_draw = now_us( ) - t_ui_start;
     }

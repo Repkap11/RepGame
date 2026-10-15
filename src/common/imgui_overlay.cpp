@@ -97,15 +97,11 @@ void imgui_overlay_draw( ImGuiOverlay *imgui_overlay, Input &input ) {
                 acceleration = "CPU";
             }
             ImGui::Text( "Acceleration: %s", acceleration );
-            // Day/night clock: slider edits world_time within one day cycle;
-            // RepGame applies world_time_override back to the game state.
-            int time_of_day = static_cast<int>( debug_vars.world_time % DAY_LENGTH_TICKS );
-            if ( ImGui::SliderInt( "Time of Day", &time_of_day, 0, DAY_LENGTH_TICKS - 1 ) ) {
-                const long day_base = debug_vars.world_time - ( debug_vars.world_time % DAY_LENGTH_TICKS );
-                debug_vars.world_time_override = day_base + time_of_day;
-            }
-            const int clock_minutes = static_cast<int>( ( debug_vars.world_time % DAY_LENGTH_TICKS ) * 24 * 60 / DAY_LENGTH_TICKS );
-            ImGui::Text( "Time: %02d:%02d (daylight %.2f)  [PgUp/PgDn]", clock_minutes / 60, clock_minutes % 60, debug_vars.daylight );
+            // Day/night clock (read-only; PageUp/PageDown nudge world_time,
+            // which propagates to the server when connected).
+            const long time_of_day = debug_vars.world_time % DAY_LENGTH_TICKS;
+            const int clock_minutes = static_cast<int>( time_of_day * 24 * 60 / DAY_LENGTH_TICKS );
+            ImGui::Text( "Time: %ld ticks  %02d:%02d (daylight %.2f)  [PgUp/PgDn]", time_of_day, clock_minutes / 60, clock_minutes % 60, debug_vars.daylight );
 
             ImGui::Separator( );
             ImGui::Text( "Chunks: loading %d (queued %d, results %d), drawable %d",

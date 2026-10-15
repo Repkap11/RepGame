@@ -1,5 +1,7 @@
 #pragma once
 
+#include <cstdint>
+
 class Chunk;
 struct PlayerData;
 struct BlockState;
@@ -9,6 +11,7 @@ struct BlockState;
 #define FILE_ROOT_CHUNK "%s/chunk_%d_%d_%d"
 #define FILE_ROOT_CHEST "%s/chest_%d_%d_%d"
 #define FILE_ROOT_PLAYER_DATA "%s/player.dat"
+#define FILE_ROOT_WORLD_DATA "%s/world.dat"
 #include <glm.hpp>
 
 #include "common/chest.hpp"
@@ -34,5 +37,9 @@ class MapStorage {
     int load_chests( const glm::ivec3 &chunk_offset, ChestContentsMap &out );
     int read_player_data( PlayerData &player_data );
     void write_player_data( const PlayerData &player_data );
+    // Server-side world clock (world.dat). Returns 1 if the file existed and
+    // parsed; 0 leaves `world_time` untouched.
+    int read_world_time( int64_t &world_time );
+    void write_world_time( int64_t world_time );
     char *get_map_name( );
 };

@@ -49,6 +49,7 @@ enum class NetMsgType : uint8_t {
     CHEST_CLOSE = 8,
     CHEST_CONTENTS = 9,
     CHEST_SET_SLOT = 10,
+    WORLD_TIME = 11,
 };
 
 // ---------------------------------------------------------------------------
@@ -62,6 +63,7 @@ class PacketWriter {
     void write_u8( uint8_t v );
     void write_u32( uint32_t v );
     void write_i32( int32_t v );
+    void write_i64( int64_t v );
     void write_f32( float v );
     void write_bytes( const void *data, size_t len );
 
@@ -88,6 +90,7 @@ class PacketReader {
     bool read_u8( uint8_t &out );
     bool read_u32( uint32_t &out );
     bool read_i32( int32_t &out );
+    bool read_i64( int64_t &out );
     bool read_f32( float &out );
     bool read_bytes( void *out, size_t n );
     bool read_block_state( BlockState &out );
@@ -178,3 +181,12 @@ struct NetChestSetSlotPayload {
 };
 void net_serialize_chest_set_slot( PacketWriter &w, const NetChestSetSlotPayload &p );
 bool net_deserialize_chest_set_slot( PacketReader &r, NetChestSetSlotPayload &p );
+
+// WORLD_TIME (both directions): server -> client is an authoritative sync of
+// the day/night clock; client -> server is a set request (e.g. PageUp/PgDn).
+// world_time is in RepGame::tick units (DAY_LENGTH_TICKS per day).
+struct NetWorldTimePayload {
+    int64_t world_time;
+};
+void net_serialize_world_time( PacketWriter &w, const NetWorldTimePayload &p );
+bool net_deserialize_world_time( PacketReader &r, NetWorldTimePayload &p );

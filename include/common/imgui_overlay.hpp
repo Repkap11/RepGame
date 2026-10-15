@@ -8,12 +8,9 @@ typedef struct {
 
 typedef struct {
     glm::vec3 player_pos;
-    // Day/night clock (see light.hpp) — displayed and editable in the overlay.
+    // Day/night clock (see light.hpp) — displayed in the overlay.
     long world_time;
     float daylight;
-    // Set by the overlay's time slider when the user drags it; RepGame reads
-    // this back and applies it to globalGameState.world_time. -1 = untouched.
-    long world_time_override = -1;
     // Minimum light levels (0-1): min_ambient is an absolute floor applied in
     // the chunk/object shaders so pitch-black caves stay faintly visible;
     // night_ambient is a floor on the daylight factor, i.e. "moonlight".
