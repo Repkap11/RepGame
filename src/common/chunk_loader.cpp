@@ -344,27 +344,42 @@ void ChunkLoader::rebuild_drawable_list( ) {
         }
     }
 }
-// float chunk_diameter = ( CHUNK_SIZE + 1 ) * 1.73205080757; // sqrt(3)
-float chunk_diameter = ( CHUNK_SIZE_Z + 1 ) * 1.73205080757; // sqrt(3)
+// Bounding-sphere radius for frustum culling: a chunk's mesh is confined to
+// its own [0, CHUNK_SIZE) volume, so half the box diagonal plus one block of
+// slack bounds every drawn vertex.
+static constexpr float CHUNK_CULL_RADIUS = ( CHUNK_SIZE_X + 1 ) * 0.5f * 1.73205080757f; // sqrt(3)
 
 void ChunkLoader::calculate_cull( const glm::mat4 &mvp, const bool saveAsReflection, const glm::ivec3 &renderOrigin ) const {
+    // Extract the 6 frustum planes from the MVP rows (Gribb-Hartmann): a point
+    // p is inside the clip volume iff (row3 +- row_i) . p >= 0 for each axis i.
+    // GLM is column-major, so row i is (mvp[0][i], mvp[1][i], mvp[2][i], mvp[3][i]).
+    // Testing the center's NDC coords against 1+r/w (the old approach) treats
+    // the bounding sphere as isotropic in NDC, but perspective scales x by
+    // f/aspect and y by f — with aspect < ~0.84 (narrow windows) the margin
+    // under-estimates the sphere's x extent and visible chunks were culled.
+    const glm::vec4 row_x( mvp[ 0 ][ 0 ], mvp[ 1 ][ 0 ], mvp[ 2 ][ 0 ], mvp[ 3 ][ 0 ] );
+    const glm::vec4 row_y( mvp[ 0 ][ 1 ], mvp[ 1 ][ 1 ], mvp[ 2 ][ 1 ], mvp[ 3 ][ 1 ] );
+    const glm::vec4 row_z( mvp[ 0 ][ 2 ], mvp[ 1 ][ 2 ], mvp[ 2 ][ 2 ], mvp[ 3 ][ 2 ] );
+    const glm::vec4 row_w( mvp[ 0 ][ 3 ], mvp[ 1 ][ 3 ], mvp[ 2 ][ 3 ], mvp[ 3 ][ 3 ] );
+    const glm::vec4 planes[ 6 ] = { row_w + row_x, row_w - row_x, //
+                                    row_w + row_y, row_w - row_y, //
+                                    row_w + row_z, row_w - row_z };
+    // The plane normals aren't unit length; pre-scale the sphere radius by
+    // |n.xyz| so the inner loop is a single dot-product compare per plane.
+    float scaled_radius[ 6 ];
+    for ( int p = 0; p < 6; p++ ) {
+        scaled_radius[ p ] = CHUNK_CULL_RADIUS * glm::length( glm::vec3( planes[ p ] ) );
+    }
     for ( int i = 0; i < this->num_drawable; i++ ) {
-        int final_is_visible;
+        int final_is_visible = 1;
         Chunk *chunk = this->drawable_chunks[ i ];
         if constexpr ( CULL_NON_VISIBLE ) {
-            glm::vec4 chunk_coords = glm::vec4( chunk->chunk_pos * CHUNK_SIZE_I + CHUNK_SIZE_I / 2 - renderOrigin, 1 );
-            glm::vec4 result_v = mvp * chunk_coords;
-            const float adjusted_diameter = chunk_diameter / fabsf( result_v.w );
-
-            result_v.x /= result_v.w;
-            result_v.y /= result_v.w;
-            result_v.z /= result_v.w;
-            if ( fabsf( result_v.x ) > 1 + adjusted_diameter || //
-                 fabsf( result_v.y ) > 1 + adjusted_diameter || //
-                 fabsf( result_v.z ) > 1 + adjusted_diameter ) {
-                final_is_visible = 0;
-            } else {
-                final_is_visible = 1;
+            const glm::vec4 chunk_coords = glm::vec4( chunk->chunk_pos * CHUNK_SIZE_I + CHUNK_SIZE_I / 2 - renderOrigin, 1 );
+            for ( int p = 0; p < 6; p++ ) {
+                if ( glm::dot( chunk_coords, planes[ p ] ) < -scaled_radius[ p ] ) {
+                    final_is_visible = 0;
+                    break;
+                }
             }
         }
         if ( saveAsReflection ) {
