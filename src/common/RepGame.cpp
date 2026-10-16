@@ -1497,7 +1497,7 @@ void RepGame::changeSize( const int w, const int h ) {
         globalGameState.chest.inventory_renderer.options.pin_top_y = globalGameState.main_inventory.inventory_renderer.getInvTop( );
         globalGameState.chest.inventory_renderer.onSizeChange( w, h, chest_contents->slots );
     }
-    globalGameState.screen.proj = glm::perspective<float>( glm::radians( CAMERA_FOV ), globalGameState.screen.width / globalGameState.screen.height, 0.1f, 800.0f );
+    globalGameState.screen.proj = glm::perspective<float>( glm::radians( CAMERA_FOV ), globalGameState.screen.width / globalGameState.screen.height, 0.1f, CAMERA_FAR_PLANE );
     globalGameState.screen.ortho = glm::ortho<float>( 0.f, w, 0.f, h, -1.f, 1.f );
     globalGameState.screen.ortho_center = glm::ortho<float>( -w / 2.0f, w / 2.0f, -h / 2.0f, h / 2.0f, -1.f, 1.f );
     globalGameState.world.change_size( w, h );

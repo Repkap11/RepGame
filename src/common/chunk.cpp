@@ -39,6 +39,66 @@ constexpr static unsigned int ib_data_flowers[] = {
 #define VIS_TOP 16u
 #define VIS_BOTTOM 32u
 
+// Chunk buffers are fixed-size and never resized, so freed buffers go into
+// small per-thread free lists rather than back to malloc: multi-megabyte
+// allocations bypass glibc's arena and hit mmap/munmap (+ page faults on
+// first touch) every time, which slots recycling between terrain (allocated)
+// and air (freed) chunks would otherwise pay constantly. thread_local means
+// no locking; a buffer freed on a different thread just joins that thread's
+// pool. The cap bounds retained memory (8 * ~3.7MB for blocks per thread).
+namespace {
+constexpr int CHUNK_BUF_POOL_MAX = 8;
+thread_local std::vector<void *> s_pool_blocks;
+thread_local std::vector<void *> s_pool_light;
+thread_local std::vector<void *> s_pool_light_columns;
+
+template <typename T>
+static T *chunk_pool_get( std::vector<void *> &pool, const size_t bytes, const bool zeroed ) {
+    void *p;
+    if ( !pool.empty( ) ) {
+        p = pool.back( );
+        pool.pop_back( );
+        if ( zeroed ) {
+            memset( p, 0, bytes );
+        }
+    } else {
+        p = zeroed ? calloc( bytes, 1 ) : malloc( bytes );
+    }
+    return static_cast<T *>( p );
+}
+
+static void chunk_pool_put( std::vector<void *> &pool, void *p ) {
+    if ( !p ) {
+        return;
+    }
+    if ( pool.size( ) < CHUNK_BUF_POOL_MAX ) {
+        pool.push_back( p );
+    } else {
+        free( p );
+    }
+}
+} // namespace
+
+BlockState *chunk_alloc_blocks( ) {
+    return chunk_pool_get<BlockState>( s_pool_blocks, CHUNK_BLOCK_SIZE * sizeof( BlockState ), true );
+}
+void chunk_free_blocks( BlockState *p ) {
+    chunk_pool_put( s_pool_blocks, p );
+}
+unsigned char *chunk_alloc_light( ) {
+    // Callers always rewrite the volume (fill memset/materialize memset).
+    return chunk_pool_get<unsigned char>( s_pool_light, CHUNK_BLOCK_SIZE, false );
+}
+void chunk_free_light( unsigned char *p ) {
+    chunk_pool_put( s_pool_light, p );
+}
+unsigned char *chunk_alloc_light_columns( ) {
+    return chunk_pool_get<unsigned char>( s_pool_light_columns, 3 * LIGHT_FLAGS_COUNT, true );
+}
+void chunk_free_light_columns( unsigned char *p ) {
+    chunk_pool_put( s_pool_light_columns, p );
+}
+
 static IndexBuffer s_chunk_ib;
 static bool s_chunk_ib_ready = false;
 static std::vector<unsigned int> s_ib_data;
@@ -209,10 +269,10 @@ void Chunk::ensure_gl_init( ) {
 
 void Chunk::destroy( ) {
     if constexpr ( REMEMBER_BLOCKS ) {
-        free( this->blocks );
+        chunk_free_blocks( this->blocks );
     }
-    free( this->light );
-    free( this->light_columns );
+    chunk_free_light( this->light );
+    chunk_free_light_columns( this->light_columns );
     if ( this->light_texture ) {
         glDeleteTextures( 1, &this->light_texture );
         this->light_texture = 0;
@@ -299,7 +359,7 @@ void Chunk::set_block( const glm::ivec3 &pos, const BlockState &blockState ) con
         if ( BlockStates_equal( BLOCK_STATE_AIR, blockState ) ) {
             return;
         }
-        this->blocks = static_cast<BlockState *>( calloc( CHUNK_BLOCK_SIZE, sizeof( BlockState ) ) );
+        this->blocks = chunk_alloc_blocks( );
     }
 
     const int index = get_index_from_coords( pos );
@@ -323,7 +383,7 @@ void Chunk::set_block_by_index_if_different( int index, const BlockState *blockS
         if ( BlockStates_equal( BLOCK_STATE_AIR, *blockState ) ) {
             return;
         }
-        this->blocks = static_cast<BlockState *>( calloc( CHUNK_BLOCK_SIZE, sizeof( BlockState ) ) );
+        this->blocks = chunk_alloc_blocks( );
     }
     BlockState &oldBlockState = this->blocks[ index ];
     if ( BlockStates_equal( oldBlockState, *blockState ) ) {
@@ -383,7 +443,7 @@ static inline long long now_us( ) {
 void Chunk::load_terrain( MapStorage &map_storage ) {
     if constexpr ( !REMEMBER_BLOCKS ) {
         if ( this->blocks == nullptr ) {
-            this->blocks = static_cast<BlockState *>( calloc( CHUNK_BLOCK_SIZE, sizeof( BlockState ) ) );
+            this->blocks = chunk_alloc_blocks( );
         }
     }
     // Under REMEMBER_BLOCKS, blocks stays null while the chunk is all-air:
@@ -392,7 +452,7 @@ void Chunk::load_terrain( MapStorage &map_storage ) {
     // is AIR anyway). light[] likewise stays unallocated for uniform volumes —
     // light_fill_chunk folds constant fills to Chunk::light_uniform instead.
     if ( this->light_columns == nullptr ) {
-        this->light_columns = static_cast<unsigned char *>( calloc( 3 * LIGHT_FLAGS_COUNT, 1 ) );
+        this->light_columns = chunk_alloc_light_columns( );
     } else {
         memset( this->light_columns, 0, 3 * LIGHT_FLAGS_COUNT );
     }
@@ -427,7 +487,7 @@ void Chunk::load_terrain( MapStorage &map_storage ) {
                 }
             }
             if ( all_air ) {
-                free( this->blocks );
+                chunk_free_blocks( this->blocks );
                 this->blocks = nullptr;
                 this->is_empty_chunk = true;
                 goto skip_to_mesh;
@@ -447,7 +507,7 @@ void Chunk::load_terrain( MapStorage &map_storage ) {
             if ( (float)min_y >= MapGen::maxTerrainHeight( ) + MAPGEN_MAX_TREE_REACH ) {
                 // Entire chunk is air — keep blocks null instead of filling a
                 // 262K-cell array with AIR.
-                free( this->blocks );
+                chunk_free_blocks( this->blocks );
                 this->blocks = nullptr;
                 this->is_empty_chunk = true;
                 this->dirty = 0;
@@ -473,7 +533,7 @@ void Chunk::load_terrain( MapStorage &map_storage ) {
             // empty bound must include both.
             if ( (float)min_y >= max_terrain_height + OVERHANG_MAX_RISE + MAPGEN_MAX_TREE_REACH ) {
                 // Entire chunk (including border) is above terrain → all air
-                free( this->blocks );
+                chunk_free_blocks( this->blocks );
                 this->blocks = nullptr;
                 this->is_empty_chunk = true;
                 this->dirty = 0;
@@ -488,7 +548,7 @@ void Chunk::load_terrain( MapStorage &map_storage ) {
         t0 = now_us( );
 #endif
         if ( this->blocks == nullptr ) {
-            this->blocks = static_cast<BlockState *>( calloc( CHUNK_BLOCK_SIZE, sizeof( BlockState ) ) );
+            this->blocks = chunk_alloc_blocks( );
         }
         if ( LOAD_CHUNKS_SUPPORTS_CUDA && MapGen::supports_cuda( ) ) {
             if ( firstTime ) {
@@ -663,7 +723,7 @@ void Chunk::calculate_populated_blocks( ) {
     // when real blocks exist.
     if ( this->is_empty_chunk ) {
         if constexpr ( !REMEMBER_BLOCKS ) {
-            free( this->blocks );
+            chunk_free_blocks( this->blocks );
             this->blocks = nullptr;
         }
         for ( int renderOrder = 0; renderOrder < LAST_RENDER_ORDER; renderOrder++ ) {
@@ -1061,7 +1121,7 @@ void Chunk::calculate_populated_blocks( ) {
 #endif
 
     if constexpr ( !REMEMBER_BLOCKS ) {
-        free( this->blocks );
+        chunk_free_blocks( this->blocks );
     }
     for ( int renderOrder = 0; renderOrder < LAST_RENDER_ORDER; renderOrder++ ) {
         this->layers[ renderOrder ].num_instances = num_instances[ renderOrder ];

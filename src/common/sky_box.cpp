@@ -6,9 +6,10 @@
 #include "common/renderer/shader.hpp"
 #include "common/Particle.hpp"
 
+// SKY_RADIUS comes from chunk_dimensions.hpp: it scales with the render
+// distance so the sphere's depth write always sits beyond the farthest chunk.
 #define STACK_COUNT 20
 #define SLICES_COUNT 20
-#define SKY_RADIUS 750.0f
 
 #define SKY_BOX_VERTEX_COUNT ( ( SLICES_COUNT + 2 ) * ( STACK_COUNT + 1 ) )
 #define SKY_BOX_TRIANGLES_COUNT ( ( SLICES_COUNT ) * ( STACK_COUNT + 1 ) )

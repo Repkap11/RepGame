@@ -16,9 +16,9 @@
 // Render radius is a per-platform performance choice; it does not affect the
 // wire format.
 #ifdef REPGAME_LINUX
-#define CHUNK_RADIUS_X ( 512 / CHUNK_SIZE_X )
+#define CHUNK_RADIUS_X ( 1024 / CHUNK_SIZE_X )
 #define CHUNK_RADIUS_Y ( 256 / CHUNK_SIZE_Y )
-#define CHUNK_RADIUS_Z ( 512 / CHUNK_SIZE_Z )
+#define CHUNK_RADIUS_Z ( 1024 / CHUNK_SIZE_Z )
 #else
 #define CHUNK_RADIUS_X ( 128 / CHUNK_SIZE_X )
 #define CHUNK_RADIUS_Y ( 128 / CHUNK_SIZE_Y )
@@ -32,3 +32,16 @@
 #define CHUNK_BLOCK_SIZE ( CHUNK_SIZE_INTERNAL_X * CHUNK_SIZE_INTERNAL_Y * CHUNK_SIZE_INTERNAL_Z )
 #define CHUNK_BLOCK_DRAW_START ( CHUNK_SIZE_INTERNAL_Z * CHUNK_SIZE_INTERNAL_X )
 #define CHUNK_BLOCK_DRAW_STOP ( CHUNK_BLOCK_SIZE - CHUNK_BLOCK_DRAW_START )
+
+// Distance from the camera to the farthest renderable point: the outer corner
+// of the loaded chunk box (a chunk CHUNK_RADIUS_* away extends one more
+// CHUNK_SIZE_* on its far side). SKY_RADIUS sits just beyond it so the sky
+// sphere's depth write can never clip terrain, and CAMERA_FAR_PLANE sits just
+// beyond the sky — both scale automatically with CHUNK_RADIUS_*. glm::sqrt
+// makes these C++-only; shaders never reference them.
+#define RENDER_DISTANCE_CORNER                                                                                       \
+    ( glm::sqrt( ( float )( ( CHUNK_RADIUS_X + 1 ) * CHUNK_SIZE_X ) * ( ( CHUNK_RADIUS_X + 1 ) * CHUNK_SIZE_X ) +      \
+                 ( float )( ( CHUNK_RADIUS_Y + 1 ) * CHUNK_SIZE_Y ) * ( ( CHUNK_RADIUS_Y + 1 ) * CHUNK_SIZE_Y ) +      \
+                 ( float )( ( CHUNK_RADIUS_Z + 1 ) * CHUNK_SIZE_Z ) * ( ( CHUNK_RADIUS_Z + 1 ) * CHUNK_SIZE_Z ) ) )
+#define SKY_RADIUS ( RENDER_DISTANCE_CORNER * 1.10f )
+#define CAMERA_FAR_PLANE ( SKY_RADIUS * 1.15f )

@@ -6,9 +6,10 @@
 
 // Fuse for a redstone-ignited TNT (UPS_RATE ticks/second — MC is 4s at 20tps).
 #define TNT_FUSE_TICKS ( 2 * UPS_RATE )
-// Chain-ignited TNT (launched by a blast) detonates with a shorter fuse.
-#define TNT_CHAIN_FUSE_MIN_TICKS ( UPS_RATE / 4 )
-#define TNT_CHAIN_FUSE_SPREAD_TICKS ( UPS_RATE / 2 )
+// Chain-ignited TNT (launched by a blast) detonates with a shorter fuse —
+// 0.5–1.5 s here, matching MC's 10–30 tick range at 20 tps.
+#define TNT_CHAIN_FUSE_MIN_TICKS ( UPS_RATE / 2 )
+#define TNT_CHAIN_FUSE_SPREAD_TICKS ( UPS_RATE )
 #define TNT_BLAST_RADIUS 4
 
 // Removes the block at center's cell (only if it is still TNT) and launches a

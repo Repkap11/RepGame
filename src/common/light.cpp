@@ -237,7 +237,7 @@ void ChunkLoader::light_materialize( Chunk &chunk ) {
     if ( chunk.light ) {
         return;
     }
-    chunk.light = static_cast<unsigned char *>( malloc( CHUNK_BLOCK_SIZE ) );
+    chunk.light = chunk_alloc_light( );
     memset( chunk.light, chunk.light_uniform, CHUNK_BLOCK_SIZE );
 }
 
@@ -844,7 +844,7 @@ void ChunkLoader::light_process_queue( const long long budget_us ) {
 
 void ChunkLoader::light_ensure_columns( Chunk &chunk ) {
     if ( !chunk.light_columns ) {
-        chunk.light_columns = static_cast<unsigned char *>( calloc( 3 * LIGHT_FLAGS_COUNT, 1 ) );
+        chunk.light_columns = chunk_alloc_light_columns( );
         light_compute_column_open( chunk );
     }
 }
@@ -1695,7 +1695,7 @@ void light_fill_chunk( Chunk &chunk ) {
         // + optimistic sky_open_above) so the cascade's flag bookkeeping
         // stays correct.
         if ( chunk.light ) {
-            free( chunk.light );
+            chunk_free_light( chunk.light );
             chunk.light = nullptr;
         }
         chunk.light_uniform = static_cast<unsigned char>( LIGHT_MAX_LEVEL << 4 );
@@ -1706,7 +1706,7 @@ void light_fill_chunk( Chunk &chunk ) {
         return;
     }
     if ( !chunk.light ) {
-        chunk.light = static_cast<unsigned char *>( malloc( CHUNK_BLOCK_SIZE ) );
+        chunk.light = chunk_alloc_light( );
     }
     memset( chunk.light, 0, CHUNK_BLOCK_SIZE );
     // Note the two arrays index differently: blocks[] is z-fastest
@@ -1819,7 +1819,7 @@ void light_fill_chunk( Chunk &chunk ) {
         }
         if ( uniform ) {
             chunk.light_uniform = first;
-            free( chunk.light );
+            chunk_free_light( chunk.light );
             chunk.light = nullptr;
         }
     }

@@ -134,7 +134,7 @@ vec3 ssrReflection(vec3 waterPos, vec3 rayDir) {
     vec2 tsize = vec2(textureSize(u_DepthTexture));
     const int MAX_STEPS = 80;
     const float STEP = 0.45;
-    // Depth is hyperbolic (near=0.1, far=800): one march step changes rayD by
+    // Depth is hyperbolic (near=0.1, far=CAMERA_FAR_PLANE): one march step changes rayD by
     // only ~4e-4 near geometry, so a fixed positive bias swallows every hit.
     // Allow a small under-shoot instead; the binary refine resolves the real
     // crossing point before sampling.

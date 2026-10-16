@@ -221,7 +221,7 @@ int MapStorage::load_chunk( Chunk &chunk ) {
         if ( !this->check_if_chunk_exists( chunk.chunk_pos ) ) {
             return 0;
         }
-        chunk.blocks = static_cast<BlockState *>( calloc( CHUNK_BLOCK_SIZE, sizeof( BlockState ) ) );
+        chunk.blocks = chunk_alloc_blocks( );
     }
     return this->load_blocks( chunk.chunk_pos, chunk.blocks, chunk.dirty, false );
 }

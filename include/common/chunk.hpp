@@ -148,3 +148,17 @@ class Chunk {
 // Called by Chunk::set_block_by_index_if_different from network/worker
 // threads; no-ops when the chunk is already listed.
 void light_pending_enqueue( Chunk &chunk );
+
+// Fixed-size chunk-buffer pool (chunk.cpp). blocks[]/light[]/light_columns[]
+// are always allocated at their full size and never resized, so freed buffers
+// go into small per-thread free lists instead of round-tripping malloc —
+// multi-megabyte allocations bypass glibc's arena and hit mmap/munmap every
+// time, which is costly when slots recycle between terrain (allocated) and
+// air (freed) chunks. All alloc functions return a buffer suitable for the
+// matching free; _blocks/_light_columns come back zeroed like calloc.
+BlockState *chunk_alloc_blocks( );
+void chunk_free_blocks( BlockState *p );
+unsigned char *chunk_alloc_light( );
+void chunk_free_light( unsigned char *p );
+unsigned char *chunk_alloc_light_columns( );
+void chunk_free_light_columns( unsigned char *p );
