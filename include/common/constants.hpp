@@ -13,44 +13,15 @@
 #define FLY_VERTICAL_SPEED 0.5f
 #define FLY_SPRINT_VERTICAL_SPEED 2.0f
 
-#ifdef REPGAME_LINUX
-#define CHUNK_SIZE_X 32
-#define CHUNK_SIZE_Y 32
-#define CHUNK_SIZE_Z 32
-#define CHUNK_RADIUS_X ( 512 / CHUNK_SIZE_X )
-#define CHUNK_RADIUS_Y ( 256 / CHUNK_SIZE_Y )
-#define CHUNK_RADIUS_Z ( 512 / CHUNK_SIZE_Z )
-#endif
-
-#ifdef REPGAME_WINDOWS
-#define CHUNK_SIZE_X 32
-#define CHUNK_SIZE_Y 32
-#define CHUNK_SIZE_Z 32
-#define CHUNK_RADIUS_X ( 128 / CHUNK_SIZE_X )
-#define CHUNK_RADIUS_Y ( 128 / CHUNK_SIZE_Y )
-#define CHUNK_RADIUS_Z ( 128 / CHUNK_SIZE_Z )
-#endif
+// CHUNK_SIZE_*/CHUNK_RADIUS_*/CHUNK_SIZE_INTERNAL_* live in
+// chunk_dimensions.hpp, which shaders also #include (see SHADER_PP).
+#include "common/chunk_dimensions.hpp"
 
 #ifdef REPGAME_WASM
-#define CHUNK_SIZE_X 32
-#define CHUNK_SIZE_Y 32
-#define CHUNK_SIZE_Z 32
-#define CHUNK_RADIUS_X ( 128 / CHUNK_SIZE_X )
-#define CHUNK_RADIUS_Y ( 128 / CHUNK_SIZE_Y )
-#define CHUNK_RADIUS_Z ( 128 / CHUNK_SIZE_Z )
 // Cap the worker->render result queue: each undrained chunk holds MBs of
 // populated_blocks/blocks data, so an unbounded backlog blows the 2GB heap
 // during initial load-in.
 #define WASM_TERRAIN_RESULT_BACKLOG 16
-#endif
-
-#ifdef REPGAME_ANDROID
-#define CHUNK_SIZE_X 32
-#define CHUNK_SIZE_Y 32
-#define CHUNK_SIZE_Z 32
-#define CHUNK_RADIUS_X ( 128 / CHUNK_SIZE_X )
-#define CHUNK_RADIUS_Y ( 128 / CHUNK_SIZE_Y )
-#define CHUNK_RADIUS_Z ( 128 / CHUNK_SIZE_Z )
 #endif
 
 static_assert( CHUNK_RADIUS_X > 0, "CHUNK_RADIUS_X too small" );

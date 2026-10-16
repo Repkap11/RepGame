@@ -37,9 +37,9 @@ FONT_BLOBS_WINDOWS := $(patsubst fonts/%.ttf,out/windows/fonts/%.o,$(wildcard fo
 
 # Preprocess shaders through the C preprocessor at build time. Blob symbols are
 # renamed to match what MK_BLOB(src_shaders, <name>, glsl) expects.
-out/windows/shaders/%.glsl: src/shaders/%.glsl | out/windows
+out/windows/shaders/%.glsl: src/shaders/%.glsl include/common/chunk_dimensions.hpp | out/windows
 	@mkdir -p $(dir $@)
-	$(SHADER_PP) $< -o $@
+	$(SHADER_PP) -DREPGAME_WINDOWS $< -o $@
 
 out/windows/shaders/%.o : out/windows/shaders/%.glsl | out/windows
 	$(LD_WINDOWS) -r -b binary $< -o $@_no_section

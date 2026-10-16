@@ -14,8 +14,11 @@ APPIMAGE_OUT ?= out/appimage
 # preprocessor directive) while still expanding #define/#if/#ifdef/#endif.
 # -P suppresses line markers for clean GLSL output.
 # -nostdinc prevents system headers from leaking into shader preprocessing.
-# Per-platform makefiles append -D flags (e.g. -DREPGAME_LOW_GRAPHICS).
-SHADER_PP := gcc -E -P -x assembler-with-cpp -nostdinc
+# -I include/ lets shaders #include preprocessor-safe headers (e.g.
+# include/common/chunk_dimensions.hpp). Per-platform makefiles append -D flags
+# (-DREPGAME_<PLATFORM> so that header picks the right CHUNK_SIZE_*, and
+# -DREPGAME_LOW_GRAPHICS on low-end targets).
+SHADER_PP := gcc -E -P -x assembler-with-cpp -nostdinc -I include
 
 SRC_COMMON := $(wildcard src/common/*.cpp) $(wildcard src/common/**/*.cpp) 
 SRC_IMGUI := imgui_build/backends/imgui_impl_sdl3.cpp $(wildcard imgui_build/imgui*.cpp)  imgui_build/backends/imgui_impl_opengl3.cpp

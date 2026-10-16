@@ -1,6 +1,11 @@
 #version 300 es
+// Shares CHUNK_SIZE_*/CHUNK_SIZE_INTERNAL_* with the C++ side so the light
+// volume divisor below always matches the compiled chunk geometry.
+#include "common/chunk_dimensions.hpp"
 #define MAX_ROTATABLE_BLOCK 100u
 #define eps 0.00001f
+// Edge length of the per-chunk light volume in texels (interior + 1-cell halo).
+#define LIGHT_VOLUME_DIM float( CHUNK_SIZE_INTERNAL_X )
 #define TINT_UNDER_WATER_OBJECT_NEVER 0
 #define TINT_UNDER_WATER_OBJECT_UNDER_Y_LEVEL 1
 #define TINT_UNDER_WATER_OBJECT_ALWAYS 2
@@ -11,8 +16,8 @@ precision lowp sampler3D;
 
 uniform float u_shouldDiscardAlpha;
 uniform sampler2DArray u_Texture;
-// Flood-fill lighting: per-chunk 34^3 GL_RG8 volume (R=sky, G=block, both
-// pre-scaled to 0-1), bound to a shared texture unit per chunk draw.
+// Flood-fill lighting: per-chunk internal-volume GL_RG8 volume (R=sky, G=block,
+// both pre-scaled to 0-1), bound to a shared texture unit per chunk draw.
 // u_LightBase = chunk block-origin in u_Origin-rebased coords, u_Daylight
 // scales the sky channel for day/night, u_MinAmbient is a light floor so
 // unlit caves are never fully black.
@@ -190,10 +195,10 @@ void main() {
 
     // Flood-fill light: v_world_coords + 0.5*normal lands on the center of
     // the air cell this face points at. +1.0 is the halo offset mapping
-    // world->34^3 texel space (cell centers already sit at +0.5, and texel
-    // centers are sampled at (i+0.5)/34). GL_LINEAR then interpolates along
-    // the face plane for smooth gradients across merged quads.
-    vec3 light_coord = (v_world_coords + v_face_normal * 0.5 - u_LightBase + 1.0) / 34.0;
+    // world->internal texel space (cell centers already sit at +0.5, and texel
+    // centers are sampled at (i+0.5)/LIGHT_VOLUME_DIM). GL_LINEAR then
+    // interpolates along the face plane for smooth gradients across merged quads.
+    vec3 light_coord = (v_world_coords + v_face_normal * 0.5 - u_LightBase + 1.0) / LIGHT_VOLUME_DIM;
     // Two independent channels (r=sky, g=block, both already 0-1): keeping
     // them separate matters because GL_LINEAR interpolates raw texel values —
     // a packed byte would cross-contaminate the nibbles mid-gradient.

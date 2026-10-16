@@ -421,8 +421,12 @@ static volatile int light_thread_running = 0;
 static volatile int light_thread_stop_flag = 0;
 
 // Pack/unpack helpers for Chunk::light_dirty_box (layout in chunk.hpp).
-// Texel coords are in [0,34) so 6 bits per component; LIGHT_BOX_EMPTY has
+// 6 bits per component limits texel coords to [0,63], so the light volume
+// can be at most 64^3 internal — a larger CHUNK_SIZE would silently wrap
+// dirty-box coordinates and scramble uploads. LIGHT_BOX_EMPTY has
 // min=63 > max=0.
+static_assert( CHUNK_SIZE_INTERNAL_X <= 64 && CHUNK_SIZE_INTERNAL_Y <= 64 && CHUNK_SIZE_INTERNAL_Z <= 64,
+               "light_dirty_box packs texel coords as 6-bit fields; CHUNK_SIZE_INTERNAL_* must be <= 64" );
 static inline uint64_t light_box_pack( const glm::ivec3 &mn, const glm::ivec3 &mx ) {
     return static_cast<uint64_t>( mn.x & 63 ) | ( static_cast<uint64_t>( mn.y & 63 ) << 6 ) |
            ( static_cast<uint64_t>( mn.z & 63 ) << 12 ) | ( static_cast<uint64_t>( mx.x & 63 ) << 18 ) |
@@ -963,6 +967,7 @@ int ChunkLoader::light_cascade_columns( Chunk &start_chunk ) {
                 }
                 if ( above_flag != was_open ) {
                     above_flag = static_cast<unsigned char>( was_open );
+                    const bool col_interior = x > 0 && x < CHUNK_SIZE_X - 1 && z > 0 && z < CHUNK_SIZE_Z - 1;
                     if ( was_open ) {
                         // Sky flows straight down at full strength — write the
                         // descent directly instead of seeding BFS floods (see
@@ -973,7 +978,6 @@ int ChunkLoader::light_cascade_columns( Chunk &start_chunk ) {
                         // is batched: the whole volume is flagged once at the
                         // end instead of per cell.
                         const int fill_from = flags[ LIGHT_FILL_FROM_INDEX( x, z ) ];
-                        const bool col_interior = x > 0 && x < CHUNK_SIZE_X - 1 && z > 0 && z < CHUNK_SIZE_Z - 1;
                         for ( int y = CHUNK_SIZE_Y - 1; y >= fill_from; y-- ) {
                             if ( col_interior && y > 0 && y < CHUNK_SIZE_Y - 1 ) {
                                 unsigned char &cell = chunk->light[ light_index( x, y, z ) ];
@@ -989,12 +993,23 @@ int ChunkLoader::light_cascade_columns( Chunk &start_chunk ) {
                     } else {
                         // Flag flipped closed: find the first lit cell and
                         // seed a removal (light_remove_step expects pos's new
-                        // value already written, so clear it first).
+                        // value already written, so clear it first). The scan
+                        // is confined to this chunk's own column, so read
+                        // light[] directly — light_get's per-cell
+                        // chunk_pos/get_chunk resolution costs ~50x a plain
+                        // read, and solid underground chunks pay the full
+                        // CHUNK_SIZE_Y scan finding nothing.
                         for ( int y = CHUNK_SIZE_Y - 1; y >= 0; y-- ) {
-                            const glm::ivec3 pos( base_x + x, base_y + y, base_z + z );
-                            const int v = this->light_get( pos, LIGHT_CHANNEL_SKY );
+                            const int v = light_get_sky( chunk->light[ light_index( x, y, z ) ] );
                             if ( v > 0 ) {
-                                this->light_set( pos, LIGHT_CHANNEL_SKY, 0 );
+                                const glm::ivec3 pos( base_x + x, base_y + y, base_z + z );
+                                if ( col_interior && y > 0 && y < CHUNK_SIZE_Y - 1 ) {
+                                    unsigned char &cell = chunk->light[ light_index( x, y, z ) ];
+                                    cell = static_cast<unsigned char>( cell & 0x0F );
+                                    light_mark_dirty( *chunk, glm::ivec3( x, y, z ) );
+                                } else {
+                                    this->light_set_nb( nb_cache, *chunk, pos, LIGHT_CHANNEL_SKY, 0 );
+                                }
                                 light_dbg_remove_seed++;
                                 this->light_push_remove_seed( pos, LIGHT_CHANNEL_SKY, v );
                                 break;
