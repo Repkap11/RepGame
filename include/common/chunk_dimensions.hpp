@@ -16,9 +16,9 @@
 // Render radius is a per-platform performance choice; it does not affect the
 // wire format.
 #ifdef REPGAME_LINUX
-#define CHUNK_RADIUS_X ( 1024 / CHUNK_SIZE_X )
+#define CHUNK_RADIUS_X ( 512 / CHUNK_SIZE_X )
 #define CHUNK_RADIUS_Y ( 256 / CHUNK_SIZE_Y )
-#define CHUNK_RADIUS_Z ( 1024 / CHUNK_SIZE_Z )
+#define CHUNK_RADIUS_Z ( 512 / CHUNK_SIZE_Z )
 #else
 #define CHUNK_RADIUS_X ( 128 / CHUNK_SIZE_X )
 #define CHUNK_RADIUS_Y ( 128 / CHUNK_SIZE_Y )
