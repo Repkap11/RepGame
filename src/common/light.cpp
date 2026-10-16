@@ -1690,13 +1690,39 @@ void light_fill_chunk( Chunk &chunk ) {
         // Cells above the topmost opaque cell get a direct sky=15 fill, and
         // sky_open_above=1 records the assumption — if above turns out
         // closed, the cascade flips the flag and the removal BFS clears it.
+        // The fill covers the 1-cell halo shell too (meshes sample it at
+        // chunk faces): the halo blocks are real terrain data generated and
+        // persisted with the chunk, so the edge lights to its own surface
+        // line instead of the memset-0 dark edge it had until the
+        // neighbors' border sync converged. A wrong guess self-corrects —
+        // the owner chunk's border sync rewrites the mirror and pushes a
+        // removal when it loads.
         unsigned char *flags = chunk.light_columns;
-        for ( int x = 0; x < CHUNK_SIZE_X; x++ ) {
-            for ( int z = 0; z < CHUNK_SIZE_Z; z++ ) {
-                const int ci = LIGHT_COLUMN_INDEX( x, z );
-                flags[ LIGHT_FLAGS_COUNT + ci ] = 1;
-                const int fill_from = flags[ LIGHT_FILL_FROM_INDEX( x, z ) ];
-                for ( int y = fill_from; y < CHUNK_SIZE_Y; y++ ) {
+        for ( int x = -1; x <= CHUNK_SIZE_X; x++ ) {
+            for ( int z = -1; z <= CHUNK_SIZE_Z; z++ ) {
+                const bool interior_col = x >= 0 && x < CHUNK_SIZE_X && z >= 0 && z < CHUNK_SIZE_Z;
+                int top_opaque = -2; // -2 = the whole column is non-opaque
+                for ( int y = CHUNK_SIZE_Y; y >= -1; y-- ) {
+                    if ( light_opaque_id( chunk.blocks[ chunk.get_index_from_coords( x, y, z ) ].id ) ) {
+                        top_opaque = y;
+                        break;
+                    }
+                }
+                // Interior cells keep the unconditional open-above fill from
+                // fill_from (an opaque mirror capping the column at the y=32
+                // shell row doesn't stop it — the cascade owns that call).
+                // Shell cells get their column's real surface line.
+                int fill_from = top_opaque + 1;
+                if ( interior_col ) {
+                    const int ci = LIGHT_COLUMN_INDEX( x, z );
+                    flags[ LIGHT_FLAGS_COUNT + ci ] = 1;
+                    fill_from = flags[ LIGHT_FILL_FROM_INDEX( x, z ) ];
+                }
+                for ( int y = -1; y <= CHUNK_SIZE_Y; y++ ) {
+                    const bool shell = x < 0 || x >= CHUNK_SIZE_X || y < 0 || y >= CHUNK_SIZE_Y || z < 0 || z >= CHUNK_SIZE_Z;
+                    if ( y < ( shell ? top_opaque + 1 : fill_from ) ) {
+                        continue;
+                    }
                     unsigned char &cell = chunk.light[ light_index( x, y, z ) ];
                     cell = static_cast<unsigned char>( ( cell & 0x0F ) | ( LIGHT_MAX_LEVEL << 4 ) );
                 }
