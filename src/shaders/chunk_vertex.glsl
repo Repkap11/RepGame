@@ -31,6 +31,8 @@ layout(location = 11) in ivec3 blockCoords_offset;
 layout(location = 12) in ivec3 texCoords_offset;
 
 out vec2 v_TexCoordBlock;
+flat out vec2 v_tex_min;
+flat out vec2 v_tex_max;
 flat out uint v_blockID;
 out float v_planarDot;
 out float v_corner_lighting;
@@ -227,6 +229,14 @@ void main() {
     avg_light = (3.9f - avg_light * 0.5f) / 3.9f;
     v_center_lighting = face_light * avg_light;
 #endif
+    // Bounds of this face's texture region, for the fragment shader to clamp
+    // bilinear taps inside it. Non-full shapes (slab bands, chest borders)
+    // sit next to transparent texels inside their atlas layer; sampling
+    // exactly on the region boundary bleeds that alpha in and drops
+    // fragments below the discard threshold — visible as sky-colored
+    // hairlines along face edges.
+    v_tex_min = -face_shift;
+    v_tex_max = face_scale - face_shift;
     v_TexCoordBlock = texCoordBlock_adjust * face_scale - face_shift;
 
     uint shift = (faceType_rotated % 2u) * 16u;

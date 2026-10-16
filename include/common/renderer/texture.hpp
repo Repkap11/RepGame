@@ -14,7 +14,6 @@ typedef struct {
     unsigned int tile_size_down;
 } TextureSourceData;
 
-// header_size must match trim value in Makefile for linux and windows binaries
 #if defined( REPGAME_LINUX ) || defined( REPGAME_WINDOWS )
 #define MK_TEXTURE( name, width_, height_, tile_size_across_, tile_size_down_ )                                                                                                                                                                \
     MK_BLOB( out_bitmaps, name, bin );                                                                                                                                                                                                         \

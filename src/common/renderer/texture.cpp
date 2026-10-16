@@ -6,22 +6,30 @@
 #include "common/RepGame.hpp"
 #include "common/renderer/texture.hpp"
 
+#define BYTES_PER_PIXEL 4
+
+// BMP files start with a 14-byte file header followed by a variable-size DIB
+// header. Bytes 10-13 hold the little-endian offset of the pixel array, which
+// lets the build embed the whole .bmp without stripping a fixed-size header.
+static int bmp_pixel_data_offset( const unsigned char *bmp, int bmp_len ) {
+    if ( bmp_len < 30 || bmp[ 0 ] != 'B' || bmp[ 1 ] != 'M' ) {
+        pr_debug( "Texture is not a BMP file" );
+        exit( 1 );
+    }
+    int bits_per_pixel = bmp[ 28 ] | ( bmp[ 29 ] << 8 );
+    if ( bits_per_pixel != BYTES_PER_PIXEL * 8 ) {
+        pr_debug( "Texture BMP must be %d bits per pixel, got:%d", BYTES_PER_PIXEL * 8, bits_per_pixel );
+        exit( 1 );
+    }
+    return ( int )( ( unsigned )bmp[ 10 ] | ( ( unsigned )bmp[ 11 ] << 8 ) | ( ( unsigned )bmp[ 12 ] << 16 ) | ( ( unsigned )bmp[ 13 ] << 24 ) );
+}
+
 #if defined( REPGAME_ANDROID )
 #define GL_TEXTURE_MAX_ANISOTROPY_EXT 0x84FE
 #define GL_MAX_TEXTURE_MAX_ANISOTROPY_EXT 0x84FF
 unsigned char *cached_texture[ 2 ];
 void Texture::set_texture_data( unsigned int which_texture, unsigned char *textures, int textures_len ) {
-    for ( int i = 0; i < textures_len; i += 4 ) {
-        unsigned char a = textures[ i + 0 ];
-        unsigned char b = textures[ i + 1 ];
-        unsigned char g = textures[ i + 2 ];
-        unsigned char r = textures[ i + 3 ];
-        textures[ i + 0 ] = r;
-        textures[ i + 1 ] = g;
-        textures[ i + 2 ] = b;
-        textures[ i + 3 ] = a;
-    }
-    cached_texture[ which_texture ] = textures;
+    cached_texture[ which_texture ] = textures + bmp_pixel_data_offset( textures, textures_len );
 }
 #else
 void Texture::set_texture_data( unsigned int which_texture, unsigned char *textures, int textures_len ) {
@@ -39,22 +47,15 @@ unsigned char *readTextureDataFromFile( const char *filename, int mem_size ) {
         pr_debug( "Error rendering texture %s", filename );
         return 0;
     }
+    unsigned char header[ 32 ];
+    int header_len = ( int )fread( header, 1, sizeof( header ), file );
+    fseek( file, bmp_pixel_data_offset( header, header_len ), SEEK_SET );
     data = ( unsigned char * )malloc( mem_size );
     size_t read_size = fread( data, mem_size, 1, file );
     if ( read_size != 1 ) {
         pr_debug( "Texture file wrong size. Expected:%d", mem_size );
     }
     fclose( file );
-    for ( int i = 0; i < mem_size; i += 4 ) {
-        unsigned char a = data[ i + 0 ];
-        unsigned char b = data[ i + 1 ];
-        unsigned char g = data[ i + 2 ];
-        unsigned char r = data[ i + 3 ];
-        data[ i + 0 ] = r;
-        data[ i + 1 ] = g;
-        data[ i + 2 ] = b;
-        data[ i + 3 ] = a;
-    }
     return data;
 }
 #endif
@@ -71,7 +72,6 @@ unsigned char *readTextureDataFromCache( const char *filename, int mem_size ) {
 }
 #endif
 
-#define BYTES_PER_PIXEL 4
 void Texture::loadTexture( const TextureSourceData &texture_source, int blur_mag ) {
     unsigned char *data;
 
@@ -79,12 +79,13 @@ void Texture::loadTexture( const TextureSourceData &texture_source, int blur_mag
 
 #if defined( REPGAME_LINUX ) || defined( REPGAME_WINDOWS )
 #define TEXTURE_NEEDS_FREE 0
-    if ( texture_source.blob->length != mem_size ) {
-        int diff = texture_source.blob->length - mem_size;
-        pr_debug( "Unexpected Source Size blob:%d calculated:%d diff:%d", texture_source.blob->length, mem_size, diff );
+    int pixel_offset = bmp_pixel_data_offset( ( const unsigned char * )texture_source.blob->source, texture_source.blob->length );
+    if ( texture_source.blob->length - pixel_offset != mem_size ) {
+        int diff = texture_source.blob->length - pixel_offset - mem_size;
+        pr_debug( "Unexpected Source Size blob:%d pixel_offset:%d calculated:%d diff:%d", texture_source.blob->length, pixel_offset, mem_size, diff );
         exit( 1 );
     }
-    data = ( unsigned char * )texture_source.blob->source;
+    data = ( unsigned char * )texture_source.blob->source + pixel_offset;
 #elif defined( REPGAME_WASM )
 #define TEXTURE_NEEDS_FREE 1
     data = readTextureDataFromFile( texture_source.filename, mem_size );
@@ -116,15 +117,12 @@ void Texture::loadTexture( const TextureSourceData &texture_source, int blur_mag
             }
         }
     }
+    // BMP pixels are BGRA in memory; swap to the RGBA order GL expects.
     for ( int i = 0; i < working_size; i += 4 ) {
-        unsigned char a = working[ i + 0 ];
-        unsigned char b = working[ i + 1 ];
-        unsigned char g = working[ i + 2 ];
-        unsigned char r = working[ i + 3 ];
-        working[ i + 0 ] = b;
-        working[ i + 1 ] = g;
-        working[ i + 2 ] = r;
-        working[ i + 3 ] = a;
+        unsigned char b = working[ i + 0 ];
+        unsigned char r = working[ i + 2 ];
+        working[ i + 0 ] = r;
+        working[ i + 2 ] = b;
     }
 
     unsigned int layer_count = textures_across * textures_down;

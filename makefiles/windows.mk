@@ -50,7 +50,7 @@ out/windows/shaders/%.o : out/windows/shaders/%.glsl | out/windows
 
 out/windows/bitmaps/%.o : out/bitmaps/%.bin | out/windows
 	$(LD_WINDOWS) -r -b binary $< -o $@
-	objcopy --rename-section .data=.rodata,CONTENTS,ALLOC,LOAD,READONLY,DATA --reverse-bytes=4 $@ $@
+	objcopy --rename-section .data=.rodata,CONTENTS,ALLOC,LOAD,READONLY,DATA $@ $@
 
 out/windows/fonts/%.o : fonts/%.ttf | out/windows
 	$(LD_WINDOWS) -r -b binary $< -o $@

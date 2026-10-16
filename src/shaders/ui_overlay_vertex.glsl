@@ -26,6 +26,10 @@ layout(location = 13) in vec3 instance_block_tex_offset;
 flat out uint v_is_block;
 out vec3 v_TexCoordBlock;
 out vec4 v_Tint;
+// Bounds of this face's texture region, for the fragment shader to clamp
+// bilinear taps inside it (same as chunk_vertex.glsl's v_tex_min/v_tex_max).
+flat out vec2 v_tex_min;
+flat out vec2 v_tex_max;
 
 void main() {
 
@@ -52,6 +56,8 @@ void main() {
     } else {
         vec2 icon_position = element_position;
         vec2 face_uv = element_texture_coords;
+        vec2 face_scale = vec2(1, 1);
+        vec2 face_shift = vec2(0, 0);
         if(element_is_isometric != 0u) {
             // Project the cube corner through the block's scale/offset with the
             // same isometric projection the icon quads were authored in:
@@ -65,8 +71,6 @@ void main() {
 
             // Clip the UV window to the block's sub-size exactly like
             // chunk_vertex.glsl does for an unrotated block.
-            vec2 face_scale;
-            vec2 face_shift;
             if(element_face_type == ISO_FACE_TOP) {
                 face_scale = scale_f.xz;
                 face_shift = tex_offset_f.xz;
@@ -79,6 +83,10 @@ void main() {
             }
             face_uv = face_uv * face_scale - face_shift;
         }
+        // Texture-region bounds for the fragment shader's edge clamp. Non-
+        // isometric elements keep the defaults, i.e. the whole [0,1] tile.
+        v_tex_min = -face_shift;
+        v_tex_max = face_scale - face_shift;
         gl_Position = u_MVP * vec4(instance_position.xy + icon_position * instance_size, instance_position.z, 1);
         v_TexCoordBlock = vec3(face_uv, instance_id_isos[element_face_type]);
         v_is_block = instance_is_block;

@@ -22,10 +22,12 @@ SRC_IMGUI := imgui_build/backends/imgui_impl_sdl3.cpp $(wildcard imgui_build/img
 SRC_ALL_C := $(wildcard src/**/*.cpp) $(wildcard src/**/**/*.cpp) $(wildcard src/**/*.cu) $(wildcard src/**/**/*.cu)
 INCLUDES_COMMON := -I include/ -I include/glm -I imgui_build -I imgui_build/backends -I entt_build/src
 HEADERS := $(wildcard include/**/*.hpp)
-BITMAPS_NO_HEADER := $(patsubst bitmaps/%.bmp,out/bitmaps/%.bin,$(wildcard bitmaps/*.bmp))
+BITMAP_BINS := $(patsubst bitmaps/%.bmp,out/bitmaps/%.bin,$(wildcard bitmaps/*.bmp))
 
+# Embed the whole .bmp. The pixel offset is read from the BMP file header at
+# load time, so no fixed-size header needs to be stripped here.
 out/bitmaps/%.bin : bitmaps/%.bmp | out/bitmaps
-	tail -c +139 $< > $@
+	cp $< $@
 
 out/bitmaps: | out
 	mkdir -p out/bitmaps
@@ -57,4 +59,4 @@ clean-vars:
 
 .PHONY: clean-bitmaps check clean-vars test-vars
 
-.PRECIOUS: $(BITMAPS_NO_HEADER)
+.PRECIOUS: $(BITMAP_BINS)

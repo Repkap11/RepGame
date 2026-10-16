@@ -56,6 +56,8 @@ uniform int u_FluidAnim;
 #endif
 
 in vec2 v_TexCoordBlock;
+flat in vec2 v_tex_min;
+flat in vec2 v_tex_max;
 in float v_corner_lighting;
 #if !defined(REPGAME_LOW_GRAPHICS)
 flat in float v_center_lighting;
@@ -121,6 +123,15 @@ void main() {
         }
     }
     vec2 working = working_int + working_fract;
+    // Edge-clamp inside this face's texture region (the [v_tex_min, v_tex_max]
+    // span): bilinear taps at the region boundary would blend in texels from
+    // the neighboring band of the atlas layer — for tiles drawn with
+    // transparent borders (slab sides, chest edges) that drops alpha below
+    // the discard threshold and leaks sky as a hairline between faces.
+    // Interior texels are untouched; only the outermost half-texel is pinned.
+    vec2 working_lo = v_tex_min + (0.5f / 16.0f);
+    vec2 working_hi = max(v_tex_max - (0.5f / 16.0f), working_lo);
+    working = clamp(working, working_lo, working_hi);
 
     vec4 texColor = texture(u_Texture, vec3(working, v_blockID));
 

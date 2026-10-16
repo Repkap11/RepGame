@@ -81,7 +81,7 @@ $(LINUX_OUT)/shaders/%.o : $(LINUX_OUT)/shaders/%.glsl | $(LINUX_OUT)
 
 $(LINUX_OUT)/bitmaps/%.o : out/bitmaps/%.bin | $(LINUX_OUT)
 	$(LD_LINUX) $(LFLAGS) -r -b binary $< -o $@_no_section
-	objcopy --rename-section .data=.rodata,CONTENTS,ALLOC,LOAD,READONLY,DATA --reverse-bytes=4 $@_no_section $@
+	objcopy --rename-section .data=.rodata,CONTENTS,ALLOC,LOAD,READONLY,DATA $@_no_section $@
 
 $(LINUX_OUT)/fonts/%.o : fonts/%.ttf | $(LINUX_OUT)
 	$(LD_LINUX) $(LFLAGS) -r -b binary $< -o $@_no_section
