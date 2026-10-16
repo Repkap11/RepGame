@@ -99,6 +99,10 @@ class ChunkLoader {
     // push_back a remove seed under light_seed_lock, routed by distance.
     void light_push_remove_seed( const glm::ivec3 &block_pos, int channel, int old_value );
     static int light_emit_at( const Chunk &chunk, int index );
+    // Null-light (uniform volume) helpers — light.cpp.
+    static inline unsigned char light_read_cell( const Chunk &chunk, int idx );
+    static void light_materialize( Chunk &chunk );
+    static inline void light_write_cell( Chunk &chunk, int idx, unsigned char nv );
     int light_get( const glm::ivec3 &block_pos, int channel ) const;
     void light_set( const glm::ivec3 &block_pos, int channel, int value );
     void light_set_nb( Chunk *const nb_cache[ 27 ], Chunk &owner, const glm::ivec3 &block_pos, int channel, int value );

@@ -215,6 +215,14 @@ int MapStorage::load_chests( const glm::ivec3 &chunk_offset, ChestContentsMap &o
 }
 
 int MapStorage::load_chunk( Chunk &chunk ) {
+    if ( chunk.blocks == nullptr ) {
+        // blocks stays null for chunks with no save file (all-air is implied);
+        // a saved chunk needs the array before the RLE stream can decode.
+        if ( !this->check_if_chunk_exists( chunk.chunk_pos ) ) {
+            return 0;
+        }
+        chunk.blocks = static_cast<BlockState *>( calloc( CHUNK_BLOCK_SIZE, sizeof( BlockState ) ) );
+    }
     return this->load_blocks( chunk.chunk_pos, chunk.blocks, chunk.dirty, false );
 }
 int MapStorage::load_blocks( const glm::ivec3 &chunk_offset, BlockState *blocks, int &dirty, bool expect_empty_blocks ) {

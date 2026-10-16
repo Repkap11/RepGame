@@ -58,7 +58,9 @@ class Chunk {
     int gl_initialized;
     bool is_empty_chunk;
     RenderLayer layers[ LAST_RENDER_ORDER ];
-    BlockState *blocks;
+    // nullptr means every cell is AIR (is_empty_chunk). Mutable so the const
+    // set_block can allocate the array on the first real write.
+    mutable BlockState *blocks;
     glm::ivec3 chunk_pos;
     int dirty;
     // Container contents for chest blocks in this chunk, keyed by in-chunk
@@ -78,11 +80,15 @@ class Chunk {
     glm::ivec3 chunk_mod;
 
     // ---- Flood-fill lighting (light.cpp) ----
-    // Per-cell light volume covering the same 34^3 internal region as blocks.
+    // Per-cell light volume covering the same internal region as blocks.
     // Each byte packs skylight in the high nibble and block light in the low
     // nibble. Kept out of the mesh entirely so light changes never force a
     // remesh: the fragment shader samples the matching 3D texture instead.
+    // nullptr means the whole volume is uniform: every cell reads
+    // light_uniform (light.cpp reads via light_read_cell; writes materialize
+    // the array only when the new value differs).
     unsigned char *light;
+    unsigned char light_uniform;
     // Per interior column (x,z) in [0,CHUNK_SIZE): two flag arrays packed into
     // one buffer — column_open (no opaque cell in this chunk's column) then
     // sky_open_above (no opaque cell anywhere above in the loaded grid).

@@ -266,8 +266,8 @@ BlockState Chunk::get_block( const glm::ivec3 &pos ) const {
         return BLOCK_STATE_AIR;
     }
     if ( this->blocks == nullptr ) {
-        // pr_debug("Chunk has no blocks");
-        return BLOCK_STATE_LAST_BLOCK_ID;
+        // nullptr blocks means the whole chunk is AIR.
+        return BLOCK_STATE_AIR;
     }
     if ( pos.x >= CHUNK_SIZE_X + 1 || //
          pos.y >= CHUNK_SIZE_Y + 1 || //
@@ -283,10 +283,6 @@ BlockState Chunk::get_block( const glm::ivec3 &pos ) const {
 }
 
 void Chunk::set_block( const glm::ivec3 &pos, const BlockState &blockState ) const {
-    if ( this->blocks == nullptr ) {
-        // pr_debug("Chunk has no blocks");
-        return;
-    }
     if ( pos.x >= CHUNK_SIZE_X + 1 || //
          pos.y >= CHUNK_SIZE_Y + 1 || //
          pos.z >= CHUNK_SIZE_Z + 1 ) {
@@ -296,6 +292,14 @@ void Chunk::set_block( const glm::ivec3 &pos, const BlockState &blockState ) con
          pos.y < -1 || //
          pos.z < -1 ) {
         return;
+    }
+    if ( this->blocks == nullptr ) {
+        // All-air chunk: an AIR write changes nothing, so only materialize
+        // the array when the new state actually differs from AIR.
+        if ( BlockStates_equal( BLOCK_STATE_AIR, blockState ) ) {
+            return;
+        }
+        this->blocks = static_cast<BlockState *>( calloc( CHUNK_BLOCK_SIZE, sizeof( BlockState ) ) );
     }
 
     const int index = get_index_from_coords( pos );
@@ -313,6 +317,13 @@ void Chunk::set_block_by_index_if_different( int index, const BlockState *blockS
     if ( index < 0 || index >= CHUNK_BLOCK_SIZE ) {
         pr_debug( "Ignoring out-of-range block index:%d (max:%d)", index, CHUNK_BLOCK_SIZE );
         return;
+    }
+    if ( this->blocks == nullptr ) {
+        // All-air chunk: an AIR write is a no-op; anything else allocates.
+        if ( BlockStates_equal( BLOCK_STATE_AIR, *blockState ) ) {
+            return;
+        }
+        this->blocks = static_cast<BlockState *>( calloc( CHUNK_BLOCK_SIZE, sizeof( BlockState ) ) );
     }
     BlockState &oldBlockState = this->blocks[ index ];
     if ( BlockStates_equal( oldBlockState, *blockState ) ) {
@@ -371,19 +382,15 @@ static inline long long now_us( ) {
 
 void Chunk::load_terrain( MapStorage &map_storage ) {
     if constexpr ( !REMEMBER_BLOCKS ) {
-        this->blocks = static_cast<BlockState *>( calloc( CHUNK_BLOCK_SIZE, sizeof( BlockState ) ) );
-    } else if ( this->blocks == nullptr ) {
-        // Lazily allocate the blocks array on first load (on the background
-        // thread) instead of upfront for all MAX_LOADED_CHUNKS chunks during
-        // startup, which blocked the first frame for ~0.9s of calloc calls.
-        this->blocks = static_cast<BlockState *>( calloc( CHUNK_BLOCK_SIZE, sizeof( BlockState ) ) );
+        if ( this->blocks == nullptr ) {
+            this->blocks = static_cast<BlockState *>( calloc( CHUNK_BLOCK_SIZE, sizeof( BlockState ) ) );
+        }
     }
-    // Flood-fill light volume + column flags (see light.cpp). The light
-    // texture itself is created lazily on the render thread
-    // (Chunk::light_ensure_texture).
-    if ( this->light == nullptr ) {
-        this->light = static_cast<unsigned char *>( calloc( CHUNK_BLOCK_SIZE, 1 ) );
-    }
+    // Under REMEMBER_BLOCKS, blocks stays null while the chunk is all-air:
+    // MapStorage::load_chunk allocates it only when a save file exists, and
+    // Chunk::set_block allocates on the first real write (every existing cell
+    // is AIR anyway). light[] likewise stays unallocated for uniform volumes —
+    // light_fill_chunk folds constant fills to Chunk::light_uniform instead.
     if ( this->light_columns == nullptr ) {
         this->light_columns = static_cast<unsigned char *>( calloc( 3 * LIGHT_FLAGS_COUNT, 1 ) );
     } else {
@@ -394,6 +401,7 @@ void Chunk::load_terrain( MapStorage &map_storage ) {
     this->light_pending_listed = 0;
     this->light_upload_listed = 0;
     this->light_dirty_box.store( LIGHT_BOX_EMPTY, std::memory_order_relaxed );
+    this->light_uniform = 0;
     this->is_empty_chunk = false;
 #if TERRAIN_GEN_PROFILING
     long long t_start = now_us( );
@@ -406,6 +414,26 @@ void Chunk::load_terrain( MapStorage &map_storage ) {
     t_load_disk = now_us( ) - t0;
     if ( loaded ) profiling_disk_load_count.fetch_add( 1, std::memory_order_relaxed );
 #endif
+    if constexpr ( REMEMBER_BLOCKS ) {
+        if ( loaded && this->blocks != nullptr ) {
+            // A saved chunk can decode to all-air (e.g. mined flat). Fold it to
+            // the null representation so it skips meshing like a generated
+            // air chunk — the file stays valid as-is (nothing rewrites it).
+            bool all_air = true;
+            for ( int i = 0; i < CHUNK_BLOCK_SIZE; i++ ) {
+                if ( this->blocks[ i ].id != AIR ) {
+                    all_air = false;
+                    break;
+                }
+            }
+            if ( all_air ) {
+                free( this->blocks );
+                this->blocks = nullptr;
+                this->is_empty_chunk = true;
+                goto skip_to_mesh;
+            }
+        }
+    }
     if ( !loaded ) {
         // We haven't loaded this chunk before, map gen it.
         // Cheap CPU-side check: if the entire chunk is above the terrain surface,
@@ -417,9 +445,10 @@ void Chunk::load_terrain( MapStorage &map_storage ) {
             // perlin noise evaluation. The bound is derived from the terrain
             // formulas in map_gen.cpp — see MapGen::maxTerrainHeight().
             if ( (float)min_y >= MapGen::maxTerrainHeight( ) + MAPGEN_MAX_TREE_REACH ) {
-                for ( int i = 0; i < CHUNK_BLOCK_SIZE; i++ ) {
-                    this->blocks[ i ] = { AIR, BLOCK_ROTATE_0, 0, AIR, 0 };
-                }
+                // Entire chunk is air — keep blocks null instead of filling a
+                // 262K-cell array with AIR.
+                free( this->blocks );
+                this->blocks = nullptr;
                 this->is_empty_chunk = true;
                 this->dirty = 0;
 #if TERRAIN_GEN_PROFILING
@@ -444,9 +473,8 @@ void Chunk::load_terrain( MapStorage &map_storage ) {
             // empty bound must include both.
             if ( (float)min_y >= max_terrain_height + OVERHANG_MAX_RISE + MAPGEN_MAX_TREE_REACH ) {
                 // Entire chunk (including border) is above terrain → all air
-                for ( int i = 0; i < CHUNK_BLOCK_SIZE; i++ ) {
-                    this->blocks[ i ] = { AIR, BLOCK_ROTATE_0, 0, AIR, 0 };
-                }
+                free( this->blocks );
+                this->blocks = nullptr;
                 this->is_empty_chunk = true;
                 this->dirty = 0;
 #if TERRAIN_GEN_PROFILING
@@ -459,6 +487,9 @@ void Chunk::load_terrain( MapStorage &map_storage ) {
 #if TERRAIN_GEN_PROFILING
         t0 = now_us( );
 #endif
+        if ( this->blocks == nullptr ) {
+            this->blocks = static_cast<BlockState *>( calloc( CHUNK_BLOCK_SIZE, sizeof( BlockState ) ) );
+        }
         if ( LOAD_CHUNKS_SUPPORTS_CUDA && MapGen::supports_cuda( ) ) {
             if ( firstTime ) {
                 firstTime = 0;
@@ -627,6 +658,20 @@ static inline bool face_is_seethrough( const Block *block, const BlockState &sta
 void Chunk::calculate_populated_blocks( ) {
     int num_instances[ LAST_RENDER_ORDER ] = { 0 };
 
+    // Empty chunks (all air): skip meshing entirely — and skip the
+    // populated_blocks mallocs + workingSpace memset, which are only needed
+    // when real blocks exist.
+    if ( this->is_empty_chunk ) {
+        if constexpr ( !REMEMBER_BLOCKS ) {
+            free( this->blocks );
+            this->blocks = nullptr;
+        }
+        for ( int renderOrder = 0; renderOrder < LAST_RENDER_ORDER; renderOrder++ ) {
+            this->layers[ renderOrder ].num_instances = 0;
+        }
+        return;
+    }
+
     // populated_blocks are filled sequentially (only num_instances entries are read later),
     // so malloc suffices — no need to zero ~18.8MB per chunk.
     for ( RenderLayer &layer : this->layers ) {
@@ -643,18 +688,6 @@ void Chunk::calculate_populated_blocks( ) {
     }
     WorkingSpace *workingSpace = tls_workingSpace;
     memset( workingSpace, 0, CHUNK_BLOCK_SIZE * sizeof( WorkingSpace ) );
-
-    // Empty chunks (all air): skip meshing entirely. workingSpace is already zeroed
-    // (visible=false, can_be_seen=false), so greedy meshing would produce 0 instances.
-    if ( this->is_empty_chunk ) {
-        if constexpr ( !REMEMBER_BLOCKS ) {
-            free( this->blocks );
-        }
-        for ( int renderOrder = 0; renderOrder < LAST_RENDER_ORDER; renderOrder++ ) {
-            this->layers[ renderOrder ].num_instances = 0;
-        }
-        return;
-    }
 
 #if TERRAIN_GEN_PROFILING
     long long t_mesh_start = now_us( );
