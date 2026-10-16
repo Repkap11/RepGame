@@ -16,7 +16,6 @@ uniform float u_RandomRotationBlocks[MAX_ROTATABLE_BLOCK];
 layout(location = 0) in vec3 position;
 layout(location = 1) in vec2 texCoordBlock;
 layout(location = 2) in uint faceType;
-layout(location = 3) in uint corner_shift;
 
 // See BlockCoords in chunk.h
 // There is one of these per block
@@ -35,10 +34,7 @@ flat out vec2 v_tex_min;
 flat out vec2 v_tex_max;
 flat out uint v_blockID;
 out float v_planarDot;
-out float v_corner_lighting;
-#if !defined(REPGAME_LOW_GRAPHICS)
-flat out float v_center_lighting;
-#endif
+out float v_face_light;
 out vec3 v_world_coords;
 // Outward face normal (post block rotation). The fragment shader samples the
 // flood-fill light volume at the air cell this face points into.
@@ -59,8 +55,6 @@ flat out int v_block_auto_rotates;
 #define BLOCK_ROTATE_270 3u
 
 #define NO_LIGHT_NO_DRAW 0x6fffffu
-
-#define CORNER_OFFSET_c 16u
 
 void main() {
     uint packed_lighting;
@@ -201,34 +195,7 @@ void main() {
     }
     v_face_normal = face_normal;
 
-    float light_divisor = 1.3f; // good looking
-    // light_divisor = 0.5;       // debug
-
-    uint which_bits = 3u;
-    if(corner_shift == CORNER_OFFSET_c) {
-        which_bits = 7u;
-    }
-    float corner_light = float((packed_lighting >> corner_shift) & which_bits) / light_divisor; // Has to be a float to be interped over the shader;
-    if(corner_shift == CORNER_OFFSET_c) {
-        corner_light /= 2.0f;
-    }
-    // AO strength halved: the flood-fill light field now provides the real
-    // spatial shadowing, so ambient occlusion only needs to add subtle
-    // crevice darkening instead of acting as the primary shadow source
-    // (stacking both at full strength double-darkened occluded corners).
-    corner_light = (3.9f - corner_light * 0.5f) / 3.9f;
-
-    v_corner_lighting = face_light * corner_light;
-
-    // Average of all 4 corner light values for this face (flat, same for
-    // all vertices). Precomputed on the CPU and packed at CORNER_OFFSET_avg.
-    // Used at grazing angles to avoid shimmer from perspective-correct
-    // interpolation of per-corner lighting.
-#if !defined(REPGAME_LOW_GRAPHICS)
-    float avg_light = float((packed_lighting >> 21u) & 3u) / light_divisor;
-    avg_light = (3.9f - avg_light * 0.5f) / 3.9f;
-    v_center_lighting = face_light * avg_light;
-#endif
+    v_face_light = face_light;
     // Bounds of this face's texture region, for the fragment shader to clamp
     // bilinear taps inside it. Non-full shapes (slab bands, chest borders)
     // sit next to transparent texels inside their atlas layer; sampling

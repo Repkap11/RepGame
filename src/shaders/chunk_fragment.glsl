@@ -1,16 +1,6 @@
 #version 300 es
 #define MAX_ROTATABLE_BLOCK 100u
 #define eps 0.00001f
-// Toggle the fwidth-based lighting blend that fights shimmer at grazing
-// angles. fwidth is a derivative instruction that costs register bandwidth
-// and can lower occupancy on tile-based mobile GPUs. Disabled on LOW
-// graphics platforms (Android/WASM) where other aliasing artifacts dominate
-// and the ~8% fragment cost is not worth it.
-#if !defined(REPGAME_LOW_GRAPHICS)
-#define USE_FWIDTH_LIGHTING 1
-#else
-#define USE_FWIDTH_LIGHTING 0
-#endif
 #define TINT_UNDER_WATER_OBJECT_NEVER 0
 #define TINT_UNDER_WATER_OBJECT_UNDER_Y_LEVEL 1
 #define TINT_UNDER_WATER_OBJECT_ALWAYS 2
@@ -58,10 +48,7 @@ uniform int u_FluidAnim;
 in vec2 v_TexCoordBlock;
 flat in vec2 v_tex_min;
 flat in vec2 v_tex_max;
-in float v_corner_lighting;
-#if !defined(REPGAME_LOW_GRAPHICS)
-flat in float v_center_lighting;
-#endif
+in float v_face_light;
 in float v_planarDot;
 in vec3 v_world_coords;
 flat in vec3 v_face_normal;
@@ -200,17 +187,7 @@ void main() {
     if(u_TintUnderWater == TINT_UNDER_WATER_OBJECT_ALWAYS || (u_TintUnderWater == TINT_UNDER_WATER_OBJECT_UNDER_Y_LEVEL && v_world_coords.y < (-0.125f - u_Origin.y - eps))) {
         texColor = mix(texColor, vec4(0.122f, 0.333f, 1.0f, 1.0f), 0.45f);
     }
-    float corner_light = v_corner_lighting;
-#if USE_FWIDTH_LIGHTING
-    // At grazing angles, perspective-correct interpolation of per-corner
-    // lighting creates high-frequency brightness shimmer. Detect this
-    // with fwidth (rate of change across neighboring pixels) and blend
-    // toward the flat average only where the gradient is steep. Head-on
-    // faces have near-zero fwidth and keep smooth corner interpolation.
-    float lightWidth = fwidth(v_corner_lighting);
-    float lightBlend = smoothstep(0.02f, 0.15f, lightWidth);
-    corner_light = mix(corner_light, v_center_lighting, lightBlend);
-#endif
+
     // Flood-fill light: v_world_coords + 0.5*normal lands on the center of
     // the air cell this face points at. +1.0 is the halo offset mapping
     // world->34^3 texel space (cell centers already sit at +0.5, and texel
@@ -224,7 +201,7 @@ void main() {
     // u_MinAmbient floors the result: cells with no skylight and no block
     // light (deep caves) still get a faint ambient instead of pure black.
     float scene_light = max(max(light_sample.r * u_Daylight, light_sample.g), u_MinAmbient);
-    vec4 lightedColor = texColor * vec4(corner_light * scene_light, corner_light * scene_light, corner_light * scene_light, u_ExtraAlpha);
+    vec4 lightedColor = texColor * vec4(v_face_light * scene_light, v_face_light * scene_light, v_face_light * scene_light, u_ExtraAlpha);
 
     vec4 finalColor = lightedColor;
     vec4 finalReflection = lightedColor;

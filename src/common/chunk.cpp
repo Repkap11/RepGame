@@ -57,15 +57,15 @@ static void chunk_ib_init_tables( ) {
     s_ib_tables_ready = true;
     static const int face_for_bit[ 6 ] = { FACE_FRONT, FACE_RIGHT, FACE_BACK, FACE_LEFT, FACE_TOP, FACE_BOTTOM };
     const auto append_face = [&]( const unsigned int *src ) {
-        s_ib_data.insert( s_ib_data.end( ), src, src + 12 );
+        s_ib_data.insert( s_ib_data.end( ), src, src + 6 );
     };
     for ( unsigned int mask = 0; mask < 64; mask++ ) {
         s_ib_opaque_off[ mask ] = static_cast<unsigned int>( s_ib_data.size( ) ) * sizeof( unsigned int );
         unsigned int n = 0;
         for ( int bit = 0; bit < 6; bit++ ) {
             if ( mask & ( 1u << bit ) ) {
-                append_face( ib_data_solid + 12 * face_for_bit[ bit ] );
-                n += 12;
+                append_face( ib_data_solid + 6 * face_for_bit[ bit ] );
+                n += 6;
             }
         }
         s_ib_opaque_cnt[ mask ] = n;
@@ -79,7 +79,7 @@ static void chunk_ib_init_tables( ) {
     for ( int v = 0; v < 2; v++ ) {
         s_ib_translucent_off[ v ] = static_cast<unsigned int>( s_ib_data.size( ) ) * sizeof( unsigned int );
         for ( int f = 0; f < 6; f++ ) {
-            append_face( ib_data_solid + 12 * trans_order[ v ][ f ] );
+            append_face( ib_data_solid + 6 * trans_order[ v ][ f ] );
         }
     }
     // Water only has top/bottom faces and no reflect variant (the old path
@@ -88,12 +88,12 @@ static void chunk_ib_init_tables( ) {
         s_ib_water_off[ mask ] = static_cast<unsigned int>( s_ib_data.size( ) ) * sizeof( unsigned int );
         unsigned int n = 0;
         if ( mask & 1u ) {
-            append_face( ib_data_water + 12 * IB_POSITION_WATER_TOP );
-            n += 12;
+            append_face( ib_data_water + 6 * IB_POSITION_WATER_TOP );
+            n += 6;
         }
         if ( mask & 2u ) {
-            append_face( ib_data_water + 12 * IB_POSITION_WATER_BOTTOM );
-            n += 12;
+            append_face( ib_data_water + 6 * IB_POSITION_WATER_BOTTOM );
+            n += 6;
         }
         s_ib_water_cnt[ mask ] = n;
     }
@@ -360,6 +360,7 @@ static std::atomic<long long> profiling_mesh_vis_light_us{ 0 };
 static std::atomic<long long> profiling_mesh_greedy_us{ 0 };
 static std::atomic<int> profiling_map_gen_count{ 0 };
 static std::atomic<int> profiling_disk_load_count{ 0 };
+static std::atomic<long long> profiling_instance_count{ 0 };
 extern std::atomic<long long> terrain_persist_us;
 
 static inline long long now_us( ) {
@@ -542,6 +543,7 @@ skip_to_mesh:
             gen / 1000.0, gen_count,
             struc / 1000.0, pop / 1000.0,
             mesh_vl / 1000.0, mesh_gr / 1000.0 );
+        pr_debug( "INSTANCES total=%lld", profiling_instance_count.load( std::memory_order_relaxed ) );
     }
 #endif
 }
@@ -595,12 +597,6 @@ int Chunk::can_extend_rect( const BlockState &blockState, const unsigned int *pa
     return 1;
 }
 
-inline int min( const int a, const int b, const int c, const int d ) {
-    const int diag1 = ( a ) + ( d );
-    const int diag2 = ( b ) + ( c );
-    const int result = ( diag1 < diag2 ? diag1 : diag2 );
-    return result;
-}
 
 // Precomputed rotation table: ROTATED_FACE[rotation][face]
 // FACE_ROTATE_90 = { FACE_TOP, FACE_BOTTOM, FACE_BACK, FACE_RIGHT, FACE_FRONT, FACE_LEFT }
@@ -658,13 +654,6 @@ void Chunk::calculate_populated_blocks( ) {
             this->layers[ renderOrder ].num_instances = 0;
         }
         return;
-    }
-
-    // Pre-compute a tiny casts_shadow lookup table indexed by block ID (~1.2KB, stays in L1).
-    // This replaces 26 block_definition_get_definition()->casts_shadow struct dereferences per block.
-    bool block_id_casts_shadow[ LAST_BLOCK_ID ];
-    for ( int i = 0; i < LAST_BLOCK_ID; i++ ) {
-        block_id_casts_shadow[ i ] = block_definitions[ i ].casts_shadow;
     }
 
 #if TERRAIN_GEN_PROFILING
@@ -751,165 +740,14 @@ void Chunk::calculate_populated_blocks( ) {
                     block_is_visiable |= visible_from[ face ];
                 }
                 {
-                    int can_be_shaded = render_order_can_be_shaded( block->renderOrder );
-
-                    // 1 Offset
-                    int xplus = x + 1;
-                    int xminus = x - 1;
-                    int yplus = y + 1;
-                    int yminus = y - 1;
-                    int zplus = z + 1;
-                    int zminus = z - 1;
-
-                    int t = block_id_casts_shadow[ this->blocks[ get_index_from_coords( x + 0, yplus, z + 0 ) ].id ];
-                    int bo = block_id_casts_shadow[ this->blocks[ get_index_from_coords( x + 0, yminus, z + 0 ) ].id ];
-                    int f = block_id_casts_shadow[ this->blocks[ get_index_from_coords( x + 0, y + 0, zplus ) ].id ];
-                    int ba = block_id_casts_shadow[ this->blocks[ get_index_from_coords( x + 0, y + 0, zminus ) ].id ];
-                    int r = block_id_casts_shadow[ this->blocks[ get_index_from_coords( xplus, y + 0, z + 0 ) ].id ];
-                    int l = block_id_casts_shadow[ this->blocks[ get_index_from_coords( xminus, y + 0, z + 0 ) ].id ];
-
-                    // If the block is visible and can be shaded, check neighbors for shade and populated the packed lighting
-                    // 2 Offsets
-                    int tl = block_id_casts_shadow[ this->blocks[ get_index_from_coords( xminus, yplus, z + 0 ) ].id ];
-                    int tr = block_id_casts_shadow[ this->blocks[ get_index_from_coords( xplus, yplus, z + 0 ) ].id ];
-                    int tf = block_id_casts_shadow[ this->blocks[ get_index_from_coords( x + 0, yplus, zplus ) ].id ];
-                    int tba = block_id_casts_shadow[ this->blocks[ get_index_from_coords( x + 0, yplus, zminus ) ].id ];
-
-                    int bol = block_id_casts_shadow[ this->blocks[ get_index_from_coords( xminus, yminus, z + 0 ) ].id ];
-                    int bor = block_id_casts_shadow[ this->blocks[ get_index_from_coords( xplus, yminus, z + 0 ) ].id ];
-                    int bof = block_id_casts_shadow[ this->blocks[ get_index_from_coords( x + 0, yminus, zplus ) ].id ];
-                    int boba = block_id_casts_shadow[ this->blocks[ get_index_from_coords( x + 0, yminus, zminus ) ].id ];
-
-                    int fl = block_id_casts_shadow[ this->blocks[ get_index_from_coords( xminus, y + 0, zplus ) ].id ];
-                    int bal = block_id_casts_shadow[ this->blocks[ get_index_from_coords( xminus, y + 0, zminus ) ].id ];
-                    int fr = block_id_casts_shadow[ this->blocks[ get_index_from_coords( xplus, y + 0, zplus ) ].id ];
-                    int bar = block_id_casts_shadow[ this->blocks[ get_index_from_coords( xplus, y + 0, zminus ) ].id ];
-
-                    // 3 Offsetes
-                    int tfl = block_id_casts_shadow[ this->blocks[ get_index_from_coords( xminus, yplus, zplus ) ].id ];
-                    int tbl = block_id_casts_shadow[ this->blocks[ get_index_from_coords( xminus, yplus, zminus ) ].id ];
-                    int tfr = block_id_casts_shadow[ this->blocks[ get_index_from_coords( xplus, yplus, zplus ) ].id ];
-                    int tbr = block_id_casts_shadow[ this->blocks[ get_index_from_coords( xplus, yplus, zminus ) ].id ];
-
-                    int bfl = block_id_casts_shadow[ this->blocks[ get_index_from_coords( xminus, yminus, zplus ) ].id ];
-                    int bbl = block_id_casts_shadow[ this->blocks[ get_index_from_coords( xminus, yminus, zminus ) ].id ];
-                    int bfr = block_id_casts_shadow[ this->blocks[ get_index_from_coords( xplus, yminus, zplus ) ].id ];
-                    int bbr = block_id_casts_shadow[ this->blocks[ get_index_from_coords( xplus, yminus, zminus ) ].id ];
-                    if ( visible_from[ FACE_TOP ] && can_be_shaded ) {
-
-                        int top_tfr = ( tf && tr ? 3 : ( tf + tr + tfr ) ) + t;
-                        int top_tfl = ( tf && tl ? 3 : ( tf + tl + tfl ) ) + t;
-                        int top_tbr = ( tba && tr ? 3 : ( tba + tr + tbr ) ) + t;
-                        int top_tbl = ( tba && tl ? 3 : ( tba + tl + tbl ) ) + t;
-                        top_tfr = top_tfr > 3 ? 3 : top_tfr;
-                        top_tfl = top_tfl > 3 ? 3 : top_tfl;
-                        top_tbr = top_tbr > 3 ? 3 : top_tbr;
-                        top_tbl = top_tbl > 3 ? 3 : top_tbl;
-                        int tcc = min( top_tfr, top_tfl, top_tbr, top_tbl );
-                        int tavg = ( top_tfr + top_tfl + top_tbr + top_tbl ) / 4;
-                        workingSpace[ index ].packed_lighting[ FACE_TOP ] =                         //
-                            ( ( top_tfr << CORNER_OFFSET_tfr ) | ( top_tfl << CORNER_OFFSET_tfl ) | //
-                              ( top_tbr << CORNER_OFFSET_tbr ) | ( top_tbl << CORNER_OFFSET_tbl ) | //
-                              tcc << CORNER_OFFSET_c | //
-                              tavg << CORNER_OFFSET_avg );
-                    } else {
-                        workingSpace[ index ].packed_lighting[ FACE_TOP ] = block->no_light;
-                    }
-                    if ( visible_from[ FACE_BOTTOM ] && can_be_shaded ) {
-
-                        int bottom_bfr = ( bof && bor ? 3 : ( bof + bor + bfr ) ) + bo;
-                        int bottom_bfl = ( bof && bol ? 3 : ( bof + bol + bfl ) ) + bo;
-                        int bottom_bbr = ( boba && bor ? 3 : ( boba + bor + bbr ) ) + bo;
-                        int bottom_bbl = ( boba && bol ? 3 : ( boba + bol + bbl ) ) + bo;
-                        bottom_bfr = bottom_bfr > 3 ? 3 : bottom_bfr;
-                        bottom_bfl = bottom_bfl > 3 ? 3 : bottom_bfl;
-                        bottom_bbr = bottom_bbr > 3 ? 3 : bottom_bbr;
-                        bottom_bbl = bottom_bbl > 3 ? 3 : bottom_bbl;
-                        int bcc = min( bottom_bfr, bottom_bfl, bottom_bbr, bottom_bbl );
-                        int bavg = ( bottom_bfr + bottom_bfl + bottom_bbr + bottom_bbl ) / 4;
-                        workingSpace[ index ].packed_lighting[ FACE_BOTTOM ] =                            //
-                            ( ( bottom_bfr << CORNER_OFFSET_bfr ) | ( bottom_bfl << CORNER_OFFSET_bfl ) | //
-                              ( bottom_bbr << CORNER_OFFSET_bbr ) | ( bottom_bbl << CORNER_OFFSET_bbl ) | //
-                              bcc << CORNER_OFFSET_c | //
-                              bavg << CORNER_OFFSET_avg );
-                    } else {
-                        workingSpace[ index ].packed_lighting[ FACE_BOTTOM ] = block->no_light;
-                    }
-                    if ( visible_from[ FACE_FRONT ] && can_be_shaded ) {
-                        int front_tfr = ( tf && fr ? 3 : ( tf + fr + tfr ) ) + f;
-                        int front_tfl = ( tf && fl ? 3 : ( tf + fl + tfl ) ) + f;
-                        int front_bfr = ( bof && fr ? 3 : ( bof + fr + bfr ) ) + f;
-                        int front_bfl = ( bof && fl ? 3 : ( bof + fl + bfl ) ) + f;
-                        front_tfr = front_tfr > 3 ? 3 : front_tfr;
-                        front_tfl = front_tfl > 3 ? 3 : front_tfl;
-                        front_bfr = front_bfr > 3 ? 3 : front_bfr;
-                        front_bfl = front_bfl > 3 ? 3 : front_bfl;
-                        int cfc = min( front_tfr, front_tfl, front_bfr, front_bfl );
-                        int favg = ( front_tfr + front_tfl + front_bfr + front_bfl ) / 4;
-                        workingSpace[ index ].packed_lighting[ FACE_FRONT ] =                           //
-                            ( ( front_tfr << CORNER_OFFSET_tfr ) | ( front_tfl << CORNER_OFFSET_tfl ) | //
-                              ( front_bfr << CORNER_OFFSET_bfr ) | ( front_bfl << CORNER_OFFSET_bfl ) | //
-                              cfc << CORNER_OFFSET_c | //
-                              favg << CORNER_OFFSET_avg );
-                    } else {
-                        workingSpace[ index ].packed_lighting[ FACE_FRONT ] = block->no_light;
-                    }
-                    if ( visible_from[ FACE_BACK ] && can_be_shaded ) {
-                        int back_tbr = ( tba && bar ? 3 : ( tba + bar + tbr ) ) + ba;
-                        int back_tbl = ( tba && bal ? 3 : ( tba + bal + tbl ) ) + ba;
-                        int back_bbr = ( boba && bar ? 3 : ( boba + bar + bbr ) ) + ba;
-                        int back_bbl = ( boba && bal ? 3 : ( boba + bal + bbl ) ) + ba;
-                        back_tbr = back_tbr > 3 ? 3 : back_tbr;
-                        back_tbl = back_tbl > 3 ? 3 : back_tbl;
-                        back_bbr = back_bbr > 3 ? 3 : back_bbr;
-                        back_bbl = back_bbl > 3 ? 3 : back_bbl;
-                        int cbc = min( back_tbr, back_tbl, back_bbr, back_bbl );
-                        int baavg = ( back_tbr + back_tbl + back_bbr + back_bbl ) / 4;
-                        workingSpace[ index ].packed_lighting[ FACE_BACK ] =                          //
-                            ( ( back_tbr << CORNER_OFFSET_tbr ) | ( back_tbl << CORNER_OFFSET_tbl ) | //
-                              ( back_bbr << CORNER_OFFSET_bbr ) | ( back_bbl << CORNER_OFFSET_bbl ) | //
-                              cbc << CORNER_OFFSET_c | //
-                              baavg << CORNER_OFFSET_avg );
-                    } else {
-                        workingSpace[ index ].packed_lighting[ FACE_BACK ] = block->no_light;
-                    }
-                    if ( visible_from[ FACE_RIGHT ] && can_be_shaded ) {
-                        int right_tfr = ( tr && fr ? 3 : ( tr + fr + tfr ) ) + r;
-                        int right_tbr = ( tr && bar ? 3 : ( tr + bar + tbr ) ) + r;
-                        int right_bfr = ( bor && fr ? 3 : ( bor + fr + bfr ) ) + r;
-                        int right_bbr = ( bor && bar ? 3 : ( bor + bar + bbr ) ) + r;
-                        right_tfr = right_tfr > 3 ? 3 : right_tfr;
-                        right_tbr = right_tbr > 3 ? 3 : right_tbr;
-                        right_bfr = right_bfr > 3 ? 3 : right_bfr;
-                        right_bbr = right_bbr > 3 ? 3 : right_bbr;
-                        int ccr = min( right_tfr, right_tbr, right_bfr, right_bbr );
-                        int ravg = ( right_tfr + right_tbr + right_bfr + right_bbr ) / 4;
-                        workingSpace[ index ].packed_lighting[ FACE_RIGHT ] =                           //
-                            ( ( right_tfr << CORNER_OFFSET_tfr ) | ( right_tbr << CORNER_OFFSET_tbr ) | //
-                              ( right_bfr << CORNER_OFFSET_bfr ) | ( right_bbr << CORNER_OFFSET_bbr ) | //
-                              ccr << CORNER_OFFSET_c | //
-                              ravg << CORNER_OFFSET_avg );
-                    } else {
-                        workingSpace[ index ].packed_lighting[ FACE_RIGHT ] = block->no_light;
-                    }
-                    if ( visible_from[ FACE_LEFT ] && can_be_shaded ) {
-                        int left_tfl = ( tl && fl ? 3 : ( tl + fl + tfl ) ) + l;
-                        int left_tbl = ( tl && bal ? 3 : ( tl + bal + tbl ) ) + l;
-                        int left_bfl = ( bol && fl ? 3 : ( bol + fl + bfl ) ) + l;
-                        int left_bbl = ( bol && bal ? 3 : ( bol + bal + bbl ) ) + l;
-                        left_tfl = left_tfl > 3 ? 3 : left_tfl;
-                        left_tbl = left_tbl > 3 ? 3 : left_tbl;
-                        left_bfl = left_bfl > 3 ? 3 : left_bfl;
-                        left_bbl = left_bbl > 3 ? 3 : left_bbl;
-                        int ccl = min( left_tfl, left_tbl, left_bfl, left_bbl );
-                        int lavg = ( left_tfl + left_tbl + left_bfl + left_bbl ) / 4;
-                        workingSpace[ index ].packed_lighting[ FACE_LEFT ] =                          //
-                            ( ( left_tfl << CORNER_OFFSET_tfl ) | ( left_tbl << CORNER_OFFSET_tbl ) | //
-                              ( left_bfl << CORNER_OFFSET_bfl ) | ( left_bbl << CORNER_OFFSET_bbl ) | //
-                              ccl << CORNER_OFFSET_c | //
-                              lavg << CORNER_OFFSET_avg );
-                    } else {
-                        workingSpace[ index ].packed_lighting[ FACE_LEFT ] = block->no_light;
+                    // Per-vertex corner AO removed: the flood-fill light
+                    // volume already darkens crevices, so visible faces are
+                    // packed as fully lit (NO_LIGHT_BRIGHT). Hidden faces keep
+                    // the block's no_light sentinel (NO_LIGHT_NO_DRAW clips the
+                    // quad in the shader; leaf interiors use NO_LIGHT_DRAW).
+                    const unsigned int lit = render_order_can_be_shaded( block->renderOrder ) ? NO_LIGHT_BRIGHT : block->no_light;
+                    for ( int i = 0; i < NUM_FACES_IN_CUBE; i++ ) {
+                        workingSpace[ index ].packed_lighting[ i ] = visible_from[ i ] ? lit : block->no_light;
                     }
                 }
                 workingSpace[ index ].can_be_seen = block_is_visiable;
@@ -1182,6 +1020,11 @@ void Chunk::calculate_populated_blocks( ) {
 #if TERRAIN_GEN_PROFILING
     t_phase2 = now_us( ) - t_ph1;
     profiling_mesh_greedy_us.fetch_add( t_phase2, std::memory_order_relaxed );
+    long long total_instances = 0;
+    for ( int renderOrder = 0; renderOrder < LAST_RENDER_ORDER; renderOrder++ ) {
+        total_instances += num_instances[ renderOrder ];
+    }
+    profiling_instance_count.fetch_add( total_instances, std::memory_order_relaxed );
 #endif
 
     if constexpr ( !REMEMBER_BLOCKS ) {

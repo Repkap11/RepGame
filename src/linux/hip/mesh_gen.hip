@@ -28,18 +28,6 @@ __device__ static constexpr int ROTATED_FACE_TABLE_D[ 4 ][ 6 ] = {
     { 0, 1, 3, 4, 5, 2 }, // rotation 3
 };
 
-// CORNER_OFFSET constants (from constants.hpp)
-#define CORNER_OFFSET_tfl_D 0
-#define CORNER_OFFSET_tfr_D 2
-#define CORNER_OFFSET_tbl_D 4
-#define CORNER_OFFSET_tbr_D 6
-#define CORNER_OFFSET_bfl_D 8
-#define CORNER_OFFSET_bfr_D 10
-#define CORNER_OFFSET_bbl_D 12
-#define CORNER_OFFSET_bbr_D 14
-#define CORNER_OFFSET_c_D 16
-#define CORNER_OFFSET_avg_D 21
-
 // RenderOrder enum values (from render_order.hpp)
 #define RENDER_ORDER_TRANSPARENT 0
 #define RENDER_ORDER_TRANSLUCENT 1
@@ -49,12 +37,6 @@ __device__ static constexpr int ROTATED_FACE_TABLE_D[ 4 ][ 6 ] = {
 
 __device__ static inline int get_index_from_coords_d( int x, int y, int z ) {
     return ( y + 1 ) * CHUNK_SIZE_INTERNAL_X * CHUNK_SIZE_INTERNAL_Z + ( x + 1 ) * CHUNK_SIZE_INTERNAL_Z + ( z + 1 );
-}
-
-__device__ static inline int min4_d( const int a, const int b, const int c, const int d ) {
-    const int diag1 = ( a ) + ( d );
-    const int diag2 = ( b ) + ( c );
-    return ( diag1 < diag2 ? diag1 : diag2 );
 }
 
 // Mirror of face_is_seethrough in chunk.cpp: a powered piston base recesses
@@ -71,7 +53,6 @@ __device__ static inline int face_is_seethrough_d( const GPUBlockDef &block, con
 
 __global__ void hip_calculate_mesh_kernel( const BlockState *blocks,
                                             const GPUBlockDef *block_defs,
-                                            const int *casts_shadow,
                                             MeshResult *results ) {
     int index = blockIdx.x * blockDim.x + threadIdx.x;
     if ( index < CHUNK_BLOCK_DRAW_START || index >= CHUNK_BLOCK_DRAW_STOP )
@@ -141,155 +122,13 @@ __global__ void hip_calculate_mesh_kernel( const BlockState *blocks,
     // render_order_can_be_shaded: Opaque or Translucent
     int can_be_shaded = ( block.renderOrder == RENDER_ORDER_OPAQUE || block.renderOrder == RENDER_ORDER_TRANSLUCENT );
 
-    int xplus = x + 1, xminus = x - 1;
-    int yplus = y + 1, yminus = y - 1;
-    int zplus = z + 1, zminus = z - 1;
-
-    int t = casts_shadow[ blocks[ get_index_from_coords_d( x, yplus, z ) ].id ];
-    int bo = casts_shadow[ blocks[ get_index_from_coords_d( x, yminus, z ) ].id ];
-    int f = casts_shadow[ blocks[ get_index_from_coords_d( x, y, zplus ) ].id ];
-    int ba = casts_shadow[ blocks[ get_index_from_coords_d( x, y, zminus ) ].id ];
-    int r = casts_shadow[ blocks[ get_index_from_coords_d( xplus, y, z ) ].id ];
-    int l = casts_shadow[ blocks[ get_index_from_coords_d( xminus, y, z ) ].id ];
-
-    int tl = casts_shadow[ blocks[ get_index_from_coords_d( xminus, yplus, z ) ].id ];
-    int tr = casts_shadow[ blocks[ get_index_from_coords_d( xplus, yplus, z ) ].id ];
-    int tf = casts_shadow[ blocks[ get_index_from_coords_d( x, yplus, zplus ) ].id ];
-    int tba = casts_shadow[ blocks[ get_index_from_coords_d( x, yplus, zminus ) ].id ];
-
-    int bol = casts_shadow[ blocks[ get_index_from_coords_d( xminus, yminus, z ) ].id ];
-    int bor = casts_shadow[ blocks[ get_index_from_coords_d( xplus, yminus, z ) ].id ];
-    int bof = casts_shadow[ blocks[ get_index_from_coords_d( x, yminus, zplus ) ].id ];
-    int boba = casts_shadow[ blocks[ get_index_from_coords_d( x, yminus, zminus ) ].id ];
-
-    int fl = casts_shadow[ blocks[ get_index_from_coords_d( xminus, y, zplus ) ].id ];
-    int bal = casts_shadow[ blocks[ get_index_from_coords_d( xminus, y, zminus ) ].id ];
-    int fr = casts_shadow[ blocks[ get_index_from_coords_d( xplus, y, zplus ) ].id ];
-    int bar = casts_shadow[ blocks[ get_index_from_coords_d( xplus, y, zminus ) ].id ];
-
-    int tfl = casts_shadow[ blocks[ get_index_from_coords_d( xminus, yplus, zplus ) ].id ];
-    int tbl = casts_shadow[ blocks[ get_index_from_coords_d( xminus, yplus, zminus ) ].id ];
-    int tfr = casts_shadow[ blocks[ get_index_from_coords_d( xplus, yplus, zplus ) ].id ];
-    int tbr = casts_shadow[ blocks[ get_index_from_coords_d( xplus, yplus, zminus ) ].id ];
-
-    int bfl = casts_shadow[ blocks[ get_index_from_coords_d( xminus, yminus, zplus ) ].id ];
-    int bbl = casts_shadow[ blocks[ get_index_from_coords_d( xminus, yminus, zminus ) ].id ];
-    int bfr = casts_shadow[ blocks[ get_index_from_coords_d( xplus, yminus, zplus ) ].id ];
-    int bbr = casts_shadow[ blocks[ get_index_from_coords_d( xplus, yminus, zminus ) ].id ];
-
-    if ( visible_from[ FACE_TOP_D ] && can_be_shaded ) {
-        int top_tfr = ( tf && tr ? 3 : ( tf + tr + tfr ) ) + t;
-        int top_tfl = ( tf && tl ? 3 : ( tf + tl + tfl ) ) + t;
-        int top_tbr = ( tba && tr ? 3 : ( tba + tr + tbr ) ) + t;
-        int top_tbl = ( tba && tl ? 3 : ( tba + tl + tbl ) ) + t;
-        top_tfr = top_tfr > 3 ? 3 : top_tfr;
-        top_tfl = top_tfl > 3 ? 3 : top_tfl;
-        top_tbr = top_tbr > 3 ? 3 : top_tbr;
-        top_tbl = top_tbl > 3 ? 3 : top_tbl;
-        int tcc = min4_d( top_tfr, top_tfl, top_tbr, top_tbl );
-        int tavg = ( top_tfr + top_tfl + top_tbr + top_tbl ) / 4;
-        results[ index ].packed_lighting[ FACE_TOP_D ] =
-            ( ( top_tfr << CORNER_OFFSET_tfr_D ) | ( top_tfl << CORNER_OFFSET_tfl_D ) |
-              ( top_tbr << CORNER_OFFSET_tbr_D ) | ( top_tbl << CORNER_OFFSET_tbl_D ) |
-              tcc << CORNER_OFFSET_c_D |
-              tavg << CORNER_OFFSET_avg_D );
-    } else {
-        results[ index ].packed_lighting[ FACE_TOP_D ] = block.no_light;
-    }
-    if ( visible_from[ FACE_BOTTOM_D ] && can_be_shaded ) {
-        int bottom_bfr = ( bof && bor ? 3 : ( bof + bor + bfr ) ) + bo;
-        int bottom_bfl = ( bof && bol ? 3 : ( bof + bol + bfl ) ) + bo;
-        int bottom_bbr = ( boba && bor ? 3 : ( boba + bor + bbr ) ) + bo;
-        int bottom_bbl = ( boba && bol ? 3 : ( boba + bol + bbl ) ) + bo;
-        bottom_bfr = bottom_bfr > 3 ? 3 : bottom_bfr;
-        bottom_bfl = bottom_bfl > 3 ? 3 : bottom_bfl;
-        bottom_bbr = bottom_bbr > 3 ? 3 : bottom_bbr;
-        bottom_bbl = bottom_bbl > 3 ? 3 : bottom_bbl;
-        int bcc = min4_d( bottom_bfr, bottom_bfl, bottom_bbr, bottom_bbl );
-        int bavg = ( bottom_bfr + bottom_bfl + bottom_bbr + bottom_bbl ) / 4;
-        results[ index ].packed_lighting[ FACE_BOTTOM_D ] =
-            ( ( bottom_bfr << CORNER_OFFSET_bfr_D ) | ( bottom_bfl << CORNER_OFFSET_bfl_D ) |
-              ( bottom_bbr << CORNER_OFFSET_bbr_D ) | ( bottom_bbl << CORNER_OFFSET_bbl_D ) |
-              bcc << CORNER_OFFSET_c_D |
-              bavg << CORNER_OFFSET_avg_D );
-    } else {
-        results[ index ].packed_lighting[ FACE_BOTTOM_D ] = block.no_light;
-    }
-    if ( visible_from[ FACE_FRONT_D ] && can_be_shaded ) {
-        int front_tfr = ( tf && fr ? 3 : ( tf + fr + tfr ) ) + f;
-        int front_tfl = ( tf && fl ? 3 : ( tf + fl + tfl ) ) + f;
-        int front_bfr = ( bof && fr ? 3 : ( bof + fr + bfr ) ) + f;
-        int front_bfl = ( bof && fl ? 3 : ( bof + fl + bfl ) ) + f;
-        front_tfr = front_tfr > 3 ? 3 : front_tfr;
-        front_tfl = front_tfl > 3 ? 3 : front_tfl;
-        front_bfr = front_bfr > 3 ? 3 : front_bfr;
-        front_bfl = front_bfl > 3 ? 3 : front_bfl;
-        int cfc = min4_d( front_tfr, front_tfl, front_bfr, front_bfl );
-        int favg = ( front_tfr + front_tfl + front_bfr + front_bfl ) / 4;
-        results[ index ].packed_lighting[ FACE_FRONT_D ] =
-            ( ( front_tfr << CORNER_OFFSET_tfr_D ) | ( front_tfl << CORNER_OFFSET_tfl_D ) |
-              ( front_bfr << CORNER_OFFSET_bfr_D ) | ( front_bfl << CORNER_OFFSET_bfl_D ) |
-              cfc << CORNER_OFFSET_c_D |
-              favg << CORNER_OFFSET_avg_D );
-    } else {
-        results[ index ].packed_lighting[ FACE_FRONT_D ] = block.no_light;
-    }
-    if ( visible_from[ FACE_BACK_D ] && can_be_shaded ) {
-        int back_tbr = ( tba && bar ? 3 : ( tba + bar + tbr ) ) + ba;
-        int back_tbl = ( tba && bal ? 3 : ( tba + bal + tbl ) ) + ba;
-        int back_bbr = ( boba && bar ? 3 : ( boba + bar + bbr ) ) + ba;
-        int back_bbl = ( boba && bal ? 3 : ( boba + bal + bbl ) ) + ba;
-        back_tbr = back_tbr > 3 ? 3 : back_tbr;
-        back_tbl = back_tbl > 3 ? 3 : back_tbl;
-        back_bbr = back_bbr > 3 ? 3 : back_bbr;
-        back_bbl = back_bbl > 3 ? 3 : back_bbl;
-        int cbc = min4_d( back_tbr, back_tbl, back_bbr, back_bbl );
-        int baavg = ( back_tbr + back_tbl + back_bbr + back_bbl ) / 4;
-        results[ index ].packed_lighting[ FACE_BACK_D ] =
-            ( ( back_tbr << CORNER_OFFSET_tbr_D ) | ( back_tbl << CORNER_OFFSET_tbl_D ) |
-              ( back_bbr << CORNER_OFFSET_bbr_D ) | ( back_bbl << CORNER_OFFSET_bbl_D ) |
-              cbc << CORNER_OFFSET_c_D |
-              baavg << CORNER_OFFSET_avg_D );
-    } else {
-        results[ index ].packed_lighting[ FACE_BACK_D ] = block.no_light;
-    }
-    if ( visible_from[ FACE_RIGHT_D ] && can_be_shaded ) {
-        int right_tfr = ( tr && fr ? 3 : ( tr + fr + tfr ) ) + r;
-        int right_tbr = ( tr && bar ? 3 : ( tr + bar + tbr ) ) + r;
-        int right_bfr = ( bor && fr ? 3 : ( bor + fr + bfr ) ) + r;
-        int right_bbr = ( bor && bar ? 3 : ( bor + bar + bbr ) ) + r;
-        right_tfr = right_tfr > 3 ? 3 : right_tfr;
-        right_tbr = right_tbr > 3 ? 3 : right_tbr;
-        right_bfr = right_bfr > 3 ? 3 : right_bfr;
-        right_bbr = right_bbr > 3 ? 3 : right_bbr;
-        int ccr = min4_d( right_tfr, right_tbr, right_bfr, right_bbr );
-        int ravg = ( right_tfr + right_tbr + right_bfr + right_bbr ) / 4;
-        results[ index ].packed_lighting[ FACE_RIGHT_D ] =
-            ( ( right_tfr << CORNER_OFFSET_tfr_D ) | ( right_tbr << CORNER_OFFSET_tbr_D ) |
-              ( right_bfr << CORNER_OFFSET_bfr_D ) | ( right_bbr << CORNER_OFFSET_bbr_D ) |
-              ccr << CORNER_OFFSET_c_D |
-              ravg << CORNER_OFFSET_avg_D );
-    } else {
-        results[ index ].packed_lighting[ FACE_RIGHT_D ] = block.no_light;
-    }
-    if ( visible_from[ FACE_LEFT_D ] && can_be_shaded ) {
-        int left_tfl = ( tl && fl ? 3 : ( tl + fl + tfl ) ) + l;
-        int left_tbl = ( tl && bal ? 3 : ( tl + bal + tbl ) ) + l;
-        int left_bfl = ( bol && fl ? 3 : ( bol + fl + bfl ) ) + l;
-        int left_bbl = ( bol && bal ? 3 : ( bol + bal + bbl ) ) + l;
-        left_tfl = left_tfl > 3 ? 3 : left_tfl;
-        left_tbl = left_tbl > 3 ? 3 : left_tbl;
-        left_bfl = left_bfl > 3 ? 3 : left_bfl;
-        left_bbl = left_bbl > 3 ? 3 : left_bbl;
-        int ccl = min4_d( left_tfl, left_tbl, left_bfl, left_bbl );
-        int lavg = ( left_tfl + left_tbl + left_bfl + left_bbl ) / 4;
-        results[ index ].packed_lighting[ FACE_LEFT_D ] =
-            ( ( left_tfl << CORNER_OFFSET_tfl_D ) | ( left_tbl << CORNER_OFFSET_tbl_D ) |
-              ( left_bfl << CORNER_OFFSET_bfl_D ) | ( left_bbl << CORNER_OFFSET_bbl_D ) |
-              ccl << CORNER_OFFSET_c_D |
-              lavg << CORNER_OFFSET_avg_D );
-    } else {
-        results[ index ].packed_lighting[ FACE_LEFT_D ] = block.no_light;
+    // Per-vertex corner AO removed: the flood-fill light volume already
+    // darkens crevices, so visible faces are packed as fully lit
+    // (NO_LIGHT_BRIGHT = 0). Hidden faces keep the block's no_light sentinel
+    // (NO_LIGHT_NO_DRAW clips the quad in the shader).
+    unsigned int lit = can_be_shaded ? 0u : ( unsigned int )block.no_light;
+    for ( int i = 0; i < 6; i++ ) {
+        results[ index ].packed_lighting[ i ] = visible_from[ i ] ? lit : ( unsigned int )block.no_light;
     }
 
     results[ index ].can_be_seen = block_is_visiable;
@@ -297,7 +136,6 @@ __global__ void hip_calculate_mesh_kernel( const BlockState *blocks,
 
 // Static device buffers (initialized once, shared across all threads via single GPU device)
 static GPUBlockDef *d_block_defs = nullptr;
-static int *d_casts_shadow = nullptr;
 static bool mesh_gen_initialized = false;
 static std::mutex mesh_gen_init_mutex;
 
@@ -324,7 +162,6 @@ bool mesh_gen_init_hip( ) {
 
         // Upload compact block definitions
         GPUBlockDef *host_defs = new GPUBlockDef[ LAST_BLOCK_ID ];
-        int *host_shadow = new int[ LAST_BLOCK_ID ];
         for ( int i = 0; i < LAST_BLOCK_ID; i++ ) {
             host_defs[ i ].renderOrder = block_definitions[ i ].renderOrder;
             host_defs[ i ].no_light = block_definitions[ i ].no_light;
@@ -334,16 +171,12 @@ bool mesh_gen_init_hip( ) {
                 host_defs[ i ].is_seethrough_face[ j ] = block_definitions[ i ].calculated.is_seethrough_face[ j ];
                 host_defs[ i ].hides_self[ j ] = block_definitions[ i ].calculated.hides_self[ j ];
             }
-            host_shadow[ i ] = block_definitions[ i ].casts_shadow ? 1 : 0;
         }
 
         HIP_CHECK( hipMalloc( &d_block_defs, LAST_BLOCK_ID * sizeof( GPUBlockDef ) ) );
         HIP_CHECK( hipMemcpy( d_block_defs, host_defs, LAST_BLOCK_ID * sizeof( GPUBlockDef ), hipMemcpyHostToDevice ) );
-        HIP_CHECK( hipMalloc( &d_casts_shadow, LAST_BLOCK_ID * sizeof( int ) ) );
-        HIP_CHECK( hipMemcpy( d_casts_shadow, host_shadow, LAST_BLOCK_ID * sizeof( int ), hipMemcpyHostToDevice ) );
 
         delete[] host_defs;
-        delete[] host_shadow;
 
         mesh_gen_initialized = true;
     }
@@ -368,7 +201,7 @@ bool mesh_gen_calculate_hip( const BlockState *blocks, WorkingSpace *workingSpac
 
     // Launch kernel
     int num_blocks = ( CHUNK_BLOCK_SIZE + MESH_THREADS_PER_BLOCK - 1 ) / MESH_THREADS_PER_BLOCK;
-    hip_calculate_mesh_kernel<<<num_blocks, MESH_THREADS_PER_BLOCK>>>( d_blocks, d_block_defs, d_casts_shadow, d_results );
+    hip_calculate_mesh_kernel<<<num_blocks, MESH_THREADS_PER_BLOCK>>>( d_blocks, d_block_defs, d_results );
 
     // Wait for kernel to complete before reading back
     HIP_CHECK( hipDeviceSynchronize( ) );
