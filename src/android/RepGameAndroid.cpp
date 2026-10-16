@@ -232,4 +232,8 @@ JNIEXPORT jint JNICALL Java_com_repkap11_repgame_RepGameJNIWrapper_getGameMode( 
     return ( jint )repgame.getGameMode( );
 }
 
+JNIEXPORT jboolean JNICALL Java_com_repkap11_repgame_RepGameJNIWrapper_isInventoryOpen( JNIEnv *env, jobject obj ) {
+    return repgame.getInputState( ).inventory_open ? JNI_TRUE : JNI_FALSE;
+}
+
 } // End Extern C

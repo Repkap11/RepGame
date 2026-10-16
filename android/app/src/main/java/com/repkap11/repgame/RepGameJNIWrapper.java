@@ -41,4 +41,6 @@ class RepGameJNIWrapper {
 
     public static native int getGameMode();
 
+    public static native boolean isInventoryOpen();
+
 }

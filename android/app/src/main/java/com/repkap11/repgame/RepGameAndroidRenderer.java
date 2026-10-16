@@ -98,6 +98,10 @@ public class RepGameAndroidRenderer implements GLSurfaceView.Renderer {
         return RepGameJNIWrapper.getGameMode();
     }
 
+    public boolean isInventoryOpen() {
+        return RepGameJNIWrapper.isInventoryOpen();
+    }
+
 
     public void onDestroy() {
         RepGameJNIWrapper.onSurfaceDestroyed();

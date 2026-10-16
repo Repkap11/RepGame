@@ -20,6 +20,7 @@ public class UIOverlayView extends View implements View.OnTouchListener {
     // so it grows past 10% of the real height on wide displays. All buttons are
     // placed above that strip so hotbar slots stay tappable.
     private static final float HOTBAR_MAX_HEIGHT_PERCENT = 0.10f;
+    private static final long INVENTORY_SYNC_INTERVAL_MS = 100;
 
     private final Paint mButtonPaint;
     private final Paint mPressedPaint;
@@ -35,6 +36,9 @@ public class UIOverlayView extends View implements View.OnTouchListener {
     int mMouseMiddlePointerId = -1;
     int mMouseRightPointerId = -1;
     int mInventoryTouchPointerId = -1;
+    // Last drawn inventory state. The game owns the real flag (chests open and
+    // close it without a button press), so this is only a mirror used to detect
+    // when the overlay needs a redraw; isInventoryOpen() reads the live value.
     private boolean mInventoryOpen = false;
     private RepGameAndroidRenderer mRenderWrapper;
     private int mMoveX;
@@ -101,7 +105,7 @@ public class UIOverlayView extends View implements View.OnTouchListener {
     @Override
     protected void onDraw(Canvas canvas) {
         super.onDraw(canvas);
-        if (mInventoryOpen) {
+        if (isInventoryOpen()) {
             drawButton(canvas, mInventoryX, mInventoryY, mInventoryRadius, "Close", false);
             boolean creative = mRenderWrapper.getGameMode() == 0;
             drawButton(canvas, mModeX, mModeY, mModeRadius, creative ? "Creative" : "Survival", false);
@@ -175,13 +179,40 @@ public class UIOverlayView extends View implements View.OnTouchListener {
     }
 
     public boolean isInventoryOpen() {
-        return mInventoryOpen;
+        return mRenderWrapper != null && mRenderWrapper.isInventoryOpen();
     }
 
     public void closeInventory() {
-        if (mInventoryOpen) {
+        if (isInventoryOpen()) {
             handleInventoryButton();
         }
+    }
+
+    // The game opens/closes the inventory on its own (chest interactions,
+    // death, walking out of a chest's reach), so poll the authoritative flag
+    // and redraw the controls when it changes under us.
+    private final Runnable mInventorySyncRunnable = new Runnable() {
+        @Override
+        public void run() {
+            boolean open = isInventoryOpen();
+            if (open != mInventoryOpen) {
+                mInventoryOpen = open;
+                invalidate();
+            }
+            postDelayed(this, INVENTORY_SYNC_INTERVAL_MS);
+        }
+    };
+
+    @Override
+    protected void onAttachedToWindow() {
+        super.onAttachedToWindow();
+        post(mInventorySyncRunnable);
+    }
+
+    @Override
+    protected void onDetachedFromWindow() {
+        removeCallbacks(mInventorySyncRunnable);
+        super.onDetachedFromWindow();
     }
 
     private boolean withinCircle(MotionEvent event, int pointerIndex, int cx, int cy, int radius) {
@@ -199,7 +230,7 @@ public class UIOverlayView extends View implements View.OnTouchListener {
         switch (event.getActionMasked()) {
             case MotionEvent.ACTION_DOWN:
             case MotionEvent.ACTION_POINTER_DOWN:
-                if (mInventoryOpen) {
+                if (isInventoryOpen()) {
                     boolean creative = mRenderWrapper.getGameMode() == 0;
                     if (withinCircle(event, actionIndex, mInventoryX, mInventoryY, mInventoryRadius)) {
                         handleInventoryButton();
@@ -315,8 +346,8 @@ public class UIOverlayView extends View implements View.OnTouchListener {
     }
 
     private void handleInventoryButton() {
-        mInventoryOpen = !mInventoryOpen;
         mRenderWrapper.onInventoryClicked();
+        mInventoryOpen = isInventoryOpen();
         invalidate();
     }
 
