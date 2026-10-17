@@ -13,21 +13,21 @@
 #define CROSSHAIR_COLOR { 0, 0 }
 
 constexpr UIOverlayVertex vb_data_crosshair_element[ UI_OVERLAY_VERTEX_COUNT_CROSSHAIR ] = {
-    { -SCALE * WIDTH, -WIDTH, { 0, 0 }, 0, ISO_FACE_TOP }, // 0
-    { -SCALE * WIDTH, WIDTH, { 0, 0 }, 0, ISO_FACE_TOP },  // 1
-    { SCALE * WIDTH, -WIDTH, { 0, 0 }, 0, ISO_FACE_TOP },  // 2
-    { SCALE * WIDTH, WIDTH, { 0, 0 }, 0, ISO_FACE_TOP },   // 3
+    { -SCALE * WIDTH, -WIDTH, { 0, 0 }, 0, ISO_FACE_TOP, { 0, 0, 0 } }, // 0
+    { -SCALE * WIDTH, WIDTH, { 0, 0 }, 0, ISO_FACE_TOP, { 0, 0, 0 } },  // 1
+    { SCALE * WIDTH, -WIDTH, { 0, 0 }, 0, ISO_FACE_TOP, { 0, 0, 0 } },  // 2
+    { SCALE * WIDTH, WIDTH, { 0, 0 }, 0, ISO_FACE_TOP, { 0, 0, 0 } },   // 3
 
-    { -WIDTH, -SCALE *WIDTH, { 0, 0 }, 0, ISO_FACE_TOP }, // 4
-    { -WIDTH, SCALE *WIDTH, { 0, 0 }, 0, ISO_FACE_TOP },  // 5
-    { WIDTH, -SCALE *WIDTH, { 0, 0 }, 0, ISO_FACE_TOP },  // 6
-    { WIDTH, SCALE *WIDTH, { 0, 0 }, 0, ISO_FACE_TOP },   // 7
+    { -WIDTH, -SCALE *WIDTH, { 0, 0 }, 0, ISO_FACE_TOP, { 0, 0, 0 } }, // 4
+    { -WIDTH, SCALE *WIDTH, { 0, 0 }, 0, ISO_FACE_TOP, { 0, 0, 0 } },  // 5
+    { WIDTH, -SCALE *WIDTH, { 0, 0 }, 0, ISO_FACE_TOP, { 0, 0, 0 } },  // 6
+    { WIDTH, SCALE *WIDTH, { 0, 0 }, 0, ISO_FACE_TOP, { 0, 0, 0 } },   // 7
 };
-constexpr UIOverlayInstance vb_data_crosshair_instance = { 0, 0, 0, 1, 1, 0, 0, { 0, 0, 0 }, { 1, 1, 1, 0.5f } };
+constexpr UIOverlayInstance vb_data_crosshair_instance = { 0, 0, 0, 1, 1, 0, 0, { 0, 0, 0 }, { 1, 1, 1, 0.5f }, { 0, 0, 0 }, { 0, 0, 0 }, { 0, 0, 0 } };
 
 float holding_alpha = 1.0f;
 
-UIOverlayInstance vb_data_holding_block_instance = { 0, 0, 0, 0, 0, 1, 0, { AIR, AIR, AIR }, { 1, 1, 1, holding_alpha } };
+UIOverlayInstance vb_data_holding_block_instance = { 0, 0, 0, 0, 0, 1, 0, { AIR, AIR, AIR }, { 1, 1, 1, holding_alpha }, { 0, 0, 0 }, { 0, 0, 0 }, { 0, 0, 0 } };
 
 int holding_block_vertex_face_map[] = {
     FACE_TOP,   FACE_TOP,   FACE_TOP,   FACE_TOP,

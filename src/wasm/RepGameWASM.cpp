@@ -44,7 +44,7 @@ extern "C" EMSCRIPTEN_KEEPALIVE void repgame_wasm_set_server( const char *url ) 
     snprintf( g_server_url, sizeof( g_server_url ), "%s", url ? url : "" );
 }
 
-extern "C" int main( int argc, char **argv ) {
+int main( int argc, char **argv ) {
     pr_debug( "Entering RepGameWASM Paul Main:%d", argc );
     const char *world_path = "repgame_wasm/World1";
     const char *server = g_server_url[ 0 ] ? g_server_url : NULL;

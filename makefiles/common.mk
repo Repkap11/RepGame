@@ -23,7 +23,7 @@ SHADER_PP := gcc -E -P -x assembler-with-cpp -nostdinc -I include
 SRC_COMMON := $(wildcard src/common/*.cpp) $(wildcard src/common/**/*.cpp) 
 SRC_IMGUI := imgui_build/backends/imgui_impl_sdl3.cpp $(wildcard imgui_build/imgui*.cpp)  imgui_build/backends/imgui_impl_opengl3.cpp
 SRC_ALL_C := $(wildcard src/**/*.cpp) $(wildcard src/**/**/*.cpp) $(wildcard src/**/*.cu) $(wildcard src/**/**/*.cu)
-INCLUDES_COMMON := -I include/ -I include/glm -I imgui_build -I imgui_build/backends -I entt_build/src
+INCLUDES_COMMON := -I include/ -I include/glm -I imgui_build -I imgui_build/backends -isystem entt_build/src
 HEADERS := $(wildcard include/**/*.hpp)
 BITMAP_BINS := $(patsubst bitmaps/%.bmp,out/bitmaps/%.bin,$(wildcard bitmaps/*.bmp))
 

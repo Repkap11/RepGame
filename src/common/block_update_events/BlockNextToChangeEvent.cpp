@@ -1,8 +1,6 @@
 #include <queue>
 #include <unordered_map>
 #include <vector>
-#define GLM_ENABLE_EXPERIMENTAL
-#include <glm/gtx/hash.hpp>
 
 #include "common/block_update_events/BlockNextToChangeEvent.hpp"
 #include "common/RepGame.hpp"

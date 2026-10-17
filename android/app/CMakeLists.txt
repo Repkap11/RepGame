@@ -1,4 +1,5 @@
 cmake_minimum_required(VERSION 3.4.1)
+project(RepGame)
 
 find_library( log-lib log )
 find_library( android-lib android )

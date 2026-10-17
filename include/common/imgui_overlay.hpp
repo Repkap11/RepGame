@@ -6,7 +6,7 @@ typedef struct {
 
 #include "RepGame.hpp"
 
-typedef struct {
+struct ImGuiDebugVars {
     glm::vec3 player_pos;
     // Day/night clock (see light.hpp) — displayed in the overlay.
     long world_time;
@@ -22,7 +22,7 @@ typedef struct {
     // Live instanced-particle counts, refreshed once per frame.
     int debris_particles;
     int primed_tnt;
-} ImGuiDebugVars;
+};
 
 #if ( defined( REPGAME_WINDOWS ) || defined( REPGAME_LINUX ) )
 #define SUPPORTS_IMGUI_OVERLAY 1
