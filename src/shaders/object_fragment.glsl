@@ -111,7 +111,7 @@ void main( ) {
             // sky color using alphaFog.
             finalColor.rgb = mix(finalColor.rgb, dynamicFogColor, colorFog);
             if(u_OpaqueFog == 1) {
-                fogFactor = vec4(0.0, 0.0, 0.0, alphaFog);
+                fogFactor = vec4(colorFog, 0.0, 0.0, alphaFog);
                 finalColor.a = 1.0;
             } else {
                 // Skip the alpha fade underwater — see the chunk shader: it
@@ -132,7 +132,7 @@ void main( ) {
         // MSAA-resolved edge pixels between sky and terrain have a high fog
         // factor, so the fullscreen shader blends them toward the sky color
         // instead of leaving a visible border.
-        fogFactor = vec4(0.0, 0.0, 0.0, 1.0);
+        fogFactor = vec4(1.0, 0.0, 0.0, 1.0);
     }
 
     // The sky color attachment captures the actual rendered sky for exact

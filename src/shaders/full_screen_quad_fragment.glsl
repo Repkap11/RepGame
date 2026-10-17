@@ -31,6 +31,9 @@ uniform mat4 u_InvMVP;
 uniform float u_OriginY;
 uniform vec2 u_OriginXZ;
 uniform vec3 u_CameraPos;
+// Chunk-shader fog color (sky average, daylight-scaled) for the reflection's
+// first fog stage.
+uniform vec3 u_FogColor;
 
 // Sea level water surface in absolute world Y: WATER_LEVEL(0) + WATER_HEIGHT - 1.
 const float SEA_SURFACE_Y = -0.125;
@@ -83,6 +86,15 @@ float fogFactorMultisample(ivec2 coord) {
     float fogMS = 0.0;
     for(int i = 0; i < u_TextureSamples; i++) {
         fogMS += texelFetch(u_FogTexture, coord, i).a;
+    }
+    fogMS /= float(u_TextureSamples);
+    return fogMS;
+}
+
+float colorFogMultisample(ivec2 coord) {
+    float fogMS = 0.0;
+    for(int i = 0; i < u_TextureSamples; i++) {
+        fogMS += texelFetch(u_FogTexture, coord, i).r;
     }
     fogMS /= float(u_TextureSamples);
     return fogMS;
@@ -219,7 +231,14 @@ void waterMain(ivec2 multiCoords) {
 
     vec3 reflColor;
     float reflAlpha;
-    if(abs(waterY - SEA_SURFACE_Y) < 0.06) {
+    // Sea-level test: the next possible fluid surface is a full block up (tops
+    // are always at integerY - 0.125), so 0.5 is the widest correct tolerance.
+    // It's deliberately generous: waterY comes from unprojecting a 24-bit
+    // hyperbolic depth, whose quantization error grows with distance^2 and
+    // exceeds a tight epsilon within the visible range — distant sea water
+    // would otherwise flip between the planar and SSR paths per pixel,
+    // striping the ocean with SSR-miss sky color along constant-depth lines.
+    if(abs(waterY - SEA_SURFACE_Y) < 0.5) {
         // Sea-level fluid: the mirrored-world pass is exact.
         vec4 r = reflectionMultisample(multiCoords + rip);
         reflColor = r.rgb;
@@ -233,8 +252,17 @@ void waterMain(ivec2 multiCoords) {
     // grazing reflections read as water rather than a neutral mirror.
     reflColor *= vec3(0.6f, 0.75f, 1.05f);
 
-    // Fade the reflection out near the fog edge (same factor as the old path).
+    // Fog the reflection through the same two stages as the water surface it
+    // sits on, so the fade matches MEDIUM (no reflections). Stage 1 (chunk
+    // shader): color -> sky average by colorFog over the first half of the
+    // fog range, while alphaFog is still 0 — without this the overlay drew
+    // unfogged reflections across that whole band. Stage 2 (composite):
+    // color -> sky attachment by pow(alphaFog, 0.5).
+    float fogC = colorFogMultisample(multiCoords);
     float fogF = fogFactorMultisample(multiCoords);
+    reflColor = mix(reflColor, u_FogColor, fogC);
+    vec3 fogTarget = (u_Underwater != 0) ? u_WaterFogColor : skyColorMultisample(multiCoords);
+    reflColor = mix(reflColor, fogTarget, clamp(pow(fogF, 0.5), 0.0, 1.0));
     float weight = reflAlpha * fresnel * u_ExtraAlpha * (1.0 - fogF);
 
     color = vec4(reflColor, weight);

@@ -399,6 +399,10 @@ void World::draw( const Texture &blocksTexture, const glm::mat4 &mvp, const glm:
     this->object_shader.set_uniform1i( "u_IsSky", 1 );
     // Sky uses mvp_sky (no view translation), so it must NOT be rebased.
     this->object_shader.set_uniform3f( "u_Origin", 0.0f, 0.0f, 0.0f );
+    // The sky is the backdrop: draw it with depth testing off so it leaves no
+    // depth and can never clip terrain, whatever the render distance. Terrain
+    // drawn next overwrites it wherever geometry exists (re-enabled below).
+    glDisable( GL_DEPTH_TEST );
     this->skyBox.draw( this->renderer, this->object_shader ); // Sky
 #if ( SUPPORTS_FRAME_BUFFER )
     if ( useFrameBuffer ) {
@@ -494,9 +498,13 @@ void World::draw( const Texture &blocksTexture, const glm::mat4 &mvp, const glm:
         this->object_shader.set_uniform_mat4f( "u_MVP", mvp_sky_reflect );
         this->object_shader.set_uniform1i( "u_IsSky", 1 );
         // Reflected sky: no view translation, so u_Origin = 0 and u_ReflectionHeight
-        // stays in absolute (unrebased) space.
+        // stays in absolute (unrebased) space. Drawn without depth testing for
+        // the same reason as the main sky pass: it's the backdrop reflected
+        // terrain draws over (the depth buffer was just cleared above).
         this->object_shader.set_uniform3f( "u_Origin", 0.0f, 0.0f, 0.0f );
+        glDisable( GL_DEPTH_TEST );
         this->skyBox.draw( this->renderer, this->object_shader ); // Reflected sky
+        glEnable( GL_DEPTH_TEST );
 
         this->object_shader.set_uniform_mat4f( "u_MVP", mvp_reflect );
         this->object_shader.set_uniform1i( "u_IsSky", 0 );
@@ -596,7 +604,7 @@ void World::draw( const Texture &blocksTexture, const glm::mat4 &mvp, const glm:
             // sea-level fluids, screen-space marched for elevated ones),
             // blended over the scene just drawn.
             this->fullScreenQuad.draw_water( this->renderer, this->reflectionTexture, this->depthStencilTexture, this->fogTexture, this->skyColorTexture, this->blockTexture, this->depthTexture,
-                                             y_height < 0 ? 0.4f : 0.6f, time_s, mvp, inv_mvp, renderOriginF, camera_pos_rebased, allowBlur );
+                                             y_height < 0 ? 0.4f : 0.6f, time_s, mvp, inv_mvp, renderOriginF, camera_pos_rebased, allowBlur, fog_blend_color );
             glStencilFunc( GL_NOTEQUAL, 1, 0xff ); // If the stencil value isn't 1 allow drawing.
             if ( useFogBlend ) {
                 this->fullScreenQuad.draw_texture_fog( this->renderer, this->blockTexture, this->depthStencilTexture, this->fogTexture, this->skyColorTexture, 1.0, false, headInWater );

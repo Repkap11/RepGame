@@ -256,7 +256,9 @@ void main() {
             // blend (above water this is the sky; underwater it's the
             // water-range fog so the composite fades toward the sky
             // attachment's "seen through water" content).
-            fogFactor = vec4(0.0f, 0.0f, 0.0f, alphaFog);
+            // R carries colorFog so the water reflection overlay can apply
+            // the same first-stage (sky average) blend as the surface.
+            fogFactor = vec4(colorFog, 0.0f, 0.0f, alphaFog);
             // Underwater fragments skip the alpha fade: it was designed to
             // dissolve terrain into the sky, but underwater the murk comes
             // from the color blend and reduced alpha reveals untinted sky /

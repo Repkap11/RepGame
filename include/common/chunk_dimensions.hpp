@@ -35,10 +35,11 @@
 
 // Distance from the camera to the farthest renderable point: the outer corner
 // of the loaded chunk box (a chunk CHUNK_RADIUS_* away extends one more
-// CHUNK_SIZE_* on its far side). SKY_RADIUS sits just beyond it so the sky
-// sphere's depth write can never clip terrain, and CAMERA_FAR_PLANE sits just
-// beyond the sky — both scale automatically with CHUNK_RADIUS_*. glm::sqrt
-// makes these C++-only; shaders never reference them.
+// CHUNK_SIZE_* on its far side). The sky sphere encloses the world at
+// SKY_RADIUS (it draws without depth testing, so its size is about
+// enclosing the view, not clipping), and CAMERA_FAR_PLANE sits beyond it —
+// both scale automatically with CHUNK_RADIUS_*. glm::sqrt makes these
+// C++-only; shaders never reference them.
 #define RENDER_DISTANCE_CORNER                                                                                       \
     ( glm::sqrt( ( float )( ( CHUNK_RADIUS_X + 1 ) * CHUNK_SIZE_X ) * ( ( CHUNK_RADIUS_X + 1 ) * CHUNK_SIZE_X ) +      \
                  ( float )( ( CHUNK_RADIUS_Y + 1 ) * CHUNK_SIZE_Y ) * ( ( CHUNK_RADIUS_Y + 1 ) * CHUNK_SIZE_Y ) +      \

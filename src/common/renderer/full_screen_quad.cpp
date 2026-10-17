@@ -84,7 +84,7 @@ void FullScreenQuad::set_water_frame_uniforms( const Texture &depthTexture, cons
 
 void FullScreenQuad::draw_water( const Renderer &renderer, const Texture &reflectionTexture, const Texture &depthStencilTexture, const Texture &fogTexture, const Texture &skyColorTexture,
                                  const Texture &sceneTexture, const Texture &depthTexture, float extraAlpha, float time_s, const glm::mat4 &mvp, const glm::mat4 &inv_mvp,
-                                 const glm::vec3 &origin, const glm::vec3 &camera_pos_rebased, bool animate ) {
+                                 const glm::vec3 &origin, const glm::vec3 &camera_pos_rebased, bool animate, const glm::vec3 &fog_color ) {
     this->shader.set_uniform1i_texture( "u_Texture", sceneTexture );
     this->shader.set_uniform1i_texture( "u_Stencil", depthStencilTexture );
     this->shader.set_uniform1i_texture( "u_FogTexture", fogTexture );
@@ -100,6 +100,7 @@ void FullScreenQuad::draw_water( const Renderer &renderer, const Texture &reflec
     this->shader.set_uniform1i( "u_WaterPass", 1 );
     this->shader.set_uniform1i( "u_Ripple", animate ? 1 : 0 );
     this->shader.set_uniform1f( "u_Time", time_s );
+    this->shader.set_uniform3f( "u_FogColor", fog_color.r, fog_color.g, fog_color.b );
     this->shader.set_uniform_mat4f( "u_MVP", mvp );
     this->shader.set_uniform_mat4f( "u_InvMVP", inv_mvp );
     this->shader.set_uniform1f( "u_OriginY", origin.y );

@@ -35,6 +35,6 @@ class FullScreenQuad {
     // reflection fetch (X_HIGH); HIGH passes false for a still mirror.
     void draw_water( const Renderer &renderer, const Texture &reflectionTexture, const Texture &depthStencilTexture, const Texture &fogTexture, const Texture &skyColorTexture,
                      const Texture &sceneTexture, const Texture &depthTexture, float extraAlpha, float time_s, const glm::mat4 &mvp, const glm::mat4 &inv_mvp,
-                     const glm::vec3 &origin, const glm::vec3 &camera_pos_rebased, bool animate );
+                     const glm::vec3 &origin, const glm::vec3 &camera_pos_rebased, bool animate, const glm::vec3 &fog_color );
     void destroy( );
 };
