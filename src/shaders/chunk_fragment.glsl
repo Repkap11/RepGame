@@ -261,11 +261,16 @@ void main() {
     // the raw (solid-inclusive) average, which darkens crevices/terraces
     // smoothly at the mip scale — AO without the per-block pattern.
     // u_DebugFlags bit 32 disables this for A/B captures.
-    float light_footprint = max(length(dFdx(v_world_coords)), length(dFdy(v_world_coords)));
+    // Footprint = geometric mean of the two screen axes (sqrt of footprint
+    // area). The major axis alone explodes on surfaces seen edge-on even up
+    // close (e.g. a cave ceiling at eye level), picking a mip that averages
+    // light from outside the cave across the wall.
+    float light_footprint = sqrt(length(dFdx(v_world_coords)) * length(dFdy(v_world_coords)));
     float light_lod = log2(max(light_footprint, 1e-4)) + u_LightLodBias;
     if(light_lod > 0.0 && (u_DebugFlags & 32) == 0) {
         vec3 light_mip = textureLod(u_LightTex, light_coord, light_lod).rgb;
-        vec2 light_far = min(mix(light_mip.rg / max(light_mip.b, 1.0 / 255.0), light_mip.rg, u_LightFarAO), vec2(1.0));
+        float light_air_w = smoothstep(0.25, 0.5, light_mip.b) * (1.0 - u_LightFarAO);
+        vec2 light_far = min(mix(light_mip.rg, light_mip.rg / max(light_mip.b, 1.0 / 255.0), light_air_w), vec2(1.0));
         light_sample = mix(light_sample, light_far, clamp(light_lod, 0.0, 1.0));
     }
 #endif
