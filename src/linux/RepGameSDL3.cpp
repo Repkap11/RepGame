@@ -143,16 +143,17 @@ int repgame_sdl2_main( const char *world_path, const char *host, const bool conn
     SDL_GL_SetAttribute( SDL_GL_STENCIL_SIZE, 8 );
 
 #if SUPPORTS_FRAME_BUFFER
-    // MSAA happens in the FBO (see MSAA_SAMPLES in constants.hpp), so the
-    // default framebuffer doesn't need it. Requesting MSAA here caused some
-    // drivers to allocate 2x MSAA anyway, which produces flashing/edge
-    // artifacts in the ImGui overlay (its semi-transparent window background
-    // resolves differently per sample at swap time). glDisable(GL_MULTISAMPLE)
-    // only disables per-fragment rasterization, not the multisampled storage
-    // or the swap-time resolve, so it doesn't fix the glitching. Explicitly
-    // request 0 samples. LOW mode loses edge AA on Linux/Windows as a result.
-    SDL_GL_SetAttribute( SDL_GL_MULTISAMPLEBUFFERS, 0 );
-    SDL_GL_SetAttribute( SDL_GL_MULTISAMPLESAMPLES, 0 );
+    // Request MSAA on the default framebuffer so LOW quality gets edge AA.
+    // MEDIUM+ already gets MSAA in the FBO (see MSAA_SAMPLES in
+    // constants.hpp); a multisample window adds a second resolve there,
+    // which is cheap.
+    // Note: an older build requested 0 here because some drivers allocated
+    // odd sample counts and the swap-time resolve made the ImGui overlay
+    // flicker. With a clean 4x this doesn't reproduce; if a driver ever
+    // shows it again, REPGAME_WINDOW_MSAA=0 goes back to 0 samples.
+    static const bool window_msaa = !( getenv( "REPGAME_WINDOW_MSAA" ) && atoi( getenv( "REPGAME_WINDOW_MSAA" ) ) == 0 );
+    SDL_GL_SetAttribute( SDL_GL_MULTISAMPLEBUFFERS, window_msaa ? 1 : 0 );
+    SDL_GL_SetAttribute( SDL_GL_MULTISAMPLESAMPLES, window_msaa ? MSAA_SAMPLES : 0 );
 #endif
     int default_width = DEFAULT_WINDOW_WIDTH;
     int default_height = DEFAULT_WINDOW_HEIGHT;
