@@ -1438,7 +1438,7 @@ void RepGame::initializeGameState( const char *world_name ) {
     globalGameState.camera.player_height = PLAYER_HEIGHT;
     globalGameState.camera.eye_height = PLAYER_EYE_HEIGHT;
     globalGameState.camera.eye_height_render = PLAYER_EYE_HEIGHT;
-    globalGameState.input.worldDrawQuality = WorldDrawQuality::MEDIUM;
+    globalGameState.input.worldDrawQuality = WorldDrawQuality::LOW;
     // The hotbar's rendered height as a fraction of the UI height basis.
     // Centered inventories reserve the same amount at the bottom of the
     // screen so they never cover it.
