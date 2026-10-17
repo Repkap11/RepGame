@@ -10,6 +10,14 @@ binary lands at `out/linux/release/RepGame`.
 - `make linux_debug` / `make linux_debug-run` — debug build
 - `make android` — Android assets + build; `make android-run` to deploy to a device
 - `make deploy` — build the portable Linux AppImage and rsync it to repkap11.com
+- `make flatpak` — build + install the flatpak (`flatpak run com.repkap11.repgame`)
+- `make gpu-prebuilt` — compile HIP/CUDA objects + harvest runtime libs in Docker
+  into `prebuilt/gpu` (gitignored). `make flatpak` depends on this: the flatpak
+  sandbox has no hipcc/nvcc, so its manifest links the prebuilt objects via
+  `GPU_PREBUILT_DIR` (see hip.mk/cuda.mk) and installs the runtime libs the
+  freedesktop runtime lacks into `/app/lib` (see `flatpak/com.repkap11.repgame.yml`
+  for the whitelist — do NOT bundle runtime-provided libs like libdrm_amdgpu,
+  they shadow the GL extension's copies and break EGL).
 - Run: `./out/linux/release/RepGame <WorldName> <host>` (e.g. `RepGame World1 localhost`)
 
 ## Shaders

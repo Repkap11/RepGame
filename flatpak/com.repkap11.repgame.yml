@@ -16,6 +16,9 @@ finish-args:
   - --socket=wayland
   # OpenGL
   - --device=dri
+  # GPU compute for terrain/mesh gen: ROCm needs /dev/kfd and CUDA needs
+  # /dev/nvidia* — neither is covered by --device=dri. Supersedes dri.
+  - --device=all
   # Needs to talk to the network:
   - --share=network
 modules:
@@ -31,8 +34,21 @@ modules:
       # against host libs like libamdhip64 that the runtime lacks). Wipe it
       # so the binary is always compiled inside the sandbox.
       - rm -rf out
-      - make out/linux/release/RepGame_uncompressed
+      # The sandbox has no hipcc/nvcc, so GPU objects are precompiled in the
+      # Docker image by `make gpu-prebuilt` (a prerequisite of `make flatpak`)
+      # into prebuilt/gpu. GPU_PREBUILT_DIR makes hip.mk/cuda.mk link them and
+      # pull the bundled runtime libs (prebuilt/gpu/lib → /app/lib).
+      - make out/linux/release/RepGame_uncompressed GPU_PREBUILT_DIR=prebuilt/gpu
       - install -Dm755 out/linux/release/RepGame_uncompressed /app/bin/RepGame_uncompressed
+      # Install only the libs the freedesktop runtime lacks. The full set in
+      # prebuilt/gpu/lib is also needed for -rpath-link at link time, but
+      # bundling runtime-provided libs (libdrm_amdgpu, libelf, libzstd, libffi)
+      # shadows the GL extension's Mesa-matched copies and breaks EGL init.
+      - mkdir -p /app/lib
+      - |
+        for pat in 'libamdhip64.so*' 'libhsa-runtime64.so*' 'librocprofiler-register.so*' 'libamd_comgr.so*' 'libnuma.so*' 'libbsd.so*' 'libmd.so*' 'libcudart_static.a'; do
+          cp -a prebuilt/gpu/lib/$pat /app/lib/ 2>/dev/null || echo "no match for $pat"
+        done
       sources:
           - type: dir
             path: ..

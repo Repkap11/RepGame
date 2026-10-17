@@ -60,4 +60,15 @@ clean-cuda:
 
 .PHONY: cuda clean-cuda
 
+else
+#No CUDA toolchain (e.g. the flatpak sandbox): link objects prebuilt in the
+#Docker image by `make gpu-prebuilt` (makefiles/docker.mk). cudart is static,
+#so only libcudart_static.a is needed from $(GPU_PREBUILT_DIR)/lib at link time.
+ifneq ($(GPU_PREBUILT_DIR),)
+LIBS_LINUX += -L$(GPU_PREBUILT_DIR)/lib -Wl,-rpath-link,$(GPU_PREBUILT_DIR)/lib -lcudart_static
+CFLAGS_LINUX += -DREPGAME_BUILD_WITH_CUDA
+OBJECTS_COMMON_LINUX_RELEASE += $(GPU_PREBUILT_DIR)/linux/cuda/lib$(TARGET).o $(GPU_PREBUILT_DIR)/linux/cuda/lib$(TARGET)_device.o
+OBJECTS_COMMON_LINUX_DEBUG += $(GPU_PREBUILT_DIR)/linux/cuda/lib$(TARGET).o $(GPU_PREBUILT_DIR)/linux/cuda/lib$(TARGET)_device.o
+endif
+
 endif # End if has cuda

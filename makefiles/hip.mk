@@ -53,6 +53,18 @@ clean-hip:
 
 .PHONY: hip clean-hip
 
+else
+#No HIP toolchain (e.g. the flatpak sandbox): link objects prebuilt in the
+#Docker image by `make gpu-prebuilt` (makefiles/docker.mk). The ROCm runtime
+#libs they need ship in $(GPU_PREBUILT_DIR)/lib; -rpath-link lets ld resolve
+#their transitive deps without installing them.
+ifneq ($(GPU_PREBUILT_DIR),)
+LIBS_LINUX += -L$(GPU_PREBUILT_DIR)/lib -Wl,-rpath-link,$(GPU_PREBUILT_DIR)/lib -lamdhip64
+CFLAGS_LINUX += -DREPGAME_BUILD_WITH_HIP
+OBJECTS_COMMON_LINUX_RELEASE += $(wildcard $(GPU_PREBUILT_DIR)/linux/hip/*.o)
+OBJECTS_COMMON_LINUX_DEBUG += $(wildcard $(GPU_PREBUILT_DIR)/linux/hip/*.o)
+endif
+
 endif # End if has hip
 
 .PHONY: hip-install

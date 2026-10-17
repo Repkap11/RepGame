@@ -27,3 +27,4 @@ imgui.ini
 # Debug screenshots from F12
 screenshots/screenshot_*.tga
 screenshots/
+prebuilt
