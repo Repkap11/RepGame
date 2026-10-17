@@ -42,6 +42,8 @@ vars set, behaviour is unchanged.
   default 60.
 - `REPGAME_CAPTURE_TIMEOUT` — max ticks per view before shooting anyway,
   default `30 * UPS_RATE`.
+- `REPGAME_FACE_GROW_PX` — override the screen-space face grow in pixels
+  (default 0.125, `CHUNK_FACE_GROW_PX`).
 - `REPGAME_LIGHT_LOD_BIAS` / `REPGAME_LIGHT_FAR_AO` — override the
   footprint-mipmapped light tunables (ImGui "Light LOD bias" / "Distant AO"
   sliders, defaults 3.0 / 0.35). These apply at startup even without
@@ -58,9 +60,12 @@ Per-view `flags` is a bitmask bound to `u_DebugFlags` in the chunk shader
 | 8   | Fog off |
 | 16  | Face shading off (`v_face_light = 1`) |
 | 32  | Footprint-mipmapped light off (A/B the moire fix) |
+| 64  | Screen-space face grow off (vertex-side flag applied by the C++ draw loop; works on all platforms) |
 
-Pressing F12 in normal play logs the current view in `REPGAME_CAPTURE`
-format (`Capture view: REPGAME_CAPTURE="..."`) for reproduction.
+Pressing F12 in normal play logs the exact render camera in `REPGAME_CAPTURE`
+format (`Capture view: REPGAME_CAPTURE="..."`) with full precision
+(round-trip doubles/floats); capture mode renders that camera exactly, so the
+captured frame reproduces what you saw down to the sub-pixel.
 
 Example — same view twice, second with lighting disabled:
 

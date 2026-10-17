@@ -54,6 +54,9 @@ class ChunkLoader {
     glm::ivec3 chunk_center;
     Chunk *chunkArray;
     Shader shader;
+    // Capture-mode u_DebugFlags bitmask (World::set_chunk_debug_flags) —
+    // vertex-side bits like 64 (face grow off) are applied in the draw loop.
+    int debug_flags = 0;
     struct {
         VertexBuffer vb_block;
     } solid;

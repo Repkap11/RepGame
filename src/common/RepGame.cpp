@@ -31,7 +31,8 @@ static inline long long now_us( ) {
 // idle for REPGAME_CAPTURE_SETTLE ticks (or REPGAME_CAPTURE_TIMEOUT hits), the
 // next draw() shoots screenshots/capture_<i>_*.tga and advances.
 struct CaptureView {
-    float x, y, z, yaw, pitch;
+    double x, y, z;
+    float yaw, pitch;
     int flags;
 };
 struct CaptureState {
@@ -68,7 +69,7 @@ static void capture_parse( ) {
             break;
         }
         CaptureView view = { 0, 0, 0, 0, 0, 0 };
-        if ( sscanf( view_str.c_str( ), "%f,%f,%f,%f,%f,%d", &view.x, &view.y, &view.z, &view.yaw, &view.pitch, &view.flags ) >= 5 ) {
+        if ( sscanf( view_str.c_str( ), "%lf,%lf,%lf,%f,%f,%d", &view.x, &view.y, &view.z, &view.yaw, &view.pitch, &view.flags ) >= 5 ) {
             g_capture.views.push_back( view );
         }
         if ( end == std::string::npos ) {
@@ -1672,7 +1673,7 @@ void RepGame::draw( float alpha ) {
     const double prev_feet_y = globalGameState.camera.prev_pos.y - globalGameState.camera.prev_eye_height;
     const double feet_y = globalGameState.camera.pos.y - globalGameState.camera.eye_height;
     render_pos.y = glm::mix( prev_feet_y, feet_y, static_cast<double>( alpha ) ) + globalGameState.camera.eye_height_render;
-    const float render_angle_V = glm::mix( globalGameState.camera.prev_angle_V, globalGameState.camera.angle_V, alpha );
+    float render_angle_V = glm::mix( globalGameState.camera.prev_angle_V, globalGameState.camera.angle_V, alpha );
     // angle_H wraps around 360, so interpolate along the shortest angular path.
     float angle_diff = globalGameState.camera.angle_H - globalGameState.camera.prev_angle_H;
     while ( angle_diff > 180.0f ) {
@@ -1687,6 +1688,15 @@ void RepGame::draw( float alpha ) {
     }
     while ( render_angle_H >= 360.0f ) {
         render_angle_H -= 360.0f;
+    }
+    if ( g_capture.enabled && g_capture.view_index < static_cast<int>( g_capture.views.size( ) ) ) {
+        // Draw the capture view exactly, bypassing tick interpolation and
+        // eye-height easing, so the rendered camera is bit-identical to the
+        // one an F12 log line hands to REPGAME_CAPTURE.
+        const CaptureView &view = g_capture.views[ g_capture.view_index ];
+        render_pos = glm::dvec3( view.x, view.y, view.z );
+        render_angle_H = view.yaw;
+        render_angle_V = view.pitch;
     }
     glm::vec3 render_look;
     glm::mat4 render_rotation;
@@ -1873,9 +1883,12 @@ void RepGame::draw( float alpha ) {
         globalGameState.world.screenshot( prefix );
         // Emit the current view in REPGAME_CAPTURE format so an interesting
         // spot can be reproduced deterministically in capture mode.
-        pr_debug( "Capture view: REPGAME_CAPTURE=\"%.3f,%.3f,%.3f,%.5f,%.5f\"", globalGameState.camera.pos.x,
-                  globalGameState.camera.pos.y, globalGameState.camera.pos.z, globalGameState.camera.angle_H,
-                  globalGameState.camera.angle_V );
+        // Log the exact rendered camera (this frame's interpolated pos +
+        // eased eye height) with round-trip precision so REPGAME_CAPTURE
+        // reproduces this frame sub-pixel-exactly.
+        pr_debug( "Capture view: REPGAME_CAPTURE=\"%.17g,%.17g,%.17g,%.9g,%.9g\"", render_pos.x,
+                  render_pos.y, render_pos.z, static_cast<double>( render_angle_H ),
+                  static_cast<double>( render_angle_V ) );
     }
 
     // Capture mode: the settled view was drawn this frame — shoot it and

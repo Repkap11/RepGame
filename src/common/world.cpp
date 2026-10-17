@@ -659,6 +659,9 @@ void World::cleanup( MapStorage &map_storage ) {
 
 void World::set_chunk_debug_flags( const int flags ) {
     this->chunkLoader.shader.set_uniform1i( "u_DebugFlags", flags );
+    // Vertex-side bits (e.g. 64 = face grow off) are consumed by the
+    // ChunkLoader draw loop rather than the fragment shader.
+    this->chunkLoader.debug_flags = flags;
 }
 
 void World::set_light_band_limit( const float lod_bias, const float far_ao ) {

@@ -7,6 +7,13 @@ uniform float u_ReflectionHeight;
 // of how far the player is from the world origin. Exact in float32 because
 // both blockCoords and u_Origin are integer-valued and < 2^24.
 uniform vec3 u_Origin;
+// Opaque and water passes: push each quad corner outward in *screen space* by
+// this many pixels so greedy-meshed neighbours overlap on screen and
+// T-junction pinholes close — including faces seen nearly edge-on, where a
+// world-space grow barely changes coverage. 0 for translucent/flowers.
+uniform float u_FaceGrowPx;
+// Current render-target size in pixels (for the screen-space grow).
+uniform vec2 u_ViewportSize;
 
 #define MAX_ROTATABLE_BLOCK 100u
 uniform float u_RandomRotationBlocks[MAX_ROTATABLE_BLOCK];
@@ -111,6 +118,36 @@ void main() {
 
     vec4 vertex = vec4(v_world_coords, 1);
     gl_Position = u_MVP * vertex;
+    if(u_FaceGrowPx > 0.0) {
+        // Screen-space grow: push this corner outward along both quad edges by
+        // u_FaceGrowPx pixels. The neighbouring corners differ only in this
+        // corner's 0/1 coordinate along each tangent axis. Depth is untouched.
+        vec3 face_extent = (mesh_size - u_DebugScaleOffset) * blockCoords_scale_adjust;
+        vec3 face_axis_a = (faceType == FACE_RIGHT || faceType == FACE_LEFT) ? vec3(0.0, 1.0, 0.0) : vec3(1.0, 0.0, 0.0);
+        vec3 face_axis_b = (faceType == FACE_FRONT || faceType == FACE_BACK) ? vec3(0.0, 1.0, 0.0) : vec3(0.0, 0.0, 1.0);
+        vec4 clip_a = u_MVP * vec4(v_world_coords + face_axis_a * face_extent * (1.0 - 2.0 * position), 1.0);
+        vec4 clip_b = u_MVP * vec4(v_world_coords + face_axis_b * face_extent * (1.0 - 2.0 * position), 1.0);
+        if(gl_Position.w > 1e-4 && clip_a.w > 1e-4 && clip_b.w > 1e-4) {
+            vec2 half_vp = 0.5 * u_ViewportSize;
+            vec2 px = gl_Position.xy / gl_Position.w * half_vp;
+            vec2 edge_a = px - clip_a.xy / clip_a.w * half_vp;
+            vec2 edge_b = px - clip_b.xy / clip_b.w * half_vp;
+            // Move each of this corner's two edges outward along its own
+            // screen-space normal by u_FaceGrowPx (miter offset), so a face
+            // seen nearly edge-on gets thicker instead of folding. Each normal
+            // points away from the quad interior (the side the other edge lies on).
+            vec2 n_a = vec2(-edge_a.y, edge_a.x);
+            vec2 n_b = vec2(-edge_b.y, edge_b.x);
+            float len_na = length(n_a);
+            float len_nb = length(n_b);
+            if(len_na > 1e-3 && len_nb > 1e-3) {
+                n_a = n_a / len_na * sign(dot(n_a, edge_b));
+                n_b = n_b / len_nb * sign(dot(n_b, edge_a));
+                vec2 push = (n_a + n_b) / max(1.0 + dot(n_a, n_b), 0.25);
+                gl_Position.xy += push * (u_FaceGrowPx / half_vp) * gl_Position.w;
+            }
+        }
+    }
     v_planarDot = dot(vertex, vec4(0, 1, 0, u_ReflectionHeight));
 
     vec2 face_scale = vec2(1, 1);

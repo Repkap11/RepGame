@@ -395,6 +395,13 @@ int showRotation = 0;
 void ChunkLoader::draw( const glm::mat4 &mvp, const Renderer &renderer, const Texture &texture, bool reflect_only, bool draw_reflect, bool use_frame_buffer, const glm::vec3 &render_origin ) {
     Shader &shader = this->shader;
     shader.set_uniform_mat4f( "u_MVP", mvp );
+    {
+        GLint vp[ 4 ];
+        glGetIntegerv( GL_VIEWPORT, vp );
+        shader.set_uniform2f( "u_ViewportSize", (float)vp[ 2 ], (float)vp[ 3 ] );
+    }
+    // Screen-space corner grow (chunk_vertex.glsl), tunable via env.
+    static const float face_grow_px = getenv( "REPGAME_FACE_GROW_PX" ) ? static_cast<float>( atof( getenv( "REPGAME_FACE_GROW_PX" ) ) ) : CHUNK_FACE_GROW_PX;
     // All per-chunk light volumes share one reserved texture unit; each chunk
     // binds its 3D texture + u_LightBase right before drawing (Chunk::draw).
     shader.set_uniform1i( "u_LightTex", light_texture_unit( ) );
@@ -407,6 +414,11 @@ void ChunkLoader::draw( const glm::mat4 &mvp, const Renderer &renderer, const Te
     for ( int renderOrder = LAST_RENDER_ORDER - 1; renderOrder > 0; renderOrder-- ) {
         if ( reflect_only == ( renderOrder == RenderOrder_Water ) ) {
             shader.set_uniform1f( "u_shouldDiscardAlpha", renderOrder != RenderOrder_Water && renderOrder != RenderOrder_Translucent);
+            // Screen-space face grow for opaque and water: water writes depth
+            // with the default GL_LESS test, so a coplanar overlap fails depth
+            // and can't blend twice. Translucent/flowers stay exact.
+            // Debug-flag bit 64 disables it.
+            shader.set_uniform1f( "u_FaceGrowPx", ( ( renderOrder == RenderOrder_Opaque || renderOrder == RenderOrder_Water ) && ( this->debug_flags & 64 ) == 0 ) ? face_grow_px : 0.0f );
             // Set texture wrap mode once per render order instead of per chunk draw call.
             // glTexParameteri edits the texture bound on the *active* unit, so
             // re-bind the atlas first — the per-chunk loop leaves the light

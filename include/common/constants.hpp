@@ -140,6 +140,12 @@ static_assert( CHUNK_RADIUS_Z > 0, "CHUNK_RADIUS_Z too small" );
 // Alpha-to-coverage for foliage also gets 4 levels of edge smoothing at 4x.
 #define MSAA_SAMPLES 4
 
+// Opaque/water chunk quads are pushed outward this many pixels in screen
+// space (chunk_vertex.glsl) so greedy-meshed neighbours overlap on screen
+// instead of meeting at T-junctions, where rounding leaves pinhole cracks
+// that leak the sky — even on faces seen nearly edge-on.
+#define CHUNK_FACE_GROW_PX 0.125f
+
 // Almost the number of clients, but some fd's are not clients so it's slightly less.
 #define MAX_CLIENT_FDS 100
 
