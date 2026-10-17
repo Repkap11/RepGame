@@ -373,12 +373,31 @@ void World::draw( const Texture &blocksTexture, const glm::mat4 &mvp, const glm:
     this->primed_tnt_shader.set_uniform3f( "u_Origin", renderOriginF.x, renderOriginF.y, renderOriginF.z );
 #if ( SUPPORTS_FRAME_BUFFER )
     if ( useFrameBuffer ) {
-        // Only the sky pass should write to the sky color attachment (3).
-        // Mask it out during mobs so they don't overwrite the cleared black
-        // before the sky draws.
+        // Enable sky color attachment writing for the sky pass only.
+        glColorMaski( 3, GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE );
+    }
+#endif
+    this->object_shader.set_uniform_mat4f( "u_MVP", mvp_sky );
+    this->object_shader.set_uniform1i( "u_IsSky", 1 );
+    // Sky uses mvp_sky (no view translation), so it must NOT be rebased.
+    this->object_shader.set_uniform3f( "u_Origin", 0.0f, 0.0f, 0.0f );
+    // The sky is the backdrop: draw it first with depth testing off so it
+    // leaves no depth and can never clip terrain, whatever the render
+    // distance. Everything drawn after (mobs, debris, terrain) overwrites it.
+    glDisable( GL_DEPTH_TEST );
+    this->skyBox.draw( this->renderer, this->object_shader ); // Sky
+    glEnable( GL_DEPTH_TEST );
+#if ( SUPPORTS_FRAME_BUFFER )
+    if ( useFrameBuffer ) {
+        // Mask out sky color attachment for everything else so the sky color
+        // written by the sky pass is preserved (they would overwrite it with black).
         glColorMaski( 3, GL_FALSE, GL_FALSE, GL_FALSE, GL_FALSE );
     }
 #endif
+    this->object_shader.set_uniform_mat4f( "u_MVP", mvp );
+    this->object_shader.set_uniform1i( "u_IsSky", 0 );
+    this->object_shader.set_uniform3f( "u_Origin", renderOriginF.x, renderOriginF.y, renderOriginF.z );
+
     // Refresh baked-in light samples before drawing. Avatars get no position
     // updates while standing still; debris spawns while the broken cell's
     // recheck is still queued — per-frame resampling covers both. Runs on
@@ -389,29 +408,6 @@ void World::draw( const Texture &blocksTexture, const glm::mat4 &mvp, const glm:
     this->multiplayer_avatars.draw( this->renderer, this->object_shader );      // Mobs
     this->blockDebris.draw( this->renderer, this->debris_shader, time_s );      // Break particles
     this->primedTnt.draw( this->renderer, this->primed_tnt_shader, time_s );    // Ignited TNT
-#if ( SUPPORTS_FRAME_BUFFER )
-    if ( useFrameBuffer ) {
-        // Enable sky color attachment writing for the sky pass only.
-        glColorMaski( 3, GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE );
-    }
-#endif
-    this->object_shader.set_uniform_mat4f( "u_MVP", mvp_sky );
-    this->object_shader.set_uniform1i( "u_IsSky", 1 );
-    // Sky uses mvp_sky (no view translation), so it must NOT be rebased.
-    this->object_shader.set_uniform3f( "u_Origin", 0.0f, 0.0f, 0.0f );
-    // The sky is the backdrop: draw it with depth testing off so it leaves no
-    // depth and can never clip terrain, whatever the render distance. Terrain
-    // drawn next overwrites it wherever geometry exists (re-enabled below).
-    glDisable( GL_DEPTH_TEST );
-    this->skyBox.draw( this->renderer, this->object_shader ); // Sky
-#if ( SUPPORTS_FRAME_BUFFER )
-    if ( useFrameBuffer ) {
-        // Mask out sky color attachment for terrain so the sky color written
-        // by the sky pass is preserved (terrain would overwrite it with black).
-        glColorMaski( 3, GL_FALSE, GL_FALSE, GL_FALSE, GL_FALSE );
-    }
-#endif
-    glEnable( GL_DEPTH_TEST );
 
     this->chunkLoader.calculate_cull( mvp, false, renderOrigin );
     this->chunkLoader.shader.set_uniform1f( "u_ExtraAlpha", 1.0f );
