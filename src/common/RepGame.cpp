@@ -1565,8 +1565,8 @@ RepGameState *RepGame::init( const char *world_name, const bool connect_multi, c
     globalGameState.ui_overlay.init( vbl_ui_overlay_vertex, vbl_ui_overlay_instance );
     imgui_overlay_init( &globalGameState.imgui_overlay );
     {
-        // Env overrides for the footprint-mipmapped light tunables (capture
-        // tuning or headless runs — the ImGui sliders are the live control).
+        // Env overrides for the footprint-mipmapped light tunables (they were
+        // ImGui sliders; env vars are now the only way to retune them).
         ImGuiDebugVars &dv = imgui_overlay_get_imgui_debug_vars( );
         if ( const char *v = getenv( "REPGAME_LIGHT_LOD_BIAS" ) ) {
             dv.light_lod_bias = static_cast<float>( atof( v ) );

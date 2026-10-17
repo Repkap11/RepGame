@@ -117,10 +117,6 @@ void imgui_overlay_draw( ImGuiOverlay *imgui_overlay, Input &input ) {
                          debug_vars.loader.light_dirty, debug_vars.loader.light_dropped,
                          debug_vars.loader.light_bfs_active ? " [BFS]" : "" );
             ImGui::Separator( );
-            // Live tunables for the footprint-mipmapped chunk light (see
-            // u_LightLodBias / u_LightFarAO in chunk_fragment.glsl).
-            ImGui::SliderFloat( "Light LOD bias", &debug_vars.light_lod_bias, 0.0f, 5.0f );
-            ImGui::SliderFloat( "Distant AO", &debug_vars.light_far_ao, 0.0f, 1.0f );
 
             ImGui::Text( "Particles: %d (%d debris, %d primed TNT)",
                          debug_vars.debris_particles + debug_vars.primed_tnt,
