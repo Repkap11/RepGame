@@ -16,11 +16,11 @@ Android: http://repkap11.com/repgame/RepGame.apk
 ## Selecting Build Platforms
 RepGame supports multiple platforms, all of which must be built on Ubuntu (or maybe any distro with the "apt" package manager).
 
-Building for Linux and Windows is relatively easy, but building WASM, Android, AppImage, FlatPak, or with CUDA support will require more setup.
+Building for Linux and Windows is relatively easy, but building WASM, Android, AppImage, FlatPak, or with CUDA/HIP support will require more setup.
 
 The easiest/fastest way to build is to simply delete those features:
 ```bash
-rm makefiles/{cuda,flatpak,wasm,appimage,android}.mk
+rm makefiles/{cuda,hip,flatpak,wasm,appimage,android}.mk
 ```
 Building WASM is very difficult. See wasm.mk. You will need to manually install emsdk, and switch to a custom fork of emscripten (https://github.com/Repkap11/emscripten) which fixes a few bugs. You will also need to adjust a hard-coded path in wasm.mk.
 
@@ -30,6 +30,12 @@ Running a command line build at least once is required to add images and shaders
 make android
 ```
 Once run once, the project can be built in Android Studio if desired, or entirely on the command line.
+
+Building with HIP support (AMD GPU accelerated terrain gen) requires the ROCm toolchain. HIP is enabled automatically when /usr/bin/hipcc is present; install it with:
+```bash
+make hip-install
+```
+The HIP kernels target generic code objects (gfx9 through gfx12 GPU families), so a single binary runs on every supported AMD GPU. This requires ROCm 6.0+ on the build machine. Builds without the toolchain (flatpak) link objects prebuilt by `make gpu-prebuilt` instead.
 
 ## Building the Code
 Once you've narrowed down your build platforms, you can can install the needed dependencies and build.
@@ -65,7 +71,7 @@ make wasm-run
 make windows-run #If you have wine installed.
 ```
 Host and portable (Docker) builds use separate output directories (`out/linux` and `out/linux-portable`), so you can switch between them without a clean build.
-However, when adding or removing CUDA support on the host, you should still do a clean build:
+However, when adding or removing CUDA or HIP support on the host, you should still do a clean build:
 ```bash
 make clean
 make
