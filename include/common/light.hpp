@@ -61,6 +61,13 @@ float light_daylight_factor( long world_time );
 // texture is bound to this unit right before its draw call.
 int light_texture_unit( );
 
+// Whether per-chunk light volumes use the mipmapped RGBA mode (lit-cell
+// fraction in B, footprint-LOD sampling in the chunk shader) or the flat
+// RG8 mode. Constant for the process lifetime — texture formats depend on
+// it. Default: off on Android/WASM, on elsewhere; REPGAME_LIGHT_MIPMAPS=0|1
+// overrides on every platform.
+bool light_mipmaps_enabled( );
+
 class Chunk;
 // Initial per-chunk light fill, run on the terrain worker from
 // Chunk::load_terrain: zeroes the volume, flood-fills emitters (block channel

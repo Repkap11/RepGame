@@ -72,7 +72,7 @@ out/wasm/delivery/%.css: src/wasm/%.css | out/wasm
 	cp $< $@
 
 out/wasm/fs/src/shaders/%.glsl: src/shaders/%.glsl include/common/chunk_dimensions.hpp makefiles/common.mk makefiles/wasm.mk | out/wasm
-	$(SHADER_PP) -DREPGAME_WASM -DREPGAME_LOW_GRAPHICS $< -o $@
+	$(SHADER_PP) -DREPGAME_WASM $< -o $@
 
 out/wasm/fs/bitmaps/% : out/bitmaps/% | out/wasm
 	cp $< $@

@@ -21,10 +21,8 @@ flat in uint v_faceType;
 
 layout( location = 0 ) out vec4 color;
 layout( location = 1 ) out vec4 reflection;
-#if !defined( REPGAME_LOW_GRAPHICS )
 layout( location = 2 ) out vec4 fogFactor;
 layout( location = 3 ) out vec4 skyColor;
-#endif
 
 #define SELECTION_SIZE_OFFSET 0.0003f
 #define FACE_TOP 0u
@@ -93,8 +91,6 @@ void main( ) {
     }
     color = vec4( lineColor, alpha );
     reflection = vec4( 0.0f, 0.0f, 0.0f, 0.0f );
-#if !defined( REPGAME_LOW_GRAPHICS )
     fogFactor = vec4( 0.0f, 0.0f, 0.0f, 0.0f );
     skyColor = vec4( 0.0f, 0.0f, 0.0f, 0.0f );
-#endif
 }

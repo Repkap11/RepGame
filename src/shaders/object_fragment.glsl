@@ -20,7 +20,6 @@ uniform vec3 u_Origin;
 // shader on every tier), so it must be declared unconditionally too — the
 // min-ambient floor uses it to keep the night sky from washing out.
 uniform int u_IsSky;
-#if !defined(REPGAME_LOW_GRAPHICS)
 uniform int u_OpaqueFog;
 
 uniform float u_FogNear;
@@ -29,14 +28,11 @@ uniform float u_WaterFogNear;
 uniform float u_WaterFogFar;
 uniform vec3 u_CameraPos;
 uniform vec3 u_SkyAvgColor;
-#endif
 
 layout( location = 0 ) out vec4 color;
 layout( location = 1 ) out vec4 reflection;
-#if !defined(REPGAME_LOW_GRAPHICS)
 layout( location = 2 ) out vec4 fogFactor;
 layout( location = 3 ) out vec4 skyColor;
-#endif
 
 in vec2 v_tex_coords;
 in float v_light;
@@ -86,7 +82,6 @@ void main( ) {
         finalReflection.a *= 0.0f;
     }
 
-#if !defined(REPGAME_LOW_GRAPHICS)
     // Distance fog for non-sky objects (mobs/avatars).
     // Color reaches full fog color before alpha fade starts.
     // Fog color is sampled from the sky texture at the horizon.
@@ -140,7 +135,6 @@ void main( ) {
     // black (preserved by replace blending so the sky color stays).
     skyColor = (u_IsSky == 1 && u_DrawToReflection == 0) ? vec4(finalColor.rgb, 1.0) : vec4(0.0);
 
-#endif
     // Underwater on tiers without the framebuffer composite: apply the blue
     // screen wash here — covers the sky too (it draws through this shader).
     if(u_Underwater != 0) {

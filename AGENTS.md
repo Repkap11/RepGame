@@ -16,11 +16,12 @@ binary lands at `out/linux/release/RepGame`.
 
 Shaders in `src/shaders/*.glsl` are preprocessed at build time with
 `gcc -E -P -x assembler-with-cpp -nostdinc -I include -DREPGAME_<PLATFORM>`
-into `out/<platform>/shaders/`. Android/WASM also get
-`-DREPGAME_LOW_GRAPHICS`; all low-end conditionals must use
-`#if defined(REPGAME_LOW_GRAPHICS)` / `#if !defined(REPGAME_LOW_GRAPHICS)`
-and LOW builds must preprocess to identical output when a desktop-only
-feature is added.
+into `out/<platform>/shaders/`. All platforms compile the same shaders — the
+`-DREPGAME_<PLATFORM>` flag only picks the chunk-dimension constants via
+`include/common/chunk_dimensions.hpp`. LOW/MEDIUM/HIGH/X_HIGH are runtime
+quality tiers, not shader variants; Android/WASM have no offscreen
+framebuffer (`SUPPORTS_FRAME_BUFFER=0`), so they always render the forward
+LOW-tier path (no reflections/post-process).
 
 ## Capture mode
 
@@ -48,9 +49,16 @@ vars set, behaviour is unchanged.
   footprint-mipmapped light tunables (ImGui "Light LOD bias" / "Distant AO"
   sliders, defaults 3.0 / 0.35). These apply at startup even without
   `REPGAME_CAPTURE`.
+- `REPGAME_LIGHT_MIPMAPS` — `0|1`: runtime switch for the mipmapped light
+  volume (RGBA8 + lit-cell mips + footprint-LOD shader sampling) vs the flat
+  RG8 volume. Default: on for desktop builds, off on Android/WASM; the env
+  var overrides on every platform (on WASM it's a `?REPGAME_LIGHT_MIPMAPS=1`
+  URL param).
+- `REPGAME_TEX_MIPMAPS` — `0|1`: block-atlas mipmaps (default 1; `0`
+  restores NEAREST minification for A/B).
 
 Per-view `flags` is a bitmask bound to `u_DebugFlags` in the chunk shader
-(non-LOW builds only; LOW ignores it):
+(all platforms, including the WASM capture harness):
 
 | Bit | Effect |
 |-----|--------|

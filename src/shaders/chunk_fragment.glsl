@@ -16,8 +16,10 @@ precision lowp sampler3D;
 
 uniform float u_shouldDiscardAlpha;
 uniform sampler2DArray u_Texture;
-// Flood-fill lighting: per-chunk internal-volume GL_RG8 volume (R=sky, G=block,
+// Flood-fill lighting: per-chunk internal-volume texture (R=sky, G=block,
 // both pre-scaled to 0-1), bound to a shared texture unit per chunk draw.
+// GL_RG8 when light mipmaps are off, GL_RGBA8 (B = lit-cell mask) when on —
+// see light_mipmaps_enabled() in light.cpp.
 // u_LightBase = chunk block-origin in u_Origin-rebased coords, u_Daylight
 // scales the sky channel for day/night, u_MinAmbient is a light floor so
 // unlit caves are never fully black.
@@ -34,7 +36,6 @@ uniform float u_ReflectionDotSign;
 uniform int u_DrawToReflection;
 uniform float u_ExtraAlpha;
 uniform vec3 u_Origin;
-#if !defined(REPGAME_LOW_GRAPHICS)
 uniform int u_OpaqueFog;
 
 uniform float u_FogNear;
@@ -58,7 +59,6 @@ uniform int u_DebugFlags;
 // inclusive average to keep as smooth distant AO (0 = air-only average).
 uniform float u_LightLodBias;
 uniform float u_LightFarAO;
-#endif
 
 in vec2 v_TexCoordBlock;
 flat in vec2 v_tex_min;
@@ -73,10 +73,8 @@ flat in int v_block_auto_rotates;
 
 layout(location = 0) out vec4 color;
 layout(location = 1) out vec4 reflection;
-#if !defined(REPGAME_LOW_GRAPHICS)
 layout(location = 2) out vec4 fogFactor;
 layout(location = 3) out vec4 skyColor;
-#endif
 
 // layout( location = 1 ) out vec4 color;
 // layout( location = 0 ) out vec4 reflection;
@@ -97,12 +95,8 @@ void main() {
     // working_fract = vec2( 1.0 - working_fract.x, working_fract.y );
     int mod_sum = -1;
     vec3 adjusted_face = vec3(1, 1, 1);
-#if defined(REPGAME_LOW_GRAPHICS)
-    if(bool(v_block_auto_rotates)) {
-#else
     // u_DebugFlags bit 4: random rotation off (gradients stay unrotated too).
     if(bool(v_block_auto_rotates) && (u_DebugFlags & 4) == 0) {
-#endif
         // Hash the world cell this face fragment covers so the rotation is a
         // pure function of position — the same no matter how greedy meshing
         // merged the block into quads. Stepping half a cell against the face
@@ -154,17 +148,14 @@ void main() {
     working = clamp(working, working_lo, working_hi);
 
     vec4 texColor = textureGrad(u_Texture, vec3(working, v_blockID), uv_dx, uv_dy);
-#if !defined(REPGAME_LOW_GRAPHICS)
     // u_DebugFlags bit 2: texture detail off — resample at a coarse mip.
     if((u_DebugFlags & 2) != 0) {
         texColor.rgb = textureLod(u_Texture, vec3(working, v_blockID), 4.0).rgb;
     }
-#endif
 
     if(texColor.a == 0.0f) {
         discard;
     }
-#if !defined(REPGAME_LOW_GRAPHICS)
     // X_HIGH animated fluids: scrolling + sine-warped UVs. Only runs during
     // the dedicated water pass (u_FluidAnim), which contains just water/lava.
     if(u_FluidAnim == 1) {
@@ -197,7 +188,6 @@ void main() {
             }
         }
     }
-#endif
     // Alpha-tested passes (opaque + flowers): mipmaps average opaque pixels
     // (alpha=1) with transparent neighbours (alpha=0, RGB=0), which
     // premultiplies and lowers the alpha. Un-premultiply by dividing RGB
@@ -229,9 +219,6 @@ void main() {
     // Two independent channels (r=sky, g=block, both already 0-1): keeping
     // them separate matters because GL_LINEAR interpolates raw texel values —
     // a packed byte would cross-contaminate the nibbles mid-gradient.
-#if defined(REPGAME_LOW_GRAPHICS)
-    vec2 light_sample = texture(u_LightTex, light_coord).rg;
-#else
     // Level 0 is the exact per-cell light (implicit LOD would now pick mips).
     vec2 light_sample = textureLod(u_LightTex, light_coord, 0.0).rg;
     // Band-limit the light to the pixel footprint: once a block spans less
@@ -248,6 +235,11 @@ void main() {
     // area). The major axis alone explodes on surfaces seen edge-on even up
     // close (e.g. a cave ceiling at eye level), picking a mip that averages
     // light from outside the cave across the wall.
+    // When light mipmaps are off (REPGAME_LIGHT_MIPMAPS=0 or the platform
+    // default), the C++ side sets u_LightLodBias to -1000 so light_lod never
+    // exceeds 0 and this whole branch is skipped — an RG8 non-mipmapped
+    // volume would return level 0 with b=0 anyway (no visual change); the
+    // bias just saves the extra 3D fetch.
     float light_footprint = sqrt(length(dFdx(v_world_coords)) * length(dFdy(v_world_coords)));
     float light_lod = log2(max(light_footprint, 1e-4)) + u_LightLodBias;
     if(light_lod > 0.0 && (u_DebugFlags & 32) == 0) {
@@ -256,23 +248,16 @@ void main() {
         vec2 light_far = min(mix(light_mip.rg, light_mip.rg / max(light_mip.b, 1.0 / 255.0), light_air_w), vec2(1.0));
         light_sample = mix(light_sample, light_far, clamp(light_lod, 0.0, 1.0));
     }
-#endif
     // u_MinAmbient floors the result: cells with no skylight and no block
     // light (deep caves) still get a faint ambient instead of pure black.
     float scene_light = max(max(light_sample.r * u_Daylight, light_sample.g), u_MinAmbient);
-#if !defined(REPGAME_LOW_GRAPHICS)
     // u_DebugFlags bit 1: lighting off.
     if((u_DebugFlags & 1) != 0) {
         scene_light = 1.0;
     }
-#endif
-#if defined(REPGAME_LOW_GRAPHICS)
-    vec4 lightedColor = texColor * vec4(v_face_light * scene_light, v_face_light * scene_light, v_face_light * scene_light, u_ExtraAlpha);
-#else
     // u_DebugFlags bit 16: per-face shading off.
     float face_light_used = (u_DebugFlags & 16) != 0 ? 1.0 : v_face_light;
     vec4 lightedColor = texColor * vec4(face_light_used * scene_light, face_light_used * scene_light, face_light_used * scene_light, u_ExtraAlpha);
-#endif
 
     vec4 finalColor = lightedColor;
     vec4 finalReflection = lightedColor;
@@ -287,7 +272,6 @@ void main() {
     // so terrain is fully fog-colored before it blends with the sky.
     // The fog color is sampled from the sky texture at the horizon in the
     // view direction, so it matches the actual sky color behind the terrain.
-#if !defined(REPGAME_LOW_GRAPHICS)
     float dist = distance(v_world_coords, u_CameraPos);
     // Underwater murk: the fog range is determined by the medium the
     // *camera* is in — with the head under water, even blocks above the
@@ -365,7 +349,6 @@ void main() {
     // Chunks are never sky; write black to preserve the sky color attachment
     // (replace blending keeps the sky color written by the sky pass).
     skyColor = vec4(0.0);
-#endif
     // Underwater on tiers without the framebuffer composite: apply the blue
     // screen wash here instead (the FSQ composite handles it otherwise).
     if(u_Underwater != 0) {

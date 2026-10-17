@@ -15,6 +15,7 @@
 #include "common/utils/ray_traversal.hpp"
 #include "common/utils/collision.hpp"
 #include "common/multiplayer.hpp"
+#include "common/light.hpp"
 #include "common/map_gen.hpp"
 #include "common/block_update_events/PlayerBlockPlacedEvent.hpp"
 #include "common/block_update_events/PressurePlateEvent.hpp"
@@ -1820,11 +1821,11 @@ void RepGame::draw( float alpha ) {
         if ( g_capture.enabled && g_capture.view_index < static_cast<int>( g_capture.views.size( ) ) ) {
             globalGameState.world.set_chunk_debug_flags( g_capture.views[ g_capture.view_index ].flags );
         }
-#if !defined( REPGAME_ANDROID ) && !defined( REPGAME_WASM )
         // Footprint-mipmapped light tunables (ImGui sliders / env overrides).
-        // LOW shaders don't declare these uniforms — would log-not-found spam.
-        globalGameState.world.set_light_band_limit( debugVars.light_lod_bias, debugVars.light_far_ao );
-#endif
+        // With light mipmaps off the shader's mip branch must never run:
+        // drive light_lod negative via the bias (an RG8 volume would return
+        // level 0 with b=0 anyway, so this only saves the extra 3D fetch).
+        globalGameState.world.set_light_band_limit( light_mipmaps_enabled( ) ? debugVars.light_lod_bias : -1000.0f, debugVars.light_far_ao );
         globalGameState.world.draw( globalGameState.blocksTexture, mvp, inv_mvp, mvp_reflect, mvp_sky, mvp_sky_reflect, globalGameState.input.debug_mode, !globalGameState.input.inventory_open, render_pos.y, headInWater,
                                     globalGameState.input.worldDrawQuality, render_pos, renderOrigin, time_s, daylight, debugVars.min_ambient );
         profiling.us_world_draw = now_us( ) - t_world_draw_start;

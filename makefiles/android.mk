@@ -66,7 +66,7 @@ android-bitmaps: $(ANDROID_BITMAPS)
 android-fonts: $(ANDROID_FONTS)
 
 android/app/src/main/assets/shaders/%.glsl: src/shaders/%.glsl include/common/chunk_dimensions.hpp makefiles/common.mk makefiles/android.mk | $(ANDROID_DIRS)
-	$(SHADER_PP) -DREPGAME_ANDROID -DREPGAME_LOW_GRAPHICS $< -o $@
+	$(SHADER_PP) -DREPGAME_ANDROID $< -o $@
 
 android/app/src/main/res/raw/%: out/bitmaps/% | $(ANDROID_DIRS)
 	cp $< $@
