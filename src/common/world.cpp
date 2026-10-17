@@ -257,6 +257,9 @@ void World::draw( const Texture &blocksTexture, const glm::mat4 &mvp, const glm:
     this->chunkLoader.shader.set_uniform3f( "u_CameraPos", camera_pos_rebased.x, camera_pos_rebased.y, camera_pos_rebased.z );
     this->chunkLoader.shader.set_uniform3f( "u_Origin", renderOriginF.x, renderOriginF.y, renderOriginF.z );
     this->chunkLoader.shader.set_uniform3f( "u_SkyAvgColor", fog_blend_color.r, fog_blend_color.g, fog_blend_color.b );
+    // No-framebuffer fog blends toward the actual sky color (chunk_fragment
+    // samples the equirect sky texture at the view direction).
+    this->chunkLoader.shader.set_uniform1i_texture( "u_SkyTexture", this->skyBox.get_texture( ) );
     // Opaque fog stores the fog factor in a dedicated fog texture (attachment 2)
     // for post-process sky blending. Works in all framebuffer modes since the
     // fog texture is separate from the reflection texture. Underwater it blends

@@ -44,6 +44,10 @@ uniform float u_WaterFogNear;
 uniform float u_WaterFogFar;
 uniform vec3 u_CameraPos;
 uniform vec3 u_SkyAvgColor;
+// Sky texture (equirect sphere map, layer 0): lets the no-framebuffer fog
+// path blend toward the actual sky color behind each fragment instead of
+// fading alpha toward an unknown backdrop.
+uniform sampler2DArray u_SkyTexture;
 
 // X_HIGH fluid effects: set only during the dedicated water pass (which draws
 // both WATER and LAVA, RenderOrder_Water). u_Time is always 0 unless u_FluidAnim.
@@ -329,10 +333,40 @@ void main() {
                 finalColor.a *= (1.0f - alphaFog);
             }
         } else {
-            // LOW quality / no framebuffer: per-fragment alpha reduction, no
-            // post-process.
+            // No framebuffer: the sky is a static equirect-textured sphere
+            // centered on the camera, so the exact sky color behind this
+            // fragment is computable here (inverse of sky_box.cpp's mapping:
+            // y = -cos(phi), x/z = cos/sin(theta) * sin(phi)). Blend toward
+            // it opaquely — alpha stays 1 so overlapping geometry (tree
+            // canopies) can't accumulate transparency and darken, and there
+            // is no sky-mismatch silhouette at the fog edge.
             if(!belowWater) {
-                finalColor.a *= (1.0f - alphaFog);
+                vec3 dir = normalize(v_world_coords - u_CameraPos);
+                vec2 skyUV = vec2(fract(atan(dir.z, dir.x) / 6.2831853f),
+                                  acos(clamp(-dir.y, -1.0f, 1.0f)) / 3.14159265f);
+                // Equirect seam: u wraps 1->0 across the atan2 discontinuity,
+                // so implicit LOD picks the coarsest mip for one pixel column.
+                // Wrap the gradient deltas the short way around instead.
+                vec2 skyUVdx = dFdx(skyUV);
+                vec2 skyUVdy = dFdy(skyUV);
+                skyUVdx.x -= floor(skyUVdx.x + 0.5f);
+                skyUVdy.x -= floor(skyUVdy.x + 0.5f);
+                // Same dimming as the sky pass: sky v_light is 1 (FACE_TOP).
+                vec3 skyHere = textureGrad(u_SkyTexture, vec3(skyUV, 0.0), skyUVdx, skyUVdy).rgb * u_Daylight;
+                // Match the sky pass's water tint (object_fragment): the dome
+                // is blue-mixed while the camera is in water — wholly when
+                // deep, below the waterline when straddling the surface (the
+                // sky pass tests sky_y < -0.125; dir.y < 0 is the same horizon
+                // plane to within a fraction of a degree).
+                if(u_TintUnderWater == TINT_UNDER_WATER_OBJECT_ALWAYS ||
+                   (u_TintUnderWater == TINT_UNDER_WATER_OBJECT_UNDER_Y_LEVEL && dir.y < 0.0f)) {
+                    skyHere = mix(skyHere, vec3(0.122f, 0.333f, 1.0f), 0.5f);
+                }
+                // Same effective rate as the framebuffer path: there the
+                // alpha fade blends alphaFog over the sky attachment, then
+                // the composite blends toward it again by sqrt(alphaFog).
+                float skyFade = 1.0f - (1.0f - alphaFog) * (1.0f - sqrt(alphaFog));
+                finalColor.rgb = mix(finalColor.rgb, skyHere, skyFade);
             } else if(u_shouldDiscardAlpha != 1.0f) {
                 // Same see-through surface as the framebuffer path, but only
                 // for translucent fragments — opaque terrain keeps alpha 1.
