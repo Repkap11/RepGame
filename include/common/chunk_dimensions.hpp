@@ -20,9 +20,9 @@
 #define CHUNK_RADIUS_Y ( 256 / CHUNK_SIZE_Y )
 #define CHUNK_RADIUS_Z ( 512 / CHUNK_SIZE_Z )
 #else
-#define CHUNK_RADIUS_X ( 128 / CHUNK_SIZE_X )
+#define CHUNK_RADIUS_X ( 192 / CHUNK_SIZE_X )
 #define CHUNK_RADIUS_Y ( 128 / CHUNK_SIZE_Y )
-#define CHUNK_RADIUS_Z ( 128 / CHUNK_SIZE_Z )
+#define CHUNK_RADIUS_Z ( 192 / CHUNK_SIZE_Z )
 #endif
 
 // Block array extent including the 1-cell halo shell on every side.
