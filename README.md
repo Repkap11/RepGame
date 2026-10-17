@@ -90,21 +90,31 @@ make
 A short list of RepGame's features:
 
 - Portable executable with all game assets and shaders are statically linked into the executable 
+- AppImage and Flatpak packaging.
 - Instance based rendering (glDrawElementsInstanced).
 - Frustum culling.
 - Block meshing.
 - Rotatable textures (grass) while supporting instanced rendering and meshing.
 - Position dependent index buffer based back face culling.
-- Perlin noise terrain gen, with custom trees.
-- CUDA accelerated terrain gen.
-- Ambient occlusion style lighting.
+- Perlin noise terrain gen with biomes, mountains, overhangs, custom trees, and decorations (flowers, bamboo, mushrooms, coral, seaweed).
+- CUDA (NVIDIA) and HIP (ROCm/AMD) accelerated terrain gen.
+- Flood-fill sky and block lighting stored in a mipmapped 3D light volume.
 - Practically 0 dynamic memory allocations.
 - Ray-tracing based block selection and collision physics.
+- Creative and survival game modes; survival consumes placed blocks and collects mined ones.
+- Persistent world and player saves (position, game mode, time, inventories, chunks).
 - Inventory and hotbar rendered with an interesting ENTT based instanced rendering implementation.
-- Prototype redstone (you can use redstone blocks, dust and lamps)
+- Prototype redstone (blocks, dust, torches, lamps, pressure plates, pistons).
+- Exploding TNT.
+- Instanced block-breaking debris particles.
 - Multiple block models (half-slabs, glass-panes, torches, flowers, chests)
+- Chest inventories that persist and sync over multiplayer.
 - Flowing water
+- Day/night cycle with a textured sky box, synced between multiplayer clients.
+- Distance fog blended toward the sky color.
 - Deferred rendering pipeline with world space reflections in water. A standard forward rendering pipeline is also supported.
-- Multiplayer support on Linux and Android.
-- Multiplayer server for Linux. Many clients handled by a single thread using non-blockign IO and epoll.
+- Selectable render quality tiers (LOW, MEDIUM, HIGH, X_HIGH) with MSAA and mipmapped textures.
+- ImGui debug overlay, and an env-var driven capture mode for deterministic screenshots.
+- Multiplayer support on Linux, Android, and Web (WASM), with lit player avatars.
+- Multiplayer server for Linux. Many clients handled by a single thread using non-blocking IO and epoll.
 - WIP: World file stored on server and synced between clients.
