@@ -7,10 +7,11 @@ uniform float u_ReflectionHeight;
 // of how far the player is from the world origin. Exact in float32 because
 // both blockCoords and u_Origin are integer-valued and < 2^24.
 uniform vec3 u_Origin;
-// Opaque and water passes: push each quad corner outward in *screen space* by
+// Opaque pass only: push each quad corner outward in *screen space* by
 // this many pixels so greedy-meshed neighbours overlap on screen and
 // T-junction pinholes close — including faces seen nearly edge-on, where a
-// world-space grow barely changes coverage. 0 for translucent/flowers.
+// world-space grow barely changes coverage. 0 for water/translucent/flowers
+// (blended passes would double-blend the grown overlaps).
 uniform float u_FaceGrowPx;
 // Current render-target size in pixels (for the screen-space grow).
 uniform vec2 u_ViewportSize;

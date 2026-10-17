@@ -414,11 +414,10 @@ void ChunkLoader::draw( const glm::mat4 &mvp, const Renderer &renderer, const Te
     for ( int renderOrder = LAST_RENDER_ORDER - 1; renderOrder > 0; renderOrder-- ) {
         if ( reflect_only == ( renderOrder == RenderOrder_Water ) ) {
             shader.set_uniform1f( "u_shouldDiscardAlpha", renderOrder != RenderOrder_Water && renderOrder != RenderOrder_Translucent);
-            // Screen-space face grow for opaque and water: water writes depth
-            // with the default GL_LESS test, so a coplanar overlap fails depth
-            // and can't blend twice. Translucent/flowers stay exact.
-            // Debug-flag bit 64 disables it.
-            shader.set_uniform1f( "u_FaceGrowPx", ( ( renderOrder == RenderOrder_Opaque || renderOrder == RenderOrder_Water ) && ( this->debug_flags & 64 ) == 0 ) ? face_grow_px : 0.0f );
+            // Screen-space face grow, opaque only: water/translucent/flowers
+            // are blended, so overlapping grown edges would blend twice and
+            // show as dark dashed lines. Debug-flag bit 64 disables it.
+            shader.set_uniform1f( "u_FaceGrowPx", ( renderOrder == RenderOrder_Opaque && ( this->debug_flags & 64 ) == 0 ) ? face_grow_px : 0.0f );
             // Set texture wrap mode once per render order instead of per chunk draw call.
             // glTexParameteri edits the texture bound on the *active* unit, so
             // re-bind the atlas first — the per-chunk loop leaves the light
