@@ -73,3 +73,27 @@ Example — same view twice, second with lighting disabled:
 REPGAME_CAPTURE="-591.51,35.12,-407.47,0,0;-591.51,35.12,-407.47,0,0,1" \
     ./out/linux/release/RepGame World1 localhost
 ```
+
+### WASM capture
+
+`tools/wasm_capture.cjs` drives the same capture mode in a headless browser:
+it serves `out/wasm/delivery` via `wasm_server.py` (COOP/COEP), loads the
+page in Chrome, clicks play, and saves the views the game pushes onto
+`window.repgameCaptures` as PNGs (plus a `console.log` of all browser
+output).
+
+```sh
+node tools/wasm_capture.cjs --views "<REPGAME_CAPTURE spec>" --out <dir> \
+    [--port 8091] [--msaa 0|1] [--env KEY=VAL ...] [--timeout 240]
+```
+
+- On WASM every `REPGAME_*` URL query parameter becomes an environment
+  variable (`index.js` `preRun` copies them into Emscripten's `ENV`), so all
+  the env vars above work via `--env` or direct query params.
+- `REPGAME_MSAA` — the WASM build requests a multisampled WebGL context
+  (antialias, normally 4x) by default; `REPGAME_MSAA=0`/`--msaa 0` disables
+  it for A/B comparison.
+- WASM has no offscreen framebuffer, so captures read the default
+  framebuffer and are delivered to JS instead of writing TGA files; the
+  game keeps running on the last view instead of exiting (a WASM exit
+  reloads the page).

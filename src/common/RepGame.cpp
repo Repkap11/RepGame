@@ -43,6 +43,9 @@ struct CaptureState {
     long ticks_in_view = 0;
     long idle_streak = 0;
     bool shot_pending = false;
+    // WASM only: all views shot — stay on the last view instead of exiting
+    // (exit would reload the page and drop the captures).
+    bool finished = false;
     long world_time = DAY_LENGTH_TICKS / 4;
     WorldDrawQuality quality = WorldDrawQuality::MEDIUM;
     long settle_ticks = 60;
@@ -1372,7 +1375,7 @@ void RepGame::tick( ) {
     // Capture mode readiness: a view is "settled" when the terrain and light
     // queues have been idle for REPGAME_CAPTURE_SETTLE consecutive ticks —
     // everything visible is then generated, meshed, lit and uploaded.
-    if ( g_capture.enabled && !g_capture.shot_pending ) {
+    if ( g_capture.enabled && !g_capture.shot_pending && !g_capture.finished ) {
         g_capture.ticks_in_view++;
         LoaderDebugStats s;
         globalGameState.world.chunkLoader.debug_loader_stats( &s );
@@ -1896,6 +1899,18 @@ void RepGame::draw( float alpha ) {
     if ( g_capture.enabled && g_capture.shot_pending ) {
         g_capture.shot_pending = false;
         globalGameState.world.screenshot( "capture_" + std::to_string( g_capture.view_index ) );
+#if defined( REPGAME_WASM )
+        // WASM: exiting reloads the page and loses the captures — mark done
+        // and keep the camera pinned on the last (still valid) view.
+        if ( g_capture.view_index == static_cast<int>( g_capture.views.size( ) ) - 1 ) {
+            g_capture.finished = true;
+            pr_debug( "Capture complete" );
+        } else {
+            g_capture.view_index++;
+            g_capture.ticks_in_view = 0;
+            g_capture.idle_streak = 0;
+        }
+#else
         g_capture.view_index++;
         if ( g_capture.view_index >= static_cast<int>( g_capture.views.size( ) ) ) {
             globalGameState.input.exitGame = true;
@@ -1903,6 +1918,7 @@ void RepGame::draw( float alpha ) {
             g_capture.ticks_in_view = 0;
             g_capture.idle_streak = 0;
         }
+#endif
     }
 
     // REPGAME_CAPTURE_PERIODIC=n: dump all FBO attachments + display every n

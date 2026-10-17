@@ -187,7 +187,18 @@ var Module = {
     showError(msg);
   },
   onRuntimeInitialized: onModuleReady,
-  noInitialRun: true
+  noInitialRun: true,
+  // Forward REPGAME_* URL query params into Emscripten's ENV so getenv()
+  // sees them (e.g. REPGAME_CAPTURE, REPGAME_MSAA). ENV is a top-level var in
+  // the non-modularized RepGame.js, so it's already defined when preRun runs.
+  preRun: [function() {
+    var params = new URLSearchParams(location.search);
+    params.forEach(function(value, key) {
+      if (key.indexOf("REPGAME_") === 0) {
+        ENV[key] = value;
+      }
+    });
+  }]
 };
 
 var script = document.createElement("script");

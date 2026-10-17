@@ -128,6 +128,17 @@ int repgame_sdl2_main( const char *world_path, const char *host, const bool conn
     SDL_GL_SetAttribute( SDL_GL_DEPTH_SIZE, 24 );
     SDL_GL_SetAttribute( SDL_GL_STENCIL_SIZE, 8 );
 
+    // MSAA on the WebGL canvas: Emscripten's EGL layer
+    // (emsdk/upstream/emscripten/src/lib/libegl.js) maps
+    // EGL_SAMPLE_BUFFERS/EGL_SAMPLES to the WebGL `antialias` context
+    // attribute; the browser picks the sample count (normally 4).
+    // REPGAME_MSAA=0 disables it for A/B comparison.
+    const char *msaa_env = getenv( "REPGAME_MSAA" );
+    const bool msaa = !( msaa_env && atoi( msaa_env ) == 0 );
+    SDL_GL_SetAttribute( SDL_GL_MULTISAMPLEBUFFERS, msaa ? 1 : 0 );
+    SDL_GL_SetAttribute( SDL_GL_MULTISAMPLESAMPLES, msaa ? 4 : 0 );
+    pr_debug( "MSAA requested: %s", msaa ? "on (4x)" : "off (REPGAME_MSAA=0)" );
+
     int default_width = DEFAULT_WINDOW_WIDTH;
     int default_height = DEFAULT_WINDOW_HEIGHT;
     // SDL_WINDOW_FULLSCREEN_DESKTOP triggers an unaligned atomic access in
@@ -165,7 +176,10 @@ int repgame_sdl2_main( const char *world_path, const char *host, const bool conn
     RepGame *repgamePrt = new RepGame( );
     RepGame &repgame = *repgamePrt;
     globalGameState = repgame.init( world_path, connect_multi, host, supportsAnisotropicFiltering );
-
+    // Same as the native init path: seed screen size/proj explicitly so the
+    // first frame is correct even if no SDL_WINDOWEVENT_RESIZED arrives
+    // (headless browsers may never fire one).
+    repgame.changeSize( default_width, default_height );
     emscripten_set_main_loop_arg( main_loop_wasm, ( void * )&repgame, 0, 1 );
     return 0;
 }

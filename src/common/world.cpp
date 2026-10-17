@@ -675,6 +675,10 @@ void World::screenshot( const std::string &prefix ) const {
 }
 #else
 void World::screenshot( const std::string &prefix ) const {
+#if defined( REPGAME_WASM )
+    // No offscreen FBO: read the default framebuffer (see screenshot.cpp).
+    take_screenshot( 0, prefix );
+#endif
 }
 #endif
 

@@ -82,7 +82,6 @@ layout(location = 3) out vec4 skyColor;
 // layout( location = 0 ) out vec4 reflection;
 
 void main() {
-#if !defined(REPGAME_LOW_GRAPHICS)
     // Mip/aniso selection must use derivatives of the continuous quad UV:
     // the per-cell random rotation below makes `working` jump at every block
     // boundary inside a greedy-merged quad, and implicit derivatives across
@@ -90,7 +89,6 @@ void main() {
     // in the distance.
     vec2 uv_dx = dFdx(v_TexCoordBlock);
     vec2 uv_dy = dFdy(v_TexCoordBlock);
-#endif
     if(v_planarDot * u_ReflectionDotSign < 0.0f && u_ReflectionHeight != 0.0f) {
         discard;
     }
@@ -128,24 +126,18 @@ void main() {
         if(mod_sum == 0) {
             adjusted_face.r = 2.0f;
             working_fract = vec2(1.0f - working_fract.y, working_fract.x);
-#if !defined(REPGAME_LOW_GRAPHICS)
             uv_dx = vec2(-uv_dx.y, uv_dx.x);
             uv_dy = vec2(-uv_dy.y, uv_dy.x);
-#endif
         } else if(mod_sum == 1) {
             adjusted_face.b = 2.0f;
             working_fract = vec2(1.0f - working_fract.x, 1.0f - working_fract.y);
-#if !defined(REPGAME_LOW_GRAPHICS)
             uv_dx = -uv_dx;
             uv_dy = -uv_dy;
-#endif
         } else if(mod_sum == 2) {
             adjusted_face.g = 2.0f;
             working_fract = vec2(working_fract.y, 1.0f - working_fract.x);
-#if !defined(REPGAME_LOW_GRAPHICS)
             uv_dx = vec2(uv_dx.y, -uv_dx.x);
             uv_dy = vec2(uv_dy.y, -uv_dy.x);
-#endif
         } else {
             working_fract = vec2(working_fract.x, working_fract.y);
         }
@@ -161,10 +153,8 @@ void main() {
     vec2 working_hi = max(v_tex_max - (0.5f / 16.0f), working_lo);
     working = clamp(working, working_lo, working_hi);
 
-#if defined(REPGAME_LOW_GRAPHICS)
-    vec4 texColor = texture(u_Texture, vec3(working, v_blockID));
-#else
     vec4 texColor = textureGrad(u_Texture, vec3(working, v_blockID), uv_dx, uv_dy);
+#if !defined(REPGAME_LOW_GRAPHICS)
     // u_DebugFlags bit 2: texture detail off — resample at a coarse mip.
     if((u_DebugFlags & 2) != 0) {
         texColor.rgb = textureLod(u_Texture, vec3(working, v_blockID), 4.0).rgb;
@@ -213,12 +203,6 @@ void main() {
     // premultiplies and lowers the alpha. Un-premultiply by dividing RGB
     // by alpha to recover the original opaque colour, then snap alpha to
     // 1.0 so surviving pixels render fully opaque (no sky bleed-through).
-#if defined(REPGAME_LOW_GRAPHICS)
-    // Low graphics: simple early-out discard at 0.8 to reduce overdraw.
-    if(u_shouldDiscardAlpha == 1.0f && texColor.a < 0.8f) {
-        discard;
-    }
-#else
     if(u_shouldDiscardAlpha == 1.0f) {
         if(texColor.a < 0.1f) {
             discard;
@@ -226,7 +210,6 @@ void main() {
         texColor.rgb /= texColor.a;
         texColor.a = 1.0f;
     }
-#endif
     // if ( float( mod_sum ) == u_ShowRotation ) {
     //     texColor.r *= 2.1f;
     // }

@@ -96,7 +96,44 @@ void take_screenshot( unsigned int frameBufferId, const std::string &prefix ) {
     pr_debug( "Screenshot complete: %s_*", prefix.c_str( ) );
 }
 #else
+#if defined( REPGAME_WASM )
+#include <vector>
+#include <emscripten.h>
+
+void take_screenshot( unsigned int frameBufferId, const std::string &prefix ) {
+    // No offscreen FBO on WASM: read the default framebuffer. draw() runs on
+    // the main thread before present, so the back buffer is still valid even
+    // with preserveDrawingBuffer=false. Rows are bottom-up (glReadPixels
+    // origin); the JS harness flips them when encoding.
+    GLint viewport[ 4 ];
+    glGetIntegerv( GL_VIEWPORT, viewport );
+    const int width = viewport[ 2 ];
+    const int height = viewport[ 3 ];
+    std::vector<unsigned char> pixels( static_cast<size_t>( width ) * height * 4 );
+    glBindFramebuffer( GL_FRAMEBUFFER, 0 );
+    glReadPixels( 0, 0, width, height, GL_RGBA, GL_UNSIGNED_BYTE, pixels.data( ) );
+    const GLenum err = glGetError( );
+    if ( err != GL_NO_ERROR ) {
+        pr_debug( "Screenshot glReadPixels error: 0x%x", err );
+    }
+    // Hand the raw RGBA to JS (window.repgameCaptures) for the capture
+    // harness to pick up.
+    EM_ASM(
+        {
+            window.repgameCaptures = window.repgameCaptures || [];
+            window.repgameCaptures.push( {
+                name : UTF8ToString( $0 ),
+                width : $1,
+                height : $2,
+                rgba : HEAPU8.slice( $3, $3 + $1 * $2 * 4 )
+            } );
+        },
+        prefix.c_str( ), width, height, pixels.data( ) );
+    pr_debug( "Screenshot captured (default framebuffer): %s (%dx%d)", prefix.c_str( ), width, height );
+}
+#else
 void take_screenshot( unsigned int frameBufferId, const std::string &prefix ) {
     // Screenshots not supported on this platform (no framebuffer support).
 }
+#endif
 #endif
