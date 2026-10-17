@@ -48,12 +48,20 @@ void repgame_linux_install_signal_handlers( ) {
 void repgame_linux_process_sdl_events( RepGame &repgame ) {
     SDL_Event event;
     Input &input = repgame.getInputState( );
+    // Capture mode: ignore user input entirely (the camera is scripted), but
+    // still honor window resize/close.
+    const bool capture = RepGame::capture_mode( );
     while ( SDL_PollEvent( &event ) ) {
         bool handledMouse = false;
         bool handledKeyboard = false;
 #if SUPPORTS_IMGUI_OVERLAY
-        imgui_overlay_handle_sdl2_event( &globalGameState->imgui_overlay, &event, &handledMouse, &handledKeyboard );
+        if ( !capture ) {
+            imgui_overlay_handle_sdl2_event( &globalGameState->imgui_overlay, &event, &handledMouse, &handledKeyboard );
+        }
 #endif
+        if ( capture && event.type != SDL_EVENT_WINDOW_RESIZED && event.type != SDL_EVENT_WINDOW_CLOSE_REQUESTED ) {
+            continue;
+        }
         switch ( event.type ) {
             case SDL_EVENT_KEY_DOWN:
             case SDL_EVENT_KEY_UP:

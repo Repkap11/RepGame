@@ -48,6 +48,16 @@ uniform vec3 u_SkyAvgColor;
 // both WATER and LAVA, RenderOrder_Water). u_Time is always 0 unless u_FluidAnim.
 uniform float u_Time;
 uniform int u_FluidAnim;
+
+// Capture-mode A/B debug toggles (REPGAME_CAPTURE per-view flags bitmask);
+// always 0 in normal play.
+uniform int u_DebugFlags;
+
+// Footprint-mipmapped light (see light_lod below): LOD bias (higher = blur
+// the per-block light pattern at closer range) and how much of the solid-
+// inclusive average to keep as smooth distant AO (0 = air-only average).
+uniform float u_LightLodBias;
+uniform float u_LightFarAO;
 #endif
 
 in vec2 v_TexCoordBlock;
@@ -89,7 +99,12 @@ void main() {
     // working_fract = vec2( 1.0 - working_fract.x, working_fract.y );
     int mod_sum = -1;
     vec3 adjusted_face = vec3(1, 1, 1);
+#if defined(REPGAME_LOW_GRAPHICS)
     if(bool(v_block_auto_rotates)) {
+#else
+    // u_DebugFlags bit 4: random rotation off (gradients stay unrotated too).
+    if(bool(v_block_auto_rotates) && (u_DebugFlags & 4) == 0) {
+#endif
         // Hash the world cell this face fragment covers so the rotation is a
         // pure function of position — the same no matter how greedy meshing
         // merged the block into quads. Stepping half a cell against the face
@@ -150,6 +165,10 @@ void main() {
     vec4 texColor = texture(u_Texture, vec3(working, v_blockID));
 #else
     vec4 texColor = textureGrad(u_Texture, vec3(working, v_blockID), uv_dx, uv_dy);
+    // u_DebugFlags bit 2: texture detail off — resample at a coarse mip.
+    if((u_DebugFlags & 2) != 0) {
+        texColor.rgb = textureLod(u_Texture, vec3(working, v_blockID), 4.0).rgb;
+    }
 #endif
 
     if(texColor.a == 0.0f) {
@@ -227,11 +246,45 @@ void main() {
     // Two independent channels (r=sky, g=block, both already 0-1): keeping
     // them separate matters because GL_LINEAR interpolates raw texel values —
     // a packed byte would cross-contaminate the nibbles mid-gradient.
+#if defined(REPGAME_LOW_GRAPHICS)
     vec2 light_sample = texture(u_LightTex, light_coord).rg;
+#else
+    // Level 0 is the exact per-cell light (implicit LOD would now pick mips).
+    vec2 light_sample = textureLod(u_LightTex, light_coord, 0.0).rg;
+    // Band-limit the light to the pixel footprint: once a block spans less
+    // than ~2 pixels (distance, edge-on views) the per-block light pattern
+    // (AO-like darkening toward solid cells, stepped seabeds seen through
+    // water) aliases into moire. The volume is mipmapped with B = lit-cell
+    // fraction (light > 0; solid cells always hold 0), so rg / b is the
+    // average light over the *air* cells in the
+    // footprint — solid cells don't drag it dark. u_LightFarAO blends toward
+    // the raw (solid-inclusive) average, which darkens crevices/terraces
+    // smoothly at the mip scale — AO without the per-block pattern.
+    // u_DebugFlags bit 32 disables this for A/B captures.
+    float light_footprint = max(length(dFdx(v_world_coords)), length(dFdy(v_world_coords)));
+    float light_lod = log2(max(light_footprint, 1e-4)) + u_LightLodBias;
+    if(light_lod > 0.0 && (u_DebugFlags & 32) == 0) {
+        vec3 light_mip = textureLod(u_LightTex, light_coord, light_lod).rgb;
+        vec2 light_far = min(mix(light_mip.rg / max(light_mip.b, 1.0 / 255.0), light_mip.rg, u_LightFarAO), vec2(1.0));
+        light_sample = mix(light_sample, light_far, clamp(light_lod, 0.0, 1.0));
+    }
+#endif
     // u_MinAmbient floors the result: cells with no skylight and no block
     // light (deep caves) still get a faint ambient instead of pure black.
     float scene_light = max(max(light_sample.r * u_Daylight, light_sample.g), u_MinAmbient);
+#if !defined(REPGAME_LOW_GRAPHICS)
+    // u_DebugFlags bit 1: lighting off.
+    if((u_DebugFlags & 1) != 0) {
+        scene_light = 1.0;
+    }
+#endif
+#if defined(REPGAME_LOW_GRAPHICS)
     vec4 lightedColor = texColor * vec4(v_face_light * scene_light, v_face_light * scene_light, v_face_light * scene_light, u_ExtraAlpha);
+#else
+    // u_DebugFlags bit 16: per-face shading off.
+    float face_light_used = (u_DebugFlags & 16) != 0 ? 1.0 : v_face_light;
+    vec4 lightedColor = texColor * vec4(face_light_used * scene_light, face_light_used * scene_light, face_light_used * scene_light, u_ExtraAlpha);
+#endif
 
     vec4 finalColor = lightedColor;
     vec4 finalReflection = lightedColor;
@@ -265,6 +318,11 @@ void main() {
     // Alpha fade: starts at 50% of the fog range, reaches full at the edge.
     float alphaFog = clamp((fogLinear - 0.5f) / 0.5f, 0.0f, 1.0f);
     alphaFog = alphaFog * alphaFog * (3.0f - 2.0f * alphaFog);
+    // u_DebugFlags bit 8: fog off.
+    if((u_DebugFlags & 8) != 0) {
+        colorFog = 0.0;
+        alphaFog = 0.0;
+    }
 
     // Use the pre-computed average sky color as the fog color.
     vec3 dynamicFogColor = u_SkyAvgColor;

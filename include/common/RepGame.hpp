@@ -220,6 +220,8 @@ class RepGame {
     bool shouldExit( ) const;
     bool should_lock_pointer( ) const;
     static bool supportsAnisotropic( );
+    // True when REPGAME_CAPTURE is set (deterministic screenshot capture mode).
+    static bool capture_mode( );
 
     int rep_tests_start( );
 };

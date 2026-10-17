@@ -1844,7 +1844,38 @@ int light_texture_unit( ) {
 // (R=sky, G=block) so filtering stays independent; expansion happens here on
 // upload. Values are stored *17 so UNORM8 filtering keeps ~8-bit precision
 // across the 0-15 range instead of ~4.
+// Desktop additionally carries B = 255 for lit cells, 0 for unlit, plus an
+// unused alpha (RGBA8 avoids the driver's RGB->RGBA repack on upload). Solid
+// cells always hold light 0, so "has light" is a free proxy for "air" — no
+// blocks[] lookup; the mipmapped volume then recovers the average light over
+// the *air* cells in a footprint as rg / b (see chunk_fragment.glsl).
+// Pitch-black air (deep caves) is likewise excluded from the air-only
+// average, which only affects distant mips near cave mouths.
+#if defined( REPGAME_ANDROID ) || defined( REPGAME_WASM )
 static unsigned char s_light_upload_scratch[ 2 * CHUNK_BLOCK_SIZE ];
+#define LIGHT_TEX_CHANNELS 2
+#define LIGHT_TEX_FORMAT GL_RG8
+#define LIGHT_TEX_COMPONENTS GL_RG
+#else
+static uint32_t s_light_upload_scratch[ CHUNK_BLOCK_SIZE ];
+#define LIGHT_TEX_FORMAT GL_RGBA8
+#define LIGHT_TEX_COMPONENTS GL_RGBA
+
+// packed light byte -> RGBA texel (bytes written then memcpy'd so the LUT is
+// endian-correct). Built once at load; pure bit math, no GL/block lookups.
+static uint32_t s_light_lut[ 256 ];
+static const bool s_light_lut_init = ( []( ) {
+    for ( int i = 0; i < 256; i++ ) {
+        unsigned char b[ 4 ];
+        b[ 0 ] = static_cast<unsigned char>( ( i >> 4 ) * 17 ); // sky
+        b[ 1 ] = static_cast<unsigned char>( ( i & 0x0F ) * 17 ); // block
+        b[ 2 ] = i != 0 ? 255 : 0;                              // lit-cell mask
+        b[ 3 ] = 255;
+        memcpy( &s_light_lut[ i ], b, 4 );
+    }
+    return true;
+} )( );
+#endif
 
 static inline void light_expand_cell( const unsigned char packed, unsigned char *out ) {
     out[ 0 ] = static_cast<unsigned char>( ( packed >> 4 ) * 17 ); // sky
@@ -1869,6 +1900,7 @@ void Chunk::light_ensure_texture( ) {
     // pending (the chunk may not be in the list, but a mark sees listed==0
     // or the queued entry itself picks them up next pass).
     this->light_dirty_box.exchange( LIGHT_BOX_EMPTY, std::memory_order_acq_rel );
+#if defined( REPGAME_ANDROID ) || defined( REPGAME_WASM )
     if ( this->light ) {
         for ( int i = 0; i < CHUNK_BLOCK_SIZE; i++ ) {
             light_expand_cell( this->light[ i ], s_light_upload_scratch + 2 * i );
@@ -1882,12 +1914,30 @@ void Chunk::light_ensure_texture( ) {
             s_light_upload_scratch[ 2 * i + 1 ] = cell[ 1 ];
         }
     }
+#else
+    if ( this->light ) {
+        for ( int i = 0; i < CHUNK_BLOCK_SIZE; i++ ) {
+            s_light_upload_scratch[ i ] = s_light_lut[ this->light[ i ] ];
+        }
+    } else {
+        // Uniform volume (null light[]): the whole texture is one value.
+        const uint32_t cell = s_light_lut[ this->light_uniform ];
+        for ( int i = 0; i < CHUNK_BLOCK_SIZE; i++ ) {
+            s_light_upload_scratch[ i ] = cell;
+        }
+    }
+#endif
     glPixelStorei( GL_UNPACK_ROW_LENGTH, 0 );
     glPixelStorei( GL_UNPACK_IMAGE_HEIGHT, 0 );
     glPixelStorei( GL_UNPACK_ALIGNMENT, 1 );
-    glTexImage3D( GL_TEXTURE_3D, 0, GL_RG8, CHUNK_SIZE_INTERNAL_X, CHUNK_SIZE_INTERNAL_Y, CHUNK_SIZE_INTERNAL_Z, 0, GL_RG, GL_UNSIGNED_BYTE, s_light_upload_scratch );
+    glTexImage3D( GL_TEXTURE_3D, 0, LIGHT_TEX_FORMAT, CHUNK_SIZE_INTERNAL_X, CHUNK_SIZE_INTERNAL_Y, CHUNK_SIZE_INTERNAL_Z, 0, LIGHT_TEX_COMPONENTS, GL_UNSIGNED_BYTE, s_light_upload_scratch );
     glPixelStorei( GL_UNPACK_ALIGNMENT, 4 );
+#if defined( REPGAME_ANDROID ) || defined( REPGAME_WASM )
     glTexParameteri( GL_TEXTURE_3D, GL_TEXTURE_MIN_FILTER, GL_LINEAR );
+#else
+    glGenerateMipmap( GL_TEXTURE_3D );
+    glTexParameteri( GL_TEXTURE_3D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR );
+#endif
     glTexParameteri( GL_TEXTURE_3D, GL_TEXTURE_MAG_FILTER, GL_LINEAR );
     glTexParameteri( GL_TEXTURE_3D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE );
     glTexParameteri( GL_TEXTURE_3D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE );
@@ -1961,25 +2011,44 @@ void ChunkLoader::light_upload_dirty( const int max_uploads ) {
         // is tightly packed so the default unpack stride applies.
         for ( int z = 0; z < sz.z; z++ ) {
             for ( int y = 0; y < sz.y; y++ ) {
-                unsigned char *out = s_light_upload_scratch + 2 * ( z * sz.y + y ) * sz.x;
+#if defined( REPGAME_ANDROID ) || defined( REPGAME_WASM )
+                unsigned char *out = s_light_upload_scratch + LIGHT_TEX_CHANNELS * ( z * sz.y + y ) * sz.x;
                 if ( chunk.light ) {
                     const unsigned char *row = chunk.light + ( ( lo.z + z ) * CHUNK_SIZE_INTERNAL_Y + ( lo.y + y ) ) * CHUNK_SIZE_INTERNAL_X + lo.x;
                     for ( int x = 0; x < sz.x; x++ ) {
-                        light_expand_cell( row[ x ], out + 2 * x );
+                        light_expand_cell( row[ x ], out + LIGHT_TEX_CHANNELS * x );
                     }
                 } else {
                     // Uniform volume: the whole dirty box reads light_uniform.
                     for ( int x = 0; x < sz.x; x++ ) {
-                        light_expand_cell( chunk.light_uniform, out + 2 * x );
+                        light_expand_cell( chunk.light_uniform, out + LIGHT_TEX_CHANNELS * x );
                     }
                 }
+#else
+                uint32_t *out = s_light_upload_scratch + ( z * sz.y + y ) * sz.x;
+                if ( chunk.light ) {
+                    const unsigned char *row = chunk.light + ( ( lo.z + z ) * CHUNK_SIZE_INTERNAL_Y + ( lo.y + y ) ) * CHUNK_SIZE_INTERNAL_X + lo.x;
+                    for ( int x = 0; x < sz.x; x++ ) {
+                        out[ x ] = s_light_lut[ row[ x ] ];
+                    }
+                } else {
+                    // Uniform volume: the whole dirty box reads light_uniform.
+                    const uint32_t cell = s_light_lut[ chunk.light_uniform ];
+                    for ( int x = 0; x < sz.x; x++ ) {
+                        out[ x ] = cell;
+                    }
+                }
+#endif
             }
         }
         glPixelStorei( GL_UNPACK_ROW_LENGTH, 0 );
         glPixelStorei( GL_UNPACK_IMAGE_HEIGHT, 0 );
         glPixelStorei( GL_UNPACK_ALIGNMENT, 1 );
-        glTexSubImage3D( GL_TEXTURE_3D, 0, lo.x, lo.y, lo.z, sz.x, sz.y, sz.z, GL_RG, GL_UNSIGNED_BYTE, s_light_upload_scratch );
+        glTexSubImage3D( GL_TEXTURE_3D, 0, lo.x, lo.y, lo.z, sz.x, sz.y, sz.z, LIGHT_TEX_COMPONENTS, GL_UNSIGNED_BYTE, s_light_upload_scratch );
         glPixelStorei( GL_UNPACK_ALIGNMENT, 4 );
+#if !defined( REPGAME_ANDROID ) && !defined( REPGAME_WASM )
+        glGenerateMipmap( GL_TEXTURE_3D );
+#endif
     }
     light_dbg_n_upload += uploads;
     light_dbg_us_upload += light_now_us( ) - t0;

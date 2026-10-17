@@ -80,7 +80,9 @@ void imgui_overlay_draw( ImGuiOverlay *imgui_overlay, Input &input ) {
 
             // Black background, 50% transparent; no title bar, not movable/selectable.
             ImGui::PushStyleColor( ImGuiCol_WindowBg, ImVec4( 0.0f, 0.0f, 0.0f, 0.5f ) );
-            ImGuiWindowFlags windowFlags = ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoBringToFrontOnFocus | ImGuiWindowFlags_NoNav | ImGuiWindowFlags_NoMouseInputs;
+            // Mouse inputs stay enabled so the debug sliders below are usable;
+            // io.WantCaptureMouse keeps clicks on the window from reaching the game.
+            ImGuiWindowFlags windowFlags = ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoBringToFrontOnFocus | ImGuiWindowFlags_NoNav;
 
             ImGui::Begin( "RepGame", nullptr, windowFlags );
             ImGui::Text( "Application average %.3f ms/frame (%.1f FPS)", 1000.0f / io.Framerate, io.Framerate );
@@ -114,6 +116,12 @@ void imgui_overlay_draw( ImGuiOverlay *imgui_overlay, Input &input ) {
                          debug_vars.loader.light_seeds, debug_vars.loader.light_claims,
                          debug_vars.loader.light_dirty, debug_vars.loader.light_dropped,
                          debug_vars.loader.light_bfs_active ? " [BFS]" : "" );
+            ImGui::Separator( );
+            // Live tunables for the footprint-mipmapped chunk light (see
+            // u_LightLodBias / u_LightFarAO in chunk_fragment.glsl).
+            ImGui::SliderFloat( "Light LOD bias", &debug_vars.light_lod_bias, 0.0f, 5.0f );
+            ImGui::SliderFloat( "Distant AO", &debug_vars.light_far_ao, 0.0f, 1.0f );
+
             ImGui::Text( "Particles: %d (%d debris, %d primed TNT)",
                          debug_vars.debris_particles + debug_vars.primed_tnt,
                          debug_vars.debris_particles, debug_vars.primed_tnt );

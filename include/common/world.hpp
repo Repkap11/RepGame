@@ -97,6 +97,12 @@ class World {
     void process_random_ticks( );
     void set_selected_block( const glm::ivec3 &selected, bool shouldDraw );
     void screenshot( const std::string &prefix ) const;
+    // Capture mode (REPGAME_CAPTURE per-view flags): binds u_DebugFlags on the
+    // chunk shader. Never called in normal play (GLSL default 0).
+    void set_chunk_debug_flags( int flags );
+    // Footprint-mipmapped light tuning: binds u_LightLodBias / u_LightFarAO on
+    // the chunk shader. Desktop only — LOW shaders don't declare them.
+    void set_light_band_limit( float lod_bias, float far_ao );
     void cleanup( MapStorage &map_storage );
     int get_num_drawable_chunks( ) const { return chunkLoader.num_drawable; }
     int get_num_remeshed_chunks( ) const { return chunkLoader.num_remeshed_this_frame; }

@@ -16,6 +16,12 @@ struct ImGuiDebugVars {
     // night_ambient is a floor on the daylight factor, i.e. "moonlight".
     float min_ambient = 0.06f;
     float night_ambient = 0.10f;
+    // Footprint-mipmapped light tuning (chunk_fragment light_lod): bias shifts
+    // the LOD higher (blurs the per-block light pattern at closer range);
+    // far_ao blends the distant average toward the solid-inclusive average
+    // (0 = air cells only) for smooth distant AO.
+    float light_lod_bias = 3.0f;
+    float light_far_ao = 0.35f;
     // Chunk-loading and lighting queue depths, refreshed once per frame by
     // RepGame::draw (see LoaderDebugStats in chunk_loader.hpp).
     LoaderDebugStats loader;

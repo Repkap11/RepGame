@@ -657,6 +657,15 @@ void World::cleanup( MapStorage &map_storage ) {
     }
 }
 
+void World::set_chunk_debug_flags( const int flags ) {
+    this->chunkLoader.shader.set_uniform1i( "u_DebugFlags", flags );
+}
+
+void World::set_light_band_limit( const float lod_bias, const float far_ao ) {
+    this->chunkLoader.shader.set_uniform1f( "u_LightLodBias", lod_bias );
+    this->chunkLoader.shader.set_uniform1f( "u_LightFarAO", far_ao );
+}
+
 #if ( SUPPORTS_FRAME_BUFFER )
 void World::screenshot( const std::string &prefix ) const {
     take_screenshot( this->frameBuffer.id( ), prefix );

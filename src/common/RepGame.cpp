@@ -24,6 +24,83 @@ static inline long long now_us( ) {
         std::chrono::steady_clock::now( ).time_since_epoch( ) ).count( );
 }
 
+// --- Capture mode (REPGAME_CAPTURE) -------------------------------------------
+// REPGAME_CAPTURE="x,y,z,yaw,pitch[,flags];...": deterministic screenshots of
+// exact camera views for visual debugging/A-B tests. tick() pins the camera,
+// clock and draw quality to the current view; once the loader/light queues are
+// idle for REPGAME_CAPTURE_SETTLE ticks (or REPGAME_CAPTURE_TIMEOUT hits), the
+// next draw() shoots screenshots/capture_<i>_*.tga and advances.
+struct CaptureView {
+    float x, y, z, yaw, pitch;
+    int flags;
+};
+struct CaptureState {
+    bool enabled = false;
+    std::vector<CaptureView> views;
+    int view_index = 0;
+    int applied_view = -1; // last view whose prev_* camera snapshot was synced
+    long ticks_in_view = 0;
+    long idle_streak = 0;
+    bool shot_pending = false;
+    long world_time = DAY_LENGTH_TICKS / 4;
+    WorldDrawQuality quality = WorldDrawQuality::MEDIUM;
+    long settle_ticks = 60;
+    long timeout_ticks = 30 * UPS_RATE;
+};
+static CaptureState g_capture;
+
+static void capture_parse( ) {
+    static bool parsed = false;
+    if ( parsed ) {
+        return;
+    }
+    parsed = true;
+    const char *env = getenv( "REPGAME_CAPTURE" );
+    if ( env == nullptr || env[ 0 ] == '\0' ) {
+        return;
+    }
+    std::string spec = env;
+    size_t start = 0;
+    while ( start <= spec.size( ) ) {
+        const size_t end = spec.find( ';', start );
+        const std::string view_str = spec.substr( start, end == std::string::npos ? std::string::npos : end - start );
+        if ( view_str.empty( ) ) {
+            break;
+        }
+        CaptureView view = { 0, 0, 0, 0, 0, 0 };
+        if ( sscanf( view_str.c_str( ), "%f,%f,%f,%f,%f,%d", &view.x, &view.y, &view.z, &view.yaw, &view.pitch, &view.flags ) >= 5 ) {
+            g_capture.views.push_back( view );
+        }
+        if ( end == std::string::npos ) {
+            break;
+        }
+        start = end + 1;
+    }
+    if ( g_capture.views.empty( ) ) {
+        return;
+    }
+    g_capture.enabled = true;
+    if ( const char *v = getenv( "REPGAME_CAPTURE_QUALITY" ) ) {
+        g_capture.quality = static_cast<WorldDrawQuality>( atoi( v ) );
+    }
+    if ( const char *v = getenv( "REPGAME_CAPTURE_TIME" ) ) {
+        g_capture.world_time = atol( v );
+    }
+    if ( const char *v = getenv( "REPGAME_CAPTURE_SETTLE" ) ) {
+        g_capture.settle_ticks = atol( v );
+    }
+    if ( const char *v = getenv( "REPGAME_CAPTURE_TIMEOUT" ) ) {
+        g_capture.timeout_ticks = atol( v );
+    }
+    pr_debug( "Capture mode: %zu view(s), quality=%d time=%ld settle=%ld timeout=%ld", g_capture.views.size( ),
+              static_cast<int>( g_capture.quality ), g_capture.world_time, g_capture.settle_ticks, g_capture.timeout_ticks );
+}
+
+bool RepGame::capture_mode( ) {
+    capture_parse( );
+    return g_capture.enabled;
+}
+
 BlockID RepGame::change_block( const int place, BlockState blockState ) {
 
     glm::ivec3 block;
@@ -1111,6 +1188,32 @@ void RepGame::tick( ) {
     // Day/night clock; light_daylight_factor() maps it to u_Daylight.
     globalGameState.world_time++;
 
+    // Capture mode: pin the simulation to the current view each tick, before
+    // process_camera_angle/process_movement consume the camera/input state.
+    if ( RepGame::capture_mode( ) ) {
+        const CaptureView &view = g_capture.views[ g_capture.view_index ];
+        globalGameState.world_time = g_capture.world_time;
+        globalGameState.input.worldDrawQuality = g_capture.quality;
+        globalGameState.camera.pos = glm::dvec3( view.x, view.y, view.z );
+        globalGameState.camera.angle_H = view.yaw;
+        globalGameState.camera.angle_V = view.pitch;
+        globalGameState.input.player_flying = true;
+        globalGameState.input.no_clip = true;
+        globalGameState.camera.y_speed = 0.0;
+        globalGameState.input.movement.sizeH = 0.0f;
+        globalGameState.input.movement.jumpPressed = false;
+        globalGameState.input.movement.sneakPressed = false;
+        if ( g_capture.applied_view != g_capture.view_index ) {
+            // New view: sync the interpolation snapshot so draw() doesn't blend
+            // across the teleport from the previous view.
+            g_capture.applied_view = g_capture.view_index;
+            globalGameState.camera.prev_pos = globalGameState.camera.pos;
+            globalGameState.camera.prev_eye_height = globalGameState.camera.eye_height;
+            globalGameState.camera.prev_angle_H = globalGameState.camera.angle_H;
+            globalGameState.camera.prev_angle_V = globalGameState.camera.angle_V;
+        }
+    }
+
     // Snapshot the camera transform as it was at the end of the previous tick, so the
     // render loop can interpolate between this and the freshly-computed transform below.
     globalGameState.camera.prev_pos = globalGameState.camera.pos;
@@ -1264,6 +1367,25 @@ void RepGame::tick( ) {
     globalGameState.input.mouse.previousPosition.wheel_counts = globalGameState.input.mouse.currentPosition.wheel_counts;
 
     RepGame::process_inventory_events( );
+
+    // Capture mode readiness: a view is "settled" when the terrain and light
+    // queues have been idle for REPGAME_CAPTURE_SETTLE consecutive ticks —
+    // everything visible is then generated, meshed, lit and uploaded.
+    if ( g_capture.enabled && !g_capture.shot_pending ) {
+        g_capture.ticks_in_view++;
+        LoaderDebugStats s;
+        globalGameState.world.chunkLoader.debug_loader_stats( &s );
+        const bool idle = s.chunks_loading == 0 && s.terrain_queued == 0 && s.terrain_results == 0 && //
+                          s.light_jobs == 0 && s.light_pending == 0 && s.light_dirty == 0 &&         //
+                          s.light_bfs_active == 0 && s.light_seeds == 0;
+        g_capture.idle_streak = idle ? g_capture.idle_streak + 1 : 0;
+        if ( g_capture.idle_streak >= g_capture.settle_ticks || g_capture.ticks_in_view >= g_capture.timeout_ticks ) {
+            const bool timed_out = g_capture.idle_streak < g_capture.settle_ticks;
+            pr_debug( "Capture view %d: shot pending after %ld ticks%s", g_capture.view_index, g_capture.ticks_in_view,
+                      timed_out ? " (TIMEOUT — loader still busy)" : "" );
+            g_capture.shot_pending = true;
+        }
+    }
 }
 
 // Whether either cell a standing player would occupy at (x, y, z) is solid
@@ -1437,6 +1559,17 @@ RepGameState *RepGame::init( const char *world_name, const bool connect_multi, c
 
     globalGameState.ui_overlay.init( vbl_ui_overlay_vertex, vbl_ui_overlay_instance );
     imgui_overlay_init( &globalGameState.imgui_overlay );
+    {
+        // Env overrides for the footprint-mipmapped light tunables (capture
+        // tuning or headless runs — the ImGui sliders are the live control).
+        ImGuiDebugVars &dv = imgui_overlay_get_imgui_debug_vars( );
+        if ( const char *v = getenv( "REPGAME_LIGHT_LOD_BIAS" ) ) {
+            dv.light_lod_bias = static_cast<float>( atof( v ) );
+        }
+        if ( const char *v = getenv( "REPGAME_LIGHT_FAR_AO" ) ) {
+            dv.light_far_ao = static_cast<float>( atof( v ) );
+        }
+    }
     globalGameState.font_renderer.init( );
 
     BlockID selectedBlock = globalGameState.hotbar.getSelectedBlock( );
@@ -1459,7 +1592,7 @@ bool RepGame::shouldExit( ) const {
 }
 
 bool RepGame::should_lock_pointer( ) const {
-    return !globalGameState.input.inventory_open;
+    return !g_capture.enabled && !globalGameState.input.inventory_open;
 }
 void RepGame::changeSize( const int w, const int h ) {
     // pr_debug( "Screen Size Change:%dx%d", w, h );
@@ -1671,6 +1804,14 @@ void RepGame::draw( float alpha ) {
         const glm::mat4 inv_mvp = glm::inverse( mvp );
         // Wrapped to an hour so shader sine functions keep float precision.
         const float time_s = static_cast<float>( fmod( now_us( ) / 1.0e6, 3600.0 ) );
+        if ( g_capture.enabled && g_capture.view_index < static_cast<int>( g_capture.views.size( ) ) ) {
+            globalGameState.world.set_chunk_debug_flags( g_capture.views[ g_capture.view_index ].flags );
+        }
+#if !defined( REPGAME_ANDROID ) && !defined( REPGAME_WASM )
+        // Footprint-mipmapped light tunables (ImGui sliders / env overrides).
+        // LOW shaders don't declare these uniforms — would log-not-found spam.
+        globalGameState.world.set_light_band_limit( debugVars.light_lod_bias, debugVars.light_far_ao );
+#endif
         globalGameState.world.draw( globalGameState.blocksTexture, mvp, inv_mvp, mvp_reflect, mvp_sky, mvp_sky_reflect, globalGameState.input.debug_mode, !globalGameState.input.inventory_open, render_pos.y, headInWater,
                                     globalGameState.input.worldDrawQuality, render_pos, renderOrigin, time_s, daylight, debugVars.min_ambient );
         profiling.us_world_draw = now_us( ) - t_world_draw_start;
@@ -1690,14 +1831,14 @@ void RepGame::draw( float alpha ) {
 
     {
         const long long t_ui_start = now_us( );
-        {
+        if ( !g_capture.enabled ) {
             const ChestContents *chest_contents = nullptr;
             if ( globalGameState.chest.open ) {
                 chest_contents = globalGameState.world.get_chest_contents( globalGameState.chest.pos );
             }
             globalGameState.ui_overlay.draw( globalGameState.main_inventory, globalGameState.survival_inventory, globalGameState.hotbar, globalGameState.game_mode, globalGameState.world.renderer, globalGameState.blocksTexture, globalGameState.input, globalGameState.font_renderer, globalGameState.screen.ortho_center, chest_contents ? &globalGameState.chest.inventory_renderer : nullptr, chest_contents );
         }
-        if ( globalGameState.is_holding_inventory_slot ) {
+        if ( !g_capture.enabled && globalGameState.is_holding_inventory_slot ) {
             int block_size, cell_size;
             globalGameState.survival_inventory.inventory_renderer.getBlockMetrics( block_size, cell_size );
             globalGameState.ui_overlay.draw_held_inventory_item( globalGameState.held_inventory_slot, globalGameState.is_holding_inventory_slot, globalGameState.input.mouse.absPosition.x, globalGameState.input.mouse.absPosition.y, block_size, cell_size, globalGameState.world.renderer, globalGameState.blocksTexture, globalGameState.font_renderer, globalGameState.screen.ortho_center );
@@ -1708,7 +1849,9 @@ void RepGame::draw( float alpha ) {
         globalGameState.world.chunkLoader.debug_loader_stats( &debugVars.loader );
         debugVars.debris_particles = static_cast<int>( globalGameState.world.blockDebris.count( ) );
         debugVars.primed_tnt = static_cast<int>( globalGameState.world.primedTnt.count( ) );
-        imgui_overlay_draw( &globalGameState.imgui_overlay, globalGameState.input );
+        if ( !g_capture.enabled ) {
+            imgui_overlay_draw( &globalGameState.imgui_overlay, globalGameState.input );
+        }
         // PageUp/PageDown nudges: ±1 hour per keypress (±6 with Shift),
         // accumulated on the input side. Wrap into one day cycle.
         if ( globalGameState.input.time_skip_hours != 0 ) {
@@ -1728,6 +1871,25 @@ void RepGame::draw( float alpha ) {
         // Capture intermediate framebuffer attachments for debugging.
         std::string prefix = "screenshot_" + std::to_string( screenshot_counter++ );
         globalGameState.world.screenshot( prefix );
+        // Emit the current view in REPGAME_CAPTURE format so an interesting
+        // spot can be reproduced deterministically in capture mode.
+        pr_debug( "Capture view: REPGAME_CAPTURE=\"%.3f,%.3f,%.3f,%.5f,%.5f\"", globalGameState.camera.pos.x,
+                  globalGameState.camera.pos.y, globalGameState.camera.pos.z, globalGameState.camera.angle_H,
+                  globalGameState.camera.angle_V );
+    }
+
+    // Capture mode: the settled view was drawn this frame — shoot it and
+    // advance to the next view (or exit after the last).
+    if ( g_capture.enabled && g_capture.shot_pending ) {
+        g_capture.shot_pending = false;
+        globalGameState.world.screenshot( "capture_" + std::to_string( g_capture.view_index ) );
+        g_capture.view_index++;
+        if ( g_capture.view_index >= static_cast<int>( g_capture.views.size( ) ) ) {
+            globalGameState.input.exitGame = true;
+        } else {
+            g_capture.ticks_in_view = 0;
+            g_capture.idle_streak = 0;
+        }
     }
 
     // REPGAME_CAPTURE_PERIODIC=n: dump all FBO attachments + display every n
@@ -1854,7 +2016,11 @@ void RepGame::cleanup( ) {
         return;
     }
 
-    save_player_data( );
+    // Capture mode never writes player.dat — it would store the teleported
+    // view over the user's save.
+    if ( !g_capture.enabled ) {
+        save_player_data( );
+    }
 
     globalGameState.multiplayer.cleanup( );
     globalGameState.world.cleanup( globalGameState.map_storage );
