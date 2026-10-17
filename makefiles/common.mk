@@ -29,7 +29,7 @@ BITMAP_BINS := $(patsubst bitmaps/%.bmp,out/bitmaps/%.bin,$(wildcard bitmaps/*.b
 
 # Embed the whole .bmp. The pixel offset is read from the BMP file header at
 # load time, so no fixed-size header needs to be stripped here.
-out/bitmaps/%.bin : bitmaps/%.bmp | out/bitmaps
+out/bitmaps/%.bin : bitmaps/%.bmp makefiles/common.mk | out/bitmaps
 	cp $< $@
 
 out/bitmaps: | out

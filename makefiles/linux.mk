@@ -68,18 +68,18 @@ FONT_BLOBS_LINUX := $(patsubst fonts/%.ttf,$(LINUX_OUT)/fonts/%.o,$(wildcard fon
 # Preprocess shaders through the C preprocessor at build time. The preprocessed
 # .glsl file lives in $(LINUX_OUT)/shaders/ alongside the .o blob. The blob symbols
 # are renamed to match what MK_BLOB(src_shaders, <name>, glsl) expects.
-$(LINUX_OUT)/shaders/%.glsl: src/shaders/%.glsl include/common/chunk_dimensions.hpp | $(LINUX_OUT)
+$(LINUX_OUT)/shaders/%.glsl: src/shaders/%.glsl include/common/chunk_dimensions.hpp makefiles/common.mk makefiles/linux.mk | $(LINUX_OUT)
 	@mkdir -p $(dir $@)
 	$(SHADER_PP) -DREPGAME_LINUX $< -o $@
 
-$(LINUX_OUT)/shaders/%.o : $(LINUX_OUT)/shaders/%.glsl | $(LINUX_OUT)
+$(LINUX_OUT)/shaders/%.o : $(LINUX_OUT)/shaders/%.glsl makefiles/linux.mk | $(LINUX_OUT)
 	$(LD_LINUX) $(LFLAGS) -r -b binary $< -o $@_no_section
 	objcopy --rename-section .data=.rodata,CONTENTS,ALLOC,LOAD,READONLY,DATA \
 		--redefine-sym _binary_$(LINUX_OUT_SYMBOLS)_shaders_$*_glsl_start=_binary_src_shaders_$*_glsl_start \
 		--redefine-sym _binary_$(LINUX_OUT_SYMBOLS)_shaders_$*_glsl_end=_binary_src_shaders_$*_glsl_end \
 		$@_no_section $@
 
-$(LINUX_OUT)/bitmaps/%.o : out/bitmaps/%.bin | $(LINUX_OUT)
+$(LINUX_OUT)/bitmaps/%.o : out/bitmaps/%.bin makefiles/linux.mk | $(LINUX_OUT)
 	$(LD_LINUX) $(LFLAGS) -r -b binary $< -o $@_no_section
 	objcopy --rename-section .data=.rodata,CONTENTS,ALLOC,LOAD,READONLY,DATA $@_no_section $@
 
