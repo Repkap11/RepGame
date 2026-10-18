@@ -292,6 +292,7 @@ void block_definitions_initilize_definitions( Texture *texture ) {
     block_definitions[ REDSTONE_LAMP_POWERED ].emits_light = 15;
     block_definitions[ REDSTONE_TORCH ].emits_light = 7;
     block_definitions[ PORTAL ].emits_light = 11;
+    block_definitions[ GLOWSTONE ].emits_light = 15;
 
     constexpr BlockID torch_shaped[] = { TORCH, BURNT_OUT_TORCH, REDSTONE_TORCH, REDSTONE_TORCH_OFF, BLACK_TORCH, BLUE_TORCH, WHITE_TORCH, PURPLE_TORCH, RED_TORCH, CYAN_TORCH };
     for ( const BlockID id : torch_shaped ) {
