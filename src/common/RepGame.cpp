@@ -593,7 +593,7 @@ void RepGame::process_mouse_events( ) {
             globalGameState.input.click_delay_right = 30;
         }
     }
-    if ( globalGameState.block_selection.selectionInBounds && globalGameState.input.mouse.buttons.right && globalGameState.input.click_delay_right == 0 ) {
+    if ( ( globalGameState.block_selection.selectionInBounds || globalGameState.block_selection.floatSelectionInBounds ) && globalGameState.input.mouse.buttons.right && globalGameState.input.click_delay_right == 0 ) {
         // Placing a block
         BlockID holdingBlock = globalGameState.hotbar.getSelectedBlock( );
         if ( holdingBlock != LAST_BLOCK_ID ) {
@@ -634,6 +634,9 @@ void RepGame::process_mouse_events( ) {
                     can_place = globalGameState.hotbar.canPlaceSelected( );
                 }
                 if ( can_place ) {
+                    if ( holdingBlockDef->can_float_on_water && globalGameState.block_selection.floatSelectionInBounds ) {
+                        globalGameState.block_selection.pos_create = globalGameState.block_selection.pos_create_water;
+                    }
                     BlockID placed_block = change_block( 1, { holdingBlock, rotation, 0, holdingBlock, 0 } );
                     if ( placed_block != LAST_BLOCK_ID && globalGameState.game_mode == GameMode_Survival ) {
                         globalGameState.hotbar.consumeSelected( 1 );
@@ -1269,12 +1272,24 @@ void RepGame::tick( ) {
         // above, so the ray is deterministic).
         int whichFace = 0;
         glm::dvec3 pos_with_reach = globalGameState.camera.pos + ( glm::dvec3( globalGameState.camera.look ) * static_cast<double>( REACH_DISTANCE ) );
-        globalGameState.block_selection.selectionInBounds = RayTraversal::find_block_from_to( globalGameState.world, nullptr, globalGameState.camera.pos, pos_with_reach, globalGameState.block_selection.pos_destroy, &whichFace, 0, 1, 0 );
+        const int pick_water = block_definition_get_definition( globalGameState.hotbar.getSelectedBlock( ) )->can_float_on_water;
+        globalGameState.block_selection.selectionInBounds = RayTraversal::find_block_from_to( globalGameState.world, nullptr, globalGameState.camera.pos, pos_with_reach, globalGameState.block_selection.pos_destroy, &whichFace, 0, 1, 0, 0 );
 
         globalGameState.block_selection.face = whichFace;
         globalGameState.block_selection.pos_create.x = globalGameState.block_selection.pos_destroy.x + ( whichFace == FACE_RIGHT ) - ( whichFace == FACE_LEFT );
         globalGameState.block_selection.pos_create.y = globalGameState.block_selection.pos_destroy.y + ( whichFace == FACE_TOP ) - ( whichFace == FACE_BOTTOM );
         globalGameState.block_selection.pos_create.z = globalGameState.block_selection.pos_destroy.z + ( whichFace == FACE_BACK ) - ( whichFace == FACE_FRONT );
+
+        if ( pick_water ) {
+            int whichFace_water = 0;
+            glm::ivec3 pos_destroy_water;
+            globalGameState.block_selection.floatSelectionInBounds = RayTraversal::find_block_from_to( globalGameState.world, nullptr, globalGameState.camera.pos, pos_with_reach, pos_destroy_water, &whichFace_water, 0, 1, 0, 1 );
+            globalGameState.block_selection.pos_create_water.x = pos_destroy_water.x + ( whichFace_water == FACE_RIGHT ) - ( whichFace_water == FACE_LEFT );
+            globalGameState.block_selection.pos_create_water.y = pos_destroy_water.y + ( whichFace_water == FACE_TOP ) - ( whichFace_water == FACE_BOTTOM );
+            globalGameState.block_selection.pos_create_water.z = pos_destroy_water.z + ( whichFace_water == FACE_BACK ) - ( whichFace_water == FACE_FRONT );
+        } else {
+            globalGameState.block_selection.floatSelectionInBounds = 0;
+        }
 
         globalGameState.world.set_selected_block( globalGameState.block_selection.pos_destroy, globalGameState.block_selection.selectionInBounds );
         if ( !g_capture.enabled ) {

@@ -84,6 +84,7 @@ typedef enum {
     SNOW,
     SNOWY_GRASS = 101,
     REED = 106,
+    LILLYPAD = 109,
     MYCELIUM_SIDE = 110,
     MYCELIUM = 111,
     BIRTCH_SAPPLING = 112,
@@ -359,6 +360,7 @@ typedef struct {
     } hides_self;
     bool needs_place_on_any_solid[ NUM_FACES_IN_CUBE ];
     bool needs_place_on_solid_but_can_stack_on_self;
+    bool can_float_on_water;
     bool rotate_on_placement;
     bool icon_is_isometric;
     int flows;

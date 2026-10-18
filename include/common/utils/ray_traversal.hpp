@@ -8,5 +8,5 @@ class RayTraversal {
                                    const glm::dvec3 &v1,             //
                                    const glm::dvec3 &v2,             //
                                    glm::ivec3 &out,                  //
-                                   int *out_whichFace, int flag, int is_pick, int is_pixel );
+                                   int *out_whichFace, int flag, int is_pick, int is_pixel, int pick_water );
 };

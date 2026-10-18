@@ -54,6 +54,7 @@ void block_definitions_initilize_definitions( Texture *texture ) {
         block->affected_by_redstone_power = true;   // dust, piston, all solid blocks
         block->transmits_redstone_power = false; // dust
         block->needs_place_on_solid_but_can_stack_on_self = false;
+        block->can_float_on_water = false;
         block->can_be_placed_in = false;
         block->hardness = 1.5f;
         block->connects_to_redstone_dust = false;
@@ -204,6 +205,20 @@ void block_definitions_initilize_definitions( Texture *texture ) {
     }
 
     block_definitions[ REED ].needs_place_on_solid_but_can_stack_on_self = true;
+
+    constexpr BlockID lillypad_shaped[] = { LILLYPAD };
+    for ( const BlockID id : lillypad_shaped ) {
+        centered_border( id, 0, 1 );
+        block_definitions[ id ].is_seethrough = true;
+        block_definitions[ id ].casts_shadow = false;
+        block_definitions[ id ].icon_is_isometric = false;
+        block_definitions[ id ].breaks_in_liquid = false;
+        block_definitions[ id ].affected_by_redstone_power = false;
+        block_definitions[ id ].waterloggable = true;
+        block_definitions[ id ].can_float_on_water = true;
+        block_definitions[ id ].needs_place_on_any_solid[ FACE_TOP ] = true;
+        block_definitions[ id ].hardness = 0.0f;
+    }
 
     block_definitions[ REDSTONE_LAMP ].affected_by_redstone_power = true;
     block_definitions[ REDSTONE_LAMP ].is_redstone_mechanism = true;

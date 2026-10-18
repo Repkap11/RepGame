@@ -222,7 +222,8 @@ bool block_can_survive_at( World &world, const glm::ivec3 &block_pos, const Bloc
                 block_is_ok_to_place = true;
                 break;
             } else {
-                block_is_ok_to_place = block_definition_get_definition( next_to_block_id )->collides_with_player;
+                block_is_ok_to_place = block->can_float_on_water ? next_to_block_id == WATER
+                                                               : block_definition_get_definition( next_to_block_id )->collides_with_player;
                 if ( block_is_ok_to_place ) {
                     break;
                 }

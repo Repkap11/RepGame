@@ -120,6 +120,10 @@ struct RepGameState {
         int face;
         glm::ivec3 pos_create;
         glm::ivec3 pos_destroy;
+        // Second raycast that can hit water — only run while holding a
+        // can_float_on_water block, and only used to place it.
+        int floatSelectionInBounds;
+        glm::ivec3 pos_create_water;
     } block_selection;
     // Survival-mode mining: while the left button is held on the same block,
     // progress_ticks accumulates once per tick until it reaches the block's

@@ -166,7 +166,7 @@ int contains_pixel( Block *pixel_block, BlockState &block_state, const glm::dvec
     return true;
 }
 
-int contains_block( World &world, const glm::dvec3 &dir, const glm::dvec3 &initial, const glm::ivec3 &block_pos, int collide_with_unloaded, int is_pick, int *which_face ) {
+int contains_block( World &world, const glm::dvec3 &dir, const glm::dvec3 &initial, const glm::ivec3 &block_pos, int collide_with_unloaded, int is_pick, int pick_water, int *which_face ) {
     BlockState blockState = world.get_loaded_block( block_pos );
     BlockID blockID = blockState.id;
     if ( blockID >= LAST_BLOCK_ID ) {
@@ -175,7 +175,7 @@ int contains_block( World &world, const glm::dvec3 &dir, const glm::dvec3 &initi
     Block *block = block_definition_get_definition( blockID );
     bool result;
     if ( is_pick ) {
-        result = block->is_pickable;
+        result = block->is_pickable || ( pick_water && blockID == WATER );
     } else {
         result = block->collides_with_player;
     }
@@ -190,7 +190,7 @@ int RayTraversal::find_block_from_to( World &world, Block *pixel_block, //
                                       const glm::dvec3 &v1,                   //
                                       const glm::dvec3 &v2,                   //
                                       glm::ivec3 &out,                        //
-                                      int *out_whichFace, int flag, int is_pick, int is_pixel ) {
+                                      int *out_whichFace, int flag, int is_pick, int is_pixel, int pick_water ) {
 
     glm::dvec3 dir = v2 - v1;
     // dir = glm::normalize(dir);
@@ -248,7 +248,7 @@ int RayTraversal::find_block_from_to( World &world, Block *pixel_block, //
     }
     for ( ;; ) {
         int which_face = -1;
-        int hit_block = contains_block( world, dir, v1, offset, 1, is_pick, &which_face );
+        int hit_block = contains_block( world, dir, v1, offset, 1, is_pick, pick_water, &which_face );
         if ( which_face != -1 ) {
             face = which_face;
         }
