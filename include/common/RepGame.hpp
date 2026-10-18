@@ -135,6 +135,11 @@ struct RepGameState {
         float progress_ticks;
     } block_mining;
     BlockUpdateQueue blockUpdateQueue;
+    // Fresh spawns (no player.dat) start on the terrain-height estimate but
+    // can't see structure blocks until the spawn column is generated. While
+    // true, RepGame::tick waits for the column to load and snaps the player
+    // onto the topmost colliding block.
+    bool spawn_pending;
     long tick_number;
     // Day/night clock in ticks (see DAY_LENGTH_TICKS in light.hpp).
     // Persisted in player.dat via PlayerData::world_time.

@@ -41,20 +41,21 @@ MAP_GEN_QUAL float mg_inverse_lerp( const float min, const float max, const floa
 // the exact max of each by evaluating across the [0, 1] noise range.
 // ---------------------------------------------------------------------------
 
-// Continentalness: large gentle drift. Linear so mid-range slopes produce
-// real elevation change everywhere instead of saturating into flat plateaus.
+// Continentalness: very large gentle drift — oceans and highlands span many
+// hundreds of blocks. Linear so mid-range slopes produce real elevation
+// change everywhere instead of saturating into flat plateaus.
 MAP_GEN_QUAL float mg_level_transform( const float noise ) {
-    return ( noise - 0.5f ) * 24.0f;
+    return ( noise - 0.5f ) * 30.0f;
 }
 
 // Rolling terrain: medium-scale undulation between the continental and hill
 // wavelengths, so flat regions still read as landscapes, not slabs.
 MAP_GEN_QUAL float mg_rolling_transform( const float noise ) {
-    return ( noise - 0.5f ) * 12.0f;
+    return ( noise - 0.5f ) * 17.0f;
 }
 
 MAP_GEN_QUAL float mg_hills_transform( const float noise ) {
-    return ( noise - 0.5f ) * 15;
+    return ( noise - 0.5f ) * 20;
 }
 
 MAP_GEN_QUAL float mg_ground_transform( const float noise ) {
@@ -62,9 +63,10 @@ MAP_GEN_QUAL float mg_ground_transform( const float noise ) {
 }
 
 // Mountain mask: flat [0,1] gate so mountains form distinct ranges instead of
-// appearing everywhere. Ramps up across noise in [0.55, 0.80].
+// appearing everywhere. Ramps up across noise in [0.52, 0.80]; the sampler
+// runs at continent scale so ranges stretch for hundreds of blocks.
 MAP_GEN_QUAL float mg_mountain_mask( float noise ) {
-    float m = ( noise - 0.55f ) / 0.25f;
+    float m = ( noise - 0.52f ) / 0.28f;
     m = m < 0 ? 0 : m;
     m = m > 1 ? 1 : m;
     return m;
@@ -77,44 +79,131 @@ MAP_GEN_QUAL float mg_mountain_ridge( const float noise ) {
 }
 
 // ---------------------------------------------------------------------------
-// 2D field samplers (raw noise in [0, 1]). Seed map:
-//   +0 hills   +1 ground    +2 level   +3 mountain mask   +4/+5 domain warp
-//   +6 ridge   +7 biome     +8 weird   +9 roughness       +10 underwater
-//   +11 bedrock jitter
-// 3D fields use MAP_SEED + 20..27.
+// Biome fields: large domain-warped blobs (wavelength ~800 blocks) so biomes
+// are continents, not patches. Warping the sample position makes borders
+// jagged instead of smooth perlin ellipses.
 // ---------------------------------------------------------------------------
 
-MAP_GEN_QUAL float mg_base_height( const int x, const int z ) {
-    const float level = mg_level_transform( MAP_GEN_PERLIN2D( x, z, 0.004f, 2, MAP_SEED + 2 ) );
-    const float rolling = mg_rolling_transform( MAP_GEN_PERLIN2D( x, z, 0.009f, 2, MAP_SEED + 12 ) );
-    const float hills = mg_hills_transform( MAP_GEN_PERLIN2D( x, z, 0.02f, 3, MAP_SEED + 0 ) );
-    const float ground = mg_ground_transform( MAP_GEN_PERLIN2D( x, z, 0.06f, 2, MAP_SEED + 1 ) );
-
-    // Domain warp bends the ridged noise into curved ranges.
-    const float wx = x + ( MAP_GEN_PERLIN2D( x, z, 0.004f, 2, MAP_SEED + 4 ) - 0.5f ) * 50.0f;
-    const float wz = z + ( MAP_GEN_PERLIN2D( x, z, 0.004f, 2, MAP_SEED + 5 ) - 0.5f ) * 50.0f;
-    const float mask = mg_mountain_mask( MAP_GEN_PERLIN2D( x, z, 0.003f, 2, MAP_SEED + 3 ) );
-    const float ridge = mg_mountain_ridge( MAP_GEN_PERLIN2D( wx, wz, 0.006f, 4, MAP_SEED + 6 ) );
-    const float mountains = mask * ridge * MAX_MOUNTAIN_HEIGHT;
-
-    return level + rolling + hills + ground + mountains;
-}
-
-// Overhang gain: plains get a small bump factor, rough regions and mountain
-// ranges get large 3D relief (cliffs, shelves, overhangs). Kept low on flat
-// land so ordinary ground stays walkably smooth.
-MAP_GEN_QUAL float mg_rough_gain( const int x, const int z ) {
-    const float rough = MAP_GEN_PERLIN2D( x, z, 0.01f, 2, MAP_SEED + 9 );
-    const float mask = mg_mountain_mask( MAP_GEN_PERLIN2D( x, z, 0.003f, 2, MAP_SEED + 3 ) );
-    return 0.5f + rough * 6.0f + mask * 30.0f;
-}
-
 MAP_GEN_QUAL float mg_biome( const int x, const int z ) {
-    return MAP_GEN_PERLIN2D( x, z, 0.0035f, 2, MAP_SEED + 7 );
+    const float bx = x + ( MAP_GEN_PERLIN2D( x, z, 0.0022f, 2, MAP_SEED + 13 ) - 0.5f ) * 320.0f;
+    const float bz = z + ( MAP_GEN_PERLIN2D( x, z, 0.0022f, 2, MAP_SEED + 14 ) - 0.5f ) * 320.0f;
+    return MAP_GEN_PERLIN2D( bx, bz, 0.0011f, 3, MAP_SEED + 7 );
 }
 
 MAP_GEN_QUAL float mg_weird( const int x, const int z ) {
-    return MAP_GEN_PERLIN2D( x, z, 0.005f, 2, MAP_SEED + 8 );
+    const float wx = x + ( MAP_GEN_PERLIN2D( x, z, 0.0026f, 2, MAP_SEED + 15 ) - 0.5f ) * 260.0f;
+    const float wz = z + ( MAP_GEN_PERLIN2D( x, z, 0.0026f, 2, MAP_SEED + 16 ) - 0.5f ) * 260.0f;
+    return MAP_GEN_PERLIN2D( wx, wz, 0.0015f, 3, MAP_SEED + 8 );
+}
+
+// Hot+dry desertness [0,1]: shared by the mesa terracing in mg_base_height
+// and the sandy surface pick, so mesa walls stay desert-colored.
+MAP_GEN_QUAL float mg_desert( const int x, const int z ) {
+    const float hot = mg_inverse_lerp( 0.68f, 0.80f, mg_biome( x, z ) );
+    const float dry = 1.0f - mg_inverse_lerp( 0.52f, 0.64f, mg_weird( x, z ) );
+    return hot * dry;
+}
+
+// Floating-island strength [0,1]: rare continent-scale archipelagos. The 3D
+// island field in mg_solid_at is only sampled where this is > 0.
+MAP_GEN_QUAL float mg_island_strength( const int x, const int z ) {
+    return mg_inverse_lerp( 0.72f, 0.93f, MAP_GEN_PERLIN2D( x, z, 0.0016f, 2, MAP_SEED + 17 ) );
+}
+
+// Island band center above the heightmap, jittered so islands in one
+// archipelago stack at different altitudes and bend slightly along their
+// length. Keep max(dy0 + half_thickness) under OVERHANG_MAX_RISE:
+// 28 + 4 jitter + 27 max half = 59 < 60.
+MAP_GEN_QUAL float mg_island_dy0( const int x, const int z ) {
+    return 28.0f + ( MAP_GEN_PERLIN2D( x, z, 0.006f, 2, MAP_SEED + 18 ) - 0.5f ) * 8.0f;
+}
+
+// Island footprint: a warped 2D blob field at boulder scale (~40-block
+// features) so islands come out as individual floating rocks, not wide
+// sheets. The value past the rim threshold acts as "inland-ness" — island
+// thickness scales with it, so each rock is a thick domed core tapering to a
+// thin rim. Returns a thickness factor in [0, 1]; 0 = outside any island.
+MAP_GEN_QUAL float mg_island_footprint( const int x, const int z ) {
+    const float fx = x + ( MAP_GEN_PERLIN2D( x, z, 0.03f, 1, MAP_SEED + 41 ) - 0.5f ) * 35.0f;
+    const float fz = z + ( MAP_GEN_PERLIN2D( x, z, 0.03f, 1, MAP_SEED + 42 ) - 0.5f ) * 35.0f;
+    return mg_inverse_lerp( 0.54f, 0.66f, MAP_GEN_PERLIN2D( fx, fz, 0.022f, 3, MAP_SEED + 40 ) );
+}
+
+// ---------------------------------------------------------------------------
+// 2D field samplers (raw noise in [0, 1]). Seed map:
+//   +0 hills   +1 ground    +2 level   +3 mountain mask   +4/+5 domain warp
+//   +6 ridge   +7 biome     +8 weird   +9 roughness       +10 underwater
+//   +11 bedrock jitter   +12 rolling   +13/+14 biome warp  +15/+16 weird warp
+//   +17 island mask      +18 island band   +34 canyon band   +35 canyon patch
+//   +36 geode zone mask  +40 island footprint  +41/+42 footprint warp
+// 3D fields use MAP_SEED + 20..33, +37..+39.
+// ---------------------------------------------------------------------------
+
+MAP_GEN_QUAL float mg_base_height( const int x, const int z ) {
+    const float level = mg_level_transform( MAP_GEN_PERLIN2D( x, z, 0.0016f, 2, MAP_SEED + 2 ) );
+    const float rolling = mg_rolling_transform( MAP_GEN_PERLIN2D( x, z, 0.0045f, 2, MAP_SEED + 12 ) );
+    const float hills = mg_hills_transform( MAP_GEN_PERLIN2D( x, z, 0.011f, 3, MAP_SEED + 0 ) );
+    const float ground = mg_ground_transform( MAP_GEN_PERLIN2D( x, z, 0.06f, 2, MAP_SEED + 1 ) );
+
+    // Domain warp bends the ridged noise into long curved ranges.
+    const float wx = x + ( MAP_GEN_PERLIN2D( x, z, 0.002f, 2, MAP_SEED + 4 ) - 0.5f ) * 130.0f;
+    const float wz = z + ( MAP_GEN_PERLIN2D( x, z, 0.002f, 2, MAP_SEED + 5 ) - 0.5f ) * 130.0f;
+    const float mask = mg_mountain_mask( MAP_GEN_PERLIN2D( x, z, 0.0011f, 2, MAP_SEED + 3 ) );
+    const float ridge = mg_mountain_ridge( MAP_GEN_PERLIN2D( wx, wz, 0.0032f, 4, MAP_SEED + 6 ) );
+    const float mountains = mask * ridge * MAX_MOUNTAIN_HEIGHT;
+
+    // Deserts rise into terraced mesas: the plateau lift is quantized into
+    // strata steps so the landscape forms wide flat treads and short cliff
+    // risers instead of a smooth dome. Max lift: ceil(26/7)*7 + ... <=
+    // MESA_MAX_RISE.
+    float mesa = 0.0f;
+    const float desert = mg_desert( x, z );
+    if ( desert > 0.0f ) {
+        const float raw = desert * 26.0f;
+        const float t = floorf( raw / 7.0f );
+        const float f = raw / 7.0f - t;
+        mesa = t * 7.0f + mg_inverse_lerp( 0.55f, 0.95f, f ) * 7.0f;
+    }
+
+    float h = level + rolling + hills + ground + mountains + mesa;
+
+    // Slot canyons: rare long gorges winding through the land. A narrow band
+    // around the midline of a very-low-frequency field traces the slot; a
+    // patch mask keeps canyons regional instead of a continuous web. Cutting
+    // stops a few blocks under sea level, so deep stretches flood into
+    // canyon rivers instead of trenching to bedrock.
+    if ( h > WATER_LEVEL + 3.0f ) {
+        const float cn = MAP_GEN_PERLIN2D( x, z, 0.0013f, 2, MAP_SEED + 34 );
+        const float band = 1.0f - mg_inverse_lerp( 0.012f, 0.04f, fabsf( cn - 0.5f ) );
+        if ( band > 0.0f ) {
+            const float patch = mg_inverse_lerp( 0.72f, 0.84f, MAP_GEN_PERLIN2D( x, z, 0.0045f, 1, MAP_SEED + 35 ) );
+            const float cut = band * band * patch * CANYON_MAX_DEPTH;
+            const float max_cut = h - ( WATER_LEVEL - 6.0f );
+            h -= cut < max_cut ? cut : max_cut;
+        }
+    }
+
+    return h;
+}
+
+// Which part of a mesa step a column sits on: 0 on the flat treads, ramps to
+// 1 across the cliff risers. mg_surface_block exposes this as rock bands.
+MAP_GEN_QUAL float mg_mesa_riser( const int x, const int z ) {
+    const float desert = mg_desert( x, z );
+    if ( desert <= 0.0f ) {
+        return 0.0f;
+    }
+    const float f = desert * 26.0f / 7.0f;
+    return mg_inverse_lerp( 0.55f, 0.95f, f - floorf( f ) );
+}
+
+// Overhang gain: plains get a small bump factor, rough regions and mountain
+// ranges get large 3D relief (cliffs, shelves, overhangs, arches). Kept low
+// on flat land so ordinary ground stays walkably smooth.
+MAP_GEN_QUAL float mg_rough_gain( const int x, const int z ) {
+    const float rough = MAP_GEN_PERLIN2D( x, z, 0.01f, 2, MAP_SEED + 9 );
+    const float mask = mg_mountain_mask( MAP_GEN_PERLIN2D( x, z, 0.0011f, 2, MAP_SEED + 3 ) );
+    return 0.5f + rough * 8.0f + mask * 55.0f;
 }
 
 MAP_GEN_QUAL float mg_underwater( const int x, const int z ) {
@@ -135,18 +224,24 @@ MAP_GEN_QUAL MapGenColumn mg_column_info( const int x, const int z ) {
     col.biome = mg_biome( x, z );
     col.weird = mg_weird( x, z );
     col.rough_gain = mg_rough_gain( x, z );
+    col.island = mg_island_strength( x, z );
+    col.island_dy0 = col.island > 0.0f ? mg_island_dy0( x, z ) : 0.0f;
+    col.mesa_riser = mg_mesa_riser( x, z );
     return col;
 }
 
 // ---------------------------------------------------------------------------
 // 3D fields. Seed map: +20 overhang, +21/+22 main cave channel, +23/+24
 // branch channel, +25 cheese caverns, +26 cave zone mask, +27 stone
-// pockets, +28 coal, +29 iron, +30 gold.
+// pockets, +28 coal, +29 iron, +30 gold, +31 island blobs, +32 lava veins,
+// +33 mega caverns.
 // ---------------------------------------------------------------------------
 
 // Whether a cell is solid terrain (before cave carving). Below the heightmap
 // is solid except where near-surface noise notches inward; above the
-// heightmap, gated 3D noise can add ledges/overhangs up to OVERHANG_MAX_RISE.
+// heightmap, gated 3D noise can add ledges/overhangs and, where the island
+// mask is strong, free-floating landmasses — all bounded by
+// OVERHANG_MAX_RISE.
 MAP_GEN_QUAL bool mg_solid_at( const int x, const int y, const int z, const MapGenColumn &col ) {
     const float dy = (float)y - col.height;
     if ( dy <= -35.0f ) {
@@ -154,6 +249,30 @@ MAP_GEN_QUAL bool mg_solid_at( const int x, const int y, const int z, const MapG
     }
     if ( dy >= OVERHANG_MAX_RISE ) {
         return false;
+    }
+    // Floating islands: domed landmasses whose half-thickness scales with
+    // "inland-ness" of a warped 2D footprint field — deep cores with real
+    // volume thinning to nothing at the rims. The inner half of the profile
+    // is unconditionally solid; the outer half is a ragged 3D-noise shell,
+    // so undersides come out lumpy and silhouettes stay broken.
+    if ( dy > 0.0f && col.island > 0.0f ) {
+        const float tin = mg_island_footprint( x, z );
+        if ( tin > 0.0f ) {
+            float half = ( 3.0f + col.island * 24.0f ) * tin;
+            if ( half > col.island_dy0 - 4.0f ) {
+                half = col.island_dy0 - 4.0f; // keep a crawlspace under every island
+            }
+            const float ab = fabsf( dy - col.island_dy0 );
+            if ( ab < half * 0.5f ) {
+                return true; // solid core — guaranteed volume
+            }
+            if ( ab < half ) {
+                const float is3 = MAP_GEN_PERLIN3D( x, y * 0.55f, z, 0.045f, 2, MAP_SEED + 31 ) - 0.5f;
+                if ( is3 > ( ab / half - 0.5f ) * 0.9f ) {
+                    return true;
+                }
+            }
+        }
     }
     float n;
     if ( dy < 0.0f ) {
@@ -164,9 +283,9 @@ MAP_GEN_QUAL bool mg_solid_at( const int x, const int y, const int z, const MapG
         // Above the heightmap: ridged noise forms sheet-like walls whose
         // undersides read as cliffs, ledges and overhangs.
         const float raw = MAP_GEN_PERLIN3D( x, y, z, 0.06f, 3, MAP_SEED + 20 );
-        n = 0.30f - fabsf( 2.0f * raw - 1.0f );
+        n = 0.45f - fabsf( 2.0f * raw - 1.0f );
     }
-    const float gate = 1.0f - fabsf( dy ) / 35.0f;
+    const float gate = 1.0f - fabsf( dy ) / ( dy < 0.0f ? 35.0f : OVERHANG_MAX_RISE );
     return ( col.height - (float)y ) + col.rough_gain * n * gate > 0.0f;
 }
 
@@ -239,6 +358,15 @@ MAP_GEN_QUAL bool mg_cave_carve( const int x, const int y, const int z, const fl
             return true;
         }
     }
+    // Rare mega-caverns: very-low-frequency blobs at mid-depth, thriving
+    // inside cave zones and tapering shut at their edges and near the
+    // surface, so they read as found caverns rather than void bubbles.
+    if ( depth > 12.0f && y > LAVA_LEVEL + 12 ) {
+        const float n6 = MAP_GEN_PERLIN3D( x, y, z, 0.0075f, 3, MAP_SEED + 33 );
+        if ( n6 > 0.92f - 0.25f * zoneGate * wGate ) {
+            return true;
+        }
+    }
     return false;
 }
 
@@ -250,6 +378,15 @@ MAP_GEN_QUAL bool mg_cave_carve( const int x, const int y, const int z, const fl
 // non-solid (this is the visible surface); otherwise this is the underlayer.
 MAP_GEN_QUAL BlockID mg_surface_block( const int x, const int y, const int z, const MapGenColumn &col, const bool exposed ) {
     const float dy = (float)y - col.height;
+    // Floating-island tops grow meadow (or snow in cold biomes) no matter
+    // what the terrain far below them is; the same rule greens the tops of
+    // natural overhang sheets inside island archipelagos.
+    if ( col.island > 0.0f && dy > 10.0f ) {
+        if ( !exposed ) {
+            return DIRT;
+        }
+        return col.biome < 0.22f ? SNOW : GRASS;
+    }
     if ( col.height < WATER_LEVEL - 1.5f ) {
         // Ocean/lake floor.
         return mg_underwater( x, z ) > 0.5f ? GRAVEL : SAND;
@@ -257,17 +394,24 @@ MAP_GEN_QUAL BlockID mg_surface_block( const int x, const int y, const int z, co
     if ( col.height < WATER_LEVEL + 2.0f ) {
         return SAND; // Beach band around sea level.
     }
+    if ( col.biome > 0.72f && col.weird < 0.55f && col.height < 48.0f ) {
+        // Desert, including terraced mesas: sandy treads, bare rock risers.
+        if ( col.mesa_riser > 0.0f ) {
+            return STONE;
+        }
+        return ORANGE_SAND;
+    }
     if ( dy > 16.0f || col.steepness > 7.0f ) {
         return STONE; // High shelf tops and cliff faces stay rocky.
+    }
+    if ( col.steepness > 4.5f ) {
+        return exposed ? GRAVEL : STONE; // Scree aprons under cliffs.
     }
     if ( col.height > SNOW_LINE ) {
         return exposed ? SNOW : STONE;
     }
     if ( col.height > MOUNTAIN_ROCK_LINE ) {
         return STONE;
-    }
-    if ( col.biome > 0.72f && col.height < 28.0f && col.weird < 0.55f ) {
-        return ORANGE_SAND; // Desert: red sand several blocks deep.
     }
     if ( col.weird > 0.88f ) {
         return exposed ? MYCELIUM : DIRT; // Rare mushroom fields.
@@ -335,8 +479,49 @@ MAP_GEN_QUAL BlockID mg_pick_block( const int x, const int y, const int z, const
     } else {
         block = mg_deep_block( x, y, z, col );
     }
+    // Magma veins: thin noise seams in near-surface rock. Invisible on flat
+    // ground, but on cliff faces (high steepness) they surface as glowing
+    // cracks — cliff walls and cave mouths light up at night.
+    if ( block == STONE && col.steepness > 5.0f && dy > -14.0f &&
+         MAP_GEN_PERLIN3D( x, y, z, 0.07f, 2, MAP_SEED + 32 ) > 0.88f ) {
+        block = LAVA;
+    }
     if ( mg_cave_carve( x, y, z, col.height ) ) {
         return y <= LAVA_LEVEL ? LAVA : AIR;
+    }
+    // Crystal geodes: rare deep pockets — a hollow heart wrapped in a
+    // glittering shell of glowstone, tinted glass and rock flecks. A 2D zone
+    // mask keeps them scarce and they live well under the surface, so they
+    // appear as glowing spheres found while caving (or breaking out of a
+    // cave wall) rather than terrain clutter.
+    const float depth = col.height - (float)y;
+    if ( depth > 22.0f && y < 4 && y > BEDROCK_LEVEL + 14 ) {
+        if ( MAP_GEN_PERLIN2D( x, z, 0.0035f, 1, MAP_SEED + 36 ) > 0.60f ) {
+            const float g = MAP_GEN_PERLIN3D( x, y, z, 0.055f, 2, MAP_SEED + 37 );
+            if ( g > 0.972f ) {
+                return AIR; // hollow geode heart
+            }
+            if ( g > 0.935f ) {
+                const float sp = MAP_GEN_PERLIN3D( x, y, z, 0.65f, 1, MAP_SEED + 38 );
+                if ( sp > 0.64f ) {
+                    return GLOWSTONE;
+                }
+                if ( sp < 0.18f ) {
+                    return STONE;
+                }
+                const float gc = MAP_GEN_PERLIN3D( x, y, z, 0.028f, 1, MAP_SEED + 39 );
+                if ( gc < 0.25f ) {
+                    return GLASS_PALE_BLUE;
+                }
+                if ( gc < 0.5f ) {
+                    return GLASS_LIGHT_BLUE;
+                }
+                if ( gc < 0.75f ) {
+                    return GLASS_LIGHT_GREEN;
+                }
+                return GLASS_WHITE;
+            }
+        }
     }
     return block;
 }

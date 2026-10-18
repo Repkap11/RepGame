@@ -1196,6 +1196,28 @@ void RepGame::tick( ) {
     // Day/night clock; light_daylight_factor() maps it to u_Daylight.
     globalGameState.world_time++;
 
+    // Fresh spawn: the terrain-height estimate in initializeGameState can't
+    // see structure blocks (trees, features). Once every cell in the spawn
+    // column reports real generated data, stand on the topmost colliding
+    // block so the player never starts inside a trunk or spire.
+    if ( globalGameState.spawn_pending ) {
+        const int top_bound = (int)ceil( MapGen::maxTerrainHeight( ) );
+        for ( int y = top_bound; y >= BEDROCK_LEVEL; y-- ) {
+            const BlockState bs = globalGameState.world.get_loaded_block( glm::ivec3( 0, y, 0 ) );
+            if ( bs.id == LAST_BLOCK_ID ) {
+                break; // Some chunk in the column isn't generated yet — retry next tick.
+            }
+            if ( block_definition_get_definition( bs.id )->collides_with_player ) {
+                globalGameState.camera.pos.x = 0.5;
+                globalGameState.camera.pos.z = 0.5;
+                globalGameState.camera.pos.y = y + 1.0 + PLAYER_EYE_HEIGHT + 0.5;
+                globalGameState.camera.y_speed = 0.0;
+                globalGameState.spawn_pending = false;
+                break;
+            }
+        }
+    }
+
     // Capture mode: pin the simulation to the current view each tick, before
     // process_camera_angle/process_movement consume the camera/input state.
     if ( RepGame::capture_mode( ) ) {
@@ -1446,11 +1468,21 @@ void RepGame::initializeGameState( const char *world_name ) {
     globalGameState.camera.angle_H = 0.0f;
     globalGameState.camera.angle_V = 0.0f;
     globalGameState.camera.pos.x = 0.5f;
-    // Overhang noise can put solid blocks above the heightmap — walk up from
-    // the terrain height until the spawn cell and the one above it are clear.
-    double spawn_y = ceil( MapGen::calculateTerrainHeight( 0, 0 ) );
-    while ( spawn_cell_blocked( 0, (int)spawn_y, 0 ) ) {
-        spawn_y += 1.0;
+    // Spawn on the topmost solid block of the spawn column: overhangs and
+    // floating islands can put real terrain far above the heightmap, so
+    // scan down from the terrain bound for the highest colliding cell and
+    // stand on it. (Terrain only — structures may still decorate the cell.)
+    double spawn_y;
+    {
+        int top = (int)ceil( MapGen::maxTerrainHeight( ) );
+        while ( top > BEDROCK_LEVEL &&
+                !block_definition_get_definition( MapGen::gen_block_id( 0, top, 0 ) )->collides_with_player ) {
+            top--;
+        }
+        spawn_y = top + 1.0;
+        while ( spawn_cell_blocked( 0, (int)spawn_y, 0 ) ) {
+            spawn_y += 1.0;
+        }
     }
     globalGameState.camera.pos.y = spawn_y + PLAYER_EYE_HEIGHT + 0.5f;
     globalGameState.camera.pos.z = 0.5f;
@@ -1499,7 +1531,8 @@ void RepGame::initializeGameState( const char *world_name ) {
 
     globalGameState.map_storage.init( world_name );
     PlayerData saved_data;
-    if ( globalGameState.map_storage.read_player_data( saved_data ) ) {
+    globalGameState.spawn_pending = !globalGameState.map_storage.read_player_data( saved_data );
+    if ( !globalGameState.spawn_pending ) {
         globalGameState.camera.pos.x = saved_data.world_x;
         globalGameState.camera.pos.y = saved_data.world_y;
         globalGameState.camera.pos.z = saved_data.world_z;

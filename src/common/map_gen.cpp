@@ -54,9 +54,11 @@ float MapGen::maxTerrainHeight( ) {
             max_rolling = fmax( max_rolling, mg_rolling_transform( noise ) );
         }
         const float mountains = max_mask * max_ridge * MAX_MOUNTAIN_HEIGHT;
-        const float bound = max_ground + max_hills + max_level + max_rolling + mountains + OVERHANG_MAX_RISE;
-        pr_debug( "maxTerrainHeight: ground=%.2f hills=%.2f level=%.2f rolling=%.2f mountains=%.2f overhang=%.2f → %.2f",
-            max_ground, max_hills, max_level, max_rolling, mountains, OVERHANG_MAX_RISE, bound );
+        // Mesa terracing can add up to MESA_MAX_RISE on desert columns;
+        // OVERHANG_MAX_RISE covers both overhang sheets and island tops.
+        const float bound = max_ground + max_hills + max_level + max_rolling + mountains + MESA_MAX_RISE + OVERHANG_MAX_RISE;
+        pr_debug( "maxTerrainHeight: ground=%.2f hills=%.2f level=%.2f rolling=%.2f mountains=%.2f mesa=%.2f overhang=%.2f → %.2f",
+            max_ground, max_hills, max_level, max_rolling, mountains, MESA_MAX_RISE, OVERHANG_MAX_RISE, bound );
         return bound;
 #endif
     }( );
