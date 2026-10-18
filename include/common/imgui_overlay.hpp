@@ -18,10 +18,13 @@ struct ImGuiDebugVars {
     float night_ambient = 0.10f;
     // Footprint-mipmapped light tuning (chunk_fragment light_lod): bias shifts
     // the LOD higher (blurs the per-block light pattern at closer range);
-    // far_ao blends the distant average toward the solid-inclusive average
-    // (0 = air cells only) for smooth distant AO.
+    // far_ao adds a small deliberate bias toward the solid-inclusive average
+    // (0 = air cells only). It stays small on purpose — the 0.1 default is
+    // intentional: a surface-straddling texel's air fraction reflects where
+    // the texel landed as much as real occlusion, so a large blend darkens
+    // even flat unoccluded ground.
     float light_lod_bias = 3.0f;
-    float light_far_ao = 0.35f;
+    float light_far_ao = 0.1f;
     // Chunk-loading and lighting queue depths, refreshed once per frame by
     // RepGame::draw (see LoaderDebugStats in chunk_loader.hpp).
     LoaderDebugStats loader;

@@ -51,6 +51,7 @@ class Chunk {
     friend class Multiplayer;
     friend void test_setup_world( World &world );
     friend void light_fill_chunk( Chunk &chunk );
+    friend void light_air_mask_set( const Chunk &chunk, int index, BlockID id );
     friend void light_pending_enqueue( Chunk &chunk );
     friend int test_lighting( );
 
@@ -93,6 +94,20 @@ class Chunk {
     // one buffer — column_open (no opaque cell in this chunk's column) then
     // sky_open_above (no opaque cell anywhere above in the loaded grid).
     unsigned char *light_columns;
+    // Air mask for the mipmapped light volume's B channel (see
+    // light_mipmaps_enabled): 1 bit per blocks[] cell — CHUNK_BLOCK_SIZE/8 =
+    // 32KB — in the same z-fastest index space as blocks[]
+    // (get_index_from_coords). Bit set = the cell can hold light
+    // (non-opaque, same predicate light_opaque_id uses). A derived cache of
+    // blocks[], never persisted: built by light_fill_chunk while blocks[] is
+    // already being streamed, restamped per cell by set_block /
+    // set_block_by_index_if_different via light_air_mask_set. nullptr = not
+    // built; the light-texture upload paths then fall back to walking
+    // blocks[] directly, which keeps every edge case correct (a mask is
+    // only ever allocated alongside real blocks[] data, and only when
+    // light_mipmaps_enabled()). Mutable like blocks: Chunk::set_block is
+    // const but restamps it.
+    mutable unsigned char *light_air_mask;
     unsigned int light_texture; // GL_TEXTURE_3D, 0 = not created yet
     // Dirty texel box of light[] not yet uploaded, in texel coords [0,34):
     // min.xyz in bits [0:5]/[6:11]/[12:17], max.xyz in [18:23]/[24:29]/[30:35]
@@ -162,3 +177,7 @@ unsigned char *chunk_alloc_light( );
 void chunk_free_light( unsigned char *p );
 unsigned char *chunk_alloc_light_columns( );
 void chunk_free_light_columns( unsigned char *p );
+// Chunk::light_air_mask — CHUNK_BLOCK_SIZE/8 bytes, returned unzeroed (the
+// builder writes every bit; the materialize path memsets).
+unsigned char *chunk_alloc_air_mask( );
+void chunk_free_air_mask( unsigned char *p );

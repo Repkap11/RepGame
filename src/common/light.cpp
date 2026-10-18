@@ -74,6 +74,22 @@ static inline bool light_opaque_id( BlockID id ) {
     return block_definition_get_definition( id )->casts_shadow;
 }
 
+// Bit i of chunk.light_air_mask mirrors the opacity of blocks[i]: set = the
+// cell can hold light. light_fill_chunk writes every bit; this restamps one
+// cell after a post-fill blocks[] write so the upload paths never have to
+// touch the 3.7MB blocks[] array again. A missing mask is always legal —
+// uploads fall back to the blocks[] walk.
+void light_air_mask_set( const Chunk &chunk, const int index, const BlockID id ) {
+    if ( chunk.light_air_mask == nullptr ) {
+        return;
+    }
+    if ( light_opaque_id( id ) ) {
+        chunk.light_air_mask[ index >> 3 ] &= static_cast<unsigned char>( ~( 1u << ( index & 7 ) ) );
+    } else {
+        chunk.light_air_mask[ index >> 3 ] |= static_cast<unsigned char>( 1u << ( index & 7 ) );
+    }
+}
+
 // TEMP diagnostics: which producer feeds the queue.
 static long long light_dbg_pq_calls = 0, light_dbg_pq_nonempty = 0;
 static long long light_dbg_loop_top = 0, light_dbg_after_jobs = 0, light_dbg_jobs_n = 0;
@@ -1698,6 +1714,12 @@ void light_fill_chunk( Chunk &chunk ) {
             chunk_free_light( chunk.light );
             chunk.light = nullptr;
         }
+        // blocks[] is gone, so its derived air mask must be too (a stale
+        // mask would describe the previous occupancy of this chunk slot).
+        if ( chunk.light_air_mask ) {
+            chunk_free_air_mask( chunk.light_air_mask );
+            chunk.light_air_mask = nullptr;
+        }
         chunk.light_uniform = static_cast<unsigned char>( LIGHT_MAX_LEVEL << 4 );
         ChunkLoader::light_compute_column_open( chunk );
         if ( chunk.light_columns ) {
@@ -1709,13 +1731,43 @@ void light_fill_chunk( Chunk &chunk ) {
         chunk.light = chunk_alloc_light( );
     }
     memset( chunk.light, 0, CHUNK_BLOCK_SIZE );
+    // The mipmapped light texture's B channel is a per-cell air mask, and
+    // computing it at upload time walks chunk.blocks[i].id on the render
+    // thread — ~1.5ms/chunk since BlockState is 14 packed bytes (3.7MB).
+    // Instead cache it as a 1-bit-per-cell bitmap (32KB) built here, where
+    // blocks[] is already being streamed: bit i (same index space as
+    // blocks[]) is set when the cell can hold light. Post-fill writes
+    // restamp individual bits via light_air_mask_set; upload paths fall back
+    // to the blocks[] walk whenever the mask is missing. RG8 mode pays
+    // nothing — the mask is only allocated under light_mipmaps_enabled().
+    unsigned char *air_mask = nullptr;
+    if ( light_mipmaps_enabled( ) ) {
+        if ( chunk.light_air_mask == nullptr ) {
+            chunk.light_air_mask = chunk_alloc_air_mask( );
+        }
+        // Rewritten wholesale below (this can re-run via light_reseed).
+        memset( chunk.light_air_mask, 0, CHUNK_BLOCK_SIZE / 8 );
+        air_mask = chunk.light_air_mask;
+    } else if ( chunk.light_air_mask ) {
+        // Can't happen (mipmaps is process-lifetime constant), but never
+        // leave a mask around that upload would wrongly trust.
+        chunk_free_air_mask( chunk.light_air_mask );
+        chunk.light_air_mask = nullptr;
+    }
     // Note the two arrays index differently: blocks[] is z-fastest
     // (Chunk::get_index_from_coords) while light[] is x-fastest
     // (light_index, matching the glTexSubImage3D upload layout). Scan blocks[]
     // linearly — index conversion only happens for the rare emitters.
     std::vector<int> queue;
     for ( int i = 0; i < CHUNK_BLOCK_SIZE; i++ ) {
-        const int emit = ChunkLoader::light_emit_at( chunk, i );
+        // One definition fetch per cell feeds both the air-mask bit and the
+        // emitter check (light_emit_at did the same lookup for emit alone).
+        const BlockID id = chunk.blocks[ i ].id;
+        const Block *def = block_definition_get_definition( id );
+        if ( air_mask && !light_opaque_id( id ) ) {
+            air_mask[ i >> 3 ] |= static_cast<unsigned char>( 1u << ( i & 7 ) );
+        }
+        const int emit = def->emits_light;
         if ( emit <= 0 ) {
             continue;
         }
@@ -1844,14 +1896,20 @@ int light_texture_unit( ) {
 // (R=sky, G=block) so filtering stays independent; expansion happens here on
 // upload. Values are stored *17 so UNORM8 filtering keeps ~8-bit precision
 // across the 0-15 range instead of ~4.
-// The light-mipmap mode additionally carries B = 255 for lit cells, 0 for
-// unlit, plus an unused alpha (RGBA8 avoids the driver's RGB->RGBA repack on
-// upload). Solid cells always hold light 0, so "has light" is a free proxy
-// for "air" — no blocks[] lookup; the mipmapped volume then recovers the
-// average light over the *air* cells in a footprint as rg / b (see
-// chunk_fragment.glsl). Pitch-black air (deep caves) is likewise excluded
-// from the air-only average, which only affects distant mips near cave
-// mouths.
+// The light-mipmap mode additionally carries B = 255 for cells that can
+// hold light (non-opaque per the same light_opaque_id the BFS uses — water
+// counts as air since it doesn't cast a shadow), 0 for solid, plus an
+// unused alpha (RGBA8 avoids the driver's RGB->RGBA repack on upload). The
+// mipmapped volume then recovers the average light over the *air* cells in
+// a footprint as rg / b (see chunk_fragment.glsl). It must be a real air
+// mask, not a lit-cell mask: solid cells always hold light 0, so "has
+// light" conflates solid with merely-dark air — pitch-black air (deep
+// caves) has to sit IN the denominator, otherwise rg / b divides the few
+// lit cells in a coarse texel up to full brightness. Opacity comes from
+// Chunk::light_air_mask (a 32KB bitmap built by light_fill_chunk while
+// blocks[] is already streamed, restamped on block edits); the per-cell
+// blocks[] walk remains only as the fallback for chunks whose mask was
+// never built.
 bool light_mipmaps_enabled( ) {
     // Resolved once and constant for the process lifetime — the texture
     // format and mip chain are decided by it.
@@ -1870,24 +1928,41 @@ bool light_mipmaps_enabled( ) {
 // RG8 mode writes 2 bytes per cell through the unsigned char* view.
 static uint32_t s_light_upload_scratch[ CHUNK_BLOCK_SIZE ];
 
-// packed light byte -> RGBA texel (bytes written then memcpy'd so the LUT is
-// endian-correct). Built once at load; pure bit math, no GL/block lookups.
-static uint32_t s_light_lut[ 256 ];
-static const bool s_light_lut_init = ( []( ) {
-    for ( int i = 0; i < 256; i++ ) {
-        unsigned char b[ 4 ];
-        b[ 0 ] = static_cast<unsigned char>( ( i >> 4 ) * 17 ); // sky
-        b[ 1 ] = static_cast<unsigned char>( ( i & 0x0F ) * 17 ); // block
-        b[ 2 ] = i != 0 ? 255 : 0;                              // lit-cell mask
-        b[ 3 ] = 255;
-        memcpy( &s_light_lut[ i ], b, 4 );
-    }
-    return true;
-} )( );
+// BlockID -> air mask (255 = can hold light, 0 = opaque) using the same
+// light_opaque_id predicate the propagation BFS uses, so the mask agrees
+// with what the light values actually reached. Built on first call: it
+// needs block definitions initialised, and file-scope static init order
+// across TUs is not guaranteed (same pattern as light_mipmaps_enabled).
+static const unsigned char *light_air_lut( ) {
+    static unsigned char lut[ LAST_BLOCK_ID + 1 ];
+    static const bool init = []( ) {
+        for ( int i = 0; i <= LAST_BLOCK_ID; i++ ) {
+            lut[ i ] = light_opaque_id( static_cast<BlockID>( i ) ) ? 0 : 255;
+        }
+        return true;
+    }( );
+    ( void ) init;
+    return lut;
+}
 
 static inline void light_expand_cell( const unsigned char packed, unsigned char *out ) {
     out[ 0 ] = static_cast<unsigned char>( ( packed >> 4 ) * 17 ); // sky
     out[ 1 ] = static_cast<unsigned char>( ( packed & 0x0F ) * 17 ); // block
+}
+
+// packed light byte -> (sky*17) | (block*17 << 8): the RG half of the RGBA8
+// texel in one u32, so the mipmapped fill can store a whole texel per cell
+// (little-endian byte order, matching the byte-wise path).
+static const uint32_t *light_rg_lut( ) {
+    static uint32_t lut[ 256 ];
+    static const bool init = []( ) {
+        for ( int i = 0; i < 256; i++ ) {
+            lut[ i ] = static_cast<uint32_t>( ( i >> 4 ) * 17 ) | ( static_cast<uint32_t>( ( i & 0x0F ) * 17 ) << 8 );
+        }
+        return true;
+    }( );
+    ( void ) init;
+    return lut;
 }
 
 void Chunk::light_ensure_texture( ) {
@@ -1910,15 +1985,100 @@ void Chunk::light_ensure_texture( ) {
     this->light_dirty_box.exchange( LIGHT_BOX_EMPTY, std::memory_order_acq_rel );
     const bool mipmaps = light_mipmaps_enabled( );
     if ( mipmaps ) {
-        if ( this->light ) {
+        unsigned char *out8 = reinterpret_cast<unsigned char *>( s_light_upload_scratch );
+        // B is a per-cell air mask. It normally comes straight out of
+        // chunk.light_air_mask — the 32KB bitmap light_fill_chunk built while
+        // streaming blocks[] and edits keep stamped — so the common case
+        // iterates in texel order and never touches the 3.7MB blocks[] array
+        // (nor even strides light[]: both stream linearly). When the mask is
+        // missing the fallback still walks blocks[] (BlockState is 14 packed
+        // bytes) in z-inner order so the blocks[] side streams. Two fast
+        // paths skip the general case entirely:
+        //  - blocks == null: the whole volume is air, B = 255.
+        //  - light == null && light_uniform != 0: every cell holds light, so
+        //    every cell is non-opaque by definition — B = 255, no lookup.
+        //    (Uniform light alone is NOT enough: an all-stone chunk packs
+        //    light_uniform == 0 just like an unlit air pocket.)
+        if ( this->light == nullptr && ( this->blocks == nullptr || this->light_uniform != 0 ) ) {
+            const uint32_t cell = light_rg_lut( )[ this->light_uniform ] | 0xFFFF0000u; // B=255, A=255
+            uint32_t *out32 = s_light_upload_scratch;
             for ( int i = 0; i < CHUNK_BLOCK_SIZE; i++ ) {
-                s_light_upload_scratch[ i ] = s_light_lut[ this->light[ i ] ];
+                out32[ i ] = cell;
+            }
+        } else if ( this->blocks == nullptr ) {
+            // All-air but non-uniform light: still expand light[] per cell.
+            const uint32_t *rg_lut = light_rg_lut( );
+            uint32_t *out32 = s_light_upload_scratch;
+            for ( int i = 0; i < CHUNK_BLOCK_SIZE; i++ ) {
+                out32[ i ] = rg_lut[ this->light[ i ] ] | 0xFFFF0000u;
+            }
+        } else if ( this->light_air_mask != nullptr ) {
+            // Mask built: iterate in texel order (x fastest) so light[] reads
+            // and scratch writes are both linear streams. The mask lives in
+            // blocks[] index space (z-fastest): mask byte index is
+            // (tz>>3) + 8*tx + 512*ty and the tested bit (tz&7) is invariant
+            // across the plane, so the same 512 mask bytes serve 8
+            // consecutive tz planes and the whole 32KB stays cache-resident.
+            const unsigned char *air_mask = this->light_air_mask;
+            const uint32_t *rg_lut = light_rg_lut( );
+            uint32_t *out32 = s_light_upload_scratch;
+            if ( this->light == nullptr ) {
+                // Uniform-dark volume (light_uniform==0 — nonzero went to the
+                // fast path above): every cell's RG is the same constant and
+                // B is exactly the mask bit, so no per-cell light read.
+                const uint32_t base = rg_lut[ this->light_uniform ] | ( 255u << 24 );
+                for ( int tz = 0; tz < CHUNK_SIZE_INTERNAL_Z; tz++ ) {
+                    const unsigned char *mrow = air_mask + ( tz >> 3 );
+                    const int shift = tz & 7;
+                    for ( int ty = 0; ty < CHUNK_SIZE_INTERNAL_Y; ty++ ) {
+                        const unsigned char *mty = mrow + ty * ( CHUNK_SIZE_INTERNAL_X * CHUNK_SIZE_INTERNAL_Z / 8 );
+                        for ( int tx = 0; tx < CHUNK_SIZE_INTERNAL_X; tx++, out32++ ) {
+                            const uint32_t air = ( static_cast<uint32_t>( mty[ tx * 8 ] ) >> shift ) & 1u;
+                            *out32 = base | ( air * 255u << 16 );
+                        }
+                    }
+                }
+            } else {
+                for ( int tz = 0; tz < CHUNK_SIZE_INTERNAL_Z; tz++ ) {
+                    const unsigned char *mrow = air_mask + ( tz >> 3 );
+                    const int shift = tz & 7;
+                    for ( int ty = 0; ty < CHUNK_SIZE_INTERNAL_Y; ty++ ) {
+                        const unsigned char *lrow = this->light + ( tz * CHUNK_SIZE_INTERNAL_Y + ty ) * CHUNK_SIZE_INTERNAL_X;
+                        const unsigned char *mty = mrow + ty * ( CHUNK_SIZE_INTERNAL_X * CHUNK_SIZE_INTERNAL_Z / 8 );
+                        for ( int tx = 0; tx < CHUNK_SIZE_INTERNAL_X; tx++, out32++ ) {
+                            const unsigned char packed = lrow[ tx ];
+                            // The mask is authoritative for opacity — a lit
+                            // cell is provably non-opaque (its bit is set),
+                            // and a solid cell reads B=0 even while its light
+                            // is still propagating out.
+                            const uint32_t air = ( static_cast<uint32_t>( mty[ tx * 8 ] ) >> shift ) & 1u;
+                            *out32 = rg_lut[ packed ] | ( air * 255u << 16 ) | ( 255u << 24 );
+                        }
+                    }
+                }
             }
         } else {
-            // Uniform volume (null light[]): the whole texture is one value.
-            const uint32_t cell = s_light_lut[ this->light_uniform ];
+            // Fallback for a chunk whose mask was never built: walk blocks[]
+            // alongside light[]. The two arrays transpose (light[] x-fastest,
+            // blocks[] z-fastest), so iterate z innermost — blocks[] reads
+            // stream sequentially while the strided accesses move to the
+            // small cache-resident arrays (light[] is 256KB, scratch 1MB).
+            const unsigned char *air_lut = light_air_lut( );
+            int tx = 0, ty = 0, tz = 0;
             for ( int i = 0; i < CHUNK_BLOCK_SIZE; i++ ) {
-                s_light_upload_scratch[ i ] = cell;
+                const int lidx = ( tz * CHUNK_SIZE_INTERNAL_Y + ty ) * CHUNK_SIZE_INTERNAL_X + tx;
+                const unsigned char packed = this->light ? this->light[ lidx ] : this->light_uniform;
+                unsigned char *out = out8 + 4 * lidx;
+                light_expand_cell( packed, out );
+                out[ 2 ] = packed != 0 ? 255 : air_lut[ this->blocks[ i ].id ];
+                out[ 3 ] = 255;
+                if ( ++tz == CHUNK_SIZE_INTERNAL_Z ) {
+                    tz = 0;
+                    if ( ++tx == CHUNK_SIZE_INTERNAL_X ) {
+                        tx = 0;
+                        ty++;
+                    }
+                }
             }
         }
     } else {
@@ -1943,6 +2103,10 @@ void Chunk::light_ensure_texture( ) {
     glTexImage3D( GL_TEXTURE_3D, 0, mipmaps ? GL_RGBA8 : GL_RG8, CHUNK_SIZE_INTERNAL_X, CHUNK_SIZE_INTERNAL_Y, CHUNK_SIZE_INTERNAL_Z, 0, mipmaps ? GL_RGBA : GL_RG, GL_UNSIGNED_BYTE, s_light_upload_scratch );
     glPixelStorei( GL_UNPACK_ALIGNMENT, 4 );
     if ( mipmaps ) {
+        // LIGHT_TEX_MAX_MIP mirrors the shader's LIGHT_LOD_MAX cap: levels
+        // deeper than 1 are never sampled, so cap the chain and let
+        // glGenerateMipmap build only level 1 (32^3) instead of all six.
+        glTexParameteri( GL_TEXTURE_3D, GL_TEXTURE_MAX_LEVEL, LIGHT_TEX_MAX_MIP );
         glGenerateMipmap( GL_TEXTURE_3D );
         glTexParameteri( GL_TEXTURE_3D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR );
     } else {
@@ -2017,36 +2181,70 @@ void ChunkLoader::light_upload_dirty( const int max_uploads ) {
         glActiveTexture( GL_TEXTURE0 + light_texture_unit( ) );
         glBindTexture( GL_TEXTURE_3D, chunk.light_texture );
         // Expand the packed (sky<<4|block) dirty region so the two channels
-        // filter independently — see light_expand_cell / s_light_lut. The
+        // filter independently — see light_expand_cell / light_air_lut. The
         // scratch is tightly packed so the default unpack stride applies.
         const bool mipmaps = light_mipmaps_enabled( );
-        for ( int z = 0; z < sz.z; z++ ) {
+        // Opacity lookups for B are skipped wherever the answer is already
+        // known: null blocks[] means the whole volume is air, and a lit
+        // cell (packed != 0) provably can hold light — both give B = 255.
+        // Only dark cells (solid vs. merely-dark air) need the mask — read
+        // from chunk.light_air_mask (bit index = blocks[] index space) when
+        // it exists, else the blocks[]/air_lut fallback. Hoisted per chunk
+        // (not per row).
+        const bool all_air = mipmaps && chunk.blocks == nullptr;
+        const unsigned char *air_mask = mipmaps && !all_air ? chunk.light_air_mask : nullptr;
+        const unsigned char *air_lut = mipmaps && chunk.blocks && air_mask == nullptr ? light_air_lut( ) : nullptr;
+        if ( mipmaps && air_mask ) {
+            // Mask path: texel order (z, y, x — x fastest) so the light[]
+            // rows and the scratch both stream linearly; the mask bit index
+            // steps +CHUNK_SIZE_INTERNAL_Z per x (see light_ensure_texture —
+            // byte index (z>>3) + 8*x + 512*y, tested bit z&7).
+            const uint32_t *rg_lut = light_rg_lut( );
+            uint32_t *out = s_light_upload_scratch;
+            for ( int z = 0; z < sz.z; z++ ) {
+                const unsigned char *mrow = air_mask + ( ( lo.z + z ) >> 3 );
+                const int shift = ( lo.z + z ) & 7;
+                for ( int y = 0; y < sz.y; y++ ) {
+                    const unsigned char *lrow = chunk.light ? chunk.light + ( ( lo.z + z ) * CHUNK_SIZE_INTERNAL_Y + ( lo.y + y ) ) * CHUNK_SIZE_INTERNAL_X + lo.x : nullptr;
+                    const unsigned char *mty = mrow + ( lo.y + y ) * ( CHUNK_SIZE_INTERNAL_X * CHUNK_SIZE_INTERNAL_Z / 8 ) + lo.x * 8;
+                    for ( int x = 0; x < sz.x; x++, out++ ) {
+                        const unsigned char packed = lrow ? lrow[ x ] : chunk.light_uniform;
+                        const uint32_t air = ( static_cast<uint32_t>( mty[ x * 8 ] ) >> shift ) & 1u;
+                        *out = rg_lut[ packed ] | ( air * 255u << 16 ) | ( 255u << 24 );
+                    }
+                }
+            }
+        } else {
             for ( int y = 0; y < sz.y; y++ ) {
                 if ( mipmaps ) {
-                    uint32_t *out = s_light_upload_scratch + ( z * sz.y + y ) * sz.x;
-                    if ( chunk.light ) {
-                        const unsigned char *row = chunk.light + ( ( lo.z + z ) * CHUNK_SIZE_INTERNAL_Y + ( lo.y + y ) ) * CHUNK_SIZE_INTERNAL_X + lo.x;
-                        for ( int x = 0; x < sz.x; x++ ) {
-                            out[ x ] = s_light_lut[ row[ x ] ];
-                        }
-                    } else {
-                        // Uniform volume: the whole dirty box reads light_uniform.
-                        const uint32_t cell = s_light_lut[ chunk.light_uniform ];
-                        for ( int x = 0; x < sz.x; x++ ) {
-                            out[ x ] = cell;
+                    // Fallback (no mask): z-inner order as in
+                    // light_ensure_texture — blocks[] reads (+1 index per z
+                    // step) stream sequentially while light[] and the
+                    // scratch take the strided steps.
+                    for ( int x = 0; x < sz.x; x++ ) {
+                        unsigned char *out = reinterpret_cast<unsigned char *>( s_light_upload_scratch ) + 4 * ( y * sz.x + x );
+                        const unsigned char *lrow = chunk.light ? chunk.light + ( ( lo.z ) * CHUNK_SIZE_INTERNAL_Y + ( lo.y + y ) ) * CHUNK_SIZE_INTERNAL_X + lo.x + x : nullptr;
+                        int bidx = ( lo.y + y ) * CHUNK_SIZE_INTERNAL_X * CHUNK_SIZE_INTERNAL_Z + ( lo.x + x ) * CHUNK_SIZE_INTERNAL_Z + lo.z;
+                        for ( int z = 0; z < sz.z; z++, out += 4 * sz.y * sz.x, bidx++ ) {
+                            const unsigned char packed = lrow ? lrow[ z * CHUNK_SIZE_INTERNAL_Y * CHUNK_SIZE_INTERNAL_X ] : chunk.light_uniform;
+                            light_expand_cell( packed, out );
+                            out[ 2 ] = all_air || packed != 0 ? 255 : air_lut[ chunk.blocks[ bidx ].id ];
+                            out[ 3 ] = 255;
                         }
                     }
                 } else {
-                    unsigned char *out = reinterpret_cast<unsigned char *>( s_light_upload_scratch ) + 2 * ( z * sz.y + y ) * sz.x;
-                    if ( chunk.light ) {
-                        const unsigned char *row = chunk.light + ( ( lo.z + z ) * CHUNK_SIZE_INTERNAL_Y + ( lo.y + y ) ) * CHUNK_SIZE_INTERNAL_X + lo.x;
-                        for ( int x = 0; x < sz.x; x++ ) {
-                            light_expand_cell( row[ x ], out + 2 * x );
-                        }
-                    } else {
-                        // Uniform volume: the whole dirty box reads light_uniform.
-                        for ( int x = 0; x < sz.x; x++ ) {
-                            light_expand_cell( chunk.light_uniform, out + 2 * x );
+                    for ( int z = 0; z < sz.z; z++ ) {
+                        unsigned char *out = reinterpret_cast<unsigned char *>( s_light_upload_scratch ) + 2 * ( z * sz.y + y ) * sz.x;
+                        if ( chunk.light ) {
+                            const unsigned char *row = chunk.light + ( ( lo.z + z ) * CHUNK_SIZE_INTERNAL_Y + ( lo.y + y ) ) * CHUNK_SIZE_INTERNAL_X + lo.x;
+                            for ( int x = 0; x < sz.x; x++ ) {
+                                light_expand_cell( row[ x ], out + 2 * x );
+                            }
+                        } else {
+                            // Uniform volume: the whole dirty box reads light_uniform.
+                            for ( int x = 0; x < sz.x; x++ ) {
+                                light_expand_cell( chunk.light_uniform, out + 2 * x );
+                            }
                         }
                     }
                 }

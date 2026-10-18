@@ -17,6 +17,7 @@ constexpr int CHUNK_BUF_POOL_MAX = 8;
 thread_local std::vector<void *> s_pool_blocks;
 thread_local std::vector<void *> s_pool_light;
 thread_local std::vector<void *> s_pool_light_columns;
+thread_local std::vector<void *> s_pool_air_mask;
 
 template <typename T>
 static T *chunk_pool_get( std::vector<void *> &pool, const size_t bytes, const bool zeroed ) {
@@ -63,4 +64,12 @@ unsigned char *chunk_alloc_light_columns( ) {
 }
 void chunk_free_light_columns( unsigned char *p ) {
     chunk_pool_put( s_pool_light_columns, p );
+}
+unsigned char *chunk_alloc_air_mask( ) {
+    // Unzeroed is fine: the light_fill_chunk builder rewrites every bit and
+    // the set_block materialize path memsets.
+    return chunk_pool_get<unsigned char>( s_pool_air_mask, CHUNK_BLOCK_SIZE / 8, false );
+}
+void chunk_free_air_mask( unsigned char *p ) {
+    chunk_pool_put( s_pool_air_mask, p );
 }

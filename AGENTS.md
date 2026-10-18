@@ -55,13 +55,14 @@ vars set, behaviour is unchanged.
   (default 0.125, `CHUNK_FACE_GROW_PX`).
 - `REPGAME_LIGHT_LOD_BIAS` / `REPGAME_LIGHT_FAR_AO` — override the
   footprint-mipmapped light tunables (ImGui "Light LOD bias" / "Distant AO"
-  sliders, defaults 3.0 / 0.35). These apply at startup even without
+  sliders, defaults 3.0 / 0.1). The effective mip level is capped at
+  `LIGHT_LOD_MAX` in `src/shaders/chunk_fragment.glsl`, so raising the bias
+  past the cap has no further effect. These apply at startup even without
   `REPGAME_CAPTURE`.
 - `REPGAME_LIGHT_MIPMAPS` — `0|1`: runtime switch for the mipmapped light
-  volume (RGBA8 + lit-cell mips + footprint-LOD shader sampling) vs the flat
-  RG8 volume. Default: on for desktop builds, off on Android/WASM; the env
-  var overrides on every platform (on WASM it's a `?REPGAME_LIGHT_MIPMAPS=1`
-  URL param).
+  volume (RGBA8 + air-mask mips + footprint-LOD shader sampling) vs the flat
+  RG8 volume. Default: on everywhere; the env var overrides on every
+  platform (on WASM it's a `?REPGAME_LIGHT_MIPMAPS=1` URL param).
 - `REPGAME_TEX_MIPMAPS` — `0|1`: block-atlas mipmaps (default 1; `0`
   restores NEAREST minification for A/B).
 

@@ -2,6 +2,7 @@
 
 #include <glm.hpp>
 #include "common/constants.hpp"
+#include "common/block_definitions.hpp" // BlockID for light_air_mask_set
 
 // Flood-fill lighting. Each chunk keeps a light[] volume matching the
 // internal 34^3 block layout: the high nibble is skylight, the low nibble is
@@ -75,3 +76,11 @@ class Chunk;
 // assumption. Skylight is verified later on the lighting thread by
 // ChunkLoader::light_finalize_chunk.
 void light_fill_chunk( Chunk &chunk );
+
+// Stamps one bit of chunk.light_air_mask (the air-mask cache the light
+// texture upload reads instead of walking blocks[]) for a post-fill blocks[]
+// write — Chunk::set_block and Chunk::set_block_by_index_if_different call
+// this after every real write. Bit set = !light_opaque_id(id), the same
+// predicate the fill/upload use. No-op when the mask isn't allocated, so a
+// missing mask always means "upload falls back to the blocks[] walk".
+void light_air_mask_set( const Chunk &chunk, int index, BlockID id );

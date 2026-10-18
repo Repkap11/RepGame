@@ -1776,7 +1776,7 @@ void RepGame::draw( float alpha ) {
         if ( ++light_dbg % 120 == 0 ) {
             const glm::ivec3 p = glm::ivec3( glm::floor( render_pos ) );
             const glm::ivec3 up = p + glm::ivec3( 0, 5, 0 );
-            char dbg[ 256 ];
+            char dbg[ 1024 ];
             globalGameState.world.chunkLoader.light_dbg_stats( dbg, sizeof( dbg ) );
             pr_debug( "LIGHT probe p=(%d,%d,%d) id=%d sky=%d blk=%d | up id=%d sky=%d | q=%zu | %s",
                       p.x, p.y, p.z,

@@ -213,6 +213,7 @@ void Chunk::destroy( ) {
     }
     chunk_free_light( this->light );
     chunk_free_light_columns( this->light_columns );
+    chunk_free_air_mask( this->light_air_mask );
     if ( this->light_texture ) {
         glDeleteTextures( 1, &this->light_texture );
         this->light_texture = 0;
@@ -300,6 +301,14 @@ void Chunk::set_block( const glm::ivec3 &pos, const BlockState &blockState ) con
             return;
         }
         this->blocks = chunk_alloc_blocks( );
+        // The fresh blocks[] is calloc'd = all AIR = all non-opaque, so its
+        // air mask starts fully set; the write below stamps its own cell.
+        if ( light_mipmaps_enabled( ) ) {
+            if ( this->light_air_mask == nullptr ) {
+                this->light_air_mask = chunk_alloc_air_mask( );
+            }
+            memset( this->light_air_mask, 0xFF, CHUNK_BLOCK_SIZE / 8 );
+        }
     }
 
     const int index = get_index_from_coords( pos );
@@ -308,6 +317,7 @@ void Chunk::set_block( const glm::ivec3 &pos, const BlockState &blockState ) con
         this->chests.erase( index );
     }
     this->blocks[ index ] = block_state_normalize( old_state, blockState );
+    light_air_mask_set( *this, index, this->blocks[ index ].id );
 }
 
 void Chunk::set_block_by_index_if_different( int index, const BlockState *blockState ) {
@@ -324,6 +334,13 @@ void Chunk::set_block_by_index_if_different( int index, const BlockState *blockS
             return;
         }
         this->blocks = chunk_alloc_blocks( );
+        // Same as set_block: fresh calloc'd blocks[] = all non-opaque.
+        if ( light_mipmaps_enabled( ) ) {
+            if ( this->light_air_mask == nullptr ) {
+                this->light_air_mask = chunk_alloc_air_mask( );
+            }
+            memset( this->light_air_mask, 0xFF, CHUNK_BLOCK_SIZE / 8 );
+        }
     }
     BlockState &oldBlockState = this->blocks[ index ];
     if ( BlockStates_equal( oldBlockState, *blockState ) ) {
@@ -333,6 +350,7 @@ void Chunk::set_block_by_index_if_different( int index, const BlockState *blockS
         this->chests.erase( index );
     }
     this->blocks[ index ] = *blockState;
+    light_air_mask_set( *this, index, blockState->id );
     this->dirty = true;
     this->needs_repopulation = true;
     // Record the change for the light engine; converted to a world-space
@@ -429,6 +447,8 @@ void Chunk::load_terrain( MapStorage &map_storage ) {
             if ( all_air ) {
                 chunk_free_blocks( this->blocks );
                 this->blocks = nullptr;
+                chunk_free_air_mask( this->light_air_mask );
+                this->light_air_mask = nullptr;
                 this->is_empty_chunk = true;
                 goto skip_to_mesh;
             }
@@ -449,6 +469,8 @@ void Chunk::load_terrain( MapStorage &map_storage ) {
                 // 262K-cell array with AIR.
                 chunk_free_blocks( this->blocks );
                 this->blocks = nullptr;
+                chunk_free_air_mask( this->light_air_mask );
+                this->light_air_mask = nullptr;
                 this->is_empty_chunk = true;
                 this->dirty = 0;
 #if TERRAIN_GEN_PROFILING
@@ -475,6 +497,8 @@ void Chunk::load_terrain( MapStorage &map_storage ) {
                 // Entire chunk (including border) is above terrain → all air
                 chunk_free_blocks( this->blocks );
                 this->blocks = nullptr;
+                chunk_free_air_mask( this->light_air_mask );
+                this->light_air_mask = nullptr;
                 this->is_empty_chunk = true;
                 this->dirty = 0;
 #if TERRAIN_GEN_PROFILING
@@ -665,6 +689,8 @@ void Chunk::calculate_populated_blocks( ) {
         if constexpr ( !REMEMBER_BLOCKS ) {
             chunk_free_blocks( this->blocks );
             this->blocks = nullptr;
+            chunk_free_air_mask( this->light_air_mask );
+            this->light_air_mask = nullptr;
         }
         for ( int renderOrder = 0; renderOrder < LAST_RENDER_ORDER; renderOrder++ ) {
             this->layers[ renderOrder ].num_instances = 0;
@@ -1062,6 +1088,8 @@ void Chunk::calculate_populated_blocks( ) {
 
     if constexpr ( !REMEMBER_BLOCKS ) {
         chunk_free_blocks( this->blocks );
+        chunk_free_air_mask( this->light_air_mask );
+        this->light_air_mask = nullptr;
     }
     for ( int renderOrder = 0; renderOrder < LAST_RENDER_ORDER; renderOrder++ ) {
         this->layers[ renderOrder ].num_instances = num_instances[ renderOrder ];

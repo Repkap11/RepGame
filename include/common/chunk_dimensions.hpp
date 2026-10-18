@@ -33,6 +33,13 @@
 #define CHUNK_BLOCK_DRAW_START ( CHUNK_SIZE_INTERNAL_Z * CHUNK_SIZE_INTERNAL_X )
 #define CHUNK_BLOCK_DRAW_STOP ( CHUNK_BLOCK_SIZE - CHUNK_BLOCK_DRAW_START )
 
+// Deepest mip level of the per-chunk light volume that is ever sampled:
+// chunk_fragment.glsl caps light_lod at LIGHT_LOD_MAX (currently 1.0), so
+// the C++ side sets GL_TEXTURE_MAX_LEVEL to this and glGenerateMipmap only
+// builds the levels that can actually be read. If LIGHT_LOD_MAX is raised
+// above 1.0 this must be raised to match.
+#define LIGHT_TEX_MAX_MIP 1
+
 // Distance from the camera to the farthest renderable point: the outer corner
 // of the loaded chunk box (a chunk CHUNK_RADIUS_* away extends one more
 // CHUNK_SIZE_* on its far side). The sky sphere encloses the world at

@@ -6,6 +6,8 @@
 #define eps 0.00001f
 // Edge length of the per-chunk light volume in texels (interior + 1-cell halo).
 #define LIGHT_VOLUME_DIM float( CHUNK_SIZE_INTERNAL_X )
+// Hard cap on the mip level sampled from the light volume (see light_lod).
+#define LIGHT_LOD_MAX 1.0
 #define TINT_UNDER_WATER_OBJECT_NEVER 0
 #define TINT_UNDER_WATER_OBJECT_UNDER_Y_LEVEL 1
 #define TINT_UNDER_WATER_OBJECT_ALWAYS 2
@@ -18,7 +20,7 @@ uniform float u_shouldDiscardAlpha;
 uniform sampler2DArray u_Texture;
 // Flood-fill lighting: per-chunk internal-volume texture (R=sky, G=block,
 // both pre-scaled to 0-1), bound to a shared texture unit per chunk draw.
-// GL_RG8 when light mipmaps are off, GL_RGBA8 (B = lit-cell mask) when on —
+// GL_RG8 when light mipmaps are off, GL_RGBA8 (B = air mask) when on —
 // see light_mipmaps_enabled() in light.cpp.
 // u_LightBase = chunk block-origin in u_Origin-rebased coords, u_Daylight
 // scales the sky channel for day/night, u_MinAmbient is a light floor so
@@ -228,12 +230,15 @@ void main() {
     // Band-limit the light to the pixel footprint: once a block spans less
     // than ~2 pixels (distance, edge-on views) the per-block light pattern
     // (AO-like darkening toward solid cells, stepped seabeds seen through
-    // water) aliases into moire. The volume is mipmapped with B = lit-cell
-    // fraction (light > 0; solid cells always hold 0), so rg / b is the
-    // average light over the *air* cells in the
-    // footprint — solid cells don't drag it dark. u_LightFarAO blends toward
-    // the raw (solid-inclusive) average, which darkens crevices/terraces
-    // smoothly at the mip scale — AO without the per-block pattern.
+    // water) aliases into moire. The volume is mipmapped with B = air
+    // fraction (cells that can hold light, same predicate as propagation —
+    // dark air counts, solid doesn't), so rg / b is the average light over
+    // the *air* cells in the
+    // footprint — solid cells don't drag it dark. u_LightFarAO adds a small
+    // deliberate bias toward the raw (solid-inclusive) average. It is kept
+    // small on purpose: the air fraction of a surface-straddling texel
+    // reflects where the texel landed as much as any real occlusion, so
+    // blending toward it darkens even flat unoccluded ground.
     // u_DebugFlags bit 32 disables this for A/B captures.
     // Footprint = geometric mean of the two screen axes (sqrt of footprint
     // area). The major axis alone explodes on surfaces seen edge-on even up
@@ -244,12 +249,21 @@ void main() {
     // exceeds 0 and this whole branch is skipped — an RG8 non-mipmapped
     // volume would return level 0 with b=0 anyway (no visual change); the
     // bias just saves the extra 3D fetch.
+    // The LOD is capped at LIGHT_LOD_MAX: coarse mips break twice over
+    // because the volume is per-chunk. CHUNK_SIZE (62) is not a power of
+    // two, so mip level L puts each chunk on a texel grid shifted by
+    // (62k + 1) mod 2^L — identical across chunks only for L <= 1 — and
+    // neighbouring chunks band-limit on differently aligned grids, landing
+    // hard steps on chunk boundaries. The cap also bounds how much light a
+    // coarse texel can smear into a sealed volume: with an honest air mask
+    // a deep cave wall still evaluates to ~0 through level 4 and only leaks
+    // at level 5, so the cap stays at or below that.
     float light_footprint = sqrt(length(dFdx(v_world_coords)) * length(dFdy(v_world_coords)));
-    float light_lod = log2(max(light_footprint, 1e-4)) + u_LightLodBias;
+    float light_lod = min(log2(max(light_footprint, 1e-4)) + u_LightLodBias, LIGHT_LOD_MAX);
     if(light_lod > 0.0 && (u_DebugFlags & 32) == 0) {
         vec3 light_mip = textureLod(u_LightTex, light_coord, light_lod).rgb;
-        float light_air_w = smoothstep(0.25, 0.5, light_mip.b) * (1.0 - u_LightFarAO);
-        vec2 light_far = min(mix(light_mip.rg, light_mip.rg / max(light_mip.b, 1.0 / 255.0), light_air_w), vec2(1.0));
+        vec2 light_air = light_mip.rg / max(light_mip.b, 1.0 / 255.0);
+        vec2 light_far = min(mix(light_air, light_mip.rg, u_LightFarAO), vec2(1.0));
         light_sample = mix(light_sample, light_far, clamp(light_lod, 0.0, 1.0));
     }
     // u_MinAmbient floors the result: cells with no skylight and no block
