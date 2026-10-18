@@ -27,7 +27,16 @@ void main() {
         vec2 working_lo = v_tex_min + (0.5f / 16.0f);
         vec2 working_hi = max(v_tex_max - (0.5f / 16.0f), working_lo);
         vec2 working = clamp(v_TexCoordBlock.xy, working_lo, working_hi);
-        color = texture(u_Texture, vec3(working, v_TexCoordBlock.z));
+        // The UI pass binds the atlas CLAMP_TO_EDGE (the world pass uses
+        // REPEAT), so wrap inside the clamped window explicitly: faces whose
+        // tex_offset pushes the crop window past the tile edge (PORTAL's
+        // side faces sample v in [0.5, 1.5]) must roll over like the world
+        // mesh instead of smearing the clamped edge row into stripes. fract
+        // is identity for windows already inside the tile. Gradients use the
+        // unwrapped UV so the wrap seam doesn't pick a degenerate mip.
+        vec2 uv_dx = dFdx(v_TexCoordBlock.xy);
+        vec2 uv_dy = dFdy(v_TexCoordBlock.xy);
+        color = textureGrad(u_Texture, vec3(fract(working), v_TexCoordBlock.z), uv_dx, uv_dy);
         color *= v_Tint;
     } else {
         color = v_Tint;

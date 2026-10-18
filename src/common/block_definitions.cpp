@@ -347,7 +347,6 @@ void block_definitions_initilize_definitions( Texture *texture ) {
     for ( const BlockID id : portal_shaped ) {
         block_definitions[ id ].scale = { 16, 16, 4 };
         block_definitions[ id ].offset = { 0, 0, 6 };
-        block_definitions[ id ].tex_offset = { 0, -8, 0 };
         block_definitions[ id ].collides_with_player = false;
         block_definitions[ id ].casts_shadow = false;
         block_definitions[ id ].rotate_on_placement = true;
