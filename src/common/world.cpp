@@ -173,6 +173,7 @@ void World::render( Multiplayer &multiplayer, const glm::dvec3 &camera_pos, cons
 void World::set_selected_block( const glm::ivec3 &selected, const bool shouldDraw ) {
     const BlockState blockState = get_loaded_block( selected );
     if ( blockState.id == LAST_BLOCK_ID ) {
+        this->mouseSelection.hide( );
         return;
     }
     this->mouseSelection.set_block( selected, shouldDraw, blockState );

@@ -85,6 +85,9 @@ void MouseSelection::init( const VertexBufferLayout &vbl_block, const VertexBuff
 void MouseSelection::set_break_progress( const float progress ) {
     this->break_progress = progress;
 }
+void MouseSelection::hide( ) {
+    this->shouldDraw = 0;
+}
 void MouseSelection::set_block( const glm::ivec3 &pos, const bool shouldDraw, const BlockState &blockState ) {
     BlockCoords &blockCoords = this->render_chain_mouse_selection.get_instance( this->entity );
     // y += 1;

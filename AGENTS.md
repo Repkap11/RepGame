@@ -42,6 +42,8 @@ vars set, behaviour is unchanged.
   pinned each tick, HUD/ImGui/input are suppressed, and once the loader and
   light queues sit idle the view is screenshotted to
   `screenshots/capture_<i>_display.tga` (plus the other framebuffer dumps).
+  The block-selection raycast still runs against the pinned camera, so the
+  selection outline is captured exactly as seen when the view was F12'd.
   The process exits by itself after the last view. `player.dat` is not
   written.
 - `REPGAME_CAPTURE_QUALITY` — `0..3` (LOW, MEDIUM, HIGH, X_HIGH), default 1.

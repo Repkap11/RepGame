@@ -68,6 +68,14 @@ void main( ) {
 
     vec3 world_coords = adjusted_position + blockCoords - u_Origin;
     gl_Position = u_MVP * vec4( world_coords, 1.0f );
+    // Pull the box ~1cm toward the camera (constant world-space depth bias:
+    // NDC shift = PULL * 2 * near / z^2, near = 0.1). The opaque pass's
+    // screen-space face grow (chunk_vertex.glsl) pushes terrain corners past
+    // their true footprint without touching depth, so grown fringes overlap
+    // the box's outline band and their extrapolated depth can beat the tiny
+    // SELECTION_SIZE_OFFSET. Keep the pull small: a larger one lets the box's
+    // hidden side faces punch through the block's own faces at silhouettes.
+    gl_Position.z -= 0.002f / gl_Position.w;
 
     v_local_pos = position;
     v_faceType = faceType;

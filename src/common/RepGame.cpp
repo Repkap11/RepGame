@@ -1260,8 +1260,13 @@ void RepGame::tick( ) {
         }
     }
 
-    if ( RepGame::should_lock_pointer( ) ) {
-        RepGame::process_mouse_events( );
+    if ( RepGame::should_lock_pointer( ) || g_capture.enabled ) {
+        if ( !g_capture.enabled ) {
+            RepGame::process_mouse_events( );
+        }
+        // The raycast also runs in capture mode so the selection box matches
+        // what was on screen when the view was F12'd (the camera is pinned
+        // above, so the ray is deterministic).
         int whichFace = 0;
         glm::dvec3 pos_with_reach = globalGameState.camera.pos + ( glm::dvec3( globalGameState.camera.look ) * static_cast<double>( REACH_DISTANCE ) );
         globalGameState.block_selection.selectionInBounds = RayTraversal::find_block_from_to( globalGameState.world, nullptr, globalGameState.camera.pos, pos_with_reach, globalGameState.block_selection.pos_destroy, &whichFace, 0, 1, 0 );
@@ -1272,20 +1277,22 @@ void RepGame::tick( ) {
         globalGameState.block_selection.pos_create.z = globalGameState.block_selection.pos_destroy.z + ( whichFace == FACE_BACK ) - ( whichFace == FACE_FRONT );
 
         globalGameState.world.set_selected_block( globalGameState.block_selection.pos_destroy, globalGameState.block_selection.selectionInBounds );
-        const float raw_dx = static_cast<float>( globalGameState.input.mouse.currentPosition.x - globalGameState.input.mouse.previousPosition.x );
-        const float raw_dy = static_cast<float>( globalGameState.input.mouse.currentPosition.y - globalGameState.input.mouse.previousPosition.y );
-        // Low-pass filter the per-tick look delta so that sub-pixel / slow-pan motion
-        // (where integer mouse deltas alternate 0,1,0,1) becomes a steady fractional
-        // velocity instead of a stuttered step. Adds a small amount of input latency.
-        globalGameState.input.mouse.smoothed_dx = globalGameState.input.mouse.smoothed_dx * ( 1.0f - MOUSE_SMOOTHING ) + raw_dx * MOUSE_SMOOTHING;
-        globalGameState.input.mouse.smoothed_dy = globalGameState.input.mouse.smoothed_dy * ( 1.0f - MOUSE_SMOOTHING ) + raw_dy * MOUSE_SMOOTHING;
-        globalGameState.camera.angle_H += globalGameState.input.mouse.smoothed_dx * MOUSE_SENSITIVITY;
-        globalGameState.camera.angle_V += globalGameState.input.mouse.smoothed_dy * MOUSE_SENSITIVITY;
-        if ( globalGameState.camera.angle_H >= 360.0f ) {
-            globalGameState.camera.angle_H -= 360.0f;
-        }
-        if ( globalGameState.camera.angle_H < 0.0f ) {
-            globalGameState.camera.angle_H += 360.0f;
+        if ( !g_capture.enabled ) {
+            const float raw_dx = static_cast<float>( globalGameState.input.mouse.currentPosition.x - globalGameState.input.mouse.previousPosition.x );
+            const float raw_dy = static_cast<float>( globalGameState.input.mouse.currentPosition.y - globalGameState.input.mouse.previousPosition.y );
+            // Low-pass filter the per-tick look delta so that sub-pixel / slow-pan motion
+            // (where integer mouse deltas alternate 0,1,0,1) becomes a steady fractional
+            // velocity instead of a stuttered step. Adds a small amount of input latency.
+            globalGameState.input.mouse.smoothed_dx = globalGameState.input.mouse.smoothed_dx * ( 1.0f - MOUSE_SMOOTHING ) + raw_dx * MOUSE_SMOOTHING;
+            globalGameState.input.mouse.smoothed_dy = globalGameState.input.mouse.smoothed_dy * ( 1.0f - MOUSE_SMOOTHING ) + raw_dy * MOUSE_SMOOTHING;
+            globalGameState.camera.angle_H += globalGameState.input.mouse.smoothed_dx * MOUSE_SENSITIVITY;
+            globalGameState.camera.angle_V += globalGameState.input.mouse.smoothed_dy * MOUSE_SENSITIVITY;
+            if ( globalGameState.camera.angle_H >= 360.0f ) {
+                globalGameState.camera.angle_H -= 360.0f;
+            }
+            if ( globalGameState.camera.angle_H < 0.0f ) {
+                globalGameState.camera.angle_H += 360.0f;
+            }
         }
     } else {
         // Pointer unlocked (inventory open): abandon any in-progress mining.
