@@ -2156,6 +2156,23 @@ void ChunkLoader::light_upload_dirty( const int max_uploads ) {
         // far backlog when the per-frame cap is binding.
         for ( std::vector<Chunk *> *list : { &light_dirty_list_near, &light_dirty_list_far } ) {
             const size_t take = list->size( ) > n ? n : list->size( );
+            // Nearest of the backlog first: selection-sort just the `take`
+            // prefix (take is bounded by the small per-frame cap) so the
+            // upload budget lands on the visible region first.
+            for ( size_t i = 0; i < take; i++ ) {
+                size_t best = i;
+                const glm::ivec3 bd = ( *list )[ i ]->chunk_pos - this->chunk_center;
+                int best_d2 = bd.x * bd.x + bd.z * bd.z;
+                for ( size_t j = i + 1; j < list->size( ); j++ ) {
+                    const glm::ivec3 d = ( *list )[ j ]->chunk_pos - this->chunk_center;
+                    const int d2 = d.x * d.x + d.z * d.z;
+                    if ( d2 < best_d2 ) {
+                        best_d2 = d2;
+                        best = j;
+                    }
+                }
+                std::swap( ( *list )[ i ], ( *list )[ best ] );
+            }
             entries.reserve( entries.size( ) + take );
             for ( size_t i = 0; i < take; i++ ) {
                 Chunk *chunk = ( *list )[ i ];
@@ -2476,21 +2493,39 @@ void ChunkLoader::light_thread_loop( ) {
                 return;
             }
             for ( std::deque<LightJob> *jobs : { &light_jobs_near, &light_jobs_far } ) {
+                // Nearest claimable job to the player wins. claim_free is a
+                // few int compares since the centers refactor, so the
+                // whole-lane distance pass stays cheap even at load-in
+                // depths — the claim itself happens once, on the argmin.
+                auto best = jobs->end( );
+                int best_d2 = std::numeric_limits<int>::max( );
                 for ( auto it = jobs->begin( ); it != jobs->end( ); ++it ) {
                     const glm::ivec3 col = it->type == LIGHT_JOB_FINALIZE ? it->pos : light_chunk_pos_of( it->pos );
-                    if ( light_try_claim( col.x, col.z, it->type != LIGHT_JOB_FINALIZE ) ) {
-                        job = *it;
-                        jobs->erase( it );
+                    if ( !light_claim_free( col.x, col.z, it->type != LIGHT_JOB_FINALIZE ) ) {
+                        continue;
+                    }
+                    const glm::ivec3 d = col - this->chunk_center;
+                    const int d2 = d.x * d.x + d.z * d.z;
+                    if ( d2 < best_d2 ) {
+                        best_d2 = d2;
+                        best = it;
+                    }
+                }
+                if ( best != jobs->end( ) ) {
+                    const glm::ivec3 col = best->type == LIGHT_JOB_FINALIZE ? best->pos : light_chunk_pos_of( best->pos );
+                    if ( light_try_claim( col.x, col.z, best->type != LIGHT_JOB_FINALIZE ) ) {
+                        job = *best;
+                        jobs->erase( best );
                         claim_col = col;
                         have_job = claimed = true;
                         break;
                     }
                 }
-                if ( have_job ) {
-                    break;
-                }
             }
             if ( !have_job ) {
+                // Same nearest-first policy for pending-diff chunks.
+                auto best = light_pending_list.end( );
+                int best_d2 = std::numeric_limits<int>::max( );
                 for ( auto it = light_pending_list.begin( ); it != light_pending_list.end( ); ) {
                     Chunk *pc = *it;
                     if ( pc->is_loading ) {
@@ -2499,20 +2534,29 @@ void ChunkLoader::light_thread_loop( ) {
                         it = light_pending_list.erase( it );
                         continue;
                     }
-                    const glm::ivec3 col = pc->chunk_pos;
-                    if ( !light_try_claim( col.x, col.z, true ) ) {
-                        ++it;
-                        continue;
+                    if ( light_claim_free( pc->chunk_pos.x, pc->chunk_pos.z, true ) ) {
+                        const glm::ivec3 d = pc->chunk_pos - this->chunk_center;
+                        const int d2 = d.x * d.x + d.z * d.z;
+                        if ( d2 < best_d2 ) {
+                            best_d2 = d2;
+                            best = it;
+                        }
                     }
-                    light_pending_list.erase( it );
-                    // Clear listed under the lock so a producer writing
-                    // pending fields now re-enqueues a fresh entry.
-                    pc->light_pending_listed = 0;
-                    pending_chunk = pc;
-                    pending_expected = col;
-                    claim_col = col;
-                    claimed = true;
-                    break;
+                    ++it;
+                }
+                if ( best != light_pending_list.end( ) ) {
+                    Chunk *pc = *best;
+                    const glm::ivec3 col = pc->chunk_pos;
+                    if ( light_try_claim( col.x, col.z, true ) ) {
+                        light_pending_list.erase( best );
+                        // Clear listed under the lock so a producer writing
+                        // pending fields now re-enqueues a fresh entry.
+                        pc->light_pending_listed = 0;
+                        pending_chunk = pc;
+                        pending_expected = col;
+                        claim_col = col;
+                        claimed = true;
+                    }
                 }
             }
             if ( !claimed && !light_bfs_active && light_claim_count == 0 && light_bfs_pending.load( ) > 0 ) {
