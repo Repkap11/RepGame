@@ -142,16 +142,57 @@ shards discussed earlier:
   Without this, near seeds FIFO-mix behind the whole streaming backlog and
   the chunk under the player converges last even though its job ran first.
 - A STARVATION window complements the backlog-size window: if
-  light_bfs_pending > LIGHT_BFS_STARVE_MIN and no drain has run for
-  LIGHT_BFS_STARVE_US (~100ms), light_bfs_priority opens even below the HI
-  watermark — during streaming claims.empty() basically never happens
-  otherwise, so seeds accumulated for the entire load-in and only drained
-  when it stopped (pop=0 for tens of seconds; backlog ~226k). Starve
-  windows drain to empty with a ~25ms cap (light_bfs_starve distinguishes
-  the exit target from the HI-triggered LO watermark). A priority drain
-  also yields early when a RECHECK job is queued — rechecks bypass the
-  priority window at claim time, so holding the slot just delays edits up
-  to the cap.
+  light_bfs_pending has stayed over LIGHT_BFS_STARVE_MIN for more than
+  LIGHT_BFS_STARVE_TICKS (~100ms of game ticks, fed by RepGame::tick via
+  light_note_tick — no clock reads on the push/pop hot paths),
+  light_bfs_priority opens even below the HI watermark — during streaming
+  claims.empty() basically never happens otherwise, so seeds accumulated
+  for the entire load-in and only drained when it stopped (pop=0 for tens
+  of seconds; backlog ~226k). The trigger is backlog AGE, not
+  time-since-last-drain: the ~2ms scraps a worker grabs whenever claims
+  momentarily idle used to keep refreshing "last drain", which deferred
+  the window indefinitely while the backlog sat at ~1M. Starve windows
+  drain to empty with a cap that scales with the backlog — ~25ms at
+  STARVE_MIN growing ~+25ms per LIGHT_BFS_PRI_LO of pending seeds, to a
+  150ms ceiling — so a million-seed queue makes real progress per window
+  instead of a token slice it outgrows before the next one opens
+  (light_bfs_starve distinguishes the exit target from the HI-triggered
+  LO watermark), and re-arm the age timer on close so claimed work gets a
+  turn before the next window opens. A
+  priority drain also yields early when a RECHECK job is queued —
+  rechecks bypass the priority window at claim time, so holding the slot
+  just delays edits up to the cap.
+- A BACKLOG CAP bounds the flood's self-regeneration: once
+  light_bfs_pending exceeds LIGHT_BFS_CAP_FLOOD (~1M), pushes spawned BY
+  pops (add/remove step expansion — the march) are refused and their
+  target chunk flagged light_stale. Sprint-flying streams remove/respread
+  floods into the queue faster than the single drainer pops them — each
+  pop regenerated ~1 seed, so the backlog sat pinned at ~1-2.5M for tens
+  of seconds while ~25M cells were marched (observed: q ~1.03M pinned for
+  ~30s post-flight, rem ~1.4M/interval, fin=0 — pure regen, no external
+  production). Capping the regen kills the march mid-frontier — the
+  queued seeds drain monotonically (~1s) and every unprocessed stale cell
+  corresponded to a refused push, so its chunk is flagged. External
+  pushes (finalize/cascade/border/recheck — fresh chunk light) still land,
+  so streaming keeps converging; they refuse only past LIGHT_BFS_CAP_ALL
+  (~4M) as an absolute bound. Refusals also set the chunk's light_reseed,
+  so the heal is a FULL relight — light_finalize_chunk wipes the volume
+  and re-seeds every emitter via light_fill_chunk before cascade/border
+  sync. A partial re-finalize is not enough: a truncated remove flood
+  leaves unlit interiors around emitters, and only the emitter refill
+  re-pushes those sources (skipped: permanent dark areas that survive
+  s=0 — observed bug). light_finalize_chunk and light_process_pending_chunk
+  clear light_stale whenever they consume light_reseed, so streaming and
+  pending-diff finalizes double as heals. Otherwise:
+  light_heal_chunk runs on grid-shift slot scans for chunks re-entering
+  the near radius (suppressed while pending is over the cap so a flagged
+  near chunk can't re-finalize into refusals forever), and
+  light_heal_idle re-finalizes up to LIGHT_HEAL_PER_FRAME flagged chunks
+  per frame once pending drops under STARVE_MIN — heal seeds lift pending
+  back over the gate so the scan self-throttles into small waves. The
+  same gate also drops seeds aimed at missing/is_loading chunks at push
+  time (a loading chunk's whole volume is rebuilt by its own finalize
+  anyway).
 
 Bug found during bring-up: `light_seed_interior_boundary` was gated on
 `cells_filled > 0`, but the optimistic prefill means a correctly-predicted
@@ -179,6 +220,19 @@ GPU upload handoff (atomic dirty box):
   same reason (marks mid-upload stay pending). The per-frame upload cap
   bounds the pop itself, so unprocessed entries keep their boxes — no
   requeue path that could strand consumed marks.
+- UPLOAD DEBOUNCE (anti-torn-snapshot): the uploader reads chunk.light[]
+  live while workers write it, and a mid-march or mid-relight snapshot
+  shows the transient floor state as a one-frame black flash (visible:
+  correct -> black -> correct under a passing remove front or a reseed
+  wipe). Every mark path stamps chunk.light_write_tick (light_mark_dirty,
+  light_mark_dirty_now, light_mark_dirty_all, plus the memset entry of
+  light_fill_chunk so a wipe counts as hot before its marks land), and
+  light_upload_dirty only takes entries quiet for LIGHT_UPLOAD_QUIET_TICKS
+  (2 game ticks). Entries that stay hot during a sustained march defer per
+  frame; light_upload_defers >= LIGHT_UPLOAD_MAX_DEFERS (45) forces the
+  upload anyway so nothing starves — torn frames during sustained floods
+  are bounded-rate rather than eliminated. `def=` in the dbg line counts
+  deferred entries per interval.
 - Recheck-source marks defer (`light_defer_marks`/`light_deferred_marks`):
   a `light_recheck_block` writes the edited cell's emit value directly, so
   its dirty mark would otherwise reach the GPU a few frames before the BFS

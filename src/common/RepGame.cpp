@@ -106,6 +106,79 @@ bool RepGame::capture_mode( ) {
     return g_capture.enabled;
 }
 
+// --- Fly mode (REPGAME_FLY) ---------------------------------------------------
+// REPGAME_FLY="x,y,z,yaw,pitch[,speed]": scripted no-clip flight for load-in
+// stress tests. tick() pins the camera to start + look*speed*t each tick, so
+// a flight over fresh terrain is reproducible; FLYMET metrics lines carrying
+// the light/loader counters are emitted every REPGAME_FLY_METRICS ticks
+// (default 1). REPGAME_FLY_TICKS=n exits at tick n. player.dat is not written.
+struct FlyState {
+    bool enabled = false;
+    glm::dvec3 start{ 0 };
+    glm::dvec3 dir{ 0 };
+    float yaw = 0, pitch = 0;
+    double speed = 8.0;
+    long metric_every = 1;
+    long exit_tick = 0;
+    long settle_ticks = 0;   // consecutive idle ticks required before flying (0 = fly immediately)
+    long settle_timeout = 0; // give up waiting after this many ticks
+    long fly_ticks = -1;     // flight duration; -1 = fly until exit_tick
+    long fly_start_tick = 0;
+    int idle_streak = 0;
+    int phase = 0; // 0 = waiting for settle, 1 = flying, 2 = done (position held)
+};
+static FlyState g_fly;
+
+static void fly_parse( ) {
+    static bool parsed = false;
+    if ( parsed ) {
+        return;
+    }
+    parsed = true;
+    const char *env = getenv( "REPGAME_FLY" );
+    if ( env == nullptr || env[ 0 ] == '\0' ) {
+        return;
+    }
+    double x, y, z, speed = 8.0;
+    float yaw, pitch;
+    if ( sscanf( env, "%lf,%lf,%lf,%f,%f,%lf", &x, &y, &z, &yaw, &pitch, &speed ) < 5 ) {
+        pr_debug( "REPGAME_FLY: bad spec '%s' (want x,y,z,yaw,pitch[,speed])", env );
+        return;
+    }
+    g_fly.enabled = true;
+    g_fly.start = glm::dvec3( x, y, z );
+    g_fly.yaw = yaw;
+    g_fly.pitch = pitch;
+    g_fly.speed = speed;
+    // Same look-vector convention as build_camera_view.
+    g_fly.dir = glm::normalize( glm::dvec3( sin( yaw * ( M_PI / 180 ) ), -tan( pitch * ( M_PI / 180 ) ), -cos( yaw * ( M_PI / 180 ) ) ) );
+    if ( const char *v = getenv( "REPGAME_FLY_TICKS" ) ) {
+        g_fly.exit_tick = atol( v );
+    }
+    if ( const char *v = getenv( "REPGAME_FLY_METRICS" ) ) {
+        g_fly.metric_every = atol( v );
+    }
+    if ( const char *v = getenv( "REPGAME_FLY_SETTLE" ) ) {
+        g_fly.settle_ticks = atol( v );
+    }
+    if ( const char *v = getenv( "REPGAME_FLY_SETTLE_TIMEOUT" ) ) {
+        g_fly.settle_timeout = atol( v );
+    } else {
+        g_fly.settle_timeout = 30 * UPS_RATE;
+    }
+    if ( const char *v = getenv( "REPGAME_FLY_FLY_TICKS" ) ) {
+        g_fly.fly_ticks = atol( v );
+    }
+    pr_debug( "Fly mode: start=(%.1f,%.1f,%.1f) yaw=%.1f pitch=%.1f speed=%.2f metrics=%ld exit=%ld settle=%ld/%ld fly=%ld", x, y,
+              z, yaw, pitch, speed, g_fly.metric_every, g_fly.exit_tick, g_fly.settle_ticks, g_fly.settle_timeout,
+              g_fly.fly_ticks );
+}
+
+bool RepGame::fly_mode( ) {
+    fly_parse( );
+    return g_fly.enabled;
+}
+
 BlockID RepGame::change_block( const int place, BlockState blockState ) {
 
     glm::ivec3 block;
@@ -1193,6 +1266,9 @@ void RepGame::tick( ) {
         return;
     }
     globalGameState.tick_number++;
+    // Feed the tick to the light pool: the BFS starve window measures backlog
+    // age in ticks so the seed hot paths never read the clock.
+    globalGameState.world.chunkLoader.light_note_tick( globalGameState.tick_number );
     // Day/night clock; light_daylight_factor() maps it to u_Daylight.
     globalGameState.world_time++;
 
@@ -1386,6 +1462,20 @@ void RepGame::tick( ) {
         globalGameState.input.movement.jumpPressed = false;
         globalGameState.input.movement.sneakPressed = false;
     }
+    // Fly mode: scripted no-clip flight over fresh terrain (metrics-only —
+    // the camera itself is scripted just like capture mode). Flags and view
+    // angles go in here; the position pin lands right after process_movement
+    // so physics can't fight it.
+    if ( g_fly.enabled && !g_capture.enabled ) {
+        globalGameState.camera.angle_H = g_fly.yaw;
+        globalGameState.camera.angle_V = g_fly.pitch;
+        globalGameState.input.player_flying = true;
+        globalGameState.input.no_clip = true;
+        globalGameState.camera.y_speed = 0.0;
+        globalGameState.input.movement.sizeH = 0.0f;
+        globalGameState.input.movement.jumpPressed = false;
+        globalGameState.input.movement.sneakPressed = false;
+    }
     // Refresh camera.movement (and the view matrices) from the current angle_H
     // before consuming it: process_movement builds the player's velocity from
     // camera.movement, so it must reflect this tick's angle_H rather than the
@@ -1394,6 +1484,43 @@ void RepGame::tick( ) {
     RepGame::process_camera_angle( );
     RepGame::process_movement( );
     RepGame::process_pressure_plates( );
+    if ( g_fly.enabled && !g_capture.enabled ) {
+        // Settle gate: hold at the start position until the loader and light
+        // queues have been idle REPGAME_FLY_SETTLE consecutive ticks (or the
+        // timeout expires) so the flight starts from a converged baseline.
+        if ( g_fly.phase == 0 ) {
+            bool go = true;
+            if ( g_fly.settle_ticks > 0 && globalGameState.tick_number < g_fly.settle_timeout ) {
+                LoaderDebugStats s;
+                globalGameState.world.chunkLoader.debug_loader_stats( &s );
+                const bool idle = s.chunks_loading == 0 && s.terrain_queued == 0 && s.terrain_results == 0 &&
+                                  s.light_jobs == 0 && s.light_pending == 0 && s.light_dirty == 0 &&
+                                  s.light_bfs_active == 0 && s.light_seeds == 0 && s.light_stale_count == 0;
+                g_fly.idle_streak = idle ? g_fly.idle_streak + 1 : 0;
+                go = g_fly.idle_streak >= g_fly.settle_ticks;
+            }
+            if ( go ) {
+                g_fly.phase = 1;
+                g_fly.fly_start_tick = globalGameState.tick_number;
+                pr_debug( "Fly mode: settled, flight begins at tick %ld", g_fly.fly_start_tick );
+            }
+        }
+        // Absolute pin (not a velocity) so the flight path is exact and
+        // repeatable; prev_* synced so draw() doesn't interpolate.
+        double t = g_fly.phase > 0 ? static_cast<double>( globalGameState.tick_number - g_fly.fly_start_tick ) : 0.0;
+        if ( g_fly.fly_ticks >= 0 && t > g_fly.fly_ticks ) {
+            t = g_fly.fly_ticks;
+            g_fly.phase = 2;
+        }
+        globalGameState.camera.pos = g_fly.start + g_fly.dir * ( g_fly.speed * t );
+        globalGameState.camera.prev_pos = globalGameState.camera.pos;
+        globalGameState.camera.prev_eye_height = globalGameState.camera.eye_height;
+        globalGameState.camera.prev_angle_H = globalGameState.camera.angle_H;
+        globalGameState.camera.prev_angle_V = globalGameState.camera.angle_V;
+        if ( g_fly.exit_tick && globalGameState.tick_number >= g_fly.exit_tick ) {
+            globalGameState.input.exitGame = true;
+        }
+    }
 
     if ( globalGameState.input.click_delay_right > 0 ) {
         globalGameState.input.click_delay_right--;
@@ -1426,7 +1553,7 @@ void RepGame::tick( ) {
         globalGameState.world.chunkLoader.debug_loader_stats( &s );
         const bool idle = s.chunks_loading == 0 && s.terrain_queued == 0 && s.terrain_results == 0 && //
                           s.light_jobs == 0 && s.light_pending == 0 && s.light_dirty == 0 &&         //
-                          s.light_bfs_active == 0 && s.light_seeds == 0;
+                          s.light_bfs_active == 0 && s.light_seeds == 0 && s.light_stale_count == 0;
         g_capture.idle_streak = idle ? g_capture.idle_streak + 1 : 0;
         if ( g_capture.idle_streak >= g_capture.settle_ticks || g_capture.ticks_in_view >= g_capture.timeout_ticks ) {
             const bool timed_out = g_capture.idle_streak < g_capture.settle_ticks;
@@ -1434,6 +1561,22 @@ void RepGame::tick( ) {
                       timed_out ? " (TIMEOUT — loader still busy)" : "" );
             g_capture.shot_pending = true;
         }
+    }
+
+    // Fly-mode telemetry: one FLYMET line per REPGAME_FLY_METRICS ticks so the
+    // light-queue dynamics can be plotted over the flight. Carries the same
+    // counters as the LIGHT probe plus claim/window state (j=jobs p=pending
+    // c=claims d=dirty x=dropped s=seeds; pri/starve = open priority windows).
+    if ( g_fly.enabled && g_fly.metric_every > 0 && globalGameState.tick_number % g_fly.metric_every == 0 ) {
+        LoaderDebugStats s;
+        globalGameState.world.chunkLoader.debug_loader_stats( &s );
+        char dbg[ 1024 ];
+        globalGameState.world.chunkLoader.light_dbg_stats( dbg, sizeof( dbg ) );
+        pr_debug( "FLYMET t=%ld ph=%d p=(%.1f,%.1f,%.1f) j=%d p=%d c=%d d=%d x=%lld bfs=%d pri=%d stv=%d s=%lld stl=%d | %s",
+                  globalGameState.tick_number, g_fly.phase, globalGameState.camera.pos.x, globalGameState.camera.pos.y,
+                  globalGameState.camera.pos.z, s.light_jobs, s.light_pending, s.light_claims, s.light_dirty,
+                  s.light_dropped, s.light_bfs_active, s.light_bfs_priority, s.light_bfs_starve, s.light_seeds,
+                  s.light_stale_count, dbg );
     }
 }
 
@@ -1830,7 +1973,9 @@ void RepGame::draw( float alpha ) {
 
     { // TEMP light diagnostic
         static int light_dbg = 0;
-        if ( ++light_dbg % 120 == 0 ) {
+        // Skipped in fly mode: FLYMET owns the light_dbg_stats interval there
+        // (a second caller would split the counters across two streams).
+        if ( ++light_dbg % 120 == 0 && !RepGame::fly_mode( ) ) {
             const glm::ivec3 p = glm::ivec3( glm::floor( render_pos ) );
             const glm::ivec3 up = p + glm::ivec3( 0, 5, 0 );
             char dbg[ 1024 ];
@@ -2104,9 +2249,9 @@ void RepGame::cleanup( ) {
         return;
     }
 
-    // Capture mode never writes player.dat — it would store the teleported
+    // Capture/fly mode never writes player.dat — it would store the teleported
     // view over the user's save.
-    if ( !g_capture.enabled ) {
+    if ( !g_capture.enabled && !g_fly.enabled ) {
         save_player_data( );
     }
 

@@ -280,6 +280,8 @@ void ChunkLoader::render_chunks( Multiplayer &multiplayer, const glm::dvec3 &cam
             int reloaded = reload_if_out_of_bounds( chunk, chunk_pos, &new_pos );
             if ( !reloaded ) {
                 process_chunk_position( chunk, chunk_diff, loaded_pos, chunk_pos, 0 );
+                // Far-cap stale flag heals as the chunk re-enters near radius.
+                this->light_heal_chunk( chunk, chunk_pos );
             } else {
                 new_positions.push_back( new_pos );
             }
@@ -357,6 +359,8 @@ void ChunkLoader::render_chunks( Multiplayer &multiplayer, const glm::dvec3 &cam
     }
     // GL uploads stay render-thread-owned regardless of who marked dirty.
     this->light_upload_dirty( LIGHT_MAX_UPLOADS_PER_FRAME );
+    // Idle heal for far-cap stale flags; no-ops while the queue is busy.
+    this->light_heal_idle( );
     this->rebuild_drawable_list( );
 }
 

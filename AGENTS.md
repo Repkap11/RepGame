@@ -92,6 +92,21 @@ vars set, behaviour is unchanged.
   smoothly instead of rendering sub-pixel holes as salt-and-pepper noise,
   and the brightness dither fades out on the same schedule. Defaults
   0.3 / 1.2. Bound to `u_CutoutFade` in the chunk shader.
+- `REPGAME_FLY="x,y,z,yaw,pitch[,speed]"` — scripted no-clip flight for
+  load-in/lighting stress tests. Each tick pins the camera to
+  `start + look*speed*t` (speed in blocks/tick; sprint-fly is 2.0 —
+  anything much faster outruns terrain gen and every result returns
+  out-of-window, re-enqueueing forever: `tw` stays full, nothing
+  finalizes). Emits one `FLYMET` line per `REPGAME_FLY_METRICS` ticks
+  (default 1) carrying the loader/light counters (`j`=jobs `p`=pending
+  `c`=claims `d`=dirty `x`=dropped `s`=BFS seeds, `pri`/`stv` = open
+  priority/starve windows, plus the `light_dbg` counters (of which
+  `drop`=pop-time dead targets, `pd`=push-time dead targets, `cap`=far-seed
+  cap refusals — see the backlog cap below, `def`=write-hot dirty-upload
+  deferrals — see the upload debounce in lighting-thread-plan.md) and
+  per-phase µs). `REPGAME_FLY_TICKS=n` exits at tick n via the normal
+  cleanup path. `player.dat` is not written. Combine with
+  `SDL_VIDEODRIVER=offscreen` for headless runs.
 - `REPGAME_LIGHT_CLAIM_RADIUS` — `1..4` (default 1): Chebyshev distance
   between light-job center columns that counts as a claim conflict. 4
   reproduces the old 5x5-key-overlap semantics; 1 lets jobs two columns

@@ -153,8 +153,9 @@ void imgui_overlay_draw( ImGuiOverlay *imgui_overlay, Input &input ) {
             fmt_count( ls, sizeof ls, debug_vars.loader.light_seeds );
             fmt_count( ld, sizeof ld, debug_vars.loader.light_dirty );
             fmt_count( lx, sizeof lx, debug_vars.loader.light_dropped );
-            ImGui::Text( "Light: j:%5s p:%5s s:%5s c:%d d:%5s x:%5s lag:%4.0f/%4.0fms%s",
+            ImGui::Text( "Light: j:%5s p:%5s s:%5s c:%d d:%5s x:%5s stl:%d lag:%4.0f/%4.0fms%s",
                          lj, lp, ls, debug_vars.loader.light_claims, ld, lx,
+                         debug_vars.loader.light_stale_count,
                          debug_vars.loader.light_jlag_us / 1000.0, debug_vars.loader.light_njlag_us / 1000.0,
                          debug_vars.loader.light_bfs_active ? " [BFS]" : "" );
             ImGui::Separator( );

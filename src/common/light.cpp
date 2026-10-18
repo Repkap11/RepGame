@@ -126,6 +126,17 @@ static long long light_dbg_pushes = 0, light_dbg_pops = 0, light_dbg_finalize = 
 // nonzero count is not itself a bug — but a high count plus persistent dark
 // areas means dropped work that nothing re-covered.
 static std::atomic<long long> light_dbg_dropped{ 0 };
+// Same, but refused at push time by the gate in light_seed_gate — these
+// never occupy the queue, so a high count is strictly cheaper than the same
+// drops landing at pop. Folded into `drop`.
+static std::atomic<long long> light_dbg_push_drops{ 0 };
+// Seeds refused by the far-lane backlog cap — each flagged its target chunk
+// light_stale for lazy re-finalize rather than queueing.
+static std::atomic<long long> light_dbg_capped{ 0 };
+// Dirty-upload list entries deferred this interval for being write-hot
+// (light_write_tick within LIGHT_UPLOAD_QUIET_TICKS) — the anti-torn-upload
+// debounce at work; spikes while a flood marches through visible chunks.
+static std::atomic<long long> light_dbg_upload_deferred{ 0 };
 // Per-interval max age of a job when it actually ran (submit -> execute), and
 // how many jobs waited >1s — exposes priority inversions where a visible
 // chunk's finalize sits behind a deep queue.
@@ -146,13 +157,14 @@ void ChunkLoader::light_dbg_stats( char *buf, size_t n ) {
     size_t jobs_now = light_jobs_depth( );
     int terrain_work = 0, terrain_results = 0;
     this->terrain_loading_thread.queue_sizes( &terrain_work, &terrain_results );
-    snprintf( buf, n, "loop=%lld aj=%lld jn=%lld pq=%lld/%lld push=%lld pop=%lld fin=%lld casc=%lld bord=%lld rech=%lld step=%lld rem=%lld drop=%lld jobs=%zu jlag=%lld jlate=%lld njlag=%lld syn=%lld rej=%lld tw=%d tr=%d"
+    snprintf( buf, n, "loop=%lld aj=%lld jn=%lld pq=%lld/%lld push=%lld pop=%lld fin=%lld casc=%lld bord=%lld rech=%lld step=%lld rem=%lld drop=%lld pd=%lld cap=%lld def=%lld jobs=%zu jlag=%lld jlate=%lld njlag=%lld syn=%lld rej=%lld tw=%d tr=%d"
                       " | us: fin=%lld(lfin=%lld[fill=%lld casc=%lld bscan=%lld border=%lld]) remesh=%lld drain=%lld bfs=%lld upl=%lld(n=%lld) bind=%lld ensure=%lld(n=%lld)",
               light_dbg_loop_top, light_dbg_after_jobs, light_dbg_jobs_n,
               light_dbg_pq_calls, light_dbg_pq_nonempty,
               light_dbg_pushes, light_dbg_pops, light_dbg_finalize, light_dbg_cascade_seed,
               light_dbg_border_seed, light_dbg_recheck_seed, light_dbg_step_push, light_dbg_remove_seed,
-              light_dbg_dropped.load( ), jobs_now,
+              light_dbg_dropped.load( ), light_dbg_push_drops.load( ), light_dbg_capped.load( ),
+              light_dbg_upload_deferred.load( ), jobs_now,
               light_dbg_max_lag_us.load( ), light_dbg_late_jobs.load( ), light_dbg_max_lag_near_us.load( ),
               light_dbg_sync.load( ), light_dbg_rej.load( ),
               terrain_work, terrain_results,
@@ -168,6 +180,8 @@ void ChunkLoader::light_dbg_stats( char *buf, size_t n ) {
     light_dbg_rej = 0;
     light_dbg_pushes = light_dbg_pops = light_dbg_finalize = light_dbg_cascade_seed =
         light_dbg_border_seed = light_dbg_recheck_seed = light_dbg_step_push = light_dbg_remove_seed = 0;
+    light_dbg_capped = 0;
+    light_dbg_upload_deferred = 0;
     // loop/aj/jn/pq are cumulative (not reset) — reset races with the light
     // thread would otherwise print impossible combinations.
     light_dbg_us_finalize = light_dbg_us_remesh = light_dbg_us_drain = light_dbg_us_bfs =
@@ -192,6 +206,44 @@ size_t ChunkLoader::light_add_queue_size( ) const {
 // (a claimed job may be pushing while another worker waits). ++ on every
 // push_back, -- on every pop_front below.
 static std::atomic<long long> light_bfs_pending{ 0 };
+
+// Starve-window thresholds (the window machinery lives with the claim code
+// below): a backlog over STARVE_MIN for more than STARVE_TICKS interrupts
+// claims. Backlog age is measured in game ticks fed by RepGame::tick
+// (light_note_tick) so the seed push/pop hot paths never read steady_clock —
+// everything below is plain atomic loads.
+static std::atomic<long> light_tick_counter{ 0 };
+#define LIGHT_BFS_STARVE_MIN 2048                // backlog worth interrupting claims for
+#define LIGHT_BFS_STARVE_TICKS ( UPS_RATE / 10 ) // ~100ms of game ticks
+// Flood-regen cap: past this, pushes spawned BY pops (the add/remove march's
+// own expansion) are refused and their target chunk flagged light_stale — a
+// marching flood can no longer regenerate the backlog for tens of seconds
+// after it formed; flagged chunks re-finalize lazily (light_heal_*). Seeds
+// pushed by producers (finalize/cascade/border sync/recheck) still land, so
+// fresh chunk light keeps converging during streaming.
+#define LIGHT_BFS_CAP_FLOOD ( 1 << 20 )
+// Absolute bound: even external far-lane pushes are refused past this.
+#define LIGHT_BFS_CAP_ALL ( 4 << 20 )
+// Chunks re-finalized per frame by the idle stale-heal scan. Each heal pushes
+// seeds back over STARVE_MIN, so the scan self-throttles into small waves.
+#define LIGHT_HEAL_PER_FRAME 4
+// Upload debounce: a chunk whose light was written within the last
+// LIGHT_UPLOAD_QUIET_TICKS game ticks waits — a mid-march/mid-relight
+// snapshot shows the transient floor state as a one-frame black flash.
+// Chunks under a sustained march stay hot, so LIGHT_UPLOAD_MAX_DEFERS frames
+// forces an upload anyway (~190ms starvation bound at 240fps).
+#define LIGHT_UPLOAD_QUIET_TICKS 2
+#define LIGHT_UPLOAD_MAX_DEFERS 45
+// Tick at which light_bfs_pending last rose above LIGHT_BFS_STARVE_MIN.
+// Stamped only by the crossing push, so a backlog that never drains under
+// the line keeps accruing age no matter how often drains run.
+static std::atomic<long> light_bfs_backlog_tick{ 0 };
+
+static inline void light_bfs_pending_inc( ) {
+    if ( light_bfs_pending.fetch_add( 1, std::memory_order_relaxed ) == LIGHT_BFS_STARVE_MIN ) {
+        light_bfs_backlog_tick.store( light_tick_counter.load( std::memory_order_relaxed ), std::memory_order_relaxed );
+    }
+}
 
 // Workers holding disjoint column claims push seeds concurrently, so the
 // shared deques need serialization on PUSH. Pops are unlocked: the BFS
@@ -226,33 +278,82 @@ static inline bool light_near_center( const glm::ivec3 &center, const glm::ivec3
     return light_near_col( center, light_chunk_pos_of( block_pos ) );
 }
 
+// Push gate for both seed paths; nonzero = the seed was refused (counter
+// bumped inside). Once the backlog is past STARVE_MIN a seed aimed at a
+// missing or still-loading chunk is dropped here instead of after a full
+// queue round-trip — a loading chunk's whole light volume is rebuilt by its
+// own finalize, so the seed is provably moot. Past LIGHT_BFS_CAP_FLOOD,
+// internal pushes (march expansion) are refused and the target chunk flagged
+// light_stale — the flood dies mid-frontier instead of regenerating a
+// plateau, and the chunk re-derives its light via a re-finalize when the
+// queue next goes idle or the chunk re-enters the near radius
+// (light_heal_* below). light_reseed is set alongside the flag so the heal
+// re-finalize runs light_fill_chunk too — the volume is wiped and emitters
+// re-seeded, not just cascaded/border-synced. Without it, cells a truncated
+// flood unlit around emitters (or half-spread interiors) stayed dark
+// forever: no queued seed ever re-pushes an interior light source. External
+// far pushes are refused only past LIGHT_BFS_CAP_ALL; near external seeds
+// are never refused.
+int ChunkLoader::light_seed_gate( const glm::ivec3 &block_pos, const bool near, const bool internal ) {
+    const long long pend = light_bfs_pending.load( std::memory_order_relaxed );
+    if ( pend <= LIGHT_BFS_STARVE_MIN ) {
+        return 0;
+    }
+    Chunk *c = this->get_chunk( light_chunk_pos_of( block_pos ) );
+    if ( !c || c->is_loading ) {
+        light_dbg_dropped++;
+        light_dbg_push_drops++;
+        return 1;
+    }
+    const bool refuse = internal ? ( pend > LIGHT_BFS_CAP_FLOOD ) : ( !near && pend > LIGHT_BFS_CAP_ALL );
+    if ( refuse ) {
+        c->light_stale.store( 1, std::memory_order_relaxed );
+        // Set at flag time (not heal time) so ANY finalize landing before
+        // the heal scan — e.g. a pending-diff drain — already does the full
+        // wipe + emitter refill. Benign racy int write: producers on worker
+        // threads store 1 here, the finalize's own store of 0 clears it.
+        c->light_reseed = 1;
+        light_dbg_capped++;
+        return 1;
+    }
+    return 0;
+}
+
 // level is the light value the cell holds at push time; it only determines
 // which bucket the seed lands in (higher first), not what gets propagated.
 // Near-player seeds go to the priority lane drained first by
 // light_process_queue — otherwise they FIFO-mix behind the whole streaming
 // backlog and the chunk under the player updates last.
-void ChunkLoader::light_add_seed( const glm::ivec3 &block_pos, const int channel, const int level ) {
+void ChunkLoader::light_add_seed( const glm::ivec3 &block_pos, const int channel, const int level, const bool internal ) {
+    const bool near = light_near_center( this->chunk_center, block_pos );
+    if ( this->light_seed_gate( block_pos, near, internal ) ) {
+        return;
+    }
     const int clamped = level < 0 ? 0 : level > LIGHT_MAX_LEVEL ? LIGHT_MAX_LEVEL : level;
     light_dbg_pushes++;
     LightSeedGuard guard;
-    if ( light_near_center( this->chunk_center, block_pos ) ) {
+    if ( near ) {
         this->light_add_queue_pri[ channel ][ clamped ].push_back( { block_pos, static_cast<unsigned char>( channel ) } );
     } else {
         this->light_add_queue[ channel ][ clamped ].push_back( { block_pos, static_cast<unsigned char>( channel ) } );
     }
-    light_bfs_pending++;
+    light_bfs_pending_inc( );
 }
 
-void ChunkLoader::light_push_remove_seed( const glm::ivec3 &block_pos, const int channel, const int old_value ) {
+void ChunkLoader::light_push_remove_seed( const glm::ivec3 &block_pos, const int channel, const int old_value, const bool internal ) {
+    const bool near = light_near_center( this->chunk_center, block_pos );
+    if ( this->light_seed_gate( block_pos, near, internal ) ) {
+        return;
+    }
     LightSeedGuard guard;
-    if ( light_near_center( this->chunk_center, block_pos ) ) {
+    if ( near ) {
         this->light_remove_queue_pri.push_back(
             { block_pos, static_cast<unsigned char>( channel ), static_cast<unsigned char>( old_value ) } );
     } else {
         this->light_remove_queue.push_back(
             { block_pos, static_cast<unsigned char>( channel ), static_cast<unsigned char>( old_value ) } );
     }
-    light_bfs_pending++;
+    light_bfs_pending_inc( );
 }
 
 // ---------------------------------------------------------------------------
@@ -442,11 +543,14 @@ static volatile int light_bfs_priority = 0;
 // Starvation window: a drain also needs no claims in flight, which during
 // continuous streaming effectively never happens — the backlog then sits
 // (pop=0 for whole seconds) and even near-player light only converges when
-// streaming stops. If the BFS hasn't run for STARVE_US with a non-trivial
-// backlog, open the same priority window: finalize claims pause, in-flight
-// claims finish, the drainer runs until the backlog empties or the cap.
-static volatile int light_bfs_starve = 0; // priority window was time-triggered
-static std::atomic<long long> light_bfs_last_drain_us{ 0 };
+// streaming stops. The trigger is backlog AGE (light_bfs_backlog_tick), not
+// time-since-last-drain: the ~2ms scraps a worker grabs whenever claims
+// momentarily idle would otherwise keep refreshing "last drain" and defer
+// the window forever. Once the backlog has stayed over LIGHT_BFS_STARVE_MIN
+// for STARVE_TICKS, open the same priority window: finalize claims pause,
+// in-flight claims finish, the drainer runs until the backlog empties or
+// the cap.
+static volatile int light_bfs_starve = 0; // priority window was age-triggered
 
 // A recheck's own writes (the emit cell, mirror cells, cascade clears) mark
 // dirty the moment they run, but their propagation spread only writes when a
@@ -457,9 +561,8 @@ static std::atomic<long long> light_bfs_last_drain_us{ 0 };
 // upload in the same pass. Guarded by light_work_mutex.
 static std::atomic<int> light_defer_marks{ 0 };
 static std::vector<std::pair<Chunk *, glm::ivec3>> light_deferred_marks;
-#define LIGHT_BFS_STARVE_MIN 2048     // backlog worth interrupting claims for
-#define LIGHT_BFS_STARVE_US 100000    // max time between drains during streaming
-#define LIGHT_BFS_STARVE_MAX_US 25000 // drain cap inside a starve window
+#define LIGHT_BFS_STARVE_MAX_US 25000   // drain cap inside a starve window (at STARVE_MIN)
+#define LIGHT_BFS_STARVE_HARD_US 150000 // ceiling for the backlog-scaled starve cap
 
 // Footprint is free (no claimed center within the conflict radius of cx,cz)?
 // Also requires no BFS drain running — a popped seed writes cells anywhere,
@@ -547,6 +650,7 @@ void ChunkLoader::light_upload_enqueue( Chunk &chunk ) {
 }
 
 void ChunkLoader::light_mark_dirty_now( Chunk &chunk, const glm::ivec3 &local ) {
+    chunk.light_write_tick.store( light_tick_counter.load( std::memory_order_relaxed ), std::memory_order_relaxed );
     const glm::ivec3 texel = local + glm::ivec3( 1 ); // internal -> texture coords
     // CAS-merge the texel into the dirty box BEFORE the listed check: the
     // render thread clears listed and exchanges the box in the same critical
@@ -568,6 +672,9 @@ void ChunkLoader::light_mark_dirty_now( Chunk &chunk, const glm::ivec3 &local ) 
 }
 
 void ChunkLoader::light_mark_dirty( Chunk &chunk, const glm::ivec3 &local ) {
+    // Stamp BEFORE the defer check: the write is happening now regardless of
+    // when its texel mark lands, and the upload-quiet window measures writes.
+    chunk.light_write_tick.store( light_tick_counter.load( std::memory_order_relaxed ), std::memory_order_relaxed );
     if ( light_defer_marks.load( std::memory_order_relaxed ) > 0 ) {
         std::lock_guard<std::mutex> lock( light_work_mutex );
         light_deferred_marks.push_back( { &chunk, local } );
@@ -596,6 +703,7 @@ void ChunkLoader::light_flush_deferred_marks( ) {
 // Dirty coords are texel-space (internal+1), so the full 34^3 texture is
 // 0..CHUNK_SIZE_INTERNAL_-1 inclusive.
 void ChunkLoader::light_mark_dirty_all( Chunk &chunk ) {
+    chunk.light_write_tick.store( light_tick_counter.load( std::memory_order_relaxed ), std::memory_order_relaxed );
     // The full-volume box is the union lattice's top element — a plain store
     // can't lose a concurrent mark (any merge into it is a no-op).
     chunk.light_dirty_box.store(
@@ -752,7 +860,7 @@ void ChunkLoader::light_add_step( const LightSeed &seed ) {
             light_write_cell( *chunk, nidx, sky ? static_cast<unsigned char>( ( ncell & 0x0F ) | ( offered << 4 ) ) : static_cast<unsigned char>( ( ncell & 0xF0 ) | offered ) );
             light_mark_dirty( *chunk, n_local );
             light_dbg_step_push++;
-            this->light_add_seed( seed.pos + light_dirs[ d ], seed.channel, offered );
+            this->light_add_seed( seed.pos + light_dirs[ d ], seed.channel, offered, true );
             continue;
         }
         const glm::ivec3 n = seed.pos + light_dirs[ d ];
@@ -770,7 +878,7 @@ void ChunkLoader::light_add_step( const LightSeed &seed ) {
         }
         this->light_set( n, seed.channel, offered );
         light_dbg_step_push++;
-        this->light_add_seed( n, seed.channel, offered );
+        this->light_add_seed( n, seed.channel, offered, true );
     }
 }
 
@@ -823,12 +931,12 @@ void ChunkLoader::light_remove_step( const LightRemoveSeed &seed ) {
                 this->light_set( n, seed.channel, floor_v );
             }
             light_dbg_remove_seed++;
-            this->light_push_remove_seed( n, seed.channel, nv );
+            this->light_push_remove_seed( n, seed.channel, nv, true );
             if ( floor_v > 0 ) {
-                this->light_add_seed( n, seed.channel, floor_v );
+                this->light_add_seed( n, seed.channel, floor_v, true );
             }
         } else {
-            this->light_add_seed( n, seed.channel, nv );
+            this->light_add_seed( n, seed.channel, nv, true );
         }
     }
 }
@@ -839,8 +947,12 @@ void ChunkLoader::light_process_queue( const long long budget_us ) {
         light_dbg_pq_nonempty++;
     }
     light_dbg_pq_calls++;
+    int iters = 0;
     for ( ;; ) {
-        if ( light_now_us( ) - start >= budget_us ) {
+        // The budget check runs once per pop — steady_clock is a ~20ns vDSO
+        // read and drains pop millions of seeds, so sample it every 64 pops
+        // (~100µs of work) instead of every iteration.
+        if ( ( ++iters & 0x3F ) == 0 && light_now_us( ) - start >= budget_us ) {
             this->light_flush_deferred_marks( );
             return;
         }
@@ -1233,6 +1345,10 @@ void ChunkLoader::light_finalize_chunk( Chunk &chunk ) {
     if ( chunk.light_reseed ) {
         light_fill_chunk( chunk ); // refill emitters + column_open
         chunk.light_reseed = 0;
+        // The wipe+refill already re-derived the whole volume — a stale flag
+        // left over from cap refusals is superseded (racy refusals during
+        // this run re-flag it, which is fine: the next heal re-derives).
+        chunk.light_stale.store( 0, std::memory_order_relaxed );
     }
     // Convert pending diff indices into rechecks (world positions).
     for ( int i = 0; i < chunk.light_pending_count; i++ ) {
@@ -1743,6 +1859,7 @@ void ChunkLoader::light_process_pending_chunk( Chunk &chunk ) {
         // whole volume was rewritten, so mark it all dirty for upload.
         light_fill_chunk( chunk );
         chunk.light_reseed = 0;
+        chunk.light_stale.store( 0, std::memory_order_relaxed );
         this->light_cascade_columns( chunk );
         // Always scan — the refill's optimistic sky_open_above leaves the
         // cascade with nothing to fill, but shaded columns still need seeds.
@@ -1785,6 +1902,10 @@ void ChunkLoader::light_drain_pending( ) {
 // computed here — the above-chunk's state isn't known on the worker, so
 // skylight is resolved in light_finalize_chunk on the render thread.
 void light_fill_chunk( Chunk &chunk ) {
+    // The memset below is a write the upload-quiet window must see: without
+    // this stamp an already-listed chunk could upload mid-wipe, before the
+    // cascade/marks restamp it — a one-frame full-volume black flash.
+    chunk.light_write_tick.store( light_tick_counter.load( std::memory_order_relaxed ), std::memory_order_relaxed );
     if ( !chunk.blocks ) {
         // All-air chunk: no light volume at all. light==nullptr means every
         // cell holds light_uniform — set it to the same optimistic sky=15 the
@@ -2214,42 +2335,67 @@ void ChunkLoader::light_upload_dirty( const int max_uploads ) {
     };
     static std::vector<LightUploadEntry> entries;
     entries.clear( );
+    const long tick_now = light_tick_counter.load( std::memory_order_relaxed );
+    static std::vector<Chunk *> eligible;
     {
         // Clear listed AND snapshot the dirty box in the same critical
         // section that detaches the chunk from the list: a mark whose CAS
         // misses this exchange necessarily enters the mutex after us, sees
         // listed==0, and re-adds the chunk — the next frame's exchange picks
         // its texel up. Entries beyond the cap stay in the list untouched.
+        // Eligibility adds the write-quiet debounce: chunks written within
+        // LIGHT_UPLOAD_QUIET_TICKS stay listed so the GPU never snapshots a
+        // mid-march/mid-relight volume (the visible black flash); defers
+        // are capped so a chunk under a sustained march can't starve.
         std::lock_guard<std::mutex> lock( light_work_mutex );
         size_t n = max_uploads;
         // Near uploads first — the visible region must not wait behind the
         // far backlog when the per-frame cap is binding.
         for ( std::vector<Chunk *> *list : { &light_dirty_list_near, &light_dirty_list_far } ) {
-            const size_t take = list->size( ) > n ? n : list->size( );
-            // Nearest of the backlog first: selection-sort just the `take`
-            // prefix (take is bounded by the small per-frame cap) so the
-            // upload budget lands on the visible region first.
+            eligible.clear( );
+            for ( Chunk *chunk : *list ) {
+                const bool quiet = tick_now - chunk->light_write_tick.load( std::memory_order_relaxed ) >= LIGHT_UPLOAD_QUIET_TICKS;
+                if ( quiet || chunk->light_upload_defers >= LIGHT_UPLOAD_MAX_DEFERS ) {
+                    eligible.push_back( chunk );
+                } else {
+                    chunk->light_upload_defers++;
+                    light_dbg_upload_deferred++;
+                }
+            }
+            const size_t take = eligible.size( ) > n ? n : eligible.size( );
+            // Nearest of the eligible backlog first: selection-sort just the
+            // `take` prefix (take is bounded by the small per-frame cap) so
+            // the upload budget lands on the visible region first.
             for ( size_t i = 0; i < take; i++ ) {
                 size_t best = i;
-                const glm::ivec3 bd = ( *list )[ i ]->chunk_pos - this->chunk_center;
+                const glm::ivec3 bd = eligible[ i ]->chunk_pos - this->chunk_center;
                 int best_d2 = bd.x * bd.x + bd.z * bd.z;
-                for ( size_t j = i + 1; j < list->size( ); j++ ) {
-                    const glm::ivec3 d = ( *list )[ j ]->chunk_pos - this->chunk_center;
+                for ( size_t j = i + 1; j < eligible.size( ); j++ ) {
+                    const glm::ivec3 d = eligible[ j ]->chunk_pos - this->chunk_center;
                     const int d2 = d.x * d.x + d.z * d.z;
                     if ( d2 < best_d2 ) {
                         best_d2 = d2;
                         best = j;
                     }
                 }
-                std::swap( ( *list )[ i ], ( *list )[ best ] );
+                std::swap( eligible[ i ], eligible[ best ] );
             }
             entries.reserve( entries.size( ) + take );
             for ( size_t i = 0; i < take; i++ ) {
-                Chunk *chunk = ( *list )[ i ];
+                Chunk *chunk = eligible[ i ];
                 chunk->light_upload_listed.store( 0, std::memory_order_release );
+                chunk->light_upload_defers = 0;
                 entries.push_back( { chunk, chunk->light_dirty_box.exchange( LIGHT_BOX_EMPTY, std::memory_order_acq_rel ) } );
             }
-            list->erase( list->begin( ), list->begin( ) + take );
+            // Rebuild minus taken entries (they're the ones now listed==0).
+            std::vector<Chunk *> keep;
+            keep.reserve( list->size( ) - take );
+            for ( Chunk *chunk : *list ) {
+                if ( chunk->light_upload_listed.load( std::memory_order_relaxed ) ) {
+                    keep.push_back( chunk );
+                }
+            }
+            list->swap( keep );
             n -= take;
             if ( n == 0 ) {
                 break;
@@ -2431,6 +2577,42 @@ void ChunkLoader::light_reprioritize_jobs( ) {
     }
 }
 
+// Heal for light_stale chunks (flagged by cap refusals in light_seed_gate):
+// the refusal also set light_reseed, so the re-finalize is a full relight —
+// light_fill_chunk wipes the volume and re-seeds every emitter, then
+// cascade + border sync + interior boundary re-derive it against current
+// neighbor state. Any mix of dropped add/remove work converges cleanly.
+// Called from the grid-shift slot scan in chunk_loader.cpp so stale far
+// chunks heal as they re-enter the near radius.
+void ChunkLoader::light_heal_chunk( Chunk &chunk, const glm::ivec3 &center ) {
+    // Don't heal mid-flood: the re-finalize's own propagation seeds would be
+    // refused above the cap and the flag would just re-set — churn.
+    if ( chunk.is_loading || light_bfs_pending.load( std::memory_order_relaxed ) > LIGHT_BFS_CAP_FLOOD ||
+         !light_near_col( center, chunk.chunk_pos ) || !chunk.light_stale.exchange( 0, std::memory_order_relaxed ) ) {
+        return;
+    }
+    this->light_submit_finalize( chunk );
+}
+
+// Render-thread idle heal, once per frame from loadChunks: while the queue
+// is nearly drained, re-finalize a few flagged chunks per frame. Each heal
+// pushes seeds back over the gate, so this self-throttles — leftover far
+// light converges in small waves instead of one monolithic plateau, and
+// flagged chunks the player never re-approaches still heal eventually.
+void ChunkLoader::light_heal_idle( ) {
+    if ( light_bfs_pending.load( std::memory_order_relaxed ) > LIGHT_BFS_STARVE_MIN ) {
+        return;
+    }
+    int healed = 0;
+    for ( int i = 0; i < MAX_LOADED_CHUNKS && healed < LIGHT_HEAL_PER_FRAME; i++ ) {
+        Chunk &chunk = this->chunkArray[ i ];
+        if ( !chunk.is_loading && chunk.light_stale.exchange( 0, std::memory_order_relaxed ) ) {
+            this->light_submit_finalize( chunk );
+            healed++;
+        }
+    }
+}
+
 void ChunkLoader::light_submit_finalize( Chunk &chunk ) {
     if ( !light_thread_running ) {
         this->light_finalize_chunk( chunk );
@@ -2503,7 +2685,6 @@ void ChunkLoader::light_submit_recheck( const glm::ivec3 &block_pos ) {
             light_bfs_priority = 0;
             light_bfs_starve = 0;
         }
-        light_bfs_last_drain_us.store( light_now_us( ), std::memory_order_relaxed );
     }
     light_work_cv.notify_all( );
 }
@@ -2534,7 +2715,9 @@ void ChunkLoader::light_thread_loop( ) {
                     light_bfs_priority = 1;
                     light_bfs_starve = 0;
                 } else if ( pend > LIGHT_BFS_STARVE_MIN &&
-                            light_now_us( ) - light_bfs_last_drain_us.load( std::memory_order_relaxed ) > LIGHT_BFS_STARVE_US ) {
+                            light_tick_counter.load( std::memory_order_relaxed ) -
+                                        light_bfs_backlog_tick.load( std::memory_order_relaxed ) >
+                                    LIGHT_BFS_STARVE_TICKS ) {
                     light_bfs_priority = 1;
                     light_bfs_starve = 1;
                 }
@@ -2682,7 +2865,7 @@ void ChunkLoader::light_thread_loop( ) {
             // priority window jobs are claim-blocked anyway: drain to the low
             // watermark or the time cap, whichever first. A starve-triggered
             // window drains to empty (bounded by a shorter cap) — the backlog
-            // it interrupts is small by definition.
+            // it interrupts is old, not small, so the cap bounds the hitch.
             const long long pri_start = light_now_us( );
             for ( ;; ) {
                 this->light_process_queue( 2000 );
@@ -2694,11 +2877,22 @@ void ChunkLoader::light_thread_loop( ) {
                     }
                     if ( light_bfs_priority ) {
                         const long long floor = light_bfs_starve ? 0 : LIGHT_BFS_PRI_LO;
-                        const long long cap = light_bfs_starve ? LIGHT_BFS_STARVE_MAX_US : LIGHT_BFS_PRI_MAX_US;
+                        // A starve window's slice scales with the backlog it
+                        // interrupted: ~25ms at STARVE_MIN growing ~+25ms per
+                        // PRI_LO of backlog, to a 150ms ceiling. A million-
+                        // seed queue gets real progress per window instead of
+                        // a token slice it outgrows before the next one opens.
+                        const long long cap =
+                            light_bfs_starve ? std::min<long long>( LIGHT_BFS_STARVE_MAX_US * ( 1 + light_bfs_pending.load( ) / LIGHT_BFS_PRI_LO ), (long long)LIGHT_BFS_STARVE_HARD_US )
+                                             : LIGHT_BFS_PRI_MAX_US;
                         if ( light_bfs_pending.load( ) <= floor || light_now_us( ) - pri_start > cap ) {
                             light_bfs_priority = 0;
                             light_bfs_starve = 0;
                             light_bfs_active = 0;
+                            // Re-arm the backlog-age timer so claimed work gets
+                            // a turn before the next starve window can open.
+                            light_bfs_backlog_tick.store( light_tick_counter.load( std::memory_order_relaxed ),
+                                                          std::memory_order_relaxed );
                             break;
                         }
                         // Rechecks bypass the priority window at claim time —
@@ -2719,10 +2913,16 @@ void ChunkLoader::light_thread_loop( ) {
                 }
             }
         light_drain_done:
-            light_bfs_last_drain_us.store( light_now_us( ), std::memory_order_relaxed );
             light_work_cv.notify_all( );
         }
     }
+}
+
+// Game-tick feed for light_bfs_backlog_tick — RepGame::tick calls this once
+// per tick so the starve-window predicate can measure backlog age with an
+// atomic load instead of a clock read.
+void ChunkLoader::light_note_tick( const long tick ) {
+    light_tick_counter.store( tick, std::memory_order_relaxed );
 }
 
 void ChunkLoader::light_thread_start( ) {
@@ -2798,7 +2998,7 @@ void ChunkLoader::light_thread_stop( ) {
         light_bfs_active = 0;
         light_bfs_priority = 0;
         light_bfs_starve = 0;
-        light_bfs_last_drain_us = 0;
+        light_bfs_backlog_tick = 0;
         light_dbg_max_lag_us = 0;
         light_dbg_late_jobs = 0;
         light_dbg_max_lag_near_us = 0;
@@ -2827,6 +3027,9 @@ void ChunkLoader::debug_loader_stats( LoaderDebugStats *out ) const {
         if ( this->chunkArray[ i ].is_loading ) {
             out->chunks_loading++;
         }
+        if ( this->chunkArray[ i ].light_stale.load( std::memory_order_relaxed ) ) {
+            out->light_stale_count++;
+        }
     }
     {
         std::lock_guard<std::mutex> lock( light_work_mutex );
@@ -2836,6 +3039,8 @@ void ChunkLoader::debug_loader_stats( LoaderDebugStats *out ) const {
         out->light_dirty = static_cast<int>( light_dirty_list_near.size( ) + light_dirty_list_far.size( ) );
     }
     out->light_bfs_active = light_bfs_active;
+    out->light_bfs_priority = light_bfs_priority;
+    out->light_bfs_starve = light_bfs_starve;
     out->light_seeds = light_bfs_pending.load( );
     out->light_dropped = light_dbg_dropped.load( );
     // Running maxima for the current probe interval — the dbg_stats print

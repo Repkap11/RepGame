@@ -125,12 +125,27 @@ class Chunk {
     int light_pending[ 256 ];
     int light_pending_count;
     int light_reseed;
+    // Set by a light worker when a seed targeting this chunk was refused
+    // under the backlog cap (also sets light_reseed so the heal relights
+    // fully); healed by a re-finalize on near-radius entry or the render
+    // thread's idle scan (light_heal_* in light.cpp).
+    std::atomic<int> light_stale;
     // Set while the chunk sits in the pending-light drain list (see
     // light_pending_enqueue) so producers don't enqueue it twice.
     int light_pending_listed;
     // Same, for the dirty-light-volume upload list. Atomic because
     // light_mark_dirty checks it lock-free on the hot path.
     std::atomic<int> light_upload_listed;
+    // Game tick of the last visible light write (stamped by every
+    // light_mark_dirty* call). light_upload_dirty defers chunks still being
+    // written so the GPU never snapshots a mid-flood/mid-relight volume —
+    // the correct -> floor -> correct swing of a passing remove front or a
+    // reseed wipe showed up as a one-frame black flash.
+    std::atomic<long> light_write_tick{ 0 };
+    // Frames this chunk's upload was deferred for being write-hot; render
+    // thread only (light_upload_dirty). A cap forces upload anyway so a
+    // continuously-marched chunk can't starve forever.
+    int light_upload_defers = 0;
 
     int can_extend_rect( const BlockState &blockState, const unsigned int *packed_lighting, const WorkingSpace *workingSpace, const glm::ivec3 &starting, const glm::ivec3 &size, const glm::ivec3 &dir ) const;
 

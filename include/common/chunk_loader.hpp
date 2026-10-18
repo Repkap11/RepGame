@@ -39,9 +39,12 @@ struct LoaderDebugStats {
     int light_pending;     // chunks with recorded block diffs awaiting drain
     int light_claims;      // column-claimed jobs in flight on light workers
     int light_dirty;       // light volumes waiting for GPU upload
-    int light_bfs_active;  // a worker is draining the seed queues
-    long long light_seeds; // pending flood-fill seeds
+    int light_bfs_active;   // a worker is draining the seed queues
+    int light_bfs_priority; // backlog-priority window open (finalize claims paused)
+    int light_bfs_starve;   // that window was opened by backlog age
+    long long light_seeds;  // pending flood-fill seeds
     long long light_dropped; // seeds lost to missing/loading chunks (cumulative)
+    int light_stale_count;  // chunks flagged light_stale awaiting heal
     long long light_jlag_us;  // max submit->execute age of a job this probe interval
     long long light_njlag_us; // same, for jobs near the player at execution
 };
@@ -114,7 +117,9 @@ class ChunkLoader {
     std::deque<LightSeed> light_add_queue_pri[ 2 ][ LIGHT_MAX_LEVEL + 1 ];
     std::deque<LightRemoveSeed> light_remove_queue_pri;
     // push_back a remove seed under light_seed_lock, routed by distance.
-    void light_push_remove_seed( const glm::ivec3 &block_pos, int channel, int old_value );
+    // internal=true marks flood-regen pushes (from add/remove step) which the
+    // backlog cap may refuse; producer pushes leave it false.
+    void light_push_remove_seed( const glm::ivec3 &block_pos, int channel, int old_value, bool internal = false );
     static int light_emit_at( const Chunk &chunk, int index );
     // Null-light (uniform volume) helpers — light.cpp.
     static inline unsigned char light_read_cell( const Chunk &chunk, int idx );
@@ -129,7 +134,9 @@ class ChunkLoader {
     void light_flush_deferred_marks( );
     void light_mark_dirty_all( Chunk &chunk );
     void light_upload_enqueue( Chunk &chunk );
-    void light_add_seed( const glm::ivec3 &block_pos, int channel, int level );
+    // Congestion/dead-target/flood-cap gate used by both seed push paths.
+    int light_seed_gate( const glm::ivec3 &block_pos, bool near, bool internal );
+    void light_add_seed( const glm::ivec3 &block_pos, int channel, int level, bool internal = false );
     void light_add_step( const LightSeed &seed );
     void light_remove_step( const LightRemoveSeed &seed );
     void light_process_queue( long long budget_us );
@@ -154,6 +161,9 @@ class ChunkLoader {
     // inline; without it (tests, WASM without pthreads) everything stays
     // synchronous on the calling thread.
     void light_submit_finalize( Chunk &chunk );
+    // Stale-flag heals: near-radius entry (grid-shift scan) and per-frame idle.
+    void light_heal_chunk( Chunk &chunk, const glm::ivec3 &center );
+    void light_heal_idle( );
     void light_submit_recheck( const glm::ivec3 &block_pos );
     // Called after chunk_center moves: promotes far-lane jobs that are now
     // near so the visible ring converges first even when the queue outran
@@ -184,6 +194,10 @@ class ChunkLoader {
     glm::vec2 light_sample( const glm::vec3 &pos ) const;
     size_t light_add_queue_size( ) const;
     void light_dbg_stats( char *buf, size_t n );
+    // RepGame::tick feeds the game tick here once per tick so the light
+    // workers' starve-window predicate can measure BFS-backlog age without
+    // clock reads on the seed push/pop hot paths.
+    void light_note_tick( long tick );
     size_t light_queue_sizes( ) { return this->light_add_queue_size( ) + this->light_remove_queue.size( ) + this->light_remove_queue_pri.size( ); }
     void debug_loader_stats( LoaderDebugStats *out ) const;
     void cleanup( MapStorage &map_storage );

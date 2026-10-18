@@ -231,6 +231,8 @@ class RepGame {
     static bool supportsAnisotropic( );
     // True when REPGAME_CAPTURE is set (deterministic screenshot capture mode).
     static bool capture_mode( );
+    // True when REPGAME_FLY is set (scripted no-clip flight + FLYMET metrics).
+    static bool fly_mode( );
 
     int rep_tests_start( );
 };
