@@ -1581,6 +1581,8 @@ RepGameState *RepGame::init( const char *world_name, const bool connect_multi, c
         if ( const char *v = getenv( "REPGAME_LIGHT_FAR_AO" ) ) {
             dv.light_far_ao = static_cast<float>( atof( v ) );
         }
+        // REPGAME_CUTOUT_FADE_START/END are parsed in
+        // imgui_overlay_get_imgui_debug_vars alongside the ambient vars.
     }
     globalGameState.font_renderer.init( );
 
@@ -1833,6 +1835,7 @@ void RepGame::draw( float alpha ) {
         // drive light_lod negative via the bias (an RG8 volume would return
         // level 0 with b=0 anyway, so this only saves the extra 3D fetch).
         globalGameState.world.set_light_band_limit( light_mipmaps_enabled( ) ? debugVars.light_lod_bias : -1000.0f, debugVars.light_far_ao );
+        globalGameState.world.set_cutout_fade( debugVars.cutout_fade_start, debugVars.cutout_fade_end );
         globalGameState.world.draw( globalGameState.blocksTexture, mvp, inv_mvp, mvp_reflect, mvp_sky, mvp_sky_reflect, globalGameState.input.debug_mode, !globalGameState.input.inventory_open, render_pos.y, headInWater,
                                     globalGameState.input.worldDrawQuality, render_pos, renderOrigin, time_s, daylight, debugVars.min_ambient );
         profiling.us_world_draw = now_us( ) - t_world_draw_start;

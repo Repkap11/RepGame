@@ -65,6 +65,11 @@ uniform int u_DebugFlags;
 // inclusive average to keep as smooth distant AO (0 = air-only average).
 uniform float u_LightLodBias;
 uniform float u_LightFarAO;
+// Cutout-foliage smoothing window in texel lods (0 = 1 texel/pixel,
+// 3 = 8 texels/pixel): x = lod where the hashed alpha test starts fading
+// toward solid, y = lod where it is fully solid. Env-tunable via
+// REPGAME_CUTOUT_FADE_START / REPGAME_CUTOUT_FADE_END.
+uniform vec2 u_CutoutFade;
 
 in vec2 v_TexCoordBlock;
 flat in vec2 v_tex_min;
@@ -194,17 +199,87 @@ void main() {
             }
         }
     }
-    // Alpha-tested passes (opaque + flowers): mipmaps average opaque pixels
-    // (alpha=1) with transparent neighbours (alpha=0, RGB=0), which
-    // premultiplies and lowers the alpha. Un-premultiply by dividing RGB
-    // by alpha to recover the original opaque colour, then snap alpha to
-    // 1.0 so surviving pixels render fully opaque (no sky bleed-through).
+    // Alpha-tested passes (opaque + flowers): hashed alpha test. Cutout
+    // tiles' mips store box-averaged alpha (texture.cpp), so sampled alpha is
+    // the coverage of the filtered footprint; surviving iff alpha beats a
+    // per-texel hash makes rendered coverage a *linear* function of it —
+    // correct at every mip level with no threshold cliff. A fixed cutoff
+    // would instead snap a texel in/out as soon as the blend crosses it,
+    // banding between mips. The hash is quantized to a footprint-scaled grid
+    // (16/2^lod cells per tile) + block cell: at mip 0 each authored texel is
+    // a coin flip, and deeper mips keep
+    // flip granularity ~pixel-sized, so marginal texels fail as fine noise
+    // rather than whole authored texels popping on/off as the footprint
+    // slides — a fixed authored grid makes distant flips cover many pixels,
+    // which is exactly the distant-canopy shimmer. A 0.1 floor keeps
+    // genuinely-invisible texels from sparkling.
+    // u_DebugFlags bit 128: plain 0.1 threshold, no dither — the old look.
+    // highp on every hash operand is REQUIRED: without it uint defaults to
+    // mediump, and on Mesa/AMD fragment shaders that means 16-bit math — the
+    // constants wrap mod 2^16, the hash collapses to ~0, and the test silently
+    // degenerates to the fixed 0.1 cutoff (and the h2 dither below pins at its
+    // darkest factor, dimming all cutout foliage ~40%).
     if(u_shouldDiscardAlpha == 1.0f) {
-        if(texColor.a < 0.1f) {
+        float sampled_a = texColor.a;
+        float cutoff = 0.1f;
+        highp uint h = 0u;
+        float texel_lod = 0.0f;
+        float cutout_smooth = 0.0f;
+        if((u_DebugFlags & 128) == 0) {
+            vec3 cellf = floor(v_world_coords + u_Origin - v_face_normal * 0.5f);
+            texel_lod = log2(max(16.0f * max(length(uv_dx), length(uv_dy)), 1.0f));
+            float grid = 16.0f / exp2(clamp(texel_lod, 0.0f, 5.0f));
+            highp ivec2 texel_i = ivec2(floor(fract(working) * grid));
+            highp uvec3 ci = uvec3(ivec3(cellf));
+            highp uint bid = v_blockID;
+            h = (ci.x * 747796405u) ^ (ci.y * 2891336453u) ^ (ci.z * 277803737u) ^
+                (uint(texel_i.x) * 1013904223u) ^ (uint(texel_i.y) * 1664525u) ^
+                (bid * 22695477u);
+            h ^= h >> 15u;
+            h *= 747796405u;
+            h ^= h >> 16u;
+            cutoff = max(float(h) * (1.0f / 4294967296.0f), 0.1f);
+            // Converge to solid over the u_CutoutFade lod window: once a leaf
+            // texel is a fraction of a pixel the holes can't be resolved, and
+            // stochastic 60% coverage renders as salt-and-pepper noise.
+            // Fading the cutoff to zero fills the canopy back in — the mip's
+            // filtered rgb is already a smooth leaf green, so distant foliage
+            // reads as a solid canopy instead of high-frequency speckle.
+            cutout_smooth = clamp((texel_lod - u_CutoutFade.x) / max(u_CutoutFade.y - u_CutoutFade.x, 0.01f), 0.0f, 1.0f);
+            cutoff *= 1.0f - cutout_smooth;
+        }
+        if(sampled_a < cutoff) {
             discard;
         }
-        texColor.rgb /= texColor.a;
         texColor.a = 1.0f;
+        if((u_DebugFlags & 128) == 0 && (u_DebugFlags & 256) == 0) {
+            // Re-inject the authored-scale brightness dither that linear
+            // filtering can't carry: a cutout tile's texel-to-texel
+            // variation is at the texture's Nyquist limit, so it dies in the
+            // first bilinear blend no matter what the mips contain — that
+            // loss is the visible mip boundary on leaf canopies. Modulate
+            // rgb by a second hash on the same (cell, footprint-texel) key so
+            // the speckle is stable, block-sized and identical at every mip
+            // level. Ramp in with texel lod (authored dither still wins at
+            // mip 0) and only where sampled alpha < 1 marks the tile as
+            // cutout-ish, so solid tiles keep their plain filtered colour.
+            highp uint h2 = h * 2246822519u;
+            h2 ^= h2 >> 13u;
+            h2 *= 3266489917u;
+            h2 ^= h2 >> 16u;
+            float inject = clamp(texel_lod, 0.0f, 1.0f) * (sampled_a < 0.999f ? 1.0f : 0.0f);
+            // Log-symmetric range: a plain 0.55-1.45 multiplier is
+            // perceptually dark-skewed in sRGB (halving brightness is far
+            // more salient than +45%), which dropped the distant canopy's
+            // mean ~20% below the authored look. Geometric mean 1.0 keeps
+            // dark and bright texels balanced. Amplitude fades out over the
+            // u_CutoutFade window alongside the alpha test: once the canopy
+            // converges to solid, per-texel brightness noise reads as shimmer
+            // rather than leaf detail, so it settles to the filtered mean on
+            // the same schedule.
+            float amp = 0.8f * (1.0f - cutout_smooth);
+            texColor.rgb *= mix(1.0f, exp2(amp * (2.0f * float(h2) * (1.0f / 4294967296.0f) - 1.0f)), inject);
+        }
     }
     // if ( float( mod_sum ) == u_ShowRotation ) {
     //     texColor.r *= 2.1f;

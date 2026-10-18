@@ -1,4 +1,6 @@
+#include <algorithm>
 #include <cstring>
+#include <vector>
 
 #define GL_GLEXT_PROTOTYPES
 #include "common/utils/file_utils.hpp"
@@ -72,6 +74,121 @@ unsigned char *readTextureDataFromCache( const char *filename, int mem_size ) {
 }
 #endif
 
+// Cutout tiles (leaves, flowers, grass) store transparent texels as rgb=0, so
+// glGenerateMipmap's box filter would bake black into every level — which is
+// why the fragment shader used to un-premultiply — and would smooth alpha
+// into a blurry field that collapses under the fragment shader's alpha test
+// (the visible mip ring on foliage). Mips are generated on the CPU instead:
+// holes inherit rgb from coloured neighbours, each level stores the
+// alpha-weighted (unpremultiplied) rgb average, and binary cutout tiles keep
+// alpha strictly {0,255} via nested subsampling — each level's hole pattern
+// is a decimation of mip 0's own layout, so crossing a mip boundary coarsens
+// the same pattern instead of swapping to a different speckle realization.
+
+// Fill rgb of fully transparent texels from the nearest coloured ones so
+// filtered samples near hole edges blend toward the right hue.
+static void fill_transparent_rgb( unsigned char *tile, int tw, int th, int stride ) {
+    std::vector<unsigned char> has_rgb( tw * th );
+    int missing = 0;
+    for ( int y = 0; y < th; y++ ) {
+        for ( int x = 0; x < tw; x++ ) {
+            unsigned char has = tile[ ( y * stride + x ) * BYTES_PER_PIXEL + 3 ] != 0;
+            has_rgb[ y * tw + x ] = has;
+            missing += !has;
+        }
+    }
+    for ( int pass = 0; missing > 0 && pass < tw + th; pass++ ) {
+        int filled = 0;
+        for ( int y = 0; y < th; y++ ) {
+            for ( int x = 0; x < tw; x++ ) {
+                if ( has_rgb[ y * tw + x ] )
+                    continue;
+                int r = 0, g = 0, b = 0, n = 0;
+                for ( int dy = -1; dy <= 1; dy++ ) {
+                    for ( int dx = -1; dx <= 1; dx++ ) {
+                        int nx = x + dx, ny = y + dy;
+                        if ( nx < 0 || ny < 0 || nx >= tw || ny >= th || !has_rgb[ ny * tw + nx ] )
+                            continue;
+                        const unsigned char *p = tile + ( ny * stride + nx ) * BYTES_PER_PIXEL;
+                        r += p[ 0 ];
+                        g += p[ 1 ];
+                        b += p[ 2 ];
+                        n++;
+                    }
+                }
+                if ( n ) {
+                    unsigned char *p = tile + ( y * stride + x ) * BYTES_PER_PIXEL;
+                    p[ 0 ] = r / n;
+                    p[ 1 ] = g / n;
+                    p[ 2 ] = b / n;
+                    has_rgb[ y * tw + x ] = 1;
+                    filled++;
+                }
+            }
+        }
+        missing -= filled;
+    }
+}
+
+// 2x2 box downsample. rgb is the alpha-weighted (unpremultiplied) average so
+// black holes don't darken the colour; a texel with no opaque ancestry
+// inherits the plain rgb average of its already-filled parents.
+static void downsample_tile( const unsigned char *src, int src_stride, int sw, int sh, unsigned char *dst, int dw, int dh ) {
+    for ( int y = 0; y < dh; y++ ) {
+        for ( int x = 0; x < dw; x++ ) {
+            int wr = 0, wg = 0, wb = 0, ar = 0, ag = 0, ab = 0, aa = 0, n = 0;
+            for ( int dy = 0; dy < 2; dy++ ) {
+                int sy = 2 * y + dy < sh ? 2 * y + dy : sh - 1;
+                for ( int dx = 0; dx < 2; dx++ ) {
+                    int sx = 2 * x + dx < sw ? 2 * x + dx : sw - 1;
+                    const unsigned char *p = src + ( sy * src_stride + sx ) * BYTES_PER_PIXEL;
+                    int a = p[ 3 ];
+                    wr += p[ 0 ] * a;
+                    wg += p[ 1 ] * a;
+                    wb += p[ 2 ] * a;
+                    ar += p[ 0 ];
+                    ag += p[ 1 ];
+                    ab += p[ 2 ];
+                    aa += a;
+                    n++;
+                }
+            }
+            unsigned char *o = dst + ( y * dw + x ) * BYTES_PER_PIXEL;
+            if ( aa ) {
+                o[ 0 ] = wr / aa;
+                o[ 1 ] = wg / aa;
+                o[ 2 ] = wb / aa;
+            } else {
+                o[ 0 ] = ar / n;
+                o[ 1 ] = ag / n;
+                o[ 2 ] = ab / n;
+            }
+            o[ 3 ] = aa / n;
+        }
+    }
+}
+
+// Binary cutout tiles: overwrite each mip texel's rgb with one of its source
+// texels' rgb, picked by a stable per-position hash (alpha is left as the
+// downsampled average the caller already wrote). Averaging rgb would wash the
+// leaf texture's two-tone dither to flat mid-green — the visual transition at
+// the mip boundary — so mip rgb keeps the authored palette at every level.
+static void subsample_tile_rgb( const unsigned char *src, int src_stride, int sw, int sh, unsigned char *dst, int dw, int dh ) {
+    int fx = sw / dw;
+    int fy = sh / dh;
+    for ( int dy = 0; dy < dh; dy++ ) {
+        for ( int dx = 0; dx < dw; dx++ ) {
+            unsigned int h = ( unsigned int )( dx ) * 1973u + ( unsigned int )( dy ) * 9277u;
+            h ^= h >> 8;
+            h *= 2654435761u;
+            h ^= h >> 13;
+            int cx = dx * fx + ( int )( h & ( unsigned int )( fx - 1 ) );
+            int cy = dy * fy + ( int )( ( h >> 4 ) & ( unsigned int )( fy - 1 ) );
+            memcpy( dst + ( dy * dw + dx ) * BYTES_PER_PIXEL, src + ( cy * src_stride + cx ) * BYTES_PER_PIXEL, BYTES_PER_PIXEL - 1 );
+        }
+    }
+}
+
 void Texture::loadTexture( const TextureSourceData &texture_source, int blur_mag ) {
     unsigned char *data;
 
@@ -125,6 +242,35 @@ void Texture::loadTexture( const TextureSourceData &texture_source, int blur_mag
         working[ i + 2 ] = b;
     }
 
+    // Mipmaps eliminate distant texture aliasing/shimmer on high-frequency
+    // textures (dirt, grass, leaves) on all platforms — and they also reduce
+    // texture bandwidth on mobile. Anisotropic filtering (when supported)
+    // sharpens oblique views without blurring head-on surfaces.
+    // REPGAME_TEX_MIPMAPS=0 restores the old NEAREST-only sampling for A/B.
+    static const bool tex_mipmaps = !( getenv( "REPGAME_TEX_MIPMAPS" ) && atoi( getenv( "REPGAME_TEX_MIPMAPS" ) ) == 0 );
+
+    // Mip chain dimensions, halving to 1x1 like GL's own mipmapping would.
+    int level_w[ 32 ], level_h[ 32 ];
+    int mip_levels = 0;
+    for ( int lw = texture_source.tile_size_across, lh = texture_source.tile_size_down;; ) {
+        level_w[ mip_levels ] = lw;
+        level_h[ mip_levels ] = lh;
+        mip_levels++;
+        if ( lw == 1 && lh == 1 )
+            break;
+        lw = lw > 1 ? lw / 2 : 1;
+        lh = lh > 1 ? lh / 2 : 1;
+    }
+
+    if ( tex_mipmaps ) {
+        for ( unsigned int ty = 0; ty < textures_down; ty++ ) {
+            for ( unsigned int tx = 0; tx < textures_across; tx++ ) {
+                fill_transparent_rgb( working + ( ty * texture_source.width * texture_source.tile_size_down + tx * texture_source.tile_size_across ) * BYTES_PER_PIXEL,
+                                      texture_source.tile_size_across, texture_source.tile_size_down, texture_source.width );
+            }
+        }
+    }
+
     unsigned int layer_count = textures_across * textures_down;
     glGenTextures( 1, &this->m_RendererId );
     glBindTexture( this->target, this->m_RendererId );
@@ -134,6 +280,12 @@ void Texture::loadTexture( const TextureSourceData &texture_source, int blur_mag
                   texture_source.tile_size_across, texture_source.tile_size_down, //
                   layer_count, 0, this->format, this->type, NULL );
     showErrors( );
+    if ( tex_mipmaps ) {
+        for ( int l = 1; l < mip_levels; l++ ) {
+            glTexImage3D( this->target, l, this->internalFormat, level_w[ l ], level_h[ l ], layer_count, 0, this->format, this->type, NULL );
+        }
+        showErrors( );
+    }
 
     glPixelStorei( GL_UNPACK_ROW_LENGTH, texture_source.width );
     glPixelStorei( GL_UNPACK_IMAGE_HEIGHT, texture_source.height );
@@ -152,23 +304,56 @@ void Texture::loadTexture( const TextureSourceData &texture_source, int blur_mag
     }
     glPixelStorei( GL_UNPACK_ROW_LENGTH, 0 );
     glPixelStorei( GL_UNPACK_IMAGE_HEIGHT, 0 );
+
+    if ( tex_mipmaps ) {
+        std::vector<unsigned char> prev, cur;
+        const int tw = texture_source.tile_size_across;
+        const int th = texture_source.tile_size_down;
+        for ( unsigned int i = 0; i < layer_count; i++ ) {
+            int tex_coord_x = ( i % textures_across );
+            int tex_coord_y = ( textures_down - 1 ) - ( i / textures_across );
+            const unsigned char *src = working + ( tex_coord_x * tw + tex_coord_y * th * texture_source.width ) * BYTES_PER_PIXEL;
+            int src_stride = texture_source.width;
+            int sw = tw, sh = th;
+
+            // Binary cutout tiles (alpha only ever 0 or 255 — leaves, flowers)
+            // get the plain downsampled average alpha — the shader's hashed
+            // alpha test turns sampled alpha into survival probability, so the
+            // average IS the coverage-preserving choice at every level (even
+            // the 1x1 mip keeps ~61% of its pixels instead of snapping to a
+            // solid texel). Their rgb is still subsampled from one authored
+            // texel so the two-tone dither palette survives instead of
+            // washing to flat mid-green. Partial alpha means the tile isn't a
+            // pure cutout (glass tints, AA edges) — it filters untouched.
+            bool has_hole = false, has_partial = false;
+            for ( int p = 0; p < sw * sh; p++ ) {
+                unsigned char a = src[ ( p / sw * src_stride + p % sw ) * BYTES_PER_PIXEL + 3 ];
+                has_hole |= a == 0;
+                has_partial |= a != 0 && a != 255;
+            }
+            const bool cutout = has_hole && !has_partial;
+
+            for ( int l = 1; l < mip_levels; l++ ) {
+                int dw = level_w[ l ], dh = level_h[ l ];
+                cur.resize( dw * dh * BYTES_PER_PIXEL );
+                downsample_tile( src, src_stride, sw, sh, cur.data( ), dw, dh );
+                if ( cutout )
+                    subsample_tile_rgb( src, src_stride, sw, sh, cur.data( ), dw, dh );
+                glTexSubImage3D( this->target, l, 0, 0, i, dw, dh, 1, this->format, this->type, cur.data( ) );
+                // Chain off the level just uploaded.
+                prev.swap( cur );
+                src = prev.data( );
+                src_stride = sw = dw;
+                sh = dh;
+            }
+        }
+        showErrors( );
+    }
     free( working );
 
     glTexParameteri( this->target, GL_TEXTURE_WRAP_S, GL_REPEAT );
     glTexParameteri( this->target, GL_TEXTURE_WRAP_T, GL_REPEAT );
-
-    // Mipmaps eliminate distant texture aliasing/shimmer on high-frequency
-    // textures (dirt, grass, leaves) on all platforms — and they also reduce
-    // texture bandwidth on mobile. Anisotropic filtering (when supported)
-    // sharpens oblique views without blurring head-on surfaces.
-    // REPGAME_TEX_MIPMAPS=0 restores the old NEAREST-only sampling for A/B.
-    static const bool tex_mipmaps = !( getenv( "REPGAME_TEX_MIPMAPS" ) && atoi( getenv( "REPGAME_TEX_MIPMAPS" ) ) == 0 );
-    if ( tex_mipmaps ) {
-        glGenerateMipmap( this->target );
-        glTexParameteri( this->target, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR );
-    } else {
-        glTexParameteri( this->target, GL_TEXTURE_MIN_FILTER, GL_NEAREST );
-    }
+    glTexParameteri( this->target, GL_TEXTURE_MIN_FILTER, tex_mipmaps ? GL_LINEAR_MIPMAP_LINEAR : GL_NEAREST );
     if ( blur_mag ) {
         glTexParameteri( this->target, GL_TEXTURE_MAG_FILTER, GL_LINEAR );
     } else {

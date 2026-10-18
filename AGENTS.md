@@ -72,7 +72,26 @@ vars set, behaviour is unchanged.
   RG8 volume. Default: on everywhere; the env var overrides on every
   platform (on WASM it's a `?REPGAME_LIGHT_MIPMAPS=1` URL param).
 - `REPGAME_TEX_MIPMAPS` — `0|1`: block-atlas mipmaps (default 1; `0`
-  restores NEAREST minification for A/B).
+  restores NEAREST minification for A/B). Mips are generated on the CPU in
+  `texture.cpp` (`fill_transparent_rgb`/`downsample_tile`): transparent
+  texels get their rgb filled from coloured neighbours, levels store
+  un-premultiplied (alpha-weighted) rgb, and binary cutout tiles (leaves,
+  flowers, grass) store box-averaged alpha (exact coverage) with
+  whole-texel subsampled rgb so the authored palette survives. Tiles with
+  partial alpha (glass, water) keep plain filtered downsampling. The
+  fragment shader alpha-tests with a hashed per-texel cutoff — sampled
+  alpha IS coverage and survival is linear in it, stable across mip
+  blends — and re-injects a hashed brightness dither ramped in past mip 0
+  to replace the texel-frequency contrast linear filtering can't carry.
+  All hash math must stay `highp`: bare `uint` is mediump in ES 300, which
+  is 16-bit on Mesa/AMD and silently collapses the hash to ~0 (the test
+  degenerates to the fixed cutoff and the dither pins dark).
+- `REPGAME_CUTOUT_FADE_START` / `REPGAME_CUTOUT_FADE_END` — texel-lod window
+  (lod = log2 of texels per pixel, so 0 is 1:1 and 3 is 8 texels/px) over
+  which the hashed cutout test converges to solid: distant canopy fills in
+  smoothly instead of rendering sub-pixel holes as salt-and-pepper noise,
+  and the brightness dither fades out on the same schedule. Defaults
+  0.3 / 1.2. Bound to `u_CutoutFade` in the chunk shader.
 - `REPGAME_LIGHT_CLAIM_RADIUS` — `1..4` (default 1): Chebyshev distance
   between light-job center columns that counts as a claim conflict. 4
   reproduces the old 5x5-key-overlap semantics; 1 lets jobs two columns
@@ -92,6 +111,8 @@ Per-view `flags` is a bitmask bound to `u_DebugFlags` in the chunk shader
 | 16  | Face shading off (`v_face_light = 1`) |
 | 32  | Footprint-mipmapped light off (A/B the moire fix) |
 | 64  | Screen-space face grow off (vertex-side flag applied by the C++ draw loop; works on all platforms) |
+| 128 | Hashed alpha test + brightness dither off — plain 0.1 cutoff (the old look) |
+| 256 | Brightness dither off only (hashed alpha test still on) |
 
 Pressing F12 in normal play logs the exact render camera in `REPGAME_CAPTURE`
 format (`Capture view: REPGAME_CAPTURE="..."`) with full precision

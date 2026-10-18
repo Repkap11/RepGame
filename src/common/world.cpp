@@ -673,6 +673,10 @@ void World::set_light_band_limit( const float lod_bias, const float far_ao ) {
     this->chunkLoader.shader.set_uniform1f( "u_LightFarAO", far_ao );
 }
 
+void World::set_cutout_fade( const float fade_start, const float fade_end ) {
+    this->chunkLoader.shader.set_uniform2f( "u_CutoutFade", fade_start, fade_end );
+}
+
 #if ( SUPPORTS_FRAME_BUFFER )
 void World::screenshot( const std::string &prefix ) const {
     take_screenshot( this->frameBuffer.id( ), prefix );

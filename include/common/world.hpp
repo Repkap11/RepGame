@@ -103,6 +103,9 @@ class World {
     // Footprint-mipmapped light tuning: binds u_LightLodBias / u_LightFarAO on
     // the chunk shader. Desktop only — LOW shaders don't declare them.
     void set_light_band_limit( float lod_bias, float far_ao );
+    // Cutout-foliage smoothing window (texel lods over which the hashed alpha
+    // test converges to solid): binds u_CutoutFade on the chunk shader.
+    void set_cutout_fade( float fade_start, float fade_end );
     void cleanup( MapStorage &map_storage );
     int get_num_drawable_chunks( ) const { return chunkLoader.num_drawable; }
     int get_num_remeshed_chunks( ) const { return chunkLoader.num_remeshed_this_frame; }

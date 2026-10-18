@@ -25,6 +25,12 @@ struct ImGuiDebugVars {
     // even flat unoccluded ground.
     float light_lod_bias = 3.0f;
     float light_far_ao = 0.1f;
+    // Cutout-foliage distance smoothing (chunk_fragment hashed alpha test):
+    // texel lod range over which the hashed cutoff fades to zero, converging
+    // distant canopies to solid leaf green instead of salt-and-pepper
+    // speckle. lod = log2(texels per pixel): 0 is 1:1, 3 is 8 texels/px.
+    float cutout_fade_start = 0.3f;
+    float cutout_fade_end = 1.2f;
     // Chunk-loading and lighting queue depths, refreshed once per frame by
     // RepGame::draw (see LoaderDebugStats in chunk_loader.hpp).
     LoaderDebugStats loader;
