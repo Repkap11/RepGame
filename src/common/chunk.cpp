@@ -320,18 +320,18 @@ void Chunk::set_block( const glm::ivec3 &pos, const BlockState &blockState ) con
     light_air_mask_set( *this, index, this->blocks[ index ].id );
 }
 
-void Chunk::set_block_by_index_if_different( int index, const BlockState *blockState ) {
+int Chunk::set_block_by_index_if_different( int index, const BlockState *blockState ) {
     // Defensive bounds check: index comes from the network (multiplayer chunk
     // diffs). An out-of-range value would write to arbitrary chunk memory and
     // corrupt the world. Drop the update silently rather than crash.
     if ( index < 0 || index >= CHUNK_BLOCK_SIZE ) {
         pr_debug( "Ignoring out-of-range block index:%d (max:%d)", index, CHUNK_BLOCK_SIZE );
-        return;
+        return 0;
     }
     if ( this->blocks == nullptr ) {
         // All-air chunk: an AIR write is a no-op; anything else allocates.
         if ( BlockStates_equal( BLOCK_STATE_AIR, *blockState ) ) {
-            return;
+            return 0;
         }
         this->blocks = chunk_alloc_blocks( );
         // Same as set_block: fresh calloc'd blocks[] = all non-opaque.
@@ -344,7 +344,7 @@ void Chunk::set_block_by_index_if_different( int index, const BlockState *blockS
     }
     BlockState &oldBlockState = this->blocks[ index ];
     if ( BlockStates_equal( oldBlockState, *blockState ) ) {
-        return;
+        return 0;
     }
     if ( block_is_chest( oldBlockState.id ) && !block_is_chest( blockState->id ) ) {
         this->chests.erase( index );
@@ -366,6 +366,7 @@ void Chunk::set_block_by_index_if_different( int index, const BlockState *blockS
     // it. An empty chunk has should_render == 0; without this, a block placed
     // in it (e.g. via a multiplayer chunk diff) wouldn't render until reload.
     this->should_render = 1;
+    return 1;
 }
 
 void Chunk::persist( MapStorage &map_storage ) const {

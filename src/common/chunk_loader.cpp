@@ -37,6 +37,15 @@ static constexpr long long CHUNK_FINALIZE_BUDGET_US = 3000; // 3 ms
 // (multiplayer diffs, block edits) would otherwise all re-mesh in one frame.
 static constexpr long long CHUNK_REMESH_BUDGET_US = 2000; // 2 ms
 
+// The must-remesh queue (repop_must) gets its own, larger budget. Live edits
+// are latency-critical and small — a boundary edit dirties at most 8 chunks
+// (corner fixup) — so every mesh they touch should rebuild in the same pass;
+// splitting them under the tighter budget showed a see-through hole while
+// the neighbor's stale mesh lacked the newly exposed faces. Still bounded so
+// a same-frame burst (TNT, fluids, piston cascades) can't hitch the render
+// thread; overflow keeps needs_repopulation and drains via the scan below.
+static constexpr long long REPOP_MUST_BUDGET_US = 8000; // 8 ms
+
 // Bound the per-frame light propagation work: edit seeds are tiny, but chunk
 // load-in border syncs can enqueue large BFS fronts — spreading them over a
 // few frames keeps load-in smooth.
@@ -89,7 +98,9 @@ void ChunkLoader::init( const glm::dvec3 &camera_pos, const VertexBufferLayout &
     }
     this->chunkArray = static_cast<Chunk *>( calloc( MAX_LOADED_CHUNKS, sizeof( Chunk ) ) );
     this->drawable_chunks = static_cast<Chunk **>( calloc( MAX_LOADED_CHUNKS, sizeof( Chunk * ) ) );
+    this->repop_must = static_cast<Chunk **>( calloc( MAX_LOADED_CHUNKS, sizeof( Chunk * ) ) );
     this->num_drawable = 0;
+    this->num_repop_must = 0;
     this->light_thread_start( );
     showErrors( );
     // pr_debug( "Num Total Chunks:%d", MAX_LOADED_CHUNKS );
@@ -239,7 +250,7 @@ void ChunkLoader::render_chunks( Multiplayer &multiplayer, const glm::dvec3 &cam
                     process_chunk_position( chunk, chunk_diff, loaded_pos, chunk_pos, 1 );
                     // Apply any chunk diffs that arrived from the server before
                     // this chunk's terrain gen finished (Phase 2 eager requests).
-                    multiplayer.apply_pending_diffs( chunk );
+                    multiplayer.apply_pending_diffs( *this, chunk );
                     // Blocks are final now: hand the chunk to the lighting
                     // thread (cascade/border sync/propagation). Inline when
                     // no light thread is running (tests, WASM).
@@ -298,18 +309,32 @@ void ChunkLoader::render_chunks( Multiplayer &multiplayer, const glm::dvec3 &cam
     }
     this->rebuild_drawable_list( );
     const long long t_remesh_start = now_us( );
+    // Drain the must-remesh queue first: edits enqueue every chunk they
+    // dirty so a boundary edit's meshes update together in this pass. Past
+    // REPOP_MUST_BUDGET_US leftovers are just popped — needs_repopulation
+    // stays set and the budgeted scan below picks them up like any backlog.
+    for ( int i = 0; i < this->num_repop_must; i++ ) {
+        Chunk &chunk = *this->repop_must[ i ];
+        chunk.repop_must_queued = 0;
+        if ( chunk.needs_repopulation && !chunk.is_loading && //
+             !( chunk.cached_cull_normal && chunk.cached_cull_reflect ) && //
+             now_us( ) - t_remesh_start < REPOP_MUST_BUDGET_US ) {
+            this->remesh_group( chunk );
+        }
+    }
+    this->num_repop_must = 0;
+    // The backlog scan gets its own budget: while the must-queue drains at
+    // up to REPOP_MUST_BUDGET_US, flag-only chunks (interior diff cells)
+    // would otherwise starve until the queue empties.
+    const long long t_scan_start = now_us( );
     for ( int i = 0; i < this->num_drawable; i++ ) {
         Chunk &chunk = *this->drawable_chunks[ i ];
         if ( chunk.needs_repopulation && !( chunk.cached_cull_normal && chunk.cached_cull_reflect ) ) {
-            chunk.unprogram_terrain( );
-            chunk.calculate_populated_blocks( );
-            chunk.program_terrain( );
-            chunk.needs_repopulation = false;
-            this->num_remeshed_this_frame++;
+            this->remesh_group( chunk );
             // Stop once the remesh budget is spent; remaining chunks keep
             // needs_repopulation set and render their old mesh until a later
             // frame re-meshes them.
-            if ( now_us( ) - t_remesh_start >= CHUNK_REMESH_BUDGET_US ) {
+            if ( now_us( ) - t_scan_start >= CHUNK_REMESH_BUDGET_US ) {
                 break;
             }
         }
@@ -333,6 +358,98 @@ void ChunkLoader::render_chunks( Multiplayer &multiplayer, const glm::dvec3 &cam
     // GL uploads stay render-thread-owned regardless of who marked dirty.
     this->light_upload_dirty( LIGHT_MAX_UPLOADS_PER_FRAME );
     this->rebuild_drawable_list( );
+}
+
+void ChunkLoader::repop_must_enqueue( Chunk &chunk ) {
+    // repop_must is null for hand-built loaders (tests) that never ran init;
+    // those exercise the flag-driven scan path only.
+    if ( this->repop_must == nullptr || chunk.repop_must_queued ) {
+        return;
+    }
+    chunk.repop_must_queued = 1;
+    this->repop_must[ this->num_repop_must++ ] = &chunk;
+}
+
+void ChunkLoader::remesh_now( Chunk &chunk ) {
+    chunk.unprogram_terrain( );
+    chunk.calculate_populated_blocks( );
+    chunk.program_terrain( );
+    chunk.needs_repopulation = false;
+    this->num_remeshed_this_frame++;
+}
+
+// A chunk's mesh is only consistent with the chunk on the other side of
+// each of its 6 faces: a boundary write dirties both arrays, so remeshing
+// one side without the other leaves a see-through gap until the second
+// catches up — which the remesh budget happily splits across frames when
+// the dirty list is flooded (load-in diffs). Always pull dirty
+// face-neighbors into the same pass; diagonal neighbors are skipped because
+// no face spans a diagonal chunk boundary. Neighbors already remeshed via
+// their own queue/scan entry just have needs_repopulation clear and skip.
+void ChunkLoader::remesh_group( Chunk &chunk ) {
+    this->remesh_now( chunk );
+    static const glm::ivec3 face_dirs[ 6 ] = { glm::ivec3( 1, 0, 0 ),  glm::ivec3( -1, 0, 0 ), //
+                                               glm::ivec3( 0, 1, 0 ),  glm::ivec3( 0, -1, 0 ), //
+                                               glm::ivec3( 0, 0, 1 ),  glm::ivec3( 0, 0, -1 ) };
+    for ( const glm::ivec3 &dir : face_dirs ) {
+        Chunk *neighbor = this->get_chunk( chunk.chunk_pos + dir );
+        if ( neighbor != nullptr && neighbor->needs_repopulation && !neighbor->is_loading ) {
+            this->remesh_now( *neighbor );
+        }
+    }
+}
+
+void ChunkLoader::apply_diff_block( Chunk &chunk, int index, const BlockState *blockState ) {
+    if ( !chunk.set_block_by_index_if_different( index, blockState ) ) {
+        return;
+    }
+    // The same world cell is also stored in a neighbor chunk whenever pos
+    // sits on a boundary: interior cells at 0/size-1 live in the neighbor's
+    // halo, halo cells at -1/size live in the neighbor's interior. Diffs
+    // arrive per chunk, so without this mirror each side of a modified seam
+    // remeshed whenever its own diff landed under the remesh budget — the
+    // stale side showed a see-through gap for those frames (the load-in
+    // version of the boundary-edit artifact).
+    int x, y, z;
+    Chunk::get_coords_from_index( index, x, y, z );
+    const glm::ivec3 pos( x, y, z );
+    glm::ivec3 lo( 0 ), hi( 0 );
+    lo.x = ( x <= 0 ) ? -1 : 0;
+    hi.x = ( x >= CHUNK_SIZE_X - 1 ) ? 1 : 0;
+    lo.y = ( y <= 0 ) ? -1 : 0;
+    hi.y = ( y >= CHUNK_SIZE_Y - 1 ) ? 1 : 0;
+    lo.z = ( z <= 0 ) ? -1 : 0;
+    hi.z = ( z >= CHUNK_SIZE_Z - 1 ) ? 1 : 0;
+    if ( lo == glm::ivec3( 0 ) && hi == glm::ivec3( 0 ) ) {
+        return; // Fully interior — only this chunk's own mesh cares.
+    }
+    const glm::ivec3 sizes( CHUNK_SIZE_X, CHUNK_SIZE_Y, CHUNK_SIZE_Z );
+    int enqueued_neighbor = 0;
+    for ( int i = lo.x; i <= hi.x; i++ ) {
+        for ( int j = lo.y; j <= hi.y; j++ ) {
+            for ( int k = lo.z; k <= hi.z; k++ ) {
+                if ( i == 0 && j == 0 && k == 0 ) {
+                    continue;
+                }
+                Chunk *neighbor = this->get_chunk( chunk.chunk_pos + glm::ivec3( i, j, k ) );
+                if ( neighbor == nullptr || neighbor->is_loading ) {
+                    // Absent/loading chunks get the same cell from their own
+                    // diff stream (the server mirrors boundary writes into
+                    // every affected chunk's record).
+                    continue;
+                }
+                const glm::ivec3 mirror = pos - glm::ivec3( i, j, k ) * sizes;
+                neighbor->set_block_by_index_if_different( Chunk::get_index_from_coords( mirror ), blockState );
+                if ( neighbor->needs_repopulation ) {
+                    this->repop_must_enqueue( *neighbor );
+                    enqueued_neighbor = 1;
+                }
+            }
+        }
+    }
+    if ( enqueued_neighbor ) {
+        this->repop_must_enqueue( chunk );
+    }
 }
 
 void ChunkLoader::rebuild_drawable_list( ) {
@@ -479,4 +596,5 @@ void ChunkLoader::cleanup( MapStorage &map_storage ) {
     }
     free( this->chunkArray );
     free( this->drawable_chunks );
+    free( this->repop_must );
 }

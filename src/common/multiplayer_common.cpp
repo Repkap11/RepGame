@@ -58,7 +58,7 @@ void Multiplayer::handle_frame( RepGameState &state, const std::vector<uint8_t> 
                     pr_debug( "CHUNK_DIFF_RESULT bad blocks_index:%u (max:%d)", entry.blocks_index, NET_CHUNK_BLOCK_SIZE );
                     continue;
                 }
-                chunk.set_block_by_index_if_different( static_cast<int>( entry.blocks_index ), &entry.blockState );
+                world.chunkLoader.apply_diff_block( chunk, static_cast<int>( entry.blocks_index ), &entry.blockState );
             }
             break;
         }
@@ -329,7 +329,7 @@ void Multiplayer::queue_pending_diff( const NetChunkDiffResultPayload &diff ) {
     }
 }
 
-void Multiplayer::apply_pending_diffs( Chunk &chunk ) {
+void Multiplayer::apply_pending_diffs( ChunkLoader &chunkLoader, Chunk &chunk ) {
     auto it = this->pending_diffs.find( chunk.chunk_pos );
     if ( it == this->pending_diffs.end( ) ) {
         return;
@@ -341,7 +341,7 @@ void Multiplayer::apply_pending_diffs( Chunk &chunk ) {
             pr_debug( "Pending diff bad blocks_index:%u (max:%d)", entry.blocks_index, NET_CHUNK_BLOCK_SIZE );
             continue;
         }
-        chunk.set_block_by_index_if_different( static_cast<int>( entry.blocks_index ), &entry.blockState );
+        chunkLoader.apply_diff_block( chunk, static_cast<int>( entry.blocks_index ), &entry.blockState );
     }
     this->pending_diffs.erase( it );
 }

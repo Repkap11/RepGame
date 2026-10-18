@@ -52,7 +52,7 @@ class World {
     Shader primed_tnt_shader;
 
     int can_fixup_chunk( const Chunk &chunk, const glm::ivec3 &offset ) const;
-    void fixup_chunk( const Chunk &chunk, const glm::ivec3 &offset, const glm::ivec3 &pos, const BlockState &blockState ) const;
+    void fixup_chunk( const Chunk &chunk, const glm::ivec3 &offset, const glm::ivec3 &pos, const BlockState &blockState );
     static bool any_neighbor_adj_id( const Chunk &chunk, const glm::ivec3 &pos, BlockID id );
     static bool any_neighbor_diag_id( const Chunk &chunk, const glm::ivec3 &pos, BlockID id );
     static bool any_neighbor_grass_id( const Chunk &chunk, const glm::ivec3 &pos, BlockID id );

@@ -78,6 +78,9 @@ class Chunk {
     int cached_cull_normal;
     int cached_cull_reflect;
     int needs_repopulation;
+    // Set while this chunk sits in ChunkLoader::repop_must (dedupes the
+    // enqueue). Cleared when the queue pops it, remeshed or not.
+    int repop_must_queued;
     glm::ivec3 chunk_mod;
 
     // ---- Flood-fill lighting (light.cpp) ----
@@ -146,7 +149,9 @@ class Chunk {
     void persist( MapStorage &map_storage ) const;
     void destroy( );
     void set_block( const glm::ivec3 &pos, const BlockState &blockState ) const;
-    void set_block_by_index_if_different( int index, const BlockState *blockState );
+    // Returns 1 if the cell actually changed, 0 for no-op writes (equal
+    // state, AIR into an all-air chunk) and out-of-range indices.
+    int set_block_by_index_if_different( int index, const BlockState *blockState );
     BlockState get_block( const glm::ivec3 &pos ) const;
     void calculate_populated_blocks( );
 

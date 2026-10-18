@@ -71,6 +71,15 @@ class ChunkLoader {
     // instead of scanning all MAX_LOADED_CHUNKS slots every pass.
     Chunk **drawable_chunks;
     int num_drawable;
+    // Must-remesh queue: chunks dirtied by live edits (World::set_loaded_block
+    // and its boundary fixup writes) are enqueued here so every mesh touched
+    // by one edit is rebuilt in the same render pass — splitting them across
+    // frames under the remesh budget showed the neighbor's stale mesh, a
+    // see-through hole at chunk boundaries. Drained at the top of the remesh
+    // phase in render_chunks, ahead of the flag-driven budgeted scan which
+    // still owns bursts (multiplayer diffs, overflows past the must budget).
+    Chunk **repop_must;
+    int num_repop_must;
     int num_remeshed_this_frame;
     // Set in init; cleared after the first render_chunks fires a box request
     // for the initial visible area. Lets us batch the initial chunk-diff
@@ -81,6 +90,9 @@ class ChunkLoader {
     static inline int process_chunk_position( Chunk &chunk, const glm::ivec3 &chunk_diff, const glm::ivec3 &center_previous, const glm::ivec3 &center_next, int force_reload );
     void process_random_ticks( );
     void rebuild_drawable_list( );
+    void repop_must_enqueue( Chunk &chunk );
+    void remesh_now( Chunk &chunk );
+    void remesh_group( Chunk &chunk );
 
     // Flood-fill lighting (implemented in light.cpp). Light-state mutation is
     // owned by the lighting worker pool when it runs — workers process jobs
@@ -159,6 +171,11 @@ class ChunkLoader {
     void calculate_cull( const glm::mat4 &mvp, bool saveAsReflection, const glm::ivec3 &renderOrigin ) const;
     void draw( const glm::mat4 &mvp, const Renderer &renderer, const Texture &texture, bool reflect_only, bool draw_reflect, bool use_frame_buffer, const glm::vec3 &render_origin );
     Chunk *get_chunk( const glm::ivec3 &pointed ) const;
+    // Apply one chunk-diff cell (CHUNK_DIFF_RESULT / apply_pending_diffs):
+    // writes the receiving chunk's copy, mirrors it into every loaded
+    // neighbor that also stores that world cell, and enqueues the touched
+    // chunks on repop_must so a modified seam remeshes in one pass.
+    void apply_diff_block( Chunk &chunk, int index, const BlockState *blockState );
     // TEMP diagnostic for the flood-fill lighting bring-up.
     int light_probe( const glm::ivec3 &pos, int channel ) { return this->light_get( pos, channel ); }
     BlockID light_probe_id( const glm::ivec3 &pos ) { return this->light_block_id_at( pos ); }

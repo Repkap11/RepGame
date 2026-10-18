@@ -11,6 +11,8 @@
 #include <thread>
 #include <vector>
 
+class ChunkLoader;
+
 class Multiplayer {
     FramedSocket framed_socket;
     glm::vec3 prev_player_pos;
@@ -73,6 +75,7 @@ class Multiplayer {
     void queue_pending_diff( const NetChunkDiffResultPayload &diff );
     // Apply any pending diffs for this chunk, then remove them from the
     // pending queue. Called from ChunkLoader::render_chunks after a chunk
-    // finishes loading.
-    void apply_pending_diffs( Chunk &chunk );
+    // finishes loading; boundary cells are mirrored into loaded neighbors
+    // via chunkLoader.apply_diff_block.
+    void apply_pending_diffs( ChunkLoader &chunkLoader, Chunk &chunk );
 };

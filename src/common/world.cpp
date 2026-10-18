@@ -696,7 +696,7 @@ int World::can_fixup_chunk( const Chunk &chunk, const glm::ivec3 &offset ) const
     return 0;
 }
 
-void World::fixup_chunk( const Chunk &chunk, const glm::ivec3 &offset, const glm::ivec3 &pos, const BlockState &blockState ) const {
+void World::fixup_chunk( const Chunk &chunk, const glm::ivec3 &offset, const glm::ivec3 &pos, const BlockState &blockState ) {
     // pr_debug( "Fixup Offset: %d %d %d", x, y, z );
     const glm::vec3 chunk_with_offset = chunk.chunk_pos + offset;
     if ( Chunk *fixupChunk_prt = this->chunkLoader.get_chunk( chunk_with_offset ) ) {
@@ -709,6 +709,7 @@ void World::fixup_chunk( const Chunk &chunk, const glm::ivec3 &offset, const glm
         fixupChunk.set_block( pos, blockState );
         fixupChunk.dirty = 1;
         fixupChunk.needs_repopulation = 1;
+        this->chunkLoader.repop_must_enqueue( fixupChunk );
         if ( fixupChunk.is_empty_chunk && fixupChunk.blocks ) {
             // The write materialized content into an all-air chunk — same
             // transition as the primary edit path (world.cpp's set_block
@@ -940,6 +941,7 @@ void World::set_loaded_block( const glm::ivec3 &block_pos, BlockState blockState
         chunk.set_block( diff, blockState );
         chunk.dirty = 1;
         chunk.needs_repopulation = 1;
+        this->chunkLoader.repop_must_enqueue( chunk );
         chunk.is_empty_chunk = false;
         // An empty chunk has should_render == 0 (program_terrain only sets it
         // when a layer has instances), so it's excluded from the drawable list
