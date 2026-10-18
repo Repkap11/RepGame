@@ -1804,7 +1804,7 @@ void RepGame::draw( float alpha ) {
     glTexParameteri( globalGameState.blocksTexture.target, GL_TEXTURE_WRAP_S, GL_REPEAT );
     glTexParameteri( globalGameState.blocksTexture.target, GL_TEXTURE_WRAP_T, GL_REPEAT );
 
-    // ~0.04..night_ambient (deep night) .. 1.0 (noon) — scales the sky-light
+    // night_ambient (deep night) .. 1.0 (noon) — scales the sky-light
     // nibble in the chunk shader and dims sky/mobs in the object shader.
     // The night_ambient floor is moonlight: it lifts terrain, sky, mobs, and
     // fog together since they all scale by this same factor.

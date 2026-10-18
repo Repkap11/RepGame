@@ -2374,10 +2374,11 @@ float light_daylight_factor( const long world_time ) {
     const float frac = static_cast<float>( t ) / static_cast<float>( DAY_LENGTH_TICKS );
     // frac 0 = sunrise, 0.25 = noon, 0.5 = sunset, 0.75 = midnight.
     const float sun = sinf( 2.0f * static_cast<float>( M_PI ) * frac );
-    // Broad daylight plateau, smooth dawn/dusk, a dark-but-not-black floor
-    // so caves without torches are still faintly visible.
-    float d = glm::clamp( ( sun + 0.06f ) * 4.0f, 0.0f, 1.0f );
-    return 0.04f + 0.96f * d;
+    // Broad daylight plateau, smooth dawn/dusk, down to 0 at midnight. The
+    // actual floor lives in the caller: RepGame.cpp max()es this with
+    // night_ambient (moonlight) and the shaders floor everything with
+    // u_MinAmbient (caves). A baked floor here would beat both.
+    return glm::clamp( ( sun + 0.06f ) * 4.0f, 0.0f, 1.0f );
 }
 
 // ---------------------------------------------------------------------------

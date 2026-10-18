@@ -4,6 +4,19 @@
 ImGuiDebugVars debug_vars;
 
 ImGuiDebugVars &imgui_overlay_get_imgui_debug_vars( ) {
+    static bool env_parsed = false;
+    if ( !env_parsed ) {
+        env_parsed = true;
+        // Night brightness overrides: REPGAME_NIGHT_AMBIENT is the
+        // moonlight floor on the daylight factor (outdoor night),
+        // REPGAME_MIN_AMBIENT is the absolute light floor (caves).
+        if ( const char *env = getenv( "REPGAME_NIGHT_AMBIENT" ) ) {
+            debug_vars.night_ambient = static_cast<float>( atof( env ) );
+        }
+        if ( const char *env = getenv( "REPGAME_MIN_AMBIENT" ) ) {
+            debug_vars.min_ambient = static_cast<float>( atof( env ) );
+        }
+    }
     return debug_vars;
 }
 

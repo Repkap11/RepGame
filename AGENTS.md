@@ -59,6 +59,12 @@ vars set, behaviour is unchanged.
   `LIGHT_LOD_MAX` in `src/shaders/chunk_fragment.glsl`, so raising the bias
   past the cap has no further effect. These apply at startup even without
   `REPGAME_CAPTURE`.
+- `REPGAME_NIGHT_AMBIENT` / `REPGAME_MIN_AMBIENT` — night brightness floors
+  (0-1, defaults 0.08 / 0.05). `night_ambient` is the moonlight floor on the
+  daylight factor (outdoor night: terrain, sky, mobs, fog all scale by it);
+  `min_ambient` is the absolute light floor so caves aren't pure black. Not
+  HDR-related — these are sRGB-encoded light values, identical in SDR and
+  HDR.
 - `REPGAME_LIGHT_MIPMAPS` — `0|1`: runtime switch for the mipmapped light
   volume (RGBA8 + air-mask mips + footprint-LOD shader sampling) vs the flat
   RG8 volume. Default: on everywhere; the env var overrides on every

@@ -14,8 +14,8 @@ struct ImGuiDebugVars {
     // Minimum light levels (0-1): min_ambient is an absolute floor applied in
     // the chunk/object shaders so pitch-black caves stay faintly visible;
     // night_ambient is a floor on the daylight factor, i.e. "moonlight".
-    float min_ambient = 0.06f;
-    float night_ambient = 0.10f;
+    float min_ambient = 0.05f;
+    float night_ambient = 0.08f;
     // Footprint-mipmapped light tuning (chunk_fragment light_lod): bias shifts
     // the LOD higher (blurs the per-block light pattern at closer range);
     // far_ao adds a small deliberate bias toward the solid-inclusive average
