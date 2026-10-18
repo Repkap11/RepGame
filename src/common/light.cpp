@@ -7,7 +7,6 @@
 #include <math.h>
 #include <mutex>
 #include <thread>
-#include <unordered_set>
 #include <vector>
 
 #include "common/RepGame.hpp" // GL headers + platform macros
@@ -368,14 +367,43 @@ static std::vector<Chunk *> light_pending_list;
 static std::vector<Chunk *> light_dirty_list_near;
 static std::vector<Chunk *> light_dirty_list_far;
 
-// Parallel workers (docs/lighting-thread-plan.md). Two jobs conflict iff
-// their chunk columns are <=2 apart in x AND z (halo mirrors reach +-1
-// chunk, the sky cascade the whole column) -- a job claims the 5x5 column
-// footprint of its column before running, all-or-nothing under the mutex.
+// Parallel workers (docs/lighting-thread-plan.md). A claimed job records
+// only its center column; two jobs conflict iff their centers are <= claim
+// radius apart in x AND z (Chebyshev). Halo mirrors reach +-1 chunk, so a
+// radius of 2 keeps concurrent jobs off shared chunk memory entirely;
+// radius 1 still keeps distance-2 jobs' touches in the shared middle chunk
+// ~58 cells apart (max light spread ~15) — same chunk, disjoint cells.
+// All-or-nothing under the mutex; one claim per worker bounds the array.
 // The shared BFS queues can't be claimed per-seed, so light_process_queue
 // is mutually exclusive with claimed work via light_bfs_active.
-static std::unordered_set<long long> light_claims; // claimed (x,z) columns
+#define LIGHT_MAX_WORKERS 8
+static glm::ivec2 light_claim_centers[ LIGHT_MAX_WORKERS ]; // in-flight job columns
+static int light_claim_count = 0;
 static volatile int light_bfs_active = 0;
+
+// REPGAME_LIGHT_CLAIM_RADIUS (1..4, default 2): Chebyshev center distance
+// that counts as a conflict. 4 reproduces the old 5x5-key-overlap semantics
+// exactly; 2 is the documented column model (no shared touched chunk);
+// 1 relies on the disjoint-cell argument above. Resolved once per process.
+static int light_claim_radius( ) {
+    static const int r = []( ) {
+        const char *env = getenv( "REPGAME_LIGHT_CLAIM_RADIUS" );
+        const int v = env ? atoi( env ) : 2;
+        return v < 1 ? 1 : ( v > 4 ? 4 : v );
+    }( );
+    return r;
+}
+
+// REPGAME_LIGHT_WORKERS (1..8, default 4): pool size. Claim capacity is
+// sized for the max, so the env only changes how many threads spawn.
+static int light_worker_count( ) {
+    static const int n = []( ) {
+        const char *env = getenv( "REPGAME_LIGHT_WORKERS" );
+        const int v = env ? atoi( env ) : 4;
+        return v < 1 ? 1 : ( v > LIGHT_MAX_WORKERS ? LIGHT_MAX_WORKERS : v );
+    }( );
+    return n;
+}
 // Backlog-priority window: while set, no NEW finalize claims are granted so
 // in-flight claims drain and a BFS drain can run; interactive work (rechecks,
 // pending diffs) still claims so block edits stay responsive. Hysteresis
@@ -385,7 +413,7 @@ static volatile int light_bfs_priority = 0;
 #define LIGHT_BFS_PRI_LO 400000
 #define LIGHT_BFS_PRI_MAX_US 100000
 
-// Starvation window: a drain also needs light_claims.empty(), which during
+// Starvation window: a drain also needs no claims in flight, which during
 // continuous streaming effectively never happens — the backlog then sits
 // (pop=0 for whole seconds) and even near-player light only converges when
 // streaming stops. If the BFS hasn't run for STARVE_US with a non-trivial
@@ -407,61 +435,45 @@ static std::vector<std::pair<Chunk *, glm::ivec3>> light_deferred_marks;
 #define LIGHT_BFS_STARVE_US 100000    // max time between drains during streaming
 #define LIGHT_BFS_STARVE_MAX_US 25000 // drain cap inside a starve window
 
-static inline long long light_col_key( int cx, int cz ) {
-    return ( static_cast<long long>( cx ) << 32 ) | static_cast<unsigned int>( cz );
-}
-
-// Footprint is free (no claim in flight overlapping cx,cz +-2)? Also requires
-// no BFS drain running — a popped seed writes cells anywhere, unconstrained —
-// and, unless bypass_priority, that no backlog-priority window is in effect.
+// Footprint is free (no claimed center within the conflict radius of cx,cz)?
+// Also requires no BFS drain running — a popped seed writes cells anywhere,
+// unconstrained — and, unless bypass_priority, that no backlog-priority
+// window is in effect.
 static bool light_claim_free( int cx, int cz, const bool bypass_priority ) {
     if ( light_bfs_active || ( light_bfs_priority && !bypass_priority ) ) {
         return false;
     }
-    for ( int dx = -2; dx <= 2; dx++ ) {
-        for ( int dz = -2; dz <= 2; dz++ ) {
-            if ( light_claims.count( light_col_key( cx + dx, cz + dz ) ) ) {
-                return false;
-            }
+    const int r = light_claim_radius( );
+    for ( int i = 0; i < light_claim_count; i++ ) {
+        const int dx = light_claim_centers[ i ].x - cx;
+        const int dz = light_claim_centers[ i ].y - cz;
+        if ( dx >= -r && dx <= r && dz >= -r && dz <= r ) {
+            return false;
         }
     }
     return true;
 }
 
-// Stamp the 5x5 footprint. Caller holds light_work_mutex. On conflict,
-// already-inserted keys are rolled back (only ours — erase could otherwise
-// remove a co-claimer's key).
+// Record the center column. Caller holds light_work_mutex; the test-then-push
+// is atomic under it, so no partial-claim rollback is needed.
 static bool light_try_claim( int cx, int cz, const bool bypass_priority ) {
-    if ( light_bfs_active || ( light_bfs_priority && !bypass_priority ) ) {
+    if ( light_claim_count >= light_worker_count( ) || !light_claim_free( cx, cz, bypass_priority ) ) {
         return false;
     }
-    long long claimed[ 25 ];
-    int n = 0;
-    for ( int dx = -2; dx <= 2; dx++ ) {
-        for ( int dz = -2; dz <= 2; dz++ ) {
-            const long long key = light_col_key( cx + dx, cz + dz );
-            if ( !light_claims.insert( key ).second ) {
-                while ( n > 0 ) {
-                    light_claims.erase( claimed[ --n ] );
-                }
-                return false;
-            }
-            claimed[ n++ ] = key;
-        }
-    }
+    light_claim_centers[ light_claim_count++ ] = glm::ivec2( cx, cz );
     return true;
 }
 
 static void light_release_claim( int cx, int cz ) {
-    for ( int dx = -2; dx <= 2; dx++ ) {
-        for ( int dz = -2; dz <= 2; dz++ ) {
-            light_claims.erase( light_col_key( cx + dx, cz + dz ) );
+    for ( int i = 0; i < light_claim_count; i++ ) {
+        if ( light_claim_centers[ i ].x == cx && light_claim_centers[ i ].y == cz ) {
+            light_claim_centers[ i ] = light_claim_centers[ --light_claim_count ];
+            return;
         }
     }
 }
 
-#define LIGHT_WORKER_COUNT 4
-static std::thread light_threads[ LIGHT_WORKER_COUNT ];
+static std::thread light_threads[ LIGHT_MAX_WORKERS ];
 static volatile int light_thread_running = 0;
 static volatile int light_thread_stop_flag = 0;
 
@@ -2385,9 +2397,9 @@ void ChunkLoader::light_submit_recheck( const glm::ivec3 &block_pos ) {
         std::lock_guard<std::mutex> lock( light_work_mutex );
         light_release_claim( col.x, col.z );
         // Take the BFS slot ourselves only if nothing else is in flight —
-        // the drainer requires light_claims.empty() since a popped seed can
+        // the drainer requires no claims in flight since a popped seed can
         // write anywhere. Otherwise the workers drain our seeds normally.
-        if ( !light_bfs_active && light_claims.empty( ) && light_bfs_pending.load( ) > 0 ) {
+        if ( !light_bfs_active && light_claim_count == 0 && light_bfs_pending.load( ) > 0 ) {
             light_bfs_active = 1;
             drain = true;
         }
@@ -2458,7 +2470,7 @@ void ChunkLoader::light_thread_loop( ) {
                         return true;
                     }
                 }
-                return !light_bfs_active && light_claims.empty( ) && light_bfs_pending.load( ) > 0;
+                return !light_bfs_active && light_claim_count == 0 && light_bfs_pending.load( ) > 0;
             } );
             if ( light_thread_stop_flag ) {
                 return;
@@ -2503,7 +2515,7 @@ void ChunkLoader::light_thread_loop( ) {
                     break;
                 }
             }
-            if ( !claimed && !light_bfs_active && light_claims.empty( ) && light_bfs_pending.load( ) > 0 ) {
+            if ( !claimed && !light_bfs_active && light_claim_count == 0 && light_bfs_pending.load( ) > 0 ) {
                 light_bfs_active = 1;
                 run_bfs = true;
             }
@@ -2608,7 +2620,7 @@ void ChunkLoader::light_thread_start( ) {
     // racing a live worker would mutate light state concurrently.
     light_thread_running = 1;
     int spawned = 0;
-    for ( int i = 0; i < LIGHT_WORKER_COUNT; i++ ) {
+    for ( int i = 0; i < light_worker_count( ); i++ ) {
         try {
             light_threads[ i ] = std::thread( &ChunkLoader::light_thread_loop, this );
             spawned++;
@@ -2667,7 +2679,7 @@ void ChunkLoader::light_thread_stop( ) {
         light_pending_list.clear( );
         light_dirty_list_near.clear( );
         light_dirty_list_far.clear( );
-        light_claims.clear( );
+        light_claim_count = 0;
         light_bfs_active = 0;
         light_bfs_priority = 0;
         light_bfs_starve = 0;
@@ -2705,10 +2717,14 @@ void ChunkLoader::debug_loader_stats( LoaderDebugStats *out ) const {
         std::lock_guard<std::mutex> lock( light_work_mutex );
         out->light_jobs = static_cast<int>( light_jobs_near.size( ) + light_jobs_far.size( ) );
         out->light_pending = static_cast<int>( light_pending_list.size( ) );
-        out->light_claims = static_cast<int>( light_claims.size( ) / 25 );
+        out->light_claims = light_claim_count;
         out->light_dirty = static_cast<int>( light_dirty_list_near.size( ) + light_dirty_list_far.size( ) );
     }
     out->light_bfs_active = light_bfs_active;
     out->light_seeds = light_bfs_pending.load( );
     out->light_dropped = light_dbg_dropped.load( );
+    // Running maxima for the current probe interval — the dbg_stats print
+    // owns the reset, so these are reads only.
+    out->light_jlag_us = light_dbg_max_lag_us.load( );
+    out->light_njlag_us = light_dbg_max_lag_near_us.load( );
 }

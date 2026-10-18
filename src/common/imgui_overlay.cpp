@@ -24,6 +24,20 @@ ImGuiDebugVars &imgui_overlay_get_imgui_debug_vars( ) {
 #include "../libs/emscripten/emscripten_mainloop_stub.h"
 #endif
 
+// Compact counts for the HUD (max 4 chars): raw under 10k, scaled above so
+// a fixed-width column never overflows and the text stops reflowing.
+static void fmt_count( char *buf, size_t n, long long v ) {
+    if ( v < 10000 ) {
+        snprintf( buf, n, "%lld", v );
+    } else if ( v < 1000000 ) {
+        snprintf( buf, n, "%lldk", v / 1000 );
+    } else if ( v < 1000000000 ) {
+        snprintf( buf, n, "%lldM", v / 1000000 );
+    } else {
+        snprintf( buf, n, "%lldG", v / 1000000000 );
+    }
+}
+
 void imgui_overlay_init( ImGuiOverlay *imgui_overlay ) {
     // imgui_overlay->show_demo_window = true;
 }
@@ -86,7 +100,7 @@ void imgui_overlay_draw( ImGuiOverlay *imgui_overlay, Input &input ) {
 
             ImGui::Begin( "RepGame", nullptr, windowFlags );
             ImGui::Text( "Application average %.3f ms/frame (%.1f FPS)", 1000.0f / io.Framerate, io.Framerate );
-            ImGui::Text( "Player Pos: %3.2f %3.2f %3.2f", debug_vars.player_pos.x, debug_vars.player_pos.y, debug_vars.player_pos.z );
+            ImGui::Text( "Player Pos: %9.1f %9.1f %9.1f", debug_vars.player_pos.x, debug_vars.player_pos.y, debug_vars.player_pos.z );
             ImGui::Text( "Render Mode: %s", qualityName );
             const char *video_driver = SDL_GetCurrentVideoDriver( );
             ImGui::Text( "Video Driver: %s", video_driver ? video_driver : "unknown" );
@@ -103,18 +117,24 @@ void imgui_overlay_draw( ImGuiOverlay *imgui_overlay, Input &input ) {
             // which propagates to the server when connected).
             const long time_of_day = debug_vars.world_time % DAY_LENGTH_TICKS;
             const int clock_minutes = static_cast<int>( time_of_day * 24 * 60 / DAY_LENGTH_TICKS );
-            ImGui::Text( "Time: %ld ticks  %02d:%02d (daylight %.2f)  [PgUp/PgDn]", time_of_day, clock_minutes / 60, clock_minutes % 60, debug_vars.daylight );
+            ImGui::Text( "Time: %8ld ticks  %02d:%02d (daylight %.2f)  [PgUp/PgDn]", time_of_day, clock_minutes / 60, clock_minutes % 60, debug_vars.daylight );
 
             ImGui::Separator( );
-            ImGui::Text( "Chunks: loading %d (queued %d, results %d), drawable %d",
+            ImGui::Text( "Chunks: loading %4d (queued %4d, results %4d), drawable %4d",
                          debug_vars.loader.chunks_loading, debug_vars.loader.terrain_queued,
                          debug_vars.loader.terrain_results, debug_vars.loader.chunks_drawable );
             // j=queued jobs p=pending drains s=flood seeds c=in-flight claims
             // d=dirty (awaiting GPU upload) x=dropped seeds
-            ImGui::Text( "Light: j:%d p:%d s:%lld c:%d d:%d x:%lld%s",
-                         debug_vars.loader.light_jobs, debug_vars.loader.light_pending,
-                         debug_vars.loader.light_seeds, debug_vars.loader.light_claims,
-                         debug_vars.loader.light_dirty, debug_vars.loader.light_dropped,
+            // lag=oldest job age this interval (all jobs / near-player jobs, ms)
+            char lj[32], lp[32], ls[32], ld[32], lx[32];
+            fmt_count( lj, sizeof lj, debug_vars.loader.light_jobs );
+            fmt_count( lp, sizeof lp, debug_vars.loader.light_pending );
+            fmt_count( ls, sizeof ls, debug_vars.loader.light_seeds );
+            fmt_count( ld, sizeof ld, debug_vars.loader.light_dirty );
+            fmt_count( lx, sizeof lx, debug_vars.loader.light_dropped );
+            ImGui::Text( "Light: j:%5s p:%5s s:%5s c:%d d:%5s x:%5s lag:%4.0f/%4.0fms%s",
+                         lj, lp, ls, debug_vars.loader.light_claims, ld, lx,
+                         debug_vars.loader.light_jlag_us / 1000.0, debug_vars.loader.light_njlag_us / 1000.0,
                          debug_vars.loader.light_bfs_active ? " [BFS]" : "" );
             ImGui::Separator( );
 

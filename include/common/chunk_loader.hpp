@@ -42,6 +42,8 @@ struct LoaderDebugStats {
     int light_bfs_active;  // a worker is draining the seed queues
     long long light_seeds; // pending flood-fill seeds
     long long light_dropped; // seeds lost to missing/loading chunks (cumulative)
+    long long light_jlag_us;  // max submit->execute age of a job this probe interval
+    long long light_njlag_us; // same, for jobs near the player at execution
 };
 
 class ChunkLoader {

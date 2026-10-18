@@ -65,6 +65,12 @@ vars set, behaviour is unchanged.
   platform (on WASM it's a `?REPGAME_LIGHT_MIPMAPS=1` URL param).
 - `REPGAME_TEX_MIPMAPS` — `0|1`: block-atlas mipmaps (default 1; `0`
   restores NEAREST minification for A/B).
+- `REPGAME_LIGHT_CLAIM_RADIUS` — `1..4` (default 2): Chebyshev distance
+  between light-job center columns that counts as a claim conflict. 4
+  reproduces the old 5x5-key-overlap semantics; 1 lets jobs two columns
+  apart run concurrently (their touches in the shared middle chunk stay on
+  opposite edges).
+- `REPGAME_LIGHT_WORKERS` — `1..8` (default 4): light worker pool size.
 
 Per-view `flags` is a bitmask bound to `u_DebugFlags` in the chunk shader
 (all platforms, including the WASM capture harness):
