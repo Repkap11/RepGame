@@ -11,16 +11,20 @@
 #include "linux/hip/mesh_gen.hpp"
 #endif
 
+// Two quads crossing through the block center, drawn both-sided. They index
+// the dedicated flower verts at the end of vd_data_solid (24-31), whose tex_x
+// window is shifted half a texel so the quads' shared crossing column lands
+// on a texel centre instead of a transparent column boundary.
 constexpr static unsigned int ib_data_flowers[] = {
-    14, 0, 13, // Right, Back, Right
-    13, 0, 14, //
-    14, 0, 3,  // Right, Back, Back
-    3,  0, 14, //
+    26, 24, 25, // Right, Back, Right
+    25, 24, 26, //
+    26, 24, 27, // Right, Back, Back
+    27, 24, 26, //
 
-    7,  9, 4,  // Front, Right, Front
-    4,  9, 7,  //
-    7,  9, 10, // Front, Right, Right
-    10, 9, 7,  //
+    28, 29, 30, // Front, Right, Front
+    30, 29, 28, //
+    28, 29, 31, // Front, Right, Right
+    31, 29, 28, //
 };
 
 // ---- Shared index buffer --------------------------------------------------

@@ -104,8 +104,30 @@ static CubeFace vd_data_solid[] = {
     { 1.0f, 0.0f, 1.0f, /*Coords  Texture coords*/ !0, 0, FACE_BOTTOM, CORNER_OFFSET_bfr }, // 21
     { 1.0f, 1.0f, 1.0f, /*Coords  Texture coords*/ !0, 1, FACE_TOP, CORNER_OFFSET_tfr },    // 22
     { 0.0f, 1.0f, 1.0f, /*Coords  Texture coords*/ !1, 1, FACE_TOP, CORNER_OFFSET_tfl },    // 23
+
+    // Vertices for the two crossed "flower" quads (ib_data_flowers). The
+    // quads' geometric crossing is always the centre of each diagonal, so
+    // along their intersection both quads interpolate the identical texture
+    // column (u=0.5, the texel 7|8 boundary for a 14-texel window). Where
+    // that column is transparent both fragments discard at the same pixel
+    // and the block behind peeks through the crossing. Shifting both quads'
+    // tex_x window by half a texel moves the crossing sample onto the centre
+    // of texel 7 — a texel-centre landing is required: it picks that texel
+    // under NEAREST and gets no contribution from the neighbouring column
+    // under LINEAR mipmapping. Flower textures keep the stem/blade at the
+    // texture centre, so texel 7 is opaque at the crossing rows for both
+    // quads, and the two quads' stems stay aligned at the seam.
+    { 0.0f, 0.0f, 0.0f, /*Coords  Texture coords*/ -0.5f / 16.0f, 0, FACE_BACK, CORNER_OFFSET_bbl },   // 24
+    { 1.0f, 0.0f, 1.0f, /*Coords  Texture coords*/ 15.5f / 16.0f, 0, FACE_RIGHT, CORNER_OFFSET_bfr },  // 25
+    { 1.0f, 1.0f, 1.0f, /*Coords  Texture coords*/ 15.5f / 16.0f, 1, FACE_RIGHT, CORNER_OFFSET_tfr },  // 26
+    { 0.0f, 1.0f, 0.0f, /*Coords  Texture coords*/ -0.5f / 16.0f, 1, FACE_BACK, CORNER_OFFSET_tbl },   // 27
+
+    { 0.0f, 1.0f, 1.0f, /*Coords  Texture coords*/ 15.5f / 16.0f, 1, FACE_FRONT, CORNER_OFFSET_tfl },  // 28
+    { 1.0f, 0.0f, 0.0f, /*Coords  Texture coords*/ -0.5f / 16.0f, 0, FACE_RIGHT, CORNER_OFFSET_bbr },  // 29
+    { 0.0f, 0.0f, 1.0f, /*Coords  Texture coords*/ 15.5f / 16.0f, 0, FACE_FRONT, CORNER_OFFSET_bfl },  // 30
+    { 1.0f, 1.0f, 0.0f, /*Coords  Texture coords*/ -0.5f / 16.0f, 1, FACE_RIGHT, CORNER_OFFSET_tbr },  // 31
 };
-#define VB_DATA_SIZE_SOLID ( 4 * 6 )
+#define VB_DATA_SIZE_SOLID ( 4 * 6 + 8 )
 
 #define FACE_TOP 0
 #define FACE_BOTTOM 1
