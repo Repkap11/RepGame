@@ -595,6 +595,18 @@ void block_definitions_initilize_definitions( Texture *texture ) {
 
     block_definitions[ GLASS ].casts_shadow = false;
 
+    // Leaves pass light worse than glass: the flood fill can enter them (they
+    // hold light like air) but each leaf costs 1 + light_absorb levels, and
+    // they still cap the vertical skylight descent so canopies shade.
+    block_definitions[ LEAF ].casts_shadow = false;
+    block_definitions[ BIRTCH_LEAVES ].casts_shadow = false;
+    block_definitions[ PINE_LEAF ].casts_shadow = false;
+    block_definitions[ JUNGLE_LEAF ].casts_shadow = false;
+    block_definitions[ LEAF ].light_absorb = 6;
+    block_definitions[ BIRTCH_LEAVES ].light_absorb = 6;
+    block_definitions[ PINE_LEAF ].light_absorb = 6;
+    block_definitions[ JUNGLE_LEAF ].light_absorb = 6;
+
     block_definitions[ GLASS ].no_light = NO_LIGHT_NO_DRAW;
     block_definitions[ BIRTCH_LEAVES ].no_light = NO_LIGHT_DRAW;
     block_definitions[ PINE_LEAF ].no_light = NO_LIGHT_DRAW;

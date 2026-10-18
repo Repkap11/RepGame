@@ -525,6 +525,21 @@ int test_lighting( ) {
     world.set_loaded_block( glm::ivec3( 10, 10, 10 ), BLOCK_STATE_AIR );
     cl.light_process_queue( 1000000 );
 
+    // Leaves are light-permeable but absorbing: entering one costs 1 +
+    // light_absorb (7 at absorb 6), so torchlight inside a leaf dims hard,
+    // and the far side settles at the best wraparound path (glass costs -1).
+    world.set_loaded_block( glm::ivec3( 10, 20, 10 ), { TORCH, 0, 0, TORCH, 0 } );
+    world.set_loaded_block( glm::ivec3( 12, 20, 10 ), { LEAF, 0, 0, LEAF, 0 } );
+    cl.light_process_queue( 1000000 );
+    check_light( "air cell beside torch", glm::ivec3( 11, 20, 10 ), LIGHT_CHANNEL_BLOCK, 13 );
+    check_light( "leaf cell holds light", glm::ivec3( 12, 20, 10 ), LIGHT_CHANNEL_BLOCK, 6 );
+    check_light( "past leaf is dimmer", glm::ivec3( 13, 20, 10 ), LIGHT_CHANNEL_BLOCK, 9 );
+    world.set_loaded_block( glm::ivec3( 12, 20, 10 ), BLOCK_STATE_AIR );
+    cl.light_process_queue( 1000000 );
+    check_light( "past cleared leaf recovers", glm::ivec3( 13, 20, 10 ), LIGHT_CHANNEL_BLOCK, 11 );
+    world.set_loaded_block( glm::ivec3( 10, 20, 10 ), BLOCK_STATE_AIR );
+    cl.light_process_queue( 1000000 );
+
     // Regression: an overhang present BEFORE finalize must still get lateral
     // skylight — the interior band scan seeds lit cells facing deeper-dark
     // neighbor columns. Writing the block directly (not set_loaded_block)

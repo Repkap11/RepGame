@@ -411,6 +411,11 @@ typedef struct {
     // light[] volume and sampled by the fragment shader — never baked into the
     // mesh, so light changes don't trigger remeshing.
     unsigned char emits_light;
+    // Extra light levels lost when propagation enters this cell, on top of the
+    // standard -1 per step (leaves 1: crossing a leaf costs 2 where glass
+    // costs 1). 0 elsewhere. Absorbing cells are light-permeable (not
+    // casts_shadow) but still cap the direct vertical skylight fill.
+    unsigned char light_absorb;
     // Blocks that emit full redstone power while "pressed": buttons (pressed by
     // right-click, time out) and pressure plates (pressed while stood on).
     // current_redstone_power > 0 means pressed, and also shrinks the rendered

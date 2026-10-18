@@ -33,6 +33,9 @@
 //           add seeds (the standard remove-then-readd scheme).
 // Opaque (casts_shadow) cells never receive light; emitters hold their
 // emission value even when opaque (they spread but don't transmit).
+// Absorbing cells (Block::light_absorb > 0, e.g. leaves) DO hold light but
+// cost 1 + light_absorb to enter, and still stop the vertical skylight
+// fill like opaque cells — canopies stay shaded while light seeps through.
 //
 // Skylight is resolved lazily: workers can't know whether the chunk above is
 // loaded, so light_finalize_chunk runs a per-column cascade using
@@ -71,6 +74,29 @@ static inline bool light_opaque_id( BlockID id ) {
         return true;
     }
     return block_definition_get_definition( id )->casts_shadow;
+}
+
+// Vertical skylight fill test: a column is "blocked" by opaque cells AND by
+// absorbing ones. The BFS can still permeate absorbing cells (it charges
+// their extra cost per entry), but the direct 15-strength descent only runs
+// through cells that take nothing.
+static inline bool light_column_blocked_id( BlockID id ) {
+    if ( id == LAST_BLOCK_ID ) {
+        return true;
+    }
+    const Block *def = block_definition_get_definition( id );
+    return def->casts_shadow || def->light_absorb > 0;
+}
+
+// What a cell holding `v` offers neighbor cell `n_id` in direction `d`.
+// Entering costs 1 + the target's light_absorb; the straight-down 15 skylight
+// privilege only applies through non-absorbing cells.
+static inline int light_offered( const int v, const int channel, const int d, const BlockID n_id ) {
+    const int absorb = block_definition_get_definition( n_id )->light_absorb;
+    if ( channel == LIGHT_CHANNEL_SKY && d == LIGHT_DIR_DOWN && v == LIGHT_MAX_LEVEL && absorb == 0 ) {
+        return LIGHT_MAX_LEVEL;
+    }
+    return v - 1 - absorb;
 }
 
 // Bit i of chunk.light_air_mask mirrors the opacity of blocks[i]: set = the
@@ -702,18 +728,25 @@ void ChunkLoader::light_add_step( const LightSeed &seed ) {
     const bool sky = seed.channel == LIGHT_CHANNEL_SKY;
     for ( int d = 0; d < 6; d++ ) {
         const glm::ivec3 n_local = local + light_dirs[ d ];
-        const int offered = ( sky && d == LIGHT_DIR_DOWN && v == LIGHT_MAX_LEVEL ) ? LIGHT_MAX_LEVEL : v - 1;
+        // Best possible offer this direction (target's absorb can only lower
+        // it): cells at or above it can't gain light from this step.
+        const int best = ( sky && d == LIGHT_DIR_DOWN && v == LIGHT_MAX_LEVEL ) ? LIGHT_MAX_LEVEL : v - 1;
         // Strictly-interior neighbor: same owner, no halo mirrors — direct
         // array ops only, no get_chunk/light_set lookups.
         if ( n_local.x > 0 && n_local.x < CHUNK_SIZE_X - 1 && n_local.y > 0 && n_local.y < CHUNK_SIZE_Y - 1 && n_local.z > 0 && n_local.z < CHUNK_SIZE_Z - 1 ) {
             const int nidx = light_index( n_local.x, n_local.y, n_local.z );
             const unsigned char ncell = light_read_cell( *chunk, nidx );
             const int nv = sky ? light_get_sky( ncell ) : light_get_block( ncell );
-            if ( offered <= nv ) {
+            if ( best <= nv ) {
                 continue;
             }
             // A null blocks[] volume is all-air: nothing is opaque.
-            if ( chunk->blocks && light_opaque_id( chunk->blocks[ chunk->get_index_from_coords( n_local.x, n_local.y, n_local.z ) ].id ) ) {
+            const BlockID n_id = chunk->blocks ? chunk->blocks[ chunk->get_index_from_coords( n_local.x, n_local.y, n_local.z ) ].id : AIR;
+            if ( light_opaque_id( n_id ) ) {
+                continue;
+            }
+            const int offered = light_offered( v, seed.channel, d, n_id );
+            if ( offered <= nv ) {
                 continue;
             }
             light_write_cell( *chunk, nidx, sky ? static_cast<unsigned char>( ( ncell & 0x0F ) | ( offered << 4 ) ) : static_cast<unsigned char>( ( ncell & 0xF0 ) | offered ) );
@@ -724,10 +757,15 @@ void ChunkLoader::light_add_step( const LightSeed &seed ) {
         }
         const glm::ivec3 n = seed.pos + light_dirs[ d ];
         const int nv = this->light_get( n, seed.channel );
-        if ( nv < 0 || offered <= nv ) {
+        if ( nv < 0 || best <= nv ) {
             continue;
         }
-        if ( light_opaque_id( this->light_block_id_at( n ) ) ) {
+        const BlockID n_id = this->light_block_id_at( n );
+        if ( light_opaque_id( n_id ) ) {
+            continue;
+        }
+        const int offered = light_offered( v, seed.channel, d, n_id );
+        if ( offered <= nv ) {
             continue;
         }
         this->light_set( n, seed.channel, offered );
@@ -769,7 +807,7 @@ void ChunkLoader::light_remove_step( const LightRemoveSeed &seed ) {
         if ( light_opaque_id( n_id ) ) {
             continue;
         }
-        const int expected = ( seed.channel == LIGHT_CHANNEL_SKY && d == LIGHT_DIR_DOWN && seed.old_value == LIGHT_MAX_LEVEL ) ? LIGHT_MAX_LEVEL : seed.old_value - 1;
+        const int expected = light_offered( seed.old_value, seed.channel, d, n_id );
         if ( nv <= expected ) {
             const int floor_v = seed.channel == LIGHT_CHANNEL_BLOCK ? block_definition_get_definition( n_id )->emits_light : 0;
             // Strictly interior (no halo mirrors): write the floor directly
@@ -877,17 +915,18 @@ void ChunkLoader::light_ensure_columns( Chunk &chunk ) {
     }
 }
 
-// Scan one interior column top-down: column_open=1 iff no casts_shadow cell,
-// and fill_from = one past the topmost opaque cell (the first y skylight
-// reaches). The scan stops at the first opaque cell, so closed columns cost
-// just the air above the surface; fully-open columns get fill_from=0.
+// Scan one interior column top-down: column_open=1 iff no column-blocking
+// (opaque or absorbing) cell, and fill_from = one past the topmost blocker
+// (the first y skylight reaches). The scan stops at the first blocker, so
+// closed columns cost just the air above the surface; fully-open columns get
+// fill_from=0.
 void ChunkLoader::light_compute_one_column( Chunk &chunk, const int x, const int z ) {
     unsigned char open = 1;
     int fill_from = 0;
     // A null blocks[] volume is all-air: every column is open.
     if ( chunk.blocks ) {
         for ( int y = CHUNK_SIZE_Y - 1; y >= 0; y-- ) {
-            if ( light_opaque_id( chunk.blocks[ Chunk::get_index_from_coords( x, y, z ) ].id ) ) {
+            if ( light_column_blocked_id( chunk.blocks[ Chunk::get_index_from_coords( x, y, z ) ].id ) ) {
                 open = 0;
                 fill_from = y + 1;
                 break;
@@ -899,9 +938,9 @@ void ChunkLoader::light_compute_one_column( Chunk &chunk, const int x, const int
     chunk.light_columns[ LIGHT_FILL_FROM_INDEX( x, z ) ] = static_cast<unsigned char>( fill_from );
 }
 
-// column_open[x][z] == 1 iff no casts_shadow cell exists anywhere in this
-// chunk's interior column. Called by the worker in load_terrain and lazily by
-// light_ensure_columns on the render thread.
+// column_open[x][z] == 1 iff no column-blocking (opaque or absorbing) cell
+// exists anywhere in this chunk's interior column. Called by the worker in
+// load_terrain and lazily by light_ensure_columns on the render thread.
 void ChunkLoader::light_compute_column_open( Chunk &chunk ) {
     if ( !chunk.light_columns ) {
         return;
@@ -1824,12 +1863,8 @@ void light_fill_chunk( Chunk &chunk ) {
         const int idx = queue.back( );
         queue.pop_back( );
         const int v = chunk.light[ idx ] & 0x0F;
-        if ( v <= 0 ) {
-            continue;
-        }
-        const int offered = v - 1;
-        if ( offered <= 0 ) {
-            continue;
+        if ( v <= 1 ) {
+            continue; // best possible offer (v-1) can't light anything
         }
         // light_index layout: x fastest, then y, then z.
         const int lx = ( idx % CHUNK_SIZE_INTERNAL_X ) - 1;
@@ -1843,11 +1878,15 @@ void light_fill_chunk( Chunk &chunk ) {
                 continue;
             }
             const int nidx = light_index( nx, ny, nz );
-            if ( offered <= ( chunk.light[ nidx ] & 0x0F ) ) {
+            if ( v - 1 <= ( chunk.light[ nidx ] & 0x0F ) ) {
                 continue;
             }
             const BlockID n_id = chunk.blocks[ chunk.get_index_from_coords( nx, ny, nz ) ].id;
             if ( light_opaque_id( n_id ) ) {
+                continue;
+            }
+            const int offered = v - 1 - block_definition_get_definition( n_id )->light_absorb;
+            if ( offered <= ( chunk.light[ nidx ] & 0x0F ) ) {
                 continue;
             }
             chunk.light[ nidx ] = static_cast<unsigned char>( ( chunk.light[ nidx ] & 0xF0 ) | offered );
@@ -1874,7 +1913,7 @@ void light_fill_chunk( Chunk &chunk ) {
                 const bool interior_col = x >= 0 && x < CHUNK_SIZE_X && z >= 0 && z < CHUNK_SIZE_Z;
                 int top_opaque = -2; // -2 = the whole column is non-opaque
                 for ( int y = CHUNK_SIZE_Y; y >= -1; y-- ) {
-                    if ( light_opaque_id( chunk.blocks[ chunk.get_index_from_coords( x, y, z ) ].id ) ) {
+                    if ( light_column_blocked_id( chunk.blocks[ chunk.get_index_from_coords( x, y, z ) ].id ) ) {
                         top_opaque = y;
                         break;
                     }
