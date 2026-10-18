@@ -335,7 +335,7 @@ void block_definitions_initilize_definitions( Texture *texture ) {
         centered_border( id, 1, 16 );
     }
 
-    constexpr BlockID slab_shaped[] = { STONE_BRICK_SLAB, STONE_SLAB, DARK_OAK_SLAB, OAK_SLAB, BIRTCH_SLAB, JUNGLE_SLAB, ACACIA_SLAB, RED_SANDSTONE_BRICK_SLAB, PINE_SLAB, COBBLESTONE_SLAB, SANDSTONE_SLAB };
+    constexpr BlockID slab_shaped[] = { STONE_BRICK_SLAB, STONE_SLAB, DARK_OAK_SLAB, OAK_SLAB, BIRTCH_SLAB, JUNGLE_SLAB, ACACIA_SLAB, RED_SANDSTONE_BRICK_SLAB, PINE_SLAB, COBBLESTONE_SLAB, SANDSTONE_SLAB, BRICK_SLAB };
     for ( const BlockID id : slab_shaped ) {
         block_definitions[ id ].scale = { 16, 8, 16 };
         block_definitions[ id ].offset = { 0, 0, 0 };
@@ -412,6 +412,9 @@ void block_definitions_initilize_definitions( Texture *texture ) {
 
     block_definitions[ SANDSTONE_SLAB ].textures[ FACE_TOP ] = SANDSTONE_BRICK_TOP;
     block_definitions[ SANDSTONE_SLAB ].textures[ FACE_BOTTOM ] = SANDSTONE_BRICK_BOTTOM;
+
+    block_definitions[ BRICK_SLAB ].textures[ FACE_TOP ] = BRICK;
+    block_definitions[ BRICK_SLAB ].textures[ FACE_BOTTOM ] = BRICK;
 
     constexpr BlockID head_shaped[] = { SKELETON_HEAD, WHITHER_SKELETON_HEAD, ZOMBIE_HEAD, PLAYER_HEAD, CREEPER_HEAD };
     for ( const BlockID id : head_shaped ) {
