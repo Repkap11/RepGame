@@ -381,14 +381,14 @@ static glm::ivec2 light_claim_centers[ LIGHT_MAX_WORKERS ]; // in-flight job col
 static int light_claim_count = 0;
 static volatile int light_bfs_active = 0;
 
-// REPGAME_LIGHT_CLAIM_RADIUS (1..4, default 2): Chebyshev center distance
+// REPGAME_LIGHT_CLAIM_RADIUS (1..4, default 1): Chebyshev center distance
 // that counts as a conflict. 4 reproduces the old 5x5-key-overlap semantics
 // exactly; 2 is the documented column model (no shared touched chunk);
 // 1 relies on the disjoint-cell argument above. Resolved once per process.
 static int light_claim_radius( ) {
     static const int r = []( ) {
         const char *env = getenv( "REPGAME_LIGHT_CLAIM_RADIUS" );
-        const int v = env ? atoi( env ) : 2;
+        const int v = env ? atoi( env ) : 1;
         return v < 1 ? 1 : ( v > 4 ? 4 : v );
     }( );
     return r;
@@ -1441,204 +1441,235 @@ void ChunkLoader::light_border_sync( Chunk &chunk ) {
         }
     }
 
-    // Pass 1: our border shell <- canonical owners.
-    for ( int x = -1; x <= CHUNK_SIZE_X; x++ ) {
+    // Pass 1: our border shell <- canonical owners. Enumerate the six halo
+    // faces directly — scanning the full box spent ~91% of its iterations
+    // skipping interior cells.
+    auto sync_halo_cell = [&]( const int x, const int y, const int z ) {
         const int ox = x < 0 ? -1 : x >= CHUNK_SIZE_X ? 1 : 0;
-        for ( int y = -1; y <= CHUNK_SIZE_Y; y++ ) {
-            const int oy = y < 0 ? -1 : y >= CHUNK_SIZE_Y ? 1 : 0;
-            for ( int z = -1; z <= CHUNK_SIZE_Z; z++ ) {
-                const int oz = z < 0 ? -1 : z >= CHUNK_SIZE_Z ? 1 : 0;
-                if ( !ox && !oy && !oz ) {
-                    continue;
-                }
-                const Chunk *owner = nb_cache[ ( ox + 1 ) * 9 + ( oy + 1 ) * 3 + ( oz + 1 ) ];
-                if ( !owner || owner->is_loading ) {
-                    continue;
-                }
-                // owner's local = our (x,y,z) minus the chunk offset * 32.
-                const unsigned char canon = light_read_cell( *owner, light_index( x - ox * CHUNK_SIZE_X, y - oy * CHUNK_SIZE_Y, z - oz * CHUNK_SIZE_Z ) );
-                const int midx = light_index( x, y, z );
-                if ( light_read_cell( chunk, midx ) != canon ) {
-                    light_write_cell( chunk, midx, canon );
-                    light_mark_dirty( chunk, glm::ivec3( x, y, z ) );
-                }
-                // Only seed the BFS where this border cell's light can flow
-                // into an under-lit non-opaque neighbor — mass load-in would
-                // otherwise push one useless seed per nonzero border cell.
-                // Only inward neighbors are checked: directions into other
-                // chunks' interiors are covered by their own border syncs and
-                // by the propagation that wrote this cell in the first place.
-                int inward_dirs[ 3 ];
-                int inward_count = 0;
-                if ( x < 0 ) {
-                    inward_dirs[ inward_count++ ] = 0;
-                } else if ( x >= CHUNK_SIZE_X ) {
-                    inward_dirs[ inward_count++ ] = 1;
-                }
-                if ( y < 0 ) {
-                    inward_dirs[ inward_count++ ] = 2;
-                } else if ( y >= CHUNK_SIZE_Y ) {
-                    inward_dirs[ inward_count++ ] = 3;
-                }
-                if ( z < 0 ) {
-                    inward_dirs[ inward_count++ ] = 4;
-                } else if ( z >= CHUNK_SIZE_Z ) {
-                    inward_dirs[ inward_count++ ] = 5;
-                }
-                for ( int ch = 0; ch < 2; ch++ ) {
-                    const int cv = ch == LIGHT_CHANNEL_BLOCK ? light_get_block( canon ) : light_get_sky( canon );
-                    if ( cv <= 0 ) {
+        const int oy = y < 0 ? -1 : y >= CHUNK_SIZE_Y ? 1 : 0;
+        const int oz = z < 0 ? -1 : z >= CHUNK_SIZE_Z ? 1 : 0;
+        const Chunk *owner = nb_cache[ ( ox + 1 ) * 9 + ( oy + 1 ) * 3 + ( oz + 1 ) ];
+        if ( !owner || owner->is_loading ) {
+            return;
+        }
+        // owner's local = our (x,y,z) minus the chunk offset * 32.
+        const unsigned char canon = light_read_cell( *owner, light_index( x - ox * CHUNK_SIZE_X, y - oy * CHUNK_SIZE_Y, z - oz * CHUNK_SIZE_Z ) );
+        const int midx = light_index( x, y, z );
+        if ( light_read_cell( chunk, midx ) != canon ) {
+            light_write_cell( chunk, midx, canon );
+            light_mark_dirty( chunk, glm::ivec3( x, y, z ) );
+        }
+        // Only seed the BFS where this border cell's light can flow
+        // into an under-lit non-opaque neighbor — mass load-in would
+        // otherwise push one useless seed per nonzero border cell.
+        // Only inward neighbors are checked: directions into other
+        // chunks' interiors are covered by their own border syncs and
+        // by the propagation that wrote this cell in the first place.
+        int inward_dirs[ 3 ];
+        int inward_count = 0;
+        if ( x < 0 ) {
+            inward_dirs[ inward_count++ ] = 0;
+        } else if ( x >= CHUNK_SIZE_X ) {
+            inward_dirs[ inward_count++ ] = 1;
+        }
+        if ( y < 0 ) {
+            inward_dirs[ inward_count++ ] = 2;
+        } else if ( y >= CHUNK_SIZE_Y ) {
+            inward_dirs[ inward_count++ ] = 3;
+        }
+        if ( z < 0 ) {
+            inward_dirs[ inward_count++ ] = 4;
+        } else if ( z >= CHUNK_SIZE_Z ) {
+            inward_dirs[ inward_count++ ] = 5;
+        }
+        for ( int ch = 0; ch < 2; ch++ ) {
+            const int cv = ch == LIGHT_CHANNEL_BLOCK ? light_get_block( canon ) : light_get_sky( canon );
+            if ( cv <= 0 ) {
+                continue;
+            }
+            for ( int i = 0; i < inward_count; i++ ) {
+                const int d = inward_dirs[ i ];
+                const int offered = ( ch == LIGHT_CHANNEL_SKY && d == LIGHT_DIR_DOWN && cv == LIGHT_MAX_LEVEL ) ? LIGHT_MAX_LEVEL : cv - 1;
+                const glm::ivec3 n_local = glm::ivec3( x, y, z ) + light_dirs[ d ];
+                int nv;
+                BlockID n_id;
+                if ( n_local.x >= 0 && n_local.x < CHUNK_SIZE_X && n_local.y >= 0 && n_local.y < CHUNK_SIZE_Y && n_local.z >= 0 && n_local.z < CHUNK_SIZE_Z ) {
+                    // Inward lands in our interior: direct array reads
+                    // instead of light_get's per-call chunk lookup.
+                    // blocks[] is only consulted when the neighbor can
+                    // actually gain light.
+                    nv = ch == LIGHT_CHANNEL_BLOCK ? light_get_block( light_read_cell( chunk, light_index( n_local.x, n_local.y, n_local.z ) ) )
+                                                   : light_get_sky( light_read_cell( chunk, light_index( n_local.x, n_local.y, n_local.z ) ) );
+                    if ( nv >= offered ) {
                         continue;
                     }
-                    for ( int i = 0; i < inward_count; i++ ) {
-                        const int d = inward_dirs[ i ];
-                        const int offered = ( ch == LIGHT_CHANNEL_SKY && d == LIGHT_DIR_DOWN && cv == LIGHT_MAX_LEVEL ) ? LIGHT_MAX_LEVEL : cv - 1;
-                        const glm::ivec3 n_local = glm::ivec3( x, y, z ) + light_dirs[ d ];
-                        int nv;
-                        BlockID n_id;
-                        if ( n_local.x >= 0 && n_local.x < CHUNK_SIZE_X && n_local.y >= 0 && n_local.y < CHUNK_SIZE_Y && n_local.z >= 0 && n_local.z < CHUNK_SIZE_Z ) {
-                            // Inward lands in our interior: direct array reads
-                            // instead of light_get's per-call chunk lookup.
-                            // blocks[] is only consulted when the neighbor can
-                            // actually gain light.
-                            nv = ch == LIGHT_CHANNEL_BLOCK ? light_get_block( light_read_cell( chunk, light_index( n_local.x, n_local.y, n_local.z ) ) )
-                                                           : light_get_sky( light_read_cell( chunk, light_index( n_local.x, n_local.y, n_local.z ) ) );
-                            if ( nv >= offered ) {
-                                continue;
-                            }
-                            n_id = chunk.blocks ? chunk.blocks[ chunk.get_index_from_coords( n_local.x, n_local.y, n_local.z ) ].id : AIR;
-                        } else {
-                            const glm::ivec3 n = base + glm::ivec3( x, y, z ) + light_dirs[ d ];
-                            nv = this->light_get( n, ch );
-                            if ( nv < 0 || nv >= offered ) {
-                                continue;
-                            }
-                            n_id = this->light_block_id_at( n );
-                        }
-                        if ( nv >= 0 && nv < offered && !light_opaque_id( n_id ) ) {
-                            light_dbg_border_seed++;
-                            this->light_add_seed( base + glm::ivec3( x, y, z ), ch, cv );
-                            break;
-                        }
+                    n_id = chunk.blocks ? chunk.blocks[ chunk.get_index_from_coords( n_local.x, n_local.y, n_local.z ) ].id : AIR;
+                } else {
+                    const glm::ivec3 n = base + glm::ivec3( x, y, z ) + light_dirs[ d ];
+                    nv = this->light_get( n, ch );
+                    if ( nv < 0 || nv >= offered ) {
+                        continue;
                     }
+                    n_id = this->light_block_id_at( n );
                 }
+                if ( nv >= 0 && nv < offered && !light_opaque_id( n_id ) ) {
+                    light_dbg_border_seed++;
+                    this->light_add_seed( base + glm::ivec3( x, y, z ), ch, cv );
+                    break;
+                }
+            }
+        }
+    };
+    for ( const int x : { -1, CHUNK_SIZE_X } ) {
+        for ( int y = -1; y <= CHUNK_SIZE_Y; y++ ) {
+            for ( int z = -1; z <= CHUNK_SIZE_Z; z++ ) {
+                sync_halo_cell( x, y, z );
+            }
+        }
+    }
+    for ( const int y : { -1, CHUNK_SIZE_Y } ) {
+        for ( int x = 0; x < CHUNK_SIZE_X; x++ ) {
+            for ( int z = -1; z <= CHUNK_SIZE_Z; z++ ) {
+                sync_halo_cell( x, y, z );
+            }
+        }
+    }
+    for ( const int z : { -1, CHUNK_SIZE_Z } ) {
+        for ( int x = 0; x < CHUNK_SIZE_X; x++ ) {
+            for ( int y = 0; y < CHUNK_SIZE_Y; y++ ) {
+                sync_halo_cell( x, y, z );
             }
         }
     }
 
     // Pass 2: our interior shell -> neighbors' mirrors (fix stale + seed).
-    for ( int x = 0; x < CHUNK_SIZE_X; x++ ) {
-        for ( int y = 0; y < CHUNK_SIZE_Y; y++ ) {
-            for ( int z = 0; z < CHUNK_SIZE_Z; z++ ) {
-                const bool shell = x == 0 || x == CHUNK_SIZE_X - 1 || y == 0 || y == CHUNK_SIZE_Y - 1 || z == 0 || z == CHUNK_SIZE_Z - 1;
-                if ( !shell ) {
+    // Same trick: enumerate the six interior faces directly instead of
+    // scanning the whole volume and skipping non-shell cells.
+    auto sync_interior_cell = [&]( const int x, const int y, const int z ) {
+        const glm::ivec3 w = base + glm::ivec3( x, y, z );
+        const unsigned char canon = light_read_cell( chunk, light_index( x, y, z ) );
+        int rem_old[ 2 ] = { 0, 0 };
+
+        int axis_opts[ 3 ][ 2 ];
+        int axis_count[ 3 ] = { 1, 1, 1 };
+        axis_opts[ 0 ][ 0 ] = 0;
+        axis_opts[ 1 ][ 0 ] = 0;
+        axis_opts[ 2 ][ 0 ] = 0;
+        constexpr int axis_size[ 3 ] = { CHUNK_SIZE_X, CHUNK_SIZE_Y, CHUNK_SIZE_Z };
+        const int local3[ 3 ] = { x, y, z };
+        for ( int axis = 0; axis < 3; axis++ ) {
+            if ( local3[ axis ] == 0 ) {
+                axis_opts[ axis ][ axis_count[ axis ]++ ] = -1;
+            } else if ( local3[ axis ] == axis_size[ axis ] - 1 ) {
+                axis_opts[ axis ][ axis_count[ axis ]++ ] = 1;
+            }
+        }
+        for ( int ix = 0; ix < axis_count[ 0 ]; ix++ ) {
+            for ( int iy = 0; iy < axis_count[ 1 ]; iy++ ) {
+                for ( int iz = 0; iz < axis_count[ 2 ]; iz++ ) {
+                    const int ox = axis_opts[ 0 ][ ix ];
+                    const int oy = axis_opts[ 1 ][ iy ];
+                    const int oz = axis_opts[ 2 ][ iz ];
+                    if ( !ox && !oy && !oz ) {
+                        continue;
+                    }
+                    Chunk *nb = nb_cache[ ( ox + 1 ) * 9 + ( oy + 1 ) * 3 + ( oz + 1 ) ];
+                    if ( !nb || nb->is_loading ) {
+                        continue;
+                    }
+                    const glm::ivec3 n_local = w - nb->chunk_pos * CHUNK_SIZE_I;
+                    if ( !light_local_ok( n_local ) ) {
+                        continue; // slot recycled mid-write; torn chunk_pos
+                    }
+                    const int midx = light_index( n_local.x, n_local.y, n_local.z );
+                    const unsigned char old_mirror = light_read_cell( *nb, midx );
+                    if ( old_mirror == canon ) {
+                        continue;
+                    }
+                    light_write_cell( *nb, midx, canon );
+                    light_mark_dirty( *nb, n_local );
+                    for ( int ch = 0; ch < 2; ch++ ) {
+                        const int old_v = ch == LIGHT_CHANNEL_BLOCK ? light_get_block( old_mirror ) : light_get_sky( old_mirror );
+                        const int new_v = ch == LIGHT_CHANNEL_BLOCK ? light_get_block( canon ) : light_get_sky( canon );
+                        // The mirror reflects what neighbors last
+                        // propagated with — removal of the stale
+                        // value cleans their interior. Dedup: push at
+                        // most one remove seed per (cell, channel),
+                        // with the largest stale value seen.
+                        if ( old_v > new_v && old_v > rem_old[ ch ] ) {
+                            rem_old[ ch ] = old_v;
+                        }
+                    }
+                }
+            }
+        }
+        for ( int ch = 0; ch < 2; ch++ ) {
+            const int new_v = ch == LIGHT_CHANNEL_BLOCK ? light_get_block( canon ) : light_get_sky( canon );
+            if ( rem_old[ ch ] > new_v ) {
+                light_dbg_remove_seed++;
+                this->light_push_remove_seed( w, ch, rem_old[ ch ] );
+            }
+            if ( new_v <= 1 ) {
+                continue; // offered = new_v-1 can't light anything
+            }
+            // Seed only if the spread would actually go somewhere: a
+            // foreign-interior cell adjacent to w (across a face we
+            // sit on) that is under-lit and non-opaque. Mass load-in
+            // otherwise pushes thousands of no-op seeds per chunk —
+            // mirrors that needed syncing but whose interiors are
+            // already lit.
+            for ( int a = 0; a < 3; a++ ) {
+                const int off = local3[ a ] == 0 ? -1 : local3[ a ] == axis_size[ a ] - 1 ? 1 : 0;
+                if ( !off ) {
                     continue;
                 }
-                const glm::ivec3 w = base + glm::ivec3( x, y, z );
-                const unsigned char canon = light_read_cell( chunk, light_index( x, y, z ) );
-                int rem_old[ 2 ] = { 0, 0 };
-
-                int axis_opts[ 3 ][ 2 ];
-                int axis_count[ 3 ] = { 1, 1, 1 };
-                axis_opts[ 0 ][ 0 ] = 0;
-                axis_opts[ 1 ][ 0 ] = 0;
-                axis_opts[ 2 ][ 0 ] = 0;
-                constexpr int axis_size[ 3 ] = { CHUNK_SIZE_X, CHUNK_SIZE_Y, CHUNK_SIZE_Z };
-                const int local3[ 3 ] = { x, y, z };
-                for ( int axis = 0; axis < 3; axis++ ) {
-                    if ( local3[ axis ] == 0 ) {
-                        axis_opts[ axis ][ axis_count[ axis ]++ ] = -1;
-                    } else if ( local3[ axis ] == axis_size[ axis ] - 1 ) {
-                        axis_opts[ axis ][ axis_count[ axis ]++ ] = 1;
-                    }
+                glm::ivec3 axo( 0 );
+                axo[ a ] = off;
+                const Chunk *nax = nb_cache[ ( axo.x + 1 ) * 9 + ( axo.y + 1 ) * 3 + ( axo.z + 1 ) ];
+                if ( !nax || nax->is_loading ) {
+                    continue;
                 }
-                for ( int ix = 0; ix < axis_count[ 0 ]; ix++ ) {
-                    for ( int iy = 0; iy < axis_count[ 1 ]; iy++ ) {
-                        for ( int iz = 0; iz < axis_count[ 2 ]; iz++ ) {
-                            const int ox = axis_opts[ 0 ][ ix ];
-                            const int oy = axis_opts[ 1 ][ iy ];
-                            const int oz = axis_opts[ 2 ][ iz ];
-                            if ( !ox && !oy && !oz ) {
-                                continue;
-                            }
-                            Chunk *nb = nb_cache[ ( ox + 1 ) * 9 + ( oy + 1 ) * 3 + ( oz + 1 ) ];
-                            if ( !nb || nb->is_loading ) {
-                                continue;
-                            }
-                            const glm::ivec3 n_local = w - nb->chunk_pos * CHUNK_SIZE_I;
-                            if ( !light_local_ok( n_local ) ) {
-                                continue; // slot recycled mid-write; torn chunk_pos
-                            }
-                            const int midx = light_index( n_local.x, n_local.y, n_local.z );
-                            const unsigned char old_mirror = light_read_cell( *nb, midx );
-                            if ( old_mirror == canon ) {
-                                continue;
-                            }
-                            light_write_cell( *nb, midx, canon );
-                            light_mark_dirty( *nb, n_local );
-                            for ( int ch = 0; ch < 2; ch++ ) {
-                                const int old_v = ch == LIGHT_CHANNEL_BLOCK ? light_get_block( old_mirror ) : light_get_sky( old_mirror );
-                                const int new_v = ch == LIGHT_CHANNEL_BLOCK ? light_get_block( canon ) : light_get_sky( canon );
-                                // The mirror reflects what neighbors last
-                                // propagated with — removal of the stale
-                                // value cleans their interior. Dedup: push at
-                                // most one remove seed per (cell, channel),
-                                // with the largest stale value seen.
-                                if ( old_v > new_v && old_v > rem_old[ ch ] ) {
-                                    rem_old[ ch ] = old_v;
-                                }
-                            }
-                        }
-                    }
+                const glm::ivec3 n_pos = w + axo;
+                const glm::ivec3 n_loc = n_pos - nax->chunk_pos * CHUNK_SIZE_I;
+                if ( !light_local_ok( n_loc ) ||
+                     n_loc.x < 0 || n_loc.x >= CHUNK_SIZE_X || n_loc.y < 0 || n_loc.y >= CHUNK_SIZE_Y || n_loc.z < 0 ||
+                     n_loc.z >= CHUNK_SIZE_Z ) {
+                    continue; // torn chunk_pos, or not nax's interior
                 }
-                for ( int ch = 0; ch < 2; ch++ ) {
-                    const int new_v = ch == LIGHT_CHANNEL_BLOCK ? light_get_block( canon ) : light_get_sky( canon );
-                    if ( rem_old[ ch ] > new_v ) {
-                        light_dbg_remove_seed++;
-                        this->light_push_remove_seed( w, ch, rem_old[ ch ] );
-                    }
-                    if ( new_v <= 1 ) {
-                        continue; // offered = new_v-1 can't light anything
-                    }
-                    // Seed only if the spread would actually go somewhere: a
-                    // foreign-interior cell adjacent to w (across a face we
-                    // sit on) that is under-lit and non-opaque. Mass load-in
-                    // otherwise pushes thousands of no-op seeds per chunk —
-                    // mirrors that needed syncing but whose interiors are
-                    // already lit.
-                    for ( int a = 0; a < 3; a++ ) {
-                        const int off = local3[ a ] == 0 ? -1 : local3[ a ] == axis_size[ a ] - 1 ? 1 : 0;
-                        if ( !off ) {
-                            continue;
-                        }
-                        glm::ivec3 axo( 0 );
-                        axo[ a ] = off;
-                        const Chunk *nax = nb_cache[ ( axo.x + 1 ) * 9 + ( axo.y + 1 ) * 3 + ( axo.z + 1 ) ];
-                        if ( !nax || nax->is_loading ) {
-                            continue;
-                        }
-                        const glm::ivec3 n_pos = w + axo;
-                        const glm::ivec3 n_loc = n_pos - nax->chunk_pos * CHUNK_SIZE_I;
-                        if ( !light_local_ok( n_loc ) ||
-                             n_loc.x < 0 || n_loc.x >= CHUNK_SIZE_X || n_loc.y < 0 || n_loc.y >= CHUNK_SIZE_Y || n_loc.z < 0 ||
-                             n_loc.z >= CHUNK_SIZE_Z ) {
-                            continue; // torn chunk_pos, or not nax's interior
-                        }
-                        const glm::ivec3 dir = light_dirs[ off > 0 ? a * 2 : a * 2 + 1 ];
-                        const int offered = ( ch == LIGHT_CHANNEL_SKY && dir.y == -1 && new_v == LIGHT_MAX_LEVEL ) ? LIGHT_MAX_LEVEL : new_v - 1;
-                        const int nv = ch == LIGHT_CHANNEL_BLOCK ? light_get_block( light_read_cell( *nax, light_index( n_loc.x, n_loc.y, n_loc.z ) ) )
-                                                                 : light_get_sky( light_read_cell( *nax, light_index( n_loc.x, n_loc.y, n_loc.z ) ) );
-                        if ( nv >= offered ) {
-                            continue;
-                        }
-                        const BlockID n_id = nax->blocks ? nax->blocks[ nax->get_index_from_coords( n_loc.x, n_loc.y, n_loc.z ) ].id : AIR;
-                        if ( !light_opaque_id( n_id ) ) {
-                            light_dbg_border_seed++;
-                            this->light_add_seed( w, ch, new_v );
-                            break;
-                        }
-                    }
+                const glm::ivec3 dir = light_dirs[ off > 0 ? a * 2 : a * 2 + 1 ];
+                const int offered = ( ch == LIGHT_CHANNEL_SKY && dir.y == -1 && new_v == LIGHT_MAX_LEVEL ) ? LIGHT_MAX_LEVEL : new_v - 1;
+                const int nv = ch == LIGHT_CHANNEL_BLOCK ? light_get_block( light_read_cell( *nax, light_index( n_loc.x, n_loc.y, n_loc.z ) ) )
+                                                         : light_get_sky( light_read_cell( *nax, light_index( n_loc.x, n_loc.y, n_loc.z ) ) );
+                if ( nv >= offered ) {
+                    continue;
                 }
+                const BlockID n_id = nax->blocks ? nax->blocks[ nax->get_index_from_coords( n_loc.x, n_loc.y, n_loc.z ) ].id : AIR;
+                if ( !light_opaque_id( n_id ) ) {
+                    light_dbg_border_seed++;
+                    this->light_add_seed( w, ch, new_v );
+                    break;
+                }
+            }
+        }
+    };
+    for ( const int x : { 0, CHUNK_SIZE_X - 1 } ) {
+        for ( int y = 0; y < CHUNK_SIZE_Y; y++ ) {
+            for ( int z = 0; z < CHUNK_SIZE_Z; z++ ) {
+                sync_interior_cell( x, y, z );
+            }
+        }
+    }
+    for ( const int y : { 0, CHUNK_SIZE_Y - 1 } ) {
+        for ( int x = 1; x < CHUNK_SIZE_X - 1; x++ ) {
+            for ( int z = 0; z < CHUNK_SIZE_Z; z++ ) {
+                sync_interior_cell( x, y, z );
+            }
+        }
+    }
+    for ( const int z : { 0, CHUNK_SIZE_Z - 1 } ) {
+        for ( int x = 1; x < CHUNK_SIZE_X - 1; x++ ) {
+            for ( int y = 1; y < CHUNK_SIZE_Y - 1; y++ ) {
+                sync_interior_cell( x, y, z );
             }
         }
     }
