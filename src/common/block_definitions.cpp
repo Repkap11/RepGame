@@ -335,7 +335,7 @@ void block_definitions_initilize_definitions( Texture *texture ) {
         centered_border( id, 1, 16 );
     }
 
-    constexpr BlockID slab_shaped[] = { STONE_BRICK_SLAB, DARK_OAK_SLAB, OAK_SLAB, BIRTCH_SLAB, JUNGLE_SLAB, ACACIA_SLAB, RED_SANDSTONE_BRICK_SLAB, PINE_SLAB, COBBLESTONE_SLAB, SANDSTONE_SLAB };
+    constexpr BlockID slab_shaped[] = { STONE_BRICK_SLAB, STONE_SLAB, DARK_OAK_SLAB, OAK_SLAB, BIRTCH_SLAB, JUNGLE_SLAB, ACACIA_SLAB, RED_SANDSTONE_BRICK_SLAB, PINE_SLAB, COBBLESTONE_SLAB, SANDSTONE_SLAB };
     for ( const BlockID id : slab_shaped ) {
         block_definitions[ id ].scale = { 16, 8, 16 };
         block_definitions[ id ].offset = { 0, 0, 0 };
@@ -382,6 +382,9 @@ void block_definitions_initilize_definitions( Texture *texture ) {
 
     block_definitions[ STONE_BRICK_SLAB ].textures[ FACE_TOP ] = STONE_BRICK;
     block_definitions[ STONE_BRICK_SLAB ].textures[ FACE_BOTTOM ] = STONE_BRICK;
+
+    block_definitions[ STONE_SLAB ].textures[ FACE_TOP ] = SLAB_TOP;
+    block_definitions[ STONE_SLAB ].textures[ FACE_BOTTOM ] = SLAB_TOP;
 
     block_definitions[ DARK_OAK_SLAB ].textures[ FACE_TOP ] = DARK_OAK_PLANK;
     block_definitions[ DARK_OAK_SLAB ].textures[ FACE_BOTTOM ] = DARK_OAK_PLANK;
@@ -775,7 +778,7 @@ void block_definitions_initilize_definitions( Texture *texture ) {
     }
 
     constexpr BlockID hardness_stone[] = { STONE,              COBBLESTONE,           STONE_BRICK,               BRICK,                  DOUBLE_SLAB,          EMPTY_SPAWNER,         //
-                                           BRICK_SLAB,         SANDSTONE_SLAB,        COBBLESTONE_SLAB,          STONE_BRICK_SLAB,       RED_SANDSTONE_BRICK_SLAB,                    //
+                                           BRICK_SLAB,         SANDSTONE_SLAB,        COBBLESTONE_SLAB,          STONE_BRICK_SLAB,       STONE_SLAB, RED_SANDSTONE_BRICK_SLAB,        //
                                            SANDSTONE_BRICK,    SANDSTONE_BRICK_CREEPER,                          RED_SANDSTONE_BRICK,    RED_SANDSTONE_BRICK_WITHER, RED_SANDSTONE_BRICK_POLISHED, //
                                            FURNACE_UNLIT,      FURNACE_LIT,           GOLD_ORE,                  IRON_ORE,               COAL_ORE,                                  //
                                            IRON_BLOCK,         GOLD_BLOCK,            DIAMOND_BLOCK,             EMERALD_BLOCK,          REDSTONE_BLOCK };
