@@ -7,6 +7,8 @@
 //     bounds-check (the original could index 1 cell past the +-1 border)
 //     and carry the waterlogged-normalization rules.
 //   - BlockState gained the trailing `waterlogged` field.
+//   - Etho trees: ~1 in 100 trees gets a glowstone top log (gameplay
+//     deviation from the faithful port).
 #include "common/structure_gen.hpp"
 #include "common/constants.hpp"
 
@@ -93,6 +95,12 @@ static BlockID sgl_is_long_grass_roll( int x, int z, int is_forest ) {
 static int sgl_is_reed_roll( int x, int z ) {
     float noise = perlin_noise2d( x, z, 1.0f, 1, MAP_SEED + 10 );
     return noise > 0.95f;
+}
+
+// ~1/100 trees: raw hash roll (perlin fields don't reach the tails a 1%
+// threshold needs). Pure function of the trunk column, so every chunk agrees.
+static int sgl_is_etho_tree( const int x, const int z ) {
+    return noise2( x, z, MAP_SEED + 11 ) < 3; // 3/256 ~ 1.2%
 }
 
 static int sgl_poll_fits( int x, int y, int z, const int height ) {
@@ -331,11 +339,13 @@ void StructureGen::place_legacy( Chunk &chunk ) {
     const Block *oak_log = block_definition_get_definition( OAK_LOG );
     const Block *dirt = block_definition_get_definition( DIRT );
     const Block *reed = block_definition_get_definition( REED );
+    const Block *glowstone = block_definition_get_definition( GLOWSTONE );
 
     const BlockState leaf_state = { LEAF, 0, leaf->initial_redstone_power, LEAF, 0 };
     const BlockState oak_log_state = { OAK_LOG, 0, oak_log->initial_redstone_power, OAK_LOG, 0 };
     const BlockState dirt_state = { DIRT, 0, dirt->initial_redstone_power, DIRT, 0 };
     const BlockState reed_state = { REED, 0, reed->initial_redstone_power, REED, 0 };
+    const BlockState glowstone_state = { GLOWSTONE, 0, glowstone->initial_redstone_power, GLOWSTONE, 0 };
 
     for ( int x = 1; x < CHUNK_SIZE_X - 1; x++ ) {
         const int world_x = chunk_offset.x + x;
@@ -386,17 +396,20 @@ void StructureGen::place_legacy( Chunk &chunk ) {
                             chunk.set_block( glm::ivec3( x, y + 1, z ), oak_log_state );
                             chunk.set_block( glm::ivec3( x, y + 2, z ), oak_log_state );
 
+                            // Etho trees: ~1/100 get a glowstone top log.
+                            const BlockState &top_log_state = sgl_is_etho_tree( world_x, world_z ) ? glowstone_state : oak_log_state;
                             // tree_type = 3;
                             if ( tree_type == 1 ) { // This is a small tree, but a baby
+                                chunk.set_block( glm::ivec3( x, y + 2, z ), top_log_state );
                                 chunk.set_block( glm::ivec3( x, y + 3, z ), leaf_state );
 
                             } else if ( tree_type <= 3 ) { // This is a small tree
-                                chunk.set_block( glm::ivec3( x, y + 3, z ), oak_log_state );
+                                chunk.set_block( glm::ivec3( x, y + 3, z ), top_log_state );
                                 chunk.set_block( glm::ivec3( x, y + 4, z ), leaf_state );
 
                             } else {
                                 chunk.set_block( glm::ivec3( x, y + 3, z ), oak_log_state );
-                                chunk.set_block( glm::ivec3( x, y + 4, z ), oak_log_state );
+                                chunk.set_block( glm::ivec3( x, y + 4, z ), top_log_state );
                                 chunk.set_block( glm::ivec3( x, y + 5, z ), leaf_state );
                             }
                             sgl_place_leaves( chunk, x, y, z, tree_type, leaf_state );
