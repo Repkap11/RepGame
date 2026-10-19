@@ -9,10 +9,9 @@ LINUX_OUT_SYMBOLS := $(subst /,_,$(subst .,_,$(subst -,_,$(LINUX_OUT))))
 CFLAGS_LINUX := -Wall -Wextra -std=c++17 -Wno-unused-parameter -Wno-unused-variable -fno-pie
 LFLAGS := -z noexecstack
 
-# In release mode, don't check for GL errors
-# Use HW vsync to sync to display refresh rate.
-CFLAGS_LINUX_RELEASE := -O3 -DREPGAME_SKIP_CHECK_FOR_GL_ERRORS -DREPGAME_HW_VSYNC
-# Show GL errors, and unlimit the FPS to measure perfornamce.
+# In release mode, don't check for GL errors. HW vsync is a runtime toggle on
+# the 'v' key (default on), not a compile flag.
+CFLAGS_LINUX_RELEASE := -O3 -DREPGAME_SKIP_CHECK_FOR_GL_ERRORS
 CFLAGS_LINUX_DEBUG := -g
 
 CFLAGS_LINUX += -DREPGAME_LINUX

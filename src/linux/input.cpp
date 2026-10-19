@@ -173,6 +173,11 @@ void Input::keysInput( const SDL_Keycode key, const bool pressed ) {
                 this->debug_mode = !this->debug_mode;
             }
             break;
+        case 'v':
+            if ( pressed ) {
+                this->toggle_vsync = true;
+            }
+            break;
         case 'i':
         case 'e':
             if ( pressed ) {

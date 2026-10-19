@@ -50,6 +50,9 @@ class Input {
     bool drop_item;
     bool screenshot_requested;
     bool toggle_game_mode;
+    // Set by the 'v' key; consumed by the SDL frame loop to flip
+    // SDL_GL_SetSwapInterval (hardware vsync) at runtime.
+    bool toggle_vsync;
     bool shift_held;
     // Accumulated PageUp/PageDown time-of-day nudges (in day-fraction steps);
     // consumed by RepGame each frame and applied to world_time.

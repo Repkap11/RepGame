@@ -18,6 +18,17 @@ static RepGameState *globalGameState;
 // never sets it.)
 static volatile int exit_signal_received = 0;
 
+// Hardware vsync (sync SDL_GL_SwapWindow to the display refresh). Defaults on
+// to cap FPS at the refresh rate; the 'v' key toggles it at runtime via
+// input.toggle_vsync.
+static bool hw_vsync_enabled = true;
+
+static void repgame_apply_vsync( ) {
+    if ( !SDL_GL_SetSwapInterval( hw_vsync_enabled ? 1 : 0 ) ) {
+        pr_debug( "SDL_GL_SetSwapInterval(%d) failed: %s", hw_vsync_enabled ? 1 : 0, SDL_GetError( ) );
+    }
+}
+
 #ifdef REPGAME_LINUX
 #include <signal.h>
 static void repgame_linux_signal_handler( int sig ) {
@@ -99,6 +110,12 @@ void repgame_linux_process_sdl_events( RepGame &repgame ) {
             default:
                 break;
         }
+    }
+    if ( input.toggle_vsync ) {
+        input.toggle_vsync = false;
+        hw_vsync_enabled = !hw_vsync_enabled;
+        repgame_apply_vsync( );
+        pr_debug( "HW vsync: %s", hw_vsync_enabled ? "on" : "off" );
     }
 }
 
@@ -218,13 +235,7 @@ int repgame_sdl2_main( const char *world_path, const char *host, const bool conn
     imgui_overlay_attach_to_window( &globalGameState->imgui_overlay, sdl_window, sdl_context );
 #endif
 
-#ifdef REPGAME_HW_VSYNC
-    SDL_GL_SetSwapInterval( 1 );
-    // pr_debug( "Limiting FPS" );
-#else
-    SDL_GL_SetSwapInterval( 0 );
-    // pr_debug( "Unlimited FPS" );
-#endif
+    repgame_apply_vsync( );
 
     if ( !GLEW_VERSION_3_3 ) { // check that the machine supports the OpenGL 3.3
         pr_debug( "GLEW version wrong" );
