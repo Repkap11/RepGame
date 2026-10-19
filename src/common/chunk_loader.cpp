@@ -19,18 +19,15 @@ MK_SHADER( occl_vertex );
 MK_SHADER( occl_fragment );
 
 // Hardware occlusion culling via per-chunk AABB queries. On by default on
-// desktop (where the draw loop is the hot path); off elsewhere unless
-// REPGAME_OCCLUSION=1 — WASM/Android have no offscreen pass and unproven
-// query latency behaviour.
+// all platforms — the query API is GLES3/WebGL2 core — with
+// REPGAME_OCCLUSION=0 as a kill switch where env vars exist. Mobile
+// tile-based GPUs may stall on query boundaries; if that regresses, this
+// needs a per-platform default again.
 static int occlusion_enabled( ) {
     static int enabled = -1;
     if ( enabled < 0 ) {
         const char *env = getenv( "REPGAME_OCCLUSION" );
-#if defined( REPGAME_LINUX ) || defined( REPGAME_WINDOWS )
         enabled = env ? atoi( env ) != 0 : 1;
-#else
-        enabled = env ? atoi( env ) != 0 : 0;
-#endif
     }
     return enabled;
 }
