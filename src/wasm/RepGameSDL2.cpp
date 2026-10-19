@@ -26,9 +26,17 @@ void repgame_linux_process_sdl_events( RepGame &repgame ) {
         input.mouseInput( SDL_BUTTON_LEFT, true );
         tap_break_pending = false;
     }
+    // Capture mode: ignore user input entirely (the camera is scripted), but
+    // still honor window resize/close — same rule as the desktop loop.
+    const bool capture = RepGame::capture_mode( );
     while ( SDL_PollEvent( &event ) ) {
         bool handledMouse = false;
         bool handledKeyboard = false;
+#if SUPPORTS_IMGUI_OVERLAY
+        if ( !capture ) {
+            imgui_overlay_handle_sdl2_event( &globalGameState->imgui_overlay, &event, &handledMouse, &handledKeyboard );
+        }
+#endif
         // pr_debug( "Event: mouse:%d keyboard:%d", handledMouse, handledKeyboard );
         switch ( event.type ) {
             case SDL_KEYDOWN:
@@ -176,6 +184,9 @@ int repgame_sdl2_main( const char *world_path, const char *host, const bool conn
     RepGame *repgamePrt = new RepGame( );
     RepGame &repgame = *repgamePrt;
     globalGameState = repgame.init( world_path, connect_multi, host, supportsAnisotropicFiltering );
+#if SUPPORTS_IMGUI_OVERLAY
+    imgui_overlay_attach_to_window( &globalGameState->imgui_overlay, sdl_window, sdl_context );
+#endif
     // Same as the native init path: seed screen size/proj explicitly so the
     // first frame is correct even if no SDL_WINDOWEVENT_RESIZED arrives
     // (headless browsers may never fire one).

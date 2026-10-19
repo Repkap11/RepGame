@@ -31,18 +31,29 @@ ImGuiDebugVars &imgui_overlay_get_imgui_debug_vars( ) {
 #if SUPPORTS_IMGUI_OVERLAY
 
 #include "imgui.h"
-#include "imgui_impl_sdl3.h"
 #include "imgui_impl_opengl3.h"
 #include <stdio.h>
+#if defined( REPGAME_WASM )
+// The WASM build uses SDL2 (emscripten -s USE_SDL=2); the SDL2 backend has
+// the same API shape as the SDL3 one, so alias it behind generic names.
+#include "imgui_impl_sdl2.h"
+#include <SDL2/SDL.h>
+#define ImGui_ImplSDL_InitForOpenGL ImGui_ImplSDL2_InitForOpenGL
+#define ImGui_ImplSDL_ProcessEvent ImGui_ImplSDL2_ProcessEvent
+#define ImGui_ImplSDL_NewFrame ImGui_ImplSDL2_NewFrame
+#define ImGui_ImplSDL_Shutdown ImGui_ImplSDL2_Shutdown
+#else
+#include "imgui_impl_sdl3.h"
 #include <SDL3/SDL.h>
 #if defined( IMGUI_IMPL_OPENGL_ES2 )
 #include <SDL3/SDL_opengles2.h>
 #else
 #include <SDL3/SDL_opengl.h>
 #endif
-// This example can also compile and run with Emscripten! See 'Makefile.emscripten' for details.
-#ifdef __EMSCRIPTEN__
-#include "../libs/emscripten/emscripten_mainloop_stub.h"
+#define ImGui_ImplSDL_InitForOpenGL ImGui_ImplSDL3_InitForOpenGL
+#define ImGui_ImplSDL_ProcessEvent ImGui_ImplSDL3_ProcessEvent
+#define ImGui_ImplSDL_NewFrame ImGui_ImplSDL3_NewFrame
+#define ImGui_ImplSDL_Shutdown ImGui_ImplSDL3_Shutdown
 #endif
 
 // Compact counts for the HUD (max 4 chars): raw under 10k, scaled above so
@@ -84,7 +95,7 @@ void imgui_overlay_attach_to_window( ImGuiOverlay *ui_overlay, SDL_Window *windo
     const char *glsl_version = "#version 300 es";
 
     // Setup Platform/Renderer backends
-    ImGui_ImplSDL3_InitForOpenGL( window, gl_context );
+    ImGui_ImplSDL_InitForOpenGL( window, gl_context );
     ImGui_ImplOpenGL3_Init( glsl_version );
 
     float IMGUI_UI_SCALE = 2.0f;
@@ -97,7 +108,7 @@ void imgui_overlay_attach_to_window( ImGuiOverlay *ui_overlay, SDL_Window *windo
 }
 
 void imgui_overlay_handle_sdl2_event( ImGuiOverlay *ui_overlay, SDL_Event *event, bool *handledMouse, bool *handledKeyboard ) {
-    ImGui_ImplSDL3_ProcessEvent( event );
+    ImGui_ImplSDL_ProcessEvent( event );
     ImGuiIO &io = ImGui::GetIO( );
     // ImGuiConfigFlags_NoMouse keeps io.WantCaptureMouse false, but never
     // report mouse capture regardless: the game always owns the mouse.
@@ -107,7 +118,7 @@ void imgui_overlay_handle_sdl2_event( ImGuiOverlay *ui_overlay, SDL_Event *event
 
 void imgui_overlay_draw( ImGuiOverlay *imgui_overlay, Input &input ) {
     ImGui_ImplOpenGL3_NewFrame( );
-    ImGui_ImplSDL3_NewFrame( );
+    ImGui_ImplSDL_NewFrame( );
     ImGui::NewFrame( );
 
     if ( input.toggle_imgui ) {
@@ -198,7 +209,7 @@ void imgui_overlay_draw( ImGuiOverlay *imgui_overlay, Input &input ) {
 
 void imgui_overlay_cleanup( ImGuiOverlay *imgui_overlay ) {
     ImGui_ImplOpenGL3_Shutdown( );
-    ImGui_ImplSDL3_Shutdown( );
+    ImGui_ImplSDL_Shutdown( );
     ImGui::DestroyContext( );
 }
 #else

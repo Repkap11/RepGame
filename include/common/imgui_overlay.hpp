@@ -42,7 +42,7 @@ struct ImGuiDebugVars {
     int primed_tnt;
 };
 
-#if ( defined( REPGAME_WINDOWS ) || defined( REPGAME_LINUX ) )
+#if ( defined( REPGAME_WINDOWS ) || defined( REPGAME_LINUX ) || defined( REPGAME_WASM ) )
 #define SUPPORTS_IMGUI_OVERLAY 1
 #else
 #define SUPPORTS_IMGUI_OVERLAY 0

@@ -40,6 +40,10 @@ WASM_FONTS = $(patsubst fonts/%.ttf,out/wasm/fs/fonts/%.ttf,$(wildcard fonts/*.t
 
 OBJECTS_COMMON_WASM := $(patsubst src/common/%.cpp,out/wasm/common/%.o, $(SRC_COMMON))
 OBJECTS_WASM := $(patsubst src/%.cpp,out/wasm/%.o, $(wildcard src/wasm/*.cpp))
+# Same imgui set as linux's SRC_IMGUI, but with the SDL2 backend: WASM links
+# SDL2 (emscripten -s USE_SDL=2), not SDL3.
+SRC_IMGUI_WASM := imgui_build/backends/imgui_impl_sdl2.cpp $(wildcard imgui_build/imgui*.cpp) imgui_build/backends/imgui_impl_opengl3.cpp
+OBJECTS_IMGUI_WASM := $(patsubst imgui_build/%.cpp,out/wasm/imgui/%.o, $(SRC_IMGUI_WASM))
 
 wasm-install: packages
 	sudo npm install -g http-server
@@ -54,13 +58,22 @@ WASM_DIRS = $(patsubst src%,out/wasm%,$(shell find src -type d)) \
 			out/wasm/fs/src/shaders \
 			out/wasm/fs/bitmaps \
 			out/wasm/fs/fonts \
-			out/wasm/delivery
+			out/wasm/delivery \
+			out/wasm/imgui \
+			out/wasm/imgui/backends
 
 out/wasm/%.o: src/%.cpp $(HEADERS) src/wasm/RepGameSDL2.cpp | out/wasm
 	$(CC_WASM) $(INCLUDES_COMMON) $(CFLAGS_WASM) -c $< -o $@
 
-out/wasm/delivery/$(TARGET).js: $(OBJECTS_COMMON_WASM) $(OBJECTS_WASM) $(WASM_SHADERS) $(WASM_BITMAPS) $(WASM_FONTS) | out/wasm
-	$(CC_WASM) $(CFLAGS_LINK_WASM) $(OBJECTS_WASM) $(OBJECTS_COMMON_WASM) --preload-file out/wasm/fs@ -o $@
+# imgui_impl_opengl3 auto-detects Emscripten as GLES2/WebGL1, but the game
+# creates a WebGL2/GLES3 context (SDL_GL_CONTEXT_MAJOR_VERSION=3,
+# MAX_WEBGL_VERSION=2), so force the ES3 path ("#version 300 es").
+out/wasm/imgui/%.o: imgui_build/%.cpp | out/wasm
+	@mkdir -p $(dir $@)
+	$(CC_WASM) $(INCLUDES_COMMON) $(CFLAGS_WASM) -DIMGUI_IMPL_OPENGL_ES3 -c $< -o $@
+
+out/wasm/delivery/$(TARGET).js: $(OBJECTS_COMMON_WASM) $(OBJECTS_IMGUI_WASM) $(OBJECTS_WASM) $(WASM_SHADERS) $(WASM_BITMAPS) $(WASM_FONTS) | out/wasm
+	$(CC_WASM) $(CFLAGS_LINK_WASM) $(OBJECTS_WASM) $(OBJECTS_IMGUI_WASM) $(OBJECTS_COMMON_WASM) --preload-file out/wasm/fs@ -o $@
 
 out/wasm/delivery/index.html: src/wasm/index.html | out/wasm
 	cp $< $@
@@ -112,6 +125,6 @@ out/wasm: | out
 	mkdir -p $(WASM_DIRS)
 	touch $@
 
-.PRECIOUS: $(TARGET) $(OBJECTS_WASM) $(OBJECTS_COMMON_WASM)
+.PRECIOUS: $(TARGET) $(OBJECTS_WASM) $(OBJECTS_COMMON_WASM) $(OBJECTS_IMGUI_WASM)
 
 .PHONY: wasm wasm-run clean-wasm wasm-deploy wasm-install
