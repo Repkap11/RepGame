@@ -688,8 +688,25 @@ static int light_claim_cols( const int cx, const int cz, int out[ 9 ] ) {
             out[ n++ ] = light_col_lock_index( cx + dx, cz + dz );
         }
     }
-    std::sort( out, out + n );
-    return static_cast<int>( std::unique( out, out + n ) - out );
+    // n == 9: hand-rolled insertion sort + dedup (same rationale as
+    // light_pop_cols: fixed small buffer trips GCC's -Warray-bounds under
+    // -Werror on some targets).
+    for ( int i = 1; i < n; i++ ) {
+        const int v = out[ i ];
+        int j = i;
+        while ( j > 0 && out[ j - 1 ] > v ) {
+            out[ j ] = out[ j - 1 ];
+            j--;
+        }
+        out[ j ] = v;
+    }
+    int m = 0;
+    for ( int i = 0; i < n; i++ ) {
+        if ( m == 0 || out[ m - 1 ] != out[ i ] ) {
+            out[ m++ ] = out[ i ];
+        }
+    }
+    return m;
 }
 
 // Lock set for one BFS seed — the columns the step can read or write. The
@@ -745,8 +762,25 @@ static int light_pop_cols( const glm::ivec3 &block_pos, LightPopCol out[ 9 ] ) {
     for ( int i = 0; i < n; i++ ) {
         out[ i ] = { light_col_lock_index( seen[ i ].x, seen[ i ].y ), seen[ i ].x, seen[ i ].y };
     }
-    std::sort( out, out + n, []( const LightPopCol &a, const LightPopCol &b ) { return a.idx < b.idx; } );
-    return static_cast<int>( std::unique( out, out + n, []( const LightPopCol &a, const LightPopCol &b ) { return a.idx == b.idx; } ) - out );
+    // n <= 9: hand-rolled insertion sort + dedup. Avoids std::sort's
+    // introsort dispatch and GCC 13's -Warray-bounds false positive on the
+    // small fixed buffer (mingw -Werror).
+    for ( int i = 1; i < n; i++ ) {
+        const LightPopCol v = out[ i ];
+        int j = i;
+        while ( j > 0 && out[ j - 1 ].idx > v.idx ) {
+            out[ j ] = out[ j - 1 ];
+            j--;
+        }
+        out[ j ] = v;
+    }
+    int m = 0;
+    for ( int i = 0; i < n; i++ ) {
+        if ( m == 0 || out[ m - 1 ].idx != out[ i ].idx ) {
+            out[ m++ ] = out[ i ];
+        }
+    }
+    return m;
 }
 
 // Spin-acquire a sorted lock set, then run and release. Pops use this; the
