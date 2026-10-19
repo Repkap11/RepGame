@@ -105,6 +105,10 @@ static inline int light_offered( const int v, const int channel, const int d, co
 // cell after a post-fill cells[] write so the upload paths never have to
 // touch the cells[] array again. A missing mask is always legal —
 // uploads fall back to the cells[] walk.
+// The bitmap is z-fastest (cells[] index space), so each x column occupies
+// CHUNK_SIZE_INTERNAL_Z/8 bytes — the layout requires Z % 8 == 0.
+static_assert( CHUNK_SIZE_INTERNAL_Z % 8 == 0,
+               "light_air_mask packs cells[] z-fastest 8/byte; CHUNK_SIZE_INTERNAL_Z must be a multiple of 8" );
 void light_air_mask_set( const Chunk &chunk, const int index, const BlockID id ) {
     if ( chunk.light_air_mask == nullptr ) {
         return;
@@ -896,26 +900,26 @@ static volatile int light_thread_running = 0;
 static volatile int light_thread_stop_flag = 0;
 
 // Pack/unpack helpers for Chunk::light_dirty_box (layout in chunk.hpp).
-// 6 bits per component limits texel coords to [0,63], so the light volume
-// can be at most 64^3 internal — a larger CHUNK_SIZE would silently wrap
+// 8 bits per component limits texel coords to [0,255], so the light volume
+// can be at most 256^3 internal — a larger CHUNK_SIZE would silently wrap
 // dirty-box coordinates and scramble uploads. LIGHT_BOX_EMPTY has
-// min=63 > max=0.
-static_assert( CHUNK_SIZE_INTERNAL_X <= 64 && CHUNK_SIZE_INTERNAL_Y <= 64 && CHUNK_SIZE_INTERNAL_Z <= 64,
-               "light_dirty_box packs texel coords as 6-bit fields; CHUNK_SIZE_INTERNAL_* must be <= 64" );
+// min=255 > max=0.
+static_assert( CHUNK_SIZE_INTERNAL_X <= 256 && CHUNK_SIZE_INTERNAL_Y <= 256 && CHUNK_SIZE_INTERNAL_Z <= 256,
+               "light_dirty_box packs texel coords as 8-bit fields; CHUNK_SIZE_INTERNAL_* must be <= 256" );
 static inline uint64_t light_box_pack( const glm::ivec3 &mn, const glm::ivec3 &mx ) {
-    return static_cast<uint64_t>( mn.x & 63 ) | ( static_cast<uint64_t>( mn.y & 63 ) << 6 ) |
-           ( static_cast<uint64_t>( mn.z & 63 ) << 12 ) | ( static_cast<uint64_t>( mx.x & 63 ) << 18 ) |
-           ( static_cast<uint64_t>( mx.y & 63 ) << 24 ) | ( static_cast<uint64_t>( mx.z & 63 ) << 30 );
+    return static_cast<uint64_t>( mn.x & 0xFF ) | ( static_cast<uint64_t>( mn.y & 0xFF ) << 8 ) |
+           ( static_cast<uint64_t>( mn.z & 0xFF ) << 16 ) | ( static_cast<uint64_t>( mx.x & 0xFF ) << 24 ) |
+           ( static_cast<uint64_t>( mx.y & 0xFF ) << 32 ) | ( static_cast<uint64_t>( mx.z & 0xFF ) << 40 );
 }
 
 static inline glm::ivec3 light_box_min( const uint64_t box ) {
-    return glm::ivec3( static_cast<int>( box & 63 ), static_cast<int>( ( box >> 6 ) & 63 ),
-                       static_cast<int>( ( box >> 12 ) & 63 ) );
+    return glm::ivec3( static_cast<int>( box & 0xFF ), static_cast<int>( ( box >> 8 ) & 0xFF ),
+                       static_cast<int>( ( box >> 16 ) & 0xFF ) );
 }
 
 static inline glm::ivec3 light_box_max( const uint64_t box ) {
-    return glm::ivec3( static_cast<int>( ( box >> 18 ) & 63 ), static_cast<int>( ( box >> 24 ) & 63 ),
-                       static_cast<int>( ( box >> 30 ) & 63 ) );
+    return glm::ivec3( static_cast<int>( ( box >> 24 ) & 0xFF ), static_cast<int>( ( box >> 32 ) & 0xFF ),
+                       static_cast<int>( ( box >> 40 ) & 0xFF ) );
 }
 
 static inline uint64_t light_box_merge( const uint64_t box, const glm::ivec3 &texel ) {
@@ -2556,9 +2560,9 @@ void Chunk::light_ensure_texture( ) {
             // Mask built: iterate in texel order (x fastest) so light[] reads
             // and scratch writes are both linear streams. The mask lives in
             // cells[] index space (z-fastest): mask byte index is
-            // (tz>>3) + 8*tx + 512*ty and the tested bit (tz&7) is invariant
-            // across the plane, so the same 512 mask bytes serve 8
-            // consecutive tz planes and the whole 32KB stays cache-resident.
+            // (tz>>3) + (Z_INT/8)*tx + (X_INT*Z_INT/8)*ty and the tested bit
+            // (tz&7) is invariant across the plane, so the same
+            // X_INT*Z_INT/8 mask bytes serve 8 consecutive tz planes.
             const unsigned char *air_mask = this->light_air_mask;
             const uint32_t *rg_lut = light_rg_lut( );
             uint32_t *out32 = s_light_upload_scratch;
@@ -2573,7 +2577,7 @@ void Chunk::light_ensure_texture( ) {
                     for ( int ty = 0; ty < CHUNK_SIZE_INTERNAL_Y; ty++ ) {
                         const unsigned char *mty = mrow + ty * ( CHUNK_SIZE_INTERNAL_X * CHUNK_SIZE_INTERNAL_Z / 8 );
                         for ( int tx = 0; tx < CHUNK_SIZE_INTERNAL_X; tx++, out32++ ) {
-                            const uint32_t air = ( static_cast<uint32_t>( mty[ tx * 8 ] ) >> shift ) & 1u;
+                            const uint32_t air = ( static_cast<uint32_t>( mty[ tx * ( CHUNK_SIZE_INTERNAL_Z / 8 ) ] ) >> shift ) & 1u;
                             *out32 = base | ( air * 255u << 16 );
                         }
                     }
@@ -2591,7 +2595,7 @@ void Chunk::light_ensure_texture( ) {
                             // cell is provably non-opaque (its bit is set),
                             // and a solid cell reads B=0 even while its light
                             // is still propagating out.
-                            const uint32_t air = ( static_cast<uint32_t>( mty[ tx * 8 ] ) >> shift ) & 1u;
+                            const uint32_t air = ( static_cast<uint32_t>( mty[ tx * ( CHUNK_SIZE_INTERNAL_Z / 8 ) ] ) >> shift ) & 1u;
                             *out32 = rg_lut[ packed ] | ( air * 255u << 16 ) | ( 255u << 24 );
                         }
                     }
@@ -2793,7 +2797,7 @@ void ChunkLoader::light_upload_dirty( const int max_uploads ) {
             // Mask path: texel order (z, y, x — x fastest) so the light[]
             // rows and the scratch both stream linearly; the mask bit index
             // steps +CHUNK_SIZE_INTERNAL_Z per x (see light_ensure_texture —
-            // byte index (z>>3) + 8*x + 512*y, tested bit z&7).
+            // byte index (z>>3) + (Z_INT/8)*x + (X_INT*Z_INT/8)*y, tested bit z&7).
             const uint32_t *rg_lut = light_rg_lut( );
             uint32_t *out = s_light_upload_scratch;
             for ( int z = 0; z < sz.z; z++ ) {
@@ -2801,10 +2805,10 @@ void ChunkLoader::light_upload_dirty( const int max_uploads ) {
                 const int shift = ( lo.z + z ) & 7;
                 for ( int y = 0; y < sz.y; y++ ) {
                     const unsigned char *lrow = chunk.light ? chunk.light + ( ( lo.z + z ) * CHUNK_SIZE_INTERNAL_Y + ( lo.y + y ) ) * CHUNK_SIZE_INTERNAL_X + lo.x : nullptr;
-                    const unsigned char *mty = mrow + ( lo.y + y ) * ( CHUNK_SIZE_INTERNAL_X * CHUNK_SIZE_INTERNAL_Z / 8 ) + lo.x * 8;
+                    const unsigned char *mty = mrow + ( lo.y + y ) * ( CHUNK_SIZE_INTERNAL_X * CHUNK_SIZE_INTERNAL_Z / 8 ) + lo.x * ( CHUNK_SIZE_INTERNAL_Z / 8 );
                     for ( int x = 0; x < sz.x; x++, out++ ) {
                         const unsigned char packed = lrow ? lrow[ x ] : chunk.light_uniform;
-                        const uint32_t air = ( static_cast<uint32_t>( mty[ x * 8 ] ) >> shift ) & 1u;
+                        const uint32_t air = ( static_cast<uint32_t>( mty[ x * ( CHUNK_SIZE_INTERNAL_Z / 8 ) ] ) >> shift ) & 1u;
                         *out = rg_lut[ packed ] | ( air * 255u << 16 ) | ( 255u << 24 );
                     }
                 }

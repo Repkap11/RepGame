@@ -5,7 +5,8 @@
 #define MAX_ROTATABLE_BLOCK 100u
 #define eps 0.00001f
 // Edge length of the per-chunk light volume in texels (interior + 1-cell halo).
-#define LIGHT_VOLUME_DIM float( CHUNK_SIZE_INTERNAL_X )
+// Per-axis: internal dims need not be equal (e.g. X/Z=128, Y=64).
+#define LIGHT_VOLUME_DIM vec3( float( CHUNK_SIZE_INTERNAL_X ), float( CHUNK_SIZE_INTERNAL_Y ), float( CHUNK_SIZE_INTERNAL_Z ) )
 // Hard cap on the mip level sampled from the light volume (see light_lod).
 #define LIGHT_LOD_MAX 1.0
 #define TINT_UNDER_WATER_OBJECT_NEVER 0

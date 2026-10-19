@@ -239,7 +239,7 @@ corrupted deque internals (SEGV writing to a null slot). Fixed by
 GPU upload handoff (atomic dirty box):
 
 - `Chunk::light_dirty_box` packs the dirty texel min/max into one atomic
-  uint64 (6 bits/coord; LIGHT_BOX_EMPTY = min>max). Marks CAS-merge their
+  uint64 (8 bits/coord; LIGHT_BOX_EMPTY = min>max). Marks CAS-merge their
   texel; the uploader clears `light_upload_listed` AND exchanges the box in
   the same critical section that pops the chunk from `light_dirty_list`.
 - Why: the old flag+min/max scheme wiped `light_dirty` AFTER reading the

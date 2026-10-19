@@ -37,9 +37,9 @@ class WorkingSpace {
     unsigned int packed_lighting[ NUM_FACES_IN_CUBE ];
 };
 
-// Empty sentinel for Chunk::light_dirty_box — min fields = 63 > max = 0, so
+// Empty sentinel for Chunk::light_dirty_box — min fields = 255 > max = 0, so
 // any decoded box with min > max on an axis is "nothing dirty".
-#define LIGHT_BOX_EMPTY 0x3FFFFULL
+#define LIGHT_BOX_EMPTY 0xFFFFFFULL
 
 // Fixed-size chunk-buffer pool (chunk.cpp). cells[]/extras[]/light[]/
 // light_columns[] are always allocated at their full size and never resized,
@@ -139,9 +139,10 @@ class Chunk {
     // const but restamps it.
     mutable unsigned char *light_air_mask;
     unsigned int light_texture; // GL_TEXTURE_3D, 0 = not created yet
-    // Dirty texel box of light[] not yet uploaded, in texel coords [0,34):
-    // min.xyz in bits [0:5]/[6:11]/[12:17], max.xyz in [18:23]/[24:29]/[30:35]
-    // (6 bits per coord). Marks CAS-merge their texel into the box; the render
+    // Dirty texel box of light[] not yet uploaded, in texel coords
+    // [0,CHUNK_SIZE_INTERNAL_*): min.xyz in bits [0:7]/[8:15]/[16:23],
+    // max.xyz in [24:31]/[32:39]/[40:47] (8 bits per coord). Marks CAS-merge
+    // their texel into the box; the render
     // thread exchanges the whole word for LIGHT_BOX_EMPTY while popping the
     // upload list under the work mutex, so a racing mark is always either in
     // the upload's snapshot or visibly unlisted (never lost between a box
