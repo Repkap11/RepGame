@@ -1,5 +1,6 @@
 #include <math.h>
 #include <stdlib.h>
+#include <algorithm>
 #include <chrono>
 #include <vector>
 
@@ -472,6 +473,7 @@ void ChunkLoader::rebuild_drawable_list( ) {
             this->drawable_chunks[ this->num_drawable++ ] = &chunk;
         }
     }
+    this->drawable_generation++;
 }
 // Bounding-sphere radius for frustum culling: a chunk's mesh is confined to
 // its own [0, CHUNK_SIZE) volume, so half the box diagonal plus one block of
@@ -539,6 +541,24 @@ void ChunkLoader::draw( const glm::mat4 &mvp, const Renderer &renderer, const Te
     // per-chunk set_uniform3f it replaced cost ~6000 lookups/frame.
     const int light_base_loc = shader.get_uniform_location( "u_LightBase" );
 
+    // Front-to-back ordering: depth-writing layers draw nearest-first so
+    // early-z kills occluded fragments (and, later, so occluders are in the
+    // depth buffer before occlusion queries test farther chunks). Blended
+    // layers iterate the same array in reverse (back-to-front) for correct
+    // alpha compositing. Sorting by distance to the real camera is exact for
+    // the reflected pass too — the mirror is an isometry. Re-sorted only
+    // when rebuild_drawable_list ran (i.e. the camera's tick processed);
+    // nothing else consumes the list's order.
+    if ( this->sorted_generation != this->drawable_generation ) {
+        this->sorted_generation = this->drawable_generation;
+        const glm::vec3 ro = render_origin;
+        std::sort( this->drawable_chunks, this->drawable_chunks + this->num_drawable, [ ro ]( const Chunk *a, const Chunk *b ) {
+            const glm::vec3 da = glm::vec3( a->chunk_pos * CHUNK_SIZE_I + CHUNK_SIZE_I / 2 ) - ro;
+            const glm::vec3 db = glm::vec3( b->chunk_pos * CHUNK_SIZE_I + CHUNK_SIZE_I / 2 ) - ro;
+            return glm::dot( da, da ) < glm::dot( db, db );
+        } );
+    }
+
     // pr_debug( "Drawing %d chunks", this->numLoadedChunks );
     for ( int renderOrder = LAST_RENDER_ORDER - 1; renderOrder > 0; renderOrder-- ) {
         if ( reflect_only == ( renderOrder == RenderOrder_Water ) ) {
@@ -563,8 +583,10 @@ void ChunkLoader::draw( const glm::mat4 &mvp, const Renderer &renderer, const Te
             // calls above must run first, then per-chunk draws only need a
             // glBindTexture (Chunk::draw).
             glActiveTexture( GL_TEXTURE0 + light_texture_unit( ) );
+            // Blended layers walk the sorted list backwards (back-to-front).
+            const bool back_to_front = renderOrder == RenderOrder_Water || renderOrder == RenderOrder_Translucent;
             for ( int i = 0; i < this->num_drawable; i++ ) {
-                Chunk &chunk = *this->drawable_chunks[ i ];
+                Chunk &chunk = *this->drawable_chunks[ back_to_front ? this->num_drawable - 1 - i : i ];
                 if ( draw_reflect ) {
                     if ( !chunk.cached_cull_reflect ) {
                         chunk.draw( renderer, texture, shader, static_cast<RenderOrder>( renderOrder ), draw_reflect, render_origin, light_base_loc );

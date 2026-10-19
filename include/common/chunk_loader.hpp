@@ -80,6 +80,13 @@ class ChunkLoader {
     // instead of scanning all MAX_LOADED_CHUNKS slots every pass.
     Chunk **drawable_chunks;
     int num_drawable;
+    // Sort caching: rebuild_drawable_list bumps drawable_generation; draw
+    // re-sorts only when it changes, so the (up to) 3 passes per frame share
+    // one front-to-back ordering — exact for the reflected pass too since
+    // mirroring is an isometry. A stale ordering only costs early-z
+    // efficiency, never correctness.
+    int drawable_generation = 0;
+    int sorted_generation = -1;
     // Must-remesh queue: chunks dirtied by live edits (World::set_loaded_block
     // and its boundary fixup writes) are enqueued here so every mesh touched
     // by one edit is rebuilt in the same render pass — splitting them across
