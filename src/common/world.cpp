@@ -401,6 +401,9 @@ void World::draw( const Texture &blocksTexture, const glm::mat4 &mvp, const glm:
     this->object_shader.set_uniform_mat4f( "u_MVP", mvp );
     this->object_shader.set_uniform1i( "u_IsSky", 0 );
     this->object_shader.set_uniform3f( "u_Origin", renderOriginF.x, renderOriginF.y, renderOriginF.z );
+    // skyBox.draw bound its own texture to u_Texture — restore the block
+    // atlas or the avatars sample sky texels.
+    this->object_shader.set_uniform1i_texture( "u_Texture", blocksTexture );
 
     // Refresh baked-in light samples before drawing. Avatars get no position
     // updates while standing still; debris spawns while the broken cell's
@@ -511,6 +514,8 @@ void World::draw( const Texture &blocksTexture, const glm::mat4 &mvp, const glm:
         // Reflected mobs: rebased like normal mobs. u_ReflectionHeight must be
         // rebased so v_planarDot = (worldY - origin.y) + (offset + origin.y) = worldY + offset.
         this->object_shader.set_uniform3f( "u_Origin", renderOriginF.x, renderOriginF.y, renderOriginF.z );
+        // Same as the main pass: the reflected sky draw left its texture bound.
+        this->object_shader.set_uniform1i_texture( "u_Texture", blocksTexture );
         this->object_shader.set_uniform1f( "u_ReflectionHeight", offset + renderOriginF.y );
         this->multiplayer_avatars.draw( this->renderer, this->object_shader ); // Reflected mobs
 

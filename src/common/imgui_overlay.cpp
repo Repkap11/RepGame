@@ -70,7 +70,9 @@ void imgui_overlay_attach_to_window( ImGuiOverlay *ui_overlay, SDL_Window *windo
     // Don't persist window layout to imgui.ini — the overlay is fixed and
     // a leftover ini can shrink the window or add a scrollbar on next launch.
     io.IniFilename = nullptr;
-    io.WantCaptureMouse = true;
+    // The overlay is read-only debug text; don't let it capture the mouse or
+    // it eats clicks/motion/wheel whenever the cursor is over the HUD.
+    io.ConfigFlags |= ImGuiConfigFlags_NoMouse;
     // io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard; // Enable Keyboard Controls
     // io.ConfigFlags |= ImGuiConfigFlags_NavEnableSetMousePos; // Enable Keyboard Controls
     // io.ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad;  // Enable Gamepad Controls
@@ -96,7 +98,9 @@ void imgui_overlay_attach_to_window( ImGuiOverlay *ui_overlay, SDL_Window *windo
 void imgui_overlay_handle_sdl2_event( ImGuiOverlay *ui_overlay, SDL_Event *event, bool *handledMouse, bool *handledKeyboard ) {
     ImGui_ImplSDL3_ProcessEvent( event );
     ImGuiIO &io = ImGui::GetIO( );
-    *handledMouse = io.WantCaptureMouse;
+    // ImGuiConfigFlags_NoMouse keeps io.WantCaptureMouse false, but never
+    // report mouse capture regardless: the game always owns the mouse.
+    *handledMouse = false;
     *handledKeyboard = io.WantCaptureKeyboard;
 }
 
@@ -115,9 +119,10 @@ void imgui_overlay_draw( ImGuiOverlay *imgui_overlay, Input &input ) {
 
             // Black background, 50% transparent; no title bar, not movable/selectable.
             ImGui::PushStyleColor( ImGuiCol_WindowBg, ImVec4( 0.0f, 0.0f, 0.0f, 0.5f ) );
-            // Mouse inputs stay enabled so the debug sliders below are usable;
-            // io.WantCaptureMouse keeps clicks on the window from reaching the game.
-            ImGuiWindowFlags windowFlags = ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoBringToFrontOnFocus | ImGuiWindowFlags_NoNav;
+            // ImGuiConfigFlags_NoMouse (set at attach) already makes the
+            // overlay non-interactive; NoInputs keeps the window itself from
+            // reacting if mouse support is ever re-enabled.
+            ImGuiWindowFlags windowFlags = ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoBringToFrontOnFocus | ImGuiWindowFlags_NoNav | ImGuiWindowFlags_NoInputs;
 
             ImGui::Begin( "RepGame", nullptr, windowFlags );
             ImGui::Text( "Application average %.3f ms/frame (%.1f FPS)", 1000.0f / io.Framerate, io.Framerate );
