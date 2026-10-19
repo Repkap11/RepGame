@@ -41,6 +41,7 @@ struct LoaderDebugStats {
     int terrain_results;   // generated chunks waiting for the render thread
     int chunks_loading;    // slots with is_loading set
     int chunks_drawable;
+    int chunks_occluded;   // drawable chunks past the occlusion hide threshold
     int light_jobs;        // queued finalize/recheck jobs
     int light_pending;     // chunks with recorded block diffs awaiting drain
     int light_claims;      // column-claimed jobs in flight on light workers
@@ -74,6 +75,13 @@ class ChunkLoader {
     struct {
         VertexBuffer vb_block;
     } water;
+
+    // AABB occlusion probing: minimal pos-only shader + unit-cube VBO used
+    // to draw each chunk's bounding box inside GL_ANY_SAMPLES_PASSED queries
+    // (ChunkLoader::draw, opaque order, normal pass). See Chunk::occl_*.
+    Shader occl_shader;
+    VertexArray occl_va;
+    VertexBuffer occl_vb;
 
     // Compact list of chunks that are loaded and should be rendered.
     // Rebuilt once per frame in render_chunks; iterated by calculate_cull/draw

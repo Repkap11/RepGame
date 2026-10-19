@@ -15,6 +15,40 @@
 
 MK_SHADER( chunk_vertex );
 MK_SHADER( chunk_fragment );
+MK_SHADER( occl_vertex );
+MK_SHADER( occl_fragment );
+
+// Hardware occlusion culling via per-chunk AABB queries. On by default on
+// desktop (where the draw loop is the hot path); off elsewhere unless
+// REPGAME_OCCLUSION=1 — WASM/Android have no offscreen pass and unproven
+// query latency behaviour.
+static int occlusion_enabled( ) {
+    static int enabled = -1;
+    if ( enabled < 0 ) {
+        const char *env = getenv( "REPGAME_OCCLUSION" );
+#if defined( REPGAME_LINUX ) || defined( REPGAME_WINDOWS )
+        enabled = env ? atoi( env ) != 0 : 1;
+#else
+        enabled = env ? atoi( env ) != 0 : 0;
+#endif
+    }
+    return enabled;
+}
+
+// Unit cube for the AABB probes (position attr in [0,1]^3, scaled to
+// CHUNK_SIZE_* in occl_vertex.glsl). Winding is irrelevant — face culling
+// is disabled around the probe pass so a camera inside a box still
+// rasterizes it.
+static const float occl_box_verts[] = {
+    // clang-format off
+    0, 0, 0, 1, 0, 0, 1, 1, 0, /**/ 0, 0, 0, 1, 1, 0, 0, 1, 0, // -z
+    0, 0, 1, 1, 1, 1, 1, 0, 1, /**/ 0, 0, 1, 0, 1, 1, 1, 1, 1, // +z
+    0, 0, 0, 1, 0, 1, 1, 0, 0, /**/ 0, 0, 0, 0, 0, 1, 1, 0, 1, // -y
+    0, 1, 0, 1, 1, 0, 1, 1, 1, /**/ 0, 1, 0, 1, 1, 1, 0, 1, 1, // +y
+    0, 0, 0, 0, 1, 1, 0, 0, 1, /**/ 0, 0, 0, 0, 1, 0, 0, 1, 1, // -x
+    1, 0, 0, 1, 0, 1, 1, 1, 1, /**/ 1, 0, 0, 1, 1, 1, 1, 1, 0, // +x
+    // clang-format on
+};
 
 // When limit_render is set (WASM, no background loading thread), cap how long
 // render_chunks spends generating/loading chunks per frame so the main thread
@@ -123,6 +157,14 @@ void ChunkLoader::init( const glm::dvec3 &camera_pos, const VertexBufferLayout &
 
     this->water.vb_block.init( );
     this->water.vb_block.set_data( vd_data_water, sizeof( CubeFace ) * VB_DATA_SIZE_WATER );
+
+    this->occl_shader.init( &occl_vertex, &occl_fragment );
+    this->occl_vb.init( );
+    this->occl_vb.set_data( occl_box_verts, sizeof( occl_box_verts ) );
+    this->occl_va.init( );
+    VertexBufferLayout occl_vbl;
+    occl_vbl.push_float( 3 );
+    this->occl_va.add_buffer( this->occl_vb, occl_vbl );
 
     const VertexBuffer &vb_block_solid = this->solid.vb_block;
     const VertexBuffer &vb_block_water = this->water.vb_block;
@@ -583,16 +625,95 @@ void ChunkLoader::draw( const glm::mat4 &mvp, const Renderer &renderer, const Te
             // calls above must run first, then per-chunk draws only need a
             // glBindTexture (Chunk::draw).
             glActiveTexture( GL_TEXTURE0 + light_texture_unit( ) );
+            // Occlusion probes run only in the normal pass (the reflection
+            // clears depth and rebuilds it from a mirrored view — its
+            // visibility set is different, so it draws everything the
+            // frustum keeps). The occl_fails gate still applies to every
+            // order here and to the stencil-water pass: a chunk whose whole
+            // box is occluded can't show water or flowers either.
+            const bool occl = occlusion_enabled( ) && !draw_reflect;
             // Blended layers walk the sorted list backwards (back-to-front).
             const bool back_to_front = renderOrder == RenderOrder_Water || renderOrder == RenderOrder_Translucent;
-            for ( int i = 0; i < this->num_drawable; i++ ) {
-                Chunk &chunk = *this->drawable_chunks[ back_to_front ? this->num_drawable - 1 - i : i ];
-                if ( draw_reflect ) {
-                    if ( !chunk.cached_cull_reflect ) {
+            if ( occl && renderOrder == RenderOrder_Opaque ) {
+                // Two sub-passes over the front-to-back list. (1) Consume
+                // last frame's probe result (non-blocking) and draw chunks
+                // still believed visible — this builds the opaque depth
+                // buffer. (2) Probe every frustum-visible chunk's box
+                // against that depth with all writes masked. A failed probe
+                // means the content (confined to [0,CHUNK_SIZE)) can't be
+                // visible; occl_fails >= OCCL_HIDE_FRAMES gates it out.
+                for ( int i = 0; i < this->num_drawable; i++ ) {
+                    Chunk &chunk = *this->drawable_chunks[ i ];
+                    if ( chunk.cached_cull_normal ) {
+                        continue;
+                    }
+                    if ( chunk.occl_pending ) {
+                        GLuint available = 0;
+                        glGetQueryObjectuiv( chunk.occl_query, GL_QUERY_RESULT_AVAILABLE, &available );
+                        if ( available ) {
+                            GLuint passed = 0;
+                            glGetQueryObjectuiv( chunk.occl_query, GL_QUERY_RESULT, &passed );
+                            chunk.occl_pending = 0;
+                            chunk.occl_fails = passed ? 0 : chunk.occl_fails + 1;
+                        }
+                    }
+                    if ( chunk.occl_fails < OCCL_HIDE_FRAMES ) {
                         chunk.draw( renderer, texture, shader, static_cast<RenderOrder>( renderOrder ), draw_reflect, render_origin, light_base_loc );
                     }
-                } else {
-                    if ( !chunk.cached_cull_normal ) {
+                }
+                this->occl_shader.bind( );
+                this->occl_shader.set_uniform_mat4f( "u_MVP", mvp );
+                const int box_min_loc = this->occl_shader.get_uniform_location( "u_BoxMin" );
+                this->occl_va.bind( );
+                // LEQUAL, not LESS: a chunk's boundary surface is coplanar
+                // with its own box face, so under LESS a fully walled chunk
+                // would self-occlude and flicker draw/hide each frame. Ties
+                // only ever occur against the chunk's own geometry
+                // (neighbors sit a whole block away), so passing them is
+                // conservative — overdraw at worst, never a hole. Cull face
+                // off so a camera inside a box still rasterizes it.
+                glDisable( GL_CULL_FACE );
+                glDepthFunc( GL_LEQUAL );
+                glColorMask( GL_FALSE, GL_FALSE, GL_FALSE, GL_FALSE );
+                glDepthMask( GL_FALSE );
+                for ( int i = 0; i < this->num_drawable; i++ ) {
+                    Chunk &chunk = *this->drawable_chunks[ i ];
+                    if ( chunk.cached_cull_normal || chunk.occl_pending ) {
+                        continue;
+                    }
+                    if ( chunk.occl_query == 0 ) {
+                        glGenQueries( 1, &chunk.occl_query );
+                    }
+                    const glm::vec3 box_min = glm::vec3( chunk.chunk_pos * CHUNK_SIZE_I ) - render_origin;
+                    glUniform3f( box_min_loc, box_min.x, box_min.y, box_min.z );
+                    glBeginQuery( GL_ANY_SAMPLES_PASSED, chunk.occl_query );
+                    glDrawArrays( GL_TRIANGLES, 0, 36 );
+                    glEndQuery( GL_ANY_SAMPLES_PASSED );
+                    chunk.occl_pending = 1;
+                }
+                glColorMask( GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE );
+                if ( use_frame_buffer ) {
+                    // world.cpp masks the sky-color attachment (3) off after
+                    // the sky pass so terrain draws can't clobber the
+                    // captured sky — the blanket unmask above re-enabled it,
+                    // so put it back or fog compositing blends terrain pixels
+                    // toward whatever garbage lands there.
+                    glColorMaski( 3, GL_FALSE, GL_FALSE, GL_FALSE, GL_FALSE );
+                }
+                glDepthMask( GL_TRUE );
+                glDepthFunc( GL_LESS );
+                glEnable( GL_CULL_FACE );
+            } else {
+                for ( int i = 0; i < this->num_drawable; i++ ) {
+                    Chunk &chunk = *this->drawable_chunks[ back_to_front ? this->num_drawable - 1 - i : i ];
+                    if ( draw_reflect ) {
+                        if ( !chunk.cached_cull_reflect ) {
+                            chunk.draw( renderer, texture, shader, static_cast<RenderOrder>( renderOrder ), draw_reflect, render_origin, light_base_loc );
+                        }
+                    } else {
+                        if ( chunk.cached_cull_normal || ( occl && chunk.occl_fails >= OCCL_HIDE_FRAMES ) ) {
+                            continue;
+                        }
                         chunk.draw( renderer, texture, shader, static_cast<RenderOrder>( renderOrder ), draw_reflect, render_origin, light_base_loc );
                     }
                 }
@@ -631,4 +752,7 @@ void ChunkLoader::cleanup( MapStorage &map_storage ) {
     free( this->chunkArray );
     free( this->drawable_chunks );
     free( this->repop_must );
+    this->occl_vb.destroy( );
+    this->occl_va.destroy( );
+    this->occl_shader.destroy( );
 }

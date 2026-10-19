@@ -222,6 +222,10 @@ void Chunk::destroy( ) {
         glDeleteTextures( 1, &this->light_texture );
         this->light_texture = 0;
     }
+    if ( this->occl_query ) {
+        glDeleteQueries( 1, &this->occl_query );
+        this->occl_query = 0;
+    }
 
     for ( RenderLayer &layer : this->layers ) {
         if ( layer.populated_blocks ) {
@@ -1179,6 +1183,10 @@ void Chunk::program_terrain( ) {
 
 void Chunk::unprogram_terrain( ) {
     this->should_render = 0;
+    // Slot is moving to a new chunk_pos: assume visible until its own
+    // probes say otherwise. occl_pending may still be in flight; its stale
+    // result shifts occl_fails by at most one, under the hide threshold.
+    this->occl_fails = 0;
     for ( int renderOrder = 0; renderOrder < LAST_RENDER_ORDER; renderOrder++ ) {
         RenderLayer &renderLayer = this->layers[ renderOrder ];
         if ( renderLayer.populated_blocks ) {

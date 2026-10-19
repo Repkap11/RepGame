@@ -41,6 +41,11 @@ class WorkingSpace {
 // any decoded box with min > max on an axis is "nothing dirty".
 #define LIGHT_BOX_EMPTY 0xFFFFFFULL
 
+// Consecutive failed AABB probes before a chunk is treated as occluded (see
+// Chunk::occl_fails). >1 absorbs a stale in-flight result read after slot
+// reuse, at the cost of one extra frame of overdraw on real occlusion.
+#define OCCL_HIDE_FRAMES 2
+
 // Fixed-size chunk-buffer pool (chunk.cpp). cells[]/extras[]/light[]/
 // light_columns[] are always allocated at their full size and never resized,
 // so freed buffers go into small per-thread free lists instead of
@@ -104,6 +109,18 @@ class Chunk {
     int should_render;
     int cached_cull_normal;
     int cached_cull_reflect;
+    // AABB occlusion-probe state (ChunkLoader::draw, normal pass only). Each
+    // frustum-visible chunk probes its [0,CHUNK_SIZE) bounding box against
+    // the opaque depth buffer once per frame (GL_ANY_SAMPLES_PASSED).
+    // occl_fails counts consecutive failed probes; at OCCL_HIDE_FRAMES every
+    // render layer skips the chunk — conservative, since its content is
+    // confined to the box. Hidden chunks keep probing, so a reveal un-hides
+    // them the frame the box reappears. occl_query is lazily created on the
+    // GL thread and persists across slot reuse; a stale in-flight result
+    // only moves occl_fails by one, which the threshold absorbs.
+    unsigned int occl_query;
+    int occl_pending;
+    int occl_fails;
     int needs_repopulation;
     // Set while this chunk sits in ChunkLoader::repop_must (dedupes the
     // enqueue). Cleared when the queue pops it, remeshed or not.

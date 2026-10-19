@@ -3477,6 +3477,9 @@ void ChunkLoader::debug_loader_stats( LoaderDebugStats *out ) const {
         if ( this->chunkArray[ i ].light_stale.load( std::memory_order_relaxed ) ) {
             out->light_stale_count++;
         }
+        if ( this->chunkArray[ i ].occl_fails >= OCCL_HIDE_FRAMES ) {
+            out->chunks_occluded++;
+        }
     }
     {
         std::lock_guard<std::mutex> lock( light_work_mutex );

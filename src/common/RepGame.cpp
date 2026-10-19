@@ -1572,11 +1572,11 @@ void RepGame::tick( ) {
         globalGameState.world.chunkLoader.debug_loader_stats( &s );
         char dbg[ 1024 ];
         globalGameState.world.chunkLoader.light_dbg_stats( dbg, sizeof( dbg ) );
-        pr_debug( "FLYMET t=%ld ph=%d p=(%.1f,%.1f,%.1f) j=%d p=%d c=%d d=%d x=%lld bfs=%d pri=%d stv=%d s=%lld stl=%d | %s",
+        pr_debug( "FLYMET t=%ld ph=%d p=(%.1f,%.1f,%.1f) j=%d p=%d c=%d d=%d x=%lld bfs=%d pri=%d stv=%d s=%lld stl=%d occ=%d/%d | %s",
                   globalGameState.tick_number, g_fly.phase, globalGameState.camera.pos.x, globalGameState.camera.pos.y,
                   globalGameState.camera.pos.z, s.light_jobs, s.light_pending, s.light_claims, s.light_dirty,
                   s.light_dropped, s.light_bfs_active, s.light_bfs_priority, s.light_bfs_starve, s.light_seeds,
-                  s.light_stale_count, dbg );
+                  s.light_stale_count, s.chunks_occluded, s.chunks_drawable, dbg );
     }
 }
 
