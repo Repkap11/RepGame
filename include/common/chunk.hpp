@@ -146,6 +146,17 @@ class Chunk {
     // thread only (light_upload_dirty). A cap forces upload anyway so a
     // continuously-marched chunk can't starve forever.
     int light_upload_defers = 0;
+    // Set once this chunk's light volume has been uploaded at least once.
+    // Fresh chunks bypass the quiet/busy upload gates: the optimistic sky
+    // fill is mostly correct and beats showing a black hole while seeds
+    // are still pending. Render thread only; reset when the slot is reused.
+    int light_uploaded_once = 0;
+    // Set at the end of light_finalize_chunk — routes FINALIZE jobs for
+    // never-finalized chunks (no real skylight yet, only the optimistic
+    // fill) into the init job lane, ahead of far-lane work but behind
+    // near-player work. Atomic: written by the job's worker, read by the
+    // render thread at submit; a torn read just picks a lane.
+    std::atomic<int> light_finalized{ 0 };
 
     int can_extend_rect( const BlockState &blockState, const unsigned int *packed_lighting, const WorkingSpace *workingSpace, const glm::ivec3 &starting, const glm::ivec3 &size, const glm::ivec3 &dir ) const;
 

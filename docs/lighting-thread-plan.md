@@ -114,6 +114,14 @@ shards discussed earlier:
 - `light_bfs_pending` (atomic) counts queued seeds so the cv predicate can
   test queue-nonempty without touching deque internals from another
   thread; `light_shard_pending[]` does the same per shard.
+- `light_col_incident[]` counts queued seeds per column (same hash domain
+  as the locks): the upload gate holds back chunks whose column has
+  pending seeds or a held lock, because their light is provably
+  mid-computation — under a deep backlog the floor-write→respread gap is
+  seconds, longer than any quiet-tick window. Busy columns get a much
+  longer starvation cap (`LIGHT_UPLOAD_MAX_DEFERS_BUSY`, ~2-3s) before a
+  forced upload; converged-but-recently-written columns keep the short
+  45-frame cap.
 - BFS drains in 2ms slices per claimed shard but keeps draining while
   seeds remain and no jobs/pending wait; yields the moment either appears
   or on stop.
