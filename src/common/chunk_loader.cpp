@@ -33,10 +33,9 @@ static constexpr long long WASM_LOAD_BUDGET_US = 4000; // 4 ms
 static constexpr long long CHUNK_FINALIZE_BUDGET_US = 3000; // 3 ms
 
 // Per grid shift, at most this many near chunks that still have queued
-// incident seed work get a near-lane re-finalize (light_heal_chunk). Seeds
-// pushed while the region was far never re-promote into the priority
-// queues, so without this a dark spot you fly up to waits for its buried
-// seeds instead of converging when it enters the near radius.
+// incident seed work get a near-lane re-finalize (light_heal_chunk) —
+// converges a just-arrived half-lit region in one pass instead of letting
+// its seeds drain cell-by-cell.
 static constexpr int LIGHT_HEAL_PER_SHIFT = 8;
 
 // Similarly bound the needs_repopulation re-mesh loop: calculate_populated_blocks

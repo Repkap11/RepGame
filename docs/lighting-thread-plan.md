@@ -89,31 +89,35 @@ shards discussed earlier:
 - The cv predicate only wakes for *runnable* work (some claimable job/pending
   entry, or an unowned nonempty shard) — a queue of all-blocked jobs must
   not spin.
-- **BFS sharding** (replaced the old `light_bfs_active` global exclusion —
-  a single worker used to drain all queues serialized against every
-  claim): the seed queues are split `LIGHT_BFS_SHARDS` (4) ways by the
-  target cell's column — parity of 4x4 column blocks, so a local flood
-  scatters across all shards and every drainer gets a share. A worker
-  CAS-claims a shard's ownership slot (`light_shard_owned`) then drains it
-  exclusively; a per-shard spinlock serializes that shard's deque ops
-  against concurrent pushes. Contiguous-block shards measured worse — a
-  wavefront fits inside one block and serializes the flood on one drainer.
+- **Per-column seed queues** (successor to both the `light_bfs_active`
+  global exclusion and the 4-way shard scheme): the seed queues are keyed
+  by the chunk-torus column slot — `LIGHT_COL_QUEUE_COUNT` (289) slots,
+  the same x/z mod ring `chunk_slot_from_pos` uses, so a seed routes to
+  `light_col_slot(target)` with no allocation and the table is bounded
+  forever. A drainer CAS-claims the NEAREST non-empty, unowned slot
+  (`light_claim_column` scans the table and argmins distance to
+  chunk_center), then drains it in 2ms slices. Because distance is
+  evaluated at selection time, near-priority is continuous: seeds queued
+  while their column was far resurface the moment the player approaches —
+  no pri lanes, no re-promote pass, and a dark spot flown up to drains
+  first. Out-of-window seeds squat in whatever slot the ring maps them
+  to and die at pop when get_chunk fails — harmless. A per-slot
+  spinlock serializes deque ops against concurrent pushes.
 - **Column locks** (`light_col_locks`, hashed spinlock array) replaced the
   claim-vs-BFS exclusion too: a pop's read/write footprint is bounded by
   the 3x3 columns around its target — mirror writes only reach ±1 chunk
   per axis and only toward the border the cell sits on, so `light_pop_cols`
   computes the precise 1-9 column set (1 for strictly-interior cells).
-  Claims take the 3x3 set. Pops try-lock with a bounded spin; on
-  contention the seed migrates to the shard containing the contested
-  column (that drainer is sweeping right there) — no blocking, no
-  lock-ordering cycle since pops never hold-and-wait.
-- Measured churn: ~45% of pops still bounce on a shared wavefront seam
-  (drainer-vs-drainer) — the seam is inherent when one thin frontier is
-  split four ways — so the tail converges ~1.5-2x faster than the single
-  serialized drain rather than 4x.
+  Claims take the 3x3 set. Pops try-lock with a bounded spin; a contested
+  seed re-queues at the back of its own column's level bucket — rotating
+  behind sibling seeds that likely touch columns the neighbor isn't
+  holding — and a run of >256 consecutive contested pops releases the
+  slot early so another column can drain while the sweep moves on.
+  No blocking, no lock-ordering cycle since pops never hold-and-wait.
 - `light_bfs_pending` (atomic) counts queued seeds so the cv predicate can
   test queue-nonempty without touching deque internals from another
-  thread; `light_shard_pending[]` does the same per shard.
+  thread; `light_colq_pending[]` does the same per column slot, and the
+  predicate accepts any non-empty unowned slot.
 - `light_col_incident[]` counts queued seeds per column (same hash domain
   as the locks): the upload gate holds back chunks whose column has
   pending seeds or a held lock, because their light is provably
@@ -122,9 +126,9 @@ shards discussed earlier:
   longer starvation cap (`LIGHT_UPLOAD_MAX_DEFERS_BUSY`, ~2-3s) before a
   forced upload; converged-but-recently-written columns keep the short
   45-frame cap.
-- BFS drains in 2ms slices per claimed shard but keeps draining while
-  seeds remain and no jobs/pending wait; yields the moment either appears
-  or on stop.
+- BFS drains in 2ms slices per claimed column slot but keeps draining
+  while seeds remain and no jobs/pending wait; yields the moment either
+  appears or on stop.
 - Backlog-priority window (light_bfs_priority): when pending seeds exceed
   LIGHT_BFS_PRI_HI (~3M) new FINALIZE claims pause until a drain pass drops
   the backlog under LIGHT_BFS_PRI_LO or ~100ms elapses. RECHECK and pending
@@ -161,11 +165,14 @@ shards discussed earlier:
   uploads are capped at LIGHT_MAX_UPLOADS_PER_FRAME per frame, so a near
   chunk marked during load-in must not FIFO-wait behind the far backlog.
   light_upload_enqueue routes by chunk_center at mark time.
-- Seeds get the same treatment: pushes whose target column is within
-  LIGHT_NEAR_COL_DIST land in light_add_queue_pri / light_remove_queue_pri,
-  which light_process_queue drains strictly before the shared queues.
-  Without this, near seeds FIFO-mix behind the whole streaming backlog and
-  the chunk under the player converges last even though its job ran first.
+- Seeds get stronger treatment than lanes: since seed queues are
+  per-column, drainers always claim the NEAREST pending column, so the
+  region under the player drains first continuously — the earlier
+  shard+push-time-pri scheme and its stranded far seeds are gone. As a
+  complement, light_heal_chunk also re-finalizes (near lane, capped
+  LIGHT_HEAL_PER_SHIFT per grid shift) any near chunk whose column still
+  has incident queued seeds — a deterministic one-claim convergence that
+  measured ~2x faster tail than seed-by-seed draining alone.
 - A STARVATION window complements the backlog-size window: if
   light_bfs_pending has stayed over LIGHT_BFS_STARVE_MIN for more than
   LIGHT_BFS_STARVE_TICKS (~100ms of game ticks, fed by RepGame::tick via

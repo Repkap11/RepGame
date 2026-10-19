@@ -199,11 +199,10 @@ void ChunkLoader::light_dbg_stats( char *buf, size_t n ) {
 
 size_t ChunkLoader::light_add_queue_size( ) const {
     size_t total = 0;
-    for ( int s = 0; s < LIGHT_BFS_SHARDS; s++ ) {
+    for ( int s = 0; s < LIGHT_COL_QUEUE_COUNT; s++ ) {
         for ( int ch = 0; ch < 2; ch++ ) {
             for ( int level = 0; level <= LIGHT_MAX_LEVEL; level++ ) {
                 total += this->light_add_queue[ s ][ ch ][ level ].size( );
-                total += this->light_add_queue_pri[ s ][ ch ][ level ].size( );
             }
         }
     }
@@ -265,31 +264,55 @@ static inline void light_bfs_pending_inc( ) {
 }
 
 // Seed deque serialization: claimed jobs push while drain workers pop
-// concurrently, so both sides take the shard's guard. Tiny critical
-// sections (one deque op plus a pending-count update) → spinlock.
-static std::atomic_flag light_seed_locks[ LIGHT_BFS_SHARDS ] = { ATOMIC_FLAG_INIT, ATOMIC_FLAG_INIT, ATOMIC_FLAG_INIT, ATOMIC_FLAG_INIT };
+// concurrently, so both sides take the column slot's guard. Tiny critical
+// sections (one deque op plus a pending-count update) → spinlock. Same
+// representation as light_col_locks (plain int CAS) since C++17
+// atomic_flag arrays can't be fully list-initialized.
+static std::atomic<int> light_colq_locks[ LIGHT_COL_QUEUE_COUNT ];
 struct LightSeedGuard {
-    explicit LightSeedGuard( const int shard ) : shard( shard ) {
-        while ( light_seed_locks[ shard ].test_and_set( std::memory_order_acquire ) ) {
+    explicit LightSeedGuard( const int col ) : col( col ) {
+        for ( ;; ) {
+            while ( light_colq_locks[ col ].load( std::memory_order_relaxed ) != 0 ) {
+            }
+            int expected = 0;
+            if ( light_colq_locks[ col ].compare_exchange_weak( expected, 1, std::memory_order_acquire, std::memory_order_relaxed ) ) {
+                return;
+            }
         }
     }
     ~LightSeedGuard( ) {
-        light_seed_locks[ shard ].clear( std::memory_order_release );
+        light_colq_locks[ col ].store( 0, std::memory_order_release );
     }
-    const int shard;
+    const int col;
 };
 
-// Shard routing: parity of 4x4 column blocks. Contiguous shards measured
-// worse — a wavefront fits inside one block, serializing the flood on a
-// single drainer — while parity scatters each flood across all four
-// shards so drains parallelize, at the cost of shared-edge collisions
-// (handled by the bounded spin + requeue below).
-static inline int light_col_shard( const int cx, const int cz ) {
-    return ( ( static_cast<unsigned>( cx ) >> 2 ) & 1 ) | ( ( ( static_cast<unsigned>( cz ) >> 2 ) & 1 ) << 1 );
+// Column-slot routing: the same mod ring the chunk torus uses for x/z —
+// light_colq_* arrays have one slot per loaded column position. A seed for
+// a column outside the window lands in whatever slot the ring maps it to;
+// it drains at that slot's priority and dies at pop when get_chunk fails —
+// harmless, and it keeps the table bounded with no allocation.
+static inline int light_col_slot_at( const int cx, const int cz ) {
+    const int sx = 2 * CHUNK_RADIUS_X + 1;
+    const int sz = 2 * CHUNK_RADIUS_Z + 1;
+    return ( ( cx % sx ) + sx ) % sx + sx * ( ( ( cz % sz ) + sz ) % sz );
 }
-static inline int light_seed_shard( const glm::ivec3 &block_pos ) {
+static inline int light_col_slot( const glm::ivec3 &block_pos ) {
     const glm::ivec3 cp = light_chunk_pos_of( block_pos );
-    return light_col_shard( cp.x, cp.z );
+    return light_col_slot_at( cp.x, cp.z );
+}
+// Inverse for distance ordering: slot (mx,mz) currently holds the column
+// center + wrapped offset (the window is centered on chunk_center). This
+// is also the right priority for out-of-window seeds squatting in the
+// slot — doomed seeds should drain late, not ahead of live columns.
+static inline glm::ivec2 light_col_slot_pos( const int slot, const glm::ivec3 &center ) {
+    const int sx = 2 * CHUNK_RADIUS_X + 1;
+    const int sz = 2 * CHUNK_RADIUS_Z + 1;
+    const int mx = slot % sx, mz = slot / sx;
+    int ox = mx - ( ( center.x % sx ) + sx ) % sx;
+    ox += ox > sx / 2 ? -sx : ( ox < -sx / 2 ? sx : 0 );
+    int oz = mz - ( ( center.z % sz ) + sz ) % sz;
+    oz += oz > sz / 2 ? -sz : ( oz < -sz / 2 ? sz : 0 );
+    return glm::ivec2( center.x + ox, center.z + oz );
 }
 
 // Pending-seeds-per-column accounting for the upload in-progress gate —
@@ -297,26 +320,41 @@ static inline int light_seed_shard( const glm::ivec3 &block_pos ) {
 static void light_col_incident_inc( const glm::ivec3 &block_pos );
 static void light_col_incident_dec( const glm::ivec3 &block_pos );
 
-// Per-shard pending counts and drain ownership. A shard's queues are popped
-// only by the worker that CAS-claims its owned slot, so drainers partition
-// the flood by region instead of all fighting over one frontier.
-static std::atomic<long long> light_shard_pending[ LIGHT_BFS_SHARDS ];
-static std::atomic<int> light_shard_owned[ LIGHT_BFS_SHARDS ];
-// First shard with pending work whose ownership CAS succeeds, else -1.
-static int light_claim_shard( ) {
-    for ( int s = 0; s < LIGHT_BFS_SHARDS; s++ ) {
-        if ( light_shard_pending[ s ].load( std::memory_order_relaxed ) > 0 ) {
-            int expected = 0;
-            if ( light_shard_owned[ s ].compare_exchange_strong( expected, 1, std::memory_order_acquire, std::memory_order_relaxed ) ) {
-                return s;
+// Per-column-slot pending counts and drain ownership. A slot's queues are
+// popped only by the worker that CAS-claims its owned flag; selection picks
+// the NEAREST claimable slot to the player, so distance priority is
+// continuous — a column the player flies up to drains next regardless of
+// when its seeds were pushed.
+static std::atomic<long long> light_colq_pending[ LIGHT_COL_QUEUE_COUNT ];
+static std::atomic<int> light_colq_owned[ LIGHT_COL_QUEUE_COUNT ];
+static int light_claim_column( const glm::ivec3 &center ) {
+    for ( ;; ) {
+        int best = -1, best_d2 = std::numeric_limits<int>::max( );
+        for ( int s = 0; s < LIGHT_COL_QUEUE_COUNT; s++ ) {
+            if ( light_colq_pending[ s ].load( std::memory_order_relaxed ) <= 0 ||
+                 light_colq_owned[ s ].load( std::memory_order_relaxed ) != 0 ) {
+                continue;
+            }
+            const glm::ivec2 col = light_col_slot_pos( s, center );
+            const glm::ivec2 d = col - glm::ivec2( center.x, center.z );
+            const int d2 = d.x * d.x + d.y * d.y;
+            if ( d2 < best_d2 ) {
+                best_d2 = d2;
+                best = s;
             }
         }
+        if ( best < 0 ) {
+            return -1;
+        }
+        int expected = 0;
+        if ( light_colq_owned[ best ].compare_exchange_strong( expected, 1, std::memory_order_acquire, std::memory_order_relaxed ) ) {
+            return best;
+        }
     }
-    return -1;
 }
-static void light_release_shard( const int shard ) {
-    light_shard_owned[ shard ].store( 0, std::memory_order_release );
-    // Callers notify light_work_cv — waiters re-check pending/shard slots.
+static void light_release_column( const int col ) {
+    light_colq_owned[ col ].store( 0, std::memory_order_release );
+    // Callers notify light_work_cv — waiters re-check pending/owned slots.
 }
 
 // Near-player radius in chunk columns for the priority lanes (seeds below)
@@ -380,9 +418,9 @@ int ChunkLoader::light_seed_gate( const glm::ivec3 &block_pos, const bool near, 
 
 // level is the light value the cell holds at push time; it only determines
 // which bucket the seed lands in (higher first), not what gets propagated.
-// Near-player seeds go to the priority lane drained first by
-// light_process_queue — otherwise they FIFO-mix behind the whole streaming
-// backlog and the chunk under the player updates last.
+// The seed routes to its target column's slot; drainers claim the nearest
+// non-empty slot, so work for the column under the player drains first no
+// matter when it was queued.
 void ChunkLoader::light_add_seed( const glm::ivec3 &block_pos, const int channel, const int level, const bool internal ) {
     const bool near = light_near_center( this->chunk_center, block_pos );
     if ( this->light_seed_gate( block_pos, near, internal ) ) {
@@ -390,15 +428,11 @@ void ChunkLoader::light_add_seed( const glm::ivec3 &block_pos, const int channel
     }
     const int clamped = level < 0 ? 0 : level > LIGHT_MAX_LEVEL ? LIGHT_MAX_LEVEL : level;
     light_dbg_pushes++;
-    const int shard = light_seed_shard( block_pos );
+    const int col = light_col_slot( block_pos );
     {
-        LightSeedGuard guard( shard );
-        if ( near ) {
-            this->light_add_queue_pri[ shard ][ channel ][ clamped ].push_back( { block_pos, static_cast<unsigned char>( channel ) } );
-        } else {
-            this->light_add_queue[ shard ][ channel ][ clamped ].push_back( { block_pos, static_cast<unsigned char>( channel ) } );
-        }
-        light_shard_pending[ shard ].fetch_add( 1, std::memory_order_relaxed );
+        LightSeedGuard guard( col );
+        this->light_add_queue[ col ][ channel ][ clamped ].push_back( { block_pos, static_cast<unsigned char>( channel ) } );
+        light_colq_pending[ col ].fetch_add( 1, std::memory_order_relaxed );
     }
     light_col_incident_inc( block_pos );
     light_bfs_pending_inc( );
@@ -410,15 +444,11 @@ void ChunkLoader::light_push_remove_seed( const glm::ivec3 &block_pos, const int
         return;
     }
     const LightRemoveSeed seed{ block_pos, static_cast<unsigned char>( channel ), static_cast<unsigned char>( old_value ) };
-    const int shard = light_seed_shard( block_pos );
+    const int col = light_col_slot( block_pos );
     {
-        LightSeedGuard guard( shard );
-        if ( near ) {
-            this->light_remove_queue_pri[ shard ].push_back( seed );
-        } else {
-            this->light_remove_queue[ shard ].push_back( seed );
-        }
-        light_shard_pending[ shard ].fetch_add( 1, std::memory_order_relaxed );
+        LightSeedGuard guard( col );
+        this->light_remove_queue[ col ].push_back( seed );
+        light_colq_pending[ col ].fetch_add( 1, std::memory_order_relaxed );
     }
     light_col_incident_inc( block_pos );
     light_bfs_pending_inc( );
@@ -632,7 +662,7 @@ static void light_col_lock_release( const int idx ) {
 
 // Queued BFS seeds per column (same hash domain as the locks — collisions
 // just over-count, which is conservative). Incremented when a seed enters
-// a shard queue, decremented when one is popped. A column with incident
+// a column queue, decremented when one is popped. A column with incident
 // seeds is mid-flood: the upload debounce holds its chunks back entirely
 // (a floor-write → respread gap under a deep backlog is far longer than
 // the write-quiet window, so counting pending work is what actually
@@ -671,8 +701,7 @@ static int light_claim_cols( const int cx, const int cz, int out[ 9 ] ) {
 // only extend toward the border the cell sits on, so the footprint can
 // never leave pos's column neighborhood). Vertical neighbors/mirrors stay
 // inside the column (same cx,cz).
-// Entries: hashed lock index + column coords (needed to route a contested
-// seed to the shard owning the colliding column). Sorted by index so
+// Entries: hashed lock index + column coords. Sorted by index so
 // multi-lock acquires share one global order; coord lookups stay aligned.
 struct LightPopCol {
     int idx;
@@ -1172,42 +1201,22 @@ void ChunkLoader::light_remove_step( const LightRemoveSeed &seed ) {
 // bucket so a lock-contested seed can be re-queued at the back of the same
 // bucket (level order is preserved; the seed just skips ahead of the
 // contested region until next pass).
-int ChunkLoader::light_pop_seed( const int shard, LightSeed &add_out, LightRemoveSeed &rem_out, int &level, bool &pri ) {
-    // Near-player lanes first: the chunk ring around the player converges
-    // during streaming instead of when the far backlog finally empties.
-    if ( !this->light_remove_queue_pri[ shard ].empty( ) ) {
-        rem_out = this->light_remove_queue_pri[ shard ].front( );
-        this->light_remove_queue_pri[ shard ].pop_front( );
-        pri = true;
+int ChunkLoader::light_pop_seed( const int col, LightSeed &add_out, LightRemoveSeed &rem_out, int &level ) {
+    // Removes first (clear before re-add), then adds highest-level-first:
+    // a cell that pops a high seed can't be offered a better value later
+    // (any better offer would route through a higher-level seed that was
+    // already processed), so each cell settles once.
+    if ( !this->light_remove_queue[ col ].empty( ) ) {
+        rem_out = this->light_remove_queue[ col ].front( );
+        this->light_remove_queue[ col ].pop_front( );
         return 2;
     }
     for ( level = LIGHT_MAX_LEVEL; level >= 0; level-- ) {
         for ( int ch = 0; ch < 2; ch++ ) {
-            std::deque<LightSeed> &bucket = this->light_add_queue_pri[ shard ][ ch ][ level ];
+            std::deque<LightSeed> &bucket = this->light_add_queue[ col ][ ch ][ level ];
             if ( !bucket.empty( ) ) {
                 add_out = bucket.front( );
                 bucket.pop_front( );
-                pri = true;
-                return 1;
-            }
-        }
-    }
-    if ( !this->light_remove_queue[ shard ].empty( ) ) {
-        rem_out = this->light_remove_queue[ shard ].front( );
-        this->light_remove_queue[ shard ].pop_front( );
-        pri = false;
-        return 2;
-    }
-    // Highest-level-first: a cell that pops here can't be offered a better
-    // value later (any better offer would route through a higher-level
-    // seed that was already processed), so each cell settles once.
-    for ( level = LIGHT_MAX_LEVEL; level >= 0; level-- ) {
-        for ( int ch = 0; ch < 2; ch++ ) {
-            std::deque<LightSeed> &bucket = this->light_add_queue[ shard ][ ch ][ level ];
-            if ( !bucket.empty( ) ) {
-                add_out = bucket.front( );
-                bucket.pop_front( );
-                pri = false;
                 return 1;
             }
         }
@@ -1215,13 +1224,14 @@ int ChunkLoader::light_pop_seed( const int shard, LightSeed &add_out, LightRemov
     return 0;
 }
 
-// Drain `shard`'s seed queues for up to budget_us. Caller must hold the
-// shard's ownership slot (light_claim_shard) — pops and pushes take the
-// shard's seed lock, so this is what serializes the deque ops.
-void ChunkLoader::light_process_queue( const long long budget_us, const int shard ) {
+// Drain column slot `col`'s seed queues for up to budget_us. Caller must
+// hold the slot's ownership flag (light_claim_column) — pops and pushes
+// take the slot's queue lock, so this is what serializes the deque ops.
+void ChunkLoader::light_process_queue( const long long budget_us, const int col ) {
     const long long start = light_now_us( );
     light_dbg_pq_calls++;
     int iters = 0;
+    int contested = 0;
     for ( ;; ) {
         // The budget check runs once per pop — steady_clock is a ~20ns vDSO
         // read and drains pop millions of seeds, so sample it every 64 pops
@@ -1233,15 +1243,14 @@ void ChunkLoader::light_process_queue( const long long budget_us, const int shar
         LightSeed add_seed;
         LightRemoveSeed rem_seed;
         int level = 0;
-        bool pri = false;
         int kind;
         {
-            LightSeedGuard guard( shard );
-            kind = this->light_pop_seed( shard, add_seed, rem_seed, level, pri );
+            LightSeedGuard guard( col );
+            kind = this->light_pop_seed( col, add_seed, rem_seed, level );
             if ( kind == 0 ) {
                 break;
             }
-            light_shard_pending[ shard ].fetch_sub( 1, std::memory_order_relaxed );
+            light_colq_pending[ col ].fetch_sub( 1, std::memory_order_relaxed );
             light_bfs_pending--;
             light_dbg_pops++;
         }
@@ -1262,27 +1271,32 @@ void ChunkLoader::light_process_queue( const long long budget_us, const int shar
                 light_col_lock_release( cols[ i ].idx );
             }
             light_dbg_requeued++;
-            // Two contention sources: a claim (lock held ~ms — re-queue so
-            // the seed resurfaces after other work) or a neighbor drainer's
-            // pop (lock held ~µs, but its sweep keeps the seam hot — a
-            // re-queued seed just bounces again ~half the time). Instead
-            // migrate the seed to the shard containing the contested
-            // column: that drainer is sweeping right there, so the seed
-            // lands in a hot queue next to its spatial neighbours and
-            // merges into the local frontier instead of ping-ponging.
-            const int mig = light_col_shard( cols[ held ].cx, cols[ held ].cz );
-            LightSeedGuard guard( mig );
-            if ( kind == 1 ) {
-                ( pri ? this->light_add_queue_pri[ mig ][ add_seed.channel ][ level ] : this->light_add_queue[ mig ][ add_seed.channel ][ level ] )
-                    .push_back( add_seed );
-            } else {
-                ( pri ? this->light_remove_queue_pri[ mig ] : this->light_remove_queue[ mig ] ).push_back( rem_seed );
+            // The contested column belongs to a neighbor's footprint (a
+            // claim or a drainer sweeping the shared edge). The seed has to
+            // live in its own column's queue — incident accounting and the
+            // pop's get_chunk check are keyed to the target — so push it to
+            // the BACK of its level bucket: it rotates behind this column's
+            // other seeds, which likely touch columns the neighbor isn't
+            // holding. If the whole column is contested the neighbor is
+            // sweeping our shared edge; release the slot early and let a
+            // later claim retry once the sweep has moved on.
+            {
+                LightSeedGuard guard( col );
+                if ( kind == 1 ) {
+                    this->light_add_queue[ col ][ add_seed.channel ][ level ].push_back( add_seed );
+                } else {
+                    this->light_remove_queue[ col ].push_back( rem_seed );
+                }
+                light_colq_pending[ col ].fetch_add( 1, std::memory_order_relaxed );
             }
-            light_shard_pending[ mig ].fetch_add( 1, std::memory_order_relaxed );
             light_bfs_pending.fetch_add( 1, std::memory_order_relaxed );
             light_col_incident_inc( pos ); // re-enqueued: pairs the pop's dec
+            if ( ++contested > 256 ) {
+                break;
+            }
             continue;
         }
+        contested = 0;
         if ( kind == 1 ) {
             this->light_add_step( add_seed );
         } else {
@@ -1298,10 +1312,10 @@ void ChunkLoader::light_process_queue( const long long budget_us, const int shar
     this->light_flush_deferred_marks( );
 }
 
-// All-shards variant for single-threaded callers (tests, no-thread fallback):
-// drains every shard up to budget_us each.
+// All-columns variant for single-threaded callers (tests, no-thread
+// fallback): drains every column slot up to budget_us each.
 void ChunkLoader::light_process_queue( const long long budget_us ) {
-    for ( int s = 0; s < LIGHT_BFS_SHARDS; s++ ) {
+    for ( int s = 0; s < LIGHT_COL_QUEUE_COUNT; s++ ) {
         this->light_process_queue( budget_us, s );
     }
 }
@@ -2911,11 +2925,11 @@ void ChunkLoader::light_heal_chunk( Chunk &chunk, const glm::ivec3 &center ) {
         this->light_submit_finalize( chunk );
         return;
     }
-    // Near chunks still catching up on queued seed work (pushed while far,
-    // so they sit behind the whole normal backlog — seeds don't get the
-    // job-lane re-promotion): re-finalize the chunk at near priority. The
-    // fill+cascade+border pass converges it immediately; its buried seeds
-    // then just no-op when popped. Idempotent and bounded per shift.
+    // Near chunks still catching up on queued seed work: re-finalizing the
+    // chunk converges it deterministically (fill+cascade+border under one
+    // claim) instead of waiting for its seeds to drain one by one —
+    // measured ~2x faster tail convergence than relying on the per-column
+    // drain order alone. Idempotent and bounded per shift.
     if ( !chunk.light_finalized.load( std::memory_order_relaxed ) || this->light_heal_budget <= 0 ) {
         return;
     }
@@ -3010,15 +3024,16 @@ void ChunkLoader::light_submit_recheck( const glm::ivec3 &block_pos ) {
     }
     if ( light_bfs_pending.load( ) > 0 ) {
         // Drain our own seeds inline — they mostly land in the recheck's own
-        // shard. If a worker already owns it, it will handle them; pops also
-        // serialize per-column against claims, so this is safe either way.
-        const int shard = light_seed_shard( block_pos );
+        // column slot. If a worker already owns it, it will handle them; pops
+        // also serialize per-column against claims, so this is safe either
+        // way.
+        const int col_slot = light_col_slot( block_pos );
         int expected = 0;
-        if ( light_shard_owned[ shard ].compare_exchange_strong( expected, 1, std::memory_order_acquire, std::memory_order_relaxed ) ) {
+        if ( light_colq_owned[ col_slot ].compare_exchange_strong( expected, 1, std::memory_order_acquire, std::memory_order_relaxed ) ) {
             light_drain_count++;
-            this->light_process_queue( 2000, shard );
+            this->light_process_queue( 2000, col_slot );
             light_drain_count--;
-            light_release_shard( shard );
+            light_release_column( col_slot );
             {
                 std::lock_guard<std::mutex> lock( light_work_mutex );
                 // Clear any priority window too: it exists to get a drainer
@@ -3092,10 +3107,12 @@ void ChunkLoader::light_thread_loop( ) {
                         return true;
                     }
                 }
-                // Runnable seed work = a nonempty shard nobody owns yet.
-                for ( int s = 0; s < LIGHT_BFS_SHARDS; s++ ) {
-                    if ( light_shard_pending[ s ].load( std::memory_order_relaxed ) > 0 &&
-                         light_shard_owned[ s ].load( std::memory_order_relaxed ) == 0 ) {
+                // Runnable seed work = a nonempty column slot nobody owns
+                // yet. 289 relaxed loads in the wait predicate is fine —
+                // it only runs when a worker actually wakes.
+                for ( int s = 0; s < LIGHT_COL_QUEUE_COUNT; s++ ) {
+                    if ( light_colq_pending[ s ].load( std::memory_order_relaxed ) > 0 &&
+                         light_colq_owned[ s ].load( std::memory_order_relaxed ) == 0 ) {
                         return true;
                     }
                 }
@@ -3228,22 +3245,25 @@ void ChunkLoader::light_thread_loop( ) {
             }
             light_work_cv.notify_all( );
         } else if ( want_drain ) {
-            // Bounded slices on one claimed shard at a time; keep draining
-            // while no jobs/pending are waiting — other workers drain other
-            // shards concurrently. In a priority window jobs are
-            // claim-blocked anyway: drain to the low watermark or the time
-            // cap, whichever first. A starve-triggered window drains to
-            // empty (bounded by a shorter cap) — the backlog it interrupts
-            // is old, not small, so the cap bounds the hitch.
+            // Bounded slices on one claimed column slot at a time; keep
+            // draining while no jobs/pending are waiting — other workers
+            // drain other columns concurrently. light_claim_column picks
+            // the nearest pending slot each slice, so the region around the
+            // player converges first and reprioritization on movement is
+            // free. In a priority window jobs are claim-blocked anyway:
+            // drain to the low watermark or the time cap, whichever first.
+            // A starve-triggered window drains to empty (bounded by a
+            // shorter cap) — the backlog it interrupts is old, not small,
+            // so the cap bounds the hitch.
             light_drain_count++;
             const long long pri_start = light_now_us( );
             for ( ;; ) {
-                const int shard = light_claim_shard( );
-                if ( shard < 0 ) {
+                const int col_slot = light_claim_column( this->chunk_center );
+                if ( col_slot < 0 ) {
                     break;
                 }
-                this->light_process_queue( 2000, shard );
-                light_release_shard( shard );
+                this->light_process_queue( 2000, col_slot );
+                light_release_column( col_slot );
                 bool stop_drain = false;
                 {
                     std::lock_guard<std::mutex> lock( light_work_mutex );
@@ -3388,17 +3408,16 @@ void ChunkLoader::light_thread_stop( ) {
         light_dbg_max_lag_us = 0;
         light_dbg_late_jobs = 0;
         light_dbg_max_lag_near_us = 0;
-        for ( int s = 0; s < LIGHT_BFS_SHARDS; s++ ) {
+        for ( int s = 0; s < LIGHT_COL_QUEUE_COUNT; s++ ) {
             for ( int ch = 0; ch < 2; ch++ ) {
                 for ( int level = 0; level <= LIGHT_MAX_LEVEL; level++ ) {
                     this->light_add_queue[ s ][ ch ][ level ].clear( );
-                    this->light_add_queue_pri[ s ][ ch ][ level ].clear( );
                 }
             }
             this->light_remove_queue[ s ].clear( );
-            this->light_remove_queue_pri[ s ].clear( );
-            light_shard_pending[ s ] = 0;
-            light_shard_owned[ s ] = 0;
+            light_colq_pending[ s ] = 0;
+            light_colq_owned[ s ] = 0;
+            light_colq_locks[ s ] = 0;
         }
         light_bfs_pending = 0;
         light_deferred_marks.clear( );
