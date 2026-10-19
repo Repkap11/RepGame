@@ -24,7 +24,7 @@ int test_ecs( ) {
 }
 
 // Builds a World backed by a single loaded chunk at the origin (no GL needed:
-// chunk.blocks is a plain array and Chunk::init's GL work is lazy). Positions
+// chunk.cells is a plain array and Chunk::init's GL work is lazy). Positions
 // outside that chunk read LAST_BLOCK_ID like an unloaded chunk.
 void test_setup_world( World &world ) {
     ChunkLoader &cl = world.chunkLoader;
@@ -33,7 +33,7 @@ void test_setup_world( World &world ) {
     chunk.chunk_pos = glm::ivec3( 0, 0, 0 );
     chunk.chunk_mod = glm::ivec3( 0, 0, 0 );
     chunk.is_loading = 0;
-    chunk.blocks = new BlockState[ CHUNK_BLOCK_SIZE ]( );
+    chunk.cells = chunk_alloc_cells( );
 }
 
 // Checks the power level at a position, printing a line per check. Returns the
@@ -545,7 +545,7 @@ int test_lighting( ) {
     // neighbor columns. Writing the block directly (not set_loaded_block)
     // keeps it out of the recheck path, which would seed around it and mask
     // the scan; light_finalize_chunk is the path terrain features take.
-    chunk.blocks[ chunk.get_index_from_coords( 5, 30, 5 ) ] = stone;
+    chunk.store_state( chunk.get_index_from_coords( 5, 30, 5 ), stone );
     cl.light_ensure_columns( chunk );
     cl.light_compute_one_column( chunk, 5, 5 );
 
@@ -572,7 +572,7 @@ int test_lighting( ) {
     // before finalize, so the cascade fills nothing (cells_filled==0) — the
     // interior boundary scan must still seed canopy-shaded cells or they
     // stay dark until an unrelated edit. light_fill_chunk is the path the
-    // terrain worker takes (the canopy stone is still in blocks[]).
+    // terrain worker takes (the canopy stone is still in cells[]).
     light_fill_chunk( chunk );
     cl.light_finalize_chunk( chunk );
     cl.light_process_queue( 1000000 );

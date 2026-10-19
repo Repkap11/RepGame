@@ -90,7 +90,7 @@ void MapGen::load_block_c( const Chunk *chunk ) {
                 const int index = Chunk::get_index_from_coords( offset - chunk_offset );
 #include "common/map_logic.hpp"
 
-                chunk->blocks[ index ] = { finalBlockId, BLOCK_ROTATE_0, 0, finalBlockId, 0 }; // Assumes all blocks don't spawn with redstone power
+                chunk->cells[ index ] = static_cast<BlockCell>( finalBlockId ); // Canonical state; waterlogged bit 0. Assumes no block spawns with redstone power.
             }
         }
     }
@@ -100,7 +100,7 @@ void MapGen::load_block_c( const Chunk *chunk ) {
 int MapGen::supports_cuda( ) {
     return 0;
 }
-void map_gen_load_block_cuda( glm::ivec3 *chunk_pos, BlockState *blocks ) {
+void map_gen_load_block_cuda( glm::ivec3 *chunk_pos, BlockCell *cells ) {
 }
 void MapGen::load_block_cuda( Chunk *chunk ) {
 }
@@ -112,8 +112,7 @@ int MapGen::supports_cuda( ) {
 
 void MapGen::load_block_cuda( Chunk *chunk ) {
     glm::ivec3 *chunk_pos = &chunk->chunk_pos;
-    BlockState *blocks = chunk->blocks;
-    map_gen_load_block_cuda( chunk_pos, blocks );
+    map_gen_load_block_cuda( chunk_pos, chunk->cells );
 }
 
 #endif
@@ -122,7 +121,7 @@ void MapGen::load_block_cuda( Chunk *chunk ) {
 int MapGen::supports_hip( ) {
     return 0;
 }
-bool map_gen_load_block_hip( glm::ivec3 *chunk_pos, BlockState *blocks ) {
+bool map_gen_load_block_hip( glm::ivec3 *chunk_pos, BlockCell *cells ) {
     return false;
 }
 bool MapGen::load_block_hip( Chunk *chunk ) {
@@ -142,8 +141,7 @@ int MapGen::supports_hip( ) {
 
 bool MapGen::load_block_hip( Chunk *chunk ) {
     glm::ivec3 *chunk_pos = &chunk->chunk_pos;
-    BlockState *blocks = chunk->blocks;
-    return map_gen_load_block_hip( chunk_pos, blocks );
+    return map_gen_load_block_hip( chunk_pos, chunk->cells );
 }
 
 #endif

@@ -78,9 +78,9 @@ class Chunk;
 void light_fill_chunk( Chunk &chunk );
 
 // Stamps one bit of chunk.light_air_mask (the air-mask cache the light
-// texture upload reads instead of walking blocks[]) for a post-fill blocks[]
+// texture upload reads instead of walking cells[]) for a post-fill cells[]
 // write — Chunk::set_block and Chunk::set_block_by_index_if_different call
 // this after every real write. Bit set = !light_opaque_id(id), the same
 // predicate the fill/upload use. No-op when the mask isn't allocated, so a
-// missing mask always means "upload falls back to the blocks[] walk".
+// missing mask always means "upload falls back to the cells[] walk".
 void light_air_mask_set( const Chunk &chunk, int index, BlockID id );

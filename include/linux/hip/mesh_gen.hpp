@@ -28,5 +28,7 @@ static_assert( sizeof( MeshResult ) == sizeof( WorkingSpace ), "MeshResult must 
 bool mesh_gen_init_hip( );
 
 // Calculate visibility + lighting on GPU. Results written directly into workingSpace.
-// Returns true on success, false if HIP not available (caller falls back to CPU).
-bool mesh_gen_calculate_hip( const BlockState *blocks, WorkingSpace *workingSpace );
+// Only cells are uploaded — rotation and the powered flag ride in the cell
+// word, so extras stay host-side. Returns true on success,
+// false if HIP not available (caller falls back to CPU).
+bool mesh_gen_calculate_hip( const BlockCell *cells, WorkingSpace *workingSpace );

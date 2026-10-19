@@ -720,7 +720,7 @@ void World::fixup_chunk( const Chunk &chunk, const glm::ivec3 &offset, const glm
         fixupChunk.dirty = 1;
         fixupChunk.needs_repopulation = 1;
         this->chunkLoader.repop_must_enqueue( fixupChunk );
-        if ( fixupChunk.is_empty_chunk && fixupChunk.blocks ) {
+        if ( fixupChunk.is_empty_chunk && fixupChunk.cells ) {
             // The write materialized content into an all-air chunk — same
             // transition as the primary edit path (world.cpp's set_block
             // site): clear the empty flag and flag it drawable so the remesh

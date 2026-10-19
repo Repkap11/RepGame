@@ -39,19 +39,29 @@ __device__ static inline int get_index_from_coords_d( int x, int y, int z ) {
     return ( y + 1 ) * CHUNK_SIZE_INTERNAL_X * CHUNK_SIZE_INTERNAL_Z + ( x + 1 ) * CHUNK_SIZE_INTERNAL_Z + ( z + 1 );
 }
 
+// Rotation lives in the cell word (bits [11:13]) and power is only needed
+// as a boolean (bit 14 — powered), so the kernel consumes cells alone;
+// extras are never uploaded to the GPU.
+__device__ static inline int cell_rotation_d( const BlockCell cell ) {
+    return ( cell & BLOCK_CELL_ROT_MASK ) >> BLOCK_CELL_ROT_SHIFT;
+}
+__device__ static inline int cell_powered_d( const BlockCell cell ) {
+    return ( cell & BLOCK_CELL_POWERED ) != 0;
+}
+
 // Mirror of face_is_seethrough in chunk.cpp: a powered piston base recesses
 // 4px at its head end, so every def-space face except the covered back face
 // lets neighbor faces show through. Only used for covering-block lookups.
-__device__ static inline int face_is_seethrough_d( const GPUBlockDef &block, const BlockState &state, int face ) {
-    if ( block.is_piston && state.current_redstone_power > 0 ) {
+__device__ static inline int face_is_seethrough_d( const GPUBlockDef &block, int power, int rotation, int face ) {
+    if ( block.is_piston && power > 0 ) {
         // piston_base_covered_face: 0-3 -> FACE_BACK, 4 -> FACE_BOTTOM, 5 -> FACE_TOP
-        int covered = state.rotation >= 4 ? ( state.rotation == 4 ? FACE_BOTTOM_D : FACE_TOP_D ) : FACE_BACK_D;
+        int covered = rotation >= 4 ? ( rotation == 4 ? FACE_BOTTOM_D : FACE_TOP_D ) : FACE_BACK_D;
         return face != covered;
     }
     return block.is_seethrough_face[ face ];
 }
 
-__global__ void hip_calculate_mesh_kernel( const BlockState *blocks,
+__global__ void hip_calculate_mesh_kernel( const BlockCell *cells,
                                             const GPUBlockDef *block_defs,
                                             MeshResult *results ) {
     int index = blockIdx.x * blockDim.x + threadIdx.x;
@@ -67,8 +77,9 @@ __global__ void hip_calculate_mesh_kernel( const BlockState *blocks,
     if ( x < 0 || y < 0 || z < 0 || x >= CHUNK_SIZE_X || y >= CHUNK_SIZE_Y || z >= CHUNK_SIZE_Z )
         return;
 
-    BlockState blockState = blocks[ index ];
-    GPUBlockDef block = block_defs[ blockState.id ];
+    const BlockCell cell = cells[ index ];
+    const int block_id = cell & BLOCK_CELL_ID_MASK;
+    GPUBlockDef block = block_defs[ block_id ];
 
     // render_order_is_visible: renderOrder != RenderOrder_Transparent
     results[ index ].visible = ( block.renderOrder != RENDER_ORDER_TRANSPARENT );
@@ -78,25 +89,26 @@ __global__ void hip_calculate_mesh_kernel( const BlockState *blocks,
         return;
     }
 
+    const int block_rotation = cell_rotation_d( cell );
     int block_is_visiable = 0;
     int visible_from[ 6 ] = { 0, 0, 0, 0, 0, 0 };
 
     for ( int face = 0; face < 6; face++ ) {
-        int rotated_face = ROTATED_FACE_TABLE_D[ blockState.rotation & 3 ][ face ];
+        int rotated_face = ROTATED_FACE_TABLE_D[ block_rotation & 3 ][ face ];
         int neighbor_idx = get_index_from_coords_d( x + FACE_DIR_X[ face ], y + FACE_DIR_Y[ face ], z + FACE_DIR_Z[ face ] );
-        BlockState neighbor_state = blocks[ neighbor_idx ];
-        GPUBlockDef neighbor_block = block_defs[ neighbor_state.id ];
+        const BlockCell neighbor_cell = cells[ neighbor_idx ];
+        GPUBlockDef neighbor_block = block_defs[ neighbor_cell & BLOCK_CELL_ID_MASK ];
 
-        int opposing_face = OPPOSITE_FACE_D[ ROTATED_FACE_TABLE_D[ neighbor_state.rotation & 3 ][ face ] ];
+        int opposing_face = OPPOSITE_FACE_D[ ROTATED_FACE_TABLE_D[ cell_rotation_d( neighbor_cell ) & 3 ][ face ] ];
 
         int is_seethrough = block.is_seethrough_face[ rotated_face ];
         if ( is_seethrough && block.hides_self[ rotated_face ] ) {
             // Waterlogged cells count as water: no surface faces against them.
-            int liquid_boundary = ( block.renderOrder == RENDER_ORDER_WATER && neighbor_state.waterlogged );
+            int liquid_boundary = ( block.renderOrder == RENDER_ORDER_WATER && ( neighbor_cell >> 15 ) );
             if ( face == FACE_TOP_D && block.renderOrder == RENDER_ORDER_WATER ) {
                 visible_from[ face ] = ( neighbor_block.id != block.id && !liquid_boundary );
             } else {
-                visible_from[ face ] = ( face_is_seethrough_d( neighbor_block, neighbor_state, opposing_face ) && neighbor_state.id != blockState.id && !liquid_boundary );
+                visible_from[ face ] = ( face_is_seethrough_d( neighbor_block, cell_powered_d( neighbor_cell ), cell_rotation_d( neighbor_cell ), opposing_face ) && (int)( neighbor_cell & BLOCK_CELL_ID_MASK ) != block_id && !liquid_boundary );
             }
         } else if ( is_seethrough ) {
             int visable_through_opposing = 0;
@@ -104,17 +116,17 @@ __global__ void hip_calculate_mesh_kernel( const BlockState *blocks,
                 if ( face_around == opposing_face )
                     continue;
                 int around_idx = get_index_from_coords_d( x + FACE_DIR_X[ face_around ], y + FACE_DIR_Y[ face_around ], z + FACE_DIR_Z[ face_around ] );
-                BlockState block_around_state = blocks[ around_idx ];
-                GPUBlockDef block_around = block_defs[ block_around_state.id ];
-                int around_face = OPPOSITE_FACE_D[ ROTATED_FACE_TABLE_D[ block_around_state.rotation & 3 ][ face_around ] ];
-                if ( face_is_seethrough_d( block_around, block_around_state, around_face ) ) {
+                const BlockCell around_cell = cells[ around_idx ];
+                GPUBlockDef block_around = block_defs[ around_cell & BLOCK_CELL_ID_MASK ];
+                int around_face = OPPOSITE_FACE_D[ ROTATED_FACE_TABLE_D[ cell_rotation_d( around_cell ) & 3 ][ face_around ] ];
+                if ( face_is_seethrough_d( block_around, cell_powered_d( around_cell ), cell_rotation_d( around_cell ), around_face ) ) {
                     visable_through_opposing = 1;
                     break;
                 }
             }
             visible_from[ face ] = visable_through_opposing;
         } else {
-            visible_from[ face ] = face_is_seethrough_d( neighbor_block, neighbor_state, opposing_face );
+            visible_from[ face ] = face_is_seethrough_d( neighbor_block, cell_powered_d( neighbor_cell ), cell_rotation_d( neighbor_cell ), opposing_face );
         }
         block_is_visiable |= visible_from[ face ];
     }
@@ -140,7 +152,7 @@ static bool mesh_gen_initialized = false;
 static std::mutex mesh_gen_init_mutex;
 
 // Thread-local device buffers for per-chunk operations
-static thread_local BlockState *d_blocks = nullptr;
+static thread_local BlockCell *d_cells = nullptr;
 static thread_local MeshResult *d_results = nullptr;
 
 #define MESH_THREADS_PER_BLOCK 256
@@ -183,25 +195,28 @@ bool mesh_gen_init_hip( ) {
     return true;
 }
 
-bool mesh_gen_calculate_hip( const BlockState *blocks, WorkingSpace *workingSpace ) {
+bool mesh_gen_calculate_hip( const BlockCell *cells, WorkingSpace *workingSpace ) {
+    if ( cells == nullptr )
+        return false;
     if ( !mesh_gen_init_hip( ) )
         return false;
 
     // Allocate thread-local device buffers on first use
-    if ( !d_blocks ) {
-        HIP_CHECK( hipMalloc( &d_blocks, CHUNK_BLOCK_SIZE * sizeof( BlockState ) ) );
+    if ( !d_cells ) {
+        HIP_CHECK( hipMalloc( &d_cells, CHUNK_BLOCK_SIZE * sizeof( BlockCell ) ) );
         HIP_CHECK( hipMalloc( &d_results, CHUNK_BLOCK_SIZE * sizeof( MeshResult ) ) );
     }
 
-    // Upload block data
-    HIP_CHECK( hipMemcpy( d_blocks, blocks, CHUNK_BLOCK_SIZE * sizeof( BlockState ), hipMemcpyHostToDevice ) );
+    // Upload cell data — the powered flag (bit 14) and rotation (bits
+    // [11:13]) ride in the cell word, so extras are never needed on-GPU.
+    HIP_CHECK( hipMemcpy( d_cells, cells, CHUNK_BLOCK_SIZE * sizeof( BlockCell ), hipMemcpyHostToDevice ) );
 
     // Zero results (border blocks must be zeroed)
     HIP_CHECK( hipMemset( d_results, 0, CHUNK_BLOCK_SIZE * sizeof( MeshResult ) ) );
 
     // Launch kernel
     int num_blocks = ( CHUNK_BLOCK_SIZE + MESH_THREADS_PER_BLOCK - 1 ) / MESH_THREADS_PER_BLOCK;
-    hip_calculate_mesh_kernel<<<num_blocks, MESH_THREADS_PER_BLOCK>>>( d_blocks, d_block_defs, d_results );
+    hip_calculate_mesh_kernel<<<num_blocks, MESH_THREADS_PER_BLOCK>>>( d_cells, d_block_defs, d_results );
 
     // Wait for kernel to complete before reading back
     HIP_CHECK( hipDeviceSynchronize( ) );

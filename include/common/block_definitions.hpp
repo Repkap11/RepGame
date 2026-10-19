@@ -1,5 +1,7 @@
 #pragma once
 
+#include <cstdint>
+
 #include "constants.hpp"
 #include "renderer/texture.hpp"
 #include "common/render_order.hpp"
@@ -475,6 +477,86 @@ static inline bool BlockStates_equal( const BlockState &a, const BlockState &b )
     // Memcmp DOESN'T work, since there can be space inbetween the two structs!
     // return !memcmp( &a, &b, sizeof( BlockState ) );
     return a.id == b.id && a.display_id == b.display_id && a.rotation == b.rotation && a.current_redstone_power == b.current_redstone_power && a.waterlogged == b.waterlogged;
+}
+
+// ---- Split per-cell chunk storage -----------------------------------------
+// A chunk's cells live in two arrays sharing the same index space (the
+// z-fastest Chunk::get_index_from_coords layout):
+//
+//   cells[i]  (BlockCell, u16): bits [0:10] = BlockID, bits [11:13] =
+//             rotation (0-7, covering BLOCK_ROTATE_* and attachment
+//             rotations), bit 14 = powered (power > 0 — the mesh visibility
+//             pass only needs power as a boolean), bit 15 = waterlogged.
+//             This is the hot array — terrain gen, lighting opacity scans,
+//             and the mesh visibility pass stream only this word per cell;
+//             the GPU mesh kernel consumes cells alone and extras are never
+//             uploaded.
+//
+//   extras[i] (BlockExtra, lazily allocated per chunk): the rarely-needed
+//             state — display_id and the exact redstone power value.
+//             extras == nullptr means every cell is canonical (power 0,
+//             display_id == id), which describes all generated terrain and
+//             most player-modified chunks, so they carry only the 2-byte
+//             cells array. Host-side only: gameplay/persistence read the
+//             real power via state_at; rendering uses the powered bit.
+//
+// BlockState remains the API value type (get_block/set_block, events, wire
+// and save formats); the split is purely how chunks store it.
+typedef uint16_t BlockCell;
+#define BLOCK_CELL_ID_MASK 0x07FFu
+#define BLOCK_CELL_ROT_SHIFT 11
+#define BLOCK_CELL_ROT_MASK 0x3800u
+#define BLOCK_CELL_POWERED 0x4000u
+#define BLOCK_CELL_WATERLOGGED 0x8000u
+
+struct __attribute__( ( packed ) ) BlockExtra {
+    uint16_t display_id;
+    uint8_t redstone_power;
+};
+
+static_assert( LAST_BLOCK_ID <= BLOCK_CELL_ID_MASK, "BlockID no longer fits in BlockCell" );
+
+static inline BlockID block_cell_id( const BlockCell cell ) {
+    return static_cast<BlockID>( cell & BLOCK_CELL_ID_MASK );
+}
+static inline unsigned char block_cell_rotation( const BlockCell cell ) {
+    return static_cast<unsigned char>( ( cell & BLOCK_CELL_ROT_MASK ) >> BLOCK_CELL_ROT_SHIFT );
+}
+static inline unsigned char block_cell_waterlogged( const BlockCell cell ) {
+    return static_cast<unsigned char>( cell >> 15 );
+}
+static inline int block_cell_powered( const BlockCell cell ) {
+    return ( cell & BLOCK_CELL_POWERED ) != 0;
+}
+static inline BlockCell block_cell_pack( const BlockID id, const int waterlogged, const int rotation = 0, const int powered = 0 ) {
+    return static_cast<BlockCell>( ( static_cast<uint16_t>( id ) & BLOCK_CELL_ID_MASK ) |
+                                   ( ( static_cast<uint16_t>( rotation ) & 0x7 ) << BLOCK_CELL_ROT_SHIFT ) |
+                                   ( powered ? BLOCK_CELL_POWERED : 0 ) |
+                                   ( waterlogged ? BLOCK_CELL_WATERLOGGED : 0 ) );
+}
+
+// Whether `s` is the default state for its id — the value a cell reads back
+// when it has no extras entry.
+static inline bool block_state_is_canonical( const BlockState &s ) {
+    return s.current_redstone_power == 0 && s.display_id == s.id;
+}
+static inline BlockExtra block_state_pack_extra( const BlockState &s ) {
+    BlockExtra e;
+    e.display_id = static_cast<uint16_t>( s.display_id );
+    const int p = s.current_redstone_power;
+    e.redstone_power = static_cast<uint8_t>( p < 0 ? 0 : ( p > 255 ? 255 : p ) );
+    return e;
+}
+// Assemble a BlockState from the split arrays; `extra` is nullptr when the
+// chunk has no extras array (all-canonical) or the cell is canonical.
+static inline BlockState block_state_unpack( const BlockCell cell, const BlockExtra *extra ) {
+    const BlockID id = block_cell_id( cell );
+    BlockState s = { id, block_cell_rotation( cell ), 0, id, block_cell_waterlogged( cell ) };
+    if ( extra ) {
+        s.current_redstone_power = extra->redstone_power;
+        s.display_id = static_cast<BlockID>( extra->display_id );
+    }
+    return s;
 }
 
 // Applies the waterlogging rules for writing `state` into a cell currently

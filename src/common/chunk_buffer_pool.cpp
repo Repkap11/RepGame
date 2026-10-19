@@ -11,10 +11,12 @@
 // first touch) every time, which slots recycling between terrain (allocated)
 // and air (freed) chunks would otherwise pay constantly. thread_local means
 // no locking; a buffer freed on a different thread just joins that thread's
-// pool. The cap bounds retained memory (8 * ~3.7MB for blocks per thread).
+// pool. The cap bounds retained memory (8 * ~0.5MB cells / ~1MB extras per
+// thread).
 namespace {
 constexpr int CHUNK_BUF_POOL_MAX = 8;
-thread_local std::vector<void *> s_pool_blocks;
+thread_local std::vector<void *> s_pool_cells;
+thread_local std::vector<void *> s_pool_extras;
 thread_local std::vector<void *> s_pool_light;
 thread_local std::vector<void *> s_pool_light_columns;
 thread_local std::vector<void *> s_pool_air_mask;
@@ -46,11 +48,18 @@ static void chunk_pool_put( std::vector<void *> &pool, void *p ) {
 }
 } // namespace
 
-BlockState *chunk_alloc_blocks( ) {
-    return chunk_pool_get<BlockState>( s_pool_blocks, CHUNK_BLOCK_SIZE * sizeof( BlockState ), true );
+BlockCell *chunk_alloc_cells( ) {
+    return chunk_pool_get<BlockCell>( s_pool_cells, CHUNK_BLOCK_SIZE * sizeof( BlockCell ), true );
 }
-void chunk_free_blocks( BlockState *p ) {
-    chunk_pool_put( s_pool_blocks, p );
+void chunk_free_cells( BlockCell *p ) {
+    chunk_pool_put( s_pool_cells, p );
+}
+BlockExtra *chunk_alloc_extras( ) {
+    // Callers rewrite every entry (materialize_extras fills from cells[]).
+    return chunk_pool_get<BlockExtra>( s_pool_extras, CHUNK_BLOCK_SIZE * sizeof( BlockExtra ), false );
+}
+void chunk_free_extras( BlockExtra *p ) {
+    chunk_pool_put( s_pool_extras, p );
 }
 unsigned char *chunk_alloc_light( ) {
     // Callers always rewrite the volume (fill memset/materialize memset).

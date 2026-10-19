@@ -20,7 +20,7 @@
 // Flood-fill lighting engine.
 //
 // Chunk::light[] is a byte per cell over the same 34^3 internal volume as
-// blocks[]: high nibble = skylight, low nibble = block (emissive) light.
+// cells[]: high nibble = skylight, low nibble = block (emissive) light.
 // Canonical values live in each chunk's interior (x,y,z in [0,32)); cells on
 // a chunk boundary are mirrored into the 7 neighboring chunks that store the
 // cell in their halo, so every chunk's light[] stays self-consistent for
@@ -64,10 +64,10 @@ static inline glm::ivec3 light_chunk_pos_of( const glm::ivec3 &block_pos ) {
 }
 
 int ChunkLoader::light_emit_at( const Chunk &chunk, const int index ) {
-    if ( !chunk.blocks ) {
+    if ( !chunk.cells ) {
         return 0;
     }
-    return block_definition_get_definition( chunk.blocks[ index ].id )->emits_light;
+    return block_definition_get_definition( block_cell_id( chunk.cells[ index ] ) )->emits_light;
 }
 
 static inline bool light_opaque_id( BlockID id ) {
@@ -100,11 +100,11 @@ static inline int light_offered( const int v, const int channel, const int d, co
     return v - 1 - absorb;
 }
 
-// Bit i of chunk.light_air_mask mirrors the opacity of blocks[i]: set = the
+// Bit i of chunk.light_air_mask mirrors the opacity of cells[i]: set = the
 // cell can hold light. light_fill_chunk writes every bit; this restamps one
-// cell after a post-fill blocks[] write so the upload paths never have to
-// touch the 3.7MB blocks[] array again. A missing mask is always legal —
-// uploads fall back to the blocks[] walk.
+// cell after a post-fill cells[] write so the upload paths never have to
+// touch the cells[] array again. A missing mask is always legal —
+// uploads fall back to the cells[] walk.
 void light_air_mask_set( const Chunk &chunk, const int index, const BlockID id ) {
     if ( chunk.light_air_mask == nullptr ) {
         return;
@@ -1137,8 +1137,8 @@ void ChunkLoader::light_add_step( const LightSeed &seed ) {
             if ( best <= nv ) {
                 continue;
             }
-            // A null blocks[] volume is all-air: nothing is opaque.
-            const BlockID n_id = chunk->blocks ? chunk->blocks[ chunk->get_index_from_coords( n_local.x, n_local.y, n_local.z ) ].id : AIR;
+            // A null cells[] volume is all-air: nothing is opaque.
+            const BlockID n_id = chunk->cells ? block_cell_id( chunk->cells[ chunk->get_index_from_coords( n_local.x, n_local.y, n_local.z ) ] ) : AIR;
             if ( light_opaque_id( n_id ) ) {
                 continue;
             }
@@ -1192,8 +1192,8 @@ void ChunkLoader::light_remove_step( const LightRemoveSeed &seed ) {
         if ( interior ) {
             const unsigned char ncell = light_read_cell( *chunk, light_index( n_local.x, n_local.y, n_local.z ) );
             nv = seed.channel == LIGHT_CHANNEL_BLOCK ? light_get_block( ncell ) : light_get_sky( ncell );
-            // A null blocks[] volume is all-air.
-            n_id = chunk->blocks ? chunk->blocks[ chunk->get_index_from_coords( n_local.x, n_local.y, n_local.z ) ].id : AIR;
+            // A null cells[] volume is all-air.
+            n_id = chunk->cells ? block_cell_id( chunk->cells[ chunk->get_index_from_coords( n_local.x, n_local.y, n_local.z ) ] ) : AIR;
         } else {
             nv = this->light_get( n, seed.channel );
             n_id = this->light_block_id_at( n );
@@ -1370,10 +1370,10 @@ void ChunkLoader::light_ensure_columns( Chunk &chunk ) {
 void ChunkLoader::light_compute_one_column( Chunk &chunk, const int x, const int z ) {
     unsigned char open = 1;
     int fill_from = 0;
-    // A null blocks[] volume is all-air: every column is open.
-    if ( chunk.blocks ) {
+    // A null cells[] volume is all-air: every column is open.
+    if ( chunk.cells ) {
         for ( int y = CHUNK_SIZE_Y - 1; y >= 0; y-- ) {
-            if ( light_column_blocked_id( chunk.blocks[ Chunk::get_index_from_coords( x, y, z ) ].id ) ) {
+            if ( light_column_blocked_id( block_cell_id( chunk.cells[ Chunk::get_index_from_coords( x, y, z ) ] ) ) ) {
                 open = 0;
                 fill_from = y + 1;
                 break;
@@ -1392,7 +1392,7 @@ void ChunkLoader::light_compute_column_open( Chunk &chunk ) {
     if ( !chunk.light_columns ) {
         return;
     }
-    if ( !chunk.blocks ) {
+    if ( !chunk.cells ) {
         // All-air: every column open, fill reaches y=0.
         memset( chunk.light_columns, 1, LIGHT_FLAGS_COUNT );
         memset( chunk.light_columns + LIGHT_FILL_FROM_INDEX( 0, 0 ), 0, LIGHT_FLAGS_COUNT );
@@ -1438,7 +1438,7 @@ void ChunkLoader::light_cascade_column( const int world_x, const int world_z ) {
                 // probing here would race the column processing order, since
                 // not-yet-cascaded neighbors still read 0. fill_from is one
                 // past the topmost opaque cell (see light.hpp), so the fill
-                // needs no per-cell blocks[] reads.
+                // needs no per-cell cells[] reads.
                 const int fill_from = chunk->light_columns[ LIGHT_FILL_FROM_INDEX( lx, lz ) ];
                 for ( int y = CHUNK_SIZE_Y - 1; y >= fill_from; y-- ) {
                     const glm::ivec3 pos( world_x, cy * CHUNK_SIZE_Y + y, world_z );
@@ -1529,7 +1529,7 @@ int ChunkLoader::light_cascade_columns( Chunk &start_chunk ) {
                         // light_cascade_column for the ordering rationale).
                         // fill_from (computed on the worker) is one past the
                         // topmost opaque cell, so the fill is a pure range
-                        // write with no per-cell blocks[] reads. Dirty marking
+                        // write with no per-cell cells[] reads. Dirty marking
                         // is batched: the whole volume is flagged once at the
                         // end instead of per cell.
                         const int fill_from = flags[ LIGHT_FILL_FROM_INDEX( x, z ) ];
@@ -1599,7 +1599,7 @@ void ChunkLoader::light_recheck_block( const glm::ivec3 &block_pos ) {
     const glm::ivec3 local = block_pos - chunk->chunk_pos * CHUNK_SIZE_I;
     const BlockState st = chunk->get_block( local );
     // LAST_BLOCK_ID means the coords fell outside this chunk's ownership
-    // (torn slot), not a null blocks[] — null blocks reads back as AIR.
+    // (torn slot), not a null cells[] — null blocks reads back as AIR.
     if ( st.id == LAST_BLOCK_ID ) {
         return;
     }
@@ -1801,8 +1801,8 @@ void ChunkLoader::light_seed_interior_boundary( Chunk &chunk ) {
                     if ( light_get_sky( light_read_cell( chunk, light_index( nx, y, nz ) ) ) >= cv - 1 ) {
                         continue;
                     }
-                    // A null blocks[] volume is all-air: nothing is opaque.
-                    if ( chunk.blocks && light_opaque_id( chunk.blocks[ chunk.get_index_from_coords( nx, y, nz ) ].id ) ) {
+                    // A null cells[] volume is all-air: nothing is opaque.
+                    if ( chunk.cells && light_opaque_id( block_cell_id( chunk.cells[ chunk.get_index_from_coords( nx, y, nz ) ] ) ) ) {
                         continue;
                     }
                     light_dbg_cascade_seed++;
@@ -1832,7 +1832,7 @@ void ChunkLoader::light_seed_interior_boundary( Chunk &chunk ) {
                 const int nwy = ny < 0 ? CHUNK_SIZE_Y - 1 : ny >= CHUNK_SIZE_Y ? 0 : ny;
                 const int nv = light_get_sky( light_read_cell( *nchunk, light_index( x, nwy, z ) ) );
                 if ( cv > 1 && offered > 0 && nv < offered ) {
-                    const BlockID n_id = nchunk->blocks ? nchunk->blocks[ nchunk->get_index_from_coords( x, nwy, z ) ].id : AIR;
+                    const BlockID n_id = nchunk->cells ? block_cell_id( nchunk->cells[ nchunk->get_index_from_coords( x, nwy, z ) ] ) : AIR;
                     if ( !light_opaque_id( n_id ) ) {
                         light_dbg_cascade_seed++;
                         this->light_add_seed( base + glm::ivec3( x, y, z ), LIGHT_CHANNEL_SKY, cv );
@@ -1859,7 +1859,7 @@ void ChunkLoader::light_seed_interior_boundary( Chunk &chunk ) {
                     }
                     const int nv = light_get_sky( light_read_cell( *nchunk, light_index( nwx, y, nwz ) ) );
                     if ( nv < cv - 1 ) {
-                        const BlockID n_id = nchunk->blocks ? nchunk->blocks[ nchunk->get_index_from_coords( nwx, y, nwz ) ].id : AIR;
+                        const BlockID n_id = nchunk->cells ? block_cell_id( nchunk->cells[ nchunk->get_index_from_coords( nwx, y, nwz ) ] ) : AIR;
                         if ( !light_opaque_id( n_id ) ) {
                             light_dbg_cascade_seed++;
                             this->light_add_seed( base + glm::ivec3( x, y, z ), LIGHT_CHANNEL_SKY, cv );
@@ -1988,14 +1988,14 @@ void ChunkLoader::light_border_sync( Chunk &chunk ) {
                 if ( n_local.x >= 0 && n_local.x < CHUNK_SIZE_X && n_local.y >= 0 && n_local.y < CHUNK_SIZE_Y && n_local.z >= 0 && n_local.z < CHUNK_SIZE_Z ) {
                     // Inward lands in our interior: direct array reads
                     // instead of light_get's per-call chunk lookup.
-                    // blocks[] is only consulted when the neighbor can
+                    // cells[] is only consulted when the neighbor can
                     // actually gain light.
                     nv = ch == LIGHT_CHANNEL_BLOCK ? light_get_block( light_read_cell( chunk, light_index( n_local.x, n_local.y, n_local.z ) ) )
                                                    : light_get_sky( light_read_cell( chunk, light_index( n_local.x, n_local.y, n_local.z ) ) );
                     if ( nv >= offered ) {
                         continue;
                     }
-                    n_id = chunk.blocks ? chunk.blocks[ chunk.get_index_from_coords( n_local.x, n_local.y, n_local.z ) ].id : AIR;
+                    n_id = chunk.cells ? block_cell_id( chunk.cells[ chunk.get_index_from_coords( n_local.x, n_local.y, n_local.z ) ] ) : AIR;
                 } else {
                     const glm::ivec3 n = base + glm::ivec3( x, y, z ) + light_dirs[ d ];
                     nv = this->light_get( n, ch );
@@ -2135,7 +2135,7 @@ void ChunkLoader::light_border_sync( Chunk &chunk ) {
                 if ( nv >= offered ) {
                     continue;
                 }
-                const BlockID n_id = nax->blocks ? nax->blocks[ nax->get_index_from_coords( n_loc.x, n_loc.y, n_loc.z ) ].id : AIR;
+                const BlockID n_id = nax->cells ? block_cell_id( nax->cells[ nax->get_index_from_coords( n_loc.x, n_loc.y, n_loc.z ) ] ) : AIR;
                 if ( !light_opaque_id( n_id ) ) {
                     light_dbg_border_seed++;
                     this->light_add_seed( w, ch, new_v );
@@ -2243,7 +2243,7 @@ void light_fill_chunk( Chunk &chunk ) {
     // this stamp an already-listed chunk could upload mid-wipe, before the
     // cascade/marks restamp it — a one-frame full-volume black flash.
     chunk.light_write_tick.store( light_tick_counter.load( std::memory_order_relaxed ), std::memory_order_relaxed );
-    if ( !chunk.blocks ) {
+    if ( !chunk.cells ) {
         // All-air chunk: no light volume at all. light==nullptr means every
         // cell holds light_uniform — set it to the same optimistic sky=15 the
         // volume path's prefill would produce, so propagation reads it without
@@ -2254,7 +2254,7 @@ void light_fill_chunk( Chunk &chunk ) {
             chunk_free_light( chunk.light );
             chunk.light = nullptr;
         }
-        // blocks[] is gone, so its derived air mask must be too (a stale
+        // cells[] is gone, so its derived air mask must be too (a stale
         // mask would describe the previous occupancy of this chunk slot).
         if ( chunk.light_air_mask ) {
             chunk_free_air_mask( chunk.light_air_mask );
@@ -2272,13 +2272,13 @@ void light_fill_chunk( Chunk &chunk ) {
     }
     memset( chunk.light, 0, CHUNK_BLOCK_SIZE );
     // The mipmapped light texture's B channel is a per-cell air mask, and
-    // computing it at upload time walks chunk.blocks[i].id on the render
-    // thread — ~1.5ms/chunk since BlockState is 14 packed bytes (3.7MB).
+    // computing it at upload time walks chunk.cells[] on the render
+    // thread — ~0.2ms/chunk walking the 0.5MB cells[] array.
     // Instead cache it as a 1-bit-per-cell bitmap (32KB) built here, where
-    // blocks[] is already being streamed: bit i (same index space as
-    // blocks[]) is set when the cell can hold light. Post-fill writes
+    // cells[] is already being streamed: bit i (same index space as
+    // cells[]) is set when the cell can hold light. Post-fill writes
     // restamp individual bits via light_air_mask_set; upload paths fall back
-    // to the blocks[] walk whenever the mask is missing. RG8 mode pays
+    // to the cells[] walk whenever the mask is missing. RG8 mode pays
     // nothing — the mask is only allocated under light_mipmaps_enabled().
     unsigned char *air_mask = nullptr;
     if ( light_mipmaps_enabled( ) ) {
@@ -2294,15 +2294,15 @@ void light_fill_chunk( Chunk &chunk ) {
         chunk_free_air_mask( chunk.light_air_mask );
         chunk.light_air_mask = nullptr;
     }
-    // Note the two arrays index differently: blocks[] is z-fastest
+    // Note the two arrays index differently: cells[] is z-fastest
     // (Chunk::get_index_from_coords) while light[] is x-fastest
-    // (light_index, matching the glTexSubImage3D upload layout). Scan blocks[]
+    // (light_index, matching the glTexSubImage3D upload layout). Scan cells[]
     // linearly — index conversion only happens for the rare emitters.
     std::vector<int> queue;
     for ( int i = 0; i < CHUNK_BLOCK_SIZE; i++ ) {
         // One definition fetch per cell feeds both the air-mask bit and the
         // emitter check (light_emit_at did the same lookup for emit alone).
-        const BlockID id = chunk.blocks[ i ].id;
+        const BlockID id = block_cell_id( chunk.cells[ i ] );
         const Block *def = block_definition_get_definition( id );
         if ( air_mask && !light_opaque_id( id ) ) {
             air_mask[ i >> 3 ] |= static_cast<unsigned char>( 1u << ( i & 7 ) );
@@ -2339,7 +2339,7 @@ void light_fill_chunk( Chunk &chunk ) {
             if ( v - 1 <= ( chunk.light[ nidx ] & 0x0F ) ) {
                 continue;
             }
-            const BlockID n_id = chunk.blocks[ chunk.get_index_from_coords( nx, ny, nz ) ].id;
+            const BlockID n_id = block_cell_id( chunk.cells[ chunk.get_index_from_coords( nx, ny, nz ) ] );
             if ( light_opaque_id( n_id ) ) {
                 continue;
             }
@@ -2371,7 +2371,7 @@ void light_fill_chunk( Chunk &chunk ) {
                 const bool interior_col = x >= 0 && x < CHUNK_SIZE_X && z >= 0 && z < CHUNK_SIZE_Z;
                 int top_opaque = -2; // -2 = the whole column is non-opaque
                 for ( int y = CHUNK_SIZE_Y; y >= -1; y-- ) {
-                    if ( light_column_blocked_id( chunk.blocks[ chunk.get_index_from_coords( x, y, z ) ].id ) ) {
+                    if ( light_column_blocked_id( block_cell_id( chunk.cells[ chunk.get_index_from_coords( x, y, z ) ] ) ) ) {
                         top_opaque = y;
                         break;
                     }
@@ -2447,8 +2447,8 @@ int light_texture_unit( ) {
 // caves) has to sit IN the denominator, otherwise rg / b divides the few
 // lit cells in a coarse texel up to full brightness. Opacity comes from
 // Chunk::light_air_mask (a 32KB bitmap built by light_fill_chunk while
-// blocks[] is already streamed, restamped on block edits); the per-cell
-// blocks[] walk remains only as the fallback for chunks whose mask was
+// cells[] is already streamed, restamped on block edits); the per-cell
+// cells[] walk remains only as the fallback for chunks whose mask was
 // never built.
 bool light_mipmaps_enabled( ) {
     // Resolved once and constant for the process lifetime — the texture
@@ -2528,24 +2528,24 @@ void Chunk::light_ensure_texture( ) {
         unsigned char *out8 = reinterpret_cast<unsigned char *>( s_light_upload_scratch );
         // B is a per-cell air mask. It normally comes straight out of
         // chunk.light_air_mask — the 32KB bitmap light_fill_chunk built while
-        // streaming blocks[] and edits keep stamped — so the common case
-        // iterates in texel order and never touches the 3.7MB blocks[] array
+        // streaming cells[] and edits keep stamped — so the common case
+        // iterates in texel order and never touches the 3.7MB cells[] array
         // (nor even strides light[]: both stream linearly). When the mask is
-        // missing the fallback still walks blocks[] (BlockState is 14 packed
-        // bytes) in z-inner order so the blocks[] side streams. Two fast
+        // missing the fallback still walks cells[] (BlockState is 14 packed
+        // bytes) in z-inner order so the cells[] side streams. Two fast
         // paths skip the general case entirely:
         //  - blocks == null: the whole volume is air, B = 255.
         //  - light == null && light_uniform != 0: every cell holds light, so
         //    every cell is non-opaque by definition — B = 255, no lookup.
         //    (Uniform light alone is NOT enough: an all-stone chunk packs
         //    light_uniform == 0 just like an unlit air pocket.)
-        if ( this->light == nullptr && ( this->blocks == nullptr || this->light_uniform != 0 ) ) {
+        if ( this->light == nullptr && ( this->cells == nullptr || this->light_uniform != 0 ) ) {
             const uint32_t cell = light_rg_lut( )[ this->light_uniform ] | 0xFFFF0000u; // B=255, A=255
             uint32_t *out32 = s_light_upload_scratch;
             for ( int i = 0; i < CHUNK_BLOCK_SIZE; i++ ) {
                 out32[ i ] = cell;
             }
-        } else if ( this->blocks == nullptr ) {
+        } else if ( this->cells == nullptr ) {
             // All-air but non-uniform light: still expand light[] per cell.
             const uint32_t *rg_lut = light_rg_lut( );
             uint32_t *out32 = s_light_upload_scratch;
@@ -2555,7 +2555,7 @@ void Chunk::light_ensure_texture( ) {
         } else if ( this->light_air_mask != nullptr ) {
             // Mask built: iterate in texel order (x fastest) so light[] reads
             // and scratch writes are both linear streams. The mask lives in
-            // blocks[] index space (z-fastest): mask byte index is
+            // cells[] index space (z-fastest): mask byte index is
             // (tz>>3) + 8*tx + 512*ty and the tested bit (tz&7) is invariant
             // across the plane, so the same 512 mask bytes serve 8
             // consecutive tz planes and the whole 32KB stays cache-resident.
@@ -2598,9 +2598,9 @@ void Chunk::light_ensure_texture( ) {
                 }
             }
         } else {
-            // Fallback for a chunk whose mask was never built: walk blocks[]
+            // Fallback for a chunk whose mask was never built: walk cells[]
             // alongside light[]. The two arrays transpose (light[] x-fastest,
-            // blocks[] z-fastest), so iterate z innermost — blocks[] reads
+            // cells[] z-fastest), so iterate z innermost — cells[] reads
             // stream sequentially while the strided accesses move to the
             // small cache-resident arrays (light[] is 256KB, scratch 1MB).
             const unsigned char *air_lut = light_air_lut( );
@@ -2610,7 +2610,7 @@ void Chunk::light_ensure_texture( ) {
                 const unsigned char packed = this->light ? this->light[ lidx ] : this->light_uniform;
                 unsigned char *out = out8 + 4 * lidx;
                 light_expand_cell( packed, out );
-                out[ 2 ] = packed != 0 ? 255 : air_lut[ this->blocks[ i ].id ];
+                out[ 2 ] = packed != 0 ? 255 : air_lut[ block_cell_id( this->cells[ i ] ) ];
                 out[ 3 ] = 255;
                 if ( ++tz == CHUNK_SIZE_INTERNAL_Z ) {
                     tz = 0;
@@ -2780,15 +2780,15 @@ void ChunkLoader::light_upload_dirty( const int max_uploads ) {
         // scratch is tightly packed so the default unpack stride applies.
         const bool mipmaps = light_mipmaps_enabled( );
         // Opacity lookups for B are skipped wherever the answer is already
-        // known: null blocks[] means the whole volume is air, and a lit
+        // known: null cells[] means the whole volume is air, and a lit
         // cell (packed != 0) provably can hold light — both give B = 255.
         // Only dark cells (solid vs. merely-dark air) need the mask — read
-        // from chunk.light_air_mask (bit index = blocks[] index space) when
-        // it exists, else the blocks[]/air_lut fallback. Hoisted per chunk
+        // from chunk.light_air_mask (bit index = cells[] index space) when
+        // it exists, else the cells[]/air_lut fallback. Hoisted per chunk
         // (not per row).
-        const bool all_air = mipmaps && chunk.blocks == nullptr;
+        const bool all_air = mipmaps && chunk.cells == nullptr;
         const unsigned char *air_mask = mipmaps && !all_air ? chunk.light_air_mask : nullptr;
-        const unsigned char *air_lut = mipmaps && chunk.blocks && air_mask == nullptr ? light_air_lut( ) : nullptr;
+        const unsigned char *air_lut = mipmaps && chunk.cells && air_mask == nullptr ? light_air_lut( ) : nullptr;
         if ( mipmaps && air_mask ) {
             // Mask path: texel order (z, y, x — x fastest) so the light[]
             // rows and the scratch both stream linearly; the mask bit index
@@ -2813,7 +2813,7 @@ void ChunkLoader::light_upload_dirty( const int max_uploads ) {
             for ( int y = 0; y < sz.y; y++ ) {
                 if ( mipmaps ) {
                     // Fallback (no mask): z-inner order as in
-                    // light_ensure_texture — blocks[] reads (+1 index per z
+                    // light_ensure_texture — cells[] reads (+1 index per z
                     // step) stream sequentially while light[] and the
                     // scratch take the strided steps.
                     for ( int x = 0; x < sz.x; x++ ) {
@@ -2823,7 +2823,7 @@ void ChunkLoader::light_upload_dirty( const int max_uploads ) {
                         for ( int z = 0; z < sz.z; z++, out += 4 * sz.y * sz.x, bidx++ ) {
                             const unsigned char packed = lrow ? lrow[ z * CHUNK_SIZE_INTERNAL_Y * CHUNK_SIZE_INTERNAL_X ] : chunk.light_uniform;
                             light_expand_cell( packed, out );
-                            out[ 2 ] = all_air || packed != 0 ? 255 : air_lut[ chunk.blocks[ bidx ].id ];
+                            out[ 2 ] = all_air || packed != 0 ? 255 : air_lut[ block_cell_id( chunk.cells[ bidx ] ) ];
                             out[ 3 ] = 255;
                         }
                     }

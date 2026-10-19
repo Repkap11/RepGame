@@ -11,7 +11,7 @@
 #define MAP_GEN_PERLIN3D( x, y, z, f, d, s ) perlin_noise3d_hip( x, y, z, f, d, s )
 #include "common/map_gen_fields.hpp"
 
-__global__ void hip_set_block( BlockState *blocks, int chunk_x, int chunk_y, int chunk_z ) {
+__global__ void hip_set_block( BlockCell *cells, int chunk_x, int chunk_y, int chunk_z ) {
     int col_idx = blockIdx.x * blockDim.x + threadIdx.x;
     if ( col_idx < CHUNK_SIZE_INTERNAL_X * CHUNK_SIZE_INTERNAL_Z ) {
         int x = ( col_idx / CHUNK_SIZE_INTERNAL_Z ) - 1 + chunk_x;
@@ -29,7 +29,7 @@ __global__ void hip_set_block( BlockState *blocks, int chunk_x, int chunk_y, int
             int index = ( y - chunk_y + 1 ) * CHUNK_SIZE_INTERNAL_Z * CHUNK_SIZE_INTERNAL_X + col_idx;
 #include "common/map_logic.hpp"
 
-            blocks[ index ] = { finalBlockId, BLOCK_ROTATE_0, 0, finalBlockId, 0 }; // Assumes all blocks don't spawn with redstone power
+            cells[ index ] = (BlockCell)finalBlockId; // Canonical state; waterlogged 0. Assumes no block spawns with redstone power.
         }
     }
 }
@@ -48,22 +48,22 @@ __global__ void hip_set_block( BlockState *blocks, int chunk_x, int chunk_y, int
 // Persistent per-worker device buffer — avoids hipMalloc/hipFree page-table
 // churn for every chunk during load-in. Same pattern as mesh_gen.hip's
 // thread_local buffers.
-static thread_local BlockState *d_mapgen_blocks = nullptr;
+static thread_local BlockCell *d_mapgen_cells = nullptr;
 
-__host__ bool map_gen_load_block_hip( glm::ivec3 *chunk_pos, BlockState *blocks ) {
+__host__ bool map_gen_load_block_hip( glm::ivec3 *chunk_pos, BlockCell *cells ) {
 
-    if ( !d_mapgen_blocks ) {
-        HIP_CHECK( hipMalloc( &d_mapgen_blocks, CHUNK_BLOCK_SIZE * sizeof( BlockState ) ) );
+    if ( !d_mapgen_cells ) {
+        HIP_CHECK( hipMalloc( &d_mapgen_cells, CHUNK_BLOCK_SIZE * sizeof( BlockCell ) ) );
     }
 
     int num_columns = CHUNK_SIZE_INTERNAL_X * CHUNK_SIZE_INTERNAL_Z;
-    hip_set_block<<<( num_columns + ( NUM_THREADS_PER_BLOCK - 1 ) ) / NUM_THREADS_PER_BLOCK, NUM_THREADS_PER_BLOCK, 0>>>( d_mapgen_blocks, chunk_pos->x * CHUNK_SIZE_X, chunk_pos->y * CHUNK_SIZE_Y, chunk_pos->z * CHUNK_SIZE_Z );
+    hip_set_block<<<( num_columns + ( NUM_THREADS_PER_BLOCK - 1 ) ) / NUM_THREADS_PER_BLOCK, NUM_THREADS_PER_BLOCK, 0>>>( d_mapgen_cells, chunk_pos->x * CHUNK_SIZE_X, chunk_pos->y * CHUNK_SIZE_Y, chunk_pos->z * CHUNK_SIZE_Z );
     // Kernel launch errors (e.g. no code object for this GPU's arch) are
     // reported asynchronously; check both the launch and the execution.
     HIP_CHECK( hipGetLastError( ) );
     HIP_CHECK( hipDeviceSynchronize( ) );
 
-    HIP_CHECK( hipMemcpy( blocks, d_mapgen_blocks, CHUNK_BLOCK_SIZE * sizeof( BlockState ), hipMemcpyDeviceToHost ) );
+    HIP_CHECK( hipMemcpy( cells, d_mapgen_cells, CHUNK_BLOCK_SIZE * sizeof( BlockCell ), hipMemcpyDeviceToHost ) );
 
     return true;
 }

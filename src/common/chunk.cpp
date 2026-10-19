@@ -213,7 +213,7 @@ void Chunk::ensure_gl_init( ) {
 
 void Chunk::destroy( ) {
     if constexpr ( REMEMBER_BLOCKS ) {
-        chunk_free_blocks( this->blocks );
+        this->free_block_storage( );
     }
     chunk_free_light( this->light );
     chunk_free_light_columns( this->light_columns );
@@ -270,8 +270,8 @@ BlockState Chunk::get_block( const glm::ivec3 &pos ) const {
     if constexpr ( !REMEMBER_BLOCKS ) {
         return BLOCK_STATE_AIR;
     }
-    if ( this->blocks == nullptr ) {
-        // nullptr blocks means the whole chunk is AIR.
+    if ( this->cells == nullptr ) {
+        // nullptr cells means the whole chunk is AIR.
         return BLOCK_STATE_AIR;
     }
     if ( pos.x >= CHUNK_SIZE_X + 1 || //
@@ -284,7 +284,14 @@ BlockState Chunk::get_block( const glm::ivec3 &pos ) const {
          pos.z < -1 ) {
         return BLOCK_STATE_LAST_BLOCK_ID;
     }
-    return this->blocks[ get_index_from_coords( pos ) ];
+    return this->state_at( get_index_from_coords( pos ) );
+}
+
+void Chunk::free_block_storage( ) {
+    chunk_free_cells( this->cells );
+    this->cells = nullptr;
+    chunk_free_extras( this->extras );
+    this->extras = nullptr;
 }
 
 void Chunk::set_block( const glm::ivec3 &pos, const BlockState &blockState ) const {
@@ -298,14 +305,14 @@ void Chunk::set_block( const glm::ivec3 &pos, const BlockState &blockState ) con
          pos.z < -1 ) {
         return;
     }
-    if ( this->blocks == nullptr ) {
+    if ( this->cells == nullptr ) {
         // All-air chunk: an AIR write changes nothing, so only materialize
         // the array when the new state actually differs from AIR.
         if ( BlockStates_equal( BLOCK_STATE_AIR, blockState ) ) {
             return;
         }
-        this->blocks = chunk_alloc_blocks( );
-        // The fresh blocks[] is calloc'd = all AIR = all non-opaque, so its
+        this->cells = chunk_alloc_cells( );
+        // The fresh cells[] is calloc'd = all AIR = all non-opaque, so its
         // air mask starts fully set; the write below stamps its own cell.
         if ( light_mipmaps_enabled( ) ) {
             if ( this->light_air_mask == nullptr ) {
@@ -316,12 +323,12 @@ void Chunk::set_block( const glm::ivec3 &pos, const BlockState &blockState ) con
     }
 
     const int index = get_index_from_coords( pos );
-    const BlockState old_state = this->blocks[ index ];
+    const BlockState old_state = this->state_at( index );
     if ( block_is_chest( old_state.id ) && !block_is_chest( blockState.id ) ) {
         this->chests.erase( index );
     }
-    this->blocks[ index ] = block_state_normalize( old_state, blockState );
-    light_air_mask_set( *this, index, this->blocks[ index ].id );
+    this->store_state( index, block_state_normalize( old_state, blockState ) );
+    light_air_mask_set( *this, index, this->id_at( index ) );
 }
 
 int Chunk::set_block_by_index_if_different( int index, const BlockState *blockState ) {
@@ -332,13 +339,13 @@ int Chunk::set_block_by_index_if_different( int index, const BlockState *blockSt
         pr_debug( "Ignoring out-of-range block index:%d (max:%d)", index, CHUNK_BLOCK_SIZE );
         return 0;
     }
-    if ( this->blocks == nullptr ) {
+    if ( this->cells == nullptr ) {
         // All-air chunk: an AIR write is a no-op; anything else allocates.
         if ( BlockStates_equal( BLOCK_STATE_AIR, *blockState ) ) {
             return 0;
         }
-        this->blocks = chunk_alloc_blocks( );
-        // Same as set_block: fresh calloc'd blocks[] = all non-opaque.
+        this->cells = chunk_alloc_cells( );
+        // Same as set_block: fresh calloc'd cells[] = all non-opaque.
         if ( light_mipmaps_enabled( ) ) {
             if ( this->light_air_mask == nullptr ) {
                 this->light_air_mask = chunk_alloc_air_mask( );
@@ -346,14 +353,14 @@ int Chunk::set_block_by_index_if_different( int index, const BlockState *blockSt
             memset( this->light_air_mask, 0xFF, CHUNK_BLOCK_SIZE / 8 );
         }
     }
-    BlockState &oldBlockState = this->blocks[ index ];
+    const BlockState oldBlockState = this->state_at( index );
     if ( BlockStates_equal( oldBlockState, *blockState ) ) {
         return 0;
     }
     if ( block_is_chest( oldBlockState.id ) && !block_is_chest( blockState->id ) ) {
         this->chests.erase( index );
     }
-    this->blocks[ index ] = *blockState;
+    this->store_state( index, *blockState );
     light_air_mask_set( *this, index, blockState->id );
     this->dirty = true;
     this->needs_repopulation = true;
@@ -405,11 +412,17 @@ static inline long long now_us( ) {
 
 void Chunk::load_terrain( MapStorage &map_storage ) {
     if constexpr ( !REMEMBER_BLOCKS ) {
-        if ( this->blocks == nullptr ) {
-            this->blocks = chunk_alloc_blocks( );
+        if ( this->cells == nullptr ) {
+            this->cells = chunk_alloc_cells( );
         }
     }
-    // Under REMEMBER_BLOCKS, blocks stays null while the chunk is all-air:
+    // A recycled slot can carry a stale extras array from its previous
+    // chunk; both reload paths overwrite cells wholesale but only touch
+    // extras on demand, so drop it up front (disk decode re-materializes
+    // it only if the saved data actually needs it).
+    chunk_free_extras( this->extras );
+    this->extras = nullptr;
+    // Under REMEMBER_BLOCKS, cells stays null while the chunk is all-air:
     // MapStorage::load_chunk allocates it only when a save file exists, and
     // Chunk::set_block allocates on the first real write (every existing cell
     // is AIR anyway). light[] likewise stays unallocated for uniform volumes —
@@ -443,20 +456,19 @@ void Chunk::load_terrain( MapStorage &map_storage ) {
     if ( loaded ) profiling_disk_load_count.fetch_add( 1, std::memory_order_relaxed );
 #endif
     if constexpr ( REMEMBER_BLOCKS ) {
-        if ( loaded && this->blocks != nullptr ) {
+        if ( loaded && this->cells != nullptr ) {
             // A saved chunk can decode to all-air (e.g. mined flat). Fold it to
             // the null representation so it skips meshing like a generated
             // air chunk — the file stays valid as-is (nothing rewrites it).
             bool all_air = true;
             for ( int i = 0; i < CHUNK_BLOCK_SIZE; i++ ) {
-                if ( this->blocks[ i ].id != AIR ) {
+                if ( this->id_at( i ) != AIR ) {
                     all_air = false;
                     break;
                 }
             }
             if ( all_air ) {
-                chunk_free_blocks( this->blocks );
-                this->blocks = nullptr;
+                this->free_block_storage( );
                 chunk_free_air_mask( this->light_air_mask );
                 this->light_air_mask = nullptr;
                 this->is_empty_chunk = true;
@@ -475,10 +487,9 @@ void Chunk::load_terrain( MapStorage &map_storage ) {
             // perlin noise evaluation. The bound is derived from the terrain
             // formulas in map_gen.cpp — see MapGen::maxTerrainHeight().
             if ( (float)min_y >= MapGen::maxTerrainHeight( ) + MAPGEN_MAX_TREE_REACH ) {
-                // Entire chunk is air — keep blocks null instead of filling a
+                // Entire chunk is air — keep cells null instead of filling a
                 // 262K-cell array with AIR.
-                chunk_free_blocks( this->blocks );
-                this->blocks = nullptr;
+                this->free_block_storage( );
                 chunk_free_air_mask( this->light_air_mask );
                 this->light_air_mask = nullptr;
                 this->is_empty_chunk = true;
@@ -505,8 +516,7 @@ void Chunk::load_terrain( MapStorage &map_storage ) {
             // empty bound must include both.
             if ( (float)min_y >= max_terrain_height + OVERHANG_MAX_RISE + MAPGEN_MAX_TREE_REACH ) {
                 // Entire chunk (including border) is above terrain → all air
-                chunk_free_blocks( this->blocks );
-                this->blocks = nullptr;
+                this->free_block_storage( );
                 chunk_free_air_mask( this->light_air_mask );
                 this->light_air_mask = nullptr;
                 this->is_empty_chunk = true;
@@ -521,8 +531,8 @@ void Chunk::load_terrain( MapStorage &map_storage ) {
 #if TERRAIN_GEN_PROFILING
         t0 = now_us( );
 #endif
-        if ( this->blocks == nullptr ) {
-            this->blocks = chunk_alloc_blocks( );
+        if ( this->cells == nullptr ) {
+            this->cells = chunk_alloc_cells( );
         }
         if ( LOAD_CHUNKS_SUPPORTS_CUDA && MapGen::supports_cuda( ) ) {
             if ( firstTime ) {
@@ -643,7 +653,7 @@ int Chunk::can_extend_rect( const BlockState &blockState, const unsigned int *pa
                 if ( !workingSpace[ index ].can_be_seen ) {
                     return 0;
                 }
-                BlockState new_blockState = this->blocks[ index ];
+                const BlockState new_blockState = this->state_at( index );
                 if ( !BlockStates_equal( new_blockState, blockState ) ) {
                     return 0;
                 }
@@ -682,9 +692,9 @@ inline int get_rotated_face( const int face, const int rotation ) {
 // Only used for the covering-block lookups; the block's own faces keep the
 // static table so a buried base doesn't z-fight its neighbors on the part of
 // the boundary it still covers.
-static inline bool face_is_seethrough( const Block *block, const BlockState &state, int face ) {
-    if ( block->is_piston && state.current_redstone_power > 0 ) {
-        return face != piston_base_covered_face( state.rotation );
+static inline bool face_is_seethrough( const Block *block, const int power, const int rotation, const int face ) {
+    if ( block->is_piston && power > 0 ) {
+        return face != piston_base_covered_face( rotation );
     }
     return block->calculated.is_seethrough_face[ face ];
 }
@@ -697,8 +707,7 @@ void Chunk::calculate_populated_blocks( ) {
     // when real blocks exist.
     if ( this->is_empty_chunk ) {
         if constexpr ( !REMEMBER_BLOCKS ) {
-            chunk_free_blocks( this->blocks );
-            this->blocks = nullptr;
+            this->free_block_storage( );
             chunk_free_air_mask( this->light_air_mask );
             this->light_air_mask = nullptr;
         }
@@ -734,7 +743,7 @@ void Chunk::calculate_populated_blocks( ) {
     bool used_gpu_mesh = false;
 #if defined( REPGAME_BUILD_WITH_HIP )
     if ( LOAD_CHUNKS_SUPPORTS_HIP && MapGen::supports_hip( ) && getenv( "REPGAME_NO_HIP_MESH" ) == nullptr ) {
-        used_gpu_mesh = mesh_gen_calculate_hip( this->blocks, workingSpace );
+        used_gpu_mesh = mesh_gen_calculate_hip( this->cells, workingSpace );
     }
 #endif
 
@@ -756,33 +765,38 @@ void Chunk::calculate_populated_blocks( ) {
     for ( int index = CHUNK_BLOCK_DRAW_START; index < CHUNK_BLOCK_DRAW_STOP; index++ ) {
         int x, y, z;
         if ( Chunk::get_coords_from_index( index, x, y, z ) ) {
-            BlockState blockState = this->blocks[ index ];
-            BlockID blockID = blockState.id;
+            const BlockCell cell = this->cells[ index ];
+            const BlockID blockID = block_cell_id( cell );
             Block *block = block_definition_get_definition( blockID );
 
             workingSpace[ index ].visible = render_order_is_visible( block->renderOrder );
 
             if ( workingSpace[ index ].visible ) {
+                const int block_rotation = block_cell_rotation( cell );
                 int block_is_visiable = 0;
                 int visible_from[ NUM_FACES_IN_CUBE ] = { 0, 0, 0, 0, 0, 0 };
                 for ( int face = FACE_TOP; face < NUM_FACES_IN_CUBE; face++ ) {
-                    int rotated_face = get_rotated_face( face, blockState.rotation );
-                    BlockState block_next_to_state = this->blocks[ get_index_from_coords( x + FACE_DIR_X_OFFSETS[ face ], y + FACE_DIR_Y_OFFSETS[ face ], z + FACE_DIR_Z_OFFSETS[ face ] ) ];
+                    int rotated_face = get_rotated_face( face, block_rotation );
+                    const int next_to_index = get_index_from_coords( x + FACE_DIR_X_OFFSETS[ face ], y + FACE_DIR_Y_OFFSETS[ face ], z + FACE_DIR_Z_OFFSETS[ face ] );
+                    const BlockCell next_to_cell = this->cells[ next_to_index ];
+                    const BlockID next_to_id = block_cell_id( next_to_cell );
+                    const int next_to_rotation = block_cell_rotation( next_to_cell );
+                    const int next_to_power = block_cell_powered( next_to_cell );
 
-                    Block *block_next_to = block_definition_get_definition( block_next_to_state.id );
+                    Block *block_next_to = block_definition_get_definition( next_to_id );
 
-                    int opposing_face = get_rotated_face( face, block_next_to_state.rotation );
+                    int opposing_face = get_rotated_face( face, next_to_rotation );
                     opposing_face = OPPOSITE_FACE[ opposing_face ];
 
                     bool is_seethrough = block->calculated.is_seethrough_face[ rotated_face ];
                     if ( is_seethrough && block->calculated.hides_self[ rotated_face ] ) { // water and glass
                         // Waterlogged cells count as water: water (and lava)
                         // draws no surface faces against them.
-                        const bool liquid_boundary = block->renderOrder == RenderOrder_Water && block_next_to_state.waterlogged;
+                        const bool liquid_boundary = block->renderOrder == RenderOrder_Water && block_cell_waterlogged( next_to_cell );
                         if ( face == FACE_TOP && block->renderOrder == RenderOrder_Water ) {
                             visible_from[ face ] = block_next_to->id != block->id && !liquid_boundary;
                         } else {
-                            visible_from[ face ] = face_is_seethrough( block_next_to, block_next_to_state, opposing_face ) && block_next_to_state.id != blockID && !liquid_boundary;
+                            visible_from[ face ] = face_is_seethrough( block_next_to, next_to_power, next_to_rotation, opposing_face ) && next_to_id != blockID && !liquid_boundary;
                         }
                     } else if ( is_seethrough ) { // The current block is seethough on this face. Check all the directions not opposing it;
                         bool visable_through_opposing = false;
@@ -791,11 +805,15 @@ void Chunk::calculate_populated_blocks( ) {
                                 // It's the non_opposing_face and parallel with this face, don't count it
                                 continue;
                             }
-                            BlockState block_around_state = this->blocks[ get_index_from_coords( x + FACE_DIR_X_OFFSETS[ face_around ], y + FACE_DIR_Y_OFFSETS[ face_around ], z + FACE_DIR_Z_OFFSETS[ face_around ] ) ];
-                            Block *block_around = block_definition_get_definition( block_around_state.id );
-                            int around_face = get_rotated_face( face_around, block_around_state.rotation );
+                            const int around_index = get_index_from_coords( x + FACE_DIR_X_OFFSETS[ face_around ], y + FACE_DIR_Y_OFFSETS[ face_around ], z + FACE_DIR_Z_OFFSETS[ face_around ] );
+                            const BlockCell around_cell = this->cells[ around_index ];
+                            const BlockID around_id = block_cell_id( around_cell );
+                            const int around_rotation = block_cell_rotation( around_cell );
+                            const int around_power = block_cell_powered( around_cell );
+                            Block *block_around = block_definition_get_definition( around_id );
+                            int around_face = get_rotated_face( face_around, around_rotation );
                             around_face = OPPOSITE_FACE[ around_face ];
-                            if ( face_is_seethrough( block_around, block_around_state, around_face ) ) {
+                            if ( face_is_seethrough( block_around, around_power, around_rotation, around_face ) ) {
                                 visable_through_opposing = true;
                                 break;
                             }
@@ -803,7 +821,7 @@ void Chunk::calculate_populated_blocks( ) {
                         visible_from[ face ] = visable_through_opposing;
 
                     } else {
-                        bool visable_through_opposing = face_is_seethrough( block_next_to, block_next_to_state, opposing_face );
+                        bool visable_through_opposing = face_is_seethrough( block_next_to, next_to_power, next_to_rotation, opposing_face );
                         visible_from[ face ] = visable_through_opposing;
                     }
                     block_is_visiable |= visible_from[ face ];
@@ -871,7 +889,7 @@ void Chunk::calculate_populated_blocks( ) {
                 int index = get_index_from_coords( x, y, z );
                 if ( !workingSpace[ index ].has_been_drawn ) {
 
-                    BlockState blockState = this->blocks[ index ];
+                    const BlockState blockState = this->state_at( index );
                     Block *block = block_definition_get_definition( blockState.display_id );
                     // if ( blockState.display_id == REDSTONE_CROSS ) {
                     //     pr_debug( "Got cross" );
@@ -987,11 +1005,11 @@ void Chunk::calculate_populated_blocks( ) {
                             for ( int d = 0; d < 4; d++ ) {
                                 int nx = x + horiz_dx[ d ];
                                 int nz = z + horiz_dz[ d ];
-                                BlockState neighbor = this->blocks[ get_index_from_coords( nx, y, nz ) ];
+                                const BlockState neighbor = this->state_at( get_index_from_coords( nx, y, nz ) );
                                 const Block *neighbor_block = block_definition_get_definition( neighbor.display_id );
                                 // Only render side face when neighbor is non-solid and not dust (air)
                                 if ( !neighbor_block->collides_with_player && !neighbor_block->is_redstone_dust ) {
-                                    BlockState below = this->blocks[ get_index_from_coords( nx, y - 1, nz ) ];
+                                    const BlockState below = this->state_at( get_index_from_coords( nx, y - 1, nz ) );
                                     const Block *below_block = block_definition_get_definition( below.display_id );
                                     if ( below_block->is_redstone_dust ) {
                                         blockCoord->face[ horiz_face[ d ] ] = side_texture;
@@ -1051,8 +1069,8 @@ void Chunk::calculate_populated_blocks( ) {
                     // CPU for both meshers: the HIP kernel only fills
                     // workingSpace.
                     if ( block->waterloggable && blockState.waterlogged ) {
-                        const BlockState above_state = this->blocks[ get_index_from_coords( x, y + 1, z ) ];
-                        if ( above_state.id != WATER && !above_state.waterlogged ) {
+                        const BlockCell above_cell = this->cells[ get_index_from_coords( x, y + 1, z ) ];
+                        if ( block_cell_id( above_cell ) != WATER && !block_cell_waterlogged( above_cell ) ) {
                             Block *water = block_definition_get_definition( WATER );
                             BlockCoords *waterCoord = &this->layers[ RenderOrder_Water ].populated_blocks[ num_instances[ RenderOrder_Water ] ];
                             num_instances[ RenderOrder_Water ] += 1;
@@ -1097,7 +1115,7 @@ void Chunk::calculate_populated_blocks( ) {
 #endif
 
     if constexpr ( !REMEMBER_BLOCKS ) {
-        chunk_free_blocks( this->blocks );
+        this->free_block_storage( );
         chunk_free_air_mask( this->light_air_mask );
         this->light_air_mask = nullptr;
     }

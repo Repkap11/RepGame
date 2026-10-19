@@ -78,5 +78,5 @@ class MapGen {
     // placement; identical formulas to all backends by construction.
     static BlockID gen_block_id( int x, int y, int z );
 };
-void map_gen_load_block_cuda( glm::ivec3 *chunk_pos, BlockState *blocks );
-bool map_gen_load_block_hip( glm::ivec3 *chunk_pos, BlockState *blocks );
+void map_gen_load_block_cuda( glm::ivec3 *chunk_pos, BlockCell *cells );
+bool map_gen_load_block_hip( glm::ivec3 *chunk_pos, BlockCell *cells );

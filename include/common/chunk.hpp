@@ -41,6 +41,27 @@ class WorkingSpace {
 // any decoded box with min > max on an axis is "nothing dirty".
 #define LIGHT_BOX_EMPTY 0x3FFFFULL
 
+// Fixed-size chunk-buffer pool (chunk.cpp). cells[]/extras[]/light[]/
+// light_columns[] are always allocated at their full size and never resized,
+// so freed buffers go into small per-thread free lists instead of
+// round-tripping malloc — multi-megabyte allocations bypass glibc's arena
+// and hit mmap/munmap every time, which is costly when slots recycle between
+// terrain (allocated) and air (freed) chunks. All alloc functions return a
+// buffer suitable for the matching free; _cells/_light_columns come back
+// zeroed like calloc.
+BlockCell *chunk_alloc_cells( );
+void chunk_free_cells( BlockCell *p );
+BlockExtra *chunk_alloc_extras( );
+void chunk_free_extras( BlockExtra *p );
+unsigned char *chunk_alloc_light( );
+void chunk_free_light( unsigned char *p );
+unsigned char *chunk_alloc_light_columns( );
+void chunk_free_light_columns( unsigned char *p );
+// Chunk::light_air_mask — CHUNK_BLOCK_SIZE/8 bytes, returned unzeroed (the
+// builder writes every bit; the materialize path memsets).
+unsigned char *chunk_alloc_air_mask( );
+void chunk_free_air_mask( unsigned char *p );
+
 class Chunk {
     friend class ChunkLoader;
     friend class World;
@@ -59,13 +80,19 @@ class Chunk {
     int gl_initialized;
     bool is_empty_chunk;
     RenderLayer layers[ LAST_RENDER_ORDER ];
-    // nullptr means every cell is AIR (is_empty_chunk). Mutable so the const
-    // set_block can allocate the array on the first real write.
-    mutable BlockState *blocks;
+    // Split cell storage — see BlockCell/BlockExtra in block_definitions.hpp.
+    // cells == nullptr means every cell is AIR (is_empty_chunk); extras ==
+    // nullptr means every cell is canonical (power 0, display_id == id —
+    // rotation and the powered flag live in the cell word itself; extras
+    // hold the exact power value for gameplay, never rendered/uploaded).
+    // Both are mutable so the const set_block can allocate on the first
+    // real write.
+    mutable BlockCell *cells;
+    mutable BlockExtra *extras;
     glm::ivec3 chunk_pos;
     int dirty;
     // Container contents for chest blocks in this chunk, keyed by in-chunk
-    // block index (same space as blocks[]). Loaded from the chunk's chest
+    // block index (same space as cells[]). Loaded from the chunk's chest
     // file in load_terrain, persisted in Chunk::persist; edits mark dirty.
     // Mutable: Chunk::set_block (a const path used by World::set_loaded_block)
     // erases entries when a chest block is overwritten.
@@ -98,17 +125,17 @@ class Chunk {
     // sky_open_above (no opaque cell anywhere above in the loaded grid).
     unsigned char *light_columns;
     // Air mask for the mipmapped light volume's B channel (see
-    // light_mipmaps_enabled): 1 bit per blocks[] cell — CHUNK_BLOCK_SIZE/8 =
-    // 32KB — in the same z-fastest index space as blocks[]
+    // light_mipmaps_enabled): 1 bit per cells[] entry — CHUNK_BLOCK_SIZE/8 =
+    // 32KB — in the same z-fastest index space as cells[]
     // (get_index_from_coords). Bit set = the cell can hold light
     // (non-opaque, same predicate light_opaque_id uses). A derived cache of
-    // blocks[], never persisted: built by light_fill_chunk while blocks[] is
+    // cells[], never persisted: built by light_fill_chunk while cells[] is
     // already being streamed, restamped per cell by set_block /
     // set_block_by_index_if_different via light_air_mask_set. nullptr = not
     // built; the light-texture upload paths then fall back to walking
-    // blocks[] directly, which keeps every edge case correct (a mask is
-    // only ever allocated alongside real blocks[] data, and only when
-    // light_mipmaps_enabled()). Mutable like blocks: Chunk::set_block is
+    // cells[] directly, which keeps every edge case correct (a mask is
+    // only ever allocated alongside real cells[] data, and only when
+    // light_mipmaps_enabled()). Mutable like cells: Chunk::set_block is
     // const but restamps it.
     mutable unsigned char *light_air_mask;
     unsigned int light_texture; // GL_TEXTURE_3D, 0 = not created yet
@@ -120,7 +147,7 @@ class Chunk {
     // the upload's snapshot or visibly unlisted (never lost between a box
     // read and a flag clear).
     std::atomic<uint64_t> light_dirty_box;
-    // Cell indices (into blocks[]) changed by multiplayer diffs; converted to
+    // Cell indices (into cells[]) changed by multiplayer diffs; converted to
     // light recheck seeds on the render thread. Overflow sets light_reseed.
     int light_pending[ 256 ];
     int light_pending_count;
@@ -179,6 +206,42 @@ class Chunk {
     // state, AIR into an all-air chunk) and out-of-range indices.
     int set_block_by_index_if_different( int index, const BlockState *blockState );
     BlockState get_block( const glm::ivec3 &pos ) const;
+    // Assemble the stored BlockState for `index`. Requires cells != nullptr;
+    // index space is the usual get_index_from_coords (halo included).
+    inline BlockState state_at( const int index ) const {
+        return block_state_unpack( this->cells[ index ], this->extras ? &this->extras[ index ] : nullptr );
+    }
+    inline BlockID id_at( const int index ) const {
+        return block_cell_id( this->cells[ index ] );
+    }
+    // Write `s` into the split arrays (cells must be allocated). Allocates
+    // extras when the new state isn't canonical for its id. Inline so
+    // map_storage.o (linked into the server without chunk.o) can use it.
+    inline void store_state( const int index, const BlockState &s ) const {
+        this->cells[ index ] = block_cell_pack( s.id, s.waterlogged, s.rotation, s.current_redstone_power != 0 );
+        if ( this->extras == nullptr && !block_state_is_canonical( s ) ) {
+            this->materialize_extras( );
+        }
+        if ( this->extras != nullptr ) {
+            this->extras[ index ] = block_state_pack_extra( s );
+        }
+    }
+    // Realize extras (if absent) so every cell has an entry — used on the
+    // first non-canonical write; canonical values are derived from cells[].
+    inline void materialize_extras( ) const {
+        if ( this->extras != nullptr ) {
+            return;
+        }
+        this->extras = chunk_alloc_extras( );
+        // Every existing cell is canonical by definition (extras was null),
+        // so backfill each entry from its id. Callers overwrite the cell
+        // they materialized for right after.
+        for ( int i = 0; i < CHUNK_BLOCK_SIZE; i++ ) {
+            const BlockID id = block_cell_id( this->cells[ i ] );
+            this->extras[ i ] = { static_cast<uint16_t>( id ), 0 };
+        }
+    }
+    void free_block_storage( );
     void calculate_populated_blocks( );
 
     static inline int get_index_from_coords( const glm::ivec3 &pos ) {
@@ -194,21 +257,3 @@ class Chunk {
 // Called by Chunk::set_block_by_index_if_different from network/worker
 // threads; no-ops when the chunk is already listed.
 void light_pending_enqueue( Chunk &chunk );
-
-// Fixed-size chunk-buffer pool (chunk.cpp). blocks[]/light[]/light_columns[]
-// are always allocated at their full size and never resized, so freed buffers
-// go into small per-thread free lists instead of round-tripping malloc —
-// multi-megabyte allocations bypass glibc's arena and hit mmap/munmap every
-// time, which is costly when slots recycle between terrain (allocated) and
-// air (freed) chunks. All alloc functions return a buffer suitable for the
-// matching free; _blocks/_light_columns come back zeroed like calloc.
-BlockState *chunk_alloc_blocks( );
-void chunk_free_blocks( BlockState *p );
-unsigned char *chunk_alloc_light( );
-void chunk_free_light( unsigned char *p );
-unsigned char *chunk_alloc_light_columns( );
-void chunk_free_light_columns( unsigned char *p );
-// Chunk::light_air_mask — CHUNK_BLOCK_SIZE/8 bytes, returned unzeroed (the
-// builder writes every bit; the materialize path memsets).
-unsigned char *chunk_alloc_air_mask( );
-void chunk_free_air_mask( unsigned char *p );

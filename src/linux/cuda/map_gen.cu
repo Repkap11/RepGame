@@ -7,7 +7,7 @@
 #define MAP_GEN_PERLIN3D( x, y, z, f, d, s ) perlin_noise3d_cuda( x, y, z, f, d, s )
 #include "common/map_gen_fields.hpp"
 
-__global__ void cuda_set_block( BlockState *blocks, int chunk_x, int chunk_y, int chunk_z ) {
+__global__ void cuda_set_block( BlockCell *cells, int chunk_x, int chunk_y, int chunk_z ) {
     int col_idx = blockIdx.x * blockDim.x + threadIdx.x;
     if ( col_idx < CHUNK_SIZE_INTERNAL_X * CHUNK_SIZE_INTERNAL_Z ) {
         int x = ( col_idx / CHUNK_SIZE_INTERNAL_Z ) - 1 + chunk_x;
@@ -25,23 +25,23 @@ __global__ void cuda_set_block( BlockState *blocks, int chunk_x, int chunk_y, in
             int index = ( y - chunk_y + 1 ) * CHUNK_SIZE_INTERNAL_Z * CHUNK_SIZE_INTERNAL_X + col_idx;
 #include "common/map_logic.hpp"
 
-            blocks[ index ] = { finalBlockId, BLOCK_ROTATE_0, 0, finalBlockId, 0 }; // Assumes all blocks don't spawn with redstone power
+            cells[ index ] = (BlockCell)finalBlockId; // Canonical state; waterlogged 0. Assumes no block spawns with redstone power.
         }
     }
 }
 
 #define NUM_THREADS_PER_BLOCK 256
 
-__host__ void map_gen_load_block_cuda( glm::ivec3 *chunk_pos, BlockState *blocks ) {
+__host__ void map_gen_load_block_cuda( glm::ivec3 *chunk_pos, BlockCell *cells ) {
 
-    BlockState *device_blocks;
-    cudaMalloc( &device_blocks, CHUNK_BLOCK_SIZE * sizeof( BlockState ) );
+    BlockCell *device_cells;
+    cudaMalloc( &device_cells, CHUNK_BLOCK_SIZE * sizeof( BlockCell ) );
 
     int num_columns = CHUNK_SIZE_INTERNAL_X * CHUNK_SIZE_INTERNAL_Z;
-    cuda_set_block<<<( num_columns + ( NUM_THREADS_PER_BLOCK - 1 ) ) / NUM_THREADS_PER_BLOCK, NUM_THREADS_PER_BLOCK, 0>>>( device_blocks, chunk_pos->x * CHUNK_SIZE_X, chunk_pos->y * CHUNK_SIZE_Y, chunk_pos->z * CHUNK_SIZE_Z );
+    cuda_set_block<<<( num_columns + ( NUM_THREADS_PER_BLOCK - 1 ) ) / NUM_THREADS_PER_BLOCK, NUM_THREADS_PER_BLOCK, 0>>>( device_cells, chunk_pos->x * CHUNK_SIZE_X, chunk_pos->y * CHUNK_SIZE_Y, chunk_pos->z * CHUNK_SIZE_Z );
 
-    cudaMemcpy( blocks, device_blocks, CHUNK_BLOCK_SIZE * sizeof( BlockState ), cudaMemcpyDeviceToHost );
-    cudaFree( device_blocks );
+    cudaMemcpy( cells, device_cells, CHUNK_BLOCK_SIZE * sizeof( BlockCell ), cudaMemcpyDeviceToHost );
+    cudaFree( device_cells );
 }
 
 __host__ int MapGen::host_supports_cuda( ) {

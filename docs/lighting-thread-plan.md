@@ -65,7 +65,7 @@ Chunks >=3 apart in x or z are fully independent.
   benign torn texels, self-healing.
 - Producer writes pending_count then enqueues; light thread clears
   listed-flag before reading pending fields (already implemented that order).
-- blocks[] read during finalize while a terrain worker writes a *loading*
+- cells[] read during finalize while a terrain worker writes a *loading*
   neighbor -> skipped by the is_loading gate.
 - atomics/fences: is_loading should be release-store on publish, acquire on
   read (probably fine on x86 today but should be made explicit).
