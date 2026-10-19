@@ -32,6 +32,13 @@ static constexpr long long WASM_LOAD_BUDGET_US = 4000; // 4 ms
 // the load-in tail streams in over a few extra frames instead of hitching.
 static constexpr long long CHUNK_FINALIZE_BUDGET_US = 3000; // 3 ms
 
+// Per grid shift, at most this many near chunks that still have queued
+// incident seed work get a near-lane re-finalize (light_heal_chunk). Seeds
+// pushed while the region was far never re-promote into the priority
+// queues, so without this a dark spot you fly up to waits for its buried
+// seeds instead of converging when it enters the near radius.
+static constexpr int LIGHT_HEAL_PER_SHIFT = 8;
+
 // Similarly bound the needs_repopulation re-mesh loop: calculate_populated_blocks
 // is full CPU meshing done on the render thread, and bursts of dirty chunks
 // (multiplayer diffs, block edits) would otherwise all re-mesh in one frame.
@@ -272,6 +279,7 @@ void ChunkLoader::render_chunks( Multiplayer &multiplayer, const glm::dvec3 &cam
         // Collect new chunk positions from the reload loop so we can fire one
         // box request for all of them at once (Phase 2).
         std::vector<glm::ivec3> new_positions;
+        this->light_heal_budget = LIGHT_HEAL_PER_SHIFT;
         for ( int i = 0; i < MAX_LOADED_CHUNKS; i++ ) {
             Chunk &chunk = this->chunkArray[ i ];
             if ( chunk.is_loading ) {

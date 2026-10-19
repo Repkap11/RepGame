@@ -93,6 +93,10 @@ class ChunkLoader {
     // for the initial visible area. Lets us batch the initial chunk-diff
     // request into one frame instead of per-chunk as terrain gen finishes.
     bool initial_chunk_request_pending = false;
+    // Near-heal promotions left this grid shift (light_heal_chunk): each
+    // near chunk with queued incident seed work may take one near-lane
+    // re-finalize so flying up to a half-lit region converges it promptly.
+    int light_heal_budget = 0;
 
     int reload_if_out_of_bounds( Chunk &chunk, const glm::ivec3 &chunk_pos, glm::ivec3 *out_new_pos = nullptr );
     static inline int process_chunk_position( Chunk &chunk, const glm::ivec3 &chunk_diff, const glm::ivec3 &center_previous, const glm::ivec3 &center_next, int force_reload );

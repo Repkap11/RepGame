@@ -2897,12 +2897,33 @@ void ChunkLoader::light_reprioritize_jobs( ) {
 // Called from the grid-shift slot scan in chunk_loader.cpp so stale far
 // chunks heal as they re-enter the near radius.
 void ChunkLoader::light_heal_chunk( Chunk &chunk, const glm::ivec3 &center ) {
-    // Don't heal mid-flood: the re-finalize's own propagation seeds would be
-    // refused above the cap and the flag would just re-set — churn.
-    if ( chunk.is_loading || light_bfs_pending.load( std::memory_order_relaxed ) > LIGHT_BFS_CAP_FLOOD ||
-         !light_near_col( center, chunk.chunk_pos ) || !chunk.light_stale.exchange( 0, std::memory_order_relaxed ) ) {
+    if ( chunk.is_loading || !light_near_col( center, chunk.chunk_pos ) ) {
         return;
     }
+    if ( chunk.light_stale.load( std::memory_order_relaxed ) ) {
+        // Don't heal mid-flood: the re-finalize's own propagation seeds
+        // would be refused above the cap and the flag would just re-set —
+        // churn. Leave the flag set; the next shift retries.
+        if ( light_bfs_pending.load( std::memory_order_relaxed ) > LIGHT_BFS_CAP_FLOOD ||
+             !chunk.light_stale.exchange( 0, std::memory_order_relaxed ) ) {
+            return;
+        }
+        this->light_submit_finalize( chunk );
+        return;
+    }
+    // Near chunks still catching up on queued seed work (pushed while far,
+    // so they sit behind the whole normal backlog — seeds don't get the
+    // job-lane re-promotion): re-finalize the chunk at near priority. The
+    // fill+cascade+border pass converges it immediately; its buried seeds
+    // then just no-op when popped. Idempotent and bounded per shift.
+    if ( !chunk.light_finalized.load( std::memory_order_relaxed ) || this->light_heal_budget <= 0 ) {
+        return;
+    }
+    const int cidx = light_col_lock_index( chunk.chunk_pos.x, chunk.chunk_pos.z );
+    if ( light_col_incident[ cidx ].load( std::memory_order_relaxed ) <= 0 ) {
+        return;
+    }
+    this->light_heal_budget--;
     this->light_submit_finalize( chunk );
 }
 
