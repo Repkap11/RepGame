@@ -27,6 +27,11 @@ struct LightRemoveSeed {
     unsigned char old_value;
 };
 
+// Region shards for the BFS seed queues (see the queue comment in
+// ChunkLoader below): seeds route by target column so each drain worker
+// owns a disjoint region of the flood.
+#define LIGHT_BFS_SHARDS 4
+
 // Snapshot of chunk-loading and lighting work-queue depth for the debug
 // overlay. All fields are point-in-time reads — the counts can race the
 // worker pools by a frame, which is fine for a HUD.
@@ -39,7 +44,7 @@ struct LoaderDebugStats {
     int light_pending;     // chunks with recorded block diffs awaiting drain
     int light_claims;      // column-claimed jobs in flight on light workers
     int light_dirty;       // light volumes waiting for GPU upload
-    int light_bfs_active;   // a worker is draining the seed queues
+    int light_bfs_active;   // workers currently draining a seed shard
     int light_bfs_priority; // backlog-priority window open (finalize claims paused)
     int light_bfs_starve;   // that window was opened by backlog age
     long long light_seeds;  // pending flood-fill seeds
@@ -103,19 +108,27 @@ class ChunkLoader {
     // (tests, WASM without pthreads) does everything inline.
     //
     // Add seeds are bucketed by the light level written at push time and
-    // popped highest-level-first (light_add_queue[channel][level]). Processing
-    // strictly descending means a cell settles at its final value on first
-    // visit — with plain FIFO a cell could be re-offered a better value later
-    // and re-walk its neighbors, so the load-in flood never converged.
-    std::deque<LightSeed> light_add_queue[ 2 ][ LIGHT_MAX_LEVEL + 1 ];
-    std::deque<LightRemoveSeed> light_remove_queue;
+    // popped highest-level-first (light_add_queue[shard][channel][level]).
+    // Processing strictly descending means a cell settles at its final value
+    // on first visit — with plain FIFO a cell could be re-offered a better
+    // value later and re-walk its neighbors, so the load-in flood never
+    // converged.
+    //
+    // Queues are sharded LIGHT_BFS_SHARDS ways by the target cell's column
+    // (parity of 4x4 column blocks — a local flood scatters across all
+    // shards, so every drainer gets a share). Each shard is drained
+    // exclusively by whichever worker CAS-claims it; pushes route by shard
+    // and take the shard's own seed lock, so producers and per-shard
+    // drainers never serialize globally.
+    std::deque<LightSeed> light_add_queue[ LIGHT_BFS_SHARDS ][ 2 ][ LIGHT_MAX_LEVEL + 1 ];
+    std::deque<LightRemoveSeed> light_remove_queue[ LIGHT_BFS_SHARDS ];
     // Near-player lanes (see LIGHT_NEAR_COL_DIST in light.cpp): seeds whose
     // target column sits near chunk_center are pushed here instead and
     // drained before the shared queues, so the region around the player
     // converges during streaming rather than when the whole backlog empties.
-    // Same bucketing as the normal queues; light_bfs_pending covers both.
-    std::deque<LightSeed> light_add_queue_pri[ 2 ][ LIGHT_MAX_LEVEL + 1 ];
-    std::deque<LightRemoveSeed> light_remove_queue_pri;
+    // Same bucketing as the normal queues; light_bfs_pending covers all.
+    std::deque<LightSeed> light_add_queue_pri[ LIGHT_BFS_SHARDS ][ 2 ][ LIGHT_MAX_LEVEL + 1 ];
+    std::deque<LightRemoveSeed> light_remove_queue_pri[ LIGHT_BFS_SHARDS ];
     // push_back a remove seed under light_seed_lock, routed by distance.
     // internal=true marks flood-regen pushes (from add/remove step) which the
     // backlog cap may refuse; producer pushes leave it false.
@@ -139,7 +152,12 @@ class ChunkLoader {
     void light_add_seed( const glm::ivec3 &block_pos, int channel, int level, bool internal = false );
     void light_add_step( const LightSeed &seed );
     void light_remove_step( const LightRemoveSeed &seed );
-    void light_process_queue( long long budget_us );
+    // Pop the next seed from `shard`'s queues under that shard's seed lock:
+    // 1 = add, 2 = remove, 0 = empty. level/pri record the origin bucket for
+    // contention re-queueing.
+    int light_pop_seed( int shard, LightSeed &add_out, LightRemoveSeed &rem_out, int &level, bool &pri );
+    void light_process_queue( long long budget_us, int shard );
+    void light_process_queue( long long budget_us ); // all shards, single-threaded callers
     static void light_ensure_columns( Chunk &chunk );
     static void light_compute_column_open( Chunk &chunk );
     static void light_compute_one_column( Chunk &chunk, int x, int z );
@@ -198,7 +216,13 @@ class ChunkLoader {
     // workers' starve-window predicate can measure BFS-backlog age without
     // clock reads on the seed push/pop hot paths.
     void light_note_tick( long tick );
-    size_t light_queue_sizes( ) { return this->light_add_queue_size( ) + this->light_remove_queue.size( ) + this->light_remove_queue_pri.size( ); }
+    size_t light_queue_sizes( ) {
+        size_t total = this->light_add_queue_size( );
+        for ( int s = 0; s < LIGHT_BFS_SHARDS; s++ ) {
+            total += this->light_remove_queue[ s ].size( ) + this->light_remove_queue_pri[ s ].size( );
+        }
+        return total;
+    }
     void debug_loader_stats( LoaderDebugStats *out ) const;
     void cleanup( MapStorage &map_storage );
 };

@@ -217,6 +217,7 @@ void ChunkLoader::render_chunks( Multiplayer &multiplayer, const glm::dvec3 &cam
     glm::dvec3 chunk_size = glm::dvec3( CHUNK_SIZE_X, CHUNK_SIZE_Y, CHUNK_SIZE_Z );
 
     glm::ivec3 chunk_pos = glm::floor( camera_pos / chunk_size );
+    this->terrain_loading_thread.set_focus( chunk_pos );
     glm::ivec3 &loaded_pos = this->chunk_center;
     glm::ivec3 chunk_diff = chunk_pos - loaded_pos;
 
@@ -351,7 +352,7 @@ void ChunkLoader::render_chunks( Multiplayer &multiplayer, const glm::dvec3 &cam
         // Scale the propagation budget with backlog: under-overhang/cave floods
         // legitimately cover every underground air cell within ~15 of lit
         // space, which is millions of steps during mass load-in.
-        const size_t light_backlog = this->light_add_queue_size( ) + this->light_remove_queue.size( );
+        const size_t light_backlog = this->light_queue_sizes( );
         const long long light_budget = light_backlog > 200000 ? 8000 : light_backlog > 20000 ? 3000 : LIGHT_PROPAGATE_BUDGET_US;
         const long long t_bfs = now_us( );
         this->light_process_queue( light_budget );

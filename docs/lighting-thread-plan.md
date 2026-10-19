@@ -87,19 +87,36 @@ shards discussed earlier:
   the list entry is erased and `light_pending_listed` cleared under the lock
   at claim time so producers re-enqueue fresh entries.
 - The cv predicate only wakes for *runnable* work (some claimable job/pending
-  entry, or BFS-runnable) — a queue of all-blocked jobs must not spin.
-- **BFS exclusion**: shared `light_add_queue`/`light_remove_queue` deques
-  can't be claimed per-seed, so `light_process_queue` runs only while no
-  claims are in flight (`light_claims.empty()`) and marks `light_bfs_active`
-  so no claim starts mid-drain. Seeds pushed by claimed jobs wait for a
-  claims-free window — same interleaving the single thread had.
-- Push sites on the shared deques take `light_seed_lock` (atomic_flag
-  spinlock — tiny critical section) since concurrent claimed jobs push
-  simultaneously. Pops are unlocked: they only happen in the BFS drain.
+  entry, or an unowned nonempty shard) — a queue of all-blocked jobs must
+  not spin.
+- **BFS sharding** (replaced the old `light_bfs_active` global exclusion —
+  a single worker used to drain all queues serialized against every
+  claim): the seed queues are split `LIGHT_BFS_SHARDS` (4) ways by the
+  target cell's column — parity of 4x4 column blocks, so a local flood
+  scatters across all shards and every drainer gets a share. A worker
+  CAS-claims a shard's ownership slot (`light_shard_owned`) then drains it
+  exclusively; a per-shard spinlock serializes that shard's deque ops
+  against concurrent pushes. Contiguous-block shards measured worse — a
+  wavefront fits inside one block and serializes the flood on one drainer.
+- **Column locks** (`light_col_locks`, hashed spinlock array) replaced the
+  claim-vs-BFS exclusion too: a pop's read/write footprint is bounded by
+  the 3x3 columns around its target — mirror writes only reach ±1 chunk
+  per axis and only toward the border the cell sits on, so `light_pop_cols`
+  computes the precise 1-9 column set (1 for strictly-interior cells).
+  Claims take the 3x3 set. Pops try-lock with a bounded spin; on
+  contention the seed migrates to the shard containing the contested
+  column (that drainer is sweeping right there) — no blocking, no
+  lock-ordering cycle since pops never hold-and-wait.
+- Measured churn: ~45% of pops still bounce on a shared wavefront seam
+  (drainer-vs-drainer) — the seam is inherent when one thin frontier is
+  split four ways — so the tail converges ~1.5-2x faster than the single
+  serialized drain rather than 4x.
 - `light_bfs_pending` (atomic) counts queued seeds so the cv predicate can
-  test queue-nonempty without touching deque internals from another thread.
-- BFS drains in 2ms slices but keeps the slot while seeds remain and no
-  jobs/pending wait; yields the moment either appears or on stop.
+  test queue-nonempty without touching deque internals from another
+  thread; `light_shard_pending[]` does the same per shard.
+- BFS drains in 2ms slices per claimed shard but keeps draining while
+  seeds remain and no jobs/pending wait; yields the moment either appears
+  or on stop.
 - Backlog-priority window (light_bfs_priority): when pending seeds exceed
   LIGHT_BFS_PRI_HI (~3M) new FINALIZE claims pause until a drain pass drops
   the backlog under LIGHT_BFS_PRI_LO or ~100ms elapses. RECHECK and pending
@@ -253,13 +270,13 @@ Measured (legacy terrain, ~2s probe intervals, 4 workers):
   throughput + recheck latency, not render time).
 - 90s runtime clean; all Rep tests pass.
 
-## Later: sharding (only if throughput still lags)
+## Later: deeper sharding (only if throughput still lags)
 
-Prefer region shards over more claim tuning: K light threads each own a
-fixed set of (x,z) column ranges; a mirror write into a foreign chunk
-becomes a tiny "set cell" message to the owning shard; BFS seeds crossing a
-border get posted to the owner's queue — which also parallelizes the BFS
-itself, the current serial bottleneck.
+Region shards now exist for the BFS queues. The next step up would own the
+*data* too: K light threads each own a fixed set of (x,z) column ranges; a
+mirror write into a foreign chunk becomes a tiny "set cell" message to the
+owning shard; BFS seeds crossing a border get posted to the owner's queue.
+That removes the shared-column lock contention the current pops still pay.
 
 ## Also pending
 

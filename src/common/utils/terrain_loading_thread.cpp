@@ -1,3 +1,4 @@
+#include <math.h>
 #include <unistd.h>
 
 #include "common/utils/terrain_loading_thread.hpp"
@@ -14,8 +15,38 @@ static inline long long now_us_terrain( ) {
 }
 #endif
 
+// The position congruent to chunk_mod nearest center — same formula as
+// ChunkLoader::reload_if_out_of_bounds. A work item's enqueued position goes
+// stale as the camera moves; loading it anyway means the dequeue-time bounds
+// check just re-enqueues the slot and the whole load_terrain was wasted
+// (during a sustained sprint the queue latency exceeds the in-window
+// lifetime and NOTHING lands — the treadmill empties only once the camera
+// stops). Retarget to the currently-correct position so every processed
+// item still lands a useful chunk.
+static glm::ivec3 terrain_slot_pos( const glm::ivec3 &chunk_mod, const glm::ivec3 &center ) {
+    const int rx = CHUNK_RADIUS_X * 2 + 1, ry = CHUNK_RADIUS_Y * 2 + 1, rz = CHUNK_RADIUS_Z * 2 + 1;
+    return glm::ivec3(
+        static_cast<int>( floorf( static_cast<float>( center.x - chunk_mod.x + CHUNK_RADIUS_X ) / static_cast<float>( rx ) ) ) * rx + chunk_mod.x,
+        static_cast<int>( floorf( static_cast<float>( center.y - chunk_mod.y + CHUNK_RADIUS_Y ) / static_cast<float>( ry ) ) ) * ry + chunk_mod.y,
+        static_cast<int>( floorf( static_cast<float>( center.z - chunk_mod.z + CHUNK_RADIUS_Z ) / static_cast<float>( rz ) ) ) * rz + chunk_mod.z );
+}
+
+void TerrainLoadingThread::set_focus( const glm::ivec3 &chunk_pos ) {
+    this->focus_x.store( chunk_pos.x, std::memory_order_relaxed );
+    this->focus_y.store( chunk_pos.y, std::memory_order_relaxed );
+    this->focus_z.store( chunk_pos.z, std::memory_order_relaxed );
+    this->focus_valid.store( 1, std::memory_order_relaxed );
+}
+
 void TerrainLoadingThread::process_value( LinkedListValue *value ) {
     Chunk &chunk = *value->chunk;
+    glm::ivec3 target = value->new_chunk_pos;
+    if ( this->focus_valid.load( std::memory_order_relaxed ) ) {
+        target = terrain_slot_pos( chunk.chunk_mod,
+                                   glm::ivec3( this->focus_x.load( std::memory_order_relaxed ),
+                                               this->focus_y.load( std::memory_order_relaxed ),
+                                               this->focus_z.load( std::memory_order_relaxed ) ) );
+    }
 #if TERRAIN_GEN_PROFILING
     long long t_persist_start = now_us_terrain( );
 #endif
@@ -24,7 +55,7 @@ void TerrainLoadingThread::process_value( LinkedListValue *value ) {
     long long t_persist = now_us_terrain( ) - t_persist_start;
     terrain_persist_us.fetch_add( t_persist, std::memory_order_relaxed );
 #endif
-    chunk.chunk_pos = value->new_chunk_pos;
+    chunk.chunk_pos = target;
     chunk.load_terrain( this->map_storage );
     // pr_debug( "Paul Loading terrain x:%d y%d: z:%d work:%d results:%d", chunk->chunk_x, chunk->chunk_y, chunk->chunk_z, work_linked_list->count, result_linked_list->count );
 }
