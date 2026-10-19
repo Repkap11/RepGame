@@ -707,6 +707,7 @@ void ChunkLoader::draw( const glm::mat4 &mvp, const Renderer &renderer, const Te
                     chunk.occl_pending = 1;
                 }
                 glColorMask( GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE );
+#if ( SUPPORTS_FRAME_BUFFER )
                 if ( use_frame_buffer ) {
                     // world.cpp masks the sky-color attachment (3) off after
                     // the sky pass so terrain draws can't clobber the
@@ -715,6 +716,7 @@ void ChunkLoader::draw( const glm::mat4 &mvp, const Renderer &renderer, const Te
                     // toward whatever garbage lands there.
                     glColorMaski( 3, GL_FALSE, GL_FALSE, GL_FALSE, GL_FALSE );
                 }
+#endif
                 glDepthMask( GL_TRUE );
                 glDepthFunc( GL_LESS );
                 glEnable( GL_CULL_FACE );
