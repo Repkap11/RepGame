@@ -107,7 +107,10 @@ void MapGen::load_block_cuda( Chunk *chunk ) {
 
 #else
 int MapGen::supports_cuda( ) {
-    return MapGen::host_supports_cuda( );
+    // Resolved once: queried per chunk on the mapgen path, and device
+    // presence can't change mid-process.
+    static const int supported = MapGen::host_supports_cuda( );
+    return supported;
 }
 
 void MapGen::load_block_cuda( Chunk *chunk ) {
@@ -132,11 +135,16 @@ bool MapGen::load_block_hip( Chunk *chunk ) {
 int MapGen::supports_hip( ) {
     // REPGAME_NO_HIP=1 forces the CPU path — used to isolate GPU memory
     // corruption seen as rare single-frame garbage pixels during load-in.
-    static const int hip_disabled = getenv( "REPGAME_NO_HIP" ) != nullptr;
-    if ( hip_disabled ) {
-        return 0;
-    }
-    return MapGen::host_supports_hip( );
+    // Resolved once: queried per chunk (mapgen, mesh, overlay) and device
+    // presence can't change mid-process — a lost device still falls back
+    // per-chunk via load_block_hip returning false.
+    static const int supported = []( ) {
+        if ( getenv( "REPGAME_NO_HIP" ) != nullptr ) {
+            return 0;
+        }
+        return MapGen::host_supports_hip( );
+    }( );
+    return supported;
 }
 
 bool MapGen::load_block_hip( Chunk *chunk ) {

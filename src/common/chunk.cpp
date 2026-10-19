@@ -538,13 +538,16 @@ void Chunk::load_terrain( MapStorage &map_storage ) {
         if ( this->cells == nullptr ) {
             this->cells = chunk_alloc_cells( );
         }
+        // Per-chunk env checks are cached — this runs once per chunk on every
+        // terrain worker, and the values can't change mid-process.
+        static const bool no_hip_mapgen = getenv( "REPGAME_NO_HIP_MAPGEN" ) != nullptr;
         if ( LOAD_CHUNKS_SUPPORTS_CUDA && MapGen::supports_cuda( ) ) {
             if ( firstTime ) {
                 firstTime = 0;
                 pr_debug( "Using CUDA" );
             }
             MapGen::load_block_cuda( this );
-        } else if ( LOAD_CHUNKS_SUPPORTS_HIP && MapGen::supports_hip( ) && getenv( "REPGAME_NO_HIP_MAPGEN" ) == nullptr ) {
+        } else if ( LOAD_CHUNKS_SUPPORTS_HIP && MapGen::supports_hip( ) && !no_hip_mapgen ) {
             if ( firstTime ) {
                 firstTime = 0;
                 pr_debug( "Using HIP" );
@@ -746,7 +749,8 @@ void Chunk::calculate_populated_blocks( ) {
 
     bool used_gpu_mesh = false;
 #if defined( REPGAME_BUILD_WITH_HIP )
-    if ( LOAD_CHUNKS_SUPPORTS_HIP && MapGen::supports_hip( ) && getenv( "REPGAME_NO_HIP_MESH" ) == nullptr ) {
+    static const bool no_hip_mesh = getenv( "REPGAME_NO_HIP_MESH" ) != nullptr;
+    if ( LOAD_CHUNKS_SUPPORTS_HIP && MapGen::supports_hip( ) && !no_hip_mesh ) {
         used_gpu_mesh = mesh_gen_calculate_hip( this->cells, workingSpace );
     }
 #endif
