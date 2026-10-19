@@ -425,7 +425,7 @@ void World::draw( const Texture &blocksTexture, const glm::mat4 &mvp, const glm:
     this->chunkLoader.shader.set_uniform1i( "u_TintUnderWater", block_water_tint_type );
     this->chunkLoader.shader.set_uniform1f( "u_ReflectionDotSign", y_height < 0 ? -1.0f : 1.0f );
     // shader_set_uniform1f( &this->loadedChunks.shader, "u_ReflectionDotSign", 1.0f );
-    this->chunkLoader.draw( mvp, this->renderer, blocksTexture, false, false, useFrameBuffer, renderOriginF ); // Blocks
+    this->chunkLoader.draw( mvp, this->renderer, blocksTexture, false, false, useFrameBuffer, renderOriginF, camera_pos_rebased ); // Blocks
 
     this->chunkLoader.shader.set_uniform1i( "u_TintUnderWater", 0 );
     if ( draw_mouse_selection ) {
@@ -455,7 +455,7 @@ void World::draw( const Texture &blocksTexture, const glm::mat4 &mvp, const glm:
     this->chunkLoader.shader.set_uniform1f( "u_Time", time_s );
     this->chunkLoader.shader.set_uniform1i( "u_FluidAnim", allowBlur ? 1 : 0 );
     this->chunkLoader.shader.set_uniform1i( "u_TintUnderWater", block_water_tint_type );
-    this->chunkLoader.draw( mvp, this->renderer, blocksTexture, true, false, useFrameBuffer, renderOriginF ); // Stencil water
+    this->chunkLoader.draw( mvp, this->renderer, blocksTexture, true, false, useFrameBuffer, renderOriginF, camera_pos_rebased ); // Stencil water
     this->chunkLoader.shader.set_uniform1i( "u_FluidAnim", 0 );
     this->chunkLoader.shader.set_uniform1i( "u_TintUnderWater", 0 );
 
@@ -543,7 +543,7 @@ void World::draw( const Texture &blocksTexture, const glm::mat4 &mvp, const glm:
         this->chunkLoader.shader.set_uniform1f( "u_ReflectionHeight", offset + renderOriginF.y );
         this->chunkLoader.shader.set_uniform1i( "u_TintUnderWater", block_water_tint_type );
         this->chunkLoader.calculate_cull( mvp_reflect, true, renderOrigin );
-        this->chunkLoader.draw( mvp_reflect, this->renderer, blocksTexture, false, true, useFrameBuffer, renderOriginF ); // Reflected blocks
+        this->chunkLoader.draw( mvp_reflect, this->renderer, blocksTexture, false, true, useFrameBuffer, renderOriginF, camera_pos_rebased ); // Reflected blocks
 
         this->chunkLoader.shader.set_uniform1f( "u_ReflectionHeight", 0 );
         this->object_shader.set_uniform1f( "u_ReflectionHeight", 0 );

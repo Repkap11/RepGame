@@ -212,7 +212,7 @@ class ChunkLoader {
     void render_chunks( Multiplayer &multiplayer, const glm::dvec3 &camera_pos, int limit_render );
     void repopulate_blocks( );
     void calculate_cull( const glm::mat4 &mvp, bool saveAsReflection, const glm::ivec3 &renderOrigin ) const;
-    void draw( const glm::mat4 &mvp, const Renderer &renderer, const Texture &texture, bool reflect_only, bool draw_reflect, bool use_frame_buffer, const glm::vec3 &render_origin );
+    void draw( const glm::mat4 &mvp, const Renderer &renderer, const Texture &texture, bool reflect_only, bool draw_reflect, bool use_frame_buffer, const glm::vec3 &render_origin, const glm::vec3 &camera_pos );
     Chunk *get_chunk( const glm::ivec3 &pointed ) const;
     // Apply one chunk-diff cell (CHUNK_DIFF_RESULT / apply_pending_diffs):
     // writes the receiving chunk's copy, mirrors it into every loaded

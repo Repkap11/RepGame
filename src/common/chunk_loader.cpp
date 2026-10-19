@@ -565,7 +565,7 @@ void ChunkLoader::calculate_cull( const glm::mat4 &mvp, const bool saveAsReflect
 
 int shouldInc = 0;
 int showRotation = 0;
-void ChunkLoader::draw( const glm::mat4 &mvp, const Renderer &renderer, const Texture &texture, bool reflect_only, bool draw_reflect, bool use_frame_buffer, const glm::vec3 &render_origin ) {
+void ChunkLoader::draw( const glm::mat4 &mvp, const Renderer &renderer, const Texture &texture, bool reflect_only, bool draw_reflect, bool use_frame_buffer, const glm::vec3 &render_origin, const glm::vec3 &camera_pos ) {
     Shader &shader = this->shader;
     shader.set_uniform_mat4f( "u_MVP", mvp );
     {
@@ -600,6 +600,18 @@ void ChunkLoader::draw( const glm::mat4 &mvp, const Renderer &renderer, const Te
             return glm::dot( da, da ) < glm::dot( db, db );
         } );
     }
+
+    // A chunk whose box contains the camera can never be occlusion-tested:
+    // every in-view box face then sits BEHIND the chunk's own content, so
+    // the probe self-fails even though the terrain is plainly visible
+    // (looking straight down = the whole screen is the containing chunk).
+    // That oscillates draw/hide every other frame. The margin covers the
+    // near plane; the gate also un-hides instantly when the camera walks
+    // into a hidden chunk (noclip into a sealed pocket draws correctly).
+    const auto cam_in_box = [ &camera_pos, &render_origin ]( const Chunk &chunk ) {
+        const glm::vec3 e = camera_pos - glm::vec3( chunk.chunk_pos * CHUNK_SIZE_I ) + render_origin;
+        return e.x > -1.0f && e.x < CHUNK_SIZE_X + 1.0f && e.y > -1.0f && e.y < CHUNK_SIZE_Y + 1.0f && e.z > -1.0f && e.z < CHUNK_SIZE_Z + 1.0f;
+    };
 
     // pr_debug( "Drawing %d chunks", this->numLoadedChunks );
     for ( int renderOrder = LAST_RENDER_ORDER - 1; renderOrder > 0; renderOrder-- ) {
@@ -657,6 +669,9 @@ void ChunkLoader::draw( const glm::mat4 &mvp, const Renderer &renderer, const Te
                             chunk.occl_fails = passed ? 0 : chunk.occl_fails + 1;
                         }
                     }
+                    if ( cam_in_box( chunk ) ) {
+                        chunk.occl_fails = 0;
+                    }
                     if ( chunk.occl_fails < OCCL_HIDE_FRAMES ) {
                         chunk.draw( renderer, texture, shader, static_cast<RenderOrder>( renderOrder ), draw_reflect, render_origin, light_base_loc );
                     }
@@ -678,7 +693,7 @@ void ChunkLoader::draw( const glm::mat4 &mvp, const Renderer &renderer, const Te
                 glDepthMask( GL_FALSE );
                 for ( int i = 0; i < this->num_drawable; i++ ) {
                     Chunk &chunk = *this->drawable_chunks[ i ];
-                    if ( chunk.cached_cull_normal || chunk.occl_pending ) {
+                    if ( chunk.cached_cull_normal || chunk.occl_pending || cam_in_box( chunk ) ) {
                         continue;
                     }
                     if ( chunk.occl_query == 0 ) {
@@ -711,7 +726,7 @@ void ChunkLoader::draw( const glm::mat4 &mvp, const Renderer &renderer, const Te
                             chunk.draw( renderer, texture, shader, static_cast<RenderOrder>( renderOrder ), draw_reflect, render_origin, light_base_loc );
                         }
                     } else {
-                        if ( chunk.cached_cull_normal || ( occl && chunk.occl_fails >= OCCL_HIDE_FRAMES ) ) {
+                        if ( chunk.cached_cull_normal || ( occl && chunk.occl_fails >= OCCL_HIDE_FRAMES && !cam_in_box( chunk ) ) ) {
                             continue;
                         }
                         chunk.draw( renderer, texture, shader, static_cast<RenderOrder>( renderOrder ), draw_reflect, render_origin, light_base_loc );
