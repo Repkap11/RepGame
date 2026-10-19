@@ -143,7 +143,13 @@ void ServerLogic::record_block( const glm::ivec3 &block_pos, BlockState &block_s
                 int new_block_index = Chunk::get_index_from_coords( new_diff );
 
                 // pr_debug( "Updating chunk: %d %d %d  %d", new_chunk_pos.x, new_chunk_pos.y, new_chunk_pos.z, new_block_index );
-                auto &entry = this->world_cache[ new_chunk_pos ];
+                auto it_cache = this->world_cache.find( new_chunk_pos );
+                // A chunk missing from the cache was idle-saved and evicted
+                // (or never touched): merge its on-disk diff in first, else
+                // this edit alone would overwrite the file on the next
+                // persist and lose every earlier edit.
+                ChunkCacheEntry &entry = *( it_cache != this->world_cache.end( ) ? &it_cache->second
+                                                                               : this->loadIntoCache( new_chunk_pos ) );
                 entry.blocks[ new_block_index ] = block_state;
                 entry.last_edit_time = std::chrono::steady_clock::now( );
                 // (Re)schedule this chunk's idle-save timer.
@@ -366,7 +372,7 @@ void ServerLogic::persistChunk( const glm::ivec3 &chunk_pos ) {
 void ServerLogic::persistAll( ) {
     this->map_storage.write_world_time( this->worldTimeNow( ) );
     size_t saved = 0;
-    for ( auto [ chunk_pos, entry ] : this->world_cache ) {
+    for ( const auto &[ chunk_pos, entry ] : this->world_cache ) {
         if ( entry.blocks.empty( ) ) {
             continue;
         }
@@ -374,7 +380,7 @@ void ServerLogic::persistAll( ) {
         saved++;
     }
     // Chest chunks may exist without a block-cache entry.
-    for ( auto [ chunk_pos, entry ] : this->chest_chunks ) {
+    for ( const auto &[ chunk_pos, entry ] : this->chest_chunks ) {
         (void)entry;
         this->persistChestChunk( chunk_pos );
     }

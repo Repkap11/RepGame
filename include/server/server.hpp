@@ -41,11 +41,26 @@ class Server {
     void handle_client_ready_for_write( int client_fd );
 
   public:
-    void init( int portnum );
+    void init( int portnum, const char *world_name = "Server1" );
     void serve( );
     void kill( );
     void cleanup( );
     void queue_message( int client_fd, NetMsgType type, int32_t player_id, const std::vector<uint8_t> &payload );
     void queue_empty( int client_fd, NetMsgType type, int32_t player_id );
     PacketType_DataPlayer *get_data_if_client_connected( int client_id );
+
+    // Selftest hooks (src/server/server_selftest.cpp): drive the logic layer
+    // and inspect client outboxes without real networking.
+    ServerLogic &test_logic( ) {
+        return this->server_logic;
+    }
+    ClientData &test_client( int client_fd ) {
+        return this->client_data[ client_fd ];
+    }
+    void test_add_epoll( int client_fd ) {
+        this->add_epoll( client_fd );
+    }
+    void test_del_epoll( int client_fd ) {
+        this->del_epoll( client_fd );
+    }
 };

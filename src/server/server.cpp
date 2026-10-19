@@ -198,8 +198,8 @@ void Server::handle_client_ready_for_write( int client_fd ) {
     this->update_epoll( client_fd );
 }
 
-void Server::init( int portnum ) {
-    this->server_logic.init( "Server1" );
+void Server::init( int portnum, const char *world_name ) {
+    this->server_logic.init( world_name );
     this->inet_socket_fd = Server::setup_inet_socket( portnum );
     Server::make_socket_non_blocking( inet_socket_fd );
 
@@ -289,9 +289,14 @@ void sig_handler( int s ) {
     server.kill( );
 }
 
+int server_selftest( );
+
 int main( int argc, const char **argv ) {
     int portnum = 25566;
     if ( argc >= 2 ) {
+        if ( strcmp( argv[ 1 ], "--selftest" ) == 0 ) {
+            return server_selftest( );
+        }
         portnum = atoi( argv[ 1 ] );
     }
     pr_debug( "Serving on port %d", portnum );
@@ -303,6 +308,10 @@ int main( int argc, const char **argv ) {
     sigIntHandler.sa_flags = 0;
 
     sigaction( SIGINT, &sigIntHandler, NULL );
+    // systemd stop/restart sends SIGTERM (and a dying terminal sends SIGHUP):
+    // route both through the same graceful shutdown so flushAll runs.
+    sigaction( SIGTERM, &sigIntHandler, NULL );
+    sigaction( SIGHUP, &sigIntHandler, NULL );
 
     server.init( portnum );
     server.serve( );

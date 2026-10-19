@@ -32,6 +32,9 @@ out/server: | out
 server-run: server
 	./out/server/$(REPSERVER)
 
+server-test: server
+	./out/server/$(REPSERVER) --selftest
+
 server-systemd-install: server
 	sudo cp $(REPSERVER).service /etc/systemd/system/$(REPSERVER).service
 	sudo systemctl daemon-reload
@@ -54,4 +57,4 @@ clean: clean-server
 clean-server:
 	rm -rf out/server
 
-.PHONY: server clean-server server-run
+.PHONY: server clean-server server-run server-test
