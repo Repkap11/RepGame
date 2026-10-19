@@ -9,6 +9,17 @@
 
 static RepGameState *globalGameState;
 
+// "Vsync" on WASM is the emscripten main-loop timing mode, not
+// SDL_GL_SetSwapInterval (a no-op in the browser — presentation always rides
+// the canvas composite). rAF locks each iteration to the display refresh;
+// EM_TIMING_SETIMMEDIATE drives the loop via scheduler.postTask/postMessage,
+// uncapped. The 'v' key toggles it via input.toggle_vsync.
+static bool hw_vsync_enabled = true;
+
+static void repgame_apply_vsync( ) {
+    emscripten_set_main_loop_timing( hw_vsync_enabled ? EM_TIMING_RAF : EM_TIMING_SETIMMEDIATE, hw_vsync_enabled ? 1 : 0 );
+}
+
 void repgame_linux_process_sdl_events( RepGame &repgame ) {
     SDL_Event event;
     Input &input = repgame.getInputState( );
@@ -105,6 +116,12 @@ void repgame_linux_process_sdl_events( RepGame &repgame ) {
             default:
                 break;
         }
+    }
+    if ( input.toggle_vsync ) {
+        input.toggle_vsync = false;
+        hw_vsync_enabled = !hw_vsync_enabled;
+        repgame_apply_vsync( );
+        pr_debug( "HW vsync: %s", hw_vsync_enabled ? "on (rAF)" : "off (setImmediate)" );
     }
 }
 
