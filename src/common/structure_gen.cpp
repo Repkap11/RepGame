@@ -10,6 +10,11 @@
 #define MAP_GEN_PERLIN3D( x, y, z, f, d, s ) perlin_noise3d( x, y, z, f, d, s )
 #include "common/map_gen_fields.hpp"
 
+#if !REPGAME_MAP_GEN_LEGACY
+// The reworked generator only — under legacy builds every function below is
+// unused (StructureGen::place dispatches to place_legacy) and the mg_* fields
+// it relies on are compiled out of map_gen_fields.hpp.
+
 // ---------------------------------------------------------------------------
 // Deterministic hashes. Structure gen only runs on the CPU, so these don't
 // need GPU parity — but every chunk must evaluate the same rolls for shared
@@ -873,6 +878,8 @@ void StructureGen::place_crystals( Chunk &chunk, const int cox, const int coy, c
         }
     }
 }
+
+#endif // !REPGAME_MAP_GEN_LEGACY
 
 void StructureGen::place( Chunk &chunk ) {
 #if REPGAME_MAP_GEN_LEGACY
