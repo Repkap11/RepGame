@@ -59,12 +59,12 @@ vars set, behaviour is unchanged.
   96). The band ends at the render edge so pop-in stays hidden, and is
   capped at 38% of render distance so small render distances look
   unchanged.
-- `REPGAME_LIGHT_LOD_BIAS` / `REPGAME_LIGHT_FAR_AO` — override the
-  footprint-mipmapped light tunables (ImGui "Light LOD bias" / "Distant AO"
-  sliders, defaults 3.0 / 0.1). The effective mip level is capped at
-  `LIGHT_LOD_MAX` in `src/shaders/chunk_fragment.glsl`, so raising the bias
-  past the cap has no further effect. These apply at startup even without
-  `REPGAME_CAPTURE`.
+- `LIGHT_LOD_BIAS` / `LIGHT_FAR_AO` — footprint-mipmapped light tunables
+  (3.0 / 0.1), compile-time `#define`s at the top of
+  `src/shaders/chunk_fragment.glsl` (previously env vars / ImGui sliders —
+  folded to constants so the shader compiler collapses them into the lod
+  expression). The effective mip level is capped at `LIGHT_LOD_MAX`, so
+  raising the bias past the cap has no further effect.
 - `REPGAME_NIGHT_AMBIENT` / `REPGAME_MIN_AMBIENT` — night brightness floors
   (0-1, defaults 0.08 / 0.05). `night_ambient` is the moonlight floor on the
   daylight factor (outdoor night: terrain, sky, mobs, fog all scale by it);
@@ -90,12 +90,13 @@ vars set, behaviour is unchanged.
   All hash math must stay `highp`: bare `uint` is mediump in ES 300, which
   is 16-bit on Mesa/AMD and silently collapses the hash to ~0 (the test
   degenerates to the fixed cutoff and the dither pins dark).
-- `REPGAME_CUTOUT_FADE_START` / `REPGAME_CUTOUT_FADE_END` — texel-lod window
-  (lod = log2 of texels per pixel, so 0 is 1:1 and 3 is 8 texels/px) over
-  which the hashed cutout test converges to solid: distant canopy fills in
-  smoothly instead of rendering sub-pixel holes as salt-and-pepper noise,
-  and the brightness dither fades out on the same schedule. Defaults
-  0.3 / 1.2. Bound to `u_CutoutFade` in the chunk shader.
+- `CUTOUT_FADE_START` / `CUTOUT_FADE_END` — texel-lod window (lod = log2 of
+  texels per pixel, so 0 is 1:1 and 3 is 8 texels/px) over which the hashed
+  cutout test converges to solid: distant canopy fills in smoothly instead
+  of rendering sub-pixel holes as salt-and-pepper noise, and the brightness
+  dither fades out on the same schedule. Values 0.3 / 1.2 — compile-time
+  `#define`s at the top of `src/shaders/chunk_fragment.glsl` (previously
+  `u_CutoutFade` env-tunable uniform).
 - `REPGAME_FLY="x,y,z,yaw,pitch[,speed]"` — scripted no-clip flight for
   load-in/lighting stress tests. Each tick pins the camera to
   `start + look*speed*t` (speed in blocks/tick; sprint-fly is 2.0 —

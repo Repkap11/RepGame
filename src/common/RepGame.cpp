@@ -1762,19 +1762,6 @@ RepGameState *RepGame::init( const char *world_name, const bool connect_multi, c
 
     globalGameState.ui_overlay.init( vbl_ui_overlay_vertex, vbl_ui_overlay_instance );
     imgui_overlay_init( &globalGameState.imgui_overlay );
-    {
-        // Env overrides for the footprint-mipmapped light tunables (they were
-        // ImGui sliders; env vars are now the only way to retune them).
-        ImGuiDebugVars &dv = imgui_overlay_get_imgui_debug_vars( );
-        if ( const char *v = getenv( "REPGAME_LIGHT_LOD_BIAS" ) ) {
-            dv.light_lod_bias = static_cast<float>( atof( v ) );
-        }
-        if ( const char *v = getenv( "REPGAME_LIGHT_FAR_AO" ) ) {
-            dv.light_far_ao = static_cast<float>( atof( v ) );
-        }
-        // REPGAME_CUTOUT_FADE_START/END are parsed in
-        // imgui_overlay_get_imgui_debug_vars alongside the ambient vars.
-    }
     globalGameState.font_renderer.init( );
 
     BlockID selectedBlock = globalGameState.hotbar.getSelectedBlock( );
@@ -2020,15 +2007,18 @@ void RepGame::draw( float alpha ) {
         const glm::mat4 inv_mvp = glm::inverse( mvp );
         // Wrapped to an hour so shader sine functions keep float precision.
         const float time_s = static_cast<float>( fmod( now_us( ) / 1.0e6, 3600.0 ) );
+        int chunk_debug_flags = 0;
         if ( g_capture.enabled && g_capture.view_index < static_cast<int>( g_capture.views.size( ) ) ) {
-            globalGameState.world.set_chunk_debug_flags( g_capture.views[ g_capture.view_index ].flags );
+            chunk_debug_flags = g_capture.views[ g_capture.view_index ].flags;
         }
-        // Footprint-mipmapped light tunables (ImGui sliders / env overrides).
-        // With light mipmaps off the shader's mip branch must never run:
-        // drive light_lod negative via the bias (an RG8 volume would return
-        // level 0 with b=0 anyway, so this only saves the extra 3D fetch).
-        globalGameState.world.set_light_band_limit( light_mipmaps_enabled( ) ? debugVars.light_lod_bias : -1000.0f, debugVars.light_far_ao );
-        globalGameState.world.set_cutout_fade( debugVars.cutout_fade_start, debugVars.cutout_fade_end );
+        // With light mipmaps off the volume is non-mipmapped RG8 and the
+        // shader's footprint-mip branch must never run (a missing level
+        // reads b=0 and ramps distant light to 1) — force bit 32, the same
+        // flag that disables it for capture A/B.
+        if ( !light_mipmaps_enabled( ) ) {
+            chunk_debug_flags |= 32;
+        }
+        globalGameState.world.set_chunk_debug_flags( chunk_debug_flags );
         globalGameState.world.draw( globalGameState.blocksTexture, mvp, inv_mvp, mvp_reflect, mvp_sky, mvp_sky_reflect, globalGameState.input.debug_mode, !globalGameState.input.inventory_open, render_pos.y, headInWater,
                                     globalGameState.input.worldDrawQuality, render_pos, renderOrigin, time_s, daylight, debugVars.min_ambient );
         profiling.us_world_draw = now_us( ) - t_world_draw_start;

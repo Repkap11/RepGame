@@ -9,6 +9,20 @@
 #define LIGHT_VOLUME_DIM vec3( float( CHUNK_SIZE_INTERNAL_X ), float( CHUNK_SIZE_INTERNAL_Y ), float( CHUNK_SIZE_INTERNAL_Z ) )
 // Hard cap on the mip level sampled from the light volume (see light_lod).
 #define LIGHT_LOD_MAX 1.0
+// Footprint-mipmapped light tuning (the light_lod expression below): the
+// bias shifts the LOD higher (blurs the per-block light pattern at closer
+// range); far_ao adds a small deliberate blend toward the solid-inclusive
+// average as distant AO (0 = air cells only). far_ao stays small on
+// purpose: a surface-straddling texel's air fraction reflects where the
+// texel landed as much as real occlusion, so a large blend darkens even
+// flat unoccluded ground. Compile-time so the bias folds into the log2.
+#define LIGHT_LOD_BIAS 3.0
+#define LIGHT_FAR_AO 0.1
+// Cutout-foliage smoothing window in texel lods (0 = 1 texel/pixel,
+// 3 = 8 texels/pixel): lod where the hashed alpha test starts fading
+// toward solid, and lod where it is fully solid.
+#define CUTOUT_FADE_START 0.3
+#define CUTOUT_FADE_END 1.2
 #define TINT_UNDER_WATER_OBJECT_NEVER 0
 #define TINT_UNDER_WATER_OBJECT_UNDER_Y_LEVEL 1
 #define TINT_UNDER_WATER_OBJECT_ALWAYS 2
@@ -58,19 +72,9 @@ uniform float u_Time;
 uniform int u_FluidAnim;
 
 // Capture-mode A/B debug toggles (REPGAME_CAPTURE per-view flags bitmask);
-// always 0 in normal play.
+// 0 in normal play except bit 32, which the C++ side also sets when the
+// mipmapped light volume is off (REPGAME_LIGHT_MIPMAPS=0).
 uniform int u_DebugFlags;
-
-// Footprint-mipmapped light (see light_lod below): LOD bias (higher = blur
-// the per-block light pattern at closer range) and how much of the solid-
-// inclusive average to keep as smooth distant AO (0 = air-only average).
-uniform float u_LightLodBias;
-uniform float u_LightFarAO;
-// Cutout-foliage smoothing window in texel lods (0 = 1 texel/pixel,
-// 3 = 8 texels/pixel): x = lod where the hashed alpha test starts fading
-// toward solid, y = lod where it is fully solid. Env-tunable via
-// REPGAME_CUTOUT_FADE_START / REPGAME_CUTOUT_FADE_END.
-uniform vec2 u_CutoutFade;
 
 in vec2 v_TexCoordBlock;
 flat in vec2 v_tex_min;
@@ -240,13 +244,13 @@ void main() {
             h *= 747796405u;
             h ^= h >> 16u;
             cutoff = max(float(h) * (1.0f / 4294967296.0f), 0.1f);
-            // Converge to solid over the u_CutoutFade lod window: once a leaf
+            // Converge to solid over the CUTOUT_FADE lod window: once a leaf
             // texel is a fraction of a pixel the holes can't be resolved, and
             // stochastic 60% coverage renders as salt-and-pepper noise.
             // Fading the cutoff to zero fills the canopy back in — the mip's
             // filtered rgb is already a smooth leaf green, so distant foliage
             // reads as a solid canopy instead of high-frequency speckle.
-            cutout_smooth = clamp((texel_lod - u_CutoutFade.x) / max(u_CutoutFade.y - u_CutoutFade.x, 0.01f), 0.0f, 1.0f);
+            cutout_smooth = clamp((texel_lod - CUTOUT_FADE_START) / max(CUTOUT_FADE_END - CUTOUT_FADE_START, 0.01f), 0.0f, 1.0f);
             cutoff *= 1.0f - cutout_smooth;
         }
         if(sampled_a < cutoff) {
@@ -274,7 +278,7 @@ void main() {
             // more salient than +45%), which dropped the distant canopy's
             // mean ~20% below the authored look. Geometric mean 1.0 keeps
             // dark and bright texels balanced. Amplitude fades out over the
-            // u_CutoutFade window alongside the alpha test: once the canopy
+            // CUTOUT_FADE window alongside the alpha test: once the canopy
             // converges to solid, per-texel brightness noise reads as shimmer
             // rather than leaf detail, so it settles to the filtered mean on
             // the same schedule.
@@ -310,7 +314,7 @@ void main() {
     // fraction (cells that can hold light, same predicate as propagation —
     // dark air counts, solid doesn't), so rg / b is the average light over
     // the *air* cells in the
-    // footprint — solid cells don't drag it dark. u_LightFarAO adds a small
+    // footprint — solid cells don't drag it dark. LIGHT_FAR_AO adds a small
     // deliberate bias toward the raw (solid-inclusive) average. It is kept
     // small on purpose: the air fraction of a surface-straddling texel
     // reflects where the texel landed as much as any real occlusion, so
@@ -320,11 +324,10 @@ void main() {
     // area). The major axis alone explodes on surfaces seen edge-on even up
     // close (e.g. a cave ceiling at eye level), picking a mip that averages
     // light from outside the cave across the wall.
-    // When light mipmaps are off (REPGAME_LIGHT_MIPMAPS=0 or the platform
-    // default), the C++ side sets u_LightLodBias to -1000 so light_lod never
-    // exceeds 0 and this whole branch is skipped — an RG8 non-mipmapped
-    // volume would return level 0 with b=0 anyway (no visual change); the
-    // bias just saves the extra 3D fetch.
+    // When light mipmaps are off (REPGAME_LIGHT_MIPMAPS=0), the C++ side
+    // sets u_DebugFlags bit 32 so this branch never runs — an RG8 volume
+    // has no mip chain, and sampling a missing level would read b=0 and
+    // ramp distant light toward 1.
     // The LOD is capped at LIGHT_LOD_MAX: coarse mips break twice over
     // because the volume is per-chunk. CHUNK_SIZE (62) is not a power of
     // two, so mip level L puts each chunk on a texel grid shifted by
@@ -335,11 +338,11 @@ void main() {
     // a deep cave wall still evaluates to ~0 through level 4 and only leaks
     // at level 5, so the cap stays at or below that.
     float light_footprint = sqrt(length(dFdx(v_world_coords)) * length(dFdy(v_world_coords)));
-    float light_lod = min(log2(max(light_footprint, 1e-4)) + u_LightLodBias, LIGHT_LOD_MAX);
+    float light_lod = min(log2(max(light_footprint, 1e-4)) + LIGHT_LOD_BIAS, LIGHT_LOD_MAX);
     if(light_lod > 0.0 && (u_DebugFlags & 32) == 0) {
         vec3 light_mip = textureLod(u_LightTex, light_coord, light_lod).rgb;
         vec2 light_air = light_mip.rg / max(light_mip.b, 1.0 / 255.0);
-        vec2 light_far = min(mix(light_air, light_mip.rg, u_LightFarAO), vec2(1.0));
+        vec2 light_far = min(mix(light_air, light_mip.rg, LIGHT_FAR_AO), vec2(1.0));
         light_sample = mix(light_sample, light_far, clamp(light_lod, 0.0, 1.0));
     }
     // u_MinAmbient floors the result: cells with no skylight and no block

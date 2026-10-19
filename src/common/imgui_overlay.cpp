@@ -16,14 +16,6 @@ ImGuiDebugVars &imgui_overlay_get_imgui_debug_vars( ) {
         if ( const char *env = getenv( "REPGAME_MIN_AMBIENT" ) ) {
             debug_vars.min_ambient = static_cast<float>( atof( env ) );
         }
-        // Cutout-foliage smoothing window (texel lods: 0 = 1 texel/pixel,
-        // 3 = 8 texels/pixel).
-        if ( const char *env = getenv( "REPGAME_CUTOUT_FADE_START" ) ) {
-            debug_vars.cutout_fade_start = static_cast<float>( atof( env ) );
-        }
-        if ( const char *env = getenv( "REPGAME_CUTOUT_FADE_END" ) ) {
-            debug_vars.cutout_fade_end = static_cast<float>( atof( env ) );
-        }
     }
     return debug_vars;
 }
