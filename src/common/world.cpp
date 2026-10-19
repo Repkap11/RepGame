@@ -6,6 +6,7 @@
 #include "common/block_update_events/BlockNextToChangeEvent.hpp"
 #include "common/block_update_events/BlockNextToChangeEvent.hpp"
 
+#include <stdlib.h>
 #include <string>
 
 #define TINT_UNDER_WATER_OBJECT_NEVER 0
@@ -219,12 +220,16 @@ void World::draw( const Texture &blocksTexture, const glm::mat4 &mvp, const glm:
         debug_block_scale = 0.0f;
     }
 
-    // Distance fog: blend terrain toward the sky color near the render edge.
-    // Fog reaches full opacity at the render distance edge so chunk pop-in is
-    // hidden, while most of the terrain closer than that stays clear.
+    // Distance fog: blend terrain toward the sky color in a band ending at
+    // the render edge. The band is a constant number of blocks (capped at
+    // the old 38% of render distance so small render distances are
+    // unchanged), so the haze stays thin at large render distances instead
+    // of scaling up, while still reaching full opacity at the edge to hide
+    // chunk pop-in.
+    static const float fog_range_blocks = getenv( "REPGAME_FOG_RANGE" ) ? atof( getenv( "REPGAME_FOG_RANGE" ) ) : 96.0f;
     const float render_distance = static_cast<float>( CHUNK_RADIUS_X * CHUNK_SIZE_X );
-    const float fog_near = render_distance * 0.60f;
     const float fog_far = render_distance * 0.98f;
+    const float fog_near = fog_far - fminf( fog_range_blocks, render_distance * 0.38f );
     // Underwater murk: while the camera is in water, everything fogs over
     // this much shorter range — the medium is chosen by the camera, so even
     // blocks above the surface are cut off at the water view distance.

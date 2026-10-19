@@ -55,6 +55,10 @@ vars set, behaviour is unchanged.
   default `30 * UPS_RATE`.
 - `REPGAME_FACE_GROW_PX` — override the screen-space face grow in pixels
   (default 0.125, `CHUNK_FACE_GROW_PX`).
+- `REPGAME_FOG_RANGE` — width of the distance-fog band in blocks (default
+  96). The band ends at the render edge so pop-in stays hidden, and is
+  capped at 38% of render distance so small render distances look
+  unchanged.
 - `REPGAME_LIGHT_LOD_BIAS` / `REPGAME_LIGHT_FAR_AO` — override the
   footprint-mipmapped light tunables (ImGui "Light LOD bias" / "Distant AO"
   sliders, defaults 3.0 / 0.1). The effective mip level is capped at
