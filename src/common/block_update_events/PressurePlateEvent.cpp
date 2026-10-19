@@ -27,7 +27,7 @@ static bool player_stands_on_plate( const glm::dvec3 &eye, double player_height,
 
 void PressurePlateEvent::performAction( BlockUpdateQueue &blockUpdateQueue, RepGameState &repGameState ) {
     const BlockState current_state = repGameState.world.get_loaded_block( this->block_pos );
-    const bool still_pressed_area = block_definition_get_definition( current_state.id )->is_pressure_plate &&
+    const bool still_pressed_area = current_state.id != LAST_BLOCK_ID && block_definition_get_definition( current_state.id )->is_pressure_plate &&
                                     player_stands_on_plate( repGameState.camera.pos, repGameState.camera.player_height, repGameState.camera.eye_height, this->block_pos );
     if ( still_pressed_area ) {
         if ( current_state.current_redstone_power == 0 ) {
@@ -40,7 +40,7 @@ void PressurePlateEvent::performAction( BlockUpdateQueue &blockUpdateQueue, RepG
     }
     // Nobody on it (or the plate is gone/unloaded): release it and end the
     // check chain. Unwatching re-arms the per-tick stand detection.
-    if ( block_definition_get_definition( current_state.id )->is_pressure_plate && current_state.current_redstone_power > 0 ) {
+    if ( current_state.id != LAST_BLOCK_ID && block_definition_get_definition( current_state.id )->is_pressure_plate && current_state.current_redstone_power > 0 ) {
         BlockState released_state = current_state;
         released_state.current_redstone_power = 0;
         blockUpdateQueue.addBlockUpdate( std::make_shared<PlayerBlockPlacedEvent>( this->tick_number, this->block_pos, released_state, true ) );

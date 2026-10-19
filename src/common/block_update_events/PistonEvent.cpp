@@ -45,6 +45,9 @@ static void piston_set_block( BlockUpdateQueue &blockUpdateQueue, RepGameState &
 void PistonEvent::performAction( BlockUpdateQueue &blockUpdateQueue, RepGameState &repGameState ) {
     World &world = repGameState.world;
     const BlockState base_state = world.get_loaded_block( this->block_pos );
+    if ( base_state.id == LAST_BLOCK_ID ) {
+        return;
+    }
     const Block *base = block_definition_get_definition( base_state.id );
     if ( !base->is_piston ) {
         return;
@@ -52,7 +55,7 @@ void PistonEvent::performAction( BlockUpdateQueue &blockUpdateQueue, RepGameStat
     const glm::ivec3 dir = piston_facing_dir( base_state.rotation );
     const glm::ivec3 head_pos = this->block_pos + dir;
     const BlockState head_state = world.get_loaded_block( head_pos );
-    const bool head_present = block_definition_get_definition( head_state.id )->is_piston_head;
+    const bool head_present = head_state.id != LAST_BLOCK_ID && block_definition_get_definition( head_state.id )->is_piston_head;
 
     if ( base_state.current_redstone_power > 0 ) {
         // Powered: extend unless already extended.

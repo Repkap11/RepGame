@@ -89,7 +89,7 @@ void tnt_ignite( BlockUpdateQueue &blockUpdateQueue, RepGameState &repGameState,
     // explosion (and never clobber a different block).
     const glm::ivec3 cell = glm::ivec3( glm::floor( center ) );
     const BlockState cur = world.get_loaded_block( cell );
-    if ( !block_definition_get_definition( cur.id )->is_tnt ) {
+    if ( cur.id == LAST_BLOCK_ID || !block_definition_get_definition( cur.id )->is_tnt ) {
         return;
     }
     world.set_loaded_block( cell, BLOCK_STATE_AIR );

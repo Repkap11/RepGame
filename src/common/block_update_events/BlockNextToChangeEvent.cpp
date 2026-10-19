@@ -176,8 +176,13 @@ static int compute_dust_power( World &world, const glm::ivec3 &pos ) {
     return best > 0 ? best : 0;
 }
 
+static inline const Block *next_to_block_def( World &world, const glm::ivec3 &pos ) {
+    const BlockID id = world.get_loaded_block( pos ).id;
+    return block_definition_get_definition( id == LAST_BLOCK_ID ? AIR : id );
+}
+
 #define NEXT_TO_STATE( i, j, k ) world.get_loaded_block( glm::ivec3( affecting_block_pos.x + i, affecting_block_pos.y + j, affecting_block_pos.z + k ) )
-#define NEXT_TO_BLOCK( i, j, k ) block_definition_get_definition( world.get_loaded_block( glm::ivec3( affecting_block_pos.x + i, affecting_block_pos.y + j, affecting_block_pos.z + k ) ).id )
+#define NEXT_TO_BLOCK( i, j, k ) next_to_block_def( world, glm::ivec3( affecting_block_pos.x + i, affecting_block_pos.y + j, affecting_block_pos.z + k ) )
 
 inline int get_rotated_face( int face, int rotation ) {
     int result = face;
@@ -197,7 +202,7 @@ bool block_can_survive_at( World &world, const glm::ivec3 &block_pos, const Bloc
         // still pointing at this cell.
         const glm::ivec3 base_pos = block_pos - piston_facing_dir( block_state.rotation );
         const BlockState base_state = world.get_loaded_block( base_pos );
-        return block_definition_get_definition( base_state.id )->is_piston &&
+        return base_state.id != LAST_BLOCK_ID && block_definition_get_definition( base_state.id )->is_piston &&
                base_pos + piston_facing_dir( base_state.rotation ) == block_pos;
     }
     if ( block->is_torch && block_state.rotation >= 4 ) {
@@ -211,7 +216,7 @@ bool block_can_survive_at( World &world, const glm::ivec3 &block_pos, const Bloc
         static const int rot_to_face[ 4 ] = { FACE_RIGHT, FACE_BACK, FACE_LEFT, FACE_FRONT };
         int attach_face = rot_to_face[ block_state.rotation - 4 ];
         BlockID next_to_block_id = world.get_loaded_block( glm::ivec3( block_pos.x - FACE_DIR_X_OFFSETS[ attach_face ], block_pos.y - FACE_DIR_Y_OFFSETS[ attach_face ], block_pos.z - FACE_DIR_Z_OFFSETS[ attach_face ] ) ).id;
-        return block_definition_get_definition( next_to_block_id )->collides_with_player;
+        return next_to_block_id != LAST_BLOCK_ID && block_definition_get_definition( next_to_block_id )->collides_with_player;
     }
     bool block_is_ok_to_place = true;
     for ( int face = FACE_TOP; face < NUM_FACES_IN_CUBE; face++ ) {
@@ -223,7 +228,7 @@ bool block_can_survive_at( World &world, const glm::ivec3 &block_pos, const Bloc
                 break;
             } else {
                 block_is_ok_to_place = block->can_float_on_water ? next_to_block_id == WATER
-                                                               : block_definition_get_definition( next_to_block_id )->collides_with_player;
+                                                               : next_to_block_id != LAST_BLOCK_ID && block_definition_get_definition( next_to_block_id )->collides_with_player;
                 if ( block_is_ok_to_place ) {
                     break;
                 }
@@ -238,6 +243,9 @@ bool block_can_survive_at( World &world, const glm::ivec3 &block_pos, const Bloc
 // block_can_survive_at: for each required face, the supporting block sits at
 // activator_pos - FACE_DIR_OFFSETS[face].
 static bool activator_attached_to( const glm::ivec3 &activator_pos, const BlockState &activator_state, const glm::ivec3 &target_pos ) {
+    if ( activator_state.id == LAST_BLOCK_ID ) {
+        return false;
+    }
     const Block *activator = block_definition_get_definition( activator_state.id );
     for ( int face = FACE_TOP; face < NUM_FACES_IN_CUBE; face++ ) {
         int rotated_face = get_rotated_face( face, activator_state.rotation );
@@ -258,11 +266,11 @@ void perform_checks( BlockUpdateQueue &blockUpdateQueue, World &world, long tick
 
     // The updating block  was next to the updating one, and might need to change
     const BlockState updateing_block_state = world.get_loaded_block( block_pos );
-    const Block *updateing_block = block_definition_get_definition( updateing_block_state.id );
+    const Block *updateing_block = block_definition_get_definition( updateing_block_state.id == LAST_BLOCK_ID ? AIR : updateing_block_state.id );
 
     // The affecting block is the one that origionally change
     const BlockState affecting_block_state = world.get_loaded_block( affecting_block_pos );
-    const Block *affecting_block = block_definition_get_definition( affecting_block_state.id );
+    const Block *affecting_block = block_definition_get_definition( affecting_block_state.id == LAST_BLOCK_ID ? AIR : affecting_block_state.id );
 
     // Water flow needs to start when a block next to water is broken. An
     // already-waterlogged cell already contains water — expanding into it

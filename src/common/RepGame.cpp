@@ -572,7 +572,7 @@ void RepGame::process_mouse_events( ) {
         BlockState blockState = globalGameState.world.get_loaded_block( globalGameState.block_selection.pos_destroy );
         pr_debug( "Selected block:%d rotation:%d redstone_power:%d display:%d", blockState.id, blockState.rotation, blockState.current_redstone_power, blockState.display_id );
         globalGameState.input.click_delay_middle = 30;
-        if ( globalGameState.game_mode == GameMode_Survival ) {
+        if ( globalGameState.game_mode == GameMode_Survival && blockState.id != LAST_BLOCK_ID ) {
             // In survival mode, middle-clicking picks the block onto the
             // hotbar. If a non-full stack is already on the bar, just select
             // it (nothing is pulled from the survival inventory); only move a
@@ -593,7 +593,7 @@ void RepGame::process_mouse_events( ) {
             globalGameState.hotbar.addBlockWithQuantity( blockState.id, 1 );
             BlockID selectedBlock = globalGameState.hotbar.getSelectedBlock( );
             globalGameState.ui_overlay.set_holding_block( selectedBlock );
-        } else {
+        } else if ( blockState.id != LAST_BLOCK_ID ) {
             // Creative mode: always give the block.
             RepGame::add_to_hotbar( true, blockState.id );
         }
@@ -606,9 +606,9 @@ void RepGame::process_mouse_events( ) {
             // each tick the button is held on the same block.
             const glm::ivec3 target_pos = globalGameState.block_selection.pos_destroy;
             const BlockState target_state = globalGameState.world.get_loaded_block( target_pos );
-            const Block *target_def = block_definition_get_definition( target_state.id );
+            const Block *target_def = target_state.id == LAST_BLOCK_ID ? nullptr : block_definition_get_definition( target_state.id );
             // hardness < 0 is unbreakable (bedrock/barrier); 0 breaks instantly.
-            if ( target_def->hardness >= 0.0f ) {
+            if ( target_def != nullptr && target_def->hardness >= 0.0f ) {
                 // Aiming at a different block (or the block at the position
                 // changing) restarts progress.
                 if ( globalGameState.block_mining.pos != target_pos || globalGameState.block_mining.id != target_state.id ) {
@@ -635,7 +635,7 @@ void RepGame::process_mouse_events( ) {
     }
     if ( globalGameState.block_selection.selectionInBounds && globalGameState.input.mouse.buttons.right && globalGameState.input.click_delay_right == 0 ) {
         const BlockState target_state = globalGameState.world.get_loaded_block( globalGameState.block_selection.pos_destroy );
-        if ( block_definition_get_definition( target_state.id )->is_button ) {
+        if ( target_state.id != LAST_BLOCK_ID && block_definition_get_definition( target_state.id )->is_button ) {
             // Right-click presses a button instead of placing against it:
             // powered for a timeout, then released. Wood stays pressed ~1.5s,
             // stone ~1s. The click delay also swallows the placement attempt
@@ -676,8 +676,7 @@ void RepGame::process_mouse_events( ) {
             // Toggle redstone dust between cross and dot when right-clicking an existing dust block with dust in hand
             if ( holdingBlockDef->is_redstone_dust ) {
                 BlockState targetBlock = globalGameState.world.get_loaded_block( globalGameState.block_selection.pos_destroy );
-                const Block *targetBlockDef = block_definition_get_definition( targetBlock.id );
-                if ( targetBlockDef->is_redstone_dust ) {
+                if ( targetBlock.id != LAST_BLOCK_ID && block_definition_get_definition( targetBlock.id )->is_redstone_dust ) {
                     BlockState new_block_state = targetBlock;
                     if ( targetBlock.display_id == REDSTONE_CROSS ) {
                         new_block_state.display_id = REDSTONE_DOT;
@@ -1370,7 +1369,8 @@ void RepGame::tick( ) {
         // above, so the ray is deterministic).
         int whichFace = 0;
         glm::dvec3 pos_with_reach = globalGameState.camera.pos + ( glm::dvec3( globalGameState.camera.look ) * static_cast<double>( REACH_DISTANCE ) );
-        const int pick_water = block_definition_get_definition( globalGameState.hotbar.getSelectedBlock( ) )->can_float_on_water;
+        const BlockID selected_block = globalGameState.hotbar.getSelectedBlock( );
+        const int pick_water = selected_block != LAST_BLOCK_ID && block_definition_get_definition( selected_block )->can_float_on_water;
         globalGameState.block_selection.selectionInBounds = RayTraversal::find_block_from_to( globalGameState.world, nullptr, globalGameState.camera.pos, pos_with_reach, globalGameState.block_selection.pos_destroy, &whichFace, 0, 1, 0, 0 );
 
         globalGameState.block_selection.face = whichFace;
