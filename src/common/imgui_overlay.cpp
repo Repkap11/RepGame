@@ -60,6 +60,7 @@ static void fmt_count( char *buf, size_t n, long long v ) {
 }
 
 void imgui_overlay_init( ImGuiOverlay *imgui_overlay ) {
+    imgui_overlay->shown = SHOW_IMGUI;
     // imgui_overlay->show_demo_window = true;
 }
 
@@ -101,7 +102,7 @@ void imgui_overlay_handle_sdl2_event( ImGuiOverlay *ui_overlay, SDL_Event *event
     // ImGuiConfigFlags_NoMouse keeps io.WantCaptureMouse false, but never
     // report mouse capture regardless: the game always owns the mouse.
     *handledMouse = false;
-    *handledKeyboard = io.WantCaptureKeyboard;
+    *handledKeyboard = io.WantCaptureKeyboard && ui_overlay->shown;
 }
 
 void imgui_overlay_draw( ImGuiOverlay *imgui_overlay, Input &input ) {
@@ -109,7 +110,13 @@ void imgui_overlay_draw( ImGuiOverlay *imgui_overlay, Input &input ) {
     ImGui_ImplSDL3_NewFrame( );
     ImGui::NewFrame( );
 
-    if ( SHOW_IMGUI ) {
+    if ( input.toggle_imgui ) {
+        input.toggle_imgui = false;
+        imgui_overlay->shown = !imgui_overlay->shown;
+        pr_debug( "ImGui overlay: %s", imgui_overlay->shown ? "on" : "off" );
+    }
+
+    if ( imgui_overlay->shown ) {
         ImGuiIO &io = ImGui::GetIO( );
         if ( false ) {
             ImGui::ShowDemoWindow( &input.inventory_open );

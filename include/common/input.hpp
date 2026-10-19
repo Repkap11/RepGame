@@ -53,6 +53,9 @@ class Input {
     // Set by the 'v' key; consumed by the SDL frame loop to flip
     // SDL_GL_SetSwapInterval (hardware vsync) at runtime.
     bool toggle_vsync;
+    // Set by the 'g' key; consumed by imgui_overlay_draw to show/hide the
+    // debug overlay at runtime.
+    bool toggle_imgui;
     bool shift_held;
     // Accumulated PageUp/PageDown time-of-day nudges (in day-fraction steps);
     // consumed by RepGame each frame and applied to world_time.

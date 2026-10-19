@@ -2,6 +2,9 @@
 
 typedef struct {
     bool show_demo_window;
+    // Runtime visibility of the debug overlay, toggled by the 'g' key.
+    // SHOW_IMGUI is the initial value.
+    bool shown;
 } ImGuiOverlay;
 
 #include "RepGame.hpp"

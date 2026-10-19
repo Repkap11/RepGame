@@ -178,6 +178,11 @@ void Input::keysInput( const SDL_Keycode key, const bool pressed ) {
                 this->toggle_vsync = true;
             }
             break;
+        case 'g':
+            if ( pressed ) {
+                this->toggle_imgui = true;
+            }
+            break;
         case 'i':
         case 'e':
             if ( pressed ) {
