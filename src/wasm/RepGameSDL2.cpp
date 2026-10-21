@@ -254,6 +254,10 @@ void repgame_linux_process_window_and_pointer_state( RepGame &repgame ) {
     }
 }
 
+static inline long long now_us( ) {
+    return static_cast<long long>( emscripten_get_now( ) * 1000.0 );
+}
+
 void main_loop_wasm( void *arg ) {
     RepGame &repgame = *static_cast<RepGame *>( arg );
     if ( repgame.shouldExit( ) ) {
@@ -271,10 +275,43 @@ void main_loop_wasm( void *arg ) {
         last_save_ms = now_ms;
         repgame.save_player_data( );
     }
-    repgame_linux_process_sdl_events( repgame );
-    repgame_linux_process_window_and_pointer_state( repgame );
+
+    // Fixed-timestep accumulator, same shape as the desktop main_loop_full:
+    // rAF fires once per display refresh, so on a 60Hz monitor each callback
+    // owes UPS_RATE/60 (~2.4) ticks to keep the simulation at real-time speed.
+    constexpr int time_step_ms = 1000 / UPS_RATE;
+    static double next_game_step = -1.0;
+    // Snap forward on the first frame and after long stalls — a backgrounded
+    // tab stops rAF entirely, and on return the backlog would be thousands of
+    // ticks that the 10-tick cap would fast-forward through for minutes.
+    if ( next_game_step < 0.0 || now_ms - next_game_step > 2000.0 ) {
+        next_game_step = now_ms;
+    }
+
+    // Events are polled inside the tick loop (as on desktop): per-tick polling
+    // is what keeps tap_break_pending held for exactly one tick, and it avoids
+    // processing input ahead of the simulation during catch-up.
+    int computer_is_too_slow_limit = 10; // max advances per render; can't keep up -> game's UPS slows
+    while ( next_game_step <= now_ms && computer_is_too_slow_limit-- ) {
+        repgame_linux_process_sdl_events( repgame );
+        repgame_linux_process_window_and_pointer_state( repgame );
+        const long long t_tick = now_us( );
+        repgame.tick( );
+        repgame.profiling.us_tick = now_us( ) - t_tick;
+        next_game_step += time_step_ms;
+    }
+
+    // Interpolation factor: how far we are between the last executed tick
+    // (at next_game_step - time_step_ms) and the next scheduled tick.
+    const double render_now_ms = emscripten_get_now( );
+    float alpha = static_cast<float>( ( render_now_ms - ( next_game_step - time_step_ms ) ) / time_step_ms );
+    if ( alpha < 0.0f ) {
+        alpha = 0.0f;
+    } else if ( alpha > 1.0f ) {
+        alpha = 1.0f;
+    }
+
     repgame.clear( );
-    repgame.tick( );
-    repgame.draw( 1.0f );
+    repgame.draw( alpha );
     return;
 }
