@@ -1191,6 +1191,7 @@ void Chunk::unprogram_terrain( ) {
     // probes say otherwise. occl_pending may still be in flight; its stale
     // result shifts occl_fails by at most one, under the hide threshold.
     this->occl_fails = 0;
+    this->occl_fails_gen = 0;
     for ( int renderOrder = 0; renderOrder < LAST_RENDER_ORDER; renderOrder++ ) {
         RenderLayer &renderLayer = this->layers[ renderOrder ];
         if ( renderLayer.populated_blocks ) {

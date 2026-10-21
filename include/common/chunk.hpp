@@ -129,11 +129,18 @@ class Chunk {
     // render layer skips the chunk — conservative, since its content is
     // confined to the box. Hidden chunks keep probing, so a reveal un-hides
     // them the frame the box reappears. occl_query is lazily created on the
-    // GL thread and persists across slot reuse; a stale in-flight result
-    // only moves occl_fails by one, which the threshold absorbs.
+    // GL thread and persists across slot reuse.
+    // Verdicts are view-relative: a probe only proves coverage against the
+    // depth buffer of the view it was issued under. occl_probe_gen /
+    // occl_fails_gen tag the ChunkLoader::draw view generation each piece of
+    // state was earned under — after the camera moves, stale results are
+    // discarded and stale fails stop hiding, so a fast turn re-tests
+    // instead of leaving a see-through hole while verdicts drain.
     unsigned int occl_query;
     int occl_pending;
     int occl_fails;
+    long occl_probe_gen;
+    long occl_fails_gen;
     int needs_repopulation;
     // Set while this chunk sits in ChunkLoader::repop_must (dedupes the
     // enqueue). Cleared when the queue pops it, remeshed or not.

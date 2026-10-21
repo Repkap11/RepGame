@@ -633,6 +633,14 @@ void ChunkLoader::calculate_cull( const glm::mat4 &mvp, const bool saveAsReflect
         if ( saveAsReflection ) {
             chunk->cached_cull_reflect = !final_is_visible;
         } else {
+            // Re-entering the frustum invalidates the stale occl verdict:
+            // while the chunk was culled the camera may have moved, so a
+            // still-hidden chunk leaves a hole until the fresh probe lands.
+            // Draw it instead — overdraw at worst — and let this frame's
+            // probe re-hide it if it's still occluded.
+            if ( chunk->cached_cull_normal && final_is_visible ) {
+                chunk->occl_fails = 0;
+            }
             chunk->cached_cull_normal = !final_is_visible;
         }
     }
@@ -688,6 +696,38 @@ void ChunkLoader::draw( const glm::mat4 &mvp, const Renderer &renderer, const Te
         return e.x > -1.0f && e.x < CHUNK_SIZE_X + 1.0f && e.y > -1.0f && e.y < CHUNK_SIZE_Y + 1.0f && e.z > -1.0f && e.z < CHUNK_SIZE_Z + 1.0f;
     };
 
+    // Occlusion verdicts are view-relative: a box probe measures coverage
+    // against THIS frame's depth buffer, so a verdict earned under a
+    // different camera view proves nothing (the covering occluder may have
+    // left the frustum, or parallax may have uncovered the box). Bumping
+    // occl_view_gen when the view moves invalidates per-chunk fails_gen /
+    // probe_gen tagged with older generations — hidden chunks draw while
+    // fresh probes re-verify them instead of trusting verdicts measured
+    // under a view where they were occluded. That trades a few frames of
+    // overdraw after a fast camera move for never leaving a see-through
+    // hole while a stale "occluded" result drains through the query queue.
+    // Rotation columns (0-2) carry no translation; column 3 carries it, so
+    // a tighter epsilon there doubles as the ~0.3-block move threshold.
+    long occl_view_gen = 0;
+    if ( occlusion_enabled( ) && !draw_reflect ) {
+        static long view_gen = 0;
+        static glm::mat4 last_view_mvp( 0.0f );
+        bool view_changed = false;
+        for ( int c = 0; c < 3 && !view_changed; c++ ) {
+            for ( int r = 0; r < 4 && !view_changed; r++ ) {
+                view_changed = fabsf( mvp[ c ][ r ] - last_view_mvp[ c ][ r ] ) > 0.02f;
+            }
+        }
+        for ( int r = 0; r < 4 && !view_changed; r++ ) {
+            view_changed = fabsf( mvp[ 3 ][ r ] - last_view_mvp[ 3 ][ r ] ) > 0.4f;
+        }
+        if ( view_changed ) {
+            last_view_mvp = mvp;
+            view_gen++;
+        }
+        occl_view_gen = view_gen;
+    }
+
     // pr_debug( "Drawing %d chunks", this->numLoadedChunks );
     for ( int renderOrder = LAST_RENDER_ORDER - 1; renderOrder > 0; renderOrder-- ) {
         if ( reflect_only == ( renderOrder == RenderOrder_Water ) ) {
@@ -741,13 +781,23 @@ void ChunkLoader::draw( const glm::mat4 &mvp, const Renderer &renderer, const Te
                             GLuint passed = 0;
                             glGetQueryObjectuiv( chunk.occl_query, GL_QUERY_RESULT, &passed );
                             chunk.occl_pending = 0;
-                            chunk.occl_fails = passed ? 0 : chunk.occl_fails + 1;
+                            // Retire every finished query, but only trust the
+                            // verdict if it was issued under the current view:
+                            // a result from before the camera moved describes
+                            // depth that may no longer exist.
+                            if ( chunk.occl_probe_gen == occl_view_gen ) {
+                                if ( chunk.occl_fails_gen != occl_view_gen ) {
+                                    chunk.occl_fails = 0;
+                                    chunk.occl_fails_gen = occl_view_gen;
+                                }
+                                chunk.occl_fails = passed ? 0 : chunk.occl_fails + 1;
+                            }
                         }
                     }
                     if ( cam_in_box( chunk ) ) {
                         chunk.occl_fails = 0;
                     }
-                    if ( chunk.occl_fails < OCCL_HIDE_FRAMES ) {
+                    if ( chunk.occl_fails_gen != occl_view_gen || chunk.occl_fails < OCCL_HIDE_FRAMES ) {
                         chunk.draw( renderer, texture, shader, static_cast<RenderOrder>( renderOrder ), draw_reflect, render_origin, light_base_loc );
                     }
                 }
@@ -780,6 +830,7 @@ void ChunkLoader::draw( const glm::mat4 &mvp, const Renderer &renderer, const Te
                     glDrawArrays( GL_TRIANGLES, 0, 36 );
                     glEndQuery( GL_ANY_SAMPLES_PASSED );
                     chunk.occl_pending = 1;
+                    chunk.occl_probe_gen = occl_view_gen;
                 }
                 glColorMask( GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE );
 #if ( SUPPORTS_FRAME_BUFFER )
@@ -803,7 +854,8 @@ void ChunkLoader::draw( const glm::mat4 &mvp, const Renderer &renderer, const Te
                             chunk.draw( renderer, texture, shader, static_cast<RenderOrder>( renderOrder ), draw_reflect, render_origin, light_base_loc );
                         }
                     } else {
-                        if ( chunk.cached_cull_normal || ( occl && chunk.occl_fails >= OCCL_HIDE_FRAMES && !cam_in_box( chunk ) ) ) {
+                        if ( chunk.cached_cull_normal ||
+                             ( occl && chunk.occl_fails_gen == occl_view_gen && chunk.occl_fails >= OCCL_HIDE_FRAMES && !cam_in_box( chunk ) ) ) {
                             continue;
                         }
                         chunk.draw( renderer, texture, shader, static_cast<RenderOrder>( renderOrder ), draw_reflect, render_origin, light_base_loc );
