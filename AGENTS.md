@@ -53,6 +53,17 @@ vars set, behaviour is unchanged.
   default 60.
 - `REPGAME_CAPTURE_TIMEOUT` — max ticks per view before shooting anyway,
   default `30 * UPS_RATE`.
+- `REPGAME_CAPTURE_VIEW_TICKS` — `n>0`: views after the first shoot exactly
+  `n` ticks after the camera jumps to them, without waiting for queue idle.
+  View 0 keeps the normal idle-settle so the world is loaded before the
+  sweep begins. Use with a `;` list of views at increasing yaw to emulate a
+  fast mouse whip — each shot lands a fixed number of ticks after its jump,
+  catching transition transients (stale culling/occlusion verdicts) that
+  idle-settling would smooth over.
+- `REPGAME_CAPTURE_ANOMALY` / `REPGAME_CAPTURE_PERIODIC` — forensic frame
+  dumps: `ANOMALY=1` scans each frame's display for isolated bright
+  outliers (`=2` additionally scans the scene attachment alpha, heavy),
+  `PERIODIC=n` dumps all FBO attachments + display every n frames.
 - `REPGAME_FACE_GROW_PX` — override the screen-space face grow in pixels
   (default 0.125, `CHUNK_FACE_GROW_PX`).
 - `REPGAME_FOG_RANGE` — width of the distance-fog band in blocks (default

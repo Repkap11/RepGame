@@ -31,6 +31,10 @@ static inline long long now_us( ) {
 // clock and draw quality to the current view; once the loader/light queues are
 // idle for REPGAME_CAPTURE_SETTLE ticks (or REPGAME_CAPTURE_TIMEOUT hits), the
 // next draw() shoots screenshots/capture_<i>_*.tga and advances.
+// REPGAME_CAPTURE_VIEW_TICKS=n: views after the first shoot exactly n ticks
+// after the camera jumps to them instead of waiting for idle — a same-position
+// yaw sweep at n=1 captures the transient frames of a fast mouse pan that a
+// settled shot would miss.
 struct CaptureView {
     double x, y, z;
     float yaw, pitch;
@@ -51,6 +55,7 @@ struct CaptureState {
     WorldDrawQuality quality = WorldDrawQuality::MEDIUM;
     long settle_ticks = 60;
     long timeout_ticks = 30 * UPS_RATE;
+    long view_ticks = -1; // fixed hold for views >0; <0 = idle-settle like view 0
 };
 static CaptureState g_capture;
 
@@ -97,8 +102,11 @@ static void capture_parse( ) {
     if ( const char *v = getenv( "REPGAME_CAPTURE_TIMEOUT" ) ) {
         g_capture.timeout_ticks = atol( v );
     }
-    pr_debug( "Capture mode: %zu view(s), quality=%d time=%ld settle=%ld timeout=%ld", g_capture.views.size( ),
-              static_cast<int>( g_capture.quality ), g_capture.world_time, g_capture.settle_ticks, g_capture.timeout_ticks );
+    if ( const char *v = getenv( "REPGAME_CAPTURE_VIEW_TICKS" ) ) {
+        g_capture.view_ticks = atol( v );
+    }
+    pr_debug( "Capture mode: %zu view(s), quality=%d time=%ld settle=%ld timeout=%ld view_ticks=%ld", g_capture.views.size( ),
+              static_cast<int>( g_capture.quality ), g_capture.world_time, g_capture.settle_ticks, g_capture.timeout_ticks, g_capture.view_ticks );
 }
 
 bool RepGame::capture_mode( ) {
@@ -1555,8 +1563,14 @@ void RepGame::tick( ) {
                           s.light_jobs == 0 && s.light_pending == 0 && s.light_dirty == 0 &&         //
                           s.light_bfs_active == 0 && s.light_seeds == 0 && s.light_stale_count == 0;
         g_capture.idle_streak = idle ? g_capture.idle_streak + 1 : 0;
-        if ( g_capture.idle_streak >= g_capture.settle_ticks || g_capture.ticks_in_view >= g_capture.timeout_ticks ) {
-            const bool timed_out = g_capture.idle_streak < g_capture.settle_ticks;
+        // REPGAME_CAPTURE_VIEW_TICKS: views after the first shoot on a fixed
+        // tick count regardless of queue state — the shot lands on the frame
+        // the camera jumped to, catching transition transients (stale
+        // culling/occlusion verdicts) that idle-settling would smooth over.
+        const bool fixed_hold = g_capture.view_index > 0 && g_capture.view_ticks > 0;
+        if ( fixed_hold ? g_capture.ticks_in_view >= g_capture.view_ticks
+                        : g_capture.idle_streak >= g_capture.settle_ticks || g_capture.ticks_in_view >= g_capture.timeout_ticks ) {
+            const bool timed_out = !fixed_hold && g_capture.idle_streak < g_capture.settle_ticks;
             pr_debug( "Capture view %d: shot pending after %ld ticks%s", g_capture.view_index, g_capture.ticks_in_view,
                       timed_out ? " (TIMEOUT — loader still busy)" : "" );
             g_capture.shot_pending = true;
