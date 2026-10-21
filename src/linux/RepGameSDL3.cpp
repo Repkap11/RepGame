@@ -17,6 +17,8 @@ static RepGameState *globalGameState;
 // async-signal-safe store. (Also compiled into the Windows build, which
 // never sets it.)
 static volatile int exit_signal_received = 0;
+static SDL_Window *sdl_window = nullptr;
+static SDL_GLContext sdl_context = nullptr;
 
 // Hardware vsync (sync SDL_GL_SwapWindow to the display refresh). Defaults on
 // to cap FPS at the refresh rate; the 'v' key toggles it at runtime via
@@ -70,7 +72,7 @@ void repgame_linux_process_sdl_events( RepGame &repgame ) {
             imgui_overlay_handle_sdl2_event( &globalGameState->imgui_overlay, &event, &handledMouse, &handledKeyboard );
         }
 #endif
-        if ( capture && event.type != SDL_EVENT_WINDOW_RESIZED && event.type != SDL_EVENT_WINDOW_CLOSE_REQUESTED ) {
+        if ( capture && event.type != SDL_EVENT_WINDOW_RESIZED && event.type != SDL_EVENT_WINDOW_PIXEL_SIZE_CHANGED && event.type != SDL_EVENT_WINDOW_CLOSE_REQUESTED ) {
             continue;
         }
         switch ( event.type ) {
@@ -81,8 +83,21 @@ void repgame_linux_process_sdl_events( RepGame &repgame ) {
                 }
                 input.keysInput( event.key.key, event.type == SDL_EVENT_KEY_DOWN );
                 break;
-            case SDL_EVENT_WINDOW_RESIZED:
+            case SDL_EVENT_WINDOW_PIXEL_SIZE_CHANGED:
+                // Drawable pixel size changed (resize, fullscreen mode set,
+                // moved between HiDPI displays): data1/data2 are already the
+                // pixel dimensions the GL viewport must use.
                 repgame.changeSize( event.window.data1, event.window.data2 );
+                break;
+            case SDL_EVENT_WINDOW_RESIZED:
+                // Logical size changed — query the drawable pixel size so
+                // HiDPI scaling doesn't leave a stale strip outside the
+                // (smaller) logical-size viewport.
+                {
+                    int pw, ph;
+                    SDL_GetWindowSizeInPixels( sdl_window, &pw, &ph );
+                    repgame.changeSize( pw, ph );
+                }
                 break;
             case SDL_EVENT_WINDOW_CLOSE_REQUESTED:
                 input.exitGame = true;
@@ -125,8 +140,6 @@ bool startsWith( const char *pre, const char *str ) {
 
 void main_loop_full( RepGame &repgame );
 
-static SDL_Window *sdl_window = nullptr;
-static SDL_GLContext sdl_context = nullptr;
 int repgame_sdl2_main( const char *world_path, const char *host, const bool connect_multi, const bool tests ) {
     if ( tests ) {
         return rep_tests_start( );
@@ -241,7 +254,15 @@ int repgame_sdl2_main( const char *world_path, const char *host, const bool conn
         pr_debug( "GLEW version wrong" );
         exit( 1 ); // or handle the error in a nicer way
     }
-    repgame.changeSize( default_width, default_height );
+    // Size the viewport/FBO from the actual GL drawable, not the requested
+    // window size: with SDL_WINDOW_FULLSCREEN the drawable is the display
+    // mode (and on HiDPI it can differ from the logical size). Rendering to a
+    // viewport larger than the drawable leaves a stale strip at the edges.
+    {
+        int drawable_w, drawable_h;
+        SDL_GetWindowSizeInPixels( sdl_window, &drawable_w, &drawable_h );
+        repgame.changeSize( drawable_w, drawable_h );
+    }
     main_loop_full( repgame );
     repgame.cleanup( );
     delete repgamePrt;
