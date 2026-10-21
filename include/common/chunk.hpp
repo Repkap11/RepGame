@@ -67,6 +67,19 @@ void chunk_free_light_columns( unsigned char *p );
 unsigned char *chunk_alloc_air_mask( );
 void chunk_free_air_mask( unsigned char *p );
 
+// Chunk slot lifecycle. CHUNK_LIVE is the only state where terrain/mesh/
+// light data is usable — every consumer that used to check !is_loading just
+// keeps working since parked states are also nonzero. The parked states are
+// render-distance slots outside the active window (ChunkLoader::
+// render_radius): no work item is in flight for them, and the grid-shift
+// rescan re-evaluates them when the window grows.
+enum ChunkLoadState {
+    CHUNK_LIVE = 0,               // loaded + finalized (the old is_loading=0)
+    CHUNK_LOADING = 1,            // terrain work item in flight (old is_loading=1)
+    CHUNK_PARKED = 2,             // out of window, finalized data retained — reactivates instantly
+    CHUNK_PARKED_UNFINALIZED = 3, // out of window, never meshed/lit (cells==nullptr = never even loaded)
+};
+
 class Chunk {
     friend class ChunkLoader;
     friend class World;
@@ -81,7 +94,7 @@ class Chunk {
     friend void light_pending_enqueue( Chunk &chunk );
     friend int test_lighting( );
 
-    int is_loading;
+    int load_state;
     int gl_initialized;
     bool is_empty_chunk;
     RenderLayer layers[ LAST_RENDER_ORDER ];

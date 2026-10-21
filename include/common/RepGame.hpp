@@ -171,6 +171,10 @@ struct __attribute__( ( packed ) ) PlayerData {
     // Day/night clock; appended last so old player.dat files keep loading
     // (map_storage accepts the pre-world_time layout separately).
     long world_time;
+    // Player's horizontal render distance in chunks; appended last like
+    // world_time (map_storage accepts the pre-render_distance layout).
+    // 0 in old saves → absent, the default is used instead.
+    int render_distance;
 };
 
 class RepGame {

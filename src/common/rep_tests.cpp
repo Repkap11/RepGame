@@ -32,7 +32,7 @@ void test_setup_world( World &world ) {
     Chunk &chunk = cl.chunkArray[ chunk_slot_from_pos( glm::ivec3( 0, 0, 0 ) ) ];
     chunk.chunk_pos = glm::ivec3( 0, 0, 0 );
     chunk.chunk_mod = glm::ivec3( 0, 0, 0 );
-    chunk.is_loading = 0;
+    chunk.load_state = CHUNK_LIVE;
     chunk.cells = chunk_alloc_cells( );
 }
 

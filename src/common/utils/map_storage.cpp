@@ -365,6 +365,26 @@ struct __attribute__( ( packed ) ) PlayerDataNoTime {
     InventorySlot survival_inventory[ SURVIVAL_INVENTORY_WIDTH * SURVIVAL_INVENTORY_HEIGHT ];
 };
 
+// Layout written before render_distance was appended (still has
+// world_time). It is a strict prefix of PlayerData, so a plain prefix
+// memcpy suffices — render_distance stays 0 (absent) from the memset.
+struct __attribute__( ( packed ) ) PlayerDataNoDistance {
+    int reserved;
+    double world_x;
+    double world_y;
+    double world_z;
+    float angle_H;
+    float angle_V;
+    bool flying;
+    bool no_clip;
+    int worldDrawQuality;
+    InventorySlot hotbar_inventory[ HOTBAR_WIDTH * HOTBAR_HEIGHT ];
+    int selected_hotbar_slot;
+    GameMode game_mode;
+    InventorySlot survival_inventory[ SURVIVAL_INVENTORY_WIDTH * SURVIVAL_INVENTORY_HEIGHT ];
+    long world_time;
+};
+
 int MapStorage::read_player_data( PlayerData &player_data ) {
     char file_name[ CHUNK_NAME_MAX_LENGTH ];
     snprintf( file_name, CHUNK_NAME_MAX_LENGTH, FILE_ROOT_PLAYER_DATA, this->map_name );
@@ -380,6 +400,12 @@ int MapStorage::read_player_data( PlayerData &player_data ) {
     pr_debug( "Read player data:%s (%d bytes)", file_name, ( int )persist_data_length );
     if ( persist_data_length == sizeof( PlayerData ) ) {
         memcpy( &player_data, buffer, sizeof( PlayerData ) );
+        return 1;
+    }
+    if ( persist_data_length == sizeof( PlayerDataNoDistance ) ) {
+        // Saves from before render_distance existed: strict prefix of
+        // PlayerData; render_distance stays 0 (absent) from the memset.
+        memcpy( &player_data, buffer, sizeof( PlayerDataNoDistance ) );
         return 1;
     }
     if ( persist_data_length == sizeof( PlayerDataNoTime ) ) {
@@ -418,7 +444,7 @@ int MapStorage::read_player_data( PlayerData &player_data ) {
         memcpy( player_data.survival_inventory, legacy.survival_inventory, sizeof( legacy.survival_inventory ) );
         return 1;
     }
-    pr_debug( "Warning, wrong size player data. Read:%d expected:%d %d or %d", ( int )persist_data_length, ( int )sizeof( PlayerData ), ( int )sizeof( PlayerDataNoTime ), ( int )sizeof( PlayerDataLegacy ) );
+    pr_debug( "Warning, wrong size player data. Read:%d expected:%d %d %d or %d", ( int )persist_data_length, ( int )sizeof( PlayerData ), ( int )sizeof( PlayerDataNoDistance ), ( int )sizeof( PlayerDataNoTime ), ( int )sizeof( PlayerDataLegacy ) );
     return 0;
 }
 

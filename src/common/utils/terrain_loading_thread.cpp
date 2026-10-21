@@ -24,17 +24,18 @@ static inline long long now_us_terrain( ) {
 // stops). Retarget to the currently-correct position so every processed
 // item still lands a useful chunk.
 static glm::ivec3 terrain_slot_pos( const glm::ivec3 &chunk_mod, const glm::ivec3 &center ) {
-    const int rx = CHUNK_RADIUS_X * 2 + 1, ry = CHUNK_RADIUS_Y * 2 + 1, rz = CHUNK_RADIUS_Z * 2 + 1;
+    const int rx = CHUNK_RADIUS_XZ * 2 + 1, ry = CHUNK_RADIUS_Y * 2 + 1, rz = CHUNK_RADIUS_XZ * 2 + 1;
     return glm::ivec3(
-        static_cast<int>( floorf( static_cast<float>( center.x - chunk_mod.x + CHUNK_RADIUS_X ) / static_cast<float>( rx ) ) ) * rx + chunk_mod.x,
+        static_cast<int>( floorf( static_cast<float>( center.x - chunk_mod.x + CHUNK_RADIUS_XZ ) / static_cast<float>( rx ) ) ) * rx + chunk_mod.x,
         static_cast<int>( floorf( static_cast<float>( center.y - chunk_mod.y + CHUNK_RADIUS_Y ) / static_cast<float>( ry ) ) ) * ry + chunk_mod.y,
-        static_cast<int>( floorf( static_cast<float>( center.z - chunk_mod.z + CHUNK_RADIUS_Z ) / static_cast<float>( rz ) ) ) * rz + chunk_mod.z );
+        static_cast<int>( floorf( static_cast<float>( center.z - chunk_mod.z + CHUNK_RADIUS_XZ ) / static_cast<float>( rz ) ) ) * rz + chunk_mod.z );
 }
 
-void TerrainLoadingThread::set_focus( const glm::ivec3 &chunk_pos ) {
+void TerrainLoadingThread::set_focus( const glm::ivec3 &chunk_pos, int render_radius ) {
     this->focus_x.store( chunk_pos.x, std::memory_order_relaxed );
     this->focus_y.store( chunk_pos.y, std::memory_order_relaxed );
     this->focus_z.store( chunk_pos.z, std::memory_order_relaxed );
+    this->focus_radius.store( render_radius, std::memory_order_relaxed );
     this->focus_valid.store( 1, std::memory_order_relaxed );
 }
 
@@ -42,10 +43,18 @@ void TerrainLoadingThread::process_value( LinkedListValue *value ) {
     Chunk &chunk = *value->chunk;
     glm::ivec3 target = value->new_chunk_pos;
     if ( this->focus_valid.load( std::memory_order_relaxed ) ) {
-        target = terrain_slot_pos( chunk.chunk_mod,
-                                   glm::ivec3( this->focus_x.load( std::memory_order_relaxed ),
-                                               this->focus_y.load( std::memory_order_relaxed ),
-                                               this->focus_z.load( std::memory_order_relaxed ) ) );
+        const glm::ivec3 focus( this->focus_x.load( std::memory_order_relaxed ),
+                                this->focus_y.load( std::memory_order_relaxed ),
+                                this->focus_z.load( std::memory_order_relaxed ) );
+        target = terrain_slot_pos( chunk.chunk_mod, focus );
+        const int radius = this->focus_radius.load( std::memory_order_relaxed );
+        const glm::ivec3 d = target - focus;
+        if ( d.x > radius || d.x < -radius || d.z > radius || d.z < -radius ) {
+            // Retarget landed outside the render window — dead work. Skip
+            // persist/generate and let the dequeue-time bounds check park
+            // the slot; chunk_pos and its data stay a consistent pair.
+            return;
+        }
     }
 #if TERRAIN_GEN_PROFILING
     long long t_persist_start = now_us_terrain( );

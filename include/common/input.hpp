@@ -47,6 +47,10 @@ class Input {
     bool player_sprinting;
     bool no_clip;
     WorldDrawQuality worldDrawQuality;
+    // Active horizontal render distance in chunks [1, RENDER_RADIUS_MAX];
+    // adjusted live with =/- (numpad +/- too), applied to ChunkLoader each
+    // frame. CHUNK_RADIUS_* remains the compiled-in torus capacity.
+    int render_distance;
     bool drop_item;
     bool screenshot_requested;
     bool toggle_game_mode;

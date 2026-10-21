@@ -31,7 +31,7 @@ struct LightRemoveSeed {
 // slot per loaded chunk-column position on the torus — the x/z part of
 // chunk_slot_from_pos's mod ring. Seeds route by target column; drain
 // workers claim the nearest non-empty slot.
-#define LIGHT_COL_QUEUE_COUNT ( ( 2 * CHUNK_RADIUS_X + 1 ) * ( 2 * CHUNK_RADIUS_Z + 1 ) )
+#define LIGHT_COL_QUEUE_COUNT ( ( 2 * CHUNK_RADIUS_XZ + 1 ) * ( 2 * CHUNK_RADIUS_XZ + 1 ) )
 
 // Snapshot of chunk-loading and lighting work-queue depth for the debug
 // overlay. All fields are point-in-time reads — the counts can race the
@@ -39,7 +39,7 @@ struct LightRemoveSeed {
 struct LoaderDebugStats {
     int terrain_queued;    // chunks waiting for a terrain worker
     int terrain_results;   // generated chunks waiting for the render thread
-    int chunks_loading;    // slots with is_loading set
+    int chunks_loading;    // slots with a terrain work item in flight
     int chunks_drawable;
     int chunks_occluded;   // drawable chunks past the occlusion hide threshold
     int light_jobs;        // queued finalize/recheck jobs
@@ -114,7 +114,19 @@ class ChunkLoader {
     // re-finalize so flying up to a half-lit region converges it promptly.
     int light_heal_budget = 0;
 
+    // Runtime render distance: horizontal (x/z) active radius in chunks,
+    // 1..RENDER_RADIUS_MAX. The torus stays allocated at the compile-time
+    // CHUNK_RADIUS_*; slots whose nearest position is outside the active
+    // window park (CHUNK_PARKED / CHUNK_PARKED_UNFINALIZED) and are
+    // re-evaluated on each grid-shift rescan. render_radius_applied tracks
+    // the radius the last rescan used so a change triggers one even
+    // without a center move.
+    int render_radius = CHUNK_RADIUS_XZ;
+    int render_radius_applied = -1;
+
+    bool pos_in_window( const glm::ivec3 &center, const glm::ivec3 &pos ) const;
     int reload_if_out_of_bounds( Chunk &chunk, const glm::ivec3 &chunk_pos, glm::ivec3 *out_new_pos = nullptr );
+    void finalize_loaded_chunk( Chunk &chunk, Multiplayer &multiplayer, const glm::ivec3 &chunk_diff, const glm::ivec3 &center_previous, const glm::ivec3 &center_next );
     static inline int process_chunk_position( Chunk &chunk, const glm::ivec3 &chunk_diff, const glm::ivec3 &center_previous, const glm::ivec3 &center_next, int force_reload );
     void process_random_ticks( );
     void rebuild_drawable_list( );
@@ -208,8 +220,13 @@ class ChunkLoader {
     void light_thread_loop( );
 
   public:
-    void init( const glm::dvec3 &camera_pos, const VertexBufferLayout &vbl_block, const VertexBufferLayout &vbl_coords, MapStorage &map_storage );
+    void init( const glm::dvec3 &camera_pos, const VertexBufferLayout &vbl_block, const VertexBufferLayout &vbl_coords, MapStorage &map_storage, int render_radius );
     void render_chunks( Multiplayer &multiplayer, const glm::dvec3 &camera_pos, int limit_render );
+    // Runtime render distance, in horizontal chunks [1, RENDER_RADIUS_MAX].
+    // Applied on the next render_chunks rescan; shrink takes effect
+    // immediately (slots park), grow streams chunks in like a fast move.
+    void set_render_distance( int radius );
+    int render_distance_blocks( ) const { return this->render_radius * CHUNK_SIZE_X; }
     void repopulate_blocks( );
     void calculate_cull( const glm::mat4 &mvp, bool saveAsReflection, const glm::ivec3 &renderOrigin ) const;
     void draw( const glm::mat4 &mvp, const Renderer &renderer, const Texture &texture, bool reflect_only, bool draw_reflect, bool use_frame_buffer, const glm::vec3 &render_origin, const glm::vec3 &camera_pos );
@@ -242,20 +259,20 @@ class ChunkLoader {
     void cleanup( MapStorage &map_storage );
 };
 
-#define MAX_LOADED_CHUNKS ( ( 2 * CHUNK_RADIUS_X + 1 ) * ( 2 * CHUNK_RADIUS_Y + 1 ) * ( 2 * CHUNK_RADIUS_Z + 1 ) )
+#define MAX_LOADED_CHUNKS ( ( 2 * CHUNK_RADIUS_XZ + 1 ) * ( 2 * CHUNK_RADIUS_Y + 1 ) * ( 2 * CHUNK_RADIUS_XZ + 1 ) )
 
 // The chunk grid is a torus of size (2*R+1)^3. Each chunk's chunk_mod (which is
 // invariant for its slot) uniquely maps to an array index, giving O(1) lookup.
 static inline int chunk_slot_from_mod( const glm::ivec3 &chunk_mod ) {
-    const int sx = 2 * CHUNK_RADIUS_X + 1;
-    const int sz = 2 * CHUNK_RADIUS_Z + 1;
+    const int sx = 2 * CHUNK_RADIUS_XZ + 1;
+    const int sz = 2 * CHUNK_RADIUS_XZ + 1;
     return chunk_mod.x + sx * ( chunk_mod.z + sz * chunk_mod.y );
 }
 
 static inline int chunk_slot_from_pos( const glm::ivec3 &chunk_pos ) {
-    const int sx = 2 * CHUNK_RADIUS_X + 1;
+    const int sx = 2 * CHUNK_RADIUS_XZ + 1;
     const int sy = 2 * CHUNK_RADIUS_Y + 1;
-    const int sz = 2 * CHUNK_RADIUS_Z + 1;
+    const int sz = 2 * CHUNK_RADIUS_XZ + 1;
     glm::ivec3 cmod;
     cmod.x = ( ( chunk_pos.x % sx ) + sx ) % sx;
     cmod.y = ( ( chunk_pos.y % sy ) + sy ) % sy;

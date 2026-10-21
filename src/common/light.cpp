@@ -296,8 +296,8 @@ struct LightSeedGuard {
 // it drains at that slot's priority and dies at pop when get_chunk fails —
 // harmless, and it keeps the table bounded with no allocation.
 static inline int light_col_slot_at( const int cx, const int cz ) {
-    const int sx = 2 * CHUNK_RADIUS_X + 1;
-    const int sz = 2 * CHUNK_RADIUS_Z + 1;
+    const int sx = 2 * CHUNK_RADIUS_XZ + 1;
+    const int sz = 2 * CHUNK_RADIUS_XZ + 1;
     return ( ( cx % sx ) + sx ) % sx + sx * ( ( ( cz % sz ) + sz ) % sz );
 }
 static inline int light_col_slot( const glm::ivec3 &block_pos ) {
@@ -309,8 +309,8 @@ static inline int light_col_slot( const glm::ivec3 &block_pos ) {
 // is also the right priority for out-of-window seeds squatting in the
 // slot — doomed seeds should drain late, not ahead of live columns.
 static inline glm::ivec2 light_col_slot_pos( const int slot, const glm::ivec3 &center ) {
-    const int sx = 2 * CHUNK_RADIUS_X + 1;
-    const int sz = 2 * CHUNK_RADIUS_Z + 1;
+    const int sx = 2 * CHUNK_RADIUS_XZ + 1;
+    const int sz = 2 * CHUNK_RADIUS_XZ + 1;
     const int mx = slot % sx, mz = slot / sx;
     int ox = mx - ( ( center.x % sx ) + sx ) % sx;
     ox += ox > sx / 2 ? -sx : ( ox < -sx / 2 ? sx : 0 );
@@ -401,7 +401,7 @@ int ChunkLoader::light_seed_gate( const glm::ivec3 &block_pos, const bool near, 
         return 0;
     }
     Chunk *c = this->get_chunk( light_chunk_pos_of( block_pos ) );
-    if ( !c || c->is_loading ) {
+    if ( !c || c->load_state ) {
         light_dbg_dropped++;
         light_dbg_push_drops++;
         return 1;
@@ -503,7 +503,7 @@ void ChunkLoader::light_write_cell( Chunk &chunk, const int idx, const unsigned 
 // as out-of-bounds. A null light[] volume returns the uniform value instead.
 int ChunkLoader::light_get( const glm::ivec3 &block_pos, const int channel ) const {
     const Chunk *chunk = this->get_chunk( light_chunk_pos_of( block_pos ) );
-    if ( !chunk || chunk->is_loading ) {
+    if ( !chunk || chunk->load_state ) {
         return -1;
     }
     const glm::ivec3 local = block_pos - chunk->chunk_pos * CHUNK_SIZE_I;
@@ -516,7 +516,7 @@ int ChunkLoader::light_get( const glm::ivec3 &block_pos, const int channel ) con
 
 BlockID ChunkLoader::light_block_id_at( const glm::ivec3 &block_pos ) const {
     const Chunk *chunk = this->get_chunk( light_chunk_pos_of( block_pos ) );
-    if ( !chunk || chunk->is_loading ) {
+    if ( !chunk || chunk->load_state ) {
         return LAST_BLOCK_ID;
     }
     const glm::ivec3 local = block_pos - chunk->chunk_pos * CHUNK_SIZE_I;
@@ -986,7 +986,7 @@ void ChunkLoader::light_flush_deferred_marks( ) {
         // The slot may have recycled between recheck and drain — a stale mark
         // on a recycled chunk is harmless (extra texel region), but skip
         // chunks with no live volume.
-        if ( e.first->light && !e.first->is_loading ) {
+        if ( e.first->light && !e.first->load_state ) {
             light_mark_dirty_now( *e.first, e.second );
         }
     }
@@ -1012,7 +1012,7 @@ void ChunkLoader::light_mark_dirty_all( Chunk &chunk ) {
 void ChunkLoader::light_set( const glm::ivec3 &block_pos, const int channel, const int value ) {
     const glm::ivec3 cp = light_chunk_pos_of( block_pos );
     Chunk *owner = this->get_chunk( cp );
-    if ( !owner || owner->is_loading ) {
+    if ( !owner || owner->load_state ) {
         return;
     }
     const glm::ivec3 local = block_pos - cp * CHUNK_SIZE_I;
@@ -1036,7 +1036,7 @@ void ChunkLoader::light_set( const glm::ivec3 &block_pos, const int channel, con
                 Chunk *c = owner;
                 if ( off != glm::ivec3( 0 ) ) {
                     c = this->get_chunk( cp + off );
-                    if ( !c || c->is_loading ) {
+                    if ( !c || c->load_state ) {
                         continue;
                     }
                 }
@@ -1084,7 +1084,7 @@ void ChunkLoader::light_set_nb( Chunk *const nb_cache[ 27 ], Chunk &owner, const
                 const int oy = axis_opts[ 1 ][ iy ];
                 const int oz = axis_opts[ 2 ][ iz ];
                 Chunk *c = ( ox || oy || oz ) ? nb_cache[ ( ox + 1 ) * 9 + ( oy + 1 ) * 3 + ( oz + 1 ) ] : &owner;
-                if ( !c || c->is_loading ) {
+                if ( !c || c->load_state ) {
                     continue;
                 }
                 const glm::ivec3 c_local = block_pos - c->chunk_pos * CHUNK_SIZE_I;
@@ -1116,7 +1116,7 @@ void ChunkLoader::light_set_nb( Chunk *const nb_cache[ 27 ], Chunk &owner, const
 void ChunkLoader::light_add_step( const LightSeed &seed ) {
     const glm::ivec3 cp = light_chunk_pos_of( seed.pos );
     Chunk *chunk = this->get_chunk( cp );
-    if ( !chunk || chunk->is_loading ) {
+    if ( !chunk || chunk->load_state ) {
         light_dbg_dropped++;
         return;
     }
@@ -1182,7 +1182,7 @@ void ChunkLoader::light_add_step( const LightSeed &seed ) {
 void ChunkLoader::light_remove_step( const LightRemoveSeed &seed ) {
     const glm::ivec3 cp = light_chunk_pos_of( seed.pos );
     Chunk *chunk = this->get_chunk( cp );
-    if ( !chunk || chunk->is_loading ) {
+    if ( !chunk || chunk->load_state ) {
         light_dbg_dropped++;
         return;
     }
@@ -1421,7 +1421,7 @@ void ChunkLoader::light_cascade_column( const int world_x, const int world_z ) {
     int open = 1; // Nothing above the top of the loaded grid is sky.
     for ( int cy = this->chunk_center.y + CHUNK_RADIUS_Y; cy >= this->chunk_center.y - CHUNK_RADIUS_Y; cy-- ) {
         Chunk *chunk = this->get_chunk( glm::ivec3( cx, cy, cz ) );
-        if ( !chunk || chunk->is_loading ) {
+        if ( !chunk || chunk->load_state ) {
             // Unloaded cells are unknown — keep the previous sky_open_above
             // state below them. When the chunk finishes, its own finalize
             // cascade re-derives the flag through this column.
@@ -1490,7 +1490,7 @@ int ChunkLoader::light_cascade_columns( Chunk &start_chunk ) {
     memset( open, 1, sizeof( open ) );
     for ( int i = 0; i < N_LEVELS; i++ ) {
         Chunk *chunk = stack[ i ];
-        if ( !chunk || chunk->is_loading ) {
+        if ( !chunk || chunk->load_state ) {
             // Unloaded cells are unknown — keep open[] as-is for chunks below;
             // the missing chunk's own finalize cascade re-derives the flags.
             continue;
@@ -1597,7 +1597,7 @@ int ChunkLoader::light_cascade_columns( Chunk &start_chunk ) {
 // fed, and re-pull light in from the 6 neighbors.
 void ChunkLoader::light_recheck_block( const glm::ivec3 &block_pos ) {
     Chunk *chunk = this->get_chunk( light_chunk_pos_of( block_pos ) );
-    if ( !chunk || chunk->is_loading ) {
+    if ( !chunk || chunk->load_state ) {
         return;
     }
     const glm::ivec3 local = block_pos - chunk->chunk_pos * CHUNK_SIZE_I;
@@ -1676,7 +1676,7 @@ void ChunkLoader::light_recheck_block( const glm::ivec3 &block_pos ) {
 //  - resolve skylight column-by-column (cascade touches neighbors too),
 //  - sync border mirrors with neighbors and seed spreads/removals.
 void ChunkLoader::light_finalize_chunk( Chunk &chunk ) {
-    if ( chunk.is_loading ) {
+    if ( chunk.load_state ) {
         return;
     }
     light_dbg_finalize++;
@@ -1827,7 +1827,7 @@ void ChunkLoader::light_seed_interior_boundary( Chunk &chunk ) {
                 }
                 const glm::ivec3 dir = light_dirs[ d ];
                 const Chunk *nchunk = nb_cache[ ( dir.x + 1 ) * 9 + ( dir.y + 1 ) * 3 + ( dir.z + 1 ) ];
-                if ( !nchunk || nchunk->is_loading ) {
+                if ( !nchunk || nchunk->load_state ) {
                     continue;
                 }
                 const int cv = light_get_sky( light_read_cell( chunk, light_index( x, y, z ) ) );
@@ -1849,7 +1849,7 @@ void ChunkLoader::light_seed_interior_boundary( Chunk &chunk ) {
                 }
                 const glm::ivec2 dir2 = xz_dirs[ d ];
                 const Chunk *nchunk = nb_cache[ ( dir2.x + 1 ) * 9 + ( 0 + 1 ) * 3 + ( dir2.y + 1 ) ];
-                if ( !nchunk || nchunk->is_loading ) {
+                if ( !nchunk || nchunk->load_state ) {
                     continue;
                 }
                 const int nx = x + dir2.x;
@@ -1887,7 +1887,7 @@ void ChunkLoader::light_seed_column_boundary( const int world_x, const int world
     const int lz = world_z - cz * CHUNK_SIZE_Z;
     for ( int cy = this->chunk_center.y + CHUNK_RADIUS_Y; cy >= this->chunk_center.y - CHUNK_RADIUS_Y; cy-- ) {
         const Chunk *chunk = this->get_chunk( glm::ivec3( cx, cy, cz ) );
-        if ( !chunk || chunk->is_loading ) {
+        if ( !chunk || chunk->load_state ) {
             continue;
         }
         for ( int y = 0; y < CHUNK_SIZE_Y; y++ ) {
@@ -1920,7 +1920,7 @@ void ChunkLoader::light_seed_column_boundary( const int world_x, const int world
 void ChunkLoader::light_border_sync( Chunk &chunk ) {
     // chunk.light may be null (uniform volume): light_read_cell/write_cell
     // keep mirrors materializing only where they actually differ.
-    if ( chunk.is_loading ) {
+    if ( chunk.load_state ) {
         return;
     }
     const glm::ivec3 base = chunk.chunk_pos * CHUNK_SIZE_I;
@@ -1945,7 +1945,7 @@ void ChunkLoader::light_border_sync( Chunk &chunk ) {
         const int oy = y < 0 ? -1 : y >= CHUNK_SIZE_Y ? 1 : 0;
         const int oz = z < 0 ? -1 : z >= CHUNK_SIZE_Z ? 1 : 0;
         const Chunk *owner = nb_cache[ ( ox + 1 ) * 9 + ( oy + 1 ) * 3 + ( oz + 1 ) ];
-        if ( !owner || owner->is_loading ) {
+        if ( !owner || owner->load_state ) {
             return;
         }
         // owner's local = our (x,y,z) minus the chunk offset * 32.
@@ -2070,7 +2070,7 @@ void ChunkLoader::light_border_sync( Chunk &chunk ) {
                         continue;
                     }
                     Chunk *nb = nb_cache[ ( ox + 1 ) * 9 + ( oy + 1 ) * 3 + ( oz + 1 ) ];
-                    if ( !nb || nb->is_loading ) {
+                    if ( !nb || nb->load_state ) {
                         continue;
                     }
                     const glm::ivec3 n_local = w - nb->chunk_pos * CHUNK_SIZE_I;
@@ -2122,7 +2122,7 @@ void ChunkLoader::light_border_sync( Chunk &chunk ) {
                 glm::ivec3 axo( 0 );
                 axo[ a ] = off;
                 const Chunk *nax = nb_cache[ ( axo.x + 1 ) * 9 + ( axo.y + 1 ) * 3 + ( axo.z + 1 ) ];
-                if ( !nax || nax->is_loading ) {
+                if ( !nax || nax->load_state ) {
                     continue;
                 }
                 const glm::ivec3 n_pos = w + axo;
@@ -2190,7 +2190,7 @@ void ChunkLoader::light_process_pending_chunk( Chunk &chunk ) {
     // that activates the chunk between the two must observe listed==0 and
     // re-enqueue, so no pending batch is ever dropped.
     chunk.light_pending_listed = 0;
-    if ( chunk.is_loading ) {
+    if ( chunk.load_state ) {
         return; // loading chunks drain their queue in light_finalize_chunk
     }
     if ( chunk.light_reseed ) {
@@ -2759,7 +2759,7 @@ void ChunkLoader::light_upload_dirty( const int max_uploads ) {
     int uploads = 0;
     for ( const LightUploadEntry &e : entries ) {
         Chunk &chunk = *e.chunk;
-        if ( e.box == LIGHT_BOX_EMPTY || chunk.is_loading ) {
+        if ( e.box == LIGHT_BOX_EMPTY || chunk.load_state ) {
             continue;
         }
         // No texture yet: light_ensure_texture's full upload at first draw
@@ -2949,7 +2949,7 @@ void ChunkLoader::light_reprioritize_jobs( ) {
 // Called from the grid-shift slot scan in chunk_loader.cpp so stale far
 // chunks heal as they re-enter the near radius.
 void ChunkLoader::light_heal_chunk( Chunk &chunk, const glm::ivec3 &center ) {
-    if ( chunk.is_loading || !light_near_col( center, chunk.chunk_pos ) ) {
+    if ( chunk.load_state || !light_near_col( center, chunk.chunk_pos ) ) {
         return;
     }
     if ( chunk.light_stale.load( std::memory_order_relaxed ) ) {
@@ -2993,7 +2993,7 @@ void ChunkLoader::light_heal_idle( ) {
         Chunk &chunk = this->chunkArray[ i ];
         // Load first: the common case is flag=0, and an unconditional exchange
         // would pay an atomic RMW per slot per frame for nothing.
-        if ( !chunk.is_loading && chunk.light_stale.load( std::memory_order_relaxed ) &&
+        if ( !chunk.load_state && chunk.light_stale.load( std::memory_order_relaxed ) &&
              chunk.light_stale.exchange( 0, std::memory_order_relaxed ) ) {
             this->light_submit_finalize( chunk );
             healed++;
@@ -3019,7 +3019,7 @@ void ChunkLoader::light_submit_finalize( Chunk &chunk ) {
 
 void ChunkLoader::light_submit_recheck( const glm::ivec3 &block_pos ) {
     Chunk *chunk = this->get_chunk( light_chunk_pos_of( block_pos ) );
-    if ( chunk == nullptr || chunk->is_loading ) {
+    if ( chunk == nullptr || chunk->load_state ) {
         return;
     }
     if ( !light_thread_running ) {
@@ -3195,7 +3195,7 @@ void ChunkLoader::light_thread_loop( ) {
                 int best_d2 = std::numeric_limits<int>::max( );
                 for ( auto it = light_pending_list.begin( ); it != light_pending_list.end( ); ) {
                     Chunk *pc = *it;
-                    if ( pc->is_loading ) {
+                    if ( pc->load_state ) {
                         // Loading chunks drain pending in light_finalize_chunk.
                         pc->light_pending_listed = 0;
                         it = light_pending_list.erase( it );
@@ -3263,7 +3263,7 @@ void ChunkLoader::light_thread_loop( ) {
                 // must still hold that chunk or our writes aren't under the
                 // claim. A recycled slot's fresh dequeue re-submits, so
                 // skipping loses nothing.
-                if ( job.chunk->chunk_pos == job.pos && !job.chunk->is_loading ) {
+                if ( job.chunk->chunk_pos == job.pos && !job.chunk->load_state ) {
                     this->light_finalize_chunk( *job.chunk );
                 }
             } else if ( this->get_chunk( light_chunk_pos_of( job.pos ) ) == job.chunk ) {
@@ -3271,7 +3271,7 @@ void ChunkLoader::light_thread_loop( ) {
             }
         } else if ( pending_chunk != nullptr ) {
             if ( pending_chunk->chunk_pos.x == pending_expected.x && pending_chunk->chunk_pos.z == pending_expected.z &&
-                 !pending_chunk->is_loading ) {
+                 !pending_chunk->load_state ) {
                 this->light_process_pending_chunk( *pending_chunk );
             }
         }
@@ -3471,7 +3471,7 @@ void ChunkLoader::debug_loader_stats( LoaderDebugStats *out ) const {
     this->terrain_loading_thread.queue_sizes( &out->terrain_queued, &out->terrain_results );
     out->chunks_drawable = this->num_drawable;
     for ( int i = 0; i < MAX_LOADED_CHUNKS; i++ ) {
-        if ( this->chunkArray[ i ].is_loading ) {
+        if ( this->chunkArray[ i ].load_state == CHUNK_LOADING ) {
             out->chunks_loading++;
         }
         if ( this->chunkArray[ i ].light_stale.load( std::memory_order_relaxed ) ) {

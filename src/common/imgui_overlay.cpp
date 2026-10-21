@@ -138,6 +138,7 @@ void imgui_overlay_draw( ImGuiOverlay *imgui_overlay, Input &input ) {
             ImGui::Text( "Application average %.3f ms/frame (%.1f FPS)", 1000.0f / io.Framerate, io.Framerate );
             ImGui::Text( "Player Pos: %9.1f %9.1f %9.1f", debug_vars.player_pos.x, debug_vars.player_pos.y, debug_vars.player_pos.z );
             ImGui::Text( "Render Mode: %s", qualityName );
+            ImGui::Text( "Render Distance: %d chunks (%d blocks)  [=/+ and -]", input.render_distance, input.render_distance * CHUNK_SIZE_X );
             const char *video_driver = SDL_GetCurrentVideoDriver( );
             ImGui::Text( "Video Driver: %s", video_driver ? video_driver : "unknown" );
             const char *acceleration;

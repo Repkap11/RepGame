@@ -112,25 +112,99 @@ int mod( const int x, const int N ) {
     }
     return result;
 }
-int ChunkLoader::reload_if_out_of_bounds( Chunk &chunk, const glm::ivec3 &chunk_pos, glm::ivec3 *out_new_pos ) {
-
-    const int new_chunk_x = static_cast<int>( floorf( static_cast<float>( chunk_pos.x - chunk.chunk_mod.x + CHUNK_RADIUS_X ) / static_cast<float>( ( CHUNK_RADIUS_X * 2 + 1 ) ) ) ) * ( CHUNK_RADIUS_X * 2 + 1 ) + chunk.chunk_mod.x;
-    const int new_chunk_y = static_cast<int>( floorf( static_cast<float>( chunk_pos.y - chunk.chunk_mod.y + CHUNK_RADIUS_Y ) / static_cast<float>( ( CHUNK_RADIUS_Y * 2 + 1 ) ) ) ) * ( CHUNK_RADIUS_Y * 2 + 1 ) + chunk.chunk_mod.y;
-    const int new_chunk_z = static_cast<int>( floorf( static_cast<float>( chunk_pos.z - chunk.chunk_mod.z + CHUNK_RADIUS_Z ) / static_cast<float>( ( CHUNK_RADIUS_Z * 2 + 1 ) ) ) ) * ( CHUNK_RADIUS_Z * 2 + 1 ) + chunk.chunk_mod.z;
-    const int changed = new_chunk_x != chunk.chunk_pos.x || new_chunk_y != chunk.chunk_pos.y || new_chunk_z != chunk.chunk_pos.z;
-    if ( changed ) {
-        chunk.unprogram_terrain( );
-        chunk.is_loading = 1;
-        const glm::ivec3 new_chunk = glm::ivec3( new_chunk_x, new_chunk_y, new_chunk_z );
-        if ( out_new_pos ) {
-            *out_new_pos = new_chunk;
-        }
-        this->terrain_loading_thread.enqueue( &chunk, new_chunk, 1 );
-    }
-    return changed;
+// The active render window is the chunk box centered on the camera chunk:
+// render_radius on x/z (runtime-adjustable), the full compile-time
+// CHUNK_RADIUS_Y vertically. Slots outside it park instead of loading.
+bool ChunkLoader::pos_in_window( const glm::ivec3 &center, const glm::ivec3 &pos ) const {
+    const glm::ivec3 d = pos - center;
+    return d.x >= -this->render_radius && d.x <= this->render_radius && //
+           d.z >= -this->render_radius && d.z <= this->render_radius;
 }
 
-void ChunkLoader::init( const glm::dvec3 &camera_pos, const VertexBufferLayout &vbl_block, const VertexBufferLayout &vbl_coords, MapStorage &map_storage ) {
+void ChunkLoader::set_render_distance( int radius ) {
+    if ( radius < 1 ) {
+        radius = 1;
+    } else if ( radius > RENDER_RADIUS_MAX ) {
+        radius = RENDER_RADIUS_MAX;
+    }
+    this->render_radius = radius;
+}
+
+// Returns 0 when the slot stays put in-window (callers then do the usual
+// recenter/heal, or the deferred-finalize path for a reactivated
+// CHUNK_PARKED_UNFINALIZED slot), 1 when a (re)load was enqueued, and 2 when
+// the slot parked because its nearest position is outside the active
+// render window.
+int ChunkLoader::reload_if_out_of_bounds( Chunk &chunk, const glm::ivec3 &chunk_pos, glm::ivec3 *out_new_pos ) {
+
+    const int new_chunk_x = static_cast<int>( floorf( static_cast<float>( chunk_pos.x - chunk.chunk_mod.x + CHUNK_RADIUS_XZ ) / static_cast<float>( ( CHUNK_RADIUS_XZ * 2 + 1 ) ) ) ) * ( CHUNK_RADIUS_XZ * 2 + 1 ) + chunk.chunk_mod.x;
+    const int new_chunk_y = static_cast<int>( floorf( static_cast<float>( chunk_pos.y - chunk.chunk_mod.y + CHUNK_RADIUS_Y ) / static_cast<float>( ( CHUNK_RADIUS_Y * 2 + 1 ) ) ) ) * ( CHUNK_RADIUS_Y * 2 + 1 ) + chunk.chunk_mod.y;
+    const int new_chunk_z = static_cast<int>( floorf( static_cast<float>( chunk_pos.z - chunk.chunk_mod.z + CHUNK_RADIUS_XZ ) / static_cast<float>( ( CHUNK_RADIUS_XZ * 2 + 1 ) ) ) ) * ( CHUNK_RADIUS_XZ * 2 + 1 ) + chunk.chunk_mod.z;
+    const glm::ivec3 new_chunk = glm::ivec3( new_chunk_x, new_chunk_y, new_chunk_z );
+    if ( out_new_pos ) {
+        *out_new_pos = new_chunk;
+    }
+    if ( !this->pos_in_window( chunk_pos, new_chunk ) ) {
+        // Park the slot: any nonzero state keeps it out of the drawable
+        // list, random ticks, and the light paths, and retained terrain
+        // stays for reactivation. A live chunk keeps its finalized mesh
+        // (CHUNK_PARKED); a just-dequeued one needs mesh/light finalize on
+        // re-entry (CHUNK_PARKED_UNFINALIZED). Parked states keep theirs.
+        if ( chunk.load_state == CHUNK_LIVE ) {
+            chunk.load_state = CHUNK_PARKED;
+        } else if ( chunk.load_state == CHUNK_LOADING ) {
+            chunk.load_state = CHUNK_PARKED_UNFINALIZED;
+        }
+        return 2;
+    }
+    if ( new_chunk == chunk.chunk_pos ) {
+        if ( chunk.load_state == CHUNK_PARKED ) {
+            // Parked with finalized data at this position: instant reuse.
+            chunk.load_state = CHUNK_LIVE;
+            return 0;
+        }
+        if ( chunk.load_state == CHUNK_PARKED_UNFINALIZED && chunk.cells != nullptr ) {
+            // Terrain loaded but never meshed/lit — caller finalizes.
+            return 0;
+        }
+        if ( chunk.load_state != CHUNK_PARKED_UNFINALIZED ) {
+            // LIVE or LOADING at the right position already.
+            return 0;
+        }
+        // PARKED_UNFINALIZED with cells==nullptr: never loaded — enqueue.
+    }
+    chunk.unprogram_terrain( );
+    chunk.load_state = CHUNK_LOADING;
+    this->terrain_loading_thread.enqueue( &chunk, new_chunk, 1 );
+    return 1;
+}
+
+// The post-terrain-load steps shared by the dequeue path and parked-slot
+// reactivation: GL init, mesh, pending diffs, light finalize, GPU upload.
+void ChunkLoader::finalize_loaded_chunk( Chunk &chunk, Multiplayer &multiplayer, const glm::ivec3 &chunk_diff, const glm::ivec3 &center_previous, const glm::ivec3 &center_next ) {
+    // Publish before the finalize work (the old dequeue path cleared
+    // is_loading first): light jobs and seeds popped mid-finalize see the
+    // chunk as loaded rather than missing.
+    chunk.load_state = CHUNK_LIVE;
+    // Lazily create this chunk's GL objects on first load so the startup
+    // loop doesn't block the first frame.
+    chunk.ensure_gl_init( );
+    process_chunk_position( chunk, chunk_diff, center_previous, center_next, 1 );
+    // Apply any chunk diffs that arrived from the server before this chunk's
+    // terrain gen finished (Phase 2 eager requests).
+    multiplayer.apply_pending_diffs( *this, chunk );
+    // Blocks are final now: hand the chunk to the lighting thread
+    // (cascade/border sync/propagation). Inline when no light thread is
+    // running (tests, WASM).
+    const long long t_lfin = now_us( );
+    this->light_submit_finalize( chunk );
+    light_dbg_us_light_fin += now_us( ) - t_lfin;
+    chunk.program_terrain( );
+}
+
+void ChunkLoader::init( const glm::dvec3 &camera_pos, const VertexBufferLayout &vbl_block, const VertexBufferLayout &vbl_coords, MapStorage &map_storage, int render_radius ) {
+    this->set_render_distance( render_radius );
+    this->render_radius_applied = this->render_radius;
     if ( this->terrain_loading_thread.start( map_storage ) ) {
         pr_debug( "Terrain loading thread failed to start." );
     }
@@ -179,11 +253,11 @@ void ChunkLoader::init( const glm::dvec3 &camera_pos, const VertexBufferLayout &
     this->chunk_center = camera_chuck;
 
     int nextChunk = 0;
-    for ( int i = 0; i <= CHUNK_RADIUS_X; i++ ) {
+    for ( int i = 0; i <= CHUNK_RADIUS_XZ; i++ ) {
         for ( int j = 0; j <= CHUNK_RADIUS_Y; j++ ) {
-            for ( int k = 0; k <= CHUNK_RADIUS_Z; k++ ) {
+            for ( int k = 0; k <= CHUNK_RADIUS_XZ; k++ ) {
                 for ( int sign_i = -1; sign_i < 3; sign_i += 2 ) {
-                    if ( sign_i == -1 && i == CHUNK_RADIUS_X ) {
+                    if ( sign_i == -1 && i == CHUNK_RADIUS_XZ ) {
                         continue;
                     }
                     for ( int sign_j = -1; sign_j < 3; sign_j += 2 ) {
@@ -191,7 +265,7 @@ void ChunkLoader::init( const glm::dvec3 &camera_pos, const VertexBufferLayout &
                             continue;
                         }
                         for ( int sign_k = -1; sign_k < 3; sign_k += 2 ) {
-                            if ( sign_k == -1 && k == CHUNK_RADIUS_Z ) {
+                            if ( sign_k == -1 && k == CHUNK_RADIUS_XZ ) {
                                 continue;
                             }
                             int new_i = ( i * sign_i ) - ( sign_i == -1 );
@@ -202,17 +276,24 @@ void ChunkLoader::init( const glm::dvec3 &camera_pos, const VertexBufferLayout &
                             glm::ivec3 chunk_pos = new_offset + camera_chuck;
 
                             glm::ivec3 chunk_mod;
-                            chunk_mod.x = mod( chunk_pos.x, 2 * CHUNK_RADIUS_X + 1 );
+                            chunk_mod.x = mod( chunk_pos.x, 2 * CHUNK_RADIUS_XZ + 1 );
                             chunk_mod.y = mod( chunk_pos.y, 2 * CHUNK_RADIUS_Y + 1 );
-                            chunk_mod.z = mod( chunk_pos.z, 2 * CHUNK_RADIUS_Z + 1 );
+                            chunk_mod.z = mod( chunk_pos.z, 2 * CHUNK_RADIUS_XZ + 1 );
 
                             int slot = chunk_slot_from_mod( chunk_mod );
                             Chunk &chunk = this->chunkArray[ slot ];
                             chunk.chunk_pos = chunk_pos;
                             chunk.chunk_mod = chunk_mod;
 
-                            chunk.is_loading = 1;
-                            this->terrain_loading_thread.enqueue( &chunk, chunk.chunk_pos, 0 );
+                            if ( this->pos_in_window( camera_chuck, chunk_pos ) ) {
+                                chunk.load_state = CHUNK_LOADING;
+                                this->terrain_loading_thread.enqueue( &chunk, chunk.chunk_pos, 0 );
+                            } else {
+                                // Outside the active render window: park the
+                                // slot until the radius grows over it. It has
+                                // no cells, so re-entry enqueues a real load.
+                                chunk.load_state = CHUNK_PARKED_UNFINALIZED;
+                            }
                             nextChunk = ( nextChunk + 1 );
                         }
                     }
@@ -263,7 +344,7 @@ void ChunkLoader::render_chunks( Multiplayer &multiplayer, const glm::dvec3 &cam
     glm::dvec3 chunk_size = glm::dvec3( CHUNK_SIZE_X, CHUNK_SIZE_Y, CHUNK_SIZE_Z );
 
     glm::ivec3 chunk_pos = glm::floor( camera_pos / chunk_size );
-    this->terrain_loading_thread.set_focus( chunk_pos );
+    this->terrain_loading_thread.set_focus( chunk_pos, this->render_radius );
     glm::ivec3 &loaded_pos = this->chunk_center;
     glm::ivec3 chunk_diff = chunk_pos - loaded_pos;
 
@@ -271,14 +352,14 @@ void ChunkLoader::render_chunks( Multiplayer &multiplayer, const glm::dvec3 &cam
     // per-chunk requests as terrain gen finishes. This overlaps the network
     // round-trip with GPU terrain gen.
     if ( this->initial_chunk_request_pending ) {
-        glm::ivec3 box_min = chunk_pos - glm::ivec3( CHUNK_RADIUS_X, CHUNK_RADIUS_Y, CHUNK_RADIUS_Z );
+        glm::ivec3 box_min = chunk_pos - glm::ivec3( this->render_radius, CHUNK_RADIUS_Y, this->render_radius );
         // Only consume the one-shot flag if the request actually went out.
         // On WASM the WebSocket may still be connecting when the first
         // frame renders; retry next frame rather than dropping the request.
         this->initial_chunk_request_pending = !multiplayer.request_chunks_box( box_min,
-                                                                               static_cast<uint8_t>( 2 * CHUNK_RADIUS_X + 1 ),
+                                                                               static_cast<uint8_t>( 2 * this->render_radius + 1 ),
                                                                                static_cast<uint8_t>( 2 * CHUNK_RADIUS_Y + 1 ),
-                                                                               static_cast<uint8_t>( 2 * CHUNK_RADIUS_Z + 1 ) );
+                                                                               static_cast<uint8_t>( 2 * this->render_radius + 1 ) );
     }
 
     {
@@ -288,23 +369,12 @@ void ChunkLoader::render_chunks( Multiplayer &multiplayer, const glm::dvec3 &cam
             chunk_ptr = this->terrain_loading_thread.dequeue( );
             if ( chunk_ptr ) {
                 Chunk &chunk = *chunk_ptr;
-                chunk.is_loading = 0;
+                // load_state stays CHUNK_LOADING through the bounds check —
+                // reload_if_out_of_bounds owns all transitions (re-enqueue,
+                // park as CHUNK_PARKED_UNFINALIZED, or return for finalize).
                 int reloaded = reload_if_out_of_bounds( chunk, chunk_pos );
                 if ( !reloaded ) {
-                    // Lazily create this chunk's GL objects on first load so the
-                    // startup loop doesn't block the first frame.
-                    chunk.ensure_gl_init( );
-                    process_chunk_position( chunk, chunk_diff, loaded_pos, chunk_pos, 1 );
-                    // Apply any chunk diffs that arrived from the server before
-                    // this chunk's terrain gen finished (Phase 2 eager requests).
-                    multiplayer.apply_pending_diffs( *this, chunk );
-                    // Blocks are final now: hand the chunk to the lighting
-                    // thread (cascade/border sync/propagation). Inline when
-                    // no light thread is running (tests, WASM).
-                    const long long t_lfin = now_us( );
-                    this->light_submit_finalize( chunk );
-                    light_dbg_us_light_fin += now_us( ) - t_lfin;
-                    chunk.program_terrain( );
+                    this->finalize_loaded_chunk( chunk, multiplayer, chunk_diff, loaded_pos, chunk_pos );
                 }
             }
             // When limit_render is true (WASM without pthreads), terrain is
@@ -314,23 +384,30 @@ void ChunkLoader::render_chunks( Multiplayer &multiplayer, const glm::dvec3 &cam
         } while ( chunk_ptr && ( now_us( ) - t_budget_start < ( limit_render ? WASM_LOAD_BUDGET_US : CHUNK_FINALIZE_BUDGET_US ) ) );
         light_dbg_us_finalize += now_us( ) - t_budget_start;
     }
-    if ( 0 != chunk_diff.x || 0 != chunk_diff.y || 0 != chunk_diff.z ) {
+    const bool radius_changed = this->render_radius != this->render_radius_applied;
+    if ( 0 != chunk_diff.x || 0 != chunk_diff.y || 0 != chunk_diff.z || radius_changed ) {
         // Collect new chunk positions from the reload loop so we can fire one
         // box request for all of them at once (Phase 2).
         std::vector<glm::ivec3> new_positions;
         this->light_heal_budget = LIGHT_HEAL_PER_SHIFT;
         for ( int i = 0; i < MAX_LOADED_CHUNKS; i++ ) {
             Chunk &chunk = this->chunkArray[ i ];
-            if ( chunk.is_loading ) {
+            if ( chunk.load_state == CHUNK_LOADING ) {
                 continue;
             }
             glm::ivec3 new_pos;
             int reloaded = reload_if_out_of_bounds( chunk, chunk_pos, &new_pos );
-            if ( !reloaded ) {
-                process_chunk_position( chunk, chunk_diff, loaded_pos, chunk_pos, 0 );
-                // Far-cap stale flag heals as the chunk re-enters near radius.
-                this->light_heal_chunk( chunk, chunk_pos );
-            } else {
+            if ( reloaded == 0 ) {
+                if ( chunk.load_state == CHUNK_PARKED_UNFINALIZED ) {
+                    // Parked slot re-entering with loaded-but-unfinalized
+                    // terrain: mesh/light it now, no regeneration.
+                    this->finalize_loaded_chunk( chunk, multiplayer, chunk_diff, loaded_pos, chunk_pos );
+                } else {
+                    process_chunk_position( chunk, chunk_diff, loaded_pos, chunk_pos, 0 );
+                    // Far-cap stale flag heals as the chunk re-enters near radius.
+                    this->light_heal_chunk( chunk, chunk_pos );
+                }
+            } else if ( reloaded == 1 ) {
                 new_positions.push_back( new_pos );
             }
         }
@@ -353,6 +430,7 @@ void ChunkLoader::render_chunks( Multiplayer &multiplayer, const glm::dvec3 &cam
             multiplayer.request_chunks_box( box_min, sx, sy, sz );
         }
         this->chunk_center = chunk_pos;
+        this->render_radius_applied = this->render_radius;
         // Jobs queued while this region was far must catch up with the
         // player — promote them into the near lane (bounded single pass).
         this->light_reprioritize_jobs( );
@@ -366,7 +444,7 @@ void ChunkLoader::render_chunks( Multiplayer &multiplayer, const glm::dvec3 &cam
     for ( int i = 0; i < this->num_repop_must; i++ ) {
         Chunk &chunk = *this->repop_must[ i ];
         chunk.repop_must_queued = 0;
-        if ( chunk.needs_repopulation && !chunk.is_loading && //
+        if ( chunk.needs_repopulation && !chunk.load_state && //
              !( chunk.cached_cull_normal && chunk.cached_cull_reflect ) && //
              now_us( ) - t_remesh_start < REPOP_MUST_BUDGET_US ) {
             this->remesh_group( chunk );
@@ -445,7 +523,7 @@ void ChunkLoader::remesh_group( Chunk &chunk ) {
                                                glm::ivec3( 0, 0, 1 ),  glm::ivec3( 0, 0, -1 ) };
     for ( const glm::ivec3 &dir : face_dirs ) {
         Chunk *neighbor = this->get_chunk( chunk.chunk_pos + dir );
-        if ( neighbor != nullptr && neighbor->needs_repopulation && !neighbor->is_loading ) {
+        if ( neighbor != nullptr && neighbor->needs_repopulation && !neighbor->load_state ) {
             this->remesh_now( *neighbor );
         }
     }
@@ -484,7 +562,7 @@ void ChunkLoader::apply_diff_block( Chunk &chunk, int index, const BlockState *b
                     continue;
                 }
                 Chunk *neighbor = this->get_chunk( chunk.chunk_pos + glm::ivec3( i, j, k ) );
-                if ( neighbor == nullptr || neighbor->is_loading ) {
+                if ( neighbor == nullptr || neighbor->load_state ) {
                     // Absent/loading chunks get the same cell from their own
                     // diff stream (the server mirrors boundary writes into
                     // every affected chunk's record).
@@ -508,7 +586,7 @@ void ChunkLoader::rebuild_drawable_list( ) {
     this->num_drawable = 0;
     for ( int i = 0; i < MAX_LOADED_CHUNKS; i++ ) {
         Chunk &chunk = this->chunkArray[ i ];
-        if ( !chunk.is_loading && chunk.should_render ) {
+        if ( !chunk.load_state && chunk.should_render ) {
             this->drawable_chunks[ this->num_drawable++ ] = &chunk;
         }
     }
@@ -758,7 +836,9 @@ void ChunkLoader::cleanup( MapStorage &map_storage ) {
     this->light_thread_stop( );
     for ( int i = 0; i < MAX_LOADED_CHUNKS; i++ ) {
         Chunk &chunk = this->chunkArray[ i ];
-        if ( !chunk.is_loading ) {
+        // Parked slots still hold dirty data — persist_chunk no-ops on
+        // clean/never-loaded chunks.
+        if ( chunk.load_state != CHUNK_LOADING ) {
             chunk.persist( map_storage );
         }
         chunk.destroy( );

@@ -14,15 +14,18 @@
 #define CHUNK_SIZE_Z 62
 
 // Render radius is a per-platform performance choice; it does not affect the
-// wire format.
+// wire format. CHUNK_RADIUS_XZ is the horizontal torus capacity — also the
+// maximum runtime render distance. The active radius starts at
+// CHUNK_RADIUS_XZ_DEFAULT (the old fixed radius) and adjusts live with =/-;
+// the vertical radius is fixed at CHUNK_RADIUS_Y.
 #ifdef REPGAME_LINUX
-#define CHUNK_RADIUS_X ( 512 / CHUNK_SIZE_X )
-#define CHUNK_RADIUS_Y ( 256 / CHUNK_SIZE_Y )
-#define CHUNK_RADIUS_Z ( 512 / CHUNK_SIZE_Z )
+#define CHUNK_RADIUS_XZ 16
+#define CHUNK_RADIUS_XZ_DEFAULT 8
+#define CHUNK_RADIUS_Y 4
 #else
-#define CHUNK_RADIUS_X ( 192 / CHUNK_SIZE_X )
-#define CHUNK_RADIUS_Y ( 128 / CHUNK_SIZE_Y )
-#define CHUNK_RADIUS_Z ( 192 / CHUNK_SIZE_Z )
+#define CHUNK_RADIUS_XZ 6
+#define CHUNK_RADIUS_XZ_DEFAULT 3
+#define CHUNK_RADIUS_Y 2
 #endif
 
 // Block array extent including the 1-cell halo shell on every side.
@@ -47,9 +50,9 @@
 // enclosing the view, not clipping), and CAMERA_FAR_PLANE sits beyond it —
 // both scale automatically with CHUNK_RADIUS_*. glm::sqrt makes these
 // C++-only; shaders never reference them.
-#define RENDER_DISTANCE_CORNER                                                                                       \
-    ( glm::sqrt( ( float )( ( CHUNK_RADIUS_X + 1 ) * CHUNK_SIZE_X ) * ( ( CHUNK_RADIUS_X + 1 ) * CHUNK_SIZE_X ) +      \
-                 ( float )( ( CHUNK_RADIUS_Y + 1 ) * CHUNK_SIZE_Y ) * ( ( CHUNK_RADIUS_Y + 1 ) * CHUNK_SIZE_Y ) +      \
-                 ( float )( ( CHUNK_RADIUS_Z + 1 ) * CHUNK_SIZE_Z ) * ( ( CHUNK_RADIUS_Z + 1 ) * CHUNK_SIZE_Z ) ) )
+#define RENDER_DISTANCE_CORNER                                                                                        \
+    ( glm::sqrt( ( float )( ( CHUNK_RADIUS_XZ + 1 ) * CHUNK_SIZE_X ) * ( ( CHUNK_RADIUS_XZ + 1 ) * CHUNK_SIZE_X ) +      \
+                 ( float )( ( CHUNK_RADIUS_Y + 1 ) * CHUNK_SIZE_Y ) * ( ( CHUNK_RADIUS_Y + 1 ) * CHUNK_SIZE_Y ) +        \
+                 ( float )( ( CHUNK_RADIUS_XZ + 1 ) * CHUNK_SIZE_Z ) * ( ( CHUNK_RADIUS_XZ + 1 ) * CHUNK_SIZE_Z ) ) )
 #define SKY_RADIUS ( RENDER_DISTANCE_CORNER * 1.10f )
 #define CAMERA_FAR_PLANE ( SKY_RADIUS * 1.15f )

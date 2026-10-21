@@ -24,9 +24,14 @@
 #define WASM_TERRAIN_RESULT_BACKLOG 16
 #endif
 
-static_assert( CHUNK_RADIUS_X > 0, "CHUNK_RADIUS_X too small" );
+static_assert( CHUNK_RADIUS_XZ > 0, "CHUNK_RADIUS_XZ too small" );
 static_assert( CHUNK_RADIUS_Y > 0, "CHUNK_RADIUS_Y too small" );
-static_assert( CHUNK_RADIUS_Z > 0, "CHUNK_RADIUS_Z too small" );
+
+// Runtime render distance is a single horizontal radius (y stays at
+// CHUNK_RADIUS_Y): starts at RENDER_RADIUS_DEFAULT, clamped to the torus
+// capacity.
+#define RENDER_RADIUS_MAX CHUNK_RADIUS_XZ
+#define RENDER_RADIUS_DEFAULT CHUNK_RADIUS_XZ_DEFAULT
 
 
 #define CHUNK_SIZE_I glm::ivec3( CHUNK_SIZE_X, CHUNK_SIZE_Y, CHUNK_SIZE_Z )

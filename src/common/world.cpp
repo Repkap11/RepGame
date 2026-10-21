@@ -25,7 +25,7 @@ bool hasError( ) {
     return false;
 }
 
-void World::init( const glm::dvec3 &camera_pos, int width, int height, MapStorage &map_storage ) {
+void World::init( const glm::dvec3 &camera_pos, int width, int height, MapStorage &map_storage, int render_radius ) {
     // These are from CubeFace
     this->vbl_block.push_float( 3 );        // Coords
     this->vbl_block.push_float( 2 );        // Texture coords
@@ -72,7 +72,7 @@ void World::init( const glm::dvec3 &camera_pos, int width, int height, MapStorag
     this->vbl_primed_tnt_instance.push_float( 4 );        // anim (spawn_time, life, ground_t, seed)
     this->vbl_primed_tnt_instance.push_float( 2 );        // light (sky, block)
 
-    this->chunkLoader.init( camera_pos, this->vbl_block, this->vbl_coords, map_storage );
+    this->chunkLoader.init( camera_pos, this->vbl_block, this->vbl_coords, map_storage, render_radius );
 
     float *random_rotation_blocks = block_definitions_get_random_rotations( );
 
@@ -227,7 +227,9 @@ void World::draw( const Texture &blocksTexture, const glm::mat4 &mvp, const glm:
     // of scaling up, while still reaching full opacity at the edge to hide
     // chunk pop-in.
     static const float fog_range_blocks = getenv( "REPGAME_FOG_RANGE" ) ? atof( getenv( "REPGAME_FOG_RANGE" ) ) : 96.0f;
-    const float render_distance = static_cast<float>( CHUNK_RADIUS_X * CHUNK_SIZE_X );
+    // The fog band ends at the ACTIVE render edge (runtime radius), not the
+    // torus capacity, so pop-in stays hidden at small render distances.
+    const float render_distance = static_cast<float>( this->chunkLoader.render_distance_blocks( ) );
     const float fog_far = render_distance * 0.98f;
     const float fog_near = fog_far - fminf( fog_range_blocks, render_distance * 0.38f );
     // Underwater murk: while the camera is in water, everything fogs over
@@ -695,7 +697,7 @@ int World::can_fixup_chunk( const Chunk &chunk, const glm::ivec3 &offset ) const
     const glm::vec3 chunk_with_offset = chunk.chunk_pos + offset;
     if ( const Chunk *fixupChunk_prt = this->chunkLoader.get_chunk( chunk_with_offset ) ) {
         const Chunk &fixupChunk = *fixupChunk_prt;
-        if ( !fixupChunk.is_loading ) {
+        if ( !fixupChunk.load_state ) {
             return 1;
         }
     }
@@ -707,7 +709,7 @@ void World::fixup_chunk( const Chunk &chunk, const glm::ivec3 &offset, const glm
     const glm::vec3 chunk_with_offset = chunk.chunk_pos + offset;
     if ( Chunk *fixupChunk_prt = this->chunkLoader.get_chunk( chunk_with_offset ) ) {
         Chunk &fixupChunk = *fixupChunk_prt;
-        if ( fixupChunk.is_loading ) {
+        if ( fixupChunk.load_state ) {
             // This shouldn't happen because can_fixup_chunk should be called first.
             pr_debug( "Ekk, still loading. You'll probably get a lighting bug." );
             return;
@@ -742,7 +744,7 @@ BlockState World::get_block_from_chunk( const Chunk &chunk, const glm::ivec3 &bl
 BlockState World::get_loaded_block( const glm::ivec3 &block_pos ) const {
     if ( const Chunk *chunk_prt = this->get_loaded_chunk( block_pos ) ) {
         const Chunk &chunk = *chunk_prt;
-        if ( chunk.is_loading ) {
+        if ( chunk.load_state ) {
             return BLOCK_STATE_LAST_BLOCK_ID;
         }
         const BlockState blockState = get_block_from_chunk( chunk, block_pos );
@@ -754,7 +756,7 @@ BlockState World::get_loaded_block( const glm::ivec3 &block_pos ) const {
 const ChestContents *World::get_chest_contents( const glm::ivec3 &block_pos ) const {
     if ( const Chunk *chunk_prt = this->get_loaded_chunk( block_pos ) ) {
         const Chunk &chunk = *chunk_prt;
-        if ( chunk.is_loading ) {
+        if ( chunk.load_state ) {
             return nullptr;
         }
         const glm::ivec3 diff = block_pos - chunk.chunk_pos * CHUNK_SIZE_I;
@@ -767,7 +769,7 @@ const ChestContents *World::get_chest_contents( const glm::ivec3 &block_pos ) co
 ChestContents *World::get_or_create_chest_contents( const glm::ivec3 &block_pos ) {
     if ( Chunk *chunk_prt = this->get_loaded_chunk( block_pos ) ) {
         Chunk &chunk = *chunk_prt;
-        if ( chunk.is_loading ) {
+        if ( chunk.load_state ) {
             return nullptr;
         }
         if ( !block_is_chest( get_block_from_chunk( chunk, block_pos ).id ) ) {
@@ -1162,7 +1164,7 @@ void World::process_random_ticks( ) {
     for ( int i = 0; i < MAX_LOADED_CHUNKS; i++ ) {
         // TODO randomly pick chunks.
         Chunk &chunk = this->chunkLoader.chunkArray[ i ];
-        if ( !chunk.is_loading ) {
+        if ( !chunk.load_state ) {
             bool anyStateChanged = false;
             anyStateChanged |= process_random_ticks_on_chunk( chunk );
             if ( anyStateChanged ) {

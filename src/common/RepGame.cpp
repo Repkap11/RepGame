@@ -1636,6 +1636,20 @@ void RepGame::initializeGameState( const char *world_name ) {
     globalGameState.camera.eye_height = PLAYER_EYE_HEIGHT;
     globalGameState.camera.eye_height_render = PLAYER_EYE_HEIGHT;
     globalGameState.input.worldDrawQuality = WorldDrawQuality::LOW;
+    // Starting horizontal render distance (chunks); the torus is allocated
+    // for RENDER_RADIUS_MAX regardless, so this only picks the initial
+    // active window. Live-adjusted with =/-.
+    globalGameState.input.render_distance = RENDER_RADIUS_DEFAULT;
+    const char *render_distance_env = getenv( "REPGAME_RENDER_DISTANCE" );
+    if ( render_distance_env ) {
+        int r = atoi( render_distance_env );
+        if ( r < 1 ) {
+            r = 1;
+        } else if ( r > RENDER_RADIUS_MAX ) {
+            r = RENDER_RADIUS_MAX;
+        }
+        globalGameState.input.render_distance = r;
+    }
     // The hotbar's rendered height as a fraction of the UI height basis.
     // Centered inventories reserve the same amount at the bottom of the
     // screen so they never cover it.
@@ -1689,6 +1703,17 @@ void RepGame::initializeGameState( const char *world_name ) {
         globalGameState.game_mode = saved_data.game_mode;
         globalGameState.survival_inventory.applySavedInventory( saved_data.survival_inventory );
         globalGameState.world_time = saved_data.world_time;
+        // Saved render distance wins over the default but not over an
+        // explicit REPGAME_RENDER_DISTANCE. Old saves lack the field (0)
+        // and corrupt values below 1 fall back to the default; oversized
+        // values clamp to the torus max.
+        if ( !render_distance_env && saved_data.render_distance >= 1 ) {
+            int r = saved_data.render_distance;
+            if ( r > RENDER_RADIUS_MAX ) {
+                r = RENDER_RADIUS_MAX;
+            }
+            globalGameState.input.render_distance = r;
+        }
     }
     // Seed the interpolation snapshot so the first rendered frame doesn't blend from zeroes.
     globalGameState.camera.prev_pos = globalGameState.camera.pos;
@@ -1758,7 +1783,7 @@ RepGameState *RepGame::init( const char *world_name, const bool connect_multi, c
 
     initializeGameState( world_name );
 
-    globalGameState.world.init( globalGameState.camera.pos, globalGameState.screen.width, globalGameState.screen.height, globalGameState.map_storage );
+    globalGameState.world.init( globalGameState.camera.pos, globalGameState.screen.width, globalGameState.screen.height, globalGameState.map_storage, globalGameState.input.render_distance );
 
     globalGameState.ui_overlay.init( vbl_ui_overlay_vertex, vbl_ui_overlay_instance );
     imgui_overlay_init( &globalGameState.imgui_overlay );
@@ -1952,6 +1977,9 @@ void RepGame::draw( float alpha ) {
 #endif
     if ( do_render ) {
         const long long t_render_start = now_us( );
+        // Live render distance: storing it is all ChunkLoader needs — the
+        // next render_chunks rescan parks/reactivates slots.
+        globalGameState.world.chunkLoader.set_render_distance( globalGameState.input.render_distance );
         globalGameState.world.render( globalGameState.multiplayer, render_pos, limit_render, render_rotation );
         profiling.us_render = now_us( ) - t_render_start;
         profiling.num_drawable_chunks = globalGameState.world.get_num_drawable_chunks( );
@@ -2229,6 +2257,7 @@ void RepGame::save_player_data( ) {
     saved_data.game_mode = globalGameState.game_mode;
     globalGameState.survival_inventory.saveInventory( saved_data.survival_inventory );
     saved_data.world_time = globalGameState.world_time;
+    saved_data.render_distance = globalGameState.input.render_distance;
 
     globalGameState.map_storage.write_player_data( saved_data );
 }

@@ -241,7 +241,7 @@ void Chunk::destroy( ) {
 void Chunk::draw( const Renderer &renderer, const Texture &texture, Shader &shader, RenderOrder renderOrder, bool draw_reflect, const glm::vec3 &render_origin, int light_base_loc ) {
     const RenderLayer &renderLayer = this->layers[ renderOrder ];
     if ( this->should_render && renderLayer.num_instances != 0 ) {
-        if ( this->is_loading ) {
+        if ( this->load_state ) {
             pr_debug( "Error, attempting to render loading chunk" );
         }
         const unsigned int ib_pass = draw_reflect ? 1 : 0;

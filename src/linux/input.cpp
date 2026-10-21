@@ -223,6 +223,19 @@ void Input::keysInput( const SDL_Keycode key, const bool pressed ) {
                 this->time_skip_hours -= this->shift_held ? 6 : 1;
             }
             break;
+        case SDLK_EQUALS:
+        case SDLK_KP_PLUS:
+            // '+' is shift+'=' on a US layout, so the unshifted code covers it.
+            if ( pressed && this->render_distance < RENDER_RADIUS_MAX ) {
+                this->render_distance++;
+            }
+            break;
+        case SDLK_MINUS:
+        case SDLK_KP_MINUS:
+            if ( pressed && this->render_distance > 1 ) {
+                this->render_distance--;
+            }
+            break;
 
         default:
             if ( pressed ) {

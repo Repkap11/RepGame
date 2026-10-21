@@ -44,7 +44,7 @@ void Multiplayer::handle_frame( RepGameState &state, const std::vector<uint8_t> 
             }
             glm::ivec3 chunk_pos = glm::ivec3( diff.chunk_x, diff.chunk_y, diff.chunk_z );
             Chunk *chunk_prt = world.chunkLoader.get_chunk( chunk_pos );
-            if ( chunk_prt == nullptr || chunk_prt->is_loading ) {
+            if ( chunk_prt == nullptr || chunk_prt->load_state ) {
                 // Chunk isn't loaded yet (terrain gen still running, or
                 // no chunk slot at this position). Queue the diff to apply
                 // when the chunk finishes loading.

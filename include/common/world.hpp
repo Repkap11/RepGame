@@ -89,7 +89,7 @@ class World {
 
     static BlockState get_block_from_chunk( const Chunk &chunk, const glm::ivec3 &block );
     Chunk *get_loaded_chunk( const glm::ivec3 &block ) const;
-    void init( const glm::dvec3 &camera_pos, int width, int height, MapStorage &map_storage );
+    void init( const glm::dvec3 &camera_pos, int width, int height, MapStorage &map_storage, int render_radius );
     void change_size( int width, int height );
     void render( Multiplayer &multiplayer, const glm::dvec3 &camera_pos, int limit_render, const glm::mat4 &rotation );
     void draw( const Texture &blocksTexture, const glm::mat4 &mvp, const glm::mat4 &inv_mvp, const glm::mat4 &mvp_reflect, const glm::mat4 &mvp_sky, const glm::mat4 &mvp_sky_reflect, int debug, int draw_mouse_selection, float y_height, bool headInWater,

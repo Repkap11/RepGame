@@ -59,6 +59,18 @@ vars set, behaviour is unchanged.
   96). The band ends at the render edge so pop-in stays hidden, and is
   capped at 38% of render distance so small render distances look
   unchanged.
+- `REPGAME_RENDER_DISTANCE` — initial horizontal render distance in chunks
+  (1..`CHUNK_RADIUS_XZ`, default `CHUNK_RADIUS_XZ_DEFAULT` = half the max). The chunk torus is always allocated
+  at the compile-time `CHUNK_RADIUS_*`; the runtime radius is an active
+  window inside it — out-of-window slots park (`load_state` =
+  `CHUNK_PARKED`/`CHUNK_PARKED_UNFINALIZED`, so light/draw/tick paths treat
+  them as unloaded) and reactivate on growth (`CHUNK_PARKED_UNFINALIZED`
+  finalizes without regenerating when terrain already streamed in while
+  parked). Adjust live with `=`/`+` and `-` (numpad too); the fog edge
+  tracks the active radius, not the torus capacity. The y radius is fixed
+  at compile time. The chosen radius persists in `player.dat`
+  (`PlayerData::render_distance`, clamped to 1..max on load — absent in
+  old saves); `REPGAME_RENDER_DISTANCE` overrides it when set.
 - `LIGHT_LOD_BIAS` / `LIGHT_FAR_AO` — footprint-mipmapped light tunables
   (3.0 / 0.1), compile-time `#define`s at the top of
   `src/shaders/chunk_fragment.glsl` (previously env vars / ImGui sliders —
