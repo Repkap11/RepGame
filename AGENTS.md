@@ -77,7 +77,8 @@ vars set, behaviour is unchanged.
   `CHUNK_PARKED`/`CHUNK_PARKED_UNFINALIZED`, so light/draw/tick paths treat
   them as unloaded) and reactivate on growth (`CHUNK_PARKED_UNFINALIZED`
   finalizes without regenerating when terrain already streamed in while
-  parked). Adjust live with `=`/`+` and `-` (numpad too); the fog edge
+  parked). Adjust live with `=`/`+` and `-` (numpad too); `0` resets to
+  `RENDER_RADIUS_DEFAULT`. The fog edge
   tracks the active radius, not the torus capacity. The y radius is fixed
   at compile time. The chosen radius persists in `player.dat`
   (`PlayerData::render_distance`, clamped to 1..max on load — absent in

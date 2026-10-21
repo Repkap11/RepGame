@@ -236,6 +236,12 @@ void Input::keysInput( const SDL_Keycode key, const bool pressed ) {
                 this->render_distance--;
             }
             break;
+        case SDLK_0:
+        case SDLK_KP_0:
+            if ( pressed ) {
+                this->render_distance = RENDER_RADIUS_DEFAULT;
+            }
+            break;
 
         default:
             if ( pressed ) {
