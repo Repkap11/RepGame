@@ -4,10 +4,11 @@ REPGAME_PACKAGES += npm
 # USE_SDL is needed at compile time too: modern emscripten ports are no
 # longer installed into the shared sysroot, the flag injects the SDL2
 # include path.
-CFLAGS_WASM := -DREPGAME_WASM -pthread -s USE_SDL=2
+CFLAGS_WASM := -DREPGAME_WASM -pthread -s USE_SDL=2 -O3
 
 
-CFLAGS_LINK_WASM := -s WASMFS=1 \
+CFLAGS_LINK_WASM := -O3 \
+			-s WASMFS=1 \
 			-s USE_SDL=2 \
 			-s MAX_WEBGL_VERSION=2 \
 			-s ASSERTIONS=1 \
