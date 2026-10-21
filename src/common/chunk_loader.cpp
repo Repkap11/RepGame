@@ -200,6 +200,16 @@ void ChunkLoader::finalize_loaded_chunk( Chunk &chunk, Multiplayer &multiplayer,
     this->light_submit_finalize( chunk );
     light_dbg_us_light_fin += now_us( ) - t_lfin;
     chunk.program_terrain( );
+    // Create the light texture now rather than on first draw: the lazy path
+    // (Chunk::draw -> light_ensure_texture) bunches a full-volume upload +
+    // mipgen (~hundreds of us each) into whichever frame first reveals the
+    // chunk, so the first camera pan after load-in pays it for the whole
+    // never-visible half of the torus at once. Doing it here spreads that
+    // cost across load-in under CHUNK_FINALIZE_BUDGET_US. Faceless chunks
+    // still skip — only drawable chunks ever need the volume.
+    if ( chunk.should_render ) {
+        chunk.light_ensure_texture( );
+    }
 }
 
 void ChunkLoader::init( const glm::dvec3 &camera_pos, const VertexBufferLayout &vbl_block, const VertexBufferLayout &vbl_coords, MapStorage &map_storage, int render_radius ) {

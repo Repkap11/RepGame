@@ -2764,7 +2764,11 @@ void ChunkLoader::light_upload_dirty( const int max_uploads ) {
         }
         // No texture yet: light_ensure_texture's full upload at first draw
         // already covers every dirty texel — skip the allocation here so
-        // never-drawn (faceless) chunks don't pay 38KB of VRAM.
+        // never-drawn (faceless) chunks don't pay ~1.1MB of VRAM each.
+        // Face-bearing chunks are ensured at finalize (ChunkLoader::
+        // finalize_loaded_chunk), so a drawable chunk reaching this point
+        // without a texture is rare — an edit making a faceless chunk
+        // drawable, or an upload queued before its first-ever draw.
         if ( chunk.light_texture == 0 ) {
             continue;
         }
