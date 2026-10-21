@@ -104,8 +104,8 @@ wasm-start-server:
 	python3 wasm_server.py out/wasm/delivery 8080 &
 	sleep 0.5
 
-# WASM_START_COMMAND := google-chrome --app=http://localhost:8081 --start-fullscreen
-WASM_START_COMMAND := firefox http://localhost:8080
+WASM_START_COMMAND := google-chrome --app=http://localhost:8080
+# WASM_START_COMMAND := firefox http://localhost:8080
 
 wasm-run: wasm
 	${WASM_START_COMMAND}

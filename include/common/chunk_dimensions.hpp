@@ -19,11 +19,11 @@
 // CHUNK_RADIUS_XZ_DEFAULT (the old fixed radius) and adjusts live with =/-;
 // the vertical radius is fixed at CHUNK_RADIUS_Y.
 #ifdef REPGAME_LINUX
-#define CHUNK_RADIUS_XZ 16
+#define CHUNK_RADIUS_XZ 32
 #define CHUNK_RADIUS_XZ_DEFAULT 8
 #define CHUNK_RADIUS_Y 4
 #else
-#define CHUNK_RADIUS_XZ 6
+#define CHUNK_RADIUS_XZ 16
 #define CHUNK_RADIUS_XZ_DEFAULT 3
 #define CHUNK_RADIUS_Y 2
 #endif
