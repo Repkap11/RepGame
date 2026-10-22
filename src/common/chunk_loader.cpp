@@ -181,7 +181,7 @@ int ChunkLoader::reload_if_out_of_bounds( Chunk &chunk, const glm::ivec3 &chunk_
 
 // The post-terrain-load steps shared by the dequeue path and parked-slot
 // reactivation: GL init, mesh, pending diffs, light finalize, GPU upload.
-void ChunkLoader::finalize_loaded_chunk( Chunk &chunk, Multiplayer &multiplayer, const glm::ivec3 &chunk_diff, const glm::ivec3 &center_previous, const glm::ivec3 &center_next ) {
+void ChunkLoader::finalize_loaded_chunk( Chunk &chunk, Multiplayer &multiplayer, const glm::ivec3 &center_next ) {
     // Publish before the finalize work (the old dequeue path cleared
     // is_loading first): light jobs and seeds popped mid-finalize see the
     // chunk as loaded rather than missing.
@@ -189,7 +189,7 @@ void ChunkLoader::finalize_loaded_chunk( Chunk &chunk, Multiplayer &multiplayer,
     // Lazily create this chunk's GL objects on first load so the startup
     // loop doesn't block the first frame.
     chunk.ensure_gl_init( );
-    process_chunk_position( chunk, chunk_diff, center_previous, center_next, 1 );
+    process_chunk_position( chunk, center_next, 1 );
     // Apply any chunk diffs that arrived from the server before this chunk's
     // terrain gen finished (Phase 2 eager requests).
     multiplayer.apply_pending_diffs( *this, chunk );
@@ -324,25 +324,16 @@ Chunk *ChunkLoader::get_chunk( const glm::ivec3 &chunk_pos ) const {
     return nullptr;
 }
 
-inline int ChunkLoader::process_chunk_position( Chunk &chunk, const glm::ivec3 &chunk_diff, const glm::ivec3 &center_previous, const glm::ivec3 &center_next, int force_reload ) {
-
-    int visible_changed_x = 0;
-    int visible_changed_y = 0;
-    int visible_changed_z = 0;
-
-    if ( !force_reload ) {
-        visible_changed_x = ( chunk_diff.x != 0 ) && ( chunk.chunk_pos.x == center_previous.x || chunk.chunk_pos.x == center_next.x );
-        visible_changed_y = ( chunk_diff.y != 0 ) && ( chunk.chunk_pos.y == center_previous.y || chunk.chunk_pos.y == center_next.y );
-        visible_changed_z = ( chunk_diff.z != 0 ) && ( chunk.chunk_pos.z == center_previous.z || chunk.chunk_pos.z == center_next.z );
-    }
-    if ( force_reload || visible_changed_x || visible_changed_y || visible_changed_z ) {
-        // pr_debug( "Vis dir changed for %2d %2d %2d changed because of:%2d %2d %2d same:%2d %2d %2d", //
-        //           TRIP_ARGS( chunk->chunk_ ),                                                        //
-        //           TRIP_ARGS( chunk_diff_ ),                                                          //
-        //           chunk->chunk_x == center_previous_x,                                               //
-        //           chunk->chunk_y == center_previous_y,                                               //
-        //           chunk->chunk_z == center_previous_z                                                //
-        // );
+// A chunk's drawn face set is a pure function of (chunk_pos, center) via the
+// 6-bit visibility mask, so the staleness test is the mask itself — not
+// whether this move crossed the chunk's plane. The old prev/next-plane test
+// missed crossings made while a slot was parked (the park window tests x/z
+// together, so an x crossing slips by while z keeps the slot out; y is not
+// window-tested at all) or during a move of more than one chunk. The stale
+// slice then skipped the player-facing faces — see-through block sides —
+// until a later move happened to land on the plane and recalc.
+inline int ChunkLoader::process_chunk_position( Chunk &chunk, const glm::ivec3 &center_next, int force_reload ) {
+    if ( force_reload || chunk_face_mask( chunk.chunk_pos, center_next ) != chunk.sides_mask ) {
         chunk.calculate_sides( center_next );
         return 1;
     }
@@ -384,7 +375,7 @@ void ChunkLoader::render_chunks( Multiplayer &multiplayer, const glm::dvec3 &cam
                 // park as CHUNK_PARKED_UNFINALIZED, or return for finalize).
                 int reloaded = reload_if_out_of_bounds( chunk, chunk_pos );
                 if ( !reloaded ) {
-                    this->finalize_loaded_chunk( chunk, multiplayer, chunk_diff, loaded_pos, chunk_pos );
+                    this->finalize_loaded_chunk( chunk, multiplayer, chunk_pos );
                 }
             }
             // When limit_render is true (WASM without pthreads), terrain is
@@ -411,9 +402,9 @@ void ChunkLoader::render_chunks( Multiplayer &multiplayer, const glm::dvec3 &cam
                 if ( chunk.load_state == CHUNK_PARKED_UNFINALIZED ) {
                     // Parked slot re-entering with loaded-but-unfinalized
                     // terrain: mesh/light it now, no regeneration.
-                    this->finalize_loaded_chunk( chunk, multiplayer, chunk_diff, loaded_pos, chunk_pos );
+                    this->finalize_loaded_chunk( chunk, multiplayer, chunk_pos );
                 } else {
-                    process_chunk_position( chunk, chunk_diff, loaded_pos, chunk_pos, 0 );
+                    process_chunk_position( chunk, chunk_pos, 0 );
                     // Far-cap stale flag heals as the chunk re-enters near radius.
                     this->light_heal_chunk( chunk, chunk_pos );
                 }

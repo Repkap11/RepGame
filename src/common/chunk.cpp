@@ -119,13 +119,8 @@ static void chunk_ib_upload( ) {
 
 void Chunk::calculate_sides( const glm::ivec3 &center_next ) {
     chunk_ib_init_tables( );
-    const unsigned int vis_top = this->chunk_pos.y <= center_next.y;
-    const unsigned int vis_bottom = this->chunk_pos.y >= center_next.y;
-    const unsigned int vis_right = this->chunk_pos.x <= center_next.x;
-    const unsigned int vis_left = this->chunk_pos.x >= center_next.x;
-    const unsigned int vis_front = this->chunk_pos.z <= center_next.z;
-    const unsigned int vis_back = this->chunk_pos.z >= center_next.z;
-    const unsigned int mask = vis_front | ( vis_right << 1 ) | ( vis_back << 2 ) | ( vis_left << 3 ) | ( vis_top << 4 ) | ( vis_bottom << 5 );
+    const unsigned int mask = chunk_face_mask( this->chunk_pos, center_next );
+    this->sides_mask = mask;
     // The reflected world flips y: the reflect variant swaps top/bottom.
     const unsigned int mask_reflect = ( mask & ~( VIS_TOP | VIS_BOTTOM ) ) | ( ( mask & VIS_TOP ) << 1 ) | ( ( mask & VIS_BOTTOM ) >> 1 );
 
@@ -141,7 +136,7 @@ void Chunk::calculate_sides( const glm::ivec3 &center_next ) {
     translucent.ib_count[ 0 ] = translucent.ib_count[ 1 ] = IB_SOLID_SIZE;
 
     RenderLayer &water = this->layers[ RenderOrder_Water ];
-    const unsigned int water_mask = vis_top | ( vis_bottom << 1 );
+    const unsigned int water_mask = ( mask & ( VIS_TOP | VIS_BOTTOM ) ) >> 4;
     water.ib_offset[ 0 ] = s_ib_water_off[ water_mask ];
     water.ib_count[ 0 ] = s_ib_water_cnt[ water_mask ];
     water.ib_offset[ 1 ] = 0;
@@ -183,6 +178,7 @@ void Chunk::init( const VertexBuffer &vb_block_solid, const VertexBuffer &vb_blo
     // load_terrain) so the startup loop over MAX_LOADED_CHUNKS doesn't block
     // the first frame with tens of thousands of glGen*/calloc calls.
     this->gl_initialized = 0;
+    this->sides_mask = 0;
 }
 
 void Chunk::ensure_gl_init( ) {

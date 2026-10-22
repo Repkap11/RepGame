@@ -126,8 +126,8 @@ class ChunkLoader {
 
     bool pos_in_window( const glm::ivec3 &center, const glm::ivec3 &pos ) const;
     int reload_if_out_of_bounds( Chunk &chunk, const glm::ivec3 &chunk_pos, glm::ivec3 *out_new_pos = nullptr );
-    void finalize_loaded_chunk( Chunk &chunk, Multiplayer &multiplayer, const glm::ivec3 &chunk_diff, const glm::ivec3 &center_previous, const glm::ivec3 &center_next );
-    static inline int process_chunk_position( Chunk &chunk, const glm::ivec3 &chunk_diff, const glm::ivec3 &center_previous, const glm::ivec3 &center_next, int force_reload );
+    void finalize_loaded_chunk( Chunk &chunk, Multiplayer &multiplayer, const glm::ivec3 &center_next );
+    inline int process_chunk_position( Chunk &chunk, const glm::ivec3 &center_next, int force_reload );
     void process_random_ticks( );
     void rebuild_drawable_list( );
     void repop_must_enqueue( Chunk &chunk );

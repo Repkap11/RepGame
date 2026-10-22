@@ -80,6 +80,16 @@ enum ChunkLoadState {
     CHUNK_PARKED_UNFINALIZED = 3, // out of window, never meshed/lit (cells==nullptr = never even loaded)
 };
 
+// A chunk's 6-bit face-visibility mask relative to a camera chunk — which
+// cube faces point toward the player. Chunk::calculate_sides selects each
+// layer's shared-index-buffer slice from this. Each axis contributes at
+// least one bit (equality sets both), so a real mask is never 0 — the
+// calloc'd 0 doubles as "never computed" for Chunk::sides_mask.
+static inline unsigned int chunk_face_mask( const glm::ivec3 &pos, const glm::ivec3 &center ) {
+    return ( pos.z <= center.z ) | ( ( pos.x <= center.x ) << 1 ) | ( ( pos.z >= center.z ) << 2 ) | //
+           ( ( pos.x >= center.x ) << 3 ) | ( ( pos.y <= center.y ) << 4 ) | ( ( pos.y >= center.y ) << 5 );
+}
+
 class Chunk {
     friend class ChunkLoader;
     friend class World;
@@ -146,6 +156,14 @@ class Chunk {
     // enqueue). Cleared when the queue pops it, remeshed or not.
     int repop_must_queued;
     glm::ivec3 chunk_mod;
+    // The chunk_face_mask the layers' ib slices were last built from
+    // (Chunk::calculate_sides). process_chunk_position recomputes whenever
+    // this differs from the mask the current camera chunk implies — a slot
+    // can miss plane crossings while parked (the park window tests x/z
+    // together and ignores y entirely) or during a multi-chunk move, and
+    // the stale slice then skips the player-facing faces (see-through
+    // block sides) until some later move happens to recalc.
+    unsigned int sides_mask;
 
     // ---- Flood-fill lighting (light.cpp) ----
     // Per-cell light volume covering the same internal region as blocks.
