@@ -227,12 +227,22 @@ int repgame_sdl2_main( const char *world_path, const char *host, const bool conn
         SDL_SetHint( SDL_HINT_VIDEO_FORCE_EGL, "1" );
     }
 #endif
-    sdl_window = SDL_CreateWindow( "RepGame", default_width, default_height, window_flags );
+    // Pass the position at creation so the fullscreen window is born on the
+    // chosen display. Moving it afterwards with SDL_SetWindowPosition hangs
+    // SDL 3.4 on X11 (recursive fullscreen re-sync that never settles).
+    const SDL_PropertiesID window_props = SDL_CreateProperties( );
+    SDL_SetStringProperty( window_props, SDL_PROP_WINDOW_CREATE_TITLE_STRING, "RepGame" );
+    SDL_SetNumberProperty( window_props, SDL_PROP_WINDOW_CREATE_X_NUMBER, window_x );
+    SDL_SetNumberProperty( window_props, SDL_PROP_WINDOW_CREATE_Y_NUMBER, window_y );
+    SDL_SetNumberProperty( window_props, SDL_PROP_WINDOW_CREATE_WIDTH_NUMBER, default_width );
+    SDL_SetNumberProperty( window_props, SDL_PROP_WINDOW_CREATE_HEIGHT_NUMBER, default_height );
+    SDL_SetNumberProperty( window_props, SDL_PROP_WINDOW_CREATE_FLAGS_NUMBER, window_flags );
+    sdl_window = SDL_CreateWindowWithProperties( window_props );
+    SDL_DestroyProperties( window_props );
     if ( !sdl_window ) {
         pr_debug( "Creating the SDL window failed: %s", SDL_GetError( ) );
         exit( 1 );
     }
-    SDL_SetWindowPosition( sdl_window, window_x, window_y );
     pr_debug( "Window on display: %d", SDL_GetDisplayForWindow( sdl_window ) );
     sdl_context = SDL_GL_CreateContext( sdl_window );
     if ( !sdl_context ) {
