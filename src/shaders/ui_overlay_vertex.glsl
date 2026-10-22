@@ -1,5 +1,10 @@
 #version 300 es
 uniform mat4 u_MVP;
+// Environment light for the in-hand block draw call only — 1.0 for every
+// other ui_overlay draw (hotbar/inventory icons stay fully lit). The CPU
+// samples the flood-fill light volume at the camera and combines the
+// sky/block channels with the daylight factor, matching the chunk shader.
+uniform float u_HeldBlockLight;
 
 #define ISO_FACE_TOP 0u
 #define ISO_FACE_FRONT 1u
@@ -46,7 +51,7 @@ void main() {
             } else {
                 face_light = 0.6f;
             }
-            v_Tint = vec4(instance_tint.rgb * face_light, instance_tint.a);
+            v_Tint = vec4(instance_tint.rgb * face_light * u_HeldBlockLight, instance_tint.a);
         } else {
             v_Tint = instance_tint;
         }

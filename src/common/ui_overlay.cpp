@@ -94,12 +94,17 @@ void UIOverlay::set_holding_block( BlockID holding_block ) {
     pair.second = vb_data_holding_block_instance;
 }
 
-void UIOverlay::draw( CreativeInventory &creative_inventory, SurvivalInventory &survival_inventory, Hotbar &hotbar, GameMode game_mode, const Renderer &renderer, const Texture &blocksTexture, Input &input, FontRenderer &font, const glm::mat4 &mvp_ui, InventoryRenderer *chest_renderer, const ChestContents *chest_contents ) {
+void UIOverlay::draw( CreativeInventory &creative_inventory, SurvivalInventory &survival_inventory, Hotbar &hotbar, GameMode game_mode, const Renderer &renderer, const Texture &blocksTexture, Input &input, FontRenderer &font, const glm::mat4 &mvp_ui, InventoryRenderer *chest_renderer, const ChestContents *chest_contents, float held_block_light ) {
     this->shader.set_uniform_mat4f( "u_MVP", mvp_ui );
     this->shader.set_uniform1i_texture( "u_Texture", blocksTexture );
 
+    // The world light only applies to the in-hand block's own draw call —
+    // hotbar/inventory icons stay at full brightness.
+    this->shader.set_uniform1f( "u_HeldBlockLight", 1.0f );
     hotbar.draw( renderer, blocksTexture, this->shader );
+    this->shader.set_uniform1f( "u_HeldBlockLight", held_block_light );
     render_chain_held_block.draw( renderer, this->shader );
+    this->shader.set_uniform1f( "u_HeldBlockLight", 1.0f );
 
     // Render quantity text on the hotbar (survival mode only).
     if ( game_mode == GameMode_Survival ) {

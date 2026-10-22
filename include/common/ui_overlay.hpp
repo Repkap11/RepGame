@@ -69,8 +69,10 @@ class UIOverlay {
     void set_holding_block( BlockID holding_block );
     // chest_renderer/chest_contents are non-null while a chest is open: the
     // creative palette is suppressed and the chest panel draws on top of the
-    // player inventory.
-    void draw( CreativeInventory &creative_inventory, SurvivalInventory &survival_inventory, Hotbar &hotbar, GameMode game_mode, const Renderer &renderer, const Texture &blocksTexture, Input &input, FontRenderer &font, const glm::mat4 &mvp_ui, InventoryRenderer *chest_renderer, const ChestContents *chest_contents );
+    // player inventory. held_block_light is the scene light sampled at the
+    // camera (sky and torch light combined with the day/night factor), used
+    // to shade the in-hand block like the world does.
+    void draw( CreativeInventory &creative_inventory, SurvivalInventory &survival_inventory, Hotbar &hotbar, GameMode game_mode, const Renderer &renderer, const Texture &blocksTexture, Input &input, FontRenderer &font, const glm::mat4 &mvp_ui, InventoryRenderer *chest_renderer, const ChestContents *chest_contents, float held_block_light );
     void draw_held_inventory_item( const InventorySlot &held, bool is_holding, int mouse_x, int mouse_y, int block_size, int cell_size, const Renderer &renderer, const Texture &blocksTexture, FontRenderer &font, const glm::mat4 &mvp_ui );
     void cleanup( );
 };

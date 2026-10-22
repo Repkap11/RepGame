@@ -2085,7 +2085,12 @@ void RepGame::draw( float alpha ) {
             if ( globalGameState.chest.open ) {
                 chest_contents = globalGameState.world.get_chest_contents( globalGameState.chest.pos );
             }
-            globalGameState.ui_overlay.draw( globalGameState.main_inventory, globalGameState.survival_inventory, globalGameState.hotbar, globalGameState.game_mode, globalGameState.world.renderer, globalGameState.blocksTexture, globalGameState.input, globalGameState.font_renderer, globalGameState.screen.ortho_center, chest_contents ? &globalGameState.chest.inventory_renderer : nullptr, chest_contents );
+            // Light the in-hand block from the flood-fill volume at the eye,
+            // combined like the chunk/object shaders (skylight scales with
+            // the day factor, torch light doesn't, min ambient floors caves).
+            const glm::vec2 held_light = globalGameState.world.chunkLoader.light_sample( glm::vec3( render_pos ) );
+            const float held_block_light = glm::max( glm::max( held_light.x * daylight, held_light.y ), debugVars.min_ambient );
+            globalGameState.ui_overlay.draw( globalGameState.main_inventory, globalGameState.survival_inventory, globalGameState.hotbar, globalGameState.game_mode, globalGameState.world.renderer, globalGameState.blocksTexture, globalGameState.input, globalGameState.font_renderer, globalGameState.screen.ortho_center, chest_contents ? &globalGameState.chest.inventory_renderer : nullptr, chest_contents, held_block_light );
         }
         if ( !g_capture.enabled && globalGameState.is_holding_inventory_slot ) {
             int block_size, cell_size;
