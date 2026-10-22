@@ -434,12 +434,22 @@ void Texture::init_empty_depth_stencil( int blur_mag ) {
 #else
     // glTexParameteri( SAMPLE_TARGET, GL_DEPTH_STENCIL_TEXTURE_MODE, GL_DEPTH_COMPONENT );
     glTexParameteri( SAMPLE_TARGET, GL_DEPTH_STENCIL_TEXTURE_MODE, GL_STENCIL_INDEX );
+    this->depthStencilTextureMode = GL_STENCIL_INDEX;
 #endif
     showErrors( );
 }
 
 void Texture::init_empty_depth( int blur_mag ) {
+#if defined( REPGAME_GLES )
+    // GLES can't blit multisample depth (glBlitFramebuffer forbids MS->MS
+    // depth copies), so the scene-depth snapshot uses glCopyImageSubData
+    // instead, which requires identical formats between the depth-stencil
+    // attachment and this texture. Default DEPTH_STENCIL_TEXTURE_MODE is
+    // GL_DEPTH_COMPONENT, so the shader's sampler2DMS still reads depth.
+    Texture::init_empty_base( blur_mag, SAMPLE_TARGET, GL_DEPTH24_STENCIL8, GL_DEPTH_STENCIL, GL_UNSIGNED_INT_24_8 );
+#else
     Texture::init_empty_base( blur_mag, SAMPLE_TARGET, GL_DEPTH_COMPONENT24, GL_DEPTH_COMPONENT, GL_FLOAT );
+#endif
 }
 
 void Texture::change_size( int width, int height ) {
@@ -449,6 +459,21 @@ void Texture::change_size( int width, int height ) {
 #if defined( REPGAME_ANDROID ) || defined( REPGAME_WASM )
         pr_debug( "Error multi sample not supported on Android or WASM" );
         exit( 1 );
+#elif defined( REPGAME_GLES )
+        // GLES has no glTexImage2DMultisample; glTexStorage2DMultisample
+        // allocates immutable storage, so a resize needs a fresh texture
+        // object. The FBO attachments are re-attached by the caller
+        // (World::change_size) after this.
+        GLint maxSamples;
+        glGetIntegerv( GL_MAX_SAMPLES, &maxSamples );
+        maxSamples = ( maxSamples < MSAA_SAMPLES ) ? maxSamples : MSAA_SAMPLES;
+        glDeleteTextures( 1, &this->m_RendererId );
+        glGenTextures( 1, &this->m_RendererId );
+        glBindTexture( this->target, this->m_RendererId );
+        glTexStorage2DMultisample( this->target, maxSamples, this->internalFormat, width, height, GL_TRUE );
+        if ( this->depthStencilTextureMode ) {
+            glTexParameteri( this->target, GL_DEPTH_STENCIL_TEXTURE_MODE, this->depthStencilTextureMode );
+        }
 #else
         GLint maxSamples;
         glGetIntegerv( GL_MAX_SAMPLES, &maxSamples );

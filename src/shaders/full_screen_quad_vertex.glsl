@@ -1,4 +1,8 @@
+#ifdef REPGAME_GLES
+#version 310 es
+#else
 #version 400
+#endif
 
 precision highp float;
 precision lowp sampler2DArray;

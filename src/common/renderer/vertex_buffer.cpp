@@ -8,6 +8,11 @@ void VertexBuffer::init( ) {
 
 void VertexBuffer::set_data( const void *data, unsigned int size ) {
     VertexBuffer::bind( );
+    // A 0-byte glBufferData is a no-op semantically, but the PowerVR GLES
+    // driver reports GL_OUT_OF_MEMORY for it.
+    if ( size == 0 ) {
+        return;
+    }
     if ( this->size != size ) {
         glBufferData( GL_ARRAY_BUFFER, size, data, GL_STATIC_DRAW );
         this->size = size;

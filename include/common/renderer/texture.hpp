@@ -36,6 +36,7 @@ class Texture {
     friend class ChunkLoader;
     friend class FrameBuffer;
     friend class RepGame;
+    friend class World; // glCopyImageSubData on the GLES depth snapshot
 
     unsigned int m_RendererId; //
     unsigned int slot;
@@ -43,6 +44,11 @@ class Texture {
     int internalFormat;
     unsigned int format;
     unsigned int type;
+    // GL_DEPTH_STENCIL_TEXTURE_MODE param applied to this texture (0 = none).
+    // Multisample textures on GLES must be regenerated to resize
+    // (glTexStorage2DMultisample is immutable), which loses tex params, so
+    // change_size re-applies this after regen.
+    int depthStencilTextureMode = 0;
 
     void loadTexture( const TextureSourceData &texture_source, int blur_mag );
     void init_empty_base( int blur_mag, int target, int internalFormat, int format, int type );

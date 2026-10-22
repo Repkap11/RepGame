@@ -64,7 +64,8 @@ void take_screenshot( unsigned int frameBufferId, const std::string &prefix ) {
         glBindFramebuffer( GL_READ_FRAMEBUFFER, frameBufferId );
         glReadBuffer( GL_COLOR_ATTACHMENT0 + i );
         glBindFramebuffer( GL_DRAW_FRAMEBUFFER, resolveFBO );
-        glDrawBuffer( GL_COLOR_ATTACHMENT0 );
+        const GLenum att = GL_COLOR_ATTACHMENT0;
+        glDrawBuffers( 1, &att );
         glBlitFramebuffer( 0, 0, width, height, 0, 0, width, height, GL_COLOR_BUFFER_BIT, GL_NEAREST );
         // Read from the resolve FBO.
         glBindFramebuffer( GL_READ_FRAMEBUFFER, resolveFBO );

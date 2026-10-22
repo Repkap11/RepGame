@@ -2207,7 +2207,8 @@ void RepGame::draw( float alpha ) {
             glBindFramebuffer( GL_READ_FRAMEBUFFER, globalGameState.world.frameBuffer.id( ) );
             glReadBuffer( GL_COLOR_ATTACHMENT0 );
             glBindFramebuffer( GL_DRAW_FRAMEBUFFER, resolveFBO );
-            glDrawBuffer( GL_COLOR_ATTACHMENT0 );
+            const GLenum att = GL_COLOR_ATTACHMENT0;
+            glDrawBuffers( 1, &att );
             const bool fbo_ok = glCheckFramebufferStatus( GL_READ_FRAMEBUFFER ) == GL_FRAMEBUFFER_COMPLETE &&
                                 glCheckFramebufferStatus( GL_DRAW_FRAMEBUFFER ) == GL_FRAMEBUFFER_COMPLETE;
             if ( !fbo_ok ) {

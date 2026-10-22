@@ -152,6 +152,11 @@ int repgame_sdl2_main( const char *world_path, const char *host, const bool conn
     }
     pr_debug( "SDL video driver: %s (hint=%s)", SDL_GetCurrentVideoDriver( ), SDL_GetHint( SDL_HINT_VIDEO_DRIVER ) );
 
+#if defined( REPGAME_GLES )
+    SDL_GL_SetAttribute( SDL_GL_CONTEXT_MAJOR_VERSION, 3 );
+    SDL_GL_SetAttribute( SDL_GL_CONTEXT_MINOR_VERSION, 2 );
+    SDL_GL_SetAttribute( SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_ES );
+#else
     SDL_GL_SetAttribute( SDL_GL_CONTEXT_MAJOR_VERSION, 3 );
     SDL_GL_SetAttribute( SDL_GL_CONTEXT_MINOR_VERSION, 3 );
     // next line as per: http://stackoverflow.com/questions/11961116/opengl-3-x-context-creation-using-sdl2-on-osx-macbook-air-2012
@@ -162,6 +167,7 @@ int repgame_sdl2_main( const char *world_path, const char *host, const bool conn
     // replaced with a screen-space wireframe shader using GL_TRIANGLES, so the
     // forward-compatible flag can now be enabled to enforce a strict core profile.
     SDL_GL_SetAttribute( SDL_GL_CONTEXT_FLAGS, SDL_GL_CONTEXT_FORWARD_COMPATIBLE_FLAG );
+#endif
 
     /* Turn on double buffering with a 24bit Z buffer.
      * You may need to change this to 16 or 32 for your system */
@@ -227,6 +233,7 @@ int repgame_sdl2_main( const char *world_path, const char *host, const bool conn
     const char *opengl_vendor = reinterpret_cast<const char *>( glGetString( GL_VENDOR ) );
     pr_debug( "Using OpenGL Vendor:%s", opengl_vendor );
 
+#if !defined( REPGAME_GLES )
     glewExperimental = GL_TRUE;
     if ( GLenum glew_err = glewInit( ) ) {
         // glewInit() calls glxewInit() on Unix, which fails with
@@ -240,6 +247,7 @@ int repgame_sdl2_main( const char *world_path, const char *host, const bool conn
         }
         pr_debug( "GLEW init: GLX unavailable on %s, using EGL-loaded core functions", SDL_GetCurrentVideoDriver( ) );
     }
+#endif
     ignoreErrors( );
     RepGame *repgamePrt = new RepGame( );
     RepGame &repgame = *repgamePrt;
@@ -250,10 +258,12 @@ int repgame_sdl2_main( const char *world_path, const char *host, const bool conn
 
     repgame_apply_vsync( );
 
+#if !defined( REPGAME_GLES )
     if ( !GLEW_VERSION_3_3 ) { // check that the machine supports the OpenGL 3.3
         pr_debug( "GLEW version wrong" );
         exit( 1 ); // or handle the error in a nicer way
     }
+#endif
     // Size the viewport/FBO from the actual GL drawable, not the requested
     // window size: with SDL_WINDOW_FULLSCREEN the drawable is the display
     // mode (and on HiDPI it can differ from the logical size). Rendering to a

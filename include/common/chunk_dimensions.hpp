@@ -18,7 +18,9 @@
 // maximum runtime render distance. The active radius starts at
 // CHUNK_RADIUS_XZ_DEFAULT (the old fixed radius) and adjusts live with =/-;
 // the vertical radius is fixed at CHUNK_RADIUS_Y.
-#ifdef REPGAME_LINUX
+// The GLES (arm) build uses the small radii: the PowerVR board can't carry
+// the desktop-size torus.
+#if defined( REPGAME_LINUX ) && !defined( REPGAME_GLES )
 #define CHUNK_RADIUS_XZ 32
 #define CHUNK_RADIUS_XZ_DEFAULT 8
 #define CHUNK_RADIUS_Y 4

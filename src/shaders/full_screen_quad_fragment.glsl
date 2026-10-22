@@ -1,6 +1,14 @@
+#ifdef REPGAME_GLES
+#version 310 es
+#else
 #version 400
+#endif
 
 precision highp float;
+#ifdef REPGAME_GLES
+precision highp sampler2DMS;
+precision highp usampler2DMS;
+#endif
 
 layout(location = 0) out vec4 color;
 
@@ -292,7 +300,7 @@ void main() {
         uint stencilCenter = stecilSample(multiCoords);
 
         int blurSize = 1;
-        float numValid = 0u;
+        float numValid = 0.0;
         for(int i = -blurSize; i < blurSize + 1; i += 1) {
             for(int j = -blurSize; j < blurSize + 1; j += 1) {
                 ivec2 offset = ivec2(i, j);
@@ -303,7 +311,7 @@ void main() {
                 if(valid) {
                     // Center-dominant weights: enough to smooth edges without
                     // smearing the water/terrain texture.
-                    float weight = (offset.x == 0 && offset.y == 0) ? 1.0 : 0.25 / (offset.x * offset.x + offset.y * offset.y);
+                    float weight = (offset.x == 0 && offset.y == 0) ? 1.0 : 0.25 / float(offset.x * offset.x + offset.y * offset.y);
                     // float weight = 1.0f;
                     numValid += weight;
                     finalColor += weight * textureColor;

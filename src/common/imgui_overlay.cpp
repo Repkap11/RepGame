@@ -39,7 +39,10 @@ ImGuiDebugVars &imgui_overlay_get_imgui_debug_vars( ) {
 #include <SDL3/SDL.h>
 #if defined( IMGUI_IMPL_OPENGL_ES2 )
 #include <SDL3/SDL_opengles2.h>
-#else
+#elif !defined( IMGUI_IMPL_OPENGL_ES3 )
+// On the GLES build GL prototypes come from the platform header
+// (RepGameLinux.hpp -> GLES3/gl32.h); SDL_opengl.h is desktop GL and
+// clashes with them.
 #include <SDL3/SDL_opengl.h>
 #endif
 #define ImGui_ImplSDL_InitForOpenGL ImGui_ImplSDL3_InitForOpenGL

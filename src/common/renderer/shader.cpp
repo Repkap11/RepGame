@@ -214,6 +214,12 @@ void Shader::set_uniform1f( const char *name, float f ) {
 
 void Shader::set_uniform1i_texture( const char *name, const Texture &texture ) {
     this->bind( );
+    // Bind the texture to its slot here too: unit bindings set at init aren't
+    // guaranteed to survive until draw time (on the GLES build change_size
+    // regenerates the multisample texture names, so the init-time bindings
+    // point at deleted texture objects), and a sampler on an empty unit
+    // returns black.
+    texture.bind( );
     glUniform1i( get_uniform_location( name ), texture.slot );
 }
 

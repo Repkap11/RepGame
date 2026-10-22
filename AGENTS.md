@@ -6,6 +6,9 @@ binary lands at `out/linux/release/RepGame`.
 ## Build / run
 
 - `make linux` — release build for Linux
+- `make arm` — cross-compile the Linux client for the aarch64 Yocto board
+  (PowerVR, GLES 3.2, Weston/Wayland); binary lands at `out/arm/release/RepGame`.
+  See "ARM build" below.
 - `make linux-run` — build and launch (fullscreen)
 - `make linux_debug` / `make linux_debug-run` — debug build
 - `make android` — Android assets + build; `make android-run` to deploy to a device
@@ -22,6 +25,28 @@ binary lands at `out/linux/release/RepGame`.
   for the whitelist — do NOT bundle runtime-provided libs like libdrm_amdgpu,
   they shadow the GL extension's copies and break EGL).
 - Run: `./out/linux/release/RepGame <WorldName> <host>` (e.g. `RepGame World1 localhost`)
+
+## ARM build (aarch64 Yocto board, GLES/Wayland)
+
+Cross-compiles the Linux client for a Yocto aarch64 board (PowerVR GLES 3.2,
+Weston) using a Yocto SDK on the host. `REPGAME_GLES` selects the GLES port:
+GLES headers instead of glew, an ES 3.2 context, `glTexStorage2DMultisample`
+resizes + `glCopyImageSubData` for the depth snapshot, and the small chunk
+radii (same as Android/WASM) since the board can't carry the desktop torus.
+SDL3 is built static from source under `out/arm-sdl3` with the SDK toolchain.
+arm.mk is a standalone platform makefile, so arm can be built in the same
+invocation as other platforms (e.g. `make linux arm`).
+
+- `make arm` / `make arm_debug` — release/debug binaries in `out/arm/`.
+- `make arm-sdl3` — (re)build the static SDL3.
+- `make arm-deploy` — rsync the release binary to `$(ARM_DEVICE):$(ARM_DEPLOY_DIR)`.
+- `make arm-run` / `make arm_debug-run` — deploy + run over ssh.
+- Overrides: `ARM_SDK` (Yocto SDK path), `ARM_DEVICE` (default
+  `root@renesas-v4h`), `ARM_DEPLOY_DIR`, `ARM_SDL3_VERSION`.
+- Running over ssh needs Wayland env vars:
+  `XDG_RUNTIME_DIR=/run/user/1000 WAYLAND_DISPLAY=wayland-1`.
+- The device has no working DNS, so `arm-run`'s public-server connect fails —
+  use `arm_debug-run` (single-player) or plain ssh.
 
 ## Shaders
 
