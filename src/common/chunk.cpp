@@ -5,11 +5,19 @@
 #include "common/RepGame.hpp"
 #include "common/chunk.hpp"
 #include "common/map_gen.hpp"
+#include "common/mesh_gen.hpp"
 #include "common/utils/map_storage.hpp"
 #include "common/structure_gen.hpp"
 #if defined( REPGAME_BUILD_WITH_HIP )
 #include "linux/hip/mesh_gen.hpp"
 #endif
+
+// Phase-1 meshing (per-cell visibility + packed lighting) is single-source:
+// the same dialect text below also builds the HIP kernel and the WGSL
+// WebGPU kernel — see mesh_gen_shared.hpp / mesh_gen_fns.hpp /
+// mesh_vis_logic.hpp.
+#define MG_QUAL static inline
+#include "common/mesh_gen_fns.hpp"
 
 // Two quads crossing through the block center, drawn both-sided. They index
 // the dedicated flower verts at the end of vd_data_solid (24-31), whose tex_x
@@ -691,32 +699,6 @@ int Chunk::can_extend_rect( const BlockState &blockState, const unsigned int *pa
 }
 
 
-// Precomputed rotation table: ROTATED_FACE[rotation][face]
-// FACE_ROTATE_90 = { FACE_TOP, FACE_BOTTOM, FACE_BACK, FACE_RIGHT, FACE_FRONT, FACE_LEFT }
-static constexpr int ROTATED_FACE_TABLE[ 4 ][ NUM_FACES_IN_CUBE ] = {
-    { FACE_TOP, FACE_BOTTOM, FACE_RIGHT, FACE_FRONT, FACE_LEFT, FACE_BACK }, // rotation 0
-    { FACE_TOP, FACE_BOTTOM, FACE_BACK, FACE_RIGHT, FACE_FRONT, FACE_LEFT }, // rotation 1
-    { FACE_TOP, FACE_BOTTOM, FACE_LEFT, FACE_BACK, FACE_RIGHT, FACE_FRONT }, // rotation 2
-    { FACE_TOP, FACE_BOTTOM, FACE_FRONT, FACE_LEFT, FACE_BACK, FACE_RIGHT }, // rotation 3
-};
-
-inline int get_rotated_face( const int face, const int rotation ) {
-    return ROTATED_FACE_TABLE[ rotation & 3 ][ face ];
-}
-
-// Whether `block`'s def-space face (post get_rotated_face) leaves its cell
-// boundary partially open. Extended piston bases recess 4px at the head end,
-// so every face except the covered back face lets neighbor faces show through.
-// Only used for the covering-block lookups; the block's own faces keep the
-// static table so a buried base doesn't z-fight its neighbors on the part of
-// the boundary it still covers.
-static inline bool face_is_seethrough( const Block *block, const int power, const int rotation, const int face ) {
-    if ( block->is_piston && power > 0 ) {
-        return face != piston_base_covered_face( rotation );
-    }
-    return block->calculated.is_seethrough_face[ face ];
-}
-
 void Chunk::calculate_populated_blocks( ) {
     int num_instances[ LAST_RENDER_ORDER ] = { 0 };
 
@@ -765,6 +747,12 @@ void Chunk::calculate_populated_blocks( ) {
         used_gpu_mesh = mesh_gen_calculate_hip( this->cells, workingSpace );
     }
 #endif
+#if defined( REPGAME_WASM )
+    static const bool no_webgpu_mesh = getenv( "REPGAME_NO_WEBGPU_MESH" ) != nullptr;
+    if ( !used_gpu_mesh && LOAD_CHUNKS_SUPPORTS_WEBGPU && !no_webgpu_mesh && MapGen::supports_webgpu( ) ) {
+        used_gpu_mesh = mesh_gen_calculate_webgpu( this->cells, workingSpace );
+    }
+#endif
 
 #if MESH_VERIFY
     if ( used_gpu_mesh ) {
@@ -781,87 +769,23 @@ void Chunk::calculate_populated_blocks( ) {
 #endif
 
     if ( !used_gpu_mesh ) {
-    for ( int index = CHUNK_BLOCK_DRAW_START; index < CHUNK_BLOCK_DRAW_STOP; index++ ) {
-        int x, y, z;
-        if ( Chunk::get_coords_from_index( index, x, y, z ) ) {
-            const BlockCell cell = this->cells[ index ];
-            const BlockID blockID = block_cell_id( cell );
-            Block *block = block_definition_get_definition( blockID );
-
-            workingSpace[ index ].visible = render_order_is_visible( block->renderOrder );
-
-            if ( workingSpace[ index ].visible ) {
-                const int block_rotation = block_cell_rotation( cell );
-                int block_is_visiable = 0;
-                int visible_from[ NUM_FACES_IN_CUBE ] = { 0, 0, 0, 0, 0, 0 };
-                for ( int face = FACE_TOP; face < NUM_FACES_IN_CUBE; face++ ) {
-                    int rotated_face = get_rotated_face( face, block_rotation );
-                    const int next_to_index = get_index_from_coords( x + FACE_DIR_X_OFFSETS[ face ], y + FACE_DIR_Y_OFFSETS[ face ], z + FACE_DIR_Z_OFFSETS[ face ] );
-                    const BlockCell next_to_cell = this->cells[ next_to_index ];
-                    const BlockID next_to_id = block_cell_id( next_to_cell );
-                    const int next_to_rotation = block_cell_rotation( next_to_cell );
-                    const int next_to_power = block_cell_powered( next_to_cell );
-
-                    Block *block_next_to = block_definition_get_definition( next_to_id );
-
-                    int opposing_face = get_rotated_face( face, next_to_rotation );
-                    opposing_face = OPPOSITE_FACE[ opposing_face ];
-
-                    bool is_seethrough = block->calculated.is_seethrough_face[ rotated_face ];
-                    if ( is_seethrough && block->calculated.hides_self[ rotated_face ] ) { // water and glass
-                        // Waterlogged cells count as water: water (and lava)
-                        // draws no surface faces against them.
-                        const bool liquid_boundary = block->renderOrder == RenderOrder_Water && block_cell_waterlogged( next_to_cell );
-                        if ( face == FACE_TOP && block->renderOrder == RenderOrder_Water ) {
-                            visible_from[ face ] = block_next_to->id != block->id && !liquid_boundary;
-                        } else {
-                            visible_from[ face ] = face_is_seethrough( block_next_to, next_to_power, next_to_rotation, opposing_face ) && next_to_id != blockID && !liquid_boundary;
-                        }
-                    } else if ( is_seethrough ) { // The current block is seethough on this face. Check all the directions not opposing it;
-                        bool visable_through_opposing = false;
-                        for ( int face_around = FACE_TOP; face_around < NUM_FACES_IN_CUBE; face_around++ ) {
-                            if ( face_around == opposing_face ) {
-                                // It's the non_opposing_face and parallel with this face, don't count it
-                                continue;
-                            }
-                            const int around_index = get_index_from_coords( x + FACE_DIR_X_OFFSETS[ face_around ], y + FACE_DIR_Y_OFFSETS[ face_around ], z + FACE_DIR_Z_OFFSETS[ face_around ] );
-                            const BlockCell around_cell = this->cells[ around_index ];
-                            const BlockID around_id = block_cell_id( around_cell );
-                            const int around_rotation = block_cell_rotation( around_cell );
-                            const int around_power = block_cell_powered( around_cell );
-                            Block *block_around = block_definition_get_definition( around_id );
-                            int around_face = get_rotated_face( face_around, around_rotation );
-                            around_face = OPPOSITE_FACE[ around_face ];
-                            if ( face_is_seethrough( block_around, around_power, around_rotation, around_face ) ) {
-                                visable_through_opposing = true;
-                                break;
-                            }
-                        }
-                        visible_from[ face ] = visable_through_opposing;
-
-                    } else {
-                        bool visable_through_opposing = face_is_seethrough( block_next_to, next_to_power, next_to_rotation, opposing_face );
-                        visible_from[ face ] = visable_through_opposing;
-                    }
-                    block_is_visiable |= visible_from[ face ];
-                }
-                {
-                    // Per-vertex corner AO removed: the flood-fill light
-                    // volume already darkens crevices, so visible faces are
-                    // packed as fully lit (NO_LIGHT_BRIGHT). Hidden faces keep
-                    // the block's no_light sentinel (NO_LIGHT_NO_DRAW clips the
-                    // quad in the shader; leaf interiors use NO_LIGHT_DRAW).
-                    const unsigned int lit = render_order_can_be_shaded( block->renderOrder ) ? NO_LIGHT_BRIGHT : block->no_light;
-                    for ( int i = 0; i < NUM_FACES_IN_CUBE; i++ ) {
-                        workingSpace[ index ].packed_lighting[ i ] = visible_from[ i ] ? lit : block->no_light;
-                    }
-                }
-                workingSpace[ index ].can_be_seen = block_is_visiable;
-            } else {
-                workingSpace[ index ].can_be_seen = false;
+        const GPUBlockDef *block_defs = mesh_def_table( );
+#define MESH_CELL_AT( i ) ( (unsigned)( this->cells[ i ] ) )
+#define MESH_OUT_FLAGS( idx, seen, vis )                 \
+    workingSpace[ idx ].can_be_seen = ( seen );          \
+    workingSpace[ idx ].visible = ( vis );
+#define MESH_OUT_LIGHT( idx, f, v ) workingSpace[ idx ].packed_lighting[ f ] = ( v );
+        for ( int index = CHUNK_BLOCK_DRAW_START; index < CHUNK_BLOCK_DRAW_STOP; index++ ) {
+            int x, y, z;
+            if ( Chunk::get_coords_from_index( index, x, y, z ) ) {
+                // Single-source per-cell logic — identical text drives the
+                // HIP kernel and the WGSL WebGPU kernel.
+#include "common/mesh_vis_logic.hpp"
             }
         }
-    }
+#undef MESH_CELL_AT
+#undef MESH_OUT_FLAGS
+#undef MESH_OUT_LIGHT
     } // end if ( !used_gpu_mesh )
 #if MESH_VERIFY
         // Compare CPU results (in workingSpace) with GPU results (in gpu_results)

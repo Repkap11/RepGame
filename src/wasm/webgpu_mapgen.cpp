@@ -33,6 +33,7 @@
 #include <webgpu/webgpu.h>
 
 #include "common/map_gen.hpp"
+#include "common/mesh_gen.hpp"
 #include "common/Logging.hpp"
 
 #if !defined( REPGAME_WASM )
@@ -140,6 +141,9 @@ void fail_init( const char *what ) {
     pr_debug( "webgpu_mapgen: init failed at %s — falling back to CPU mapgen", what );
     init_state.store( GPU_INIT_FAILED, std::memory_order_release );
 }
+
+// Defined at the bottom of this namespace with the rest of the meshing code.
+void begin_mesh_init( );
 
 // Completes every queued job with ok=0 so workers fall back to CPU mapgen.
 // Called on the main thread when init fails (or the device is lost).
@@ -374,6 +378,8 @@ void on_compilation_info( WGPUCompilationInfoRequestStatus status, const WGPUCom
 
     pr_debug( "webgpu_mapgen: device ready — WebGPU mapgen enabled" );
     init_state.store( GPU_INIT_READY, std::memory_order_release );
+    // The device works — kick the mesh pipeline's async chain next.
+    begin_mesh_init( );
 }
 
 void on_request_device( WGPURequestDeviceStatus status, WGPUDevice result_device, WGPUStringView message, void *userdata1, void *userdata2 ) {
@@ -446,6 +452,314 @@ void begin_init( ) {
     wgpuInstanceRequestAdapter( instance, nullptr, cb );
 }
 
+// ==========================================================================
+// Phase-1 meshing — a second kernel on the same device. The shared per-cell
+// logic (mesh_vis_logic.hpp) compiles to mesh_gen.wgsl; the host side mirrors
+// the mapgen job/pump shape: workers enqueue + park on cv, the main thread
+// submits, and on_mesh_done memcpys the readback (whose per-cell record is
+// laid out identically to WorkingSpace) and signals.
+// ==========================================================================
+
+enum MeshPipeState {
+    MESH_PIPE_IDLE,     // shader not requested yet
+    MESH_PIPE_PENDING,  // compile/pipeline creation in flight
+    MESH_PIPE_READY,    // jobs may be submitted
+    MESH_PIPE_FAILED,   // shader/pipeline error — permanent CPU mesh fallback
+};
+
+struct MeshJob {
+    const BlockCell *cells;      // worker-owned chunk cells; read at submit
+    WorkingSpace *workingSpace;  // worker's TLS buffer; filled by callback
+    WGPUBuffer staging_buf = nullptr;
+    MeshJob *next = nullptr;
+    int gen = 0; // device generation this job was submitted under
+    pthread_mutex_t mtx = PTHREAD_MUTEX_INITIALIZER;
+    pthread_cond_t cv = PTHREAD_COND_INITIALIZER;
+    int done = 0;
+    int ok = 0;
+    int abandoned = 0; // see MapGenJob::abandoned
+};
+
+std::atomic<int> mesh_state{ MESH_PIPE_IDLE };
+// Device generation the mesh pipeline belongs to — a re-init bumps gpu_gen
+// and the dead-generation pipeline objects are dropped + rebuilt.
+int mesh_state_gen = -1;
+
+MeshJob *mesh_pending_head = nullptr;
+MeshJob **mesh_pending_tail = &mesh_pending_head;
+MeshJob *mesh_inflight_head = nullptr;
+
+WGPUComputePipeline mesh_pipeline = nullptr;
+// One bind group serves every job — all three buffers are shared (see the
+// mapgen cells_buf comment for why per-job uploads can't race).
+WGPUBindGroup mesh_bind_group = nullptr;
+WGPUBuffer mesh_cells_buf = nullptr;   // Storage|CopyDst — u16 cells per job
+WGPUBuffer mesh_results_buf = nullptr; // Storage|CopySrc — kernel output
+WGPUBuffer mesh_defs_buf = nullptr;    // Storage — GPUBlockDef table, once
+
+// WGSL has no u16: cells upload raw (two per u32), results read back as the
+// WorkingSpace-layout record (flags u32 = the 4 bool bytes + 6 u32 lights).
+constexpr uint64_t MESH_CELLS_BYTES = (uint64_t)CHUNK_BLOCK_SIZE * sizeof( BlockCell );
+constexpr uint64_t MESH_RESULTS_BYTES = (uint64_t)CHUNK_BLOCK_SIZE * sizeof( WorkingSpace );
+static_assert( CHUNK_BLOCK_SIZE % 2 == 0, "cells buffer must pack evenly into u32s" );
+static_assert( sizeof( WorkingSpace ) == 4 + NUM_FACES_IN_CUBE * 4, "WorkingSpace layout drifted from the WGSL MeshResult" );
+static_assert( sizeof( GPUBlockDef ) == 4 * 4 + 2 * NUM_FACES_IN_CUBE * 4, "GPUBlockDef layout drifted from the WGSL struct" );
+
+char *load_mesh_wgsl_source( ) {
+    FILE *f = fopen( "src/shaders/mesh_gen.wgsl", "rb" );
+    if ( !f ) {
+        pr_debug( "webgpu_mesh: src/shaders/mesh_gen.wgsl missing from preload fs" );
+        return nullptr;
+    }
+    fseek( f, 0, SEEK_END );
+    const long size = ftell( f );
+    fseek( f, 0, SEEK_SET );
+    char *src = (char *)malloc( size + 1 );
+    if ( fread( src, 1, size, f ) != (size_t)size ) {
+        pr_debug( "webgpu_mesh: short read on mesh_gen.wgsl" );
+        free( src );
+        src = nullptr;
+    } else {
+        src[ size ] = '\0';
+    }
+    fclose( f );
+    return src;
+}
+
+void mesh_fail_init( const char *what ) {
+    pr_debug( "webgpu_mesh: init failed at %s — falling back to CPU meshing", what );
+    mesh_state.store( MESH_PIPE_FAILED, std::memory_order_release );
+}
+
+void mesh_inflight_add( MeshJob *job ) {
+    job->next = mesh_inflight_head;
+    mesh_inflight_head = job;
+}
+
+void mesh_inflight_remove( MeshJob *job ) {
+    for ( MeshJob **pp = &mesh_inflight_head; *pp; pp = &( *pp )->next ) {
+        if ( *pp == job ) {
+            *pp = job->next;
+            job->next = nullptr;
+            return;
+        }
+    }
+}
+
+void mesh_fail_job( MeshJob *job ) {
+    if ( job->staging_buf ) {
+        wgpuBufferRelease( job->staging_buf );
+        job->staging_buf = nullptr;
+    }
+    pthread_mutex_lock( &job->mtx );
+    job->ok = 0;
+    job->done = 1;
+    pthread_cond_signal( &job->cv );
+    pthread_mutex_unlock( &job->mtx );
+}
+
+// Completes every queued mesh job with ok=0 so workers fall back to CPU.
+void mesh_fail_pending_jobs( ) {
+    pthread_mutex_lock( &queue_mtx );
+    MeshJob *jobs = mesh_pending_head;
+    mesh_pending_head = nullptr;
+    mesh_pending_tail = &mesh_pending_head;
+    pthread_mutex_unlock( &queue_mtx );
+    while ( jobs ) {
+        MeshJob *job = jobs;
+        jobs = jobs->next;
+        mesh_fail_job( job );
+    }
+}
+
+void on_mesh_done( WGPUMapAsyncStatus status, WGPUStringView message, void *userdata1, void *userdata2 ) {
+    MeshJob *job = (MeshJob *)userdata1;
+    mesh_inflight_remove( job );
+    int ok = 0;
+    const int state = init_state.load( std::memory_order_acquire );
+    if ( status == WGPUMapAsyncStatus_Success && state == GPU_INIT_READY && mesh_state.load( std::memory_order_acquire ) == MESH_PIPE_READY ) {
+        // Same "don't trust mapped data after a device error" guard as the
+        // mapgen callback — a dead dispatch leaves zeros, not a real mesh.
+        const void *src = wgpuBufferGetConstMappedRange( job->staging_buf, 0, MESH_RESULTS_BYTES );
+        if ( src ) {
+            memcpy( job->workingSpace, src, MESH_RESULTS_BYTES );
+            ok = 1;
+        }
+    } else if ( job->gen == gpu_gen && state != GPU_INIT_FAILED ) {
+        pr_debug( "webgpu_mesh: mapAsync failed (status %d)", (int)status );
+        fail_init( "mesh mapAsync aborted — device lost" );
+    }
+    if ( job->staging_buf ) {
+        wgpuBufferUnmap( job->staging_buf );
+        wgpuBufferRelease( job->staging_buf );
+    }
+    pthread_mutex_lock( &job->mtx );
+    const int abandoned = job->abandoned;
+    job->ok = ok;
+    job->done = 1;
+    pthread_cond_signal( &job->cv );
+    pthread_mutex_unlock( &job->mtx );
+    if ( abandoned ) {
+        delete job;
+    }
+}
+
+void mesh_submit_job( MeshJob *job ) {
+    if ( init_state.load( std::memory_order_acquire ) != GPU_INIT_READY ||
+         mesh_state.load( std::memory_order_acquire ) != MESH_PIPE_READY ) {
+        mesh_fail_job( job );
+        return;
+    }
+    job->gen = gpu_gen;
+
+    WGPUBufferDescriptor buf_desc = WGPU_BUFFER_DESCRIPTOR_INIT;
+    buf_desc.usage = WGPUBufferUsage_MapRead | WGPUBufferUsage_CopyDst;
+    buf_desc.size = MESH_RESULTS_BYTES;
+    job->staging_buf = wgpuDeviceCreateBuffer( device, &buf_desc );
+    if ( !job->staging_buf ) {
+        mesh_fail_init( "mesh staging buffer (device dead?)" );
+        mesh_fail_job( job );
+        return;
+    }
+
+    // Upload this chunk's cells; the queue orders the write after the
+    // previous job's submitted work, so the shared input buffer is safe.
+    wgpuQueueWriteBuffer( queue, mesh_cells_buf, 0, job->cells, MESH_CELLS_BYTES );
+
+    WGPUCommandEncoder encoder = wgpuDeviceCreateCommandEncoder( device, nullptr );
+    if ( !encoder ) {
+        mesh_fail_init( "mesh encoder (device dead?)" );
+        mesh_fail_job( job );
+        return;
+    }
+    WGPUComputePassEncoder pass = wgpuCommandEncoderBeginComputePass( encoder, nullptr );
+    wgpuComputePassEncoderSetPipeline( pass, mesh_pipeline );
+    wgpuComputePassEncoderSetBindGroup( pass, 0, mesh_bind_group, 0, nullptr );
+    wgpuComputePassEncoderDispatchWorkgroups( pass, ( CHUNK_BLOCK_SIZE + 255 ) / 256, 1, 1 );
+    wgpuComputePassEncoderEnd( pass );
+    wgpuComputePassEncoderRelease( pass );
+    wgpuCommandEncoderCopyBufferToBuffer( encoder, mesh_results_buf, 0, job->staging_buf, 0, MESH_RESULTS_BYTES );
+    WGPUCommandBuffer commands = wgpuCommandEncoderFinish( encoder, nullptr );
+    wgpuCommandEncoderRelease( encoder );
+    wgpuQueueSubmit( queue, 1, &commands );
+    wgpuCommandBufferRelease( commands );
+
+    mesh_inflight_add( job );
+    WGPUBufferMapCallbackInfo map_cb = WGPU_BUFFER_MAP_CALLBACK_INFO_INIT;
+    map_cb.mode = WGPUCallbackMode_AllowSpontaneous;
+    map_cb.callback = on_mesh_done;
+    map_cb.userdata1 = job;
+    wgpuBufferMapAsync( job->staging_buf, WGPUMapMode_Read, 0, MESH_RESULTS_BYTES, map_cb );
+}
+
+// Mesh pipeline creation — a second async chain like the mapgen one,
+// kicked off once the mapgen pipeline proves the device works. Runs on the
+// main thread; finishes by marking mesh_state READY (or FAILED, which only
+// disables meshing — mapgen keeps running).
+void on_mesh_compilation_info( WGPUCompilationInfoRequestStatus status, const WGPUCompilationInfo *info, void *userdata1, void *userdata2 ) {
+    WGPUShaderModule shader_module = (WGPUShaderModule)userdata1;
+    int errors = 0;
+    if ( status == WGPUCompilationInfoRequestStatus_Success && info ) {
+        for ( size_t i = 0; i < info->messageCount; i++ ) {
+            const WGPUCompilationMessage &m = info->messages[ i ];
+            const char *kind = m.type == WGPUCompilationMessageType_Error ? "error" : ( m.type == WGPUCompilationMessageType_Warning ? "warning" : "info" );
+            pr_debug( "webgpu_mesh: WGSL %s %llu:%llu: %.*s", kind, (unsigned long long)m.lineNum, (unsigned long long)m.linePos,
+                      (int)m.message.length, m.message.data ? m.message.data : "" );
+            errors += ( m.type == WGPUCompilationMessageType_Error );
+        }
+    }
+    if ( errors ) {
+        wgpuShaderModuleRelease( shader_module );
+        mesh_fail_init( "mesh WGSL compile (errors above)" );
+        mesh_fail_pending_jobs( );
+        return;
+    }
+
+    WGPUComputePipelineDescriptor pipe_desc = WGPU_COMPUTE_PIPELINE_DESCRIPTOR_INIT;
+    pipe_desc.compute.module = shader_module;
+    pipe_desc.compute.entryPoint.data = "main";
+    pipe_desc.compute.entryPoint.length = WGPU_STRLEN;
+    mesh_pipeline = wgpuDeviceCreateComputePipeline( device, &pipe_desc );
+    wgpuShaderModuleRelease( shader_module );
+    if ( !mesh_pipeline ) {
+        mesh_fail_init( "mesh compute pipeline" );
+        mesh_fail_pending_jobs( );
+        return;
+    }
+
+    WGPUBufferDescriptor buf_desc = WGPU_BUFFER_DESCRIPTOR_INIT;
+    buf_desc.usage = WGPUBufferUsage_Storage | WGPUBufferUsage_CopyDst;
+    buf_desc.size = MESH_CELLS_BYTES;
+    mesh_cells_buf = wgpuDeviceCreateBuffer( device, &buf_desc );
+    buf_desc.usage = WGPUBufferUsage_Storage | WGPUBufferUsage_CopySrc;
+    buf_desc.size = MESH_RESULTS_BYTES;
+    mesh_results_buf = wgpuDeviceCreateBuffer( device, &buf_desc );
+    buf_desc.usage = WGPUBufferUsage_Storage | WGPUBufferUsage_CopyDst;
+    buf_desc.size = LAST_BLOCK_ID * sizeof( GPUBlockDef );
+    mesh_defs_buf = wgpuDeviceCreateBuffer( device, &buf_desc );
+    if ( !mesh_cells_buf || !mesh_results_buf || !mesh_defs_buf ) {
+        mesh_fail_init( "mesh buffers" );
+        mesh_fail_pending_jobs( );
+        return;
+    }
+    wgpuQueueWriteBuffer( queue, mesh_defs_buf, 0, mesh_def_table( ), LAST_BLOCK_ID * sizeof( GPUBlockDef ) );
+
+    WGPUBindGroupLayout bgl = wgpuComputePipelineGetBindGroupLayout( mesh_pipeline, 0 );
+    WGPUBindGroupEntry entries[ 3 ] = { WGPU_BIND_GROUP_ENTRY_INIT, WGPU_BIND_GROUP_ENTRY_INIT, WGPU_BIND_GROUP_ENTRY_INIT };
+    entries[ 0 ].binding = 0;
+    entries[ 0 ].buffer = mesh_cells_buf;
+    entries[ 0 ].size = MESH_CELLS_BYTES;
+    entries[ 1 ].binding = 1;
+    entries[ 1 ].buffer = mesh_defs_buf;
+    entries[ 1 ].size = LAST_BLOCK_ID * sizeof( GPUBlockDef );
+    entries[ 2 ].binding = 2;
+    entries[ 2 ].buffer = mesh_results_buf;
+    entries[ 2 ].size = MESH_RESULTS_BYTES;
+    WGPUBindGroupDescriptor bg_desc = WGPU_BIND_GROUP_DESCRIPTOR_INIT;
+    bg_desc.layout = bgl;
+    bg_desc.entryCount = 3;
+    bg_desc.entries = entries;
+    mesh_bind_group = wgpuDeviceCreateBindGroup( device, &bg_desc );
+    if ( !mesh_bind_group ) {
+        mesh_fail_init( "mesh bind group" );
+        mesh_fail_pending_jobs( );
+        return;
+    }
+
+    pr_debug( "webgpu_mesh: pipeline ready — WebGPU meshing enabled" );
+    mesh_state.store( MESH_PIPE_READY, std::memory_order_release );
+}
+
+void begin_mesh_init( ) {
+    mesh_state_gen = gpu_gen;
+    mesh_state.store( MESH_PIPE_PENDING, std::memory_order_release );
+    char *wgsl = load_mesh_wgsl_source( );
+    if ( !wgsl ) {
+        mesh_fail_init( "mesh shader load" );
+        mesh_fail_pending_jobs( );
+        return;
+    }
+    WGPUShaderSourceWGSL wgsl_src = WGPU_SHADER_SOURCE_WGSL_INIT;
+    wgsl_src.code.data = wgsl;
+    wgsl_src.code.length = WGPU_STRLEN;
+    WGPUShaderModuleDescriptor shader_desc;
+    shader_desc.nextInChain = (WGPUChainedStruct *)&wgsl_src;
+    shader_desc.label.data = "mesh_gen";
+    shader_desc.label.length = WGPU_STRLEN;
+    WGPUShaderModule shader_module = wgpuDeviceCreateShaderModule( device, &shader_desc );
+    free( wgsl );
+    if ( !shader_module ) {
+        mesh_fail_init( "mesh shader module" );
+        mesh_fail_pending_jobs( );
+        return;
+    }
+    WGPUCompilationInfoCallbackInfo info_cb = WGPU_COMPILATION_INFO_CALLBACK_INFO_INIT;
+    info_cb.mode = WGPUCallbackMode_AllowSpontaneous;
+    info_cb.callback = on_mesh_compilation_info;
+    info_cb.userdata1 = shader_module;
+    wgpuShaderModuleGetCompilationInfo( shader_module, info_cb );
+}
+
 } // namespace
 
 // Exit-path safety valve, called once from main_loop_wasm before
@@ -471,6 +785,20 @@ void webgpu_mapgen_shutdown( ) {
         }
         pthread_mutex_unlock( &job->mtx );
     }
+    // Same release for mesh workers: queued jobs fail, in-flight jobs are
+    // abandoned to their (maybe-never-firing) callbacks.
+    mesh_state.store( MESH_PIPE_FAILED, std::memory_order_release );
+    mesh_fail_pending_jobs( );
+    for ( MeshJob *job = mesh_inflight_head; job; job = job->next ) {
+        pthread_mutex_lock( &job->mtx );
+        if ( !job->done ) {
+            job->abandoned = 1;
+            job->ok = 0;
+            job->done = 1;
+            pthread_cond_signal( &job->cv );
+        }
+        pthread_mutex_unlock( &job->mtx );
+    }
 }
 
 // Per-frame pump, called from main_loop_wasm on the browser main thread.
@@ -480,6 +808,7 @@ void webgpu_mapgen_pump( ) {
     const int state = init_state.load( std::memory_order_acquire );
     if ( state == GPU_INIT_FAILED ) {
         fail_pending_jobs( );
+        mesh_fail_pending_jobs( );
         // Chrome restarts a crashed GPU process, so a fresh adapter/device
         // request usually succeeds — retry while the budget lasts.
         if ( init_attempts_left > 0 ) {
@@ -493,17 +822,47 @@ void webgpu_mapgen_pump( ) {
     if ( init_state.load( std::memory_order_acquire ) != GPU_INIT_READY ) {
         return; // jobs stay queued until the device exists
     }
+    // A re-init bumps gpu_gen and rebuilds everything device-side — drop
+    // the dead-generation mesh pipeline so it gets re-created.
+    if ( mesh_state_gen != gpu_gen ) {
+        mesh_state.store( MESH_PIPE_IDLE, std::memory_order_release );
+        mesh_pipeline = nullptr;
+        mesh_bind_group = nullptr;
+        mesh_cells_buf = nullptr;
+        mesh_results_buf = nullptr;
+        mesh_defs_buf = nullptr;
+        mesh_state_gen = gpu_gen;
+    }
+    if ( mesh_state.load( std::memory_order_acquire ) == MESH_PIPE_IDLE ) {
+        begin_mesh_init( );
+    }
 
     pthread_mutex_lock( &queue_mtx );
     MapGenJob *jobs = pending_head;
     pending_head = nullptr;
     pending_tail = &pending_head;
+    MeshJob *mesh_jobs = mesh_state.load( std::memory_order_acquire ) == MESH_PIPE_READY ? mesh_pending_head : nullptr;
+    if ( mesh_jobs ) {
+        mesh_pending_head = nullptr;
+        mesh_pending_tail = &mesh_pending_head;
+    }
     pthread_mutex_unlock( &queue_mtx );
     while ( jobs ) {
         MapGenJob *job = jobs;
         jobs = jobs->next;
         job->next = nullptr;
         submit_job( job );
+    }
+    while ( mesh_jobs ) {
+        MeshJob *job = mesh_jobs;
+        mesh_jobs = mesh_jobs->next;
+        job->next = nullptr;
+        mesh_submit_job( job );
+    }
+    // Mesh pipeline dead for good (not just mid re-init) — drain its queue.
+    if ( init_state.load( std::memory_order_acquire ) == GPU_INIT_READY &&
+         mesh_state.load( std::memory_order_acquire ) == MESH_PIPE_FAILED ) {
+        mesh_fail_pending_jobs( );
     }
 }
 
@@ -520,6 +879,45 @@ int MapGen::supports_webgpu( ) {
     int expected = GPU_INIT_IDLE;
     init_state.compare_exchange_strong( expected, GPU_INIT_REQUESTED, std::memory_order_acq_rel );
     return init_state.load( std::memory_order_acquire ) == GPU_INIT_READY;
+}
+
+// Phase-1 meshing entry point, called from a terrain worker. Enqueues a job
+// and parks on cv until the main-thread pump submits it and the mapAsync
+// callback completes — or returns false immediately when the backend can
+// never run, so the caller meshes on CPU instead.
+bool mesh_gen_calculate_webgpu( const BlockCell *cells, WorkingSpace *workingSpace ) {
+    if ( cells == nullptr || init_state.load( std::memory_order_acquire ) == GPU_INIT_FAILED ||
+         mesh_state.load( std::memory_order_acquire ) == MESH_PIPE_FAILED ) {
+        return false;
+    }
+    MeshJob *job = new MeshJob;
+    job->cells = cells;
+    job->workingSpace = workingSpace;
+
+    pthread_mutex_lock( &queue_mtx );
+    if ( init_state.load( std::memory_order_acquire ) == GPU_INIT_FAILED ||
+         mesh_state.load( std::memory_order_acquire ) == MESH_PIPE_FAILED ) {
+        // Lost/shutting down between the check and the enqueue — nobody
+        // will ever complete this job.
+        pthread_mutex_unlock( &queue_mtx );
+        delete job;
+        return false;
+    }
+    *mesh_pending_tail = job;
+    mesh_pending_tail = &job->next;
+    pthread_mutex_unlock( &queue_mtx );
+
+    pthread_mutex_lock( &job->mtx );
+    while ( !job->done ) {
+        pthread_cond_wait( &job->cv, &job->mtx );
+    }
+    const int ok = job->ok;
+    const int abandoned = job->abandoned;
+    pthread_mutex_unlock( &job->mtx );
+    if ( !abandoned ) {
+        delete job;
+    }
+    return ok != 0;
 }
 
 bool MapGen::load_block_webgpu( Chunk *chunk ) {

@@ -122,7 +122,7 @@ out/wasm/gen/block_ids.inc: include/common/block_definitions.hpp tools/gen_wgsl_
 	mkdir -p $(dir $@)
 	awk -f tools/gen_wgsl_block_ids.awk $< > $@
 
-out/wasm/fs/src/shaders/%.wgsl: src/shaders/%.wgsl out/wasm/gen/block_ids.inc include/common/wgsl_dialect.hpp include/common/perlin_noise_shared.hpp include/common/map_gen_fields.hpp include/common/map_gen_fields_legacy.hpp include/common/map_gen_consts.hpp include/common/map_logic.hpp include/common/chunk_dimensions.hpp | out/wasm
+out/wasm/fs/src/shaders/%.wgsl: src/shaders/%.wgsl out/wasm/gen/block_ids.inc include/common/wgsl_dialect.hpp include/common/perlin_noise_shared.hpp include/common/map_gen_fields.hpp include/common/map_gen_fields_legacy.hpp include/common/map_gen_consts.hpp include/common/map_logic.hpp include/common/mesh_gen_shared.hpp include/common/mesh_gen_fns.hpp include/common/mesh_vis_logic.hpp include/common/chunk_dimensions.hpp | out/wasm
 	$(SHADER_PP) -I out/wasm/gen -DREPGAME_WGSL_GEN $< -o $@
 
 out/wasm/fs/bitmaps/% : out/bitmaps/% | out/wasm

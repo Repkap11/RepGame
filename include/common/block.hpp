@@ -4,6 +4,7 @@
 
 #include "constants.hpp"
 #include "block_definitions.hpp"
+#include "mesh_gen_shared.hpp" // canonical face/piston lookup tables
 
 // See world.cpp for vbl
 typedef struct {
@@ -129,30 +130,13 @@ static CubeFace vd_data_solid[] = {
 };
 #define VB_DATA_SIZE_SOLID ( 4 * 6 + 8 )
 
-#define FACE_TOP 0
-#define FACE_BOTTOM 1
-#define FACE_RIGHT 2
-#define FACE_FRONT 3
-#define FACE_LEFT 4
-#define FACE_BACK 5
-
-static int FACE_DIR_X_OFFSETS[ NUM_FACES_IN_CUBE ] = { 0, 0, 1, 0, -1, 0 };
-static int FACE_DIR_Y_OFFSETS[ NUM_FACES_IN_CUBE ] = { 1, -1, 0, 0, 0, 0 };
-static int FACE_DIR_Z_OFFSETS[ NUM_FACES_IN_CUBE ] = { 0, 0, 0, 1, 0, -1 };
-static int FACE_ROTATE_90[ NUM_FACES_IN_CUBE ] = { FACE_TOP, FACE_BOTTOM, FACE_BACK, FACE_RIGHT, FACE_FRONT, FACE_LEFT };
-
-static int OPPOSITE_FACE[ NUM_FACES_IN_CUBE ] = { FACE_BOTTOM, FACE_TOP, FACE_LEFT, FACE_BACK, FACE_RIGHT, FACE_FRONT };
-
-// Piston rotations encode the direction the head points: 0-3 are the usual yaw
-// rotations (the shader face-shifts FACE_FRONT onto +z,-x,-z,+x respectively)
-// and 4/5 are the vertical extensions.
-#define PISTON_ROTATE_UP 4
-#define PISTON_ROTATE_DOWN 5
+// FACE_*, FACE_DIR_*_OFFSETS, FACE_ROTATE_90, OPPOSITE_FACE, PISTON_ROTATE_*
+// and the piston head/covered face tables now live in mesh_gen_shared.hpp —
+// the single source every meshing backend (CPU, HIP, WebGPU) consumes.
 
 // World face the head end of a piston points at for a given rotation.
 static inline int piston_head_face( unsigned char rotation ) {
-    static const int head_faces[ 6 ] = { FACE_FRONT, FACE_LEFT, FACE_BACK, FACE_RIGHT, FACE_TOP, FACE_BOTTOM };
-    return head_faces[ rotation < 6 ? rotation : 0 ];
+    return MESH_PISTON_HEAD_FACES[ rotation < 6 ? rotation : 0 ];
 }
 
 // Unit offset from a piston base toward where its head extends.
@@ -197,8 +181,7 @@ static inline void piston_head_shape( unsigned char rotation, short scale[ 3 ], 
 // horizontal bases always cover their FACE_BACK slot, rot4 covers the world
 // bottom (yaw table maps it to def BOTTOM), rot5 covers the world top.
 static inline int piston_base_covered_face( unsigned char rotation ) {
-    static const int covered[ 6 ] = { FACE_BACK, FACE_BACK, FACE_BACK, FACE_BACK, FACE_BOTTOM, FACE_TOP };
-    return covered[ rotation < 6 ? rotation : 0 ];
+    return MESH_PISTON_COVERED[ rotation < 6 ? rotation : 0 ];
 }
 
 // Pixel-space (0-16) box of an extended piston base: the full cube minus the

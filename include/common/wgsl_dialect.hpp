@@ -53,6 +53,7 @@
 #define MG_WT_BlockID u32
 #define MG_WT_BlockCell u32
 #define MG_WT_MapGenColumn MapGenColumn
+#define MG_WT_GPUBlockDef GPUBlockDef
 
 #define MG_FN0( r, n ) fn n() -> MG_T( r )
 #define MG_FN1( r, n, t1, a1 ) fn n( a1 : MG_T( t1 ) ) -> MG_T( r )
@@ -76,6 +77,9 @@
 #define MG_BOOL( e ) bool( e )
 
 #define MG_TERN( c, a, b ) select( ( b ), ( a ), ( c ) )
+// WGSL shift amounts must be u32; the operand keeps its own signedness.
+#define MG_SHL( a, b ) ( ( a ) << u32( b ) )
+#define MG_SHR( a, b ) ( ( a ) >> u32( b ) )
 #define MG_ABS( e ) abs( e )
 #define MG_FLOOR( e ) floor( e )
 #define MG_CEIL( e ) ceil( e )
@@ -111,6 +115,8 @@
 #define MG_BOOL( e ) ( (bool)( e ) )
 
 #define MG_TERN( c, a, b ) ( ( c ) ? ( a ) : ( b ) )
+#define MG_SHL( a, b ) ( ( a ) << ( b ) )
+#define MG_SHR( a, b ) ( ( a ) >> ( b ) )
 #define MG_ABS( e ) fabsf( e )
 #define MG_FLOOR( e ) floorf( e )
 #define MG_CEIL( e ) ceilf( e )

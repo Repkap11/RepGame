@@ -1,19 +1,10 @@
 #pragma once
 
-#include "common/block_definitions.hpp"
+#include "common/mesh_gen_shared.hpp" // GPUBlockDef (single source — CPU/HIP/WebGPU)
 #include "common/chunk.hpp"
 
-// Compact block definition for GPU meshing (only fields needed for visibility + lighting).
-struct GPUBlockDef {
-    int renderOrder;
-    int no_light;
-    int id; // BlockID
-    int is_piston;
-    int is_seethrough_face[ NUM_FACES_IN_CUBE ];
-    int hides_self[ NUM_FACES_IN_CUBE ];
-};
-
-// Output struct matching WorkingSpace layout exactly for direct GPU readback into workingSpace.
+// Output struct matching WorkingSpace layout exactly for direct GPU readback
+// into workingSpace.
 struct MeshResult {
     bool can_be_seen;
     bool visible;
