@@ -9,6 +9,17 @@
 //   - BlockState gained the trailing `waterlogged` field.
 //   - Etho trees: ~1 in 100 trees gets a glowstone top log (gameplay
 //     deviation from the faithful port).
+//
+// Trees are no longer clipped at chunk borders: every chunk re-derives all
+// trees whose parts could land in its block array (halo included) from pure
+// functions of world coords — forest/tree rolls, a mapgen-only surface scan,
+// and a mapgen-only fit check — then writes the cells it owns. Both sides of
+// a border therefore compute identical trunks and canopies. The original
+// sequential scan's collision rules can't be reproduced chunk-locally, so
+// they are replaced by a deterministic local-max rule (see
+// sgl_tree_suppressed): tree positions and density differ slightly from the
+// original. Decorations (tufts, flowers, reeds) are unchanged — they still
+// run as a sequential scan over this chunk's interior columns.
 #include "common/structure_gen.hpp"
 #include "common/constants.hpp"
 
@@ -18,46 +29,41 @@
 #include "common/perlin_noise.hpp"
 #include "common/constants.hpp"
 #include "common/block_definitions.hpp"
+#include "common/map_gen.hpp"
+#include <math.h>
 
 static int sgl_is_forest( const int x, const int z ) {
     const float noise = perlin_noise2d( x, z, 0.02f, 3, MAP_SEED + 6 );
     return noise > 0.7f;
 }
 
-static int sgl_is_tree_roll( const int x, const int z, const int max_tree_radius ) {
-    float noise = perlin_noise2d( x, z, 0.9f, 1, MAP_SEED + 7 );
+static int sgl_is_tree_roll( const int x, const int z, float *out_noise ) {
+    const float noise = perlin_noise2d( x, z, 0.9f, 1, MAP_SEED + 7 );
+    *out_noise = noise;
     if ( FOREST_DEBUG ) {
         return -1;
     }
     if ( noise < 0.60f ) {
         return 0;
     }
-    if ( max_tree_radius == 2 ) {
-        if ( noise < 0.7f ) {
-            return 1;
-        }
-        if ( noise < 0.85f ) {
-            return 2;
-        }
-        return 3;
-    } else {
-        if ( noise < 0.65f ) {
-            return 1;
-        }
-        if ( noise < 0.68f ) {
-            return 2;
-        }
-        if ( noise < 0.72f ) {
-            return 3;
-        }
-        if ( noise < 0.77f ) {
-            return 4;
-        }
-        if ( noise < 0.85f ) {
-            return 5;
-        }
-        return 6;
+    // The radius-2 branch of the old thresholds is gone: it existed only to
+    // keep canopies off the +-1 border, and trees now cross borders freely.
+    if ( noise < 0.65f ) {
+        return 1;
     }
+    if ( noise < 0.68f ) {
+        return 2;
+    }
+    if ( noise < 0.72f ) {
+        return 3;
+    }
+    if ( noise < 0.77f ) {
+        return 4;
+    }
+    if ( noise < 0.85f ) {
+        return 5;
+    }
+    return 6;
 }
 
 static BlockID sgl_is_long_grass_roll( int x, int z, int is_forest ) {
@@ -111,36 +117,110 @@ static int sgl_poll_fits( int x, int y, int z, const int height ) {
 }
 
 #define LEGACY_MAX_TREE_HEIGHT 6
-static int sgl_tree_fits( const Chunk &chunk, int x, const int y, const int z, const int max_tree_radius ) {
-    if ( y + LEGACY_MAX_TREE_HEIGHT - 3 + max_tree_radius >= CHUNK_SIZE_INTERNAL_Y - 1 ) {
-        return 0;
-    }
-    int num_colliding_leafs = 0;
+// The old fit box, evaluated against pure map gen (terrain only — no tree
+// parts) so every chunk reaches the same verdict. bound_y 2..5, column-only
+// at bound_y 2 and the |dx|+|dz| <= 3 diamond above that, exactly like the
+// original's radius-3 shape.
+static int sgl_tree_fits_terrain( const int wx, const int surface_y, const int wz ) {
     for ( int bound_y = 2; bound_y < LEGACY_MAX_TREE_HEIGHT; bound_y++ ) {
-        int xz_limit = max_tree_radius;
-        xz_limit = bound_y < xz_limit ? bound_y - 2 : xz_limit;
-
+        const int xz_limit = bound_y == 2 ? 0 : 3;
         for ( int bound_x = -xz_limit; bound_x < ( xz_limit + 1 ); bound_x++ ) {
             for ( int bound_z = -xz_limit; bound_z < ( xz_limit + 1 ); bound_z++ ) {
-                if ( abs( bound_x ) + abs( bound_z ) > max_tree_radius ) {
+                if ( abs( bound_x ) + abs( bound_z ) > 3 ) {
                     continue;
                 }
-                BlockID colliding_block_id = chunk.get_block( glm::ivec3( x + bound_x, y + bound_y, z + bound_z ) ).id;
-                if ( colliding_block_id == LEAF ) {
-                    num_colliding_leafs++;
-                    continue;
-                }
-                if ( colliding_block_id != AIR ) {
+                if ( MapGen::gen_block_id( wx + bound_x, surface_y + bound_y, wz + bound_z ) != AIR ) {
                     return 0;
                 }
             }
         }
     }
-    if ( num_colliding_leafs < max_tree_radius * 3 ) {
-        return 1;
-    } else {
+    return 1;
+}
+
+// The first air cell directly above the first non-air cell, scanning down —
+// the same surface the old chunk-array scan found, but evaluated on pure map
+// gen so the answer doesn't depend on which chunk is asking. Also yields the
+// ground block (the cell below the surface air).
+static int sgl_find_surface_y( const int wx, const int wz, BlockID *out_ground ) {
+    const float h = MapGen::calculateTerrainHeight( wx, wz );
+    // ceil(max(h, WATER_LEVEL)) is guaranteed AIR: above the heightmap nothing
+    // is solid, and above the waterline nothing is water.
+    int top = (int)ceilf( h );
+    if ( top < WATER_LEVEL ) {
+        top = WATER_LEVEL;
+    }
+    for ( int y = top; y > BEDROCK_LEVEL - 8; y-- ) {
+        const BlockID below = MapGen::gen_block_id( wx, y - 1, wz );
+        if ( below != AIR ) {
+            *out_ground = below;
+            return y;
+        }
+    }
+    return -1;
+}
+
+// The full per-column tree test as a pure function of world coords: forest
+// field, tree roll, grass surface, terrain fit box. Returns the tree type
+// (1..6; -1 under FOREST_DEBUG), 0 when the column holds no tree. Every chunk
+// computes the same answer for a shared (border-crossing) tree.
+static int sgl_eval_tree_column( const int wx, const int wz, int *out_surface_y, float *out_prio ) {
+    if ( !sgl_is_forest( wx, wz ) ) {
         return 0;
     }
+    float noise;
+    const int tree_type = sgl_is_tree_roll( wx, wz, &noise );
+    if ( tree_type == 0 ) {
+        return 0;
+    }
+    BlockID ground;
+    const int surface_y = sgl_find_surface_y( wx, wz, &ground );
+    if ( surface_y < 0 || ground != GRASS ) {
+        return 0;
+    }
+    if ( !FOREST_DEBUG && !sgl_tree_fits_terrain( wx, surface_y, wz ) ) {
+        return 0;
+    }
+    *out_surface_y = surface_y;
+    *out_prio = noise;
+    return tree_type;
+}
+
+// The original scan placed trees greedily in column order, rejecting a tree
+// when a previously-placed tree's trunk fell inside its fit box (and when too
+// many leaves already filled it). That order can't be reproduced per-chunk —
+// the winner of a border-spanning pair would depend on which side you ask —
+// so it is replaced by a deterministic rule: a candidate is suppressed when a
+// rival valid candidate inside the old trunk-collision diamond rolls a higher
+// tree noise. Big trees still crowd out small ones, placed trunks stay at
+// least a diamond-4 apart, and every chunk agrees on the survivor.
+static int sgl_tree_suppressed( const int wx, const int wz, const int surface_y, const float prio ) {
+    for ( int dx = -3; dx <= 3; dx++ ) {
+        for ( int dz = -3; dz <= 3; dz++ ) {
+            const int d = abs( dx ) + abs( dz );
+            if ( d == 0 || d > 3 ) {
+                continue;
+            }
+            int q_surface;
+            float q_prio;
+            if ( sgl_eval_tree_column( wx + dx, wz + dz, &q_surface, &q_prio ) == 0 ) {
+                continue;
+            }
+            // The old reject needed a rival trunk part inside the fit box.
+            // The box rows that check an off-axis column are dy 3..5 above
+            // the base (dy 2 is column-only) while rival parts span dy -1..4
+            // (dirt under the trunk through the top log) — the ranges can
+            // only meet when the surfaces are within [-1, +6].
+            const int dy = q_surface - surface_y;
+            if ( dy > 6 || dy < -1 ) {
+                continue;
+            }
+            if ( q_prio > prio || ( q_prio == prio && ( dx < 0 || ( dx == 0 && dz < 0 ) ) ) ) {
+                return 1;
+            }
+        }
+    }
+    return 0;
 }
 
 static int sgl_is_next_to( const Chunk &chunk, const int x, const int y, const int z, const BlockID block ) {
@@ -330,10 +410,9 @@ static void sgl_place_leaves( Chunk &chunk, const int x, const int y, const int 
 }
 
 void StructureGen::place_legacy( Chunk &chunk ) {
-    const float chunk_offset_x = chunk.chunk_pos.x * CHUNK_SIZE_X;
-    const float chunk_offset_y = chunk.chunk_pos.y * CHUNK_SIZE_Y;
-    const float chunk_offset_z = chunk.chunk_pos.z * CHUNK_SIZE_Z;
-    const glm::vec3 chunk_offset = glm::vec3( chunk_offset_x, chunk_offset_y, chunk_offset_z );
+    const int cox = chunk.chunk_pos.x * CHUNK_SIZE_X;
+    const int coy = chunk.chunk_pos.y * CHUNK_SIZE_Y;
+    const int coz = chunk.chunk_pos.z * CHUNK_SIZE_Z;
 
     const Block *leaf = block_definition_get_definition( LEAF );
     const Block *oak_log = block_definition_get_definition( OAK_LOG );
@@ -347,16 +426,78 @@ void StructureGen::place_legacy( Chunk &chunk ) {
     const BlockState reed_state = { REED, 0, reed->initial_redstone_power, REED, 0 };
     const BlockState glowstone_state = { GLOWSTONE, 0, glowstone->initial_redstone_power, GLOWSTONE, 0 };
 
-    for ( int x = 1; x < CHUNK_SIZE_X - 1; x++ ) {
-        const int world_x = chunk_offset.x + x;
-        for ( int z = 1; z < CHUNK_SIZE_Z - 1; z++ ) {
-            const int world_z = chunk_offset.z + z;
-            int max_tree_radius;
-            if ( x == 1 || z == 1 || z == CHUNK_SIZE_Z - 2 ) {
-                max_tree_radius = 2;
-            } else {
-                max_tree_radius = 3;
+    // ---- Pass 1: trees ---------------------------------------------------
+    // A canopy reaches +-2 cells from its trunk, and the block array extends
+    // 1 cell past the interior on every side, so a tree can only drop parts
+    // into this chunk when its trunk column sits within 3 cells of the array
+    // edge. Every candidate is re-derived from pure world-coord functions, so
+    // the chunk owning the trunk and the neighbors holding stray canopy cells
+    // all agree — trees cross chunk borders (x, z and y) seamlessly.
+#define LEGACY_TREE_REACH 3
+    for ( int lx = -LEGACY_TREE_REACH; lx < CHUNK_SIZE_X + LEGACY_TREE_REACH; lx++ ) {
+        const int wx = cox + lx;
+        for ( int lz = -LEGACY_TREE_REACH; lz < CHUNK_SIZE_Z + LEGACY_TREE_REACH; lz++ ) {
+            const int wz = coz + lz;
+            // Cheap slab test before the surface scan: a valid tree grows on
+            // the topmost grass cell, so its parts live in [h-2, h+7].
+            const float h = MapGen::calculateTerrainHeight( wx, wz );
+            if ( h + 8.0f < (float)( coy - 1 ) || h - 3.0f > (float)( coy + CHUNK_SIZE_Y ) ) {
+                continue;
             }
+            int surface_y;
+            float prio;
+            const int tree_type = sgl_eval_tree_column( wx, wz, &surface_y, &prio );
+            if ( tree_type == 0 ) {
+                continue;
+            }
+            // Parts span world y [surface_y - 1, surface_y + 5]; the array
+            // covers [coy - 1, coy + CHUNK_SIZE_Y].
+            if ( surface_y + 5 < coy - 1 || surface_y - 1 > coy + CHUNK_SIZE_Y ) {
+                continue;
+            }
+            const int y = surface_y - coy;
+            if ( FOREST_DEBUG ) {
+                chunk.set_block( glm::ivec3( lx, y, lz ), oak_log_state );
+                continue;
+            }
+            if ( sgl_tree_suppressed( wx, wz, surface_y, prio ) ) {
+                continue;
+            }
+
+            chunk.set_block( glm::ivec3( lx, y - 1, lz ), dirt_state );
+            chunk.set_block( glm::ivec3( lx, y, lz ), oak_log_state );
+            chunk.set_block( glm::ivec3( lx, y + 1, lz ), oak_log_state );
+            chunk.set_block( glm::ivec3( lx, y + 2, lz ), oak_log_state );
+
+            // Etho trees: ~1/100 get a glowstone top log.
+            const BlockState &top_log_state = sgl_is_etho_tree( wx, wz ) ? glowstone_state : oak_log_state;
+            // tree_type = 3;
+            if ( tree_type == 1 ) { // This is a small tree, but a baby
+                chunk.set_block( glm::ivec3( lx, y + 2, lz ), top_log_state );
+                chunk.set_block( glm::ivec3( lx, y + 3, lz ), leaf_state );
+
+            } else if ( tree_type <= 3 ) { // This is a small tree
+                chunk.set_block( glm::ivec3( lx, y + 3, lz ), top_log_state );
+                chunk.set_block( glm::ivec3( lx, y + 4, lz ), leaf_state );
+
+            } else {
+                chunk.set_block( glm::ivec3( lx, y + 3, lz ), oak_log_state );
+                chunk.set_block( glm::ivec3( lx, y + 4, lz ), top_log_state );
+                chunk.set_block( glm::ivec3( lx, y + 5, lz ), leaf_state );
+            }
+            sgl_place_leaves( chunk, lx, y, lz, tree_type, leaf_state );
+        }
+    }
+
+    // ---- Pass 2: decorations ---------------------------------------------
+    // Unchanged sequential scan over the interior columns (the original
+    // skipped the outer ring too — kept faithfully). Running after the tree
+    // pass, the scan hits placed trunks/canopies and yields those columns,
+    // exactly like the old placed_tree flag plus in-order canopy writes.
+    for ( int x = 1; x < CHUNK_SIZE_X - 1; x++ ) {
+        const int world_x = cox + x;
+        for ( int z = 1; z < CHUNK_SIZE_Z - 1; z++ ) {
+            const int world_z = coz + z;
             int surface_y = -1;
             BlockID block_below = AIR;
             for ( int y = CHUNK_SIZE_Y - 1; y > -1; y-- ) {
@@ -377,52 +518,12 @@ void StructureGen::place_legacy( Chunk &chunk ) {
             }
             const int y = surface_y;
             if ( block_below == GRASS && y != 0 ) {
-                int is_forest = 0;
-                int placed_tree = 0;
-                is_forest = sgl_is_forest( world_x, world_z );
-                if ( is_forest ) {
-                    int tree_type = sgl_is_tree_roll( world_x, world_z, max_tree_radius );
-                    if ( tree_type != 0 ) {
-                        if ( FOREST_DEBUG ) {
-                            chunk.set_block( glm::ivec3( x, y, z ), oak_log_state );
-                            continue;
-                        }
-                        // And the blocks in the bounding box are not solid
-                        if ( sgl_tree_fits( chunk, x, y, z, max_tree_radius ) ) {
-
-                            placed_tree = 1;
-                            chunk.set_block( glm::ivec3( x, y - 1, z ), dirt_state );
-                            chunk.set_block( glm::ivec3( x, y, z ), oak_log_state );
-                            chunk.set_block( glm::ivec3( x, y + 1, z ), oak_log_state );
-                            chunk.set_block( glm::ivec3( x, y + 2, z ), oak_log_state );
-
-                            // Etho trees: ~1/100 get a glowstone top log.
-                            const BlockState &top_log_state = sgl_is_etho_tree( world_x, world_z ) ? glowstone_state : oak_log_state;
-                            // tree_type = 3;
-                            if ( tree_type == 1 ) { // This is a small tree, but a baby
-                                chunk.set_block( glm::ivec3( x, y + 2, z ), top_log_state );
-                                chunk.set_block( glm::ivec3( x, y + 3, z ), leaf_state );
-
-                            } else if ( tree_type <= 3 ) { // This is a small tree
-                                chunk.set_block( glm::ivec3( x, y + 3, z ), top_log_state );
-                                chunk.set_block( glm::ivec3( x, y + 4, z ), leaf_state );
-
-                            } else {
-                                chunk.set_block( glm::ivec3( x, y + 3, z ), oak_log_state );
-                                chunk.set_block( glm::ivec3( x, y + 4, z ), top_log_state );
-                                chunk.set_block( glm::ivec3( x, y + 5, z ), leaf_state );
-                            }
-                            sgl_place_leaves( chunk, x, y, z, tree_type, leaf_state );
-                        }
-                    }
-                }
-                if ( !placed_tree ) {
-                    if ( !sgl_is_next_to( chunk, x, y, z, GRASS_TUFT2 ) ) {
-                        BlockID grass_type = sgl_is_long_grass_roll( world_x, world_z, is_forest );
-                        Block *grass_block = block_definition_get_definition( grass_type );
-                        if ( grass_type != AIR ) {
-                            chunk.set_block( glm::ivec3( x, y, z ), { grass_type, BLOCK_ROTATE_0, grass_block->initial_redstone_power, grass_type, 0 } );
-                        }
+                if ( !sgl_is_next_to( chunk, x, y, z, GRASS_TUFT2 ) ) {
+                    const int is_forest = sgl_is_forest( world_x, world_z );
+                    BlockID grass_type = sgl_is_long_grass_roll( world_x, world_z, is_forest );
+                    Block *grass_block = block_definition_get_definition( grass_type );
+                    if ( grass_type != AIR ) {
+                        chunk.set_block( glm::ivec3( x, y, z ), { grass_type, BLOCK_ROTATE_0, grass_block->initial_redstone_power, grass_type, 0 } );
                     }
                 }
             } // End block below is grass
@@ -434,7 +535,12 @@ void StructureGen::place_legacy( Chunk &chunk ) {
                         // world coords — kept faithfully, quirks and all.
                         if ( sgl_is_reed_roll( x, z ) ) {
                             for ( int i = 0; i < LEGACY_REED_HEIGHT; i++ ) {
-                                chunk.set_block( glm::ivec3( x, y + i, z ), reed_state );
+                                // Air-only: a reed never eats a tree part — a
+                                // canopy leaf from a border-crossing tree must
+                                // read identically in both chunks' copies.
+                                if ( chunk.get_block( glm::ivec3( x, y + i, z ) ).id == AIR ) {
+                                    chunk.set_block( glm::ivec3( x, y + i, z ), reed_state );
+                                }
                             }
                         }
                     }

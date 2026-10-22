@@ -103,6 +103,7 @@ class Chunk {
     friend void light_air_mask_set( const Chunk &chunk, int index, BlockID id );
     friend void light_pending_enqueue( Chunk &chunk );
     friend int test_lighting( );
+    friend int test_structure_border( );
 
     int load_state;
     int gl_initialized;

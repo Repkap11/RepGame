@@ -7,6 +7,7 @@
 
 #include "common/perlin_noise.hpp"
 #include "common/map_gen.hpp"
+#include "common/structure_gen.hpp"
 #include "common/block_update_events/PlayerBlockPlacedEvent.hpp"
 #include "common/block_update_events/TntExplodeEvent.hpp"
 #include "common/utils/collision.hpp"
@@ -645,14 +646,174 @@ int test_tnt( ) {
     return failures;
 }
 
-constexpr Test all_tests[] = { //
-    MK_TEST( ecs ),            //
-    MK_TEST( redstone ),       //
-    MK_TEST( sneak ),          //
-    MK_TEST( mapgen ),         //
-    MK_TEST( waterlog ),       //
-    MK_TEST( lighting ),       //
-    MK_TEST( tnt ),            //
+// Structure-gen border mirroring: a chunk's +-1 halo cells must equal the
+// interior cells they mirror in the neighbor. Terrain trivially agrees (both
+// sides derive it from the same pure function); tree parts only agree when
+// the placement rules are chunk-independent — on the old legacy generator a
+// border-spanning tree was clipped to the trunk's owning chunk and the halo
+// stayed bare. Two y slabs are generated so y-border mirroring is checked
+// the same way.
+int test_structure_border( ) {
+    if ( block_definitions == nullptr ) {
+        block_definitions_initilize_definitions( nullptr );
+    }
+    int failures = 0;
+    auto check_bool = [ & ]( const char *name, bool cond ) {
+        pr_test( "  %-55s %s", name, cond ? "PASS" : "FAIL" );
+        if ( !cond ) {
+            failures++;
+        }
+    };
+
+    auto gen_chunk = []( const glm::ivec3 &pos ) {
+        Chunk *c = new Chunk( ); // freed by the caller's loop
+        c->chunk_pos = pos;
+        c->cells = chunk_alloc_cells( );
+        c->extras = nullptr;
+        c->light_air_mask = nullptr;
+        MapGen::load_block_c( c );
+        StructureGen::place( *c );
+        return c;
+    };
+    auto free_chunk = []( Chunk *c ) {
+        chunk_free_cells( c->cells );
+        chunk_free_extras( c->extras );
+        chunk_free_air_mask( c->light_air_mask );
+        delete c;
+    };
+
+    // A tree part in a halo plane can only have come from structure gen —
+    // terrain never emits LEAF/OAK_LOG — so counting them proves trees reach
+    // borders, and the face comparisons then prove they mirror correctly.
+    int border_tree_cells = 0;
+    int mismatches = 0;
+    for ( int attempt = 0; attempt < 10 && border_tree_cells == 0; attempt++ ) {
+        const int rcx = -40 + attempt * 19;
+        const int rcz = -40 + attempt * 13;
+        const int wx0 = rcx * CHUNK_SIZE_X + CHUNK_SIZE_X / 2;
+        const int wz0 = rcz * CHUNK_SIZE_Z + CHUNK_SIZE_Z / 2;
+        const float h = MapGen::calculateTerrainHeight( wx0, wz0 );
+#if REPGAME_MAP_GEN_LEGACY
+        // Target the legacy forest field (perlin_noise2d > 0.7 somewhere in
+        // the region) so the grid is actually in tree country.
+        bool forest = false;
+        for ( int x = wx0 - CHUNK_SIZE_X; x < wx0 + 2 * CHUNK_SIZE_X && !forest; x += 5 ) {
+            for ( int z = wz0 - CHUNK_SIZE_Z; z < wz0 + 2 * CHUNK_SIZE_Z && !forest; z += 5 ) {
+                if ( perlin_noise2d( x, z, 0.02f, 3, MAP_SEED + 6 ) > 0.7f ) {
+                    forest = true;
+                }
+            }
+        }
+        if ( !forest ) {
+            continue;
+        }
+#else
+        if ( h < WATER_LEVEL + 3.0f ) {
+            continue; // open water — trees need land
+        }
+#endif
+        const int cy = (int)floorf( h / (float)CHUNK_SIZE_Y );
+
+        Chunk *grid[ 3 ][ 2 ][ 3 ] = {};
+        for ( int gx = 0; gx < 3; gx++ ) {
+            for ( int gy = 0; gy < 2; gy++ ) {
+                for ( int gz = 0; gz < 3; gz++ ) {
+                    grid[ gx ][ gy ][ gz ] = gen_chunk( glm::ivec3( rcx + gx, cy + gy, rcz + gz ) );
+                }
+            }
+        }
+
+        // Every shared face, both directions: the outer halo cell of each
+        // chunk vs the mirrored interior edge of its neighbor.
+        for ( int gx = 0; gx < 3; gx++ ) {
+            for ( int gy = 0; gy < 2; gy++ ) {
+                for ( int gz = 0; gz < 3; gz++ ) {
+                    const Chunk *a = grid[ gx ][ gy ][ gz ];
+                    if ( gx < 2 ) {
+                        const Chunk *b = grid[ gx + 1 ][ gy ][ gz ];
+                        for ( int ly = -1; ly <= CHUNK_SIZE_Y; ly++ ) {
+                            for ( int lz = -1; lz <= CHUNK_SIZE_Z; lz++ ) {
+                                if ( a->get_block( glm::ivec3( CHUNK_SIZE_X, ly, lz ) ).id != b->get_block( glm::ivec3( 0, ly, lz ) ).id ) {
+                                    mismatches++;
+                                }
+                                if ( a->get_block( glm::ivec3( CHUNK_SIZE_X - 1, ly, lz ) ).id != b->get_block( glm::ivec3( -1, ly, lz ) ).id ) {
+                                    mismatches++;
+                                }
+                            }
+                        }
+                    }
+                    if ( gz < 2 ) {
+                        const Chunk *b = grid[ gx ][ gy ][ gz + 1 ];
+                        for ( int ly = -1; ly <= CHUNK_SIZE_Y; ly++ ) {
+                            for ( int lx = -1; lx <= CHUNK_SIZE_X; lx++ ) {
+                                if ( a->get_block( glm::ivec3( lx, ly, CHUNK_SIZE_Z ) ).id != b->get_block( glm::ivec3( lx, ly, 0 ) ).id ) {
+                                    mismatches++;
+                                }
+                                if ( a->get_block( glm::ivec3( lx, ly, CHUNK_SIZE_Z - 1 ) ).id != b->get_block( glm::ivec3( lx, ly, -1 ) ).id ) {
+                                    mismatches++;
+                                }
+                            }
+                        }
+                    }
+                    if ( gy < 1 ) {
+                        const Chunk *b = grid[ gx ][ gy + 1 ][ gz ];
+                        for ( int lx = -1; lx <= CHUNK_SIZE_X; lx++ ) {
+                            for ( int lz = -1; lz <= CHUNK_SIZE_Z; lz++ ) {
+                                if ( a->get_block( glm::ivec3( lx, CHUNK_SIZE_Y, lz ) ).id != b->get_block( glm::ivec3( lx, 0, lz ) ).id ) {
+                                    mismatches++;
+                                }
+                                if ( a->get_block( glm::ivec3( lx, CHUNK_SIZE_Y - 1, lz ) ).id != b->get_block( glm::ivec3( lx, -1, lz ) ).id ) {
+                                    mismatches++;
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        // Count tree parts sitting on x/z halo planes.
+        for ( int gx = 0; gx < 3; gx++ ) {
+            for ( int gy = 0; gy < 2; gy++ ) {
+                for ( int gz = 0; gz < 3; gz++ ) {
+                    const Chunk *c = grid[ gx ][ gy ][ gz ];
+                    for ( int ly = -1; ly <= CHUNK_SIZE_Y; ly++ ) {
+                        for ( int lz = -1; lz <= CHUNK_SIZE_Z; lz++ ) {
+                            for ( int lx : { -1, CHUNK_SIZE_X } ) {
+                                const BlockID id = c->get_block( glm::ivec3( lx, ly, lz ) ).id;
+                                if ( id == LEAF || id == OAK_LOG || id == GLOWSTONE ) {
+                                    border_tree_cells++;
+                                }
+                            }
+                            for ( int lx = -1; lx <= CHUNK_SIZE_X; lx++ ) {
+                                for ( int lz2 : { -1, CHUNK_SIZE_Z } ) {
+                                    const BlockID id = c->get_block( glm::ivec3( lx, ly, lz2 ) ).id;
+                                    if ( id == LEAF || id == OAK_LOG || id == GLOWSTONE ) {
+                                        border_tree_cells++;
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    free_chunk( grid[ gx ][ gy ][ gz ] );
+                }
+            }
+        }
+    }
+    check_bool( "trees reach chunk borders", border_tree_cells > 0 );
+    check_bool( "halo cells mirror neighbor interiors", mismatches == 0 );
+    return failures;
+}
+
+constexpr Test all_tests[] = {  //
+    MK_TEST( ecs ),             //
+    MK_TEST( redstone ),        //
+    MK_TEST( sneak ),           //
+    MK_TEST( mapgen ),          //
+    MK_TEST( waterlog ),        //
+    MK_TEST( lighting ),        //
+    MK_TEST( tnt ),             //
+    MK_TEST( structure_border ), //
     { nullptr, nullptr }
 
 };
