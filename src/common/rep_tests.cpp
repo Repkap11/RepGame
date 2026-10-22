@@ -80,7 +80,11 @@ int test_redstone( ) {
     if ( block_definitions == nullptr ) {
         block_definitions_initilize_definitions( nullptr );
     }
-    RepGameState gs;
+    // Heap, not stack: RepGameState embeds megabytes of light queues (the
+    // game keeps it in static storage via globalGameState) — a stack local
+    // overflows the default 8MB stack. Leaked on purpose: the process exits
+    // right after the tests and destructors would touch GL state.
+    RepGameState &gs = *new RepGameState( );
     gs.tick_number = 0;
     gs.camera.pos = glm::dvec3( 0, 0, 0 );
     test_setup_world( gs.world );
@@ -221,7 +225,11 @@ int test_sneak( ) {
     if ( block_definitions == nullptr ) {
         block_definitions_initilize_definitions( nullptr );
     }
-    RepGameState gs;
+    // Heap, not stack: RepGameState embeds megabytes of light queues (the
+    // game keeps it in static storage via globalGameState) — a stack local
+    // overflows the default 8MB stack. Leaked on purpose: the process exits
+    // right after the tests and destructors would touch GL state.
+    RepGameState &gs = *new RepGameState( );
     gs.tick_number = 0;
     gs.camera.pos = glm::dvec3( 0, 0, 0 );
     test_setup_world( gs.world );
@@ -408,7 +416,11 @@ int test_waterlog( ) {
     if ( block_definitions == nullptr ) {
         block_definitions_initilize_definitions( nullptr );
     }
-    RepGameState gs;
+    // Heap, not stack: RepGameState embeds megabytes of light queues (the
+    // game keeps it in static storage via globalGameState) — a stack local
+    // overflows the default 8MB stack. Leaked on purpose: the process exits
+    // right after the tests and destructors would touch GL state.
+    RepGameState &gs = *new RepGameState( );
     gs.tick_number = 0;
     gs.camera.pos = glm::dvec3( 0, 0, 0 );
     test_setup_world( gs.world );
@@ -470,7 +482,11 @@ int test_lighting( ) {
     if ( block_definitions == nullptr ) {
         block_definitions_initilize_definitions( nullptr );
     }
-    RepGameState gs;
+    // Heap, not stack: RepGameState embeds megabytes of light queues (the
+    // game keeps it in static storage via globalGameState) — a stack local
+    // overflows the default 8MB stack. Leaked on purpose: the process exits
+    // right after the tests and destructors would touch GL state.
+    RepGameState &gs = *new RepGameState( );
     gs.tick_number = 0;
     gs.camera.pos = glm::dvec3( 0, 0, 0 );
     test_setup_world( gs.world );
@@ -590,7 +606,11 @@ int test_tnt( ) {
     if ( block_definitions == nullptr ) {
         block_definitions_initilize_definitions( nullptr );
     }
-    RepGameState gs;
+    // Heap, not stack: RepGameState embeds megabytes of light queues (the
+    // game keeps it in static storage via globalGameState) — a stack local
+    // overflows the default 8MB stack. Leaked on purpose: the process exits
+    // right after the tests and destructors would touch GL state.
+    RepGameState &gs = *new RepGameState( );
     gs.tick_number = 0;
     gs.camera.pos = glm::dvec3( 0, 0, 0 );
     test_setup_world( gs.world );
