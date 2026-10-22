@@ -37,6 +37,16 @@ set_canvas_size();
   });
 })();
 
+// RepGame is developed and tested in Chrome; Firefox is not recommended
+// (WebGPU off by default on some platforms, weaker wasm/pthread perf).
+// Warn on the startup screen when Firefox is detected.
+(function browserStatus() {
+  var el = document.getElementById("browser_status");
+  if (el && /Firefox|FxiOS/.test(navigator.userAgent)) {
+    el.textContent = "RepGame runs best in Chrome - Firefox is not recommended.";
+  }
+})();
+
 // Let F-keys (except F12, which the game uses for screenshots) pass through to
 // the browser. SDL2/emscripten calls preventDefault on all key events, which
 // steals F5 (reload), F11 (fullscreen), etc. This capture-phase listener runs

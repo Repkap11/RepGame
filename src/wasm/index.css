@@ -72,8 +72,18 @@ body {
     color: #d0b86a;
 }
 
+/* Under #gpu_status: warns that the game runs best in Chrome. Populated by
+   index.js only when a non-recommended browser (Firefox) is detected. */
+#browser_status {
+    margin-top: 0.5vh;
+    font-family: 'Segoe UI', Arial, Helvetica, sans-serif;
+    font-size: 2vmin;
+    color: #d0b86a;
+}
+
 @media (pointer: coarse) {
-    #gpu_status {
+    #gpu_status,
+    #browser_status {
         font-size: 3vmin;
     }
 }
