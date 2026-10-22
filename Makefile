@@ -38,9 +38,11 @@ include makefiles/common.mk
 -include makefiles/flatpak.mk
 -include makefiles/install.mk
 -include makefiles/wasm.mk
+-include makefiles/openxr.mk
 -include makefiles/linux.mk #cuda.mk can be turned on inside linux.mk
 -include makefiles/server.mk #Must also include linux.mk
 -include makefiles/arm.mk
+-include makefiles/steamframe.mk
 -include makefiles/windows.mk
 -include makefiles/android.mk
 -include makefiles/docker.mk

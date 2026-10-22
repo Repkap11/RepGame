@@ -24,6 +24,23 @@ int test_ecs( ) {
     return ecs.test_ecs( );
 }
 
+// A symmetric ±45° horizontal/vertical FOV through the off-axis OpenXR
+// projection helper must equal glm::perspective(90°, 1, n, f).
+int test_vr_projection( ) {
+    const float n = 0.1f, f = 1000.0f;
+    const float half = glm::radians( 45.0f );
+    const glm::mat4 got = RepGame::projection_from_fov( -half, half, half, -half, n, f );
+    const glm::mat4 want = glm::perspective( glm::radians( 90.0f ), 1.0f, n, f );
+    float worst = 0.0f;
+    for ( int c = 0; c < 4; c++ ) {
+        for ( int r = 0; r < 4; r++ ) {
+            worst = glm::max( worst, fabsf( got[ c ][ r ] - want[ c ][ r ] ) );
+        }
+    }
+    pr_test( "  %-55s worst=%g  %s", "symmetric fov == glm::perspective", worst, worst < 1e-5f ? "PASS" : "FAIL" );
+    return worst < 1e-5f ? 0 : 1;
+}
+
 // Builds a World backed by a single loaded chunk at the origin (no GL needed:
 // chunk.cells is a plain array and Chunk::init's GL work is lazy). Positions
 // outside that chunk read LAST_BLOCK_ID like an unloaded chunk.
@@ -827,6 +844,7 @@ int test_structure_border( ) {
 
 constexpr Test all_tests[] = {  //
     MK_TEST( ecs ),             //
+    MK_TEST( vr_projection ),   //
     MK_TEST( redstone ),        //
     MK_TEST( sneak ),           //
     MK_TEST( mapgen ),          //

@@ -20,7 +20,13 @@
 // the vertical radius is fixed at CHUNK_RADIUS_Y.
 // The GLES (arm) build uses the small radii: the PowerVR board can't carry
 // the desktop-size torus.
-#if defined( REPGAME_LINUX ) && !defined( REPGAME_GLES )
+// Same radii as the GLES block for now; the Steam Frame gets its own
+// branch because it's tuned separately from the Yocto board.
+#if defined( REPGAME_STEAMFRAME )
+#define CHUNK_RADIUS_XZ 16
+#define CHUNK_RADIUS_XZ_DEFAULT 3
+#define CHUNK_RADIUS_Y 2
+#elif defined( REPGAME_LINUX ) && !defined( REPGAME_GLES )
 #define CHUNK_RADIUS_XZ 32
 #define CHUNK_RADIUS_XZ_DEFAULT 8
 #define CHUNK_RADIUS_Y 4

@@ -103,7 +103,9 @@ void UIOverlay::draw( CreativeInventory &creative_inventory, SurvivalInventory &
     this->shader.set_uniform1f( "u_HeldBlockLight", 1.0f );
     hotbar.draw( renderer, blocksTexture, this->shader );
     this->shader.set_uniform1f( "u_HeldBlockLight", held_block_light );
-    render_chain_held_block.draw( renderer, this->shader );
+    if ( !this->vr_mode ) {
+        render_chain_held_block.draw( renderer, this->shader );
+    }
     this->shader.set_uniform1f( "u_HeldBlockLight", 1.0f );
 
     // Render quantity text on the hotbar (survival mode only).
@@ -141,7 +143,7 @@ void UIOverlay::draw( CreativeInventory &creative_inventory, SurvivalInventory &
                 font.drawString( renderer, buf, tx, ty, text_size, tint, mvp_ui );
             }
         }
-    } else {
+    } else if ( !this->vr_mode ) {
         glBlendFunc( GL_ONE_MINUS_DST_COLOR, GL_ZERO );
         this->render_chain_crosshair.draw( renderer, this->shader );
         glBlendFunc( GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA );
@@ -207,6 +209,10 @@ void UIOverlay::draw_held_inventory_item( const InventorySlot &held, bool is_hol
     font.drawString( renderer, buf, tx, ty, text_size, tint, mvp_ui );
 
     showErrors( );
+}
+
+void UIOverlay::set_vr_mode( bool vr_mode ) {
+    this->vr_mode = vr_mode;
 }
 
 void UIOverlay::cleanup( ) {

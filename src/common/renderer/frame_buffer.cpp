@@ -1,6 +1,14 @@
 #include "common/RepGame.hpp"
 #include "common/renderer/frame_buffer.hpp"
 
+// The "display" framebuffer id — 0 (the window backbuffer) in flat mode; a
+// per-eye swapchain FBO while a VR view is being drawn (RepGame::draw_frame).
+unsigned int FrameBuffer::display_id = 0;
+
+void FrameBuffer::set_display( unsigned int fbo ) {
+    display_id = fbo;
+}
+
 void FrameBuffer::init( ) {
     glGenFramebuffers( 1, &this->mRendererId );
     // frame_buffer_bind( frameBuffer );
@@ -16,7 +24,7 @@ void FrameBuffer::bind( ) const {
 }
 
 void FrameBuffer::bind_display( ) {
-    glBindFramebuffer( GL_FRAMEBUFFER, 0 );
+    glBindFramebuffer( GL_FRAMEBUFFER, display_id );
 }
 
 void FrameBuffer::attach_texture( const Texture &texture, int which_attachment ) const {
@@ -36,7 +44,7 @@ void FrameBuffer::attach_texture( const Texture &texture, int which_attachment )
 }
 
 void FrameBuffer::unbind( ) const {
-    glBindFramebuffer( GL_FRAMEBUFFER, 0 );
+    glBindFramebuffer( GL_FRAMEBUFFER, display_id );
 }
 
 bool FrameBuffer::ok( ) const {

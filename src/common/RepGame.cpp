@@ -10,6 +10,7 @@
 #include "common/block_definitions.hpp"
 #include "common/utils/map_storage.hpp"
 #include "common/renderer/texture.hpp"
+#include "common/renderer/frame_buffer.hpp"
 #include "common/world.hpp"
 #include "common/renderer/vertex_buffer_layout.hpp"
 #include "common/utils/ray_traversal.hpp"
@@ -546,6 +547,10 @@ void RepGame::break_selected_block( ) {
     // Debris is spawned by the queued PlayerBlockPlacedEvent, which covers all
     // block-removal paths (mining, support loss, water, remote edits).
     BlockID previous_block = change_block( 0, BLOCK_STATE_AIR );
+    if ( globalGameState.vr.active && previous_block != LAST_BLOCK_ID && previous_block != AIR ) {
+        // A real block broke: the platform turns this into a haptic pulse.
+        globalGameState.vr.haptic_pending = true;
+    }
     if ( block_is_chest( previous_block ) ) {
         const glm::ivec3 chest_pos = globalGameState.block_selection.pos_destroy;
         if ( globalGameState.multiplayer.is_active( ) ) {
@@ -1267,10 +1272,67 @@ void RepGame::process_inventory_events( ) {
     }
 }
 
+// VR UI quad placement tunables: REPGAME_VR_UI_WIDTH (meters wide, default
+// 1.0; height keeps the screen aspect — the layer texture is eye-sized) and
+// REPGAME_VR_UI_DIST (meters from the head, default 1.0). Read once.
+static float vr_ui_dist( ) {
+    static const float dist = getenv( "REPGAME_VR_UI_DIST" ) ? static_cast<float>( atof( getenv( "REPGAME_VR_UI_DIST" ) ) ) : 1.0f;
+    return dist;
+}
+static glm::vec2 vr_ui_size( float screen_w, float screen_h ) {
+    static const float width = getenv( "REPGAME_VR_UI_WIDTH" ) ? static_cast<float>( atof( getenv( "REPGAME_VR_UI_WIDTH" ) ) ) : 1.0f;
+    return glm::vec2( width, width * screen_h / screen_w );
+}
+
 void RepGame::tick( ) {
     if ( globalGameState.input.exitGame ) {
         // Don't bother updating the state if the game is exiting
         return;
+    }
+    // VR controller state lands on the shared Input fields before anything
+    // else reads them this tick.
+    if ( globalGameState.vr.active && !g_capture.enabled && !g_fly.enabled ) {
+        process_vr_input( );
+
+        // UI quad anchor: opening the inventory (any source) pins the panel
+        // in LOCAL space in front of wherever the head is looking (yaw
+        // only); closing it hands it back to head-locked mode.
+        const bool inv_open = globalGameState.input.inventory_open;
+        if ( inv_open && !globalGameState.vr.prev_inventory_open ) {
+            const glm::vec3 f = globalGameState.vr.head * glm::vec3( 0.0f, 0.0f, -1.0f );
+            const float h = atan2f( f.x, -f.z );
+            globalGameState.vr.ui_orientation = glm::angleAxis( -h, glm::vec3( 0.0f, 1.0f, 0.0f ) );
+            globalGameState.vr.ui_position = globalGameState.vr.head_pos + globalGameState.vr.ui_orientation * glm::vec3( 0.0f, -0.15f, -vr_ui_dist( ) );
+            globalGameState.vr.ui_world_locked = true;
+        } else if ( !inv_open && globalGameState.vr.prev_inventory_open ) {
+            globalGameState.vr.ui_world_locked = false;
+        }
+        globalGameState.vr.prev_inventory_open = inv_open;
+
+        // Laser pointer: intersect the aim ray with the world-locked UI
+        // quad so this tick's click handling sees this tick's position.
+        globalGameState.vr.pointer_on_ui = false;
+        if ( inv_open && globalGameState.vr.ui_world_locked && globalGameState.vr.input.aim_valid ) {
+            const glm::vec2 ui_size = vr_ui_size( globalGameState.screen.width, globalGameState.screen.height );
+            const glm::vec3 o = globalGameState.vr.input.aim_position;
+            const glm::vec3 d = globalGameState.vr.input.aim_orientation * glm::vec3( 0.0f, 0.0f, -1.0f );
+            const glm::vec3 n = globalGameState.vr.ui_orientation * glm::vec3( 0.0f, 0.0f, 1.0f );
+            const float denom = glm::dot( d, n );
+            if ( fabsf( denom ) > 1e-4f ) {
+                const float t = glm::dot( globalGameState.vr.ui_position - o, n ) / denom;
+                if ( t > 0.0f ) {
+                    const glm::vec3 q = glm::inverse( globalGameState.vr.ui_orientation ) * ( o + t * d - globalGameState.vr.ui_position );
+                    const float u = q.x / ui_size.x + 0.5f;
+                    const float v = q.y / ui_size.y + 0.5f;
+                    if ( u >= 0.0f && u <= 1.0f && v >= 0.0f && v <= 1.0f ) {
+                        // Top-left origin, y down — same as SDL mouse.
+                        globalGameState.input.mouse.absPosition.x = static_cast<int>( u * globalGameState.screen.width );
+                        globalGameState.input.mouse.absPosition.y = static_cast<int>( ( 1.0f - v ) * globalGameState.screen.height );
+                        globalGameState.vr.pointer_on_ui = true;
+                    }
+                }
+            }
+        }
     }
     globalGameState.tick_number++;
     // Feed the tick to the light pool: the BFS starve window measures backlog
@@ -1376,10 +1438,19 @@ void RepGame::tick( ) {
         // what was on screen when the view was F12'd (the camera is pinned
         // above, so the ray is deterministic).
         int whichFace = 0;
-        glm::dvec3 pos_with_reach = globalGameState.camera.pos + ( glm::dvec3( globalGameState.camera.look ) * static_cast<double>( REACH_DISTANCE ) );
+        glm::dvec3 ray_origin = globalGameState.camera.pos;
+        glm::dvec3 pos_with_reach = ray_origin + ( glm::dvec3( globalGameState.camera.look ) * static_cast<double>( REACH_DISTANCE ) );
+        if ( globalGameState.vr.active && globalGameState.vr.input.aim_valid ) {
+            // The right controller's aim pose (tracking space) becomes the
+            // selection ray, rebased into world space by the body yaw.
+            const glm::mat4 R_body = glm::rotate( glm::mat4( 1.0f ), glm::radians( -globalGameState.vr.body_yaw ), glm::vec3( 0.0f, 1.0f, 0.0f ) );
+            ray_origin = globalGameState.camera.pos + glm::dvec3( glm::vec3( R_body * glm::vec4( globalGameState.vr.input.aim_position, 0.0f ) ) );
+            const glm::vec3 dir = glm::normalize( glm::vec3( R_body * glm::vec4( globalGameState.vr.input.aim_orientation * glm::vec3( 0.0f, 0.0f, -1.0f ), 0.0f ) ) );
+            pos_with_reach = ray_origin + glm::dvec3( dir ) * static_cast<double>( REACH_DISTANCE );
+        }
         const BlockID selected_block = globalGameState.hotbar.getSelectedBlock( );
         const int pick_water = selected_block != LAST_BLOCK_ID && block_definition_get_definition( selected_block )->can_float_on_water;
-        globalGameState.block_selection.selectionInBounds = RayTraversal::find_block_from_to( globalGameState.world, nullptr, globalGameState.camera.pos, pos_with_reach, globalGameState.block_selection.pos_destroy, &whichFace, 0, 1, 0, 0 );
+        globalGameState.block_selection.selectionInBounds = RayTraversal::find_block_from_to( globalGameState.world, nullptr, ray_origin, pos_with_reach, globalGameState.block_selection.pos_destroy, &whichFace, 0, 1, 0, 0 );
 
         globalGameState.block_selection.face = whichFace;
         globalGameState.block_selection.pos_create.x = globalGameState.block_selection.pos_destroy.x + ( whichFace == FACE_RIGHT ) - ( whichFace == FACE_LEFT );
@@ -1389,7 +1460,7 @@ void RepGame::tick( ) {
         if ( pick_water ) {
             int whichFace_water = 0;
             glm::ivec3 pos_destroy_water;
-            globalGameState.block_selection.floatSelectionInBounds = RayTraversal::find_block_from_to( globalGameState.world, nullptr, globalGameState.camera.pos, pos_with_reach, pos_destroy_water, &whichFace_water, 0, 1, 0, 1 );
+            globalGameState.block_selection.floatSelectionInBounds = RayTraversal::find_block_from_to( globalGameState.world, nullptr, ray_origin, pos_with_reach, pos_destroy_water, &whichFace_water, 0, 1, 0, 1 );
             globalGameState.block_selection.pos_create_water.x = pos_destroy_water.x + ( whichFace_water == FACE_RIGHT ) - ( whichFace_water == FACE_LEFT );
             globalGameState.block_selection.pos_create_water.y = pos_destroy_water.y + ( whichFace_water == FACE_TOP ) - ( whichFace_water == FACE_BOTTOM );
             globalGameState.block_selection.pos_create_water.z = pos_destroy_water.z + ( whichFace_water == FACE_BACK ) - ( whichFace_water == FACE_FRONT );
@@ -1406,13 +1477,26 @@ void RepGame::tick( ) {
             // velocity instead of a stuttered step. Adds a small amount of input latency.
             globalGameState.input.mouse.smoothed_dx = globalGameState.input.mouse.smoothed_dx * ( 1.0f - MOUSE_SMOOTHING ) + raw_dx * MOUSE_SMOOTHING;
             globalGameState.input.mouse.smoothed_dy = globalGameState.input.mouse.smoothed_dy * ( 1.0f - MOUSE_SMOOTHING ) + raw_dy * MOUSE_SMOOTHING;
-            globalGameState.camera.angle_H += globalGameState.input.mouse.smoothed_dx * MOUSE_SENSITIVITY;
-            globalGameState.camera.angle_V += globalGameState.input.mouse.smoothed_dy * MOUSE_SENSITIVITY;
-            if ( globalGameState.camera.angle_H >= 360.0f ) {
-                globalGameState.camera.angle_H -= 360.0f;
-            }
-            if ( globalGameState.camera.angle_H < 0.0f ) {
-                globalGameState.camera.angle_H += 360.0f;
+            if ( globalGameState.vr.active ) {
+                // VR: the mouse turns the body, not the head — horizontal
+                // motion maps to body_yaw (the head's own orientation comes
+                // from the HMD), vertical motion does nothing.
+                globalGameState.vr.body_yaw += globalGameState.input.mouse.smoothed_dx * MOUSE_SENSITIVITY;
+                if ( globalGameState.vr.body_yaw >= 360.0f ) {
+                    globalGameState.vr.body_yaw -= 360.0f;
+                }
+                if ( globalGameState.vr.body_yaw < 0.0f ) {
+                    globalGameState.vr.body_yaw += 360.0f;
+                }
+            } else {
+                globalGameState.camera.angle_H += globalGameState.input.mouse.smoothed_dx * MOUSE_SENSITIVITY;
+                globalGameState.camera.angle_V += globalGameState.input.mouse.smoothed_dy * MOUSE_SENSITIVITY;
+                if ( globalGameState.camera.angle_H >= 360.0f ) {
+                    globalGameState.camera.angle_H -= 360.0f;
+                }
+                if ( globalGameState.camera.angle_H < 0.0f ) {
+                    globalGameState.camera.angle_H += 360.0f;
+                }
             }
         }
     } else {
@@ -1483,6 +1567,23 @@ void RepGame::tick( ) {
         globalGameState.input.movement.sizeH = 0.0f;
         globalGameState.input.movement.jumpPressed = false;
         globalGameState.input.movement.sneakPressed = false;
+    }
+    // VR: fold the tracked head pose into the camera angles so block
+    // raycasts, movement direction and remote-avatar facing all follow where
+    // the head actually points. body_yaw (mouse) supplies the yaw base.
+    if ( globalGameState.vr.active && !g_capture.enabled && !g_fly.enabled ) {
+        const glm::vec3 f = globalGameState.vr.head * glm::vec3( 0.0f, 0.0f, -1.0f );
+        const float head_yaw = glm::degrees( atan2f( f.x, -f.z ) );
+        const float head_pitch = glm::degrees( -asinf( glm::clamp( f.y, -1.0f, 1.0f ) ) );
+        float angle = globalGameState.vr.body_yaw + head_yaw;
+        while ( angle >= 360.0f ) {
+            angle -= 360.0f;
+        }
+        while ( angle < 0.0f ) {
+            angle += 360.0f;
+        }
+        globalGameState.camera.angle_H = angle;
+        globalGameState.camera.angle_V = head_pitch;
     }
     // Refresh camera.movement (and the view matrices) from the current angle_H
     // before consuming it: process_movement builds the player's velocity from
@@ -1624,6 +1725,21 @@ void RepGame::initializeGameState( const char *world_name ) {
     globalGameState.watched_pressure_plates.clear( );
     globalGameState.camera.angle_H = 0.0f;
     globalGameState.camera.angle_V = 0.0f;
+    globalGameState.vr.active = false;
+    globalGameState.vr.body_yaw = 0.0f;
+    globalGameState.vr.head = glm::quat( 1.0f, 0.0f, 0.0f, 0.0f );
+    globalGameState.vr.head_pos = glm::vec3( 0.0f );
+    globalGameState.vr.ui_world_locked = false;
+    globalGameState.vr.ui_orientation = glm::quat( 1.0f, 0.0f, 0.0f, 0.0f );
+    globalGameState.vr.ui_position = glm::vec3( 0.0f );
+    globalGameState.vr.prev_inventory_open = false;
+    globalGameState.vr.pointer_on_ui = false;
+    globalGameState.vr.saved_quality = WorldDrawQuality::MEDIUM;
+    globalGameState.vr.input = VrControllerInput{};
+    globalGameState.vr.prev_input = VrControllerInput{};
+    globalGameState.vr.move_active = false;
+    globalGameState.vr.turn_armed = true;
+    globalGameState.vr.haptic_pending = false;
     globalGameState.camera.pos.x = 0.5f;
     // Spawn on the topmost solid block of the spawn column: overhangs and
     // floating islands can put real terrain far above the heightmap, so
@@ -1876,6 +1992,14 @@ void RepGame::get_screen_size( int *width, int *height ) const {
 }
 
 void RepGame::draw( float alpha ) {
+    draw_frame( alpha, nullptr, 0 );
+}
+
+void RepGame::draw_vr( float alpha, const RenderView *views, int num_views ) {
+    draw_frame( alpha, views, num_views );
+}
+
+void RepGame::draw_frame( float alpha, const RenderView *views, int num_views ) {
     static int screenshot_counter = 0;
     if ( globalGameState.input.exitGame ) {
         // Don't bother draw the state if the game is exiting
@@ -1942,34 +2066,13 @@ void RepGame::draw( float alpha ) {
     // becomes small, eliminating the large-float cancellation that caused
     // Z-fighting between the selection outline and terrain at distance.
     const glm::ivec3 renderOrigin = glm::ivec3( glm::floor( render_pos / glm::dvec3( CHUNK_SIZE_F ) ) ) * CHUNK_SIZE_I;
-    // Subtract the integer origin in double so the small rebased offset keeps
-    // full precision, then cast to float for the view matrix.
-    render_view_trans = glm::translate( glm::mat4( 1.0f ), glm::vec3( -( render_pos - glm::dvec3( renderOrigin ) ) ) );
 
-    const glm::mat4 mvp_sky = globalGameState.screen.proj * render_view_look;
-    // glm::mat4 mvp_sky_reflect = globalGameState.screen.proj * globalGameState.camera.view_look;
-
-    const glm::mat4 mvp = mvp_sky * render_view_trans;
     constexpr glm::mat4 rotation = glm::mat4( //
         1, 0, 0, 0,                           //
         0, -1, 0, 0,                          //
         0, 0, 1, 0,                           //
         0, 0, 0, 1                            //
     );
-
-    const glm::mat4 flipped_look = render_view_look * rotation;
-    // glm::mat4 flipped_look = rotation * globalGameState.camera.view_look;
-
-    // glm::mat4 flipped_trans = rotation * globalGameState.camera.view_trans;
-    // TODO globalGameState.camera.y causes a strange jump, perhaps the vars are updated in the wrong order.
-    const float height_above_water = static_cast<float>( render_pos.y ) + ( 1.0f - WATER_HEIGHT );
-    const float offset = 2.0f * height_above_water;
-    const glm::mat4 flipped_trans = glm::translate( render_view_trans, glm::vec3( 0.0, offset, 0.0 ) );
-    // glm::mat4 flipped_trans = globalGameState.camera.view_trans;
-
-    const glm::mat4 mvp_sky_reflect = globalGameState.screen.proj * flipped_look;
-
-    const glm::mat4 mvp_reflect = globalGameState.screen.proj * flipped_look * flipped_trans;
 
     globalGameState.multiplayer.process_events( globalGameState );
     globalGameState.multiplayer.update_players_position( glm::vec3( render_pos ), render_rotation );
@@ -2044,9 +2147,6 @@ void RepGame::draw( float alpha ) {
 
     {
         const long long t_world_draw_start = now_us( );
-        // inv_mvp lets the fullscreen water shader unproject pixels to the
-        // rebased world frame for screen-space reflections.
-        const glm::mat4 inv_mvp = glm::inverse( mvp );
         // Wrapped to an hour so shader sine functions keep float precision.
         const float time_s = static_cast<float>( fmod( now_us( ) / 1.0e6, 3600.0 ) );
         int chunk_debug_flags = 0;
@@ -2061,60 +2161,100 @@ void RepGame::draw( float alpha ) {
             chunk_debug_flags |= 32;
         }
         globalGameState.world.set_chunk_debug_flags( chunk_debug_flags );
-        globalGameState.world.draw( globalGameState.blocksTexture, mvp, inv_mvp, mvp_reflect, mvp_sky, mvp_sky_reflect, globalGameState.input.debug_mode, !globalGameState.input.inventory_open, render_pos.y, headInWater,
-                                    globalGameState.input.worldDrawQuality, render_pos, renderOrigin, time_s, daylight, debugVars.min_ambient );
+        if ( views == nullptr ) {
+            // Flat path: the screen projection and the interpolated camera —
+            // no FBO bind, no clear, no viewport change (the main loop owns
+            // the default framebuffer and already cleared it).
+            // Subtract the integer origin in double so the small rebased
+            // offset keeps full precision, then cast to float for the view
+            // matrix.
+            render_view_trans = glm::translate( glm::mat4( 1.0f ), glm::vec3( -( render_pos - glm::dvec3( renderOrigin ) ) ) );
+            const glm::mat4 mvp_sky = globalGameState.screen.proj * render_view_look;
+            // glm::mat4 mvp_sky_reflect = globalGameState.screen.proj * globalGameState.camera.view_look;
+            const glm::mat4 mvp = mvp_sky * render_view_trans;
+            const glm::mat4 flipped_look = render_view_look * rotation;
+            // glm::mat4 flipped_look = rotation * globalGameState.camera.view_look;
+            // glm::mat4 flipped_trans = rotation * globalGameState.camera.view_trans;
+            // TODO globalGameState.camera.y causes a strange jump, perhaps the vars are updated in the wrong order.
+            const float height_above_water = static_cast<float>( render_pos.y ) + ( 1.0f - WATER_HEIGHT );
+            const float offset = 2.0f * height_above_water;
+            const glm::mat4 flipped_trans = glm::translate( render_view_trans, glm::vec3( 0.0, offset, 0.0 ) );
+            // glm::mat4 flipped_trans = globalGameState.camera.view_trans;
+            const glm::mat4 mvp_sky_reflect = globalGameState.screen.proj * flipped_look;
+            const glm::mat4 mvp_reflect = globalGameState.screen.proj * flipped_look * flipped_trans;
+            // inv_mvp lets the fullscreen water shader unproject pixels to the
+            // rebased world frame for screen-space reflections.
+            const glm::mat4 inv_mvp = glm::inverse( mvp );
+            globalGameState.world.draw( globalGameState.blocksTexture, mvp, inv_mvp, mvp_reflect, mvp_sky, mvp_sky_reflect, globalGameState.input.debug_mode, !globalGameState.input.inventory_open, render_pos.y, headInWater,
+                                        globalGameState.input.worldDrawQuality, render_pos, renderOrigin, time_s, daylight, debugVars.min_ambient );
+        } else {
+            // Stereo: per-eye view = body yaw ∘ tracked eye pose, eye position
+            // offset from the (once-per-frame) render origin. Eye 0 issues
+            // the occlusion probes; eye 1 reuses this view generation's
+            // verdicts (the two eyes' boxes are close enough that a shared
+            // verdict costs a little overdraw, never a hole).
+            const glm::mat4 R_body = glm::rotate( glm::mat4( 1.0f ), glm::radians( -globalGameState.vr.body_yaw ), glm::vec3( 0.0f, 1.0f, 0.0f ) );
+            for ( int i = 0; i < num_views; i++ ) {
+                const RenderView &view = views[ i ];
+                const glm::mat4 eye_rot = R_body * glm::mat4_cast( view.orientation );
+                const glm::mat4 view_look = glm::transpose( eye_rot );
+                const glm::dvec3 eye_pos = render_pos + glm::dvec3( glm::vec3( R_body * glm::vec4( view.position, 0.0f ) ) );
+                const glm::mat4 view_trans = glm::translate( glm::mat4( 1.0f ), glm::vec3( -( eye_pos - glm::dvec3( renderOrigin ) ) ) );
+                const glm::mat4 mvp_sky = view.proj * view_look;
+                const glm::mat4 mvp = mvp_sky * view_trans;
+                const glm::mat4 flipped_look = view_look * rotation;
+                const float height_above_water = static_cast<float>( eye_pos.y ) + ( 1.0f - WATER_HEIGHT );
+                const float offset = 2.0f * height_above_water;
+                const glm::mat4 flipped_trans = glm::translate( view_trans, glm::vec3( 0.0, offset, 0.0 ) );
+                const glm::mat4 mvp_sky_reflect = view.proj * flipped_look;
+                const glm::mat4 mvp_reflect = view.proj * flipped_look * flipped_trans;
+                const glm::mat4 inv_mvp = glm::inverse( mvp );
+                FrameBuffer::set_display( view.fbo );
+                FrameBuffer::bind_display( );
+                glViewport( 0, 0, view.width, view.height );
+                glClear( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT );
+                globalGameState.world.chunkLoader.set_occlusion_probe_pass( i == 0 );
+                globalGameState.world.draw( globalGameState.blocksTexture, mvp, inv_mvp, mvp_reflect, mvp_sky, mvp_sky_reflect, globalGameState.input.debug_mode, !globalGameState.input.inventory_open, static_cast<float>( eye_pos.y ), headInWater,
+                                            globalGameState.input.worldDrawQuality, eye_pos, renderOrigin, time_s, daylight, debugVars.min_ambient );
+            }
+            globalGameState.world.chunkLoader.set_occlusion_probe_pass( true );
+            FrameBuffer::set_display( 0 );
+        }
         profiling.us_world_draw = now_us( ) - t_world_draw_start;
     }
 
-    // glTexParameteri edits the texture bound on the *active* unit, so
-    // re-bind the atlas first — world.draw leaves the light unit active.
-    globalGameState.blocksTexture.bind( );
-    glTexParameteri( globalGameState.blocksTexture.target, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE );
-    glTexParameteri( globalGameState.blocksTexture.target, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE );
-    showErrors( );
-    // Clear depth and stencil before drawing the UI/ImGui overlays. The world
-    // compositing pass uses stencil on the default framebuffer (for the
-    // water-blur separation) and leaves stencil values behind; clearing it
-    // here ensures a clean state for the overlays.
-    glClear( GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT );
+    // Non-GL bookkeeping shared by flat and VR (debug HUD vars, loader stats,
+    // PageUp/PageDown time skip).
+    debugVars.player_pos = glm::vec3( globalGameState.camera.pos );
+    debugVars.world_time = globalGameState.world_time;
+    debugVars.daylight = daylight;
+    globalGameState.world.chunkLoader.debug_loader_stats( &debugVars.loader );
+    debugVars.debris_particles = static_cast<int>( globalGameState.world.blockDebris.count( ) );
+    debugVars.primed_tnt = static_cast<int>( globalGameState.world.primedTnt.count( ) );
+    // PageUp/PageDown nudges: ±1 hour per keypress (±6 with Shift),
+    // accumulated on the input side. Wrap into one day cycle.
+    if ( globalGameState.input.time_skip_hours != 0 ) {
+        globalGameState.world_time += static_cast<long>( globalGameState.input.time_skip_hours ) * ( DAY_LENGTH_TICKS / 24 );
+        globalGameState.input.time_skip_hours = 0;
+        globalGameState.world_time = ( ( globalGameState.world_time % DAY_LENGTH_TICKS ) + DAY_LENGTH_TICKS ) % DAY_LENGTH_TICKS;
+        // When connected, push the new time to the server so every
+        // player on it sees the change.
+        globalGameState.multiplayer.send_world_time( globalGameState.world_time );
+    }
+
+    // Flat-only tail: HUD/held item/ImGui, screenshot logging, capture shots,
+    // periodic and anomaly dumps. Skipped in VR — the compositor owns the
+    // final image and none of these paths know the eye FBO.
+    if ( views != nullptr ) {
+        profiling.us_total_draw = now_us( ) - t_draw_start;
+        return;
+    }
 
     {
         const long long t_ui_start = now_us( );
-        if ( !g_capture.enabled ) {
-            const ChestContents *chest_contents = nullptr;
-            if ( globalGameState.chest.open ) {
-                chest_contents = globalGameState.world.get_chest_contents( globalGameState.chest.pos );
-            }
-            // Light the in-hand block from the flood-fill volume at the eye,
-            // combined like the chunk/object shaders (skylight scales with
-            // the day factor, torch light doesn't, min ambient floors caves).
-            const glm::vec2 held_light = globalGameState.world.chunkLoader.light_sample( glm::vec3( render_pos ) );
-            const float held_block_light = glm::max( glm::max( held_light.x * daylight, held_light.y ), debugVars.min_ambient );
-            globalGameState.ui_overlay.draw( globalGameState.main_inventory, globalGameState.survival_inventory, globalGameState.hotbar, globalGameState.game_mode, globalGameState.world.renderer, globalGameState.blocksTexture, globalGameState.input, globalGameState.font_renderer, globalGameState.screen.ortho_center, chest_contents ? &globalGameState.chest.inventory_renderer : nullptr, chest_contents, held_block_light );
-        }
-        if ( !g_capture.enabled && globalGameState.is_holding_inventory_slot ) {
-            int block_size, cell_size;
-            globalGameState.survival_inventory.inventory_renderer.getBlockMetrics( block_size, cell_size );
-            globalGameState.ui_overlay.draw_held_inventory_item( globalGameState.held_inventory_slot, globalGameState.is_holding_inventory_slot, globalGameState.input.mouse.absPosition.x, globalGameState.input.mouse.absPosition.y, block_size, cell_size, globalGameState.world.renderer, globalGameState.blocksTexture, globalGameState.font_renderer, globalGameState.screen.ortho_center );
-        }
-        debugVars.player_pos = glm::vec3( globalGameState.camera.pos );
-        debugVars.world_time = globalGameState.world_time;
-        debugVars.daylight = daylight;
-        globalGameState.world.chunkLoader.debug_loader_stats( &debugVars.loader );
-        debugVars.debris_particles = static_cast<int>( globalGameState.world.blockDebris.count( ) );
-        debugVars.primed_tnt = static_cast<int>( globalGameState.world.primedTnt.count( ) );
+        draw_ui_pass( render_pos, daylight );
         if ( !g_capture.enabled ) {
             imgui_overlay_draw( &globalGameState.imgui_overlay, globalGameState.input );
-        }
-        // PageUp/PageDown nudges: ±1 hour per keypress (±6 with Shift),
-        // accumulated on the input side. Wrap into one day cycle.
-        if ( globalGameState.input.time_skip_hours != 0 ) {
-            globalGameState.world_time += static_cast<long>( globalGameState.input.time_skip_hours ) * ( DAY_LENGTH_TICKS / 24 );
-            globalGameState.input.time_skip_hours = 0;
-            globalGameState.world_time = ( ( globalGameState.world_time % DAY_LENGTH_TICKS ) + DAY_LENGTH_TICKS ) % DAY_LENGTH_TICKS;
-            // When connected, push the new time to the server so every
-            // player on it sees the change.
-            globalGameState.multiplayer.send_world_time( globalGameState.world_time );
         }
         profiling.us_ui_draw = now_us( ) - t_ui_start;
     }
@@ -2262,6 +2402,146 @@ void RepGame::draw( float alpha ) {
     profiling.us_total_draw = now_us( ) - t_draw_start;
 }
 
+void RepGame::set_vr_active( bool active ) {
+    globalGameState.vr.active = active;
+    if ( active ) {
+        // Entering VR: the body inherits wherever the flat camera was facing.
+        globalGameState.vr.body_yaw = globalGameState.camera.angle_H;
+        // VR renders twice per frame, so it defaults to LOW
+        // (REPGAME_VR_QUALITY, 0..3); the flat preference is kept in
+        // saved_quality and restored by the 'r' key/persistence.
+        globalGameState.vr.saved_quality = globalGameState.input.worldDrawQuality;
+        static const int vr_quality = getenv( "REPGAME_VR_QUALITY" ) ? atoi( getenv( "REPGAME_VR_QUALITY" ) ) : 0;
+        const int q = vr_quality < 0 ? 0 : ( vr_quality > 3 ? 3 : vr_quality );
+        globalGameState.input.worldDrawQuality = static_cast<WorldDrawQuality>( q );
+    }
+    globalGameState.ui_overlay.set_vr_mode( active );
+}
+
+void RepGame::set_vr_head( const glm::quat &head, const glm::vec3 &head_pos ) {
+    globalGameState.vr.head = head;
+    globalGameState.vr.head_pos = head_pos;
+}
+
+void RepGame::set_vr_input( const VrControllerInput &in ) {
+    globalGameState.vr.input = in;
+}
+
+bool RepGame::consume_vr_haptic( ) {
+    const bool pending = globalGameState.vr.haptic_pending;
+    globalGameState.vr.haptic_pending = false;
+    return pending;
+}
+
+// Applies this frame's synced controller state onto the shared Input fields.
+// Everything is edge-detected against vr.prev_input so real keyboard/mouse
+// input keeps working in parallel.
+void RepGame::process_vr_input( ) {
+    Input &input = globalGameState.input;
+    const VrControllerInput &in = globalGameState.vr.input;
+    const VrControllerInput &prev = globalGameState.vr.prev_input;
+
+    // Left stick drives horizontal movement. Inside the deadzone the stick
+    // hands control back to the keyboard exactly once (move_active).
+    const float move_len = glm::length( in.move );
+    if ( move_len > 0.2f ) {
+        input.movement.sizeH = 1.0f;
+        input.movement.angleH = glm::degrees( atan2f( in.move.x, in.move.y ) );
+        globalGameState.vr.move_active = true;
+    } else if ( globalGameState.vr.move_active ) {
+        input.movement.sizeH = 0.0f;
+        input.movement.angleH = 0.0f;
+        globalGameState.vr.move_active = false;
+    }
+
+    if ( in.jump != prev.jump ) {
+        input.movement.jumpPressed = in.jump;
+    }
+    if ( in.sneak != prev.sneak ) {
+        input.movement.sneakPressed = in.sneak;
+    }
+    if ( in.sprint != prev.sprint ) {
+        input.player_sprinting = in.sprint;
+    }
+    if ( in.toggle_fly && !prev.toggle_fly ) {
+        input.player_flying = !input.player_flying;
+    }
+    if ( in.inventory && !prev.inventory ) {
+        // Same toggle as the 'e' key.
+        input.inventory_open = !input.inventory_open;
+    }
+
+    // wheel_diff = previousPosition.wheel_counts - currentPosition.wheel_counts,
+    // and scrolling the wheel DOWN decrements wheel_counts — so "next" moves
+    // the selection the way one wheel-down notch does.
+    if ( in.hotbar_next && !prev.hotbar_next ) {
+        input.mouse.currentPosition.wheel_counts -= 1;
+    }
+    if ( in.hotbar_prev && !prev.hotbar_prev ) {
+        input.mouse.currentPosition.wheel_counts += 1;
+    }
+
+    // Mouse buttons mirror Input::mouseInput: press edge marks the click
+    // unhandled, release edge marks it handled.
+    if ( in.break_block != prev.break_block ) {
+        input.mouse.buttons.left = in.break_block;
+        input.mouse.buttons.left_click_handled = !in.break_block;
+    }
+    if ( in.place_block != prev.place_block ) {
+        input.mouse.buttons.right = in.place_block;
+        input.mouse.buttons.right_click_handled = !in.place_block;
+    }
+    if ( in.pick_block != prev.pick_block ) {
+        input.mouse.buttons.middle = in.pick_block;
+        input.mouse.buttons.middle_click_handled = !in.pick_block;
+    }
+
+    // Right stick turns the body. Snap by default (with a re-arm deadband);
+    // REPGAME_VR_SMOOTH_TURN (deg/sec, default 0 = off) switches to smooth.
+    static const float smooth_turn_rate = getenv( "REPGAME_VR_SMOOTH_TURN" ) ? static_cast<float>( atof( getenv( "REPGAME_VR_SMOOTH_TURN" ) ) ) : 0.0f;
+    static const float snap_degrees = getenv( "REPGAME_VR_SNAP_DEGREES" ) ? static_cast<float>( atof( getenv( "REPGAME_VR_SNAP_DEGREES" ) ) ) : 30.0f;
+    if ( smooth_turn_rate > 0.0f ) {
+        if ( fabsf( in.turn.x ) > 0.2f ) {
+            globalGameState.vr.body_yaw += in.turn.x * smooth_turn_rate / static_cast<float>( UPS_RATE );
+        }
+    } else {
+        const float ax = fabsf( in.turn.x );
+        if ( globalGameState.vr.turn_armed && ax > 0.7f ) {
+            // Positive x turns right: angle_H increases.
+            globalGameState.vr.body_yaw += in.turn.x > 0.0f ? snap_degrees : -snap_degrees;
+            globalGameState.vr.turn_armed = false;
+        } else if ( ax < 0.3f ) {
+            globalGameState.vr.turn_armed = true;
+        }
+    }
+    float &yaw = globalGameState.vr.body_yaw;
+    while ( yaw >= 360.0f ) {
+        yaw -= 360.0f;
+    }
+    while ( yaw < 0.0f ) {
+        yaw += 360.0f;
+    }
+
+    globalGameState.vr.prev_input = globalGameState.vr.input;
+}
+
+glm::mat4 RepGame::projection_from_fov( float angle_left, float angle_right, float angle_up, float angle_down, float near_z, float far_z ) {
+    // Per-edge FOV angles (OpenXR convention: left/down are negative), GL
+    // [-1,1] clip-space depth. Column-major: m[col][row].
+    const float tl = tanf( angle_left ), tr = tanf( angle_right );
+    const float tu = tanf( angle_up ), td = tanf( angle_down );
+    const float w = tr - tl, h = tu - td;
+    glm::mat4 m( 0.0f );
+    m[ 0 ][ 0 ] = 2.0f / w;
+    m[ 1 ][ 1 ] = 2.0f / h;
+    m[ 2 ][ 0 ] = ( tr + tl ) / w;
+    m[ 2 ][ 1 ] = ( tu + td ) / h;
+    m[ 2 ][ 2 ] = -( far_z + near_z ) / ( far_z - near_z );
+    m[ 2 ][ 3 ] = -1.0f;
+    m[ 3 ][ 2 ] = -2.0f * far_z * near_z / ( far_z - near_z );
+    return m;
+}
+
 void RepGame::save_player_data( ) {
     PlayerData saved_data;
     saved_data.world_x = globalGameState.camera.pos.x;
@@ -2271,7 +2551,9 @@ void RepGame::save_player_data( ) {
     saved_data.angle_V = globalGameState.camera.angle_V;
     saved_data.flying = globalGameState.input.player_flying;
     saved_data.no_clip = globalGameState.input.no_clip;
-    saved_data.worldDrawQuality = static_cast<int>( globalGameState.input.worldDrawQuality );
+    // In VR the live quality is the session's REPGAME_VR_QUALITY — persist
+    // the flat preference instead so a VR run never overwrites it.
+    saved_data.worldDrawQuality = static_cast<int>( globalGameState.vr.active ? globalGameState.vr.saved_quality : globalGameState.input.worldDrawQuality );
     globalGameState.hotbar.saveInventory( saved_data.hotbar_inventory );
     saved_data.selected_hotbar_slot = globalGameState.hotbar.getSelectedSlot( );
     saved_data.game_mode = globalGameState.game_mode;
@@ -2312,6 +2594,89 @@ void RepGame::cleanup( ) {
 
 GameMode RepGame::getGameMode( ) const {
     return globalGameState.game_mode;
+}
+
+// The UI draw sequence shared by the flat tail and the VR UI layer pass.
+// Caller owns the bound FBO, viewport and blend state — this does the atlas
+// rebind, depth/stencil clear, overlay + held-item draws, and the VR laser
+// pointer marker.
+void RepGame::draw_ui_pass( const glm::dvec3 &render_pos, float daylight ) {
+    // glTexParameteri edits the texture bound on the *active* unit, so
+    // re-bind the atlas first — world.draw leaves the light unit active.
+    globalGameState.blocksTexture.bind( );
+    glTexParameteri( globalGameState.blocksTexture.target, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE );
+    glTexParameteri( globalGameState.blocksTexture.target, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE );
+    showErrors( );
+    // Clear depth and stencil before drawing the UI/ImGui overlays. The world
+    // compositing pass uses stencil on the default framebuffer (for the
+    // water-blur separation) and leaves stencil values behind; clearing it
+    // here ensures a clean state for the overlays.
+    glClear( GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT );
+
+    if ( !g_capture.enabled ) {
+        const ChestContents *chest_contents = nullptr;
+        if ( globalGameState.chest.open ) {
+            chest_contents = globalGameState.world.get_chest_contents( globalGameState.chest.pos );
+        }
+        // Light the in-hand block from the flood-fill volume at the eye,
+        // combined like the chunk/object shaders (skylight scales with
+        // the day factor, torch light doesn't, min ambient floors caves).
+        const glm::vec2 held_light = globalGameState.world.chunkLoader.light_sample( glm::vec3( render_pos ) );
+        const float held_block_light = glm::max( glm::max( held_light.x * daylight, held_light.y ), imgui_overlay_get_imgui_debug_vars( ).min_ambient );
+        globalGameState.ui_overlay.draw( globalGameState.main_inventory, globalGameState.survival_inventory, globalGameState.hotbar, globalGameState.game_mode, globalGameState.world.renderer, globalGameState.blocksTexture, globalGameState.input, globalGameState.font_renderer, globalGameState.screen.ortho_center, chest_contents ? &globalGameState.chest.inventory_renderer : nullptr, chest_contents, held_block_light );
+    }
+    if ( !g_capture.enabled && globalGameState.is_holding_inventory_slot ) {
+        int block_size, cell_size;
+        globalGameState.survival_inventory.inventory_renderer.getBlockMetrics( block_size, cell_size );
+        globalGameState.ui_overlay.draw_held_inventory_item( globalGameState.held_inventory_slot, globalGameState.is_holding_inventory_slot, globalGameState.input.mouse.absPosition.x, globalGameState.input.mouse.absPosition.y, block_size, cell_size, globalGameState.world.renderer, globalGameState.blocksTexture, globalGameState.font_renderer, globalGameState.screen.ortho_center );
+    }
+    // Laser-pointer marker where the aim ray hits the world-locked UI quad.
+    if ( globalGameState.vr.active && globalGameState.input.inventory_open && globalGameState.vr.pointer_on_ui ) {
+        const float marker_size = 32.0f;
+        const float marker_x = static_cast<float>( globalGameState.input.mouse.absPosition.x ) - globalGameState.screen.width / 2.0f - globalGameState.font_renderer.getTextWidth( "+", marker_size ) / 2.0f;
+        const float marker_y = globalGameState.screen.height / 2.0f - static_cast<float>( globalGameState.input.mouse.absPosition.y );
+        const float white[ 4 ] = { 1.0f, 1.0f, 1.0f, 1.0f };
+        globalGameState.font_renderer.drawString( globalGameState.world.renderer, "+", marker_x, marker_y, marker_size, white, globalGameState.screen.ortho_center );
+    }
+}
+
+void RepGame::draw_vr_ui( unsigned int fbo, int width, int height ) {
+    // Save/restore the clear color so the transparent clear doesn't leak
+    // into the flat or eye paths.
+    float prev_clear[ 4 ];
+    glGetFloatv( GL_COLOR_CLEAR_VALUE, prev_clear );
+    FrameBuffer::set_display( fbo );
+    FrameBuffer::bind_display( );
+    glViewport( 0, 0, width, height );
+    glClearColor( 0.0f, 0.0f, 0.0f, 0.0f );
+    glClear( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT );
+    glClearColor( prev_clear[ 0 ], prev_clear[ 1 ], prev_clear[ 2 ], prev_clear[ 3 ] );
+
+    // The compositor blends the quad with the scene, so the layer's alpha
+    // must be premultiplied: color keeps alpha-weighted rgb (SRC_ALPHA),
+    // alpha itself accumulates coverage (ONE, ONE_MINUS_SRC_ALPHA).
+    glBlendFuncSeparate( GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA, GL_ONE, GL_ONE_MINUS_SRC_ALPHA );
+    const glm::dvec3 render_pos = globalGameState.camera.pos + glm::dvec3( 0.0, globalGameState.camera.eye_height_render, 0.0 );
+    const float daylight = glm::max( light_daylight_factor( globalGameState.world_time ), imgui_overlay_get_imgui_debug_vars( ).night_ambient );
+    draw_ui_pass( render_pos, daylight );
+    glBlendFunc( GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA );
+    FrameBuffer::set_display( 0 );
+}
+
+VrUiLayer RepGame::get_vr_ui_layer( ) const {
+    const glm::vec2 size = vr_ui_size( globalGameState.screen.width, globalGameState.screen.height );
+    VrUiLayer layer;
+    layer.size = size;
+    if ( globalGameState.vr.ui_world_locked ) {
+        layer.world_locked = true;
+        layer.orientation = globalGameState.vr.ui_orientation;
+        layer.position = globalGameState.vr.ui_position;
+    } else {
+        layer.world_locked = false;
+        layer.orientation = glm::quat( 1.0f, 0.0f, 0.0f, 0.0f );
+        layer.position = glm::vec3( 0.0f, 0.0f, -vr_ui_dist( ) );
+    }
+    return layer;
 }
 
 Input &RepGame::getInputState( ) {

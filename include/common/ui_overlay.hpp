@@ -62,10 +62,15 @@ class UIOverlay {
     BlockID heldBlockID;
     int screen_width;
     int screen_height;
+    // VR quad-layer mode: skip the screen-space in-hand block and the
+    // crosshair (its ONE_MINUS_DST_COLOR blend can't work on a
+    // transparent compositor layer).
+    bool vr_mode = false;
 
   public:
     void init( const VertexBufferLayout &ui_overlay_vbl_vertex, const VertexBufferLayout &ui_overlay_vbl_instance );
     void on_screen_size_change( int width, int height );
+    void set_vr_mode( bool vr_mode );
     void set_holding_block( BlockID holding_block );
     // chest_renderer/chest_contents are non-null while a chest is open: the
     // creative palette is suppressed and the chest panel draws on top of the

@@ -28,6 +28,16 @@ LDFLAGS ?=
 # SDL3 is dynamically linked, because it's too hard to statically link against X11, and I don't want to compile it from source.
 LIBS_LINUX := -lSDL3 -Wl,-Bstatic -lGLEW -Wl,-Bdynamic -lGL -lpthread -lm -ldl -static-libgcc -static-libstdc++ -lwayland-client
 
+# REPGAME_OPENXR=1 (common.mk): compile the OpenXR code paths and link the
+# statically built host loader. Objects land in out/linux-openxr via the
+# common.mk LINUX_OUT override.
+ifeq ($(REPGAME_OPENXR),1)
+CFLAGS_LINUX += -DREPGAME_OPENXR -I $(abspath out/openxr-host/install)/include
+# Appended after the shared lib list; the static loader needs -ldl/-lpthread
+# which are already there.
+LIBS_LINUX += $(OPENXR_HOST_LIB) -lEGL
+endif
+
 CC_LINUX := clang++
 # CC_LINUX := g++
 
@@ -165,6 +175,10 @@ clean: clean-linux
 
 clean-linux:
 	rm -rf out/linux out/linux-portable
+
+ifeq ($(REPGAME_OPENXR),1)
+$(LINUX_OUT): | $(OPENXR_HOST_LIB)
+endif
 
 $(LINUX_OUT): | out
 	mkdir -p $(LINUX_DIRS)

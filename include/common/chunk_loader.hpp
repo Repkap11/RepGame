@@ -82,6 +82,17 @@ class ChunkLoader {
     Shader occl_shader;
     VertexArray occl_va;
     VertexBuffer occl_vb;
+    // View generation + last probed mvp: verdicts (occl_fails_gen /
+    // occl_probe_gen) are tagged with the view they were earned under.
+    // Were function-statics in draw(); members now so the second VR eye can
+    // reuse eye 0's generation (occl_probe_pass=false) instead of
+    // invalidating it with a slightly different mvp.
+    long occl_view_gen = 0;
+    glm::mat4 occl_last_view_mvp = glm::mat4( 0.0f );
+    // When false, draw() neither consumes probe results nor issues new
+    // probes (and skips that block's GL state changes) — it only applies the
+    // existing occl_fails verdicts. Used for the second stereo eye.
+    bool occl_probe_pass = true;
 
     // Compact list of chunks that are loaded and should be rendered.
     // Rebuilt once per frame in render_chunks; iterated by calculate_cull/draw
@@ -230,6 +241,9 @@ class ChunkLoader {
     void repopulate_blocks( );
     void calculate_cull( const glm::mat4 &mvp, bool saveAsReflection, const glm::ivec3 &renderOrigin ) const;
     void draw( const glm::mat4 &mvp, const Renderer &renderer, const Texture &texture, bool reflect_only, bool draw_reflect, bool use_frame_buffer, const glm::vec3 &render_origin, const glm::vec3 &camera_pos );
+    // Whether draw() runs the occlusion probe block. VR calls with false for
+    // the second eye so both eyes share one verdict generation.
+    void set_occlusion_probe_pass( bool probe ) { this->occl_probe_pass = probe; }
     Chunk *get_chunk( const glm::ivec3 &pointed ) const;
     // Apply one chunk-diff cell (CHUNK_DIFF_RESULT / apply_pending_diffs):
     // writes the receiving chunk's copy, mirrors it into every loaded

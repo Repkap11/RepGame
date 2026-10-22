@@ -726,22 +726,24 @@ void ChunkLoader::draw( const glm::mat4 &mvp, const Renderer &renderer, const Te
     // a tighter epsilon there doubles as the ~0.3-block move threshold.
     long occl_view_gen = 0;
     if ( occlusion_enabled( ) && !draw_reflect ) {
-        static long view_gen = 0;
-        static glm::mat4 last_view_mvp( 0.0f );
-        bool view_changed = false;
-        for ( int c = 0; c < 3 && !view_changed; c++ ) {
+        // Non-probe passes (the second stereo eye) reuse the current
+        // generation without comparing/bumping it against their own mvp.
+        if ( this->occl_probe_pass ) {
+            bool view_changed = false;
+            for ( int c = 0; c < 3 && !view_changed; c++ ) {
+                for ( int r = 0; r < 4 && !view_changed; r++ ) {
+                    view_changed = fabsf( mvp[ c ][ r ] - this->occl_last_view_mvp[ c ][ r ] ) > 0.02f;
+                }
+            }
             for ( int r = 0; r < 4 && !view_changed; r++ ) {
-                view_changed = fabsf( mvp[ c ][ r ] - last_view_mvp[ c ][ r ] ) > 0.02f;
+                view_changed = fabsf( mvp[ 3 ][ r ] - this->occl_last_view_mvp[ 3 ][ r ] ) > 0.4f;
+            }
+            if ( view_changed ) {
+                this->occl_last_view_mvp = mvp;
+                this->occl_view_gen++;
             }
         }
-        for ( int r = 0; r < 4 && !view_changed; r++ ) {
-            view_changed = fabsf( mvp[ 3 ][ r ] - last_view_mvp[ 3 ][ r ] ) > 0.4f;
-        }
-        if ( view_changed ) {
-            last_view_mvp = mvp;
-            view_gen++;
-        }
-        occl_view_gen = view_gen;
+        occl_view_gen = this->occl_view_gen;
     }
 
     // pr_debug( "Drawing %d chunks", this->numLoadedChunks );
@@ -790,7 +792,9 @@ void ChunkLoader::draw( const glm::mat4 &mvp, const Renderer &renderer, const Te
                     if ( chunk.cached_cull_normal ) {
                         continue;
                     }
-                    if ( chunk.occl_pending ) {
+                    // Non-probe passes leave pending queries in flight — the
+                    // next probe pass consumes them.
+                    if ( this->occl_probe_pass && chunk.occl_pending ) {
                         GLuint available = 0;
                         glGetQueryObjectuiv( chunk.occl_query, GL_QUERY_RESULT_AVAILABLE, &available );
                         if ( available ) {
@@ -817,51 +821,53 @@ void ChunkLoader::draw( const glm::mat4 &mvp, const Renderer &renderer, const Te
                         chunk.draw( renderer, texture, shader, static_cast<RenderOrder>( renderOrder ), draw_reflect, render_origin, light_base_loc );
                     }
                 }
-                this->occl_shader.bind( );
-                this->occl_shader.set_uniform_mat4f( "u_MVP", mvp );
-                const int box_min_loc = this->occl_shader.get_uniform_location( "u_BoxMin" );
-                this->occl_va.bind( );
-                // LEQUAL, not LESS: a chunk's boundary surface is coplanar
-                // with its own box face, so under LESS a fully walled chunk
-                // would self-occlude and flicker draw/hide each frame. Ties
-                // only ever occur against the chunk's own geometry
-                // (neighbors sit a whole block away), so passing them is
-                // conservative — overdraw at worst, never a hole. Cull face
-                // off so a camera inside a box still rasterizes it.
-                glDisable( GL_CULL_FACE );
-                glDepthFunc( GL_LEQUAL );
-                glColorMask( GL_FALSE, GL_FALSE, GL_FALSE, GL_FALSE );
-                glDepthMask( GL_FALSE );
-                for ( int i = 0; i < this->num_drawable; i++ ) {
-                    Chunk &chunk = *this->drawable_chunks[ i ];
-                    if ( chunk.cached_cull_normal || chunk.occl_pending || cam_in_box( chunk ) ) {
-                        continue;
+                if ( this->occl_probe_pass ) {
+                    this->occl_shader.bind( );
+                    this->occl_shader.set_uniform_mat4f( "u_MVP", mvp );
+                    const int box_min_loc = this->occl_shader.get_uniform_location( "u_BoxMin" );
+                    this->occl_va.bind( );
+                    // LEQUAL, not LESS: a chunk's boundary surface is coplanar
+                    // with its own box face, so under LESS a fully walled chunk
+                    // would self-occlude and flicker draw/hide each frame. Ties
+                    // only ever occur against the chunk's own geometry
+                    // (neighbors sit a whole block away), so passing them is
+                    // conservative — overdraw at worst, never a hole. Cull face
+                    // off so a camera inside a box still rasterizes it.
+                    glDisable( GL_CULL_FACE );
+                    glDepthFunc( GL_LEQUAL );
+                    glColorMask( GL_FALSE, GL_FALSE, GL_FALSE, GL_FALSE );
+                    glDepthMask( GL_FALSE );
+                    for ( int i = 0; i < this->num_drawable; i++ ) {
+                        Chunk &chunk = *this->drawable_chunks[ i ];
+                        if ( chunk.cached_cull_normal || chunk.occl_pending || cam_in_box( chunk ) ) {
+                            continue;
+                        }
+                        if ( chunk.occl_query == 0 ) {
+                            glGenQueries( 1, &chunk.occl_query );
+                        }
+                        const glm::vec3 box_min = glm::vec3( chunk.chunk_pos * CHUNK_SIZE_I ) - render_origin;
+                        glUniform3f( box_min_loc, box_min.x, box_min.y, box_min.z );
+                        glBeginQuery( GL_ANY_SAMPLES_PASSED, chunk.occl_query );
+                        glDrawArrays( GL_TRIANGLES, 0, 36 );
+                        glEndQuery( GL_ANY_SAMPLES_PASSED );
+                        chunk.occl_pending = 1;
+                        chunk.occl_probe_gen = occl_view_gen;
                     }
-                    if ( chunk.occl_query == 0 ) {
-                        glGenQueries( 1, &chunk.occl_query );
-                    }
-                    const glm::vec3 box_min = glm::vec3( chunk.chunk_pos * CHUNK_SIZE_I ) - render_origin;
-                    glUniform3f( box_min_loc, box_min.x, box_min.y, box_min.z );
-                    glBeginQuery( GL_ANY_SAMPLES_PASSED, chunk.occl_query );
-                    glDrawArrays( GL_TRIANGLES, 0, 36 );
-                    glEndQuery( GL_ANY_SAMPLES_PASSED );
-                    chunk.occl_pending = 1;
-                    chunk.occl_probe_gen = occl_view_gen;
-                }
-                glColorMask( GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE );
+                    glColorMask( GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE );
 #if ( SUPPORTS_FRAME_BUFFER )
-                if ( use_frame_buffer ) {
-                    // world.cpp masks the sky-color attachment (3) off after
-                    // the sky pass so terrain draws can't clobber the
-                    // captured sky — the blanket unmask above re-enabled it,
-                    // so put it back or fog compositing blends terrain pixels
-                    // toward whatever garbage lands there.
-                    glColorMaski( 3, GL_FALSE, GL_FALSE, GL_FALSE, GL_FALSE );
-                }
+                    if ( use_frame_buffer ) {
+                        // world.cpp masks the sky-color attachment (3) off after
+                        // the sky pass so terrain draws can't clobber the
+                        // captured sky — the blanket unmask above re-enabled it,
+                        // so put it back or fog compositing blends terrain pixels
+                        // toward whatever garbage lands there.
+                        glColorMaski( 3, GL_FALSE, GL_FALSE, GL_FALSE, GL_FALSE );
+                    }
 #endif
-                glDepthMask( GL_TRUE );
-                glDepthFunc( GL_LESS );
-                glEnable( GL_CULL_FACE );
+                    glDepthMask( GL_TRUE );
+                    glDepthFunc( GL_LESS );
+                    glEnable( GL_CULL_FACE );
+                }
             } else {
                 for ( int i = 0; i < this->num_drawable; i++ ) {
                     Chunk &chunk = *this->drawable_chunks[ back_to_front ? this->num_drawable - 1 - i : i ];

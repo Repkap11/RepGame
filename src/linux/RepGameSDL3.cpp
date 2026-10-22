@@ -9,6 +9,10 @@
 #ifdef REPGAME_LINUX
 #include "linux/wayland_cursor_warp.hpp"
 #endif
+#if defined( REPGAME_OPENXR )
+#include "linux/openxr.hpp"
+#include <string.h>
+#endif
 
 static RepGameState *globalGameState;
 
@@ -139,6 +143,9 @@ bool startsWith( const char *pre, const char *str ) {
 }
 
 void main_loop_full( RepGame &repgame );
+#if defined( REPGAME_OPENXR )
+void main_loop_vr( RepGame &repgame, OpenXRSession &xr );
+#endif
 
 int repgame_sdl2_main( const char *world_path, const char *host, const bool connect_multi, const bool tests ) {
     if ( tests ) {
@@ -212,6 +219,14 @@ int repgame_sdl2_main( const char *world_path, const char *host, const bool conn
     int window_x = SDL_WINDOWPOS_CENTERED_DISPLAY( display_id );
     int window_y = SDL_WINDOWPOS_CENTERED_DISPLAY( display_id );
 
+#if defined( REPGAME_OPENXR )
+    // OpenXR binds via XrGraphicsBindingEGLMNDX, so the SDL GL context must
+    // be EGL (not GLX). REPGAME_VR=0 forces the flat path entirely.
+    const bool vr_disabled = ( getenv( "REPGAME_VR" ) && strcmp( getenv( "REPGAME_VR" ), "0" ) == 0 ) || getenv( "REPGAME_CAPTURE" );
+    if ( !vr_disabled ) {
+        SDL_SetHint( SDL_HINT_VIDEO_FORCE_EGL, "1" );
+    }
+#endif
     sdl_window = SDL_CreateWindow( "RepGame", default_width, default_height, window_flags );
     if ( !sdl_window ) {
         pr_debug( "Creating the SDL window failed: %s", SDL_GetError( ) );
@@ -268,12 +283,28 @@ int repgame_sdl2_main( const char *world_path, const char *host, const bool conn
     // window size: with SDL_WINDOW_FULLSCREEN the drawable is the display
     // mode (and on HiDPI it can differ from the logical size). Rendering to a
     // viewport larger than the drawable leaves a stale strip at the edges.
-    {
-        int drawable_w, drawable_h;
-        SDL_GetWindowSizeInPixels( sdl_window, &drawable_w, &drawable_h );
-        repgame.changeSize( drawable_w, drawable_h );
+#if defined( REPGAME_OPENXR )
+    OpenXRSession xr;
+    if ( !vr_disabled && xr.init( ) && xr.create_session( ) ) {
+        repgame.changeSize( xr.eye_width( ), xr.eye_height( ) );
+        repgame.set_vr_active( true );
+        SDL_GL_SetSwapInterval( 0 );
+        main_loop_vr( repgame, xr );
+        xr.destroy( );
+    } else {
+        if ( !vr_disabled ) {
+            pr_debug( "VR unavailable, running flat" );
+        }
+#endif
+        {
+            int drawable_w, drawable_h;
+            SDL_GetWindowSizeInPixels( sdl_window, &drawable_w, &drawable_h );
+            repgame.changeSize( drawable_w, drawable_h );
+        }
+        main_loop_full( repgame );
+#if defined( REPGAME_OPENXR )
     }
-    main_loop_full( repgame );
+#endif
     repgame.cleanup( );
     delete repgamePrt;
     SDL_GL_DestroyContext( sdl_context );
@@ -342,42 +373,91 @@ void repgame_linux_process_window_and_pointer_state( RepGame &repgame ) {
 #define SW_VSYNC_ENABLED 0
 #endif
 
+// Shared by the flat and VR main loops: fixed-step tick bookkeeping plus the
+// once-per-second performance report.
+struct MainLoopStats {
+    long next_game_step;
+    long fps_last_report_time;
+    long fps_frame_count;
+    long long acc_render;
+    long long acc_world_draw;
+    long long acc_ui_draw;
+    long long acc_total_draw;
+    long long acc_swap;
+    long long acc_tick;
+};
+
+// Run all due fixed-step ticks (SDL events + pointer state are pumped before
+// each tick) and return the render interpolation alpha.
+static float main_loop_ticks( RepGame &repgame, MainLoopStats &stats ) {
+    constexpr int time_step_ms = 1000 / UPS_RATE;
+    const long now = static_cast<long>( SDL_GetTicks( ) );
+
+    int computer_is_too_slow_limit = 10; // max number of advances per render, if you can't get 20 fps, slow the game's UPS
+
+    // Loop until all steps are executed or computer_is_too_slow_limit is reached
+    // int num_ticks_in_frame = 0;
+    while ( ( ( ( stats.next_game_step - now ) <= 0 ) ) && ( computer_is_too_slow_limit-- ) ) {
+        repgame_linux_process_sdl_events( repgame );
+        repgame_linux_process_window_and_pointer_state( repgame );
+        const long long t_tick = now_us( );
+        repgame.tick( );
+        repgame.profiling.us_tick = now_us( ) - t_tick;
+        // num_ticks_in_frame++;
+        stats.next_game_step += time_step_ms; // count 1 game tick done
+    }
+    // pr_debug( "slow:%d num_ticks_in_frame:%d fps:%f", computer_is_too_slow_limit, num_ticks_in_frame, ( float )( UPS_RATE ) / ( float )num_ticks_in_frame );
+
+    // Interpolation factor: how far we are between the last executed tick
+    // (at next_game_step - time_step_ms) and the next scheduled tick (next_game_step).
+    const long render_now = static_cast<long>( SDL_GetTicks( ) );
+    float alpha = static_cast<float>( render_now - ( stats.next_game_step - time_step_ms ) ) / static_cast<float>( time_step_ms );
+    if ( alpha < 0.0f ) {
+        alpha = 0.0f;
+    } else if ( alpha > 1.0f ) {
+        alpha = 1.0f;
+    }
+    return alpha;
+}
+
+// Accumulate the per-frame profiling fields and print the FPS line once a
+// second. Same numbers in flat and VR (us_swap stays whatever the mirror
+// blit measured, 0 when mirroring is off).
+static void main_loop_fps_log( RepGame &repgame, MainLoopStats &stats ) {
+    stats.fps_frame_count++;
+    // Accumulate phase times so the report prints per-frame averages.
+    stats.acc_render += repgame.profiling.us_render;
+    stats.acc_world_draw += repgame.profiling.us_world_draw;
+    stats.acc_ui_draw += repgame.profiling.us_ui_draw;
+    stats.acc_total_draw += repgame.profiling.us_total_draw;
+    stats.acc_swap += repgame.profiling.us_swap;
+    stats.acc_tick += repgame.profiling.us_tick;
+    const long fps_now = static_cast<long>( SDL_GetTicks( ) );
+    const long fps_elapsed = fps_now - stats.fps_last_report_time;
+    if ( fps_elapsed >= 1000 ) {
+        const float fps = static_cast<float>( stats.fps_frame_count * 1000 ) / static_cast<float>( fps_elapsed );
+        const double n = stats.fps_frame_count;
+        pr_debug( "FPS: %.1f | us/frame: tick=%.0f render=%.0f world_draw=%.0f ui=%.0f total_draw=%.0f swap=%.0f",
+                  fps,
+                  stats.acc_tick / n, stats.acc_render / n, stats.acc_world_draw / n,
+                  stats.acc_ui_draw / n, stats.acc_total_draw / n, stats.acc_swap / n );
+        stats.fps_frame_count = 0;
+        stats.fps_last_report_time = fps_now;
+        stats.acc_render = stats.acc_world_draw = stats.acc_ui_draw = stats.acc_total_draw = stats.acc_swap = stats.acc_tick = 0;
+    }
+}
+
 void main_loop_full( RepGame &repgame ) {
 
-    constexpr int time_step_ms = 1000 / UPS_RATE;
-    long next_game_step = static_cast<long>( SDL_GetTicks( ) ); // initial value
-
-    long fps_last_report_time = static_cast<long>( SDL_GetTicks( ) );
-    long fps_frame_count = 0;
+    MainLoopStats stats = { static_cast<long>( SDL_GetTicks( ) ), // initial value
+                            static_cast<long>( SDL_GetTicks( ) ),
+                            0, 0, 0, 0, 0, 0, 0 };
 
     while ( !repgame.shouldExit( ) && !exit_signal_received ) {
         const long now = static_cast<long>( SDL_GetTicks( ) );
 
-        if ( ( ( next_game_step - now ) <= 0 ) || !SW_VSYNC_ENABLED ) {
-            int computer_is_too_slow_limit = 10; // max number of advances per render, if you can't get 20 fps, slow the game's UPS
-
-            // Loop until all steps are executed or computer_is_too_slow_limit is reached
-            // int num_ticks_in_frame = 0;
-            while ( ( ( ( next_game_step - now ) <= 0 ) ) && ( computer_is_too_slow_limit-- ) ) {
-                repgame_linux_process_sdl_events( repgame );
-                repgame_linux_process_window_and_pointer_state( repgame );
-                const long long t_tick = now_us( );
-                repgame.tick( );
-                repgame.profiling.us_tick = now_us( ) - t_tick;
-                // num_ticks_in_frame++;
-                next_game_step += time_step_ms; // count 1 game tick done
-            }
-            // pr_debug( "slow:%d num_ticks_in_frame:%d fps:%f", computer_is_too_slow_limit, num_ticks_in_frame, ( float )( UPS_RATE ) / ( float )num_ticks_in_frame );
-
-            // Interpolation factor: how far we are between the last executed tick
-            // (at next_game_step - time_step_ms) and the next scheduled tick (next_game_step).
-            const long render_now = static_cast<long>( SDL_GetTicks( ) );
-            float alpha = static_cast<float>( render_now - ( next_game_step - time_step_ms ) ) / static_cast<float>( time_step_ms );
-            if ( alpha < 0.0f ) {
-                alpha = 0.0f;
-            } else if ( alpha > 1.0f ) {
-                alpha = 1.0f;
-            }
+        if ( ( ( stats.next_game_step - now ) <= 0 ) || !SW_VSYNC_ENABLED ) {
+            const float alpha = main_loop_ticks( repgame, stats );
 
             repgame.clear( );
             repgame.draw( alpha );
@@ -385,31 +465,104 @@ void main_loop_full( RepGame &repgame ) {
             SDL_GL_SwapWindow( sdl_window );
             repgame.profiling.us_swap = now_us( ) - t_swap;
 
-            fps_frame_count++;
-            // Accumulate phase times so the report prints per-frame averages.
-            static long long acc_render = 0, acc_world_draw = 0, acc_ui_draw = 0,
-                             acc_total_draw = 0, acc_swap = 0, acc_tick = 0;
-            acc_render += repgame.profiling.us_render;
-            acc_world_draw += repgame.profiling.us_world_draw;
-            acc_ui_draw += repgame.profiling.us_ui_draw;
-            acc_total_draw += repgame.profiling.us_total_draw;
-            acc_swap += repgame.profiling.us_swap;
-            acc_tick += repgame.profiling.us_tick;
-            const long fps_now = static_cast<long>( SDL_GetTicks( ) );
-            const long fps_elapsed = fps_now - fps_last_report_time;
-            if ( fps_elapsed >= 1000 ) {
-                const float fps = static_cast<float>( fps_frame_count * 1000 ) / static_cast<float>( fps_elapsed );
-                const double n = fps_frame_count;
-                pr_debug( "FPS: %.1f | us/frame: tick=%.0f render=%.0f world_draw=%.0f ui=%.0f total_draw=%.0f swap=%.0f",
-                          fps,
-                          acc_tick / n, acc_render / n, acc_world_draw / n,
-                          acc_ui_draw / n, acc_total_draw / n, acc_swap / n );
-                fps_frame_count = 0;
-                fps_last_report_time = fps_now;
-                acc_render = acc_world_draw = acc_ui_draw = acc_total_draw = acc_swap = acc_tick = 0;
-            }
+            main_loop_fps_log( repgame, stats );
         } else {
-            SDL_Delay( next_game_step - now );
+            SDL_Delay( stats.next_game_step - now );
         }
     }
 }
+
+#if defined( REPGAME_OPENXR )
+// REPGAME_VR_MIRROR (default 1, 0 under REPGAME_STEAMFRAME where nothing
+// displays the window) blits the left eye to the window framebuffer.
+static bool vr_mirror_enabled( ) {
+#if defined( REPGAME_STEAMFRAME )
+    const bool default_mirror = false;
+#else
+    const bool default_mirror = true;
+#endif
+    const char *env = getenv( "REPGAME_VR_MIRROR" );
+    return env ? env[ 0 ] != '0' : default_mirror;
+}
+
+void main_loop_vr( RepGame &repgame, OpenXRSession &xr ) {
+    MainLoopStats stats = { static_cast<long>( SDL_GetTicks( ) ),
+                            static_cast<long>( SDL_GetTicks( ) ),
+                            0, 0, 0, 0, 0, 0, 0 };
+    RenderView views[ 2 ] = {};
+    bool exit_requested = false;
+    long exit_deadline = 0;
+    const bool mirror = vr_mirror_enabled( );
+
+    while ( !exit_signal_received ) {
+        bool xr_exit = false;
+        xr.poll_events( xr_exit );
+        if ( repgame.shouldExit( ) || xr_exit ) {
+            xr.request_exit( );
+            if ( !exit_requested ) {
+                exit_requested = true;
+                exit_deadline = static_cast<long>( SDL_GetTicks( ) ) + 2000;
+            }
+        }
+        if ( exit_requested ) {
+            // Keep polling until the runtime reports the session ended (or a
+            // ~2s timeout) so xrEndSession can land cleanly.
+            if ( !xr.is_running( ) || static_cast<long>( SDL_GetTicks( ) ) > exit_deadline ) {
+                break;
+            }
+            repgame_linux_process_sdl_events( repgame );
+            SDL_Delay( 10 );
+            continue;
+        }
+
+        if ( !xr.is_running( ) ) {
+            // Session not ready/hidden: keep the window's event queue drained.
+            repgame_linux_process_sdl_events( repgame );
+            SDL_Delay( 10 );
+            continue;
+        }
+
+        bool should_render = false;
+        glm::quat head( 1.0f, 0.0f, 0.0f, 0.0f );
+        glm::vec3 head_pos( 0.0f );
+        if ( !xr.begin_frame( views, should_render, head, head_pos ) ) {
+            repgame_linux_process_sdl_events( repgame );
+            SDL_Delay( 10 );
+            continue;
+        }
+        repgame.set_vr_head( head, head_pos );
+        VrControllerInput vin;
+        xr.sync_input( vin );
+        repgame.set_vr_input( vin );
+        const float alpha = main_loop_ticks( repgame, stats );
+        if ( repgame.consume_vr_haptic( ) ) {
+            xr.haptic_pulse( 0.5f, 0.02f );
+        }
+        if ( should_render ) {
+            repgame.draw_vr( alpha, views, 2 );
+            // UI quad layer: render the game UI into this frame's UI
+            // swapchain image and queue its placement for end_frame.
+            unsigned int ui_fbo = 0;
+            int ui_w = 0, ui_h = 0;
+            if ( xr.ui_target( ui_fbo, ui_w, ui_h ) ) {
+                repgame.draw_vr_ui( ui_fbo, ui_w, ui_h );
+                xr.set_ui_layer( repgame.get_vr_ui_layer( ) );
+            }
+            if ( mirror ) {
+                const long long t_swap = now_us( );
+                int window_w = 0, window_h = 0;
+                SDL_GetWindowSizeInPixels( sdl_window, &window_w, &window_h );
+                glBindFramebuffer( GL_READ_FRAMEBUFFER, views[ 0 ].fbo );
+                glBindFramebuffer( GL_DRAW_FRAMEBUFFER, 0 );
+                glViewport( 0, 0, window_w, window_h );
+                glBlitFramebuffer( 0, 0, views[ 0 ].width, views[ 0 ].height, 0, 0, window_w, window_h, GL_COLOR_BUFFER_BIT, GL_LINEAR );
+                glBindFramebuffer( GL_READ_FRAMEBUFFER, 0 );
+                SDL_GL_SwapWindow( sdl_window );
+                repgame.profiling.us_swap = now_us( ) - t_swap;
+            }
+        }
+        xr.end_frame( );
+        main_loop_fps_log( repgame, stats );
+    }
+}
+#endif // REPGAME_OPENXR

@@ -6,6 +6,14 @@ USE_CCACHE ?= 1
 # one toolchain can't silently ship on another.
 CFLAGS_WARNINGS := -Wall -Wextra -Werror -Wno-unused-parameter -Wno-unused-variable
 
+# OpenXR (VR) support for the linux build: REPGAME_OPENXR=1 compiles the
+# OpenXR code paths and moves objects to out/linux-openxr so flat and VR
+# objects never mix in one dir.
+REPGAME_OPENXR ?= 0
+ifeq ($(REPGAME_OPENXR),1)
+LINUX_OUT ?= out/linux-openxr
+endif
+
 # Output directory for Linux build artifacts. The portable (Docker) build
 # overrides this to out/linux-portable so host and Docker .o files don't clobber.
 LINUX_OUT ?= out/linux

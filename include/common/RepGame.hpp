@@ -38,10 +38,43 @@ typedef enum {
 #define GLM_FORCE_RADIANS
 #include <gtc/type_ptr.hpp>
 #include <gtc/matrix_transform.hpp>
+#include <gtc/quaternion.hpp>
 
 #define DEBUG 1
 
 #include "input.hpp"
+
+// One render target view (a VR eye). Flat rendering passes views==nullptr to
+// draw_frame, which uses screen.proj and the interpolated camera instead.
+// Positions are in tracking (LOCAL) space; meters == blocks.
+struct RenderView {
+    glm::mat4 proj;        // per-eye projection
+    glm::quat orientation; // eye orientation in tracking space
+    glm::vec3 position;    // eye position in tracking space
+    unsigned int fbo;      // target framebuffer
+    int width, height;
+};
+
+// Held state of the VR controls for this frame (the platform fills it after
+// xrSyncActions); RepGame does all edge detection per tick.
+struct VrControllerInput {
+    glm::vec2 move = glm::vec2( 0.0f ); // left thumbstick, x right / y forward
+    glm::vec2 turn = glm::vec2( 0.0f ); // right thumbstick
+    bool jump = false, sneak = false, sprint = false;
+    bool break_block = false, place_block = false, pick_block = false;
+    bool hotbar_next = false, hotbar_prev = false, inventory = false, toggle_fly = false;
+    bool aim_valid = false;
+    glm::quat aim_orientation = glm::quat( 1.0f, 0.0f, 0.0f, 0.0f ); // right aim pose, tracking (LOCAL) space
+    glm::vec3 aim_position = glm::vec3( 0.0f );
+};
+
+// Placement of the VR UI quad, decided by the game, submitted by the platform.
+struct VrUiLayer {
+    bool world_locked = false; // true: pose is in tracking (LOCAL) space; false: head-locked (VIEW space)
+    glm::quat orientation = glm::quat( 1.0f, 0.0f, 0.0f, 0.0f );
+    glm::vec3 position = glm::vec3( 0.0f ); // quad center, meters
+    glm::vec2 size = glm::vec2( 0.0f );     // meters (width, height)
+};
 
 struct RepGameState {
     MapStorage map_storage;
@@ -149,6 +182,40 @@ struct RepGameState {
     // when nobody is on it (or it was broken/unloaded), so exactly one check
     // chain exists per plate.
     std::unordered_set<glm::ivec3> watched_pressure_plates;
+    // VR state (OpenXR session). active means stereo rendering is in use:
+    // mouse dx then turns the body (body_yaw) and the HMD's local orientation
+    // supplies head — camera.angle_H/V are recomputed as body+head each tick
+    // so raycasts, movement and remote avatars track the real head.
+    struct {
+        bool active = false;
+        float body_yaw = 0.0f;
+        glm::quat head = glm::quat( 1.0f, 0.0f, 0.0f, 0.0f );
+        glm::vec3 head_pos = glm::vec3( 0.0f ); // head position, tracking (LOCAL) space
+        // UI quad state: pinned in LOCAL space while the inventory is open
+        // (anchored on the false→true edge), head-locked otherwise.
+        bool ui_world_locked = false;
+        glm::quat ui_orientation = glm::quat( 1.0f, 0.0f, 0.0f, 0.0f );
+        glm::vec3 ui_position = glm::vec3( 0.0f );
+        bool prev_inventory_open = false;
+        // Set by the pointer raycast when the aim ray lands on the UI quad —
+        // gates the pointer marker drawn into the UI layer.
+        bool pointer_on_ui = false;
+        // Flat-path draw quality saved when entering VR (VR defaults to LOW
+        // via REPGAME_VR_QUALITY); player.dat always stores this, never the
+        // live VR quality.
+        WorldDrawQuality saved_quality = WorldDrawQuality::MEDIUM;
+        // Controller state: input is this frame's synced actions, prev_input
+        // the previous tick's (process_vr_input does all edge detection).
+        VrControllerInput input, prev_input;
+        // Thumbstick bookkeeping: move_active tracks "stick is driving
+        // movement.sizeH" so an idle stick hands control back to the
+        // keyboard; turn_armed is the snap-turn re-arm flag.
+        bool move_active = false;
+        bool turn_armed = true;
+        // Set when the player breaks a block; the platform turns it into a
+        // controller haptic pulse via consume_vr_haptic().
+        bool haptic_pending = false;
+    } vr;
 };
 
 struct __attribute__( ( packed ) ) PlayerData {
@@ -199,6 +266,18 @@ class RepGame {
     // Chest open/close (sends CHEST_OPEN/CHEST_CLOSE when connected).
     void open_chest( const glm::ivec3 &pos );
     void close_chest( );
+    // Shared body of draw()/draw_vr(): everything once per frame, then the
+    // world-draw section once per view (flat: a single pass with the screen
+    // projection and interpolated camera).
+    void draw_frame( float alpha, const RenderView *views, int num_views );
+    // Applies vr.input (edge-detected against vr.prev_input) onto the shared
+    // Input fields — movement stick, jump/sneak/sprint, hotbar steps, mouse
+    // buttons, snap/smooth turn. Called at the top of tick() in VR.
+    void process_vr_input( );
+    // The UI draw sequence shared by the flat tail and draw_vr_ui: atlas
+    // bind + CLAMP wrap, depth/stencil clear, ui_overlay + held item +
+    // VR pointer marker. Caller owns the FBO/bind/blend state.
+    void draw_ui_pass( const glm::dvec3 &render_pos, float daylight );
 
   public:
     // Per-frame profiling data (microseconds). Updated by draw() and read by
@@ -220,6 +299,24 @@ class RepGame {
     static void clear( );
     void idle( );
     void draw( float alpha );
+    // Stereo draw: one pass per RenderView into its swapchain FBO.
+    void draw_vr( float alpha, const RenderView *views, int num_views );
+    // VR session lifecycle glue (called by the platform loop).
+    void set_vr_active( bool active );
+    void set_vr_head( const glm::quat &head, const glm::vec3 &head_pos );
+    // Per-frame controller state from the platform's action sync.
+    void set_vr_input( const VrControllerInput &in );
+    // Returns (and clears) the pending block-break haptic flag.
+    bool consume_vr_haptic( );
+    // The UI quad placement for the platform's composition layer this frame.
+    VrUiLayer get_vr_ui_layer( ) const;
+    // Render the UI overlay into the platform's UI swapchain image FBO
+    // (premultiplied alpha out for the compositor).
+    void draw_vr_ui( unsigned int fbo, int width, int height );
+    // Off-axis perspective projection from per-edge FOV tangents (radians,
+    // OpenXR convention: angleLeft/angleDown are negative). Matches
+    // glm::perspective for symmetric FOVs; GL [-1,1] clip depth.
+    static glm::mat4 projection_from_fov( float angle_left, float angle_right, float angle_up, float angle_down, float near_z, float far_z );
     static void set_textures( unsigned int which_texture, unsigned char *textures, int textures_len );
     void cleanup( );
     // Writes current position/inventory/mode/clock to player.dat. Called by
