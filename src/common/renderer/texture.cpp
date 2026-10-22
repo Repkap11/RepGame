@@ -7,31 +7,35 @@
 
 #include "common/RepGame.hpp"
 #include "common/renderer/texture.hpp"
+#include "common/vendor/stb_image.hpp"
 
 #define BYTES_PER_PIXEL 4
 
-// BMP files start with a 14-byte file header followed by a variable-size DIB
-// header. Bytes 10-13 hold the little-endian offset of the pixel array, which
-// lets the build embed the whole .bmp without stripping a fixed-size header.
-static int bmp_pixel_data_offset( const unsigned char *bmp, int bmp_len ) {
-    if ( bmp_len < 30 || bmp[ 0 ] != 'B' || bmp[ 1 ] != 'M' ) {
-        pr_debug( "Texture is not a BMP file" );
+// The embedded/file bytes are PNGs decoded here. The upload loop below keeps
+// the old BMP convention (row 0 = image bottom), so the decode flips
+// vertically to match what the BMP byte layout used to provide for free.
+static unsigned char *decode_texture_png( const unsigned char *png, int png_len, unsigned int want_w, unsigned int want_h ) {
+    stbi_set_flip_vertically_on_load( 1 );
+    int w = 0, h = 0, n = 0;
+    unsigned char *data = stbi_load_from_memory( png, png_len, &w, &h, &n, BYTES_PER_PIXEL );
+    if ( data == NULL || w != ( int )want_w || h != ( int )want_h ) {
+        pr_debug( "Texture PNG decode failed (got %dx%d, want %ux%u): %s", w, h, want_w, want_h, data == NULL ? stbi_failure_reason( ) : "size mismatch" );
         exit( 1 );
     }
-    int bits_per_pixel = bmp[ 28 ] | ( bmp[ 29 ] << 8 );
-    if ( bits_per_pixel != BYTES_PER_PIXEL * 8 ) {
-        pr_debug( "Texture BMP must be %d bits per pixel, got:%d", BYTES_PER_PIXEL * 8, bits_per_pixel );
-        exit( 1 );
-    }
-    return ( int )( ( unsigned )bmp[ 10 ] | ( ( unsigned )bmp[ 11 ] << 8 ) | ( ( unsigned )bmp[ 12 ] << 16 ) | ( ( unsigned )bmp[ 13 ] << 24 ) );
+    return data;
 }
 
 #if defined( REPGAME_ANDROID )
 #define GL_TEXTURE_MAX_ANISOTROPY_EXT 0x84FE
 #define GL_MAX_TEXTURE_MAX_ANISOTROPY_EXT 0x84FF
-unsigned char *cached_texture[ 2 ];
+typedef struct {
+    unsigned char *png;
+    int png_len;
+} CachedTexture;
+static CachedTexture cached_texture[ 2 ];
 void Texture::set_texture_data( unsigned int which_texture, unsigned char *textures, int textures_len ) {
-    cached_texture[ which_texture ] = textures + bmp_pixel_data_offset( textures, textures_len );
+    cached_texture[ which_texture ].png = textures;
+    cached_texture[ which_texture ].png_len = textures_len;
 }
 #else
 void Texture::set_texture_data( unsigned int which_texture, unsigned char *textures, int textures_len ) {
@@ -40,29 +44,28 @@ void Texture::set_texture_data( unsigned int which_texture, unsigned char *textu
 #endif
 
 #if defined( REPGAME_WASM )
-unsigned char *readTextureDataFromFile( const char *filename, int mem_size ) {
-    unsigned char *data;
-    FILE *file;
+static unsigned char *readFileBytes( const char *filename, int *out_len ) {
     pr_debug( "Reading texture:%s", filename );
-    file = fopen( filename, "rb" );
+    FILE *file = fopen( filename, "rb" );
     if ( file == NULL ) {
-        pr_debug( "Error rendering texture %s", filename );
-        return 0;
+        pr_debug( "Error reading texture %s", filename );
+        exit( 1 );
     }
-    unsigned char header[ 32 ];
-    int header_len = ( int )fread( header, 1, sizeof( header ), file );
-    fseek( file, bmp_pixel_data_offset( header, header_len ), SEEK_SET );
-    data = ( unsigned char * )malloc( mem_size );
-    size_t read_size = fread( data, mem_size, 1, file );
-    if ( read_size != 1 ) {
-        pr_debug( "Texture file wrong size. Expected:%d", mem_size );
+    fseek( file, 0, SEEK_END );
+    long len = ftell( file );
+    fseek( file, 0, SEEK_SET );
+    unsigned char *data = ( unsigned char * )malloc( len );
+    if ( fread( data, len, 1, file ) != 1 ) {
+        pr_debug( "Texture file unreadable:%s", filename );
+        exit( 1 );
     }
     fclose( file );
+    *out_len = ( int )len;
     return data;
 }
 #endif
 #if defined( REPGAME_ANDROID )
-unsigned char *readTextureDataFromCache( const char *filename, int mem_size ) {
+static CachedTexture readTextureDataFromCache( const char *filename ) {
     pr_debug( "Returning texture for %s", filename );
     if ( strcmp( filename, "bitmaps/textures.bin" ) == 0 )
         return cached_texture[ 0 ];
@@ -70,7 +73,6 @@ unsigned char *readTextureDataFromCache( const char *filename, int mem_size ) {
         return cached_texture[ 1 ];
     pr_debug( "Cant find a texture for:%s", filename );
     exit( 1 );
-    return NULL;
 }
 #endif
 
@@ -195,20 +197,16 @@ void Texture::loadTexture( const TextureSourceData &texture_source, int blur_mag
     int mem_size = texture_source.width * texture_source.height * BYTES_PER_PIXEL;
 
 #if defined( REPGAME_LINUX ) || defined( REPGAME_WINDOWS )
-#define TEXTURE_NEEDS_FREE 0
-    int pixel_offset = bmp_pixel_data_offset( ( const unsigned char * )texture_source.blob->source, texture_source.blob->length );
-    if ( texture_source.blob->length - pixel_offset != mem_size ) {
-        int diff = texture_source.blob->length - pixel_offset - mem_size;
-        pr_debug( "Unexpected Source Size blob:%d pixel_offset:%d calculated:%d diff:%d", texture_source.blob->length, pixel_offset, mem_size, diff );
-        exit( 1 );
-    }
-    data = ( unsigned char * )texture_source.blob->source + pixel_offset;
+    data = decode_texture_png( ( const unsigned char * )texture_source.blob->source, texture_source.blob->length, texture_source.width, texture_source.height );
 #elif defined( REPGAME_WASM )
-#define TEXTURE_NEEDS_FREE 1
-    data = readTextureDataFromFile( texture_source.filename, mem_size );
+    int png_len;
+    unsigned char *png = readFileBytes( texture_source.filename, &png_len );
+    data = decode_texture_png( png, png_len, texture_source.width, texture_source.height );
+    free( png );
 #elif defined( REPGAME_ANDROID )
-#define TEXTURE_NEEDS_FREE 0
-    data = readTextureDataFromCache( texture_source.filename, mem_size );
+    CachedTexture cached = readTextureDataFromCache( texture_source.filename );
+    data = decode_texture_png( cached.png, cached.png_len, texture_source.width, texture_source.height );
+    delete[] cached.png;
 #else
     data = NULL;
     pr_debug( "Undefined platform in textures.cpp mem_size:%d", mem_size );
@@ -233,13 +231,6 @@ void Texture::loadTexture( const TextureSourceData &texture_source, int blur_mag
                 }
             }
         }
-    }
-    // BMP pixels are BGRA in memory; swap to the RGBA order GL expects.
-    for ( int i = 0; i < working_size; i += 4 ) {
-        unsigned char b = working[ i + 0 ];
-        unsigned char r = working[ i + 2 ];
-        working[ i + 0 ] = r;
-        working[ i + 2 ] = b;
     }
 
     // Mipmaps eliminate distant texture aliasing/shimmer on high-frequency
@@ -361,9 +352,7 @@ void Texture::loadTexture( const TextureSourceData &texture_source, int blur_mag
     }
 
     // pr_debug( "Max ani:%f", max_ani );
-    if ( TEXTURE_NEEDS_FREE ) {
-        free( data );
-    }
+    stbi_image_free( data );
     if ( RepGame::supportsAnisotropic( ) ) {
         float max_ani;
         glGetFloatv( GL_MAX_TEXTURE_MAX_ANISOTROPY_EXT, &max_ani );

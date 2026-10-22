@@ -25,11 +25,14 @@ SRC_IMGUI := imgui_build/backends/imgui_impl_sdl3.cpp $(wildcard imgui_build/img
 SRC_ALL_C := $(wildcard src/**/*.cpp) $(wildcard src/**/**/*.cpp) $(wildcard src/**/*.cu) $(wildcard src/**/**/*.cu)
 INCLUDES_COMMON := -I include/ -I include/glm -I imgui_build -I imgui_build/backends -isystem entt_build/src
 HEADERS := $(wildcard include/**/*.hpp)
-BITMAP_BINS := $(patsubst bitmaps/%.bmp,out/bitmaps/%.bin,$(wildcard bitmaps/*.bmp))
+# Game textures are PNGs decoded by stb_image at load time. bitmaps/icons/
+# holds packaging assets (appimage/flatpak/wasm page), not textures — the
+# non-recursive wildcard only embeds the top level.
+BITMAP_PNGS := $(wildcard bitmaps/*.png)
+BITMAP_BINS := $(patsubst bitmaps/%.png,out/bitmaps/%.bin,$(BITMAP_PNGS))
 
-# Embed the whole .bmp. The pixel offset is read from the BMP file header at
-# load time, so no fixed-size header needs to be stripped here.
-out/bitmaps/%.bin : bitmaps/%.bmp makefiles/common.mk | out/bitmaps
+# Embed the whole .png as-is; texture.cpp decodes it with stb_image at load.
+out/bitmaps/%.bin : bitmaps/%.png makefiles/common.mk | out/bitmaps
 	cp $< $@
 
 out/bitmaps: | out

@@ -61,7 +61,7 @@ WASM_SHADERS = $(patsubst src/shaders/%.glsl,out/wasm/fs/src/shaders/%.glsl,$(wi
 # the generated block_ids.inc prelude, which keeps block_definitions.hpp's
 # enum as the single source of truth.
 WASM_WGSL_SHADERS = $(patsubst src/shaders/%.wgsl,out/wasm/fs/src/shaders/%.wgsl,$(wildcard src/shaders/*.wgsl))
-WASM_BITMAPS = $(patsubst bitmaps/%.bmp,out/wasm/fs/bitmaps/%.bin,$(wildcard bitmaps/*.bmp))
+WASM_BITMAPS = $(patsubst bitmaps/%.png,out/wasm/fs/bitmaps/%.bin,$(BITMAP_PNGS))
 WASM_FONTS = $(patsubst fonts/%.ttf,out/wasm/fs/fonts/%.ttf,$(wildcard fonts/*.ttf))
 
 OBJECTS_COMMON_WASM := $(patsubst src/common/%.cpp,out/wasm/common/%.o, $(SRC_COMMON))
@@ -131,7 +131,7 @@ out/wasm/fs/bitmaps/% : out/bitmaps/% | out/wasm
 out/wasm/fs/fonts/% : fonts/% | out/wasm
 	cp $< $@
 
-out/wasm/delivery/icon.png : bitmaps/icon.png | out/wasm
+out/wasm/delivery/icon.png : bitmaps/icons/icon.png | out/wasm
 	cp $< $@
 
 wasm-start-server:

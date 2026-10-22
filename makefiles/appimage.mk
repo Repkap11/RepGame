@@ -37,7 +37,7 @@ appimage_build:
 	wget https://github.com/linuxdeploy/linuxdeploy/releases/download/continuous/linuxdeploy-x86_64.AppImage -O appimage_build/linuxdeploy-x86_64.AppImage
 	chmod +x appimage_build/linuxdeploy-x86_64.AppImage
 
-$(APPIMAGE_OUT)/image/.stamp: $(LINUX_OUT)/release/$(TARGET)_uncompressed src/linux/$(TARGET).desktop src/linux/$(TARGET)AppRun bitmaps/icon_512.png appimage_build | out
+$(APPIMAGE_OUT)/image/.stamp: $(LINUX_OUT)/release/$(TARGET)_uncompressed src/linux/$(TARGET).desktop src/linux/$(TARGET)AppRun bitmaps/icons/icon_512.png appimage_build | out
 	rm -rf $(APPIMAGE_OUT)/image
 	mkdir -p $(APPIMAGE_OUT)/image
 # Exclude Wayland/libdecor libs from bundling so the AppImage uses the host's
@@ -48,7 +48,7 @@ $(APPIMAGE_OUT)/image/.stamp: $(LINUX_OUT)/release/$(TARGET)_uncompressed src/li
 		--appdir $(APPIMAGE_OUT)/image \
 		--executable $(LINUX_OUT)/release/$(TARGET)_uncompressed \
 		--desktop-file src/linux/$(TARGET).desktop \
-		--icon-file bitmaps/icon_512.png \
+		--icon-file bitmaps/icons/icon_512.png \
 		--exclude-library='libwayland-client.so*' \
 		--exclude-library='libwayland-cursor.so*' \
 		--exclude-library='libwayland-egl.so*' \

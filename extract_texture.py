@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Extract a single texture tile from bitmaps/textures.bmp by index.
+"""Extract a single texture tile from bitmaps/textures.png by index.
 
 The atlas is 384x832 with 16x16 tiles (24 across, 52 down). Tiles are numbered
 left-to-right, top-to-bottom starting at 0. The supplied index is a BlockID
@@ -19,7 +19,7 @@ import tempfile
 from PIL import Image
 
 TILE_SIZE = 16
-ATLAS_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "bitmaps", "textures.bmp")
+ATLAS_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "bitmaps", "textures.png")
 
 
 def main():

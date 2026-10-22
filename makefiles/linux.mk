@@ -61,7 +61,7 @@ DEPS_LINUX := $(patsubst src/%.cpp,$(LINUX_OUT)/release/%.d, $(wildcard src/linu
 
 SHADER_BLOBS_LINUX := $(patsubst src/shaders/%.glsl,$(LINUX_OUT)/shaders/%.o,$(wildcard src/shaders/*.glsl))
 SHADER_PROCESSED_LINUX := $(patsubst src/shaders/%.glsl,$(LINUX_OUT)/shaders/%.glsl,$(wildcard src/shaders/*.glsl))
-BITMAP_BLOBS_LINUX := $(patsubst bitmaps/%.bmp,$(LINUX_OUT)/bitmaps/%.o,$(wildcard bitmaps/*.bmp))
+BITMAP_BLOBS_LINUX := $(patsubst bitmaps/%.png,$(LINUX_OUT)/bitmaps/%.o,$(BITMAP_PNGS))
 FONT_BLOBS_LINUX := $(patsubst fonts/%.ttf,$(LINUX_OUT)/fonts/%.o,$(wildcard fonts/*.ttf))
 
 # Preprocess shaders through the C preprocessor at build time. The preprocessed

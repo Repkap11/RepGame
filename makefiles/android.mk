@@ -1,6 +1,6 @@
 #Android app
 ANDROID_SHADERS = $(patsubst src/shaders/%.glsl,android/app/src/main/assets/shaders/%.glsl,$(wildcard src/shaders/*.glsl))
-ANDROID_BITMAPS = $(patsubst bitmaps/%.bmp,android/app/src/main/res/raw/%.bin,$(wildcard bitmaps/*.bmp))
+ANDROID_BITMAPS = $(patsubst bitmaps/%.png,android/app/src/main/res/raw/%.bin,$(BITMAP_PNGS))
 ANDROID_FONTS = $(patsubst fonts/%.ttf,android/app/src/main/assets/fonts/%.ttf,$(wildcard fonts/*.ttf))
 
 
