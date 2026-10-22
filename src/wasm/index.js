@@ -12,7 +12,7 @@ set_canvas_size();
     el.className = unavailable ? "gpu-unavailable" : "";
   }
   if (!navigator.gpu || !navigator.gpu.requestAdapter) {
-    show("WebGPU not supported by this browser — terrain gen will use the CPU", true);
+    show("WebGPU not supported by this browser - terrain gen will use the CPU", true);
     return;
   }
   navigator.gpu.requestAdapter().then(function(adapter) {
@@ -22,12 +22,18 @@ set_canvas_size();
         var info = adapter.info || {};
         name = info.device || info.description || info.vendor || "";
       } catch (e) {}
-      show("WebGPU available — GPU-accelerated terrain gen" + (name ? " (" + name + ")" : ""), false);
+      if (adapter.isFallbackAdapter) {
+        // Chrome's software fallback is SwiftShader (its sanitized vendor
+        // string is "google") - Vulkan emulated on the CPU, not a real GPU.
+        show("WebGPU available - software adapter (SwiftShader), terrain gen runs on the CPU", true);
+      } else {
+        show("WebGPU available - GPU-accelerated terrain gen" + (name ? " (" + name + ")" : ""), false);
+      }
     } else {
-      show("WebGPU adapter unavailable — terrain gen will use the CPU", true);
+      show("WebGPU adapter unavailable - terrain gen will use the CPU", true);
     }
   }).catch(function() {
-    show("WebGPU adapter unavailable — terrain gen will use the CPU", true);
+    show("WebGPU adapter unavailable - terrain gen will use the CPU", true);
   });
 })();
 
@@ -83,7 +89,7 @@ function request_exit() {
 }
 
 // The wasmfs OPFS backend mounts the browser's OPFS root at /repgame_wasm, so
-// the saved world (/repgame_wasm/World1 — chunk_* files plus player.dat)
+// the saved world (/repgame_wasm/World1 - chunk_* files plus player.dat)
 // appears as a top-level "World1" directory in OPFS. Deleting it recursively
 // resets the world exactly like `rm -rf World1` on the native build. This can
 // run before the module even loads since it talks to OPFS directly.
@@ -165,7 +171,7 @@ var gameWantsPointerLock = false;
 // pointerlockchange events arrive asynchronously, so an unlock event
 // generated while the game briefly wanted the lock off (inventory open)
 // can be delivered *after* the game already flipped the flag back on and
-// requested the lock again — a stale unlock arriving under flag=1 looks
+// requested the lock again - a stale unlock arriving under flag=1 looks
 // exactly like an ESC and used to request_exit() mid-toggle. Only count an
 // unlock as ESC if the pointer was actually observed locked during the
 // current "wants lock" epoch.
@@ -182,7 +188,7 @@ function repgame_set_game_wants_pointer_lock(wants) {
 }
 
 // When pointer lock is active, ESC is consumed by the browser to break
-// pointer lock — the game never sees the keypress. Listen for the resulting
+// pointer lock - the game never sees the keypress. Listen for the resulting
 // pointerlockchange and exit the game. Skip if the window lost focus (alt-tab),
 // since that also breaks pointer lock but isn't an exit request. Also skip
 // if the game released pointer lock on purpose (e.g. inventory open).
@@ -200,11 +206,11 @@ document.addEventListener("pointerlockchange", function() {
   }
   if (!hadPointerLockForCurrentWant) {
     // Stale unlock racing a just-issued lock request (rapid inventory
-    // toggles) — the pointer was never locked under the current flag, so
+    // toggles) - the pointer was never locked under the current flag, so
     // this isn't an ESC.
     return;
   }
-  // The game wants pointer lock, had it, and lost it — this is ESC.
+  // The game wants pointer lock, had it, and lost it - this is ESC.
   request_exit();
 });
 
