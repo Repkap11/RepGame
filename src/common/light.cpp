@@ -1677,6 +1677,8 @@ void ChunkLoader::light_recheck_block( const glm::ivec3 &block_pos ) {
 //  - sync border mirrors with neighbors and seed spreads/removals.
 void ChunkLoader::light_finalize_chunk( Chunk &chunk ) {
     if ( chunk.load_state ) {
+        // Parked between submit and execution — the work is lost. Nothing
+        // to re-flag: the next reactivation marks it stale unconditionally.
         return;
     }
     light_dbg_finalize++;
@@ -2959,11 +2961,17 @@ void ChunkLoader::light_heal_chunk( Chunk &chunk, const glm::ivec3 &center ) {
     if ( chunk.light_stale.load( std::memory_order_relaxed ) ) {
         // Don't heal mid-flood: the re-finalize's own propagation seeds
         // would be refused above the cap and the flag would just re-set —
-        // churn. Leave the flag set; the next shift retries.
+        // churn. Leave the flag set; the next shift retries. Share the
+        // per-shift budget with the incident heals: a burst of flagged
+        // chunks re-entering at once (parked slots reactivating) must not
+        // all inline-finalize in one rescan — the flag survives until a
+        // finalize actually lands.
         if ( light_bfs_pending.load( std::memory_order_relaxed ) > LIGHT_BFS_CAP_FLOOD ||
+             this->light_heal_budget <= 0 ||
              !chunk.light_stale.exchange( 0, std::memory_order_relaxed ) ) {
             return;
         }
+        this->light_heal_budget--;
         this->light_submit_finalize( chunk );
         return;
     }
@@ -3265,8 +3273,9 @@ void ChunkLoader::light_thread_loop( ) {
             if ( job.type == LIGHT_JOB_FINALIZE ) {
                 // Claim was staked on the pos captured at submit — the slot
                 // must still hold that chunk or our writes aren't under the
-                // claim. A recycled slot's fresh dequeue re-submits, so
-                // skipping loses nothing.
+                // claim. A recycled slot's fresh dequeue re-submits, and a
+                // parked chunk's next CHUNK_PARKED -> CHUNK_LIVE reactivation
+                // re-flags it stale — so skipping loses nothing.
                 if ( job.chunk->chunk_pos == job.pos && !job.chunk->load_state ) {
                     this->light_finalize_chunk( *job.chunk );
                 }

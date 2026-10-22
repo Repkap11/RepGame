@@ -152,6 +152,12 @@ int ChunkLoader::reload_if_out_of_bounds( Chunk &chunk, const glm::ivec3 &chunk_
         // re-entry (CHUNK_PARKED_UNFINALIZED). Parked states keep theirs.
         if ( chunk.load_state == CHUNK_LIVE ) {
             chunk.load_state = CHUNK_PARKED;
+            // Stale flags are meaningless while parked — the heal paths skip
+            // non-live chunks and the reactivation below re-flags it
+            // unconditionally. Clear them so light_stale_count reflects only
+            // live chunks that still need a relight.
+            chunk.light_stale.store( 0, std::memory_order_relaxed );
+            chunk.light_reseed = 0;
         } else if ( chunk.load_state == CHUNK_LOADING ) {
             chunk.load_state = CHUNK_PARKED_UNFINALIZED;
         }
@@ -161,6 +167,15 @@ int ChunkLoader::reload_if_out_of_bounds( Chunk &chunk, const glm::ivec3 &chunk_
         if ( chunk.load_state == CHUNK_PARKED ) {
             // Parked with finalized data at this position: instant reuse.
             chunk.load_state = CHUNK_LIVE;
+            // While parked, every light path dropped work aimed at this chunk
+            // (seeds, diff rechecks, queued dirty uploads, finalizes) without
+            // flagging it — the frozen volume can be stale. Flag it so the
+            // caller's light_heal_chunk (or light_heal_idle when the budget
+            // is spent) re-finalizes it on re-entry — the same stale+reseed
+            // semantics as the backlog-cap refusals, which converge any mix
+            // of dropped add/remove work.
+            chunk.light_stale.store( 1, std::memory_order_relaxed );
+            chunk.light_reseed = 1;
             return 0;
         }
         if ( chunk.load_state == CHUNK_PARKED_UNFINALIZED && chunk.cells != nullptr ) {
