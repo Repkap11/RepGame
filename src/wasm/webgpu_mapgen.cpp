@@ -57,6 +57,7 @@ struct MapGenJob {
     WGPUBuffer staging_buf = nullptr;
     WGPUBindGroup bind_group = nullptr;
     MapGenJob *next = nullptr;
+    int gen = 0; // device generation this job was submitted under
     // Completion handshake: the mapAsync callback signals cv under mtx.
     pthread_mutex_t mtx = PTHREAD_MUTEX_INITIALIZER;
     pthread_cond_t cv = PTHREAD_COND_INITIALIZER;
@@ -66,6 +67,13 @@ struct MapGenJob {
 
 // Written on the main thread, read by workers — atomic for safety.
 std::atomic<int> init_state{ GPU_INIT_IDLE };
+// Device generation: bumped on every init attempt. Jobs and callbacks carry
+// the generation they were issued under so late-arriving callbacks from a
+// dead device can't kill a fresh init.
+int gpu_gen = 0;
+// Bounded re-init budget: Chrome restarts a crashed GPU process, so a fresh
+// requestAdapter usually succeeds — but don't retry forever.
+int init_attempts_left = 3;
 
 pthread_mutex_t queue_mtx = PTHREAD_MUTEX_INITIALIZER;
 MapGenJob *pending_head = nullptr;
@@ -132,7 +140,8 @@ void fail_pending_jobs( ) {
 void on_map_done( WGPUMapAsyncStatus status, WGPUStringView message, void *userdata1, void *userdata2 ) {
     MapGenJob *job = (MapGenJob *)userdata1;
     int ok = 0;
-    if ( status == WGPUMapAsyncStatus_Success && init_state.load( std::memory_order_acquire ) == GPU_INIT_READY ) {
+    const int state = init_state.load( std::memory_order_acquire );
+    if ( status == WGPUMapAsyncStatus_Success && state == GPU_INIT_READY ) {
         // GPU_INIT_FAILED here means a device error fired between submit and
         // readback — the dispatch may never have run, so the mapped data is
         // untrustworthy (a never-written staging buffer reads as all-AIR).
@@ -146,13 +155,26 @@ void on_map_done( WGPUMapAsyncStatus status, WGPUStringView message, void *userd
             }
             ok = 1;
         }
-    } else {
+    } else if ( job->gen == gpu_gen && state != GPU_INIT_FAILED ) {
+        // An aborted map means the device tore down underneath us (GPU
+        // process crash / device lost). Kill the backend so the pump stops
+        // submitting into the void — otherwise every chunk enqueues a job
+        // that aborts forever. Further aborted in-flight callbacks find
+        // state already FAILED (or are from a dead generation) and stay
+        // silent — a stale callback must not kill a fresh init.
         pr_debug( "webgpu_mapgen: mapAsync failed (status %d)", (int)status );
+        fail_init( "mapAsync aborted — device lost" );
     }
-    wgpuBufferUnmap( job->staging_buf );
-    wgpuBufferRelease( job->staging_buf );
-    wgpuBufferRelease( job->params_buf );
-    wgpuBindGroupRelease( job->bind_group );
+    if ( job->staging_buf ) {
+        wgpuBufferUnmap( job->staging_buf );
+        wgpuBufferRelease( job->staging_buf );
+    }
+    if ( job->params_buf ) {
+        wgpuBufferRelease( job->params_buf );
+    }
+    if ( job->bind_group ) {
+        wgpuBindGroupRelease( job->bind_group );
+    }
     pthread_mutex_lock( &job->mtx );
     job->ok = ok;
     job->done = 1;
@@ -160,7 +182,38 @@ void on_map_done( WGPUMapAsyncStatus status, WGPUStringView message, void *userd
     pthread_mutex_unlock( &job->mtx );
 }
 
+// Completes a job that never got (or lost) its GPU objects — the worker
+// wakes with ok=0 and falls back to CPU mapgen.
+void fail_job( MapGenJob *job ) {
+    if ( job->staging_buf ) {
+        wgpuBufferRelease( job->staging_buf );
+        job->staging_buf = nullptr;
+    }
+    if ( job->params_buf ) {
+        wgpuBufferRelease( job->params_buf );
+        job->params_buf = nullptr;
+    }
+    if ( job->bind_group ) {
+        wgpuBindGroupRelease( job->bind_group );
+        job->bind_group = nullptr;
+    }
+    pthread_mutex_lock( &job->mtx );
+    job->ok = 0;
+    job->done = 1;
+    pthread_cond_signal( &job->cv );
+    pthread_mutex_unlock( &job->mtx );
+}
+
 void submit_job( MapGenJob *job ) {
+    // On a lost/dead device these return null or error handles — using them
+    // for mapAsync/encoding is what wrote to address zero and aborted the
+    // runtime. Bail to CPU instead.
+    if ( init_state.load( std::memory_order_acquire ) != GPU_INIT_READY ) {
+        fail_job( job );
+        return;
+    }
+    job->gen = gpu_gen;
+
     WGPUBufferDescriptor buf_desc = WGPU_BUFFER_DESCRIPTOR_INIT;
     buf_desc.usage = WGPUBufferUsage_Uniform | WGPUBufferUsage_CopyDst;
     buf_desc.size = 16; // 3 i32s, padded
@@ -169,6 +222,11 @@ void submit_job( MapGenJob *job ) {
     buf_desc.usage = WGPUBufferUsage_MapRead | WGPUBufferUsage_CopyDst;
     buf_desc.size = CELLS_BUFFER_BYTES;
     job->staging_buf = wgpuDeviceCreateBuffer( device, &buf_desc );
+    if ( !job->params_buf || !job->staging_buf ) {
+        fail_init( "buffer creation (device dead?)" );
+        fail_job( job );
+        return;
+    }
 
     const int32_t params[ 3 ] = { job->chunk_pos.x * CHUNK_SIZE_X, job->chunk_pos.y * CHUNK_SIZE_Y, job->chunk_pos.z * CHUNK_SIZE_Z };
     wgpuQueueWriteBuffer( queue, job->params_buf, 0, params, sizeof( params ) );
@@ -187,6 +245,14 @@ void submit_job( MapGenJob *job ) {
     job->bind_group = wgpuDeviceCreateBindGroup( device, &bg_desc );
 
     WGPUCommandEncoder encoder = wgpuDeviceCreateCommandEncoder( device, nullptr );
+    if ( !job->bind_group || !encoder ) {
+        if ( encoder ) {
+            wgpuCommandEncoderRelease( encoder );
+        }
+        fail_init( "bind group / encoder creation (device dead?)" );
+        fail_job( job );
+        return;
+    }
     WGPUComputePassEncoder pass = wgpuCommandEncoderBeginComputePass( encoder, nullptr );
     wgpuComputePassEncoderSetPipeline( pass, pipeline );
     wgpuComputePassEncoderSetBindGroup( pass, 0, job->bind_group, 0, nullptr );
@@ -212,9 +278,26 @@ void submit_job( MapGenJob *job ) {
 // readback returns zeros. Log every uncaptured error and kill the backend so
 // chunks fall back to CPU rather than returning wrong terrain.
 void on_uncaptured_error( const WGPUDevice *err_device, WGPUErrorType type, WGPUStringView message, void *userdata1, void *userdata2 ) {
+    // userdata1 carries the generation the device was created under — a
+    // stale error from a dead-generation device must not kill a fresh init.
+    if ( (intptr_t)userdata1 != gpu_gen ) {
+        return;
+    }
     pr_debug( "webgpu_mapgen: device error (type %d): %.*s — falling back to CPU mapgen", (int)type, (int)message.length,
               message.data ? message.data : "" );
     fail_init( "device error" );
+}
+
+// Fires when the device is lost — GPU process crash, driver reset, or
+// explicit destroy. This is the authoritative "GPU died" signal; the flood
+// of aborted mapAsync callbacks is just downstream noise.
+void on_device_lost( const WGPUDevice *lost_device, WGPUDeviceLostReason reason, WGPUStringView message, void *userdata1, void *userdata2 ) {
+    if ( (intptr_t)userdata1 != gpu_gen ) {
+        return; // dead-generation device — the fresh init is unaffected
+    }
+    pr_debug( "webgpu_mapgen: device lost (reason %d): %.*s — falling back to CPU mapgen", (int)reason, (int)message.length,
+              message.data ? message.data : "" );
+    fail_init( "device lost" );
 }
 
 // Pipeline creation moved here: the module handle alone can't distinguish a
@@ -303,6 +386,10 @@ void on_request_adapter( WGPURequestAdapterStatus status, WGPUAdapter adapter, W
     }
     WGPUDeviceDescriptor device_desc = WGPU_DEVICE_DESCRIPTOR_INIT;
     device_desc.uncapturedErrorCallbackInfo.callback = on_uncaptured_error;
+    device_desc.uncapturedErrorCallbackInfo.userdata1 = (void *)(intptr_t)gpu_gen;
+    device_desc.deviceLostCallbackInfo.mode = WGPUCallbackMode_AllowSpontaneous;
+    device_desc.deviceLostCallbackInfo.callback = on_device_lost;
+    device_desc.deviceLostCallbackInfo.userdata1 = (void *)(intptr_t)gpu_gen;
     WGPURequestDeviceCallbackInfo cb = WGPU_REQUEST_DEVICE_CALLBACK_INFO_INIT;
     cb.mode = WGPUCallbackMode_AllowSpontaneous;
     cb.callback = on_request_device;
@@ -311,7 +398,12 @@ void on_request_adapter( WGPURequestAdapterStatus status, WGPUAdapter adapter, W
 }
 
 void begin_init( ) {
+    gpu_gen++;
+    init_attempts_left--;
+    pr_debug( "webgpu_mapgen: init attempt %d", 3 - init_attempts_left );
     init_state.store( GPU_INIT_PENDING, std::memory_order_release );
+    // A fresh instance on every attempt — any prior instance/device was
+    // torn down with the GPU process; the dead handles are simply dropped.
     instance = wgpuCreateInstance( nullptr );
     if ( !instance ) {
         fail_init( "createInstance" );
@@ -332,6 +424,11 @@ void webgpu_mapgen_pump( ) {
     const int state = init_state.load( std::memory_order_acquire );
     if ( state == GPU_INIT_FAILED ) {
         fail_pending_jobs( );
+        // Chrome restarts a crashed GPU process, so a fresh adapter/device
+        // request usually succeeds — retry while the budget lasts.
+        if ( init_attempts_left > 0 ) {
+            init_state.store( GPU_INIT_REQUESTED, std::memory_order_release );
+        }
         return;
     }
     if ( state == GPU_INIT_REQUESTED ) {

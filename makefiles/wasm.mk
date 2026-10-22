@@ -22,11 +22,26 @@ CFLAGS_LINK_WASM := -O3 \
 			-s PTHREAD_POOL_SIZE=navigator.hardwareConcurrency
 
 #Works OK
-# MAXIMUM_MEMORY=4GB (wasm4gb): the default 2GB cap is hit while loading
-# chunks — WebGPU mapgen fills the loader faster so more chunks are resident.
-# The growth cap is declared at SharedArrayBuffer creation; 4GB needs the
-# wasm4gb feature, supported by all modern Chrome/Firefox/Safari.
-CFLAGS_LINK_WASM += -s ALLOW_MEMORY_GROWTH=1 -s MAXIMUM_MEMORY=4GB
+# INITIAL_MEMORY=3968MB (wasm4gb): the default 2GB cap was hit while
+# loading chunks — WebGPU mapgen fills the loader faster so more chunks
+# are resident (observed demand ~3.77GB). Preallocate rather than grow:
+# with pthreads, ALLOW_MEMORY_GROWTH makes a heap grow sync-park every
+# worker on a futex, which deadlocks against a worker blocked in
+# pthread_cond_wait (observed as a full-page freeze when the UI allocated
+# while a worker waited on a WebGPU job); and the alternative —
+# GROWABLE_ARRAYBUFFERS resizable SharedArrayBuffers — is rejected by
+# Chrome's WebGL entry points (bufferSubData et al. refuse
+# resizable-buffer views). A fixed SharedArrayBuffer commits lazily and
+# sidesteps both. Stay under 4GB: exactly 4GB wraps wasm32 heap accounting
+# (arena computes to ~0 -> instant OOM). >2GB needs wasm4gb, supported by
+# modern Chrome/Safari and Firefox 154+.
+CFLAGS_LINK_WASM += -s INITIAL_MEMORY=3968MB
+
+# Default STACK_SIZE is 64KB. emdawnwebgpu delivers JS error/diagnostic
+# strings to wasm callbacks via stringToUTF8OnStack — a large Dawn message
+# (validation errors embed indented context) overflows a small stack and
+# shows up as a stack-cookie smash. 8MB covers arbitrarily large messages.
+CFLAGS_LINK_WASM += -s STACK_SIZE=8MB
 
 # Vanilla upstream emsdk:
 #   git clone https://github.com/emscripten-core/emsdk.git
