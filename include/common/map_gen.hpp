@@ -55,10 +55,8 @@ bool map_gen_load_block_hip( glm::ivec3 *chunk_pos, BlockCell *cells );
 // main thread because async callbacks resolve through its JS event loop.
 // Called once per frame from main_loop_wasm (src/wasm/RepGameSDL2.cpp).
 void webgpu_mapgen_pump( );
-#endif
-#if defined( REPGAME_WASM )
-// Per-frame pump for the WebGPU backend — all wgpu calls run on the browser
-// main thread because async callbacks resolve through its JS event loop.
-// Called once per frame from main_loop_wasm (src/wasm/RepGameSDL2.cpp).
-void webgpu_mapgen_pump( );
+// Releases every worker parked on a mapgen job before cleanup() joins the
+// terrain threads. Called once from main_loop_wasm's exit path — after this
+// the pump never runs again and in-flight mapAsync callbacks may never fire.
+void webgpu_mapgen_shutdown( );
 #endif

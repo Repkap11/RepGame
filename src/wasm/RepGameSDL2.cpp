@@ -227,6 +227,31 @@ extern "C" EMSCRIPTEN_KEEPALIVE void repgame_wasm_request_exit( ) {
 // persist continuously via the terrain loading threads.
 #define WASM_SAVE_INTERVAL_MS 15000
 
+// Freeze forensics: the browser main thread's wasm state is unreachable once
+// it wedges (futex waits on the main thread busy-spin — Atomics.wait is
+// disallowed there). This probe sits in shared wasm memory; a live pthread's
+// JS context can fetch its address via wasmExports._repgame_main_probe_get()
+// and read {frame, phase} from HEAP32 to see exactly which stage of
+// main_loop_wasm the main thread is stuck in.
+struct RepGameMainProbe {
+    volatile int frame;
+    volatile int phase;
+};
+static RepGameMainProbe repgame_main_probe;
+extern "C" EMSCRIPTEN_KEEPALIVE RepGameMainProbe *repgame_main_probe_get( ) {
+    return &repgame_main_probe;
+}
+enum {
+    PHASE_IDLE = 0,
+    PHASE_PUMP = 1,
+    PHASE_SAVE = 2,
+    PHASE_SDL_EVENTS = 3,
+    PHASE_POINTER_STATE = 4,
+    PHASE_TICK = 5,
+    PHASE_CLEAR = 6,
+    PHASE_DRAW = 7,
+};
+
 int is_locking_pointer = 0;
 void repgame_linux_process_window_and_pointer_state( RepGame &repgame ) {
     int width, height;
@@ -234,7 +259,7 @@ void repgame_linux_process_window_and_pointer_state( RepGame &repgame ) {
     // Sync the game's expected pointer lock state to JS every frame. The
     // pointerlockchange listener in index.js checks this to distinguish
     // game-initiated unlocks (e.g. opening inventory) from ESC presses.
-    EM_ASM_INT( { gameWantsPointerLock = $0; return 0; }, should_lock_pointer ? 1 : 0 );
+    EM_ASM_INT( { repgame_set_game_wants_pointer_lock( $0 ); return 0; }, should_lock_pointer ? 1 : 0 );
     if ( should_lock_pointer != is_locking_pointer ) {
         // Drop all button state on lock transitions. If a mouseup was ever
         // lost (e.g. swallowed by a native context menu or released outside
@@ -260,8 +285,13 @@ static inline long long now_us( ) {
 }
 
 void main_loop_wasm( void *arg ) {
+    repgame_main_probe.frame++;
     RepGame &repgame = *static_cast<RepGame *>( arg );
     if ( repgame.shouldExit( ) ) {
+        // Release terrain workers parked on WebGPU mapgen jobs BEFORE
+        // cleanup() joins them — job completion needs this thread's JS event
+        // loop, which never runs again once cleanup blocks in pthread_join.
+        webgpu_mapgen_shutdown( );
         // Save player.dat and persist all dirty chunks (writes go to the OPFS
         // backend and are durable on close), then show the exit screen and
         // stop the main loop so the browser can handle the page normally.
@@ -273,12 +303,14 @@ void main_loop_wasm( void *arg ) {
     // WebGPU mapgen pump: submits queued chunk jobs and picks up the async
     // init chain. Runs on the main thread because emdawnwebgpu's callbacks
     // resolve through this thread's JS event loop (once per rAF).
+    repgame_main_probe.phase = PHASE_PUMP;
     webgpu_mapgen_pump( );
 
     static double last_save_ms = 0;
     const double now_ms = emscripten_get_now( );
     if ( now_ms - last_save_ms > WASM_SAVE_INTERVAL_MS ) {
         last_save_ms = now_ms;
+        repgame_main_probe.phase = PHASE_SAVE;
         repgame.save_player_data( );
     }
 
@@ -299,8 +331,11 @@ void main_loop_wasm( void *arg ) {
     // processing input ahead of the simulation during catch-up.
     int computer_is_too_slow_limit = 10; // max advances per render; can't keep up -> game's UPS slows
     while ( next_game_step <= now_ms && computer_is_too_slow_limit-- ) {
+        repgame_main_probe.phase = PHASE_SDL_EVENTS;
         repgame_linux_process_sdl_events( repgame );
+        repgame_main_probe.phase = PHASE_POINTER_STATE;
         repgame_linux_process_window_and_pointer_state( repgame );
+        repgame_main_probe.phase = PHASE_TICK;
         const long long t_tick = now_us( );
         repgame.tick( );
         repgame.profiling.us_tick = now_us( ) - t_tick;
@@ -317,7 +352,10 @@ void main_loop_wasm( void *arg ) {
         alpha = 1.0f;
     }
 
+    repgame_main_probe.phase = PHASE_CLEAR;
     repgame.clear( );
+    repgame_main_probe.phase = PHASE_DRAW;
     repgame.draw( alpha );
+    repgame_main_probe.phase = PHASE_IDLE;
     return;
 }

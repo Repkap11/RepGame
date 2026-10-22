@@ -63,6 +63,11 @@ struct MapGenJob {
     pthread_cond_t cv = PTHREAD_COND_INITIALIZER;
     int done = 0;
     int ok = 0;
+    // Set by webgpu_mapgen_shutdown() on still-in-flight jobs: the waiting
+    // worker wakes immediately and walks away WITHOUT deleting the job —
+    // ownership passes to the mapAsync callback (which deletes it if it ever
+    // fires; otherwise the leak dies with the page).
+    int abandoned = 0;
 };
 
 // Written on the main thread, read by workers — atomic for safety.
@@ -78,6 +83,24 @@ int init_attempts_left = 3;
 pthread_mutex_t queue_mtx = PTHREAD_MUTEX_INITIALIZER;
 MapGenJob *pending_head = nullptr;
 MapGenJob **pending_tail = &pending_head;
+// Jobs submitted to wgpuBufferMapAsync and awaiting their callback. Only ever
+// touched on the main thread (pump, callbacks, shutdown).
+MapGenJob *inflight_head = nullptr;
+
+void inflight_add( MapGenJob *job ) {
+    job->next = inflight_head;
+    inflight_head = job;
+}
+
+void inflight_remove( MapGenJob *job ) {
+    for ( MapGenJob **pp = &inflight_head; *pp; pp = &( *pp )->next ) {
+        if ( *pp == job ) {
+            *pp = job->next;
+            job->next = nullptr;
+            return;
+        }
+    }
+}
 
 WGPUInstance instance = nullptr;
 WGPUDevice device = nullptr;
@@ -139,6 +162,7 @@ void fail_pending_jobs( ) {
 
 void on_map_done( WGPUMapAsyncStatus status, WGPUStringView message, void *userdata1, void *userdata2 ) {
     MapGenJob *job = (MapGenJob *)userdata1;
+    inflight_remove( job );
     int ok = 0;
     const int state = init_state.load( std::memory_order_acquire );
     if ( status == WGPUMapAsyncStatus_Success && state == GPU_INIT_READY ) {
@@ -176,10 +200,16 @@ void on_map_done( WGPUMapAsyncStatus status, WGPUStringView message, void *userd
         wgpuBindGroupRelease( job->bind_group );
     }
     pthread_mutex_lock( &job->mtx );
+    const int abandoned = job->abandoned;
     job->ok = ok;
     job->done = 1;
     pthread_cond_signal( &job->cv );
     pthread_mutex_unlock( &job->mtx );
+    if ( abandoned ) {
+        // webgpu_mapgen_shutdown() already woke the worker, which walked away
+        // without freeing — the callback owns the memory now.
+        delete job;
+    }
 }
 
 // Completes a job that never got (or lost) its GPU objects — the worker
@@ -265,6 +295,7 @@ void submit_job( MapGenJob *job ) {
     wgpuQueueSubmit( queue, 1, &commands );
     wgpuCommandBufferRelease( commands );
 
+    inflight_add( job );
     WGPUBufferMapCallbackInfo map_cb = WGPU_BUFFER_MAP_CALLBACK_INFO_INIT;
     map_cb.mode = WGPUCallbackMode_AllowSpontaneous;
     map_cb.callback = on_map_done;
@@ -417,6 +448,31 @@ void begin_init( ) {
 
 } // namespace
 
+// Exit-path safety valve, called once from main_loop_wasm before
+// repgame.cleanup(). Job completion normally needs this thread's JS event
+// loop (mapAsync callbacks), which never runs again once cleanup() blocks in
+// TerrainLoadingThread::stop()'s pthread_join — without this, a worker
+// parked on job->cv never wakes and the join wedges the renderer forever.
+void webgpu_mapgen_shutdown( ) {
+    init_state.store( GPU_INIT_FAILED, std::memory_order_release );
+    // Workers parked on never-submitted jobs wake with ok=0.
+    fail_pending_jobs( );
+    // Workers parked on submitted jobs can't be completed — the mapAsync
+    // callback needs the (now-dead) event loop. Mark each job abandoned and
+    // signal it: the worker wakes with ok=0 and walks away without freeing;
+    // the callback owns the job if it ever fires.
+    for ( MapGenJob *job = inflight_head; job; job = job->next ) {
+        pthread_mutex_lock( &job->mtx );
+        if ( !job->done ) {
+            job->abandoned = 1;
+            job->ok = 0;
+            job->done = 1;
+            pthread_cond_signal( &job->cv );
+        }
+        pthread_mutex_unlock( &job->mtx );
+    }
+}
+
 // Per-frame pump, called from main_loop_wasm on the browser main thread.
 // Starts the async init chain once a worker has asked for the backend, and
 // submits whatever jobs have queued up since the last frame.
@@ -472,6 +528,12 @@ bool MapGen::load_block_webgpu( Chunk *chunk ) {
     job->cells = chunk->cells;
 
     pthread_mutex_lock( &queue_mtx );
+    if ( init_state.load( std::memory_order_acquire ) == GPU_INIT_FAILED ) {
+        // Device lost or shutting down — nobody will ever complete this job.
+        pthread_mutex_unlock( &queue_mtx );
+        delete job;
+        return false;
+    }
     *pending_tail = job;
     pending_tail = &job->next;
     pthread_mutex_unlock( &queue_mtx );
@@ -481,8 +543,12 @@ bool MapGen::load_block_webgpu( Chunk *chunk ) {
         pthread_cond_wait( &job->cv, &job->mtx );
     }
     const int ok = job->ok;
+    const int abandoned = job->abandoned;
     pthread_mutex_unlock( &job->mtx );
-    delete job;
+    if ( !abandoned ) {
+        // Abandoned jobs are owned by the (possibly never-firing) callback.
+        delete job;
+    }
 
 #if MAPGEN_VERIFY
     if ( ok ) {

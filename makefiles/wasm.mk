@@ -15,7 +15,7 @@ CFLAGS_LINK_WASM := -O3 \
 			--use-port=emdawnwebgpu \
 			-s MAX_WEBGL_VERSION=2 \
 			-s ASSERTIONS=1 \
-			-s EXPORTED_FUNCTIONS='["_main", "_repgame_wasm_start_storage", "_repgame_wasm_request_exit", "_repgame_wasm_set_server"]' \
+			-s EXPORTED_FUNCTIONS='["_main", "_repgame_wasm_start_storage", "_repgame_wasm_request_exit", "_repgame_wasm_set_server", "_repgame_main_probe_get"]' \
 			-lwebsocket.js \
 			-s EXPORTED_RUNTIME_METHODS='["ccall", "cwrap"]' \
 			-pthread \

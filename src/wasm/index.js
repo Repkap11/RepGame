@@ -162,6 +162,24 @@ var gameRunning = false;
 // gameplay), false when it doesn't (inventory open). The pointerlockchange
 // listener uses this to distinguish ESC from game-initiated unlocks.
 var gameWantsPointerLock = false;
+// pointerlockchange events arrive asynchronously, so an unlock event
+// generated while the game briefly wanted the lock off (inventory open)
+// can be delivered *after* the game already flipped the flag back on and
+// requested the lock again — a stale unlock arriving under flag=1 looks
+// exactly like an ESC and used to request_exit() mid-toggle. Only count an
+// unlock as ESC if the pointer was actually observed locked during the
+// current "wants lock" epoch.
+var hadPointerLockForCurrentWant = false;
+
+// Called from C++ every frame via EM_ASM.
+function repgame_set_game_wants_pointer_lock(wants) {
+  if (wants && !gameWantsPointerLock) {
+    // Starting a new "wants lock" epoch: wait for a fresh acquire event
+    // before trusting later unlock events.
+    hadPointerLockForCurrentWant = false;
+  }
+  gameWantsPointerLock = !!wants;
+}
 
 // When pointer lock is active, ESC is consumed by the browser to break
 // pointer lock — the game never sees the keypress. Listen for the resulting
@@ -169,14 +187,25 @@ var gameWantsPointerLock = false;
 // since that also breaks pointer lock but isn't an exit request. Also skip
 // if the game released pointer lock on purpose (e.g. inventory open).
 document.addEventListener("pointerlockchange", function() {
-  if (gameRunning && !document.pointerLockElement && document.hasFocus()) {
-    if (!gameWantsPointerLock) {
-      // The game intentionally released pointer lock (e.g. inventory). Don't exit.
-    } else {
-      // The game wants pointer lock but lost it — this is ESC. Exit the game.
-      request_exit();
-    }
+  if (document.pointerLockElement) {
+    hadPointerLockForCurrentWant = true;
+    return;
   }
+  if (!gameRunning || !document.hasFocus()) {
+    return;
+  }
+  if (!gameWantsPointerLock) {
+    // The game intentionally released pointer lock (e.g. inventory). Don't exit.
+    return;
+  }
+  if (!hadPointerLockForCurrentWant) {
+    // Stale unlock racing a just-issued lock request (rapid inventory
+    // toggles) — the pointer was never locked under the current flag, so
+    // this isn't an ESC.
+    return;
+  }
+  // The game wants pointer lock, had it, and lost it — this is ESC.
+  request_exit();
 });
 
 // When the pointer isn't locked (e.g. inventory open), a right-click opens
