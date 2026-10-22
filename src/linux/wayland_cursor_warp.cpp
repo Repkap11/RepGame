@@ -57,9 +57,17 @@ static void pointer_axis( void *data, struct wl_pointer *pointer, uint32_t time,
 
 static const struct wl_pointer_listener pointer_listener = {
     pointer_enter, pointer_leave, pointer_motion, pointer_button, pointer_axis,
-    nullptr, nullptr, nullptr, nullptr, nullptr, nullptr
-    // wayland >= 1.24 (wl_pointer v11) grew a trailing `warp` member; gcc's
-    // -Wmissing-field-initializers (in -Wextra) fires without an entry.
+    nullptr, nullptr, nullptr, nullptr
+    // wl_pointer grew trailing members across wayland versions (axis_value120
+    // in v8, axis_relative_direction in v9); gcc's -Wmissing-field-initializers
+    // (in -Wextra) fires without an entry, so add them only when present.
+#ifdef WL_POINTER_AXIS_VALUE120_SINCE_VERSION
+    , nullptr
+#endif
+#ifdef WL_POINTER_AXIS_RELATIVE_DIRECTION_SINCE_VERSION
+    , nullptr
+#endif
+    // wayland >= 1.24 (wl_pointer v11) grew a trailing `warp` member.
 #ifdef WL_POINTER_WARP_SINCE_VERSION
     , nullptr
 #endif
