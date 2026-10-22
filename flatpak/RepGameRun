@@ -1,0 +1,10 @@
+#!/bin/sh
+# Launcher for the RepGame flatpak — same role as src/linux/RepGameAppRun in
+# the AppImage: run with no arguments connects to the public server by
+# default; explicit args from `flatpak run com.repkap11.repgame <args>`
+# still win via the "$@" fallthrough.
+if [ "$#" -eq 0 ]; then
+    exec /app/bin/RepGame_uncompressed World1 repkap11.com
+else
+    exec /app/bin/RepGame_uncompressed "$@"
+fi

@@ -10,7 +10,10 @@ binary lands at `out/linux/release/RepGame`.
 - `make linux_debug` / `make linux_debug-run` — debug build
 - `make android` — Android assets + build; `make android-run` to deploy to a device
 - `make deploy` — build the portable Linux AppImage and rsync it to repkap11.com
-- `make flatpak` — build + install the flatpak (`flatpak run com.repkap11.repgame`)
+- `make flatpak` — build + install the flatpak (`flatpak run com.repkap11.repgame`).
+  The flatpak `command:` is `flatpak/RepGameRun`, a wrapper like the AppImage's
+  AppRun: no args → `RepGame_uncompressed World1 repkap11.com` (public server);
+  explicit args pass through.
 - `make gpu-prebuilt` — compile HIP/CUDA objects + harvest runtime libs in Docker
   into `prebuilt/gpu` (gitignored). `make flatpak` depends on this: the flatpak
   sandbox has no hipcc/nvcc, so its manifest links the prebuilt objects via

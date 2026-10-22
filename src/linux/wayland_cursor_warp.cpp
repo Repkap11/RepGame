@@ -58,6 +58,11 @@ static void pointer_axis( void *data, struct wl_pointer *pointer, uint32_t time,
 static const struct wl_pointer_listener pointer_listener = {
     pointer_enter, pointer_leave, pointer_motion, pointer_button, pointer_axis,
     nullptr, nullptr, nullptr, nullptr, nullptr, nullptr
+    // wayland >= 1.24 (wl_pointer v11) grew a trailing `warp` member; gcc's
+    // -Wmissing-field-initializers (in -Wextra) fires without an entry.
+#ifdef WL_POINTER_WARP_SINCE_VERSION
+    , nullptr
+#endif
 };
 
 bool wayland_warp_cursor( struct wl_display *display, struct wl_surface *surface, int x, int y ) {

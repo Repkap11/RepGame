@@ -2,7 +2,7 @@ app-id: com.repkap11.repgame
 runtime: org.freedesktop.Platform
 runtime-version: '26.08'
 sdk: org.freedesktop.Sdk
-command: RepGame_uncompressed
+command: RepGame
 build-options:
   # RepGame's link rules take libs from LIBS_LINUX only; this makes the module
   # libs (GLEW under /app/lib) visible to ld via LDFLAGS.
@@ -38,8 +38,14 @@ modules:
       # Docker image by `make gpu-prebuilt` (a prerequisite of `make flatpak`)
       # into prebuilt/gpu. GPU_PREBUILT_DIR makes hip.mk/cuda.mk link them and
       # pull the bundled runtime libs (prebuilt/gpu/lib → /app/lib).
-      - make out/linux/release/RepGame_uncompressed GPU_PREBUILT_DIR=prebuilt/gpu
+      # The freedesktop SDK ships gcc, not the host's clang/lld — override
+      # CC_LINUX/CCLD_LINUX so the sandbox builds with g++ + the default ld.
+      - make out/linux/release/RepGame_uncompressed GPU_PREBUILT_DIR=prebuilt/gpu CC_LINUX=g++ CCLD_LINUX=
       - install -Dm755 out/linux/release/RepGame_uncompressed /app/bin/RepGame_uncompressed
+      # Wrapper is the flatpak `command:` — like the AppImage's AppRun, it
+      # adds the default `World1 repkap11.com` args so a bare `flatpak run`
+      # connects to the public server instead of starting single-player.
+      - install -Dm755 flatpak/RepGameRun /app/bin/RepGame
       # Install only the libs the freedesktop runtime lacks. The full set in
       # prebuilt/gpu/lib is also needed for -rpath-link at link time, but
       # bundling runtime-provided libs (libdrm_amdgpu, libelf, libzstd, libffi)
