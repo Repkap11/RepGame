@@ -3116,7 +3116,7 @@ void ChunkLoader::light_thread_loop( ) {
         bool want_drain = false;
         {
             std::unique_lock<std::mutex> lock( light_work_mutex );
-            light_work_cv.wait( lock, [ this ] {
+            light_work_cv.wait( lock, [] {
                 if ( light_thread_stop_flag ) {
                     return true;
                 }

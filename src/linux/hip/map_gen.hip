@@ -7,7 +7,7 @@
 
 // Shared perlin dialect compiled __device__ into this TU (replaces the old
 // perlin_noise_impl.inl duplicate — one dialect file feeds CPU/CUDA/HIP/WGSL).
-#define MG_QUAL __device__ static
+#define MG_QUAL __device__ static inline
 #include "common/perlin_noise_shared.hpp"
 
 #define MAP_GEN_PERLIN2D( x, z, f, d, s ) perlin_noise2d( x, z, f, d, s )

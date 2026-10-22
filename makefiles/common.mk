@@ -2,6 +2,10 @@
 
 USE_CCACHE ?= 1
 
+# Warning set shared by every platform: warnings are errors so a warning on
+# one toolchain can't silently ship on another.
+CFLAGS_WARNINGS := -Wall -Wextra -Werror -Wno-unused-parameter -Wno-unused-variable
+
 # Output directory for Linux build artifacts. The portable (Docker) build
 # overrides this to out/linux-portable so host and Docker .o files don't clobber.
 LINUX_OUT ?= out/linux

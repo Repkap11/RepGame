@@ -13,7 +13,7 @@
 #include "common/block.hpp"
 #include "common/render_order.hpp"
 
-#define MG_QUAL __device__ static
+#define MG_QUAL __device__ static inline
 #include "common/mesh_gen_fns.hpp"
 
 __global__ void hip_calculate_mesh_kernel( const BlockCell *cells,

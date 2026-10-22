@@ -16,7 +16,12 @@ LIB_DEVICE_CUDA := $(LINUX_OUT)/linux/cuda/lib$(TARGET)_device.o
 LIB_TARGET_CUDA := $(LINUX_OUT)/linux/cuda/lib$(TARGET).o
 CLEAN_CUDA += $(LIB_DEVICE_CUDA) $(LIB_TARGET_CUDA)
 
-CFLAGS_CUDA :=  -arch=sm_50 \
+CFLAGS_CUDA :=  -Xcompiler -Wall \
+				-Xcompiler -Wextra \
+				-Xcompiler -Werror \
+				-Xcompiler -Wno-unused-parameter \
+				-Xcompiler -Wno-unused-variable \
+				-arch=sm_50 \
 				-gencode=arch=compute_50,code=sm_50 \
 				-gencode=arch=compute_52,code=sm_52 \
 				-gencode=arch=compute_60,code=sm_60 \

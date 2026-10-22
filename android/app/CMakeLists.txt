@@ -8,6 +8,9 @@ include_directories(../../include/)
 include_directories(../../entt_build/src/)
 
 add_definitions(-DREPGAME_ANDROID -DGLM_FORCE_CXX17)
+# Same warning set as the other platforms (NDK clang; c++20-designator covers
+# the designated initializers used throughout).
+add_compile_options(-Wall -Wextra -Werror -Wno-unused-parameter -Wno-unused-variable -Wno-c++20-designator)
 file(GLOB REPGAME_SOURCES
         ${CMAKE_CURRENT_SOURCE_DIR}/../../src/android/*.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/../../src/common/*.cpp

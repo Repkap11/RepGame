@@ -1,12 +1,12 @@
 #Linux x86_64 builds
 
-REPGAME_PACKAGES += libglew-dev libxi-dev g++ libsdl3-dev upx-ucl cppcheck
+REPGAME_PACKAGES += libglew-dev libxi-dev clang lld g++ libsdl3-dev upx-ucl cppcheck
 
 # ld -b binary generates symbol names from the file path with non-alnum chars
 # converted to underscores. Used for --redefine-sym in shader blob targets.
 LINUX_OUT_SYMBOLS := $(subst /,_,$(subst .,_,$(subst -,_,$(LINUX_OUT))))
 
-CFLAGS_LINUX := -Wall -Wextra -std=c++17 -Wno-unused-parameter -Wno-unused-variable -fno-pie
+CFLAGS_LINUX := $(CFLAGS_WARNINGS) -std=c++17 -fno-pie
 LFLAGS := -z noexecstack
 
 # In release mode, don't check for GL errors. HW vsync is a runtime toggle on
@@ -28,19 +28,21 @@ LDFLAGS ?=
 # SDL3 is dynamically linked, because it's too hard to statically link against X11, and I don't want to compile it from source.
 LIBS_LINUX := -lSDL3 -Wl,-Bstatic -lGLEW -Wl,-Bdynamic -lGL -lpthread -lm -ldl -static-libgcc -static-libstdc++ -lwayland-client
 
-CC_LINUX := g++
-# CC_LINUX := clang++
+CC_LINUX := clang++
+# CC_LINUX := g++
 
-LD_LINUX := ld
-# LD_LINUX := gold
+# Final link goes through lld: fastest maintained linker and produces the
+# smallest binaries here. Link-only flag — clang's -Werror rejects -fuse-ld on
+# -c compiles as an unused argument. The -r -b binary blob rules use plain `ld`
+# (lld doesn't implement -b binary).
+CCLD_LINUX := -fuse-ld=lld
 
 ifeq ($(CC_LINUX),g++)
-		CFLAGS_LINUX += -no-pie
-	ifeq ($(LD_LINUX),gold)
-		CFLAGS_LINUX += -fuse-ld=gold
-	endif
+	CFLAGS_LINUX += -no-pie
 else
-	CFLAGS_LINUX += -fPIE
+	# clang (like wasm.mk/hip.mk): -Werror flags the C++17-incompatible
+	# designated initializers used throughout; and -no-pie isn't a clang flag.
+	CFLAGS_LINUX += -fPIE -Wno-c++20-designator
 endif
 
 ifeq ($(USE_CCACHE),1)
@@ -72,18 +74,18 @@ $(LINUX_OUT)/shaders/%.glsl: src/shaders/%.glsl include/common/chunk_dimensions.
 	$(SHADER_PP) -DREPGAME_LINUX $< -o $@
 
 $(LINUX_OUT)/shaders/%.o : $(LINUX_OUT)/shaders/%.glsl makefiles/linux.mk | $(LINUX_OUT)
-	$(LD_LINUX) $(LFLAGS) -r -b binary $< -o $@_no_section
+	ld $(LFLAGS) -r -b binary $< -o $@_no_section
 	objcopy --rename-section .data=.rodata,CONTENTS,ALLOC,LOAD,READONLY,DATA \
 		--redefine-sym _binary_$(LINUX_OUT_SYMBOLS)_shaders_$*_glsl_start=_binary_src_shaders_$*_glsl_start \
 		--redefine-sym _binary_$(LINUX_OUT_SYMBOLS)_shaders_$*_glsl_end=_binary_src_shaders_$*_glsl_end \
 		$@_no_section $@
 
 $(LINUX_OUT)/bitmaps/%.o : out/bitmaps/%.bin makefiles/linux.mk | $(LINUX_OUT)
-	$(LD_LINUX) $(LFLAGS) -r -b binary $< -o $@_no_section
+	ld $(LFLAGS) -r -b binary $< -o $@_no_section
 	objcopy --rename-section .data=.rodata,CONTENTS,ALLOC,LOAD,READONLY,DATA $@_no_section $@
 
 $(LINUX_OUT)/fonts/%.o : fonts/%.ttf | $(LINUX_OUT)
-	$(LD_LINUX) $(LFLAGS) -r -b binary $< -o $@_no_section
+	ld $(LFLAGS) -r -b binary $< -o $@_no_section
 	objcopy --rename-section .data=.rodata,CONTENTS,ALLOC,LOAD,READONLY,DATA $@_no_section $@
 
 all: linux
@@ -115,13 +117,14 @@ $(LINUX_OUT)/debug/%.o: src/%.cpp | $(LINUX_OUT)
 	$(CC_LINUX) $(INCLUDES_COMMON) $(CFLAGS_LINUX) $(CFLAGS_LINUX_DEBUG) -MMD -MP -MF $(patsubst %.o,%.d,$@) -MT $(patsubst %.d,%.o,$@) -c $< -o $@
 
 
+# Vendored imgui keeps -Wall/-Wextra warnings but isn't held to -Werror
 $(LINUX_OUT)/debug/imgui/%.o: imgui_build/%.cpp | $(LINUX_OUT)
 	@#Use g++ to build o file and a dependecy tree .d file for every cpp file
-	$(CC_LINUX) $(INCLUDES_COMMON) $(CFLAGS_LINUX) $(CFLAGS_LINUX_DEBUG) -MMD -MP -MF $(patsubst %.o,%.d,$@) -MT $(patsubst %.d,%.o,$@) -c $< -o $@
+	$(CC_LINUX) $(INCLUDES_COMMON) $(CFLAGS_LINUX) $(CFLAGS_LINUX_DEBUG) -Wno-error -MMD -MP -MF $(patsubst %.o,%.d,$@) -MT $(patsubst %.d,%.o,$@) -c $< -o $@
 
 $(LINUX_OUT)/release/imgui/%.o: imgui_build/%.cpp | $(LINUX_OUT)
 	@#Use g++ to build o file and a dependecy tree .d file for every cpp file
-	$(CC_LINUX) $(INCLUDES_COMMON) $(CFLAGS_LINUX) $(CFLAGS_LINUX_RELEASE) -MMD -MP -MF $(patsubst %.o,%.d,$@) -MT $(patsubst %.d,%.o,$@) -c $< -o $@
+	$(CC_LINUX) $(INCLUDES_COMMON) $(CFLAGS_LINUX) $(CFLAGS_LINUX_RELEASE) -Wno-error -MMD -MP -MF $(patsubst %.o,%.d,$@) -MT $(patsubst %.d,%.o,$@) -c $< -o $@
 
 #Include these .d files, so the dependicies are known for secondary builds.
 -include $(DEPS_LINUX)
@@ -133,10 +136,10 @@ $(LINUX_OUT)/release/$(TARGET): $(LINUX_OUT)/release/$(TARGET)_uncompressed
 
 
 $(LINUX_OUT)/release/$(TARGET)_uncompressed: $(OBJECTS_IMGUI_LINUX_RELEASE) $(OBJECTS_COMMON_LINUX_RELEASE) $(OBJECTS_LINUX_RELEASE) $(SHADER_BLOBS_LINUX) $(BITMAP_BLOBS_LINUX) $(FONT_BLOBS_LINUX) | $(LINUX_OUT)
-	$(CC_LINUX) -flto $(CFLAGS_LINUX) $(CFLAGS_LINUX_RELEASE) $(OBJECTS_LINUX_RELEASE) $(OBJECTS_IMGUI_LINUX_RELEASE) $(OBJECTS_COMMON_LINUX_RELEASE) $(SHADER_BLOBS_LINUX) $(BITMAP_BLOBS_LINUX) $(FONT_BLOBS_LINUX) $(LDFLAGS) $(LIBS_LINUX) -o $@
+	$(CC_LINUX) -flto $(CCLD_LINUX) $(CFLAGS_LINUX) $(CFLAGS_LINUX_RELEASE) $(OBJECTS_LINUX_RELEASE) $(OBJECTS_IMGUI_LINUX_RELEASE) $(OBJECTS_COMMON_LINUX_RELEASE) $(SHADER_BLOBS_LINUX) $(BITMAP_BLOBS_LINUX) $(FONT_BLOBS_LINUX) $(LDFLAGS) $(LIBS_LINUX) -o $@
 
 $(LINUX_OUT)/debug/$(TARGET): $(OBJECTS_IMGUI_LINUX_DEBUG) $(OBJECTS_COMMON_LINUX_DEBUG) $(OBJECTS_LINUX_DEBUG) $(SHADER_BLOBS_LINUX) $(BITMAP_BLOBS_LINUX) $(FONT_BLOBS_LINUX) | $(LINUX_OUT)
-	$(CC_LINUX) $(CFLAGS_LINUX) $(CFLAGS_LINUX_DEBUG) $(OBJECTS_LINUX_DEBUG) $(OBJECTS_IMGUI_LINUX_DEBUG) $(OBJECTS_COMMON_LINUX_DEBUG) $(SHADER_BLOBS_LINUX) $(BITMAP_BLOBS_LINUX) $(FONT_BLOBS_LINUX) $(LDFLAGS) $(LIBS_LINUX) -o $@
+	$(CC_LINUX) $(CCLD_LINUX) $(CFLAGS_LINUX) $(CFLAGS_LINUX_DEBUG) $(OBJECTS_LINUX_DEBUG) $(OBJECTS_IMGUI_LINUX_DEBUG) $(OBJECTS_COMMON_LINUX_DEBUG) $(SHADER_BLOBS_LINUX) $(BITMAP_BLOBS_LINUX) $(FONT_BLOBS_LINUX) $(LDFLAGS) $(LIBS_LINUX) -o $@
 
 linux-run: linux
 	./$(LINUX_OUT)/release/$(TARGET) $(WORLD) www.repkap11.com

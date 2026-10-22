@@ -1140,7 +1140,7 @@ bool World::process_random_ticks_on_chunk( const Chunk &chunk ) {
     bool anyBlockStateChanged = false;
     const int index = CHUNK_BLOCK_DRAW_START + ( rand( ) % ( CHUNK_BLOCK_DRAW_STOP - CHUNK_BLOCK_DRAW_START + 1 ) );
     int x, y, z;
-    if ( const int drawn_block = Chunk::get_coords_from_index( index, x, y, z ) ) { // TODO re-try if this isn't a valid block coord
+    if ( Chunk::get_coords_from_index( index, x, y, z ) ) { // TODO re-try if this isn't a valid block coord
                                                                                     // pr_debug( "Ticking index:%d", index );
         const glm::ivec3 pos = glm::ivec3( x, y, z );
         BlockState blockState = chunk.get_block( pos );

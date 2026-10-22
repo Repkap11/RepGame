@@ -20,7 +20,8 @@ endif
 # binary runs on every supported AMD GPU (including future ones within each
 # family) without listing each chip individually. Requires Code Object V6
 # (ROCm 6.0+); gfx12-generic / gfx1151 need a newer ROCm on the build machine.
-CFLAGS_HIP :=  --offload-arch=gfx9-generic \
+CFLAGS_HIP :=  $(CFLAGS_WARNINGS) -Wno-c++20-designator \
+				--offload-arch=gfx9-generic \
 				--offload-arch=gfx10-1-generic \
 				--offload-arch=gfx10-3-generic \
 				--offload-arch=gfx11-generic \

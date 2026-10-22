@@ -12,7 +12,7 @@ void IndexBuffer::set_data( const unsigned int *data, unsigned int count ) {
     this->count = count;
     glBindBuffer( GL_ELEMENT_ARRAY_BUFFER, this->mRendererId );
     const GLsizeiptr byte_size = static_cast<GLsizeiptr>( count ) * sizeof( unsigned int );
-    if ( byte_size == this->size ) {
+    if ( byte_size == static_cast<GLsizeiptr>( this->size ) ) {
         // Size unchanged: update in place instead of reallocating.
         if ( byte_size > 0 ) {
             glBufferSubData( GL_ELEMENT_ARRAY_BUFFER, 0, byte_size, data );

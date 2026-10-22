@@ -2,7 +2,7 @@
 
 REPGAME_PACKAGES += mingw-w64 upx-ucl
 
-CFLAGS_WINDOWS := -Wall -Werror -std=c++17 -Wno-unused-variable -fno-pie -D GLEW_STATIC -D GLEW_NO_GLU -mwindows -D _WIN32_WINNT=0x0A00
+CFLAGS_WINDOWS := $(CFLAGS_WARNINGS) -std=c++17 -fno-pie -D GLEW_STATIC -D GLEW_NO_GLU -mwindows -D _WIN32_WINNT=0x0A00
 
 CFLAGS_WINDOWS += -O3 -DREPGAME_SKIP_CHECK_FOR_GL_ERRORS
 # CFLAGS_WINDOWS += -g
@@ -73,9 +73,10 @@ out/windows/%.o: src/%.cpp windows_build | out/windows
 	@#Use g++ to build o file and a dependecy tree .d file for every cpp file
 	$(CC_WINDOWS) $(INCLUDES_WINDOWS) $(INCLUDES_COMMON) $(CFLAGS_WINDOWS) -MMD -MP -MF $(patsubst %.o,%.d,$@) -MT $(patsubst %.d,%.o,$@) -c $< -o $@
 
+# Vendored imgui keeps -Wall/-Wextra warnings but isn't held to -Werror
 out/windows/imgui/%.o: imgui_build/%.cpp windows_build | out/windows
 	@#Use g++ to build o file and a dependecy tree .d file for every cpp file
-	$(CC_WINDOWS) $(INCLUDES_WINDOWS) $(INCLUDES_COMMON) $(CFLAGS_WINDOWS) -MMD -MP -MF $(patsubst %.o,%.d,$@) -MT $(patsubst %.d,%.o,$@) -c $< -o $@
+	$(CC_WINDOWS) $(INCLUDES_WINDOWS) $(INCLUDES_COMMON) $(CFLAGS_WINDOWS) -Wno-error -MMD -MP -MF $(patsubst %.o,%.d,$@) -MT $(patsubst %.d,%.o,$@) -c $< -o $@
 
 #Include these .d files, so the dependicies are known for secondary builds.
 -include $(DEPS_WINDOWS)

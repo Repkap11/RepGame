@@ -6,7 +6,7 @@ REPGAME_PACKAGES += npm
 # include path. emdawnwebgpu likewise injects <webgpu/webgpu.h> — the Dawn-
 # based WebGPU binding for browser GPU mapgen (see src/shaders/map_gen.wgsl
 # and src/wasm/webgpu_mapgen.cpp).
-CFLAGS_WASM := -DREPGAME_WASM -pthread -s USE_SDL=2 -O3 -DREPGAME_SKIP_CHECK_FOR_GL_ERRORS --use-port=emdawnwebgpu
+CFLAGS_WASM := $(CFLAGS_WARNINGS) -Wno-c++20-designator -DREPGAME_WASM -pthread -s USE_SDL=2 -O3 -DREPGAME_SKIP_CHECK_FOR_GL_ERRORS --use-port=emdawnwebgpu
 
 
 CFLAGS_LINK_WASM := -O3 \
@@ -97,7 +97,8 @@ out/wasm/%.o: src/%.cpp $(HEADERS) src/wasm/RepGameSDL2.cpp | out/wasm
 # MAX_WEBGL_VERSION=2), so force the ES3 path ("#version 300 es").
 out/wasm/imgui/%.o: imgui_build/%.cpp | out/wasm
 	@mkdir -p $(dir $@)
-	$(CC_WASM) $(INCLUDES_COMMON) $(CFLAGS_WASM) -DIMGUI_IMPL_OPENGL_ES3 -c $< -o $@
+	@# Vendored imgui keeps -Wall/-Wextra warnings but isn't held to -Werror
+	$(CC_WASM) $(INCLUDES_COMMON) $(CFLAGS_WASM) -Wno-error -DIMGUI_IMPL_OPENGL_ES3 -c $< -o $@
 
 out/wasm/delivery/$(TARGET).js: $(OBJECTS_COMMON_WASM) $(OBJECTS_IMGUI_WASM) $(OBJECTS_WASM) $(WASM_SHADERS) $(WASM_WGSL_SHADERS) $(WASM_BITMAPS) $(WASM_FONTS) | out/wasm
 	$(CC_WASM) $(CFLAGS_LINK_WASM) $(OBJECTS_WASM) $(OBJECTS_IMGUI_WASM) $(OBJECTS_COMMON_WASM) --preload-file out/wasm/fs@ -o $@
