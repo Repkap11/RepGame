@@ -1,10 +1,13 @@
 #include <stdlib.h>
+#include <math.h>
 
-#include "linux/cuda/perlin_noise.hpp"
+// Shared perlin dialect compiled __device__ into this TU (replaces the old
+// perlin_noise.cu duplicate — one dialect file feeds CPU/CUDA/HIP/WGSL).
+#define MG_QUAL __device__ static
+#include "common/perlin_noise_shared.hpp"
 
-#define MAP_GEN_QUAL __device__
-#define MAP_GEN_PERLIN2D( x, z, f, d, s ) perlin_noise2d_cuda( x, z, f, d, s )
-#define MAP_GEN_PERLIN3D( x, y, z, f, d, s ) perlin_noise3d_cuda( x, y, z, f, d, s )
+#define MAP_GEN_PERLIN2D( x, z, f, d, s ) perlin_noise2d( x, z, f, d, s )
+#define MAP_GEN_PERLIN3D( x, y, z, f, d, s ) perlin_noise3d( x, y, z, f, d, s )
 #include "common/map_gen_fields.hpp"
 
 __global__ void cuda_set_block( BlockCell *cells, int chunk_x, int chunk_y, int chunk_z ) {

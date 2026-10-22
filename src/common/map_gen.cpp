@@ -7,7 +7,7 @@
 #include "common/chunk_loader.hpp"
 #include "common/chunk.hpp"
 
-#define MAP_GEN_QUAL static inline
+#define MG_QUAL static inline
 #define MAP_GEN_PERLIN2D( x, z, f, d, s ) perlin_noise2d( x, z, f, d, s )
 #define MAP_GEN_PERLIN3D( x, y, z, f, d, s ) perlin_noise3d( x, y, z, f, d, s )
 #include "common/map_gen_fields.hpp"
@@ -152,4 +152,14 @@ bool MapGen::load_block_hip( Chunk *chunk ) {
     return map_gen_load_block_hip( chunk_pos, chunk->cells );
 }
 
+#endif
+
+#if !defined( REPGAME_WASM )
+// WebGPU mapgen lives only on WASM; non-WASM builds stub it out.
+int MapGen::supports_webgpu( ) {
+    return 0;
+}
+bool MapGen::load_block_webgpu( Chunk *chunk ) {
+    return false;
+}
 #endif

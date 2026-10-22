@@ -6,6 +6,7 @@
 
 #include "common/RepGame.hpp"
 #include "common/rep_tests.hpp"
+#include "common/map_gen.hpp"
 
 static RepGameState *globalGameState;
 
@@ -269,6 +270,11 @@ void main_loop_wasm( void *arg ) {
         emscripten_cancel_main_loop( );
         return;
     }
+    // WebGPU mapgen pump: submits queued chunk jobs and picks up the async
+    // init chain. Runs on the main thread because emdawnwebgpu's callbacks
+    // resolve through this thread's JS event loop (once per rAF).
+    webgpu_mapgen_pump( );
+
     static double last_save_ms = 0;
     const double now_ms = emscripten_get_now( );
     if ( now_ms - last_save_ms > WASM_SAVE_INTERVAL_MS ) {

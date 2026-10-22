@@ -541,6 +541,7 @@ void Chunk::load_terrain( MapStorage &map_storage ) {
         // Per-chunk env checks are cached — this runs once per chunk on every
         // terrain worker, and the values can't change mid-process.
         static const bool no_hip_mapgen = getenv( "REPGAME_NO_HIP_MAPGEN" ) != nullptr;
+        static const bool no_webgpu_mapgen = getenv( "REPGAME_NO_WEBGPU_MAPGEN" ) != nullptr;
         if ( LOAD_CHUNKS_SUPPORTS_CUDA && MapGen::supports_cuda( ) ) {
             if ( firstTime ) {
                 firstTime = 0;
@@ -555,6 +556,20 @@ void Chunk::load_terrain( MapStorage &map_storage ) {
             if ( !MapGen::load_block_hip( this ) ) {
                 // HIP failed (e.g. no code object for this GPU's arch); fall
                 // back to the CPU path instead of leaving blocks uninitialized.
+                MapGen::load_block_c( this );
+            }
+        } else if ( LOAD_CHUNKS_SUPPORTS_WEBGPU && !no_webgpu_mapgen && MapGen::supports_webgpu( ) ) {
+            // firstTime is long gone by the time async WebGPU init completes
+            // (early chunks legitimately used C), so announce the switch
+            // separately the first time a chunk actually takes this branch.
+            static int firstWebGPU = 1;
+            if ( firstWebGPU ) {
+                firstWebGPU = 0;
+                pr_debug( "Using WebGPU" );
+            }
+            if ( !MapGen::load_block_webgpu( this ) ) {
+                // WebGPU failed (init failure, device loss, readback error);
+                // fall back to the CPU path for this chunk.
                 MapGen::load_block_c( this );
             }
         } else {

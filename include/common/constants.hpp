@@ -50,6 +50,14 @@ static_assert( CHUNK_RADIUS_Y > 0, "CHUNK_RADIUS_Y too small" );
 #define LOAD_CHUNKS_SUPPORTS_HIP 0
 #endif
 
+// WebGPU mapgen exists only on WASM (emdawnwebgpu port, --use-port in
+// wasm.mk). The host shim is src/wasm/webgpu_mapgen.cpp.
+#ifdef REPGAME_WASM
+#define LOAD_CHUNKS_SUPPORTS_WEBGPU 1
+#else
+#define LOAD_CHUNKS_SUPPORTS_WEBGPU 0
+#endif
+
 #define DEFAULT_WINDOW_WIDTH 1600
 #define DEFAULT_WINDOW_HEIGHT 800
 
@@ -73,15 +81,12 @@ static_assert( CHUNK_RADIUS_Y > 0, "CHUNK_RADIUS_Y too small" );
 #define DEBUG_CYCLE_AUTO_ROTATING_BLOCKS 0
 #define TERRAIN_GEN_PROFILING 0
 #define MESH_VERIFY 0 // When 1, runs both CPU and GPU meshing and compares results
+#define MAPGEN_VERIFY 0 // When 1, runs CPU mapgen alongside WebGPU and diffs chunk cells
 
-// Compile-time terrain generator selection, shared by all platforms and all
-// map_gen backends (CPU, CUDA, HIP). 1 builds the pre-overhaul generator
-// (map_gen_fields_legacy.hpp, the code live at commit 101a348); 0 builds the
-// reworked generator (noodly caves, overhangs, biomes, lava layer) in
-// map_gen_fields.hpp.
-#define REPGAME_MAP_GEN_LEGACY 1
-
-#define MAP_SEED 0
+// REPGAME_MAP_GEN_LEGACY (terrain generator selection) and MAP_SEED moved to
+// map_gen_consts.hpp so the WGSL generation pass can see them without pulling
+// in C++ declarations — included here to keep this header's old contract.
+#include "common/map_gen_consts.hpp"
 
 #define SHOW_IMGUI 1
 

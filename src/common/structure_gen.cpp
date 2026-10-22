@@ -5,7 +5,7 @@
 #include "common/block_definitions.hpp"
 #include "common/map_gen.hpp"
 
-#define MAP_GEN_QUAL static inline
+#define MG_QUAL static inline
 #define MAP_GEN_PERLIN2D( x, z, f, d, s ) perlin_noise2d( x, z, f, d, s )
 #define MAP_GEN_PERLIN3D( x, y, z, f, d, s ) perlin_noise3d( x, y, z, f, d, s )
 #include "common/map_gen_fields.hpp"

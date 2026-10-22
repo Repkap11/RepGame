@@ -3,13 +3,16 @@ REPGAME_PACKAGES += npm
 
 # USE_SDL is needed at compile time too: modern emscripten ports are no
 # longer installed into the shared sysroot, the flag injects the SDL2
-# include path.
-CFLAGS_WASM := -DREPGAME_WASM -pthread -s USE_SDL=2 -O3 -DREPGAME_SKIP_CHECK_FOR_GL_ERRORS
+# include path. emdawnwebgpu likewise injects <webgpu/webgpu.h> — the Dawn-
+# based WebGPU binding for browser GPU mapgen (see src/shaders/map_gen.wgsl
+# and src/wasm/webgpu_mapgen.cpp).
+CFLAGS_WASM := -DREPGAME_WASM -pthread -s USE_SDL=2 -O3 -DREPGAME_SKIP_CHECK_FOR_GL_ERRORS --use-port=emdawnwebgpu
 
 
 CFLAGS_LINK_WASM := -O3 \
 			-s WASMFS=1 \
 			-s USE_SDL=2 \
+			--use-port=emdawnwebgpu \
 			-s MAX_WEBGL_VERSION=2 \
 			-s ASSERTIONS=1 \
 			-s EXPORTED_FUNCTIONS='["_main", "_repgame_wasm_start_storage", "_repgame_wasm_request_exit", "_repgame_wasm_set_server"]' \
@@ -19,15 +22,17 @@ CFLAGS_LINK_WASM := -O3 \
 			-s PTHREAD_POOL_SIZE=navigator.hardwareConcurrency
 
 #Works OK
-CFLAGS_LINK_WASM += -s ALLOW_MEMORY_GROWTH=1
+# MAXIMUM_MEMORY=4GB (wasm4gb): the default 2GB cap is hit while loading
+# chunks — WebGPU mapgen fills the loader faster so more chunks are resident.
+# The growth cap is declared at SharedArrayBuffer creation; 4GB needs the
+# wasm4gb feature, supported by all modern Chrome/Firefox/Safari.
+CFLAGS_LINK_WASM += -s ALLOW_MEMORY_GROWTH=1 -s MAXIMUM_MEMORY=4GB
 
-# Clone emsdk from
-#git clone https://github.com/emscripten-core/emsdk.git
-#./emsdk install latest
-#./emsdk activate latest
-# Replace emsdk/upstream/emscripten with git clone git@github.com:Repkap11/emscripten.git
-# Run emsdk/upstream/emscripten's ./bootstrap
-# EM_ROOT := $(shell if [ -f ~/.emscripten ]; then cat  ~/.emscripten | grep BINARYEN_ROOT | sed -e "s/.* = \(.*\)/\1/" ; fi )
+# Vanilla upstream emsdk:
+#   git clone https://github.com/emscripten-core/emsdk.git
+#   ./emsdk install latest && ./emsdk activate latest
+# (The old note about swapping in Repkap11/emscripten is stale — the fork
+# work was abandoned and the pointer-lock patches it carried are upstream.)
 EM_ROOT := /home/paul/Software/Rep/emsdk/upstream/
 CC_WASM := ${EM_ROOT}/emscripten/em++
 
@@ -36,6 +41,11 @@ CC_WASM := ccache $(CC_WASM)
 endif
 
 WASM_SHADERS = $(patsubst src/shaders/%.glsl,out/wasm/fs/src/shaders/%.glsl,$(wildcard src/shaders/*.glsl))
+# WGSL compute sources live in src/shaders/*.wgsl (same preprocessor pattern
+# as .glsl — the sources are dialect templates, not literal WGSL). They need
+# the generated block_ids.inc prelude, which keeps block_definitions.hpp's
+# enum as the single source of truth.
+WASM_WGSL_SHADERS = $(patsubst src/shaders/%.wgsl,out/wasm/fs/src/shaders/%.wgsl,$(wildcard src/shaders/*.wgsl))
 WASM_BITMAPS = $(patsubst bitmaps/%.bmp,out/wasm/fs/bitmaps/%.bin,$(wildcard bitmaps/*.bmp))
 WASM_FONTS = $(patsubst fonts/%.ttf,out/wasm/fs/fonts/%.ttf,$(wildcard fonts/*.ttf))
 
@@ -57,6 +67,7 @@ WASM_DIRS = $(patsubst src%,out/wasm%,$(shell find src -type d)) \
 			out/wasm/fs \
 			out/wasm/fs/src \
 			out/wasm/fs/src/shaders \
+			out/wasm/gen \
 			out/wasm/fs/bitmaps \
 			out/wasm/fs/fonts \
 			out/wasm/delivery \
@@ -73,7 +84,7 @@ out/wasm/imgui/%.o: imgui_build/%.cpp | out/wasm
 	@mkdir -p $(dir $@)
 	$(CC_WASM) $(INCLUDES_COMMON) $(CFLAGS_WASM) -DIMGUI_IMPL_OPENGL_ES3 -c $< -o $@
 
-out/wasm/delivery/$(TARGET).js: $(OBJECTS_COMMON_WASM) $(OBJECTS_IMGUI_WASM) $(OBJECTS_WASM) $(WASM_SHADERS) $(WASM_BITMAPS) $(WASM_FONTS) | out/wasm
+out/wasm/delivery/$(TARGET).js: $(OBJECTS_COMMON_WASM) $(OBJECTS_IMGUI_WASM) $(OBJECTS_WASM) $(WASM_SHADERS) $(WASM_WGSL_SHADERS) $(WASM_BITMAPS) $(WASM_FONTS) | out/wasm
 	$(CC_WASM) $(CFLAGS_LINK_WASM) $(OBJECTS_WASM) $(OBJECTS_IMGUI_WASM) $(OBJECTS_COMMON_WASM) --preload-file out/wasm/fs@ -o $@
 
 out/wasm/delivery/index.html: src/wasm/index.html | out/wasm
@@ -87,6 +98,17 @@ out/wasm/delivery/%.css: src/wasm/%.css | out/wasm
 
 out/wasm/fs/src/shaders/%.glsl: src/shaders/%.glsl include/common/chunk_dimensions.hpp makefiles/common.mk makefiles/wasm.mk | out/wasm
 	$(SHADER_PP) -DREPGAME_WASM $< -o $@
+
+# WGSL: same preprocessor trick as .glsl, plus -DREPGAME_WGSL_GEN which flips
+# the dialect macros in wgsl_dialect.hpp to emit WGSL. -I out/wasm/gen finds
+# the generated block_ids.inc. Headers the dialect sources #include are listed
+# so logic edits rebuild the shader.
+out/wasm/gen/block_ids.inc: include/common/block_definitions.hpp tools/gen_wgsl_block_ids.awk | out/wasm
+	mkdir -p $(dir $@)
+	awk -f tools/gen_wgsl_block_ids.awk $< > $@
+
+out/wasm/fs/src/shaders/%.wgsl: src/shaders/%.wgsl out/wasm/gen/block_ids.inc include/common/wgsl_dialect.hpp include/common/perlin_noise_shared.hpp include/common/map_gen_fields.hpp include/common/map_gen_fields_legacy.hpp include/common/map_gen_consts.hpp include/common/map_logic.hpp include/common/chunk_dimensions.hpp | out/wasm
+	$(SHADER_PP) -I out/wasm/gen -DREPGAME_WGSL_GEN $< -o $@
 
 out/wasm/fs/bitmaps/% : out/bitmaps/% | out/wasm
 	cp $< $@

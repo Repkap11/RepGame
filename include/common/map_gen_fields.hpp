@@ -1,20 +1,30 @@
 #pragma once
 
 // Shared terrain-generation fields, included by every map_gen backend.
+// Written in the C++/WGSL dual dialect (include/common/wgsl_dialect.hpp) so
+// one file feeds host C++, CUDA, HIP, and the WebGPU compute shader emitted
+// by preprocessing this file with -DREPGAME_WGSL_GEN.
 // The includer must first define:
-//   MAP_GEN_QUAL    - function qualifier: "static inline" on CPU,
-//                     "__device__" on CUDA/HIP
+//   MG_QUAL         - function qualifier: "static inline" on CPU,
+//                     "__device__" on CUDA/HIP (unused under REPGAME_WGSL_GEN)
 //   MAP_GEN_PERLIN2D(x, z, freq, depth, seed) - perlin sampler in [0, 1]
 //   MAP_GEN_PERLIN3D(x, y, z, freq, depth, seed)
 // Because every backend includes this same file, all generated worlds are
 // identical by construction (modulo float rounding).
-#if !defined( MAP_GEN_QUAL ) || !defined( MAP_GEN_PERLIN2D ) || !defined( MAP_GEN_PERLIN3D )
-#error "map_gen_fields.hpp requires MAP_GEN_QUAL, MAP_GEN_PERLIN2D and MAP_GEN_PERLIN3D"
+#if !defined( MG_QUAL ) && !defined( REPGAME_WGSL_GEN )
+#error "map_gen_fields.hpp requires MG_QUAL (or REPGAME_WGSL_GEN), MAP_GEN_PERLIN2D and MAP_GEN_PERLIN3D"
+#endif
+#if !defined( MAP_GEN_PERLIN2D ) || !defined( MAP_GEN_PERLIN3D )
+#error "map_gen_fields.hpp requires MAP_GEN_PERLIN2D and MAP_GEN_PERLIN3D"
 #endif
 
+#include "common/wgsl_dialect.hpp"
+#include "common/chunk_dimensions.hpp"
+#include "common/map_gen_consts.hpp"
+#if !defined( REPGAME_WGSL_GEN )
 #include "common/map_gen.hpp"
 #include "common/block_definitions.hpp"
-#include "common/constants.hpp"
+#endif
 
 #if REPGAME_MAP_GEN_LEGACY
 // The pre-overhaul generator (fields + block picker live in the legacy file).
@@ -25,14 +35,14 @@
 // Small helpers
 // ---------------------------------------------------------------------------
 
-MAP_GEN_QUAL float mg_inverse_lerp( const float min, const float max, const float value ) {
-    if ( value < min ) {
+MG_FN3( float, mg_inverse_lerp, float, lo, float, hi, float, value ) {
+    if ( value < lo ) {
         return 0.0f;
     }
-    if ( value > max ) {
+    if ( value > hi ) {
         return 1.0f;
     }
-    return ( value - min ) / ( max - min );
+    return ( value - lo ) / ( hi - lo );
 }
 
 // ---------------------------------------------------------------------------
@@ -44,37 +54,37 @@ MAP_GEN_QUAL float mg_inverse_lerp( const float min, const float max, const floa
 // Continentalness: very large gentle drift — oceans and highlands span many
 // hundreds of blocks. Linear so mid-range slopes produce real elevation
 // change everywhere instead of saturating into flat plateaus.
-MAP_GEN_QUAL float mg_level_transform( const float noise ) {
+MG_FN1( float, mg_level_transform, float, noise ) {
     return ( noise - 0.5f ) * 30.0f;
 }
 
 // Rolling terrain: medium-scale undulation between the continental and hill
 // wavelengths, so flat regions still read as landscapes, not slabs.
-MAP_GEN_QUAL float mg_rolling_transform( const float noise ) {
+MG_FN1( float, mg_rolling_transform, float, noise ) {
     return ( noise - 0.5f ) * 17.0f;
 }
 
-MAP_GEN_QUAL float mg_hills_transform( const float noise ) {
+MG_FN1( float, mg_hills_transform, float, noise ) {
     return ( noise - 0.5f ) * 20;
 }
 
-MAP_GEN_QUAL float mg_ground_transform( const float noise ) {
+MG_FN1( float, mg_ground_transform, float, noise ) {
     return ( noise - 0.5f ) * 1.6f;
 }
 
 // Mountain mask: flat [0,1] gate so mountains form distinct ranges instead of
 // appearing everywhere. Ramps up across noise in [0.52, 0.80]; the sampler
 // runs at continent scale so ranges stretch for hundreds of blocks.
-MAP_GEN_QUAL float mg_mountain_mask( float noise ) {
-    float m = ( noise - 0.52f ) / 0.28f;
-    m = m < 0 ? 0 : m;
-    m = m > 1 ? 1 : m;
+MG_FN1( float, mg_mountain_mask, float, noise ) {
+    MG_VAR( float, m, ( noise - 0.52f ) / 0.28f )
+    m = MG_MAX( m, 0 );
+    m = MG_MIN( m, 1 );
     return m;
 }
 
 // Ridged noise: peaks where the raw noise crosses 0.5, cubed for sharp crests.
-MAP_GEN_QUAL float mg_mountain_ridge( const float noise ) {
-    const float r = 1.0f - fabsf( 2.0f * noise - 1.0f );
+MG_FN1( float, mg_mountain_ridge, float, noise ) {
+    MG_LET( float, r, 1.0f - MG_ABS( 2.0f * noise - 1.0f ) )
     return r * r * r;
 }
 
@@ -84,29 +94,29 @@ MAP_GEN_QUAL float mg_mountain_ridge( const float noise ) {
 // jagged instead of smooth perlin ellipses.
 // ---------------------------------------------------------------------------
 
-MAP_GEN_QUAL float mg_biome( const int x, const int z ) {
-    const float bx = x + ( MAP_GEN_PERLIN2D( x, z, 0.0022f, 2, MAP_SEED + 13 ) - 0.5f ) * 320.0f;
-    const float bz = z + ( MAP_GEN_PERLIN2D( x, z, 0.0022f, 2, MAP_SEED + 14 ) - 0.5f ) * 320.0f;
+MG_FN2( float, mg_biome, int, x, int, z ) {
+    MG_LET( float, bx, MG_F32( x ) + ( MAP_GEN_PERLIN2D( x, z, 0.0022f, 2, MAP_SEED + 13 ) - 0.5f ) * 320.0f )
+    MG_LET( float, bz, MG_F32( z ) + ( MAP_GEN_PERLIN2D( x, z, 0.0022f, 2, MAP_SEED + 14 ) - 0.5f ) * 320.0f )
     return MAP_GEN_PERLIN2D( bx, bz, 0.0011f, 3, MAP_SEED + 7 );
 }
 
-MAP_GEN_QUAL float mg_weird( const int x, const int z ) {
-    const float wx = x + ( MAP_GEN_PERLIN2D( x, z, 0.0026f, 2, MAP_SEED + 15 ) - 0.5f ) * 260.0f;
-    const float wz = z + ( MAP_GEN_PERLIN2D( x, z, 0.0026f, 2, MAP_SEED + 16 ) - 0.5f ) * 260.0f;
+MG_FN2( float, mg_weird, int, x, int, z ) {
+    MG_LET( float, wx, MG_F32( x ) + ( MAP_GEN_PERLIN2D( x, z, 0.0026f, 2, MAP_SEED + 15 ) - 0.5f ) * 260.0f )
+    MG_LET( float, wz, MG_F32( z ) + ( MAP_GEN_PERLIN2D( x, z, 0.0026f, 2, MAP_SEED + 16 ) - 0.5f ) * 260.0f )
     return MAP_GEN_PERLIN2D( wx, wz, 0.0015f, 3, MAP_SEED + 8 );
 }
 
 // Hot+dry desertness [0,1]: shared by the mesa terracing in mg_base_height
 // and the sandy surface pick, so mesa walls stay desert-colored.
-MAP_GEN_QUAL float mg_desert( const int x, const int z ) {
-    const float hot = mg_inverse_lerp( 0.68f, 0.80f, mg_biome( x, z ) );
-    const float dry = 1.0f - mg_inverse_lerp( 0.52f, 0.64f, mg_weird( x, z ) );
+MG_FN2( float, mg_desert, int, x, int, z ) {
+    MG_LET( float, hot, mg_inverse_lerp( 0.68f, 0.80f, mg_biome( x, z ) ) )
+    MG_LET( float, dry, 1.0f - mg_inverse_lerp( 0.52f, 0.64f, mg_weird( x, z ) ) )
     return hot * dry;
 }
 
 // Floating-island strength [0,1]: rare continent-scale archipelagos. The 3D
 // island field in mg_solid_at is only sampled where this is > 0.
-MAP_GEN_QUAL float mg_island_strength( const int x, const int z ) {
+MG_FN2( float, mg_island_strength, int, x, int, z ) {
     return mg_inverse_lerp( 0.72f, 0.93f, MAP_GEN_PERLIN2D( x, z, 0.0016f, 2, MAP_SEED + 17 ) );
 }
 
@@ -114,7 +124,7 @@ MAP_GEN_QUAL float mg_island_strength( const int x, const int z ) {
 // archipelago stack at different altitudes and bend slightly along their
 // length. Keep max(dy0 + half_thickness) under OVERHANG_MAX_RISE:
 // 28 + 4 jitter + 27 max half = 59 < 60.
-MAP_GEN_QUAL float mg_island_dy0( const int x, const int z ) {
+MG_FN2( float, mg_island_dy0, int, x, int, z ) {
     return 28.0f + ( MAP_GEN_PERLIN2D( x, z, 0.006f, 2, MAP_SEED + 18 ) - 0.5f ) * 8.0f;
 }
 
@@ -123,9 +133,9 @@ MAP_GEN_QUAL float mg_island_dy0( const int x, const int z ) {
 // sheets. The value past the rim threshold acts as "inland-ness" — island
 // thickness scales with it, so each rock is a thick domed core tapering to a
 // thin rim. Returns a thickness factor in [0, 1]; 0 = outside any island.
-MAP_GEN_QUAL float mg_island_footprint( const int x, const int z ) {
-    const float fx = x + ( MAP_GEN_PERLIN2D( x, z, 0.03f, 1, MAP_SEED + 41 ) - 0.5f ) * 35.0f;
-    const float fz = z + ( MAP_GEN_PERLIN2D( x, z, 0.03f, 1, MAP_SEED + 42 ) - 0.5f ) * 35.0f;
+MG_FN2( float, mg_island_footprint, int, x, int, z ) {
+    MG_LET( float, fx, MG_F32( x ) + ( MAP_GEN_PERLIN2D( x, z, 0.03f, 1, MAP_SEED + 41 ) - 0.5f ) * 35.0f )
+    MG_LET( float, fz, MG_F32( z ) + ( MAP_GEN_PERLIN2D( x, z, 0.03f, 1, MAP_SEED + 42 ) - 0.5f ) * 35.0f )
     return mg_inverse_lerp( 0.54f, 0.66f, MAP_GEN_PERLIN2D( fx, fz, 0.022f, 3, MAP_SEED + 40 ) );
 }
 
@@ -139,33 +149,33 @@ MAP_GEN_QUAL float mg_island_footprint( const int x, const int z ) {
 // 3D fields use MAP_SEED + 20..33, +37..+39.
 // ---------------------------------------------------------------------------
 
-MAP_GEN_QUAL float mg_base_height( const int x, const int z ) {
-    const float level = mg_level_transform( MAP_GEN_PERLIN2D( x, z, 0.0016f, 2, MAP_SEED + 2 ) );
-    const float rolling = mg_rolling_transform( MAP_GEN_PERLIN2D( x, z, 0.0045f, 2, MAP_SEED + 12 ) );
-    const float hills = mg_hills_transform( MAP_GEN_PERLIN2D( x, z, 0.011f, 3, MAP_SEED + 0 ) );
-    const float ground = mg_ground_transform( MAP_GEN_PERLIN2D( x, z, 0.06f, 2, MAP_SEED + 1 ) );
+MG_FN2( float, mg_base_height, int, x, int, z ) {
+    MG_LET( float, level, mg_level_transform( MAP_GEN_PERLIN2D( x, z, 0.0016f, 2, MAP_SEED + 2 ) ) )
+    MG_LET( float, rolling, mg_rolling_transform( MAP_GEN_PERLIN2D( x, z, 0.0045f, 2, MAP_SEED + 12 ) ) )
+    MG_LET( float, hills, mg_hills_transform( MAP_GEN_PERLIN2D( x, z, 0.011f, 3, MAP_SEED + 0 ) ) )
+    MG_LET( float, ground, mg_ground_transform( MAP_GEN_PERLIN2D( x, z, 0.06f, 2, MAP_SEED + 1 ) ) )
 
     // Domain warp bends the ridged noise into long curved ranges.
-    const float wx = x + ( MAP_GEN_PERLIN2D( x, z, 0.002f, 2, MAP_SEED + 4 ) - 0.5f ) * 130.0f;
-    const float wz = z + ( MAP_GEN_PERLIN2D( x, z, 0.002f, 2, MAP_SEED + 5 ) - 0.5f ) * 130.0f;
-    const float mask = mg_mountain_mask( MAP_GEN_PERLIN2D( x, z, 0.0011f, 2, MAP_SEED + 3 ) );
-    const float ridge = mg_mountain_ridge( MAP_GEN_PERLIN2D( wx, wz, 0.0032f, 4, MAP_SEED + 6 ) );
-    const float mountains = mask * ridge * MAX_MOUNTAIN_HEIGHT;
+    MG_LET( float, wx, MG_F32( x ) + ( MAP_GEN_PERLIN2D( x, z, 0.002f, 2, MAP_SEED + 4 ) - 0.5f ) * 130.0f )
+    MG_LET( float, wz, MG_F32( z ) + ( MAP_GEN_PERLIN2D( x, z, 0.002f, 2, MAP_SEED + 5 ) - 0.5f ) * 130.0f )
+    MG_LET( float, mask, mg_mountain_mask( MAP_GEN_PERLIN2D( x, z, 0.0011f, 2, MAP_SEED + 3 ) ) )
+    MG_LET( float, ridge, mg_mountain_ridge( MAP_GEN_PERLIN2D( wx, wz, 0.0032f, 4, MAP_SEED + 6 ) ) )
+    MG_LET( float, mountains, mask * ridge * MAX_MOUNTAIN_HEIGHT )
 
     // Deserts rise into terraced mesas: the plateau lift is quantized into
     // strata steps so the landscape forms wide flat treads and short cliff
     // risers instead of a smooth dome. Max lift: ceil(26/7)*7 + ... <=
     // MESA_MAX_RISE.
-    float mesa = 0.0f;
-    const float desert = mg_desert( x, z );
+    MG_VAR( float, mesa, 0.0f )
+    MG_LET( float, desert, mg_desert( x, z ) )
     if ( desert > 0.0f ) {
-        const float raw = desert * 26.0f;
-        const float t = floorf( raw / 7.0f );
-        const float f = raw / 7.0f - t;
+        MG_LET( float, raw, desert * 26.0f )
+        MG_LET( float, t, MG_FLOOR( raw / 7.0f ) )
+        MG_LET( float, f, raw / 7.0f - t )
         mesa = t * 7.0f + mg_inverse_lerp( 0.55f, 0.95f, f ) * 7.0f;
     }
 
-    float h = level + rolling + hills + ground + mountains + mesa;
+    MG_VAR( float, h, level + rolling + hills + ground + mountains + mesa )
 
     // Slot canyons: rare long gorges winding through the land. A narrow band
     // around the midline of a very-low-frequency field traces the slot; a
@@ -173,13 +183,13 @@ MAP_GEN_QUAL float mg_base_height( const int x, const int z ) {
     // stops a few blocks under sea level, so deep stretches flood into
     // canyon rivers instead of trenching to bedrock.
     if ( h > WATER_LEVEL + 3.0f ) {
-        const float cn = MAP_GEN_PERLIN2D( x, z, 0.0013f, 2, MAP_SEED + 34 );
-        const float band = 1.0f - mg_inverse_lerp( 0.012f, 0.04f, fabsf( cn - 0.5f ) );
+        MG_LET( float, cn, MAP_GEN_PERLIN2D( x, z, 0.0013f, 2, MAP_SEED + 34 ) )
+        MG_LET( float, band, 1.0f - mg_inverse_lerp( 0.012f, 0.04f, MG_ABS( cn - 0.5f ) ) )
         if ( band > 0.0f ) {
-            const float patch = mg_inverse_lerp( 0.72f, 0.84f, MAP_GEN_PERLIN2D( x, z, 0.0045f, 1, MAP_SEED + 35 ) );
-            const float cut = band * band * patch * CANYON_MAX_DEPTH;
-            const float max_cut = h - ( WATER_LEVEL - 6.0f );
-            h -= cut < max_cut ? cut : max_cut;
+            MG_LET( float, cpatch, mg_inverse_lerp( 0.72f, 0.84f, MAP_GEN_PERLIN2D( x, z, 0.0045f, 1, MAP_SEED + 35 ) ) )
+            MG_LET( float, cut, band * band * cpatch * CANYON_MAX_DEPTH )
+            MG_LET( float, max_cut, h - ( WATER_LEVEL - 6.0f ) )
+            h -= MG_MIN( cut, max_cut );
         }
     }
 
@@ -188,44 +198,44 @@ MAP_GEN_QUAL float mg_base_height( const int x, const int z ) {
 
 // Which part of a mesa step a column sits on: 0 on the flat treads, ramps to
 // 1 across the cliff risers. mg_surface_block exposes this as rock bands.
-MAP_GEN_QUAL float mg_mesa_riser( const int x, const int z ) {
-    const float desert = mg_desert( x, z );
+MG_FN2( float, mg_mesa_riser, int, x, int, z ) {
+    MG_LET( float, desert, mg_desert( x, z ) )
     if ( desert <= 0.0f ) {
         return 0.0f;
     }
-    const float f = desert * 26.0f / 7.0f;
-    return mg_inverse_lerp( 0.55f, 0.95f, f - floorf( f ) );
+    MG_LET( float, f, desert * 26.0f / 7.0f )
+    return mg_inverse_lerp( 0.55f, 0.95f, f - MG_FLOOR( f ) );
 }
 
 // Overhang gain: plains get a small bump factor, rough regions and mountain
 // ranges get large 3D relief (cliffs, shelves, overhangs, arches). Kept low
 // on flat land so ordinary ground stays walkably smooth.
-MAP_GEN_QUAL float mg_rough_gain( const int x, const int z ) {
-    const float rough = MAP_GEN_PERLIN2D( x, z, 0.01f, 2, MAP_SEED + 9 );
-    const float mask = mg_mountain_mask( MAP_GEN_PERLIN2D( x, z, 0.0011f, 2, MAP_SEED + 3 ) );
+MG_FN2( float, mg_rough_gain, int, x, int, z ) {
+    MG_LET( float, rough, MAP_GEN_PERLIN2D( x, z, 0.01f, 2, MAP_SEED + 9 ) )
+    MG_LET( float, mask, mg_mountain_mask( MAP_GEN_PERLIN2D( x, z, 0.0011f, 2, MAP_SEED + 3 ) ) )
     return 0.5f + rough * 8.0f + mask * 55.0f;
 }
 
-MAP_GEN_QUAL float mg_underwater( const int x, const int z ) {
+MG_FN2( float, mg_underwater, int, x, int, z ) {
     return MAP_GEN_PERLIN2D( x, z, 0.2f, 2, MAP_SEED + 10 );
 }
 
-MAP_GEN_QUAL int mg_bedrock_top( const int x, const int z ) {
-    const float n = MAP_GEN_PERLIN2D( x, z, 0.3f, 1, MAP_SEED + 11 );
-    return BEDROCK_LEVEL + (int)( n * 4.0f );
+MG_FN2( int, mg_bedrock_top, int, x, int, z ) {
+    MG_LET( float, n, MAP_GEN_PERLIN2D( x, z, 0.3f, 1, MAP_SEED + 11 ) )
+    return BEDROCK_LEVEL + MG_I32( n * 4.0f );
 }
 
-MAP_GEN_QUAL MapGenColumn mg_column_info( const int x, const int z ) {
-    MapGenColumn col;
+MG_FN2( MapGenColumn, mg_column_info, int, x, int, z ) {
+    MG_DECL( MapGenColumn, col )
     col.height = mg_base_height( x, z );
-    const float hx = fabsf( mg_base_height( x + 1, z ) - col.height );
-    const float hz = fabsf( mg_base_height( x, z + 1 ) - col.height );
-    col.steepness = hx > hz ? hx : hz;
+    MG_LET( float, hx, MG_ABS( mg_base_height( x + 1, z ) - col.height ) )
+    MG_LET( float, hz, MG_ABS( mg_base_height( x, z + 1 ) - col.height ) )
+    col.steepness = MG_MAX( hx, hz );
     col.biome = mg_biome( x, z );
     col.weird = mg_weird( x, z );
     col.rough_gain = mg_rough_gain( x, z );
     col.island = mg_island_strength( x, z );
-    col.island_dy0 = col.island > 0.0f ? mg_island_dy0( x, z ) : 0.0f;
+    col.island_dy0 = MG_TERN( col.island > 0.0f, mg_island_dy0( x, z ), 0.0f );
     col.mesa_riser = mg_mesa_riser( x, z );
     return col;
 }
@@ -242,8 +252,8 @@ MAP_GEN_QUAL MapGenColumn mg_column_info( const int x, const int z ) {
 // heightmap, gated 3D noise can add ledges/overhangs and, where the island
 // mask is strong, free-floating landmasses — all bounded by
 // OVERHANG_MAX_RISE.
-MAP_GEN_QUAL bool mg_solid_at( const int x, const int y, const int z, const MapGenColumn &col ) {
-    const float dy = (float)y - col.height;
+MG_FN4( bool, mg_solid_at, int, x, int, y, int, z, MapGenColumn, col ) {
+    MG_LET( float, dy, MG_F32( y ) - col.height )
     if ( dy <= -35.0f ) {
         return true;
     }
@@ -256,25 +266,25 @@ MAP_GEN_QUAL bool mg_solid_at( const int x, const int y, const int z, const MapG
     // is unconditionally solid; the outer half is a ragged 3D-noise shell,
     // so undersides come out lumpy and silhouettes stay broken.
     if ( dy > 0.0f && col.island > 0.0f ) {
-        const float tin = mg_island_footprint( x, z );
+        MG_LET( float, tin, mg_island_footprint( x, z ) )
         if ( tin > 0.0f ) {
-            float half = ( 3.0f + col.island * 24.0f ) * tin;
-            if ( half > col.island_dy0 - 4.0f ) {
-                half = col.island_dy0 - 4.0f; // keep a crawlspace under every island
+            MG_VAR( float, half_thickness, ( 3.0f + col.island * 24.0f ) * tin )
+            if ( half_thickness > col.island_dy0 - 4.0f ) {
+                half_thickness = col.island_dy0 - 4.0f; // keep a crawlspace under every island
             }
-            const float ab = fabsf( dy - col.island_dy0 );
-            if ( ab < half * 0.5f ) {
+            MG_LET( float, ab, MG_ABS( dy - col.island_dy0 ) )
+            if ( ab < half_thickness * 0.5f ) {
                 return true; // solid core — guaranteed volume
             }
-            if ( ab < half ) {
-                const float is3 = MAP_GEN_PERLIN3D( x, y * 0.55f, z, 0.045f, 2, MAP_SEED + 31 ) - 0.5f;
-                if ( is3 > ( ab / half - 0.5f ) * 0.9f ) {
+            if ( ab < half_thickness ) {
+                MG_LET( float, is3, MAP_GEN_PERLIN3D( x, MG_F32( y ) * 0.55f, z, 0.045f, 2, MAP_SEED + 31 ) - 0.5f )
+                if ( is3 > ( ab / half_thickness - 0.5f ) * 0.9f ) {
                     return true;
                 }
             }
         }
     }
-    float n;
+    MG_DECL( float, n )
     if ( dy < 0.0f ) {
         // Below the heightmap: smooth noise notches the surface inward.
         // Low frequency + few octaves keep ordinary ground walkable.
@@ -282,11 +292,11 @@ MAP_GEN_QUAL bool mg_solid_at( const int x, const int y, const int z, const MapG
     } else {
         // Above the heightmap: ridged noise forms sheet-like walls whose
         // undersides read as cliffs, ledges and overhangs.
-        const float raw = MAP_GEN_PERLIN3D( x, y, z, 0.06f, 3, MAP_SEED + 20 );
-        n = 0.45f - fabsf( 2.0f * raw - 1.0f );
+        MG_LET( float, raw, MAP_GEN_PERLIN3D( x, y, z, 0.06f, 3, MAP_SEED + 20 ) )
+        n = 0.45f - MG_ABS( 2.0f * raw - 1.0f );
     }
-    const float gate = 1.0f - fabsf( dy ) / ( dy < 0.0f ? 35.0f : OVERHANG_MAX_RISE );
-    return ( col.height - (float)y ) + col.rough_gain * n * gate > 0.0f;
+    MG_LET( float, gate, 1.0f - MG_ABS( dy ) / MG_TERN( dy < 0.0f, 35.0f, OVERHANG_MAX_RISE ) )
+    return ( col.height - MG_F32( y ) ) + col.rough_gain * n * gate > 0.0f;
 }
 
 // Physical distance (in blocks) to the centerline of a noise channel pair —
@@ -298,24 +308,23 @@ MAP_GEN_QUAL bool mg_solid_at( const int x, const int y, const int z, const MapG
 // `dist < width` always yields ~`width` blocks of real air around a
 // continuous centerline. The gradient is forward-differenced; y is squashed
 // so centerlines wander mostly horizontally.
-MAP_GEN_QUAL float mg_channel_dist( const float x, const float y, const float z,
-                                    const float freq, const int seed1, const int seed2 ) {
-    const float C = 0.53f; // noise mean — it is not zero-centered
+MG_FN6( float, mg_channel_dist, float, x, float, y, float, z, float, freq, int, seed1, int, seed2 ) {
+    MG_LET( float, C, 0.53f ) // noise mean — it is not zero-centered
     // Stretching y (factor > 1) amplifies the vertical gradient components,
     // so the centerline tangent (∇a×∇b) tilts toward horizontal — walkable
     // diagonal tunnels instead of vertical shafts. It also flattens the
     // cross-section into wide galleries rather than tall cracks.
-    const float ys = y * 1.75f;
-    const float a0 = MAP_GEN_PERLIN3D( x, ys, z, freq, 2, seed1 ) - C;
-    const float b0 = MAP_GEN_PERLIN3D( x, ys, z, freq, 2, seed2 ) - C;
-    const float ax = MAP_GEN_PERLIN3D( x + 1.0f, ys, z, freq, 2, seed1 ) - C - a0;
-    const float ay = MAP_GEN_PERLIN3D( x, ys + 1.75f, z, freq, 2, seed1 ) - C - a0;
-    const float az = MAP_GEN_PERLIN3D( x, ys, z + 1.0f, freq, 2, seed1 ) - C - a0;
-    const float bx = MAP_GEN_PERLIN3D( x + 1.0f, ys, z, freq, 2, seed2 ) - C - b0;
-    const float by = MAP_GEN_PERLIN3D( x, ys + 1.75f, z, freq, 2, seed2 ) - C - b0;
-    const float bz = MAP_GEN_PERLIN3D( x, ys, z + 1.0f, freq, 2, seed2 ) - C - b0;
-    const float dist = sqrtf( a0 * a0 + b0 * b0 );
-    const float g = sqrtf( ax * ax + ay * ay + az * az + bx * bx + by * by + bz * bz );
+    MG_LET( float, ys, y * 1.75f )
+    MG_LET( float, a0, MAP_GEN_PERLIN3D( x, ys, z, freq, 2, seed1 ) - C )
+    MG_LET( float, b0, MAP_GEN_PERLIN3D( x, ys, z, freq, 2, seed2 ) - C )
+    MG_LET( float, ax, MAP_GEN_PERLIN3D( x + 1.0f, ys, z, freq, 2, seed1 ) - C - a0 )
+    MG_LET( float, ay, MAP_GEN_PERLIN3D( x, ys + 1.75f, z, freq, 2, seed1 ) - C - a0 )
+    MG_LET( float, az, MAP_GEN_PERLIN3D( x, ys, z + 1.0f, freq, 2, seed1 ) - C - a0 )
+    MG_LET( float, bx, MAP_GEN_PERLIN3D( x + 1.0f, ys, z, freq, 2, seed2 ) - C - b0 )
+    MG_LET( float, by, MAP_GEN_PERLIN3D( x, ys + 1.75f, z, freq, 2, seed2 ) - C - b0 )
+    MG_LET( float, bz, MAP_GEN_PERLIN3D( x, ys, z + 1.0f, freq, 2, seed2 ) - C - b0 )
+    MG_LET( float, dist, MG_SQRT( a0 * a0 + b0 * b0 ) )
+    MG_LET( float, g, MG_SQRT( ax * ax + ay * ay + az * az + bx * bx + by * by + bz * bz ) )
     // Tiny floor avoids div-by-zero; where both fields are flat there is no
     // tube anyway and the large ratio correctly fails the width test.
     return dist / ( g + 0.002f );
@@ -325,35 +334,35 @@ MAP_GEN_QUAL float mg_channel_dist( const float x, const float y, const float z,
 // thinner branches) gated into bounded 3D zones, plus modest cheese rooms
 // near the lava layer. The surface gate shrinks tunnels near the heightmap
 // so most caves stay underground but some open to daylight.
-MAP_GEN_QUAL bool mg_cave_carve( const int x, const int y, const int z, const float height ) {
-    const float depth = height - (float)y;
+MG_FN4( bool, mg_cave_carve, int, x, int, y, int, z, float, height ) {
+    MG_LET( float, depth, height - MG_F32( y ) )
     if ( depth < -20.0f ) {
         return false;
     }
-    const float gate = 0.2f + 0.8f * mg_inverse_lerp( -6.0f, 14.0f, depth );
+    MG_LET( float, gate, 0.2f + 0.8f * mg_inverse_lerp( -6.0f, 14.0f, depth ) )
     // Cave zone mask: caves live in bounded regions with real rock between
     // systems — tunnels thin to nothing at a zone's edge.
-    const float zone = MAP_GEN_PERLIN3D( x, y * 0.6f, z, 0.016f, 2, MAP_SEED + 26 );
-    const float zoneGate = mg_inverse_lerp( 0.54f, 0.67f, zone );
+    MG_LET( float, zone, MAP_GEN_PERLIN3D( x, MG_F32( y ) * 0.6f, z, 0.016f, 2, MAP_SEED + 26 ) )
+    MG_LET( float, zoneGate, mg_inverse_lerp( 0.54f, 0.67f, zone ) )
     if ( zoneGate <= 0.0f ) {
         return false;
     }
-    const float depthR = mg_inverse_lerp( 0.0f, 60.0f, depth );
-    const float wGate = gate * zoneGate;
+    MG_LET( float, depthR, mg_inverse_lerp( 0.0f, 60.0f, depth ) )
+    MG_LET( float, wGate, gate * zoneGate )
     // Main tunnels: low-frequency, ~3-6 blocks wide — the walkable trunks.
-    const float wMain = ( 1.6f + 1.4f * depthR ) * wGate;
-    if ( mg_channel_dist( x, y, z, 0.022f, MAP_SEED + 21, MAP_SEED + 22 ) < wMain ) {
+    MG_LET( float, wMain, ( 1.6f + 1.4f * depthR ) * wGate )
+    if ( mg_channel_dist( MG_F32( x ), MG_F32( y ), MG_F32( z ), 0.022f, MAP_SEED + 21, MAP_SEED + 22 ) < wMain ) {
         return true;
     }
     // Branch tunnels: thinner, faster-winding connectors feeding the mains.
-    const float wBranch = ( 0.9f + 0.6f * depthR ) * wGate;
-    if ( mg_channel_dist( x, y, z, 0.05f, MAP_SEED + 23, MAP_SEED + 24 ) < wBranch ) {
+    MG_LET( float, wBranch, ( 0.9f + 0.6f * depthR ) * wGate )
+    if ( mg_channel_dist( MG_F32( x ), MG_F32( y ), MG_F32( z ), 0.05f, MAP_SEED + 23, MAP_SEED + 24 ) < wBranch ) {
         return true;
     }
     // Small cheese rooms only just above the lava level so the deep layer
     // has occasional chambers without the whole underground going bulbous.
     if ( y < LAVA_LEVEL + 25 ) {
-        const float n5 = MAP_GEN_PERLIN3D( x, y, z, 0.03f, 2, MAP_SEED + 25 );
+        MG_LET( float, n5, MAP_GEN_PERLIN3D( x, y, z, 0.03f, 2, MAP_SEED + 25 ) )
         if ( n5 > 0.80f ) {
             return true;
         }
@@ -362,7 +371,7 @@ MAP_GEN_QUAL bool mg_cave_carve( const int x, const int y, const int z, const fl
     // inside cave zones and tapering shut at their edges and near the
     // surface, so they read as found caverns rather than void bubbles.
     if ( depth > 12.0f && y > LAVA_LEVEL + 12 ) {
-        const float n6 = MAP_GEN_PERLIN3D( x, y, z, 0.0075f, 3, MAP_SEED + 33 );
+        MG_LET( float, n6, MAP_GEN_PERLIN3D( x, y, z, 0.0075f, 3, MAP_SEED + 33 ) )
         if ( n6 > 0.92f - 0.25f * zoneGate * wGate ) {
             return true;
         }
@@ -376,8 +385,8 @@ MAP_GEN_QUAL bool mg_cave_carve( const int x, const int y, const int z, const fl
 
 // Top / near-top block of a column. `exposed` means the cell directly above is
 // non-solid (this is the visible surface); otherwise this is the underlayer.
-MAP_GEN_QUAL BlockID mg_surface_block( const int x, const int y, const int z, const MapGenColumn &col, const bool exposed ) {
-    const float dy = (float)y - col.height;
+MG_FN5( BlockID, mg_surface_block, int, x, int, y, int, z, MapGenColumn, col, bool, exposed ) {
+    MG_LET( float, dy, MG_F32( y ) - col.height )
     // Floating-island tops grow meadow (or snow in cold biomes) no matter
     // what the terrain far below them is; the same rule greens the tops of
     // natural overhang sheets inside island archipelagos.
@@ -385,11 +394,11 @@ MAP_GEN_QUAL BlockID mg_surface_block( const int x, const int y, const int z, co
         if ( !exposed ) {
             return DIRT;
         }
-        return col.biome < 0.22f ? SNOW : GRASS;
+        return MG_TERN( col.biome < 0.22f, SNOW, GRASS );
     }
     if ( col.height < WATER_LEVEL - 1.5f ) {
         // Ocean/lake floor.
-        return mg_underwater( x, z ) > 0.5f ? GRAVEL : SAND;
+        return MG_TERN( mg_underwater( x, z ) > 0.5f, GRAVEL, SAND );
     }
     if ( col.height < WATER_LEVEL + 2.0f ) {
         return SAND; // Beach band around sea level.
@@ -405,51 +414,51 @@ MAP_GEN_QUAL BlockID mg_surface_block( const int x, const int y, const int z, co
         return STONE; // High shelf tops and cliff faces stay rocky.
     }
     if ( col.steepness > 4.5f ) {
-        return exposed ? GRAVEL : STONE; // Scree aprons under cliffs.
+        return MG_TERN( exposed, GRAVEL, STONE ); // Scree aprons under cliffs.
     }
     if ( col.height > SNOW_LINE ) {
-        return exposed ? SNOW : STONE;
+        return MG_TERN( exposed, SNOW, STONE );
     }
     if ( col.height > MOUNTAIN_ROCK_LINE ) {
         return STONE;
     }
     if ( col.weird > 0.88f ) {
-        return exposed ? MYCELIUM : DIRT; // Rare mushroom fields.
+        return MG_TERN( exposed, MYCELIUM, DIRT ); // Rare mushroom fields.
     }
     if ( col.weird > 0.75f ) {
-        return exposed ? PODZEL : DIRT; // Dark forest floor.
+        return MG_TERN( exposed, PODZEL, DIRT ); // Dark forest floor.
     }
     if ( col.biome < 0.22f ) {
-        return exposed ? SNOWY_GRASS : DIRT; // Snowy plains.
+        return MG_TERN( exposed, SNOWY_GRASS, DIRT ); // Snowy plains.
     }
-    return exposed ? GRASS : DIRT;
+    return MG_TERN( exposed, GRASS, DIRT );
 }
 
 // Deep underground: stone with dirt/gravel pockets and depth-banded ore veins.
-MAP_GEN_QUAL BlockID mg_deep_block( const int x, const int y, const int z, const MapGenColumn &col ) {
-    const float depth = col.height - (float)y;
+MG_FN4( BlockID, mg_deep_block, int, x, int, y, int, z, MapGenColumn, col ) {
+    MG_LET( float, depth, col.height - MG_F32( y ) )
     if ( depth > 4.0f ) {
-        float coal = MAP_GEN_PERLIN3D( x, y, z, 0.16f, 3, MAP_SEED + 28 );
+        MG_VAR( float, coal, MAP_GEN_PERLIN3D( x, y, z, 0.16f, 3, MAP_SEED + 28 ) )
         coal = coal * coal;
         if ( coal < 0.06f ) {
             return COAL_ORE;
         }
     }
     if ( depth > 10.0f && y < 15 ) {
-        float iron = MAP_GEN_PERLIN3D( x, y, z, 0.16f, 3, MAP_SEED + 29 );
+        MG_VAR( float, iron, MAP_GEN_PERLIN3D( x, y, z, 0.16f, 3, MAP_SEED + 29 ) )
         iron = iron * iron;
         if ( iron < 0.045f ) {
             return IRON_ORE;
         }
     }
     if ( y < -45 ) {
-        float gold = MAP_GEN_PERLIN3D( x, y, z, 0.16f, 3, MAP_SEED + 30 );
+        MG_VAR( float, gold, MAP_GEN_PERLIN3D( x, y, z, 0.16f, 3, MAP_SEED + 30 ) )
         gold = gold * gold;
         if ( gold < 0.04f ) {
             return GOLD_ORE;
         }
     }
-    const float pv = MAP_GEN_PERLIN3D( x, y, z, 0.09f, 2, MAP_SEED + 27 );
+    MG_LET( float, pv, MAP_GEN_PERLIN3D( x, y, z, 0.09f, 2, MAP_SEED + 27 ) )
     if ( pv > 0.66f ) {
         return GRAVEL;
     }
@@ -461,19 +470,19 @@ MAP_GEN_QUAL BlockID mg_deep_block( const int x, const int y, const int z, const
 
 // Full per-cell terrain pick: bedrock floor, solid vs air/water, surface vs
 // deep selection, then cave carving (lava below LAVA_LEVEL).
-MAP_GEN_QUAL BlockID mg_pick_block( const int x, const int y, const int z, const MapGenColumn &col ) {
+MG_FN4( BlockID, mg_pick_block, int, x, int, y, int, z, MapGenColumn, col ) {
     if ( y <= mg_bedrock_top( x, z ) ) {
         return BEDROCK;
     }
     if ( !mg_solid_at( x, y, z, col ) ) {
-        return y < WATER_LEVEL ? WATER : AIR;
+        return MG_TERN( y < WATER_LEVEL, WATER, AIR );
     }
-    const float dy = (float)y - col.height;
-    BlockID block;
+    MG_LET( float, dy, MG_F32( y ) - col.height )
+    MG_DECL( BlockID, block )
     if ( !mg_solid_at( x, y + 1, z, col ) ) {
         // Exposed top of the solid column.
-        block = dy > -SURFACE_BAND * 2.0f ? mg_surface_block( x, y, z, col, true ) : STONE;
-    } else if ( dy > -SURFACE_BAND * 2.0f - SURFACE_BAND && !mg_solid_at( x, y + (int)SURFACE_BAND, z, col ) ) {
+        block = MG_TERN( dy > -SURFACE_BAND * 2.0f, mg_surface_block( x, y, z, col, true ), STONE );
+    } else if ( dy > -SURFACE_BAND * 2.0f - SURFACE_BAND && !mg_solid_at( x, y + MG_I32( SURFACE_BAND ), z, col ) ) {
         // A few blocks under the visible surface: biome underlayer.
         block = mg_surface_block( x, y, z, col, false );
     } else {
@@ -482,34 +491,33 @@ MAP_GEN_QUAL BlockID mg_pick_block( const int x, const int y, const int z, const
     // Magma veins: thin noise seams in near-surface rock. Invisible on flat
     // ground, but on cliff faces (high steepness) they surface as glowing
     // cracks — cliff walls and cave mouths light up at night.
-    if ( block == STONE && col.steepness > 5.0f && dy > -14.0f &&
-         MAP_GEN_PERLIN3D( x, y, z, 0.07f, 2, MAP_SEED + 32 ) > 0.88f ) {
+    if ( block == STONE && col.steepness > 5.0f && dy > -14.0f && MAP_GEN_PERLIN3D( x, y, z, 0.07f, 2, MAP_SEED + 32 ) > 0.88f ) {
         block = LAVA;
     }
     if ( mg_cave_carve( x, y, z, col.height ) ) {
-        return y <= LAVA_LEVEL ? LAVA : AIR;
+        return MG_TERN( y <= LAVA_LEVEL, LAVA, AIR );
     }
     // Crystal geodes: rare deep pockets — a hollow heart wrapped in a
     // glittering shell of glowstone, tinted glass and rock flecks. A 2D zone
     // mask keeps them scarce and they live well under the surface, so they
     // appear as glowing spheres found while caving (or breaking out of a
     // cave wall) rather than terrain clutter.
-    const float depth = col.height - (float)y;
+    MG_LET( float, depth, col.height - MG_F32( y ) )
     if ( depth > 22.0f && y < 4 && y > BEDROCK_LEVEL + 14 ) {
         if ( MAP_GEN_PERLIN2D( x, z, 0.0035f, 1, MAP_SEED + 36 ) > 0.60f ) {
-            const float g = MAP_GEN_PERLIN3D( x, y, z, 0.055f, 2, MAP_SEED + 37 );
+            MG_LET( float, g, MAP_GEN_PERLIN3D( x, y, z, 0.055f, 2, MAP_SEED + 37 ) )
             if ( g > 0.972f ) {
                 return AIR; // hollow geode heart
             }
             if ( g > 0.935f ) {
-                const float sp = MAP_GEN_PERLIN3D( x, y, z, 0.65f, 1, MAP_SEED + 38 );
+                MG_LET( float, sp, MAP_GEN_PERLIN3D( x, y, z, 0.65f, 1, MAP_SEED + 38 ) )
                 if ( sp > 0.64f ) {
                     return GLOWSTONE;
                 }
                 if ( sp < 0.18f ) {
                     return STONE;
                 }
-                const float gc = MAP_GEN_PERLIN3D( x, y, z, 0.028f, 1, MAP_SEED + 39 );
+                MG_LET( float, gc, MAP_GEN_PERLIN3D( x, y, z, 0.028f, 1, MAP_SEED + 39 ) )
                 if ( gc < 0.25f ) {
                     return GLASS_PALE_BLUE;
                 }

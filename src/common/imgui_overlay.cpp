@@ -146,6 +146,8 @@ void imgui_overlay_draw( ImGuiOverlay *imgui_overlay, Input &input ) {
                 acceleration = "CUDA";
             } else if ( LOAD_CHUNKS_SUPPORTS_HIP && MapGen::supports_hip( ) ) {
                 acceleration = "HIP";
+            } else if ( LOAD_CHUNKS_SUPPORTS_WEBGPU && MapGen::supports_webgpu( ) ) {
+                acceleration = "WebGPU";
             } else {
                 acceleration = "CPU";
             }

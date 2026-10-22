@@ -93,9 +93,14 @@ const nViews = views.split(";").filter((s) => s.trim().length > 0).length;
 const repoRoot = path.resolve(__dirname, "..");
 
 async function launch(chromium, useSwiftShader) {
+    // --use-webgpu-adapter=swiftshader gives a working WebGPU adapter even in
+    // GPU-less headless environments (software Vulkan); --enable-unsafe-webgpu
+    // removes the platform guard. Together they exercise the real WebGPU path
+    // in CI even without a hardware adapter.
+    const webgpuArgs = ["--enable-unsafe-webgpu", "--use-webgpu-adapter=swiftshader"];
     const args = useSwiftShader
-        ? ["--enable-unsafe-swiftshader", "--use-gl=angle", "--use-angle=swiftshader"]
-        : ["--enable-gpu", "--ignore-gpu-blocklist", "--use-angle=gl"];
+        ? ["--enable-unsafe-swiftshader", "--use-gl=angle", "--use-angle=swiftshader", ...webgpuArgs]
+        : ["--enable-gpu", "--ignore-gpu-blocklist", "--use-angle=gl", ...webgpuArgs];
     return chromium.launch({
         channel: "chrome",
         headless: true,

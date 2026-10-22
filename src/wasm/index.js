@@ -1,6 +1,36 @@
 //clear_fullscreen_functions();
 set_canvas_size();
 
+// Report WebGPU availability on the startup screen. Same probe the C++ side
+// uses (navigator.gpu + requestAdapter), so the message predicts whether the
+// GPU mapgen backend will activate or chunks fall back to CPU.
+(function gpuStatusProbe() {
+  var el = document.getElementById("gpu_status");
+  if (!el) return;
+  function show(text, unavailable) {
+    el.textContent = text;
+    el.className = unavailable ? "gpu-unavailable" : "";
+  }
+  if (!navigator.gpu || !navigator.gpu.requestAdapter) {
+    show("WebGPU not supported by this browser — terrain gen will use the CPU", true);
+    return;
+  }
+  navigator.gpu.requestAdapter().then(function(adapter) {
+    if (adapter) {
+      var name = "";
+      try {
+        var info = adapter.info || {};
+        name = info.device || info.description || info.vendor || "";
+      } catch (e) {}
+      show("WebGPU available — GPU-accelerated terrain gen" + (name ? " (" + name + ")" : ""), false);
+    } else {
+      show("WebGPU adapter unavailable — terrain gen will use the CPU", true);
+    }
+  }).catch(function() {
+    show("WebGPU adapter unavailable — terrain gen will use the CPU", true);
+  });
+})();
+
 // Let F-keys (except F12, which the game uses for screenshots) pass through to
 // the browser. SDL2/emscripten calls preventDefault on all key events, which
 // steals F5 (reload), F11 (fullscreen), etc. This capture-phase listener runs
