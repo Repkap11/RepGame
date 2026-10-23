@@ -9,10 +9,11 @@ const char *audio_block_dig_pool( int block_id );
 // steps sound like stone — the pack has no glass step files).
 const char *audio_block_step_pool( int block_id );
 
-// Embedded audio: OGG Vorbis blobs (tools/sounds_manifest.txt) decoded by
-// stb_vorbis and played through SDL3 audio streams. REPGAME_AUDIO is only
-// defined by the build on platforms that embed blobs and use SDL3 (Linux,
-// Windows, ARM, SteamFrame); everywhere else these are no-op stubs so the
+// Embedded audio: OGG Vorbis (tools/sounds_manifest.txt) decoded by
+// stb_vorbis and played through SDL audio — SDL3 device-bound streams on
+// Linux/Windows/ARM/SteamFrame, a main-thread mix callback + WASMFS files on
+// WASM (no blob embedding there). REPGAME_AUDIO is only defined by the build
+// on platforms with audio; everywhere else these are no-op stubs so the
 // game code doesn't need per-platform #ifdefs.
 #if defined( REPGAME_AUDIO )
 

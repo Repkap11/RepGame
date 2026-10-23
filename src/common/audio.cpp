@@ -229,7 +229,7 @@ const char *audio_block_step_pool( int block_id ) {
 #include <vector>
 
 #include "common/RepGame.hpp" // capture_mode
-#include "common/RepGameSDL2.hpp" // SDL3 headers (SDL2 on WASM, which never defines REPGAME_AUDIO)
+#include "common/RepGameSDL2.hpp" // SDL3 headers; SDL2 headers on WASM (its own backend below)
 #include "common/Logging.hpp"
 #include "common/constants.hpp"
 // Decls only — the impl lives in vendor/stb_vorbis.cpp. The NO_* defines
@@ -250,19 +250,22 @@ const char *audio_block_step_pool( int block_id ) {
 // MK_BLOB decls per manifest entry + MUSIC_TRACKS[] / SFX_SOUNDS[] tables.
 #include "sounds_manifest.hpp"
 
-// Music is streamed: the persistent music stream's get-callback (audio
-// thread) pulls decoded float frames out of stb_vorbis. One-shot SFX are
-// fully decoded once, then each play pushes the whole PCM into a fresh
-// stream bound to the device — SDL3 mixes all bound streams itself.
+// Music is streamed: decoded float frames are pulled out of stb_vorbis on
+// demand (the SDL3 audio thread via the music stream's get-callback; on WASM
+// the device mix callback, which Emscripten runs on the main thread — see
+// audio_mix_cb). One-shot SFX are fully decoded once; each play either binds
+// a fresh stream to the device (SDL3 mixes all bound streams itself) or
+// claims a voice slot the mix callback sums (WASM — SDL2 has no bindable
+// device streams).
 namespace {
 
 SDL_AudioDeviceID audio_device = 0;
 SDL_AudioSpec device_spec;
-SDL_AudioStream *music_stream = nullptr;
-stb_vorbis *music_vorbis = nullptr; // audio thread owns this
+stb_vorbis *music_vorbis = nullptr;
 
 bool audio_enabled = false;
 bool music_enabled = true;
+float music_gain = 1.0f;
 float sfx_gain = 1.0f;
 
 // Track scheduling: the audio thread sets music_want when it runs out of
@@ -284,7 +287,6 @@ struct SfxPcm {
     bool decoded = false;
 };
 std::vector<SfxPcm> sfx_cache;
-std::vector<SDL_AudioStream *> active_sfx;
 
 float env_float( const char *name, float fallback ) {
     const char *env = getenv( name );
@@ -294,6 +296,231 @@ float env_float( const char *name, float fallback ) {
     const float v = atof( env );
     return v < 0.0f ? 0.0f : ( v > 1.0f ? 1.0f : v );
 }
+
+#if defined( REPGAME_WASM )
+
+// --- SDL2 (Emscripten) backend ------------------------------------------------
+// Emscripten's audio driver runs the device callback on the browser main
+// thread from a ScriptProcessorNode (ProvidesOwnCallbackThread — there is no
+// audio thread, and SDL_LockAudio is a no-op), so the callback, audio_tick
+// and audio_play_sfx all run sequentially on one thread. SDL2 also has no
+// device-bound streams, so audio_mix_cb mixes music + SFX itself. Sound data
+// is not embedded (MK_BLOB is empty on WASM): MUSIC_TRACKS/SFX_SOUNDS carry
+// "sounds/<name>.ogg" paths into the WASMFS preload instead of blobs.
+
+unsigned char *music_file_data = nullptr; // kept alive while music_vorbis reads it
+SDL_AudioStream *music_cvt = nullptr;     // source -> device format converter
+
+// Fixed voice slots: data points into sfx_cache (not owned); data == nullptr
+// marks the slot free.
+struct SfxVoice {
+    const float *data = nullptr;
+    int frames = 0;
+    int pos = 0;
+};
+SfxVoice voices[ 32 ];
+
+static unsigned char *file_read_all( const char *path, int *out_len ) {
+    FILE *f = fopen( path, "rb" );
+    if ( !f ) {
+        return nullptr;
+    }
+    fseek( f, 0, SEEK_END );
+    const long len = ftell( f );
+    fseek( f, 0, SEEK_SET );
+    unsigned char *buf = ( unsigned char * )malloc( len > 0 ? len : 1 );
+    if ( fread( buf, 1, len, f ) != ( size_t )len ) {
+        free( buf );
+        fclose( f );
+        return nullptr;
+    }
+    fclose( f );
+    *out_len = ( int )len;
+    return buf;
+}
+
+static void music_close_track( ) {
+    if ( music_vorbis ) {
+        stb_vorbis_close( music_vorbis );
+        music_vorbis = nullptr;
+    }
+    free( music_file_data );
+    music_file_data = nullptr;
+    if ( music_cvt ) {
+        SDL_FreeAudioStream( music_cvt );
+        music_cvt = nullptr;
+    }
+    current_track.store( -1 );
+    music_want.store( true );
+}
+
+// Open the next queued track file as the current vorbis stream.
+static void music_open_track( int idx ) {
+    const MusicTrackEntry *track = &MUSIC_TRACKS[ idx ];
+    int len = 0;
+    int err = 0;
+    music_file_data = file_read_all( track->path, &len );
+    music_vorbis = music_file_data ? stb_vorbis_open_memory( music_file_data, len, &err, NULL ) : nullptr;
+    if ( !music_vorbis ) {
+        pr_debug( "audio: vorbis open failed for '%s' (%s) err=%d", track->title, track->path, err );
+        free( music_file_data );
+        music_file_data = nullptr;
+        music_want.store( true );
+        return;
+    }
+    const stb_vorbis_info info = stb_vorbis_get_info( music_vorbis );
+    music_cvt = SDL_NewAudioStream( AUDIO_F32, info.channels, info.sample_rate,
+                                    device_spec.format, device_spec.channels, device_spec.freq );
+    if ( !music_cvt ) {
+        pr_debug( "audio: converter create failed for '%s' (%s)", track->title, SDL_GetError( ) );
+        stb_vorbis_close( music_vorbis );
+        music_vorbis = nullptr;
+        free( music_file_data );
+        music_file_data = nullptr;
+        music_want.store( true );
+        return;
+    }
+    last_track = idx;
+    current_track.store( idx );
+    pr_debug( "audio: now playing %s", track->title );
+}
+
+// Device callback (main thread on Emscripten): sum the music stream (vorbis
+// decoded through the rate converter) and every active SFX voice into the
+// output buffer.
+static void SDLCALL audio_mix_cb( void *userdata, Uint8 *stream, int len ) {
+    memset( stream, 0, len );
+    float *out = ( float * )stream;
+    const int floats_total = len / ( int )sizeof( float );
+
+    static float src_buf[ 4096 ];
+    static float mix_buf[ 4096 ];
+    int filled = 0;
+    while ( filled < floats_total ) {
+        if ( !music_vorbis ) {
+            const int idx = next_track.exchange( -1 );
+            if ( idx < 0 ) {
+                music_want.store( true );
+                break;
+            }
+            music_open_track( idx );
+            if ( !music_vorbis ) {
+                break;
+            }
+        }
+        if ( SDL_AudioStreamAvailable( music_cvt ) <= 0 ) {
+            // Converter ran dry — push more vorbis frames into it.
+            const stb_vorbis_info info = stb_vorbis_get_info( music_vorbis );
+            int want_src = ( int )( sizeof( src_buf ) / sizeof( float ) );
+            want_src -= want_src % info.channels;
+            const int got = stb_vorbis_get_samples_float_interleaved( music_vorbis, info.channels, src_buf, want_src );
+            if ( got > 0 ) {
+                if ( SDL_AudioStreamPut( music_cvt, src_buf, got * info.channels * ( int )sizeof( float ) ) < 0 ) {
+                    music_close_track( );
+                    continue;
+                }
+            } else {
+                SDL_AudioStreamFlush( music_cvt );
+                if ( SDL_AudioStreamAvailable( music_cvt ) <= 0 ) {
+                    // Track fully decoded and drained — move on.
+                    music_close_track( );
+                }
+            }
+            continue;
+        }
+        int want = floats_total - filled;
+        const int avail = SDL_AudioStreamAvailable( music_cvt ) / ( int )sizeof( float );
+        if ( want > avail ) {
+            want = avail;
+        }
+        const int buf_cap = ( int )( sizeof( mix_buf ) / sizeof( float ) );
+        if ( want > buf_cap ) {
+            want = buf_cap;
+        }
+        const int got_bytes = SDL_AudioStreamGet( music_cvt, mix_buf, want * ( int )sizeof( float ) );
+        if ( got_bytes <= 0 ) {
+            break;
+        }
+        const int n = got_bytes / ( int )sizeof( float );
+        for ( int i = 0; i < n; i++ ) {
+            out[ filled + i ] += mix_buf[ i ] * music_gain;
+        }
+        filled += n;
+    }
+
+    const int frames_total = floats_total / device_spec.channels;
+    for ( SfxVoice &v : voices ) {
+        if ( !v.data ) {
+            continue;
+        }
+        int n_frames = v.frames - v.pos;
+        if ( n_frames > frames_total ) {
+            n_frames = frames_total;
+        }
+        const float *src = v.data + v.pos * device_spec.channels;
+        const int n = n_frames * device_spec.channels;
+        for ( int i = 0; i < n; i++ ) {
+            out[ i ] += src[ i ] * sfx_gain;
+        }
+        v.pos += n_frames;
+        if ( v.pos >= v.frames ) {
+            v.data = nullptr;
+        }
+    }
+}
+
+// Decode a whole SFX file and convert it to the device format up front, so
+// mixing in the callback is a plain sum.
+static bool sfx_decode( int idx, SfxPcm *out ) {
+    int len = 0;
+    int err = 0;
+    unsigned char *file_data = file_read_all( SFX_SOUNDS[ idx ].path, &len );
+    stb_vorbis *v = file_data ? stb_vorbis_open_memory( file_data, len, &err, NULL ) : nullptr;
+    if ( !v ) {
+        pr_debug( "audio: vorbis open failed for sfx '%s' (%s) err=%d", SFX_SOUNDS[ idx ].base, SFX_SOUNDS[ idx ].path, err );
+        free( file_data );
+        return false;
+    }
+    const stb_vorbis_info info = stb_vorbis_get_info( v );
+    const int total_frames = ( int )stb_vorbis_stream_length_in_samples( v );
+    float *raw = ( float * )malloc( total_frames * info.channels * sizeof( float ) );
+    const int got = stb_vorbis_get_samples_float_interleaved( v, info.channels, raw, total_frames * info.channels );
+    stb_vorbis_close( v );
+    free( file_data );
+    if ( got <= 0 ) {
+        free( raw );
+        return false;
+    }
+    SDL_AudioStream *cvt = SDL_NewAudioStream( AUDIO_F32, info.channels, info.sample_rate,
+                                             device_spec.format, device_spec.channels, device_spec.freq );
+    if ( !cvt ) {
+        pr_debug( "audio: converter create failed for sfx '%s' (%s)", SFX_SOUNDS[ idx ].base, SDL_GetError( ) );
+        free( raw );
+        return false;
+    }
+    SDL_AudioStreamPut( cvt, raw, got * info.channels * ( int )sizeof( float ) );
+    SDL_AudioStreamFlush( cvt );
+    free( raw );
+    const int avail = SDL_AudioStreamAvailable( cvt );
+    out->data = ( float * )malloc( avail > 0 ? avail : 1 );
+    const int got_bytes = SDL_AudioStreamGet( cvt, out->data, avail );
+    SDL_FreeAudioStream( cvt );
+    if ( got_bytes <= 0 ) {
+        free( out->data );
+        out->data = nullptr;
+        return false;
+    }
+    out->frames = got_bytes / ( int )sizeof( float ) / device_spec.channels;
+    out->channels = device_spec.channels;
+    out->rate = device_spec.freq;
+    out->decoded = true;
+    return out->frames > 0;
+}
+
+#else
+
+SDL_AudioStream *music_stream = nullptr;
+std::vector<SDL_AudioStream *> active_sfx;
 
 // audio thread: open the next queued blob as the current vorbis stream.
 static void music_open_track( int idx ) {
@@ -370,6 +597,8 @@ static bool sfx_decode( int idx, SfxPcm *out ) {
     return out->frames > 0;
 }
 
+#endif
+
 } // namespace
 
 void audio_init( ) {
@@ -382,7 +611,7 @@ void audio_init( ) {
     if ( env_music && atoi( env_music ) == 0 ) {
         music_enabled = false;
     }
-    const float music_gain = env_float( "REPGAME_MUSIC_VOLUME", 0.5f );
+    music_gain = env_float( "REPGAME_MUSIC_VOLUME", 0.5f );
     sfx_gain = env_float( "REPGAME_SFX_VOLUME", 1.0f );
     // Seconds of silence between tracks, uniform in [gap/4, gap].
     // REPGAME_MUSIC_GAP=0 = continuous shuffle.
@@ -391,6 +620,33 @@ void audio_init( ) {
     gap_min_ticks = ( long )( gap_s * 0.25f * UPS_RATE );
     gap_span_ticks = ( long )( gap_s * 0.75f * UPS_RATE ) + 1;
 
+#if defined( REPGAME_WASM )
+    // Emscripten's SDL2 backend forces the device rate to the AudioContext
+    // sample rate and only supports AUDIO_F32; want.samples sizes the
+    // ScriptProcessorNode buffer. The context starts suspended — SDL2
+    // resumes it automatically once the user has interacted with the page.
+    SDL_AudioSpec want;
+    SDL_zero( want );
+    want.freq = 48000;
+    want.format = AUDIO_F32;
+    want.channels = 2;
+    want.samples = 512;
+    want.callback = audio_mix_cb;
+    audio_device = SDL_OpenAudioDevice( NULL, 0, &want, &device_spec, 0 );
+    if ( !audio_device ) {
+        pr_debug( "audio: no playback device (%s), running silent", SDL_GetError( ) );
+        return;
+    }
+
+    const int num_sfx = ( int )( sizeof( SFX_SOUNDS ) / sizeof( SFX_SOUNDS[ 0 ] ) ) - 1; // NULL terminator row
+    sfx_cache.resize( num_sfx > 0 ? num_sfx : 0 );
+
+    audio_enabled = true;
+    music_want.store( true );
+    SDL_PauseAudioDevice( audio_device, 0 );
+    pr_debug( "audio: device %dHz %dch, %d music tracks, %d sfx", device_spec.freq, device_spec.channels,
+              ( int )( sizeof( MUSIC_TRACKS ) / sizeof( MUSIC_TRACKS[ 0 ] ) ) - 1, num_sfx );
+#else
     // Open the device directly, NOT via SDL_OpenAudioDeviceStream — a device
     // opened by that call refuses any further stream bindings, so the
     // one-shot SFX streams could never be bound and were always silent.
@@ -430,6 +686,7 @@ void audio_init( ) {
     SDL_ResumeAudioDevice( audio_device );
     pr_debug( "audio: device %dHz %dch, %d music tracks, %d sfx", device_spec.freq, device_spec.channels,
               ( int )( sizeof( MUSIC_TRACKS ) / sizeof( MUSIC_TRACKS[ 0 ] ) ) - 1, num_sfx );
+#endif
 }
 
 void audio_tick( long tick_number ) {
@@ -455,8 +712,10 @@ void audio_tick( long tick_number ) {
             next_track.store( idx );
         }
     }
+#if !defined( REPGAME_WASM )
     // Reap finished one-shots: once a flushed stream has no queued input and
     // no converted output left, the device already consumed every sample.
+    // (WASM voices free themselves in the mix callback — nothing to reap.)
     for ( size_t i = 0; i < active_sfx.size( ); ) {
         if ( SDL_GetAudioStreamQueued( active_sfx[ i ] ) == 0 && SDL_GetAudioStreamAvailable( active_sfx[ i ] ) == 0 ) {
             SDL_UnbindAudioStream( active_sfx[ i ] );
@@ -467,6 +726,7 @@ void audio_tick( long tick_number ) {
             i++;
         }
     }
+#endif
 }
 
 void audio_play_sfx( const char *base_name ) {
@@ -491,6 +751,19 @@ void audio_play_sfx( const char *base_name ) {
         pr_debug( "audio: decode failed for sfx '%s'", SFX_SOUNDS[ idx ].base );
         return;
     }
+#if defined( REPGAME_WASM )
+    // Claim a free voice slot; the mix callback plays the (already
+    // device-format) PCM. Voices point into the cache — no copy.
+    for ( SfxVoice &v : voices ) {
+        if ( !v.data ) {
+            v.data = pcm.data;
+            v.frames = pcm.frames;
+            v.pos = 0;
+            return;
+        }
+    }
+    pr_debug( "audio: no free voice for sfx '%s'", SFX_SOUNDS[ idx ].base );
+#else
     const SDL_AudioSpec src = { SDL_AUDIO_F32, ( Uint8 )pcm.channels, pcm.rate };
     SDL_AudioStream *s = SDL_CreateAudioStream( &src, &device_spec );
     if ( !s ) {
@@ -510,12 +783,16 @@ void audio_play_sfx( const char *base_name ) {
         return;
     }
     active_sfx.push_back( s );
+#endif
 }
 
 void audio_set_music_gain( float gain ) {
+    music_gain = gain;
+#if !defined( REPGAME_WASM )
     if ( music_stream ) {
         SDL_SetAudioStreamGain( music_stream, gain );
     }
+#endif
 }
 
 void audio_set_sfx_gain( float gain ) {
@@ -528,6 +805,16 @@ const char *audio_current_track_title( ) {
 }
 
 void audio_cleanup( ) {
+#if defined( REPGAME_WASM )
+    if ( audio_device ) {
+        SDL_CloseAudioDevice( audio_device ); // stops the mix callback first
+        audio_device = 0;
+    }
+    music_close_track( );
+    for ( SfxVoice &v : voices ) {
+        v.data = nullptr;
+    }
+#else
     for ( SDL_AudioStream *s : active_sfx ) {
         SDL_UnbindAudioStream( s );
         SDL_DestroyAudioStream( s );
@@ -542,6 +829,7 @@ void audio_cleanup( ) {
         SDL_CloseAudioDevice( audio_device );
         audio_device = 0;
     }
+#endif
     for ( SfxPcm &pcm : sfx_cache ) {
         free( pcm.data );
     }

@@ -138,8 +138,8 @@ int repgame_sdl2_main( const char *world_path, const char *host, const bool conn
     if ( tests ) {
         return rep_tests_start( );
     }
-    if ( SDL_Init( SDL_INIT_VIDEO ) != 0 ) {    /* Initialize SDL's Video subsystem */
-        pr_debug( "Unable to initialize SDL" ); /* Or die on error */
+    if ( SDL_Init( SDL_INIT_VIDEO | SDL_INIT_AUDIO ) != 0 ) { /* Initialize SDL's Video+Audio subsystems */
+        pr_debug( "Unable to initialize SDL" );                 /* Or die on error */
         exit( 1 );
     }
 
