@@ -131,10 +131,9 @@ void ChunkLoader::set_render_distance( int radius ) {
 }
 
 // Returns 0 when the slot stays put in-window (callers then do the usual
-// recenter/heal, or the deferred-finalize path for a reactivated
-// CHUNK_PARKED_UNFINALIZED slot), 1 when a (re)load was enqueued, and 2 when
-// the slot parked because its nearest position is outside the active
-// render window.
+// recenter/heal, or the deferred-finalize path for a just-dequeued load),
+// 1 when a (re)load was enqueued, and 2 when the slot parked because its
+// nearest position is outside the active render window.
 int ChunkLoader::reload_if_out_of_bounds( Chunk &chunk, const glm::ivec3 &chunk_pos, glm::ivec3 *out_new_pos ) {
 
     const int new_chunk_x = static_cast<int>( floorf( static_cast<float>( chunk_pos.x - chunk.chunk_mod.x + CHUNK_RADIUS_XZ ) / static_cast<float>( ( CHUNK_RADIUS_XZ * 2 + 1 ) ) ) ) * ( CHUNK_RADIUS_XZ * 2 + 1 ) + chunk.chunk_mod.x;
@@ -146,52 +145,57 @@ int ChunkLoader::reload_if_out_of_bounds( Chunk &chunk, const glm::ivec3 &chunk_
     }
     if ( !this->pos_in_window( chunk_pos, new_chunk ) ) {
         // Park the slot: any nonzero state keeps it out of the drawable
-        // list, random ticks, and the light paths, and retained terrain
-        // stays for reactivation. A live chunk keeps its finalized mesh
-        // (CHUNK_PARKED); a just-dequeued one needs mesh/light finalize on
-        // re-entry (CHUNK_PARKED_UNFINALIZED). Parked states keep theirs.
+        // list, random ticks, and the light paths. No terrain data is
+        // retained — a full torus of parked chunks would overflow the
+        // wasm32 heap outright (and turn render distance into an unbounded
+        // cache elsewhere) — so memory follows the active window and
+        // re-entry reloads the save or regenerates. Dirty chunks persist
+        // the same way a slot moving to a new position does: through the
+        // work queue, where process_value writes the save off the render
+        // thread before the dequeue-time bounds check releases the data.
+        // The free itself is deferred (defer_release): a light worker can
+        // still be mid-job on this chunk after its load_state gate, and
+        // its buffers are pooled — freeing them now would recycle the
+        // memory under the worker.
         if ( chunk.load_state == CHUNK_LIVE ) {
-            chunk.load_state = CHUNK_PARKED;
-            // Stale flags are meaningless while parked — the heal paths skip
-            // non-live chunks and the reactivation below re-flags it
-            // unconditionally. Clear them so light_stale_count reflects only
-            // live chunks that still need a relight.
-            chunk.light_stale.store( 0, std::memory_order_relaxed );
-            chunk.light_reseed = 0;
+            if ( chunk.dirty ) {
+                chunk.load_state = CHUNK_LOADING;
+                this->terrain_loading_thread.enqueue( &chunk, chunk.chunk_pos, 1 );
+            } else {
+                chunk.load_state = CHUNK_PARKED;
+                this->defer_release( chunk );
+            }
         } else if ( chunk.load_state == CHUNK_LOADING ) {
-            chunk.load_state = CHUNK_PARKED_UNFINALIZED;
+            // A just-dequeued item that landed out of window: its previous
+            // position's edits already persisted on the worker (and a dirty
+            // park's just did), while freshly generated terrain is
+            // reproducible — drop everything.
+            chunk.load_state = CHUNK_PARKED;
+            this->defer_release( chunk );
         }
         return 2;
     }
-    if ( new_chunk == chunk.chunk_pos ) {
-        if ( chunk.load_state == CHUNK_PARKED ) {
-            // Parked with finalized data at this position: instant reuse.
-            chunk.load_state = CHUNK_LIVE;
-            // While parked, every light path dropped work aimed at this chunk
-            // (seeds, diff rechecks, queued dirty uploads, finalizes) without
-            // flagging it — the frozen volume can be stale. Flag it so the
-            // caller's light_heal_chunk (or light_heal_idle when the budget
-            // is spent) re-finalizes it on re-entry — the same stale+reseed
-            // semantics as the backlog-cap refusals, which converge any mix
-            // of dropped add/remove work.
-            chunk.light_stale.store( 1, std::memory_order_relaxed );
-            chunk.light_reseed = 1;
-            return 0;
-        }
-        if ( chunk.load_state == CHUNK_PARKED_UNFINALIZED && chunk.cells != nullptr ) {
-            // Terrain loaded but never meshed/lit — caller finalizes.
-            return 0;
-        }
-        if ( chunk.load_state != CHUNK_PARKED_UNFINALIZED ) {
-            // LIVE or LOADING at the right position already.
-            return 0;
-        }
-        // PARKED_UNFINALIZED with cells==nullptr: never loaded — enqueue.
+    if ( new_chunk == chunk.chunk_pos && chunk.load_state != CHUNK_PARKED ) {
+        // LIVE or LOADING at the right position already — including a dirty
+        // park that rode the queue back in-window mid-persist: its data is
+        // intact and it re-finalizes like any dequeued load (idempotent —
+        // see program_terrain's populated_blocks guard).
+        return 0;
     }
+    // CHUNK_PARKED re-entering the window, or the slot's nearest position
+    // moved: (re)load through the normal queue.
     chunk.unprogram_terrain( );
     chunk.load_state = CHUNK_LOADING;
     this->terrain_loading_thread.enqueue( &chunk, new_chunk, 1 );
     return 1;
+}
+
+// Queue a parked slot's buffers for release once light workers can no
+// longer be mid-job on it (render_chunks drains parked_release after
+// PARK_RELEASE_DEFER_FRAMES). gen guards against a stale entry releasing
+// a slot that re-entered and re-parked in the meantime.
+void ChunkLoader::defer_release( Chunk &chunk ) {
+    this->parked_release.push_back( { &chunk, ++chunk.park_release_gen, this->park_frame } );
 }
 
 // The post-terrain-load steps shared by the dequeue path and parked-slot
@@ -317,7 +321,7 @@ void ChunkLoader::init( const glm::dvec3 &camera_pos, const VertexBufferLayout &
                                 // Outside the active render window: park the
                                 // slot until the radius grows over it. It has
                                 // no cells, so re-entry enqueues a real load.
-                                chunk.load_state = CHUNK_PARKED_UNFINALIZED;
+                                chunk.load_state = CHUNK_PARKED;
                             }
                             nextChunk = ( nextChunk + 1 );
                         }
@@ -387,7 +391,7 @@ void ChunkLoader::render_chunks( Multiplayer &multiplayer, const glm::dvec3 &cam
                 Chunk &chunk = *chunk_ptr;
                 // load_state stays CHUNK_LOADING through the bounds check —
                 // reload_if_out_of_bounds owns all transitions (re-enqueue,
-                // park as CHUNK_PARKED_UNFINALIZED, or return for finalize).
+                // park as CHUNK_PARKED, or return for finalize).
                 int reloaded = reload_if_out_of_bounds( chunk, chunk_pos );
                 if ( !reloaded ) {
                     this->finalize_loaded_chunk( chunk, multiplayer, chunk_pos );
@@ -399,6 +403,25 @@ void ChunkLoader::render_chunks( Multiplayer &multiplayer, const glm::dvec3 &cam
             // per-chunk GL finalize work so load-in bursts don't hitch frames.
         } while ( chunk_ptr && ( now_us( ) - t_budget_start < ( limit_render ? WASM_LOAD_BUDGET_US : CHUNK_FINALIZE_BUDGET_US ) ) );
         light_dbg_us_finalize += now_us( ) - t_budget_start;
+    }
+    // Drain deferred park releases whose defer window elapsed (PARK_RELEASE_
+    // DEFER_FRAMES). A stale entry (gen mismatch or no longer parked) means
+    // the slot re-entered and re-parked — drop it, the newer entry owns the
+    // release timing.
+    this->park_frame++;
+    for ( size_t i = 0; i < this->parked_release.size( ); ) {
+        const ParkedRelease &e = this->parked_release[ i ];
+        if ( e.chunk->load_state == CHUNK_PARKED && e.gen == e.chunk->park_release_gen &&
+             this->park_frame - e.frame >= PARK_RELEASE_DEFER_FRAMES ) {
+            e.chunk->release_terrain( );
+        }
+        if ( e.chunk->load_state != CHUNK_PARKED || e.gen != e.chunk->park_release_gen ||
+             this->park_frame - e.frame >= PARK_RELEASE_DEFER_FRAMES ) {
+            this->parked_release[ i ] = this->parked_release.back( );
+            this->parked_release.pop_back( );
+        } else {
+            i++;
+        }
     }
     const bool radius_changed = this->render_radius != this->render_radius_applied;
     if ( 0 != chunk_diff.x || 0 != chunk_diff.y || 0 != chunk_diff.z || radius_changed ) {
@@ -414,15 +437,9 @@ void ChunkLoader::render_chunks( Multiplayer &multiplayer, const glm::dvec3 &cam
             glm::ivec3 new_pos;
             int reloaded = reload_if_out_of_bounds( chunk, chunk_pos, &new_pos );
             if ( reloaded == 0 ) {
-                if ( chunk.load_state == CHUNK_PARKED_UNFINALIZED ) {
-                    // Parked slot re-entering with loaded-but-unfinalized
-                    // terrain: mesh/light it now, no regeneration.
-                    this->finalize_loaded_chunk( chunk, multiplayer, chunk_pos );
-                } else {
-                    process_chunk_position( chunk, chunk_pos, 0 );
-                    // Far-cap stale flag heals as the chunk re-enters near radius.
-                    this->light_heal_chunk( chunk, chunk_pos );
-                }
+                process_chunk_position( chunk, chunk_pos, 0 );
+                // Far-cap stale flag heals as the chunk re-enters near radius.
+                this->light_heal_chunk( chunk, chunk_pos );
             } else if ( reloaded == 1 ) {
                 new_positions.push_back( new_pos );
             }
@@ -910,11 +927,11 @@ void ChunkLoader::cleanup( MapStorage &map_storage ) {
     this->light_thread_stop( );
     for ( int i = 0; i < MAX_LOADED_CHUNKS; i++ ) {
         Chunk &chunk = this->chunkArray[ i ];
-        // Parked slots still hold dirty data — persist_chunk no-ops on
-        // clean/never-loaded chunks.
-        if ( chunk.load_state != CHUNK_LOADING ) {
-            chunk.persist( map_storage );
-        }
+        // The threads are joined, so every slot's chunk_pos/data pair is
+        // stable — including dirty chunks parked for the queue ride whose
+        // persist never ran. persist_chunk no-ops on clean/never-loaded
+        // chunks.
+        chunk.persist( map_storage );
         chunk.destroy( );
     }
     free( this->chunkArray );

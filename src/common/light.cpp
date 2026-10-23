@@ -3274,8 +3274,8 @@ void ChunkLoader::light_thread_loop( ) {
                 // Claim was staked on the pos captured at submit — the slot
                 // must still hold that chunk or our writes aren't under the
                 // claim. A recycled slot's fresh dequeue re-submits, and a
-                // parked chunk's next CHUNK_PARKED -> CHUNK_LIVE reactivation
-                // re-flags it stale — so skipping loses nothing.
+                // parked chunk reloads and re-finalizes on re-entry — so
+                // skipping loses nothing.
                 if ( job.chunk->chunk_pos == job.pos && !job.chunk->load_state ) {
                     this->light_finalize_chunk( *job.chunk );
                 }

@@ -186,10 +186,12 @@ vars set, behaviour is unchanged.
   (1..`CHUNK_RADIUS_XZ`, default `CHUNK_RADIUS_XZ_DEFAULT` = half the max). The chunk torus is always allocated
   at the compile-time `CHUNK_RADIUS_*`; the runtime radius is an active
   window inside it — out-of-window slots park (`load_state` =
-  `CHUNK_PARKED`/`CHUNK_PARKED_UNFINALIZED`, so light/draw/tick paths treat
-  them as unloaded) and reactivate on growth (`CHUNK_PARKED_UNFINALIZED`
-  finalizes without regenerating when terrain already streamed in while
-  parked). Adjust live with `=`/`+` and `-` (numpad too); `0` resets to
+  `CHUNK_PARKED`, so light/draw/tick paths treat them as unloaded). Parking
+  retains NOTHING: dirty chunks persist through the normal work queue, then
+  every owned buffer is released (`Chunk::release_terrain`), so memory
+  follows the active window instead of accumulating toward the torus
+  capacity. Re-entry reloads the save or regenerates. Adjust live with
+  `=`/`+` and `-` (numpad too); `0` resets to
   `RENDER_RADIUS_DEFAULT`. The fog edge
   tracks the active radius, not the torus capacity. The y radius is fixed
   at compile time. The chosen radius persists in `player.dat`
@@ -245,7 +247,13 @@ vars set, behaviour is unchanged.
   `drop`=pop-time dead targets, `pd`=push-time dead targets, `cap`=far-seed
   cap refusals — see the backlog cap below, `def`=write-hot dirty-upload
   deferrals — see the upload debounce in lighting-thread-plan.md) and
-  per-phase µs). `REPGAME_FLY_TICKS=n` exits at tick n via the normal
+  per-phase µs). `rd` is the active render radius and `cl` the count of
+  slots with terrain work in flight (a nonzero `cl` keeps the settle gate
+  from opening). `REPGAME_FLY_RD="tick:radius,tick:radius"` applies
+  scripted render-distance changes at those fly ticks (e.g. `200:2,500:8`)
+  — the schedule evaluates against flight time, so it exercises the
+  park/release and re-entry paths while streaming continues.
+  `REPGAME_FLY_TICKS=n` exits at tick n via the normal
   cleanup path. `player.dat` is not written. Combine with
   `SDL_VIDEODRIVER=offscreen` for headless runs.
 - `REPGAME_LIGHT_CLAIM_RADIUS` — `1..4` (default 1): Chebyshev distance
@@ -292,8 +300,17 @@ output).
 
 ```sh
 node tools/wasm_capture.cjs --views "<REPGAME_CAPTURE spec>" --out <dir> \
-    [--port 8091] [--msaa 0|1] [--env KEY=VAL ...] [--timeout 240]
+    [--port 8091] [--msaa 0|1] [--env KEY=VAL ...] [--timeout 240] \
+    [--webgpu swiftshader|vulkan]
 ```
+
+Omit `--views` for fly/stress mode: no `REPGAME_CAPTURE` is set, the
+`--env REPGAME_FLY*` vars drive the game, and the harness waits for the
+exit-screen navigation (or `--timeout`) then writes `console.log` with the
+FLYMET telemetry and any aborts. `--webgpu vulkan` drops the
+`--use-webgpu-adapter=swiftshader` override so Dawn uses the real GPU
+adapter in headless — needed to exercise the hardware ("amd") WebGPU path
+that software adapters can't reproduce.
 
 - On WASM every `REPGAME_*` URL query parameter becomes an environment
   variable (`index.js` `preRun` copies them into Emscripten's `ENV`), so all

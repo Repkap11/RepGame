@@ -69,15 +69,18 @@ void chunk_free_air_mask( unsigned char *p );
 
 // Chunk slot lifecycle. CHUNK_LIVE is the only state where terrain/mesh/
 // light data is usable — every consumer that used to check !is_loading just
-// keeps working since parked states are also nonzero. The parked states are
-// render-distance slots outside the active window (ChunkLoader::
-// render_radius): no work item is in flight for them, and the grid-shift
-// rescan re-evaluates them when the window grows.
+// keeps working since the parked state is also nonzero. Parking a slot
+// (ChunkLoader::reload_if_out_of_bounds) persists dirty edits through the
+// normal work queue then drops every owned buffer via
+// Chunk::release_terrain — retained parked data let memory grow toward the
+// whole torus instead of following the active window (the wasm32 heap can't
+// even hold one full torus). Re-entry reloads the save or regenerates. No
+// work item is in flight for parked slots, and the grid-shift rescan
+// re-evaluates them when the window grows.
 enum ChunkLoadState {
-    CHUNK_LIVE = 0,               // loaded + finalized (the old is_loading=0)
-    CHUNK_LOADING = 1,            // terrain work item in flight (old is_loading=1)
-    CHUNK_PARKED = 2,             // out of window, finalized data retained — reactivates instantly
-    CHUNK_PARKED_UNFINALIZED = 3, // out of window, never meshed/lit (cells==nullptr = never even loaded)
+    CHUNK_LIVE = 0,     // loaded + finalized (the old is_loading=0)
+    CHUNK_LOADING = 1,  // terrain work item in flight (old is_loading=1)
+    CHUNK_PARKED = 2,   // out of window, no data retained — re-entry re-enqueues a load
 };
 
 // A chunk's 6-bit face-visibility mask relative to a camera chunk — which
@@ -133,6 +136,10 @@ class Chunk {
     int should_render;
     int cached_cull_normal;
     int cached_cull_reflect;
+    // Park-release generation: bumped each time ChunkLoader defers this
+    // slot's buffer release, so a stale deferred entry (slot re-entered
+    // and re-parked before the old one fired) can't release fresh data.
+    unsigned int park_release_gen;
     // AABB occlusion-probe state (ChunkLoader::draw, normal pass only). Each
     // frustum-visible chunk probes its [0,CHUNK_SIZE) bounding box against
     // the opaque depth buffer once per frame (GL_ANY_SAMPLES_PASSED).
@@ -252,6 +259,12 @@ class Chunk {
     void load_terrain( MapStorage &map_storage ); // Load from file or map gen
     void program_terrain( );                      // Program into GPU
     void unprogram_terrain( );                    // Remove from GPU
+    // Drop every owned buffer (cells/extras, light volumes + mask, per-layer
+    // GL objects + populated_blocks, light texture, occlusion query) so the
+    // slot holds no terrain data — used when parking (chunk_loader.cpp) and
+    // by destroy(). Render thread only: it deletes GL objects. Afterwards
+    // the slot is equivalent to never-loaded.
+    void release_terrain( );
     void calculate_sides( const glm::ivec3 &center_next );
     static int get_coords_from_index_todo( int index, glm::ivec3 &out_pos );
     static int get_coords_from_index( int index, int &out_x, int &out_y, int &out_z );

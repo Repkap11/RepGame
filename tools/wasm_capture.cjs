@@ -7,6 +7,12 @@
 // Usage:
 //   node tools/wasm_capture.cjs --views "<REPGAME_CAPTURE spec>" --out <dir>
 //       [--port 8091] [--msaa 0|1] [--env KEY=VAL ...] [--timeout 240]
+//       [--webgpu swiftshader|vulkan]
+//
+// With --views omitted (fly/stress mode): REPGAME_CAPTURE is not set, the
+// game runs whatever the --env REPGAME_FLY* vars script, and the harness
+// waits for the exit-screen navigation or --timeout, then writes
+// console.log — the FLYMET telemetry and any aborts/pageerrors.
 const fs = require("fs");
 const path = require("path");
 const os = require("os");
@@ -81,23 +87,29 @@ const outDir = argValue("out", null);
 const port = parseInt(argValue("port", "8091"), 10);
 const msaa = argValue("msaa", "1");
 const timeoutSec = parseInt(argValue("timeout", "240"), 10);
+const webgpuAdapter = argValue("webgpu", "swiftshader");
 const extraEnvs = [];
 for (let i = 0; i < args.length; i++) {
     if (args[i] === "--env" && i + 1 < args.length) extraEnvs.push(args[i + 1]);
 }
-if (!views || !outDir) {
-    console.error("Usage: --views <spec> --out <dir> [--port] [--msaa] [--env K=V] [--timeout s]");
+if (!outDir) {
+    console.error("Usage: --views <spec> --out <dir> [--port] [--msaa] [--env K=V] [--timeout s] [--webgpu]");
     process.exit(2);
 }
-const nViews = views.split(";").filter((s) => s.trim().length > 0).length;
+const nViews = views ? views.split(";").filter((s) => s.trim().length > 0).length : 0;
 const repoRoot = path.resolve(__dirname, "..");
 
 async function launch(chromium, useSwiftShader) {
     // --use-webgpu-adapter=swiftshader gives a working WebGPU adapter even in
     // GPU-less headless environments (software Vulkan); --enable-unsafe-webgpu
     // removes the platform guard. Together they exercise the real WebGPU path
-    // in CI even without a hardware adapter.
-    const webgpuArgs = ["--enable-unsafe-webgpu", "--use-webgpu-adapter=swiftshader"];
+    // in CI even without a hardware adapter. --webgpu vulkan drops the
+    // override so Dawn picks the real GPU adapter (the "amd" path that hit
+    // the heap-growth OOM); it needs a working GPU in headless.
+    const webgpuArgs =
+        webgpuAdapter === "vulkan"
+            ? ["--enable-unsafe-webgpu", "--enable-features=Vulkan"]
+            : ["--enable-unsafe-webgpu", "--use-webgpu-adapter=swiftshader"];
     const args = useSwiftShader
         ? ["--enable-unsafe-swiftshader", "--use-gl=angle", "--use-angle=swiftshader", ...webgpuArgs]
         : ["--enable-gpu", "--ignore-gpu-blocklist", "--use-angle=gl", ...webgpuArgs];
@@ -159,7 +171,7 @@ async function run() {
 
         const qs = new URLSearchParams();
         qs.set("server", "off");
-        qs.set("REPGAME_CAPTURE", views);
+        if (views) qs.set("REPGAME_CAPTURE", views);
         qs.set("REPGAME_MSAA", msaa);
         for (const kv of extraEnvs) {
             const eq = kv.indexOf("=");
@@ -180,26 +192,39 @@ async function run() {
         ]);
         await page.click("#play_button");
 
-        const deadline = Date.now() + timeoutSec * 1000;
-        while (Date.now() < deadline) {
+        if (nViews === 0) {
+            // Fly/stress mode: no captures expected. The game's exit path
+            // calls show_exit_screen() -> location.replace(), which lands a
+            // fresh navigation — wait for that or the deadline, whichever
+            // comes first. FLYMET/crash output is in console.log.
+            try {
+                await page.waitForNavigation({ waitUntil: "load", timeout: timeoutSec * 1000 });
+                consoleLines.push("[harness] game exited (exit-screen navigation)");
+            } catch (e) {
+                consoleLines.push(`[harness] deadline hit after ${timeoutSec}s without exit`);
+            }
+        } else {
+            const deadline = Date.now() + timeoutSec * 1000;
+            while (Date.now() < deadline) {
+                const n = await page.evaluate(() => (window.repgameCaptures ? window.repgameCaptures.length : 0));
+                if (n >= nViews) break;
+                await new Promise((r) => setTimeout(r, 500));
+            }
             const n = await page.evaluate(() => (window.repgameCaptures ? window.repgameCaptures.length : 0));
-            if (n >= nViews) break;
-            await new Promise((r) => setTimeout(r, 500));
+            if (n < nViews) {
+                throw new Error(`timeout: got ${n}/${nViews} captures after ${timeoutSec}s`);
+            }
+            captured = await page.evaluate(() =>
+                window.repgameCaptures.map((c) => {
+                    let s = "";
+                    const u = c.rgba;
+                    for (let i = 0; i < u.length; i += 8192) {
+                        s += String.fromCharCode.apply(null, u.subarray(i, Math.min(i + 8192, u.length)));
+                    }
+                    return { name: c.name, width: c.width, height: c.height, b64: btoa(s) };
+                })
+            );
         }
-        const n = await page.evaluate(() => (window.repgameCaptures ? window.repgameCaptures.length : 0));
-        if (n < nViews) {
-            throw new Error(`timeout: got ${n}/${nViews} captures after ${timeoutSec}s`);
-        }
-        captured = await page.evaluate(() =>
-            window.repgameCaptures.map((c) => {
-                let s = "";
-                const u = c.rgba;
-                for (let i = 0; i < u.length; i += 8192) {
-                    s += String.fromCharCode.apply(null, u.subarray(i, Math.min(i + 8192, u.length)));
-                }
-                return { name: c.name, width: c.width, height: c.height, b64: btoa(s) };
-            })
-        );
         await ctx.close();
     } finally {
         if (browser) await browser.close().catch(() => {});
@@ -207,7 +232,7 @@ async function run() {
         fs.writeFileSync(path.join(outDir, "console.log"), consoleLines.join("\n") + "\n");
     }
 
-    for (const c of captured) {
+    for (const c of captured || []) {
         const rgba = Buffer.from(c.b64, "base64");
         const stride = c.width * 4;
         // glReadPixels rows are bottom-up; flip to top-down.

@@ -33,6 +33,14 @@ static_assert( CHUNK_RADIUS_Y > 0, "CHUNK_RADIUS_Y too small" );
 #define RENDER_RADIUS_MAX CHUNK_RADIUS_XZ
 #define RENDER_RADIUS_DEFAULT CHUNK_RADIUS_XZ_DEFAULT
 
+// Frames to defer freeing a parked chunk's terrain data. Parking flips
+// load_state so every light/draw path skips the slot, but a light worker
+// already inside a job that passed its load_state gate can still be
+// touching the chunk's pooled buffers — freeing them mid-job recycles the
+// memory under the worker (UAF). Light jobs are time-budgeted (~ms), so a
+// frames defer is margin rather than a queue.
+#define PARK_RELEASE_DEFER_FRAMES 30
+
 
 #define CHUNK_SIZE_I glm::ivec3( CHUNK_SIZE_X, CHUNK_SIZE_Y, CHUNK_SIZE_Z )
 #define CHUNK_SIZE_F glm::vec3( CHUNK_SIZE_X, CHUNK_SIZE_Y, CHUNK_SIZE_Z )

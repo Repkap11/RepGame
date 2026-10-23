@@ -905,6 +905,12 @@ void World::set_loaded_block( const glm::ivec3 &block_pos, BlockState blockState
 
     if ( Chunk *chunk_prt = this->chunkLoader.get_chunk( chunk_pos ) ) {
         Chunk &chunk = *chunk_prt;
+        if ( chunk.load_state ) {
+            // Parked/loading slot — there may be no block storage to write
+            // (parking releases it). Multiplayer edits re-arrive as diffs on
+            // the next load, so dropping is safe.
+            return;
+        }
         glm::ivec3 diff = block_pos - chunk_pos * CHUNK_SIZE_I;
         // pr_debug( "Orig Offset: %d %d %d", diff_x, diff_y, diff_z );
 

@@ -36,8 +36,8 @@ void VertexBuffer::reserve( const unsigned int size ) {
 
 void VertexBuffer::destroy( ) {
     this->size = 0;
-    this->mRendererId = 0;
     glDeleteBuffers( 1, &this->mRendererId );
+    this->mRendererId = 0;
 }
 
 void VertexBuffer::bind( ) const {

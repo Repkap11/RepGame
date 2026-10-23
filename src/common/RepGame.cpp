@@ -135,6 +135,13 @@ struct FlyState {
     long fly_start_tick = 0;
     int idle_streak = 0;
     int phase = 0; // 0 = waiting for settle, 1 = flying, 2 = done (position held)
+    // REPGAME_FLY_RD="tick:radius,tick:radius" — render distance changes
+    // applied at the given fly ticks (t = ticks since flight start).
+    static constexpr int RD_SCHEDULE_MAX = 16;
+    long rd_ticks[ RD_SCHEDULE_MAX ] = { 0 };
+    int rd_radius[ RD_SCHEDULE_MAX ] = { 0 };
+    int rd_count = 0;
+    int rd_next = 0;
 };
 static FlyState g_fly;
 
@@ -177,6 +184,21 @@ static void fly_parse( ) {
     }
     if ( const char *v = getenv( "REPGAME_FLY_FLY_TICKS" ) ) {
         g_fly.fly_ticks = atol( v );
+    }
+    if ( const char *v = getenv( "REPGAME_FLY_RD" ) ) {
+        char buf[ 256 ];
+        snprintf( buf, sizeof( buf ), "%s", v );
+        for ( char *tok = strtok( buf, "," ); tok && g_fly.rd_count < FlyState::RD_SCHEDULE_MAX; tok = strtok( nullptr, "," ) ) {
+            long t;
+            int r;
+            if ( sscanf( tok, "%ld:%d", &t, &r ) != 2 ) {
+                pr_debug( "REPGAME_FLY_RD: bad entry '%s' (want tick:radius)", tok );
+                break;
+            }
+            g_fly.rd_ticks[ g_fly.rd_count ] = t;
+            g_fly.rd_radius[ g_fly.rd_count ] = r;
+            g_fly.rd_count++;
+        }
     }
     pr_debug( "Fly mode: start=(%.1f,%.1f,%.1f) yaw=%.1f pitch=%.1f speed=%.2f metrics=%ld exit=%ld settle=%ld/%ld fly=%ld", x, y,
               z, yaw, pitch, speed, g_fly.metric_every, g_fly.exit_tick, g_fly.settle_ticks, g_fly.settle_timeout,
@@ -1621,6 +1643,13 @@ void RepGame::tick( ) {
             t = g_fly.fly_ticks;
             g_fly.phase = 2;
         }
+        // Render distance schedule (REPGAME_FLY_RD): entries apply in order
+        // once their fly tick is reached.
+        while ( g_fly.phase >= 1 && g_fly.rd_next < g_fly.rd_count && t >= g_fly.rd_ticks[ g_fly.rd_next ] ) {
+            globalGameState.input.render_distance = g_fly.rd_radius[ g_fly.rd_next ];
+            pr_debug( "Fly mode: render distance -> %d at fly tick %.0f", g_fly.rd_radius[ g_fly.rd_next ], t );
+            g_fly.rd_next++;
+        }
         globalGameState.camera.pos = g_fly.start + g_fly.dir * ( g_fly.speed * t );
         globalGameState.camera.prev_pos = globalGameState.camera.pos;
         globalGameState.camera.prev_eye_height = globalGameState.camera.eye_height;
@@ -1687,9 +1716,9 @@ void RepGame::tick( ) {
         globalGameState.world.chunkLoader.debug_loader_stats( &s );
         char dbg[ 1024 ];
         globalGameState.world.chunkLoader.light_dbg_stats( dbg, sizeof( dbg ) );
-        pr_debug( "FLYMET t=%ld ph=%d p=(%.1f,%.1f,%.1f) j=%d p=%d c=%d d=%d x=%lld bfs=%d pri=%d stv=%d s=%lld stl=%d occ=%d/%d | %s",
-                  globalGameState.tick_number, g_fly.phase, globalGameState.camera.pos.x, globalGameState.camera.pos.y,
-                  globalGameState.camera.pos.z, s.light_jobs, s.light_pending, s.light_claims, s.light_dirty,
+        pr_debug( "FLYMET t=%ld ph=%d rd=%d p=(%.1f,%.1f,%.1f) cl=%d j=%d p=%d c=%d d=%d x=%lld bfs=%d pri=%d stv=%d s=%lld stl=%d occ=%d/%d | %s",
+                  globalGameState.tick_number, g_fly.phase, globalGameState.input.render_distance, globalGameState.camera.pos.x, globalGameState.camera.pos.y,
+                  globalGameState.camera.pos.z, s.chunks_loading, s.light_jobs, s.light_pending, s.light_claims, s.light_dirty,
                   s.light_dropped, s.light_bfs_active, s.light_bfs_priority, s.light_bfs_starve, s.light_seeds,
                   s.light_stale_count, s.chunks_occluded, s.chunks_drawable, dbg );
     }

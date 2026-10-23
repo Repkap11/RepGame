@@ -1,6 +1,7 @@
 #pragma once
 
 #include <deque>
+#include <vector>
 
 #include "chunk.hpp"
 #include "common/light.hpp"
@@ -128,12 +129,25 @@ class ChunkLoader {
     // Runtime render distance: horizontal (x/z) active radius in chunks,
     // 1..RENDER_RADIUS_MAX. The torus stays allocated at the compile-time
     // CHUNK_RADIUS_*; slots whose nearest position is outside the active
-    // window park (CHUNK_PARKED / CHUNK_PARKED_UNFINALIZED) and are
-    // re-evaluated on each grid-shift rescan. render_radius_applied tracks
-    // the radius the last rescan used so a change triggers one even
-    // without a center move.
+    // window park (CHUNK_PARKED) and are re-evaluated on each grid-shift
+    // rescan. render_radius_applied tracks the radius the last rescan used
+    // so a change triggers one even without a center move.
     int render_radius = CHUNK_RADIUS_XZ;
     int render_radius_applied = -1;
+
+    // Deferred park releases (PARK_RELEASE_DEFER_FRAMES): parking flips
+    // load_state immediately, but the buffer free waits so a light job
+    // that passed its gate just before the park can finish touching the
+    // chunk's arrays. park_release_gen invalidates entries for slots that
+    // re-entered and re-parked before their defer elapsed.
+    struct ParkedRelease {
+        Chunk *chunk;
+        unsigned int gen;
+        long frame;
+    };
+    std::vector<ParkedRelease> parked_release;
+    long park_frame = 0;
+    void defer_release( Chunk &chunk );
 
     bool pos_in_window( const glm::ivec3 &center, const glm::ivec3 &pos ) const;
     int reload_if_out_of_bounds( Chunk &chunk, const glm::ivec3 &chunk_pos, glm::ivec3 *out_new_pos = nullptr );

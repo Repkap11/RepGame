@@ -216,12 +216,37 @@ void Chunk::ensure_gl_init( ) {
 }
 
 void Chunk::destroy( ) {
+    this->release_terrain( );
+}
+
+// Free every owned buffer so the slot holds no terrain data — parked chunks
+// take this path (chunk_loader.cpp) so memory follows the active window
+// rather than the torus capacity, and destroy() shares it. Render thread
+// only (deletes GL objects); the pooled buffers go to thread-local free
+// lists, so a light worker still holding a stale pointer from a just-
+// finished job writes into a recycled buffer — the same pre-existing window
+// as the slot-reposition path, where load_terrain frees under a worker.
+void Chunk::release_terrain( ) {
+    // should_render=0, occlusion-probe reset, populated_blocks frees.
+    this->unprogram_terrain( );
+    for ( RenderLayer &layer : this->layers ) {
+        layer.num_instances = 0;
+        layer.vb_coords.destroy( );
+        layer.va.destroy( );
+    }
+    // Cleared so ensure_gl_init rebuilds the destroyed layer objects on
+    // reactivation.
+    this->gl_initialized = 0;
     if constexpr ( REMEMBER_BLOCKS ) {
         this->free_block_storage( );
     }
     chunk_free_light( this->light );
+    this->light = nullptr;
+    this->light_uniform = 0;
     chunk_free_light_columns( this->light_columns );
+    this->light_columns = nullptr;
     chunk_free_air_mask( this->light_air_mask );
+    this->light_air_mask = nullptr;
     if ( this->light_texture ) {
         glDeleteTextures( 1, &this->light_texture );
         this->light_texture = 0;
@@ -230,16 +255,26 @@ void Chunk::destroy( ) {
         glDeleteQueries( 1, &this->occl_query );
         this->occl_query = 0;
     }
-
-    for ( RenderLayer &layer : this->layers ) {
-        if ( layer.populated_blocks ) {
-            free( layer.populated_blocks );
-        }
-        RenderLayer &renderLayer = layer;
-        renderLayer.populated_blocks = nullptr;
-        renderLayer.vb_coords.destroy( );
-        renderLayer.va.destroy( );
-    }
+    // unprogram_terrain keeps occl_pending (the query object survives a
+    // reposition); here the query is gone, so the pending flag must be too.
+    this->occl_pending = 0;
+    // Light bookkeeping for a volume that no longer exists. light_pending_
+    // listed / light_upload_listed stay whatever they were — their drain
+    // loops own those flags and skip non-live chunks after clearing them.
+    this->light_pending_count = 0;
+    this->light_reseed = 0;
+    this->light_stale.store( 0, std::memory_order_relaxed );
+    this->light_upload_defers = 0;
+    this->light_uploaded_once = 0;
+    this->light_finalized.store( 0, std::memory_order_relaxed );
+    this->light_write_tick.store( 0, std::memory_order_relaxed );
+    this->light_dirty_box.store( LIGHT_BOX_EMPTY, std::memory_order_relaxed );
+    this->needs_repopulation = 0;
+    this->is_empty_chunk = true;
+    // Callers persist before releasing, so nothing here is unsaved.
+    this->dirty = 0;
+    this->chests.clear( );
+    this->chests_loaded = 0;
 }
 
 void Chunk::draw( const Renderer &renderer, const Texture &texture, Shader &shader, RenderOrder renderOrder, bool draw_reflect, const glm::vec3 &render_origin, int light_base_loc ) {
@@ -1088,7 +1123,11 @@ void Chunk::program_terrain( ) {
     static const int validate_instances = getenv( "REPGAME_VALIDATE_INSTANCES" ) != nullptr;
     for ( int renderOrder = 0; renderOrder < LAST_RENDER_ORDER; renderOrder++ ) {
         RenderLayer &renderLayer = this->layers[ renderOrder ];
-        if ( renderLayer.num_instances != 0 ) {
+        // populated_blocks is null for a re-finalized chunk that already
+        // uploaded its mesh (a dirty park that rode the work queue back
+        // in-window before its data was released) — the VBO is intact, so
+        // there is nothing new to upload.
+        if ( renderLayer.num_instances != 0 && renderLayer.populated_blocks != nullptr ) {
             if ( validate_instances ) {
                 static int reported = 0;
                 const int ox = this->chunk_pos.x * CHUNK_SIZE_X;

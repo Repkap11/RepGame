@@ -42,6 +42,20 @@ void TerrainLoadingThread::set_focus( const glm::ivec3 &chunk_pos, int render_ra
 void TerrainLoadingThread::process_value( LinkedListValue *value ) {
     Chunk &chunk = *value->chunk;
     glm::ivec3 target = value->new_chunk_pos;
+#if TERRAIN_GEN_PROFILING
+    long long t_persist_start = now_us_terrain( );
+#endif
+    // Persist the slot's CURRENT position before anything else — items whose
+    // retarget lands out of window (including slots parked for the ride:
+    // chunk_loader.cpp enqueues dirty parked chunks through here so their
+    // edits are written off the render thread) have their data released at
+    // dequeue, making this their last chance to save. persist_chunk no-ops
+    // on clean chunks.
+    chunk.persist( this->map_storage );
+#if TERRAIN_GEN_PROFILING
+    long long t_persist = now_us_terrain( ) - t_persist_start;
+    terrain_persist_us.fetch_add( t_persist, std::memory_order_relaxed );
+#endif
     if ( this->focus_valid.load( std::memory_order_relaxed ) ) {
         const glm::ivec3 focus( this->focus_x.load( std::memory_order_relaxed ),
                                 this->focus_y.load( std::memory_order_relaxed ),
@@ -51,19 +65,12 @@ void TerrainLoadingThread::process_value( LinkedListValue *value ) {
         const glm::ivec3 d = target - focus;
         if ( d.x > radius || d.x < -radius || d.z > radius || d.z < -radius ) {
             // Retarget landed outside the render window — dead work. Skip
-            // persist/generate and let the dequeue-time bounds check park
-            // the slot; chunk_pos and its data stay a consistent pair.
+            // the load and let the dequeue-time bounds check park the slot
+            // (which now also releases its data); chunk_pos and its data
+            // stay a consistent pair in the meantime.
             return;
         }
     }
-#if TERRAIN_GEN_PROFILING
-    long long t_persist_start = now_us_terrain( );
-#endif
-    chunk.persist( this->map_storage );
-#if TERRAIN_GEN_PROFILING
-    long long t_persist = now_us_terrain( ) - t_persist_start;
-    terrain_persist_us.fetch_add( t_persist, std::memory_order_relaxed );
-#endif
     chunk.chunk_pos = target;
     chunk.load_terrain( this->map_storage );
     // pr_debug( "Paul Loading terrain x:%d y%d: z:%d work:%d results:%d", chunk->chunk_x, chunk->chunk_y, chunk->chunk_z, work_linked_list->count, result_linked_list->count );

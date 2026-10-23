@@ -30,6 +30,15 @@
 #define CHUNK_RADIUS_XZ 32
 #define CHUNK_RADIUS_XZ_DEFAULT 8
 #define CHUNK_RADIUS_Y 4
+#elif defined( REPGAME_WASM )
+// The wasm32 heap is a fixed ~3.9GB (makefiles/wasm.mk). A live window of
+// non-air chunks costs ~0.8MB each (512KB cells + light volume + air mask),
+// so radius 16's (2*16+1)^2 x 5 = 5445 slots can demand ~4.4GB — more than
+// the heap itself. 12 gives 3125 slots (~2.5GB worst case), leaving room
+// for the loader's transient meshing buffers.
+#define CHUNK_RADIUS_XZ 12
+#define CHUNK_RADIUS_XZ_DEFAULT 3
+#define CHUNK_RADIUS_Y 2
 #else
 #define CHUNK_RADIUS_XZ 16
 #define CHUNK_RADIUS_XZ_DEFAULT 3

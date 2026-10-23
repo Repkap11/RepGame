@@ -70,6 +70,24 @@ void Multiplayer::handle_frame( RepGameState &state, const std::vector<uint8_t> 
             }
             pr_debug( "Read message: block:%d", bu.blockState.id );
             glm::ivec3 block_pos = glm::ivec3( bu.x, bu.y, bu.z );
+            glm::ivec3 chunk_pos = glm::floor( glm::vec3( block_pos ) / CHUNK_SIZE_F );
+            Chunk *chunk_prt = world.chunkLoader.get_chunk( chunk_pos );
+            if ( chunk_prt == nullptr || chunk_prt->load_state ) {
+                // Loading or parked slot — there may be no block storage to
+                // write (parking releases it). Queue the update as a pending
+                // diff so it lands at the next load's finalize.
+                NetChunkDiffResultPayload diff;
+                diff.chunk_x = chunk_pos.x;
+                diff.chunk_y = chunk_pos.y;
+                diff.chunk_z = chunk_pos.z;
+                NetChunkDiffEntry entry;
+                entry.blocks_index = static_cast<uint32_t>( Chunk::get_index_from_coords( block_pos - chunk_pos * CHUNK_SIZE_I ) );
+                entry.blockState = bu.blockState;
+                diff.diffs.push_back( entry );
+                diff.num_diffs = 1;
+                this->queue_pending_diff( diff );
+                break;
+            }
             const BlockState prev_state = world.get_loaded_block( block_pos );
             world.set_loaded_block( block_pos, bu.blockState );
             world.spawn_block_debris( block_pos, prev_state, bu.blockState.id );
