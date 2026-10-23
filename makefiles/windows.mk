@@ -1,6 +1,6 @@
 #Windows x86_64 builds
 
-REPGAME_PACKAGES += mingw-w64 upx-ucl
+REPGAME_PACKAGES += mingw-w64
 
 CFLAGS_WINDOWS := $(CFLAGS_WARNINGS) -std=c++17 -fno-pie -D GLEW_STATIC -D GLEW_NO_GLU -mwindows -D _WIN32_WINNT=0x0A00
 
@@ -94,12 +94,7 @@ out/windows/imgui/%.o: imgui_build/%.cpp windows_build | out/windows
 #Include these .d files, so the dependicies are known for secondary builds.
 -include $(DEPS_WINDOWS)
 
-out/windows/$(TARGET).exe: out/windows/$(TARGET)_uncompressed.exe
-	rm -f $@
-	upx-ucl -q $< -o $@
-	touch $@
-
-out/windows/$(TARGET)_uncompressed.exe: windows_build $(OBJECTS_COMMON_WINDOWS) $(OBJECTS_IMGUI_WINDOWS) $(OBJECTS_WINDOWS) $(SHADER_BLOBS_WINDOWS) $(BITMAP_BLOBS_WINDOWS) $(FONT_BLOBS_WINDOWS) $(SOUND_BLOBS_WINDOWS) | out/windows
+out/windows/$(TARGET).exe: windows_build $(OBJECTS_COMMON_WINDOWS) $(OBJECTS_IMGUI_WINDOWS) $(OBJECTS_WINDOWS) $(SHADER_BLOBS_WINDOWS) $(BITMAP_BLOBS_WINDOWS) $(FONT_BLOBS_WINDOWS) $(SOUND_BLOBS_WINDOWS) | out/windows
 	$(CC_WINDOWS) -flto $(CFLAGS_WINDOWS) $(OBJECTS_WINDOWS) $(OBJECTS_COMMON_WINDOWS) $(OBJECTS_IMGUI_WINDOWS) $(SHADER_BLOBS_WINDOWS) $(BITMAP_BLOBS_WINDOWS) $(FONT_BLOBS_WINDOWS) $(SOUND_BLOBS_WINDOWS) $(LIBS_WINDOWS) -o $@
 	# SDL3 is dynamically linked on Windows, so ship SDL3.dll next to the exe.
 	cp windows_build/sdl3/x86_64-w64-mingw32/bin/SDL3.dll out/windows/

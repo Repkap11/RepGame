@@ -1,6 +1,6 @@
 #Linux x86_64 builds
 
-REPGAME_PACKAGES += libglew-dev libxi-dev clang lld g++ libsdl3-dev upx-ucl cppcheck ffmpeg
+REPGAME_PACKAGES += libglew-dev libxi-dev clang lld g++ libsdl3-dev cppcheck ffmpeg
 
 # ld -b binary generates symbol names from the file path with non-alnum chars
 # converted to underscores. Used for --redefine-sym in shader blob targets.
@@ -152,13 +152,7 @@ $(LINUX_OUT)/release/imgui/%.o: imgui_build/%.cpp | $(LINUX_OUT)
 #Include these .d files, so the dependicies are known for secondary builds.
 -include $(DEPS_LINUX)
 
-$(LINUX_OUT)/release/$(TARGET): $(LINUX_OUT)/release/$(TARGET)_uncompressed
-	rm -f $@
-	upx-ucl -q $< -o $@
-	touch $@
-
-
-$(LINUX_OUT)/release/$(TARGET)_uncompressed: $(OBJECTS_IMGUI_LINUX_RELEASE) $(OBJECTS_COMMON_LINUX_RELEASE) $(OBJECTS_LINUX_RELEASE) $(SHADER_BLOBS_LINUX) $(BITMAP_BLOBS_LINUX) $(FONT_BLOBS_LINUX) $(SOUND_BLOBS_LINUX) | $(LINUX_OUT)
+$(LINUX_OUT)/release/$(TARGET): $(OBJECTS_IMGUI_LINUX_RELEASE) $(OBJECTS_COMMON_LINUX_RELEASE) $(OBJECTS_LINUX_RELEASE) $(SHADER_BLOBS_LINUX) $(BITMAP_BLOBS_LINUX) $(FONT_BLOBS_LINUX) $(SOUND_BLOBS_LINUX) | $(LINUX_OUT)
 	$(CC_LINUX) -flto $(CCLD_LINUX) $(CFLAGS_LINUX) $(CFLAGS_LINUX_RELEASE) $(OBJECTS_LINUX_RELEASE) $(OBJECTS_IMGUI_LINUX_RELEASE) $(OBJECTS_COMMON_LINUX_RELEASE) $(SHADER_BLOBS_LINUX) $(BITMAP_BLOBS_LINUX) $(FONT_BLOBS_LINUX) $(SOUND_BLOBS_LINUX) $(LDFLAGS) $(LIBS_LINUX) -o $@
 
 $(LINUX_OUT)/debug/$(TARGET): $(OBJECTS_IMGUI_LINUX_DEBUG) $(OBJECTS_COMMON_LINUX_DEBUG) $(OBJECTS_LINUX_DEBUG) $(SHADER_BLOBS_LINUX) $(BITMAP_BLOBS_LINUX) $(FONT_BLOBS_LINUX) $(SOUND_BLOBS_LINUX) | $(LINUX_OUT)

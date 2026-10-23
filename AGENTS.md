@@ -28,7 +28,7 @@ binary lands at `out/linux/release/RepGame`.
   SteamVR for Linux x64 lacks it). See "VR (OpenXR)" below.
 - `make flatpak` — build + install the flatpak (`flatpak run com.repkap11.repgame`).
   The flatpak `command:` is `flatpak/RepGameRun`, a wrapper like the AppImage's
-  AppRun: no args → `RepGame_uncompressed World1 repkap11.com` (public server);
+  AppRun: no args → `RepGameBin World1 repkap11.com` (public server);
   explicit args pass through.
 - `make gpu-prebuilt` — compile HIP/CUDA objects + harvest runtime libs in Docker
   into `prebuilt/gpu` (gitignored). `make flatpak` depends on this: the flatpak

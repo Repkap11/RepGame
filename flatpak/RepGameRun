@@ -4,7 +4,7 @@
 # default; explicit args from `flatpak run com.repkap11.repgame <args>`
 # still win via the "$@" fallthrough.
 if [ "$#" -eq 0 ]; then
-    exec /app/bin/RepGame_uncompressed World1 repkap11.com
+    exec /app/bin/RepGameBin World1 repkap11.com
 else
-    exec /app/bin/RepGame_uncompressed "$@"
+    exec /app/bin/RepGameBin "$@"
 fi
