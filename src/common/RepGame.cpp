@@ -909,13 +909,6 @@ void RepGame::process_movement( ) {
         pr_debug( "Invalid sprint fly combo" );
     }
 
-    // Decompose the polar stick input (sizeH magnitude, angleH direction
-    // relative to facing) into forward/strafe fractions. angleH convention:
-    // W=0, D=+90, S=180, A=-90, diagonals in between.
-    const float input_angle = globalGameState.input.movement.angleH * ( M_PI / 180.0f );
-    const float input_forward = globalGameState.input.movement.sizeH * cosf( input_angle );
-    const float input_strafe = globalGameState.input.movement.sizeH * sinf( input_angle );
-
     if ( player_flying ) {
         const float fly_vspeed = player_sprinting ? FLY_SPRINT_VERTICAL_SPEED : FLY_VERTICAL_SPEED;
         if ( globalGameState.input.movement.sneakPressed && globalGameState.input.movement.jumpPressed ) {
@@ -930,12 +923,12 @@ void RepGame::process_movement( ) {
             }
         }
     } else if ( player_swimming ) {
-        // MC-style 3D steering: the forward input fraction propels along the
-        // look vector, so looking up + forward swims up, looking down dives,
-        // and backwards reverses it (looking up + back sinks). Strafe
-        // contributes no vertical motion. Jump/sneak add vertical assist;
-        // idle players drift toward a gentle sink via the drag below.
-        double swim_y_target = static_cast<double>( movement_speed ) * static_cast<double>( input_forward ) * globalGameState.camera.look.y;
+        // Vertical control is only jump (swim up) and sneak (sink faster) —
+        // pitch does not steer, so forward input moves purely horizontally
+        // like walking. Idle players drift toward a gentle sink: weak water
+        // gravity plus the drag below settles y_speed near
+        // -WATER_GRAVITY_STRENGTH / (1 - WATER_VERTICAL_DRAG).
+        double swim_y_target = 0.0;
         if ( globalGameState.input.movement.jumpPressed ) {
             swim_y_target += SWIM_VERTICAL_SPEED;
         }
@@ -956,27 +949,16 @@ void RepGame::process_movement( ) {
 
     float accel = -gravity;
 
-    // Build the target horizontal velocity from input. Normally movement.x/z
-    // are the unit forward/right direction derived from the camera yaw; while
-    // swimming the look vector's x/z are used instead so pitch steers the
-    // horizontal component (looking straight up moves purely vertically).
-    // sizeH is the analog input magnitude (0..1 on keyboard). The target is
-    // clamped to the selected movement speed so acceleration can never push
-    // us past it.
-    glm::dvec2 target_vel;
-    if ( player_swimming ) {
-        // The forward fraction moves along look.x/z — pitch scales it, so
-        // looking straight up gives no horizontal motion. The strafe
-        // fraction moves along the yaw-right vector (the direction
-        // angleH=+90 produces on land) and stays horizontal.
-        const float yaw = globalGameState.camera.angle_H * ( M_PI / 180.0f );
-        const glm::dvec2 yaw_right = glm::dvec2( cosf( yaw ), sinf( yaw ) );
-        target_vel = static_cast<double>( movement_speed ) * ( static_cast<double>( input_forward ) * glm::dvec2( globalGameState.camera.look.x, globalGameState.camera.look.z ) + static_cast<double>( input_strafe ) * yaw_right );
-    } else {
-        const float target_vx = movement_speed * globalGameState.input.movement.sizeH * globalGameState.camera.movement.x;
-        const float target_vz = movement_speed * globalGameState.input.movement.sizeH * globalGameState.camera.movement.z;
-        target_vel = glm::dvec2( target_vx, target_vz );
-    }
+    // Build the target horizontal velocity from input. movement.x/z are the
+    // unit direction derived from the camera yaw plus the stick's relative
+    // angleH (angleH convention: W=0, D=+90, S=180, A=-90), so pitch never
+    // steers — swimming moves on the yaw plane just like walking. sizeH is
+    // the analog input magnitude (0..1 on keyboard). The target is clamped
+    // to the selected movement speed so acceleration can never push us past
+    // it.
+    const float target_vx = movement_speed * globalGameState.input.movement.sizeH * globalGameState.camera.movement.x;
+    const float target_vz = movement_speed * globalGameState.input.movement.sizeH * globalGameState.camera.movement.z;
+    const glm::dvec2 target_vel( target_vx, target_vz );
 
     // Pick the rate at which horizontal_vel approaches target_vel. When input
     // is held we accelerate; when it is released we apply (usually higher)

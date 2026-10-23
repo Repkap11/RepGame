@@ -112,8 +112,9 @@ static_assert( CHUNK_RADIUS_Y > 0, "CHUNK_RADIUS_Y too small" );
 #define GRAVITY_STRENGTH 0.002f
 
 // Swimming: active while the player's body (not just feet) is in a liquid.
-// Horizontal propulsion follows the 3D look vector, so looking up + forward
-// swims up; jump/sneak add vertical assist on top.
+// Movement is walking-like — WASD moves on the yaw plane at reduced speed,
+// jump swims up and sneak sinks; gravity is weak and vertical speed drags
+// to rest when neither is held.
 #define MOVEMENT_SENSITIVITY_SWIMMING 0.016f
 #define MOVEMENT_SENSITIVITY_SWIMMING_SPRINTING 0.05f
 // Feet in water but body above the surface: slowed walk, normal jump.
