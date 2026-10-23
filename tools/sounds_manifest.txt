@@ -118,3 +118,26 @@ step_ladder_2|mc_pack/Dstep/ladder2.wav|sfx|Step
 step_ladder_3|mc_pack/Dstep/ladder3.wav|sfx|Step
 step_ladder_4|mc_pack/Dstep/ladder4.wav|sfx|Step
 step_ladder_5|mc_pack/Dstep/ladder5.wav|sfx|Step
+
+# Water
+swim_1|mc_pack/liquid/swim1.wav|sfx|Swim
+swim_2|mc_pack/liquid/swim2.wav|sfx|Swim
+swim_3|mc_pack/liquid/swim3.wav|sfx|Swim
+swim_4|mc_pack/liquid/swim4.wav|sfx|Swim
+swim_5|mc_pack/liquid/swim5.wav|sfx|Swim
+swim_6|mc_pack/liquid/swim6.wav|sfx|Swim
+swim_7|mc_pack/liquid/swim7.wav|sfx|Swim
+swim_8|mc_pack/liquid/swim8.wav|sfx|Swim
+swim_9|mc_pack/liquid/swim9.wav|sfx|Swim
+swim_10|mc_pack/liquid/swim10.wav|sfx|Swim
+swim_11|mc_pack/liquid/swim11.wav|sfx|Swim
+swim_12|mc_pack/liquid/swim12.wav|sfx|Swim
+swim_13|mc_pack/liquid/swim13.wav|sfx|Swim
+swim_14|mc_pack/liquid/swim14.wav|sfx|Swim
+swim_15|mc_pack/liquid/swim15.wav|sfx|Swim
+swim_16|mc_pack/liquid/swim16.wav|sfx|Swim
+swim_17|mc_pack/liquid/swim17.wav|sfx|Swim
+swim_18|mc_pack/liquid/swim18.wav|sfx|Swim
+splash_1|mc_pack/liquid/splash.wav|sfx|Splash
+splash_2|mc_pack/liquid/splash2.wav|sfx|Splash
+heavy_splash|mc_pack/liquid/heavy_splash.wav|sfx|Splash

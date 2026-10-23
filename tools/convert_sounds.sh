@@ -45,8 +45,10 @@ case "${1:-}" in
         af=()
         target=""
         case "$name" in
-            step_*) target=-36 ;;
-            dig_*) target=-27 ;;
+            step_*) target=-40 ;;
+            dig_*) target=-30 ;;
+            swim_*) target=-32 ;;
+            splash_* | heavy_splash) target=-28 ;;
         esac
         if [ -n "$target" ]; then
             stats=$(ffmpeg -v info -i "$src" -af volumedetect -f null - 2>&1 || true)

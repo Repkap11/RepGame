@@ -1097,6 +1097,43 @@ void RepGame::process_movement( ) {
             }
         }
     }
+
+    // Water: a splash on entry — heavy when falling in fast — and swim
+    // strokes every ~1.5 blocks of submerged movement (3D distance, so
+    // diving straight down counts). Wading keeps footsteps instead. The
+    // liquid checks below use the POST-movement position (player_swimming /
+    // player_wading are computed pre-movement and lag one tick — that delay
+    // is audible on the splash).
+    {
+        static bool was_in_liquid = false;
+        static double swim_distance = 0.0;
+        static long last_swim_tick = -1000;
+        const double feet_y = globalGameState.camera.pos.y - globalGameState.camera.eye_height;
+        const glm::dvec3 body_center( globalGameState.camera.pos.x, feet_y + PLAYER_HEIGHT / 2.0, globalGameState.camera.pos.z );
+        const BlockState feet_block_now = globalGameState.world.get_loaded_block( glm::ivec3( glm::round( glm::dvec3( globalGameState.camera.pos.x, feet_y + 0.05, globalGameState.camera.pos.z ) - 0.5 ) ) );
+        const BlockState body_block_now = globalGameState.world.get_loaded_block( glm::ivec3( glm::round( body_center - 0.5 ) ) );
+        const bool feet_in_liquid = feet_block_now.id < LAST_BLOCK_ID && block_definition_get_definition( feet_block_now.id )->flows != 0;
+        const bool body_in_liquid_now = body_block_now.id < LAST_BLOCK_ID && block_definition_get_definition( body_block_now.id )->flows != 0;
+        const bool in_liquid = ( feet_in_liquid || body_in_liquid_now ) && !player_flying && !globalGameState.input.no_clip;
+        if ( in_liquid ) {
+            if ( !was_in_liquid ) {
+                audio_play_sfx( globalGameState.camera.y_speed < -0.25 ? "heavy_splash" : "splash" );
+                swim_distance = 0.0;
+                last_swim_tick = globalGameState.tick_number;
+            } else if ( body_in_liquid_now ) {
+                swim_distance += glm::length( movement_vector );
+                const long since_swim = globalGameState.tick_number - last_swim_tick;
+                if ( swim_distance >= 1.5 && since_swim >= ( long )( 0.3 * UPS_RATE ) ) {
+                    audio_play_sfx( "swim" );
+                    swim_distance = 0.0;
+                    last_swim_tick = globalGameState.tick_number;
+                }
+            }
+        } else {
+            swim_distance = 0.0;
+        }
+        was_in_liquid = in_liquid;
+    }
 }
 
 void RepGame::process_block_updates( ) {

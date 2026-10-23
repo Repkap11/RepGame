@@ -394,6 +394,9 @@ void audio_init( ) {
     // Open the device directly, NOT via SDL_OpenAudioDeviceStream — a device
     // opened by that call refuses any further stream bindings, so the
     // one-shot SFX streams could never be bound and were always silent.
+    // A small device buffer keeps SFX latency low (driver default can be
+    // ~100ms on PipeWire/PulseAudio, which is audible on water splashes).
+    SDL_SetHint( SDL_HINT_AUDIO_DEVICE_SAMPLE_FRAMES, "512" );
     const SDL_AudioSpec want = { SDL_AUDIO_F32, 2, 48000 };
     audio_device = SDL_OpenAudioDevice( SDL_AUDIO_DEVICE_DEFAULT_PLAYBACK, &want );
     if ( !audio_device ) {
