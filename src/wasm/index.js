@@ -305,11 +305,36 @@ function setup_click_handler() {
   var canvas = document.getElementById("canvas");
   var playButton = document.getElementById("play_button");
 
+  // Pointer lock can only be (re-)acquired inside a user gesture, so request
+  // it on input events — needed to re-lock after the browser drops the lock
+  // without the game asking (alt-tab). But only when the game wants it:
+  // locking while the inventory is open hides the cursor and freezes the
+  // mouse position, breaking clicks on inventory slots (e.g. pressing Shift
+  // to shift-click). Keys that *create* the want — 'e' closing the
+  // inventory — only flip gameWantsPointerLock on the next game tick, so
+  // re-check once shortly after the keypress while its user activation
+  // still applies.
+  function request_pointer_lock_if_wanted() {
+    if (gameWantsPointerLock && !document.pointerLockElement) {
+      var result = canvas.requestPointerLock();
+      if (result && result.catch) {
+        // Rejected requests (gesture cooldowns, platforms without pointer
+        // lock) are fine — the next input retries. Keep them off the error
+        // overlay.
+        result.catch(function() {});
+      }
+    }
+  }
+
   function callback(event) {
     console.log("Got a press");
     canvas.requestPointerLock();
     if (first_time) {
-      document.addEventListener("keydown", callback);
+      document.addEventListener("keydown", function() {
+        request_pointer_lock_if_wanted();
+        setTimeout(request_pointer_lock_if_wanted, 50);
+      });
+      canvas.addEventListener("mousedown", request_pointer_lock_if_wanted);
 
       first_time = 0;
       gameRunning = true;
