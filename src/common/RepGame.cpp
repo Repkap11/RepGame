@@ -610,7 +610,7 @@ void RepGame::break_selected_block( ) {
 }
 
 void RepGame::process_mouse_events( ) {
-    if ( !globalGameState.input.inventory_open && globalGameState.block_selection.selectionInBounds && globalGameState.input.mouse.buttons.middle && globalGameState.input.click_delay_middle == 0 ) {
+    if ( !globalGameState.input.inventory_open && globalGameState.block_selection.selectionInBounds && globalGameState.input.mouse.buttons.middle && !globalGameState.input.mouse.buttons.middle_pressed_in_ui && globalGameState.input.click_delay_middle == 0 ) {
         BlockState blockState = globalGameState.world.get_loaded_block( globalGameState.block_selection.pos_destroy );
         pr_debug( "Selected block:%d rotation:%d redstone_power:%d display:%d", blockState.id, blockState.rotation, blockState.current_redstone_power, blockState.display_id );
         globalGameState.input.click_delay_middle = 30;
@@ -640,7 +640,7 @@ void RepGame::process_mouse_events( ) {
             RepGame::add_to_hotbar( true, blockState.id );
         }
     }
-    const bool holding_break = globalGameState.block_selection.selectionInBounds && globalGameState.input.mouse.buttons.left;
+    const bool holding_break = globalGameState.block_selection.selectionInBounds && globalGameState.input.mouse.buttons.left && !globalGameState.input.mouse.buttons.left_pressed_in_ui;
     if ( holding_break && globalGameState.input.click_delay_left == 0 ) {
         // Mining a block
         if ( globalGameState.game_mode == GameMode_Survival ) {
@@ -675,7 +675,7 @@ void RepGame::process_mouse_events( ) {
         // Released the mouse or looked away: abandon mining progress.
         globalGameState.block_mining.progress_ticks = 0.0f;
     }
-    if ( globalGameState.block_selection.selectionInBounds && globalGameState.input.mouse.buttons.right && globalGameState.input.click_delay_right == 0 ) {
+    if ( globalGameState.block_selection.selectionInBounds && globalGameState.input.mouse.buttons.right && !globalGameState.input.mouse.buttons.right_pressed_in_ui && globalGameState.input.click_delay_right == 0 ) {
         const BlockState target_state = globalGameState.world.get_loaded_block( globalGameState.block_selection.pos_destroy );
         if ( target_state.id != LAST_BLOCK_ID && block_definition_get_definition( target_state.id )->is_button ) {
             // Right-click presses a button instead of placing against it:
@@ -699,7 +699,7 @@ void RepGame::process_mouse_events( ) {
             globalGameState.input.click_delay_right = 30;
         }
     }
-    if ( globalGameState.block_selection.selectionInBounds && globalGameState.input.mouse.buttons.right && globalGameState.input.click_delay_right == 0 ) {
+    if ( globalGameState.block_selection.selectionInBounds && globalGameState.input.mouse.buttons.right && !globalGameState.input.mouse.buttons.right_pressed_in_ui && globalGameState.input.click_delay_right == 0 ) {
         // Right-clicking a chest opens it instead of placing against it.
         // Sneaking skips the interaction so the block can be placed.
         const BlockState target_state = globalGameState.world.get_loaded_block( globalGameState.block_selection.pos_destroy );
@@ -708,7 +708,7 @@ void RepGame::process_mouse_events( ) {
             globalGameState.input.click_delay_right = 30;
         }
     }
-    if ( ( globalGameState.block_selection.selectionInBounds || globalGameState.block_selection.floatSelectionInBounds ) && globalGameState.input.mouse.buttons.right && globalGameState.input.click_delay_right == 0 ) {
+    if ( ( globalGameState.block_selection.selectionInBounds || globalGameState.block_selection.floatSelectionInBounds ) && globalGameState.input.mouse.buttons.right && !globalGameState.input.mouse.buttons.right_pressed_in_ui && globalGameState.input.click_delay_right == 0 ) {
         // Placing a block
         BlockID holdingBlock = globalGameState.hotbar.getSelectedBlock( );
         if ( holdingBlock != LAST_BLOCK_ID ) {
@@ -1158,7 +1158,7 @@ void RepGame::process_inventory_events( ) {
     const bool screen_tap = globalGameState.input.screen_tap_pending;
     globalGameState.input.screen_tap_pending = false;
     if ( globalGameState.input.inventory_open ) {
-        if ( ( globalGameState.input.mouse.buttons.left && globalGameState.input.mouse.buttons.left_click_handled == false ) || screen_tap ) {
+        if ( ( globalGameState.input.mouse.buttons.left && globalGameState.input.mouse.buttons.left_pressed_in_ui && globalGameState.input.mouse.buttons.left_click_handled == false ) || screen_tap ) {
             globalGameState.input.mouse.buttons.left_click_handled = true;
             if ( globalGameState.chest.open ) {
                 // Chest UI: chest slots win, then survival, then hotbar.
@@ -1237,7 +1237,7 @@ void RepGame::process_inventory_events( ) {
                 }
             }
         }
-        if ( globalGameState.input.mouse.buttons.middle && globalGameState.input.mouse.buttons.middle_click_handled == false ) {
+        if ( globalGameState.input.mouse.buttons.middle && globalGameState.input.mouse.buttons.middle_pressed_in_ui && globalGameState.input.mouse.buttons.middle_click_handled == false ) {
             globalGameState.input.mouse.buttons.middle_click_handled = true;
             if ( globalGameState.chest.open ) {
                 // Middle-click on a chest slot moves the stack to the player.
@@ -1256,7 +1256,7 @@ void RepGame::process_inventory_events( ) {
                 }
             }
         }
-        if ( globalGameState.input.mouse.buttons.right && globalGameState.input.mouse.buttons.right_click_handled == false ) {
+        if ( globalGameState.input.mouse.buttons.right && globalGameState.input.mouse.buttons.right_pressed_in_ui && globalGameState.input.mouse.buttons.right_click_handled == false ) {
             globalGameState.input.mouse.buttons.right_click_handled = true;
             if ( globalGameState.chest.open ) {
                 const int chest_slot = globalGameState.chest.inventory_renderer.whichSlotClicked( globalGameState.input.mouse.absPosition.x, globalGameState.input.mouse.absPosition.y );
@@ -2569,14 +2569,17 @@ void RepGame::process_vr_input( ) {
     if ( in.break_block != prev.break_block ) {
         input.mouse.buttons.left = in.break_block;
         input.mouse.buttons.left_click_handled = !in.break_block;
+        input.mouse.buttons.left_pressed_in_ui = in.break_block && input.inventory_open;
     }
     if ( in.place_block != prev.place_block ) {
         input.mouse.buttons.right = in.place_block;
         input.mouse.buttons.right_click_handled = !in.place_block;
+        input.mouse.buttons.right_pressed_in_ui = in.place_block && input.inventory_open;
     }
     if ( in.pick_block != prev.pick_block ) {
         input.mouse.buttons.middle = in.pick_block;
         input.mouse.buttons.middle_click_handled = !in.pick_block;
+        input.mouse.buttons.middle_pressed_in_ui = in.pick_block && input.inventory_open;
     }
 
     // Right stick turns the body. Snap by default (with a re-arm deadband);

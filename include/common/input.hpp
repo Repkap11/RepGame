@@ -18,6 +18,13 @@ class Input {
             bool left_click_handled;
             bool right_click_handled;
             bool middle_click_handled;
+            // Where each held press began: set to inventory_open on the down
+            // edge, cleared on the up edge. World actions (mine/place/pick)
+            // ignore presses that began over the UI, and inventory clicks
+            // ignore presses that began in the world.
+            bool left_pressed_in_ui;
+            bool right_pressed_in_ui;
+            bool middle_pressed_in_ui;
         } buttons;
         struct {
             int x;

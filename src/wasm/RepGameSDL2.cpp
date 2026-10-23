@@ -271,6 +271,9 @@ void repgame_linux_process_window_and_pointer_state( RepGame &repgame ) {
         input.mouse.buttons.left_click_handled = true;
         input.mouse.buttons.right_click_handled = true;
         input.mouse.buttons.middle_click_handled = true;
+        input.mouse.buttons.left_pressed_in_ui = false;
+        input.mouse.buttons.right_pressed_in_ui = false;
+        input.mouse.buttons.middle_pressed_in_ui = false;
 #if ALLOW_GRAB_MOUSE
         SDL_SetRelativeMouseMode( should_lock_pointer ? SDL_TRUE : SDL_FALSE );
 #endif

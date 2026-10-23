@@ -69,16 +69,19 @@ void Input::mouseInput( const int button, const int state ) {
         case SDL_BUTTON_LEFT:
             this->mouse.buttons.left = !state;
             this->mouse.buttons.left_click_handled = state;
+            this->mouse.buttons.left_pressed_in_ui = !state && this->inventory_open;
             // pr_debug( "Left Click %d", !state );
             break;
         case SDL_BUTTON_RIGHT:
             this->mouse.buttons.right = !state;
             this->mouse.buttons.right_click_handled = state;
+            this->mouse.buttons.right_pressed_in_ui = !state && this->inventory_open;
             // pr_debug( "Right Click %d", !state );
             break;
         case SDL_BUTTON_MIDDLE:
             this->mouse.buttons.middle = !state;
             this->mouse.buttons.middle_click_handled = state;
+            this->mouse.buttons.middle_pressed_in_ui = !state && this->inventory_open;
             // pr_debug( "Middle Click %d", !state );
             break;
 

@@ -18,6 +18,23 @@ void Input::onInventoryClicked( ) {
 }
 
 void Input::setButtonState( int left, int middle, int right ) {
+    // Record each press's source on the rising edge and clear it on release,
+    // mirroring Input::mouseInput on the SDL platforms.
+    if ( left && !this->mouse.buttons.left ) {
+        this->mouse.buttons.left_pressed_in_ui = this->inventory_open;
+    } else if ( !left ) {
+        this->mouse.buttons.left_pressed_in_ui = false;
+    }
+    if ( middle && !this->mouse.buttons.middle ) {
+        this->mouse.buttons.middle_pressed_in_ui = this->inventory_open;
+    } else if ( !middle ) {
+        this->mouse.buttons.middle_pressed_in_ui = false;
+    }
+    if ( right && !this->mouse.buttons.right ) {
+        this->mouse.buttons.right_pressed_in_ui = this->inventory_open;
+    } else if ( !right ) {
+        this->mouse.buttons.right_pressed_in_ui = false;
+    }
     this->mouse.buttons.left = left;
     this->mouse.buttons.middle = middle;
     this->mouse.buttons.right = right;
