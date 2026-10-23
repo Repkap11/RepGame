@@ -5,6 +5,9 @@
 // anything unrecognized. Compiled on every platform (pure id lookup, no
 // audio state) so game code can call it unconditionally.
 const char *audio_block_dig_pool( int block_id );
+// Same for footsteps on the block's top face ("step_stone" fallback; glass
+// steps sound like stone — the pack has no glass step files).
+const char *audio_block_step_pool( int block_id );
 
 // Embedded audio: OGG Vorbis blobs (tools/sounds_manifest.txt) decoded by
 // stb_vorbis and played through SDL3 audio streams. REPGAME_AUDIO is only

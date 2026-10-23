@@ -1,10 +1,13 @@
 #include "common/audio.hpp"
 #include "common/block_definitions.hpp"
 
+#include <stdio.h>
+#include <string.h>
+
 // Per-material dig pools (see tools/sounds_manifest.txt). Grouped by the
 // Minecraft sound type of each block; default is stone, which also covers
 // metal blocks, ores, furnaces, pistons and redstone components.
-const char *audio_block_dig_pool( int block_id ) {
+static const char *block_material( int block_id ) {
     switch ( block_id ) {
     // Soil + vegetation (leaves, flowers, crops, TNT) -> grass
     case GRASS:
@@ -82,15 +85,15 @@ const char *audio_block_dig_pool( int block_id ) {
     case RED_MUSHROOM:
     case BROWN_MUSHROOM:
     case RED_MUSHROOM_IN_POT:
-        return "dig_grass";
+        return "grass";
     case DIRT:
     case GRAVEL:
-        return "dig_gravel";
+        return "gravel";
     case SAND:
     case ORANGE_SAND:
-        return "dig_sand";
+        return "sand";
     case SNOW:
-        return "dig_snow";
+        return "snow";
     // Logs, planks, wooden parts, chests, work stations, torches
     case OAK_PLANK:
     case OAK_LOG:
@@ -132,7 +135,6 @@ const char *audio_block_dig_pool( int block_id ) {
     case CRAFTING_BENCH_SIDE2:
     case BOOK_CASE:
     case BED:
-    case LADDER:
     case BEAT:
     case TORCH:
     case BURNT_OUT_TORCH:
@@ -150,7 +152,7 @@ const char *audio_block_dig_pool( int block_id ) {
     case DOUBLE_CHEST_RIGHT_SIDE:
     case DOUBLE_CHEST_RIGHT_TOP:
     case DOUBLE_CHEST_LEFT_TOP:
-        return "dig_wood";
+        return "wood";
     // Sea life -> coral
     case BLUE_CORAL:
     case BLUE_CORAL2:
@@ -164,7 +166,7 @@ const char *audio_block_dig_pool( int block_id ) {
     case UNDERWATER_TUFT_SHORT:
     case UNDERWATER_TUFT_TALL:
     case SEAWEED:
-        return "dig_coral";
+        return "coral";
     // Glass + glowstone + lamps shatter
     case GLASS:
     case GLASS_PANE:
@@ -182,9 +184,40 @@ const char *audio_block_dig_pool( int block_id ) {
     case REDSTONE_LAMP:
     case REDSTONE_LAMP_POWERED:
         return "glass";
+    case LADDER:
+        return "ladder";
     default:
-        return "dig_stone";
+        return "stone";
     }
+}
+
+// Builds "<prefix>_<material>" in a small rotating buffer — safe because the
+// caller (audio_play_sfx) only strcmps the name during the call.
+static const char *block_pool( const char *prefix, const char *material ) {
+    static char bufs[ 2 ][ 32 ];
+    static int which = 0;
+    char *buf = bufs[ which++ & 1 ];
+    snprintf( buf, sizeof( bufs[ 0 ] ), "%s_%s", prefix, material );
+    return buf;
+}
+
+const char *audio_block_dig_pool( int block_id ) {
+    const char *mat = block_material( block_id );
+    // The glass break pool is named "glass" (not "dig_glass") in the manifest,
+    // and the pack has no dig/ladder — ladder digs sound like wood.
+    if ( strcmp( mat, "glass" ) == 0 ) {
+        return "glass";
+    }
+    if ( strcmp( mat, "ladder" ) == 0 ) {
+        mat = "wood";
+    }
+    return block_pool( "dig", mat );
+}
+
+const char *audio_block_step_pool( int block_id ) {
+    const char *mat = block_material( block_id );
+    // No glass footstep files in the pack — glass steps sound like stone.
+    return strcmp( mat, "glass" ) == 0 ? "step_stone" : block_pool( "step", mat );
 }
 
 #if defined( REPGAME_AUDIO )

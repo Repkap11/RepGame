@@ -352,10 +352,17 @@ one-shot streams SDL3 mixes for free; manifest names `dig_stone_1..4` form
 the `dig_stone` pool, so `audio_play_sfx("dig_stone")` picks a random
 variant. `audio_block_dig_pool(block_id)` maps BlockID → pool
 (dig_stone/grass/gravel/sand/snow/wood/coral, glass) — the break and place
-hooks both use it. Currently wired: block break + place → per-material dig
-pool, chest open → `chest`, close → `chest_close`, TNT ignite → `fuse`,
-detonation → `explode`. The ImGui overlay shows `Music: <title>` while a
-track plays.
+hooks both use it; `audio_block_step_pool(block_id)` is the same map for
+footsteps (step_* pools, glass → step_stone). Currently wired: block break +
+place → per-material dig pool, footsteps → per-material step pool (every
+~0.7 blocks of grounded horizontal motion + on landing, in
+process_movement), chest open → `chest`, close → `chest_close`, TNT ignite
+→ `fuse`, detonation → `explode`. The ImGui overlay shows `Music: <title>`
+while a track plays.
+
+IMPORTANT: the device is opened with `SDL_OpenAudioDevice` and the music
+stream is *bound* to it — do NOT use `SDL_OpenAudioDeviceStream`, whose
+device refuses further stream bindings and silently kills all SFX.
 
 Sources: `sounds/mc_pack` is a Minecraft assets tree (WAV) — only the
 overworld music (game/, water/, creative/) is in the rotation; nether/end/

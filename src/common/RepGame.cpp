@@ -1056,6 +1056,36 @@ void RepGame::process_movement( ) {
     globalGameState.camera.horizontal_vel.x = movement_vector.x;
     globalGameState.camera.horizontal_vel.y = movement_vector.z;
     // pr_debug("Y speed:%f",globalGameState.camera.y_speed);
+
+    // Footsteps: while grounded, accumulate the actual horizontal distance
+    // covered (collision-resolved, so pushing a wall stays silent) and play
+    // the underfoot block's step sound every ~0.7 blocks — about MC's
+    // cadence. Any air-to-ground transition also plays a step, so jumping
+    // lands with a footfall.
+    {
+        static double step_distance = 0.0;
+        static bool was_grounded = false;
+        const bool grounded = globalGameState.camera.standing_on_solid && !player_flying && !globalGameState.input.no_clip;
+        bool step_now = false;
+        if ( grounded ) {
+            step_distance += glm::length( glm::dvec2( movement_vector.x, movement_vector.z ) );
+            if ( !was_grounded || step_distance >= 0.7 ) {
+                step_now = true;
+                step_distance = 0.0;
+            }
+        } else {
+            step_distance = 0.0;
+        }
+        was_grounded = grounded;
+        if ( step_now ) {
+            const double feet_y = globalGameState.camera.pos.y - globalGameState.camera.eye_height;
+            const glm::ivec3 under_pos = glm::ivec3( glm::round( glm::dvec3( globalGameState.camera.pos.x, feet_y - 0.05, globalGameState.camera.pos.z ) - 0.5 ) );
+            const BlockState under = globalGameState.world.get_loaded_block( under_pos );
+            if ( under.id != AIR && under.id != LAST_BLOCK_ID && block_definition_get_definition( under.id )->flows == 0 ) {
+                audio_play_sfx( audio_block_step_pool( under.id ) );
+            }
+        }
+    }
 }
 
 void RepGame::process_block_updates( ) {
