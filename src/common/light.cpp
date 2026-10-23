@@ -531,7 +531,10 @@ BlockID ChunkLoader::light_block_id_at( const glm::ivec3 &block_pos ) const {
 // per-chunk 3D texture, so they bake this CPU sample into instance data.
 // Light cells sit at block centers (integer+0.5), matching the texel-center
 // convention the chunk shader samples the GPU volume with. Returns
-// normalized (sky, block) in [0,1]; missing/unloaded cells contribute 0.
+// normalized (sky, block) in [0,1]. Cells whose owner chunk isn't loaded yet
+// read as full sky light — the same optimistic fill light_fill_chunk gives a
+// fresh chunk — so e.g. the in-hand block tracks the time of day during
+// load-in instead of going black.
 glm::vec2 ChunkLoader::light_sample( const glm::vec3 &pos ) const {
     const glm::vec3 q = pos - 0.5f;
     const glm::ivec3 base = glm::ivec3( glm::floor( q ) );
@@ -544,9 +547,7 @@ glm::vec2 ChunkLoader::light_sample( const glm::vec3 &pos ) const {
                 const glm::ivec3 cell = base + glm::ivec3( dx, dy, dz );
                 const int sky = this->light_get( cell, LIGHT_CHANNEL_SKY );
                 const int blk = this->light_get( cell, LIGHT_CHANNEL_BLOCK );
-                if ( sky > 0 ) {
-                    accum.x += w * static_cast<float>( sky );
-                }
+                accum.x += w * static_cast<float>( sky < 0 ? LIGHT_MAX_LEVEL : sky );
                 if ( blk > 0 ) {
                     accum.y += w * static_cast<float>( blk );
                 }
