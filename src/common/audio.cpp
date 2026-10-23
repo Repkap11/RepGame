@@ -1,4 +1,191 @@
 #include "common/audio.hpp"
+#include "common/block_definitions.hpp"
+
+// Per-material dig pools (see tools/sounds_manifest.txt). Grouped by the
+// Minecraft sound type of each block; default is stone, which also covers
+// metal blocks, ores, furnaces, pistons and redstone components.
+const char *audio_block_dig_pool( int block_id ) {
+    switch ( block_id ) {
+    // Soil + vegetation (leaves, flowers, crops, TNT) -> grass
+    case GRASS:
+    case GRASS_SIDE:
+    case SNOWY_GRASS:
+    case MYCELIUM:
+    case MYCELIUM_SIDE:
+    case PODZEL:
+    case PODZEL_SIDE:
+    case TNT:
+    case TNT_TOP:
+    case TNT_BOTTOM:
+    case SPIDER_WEB:
+    case FIRE:
+    case LEAF:
+    case BIRTCH_LEAVES:
+    case PINE_LEAF:
+    case JUNGLE_LEAF:
+    case RED_FLOWER:
+    case YELLOW_FLOWER:
+    case BLUE_FLOWER:
+    case POPPY_FLOWER:
+    case LARGE_BLUE_FLOWER:
+    case LARGE_PURPLE_FLOWER:
+    case LARGE_WHITE_FLOWER:
+    case RED_TULIP:
+    case ORANGE_TULIP:
+    case WHITE_TULIP:
+    case PINK_TULIP:
+    case SMALL_SUNFLOWER:
+    case LARGE_SUNFLOWER:
+    case SMALL_LILLIC_FLOWER:
+    case SAPPLING:
+    case JUNGLE_SAPLING:
+    case BIRTCH_SAPPLING:
+    case DARK_OAK_SAPPLING:
+    case FAT_OAK_SAPPLING:
+    case ACACIA_SAPPLING:
+    case LIGHT_DEAD_SAPPLING:
+    case DARK_DEAD_SAPPLING:
+    case GARBAGE_SAPPLING:
+    case BIRTCH_SAPLING_IN_POT:
+    case OAK_SAPPLING_IN_POT:
+    case LIGHT_DEAD_SAPPLING_IN_POT:
+    case PINE_SAPPLING_IN_POT:
+    case DARK_OAK_SAPPLING_IN_POT:
+    case WHITE_FLOWER_SAPPLING_IN_POT:
+    case RED_FLOWER_IN_POT:
+    case GRASS_TUFT:
+    case GRASS_TUFT2:
+    case GRASS_TUFT3:
+    case GRASS_TUFT4:
+    case WHEAT_0:
+    case WHEAT_1:
+    case WHEAT_2:
+    case WHEAT_3:
+    case WHEAT_4:
+    case WHEAT_5:
+    case WHEAT_6:
+    case WHEAT_7:
+    case CARROT_0:
+    case CARROT_1:
+    case CARROT_2:
+    case CARROT_3:
+    case CARROT_4:
+    case REED:
+    case LILLYPAD:
+    case MELLON_STEM:
+    case NETHER_WART_1:
+    case NETHER_WART_2:
+    case NETHER_WART_3:
+    case CHORUS_0:
+    case CHORUS_1:
+    case CHORUS_2:
+    case RED_MUSHROOM:
+    case BROWN_MUSHROOM:
+    case RED_MUSHROOM_IN_POT:
+        return "dig_grass";
+    case DIRT:
+    case GRAVEL:
+        return "dig_gravel";
+    case SAND:
+    case ORANGE_SAND:
+        return "dig_sand";
+    case SNOW:
+        return "dig_snow";
+    // Logs, planks, wooden parts, chests, work stations, torches
+    case OAK_PLANK:
+    case OAK_LOG:
+    case OAK_LOG_TOP:
+    case OAK_SLAB:
+    case DOUBLE_SLAB:
+    case SLAB_TOP:
+    case PINE_PLANK:
+    case BIRTCH_PLANK:
+    case JUNGLE_PLANK:
+    case ACACIA_PLANK:
+    case DARK_OAK_PLANK:
+    case BIRTCH_LOG:
+    case BIRTCH_LOG_TOP:
+    case JUNGLE_LOG:
+    case JUNGLE_LOG_TOP:
+    case ACACIA_LOG:
+    case ACACIA_LOG_TOP:
+    case DARK_OAK_LOG:
+    case DARK_OAK_LOG_TOP:
+    case PINE_SLAB:
+    case BIRTCH_SLAB:
+    case JUNGLE_SLAB:
+    case ACACIA_SLAB:
+    case DARK_OAK_SLAB:
+    case OAK_BUTTON:
+    case PINE_BUTTON:
+    case BIRTCH_BUTTON:
+    case JUNGLE_BUTTON:
+    case ACACIA_BUTTON:
+    case DARK_OAK_BUTTON:
+    case PINE_PRESSURE_PLATE:
+    case BIRTCH_PRESSURE_PLATE:
+    case JUNGLE_PRESSURE_PLATE:
+    case ACACIA_PRESSURE_PLATE:
+    case DARK_OAK_PRESSURE_PLATE:
+    case CRAFTING_BENCH:
+    case CRAFTING_BENCH_SIDE1:
+    case CRAFTING_BENCH_SIDE2:
+    case BOOK_CASE:
+    case BED:
+    case LADDER:
+    case BEAT:
+    case TORCH:
+    case BURNT_OUT_TORCH:
+    case BLACK_TORCH:
+    case BLUE_TORCH:
+    case EMPTY_POT:
+    case CACTUS_IN_POT:
+    case SINGLE_CHEST_TOP:
+    case CHEST_SIDE:
+    case SINGLE_CHEST_LATCH:
+    case DOUBLE_CHEST_LEFT_LATCH:
+    case DOUBLE_CHEST_RIGHT_LATCH:
+    case DOUBLE_CHEST_RIGHT_BACK:
+    case DOUBLE_CHEST_LEFT_BACK:
+    case DOUBLE_CHEST_RIGHT_SIDE:
+    case DOUBLE_CHEST_RIGHT_TOP:
+    case DOUBLE_CHEST_LEFT_TOP:
+        return "dig_wood";
+    // Sea life -> coral
+    case BLUE_CORAL:
+    case BLUE_CORAL2:
+    case PURPLE_CORAL:
+    case PURPLE_CORAL2:
+    case PURPLE_CORAL3:
+    case RED_CORAL:
+    case RED_CORAL2:
+    case YELLOW_CORAL:
+    case YELLOW_CORAL2:
+    case UNDERWATER_TUFT_SHORT:
+    case UNDERWATER_TUFT_TALL:
+    case SEAWEED:
+        return "dig_coral";
+    // Glass + glowstone + lamps shatter
+    case GLASS:
+    case GLASS_PANE:
+    case GLASS_BLACK:
+    case GLASS_BLUE:
+    case GLASS_BROWN:
+    case GLASS_LIGHT_BLUE:
+    case GLASS_GRAY:
+    case GLASS_DARK_GREEN:
+    case GLASS_LIGHT_GREEN:
+    case GLASS_TINT_GREEN:
+    case GLASS_PALE_BLUE:
+    case GLASS_WHITE:
+    case GLOWSTONE:
+    case REDSTONE_LAMP:
+    case REDSTONE_LAMP_POWERED:
+        return "glass";
+    default:
+        return "dig_stone";
+    }
+}
 
 #if defined( REPGAME_AUDIO )
 
@@ -171,14 +358,32 @@ void audio_init( ) {
     gap_min_ticks = ( long )( gap_s * 0.25f * UPS_RATE );
     gap_span_ticks = ( long )( gap_s * 0.75f * UPS_RATE ) + 1;
 
+    // Open the device directly, NOT via SDL_OpenAudioDeviceStream — a device
+    // opened by that call refuses any further stream bindings, so the
+    // one-shot SFX streams could never be bound and were always silent.
     const SDL_AudioSpec want = { SDL_AUDIO_F32, 2, 48000 };
-    music_stream = SDL_OpenAudioDeviceStream( SDL_AUDIO_DEVICE_DEFAULT_PLAYBACK, &want, music_feed, NULL );
-    if ( !music_stream ) {
+    audio_device = SDL_OpenAudioDevice( SDL_AUDIO_DEVICE_DEFAULT_PLAYBACK, &want );
+    if ( !audio_device ) {
         pr_debug( "audio: no playback device (%s), running silent", SDL_GetError( ) );
         return;
     }
-    audio_device = SDL_GetAudioStreamDevice( music_stream );
     SDL_GetAudioDeviceFormat( audio_device, &device_spec, NULL );
+    music_stream = SDL_CreateAudioStream( &want, &device_spec );
+    if ( !music_stream ) {
+        pr_debug( "audio: stream create failed (%s), running silent", SDL_GetError( ) );
+        SDL_CloseAudioDevice( audio_device );
+        audio_device = 0;
+        return;
+    }
+    SDL_SetAudioStreamGetCallback( music_stream, music_feed, NULL );
+    if ( !SDL_BindAudioStream( audio_device, music_stream ) ) {
+        pr_debug( "audio: music bind failed (%s), running silent", SDL_GetError( ) );
+        SDL_DestroyAudioStream( music_stream );
+        music_stream = nullptr;
+        SDL_CloseAudioDevice( audio_device );
+        audio_device = 0;
+        return;
+    }
     SDL_SetAudioStreamGain( music_stream, music_gain );
 
     const int num_sfx = ( int )( sizeof( SFX_SOUNDS ) / sizeof( SFX_SOUNDS[ 0 ] ) ) - 1; // NULL terminator row
@@ -186,7 +391,7 @@ void audio_init( ) {
 
     audio_enabled = true;
     music_want.store( true );
-    SDL_ResumeAudioStreamDevice( music_stream );
+    SDL_ResumeAudioDevice( audio_device );
     pr_debug( "audio: device %dHz %dch, %d music tracks, %d sfx", device_spec.freq, device_spec.channels,
               ( int )( sizeof( MUSIC_TRACKS ) / sizeof( MUSIC_TRACKS[ 0 ] ) ) - 1, num_sfx );
 }
@@ -241,22 +446,33 @@ void audio_play_sfx( const char *base_name ) {
         }
     }
     if ( num_variants == 0 ) {
+        pr_debug( "audio: no sfx variants for '%s'", base_name );
         return;
     }
     const int idx = variants[ rand( ) % num_variants ];
     SfxPcm &pcm = sfx_cache[ idx ];
     if ( !pcm.decoded && !sfx_decode( idx, &pcm ) ) {
+        pr_debug( "audio: decode failed for sfx '%s'", SFX_SOUNDS[ idx ].base );
         return;
     }
     const SDL_AudioSpec src = { SDL_AUDIO_F32, ( Uint8 )pcm.channels, pcm.rate };
     SDL_AudioStream *s = SDL_CreateAudioStream( &src, &device_spec );
     if ( !s ) {
+        pr_debug( "audio: stream create failed: %s", SDL_GetError( ) );
         return;
     }
     SDL_SetAudioStreamGain( s, sfx_gain );
-    SDL_PutAudioStreamData( s, pcm.data, pcm.frames * pcm.channels * ( int )sizeof( float ) );
+    if ( !SDL_PutAudioStreamData( s, pcm.data, pcm.frames * pcm.channels * ( int )sizeof( float ) ) ) {
+        pr_debug( "audio: put failed for sfx '%s': %s", SFX_SOUNDS[ idx ].base, SDL_GetError( ) );
+        SDL_DestroyAudioStream( s );
+        return;
+    }
     SDL_FlushAudioStream( s );
-    SDL_BindAudioStream( audio_device, s );
+    if ( !SDL_BindAudioStream( audio_device, s ) ) {
+        pr_debug( "audio: bind failed for sfx '%s': %s", SFX_SOUNDS[ idx ].base, SDL_GetError( ) );
+        SDL_DestroyAudioStream( s );
+        return;
+    }
     active_sfx.push_back( s );
 }
 
@@ -281,11 +497,14 @@ void audio_cleanup( ) {
         SDL_DestroyAudioStream( s );
     }
     active_sfx.clear( );
-    // Destroying the stream SDL_OpenAudioDeviceStream returned also closes
-    // the device it opened.
     if ( music_stream ) {
+        SDL_UnbindAudioStream( music_stream );
         SDL_DestroyAudioStream( music_stream );
         music_stream = nullptr;
+    }
+    if ( audio_device ) {
+        SDL_CloseAudioDevice( audio_device );
+        audio_device = 0;
     }
     for ( SfxPcm &pcm : sfx_cache ) {
         free( pcm.data );

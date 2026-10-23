@@ -131,14 +131,21 @@ void imgui_overlay_draw( ImGuiOverlay *imgui_overlay, Input &input ) {
             const char *worldDrawQualityNames[] = { "LOW", "MEDIUM", "HIGH", "X_HIGH" };
             const char *qualityName = worldDrawQualityNames[ static_cast<int>( input.worldDrawQuality ) ];
 
+            // Worst-case probe of the widest line (Light:) — %5s fields max
+            // at 5 chars, counters/lag at 4 digits, plus the " [BFS]" suffix.
+            // Measured once so variable-width counters never resize the GUI;
+            // height stays auto-fit via size.y == 0.
+            static const float overlay_width = ImGui::CalcTextSize( "Light: j:88888 p:88888 s:88888 c:8888 d:88888 x:88888 stl:8888 lag:8888.8/8888.8ms" ).x + ImGui::GetStyle( ).WindowPadding.x * 2 + 8;
+
             // Black background, 50% transparent; no title bar, not movable/selectable.
             ImGui::PushStyleColor( ImGuiCol_WindowBg, ImVec4( 0.0f, 0.0f, 0.0f, 0.5f ) );
             // ImGuiConfigFlags_NoMouse (set at attach) already makes the
             // overlay non-interactive; NoInputs keeps the window itself from
             // reacting if mouse support is ever re-enabled.
-            ImGuiWindowFlags windowFlags = ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoBringToFrontOnFocus | ImGuiWindowFlags_NoNav | ImGuiWindowFlags_NoInputs | ImGuiWindowFlags_AlwaysAutoResize;
+            ImGuiWindowFlags windowFlags = ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoBringToFrontOnFocus | ImGuiWindowFlags_NoNav | ImGuiWindowFlags_NoInputs;
 
             ImGui::SetNextWindowPos( ImVec2( 10.0f, 10.0f ) );
+            ImGui::SetNextWindowSize( ImVec2( overlay_width, 0 ) );
             ImGui::Begin( "RepGame", nullptr, windowFlags );
             ImGui::Text( "Application average %.3f ms/frame (%.1f FPS)", 1000.0f / io.Framerate, io.Framerate );
             ImGui::Text( "Player Pos: %9.1f %9.1f %9.1f", debug_vars.player_pos.x, debug_vars.player_pos.y, debug_vars.player_pos.z );
@@ -178,11 +185,12 @@ void imgui_overlay_draw( ImGuiOverlay *imgui_overlay, Input &input ) {
             fmt_count( ls, sizeof ls, debug_vars.loader.light_seeds );
             fmt_count( ld, sizeof ld, debug_vars.loader.light_dirty );
             fmt_count( lx, sizeof lx, debug_vars.loader.light_dropped );
-            ImGui::Text( "Light: j:%5s p:%5s s:%5s c:%d d:%5s x:%5s stl:%d lag:%4.0f/%4.0fms%s",
-                         lj, lp, ls, debug_vars.loader.light_claims, ld, lx,
-                         debug_vars.loader.light_stale_count,
-                         debug_vars.loader.light_jlag_us / 1000.0, debug_vars.loader.light_njlag_us / 1000.0,
-                         debug_vars.loader.light_bfs_active ? " [BFS]" : "" );
+            char light_line[128];
+            snprintf( light_line, sizeof light_line, "Light: j:%5s p:%5s s:%5s c:%d d:%5s x:%5s stl:%d lag:%4.0f/%4.0fms",
+                      lj, lp, ls, debug_vars.loader.light_claims, ld, lx,
+                      debug_vars.loader.light_stale_count,
+                      debug_vars.loader.light_jlag_us / 1000.0, debug_vars.loader.light_njlag_us / 1000.0 );
+            ImGui::TextUnformatted( light_line );
             ImGui::Separator( );
 
             ImGui::Text( "Particles: %d (%d debris, %d primed TNT)",

@@ -346,6 +346,7 @@ void RepGame::close_chest( ) {
         return;
     }
     globalGameState.chest.open = false;
+    audio_play_sfx( "chest_close" );
     if ( globalGameState.multiplayer.is_active( ) ) {
         globalGameState.multiplayer.chest_close( globalGameState.chest.pos );
     }
@@ -573,7 +574,7 @@ void RepGame::break_selected_block( ) {
     BlockID previous_block = change_block( 0, BLOCK_STATE_AIR );
     if ( previous_block != LAST_BLOCK_ID && previous_block != AIR ) {
         // A real block broke.
-        audio_play_sfx( "dig" );
+        audio_play_sfx( audio_block_dig_pool( previous_block ) );
         if ( globalGameState.vr.active ) {
             // The platform turns this into a haptic pulse.
             globalGameState.vr.haptic_pending = true;
@@ -752,7 +753,7 @@ void RepGame::process_mouse_events( ) {
                     }
                     BlockID placed_block = change_block( 1, { holdingBlock, rotation, 0, holdingBlock, 0 } );
                     if ( placed_block != LAST_BLOCK_ID ) {
-                        audio_play_sfx( "place" );
+                        audio_play_sfx( audio_block_dig_pool( holdingBlock ) );
                     }
                     if ( placed_block != LAST_BLOCK_ID && globalGameState.game_mode == GameMode_Survival ) {
                         globalGameState.hotbar.consumeSelected( 1 );

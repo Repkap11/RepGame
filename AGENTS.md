@@ -347,12 +347,21 @@ those via `SOUND_OGG_DIR=prebuilt/sounds`.
 Runtime: `audio_init` opens the default playback device (failure → silent,
 logged once). Music is streamed — the audio thread pulls stb_vorbis frames
 into the persistent music stream; `audio_tick` picks the next random track
-after a uniform `[gap/4, gap]` gap. SFX are one-shot streams SDL3 mixes for
-free; manifest names `dig_1..dig_5` form the `dig` pool, so
-`audio_play_sfx("dig")` picks a random variant. Currently wired: block
-break → `dig`, block place → `place`, chest open → `chest`, TNT ignite →
-`fuse`, detonation → `explode` (the last two are ffmpeg-synthesized, see
-`sounds/sfx/CREDITS.txt`).
+after a uniform `[gap/4, gap]` gap (the first track starts ~3s in). SFX are
+one-shot streams SDL3 mixes for free; manifest names `dig_stone_1..4` form
+the `dig_stone` pool, so `audio_play_sfx("dig_stone")` picks a random
+variant. `audio_block_dig_pool(block_id)` maps BlockID → pool
+(dig_stone/grass/gravel/sand/snow/wood/coral, glass) — the break and place
+hooks both use it. Currently wired: block break + place → per-material dig
+pool, chest open → `chest`, close → `chest_close`, TNT ignite → `fuse`,
+detonation → `explode`. The ImGui overlay shows `Music: <title>` while a
+track plays.
+
+Sources: `sounds/mc_pack` is a Minecraft assets tree (WAV) — only the
+overworld music (game/, water/, creative/) is in the rotation; nether/end/
+menu/records are excluded. `sounds/music` (the older MP3/FLAC soundtrack)
+and `sounds/sfx` (the earlier Kenney stand-ins) are not referenced by the
+manifest anymore.
 
 - `REPGAME_AUDIO` — `0` disables all audio (default on when built with
   audio). Audio is also skipped entirely in capture mode.

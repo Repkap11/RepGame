@@ -1,5 +1,11 @@
 #pragma once
 
+// Maps a BlockID to the SFX pool name for breaking/placing that block —
+// Minecraft plays the block's dig sound for both. Returns "dig_stone" for
+// anything unrecognized. Compiled on every platform (pure id lookup, no
+// audio state) so game code can call it unconditionally.
+const char *audio_block_dig_pool( int block_id );
+
 // Embedded audio: OGG Vorbis blobs (tools/sounds_manifest.txt) decoded by
 // stb_vorbis and played through SDL3 audio streams. REPGAME_AUDIO is only
 // defined by the build on platforms that embed blobs and use SDL3 (Linux,

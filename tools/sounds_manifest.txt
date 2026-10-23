@@ -3,80 +3,76 @@
 #            by MK_BLOB(out_sounds, <name>, ogg). Lowercase alnum + underscore.
 #   source - file under sounds/ (untracked — not committed, see .gitignore).
 #   type   - music | sfx. music plays in the ambient rotation; sfx are looked up
-#            by base name (dig_1/dig_2 share the "dig" pool for random variants).
+#            by base name (dig_stone_1/dig_stone_2 share the "dig_stone" pool
+#            for random variants — the name minus the trailing _N is the base).
 #   title  - display name for logging.
 #
-# Only ambient/in-game tracks are listed here — music-disc and novelty tracks
-# (Boo, Thirteen, Cat, Dog, the 2-2x discs, the LP/freestyle mp3s) are excluded.
-# To drop or add a track, edit this file; make handles the rest.
-calm_1|01. Calm 1.mp3|music|Calm 1
-calm_2|02. Calm 2.mp3|music|Calm 2
-calm_3|03. Calm 3.mp3|music|Calm 3
-piano_1|04. Piano 1.mp3|music|Piano 1
-piano_2|05. Piano 2.mp3|music|Piano 2
-piano_3|06. Piano 3.mp3|music|Piano 3
-hal_1|08. Hal 1.mp3|music|Hal 1
-hal_2|09. Hal 2.mp3|music|Hal 2
-hal_3|10. Hal 3.mp3|music|Hal 3
-hal_4|11. Hal 4.mp3|music|Hal 4
-nuance_1|12. Nuance 1.mp3|music|Nuance 1
-nuance_2|13. Nuance 2.mp3|music|Nuance 2
-key|1-01. Key.flac|music|Key
-door|1-02. Door.flac|music|Door
-subwoofer_lullaby|1-03. Subwoofer Lullaby.flac|music|Subwoofer Lullaby
-death|1-04. Death.flac|music|Death
-living_mice|1-05. Living Mice.flac|music|Living Mice
-moog_city|1-06. Moog City.flac|music|Moog City
-haggstrom|1-07. Haggstrom.flac|music|Haggstrom
-minecraft|1-08. Minecraft.flac|music|Minecraft
-oxygene|1-09. Oxygène.flac|music|Oxygène
-equinoxe|1-10. Équinoxe.flac|music|Équinoxe
-mice_on_venus|1-11. Mice on Venus.flac|music|Mice on Venus
-dry_hands|1-12. Dry Hands.flac|music|Dry Hands
-wet_hands|1-13. Wet Hands.flac|music|Wet Hands
-clark|1-14. Clark.flac|music|Clark
-chris|1-15. Chris.flac|music|Chris
-excuse|1-17. Excuse.flac|music|Excuse
-sweden|1-18. Sweden.flac|music|Sweden
-danny|1-21. Danny.flac|music|Danny
-beginning|1-22. Beginning.flac|music|Beginning
-droopy_likes_ricochet|1-23. Droopy Likes Ricochet.flac|music|Droopy Likes Ricochet
-droopy_likes_your_face|1-24. Droopy Likes Your Face.flac|music|Droopy Likes Your Face
-ki|2-01. Ki.flac|music|Ki
-alpha|2-02. Alpha.flac|music|Alpha
-dead_voxel|2-03. Dead Voxel.flac|music|Dead Voxel
-blind_spots|2-04. Blind Spots.flac|music|Blind Spots
-flake|2-05. Flake.flac|music|Flake
-moog_city_2|2-06. Moog City 2.flac|music|Moog City 2
-concrete_halls|2-07. Concrete Halls.flac|music|Concrete Halls
-biome_fest|2-08. Biome Fest.flac|music|Biome Fest
-mutation|2-09. Mutation.flac|music|Mutation
-haunt_muskie|2-10. Haunt Muskie.flac|music|Haunt Muskie
-warmth|2-11. Warmth.flac|music|Warmth
-floating_trees|2-12. Floating Trees.flac|music|Floating Trees
-aria_math|2-13. Aria Math.flac|music|Aria Math
-kyoto|2-14. Kyoto.flac|music|Kyoto
-ballad_of_the_cats|2-15. Ballad of the Cats.flac|music|Ballad of the Cats
-taswell|2-16. Taswell.flac|music|Taswell
-beginning_2|2-17. Beginning 2.flac|music|Beginning 2
-dreiton|2-18. Dreiton.flac|music|Dreiton
-the_end|2-19. The End.flac|music|The End
-intro|2-30. Intro.flac|music|Intro
+# Sources are WAV files from sounds/mc_pack (a Minecraft assets tree) — only
+# overworld music (game/, game/water, game/creative) is listed; nether, end,
+# menu and record discs are excluded. To drop or add an entry, edit this file.
+calm_1|mc_pack/music/game/calm1.wav|music|Minecraft
+calm_2|mc_pack/music/game/calm2.wav|music|Clark
+calm_3|mc_pack/music/game/calm3.wav|music|Sweden
+piano_1|mc_pack/music/game/piano1.wav|music|Dry Hands
+piano_2|mc_pack/music/game/piano2.wav|music|Wet Hands
+piano_3|mc_pack/music/game/piano3.wav|music|Mice on Venus
+nuance_1|mc_pack/music/game/nuance1.wav|music|Key
+nuance_2|mc_pack/music/game/nuance2.wav|music|Oxygène
+hal_1|mc_pack/music/game/hal1.wav|music|Subwoofer Lullaby
+hal_2|mc_pack/music/game/hal2.wav|music|Living Mice
+hal_3|mc_pack/music/game/hal3.wav|music|Haggström
+hal_4|mc_pack/music/game/hal4.wav|music|Danny
+water_axolotl|mc_pack/music/game/water/axolotl.wav|music|Axolotl
+water_dragon_fish|mc_pack/music/game/water/dragon_fish.wav|music|Dragon Fish
+water_shuniji|mc_pack/music/game/water/shuniji.wav|music|Shuniji
+creative_1|mc_pack/music/game/creative/creative1.wav|music|Biome Fest
+creative_2|mc_pack/music/game/creative/creative2.wav|music|Blind Spots
+creative_3|mc_pack/music/game/creative/creative3.wav|music|Haunt Muskie
+creative_4|mc_pack/music/game/creative/creative4.wav|music|Aria Math
+creative_5|mc_pack/music/game/creative/creative5.wav|music|Dreiton
+creative_6|mc_pack/music/game/creative/creative6.wav|music|Taswell
 
-# SFX (see sounds/sfx/CREDITS.txt): Kenney CC0 impacts + ffmpeg-synthesized
-# explode/fuse. Base name (name minus _N) is the pool audio_play_sfx looks up.
-dig_1|sfx/impactMining_000.ogg|sfx|Dig
-dig_2|sfx/impactMining_001.ogg|sfx|Dig
-dig_3|sfx/impactMining_002.ogg|sfx|Dig
-dig_4|sfx/impactMining_003.ogg|sfx|Dig
-dig_5|sfx/impactMining_004.ogg|sfx|Dig
-place_1|sfx/impactPlank_medium_000.ogg|sfx|Place
-place_2|sfx/impactPlank_medium_001.ogg|sfx|Place
-place_3|sfx/impactPlank_medium_002.ogg|sfx|Place
-place_4|sfx/impactPlank_medium_003.ogg|sfx|Place
-place_5|sfx/impactPlank_medium_004.ogg|sfx|Place
-chest_1|sfx/creak1.ogg|sfx|Chest
-chest_2|sfx/creak2.ogg|sfx|Chest
-chest_3|sfx/creak3.ogg|sfx|Chest
-explode_1|sfx/explode_1.wav|sfx|Explode
-fuse_1|sfx/fuse_1.wav|sfx|Fuse
+# SFX — per-material dig pools (audio_play_sfx picks a random _N variant of
+# the named base; the block being broken/placed selects the material).
+dig_stone_1|mc_pack/dig/stone1.wav|sfx|Dig stone
+dig_stone_2|mc_pack/dig/stone2.wav|sfx|Dig stone
+dig_stone_3|mc_pack/dig/stone3.wav|sfx|Dig stone
+dig_stone_4|mc_pack/dig/stone4.wav|sfx|Dig stone
+dig_grass_1|mc_pack/dig/grass1.wav|sfx|Dig grass
+dig_grass_2|mc_pack/dig/grass2.wav|sfx|Dig grass
+dig_grass_3|mc_pack/dig/grass3.wav|sfx|Dig grass
+dig_grass_4|mc_pack/dig/grass4.wav|sfx|Dig grass
+dig_gravel_1|mc_pack/dig/gravel1.wav|sfx|Dig gravel
+dig_gravel_2|mc_pack/dig/gravel2.wav|sfx|Dig gravel
+dig_gravel_3|mc_pack/dig/gravel3.wav|sfx|Dig gravel
+dig_gravel_4|mc_pack/dig/gravel4.wav|sfx|Dig gravel
+dig_sand_1|mc_pack/dig/sand1.wav|sfx|Dig sand
+dig_sand_2|mc_pack/dig/sand2.wav|sfx|Dig sand
+dig_sand_3|mc_pack/dig/sand3.wav|sfx|Dig sand
+dig_sand_4|mc_pack/dig/sand4.wav|sfx|Dig sand
+dig_snow_1|mc_pack/dig/snow1.wav|sfx|Dig snow
+dig_snow_2|mc_pack/dig/snow2.wav|sfx|Dig snow
+dig_snow_3|mc_pack/dig/snow3.wav|sfx|Dig snow
+dig_snow_4|mc_pack/dig/snow4.wav|sfx|Dig snow
+dig_wood_1|mc_pack/dig/wood1.wav|sfx|Dig wood
+dig_wood_2|mc_pack/dig/wood2.wav|sfx|Dig wood
+dig_wood_3|mc_pack/dig/wood3.wav|sfx|Dig wood
+dig_wood_4|mc_pack/dig/wood4.wav|sfx|Dig wood
+dig_coral_1|mc_pack/dig/coral1.wav|sfx|Dig coral
+dig_coral_2|mc_pack/dig/coral2.wav|sfx|Dig coral
+dig_coral_3|mc_pack/dig/coral3.wav|sfx|Dig coral
+dig_coral_4|mc_pack/dig/coral4.wav|sfx|Dig coral
+glass_1|mc_pack/random/glass1.wav|sfx|Glass
+glass_2|mc_pack/random/glass2.wav|sfx|Glass
+glass_3|mc_pack/random/glass3.wav|sfx|Glass
+chest_1|mc_pack/random/chestopen.wav|sfx|Chest open
+chest_2|mc_pack/block/chest/open.wav|sfx|Chest open
+chest_close_1|mc_pack/random/chestclosed.wav|sfx|Chest close
+chest_close_2|mc_pack/block/chest/close.wav|sfx|Chest close
+chest_close_3|mc_pack/block/chest/close2.wav|sfx|Chest close
+chest_close_4|mc_pack/block/chest/close3.wav|sfx|Chest close
+explode_1|mc_pack/random/explode1.wav|sfx|Explode
+explode_2|mc_pack/random/explode2.wav|sfx|Explode
+explode_3|mc_pack/random/explode3.wav|sfx|Explode
+explode_4|mc_pack/random/explode4.wav|sfx|Explode
+fuse_1|mc_pack/random/fuse.wav|sfx|Fuse
