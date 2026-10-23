@@ -867,10 +867,10 @@ void webgpu_mapgen_pump( ) {
 }
 
 int MapGen::supports_webgpu( ) {
-    // REPGAME_NO_WEBGPU kills the backend entirely (analogous to
-    // REPGAME_NO_HIP). Resolved once per process.
-    static const int disabled = getenv( "REPGAME_NO_WEBGPU" ) != nullptr;
-    if ( disabled ) {
+    // REPGAME_WEBGPU=1 opts the backend in — off by default (unlike
+    // REPGAME_NO_HIP's opt-out). Resolved once per process.
+    static const int enabled = getenv( "REPGAME_WEBGPU" ) != nullptr && atoi( getenv( "REPGAME_WEBGPU" ) ) != 0;
+    if ( !enabled ) {
         return 0;
     }
     // The first caller arms init; the main thread's pump picks it up next

@@ -7,7 +7,7 @@
 // Usage:
 //   node tools/wasm_capture.cjs --views "<REPGAME_CAPTURE spec>" --out <dir>
 //       [--port 8091] [--msaa 0|1] [--env KEY=VAL ...] [--timeout 240]
-//       [--webgpu swiftshader|vulkan]
+//       [--webgpu swiftshader|vulkan|off]
 //
 // With --views omitted (fly/stress mode): REPGAME_CAPTURE is not set, the
 // game runs whatever the --env REPGAME_FLY* vars script, and the harness
@@ -93,7 +93,7 @@ for (let i = 0; i < args.length; i++) {
     if (args[i] === "--env" && i + 1 < args.length) extraEnvs.push(args[i + 1]);
 }
 if (!outDir) {
-    console.error("Usage: --views <spec> --out <dir> [--port] [--msaa] [--env K=V] [--timeout s] [--webgpu]");
+    console.error("Usage: --views <spec> --out <dir> [--port] [--msaa] [--env K=V] [--timeout s] [--webgpu swiftshader|vulkan|off]");
     process.exit(2);
 }
 const nViews = views ? views.split(";").filter((s) => s.trim().length > 0).length : 0;
@@ -105,11 +105,14 @@ async function launch(chromium, useSwiftShader) {
     // removes the platform guard. Together they exercise the real WebGPU path
     // in CI even without a hardware adapter. --webgpu vulkan drops the
     // override so Dawn picks the real GPU adapter (the "amd" path that hit
-    // the heap-growth OOM); it needs a working GPU in headless.
+    // the heap-growth OOM); it needs a working GPU in headless. --webgpu off
+    // skips the adapter flags entirely.
     const webgpuArgs =
-        webgpuAdapter === "vulkan"
-            ? ["--enable-unsafe-webgpu", "--enable-features=Vulkan"]
-            : ["--enable-unsafe-webgpu", "--use-webgpu-adapter=swiftshader"];
+        webgpuAdapter === "off"
+            ? []
+            : webgpuAdapter === "vulkan"
+              ? ["--enable-unsafe-webgpu", "--enable-features=Vulkan"]
+              : ["--enable-unsafe-webgpu", "--use-webgpu-adapter=swiftshader"];
     const args = useSwiftShader
         ? ["--enable-unsafe-swiftshader", "--use-gl=angle", "--use-angle=swiftshader", ...webgpuArgs]
         : ["--enable-gpu", "--ignore-gpu-blocklist", "--use-angle=gl", ...webgpuArgs];
@@ -173,6 +176,10 @@ async function run() {
         qs.set("server", "off");
         if (views) qs.set("REPGAME_CAPTURE", views);
         qs.set("REPGAME_MSAA", msaa);
+        // The game's WebGPU mapgen backend is opt-in (off by default); opt it
+        // in whenever --webgpu configures an adapter so the flag still
+        // exercises the path it exists for. --env REPGAME_WEBGPU=0 overrides.
+        if (webgpuAdapter !== "off") qs.set("REPGAME_WEBGPU", "1");
         for (const kv of extraEnvs) {
             const eq = kv.indexOf("=");
             if (eq > 0) qs.set(kv.slice(0, eq), kv.slice(eq + 1));

@@ -3,13 +3,20 @@ set_canvas_size();
 
 // Report WebGPU availability on the startup screen. Same probe the C++ side
 // uses (navigator.gpu + requestAdapter), so the message predicts whether the
-// GPU mapgen backend will activate or chunks fall back to CPU.
+// GPU mapgen backend will activate or chunks fall back to CPU. The backend is
+// opt-in (?REPGAME_WEBGPU=1, matching getenv() in webgpu_mapgen.cpp) — when it
+// isn't requested, don't touch WebGPU at all.
 (function gpuStatusProbe() {
   var el = document.getElementById("gpu_status");
   if (!el) return;
   function show(text, unavailable) {
     el.textContent = text;
     el.className = unavailable ? "gpu-unavailable" : "";
+  }
+  var webgpuParam = parseInt(new URLSearchParams(location.search).get("REPGAME_WEBGPU"), 10);
+  if (!(webgpuParam > 0)) {
+    show("GPU-accelerated terrain gen disabled (add ?REPGAME_WEBGPU=1 to enable)", true);
+    return;
   }
   if (!navigator.gpu || !navigator.gpu.requestAdapter) {
     show("WebGPU not supported by this browser - terrain gen will use the CPU", true);

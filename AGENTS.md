@@ -301,7 +301,7 @@ output).
 ```sh
 node tools/wasm_capture.cjs --views "<REPGAME_CAPTURE spec>" --out <dir> \
     [--port 8091] [--msaa 0|1] [--env KEY=VAL ...] [--timeout 240] \
-    [--webgpu swiftshader|vulkan]
+    [--webgpu swiftshader|vulkan|off]
 ```
 
 Omit `--views` for fly/stress mode: no `REPGAME_CAPTURE` is set, the
@@ -310,7 +310,9 @@ exit-screen navigation (or `--timeout`) then writes `console.log` with the
 FLYMET telemetry and any aborts. `--webgpu vulkan` drops the
 `--use-webgpu-adapter=swiftshader` override so Dawn uses the real GPU
 adapter in headless — needed to exercise the hardware ("amd") WebGPU path
-that software adapters can't reproduce.
+that software adapters can't reproduce. Since the game's WebGPU backend is
+opt-in (`REPGAME_WEBGPU=1`), the harness passes it whenever `--webgpu`
+isn't `off`; `--env REPGAME_WEBGPU=0` overrides for a CPU-mapgen run.
 
 - On WASM every `REPGAME_*` URL query parameter becomes an environment
   variable (`index.js` `preRun` copies them into Emscripten's `ENV`), so all
@@ -318,6 +320,10 @@ that software adapters can't reproduce.
 - `REPGAME_MSAA` — the WASM build requests a multisampled WebGL context
   (antialias, normally 4x) by default; `REPGAME_MSAA=0`/`--msaa 0` disables
   it for A/B comparison.
+- `REPGAME_WEBGPU` — `0|1`: opt-in switch for the WebGPU terrain-gen/mesh
+  backend (default 0 = CPU mapgen). Set `?REPGAME_WEBGPU=1` in the page URL
+  to enable; `REPGAME_NO_WEBGPU_MAPGEN`/`REPGAME_NO_WEBGPU_MESH` still kill
+  each side individually when the backend is on.
 - WASM has no offscreen framebuffer, so captures read the default
   framebuffer and are delivered to JS instead of writing TGA files; the
   game keeps running on the last view instead of exiting (a WASM exit
