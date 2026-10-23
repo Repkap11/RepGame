@@ -38,7 +38,25 @@ case "${1:-}" in
         quality=3
         [ "$type" = sfx ] && quality=4
         mkdir -p "$outdir"
-        ffmpeg -y -v error -i "$src" -vn -map_metadata -1 -q:a "$quality" "$outdir/$name.ogg"
+        # The pack's recordings span ~20dB between pools (gravel steps are
+        # way hotter than grass). Normalize step_* and dig_* clips to a
+        # shared loudness target via volumedetect's mean volume, clamped so
+        # the gain never pushes the peak past -1.5dBFS.
+        af=()
+        target=""
+        case "$name" in
+            step_*) target=-36 ;;
+            dig_*) target=-27 ;;
+        esac
+        if [ -n "$target" ]; then
+            stats=$(ffmpeg -v info -i "$src" -af volumedetect -f null - 2>&1 || true)
+            mean=$(echo "$stats" | awk '/mean_volume/ { print $5 }')
+            peak=$(echo "$stats" | awk '/max_volume/ { print $5 }')
+            gain=$(awk -v t="$target" -v m="${mean:-0}" -v p="${peak:-0}" \
+                'BEGIN { g = t - m; lim = -1.5 - p; if ( g > lim ) g = lim; printf "%.2f", g }')
+            af=( -af "volume=${gain}dB" )
+        fi
+        ffmpeg -y -v error -i "$src" -vn -map_metadata -1 "${af[@]}" -q:a "$quality" "$outdir/$name.ogg"
         ;;
     convert-all)
         outdir="${2:-prebuilt/sounds}"

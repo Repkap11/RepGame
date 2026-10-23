@@ -1059,19 +1059,30 @@ void RepGame::process_movement( ) {
 
     // Footsteps: while grounded, accumulate the actual horizontal distance
     // covered (collision-resolved, so pushing a wall stays silent) and play
-    // the underfoot block's step sound every ~0.7 blocks — about MC's
-    // cadence. Any air-to-ground transition also plays a step, so jumping
-    // lands with a footfall.
+    // the underfoot block's step sound every ~1.6 blocks — about MC's
+    // cadence, ~3 steps/s at walk speed. A 0.2s minimum gap keeps sprint
+    // (~18 blocks/s) from machine-gunning steps, and a 0.6s idle threshold
+    // makes any motion after a pause count immediately. Any air-to-ground
+    // transition also plays a step, so jumping lands with a footfall.
     {
         static double step_distance = 0.0;
         static bool was_grounded = false;
+        static long last_step_tick = -1000;
         const bool grounded = globalGameState.camera.standing_on_solid && !player_flying && !globalGameState.input.no_clip;
         bool step_now = false;
         if ( grounded ) {
             step_distance += glm::length( glm::dvec2( movement_vector.x, movement_vector.z ) );
-            if ( !was_grounded || step_distance >= 0.7 ) {
+            const long since_step = globalGameState.tick_number - last_step_tick;
+            const bool gap_ok = since_step >= ( long )( 0.2 * UPS_RATE );
+            // A small motion after a long pause still counts as a step —
+            // otherwise sub-1.6-block shuffles stay silent forever. 0.45
+            // blocks is far enough into the motion that a single shuffle
+            // reads as one step, not two.
+            const bool resumed = step_distance >= 0.45 && since_step >= ( long )( 0.6 * UPS_RATE );
+            if ( gap_ok && ( !was_grounded || step_distance >= 1.6 || resumed ) ) {
                 step_now = true;
                 step_distance = 0.0;
+                last_step_tick = globalGameState.tick_number;
             }
         } else {
             step_distance = 0.0;
