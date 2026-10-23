@@ -1,6 +1,9 @@
 #include <math.h>
 #include <stdlib.h>
 #include <algorithm>
+#ifdef __GLIBC__
+#include <malloc.h>
+#endif
 #include <chrono>
 #include <vector>
 
@@ -409,11 +412,14 @@ void ChunkLoader::render_chunks( Multiplayer &multiplayer, const glm::dvec3 &cam
     // the slot re-entered and re-parked — drop it, the newer entry owns the
     // release timing.
     this->park_frame++;
+    // Consumed only under __GLIBC__ below for the malloc_trim throttle.
+    size_t released_this_frame [[maybe_unused]] = 0;
     for ( size_t i = 0; i < this->parked_release.size( ); ) {
         const ParkedRelease &e = this->parked_release[ i ];
         if ( e.chunk->load_state == CHUNK_PARKED && e.gen == e.chunk->park_release_gen &&
              this->park_frame - e.frame >= PARK_RELEASE_DEFER_FRAMES ) {
             e.chunk->release_terrain( );
+            released_this_frame++;
         }
         if ( e.chunk->load_state != CHUNK_PARKED || e.gen != e.chunk->park_release_gen ||
              this->park_frame - e.frame >= PARK_RELEASE_DEFER_FRAMES ) {
@@ -423,6 +429,18 @@ void ChunkLoader::render_chunks( Multiplayer &multiplayer, const glm::dvec3 &cam
             i++;
         }
     }
+#ifdef __GLIBC__
+    // free() parks the released buffers in glibc's arenas — RSS only drops
+    // via mmap munmaps or a trim. malloc_trim(0) madvises free pages back
+    // to the kernel so render-distance shrinks are visible in system memory
+    // rather than staying an internal high-water mark. It's a heap walk, so
+    // throttle to once per second of frames when releases actually ran.
+    static long last_trim_frame = 0;
+    if ( released_this_frame && this->park_frame - last_trim_frame >= 60 ) {
+        last_trim_frame = this->park_frame;
+        malloc_trim( 0 );
+    }
+#endif
     const bool radius_changed = this->render_radius != this->render_radius_applied;
     if ( 0 != chunk_diff.x || 0 != chunk_diff.y || 0 != chunk_diff.z || radius_changed ) {
         // Collect new chunk positions from the reload loop so we can fire one
