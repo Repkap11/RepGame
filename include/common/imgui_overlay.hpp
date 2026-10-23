@@ -18,7 +18,7 @@ struct ImGuiDebugVars {
     // the chunk/object shaders so pitch-black caves stay faintly visible;
     // night_ambient is a floor on the daylight factor, i.e. "moonlight".
     float min_ambient = 0.05f;
-    float night_ambient = 0.08f;
+    float night_ambient = 0.20f;
     // Chunk-loading and lighting queue depths, refreshed once per frame by
     // RepGame::draw (see LoaderDebugStats in chunk_loader.hpp).
     LoaderDebugStats loader;

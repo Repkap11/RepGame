@@ -204,7 +204,7 @@ vars set, behaviour is unchanged.
   expression). The effective mip level is capped at `LIGHT_LOD_MAX`, so
   raising the bias past the cap has no further effect.
 - `REPGAME_NIGHT_AMBIENT` / `REPGAME_MIN_AMBIENT` — night brightness floors
-  (0-1, defaults 0.08 / 0.05). `night_ambient` is the moonlight floor on the
+  (0-1, defaults 0.20 / 0.05). `night_ambient` is the moonlight floor on the
   daylight factor (outdoor night: terrain, sky, mobs, fog all scale by it);
   `min_ambient` is the absolute light floor so caves aren't pure black. Not
   HDR-related — these are sRGB-encoded light values, identical in SDR and
