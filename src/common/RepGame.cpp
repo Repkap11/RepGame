@@ -7,6 +7,7 @@
 #include <stdlib.h>
 
 #include "common/RepGame.hpp"
+#include "common/audio.hpp"
 #include "common/block_definitions.hpp"
 #include "common/utils/map_storage.hpp"
 #include "common/renderer/texture.hpp"
@@ -324,6 +325,7 @@ void RepGame::open_chest( const glm::ivec3 &pos ) {
     globalGameState.chest.open = true;
     globalGameState.chest.pos = pos;
     globalGameState.input.inventory_open = true;
+    audio_play_sfx( "chest" );
     // An open cancels a pending loot snapshot for the same position.
     globalGameState.pending_chest_loot.erase( pos );
     if ( globalGameState.multiplayer.is_active( ) ) {
@@ -569,9 +571,13 @@ void RepGame::break_selected_block( ) {
     // Debris is spawned by the queued PlayerBlockPlacedEvent, which covers all
     // block-removal paths (mining, support loss, water, remote edits).
     BlockID previous_block = change_block( 0, BLOCK_STATE_AIR );
-    if ( globalGameState.vr.active && previous_block != LAST_BLOCK_ID && previous_block != AIR ) {
-        // A real block broke: the platform turns this into a haptic pulse.
-        globalGameState.vr.haptic_pending = true;
+    if ( previous_block != LAST_BLOCK_ID && previous_block != AIR ) {
+        // A real block broke.
+        audio_play_sfx( "dig" );
+        if ( globalGameState.vr.active ) {
+            // The platform turns this into a haptic pulse.
+            globalGameState.vr.haptic_pending = true;
+        }
     }
     if ( block_is_chest( previous_block ) ) {
         const glm::ivec3 chest_pos = globalGameState.block_selection.pos_destroy;
@@ -745,6 +751,9 @@ void RepGame::process_mouse_events( ) {
                         globalGameState.block_selection.pos_create = globalGameState.block_selection.pos_create_water;
                     }
                     BlockID placed_block = change_block( 1, { holdingBlock, rotation, 0, holdingBlock, 0 } );
+                    if ( placed_block != LAST_BLOCK_ID ) {
+                        audio_play_sfx( "place" );
+                    }
                     if ( placed_block != LAST_BLOCK_ID && globalGameState.game_mode == GameMode_Survival ) {
                         globalGameState.hotbar.consumeSelected( 1 );
                         BlockID newHolding = globalGameState.hotbar.getSelectedBlock( );
@@ -1357,6 +1366,8 @@ void RepGame::tick( ) {
         }
     }
     globalGameState.tick_number++;
+    // Music scheduling + one-shot SFX reaping (no-op without REPGAME_AUDIO).
+    audio_tick( globalGameState.tick_number );
     // Feed the tick to the light pool: the BFS starve window measures backlog
     // age in ticks so the seed hot paths never read the clock.
     globalGameState.world.chunkLoader.light_note_tick( globalGameState.tick_number );
@@ -1956,6 +1967,7 @@ RepGameState *RepGame::init( const char *world_name, const bool connect_multi, c
     glGetIntegerv( GL_SAMPLE_BUFFERS, &iMultiSample );
     glGetIntegerv( GL_SAMPLES, &iNumSamples );
     pr_debug( "GL_SAMPLE_BUFFERS = %d, GL_SAMPLES = %d", iMultiSample, iNumSamples );
+    audio_init( );
     return &globalGameState;
 }
 
@@ -2616,6 +2628,7 @@ void RepGame::cleanup( ) {
     globalGameState.chest.inventory_renderer.cleanup( );
     imgui_overlay_cleanup( &globalGameState.imgui_overlay );
     block_definitions_free_definitions( );
+    audio_cleanup( );
 
     clean_up_done = true;
     // pr_debug( "RepGame cleanup done" );

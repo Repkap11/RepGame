@@ -1,4 +1,5 @@
 #include "common/imgui_overlay.hpp"
+#include "common/audio.hpp"
 #include "common/map_gen.hpp"
 
 ImGuiDebugVars debug_vars;
@@ -93,7 +94,7 @@ void imgui_overlay_attach_to_window( ImGuiOverlay *ui_overlay, SDL_Window *windo
     ImGui_ImplSDL_InitForOpenGL( window, gl_context );
     ImGui_ImplOpenGL3_Init( glsl_version );
 
-    float IMGUI_UI_SCALE = 2.0f;
+    float IMGUI_UI_SCALE = 1.6f;
 
     ImGui::GetStyle( ).ScaleAllSizes( IMGUI_UI_SCALE );
     ImFontConfig cfg;
@@ -135,8 +136,9 @@ void imgui_overlay_draw( ImGuiOverlay *imgui_overlay, Input &input ) {
             // ImGuiConfigFlags_NoMouse (set at attach) already makes the
             // overlay non-interactive; NoInputs keeps the window itself from
             // reacting if mouse support is ever re-enabled.
-            ImGuiWindowFlags windowFlags = ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoBringToFrontOnFocus | ImGuiWindowFlags_NoNav | ImGuiWindowFlags_NoInputs;
+            ImGuiWindowFlags windowFlags = ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoBringToFrontOnFocus | ImGuiWindowFlags_NoNav | ImGuiWindowFlags_NoInputs | ImGuiWindowFlags_AlwaysAutoResize;
 
+            ImGui::SetNextWindowPos( ImVec2( 10.0f, 10.0f ) );
             ImGui::Begin( "RepGame", nullptr, windowFlags );
             ImGui::Text( "Application average %.3f ms/frame (%.1f FPS)", 1000.0f / io.Framerate, io.Framerate );
             ImGui::Text( "Player Pos: %9.1f %9.1f %9.1f", debug_vars.player_pos.x, debug_vars.player_pos.y, debug_vars.player_pos.z );
@@ -160,6 +162,8 @@ void imgui_overlay_draw( ImGuiOverlay *imgui_overlay, Input &input ) {
             const long time_of_day = debug_vars.world_time % DAY_LENGTH_TICKS;
             const int clock_minutes = static_cast<int>( time_of_day * 24 * 60 / DAY_LENGTH_TICKS );
             ImGui::Text( "Time: %8ld ticks  %02d:%02d (daylight %.2f)  [PgUp/PgDn]", time_of_day, clock_minutes / 60, clock_minutes % 60, debug_vars.daylight );
+            const char *song = audio_current_track_title( );
+            ImGui::Text( "Music: %s", song ? song : "--" );
 
             ImGui::Separator( );
             ImGui::Text( "Chunks: loading %4d (queued %4d, results %4d), drawable %4d",

@@ -8,6 +8,7 @@ CFLAGS_WINDOWS += -O3 -DREPGAME_SKIP_CHECK_FOR_GL_ERRORS
 # CFLAGS_WINDOWS += -g
 
 CFLAGS_WINDOWS += -DREPGAME_WINDOWS
+CFLAGS_WINDOWS += $(CFLAGS_AUDIO)
 # SDL3 MinGW devel only ships a shared library (libSDL3.dll.a + SDL3.dll),
 # so Windows now dynamically links SDL3 and ships SDL3.dll next to the exe.
 LIBS_WINDOWS_SDL3 := windows_build/sdl3/x86_64-w64-mingw32/lib/libSDL3.dll.a -Wl,--no-undefined -Wl,--dynamicbase -Wl,--nxcompat -Wl,--high-entropy-va -lm -luser32 -lgdi32 -lwinmm -limm32 -lole32 -loleaut32 -lshell32 -lsetupapi -lversion -luuid
@@ -34,6 +35,7 @@ SHADER_BLOBS_WINDOWS := $(patsubst src/shaders/%.glsl,out/windows/shaders/%.o,$(
 SHADER_PROCESSED_WINDOWS := $(patsubst src/shaders/%.glsl,out/windows/shaders/%.glsl,$(wildcard src/shaders/*.glsl))
 BITMAP_BLOBS_WINDOWS := $(patsubst bitmaps/%.png,out/windows/bitmaps/%.o,$(BITMAP_PNGS))
 FONT_BLOBS_WINDOWS := $(patsubst fonts/%.ttf,out/windows/fonts/%.o,$(wildcard fonts/*.ttf))
+SOUND_BLOBS_WINDOWS := $(patsubst %,out/windows/sounds/%.o,$(SOUNDS_ENABLED))
 
 # Preprocess shaders through the C preprocessor at build time. Blob symbols are
 # renamed to match what MK_BLOB(src_shaders, <name>, glsl) expects.
@@ -56,6 +58,16 @@ out/windows/fonts/%.o : fonts/%.ttf | out/windows
 	$(LD_WINDOWS) -r -b binary $< -o $@
 	objcopy --rename-section .data=.rodata,CONTENTS,ALLOC,LOAD,READONLY,DATA $@ $@
 
+# Sound blobs: renamed to the out_sounds prefix MK_BLOB expects regardless of
+# which directory the .ogg came from (see linux.mk).
+out/windows/sounds/%.o : $(SOUND_OGG_DIR)/%.ogg makefiles/windows.mk makefiles/common.mk | out/windows
+	@mkdir -p $(dir $@)
+	$(LD_WINDOWS) -r -b binary $< -o $@_no_section
+	objcopy --rename-section .data=.rodata,CONTENTS,ALLOC,LOAD,READONLY,DATA \
+		--redefine-sym _binary_$(SOUND_SRC_SYMBOLS)_sounds_$*_ogg_start=_binary_out_sounds_$*_ogg_start \
+		--redefine-sym _binary_$(SOUND_SRC_SYMBOLS)_sounds_$*_ogg_end=_binary_out_sounds_$*_ogg_end \
+		$@_no_section $@
+
 all: windows
 windows:  out/windows/$(TARGET).exe
 
@@ -66,6 +78,7 @@ windows-deploy: out/windows/$(TARGET).exe
 
 WINDOWS_DIRS = $(patsubst src%,out/windows%,$(shell find src -type d)) \
 		out/windows/shaders out/windows/bitmaps out/windows/fonts \
+		out/windows/sounds \
 		out/windows/imgui \
 		out/windows/imgui/backends
 
@@ -86,8 +99,8 @@ out/windows/$(TARGET).exe: out/windows/$(TARGET)_uncompressed.exe
 	upx-ucl -q $< -o $@
 	touch $@
 
-out/windows/$(TARGET)_uncompressed.exe: windows_build $(OBJECTS_COMMON_WINDOWS) $(OBJECTS_IMGUI_WINDOWS) $(OBJECTS_WINDOWS) $(SHADER_BLOBS_WINDOWS) $(BITMAP_BLOBS_WINDOWS) $(FONT_BLOBS_WINDOWS) | out/windows
-	$(CC_WINDOWS) -flto $(CFLAGS_WINDOWS) $(OBJECTS_WINDOWS) $(OBJECTS_COMMON_WINDOWS) $(OBJECTS_IMGUI_WINDOWS) $(SHADER_BLOBS_WINDOWS) $(BITMAP_BLOBS_WINDOWS) $(FONT_BLOBS_WINDOWS) $(LIBS_WINDOWS) -o $@
+out/windows/$(TARGET)_uncompressed.exe: windows_build $(OBJECTS_COMMON_WINDOWS) $(OBJECTS_IMGUI_WINDOWS) $(OBJECTS_WINDOWS) $(SHADER_BLOBS_WINDOWS) $(BITMAP_BLOBS_WINDOWS) $(FONT_BLOBS_WINDOWS) $(SOUND_BLOBS_WINDOWS) | out/windows
+	$(CC_WINDOWS) -flto $(CFLAGS_WINDOWS) $(OBJECTS_WINDOWS) $(OBJECTS_COMMON_WINDOWS) $(OBJECTS_IMGUI_WINDOWS) $(SHADER_BLOBS_WINDOWS) $(BITMAP_BLOBS_WINDOWS) $(FONT_BLOBS_WINDOWS) $(SOUND_BLOBS_WINDOWS) $(LIBS_WINDOWS) -o $@
 	# SDL3 is dynamically linked on Windows, so ship SDL3.dll next to the exe.
 	cp windows_build/sdl3/x86_64-w64-mingw32/bin/SDL3.dll out/windows/
 
@@ -116,6 +129,6 @@ windows_build:
 	rm -rf sdl3.tar.gz
 	rm -rf glew.zip
 
-.PRECIOUS: out/windows/$(TARGET).exe $(OBJECTS_WINDOWS) $(OBJECTS_COMMON_WINDOWS) $(SHADER_BLOBS_WINDOWS) $(SHADER_PROCESSED_WINDOWS) $(BITMAP_BLOBS_WINDOWS) $(FONT_BLOBS_WINDOWS)
+.PRECIOUS: out/windows/$(TARGET).exe $(OBJECTS_WINDOWS) $(OBJECTS_COMMON_WINDOWS) $(SHADER_BLOBS_WINDOWS) $(SHADER_PROCESSED_WINDOWS) $(BITMAP_BLOBS_WINDOWS) $(FONT_BLOBS_WINDOWS) $(SOUND_BLOBS_WINDOWS)
 
 .PHONY: windows windows-run clean-windows windows-deploy

@@ -55,6 +55,47 @@ clean: clean-bitmaps
 clean-bitmaps:
 	rm -rf out/bitmaps
 
+# Sounds: the source audio in sounds/ (untracked — see .gitignore) is listed in
+# tools/sounds_manifest.txt, converted to OGG Vorbis by tools/convert_sounds.sh
+# (needs ffmpeg), and embedded as blobs like the bitmaps. When sounds/ is
+# absent (fresh clones) the build silently compiles the audio stub instead.
+ifneq ($(wildcard sounds),)
+REPGAME_AUDIO ?= 1
+endif
+REPGAME_AUDIO ?= 0
+SOUNDS_ENABLED :=
+CFLAGS_AUDIO :=
+ifeq ($(REPGAME_AUDIO),1)
+SOUNDS_ENABLED := $(shell grep '^[a-z]' tools/sounds_manifest.txt | cut -d'|' -f1)
+CFLAGS_AUDIO := -DREPGAME_AUDIO -I out/include
+endif
+# Directory the .ogg files come from; the flatpak build overrides this with
+# prebuilt/sounds because its sandbox has no ffmpeg (see sounds-prebuilt).
+SOUND_OGG_DIR ?= out/sounds
+# ld -b binary symbol names derive from the input path; platform blob rules
+# rename to _binary_out_sounds_* so MK_BLOB(out_sounds, ...) always matches.
+SOUND_SRC_SYMBOLS := $(subst /,_,$(subst .,_,$(subst -,_,$(SOUND_OGG_DIR))))
+
+out/sounds/%.ogg : tools/sounds_manifest.txt tools/convert_sounds.sh | out
+	tools/convert_sounds.sh convert $* out/sounds
+
+# Generated MK_BLOB decls + music/sfx tables included by audio.cpp.
+out/include/sounds_manifest.hpp : tools/sounds_manifest.txt tools/convert_sounds.sh | out
+	tools/convert_sounds.sh gen $@
+
+%/common/audio.o : out/include/sounds_manifest.hpp
+
+# Host-side conversion for builds that can't run ffmpeg in their sandbox
+# (flatpak). Mirrors the gpu-prebuilt pattern: `make flatpak` depends on this.
+sounds-prebuilt:
+	tools/convert_sounds.sh convert-all prebuilt/sounds
+
+clean: clean-sounds
+clean-sounds:
+	rm -rf out/sounds out/include
+
+.PRECIOUS: $(patsubst %,out/sounds/%.ogg,$(SOUNDS_ENABLED))
+
 check:
 	cppcheck -j$(CPUS) --quiet --enable=warning,style,performance,portability,information,missingInclude -iinclude/common/vendor -DREPGAME_LINUX src
 # cppcheck -j$(CPUS) --quiet --enable=warning,style,performance,portability,information,missingInclude -Iinclude -iinclude/common/vendor -DREPGAME_WINDOWS src

@@ -6,7 +6,9 @@ flatpak_build:| packages
 
 #gpu-prebuilt builds the HIP/CUDA objects + runtime libs in Docker; the flatpak
 #sandbox has no GPU toolchain and links them via GPU_PREBUILT_DIR.
-flatpak: gpu-prebuilt
+#sounds-prebuilt converts the OGGs on the host for the same reason — the
+#sandbox has no ffmpeg and links them via SOUND_OGG_DIR.
+flatpak: gpu-prebuilt sounds-prebuilt
 	flatpak-builder --user --install --force-clean --repo=out/flatpak/repo out/flatpak/build flatpak/com.repkap11.repgame.yml
 
 

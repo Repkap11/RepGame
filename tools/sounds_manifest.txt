@@ -1,0 +1,82 @@
+# Sound manifest: name|source|type|title
+#   name   - blob name: becomes out/sounds/<name>.ogg and the C identifier used
+#            by MK_BLOB(out_sounds, <name>, ogg). Lowercase alnum + underscore.
+#   source - file under sounds/ (untracked — not committed, see .gitignore).
+#   type   - music | sfx. music plays in the ambient rotation; sfx are looked up
+#            by base name (dig_1/dig_2 share the "dig" pool for random variants).
+#   title  - display name for logging.
+#
+# Only ambient/in-game tracks are listed here — music-disc and novelty tracks
+# (Boo, Thirteen, Cat, Dog, the 2-2x discs, the LP/freestyle mp3s) are excluded.
+# To drop or add a track, edit this file; make handles the rest.
+calm_1|01. Calm 1.mp3|music|Calm 1
+calm_2|02. Calm 2.mp3|music|Calm 2
+calm_3|03. Calm 3.mp3|music|Calm 3
+piano_1|04. Piano 1.mp3|music|Piano 1
+piano_2|05. Piano 2.mp3|music|Piano 2
+piano_3|06. Piano 3.mp3|music|Piano 3
+hal_1|08. Hal 1.mp3|music|Hal 1
+hal_2|09. Hal 2.mp3|music|Hal 2
+hal_3|10. Hal 3.mp3|music|Hal 3
+hal_4|11. Hal 4.mp3|music|Hal 4
+nuance_1|12. Nuance 1.mp3|music|Nuance 1
+nuance_2|13. Nuance 2.mp3|music|Nuance 2
+key|1-01. Key.flac|music|Key
+door|1-02. Door.flac|music|Door
+subwoofer_lullaby|1-03. Subwoofer Lullaby.flac|music|Subwoofer Lullaby
+death|1-04. Death.flac|music|Death
+living_mice|1-05. Living Mice.flac|music|Living Mice
+moog_city|1-06. Moog City.flac|music|Moog City
+haggstrom|1-07. Haggstrom.flac|music|Haggstrom
+minecraft|1-08. Minecraft.flac|music|Minecraft
+oxygene|1-09. Oxygène.flac|music|Oxygène
+equinoxe|1-10. Équinoxe.flac|music|Équinoxe
+mice_on_venus|1-11. Mice on Venus.flac|music|Mice on Venus
+dry_hands|1-12. Dry Hands.flac|music|Dry Hands
+wet_hands|1-13. Wet Hands.flac|music|Wet Hands
+clark|1-14. Clark.flac|music|Clark
+chris|1-15. Chris.flac|music|Chris
+excuse|1-17. Excuse.flac|music|Excuse
+sweden|1-18. Sweden.flac|music|Sweden
+danny|1-21. Danny.flac|music|Danny
+beginning|1-22. Beginning.flac|music|Beginning
+droopy_likes_ricochet|1-23. Droopy Likes Ricochet.flac|music|Droopy Likes Ricochet
+droopy_likes_your_face|1-24. Droopy Likes Your Face.flac|music|Droopy Likes Your Face
+ki|2-01. Ki.flac|music|Ki
+alpha|2-02. Alpha.flac|music|Alpha
+dead_voxel|2-03. Dead Voxel.flac|music|Dead Voxel
+blind_spots|2-04. Blind Spots.flac|music|Blind Spots
+flake|2-05. Flake.flac|music|Flake
+moog_city_2|2-06. Moog City 2.flac|music|Moog City 2
+concrete_halls|2-07. Concrete Halls.flac|music|Concrete Halls
+biome_fest|2-08. Biome Fest.flac|music|Biome Fest
+mutation|2-09. Mutation.flac|music|Mutation
+haunt_muskie|2-10. Haunt Muskie.flac|music|Haunt Muskie
+warmth|2-11. Warmth.flac|music|Warmth
+floating_trees|2-12. Floating Trees.flac|music|Floating Trees
+aria_math|2-13. Aria Math.flac|music|Aria Math
+kyoto|2-14. Kyoto.flac|music|Kyoto
+ballad_of_the_cats|2-15. Ballad of the Cats.flac|music|Ballad of the Cats
+taswell|2-16. Taswell.flac|music|Taswell
+beginning_2|2-17. Beginning 2.flac|music|Beginning 2
+dreiton|2-18. Dreiton.flac|music|Dreiton
+the_end|2-19. The End.flac|music|The End
+intro|2-30. Intro.flac|music|Intro
+
+# SFX (see sounds/sfx/CREDITS.txt): Kenney CC0 impacts + ffmpeg-synthesized
+# explode/fuse. Base name (name minus _N) is the pool audio_play_sfx looks up.
+dig_1|sfx/impactMining_000.ogg|sfx|Dig
+dig_2|sfx/impactMining_001.ogg|sfx|Dig
+dig_3|sfx/impactMining_002.ogg|sfx|Dig
+dig_4|sfx/impactMining_003.ogg|sfx|Dig
+dig_5|sfx/impactMining_004.ogg|sfx|Dig
+place_1|sfx/impactPlank_medium_000.ogg|sfx|Place
+place_2|sfx/impactPlank_medium_001.ogg|sfx|Place
+place_3|sfx/impactPlank_medium_002.ogg|sfx|Place
+place_4|sfx/impactPlank_medium_003.ogg|sfx|Place
+place_5|sfx/impactPlank_medium_004.ogg|sfx|Place
+chest_1|sfx/creak1.ogg|sfx|Chest
+chest_2|sfx/creak2.ogg|sfx|Chest
+chest_3|sfx/creak3.ogg|sfx|Chest
+explode_1|sfx/explode_1.wav|sfx|Explode
+fuse_1|sfx/fuse_1.wav|sfx|Fuse

@@ -50,6 +50,7 @@ CC_SF = $(SF_CCACHE) clang++ --target=aarch64-linux-gnu --sysroot=$(SF_SYSROOT) 
 # Same warning/std/pic flags as linux.mk's clang build, but GLES instead of
 # desktop GL+GLEW and the static SDL3 headers from the sysroot build.
 CFLAGS_SF := $(CFLAGS_WARNINGS) -std=c++17 -DREPGAME_LINUX -DGLEW_NO_GLU -DREPGAME_GLES -DREPGAME_STEAMFRAME -DIMGUI_IMPL_OPENGL_ES3 -I$(SF_SDL3_PREFIX)/include -fPIE -Wno-c++20-designator
+CFLAGS_SF += $(CFLAGS_AUDIO)
 CFLAGS_SF_RELEASE := -O3 -DREPGAME_SKIP_CHECK_FOR_GL_ERRORS
 CFLAGS_SF_DEBUG := -g
 # Final link goes through lld like linux.mk. Link-only flag — see CCLD_LINUX.
@@ -99,6 +100,7 @@ SHADER_BLOBS_SF := $(patsubst src/shaders/%.glsl,$(SF_OUT)/shaders/%.o,$(wildcar
 SHADER_PROCESSED_SF := $(patsubst src/shaders/%.glsl,$(SF_OUT)/shaders/%.glsl,$(wildcard src/shaders/*.glsl))
 BITMAP_BLOBS_SF := $(patsubst bitmaps/%.png,$(SF_OUT)/bitmaps/%.o,$(BITMAP_PNGS))
 FONT_BLOBS_SF := $(patsubst fonts/%.ttf,$(SF_OUT)/fonts/%.o,$(wildcard fonts/*.ttf))
+SOUND_BLOBS_SF := $(patsubst %,$(SF_OUT)/sounds/%.o,$(SOUNDS_ENABLED))
 
 # Preprocess shaders through the C preprocessor at build time. The preprocessed
 # .glsl file lives in $(SF_OUT)/shaders/ alongside the .o blob. The blob symbols
@@ -122,6 +124,15 @@ $(SF_OUT)/fonts/%.o : fonts/%.ttf | $(SF_OUT)
 	$(SF_OBJCOPY) -I binary -O elf64-littleaarch64 $< $@_no_section
 	$(SF_OBJCOPY) --rename-section .data=.rodata,CONTENTS,ALLOC,LOAD,READONLY,DATA $@_no_section $@
 
+# Sound blobs: renamed to the out_sounds prefix MK_BLOB expects (see linux.mk).
+$(SF_OUT)/sounds/%.o : $(SOUND_OGG_DIR)/%.ogg makefiles/steamframe.mk makefiles/common.mk | $(SF_OUT)
+	@mkdir -p $(dir $@)
+	$(SF_OBJCOPY) -I binary -O elf64-littleaarch64 $< $@_no_section
+	$(SF_OBJCOPY) --rename-section .data=.rodata,CONTENTS,ALLOC,LOAD,READONLY,DATA \
+		--redefine-sym _binary_$(SOUND_SRC_SYMBOLS)_sounds_$*_ogg_start=_binary_out_sounds_$*_ogg_start \
+		--redefine-sym _binary_$(SOUND_SRC_SYMBOLS)_sounds_$*_ogg_end=_binary_out_sounds_$*_ogg_end \
+		$@_no_section $@
+
 steamframe: $(SF_OUT)/release/$(TARGET)
 steamframe_debug: $(SF_OUT)/debug/$(TARGET)
 
@@ -130,6 +141,7 @@ SF_DIRS := $(patsubst src%,$(SF_OUT)/release%,$(shell find src -type d)) \
 	$(patsubst src%,$(SF_OUT)%,$(shell find src -type d)) \
 	$(SF_OUT)/debug $(SF_OUT)/release \
 	$(SF_OUT)/shaders $(SF_OUT)/bitmaps $(SF_OUT)/fonts \
+	$(SF_OUT)/sounds \
 	$(SF_OUT)/debug/imgui $(SF_OUT)/release/imgui \
 	$(SF_OUT)/debug/imgui/backends $(SF_OUT)/release/imgui/backends
 
@@ -154,11 +166,11 @@ $(SF_OUT)/release/imgui/%.o: imgui_build/%.cpp | $(SF_OUT)
 -include $(DEPS_SF)
 
 # No UPX for the Frame build — the devkit upload wants a plain ELF.
-$(SF_OUT)/release/$(TARGET): $(OBJECTS_IMGUI_SF_RELEASE) $(OBJECTS_COMMON_SF_RELEASE) $(OBJECTS_SF_RELEASE) $(SHADER_BLOBS_SF) $(BITMAP_BLOBS_SF) $(FONT_BLOBS_SF) | $(SF_OUT)
-	$(CC_SF) -flto $(CCLD_SF) $(CFLAGS_SF) $(CFLAGS_SF_RELEASE) $(OBJECTS_SF_RELEASE) $(OBJECTS_IMGUI_SF_RELEASE) $(OBJECTS_COMMON_SF_RELEASE) $(SHADER_BLOBS_SF) $(BITMAP_BLOBS_SF) $(FONT_BLOBS_SF) $(LIBS_SF) -o $@
+$(SF_OUT)/release/$(TARGET): $(OBJECTS_IMGUI_SF_RELEASE) $(OBJECTS_COMMON_SF_RELEASE) $(OBJECTS_SF_RELEASE) $(SHADER_BLOBS_SF) $(BITMAP_BLOBS_SF) $(FONT_BLOBS_SF) $(SOUND_BLOBS_SF) | $(SF_OUT)
+	$(CC_SF) -flto $(CCLD_SF) $(CFLAGS_SF) $(CFLAGS_SF_RELEASE) $(OBJECTS_SF_RELEASE) $(OBJECTS_IMGUI_SF_RELEASE) $(OBJECTS_COMMON_SF_RELEASE) $(SHADER_BLOBS_SF) $(BITMAP_BLOBS_SF) $(FONT_BLOBS_SF) $(SOUND_BLOBS_SF) $(LIBS_SF) -o $@
 
-$(SF_OUT)/debug/$(TARGET): $(OBJECTS_IMGUI_SF_DEBUG) $(OBJECTS_COMMON_SF_DEBUG) $(OBJECTS_SF_DEBUG) $(SHADER_BLOBS_SF) $(BITMAP_BLOBS_SF) $(FONT_BLOBS_SF) | $(SF_OUT)
-	$(CC_SF) $(CCLD_SF) $(CFLAGS_SF) $(CFLAGS_SF_DEBUG) $(OBJECTS_SF_DEBUG) $(OBJECTS_IMGUI_SF_DEBUG) $(OBJECTS_COMMON_SF_DEBUG) $(SHADER_BLOBS_SF) $(BITMAP_BLOBS_SF) $(FONT_BLOBS_SF) $(LIBS_SF) -o $@
+$(SF_OUT)/debug/$(TARGET): $(OBJECTS_IMGUI_SF_DEBUG) $(OBJECTS_COMMON_SF_DEBUG) $(OBJECTS_SF_DEBUG) $(SHADER_BLOBS_SF) $(BITMAP_BLOBS_SF) $(FONT_BLOBS_SF) $(SOUND_BLOBS_SF) | $(SF_OUT)
+	$(CC_SF) $(CCLD_SF) $(CFLAGS_SF) $(CFLAGS_SF_DEBUG) $(OBJECTS_SF_DEBUG) $(OBJECTS_IMGUI_SF_DEBUG) $(OBJECTS_COMMON_SF_DEBUG) $(SHADER_BLOBS_SF) $(BITMAP_BLOBS_SF) $(FONT_BLOBS_SF) $(SOUND_BLOBS_SF) $(LIBS_SF) -o $@
 
 # Steam Linux Runtime 3.0 (sniper) arm64 sysroot: a rootfs tarball verified
 # against the snapshot's SHA256SUMS before extraction.
@@ -286,6 +298,6 @@ endif
 	mkdir -p $(SF_DIRS)
 	touch $@
 
-.PRECIOUS: $(SF_OUT)/release/$(TARGET) $(SF_OUT)/debug/$(TARGET) $(OBJECTS_SF_DEBUG) $(OBJECTS_SF_RELEASE) $(OBJECTS_COMMON_SF_RELEASE) $(OBJECTS_COMMON_SF_DEBUG) $(SHADER_BLOBS_SF) $(SHADER_PROCESSED_SF) $(BITMAP_BLOBS_SF) $(FONT_BLOBS_SF)
+.PRECIOUS: $(SF_OUT)/release/$(TARGET) $(SF_OUT)/debug/$(TARGET) $(OBJECTS_SF_DEBUG) $(OBJECTS_SF_RELEASE) $(OBJECTS_COMMON_SF_RELEASE) $(OBJECTS_COMMON_SF_DEBUG) $(SHADER_BLOBS_SF) $(SHADER_PROCESSED_SF) $(BITMAP_BLOBS_SF) $(FONT_BLOBS_SF) $(SOUND_BLOBS_SF)
 
 .PHONY: steamframe steamframe_debug steamframe-sysroot steamframe-sdl3 steamframe-dist clean-steamframe clean-steamframe-deps

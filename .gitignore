@@ -2,6 +2,9 @@
 out
 World1
 World2
+# Downloaded sound sources (910MB, copyrighted music) — converted to
+# out/sounds/*.ogg at build time; see tools/sounds_manifest.txt.
+sounds
 .vscode/ipch/
 windows_build
 appimage_build

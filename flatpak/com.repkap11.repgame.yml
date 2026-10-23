@@ -40,7 +40,9 @@ modules:
       # pull the bundled runtime libs (prebuilt/gpu/lib → /app/lib).
       # The freedesktop SDK ships gcc, not the host's clang/lld — override
       # CC_LINUX/CCLD_LINUX so the sandbox builds with g++ + the default ld.
-      - make out/linux/release/RepGame_uncompressed GPU_PREBUILT_DIR=prebuilt/gpu CC_LINUX=g++ CCLD_LINUX=
+      # SOUND_OGG_DIR points at the host-converted OGGs (make sounds-prebuilt)
+      # because the sandbox has no ffmpeg; prebuilt/ survives the `rm -rf out`.
+      - make out/linux/release/RepGame_uncompressed GPU_PREBUILT_DIR=prebuilt/gpu SOUND_OGG_DIR=prebuilt/sounds CC_LINUX=g++ CCLD_LINUX=
       - install -Dm755 out/linux/release/RepGame_uncompressed /app/bin/RepGame_uncompressed
       # Wrapper is the flatpak `command:` — like the AppImage's AppRun, it
       # adds the default `World1 repkap11.com` args so a bare `flatpak run`

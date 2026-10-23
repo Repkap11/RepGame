@@ -322,3 +322,42 @@ that software adapters can't reproduce.
   framebuffer and are delivered to JS instead of writing TGA files; the
   game keeps running on the last view instead of exiting (a WASM exit
   reloads the page).
+
+## Audio
+
+Embedded OGG Vorbis played through SDL3 `SDL_AudioStream`s, decoded by
+vendored `stb_vorbis` (`include/common/vendor/`). Only on the blob+SDL3
+platforms (Linux, Windows, ARM, SteamFrame) — WASM/Android compile the
+no-op stubs from `include/common/audio.hpp`.
+
+Pipeline (mirrors the bitmap blobs): `tools/sounds_manifest.txt` lists
+`name|source|type|title` per sound (`source` is a file under `sounds/`,
+which is gitignored — the music is copyrighted and stays local). `make`
+runs `tools/convert_sounds.sh convert <name>` per entry (ffmpeg →
+`out/sounds/<name>.ogg`, needs the `ffmpeg` package), embeds each as a
+`MK_BLOB(out_sounds, <name>, ogg)` object, and regenerates
+`out/include/sounds_manifest.hpp` (music/sfx tables included by
+`src/common/audio.cpp`). If `sounds/` is absent, `REPGAME_AUDIO` defaults
+to `0` and the build compiles the stub — set `REPGAME_AUDIO=0` to force it
+even with sources present. The flatpak sandbox has no ffmpeg, so
+`make flatpak` runs `sounds-prebuilt` on the host first (into
+`prebuilt/sounds/`, same pattern as `gpu-prebuilt`) and the sandbox links
+those via `SOUND_OGG_DIR=prebuilt/sounds`.
+
+Runtime: `audio_init` opens the default playback device (failure → silent,
+logged once). Music is streamed — the audio thread pulls stb_vorbis frames
+into the persistent music stream; `audio_tick` picks the next random track
+after a uniform `[gap/4, gap]` gap. SFX are one-shot streams SDL3 mixes for
+free; manifest names `dig_1..dig_5` form the `dig` pool, so
+`audio_play_sfx("dig")` picks a random variant. Currently wired: block
+break → `dig`, block place → `place`, chest open → `chest`, TNT ignite →
+`fuse`, detonation → `explode` (the last two are ffmpeg-synthesized, see
+`sounds/sfx/CREDITS.txt`).
+
+- `REPGAME_AUDIO` — `0` disables all audio (default on when built with
+  audio). Audio is also skipped entirely in capture mode.
+- `REPGAME_MUSIC` — `0` mutes music only (SFX still play).
+- `REPGAME_MUSIC_VOLUME` / `REPGAME_SFX_VOLUME` — linear gains 0..1
+  (defaults 0.5 / 1.0).
+- `REPGAME_MUSIC_GAP` — max seconds of silence between tracks (default
+  240; gap is uniform in `[gap/4, gap]`, `0` = continuous shuffle).

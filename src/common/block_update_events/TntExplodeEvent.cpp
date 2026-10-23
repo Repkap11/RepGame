@@ -5,6 +5,7 @@
 
 #include "common/block_update_events/TntExplodeEvent.hpp"
 #include "common/RepGame.hpp"
+#include "common/audio.hpp"
 #include "common/multiplayer.hpp"
 #include "common/block.hpp"
 #include "common/block_update_events/PlayerBlockPlacedEvent.hpp"
@@ -95,11 +96,13 @@ void tnt_ignite( BlockUpdateQueue &blockUpdateQueue, RepGameState &repGameState,
     world.set_loaded_block( cell, BLOCK_STATE_AIR );
     repGameState.multiplayer.set_block( cell, BLOCK_STATE_AIR );
     queue_neighbor_block_updates( blockUpdateQueue, world, repGameState.tick_number, cell );
+    audio_play_sfx( "fuse" );
     tnt_launch( blockUpdateQueue, repGameState, center, velocity, fuse_ticks );
 }
 
 void TntExplodeEvent::performAction( BlockUpdateQueue &blockUpdateQueue, RepGameState &repGameState ) {
     World &world = repGameState.world;
+    audio_play_sfx( "explode" );
     // The flashing entity's fuse is up exactly when the blast runs — despawn
     // it here rather than relying on the wall-clock sweep in PrimedTnt::draw,
     // whose quantization could leave it visible for a few frames after the

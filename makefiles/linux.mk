@@ -1,6 +1,6 @@
 #Linux x86_64 builds
 
-REPGAME_PACKAGES += libglew-dev libxi-dev clang lld g++ libsdl3-dev upx-ucl cppcheck
+REPGAME_PACKAGES += libglew-dev libxi-dev clang lld g++ libsdl3-dev upx-ucl cppcheck ffmpeg
 
 # ld -b binary generates symbol names from the file path with non-alnum chars
 # converted to underscores. Used for --redefine-sym in shader blob targets.
@@ -21,6 +21,7 @@ CFLAGS_LINUX += -DGLEW_NO_GLU
 
 CFLAGS_LINUX += $(shell pkg-config --cflags sdl3)
 CFLAGS_LINUX += $(shell pkg-config --cflags wayland-client)
+CFLAGS_LINUX += $(CFLAGS_AUDIO)
 # Honored on the link line; ?= silences the undefined-variable warning when
 # the environment doesn't set it (e.g. flatpak-builder passes -L/app/lib).
 LDFLAGS ?=
@@ -75,6 +76,7 @@ SHADER_BLOBS_LINUX := $(patsubst src/shaders/%.glsl,$(LINUX_OUT)/shaders/%.o,$(w
 SHADER_PROCESSED_LINUX := $(patsubst src/shaders/%.glsl,$(LINUX_OUT)/shaders/%.glsl,$(wildcard src/shaders/*.glsl))
 BITMAP_BLOBS_LINUX := $(patsubst bitmaps/%.png,$(LINUX_OUT)/bitmaps/%.o,$(BITMAP_PNGS))
 FONT_BLOBS_LINUX := $(patsubst fonts/%.ttf,$(LINUX_OUT)/fonts/%.o,$(wildcard fonts/*.ttf))
+SOUND_BLOBS_LINUX := $(patsubst %,$(LINUX_OUT)/sounds/%.o,$(SOUNDS_ENABLED))
 
 # Preprocess shaders through the C preprocessor at build time. The preprocessed
 # .glsl file lives in $(LINUX_OUT)/shaders/ alongside the .o blob. The blob symbols
@@ -98,6 +100,16 @@ $(LINUX_OUT)/fonts/%.o : fonts/%.ttf | $(LINUX_OUT)
 	ld $(LFLAGS) -r -b binary $< -o $@_no_section
 	objcopy --rename-section .data=.rodata,CONTENTS,ALLOC,LOAD,READONLY,DATA $@_no_section $@
 
+# Sound blobs: the .ogg may come from out/sounds or prebuilt/sounds (flatpak),
+# so symbols are always renamed to the out_sounds prefix MK_BLOB expects.
+$(LINUX_OUT)/sounds/%.o : $(SOUND_OGG_DIR)/%.ogg makefiles/linux.mk makefiles/common.mk | $(LINUX_OUT)
+	@mkdir -p $(dir $@)
+	ld $(LFLAGS) -r -b binary $< -o $@_no_section
+	objcopy --rename-section .data=.rodata,CONTENTS,ALLOC,LOAD,READONLY,DATA \
+		--redefine-sym _binary_$(SOUND_SRC_SYMBOLS)_sounds_$*_ogg_start=_binary_out_sounds_$*_ogg_start \
+		--redefine-sym _binary_$(SOUND_SRC_SYMBOLS)_sounds_$*_ogg_end=_binary_out_sounds_$*_ogg_end \
+		$@_no_section $@
+
 all: linux
 linux: $(LINUX_OUT)/release/$(TARGET)
 linux_debug: $(LINUX_OUT)/debug/$(TARGET)
@@ -112,6 +124,7 @@ LINUX_DIRS := $(patsubst src%,$(LINUX_OUT)/release%,$(shell find src -type d)) \
 		$(patsubst src%,$(LINUX_OUT)%,$(shell find src -type d)) \
 		$(LINUX_OUT)/debug $(LINUX_OUT)/release \
 		$(LINUX_OUT)/shaders $(LINUX_OUT)/bitmaps $(LINUX_OUT)/fonts \
+		$(LINUX_OUT)/sounds \
 		$(LINUX_OUT)/debug/imgui $(LINUX_OUT)/release/imgui \
 		$(LINUX_OUT)/debug/imgui/backends $(LINUX_OUT)/release/imgui/backends
 
@@ -145,11 +158,11 @@ $(LINUX_OUT)/release/$(TARGET): $(LINUX_OUT)/release/$(TARGET)_uncompressed
 	touch $@
 
 
-$(LINUX_OUT)/release/$(TARGET)_uncompressed: $(OBJECTS_IMGUI_LINUX_RELEASE) $(OBJECTS_COMMON_LINUX_RELEASE) $(OBJECTS_LINUX_RELEASE) $(SHADER_BLOBS_LINUX) $(BITMAP_BLOBS_LINUX) $(FONT_BLOBS_LINUX) | $(LINUX_OUT)
-	$(CC_LINUX) -flto $(CCLD_LINUX) $(CFLAGS_LINUX) $(CFLAGS_LINUX_RELEASE) $(OBJECTS_LINUX_RELEASE) $(OBJECTS_IMGUI_LINUX_RELEASE) $(OBJECTS_COMMON_LINUX_RELEASE) $(SHADER_BLOBS_LINUX) $(BITMAP_BLOBS_LINUX) $(FONT_BLOBS_LINUX) $(LDFLAGS) $(LIBS_LINUX) -o $@
+$(LINUX_OUT)/release/$(TARGET)_uncompressed: $(OBJECTS_IMGUI_LINUX_RELEASE) $(OBJECTS_COMMON_LINUX_RELEASE) $(OBJECTS_LINUX_RELEASE) $(SHADER_BLOBS_LINUX) $(BITMAP_BLOBS_LINUX) $(FONT_BLOBS_LINUX) $(SOUND_BLOBS_LINUX) | $(LINUX_OUT)
+	$(CC_LINUX) -flto $(CCLD_LINUX) $(CFLAGS_LINUX) $(CFLAGS_LINUX_RELEASE) $(OBJECTS_LINUX_RELEASE) $(OBJECTS_IMGUI_LINUX_RELEASE) $(OBJECTS_COMMON_LINUX_RELEASE) $(SHADER_BLOBS_LINUX) $(BITMAP_BLOBS_LINUX) $(FONT_BLOBS_LINUX) $(SOUND_BLOBS_LINUX) $(LDFLAGS) $(LIBS_LINUX) -o $@
 
-$(LINUX_OUT)/debug/$(TARGET): $(OBJECTS_IMGUI_LINUX_DEBUG) $(OBJECTS_COMMON_LINUX_DEBUG) $(OBJECTS_LINUX_DEBUG) $(SHADER_BLOBS_LINUX) $(BITMAP_BLOBS_LINUX) $(FONT_BLOBS_LINUX) | $(LINUX_OUT)
-	$(CC_LINUX) $(CCLD_LINUX) $(CFLAGS_LINUX) $(CFLAGS_LINUX_DEBUG) $(OBJECTS_LINUX_DEBUG) $(OBJECTS_IMGUI_LINUX_DEBUG) $(OBJECTS_COMMON_LINUX_DEBUG) $(SHADER_BLOBS_LINUX) $(BITMAP_BLOBS_LINUX) $(FONT_BLOBS_LINUX) $(LDFLAGS) $(LIBS_LINUX) -o $@
+$(LINUX_OUT)/debug/$(TARGET): $(OBJECTS_IMGUI_LINUX_DEBUG) $(OBJECTS_COMMON_LINUX_DEBUG) $(OBJECTS_LINUX_DEBUG) $(SHADER_BLOBS_LINUX) $(BITMAP_BLOBS_LINUX) $(FONT_BLOBS_LINUX) $(SOUND_BLOBS_LINUX) | $(LINUX_OUT)
+	$(CC_LINUX) $(CCLD_LINUX) $(CFLAGS_LINUX) $(CFLAGS_LINUX_DEBUG) $(OBJECTS_LINUX_DEBUG) $(OBJECTS_IMGUI_LINUX_DEBUG) $(OBJECTS_COMMON_LINUX_DEBUG) $(SHADER_BLOBS_LINUX) $(BITMAP_BLOBS_LINUX) $(FONT_BLOBS_LINUX) $(SOUND_BLOBS_LINUX) $(LDFLAGS) $(LIBS_LINUX) -o $@
 
 linux-run: linux
 	./$(LINUX_OUT)/release/$(TARGET) $(WORLD) www.repkap11.com
@@ -184,6 +197,6 @@ $(LINUX_OUT): | out
 	mkdir -p $(LINUX_DIRS)
 	touch $@
 
-.PRECIOUS: $(LINUX_OUT)/release/$(TARGET) $(LINUX_OUT)/debug/$(TARGET) $(OBJECTS_LINUX_DEBUG) $(OBJECTS_LINUX_RELEASE) $(OBJECTS_COMMON_LINUX_RELEASE) $(OBJECTS_COMMON_LINUX_DEBUG) $(SHADER_BLOBS_LINUX) $(SHADER_PROCESSED_LINUX) $(BITMAP_BLOBS_LINUX) $(FONT_BLOBS_LINUX)
+.PRECIOUS: $(LINUX_OUT)/release/$(TARGET) $(LINUX_OUT)/debug/$(TARGET) $(OBJECTS_LINUX_DEBUG) $(OBJECTS_LINUX_RELEASE) $(OBJECTS_COMMON_LINUX_RELEASE) $(OBJECTS_COMMON_LINUX_DEBUG) $(SHADER_BLOBS_LINUX) $(SHADER_PROCESSED_LINUX) $(BITMAP_BLOBS_LINUX) $(FONT_BLOBS_LINUX) $(SOUND_BLOBS_LINUX)
 
 .PHONY: linux linux-run clean-linux linux-deploy dev

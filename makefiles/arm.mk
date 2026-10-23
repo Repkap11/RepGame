@@ -37,6 +37,7 @@ CC_ARM := clang++ --target=aarch64-poky-linux --sysroot=$(ARM_SYSROOT) --gcc-ins
 # Same warning/std/pic flags as linux.mk's clang build, but GLES instead of
 # desktop GL+GLEW and the static SDL3 headers from the sysroot build.
 CFLAGS_ARM := $(CFLAGS_WARNINGS) -std=c++17 -fno-pie -DREPGAME_LINUX -DGLEW_NO_GLU -DREPGAME_GLES -DIMGUI_IMPL_OPENGL_ES3 -I$(ARM_SDL3_PREFIX)/include -fPIE -Wno-c++20-designator
+CFLAGS_ARM += $(CFLAGS_AUDIO)
 CFLAGS_ARM_RELEASE := -O3 -DREPGAME_SKIP_CHECK_FOR_GL_ERRORS
 CFLAGS_ARM_DEBUG := -g
 # Final link goes through lld like linux.mk. Link-only flag — see CCLD_LINUX.
@@ -69,6 +70,7 @@ SHADER_BLOBS_ARM := $(patsubst src/shaders/%.glsl,$(ARM_OUT)/shaders/%.o,$(wildc
 SHADER_PROCESSED_ARM := $(patsubst src/shaders/%.glsl,$(ARM_OUT)/shaders/%.glsl,$(wildcard src/shaders/*.glsl))
 BITMAP_BLOBS_ARM := $(patsubst bitmaps/%.png,$(ARM_OUT)/bitmaps/%.o,$(BITMAP_PNGS))
 FONT_BLOBS_ARM := $(patsubst fonts/%.ttf,$(ARM_OUT)/fonts/%.o,$(wildcard fonts/*.ttf))
+SOUND_BLOBS_ARM := $(patsubst %,$(ARM_OUT)/sounds/%.o,$(SOUNDS_ENABLED))
 
 # Preprocess shaders through the C preprocessor at build time. The preprocessed
 # .glsl file lives in $(ARM_OUT)/shaders/ alongside the .o blob. The blob symbols
@@ -92,6 +94,15 @@ $(ARM_OUT)/fonts/%.o : fonts/%.ttf | $(ARM_OUT)
 	$(LD_BLOB_ARM) $(LFLAGS_ARM) -r -b binary $< -o $@_no_section
 	$(OBJCOPY_ARM) --rename-section .data=.rodata,CONTENTS,ALLOC,LOAD,READONLY,DATA $@_no_section $@
 
+# Sound blobs: renamed to the out_sounds prefix MK_BLOB expects (see linux.mk).
+$(ARM_OUT)/sounds/%.o : $(SOUND_OGG_DIR)/%.ogg makefiles/arm.mk makefiles/common.mk | $(ARM_OUT)
+	@mkdir -p $(dir $@)
+	$(LD_BLOB_ARM) $(LFLAGS_ARM) -r -b binary $< -o $@_no_section
+	$(OBJCOPY_ARM) --rename-section .data=.rodata,CONTENTS,ALLOC,LOAD,READONLY,DATA \
+		--redefine-sym _binary_$(SOUND_SRC_SYMBOLS)_sounds_$*_ogg_start=_binary_out_sounds_$*_ogg_start \
+		--redefine-sym _binary_$(SOUND_SRC_SYMBOLS)_sounds_$*_ogg_end=_binary_out_sounds_$*_ogg_end \
+		$@_no_section $@
+
 arm: $(ARM_OUT)/release/$(TARGET)
 arm_debug: $(ARM_OUT)/debug/$(TARGET)
 
@@ -100,6 +111,7 @@ ARM_DIRS := $(patsubst src%,$(ARM_OUT)/release%,$(shell find src -type d)) \
 	$(patsubst src%,$(ARM_OUT)%,$(shell find src -type d)) \
 	$(ARM_OUT)/debug $(ARM_OUT)/release \
 	$(ARM_OUT)/shaders $(ARM_OUT)/bitmaps $(ARM_OUT)/fonts \
+	$(ARM_OUT)/sounds \
 	$(ARM_OUT)/debug/imgui $(ARM_OUT)/release/imgui \
 	$(ARM_OUT)/debug/imgui/backends $(ARM_OUT)/release/imgui/backends
 
@@ -128,11 +140,11 @@ $(ARM_OUT)/release/$(TARGET): $(ARM_OUT)/release/$(TARGET)_uncompressed
 	upx-ucl -q $< -o $@
 	touch $@
 
-$(ARM_OUT)/release/$(TARGET)_uncompressed: $(OBJECTS_IMGUI_ARM_RELEASE) $(OBJECTS_COMMON_ARM_RELEASE) $(OBJECTS_ARM_RELEASE) $(SHADER_BLOBS_ARM) $(BITMAP_BLOBS_ARM) $(FONT_BLOBS_ARM) | $(ARM_OUT)
-	$(CC_ARM) -flto $(CCLD_ARM) $(CFLAGS_ARM) $(CFLAGS_ARM_RELEASE) $(OBJECTS_ARM_RELEASE) $(OBJECTS_IMGUI_ARM_RELEASE) $(OBJECTS_COMMON_ARM_RELEASE) $(SHADER_BLOBS_ARM) $(BITMAP_BLOBS_ARM) $(FONT_BLOBS_ARM) $(LIBS_ARM) -o $@
+$(ARM_OUT)/release/$(TARGET)_uncompressed: $(OBJECTS_IMGUI_ARM_RELEASE) $(OBJECTS_COMMON_ARM_RELEASE) $(OBJECTS_ARM_RELEASE) $(SHADER_BLOBS_ARM) $(BITMAP_BLOBS_ARM) $(FONT_BLOBS_ARM) $(SOUND_BLOBS_ARM) | $(ARM_OUT)
+	$(CC_ARM) -flto $(CCLD_ARM) $(CFLAGS_ARM) $(CFLAGS_ARM_RELEASE) $(OBJECTS_ARM_RELEASE) $(OBJECTS_IMGUI_ARM_RELEASE) $(OBJECTS_COMMON_ARM_RELEASE) $(SHADER_BLOBS_ARM) $(BITMAP_BLOBS_ARM) $(FONT_BLOBS_ARM) $(SOUND_BLOBS_ARM) $(LIBS_ARM) -o $@
 
-$(ARM_OUT)/debug/$(TARGET): $(OBJECTS_IMGUI_ARM_DEBUG) $(OBJECTS_COMMON_ARM_DEBUG) $(OBJECTS_ARM_DEBUG) $(SHADER_BLOBS_ARM) $(BITMAP_BLOBS_ARM) $(FONT_BLOBS_ARM) | $(ARM_OUT)
-	$(CC_ARM) $(CCLD_ARM) $(CFLAGS_ARM) $(CFLAGS_ARM_DEBUG) $(OBJECTS_ARM_DEBUG) $(OBJECTS_IMGUI_ARM_DEBUG) $(OBJECTS_COMMON_ARM_DEBUG) $(SHADER_BLOBS_ARM) $(BITMAP_BLOBS_ARM) $(FONT_BLOBS_ARM) $(LIBS_ARM) -o $@
+$(ARM_OUT)/debug/$(TARGET): $(OBJECTS_IMGUI_ARM_DEBUG) $(OBJECTS_COMMON_ARM_DEBUG) $(OBJECTS_ARM_DEBUG) $(SHADER_BLOBS_ARM) $(BITMAP_BLOBS_ARM) $(FONT_BLOBS_ARM) $(SOUND_BLOBS_ARM) | $(ARM_OUT)
+	$(CC_ARM) $(CCLD_ARM) $(CFLAGS_ARM) $(CFLAGS_ARM_DEBUG) $(OBJECTS_ARM_DEBUG) $(OBJECTS_IMGUI_ARM_DEBUG) $(OBJECTS_COMMON_ARM_DEBUG) $(SHADER_BLOBS_ARM) $(BITMAP_BLOBS_ARM) $(FONT_BLOBS_ARM) $(SOUND_BLOBS_ARM) $(LIBS_ARM) -o $@
 
 # Static SDL3 built inside the Yocto SDK environment (Wayland client only, no
 # X11/KMSDRM/Vulkan, GLES on). Same release tarball as the Dockerfile.
@@ -180,6 +192,6 @@ $(ARM_OUT): | out $(ARM_SDL3_PREFIX)/lib/libSDL3.a
 	mkdir -p $(ARM_DIRS)
 	touch $@
 
-.PRECIOUS: $(ARM_OUT)/release/$(TARGET) $(ARM_OUT)/debug/$(TARGET) $(OBJECTS_ARM_DEBUG) $(OBJECTS_ARM_RELEASE) $(OBJECTS_COMMON_ARM_RELEASE) $(OBJECTS_COMMON_ARM_DEBUG) $(SHADER_BLOBS_ARM) $(SHADER_PROCESSED_ARM) $(BITMAP_BLOBS_ARM) $(FONT_BLOBS_ARM)
+.PRECIOUS: $(ARM_OUT)/release/$(TARGET) $(ARM_OUT)/debug/$(TARGET) $(OBJECTS_ARM_DEBUG) $(OBJECTS_ARM_RELEASE) $(OBJECTS_COMMON_ARM_RELEASE) $(OBJECTS_COMMON_ARM_DEBUG) $(SHADER_BLOBS_ARM) $(SHADER_PROCESSED_ARM) $(BITMAP_BLOBS_ARM) $(FONT_BLOBS_ARM) $(SOUND_BLOBS_ARM)
 
 .PHONY: arm arm_debug arm-sdl3 arm-deploy arm-run arm_debug-run clean-arm
