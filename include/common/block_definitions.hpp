@@ -241,6 +241,7 @@ typedef enum {
     RED_SANDSTONE_BRICK_TOP = 491,
     RED_SANDSTONE_BRICK_BOTTOM = 492,
     RED_SANDSTONE_BRICK_SLAB = 493,
+    INVERSE_TNT = 520,
     CACTUS_IN_POT = 543,
     PISTON_HEAD_SIDE = 550,
     PURPLE_CORAL2 = 555,
@@ -444,6 +445,11 @@ typedef struct {
     // block leaves the world as a primed entity (PrimedTnt) and a
     // TntExplodeEvent lands when the fuse ends.
     bool is_tnt;
+    // Inverse TNT: an is_tnt variant whose blast restores every block in the
+    // radius to the terrain generator's output (MapGen::gen_block_id, CPU
+    // only) instead of destroying them. Ignites/launches like regular TNT;
+    // the primed entity renders this block's texture.
+    bool is_inverse_tnt;
     // PistonEvent refuses to push/pull these (plus powered pistons, heads,
     // and unloaded LAST_BLOCK_ID cells, which are handled there).
     bool piston_immovable;

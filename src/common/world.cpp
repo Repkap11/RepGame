@@ -844,8 +844,8 @@ void World::spawn_block_debris( const glm::ivec3 &block_pos, const BlockState &p
                                          this->chunkLoader.light_sample( glm::vec3( block_pos ) + 0.5f ), num_particles );
 }
 
-entt::entity World::spawn_primed_tnt( const glm::vec3 &center, const glm::vec3 &velocity, const float life_s, const float ground_t ) {
-    return this->primedTnt.spawn( center, velocity, life_s, ground_t, this->chunkLoader.light_sample( center ) );
+entt::entity World::spawn_primed_tnt( const glm::vec3 &center, const glm::vec3 &velocity, const float life_s, const float ground_t, const BlockID block_id ) {
+    return this->primedTnt.spawn( center, velocity, life_s, ground_t, this->chunkLoader.light_sample( center ), block_id );
 }
 
 void World::despawn_primed_tnt( const entt::entity entity ) {

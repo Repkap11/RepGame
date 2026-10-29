@@ -337,6 +337,15 @@ void Chunk::free_block_storage( ) {
     this->extras = nullptr;
 }
 
+void Chunk::free_generated_buffers( ) {
+    chunk_free_cells( this->cells );
+    this->cells = nullptr;
+    chunk_free_extras( this->extras );
+    this->extras = nullptr;
+    chunk_free_air_mask( this->light_air_mask );
+    this->light_air_mask = nullptr;
+}
+
 void Chunk::set_block( const glm::ivec3 &pos, const BlockState &blockState ) const {
     if ( pos.x >= CHUNK_SIZE_X + 1 || //
          pos.y >= CHUNK_SIZE_Y + 1 || //

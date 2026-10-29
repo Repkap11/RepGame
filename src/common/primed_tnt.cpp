@@ -27,15 +27,16 @@ void PrimedTnt::init( const VertexBufferLayout &vbl_object_vertex, const VertexB
     this->render_chain.init( vbl_object_vertex, vbl_primed_tnt_instance, vd_data_player_object, VB_DATA_SIZE_PARTICLE, ib_data_solid, IB_SOLID_SIZE );
 }
 
-entt::entity PrimedTnt::spawn( const glm::vec3 &center, const glm::vec3 &velocity, const float life_s, const float ground_t, const glm::vec2 &light ) {
+entt::entity PrimedTnt::spawn( const glm::vec3 &center, const glm::vec3 &velocity, const float life_s, const float ground_t, const glm::vec2 &light, const BlockID block_id ) {
     const float time_s = static_cast<float>( fmod( now_us( ) / 1.0e6, TIME_WRAP ) );
     const std::pair<entt::entity, PrimedTntInstance &> data = this->render_chain.create_instance( );
     PrimedTntInstance &d = data.second;
 
     // Resolve the displayed textures the same way chunk meshing does
-    // (chunk.cpp): per-face lookup, then state-based adjustment.
-    const BlockState block_state = { TNT, 0, 0, TNT, 0 };
-    const Block *block = block_definition_get_definition( TNT );
+    // (chunk.cpp): per-face lookup, then state-based adjustment. block_id
+    // selects the texture set (TNT or INVERSE_TNT).
+    const BlockState block_state = { block_id, 0, 0, block_id, 0 };
+    const Block *block = block_definition_get_definition( block_id );
     BlockCoords coords = {};
     for ( int f = 0; f < NUM_FACES_IN_CUBE; f++ ) {
         coords.face[ f ] = block->textures[ f ];

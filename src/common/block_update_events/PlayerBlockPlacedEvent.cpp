@@ -127,6 +127,6 @@ void PlayerBlockPlacedEvent::performAction( BlockUpdateQueue &blockUpdateQueue, 
     // queues the explosion at the predicted landing cell.
     if ( new_block->is_tnt && current_block_state.current_redstone_power == 0 && this->blockState.current_redstone_power > 0 ) {
         const glm::vec3 hop( ( frand( ) - 0.5f ) * 0.6f, 1.5f, ( frand( ) - 0.5f ) * 0.6f );
-        tnt_ignite( blockUpdateQueue, repGameState, glm::vec3( this->block_pos ) + 0.5f, hop, TNT_FUSE_TICKS );
+        tnt_ignite( blockUpdateQueue, repGameState, glm::vec3( this->block_pos ) + 0.5f, hop, TNT_FUSE_TICKS, new_block->is_inverse_tnt );
     }
 }

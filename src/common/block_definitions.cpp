@@ -64,6 +64,7 @@ void block_definitions_initilize_definitions( Texture *texture ) {
         block->is_pressure_plate = false;
         block->is_redstone_mechanism = false;
         block->is_tnt = false;
+        block->is_inverse_tnt = false;
         block->is_solid = true;
         block->inventory_non_isometric_id = static_cast<BlockID>( block_id );
     }
@@ -530,6 +531,13 @@ void block_definitions_initilize_definitions( Texture *texture ) {
     block_definitions[ TNT ].is_tnt = true;
     block_definitions[ TNT ].is_redstone_mechanism = true;
     block_definitions[ TNT ].connects_to_redstone_dust = true;
+
+    // Inverse TNT: same redstone ignition contract as TNT, but its blast
+    // restores terrain (MapGen::gen_block_id) instead of destroying blocks.
+    block_definitions[ INVERSE_TNT ].is_tnt = true;
+    block_definitions[ INVERSE_TNT ].is_inverse_tnt = true;
+    block_definitions[ INVERSE_TNT ].is_redstone_mechanism = true;
+    block_definitions[ INVERSE_TNT ].connects_to_redstone_dust = true;
 
     block_definitions[ OAK_LOG ].textures[ FACE_TOP ] = OAK_LOG_TOP;
     block_definitions[ OAK_LOG ].textures[ FACE_BOTTOM ] = OAK_LOG_TOP;

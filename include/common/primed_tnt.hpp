@@ -27,8 +27,9 @@ class PrimedTnt {
     // center is the world-space cube center; ground_t clamps the ballistic
     // flight at the predicted terrain-impact time (the entity rests there
     // until the fuse ends). light is the flood-fill sample at the cell.
+    // block_id selects the per-face texture set (TNT or INVERSE_TNT).
     // Returns the entity so the fuse event can despawn it on detonation.
-    entt::entity spawn( const glm::vec3 &center, const glm::vec3 &velocity, float life_s, float ground_t, const glm::vec2 &light );
+    entt::entity spawn( const glm::vec3 &center, const glm::vec3 &velocity, float life_s, float ground_t, const glm::vec2 &light, BlockID block_id );
     // Removes the entity if it is still live — no-op when the fuse sweep
     // already reclaimed it.
     void despawn( entt::entity entity );

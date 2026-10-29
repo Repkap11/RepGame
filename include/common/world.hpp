@@ -81,8 +81,9 @@ class World {
     // Spawns a primed (flying + flashing) TNT entity. center is the
     // world-space cube center; ground_t is the predicted terrain-impact time
     // clamping the shader's ballistic flight (>= life_s for free flight).
+    // block_id selects the per-face texture set (TNT or INVERSE_TNT).
     // Returns the entity so its detonation can despawn it.
-    entt::entity spawn_primed_tnt( const glm::vec3 &center, const glm::vec3 &velocity, float life_s, float ground_t );
+    entt::entity spawn_primed_tnt( const glm::vec3 &center, const glm::vec3 &velocity, float life_s, float ground_t, BlockID block_id );
     // Removes a live primed TNT entity (the blast it was fusing for fired).
     void despawn_primed_tnt( entt::entity entity );
     // void overlay_blocks( const glm::ivec3 &block_pos, BlockState *blockStates, int numBlockStates );
