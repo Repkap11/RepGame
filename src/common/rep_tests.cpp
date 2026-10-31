@@ -9,6 +9,7 @@
 #include "common/map_gen.hpp"
 #include "common/structure_gen.hpp"
 #include "common/block_update_events/PlayerBlockPlacedEvent.hpp"
+#include "common/block_update_events/DoorEvent.hpp"
 #include "common/block_update_events/TntExplodeEvent.hpp"
 #include "common/utils/collision.hpp"
 #include "common/mobs.hpp"
@@ -1146,6 +1147,178 @@ int test_lighting( ) {
     check_bool( "STONE is not a light floor", !block_definition_get_definition( STONE )->blocks_light_down );
     check_bool( "OAK_LEAVES is not a light floor", !block_definition_get_definition( OAK_LEAVES )->blocks_light_down );
     check_bool( "pressure plate is not a light floor", !block_definition_get_definition( STONE_PRESSURE_PLATE )->blocks_light_down );
+    return failures;
+}
+
+// Doors: the rotation encoding, generated definitions, pair
+// placement/breaking, the swinging slab hitbox, right-click toggle, the
+// hinge rule for double doors, and MC redstone edge semantics.
+int test_doors( ) {
+    if ( block_definitions == nullptr ) {
+        block_definitions_initilize_definitions( nullptr );
+    }
+    int failures = 0;
+    auto check_bool = [ & ]( const char *name, bool cond ) {
+        pr_test( "  %-55s %s", name, cond ? "PASS" : "FAIL" );
+        if ( !cond ) {
+            failures++;
+        }
+    };
+
+    // --- door_rotations / door_facing round-trip ---------------------------
+    bool round_trip = true;
+    for ( int f = 0; f < 4; f++ ) {
+        for ( int open = 0; open < 2; open++ ) {
+            for ( int hinge = 0; hinge < 2; hinge++ ) {
+                unsigned char lower_rot, upper_rot;
+                door_rotations( (unsigned char)f, open != 0, hinge != 0, lower_rot, upper_rot );
+                round_trip &= door_facing( lower_rot, upper_rot ) == f;
+                round_trip &= ( ( lower_rot & BLOCK_ROTATE_DOOR_FLAG ) != 0 ) == ( open != 0 );
+                round_trip &= ( ( upper_rot & BLOCK_ROTATE_DOOR_FLAG ) != 0 ) == ( hinge != 0 );
+                round_trip &= ( lower_rot & 3 ) == door_yaw( (unsigned char)f, open != 0, hinge != 0 );
+                round_trip &= ( upper_rot & 3 ) == ( lower_rot & 3 );
+            }
+        }
+    }
+    check_bool( "door: rotations round-trip all 16 states", round_trip );
+    check_bool( "door: F=0 open hinge-left yaws +1", door_yaw( 0, true, false ) == 1 );
+    check_bool( "door: F=0 open hinge-right yaws -1", door_yaw( 0, true, true ) == 3 );
+    check_bool( "door: block_yaw strips the flag bit", block_yaw( block_definition_get_definition( WOODEN_DOOR_LOWER ), 5 ) == 1 );
+
+    // --- generated definitions ---------------------------------------------
+    const BlockID door_lowers[] = {
+        WOODEN_DOOR_LOWER, IRON_DOOR_LOWER, SPRUCE_DOOR_LOWER, BIRCH_DOOR_LOWER, JUNGLE_DOOR_LOWER, ACACIA_DOOR_LOWER, DARK_OAK_DOOR_LOWER,
+        BAMBOO_DOOR, CHERRY_DOOR, COPPER_DOOR, CRIMSON_DOOR, EXPOSED_COPPER_DOOR, MANGROVE_DOOR, OXIDIZED_COPPER_DOOR, PALE_OAK_DOOR,
+        POPLAR_DOOR, WARPED_DOOR, WAXED_COPPER_DOOR, WAXED_EXPOSED_COPPER_DOOR, WAXED_OXIDIZED_COPPER_DOOR, WAXED_WEATHERED_COPPER_DOOR,
+        WEATHERED_COPPER_DOOR,
+    };
+    bool defs_ok = true;
+    for ( BlockID id : door_lowers ) {
+        const Block *b = block_definition_get_definition( id );
+        if ( !b->is_door || b->is_door_upper || b->door_partner == LAST_BLOCK_ID ) {
+            defs_ok = false;
+            continue;
+        }
+        const Block *partner = block_definition_get_definition( b->door_partner );
+        defs_ok &= partner->is_door && partner->is_door_upper && partner->door_partner == id && !partner->is_pickable;
+        defs_ok &= b->collides_with_player && b->is_redstone_mechanism && b->scale.z == 3 && b->offset.z == 13;
+    }
+    check_bool( "def: all 22 lowers pair with a non-pickable upper", defs_ok );
+    check_bool( "def: iron door is redstone-only",
+                block_definition_get_definition( IRON_DOOR_LOWER )->door_redstone_only &&
+                    block_definition_get_definition( IRON_DOOR_UPPER )->door_redstone_only &&
+                    !block_definition_get_definition( WOODEN_DOOR_LOWER )->door_redstone_only );
+    check_bool( "def: door_item_id maps upper to lower", door_item_id( WOODEN_DOOR_UPPER ) == WOODEN_DOOR_LOWER );
+
+    // --- world ---------------------------------------------------------------
+    RepGameState &gs = *new RepGameState( ); // leaked on purpose — see test_tnt
+    gs.tick_number = 0;
+    gs.camera.pos = glm::dvec3( 0, 0, 0 );
+    test_setup_world( gs.world );
+    World &world = gs.world;
+    const BlockState stone = { STONE, 0, 0, STONE, 0 };
+    const BlockState oak_door = { WOODEN_DOOR_LOWER, 0, 0, WOODEN_DOOR_LOWER, 0 };
+    const BlockState redstone_block = { REDSTONE_BLOCK, 0, 0, REDSTONE_BLOCK, 0 };
+    // Floor at y=10 with a hole at (15,10,15) and a blocked upper cell at
+    // (18,12,15).
+    for ( int x = 4; x <= 24; x++ ) {
+        for ( int z = 4; z <= 24; z++ ) {
+            world.set_loaded_block( glm::ivec3( x, 10, z ), stone );
+        }
+    }
+    world.set_loaded_block( glm::ivec3( 15, 10, 15 ), BLOCK_STATE_AIR );
+    world.set_loaded_block( glm::ivec3( 18, 12, 15 ), stone );
+
+    auto place = [ & ]( const glm::ivec3 &pos, const BlockState &block_state ) {
+        gs.blockUpdateQueue.addBlockUpdate( std::make_shared<PlayerBlockPlacedEvent>( gs.tick_number, pos, block_state, false ) );
+    };
+    auto run = [ & ]( const int ticks ) {
+        for ( int i = 0; i < ticks; i++ ) {
+            gs.tick_number++;
+            gs.blockUpdateQueue.processAllBlockUpdates( gs, gs.tick_number );
+        }
+    };
+    auto toggle = [ & ]( const glm::ivec3 &pos ) {
+        gs.blockUpdateQueue.addBlockUpdate( std::make_shared<DoorEvent>( gs.tick_number, pos, DoorEvent::TOGGLE ) );
+    };
+    auto is_open = [ & ]( const glm::ivec3 &pos ) {
+        return ( world.get_loaded_block( pos ).rotation & BLOCK_ROTATE_DOOR_FLAG ) != 0;
+    };
+
+    // A lower on a solid floor writes both halves; a missing floor or a
+    // blocked upper cell places nothing.
+    place( glm::ivec3( 10, 11, 10 ), oak_door );
+    place( glm::ivec3( 15, 11, 15 ), oak_door );
+    place( glm::ivec3( 18, 11, 15 ), oak_door );
+    run( 2 );
+    failures += check_id( world, "placed: lower written", glm::ivec3( 10, 11, 10 ), WOODEN_DOOR_LOWER );
+    failures += check_id( world, "placed: upper written", glm::ivec3( 10, 12, 10 ), WOODEN_DOOR_UPPER );
+    failures += check_id( world, "no floor: nothing placed", glm::ivec3( 15, 11, 15 ), AIR );
+    failures += check_id( world, "blocked upper: nothing placed", glm::ivec3( 18, 11, 15 ), AIR );
+
+    // Uppers stay is_pickable=false (creative exclusion) but must still be
+    // targetable: a horizontal pick ray through the upper slab hits it.
+    glm::ivec3 pick_out( -1, -1, -1 );
+    int pick_face = -1;
+    RayTraversal::find_block_from_to( world, nullptr, glm::dvec3( 10.5, 12.5, 9.5 ), glm::dvec3( 10.5, 12.5, 11.5 ), pick_out, &pick_face, 0, 1, 0, 0 );
+    check_bool( "pick: ray hits the upper half", pick_out == glm::ivec3( 10, 12, 10 ) );
+
+    // A second door on the first's right becomes the pair's hinge-right
+    // member (matching facing required).
+    place( glm::ivec3( 11, 11, 10 ), oak_door );
+    run( 2 );
+    check_bool( "double door: right member gets hinge right", ( world.get_loaded_block( glm::ivec3( 11, 12, 10 ) ).rotation & BLOCK_ROTATE_DOOR_FLAG ) != 0 );
+    check_bool( "double door: left member stays hinge left", ( world.get_loaded_block( glm::ivec3( 10, 12, 10 ) ).rotation & BLOCK_ROTATE_DOOR_FLAG ) == 0 );
+
+    // The closed F=0 slab sits at the cell's +z edge (z .8125..1); opened
+    // (hinge-left) it swings to the x 0..0.1875 strip.
+    const double eye_y = 11.0 + PLAYER_EYE_HEIGHT;
+    check_bool( "collision: closed door blocks +z edge", Collision::collides_at( world, glm::dvec3( 10.5, eye_y, 10.9 ), PLAYER_HEIGHT, PLAYER_EYE_HEIGHT ) );
+    check_bool( "collision: closed door leaves -z side free", !Collision::collides_at( world, glm::dvec3( 10.5, eye_y, 10.2 ), PLAYER_HEIGHT, PLAYER_EYE_HEIGHT ) );
+    toggle( glm::ivec3( 10, 11, 10 ) );
+    run( 2 );
+    check_bool( "toggle: lower open bit set", is_open( glm::ivec3( 10, 11, 10 ) ) );
+    check_bool( "toggle: upper yaw follows", ( world.get_loaded_block( glm::ivec3( 10, 12, 10 ) ).rotation & 3 ) == door_yaw( 0, true, false ) );
+    check_bool( "collision: open door blocks the x 0..3 strip", Collision::collides_at( world, glm::dvec3( 10.05, eye_y, 10.5 ), PLAYER_HEIGHT, PLAYER_EYE_HEIGHT ) );
+    check_bool( "collision: open door frees the +z edge", !Collision::collides_at( world, glm::dvec3( 10.5, eye_y, 10.9 ), PLAYER_HEIGHT, PLAYER_EYE_HEIGHT ) );
+    toggle( glm::ivec3( 10, 12, 10 ) ); // clicking the upper toggles too
+    run( 2 );
+    check_bool( "toggle: closes again", !is_open( glm::ivec3( 10, 11, 10 ) ) );
+
+    // Breaking either half pops the other through the survive check.
+    place( glm::ivec3( 11, 12, 10 ), BLOCK_STATE_AIR );
+    run( 2 );
+    failures += check_id( world, "breaking upper removes lower", glm::ivec3( 11, 11, 10 ), AIR );
+    place( glm::ivec3( 10, 11, 10 ), BLOCK_STATE_AIR );
+    run( 2 );
+    failures += check_id( world, "breaking lower removes upper", glm::ivec3( 10, 12, 10 ), AIR );
+
+    // Redstone edge semantics: a source next to the lower opens the door.
+    place( glm::ivec3( 20, 11, 20 ), oak_door );
+    place( glm::ivec3( 21, 11, 20 ), redstone_block );
+    run( 10 );
+    check_bool( "redstone: rising edge opens", is_open( glm::ivec3( 20, 11, 20 ) ) );
+
+    // A hand toggle while powered survives — no edge, no re-open.
+    toggle( glm::ivec3( 20, 11, 20 ) );
+    run( 10 );
+    check_bool( "redstone: hand-close while powered stays closed", !is_open( glm::ivec3( 20, 11, 20 ) ) );
+
+    // Falling then rising edges close and re-open it.
+    place( glm::ivec3( 21, 11, 20 ), BLOCK_STATE_AIR );
+    run( 10 );
+    check_bool( "redstone: stays closed after power removed", !is_open( glm::ivec3( 20, 11, 20 ) ) );
+    place( glm::ivec3( 21, 11, 20 ), redstone_block );
+    run( 10 );
+    check_bool( "redstone: rising edge re-opens", is_open( glm::ivec3( 20, 11, 20 ) ) );
+    place( glm::ivec3( 21, 11, 20 ), BLOCK_STATE_AIR );
+    run( 10 );
+    check_bool( "redstone: falling edge closes", !is_open( glm::ivec3( 20, 11, 20 ) ) );
+
+    // Powering only the upper half also opens the door.
+    place( glm::ivec3( 20, 13, 20 ), redstone_block );
+    run( 10 );
+    check_bool( "redstone: powering the upper opens", is_open( glm::ivec3( 20, 11, 20 ) ) );
     return failures;
 }
 
@@ -2418,6 +2591,7 @@ constexpr Test all_tests[] = {  //
     MK_TEST( save_migration ),  //
     MK_TEST( creative ),        //
     MK_TEST( fences ),          //
+    MK_TEST( doors ),           //
     MK_TEST( block_world ),     //
     MK_TEST( mapgen ),          //
     MK_TEST( waterlog ),        //

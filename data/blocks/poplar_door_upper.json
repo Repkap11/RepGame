@@ -1,0 +1,10 @@
+{
+  "id": 1414,
+  "name": "POPLAR_DOOR_UPPER",
+  "shape": "door_upper",
+  "door_partner": "POPLAR_DOOR",
+  "hardness": 1.5,
+  "textures": {
+    "all": "poplar_door_top"
+  }
+}

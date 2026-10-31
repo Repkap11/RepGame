@@ -1,13 +1,11 @@
 {
- "casts_shadow": false,
- "hardness": 0.35,
- "id": 862,
- "is_seethrough": true,
- "name": "OXIDIZED_COPPER_DOOR",
- "no_light": 6815743,
- "textures": {
-  "bottom": "oxidized_copper_door_bottom",
-  "side": "oxidized_copper_door_top",
-  "top": "oxidized_copper_door_bottom"
- }
+  "id": 862,
+  "name": "OXIDIZED_COPPER_DOOR",
+  "shape": "door_lower",
+  "door_partner": "OXIDIZED_COPPER_DOOR_UPPER",
+  "hardness": 2.5,
+  "icon": "oxidized_copper_door",
+  "textures": {
+    "all": "oxidized_copper_door_bottom"
+  }
 }

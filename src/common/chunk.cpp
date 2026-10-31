@@ -1187,7 +1187,7 @@ void Chunk::calculate_populated_blocks( ) {
                         blockCoord->mesh_x = size_x;
                         blockCoord->mesh_y = size_y;
                         blockCoord->mesh_z = size_z;
-                        blockCoord->face_shift = blockState.rotation;
+                        blockCoord->face_shift = block_yaw( block, blockState.rotation );
                         blockCoord->scale_x = block->scale.x;
                         blockCoord->scale_y = block->scale.y;
                         blockCoord->scale_z = block->scale.z;

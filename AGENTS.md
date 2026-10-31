@@ -560,6 +560,29 @@ its cell, the collision scan includes one layer below the player AABB.
 Open gates still don't collide. Selection/raycast stay a single box —
 the fence post or the gate's bounding box.
 
+Doors are two-cell blocks: every lower-half id is linked to an upper-half
+id by `door_partner` (validated by the importer). Both halves use the
+`door_lower`/`door_upper` model shapes — a 16x16x3 slab pushed to the
+placer-facing cell edge (offset z 13, matching MC's NORTH AABB) — collide,
+render and raycast as single boxes, and carry the slab's current yaw in
+rotation bits 0-1, so `block_yaw` masks bit 2 for them exactly like gates.
+The flag bit means open on the lower and hinge-right on the upper:
+`door_yaw(F, open, hinge)` swings the slab to `F + (hinge ? 3 : 1)` when
+open, `door_rotations`/`door_facing` pack and recover the two halves, and
+only the toggle logic ever re-reads both cells. Placement is atomic in
+`PlayerBlockPlacedEvent` (a lower needs a solid floor below and a
+placeable cell above; the upper is unplaceable on its own) and picks the
+hinge so a second door on the placer's left becomes the pair's hinge-right
+member — MC double doors. `block_can_survive_at` requires the partner half
+plus the floor, so breaking either half pops the other through the normal
+neighbour-update kill path; drops and picks map through `door_item_id`.
+Right-click toggles non-`door_redstone_only` doors through `DoorEvent`
+(TOGGLE), like gates; iron doors fall through to placement. Doors are
+`is_redstone_mechanism`, so each half stores 0/1 power: a state update
+whose combined lower|upper power changed queues `DoorEvent(SYNC_POWER)`
+one tick out, giving MC edge semantics — rising opens, falling closes, and
+a hand toggle in between persists.
+
 `REPGAME_BLOCK_WORLD=1` ("block world") is a debug mode for eyeballing
 every block: `make linux-run-blocks` runs it. Normal terrain, structures,
 water, mobs, persistence and multiplayer are all off — nothing is read or

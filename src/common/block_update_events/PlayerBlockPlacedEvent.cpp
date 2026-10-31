@@ -5,6 +5,7 @@
 #include "common/multiplayer.hpp"
 #include "common/block_update_events/BlockNextToChangeEvent.hpp"
 #include "common/block_update_events/PistonEvent.hpp"
+#include "common/block_update_events/DoorEvent.hpp"
 #include "common/block_update_events/TntExplodeEvent.hpp"
 
 static float frand( ) {
@@ -60,6 +61,13 @@ void queue_neighbor_block_updates( BlockUpdateQueue &blockUpdateQueue, World &wo
 
 void PlayerBlockPlacedEvent::performAction( BlockUpdateQueue &blockUpdateQueue, RepGameState &repGameState ) {
     BlockState current_block_state = repGameState.world.get_loaded_block( this->block_pos );
+    // A door power update takes only the power: the rotation was computed
+    // before the update was queued and a toggle since then would be undone
+    // by replaying it. Merging first means an all-equal payload still no-ops.
+    if ( this->state_update && this->blockState.id == current_block_state.id && this->blockState.id != LAST_BLOCK_ID &&
+         block_definition_get_definition( this->blockState.id )->is_door ) {
+        this->blockState.rotation = current_block_state.rotation;
+    }
     // State already matches, don't change anything
     if ( BlockStates_equal( blockState, current_block_state ) ) {
         return;
@@ -84,6 +92,52 @@ void PlayerBlockPlacedEvent::performAction( BlockUpdateQueue &blockUpdateQueue, 
             // This position already has a block that can't be replaced.
             return;
         }
+    }
+    // Doors place as a lower+upper pair. The generic survive check can't
+    // apply (the partner upper isn't written yet), so a lower gets its own
+    // placement test and writes both cells; a lone upper fails survive.
+    if ( !this->state_update && this->blockState.id != AIR && new_block->is_door && !new_block->is_door_upper ) {
+        World &world = repGameState.world;
+        const glm::ivec3 upper_pos = this->block_pos + glm::ivec3( 0, 1, 0 );
+        const BlockState below = world.get_loaded_block( this->block_pos + glm::ivec3( 0, -1, 0 ) );
+        const BlockState upper_current = world.get_loaded_block( upper_pos );
+        if ( below.id == LAST_BLOCK_ID || !block_definition_get_definition( below.id )->collides_with_player ||
+             upper_current.id == LAST_BLOCK_ID || !block_definition_get_definition( upper_current.id )->can_be_placed_in ) {
+            return;
+        }
+        // Hinge right when a same-facing door lower sits on the placer's
+        // left — this door is then the pair's right member and the two
+        // doors mirror like MC double doors.
+        const unsigned char facing = this->blockState.rotation;
+        static const glm::ivec3 door_facing_dirs[ 4 ] = {
+            glm::ivec3( 0, 0, -1 ), // 0: -z
+            glm::ivec3( 1, 0, 0 ),  // 1: +x
+            glm::ivec3( 0, 0, 1 ),  // 2: +z
+            glm::ivec3( -1, 0, 0 ), // 3: -x
+        };
+        bool hinge_right = false;
+        const BlockState left_state = world.get_loaded_block( this->block_pos + door_facing_dirs[ ( facing + 3 ) & 3 ] );
+        if ( left_state.id != LAST_BLOCK_ID ) {
+            const Block *left = block_definition_get_definition( left_state.id );
+            if ( left->is_door && !left->is_door_upper ) {
+                const BlockState left_upper = world.get_loaded_block( this->block_pos + door_facing_dirs[ ( facing + 3 ) & 3 ] + glm::ivec3( 0, 1, 0 ) );
+                hinge_right = left_upper.id == left->door_partner && door_facing( left_state.rotation, left_upper.rotation ) == facing;
+            }
+        }
+        BlockState lower_state = this->blockState;
+        BlockState upper_state = this->blockState;
+        upper_state.id = new_block->door_partner;
+        upper_state.display_id = new_block->door_partner;
+        door_rotations( facing, false, hinge_right, lower_state.rotation, upper_state.rotation );
+        world.set_loaded_block( this->block_pos, lower_state );
+        repGameState.multiplayer.set_block( this->block_pos, lower_state );
+        repGameState.world.spawn_block_debris( this->block_pos, current_block_state, lower_state.id );
+        world.set_loaded_block( upper_pos, upper_state );
+        repGameState.multiplayer.set_block( upper_pos, upper_state );
+        repGameState.world.spawn_block_debris( upper_pos, upper_current, upper_state.id );
+        queue_neighbor_block_updates( blockUpdateQueue, world, this->tick_number, this->block_pos );
+        queue_neighbor_block_updates( blockUpdateQueue, world, this->tick_number, upper_pos );
+        return;
     }
     // Don't place a block that can't survive here (e.g. dust above dust, a
     // torch on a missing attachment): it would sit for a tick and then pop
@@ -115,6 +169,21 @@ void PlayerBlockPlacedEvent::performAction( BlockUpdateQueue &blockUpdateQueue, 
 
     queue_neighbor_block_updates( blockUpdateQueue, repGameState.world, this->tick_number, this->block_pos );
 
+    // A door opens/closes on a change to the combined power of both halves —
+    // MC edge semantics: rising opens, falling closes, and a hand toggle in
+    // between survives until the next edge. Queued one tick out so the new
+    // power state is visible; the event re-reads live state, so stale
+    // triggers are harmless.
+    if ( this->state_update && new_block->is_door && this->blockState.id == current_block_state.id ) {
+        const glm::ivec3 other_pos = this->block_pos + ( new_block->is_door_upper ? glm::ivec3( 0, -1, 0 ) : glm::ivec3( 0, 1, 0 ) );
+        const int other_power = repGameState.world.get_loaded_block( other_pos ).current_redstone_power;
+        const bool powered_before = current_block_state.current_redstone_power > 0 || other_power > 0;
+        const bool powered_after = this->blockState.current_redstone_power > 0 || other_power > 0;
+        if ( powered_before != powered_after ) {
+            const glm::ivec3 lower_pos = new_block->is_door_upper ? other_pos : this->block_pos;
+            blockUpdateQueue.addBlockUpdate( std::make_shared<DoorEvent>( this->tick_number + 1, lower_pos, DoorEvent::SYNC_POWER ) );
+        }
+    }
     // A piston extends/retracts on a power edge. Queue it one tick out so the
     // new power state is visible to the event; the event re-reads live state,
     // so stale triggers are harmless.

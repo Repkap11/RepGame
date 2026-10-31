@@ -40,6 +40,26 @@ BlockID MapGen::block_world_id( const int x, const int y, const int z ) {
         // cascade run removal BFS over the whole connected void volume.
         return SANDSTONE;
     }
+    // Door showcase in the free z<0 region: WOODEN, IRON and BAMBOO pairs
+    // (lower at y=1, upper at y=2). Mapgen can't set rotation, so all doors
+    // are rotation-0 closed, hinge-left.
+    if ( z == -11 && ( y == 1 || y == 2 ) ) {
+        static const struct {
+            int x;
+            BlockID lower;
+            BlockID upper;
+        } door_showcase[] = {
+            { -9, WOODEN_DOOR_LOWER, WOODEN_DOOR_UPPER },
+            { -7, IRON_DOOR_LOWER, IRON_DOOR_UPPER },
+            { -5, BAMBOO_DOOR, BAMBOO_DOOR_UPPER },
+        };
+        for ( const auto &d : door_showcase ) {
+            if ( d.x == x ) {
+                return y == 1 ? d.lower : d.upper;
+            }
+        }
+        return AIR;
+    }
     if ( y != 1 ) {
         return AIR;
     }

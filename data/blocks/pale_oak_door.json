@@ -1,9 +1,11 @@
 {
- "id": 882,
- "name": "PALE_OAK_DOOR",
- "textures": {
-  "bottom": "pale_oak_door_bottom",
-  "side": "pale_oak_door_top",
-  "top": "pale_oak_door_bottom"
- }
+  "id": 882,
+  "name": "PALE_OAK_DOOR",
+  "shape": "door_lower",
+  "door_partner": "PALE_OAK_DOOR_UPPER",
+  "hardness": 1.5,
+  "icon": "pale_oak_door",
+  "textures": {
+    "all": "pale_oak_door_bottom"
+  }
 }

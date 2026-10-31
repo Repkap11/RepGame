@@ -84,6 +84,17 @@ typedef struct {
     // (BLOCK_ROTATE_GATE_OPEN); the facing is rotation & 3.
     bool is_fence;
     bool is_fence_gate;
+    // Doors are two-cell blocks: a lower half and an upper half (linked by
+    // door_partner) whose 3px slab hitbox swings to an adjacent facing when
+    // opened. Both halves store the current slab yaw in rotation bits 0-1 so
+    // rendering, collision, raycast, selection and debris need no cross-cell
+    // reads; the lower's bit 2 is the open flag, the upper's is hinge-right
+    // (BLOCK_ROTATE_DOOR_FLAG). door_redstone_only doors (iron) ignore
+    // right-click toggles.
+    bool is_door;
+    bool is_door_upper;
+    bool door_redstone_only;
+    BlockID door_partner;
     // Flood-fill light emitted by this block, 0-15 (torches 14, lava/lamps 15,
     // lit furnace 13, portal 11, redstone torch 7). Stored in the chunk's
     // light[] volume and sampled by the fragment shader — never baked into the

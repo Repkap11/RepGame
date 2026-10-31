@@ -20,6 +20,7 @@
 #include "common/light.hpp"
 #include "common/map_gen.hpp"
 #include "common/block_update_events/PlayerBlockPlacedEvent.hpp"
+#include "common/block_update_events/DoorEvent.hpp"
 #include "common/block_update_events/PressurePlateEvent.hpp"
 #include "common/block_update_events/TntExplodeEvent.hpp"
 
@@ -220,9 +221,16 @@ BlockID RepGame::change_block( const int place, BlockState blockState ) {
     glm::ivec3 block;
     if ( place ) {
         block = globalGameState.block_selection.pos_create;
-        if ( block_definition_get_definition( blockState.id )->collides_with_player ) {
+        const Block *placed_def = block_definition_get_definition( blockState.id );
+        if ( placed_def->collides_with_player ) {
             // If the block collides with the player, make sure it's not being placed where it would collide
             if ( Collision::check_collides_with_block( globalGameState.world, globalGameState.camera.pos, block, //
+                                                       globalGameState.camera.player_height, globalGameState.camera.eye_height ) ) {
+                return LAST_BLOCK_ID;
+            }
+            // A door lower also occupies the cell above.
+            if ( placed_def->is_door && !placed_def->is_door_upper &&
+                 Collision::check_collides_with_block( globalGameState.world, globalGameState.camera.pos, block + glm::ivec3( 0, 1, 0 ), //
                                                        globalGameState.camera.player_height, globalGameState.camera.eye_height ) ) {
                 return LAST_BLOCK_ID;
             }
@@ -603,9 +611,11 @@ void RepGame::break_selected_block( ) {
         }
     }
     if ( globalGameState.game_mode == GameMode_Survival && previous_block != LAST_BLOCK_ID && previous_block != AIR ) {
-        const Block *blockDef = block_definition_get_definition( previous_block );
+        // A door's upper half drops the lower's item.
+        const BlockID drop_id = door_item_id( previous_block );
+        const Block *blockDef = block_definition_get_definition( drop_id );
         if ( blockDef->is_pickable && blockDef->renderOrder != RenderOrder_Transparent && blockDef->renderOrder != RenderOrder_Water ) {
-            RepGame::give_block_to_player( globalGameState, previous_block, 1 );
+            RepGame::give_block_to_player( globalGameState, drop_id, 1 );
         }
     }
 }
@@ -651,30 +661,32 @@ void RepGame::process_mouse_events( ) {
         BlockState blockState = globalGameState.world.get_loaded_block( globalGameState.block_selection.pos_destroy );
         pr_debug( "Selected block:%d rotation:%d redstone_power:%d display:%d", blockState.id, blockState.rotation, blockState.current_redstone_power, blockState.display_id );
         globalGameState.input.click_delay_middle = 30;
-        if ( globalGameState.game_mode == GameMode_Survival && blockState.id != LAST_BLOCK_ID ) {
+        // A door's upper half picks the lower's item.
+        const BlockID pick_id = blockState.id != LAST_BLOCK_ID ? door_item_id( blockState.id ) : LAST_BLOCK_ID;
+        if ( globalGameState.game_mode == GameMode_Survival && pick_id != LAST_BLOCK_ID ) {
             // In survival mode, middle-clicking picks the block onto the
             // hotbar. If a non-full stack is already on the bar, just select
             // it (nothing is pulled from the survival inventory); only move a
             // whole stack when the bar's stacks are full (or the block isn't
             // on the bar at all).
-            int bar_slot = globalGameState.hotbar.findSlotWithBlock( blockState.id, true );
+            int bar_slot = globalGameState.hotbar.findSlotWithBlock( pick_id, true );
             if ( bar_slot >= 0 ) {
                 globalGameState.hotbar.setSelectedSlot( bar_slot );
-            } else if ( !globalGameState.survival_inventory.moveBlockToHotbar( blockState.id, globalGameState.hotbar, true ) ) {
+            } else if ( !globalGameState.survival_inventory.moveBlockToHotbar( pick_id, globalGameState.hotbar, true ) ) {
                 // Nothing to move: select an existing (full) stack on the bar.
-                int full_slot = globalGameState.hotbar.findSlotWithBlock( blockState.id, false );
+                int full_slot = globalGameState.hotbar.findSlotWithBlock( pick_id, false );
                 if ( full_slot >= 0 ) {
                     globalGameState.hotbar.setSelectedSlot( full_slot );
                 }
             }
             // Debug feature: also give 1 of the picked block so spamming
             // middle-click restocks the bar without mining.
-            globalGameState.hotbar.addBlockWithQuantity( blockState.id, 1 );
+            globalGameState.hotbar.addBlockWithQuantity( pick_id, 1 );
             BlockID selectedBlock = globalGameState.hotbar.getSelectedBlock( );
             globalGameState.ui_overlay.set_holding_block( selectedBlock );
-        } else if ( blockState.id != LAST_BLOCK_ID ) {
+        } else if ( pick_id != LAST_BLOCK_ID ) {
             // Creative mode: always give the block.
-            RepGame::add_to_hotbar( true, blockState.id );
+            RepGame::add_to_hotbar( true, pick_id );
         }
     }
     // Mob hits pre-empt mining: a mob nearer than the selected block (or no
@@ -781,6 +793,20 @@ void RepGame::process_mouse_events( ) {
             auto toggleEvent = std::make_shared<PlayerBlockPlacedEvent>( globalGameState.tick_number, globalGameState.block_selection.pos_destroy, toggled_state, true );
             globalGameState.blockUpdateQueue.addBlockUpdate( toggleEvent );
             globalGameState.input.click_delay_right = 30;
+        }
+    }
+    if ( globalGameState.block_selection.selectionInBounds && globalGameState.input.mouse.buttons.right && !globalGameState.input.mouse.buttons.right_pressed_in_ui && globalGameState.input.click_delay_right == 0 ) {
+        // Right-clicking a door toggles it open/closed like a fence gate.
+        // Iron doors are redstone-only and fall through to placement.
+        // Sneaking skips the interaction so the block can be placed.
+        const BlockState target_state = globalGameState.world.get_loaded_block( globalGameState.block_selection.pos_destroy );
+        if ( target_state.id != LAST_BLOCK_ID && !globalGameState.input.movement.sneakPressed ) {
+            const Block *target = block_definition_get_definition( target_state.id );
+            if ( target->is_door && !target->door_redstone_only ) {
+                auto toggleEvent = std::make_shared<DoorEvent>( globalGameState.tick_number, globalGameState.block_selection.pos_destroy, DoorEvent::TOGGLE );
+                globalGameState.blockUpdateQueue.addBlockUpdate( toggleEvent );
+                globalGameState.input.click_delay_right = 30;
+            }
         }
     }
     if ( ( globalGameState.block_selection.selectionInBounds || globalGameState.block_selection.floatSelectionInBounds ) && globalGameState.input.mouse.buttons.right && !globalGameState.input.mouse.buttons.right_pressed_in_ui && globalGameState.input.click_delay_right == 0 ) {

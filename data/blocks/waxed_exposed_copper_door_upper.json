@@ -1,0 +1,10 @@
+{
+  "id": 1418,
+  "name": "WAXED_EXPOSED_COPPER_DOOR_UPPER",
+  "shape": "door_upper",
+  "door_partner": "WAXED_EXPOSED_COPPER_DOOR",
+  "hardness": 2.5,
+  "textures": {
+    "all": "exposed_copper_door_top"
+  }
+}

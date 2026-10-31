@@ -59,14 +59,17 @@ BOOL_FIELDS = {
     "is_pressure_plate", "is_redstone_mechanism", "is_piston", "is_sticky_piston",
     "is_piston_head", "is_tnt", "is_inverse_tnt", "piston_immovable",
     "is_fence", "is_fence_gate", "falls_with_gravity",
+    "is_door", "is_door_upper", "door_redstone_only",
 }
 INT_FIELDS = {"no_light", "flows", "initial_redstone_power", "emits_light", "light_absorb"}
 FLOAT_FIELDS = {"hardness", "fall_mass"}
 VEC3_SHORT = {"scale", "offset", "tex_offset"}
 VEC3_BOOL = {"hides_self"}
+# Keys holding another block's name, emitted raw as the enum constant.
+BLOCK_REF_FIELDS = {"door_partner"}
 STRUCT_META = {"id", "name", "aliases", "textures", "icon", "shape",
                "render_order", "needs_place_on_any_solid", "creative"}
-KNOWN_KEYS = STRUCT_META | BOOL_FIELDS | INT_FIELDS | FLOAT_FIELDS | VEC3_SHORT | VEC3_BOOL
+KNOWN_KEYS = STRUCT_META | BOOL_FIELDS | INT_FIELDS | FLOAT_FIELDS | VEC3_SHORT | VEC3_BOOL | BLOCK_REF_FIELDS
 
 TEX_META_KEYS = {"source", "random_rotate", "tint", "alpha", "frame", "keep", "overlay", "extract"}
 
@@ -378,10 +381,29 @@ def load_blocks():
                 fail("%s: bad aliases" % fname)
         if "creative" in b and not isinstance(b["creative"], bool):
             fail("%s: creative must be a bool" % fname)
+        for k in BLOCK_REF_FIELDS & set(b):
+            if not isinstance(b[k], str) or not re.match(r"^[A-Z][A-Z0-9_]*$", b[k]):
+                fail("%s: %s must be a block name string" % (fname, k))
         b["_file"] = fname
         blocks[bid] = b
         names[name] = bid
     apply_shape(blocks, names)
+    # door_partner links a door's two halves: the named block must exist,
+    # point back, and carry the opposite is_door_upper flag.
+    for bid, b in blocks.items():
+        partner = b.get("door_partner")
+        if partner is None:
+            continue
+        pbid = names.get(partner)
+        if pbid is None:
+            fail("%s: door_partner %s not found" % (b["_file"], partner))
+        pb = blocks[pbid]
+        if pb.get("door_partner") != b["name"]:
+            fail("%s: door_partner %s does not point back" % (b["_file"], partner))
+        if not (b.get("is_door") and pb.get("is_door")):
+            fail("%s: door_partner %s is not a door" % (b["_file"], partner))
+        if bool(b.get("is_door_upper")) == bool(pb.get("is_door_upper")):
+            fail("%s: door pair %s/%s needs exactly one is_door_upper" % (b["_file"], b["name"], partner))
     return blocks
 
 
@@ -736,6 +758,8 @@ def main():
                 out.append("%s%s = { %s };\n" % (prefix, key, ", ".join(str(int(x)) for x in val)))
             elif key in VEC3_BOOL:
                 out.append("%s%s = { %s };\n" % (prefix, key, ", ".join("true" if x else "false" for x in val)))
+            elif key in BLOCK_REF_FIELDS:
+                out.append("%s%s = %s;\n" % (prefix, key, val))
             elif key in BOOL_FIELDS:
                 out.append("%s%s = %s;\n" % (prefix, key, "true" if val else "false"))
             elif key in FLOAT_FIELDS:

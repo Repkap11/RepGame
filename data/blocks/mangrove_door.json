@@ -1,9 +1,11 @@
 {
- "id": 757,
- "name": "MANGROVE_DOOR",
- "textures": {
-  "bottom": "mangrove_door_bottom",
-  "side": "mangrove_door_top",
-  "top": "mangrove_door_bottom"
- }
+  "id": 757,
+  "name": "MANGROVE_DOOR",
+  "shape": "door_lower",
+  "door_partner": "MANGROVE_DOOR_UPPER",
+  "hardness": 1.5,
+  "icon": "mangrove_door",
+  "textures": {
+    "all": "mangrove_door_bottom"
+  }
 }

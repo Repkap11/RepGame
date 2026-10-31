@@ -1,0 +1,10 @@
+{
+  "id": 1420,
+  "name": "WAXED_WEATHERED_COPPER_DOOR_UPPER",
+  "shape": "door_upper",
+  "door_partner": "WAXED_WEATHERED_COPPER_DOOR",
+  "hardness": 2.5,
+  "textures": {
+    "all": "weathered_copper_door_top"
+  }
+}

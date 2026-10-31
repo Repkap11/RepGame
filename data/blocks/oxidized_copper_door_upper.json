@@ -1,0 +1,10 @@
+{
+  "id": 1412,
+  "name": "OXIDIZED_COPPER_DOOR_UPPER",
+  "shape": "door_upper",
+  "door_partner": "OXIDIZED_COPPER_DOOR",
+  "hardness": 2.5,
+  "textures": {
+    "all": "oxidized_copper_door_top"
+  }
+}

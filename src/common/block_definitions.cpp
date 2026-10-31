@@ -41,6 +41,10 @@ void block_definitions_initilize_definitions( Texture *texture ) {
         block->is_redstone_dust = false;
         block->is_fence = false;
         block->is_fence_gate = false;
+        block->is_door = false;
+        block->is_door_upper = false;
+        block->door_redstone_only = false;
+        block->door_partner = LAST_BLOCK_ID;
         block->emits_light = 0;
         block->is_button = false;
         block->is_pressure_plate = false;

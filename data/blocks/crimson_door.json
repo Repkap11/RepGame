@@ -1,9 +1,11 @@
 {
- "id": 379,
- "name": "CRIMSON_DOOR",
- "textures": {
-  "bottom": "crimson_door_lower",
-  "side": "crimson_door_top",
-  "top": "crimson_door_lower"
- }
+  "id": 379,
+  "name": "CRIMSON_DOOR",
+  "shape": "door_lower",
+  "door_partner": "CRIMSON_DOOR_UPPER",
+  "hardness": 1.5,
+  "icon": "crimson_door",
+  "textures": {
+    "all": "crimson_door_lower"
+  }
 }

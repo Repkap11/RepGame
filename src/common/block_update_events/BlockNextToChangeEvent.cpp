@@ -198,6 +198,22 @@ inline int get_rotated_face( int face, int rotation ) {
 // to break blocks whose support was removed.
 bool block_can_survive_at( World &world, const glm::ivec3 &block_pos, const BlockState &block_state ) {
     const Block *block = block_definition_get_definition( block_state.id );
+    if ( block->is_door ) {
+        // Doors are a lower+upper pair: the lower needs a solid floor below
+        // and its partner upper above; the upper needs its partner lower
+        // below. Breaking either half therefore pops the other through the
+        // neighbour-update kill path.
+        const glm::ivec3 partner_pos = block_pos + ( block->is_door_upper ? glm::ivec3( 0, -1, 0 ) : glm::ivec3( 0, 1, 0 ) );
+        const BlockState partner_state = world.get_loaded_block( partner_pos );
+        if ( partner_state.id != block->door_partner ) {
+            return false;
+        }
+        if ( block->is_door_upper ) {
+            return true;
+        }
+        const BlockState below = world.get_loaded_block( block_pos + glm::ivec3( 0, -1, 0 ) );
+        return below.id != LAST_BLOCK_ID && block_definition_get_definition( below.id )->collides_with_player;
+    }
     if ( block->is_piston_head ) {
         // A head survives only with a piston base directly behind it that is
         // still pointing at this cell.

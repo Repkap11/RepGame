@@ -277,11 +277,49 @@ int fence_gate_boxes( bool open, BlockBox out[ FENCE_GATE_MAX_BOXES ] );
 // facing to the player's yaw when it shares the gate's axis (so the gate
 // opens away from the player).
 unsigned char fence_gate_toggle_rotation( unsigned char rotation, unsigned char player_yaw_rot );
+
+// ---- Doors -----------------------------------------------------------------
+// Doors share the gate's flag bit: the lower half's rotation bit 2 is the
+// open flag, the upper's is hinge-right; bits 0-1 of both hold the slab's
+// current yaw (the facing it would have if placed with that yaw). The door's
+// placement facing F is recovered by the toggle logic only.
+#define BLOCK_ROTATE_DOOR_FLAG 4
+
+// World yaw of the door slab: closed it's the placement facing; open it
+// swings 90° — +1 for a left hinge, -1 for a right one (MC's door shape
+// table: an open door equals the closed slab of a neighbouring facing).
+static inline unsigned char door_yaw( unsigned char facing, bool open, bool hinge_right ) {
+    return open ? static_cast<unsigned char>( ( facing + ( hinge_right ? 3 : 1 ) ) & 3 ) : facing;
+}
+
+// Per-half rotations for a door state: lower = yaw|open, upper = yaw|hinge.
+static inline void door_rotations( unsigned char facing, bool open, bool hinge_right, unsigned char &lower_rot, unsigned char &upper_rot ) {
+    const unsigned char yaw = door_yaw( facing, open, hinge_right );
+    lower_rot = static_cast<unsigned char>( yaw | ( open ? BLOCK_ROTATE_DOOR_FLAG : 0 ) );
+    upper_rot = static_cast<unsigned char>( yaw | ( hinge_right ? BLOCK_ROTATE_DOOR_FLAG : 0 ) );
+}
+
+// Recover the placement facing from a door pair's rotations.
+static inline unsigned char door_facing( unsigned char lower_rot, unsigned char upper_rot ) {
+    const unsigned char yaw = lower_rot & 3;
+    if ( !( lower_rot & BLOCK_ROTATE_DOOR_FLAG ) ) {
+        return yaw; // closed: the yaw IS the facing
+    }
+    return static_cast<unsigned char>( ( yaw + ( ( upper_rot & BLOCK_ROTATE_DOOR_FLAG ) ? 1 : 3 ) ) & 3 );
+}
+
+// The inventory block for a door cell: breaking or picking the upper half
+// gives the lower's item.
+static inline BlockID door_item_id( BlockID id ) {
+    const Block *b = block_definition_get_definition( id );
+    return b->is_door_upper ? b->door_partner : id;
+}
+
 // The yaw part of a rotation for single-box consumers (collision, raycast,
-// selection, debris): an open gate keeps its facing and must never reach the
-// rotation >= 4 wall-torch branches.
+// selection, debris): an open gate or toggled door keeps a yaw and must
+// never reach the rotation >= 4 wall-torch branches.
 static inline unsigned char block_yaw( const Block *b, unsigned char rot ) {
-    return b->is_fence_gate ? ( rot & 3 ) : rot;
+    return ( b->is_fence_gate || b->is_door ) ? ( rot & 3 ) : rot;
 }
 
 // face_shift flag bits: the low nibble holds the yaw rotation (0-7).

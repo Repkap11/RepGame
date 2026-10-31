@@ -189,7 +189,7 @@ int contains_block( World &world, const glm::dvec3 &dir, const glm::dvec3 &initi
     Block *block = block_definition_get_definition( blockID );
     bool result;
     if ( is_pick ) {
-        result = block->is_pickable || ( pick_water && blockID == WATER );
+        result = block->is_pickable || block->is_door || ( pick_water && blockID == WATER );
     } else {
         result = block->collides_with_player;
     }

@@ -1,22 +1,10 @@
 {
-  "casts_shadow": false,
-  "collides_with_player": false,
-  "icon_is_isometric": false,
   "id": 501,
-  "is_seethrough": true,
   "name": "JUNGLE_DOOR_UPPER",
-  "needs_place_on_any_solid": {
-    "top": true
-  },
-  "rotate_on_placement": true,
-  "scale": [
-    16,
-    16,
-    1
-  ],
+  "shape": "door_upper",
+  "door_partner": "JUNGLE_DOOR_LOWER",
+  "hardness": 1.5,
   "textures": {
-    "bottom": "air",
-    "side": "block_501",
-    "top": "air"
+    "all": "door_jungle_upper"
   }
 }

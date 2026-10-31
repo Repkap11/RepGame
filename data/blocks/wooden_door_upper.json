@@ -1,22 +1,10 @@
 {
-  "casts_shadow": false,
-  "collides_with_player": false,
-  "icon_is_isometric": false,
   "id": 122,
-  "is_seethrough": true,
   "name": "WOODEN_DOOR_UPPER",
-  "needs_place_on_any_solid": {
-    "top": true
-  },
-  "rotate_on_placement": true,
-  "scale": [
-    16,
-    16,
-    1
-  ],
+  "shape": "door_upper",
+  "door_partner": "WOODEN_DOOR_LOWER",
+  "hardness": 1.5,
   "textures": {
-    "bottom": "air",
-    "side": "block_122",
-    "top": "air"
+    "all": "door_wood_upper"
   }
 }

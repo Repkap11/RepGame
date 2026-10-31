@@ -170,6 +170,52 @@
     "##............##",
     "##............##"
    ]
+  },
+  "door_lower": {
+   "is_door": true,
+   "rotate_on_placement": true,
+   "collides_with_player": true,
+   "is_redstone_mechanism": true,
+   "piston_immovable": true,
+   "scale": [
+    16,
+    16,
+    3
+   ],
+   "offset": [
+    0,
+    0,
+    13
+   ],
+   "tex_offset": [
+    -13,
+    0,
+    0
+   ]
+  },
+  "door_upper": {
+   "is_door": true,
+   "is_door_upper": true,
+   "rotate_on_placement": true,
+   "collides_with_player": true,
+   "is_redstone_mechanism": true,
+   "piston_immovable": true,
+   "is_pickable": false,
+   "scale": [
+    16,
+    16,
+    3
+   ],
+   "offset": [
+    0,
+    0,
+    13
+   ],
+   "tex_offset": [
+    -13,
+    0,
+    0
+   ]
   }
  },
  "templates": {

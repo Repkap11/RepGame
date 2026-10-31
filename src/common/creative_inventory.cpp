@@ -5,7 +5,7 @@
 // Page 0 is a curated "common" section: everyday terrain/building blocks
 // plus the blocks RepGame adds mechanics for (redstone sources/dust,
 // buttons, pressure plates, pistons, TNT/inverse TNT, gravity blocks,
-// chests, fence gates). The generated CREATIVE_BLOCKS list starts on
+// chests, fence gates, the oak door). The generated CREATIVE_BLOCKS list starts on
 // page 1, so the common entries appear there too.
 static const BlockID CREATIVE_COMMON_BLOCKS[] = {
     GRASS,
@@ -32,6 +32,7 @@ static const BlockID CREATIVE_COMMON_BLOCKS[] = {
     REDSTONE_LAMP,
     FENCE,
     FENCE_GATE,
+    WOODEN_DOOR_LOWER,
     CHEST,
 
     PISTON,

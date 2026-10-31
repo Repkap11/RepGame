@@ -1,13 +1,11 @@
 {
- "casts_shadow": false,
- "hardness": 0.35,
- "id": 1355,
- "is_seethrough": true,
- "name": "WEATHERED_COPPER_DOOR",
- "no_light": 6815743,
- "textures": {
-  "bottom": "weathered_copper_door_bottom",
-  "side": "weathered_copper_door_top",
-  "top": "weathered_copper_door_bottom"
- }
+  "id": 1355,
+  "name": "WEATHERED_COPPER_DOOR",
+  "shape": "door_lower",
+  "door_partner": "WEATHERED_COPPER_DOOR_UPPER",
+  "hardness": 2.5,
+  "icon": "weathered_copper_door",
+  "textures": {
+    "all": "weathered_copper_door_bottom"
+  }
 }

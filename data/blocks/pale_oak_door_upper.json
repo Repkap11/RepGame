@@ -1,0 +1,10 @@
+{
+  "id": 1413,
+  "name": "PALE_OAK_DOOR_UPPER",
+  "shape": "door_upper",
+  "door_partner": "PALE_OAK_DOOR",
+  "hardness": 1.5,
+  "textures": {
+    "all": "pale_oak_door_top"
+  }
+}

@@ -1,9 +1,11 @@
 {
- "id": 1266,
- "name": "WARPED_DOOR",
- "textures": {
-  "bottom": "warped_door_lower",
-  "side": "warped_door_top",
-  "top": "warped_door_lower"
- }
+  "id": 1266,
+  "name": "WARPED_DOOR",
+  "shape": "door_lower",
+  "door_partner": "WARPED_DOOR_UPPER",
+  "hardness": 1.5,
+  "icon": "warped_door",
+  "textures": {
+    "all": "warped_door_lower"
+  }
 }
