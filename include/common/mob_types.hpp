@@ -43,6 +43,9 @@ typedef struct {
     const char *sound_hurt;
     const char *sound_death;
     const char *sound_step;
+    // Base volume of sound_step before distance falloff (Java plays mob
+    // steps quietly, e.g. 0.15 for pigs).
+    float step_gain;
     // Natural spawning (phase 2): spawn_chance per eligible fresh chunk, on
     // top of spawn_on blocks, in herds of herd_min..herd_max.
     BlockID spawn_on;

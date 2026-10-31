@@ -401,7 +401,7 @@ void MobManager::tick_mob( World &world, Mob &mob, const MobTypeDef &def, const 
     if ( def.sound_step != NULL && standing && mob.step_acc >= 0.7f ) {
         mob.step_acc = 0.0f;
         if ( dist < 8.0 ) {
-            audio_play_sfx_gain( def.sound_step, 1.0f - static_cast<float>( dist ) / 16.0f );
+            audio_play_sfx_gain( def.sound_step, def.step_gain * ( 1.0f - static_cast<float>( dist ) / 16.0f ) );
         }
     }
 }
