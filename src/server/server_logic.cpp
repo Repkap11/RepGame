@@ -84,6 +84,7 @@ void ServerLogic::on_client_connected( Server &server, int client_fd ) {
             p.y = playerData->y;
             p.z = playerData->z;
             memcpy( p.rotation, playerData->rotation, sizeof( p.rotation ) );
+            p.eye_height = playerData->eye_height;
             PacketWriter w;
             net_serialize_player( w, p );
             server.queue_message( client_fd, NetMsgType::CLIENT_INIT, online_id, w.take_buf( ) );

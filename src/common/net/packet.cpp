@@ -180,6 +180,7 @@ void net_serialize_player( PacketWriter &w, const NetPlayerPayload &p ) {
     for ( int i = 0; i < 16; i++ ) {
         w.write_f32( p.rotation[ i ] );
     }
+    w.write_f32( p.eye_height );
 }
 
 bool net_deserialize_player( PacketReader &r, NetPlayerPayload &p ) {
@@ -189,6 +190,7 @@ bool net_deserialize_player( PacketReader &r, NetPlayerPayload &p ) {
     for ( int i = 0; i < 16; i++ ) {
         if ( !r.read_f32( p.rotation[ i ] ) ) return false;
     }
+    if ( !r.read_f32( p.eye_height ) ) return false;
     return true;
 }
 

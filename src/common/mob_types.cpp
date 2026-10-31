@@ -28,6 +28,7 @@ const MobTypeDef mob_types[ MOB_TYPE_COUNT ] = {
         .bone_head = "head",
         .bone_legs = { "leg0", "leg1", "leg2", "leg3" },
         .bone_arms = { NULL, NULL },
+        .bone_body = NULL,
     },
     /* MOB_PLAYER */ {
         // Remote multiplayer players: the Bedrock humanoid (Steve skin),
@@ -55,9 +56,10 @@ const MobTypeDef mob_types[ MOB_TYPE_COUNT ] = {
         .herd_min = 0,
         .herd_max = 0,
         .ai = MOB_AI_REMOTE,
-        .anims = MOB_ANIM_HUMANOID_WALK | MOB_ANIM_HEAD_LOOK,
+        .anims = MOB_ANIM_HUMANOID_WALK | MOB_ANIM_HEAD_LOOK | MOB_ANIM_HUMANOID_SNEAK,
         .bone_head = "head",
         .bone_legs = { "rightLeg", "leftLeg" },
         .bone_arms = { "rightArm", "leftArm" },
+        .bone_body = "body",
     },
 };

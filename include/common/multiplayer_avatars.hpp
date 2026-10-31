@@ -14,7 +14,7 @@ class MultiplayerAvatars {
   public:
     void init( MobManager *mob_manager );
     void add( unsigned int player_id );
-    void update_position( int player_id, float x, float y, float z, const glm::mat4 &rotation );
+    void update_position( int player_id, float x, float y, float z, const glm::mat4 &rotation, float eye_height );
     void remove( unsigned int player_id );
     void cleanup( );
 };

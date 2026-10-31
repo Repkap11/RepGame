@@ -16,6 +16,7 @@ struct PacketType_DataPlayer {
     float y;
     float z;
     float rotation[ 4 * 4 ];
+    float eye_height;
 };
 
 struct ClientData {

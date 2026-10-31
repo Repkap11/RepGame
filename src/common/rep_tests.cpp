@@ -12,6 +12,7 @@
 #include "common/block_update_events/TntExplodeEvent.hpp"
 #include "common/utils/collision.hpp"
 #include "common/mobs.hpp"
+#include "common/net/packet.hpp"
 #include "common/mob_uv.hpp"
 #include "common/utils/map_storage.hpp"
 
@@ -1322,6 +1323,50 @@ int test_mobs( ) {
         MobManager off;
         off.enabled = false;
         check_bool( "remote: spawn works when disabled", off.spawn_remote( MOB_PLAYER ) != 0 );
+    }
+
+    // --- 11b: remote sneak (eye_height) --------------------------------------
+    {
+        // Wire round-trip: eye_height survives the player payload.
+        NetPlayerPayload out;
+        memset( &out, 0, sizeof( out ) );
+        out.x = 1.0f;
+        out.eye_height = PLAYER_SNEAK_EYE_HEIGHT;
+        PacketWriter w;
+        net_serialize_player( w, out );
+        std::vector<uint8_t> buf = w.take_buf( );
+        PacketReader r( buf.data( ), buf.size( ) );
+        NetPlayerPayload in;
+        memset( &in, 0, sizeof( in ) );
+        check_bool( "remote: payload round trips", net_deserialize_player( r, in ) );
+        check_near( "remote: payload carries eye_height", in.eye_height, PLAYER_SNEAK_EYE_HEIGHT, 1e-6f );
+
+        // Sneaking eye height: feet land on the ground, not 0.35 under it.
+        MobManager mobs;
+        const uint32_t uid = mobs.spawn_remote( MOB_PLAYER );
+        const double ground = 11.0;
+        mobs.set_remote_pose( uid, glm::dvec3( 10.5, ground + PLAYER_SNEAK_EYE_HEIGHT, 10.5 ), 0.0f, 0.0f, PLAYER_SNEAK_EYE_HEIGHT );
+        for ( int i = 0; i < 30; i++ ) {
+            mobs.tick( world, player_pos );
+        }
+        check_near( "remote sneak: feet on ground", mobs.mobs[ 0 ].pos.y, ground, 1e-3 );
+        check_bool( "remote sneak: sneak converges to 1", mobs.mobs[ 0 ].sneak > 0.95f );
+
+        // Standing again: sneak eases back to 0 and feet stay put.
+        mobs.set_remote_pose( uid, glm::dvec3( 10.5, ground + PLAYER_EYE_HEIGHT, 10.5 ), 0.0f, 0.0f, PLAYER_EYE_HEIGHT );
+        for ( int i = 0; i < 60; i++ ) {
+            mobs.tick( world, player_pos );
+        }
+        check_bool( "remote sneak: sneak converges to 0", mobs.mobs[ 0 ].sneak < 0.05f );
+        check_near( "remote sneak: feet stay on ground", mobs.mobs[ 0 ].pos.y, ground, 1e-3 );
+
+        // Garbage eye heights can't produce NaN feet.
+        mobs.set_remote_pose( uid, glm::dvec3( 10.5, ground + 1.0, 10.5 ), 0.0f, 0.0f, NAN );
+        mobs.tick( world, player_pos );
+        check_bool( "remote sneak: NaN eye height falls back", std::isfinite( mobs.mobs[ 0 ].pos.y ) && mobs.mobs[ 0 ].sneak_target == 0.0f );
+        mobs.set_remote_pose( uid, glm::dvec3( 10.5, ground + 9.0, 10.5 ), 0.0f, 0.0f, 9.0f );
+        mobs.tick( world, player_pos );
+        check_bool( "remote sneak: out-of-range eye height falls back", std::isfinite( mobs.mobs[ 0 ].pos.y ) && mobs.mobs[ 0 ].sneak_target == 0.0f );
     }
 
     return failures;

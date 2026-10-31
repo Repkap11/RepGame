@@ -407,11 +407,12 @@ and reflection passes and share the chunk light sampling.
 - `REPGAME_MOBS=0` — disables local mobs (spawning, simulation,
   persistence) but NOT remote players: `spawn_remote` and remote
   rendering still work.
-- `REPGAME_MOB_TEST="type,x,y,z,yaw[,pitch][;...]"` — exact deterministic
-  spawns (non-persistent; also disables natural spawn and mobs-file
-  loading for the run). `player` entries spawn a remote `MOB_PLAYER` at
-  feet position through `set_remote_pose` (the optional pitch is the look
-  pitch).
+- `REPGAME_MOB_TEST="type,x,y,z,yaw[,pitch[,sneak]][;...]"` — exact
+  deterministic spawns (non-persistent; also disables natural spawn and
+  mobs-file loading for the run). `player` entries spawn a remote
+  `MOB_PLAYER` at feet position through `set_remote_pose` (the optional
+  pitch is the look pitch; the optional sneak is 0..1 and drops the eye
+  height `sneak * PLAYER_SNEAK_EYE_DROP`).
 - Capture mode (`REPGAME_CAPTURE`) freezes mob AI and physics — spawn
   poses are as authored, no falls or wandering mid-capture.
 - `n` — debug spawn key: drops a pig on the ground three blocks in front
@@ -422,8 +423,10 @@ and reflection passes and share the chunk light sampling.
 Remote players: `MultiplayerAvatars` is a thin adapter over `MobManager`
 (`player_id → uid` map) — `add`/`update_position`/`remove` translate to
 `spawn_remote`/`set_remote_pose`/`remove_remote` on a `MOB_PLAYER` mob.
-The packet position is the sender's eye position (feet = eye −
-`PLAYER_EYE_HEIGHT`); the camera rotation matrix is inverted by
+The packet position is the sender's eye position plus its eye height
+(feet = eye − eye_height; eye height drops to `PLAYER_SNEAK_EYE_HEIGHT`
+while sneaking, driving the `MOB_ANIM_HUMANOID_SNEAK` crouch pose).
+The camera rotation matrix is inverted by
 `mob_look_from_camera_rotation` (`mobs.hpp`). `MOB_AI_REMOTE` mobs skip
 physics/AI, ease toward the latest network pose, walk-animate from the
 horizontal delta (`MOB_ANIM_HUMANOID_WALK`), never persist, never

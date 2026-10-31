@@ -107,6 +107,7 @@ void Server::handle_new_client_event( int inet_socket_fd ) {
     Server::add_epoll( client_fd );
     ClientData &clientData = client_data[ client_fd ];
     clientData.connected = 1;
+    clientData.player_data.eye_height = PLAYER_EYE_HEIGHT;
     clientData.socket.adopt( client_fd );
     this->server_logic.on_client_connected( *this, client_fd );
 }
@@ -152,6 +153,7 @@ void Server::handle_client_ready_for_read( int client_fd ) {
                 client_data[ client_fd ].player_data.y = p.y;
                 client_data[ client_fd ].player_data.z = p.z;
                 memcpy( client_data[ client_fd ].player_data.rotation, p.rotation, sizeof( p.rotation ) );
+                client_data[ client_fd ].player_data.eye_height = p.eye_height;
             }
         }
 

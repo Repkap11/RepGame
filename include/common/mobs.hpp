@@ -49,6 +49,9 @@ class MobManager {
         uint32_t uid;     // != 0 for network-driven mobs (MOB_AI_REMOTE)
         float look_yaw;   // remote look target, degrees (angle_H convention)
         float look_pitch; // remote look target, degrees (angle_V convention)
+        float sneak;        // eased 0..1 crouch amount (remote pose anim)
+        float prev_sneak;
+        float sneak_target;
         std::vector<entt::entity> parts; // one render entity per model cube
     };
     // A chunk this manager took ownership of via adopt_chunk: its mobs file
@@ -86,7 +89,8 @@ class MobManager {
     // raycast and the mob count, immune to the chunk-live freeze. Works even
     // with REPGAME_MOBS=0.
     uint32_t spawn_remote( MobType type );
-    void set_remote_pose( uint32_t uid, const glm::dvec3 &eye_pos, float look_yaw_deg, float look_pitch_deg );
+    void set_remote_pose( uint32_t uid, const glm::dvec3 &eye_pos, float look_yaw_deg, float look_pitch_deg,
+                          float eye_height = PLAYER_EYE_HEIGHT );
     void remove_remote( uint32_t uid );
     // Spawn `type` three blocks in front of `camera_pos` along `look`, dropped
     // onto the ground (persistent). Debug spawn key.

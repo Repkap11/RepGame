@@ -17,6 +17,7 @@ enum MobAnim {
     MOB_ANIM_HEAD_LOOK = 1 << 1,      // head tracks the nearest player
     MOB_ANIM_DEATH_TIP = 1 << 2,      // 90° side roll over 0.5 s (all types)
     MOB_ANIM_HUMANOID_WALK = 1 << 3,  // opposite arm+leg swing (Bedrock humanoid.move)
+    MOB_ANIM_HUMANOID_SNEAK = 1 << 4, // crouch pose (Java ModelBiped-style offsets)
 };
 
 typedef struct {
@@ -56,6 +57,7 @@ typedef struct {
     const char *bone_head;
     const char *bone_legs[ 4 ];
     const char *bone_arms[ 2 ];
+    const char *bone_body; // humanoid torso for the sneak lean; NULL elsewhere
 } MobTypeDef;
 
 extern const MobTypeDef mob_types[ MOB_TYPE_COUNT ];

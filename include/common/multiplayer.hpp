@@ -17,6 +17,7 @@ class Multiplayer {
     FramedSocket framed_socket;
     glm::vec3 prev_player_pos;
     glm::mat4 prev_rotation;
+    float prev_eye_height = -1.0f;
     friend class World;
 
     int sockfd = -1;
@@ -63,7 +64,7 @@ class Multiplayer {
     // server adopts the value and broadcasts it back to all clients.
     void send_world_time( long world_time );
     bool is_active( ) const { return this->active.load( ); }
-    void update_players_position( const glm::vec3 &player_pos, const glm::mat4 &rotation );
+    void update_players_position( const glm::vec3 &player_pos, const glm::mat4 &rotation, float eye_height );
     void request_chunk( const glm::ivec3 &chunk_pos );
     // Returns false (and queues nothing) when not connected, so callers
     // retrying one-shot requests (initial_chunk_request_pending) can keep

@@ -101,7 +101,7 @@ void Multiplayer::handle_frame( RepGameState &state, const std::vector<uint8_t> 
             }
             world.multiplayer_avatars.add( player_id );
             glm::mat4 rotation = glm::make_mat4( p.rotation );
-            world.multiplayer_avatars.update_position( player_id, p.x, p.y, p.z, rotation );
+            world.multiplayer_avatars.update_position( player_id, p.x, p.y, p.z, rotation, p.eye_height );
             break;
         }
         case NetMsgType::PLAYER_LOCATION: {
@@ -111,7 +111,7 @@ void Multiplayer::handle_frame( RepGameState &state, const std::vector<uint8_t> 
                 return;
             }
             glm::mat4 rotation = glm::make_mat4( p.rotation );
-            world.multiplayer_avatars.update_position( player_id, p.x, p.y, p.z, rotation );
+            world.multiplayer_avatars.update_position( player_id, p.x, p.y, p.z, rotation, p.eye_height );
             break;
         }
         case NetMsgType::PLAYER_CONNECTED: {
@@ -234,20 +234,22 @@ bool Multiplayer::request_chunks_box( const glm::ivec3 &min, uint8_t sx, uint8_t
     return true;
 }
 
-void Multiplayer::update_players_position( const glm::vec3 &player_pos, const glm::mat4 &rotation ) {
+void Multiplayer::update_players_position( const glm::vec3 &player_pos, const glm::mat4 &rotation, float eye_height ) {
     if ( !this->active ) {
         return;
     }
-    if ( prev_player_pos == player_pos && prev_rotation == rotation ) {
+    if ( prev_player_pos == player_pos && prev_rotation == rotation && prev_eye_height == eye_height ) {
         return;
     }
     prev_player_pos = player_pos;
     prev_rotation = rotation;
+    prev_eye_height = eye_height;
     NetPlayerPayload p;
     p.x = player_pos.x;
     p.y = player_pos.y;
     p.z = player_pos.z;
     memcpy( p.rotation, glm::value_ptr( rotation ), sizeof( glm::mat4 ) );
+    p.eye_height = eye_height;
 
     PacketWriter w;
     net_serialize_player( w, p );

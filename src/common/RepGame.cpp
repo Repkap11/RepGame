@@ -2237,7 +2237,11 @@ void RepGame::draw_frame( float alpha, const RenderView *views, int num_views ) 
     );
 
     globalGameState.multiplayer.process_events( globalGameState );
-    globalGameState.multiplayer.update_players_position( glm::vec3( render_pos ), render_rotation );
+    // In capture mode the pinned view owns render_pos; send the unsneaked
+    // eye height consistently with the rest of the packet.
+    const float send_eye_height = g_capture.enabled ? static_cast<float>( globalGameState.camera.eye_height )
+                                                    : static_cast<float>( globalGameState.camera.eye_height_render );
+    globalGameState.multiplayer.update_players_position( glm::vec3( render_pos ), render_rotation, send_eye_height );
 
 #if defined( REPGAME_WASM )
     // With pthreads enabled, terrain generation runs on background workers and

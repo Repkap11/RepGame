@@ -50,9 +50,9 @@ void MobManager::init( const VertexBufferLayout &vbl_object_vertex, const Vertex
         buf[ sizeof( buf ) - 1 ] = 0;
         for ( char *entry = strtok( buf, ";" ); entry != NULL; entry = strtok( NULL, ";" ) ) {
             char type_name[ 32 ];
-            float x, y, z, yaw = 0.0f, pitch = 0.0f;
-            if ( sscanf( entry, "%31[^,],%f,%f,%f,%f,%f", type_name, &x, &y, &z, &yaw, &pitch ) < 4 ) {
-                pr_debug( "REPGAME_MOB_TEST: bad entry '%s' (want type,x,y,z,yaw[,pitch])", entry );
+            float x, y, z, yaw = 0.0f, pitch = 0.0f, sneak = 0.0f;
+            if ( sscanf( entry, "%31[^,],%f,%f,%f,%f,%f,%f", type_name, &x, &y, &z, &yaw, &pitch, &sneak ) < 4 ) {
+                pr_debug( "REPGAME_MOB_TEST: bad entry '%s' (want type,x,y,z,yaw[,pitch[,sneak]])", entry );
                 continue;
             }
             MobType type = MOB_TYPE_COUNT;
@@ -66,10 +66,11 @@ void MobManager::init( const VertexBufferLayout &vbl_object_vertex, const Vertex
                 continue;
             }
             if ( mob_types[ type ].ai == MOB_AI_REMOTE ) {
-                // Remote types (player): x,y,z is the feet position and the
-                // optional pitch is the head's, via the remote pose path.
+                // Remote types (player): x,y,z is the feet position; optional
+                // pitch is the head's and sneak (0..1) drops the eye height.
                 const uint32_t uid = this->spawn_remote( type );
-                this->set_remote_pose( uid, glm::dvec3( x, y + mob_types[ type ].eye_h, z ), yaw, pitch );
+                const float eye_height = PLAYER_EYE_HEIGHT - sneak * PLAYER_SNEAK_EYE_DROP;
+                this->set_remote_pose( uid, glm::dvec3( x, y + eye_height, z ), yaw, pitch, eye_height );
                 continue;
             }
             // MOB_TEST spawns are non-persistent: they never reach a mobs file
@@ -112,6 +113,9 @@ bool MobManager::spawn_any( MobType type, const glm::dvec3 &pos, float yaw, int 
     mob.leg_amp = 0.0f;
     mob.head_yaw = 0.0f;
     mob.head_pitch = 0.0f;
+    mob.sneak = 0.0f;
+    mob.prev_sneak = 0.0f;
+    mob.sneak_target = 0.0f;
     mob.persistent = persistent;
     std::uniform_int_distribution<int> say( 10 * UPS_RATE, 30 * UPS_RATE );
     mob.say_ticks = say( this->rng );
@@ -174,12 +178,17 @@ uint32_t MobManager::spawn_remote( MobType type ) {
     return mob.uid;
 }
 
-void MobManager::set_remote_pose( uint32_t uid, const glm::dvec3 &eye_pos, float look_yaw_deg, float look_pitch_deg ) {
+void MobManager::set_remote_pose( uint32_t uid, const glm::dvec3 &eye_pos, float look_yaw_deg, float look_pitch_deg, float eye_height ) {
     for ( Mob &mob : this->mobs ) {
         if ( mob.uid == uid ) {
-            mob.target = eye_pos - glm::dvec3( 0.0, mob_types[ mob.type ].eye_h, 0.0 );
+            // Sanity-clamp the sender's eye height; garbage -> standing.
+            if ( !std::isfinite( eye_height ) || eye_height < PLAYER_SNEAK_EYE_HEIGHT - 0.05f || eye_height > PLAYER_EYE_HEIGHT + 0.05f ) {
+                eye_height = mob_types[ mob.type ].eye_h;
+            }
+            mob.target = eye_pos - glm::dvec3( 0.0, static_cast<double>( eye_height ), 0.0 );
             mob.look_yaw = look_yaw_deg;
             mob.look_pitch = look_pitch_deg;
+            mob.sneak_target = glm::clamp( ( PLAYER_EYE_HEIGHT - eye_height ) / PLAYER_SNEAK_EYE_DROP, 0.0f, 1.0f );
             return;
         }
     }
@@ -200,9 +209,14 @@ void MobManager::remove_remote( uint32_t uid ) {
 void MobManager::tick_remote( Mob &mob ) {
     mob.prev_pos = mob.pos;
     mob.prev_yaw = mob.yaw;
+    mob.prev_sneak = mob.sneak;
     const glm::dvec3 delta = mob.target - mob.pos;
     if ( glm::length( delta ) > 8.0 ) {
         mob.pos = mob.target;
+        // Teleport-sized jump (also the first pose): snap the sneak amount
+        // so scripted poses don't need settle ticks.
+        mob.sneak = mob.sneak_target;
+        mob.prev_sneak = mob.sneak;
     } else {
         mob.pos += delta * 0.35;
     }
@@ -211,6 +225,7 @@ void MobManager::tick_remote( Mob &mob ) {
     mob.walk_dist += static_cast<float>( hd );
     const float amp_target = static_cast<float>( fmin( hd * ( UPS_RATE / 20.0 ) * 4.0, 1.0 ) );
     mob.leg_amp += ( amp_target - mob.leg_amp ) * 0.2f;
+    mob.sneak += ( mob.sneak_target - mob.sneak ) * 0.35f;
 
     if ( hd > 1e-4 ) {
         // While moving, the body eases toward the travel direction.
@@ -623,16 +638,18 @@ void MobManager::tick( World &world, const glm::dvec3 &player_pos ) {
     }
 }
 
-// Bone rest + animator rotation, in degrees. bone_index lets the animators
-// bind to the type's named bones (resolved once per mob by update_render).
-static glm::mat4 bone_local_matrix( const MobBoneDef &bone, const glm::vec3 &anim_rot ) {
+// Bone rest + animator rotation, in degrees, plus an animator position
+// offset in model pixels. The offset translates the whole bone (pivot and
+// children) in the parent frame.
+static glm::mat4 bone_local_matrix( const MobBoneDef &bone, const glm::vec3 &anim_rot, const glm::vec3 &anim_offset ) {
     const glm::vec3 pivot( bone.pivot[ 0 ], bone.pivot[ 1 ], bone.pivot[ 2 ] );
     const glm::vec3 rot( bone.rest_rot[ 0 ] + anim_rot.x, bone.rest_rot[ 1 ] + anim_rot.y, bone.rest_rot[ 2 ] + anim_rot.z );
     glm::mat4 m = glm::translate( glm::mat4( 1.0f ), pivot );
     m = glm::rotate( m, glm::radians( rot.x ), glm::vec3( 1.0f, 0.0f, 0.0f ) );
     m = glm::rotate( m, glm::radians( rot.y ), glm::vec3( 0.0f, 1.0f, 0.0f ) );
     m = glm::rotate( m, glm::radians( rot.z ), glm::vec3( 0.0f, 0.0f, 1.0f ) );
-    return glm::translate( m, -pivot );
+    m = glm::translate( m, -pivot );
+    return glm::translate( glm::mat4( 1.0f ), anim_offset ) * m;
 }
 
 void MobManager::update_render( float alpha, const ChunkLoader &chunk_loader ) {
@@ -662,11 +679,14 @@ void MobManager::update_render( float alpha, const ChunkLoader &chunk_loader ) {
         }
         base = glm::scale( base, glm::vec3( 1.0f / 16.0f ) );
 
-        // Per-bone animator rotations, resolved by name from the type table.
+        // Per-bone animator rotations and position offsets (model pixels),
+        // resolved by name from the type table.
         glm::vec3 bone_anim[ 32 ];
+        glm::vec3 bone_offset[ 32 ];
         const int bone_count = model.bone_count < 32 ? model.bone_count : 32;
         for ( int i = 0; i < bone_count; i++ ) {
             bone_anim[ i ] = glm::vec3( 0.0f );
+            bone_offset[ i ] = glm::vec3( 0.0f );
         }
         const float phase = glm::radians( mob.walk_dist * MOB_GAIT_UNITS_PER_BLOCK * 38.17f );
         for ( int i = 0; i < bone_count; i++ ) {
@@ -696,6 +716,35 @@ void MobManager::update_render( float alpha, const ChunkLoader &chunk_loader ) {
                 }
             }
         }
+        if ( def.anims & MOB_ANIM_HUMANOID_SNEAK ) {
+            // Java ModelBiped crouch, adapted: -X rotation swings a bone's
+            // bottom toward +Z (model back). The torso leans about its neck
+            // pivot; overlays (hat/jacket/sleeves/pants) inherit their parent
+            // bone's transform automatically.
+            const float s = mob.prev_sneak + ( mob.sneak - mob.prev_sneak ) * alpha;
+            if ( s > 0.0f ) {
+                for ( int i = 0; i < bone_count; i++ ) {
+                    const MobBoneDef &bone = model.bones[ i ];
+                    if ( def.bone_body != NULL && strcmp( bone.name, def.bone_body ) == 0 ) {
+                        bone_anim[ i ].x += -28.65f * s;
+                        bone_offset[ i ].y += -3.2f * s;
+                    } else if ( def.bone_head != NULL && strcmp( bone.name, def.bone_head ) == 0 ) {
+                        bone_offset[ i ].y += -4.2f * s;
+                    } else {
+                        for ( int limb = 0; limb < 2; limb++ ) {
+                            if ( def.bone_arms[ limb ] != NULL && strcmp( bone.name, def.bone_arms[ limb ] ) == 0 ) {
+                                bone_anim[ i ].x += -22.9f * s;
+                                bone_offset[ i ].y += -3.2f * s;
+                            }
+                            if ( def.bone_legs[ limb ] != NULL && strcmp( bone.name, def.bone_legs[ limb ] ) == 0 ) {
+                                bone_offset[ i ].z += 4.0f * s;
+                                bone_offset[ i ].y += -0.2f * s;
+                            }
+                        }
+                    }
+                }
+            }
+        }
 
         // One light sample per mob covers all of its parts.
         const glm::vec2 light = chunk_loader.light_sample( glm::vec3( rpos ) + glm::vec3( 0.0f, def.eye_h, 0.0f ) );
@@ -703,7 +752,7 @@ void MobManager::update_render( float alpha, const ChunkLoader &chunk_loader ) {
         glm::mat4 bone_world[ 32 ];
         for ( int i = 0; i < bone_count; i++ ) {
             const MobBoneDef &bone = model.bones[ i ];
-            const glm::mat4 local = bone_local_matrix( bone, bone_anim[ i ] );
+            const glm::mat4 local = bone_local_matrix( bone, bone_anim[ i ], bone_offset[ i ] );
             bone_world[ i ] = bone.parent >= 0 ? bone_world[ bone.parent ] * local : local;
         }
 
