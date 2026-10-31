@@ -2000,7 +2000,6 @@
     "source": "textures/blocks/red_poplar_leaves"
   },
   "red_sand": {
-    "random_rotate": true,
     "source": "textures/blocks/red_sand"
   },
   "red_sandstone_bottom": {
@@ -2094,7 +2093,6 @@
     "source": "textures/blocks/respawn_anchor_top_off"
   },
   "sand": {
-    "random_rotate": true,
     "source": "textures/blocks/sand"
   },
   "sandstone_bottom": {
