@@ -81,6 +81,11 @@ class MobManager {
     // AABB slab test against every live (non-dying) mob's hitbox. Returns the
     // mob index or -1; *out_dist gets the entry distance when hit.
     int raycast( const glm::dvec3 &origin, const glm::dvec3 &dir, double max_dist, double *out_dist ) const;
+    // The crosshair's mob target: the ray's mob hit when its entry distance
+    // is nearer than the selected block cell's (or no block is selected),
+    // else -1. -1 as well when mobs are disabled.
+    int resolve_target( const glm::dvec3 &origin, const glm::dvec3 &dir, double max_dist,
+                        int selectionInBounds, const glm::ivec3 &pos_destroy, double *out_dist ) const;
     // Apply damage + knockback away from attacker_pos; returns true if this
     // hit started the death animation.
     bool hurt( int index, float damage, const glm::dvec3 &attacker_pos );

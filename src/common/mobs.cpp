@@ -8,6 +8,7 @@
 #include "common/audio.hpp"
 #include "common/chunk_loader.hpp"
 #include "common/utils/collision.hpp"
+#include "common/utils/ray_traversal.hpp"
 #include "common/world.hpp"
 
 static float wrap_degrees( float deg ) {
@@ -321,25 +322,8 @@ int MobManager::raycast( const glm::dvec3 &origin, const glm::dvec3 &dir, double
         const double hw = mob_types[ mob.type ].hitbox_w / 2.0;
         const glm::dvec3 bmin( mob.pos.x - hw, mob.pos.y, mob.pos.z - hw );
         const glm::dvec3 bmax( mob.pos.x + hw, mob.pos.y + mob_types[ mob.type ].hitbox_h, mob.pos.z + hw );
-        double t0 = 0.0, t1 = best_t;
-        bool hit = true;
-        for ( int a = 0; a < 3 && hit; a++ ) {
-            const double o = origin[ a ], d = dir[ a ];
-            if ( fabs( d ) < 1e-9 ) {
-                hit = o >= bmin[ a ] && o <= bmax[ a ];
-            } else {
-                double ta = ( bmin[ a ] - o ) / d, tb = ( bmax[ a ] - o ) / d;
-                if ( ta > tb ) {
-                    const double tmp = ta;
-                    ta = tb;
-                    tb = tmp;
-                }
-                t0 = ta > t0 ? ta : t0;
-                t1 = tb < t1 ? tb : t1;
-                hit = t0 <= t1;
-            }
-        }
-        if ( hit ) {
+        double t0 = 0.0;
+        if ( RayTraversal::ray_aabb_entry( origin, dir, bmin, bmax, best_t, &t0 ) ) {
             best_t = t0;
             best = static_cast<int>( i );
         }
@@ -348,6 +332,30 @@ int MobManager::raycast( const glm::dvec3 &origin, const glm::dvec3 &dir, double
         *out_dist = best_t;
     }
     return best;
+}
+
+// Crosshair target resolution: a mob hitbox on the ray wins over the
+// selected block only when its entry distance is nearer than the block
+// cell's own slab entry (or no block is selected).
+int MobManager::resolve_target( const glm::dvec3 &origin, const glm::dvec3 &dir, double max_dist,
+                                int selectionInBounds, const glm::ivec3 &pos_destroy, double *out_dist ) const {
+    if ( !this->enabled ) {
+        return -1;
+    }
+    double mob_dist = 0.0;
+    const int mob = this->raycast( origin, dir, max_dist, &mob_dist );
+    if ( mob < 0 ) {
+        return -1;
+    }
+    double block_dist = 0.0;
+    const bool block_hit = selectionInBounds && RayTraversal::ray_aabb_entry( origin, dir, glm::dvec3( pos_destroy ), glm::dvec3( pos_destroy ) + glm::dvec3( 1.0 ), max_dist, &block_dist );
+    if ( block_hit && block_dist <= mob_dist ) {
+        return -1;
+    }
+    if ( out_dist != nullptr ) {
+        *out_dist = mob_dist;
+    }
+    return mob;
 }
 
 // MC-style knockback: a 0.15 blocks/tick horizontal impulse that decays

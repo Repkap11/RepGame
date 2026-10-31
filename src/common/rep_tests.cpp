@@ -969,17 +969,67 @@ int test_mobs( ) {
         // hitbox_w 0.9 -> front face at 10.5 - 0.45 = 10.05 -> dist 1.55
         check_bool( "raycast: hit mob", hit == 0 );
         check_near( "raycast: entry distance", dist, 10.05 - 8.5, 0.01 );
-        // A block cell nearer than the mob takes the click (same comparison
-        // process_mouse_events makes): block cell at x=9 is ~1.0 away.
+        // A block cell nearer than the mob takes the click (the slab-entry
+        // comparison process_mouse_events makes): cell x=9 enters at 0.5.
         world.set_loaded_block( glm::ivec3( 9, 11, 10 ), stone );
-        const glm::dvec3 block_center( 9.5, 11.5, 10.5 );
-        check_bool( "nearer block beats the mob", glm::distance( origin, block_center ) < dist );
+        check_bool( "nearer block beats the mob", mobs.resolve_target( origin, dir, 6.0, 1, glm::ivec3( 9, 11, 10 ), &dist ) < 0 );
         world.set_loaded_block( glm::ivec3( 9, 11, 10 ), BLOCK_STATE_AIR );
         // Outside reach the ray misses entirely.
         check_bool( "raycast: miss beyond reach", mobs.raycast( origin, dir, 1.0, &dist ) < 0 );
         // A mob farther along the same ray loses to the near one.
         mobs.spawn( MOB_PIG, glm::dvec3( 14.5, 11.0, 10.5 ), 0.0f, 1 );
         check_bool( "raycast: nearer mob wins", mobs.raycast( origin, dir, 6.0, &dist ) == 0 );
+    }
+
+    // --- 4b: a mob under the crosshair suppresses the block selection ------
+    {
+        MobManager &mobs = gs.world.mobs;
+        mobs.mobs.clear( );
+        mobs.spawn( MOB_PIG, glm::dvec3( 10.5, 11.0, 10.5 ), 0.0f, 1 );
+        mobs.mobs[ 0 ].ai_state = 0;
+        mobs.mobs[ 0 ].ai_ticks = 100000;
+        const glm::dvec3 origin( 8.5, 11.4, 10.5 );
+        gs.block_selection.ray_origin = origin;
+        gs.block_selection.ray_dir = glm::dvec3( 1.0, 0.0, 0.0 );
+
+        // (a) Pig between the camera and a wall: mob wins, selection clears.
+        world.set_loaded_block( glm::ivec3( 14, 11, 10 ), stone );
+        gs.block_selection.selectionInBounds = 1;
+        gs.block_selection.floatSelectionInBounds = 1;
+        gs.block_selection.pos_destroy = glm::ivec3( 14, 11, 10 );
+        RepGame::resolve_target_mob( gs, origin );
+        check_bool( "target mob: pig before wall wins", gs.block_selection.target_mob == 0 );
+        check_bool( "target mob: selection cleared", gs.block_selection.selectionInBounds == 0 && gs.block_selection.floatSelectionInBounds == 0 );
+
+        // (b) Pig behind a nearer block: the block keeps the selection.
+        world.set_loaded_block( glm::ivec3( 9, 11, 10 ), stone );
+        gs.block_selection.selectionInBounds = 1;
+        gs.block_selection.pos_destroy = glm::ivec3( 9, 11, 10 );
+        RepGame::resolve_target_mob( gs, origin );
+        check_bool( "target mob: nearer block wins", gs.block_selection.target_mob < 0 );
+        check_bool( "target mob: selection kept", gs.block_selection.selectionInBounds == 1 );
+        world.set_loaded_block( glm::ivec3( 9, 11, 10 ), BLOCK_STATE_AIR );
+        world.set_loaded_block( glm::ivec3( 14, 11, 10 ), BLOCK_STATE_AIR );
+
+        // (c) Pig standing on the selected block, looked down on from above:
+        // the ray enters the pig's hitbox (~1.1) before the cell's top face
+        // (2.0), so the slab test gives it to the pig.
+        const glm::dvec3 above( 10.5, 13.0, 10.5 );
+        gs.block_selection.ray_origin = above;
+        gs.block_selection.ray_dir = glm::dvec3( 0.0, -1.0, 0.0 );
+        gs.block_selection.selectionInBounds = 1;
+        gs.block_selection.pos_destroy = glm::ivec3( 10, 10, 10 );
+        RepGame::resolve_target_mob( gs, above );
+        check_bool( "target mob: pig on selected block wins", gs.block_selection.target_mob == 0 );
+        check_bool( "target mob: ground selection cleared", gs.block_selection.selectionInBounds == 0 );
+
+        // (d) No pig: the selection is unchanged.
+        mobs.mobs.clear( );
+        gs.block_selection.selectionInBounds = 1;
+        gs.block_selection.pos_destroy = glm::ivec3( 10, 10, 10 );
+        RepGame::resolve_target_mob( gs, above );
+        check_bool( "target mob: none without pig", gs.block_selection.target_mob < 0 );
+        check_bool( "target mob: selection unchanged", gs.block_selection.selectionInBounds == 1 );
     }
 
     // --- 5: damage, knockback, death, drops --------------------------------

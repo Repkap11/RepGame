@@ -161,6 +161,12 @@ struct RepGameState {
         // computed so left-click can test mob hits against the same ray.
         glm::dvec3 ray_origin;
         glm::dvec3 ray_dir;
+        // The mob under the crosshair: the mob raycast winner when its hitbox
+        // entry is nearer than the selected block cell's, else -1. When set,
+        // selectionInBounds/floatSelectionInBounds are cleared so no block
+        // outline (or place/pick) happens through the mob.
+        int target_mob;
+        double target_mob_dist;
     } block_selection;
     // Survival-mode mining: while the left button is held on the same block,
     // progress_ticks accumulates once per tick until it reaches the block's
@@ -171,11 +177,6 @@ struct RepGameState {
         BlockID id;
         float progress_ticks;
     } block_mining;
-    // Left-click mob hit computed in process_mouse_events: the raycast winner
-    // when it's nearer than the selected block (or no block is selected).
-    // -1 means this click goes to mining.
-    int hit_mob;
-    double mob_hit_dist;
     BlockUpdateQueue blockUpdateQueue;
     // Fresh spawns (no player.dat) start on the terrain-height estimate but
     // can't see structure blocks until the spawn column is generated. While
@@ -346,6 +347,12 @@ class RepGame {
     // Survival pickup shared by block-break and mob drops: hotbar first
     // (stacking onto matching slots), overflow to the survival inventory.
     static void give_block_to_player( RepGameState &state, BlockID block, int quantity );
+    // Mob-vs-block target resolution for the crosshair ray. Sets
+    // block_selection.target_mob/target_mob_dist and, when the mob is nearer
+    // than the selected block cell (or no block is selected), clears
+    // selectionInBounds/floatSelectionInBounds so no block outline (or
+    // place/pick through the mob) happens. Static so rep_tests can drive it.
+    static void resolve_target_mob( RepGameState &state, const glm::dvec3 &ray_origin );
 
     int rep_tests_start( );
 };

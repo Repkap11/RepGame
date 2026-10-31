@@ -618,6 +618,17 @@ void RepGame::give_block_to_player( RepGameState &state, BlockID block, int quan
     }
 }
 
+void RepGame::resolve_target_mob( RepGameState &state, const glm::dvec3 &ray_origin ) {
+    double mob_dist = 0.0;
+    state.block_selection.target_mob = state.world.mobs.resolve_target( ray_origin, state.block_selection.ray_dir, REACH_DISTANCE,
+                                                                      state.block_selection.selectionInBounds, state.block_selection.pos_destroy, &mob_dist );
+    state.block_selection.target_mob_dist = mob_dist;
+    if ( state.block_selection.target_mob >= 0 ) {
+        state.block_selection.selectionInBounds = 0;
+        state.block_selection.floatSelectionInBounds = 0;
+    }
+}
+
 void RepGame::process_mouse_events( ) {
     if ( !globalGameState.input.inventory_open && globalGameState.block_selection.selectionInBounds && globalGameState.input.mouse.buttons.middle && !globalGameState.input.mouse.buttons.middle_pressed_in_ui && globalGameState.input.click_delay_middle == 0 ) {
         BlockState blockState = globalGameState.world.get_loaded_block( globalGameState.block_selection.pos_destroy );
@@ -650,36 +661,31 @@ void RepGame::process_mouse_events( ) {
         }
     }
     // Mob hits pre-empt mining: a mob nearer than the selected block (or no
-    // block selected) takes the left-click damage instead.
-    globalGameState.hit_mob = -1;
-    if ( globalGameState.world.mobs.is_enabled( ) && globalGameState.input.mouse.buttons.left && !globalGameState.input.mouse.buttons.left_pressed_in_ui && !globalGameState.input.inventory_open && globalGameState.input.click_delay_left == 0 ) {
-        double mob_dist = 0.0;
-        const int mob = globalGameState.world.mobs.raycast( globalGameState.block_selection.ray_origin, globalGameState.block_selection.ray_dir, REACH_DISTANCE, &mob_dist );
-        if ( mob >= 0 ) {
-            const glm::dvec3 block_center = glm::dvec3( globalGameState.block_selection.pos_destroy ) + glm::dvec3( 0.5 );
-            const double block_dist = glm::distance( globalGameState.block_selection.ray_origin, block_center );
-            if ( !globalGameState.block_selection.selectionInBounds || mob_dist < block_dist ) {
-                globalGameState.hit_mob = mob;
-                globalGameState.mob_hit_dist = mob_dist;
-            }
-        }
+    // block selected) takes the left-click damage instead. The raycast is
+    // recomputed here rather than trusting block_selection.target_mob —
+    // mobs.tick runs between the selection resolution and this call and may
+    // have removed mobs, so a stored index can go stale.
+    int hit_mob = -1;
+    if ( globalGameState.input.mouse.buttons.left && !globalGameState.input.mouse.buttons.left_pressed_in_ui && !globalGameState.input.inventory_open && globalGameState.input.click_delay_left == 0 ) {
+        hit_mob = globalGameState.world.mobs.resolve_target( globalGameState.block_selection.ray_origin, globalGameState.block_selection.ray_dir, REACH_DISTANCE,
+                                                           globalGameState.block_selection.selectionInBounds, globalGameState.block_selection.pos_destroy, nullptr );
     }
-    if ( globalGameState.hit_mob >= 0 ) {
+    if ( hit_mob >= 0 ) {
         // Survival: HIT_DAMAGE per click; creative kills in one hit. A
         // survival kill hands the type's drops to the player's inventories.
-        const bool killed = globalGameState.world.mobs.hurt( globalGameState.hit_mob, globalGameState.game_mode == GameMode_Survival ? HIT_DAMAGE : 1000.0f, globalGameState.camera.pos );
+        const bool killed = globalGameState.world.mobs.hurt( hit_mob, globalGameState.game_mode == GameMode_Survival ? HIT_DAMAGE : 1000.0f, globalGameState.camera.pos );
         globalGameState.input.click_delay_left = 30;
         globalGameState.block_mining.progress_ticks = 0.0f;
         globalGameState.vr.haptic_pending = true;
         if ( killed && globalGameState.game_mode == GameMode_Survival ) {
-            const MobTypeDef &def = globalGameState.world.mobs.def_at( globalGameState.hit_mob );
+            const MobTypeDef &def = globalGameState.world.mobs.def_at( hit_mob );
             if ( def.drop_block != LAST_BLOCK_ID ) {
                 const int drop = def.drop_min + rand( ) % ( def.drop_max - def.drop_min + 1 );
                 RepGame::give_block_to_player( globalGameState, def.drop_block, drop );
             }
         }
     }
-    const bool holding_break = globalGameState.hit_mob < 0 && globalGameState.block_selection.selectionInBounds && globalGameState.input.mouse.buttons.left && !globalGameState.input.mouse.buttons.left_pressed_in_ui;
+    const bool holding_break = hit_mob < 0 && globalGameState.block_selection.selectionInBounds && globalGameState.input.mouse.buttons.left && !globalGameState.input.mouse.buttons.left_pressed_in_ui;
     if ( holding_break && globalGameState.input.click_delay_left == 0 ) {
         // Mining a block
         if ( globalGameState.game_mode == GameMode_Survival ) {
@@ -1609,6 +1615,10 @@ void RepGame::tick( ) {
             globalGameState.block_selection.floatSelectionInBounds = 0;
         }
 
+        // A mob under the crosshair beats the block behind/under it: clears
+        // the block selection so the outline (and any place/pick) doesn't
+        // reach through the mob.
+        RepGame::resolve_target_mob( globalGameState, ray_origin );
         globalGameState.world.set_selected_block( globalGameState.block_selection.pos_destroy, globalGameState.block_selection.selectionInBounds );
         if ( !g_capture.enabled ) {
             const float raw_dx = static_cast<float>( globalGameState.input.mouse.currentPosition.x - globalGameState.input.mouse.previousPosition.x );
