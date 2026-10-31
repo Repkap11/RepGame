@@ -46,6 +46,8 @@ out vec3 v_world_coords;
 // Outward face normal (post block rotation). The fragment shader samples the
 // flood-fill light volume at the air cell this face points into.
 flat out vec3 v_face_normal;
+// World position the fragment shader samples the light volume at.
+out vec3 v_light_pos;
 
 flat out int v_block_auto_rotates;
 
@@ -62,6 +64,9 @@ flat out int v_block_auto_rotates;
 #define BLOCK_ROTATE_270 3u
 
 #define NO_LIGHT_NO_DRAW 0x6fffffu
+
+// Must match the flower verts at the end of vd_data_solid in block.hpp.
+#define FLOWER_FIRST_VERTEX 24
 
 void main() {
     uint packed_lighting;
@@ -230,6 +235,15 @@ void main() {
     } else { // FACE_BACK
         face_normal = vec3(0.0, 0.0, -1.0);
     }
+    // The flower cross-quads reuse cube face labels that don't match their
+    // diagonal planes, and the flat provoking normal can then differ between
+    // a quad's two triangles — a visible diagonal lighting seam. Zero the
+    // normal so light is sampled at the fragment's real position and the
+    // fragment per-cell hashes land in the flower's own cell.
+    if(gl_VertexID >= FLOWER_FIRST_VERTEX) {
+        face_normal = vec3(0.0);
+    }
+    v_light_pos = v_world_coords + face_normal * 0.5;
     v_face_normal = face_normal;
 
     v_face_light = face_light;

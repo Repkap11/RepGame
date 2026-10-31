@@ -18,6 +18,11 @@
 // flat unoccluded ground. Compile-time so the bias folds into the log2.
 #define LIGHT_LOD_BIAS 3.0
 #define LIGHT_FAR_AO 0.1
+// Flowers sample the light volume inside their own cell, so GL_LINEAR blends
+// in the adjacent ground/wall cells (which hold 0 light); dividing by the
+// base-level air mask (B) averages only cells that can hold light.
+// Blend amount: 0 = raw blend (darkens toward solids), 1 = fully normalized.
+#define FLOWER_LIGHT_AIR_NORMALIZE 0.5
 // Cutout-foliage smoothing window in texel lods (0 = 1 texel/pixel,
 // 3 = 8 texels/pixel): lod where the hashed alpha test starts fading
 // toward solid, and lod where it is fully solid.
@@ -82,6 +87,7 @@ in float v_face_light;
 in float v_planarDot;
 in vec3 v_world_coords;
 flat in vec3 v_face_normal;
+in vec3 v_light_pos;
 
 flat in uint v_blockID;
 flat in int v_block_auto_rotates;
@@ -295,17 +301,26 @@ void main() {
         texColor = mix(texColor, vec4(0.122f, 0.333f, 1.0f, 1.0f), 0.45f);
     }
 
-    // Flood-fill light: v_world_coords + 0.5*normal lands on the center of
-    // the air cell this face points at. +1.0 is the halo offset mapping
+    // Flood-fill light: v_light_pos is the face position +0.5*normal — the
+    // center of the air cell this face points at — or the fragment's own
+    // position for flowers (zero normal). +1.0 is the halo offset mapping
     // world->internal texel space (cell centers already sit at +0.5, and texel
     // centers are sampled at (i+0.5)/LIGHT_VOLUME_DIM). GL_LINEAR then
     // interpolates along the face plane for smooth gradients across merged quads.
-    vec3 light_coord = (v_world_coords + v_face_normal * 0.5 - u_LightBase + 1.0) / LIGHT_VOLUME_DIM;
+    vec3 light_coord = (v_light_pos - u_LightBase + 1.0) / LIGHT_VOLUME_DIM;
     // Two independent channels (r=sky, g=block, both already 0-1): keeping
     // them separate matters because GL_LINEAR interpolates raw texel values —
     // a packed byte would cross-contaminate the nibbles mid-gradient.
     // Level 0 is the exact per-cell light (implicit LOD would now pick mips).
-    vec2 light_sample = textureLod(u_LightTex, light_coord, 0.0).rg;
+    vec3 light_l0 = textureLod(u_LightTex, light_coord, 0.0).rgb;
+    vec2 light_sample = light_l0.rg;
+    // A zero face normal identifies flowers: their sample sits inside their
+    // own cell, so the linear blend drags in unlit solid neighbours — divide
+    // by the air fraction to average only light-holding cells. In RG8 mode
+    // (REPGAME_LIGHT_MIPMAPS=0) B reads 0 and this falls back to the raw sample.
+    if(v_face_normal == vec3(0.0) && light_l0.b > 0.0) {
+        light_sample = mix(light_l0.rg, min(light_l0.rg / light_l0.b, vec2(1.0)), FLOWER_LIGHT_AIR_NORMALIZE);
+    }
     // Band-limit the light to the pixel footprint: once a block spans less
     // than ~2 pixels (distance, edge-on views) the per-block light pattern
     // (AO-like darkening toward solid cells, stepped seabeds seen through
