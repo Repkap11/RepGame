@@ -35,6 +35,10 @@ layout( location = 2 ) out vec4 fogFactor;
 layout( location = 3 ) out vec4 skyColor;
 
 in vec2 v_tex_coords;
+// mob_vertex clamps the sample to the face's skin rect inset by half a texel
+// (same edge-clamp idea as chunk_fragment's v_tex_min/v_tex_max); the other
+// programs sharing this fragment output a no-op bound.
+flat in vec4 v_tex_bounds;
 in float v_light;
 // Per-instance flood-fill light (x=sky, y=block, 0-1), baked into instance
 // data on the CPU. Unused by the sky (u_IsSky=1 takes the old path).
@@ -50,7 +54,8 @@ void main( ) {
     if ( v_planarDot < 0.0 && u_ReflectionHeight != 0.0 ) {
         discard;
     }
-    vec4 texColor = texture( u_Texture, vec3( v_tex_coords, v_blockID ) );
+    vec2 uv = clamp( v_tex_coords, v_tex_bounds.xy, v_tex_bounds.zw );
+    vec4 texColor = texture( u_Texture, vec3( uv, v_blockID ) );
     // vec4 texColor = vec4( 1, 0, 0, 1 );
     if ( texColor.a == 0.0 ) {
         discard;

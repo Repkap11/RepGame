@@ -23,6 +23,9 @@ layout( location = 4 ) in mat4 transform;
 layout( location = 8 ) in vec2 instance_light;
 
 out vec2 v_tex_coords;
+// object_fragment clamps to this bound (mob faces only);
+// a huge rect leaves this program's sampling untouched.
+flat out vec4 v_tex_bounds;
 out float v_light;
 flat out vec2 v_light_field;
 flat out float v_blockID;
@@ -38,6 +41,7 @@ void main( ) {
     v_planarDot = dot( v_world_coords, vec4( 0, 1, 0, u_ReflectionHeight ) );
 
     v_tex_coords = texCoords;
+    v_tex_bounds = vec4( -1e6, -1e6, 1e6, 1e6 );
     uint shift = ( faceType % 2u ) * 16u;
     // 0xffffu is max short 16u is sizeof(short)
 

@@ -25,6 +25,9 @@ layout( location = 7 ) in vec2 instance_light;
 layout( location = 8 ) in vec2 texel;
 
 out vec2 v_tex_coords;
+// object_fragment clamps to this bound (mob faces only);
+// a huge rect leaves this program's sampling untouched.
+flat out vec4 v_tex_bounds;
 out float v_light;
 flat out vec2 v_light_field;
 flat out float v_blockID;
@@ -80,6 +83,7 @@ void main( ) {
     // Each particle shows one solid color: the texel the CPU picked inside the
     // drawn window of a randomly chosen face, identical for every vertex.
     v_tex_coords = texel;
+    v_tex_bounds = vec4( -1e6, -1e6, 1e6, 1e6 );
     // Every face slot carries the picked face's texture, so slot 0 works.
     float face_light;
     if ( faceType == FACE_TOP ) {
