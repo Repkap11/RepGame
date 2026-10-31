@@ -553,19 +553,56 @@ block's `NAME (id)` and face textures under the crosshair; spawn is
 
 ## Mobs
 
-Client-local passive mobs (pigs) plus network-driven remote players
-(`MOB_PLAYER`), driven by a type table and models imported from Bedrock
+Client-local mobs — passive pig, cow, chicken and sheep plus hostile
+zombie and creeper — and network-driven remote players (`MOB_PLAYER`),
+driven by a type table and models imported from Bedrock
 `geo.json`. Simulation (gravity, collision,
-auto-jump, buoyancy, idle/wander/panic AI, hit flash, death tip-over) runs
+auto-jump, buoyancy, idle/wander/panic AI, hostile chase/fuse AI, hit
+flash, death tip-over) runs
 in `MobManager::tick` (`src/common/mobs.cpp`); rendering rebuilds one
 instanced `RenderChain<ParticleVertex, MobPartInstance>` per frame from
 CPU-evaluated bone transforms (`mob_vertex.glsl` + `object_fragment`;
-negative `v_flash` is a red hurt tint). Mobs are drawn in both the main
+negative `v_flash` is a red hurt tint, positive is the creeper's white
+fuse flash). Mobs are drawn in both the main
 and reflection passes and share the chunk light sampling.
+
+Hostiles target the player only while targetable
+(`MobTickInput.player_targetable` = survival + not no-clip; in-game that
+means `GameMode_Survival && !no_clip` — `MobTickInput`/`MobTickOutput`
+carry `player_hits` and `explosions` per tick). They acquire within 16
+blocks, drop past 24, and chase at `chase_speed` (10°/tick max turn);
+untargeted hostiles wander like passives but don't panic when hit.
+Zombies melee in reach (mob half-width + 0.3 + 0.5, |dy| < 1.5) with a
+1 s cooldown → a `MobPlayerHit`, handled by `RepGame::player_hurt`
+(knockback away from the hit + a hop off the ground + the `player_hurt`
+sound pool; there is no player health system yet, so `damage` is
+otherwise unused). In daylight (`light_daylight_factor > 0.5`, head sky
+light ≥ 0.95, not in water — see `mob_burns_in_daylight`) zombies burn at
+1 hp/s with hurt flash/sound and no knockback. Creepers chase like
+zombies, stop within 3 blocks, hiss for ~1.5 s (the `fuse` sfx +
+`MOB_ANIM_SWELL` growing/white-flash render), and defuse if the player
+gets > 7 away; at fuse end they push their position to
+`out->explosions` and are removed — `RepGame::tick` turns each entry
+into a `TntExplodeEvent` with a null `primed_entity` (null is a safe
+no-op in `World::despawn_primed_tnt`/`PrimedTnt::despawn`). A
+`fall_cap` per type limits downward speed (chickens glide at 0.02).
+
+The night spawner runs inside `MobManager::tick` (off under
+`REPGAME_MOB_TEST`, capture mode, fly mode and `REPGAME_MOB_SPAWNER=0`):
+every 2 s, while fewer than 12 despawnable hostiles live, up to 4
+attempts pick a random ring 24–44 blocks out, scan down from
+player_y + 16 (40 cells) for a colliding top block with 2 air cells
+above inside a `CHUNK_LIVE` chunk, and spawn where
+`hostile_spawn_light_ok` (`max(sky * daylight, block) < 7/15`) holds —
+60% zombie / 40% creeper, `persistent=0` + `despawnable=1`.
+Despawnables are removed > 64 blocks out, randomly at
+1/(8·UPS_RATE)/tick past 40, or when their feet chunk leaves
+`CHUNK_LIVE`, and are never persisted.
 
 - `REPGAME_MOBS=0` — disables local mobs (spawning, simulation,
   persistence) but NOT remote players: `spawn_remote` and remote
   rendering still work.
+- `REPGAME_MOB_SPAWNER=0` — disables only the night spawner.
 - `REPGAME_MOB_TEST="type,x,y,z,yaw[,pitch[,sneak]][;...]"` — exact
   deterministic spawns (non-persistent; also disables natural spawn and
   mobs-file loading for the run). `player` entries spawn a remote
@@ -574,10 +611,12 @@ and reflection passes and share the chunk light sampling.
   height `sneak * PLAYER_SNEAK_EYE_DROP`).
 - Capture mode (`REPGAME_CAPTURE`) freezes mob AI and physics — spawn
   poses are as authored, no falls or wandering mid-capture.
-- `n` — debug spawn key: drops a pig on the ground three blocks in front
-  of the player (`MobManager::spawn_in_front`; edge-triggered through
-  `Input`, handled in `RepGame::tick`, persistent). The ImGui overlay
-  shows `Mobs: <n> (players <m>)` — remote players count separately.
+- `n` — debug spawn key: drops a mob three blocks in front of the
+  player, cycling pig → cow → chicken → sheep → zombie → creeper on
+  successive presses (`MobManager::spawn_in_front`; edge-triggered
+  through `Input`, handled in `RepGame::tick`, persistent). The ImGui
+  overlay shows `Mobs: <n> (players <m>)` — remote players count
+  separately.
 
 Remote players: `MultiplayerAvatars` is a thin adapter over `MobManager`
 (`player_id → uid` map) — `add`/`update_position`/`remove` translate to
@@ -609,9 +648,13 @@ Adding a mob:
    (per-face UVs are rejected), bone mirror/pivot/rotation, and pads each
    skin into one 64x64 layer of the atlas.
 3. Add a `MobTypeDef` row in `src/common/mob_types.cpp` (+ `MOB_*` enum in
-   `mob_types.hpp`): model/skin bindings, hitbox, health, speeds, drops,
-   sound pool names, natural-spawn data, AI profile, animation mask and
-   the head/leg bone names the animators bind to.
+   `mob_types.hpp`): model/skin bindings, hitbox, health,
+   walk/panic/chase speeds, `fall_cap`, `attack_damage`, drops, sound
+   pool names, natural-spawn data, AI profile (`MOB_AI_PASSIVE`,
+   `MOB_AI_HOSTILE_MELEE`, `MOB_AI_HOSTILE_CREEPER`, `MOB_AI_REMOTE`),
+   animation mask (`MOB_ANIM_*` — quadruped/humanoid walk, head look,
+   death tip, sneak, wing flap, creeper swell) and the head/leg/arm/
+   body/wing bone names the animators bind to (NULL = unused).
 4. Optional sounds: append `sfx` entries to `tools/sounds_manifest.txt`
    (base + `_N` variants pool, e.g. `pig_say_1..3`; `pig_death`,
    `pig_step_1..5`).
@@ -635,7 +678,8 @@ MAP_SEED)`) into `Chunk::pending_mobs`; `World::render` hands
 just-finalized chunks to `MobManager::adopt_chunk`, and a ~16-tick poll
 persists+removes mobs whose owning chunk leaves the active window
 (parked/reused — `CHUNK_LOADING` at the same position has not left).
-`World::cleanup` persists every owned chunk. No writes in capture or fly
+`World::cleanup` persists every owned chunk. `despawnable` (night-spawn)
+mobs are never written. No writes in capture or fly
 mode. Natural spawn stands herds on `spawn_on` column tops with hitbox
 headroom inside the chunk.
 

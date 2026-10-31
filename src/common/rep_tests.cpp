@@ -1811,6 +1811,199 @@ int test_mobs( ) {
         check_bool( "remote sneak: out-of-range eye height falls back", std::isfinite( mobs.mobs[ 0 ].pos.y ) && mobs.mobs[ 0 ].sneak_target == 0.0f );
     }
 
+    // --- 12: every named bone in every MobTypeDef exists in its model -------
+    {
+        bool all_ok = true;
+        for ( int t = 0; t < MOB_TYPE_COUNT; t++ ) {
+            const MobTypeDef &def = mob_types[ t ];
+            const MobModelDef &model = mob_models[ def.model ];
+            auto has_bone = [ & ]( const char *name ) {
+                for ( int i = 0; i < model.bone_count; i++ ) {
+                    if ( strcmp( model.bones[ i ].name, name ) == 0 ) {
+                        return true;
+                    }
+                }
+                return false;
+            };
+            auto check_one = [ & ]( const char *kind, const char *name ) {
+                if ( name != NULL && !has_bone( name ) ) {
+                    pr_test( "    %s: %s bone '%s' missing", def.name, kind, name );
+                    all_ok = false;
+                }
+            };
+            check_one( "head", def.bone_head );
+            check_one( "body", def.bone_body );
+            for ( int i = 0; i < 4; i++ ) {
+                check_one( "leg", def.bone_legs[ i ] );
+            }
+            for ( int i = 0; i < 2; i++ ) {
+                check_one( "arm", def.bone_arms[ i ] );
+                check_one( "wing", def.bone_wings[ i ] );
+            }
+        }
+        check_bool( "types: all def bone names exist in models", all_ok );
+    }
+
+    // --- 13: every new non-remote type spawns and settles at floor+1 --------
+    {
+        const MobType new_types[] = { MOB_COW, MOB_CHICKEN, MOB_SHEEP, MOB_ZOMBIE, MOB_CREEPER };
+        for ( MobType t : new_types ) {
+            MobManager mobs;
+            mobs.spawner_enabled = false;
+            char name[ 64 ];
+            snprintf( name, sizeof( name ), "%s: settles standing at floor+1", mob_types[ t ].name );
+            check_bool( name, mobs.spawn( t, glm::dvec3( 10.5, 14.0, 10.5 ), 0.0f, 1 ) );
+            for ( int i = 0; i < 300 && !mobs.mobs[ 0 ].standing; i++ ) {
+                mobs.tick( world, player_pos );
+            }
+            snprintf( name, sizeof( name ), "%s: standing", mob_types[ t ].name );
+            check_bool( name, mobs.mobs[ 0 ].standing == 1 && fabs( mobs.mobs[ 0 ].pos.y - 11.0 ) < 0.01 );
+        }
+    }
+
+    // --- 14: the chicken's fall cap glides it down ---------------------------
+    {
+        MobManager mobs;
+        mobs.spawner_enabled = false;
+        mobs.spawn( MOB_CHICKEN, glm::dvec3( 10.5, 16.0, 10.5 ), 0.0f, 1 );
+        double min_vy = 0.0;
+        for ( int i = 0; i < 500 && !mobs.mobs[ 0 ].standing; i++ ) {
+            const double y0 = mobs.mobs[ 0 ].pos.y;
+            mobs.tick( world, player_pos );
+            min_vy = fmin( min_vy, mobs.mobs[ 0 ].pos.y - y0 );
+        }
+        check_bool( "chicken: never falls faster than fall_cap", min_vy >= -mob_types[ MOB_CHICKEN ].fall_cap - 1e-6 && mobs.mobs[ 0 ].standing == 1 );
+    }
+
+    // --- 15: hostile helpers ----------------------------------------------
+    {
+        check_bool( "burn: noon + open sky", mob_burns_in_daylight( 1.0f, 1.0f ) );
+        check_bool( "burn: daylight > 0.5 + sky >= 0.95", mob_burns_in_daylight( 0.51f, 0.95f ) );
+        check_bool( "burn: shaded head does not", !mob_burns_in_daylight( 1.0f, 0.94f ) );
+        check_bool( "burn: dusk does not", !mob_burns_in_daylight( 0.5f, 1.0f ) );
+        check_bool( "burn: night does not", !mob_burns_in_daylight( 0.0f, 1.0f ) );
+        check_bool( "spawn light: dark night cell ok", hostile_spawn_light_ok( 1.0f, 0.0f, 0.0f ) );
+        check_bool( "spawn light: moonlit sky*daylight low ok", hostile_spawn_light_ok( 1.0f, 0.0f, 0.2f ) );
+        check_bool( "spawn light: torch-lit cell fails", !hostile_spawn_light_ok( 0.0f, 0.5f, 0.0f ) );
+        check_bool( "spawn light: day sky fails", !hostile_spawn_light_ok( 1.0f, 0.0f, 1.0f ) );
+        check_bool( "spawn light: exactly 7/15 fails", !hostile_spawn_light_ok( 7.0f / 15.0f, 0.0f, 1.0f ) );
+    }
+
+    // --- 16: zombie chase + melee hit ---------------------------------------
+    {
+        const long midnight = 3 * DAY_LENGTH_TICKS / 4; // daylight 0: no burning
+        MobManager mobs;
+        mobs.spawner_enabled = false;
+        mobs.spawn( MOB_ZOMBIE, glm::dvec3( 10.5, 11.0, 10.5 ), 0.0f, 1 );
+        mobs.mobs[ 0 ].ai_state = 0;
+        mobs.mobs[ 0 ].ai_ticks = 100000; // pin the wander fallback
+        const glm::dvec3 pfeet( 16.5, 11.0, 10.5 );
+        const glm::dvec3 ppos = pfeet + glm::dvec3( 0.0, PLAYER_EYE_HEIGHT, 0.0 );
+        MobTickInput in = { true, midnight, PLAYER_EYE_HEIGHT };
+        MobTickOutput out;
+        double d0 = fabs( mobs.mobs[ 0 ].pos.x - pfeet.x );
+        int hit_tick = -1;
+        for ( int i = 0; i < 3 * UPS_RATE; i++ ) {
+            mobs.tick( world, ppos, &in, &out );
+            if ( !out.player_hits.empty( ) && hit_tick < 0 ) {
+                hit_tick = i;
+                break;
+            }
+        }
+        check_bool( "zombie: targeting acquired", mobs.mobs[ 0 ].targeting == 1 );
+        check_bool( "zombie: closed the distance", fabs( mobs.mobs[ 0 ].pos.x - pfeet.x ) < d0 - 1.0 );
+        check_bool( "zombie: melee hit within ~3 s", hit_tick >= 0 && !out.player_hits.empty() && out.player_hits[ 0 ].damage == mob_types[ MOB_ZOMBIE ].attack_damage );
+
+        // A non-targetable player: no approach, no hits.
+        MobManager mobs2;
+        mobs2.spawner_enabled = false;
+        mobs2.spawn( MOB_ZOMBIE, glm::dvec3( 10.5, 11.0, 10.5 ), 0.0f, 1 );
+        mobs2.mobs[ 0 ].ai_state = 0;
+        mobs2.mobs[ 0 ].ai_ticks = 100000;
+        MobTickInput in2 = { false, midnight, PLAYER_EYE_HEIGHT };
+        MobTickOutput out2;
+        const double x0 = mobs2.mobs[ 0 ].pos.x;
+        for ( int i = 0; i < 3 * UPS_RATE; i++ ) {
+            mobs2.tick( world, ppos, &in2, &out2 );
+        }
+        check_bool( "zombie: untargetable gives no hits", out2.player_hits.empty( ) );
+        check_bool( "zombie: untargetable never approaches", fabs( mobs2.mobs[ 0 ].pos.x - x0 ) < 1.0 );
+    }
+
+    // --- 17: creeper fuse -> explosion; defuse on retreat --------------------
+    {
+        const long midnight = 3 * DAY_LENGTH_TICKS / 4;
+        MobManager mobs;
+        mobs.spawner_enabled = false;
+        mobs.spawn( MOB_CREEPER, glm::dvec3( 10.5, 11.0, 10.5 ), 0.0f, 1 );
+        mobs.mobs[ 0 ].ai_state = 0;
+        mobs.mobs[ 0 ].ai_ticks = 100000;
+        const glm::dvec3 ppos = glm::dvec3( 12.0, 11.0, 10.5 ) + glm::dvec3( 0.0, PLAYER_EYE_HEIGHT, 0.0 );
+        MobTickInput in = { true, midnight, PLAYER_EYE_HEIGHT };
+        MobTickOutput out;
+        int fuse_seen = -1, boom_tick = -1;
+        for ( int i = 0; i < 4 * UPS_RATE; i++ ) {
+            mobs.tick( world, ppos, &in, &out );
+            if ( !mobs.mobs.empty( ) && mobs.mobs[ 0 ].fuse_ticks > 0 && fuse_seen < 0 ) {
+                fuse_seen = i;
+            }
+            if ( !out.explosions.empty( ) ) {
+                boom_tick = i;
+                break;
+            }
+        }
+        check_bool( "creeper: fuse lit near the player", fuse_seen >= 0 );
+        check_bool( "creeper: explodes after ~1.5 s", boom_tick - fuse_seen >= ( int ) ( 1.5f * UPS_RATE ) - 2 && !out.explosions.empty( ) );
+        check_bool( "creeper: removed by the explosion", mobs.mobs.empty( ) );
+
+        // Walking away mid-fuse: the fuse counts back down, no explosion.
+        MobManager mobs2;
+        mobs2.spawner_enabled = false;
+        mobs2.spawn( MOB_CREEPER, glm::dvec3( 10.5, 11.0, 10.5 ), 0.0f, 1 );
+        mobs2.mobs[ 0 ].ai_state = 0;
+        mobs2.mobs[ 0 ].ai_ticks = 100000;
+        MobTickOutput out2;
+        glm::dvec3 ppos2 = ppos;
+        for ( int i = 0; i < 30; i++ ) {
+            mobs2.tick( world, ppos2, &in, &out2 );
+        }
+        check_bool( "creeper: fuse started", !mobs2.mobs.empty( ) && mobs2.mobs[ 0 ].fuse_ticks > 0 );
+        ppos2 += glm::dvec3( 10.0, 0.0, 0.0 ); // 10+ blocks away mid-fuse
+        for ( int i = 0; i < 300; i++ ) {
+            mobs2.tick( world, ppos2, &in, &out2 );
+        }
+        check_bool( "creeper: defused past 7 blocks", out2.explosions.empty( ) && !mobs2.mobs.empty( ) && mobs2.mobs[ 0 ].fuse_ticks == 0 );
+    }
+
+    // --- 18: despawnable mobs are never persisted ----------------------------
+    {
+        const char *orig_home = getenv( "HOME" );
+        char orig_home_buf[ 512 ] = { 0 };
+        if ( orig_home != nullptr ) {
+            strncpy( orig_home_buf, orig_home, sizeof( orig_home_buf ) - 1 );
+        }
+        setenv( "HOME", "/tmp/repgame_test_mobs_home", 1 );
+        MapStorage storage;
+        storage.init( "TestMobs" );
+        MobManager mobs;
+        mobs.init_storage( &storage );
+        // A fresh chunk (x 186..247) so earlier sections' files can't leak in:
+        // the despawnable zombie writes nothing, the persistent pig does.
+        mobs.owned_chunks.push_back( { glm::ivec3( 3, 0, 0 ), 0, 0 } );
+        mobs.spawn( MOB_ZOMBIE, glm::dvec3( 190.5, 11.0, 10.5 ), 0.0f, 1 );
+        mobs.mobs[ 0 ].despawnable = 1;
+        mobs.spawn( MOB_PIG, glm::dvec3( 190.5, 11.0, 10.5 ), 0.0f, 1 );
+        mobs.persist_all( );
+        std::vector<MobFileRecord> out;
+        check_bool( "despawnable: only the persistent mob is written",
+                    storage.load_mobs( glm::ivec3( 3, 0, 0 ), out ) == 1 && out.size( ) == 1 && out[ 0 ].type == MOB_PIG );
+        if ( orig_home != nullptr ) {
+            setenv( "HOME", orig_home_buf, 1 );
+        } else {
+            unsetenv( "HOME" );
+        }
+    }
+
     return failures;
 }
 

@@ -353,6 +353,9 @@ class RepGame {
     // selectionInBounds/floatSelectionInBounds so no block outline (or
     // place/pick through the mob) happens. Static so rep_tests can drive it.
     static void resolve_target_mob( RepGameState &state, const glm::dvec3 &ray_origin );
+    // A hostile mob's melee hit lands here: knockback away from `from` plus
+    // the player_hurt sound. `damage` is unused until player health exists.
+    static void player_hurt( RepGameState &state, const glm::dvec3 &from, float damage );
 
     int rep_tests_start( );
 };

@@ -21,6 +21,7 @@
 #include "common/map_gen.hpp"
 #include "common/block_update_events/PlayerBlockPlacedEvent.hpp"
 #include "common/block_update_events/PressurePlateEvent.hpp"
+#include "common/block_update_events/TntExplodeEvent.hpp"
 
 static inline long long now_us( ) {
     return std::chrono::duration_cast<std::chrono::microseconds>(
@@ -611,6 +612,22 @@ void RepGame::break_selected_block( ) {
 
 // Hotbar first (stacking onto matching slots), survival inventory for the
 // overflow — shared by block-break pickups and mob drops.
+// Mob melee hits: a small knockback hop away from the attacker plus the hurt
+// sound. There is no player health system yet — damage is only forwarded.
+void RepGame::player_hurt( RepGameState &state, const glm::dvec3 &from, float damage ) {
+    glm::dvec3 away = state.camera.pos - from;
+    away.y = 0.0;
+    const double len = glm::length( away );
+    if ( len > 1e-6 ) {
+        away /= len;
+        state.camera.horizontal_vel += glm::dvec2( away.x, away.z ) * 0.06;
+        if ( state.camera.standing_on_solid ) {
+            state.camera.y_speed = 0.6 * JUMP_STRENGTH;
+        }
+    }
+    audio_play_sfx( "player_hurt" );
+}
+
 void RepGame::give_block_to_player( RepGameState &state, BlockID block, int quantity ) {
     const bool added = state.hotbar.addBlockWithQuantity( block, quantity );
     if ( !added ) {
@@ -1226,7 +1243,14 @@ void RepGame::process_inventory_events( ) {
     }
     if ( globalGameState.input.spawn_mob ) {
         globalGameState.input.spawn_mob = false;
-        globalGameState.world.mobs.spawn_in_front( MOB_PIG, globalGameState.camera.pos, glm::dvec3( globalGameState.camera.look ), globalGameState.world );
+        // Debug spawn cycles the non-remote types one per press.
+        static const MobType debug_spawn_types[] = { MOB_PIG, MOB_COW, MOB_CHICKEN, MOB_SHEEP, MOB_ZOMBIE, MOB_CREEPER };
+        static int debug_spawn_idx = 0;
+        const MobType type = debug_spawn_types[ debug_spawn_idx ];
+        debug_spawn_idx = ( debug_spawn_idx + 1 ) % static_cast<int>( sizeof( debug_spawn_types ) / sizeof( debug_spawn_types[ 0 ] ) );
+        if ( globalGameState.world.mobs.spawn_in_front( type, globalGameState.camera.pos, glm::dvec3( globalGameState.camera.look ), globalGameState.world ) ) {
+            pr_debug( "Debug-spawned %s", mob_types[ type ].name );
+        }
     }
     if ( globalGameState.input.drop_item ) {
         globalGameState.input.drop_item = false;
@@ -1756,9 +1780,23 @@ void RepGame::tick( ) {
     // sync with the look direction.
     RepGame::process_camera_angle( );
     RepGame::process_movement( );
-    // Mob physics + wander AI run on the same tick cadence as the player.
-    // Frozen in capture mode and when the feet chunk isn't live.
-    globalGameState.world.mobs.tick( globalGameState.world, globalGameState.camera.pos );
+    // Mob physics + wander/chase AI run on the same tick cadence as the
+    // player. Frozen in capture mode and when the feet chunk isn't live.
+    // The input marks the player targetable only in walking survival, and
+    // the output carries melee hits + creeper explosions back here.
+    MobTickInput mob_in;
+    mob_in.player_targetable = globalGameState.game_mode == GameMode_Survival && !globalGameState.input.no_clip;
+    mob_in.world_time = globalGameState.world_time;
+    mob_in.player_eye_height = PLAYER_EYE_HEIGHT - ( globalGameState.input.movement.sneakPressed ? PLAYER_SNEAK_EYE_DROP : 0.0f );
+    MobTickOutput mob_out;
+    globalGameState.world.mobs.tick( globalGameState.world, globalGameState.camera.pos, &mob_in, &mob_out );
+    for ( const MobPlayerHit &hit : mob_out.player_hits ) {
+        RepGame::player_hurt( globalGameState, hit.from, hit.damage );
+    }
+    for ( const glm::dvec3 &pos : mob_out.explosions ) {
+        globalGameState.blockUpdateQueue.addBlockUpdate(
+            std::make_shared<TntExplodeEvent>( globalGameState.tick_number, glm::ivec3( glm::floor( pos + glm::dvec3( 0.0, 0.5, 0.0 ) ) ), entt::null, false ) );
+    }
     RepGame::process_pressure_plates( );
     if ( g_fly.enabled && !g_capture.enabled ) {
         // Settle gate: hold at the start position until the loader and light

@@ -6,7 +6,9 @@
 
 #include "common/RepGame.hpp"
 #include "common/audio.hpp"
+#include "common/chunk.hpp"
 #include "common/chunk_loader.hpp"
+#include "common/light.hpp"
 #include "common/utils/collision.hpp"
 #include "common/utils/ray_traversal.hpp"
 #include "common/world.hpp"
@@ -27,10 +29,12 @@ static float wrap_degrees( float deg ) {
 
 MobManager::MobManager( ) {
     this->enabled = !( getenv( "REPGAME_MOBS" ) && atoi( getenv( "REPGAME_MOBS" ) ) == 0 );
+    this->spawner_enabled = !( getenv( "REPGAME_MOB_SPAWNER" ) && atoi( getenv( "REPGAME_MOB_SPAWNER" ) ) == 0 );
     this->test_mode = getenv( "REPGAME_MOB_TEST" ) != nullptr;
     this->render_inited = false;
     this->storage = nullptr;
     this->poll_count = 0;
+    this->spawn_ticks = 0;
     this->next_uid = 1;
     this->rng.seed( 0x9e3779b9u );
 }
@@ -121,6 +125,13 @@ bool MobManager::spawn_any( MobType type, const glm::dvec3 &pos, float yaw, int 
     mob.say_ticks = say( this->rng );
     mob.step_acc = 0.0f;
     mob.kb = glm::dvec3( 0.0 );
+    mob.despawnable = 0;
+    mob.targeting = 0;
+    mob.attack_ticks = 0;
+    mob.fuse_ticks = 0;
+    mob.burn_acc = 0;
+    std::uniform_real_distribution<float> phase_pick( 0.0f, 6.2832f );
+    mob.wing_phase = phase_pick( this->rng );
     mob.uid = 0;
     mob.look_yaw = 0.0f;
     mob.look_pitch = 0.0f;
@@ -244,9 +255,11 @@ void MobManager::tick_remote( Mob &mob ) {
     mob.head_pitch = -mob.look_pitch;
 }
 
-void MobManager::tick_mob( World &world, Mob &mob, const MobTypeDef &def, const glm::dvec3 &player_pos ) {
+void MobManager::tick_mob( World &world, Mob &mob, const MobTypeDef &def, const glm::dvec3 &player_pos, const MobTickInput *in, MobTickOutput *out ) {
     mob.prev_pos = mob.pos;
     mob.prev_yaw = mob.yaw;
+    // Wing-flap oscillator: gentle bob on the ground, fast flap airborne.
+    mob.wing_phase += mob.standing ? 0.06f : 0.4f;
     if ( mob.hurt_ticks > 0 ) {
         mob.hurt_ticks--;
     }
@@ -257,6 +270,54 @@ void MobManager::tick_mob( World &world, Mob &mob, const MobTypeDef &def, const 
 
     const glm::ivec3 feet = glm::ivec3( glm::floor( mob.pos ) );
     const bool in_water = world.get_loaded_block( feet ).id == WATER || world.get_loaded_block( feet + glm::ivec3( 0, 1, 0 ) ).id == WATER;
+    const bool hostile = def.ai == MOB_AI_HOSTILE_MELEE || def.ai == MOB_AI_HOSTILE_CREEPER;
+    // in==nullptr defaults: not targetable, noon (no burn), standing eye height.
+    static const MobTickInput fallback_input = { false, DAY_LENGTH_TICKS / 4, PLAYER_EYE_HEIGHT };
+    if ( in == nullptr ) {
+        in = &fallback_input;
+    }
+    const glm::dvec3 player_feet = player_pos - glm::dvec3( 0.0, in->player_eye_height, 0.0 );
+    const double player_dist_xz = std::hypot( player_feet.x - mob.pos.x, player_feet.z - mob.pos.z );
+
+    // Hostile targeting: acquire inside 16 blocks of the player's feet, drop
+    // past 24. A non-targetable player means passive wandering.
+    if ( hostile ) {
+        if ( !in->player_targetable ) {
+            mob.targeting = 0;
+        } else if ( !mob.targeting && player_dist_xz < 16.0 ) {
+            mob.targeting = 1;
+        } else if ( mob.targeting && player_dist_xz > 24.0 ) {
+            mob.targeting = 0;
+        }
+    }
+
+    // Zombies burn in daylight under open sky: 1 damage per second with the
+    // hurt flash, but no knockback and no panic.
+    if ( hostile && def.ai == MOB_AI_HOSTILE_MELEE && !in_water ) {
+        const glm::dvec3 head = mob.pos + glm::dvec3( 0.0, def.hitbox_h, 0.0 );
+        const float sky = world.chunkLoader.light_sample( glm::vec3( head ) ).x;
+        if ( mob_burns_in_daylight( light_daylight_factor( in->world_time ), sky ) ) {
+            if ( ++mob.burn_acc >= UPS_RATE ) {
+                mob.burn_acc = 0;
+                mob.health -= 1.0f;
+                mob.hurt_ticks = static_cast<int>( 0.3f * UPS_RATE );
+                const double dist = glm::distance( mob.pos, player_pos );
+                const float gain = glm::clamp( 1.0f - static_cast<float>( dist ) / 16.0f, 0.0f, 1.0f );
+                if ( mob.health <= 0.0f ) {
+                    mob.death_ticks = 1;
+                    if ( def.sound_death != NULL ) {
+                        audio_play_sfx_gain( def.sound_death, gain );
+                    }
+                    return;
+                }
+                if ( def.sound_hurt != NULL ) {
+                    audio_play_sfx_gain( def.sound_hurt, gain );
+                }
+            }
+        } else {
+            mob.burn_acc = 0;
+        }
+    }
 
     // Nearest player look-at (single-player: the one camera position).
     const glm::dvec3 mob_eye = mob.pos + glm::dvec3( 0.0, def.eye_h, 0.0 );
@@ -274,7 +335,46 @@ void MobManager::tick_mob( World &world, Mob &mob, const MobTypeDef &def, const 
     }
 
     float speed = 0.0f;
-    if ( def.ai == MOB_AI_PASSIVE_WANDER ) {
+    if ( hostile && mob.targeting ) {
+        // Chase: face the player's feet, turning at most 10°/tick.
+        const glm::dvec2 to_player( player_feet.x - mob.pos.x, player_feet.z - mob.pos.z );
+        const float want_yaw = static_cast<float>( atan2( to_player.x, -to_player.y ) * ( 180.0 / M_PI ) );
+        mob.yaw += glm::clamp( wrap_degrees( want_yaw - mob.yaw ), -10.0f, 10.0f );
+        speed = def.chase_speed;
+        if ( def.ai == MOB_AI_HOSTILE_MELEE ) {
+            // Melee reach: just past the hitbox edge, with a 1 s cooldown.
+            if ( mob.attack_ticks > 0 ) {
+                mob.attack_ticks--;
+            }
+            if ( mob.attack_ticks <= 0 && player_dist_xz < def.hitbox_w / 2.0 + 0.3 + 0.5 && fabs( player_feet.y - mob.pos.y ) < 1.5 ) {
+                mob.attack_ticks = UPS_RATE;
+                if ( out != nullptr ) {
+                    out->player_hits.push_back( { mob.pos, def.attack_damage } );
+                }
+            }
+        } else {
+            // Creeper fuse: lit inside 3 blocks; the mob stands still while
+            // fusing and defuses (counts back down) past 7 blocks. The tick
+            // loop explodes it at the end of the fuse.
+            if ( mob.fuse_ticks > 0 || player_dist_xz < 3.0 ) {
+                speed = 0.0f;
+                if ( mob.fuse_ticks == 0 ) {
+                    mob.fuse_ticks = 1;
+                    audio_play_sfx( "fuse" );
+                }
+            }
+        }
+    }
+    // A lit creeper always ticks its fuse: up while in range, down (defuse)
+    // when the player left or stopped being targetable.
+    if ( def.ai == MOB_AI_HOSTILE_CREEPER && mob.fuse_ticks > 0 ) {
+        if ( mob.targeting && player_dist_xz <= 7.0 ) {
+            mob.fuse_ticks++;
+        } else {
+            mob.fuse_ticks--;
+        }
+    }
+    if ( def.ai == MOB_AI_PASSIVE_WANDER || ( hostile && !mob.targeting ) ) {
         if ( mob.panic_ticks > 0 ) {
             // Panic: sprint in a fleeing direction, re-picking occasionally.
             mob.panic_ticks--;
@@ -347,6 +447,10 @@ void MobManager::tick_mob( World &world, Mob &mob, const MobTypeDef &def, const 
         if ( mob.vel.y < -TERMINAL_VELOCITY ) {
             mob.vel.y = -TERMINAL_VELOCITY;
         }
+    }
+    // Per-type downward speed cap (the chicken's glide).
+    if ( def.fall_cap > 0.0f && mob.vel.y < -static_cast<double>( def.fall_cap ) ) {
+        mob.vel.y = -def.fall_cap;
     }
 
     // check_move's position is the eye; for a mob the eye sits at the top of
@@ -473,11 +577,12 @@ bool MobManager::hurt( int index, float damage, const glm::dvec3 &attacker_pos )
     if ( mob.death_ticks > 0 ) {
         return false;
     }
+    const MobTypeDef &def = mob_types[ mob.type ];
     mob.health -= damage;
     mob.hurt_ticks = static_cast<int>( 0.3f * UPS_RATE );
-    mob.panic_ticks = 5 * UPS_RATE;
+    // Hostiles take knockback but don't panic.
+    mob.panic_ticks = def.ai == MOB_AI_PASSIVE_WANDER ? 5 * UPS_RATE : 0;
     mob.ai_state = 0;
-    const MobTypeDef &def = mob_types[ mob.type ];
     glm::dvec3 away = mob.pos - attacker_pos;
     away.y = 0.0;
     const double len = glm::length( away );
@@ -542,7 +647,7 @@ void MobManager::poll_owned( World &world ) {
         std::vector<MobFileRecord> records;
         for ( auto it = this->mobs.begin( ); it != this->mobs.end( ); ) {
             const glm::ivec3 feet_chunk = glm::ivec3( glm::floor( it->pos / csize ) );
-            if ( it->persistent && feet_chunk == owned.pos ) {
+            if ( it->persistent && !it->despawnable && feet_chunk == owned.pos ) {
                 MobFileRecord record = { 0, 0, 0.0, 0.0, 0.0, 0.0f, 0.0f, 0u };
                 record.type = static_cast<uint16_t>( it->type );
                 record.variant = static_cast<uint16_t>( it->variant < 0 ? 0 : it->variant );
@@ -578,7 +683,7 @@ void MobManager::persist_all( ) {
     for ( const OwnedChunk &owned : this->owned_chunks ) {
         std::vector<MobFileRecord> records;
         for ( const Mob &mob : this->mobs ) {
-            if ( mob.persistent && glm::ivec3( glm::floor( mob.pos / csize ) ) == owned.pos ) {
+            if ( mob.persistent && !mob.despawnable && glm::ivec3( glm::floor( mob.pos / csize ) ) == owned.pos ) {
                 MobFileRecord record = { 0, 0, 0.0, 0.0, 0.0, 0.0f, 0.0f, 0u };
                 record.type = static_cast<uint16_t>( mob.type );
                 record.variant = static_cast<uint16_t>( mob.variant < 0 ? 0 : mob.variant );
@@ -596,16 +701,29 @@ void MobManager::persist_all( ) {
     }
 }
 
-void MobManager::tick( World &world, const glm::dvec3 &player_pos ) {
+void MobManager::tick( World &world, const glm::dvec3 &player_pos, const MobTickInput *in, MobTickOutput *out ) {
     // Remote mobs tick in every mode (they're driven by the network, not the
     // world); everything else freezes under REPGAME_MOBS=0 and capture mode.
     const bool freeze = !this->enabled || RepGame::capture_mode( );
     const glm::dvec3 csize( CHUNK_SIZE_X, CHUNK_SIZE_Y, CHUNK_SIZE_Z );
+    const float player_eye = in != nullptr ? in->player_eye_height : PLAYER_EYE_HEIGHT;
+    const glm::dvec3 player_feet = player_pos - glm::dvec3( 0.0, player_eye, 0.0 );
     for ( auto it = this->mobs.begin( ); it != this->mobs.end( ); ) {
         if ( it->uid != 0 ) {
             this->tick_remote( *it );
             ++it;
             continue;
+        }
+        // Night-spawner mobs vanish instead of freezing or lingering: past 64
+        // blocks outright, a slow random roll past 40, or when their feet
+        // chunk leaves the live window.
+        if ( it->despawnable ) {
+            const double dist = glm::distance( it->pos, player_feet );
+            std::uniform_real_distribution<double> roll( 0.0, 1.0 );
+            if ( dist > 64.0 || ( dist > 40.0 && roll( this->rng ) < 1.0 / ( 8.0 * UPS_RATE ) ) ) {
+                it = this->remove_mob( it );
+                continue;
+            }
         }
         if ( freeze ) {
             it->prev_pos = it->pos;
@@ -615,10 +733,15 @@ void MobManager::tick( World &world, const glm::dvec3 &player_pos ) {
         }
         // A mob whose feet chunk isn't live is frozen: parked/released slots
         // report LAST_BLOCK_ID from get_loaded_block and a LOADING slot at the
-        // same position hasn't finished adopting back yet.
+        // same position hasn't finished adopting back yet. Despawnable mobs
+        // are removed instead of frozen.
         const glm::ivec3 feet_chunk = glm::ivec3( glm::floor( it->pos / csize ) );
         const Chunk *chunk = world.chunkLoader.get_chunk( feet_chunk );
         if ( chunk == nullptr || chunk->load_state != CHUNK_LIVE ) {
+            if ( it->despawnable ) {
+                it = this->remove_mob( it );
+                continue;
+            }
             it->prev_pos = it->pos;
             it->prev_yaw = it->yaw;
             ++it;
@@ -628,13 +751,86 @@ void MobManager::tick( World &world, const glm::dvec3 &player_pos ) {
             it = this->remove_mob( it );
             continue;
         }
-        this->tick_mob( world, *it, mob_types[ it->type ], player_pos );
+        this->tick_mob( world, *it, mob_types[ it->type ], player_pos, in, out );
+        // A creeper's finished fuse explodes immediately — no tip-over, no
+        // drop; RepGame turns the position into a TntExplodeEvent.
+        if ( it->fuse_ticks > 0 && it->fuse_ticks >= static_cast<int>( 1.5f * UPS_RATE ) ) {
+            if ( out != nullptr ) {
+                out->explosions.push_back( it->pos );
+            }
+            it = this->remove_mob( it );
+            continue;
+        }
         ++it;
     }
     // Owned-chunk leave-poll (~every 16 ticks).
     if ( ++this->poll_count >= 16 ) {
         this->poll_count = 0;
         this->poll_owned( world );
+    }
+    // Night spawner: only a live game tick with a targetable-player input.
+    if ( in != nullptr && this->enabled && this->spawner_enabled && !this->test_mode && !RepGame::capture_mode( ) && !RepGame::fly_mode( ) ) {
+        this->tick_spawner( world, player_feet, *in );
+    }
+}
+
+// Every 2 s: while fewer than 12 night-spawned hostiles are alive, try up to
+// 4 times to place one on a dark surface 24-44 blocks from the player.
+void MobManager::tick_spawner( World &world, const glm::dvec3 &player_feet, const MobTickInput &in ) {
+    if ( ++this->spawn_ticks < 2 * UPS_RATE ) {
+        return;
+    }
+    this->spawn_ticks = 0;
+    int live = 0;
+    for ( const Mob &mob : this->mobs ) {
+        live += mob.despawnable;
+    }
+    if ( live >= 12 ) {
+        return;
+    }
+    const float daylight = light_daylight_factor( in.world_time );
+    const int player_y = static_cast<int>( floor( player_feet.y ) );
+    std::uniform_real_distribution<double> angle_pick( 0.0, 2.0 * M_PI );
+    std::uniform_real_distribution<double> dist_pick( 24.0, 44.0 );
+    std::uniform_real_distribution<float> yaw_pick( 0.0f, 360.0f );
+    std::uniform_real_distribution<double> type_roll( 0.0, 1.0 );
+    const glm::dvec3 csize( CHUNK_SIZE_X, CHUNK_SIZE_Y, CHUNK_SIZE_Z );
+    for ( int attempt = 0; attempt < 4; attempt++ ) {
+        const double angle = angle_pick( this->rng );
+        const double dist = dist_pick( this->rng );
+        const double sx = player_feet.x + sin( angle ) * dist;
+        const double sz = player_feet.z + cos( angle ) * dist;
+        const int bx = static_cast<int>( floor( sx ) );
+        const int bz = static_cast<int>( floor( sz ) );
+        int top = -1;
+        for ( int y = player_y + 16; y > player_y + 16 - 40; y-- ) {
+            if ( solid_at( world, glm::ivec3( bx, y, bz ) ) ) {
+                top = y;
+                break;
+            }
+        }
+        // Needs a floor with two non-colliding cells above for the mob.
+        if ( top < 0 || solid_at( world, glm::ivec3( bx, top + 1, bz ) ) || solid_at( world, glm::ivec3( bx, top + 2, bz ) ) ) {
+            continue;
+        }
+        const glm::dvec3 feet_pos( sx, top + 1.0, sz );
+        const glm::ivec3 feet_chunk = glm::ivec3( glm::floor( feet_pos / csize ) );
+        const Chunk *chunk = world.chunkLoader.get_chunk( feet_chunk );
+        if ( chunk == nullptr || chunk->load_state != CHUNK_LIVE ) {
+            continue;
+        }
+        const glm::vec2 light = world.chunkLoader.light_sample( glm::vec3( feet_pos ) + glm::vec3( 0.0f, 0.5f, 0.0f ) );
+        if ( !hostile_spawn_light_ok( light.x, light.y, daylight ) ) {
+            continue;
+        }
+        const MobType type = type_roll( this->rng ) < 0.6 ? MOB_ZOMBIE : MOB_CREEPER;
+        if ( this->spawn_any( type, feet_pos, yaw_pick( this->rng ), 0 ) ) {
+            this->mobs.back( ).despawnable = 1;
+            live++;
+            if ( live >= 12 ) {
+                return;
+            }
+        }
     }
 }
 
@@ -675,6 +871,16 @@ void MobManager::bone_worlds( const Mob &mob, const MobTypeDef &def, float alpha
                 if ( def.bone_legs[ leg ] != NULL && strcmp( bone.name, def.bone_legs[ leg ] ) == 0 ) {
                     const float sign = ( leg == 0 || leg == 3 ) ? 1.0f : -1.0f;
                     bone_anim[ i ].x += sign * 80.0f * cosf( phase ) * mob.leg_amp;
+                }
+            }
+        }
+        if ( def.anims & MOB_ANIM_WING_FLAP ) {
+            // Bedrock animation.chicken.general: wing0 flaps +z, wing1 -z.
+            // 20° on the ground, 70° while airborne (gliding).
+            const float amp = mob.standing ? 20.0f : 70.0f;
+            for ( int w = 0; w < 2; w++ ) {
+                if ( def.bone_wings[ w ] != NULL && strcmp( bone.name, def.bone_wings[ w ] ) == 0 ) {
+                    bone_anim[ i ].z += ( w == 0 ? 1.0f : -1.0f ) * amp * sinf( mob.wing_phase );
                 }
             }
         }
@@ -779,6 +985,16 @@ void MobManager::update_render( float alpha, const ChunkLoader &chunk_loader ) {
             base = glm::rotate( base, glm::radians( roll ), glm::vec3( 0.0f, 0.0f, 1.0f ) );
             base = glm::translate( base, glm::vec3( 0.0f, -def.hitbox_h * 0.4f, 0.0f ) );
         }
+        // Creeper fuse swelling (Java's swelling math): a small high-frequency
+        // jitter f' on top of the cubic ramp, squashing y while x/z inflate.
+        float fuse_f = 0.0f;
+        if ( ( def.anims & MOB_ANIM_SWELL ) && mob.fuse_ticks > 0 ) {
+            const float raw = mob.fuse_ticks / ( 1.5f * UPS_RATE );
+            const float fp = 1.0f + sinf( raw * 100.0f ) * raw * 0.01f;
+            fuse_f = glm::clamp( raw, 0.0f, 1.0f );
+            fuse_f = fuse_f * fuse_f * fuse_f;
+            base = glm::scale( base, glm::vec3( ( 1.0f + fuse_f * 0.4f ) * fp, ( 1.0f + fuse_f * 0.1f ) / fp, ( 1.0f + fuse_f * 0.4f ) * fp ) );
+        }
         base = glm::scale( base, glm::vec3( 1.0f / 16.0f ) );
 
         // One light sample per mob covers all of its parts.
@@ -800,8 +1016,11 @@ void MobManager::update_render( float alpha, const ChunkLoader &chunk_loader ) {
                 inst.transform = base * bone_world[ i ] * cube_m;
                 inst.light = light;
                 inst.uv_a = glm::vec4( cube.uv[ 0 ], cube.uv[ 1 ], cube.size[ 0 ], cube.size[ 1 ] );
+                // uv_b.w < 0 is the red hurt flash; > 0 is the creeper's
+                // white fuse flash on alternate tenths. Hurt wins.
+                const bool white_flash = fuse_f > 0.0f && static_cast<int>( fuse_f * 10.0f ) % 2 == 0;
                 inst.uv_b = glm::vec4( cube.size[ 2 ], static_cast<float>( def.skins[ mob.variant ] ),
-                                       ( bone.mirror || cube.mirror ) ? 1.0f : 0.0f, mob.hurt_ticks > 0 ? -0.7f : 0.0f );
+                                       ( bone.mirror || cube.mirror ) ? 1.0f : 0.0f, mob.hurt_ticks > 0 ? -0.7f : white_flash ? 0.5f : 0.0f );
             }
         }
     }

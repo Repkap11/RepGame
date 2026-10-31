@@ -14,6 +14,41 @@ class ChunkLoader;
 
 #define MAX_MOBS 256
 
+// Optional input to MobManager::tick: NULL means the player isn't targetable,
+// world_time is noon, and the night spawner stays off.
+struct MobTickInput {
+    bool player_targetable;
+    long world_time;
+    float player_eye_height; // player_pos is the eye; feet = pos - eye_height
+};
+
+// A hostile mob's melee hit on the player (damage is informational — there is
+// no player health yet; RepGame turns it into knockback + player_hurt sfx).
+struct MobPlayerHit {
+    glm::dvec3 from;
+    float damage;
+};
+
+// Per-tick results for RepGame: melee hits to apply and creeper explosions to
+// turn into TntExplodeEvents.
+struct MobTickOutput {
+    std::vector<MobPlayerHit> player_hits;
+    std::vector<glm::dvec3> explosions;
+};
+
+// Zombies burn while daylighted under open sky (and not in water). Pure
+// helper for rep_tests.
+inline bool mob_burns_in_daylight( float daylight, float sky ) {
+    return daylight > 0.5f && sky >= 0.95f;
+}
+
+// Night-spawner light gate: max(sky*daylight, block) must be below level 7
+// (fractions of 15) — pure helper for rep_tests.
+inline bool hostile_spawn_light_ok( float sky, float block, float daylight ) {
+    const float v = sky * daylight > block ? sky * daylight : block;
+    return v < 7.0f / 15.0f;
+}
+
 // Client-local passive mobs. Simulation (physics, wander AI) runs on the game
 // tick; rendering rebuilds one instanced RenderChain<ParticleVertex,
 // MobPartInstance> per frame with CPU-evaluated bone transforms from the
@@ -52,6 +87,13 @@ class MobManager {
         float sneak;        // eased 0..1 crouch amount (remote pose anim)
         float prev_sneak;
         float sneak_target;
+        // Hostile AI state.
+        int despawnable;    // night-spawner mobs: removed on distance/unload, never persisted
+        int targeting;      // currently chasing the player
+        int attack_ticks;   // melee cooldown (zombie: 1 s)
+        int fuse_ticks;     // creeper fuse; >0 while lit, counts down to defuse
+        int burn_acc;       // daylight-burn damage accumulator ticks
+        float wing_phase;   // wing-flap oscillator
         std::vector<entt::entity> parts; // one render entity per model cube
     };
     // A chunk this manager took ownership of via adopt_chunk: its mobs file
@@ -63,7 +105,8 @@ class MobManager {
         int spawned;
     };
     bool enabled;
-    bool test_mode; // REPGAME_MOB_TEST set: no natural spawn/load/persist
+    bool spawner_enabled; // REPGAME_MOB_SPAWNER=0 disables the night spawner
+    bool test_mode;       // REPGAME_MOB_TEST set: no natural spawn/load/persist
     bool render_inited;
     std::vector<Mob> mobs;
     std::vector<OwnedChunk> owned_chunks;
@@ -71,11 +114,14 @@ class MobManager {
     uint32_t next_uid;
     MapStorage *storage;
     long poll_count;
+    long spawn_ticks; // 2 s countdown for the night spawner
     RenderChain<ParticleVertex, MobPartInstance> render_chain;
 
-    void tick_mob( World &world, Mob &mob, const MobTypeDef &def, const glm::dvec3 &player_pos );
+    void tick_mob( World &world, Mob &mob, const MobTypeDef &def, const glm::dvec3 &player_pos,
+                   const MobTickInput *in, MobTickOutput *out );
     void tick_remote( Mob &mob );
     void poll_owned( World &world );
+    void tick_spawner( World &world, const glm::dvec3 &player_feet, const MobTickInput &in );
     std::vector<Mob>::iterator remove_mob( std::vector<Mob>::iterator it );
     bool spawn_any( MobType type, const glm::dvec3 &pos, float yaw, int persistent );
 
@@ -111,7 +157,7 @@ class MobManager {
     // ownership. Skips chunks already owned, parked/loading leftovers, and
     // test mode.
     void adopt_chunk( Chunk &chunk );
-    void tick( World &world, const glm::dvec3 &player_pos );
+    void tick( World &world, const glm::dvec3 &player_pos, const MobTickInput *in = nullptr, MobTickOutput *out = nullptr );
     // Per-bone world matrices in model space (pixels) at render alpha: rest
     // pose + walk/head-look animator rotations, then the sneak pose as a
     // model-space pre-multiply. Shared by update_render and rep_tests.

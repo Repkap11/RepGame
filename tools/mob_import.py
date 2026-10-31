@@ -195,6 +195,7 @@ def main():
             fail("missing geo file %s" % path)
         geo = resolve_geometry(load_geometries(path), e["geo_id"])
         bones = [parse_bone(b) for b in geo["bones"]]
+        all_bones = {b["name"]: b for b in bones}
         # Bedrock's neverRender bones (armor slot holders, base-model stubs)
         # carry no renderable geometry for us.
         bones = [b for b in bones if not b["never_render"]]
@@ -202,6 +203,15 @@ def main():
         # references (cape/item attachment points, armor stubs).
         referenced = {b["parent"] for b in bones if b["parent"] is not None}
         bones = [b for b in bones if b["cubes"] or b["name"] in referenced]
+        # A dropped bone can still be named as a parent (e.g. zombie's
+        # neverRender "waist"): re-root each survivor to its nearest kept
+        # ancestor, or the root when the whole chain was dropped.
+        kept = {b["name"] for b in bones}
+        for b in bones:
+            p = b["parent"]
+            while p is not None and p not in kept:
+                p = all_bones[p]["parent"] if p in all_bones else None
+            b["parent"] = p
         for b in bones:
             if b["name"] in e["rot_overrides"]:
                 b["rot"] = e["rot_overrides"][b["name"]]
