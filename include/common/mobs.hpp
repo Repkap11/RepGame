@@ -112,6 +112,10 @@ class MobManager {
     // test mode.
     void adopt_chunk( Chunk &chunk );
     void tick( World &world, const glm::dvec3 &player_pos );
+    // Per-bone world matrices in model space (pixels) at render alpha: rest
+    // pose + walk/head-look animator rotations, then the sneak pose as a
+    // model-space pre-multiply. Shared by update_render and rep_tests.
+    static void bone_worlds( const Mob &mob, const MobTypeDef &def, float alpha, glm::mat4 *out );
     void update_render( float alpha, const ChunkLoader &chunk_loader );
     void draw( const Renderer &renderer, const Shader &shader );
     // Persist every owned chunk's mobs (World::cleanup).

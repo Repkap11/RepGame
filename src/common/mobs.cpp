@@ -652,6 +652,108 @@ static glm::mat4 bone_local_matrix( const MobBoneDef &bone, const glm::vec3 &ani
     return glm::translate( glm::mat4( 1.0f ), anim_offset ) * m;
 }
 
+void MobManager::bone_worlds( const Mob &mob, const MobTypeDef &def, float alpha, glm::mat4 *out ) {
+    const MobModelDef &model = mob_models[ def.model ];
+    const int bone_count = model.bone_count < 32 ? model.bone_count : 32;
+
+    // Per-bone animator rotations and position offsets (model pixels),
+    // resolved by name from the type table.
+    glm::vec3 bone_anim[ 32 ];
+    glm::vec3 bone_offset[ 32 ];
+    for ( int i = 0; i < bone_count; i++ ) {
+        bone_anim[ i ] = glm::vec3( 0.0f );
+        bone_offset[ i ] = glm::vec3( 0.0f );
+    }
+    const float phase = glm::radians( mob.walk_dist * MOB_GAIT_UNITS_PER_BLOCK * 38.17f );
+    for ( int i = 0; i < bone_count; i++ ) {
+        const MobBoneDef &bone = model.bones[ i ];
+        if ( ( def.anims & MOB_ANIM_HEAD_LOOK ) && def.bone_head != NULL && strcmp( bone.name, def.bone_head ) == 0 ) {
+            bone_anim[ i ] = mob_head_anim( mob.head_yaw, mob.head_pitch );
+        }
+        if ( def.anims & MOB_ANIM_QUADRUPED_WALK ) {
+            for ( int leg = 0; leg < 4; leg++ ) {
+                if ( def.bone_legs[ leg ] != NULL && strcmp( bone.name, def.bone_legs[ leg ] ) == 0 ) {
+                    const float sign = ( leg == 0 || leg == 3 ) ? 1.0f : -1.0f;
+                    bone_anim[ i ].x += sign * 80.0f * cosf( phase ) * mob.leg_amp;
+                }
+            }
+        }
+        if ( def.anims & MOB_ANIM_HUMANOID_WALK ) {
+            // Bedrock animation.humanoid.move: tcos0 = cos(phase)*57.3°,
+            // opposite arm and leg swing together (right leg + left arm).
+            const float tcos0 = cosf( phase ) * 57.3f * mob.leg_amp;
+            for ( int limb = 0; limb < 2; limb++ ) {
+                if ( def.bone_legs[ limb ] != NULL && strcmp( bone.name, def.bone_legs[ limb ] ) == 0 ) {
+                    bone_anim[ i ].x += ( limb == 0 ? 1.4f : -1.4f ) * tcos0;
+                }
+                if ( def.bone_arms[ limb ] != NULL && strcmp( bone.name, def.bone_arms[ limb ] ) == 0 ) {
+                    bone_anim[ i ].x += ( limb == 0 ? -1.0f : 1.0f ) * tcos0;
+                }
+            }
+        }
+    }
+
+    // The sneak pose is a model-space pre-multiply applied per named part
+    // (S below), NOT folded into the bone-local matrices. In the Bedrock
+    // humanoid rig head/hat and the arms are children of body, so a local
+    // body lean would tilt the head and drag the arms; Java's ModelBiped
+    // crouch values instead treat the parts as independent. S rotates a
+    // part about its own model-space pivot and translates it; overlays and
+    // other unnamed children inherit S from their nearest named ancestor,
+    // while head/arms keep only their own S and skip body's lean entirely.
+    // Walk swing and head look below stay in the bone-local matrices, so
+    // they compose on the same pivot/axis.
+    const float s = mob.prev_sneak + ( mob.sneak - mob.prev_sneak ) * alpha;
+
+    for ( int i = 0; i < bone_count; i++ ) {
+        const MobBoneDef &bone = model.bones[ i ];
+        const glm::mat4 local = bone_local_matrix( bone, bone_anim[ i ], bone_offset[ i ] );
+        out[ i ] = bone.parent >= 0 ? out[ bone.parent ] * local : local;
+    }
+
+    if ( ( def.anims & MOB_ANIM_HUMANOID_SNEAK ) && s > 0.0f ) {
+        glm::mat4 s_eff[ 32 ];
+        for ( int i = 0; i < bone_count; i++ ) {
+            const MobBoneDef &bone = model.bones[ i ];
+            float angle = 0.0f;
+            glm::vec3 off( 0.0f );
+            int named = 0;
+            if ( def.bone_body != NULL && strcmp( bone.name, def.bone_body ) == 0 ) {
+                angle = -28.65f;
+                off.y = -1.5f;
+                named = 1;
+            } else if ( def.bone_head != NULL && strcmp( bone.name, def.bone_head ) == 0 ) {
+                off.y = -2.5f;
+                named = 1;
+            } else {
+                for ( int limb = 0; limb < 2; limb++ ) {
+                    if ( def.bone_arms[ limb ] != NULL && strcmp( bone.name, def.bone_arms[ limb ] ) == 0 ) {
+                        angle = -22.9f;
+                        off.y = -1.5f;
+                        named = 1;
+                    }
+                    if ( def.bone_legs[ limb ] != NULL && strcmp( bone.name, def.bone_legs[ limb ] ) == 0 ) {
+                        off.z = 4.0f;
+                        named = 1;
+                    }
+                }
+            }
+            if ( named ) {
+                const glm::vec3 pivot( bone.pivot[ 0 ], bone.pivot[ 1 ], bone.pivot[ 2 ] );
+                glm::mat4 sm = glm::translate( glm::mat4( 1.0f ), pivot );
+                sm = glm::rotate( sm, glm::radians( angle * s ), glm::vec3( 1.0f, 0.0f, 0.0f ) );
+                sm = glm::translate( sm, -pivot );
+                s_eff[ i ] = glm::translate( glm::mat4( 1.0f ), off * s ) * sm;
+            } else if ( bone.parent >= 0 ) {
+                s_eff[ i ] = s_eff[ bone.parent ];
+            } else {
+                s_eff[ i ] = glm::mat4( 1.0f );
+            }
+            out[ i ] = s_eff[ i ] * out[ i ];
+        }
+    }
+}
+
 void MobManager::update_render( float alpha, const ChunkLoader &chunk_loader ) {
     if ( !this->render_inited ) {
         return;
@@ -679,84 +781,14 @@ void MobManager::update_render( float alpha, const ChunkLoader &chunk_loader ) {
         }
         base = glm::scale( base, glm::vec3( 1.0f / 16.0f ) );
 
-        // Per-bone animator rotations and position offsets (model pixels),
-        // resolved by name from the type table.
-        glm::vec3 bone_anim[ 32 ];
-        glm::vec3 bone_offset[ 32 ];
-        const int bone_count = model.bone_count < 32 ? model.bone_count : 32;
-        for ( int i = 0; i < bone_count; i++ ) {
-            bone_anim[ i ] = glm::vec3( 0.0f );
-            bone_offset[ i ] = glm::vec3( 0.0f );
-        }
-        const float phase = glm::radians( mob.walk_dist * MOB_GAIT_UNITS_PER_BLOCK * 38.17f );
-        for ( int i = 0; i < bone_count; i++ ) {
-            const MobBoneDef &bone = model.bones[ i ];
-            if ( ( def.anims & MOB_ANIM_HEAD_LOOK ) && def.bone_head != NULL && strcmp( bone.name, def.bone_head ) == 0 ) {
-                bone_anim[ i ] = mob_head_anim( mob.head_yaw, mob.head_pitch );
-            }
-            if ( def.anims & MOB_ANIM_QUADRUPED_WALK ) {
-                for ( int leg = 0; leg < 4; leg++ ) {
-                    if ( def.bone_legs[ leg ] != NULL && strcmp( bone.name, def.bone_legs[ leg ] ) == 0 ) {
-                        const float sign = ( leg == 0 || leg == 3 ) ? 1.0f : -1.0f;
-                        bone_anim[ i ].x += sign * 80.0f * cosf( phase ) * mob.leg_amp;
-                    }
-                }
-            }
-            if ( def.anims & MOB_ANIM_HUMANOID_WALK ) {
-                // Bedrock animation.humanoid.move: tcos0 = cos(phase)*57.3°,
-                // opposite arm and leg swing together (right leg + left arm).
-                const float tcos0 = cosf( phase ) * 57.3f * mob.leg_amp;
-                for ( int limb = 0; limb < 2; limb++ ) {
-                    if ( def.bone_legs[ limb ] != NULL && strcmp( bone.name, def.bone_legs[ limb ] ) == 0 ) {
-                        bone_anim[ i ].x += ( limb == 0 ? 1.4f : -1.4f ) * tcos0;
-                    }
-                    if ( def.bone_arms[ limb ] != NULL && strcmp( bone.name, def.bone_arms[ limb ] ) == 0 ) {
-                        bone_anim[ i ].x += ( limb == 0 ? -1.0f : 1.0f ) * tcos0;
-                    }
-                }
-            }
-        }
-        if ( def.anims & MOB_ANIM_HUMANOID_SNEAK ) {
-            // Java ModelBiped crouch, adapted: -X rotation swings a bone's
-            // bottom toward +Z (model back). The torso leans about its neck
-            // pivot; overlays (hat/jacket/sleeves/pants) inherit their parent
-            // bone's transform automatically.
-            const float s = mob.prev_sneak + ( mob.sneak - mob.prev_sneak ) * alpha;
-            if ( s > 0.0f ) {
-                for ( int i = 0; i < bone_count; i++ ) {
-                    const MobBoneDef &bone = model.bones[ i ];
-                    if ( def.bone_body != NULL && strcmp( bone.name, def.bone_body ) == 0 ) {
-                        bone_anim[ i ].x += -28.65f * s;
-                        bone_offset[ i ].y += -3.2f * s;
-                    } else if ( def.bone_head != NULL && strcmp( bone.name, def.bone_head ) == 0 ) {
-                        bone_offset[ i ].y += -4.2f * s;
-                    } else {
-                        for ( int limb = 0; limb < 2; limb++ ) {
-                            if ( def.bone_arms[ limb ] != NULL && strcmp( bone.name, def.bone_arms[ limb ] ) == 0 ) {
-                                bone_anim[ i ].x += -22.9f * s;
-                                bone_offset[ i ].y += -3.2f * s;
-                            }
-                            if ( def.bone_legs[ limb ] != NULL && strcmp( bone.name, def.bone_legs[ limb ] ) == 0 ) {
-                                bone_offset[ i ].z += 4.0f * s;
-                                bone_offset[ i ].y += -0.2f * s;
-                            }
-                        }
-                    }
-                }
-            }
-        }
-
         // One light sample per mob covers all of its parts.
         const glm::vec2 light = chunk_loader.light_sample( glm::vec3( rpos ) + glm::vec3( 0.0f, def.eye_h, 0.0f ) );
 
         glm::mat4 bone_world[ 32 ];
-        for ( int i = 0; i < bone_count; i++ ) {
-            const MobBoneDef &bone = model.bones[ i ];
-            const glm::mat4 local = bone_local_matrix( bone, bone_anim[ i ], bone_offset[ i ] );
-            bone_world[ i ] = bone.parent >= 0 ? bone_world[ bone.parent ] * local : local;
-        }
+        bone_worlds( mob, def, alpha, bone_world );
 
         int part = 0;
+        const int bone_count = model.bone_count < 32 ? model.bone_count : 32;
         for ( int i = 0; i < bone_count; i++ ) {
             const MobBoneDef &bone = model.bones[ i ];
             for ( int c = 0; c < bone.cube_count; c++ ) {

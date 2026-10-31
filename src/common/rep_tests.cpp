@@ -1352,6 +1352,40 @@ int test_mobs( ) {
         check_near( "remote sneak: feet on ground", mobs.mobs[ 0 ].pos.y, ground, 1e-3 );
         check_bool( "remote sneak: sneak converges to 1", mobs.mobs[ 0 ].sneak > 0.95f );
 
+        // Sneaking must not tilt the head: the sneak pose is a model-space
+        // pre-multiply (head/arms don't inherit body's lean), so the head
+        // bone's rotation is identical standing vs crouched — only its
+        // model-space y drops by the 2.5px sneak offset.
+        {
+            MobManager::Mob stand_mob = mobs.mobs[ 0 ];
+            stand_mob.head_yaw = 40.0f;
+            stand_mob.head_pitch = 30.0f;
+            MobManager::Mob sneak_mob = stand_mob;
+            stand_mob.sneak = stand_mob.prev_sneak = 0.0f;
+            sneak_mob.sneak = sneak_mob.prev_sneak = 1.0f;
+            const MobTypeDef &pdef = mob_types[ MOB_PLAYER ];
+            const MobModelDef &pmodel = mob_models[ pdef.model ];
+            int head_i = -1;
+            for ( int i = 0; i < pmodel.bone_count; i++ ) {
+                if ( strcmp( pmodel.bones[ i ].name, pdef.bone_head ) == 0 ) {
+                    head_i = i;
+                }
+            }
+            check_bool( "remote sneak: head bone found", head_i >= 0 );
+            glm::mat4 w0[ 32 ], w1[ 32 ];
+            MobManager::bone_worlds( stand_mob, pdef, 1.0f, w0 );
+            MobManager::bone_worlds( sneak_mob, pdef, 1.0f, w1 );
+            float rot_diff = 0.0f;
+            for ( int c = 0; c < 3; c++ ) {
+                for ( int r = 0; r < 3; r++ ) {
+                    rot_diff = fmaxf( rot_diff, fabsf( w1[ head_i ][ c ][ r ] - w0[ head_i ][ c ][ r ] ) );
+                }
+            }
+            check_near( "remote sneak: head orientation unchanged", rot_diff, 0.0f, 1e-5f );
+            const glm::vec3 dt = glm::vec3( w1[ head_i ][ 3 ] - w0[ head_i ][ 3 ] );
+            check_bool( "remote sneak: head drops 2.5px", fabsf( dt.x ) < 1e-4f && fabsf( dt.z ) < 1e-4f && fabsf( dt.y + 2.5f ) < 1e-4f );
+        }
+
         // Standing again: sneak eases back to 0 and feet stay put.
         mobs.set_remote_pose( uid, glm::dvec3( 10.5, ground + PLAYER_EYE_HEIGHT, 10.5 ), 0.0f, 0.0f, PLAYER_EYE_HEIGHT );
         for ( int i = 0; i < 60; i++ ) {
