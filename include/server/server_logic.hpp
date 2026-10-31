@@ -16,7 +16,9 @@ class Server;
 
 // Compare_I_Vec3 lives in common/chest.hpp (shared with the client).
 
-// Per-chunk in-memory cache of edits (diffs against generated terrain).
+// Per-chunk in-memory cache of unsaved edits (diffs against generated
+// terrain). The cache holds ONLY chunks with pending edits — diff requests
+// for unedited chunks read the save file without caching.
 // last_edit_time drives the idle-timer save: when a chunk hasn't been
 // edited for CHUNK_IDLE_SAVE_SECONDS, it's persisted to disk and evicted
 // from memory.
@@ -47,6 +49,13 @@ struct ChestChunkState {
 class ServerLogic {
     MapStorage map_storage;
     std::map<glm::ivec3, ChunkCacheEntry, Compare_I_Vec3> world_cache;
+    // Chunks known to have no edits (no save file, or a file with zero
+    // diffs): diff requests skip the disk entirely for these.
+    std::set<glm::ivec3, Compare_I_Vec3> known_empty_chunks;
+    // Bound on known_empty_chunks — ~262k entries is a few tens of MB worst
+    // case, sized for the 1GB server box. On overflow the whole set is
+    // dropped; it's only an optimization.
+    static constexpr size_t KNOWN_EMPTY_CHUNKS_MAX = 1 << 18;
     // Chest state per chunk, populated lazily by ensureChestChunk.
     std::map<glm::ivec3, ChestChunkState, Compare_I_Vec3> chest_chunks;
     // chest world pos -> client fds currently viewing it (one chest open per
@@ -83,6 +92,7 @@ class ServerLogic {
     void persistChunk( const glm::ivec3 &chunk_pos );
     void persistAll( );
     ChunkCacheEntry *loadIntoCache( const glm::ivec3 &chunk_offset );
+    bool loadDiffsFromDisk( const glm::ivec3 &chunk_offset, std::map<int, BlockState> &out );
     void scheduleChunkSave( const glm::ivec3 &chunk_pos );
     void cancelChunkSave( const glm::ivec3 &chunk_pos );
 
@@ -111,4 +121,12 @@ class ServerLogic {
     // Save all dirty chunks and clear the cache. Called on SIGINT and when
     // the last client disconnects.
     void flushAll( );
+    // Selftest hook: number of chunks currently held in world_cache.
+    size_t cachedChunkCount( ) const {
+        return this->world_cache.size( );
+    }
+    // Selftest hook: number of chunks known to have no edits.
+    size_t knownEmptyChunkCount( ) const {
+        return this->known_empty_chunks.size( );
+    }
 };

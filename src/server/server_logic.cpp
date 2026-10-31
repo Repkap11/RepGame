@@ -164,17 +164,28 @@ void ServerLogic::respondToChunkRequest( Server &server, int client_fd, const gl
 
     const auto it_world = this->world_cache.find( chunk_offset );
 
-    ChunkCacheEntry *chunk_cache_prt;
-    if ( it_world == this->world_cache.end( ) ) {
-        chunk_cache_prt = this->loadIntoCache( chunk_offset );
+    // The cache holds only chunks with unsaved edits; a hit is newer than
+    // the save file. Unedited chunks stream their diffs straight from disk
+    // without being cached.
+    std::map<int, BlockState> disk_diffs;
+    const std::map<int, BlockState> *chunk_cache_prt;
+    if ( it_world != this->world_cache.end( ) ) {
+        chunk_cache_prt = &it_world->second.blocks;
     } else {
-        chunk_cache_prt = &it_world->second;
+        if ( this->known_empty_chunks.count( chunk_offset ) ) {
+            // Known to have no diffs — skip the disk entirely.
+            return;
+        }
+        this->loadDiffsFromDisk( chunk_offset, disk_diffs );
+        if ( disk_diffs.empty( ) ) {
+            if ( this->known_empty_chunks.size( ) >= KNOWN_EMPTY_CHUNKS_MAX ) {
+                this->known_empty_chunks.clear( );
+            }
+            this->known_empty_chunks.insert( chunk_offset );
+        }
+        chunk_cache_prt = &disk_diffs;
     }
-    if ( chunk_cache_prt == NULL ) {
-        // We don't have any blocks for this chunk.
-        return;
-    }
-    const std::map<int, BlockState> &chunk_cache = chunk_cache_prt->blocks;
+    const std::map<int, BlockState> &chunk_cache = *chunk_cache_prt;
     if ( chunk_cache.empty( ) ) {
         // No diffs for this chunk; emit no frame.
         return;
@@ -450,15 +461,24 @@ int ServerLogic::nextWakeTimeoutMs( ) const {
 }
 
 ChunkCacheEntry *ServerLogic::loadIntoCache( const glm::ivec3 &chunk_offset ) {
+    // Only record_block reaches here, and it schedules an idle-save timer
+    // right after — so every cache entry is persisted and evicted by
+    // processTimers once its edits go quiet.
+    ChunkCacheEntry &entry = this->world_cache[ chunk_offset ];
+    entry.blocks.clear( );
+    // This chunk is about to gain an edit — it's no longer known-empty.
+    this->known_empty_chunks.erase( chunk_offset );
+    this->loadDiffsFromDisk( chunk_offset, entry.blocks );
+    return &entry;
+}
+
+bool ServerLogic::loadDiffsFromDisk( const glm::ivec3 &chunk_offset, std::map<int, BlockState> &out ) {
+    out.clear( );
     // Check file existence before allocating a 350KB buffer. For a fresh
     // world where most chunks have no file, this avoids both a malloc/free
     // and a wasted fread attempt per chunk.
     if ( !this->map_storage.check_if_chunk_exists( chunk_offset ) ) {
-        // Cache the "no file" result so subsequent requests for this chunk
-        // skip the disk check entirely.
-        ChunkCacheEntry &entry = this->world_cache[ chunk_offset ];
-        entry.blocks.clear( );
-        return &entry;
+        return false;
     }
     BlockState *blocks = ( BlockState * )malloc( CHUNK_BLOCK_SIZE * sizeof( BlockState ) );
     for ( int i = 0; i < CHUNK_BLOCK_SIZE; ++i ) {
@@ -469,24 +489,17 @@ ChunkCacheEntry *ServerLogic::loadIntoCache( const glm::ivec3 &chunk_offset ) {
     if ( ret == 0 ) {
         free( blocks );
         // File existed according to check_if_chunk_exists but load_blocks
-        // returned 0 (race or read error). Cache as empty to avoid retrying.
-        ChunkCacheEntry &entry = this->world_cache[ chunk_offset ];
-        entry.blocks.clear( );
-        return &entry;
+        // returned 0 (race or read error).
+        return false;
     }
-    ChunkCacheEntry &entry = this->world_cache[ chunk_offset ];
-    // pr_debug( "found chunk:%d %d %d size:%ld", chunk_offset.x, chunk_offset.y, chunk_offset.z, entry.blocks.size( ) );
-    entry.blocks.clear( );
     for ( int i = 0; i < CHUNK_BLOCK_SIZE; ++i ) {
         BlockState &blockState = blocks[ i ];
         if ( blockState.id != LAST_BLOCK_ID ) {
-            entry.blocks[ i ] = blockState;
+            out[ i ] = blockState;
         }
     }
     free( blocks );
-    // Loaded from disk but not yet edited — no idle timer needed. It will
-    // be evicted on the next flushAll() (SIGINT / last-client-disconnect).
-    return &entry;
+    return true;
 }
 
 void ServerLogic::on_client_message( Server &server, int client_fd, NetMsgType type, int32_t player_id, const std::vector<uint8_t> &payload ) {

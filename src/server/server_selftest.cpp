@@ -273,6 +273,8 @@ int server_selftest( ) {
     // Interior edit in chunk (0,0,0).
     place( server, a, world, glm::ivec3( 10, 40, 10 ), stone );
     expect_forwarded( server, b, a.fd, glm::ivec3( 10, 40, 10 ), stone );
+    check( server.test_logic( ).cachedChunkCount( ) > 0,
+           "edit populates the chunk cache (got %zu)", server.test_logic( ).cachedChunkCount( ) );
     // Edge of chunk (0,0,0) -> mirrored into chunk (1,0,0)'s border.
     place( server, b, world, glm::ivec3( 61, 40, 10 ), dirt );
     // Interior of chunk (1,0,0), touching chunk 0 -> mirrored into (0,0,0).
@@ -308,6 +310,14 @@ int server_selftest( ) {
 
     DiffView view;
     collect_diffs( server, a, view );
+    // Diff reads must not populate the cache: every requested chunk was
+    // already flushed, so the cache stays empty after serving them.
+    check( server.test_logic( ).cachedChunkCount( ) == 0,
+           "diff requests leave the chunk cache empty (got %zu)", server.test_logic( ).cachedChunkCount( ) );
+    // Most of the 5x3x3 box has no save file; those positions are now
+    // remembered as known-empty.
+    check( server.test_logic( ).knownEmptyChunkCount( ) > 0,
+           "diff requests record known-empty chunks (got %zu)", server.test_logic( ).knownEmptyChunkCount( ) );
 
     const glm::ivec3 c0( 0, 0, 0 );
     const glm::ivec3 c1( 1, 0, 0 );
@@ -336,6 +346,102 @@ int server_selftest( ) {
     expect_disk_block( storage, c2, glm::ivec3( 123, 40, 10 ), sand );
 
     disconnect_client( server, a );
+
+    // --- Legacy-format chunk: pre-2047 saves marked untouched slots with
+    // LEGACY_EMPTY_BLOCK_ID. Server diff loads must read those as the empty
+    // marker (LAST_BLOCK_ID), not AIR — AIR becomes a real diff entry per
+    // slot and blows up the diff map. ---
+    const glm::ivec3 leg( 5, 0, 5 );
+    {
+        const glm::ivec3 leg_pos = leg * CHUNK_SIZE_I + glm::ivec3( 10, 40, 10 );
+        const int leg_index = index_in_chunk( leg, leg_pos );
+        const int other_index = leg_index + 1;
+
+        // Write a legacy-format chunk file directly (persist_dirty_blocks
+        // encodes raw states, no sanitizing).
+        BlockState *legacy = static_cast<BlockState *>( malloc( CHUNK_BLOCK_SIZE * sizeof( BlockState ) ) );
+        for ( int i = 0; i < CHUNK_BLOCK_SIZE; ++i ) {
+            legacy[ i ] = BlockState{ static_cast<BlockID>( LEGACY_EMPTY_BLOCK_ID ), 0, 0,
+                                      static_cast<BlockID>( LEGACY_EMPTY_BLOCK_ID ), 0 };
+        }
+        legacy[ leg_index ] = stone;
+        storage.persist_dirty_blocks( leg, legacy );
+        free( legacy );
+
+        SimClient c = connect_client( server );
+        drain_client( server, c );
+        send_diff_request( server, c, leg, 1, 1, 1 );
+        DiffView leg_view;
+        collect_diffs( server, c, leg_view );
+        expect_diff( leg_view, leg, leg_pos, stone );
+        const auto lit = leg_view.find( leg );
+        check( lit != leg_view.end( ) && lit->second.size( ) == 1,
+               "legacy chunk (%d,%d,%d) diff has exactly 1 entry (got %zu)",
+               leg.x, leg.y, leg.z, lit == leg_view.end( ) ? 0 : lit->second.size( ) );
+        check( server.test_logic( ).cachedChunkCount( ) == 0,
+               "legacy diff request leaves the chunk cache empty (got %zu)",
+               server.test_logic( ).cachedChunkCount( ) );
+        disconnect_client( server, c );
+
+        // The disconnect flush rewrote the file; the slots that were the
+        // legacy sentinel must now load as the empty marker, not AIR.
+        BlockState *blocks = static_cast<BlockState *>( malloc( CHUNK_BLOCK_SIZE * sizeof( BlockState ) ) );
+        int dirty = 0;
+        if ( storage.load_blocks( leg, blocks, dirty, true ) ) {
+            check( blocks[ leg_index ].id == STONE,
+                   "rewritten legacy chunk keeps stone at index %d (id=%d)", leg_index, blocks[ leg_index ].id );
+            check( blocks[ other_index ].id == LAST_BLOCK_ID,
+                   "rewritten legacy chunk index %d loads empty marker (id=%d)", other_index, blocks[ other_index ].id );
+        } else {
+            check( false, "no chunk file for legacy chunk (%d,%d,%d)", leg.x, leg.y, leg.z );
+        }
+        free( blocks );
+    }
+
+    // --- Known-empty chunks: a diff request for a chunk with no save file
+    // is remembered, a second request skips the disk, and an edit
+    // invalidates the mark. ---
+    const glm::ivec3 ke( 7, 0, 7 );
+    {
+        const glm::ivec3 ke_pos = ke * CHUNK_SIZE_I + glm::ivec3( 10, 40, 10 );
+        SimClient c = connect_client( server );
+        drain_client( server, c );
+
+        const size_t before = server.test_logic( ).knownEmptyChunkCount( );
+        send_diff_request( server, c, ke, 1, 1, 1 );
+        DiffView ke_view;
+        collect_diffs( server, c, ke_view );
+        check( ke_view.find( ke ) == ke_view.end( ),
+               "unseen chunk (%d,%d,%d) emits no diff", ke.x, ke.y, ke.z );
+        check( server.test_logic( ).knownEmptyChunkCount( ) == before + 1,
+               "unseen chunk recorded known-empty (got %zu, want %zu)",
+               server.test_logic( ).knownEmptyChunkCount( ), before + 1 );
+
+        send_diff_request( server, c, ke, 1, 1, 1 );
+        collect_diffs( server, c, ke_view );
+        check( ke_view.find( ke ) == ke_view.end( ),
+               "second request for known-empty chunk emits no diff" );
+        check( server.test_logic( ).knownEmptyChunkCount( ) == before + 1,
+               "second request for known-empty chunk adds nothing (got %zu)",
+               server.test_logic( ).knownEmptyChunkCount( ) );
+
+        // An edit invalidates the known-empty mark.
+        place( server, c, world, ke_pos, stone );
+        check( server.test_logic( ).knownEmptyChunkCount( ) == before,
+               "edit invalidates known-empty mark (got %zu, want %zu)",
+               server.test_logic( ).knownEmptyChunkCount( ), before );
+
+        // Flush persists the edit; a fresh client gets it back by diff.
+        disconnect_client( server, c );
+        c = connect_client( server );
+        drain_client( server, c );
+        send_diff_request( server, c, ke, 1, 1, 1 );
+        ke_view.clear( );
+        collect_diffs( server, c, ke_view );
+        expect_diff( ke_view, ke, ke_pos, stone );
+        disconnect_client( server, c );
+    }
+
     server.cleanup( );
 
     std::filesystem::remove_all( world_dir( ) );

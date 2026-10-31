@@ -383,8 +383,10 @@ int load_blocks_decode( MapStorage &storage, const glm::ivec3 &chunk_offset, Sin
             }
         }
         if ( blockState.id == LEGACY_EMPTY_BLOCK_ID ) {
-            // Pre-2047 saves stored the empty sentinel as a real id.
-            blockState = BLOCK_STATE_AIR;
+            // Pre-2047 saves stored the empty sentinel as a real id. Server
+            // diff loads (expect_empty_blocks) need the current empty marker
+            // so untouched slots stay out of the diff map.
+            blockState = expect_empty_blocks ? BLOCK_STATE_LAST_BLOCK_ID : BLOCK_STATE_AIR;
         }
         if ( blockState.display_id == LEGACY_EMPTY_BLOCK_ID ) {
             blockState.display_id = blockState.id;
