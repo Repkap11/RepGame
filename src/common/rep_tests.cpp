@@ -555,6 +555,114 @@ int test_fences( ) {
     check_bool( "showcase: oak vs nether pair", MapGen::block_world_id( 6, 1, -8 ) == OAK_FENCE && MapGen::block_world_id( 7, 1, -8 ) == NETHER_BRICK_FENCE );
     check_bool( "showcase: nether run", MapGen::block_world_id( 10, 1, -8 ) == NETHER_BRICK_FENCE );
     check_bool( "showcase: air around layout", MapGen::block_world_id( -2, 1, -4 ) == AIR );
+
+    // --- fence_collision_boxes ----------------------------------------------
+    check_bool( "collision: no connections gives just the post",
+                fence_collision_boxes( 0, boxes ) == 1 &&                                                            //
+                    boxes[ 0 ].scale[ 0 ] == 4 && boxes[ 0 ].scale[ 1 ] == 24 && boxes[ 0 ].scale[ 2 ] == 4 && //
+                    boxes[ 0 ].offset[ 0 ] == 6 && boxes[ 0 ].offset[ 1 ] == 0 && boxes[ 0 ].offset[ 2 ] == 6 );
+    check_bool( "collision: one side gives post + 1 bar",
+                fence_collision_boxes( FENCE_CONNECT_POS_X, boxes ) == 2 &&                                     //
+                    boxes[ 1 ].offset[ 0 ] == 10 && boxes[ 1 ].scale[ 0 ] == 6 &&                             //
+                    boxes[ 1 ].scale[ 1 ] == 24 &&                                                            //
+                    boxes[ 1 ].offset[ 2 ] == 6 && boxes[ 1 ].scale[ 2 ] == 4 );
+    check_bool( "collision: opposite sides merge into one bar",
+                fence_collision_boxes( FENCE_CONNECT_POS_X | FENCE_CONNECT_NEG_X, boxes ) == 2 && //
+                    boxes[ 1 ].offset[ 0 ] == 0 && boxes[ 1 ].scale[ 0 ] == 16 );
+    check_bool( "collision: all four sides give 3 boxes", fence_collision_boxes( 0xF, boxes ) == 3 );
+    // Collision boxes stay in the cell horizontally but stand 24px tall
+    // (1.5 blocks) on purpose.
+    auto collision_in_bounds = [ & ]( unsigned mask ) {
+        const int n = fence_collision_boxes( mask, boxes );
+        for ( int i = 0; i < n; i++ ) {
+            if ( boxes[ i ].offset[ 0 ] < 0 || boxes[ i ].offset[ 0 ] + boxes[ i ].scale[ 0 ] > 16 ||
+                 boxes[ i ].offset[ 2 ] < 0 || boxes[ i ].offset[ 2 ] + boxes[ i ].scale[ 2 ] > 16 ||
+                 boxes[ i ].offset[ 1 ] != 0 || boxes[ i ].scale[ 1 ] != 24 ) {
+                return false;
+            }
+        }
+        return true;
+    };
+    check_bool( "collision: every box within cell xz, 1.5 tall", collision_in_bounds( 0xF ) && collision_in_bounds( 0 ) && collision_in_bounds( FENCE_CONNECT_POS_X | FENCE_CONNECT_POS_Z ) );
+
+    // World-level: two adjacent fences wall off the gap between their posts.
+    {
+        RepGameState &gs2 = *new RepGameState( );
+        gs2.tick_number = 0;
+        gs2.camera.pos = glm::dvec3( 0, 0, 0 );
+        test_setup_world( gs2.world );
+        World &world = gs2.world;
+        const BlockState stone = { STONE, 0, 0, STONE, 0 };
+        const BlockState fence = { OAK_FENCE, 0, 0, OAK_FENCE, 0 };
+        for ( int x = 19; x <= 22; x++ ) {
+            for ( int z = 19; z <= 22; z++ ) {
+                world.set_loaded_block( glm::ivec3( x, 10, z ), stone );
+            }
+        }
+        const double eye_y = 11.0 + PLAYER_EYE_HEIGHT;
+        world.set_loaded_block( glm::ivec3( 20, 11, 20 ), fence );
+        world.set_loaded_block( glm::ivec3( 21, 11, 20 ), fence );
+        check_bool( "collision: gap between connected posts blocked",
+                    Collision::collides_at( world, glm::dvec3( 21.0, eye_y, 20.5 ), PLAYER_HEIGHT, PLAYER_EYE_HEIGHT ) );
+        world.set_loaded_block( glm::ivec3( 21, 11, 20 ), BLOCK_STATE_AIR );
+        check_bool( "collision: lone post leaves the gap open",
+                    !Collision::collides_at( world, glm::dvec3( 21.0, eye_y, 20.5 ), PLAYER_HEIGHT, PLAYER_EYE_HEIGHT ) );
+        world.set_loaded_block( glm::ivec3( 21, 11, 20 ), fence );
+        glm::dvec3 pos( 21.0, eye_y, 19.5 );
+        int standing = 0;
+        for ( int i = 0; i < 30; i++ ) {
+            glm::dvec3 vec( 0.0, -0.05, 0.05 );
+            Collision::check_move( world, vec, pos, &standing, PLAYER_HEIGHT, PLAYER_EYE_HEIGHT, false );
+            pos += vec;
+        }
+        check_bool( "collision: walking through the gap gets stopped", pos.z < 20.2 );
+
+        // 1.5-block height: feet 1.2 above the fence cell overlap the
+        // (extended) box even though that box's top sits in the next cell
+        // down — exercising the extra scan layer below the AABB.
+        check_bool( "collision: feet at fence+1.2 over the post collide",
+                    Collision::collides_at( world, glm::dvec3( 20.5, 11.0 + 1.2 + PLAYER_EYE_HEIGHT, 20.5 ), PLAYER_HEIGHT, PLAYER_EYE_HEIGHT ) );
+        check_bool( "collision: feet above fence+1.5 don't collide",
+                    !Collision::collides_at( world, glm::dvec3( 20.5, 11.0 + 1.5 + 0.01 + PLAYER_EYE_HEIGHT, 20.5 ), PLAYER_HEIGHT, PLAYER_EYE_HEIGHT ) );
+
+        // Jump-over: standing next to the row, jumping while pushing across
+        // the fence line never reaches the far side (jump apex ~1.22 < 1.5).
+        pos = glm::dvec3( 21.0, eye_y, 19.5 );
+        double vy = JUMP_STRENGTH;
+        for ( int i = 0; i < 80; i++ ) {
+            glm::dvec3 vec( 0.0, vy, 0.05 );
+            Collision::check_move( world, vec, pos, &standing, PLAYER_HEIGHT, PLAYER_EYE_HEIGHT, false );
+            pos += vec;
+            vy = pos.y > 11.0 + PLAYER_EYE_HEIGHT ? vy - GRAVITY_STRENGTH : vy;
+        }
+        check_bool( "collision: jumping over the fence row stays on near side", pos.z < 20.5 );
+
+        // Closed gate collides at fence height; open gate doesn't at all.
+        world.set_loaded_block( glm::ivec3( 20, 11, 24 ), { FENCE_GATE, 0, 0, FENCE_GATE, 0 } );
+        check_bool( "collision: closed gate blocks at fence+1.2",
+                    Collision::collides_at( world, glm::dvec3( 20.5, 11.0 + 1.2 + PLAYER_EYE_HEIGHT, 24.5 ), PLAYER_HEIGHT, PLAYER_EYE_HEIGHT ) );
+        check_bool( "collision: closed gate blocks the bottom gap",
+                    Collision::collides_at( world, glm::dvec3( 20.5, eye_y, 24.5 ), PLAYER_HEIGHT, PLAYER_EYE_HEIGHT ) );
+        world.set_loaded_block( glm::ivec3( 20, 11, 24 ), { FENCE_GATE, BLOCK_ROTATE_GATE_OPEN, 0, FENCE_GATE, 0 } );
+        check_bool( "collision: open gate lets the player through",
+                    !Collision::collides_at( world, glm::dvec3( 20.5, eye_y, 24.5 ), PLAYER_HEIGHT, PLAYER_EYE_HEIGHT ) );
+        world.set_loaded_block( glm::ivec3( 20, 11, 24 ), BLOCK_STATE_AIR );
+
+        // A player dropped onto a fence stands on top of it at fence+1.5.
+        pos = glm::dvec3( 20.5, 11.0 + 2.2 + PLAYER_EYE_HEIGHT, 20.5 );
+        standing = 0;
+        for ( int i = 0; i < 40 && standing == 0; i++ ) {
+            glm::dvec3 vec( 0.0, -0.05, 0.0 );
+            Collision::check_move( world, vec, pos, &standing, PLAYER_HEIGHT, PLAYER_EYE_HEIGHT, false );
+            pos += vec;
+        }
+        check_bool( "collision: dropped player lands on the fence", standing == 1 );
+        const double feet = pos.y - PLAYER_EYE_HEIGHT;
+        pr_test( "  %-55s value=%-9.4f expected=%-9.4f  %s", "collision: standing on fence top at +1.5", feet, 12.5, fabs( feet - 12.5 ) < 0.05 ? "PASS" : "FAIL" );
+        if ( fabs( feet - 12.5 ) >= 0.05 ) {
+            failures++;
+        }
+    }
     return failures;
 }
 

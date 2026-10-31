@@ -243,6 +243,10 @@ bool fence_connects_to( const Block *fence, BlockID neighbor_id, unsigned char n
 // Fill `out` with the fence's boxes for a connection mask; box 0 is the post.
 // Returns the box count.
 int fence_boxes( unsigned connections, BlockBox out[ FENCE_MAX_BOXES ] );
+// Fill `out` with the fence's collision boxes: the post plus a bar per
+// connected axis, all 24px tall (1.5 blocks, like Minecraft) so fences
+// can't be jumped. Returns the box count.
+int fence_collision_boxes( unsigned connections, BlockBox out[ FENCE_MAX_BOXES ] );
 // Fill `out` with the gate's definition-space (rotation 0, spans x) boxes;
 // the shader turns them with face_shift = rot & 3. Returns the box count.
 int fence_gate_boxes( bool open, BlockBox out[ FENCE_GATE_MAX_BOXES ] );

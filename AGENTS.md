@@ -532,9 +532,17 @@ on placement and store open/closed in rotation bit 2
 (`BLOCK_ROTATE_GATE_OPEN`; facing is `rotation & 3`, the gate spans world x
 when `(rotation & 1) == 0`); right-click toggles them (sneak + right-click
 places instead), and open gates don't collide. `block_yaw` masks the open
-bit for single-box consumers (collision, raycast, selection, debris), so
-gates never hit the `rotation >= 4` wall-torch branches. Collision and
-selection stay a single box — the fence post or the gate's bounding box.
+bit for single-box consumers (raycast, selection, debris), so
+gates never hit the `rotation >= 4` wall-torch branches. Collision is
+multi-box (`fence_collision_boxes` via `block_collision_boxes` in
+collision.cpp): the post plus a 4px bar spanning from the post face to
+the cell edge on each connected side (both sides merge to 0..16), all
+1.5 blocks tall like Minecraft — closed gates also collide at 1.5
+blocks from the cell floor — so players and mobs can neither slip
+between adjacent posts nor jump the fence. Because a box can reach above
+its cell, the collision scan includes one layer below the player AABB.
+Open gates still don't collide. Selection/raycast stay a single box —
+the fence post or the gate's bounding box.
 
 `REPGAME_BLOCK_WORLD=1` ("block world") is a debug mode for eyeballing
 every block: `make linux-run-blocks` runs it. Normal terrain, structures,

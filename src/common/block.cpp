@@ -89,6 +89,57 @@ int fence_boxes( unsigned connections, BlockBox out[ FENCE_MAX_BOXES ] ) {
     return n;
 }
 
+// Collision boxes: the post plus one full-height 4px-thick bar per
+// connected axis, spanning from the post face to the cell edge(s) — two
+// fences one apart meet edge-to-edge so a 0.6-wide player can't slip
+// between posts. Same merge rule as fence_boxes: both sides of an axis
+// give one 0..16 bar. Boxes are 1.5 blocks tall (24px, Minecraft-style)
+// so players and mobs can't hop fences.
+int fence_collision_boxes( unsigned connections, BlockBox out[ FENCE_MAX_BOXES ] ) {
+    int n = 0;
+    out[ n ].scale[ 0 ] = 4;
+    out[ n ].scale[ 1 ] = 24;
+    out[ n ].scale[ 2 ] = 4;
+    out[ n ].offset[ 0 ] = 6;
+    out[ n ].offset[ 1 ] = 0;
+    out[ n ].offset[ 2 ] = 6;
+    out[ n ].skip_faces = 0;
+    n++;
+    if ( connections & ( FENCE_CONNECT_POS_X | FENCE_CONNECT_NEG_X ) ) {
+        signed char lo = 0, hi = 16;
+        if ( !( connections & FENCE_CONNECT_POS_X ) ) {
+            hi = 6; // post face at x=6
+        } else if ( !( connections & FENCE_CONNECT_NEG_X ) ) {
+            lo = 10; // post face at x=10
+        }
+        out[ n ].scale[ 0 ] = hi - lo;
+        out[ n ].scale[ 1 ] = 24;
+        out[ n ].scale[ 2 ] = 4;
+        out[ n ].offset[ 0 ] = lo;
+        out[ n ].offset[ 1 ] = 0;
+        out[ n ].offset[ 2 ] = 6;
+        out[ n ].skip_faces = 0;
+        n++;
+    }
+    if ( connections & ( FENCE_CONNECT_POS_Z | FENCE_CONNECT_NEG_Z ) ) {
+        signed char lo = 0, hi = 16;
+        if ( !( connections & FENCE_CONNECT_POS_Z ) ) {
+            hi = 6;
+        } else if ( !( connections & FENCE_CONNECT_NEG_Z ) ) {
+            lo = 10;
+        }
+        out[ n ].scale[ 0 ] = 4;
+        out[ n ].scale[ 1 ] = 24;
+        out[ n ].scale[ 2 ] = hi - lo;
+        out[ n ].offset[ 0 ] = 6;
+        out[ n ].offset[ 1 ] = 0;
+        out[ n ].offset[ 2 ] = lo;
+        out[ n ].skip_faces = 0;
+        n++;
+    }
+    return n;
+}
+
 // Definition space at rotation 0: the gate spans x, posts at x 0..2 and
 // 14..16. Open leaves fold toward def -z (camera yaw 0 looks toward -z).
 int fence_gate_boxes( bool open, BlockBox out[ FENCE_GATE_MAX_BOXES ] ) {

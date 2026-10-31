@@ -27,32 +27,61 @@ static bool aabb_overlap( const glm::dvec3 &min1, const glm::dvec3 &max1, const 
            min1.z < max2.z && max1.z > min2.z;
 }
 
-// Computes the collision AABB of the block at `block_pos`. Returns false if the
-// block does not collide with the player (air, non-collidable). Unloaded
+// Computes the collision AABBs of the block at `block_pos`. Returns the box
+// count (0 = no collision). Unloaded
 // blocks are treated as solid full blocks so the player can't fall into the
 // unloaded void (matches the previous collide_with_unloaded behavior).
-static bool block_collision_aabb( World &world, const glm::ivec3 &block_pos, glm::dvec3 &out_min, glm::dvec3 &out_max ) {
+// Fences emit the post plus full-height bars toward connected sides
+// (fence_collision_boxes); every other type emits exactly one box.
+static int block_collision_boxes( World &world, const glm::ivec3 &block_pos, glm::dvec3 mins[ FENCE_MAX_BOXES ], glm::dvec3 maxs[ FENCE_MAX_BOXES ] ) {
     BlockState blockState = world.get_loaded_block( block_pos );
     BlockID blockID = blockState.id;
     if ( blockID >= LAST_BLOCK_ID ) {
-        out_min = glm::dvec3( block_pos );
-        out_max = glm::dvec3( block_pos ) + glm::dvec3( 1.0 );
-        return true;
+        mins[ 0 ] = glm::dvec3( block_pos );
+        maxs[ 0 ] = glm::dvec3( block_pos ) + glm::dvec3( 1.0 );
+        return 1;
     }
     Block *block = block_definition_get_definition( blockID );
     if ( !block->collides_with_player ) {
-        return false;
+        return 0;
     }
     // Open fence gates don't collide — an open gate can be walked through.
     if ( block->is_fence_gate && ( blockState.rotation & BLOCK_ROTATE_GATE_OPEN ) != 0 ) {
-        return false;
+        return 0;
     }
+    if ( block->is_fence ) {
+        // Build the connection mask from the 4 horizontal neighbours, the
+        // same rules as the mesher in chunk.cpp phase 2; an unloaded cell
+        // (LAST_BLOCK_ID) doesn't connect.
+        unsigned connections = 0;
+        static const int conn_dir[ 4 ][ 4 ] = { // dx, dz, connect bit, along_x
+            { 1, 0, FENCE_CONNECT_POS_X, 1 },
+            { -1, 0, FENCE_CONNECT_NEG_X, 1 },
+            { 0, 1, FENCE_CONNECT_POS_Z, 0 },
+            { 0, -1, FENCE_CONNECT_NEG_Z, 0 },
+        };
+        for ( int d = 0; d < 4; d++ ) {
+            const BlockState neighbor = world.get_loaded_block( block_pos + glm::ivec3( conn_dir[ d ][ 0 ], 0, conn_dir[ d ][ 1 ] ) );
+            if ( neighbor.id != LAST_BLOCK_ID && fence_connects_to( block, neighbor.id, neighbor.rotation, conn_dir[ d ][ 3 ] ) ) {
+                connections |= conn_dir[ d ][ 2 ];
+            }
+        }
+        BlockBox boxes[ FENCE_MAX_BOXES ];
+        const int num_boxes = fence_collision_boxes( connections, boxes );
+        for ( int i = 0; i < num_boxes; i++ ) {
+            mins[ i ] = glm::dvec3( block_pos ) + glm::dvec3( PIXEL_TO_FLOAT( boxes[ i ].offset[ 0 ] ), PIXEL_TO_FLOAT( boxes[ i ].offset[ 1 ] ), PIXEL_TO_FLOAT( boxes[ i ].offset[ 2 ] ) );
+            maxs[ i ] = mins[ i ] + glm::dvec3( PIXEL_TO_FLOAT( boxes[ i ].scale[ 0 ] ), PIXEL_TO_FLOAT( boxes[ i ].scale[ 1 ] ), PIXEL_TO_FLOAT( boxes[ i ].scale[ 2 ] ) );
+        }
+        return num_boxes;
+    }
+    glm::dvec3 &out_min = mins[ 0 ];
+    glm::dvec3 &out_max = maxs[ 0 ];
     const unsigned char rot = block_yaw( block, blockState.rotation );
     const bool piston_extended = block->is_piston && blockState.current_redstone_power > 0;
     if ( !block->non_full_size && !piston_extended ) {
         out_min = glm::dvec3( block_pos );
         out_max = glm::dvec3( block_pos ) + glm::dvec3( 1.0 );
-        return true;
+        return 1;
     }
     // Non-full-size block: apply the same horizontal rotation logic used by
     // ray_traversal's contains_pixel so partial blocks (slabs, fences, etc.)
@@ -104,7 +133,13 @@ static bool block_collision_aabb( World &world, const glm::ivec3 &block_pos, glm
     out_max.z = out_min.z + PIXEL_TO_FLOAT( scale_z );
     out_min.y = static_cast<double>( block_pos.y ) + PIXEL_TO_FLOAT( offset_y );
     out_max.y = out_min.y + PIXEL_TO_FLOAT( scale_y );
-    return true;
+    if ( block->is_fence_gate ) {
+        // Closed gates collide like fences: 1.5 blocks tall from the cell
+        // floor, so nothing hops them or crawls under the 5px bottom gap.
+        out_min.y = static_cast<double>( block_pos.y );
+        out_max.y = out_min.y + 1.5;
+    }
+    return 1;
 }
 
 // Returns true if the player AABB overlaps any solid block.
@@ -112,16 +147,19 @@ static bool aabb_collides_world( World &world, const glm::dvec3 &amin, const glm
     const double eps = 1e-4;
     const int x0 = static_cast<int>( floor( amin.x ) );
     const int x1 = static_cast<int>( floor( amax.x - eps ) );
-    const int y0 = static_cast<int>( floor( amin.y ) );
+    // Fence/gate collision reaches 0.5 into the cell above, so also scan the
+    // layer below the AABB; ordinary boxes there never overlap.
+    const int y0 = static_cast<int>( floor( amin.y ) ) - 1;
     const int y1 = static_cast<int>( floor( amax.y - eps ) );
     const int z0 = static_cast<int>( floor( amin.z ) );
     const int z1 = static_cast<int>( floor( amax.z - eps ) );
     for ( int x = x0; x <= x1; x++ ) {
         for ( int y = y0; y <= y1; y++ ) {
             for ( int z = z0; z <= z1; z++ ) {
-                glm::dvec3 bmin, bmax;
-                if ( block_collision_aabb( world, glm::ivec3( x, y, z ), bmin, bmax ) ) {
-                    if ( aabb_overlap( amin, amax, bmin, bmax ) ) {
+                glm::dvec3 mins[ FENCE_MAX_BOXES ], maxs[ FENCE_MAX_BOXES ];
+                const int num_boxes = block_collision_boxes( world, glm::ivec3( x, y, z ), mins, maxs );
+                for ( int i = 0; i < num_boxes; i++ ) {
+                    if ( aabb_overlap( amin, amax, mins[ i ], maxs[ i ] ) ) {
                         return true;
                     }
                 }
@@ -152,7 +190,9 @@ static void resolve_axis( World &world, glm::dvec3 &amin, glm::dvec3 &amax, int 
     const double eps = 1e-4;
     const int x0 = static_cast<int>( floor( amin.x ) );
     const int x1 = static_cast<int>( floor( amax.x - eps ) );
-    const int y0 = static_cast<int>( floor( amin.y ) );
+    // One extra layer below: 1.5-block-tall collision boxes (fences, closed
+    // gates) reach above their own cell.
+    const int y0 = static_cast<int>( floor( amin.y ) ) - 1;
     const int y1 = static_cast<int>( floor( amax.y - eps ) );
     const int z0 = static_cast<int>( floor( amin.z ) );
     const int z1 = static_cast<int>( floor( amax.z - eps ) );
@@ -162,30 +202,32 @@ static void resolve_axis( World &world, glm::dvec3 &amin, glm::dvec3 &amax, int 
     for ( int x = x0; x <= x1; x++ ) {
         for ( int y = y0; y <= y1; y++ ) {
             for ( int z = z0; z <= z1; z++ ) {
-                glm::dvec3 bmin, bmax;
-                if ( !block_collision_aabb( world, glm::ivec3( x, y, z ), bmin, bmax ) ) {
-                    continue;
-                }
-                if ( !aabb_overlap( amin, amax, bmin, bmax ) ) {
-                    continue;
-                }
-                if ( delta > 0.0 ) {
-                    // Moving +: clamp to the block's min face, but only if the
-                    // player's leading edge (pre_max) actually crossed it.
-                    if ( bmin[ axis ] >= pre_max && bmin[ axis ] < amax[ axis ] ) {
-                        if ( bmin[ axis ] < best ) {
-                            best = bmin[ axis ];
-                        }
-                        found = true;
+                glm::dvec3 mins[ FENCE_MAX_BOXES ], maxs[ FENCE_MAX_BOXES ];
+                const int num_boxes = block_collision_boxes( world, glm::ivec3( x, y, z ), mins, maxs );
+                for ( int i = 0; i < num_boxes; i++ ) {
+                    const glm::dvec3 &bmin = mins[ i ];
+                    const glm::dvec3 &bmax = maxs[ i ];
+                    if ( !aabb_overlap( amin, amax, bmin, bmax ) ) {
+                        continue;
                     }
-                } else {
-                    // Moving -: clamp to the block's max face, but only if the
-                    // player's leading edge (pre_min) actually crossed it.
-                    if ( bmax[ axis ] > amin[ axis ] && bmax[ axis ] <= pre_min ) {
-                        if ( bmax[ axis ] > best ) {
-                            best = bmax[ axis ];
+                    if ( delta > 0.0 ) {
+                        // Moving +: clamp to the block's min face, but only if the
+                        // player's leading edge (pre_max) actually crossed it.
+                        if ( bmin[ axis ] >= pre_max && bmin[ axis ] < amax[ axis ] ) {
+                            if ( bmin[ axis ] < best ) {
+                                best = bmin[ axis ];
+                            }
+                            found = true;
                         }
-                        found = true;
+                    } else {
+                        // Moving -: clamp to the block's max face, but only if the
+                        // player's leading edge (pre_min) actually crossed it.
+                        if ( bmax[ axis ] > amin[ axis ] && bmax[ axis ] <= pre_min ) {
+                            if ( bmax[ axis ] > best ) {
+                                best = bmax[ axis ];
+                            }
+                            found = true;
+                        }
                     }
                 }
             }
