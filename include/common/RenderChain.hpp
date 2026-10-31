@@ -61,6 +61,12 @@ template <typename Element, typename Instance> class RenderChain {
         registry.patch<Instance>( entity );
     }
 
+    // Marks every instance dirty so the next draw does one full re-upload.
+    // For chains whose instances are rewritten each frame (mob parts).
+    void invalidate_all( ) {
+        this->instance_count_changed = true;
+    }
+
     void remove( const entt::entity &entity ) {
         registry.destroy( entity );
     }

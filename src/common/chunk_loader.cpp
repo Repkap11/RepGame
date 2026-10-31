@@ -232,6 +232,10 @@ void ChunkLoader::finalize_loaded_chunk( Chunk &chunk, Multiplayer &multiplayer,
     if ( chunk.should_render ) {
         chunk.light_ensure_texture( );
     }
+    // Mob ownership handoff: World::render drains this list into
+    // MobManager::adopt_chunk so pending_mobs (loaded records or the
+    // natural-spawn roll) become live mobs.
+    this->just_finalized.push_back( &chunk );
 }
 
 void ChunkLoader::init( const glm::dvec3 &camera_pos, const VertexBufferLayout &vbl_block, const VertexBufferLayout &vbl_coords, MapStorage &map_storage, int render_radius ) {

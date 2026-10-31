@@ -186,6 +186,11 @@ void Input::keysInput( const SDL_Keycode key, const bool pressed ) {
                 this->toggle_imgui = true;
             }
             break;
+        case 'n':
+            if ( pressed ) {
+                this->spawn_mob = true;
+            }
+            break;
         case 'i':
         case 'e':
             if ( pressed ) {

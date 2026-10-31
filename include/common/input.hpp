@@ -67,6 +67,9 @@ class Input {
     // Set by the 'g' key; consumed by imgui_overlay_draw to show/hide the
     // debug overlay at runtime.
     bool toggle_imgui;
+    // Set by the 'n' key (debug); consumed by RepGame::tick to spawn a mob
+    // in front of the player.
+    bool spawn_mob;
     bool shift_held;
     // Accumulated PageUp/PageDown time-of-day nudges (in day-fraction steps);
     // consumed by RepGame each frame and applied to world_time.

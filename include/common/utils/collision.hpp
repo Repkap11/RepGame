@@ -13,13 +13,15 @@ class Collision {
     // tall. When edge_guard is set, horizontal moves made while standing that
     // would leave the player with no support within STEP_HEIGHT below are
     // clamped back to the edge (sneak edge protection).
+    // half_width is the AABB's horizontal half-extent (mobs pass their own
+    // hitbox width; the player keeps the default).
     static void check_move( World &world, glm::dvec3 &movement_vec, glm::dvec3 &position, int *out_standing,
-                            double player_height, double eye_height, bool edge_guard );
+                            double player_height, double eye_height, bool edge_guard, double half_width = PLAYER_WIDTH / 2.0 );
     // Returns 1 if the player AABB at `player` overlaps the block at `block`.
     static int check_collides_with_block( World &world, const glm::dvec3 &player, const glm::ivec3 &block,
-                                          double player_height, double eye_height );
+                                          double player_height, double eye_height, double half_width = PLAYER_WIDTH / 2.0 );
     // Returns true if the player AABB with the given dimensions at eye
     // position `eye` overlaps any solid block. Used for the headroom check
     // before standing up out of a sneak.
-    static bool collides_at( World &world, const glm::dvec3 &eye, double player_height, double eye_height );
+    static bool collides_at( World &world, const glm::dvec3 &eye, double player_height, double eye_height, double half_width = PLAYER_WIDTH / 2.0 );
 };

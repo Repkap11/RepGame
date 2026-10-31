@@ -116,6 +116,9 @@ bool RepGame::capture_mode( ) {
     return g_capture.enabled;
 }
 
+// Left-click damage to a mob in survival (creative kills in one hit).
+#define HIT_DAMAGE 4.0f
+
 // --- Fly mode (REPGAME_FLY) ---------------------------------------------------
 // REPGAME_FLY="x,y,z,yaw,pitch[,speed]": scripted no-clip flight for load-in
 // stress tests. tick() pins the camera to start + look*speed*t each tick, so
@@ -601,11 +604,17 @@ void RepGame::break_selected_block( ) {
     if ( globalGameState.game_mode == GameMode_Survival && previous_block != LAST_BLOCK_ID && previous_block != AIR ) {
         const Block *blockDef = block_definition_get_definition( previous_block );
         if ( blockDef->is_pickable && blockDef->renderOrder != RenderOrder_Transparent && blockDef->renderOrder != RenderOrder_Water ) {
-            bool added = globalGameState.hotbar.addBlockWithQuantity( previous_block, 1 );
-            if ( !added ) {
-                globalGameState.survival_inventory.addBlock( previous_block, 1 );
-            }
+            RepGame::give_block_to_player( globalGameState, previous_block, 1 );
         }
+    }
+}
+
+// Hotbar first (stacking onto matching slots), survival inventory for the
+// overflow — shared by block-break pickups and mob drops.
+void RepGame::give_block_to_player( RepGameState &state, BlockID block, int quantity ) {
+    const bool added = state.hotbar.addBlockWithQuantity( block, quantity );
+    if ( !added ) {
+        state.survival_inventory.addBlock( block, quantity );
     }
 }
 
@@ -640,7 +649,37 @@ void RepGame::process_mouse_events( ) {
             RepGame::add_to_hotbar( true, blockState.id );
         }
     }
-    const bool holding_break = globalGameState.block_selection.selectionInBounds && globalGameState.input.mouse.buttons.left && !globalGameState.input.mouse.buttons.left_pressed_in_ui;
+    // Mob hits pre-empt mining: a mob nearer than the selected block (or no
+    // block selected) takes the left-click damage instead.
+    globalGameState.hit_mob = -1;
+    if ( globalGameState.world.mobs.is_enabled( ) && globalGameState.input.mouse.buttons.left && !globalGameState.input.mouse.buttons.left_pressed_in_ui && !globalGameState.input.inventory_open && globalGameState.input.click_delay_left == 0 ) {
+        double mob_dist = 0.0;
+        const int mob = globalGameState.world.mobs.raycast( globalGameState.block_selection.ray_origin, globalGameState.block_selection.ray_dir, REACH_DISTANCE, &mob_dist );
+        if ( mob >= 0 ) {
+            const glm::dvec3 block_center = glm::dvec3( globalGameState.block_selection.pos_destroy ) + glm::dvec3( 0.5 );
+            const double block_dist = glm::distance( globalGameState.block_selection.ray_origin, block_center );
+            if ( !globalGameState.block_selection.selectionInBounds || mob_dist < block_dist ) {
+                globalGameState.hit_mob = mob;
+                globalGameState.mob_hit_dist = mob_dist;
+            }
+        }
+    }
+    if ( globalGameState.hit_mob >= 0 ) {
+        // Survival: HIT_DAMAGE per click; creative kills in one hit. A
+        // survival kill hands the type's drops to the player's inventories.
+        const bool killed = globalGameState.world.mobs.hurt( globalGameState.hit_mob, globalGameState.game_mode == GameMode_Survival ? HIT_DAMAGE : 1000.0f, globalGameState.camera.pos );
+        globalGameState.input.click_delay_left = 30;
+        globalGameState.block_mining.progress_ticks = 0.0f;
+        globalGameState.vr.haptic_pending = true;
+        if ( killed && globalGameState.game_mode == GameMode_Survival ) {
+            const MobTypeDef &def = globalGameState.world.mobs.def_at( globalGameState.hit_mob );
+            if ( def.drop_block != LAST_BLOCK_ID ) {
+                const int drop = def.drop_min + rand( ) % ( def.drop_max - def.drop_min + 1 );
+                RepGame::give_block_to_player( globalGameState, def.drop_block, drop );
+            }
+        }
+    }
+    const bool holding_break = globalGameState.hit_mob < 0 && globalGameState.block_selection.selectionInBounds && globalGameState.input.mouse.buttons.left && !globalGameState.input.mouse.buttons.left_pressed_in_ui;
     if ( holding_break && globalGameState.input.click_delay_left == 0 ) {
         // Mining a block
         if ( globalGameState.game_mode == GameMode_Survival ) {
@@ -1166,6 +1205,10 @@ void RepGame::process_inventory_events( ) {
         }
         pr_debug( "Game mode toggled to: %s", globalGameState.game_mode == GameMode_Creative ? "Creative" : "Survival" );
     }
+    if ( globalGameState.input.spawn_mob ) {
+        globalGameState.input.spawn_mob = false;
+        globalGameState.world.mobs.spawn_in_front( MOB_PIG, globalGameState.camera.pos, glm::dvec3( globalGameState.camera.look ), globalGameState.world );
+    }
     if ( globalGameState.input.drop_item ) {
         globalGameState.input.drop_item = false;
         globalGameState.hotbar.dropSelectedItem( );
@@ -1542,6 +1585,10 @@ void RepGame::tick( ) {
             const glm::vec3 dir = glm::normalize( glm::vec3( R_body * glm::vec4( globalGameState.vr.input.aim_orientation * glm::vec3( 0.0f, 0.0f, -1.0f ), 0.0f ) ) );
             pos_with_reach = ray_origin + glm::dvec3( dir ) * static_cast<double>( REACH_DISTANCE );
         }
+        // Keep the ray for the mob hit test in process_mouse_events (next
+        // tick; the ray is recomputed every tick so it's at most 1 tick old).
+        globalGameState.block_selection.ray_origin = ray_origin;
+        globalGameState.block_selection.ray_dir = glm::normalize( pos_with_reach - ray_origin );
         const BlockID selected_block = globalGameState.hotbar.getSelectedBlock( );
         const int pick_water = selected_block != LAST_BLOCK_ID && block_definition_get_definition( selected_block )->can_float_on_water;
         globalGameState.block_selection.selectionInBounds = RayTraversal::find_block_from_to( globalGameState.world, nullptr, ray_origin, pos_with_reach, globalGameState.block_selection.pos_destroy, &whichFace, 0, 1, 0, 0 );
@@ -1686,6 +1733,9 @@ void RepGame::tick( ) {
     // sync with the look direction.
     RepGame::process_camera_angle( );
     RepGame::process_movement( );
+    // Mob physics + wander AI run on the same tick cadence as the player.
+    // Frozen in capture mode and when the feet chunk isn't live.
+    globalGameState.world.mobs.tick( globalGameState.world, globalGameState.camera.pos );
     RepGame::process_pressure_plates( );
     if ( g_fly.enabled && !g_capture.enabled ) {
         // Settle gate: hold at the start position until the loader and light
@@ -2288,7 +2338,7 @@ void RepGame::draw_frame( float alpha, const RenderView *views, int num_views ) 
             // rebased world frame for screen-space reflections.
             const glm::mat4 inv_mvp = glm::inverse( mvp );
             globalGameState.world.draw( globalGameState.blocksTexture, mvp, inv_mvp, mvp_reflect, mvp_sky, mvp_sky_reflect, globalGameState.input.debug_mode, !globalGameState.input.inventory_open, render_pos.y, headInWater,
-                                        globalGameState.input.worldDrawQuality, render_pos, renderOrigin, time_s, daylight, debugVars.min_ambient );
+                                        globalGameState.input.worldDrawQuality, render_pos, renderOrigin, time_s, daylight, debugVars.min_ambient, alpha );
         } else {
             // Stereo: per-eye view = body yaw ∘ tracked eye pose, eye position
             // offset from the (once-per-frame) render origin. Eye 0 issues
@@ -2317,7 +2367,7 @@ void RepGame::draw_frame( float alpha, const RenderView *views, int num_views ) 
                 glClear( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT );
                 globalGameState.world.chunkLoader.set_occlusion_probe_pass( i == 0 );
                 globalGameState.world.draw( globalGameState.blocksTexture, mvp, inv_mvp, mvp_reflect, mvp_sky, mvp_sky_reflect, globalGameState.input.debug_mode, !globalGameState.input.inventory_open, static_cast<float>( eye_pos.y ), headInWater,
-                                            globalGameState.input.worldDrawQuality, eye_pos, renderOrigin, time_s, daylight, debugVars.min_ambient );
+                                            globalGameState.input.worldDrawQuality, eye_pos, renderOrigin, time_s, daylight, debugVars.min_ambient, alpha );
             }
             globalGameState.world.chunkLoader.set_occlusion_probe_pass( true );
             FrameBuffer::set_display( 0 );
@@ -2356,7 +2406,7 @@ void RepGame::draw_frame( float alpha, const RenderView *views, int num_views ) 
         const long long t_ui_start = now_us( );
         draw_ui_pass( render_pos, daylight );
         if ( !g_capture.enabled ) {
-            imgui_overlay_draw( &globalGameState.imgui_overlay, globalGameState.input );
+            imgui_overlay_draw( &globalGameState.imgui_overlay, globalGameState.input, globalGameState );
         }
         profiling.us_ui_draw = now_us( ) - t_ui_start;
     }

@@ -1,0 +1,7 @@
+# One line per mob model:
+# name|geo_file|geometry_id|skin1,skin2,...[|bone=rx,ry,rz;...]
+# Paths are relative to $BEDROCK_SAMPLES (default
+# /home/paul/Software/bedrock-samples/resource_pack). The optional last field
+# overrides bone rest rotations (degrees) where the rest pose comes from an
+# animation file rather than the geo (the pig body's 90° setup rotation).
+pig|models/entity/pig_v1.0.geo.json|geometry.pig|textures/entity/pig/pig.png|body=-90,0,0

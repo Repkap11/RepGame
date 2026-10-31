@@ -50,11 +50,14 @@ class Texture {
     // change_size re-applies this after regen.
     int depthStencilTextureMode = 0;
 
-    void loadTexture( const TextureSourceData &texture_source, int blur_mag );
+    void loadTexture( const TextureSourceData &texture_source, int blur_mag, bool mipmaps );
     void init_empty_base( int blur_mag, int target, int internalFormat, int format, int type );
 
   public:
-    void init( const TextureSourceData &texture_source, int blur_mag );
+    // mipmaps=false skips the mip chain, the fill_transparent_rgb pass and
+    // LINEAR_MIPMAP_LINEAR (min becomes NEAREST) — for textures whose tiny UV
+    // islands would bleed into each other at distance (mob skins).
+    void init( const TextureSourceData &texture_source, int blur_mag, bool mipmaps = true );
     void change_size( int width, int height );
     void init_empty_color( int blur_mag );
     void init_empty_depth_stencil( int blur_mag );

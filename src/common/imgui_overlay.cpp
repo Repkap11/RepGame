@@ -112,7 +112,7 @@ void imgui_overlay_handle_sdl2_event( ImGuiOverlay *ui_overlay, SDL_Event *event
     *handledKeyboard = io.WantCaptureKeyboard && ui_overlay->shown;
 }
 
-void imgui_overlay_draw( ImGuiOverlay *imgui_overlay, Input &input ) {
+void imgui_overlay_draw( ImGuiOverlay *imgui_overlay, Input &input, RepGameState &state ) {
     ImGui_ImplOpenGL3_NewFrame( );
     ImGui_ImplSDL_NewFrame( );
     ImGui::NewFrame( );
@@ -196,6 +196,7 @@ void imgui_overlay_draw( ImGuiOverlay *imgui_overlay, Input &input ) {
             ImGui::Text( "Particles: %d (%d debris, %d primed TNT)",
                          debug_vars.debris_particles + debug_vars.primed_tnt,
                          debug_vars.debris_particles, debug_vars.primed_tnt );
+            ImGui::Text( "Mobs: %d", static_cast<int>( state.world.mobs.count( ) ) );
 
             // debug_vars.corner1.x = round( debug_vars.corner1.x * 20 ) / 20;
             // debug_vars.corner1.y = round( debug_vars.corner1.y * 20 ) / 20;
@@ -225,7 +226,7 @@ void imgui_overlay_cleanup( ImGuiOverlay *imgui_overlay ) {
 #else
 void imgui_overlay_init( ImGuiOverlay *imgui_overlay ) {
 }
-void imgui_overlay_draw( ImGuiOverlay *ui_overlay, Input &input ) {
+void imgui_overlay_draw( ImGuiOverlay *ui_overlay, Input &input, RepGameState &state ) {
 }
 void imgui_overlay_cleanup( ImGuiOverlay *ui_overlay ) {
 }

@@ -1,10 +1,12 @@
 #include <string.h>
 #include <chrono>
+#include <random>
 #include <vector>
 
 #include "common/RepGame.hpp"
 #include "common/chunk.hpp"
 #include "common/map_gen.hpp"
+#include "common/mob_types.hpp"
 #include "common/mesh_gen.hpp"
 #include "common/utils/map_storage.hpp"
 #include "common/structure_gen.hpp"
@@ -275,6 +277,9 @@ void Chunk::release_terrain( ) {
     this->dirty = 0;
     this->chests.clear( );
     this->chests_loaded = 0;
+    this->pending_mobs.clear( );
+    this->mobs_file_present = 0;
+    this->mobs_spawned = 0;
 }
 
 void Chunk::draw( const Renderer &renderer, const Texture &texture, Shader &shader, RenderOrder renderOrder, bool draw_reflect, const glm::vec3 &render_origin, int light_base_loc ) {
@@ -461,6 +466,97 @@ static inline long long now_us( ) {
         std::chrono::steady_clock::now( ).time_since_epoch( ) ).count( );
 }
 #endif
+
+// FNV-1a mix of chunk pos, mob type and the map seed — the deterministic
+// natural-spawn key (the same hash drives the spawn roll, herd size,
+// positions and variants).
+static uint64_t mob_spawn_seed( const glm::ivec3 &pos, int type ) {
+    uint64_t h = 1469598103934665603ull;
+    const uint64_t vals[] = { static_cast<uint64_t>( static_cast<uint32_t>( pos.x ) ), static_cast<uint64_t>( static_cast<uint32_t>( pos.y ) ),
+                              static_cast<uint64_t>( static_cast<uint32_t>( pos.z ) ), static_cast<uint64_t>( type ), static_cast<uint64_t>( MAP_SEED ) };
+    for ( uint64_t v : vals ) {
+        h ^= v;
+        h *= 1099511628211ull;
+    }
+    return h;
+}
+
+// Natural spawn roll for a freshly generated chunk: per mob type, the hash
+// decides whether a herd appears; members stand on `spawn_on` column tops
+// that have hitbox headroom inside the chunk.
+bool Chunk::spawn_mobs( ) {
+    if ( this->cells == nullptr ) {
+        return false;
+    }
+    bool spawned = false;
+    const glm::ivec3 origin = this->chunk_pos * CHUNK_SIZE_I;
+    for ( int t = 0; t < MOB_TYPE_COUNT; t++ ) {
+        const MobTypeDef &def = mob_types[ t ];
+        if ( def.spawn_chance <= 0.0f ) {
+            continue;
+        }
+        std::mt19937_64 rng( mob_spawn_seed( this->chunk_pos, t ) );
+        std::uniform_real_distribution<double> roll( 0.0, 1.0 );
+        if ( roll( rng ) >= def.spawn_chance ) {
+            continue;
+        }
+        // Interior columns only, and the whole hitbox must fit inside the
+        // chunk: the top colliding cell is the floor; the headroom cells
+        // above it must be inside the chunk and non-colliding.
+        const int headroom = static_cast<int>( ceilf( def.hitbox_h ) );
+        std::vector<glm::ivec3> spots;
+        for ( int x = 0; x < CHUNK_SIZE_X; x++ ) {
+            for ( int z = 0; z < CHUNK_SIZE_Z; z++ ) {
+                int top = -1;
+                for ( int y = CHUNK_SIZE_Y - 1; y >= 0; y-- ) {
+                    const BlockID id = this->id_at( Chunk::get_index_from_coords( x, y, z ) );
+                    if ( id != AIR && block_definition_get_definition( id )->collides_with_player ) {
+                        top = y;
+                        break;
+                    }
+                }
+                if ( top < 0 || top + headroom >= CHUNK_SIZE_Y ||
+                     this->id_at( Chunk::get_index_from_coords( x, top, z ) ) != def.spawn_on ) {
+                    continue;
+                }
+                bool fits = true;
+                for ( int y = top + 1; y <= top + headroom; y++ ) {
+                    const BlockID id = this->id_at( Chunk::get_index_from_coords( x, y, z ) );
+                    if ( id != AIR && block_definition_get_definition( id )->collides_with_player ) {
+                        fits = false;
+                        break;
+                    }
+                }
+                if ( fits ) {
+                    spots.push_back( glm::ivec3( x, top + 1, z ) );
+                }
+            }
+        }
+        if ( spots.empty( ) ) {
+            continue;
+        }
+        const int herd_want = def.herd_min + static_cast<int>( rng( ) % static_cast<uint64_t>( def.herd_max - def.herd_min + 1 ) );
+        const int herd = herd_want < static_cast<int>( spots.size( ) ) ? herd_want : static_cast<int>( spots.size( ) );
+        std::uniform_real_distribution<float> yaw_pick( 0.0f, 360.0f );
+        for ( int i = 0; i < herd; i++ ) {
+            const size_t pick = rng( ) % spots.size( );
+            const glm::ivec3 spot = spots[ pick ];
+            spots[ pick ] = spots.back( );
+            spots.pop_back( );
+            MobFileRecord record = { 0, 0, 0.0, 0.0, 0.0, 0.0f, 0.0f, 0u };
+            record.type = static_cast<uint16_t>( t );
+            record.variant = def.skin_count > 1 ? static_cast<uint16_t>( rng( ) % static_cast<uint64_t>( def.skin_count ) ) : 0;
+            record.x = origin.x + spot.x + 0.5;
+            record.y = origin.y + spot.y;
+            record.z = origin.z + spot.z + 0.5;
+            record.yaw = yaw_pick( rng );
+            record.health = def.max_health;
+            this->pending_mobs.push_back( record );
+            spawned = true;
+        }
+    }
+    return spawned;
+}
 
 void Chunk::load_terrain( MapStorage &map_storage ) {
     if constexpr ( !REMEMBER_BLOCKS ) {
@@ -651,6 +747,21 @@ skip_to_mesh:
             continue;
         }
         this->chests[ Chunk::get_index_from_coords( diff ) ] = pair.second;
+    }
+    // Mob sidecar (same pattern as chests): an existing file — even an
+    // empty marker — suppresses natural spawning; otherwise a freshly
+    // generated chunk rolls spawn_chance per type. Skipped entirely for
+    // REPGAME_MOB_TEST runs and REPGAME_MOBS=0. Static env reads: this runs
+    // once per chunk on every terrain worker and env can't change mid-run.
+    static const bool no_mobs = ( getenv( "REPGAME_MOBS" ) != nullptr && atoi( getenv( "REPGAME_MOBS" ) ) == 0 ) || getenv( "REPGAME_MOB_TEST" ) != nullptr;
+    this->pending_mobs.clear( );
+    this->mobs_file_present = 0;
+    this->mobs_spawned = 0;
+    if ( !no_mobs ) {
+        this->mobs_file_present = map_storage.load_mobs( this->chunk_pos, this->pending_mobs ) ? 1 : 0;
+        if ( !this->mobs_file_present && !loaded ) {
+            this->mobs_spawned = this->spawn_mobs( ) ? 1 : 0;
+        }
     }
     // Flood-fill emitters + column_open flags on the worker. Skylight is
     // resolved on the lighting thread by ChunkLoader::light_finalize_chunk.

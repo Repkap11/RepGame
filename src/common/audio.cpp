@@ -317,6 +317,7 @@ struct SfxVoice {
     const float *data = nullptr;
     int frames = 0;
     int pos = 0;
+    float gain = 1.0f;
 };
 SfxVoice voices[ 32 ];
 
@@ -459,8 +460,9 @@ static void SDLCALL audio_mix_cb( void *userdata, Uint8 *stream, int len ) {
         }
         const float *src = v.data + v.pos * device_spec.channels;
         const int n = n_frames * device_spec.channels;
+        const float g = sfx_gain * v.gain;
         for ( int i = 0; i < n; i++ ) {
-            out[ i ] += src[ i ] * sfx_gain;
+            out[ i ] += src[ i ] * g;
         }
         v.pos += n_frames;
         if ( v.pos >= v.frames ) {
@@ -730,6 +732,10 @@ void audio_tick( long tick_number ) {
 }
 
 void audio_play_sfx( const char *base_name ) {
+    audio_play_sfx_gain( base_name, 1.0f );
+}
+
+void audio_play_sfx_gain( const char *base_name, float gain ) {
     if ( !audio_enabled ) {
         return;
     }
@@ -759,6 +765,7 @@ void audio_play_sfx( const char *base_name ) {
             v.data = pcm.data;
             v.frames = pcm.frames;
             v.pos = 0;
+            v.gain = gain;
             return;
         }
     }
@@ -770,7 +777,7 @@ void audio_play_sfx( const char *base_name ) {
         pr_debug( "audio: stream create failed: %s", SDL_GetError( ) );
         return;
     }
-    SDL_SetAudioStreamGain( s, sfx_gain );
+    SDL_SetAudioStreamGain( s, sfx_gain * gain );
     if ( !SDL_PutAudioStreamData( s, pcm.data, pcm.frames * pcm.channels * ( int )sizeof( float ) ) ) {
         pr_debug( "audio: put failed for sfx '%s': %s", SFX_SOUNDS[ idx ].base, SDL_GetError( ) );
         SDL_DestroyAudioStream( s );

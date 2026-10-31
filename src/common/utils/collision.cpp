@@ -3,10 +3,9 @@
 
 #include <cmath>
 
-// Player collision AABB half-extents. The camera position is the eye; the body
-// is centered on (pos.x, pos.z) with the feet eye_height below the eye and the
-// head (player_height - eye_height) above it.
-static const double HALF_WIDTH = PLAYER_WIDTH / 2.0;
+// The camera position is the eye; the body is centered on (pos.x, pos.z) with
+// the feet eye_height below the eye and the head (player_height - eye_height)
+// above it. half_width is the AABB's horizontal half-extent.
 // Small skin kept between the player and block faces so floating-point error
 // never causes a re-collision on the next substep.
 static const double SKIN = 1e-4;
@@ -15,9 +14,9 @@ static const double NO_CLAMP_POS = 1e9;
 static const double NO_CLAMP_NEG = -1e9;
 
 // Build the player collision AABB from the eye position.
-static void player_aabb( const glm::dvec3 &eye, double player_height, double eye_height, glm::dvec3 &out_min, glm::dvec3 &out_max ) {
-    out_min = glm::dvec3( eye.x - HALF_WIDTH, eye.y - eye_height, eye.z - HALF_WIDTH );
-    out_max = glm::dvec3( eye.x + HALF_WIDTH, out_min.y + player_height, eye.z + HALF_WIDTH );
+static void player_aabb( const glm::dvec3 &eye, double player_height, double eye_height, double half_width, glm::dvec3 &out_min, glm::dvec3 &out_max ) {
+    out_min = glm::dvec3( eye.x - half_width, eye.y - eye_height, eye.z - half_width );
+    out_max = glm::dvec3( eye.x + half_width, out_min.y + player_height, eye.z + half_width );
 }
 
 // True if two AABBs overlap (strict inequalities so flush contact does not
@@ -304,7 +303,7 @@ static void move_horizontal_axis( World &world, glm::dvec3 &amin, glm::dvec3 &am
     amax[ axis ] = pre_max[ axis ] + lo * ( clamped_max[ axis ] - pre_max[ axis ] );
 }
 
-int Collision::check_collides_with_block( World &world, const glm::dvec3 &player, const glm::ivec3 &block, double player_height, double eye_height ) {
+int Collision::check_collides_with_block( World &world, const glm::dvec3 &player, const glm::ivec3 &block, double player_height, double eye_height, double half_width ) {
     // Used by block placement validation: reject if the player overlaps the
     // target block cell. Treat the target as a full 1x1x1 block (the caller
     // already gated on collides_with_player), matching the original behavior.
@@ -312,22 +311,22 @@ int Collision::check_collides_with_block( World &world, const glm::dvec3 &player
     const glm::dvec3 block_max = block_min + glm::dvec3( 1.0 );
 
     glm::dvec3 pmin, pmax;
-    player_aabb( player, player_height, eye_height, pmin, pmax );
+    player_aabb( player, player_height, eye_height, half_width, pmin, pmax );
     return aabb_overlap( pmin, pmax, block_min, block_max ) ? 1 : 0;
 }
 
-bool Collision::collides_at( World &world, const glm::dvec3 &eye, double player_height, double eye_height ) {
+bool Collision::collides_at( World &world, const glm::dvec3 &eye, double player_height, double eye_height, double half_width ) {
     glm::dvec3 amin, amax;
-    player_aabb( eye, player_height, eye_height, amin, amax );
+    player_aabb( eye, player_height, eye_height, half_width, amin, amax );
     return aabb_collides_world( world, amin, amax );
 }
 
 void Collision::check_move( World &world, glm::dvec3 &movement_vec, glm::dvec3 &position, int *out_standing,
-                            double player_height, double eye_height, bool edge_guard ) {
+                            double player_height, double eye_height, bool edge_guard, double half_width ) {
     bool standing = false;
 
     glm::dvec3 amin, amax;
-    player_aabb( position, player_height, eye_height, amin, amax );
+    player_aabb( position, player_height, eye_height, half_width, amin, amax );
     const glm::dvec3 initial_center = ( amin + amax ) * 0.5;
 
     // Substep so no single resolve moves more than COLLISION_MAX_SUBSTEP on any

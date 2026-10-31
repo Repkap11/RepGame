@@ -191,7 +191,7 @@ static void subsample_tile_rgb( const unsigned char *src, int src_stride, int sw
     }
 }
 
-void Texture::loadTexture( const TextureSourceData &texture_source, int blur_mag ) {
+void Texture::loadTexture( const TextureSourceData &texture_source, int blur_mag, bool mipmaps ) {
     unsigned char *data;
 
     int mem_size = texture_source.width * texture_source.height * BYTES_PER_PIXEL;
@@ -239,6 +239,7 @@ void Texture::loadTexture( const TextureSourceData &texture_source, int blur_mag
     // sharpens oblique views without blurring head-on surfaces.
     // REPGAME_TEX_MIPMAPS=0 restores the old NEAREST-only sampling for A/B.
     static const bool tex_mipmaps = !( getenv( "REPGAME_TEX_MIPMAPS" ) && atoi( getenv( "REPGAME_TEX_MIPMAPS" ) ) == 0 );
+    const bool gen_mipmaps = mipmaps && tex_mipmaps;
 
     // Mip chain dimensions, halving to 1x1 like GL's own mipmapping would.
     int level_w[ 32 ], level_h[ 32 ];
@@ -253,7 +254,7 @@ void Texture::loadTexture( const TextureSourceData &texture_source, int blur_mag
         lh = lh > 1 ? lh / 2 : 1;
     }
 
-    if ( tex_mipmaps ) {
+    if ( gen_mipmaps ) {
         for ( unsigned int ty = 0; ty < textures_down; ty++ ) {
             for ( unsigned int tx = 0; tx < textures_across; tx++ ) {
                 fill_transparent_rgb( working + ( ty * texture_source.width * texture_source.tile_size_down + tx * texture_source.tile_size_across ) * BYTES_PER_PIXEL,
@@ -271,7 +272,7 @@ void Texture::loadTexture( const TextureSourceData &texture_source, int blur_mag
                   texture_source.tile_size_across, texture_source.tile_size_down, //
                   layer_count, 0, this->format, this->type, NULL );
     showErrors( );
-    if ( tex_mipmaps ) {
+    if ( gen_mipmaps ) {
         for ( int l = 1; l < mip_levels; l++ ) {
             glTexImage3D( this->target, l, this->internalFormat, level_w[ l ], level_h[ l ], layer_count, 0, this->format, this->type, NULL );
         }
@@ -296,7 +297,7 @@ void Texture::loadTexture( const TextureSourceData &texture_source, int blur_mag
     glPixelStorei( GL_UNPACK_ROW_LENGTH, 0 );
     glPixelStorei( GL_UNPACK_IMAGE_HEIGHT, 0 );
 
-    if ( tex_mipmaps ) {
+    if ( gen_mipmaps ) {
         std::vector<unsigned char> prev, cur;
         const int tw = texture_source.tile_size_across;
         const int th = texture_source.tile_size_down;
@@ -344,7 +345,7 @@ void Texture::loadTexture( const TextureSourceData &texture_source, int blur_mag
 
     glTexParameteri( this->target, GL_TEXTURE_WRAP_S, GL_REPEAT );
     glTexParameteri( this->target, GL_TEXTURE_WRAP_T, GL_REPEAT );
-    glTexParameteri( this->target, GL_TEXTURE_MIN_FILTER, tex_mipmaps ? GL_LINEAR_MIPMAP_LINEAR : GL_NEAREST );
+    glTexParameteri( this->target, GL_TEXTURE_MIN_FILTER, gen_mipmaps ? GL_LINEAR_MIPMAP_LINEAR : GL_NEAREST );
     if ( blur_mag ) {
         glTexParameteri( this->target, GL_TEXTURE_MAG_FILTER, GL_LINEAR );
     } else {
@@ -370,7 +371,7 @@ int texture_reserve_unit( ) {
     return next_slot++;
 }
 
-void Texture::init( const TextureSourceData &texture_source, int blur_mag ) {
+void Texture::init( const TextureSourceData &texture_source, int blur_mag, bool mipmaps ) {
     this->slot = next_slot;
     next_slot++;
     this->target = GL_TEXTURE_2D_ARRAY;
@@ -378,7 +379,7 @@ void Texture::init( const TextureSourceData &texture_source, int blur_mag ) {
     this->format = GL_RGBA;
     this->type = GL_UNSIGNED_BYTE;
     glActiveTexture( GL_TEXTURE0 + this->slot );
-    this->loadTexture( texture_source, blur_mag );
+    this->loadTexture( texture_source, blur_mag, mipmaps );
 }
 
 void Texture::init_empty_base( int blur_mag, int target, int internalFormat, int format, int type ) {

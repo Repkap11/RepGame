@@ -391,3 +391,78 @@ manifest anymore.
   (defaults 0.5 / 1.0).
 - `REPGAME_MUSIC_GAP` — max seconds of silence between tracks (default
   240; gap is uniform in `[gap/4, gap]`, `0` = continuous shuffle).
+
+## Mobs
+
+Client-local passive mobs (pigs only so far), driven by a type table and
+models imported from Bedrock `geo.json`. Simulation (gravity, collision,
+auto-jump, buoyancy, idle/wander/panic AI, hit flash, death tip-over) runs
+in `MobManager::tick` (`src/common/mobs.cpp`); rendering rebuilds one
+instanced `RenderChain<ParticleVertex, MobPartInstance>` per frame from
+CPU-evaluated bone transforms (`mob_vertex.glsl` + `object_fragment`;
+negative `v_flash` is a red hurt tint). Mobs are drawn in both the main
+and reflection passes and share the chunk light sampling.
+
+- `REPGAME_MOBS=0` — disables spawning, simulation and rendering entirely.
+- `REPGAME_MOB_TEST="pig,x,y,z,yaw[;...]"` — exact deterministic spawns
+  (non-persistent; also disables natural spawn and mobs-file loading for
+  the run).
+- Capture mode (`REPGAME_CAPTURE`) freezes mob AI and physics — spawn
+  poses are as authored, no falls or wandering mid-capture.
+- `n` — debug spawn key: drops a pig on the ground three blocks in front
+  of the player (`MobManager::spawn_in_front`; edge-triggered through
+  `Input`, handled in `RepGame::tick`, persistent). The ImGui overlay
+  shows `Mobs: <n>`.
+
+Adding a mob:
+
+1. Add a line to `tools/mobs_manifest.txt`:
+   `name|geo_file|geometry_id|skin1,skin2,...[|bone=rx,ry,rz;...]` —
+   `geo_file`/`skin` paths are under `BEDROCK_SAMPLES`
+   (`/home/paul/Software/bedrock-samples/resource_pack` by default), the
+   trailing field overrides rest-pose bone rotations that Bedrock keeps in
+   animation files (the pig's `body=-90,0,0` comes from
+   `animation.pig.setup.v1.0`; with `+90` the body cube swings up and back
+   instead of lying flat — keep the `-90` sign).
+2. `make mobs-import` runs `tools/mob_import.py` →
+   `include/common/mob_models_gen.hpp` + `bitmaps/mobs.png`. Output is
+   deterministic (byte-identical reruns); the importer handles geo.json
+   1.8 (`"geometry.a:geometry.b"` inheritance) and 1.12, box UVs only
+   (per-face UVs are rejected), bone mirror/pivot/rotation, and pads each
+   skin into one 64x64 layer of the atlas.
+3. Add a `MobTypeDef` row in `src/common/mob_types.cpp` (+ `MOB_*` enum in
+   `mob_types.hpp`): model/skin bindings, hitbox, health, speeds, drops,
+   sound pool names, natural-spawn data, AI profile, animation mask and
+   the head/leg bone names the animators bind to.
+4. Optional sounds: append `sfx` entries to `tools/sounds_manifest.txt`
+   (base + `_N` variants pool, e.g. `pig_say_1..3`; `pig_death`,
+   `pig_step_1..5`).
+
+Skin atlas convention: each skin is one 64x64 layer (`MOB_SKIN_*` is the
+layer index into `mobs.png`, `MK_TEXTURE(mobs, 64, 64*MOB_SKIN_COUNT,
+64, 64)`, NEAREST + no mipmaps via `Texture::init(..., mipmaps=false)`).
+The loader maps skin pixel `(px, py)` to UV `(1 - px/64, 1 - py/64)` —
+vertical flip from the texture load plus a per-tile X mirror; mirrored
+cubes also swap left/right face rects (`mob_face_rect` in
+`include/common/mob_uv.hpp`, also unit-tested in `test_mobs`).
+
+Persistence: each chunk's mobs live in `mobs_x_y_z` beside the
+`chunk_x_y_z`/`chest_x_y_z` files — `u32 record_size`, `u32 count`, then
+packed `MobFileRecord`s (readers copy the shared prefix and skip
+`type >= MOB_TYPE_COUNT`). An existing-but-empty file is a *populated
+marker*: a chunk whose herd was killed or removed never naturally
+respawns. The terrain worker loads the file (or rolls the `spawn_chance`
+≈1/12 natural spawn on fresh terrain, seeded `hash(chunk_pos, type,
+MAP_SEED)`) into `Chunk::pending_mobs`; `World::render` hands
+just-finalized chunks to `MobManager::adopt_chunk`, and a ~16-tick poll
+persists+removes mobs whose owning chunk leaves the active window
+(parked/reused — `CHUNK_LOADING` at the same position has not left).
+`World::cleanup` persists every owned chunk. No writes in capture or fly
+mode. Natural spawn stands herds on `spawn_on` column tops with hitbox
+headroom inside the chunk.
+
+Hitting: left click raycasts mobs (`MobManager::raycast`, AABB slab test)
+against `block_selection.ray_origin/ray_dir`; a mob nearer than the
+selected block takes `HIT_DAMAGE` (4.0, creative kills in one hit), gets
+knockback + a 0.3 s red flash + 5 s panic, and drops `drop_block` in
+survival when killed.

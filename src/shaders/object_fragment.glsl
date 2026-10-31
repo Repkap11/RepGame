@@ -55,8 +55,13 @@ void main( ) {
     if ( texColor.a == 0.0 ) {
         discard;
     }
-    // White flash overlay for primed TNT (v_flash toggles over the fuse).
-    texColor.rgb = mix( texColor.rgb, vec3( 1.0 ), v_flash );
+    // Flash overlay: positive is the white primed-TNT blink, negative is the
+    // red mob hurt tint (mob_vertex).
+    if ( v_flash < 0.0 ) {
+        texColor.rgb = mix( texColor.rgb, vec3( 1.0, 0.0, 0.0 ), -v_flash );
+    } else {
+        texColor.rgb = mix( texColor.rgb, vec3( 1.0 ), v_flash );
+    }
     if ( u_TintUnderWater == TINT_UNDER_WATER_OBJECT_ALWAYS || ( u_TintUnderWater == TINT_UNDER_WATER_OBJECT_UNDER_Y_LEVEL && v_world_coords.y < ( -0.125f - u_Origin.y - eps ) ) ) {
         texColor = mix( texColor, vec4( 0.122f, 0.333f, 1.0f, 1.0f ), 0.5f );
     }

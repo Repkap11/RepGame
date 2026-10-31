@@ -96,6 +96,14 @@ clean-sounds:
 
 .PRECIOUS: $(patsubst %,out/sounds/%.ogg,$(SOUNDS_ENABLED))
 
+# Mob model/skin importer: regenerates include/common/mob_models_gen.hpp and
+# bitmaps/mobs.png from tools/mobs_manifest.txt against the local
+# bedrock-samples checkout (not part of the normal build — the outputs are
+# committed). BEDROCK_SAMPLES points at the resource_pack dir.
+BEDROCK_SAMPLES ?= /home/paul/Software/bedrock-samples/resource_pack
+mobs-import:
+	BEDROCK_SAMPLES=$(BEDROCK_SAMPLES) python3 tools/mob_import.py
+
 check:
 	cppcheck -j$(CPUS) --quiet --enable=warning,style,performance,portability,information,missingInclude -iinclude/common/vendor -DREPGAME_LINUX src
 # cppcheck -j$(CPUS) --quiet --enable=warning,style,performance,portability,information,missingInclude -Iinclude -iinclude/common/vendor -DREPGAME_WINDOWS src
@@ -116,6 +124,6 @@ clean: clean-vars
 clean-vars:
 	rm -rf out/vars
 
-.PHONY: clean-bitmaps check clean-vars test-vars
+.PHONY: clean-bitmaps check clean-vars test-vars mobs-import
 
 .PRECIOUS: $(BITMAP_BINS)

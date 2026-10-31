@@ -26,6 +26,8 @@ void audio_tick( long tick_number );
 // Plays a random variant of the named SFX pool (manifest names dig_1..dig_n
 // all belong to base "dig"). Unknown/empty pools are ignored.
 void audio_play_sfx( const char *base_name );
+// Same, scaled by an extra per-play gain (mob distance falloff).
+void audio_play_sfx_gain( const char *base_name, float gain );
 void audio_set_music_gain( float gain );
 void audio_set_sfx_gain( float gain );
 // Title of the track currently playing, or nullptr during gaps/silence.
@@ -39,6 +41,8 @@ static inline void audio_init( ) {
 static inline void audio_tick( long tick_number ) {
 }
 static inline void audio_play_sfx( const char *base_name ) {
+}
+static inline void audio_play_sfx_gain( const char *base_name, float gain ) {
 }
 static inline void audio_set_music_gain( float gain ) {
 }

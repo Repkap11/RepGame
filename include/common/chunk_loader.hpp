@@ -148,6 +148,10 @@ class ChunkLoader {
     std::vector<ParkedRelease> parked_release;
     long park_frame = 0;
     void defer_release( Chunk &chunk );
+    // Chunks that finished load+finalize since the last drain. World::render
+    // hands them to MobManager::adopt_chunk so pending_mobs (loaded records
+    // or natural-spawn roll results) become live mobs.
+    std::vector<Chunk *> just_finalized;
 
     bool pos_in_window( const glm::ivec3 &center, const glm::ivec3 &pos ) const;
     int reload_if_out_of_bounds( Chunk &chunk, const glm::ivec3 &chunk_pos, glm::ivec3 *out_new_pos = nullptr );

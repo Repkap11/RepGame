@@ -103,3 +103,16 @@ typedef struct {
     glm::vec4 anim;                           // x=spawn_time (u_Time clock), y=life seconds, z=ground-clamp time, w=seed
     glm::vec2 light;                          // flood-fill light at spawn cell: x=sky, y=block, [0,1]
 } PrimedTntInstance;
+
+// Per-instance data for one mob part (one cube of a Bedrock bone). A mob uses
+// as many instances as its model has cubes; MobManager rebuilds every
+// transform each frame (CPU-side bone animation), so updates go through
+// RenderChain::invalidate_all, not per-entity invalidate. uv_a carries the
+// cube's box-uv corner and un-inflated size in skin pixels; uv_b is
+// (depth, skin layer, mirror, hurt flash). See mob_vertex.glsl.
+typedef struct {
+    glm::mat4 transform; // unit cube -> world-space cube box, inflate applied
+    glm::vec2 light;     // flood-fill light at the mob's position: x=sky, y=block, [0,1]
+    glm::vec4 uv_a;      // u, v, w, h in skin pixels
+    glm::vec4 uv_b;      // d, skin_layer, mirror, flash
+} MobPartInstance;

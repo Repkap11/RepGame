@@ -11,6 +11,12 @@
 #include "common/block_update_events/PlayerBlockPlacedEvent.hpp"
 #include "common/block_update_events/TntExplodeEvent.hpp"
 #include "common/utils/collision.hpp"
+#include "common/mobs.hpp"
+#include "common/mob_uv.hpp"
+#include "common/utils/map_storage.hpp"
+
+#include <stdlib.h>
+#include <string.h>
 
 typedef struct Test {
     const char *name;
@@ -842,6 +848,282 @@ int test_structure_border( ) {
     return failures;
 }
 
+// Passive-mob checks on the phase-1 rig plus phase-2 hitting/persistence:
+// physics (drop settle, auto-jump, slab step-up), the mob raycast, damage /
+// knockback / drops, the mobs-file record format, the face-rect unwrap and
+// the generated pig geometry.
+int test_mobs( ) {
+    if ( block_definitions == nullptr ) {
+        block_definitions_initilize_definitions( nullptr );
+    }
+    RepGameState &gs = *new RepGameState( );
+    gs.tick_number = 0;
+    gs.camera.pos = glm::dvec3( 0, 0, 0 );
+    test_setup_world( gs.world );
+    World &world = gs.world;
+    const glm::dvec3 player_pos( 1.5, 50.0, 1.5 ); // far away: no look-at/sounds
+
+    int failures = 0;
+    auto check_bool = [ & ]( const char *name, bool cond ) {
+        pr_test( "  %-55s %s", name, cond ? "PASS" : "FAIL" );
+        if ( !cond ) {
+            failures++;
+        }
+    };
+    auto check_near = [ & ]( const char *name, double actual, double expected, double tol ) {
+        const bool ok = fabs( actual - expected ) <= tol;
+        pr_test( "  %-55s value=%-9.4f expected=%-9.4f  %s", name, actual, expected, ok ? "PASS" : "FAIL" );
+        if ( !ok ) {
+            failures++;
+        }
+    };
+
+    const BlockState stone = { STONE, 0, 0, STONE, 0 };
+    // Stone floor at y=10 (top surface 11) over a generous area.
+    for ( int x = 5; x <= 30; x++ ) {
+        for ( int z = 5; z <= 15; z++ ) {
+            world.set_loaded_block( glm::ivec3( x, 10, z ), stone );
+        }
+    }
+
+    // --- 1: a pig dropped over stone settles standing at floor+1 -----------
+    {
+        MobManager mobs;
+        check_bool( "spawn pig", mobs.spawn( MOB_PIG, glm::dvec3( 10.5, 14.0, 10.5 ), 0.0f, 1 ) );
+        for ( int i = 0; i < 150 && !mobs.mobs[ 0 ].standing; i++ ) {
+            mobs.tick( world, player_pos );
+        }
+        check_bool( "dropped pig: standing", mobs.mobs[ 0 ].standing == 1 );
+        check_near( "dropped pig: settled at floor+1", mobs.mobs[ 0 ].pos.y, 11.0, 0.01 );
+    }
+
+    // --- 2: 1-high wall auto-jumps; 2-high wall stops ----------------------
+    {
+        MobManager mobs;
+        mobs.spawn( MOB_PIG, glm::dvec3( 10.5, 11.0, 10.5 ), 90.0f, 1 );
+        MobManager::Mob &mob = mobs.mobs[ 0 ];
+        // Walk east toward a wall at x=14 (cells 14, z 9..11).
+        for ( int z = 9; z <= 11; z++ ) {
+            world.set_loaded_block( glm::ivec3( 14, 11, z ), stone );
+        }
+        mob.ai_state = 1;
+        mob.ai_ticks = 100000;
+        mob.target = glm::dvec3( 20.0, 11.0, 10.5 );
+        for ( int i = 0; i < 1200 && mob.pos.x < 14.6; i++ ) {
+            mobs.tick( world, player_pos );
+        }
+        check_bool( "1-high wall: auto-jumped past", mob.pos.x > 14.6 );
+
+        // Second pig against a 2-high wall at x=14: the hop can't clear it.
+        mobs.mobs.clear( );
+        world.set_loaded_block( glm::ivec3( 14, 12, 9 ), stone );
+        world.set_loaded_block( glm::ivec3( 14, 12, 10 ), stone );
+        world.set_loaded_block( glm::ivec3( 14, 12, 11 ), stone );
+        mobs.spawn( MOB_PIG, glm::dvec3( 10.5, 11.0, 10.5 ), 90.0f, 1 );
+        MobManager::Mob &mob2 = mobs.mobs[ 0 ];
+        mob2.ai_state = 1;
+        mob2.ai_ticks = 100000;
+        mob2.target = glm::dvec3( 20.0, 11.0, 10.5 );
+        for ( int i = 0; i < 1200; i++ ) {
+            mobs.tick( world, player_pos );
+        }
+        check_bool( "2-high wall: stopped", mob2.pos.x < 14.0 && mob2.pos.y < 12.0 );
+        for ( int z = 9; z <= 11; z++ ) {
+            world.set_loaded_block( glm::ivec3( 14, 11, z ), BLOCK_STATE_AIR );
+            world.set_loaded_block( glm::ivec3( 14, 12, z ), BLOCK_STATE_AIR );
+        }
+    }
+
+    // --- 3: half slab step-up ----------------------------------------------
+    {
+        MobManager mobs;
+        const BlockState slab = { STONE_BRICK_SLAB, 0, 0, STONE_BRICK_SLAB, 0 };
+        for ( int x = 15; x <= 20; x++ ) {
+            for ( int z = 8; z <= 12; z++ ) {
+                world.set_loaded_block( glm::ivec3( x, 11, z ), slab );
+            }
+        }
+        mobs.spawn( MOB_PIG, glm::dvec3( 10.5, 11.0, 10.5 ), 90.0f, 1 );
+        MobManager::Mob &mob = mobs.mobs[ 0 ];
+        mob.ai_state = 1;
+        mob.ai_ticks = 100000;
+        mob.target = glm::dvec3( 24.0, 11.5, 10.5 );
+        for ( int i = 0; i < 1200 && mob.pos.x < 15.6; i++ ) {
+            mobs.tick( world, player_pos );
+        }
+        check_bool( "0.5 slab: stepped up onto it", mob.pos.x > 15.6 );
+        check_near( "0.5 slab: standing at 11.5", mob.pos.y, 11.5, 0.05 );
+    }
+
+    // --- 4: raycast hits nearer mob; block-nearer wins the click -----------
+    {
+        MobManager mobs;
+        mobs.spawn( MOB_PIG, glm::dvec3( 10.5, 11.0, 10.5 ), 0.0f, 1 );
+        // Pin the mob (no AI walk) so the AABB is exactly at spawn.
+        mobs.mobs[ 0 ].ai_state = 0;
+        mobs.mobs[ 0 ].ai_ticks = 100000;
+        const glm::dvec3 origin( 8.5, 11.4, 10.5 );
+        const glm::dvec3 dir( 1.0, 0.0, 0.0 );
+        double dist = 0.0;
+        const int hit = mobs.raycast( origin, dir, 6.0, &dist );
+        // hitbox_w 0.9 -> front face at 10.5 - 0.45 = 10.05 -> dist 1.55
+        check_bool( "raycast: hit mob", hit == 0 );
+        check_near( "raycast: entry distance", dist, 10.05 - 8.5, 0.01 );
+        // A block cell nearer than the mob takes the click (same comparison
+        // process_mouse_events makes): block cell at x=9 is ~1.0 away.
+        world.set_loaded_block( glm::ivec3( 9, 11, 10 ), stone );
+        const glm::dvec3 block_center( 9.5, 11.5, 10.5 );
+        check_bool( "nearer block beats the mob", glm::distance( origin, block_center ) < dist );
+        world.set_loaded_block( glm::ivec3( 9, 11, 10 ), BLOCK_STATE_AIR );
+        // Outside reach the ray misses entirely.
+        check_bool( "raycast: miss beyond reach", mobs.raycast( origin, dir, 1.0, &dist ) < 0 );
+        // A mob farther along the same ray loses to the near one.
+        mobs.spawn( MOB_PIG, glm::dvec3( 14.5, 11.0, 10.5 ), 0.0f, 1 );
+        check_bool( "raycast: nearer mob wins", mobs.raycast( origin, dir, 6.0, &dist ) == 0 );
+    }
+
+    // --- 5: damage, knockback, death, drops --------------------------------
+    {
+        // Headless hotbar: init() does GL work via the renderer, so the test
+        // fills the plain fields directly (friend access).
+        gs.hotbar.width = HOTBAR_WIDTH;
+        gs.hotbar.height = HOTBAR_HEIGHT;
+        gs.hotbar.num_blocks_max = HOTBAR_WIDTH * HOTBAR_HEIGHT;
+        gs.hotbar.slots = static_cast<InventorySlot *>( calloc( gs.hotbar.num_blocks_max, sizeof( InventorySlot ) ) );
+        for ( int i = 0; i < gs.hotbar.num_blocks_max; i++ ) {
+            gs.hotbar.slots[ i ].block_id = LAST_BLOCK_ID;
+            gs.hotbar.slots[ i ].quantity = 0;
+        }
+        gs.hotbar.selected_slot = 0;
+        // InventoryRenderer::init's GL work is skipped too; only the fields
+        // singleItemRender touches are filled.
+        InventoryRenderer &ir = gs.hotbar.inventory_renderer;
+        ir.width = HOTBAR_WIDTH;
+        ir.height = HOTBAR_HEIGHT;
+        ir.num_blocks_max = HOTBAR_WIDTH * HOTBAR_HEIGHT;
+        ir.screen_width = 800;
+        ir.screen_height = 600;
+        ir.inv_items_x = 0;
+        ir.inv_items_y = 0;
+        ir.inv_cell_stride = 1.0f;
+        ir.inv_block_size = 1;
+        ir.inv_block_offset = 0;
+        ir.slots_entities = static_cast<entt::entity *>( calloc( ir.num_blocks_max, sizeof( entt::entity ) ) );
+        for ( int i = 0; i < ir.num_blocks_max; i++ ) {
+            ir.slots_entities[ i ] = entt::null;
+        }
+        MobManager mobs;
+        mobs.spawn( MOB_PIG, glm::dvec3( 10.5, 11.0, 10.5 ), 0.0f, 1 );
+        const glm::dvec3 attacker( 8.5, 11.5, 10.5 );
+        check_bool( "hit 1: survives", !mobs.hurt( 0, 4.0f, attacker ) );
+        check_bool( "hit: red flash set", mobs.mobs[ 0 ].hurt_ticks > 0 );
+        check_bool( "hit: panic set", mobs.mobs[ 0 ].panic_ticks > 0 );
+        check_bool( "hit: knockback away", mobs.mobs[ 0 ].kb.x > 0.0 );
+        check_bool( "hit 2: survives", !mobs.hurt( 0, 4.0f, attacker ) );
+        check_bool( "hit 3: kills (survival)", mobs.hurt( 0, 4.0f, attacker ) );
+        check_bool( "death: tip-over started", mobs.mobs[ 0 ].death_ticks > 0 );
+        // Survival drop path: the killed pig hands drop_block to the player.
+        RepGame::give_block_to_player( gs, RED_MUSHROOM, 1 );
+        check_bool( "drop: RED_MUSHROOM in inventory", gs.hotbar.findSlotWithBlock( RED_MUSHROOM, false ) >= 0 );
+        // Creative: one hit kills; the caller simply doesn't run the drop.
+        MobManager mobs2;
+        mobs2.spawn( MOB_PIG, glm::dvec3( 10.5, 11.0, 10.5 ), 0.0f, 1 );
+        check_bool( "creative hit: kills in 1", mobs2.hurt( 0, 1000.0f, attacker ) );
+    }
+
+    // --- 6: mobs file round trip, empty marker, unknown type ---------------
+    {
+        // Point the map root at a throwaway dir under /tmp (getRepGamePath
+        // reads $HOME): no writes land in a real world.
+        const char *orig_home = getenv( "HOME" );
+        char orig_home_buf[ 512 ] = { 0 };
+        if ( orig_home != nullptr ) {
+            strncpy( orig_home_buf, orig_home, sizeof( orig_home_buf ) - 1 );
+        }
+        setenv( "HOME", "/tmp/repgame_test_mobs_home", 1 );
+        MapStorage storage;
+        storage.init( "TestMobs" );
+        const glm::ivec3 chunk_pos( 0, 0, 0 );
+        std::vector<MobFileRecord> in;
+        MobFileRecord r = { 0, 0, 0.0, 0.0, 0.0, 0.0f, 0.0f, 0u };
+        r.type = MOB_PIG;
+        r.variant = 1;
+        r.x = 10.5;
+        r.y = 11.0;
+        r.z = 10.25;
+        r.yaw = 45.0f;
+        r.health = 7.5f;
+        in.push_back( r );
+        storage.persist_mobs( chunk_pos, in );
+        std::vector<MobFileRecord> out;
+        check_bool( "mob file: present", storage.load_mobs( chunk_pos, out ) == 1 );
+        check_bool( "mob file: one record", out.size( ) == 1 );
+        if ( out.size( ) == 1 ) {
+            const MobFileRecord &o = out[ 0 ];
+            check_bool( "mob file: fields round trip",
+                        o.type == MOB_PIG && o.variant == 1 && o.x == 10.5 && o.y == 11.0 && o.z == 10.25 && o.yaw == 45.0f && o.health == 7.5f );
+        }
+        // Empty file: still "present" (the populated marker) with 0 records.
+        storage.persist_mobs( glm::ivec3( 0, 0, 1 ), std::vector<MobFileRecord>( ) );
+        out.clear( );
+        check_bool( "mob file: empty still present", storage.load_mobs( glm::ivec3( 0, 0, 1 ), out ) == 1 );
+        check_bool( "mob file: empty has 0 records", out.empty( ) );
+        // Unknown mob types are skipped on load.
+        MobFileRecord bad = r;
+        bad.type = MOB_TYPE_COUNT + 3;
+        storage.persist_mobs( glm::ivec3( 0, 0, 2 ), std::vector<MobFileRecord>( 1, bad ) );
+        out.clear( );
+        check_bool( "mob file: unknown type skipped", storage.load_mobs( glm::ivec3( 0, 0, 2 ), out ) == 1 && out.empty( ) );
+        if ( orig_home != nullptr ) {
+            setenv( "HOME", orig_home_buf, 1 );
+        } else {
+            unsetenv( "HOME" );
+        }
+    }
+
+    // --- 7: face-rect unwrap for the pig head and body ---------------------
+    {
+        auto rect_ok = [ & ]( const char *name, unsigned int face, float u, float v, float w, float h, float d, bool mirror, const glm::vec4 &want ) {
+            const glm::vec4 got = mob_face_rect( face, u, v, w, h, d, mirror );
+            check_bool( name, got == want );
+        };
+        // Pig head cube: uv (0,0), size (8,8,8).
+        rect_ok( "head FACE_BACK (front) rect", FACE_BACK, 0, 0, 8, 8, 8, false, glm::vec4( 8, 8, 8, 8 ) );
+        rect_ok( "head FACE_TOP rect", FACE_TOP, 0, 0, 8, 8, 8, false, glm::vec4( 8, 0, 8, 8 ) );
+        rect_ok( "head FACE_FRONT (back) rect", FACE_FRONT, 0, 0, 8, 8, 8, false, glm::vec4( 24, 8, 8, 8 ) );
+        rect_ok( "head FACE_RIGHT rect", FACE_RIGHT, 0, 0, 8, 8, 8, false, glm::vec4( 0, 8, 8, 8 ) );
+        rect_ok( "head FACE_RIGHT mirrored", FACE_RIGHT, 0, 0, 8, 8, 8, true, glm::vec4( 16, 8, 8, 8 ) );
+        rect_ok( "head FACE_LEFT mirrored", FACE_LEFT, 0, 0, 8, 8, 8, true, glm::vec4( 0, 8, 8, 8 ) );
+        // Pig body cube: uv (28,8), size (10,16,8) — legs mirror the same rect.
+        rect_ok( "body FACE_BACK (front) rect", FACE_BACK, 28, 8, 10, 16, 8, false, glm::vec4( 36, 16, 10, 16 ) );
+        rect_ok( "body FACE_TOP rect", FACE_TOP, 28, 8, 10, 16, 8, false, glm::vec4( 36, 8, 10, 8 ) );
+        rect_ok( "body FACE_LEFT rect", FACE_LEFT, 28, 8, 10, 16, 8, false, glm::vec4( 46, 16, 8, 16 ) );
+    }
+
+    // --- 8: generated pig model shape --------------------------------------
+    {
+        const MobModelDef &model = mob_models[ MOB_MODEL_PIG ];
+        check_bool( "pig: 6 bones", model.bone_count == 6 );
+        check_bool( "pig: 7 cubes", model.cube_count == 7 );
+        // The snout is the second cube on the head bone (4x3x1 at uv 16,16).
+        const MobBoneDef *head = nullptr;
+        for ( int i = 0; i < model.bone_count; i++ ) {
+            if ( strcmp( model.bones[ i ].name, "head" ) == 0 ) {
+                head = &model.bones[ i ];
+            }
+        }
+        check_bool( "pig: head bone found", head != nullptr );
+        if ( head != nullptr ) {
+            check_bool( "pig: snout on head", head->cube_count == 2 &&
+                                                model.cubes[ head->cube_start + 1 ].size[ 0 ] == 4.0f &&
+                                                model.cubes[ head->cube_start + 1 ].size[ 1 ] == 3.0f &&
+                                                model.cubes[ head->cube_start + 1 ].size[ 2 ] == 1.0f );
+        }
+    }
+
+    return failures;
+}
+
 constexpr Test all_tests[] = {  //
     MK_TEST( ecs ),             //
     MK_TEST( vr_projection ),   //
@@ -852,6 +1134,7 @@ constexpr Test all_tests[] = {  //
     MK_TEST( lighting ),        //
     MK_TEST( tnt ),             //
     MK_TEST( structure_border ), //
+    MK_TEST( mobs ),             //
     { nullptr, nullptr }
 
 };

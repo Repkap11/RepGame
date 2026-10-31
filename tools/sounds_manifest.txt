@@ -141,3 +141,14 @@ swim_18|mc_pack/liquid/swim18.wav|sfx|Swim
 splash_1|mc_pack/liquid/splash.wav|sfx|Splash
 splash_2|mc_pack/liquid/splash2.wav|sfx|Splash
 heavy_splash|mc_pack/liquid/heavy_splash.wav|sfx|Splash
+
+# Mob SFX — pig pools (say doubles as the hurt sound).
+pig_say_1|mc_pack/mob/pig/say1.wav|sfx|Pig say
+pig_say_2|mc_pack/mob/pig/say2.wav|sfx|Pig say
+pig_say_3|mc_pack/mob/pig/say3.wav|sfx|Pig say
+pig_death|mc_pack/mob/pig/death.wav|sfx|Pig death
+pig_step_1|mc_pack/mob/pig/step1.wav|sfx|Pig step
+pig_step_2|mc_pack/mob/pig/step2.wav|sfx|Pig step
+pig_step_3|mc_pack/mob/pig/step3.wav|sfx|Pig step
+pig_step_4|mc_pack/mob/pig/step4.wav|sfx|Pig step
+pig_step_5|mc_pack/mob/pig/step5.wav|sfx|Pig step

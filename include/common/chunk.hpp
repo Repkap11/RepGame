@@ -3,6 +3,7 @@
 #include <atomic>
 #include <cstdint>
 #include <map>
+#include <vector>
 
 #include "block.hpp"
 #include "common/chest.hpp"
@@ -100,6 +101,7 @@ class Chunk {
     friend class MapGen;
     friend class StructureGen;
     friend class MapStorage;
+    friend class MobManager;
     friend class TerrainLoadingThread;
     friend class Multiplayer;
     friend class TntExplodeEvent;
@@ -135,6 +137,14 @@ class Chunk {
     // load_terrain/afterwards — persist_chests only runs when set so a chunk
     // whose chest file failed to read doesn't get its file clobbered.
     mutable int chests_loaded;
+    // Mob sidecar data, filled by load_terrain on the worker and drained by
+    // MobManager::adopt_chunk after finalize: records loaded from the mobs
+    // file or produced by the natural-spawn roll, whether the file existed
+    // (an empty one still marks the chunk populated), and whether the spawn
+    // roll produced any mobs. Cleared by release_terrain.
+    std::vector<MobFileRecord> pending_mobs;
+    int mobs_file_present;
+    int mobs_spawned;
     int should_render;
     int cached_cull_normal;
     int cached_cull_reflect;
@@ -267,6 +277,8 @@ class Chunk {
     // by destroy(). Render thread only: it deletes GL objects. Afterwards
     // the slot is equivalent to never-loaded.
     void release_terrain( );
+    // Natural mob-spawn roll on a freshly generated chunk (load_terrain).
+    bool spawn_mobs( );
     void calculate_sides( const glm::ivec3 &center_next );
     static int get_coords_from_index_todo( int index, glm::ivec3 &out_pos );
     static int get_coords_from_index( int index, int &out_x, int &out_y, int &out_z );

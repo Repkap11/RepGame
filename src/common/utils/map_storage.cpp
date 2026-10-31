@@ -227,6 +227,68 @@ int MapStorage::load_chests( const glm::ivec3 &chunk_offset, ChestContentsMap &o
     return 1;
 }
 
+// Mob file layout: u32 record_size, u32 count, then `count` MobFileRecords.
+// The file's existence alone marks the chunk populated — an empty file (or
+// one holding only the header) is kept, never deleted.
+void MapStorage::persist_mobs( const glm::ivec3 &chunk_offset, const std::vector<MobFileRecord> &mobs ) {
+    char file_name[ CHUNK_NAME_MAX_LENGTH ];
+    snprintf( file_name, CHUNK_NAME_MAX_LENGTH, FILE_ROOT_MOBS, this->map_name, chunk_offset.x, chunk_offset.y, chunk_offset.z );
+    FILE *write_ptr = fopen( file_name, "wb" );
+    if ( write_ptr == NULL ) {
+        pr_debug( "fopen failed for mobs file:%s", file_name );
+        return;
+    }
+    uint32_t record_size = sizeof( MobFileRecord );
+    fwrite( &record_size, sizeof( uint32_t ), 1, write_ptr );
+    uint32_t num_mobs = static_cast<uint32_t>( mobs.size( ) );
+    fwrite( &num_mobs, sizeof( uint32_t ), 1, write_ptr );
+    for ( const MobFileRecord &record : mobs ) {
+        fwrite( &record, sizeof( MobFileRecord ), 1, write_ptr );
+    }
+#if defined( REPGAME_WASM )
+    fdatasync( fileno( write_ptr ) );
+#endif
+    fclose( write_ptr );
+}
+
+int MapStorage::load_mobs( const glm::ivec3 &chunk_offset, std::vector<MobFileRecord> &out ) {
+    char file_name[ CHUNK_NAME_MAX_LENGTH ];
+    snprintf( file_name, CHUNK_NAME_MAX_LENGTH, FILE_ROOT_MOBS, this->map_name, chunk_offset.x, chunk_offset.y, chunk_offset.z );
+    FILE *read_ptr = fopen( file_name, MAP_READ_MODE );
+    if ( read_ptr == NULL ) {
+        return 0;
+    }
+    out.clear( );
+    uint32_t record_size = 0;
+    if ( fread( &record_size, sizeof( uint32_t ), 1, read_ptr ) != 1 ) {
+        // Truncated/marker file: it exists, which is all the caller needs.
+        fclose( read_ptr );
+        return 1;
+    }
+    uint32_t num_mobs = 0;
+    if ( fread( &num_mobs, sizeof( uint32_t ), 1, read_ptr ) != 1 || num_mobs > 65535 ) {
+        fclose( read_ptr );
+        return 1;
+    }
+    // Read whatever the file's record holds; older/newer builds may have a
+    // different record size, so copy only the shared prefix per record.
+    char *raw = static_cast<char *>( calloc( num_mobs, record_size ) );
+    size_t num_read = fread( raw, record_size, num_mobs, read_ptr );
+    fclose( read_ptr );
+    for ( size_t i = 0; i < num_read; i++ ) {
+        const char *record = &raw[ i * record_size ];
+        MobFileRecord mob = { 0, 0, 0.0, 0.0, 0.0, 0.0f, 0.0f, 0u };
+        const size_t prefix = sizeof( MobFileRecord ) <= (size_t)record_size ? sizeof( MobFileRecord ) : (size_t)record_size;
+        memcpy( &mob, record, prefix );
+        if ( mob.type >= MOB_TYPE_COUNT ) {
+            continue;
+        }
+        out.push_back( mob );
+    }
+    free( raw );
+    return 1;
+}
+
 namespace {
 // Decode a saved RLE chunk stream, delivering each cell's BlockState to
 // `sink(index, state)`. Shared by load_chunk (splits states into the

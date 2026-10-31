@@ -1,0 +1,31 @@
+#include "common/mob_types.hpp"
+
+const MobTypeDef mob_types[ MOB_TYPE_COUNT ] = {
+    /* MOB_PIG */ {
+        .name = "pig",
+        .model = MOB_MODEL_PIG,
+        .skins = { MOB_SKIN_PIG },
+        .skin_count = 1,
+        .hitbox_w = 0.9f,
+        .hitbox_h = 0.9f,
+        .eye_h = 0.7f,
+        .max_health = 10.0f,
+        .walk_speed = 0.008f,
+        .panic_speed = 0.02f,
+        .drop_block = RED_MUSHROOM,
+        .drop_min = 1,
+        .drop_max = 1,
+        .sound_say = "pig_say",
+        .sound_hurt = "pig_say",
+        .sound_death = "pig_death",
+        .sound_step = "pig_step",
+        .spawn_on = GRASS,
+        .spawn_chance = 1.0f / 12.0f,
+        .herd_min = 2,
+        .herd_max = 4,
+        .ai = MOB_AI_PASSIVE_WANDER,
+        .anims = MOB_ANIM_QUADRUPED_WALK | MOB_ANIM_HEAD_LOOK | MOB_ANIM_DEATH_TIP,
+        .bone_head = "head",
+        .bone_legs = { "leg0", "leg1", "leg2", "leg3" },
+    },
+};

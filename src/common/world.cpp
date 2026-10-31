@@ -17,6 +17,9 @@ MK_SHADER( object_vertex );
 MK_SHADER( object_fragment );
 MK_SHADER( debris_vertex );
 MK_SHADER( primed_tnt_vertex );
+MK_SHADER( mob_vertex );
+
+MK_TEXTURE( mobs, 64, 64 * MOB_SKIN_COUNT, 64, 64 );
 
 bool hasError( ) {
     if ( ( glGetError( ) ) != GL_NO_ERROR ) {
@@ -72,6 +75,15 @@ void World::init( const glm::dvec3 &camera_pos, int width, int height, MapStorag
     this->vbl_primed_tnt_instance.push_float( 4 );        // anim (spawn_time, life, ground_t, seed)
     this->vbl_primed_tnt_instance.push_float( 2 );        // light (sky, block)
 
+    // These are from MobPartInstance
+    this->vbl_mob_instance.push_float( 4 ); // transform
+    this->vbl_mob_instance.push_float( 4 ); // transform
+    this->vbl_mob_instance.push_float( 4 ); // transform
+    this->vbl_mob_instance.push_float( 4 ); // transform
+    this->vbl_mob_instance.push_float( 2 ); // light (sky, block)
+    this->vbl_mob_instance.push_float( 4 ); // uv_a (u, v, w, h in skin px)
+    this->vbl_mob_instance.push_float( 4 ); // uv_b (d, skin_layer, mirror, flash)
+
     this->chunkLoader.init( camera_pos, this->vbl_block, this->vbl_coords, map_storage, render_radius );
 
     float *random_rotation_blocks = block_definitions_get_random_rotations( );
@@ -81,12 +93,19 @@ void World::init( const glm::dvec3 &camera_pos, int width, int height, MapStorag
     this->object_shader.init( &object_vertex, &object_fragment );
     this->debris_shader.init( &debris_vertex, &object_fragment );
     this->primed_tnt_shader.init( &primed_tnt_vertex, &object_fragment );
+    this->mob_shader.init( &mob_vertex, &object_fragment );
 
     this->skyBox.init( this->vbl_object_vertex, this->vbl_object_position );
     this->multiplayer_avatars.init( this->vbl_object_vertex, this->vbl_object_position );
     this->blockDebris.init( this->vbl_object_vertex, this->vbl_debris_instance );
     this->primedTnt.init( this->vbl_object_vertex, this->vbl_primed_tnt_instance );
+    this->mobs.init( this->vbl_object_vertex, this->vbl_mob_instance );
+    this->mobs.init_storage( &map_storage );
     this->mouseSelection.init( this->vbl_block, this->vbl_coords );
+
+    // Mob skins: NEAREST like the block atlas but no mipmaps — face UV
+    // islands are a few pixels wide and would bleed at distance.
+    this->mobsTexture.init( texture_source_mobs, 0, false );
 
 #if ( SUPPORTS_FRAME_BUFFER )
     this->frameBuffer.init( );
@@ -181,6 +200,14 @@ void World::change_size( int width, int height ) {
 
 void World::render( Multiplayer &multiplayer, const glm::dvec3 &camera_pos, const int limit_render, const glm::mat4 &rotation ) {
     this->chunkLoader.render_chunks( multiplayer, camera_pos, limit_render );
+    // Hand each just-finalized chunk's pending mobs to the manager (loaded
+    // records or the natural-spawn roll); skipped chunks stay owned next pass.
+    if ( !this->chunkLoader.just_finalized.empty( ) ) {
+        for ( Chunk *chunk : this->chunkLoader.just_finalized ) {
+            this->mobs.adopt_chunk( *chunk );
+        }
+        this->chunkLoader.just_finalized.clear( );
+    }
 }
 
 void World::set_selected_block( const glm::ivec3 &selected, const bool shouldDraw ) {
@@ -195,7 +222,7 @@ void World::set_selected_block( const glm::ivec3 &selected, const bool shouldDra
 #define WATER_THRESHOLD_P ( 0.02 )
 #define WATER_THRESHOLD_N ( -0.01 )
 void World::draw( const Texture &blocksTexture, const glm::mat4 &mvp, const glm::mat4 &inv_mvp, const glm::mat4 &mvp_reflect, const glm::mat4 &mvp_sky, const glm::mat4 &mvp_sky_reflect, const int debug, const int draw_mouse_selection, const float y_height,
-                  const bool headInWater, WorldDrawQuality worldDrawQuality, const glm::dvec3 &camera_pos, const glm::ivec3 &renderOrigin, const float time_s, const float daylight, const float min_ambient ) {
+                  const bool headInWater, WorldDrawQuality worldDrawQuality, const glm::dvec3 &camera_pos, const glm::ivec3 &renderOrigin, const float time_s, const float daylight, const float min_ambient, const float alpha ) {
 
     const glm::vec3 renderOriginF = glm::vec3( renderOrigin );
     // Camera and block positions are rebased by u_Origin in the vertex shaders,
@@ -331,6 +358,19 @@ void World::draw( const Texture &blocksTexture, const glm::mat4 &mvp, const glm:
     this->primed_tnt_shader.set_uniform1f( "u_MinAmbient", min_ambient );
     this->primed_tnt_shader.set_uniform1f( "u_Time", time_s );
 
+    // Mobs share object_fragment.glsl — same fog/water set.
+    this->mob_shader.set_uniform1f( "u_FogNear", fog_near );
+    this->mob_shader.set_uniform1f( "u_FogFar", fog_far );
+    this->mob_shader.set_uniform1f( "u_WaterFogNear", water_fog_near );
+    this->mob_shader.set_uniform1f( "u_WaterFogFar", water_fog_far );
+    this->mob_shader.set_uniform1i( "u_Underwater", underwater_wash );
+    this->mob_shader.set_uniform3f( "u_CameraPos", camera_pos_rebased.x, camera_pos_rebased.y, camera_pos_rebased.z );
+    this->mob_shader.set_uniform3f( "u_Origin", renderOriginF.x, renderOriginF.y, renderOriginF.z );
+    this->mob_shader.set_uniform3f( "u_SkyAvgColor", fog_blend_color.r, fog_blend_color.g, fog_blend_color.b );
+    this->mob_shader.set_uniform1i( "u_OpaqueFog", useFogBlend ? 1 : 0 );
+    this->mob_shader.set_uniform1f( "u_Daylight", daylight );
+    this->mob_shader.set_uniform1f( "u_MinAmbient", min_ambient );
+
     if ( useFrameBuffer ) {
         this->frameBuffer.bind( );
         // Clear each attachment separately:
@@ -394,6 +434,14 @@ void World::draw( const Texture &blocksTexture, const glm::mat4 &mvp, const glm:
     this->primed_tnt_shader.set_uniform_mat4f( "u_MVP", mvp );
     this->primed_tnt_shader.set_uniform1i( "u_IsSky", 0 );
     this->primed_tnt_shader.set_uniform3f( "u_Origin", renderOriginF.x, renderOriginF.y, renderOriginF.z );
+
+    this->mob_shader.set_uniform1i( "u_DrawToReflection", 0 );
+    this->mob_shader.set_uniform1i_texture( "u_Texture", this->mobsTexture );
+    this->mob_shader.set_uniform1f( "u_ReflectionHeight", 0 );
+    this->mob_shader.set_uniform1i( "u_TintUnderWater", object_water_tint_type );
+    this->mob_shader.set_uniform1f( "u_ExtraAlpha", 1.0f );
+    this->mob_shader.set_uniform_mat4f( "u_MVP", mvp );
+    this->mob_shader.set_uniform1i( "u_IsSky", 0 );
 #if ( SUPPORTS_FRAME_BUFFER )
     if ( useFrameBuffer ) {
         // Enable sky color attachment writing for the sky pass only.
@@ -431,9 +479,12 @@ void World::draw( const Texture &blocksTexture, const glm::mat4 &mvp, const glm:
     this->multiplayer_avatars.update_lighting( this->chunkLoader );
     this->blockDebris.update_lighting( this->chunkLoader );
     this->primedTnt.update_lighting( this->chunkLoader );
+    // Rebuild every mob part transform with the tick-interpolated pose.
+    this->mobs.update_render( alpha, this->chunkLoader );
     this->multiplayer_avatars.draw( this->renderer, this->object_shader );      // Mobs
     this->blockDebris.draw( this->renderer, this->debris_shader, time_s );      // Break particles
     this->primedTnt.draw( this->renderer, this->primed_tnt_shader, time_s );    // Ignited TNT
+    this->mobs.draw( this->renderer, this->mob_shader );                        // Mob parts
 
     this->chunkLoader.calculate_cull( mvp, false, renderOrigin );
     this->chunkLoader.shader.set_uniform1f( "u_ExtraAlpha", 1.0f );
@@ -547,6 +598,15 @@ void World::draw( const Texture &blocksTexture, const glm::mat4 &mvp, const glm:
         this->object_shader.set_uniform1f( "u_ReflectionHeight", offset + renderOriginF.y );
         this->multiplayer_avatars.draw( this->renderer, this->object_shader ); // Reflected mobs
 
+        this->mob_shader.set_uniform1i_texture( "u_Texture", this->mobsTexture );
+        this->mob_shader.set_uniform1f( "u_ExtraAlpha", 1.0f );
+        this->mob_shader.set_uniform1i( "u_DrawToReflection", 1 );
+        this->mob_shader.set_uniform1i( "u_IsSky", 0 );
+        this->mob_shader.set_uniform_mat4f( "u_MVP", mvp_reflect );
+        this->mob_shader.set_uniform3f( "u_Origin", renderOriginF.x, renderOriginF.y, renderOriginF.z );
+        this->mob_shader.set_uniform1f( "u_ReflectionHeight", offset + renderOriginF.y );
+        this->mobs.draw( this->renderer, this->mob_shader ); // Reflected mob parts
+
         this->debris_shader.set_uniform1i_texture( "u_Texture", blocksTexture );
         this->debris_shader.set_uniform1f( "u_ExtraAlpha", 1.0f );
         this->debris_shader.set_uniform1i( "u_DrawToReflection", 1 );
@@ -575,6 +635,7 @@ void World::draw( const Texture &blocksTexture, const glm::mat4 &mvp, const glm:
 
         this->chunkLoader.shader.set_uniform1f( "u_ReflectionHeight", 0 );
         this->object_shader.set_uniform1f( "u_ReflectionHeight", 0 );
+        this->mob_shader.set_uniform1f( "u_ReflectionHeight", 0 );
 
         // Restore fog and sky color attachment writing.
 #if ( SUPPORTS_FRAME_BUFFER )
@@ -669,18 +730,24 @@ void World::draw( const Texture &blocksTexture, const glm::mat4 &mvp, const glm:
 }
 void World::cleanup( MapStorage &map_storage ) {
 
+    // Persist every owned chunk's mobs before the loader tears down.
+    this->mobs.persist_all( );
     this->chunkLoader.cleanup( map_storage );
     this->skyBox.destroy( );
     this->multiplayer_avatars.cleanup( );
     this->blockDebris.cleanup( );
     this->primedTnt.cleanup( );
+    this->mobs.cleanup( );
     this->mouseSelection.destroy( );
     this->debris_shader.destroy( );
     this->primed_tnt_shader.destroy( );
+    this->mob_shader.destroy( );
+    this->mobsTexture.destroy( );
 
     this->vbl_block.destroy( );
     this->vbl_coords.destroy( );
     this->vbl_debris_instance.destroy( );
+    this->vbl_mob_instance.destroy( );
     if constexpr ( SUPPORTS_FRAME_BUFFER ) {
         this->frameBuffer.destroy( );
         this->blockTexture.destroy( );

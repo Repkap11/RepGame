@@ -90,6 +90,7 @@ make
 - "'" to sneak (prevents walking off edges), descend while flying, or sink while swimming
 - "f" to fly
 - "c" to no-clip
+- "n" to spawn a pig (debug)
 - "ESC" to exit
 
 ## Feature List

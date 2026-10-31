@@ -7,6 +7,7 @@ class World;
 #include "common/multiplayer_avatars.hpp"
 #include "common/block_debris.hpp"
 #include "common/primed_tnt.hpp"
+#include "common/mobs.hpp"
 #include "common/renderer/full_screen_quad.hpp"
 #include "common/RenderChain.hpp"
 
@@ -15,6 +16,8 @@ enum WorldDrawQuality { LOW, MEDIUM, HIGH, X_HIGH, LAST };
 class World {
     friend class RepGame;
     friend class Multiplayer;
+    friend class MobManager;
+    friend int test_mobs( );
     friend void test_setup_world( World &world );
 
     friend int test_lighting( );
@@ -31,11 +34,15 @@ class World {
     VertexBufferLayout vbl_object_position;
     VertexBufferLayout vbl_debris_instance;
     VertexBufferLayout vbl_primed_tnt_instance;
+    VertexBufferLayout vbl_mob_instance;
     Texture reflectionTexture;
     Texture blockTexture;
     Texture fogTexture;
     Texture skyColorTexture;
     Texture depthStencilTexture;
+    // Mob skins: one 64x64 layer per MOB_SKIN_*, nearest filtering, no mips
+    // (tiny UV islands would bleed). MobManager draws through this array.
+    Texture mobsTexture;
     // Copy of the scene depth used by the water shader for screen-space
     // reflections. Filled by a depth blit into depthFrameBuffer after the
     // scene pass (multisample depth-stencil views and split depth/stencil
@@ -50,6 +57,7 @@ class World {
     Shader object_shader;
     Shader debris_shader;
     Shader primed_tnt_shader;
+    Shader mob_shader;
 
     int can_fixup_chunk( const Chunk &chunk, const glm::ivec3 &offset ) const;
     void fixup_chunk( const Chunk &chunk, const glm::ivec3 &offset, const glm::ivec3 &pos, const BlockState &blockState );
@@ -61,6 +69,8 @@ class World {
     static bool do_random_tick_on_block( const Chunk &chunk, const glm::vec3 &pos, BlockState &blockState );
 
   public:
+    // Client-local mob simulation and rendering (REPGAME_MOBS=0 disables).
+    MobManager mobs;
     BlockState get_loaded_block( const glm::ivec3 &block_pos ) const;
 
     // Non-const: block edits seed the light propagation queues on chunkLoader.
@@ -94,7 +104,7 @@ class World {
     void change_size( int width, int height );
     void render( Multiplayer &multiplayer, const glm::dvec3 &camera_pos, int limit_render, const glm::mat4 &rotation );
     void draw( const Texture &blocksTexture, const glm::mat4 &mvp, const glm::mat4 &inv_mvp, const glm::mat4 &mvp_reflect, const glm::mat4 &mvp_sky, const glm::mat4 &mvp_sky_reflect, int debug, int draw_mouse_selection, float y_height, bool headInWater,
-               WorldDrawQuality worldDrawQuality, const glm::dvec3 &camera_pos, const glm::ivec3 &renderOrigin, float time_s, float daylight, float min_ambient );
+               WorldDrawQuality worldDrawQuality, const glm::dvec3 &camera_pos, const glm::ivec3 &renderOrigin, float time_s, float daylight, float min_ambient, float alpha );
     void process_random_ticks( );
     void set_selected_block( const glm::ivec3 &selected, bool shouldDraw );
     void screenshot( const std::string &prefix ) const;

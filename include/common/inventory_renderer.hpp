@@ -38,6 +38,9 @@ typedef struct {
 } InventoryRenderOptions;
 
 class InventoryRenderer {
+    // Headless test init (test_mobs): fields are filled directly since
+    // init() does GL work.
+    friend int test_mobs( );
     // Cell layout
     int width;
     int height;

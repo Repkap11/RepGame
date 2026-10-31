@@ -157,6 +157,10 @@ struct RepGameState {
         // can_float_on_water block, and only used to place it.
         int floatSelectionInBounds;
         glm::ivec3 pos_create_water;
+        // The camera/aim ray this selection came from — set where the ray is
+        // computed so left-click can test mob hits against the same ray.
+        glm::dvec3 ray_origin;
+        glm::dvec3 ray_dir;
     } block_selection;
     // Survival-mode mining: while the left button is held on the same block,
     // progress_ticks accumulates once per tick until it reaches the block's
@@ -167,6 +171,11 @@ struct RepGameState {
         BlockID id;
         float progress_ticks;
     } block_mining;
+    // Left-click mob hit computed in process_mouse_events: the raycast winner
+    // when it's nearer than the selected block (or no block is selected).
+    // -1 means this click goes to mining.
+    int hit_mob;
+    double mob_hit_dist;
     BlockUpdateQueue blockUpdateQueue;
     // Fresh spawns (no player.dat) start on the terrain-height estimate but
     // can't see structure blocks until the spawn column is generated. While
@@ -334,6 +343,9 @@ class RepGame {
     static bool capture_mode( );
     // True when REPGAME_FLY is set (scripted no-clip flight + FLYMET metrics).
     static bool fly_mode( );
+    // Survival pickup shared by block-break and mob drops: hotbar first
+    // (stacking onto matching slots), overflow to the survival inventory.
+    static void give_block_to_player( RepGameState &state, BlockID block, int quantity );
 
     int rep_tests_start( );
 };

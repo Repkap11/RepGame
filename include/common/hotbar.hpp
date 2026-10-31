@@ -7,6 +7,7 @@
 class FontRenderer;
 
 class Hotbar {
+    friend int test_mobs( );
     int width;
     int height;
     int num_blocks_max;
