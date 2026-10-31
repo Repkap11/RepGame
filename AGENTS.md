@@ -479,6 +479,17 @@ soul_* 10, magma 3, crying_obsidian 10, glowingobsidian 12, glow_lichen 7,
 sculk_catalyst 6, amethyst cluster/buds 5/4/2/1, brewing_stand 1,
 lit redstone ores 9, cave_vines_*_with_berries 14, firefly_bush 2.
 
+`blocks_light_down` (derived, no JSON key): bottom-aligned partial blocks —
+casts_shadow, opaque, scale.x/z=16, offset 0, scale.y<16, e.g. bottom slabs
+and grass path. The post-pass clears `casts_shadow` (cell holds light,
+lit from above/sides) while light.cpp never spreads light downward from it
+and the skylight column fill stops at it — slab roofs shade but path tops
+next to full blocks aren't dark. Floor cells also get a bit in
+`Chunk::light_shade_mask` (sibling of `light_air_mask`): the light
+texture's A channel is 0 for them, and chunk_fragment re-darkens the
+ground layer a floor sits in — the old opaque-cell contact shadow —
+while wall faces beside it stay undarkened.
+
 The creative menu lists `CREATIVE_BLOCKS` from
 `include/common/creative_order_gen.hpp`, computed by the importer. Pickable
 blocks are deduped by visual signature (6 face textures + icon +

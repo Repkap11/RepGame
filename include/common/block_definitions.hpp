@@ -88,6 +88,12 @@ typedef struct {
     // costs 1). 0 elsewhere. Absorbing cells are light-permeable (not
     // casts_shadow) but still cap the direct vertical skylight fill.
     unsigned char light_absorb;
+    // Derived (no JSON key): a light-holding cell that never passes light
+    // downward and caps the vertical skylight column — bottom-aligned
+    // partial blocks (slabs, path). Set in the render-order pass, which
+    // also clears casts_shadow so every light_opaque_id site treats the
+    // cell as light-holding.
+    bool blocks_light_down;
     // Blocks that emit full redstone power while "pressed": buttons (pressed by
     // right-click, time out) and pressure plates (pressed while stood on).
     // current_redstone_power > 0 means pressed, and also shrinks the rendered

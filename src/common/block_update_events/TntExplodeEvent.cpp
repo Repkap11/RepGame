@@ -156,6 +156,7 @@ void TntExplodeEvent::performAction( BlockUpdateQueue &blockUpdateQueue, RepGame
                     c->cells = chunk_alloc_cells( );
                     c->extras = nullptr;
                     c->light_air_mask = nullptr;
+                    c->light_shade_mask = nullptr;
                     MapGen::load_block_c( c );
                     StructureGen::place( *c );
                     gen_chunks.push_back( { c->chunk_pos, c } );

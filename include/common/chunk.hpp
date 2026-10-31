@@ -213,6 +213,15 @@ class Chunk {
     // light_mipmaps_enabled()). Mutable like cells: Chunk::set_block is
     // const but restamps it.
     mutable unsigned char *light_air_mask;
+    // Shade (contact-shadow) mask alongside light_air_mask — same
+    // layout/index space, same lifetime: 1 bit per cells[] entry, set iff
+    // the cell is a light floor (blocks_light_down: slabs, path). The
+    // light texture's A channel is written 0 for these cells so the shader
+    // can re-darken the ground layer a floor sits in — restoring the soft
+    // contact shadow the old opaque-cell light=0 blends produced, without
+    // re-darkening wall faces beside it. Restamped per cell by
+    // light_air_mask_set.
+    mutable unsigned char *light_shade_mask;
     unsigned int light_texture; // GL_TEXTURE_3D, 0 = not created yet
     // Dirty texel box of light[] not yet uploaded, in texel coords
     // [0,CHUNK_SIZE_INTERNAL_*): min.xyz in bits [0:7]/[8:15]/[16:23],

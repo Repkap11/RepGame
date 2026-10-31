@@ -7982,10 +7982,9 @@ block_definitions[ 601 ].textures[ FACE_FRONT ] = TEX_GRASS_PATH_SIDE;
 block_definitions[ 601 ].textures[ FACE_LEFT ] = TEX_GRASS_PATH_SIDE;
 block_definitions[ 601 ].textures[ FACE_BACK ] = TEX_GRASS_PATH_SIDE;
 block_definitions[ 601 ].icon_texture = TEX_GRASS_PATH_TOP;
-block_definitions[ 601 ].casts_shadow = false;
 block_definitions[ 601 ].hardness = 0.35f;
-block_definitions[ 601 ].is_seethrough = true;
 block_definitions[ 601 ].no_light = 6815743;
+block_definitions[ 601 ].scale = { 16, 15, 16 };
 
 // GRAY_CANDLE (602)
 block_definitions[ 602 ].textures[ FACE_TOP ] = TEX_GRAY_CANDLE;

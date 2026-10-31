@@ -689,6 +689,12 @@ int test_lighting( ) {
             failures++;
         }
     };
+    auto check_bool = [ & ]( const char *name, bool cond ) {
+        pr_test( "  %-55s %s", name, cond ? "PASS" : "FAIL" );
+        if ( !cond ) {
+            failures++;
+        }
+    };
 
     // --- Block channel: torch emits 14, decays 1 per BFS step.
     world.set_loaded_block( glm::ivec3( 10, 10, 10 ), { TORCH, 0, 0, TORCH, 0 } );
@@ -769,6 +775,18 @@ int test_lighting( ) {
     check_light( "under finalize-time canopy", glm::ivec3( 5, 29, 5 ), LIGHT_CHANNEL_SKY, 14 );
     check_light( "deep under finalize-time canopy", glm::ivec3( 5, 0, 5 ), LIGHT_CHANNEL_SKY, 14 );
 
+    // Finalize-path light floor: a 9x9 slab floor written via store_state
+    // (terrain-style, no recheck) caps its columns — the interior boundary
+    // scan must re-seed above each cap or the slab cells stay dim.
+    const BlockState slab = { BRICK_SLAB, 0, 0, BRICK_SLAB, 0 };
+    cl.light_ensure_columns( chunk );
+    for ( int fx = 22; fx <= 30; fx++ ) {
+        for ( int fz = 22; fz <= 30; fz++ ) {
+            chunk.store_state( chunk.get_index_from_coords( fx, 25, fz ), slab );
+            cl.light_compute_one_column( chunk, fx, fz );
+        }
+    }
+
     // Regression: the worker's optimistic prefill sets sky_open_above=1
     // before finalize, so the cascade fills nothing (cells_filled==0) — the
     // interior boundary scan must still seed canopy-shaded cells or they
@@ -779,6 +797,118 @@ int test_lighting( ) {
     cl.light_process_queue( 1000000 );
     check_light( "under canopy after optimistic refill", glm::ivec3( 5, 29, 5 ), LIGHT_CHANNEL_SKY, 14 );
     check_light( "deep under canopy after optimistic refill", glm::ivec3( 5, 0, 5 ), LIGHT_CHANNEL_SKY, 14 );
+
+    // --- Light floors (blocks_light_down): bottom-aligned partial blocks
+    // hold light but never pass it downward and cap the sky column, so a
+    // slab roof shades while its sides and top stay lit.
+
+    // Finalize-path floor (the 9x9 above): the interior slab cell reaches
+    // full sky via the cap reseed; the cell under the floor center is
+    // shaded to 15 - (distance to the nearest open column) = 15 - 5 = 10.
+    check_light( "finalize slab floor interior sky", glm::ivec3( 26, 25, 26 ), LIGHT_CHANNEL_SKY, 15 );
+    check_light( "under finalize slab floor", glm::ivec3( 26, 24, 26 ), LIGHT_CHANNEL_SKY, 10 );
+
+    // Shade mask (contact shadows): light_fill_chunk stamps bit=1 only for
+    // blocks_light_down cells — set on the slab floor, clear on opaque
+    // stone and air. (Mask exists only under light_mipmaps_enabled; tests
+    // run with it on.)
+    auto shade_bit = [ & ]( const glm::ivec3 &p ) -> int {
+        if ( !chunk.light_shade_mask ) {
+            return -1;
+        }
+        const int i = chunk.get_index_from_coords( p );
+        return ( chunk.light_shade_mask[ i >> 3 ] >> ( i & 7 ) ) & 1;
+    };
+    check_bool( "shade mask built by fill", chunk.light_shade_mask != nullptr );
+    check_bool( "shade bit set on slab floor cell", shade_bit( glm::ivec3( 26, 25, 26 ) ) == 1 );
+    check_bool( "shade bit clear on stone", shade_bit( glm::ivec3( 5, 30, 5 ) ) == 0 );
+    check_bool( "shade bit clear on air", shade_bit( glm::ivec3( 28, 28, 28 ) ) == 0 );
+    for ( int fx = 22; fx <= 30; fx++ ) {
+        for ( int fz = 22; fz <= 30; fz++ ) {
+            chunk.store_state( chunk.get_index_from_coords( fx, 25, fz ), BLOCK_STATE_AIR );
+            cl.light_compute_one_column( chunk, fx, fz );
+        }
+    }
+    cl.light_process_queue( 1000000 );
+
+    // Edit path: a slab placed into an open-sky column caps the column fill
+    // but still holds full sky itself; the cell below is lit laterally.
+    // Placing into the lit column also proves the remove pass clears the 15
+    // that used to live under it.
+    world.set_loaded_block( glm::ivec3( 16, 25, 16 ), slab );
+    cl.light_process_queue( 1000000 );
+    check_light( "placed slab cell holds sky", glm::ivec3( 16, 25, 16 ), LIGHT_CHANNEL_SKY, 15 );
+    check_light( "above placed slab stays sky", glm::ivec3( 16, 26, 16 ), LIGHT_CHANNEL_SKY, 15 );
+    check_light( "under placed slab is lateral-lit", glm::ivec3( 16, 24, 16 ), LIGHT_CHANNEL_SKY, 14 );
+    check_bool( "shade bit set on placed slab", shade_bit( glm::ivec3( 16, 25, 16 ) ) == 1 );
+    world.set_loaded_block( glm::ivec3( 16, 25, 16 ), BLOCK_STATE_AIR );
+    cl.light_process_queue( 1000000 );
+    check_light( "under cleared slab is sky again", glm::ivec3( 16, 24, 16 ), LIGHT_CHANNEL_SKY, 15 );
+    check_bool( "shade bit cleared on slab break", shade_bit( glm::ivec3( 16, 25, 16 ) ) == 0 );
+
+    // Stale-alpha guard: an edit that flips only the shade bit — slab onto
+    // open-sky stone, every light value stays the same — must still mark
+    // its texel in the dirty box or the GPU keeps a stale A: no contact
+    // shadow appears on place, and a ghost one stays after a break.
+    world.set_loaded_block( glm::ivec3( 8, 24, 28 ), stone );
+    cl.light_process_queue( 1000000 );
+    chunk.light_dirty_box.store( LIGHT_BOX_EMPTY, std::memory_order_relaxed );
+    world.set_loaded_block( glm::ivec3( 8, 25, 28 ), slab );
+    cl.light_process_queue( 1000000 );
+    {
+        const uint64_t box = chunk.light_dirty_box.load( std::memory_order_relaxed );
+        const glm::ivec3 texel( 8 + 1, 25 + 1, 28 + 1 ); // block local + halo
+        check_bool( "slab-on-stone edit marks its texel",
+                    box != LIGHT_BOX_EMPTY && static_cast<int>( box & 0xFF ) <= texel.x &&
+                        texel.x <= static_cast<int>( ( box >> 24 ) & 0xFF ) &&
+                        static_cast<int>( ( box >> 8 ) & 0xFF ) <= texel.y &&
+                        texel.y <= static_cast<int>( ( box >> 32 ) & 0xFF ) &&
+                        static_cast<int>( ( box >> 16 ) & 0xFF ) <= texel.z &&
+                        texel.z <= static_cast<int>( ( box >> 40 ) & 0xFF ) );
+    }
+    chunk.light_dirty_box.store( LIGHT_BOX_EMPTY, std::memory_order_relaxed );
+    world.set_loaded_block( glm::ivec3( 8, 25, 28 ), BLOCK_STATE_AIR );
+    cl.light_process_queue( 1000000 );
+    check_bool( "slab break also marks its texel", chunk.light_dirty_box.load( std::memory_order_relaxed ) != LIGHT_BOX_EMPTY );
+    world.set_loaded_block( glm::ivec3( 8, 24, 28 ), BLOCK_STATE_AIR );
+    cl.light_process_queue( 1000000 );
+
+    // Wide 7x7 roof: the center has no lateral path shorter than 4 steps
+    // to an open column, so the cell below it settles at 15 - 4 = 11.
+    for ( int rx = 24; rx <= 30; rx++ ) {
+        for ( int rz = 10; rz <= 16; rz++ ) {
+            world.set_loaded_block( glm::ivec3( rx, 25, rz ), slab );
+        }
+    }
+    cl.light_process_queue( 1000000 );
+    check_light( "roof center slab cell sky", glm::ivec3( 27, 25, 13 ), LIGHT_CHANNEL_SKY, 15 );
+    check_light( "under roof center", glm::ivec3( 27, 24, 13 ), LIGHT_CHANNEL_SKY, 11 );
+    for ( int rx = 24; rx <= 30; rx++ ) {
+        for ( int rz = 10; rz <= 16; rz++ ) {
+            world.set_loaded_block( glm::ivec3( rx, 25, rz ), BLOCK_STATE_AIR );
+        }
+    }
+    cl.light_process_queue( 1000000 );
+
+    // Block channel: a torch directly above a slab lights the slab cell to
+    // 13, but the cell under the slab can only be reached around the side —
+    // torch 14 -> side 13 -> down 12 -> under-side 11 -> under-slab 10.
+    world.set_loaded_block( glm::ivec3( 16, 22, 16 ), { TORCH, 0, 0, TORCH, 0 } );
+    world.set_loaded_block( glm::ivec3( 16, 21, 16 ), slab );
+    cl.light_process_queue( 1000000 );
+    check_light( "slab cell over-detoured torch", glm::ivec3( 16, 21, 16 ), LIGHT_CHANNEL_BLOCK, 13 );
+    check_light( "under slab only gets side path", glm::ivec3( 16, 20, 16 ), LIGHT_CHANNEL_BLOCK, 10 );
+    world.set_loaded_block( glm::ivec3( 16, 21, 16 ), BLOCK_STATE_AIR );
+    world.set_loaded_block( glm::ivec3( 16, 22, 16 ), BLOCK_STATE_AIR );
+    cl.light_process_queue( 1000000 );
+
+    // Derived flag sanity: bottom-aligned partials are light floors; full
+    // blocks, absorbing leaves, and plates are not.
+    check_bool( "BRICK_SLAB is a light floor", block_definition_get_definition( BRICK_SLAB )->blocks_light_down && !block_definition_get_definition( BRICK_SLAB )->casts_shadow );
+    check_bool( "GRASS_PATH is a light floor", block_definition_get_definition( GRASS_PATH )->blocks_light_down && !block_definition_get_definition( GRASS_PATH )->casts_shadow );
+    check_bool( "STONE is not a light floor", !block_definition_get_definition( STONE )->blocks_light_down );
+    check_bool( "OAK_LEAVES is not a light floor", !block_definition_get_definition( OAK_LEAVES )->blocks_light_down );
+    check_bool( "pressure plate is not a light floor", !block_definition_get_definition( STONE_PRESSURE_PLATE )->blocks_light_down );
     return failures;
 }
 
@@ -875,6 +1005,7 @@ int test_structure_border( ) {
         c->cells = chunk_alloc_cells( );
         c->extras = nullptr;
         c->light_air_mask = nullptr;
+        c->light_shade_mask = nullptr;
         MapGen::load_block_c( c );
         StructureGen::place( *c );
         return c;
@@ -883,6 +1014,7 @@ int test_structure_border( ) {
         chunk_free_cells( c->cells );
         chunk_free_extras( c->extras );
         chunk_free_air_mask( c->light_air_mask );
+        chunk_free_air_mask( c->light_shade_mask );
         delete c;
     };
 

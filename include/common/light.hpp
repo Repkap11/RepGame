@@ -81,6 +81,8 @@ void light_fill_chunk( Chunk &chunk );
 // texture upload reads instead of walking cells[]) for a post-fill cells[]
 // write — Chunk::set_block and Chunk::set_block_by_index_if_different call
 // this after every real write. Bit set = !light_opaque_id(id), the same
-// predicate the fill/upload use. No-op when the mask isn't allocated, so a
-// missing mask always means "upload falls back to the cells[] walk".
+// predicate the fill/upload use. Also stamps the matching
+// chunk.light_shade_mask bit (set = def->blocks_light_down). No-op when a
+// mask isn't allocated, so a missing mask always means "upload falls back
+// to the cells[] walk".
 void light_air_mask_set( const Chunk &chunk, int index, BlockID id );

@@ -46,6 +46,7 @@ void block_definitions_initilize_definitions( Texture *texture ) {
         block->is_tnt = false;
         block->is_inverse_tnt = false;
         block->is_solid = true;
+        block->blocks_light_down = false;
     }
 
 #include "block_definitions_gen.inc"
@@ -60,6 +61,21 @@ void block_definitions_initilize_definitions( Texture *texture ) {
             block->non_full_size = true;
         } else {
             block->non_full_size = false;
+        }
+
+        // Bottom-aligned partial blocks (bottom slabs, path, ...): the cell
+        // holds light — lit from above/sides and passing it sideways — but
+        // never passes light downward, and it caps the vertical skylight
+        // column so a slab roof still shades. casts_shadow is cleared so
+        // every opacity test treats the cell as light-holding; the
+        // downward-block rule lives in light.cpp. Derived automatically —
+        // must stay above is_solid so is_solid's non_full_size exclusion
+        // is unaffected.
+        if ( block->casts_shadow && !block->is_seethrough && block->scale.x == 16 && block->scale.z == 16 && //
+             block->offset.x == 0 && block->offset.y == 0 && block->offset.z == 0 && block->scale.y < 16 &&   //
+             !block->is_piston && !block->is_piston_head ) {
+            block->blocks_light_down = true;
+            block->casts_shadow = false;
         }
 
         // A block can hold redstone power only if it's a full opaque cube.

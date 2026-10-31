@@ -321,6 +321,21 @@ void main() {
     if(v_face_normal == vec3(0.0) && light_l0.b > 0.0) {
         light_sample = mix(light_l0.rg, min(light_l0.rg / light_l0.b, vec2(1.0)), FLOWER_LIGHT_AIR_NORMALIZE);
     }
+    // Contact shadows for light floors (blocks_light_down: slabs, path):
+    // the volume's A channel is 0 for floor cells and 255 elsewhere. A
+    // vertical face (top or bottom) re-samples A snapped to the center of
+    // the cell layer it points into — a slab top reads the layer above
+    // itself (no self-shade), a ground top reads its own layer and blends
+    // against a neighbouring slab cell's 0, restoring the soft shadow the
+    // old opaque-cell light=0 produced. Wall faces (normal.y == 0) skip
+    // this: darkening their sample is what the light-floor fix removed.
+    // Applied to the level-0 sample so the footprint blend below fades it
+    // out with distance like the old darkening did.
+    if(v_face_normal.y != 0.0) {
+        vec3 shade_pos = vec3(v_light_pos.x, u_LightBase.y + floor(v_light_pos.y - u_LightBase.y) + 0.5, v_light_pos.z);
+        float shade = textureLod(u_LightTex, (shade_pos - u_LightBase + 1.0) / LIGHT_VOLUME_DIM, 0.0).a;
+        light_sample *= shade;
+    }
     // Band-limit the light to the pixel footprint: once a block spans less
     // than ~2 pixels (distance, edge-on views) the per-block light pattern
     // (AO-like darkening toward solid cells, stepped seabeds seen through

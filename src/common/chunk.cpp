@@ -249,6 +249,8 @@ void Chunk::release_terrain( ) {
     this->light_columns = nullptr;
     chunk_free_air_mask( this->light_air_mask );
     this->light_air_mask = nullptr;
+    chunk_free_air_mask( this->light_shade_mask );
+    this->light_shade_mask = nullptr;
     if ( this->light_texture ) {
         glDeleteTextures( 1, &this->light_texture );
         this->light_texture = 0;
@@ -349,6 +351,8 @@ void Chunk::free_generated_buffers( ) {
     this->extras = nullptr;
     chunk_free_air_mask( this->light_air_mask );
     this->light_air_mask = nullptr;
+    chunk_free_air_mask( this->light_shade_mask );
+    this->light_shade_mask = nullptr;
 }
 
 void Chunk::set_block( const glm::ivec3 &pos, const BlockState &blockState ) const {
@@ -376,6 +380,10 @@ void Chunk::set_block( const glm::ivec3 &pos, const BlockState &blockState ) con
                 this->light_air_mask = chunk_alloc_air_mask( );
             }
             memset( this->light_air_mask, 0xFF, CHUNK_BLOCK_SIZE / 8 );
+            if ( this->light_shade_mask == nullptr ) {
+                this->light_shade_mask = chunk_alloc_air_mask( );
+            }
+            memset( this->light_shade_mask, 0, CHUNK_BLOCK_SIZE / 8 );
         }
     }
 
@@ -408,6 +416,10 @@ int Chunk::set_block_by_index_if_different( int index, const BlockState *blockSt
                 this->light_air_mask = chunk_alloc_air_mask( );
             }
             memset( this->light_air_mask, 0xFF, CHUNK_BLOCK_SIZE / 8 );
+            if ( this->light_shade_mask == nullptr ) {
+                this->light_shade_mask = chunk_alloc_air_mask( );
+            }
+            memset( this->light_shade_mask, 0, CHUNK_BLOCK_SIZE / 8 );
         }
     }
     const BlockState oldBlockState = this->state_at( index );
@@ -619,6 +631,8 @@ void Chunk::load_terrain( MapStorage &map_storage ) {
                 this->free_block_storage( );
                 chunk_free_air_mask( this->light_air_mask );
                 this->light_air_mask = nullptr;
+                chunk_free_air_mask( this->light_shade_mask );
+                this->light_shade_mask = nullptr;
                 this->is_empty_chunk = true;
                 goto skip_to_mesh;
             }
@@ -635,6 +649,8 @@ void Chunk::load_terrain( MapStorage &map_storage ) {
             this->free_block_storage( );
             chunk_free_air_mask( this->light_air_mask );
             this->light_air_mask = nullptr;
+            chunk_free_air_mask( this->light_shade_mask );
+            this->light_shade_mask = nullptr;
             this->is_empty_chunk = true;
             this->dirty = 0;
             goto skip_to_mesh;
@@ -672,6 +688,8 @@ void Chunk::load_terrain( MapStorage &map_storage ) {
                 this->free_block_storage( );
                 chunk_free_air_mask( this->light_air_mask );
                 this->light_air_mask = nullptr;
+                chunk_free_air_mask( this->light_shade_mask );
+                this->light_shade_mask = nullptr;
                 this->is_empty_chunk = true;
                 this->dirty = 0;
 #if TERRAIN_GEN_PROFILING
@@ -699,6 +717,8 @@ void Chunk::load_terrain( MapStorage &map_storage ) {
                 this->free_block_storage( );
                 chunk_free_air_mask( this->light_air_mask );
                 this->light_air_mask = nullptr;
+                chunk_free_air_mask( this->light_shade_mask );
+                this->light_shade_mask = nullptr;
                 this->is_empty_chunk = true;
                 this->dirty = 0;
 #if TERRAIN_GEN_PROFILING
@@ -897,6 +917,8 @@ void Chunk::calculate_populated_blocks( ) {
             this->free_block_storage( );
             chunk_free_air_mask( this->light_air_mask );
             this->light_air_mask = nullptr;
+            chunk_free_air_mask( this->light_shade_mask );
+            this->light_shade_mask = nullptr;
         }
         for ( int renderOrder = 0; renderOrder < LAST_RENDER_ORDER; renderOrder++ ) {
             this->layers[ renderOrder ].num_instances = 0;
@@ -1244,6 +1266,8 @@ void Chunk::calculate_populated_blocks( ) {
         this->free_block_storage( );
         chunk_free_air_mask( this->light_air_mask );
         this->light_air_mask = nullptr;
+        chunk_free_air_mask( this->light_shade_mask );
+        this->light_shade_mask = nullptr;
     }
     for ( int renderOrder = 0; renderOrder < LAST_RENDER_ORDER; renderOrder++ ) {
         this->layers[ renderOrder ].num_instances = num_instances[ renderOrder ];
