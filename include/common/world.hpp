@@ -6,7 +6,7 @@ class World;
 #include "chunk_loader.hpp"
 #include "common/multiplayer_avatars.hpp"
 #include "common/block_debris.hpp"
-#include "common/primed_tnt.hpp"
+#include "common/block_bodies.hpp"
 #include "common/mobs.hpp"
 #include "common/renderer/full_screen_quad.hpp"
 #include "common/RenderChain.hpp"
@@ -21,13 +21,13 @@ class World {
     friend void test_setup_world( World &world );
 
     friend int test_lighting( );
+    friend int test_falling_blocks( );
 
     ChunkLoader chunkLoader;
     Renderer renderer;
     SkyBox skyBox;
     MultiplayerAvatars multiplayer_avatars;
     BlockDebris blockDebris;
-    PrimedTnt primedTnt;
     VertexBufferLayout vbl_block;
     VertexBufferLayout vbl_coords;
     VertexBufferLayout vbl_object_vertex;
@@ -88,14 +88,10 @@ class World {
     // Spawns break particles if prev_state was a real block that new_id
     // removed. No-op for air, same-id state changes, and liquids.
     void spawn_block_debris( const glm::ivec3 &block_pos, const BlockState &prev_state, BlockID new_id, int num_particles = DEBRIS_PER_BLOCK );
-    // Spawns a primed (flying + flashing) TNT entity. center is the
-    // world-space cube center; ground_t is the predicted terrain-impact time
-    // clamping the shader's ballistic flight (>= life_s for free flight).
-    // block_id selects the per-face texture set (TNT or INVERSE_TNT).
-    // Returns the entity so its detonation can despawn it.
-    entt::entity spawn_primed_tnt( const glm::vec3 &center, const glm::vec3 &velocity, float life_s, float ground_t, BlockID block_id );
-    // Removes a live primed TNT entity (the blast it was fusing for fired).
-    void despawn_primed_tnt( entt::entity entity );
+    // CPU physics bodies: falling blocks (sand, gravel, concrete powder,
+    // anvils) and primed TNT. ticked from the game loop right after
+    // mobs.tick; rendered through two instanced chains in draw.
+    BlockBodies bodies;
     // void overlay_blocks( const glm::ivec3 &block_pos, BlockState *blockStates, int numBlockStates );
 
     static BlockState get_block_from_chunk( const Chunk &chunk, const glm::ivec3 &block );

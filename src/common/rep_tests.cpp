@@ -1165,6 +1165,18 @@ int test_tnt( ) {
     gs.camera.pos = glm::dvec3( 0, 0, 0 );
     test_setup_world( gs.world );
     World &world = gs.world;
+    int failures = 0;
+    auto check_bool = [ & ]( const char *name, bool cond ) {
+        pr_test( "  %-55s %s", name, cond ? "PASS" : "FAIL" );
+        if ( !cond ) {
+            failures++;
+        }
+    };
+    auto tick = [ & ]( ) {
+        gs.tick_number++;
+        world.bodies.tick( gs );
+        gs.blockUpdateQueue.processAllBlockUpdates( gs, gs.tick_number );
+    };
 
     const BlockState stone = { STONE, 0, 0, STONE, 0 };
     const BlockState bedrock = { BEDROCK, 0, 0, BEDROCK, 0 };
@@ -1184,28 +1196,47 @@ int test_tnt( ) {
     // Stone well outside every blast radius.
     world.set_loaded_block( glm::ivec3( 25, 10, 25 ), stone );
 
+    // A 3x3, 3-deep pit (air for y=8..10 over a stone floor at y=7) beside
+    // the platform: a TNT ignited at y=11 over it must fall in and explode
+    // at the pit floor, not at the ignite cell.
+    for ( int x = 19; x <= 21; x++ ) {
+        for ( int z = 19; z <= 21; z++ ) {
+            world.set_loaded_block( glm::ivec3( x, 7, z ), stone );
+        }
+    }
+    // Rim stone: only survives if the blast lands at the pit floor (y=8);
+    // a blast at the ignite cell (y=11) is 3.6 blocks away and destroys it.
+    world.set_loaded_block( glm::ivec3( 18, 11, 18 ), stone );
+
     auto place = [ & ]( const glm::ivec3 &pos, const BlockState &block_state ) {
         gs.blockUpdateQueue.addBlockUpdate( std::make_shared<PlayerBlockPlacedEvent>( gs.tick_number, pos, block_state, false ) );
     };
     place( glm::ivec3( 10, 11, 10 ), { TNT, 0, 0, TNT, 0 } );
     place( glm::ivec3( 11, 11, 10 ), { REDSTONE_BLOCK, 0, 0, REDSTONE_BLOCK, 0 } );
+    // Primed TNT over the pit, ignited by an adjacent redstone block.
+    place( glm::ivec3( 20, 11, 20 ), { TNT, 0, 0, TNT, 0 } );
+    place( glm::ivec3( 20, 11, 21 ), { REDSTONE_BLOCK, 0, 0, REDSTONE_BLOCK, 0 } );
 
-    int failures = 0;
     // Ignition propagates within a few ticks — the powered TNT cell turns to
     // air long before the fuse event lands.
     for ( int i = 0; i < 10; i++ ) {
-        gs.tick_number++;
-        gs.blockUpdateQueue.processAllBlockUpdates( gs, gs.tick_number );
+        tick( );
     }
     failures += check_id( world, "ignited TNT cell is air", glm::ivec3( 10, 11, 10 ), AIR );
     failures += check_id( world, "chain TNT not yet blasted", glm::ivec3( 13, 11, 10 ), TNT );
     failures += check_id( world, "platform intact before blast", glm::ivec3( 10, 10, 10 ), STONE );
+    check_bool( "two primed TNT bodies live", world.bodies.count_tnt( ) == 2 );
+
+    // A primed TNT resting on the floor beside the main blast gets shoved by
+    // it. Spawned directly (its cell was already air) with a long fuse.
+    const glm::dvec3 shoved_spawn( 10.5, 11.5, 14.5 );
+    const uint32_t shoved = world.bodies.spawn_primed_tnt( gs, shoved_spawn, glm::dvec3( 0.0 ), TNT, TNT_FUSE_TICKS * 20, gs.tick_number );
+    check_bool( "shove-test primed TNT spawned", shoved != 0 );
 
     // Outlast the main fuse plus the longest possible chain fuse.
     const long wait = TNT_FUSE_TICKS + TNT_CHAIN_FUSE_MIN_TICKS + TNT_CHAIN_FUSE_SPREAD_TICKS + 40;
     for ( long i = 0; i < wait; i++ ) {
-        gs.tick_number++;
-        gs.blockUpdateQueue.processAllBlockUpdates( gs, gs.tick_number );
+        tick( );
     }
     failures += check_id( world, "blast cell stays air", glm::ivec3( 10, 11, 10 ), AIR );
     failures += check_id( world, "stone under blast destroyed", glm::ivec3( 10, 10, 10 ), AIR );
@@ -1213,6 +1244,181 @@ int test_tnt( ) {
     failures += check_id( world, "chained TNT detonated", glm::ivec3( 13, 11, 10 ), AIR );
     failures += check_id( world, "far TNT untouched", glm::ivec3( 8, 11, 16 ), TNT );
     failures += check_id( world, "distant stone untouched", glm::ivec3( 25, 10, 25 ), STONE );
+    failures += check_id( world, "pit rim stone survives (blast was at pit floor)", glm::ivec3( 18, 11, 18 ), STONE );
+    failures += check_id( world, "pit floor block destroyed by blast", glm::ivec3( 20, 7, 20 ), AIR );
+
+    glm::dvec3 shoved_pos = shoved_spawn;
+    world.bodies.take( shoved, &shoved_pos );
+    check_bool( "primed TNT pushed by nearby blast", glm::distance( shoved_pos, shoved_spawn ) > 0.05 );
+    check_bool( "no primed TNT bodies remain", world.bodies.count_tnt( ) == 0 );
+    return failures;
+}
+
+// Falling blocks: gravity blocks released by a support change become FALLING
+// bodies that land and write themselves back. Cover columns, a 1-wide gap
+// drop, water drag, anvil + concrete powder, blast behavior (in-world sand is
+// destroyed; already-falling bodies are pushed), unloaded cells below, and
+// landing on a non-replaceable torch cell.
+int test_falling_blocks( ) {
+    if ( block_definitions == nullptr ) {
+        block_definitions_initilize_definitions( nullptr );
+    }
+    RepGameState &gs = *new RepGameState( ); // leaked on purpose — see test_tnt
+    gs.tick_number = 0;
+    gs.camera.pos = glm::dvec3( 0, 0, 0 );
+    test_setup_world( gs.world );
+    World &world = gs.world;
+    int failures = 0;
+    auto check_bool = [ & ]( const char *name, bool cond ) {
+        pr_test( "  %-55s %s", name, cond ? "PASS" : "FAIL" );
+        if ( !cond ) {
+            failures++;
+        }
+    };
+    // Each game tick: the bodies integrate, then queued block events fire.
+    auto tick = [ & ]( ) {
+        gs.tick_number++;
+        world.bodies.tick( gs );
+        gs.blockUpdateQueue.processAllBlockUpdates( gs, gs.tick_number );
+    };
+    auto run = [ & ]( const int ticks ) {
+        for ( int i = 0; i < ticks; i++ ) {
+            tick( );
+        }
+    };
+    auto place = [ & ]( const glm::ivec3 &pos, const BlockState &block_state ) {
+        gs.blockUpdateQueue.addBlockUpdate( std::make_shared<PlayerBlockPlacedEvent>( gs.tick_number, pos, block_state, false ) );
+    };
+
+    const BlockState stone = { STONE, 0, 0, STONE, 0 };
+    const BlockState sand = { SAND, 0, 0, SAND, 0 };
+
+    // --- Column: three stacked sand collapse onto a stone floor. ---
+    for ( int x = 9; x <= 12; x++ ) {
+        for ( int z = 9; z <= 11; z++ ) {
+            world.set_loaded_block( glm::ivec3( x, 10, z ), stone );
+        }
+    }
+    world.set_loaded_block( glm::ivec3( 10, 16, 10 ), sand );
+    world.set_loaded_block( glm::ivec3( 10, 17, 10 ), sand );
+    place( glm::ivec3( 10, 15, 10 ), sand );
+    run( 4 * UPS_RATE );
+    failures += check_id( world, "column: sand landed lowest", glm::ivec3( 10, 11, 10 ), SAND );
+    failures += check_id( world, "column: sand stacked at 12", glm::ivec3( 10, 12, 10 ), SAND );
+    failures += check_id( world, "column: sand stacked at 13", glm::ivec3( 10, 13, 10 ), SAND );
+    failures += check_id( world, "column: air above the stack", glm::ivec3( 10, 14, 10 ), AIR );
+    failures += check_id( world, "column: air at the top", glm::ivec3( 10, 17, 10 ), AIR );
+    check_bool( "column: no bodies remain", world.bodies.count_falling( ) == 0 );
+
+    // --- Gap: sand over a 1x1 hole drops one level into the gap cell. ---
+    for ( int x = 4; x <= 8; x++ ) {
+        for ( int z = 9; z <= 11; z++ ) {
+            world.set_loaded_block( glm::ivec3( x, 10, z ), stone );
+        }
+    }
+    world.set_loaded_block( glm::ivec3( 7, 10, 10 ), BLOCK_STATE_AIR ); // the gap cell
+    world.set_loaded_block( glm::ivec3( 7, 9, 10 ), stone );            // under the gap
+    place( glm::ivec3( 7, 11, 10 ), sand );
+    run( 2 * UPS_RATE );
+    failures += check_id( world, "gap: sand fell into the hole", glm::ivec3( 7, 10, 10 ), SAND );
+    check_bool( "gap: no bodies remain", world.bodies.count_falling( ) == 0 );
+
+    // --- Water: a drop through water is slower than the same drop in air. ---
+    world.set_loaded_block( glm::ivec3( 20, 10, 20 ), stone );
+    for ( int y = 11; y <= 15; y++ ) {
+        world.set_loaded_block( glm::ivec3( 20, y, 20 ), { WATER, 0, 0, WATER, 0 } );
+    }
+    world.set_loaded_block( glm::ivec3( 24, 10, 20 ), stone );
+    place( glm::ivec3( 20, 16, 20 ), sand );
+    int ticks_water = 0;
+    for ( ; ticks_water < 24 * UPS_RATE; ticks_water++ ) {
+        tick( );
+        if ( world.bodies.count_falling( ) == 0 && world.get_loaded_block( glm::ivec3( 20, 11, 20 ) ).id == SAND ) {
+            break;
+        }
+    }
+    place( glm::ivec3( 24, 16, 20 ), sand );
+    int ticks_air = 0;
+    for ( ; ticks_air < 24 * UPS_RATE; ticks_air++ ) {
+        tick( );
+        if ( world.bodies.count_falling( ) == 0 && world.get_loaded_block( glm::ivec3( 24, 11, 20 ) ).id == SAND ) {
+            break;
+        }
+    }
+    failures += check_id( world, "water: sand landed at the bottom", glm::ivec3( 20, 11, 20 ), SAND );
+    failures += check_id( world, "air: sand landed at the bottom", glm::ivec3( 24, 11, 20 ), SAND );
+    pr_test( "  %-55s water=%d air=%d", "water drop slower than air drop", ticks_water, ticks_air );
+    check_bool( "water drop slower than air drop", ticks_water > ticks_air );
+
+    // --- Anvil + concrete powder also fall. ---
+    world.set_loaded_block( glm::ivec3( 26, 10, 26 ), stone );
+    world.set_loaded_block( glm::ivec3( 28, 10, 26 ), stone );
+    place( glm::ivec3( 26, 12, 26 ), { ANVIL, 0, 0, ANVIL, 0 } );
+    place( glm::ivec3( 28, 12, 26 ), { CONCRETEPOWDER, 0, 0, CONCRETEPOWDER, 0 } );
+    run( 2 * UPS_RATE );
+    failures += check_id( world, "anvil fell", glm::ivec3( 26, 11, 26 ), ANVIL );
+    failures += check_id( world, "concrete powder fell", glm::ivec3( 28, 11, 26 ), CONCRETEPOWDER );
+
+    // --- Explosion: in-world gravity blocks are destroyed, not flung; a
+    // body already in flight near the blast is pushed. ---
+    const glm::ivec3 blast( 12, 11, 12 );
+    for ( int x = 9; x <= 15; x++ ) {
+        for ( int z = 9; z <= 15; z++ ) {
+            world.set_loaded_block( glm::ivec3( x, 9, z ), { BEDROCK, 0, 0, BEDROCK, 0 } );
+            world.set_loaded_block( glm::ivec3( x, 10, z ), stone );
+        }
+    }
+    // Sand column straddling the sphere: cells up to y=15 are inside the
+    // blast (destroyed), y=16 sits outside and only loses support.
+    for ( int y = 11; y <= 16; y++ ) {
+        world.set_loaded_block( glm::ivec3( 13, y, 12 ), sand );
+    }
+    // An already-falling body in mid-air beside the blast — left un-landed so
+    // the impulse can be measured on it.
+    const uint32_t flyer = world.bodies.spawn_falling( glm::ivec3( 14, 15, 14 ), sand, glm::dvec3( 0.0 ) );
+    check_bool( "blast: mid-air body spawned", flyer != 0 );
+    gs.blockUpdateQueue.addBlockUpdate( std::make_shared<TntExplodeEvent>( gs.tick_number, blast, 0, false ) );
+    // One tick: the explosion event runs, but the outside-sand FallingBlockEvent
+    // (+2 ticks) hasn't fired yet — any body now would have come from the blast.
+    tick( );
+    failures += check_id( world, "blast: sand inside radius destroyed", glm::ivec3( 13, 11, 12 ), AIR );
+    failures += check_id( world, "blast: sand inside radius destroyed (top)", glm::ivec3( 13, 14, 12 ), AIR );
+    check_bool( "blast: no bodies from in-radius blocks", world.bodies.count_falling( ) == 1 );
+    // The impulse pushed the flyer away from the blast center.
+    const glm::dvec3 blast_center = glm::dvec3( blast ) + glm::dvec3( 0.5 );
+    glm::dvec3 flyer_min, flyer_vel;
+    for ( const auto &db : world.bodies.debug_bodies( ) ) {
+        if ( db.id == flyer ) {
+            flyer_min = db.min;
+            flyer_vel = db.vel;
+        }
+    }
+    const glm::dvec3 push_away = ( flyer_min + glm::dvec3( 0.5 ) ) - blast_center;
+    check_bool( "blast: falling body pushed away", glm::dot( flyer_vel, push_away ) > 0.0 );
+    // The outside sand then falls through the normal FallingBlockEvent path.
+    run( 4 * UPS_RATE );
+    check_bool( "blast: no bodies remain", world.bodies.count_falling( ) == 0 );
+    failures += check_id( world, "blast: support-lost sand landed in crater", glm::ivec3( 13, 10, 12 ), SAND );
+    failures += check_id( world, "blast: second outside sand stacked on it", glm::ivec3( 13, 11, 12 ), SAND );
+
+    // --- Unloaded below: a cell whose below is unloaded never falls. ---
+    // (Writes can't go through set_loaded_block at a chunk face — the halo
+    // fixup needs the missing neighbor — so the sand is written directly
+    // into chunk storage and a neighbor placement triggers the check.)
+    Chunk &chunk = world.chunkLoader.chunkArray[ chunk_slot_from_pos( glm::ivec3( 0, 0, 0 ) ) ];
+    chunk.set_block( glm::ivec3( 5, 0, 10 ), sand );
+    place( glm::ivec3( 5, 1, 10 ), stone );
+    run( 30 );
+    failures += check_id( world, "unloaded below: sand stays", glm::ivec3( 5, 0, 10 ), SAND );
+    check_bool( "unloaded below: no body spawned", world.bodies.count_falling( ) == 0 );
+
+    // --- Torch: a falling block into a torch cell breaks into debris. ---
+    world.set_loaded_block( glm::ivec3( 10, 10, 5 ), stone );
+    world.set_loaded_block( glm::ivec3( 10, 11, 5 ), { TORCH, 0, 0, TORCH, 0 } );
+    place( glm::ivec3( 10, 12, 5 ), sand );
+    run( 2 * UPS_RATE );
+    check_bool( "torch: cell has no sand", world.get_loaded_block( glm::ivec3( 10, 11, 5 ) ).id != SAND );
+    check_bool( "torch: no body remains", world.bodies.count_falling( ) == 0 );
     return failures;
 }
 
@@ -2128,6 +2334,7 @@ constexpr Test all_tests[] = {  //
     MK_TEST( waterlog ),        //
     MK_TEST( lighting ),        //
     MK_TEST( tnt ),             //
+    MK_TEST( falling_blocks ),  //
     MK_TEST( structure_border ), //
     MK_TEST( mobs ),             //
     { nullptr, nullptr }

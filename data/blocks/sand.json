@@ -1,4 +1,5 @@
 {
+  "falls_with_gravity": true,
   "hardness": 0.75,
   "id": 27,
   "name": "SAND",

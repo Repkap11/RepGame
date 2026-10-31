@@ -1,4 +1,6 @@
 {
+ "fall_mass": 4.0,
+ "falls_with_gravity": true,
  "id": 516,
  "name": "DEPRECATED_ANVIL",
  "textures": {

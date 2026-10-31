@@ -49,6 +49,8 @@ void block_definitions_initilize_definitions( Texture *texture ) {
         block->is_inverse_tnt = false;
         block->is_solid = true;
         block->blocks_light_down = false;
+        block->falls_with_gravity = false;
+        block->fall_mass = 1.0f;
     }
 
 #include "block_definitions_gen.inc"

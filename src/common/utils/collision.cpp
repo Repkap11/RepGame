@@ -170,9 +170,17 @@ static bool aabb_collides_world( World &world, const glm::dvec3 &amin, const glm
 }
 
 // Moves the AABB by `delta` on `axis` (0=x, 1=y, 2=z) and clamps it against any
-// solid block it penetrated. Sets `hit` if a block was hit, and `standing` if a
-// downward Y move was blocked (player is resting on a surface).
-static void resolve_axis( World &world, glm::dvec3 &amin, glm::dvec3 &amax, int axis, double delta, bool &hit, bool &standing ) {
+// solid block it penetrated, plus any of the optional `extra` body boxes.
+// Sets `hit` if something was hit (writing the winning extra box, or nullptr
+// for terrain, to `hit_extra`), and `standing` if a downward Y move was
+// blocked (player/body is resting on a surface).
+// resticky_down (move_box's Y axis): also clamp when the leading edge was
+// already inside the SKIN band past the face. Without it, a resting body's
+// sub-SKIN downward step slips into the overlap margin — the crossing test
+// fails, standing flickers every other tick, and the body never settles.
+static void resolve_axis( World &world, glm::dvec3 &amin, glm::dvec3 &amax, int axis, double delta, bool &hit, bool &standing,
+                          const BodyBox *extra = nullptr, size_t extra_count = 0, const BodyBox **hit_extra = nullptr,
+                          bool resticky_down = false ) {
     hit = false;
     if ( delta == 0.0 ) {
         return;
@@ -199,6 +207,7 @@ static void resolve_axis( World &world, glm::dvec3 &amin, glm::dvec3 &amax, int 
 
     double best = delta > 0.0 ? NO_CLAMP_POS : NO_CLAMP_NEG;
     bool found = false;
+    const BodyBox *extra_hit = nullptr;
     for ( int x = x0; x <= x1; x++ ) {
         for ( int y = y0; y <= y1; y++ ) {
             for ( int z = z0; z <= z1; z++ ) {
@@ -207,7 +216,13 @@ static void resolve_axis( World &world, glm::dvec3 &amin, glm::dvec3 &amax, int 
                 for ( int i = 0; i < num_boxes; i++ ) {
                     const glm::dvec3 &bmin = mins[ i ];
                     const glm::dvec3 &bmax = maxs[ i ];
-                    if ( !aabb_overlap( amin, amax, bmin, bmax ) ) {
+                    // resticky_down also counts a face within SKIN below the
+                    // leading edge as contact (a clamped body rests exactly
+                    // SKIN above the face, so a sub-SKIN step never overlaps).
+                    const bool overlap = aabb_overlap( amin, amax, bmin, bmax ) ||
+                                         ( resticky_down && amin.x < bmax.x && amax.x > bmin.x && ( amin.y - SKIN ) < bmax.y &&
+                                           amax.y > bmin.y && amin.z < bmax.z && amax.z > bmin.z );
+                    if ( !overlap ) {
                         continue;
                     }
                     if ( delta > 0.0 ) {
@@ -216,15 +231,17 @@ static void resolve_axis( World &world, glm::dvec3 &amin, glm::dvec3 &amax, int 
                         if ( bmin[ axis ] >= pre_max && bmin[ axis ] < amax[ axis ] ) {
                             if ( bmin[ axis ] < best ) {
                                 best = bmin[ axis ];
+                                extra_hit = nullptr;
                             }
                             found = true;
                         }
                     } else {
                         // Moving -: clamp to the block's max face, but only if the
                         // player's leading edge (pre_min) actually crossed it.
-                        if ( bmax[ axis ] > amin[ axis ] && bmax[ axis ] <= pre_min ) {
+                        if ( bmax[ axis ] > amin[ axis ] - ( resticky_down ? SKIN : 0.0 ) && bmax[ axis ] <= pre_min + ( resticky_down ? SKIN : 0.0 ) ) {
                             if ( bmax[ axis ] > best ) {
                                 best = bmax[ axis ];
+                                extra_hit = nullptr;
                             }
                             found = true;
                         }
@@ -233,11 +250,43 @@ static void resolve_axis( World &world, glm::dvec3 &amin, glm::dvec3 &amax, int 
             }
         }
     }
+    // Extra body boxes obey the same clamp rules as terrain; the tightest
+    // clamp over both sets wins.
+    for ( size_t e = 0; e < extra_count; e++ ) {
+        const glm::dvec3 &bmin = extra[ e ].min;
+        const glm::dvec3 &bmax = extra[ e ].max;
+        const bool overlap = aabb_overlap( amin, amax, bmin, bmax ) ||
+                             ( resticky_down && amin.x < bmax.x && amax.x > bmin.x && ( amin.y - SKIN ) < bmax.y && amax.y > bmin.y &&
+                               amin.z < bmax.z && amax.z > bmin.z );
+        if ( !overlap ) {
+            continue;
+        }
+        if ( delta > 0.0 ) {
+            if ( bmin[ axis ] >= pre_max && bmin[ axis ] < amax[ axis ] ) {
+                if ( bmin[ axis ] < best ) {
+                    best = bmin[ axis ];
+                    extra_hit = &extra[ e ];
+                }
+                found = true;
+            }
+        } else {
+            if ( bmax[ axis ] > amin[ axis ] - ( resticky_down ? SKIN : 0.0 ) && bmax[ axis ] <= pre_min + ( resticky_down ? SKIN : 0.0 ) ) {
+                if ( bmax[ axis ] > best ) {
+                    best = bmax[ axis ];
+                    extra_hit = &extra[ e ];
+                }
+                found = true;
+            }
+        }
+    }
 
     if ( !found ) {
         return;
     }
     hit = true;
+    if ( hit_extra != nullptr ) {
+        *hit_extra = extra_hit;
+    }
     const double size = amax[ axis ] - amin[ axis ];
     if ( delta > 0.0 ) {
         amax[ axis ] = best - SKIN;
@@ -404,4 +453,36 @@ void Collision::check_move( World &world, glm::dvec3 &movement_vec, glm::dvec3 &
     const glm::dvec3 final_center = ( amin + amax ) * 0.5;
     movement_vec = final_center - initial_center;
     *out_standing = standing ? 1 : 0;
+}
+
+void Collision::move_box( World &world, glm::dvec3 &min, glm::dvec3 &max, const glm::dvec3 &delta,
+                          const std::vector<BodyBox> &extra, bool hit_axis[3], int hit_extra_axis[3], bool *standing ) {
+    hit_axis[ 0 ] = hit_axis[ 1 ] = hit_axis[ 2 ] = false;
+    hit_extra_axis[ 0 ] = hit_extra_axis[ 1 ] = hit_extra_axis[ 2 ] = -1;
+    *standing = false;
+
+    // Same sub-stepping as check_move so a fast body can't tunnel through a
+    // 1-block-thick wall.
+    const double max_delta = std::fmax( std::fabs( delta.x ), std::fmax( std::fabs( delta.y ), std::fabs( delta.z ) ) );
+    int steps = static_cast<int>( ceil( max_delta / COLLISION_MAX_SUBSTEP ) );
+    if ( steps < 1 ) {
+        steps = 1;
+    }
+    const glm::dvec3 step = delta / static_cast<double>( steps );
+
+    for ( int i = 0; i < steps; i++ ) {
+        static const int axis_order[ 3 ] = { 1, 0, 2 }; // Y first, then X, then Z
+        for ( const int axis : axis_order ) {
+            bool hit = false;
+            const BodyBox *hit_extra = nullptr;
+            resolve_axis( world, min, max, axis, step[ axis ], hit, *standing, extra.data( ), extra.size( ), &hit_extra, axis == 1 );
+            if ( hit ) {
+                hit_axis[ axis ] = true;
+                if ( hit_extra != nullptr ) {
+                    hit_extra_axis[ axis ] = hit_extra->index;
+                }
+            }
+        }
+    }
+
 }

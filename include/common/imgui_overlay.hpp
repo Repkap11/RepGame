@@ -25,6 +25,7 @@ struct ImGuiDebugVars {
     // Live instanced-particle counts, refreshed once per frame.
     int debris_particles;
     int primed_tnt;
+    int falling_blocks;
 };
 
 #if ( defined( REPGAME_WINDOWS ) || defined( REPGAME_LINUX ) || defined( REPGAME_WASM ) )

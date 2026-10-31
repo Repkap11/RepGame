@@ -91,17 +91,15 @@ typedef struct {
     glm::vec2 texel;
 } DebrisInstance;
 
-// Per-instance data for primed (ignited, not yet exploded) TNT. Same
-// write-once/GPU-animated pattern as DebrisInstance: primed_tnt_vertex.glsl
-// computes the ballistic position and white flash from u_Time. anim.z is the
-// ground-impact time the CPU predicted by marching the path — the shader
-// clamps travel there so the cube rests on terrain instead of clipping in.
+// Per-instance data for primed (ignited, not yet exploded) TNT — a CPU
+// BlockBodies body drawn as an instanced cube. The transform is rebuilt each
+// frame by BlockBodies::update_render; flash is the CPU-computed fuse blink
+// (0/1 alternating) the fragment shader reads via v_flash.
 typedef struct {
     unsigned short face[ NUM_FACES_IN_CUBE ]; // texture layer per face (packed uvec3)
-    glm::vec3 spawn;                          // world-space spawn position (cube center)
-    glm::vec3 velocity;                       // launch velocity, blocks/second
-    glm::vec4 anim;                           // x=spawn_time (u_Time clock), y=life seconds, z=ground-clamp time, w=seed
-    glm::vec2 light;                          // flood-fill light at spawn cell: x=sky, y=block, [0,1]
+    glm::mat4 transform;                      // unit cube -> world-space body box
+    glm::vec2 light;                          // flood-fill light at the body center: x=sky, y=block, [0,1]
+    float flash;                              // 0/1 white-flash toggle from the fuse age
 } PrimedTntInstance;
 
 // Per-instance data for one mob part (one cube of a Bedrock bone). A mob uses

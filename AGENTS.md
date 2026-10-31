@@ -696,3 +696,59 @@ against `block_selection.ray_origin/ray_dir`; a mob nearer than the
 selected block takes `HIT_DAMAGE` (4.0, creative kills in one hit), gets
 knockback + a 0.3 s red flash + 5 s panic, and drops `drop_block` in
 survival when killed.
+
+## Block bodies (falling blocks + primed TNT)
+
+`BlockBodies` (`include/common/block_bodies.hpp`, `src/common/block_bodies.cpp`,
+owned by `World` as `world.bodies`) is the shared CPU simulation for
+axis-aligned block-sized bodies (0.98 box, `MAX_BLOCK_BODIES` = 1024, stable
+nonzero ids). It integrates two kinds: `BODY_FALLING` (any block with
+`falls_with_gravity` — sand, gravel, concrete powder, anvils) and
+`BODY_PRIMED_TNT` (ignited TNT, which replaced the old GPU-ballistic
+`PrimedTnt`). Physics runs at `UPS_RATE` inside `bodies.tick` (called right
+after `mobs.tick`): gravity/drag/terminal velocity (`GRAVITY_STRENGTH`,
+`TERMINAL_VELOCITY`, air drag ~0.9972), water medium (`WATER_GRAVITY_STRENGTH`,
+`SWIM_TERMINAL_VELOCITY`, ~0.97 drag), ground friction 0.952, wall restitution
+0.2, per-cell broadphase body-vs-body collision with inelastic exchange, and
+voxel collision via `Collision::move_box` (same axis resolution/substepping as
+the player path, Y→X→Z, no step-up, no edge guard; unloaded cells are solid).
+Bodies freeze in capture mode and while their containing chunk is not
+`CHUNK_LIVE` — a primed TNT frozen in a parked chunk still explodes at its
+frozen position when the fuse event lands.
+
+A `falls_with_gravity` block releases as a body when a neighbor update leaves
+it over a loaded non-colliding cell — the trigger sits in `perform_checks`
+(`BlockNextToChangeEvent.cpp`), queuing `FallingBlockEvent` two ticks out so a
+quick support restore wins; the event re-checks live state and releases the
+whole contiguous run of falling blocks above. A grounded, slow, grid-aligned
+body settles after a few ticks and `settle_land` writes it back
+(`set_loaded_block` + `multiplayer.set_block` + neighbor updates): air/water/
+replaceable cells take the block (a replaced plant breaks into debris), a
+non-colliding cell (torch) breaks the falling block into debris, a cell that
+went solid meanwhile (another body landed beneath) stacks on top, and a rest
+cell over unloaded space drops as debris. Bodies blocked by the player keep
+waiting. `land_all` runs before `world.cleanup` so live bodies persist into
+the save.
+
+Primed TNT keeps its fuse as an event: `tnt_ignite`/`tnt_launch` (in
+`TntExplodeEvent.cpp`) remove the block, spawn a `BODY_PRIMED_TNT` with a
+small hop, and queue `TntExplodeEvent(tick + fuse, fallback_pos, body_id,
+inverse)` — body id 0 is the non-body path (creepers). When the blast runs it
+`take()`s the body so it explodes at the real position, and shoves every live
+body (`bodies.impulse`, radius R+2 — still-fusing primed TNT and falling
+blocks already in flight). Gravity blocks sitting in the world are destroyed
+like everything else; a gravity block that loses support outside the sphere
+still falls normally through `FallingBlockEvent`. TNT spawning at the body cap evicts the oldest falling body; a falling
+spawn at the cap leaves the block in place.
+
+Rendering is client-side instances rebuilt per frame in `update_render`
+(interpolating `prev_min`→`min` by alpha, per-body light sampling): falling
+blocks draw through `render_falling` + `object_shader`
+(`ParticlePosition`), primed TNT through `render_tnt` +
+`primed_tnt_shader` (`PrimedTntInstance`: transform + light + CPU fuse-blink
+`flash`, same shader file `primed_tnt_vertex.glsl` reworked to consume the
+instance transform). Chains are only touched after `init()`/`render_inited`,
+so headless tests simulate fine. Landed bodies keep an instance at their rest
+cell until the target chunk's `needs_repopulation` drains (the remesh safety
+net). Remote multiplayer block updates deliberately don't run these events —
+only the client that caused a change simulates bodies.

@@ -70,10 +70,12 @@ void World::init( const glm::dvec3 &camera_pos, int width, int height, MapStorag
 
     // These are from PrimedTntInstance
     this->vbl_primed_tnt_instance.push_unsigned_int( 3 ); // which texture
-    this->vbl_primed_tnt_instance.push_float( 3 );        // spawn (cube center)
-    this->vbl_primed_tnt_instance.push_float( 3 );        // velocity
-    this->vbl_primed_tnt_instance.push_float( 4 );        // anim (spawn_time, life, ground_t, seed)
+    this->vbl_primed_tnt_instance.push_float( 4 );        // transform
+    this->vbl_primed_tnt_instance.push_float( 4 );        // transform
+    this->vbl_primed_tnt_instance.push_float( 4 );        // transform
+    this->vbl_primed_tnt_instance.push_float( 4 );        // transform
     this->vbl_primed_tnt_instance.push_float( 2 );        // light (sky, block)
+    this->vbl_primed_tnt_instance.push_float( 1 );        // flash
 
     // These are from MobPartInstance
     this->vbl_mob_instance.push_float( 4 ); // transform
@@ -95,7 +97,7 @@ void World::init( const glm::dvec3 &camera_pos, int width, int height, MapStorag
     this->skyBox.init( this->vbl_object_vertex, this->vbl_object_position );
     this->multiplayer_avatars.init( &this->mobs );
     this->blockDebris.init( this->vbl_object_vertex, this->vbl_debris_instance );
-    this->primedTnt.init( this->vbl_object_vertex, this->vbl_primed_tnt_instance );
+    this->bodies.init( this->vbl_object_vertex, this->vbl_object_position, this->vbl_primed_tnt_instance );
     this->mobs.init( this->vbl_object_vertex, this->vbl_mob_instance );
     this->mobs.init_storage( &map_storage );
     this->mouseSelection.init( this->vbl_block, this->vbl_coords );
@@ -474,11 +476,12 @@ void World::draw( const Texture &blocksTexture, const glm::mat4 &mvp, const glm:
     // recheck is still queued — per-frame resampling covers both. Runs on
     // the render thread like the light probes.
     this->blockDebris.update_lighting( this->chunkLoader );
-    this->primedTnt.update_lighting( this->chunkLoader );
     // Rebuild every mob part transform with the tick-interpolated pose.
     this->mobs.update_render( alpha, this->chunkLoader );
+    // Rebuild the block-body transforms (falling blocks + primed TNT).
+    this->bodies.update_render( alpha, this->chunkLoader );
     this->blockDebris.draw( this->renderer, this->debris_shader, time_s );      // Break particles
-    this->primedTnt.draw( this->renderer, this->primed_tnt_shader, time_s );    // Ignited TNT
+    this->bodies.draw( this->renderer, this->object_shader, this->primed_tnt_shader ); // Falling blocks + ignited TNT
     this->mobs.draw( this->renderer, this->mob_shader );                        // Mob parts
 
     this->chunkLoader.calculate_cull( mvp, false, renderOrigin );
@@ -617,7 +620,7 @@ void World::draw( const Texture &blocksTexture, const glm::mat4 &mvp, const glm:
         this->primed_tnt_shader.set_uniform3f( "u_Origin", renderOriginF.x, renderOriginF.y, renderOriginF.z );
         this->primed_tnt_shader.set_uniform1f( "u_ReflectionHeight", offset + renderOriginF.y );
         this->primed_tnt_shader.set_uniform1i( "u_TintUnderWater", object_water_tint_type );
-        this->primedTnt.draw( this->renderer, this->primed_tnt_shader, time_s ); // Reflected primed TNT
+        this->bodies.draw( this->renderer, this->object_shader, this->primed_tnt_shader ); // Reflected bodies
 
         this->chunkLoader.shader.set_uniform1i( "u_DrawToReflection", true );
         this->chunkLoader.shader.set_uniform1f( "u_ExtraAlpha", 1.0f ); // this make reflections not solid...
@@ -729,7 +732,7 @@ void World::cleanup( MapStorage &map_storage ) {
     this->skyBox.destroy( );
     this->multiplayer_avatars.cleanup( );
     this->blockDebris.cleanup( );
-    this->primedTnt.cleanup( );
+    this->bodies.cleanup( );
     this->mobs.cleanup( );
     this->mouseSelection.destroy( );
     this->debris_shader.destroy( );
@@ -904,13 +907,6 @@ void World::spawn_block_debris( const glm::ivec3 &block_pos, const BlockState &p
                                          this->chunkLoader.light_sample( glm::vec3( block_pos ) + 0.5f ), num_particles );
 }
 
-entt::entity World::spawn_primed_tnt( const glm::vec3 &center, const glm::vec3 &velocity, const float life_s, const float ground_t, const BlockID block_id ) {
-    return this->primedTnt.spawn( center, velocity, life_s, ground_t, this->chunkLoader.light_sample( center ), block_id );
-}
-
-void World::despawn_primed_tnt( const entt::entity entity ) {
-    this->primedTnt.despawn( entity );
-}
 
 // void World::overlay_blocks( const glm::ivec3 *block_poses, BlockState *blockStates, int numBlocks ) {
 //     const glm::ivec3 CHUNK_SIZE = glm::ivec3( CHUNK_SIZE_X, CHUNK_SIZE_Y, CHUNK_SIZE_Z );

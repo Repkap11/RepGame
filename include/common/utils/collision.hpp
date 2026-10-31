@@ -1,6 +1,25 @@
 #pragma once
 
-#include "common/RepGame.hpp"
+#include <vector>
+
+// Kept light: RepGame.hpp pulls in world.hpp, which pulls in block_bodies.hpp,
+// which pulls this header back in — a full include here would hide the
+// BlockBodies definition from world.hpp.
+#include <glm.hpp>
+#include "common/constants.hpp"
+
+class World;
+struct RepGameState;
+
+// An extra AABB obstacle move_box collides against on top of the voxel
+// world — the other live BlockBodies. index is opaque to collision code;
+// move_box reports it back through hit_extra_axis so the caller can exchange
+// momentum with the body that was actually hit.
+struct BodyBox {
+    glm::dvec3 min;
+    glm::dvec3 max;
+    int index;
+};
 
 class Collision {
   public:
@@ -24,4 +43,13 @@ class Collision {
     // position `eye` overlaps any solid block. Used for the headroom check
     // before standing up out of a sneak.
     static bool collides_at( World &world, const glm::dvec3 &eye, double player_height, double eye_height, double half_width = PLAYER_WIDTH / 2.0 );
+    // Moves the AABB [min,max] by `delta` using the same sub-stepped axis
+    // resolution as check_move (Y then X then Z) but with no step-up and no
+    // edge guard, additionally colliding with the `extra` body boxes.
+    // Unloaded cells count as solid. hit_axis[i] records whether the move
+    // clamped on axis i; when the clamp came from an extra box,
+    // hit_extra_axis[i] holds that box's index (else -1). *standing is set
+    // when a downward Y move is blocked.
+    static void move_box( World &world, glm::dvec3 &min, glm::dvec3 &max, const glm::dvec3 &delta,
+                          const std::vector<BodyBox> &extra, bool hit_axis[3], int hit_extra_axis[3], bool *standing );
 };

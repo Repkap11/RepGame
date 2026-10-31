@@ -1,4 +1,5 @@
 {
+ "falls_with_gravity": true,
  "id": 1372,
  "name": "WHITE_CONCRETE_POWDER",
  "textures": {

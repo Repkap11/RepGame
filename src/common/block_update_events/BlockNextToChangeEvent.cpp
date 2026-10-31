@@ -6,6 +6,7 @@
 #include "common/RepGame.hpp"
 #include "common/multiplayer.hpp"
 #include "common/block_update_events/PlayerBlockPlacedEvent.hpp"
+#include "common/block_update_events/FallingBlockEvent.hpp"
 
 BlockNextToChangeEvent::BlockNextToChangeEvent( long tick_number, const glm::ivec3 &pos, const glm::ivec3 &offset ) : BlockUpdateEvent( tick_number ), block_pos( pos + offset ), affecting_block_pos( pos ) {
     this->name = "BlockNextToChangeEvent";
@@ -566,6 +567,16 @@ void perform_checks( BlockUpdateQueue &blockUpdateQueue, World &world, long tick
     if ( !block_can_survive_at( world, block_pos, updateing_block_state ) ) {
         auto blockPlacedEvent = std::make_shared<PlayerBlockPlacedEvent>( tick_number, block_pos, BLOCK_STATE_AIR, false );
         blockUpdateQueue.addBlockUpdate( blockPlacedEvent );
+    }
+
+    // Gravity: a falls_with_gravity block over a loaded non-colliding cell
+    // releases as a falling body. Queued 2 ticks out so a quick support
+    // restore wins; the event re-checks live state when it fires.
+    if ( updateing_block->falls_with_gravity ) {
+        const BlockState below = world.get_loaded_block( block_pos + glm::ivec3( 0, -1, 0 ) );
+        if ( below.id != LAST_BLOCK_ID && !block_definition_get_definition( below.id )->collides_with_player ) {
+            blockUpdateQueue.addBlockUpdate( std::make_shared<FallingBlockEvent>( tick_number + 2, block_pos ) );
+        }
     }
 }
 

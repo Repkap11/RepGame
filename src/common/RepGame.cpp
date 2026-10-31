@@ -1790,12 +1790,14 @@ void RepGame::tick( ) {
     mob_in.player_eye_height = PLAYER_EYE_HEIGHT - ( globalGameState.input.movement.sneakPressed ? PLAYER_SNEAK_EYE_DROP : 0.0f );
     MobTickOutput mob_out;
     globalGameState.world.mobs.tick( globalGameState.world, globalGameState.camera.pos, &mob_in, &mob_out );
+    // Falling blocks + primed TNT bodies integrate on the same cadence.
+    globalGameState.world.bodies.tick( globalGameState );
     for ( const MobPlayerHit &hit : mob_out.player_hits ) {
         RepGame::player_hurt( globalGameState, hit.from, hit.damage );
     }
     for ( const glm::dvec3 &pos : mob_out.explosions ) {
         globalGameState.blockUpdateQueue.addBlockUpdate(
-            std::make_shared<TntExplodeEvent>( globalGameState.tick_number, glm::ivec3( glm::floor( pos + glm::dvec3( 0.0, 0.5, 0.0 ) ) ), entt::null, false ) );
+            std::make_shared<TntExplodeEvent>( globalGameState.tick_number, glm::ivec3( glm::floor( pos + glm::dvec3( 0.0, 0.5, 0.0 ) ) ), 0, false ) );
     }
     RepGame::process_pressure_plates( );
     if ( g_fly.enabled && !g_capture.enabled ) {
@@ -2458,7 +2460,8 @@ void RepGame::draw_frame( float alpha, const RenderView *views, int num_views ) 
     debugVars.daylight = daylight;
     globalGameState.world.chunkLoader.debug_loader_stats( &debugVars.loader );
     debugVars.debris_particles = static_cast<int>( globalGameState.world.blockDebris.count( ) );
-    debugVars.primed_tnt = static_cast<int>( globalGameState.world.primedTnt.count( ) );
+    debugVars.primed_tnt = static_cast<int>( globalGameState.world.bodies.count_tnt( ) );
+    debugVars.falling_blocks = static_cast<int>( globalGameState.world.bodies.count_falling( ) );
     // PageUp/PageDown nudges: ±1 hour per keypress (±6 with Shift),
     // accumulated on the input side. Wrap into one day cycle.
     if ( globalGameState.input.time_skip_hours != 0 ) {
@@ -2808,6 +2811,8 @@ void RepGame::cleanup( ) {
     }
 
     globalGameState.multiplayer.cleanup( );
+    // Write live block bodies back into the world before the save tears down.
+    globalGameState.world.bodies.land_all( globalGameState );
     globalGameState.world.cleanup( globalGameState.map_storage );
     globalGameState.blocksTexture.destroy( );
     globalGameState.ui_overlay.cleanup( );

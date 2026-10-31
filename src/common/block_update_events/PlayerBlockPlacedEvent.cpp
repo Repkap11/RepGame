@@ -123,8 +123,8 @@ void PlayerBlockPlacedEvent::performAction( BlockUpdateQueue &blockUpdateQueue, 
     }
 
     // TNT ignites on a rising power edge: tnt_ignite removes the block,
-    // spawns the primed (flashing) entity with a small hop like MC, and
-    // queues the explosion at the predicted landing cell.
+    // spawns the primed (flashing) body with a small hop like MC, and
+    // queues the explosion for when its fuse ends.
     if ( new_block->is_tnt && current_block_state.current_redstone_power == 0 && this->blockState.current_redstone_power > 0 ) {
         const glm::vec3 hop( ( frand( ) - 0.5f ) * 0.6f, 1.5f, ( frand( ) - 0.5f ) * 0.6f );
         tnt_ignite( blockUpdateQueue, repGameState, glm::vec3( this->block_pos ) + 0.5f, hop, TNT_FUSE_TICKS, new_block->is_inverse_tnt );

@@ -226,6 +226,7 @@ block_definitions[ 15 ].textures[ FACE_FRONT ] = TEX_RED_SAND;
 block_definitions[ 15 ].textures[ FACE_LEFT ] = TEX_RED_SAND;
 block_definitions[ 15 ].textures[ FACE_BACK ] = TEX_RED_SAND;
 block_definitions[ 15 ].icon_texture = TEX_RED_SAND;
+block_definitions[ 15 ].falls_with_gravity = true;
 block_definitions[ 15 ].hardness = 0.75f;
 
 // OAK_SAPLING (16)
@@ -373,6 +374,7 @@ block_definitions[ 27 ].textures[ FACE_FRONT ] = TEX_SAND;
 block_definitions[ 27 ].textures[ FACE_LEFT ] = TEX_SAND;
 block_definitions[ 27 ].textures[ FACE_BACK ] = TEX_SAND;
 block_definitions[ 27 ].icon_texture = TEX_SAND;
+block_definitions[ 27 ].falls_with_gravity = true;
 block_definitions[ 27 ].hardness = 0.75f;
 
 // GRAVEL (28)
@@ -383,6 +385,7 @@ block_definitions[ 28 ].textures[ FACE_FRONT ] = TEX_GRAVEL;
 block_definitions[ 28 ].textures[ FACE_LEFT ] = TEX_GRAVEL;
 block_definitions[ 28 ].textures[ FACE_BACK ] = TEX_GRAVEL;
 block_definitions[ 28 ].icon_texture = TEX_GRAVEL;
+block_definitions[ 28 ].falls_with_gravity = true;
 block_definitions[ 28 ].hardness = 0.75f;
 
 // OAK_LOG (29)
@@ -917,6 +920,8 @@ block_definitions[ 67 ].textures[ FACE_LEFT ] = TEX_ANVIL_BASE;
 block_definitions[ 67 ].textures[ FACE_BACK ] = TEX_ANVIL_BASE;
 block_definitions[ 67 ].icon_texture = TEX_ANVIL_TOP_DAMAGED_0;
 block_definitions[ 67 ].casts_shadow = false;
+block_definitions[ 67 ].fall_mass = 4.0f;
+block_definitions[ 67 ].falls_with_gravity = true;
 block_definitions[ 67 ].hardness = 0.35f;
 block_definitions[ 67 ].is_seethrough = true;
 block_definitions[ 67 ].no_light = 6815743;
@@ -2232,6 +2237,7 @@ block_definitions[ 156 ].textures[ FACE_FRONT ] = TEX_CONCRETE_POWDER_BLACK;
 block_definitions[ 156 ].textures[ FACE_LEFT ] = TEX_CONCRETE_POWDER_BLACK;
 block_definitions[ 156 ].textures[ FACE_BACK ] = TEX_CONCRETE_POWDER_BLACK;
 block_definitions[ 156 ].icon_texture = TEX_CONCRETE_POWDER_BLACK;
+block_definitions[ 156 ].falls_with_gravity = true;
 
 // BLACK_CONCRETE_SLAB (157)
 block_definitions[ 157 ].textures[ FACE_TOP ] = TEX_CONCRETE_BLACK;
@@ -2587,6 +2593,7 @@ block_definitions[ 184 ].textures[ FACE_FRONT ] = TEX_CONCRETE_POWDER_BLUE;
 block_definitions[ 184 ].textures[ FACE_LEFT ] = TEX_CONCRETE_POWDER_BLUE;
 block_definitions[ 184 ].textures[ FACE_BACK ] = TEX_CONCRETE_POWDER_BLUE;
 block_definitions[ 184 ].icon_texture = TEX_CONCRETE_POWDER_BLUE;
+block_definitions[ 184 ].falls_with_gravity = true;
 
 // BLUE_CONCRETE_SLAB (185)
 block_definitions[ 185 ].textures[ FACE_TOP ] = TEX_CONCRETE_BLUE;
@@ -2927,6 +2934,7 @@ block_definitions[ 212 ].textures[ FACE_FRONT ] = TEX_CONCRETE_POWDER_BROWN;
 block_definitions[ 212 ].textures[ FACE_LEFT ] = TEX_CONCRETE_POWDER_BROWN;
 block_definitions[ 212 ].textures[ FACE_BACK ] = TEX_CONCRETE_POWDER_BROWN;
 block_definitions[ 212 ].icon_texture = TEX_CONCRETE_POWDER_BROWN;
+block_definitions[ 212 ].falls_with_gravity = true;
 
 // BROWN_CONCRETE_SLAB (213)
 block_definitions[ 213 ].textures[ FACE_TOP ] = TEX_CONCRETE_BROWN;
@@ -3860,6 +3868,8 @@ block_definitions[ 280 ].textures[ FACE_LEFT ] = TEX_ANVIL_BASE;
 block_definitions[ 280 ].textures[ FACE_BACK ] = TEX_ANVIL_BASE;
 block_definitions[ 280 ].icon_texture = TEX_ANVIL_TOP_DAMAGED_1;
 block_definitions[ 280 ].casts_shadow = false;
+block_definitions[ 280 ].fall_mass = 4.0f;
+block_definitions[ 280 ].falls_with_gravity = true;
 block_definitions[ 280 ].hardness = 0.35f;
 block_definitions[ 280 ].is_seethrough = true;
 block_definitions[ 280 ].no_light = 6815743;
@@ -4472,6 +4482,7 @@ block_definitions[ 331 ].textures[ FACE_FRONT ] = TEX_CONCRETE_POWDER_WHITE;
 block_definitions[ 331 ].textures[ FACE_LEFT ] = TEX_CONCRETE_POWDER_WHITE;
 block_definitions[ 331 ].textures[ FACE_BACK ] = TEX_CONCRETE_POWDER_WHITE;
 block_definitions[ 331 ].icon_texture = TEX_CONCRETE_POWDER_WHITE;
+block_definitions[ 331 ].falls_with_gravity = true;
 
 // CONDUIT (332)
 block_definitions[ 332 ].textures[ FACE_TOP ] = TEX_CONDUIT_BASE;
@@ -5933,6 +5944,7 @@ block_definitions[ 432 ].textures[ FACE_FRONT ] = TEX_CONCRETE_POWDER_CYAN;
 block_definitions[ 432 ].textures[ FACE_LEFT ] = TEX_CONCRETE_POWDER_CYAN;
 block_definitions[ 432 ].textures[ FACE_BACK ] = TEX_CONCRETE_POWDER_CYAN;
 block_definitions[ 432 ].icon_texture = TEX_CONCRETE_POWDER_CYAN;
+block_definitions[ 432 ].falls_with_gravity = true;
 
 // CYAN_CONCRETE_SLAB (433)
 block_definitions[ 433 ].textures[ FACE_TOP ] = TEX_CONCRETE_CYAN;
@@ -6090,6 +6102,8 @@ block_definitions[ 446 ].textures[ FACE_LEFT ] = TEX_ANVIL_BASE;
 block_definitions[ 446 ].textures[ FACE_BACK ] = TEX_ANVIL_BASE;
 block_definitions[ 446 ].icon_texture = TEX_ANVIL_TOP_DAMAGED_2;
 block_definitions[ 446 ].casts_shadow = false;
+block_definitions[ 446 ].fall_mass = 4.0f;
+block_definitions[ 446 ].falls_with_gravity = true;
 block_definitions[ 446 ].hardness = 0.35f;
 block_definitions[ 446 ].is_seethrough = true;
 block_definitions[ 446 ].no_light = 6815743;
@@ -6988,6 +7002,8 @@ block_definitions[ 516 ].textures[ FACE_FRONT ] = TEX_ANVIL_BASE;
 block_definitions[ 516 ].textures[ FACE_LEFT ] = TEX_ANVIL_BASE;
 block_definitions[ 516 ].textures[ FACE_BACK ] = TEX_ANVIL_BASE;
 block_definitions[ 516 ].icon_texture = TEX_ANVIL_BASE;
+block_definitions[ 516 ].fall_mass = 4.0f;
+block_definitions[ 516 ].falls_with_gravity = true;
 
 // DEPRECATED_PURPUR_BLOCK_1 (517)
 block_definitions[ 517 ].textures[ FACE_TOP ] = TEX_PURPUR_BLOCK;
@@ -8141,6 +8157,7 @@ block_definitions[ 607 ].textures[ FACE_FRONT ] = TEX_CONCRETE_POWDER_GRAY;
 block_definitions[ 607 ].textures[ FACE_LEFT ] = TEX_CONCRETE_POWDER_GRAY;
 block_definitions[ 607 ].textures[ FACE_BACK ] = TEX_CONCRETE_POWDER_GRAY;
 block_definitions[ 607 ].icon_texture = TEX_CONCRETE_POWDER_GRAY;
+block_definitions[ 607 ].falls_with_gravity = true;
 
 // GRAY_CONCRETE_SLAB (608)
 block_definitions[ 608 ].textures[ FACE_TOP ] = TEX_CONCRETE_GRAY;
@@ -8323,6 +8340,7 @@ block_definitions[ 623 ].textures[ FACE_FRONT ] = TEX_CONCRETE_POWDER_GREEN;
 block_definitions[ 623 ].textures[ FACE_LEFT ] = TEX_CONCRETE_POWDER_GREEN;
 block_definitions[ 623 ].textures[ FACE_BACK ] = TEX_CONCRETE_POWDER_GREEN;
 block_definitions[ 623 ].icon_texture = TEX_CONCRETE_POWDER_GREEN;
+block_definitions[ 623 ].falls_with_gravity = true;
 
 // GREEN_CONCRETE_SLAB (624)
 block_definitions[ 624 ].textures[ FACE_TOP ] = TEX_CONCRETE_GREEN;
@@ -9063,6 +9081,7 @@ block_definitions[ 683 ].textures[ FACE_FRONT ] = TEX_CONCRETE_POWDER_LIGHT_BLUE
 block_definitions[ 683 ].textures[ FACE_LEFT ] = TEX_CONCRETE_POWDER_LIGHT_BLUE;
 block_definitions[ 683 ].textures[ FACE_BACK ] = TEX_CONCRETE_POWDER_LIGHT_BLUE;
 block_definitions[ 683 ].icon_texture = TEX_CONCRETE_POWDER_LIGHT_BLUE;
+block_definitions[ 683 ].falls_with_gravity = true;
 
 // LIGHT_BLUE_CONCRETE_SLAB (684)
 block_definitions[ 684 ].textures[ FACE_TOP ] = TEX_CONCRETE_LIGHT_BLUE;
@@ -9245,6 +9264,7 @@ block_definitions[ 699 ].textures[ FACE_FRONT ] = TEX_CONCRETE_POWDER_SILVER;
 block_definitions[ 699 ].textures[ FACE_LEFT ] = TEX_CONCRETE_POWDER_SILVER;
 block_definitions[ 699 ].textures[ FACE_BACK ] = TEX_CONCRETE_POWDER_SILVER;
 block_definitions[ 699 ].icon_texture = TEX_CONCRETE_POWDER_SILVER;
+block_definitions[ 699 ].falls_with_gravity = true;
 
 // LIGHT_GRAY_CONCRETE_SLAB (700)
 block_definitions[ 700 ].textures[ FACE_TOP ] = TEX_CONCRETE_SILVER;
@@ -9487,6 +9507,7 @@ block_definitions[ 718 ].textures[ FACE_FRONT ] = TEX_CONCRETE_POWDER_LIME;
 block_definitions[ 718 ].textures[ FACE_LEFT ] = TEX_CONCRETE_POWDER_LIME;
 block_definitions[ 718 ].textures[ FACE_BACK ] = TEX_CONCRETE_POWDER_LIME;
 block_definitions[ 718 ].icon_texture = TEX_CONCRETE_POWDER_LIME;
+block_definitions[ 718 ].falls_with_gravity = true;
 
 // LIME_CONCRETE_SLAB (719)
 block_definitions[ 719 ].textures[ FACE_TOP ] = TEX_CONCRETE_LIME;
@@ -9753,6 +9774,7 @@ block_definitions[ 743 ].textures[ FACE_FRONT ] = TEX_CONCRETE_POWDER_MAGENTA;
 block_definitions[ 743 ].textures[ FACE_LEFT ] = TEX_CONCRETE_POWDER_MAGENTA;
 block_definitions[ 743 ].textures[ FACE_BACK ] = TEX_CONCRETE_POWDER_MAGENTA;
 block_definitions[ 743 ].icon_texture = TEX_CONCRETE_POWDER_MAGENTA;
+block_definitions[ 743 ].falls_with_gravity = true;
 
 // MAGENTA_CONCRETE_SLAB (744)
 block_definitions[ 744 ].textures[ FACE_TOP ] = TEX_CONCRETE_MAGENTA;
@@ -10979,6 +11001,7 @@ block_definitions[ 838 ].textures[ FACE_FRONT ] = TEX_CONCRETE_POWDER_ORANGE;
 block_definitions[ 838 ].textures[ FACE_LEFT ] = TEX_CONCRETE_POWDER_ORANGE;
 block_definitions[ 838 ].textures[ FACE_BACK ] = TEX_CONCRETE_POWDER_ORANGE;
 block_definitions[ 838 ].icon_texture = TEX_CONCRETE_POWDER_ORANGE;
+block_definitions[ 838 ].falls_with_gravity = true;
 
 // ORANGE_CONCRETE_SLAB (839)
 block_definitions[ 839 ].textures[ FACE_TOP ] = TEX_CONCRETE_ORANGE;
@@ -11909,6 +11932,7 @@ block_definitions[ 907 ].textures[ FACE_FRONT ] = TEX_CONCRETE_POWDER_PINK;
 block_definitions[ 907 ].textures[ FACE_LEFT ] = TEX_CONCRETE_POWDER_PINK;
 block_definitions[ 907 ].textures[ FACE_BACK ] = TEX_CONCRETE_POWDER_PINK;
 block_definitions[ 907 ].icon_texture = TEX_CONCRETE_POWDER_PINK;
+block_definitions[ 907 ].falls_with_gravity = true;
 
 // PINK_CONCRETE_SLAB (908)
 block_definitions[ 908 ].textures[ FACE_TOP ] = TEX_CONCRETE_PINK;
@@ -13355,6 +13379,7 @@ block_definitions[ 1017 ].textures[ FACE_FRONT ] = TEX_CONCRETE_POWDER_PURPLE;
 block_definitions[ 1017 ].textures[ FACE_LEFT ] = TEX_CONCRETE_POWDER_PURPLE;
 block_definitions[ 1017 ].textures[ FACE_BACK ] = TEX_CONCRETE_POWDER_PURPLE;
 block_definitions[ 1017 ].icon_texture = TEX_CONCRETE_POWDER_PURPLE;
+block_definitions[ 1017 ].falls_with_gravity = true;
 
 // PURPLE_CONCRETE_SLAB (1018)
 block_definitions[ 1018 ].textures[ FACE_TOP ] = TEX_CONCRETE_PURPLE;
@@ -13715,6 +13740,7 @@ block_definitions[ 1050 ].textures[ FACE_FRONT ] = TEX_CONCRETE_POWDER_RED;
 block_definitions[ 1050 ].textures[ FACE_LEFT ] = TEX_CONCRETE_POWDER_RED;
 block_definitions[ 1050 ].textures[ FACE_BACK ] = TEX_CONCRETE_POWDER_RED;
 block_definitions[ 1050 ].icon_texture = TEX_CONCRETE_POWDER_RED;
+block_definitions[ 1050 ].falls_with_gravity = true;
 
 // RED_CONCRETE_SLAB (1051)
 block_definitions[ 1051 ].textures[ FACE_TOP ] = TEX_CONCRETE_RED;
@@ -17793,6 +17819,7 @@ block_definitions[ 1372 ].textures[ FACE_FRONT ] = TEX_CONCRETE_POWDER_WHITE;
 block_definitions[ 1372 ].textures[ FACE_LEFT ] = TEX_CONCRETE_POWDER_WHITE;
 block_definitions[ 1372 ].textures[ FACE_BACK ] = TEX_CONCRETE_POWDER_WHITE;
 block_definitions[ 1372 ].icon_texture = TEX_CONCRETE_POWDER_WHITE;
+block_definitions[ 1372 ].falls_with_gravity = true;
 
 // WHITE_CONCRETE_SLAB (1373)
 block_definitions[ 1373 ].textures[ FACE_TOP ] = TEX_CONCRETE_WHITE;
@@ -18048,6 +18075,7 @@ block_definitions[ 1393 ].textures[ FACE_FRONT ] = TEX_CONCRETE_POWDER_YELLOW;
 block_definitions[ 1393 ].textures[ FACE_LEFT ] = TEX_CONCRETE_POWDER_YELLOW;
 block_definitions[ 1393 ].textures[ FACE_BACK ] = TEX_CONCRETE_POWDER_YELLOW;
 block_definitions[ 1393 ].icon_texture = TEX_CONCRETE_POWDER_YELLOW;
+block_definitions[ 1393 ].falls_with_gravity = true;
 
 // YELLOW_CONCRETE_SLAB (1394)
 block_definitions[ 1394 ].textures[ FACE_TOP ] = TEX_CONCRETE_YELLOW;

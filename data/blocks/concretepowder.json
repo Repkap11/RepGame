@@ -1,4 +1,5 @@
 {
+ "falls_with_gravity": true,
  "id": 331,
  "name": "CONCRETEPOWDER",
  "textures": {

@@ -131,6 +131,13 @@ typedef struct {
     // PistonEvent refuses to push/pull these (plus powered pistons, heads,
     // and unloaded LAST_BLOCK_ID cells, which are handled there).
     bool piston_immovable;
+    // Gravity block (sand, gravel, concrete powder, anvils): an unsupported
+    // cell becomes a FALLING BlockBodies entity that lands and rewrites the
+    // block. See FallingBlockEvent / BlockBodies.
+    bool falls_with_gravity;
+    // Mass multiplier for body-vs-body collisions and blast impulse resistance
+    // (anvils are heavier than sand). 1.0 for ordinary falling blocks.
+    float fall_mass;
     TextureID icon_texture;
 
 } Block;

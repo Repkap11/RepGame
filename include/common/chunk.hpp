@@ -102,6 +102,7 @@ class Chunk {
     friend class StructureGen;
     friend class MapStorage;
     friend class MobManager;
+    friend class BlockBodies;
     friend class TerrainLoadingThread;
     friend class Multiplayer;
     friend class TntExplodeEvent;

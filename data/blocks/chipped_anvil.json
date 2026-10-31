@@ -1,4 +1,6 @@
 {
+ "fall_mass": 4.0,
+ "falls_with_gravity": true,
  "casts_shadow": false,
  "hardness": 0.35,
  "id": 280,

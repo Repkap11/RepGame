@@ -13,15 +13,10 @@
 #include "common/chunk.hpp"
 #include "common/block_update_events/PlayerBlockPlacedEvent.hpp"
 
-TntExplodeEvent::TntExplodeEvent( long tick_number, const glm::ivec3 &pos, const entt::entity primed_entity, const bool inverse ) : BlockUpdateEvent( tick_number ), block_pos( pos ), primed_entity( primed_entity ), inverse( inverse ) {
+TntExplodeEvent::TntExplodeEvent( long tick_number, const glm::ivec3 &pos, const uint32_t body_id, const bool inverse ) : BlockUpdateEvent( tick_number ), block_pos( pos ), body_id( body_id ), inverse( inverse ) {
     this->name = inverse ? "TntExplodeEvent(inverse)" : "TntExplodeEvent";
 }
 
-// Matches TNT_GRAVITY in primed_tnt_vertex.glsl — the CPU predicts the same
-// ballistic path the GPU renders.
-#define TNT_GRAVITY 9.8f
-// Seconds between ground-impact samples along the launch path.
-#define TNT_PATH_STEP_S 0.04f
 // Launch velocity ranges (blocks/sec) for chain-ignited TNT.
 #define TNT_CHAIN_VEL_MIN 6.0f
 #define TNT_CHAIN_VEL_SPREAD 5.0f
@@ -30,60 +25,27 @@ TntExplodeEvent::TntExplodeEvent( long tick_number, const glm::ivec3 &pos, const
 // Debris per destroyed block — less than DEBRIS_PER_BLOCK since a blast
 // destroys hundreds of blocks in one tick.
 #define DEBRIS_PER_EXPLODED_BLOCK 12
+// Peak body push (blocks/tick) at the blast center, falling to 0 at
+// TNT_BLAST_RADIUS + 2.
+#define TNT_IMPULSE_RADIUS ( TNT_BLAST_RADIUS + 2 )
+// Blocks/tick at the blast center, fading to 0 at the radius edge — enough to
+// scatter nearby bodies a handful of blocks without throwing them into
+// unloaded chunks (a body freezes while its containing chunk isn't live).
+#define TNT_IMPULSE_STRENGTH 0.03
 
 static float frand( ) {
     return static_cast<float>( rand( ) ) / static_cast<float>( RAND_MAX );
 }
 
-static glm::vec3 ballistic( const glm::vec3 &p0, const glm::vec3 &v, const float t ) {
-    return p0 + v * t - glm::vec3( 0.0f, 0.5f * TNT_GRAVITY * t * t, 0.0f );
-}
-
-static bool path_hits_ground( World &world, const glm::vec3 &center, const glm::vec3 &velocity, const float t ) {
-    // The cube's bottom face enters a solid cell => the entity rests there.
-    const glm::vec3 p = ballistic( center, velocity, t );
-    const glm::ivec3 under_cell = glm::ivec3( glm::floor( p - glm::vec3( 0.0f, 0.5f, 0.0f ) ) );
-    const BlockState under = world.get_loaded_block( under_cell );
-    return under.id != LAST_BLOCK_ID && block_definition_get_definition( under.id )->collides_with_player;
-}
-
 void tnt_launch( BlockUpdateQueue &blockUpdateQueue, RepGameState &repGameState, const glm::vec3 &center, const glm::vec3 &velocity, const long fuse_ticks, const bool inverse ) {
     World &world = repGameState.world;
-    const float fuse_s = static_cast<float>( fuse_ticks ) / static_cast<float>( UPS_RATE );
-
-    // March the ballistic path to find when the cube's bottom face enters a
-    // solid cell; it lands there and detonates at that cell. Unloaded chunks
-    // stop the prediction — the blast fires on schedule at the last free
-    // position extrapolated to the full fuse.
-    float ground_t = fuse_s;
-    float t = TNT_PATH_STEP_S;
-    for ( ; t < fuse_s; t += TNT_PATH_STEP_S ) {
-        const glm::vec3 p = ballistic( center, velocity, t );
-        const glm::ivec3 under_cell = glm::ivec3( glm::floor( p - glm::vec3( 0.0f, 0.5f, 0.0f ) ) );
-        const BlockState under = world.get_loaded_block( under_cell );
-        if ( under.id == LAST_BLOCK_ID ) {
-            break;
-        }
-        if ( block_definition_get_definition( under.id )->collides_with_player ) {
-            // Refine the impact time so the resting pose doesn't sink into
-            // the floor by a whole step of fall speed.
-            float lo = t - TNT_PATH_STEP_S, hi = t;
-            for ( int i = 0; i < 5; i++ ) {
-                const float mid = 0.5f * ( lo + hi );
-                if ( path_hits_ground( world, center, velocity, mid ) ) {
-                    hi = mid;
-                } else {
-                    lo = mid;
-                }
-            }
-            ground_t = hi;
-            break;
-        }
-    }
-    const glm::ivec3 explode_pos = glm::ivec3( glm::floor( ballistic( center, velocity, ground_t ) ) );
     const BlockID primed_id = inverse ? INVERSE_TNT : TNT;
-    const entt::entity primed = world.spawn_primed_tnt( center, velocity, fuse_s, ground_t, primed_id );
-    blockUpdateQueue.addBlockUpdate( std::make_shared<TntExplodeEvent>( repGameState.tick_number + fuse_ticks, explode_pos, primed, inverse ) );
+    // Callers pass blocks/second; bodies integrate blocks/tick.
+    const uint32_t body_id = world.bodies.spawn_primed_tnt( repGameState, glm::dvec3( center ), glm::dvec3( velocity ) / static_cast<double>( UPS_RATE ), primed_id, fuse_ticks, repGameState.tick_number );
+    // The fallback position covers bodies that vanish before their fuse ends
+    // (creeper blasts carry id 0 and always land here).
+    const glm::ivec3 explode_pos = glm::ivec3( glm::floor( center ) );
+    blockUpdateQueue.addBlockUpdate( std::make_shared<TntExplodeEvent>( repGameState.tick_number + fuse_ticks, explode_pos, body_id, inverse ) );
 }
 
 void tnt_ignite( BlockUpdateQueue &blockUpdateQueue, RepGameState &repGameState, const glm::vec3 &center, const glm::vec3 &velocity, const long fuse_ticks, const bool inverse ) {
@@ -107,12 +69,14 @@ void tnt_ignite( BlockUpdateQueue &blockUpdateQueue, RepGameState &repGameState,
 void TntExplodeEvent::performAction( BlockUpdateQueue &blockUpdateQueue, RepGameState &repGameState ) {
     World &world = repGameState.world;
     audio_play_sfx( "explode" );
-    // The flashing entity's fuse is up exactly when the blast runs — despawn
-    // it here rather than relying on the wall-clock sweep in PrimedTnt::draw,
-    // whose quantization could leave it visible for a few frames after the
-    // blocks are gone.
-    world.despawn_primed_tnt( this->primed_entity );
-    const glm::vec3 center = glm::vec3( this->block_pos ) + 0.5f;
+    // The primed body's fuse is up exactly when the blast runs — take it here
+    // so the blast lands at the body's real position. id 0 (creepers) and
+    // bodies already evicted or cleaned up keep the fallback block_pos.
+    glm::dvec3 c;
+    if ( world.bodies.take( this->body_id, &c ) ) {
+        this->block_pos = glm::ivec3( glm::floor( c ) );
+    }
+    const glm::dvec3 center = glm::dvec3( this->block_pos ) + glm::dvec3( 0.5 );
 
     // Inverse TNT: restore every loaded block in the blast sphere to the
     // full natural world (terrain + structures: trees, decorations, features,
@@ -228,8 +192,10 @@ void TntExplodeEvent::performAction( BlockUpdateQueue &blockUpdateQueue, RepGame
         }
     }
 
-    // Pass 2: destroy the breakable blocks. Unloaded cells, air, and fluids
-    // are untouched — water/lava are fluids, not destroyable blocks.
+    // Pass 2: destroy the breakable blocks — gravity blocks included; only
+    // bodies already in flight get pushed (the impulse after the loop).
+    // Unloaded cells, air, and fluids are untouched — water/lava are fluids,
+    // not destroyable blocks.
     for ( int dx = -TNT_BLAST_RADIUS; dx <= TNT_BLAST_RADIUS; dx++ ) {
         for ( int dy = -TNT_BLAST_RADIUS; dy <= TNT_BLAST_RADIUS; dy++ ) {
             for ( int dz = -TNT_BLAST_RADIUS; dz <= TNT_BLAST_RADIUS; dz++ ) {
@@ -241,7 +207,8 @@ void TntExplodeEvent::performAction( BlockUpdateQueue &blockUpdateQueue, RepGame
                 if ( state.id == AIR || state.id == LAST_BLOCK_ID || state.id == WATER || state.id == LAVA ) {
                     continue;
                 }
-                if ( block_definition_get_definition( state.id )->hardness < 0.0f ) {
+                const Block *block = block_definition_get_definition( state.id );
+                if ( block->hardness < 0.0f ) {
                     continue; // bedrock, barriers, portal frames survive
                 }
                 world.set_loaded_block( pos, BLOCK_STATE_AIR );
@@ -252,12 +219,16 @@ void TntExplodeEvent::performAction( BlockUpdateQueue &blockUpdateQueue, RepGame
         }
     }
 
+    // The blast shoves every live body — still-fusing primed TNT and any
+    // falling blocks already in flight.
+    world.bodies.impulse( center, TNT_IMPULSE_RADIUS, TNT_IMPULSE_STRENGTH );
+
     // Pass 3: launch the collected TNT. The world now holds only what
-    // survives the blast, so the landing predictions see the final terrain —
-    // they can no longer collide with blocks this explosion removed.
+    // survives the blast, so the new bodies fly through the final terrain —
+    // they can't collide with blocks this explosion removed.
     for ( size_t i = 0; i < chained_tnt.size( ); i++ ) {
         const glm::vec3 tnt_center = glm::vec3( chained_tnt[ i ] ) + 0.5f;
-        glm::vec3 away = tnt_center - center;
+        glm::vec3 away = tnt_center - glm::vec3( center );
         away.y = 0.0f;
         glm::vec3 velocity;
         if ( const float hlen = glm::length( away ); hlen > 0.01f ) {
