@@ -1,15 +1,13 @@
 {
-  "casts_shadow": false,
-  "hardness": 0.35,
-  "icon": "scaffolding_side",
-  "icon_is_isometric": false,
-  "id": 1102,
-  "is_seethrough": true,
-  "name": "SCAFFOLDING",
-  "no_light": 6815743,
-  "textures": {
-    "bottom": "scaffolding_bottom",
-    "side": "scaffolding_side",
-    "top": "scaffolding_top"
-  }
+ "casts_shadow": false,
+ "hardness": 0.35,
+ "id": 1102,
+ "is_seethrough": true,
+ "name": "SCAFFOLDING",
+ "no_light": 6815743,
+ "textures": {
+  "bottom": "scaffolding_bottom",
+  "side": "scaffolding_side",
+  "top": "scaffolding_top"
+ }
 }

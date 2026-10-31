@@ -1,9 +1,7 @@
 {
-  "icon": "deepslate_diamond_ore",
-  "icon_is_isometric": false,
-  "id": 505,
-  "name": "DEEPSLATE_DIAMOND_ORE",
-  "textures": {
-    "all": "deepslate_diamond_ore"
-  }
+ "id": 505,
+ "name": "DEEPSLATE_DIAMOND_ORE",
+ "textures": {
+  "all": "deepslate_diamond_ore"
+ }
 }

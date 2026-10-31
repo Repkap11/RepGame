@@ -1,9 +1,7 @@
 {
-  "icon": "concrete_purple",
-  "icon_is_isometric": false,
-  "id": 1018,
-  "name": "PURPLE_CONCRETE_SLAB",
-  "textures": {
-    "all": "concrete_purple"
-  }
+ "id": 1018,
+ "name": "PURPLE_CONCRETE_SLAB",
+ "textures": {
+  "all": "concrete_purple"
+ }
 }

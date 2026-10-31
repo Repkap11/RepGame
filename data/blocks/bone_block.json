@@ -1,11 +1,9 @@
 {
-  "icon": "bone_block_side",
-  "icon_is_isometric": false,
-  "id": 198,
-  "name": "BONE_BLOCK",
-  "textures": {
-    "bottom": "bone_block_top",
-    "side": "bone_block_side",
-    "top": "bone_block_top"
-  }
+ "id": 198,
+ "name": "BONE_BLOCK",
+ "textures": {
+  "bottom": "bone_block_top",
+  "side": "bone_block_side",
+  "top": "bone_block_top"
+ }
 }

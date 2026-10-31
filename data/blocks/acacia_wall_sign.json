@@ -1,9 +1,7 @@
 {
-  "icon": "planks_acacia",
-  "icon_is_isometric": false,
-  "id": 40,
-  "name": "ACACIA_WALL_SIGN",
-  "textures": {
-    "all": "planks_acacia"
-  }
+ "id": 40,
+ "name": "ACACIA_WALL_SIGN",
+ "textures": {
+  "all": "planks_acacia"
+ }
 }

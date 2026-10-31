@@ -1,9 +1,7 @@
 {
-  "icon": "powder_snow",
-  "icon_is_isometric": false,
-  "id": 988,
-  "name": "POWDER_SNOW",
-  "textures": {
-    "all": "powder_snow"
-  }
+ "id": 988,
+ "name": "POWDER_SNOW",
+ "textures": {
+  "all": "powder_snow"
+ }
 }

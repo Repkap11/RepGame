@@ -1,9 +1,7 @@
 {
-  "icon": "cracked_polished_blackstone_bricks",
-  "icon_is_isometric": false,
-  "id": 373,
-  "name": "CRACKED_POLISHED_BLACKSTONE_BRICKS",
-  "textures": {
-    "all": "cracked_polished_blackstone_bricks"
-  }
+ "id": 373,
+ "name": "CRACKED_POLISHED_BLACKSTONE_BRICKS",
+ "textures": {
+  "all": "cracked_polished_blackstone_bricks"
+ }
 }

@@ -1,9 +1,7 @@
 {
-  "icon": "planks_oak",
-  "icon_is_isometric": false,
-  "id": 1385,
-  "name": "WOODEN_PRESSURE_PLATE",
-  "textures": {
-    "all": "planks_oak"
-  }
+ "id": 1385,
+ "name": "WOODEN_PRESSURE_PLATE",
+ "textures": {
+  "all": "planks_oak"
+ }
 }

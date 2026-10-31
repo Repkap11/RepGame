@@ -1,11 +1,9 @@
 {
-  "icon": "crimson_log_side",
-  "icon_is_isometric": false,
-  "id": 414,
-  "name": "CRIMSON_STEM",
-  "textures": {
-    "bottom": "crimson_log_top",
-    "side": "crimson_log_side",
-    "top": "crimson_log_top"
-  }
+ "id": 414,
+ "name": "CRIMSON_STEM",
+ "textures": {
+  "bottom": "crimson_log_top",
+  "side": "crimson_log_side",
+  "top": "crimson_log_top"
+ }
 }

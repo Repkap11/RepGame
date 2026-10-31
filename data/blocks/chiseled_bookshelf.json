@@ -1,14 +1,12 @@
 {
-  "icon": "chiseled_bookshelf_top",
-  "icon_is_isometric": false,
-  "id": 281,
-  "name": "CHISELED_BOOKSHELF",
-  "textures": {
-    "back": "chiseled_bookshelf_empty",
-    "bottom": "chiseled_bookshelf_top",
-    "front": "chiseled_bookshelf_side",
-    "left": "chiseled_bookshelf_side",
-    "right": "chiseled_bookshelf_side",
-    "top": "chiseled_bookshelf_top"
-  }
+ "id": 281,
+ "name": "CHISELED_BOOKSHELF",
+ "textures": {
+  "back": "chiseled_bookshelf_empty",
+  "bottom": "chiseled_bookshelf_top",
+  "front": "chiseled_bookshelf_side",
+  "left": "chiseled_bookshelf_side",
+  "right": "chiseled_bookshelf_side",
+  "top": "chiseled_bookshelf_top"
+ }
 }

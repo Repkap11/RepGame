@@ -1,9 +1,7 @@
 {
-  "icon": "mangrove_planks",
-  "icon_is_isometric": false,
-  "id": 759,
-  "name": "MANGROVE_FENCE",
-  "textures": {
-    "all": "mangrove_planks"
-  }
+ "id": 759,
+ "name": "MANGROVE_FENCE",
+ "textures": {
+  "all": "mangrove_planks"
+ }
 }

@@ -1,14 +1,12 @@
 {
-  "icon": "barrel_side",
-  "icon_is_isometric": false,
-  "id": 108,
-  "name": "BARREL",
-  "textures": {
-    "back": "barrel_top",
-    "bottom": "barrel_side",
-    "front": "barrel_bottom",
-    "left": "barrel_side",
-    "right": "barrel_side",
-    "top": "barrel_side"
-  }
+ "id": 108,
+ "name": "BARREL",
+ "textures": {
+  "back": "barrel_top",
+  "bottom": "barrel_side",
+  "front": "barrel_bottom",
+  "left": "barrel_side",
+  "right": "barrel_side",
+  "top": "barrel_side"
+ }
 }

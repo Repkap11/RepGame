@@ -1,9 +1,7 @@
 {
-  "icon": "concrete_powder_light_blue",
-  "icon_is_isometric": false,
-  "id": 683,
-  "name": "LIGHT_BLUE_CONCRETE_POWDER",
-  "textures": {
-    "all": "concrete_powder_light_blue"
-  }
+ "id": 683,
+ "name": "LIGHT_BLUE_CONCRETE_POWDER",
+ "textures": {
+  "all": "concrete_powder_light_blue"
+ }
 }

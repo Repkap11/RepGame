@@ -1,9 +1,7 @@
 {
-  "icon": "raw_copper_block",
-  "icon_is_isometric": false,
-  "id": 1042,
-  "name": "RAW_COPPER_BLOCK",
-  "textures": {
-    "all": "raw_copper_block"
-  }
+ "id": 1042,
+ "name": "RAW_COPPER_BLOCK",
+ "textures": {
+  "all": "raw_copper_block"
+ }
 }

@@ -1,15 +1,13 @@
 {
-  "casts_shadow": false,
-  "hardness": 0.35,
-  "icon": "rail_activator",
-  "icon_is_isometric": false,
-  "id": 46,
-  "is_seethrough": true,
-  "name": "ACTIVATOR_RAIL",
-  "no_light": 6815743,
-  "textures": {
-    "bottom": "rail_activator",
-    "side": "rail_activator",
-    "top": "rail_activator_powered"
-  }
+ "casts_shadow": false,
+ "hardness": 0.35,
+ "id": 46,
+ "is_seethrough": true,
+ "name": "ACTIVATOR_RAIL",
+ "no_light": 6815743,
+ "textures": {
+  "bottom": "rail_activator",
+  "side": "rail_activator",
+  "top": "rail_activator_powered"
+ }
 }

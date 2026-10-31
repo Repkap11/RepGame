@@ -1,9 +1,7 @@
 {
-  "icon": "quartz_block_bottom",
-  "icon_is_isometric": false,
-  "id": 1124,
-  "name": "SMOOTH_QUARTZ_STAIRS",
-  "textures": {
-    "all": "quartz_block_bottom"
-  }
+ "id": 1124,
+ "name": "SMOOTH_QUARTZ_STAIRS",
+ "textures": {
+  "all": "quartz_block_bottom"
+ }
 }

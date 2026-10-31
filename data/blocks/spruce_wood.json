@@ -1,9 +1,7 @@
 {
-  "icon": "log_spruce",
-  "icon_is_isometric": false,
-  "id": 1156,
-  "name": "SPRUCE_WOOD",
-  "textures": {
-    "all": "log_spruce"
-  }
+ "id": 1156,
+ "name": "SPRUCE_WOOD",
+ "textures": {
+  "all": "log_spruce"
+ }
 }

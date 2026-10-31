@@ -1,9 +1,7 @@
 {
-  "icon": "copper_block",
-  "icon_is_isometric": false,
-  "id": 342,
-  "name": "COPPER_GOLEM_STATUE",
-  "textures": {
-    "all": "copper_block"
-  }
+ "id": 342,
+ "name": "COPPER_GOLEM_STATUE",
+ "textures": {
+  "all": "copper_block"
+ }
 }

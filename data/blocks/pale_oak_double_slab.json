@@ -1,9 +1,7 @@
 {
-  "icon": "pale_oak_planks",
-  "icon_is_isometric": false,
-  "id": 883,
-  "name": "PALE_OAK_DOUBLE_SLAB",
-  "textures": {
-    "all": "pale_oak_planks"
-  }
+ "id": 883,
+ "name": "PALE_OAK_DOUBLE_SLAB",
+ "textures": {
+  "all": "pale_oak_planks"
+ }
 }

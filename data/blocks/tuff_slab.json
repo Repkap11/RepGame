@@ -1,9 +1,7 @@
 {
-  "icon": "tuff",
-  "icon_is_isometric": false,
-  "id": 1253,
-  "name": "TUFF_SLAB",
-  "textures": {
-    "all": "tuff"
-  }
+ "id": 1253,
+ "name": "TUFF_SLAB",
+ "textures": {
+  "all": "tuff"
+ }
 }

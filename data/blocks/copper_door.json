@@ -1,15 +1,13 @@
 {
-  "casts_shadow": false,
-  "hardness": 0.35,
-  "icon": "copper_door_top",
-  "icon_is_isometric": false,
-  "id": 338,
-  "is_seethrough": true,
-  "name": "COPPER_DOOR",
-  "no_light": 6815743,
-  "textures": {
-    "bottom": "copper_door_bottom",
-    "side": "copper_door_top",
-    "top": "copper_door_bottom"
-  }
+ "casts_shadow": false,
+ "hardness": 0.35,
+ "id": 338,
+ "is_seethrough": true,
+ "name": "COPPER_DOOR",
+ "no_light": 6815743,
+ "textures": {
+  "bottom": "copper_door_bottom",
+  "side": "copper_door_top",
+  "top": "copper_door_bottom"
+ }
 }

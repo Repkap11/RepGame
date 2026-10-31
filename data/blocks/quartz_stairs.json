@@ -1,11 +1,9 @@
 {
-  "icon": "quartz_block_side",
-  "icon_is_isometric": false,
-  "id": 1040,
-  "name": "QUARTZ_STAIRS",
-  "textures": {
-    "bottom": "quartz_block_top",
-    "side": "quartz_block_side",
-    "top": "quartz_block_top"
-  }
+ "id": 1040,
+ "name": "QUARTZ_STAIRS",
+ "textures": {
+  "bottom": "quartz_block_top",
+  "side": "quartz_block_side",
+  "top": "quartz_block_top"
+ }
 }

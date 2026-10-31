@@ -1,9 +1,7 @@
 {
-  "icon": "cinnabar",
-  "icon_is_isometric": false,
-  "id": 309,
-  "name": "CINNABAR_SLAB",
-  "textures": {
-    "all": "cinnabar"
-  }
+ "id": 309,
+ "name": "CINNABAR_SLAB",
+ "textures": {
+  "all": "cinnabar"
+ }
 }

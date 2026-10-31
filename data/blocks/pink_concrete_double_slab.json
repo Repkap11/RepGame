@@ -1,9 +1,7 @@
 {
-  "icon": "concrete_pink",
-  "icon_is_isometric": false,
-  "id": 906,
-  "name": "PINK_CONCRETE_DOUBLE_SLAB",
-  "textures": {
-    "all": "concrete_pink"
-  }
+ "id": 906,
+ "name": "PINK_CONCRETE_DOUBLE_SLAB",
+ "textures": {
+  "all": "concrete_pink"
+ }
 }

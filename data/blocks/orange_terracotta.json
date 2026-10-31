@@ -1,9 +1,7 @@
 {
-  "icon": "hardened_clay_stained_orange",
-  "icon_is_isometric": false,
-  "id": 846,
-  "name": "ORANGE_TERRACOTTA",
-  "textures": {
-    "all": "hardened_clay_stained_orange"
-  }
+ "id": 846,
+ "name": "ORANGE_TERRACOTTA",
+ "textures": {
+  "all": "hardened_clay_stained_orange"
+ }
 }

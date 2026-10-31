@@ -1,12 +1,10 @@
 {
-  "emits_light": 15,
-  "icon": "pearlescent_froglight_side",
-  "icon_is_isometric": false,
-  "id": 899,
-  "name": "PEARLESCENT_FROGLIGHT",
-  "textures": {
-    "bottom": "pearlescent_froglight_top",
-    "side": "pearlescent_froglight_side",
-    "top": "pearlescent_froglight_top"
-  }
+ "emits_light": 15,
+ "id": 899,
+ "name": "PEARLESCENT_FROGLIGHT",
+ "textures": {
+  "bottom": "pearlescent_froglight_top",
+  "side": "pearlescent_froglight_side",
+  "top": "pearlescent_froglight_top"
+ }
 }

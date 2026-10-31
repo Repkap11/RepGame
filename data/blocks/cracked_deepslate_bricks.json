@@ -1,9 +1,7 @@
 {
-  "icon": "cracked_deepslate_bricks",
-  "icon_is_isometric": false,
-  "id": 360,
-  "name": "CRACKED_DEEPSLATE_BRICKS",
-  "textures": {
-    "all": "cracked_deepslate_bricks"
-  }
+ "id": 360,
+ "name": "CRACKED_DEEPSLATE_BRICKS",
+ "textures": {
+  "all": "cracked_deepslate_bricks"
+ }
 }

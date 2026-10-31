@@ -1,9 +1,7 @@
 {
-  "icon": "poplar_planks",
-  "icon_is_isometric": false,
-  "id": 982,
-  "name": "POPLAR_STANDING_SIGN",
-  "textures": {
-    "all": "poplar_planks"
-  }
+ "id": 982,
+ "name": "POPLAR_STANDING_SIGN",
+ "textures": {
+  "all": "poplar_planks"
+ }
 }

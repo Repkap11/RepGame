@@ -1,9 +1,7 @@
 {
-  "icon": "bamboo_shelf",
-  "icon_is_isometric": false,
-  "id": 100,
-  "name": "BAMBOO_SHELF",
-  "textures": {
-    "all": "bamboo_shelf"
-  }
+ "id": 100,
+ "name": "BAMBOO_SHELF",
+ "textures": {
+  "all": "bamboo_shelf"
+ }
 }

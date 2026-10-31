@@ -1,9 +1,7 @@
 {
-  "icon": "concrete_red",
-  "icon_is_isometric": false,
-  "id": 1066,
-  "name": "RED_CONCRETE_STAIRS",
-  "textures": {
-    "all": "concrete_red"
-  }
+ "id": 1066,
+ "name": "RED_CONCRETE_STAIRS",
+ "textures": {
+  "all": "concrete_red"
+ }
 }

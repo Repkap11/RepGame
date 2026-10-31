@@ -1,9 +1,7 @@
 {
-  "icon": "wool_colored_pink",
-  "icon_is_isometric": false,
-  "id": 918,
-  "name": "PINK_WOOL_SLAB",
-  "textures": {
-    "all": "wool_colored_pink"
-  }
+ "id": 918,
+ "name": "PINK_WOOL_SLAB",
+ "textures": {
+  "all": "wool_colored_pink"
+ }
 }

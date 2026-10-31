@@ -1,9 +1,7 @@
 {
-  "icon": "deepslate_lapis_ore",
-  "icon_is_isometric": false,
-  "id": 509,
-  "name": "DEEPSLATE_LAPIS_ORE",
-  "textures": {
-    "all": "deepslate_lapis_ore"
-  }
+ "id": 509,
+ "name": "DEEPSLATE_LAPIS_ORE",
+ "textures": {
+  "all": "deepslate_lapis_ore"
+ }
 }

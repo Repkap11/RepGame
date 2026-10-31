@@ -1,15 +1,13 @@
 {
-  "casts_shadow": false,
-  "hardness": 0.35,
-  "icon": "sculk_sensor_tendril_active",
-  "icon_is_isometric": false,
-  "id": 1105,
-  "is_seethrough": true,
-  "name": "SCULK_SENSOR",
-  "no_light": 6815743,
-  "textures": {
-    "bottom": "sculk_sensor_tendril_inactive",
-    "side": "sculk_sensor_tendril_active",
-    "top": "sculk_sensor_tendril_inactive"
-  }
+ "casts_shadow": false,
+ "hardness": 0.35,
+ "id": 1105,
+ "is_seethrough": true,
+ "name": "SCULK_SENSOR",
+ "no_light": 6815743,
+ "textures": {
+  "bottom": "sculk_sensor_tendril_inactive",
+  "side": "sculk_sensor_tendril_active",
+  "top": "sculk_sensor_tendril_inactive"
+ }
 }

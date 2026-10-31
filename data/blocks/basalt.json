@@ -1,11 +1,9 @@
 {
-  "icon": "basalt_side",
-  "icon_is_isometric": false,
-  "id": 110,
-  "name": "BASALT",
-  "textures": {
-    "bottom": "basalt_top",
-    "side": "basalt_side",
-    "top": "basalt_top"
-  }
+ "id": 110,
+ "name": "BASALT",
+ "textures": {
+  "bottom": "basalt_top",
+  "side": "basalt_side",
+  "top": "basalt_top"
+ }
 }

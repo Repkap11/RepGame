@@ -1,14 +1,12 @@
 {
-  "icon": "furnace_top",
-  "icon_is_isometric": false,
-  "id": 544,
-  "name": "DROPPER",
-  "textures": {
-    "back": "furnace_side",
-    "bottom": "furnace_top",
-    "front": "dropper_front_horizontal",
-    "left": "furnace_side",
-    "right": "furnace_side",
-    "top": "furnace_top"
-  }
+ "id": 544,
+ "name": "DROPPER",
+ "textures": {
+  "back": "furnace_side",
+  "bottom": "furnace_top",
+  "front": "dropper_front_horizontal",
+  "left": "furnace_side",
+  "right": "furnace_side",
+  "top": "furnace_top"
+ }
 }

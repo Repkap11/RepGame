@@ -1,13 +1,11 @@
 {
-  "casts_shadow": false,
-  "hardness": 0.35,
-  "icon": "blue_candle",
-  "icon_is_isometric": false,
-  "id": 179,
-  "is_seethrough": true,
-  "name": "BLUE_CANDLE",
-  "no_light": 6815743,
-  "textures": {
-    "all": "blue_candle"
-  }
+ "casts_shadow": false,
+ "hardness": 0.35,
+ "id": 179,
+ "is_seethrough": true,
+ "name": "BLUE_CANDLE",
+ "no_light": 6815743,
+ "textures": {
+  "all": "blue_candle"
+ }
 }

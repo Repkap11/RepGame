@@ -1,9 +1,7 @@
 {
-  "icon": "wool_colored_green",
-  "icon_is_isometric": false,
-  "id": 620,
-  "name": "GREEN_CARPET",
-  "textures": {
-    "all": "wool_colored_green"
-  }
+ "id": 620,
+ "name": "GREEN_CARPET",
+ "textures": {
+  "all": "wool_colored_green"
+ }
 }

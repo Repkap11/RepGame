@@ -1,9 +1,7 @@
 {
-  "icon": "hardened_clay_stained_silver",
-  "icon_is_isometric": false,
-  "id": 705,
-  "name": "LIGHT_GRAY_TERRACOTTA",
-  "textures": {
-    "all": "hardened_clay_stained_silver"
-  }
+ "id": 705,
+ "name": "LIGHT_GRAY_TERRACOTTA",
+ "textures": {
+  "all": "hardened_clay_stained_silver"
+ }
 }

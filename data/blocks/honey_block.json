@@ -1,16 +1,14 @@
 {
-  "affected_by_redstone_power": false,
-  "casts_shadow": false,
-  "hardness": 0.449999988,
-  "icon": "honey_side",
-  "icon_is_isometric": false,
-  "id": 640,
-  "is_seethrough": true,
-  "name": "HONEY_BLOCK",
-  "render_order": "Translucent",
-  "textures": {
-    "bottom": "honey_bottom",
-    "side": "honey_side",
-    "top": "honey_top"
-  }
+ "affected_by_redstone_power": false,
+ "casts_shadow": false,
+ "hardness": 0.449999988,
+ "id": 640,
+ "is_seethrough": true,
+ "name": "HONEY_BLOCK",
+ "render_order": "Translucent",
+ "textures": {
+  "bottom": "honey_bottom",
+  "side": "honey_side",
+  "top": "honey_top"
+ }
 }

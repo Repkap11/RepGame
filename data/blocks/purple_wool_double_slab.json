@@ -1,9 +1,7 @@
 {
-  "icon": "wool_colored_purple",
-  "icon_is_isometric": false,
-  "id": 1026,
-  "name": "PURPLE_WOOL_DOUBLE_SLAB",
-  "textures": {
-    "all": "wool_colored_purple"
-  }
+ "id": 1026,
+ "name": "PURPLE_WOOL_DOUBLE_SLAB",
+ "textures": {
+  "all": "wool_colored_purple"
+ }
 }

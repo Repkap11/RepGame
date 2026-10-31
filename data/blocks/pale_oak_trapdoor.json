@@ -1,9 +1,7 @@
 {
-  "icon": "pale_oak_trapdoor",
-  "icon_is_isometric": false,
-  "id": 896,
-  "name": "PALE_OAK_TRAPDOOR",
-  "textures": {
-    "all": "pale_oak_trapdoor"
-  }
+ "id": 896,
+ "name": "PALE_OAK_TRAPDOOR",
+ "textures": {
+  "all": "pale_oak_trapdoor"
+ }
 }

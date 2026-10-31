@@ -1,9 +1,7 @@
 {
-  "icon": "planks_big_oak",
-  "icon_is_isometric": false,
-  "id": 468,
-  "name": "DARKOAK_WALL_SIGN",
-  "textures": {
-    "all": "planks_big_oak"
-  }
+ "id": 468,
+ "name": "DARKOAK_WALL_SIGN",
+ "textures": {
+  "all": "planks_big_oak"
+ }
 }

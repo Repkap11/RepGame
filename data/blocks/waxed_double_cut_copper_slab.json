@@ -1,9 +1,7 @@
 {
-  "icon": "cut_copper",
-  "icon_is_isometric": false,
-  "id": 1299,
-  "name": "WAXED_DOUBLE_CUT_COPPER_SLAB",
-  "textures": {
-    "all": "cut_copper"
-  }
+ "id": 1299,
+ "name": "WAXED_DOUBLE_CUT_COPPER_SLAB",
+ "textures": {
+  "all": "cut_copper"
+ }
 }

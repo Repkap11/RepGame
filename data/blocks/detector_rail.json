@@ -1,15 +1,13 @@
 {
-  "casts_shadow": false,
-  "hardness": 0.35,
-  "icon": "rail_detector",
-  "icon_is_isometric": false,
-  "id": 519,
-  "is_seethrough": true,
-  "name": "DETECTOR_RAIL",
-  "no_light": 6815743,
-  "textures": {
-    "bottom": "rail_detector",
-    "side": "rail_detector",
-    "top": "rail_detector_powered"
-  }
+ "casts_shadow": false,
+ "hardness": 0.35,
+ "id": 519,
+ "is_seethrough": true,
+ "name": "DETECTOR_RAIL",
+ "no_light": 6815743,
+ "textures": {
+  "bottom": "rail_detector",
+  "side": "rail_detector",
+  "top": "rail_detector_powered"
+ }
 }

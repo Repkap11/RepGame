@@ -1,9 +1,7 @@
 {
-  "icon": "pale_moss_block",
-  "icon_is_isometric": false,
-  "id": 879,
-  "name": "PALE_MOSS_BLOCK",
-  "textures": {
-    "all": "pale_moss_block"
-  }
+ "id": 879,
+ "name": "PALE_MOSS_BLOCK",
+ "textures": {
+  "all": "pale_moss_block"
+ }
 }

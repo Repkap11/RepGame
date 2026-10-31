@@ -1,14 +1,12 @@
 {
-  "icon": "observer_top",
-  "icon_is_isometric": false,
-  "id": 829,
-  "name": "OBSERVER",
-  "textures": {
-    "back": "observer_front",
-    "bottom": "observer_top",
-    "front": "observer_back",
-    "left": "observer_side",
-    "right": "observer_side",
-    "top": "observer_top"
-  }
+ "id": 829,
+ "name": "OBSERVER",
+ "textures": {
+  "back": "observer_front",
+  "bottom": "observer_top",
+  "front": "observer_back",
+  "left": "observer_side",
+  "right": "observer_side",
+  "top": "observer_top"
+ }
 }

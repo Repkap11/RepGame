@@ -1,10 +1,8 @@
 {
-  "emits_light": 10,
-  "icon": "crying_obsidian",
-  "icon_is_isometric": false,
-  "id": 417,
-  "name": "CRYING_OBSIDIAN",
-  "textures": {
-    "all": "crying_obsidian"
-  }
+ "emits_light": 10,
+ "id": 417,
+ "name": "CRYING_OBSIDIAN",
+ "textures": {
+  "all": "crying_obsidian"
+ }
 }

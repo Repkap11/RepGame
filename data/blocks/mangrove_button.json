@@ -1,9 +1,7 @@
 {
-  "icon": "mangrove_planks",
-  "icon_is_isometric": false,
-  "id": 756,
-  "name": "MANGROVE_BUTTON",
-  "textures": {
-    "all": "mangrove_planks"
-  }
+ "id": 756,
+ "name": "MANGROVE_BUTTON",
+ "textures": {
+  "all": "mangrove_planks"
+ }
 }

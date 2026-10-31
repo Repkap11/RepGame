@@ -1,9 +1,7 @@
 {
-  "icon": "sea_lantern",
-  "icon_is_isometric": false,
-  "id": 1108,
-  "name": "SEALANTERN",
-  "textures": {
-    "all": "sea_lantern"
-  }
+ "id": 1108,
+ "name": "SEALANTERN",
+ "textures": {
+  "all": "sea_lantern"
+ }
 }

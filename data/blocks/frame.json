@@ -1,9 +1,7 @@
 {
-  "icon": "itemframe_background",
-  "icon_is_isometric": false,
-  "id": 587,
-  "name": "FRAME",
-  "textures": {
-    "all": "itemframe_background"
-  }
+ "id": 587,
+ "name": "FRAME",
+ "textures": {
+  "all": "itemframe_background"
+ }
 }

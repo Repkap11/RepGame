@@ -1,9 +1,7 @@
 {
-  "icon": "cherry_planks",
-  "icon_is_isometric": false,
-  "id": 268,
-  "name": "CHERRY_PRESSURE_PLATE",
-  "textures": {
-    "all": "cherry_planks"
-  }
+ "id": 268,
+ "name": "CHERRY_PRESSURE_PLATE",
+ "textures": {
+  "all": "cherry_planks"
+ }
 }

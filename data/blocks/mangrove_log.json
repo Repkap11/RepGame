@@ -1,11 +1,9 @@
 {
-  "icon": "mangrove_log_side",
-  "icon_is_isometric": false,
-  "id": 763,
-  "name": "MANGROVE_LOG",
-  "textures": {
-    "bottom": "mangrove_log_top",
-    "side": "mangrove_log_side",
-    "top": "mangrove_log_top"
-  }
+ "id": 763,
+ "name": "MANGROVE_LOG",
+ "textures": {
+  "bottom": "mangrove_log_top",
+  "side": "mangrove_log_side",
+  "top": "mangrove_log_top"
+ }
 }

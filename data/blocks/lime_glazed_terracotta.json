@@ -1,9 +1,7 @@
 {
-  "icon": "glazed_terracotta_lime",
-  "icon_is_isometric": false,
-  "id": 721,
-  "name": "LIME_GLAZED_TERRACOTTA",
-  "textures": {
-    "all": "glazed_terracotta_lime"
-  }
+ "id": 721,
+ "name": "LIME_GLAZED_TERRACOTTA",
+ "textures": {
+  "all": "glazed_terracotta_lime"
+ }
 }

@@ -1,13 +1,11 @@
 {
-  "casts_shadow": false,
-  "hardness": 0.35,
-  "icon": "copper_grate",
-  "icon_is_isometric": false,
-  "id": 344,
-  "is_seethrough": true,
-  "name": "COPPER_GRATE",
-  "no_light": 6815743,
-  "textures": {
-    "all": "copper_grate"
-  }
+ "casts_shadow": false,
+ "hardness": 0.35,
+ "id": 344,
+ "is_seethrough": true,
+ "name": "COPPER_GRATE",
+ "no_light": 6815743,
+ "textures": {
+  "all": "copper_grate"
+ }
 }

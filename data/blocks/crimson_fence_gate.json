@@ -1,9 +1,7 @@
 {
-  "icon": "crimson_planks",
-  "icon_is_isometric": false,
-  "id": 384,
-  "name": "CRIMSON_FENCE_GATE",
-  "textures": {
-    "all": "crimson_planks"
-  }
+ "id": 384,
+ "name": "CRIMSON_FENCE_GATE",
+ "textures": {
+  "all": "crimson_planks"
+ }
 }

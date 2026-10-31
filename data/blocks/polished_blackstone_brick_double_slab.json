@@ -1,9 +1,7 @@
 {
-  "icon": "polished_blackstone_bricks",
-  "icon_is_isometric": false,
-  "id": 930,
-  "name": "POLISHED_BLACKSTONE_BRICK_DOUBLE_SLAB",
-  "textures": {
-    "all": "polished_blackstone_bricks"
-  }
+ "id": 930,
+ "name": "POLISHED_BLACKSTONE_BRICK_DOUBLE_SLAB",
+ "textures": {
+  "all": "polished_blackstone_bricks"
+ }
 }

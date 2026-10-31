@@ -1,9 +1,7 @@
 {
-  "icon": "blackstone",
-  "icon_is_isometric": false,
-  "id": 176,
-  "name": "BLACKSTONE_WALL",
-  "textures": {
-    "all": "blackstone"
-  }
+ "id": 176,
+ "name": "BLACKSTONE_WALL",
+ "textures": {
+  "all": "blackstone"
+ }
 }

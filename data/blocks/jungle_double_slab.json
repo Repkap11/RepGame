@@ -1,9 +1,7 @@
 {
-  "icon": "planks_jungle",
-  "icon_is_isometric": false,
-  "id": 657,
-  "name": "JUNGLE_DOUBLE_SLAB",
-  "textures": {
-    "all": "planks_jungle"
-  }
+ "id": 657,
+ "name": "JUNGLE_DOUBLE_SLAB",
+ "textures": {
+  "all": "planks_jungle"
+ }
 }

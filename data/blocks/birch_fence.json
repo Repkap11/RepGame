@@ -1,9 +1,7 @@
 {
-  "icon": "planks_birch",
-  "icon_is_isometric": false,
-  "id": 125,
-  "name": "BIRCH_FENCE",
-  "textures": {
-    "all": "planks_birch"
-  }
+ "id": 125,
+ "name": "BIRCH_FENCE",
+ "textures": {
+  "all": "planks_birch"
+ }
 }

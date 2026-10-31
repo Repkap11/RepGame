@@ -1,9 +1,7 @@
 {
-  "icon": "concrete_orange",
-  "icon_is_isometric": false,
-  "id": 839,
-  "name": "ORANGE_CONCRETE_SLAB",
-  "textures": {
-    "all": "concrete_orange"
-  }
+ "id": 839,
+ "name": "ORANGE_CONCRETE_SLAB",
+ "textures": {
+  "all": "concrete_orange"
+ }
 }

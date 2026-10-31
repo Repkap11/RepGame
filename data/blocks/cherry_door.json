@@ -1,15 +1,13 @@
 {
-  "casts_shadow": false,
-  "hardness": 0.35,
-  "icon": "cherry_door_top",
-  "icon_is_isometric": false,
-  "id": 258,
-  "is_seethrough": true,
-  "name": "CHERRY_DOOR",
-  "no_light": 6815743,
-  "textures": {
-    "bottom": "cherry_door_bottom",
-    "side": "cherry_door_top",
-    "top": "cherry_door_bottom"
-  }
+ "casts_shadow": false,
+ "hardness": 0.35,
+ "id": 258,
+ "is_seethrough": true,
+ "name": "CHERRY_DOOR",
+ "no_light": 6815743,
+ "textures": {
+  "bottom": "cherry_door_bottom",
+  "side": "cherry_door_top",
+  "top": "cherry_door_bottom"
+ }
 }

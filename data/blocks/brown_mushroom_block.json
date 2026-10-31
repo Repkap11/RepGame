@@ -1,9 +1,7 @@
 {
-  "icon": "mushroom_block_inside",
-  "icon_is_isometric": false,
-  "id": 217,
-  "name": "BROWN_MUSHROOM_BLOCK",
-  "textures": {
-    "all": "mushroom_block_inside"
-  }
+ "id": 217,
+ "name": "BROWN_MUSHROOM_BLOCK",
+ "textures": {
+  "all": "mushroom_block_inside"
+ }
 }

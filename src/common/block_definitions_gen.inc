@@ -58,7 +58,6 @@ block_definitions[ 4 ].textures[ FACE_FRONT ] = TEX_PLANKS_ACACIA;
 block_definitions[ 4 ].textures[ FACE_LEFT ] = TEX_PLANKS_ACACIA;
 block_definitions[ 4 ].textures[ FACE_BACK ] = TEX_PLANKS_ACACIA;
 block_definitions[ 4 ].icon_texture = TEX_PLANKS_ACACIA;
-block_definitions[ 4 ].icon_is_isometric = false;
 
 // OAK_PLANKS (5)
 block_definitions[ 5 ].textures[ FACE_TOP ] = TEX_PLANKS_OAK;
@@ -90,7 +89,6 @@ block_definitions[ 7 ].textures[ FACE_FRONT ] = TEX_PLANKS_ACACIA;
 block_definitions[ 7 ].textures[ FACE_LEFT ] = TEX_PLANKS_ACACIA;
 block_definitions[ 7 ].textures[ FACE_BACK ] = TEX_PLANKS_ACACIA;
 block_definitions[ 7 ].icon_texture = TEX_PLANKS_ACACIA;
-block_definitions[ 7 ].icon_is_isometric = false;
 
 // BRICK_BLOCK (8)
 block_definitions[ 8 ].textures[ FACE_TOP ] = TEX_BRICK;
@@ -125,7 +123,6 @@ block_definitions[ 10 ].textures[ FACE_FRONT ] = TEX_PLANKS_ACACIA;
 block_definitions[ 10 ].textures[ FACE_LEFT ] = TEX_PLANKS_ACACIA;
 block_definitions[ 10 ].textures[ FACE_BACK ] = TEX_PLANKS_ACACIA;
 block_definitions[ 10 ].icon_texture = TEX_PLANKS_ACACIA;
-block_definitions[ 10 ].icon_is_isometric = false;
 
 // ACACIA_HANGING_SIGN (11)
 block_definitions[ 11 ].textures[ FACE_TOP ] = TEX_PLANKS_ACACIA;
@@ -135,7 +132,6 @@ block_definitions[ 11 ].textures[ FACE_FRONT ] = TEX_PLANKS_ACACIA;
 block_definitions[ 11 ].textures[ FACE_LEFT ] = TEX_PLANKS_ACACIA;
 block_definitions[ 11 ].textures[ FACE_BACK ] = TEX_PLANKS_ACACIA;
 block_definitions[ 11 ].icon_texture = TEX_PLANKS_ACACIA;
-block_definitions[ 11 ].icon_is_isometric = false;
 
 // WEB (12)
 block_definitions[ 12 ].textures[ FACE_TOP ] = TEX_AIR;
@@ -144,7 +140,7 @@ block_definitions[ 12 ].textures[ FACE_RIGHT ] = TEX_WEB;
 block_definitions[ 12 ].textures[ FACE_FRONT ] = TEX_WEB;
 block_definitions[ 12 ].textures[ FACE_LEFT ] = TEX_WEB;
 block_definitions[ 12 ].textures[ FACE_BACK ] = TEX_WEB;
-block_definitions[ 12 ].icon_texture = TEX_WEB;
+block_definitions[ 12 ].icon_texture = TEX_AIR;
 block_definitions[ 12 ].affected_by_redstone_power = false;
 block_definitions[ 12 ].breaks_in_liquid = true;
 block_definitions[ 12 ].casts_shadow = false;
@@ -287,7 +283,6 @@ block_definitions[ 21 ].textures[ FACE_BACK ] = TEX_LEAVES_ACACIA_CARRIED;
 block_definitions[ 21 ].icon_texture = TEX_LEAVES_ACACIA_CARRIED;
 block_definitions[ 21 ].casts_shadow = false;
 block_definitions[ 21 ].hardness = 0.35f;
-block_definitions[ 21 ].icon_is_isometric = false;
 block_definitions[ 21 ].is_seethrough = true;
 block_definitions[ 21 ].no_light = 6815743;
 
@@ -299,7 +294,6 @@ block_definitions[ 22 ].textures[ FACE_FRONT ] = TEX_ACACIA_SHELF;
 block_definitions[ 22 ].textures[ FACE_LEFT ] = TEX_ACACIA_SHELF;
 block_definitions[ 22 ].textures[ FACE_BACK ] = TEX_ACACIA_SHELF;
 block_definitions[ 22 ].icon_texture = TEX_ACACIA_SHELF;
-block_definitions[ 22 ].icon_is_isometric = false;
 
 // ACACIA_STAIRS (23)
 block_definitions[ 23 ].textures[ FACE_TOP ] = TEX_PLANKS_ACACIA;
@@ -309,7 +303,6 @@ block_definitions[ 23 ].textures[ FACE_FRONT ] = TEX_PLANKS_ACACIA;
 block_definitions[ 23 ].textures[ FACE_LEFT ] = TEX_PLANKS_ACACIA;
 block_definitions[ 23 ].textures[ FACE_BACK ] = TEX_PLANKS_ACACIA;
 block_definitions[ 23 ].icon_texture = TEX_PLANKS_ACACIA;
-block_definitions[ 23 ].icon_is_isometric = false;
 
 // ACACIA_STANDING_SIGN (24)
 block_definitions[ 24 ].textures[ FACE_TOP ] = TEX_PLANKS_ACACIA;
@@ -319,7 +312,6 @@ block_definitions[ 24 ].textures[ FACE_FRONT ] = TEX_PLANKS_ACACIA;
 block_definitions[ 24 ].textures[ FACE_LEFT ] = TEX_PLANKS_ACACIA;
 block_definitions[ 24 ].textures[ FACE_BACK ] = TEX_PLANKS_ACACIA;
 block_definitions[ 24 ].icon_texture = TEX_PLANKS_ACACIA;
-block_definitions[ 24 ].icon_is_isometric = false;
 
 // COBBLESTONE (25)
 block_definitions[ 25 ].textures[ FACE_TOP ] = TEX_COBBLESTONE;
@@ -383,7 +375,6 @@ block_definitions[ 30 ].textures[ FACE_BACK ] = TEX_ACACIA_TRAPDOOR;
 block_definitions[ 30 ].icon_texture = TEX_ACACIA_TRAPDOOR;
 block_definitions[ 30 ].casts_shadow = false;
 block_definitions[ 30 ].hardness = 0.35f;
-block_definitions[ 30 ].icon_is_isometric = false;
 block_definitions[ 30 ].is_seethrough = true;
 block_definitions[ 30 ].no_light = 6815743;
 
@@ -447,7 +438,7 @@ block_definitions[ 36 ].textures[ FACE_RIGHT ] = TEX_BARRIER;
 block_definitions[ 36 ].textures[ FACE_FRONT ] = TEX_BARRIER;
 block_definitions[ 36 ].textures[ FACE_LEFT ] = TEX_BARRIER;
 block_definitions[ 36 ].textures[ FACE_BACK ] = TEX_BARRIER;
-block_definitions[ 36 ].icon_texture = TEX_BARRIER;
+block_definitions[ 36 ].icon_texture = TEX_AIR;
 block_definitions[ 36 ].affected_by_redstone_power = false;
 block_definitions[ 36 ].breaks_in_liquid = true;
 block_definitions[ 36 ].casts_shadow = false;
@@ -530,7 +521,6 @@ block_definitions[ 40 ].textures[ FACE_FRONT ] = TEX_PLANKS_ACACIA;
 block_definitions[ 40 ].textures[ FACE_LEFT ] = TEX_PLANKS_ACACIA;
 block_definitions[ 40 ].textures[ FACE_BACK ] = TEX_PLANKS_ACACIA;
 block_definitions[ 40 ].icon_texture = TEX_PLANKS_ACACIA;
-block_definitions[ 40 ].icon_is_isometric = false;
 
 // STONE_BRICK_SLAB (41)
 block_definitions[ 41 ].textures[ FACE_TOP ] = TEX_STONEBRICK;
@@ -579,7 +569,6 @@ block_definitions[ 44 ].textures[ FACE_FRONT ] = TEX_LOG_ACACIA;
 block_definitions[ 44 ].textures[ FACE_LEFT ] = TEX_LOG_ACACIA;
 block_definitions[ 44 ].textures[ FACE_BACK ] = TEX_LOG_ACACIA;
 block_definitions[ 44 ].icon_texture = TEX_LOG_ACACIA;
-block_definitions[ 44 ].icon_is_isometric = false;
 
 // PORTAL (45)
 block_definitions[ 45 ].textures[ FACE_TOP ] = TEX_PORTAL;
@@ -609,10 +598,9 @@ block_definitions[ 46 ].textures[ FACE_RIGHT ] = TEX_RAIL_ACTIVATOR;
 block_definitions[ 46 ].textures[ FACE_FRONT ] = TEX_RAIL_ACTIVATOR;
 block_definitions[ 46 ].textures[ FACE_LEFT ] = TEX_RAIL_ACTIVATOR;
 block_definitions[ 46 ].textures[ FACE_BACK ] = TEX_RAIL_ACTIVATOR;
-block_definitions[ 46 ].icon_texture = TEX_RAIL_ACTIVATOR;
+block_definitions[ 46 ].icon_texture = TEX_RAIL_ACTIVATOR_POWERED;
 block_definitions[ 46 ].casts_shadow = false;
 block_definitions[ 46 ].hardness = 0.35f;
-block_definitions[ 46 ].icon_is_isometric = false;
 block_definitions[ 46 ].is_seethrough = true;
 block_definitions[ 46 ].no_light = 6815743;
 
@@ -646,7 +634,6 @@ block_definitions[ 48 ].textures[ FACE_FRONT ] = TEX_AMETHYST_BLOCK;
 block_definitions[ 48 ].textures[ FACE_LEFT ] = TEX_AMETHYST_BLOCK;
 block_definitions[ 48 ].textures[ FACE_BACK ] = TEX_AMETHYST_BLOCK;
 block_definitions[ 48 ].icon_texture = TEX_AMETHYST_BLOCK;
-block_definitions[ 48 ].icon_is_isometric = false;
 
 // GOLD_ORE (49)
 block_definitions[ 49 ].textures[ FACE_TOP ] = TEX_GOLD_ORE;
@@ -685,7 +672,7 @@ block_definitions[ 52 ].textures[ FACE_RIGHT ] = TEX_BOOKSHELF;
 block_definitions[ 52 ].textures[ FACE_FRONT ] = TEX_BOOKSHELF;
 block_definitions[ 52 ].textures[ FACE_LEFT ] = TEX_BOOKSHELF;
 block_definitions[ 52 ].textures[ FACE_BACK ] = TEX_BOOKSHELF;
-block_definitions[ 52 ].icon_texture = TEX_BOOKSHELF;
+block_definitions[ 52 ].icon_texture = TEX_PLANKS_OAK;
 block_definitions[ 52 ].hardness = 2.0f;
 
 // AMETHYST_CLUSTER (53)
@@ -699,7 +686,6 @@ block_definitions[ 53 ].icon_texture = TEX_AMETHYST_CLUSTER;
 block_definitions[ 53 ].casts_shadow = false;
 block_definitions[ 53 ].emits_light = 5;
 block_definitions[ 53 ].hardness = 0.35f;
-block_definitions[ 53 ].icon_is_isometric = false;
 block_definitions[ 53 ].is_seethrough = true;
 block_definitions[ 53 ].no_light = 6815743;
 
@@ -710,8 +696,7 @@ block_definitions[ 54 ].textures[ FACE_RIGHT ] = TEX_ANCIENT_DEBRIS_SIDE;
 block_definitions[ 54 ].textures[ FACE_FRONT ] = TEX_ANCIENT_DEBRIS_SIDE;
 block_definitions[ 54 ].textures[ FACE_LEFT ] = TEX_ANCIENT_DEBRIS_SIDE;
 block_definitions[ 54 ].textures[ FACE_BACK ] = TEX_ANCIENT_DEBRIS_SIDE;
-block_definitions[ 54 ].icon_texture = TEX_ANCIENT_DEBRIS_SIDE;
-block_definitions[ 54 ].icon_is_isometric = false;
+block_definitions[ 54 ].icon_texture = TEX_ANCIENT_DEBRIS_TOP;
 
 // DARK_BARRIER (55)
 block_definitions[ 55 ].textures[ FACE_TOP ] = TEX_AIR;
@@ -720,7 +705,7 @@ block_definitions[ 55 ].textures[ FACE_RIGHT ] = TEX_DARK_BARRIER;
 block_definitions[ 55 ].textures[ FACE_FRONT ] = TEX_DARK_BARRIER;
 block_definitions[ 55 ].textures[ FACE_LEFT ] = TEX_DARK_BARRIER;
 block_definitions[ 55 ].textures[ FACE_BACK ] = TEX_DARK_BARRIER;
-block_definitions[ 55 ].icon_texture = TEX_DARK_BARRIER;
+block_definitions[ 55 ].icon_texture = TEX_AIR;
 block_definitions[ 55 ].affected_by_redstone_power = false;
 block_definitions[ 55 ].breaks_in_liquid = true;
 block_definitions[ 55 ].casts_shadow = false;
@@ -788,7 +773,6 @@ block_definitions[ 59 ].textures[ FACE_FRONT ] = TEX_STONE_ANDESITE;
 block_definitions[ 59 ].textures[ FACE_LEFT ] = TEX_STONE_ANDESITE;
 block_definitions[ 59 ].textures[ FACE_BACK ] = TEX_STONE_ANDESITE;
 block_definitions[ 59 ].icon_texture = TEX_STONE_ANDESITE;
-block_definitions[ 59 ].icon_is_isometric = false;
 
 // CRAFTING_TABLE (60)
 block_definitions[ 60 ].textures[ FACE_TOP ] = TEX_CRAFTING_TABLE_TOP;
@@ -821,7 +805,6 @@ block_definitions[ 62 ].textures[ FACE_FRONT ] = TEX_STONE_ANDESITE;
 block_definitions[ 62 ].textures[ FACE_LEFT ] = TEX_STONE_ANDESITE;
 block_definitions[ 62 ].textures[ FACE_BACK ] = TEX_STONE_ANDESITE;
 block_definitions[ 62 ].icon_texture = TEX_STONE_ANDESITE;
-block_definitions[ 62 ].icon_is_isometric = false;
 
 // ANDESITE_SLAB (63)
 block_definitions[ 63 ].textures[ FACE_TOP ] = TEX_STONE_ANDESITE;
@@ -831,7 +814,6 @@ block_definitions[ 63 ].textures[ FACE_FRONT ] = TEX_STONE_ANDESITE;
 block_definitions[ 63 ].textures[ FACE_LEFT ] = TEX_STONE_ANDESITE;
 block_definitions[ 63 ].textures[ FACE_BACK ] = TEX_STONE_ANDESITE;
 block_definitions[ 63 ].icon_texture = TEX_STONE_ANDESITE;
-block_definitions[ 63 ].icon_is_isometric = false;
 
 // ANDESITE_STAIRS (64)
 block_definitions[ 64 ].textures[ FACE_TOP ] = TEX_STONE_ANDESITE;
@@ -841,7 +823,6 @@ block_definitions[ 64 ].textures[ FACE_FRONT ] = TEX_STONE_ANDESITE;
 block_definitions[ 64 ].textures[ FACE_LEFT ] = TEX_STONE_ANDESITE;
 block_definitions[ 64 ].textures[ FACE_BACK ] = TEX_STONE_ANDESITE;
 block_definitions[ 64 ].icon_texture = TEX_STONE_ANDESITE;
-block_definitions[ 64 ].icon_is_isometric = false;
 
 // REDSTONE_TORCH (65)
 block_definitions[ 65 ].textures[ FACE_TOP ] = TEX_REDSTONE_TORCH_TOP;
@@ -873,7 +854,6 @@ block_definitions[ 66 ].textures[ FACE_FRONT ] = TEX_STONE_ANDESITE;
 block_definitions[ 66 ].textures[ FACE_LEFT ] = TEX_STONE_ANDESITE;
 block_definitions[ 66 ].textures[ FACE_BACK ] = TEX_STONE_ANDESITE;
 block_definitions[ 66 ].icon_texture = TEX_STONE_ANDESITE;
-block_definitions[ 66 ].icon_is_isometric = false;
 
 // ANVIL (67)
 block_definitions[ 67 ].textures[ FACE_TOP ] = TEX_ANVIL_TOP_DAMAGED_0;
@@ -882,10 +862,9 @@ block_definitions[ 67 ].textures[ FACE_RIGHT ] = TEX_ANVIL_BASE;
 block_definitions[ 67 ].textures[ FACE_FRONT ] = TEX_ANVIL_BASE;
 block_definitions[ 67 ].textures[ FACE_LEFT ] = TEX_ANVIL_BASE;
 block_definitions[ 67 ].textures[ FACE_BACK ] = TEX_ANVIL_BASE;
-block_definitions[ 67 ].icon_texture = TEX_ANVIL_BASE;
+block_definitions[ 67 ].icon_texture = TEX_ANVIL_TOP_DAMAGED_0;
 block_definitions[ 67 ].casts_shadow = false;
 block_definitions[ 67 ].hardness = 0.35f;
-block_definitions[ 67 ].icon_is_isometric = false;
 block_definitions[ 67 ].is_seethrough = true;
 block_definitions[ 67 ].no_light = 6815743;
 
@@ -921,7 +900,6 @@ block_definitions[ 69 ].textures[ FACE_BACK ] = TEX_AZALEA_SIDE;
 block_definitions[ 69 ].icon_texture = TEX_AZALEA_TOP;
 block_definitions[ 69 ].casts_shadow = false;
 block_definitions[ 69 ].hardness = 0.35f;
-block_definitions[ 69 ].icon_is_isometric = false;
 block_definitions[ 69 ].is_seethrough = true;
 block_definitions[ 69 ].no_light = 6815743;
 
@@ -935,7 +913,6 @@ block_definitions[ 70 ].textures[ FACE_BACK ] = TEX_AZALEA_LEAVES;
 block_definitions[ 70 ].icon_texture = TEX_AZALEA_LEAVES;
 block_definitions[ 70 ].casts_shadow = false;
 block_definitions[ 70 ].hardness = 0.35f;
-block_definitions[ 70 ].icon_is_isometric = false;
 block_definitions[ 70 ].is_seethrough = true;
 block_definitions[ 70 ].no_light = 6815743;
 
@@ -949,7 +926,6 @@ block_definitions[ 71 ].textures[ FACE_BACK ] = TEX_AZALEA_LEAVES_FLOWERS;
 block_definitions[ 71 ].icon_texture = TEX_AZALEA_LEAVES_FLOWERS;
 block_definitions[ 71 ].casts_shadow = false;
 block_definitions[ 71 ].hardness = 0.35f;
-block_definitions[ 71 ].icon_is_isometric = false;
 block_definitions[ 71 ].is_seethrough = true;
 block_definitions[ 71 ].no_light = 6815743;
 
@@ -963,7 +939,6 @@ block_definitions[ 72 ].textures[ FACE_BACK ] = TEX_BAMBOO;
 block_definitions[ 72 ].icon_texture = TEX_BAMBOO;
 block_definitions[ 72 ].casts_shadow = false;
 block_definitions[ 72 ].hardness = 0.35f;
-block_definitions[ 72 ].icon_is_isometric = false;
 block_definitions[ 72 ].is_seethrough = true;
 block_definitions[ 72 ].no_light = 6815743;
 
@@ -974,8 +949,7 @@ block_definitions[ 73 ].textures[ FACE_RIGHT ] = TEX_BAMBOO_BLOCK;
 block_definitions[ 73 ].textures[ FACE_FRONT ] = TEX_BAMBOO_BLOCK;
 block_definitions[ 73 ].textures[ FACE_LEFT ] = TEX_BAMBOO_BLOCK;
 block_definitions[ 73 ].textures[ FACE_BACK ] = TEX_BAMBOO_BLOCK;
-block_definitions[ 73 ].icon_texture = TEX_BAMBOO_BLOCK;
-block_definitions[ 73 ].icon_is_isometric = false;
+block_definitions[ 73 ].icon_texture = TEX_BAMBOO_BLOCK_TOP;
 
 // GLASS (74)
 block_definitions[ 74 ].textures[ FACE_TOP ] = TEX_GLASS;
@@ -998,7 +972,6 @@ block_definitions[ 75 ].textures[ FACE_FRONT ] = TEX_BAMBOO_PLANKS;
 block_definitions[ 75 ].textures[ FACE_LEFT ] = TEX_BAMBOO_PLANKS;
 block_definitions[ 75 ].textures[ FACE_BACK ] = TEX_BAMBOO_PLANKS;
 block_definitions[ 75 ].icon_texture = TEX_BAMBOO_PLANKS;
-block_definitions[ 75 ].icon_is_isometric = false;
 
 // BAMBOO_DOOR (76)
 block_definitions[ 76 ].textures[ FACE_TOP ] = TEX_BAMBOO_DOOR_BOTTOM;
@@ -1007,10 +980,9 @@ block_definitions[ 76 ].textures[ FACE_RIGHT ] = TEX_BAMBOO_DOOR_TOP;
 block_definitions[ 76 ].textures[ FACE_FRONT ] = TEX_BAMBOO_DOOR_TOP;
 block_definitions[ 76 ].textures[ FACE_LEFT ] = TEX_BAMBOO_DOOR_TOP;
 block_definitions[ 76 ].textures[ FACE_BACK ] = TEX_BAMBOO_DOOR_TOP;
-block_definitions[ 76 ].icon_texture = TEX_BAMBOO_DOOR_TOP;
+block_definitions[ 76 ].icon_texture = TEX_BAMBOO_DOOR_BOTTOM;
 block_definitions[ 76 ].casts_shadow = false;
 block_definitions[ 76 ].hardness = 0.35f;
-block_definitions[ 76 ].icon_is_isometric = false;
 block_definitions[ 76 ].is_seethrough = true;
 block_definitions[ 76 ].no_light = 6815743;
 
@@ -1037,7 +1009,6 @@ block_definitions[ 78 ].textures[ FACE_FRONT ] = TEX_BAMBOO_PLANKS;
 block_definitions[ 78 ].textures[ FACE_LEFT ] = TEX_BAMBOO_PLANKS;
 block_definitions[ 78 ].textures[ FACE_BACK ] = TEX_BAMBOO_PLANKS;
 block_definitions[ 78 ].icon_texture = TEX_BAMBOO_PLANKS;
-block_definitions[ 78 ].icon_is_isometric = false;
 
 // STONE_BRICKS (79)
 block_definitions[ 79 ].textures[ FACE_TOP ] = TEX_STONEBRICK;
@@ -1057,7 +1028,7 @@ block_definitions[ 80 ].textures[ FACE_RIGHT ] = TEX_DEADBUSH;
 block_definitions[ 80 ].textures[ FACE_FRONT ] = TEX_DEADBUSH;
 block_definitions[ 80 ].textures[ FACE_LEFT ] = TEX_DEADBUSH;
 block_definitions[ 80 ].textures[ FACE_BACK ] = TEX_DEADBUSH;
-block_definitions[ 80 ].icon_texture = TEX_DEADBUSH;
+block_definitions[ 80 ].icon_texture = TEX_AIR;
 block_definitions[ 80 ].affected_by_redstone_power = false;
 block_definitions[ 80 ].breaks_in_liquid = true;
 block_definitions[ 80 ].casts_shadow = false;
@@ -1098,7 +1069,6 @@ block_definitions[ 82 ].textures[ FACE_BACK ] = TEX_BAMBOO_FENCE;
 block_definitions[ 82 ].icon_texture = TEX_BAMBOO_FENCE;
 block_definitions[ 82 ].casts_shadow = false;
 block_definitions[ 82 ].hardness = 0.35f;
-block_definitions[ 82 ].icon_is_isometric = false;
 block_definitions[ 82 ].is_seethrough = true;
 block_definitions[ 82 ].no_light = 6815743;
 
@@ -1112,7 +1082,6 @@ block_definitions[ 83 ].textures[ FACE_BACK ] = TEX_BAMBOO_FENCE_GATE;
 block_definitions[ 83 ].icon_texture = TEX_BAMBOO_FENCE_GATE;
 block_definitions[ 83 ].casts_shadow = false;
 block_definitions[ 83 ].hardness = 0.35f;
-block_definitions[ 83 ].icon_is_isometric = false;
 block_definitions[ 83 ].is_seethrough = true;
 block_definitions[ 83 ].no_light = 6815743;
 
@@ -1124,7 +1093,6 @@ block_definitions[ 84 ].textures[ FACE_FRONT ] = TEX_BAMBOO_PLANKS;
 block_definitions[ 84 ].textures[ FACE_LEFT ] = TEX_BAMBOO_PLANKS;
 block_definitions[ 84 ].textures[ FACE_BACK ] = TEX_BAMBOO_PLANKS;
 block_definitions[ 84 ].icon_texture = TEX_BAMBOO_PLANKS;
-block_definitions[ 84 ].icon_is_isometric = false;
 
 // BAMBOO_MOSAIC (85)
 block_definitions[ 85 ].textures[ FACE_TOP ] = TEX_BAMBOO_MOSAIC;
@@ -1134,7 +1102,6 @@ block_definitions[ 85 ].textures[ FACE_FRONT ] = TEX_BAMBOO_MOSAIC;
 block_definitions[ 85 ].textures[ FACE_LEFT ] = TEX_BAMBOO_MOSAIC;
 block_definitions[ 85 ].textures[ FACE_BACK ] = TEX_BAMBOO_MOSAIC;
 block_definitions[ 85 ].icon_texture = TEX_BAMBOO_MOSAIC;
-block_definitions[ 85 ].icon_is_isometric = false;
 
 // LIT_FURNACE (86)
 block_definitions[ 86 ].textures[ FACE_TOP ] = TEX_FURNACE_TOP;
@@ -1157,7 +1124,6 @@ block_definitions[ 87 ].textures[ FACE_FRONT ] = TEX_BAMBOO_MOSAIC;
 block_definitions[ 87 ].textures[ FACE_LEFT ] = TEX_BAMBOO_MOSAIC;
 block_definitions[ 87 ].textures[ FACE_BACK ] = TEX_BAMBOO_MOSAIC;
 block_definitions[ 87 ].icon_texture = TEX_BAMBOO_MOSAIC;
-block_definitions[ 87 ].icon_is_isometric = false;
 
 // DARK_OAK_SAPLING (88)
 block_definitions[ 88 ].textures[ FACE_TOP ] = TEX_AIR;
@@ -1186,7 +1152,6 @@ block_definitions[ 89 ].textures[ FACE_FRONT ] = TEX_BAMBOO_MOSAIC;
 block_definitions[ 89 ].textures[ FACE_LEFT ] = TEX_BAMBOO_MOSAIC;
 block_definitions[ 89 ].textures[ FACE_BACK ] = TEX_BAMBOO_MOSAIC;
 block_definitions[ 89 ].icon_texture = TEX_BAMBOO_MOSAIC;
-block_definitions[ 89 ].icon_is_isometric = false;
 
 // BAMBOO_MOSAIC_STAIRS (90)
 block_definitions[ 90 ].textures[ FACE_TOP ] = TEX_BAMBOO_MOSAIC;
@@ -1196,7 +1161,6 @@ block_definitions[ 90 ].textures[ FACE_FRONT ] = TEX_BAMBOO_MOSAIC;
 block_definitions[ 90 ].textures[ FACE_LEFT ] = TEX_BAMBOO_MOSAIC;
 block_definitions[ 90 ].textures[ FACE_BACK ] = TEX_BAMBOO_MOSAIC;
 block_definitions[ 90 ].icon_texture = TEX_BAMBOO_MOSAIC;
-block_definitions[ 90 ].icon_is_isometric = false;
 
 // TUBE_CORAL (91)
 block_definitions[ 91 ].textures[ FACE_TOP ] = TEX_AIR;
@@ -1246,7 +1210,6 @@ block_definitions[ 93 ].textures[ FACE_FRONT ] = TEX_BAMBOO_PLANKS;
 block_definitions[ 93 ].textures[ FACE_LEFT ] = TEX_BAMBOO_PLANKS;
 block_definitions[ 93 ].textures[ FACE_BACK ] = TEX_BAMBOO_PLANKS;
 block_definitions[ 93 ].icon_texture = TEX_BAMBOO_PLANKS;
-block_definitions[ 93 ].icon_is_isometric = false;
 
 // LAVA (94)
 block_definitions[ 94 ].textures[ FACE_TOP ] = TEX_LAVA_STILL;
@@ -1296,7 +1259,7 @@ block_definitions[ 96 ].textures[ FACE_RIGHT ] = TEX_RED_MUSHROOM_IN_POT;
 block_definitions[ 96 ].textures[ FACE_FRONT ] = TEX_RED_MUSHROOM_IN_POT;
 block_definitions[ 96 ].textures[ FACE_LEFT ] = TEX_RED_MUSHROOM_IN_POT;
 block_definitions[ 96 ].textures[ FACE_BACK ] = TEX_RED_MUSHROOM_IN_POT;
-block_definitions[ 96 ].icon_texture = TEX_RED_MUSHROOM_IN_POT;
+block_definitions[ 96 ].icon_texture = TEX_AIR;
 block_definitions[ 96 ].affected_by_redstone_power = false;
 block_definitions[ 96 ].breaks_in_liquid = true;
 block_definitions[ 96 ].casts_shadow = false;
@@ -1316,7 +1279,6 @@ block_definitions[ 97 ].textures[ FACE_FRONT ] = TEX_BAMBOO_PLANKS;
 block_definitions[ 97 ].textures[ FACE_LEFT ] = TEX_BAMBOO_PLANKS;
 block_definitions[ 97 ].textures[ FACE_BACK ] = TEX_BAMBOO_PLANKS;
 block_definitions[ 97 ].icon_texture = TEX_BAMBOO_PLANKS;
-block_definitions[ 97 ].icon_is_isometric = false;
 
 // MOB_SPAWNER (98)
 block_definitions[ 98 ].textures[ FACE_TOP ] = TEX_MOB_SPAWNER;
@@ -1347,7 +1309,6 @@ block_definitions[ 100 ].textures[ FACE_FRONT ] = TEX_BAMBOO_SHELF;
 block_definitions[ 100 ].textures[ FACE_LEFT ] = TEX_BAMBOO_SHELF;
 block_definitions[ 100 ].textures[ FACE_BACK ] = TEX_BAMBOO_SHELF;
 block_definitions[ 100 ].icon_texture = TEX_BAMBOO_SHELF;
-block_definitions[ 100 ].icon_is_isometric = false;
 
 // SNOWY_GRASS (101)
 block_definitions[ 101 ].textures[ FACE_TOP ] = TEX_SNOW;
@@ -1368,7 +1329,6 @@ block_definitions[ 102 ].textures[ FACE_FRONT ] = TEX_BAMBOO_PLANKS;
 block_definitions[ 102 ].textures[ FACE_LEFT ] = TEX_BAMBOO_PLANKS;
 block_definitions[ 102 ].textures[ FACE_BACK ] = TEX_BAMBOO_PLANKS;
 block_definitions[ 102 ].icon_texture = TEX_BAMBOO_PLANKS;
-block_definitions[ 102 ].icon_is_isometric = false;
 
 // BAMBOO_STAIRS (103)
 block_definitions[ 103 ].textures[ FACE_TOP ] = TEX_BAMBOO_PLANKS;
@@ -1378,7 +1338,6 @@ block_definitions[ 103 ].textures[ FACE_FRONT ] = TEX_BAMBOO_PLANKS;
 block_definitions[ 103 ].textures[ FACE_LEFT ] = TEX_BAMBOO_PLANKS;
 block_definitions[ 103 ].textures[ FACE_BACK ] = TEX_BAMBOO_PLANKS;
 block_definitions[ 103 ].icon_texture = TEX_BAMBOO_PLANKS;
-block_definitions[ 103 ].icon_is_isometric = false;
 
 // BAMBOO_STANDING_SIGN (104)
 block_definitions[ 104 ].textures[ FACE_TOP ] = TEX_BAMBOO_PLANKS;
@@ -1388,7 +1347,6 @@ block_definitions[ 104 ].textures[ FACE_FRONT ] = TEX_BAMBOO_PLANKS;
 block_definitions[ 104 ].textures[ FACE_LEFT ] = TEX_BAMBOO_PLANKS;
 block_definitions[ 104 ].textures[ FACE_BACK ] = TEX_BAMBOO_PLANKS;
 block_definitions[ 104 ].icon_texture = TEX_BAMBOO_PLANKS;
-block_definitions[ 104 ].icon_is_isometric = false;
 
 // BAMBOO_TRAPDOOR (105)
 block_definitions[ 105 ].textures[ FACE_TOP ] = TEX_BAMBOO_TRAPDOOR;
@@ -1400,7 +1358,6 @@ block_definitions[ 105 ].textures[ FACE_BACK ] = TEX_BAMBOO_TRAPDOOR;
 block_definitions[ 105 ].icon_texture = TEX_BAMBOO_TRAPDOOR;
 block_definitions[ 105 ].casts_shadow = false;
 block_definitions[ 105 ].hardness = 0.35f;
-block_definitions[ 105 ].icon_is_isometric = false;
 block_definitions[ 105 ].is_seethrough = true;
 block_definitions[ 105 ].no_light = 6815743;
 
@@ -1411,7 +1368,7 @@ block_definitions[ 106 ].textures[ FACE_RIGHT ] = TEX_REEDS;
 block_definitions[ 106 ].textures[ FACE_FRONT ] = TEX_REEDS;
 block_definitions[ 106 ].textures[ FACE_LEFT ] = TEX_REEDS;
 block_definitions[ 106 ].textures[ FACE_BACK ] = TEX_REEDS;
-block_definitions[ 106 ].icon_texture = TEX_REEDS;
+block_definitions[ 106 ].icon_texture = TEX_AIR;
 block_definitions[ 106 ].affected_by_redstone_power = false;
 block_definitions[ 106 ].breaks_in_liquid = true;
 block_definitions[ 106 ].casts_shadow = false;
@@ -1432,7 +1389,6 @@ block_definitions[ 107 ].textures[ FACE_FRONT ] = TEX_BAMBOO_PLANKS;
 block_definitions[ 107 ].textures[ FACE_LEFT ] = TEX_BAMBOO_PLANKS;
 block_definitions[ 107 ].textures[ FACE_BACK ] = TEX_BAMBOO_PLANKS;
 block_definitions[ 107 ].icon_texture = TEX_BAMBOO_PLANKS;
-block_definitions[ 107 ].icon_is_isometric = false;
 
 // BARREL (108)
 block_definitions[ 108 ].textures[ FACE_TOP ] = TEX_BARREL_SIDE;
@@ -1442,7 +1398,6 @@ block_definitions[ 108 ].textures[ FACE_FRONT ] = TEX_BARREL_BOTTOM;
 block_definitions[ 108 ].textures[ FACE_LEFT ] = TEX_BARREL_SIDE;
 block_definitions[ 108 ].textures[ FACE_BACK ] = TEX_BARREL_TOP;
 block_definitions[ 108 ].icon_texture = TEX_BARREL_SIDE;
-block_definitions[ 108 ].icon_is_isometric = false;
 
 // WATERLILY (109)
 block_definitions[ 109 ].textures[ FACE_TOP ] = TEX_CARRIED_WATERLILY;
@@ -1469,8 +1424,7 @@ block_definitions[ 110 ].textures[ FACE_RIGHT ] = TEX_BASALT_SIDE;
 block_definitions[ 110 ].textures[ FACE_FRONT ] = TEX_BASALT_SIDE;
 block_definitions[ 110 ].textures[ FACE_LEFT ] = TEX_BASALT_SIDE;
 block_definitions[ 110 ].textures[ FACE_BACK ] = TEX_BASALT_SIDE;
-block_definitions[ 110 ].icon_texture = TEX_BASALT_SIDE;
-block_definitions[ 110 ].icon_is_isometric = false;
+block_definitions[ 110 ].icon_texture = TEX_BASALT_TOP;
 
 // MYCELIUM (111)
 block_definitions[ 111 ].textures[ FACE_TOP ] = TEX_MYCELIUM_TOP;
@@ -1509,11 +1463,10 @@ block_definitions[ 113 ].textures[ FACE_RIGHT ] = TEX_GLASS;
 block_definitions[ 113 ].textures[ FACE_FRONT ] = TEX_GLASS;
 block_definitions[ 113 ].textures[ FACE_LEFT ] = TEX_GLASS;
 block_definitions[ 113 ].textures[ FACE_BACK ] = TEX_GLASS;
-block_definitions[ 113 ].icon_texture = TEX_GLASS;
+block_definitions[ 113 ].icon_texture = TEX_BEACON;
 block_definitions[ 113 ].casts_shadow = false;
 block_definitions[ 113 ].emits_light = 15;
 block_definitions[ 113 ].hardness = 0.35f;
-block_definitions[ 113 ].icon_is_isometric = false;
 block_definitions[ 113 ].is_seethrough = true;
 block_definitions[ 113 ].no_light = 6815743;
 
@@ -1525,7 +1478,6 @@ block_definitions[ 114 ].textures[ FACE_FRONT ] = TEX_BEE_NEST_FRONT;
 block_definitions[ 114 ].textures[ FACE_LEFT ] = TEX_BEE_NEST_SIDE;
 block_definitions[ 114 ].textures[ FACE_BACK ] = TEX_BEE_NEST_SIDE;
 block_definitions[ 114 ].icon_texture = TEX_BEE_NEST_TOP;
-block_definitions[ 114 ].icon_is_isometric = false;
 
 // BEEHIVE (115)
 block_definitions[ 115 ].textures[ FACE_TOP ] = TEX_BEEHIVE_TOP;
@@ -1535,7 +1487,6 @@ block_definitions[ 115 ].textures[ FACE_FRONT ] = TEX_BEEHIVE_FRONT;
 block_definitions[ 115 ].textures[ FACE_LEFT ] = TEX_BEEHIVE_SIDE;
 block_definitions[ 115 ].textures[ FACE_BACK ] = TEX_BEEHIVE_SIDE;
 block_definitions[ 115 ].icon_texture = TEX_BEEHIVE_TOP;
-block_definitions[ 115 ].icon_is_isometric = false;
 
 // BELL (116)
 block_definitions[ 116 ].textures[ FACE_TOP ] = TEX_VILLAGEBELL;
@@ -1547,7 +1498,6 @@ block_definitions[ 116 ].textures[ FACE_BACK ] = TEX_VILLAGEBELL;
 block_definitions[ 116 ].icon_texture = TEX_VILLAGEBELL;
 block_definitions[ 116 ].casts_shadow = false;
 block_definitions[ 116 ].hardness = 0.35f;
-block_definitions[ 116 ].icon_is_isometric = false;
 block_definitions[ 116 ].is_seethrough = true;
 block_definitions[ 116 ].no_light = 6815743;
 
@@ -1561,7 +1511,6 @@ block_definitions[ 117 ].textures[ FACE_BACK ] = TEX_BIG_DRIPLEAF_STEM;
 block_definitions[ 117 ].icon_texture = TEX_BIG_DRIPLEAF_SIDE2;
 block_definitions[ 117 ].casts_shadow = false;
 block_definitions[ 117 ].hardness = 0.35f;
-block_definitions[ 117 ].icon_is_isometric = false;
 block_definitions[ 117 ].is_seethrough = true;
 block_definitions[ 117 ].no_light = 6815743;
 
@@ -1573,7 +1522,6 @@ block_definitions[ 118 ].textures[ FACE_FRONT ] = TEX_PLANKS_BIRCH;
 block_definitions[ 118 ].textures[ FACE_LEFT ] = TEX_PLANKS_BIRCH;
 block_definitions[ 118 ].textures[ FACE_BACK ] = TEX_PLANKS_BIRCH;
 block_definitions[ 118 ].icon_texture = TEX_PLANKS_BIRCH;
-block_definitions[ 118 ].icon_is_isometric = false;
 
 // BLUE_ORCHID (119)
 block_definitions[ 119 ].textures[ FACE_TOP ] = TEX_AIR;
@@ -1666,7 +1614,7 @@ block_definitions[ 124 ].textures[ FACE_RIGHT ] = TEX_LADDER;
 block_definitions[ 124 ].textures[ FACE_FRONT ] = TEX_LADDER;
 block_definitions[ 124 ].textures[ FACE_LEFT ] = TEX_LADDER;
 block_definitions[ 124 ].textures[ FACE_BACK ] = TEX_LADDER;
-block_definitions[ 124 ].icon_texture = TEX_LADDER;
+block_definitions[ 124 ].icon_texture = TEX_LADDER_TOP;
 block_definitions[ 124 ].casts_shadow = false;
 block_definitions[ 124 ].collides_with_player = false;
 block_definitions[ 124 ].hardness = 0.5f;
@@ -1686,7 +1634,6 @@ block_definitions[ 125 ].textures[ FACE_FRONT ] = TEX_PLANKS_BIRCH;
 block_definitions[ 125 ].textures[ FACE_LEFT ] = TEX_PLANKS_BIRCH;
 block_definitions[ 125 ].textures[ FACE_BACK ] = TEX_PLANKS_BIRCH;
 block_definitions[ 125 ].icon_texture = TEX_PLANKS_BIRCH;
-block_definitions[ 125 ].icon_is_isometric = false;
 
 // BIRCH_FENCE_GATE (126)
 block_definitions[ 126 ].textures[ FACE_TOP ] = TEX_PLANKS_BIRCH;
@@ -1696,7 +1643,6 @@ block_definitions[ 126 ].textures[ FACE_FRONT ] = TEX_PLANKS_BIRCH;
 block_definitions[ 126 ].textures[ FACE_LEFT ] = TEX_PLANKS_BIRCH;
 block_definitions[ 126 ].textures[ FACE_BACK ] = TEX_PLANKS_BIRCH;
 block_definitions[ 126 ].icon_texture = TEX_PLANKS_BIRCH;
-block_definitions[ 126 ].icon_is_isometric = false;
 
 // BIRCH_HANGING_SIGN (127)
 block_definitions[ 127 ].textures[ FACE_TOP ] = TEX_PLANKS_BIRCH;
@@ -1706,7 +1652,6 @@ block_definitions[ 127 ].textures[ FACE_FRONT ] = TEX_PLANKS_BIRCH;
 block_definitions[ 127 ].textures[ FACE_LEFT ] = TEX_PLANKS_BIRCH;
 block_definitions[ 127 ].textures[ FACE_BACK ] = TEX_PLANKS_BIRCH;
 block_definitions[ 127 ].icon_texture = TEX_PLANKS_BIRCH;
-block_definitions[ 127 ].icon_is_isometric = false;
 
 // BIRCH_SHELF (128)
 block_definitions[ 128 ].textures[ FACE_TOP ] = TEX_BIRCH_SHELF;
@@ -1716,7 +1661,6 @@ block_definitions[ 128 ].textures[ FACE_FRONT ] = TEX_BIRCH_SHELF;
 block_definitions[ 128 ].textures[ FACE_LEFT ] = TEX_BIRCH_SHELF;
 block_definitions[ 128 ].textures[ FACE_BACK ] = TEX_BIRCH_SHELF;
 block_definitions[ 128 ].icon_texture = TEX_BIRCH_SHELF;
-block_definitions[ 128 ].icon_is_isometric = false;
 
 // WHEAT_0 (129)
 block_definitions[ 129 ].textures[ FACE_TOP ] = TEX_AIR;
@@ -1878,7 +1822,6 @@ block_definitions[ 137 ].textures[ FACE_FRONT ] = TEX_PLANKS_BIRCH;
 block_definitions[ 137 ].textures[ FACE_LEFT ] = TEX_PLANKS_BIRCH;
 block_definitions[ 137 ].textures[ FACE_BACK ] = TEX_PLANKS_BIRCH;
 block_definitions[ 137 ].icon_texture = TEX_PLANKS_BIRCH;
-block_definitions[ 137 ].icon_is_isometric = false;
 
 // BIRCH_STANDING_SIGN (138)
 block_definitions[ 138 ].textures[ FACE_TOP ] = TEX_PLANKS_BIRCH;
@@ -1888,7 +1831,6 @@ block_definitions[ 138 ].textures[ FACE_FRONT ] = TEX_PLANKS_BIRCH;
 block_definitions[ 138 ].textures[ FACE_LEFT ] = TEX_PLANKS_BIRCH;
 block_definitions[ 138 ].textures[ FACE_BACK ] = TEX_PLANKS_BIRCH;
 block_definitions[ 138 ].icon_texture = TEX_PLANKS_BIRCH;
-block_definitions[ 138 ].icon_is_isometric = false;
 
 // BIRCH_TRAPDOOR (139)
 block_definitions[ 139 ].textures[ FACE_TOP ] = TEX_BIRCH_TRAPDOOR;
@@ -1898,7 +1840,6 @@ block_definitions[ 139 ].textures[ FACE_FRONT ] = TEX_BIRCH_TRAPDOOR;
 block_definitions[ 139 ].textures[ FACE_LEFT ] = TEX_BIRCH_TRAPDOOR;
 block_definitions[ 139 ].textures[ FACE_BACK ] = TEX_BIRCH_TRAPDOOR;
 block_definitions[ 139 ].icon_texture = TEX_BIRCH_TRAPDOOR;
-block_definitions[ 139 ].icon_is_isometric = false;
 
 // BIRCH_LEAVES (140)
 block_definitions[ 140 ].textures[ FACE_TOP ] = TEX_LEAVES_BIRCH_CARRIED;
@@ -2035,7 +1976,6 @@ block_definitions[ 148 ].textures[ FACE_FRONT ] = TEX_PLANKS_BIRCH;
 block_definitions[ 148 ].textures[ FACE_LEFT ] = TEX_PLANKS_BIRCH;
 block_definitions[ 148 ].textures[ FACE_BACK ] = TEX_PLANKS_BIRCH;
 block_definitions[ 148 ].icon_texture = TEX_PLANKS_BIRCH;
-block_definitions[ 148 ].icon_is_isometric = false;
 
 // BIRCH_WOOD (149)
 block_definitions[ 149 ].textures[ FACE_TOP ] = TEX_LOG_BIRCH;
@@ -2045,7 +1985,6 @@ block_definitions[ 149 ].textures[ FACE_FRONT ] = TEX_LOG_BIRCH;
 block_definitions[ 149 ].textures[ FACE_LEFT ] = TEX_LOG_BIRCH;
 block_definitions[ 149 ].textures[ FACE_BACK ] = TEX_LOG_BIRCH;
 block_definitions[ 149 ].icon_texture = TEX_LOG_BIRCH;
-block_definitions[ 149 ].icon_is_isometric = false;
 
 // BLACK_CANDLE (150)
 block_definitions[ 150 ].textures[ FACE_TOP ] = TEX_BLACK_CANDLE;
@@ -2057,7 +1996,6 @@ block_definitions[ 150 ].textures[ FACE_BACK ] = TEX_BLACK_CANDLE;
 block_definitions[ 150 ].icon_texture = TEX_BLACK_CANDLE;
 block_definitions[ 150 ].casts_shadow = false;
 block_definitions[ 150 ].hardness = 0.35f;
-block_definitions[ 150 ].icon_is_isometric = false;
 block_definitions[ 150 ].is_seethrough = true;
 block_definitions[ 150 ].no_light = 6815743;
 
@@ -2068,10 +2006,9 @@ block_definitions[ 151 ].textures[ FACE_RIGHT ] = TEX_CAKE_SIDE;
 block_definitions[ 151 ].textures[ FACE_FRONT ] = TEX_CAKE_SIDE;
 block_definitions[ 151 ].textures[ FACE_LEFT ] = TEX_CAKE_SIDE;
 block_definitions[ 151 ].textures[ FACE_BACK ] = TEX_CAKE_SIDE;
-block_definitions[ 151 ].icon_texture = TEX_CAKE_SIDE;
+block_definitions[ 151 ].icon_texture = TEX_CAKE_TOP;
 block_definitions[ 151 ].casts_shadow = false;
 block_definitions[ 151 ].hardness = 0.35f;
-block_definitions[ 151 ].icon_is_isometric = false;
 block_definitions[ 151 ].is_seethrough = true;
 block_definitions[ 151 ].no_light = 6815743;
 
@@ -2083,7 +2020,6 @@ block_definitions[ 152 ].textures[ FACE_FRONT ] = TEX_WOOL_COLORED_BLACK;
 block_definitions[ 152 ].textures[ FACE_LEFT ] = TEX_WOOL_COLORED_BLACK;
 block_definitions[ 152 ].textures[ FACE_BACK ] = TEX_WOOL_COLORED_BLACK;
 block_definitions[ 152 ].icon_texture = TEX_WOOL_COLORED_BLACK;
-block_definitions[ 152 ].icon_is_isometric = false;
 
 // BLACK_CONCRETE (153)
 block_definitions[ 153 ].textures[ FACE_TOP ] = TEX_CONCRETE_BLACK;
@@ -2093,7 +2029,6 @@ block_definitions[ 153 ].textures[ FACE_FRONT ] = TEX_CONCRETE_BLACK;
 block_definitions[ 153 ].textures[ FACE_LEFT ] = TEX_CONCRETE_BLACK;
 block_definitions[ 153 ].textures[ FACE_BACK ] = TEX_CONCRETE_BLACK;
 block_definitions[ 153 ].icon_texture = TEX_CONCRETE_BLACK;
-block_definitions[ 153 ].icon_is_isometric = false;
 
 // GLOWSTONE (154)
 block_definitions[ 154 ].textures[ FACE_TOP ] = TEX_GLOWSTONE;
@@ -2113,7 +2048,6 @@ block_definitions[ 155 ].textures[ FACE_FRONT ] = TEX_CONCRETE_BLACK;
 block_definitions[ 155 ].textures[ FACE_LEFT ] = TEX_CONCRETE_BLACK;
 block_definitions[ 155 ].textures[ FACE_BACK ] = TEX_CONCRETE_BLACK;
 block_definitions[ 155 ].icon_texture = TEX_CONCRETE_BLACK;
-block_definitions[ 155 ].icon_is_isometric = false;
 
 // BLACK_CONCRETE_POWDER (156)
 block_definitions[ 156 ].textures[ FACE_TOP ] = TEX_CONCRETE_POWDER_BLACK;
@@ -2123,7 +2057,6 @@ block_definitions[ 156 ].textures[ FACE_FRONT ] = TEX_CONCRETE_POWDER_BLACK;
 block_definitions[ 156 ].textures[ FACE_LEFT ] = TEX_CONCRETE_POWDER_BLACK;
 block_definitions[ 156 ].textures[ FACE_BACK ] = TEX_CONCRETE_POWDER_BLACK;
 block_definitions[ 156 ].icon_texture = TEX_CONCRETE_POWDER_BLACK;
-block_definitions[ 156 ].icon_is_isometric = false;
 
 // BLACK_CONCRETE_SLAB (157)
 block_definitions[ 157 ].textures[ FACE_TOP ] = TEX_CONCRETE_BLACK;
@@ -2133,7 +2066,6 @@ block_definitions[ 157 ].textures[ FACE_FRONT ] = TEX_CONCRETE_BLACK;
 block_definitions[ 157 ].textures[ FACE_LEFT ] = TEX_CONCRETE_BLACK;
 block_definitions[ 157 ].textures[ FACE_BACK ] = TEX_CONCRETE_BLACK;
 block_definitions[ 157 ].icon_texture = TEX_CONCRETE_BLACK;
-block_definitions[ 157 ].icon_is_isometric = false;
 
 // BLACK_CONCRETE_STAIRS (158)
 block_definitions[ 158 ].textures[ FACE_TOP ] = TEX_CONCRETE_BLACK;
@@ -2143,7 +2075,6 @@ block_definitions[ 158 ].textures[ FACE_FRONT ] = TEX_CONCRETE_BLACK;
 block_definitions[ 158 ].textures[ FACE_LEFT ] = TEX_CONCRETE_BLACK;
 block_definitions[ 158 ].textures[ FACE_BACK ] = TEX_CONCRETE_BLACK;
 block_definitions[ 158 ].icon_texture = TEX_CONCRETE_BLACK;
-block_definitions[ 158 ].icon_is_isometric = false;
 
 // BLACK_GLAZED_TERRACOTTA (159)
 block_definitions[ 159 ].textures[ FACE_TOP ] = TEX_GLAZED_TERRACOTTA_BLACK;
@@ -2153,7 +2084,6 @@ block_definitions[ 159 ].textures[ FACE_FRONT ] = TEX_GLAZED_TERRACOTTA_BLACK;
 block_definitions[ 159 ].textures[ FACE_LEFT ] = TEX_GLAZED_TERRACOTTA_BLACK;
 block_definitions[ 159 ].textures[ FACE_BACK ] = TEX_GLAZED_TERRACOTTA_BLACK;
 block_definitions[ 159 ].icon_texture = TEX_GLAZED_TERRACOTTA_BLACK;
-block_definitions[ 159 ].icon_is_isometric = false;
 
 // MELON_STEM (160)
 block_definitions[ 160 ].textures[ FACE_TOP ] = TEX_AIR;
@@ -2182,7 +2112,6 @@ block_definitions[ 161 ].textures[ FACE_FRONT ] = TEX_SHULKER_TOP_BLACK;
 block_definitions[ 161 ].textures[ FACE_LEFT ] = TEX_SHULKER_TOP_BLACK;
 block_definitions[ 161 ].textures[ FACE_BACK ] = TEX_SHULKER_TOP_BLACK;
 block_definitions[ 161 ].icon_texture = TEX_SHULKER_TOP_BLACK;
-block_definitions[ 161 ].icon_is_isometric = false;
 
 // BLACK_STAINED_GLASS_PANE (162)
 block_definitions[ 162 ].textures[ FACE_TOP ] = TEX_GLASS_BLACK;
@@ -2195,7 +2124,6 @@ block_definitions[ 162 ].icon_texture = TEX_GLASS_BLACK;
 block_definitions[ 162 ].affected_by_redstone_power = false;
 block_definitions[ 162 ].casts_shadow = false;
 block_definitions[ 162 ].hardness = 0.449999988f;
-block_definitions[ 162 ].icon_is_isometric = false;
 block_definitions[ 162 ].is_seethrough = true;
 block_definitions[ 162 ].renderOrder = RenderOrder_Translucent;
 
@@ -2207,7 +2135,6 @@ block_definitions[ 163 ].textures[ FACE_FRONT ] = TEX_HARDENED_CLAY_STAINED_BLAC
 block_definitions[ 163 ].textures[ FACE_LEFT ] = TEX_HARDENED_CLAY_STAINED_BLACK;
 block_definitions[ 163 ].textures[ FACE_BACK ] = TEX_HARDENED_CLAY_STAINED_BLACK;
 block_definitions[ 163 ].icon_texture = TEX_HARDENED_CLAY_STAINED_BLACK;
-block_definitions[ 163 ].icon_is_isometric = false;
 
 // SINGLE_CHEST_LATCH (164)
 block_definitions[ 164 ].textures[ FACE_TOP ] = TEX_CHEST_TOP;
@@ -2232,7 +2159,7 @@ block_definitions[ 165 ].textures[ FACE_RIGHT ] = TEX_CHEST_SIDE;
 block_definitions[ 165 ].textures[ FACE_FRONT ] = TEX_DOUBLE_CHEST_LEFT_LATCH;
 block_definitions[ 165 ].textures[ FACE_LEFT ] = TEX_CHEST_SIDE;
 block_definitions[ 165 ].textures[ FACE_BACK ] = TEX_DOUBLE_CHEST_LEFT_BACK;
-block_definitions[ 165 ].icon_texture = TEX_DOUBLE_CHEST_LEFT_LATCH;
+block_definitions[ 165 ].icon_texture = TEX_DOUBLE_CHEST_LEFT_TOP;
 block_definitions[ 165 ].hardness = 2.0f;
 block_definitions[ 165 ].offset = { 1, 0, 1 };
 block_definitions[ 165 ].piston_immovable = true;
@@ -2247,7 +2174,7 @@ block_definitions[ 166 ].textures[ FACE_RIGHT ] = TEX_DOUBLE_CHEST_RIGHT_SIDE;
 block_definitions[ 166 ].textures[ FACE_FRONT ] = TEX_DOUBLE_CHEST_RIGHT_LATCH;
 block_definitions[ 166 ].textures[ FACE_LEFT ] = TEX_DOUBLE_CHEST_RIGHT_SIDE;
 block_definitions[ 166 ].textures[ FACE_BACK ] = TEX_DOUBLE_CHEST_RIGHT_BACK;
-block_definitions[ 166 ].icon_texture = TEX_DOUBLE_CHEST_RIGHT_LATCH;
+block_definitions[ 166 ].icon_texture = TEX_DOUBLE_CHEST_RIGHT_TOP;
 block_definitions[ 166 ].hardness = 2.0f;
 block_definitions[ 166 ].offset = { 0, 0, 1 };
 block_definitions[ 166 ].piston_immovable = true;
@@ -2263,7 +2190,6 @@ block_definitions[ 167 ].textures[ FACE_FRONT ] = TEX_WOOL_COLORED_BLACK;
 block_definitions[ 167 ].textures[ FACE_LEFT ] = TEX_WOOL_COLORED_BLACK;
 block_definitions[ 167 ].textures[ FACE_BACK ] = TEX_WOOL_COLORED_BLACK;
 block_definitions[ 167 ].icon_texture = TEX_WOOL_COLORED_BLACK;
-block_definitions[ 167 ].icon_is_isometric = false;
 
 // BLACK_WOOL_DOUBLE_SLAB (168)
 block_definitions[ 168 ].textures[ FACE_TOP ] = TEX_WOOL_COLORED_BLACK;
@@ -2273,7 +2199,6 @@ block_definitions[ 168 ].textures[ FACE_FRONT ] = TEX_WOOL_COLORED_BLACK;
 block_definitions[ 168 ].textures[ FACE_LEFT ] = TEX_WOOL_COLORED_BLACK;
 block_definitions[ 168 ].textures[ FACE_BACK ] = TEX_WOOL_COLORED_BLACK;
 block_definitions[ 168 ].icon_texture = TEX_WOOL_COLORED_BLACK;
-block_definitions[ 168 ].icon_is_isometric = false;
 
 // BLACK_WOOL_SLAB (169)
 block_definitions[ 169 ].textures[ FACE_TOP ] = TEX_WOOL_COLORED_BLACK;
@@ -2283,7 +2208,6 @@ block_definitions[ 169 ].textures[ FACE_FRONT ] = TEX_WOOL_COLORED_BLACK;
 block_definitions[ 169 ].textures[ FACE_LEFT ] = TEX_WOOL_COLORED_BLACK;
 block_definitions[ 169 ].textures[ FACE_BACK ] = TEX_WOOL_COLORED_BLACK;
 block_definitions[ 169 ].icon_texture = TEX_WOOL_COLORED_BLACK;
-block_definitions[ 169 ].icon_is_isometric = false;
 
 // BLACK_WOOL_STAIRS (170)
 block_definitions[ 170 ].textures[ FACE_TOP ] = TEX_WOOL_COLORED_BLACK;
@@ -2293,7 +2217,6 @@ block_definitions[ 170 ].textures[ FACE_FRONT ] = TEX_WOOL_COLORED_BLACK;
 block_definitions[ 170 ].textures[ FACE_LEFT ] = TEX_WOOL_COLORED_BLACK;
 block_definitions[ 170 ].textures[ FACE_BACK ] = TEX_WOOL_COLORED_BLACK;
 block_definitions[ 170 ].icon_texture = TEX_WOOL_COLORED_BLACK;
-block_definitions[ 170 ].icon_is_isometric = false;
 
 // BLACKSTONE (171)
 block_definitions[ 171 ].textures[ FACE_TOP ] = TEX_BLACKSTONE_TOP;
@@ -2302,8 +2225,7 @@ block_definitions[ 171 ].textures[ FACE_RIGHT ] = TEX_BLACKSTONE;
 block_definitions[ 171 ].textures[ FACE_FRONT ] = TEX_BLACKSTONE;
 block_definitions[ 171 ].textures[ FACE_LEFT ] = TEX_BLACKSTONE;
 block_definitions[ 171 ].textures[ FACE_BACK ] = TEX_BLACKSTONE;
-block_definitions[ 171 ].icon_texture = TEX_BLACKSTONE;
-block_definitions[ 171 ].icon_is_isometric = false;
+block_definitions[ 171 ].icon_texture = TEX_BLACKSTONE_TOP;
 
 // UNLIT_REDSTONE_TORCH (172)
 block_definitions[ 172 ].textures[ FACE_TOP ] = TEX_REDSTONE_TORCH_OFF_TOP;
@@ -2338,7 +2260,6 @@ block_definitions[ 173 ].textures[ FACE_FRONT ] = TEX_BLACKSTONE;
 block_definitions[ 173 ].textures[ FACE_LEFT ] = TEX_BLACKSTONE;
 block_definitions[ 173 ].textures[ FACE_BACK ] = TEX_BLACKSTONE;
 block_definitions[ 173 ].icon_texture = TEX_BLACKSTONE;
-block_definitions[ 173 ].icon_is_isometric = false;
 
 // BLACKSTONE_SLAB (174)
 block_definitions[ 174 ].textures[ FACE_TOP ] = TEX_BLACKSTONE;
@@ -2348,7 +2269,6 @@ block_definitions[ 174 ].textures[ FACE_FRONT ] = TEX_BLACKSTONE;
 block_definitions[ 174 ].textures[ FACE_LEFT ] = TEX_BLACKSTONE;
 block_definitions[ 174 ].textures[ FACE_BACK ] = TEX_BLACKSTONE;
 block_definitions[ 174 ].icon_texture = TEX_BLACKSTONE;
-block_definitions[ 174 ].icon_is_isometric = false;
 
 // BLACKSTONE_STAIRS (175)
 block_definitions[ 175 ].textures[ FACE_TOP ] = TEX_BLACKSTONE;
@@ -2358,7 +2278,6 @@ block_definitions[ 175 ].textures[ FACE_FRONT ] = TEX_BLACKSTONE;
 block_definitions[ 175 ].textures[ FACE_LEFT ] = TEX_BLACKSTONE;
 block_definitions[ 175 ].textures[ FACE_BACK ] = TEX_BLACKSTONE;
 block_definitions[ 175 ].icon_texture = TEX_BLACKSTONE;
-block_definitions[ 175 ].icon_is_isometric = false;
 
 // BLACKSTONE_WALL (176)
 block_definitions[ 176 ].textures[ FACE_TOP ] = TEX_BLACKSTONE;
@@ -2368,7 +2287,6 @@ block_definitions[ 176 ].textures[ FACE_FRONT ] = TEX_BLACKSTONE;
 block_definitions[ 176 ].textures[ FACE_LEFT ] = TEX_BLACKSTONE;
 block_definitions[ 176 ].textures[ FACE_BACK ] = TEX_BLACKSTONE;
 block_definitions[ 176 ].icon_texture = TEX_BLACKSTONE;
-block_definitions[ 176 ].icon_is_isometric = false;
 
 // BLAST_FURNACE (177)
 block_definitions[ 177 ].textures[ FACE_TOP ] = TEX_BLAST_FURNACE_TOP;
@@ -2378,7 +2296,6 @@ block_definitions[ 177 ].textures[ FACE_FRONT ] = TEX_BLAST_FURNACE_FRONT_OFF;
 block_definitions[ 177 ].textures[ FACE_LEFT ] = TEX_BLAST_FURNACE_SIDE;
 block_definitions[ 177 ].textures[ FACE_BACK ] = TEX_BLAST_FURNACE_SIDE;
 block_definitions[ 177 ].icon_texture = TEX_BLAST_FURNACE_TOP;
-block_definitions[ 177 ].icon_is_isometric = false;
 
 // CAKE (178)
 block_definitions[ 178 ].textures[ FACE_TOP ] = TEX_CAKE_TOP;
@@ -2407,7 +2324,6 @@ block_definitions[ 179 ].textures[ FACE_BACK ] = TEX_BLUE_CANDLE;
 block_definitions[ 179 ].icon_texture = TEX_BLUE_CANDLE;
 block_definitions[ 179 ].casts_shadow = false;
 block_definitions[ 179 ].hardness = 0.35f;
-block_definitions[ 179 ].icon_is_isometric = false;
 block_definitions[ 179 ].is_seethrough = true;
 block_definitions[ 179 ].no_light = 6815743;
 
@@ -2418,10 +2334,9 @@ block_definitions[ 180 ].textures[ FACE_RIGHT ] = TEX_CAKE_SIDE;
 block_definitions[ 180 ].textures[ FACE_FRONT ] = TEX_CAKE_SIDE;
 block_definitions[ 180 ].textures[ FACE_LEFT ] = TEX_CAKE_SIDE;
 block_definitions[ 180 ].textures[ FACE_BACK ] = TEX_CAKE_SIDE;
-block_definitions[ 180 ].icon_texture = TEX_CAKE_SIDE;
+block_definitions[ 180 ].icon_texture = TEX_CAKE_TOP;
 block_definitions[ 180 ].casts_shadow = false;
 block_definitions[ 180 ].hardness = 0.35f;
-block_definitions[ 180 ].icon_is_isometric = false;
 block_definitions[ 180 ].is_seethrough = true;
 block_definitions[ 180 ].no_light = 6815743;
 
@@ -2433,7 +2348,6 @@ block_definitions[ 181 ].textures[ FACE_FRONT ] = TEX_WOOL_COLORED_BLUE;
 block_definitions[ 181 ].textures[ FACE_LEFT ] = TEX_WOOL_COLORED_BLUE;
 block_definitions[ 181 ].textures[ FACE_BACK ] = TEX_WOOL_COLORED_BLUE;
 block_definitions[ 181 ].icon_texture = TEX_WOOL_COLORED_BLUE;
-block_definitions[ 181 ].icon_is_isometric = false;
 
 // BLUE_CONCRETE (182)
 block_definitions[ 182 ].textures[ FACE_TOP ] = TEX_CONCRETE_BLUE;
@@ -2443,7 +2357,6 @@ block_definitions[ 182 ].textures[ FACE_FRONT ] = TEX_CONCRETE_BLUE;
 block_definitions[ 182 ].textures[ FACE_LEFT ] = TEX_CONCRETE_BLUE;
 block_definitions[ 182 ].textures[ FACE_BACK ] = TEX_CONCRETE_BLUE;
 block_definitions[ 182 ].icon_texture = TEX_CONCRETE_BLUE;
-block_definitions[ 182 ].icon_is_isometric = false;
 
 // BLUE_CONCRETE_DOUBLE_SLAB (183)
 block_definitions[ 183 ].textures[ FACE_TOP ] = TEX_CONCRETE_BLUE;
@@ -2453,7 +2366,6 @@ block_definitions[ 183 ].textures[ FACE_FRONT ] = TEX_CONCRETE_BLUE;
 block_definitions[ 183 ].textures[ FACE_LEFT ] = TEX_CONCRETE_BLUE;
 block_definitions[ 183 ].textures[ FACE_BACK ] = TEX_CONCRETE_BLUE;
 block_definitions[ 183 ].icon_texture = TEX_CONCRETE_BLUE;
-block_definitions[ 183 ].icon_is_isometric = false;
 
 // BLUE_CONCRETE_POWDER (184)
 block_definitions[ 184 ].textures[ FACE_TOP ] = TEX_CONCRETE_POWDER_BLUE;
@@ -2463,7 +2375,6 @@ block_definitions[ 184 ].textures[ FACE_FRONT ] = TEX_CONCRETE_POWDER_BLUE;
 block_definitions[ 184 ].textures[ FACE_LEFT ] = TEX_CONCRETE_POWDER_BLUE;
 block_definitions[ 184 ].textures[ FACE_BACK ] = TEX_CONCRETE_POWDER_BLUE;
 block_definitions[ 184 ].icon_texture = TEX_CONCRETE_POWDER_BLUE;
-block_definitions[ 184 ].icon_is_isometric = false;
 
 // BLUE_CONCRETE_SLAB (185)
 block_definitions[ 185 ].textures[ FACE_TOP ] = TEX_CONCRETE_BLUE;
@@ -2473,7 +2384,6 @@ block_definitions[ 185 ].textures[ FACE_FRONT ] = TEX_CONCRETE_BLUE;
 block_definitions[ 185 ].textures[ FACE_LEFT ] = TEX_CONCRETE_BLUE;
 block_definitions[ 185 ].textures[ FACE_BACK ] = TEX_CONCRETE_BLUE;
 block_definitions[ 185 ].icon_texture = TEX_CONCRETE_BLUE;
-block_definitions[ 185 ].icon_is_isometric = false;
 
 // BLUE_CONCRETE_STAIRS (186)
 block_definitions[ 186 ].textures[ FACE_TOP ] = TEX_CONCRETE_BLUE;
@@ -2483,7 +2393,6 @@ block_definitions[ 186 ].textures[ FACE_FRONT ] = TEX_CONCRETE_BLUE;
 block_definitions[ 186 ].textures[ FACE_LEFT ] = TEX_CONCRETE_BLUE;
 block_definitions[ 186 ].textures[ FACE_BACK ] = TEX_CONCRETE_BLUE;
 block_definitions[ 186 ].icon_texture = TEX_CONCRETE_BLUE;
-block_definitions[ 186 ].icon_is_isometric = false;
 
 // BLUE_GLAZED_TERRACOTTA (187)
 block_definitions[ 187 ].textures[ FACE_TOP ] = TEX_GLAZED_TERRACOTTA_BLUE;
@@ -2493,7 +2402,6 @@ block_definitions[ 187 ].textures[ FACE_FRONT ] = TEX_GLAZED_TERRACOTTA_BLUE;
 block_definitions[ 187 ].textures[ FACE_LEFT ] = TEX_GLAZED_TERRACOTTA_BLUE;
 block_definitions[ 187 ].textures[ FACE_BACK ] = TEX_GLAZED_TERRACOTTA_BLUE;
 block_definitions[ 187 ].icon_texture = TEX_GLAZED_TERRACOTTA_BLUE;
-block_definitions[ 187 ].icon_is_isometric = false;
 
 // BLUE_ICE (188)
 block_definitions[ 188 ].textures[ FACE_TOP ] = TEX_BLUE_ICE;
@@ -2503,7 +2411,6 @@ block_definitions[ 188 ].textures[ FACE_FRONT ] = TEX_BLUE_ICE;
 block_definitions[ 188 ].textures[ FACE_LEFT ] = TEX_BLUE_ICE;
 block_definitions[ 188 ].textures[ FACE_BACK ] = TEX_BLUE_ICE;
 block_definitions[ 188 ].icon_texture = TEX_BLUE_ICE;
-block_definitions[ 188 ].icon_is_isometric = false;
 
 // BLUE_SHULKER_BOX (189)
 block_definitions[ 189 ].textures[ FACE_TOP ] = TEX_SHULKER_TOP_BLUE;
@@ -2513,7 +2420,6 @@ block_definitions[ 189 ].textures[ FACE_FRONT ] = TEX_SHULKER_TOP_BLUE;
 block_definitions[ 189 ].textures[ FACE_LEFT ] = TEX_SHULKER_TOP_BLUE;
 block_definitions[ 189 ].textures[ FACE_BACK ] = TEX_SHULKER_TOP_BLUE;
 block_definitions[ 189 ].icon_texture = TEX_SHULKER_TOP_BLUE;
-block_definitions[ 189 ].icon_is_isometric = false;
 
 // BLUE_STAINED_GLASS_PANE (190)
 block_definitions[ 190 ].textures[ FACE_TOP ] = TEX_GLASS_BLUE;
@@ -2526,7 +2432,6 @@ block_definitions[ 190 ].icon_texture = TEX_GLASS_BLUE;
 block_definitions[ 190 ].affected_by_redstone_power = false;
 block_definitions[ 190 ].casts_shadow = false;
 block_definitions[ 190 ].hardness = 0.449999988f;
-block_definitions[ 190 ].icon_is_isometric = false;
 block_definitions[ 190 ].is_seethrough = true;
 block_definitions[ 190 ].renderOrder = RenderOrder_Translucent;
 
@@ -2538,7 +2443,6 @@ block_definitions[ 191 ].textures[ FACE_FRONT ] = TEX_HARDENED_CLAY_STAINED_BLUE
 block_definitions[ 191 ].textures[ FACE_LEFT ] = TEX_HARDENED_CLAY_STAINED_BLUE;
 block_definitions[ 191 ].textures[ FACE_BACK ] = TEX_HARDENED_CLAY_STAINED_BLUE;
 block_definitions[ 191 ].icon_texture = TEX_HARDENED_CLAY_STAINED_BLUE;
-block_definitions[ 191 ].icon_is_isometric = false;
 
 // REDSTONE_WIRE_T_F_POWERED (192)
 block_definitions[ 192 ].textures[ FACE_TOP ] = TEX_REDSTONE_WIRE_T_F_POWERED;
@@ -2558,7 +2462,6 @@ block_definitions[ 193 ].textures[ FACE_FRONT ] = TEX_WOOL_COLORED_BLUE;
 block_definitions[ 193 ].textures[ FACE_LEFT ] = TEX_WOOL_COLORED_BLUE;
 block_definitions[ 193 ].textures[ FACE_BACK ] = TEX_WOOL_COLORED_BLUE;
 block_definitions[ 193 ].icon_texture = TEX_WOOL_COLORED_BLUE;
-block_definitions[ 193 ].icon_is_isometric = false;
 
 // BLUE_WOOL_DOUBLE_SLAB (194)
 block_definitions[ 194 ].textures[ FACE_TOP ] = TEX_WOOL_COLORED_BLUE;
@@ -2568,7 +2471,6 @@ block_definitions[ 194 ].textures[ FACE_FRONT ] = TEX_WOOL_COLORED_BLUE;
 block_definitions[ 194 ].textures[ FACE_LEFT ] = TEX_WOOL_COLORED_BLUE;
 block_definitions[ 194 ].textures[ FACE_BACK ] = TEX_WOOL_COLORED_BLUE;
 block_definitions[ 194 ].icon_texture = TEX_WOOL_COLORED_BLUE;
-block_definitions[ 194 ].icon_is_isometric = false;
 
 // BLUE_WOOL_SLAB (195)
 block_definitions[ 195 ].textures[ FACE_TOP ] = TEX_WOOL_COLORED_BLUE;
@@ -2578,7 +2480,6 @@ block_definitions[ 195 ].textures[ FACE_FRONT ] = TEX_WOOL_COLORED_BLUE;
 block_definitions[ 195 ].textures[ FACE_LEFT ] = TEX_WOOL_COLORED_BLUE;
 block_definitions[ 195 ].textures[ FACE_BACK ] = TEX_WOOL_COLORED_BLUE;
 block_definitions[ 195 ].icon_texture = TEX_WOOL_COLORED_BLUE;
-block_definitions[ 195 ].icon_is_isometric = false;
 
 // BLUE_WOOL_STAIRS (196)
 block_definitions[ 196 ].textures[ FACE_TOP ] = TEX_WOOL_COLORED_BLUE;
@@ -2588,7 +2489,6 @@ block_definitions[ 196 ].textures[ FACE_FRONT ] = TEX_WOOL_COLORED_BLUE;
 block_definitions[ 196 ].textures[ FACE_LEFT ] = TEX_WOOL_COLORED_BLUE;
 block_definitions[ 196 ].textures[ FACE_BACK ] = TEX_WOOL_COLORED_BLUE;
 block_definitions[ 196 ].icon_texture = TEX_WOOL_COLORED_BLUE;
-block_definitions[ 196 ].icon_is_isometric = false;
 
 // SPRUCE_LEAVES (197)
 block_definitions[ 197 ].textures[ FACE_TOP ] = TEX_LEAVES_SPRUCE_CARRIED;
@@ -2612,8 +2512,7 @@ block_definitions[ 198 ].textures[ FACE_RIGHT ] = TEX_BONE_BLOCK_SIDE;
 block_definitions[ 198 ].textures[ FACE_FRONT ] = TEX_BONE_BLOCK_SIDE;
 block_definitions[ 198 ].textures[ FACE_LEFT ] = TEX_BONE_BLOCK_SIDE;
 block_definitions[ 198 ].textures[ FACE_BACK ] = TEX_BONE_BLOCK_SIDE;
-block_definitions[ 198 ].icon_texture = TEX_BONE_BLOCK_SIDE;
-block_definitions[ 198 ].icon_is_isometric = false;
+block_definitions[ 198 ].icon_texture = TEX_BONE_BLOCK_TOP;
 
 // BRAIN_CORAL (199)
 block_definitions[ 199 ].textures[ FACE_TOP ] = TEX_AIR;
@@ -2645,7 +2544,6 @@ block_definitions[ 200 ].textures[ FACE_FRONT ] = TEX_CORAL_PINK;
 block_definitions[ 200 ].textures[ FACE_LEFT ] = TEX_CORAL_PINK;
 block_definitions[ 200 ].textures[ FACE_BACK ] = TEX_CORAL_PINK;
 block_definitions[ 200 ].icon_texture = TEX_CORAL_PINK;
-block_definitions[ 200 ].icon_is_isometric = false;
 
 // BRAIN_CORAL_FAN (201)
 block_definitions[ 201 ].textures[ FACE_TOP ] = TEX_AIR;
@@ -2679,7 +2577,6 @@ block_definitions[ 202 ].textures[ FACE_BACK ] = TEX_CORAL_FAN_PINK;
 block_definitions[ 202 ].icon_texture = TEX_CORAL_FAN_PINK;
 block_definitions[ 202 ].casts_shadow = false;
 block_definitions[ 202 ].hardness = 0.35f;
-block_definitions[ 202 ].icon_is_isometric = false;
 block_definitions[ 202 ].is_seethrough = true;
 block_definitions[ 202 ].no_light = 6815743;
 
@@ -2694,7 +2591,6 @@ block_definitions[ 203 ].icon_texture = TEX_BREWING_STAND;
 block_definitions[ 203 ].casts_shadow = false;
 block_definitions[ 203 ].emits_light = 1;
 block_definitions[ 203 ].hardness = 0.35f;
-block_definitions[ 203 ].icon_is_isometric = false;
 block_definitions[ 203 ].is_seethrough = true;
 block_definitions[ 203 ].no_light = 6815743;
 
@@ -2706,7 +2602,6 @@ block_definitions[ 204 ].textures[ FACE_FRONT ] = TEX_BRICK;
 block_definitions[ 204 ].textures[ FACE_LEFT ] = TEX_BRICK;
 block_definitions[ 204 ].textures[ FACE_BACK ] = TEX_BRICK;
 block_definitions[ 204 ].icon_texture = TEX_BRICK;
-block_definitions[ 204 ].icon_is_isometric = false;
 
 // BRICK_STAIRS (205)
 block_definitions[ 205 ].textures[ FACE_TOP ] = TEX_BRICK;
@@ -2716,7 +2611,6 @@ block_definitions[ 205 ].textures[ FACE_FRONT ] = TEX_BRICK;
 block_definitions[ 205 ].textures[ FACE_LEFT ] = TEX_BRICK;
 block_definitions[ 205 ].textures[ FACE_BACK ] = TEX_BRICK;
 block_definitions[ 205 ].icon_texture = TEX_BRICK;
-block_definitions[ 205 ].icon_is_isometric = false;
 
 // BRICK_WALL (206)
 block_definitions[ 206 ].textures[ FACE_TOP ] = TEX_BRICK;
@@ -2726,7 +2620,6 @@ block_definitions[ 206 ].textures[ FACE_FRONT ] = TEX_BRICK;
 block_definitions[ 206 ].textures[ FACE_LEFT ] = TEX_BRICK;
 block_definitions[ 206 ].textures[ FACE_BACK ] = TEX_BRICK;
 block_definitions[ 206 ].icon_texture = TEX_BRICK;
-block_definitions[ 206 ].icon_is_isometric = false;
 
 // BROWN_CANDLE (207)
 block_definitions[ 207 ].textures[ FACE_TOP ] = TEX_BROWN_CANDLE;
@@ -2738,7 +2631,6 @@ block_definitions[ 207 ].textures[ FACE_BACK ] = TEX_BROWN_CANDLE;
 block_definitions[ 207 ].icon_texture = TEX_BROWN_CANDLE;
 block_definitions[ 207 ].casts_shadow = false;
 block_definitions[ 207 ].hardness = 0.35f;
-block_definitions[ 207 ].icon_is_isometric = false;
 block_definitions[ 207 ].is_seethrough = true;
 block_definitions[ 207 ].no_light = 6815743;
 
@@ -2749,10 +2641,9 @@ block_definitions[ 208 ].textures[ FACE_RIGHT ] = TEX_CAKE_SIDE;
 block_definitions[ 208 ].textures[ FACE_FRONT ] = TEX_CAKE_SIDE;
 block_definitions[ 208 ].textures[ FACE_LEFT ] = TEX_CAKE_SIDE;
 block_definitions[ 208 ].textures[ FACE_BACK ] = TEX_CAKE_SIDE;
-block_definitions[ 208 ].icon_texture = TEX_CAKE_SIDE;
+block_definitions[ 208 ].icon_texture = TEX_CAKE_TOP;
 block_definitions[ 208 ].casts_shadow = false;
 block_definitions[ 208 ].hardness = 0.35f;
-block_definitions[ 208 ].icon_is_isometric = false;
 block_definitions[ 208 ].is_seethrough = true;
 block_definitions[ 208 ].no_light = 6815743;
 
@@ -2764,7 +2655,6 @@ block_definitions[ 209 ].textures[ FACE_FRONT ] = TEX_WOOL_COLORED_BROWN;
 block_definitions[ 209 ].textures[ FACE_LEFT ] = TEX_WOOL_COLORED_BROWN;
 block_definitions[ 209 ].textures[ FACE_BACK ] = TEX_WOOL_COLORED_BROWN;
 block_definitions[ 209 ].icon_texture = TEX_WOOL_COLORED_BROWN;
-block_definitions[ 209 ].icon_is_isometric = false;
 
 // BROWN_CONCRETE (210)
 block_definitions[ 210 ].textures[ FACE_TOP ] = TEX_CONCRETE_BROWN;
@@ -2774,7 +2664,6 @@ block_definitions[ 210 ].textures[ FACE_FRONT ] = TEX_CONCRETE_BROWN;
 block_definitions[ 210 ].textures[ FACE_LEFT ] = TEX_CONCRETE_BROWN;
 block_definitions[ 210 ].textures[ FACE_BACK ] = TEX_CONCRETE_BROWN;
 block_definitions[ 210 ].icon_texture = TEX_CONCRETE_BROWN;
-block_definitions[ 210 ].icon_is_isometric = false;
 
 // BROWN_CONCRETE_DOUBLE_SLAB (211)
 block_definitions[ 211 ].textures[ FACE_TOP ] = TEX_CONCRETE_BROWN;
@@ -2784,7 +2673,6 @@ block_definitions[ 211 ].textures[ FACE_FRONT ] = TEX_CONCRETE_BROWN;
 block_definitions[ 211 ].textures[ FACE_LEFT ] = TEX_CONCRETE_BROWN;
 block_definitions[ 211 ].textures[ FACE_BACK ] = TEX_CONCRETE_BROWN;
 block_definitions[ 211 ].icon_texture = TEX_CONCRETE_BROWN;
-block_definitions[ 211 ].icon_is_isometric = false;
 
 // BROWN_CONCRETE_POWDER (212)
 block_definitions[ 212 ].textures[ FACE_TOP ] = TEX_CONCRETE_POWDER_BROWN;
@@ -2794,7 +2682,6 @@ block_definitions[ 212 ].textures[ FACE_FRONT ] = TEX_CONCRETE_POWDER_BROWN;
 block_definitions[ 212 ].textures[ FACE_LEFT ] = TEX_CONCRETE_POWDER_BROWN;
 block_definitions[ 212 ].textures[ FACE_BACK ] = TEX_CONCRETE_POWDER_BROWN;
 block_definitions[ 212 ].icon_texture = TEX_CONCRETE_POWDER_BROWN;
-block_definitions[ 212 ].icon_is_isometric = false;
 
 // BROWN_CONCRETE_SLAB (213)
 block_definitions[ 213 ].textures[ FACE_TOP ] = TEX_CONCRETE_BROWN;
@@ -2804,7 +2691,6 @@ block_definitions[ 213 ].textures[ FACE_FRONT ] = TEX_CONCRETE_BROWN;
 block_definitions[ 213 ].textures[ FACE_LEFT ] = TEX_CONCRETE_BROWN;
 block_definitions[ 213 ].textures[ FACE_BACK ] = TEX_CONCRETE_BROWN;
 block_definitions[ 213 ].icon_texture = TEX_CONCRETE_BROWN;
-block_definitions[ 213 ].icon_is_isometric = false;
 
 // BROWN_CONCRETE_STAIRS (214)
 block_definitions[ 214 ].textures[ FACE_TOP ] = TEX_CONCRETE_BROWN;
@@ -2814,7 +2700,6 @@ block_definitions[ 214 ].textures[ FACE_FRONT ] = TEX_CONCRETE_BROWN;
 block_definitions[ 214 ].textures[ FACE_LEFT ] = TEX_CONCRETE_BROWN;
 block_definitions[ 214 ].textures[ FACE_BACK ] = TEX_CONCRETE_BROWN;
 block_definitions[ 214 ].icon_texture = TEX_CONCRETE_BROWN;
-block_definitions[ 214 ].icon_is_isometric = false;
 
 // BROWN_GLAZED_TERRACOTTA (215)
 block_definitions[ 215 ].textures[ FACE_TOP ] = TEX_GLAZED_TERRACOTTA_BROWN;
@@ -2824,7 +2709,6 @@ block_definitions[ 215 ].textures[ FACE_FRONT ] = TEX_GLAZED_TERRACOTTA_BROWN;
 block_definitions[ 215 ].textures[ FACE_LEFT ] = TEX_GLAZED_TERRACOTTA_BROWN;
 block_definitions[ 215 ].textures[ FACE_BACK ] = TEX_GLAZED_TERRACOTTA_BROWN;
 block_definitions[ 215 ].icon_texture = TEX_GLAZED_TERRACOTTA_BROWN;
-block_definitions[ 215 ].icon_is_isometric = false;
 
 // RED_FLOWER_IN_POT (216)
 block_definitions[ 216 ].textures[ FACE_TOP ] = TEX_AIR;
@@ -2833,7 +2717,7 @@ block_definitions[ 216 ].textures[ FACE_RIGHT ] = TEX_RED_FLOWER_IN_POT;
 block_definitions[ 216 ].textures[ FACE_FRONT ] = TEX_RED_FLOWER_IN_POT;
 block_definitions[ 216 ].textures[ FACE_LEFT ] = TEX_RED_FLOWER_IN_POT;
 block_definitions[ 216 ].textures[ FACE_BACK ] = TEX_RED_FLOWER_IN_POT;
-block_definitions[ 216 ].icon_texture = TEX_RED_FLOWER_IN_POT;
+block_definitions[ 216 ].icon_texture = TEX_AIR;
 block_definitions[ 216 ].affected_by_redstone_power = false;
 block_definitions[ 216 ].breaks_in_liquid = true;
 block_definitions[ 216 ].casts_shadow = false;
@@ -2856,7 +2740,6 @@ block_definitions[ 217 ].textures[ FACE_FRONT ] = TEX_MUSHROOM_BLOCK_INSIDE;
 block_definitions[ 217 ].textures[ FACE_LEFT ] = TEX_MUSHROOM_BLOCK_INSIDE;
 block_definitions[ 217 ].textures[ FACE_BACK ] = TEX_MUSHROOM_BLOCK_INSIDE;
 block_definitions[ 217 ].icon_texture = TEX_MUSHROOM_BLOCK_INSIDE;
-block_definitions[ 217 ].icon_is_isometric = false;
 
 // BROWN_SHULKER_BOX (218)
 block_definitions[ 218 ].textures[ FACE_TOP ] = TEX_SHULKER_TOP_BROWN;
@@ -2866,7 +2749,6 @@ block_definitions[ 218 ].textures[ FACE_FRONT ] = TEX_SHULKER_TOP_BROWN;
 block_definitions[ 218 ].textures[ FACE_LEFT ] = TEX_SHULKER_TOP_BROWN;
 block_definitions[ 218 ].textures[ FACE_BACK ] = TEX_SHULKER_TOP_BROWN;
 block_definitions[ 218 ].icon_texture = TEX_SHULKER_TOP_BROWN;
-block_definitions[ 218 ].icon_is_isometric = false;
 
 // BROWN_STAINED_GLASS_PANE (219)
 block_definitions[ 219 ].textures[ FACE_TOP ] = TEX_GLASS_BROWN;
@@ -2879,7 +2761,6 @@ block_definitions[ 219 ].icon_texture = TEX_GLASS_BROWN;
 block_definitions[ 219 ].affected_by_redstone_power = false;
 block_definitions[ 219 ].casts_shadow = false;
 block_definitions[ 219 ].hardness = 0.449999988f;
-block_definitions[ 219 ].icon_is_isometric = false;
 block_definitions[ 219 ].is_seethrough = true;
 block_definitions[ 219 ].renderOrder = RenderOrder_Translucent;
 
@@ -2891,7 +2772,6 @@ block_definitions[ 220 ].textures[ FACE_FRONT ] = TEX_HARDENED_CLAY_STAINED_BROW
 block_definitions[ 220 ].textures[ FACE_LEFT ] = TEX_HARDENED_CLAY_STAINED_BROWN;
 block_definitions[ 220 ].textures[ FACE_BACK ] = TEX_HARDENED_CLAY_STAINED_BROWN;
 block_definitions[ 220 ].icon_texture = TEX_HARDENED_CLAY_STAINED_BROWN;
-block_definitions[ 220 ].icon_is_isometric = false;
 
 // GLASS_PANE (221)
 block_definitions[ 221 ].textures[ FACE_TOP ] = TEX_GLASS_PANE_TOP;
@@ -2918,7 +2798,6 @@ block_definitions[ 222 ].textures[ FACE_FRONT ] = TEX_WOOL_COLORED_BROWN;
 block_definitions[ 222 ].textures[ FACE_LEFT ] = TEX_WOOL_COLORED_BROWN;
 block_definitions[ 222 ].textures[ FACE_BACK ] = TEX_WOOL_COLORED_BROWN;
 block_definitions[ 222 ].icon_texture = TEX_WOOL_COLORED_BROWN;
-block_definitions[ 222 ].icon_is_isometric = false;
 
 // BROWN_WOOL_DOUBLE_SLAB (223)
 block_definitions[ 223 ].textures[ FACE_TOP ] = TEX_WOOL_COLORED_BROWN;
@@ -2928,7 +2807,6 @@ block_definitions[ 223 ].textures[ FACE_FRONT ] = TEX_WOOL_COLORED_BROWN;
 block_definitions[ 223 ].textures[ FACE_LEFT ] = TEX_WOOL_COLORED_BROWN;
 block_definitions[ 223 ].textures[ FACE_BACK ] = TEX_WOOL_COLORED_BROWN;
 block_definitions[ 223 ].icon_texture = TEX_WOOL_COLORED_BROWN;
-block_definitions[ 223 ].icon_is_isometric = false;
 
 // BROWN_WOOL_SLAB (224)
 block_definitions[ 224 ].textures[ FACE_TOP ] = TEX_WOOL_COLORED_BROWN;
@@ -2938,7 +2816,6 @@ block_definitions[ 224 ].textures[ FACE_FRONT ] = TEX_WOOL_COLORED_BROWN;
 block_definitions[ 224 ].textures[ FACE_LEFT ] = TEX_WOOL_COLORED_BROWN;
 block_definitions[ 224 ].textures[ FACE_BACK ] = TEX_WOOL_COLORED_BROWN;
 block_definitions[ 224 ].icon_texture = TEX_WOOL_COLORED_BROWN;
-block_definitions[ 224 ].icon_is_isometric = false;
 
 // BROWN_WOOL_STAIRS (225)
 block_definitions[ 225 ].textures[ FACE_TOP ] = TEX_WOOL_COLORED_BROWN;
@@ -2948,7 +2825,6 @@ block_definitions[ 225 ].textures[ FACE_FRONT ] = TEX_WOOL_COLORED_BROWN;
 block_definitions[ 225 ].textures[ FACE_LEFT ] = TEX_WOOL_COLORED_BROWN;
 block_definitions[ 225 ].textures[ FACE_BACK ] = TEX_WOOL_COLORED_BROWN;
 block_definitions[ 225 ].icon_texture = TEX_WOOL_COLORED_BROWN;
-block_definitions[ 225 ].icon_is_isometric = false;
 
 // BUBBLE_COLUMN (226)
 block_definitions[ 226 ].textures[ FACE_TOP ] = TEX_BUBBLE_COLUMN_UP_TOP_A;
@@ -2960,7 +2836,6 @@ block_definitions[ 226 ].textures[ FACE_BACK ] = TEX_BUBBLE_COLUMN_OUTER_A;
 block_definitions[ 226 ].icon_texture = TEX_BUBBLE_COLUMN_UP_TOP_A;
 block_definitions[ 226 ].casts_shadow = false;
 block_definitions[ 226 ].hardness = 0.35f;
-block_definitions[ 226 ].icon_is_isometric = false;
 block_definitions[ 226 ].is_seethrough = true;
 block_definitions[ 226 ].no_light = 6815743;
 
@@ -2972,7 +2847,6 @@ block_definitions[ 227 ].textures[ FACE_FRONT ] = TEX_CORAL_PURPLE;
 block_definitions[ 227 ].textures[ FACE_LEFT ] = TEX_CORAL_PURPLE;
 block_definitions[ 227 ].textures[ FACE_BACK ] = TEX_CORAL_PURPLE;
 block_definitions[ 227 ].icon_texture = TEX_CORAL_PURPLE;
-block_definitions[ 227 ].icon_is_isometric = false;
 
 // BUBBLE_CORAL_WALL_FAN (228)
 block_definitions[ 228 ].textures[ FACE_TOP ] = TEX_CORAL_FAN_PURPLE;
@@ -2984,7 +2858,6 @@ block_definitions[ 228 ].textures[ FACE_BACK ] = TEX_CORAL_FAN_PURPLE;
 block_definitions[ 228 ].icon_texture = TEX_CORAL_FAN_PURPLE;
 block_definitions[ 228 ].casts_shadow = false;
 block_definitions[ 228 ].hardness = 0.35f;
-block_definitions[ 228 ].icon_is_isometric = false;
 block_definitions[ 228 ].is_seethrough = true;
 block_definitions[ 228 ].no_light = 6815743;
 
@@ -2996,7 +2869,6 @@ block_definitions[ 229 ].textures[ FACE_FRONT ] = TEX_BUDDING_AMETHYST;
 block_definitions[ 229 ].textures[ FACE_LEFT ] = TEX_BUDDING_AMETHYST;
 block_definitions[ 229 ].textures[ FACE_BACK ] = TEX_BUDDING_AMETHYST;
 block_definitions[ 229 ].icon_texture = TEX_BUDDING_AMETHYST;
-block_definitions[ 229 ].icon_is_isometric = false;
 
 // BUSH (230)
 block_definitions[ 230 ].textures[ FACE_TOP ] = TEX_AIR;
@@ -3027,10 +2899,9 @@ block_definitions[ 231 ].textures[ FACE_RIGHT ] = TEX_CACTUS_SIDE;
 block_definitions[ 231 ].textures[ FACE_FRONT ] = TEX_CACTUS_SIDE;
 block_definitions[ 231 ].textures[ FACE_LEFT ] = TEX_CACTUS_SIDE;
 block_definitions[ 231 ].textures[ FACE_BACK ] = TEX_CACTUS_SIDE;
-block_definitions[ 231 ].icon_texture = TEX_CACTUS_SIDE;
+block_definitions[ 231 ].icon_texture = TEX_CACTUS_TOP;
 block_definitions[ 231 ].casts_shadow = false;
 block_definitions[ 231 ].hardness = 0.35f;
-block_definitions[ 231 ].icon_is_isometric = false;
 block_definitions[ 231 ].is_seethrough = true;
 block_definitions[ 231 ].no_light = 6815743;
 
@@ -3154,7 +3025,6 @@ block_definitions[ 239 ].textures[ FACE_FRONT ] = TEX_CALCITE;
 block_definitions[ 239 ].textures[ FACE_LEFT ] = TEX_CALCITE;
 block_definitions[ 239 ].textures[ FACE_BACK ] = TEX_CALCITE;
 block_definitions[ 239 ].icon_texture = TEX_CALCITE;
-block_definitions[ 239 ].icon_is_isometric = false;
 
 // CALIBRATED_SCULK_SENSOR (240)
 block_definitions[ 240 ].textures[ FACE_TOP ] = TEX_SCULK_SENSOR_TENDRIL_INACTIVE;
@@ -3166,7 +3036,6 @@ block_definitions[ 240 ].textures[ FACE_BACK ] = TEX_SCULK_SENSOR_TENDRIL_ACTIVE
 block_definitions[ 240 ].icon_texture = TEX_SCULK_SENSOR_TENDRIL_INACTIVE;
 block_definitions[ 240 ].casts_shadow = false;
 block_definitions[ 240 ].hardness = 0.35f;
-block_definitions[ 240 ].icon_is_isometric = false;
 block_definitions[ 240 ].is_seethrough = true;
 block_definitions[ 240 ].no_light = 6815743;
 
@@ -3177,11 +3046,10 @@ block_definitions[ 241 ].textures[ FACE_RIGHT ] = TEX_CAMPFIRE_LOG_LIT;
 block_definitions[ 241 ].textures[ FACE_FRONT ] = TEX_CAMPFIRE_LOG_LIT;
 block_definitions[ 241 ].textures[ FACE_LEFT ] = TEX_CAMPFIRE_LOG_LIT;
 block_definitions[ 241 ].textures[ FACE_BACK ] = TEX_CAMPFIRE_LOG_LIT;
-block_definitions[ 241 ].icon_texture = TEX_CAMPFIRE_LOG_LIT;
+block_definitions[ 241 ].icon_texture = TEX_CAMPFIRE;
 block_definitions[ 241 ].casts_shadow = false;
 block_definitions[ 241 ].emits_light = 15;
 block_definitions[ 241 ].hardness = 0.35f;
-block_definitions[ 241 ].icon_is_isometric = false;
 block_definitions[ 241 ].is_seethrough = true;
 block_definitions[ 241 ].no_light = 6815743;
 
@@ -3195,7 +3063,6 @@ block_definitions[ 242 ].textures[ FACE_BACK ] = TEX_CANDLE;
 block_definitions[ 242 ].icon_texture = TEX_CANDLE;
 block_definitions[ 242 ].casts_shadow = false;
 block_definitions[ 242 ].hardness = 0.35f;
-block_definitions[ 242 ].icon_is_isometric = false;
 block_definitions[ 242 ].is_seethrough = true;
 block_definitions[ 242 ].no_light = 6815743;
 
@@ -3206,10 +3073,9 @@ block_definitions[ 243 ].textures[ FACE_RIGHT ] = TEX_CAKE_SIDE;
 block_definitions[ 243 ].textures[ FACE_FRONT ] = TEX_CAKE_SIDE;
 block_definitions[ 243 ].textures[ FACE_LEFT ] = TEX_CAKE_SIDE;
 block_definitions[ 243 ].textures[ FACE_BACK ] = TEX_CAKE_SIDE;
-block_definitions[ 243 ].icon_texture = TEX_CAKE_SIDE;
+block_definitions[ 243 ].icon_texture = TEX_CAKE_TOP;
 block_definitions[ 243 ].casts_shadow = false;
 block_definitions[ 243 ].hardness = 0.35f;
-block_definitions[ 243 ].icon_is_isometric = false;
 block_definitions[ 243 ].is_seethrough = true;
 block_definitions[ 243 ].no_light = 6815743;
 
@@ -3221,7 +3087,6 @@ block_definitions[ 244 ].textures[ FACE_FRONT ] = TEX_WOOL_COLORED_WHITE;
 block_definitions[ 244 ].textures[ FACE_LEFT ] = TEX_WOOL_COLORED_WHITE;
 block_definitions[ 244 ].textures[ FACE_BACK ] = TEX_WOOL_COLORED_WHITE;
 block_definitions[ 244 ].icon_texture = TEX_WOOL_COLORED_WHITE;
-block_definitions[ 244 ].icon_is_isometric = false;
 
 // CARTOGRAPHY_TABLE (245)
 block_definitions[ 245 ].textures[ FACE_TOP ] = TEX_CARTOGRAPHY_TABLE_TOP;
@@ -3231,7 +3096,6 @@ block_definitions[ 245 ].textures[ FACE_FRONT ] = TEX_CARTOGRAPHY_TABLE_SIDE1;
 block_definitions[ 245 ].textures[ FACE_LEFT ] = TEX_CARTOGRAPHY_TABLE_SIDE2;
 block_definitions[ 245 ].textures[ FACE_BACK ] = TEX_CARTOGRAPHY_TABLE_SIDE3;
 block_definitions[ 245 ].icon_texture = TEX_CARTOGRAPHY_TABLE_TOP;
-block_definitions[ 245 ].icon_is_isometric = false;
 
 // REDSTONE_WIRE_L_Q1_POWERED (246)
 block_definitions[ 246 ].textures[ FACE_TOP ] = TEX_REDSTONE_WIRE_L_Q1_POWERED;
@@ -3251,7 +3115,6 @@ block_definitions[ 247 ].textures[ FACE_FRONT ] = TEX_PUMPKIN_FACE_OFF;
 block_definitions[ 247 ].textures[ FACE_LEFT ] = TEX_PUMPKIN_SIDE;
 block_definitions[ 247 ].textures[ FACE_BACK ] = TEX_PUMPKIN_SIDE;
 block_definitions[ 247 ].icon_texture = TEX_PUMPKIN_TOP;
-block_definitions[ 247 ].icon_is_isometric = false;
 
 // DRAGON_EGG (248)
 block_definitions[ 248 ].textures[ FACE_TOP ] = TEX_AIR;
@@ -3260,7 +3123,7 @@ block_definitions[ 248 ].textures[ FACE_RIGHT ] = TEX_DRAGON_EGG;
 block_definitions[ 248 ].textures[ FACE_FRONT ] = TEX_DRAGON_EGG;
 block_definitions[ 248 ].textures[ FACE_LEFT ] = TEX_DRAGON_EGG;
 block_definitions[ 248 ].textures[ FACE_BACK ] = TEX_DRAGON_EGG;
-block_definitions[ 248 ].icon_texture = TEX_DRAGON_EGG;
+block_definitions[ 248 ].icon_texture = TEX_AIR;
 block_definitions[ 248 ].affected_by_redstone_power = false;
 block_definitions[ 248 ].breaks_in_liquid = true;
 block_definitions[ 248 ].casts_shadow = false;
@@ -3293,7 +3156,6 @@ block_definitions[ 250 ].icon_texture = TEX_CAULDRON_TOP;
 block_definitions[ 250 ].affected_by_redstone_power = false;
 block_definitions[ 250 ].casts_shadow = false;
 block_definitions[ 250 ].hardness = 0.449999988f;
-block_definitions[ 250 ].icon_is_isometric = false;
 block_definitions[ 250 ].is_seethrough = true;
 block_definitions[ 250 ].renderOrder = RenderOrder_Translucent;
 
@@ -3330,7 +3192,6 @@ block_definitions[ 252 ].icon_texture = TEX_CAVE_VINES_BODY;
 block_definitions[ 252 ].casts_shadow = false;
 block_definitions[ 252 ].emits_light = 14;
 block_definitions[ 252 ].hardness = 0.35f;
-block_definitions[ 252 ].icon_is_isometric = false;
 block_definitions[ 252 ].is_seethrough = true;
 block_definitions[ 252 ].no_light = 6815743;
 
@@ -3345,7 +3206,6 @@ block_definitions[ 253 ].icon_texture = TEX_CAVE_VINES_HEAD;
 block_definitions[ 253 ].casts_shadow = false;
 block_definitions[ 253 ].emits_light = 14;
 block_definitions[ 253 ].hardness = 0.35f;
-block_definitions[ 253 ].icon_is_isometric = false;
 block_definitions[ 253 ].is_seethrough = true;
 block_definitions[ 253 ].no_light = 6815743;
 
@@ -3369,7 +3229,6 @@ block_definitions[ 255 ].textures[ FACE_BACK ] = TEX_CHAIN;
 block_definitions[ 255 ].icon_texture = TEX_CHAIN;
 block_definitions[ 255 ].casts_shadow = false;
 block_definitions[ 255 ].hardness = 0.35f;
-block_definitions[ 255 ].icon_is_isometric = false;
 block_definitions[ 255 ].is_seethrough = true;
 block_definitions[ 255 ].no_light = 6815743;
 
@@ -3381,7 +3240,6 @@ block_definitions[ 256 ].textures[ FACE_FRONT ] = TEX_CHAIN_COMMAND_BLOCK_BACK_M
 block_definitions[ 256 ].textures[ FACE_LEFT ] = TEX_CHAIN_COMMAND_BLOCK_SIDE_MIPMAP;
 block_definitions[ 256 ].textures[ FACE_BACK ] = TEX_CHAIN_COMMAND_BLOCK_FRONT_MIPMAP;
 block_definitions[ 256 ].icon_texture = TEX_CHAIN_COMMAND_BLOCK_CONDITIONAL_MIPMAP;
-block_definitions[ 256 ].icon_is_isometric = false;
 
 // CHERRY_BUTTON (257)
 block_definitions[ 257 ].textures[ FACE_TOP ] = TEX_CHERRY_PLANKS;
@@ -3391,7 +3249,6 @@ block_definitions[ 257 ].textures[ FACE_FRONT ] = TEX_CHERRY_PLANKS;
 block_definitions[ 257 ].textures[ FACE_LEFT ] = TEX_CHERRY_PLANKS;
 block_definitions[ 257 ].textures[ FACE_BACK ] = TEX_CHERRY_PLANKS;
 block_definitions[ 257 ].icon_texture = TEX_CHERRY_PLANKS;
-block_definitions[ 257 ].icon_is_isometric = false;
 
 // CHERRY_DOOR (258)
 block_definitions[ 258 ].textures[ FACE_TOP ] = TEX_CHERRY_DOOR_BOTTOM;
@@ -3400,10 +3257,9 @@ block_definitions[ 258 ].textures[ FACE_RIGHT ] = TEX_CHERRY_DOOR_TOP;
 block_definitions[ 258 ].textures[ FACE_FRONT ] = TEX_CHERRY_DOOR_TOP;
 block_definitions[ 258 ].textures[ FACE_LEFT ] = TEX_CHERRY_DOOR_TOP;
 block_definitions[ 258 ].textures[ FACE_BACK ] = TEX_CHERRY_DOOR_TOP;
-block_definitions[ 258 ].icon_texture = TEX_CHERRY_DOOR_TOP;
+block_definitions[ 258 ].icon_texture = TEX_CHERRY_DOOR_BOTTOM;
 block_definitions[ 258 ].casts_shadow = false;
 block_definitions[ 258 ].hardness = 0.35f;
-block_definitions[ 258 ].icon_is_isometric = false;
 block_definitions[ 258 ].is_seethrough = true;
 block_definitions[ 258 ].no_light = 6815743;
 
@@ -3415,7 +3271,6 @@ block_definitions[ 259 ].textures[ FACE_FRONT ] = TEX_CHERRY_PLANKS;
 block_definitions[ 259 ].textures[ FACE_LEFT ] = TEX_CHERRY_PLANKS;
 block_definitions[ 259 ].textures[ FACE_BACK ] = TEX_CHERRY_PLANKS;
 block_definitions[ 259 ].icon_texture = TEX_CHERRY_PLANKS;
-block_definitions[ 259 ].icon_is_isometric = false;
 
 // BUBBLE_CORAL (260)
 block_definitions[ 260 ].textures[ FACE_TOP ] = TEX_AIR;
@@ -3445,7 +3300,6 @@ block_definitions[ 261 ].textures[ FACE_FRONT ] = TEX_CHERRY_PLANKS;
 block_definitions[ 261 ].textures[ FACE_LEFT ] = TEX_CHERRY_PLANKS;
 block_definitions[ 261 ].textures[ FACE_BACK ] = TEX_CHERRY_PLANKS;
 block_definitions[ 261 ].icon_texture = TEX_CHERRY_PLANKS;
-block_definitions[ 261 ].icon_is_isometric = false;
 
 // WOODEN_BUTTON (262)
 block_definitions[ 262 ].textures[ FACE_TOP ] = TEX_PLANKS_OAK;
@@ -3477,7 +3331,6 @@ block_definitions[ 263 ].textures[ FACE_FRONT ] = TEX_CHERRY_PLANKS;
 block_definitions[ 263 ].textures[ FACE_LEFT ] = TEX_CHERRY_PLANKS;
 block_definitions[ 263 ].textures[ FACE_BACK ] = TEX_CHERRY_PLANKS;
 block_definitions[ 263 ].icon_texture = TEX_CHERRY_PLANKS;
-block_definitions[ 263 ].icon_is_isometric = false;
 
 // CHERRY_HANGING_SIGN (264)
 block_definitions[ 264 ].textures[ FACE_TOP ] = TEX_CHERRY_PLANKS;
@@ -3487,7 +3340,6 @@ block_definitions[ 264 ].textures[ FACE_FRONT ] = TEX_CHERRY_PLANKS;
 block_definitions[ 264 ].textures[ FACE_LEFT ] = TEX_CHERRY_PLANKS;
 block_definitions[ 264 ].textures[ FACE_BACK ] = TEX_CHERRY_PLANKS;
 block_definitions[ 264 ].icon_texture = TEX_CHERRY_PLANKS;
-block_definitions[ 264 ].icon_is_isometric = false;
 
 // CHERRY_LEAVES (265)
 block_definitions[ 265 ].textures[ FACE_TOP ] = TEX_CHERRY_LEAVES;
@@ -3499,7 +3351,6 @@ block_definitions[ 265 ].textures[ FACE_BACK ] = TEX_CHERRY_LEAVES;
 block_definitions[ 265 ].icon_texture = TEX_CHERRY_LEAVES;
 block_definitions[ 265 ].casts_shadow = false;
 block_definitions[ 265 ].hardness = 0.35f;
-block_definitions[ 265 ].icon_is_isometric = false;
 block_definitions[ 265 ].is_seethrough = true;
 block_definitions[ 265 ].no_light = 6815743;
 
@@ -3510,8 +3361,7 @@ block_definitions[ 266 ].textures[ FACE_RIGHT ] = TEX_CHERRY_LOG_SIDE;
 block_definitions[ 266 ].textures[ FACE_FRONT ] = TEX_CHERRY_LOG_SIDE;
 block_definitions[ 266 ].textures[ FACE_LEFT ] = TEX_CHERRY_LOG_SIDE;
 block_definitions[ 266 ].textures[ FACE_BACK ] = TEX_CHERRY_LOG_SIDE;
-block_definitions[ 266 ].icon_texture = TEX_CHERRY_LOG_SIDE;
-block_definitions[ 266 ].icon_is_isometric = false;
+block_definitions[ 266 ].icon_texture = TEX_CHERRY_LOG_TOP;
 
 // CHERRY_PLANKS (267)
 block_definitions[ 267 ].textures[ FACE_TOP ] = TEX_CHERRY_PLANKS;
@@ -3521,7 +3371,6 @@ block_definitions[ 267 ].textures[ FACE_FRONT ] = TEX_CHERRY_PLANKS;
 block_definitions[ 267 ].textures[ FACE_LEFT ] = TEX_CHERRY_PLANKS;
 block_definitions[ 267 ].textures[ FACE_BACK ] = TEX_CHERRY_PLANKS;
 block_definitions[ 267 ].icon_texture = TEX_CHERRY_PLANKS;
-block_definitions[ 267 ].icon_is_isometric = false;
 
 // CHERRY_PRESSURE_PLATE (268)
 block_definitions[ 268 ].textures[ FACE_TOP ] = TEX_CHERRY_PLANKS;
@@ -3531,7 +3380,6 @@ block_definitions[ 268 ].textures[ FACE_FRONT ] = TEX_CHERRY_PLANKS;
 block_definitions[ 268 ].textures[ FACE_LEFT ] = TEX_CHERRY_PLANKS;
 block_definitions[ 268 ].textures[ FACE_BACK ] = TEX_CHERRY_PLANKS;
 block_definitions[ 268 ].icon_texture = TEX_CHERRY_PLANKS;
-block_definitions[ 268 ].icon_is_isometric = false;
 
 // CHERRY_SAPLING (269)
 block_definitions[ 269 ].textures[ FACE_TOP ] = TEX_AIR;
@@ -3563,7 +3411,6 @@ block_definitions[ 270 ].textures[ FACE_FRONT ] = TEX_CHERRY_SHELF;
 block_definitions[ 270 ].textures[ FACE_LEFT ] = TEX_CHERRY_SHELF;
 block_definitions[ 270 ].textures[ FACE_BACK ] = TEX_CHERRY_SHELF;
 block_definitions[ 270 ].icon_texture = TEX_CHERRY_SHELF;
-block_definitions[ 270 ].icon_is_isometric = false;
 
 // CHERRY_SLAB (271)
 block_definitions[ 271 ].textures[ FACE_TOP ] = TEX_CHERRY_PLANKS;
@@ -3573,7 +3420,6 @@ block_definitions[ 271 ].textures[ FACE_FRONT ] = TEX_CHERRY_PLANKS;
 block_definitions[ 271 ].textures[ FACE_LEFT ] = TEX_CHERRY_PLANKS;
 block_definitions[ 271 ].textures[ FACE_BACK ] = TEX_CHERRY_PLANKS;
 block_definitions[ 271 ].icon_texture = TEX_CHERRY_PLANKS;
-block_definitions[ 271 ].icon_is_isometric = false;
 
 // CHERRY_STAIRS (272)
 block_definitions[ 272 ].textures[ FACE_TOP ] = TEX_CHERRY_PLANKS;
@@ -3583,7 +3429,6 @@ block_definitions[ 272 ].textures[ FACE_FRONT ] = TEX_CHERRY_PLANKS;
 block_definitions[ 272 ].textures[ FACE_LEFT ] = TEX_CHERRY_PLANKS;
 block_definitions[ 272 ].textures[ FACE_BACK ] = TEX_CHERRY_PLANKS;
 block_definitions[ 272 ].icon_texture = TEX_CHERRY_PLANKS;
-block_definitions[ 272 ].icon_is_isometric = false;
 
 // CHERRY_STANDING_SIGN (273)
 block_definitions[ 273 ].textures[ FACE_TOP ] = TEX_CHERRY_PLANKS;
@@ -3593,7 +3438,6 @@ block_definitions[ 273 ].textures[ FACE_FRONT ] = TEX_CHERRY_PLANKS;
 block_definitions[ 273 ].textures[ FACE_LEFT ] = TEX_CHERRY_PLANKS;
 block_definitions[ 273 ].textures[ FACE_BACK ] = TEX_CHERRY_PLANKS;
 block_definitions[ 273 ].icon_texture = TEX_CHERRY_PLANKS;
-block_definitions[ 273 ].icon_is_isometric = false;
 
 // FIRE_CORAL (274)
 block_definitions[ 274 ].textures[ FACE_TOP ] = TEX_AIR;
@@ -3622,7 +3466,7 @@ block_definitions[ 275 ].textures[ FACE_RIGHT ] = TEX_FLOWER_POT;
 block_definitions[ 275 ].textures[ FACE_FRONT ] = TEX_FLOWER_POT;
 block_definitions[ 275 ].textures[ FACE_LEFT ] = TEX_FLOWER_POT;
 block_definitions[ 275 ].textures[ FACE_BACK ] = TEX_FLOWER_POT;
-block_definitions[ 275 ].icon_texture = TEX_FLOWER_POT;
+block_definitions[ 275 ].icon_texture = TEX_AIR;
 block_definitions[ 275 ].affected_by_redstone_power = false;
 block_definitions[ 275 ].breaks_in_liquid = true;
 block_definitions[ 275 ].casts_shadow = false;
@@ -3647,7 +3491,6 @@ block_definitions[ 276 ].textures[ FACE_BACK ] = TEX_CHERRY_TRAPDOOR;
 block_definitions[ 276 ].icon_texture = TEX_CHERRY_TRAPDOOR;
 block_definitions[ 276 ].casts_shadow = false;
 block_definitions[ 276 ].hardness = 0.35f;
-block_definitions[ 276 ].icon_is_isometric = false;
 block_definitions[ 276 ].is_seethrough = true;
 block_definitions[ 276 ].no_light = 6815743;
 
@@ -3659,7 +3502,6 @@ block_definitions[ 277 ].textures[ FACE_FRONT ] = TEX_CHERRY_PLANKS;
 block_definitions[ 277 ].textures[ FACE_LEFT ] = TEX_CHERRY_PLANKS;
 block_definitions[ 277 ].textures[ FACE_BACK ] = TEX_CHERRY_PLANKS;
 block_definitions[ 277 ].icon_texture = TEX_CHERRY_PLANKS;
-block_definitions[ 277 ].icon_is_isometric = false;
 
 // CHERRY_WOOD (278)
 block_definitions[ 278 ].textures[ FACE_TOP ] = TEX_CHERRY_LOG_SIDE;
@@ -3669,7 +3511,6 @@ block_definitions[ 278 ].textures[ FACE_FRONT ] = TEX_CHERRY_LOG_SIDE;
 block_definitions[ 278 ].textures[ FACE_LEFT ] = TEX_CHERRY_LOG_SIDE;
 block_definitions[ 278 ].textures[ FACE_BACK ] = TEX_CHERRY_LOG_SIDE;
 block_definitions[ 278 ].icon_texture = TEX_CHERRY_LOG_SIDE;
-block_definitions[ 278 ].icon_is_isometric = false;
 
 // CHEST (279)
 block_definitions[ 279 ].textures[ FACE_TOP ] = TEX_CHEST_TOP;
@@ -3679,7 +3520,6 @@ block_definitions[ 279 ].textures[ FACE_FRONT ] = TEX_CHEST_FRONT;
 block_definitions[ 279 ].textures[ FACE_LEFT ] = TEX_CHEST_SIDE;
 block_definitions[ 279 ].textures[ FACE_BACK ] = TEX_CHEST_SIDE;
 block_definitions[ 279 ].icon_texture = TEX_CHEST_TOP;
-block_definitions[ 279 ].icon_is_isometric = false;
 
 // CHIPPED_ANVIL (280)
 block_definitions[ 280 ].textures[ FACE_TOP ] = TEX_ANVIL_TOP_DAMAGED_1;
@@ -3688,10 +3528,9 @@ block_definitions[ 280 ].textures[ FACE_RIGHT ] = TEX_ANVIL_BASE;
 block_definitions[ 280 ].textures[ FACE_FRONT ] = TEX_ANVIL_BASE;
 block_definitions[ 280 ].textures[ FACE_LEFT ] = TEX_ANVIL_BASE;
 block_definitions[ 280 ].textures[ FACE_BACK ] = TEX_ANVIL_BASE;
-block_definitions[ 280 ].icon_texture = TEX_ANVIL_BASE;
+block_definitions[ 280 ].icon_texture = TEX_ANVIL_TOP_DAMAGED_1;
 block_definitions[ 280 ].casts_shadow = false;
 block_definitions[ 280 ].hardness = 0.35f;
-block_definitions[ 280 ].icon_is_isometric = false;
 block_definitions[ 280 ].is_seethrough = true;
 block_definitions[ 280 ].no_light = 6815743;
 
@@ -3703,7 +3542,6 @@ block_definitions[ 281 ].textures[ FACE_FRONT ] = TEX_CHISELED_BOOKSHELF_SIDE;
 block_definitions[ 281 ].textures[ FACE_LEFT ] = TEX_CHISELED_BOOKSHELF_SIDE;
 block_definitions[ 281 ].textures[ FACE_BACK ] = TEX_CHISELED_BOOKSHELF_EMPTY;
 block_definitions[ 281 ].icon_texture = TEX_CHISELED_BOOKSHELF_TOP;
-block_definitions[ 281 ].icon_is_isometric = false;
 
 // CHISELED_CINNABAR (282)
 block_definitions[ 282 ].textures[ FACE_TOP ] = TEX_CHISELED_CINNABAR;
@@ -3713,7 +3551,6 @@ block_definitions[ 282 ].textures[ FACE_FRONT ] = TEX_CHISELED_CINNABAR;
 block_definitions[ 282 ].textures[ FACE_LEFT ] = TEX_CHISELED_CINNABAR;
 block_definitions[ 282 ].textures[ FACE_BACK ] = TEX_CHISELED_CINNABAR;
 block_definitions[ 282 ].icon_texture = TEX_CHISELED_CINNABAR;
-block_definitions[ 282 ].icon_is_isometric = false;
 
 // CHISELED_COPPER (283)
 block_definitions[ 283 ].textures[ FACE_TOP ] = TEX_CHISELED_COPPER;
@@ -3723,7 +3560,6 @@ block_definitions[ 283 ].textures[ FACE_FRONT ] = TEX_CHISELED_COPPER;
 block_definitions[ 283 ].textures[ FACE_LEFT ] = TEX_CHISELED_COPPER;
 block_definitions[ 283 ].textures[ FACE_BACK ] = TEX_CHISELED_COPPER;
 block_definitions[ 283 ].icon_texture = TEX_CHISELED_COPPER;
-block_definitions[ 283 ].icon_is_isometric = false;
 
 // CHISELED_DEEPSLATE (284)
 block_definitions[ 284 ].textures[ FACE_TOP ] = TEX_CHISELED_DEEPSLATE;
@@ -3733,7 +3569,6 @@ block_definitions[ 284 ].textures[ FACE_FRONT ] = TEX_CHISELED_DEEPSLATE;
 block_definitions[ 284 ].textures[ FACE_LEFT ] = TEX_CHISELED_DEEPSLATE;
 block_definitions[ 284 ].textures[ FACE_BACK ] = TEX_CHISELED_DEEPSLATE;
 block_definitions[ 284 ].icon_texture = TEX_CHISELED_DEEPSLATE;
-block_definitions[ 284 ].icon_is_isometric = false;
 
 // CHISELED_NETHER_BRICKS (285)
 block_definitions[ 285 ].textures[ FACE_TOP ] = TEX_CHISELED_NETHER_BRICKS;
@@ -3743,7 +3578,6 @@ block_definitions[ 285 ].textures[ FACE_FRONT ] = TEX_CHISELED_NETHER_BRICKS;
 block_definitions[ 285 ].textures[ FACE_LEFT ] = TEX_CHISELED_NETHER_BRICKS;
 block_definitions[ 285 ].textures[ FACE_BACK ] = TEX_CHISELED_NETHER_BRICKS;
 block_definitions[ 285 ].icon_texture = TEX_CHISELED_NETHER_BRICKS;
-block_definitions[ 285 ].icon_is_isometric = false;
 
 // CHISELED_POLISHED_BLACKSTONE (286)
 block_definitions[ 286 ].textures[ FACE_TOP ] = TEX_CHISELED_POLISHED_BLACKSTONE;
@@ -3753,7 +3587,6 @@ block_definitions[ 286 ].textures[ FACE_FRONT ] = TEX_CHISELED_POLISHED_BLACKSTO
 block_definitions[ 286 ].textures[ FACE_LEFT ] = TEX_CHISELED_POLISHED_BLACKSTONE;
 block_definitions[ 286 ].textures[ FACE_BACK ] = TEX_CHISELED_POLISHED_BLACKSTONE;
 block_definitions[ 286 ].icon_texture = TEX_CHISELED_POLISHED_BLACKSTONE;
-block_definitions[ 286 ].icon_is_isometric = false;
 
 // CHISELED_QUARTZ_BLOCK (287)
 block_definitions[ 287 ].textures[ FACE_TOP ] = TEX_QUARTZ_BLOCK_CHISELED_TOP;
@@ -3762,8 +3595,7 @@ block_definitions[ 287 ].textures[ FACE_RIGHT ] = TEX_QUARTZ_BLOCK_CHISELED;
 block_definitions[ 287 ].textures[ FACE_FRONT ] = TEX_QUARTZ_BLOCK_CHISELED;
 block_definitions[ 287 ].textures[ FACE_LEFT ] = TEX_QUARTZ_BLOCK_CHISELED;
 block_definitions[ 287 ].textures[ FACE_BACK ] = TEX_QUARTZ_BLOCK_CHISELED;
-block_definitions[ 287 ].icon_texture = TEX_QUARTZ_BLOCK_CHISELED;
-block_definitions[ 287 ].icon_is_isometric = false;
+block_definitions[ 287 ].icon_texture = TEX_QUARTZ_BLOCK_CHISELED_TOP;
 
 // CHISELED_RESIN_BRICKS (288)
 block_definitions[ 288 ].textures[ FACE_TOP ] = TEX_CHISELED_RESIN_BRICKS;
@@ -3773,7 +3605,6 @@ block_definitions[ 288 ].textures[ FACE_FRONT ] = TEX_CHISELED_RESIN_BRICKS;
 block_definitions[ 288 ].textures[ FACE_LEFT ] = TEX_CHISELED_RESIN_BRICKS;
 block_definitions[ 288 ].textures[ FACE_BACK ] = TEX_CHISELED_RESIN_BRICKS;
 block_definitions[ 288 ].icon_texture = TEX_CHISELED_RESIN_BRICKS;
-block_definitions[ 288 ].icon_is_isometric = false;
 
 // SANDSTONE (289)
 block_definitions[ 289 ].textures[ FACE_TOP ] = TEX_SANDSTONE_TOP;
@@ -3794,7 +3625,6 @@ block_definitions[ 290 ].textures[ FACE_FRONT ] = TEX_STONEBRICK_CARVED;
 block_definitions[ 290 ].textures[ FACE_LEFT ] = TEX_STONEBRICK_CARVED;
 block_definitions[ 290 ].textures[ FACE_BACK ] = TEX_STONEBRICK_CARVED;
 block_definitions[ 290 ].icon_texture = TEX_STONEBRICK_CARVED;
-block_definitions[ 290 ].icon_is_isometric = false;
 
 // CHISELED_SULFUR (291)
 block_definitions[ 291 ].textures[ FACE_TOP ] = TEX_CHISELED_SULFUR;
@@ -3804,7 +3634,6 @@ block_definitions[ 291 ].textures[ FACE_FRONT ] = TEX_CHISELED_SULFUR;
 block_definitions[ 291 ].textures[ FACE_LEFT ] = TEX_CHISELED_SULFUR;
 block_definitions[ 291 ].textures[ FACE_BACK ] = TEX_CHISELED_SULFUR;
 block_definitions[ 291 ].icon_texture = TEX_CHISELED_SULFUR;
-block_definitions[ 291 ].icon_is_isometric = false;
 
 // CHISELED_TUFF (292)
 block_definitions[ 292 ].textures[ FACE_TOP ] = TEX_CHISELED_TUFF_TOP;
@@ -3813,8 +3642,7 @@ block_definitions[ 292 ].textures[ FACE_RIGHT ] = TEX_CHISELED_TUFF;
 block_definitions[ 292 ].textures[ FACE_FRONT ] = TEX_CHISELED_TUFF;
 block_definitions[ 292 ].textures[ FACE_LEFT ] = TEX_CHISELED_TUFF;
 block_definitions[ 292 ].textures[ FACE_BACK ] = TEX_CHISELED_TUFF;
-block_definitions[ 292 ].icon_texture = TEX_CHISELED_TUFF;
-block_definitions[ 292 ].icon_is_isometric = false;
+block_definitions[ 292 ].icon_texture = TEX_CHISELED_TUFF_TOP;
 
 // JUNGLE_LEAVES (293)
 block_definitions[ 293 ].textures[ FACE_TOP ] = TEX_LEAVES_JUNGLE_CARRIED;
@@ -3838,8 +3666,7 @@ block_definitions[ 294 ].textures[ FACE_RIGHT ] = TEX_CHISELED_TUFF_BRICKS;
 block_definitions[ 294 ].textures[ FACE_FRONT ] = TEX_CHISELED_TUFF_BRICKS;
 block_definitions[ 294 ].textures[ FACE_LEFT ] = TEX_CHISELED_TUFF_BRICKS;
 block_definitions[ 294 ].textures[ FACE_BACK ] = TEX_CHISELED_TUFF_BRICKS;
-block_definitions[ 294 ].icon_texture = TEX_CHISELED_TUFF_BRICKS;
-block_definitions[ 294 ].icon_is_isometric = false;
+block_definitions[ 294 ].icon_texture = TEX_CHISELED_TUFF_BRICKS_TOP;
 
 // SPRUCE_PLANKS (295)
 block_definitions[ 295 ].textures[ FACE_TOP ] = TEX_PLANKS_SPRUCE;
@@ -3966,7 +3793,6 @@ block_definitions[ 302 ].textures[ FACE_FRONT ] = TEX_CINNABAR;
 block_definitions[ 302 ].textures[ FACE_LEFT ] = TEX_CINNABAR;
 block_definitions[ 302 ].textures[ FACE_BACK ] = TEX_CINNABAR;
 block_definitions[ 302 ].icon_texture = TEX_CINNABAR;
-block_definitions[ 302 ].icon_is_isometric = false;
 
 // CINNABAR_BRICK_DOUBLE_SLAB (303)
 block_definitions[ 303 ].textures[ FACE_TOP ] = TEX_CINNABAR_BRICKS;
@@ -3976,7 +3802,6 @@ block_definitions[ 303 ].textures[ FACE_FRONT ] = TEX_CINNABAR_BRICKS;
 block_definitions[ 303 ].textures[ FACE_LEFT ] = TEX_CINNABAR_BRICKS;
 block_definitions[ 303 ].textures[ FACE_BACK ] = TEX_CINNABAR_BRICKS;
 block_definitions[ 303 ].icon_texture = TEX_CINNABAR_BRICKS;
-block_definitions[ 303 ].icon_is_isometric = false;
 
 // CINNABAR_BRICK_SLAB (304)
 block_definitions[ 304 ].textures[ FACE_TOP ] = TEX_CINNABAR_BRICKS;
@@ -3986,7 +3811,6 @@ block_definitions[ 304 ].textures[ FACE_FRONT ] = TEX_CINNABAR_BRICKS;
 block_definitions[ 304 ].textures[ FACE_LEFT ] = TEX_CINNABAR_BRICKS;
 block_definitions[ 304 ].textures[ FACE_BACK ] = TEX_CINNABAR_BRICKS;
 block_definitions[ 304 ].icon_texture = TEX_CINNABAR_BRICKS;
-block_definitions[ 304 ].icon_is_isometric = false;
 
 // CINNABAR_BRICK_STAIRS (305)
 block_definitions[ 305 ].textures[ FACE_TOP ] = TEX_CINNABAR_BRICKS;
@@ -3996,7 +3820,6 @@ block_definitions[ 305 ].textures[ FACE_FRONT ] = TEX_CINNABAR_BRICKS;
 block_definitions[ 305 ].textures[ FACE_LEFT ] = TEX_CINNABAR_BRICKS;
 block_definitions[ 305 ].textures[ FACE_BACK ] = TEX_CINNABAR_BRICKS;
 block_definitions[ 305 ].icon_texture = TEX_CINNABAR_BRICKS;
-block_definitions[ 305 ].icon_is_isometric = false;
 
 // CINNABAR_BRICK_WALL (306)
 block_definitions[ 306 ].textures[ FACE_TOP ] = TEX_CINNABAR_BRICKS;
@@ -4006,7 +3829,6 @@ block_definitions[ 306 ].textures[ FACE_FRONT ] = TEX_CINNABAR_BRICKS;
 block_definitions[ 306 ].textures[ FACE_LEFT ] = TEX_CINNABAR_BRICKS;
 block_definitions[ 306 ].textures[ FACE_BACK ] = TEX_CINNABAR_BRICKS;
 block_definitions[ 306 ].icon_texture = TEX_CINNABAR_BRICKS;
-block_definitions[ 306 ].icon_is_isometric = false;
 
 // CINNABAR_BRICKS (307)
 block_definitions[ 307 ].textures[ FACE_TOP ] = TEX_CINNABAR_BRICKS;
@@ -4016,7 +3838,6 @@ block_definitions[ 307 ].textures[ FACE_FRONT ] = TEX_CINNABAR_BRICKS;
 block_definitions[ 307 ].textures[ FACE_LEFT ] = TEX_CINNABAR_BRICKS;
 block_definitions[ 307 ].textures[ FACE_BACK ] = TEX_CINNABAR_BRICKS;
 block_definitions[ 307 ].icon_texture = TEX_CINNABAR_BRICKS;
-block_definitions[ 307 ].icon_is_isometric = false;
 
 // CINNABAR_DOUBLE_SLAB (308)
 block_definitions[ 308 ].textures[ FACE_TOP ] = TEX_CINNABAR;
@@ -4026,7 +3847,6 @@ block_definitions[ 308 ].textures[ FACE_FRONT ] = TEX_CINNABAR;
 block_definitions[ 308 ].textures[ FACE_LEFT ] = TEX_CINNABAR;
 block_definitions[ 308 ].textures[ FACE_BACK ] = TEX_CINNABAR;
 block_definitions[ 308 ].icon_texture = TEX_CINNABAR;
-block_definitions[ 308 ].icon_is_isometric = false;
 
 // CINNABAR_SLAB (309)
 block_definitions[ 309 ].textures[ FACE_TOP ] = TEX_CINNABAR;
@@ -4036,7 +3856,6 @@ block_definitions[ 309 ].textures[ FACE_FRONT ] = TEX_CINNABAR;
 block_definitions[ 309 ].textures[ FACE_LEFT ] = TEX_CINNABAR;
 block_definitions[ 309 ].textures[ FACE_BACK ] = TEX_CINNABAR;
 block_definitions[ 309 ].icon_texture = TEX_CINNABAR;
-block_definitions[ 309 ].icon_is_isometric = false;
 
 // CINNABAR_STAIRS (310)
 block_definitions[ 310 ].textures[ FACE_TOP ] = TEX_CINNABAR;
@@ -4046,7 +3865,6 @@ block_definitions[ 310 ].textures[ FACE_FRONT ] = TEX_CINNABAR;
 block_definitions[ 310 ].textures[ FACE_LEFT ] = TEX_CINNABAR;
 block_definitions[ 310 ].textures[ FACE_BACK ] = TEX_CINNABAR;
 block_definitions[ 310 ].icon_texture = TEX_CINNABAR;
-block_definitions[ 310 ].icon_is_isometric = false;
 
 // CINNABAR_WALL (311)
 block_definitions[ 311 ].textures[ FACE_TOP ] = TEX_CINNABAR;
@@ -4056,7 +3874,6 @@ block_definitions[ 311 ].textures[ FACE_FRONT ] = TEX_CINNABAR;
 block_definitions[ 311 ].textures[ FACE_LEFT ] = TEX_CINNABAR;
 block_definitions[ 311 ].textures[ FACE_BACK ] = TEX_CINNABAR;
 block_definitions[ 311 ].icon_texture = TEX_CINNABAR;
-block_definitions[ 311 ].icon_is_isometric = false;
 
 // CLAY (312)
 block_definitions[ 312 ].textures[ FACE_TOP ] = TEX_CLAY;
@@ -4066,7 +3883,6 @@ block_definitions[ 312 ].textures[ FACE_FRONT ] = TEX_CLAY;
 block_definitions[ 312 ].textures[ FACE_LEFT ] = TEX_CLAY;
 block_definitions[ 312 ].textures[ FACE_BACK ] = TEX_CLAY;
 block_definitions[ 312 ].icon_texture = TEX_CLAY;
-block_definitions[ 312 ].icon_is_isometric = false;
 
 // CLOSED_EYEBLOSSOM (313)
 block_definitions[ 313 ].textures[ FACE_TOP ] = TEX_AIR;
@@ -4098,7 +3914,6 @@ block_definitions[ 314 ].textures[ FACE_FRONT ] = TEX_COAL_BLOCK;
 block_definitions[ 314 ].textures[ FACE_LEFT ] = TEX_COAL_BLOCK;
 block_definitions[ 314 ].textures[ FACE_BACK ] = TEX_COAL_BLOCK;
 block_definitions[ 314 ].icon_texture = TEX_COAL_BLOCK;
-block_definitions[ 314 ].icon_is_isometric = false;
 
 // COARSE_DIRT (315)
 block_definitions[ 315 ].textures[ FACE_TOP ] = TEX_COARSE_DIRT;
@@ -4108,7 +3923,6 @@ block_definitions[ 315 ].textures[ FACE_FRONT ] = TEX_COARSE_DIRT;
 block_definitions[ 315 ].textures[ FACE_LEFT ] = TEX_COARSE_DIRT;
 block_definitions[ 315 ].textures[ FACE_BACK ] = TEX_COARSE_DIRT;
 block_definitions[ 315 ].icon_texture = TEX_COARSE_DIRT;
-block_definitions[ 315 ].icon_is_isometric = false;
 
 // REDSTONE_LAMP (316)
 block_definitions[ 316 ].textures[ FACE_TOP ] = TEX_REDSTONE_LAMP_OFF;
@@ -4151,7 +3965,6 @@ block_definitions[ 318 ].textures[ FACE_FRONT ] = TEX_COBBLED_DEEPSLATE;
 block_definitions[ 318 ].textures[ FACE_LEFT ] = TEX_COBBLED_DEEPSLATE;
 block_definitions[ 318 ].textures[ FACE_BACK ] = TEX_COBBLED_DEEPSLATE;
 block_definitions[ 318 ].icon_texture = TEX_COBBLED_DEEPSLATE;
-block_definitions[ 318 ].icon_is_isometric = false;
 
 // BIRCH_PLANKS (319)
 block_definitions[ 319 ].textures[ FACE_TOP ] = TEX_PLANKS_BIRCH;
@@ -4182,7 +3995,6 @@ block_definitions[ 321 ].textures[ FACE_FRONT ] = TEX_COBBLED_DEEPSLATE;
 block_definitions[ 321 ].textures[ FACE_LEFT ] = TEX_COBBLED_DEEPSLATE;
 block_definitions[ 321 ].textures[ FACE_BACK ] = TEX_COBBLED_DEEPSLATE;
 block_definitions[ 321 ].icon_texture = TEX_COBBLED_DEEPSLATE;
-block_definitions[ 321 ].icon_is_isometric = false;
 
 // COBBLED_DEEPSLATE_SLAB (322)
 block_definitions[ 322 ].textures[ FACE_TOP ] = TEX_COBBLED_DEEPSLATE;
@@ -4192,7 +4004,6 @@ block_definitions[ 322 ].textures[ FACE_FRONT ] = TEX_COBBLED_DEEPSLATE;
 block_definitions[ 322 ].textures[ FACE_LEFT ] = TEX_COBBLED_DEEPSLATE;
 block_definitions[ 322 ].textures[ FACE_BACK ] = TEX_COBBLED_DEEPSLATE;
 block_definitions[ 322 ].icon_texture = TEX_COBBLED_DEEPSLATE;
-block_definitions[ 322 ].icon_is_isometric = false;
 
 // COBBLED_DEEPSLATE_STAIRS (323)
 block_definitions[ 323 ].textures[ FACE_TOP ] = TEX_COBBLED_DEEPSLATE;
@@ -4202,7 +4013,6 @@ block_definitions[ 323 ].textures[ FACE_FRONT ] = TEX_COBBLED_DEEPSLATE;
 block_definitions[ 323 ].textures[ FACE_LEFT ] = TEX_COBBLED_DEEPSLATE;
 block_definitions[ 323 ].textures[ FACE_BACK ] = TEX_COBBLED_DEEPSLATE;
 block_definitions[ 323 ].icon_texture = TEX_COBBLED_DEEPSLATE;
-block_definitions[ 323 ].icon_is_isometric = false;
 
 // COBBLED_DEEPSLATE_WALL (324)
 block_definitions[ 324 ].textures[ FACE_TOP ] = TEX_COBBLED_DEEPSLATE;
@@ -4212,7 +4022,6 @@ block_definitions[ 324 ].textures[ FACE_FRONT ] = TEX_COBBLED_DEEPSLATE;
 block_definitions[ 324 ].textures[ FACE_LEFT ] = TEX_COBBLED_DEEPSLATE;
 block_definitions[ 324 ].textures[ FACE_BACK ] = TEX_COBBLED_DEEPSLATE;
 block_definitions[ 324 ].icon_texture = TEX_COBBLED_DEEPSLATE;
-block_definitions[ 324 ].icon_is_isometric = false;
 
 // COBBLESTONE_DOUBLE_SLAB (325)
 block_definitions[ 325 ].textures[ FACE_TOP ] = TEX_COBBLESTONE;
@@ -4222,7 +4031,6 @@ block_definitions[ 325 ].textures[ FACE_FRONT ] = TEX_COBBLESTONE;
 block_definitions[ 325 ].textures[ FACE_LEFT ] = TEX_COBBLESTONE;
 block_definitions[ 325 ].textures[ FACE_BACK ] = TEX_COBBLESTONE;
 block_definitions[ 325 ].icon_texture = TEX_COBBLESTONE;
-block_definitions[ 325 ].icon_is_isometric = false;
 
 // COBBLESTONE_WALL (326)
 block_definitions[ 326 ].textures[ FACE_TOP ] = TEX_COBBLESTONE;
@@ -4232,7 +4040,6 @@ block_definitions[ 326 ].textures[ FACE_FRONT ] = TEX_COBBLESTONE;
 block_definitions[ 326 ].textures[ FACE_LEFT ] = TEX_COBBLESTONE;
 block_definitions[ 326 ].textures[ FACE_BACK ] = TEX_COBBLESTONE;
 block_definitions[ 326 ].icon_texture = TEX_COBBLESTONE;
-block_definitions[ 326 ].icon_is_isometric = false;
 
 // COCOA (327)
 block_definitions[ 327 ].textures[ FACE_TOP ] = TEX_AIR;
@@ -4264,7 +4071,6 @@ block_definitions[ 328 ].textures[ FACE_FRONT ] = TEX_COMMAND_BLOCK_BACK_MIPMAP;
 block_definitions[ 328 ].textures[ FACE_LEFT ] = TEX_COMMAND_BLOCK_SIDE_MIPMAP;
 block_definitions[ 328 ].textures[ FACE_BACK ] = TEX_COMMAND_BLOCK_FRONT_MIPMAP;
 block_definitions[ 328 ].icon_texture = TEX_COMMAND_BLOCK_CONDITIONAL_MIPMAP;
-block_definitions[ 328 ].icon_is_isometric = false;
 
 // COMPOSTER (329)
 block_definitions[ 329 ].textures[ FACE_TOP ] = TEX_COMPOSTER_TOP;
@@ -4273,10 +4079,9 @@ block_definitions[ 329 ].textures[ FACE_RIGHT ] = TEX_COMPOSTER_SIDE;
 block_definitions[ 329 ].textures[ FACE_FRONT ] = TEX_COMPOSTER_SIDE;
 block_definitions[ 329 ].textures[ FACE_LEFT ] = TEX_COMPOSTER_SIDE;
 block_definitions[ 329 ].textures[ FACE_BACK ] = TEX_COMPOSTER_SIDE;
-block_definitions[ 329 ].icon_texture = TEX_COMPOSTER_SIDE;
+block_definitions[ 329 ].icon_texture = TEX_COMPOSTER_TOP;
 block_definitions[ 329 ].casts_shadow = false;
 block_definitions[ 329 ].hardness = 0.35f;
-block_definitions[ 329 ].icon_is_isometric = false;
 block_definitions[ 329 ].is_seethrough = true;
 block_definitions[ 329 ].no_light = 6815743;
 
@@ -4288,7 +4093,6 @@ block_definitions[ 330 ].textures[ FACE_FRONT ] = TEX_CONCRETE_WHITE;
 block_definitions[ 330 ].textures[ FACE_LEFT ] = TEX_CONCRETE_WHITE;
 block_definitions[ 330 ].textures[ FACE_BACK ] = TEX_CONCRETE_WHITE;
 block_definitions[ 330 ].icon_texture = TEX_CONCRETE_WHITE;
-block_definitions[ 330 ].icon_is_isometric = false;
 
 // CONCRETEPOWDER (331)
 block_definitions[ 331 ].textures[ FACE_TOP ] = TEX_CONCRETE_POWDER_WHITE;
@@ -4298,7 +4102,6 @@ block_definitions[ 331 ].textures[ FACE_FRONT ] = TEX_CONCRETE_POWDER_WHITE;
 block_definitions[ 331 ].textures[ FACE_LEFT ] = TEX_CONCRETE_POWDER_WHITE;
 block_definitions[ 331 ].textures[ FACE_BACK ] = TEX_CONCRETE_POWDER_WHITE;
 block_definitions[ 331 ].icon_texture = TEX_CONCRETE_POWDER_WHITE;
-block_definitions[ 331 ].icon_is_isometric = false;
 
 // CONDUIT (332)
 block_definitions[ 332 ].textures[ FACE_TOP ] = TEX_CONDUIT_BASE;
@@ -4311,7 +4114,6 @@ block_definitions[ 332 ].icon_texture = TEX_CONDUIT_BASE;
 block_definitions[ 332 ].casts_shadow = false;
 block_definitions[ 332 ].emits_light = 15;
 block_definitions[ 332 ].hardness = 0.35f;
-block_definitions[ 332 ].icon_is_isometric = false;
 block_definitions[ 332 ].is_seethrough = true;
 block_definitions[ 332 ].no_light = 6815743;
 
@@ -4325,7 +4127,6 @@ block_definitions[ 333 ].textures[ FACE_BACK ] = TEX_COPPER_BARS;
 block_definitions[ 333 ].icon_texture = TEX_COPPER_BARS;
 block_definitions[ 333 ].casts_shadow = false;
 block_definitions[ 333 ].hardness = 0.35f;
-block_definitions[ 333 ].icon_is_isometric = false;
 block_definitions[ 333 ].is_seethrough = true;
 block_definitions[ 333 ].no_light = 6815743;
 
@@ -4337,7 +4138,6 @@ block_definitions[ 334 ].textures[ FACE_FRONT ] = TEX_COPPER_BLOCK;
 block_definitions[ 334 ].textures[ FACE_LEFT ] = TEX_COPPER_BLOCK;
 block_definitions[ 334 ].textures[ FACE_BACK ] = TEX_COPPER_BLOCK;
 block_definitions[ 334 ].icon_texture = TEX_COPPER_BLOCK;
-block_definitions[ 334 ].icon_is_isometric = false;
 
 // COPPER_BULB (335)
 block_definitions[ 335 ].textures[ FACE_TOP ] = TEX_COPPER_BULB;
@@ -4347,7 +4147,6 @@ block_definitions[ 335 ].textures[ FACE_FRONT ] = TEX_COPPER_BULB;
 block_definitions[ 335 ].textures[ FACE_LEFT ] = TEX_COPPER_BULB;
 block_definitions[ 335 ].textures[ FACE_BACK ] = TEX_COPPER_BULB;
 block_definitions[ 335 ].icon_texture = TEX_COPPER_BULB;
-block_definitions[ 335 ].icon_is_isometric = false;
 
 // COPPER_CHAIN (336)
 block_definitions[ 336 ].textures[ FACE_TOP ] = TEX_COPPER_CHAIN;
@@ -4359,7 +4158,6 @@ block_definitions[ 336 ].textures[ FACE_BACK ] = TEX_COPPER_CHAIN;
 block_definitions[ 336 ].icon_texture = TEX_COPPER_CHAIN;
 block_definitions[ 336 ].casts_shadow = false;
 block_definitions[ 336 ].hardness = 0.35f;
-block_definitions[ 336 ].icon_is_isometric = false;
 block_definitions[ 336 ].is_seethrough = true;
 block_definitions[ 336 ].no_light = 6815743;
 
@@ -4371,7 +4169,6 @@ block_definitions[ 337 ].textures[ FACE_FRONT ] = TEX_COPPER_CHEST_INVENTORY_FRO
 block_definitions[ 337 ].textures[ FACE_LEFT ] = TEX_COPPER_CHEST_INVENTORY_SIDE;
 block_definitions[ 337 ].textures[ FACE_BACK ] = TEX_COPPER_CHEST_INVENTORY_SIDE;
 block_definitions[ 337 ].icon_texture = TEX_COPPER_CHEST_INVENTORY_TOP;
-block_definitions[ 337 ].icon_is_isometric = false;
 
 // COPPER_DOOR (338)
 block_definitions[ 338 ].textures[ FACE_TOP ] = TEX_COPPER_DOOR_BOTTOM;
@@ -4380,10 +4177,9 @@ block_definitions[ 338 ].textures[ FACE_RIGHT ] = TEX_COPPER_DOOR_TOP;
 block_definitions[ 338 ].textures[ FACE_FRONT ] = TEX_COPPER_DOOR_TOP;
 block_definitions[ 338 ].textures[ FACE_LEFT ] = TEX_COPPER_DOOR_TOP;
 block_definitions[ 338 ].textures[ FACE_BACK ] = TEX_COPPER_DOOR_TOP;
-block_definitions[ 338 ].icon_texture = TEX_COPPER_DOOR_TOP;
+block_definitions[ 338 ].icon_texture = TEX_COPPER_DOOR_BOTTOM;
 block_definitions[ 338 ].casts_shadow = false;
 block_definitions[ 338 ].hardness = 0.35f;
-block_definitions[ 338 ].icon_is_isometric = false;
 block_definitions[ 338 ].is_seethrough = true;
 block_definitions[ 338 ].no_light = 6815743;
 
@@ -4452,7 +4248,6 @@ block_definitions[ 342 ].textures[ FACE_FRONT ] = TEX_COPPER_BLOCK;
 block_definitions[ 342 ].textures[ FACE_LEFT ] = TEX_COPPER_BLOCK;
 block_definitions[ 342 ].textures[ FACE_BACK ] = TEX_COPPER_BLOCK;
 block_definitions[ 342 ].icon_texture = TEX_COPPER_BLOCK;
-block_definitions[ 342 ].icon_is_isometric = false;
 
 // CHISELED_SANDSTONE (343)
 block_definitions[ 343 ].textures[ FACE_TOP ] = TEX_SANDSTONE_TOP;
@@ -4475,7 +4270,6 @@ block_definitions[ 344 ].textures[ FACE_BACK ] = TEX_COPPER_GRATE;
 block_definitions[ 344 ].icon_texture = TEX_COPPER_GRATE;
 block_definitions[ 344 ].casts_shadow = false;
 block_definitions[ 344 ].hardness = 0.35f;
-block_definitions[ 344 ].icon_is_isometric = false;
 block_definitions[ 344 ].is_seethrough = true;
 block_definitions[ 344 ].no_light = 6815743;
 
@@ -4489,7 +4283,6 @@ block_definitions[ 345 ].textures[ FACE_BACK ] = TEX_COPPER_LANTERN;
 block_definitions[ 345 ].icon_texture = TEX_COPPER_LANTERN;
 block_definitions[ 345 ].casts_shadow = false;
 block_definitions[ 345 ].hardness = 0.35f;
-block_definitions[ 345 ].icon_is_isometric = false;
 block_definitions[ 345 ].is_seethrough = true;
 block_definitions[ 345 ].no_light = 6815743;
 
@@ -4501,7 +4294,6 @@ block_definitions[ 346 ].textures[ FACE_FRONT ] = TEX_COPPER_ORE;
 block_definitions[ 346 ].textures[ FACE_LEFT ] = TEX_COPPER_ORE;
 block_definitions[ 346 ].textures[ FACE_BACK ] = TEX_COPPER_ORE;
 block_definitions[ 346 ].icon_texture = TEX_COPPER_ORE;
-block_definitions[ 346 ].icon_is_isometric = false;
 
 // COPPER_TORCH (347)
 block_definitions[ 347 ].textures[ FACE_TOP ] = TEX_COPPER_TORCH;
@@ -4513,7 +4305,6 @@ block_definitions[ 347 ].textures[ FACE_BACK ] = TEX_COPPER_TORCH;
 block_definitions[ 347 ].icon_texture = TEX_COPPER_TORCH;
 block_definitions[ 347 ].casts_shadow = false;
 block_definitions[ 347 ].hardness = 0.35f;
-block_definitions[ 347 ].icon_is_isometric = false;
 block_definitions[ 347 ].is_seethrough = true;
 block_definitions[ 347 ].no_light = 6815743;
 
@@ -4527,7 +4318,6 @@ block_definitions[ 348 ].textures[ FACE_BACK ] = TEX_COPPER_TRAPDOOR;
 block_definitions[ 348 ].icon_texture = TEX_COPPER_TRAPDOOR;
 block_definitions[ 348 ].casts_shadow = false;
 block_definitions[ 348 ].hardness = 0.35f;
-block_definitions[ 348 ].icon_is_isometric = false;
 block_definitions[ 348 ].is_seethrough = true;
 block_definitions[ 348 ].no_light = 6815743;
 
@@ -4596,7 +4386,7 @@ block_definitions[ 352 ].textures[ FACE_RIGHT ] = TEX_CHORUS_2;
 block_definitions[ 352 ].textures[ FACE_FRONT ] = TEX_CHORUS_2;
 block_definitions[ 352 ].textures[ FACE_LEFT ] = TEX_CHORUS_2;
 block_definitions[ 352 ].textures[ FACE_BACK ] = TEX_CHORUS_2;
-block_definitions[ 352 ].icon_texture = TEX_CHORUS_2;
+block_definitions[ 352 ].icon_texture = TEX_AIR;
 block_definitions[ 352 ].affected_by_redstone_power = false;
 block_definitions[ 352 ].breaks_in_liquid = true;
 block_definitions[ 352 ].casts_shadow = false;
@@ -4618,7 +4408,6 @@ block_definitions[ 353 ].textures[ FACE_BACK ] = TEX_CORAL_PLANT_BLUE;
 block_definitions[ 353 ].icon_texture = TEX_CORAL_PLANT_BLUE;
 block_definitions[ 353 ].casts_shadow = false;
 block_definitions[ 353 ].hardness = 0.35f;
-block_definitions[ 353 ].icon_is_isometric = false;
 block_definitions[ 353 ].is_seethrough = true;
 block_definitions[ 353 ].no_light = 6815743;
 
@@ -4630,7 +4419,6 @@ block_definitions[ 354 ].textures[ FACE_FRONT ] = TEX_CORAL_BLUE;
 block_definitions[ 354 ].textures[ FACE_LEFT ] = TEX_CORAL_BLUE;
 block_definitions[ 354 ].textures[ FACE_BACK ] = TEX_CORAL_BLUE;
 block_definitions[ 354 ].icon_texture = TEX_CORAL_BLUE;
-block_definitions[ 354 ].icon_is_isometric = false;
 
 // CORAL_FAN (355)
 block_definitions[ 355 ].textures[ FACE_TOP ] = TEX_AIR;
@@ -4750,7 +4538,6 @@ block_definitions[ 360 ].textures[ FACE_FRONT ] = TEX_CRACKED_DEEPSLATE_BRICKS;
 block_definitions[ 360 ].textures[ FACE_LEFT ] = TEX_CRACKED_DEEPSLATE_BRICKS;
 block_definitions[ 360 ].textures[ FACE_BACK ] = TEX_CRACKED_DEEPSLATE_BRICKS;
 block_definitions[ 360 ].icon_texture = TEX_CRACKED_DEEPSLATE_BRICKS;
-block_definitions[ 360 ].icon_is_isometric = false;
 
 // BLACK_STAINED_GLASS (361)
 block_definitions[ 361 ].textures[ FACE_TOP ] = TEX_GLASS_BLACK;
@@ -4909,7 +4696,6 @@ block_definitions[ 371 ].textures[ FACE_FRONT ] = TEX_CRACKED_DEEPSLATE_TILES;
 block_definitions[ 371 ].textures[ FACE_LEFT ] = TEX_CRACKED_DEEPSLATE_TILES;
 block_definitions[ 371 ].textures[ FACE_BACK ] = TEX_CRACKED_DEEPSLATE_TILES;
 block_definitions[ 371 ].icon_texture = TEX_CRACKED_DEEPSLATE_TILES;
-block_definitions[ 371 ].icon_is_isometric = false;
 
 // CRACKED_NETHER_BRICKS (372)
 block_definitions[ 372 ].textures[ FACE_TOP ] = TEX_CRACKED_NETHER_BRICKS;
@@ -4919,7 +4705,6 @@ block_definitions[ 372 ].textures[ FACE_FRONT ] = TEX_CRACKED_NETHER_BRICKS;
 block_definitions[ 372 ].textures[ FACE_LEFT ] = TEX_CRACKED_NETHER_BRICKS;
 block_definitions[ 372 ].textures[ FACE_BACK ] = TEX_CRACKED_NETHER_BRICKS;
 block_definitions[ 372 ].icon_texture = TEX_CRACKED_NETHER_BRICKS;
-block_definitions[ 372 ].icon_is_isometric = false;
 
 // CRACKED_POLISHED_BLACKSTONE_BRICKS (373)
 block_definitions[ 373 ].textures[ FACE_TOP ] = TEX_CRACKED_POLISHED_BLACKSTONE_BRICKS;
@@ -4929,7 +4714,6 @@ block_definitions[ 373 ].textures[ FACE_FRONT ] = TEX_CRACKED_POLISHED_BLACKSTON
 block_definitions[ 373 ].textures[ FACE_LEFT ] = TEX_CRACKED_POLISHED_BLACKSTONE_BRICKS;
 block_definitions[ 373 ].textures[ FACE_BACK ] = TEX_CRACKED_POLISHED_BLACKSTONE_BRICKS;
 block_definitions[ 373 ].icon_texture = TEX_CRACKED_POLISHED_BLACKSTONE_BRICKS;
-block_definitions[ 373 ].icon_is_isometric = false;
 
 // CRACKED_STONE_BRICKS (374)
 block_definitions[ 374 ].textures[ FACE_TOP ] = TEX_STONEBRICK_CRACKED;
@@ -4939,7 +4723,6 @@ block_definitions[ 374 ].textures[ FACE_FRONT ] = TEX_STONEBRICK_CRACKED;
 block_definitions[ 374 ].textures[ FACE_LEFT ] = TEX_STONEBRICK_CRACKED;
 block_definitions[ 374 ].textures[ FACE_BACK ] = TEX_STONEBRICK_CRACKED;
 block_definitions[ 374 ].icon_texture = TEX_STONEBRICK_CRACKED;
-block_definitions[ 374 ].icon_is_isometric = false;
 
 // CRAFTER (375)
 block_definitions[ 375 ].textures[ FACE_TOP ] = TEX_CRAFTER_TOP;
@@ -4949,7 +4732,6 @@ block_definitions[ 375 ].textures[ FACE_FRONT ] = TEX_CRAFTER_SOUTH;
 block_definitions[ 375 ].textures[ FACE_LEFT ] = TEX_CRAFTER_WEST;
 block_definitions[ 375 ].textures[ FACE_BACK ] = TEX_CRAFTER_NORTH;
 block_definitions[ 375 ].icon_texture = TEX_CRAFTER_TOP;
-block_definitions[ 375 ].icon_is_isometric = false;
 
 // END_ROD (376)
 block_definitions[ 376 ].textures[ FACE_TOP ] = TEX_AIR;
@@ -4958,7 +4740,7 @@ block_definitions[ 376 ].textures[ FACE_RIGHT ] = TEX_END_ROD;
 block_definitions[ 376 ].textures[ FACE_FRONT ] = TEX_END_ROD;
 block_definitions[ 376 ].textures[ FACE_LEFT ] = TEX_END_ROD;
 block_definitions[ 376 ].textures[ FACE_BACK ] = TEX_END_ROD;
-block_definitions[ 376 ].icon_texture = TEX_END_ROD;
+block_definitions[ 376 ].icon_texture = TEX_AIR;
 block_definitions[ 376 ].affected_by_redstone_power = false;
 block_definitions[ 376 ].breaks_in_liquid = true;
 block_definitions[ 376 ].casts_shadow = false;
@@ -4977,8 +4759,7 @@ block_definitions[ 377 ].textures[ FACE_RIGHT ] = TEX_CREAKING_HEART_SIDE_INACTI
 block_definitions[ 377 ].textures[ FACE_FRONT ] = TEX_CREAKING_HEART_SIDE_INACTIVE;
 block_definitions[ 377 ].textures[ FACE_LEFT ] = TEX_CREAKING_HEART_SIDE_INACTIVE;
 block_definitions[ 377 ].textures[ FACE_BACK ] = TEX_CREAKING_HEART_SIDE_INACTIVE;
-block_definitions[ 377 ].icon_texture = TEX_CREAKING_HEART_SIDE_INACTIVE;
-block_definitions[ 377 ].icon_is_isometric = false;
+block_definitions[ 377 ].icon_texture = TEX_CREAKING_HEART_TOP_INACTIVE;
 
 // CRIMSON_BUTTON (378)
 block_definitions[ 378 ].textures[ FACE_TOP ] = TEX_CRIMSON_PLANKS;
@@ -4988,7 +4769,6 @@ block_definitions[ 378 ].textures[ FACE_FRONT ] = TEX_CRIMSON_PLANKS;
 block_definitions[ 378 ].textures[ FACE_LEFT ] = TEX_CRIMSON_PLANKS;
 block_definitions[ 378 ].textures[ FACE_BACK ] = TEX_CRIMSON_PLANKS;
 block_definitions[ 378 ].icon_texture = TEX_CRIMSON_PLANKS;
-block_definitions[ 378 ].icon_is_isometric = false;
 
 // CRIMSON_DOOR (379)
 block_definitions[ 379 ].textures[ FACE_TOP ] = TEX_CRIMSON_DOOR_LOWER;
@@ -4997,8 +4777,7 @@ block_definitions[ 379 ].textures[ FACE_RIGHT ] = TEX_CRIMSON_DOOR_TOP;
 block_definitions[ 379 ].textures[ FACE_FRONT ] = TEX_CRIMSON_DOOR_TOP;
 block_definitions[ 379 ].textures[ FACE_LEFT ] = TEX_CRIMSON_DOOR_TOP;
 block_definitions[ 379 ].textures[ FACE_BACK ] = TEX_CRIMSON_DOOR_TOP;
-block_definitions[ 379 ].icon_texture = TEX_CRIMSON_DOOR_TOP;
-block_definitions[ 379 ].icon_is_isometric = false;
+block_definitions[ 379 ].icon_texture = TEX_CRIMSON_DOOR_LOWER;
 
 // CRIMSON_DOUBLE_SLAB (380)
 block_definitions[ 380 ].textures[ FACE_TOP ] = TEX_CRIMSON_PLANKS;
@@ -5008,7 +4787,6 @@ block_definitions[ 380 ].textures[ FACE_FRONT ] = TEX_CRIMSON_PLANKS;
 block_definitions[ 380 ].textures[ FACE_LEFT ] = TEX_CRIMSON_PLANKS;
 block_definitions[ 380 ].textures[ FACE_BACK ] = TEX_CRIMSON_PLANKS;
 block_definitions[ 380 ].icon_texture = TEX_CRIMSON_PLANKS;
-block_definitions[ 380 ].icon_is_isometric = false;
 
 // FAT_OAK_SAPLING (381)
 block_definitions[ 381 ].textures[ FACE_TOP ] = TEX_AIR;
@@ -5056,7 +4834,6 @@ block_definitions[ 383 ].textures[ FACE_FRONT ] = TEX_CRIMSON_PLANKS;
 block_definitions[ 383 ].textures[ FACE_LEFT ] = TEX_CRIMSON_PLANKS;
 block_definitions[ 383 ].textures[ FACE_BACK ] = TEX_CRIMSON_PLANKS;
 block_definitions[ 383 ].icon_texture = TEX_CRIMSON_PLANKS;
-block_definitions[ 383 ].icon_is_isometric = false;
 
 // CRIMSON_FENCE_GATE (384)
 block_definitions[ 384 ].textures[ FACE_TOP ] = TEX_CRIMSON_PLANKS;
@@ -5066,7 +4843,6 @@ block_definitions[ 384 ].textures[ FACE_FRONT ] = TEX_CRIMSON_PLANKS;
 block_definitions[ 384 ].textures[ FACE_LEFT ] = TEX_CRIMSON_PLANKS;
 block_definitions[ 384 ].textures[ FACE_BACK ] = TEX_CRIMSON_PLANKS;
 block_definitions[ 384 ].icon_texture = TEX_CRIMSON_PLANKS;
-block_definitions[ 384 ].icon_is_isometric = false;
 
 // POPPY (385)
 block_definitions[ 385 ].textures[ FACE_TOP ] = TEX_AIR;
@@ -5097,7 +4873,7 @@ block_definitions[ 386 ].textures[ FACE_RIGHT ] = TEX_LARGE_BLUE_FLOWER;
 block_definitions[ 386 ].textures[ FACE_FRONT ] = TEX_LARGE_BLUE_FLOWER;
 block_definitions[ 386 ].textures[ FACE_LEFT ] = TEX_LARGE_BLUE_FLOWER;
 block_definitions[ 386 ].textures[ FACE_BACK ] = TEX_LARGE_BLUE_FLOWER;
-block_definitions[ 386 ].icon_texture = TEX_LARGE_BLUE_FLOWER;
+block_definitions[ 386 ].icon_texture = TEX_AIR;
 block_definitions[ 386 ].affected_by_redstone_power = false;
 block_definitions[ 386 ].breaks_in_liquid = true;
 block_definitions[ 386 ].casts_shadow = false;
@@ -5233,7 +5009,7 @@ block_definitions[ 393 ].textures[ FACE_RIGHT ] = TEX_SMALL_SUNFLOWER;
 block_definitions[ 393 ].textures[ FACE_FRONT ] = TEX_SMALL_SUNFLOWER;
 block_definitions[ 393 ].textures[ FACE_LEFT ] = TEX_SMALL_SUNFLOWER;
 block_definitions[ 393 ].textures[ FACE_BACK ] = TEX_SMALL_SUNFLOWER;
-block_definitions[ 393 ].icon_texture = TEX_SMALL_SUNFLOWER;
+block_definitions[ 393 ].icon_texture = TEX_AIR;
 block_definitions[ 393 ].affected_by_redstone_power = false;
 block_definitions[ 393 ].breaks_in_liquid = true;
 block_definitions[ 393 ].casts_shadow = false;
@@ -5313,7 +5089,6 @@ block_definitions[ 397 ].textures[ FACE_FRONT ] = TEX_CRIMSON_PLANKS;
 block_definitions[ 397 ].textures[ FACE_LEFT ] = TEX_CRIMSON_PLANKS;
 block_definitions[ 397 ].textures[ FACE_BACK ] = TEX_CRIMSON_PLANKS;
 block_definitions[ 397 ].icon_texture = TEX_CRIMSON_PLANKS;
-block_definitions[ 397 ].icon_is_isometric = false;
 
 // FERN (398)
 block_definitions[ 398 ].textures[ FACE_TOP ] = TEX_AIR;
@@ -5344,7 +5119,7 @@ block_definitions[ 399 ].textures[ FACE_RIGHT ] = TEX_GRASS_TUFT3;
 block_definitions[ 399 ].textures[ FACE_FRONT ] = TEX_GRASS_TUFT3;
 block_definitions[ 399 ].textures[ FACE_LEFT ] = TEX_GRASS_TUFT3;
 block_definitions[ 399 ].textures[ FACE_BACK ] = TEX_GRASS_TUFT3;
-block_definitions[ 399 ].icon_texture = TEX_GRASS_TUFT3;
+block_definitions[ 399 ].icon_texture = TEX_AIR;
 block_definitions[ 399 ].affected_by_redstone_power = false;
 block_definitions[ 399 ].breaks_in_liquid = true;
 block_definitions[ 399 ].casts_shadow = false;
@@ -5375,7 +5150,6 @@ block_definitions[ 401 ].textures[ FACE_FRONT ] = TEX_CRIMSON_LOG_SIDE;
 block_definitions[ 401 ].textures[ FACE_LEFT ] = TEX_CRIMSON_LOG_SIDE;
 block_definitions[ 401 ].textures[ FACE_BACK ] = TEX_CRIMSON_LOG_SIDE;
 block_definitions[ 401 ].icon_texture = TEX_CRIMSON_LOG_SIDE;
-block_definitions[ 401 ].icon_is_isometric = false;
 
 // CRIMSON_NYLIUM (402)
 block_definitions[ 402 ].textures[ FACE_TOP ] = TEX_CRIMSON_NYLIUM_TOP;
@@ -5384,8 +5158,7 @@ block_definitions[ 402 ].textures[ FACE_RIGHT ] = TEX_CRIMSON_NYLIUM_SIDE;
 block_definitions[ 402 ].textures[ FACE_FRONT ] = TEX_CRIMSON_NYLIUM_SIDE;
 block_definitions[ 402 ].textures[ FACE_LEFT ] = TEX_CRIMSON_NYLIUM_SIDE;
 block_definitions[ 402 ].textures[ FACE_BACK ] = TEX_CRIMSON_NYLIUM_SIDE;
-block_definitions[ 402 ].icon_texture = TEX_CRIMSON_NYLIUM_SIDE;
-block_definitions[ 402 ].icon_is_isometric = false;
+block_definitions[ 402 ].icon_texture = TEX_CRIMSON_NYLIUM_TOP;
 
 // CRIMSON_PLANKS (403)
 block_definitions[ 403 ].textures[ FACE_TOP ] = TEX_CRIMSON_PLANKS;
@@ -5395,7 +5168,6 @@ block_definitions[ 403 ].textures[ FACE_FRONT ] = TEX_CRIMSON_PLANKS;
 block_definitions[ 403 ].textures[ FACE_LEFT ] = TEX_CRIMSON_PLANKS;
 block_definitions[ 403 ].textures[ FACE_BACK ] = TEX_CRIMSON_PLANKS;
 block_definitions[ 403 ].icon_texture = TEX_CRIMSON_PLANKS;
-block_definitions[ 403 ].icon_is_isometric = false;
 
 // CRIMSON_PRESSURE_PLATE (404)
 block_definitions[ 404 ].textures[ FACE_TOP ] = TEX_CRIMSON_PLANKS;
@@ -5405,7 +5177,6 @@ block_definitions[ 404 ].textures[ FACE_FRONT ] = TEX_CRIMSON_PLANKS;
 block_definitions[ 404 ].textures[ FACE_LEFT ] = TEX_CRIMSON_PLANKS;
 block_definitions[ 404 ].textures[ FACE_BACK ] = TEX_CRIMSON_PLANKS;
 block_definitions[ 404 ].icon_texture = TEX_CRIMSON_PLANKS;
-block_definitions[ 404 ].icon_is_isometric = false;
 
 // CRIMSON_ROOTS (405)
 block_definitions[ 405 ].textures[ FACE_TOP ] = TEX_AIR;
@@ -5448,7 +5219,6 @@ block_definitions[ 407 ].textures[ FACE_FRONT ] = TEX_CRIMSON_SHELF;
 block_definitions[ 407 ].textures[ FACE_LEFT ] = TEX_CRIMSON_SHELF;
 block_definitions[ 407 ].textures[ FACE_BACK ] = TEX_CRIMSON_SHELF;
 block_definitions[ 407 ].icon_texture = TEX_CRIMSON_SHELF;
-block_definitions[ 407 ].icon_is_isometric = false;
 
 // DARK_OAK_LOG (408)
 block_definitions[ 408 ].textures[ FACE_TOP ] = TEX_LOG_BIG_OAK_TOP;
@@ -5469,7 +5239,6 @@ block_definitions[ 409 ].textures[ FACE_FRONT ] = TEX_CRIMSON_PLANKS;
 block_definitions[ 409 ].textures[ FACE_LEFT ] = TEX_CRIMSON_PLANKS;
 block_definitions[ 409 ].textures[ FACE_BACK ] = TEX_CRIMSON_PLANKS;
 block_definitions[ 409 ].icon_texture = TEX_CRIMSON_PLANKS;
-block_definitions[ 409 ].icon_is_isometric = false;
 
 // ACACIA_PLANKS (410)
 block_definitions[ 410 ].textures[ FACE_TOP ] = TEX_PLANKS_ACACIA;
@@ -5501,7 +5270,6 @@ block_definitions[ 412 ].textures[ FACE_FRONT ] = TEX_CRIMSON_PLANKS;
 block_definitions[ 412 ].textures[ FACE_LEFT ] = TEX_CRIMSON_PLANKS;
 block_definitions[ 412 ].textures[ FACE_BACK ] = TEX_CRIMSON_PLANKS;
 block_definitions[ 412 ].icon_texture = TEX_CRIMSON_PLANKS;
-block_definitions[ 412 ].icon_is_isometric = false;
 
 // CRIMSON_STANDING_SIGN (413)
 block_definitions[ 413 ].textures[ FACE_TOP ] = TEX_CRIMSON_PLANKS;
@@ -5511,7 +5279,6 @@ block_definitions[ 413 ].textures[ FACE_FRONT ] = TEX_CRIMSON_PLANKS;
 block_definitions[ 413 ].textures[ FACE_LEFT ] = TEX_CRIMSON_PLANKS;
 block_definitions[ 413 ].textures[ FACE_BACK ] = TEX_CRIMSON_PLANKS;
 block_definitions[ 413 ].icon_texture = TEX_CRIMSON_PLANKS;
-block_definitions[ 413 ].icon_is_isometric = false;
 
 // CRIMSON_STEM (414)
 block_definitions[ 414 ].textures[ FACE_TOP ] = TEX_CRIMSON_LOG_TOP;
@@ -5520,8 +5287,7 @@ block_definitions[ 414 ].textures[ FACE_RIGHT ] = TEX_CRIMSON_LOG_SIDE;
 block_definitions[ 414 ].textures[ FACE_FRONT ] = TEX_CRIMSON_LOG_SIDE;
 block_definitions[ 414 ].textures[ FACE_LEFT ] = TEX_CRIMSON_LOG_SIDE;
 block_definitions[ 414 ].textures[ FACE_BACK ] = TEX_CRIMSON_LOG_SIDE;
-block_definitions[ 414 ].icon_texture = TEX_CRIMSON_LOG_SIDE;
-block_definitions[ 414 ].icon_is_isometric = false;
+block_definitions[ 414 ].icon_texture = TEX_CRIMSON_LOG_TOP;
 
 // CRIMSON_TRAPDOOR (415)
 block_definitions[ 415 ].textures[ FACE_TOP ] = TEX_CRIMSON_TRAPDOOR;
@@ -5533,7 +5299,6 @@ block_definitions[ 415 ].textures[ FACE_BACK ] = TEX_CRIMSON_TRAPDOOR;
 block_definitions[ 415 ].icon_texture = TEX_CRIMSON_TRAPDOOR;
 block_definitions[ 415 ].casts_shadow = false;
 block_definitions[ 415 ].hardness = 0.35f;
-block_definitions[ 415 ].icon_is_isometric = false;
 block_definitions[ 415 ].is_seethrough = true;
 block_definitions[ 415 ].no_light = 6815743;
 
@@ -5545,7 +5310,6 @@ block_definitions[ 416 ].textures[ FACE_FRONT ] = TEX_CRIMSON_PLANKS;
 block_definitions[ 416 ].textures[ FACE_LEFT ] = TEX_CRIMSON_PLANKS;
 block_definitions[ 416 ].textures[ FACE_BACK ] = TEX_CRIMSON_PLANKS;
 block_definitions[ 416 ].icon_texture = TEX_CRIMSON_PLANKS;
-block_definitions[ 416 ].icon_is_isometric = false;
 
 // CRYING_OBSIDIAN (417)
 block_definitions[ 417 ].textures[ FACE_TOP ] = TEX_CRYING_OBSIDIAN;
@@ -5556,7 +5320,6 @@ block_definitions[ 417 ].textures[ FACE_LEFT ] = TEX_CRYING_OBSIDIAN;
 block_definitions[ 417 ].textures[ FACE_BACK ] = TEX_CRYING_OBSIDIAN;
 block_definitions[ 417 ].icon_texture = TEX_CRYING_OBSIDIAN;
 block_definitions[ 417 ].emits_light = 10;
-block_definitions[ 417 ].icon_is_isometric = false;
 
 // CUT_COPPER (418)
 block_definitions[ 418 ].textures[ FACE_TOP ] = TEX_CUT_COPPER;
@@ -5566,7 +5329,6 @@ block_definitions[ 418 ].textures[ FACE_FRONT ] = TEX_CUT_COPPER;
 block_definitions[ 418 ].textures[ FACE_LEFT ] = TEX_CUT_COPPER;
 block_definitions[ 418 ].textures[ FACE_BACK ] = TEX_CUT_COPPER;
 block_definitions[ 418 ].icon_texture = TEX_CUT_COPPER;
-block_definitions[ 418 ].icon_is_isometric = false;
 
 // CUT_COPPER_SLAB (419)
 block_definitions[ 419 ].textures[ FACE_TOP ] = TEX_CUT_COPPER;
@@ -5576,7 +5338,6 @@ block_definitions[ 419 ].textures[ FACE_FRONT ] = TEX_CUT_COPPER;
 block_definitions[ 419 ].textures[ FACE_LEFT ] = TEX_CUT_COPPER;
 block_definitions[ 419 ].textures[ FACE_BACK ] = TEX_CUT_COPPER;
 block_definitions[ 419 ].icon_texture = TEX_CUT_COPPER;
-block_definitions[ 419 ].icon_is_isometric = false;
 
 // CUT_COPPER_STAIRS (420)
 block_definitions[ 420 ].textures[ FACE_TOP ] = TEX_CUT_COPPER;
@@ -5586,7 +5347,6 @@ block_definitions[ 420 ].textures[ FACE_FRONT ] = TEX_CUT_COPPER;
 block_definitions[ 420 ].textures[ FACE_LEFT ] = TEX_CUT_COPPER;
 block_definitions[ 420 ].textures[ FACE_BACK ] = TEX_CUT_COPPER;
 block_definitions[ 420 ].icon_texture = TEX_CUT_COPPER;
-block_definitions[ 420 ].icon_is_isometric = false;
 
 // CUT_RED_SANDSTONE (421)
 block_definitions[ 421 ].textures[ FACE_TOP ] = TEX_RED_SANDSTONE_TOP;
@@ -5595,8 +5355,7 @@ block_definitions[ 421 ].textures[ FACE_RIGHT ] = TEX_RED_SANDSTONE_SMOOTH;
 block_definitions[ 421 ].textures[ FACE_FRONT ] = TEX_RED_SANDSTONE_SMOOTH;
 block_definitions[ 421 ].textures[ FACE_LEFT ] = TEX_RED_SANDSTONE_SMOOTH;
 block_definitions[ 421 ].textures[ FACE_BACK ] = TEX_RED_SANDSTONE_SMOOTH;
-block_definitions[ 421 ].icon_texture = TEX_RED_SANDSTONE_SMOOTH;
-block_definitions[ 421 ].icon_is_isometric = false;
+block_definitions[ 421 ].icon_texture = TEX_RED_SANDSTONE_TOP;
 
 // CUT_RED_SANDSTONE_DOUBLE_SLAB (422)
 block_definitions[ 422 ].textures[ FACE_TOP ] = TEX_RED_SANDSTONE_TOP;
@@ -5605,8 +5364,7 @@ block_definitions[ 422 ].textures[ FACE_RIGHT ] = TEX_RED_SANDSTONE_SMOOTH;
 block_definitions[ 422 ].textures[ FACE_FRONT ] = TEX_RED_SANDSTONE_SMOOTH;
 block_definitions[ 422 ].textures[ FACE_LEFT ] = TEX_RED_SANDSTONE_SMOOTH;
 block_definitions[ 422 ].textures[ FACE_BACK ] = TEX_RED_SANDSTONE_SMOOTH;
-block_definitions[ 422 ].icon_texture = TEX_RED_SANDSTONE_SMOOTH;
-block_definitions[ 422 ].icon_is_isometric = false;
+block_definitions[ 422 ].icon_texture = TEX_RED_SANDSTONE_TOP;
 
 // CUT_RED_SANDSTONE_SLAB (423)
 block_definitions[ 423 ].textures[ FACE_TOP ] = TEX_RED_SANDSTONE_TOP;
@@ -5615,8 +5373,7 @@ block_definitions[ 423 ].textures[ FACE_RIGHT ] = TEX_RED_SANDSTONE_SMOOTH;
 block_definitions[ 423 ].textures[ FACE_FRONT ] = TEX_RED_SANDSTONE_SMOOTH;
 block_definitions[ 423 ].textures[ FACE_LEFT ] = TEX_RED_SANDSTONE_SMOOTH;
 block_definitions[ 423 ].textures[ FACE_BACK ] = TEX_RED_SANDSTONE_SMOOTH;
-block_definitions[ 423 ].icon_texture = TEX_RED_SANDSTONE_SMOOTH;
-block_definitions[ 423 ].icon_is_isometric = false;
+block_definitions[ 423 ].icon_texture = TEX_RED_SANDSTONE_TOP;
 
 // CUT_SANDSTONE (424)
 block_definitions[ 424 ].textures[ FACE_TOP ] = TEX_SANDSTONE_TOP;
@@ -5625,8 +5382,7 @@ block_definitions[ 424 ].textures[ FACE_RIGHT ] = TEX_SANDSTONE_SMOOTH;
 block_definitions[ 424 ].textures[ FACE_FRONT ] = TEX_SANDSTONE_SMOOTH;
 block_definitions[ 424 ].textures[ FACE_LEFT ] = TEX_SANDSTONE_SMOOTH;
 block_definitions[ 424 ].textures[ FACE_BACK ] = TEX_SANDSTONE_SMOOTH;
-block_definitions[ 424 ].icon_texture = TEX_SANDSTONE_SMOOTH;
-block_definitions[ 424 ].icon_is_isometric = false;
+block_definitions[ 424 ].icon_texture = TEX_SANDSTONE_TOP;
 
 // CUT_SANDSTONE_DOUBLE_SLAB (425)
 block_definitions[ 425 ].textures[ FACE_TOP ] = TEX_SANDSTONE_TOP;
@@ -5635,8 +5391,7 @@ block_definitions[ 425 ].textures[ FACE_RIGHT ] = TEX_SANDSTONE_SMOOTH;
 block_definitions[ 425 ].textures[ FACE_FRONT ] = TEX_SANDSTONE_SMOOTH;
 block_definitions[ 425 ].textures[ FACE_LEFT ] = TEX_SANDSTONE_SMOOTH;
 block_definitions[ 425 ].textures[ FACE_BACK ] = TEX_SANDSTONE_SMOOTH;
-block_definitions[ 425 ].icon_texture = TEX_SANDSTONE_SMOOTH;
-block_definitions[ 425 ].icon_is_isometric = false;
+block_definitions[ 425 ].icon_texture = TEX_SANDSTONE_TOP;
 
 // CUT_SANDSTONE_SLAB (426)
 block_definitions[ 426 ].textures[ FACE_TOP ] = TEX_SANDSTONE_TOP;
@@ -5645,8 +5400,7 @@ block_definitions[ 426 ].textures[ FACE_RIGHT ] = TEX_SANDSTONE_SMOOTH;
 block_definitions[ 426 ].textures[ FACE_FRONT ] = TEX_SANDSTONE_SMOOTH;
 block_definitions[ 426 ].textures[ FACE_LEFT ] = TEX_SANDSTONE_SMOOTH;
 block_definitions[ 426 ].textures[ FACE_BACK ] = TEX_SANDSTONE_SMOOTH;
-block_definitions[ 426 ].icon_texture = TEX_SANDSTONE_SMOOTH;
-block_definitions[ 426 ].icon_is_isometric = false;
+block_definitions[ 426 ].icon_texture = TEX_SANDSTONE_TOP;
 
 // CYAN_CANDLE (427)
 block_definitions[ 427 ].textures[ FACE_TOP ] = TEX_CYAN_CANDLE;
@@ -5658,7 +5412,6 @@ block_definitions[ 427 ].textures[ FACE_BACK ] = TEX_CYAN_CANDLE;
 block_definitions[ 427 ].icon_texture = TEX_CYAN_CANDLE;
 block_definitions[ 427 ].casts_shadow = false;
 block_definitions[ 427 ].hardness = 0.35f;
-block_definitions[ 427 ].icon_is_isometric = false;
 block_definitions[ 427 ].is_seethrough = true;
 block_definitions[ 427 ].no_light = 6815743;
 
@@ -5669,10 +5422,9 @@ block_definitions[ 428 ].textures[ FACE_RIGHT ] = TEX_CAKE_SIDE;
 block_definitions[ 428 ].textures[ FACE_FRONT ] = TEX_CAKE_SIDE;
 block_definitions[ 428 ].textures[ FACE_LEFT ] = TEX_CAKE_SIDE;
 block_definitions[ 428 ].textures[ FACE_BACK ] = TEX_CAKE_SIDE;
-block_definitions[ 428 ].icon_texture = TEX_CAKE_SIDE;
+block_definitions[ 428 ].icon_texture = TEX_CAKE_TOP;
 block_definitions[ 428 ].casts_shadow = false;
 block_definitions[ 428 ].hardness = 0.35f;
-block_definitions[ 428 ].icon_is_isometric = false;
 block_definitions[ 428 ].is_seethrough = true;
 block_definitions[ 428 ].no_light = 6815743;
 
@@ -5684,7 +5436,6 @@ block_definitions[ 429 ].textures[ FACE_FRONT ] = TEX_WOOL_COLORED_CYAN;
 block_definitions[ 429 ].textures[ FACE_LEFT ] = TEX_WOOL_COLORED_CYAN;
 block_definitions[ 429 ].textures[ FACE_BACK ] = TEX_WOOL_COLORED_CYAN;
 block_definitions[ 429 ].icon_texture = TEX_WOOL_COLORED_CYAN;
-block_definitions[ 429 ].icon_is_isometric = false;
 
 // CYAN_CONCRETE (430)
 block_definitions[ 430 ].textures[ FACE_TOP ] = TEX_CONCRETE_CYAN;
@@ -5694,7 +5445,6 @@ block_definitions[ 430 ].textures[ FACE_FRONT ] = TEX_CONCRETE_CYAN;
 block_definitions[ 430 ].textures[ FACE_LEFT ] = TEX_CONCRETE_CYAN;
 block_definitions[ 430 ].textures[ FACE_BACK ] = TEX_CONCRETE_CYAN;
 block_definitions[ 430 ].icon_texture = TEX_CONCRETE_CYAN;
-block_definitions[ 430 ].icon_is_isometric = false;
 
 // CYAN_CONCRETE_DOUBLE_SLAB (431)
 block_definitions[ 431 ].textures[ FACE_TOP ] = TEX_CONCRETE_CYAN;
@@ -5704,7 +5454,6 @@ block_definitions[ 431 ].textures[ FACE_FRONT ] = TEX_CONCRETE_CYAN;
 block_definitions[ 431 ].textures[ FACE_LEFT ] = TEX_CONCRETE_CYAN;
 block_definitions[ 431 ].textures[ FACE_BACK ] = TEX_CONCRETE_CYAN;
 block_definitions[ 431 ].icon_texture = TEX_CONCRETE_CYAN;
-block_definitions[ 431 ].icon_is_isometric = false;
 
 // CYAN_CONCRETE_POWDER (432)
 block_definitions[ 432 ].textures[ FACE_TOP ] = TEX_CONCRETE_POWDER_CYAN;
@@ -5714,7 +5463,6 @@ block_definitions[ 432 ].textures[ FACE_FRONT ] = TEX_CONCRETE_POWDER_CYAN;
 block_definitions[ 432 ].textures[ FACE_LEFT ] = TEX_CONCRETE_POWDER_CYAN;
 block_definitions[ 432 ].textures[ FACE_BACK ] = TEX_CONCRETE_POWDER_CYAN;
 block_definitions[ 432 ].icon_texture = TEX_CONCRETE_POWDER_CYAN;
-block_definitions[ 432 ].icon_is_isometric = false;
 
 // CYAN_CONCRETE_SLAB (433)
 block_definitions[ 433 ].textures[ FACE_TOP ] = TEX_CONCRETE_CYAN;
@@ -5724,7 +5472,6 @@ block_definitions[ 433 ].textures[ FACE_FRONT ] = TEX_CONCRETE_CYAN;
 block_definitions[ 433 ].textures[ FACE_LEFT ] = TEX_CONCRETE_CYAN;
 block_definitions[ 433 ].textures[ FACE_BACK ] = TEX_CONCRETE_CYAN;
 block_definitions[ 433 ].icon_texture = TEX_CONCRETE_CYAN;
-block_definitions[ 433 ].icon_is_isometric = false;
 
 // CYAN_CONCRETE_STAIRS (434)
 block_definitions[ 434 ].textures[ FACE_TOP ] = TEX_CONCRETE_CYAN;
@@ -5734,7 +5481,6 @@ block_definitions[ 434 ].textures[ FACE_FRONT ] = TEX_CONCRETE_CYAN;
 block_definitions[ 434 ].textures[ FACE_LEFT ] = TEX_CONCRETE_CYAN;
 block_definitions[ 434 ].textures[ FACE_BACK ] = TEX_CONCRETE_CYAN;
 block_definitions[ 434 ].icon_texture = TEX_CONCRETE_CYAN;
-block_definitions[ 434 ].icon_is_isometric = false;
 
 // CYAN_GLAZED_TERRACOTTA (435)
 block_definitions[ 435 ].textures[ FACE_TOP ] = TEX_GLAZED_TERRACOTTA_CYAN;
@@ -5744,7 +5490,6 @@ block_definitions[ 435 ].textures[ FACE_FRONT ] = TEX_GLAZED_TERRACOTTA_CYAN;
 block_definitions[ 435 ].textures[ FACE_LEFT ] = TEX_GLAZED_TERRACOTTA_CYAN;
 block_definitions[ 435 ].textures[ FACE_BACK ] = TEX_GLAZED_TERRACOTTA_CYAN;
 block_definitions[ 435 ].icon_texture = TEX_GLAZED_TERRACOTTA_CYAN;
-block_definitions[ 435 ].icon_is_isometric = false;
 
 // BIRCH_LOG (436)
 block_definitions[ 436 ].textures[ FACE_TOP ] = TEX_LOG_BIRCH_TOP;
@@ -5765,7 +5510,6 @@ block_definitions[ 437 ].textures[ FACE_FRONT ] = TEX_SHULKER_TOP_CYAN;
 block_definitions[ 437 ].textures[ FACE_LEFT ] = TEX_SHULKER_TOP_CYAN;
 block_definitions[ 437 ].textures[ FACE_BACK ] = TEX_SHULKER_TOP_CYAN;
 block_definitions[ 437 ].icon_texture = TEX_SHULKER_TOP_CYAN;
-block_definitions[ 437 ].icon_is_isometric = false;
 
 // JUNGLE_LOG (438)
 block_definitions[ 438 ].textures[ FACE_TOP ] = TEX_LOG_JUNGLE_TOP;
@@ -5789,7 +5533,6 @@ block_definitions[ 439 ].icon_texture = TEX_GLASS_CYAN;
 block_definitions[ 439 ].affected_by_redstone_power = false;
 block_definitions[ 439 ].casts_shadow = false;
 block_definitions[ 439 ].hardness = 0.449999988f;
-block_definitions[ 439 ].icon_is_isometric = false;
 block_definitions[ 439 ].is_seethrough = true;
 block_definitions[ 439 ].renderOrder = RenderOrder_Translucent;
 
@@ -5804,7 +5547,6 @@ block_definitions[ 440 ].icon_texture = TEX_GLASS_CYAN;
 block_definitions[ 440 ].affected_by_redstone_power = false;
 block_definitions[ 440 ].casts_shadow = false;
 block_definitions[ 440 ].hardness = 0.449999988f;
-block_definitions[ 440 ].icon_is_isometric = false;
 block_definitions[ 440 ].is_seethrough = true;
 block_definitions[ 440 ].renderOrder = RenderOrder_Translucent;
 
@@ -5816,7 +5558,6 @@ block_definitions[ 441 ].textures[ FACE_FRONT ] = TEX_HARDENED_CLAY_STAINED_CYAN
 block_definitions[ 441 ].textures[ FACE_LEFT ] = TEX_HARDENED_CLAY_STAINED_CYAN;
 block_definitions[ 441 ].textures[ FACE_BACK ] = TEX_HARDENED_CLAY_STAINED_CYAN;
 block_definitions[ 441 ].icon_texture = TEX_HARDENED_CLAY_STAINED_CYAN;
-block_definitions[ 441 ].icon_is_isometric = false;
 
 // CYAN_WOOL (442)
 block_definitions[ 442 ].textures[ FACE_TOP ] = TEX_WOOL_COLORED_CYAN;
@@ -5826,7 +5567,6 @@ block_definitions[ 442 ].textures[ FACE_FRONT ] = TEX_WOOL_COLORED_CYAN;
 block_definitions[ 442 ].textures[ FACE_LEFT ] = TEX_WOOL_COLORED_CYAN;
 block_definitions[ 442 ].textures[ FACE_BACK ] = TEX_WOOL_COLORED_CYAN;
 block_definitions[ 442 ].icon_texture = TEX_WOOL_COLORED_CYAN;
-block_definitions[ 442 ].icon_is_isometric = false;
 
 // CYAN_WOOL_DOUBLE_SLAB (443)
 block_definitions[ 443 ].textures[ FACE_TOP ] = TEX_WOOL_COLORED_CYAN;
@@ -5836,7 +5576,6 @@ block_definitions[ 443 ].textures[ FACE_FRONT ] = TEX_WOOL_COLORED_CYAN;
 block_definitions[ 443 ].textures[ FACE_LEFT ] = TEX_WOOL_COLORED_CYAN;
 block_definitions[ 443 ].textures[ FACE_BACK ] = TEX_WOOL_COLORED_CYAN;
 block_definitions[ 443 ].icon_texture = TEX_WOOL_COLORED_CYAN;
-block_definitions[ 443 ].icon_is_isometric = false;
 
 // CYAN_WOOL_SLAB (444)
 block_definitions[ 444 ].textures[ FACE_TOP ] = TEX_WOOL_COLORED_CYAN;
@@ -5846,7 +5585,6 @@ block_definitions[ 444 ].textures[ FACE_FRONT ] = TEX_WOOL_COLORED_CYAN;
 block_definitions[ 444 ].textures[ FACE_LEFT ] = TEX_WOOL_COLORED_CYAN;
 block_definitions[ 444 ].textures[ FACE_BACK ] = TEX_WOOL_COLORED_CYAN;
 block_definitions[ 444 ].icon_texture = TEX_WOOL_COLORED_CYAN;
-block_definitions[ 444 ].icon_is_isometric = false;
 
 // CYAN_WOOL_STAIRS (445)
 block_definitions[ 445 ].textures[ FACE_TOP ] = TEX_WOOL_COLORED_CYAN;
@@ -5856,7 +5594,6 @@ block_definitions[ 445 ].textures[ FACE_FRONT ] = TEX_WOOL_COLORED_CYAN;
 block_definitions[ 445 ].textures[ FACE_LEFT ] = TEX_WOOL_COLORED_CYAN;
 block_definitions[ 445 ].textures[ FACE_BACK ] = TEX_WOOL_COLORED_CYAN;
 block_definitions[ 445 ].icon_texture = TEX_WOOL_COLORED_CYAN;
-block_definitions[ 445 ].icon_is_isometric = false;
 
 // DAMAGED_ANVIL (446)
 block_definitions[ 446 ].textures[ FACE_TOP ] = TEX_ANVIL_TOP_DAMAGED_2;
@@ -5865,10 +5602,9 @@ block_definitions[ 446 ].textures[ FACE_RIGHT ] = TEX_ANVIL_BASE;
 block_definitions[ 446 ].textures[ FACE_FRONT ] = TEX_ANVIL_BASE;
 block_definitions[ 446 ].textures[ FACE_LEFT ] = TEX_ANVIL_BASE;
 block_definitions[ 446 ].textures[ FACE_BACK ] = TEX_ANVIL_BASE;
-block_definitions[ 446 ].icon_texture = TEX_ANVIL_BASE;
+block_definitions[ 446 ].icon_texture = TEX_ANVIL_TOP_DAMAGED_2;
 block_definitions[ 446 ].casts_shadow = false;
 block_definitions[ 446 ].hardness = 0.35f;
-block_definitions[ 446 ].icon_is_isometric = false;
 block_definitions[ 446 ].is_seethrough = true;
 block_definitions[ 446 ].no_light = 6815743;
 
@@ -5880,7 +5616,6 @@ block_definitions[ 447 ].textures[ FACE_FRONT ] = TEX_PLANKS_BIG_OAK;
 block_definitions[ 447 ].textures[ FACE_LEFT ] = TEX_PLANKS_BIG_OAK;
 block_definitions[ 447 ].textures[ FACE_BACK ] = TEX_PLANKS_BIG_OAK;
 block_definitions[ 447 ].icon_texture = TEX_PLANKS_BIG_OAK;
-block_definitions[ 447 ].icon_is_isometric = false;
 
 // DARK_OAK_FENCE (448)
 block_definitions[ 448 ].textures[ FACE_TOP ] = TEX_PLANKS_BIG_OAK;
@@ -5890,7 +5625,6 @@ block_definitions[ 448 ].textures[ FACE_FRONT ] = TEX_PLANKS_BIG_OAK;
 block_definitions[ 448 ].textures[ FACE_LEFT ] = TEX_PLANKS_BIG_OAK;
 block_definitions[ 448 ].textures[ FACE_BACK ] = TEX_PLANKS_BIG_OAK;
 block_definitions[ 448 ].icon_texture = TEX_PLANKS_BIG_OAK;
-block_definitions[ 448 ].icon_is_isometric = false;
 
 // DARK_OAK_FENCE_GATE (449)
 block_definitions[ 449 ].textures[ FACE_TOP ] = TEX_PLANKS_BIG_OAK;
@@ -5900,7 +5634,6 @@ block_definitions[ 449 ].textures[ FACE_FRONT ] = TEX_PLANKS_BIG_OAK;
 block_definitions[ 449 ].textures[ FACE_LEFT ] = TEX_PLANKS_BIG_OAK;
 block_definitions[ 449 ].textures[ FACE_BACK ] = TEX_PLANKS_BIG_OAK;
 block_definitions[ 449 ].icon_texture = TEX_PLANKS_BIG_OAK;
-block_definitions[ 449 ].icon_is_isometric = false;
 
 // DARK_OAK_HANGING_SIGN (450)
 block_definitions[ 450 ].textures[ FACE_TOP ] = TEX_PLANKS_BIG_OAK;
@@ -5910,7 +5643,6 @@ block_definitions[ 450 ].textures[ FACE_FRONT ] = TEX_PLANKS_BIG_OAK;
 block_definitions[ 450 ].textures[ FACE_LEFT ] = TEX_PLANKS_BIG_OAK;
 block_definitions[ 450 ].textures[ FACE_BACK ] = TEX_PLANKS_BIG_OAK;
 block_definitions[ 450 ].icon_texture = TEX_PLANKS_BIG_OAK;
-block_definitions[ 450 ].icon_is_isometric = false;
 
 // DARK_OAK_LEAVES (451)
 block_definitions[ 451 ].textures[ FACE_TOP ] = TEX_LEAVES_BIG_OAK_CARRIED;
@@ -5922,7 +5654,6 @@ block_definitions[ 451 ].textures[ FACE_BACK ] = TEX_LEAVES_BIG_OAK_CARRIED;
 block_definitions[ 451 ].icon_texture = TEX_LEAVES_BIG_OAK_CARRIED;
 block_definitions[ 451 ].casts_shadow = false;
 block_definitions[ 451 ].hardness = 0.35f;
-block_definitions[ 451 ].icon_is_isometric = false;
 block_definitions[ 451 ].is_seethrough = true;
 block_definitions[ 451 ].no_light = 6815743;
 
@@ -5934,7 +5665,6 @@ block_definitions[ 452 ].textures[ FACE_FRONT ] = TEX_DARK_OAK_SHELF;
 block_definitions[ 452 ].textures[ FACE_LEFT ] = TEX_DARK_OAK_SHELF;
 block_definitions[ 452 ].textures[ FACE_BACK ] = TEX_DARK_OAK_SHELF;
 block_definitions[ 452 ].icon_texture = TEX_DARK_OAK_SHELF;
-block_definitions[ 452 ].icon_is_isometric = false;
 
 // SPRUCE_BUTTON (453)
 block_definitions[ 453 ].textures[ FACE_TOP ] = TEX_PLANKS_SPRUCE;
@@ -6054,7 +5784,6 @@ block_definitions[ 458 ].textures[ FACE_FRONT ] = TEX_PLANKS_BIG_OAK;
 block_definitions[ 458 ].textures[ FACE_LEFT ] = TEX_PLANKS_BIG_OAK;
 block_definitions[ 458 ].textures[ FACE_BACK ] = TEX_PLANKS_BIG_OAK;
 block_definitions[ 458 ].icon_texture = TEX_PLANKS_BIG_OAK;
-block_definitions[ 458 ].icon_is_isometric = false;
 
 // DARK_OAK_TRAPDOOR (459)
 block_definitions[ 459 ].textures[ FACE_TOP ] = TEX_DARK_OAK_TRAPDOOR;
@@ -6064,7 +5793,6 @@ block_definitions[ 459 ].textures[ FACE_FRONT ] = TEX_DARK_OAK_TRAPDOOR;
 block_definitions[ 459 ].textures[ FACE_LEFT ] = TEX_DARK_OAK_TRAPDOOR;
 block_definitions[ 459 ].textures[ FACE_BACK ] = TEX_DARK_OAK_TRAPDOOR;
 block_definitions[ 459 ].icon_texture = TEX_DARK_OAK_TRAPDOOR;
-block_definitions[ 459 ].icon_is_isometric = false;
 
 // GRASS_TUFT4 (460)
 block_definitions[ 460 ].textures[ FACE_TOP ] = TEX_AIR;
@@ -6073,7 +5801,7 @@ block_definitions[ 460 ].textures[ FACE_RIGHT ] = TEX_GRASS_TUFT4;
 block_definitions[ 460 ].textures[ FACE_FRONT ] = TEX_GRASS_TUFT4;
 block_definitions[ 460 ].textures[ FACE_LEFT ] = TEX_GRASS_TUFT4;
 block_definitions[ 460 ].textures[ FACE_BACK ] = TEX_GRASS_TUFT4;
-block_definitions[ 460 ].icon_texture = TEX_GRASS_TUFT4;
+block_definitions[ 460 ].icon_texture = TEX_AIR;
 block_definitions[ 460 ].affected_by_redstone_power = false;
 block_definitions[ 460 ].breaks_in_liquid = true;
 block_definitions[ 460 ].casts_shadow = false;
@@ -6093,7 +5821,6 @@ block_definitions[ 461 ].textures[ FACE_FRONT ] = TEX_LOG_BIG_OAK;
 block_definitions[ 461 ].textures[ FACE_LEFT ] = TEX_LOG_BIG_OAK;
 block_definitions[ 461 ].textures[ FACE_BACK ] = TEX_LOG_BIG_OAK;
 block_definitions[ 461 ].icon_texture = TEX_LOG_BIG_OAK;
-block_definitions[ 461 ].icon_is_isometric = false;
 
 // DARK_PRISMARINE (462)
 block_definitions[ 462 ].textures[ FACE_TOP ] = TEX_PRISMARINE_DARK;
@@ -6103,7 +5830,6 @@ block_definitions[ 462 ].textures[ FACE_FRONT ] = TEX_PRISMARINE_DARK;
 block_definitions[ 462 ].textures[ FACE_LEFT ] = TEX_PRISMARINE_DARK;
 block_definitions[ 462 ].textures[ FACE_BACK ] = TEX_PRISMARINE_DARK;
 block_definitions[ 462 ].icon_texture = TEX_PRISMARINE_DARK;
-block_definitions[ 462 ].icon_is_isometric = false;
 
 // DARK_PRISMARINE_DOUBLE_SLAB (463)
 block_definitions[ 463 ].textures[ FACE_TOP ] = TEX_PRISMARINE_DARK;
@@ -6113,7 +5839,6 @@ block_definitions[ 463 ].textures[ FACE_FRONT ] = TEX_PRISMARINE_DARK;
 block_definitions[ 463 ].textures[ FACE_LEFT ] = TEX_PRISMARINE_DARK;
 block_definitions[ 463 ].textures[ FACE_BACK ] = TEX_PRISMARINE_DARK;
 block_definitions[ 463 ].icon_texture = TEX_PRISMARINE_DARK;
-block_definitions[ 463 ].icon_is_isometric = false;
 
 // DARK_PRISMARINE_SLAB (464)
 block_definitions[ 464 ].textures[ FACE_TOP ] = TEX_PRISMARINE_DARK;
@@ -6123,7 +5848,6 @@ block_definitions[ 464 ].textures[ FACE_FRONT ] = TEX_PRISMARINE_DARK;
 block_definitions[ 464 ].textures[ FACE_LEFT ] = TEX_PRISMARINE_DARK;
 block_definitions[ 464 ].textures[ FACE_BACK ] = TEX_PRISMARINE_DARK;
 block_definitions[ 464 ].icon_texture = TEX_PRISMARINE_DARK;
-block_definitions[ 464 ].icon_is_isometric = false;
 
 // DARK_PRISMARINE_STAIRS (465)
 block_definitions[ 465 ].textures[ FACE_TOP ] = TEX_PRISMARINE_DARK;
@@ -6133,7 +5857,6 @@ block_definitions[ 465 ].textures[ FACE_FRONT ] = TEX_PRISMARINE_DARK;
 block_definitions[ 465 ].textures[ FACE_LEFT ] = TEX_PRISMARINE_DARK;
 block_definitions[ 465 ].textures[ FACE_BACK ] = TEX_PRISMARINE_DARK;
 block_definitions[ 465 ].icon_texture = TEX_PRISMARINE_DARK;
-block_definitions[ 465 ].icon_is_isometric = false;
 
 // DARKOAK_STANDING_SIGN (466)
 block_definitions[ 466 ].textures[ FACE_TOP ] = TEX_PLANKS_BIG_OAK;
@@ -6143,7 +5866,6 @@ block_definitions[ 466 ].textures[ FACE_FRONT ] = TEX_PLANKS_BIG_OAK;
 block_definitions[ 466 ].textures[ FACE_LEFT ] = TEX_PLANKS_BIG_OAK;
 block_definitions[ 466 ].textures[ FACE_BACK ] = TEX_PLANKS_BIG_OAK;
 block_definitions[ 466 ].icon_texture = TEX_PLANKS_BIG_OAK;
-block_definitions[ 466 ].icon_is_isometric = false;
 
 // BEETROOT (467)
 block_definitions[ 467 ].textures[ FACE_TOP ] = TEX_AIR;
@@ -6172,7 +5894,6 @@ block_definitions[ 468 ].textures[ FACE_FRONT ] = TEX_PLANKS_BIG_OAK;
 block_definitions[ 468 ].textures[ FACE_LEFT ] = TEX_PLANKS_BIG_OAK;
 block_definitions[ 468 ].textures[ FACE_BACK ] = TEX_PLANKS_BIG_OAK;
 block_definitions[ 468 ].icon_texture = TEX_PLANKS_BIG_OAK;
-block_definitions[ 468 ].icon_is_isometric = false;
 
 // TUBE_CORAL_FAN (469)
 block_definitions[ 469 ].textures[ FACE_TOP ] = TEX_AIR;
@@ -6201,8 +5922,7 @@ block_definitions[ 470 ].textures[ FACE_RIGHT ] = TEX_DAYLIGHT_DETECTOR_SIDE;
 block_definitions[ 470 ].textures[ FACE_FRONT ] = TEX_DAYLIGHT_DETECTOR_SIDE;
 block_definitions[ 470 ].textures[ FACE_LEFT ] = TEX_DAYLIGHT_DETECTOR_SIDE;
 block_definitions[ 470 ].textures[ FACE_BACK ] = TEX_DAYLIGHT_DETECTOR_SIDE;
-block_definitions[ 470 ].icon_texture = TEX_DAYLIGHT_DETECTOR_SIDE;
-block_definitions[ 470 ].icon_is_isometric = false;
+block_definitions[ 470 ].icon_texture = TEX_DAYLIGHT_DETECTOR_TOP;
 
 // DAYLIGHT_DETECTOR_INVERTED (471)
 block_definitions[ 471 ].textures[ FACE_TOP ] = TEX_DAYLIGHT_DETECTOR_TOP;
@@ -6211,8 +5931,7 @@ block_definitions[ 471 ].textures[ FACE_RIGHT ] = TEX_DAYLIGHT_DETECTOR_SIDE;
 block_definitions[ 471 ].textures[ FACE_FRONT ] = TEX_DAYLIGHT_DETECTOR_SIDE;
 block_definitions[ 471 ].textures[ FACE_LEFT ] = TEX_DAYLIGHT_DETECTOR_SIDE;
 block_definitions[ 471 ].textures[ FACE_BACK ] = TEX_DAYLIGHT_DETECTOR_SIDE;
-block_definitions[ 471 ].icon_texture = TEX_DAYLIGHT_DETECTOR_SIDE;
-block_definitions[ 471 ].icon_is_isometric = false;
+block_definitions[ 471 ].icon_texture = TEX_DAYLIGHT_DETECTOR_TOP;
 
 // DEAD_BRAIN_CORAL_BLOCK (472)
 block_definitions[ 472 ].textures[ FACE_TOP ] = TEX_CORAL_PINK_DEAD;
@@ -6222,7 +5941,6 @@ block_definitions[ 472 ].textures[ FACE_FRONT ] = TEX_CORAL_PINK_DEAD;
 block_definitions[ 472 ].textures[ FACE_LEFT ] = TEX_CORAL_PINK_DEAD;
 block_definitions[ 472 ].textures[ FACE_BACK ] = TEX_CORAL_PINK_DEAD;
 block_definitions[ 472 ].icon_texture = TEX_CORAL_PINK_DEAD;
-block_definitions[ 472 ].icon_is_isometric = false;
 
 // DEAD_BRAIN_CORAL_WALL_FAN (473)
 block_definitions[ 473 ].textures[ FACE_TOP ] = TEX_CORAL_FAN_PINK_DEAD;
@@ -6234,7 +5952,6 @@ block_definitions[ 473 ].textures[ FACE_BACK ] = TEX_CORAL_FAN_PINK_DEAD;
 block_definitions[ 473 ].icon_texture = TEX_CORAL_FAN_PINK_DEAD;
 block_definitions[ 473 ].casts_shadow = false;
 block_definitions[ 473 ].hardness = 0.35f;
-block_definitions[ 473 ].icon_is_isometric = false;
 block_definitions[ 473 ].is_seethrough = true;
 block_definitions[ 473 ].no_light = 6815743;
 
@@ -6246,7 +5963,6 @@ block_definitions[ 474 ].textures[ FACE_FRONT ] = TEX_CORAL_PURPLE_DEAD;
 block_definitions[ 474 ].textures[ FACE_LEFT ] = TEX_CORAL_PURPLE_DEAD;
 block_definitions[ 474 ].textures[ FACE_BACK ] = TEX_CORAL_PURPLE_DEAD;
 block_definitions[ 474 ].icon_texture = TEX_CORAL_PURPLE_DEAD;
-block_definitions[ 474 ].icon_is_isometric = false;
 
 // SPRUCE_SLAB (475)
 block_definitions[ 475 ].textures[ FACE_TOP ] = TEX_PLANKS_SPRUCE;
@@ -6323,7 +6039,6 @@ block_definitions[ 480 ].textures[ FACE_BACK ] = TEX_CORAL_FAN_PURPLE_DEAD;
 block_definitions[ 480 ].icon_texture = TEX_CORAL_FAN_PURPLE_DEAD;
 block_definitions[ 480 ].casts_shadow = false;
 block_definitions[ 480 ].hardness = 0.35f;
-block_definitions[ 480 ].icon_is_isometric = false;
 block_definitions[ 480 ].is_seethrough = true;
 block_definitions[ 480 ].no_light = 6815743;
 
@@ -6335,7 +6050,6 @@ block_definitions[ 481 ].textures[ FACE_FRONT ] = TEX_CORAL_RED_DEAD;
 block_definitions[ 481 ].textures[ FACE_LEFT ] = TEX_CORAL_RED_DEAD;
 block_definitions[ 481 ].textures[ FACE_BACK ] = TEX_CORAL_RED_DEAD;
 block_definitions[ 481 ].icon_texture = TEX_CORAL_RED_DEAD;
-block_definitions[ 481 ].icon_is_isometric = false;
 
 // DEAD_FIRE_CORAL_WALL_FAN (482)
 block_definitions[ 482 ].textures[ FACE_TOP ] = TEX_CORAL_FAN_RED_DEAD;
@@ -6347,7 +6061,6 @@ block_definitions[ 482 ].textures[ FACE_BACK ] = TEX_CORAL_FAN_RED_DEAD;
 block_definitions[ 482 ].icon_texture = TEX_CORAL_FAN_RED_DEAD;
 block_definitions[ 482 ].casts_shadow = false;
 block_definitions[ 482 ].hardness = 0.35f;
-block_definitions[ 482 ].icon_is_isometric = false;
 block_definitions[ 482 ].is_seethrough = true;
 block_definitions[ 482 ].no_light = 6815743;
 
@@ -6359,7 +6072,6 @@ block_definitions[ 483 ].textures[ FACE_FRONT ] = TEX_CORAL_YELLOW_DEAD;
 block_definitions[ 483 ].textures[ FACE_LEFT ] = TEX_CORAL_YELLOW_DEAD;
 block_definitions[ 483 ].textures[ FACE_BACK ] = TEX_CORAL_YELLOW_DEAD;
 block_definitions[ 483 ].icon_texture = TEX_CORAL_YELLOW_DEAD;
-block_definitions[ 483 ].icon_is_isometric = false;
 
 // DEAD_HORN_CORAL_WALL_FAN (484)
 block_definitions[ 484 ].textures[ FACE_TOP ] = TEX_CORAL_FAN_YELLOW_DEAD;
@@ -6371,7 +6083,6 @@ block_definitions[ 484 ].textures[ FACE_BACK ] = TEX_CORAL_FAN_YELLOW_DEAD;
 block_definitions[ 484 ].icon_texture = TEX_CORAL_FAN_YELLOW_DEAD;
 block_definitions[ 484 ].casts_shadow = false;
 block_definitions[ 484 ].hardness = 0.35f;
-block_definitions[ 484 ].icon_is_isometric = false;
 block_definitions[ 484 ].is_seethrough = true;
 block_definitions[ 484 ].no_light = 6815743;
 
@@ -6383,7 +6094,6 @@ block_definitions[ 485 ].textures[ FACE_FRONT ] = TEX_CORAL_BLUE_DEAD;
 block_definitions[ 485 ].textures[ FACE_LEFT ] = TEX_CORAL_BLUE_DEAD;
 block_definitions[ 485 ].textures[ FACE_BACK ] = TEX_CORAL_BLUE_DEAD;
 block_definitions[ 485 ].icon_texture = TEX_CORAL_BLUE_DEAD;
-block_definitions[ 485 ].icon_is_isometric = false;
 
 // DEAD_TUBE_CORAL_WALL_FAN (486)
 block_definitions[ 486 ].textures[ FACE_TOP ] = TEX_CORAL_FAN_BLUE_DEAD;
@@ -6395,7 +6105,6 @@ block_definitions[ 486 ].textures[ FACE_BACK ] = TEX_CORAL_FAN_BLUE_DEAD;
 block_definitions[ 486 ].icon_texture = TEX_CORAL_FAN_BLUE_DEAD;
 block_definitions[ 486 ].casts_shadow = false;
 block_definitions[ 486 ].hardness = 0.35f;
-block_definitions[ 486 ].icon_is_isometric = false;
 block_definitions[ 486 ].is_seethrough = true;
 block_definitions[ 486 ].no_light = 6815743;
 
@@ -6409,7 +6118,6 @@ block_definitions[ 487 ].textures[ FACE_BACK ] = TEX_DECORATED_POT_SIDE;
 block_definitions[ 487 ].icon_texture = TEX_DECORATED_POT_SIDE;
 block_definitions[ 487 ].casts_shadow = false;
 block_definitions[ 487 ].hardness = 0.35f;
-block_definitions[ 487 ].icon_is_isometric = false;
 block_definitions[ 487 ].is_seethrough = true;
 block_definitions[ 487 ].no_light = 6815743;
 
@@ -6453,8 +6161,7 @@ block_definitions[ 491 ].textures[ FACE_RIGHT ] = TEX_DEEPSLATE;
 block_definitions[ 491 ].textures[ FACE_FRONT ] = TEX_DEEPSLATE;
 block_definitions[ 491 ].textures[ FACE_LEFT ] = TEX_DEEPSLATE;
 block_definitions[ 491 ].textures[ FACE_BACK ] = TEX_DEEPSLATE;
-block_definitions[ 491 ].icon_texture = TEX_DEEPSLATE;
-block_definitions[ 491 ].icon_is_isometric = false;
+block_definitions[ 491 ].icon_texture = TEX_DEEPSLATE_TOP;
 
 // DEEPSLATE_BRICK_DOUBLE_SLAB (492)
 block_definitions[ 492 ].textures[ FACE_TOP ] = TEX_DEEPSLATE_BRICKS;
@@ -6464,7 +6171,6 @@ block_definitions[ 492 ].textures[ FACE_FRONT ] = TEX_DEEPSLATE_BRICKS;
 block_definitions[ 492 ].textures[ FACE_LEFT ] = TEX_DEEPSLATE_BRICKS;
 block_definitions[ 492 ].textures[ FACE_BACK ] = TEX_DEEPSLATE_BRICKS;
 block_definitions[ 492 ].icon_texture = TEX_DEEPSLATE_BRICKS;
-block_definitions[ 492 ].icon_is_isometric = false;
 
 // RED_SANDSTONE_SLAB (493)
 block_definitions[ 493 ].textures[ FACE_TOP ] = TEX_RED_SANDSTONE_TOP;
@@ -6487,7 +6193,6 @@ block_definitions[ 494 ].textures[ FACE_FRONT ] = TEX_DEEPSLATE_BRICKS;
 block_definitions[ 494 ].textures[ FACE_LEFT ] = TEX_DEEPSLATE_BRICKS;
 block_definitions[ 494 ].textures[ FACE_BACK ] = TEX_DEEPSLATE_BRICKS;
 block_definitions[ 494 ].icon_texture = TEX_DEEPSLATE_BRICKS;
-block_definitions[ 494 ].icon_is_isometric = false;
 
 // DEEPSLATE_BRICK_STAIRS (495)
 block_definitions[ 495 ].textures[ FACE_TOP ] = TEX_DEEPSLATE_BRICKS;
@@ -6497,7 +6202,6 @@ block_definitions[ 495 ].textures[ FACE_FRONT ] = TEX_DEEPSLATE_BRICKS;
 block_definitions[ 495 ].textures[ FACE_LEFT ] = TEX_DEEPSLATE_BRICKS;
 block_definitions[ 495 ].textures[ FACE_BACK ] = TEX_DEEPSLATE_BRICKS;
 block_definitions[ 495 ].icon_texture = TEX_DEEPSLATE_BRICKS;
-block_definitions[ 495 ].icon_is_isometric = false;
 
 // DEEPSLATE_BRICK_WALL (496)
 block_definitions[ 496 ].textures[ FACE_TOP ] = TEX_DEEPSLATE_BRICKS;
@@ -6507,7 +6211,6 @@ block_definitions[ 496 ].textures[ FACE_FRONT ] = TEX_DEEPSLATE_BRICKS;
 block_definitions[ 496 ].textures[ FACE_LEFT ] = TEX_DEEPSLATE_BRICKS;
 block_definitions[ 496 ].textures[ FACE_BACK ] = TEX_DEEPSLATE_BRICKS;
 block_definitions[ 496 ].icon_texture = TEX_DEEPSLATE_BRICKS;
-block_definitions[ 496 ].icon_is_isometric = false;
 
 // DEEPSLATE_BRICKS (497)
 block_definitions[ 497 ].textures[ FACE_TOP ] = TEX_DEEPSLATE_BRICKS;
@@ -6517,7 +6220,6 @@ block_definitions[ 497 ].textures[ FACE_FRONT ] = TEX_DEEPSLATE_BRICKS;
 block_definitions[ 497 ].textures[ FACE_LEFT ] = TEX_DEEPSLATE_BRICKS;
 block_definitions[ 497 ].textures[ FACE_BACK ] = TEX_DEEPSLATE_BRICKS;
 block_definitions[ 497 ].icon_texture = TEX_DEEPSLATE_BRICKS;
-block_definitions[ 497 ].icon_is_isometric = false;
 
 // DEEPSLATE_COAL_ORE (498)
 block_definitions[ 498 ].textures[ FACE_TOP ] = TEX_DEEPSLATE_COAL_ORE;
@@ -6527,7 +6229,6 @@ block_definitions[ 498 ].textures[ FACE_FRONT ] = TEX_DEEPSLATE_COAL_ORE;
 block_definitions[ 498 ].textures[ FACE_LEFT ] = TEX_DEEPSLATE_COAL_ORE;
 block_definitions[ 498 ].textures[ FACE_BACK ] = TEX_DEEPSLATE_COAL_ORE;
 block_definitions[ 498 ].icon_texture = TEX_DEEPSLATE_COAL_ORE;
-block_definitions[ 498 ].icon_is_isometric = false;
 
 // SPRUCE_DOOR_UPPER (499)
 block_definitions[ 499 ].textures[ FACE_TOP ] = TEX_AIR;
@@ -6617,7 +6318,6 @@ block_definitions[ 504 ].textures[ FACE_FRONT ] = TEX_DEEPSLATE_COPPER_ORE;
 block_definitions[ 504 ].textures[ FACE_LEFT ] = TEX_DEEPSLATE_COPPER_ORE;
 block_definitions[ 504 ].textures[ FACE_BACK ] = TEX_DEEPSLATE_COPPER_ORE;
 block_definitions[ 504 ].icon_texture = TEX_DEEPSLATE_COPPER_ORE;
-block_definitions[ 504 ].icon_is_isometric = false;
 
 // DEEPSLATE_DIAMOND_ORE (505)
 block_definitions[ 505 ].textures[ FACE_TOP ] = TEX_DEEPSLATE_DIAMOND_ORE;
@@ -6627,7 +6327,6 @@ block_definitions[ 505 ].textures[ FACE_FRONT ] = TEX_DEEPSLATE_DIAMOND_ORE;
 block_definitions[ 505 ].textures[ FACE_LEFT ] = TEX_DEEPSLATE_DIAMOND_ORE;
 block_definitions[ 505 ].textures[ FACE_BACK ] = TEX_DEEPSLATE_DIAMOND_ORE;
 block_definitions[ 505 ].icon_texture = TEX_DEEPSLATE_DIAMOND_ORE;
-block_definitions[ 505 ].icon_is_isometric = false;
 
 // DEEPSLATE_EMERALD_ORE (506)
 block_definitions[ 506 ].textures[ FACE_TOP ] = TEX_DEEPSLATE_EMERALD_ORE;
@@ -6637,7 +6336,6 @@ block_definitions[ 506 ].textures[ FACE_FRONT ] = TEX_DEEPSLATE_EMERALD_ORE;
 block_definitions[ 506 ].textures[ FACE_LEFT ] = TEX_DEEPSLATE_EMERALD_ORE;
 block_definitions[ 506 ].textures[ FACE_BACK ] = TEX_DEEPSLATE_EMERALD_ORE;
 block_definitions[ 506 ].icon_texture = TEX_DEEPSLATE_EMERALD_ORE;
-block_definitions[ 506 ].icon_is_isometric = false;
 
 // DEEPSLATE_GOLD_ORE (507)
 block_definitions[ 507 ].textures[ FACE_TOP ] = TEX_DEEPSLATE_GOLD_ORE;
@@ -6647,7 +6345,6 @@ block_definitions[ 507 ].textures[ FACE_FRONT ] = TEX_DEEPSLATE_GOLD_ORE;
 block_definitions[ 507 ].textures[ FACE_LEFT ] = TEX_DEEPSLATE_GOLD_ORE;
 block_definitions[ 507 ].textures[ FACE_BACK ] = TEX_DEEPSLATE_GOLD_ORE;
 block_definitions[ 507 ].icon_texture = TEX_DEEPSLATE_GOLD_ORE;
-block_definitions[ 507 ].icon_is_isometric = false;
 
 // DEEPSLATE_IRON_ORE (508)
 block_definitions[ 508 ].textures[ FACE_TOP ] = TEX_DEEPSLATE_IRON_ORE;
@@ -6657,7 +6354,6 @@ block_definitions[ 508 ].textures[ FACE_FRONT ] = TEX_DEEPSLATE_IRON_ORE;
 block_definitions[ 508 ].textures[ FACE_LEFT ] = TEX_DEEPSLATE_IRON_ORE;
 block_definitions[ 508 ].textures[ FACE_BACK ] = TEX_DEEPSLATE_IRON_ORE;
 block_definitions[ 508 ].icon_texture = TEX_DEEPSLATE_IRON_ORE;
-block_definitions[ 508 ].icon_is_isometric = false;
 
 // DEEPSLATE_LAPIS_ORE (509)
 block_definitions[ 509 ].textures[ FACE_TOP ] = TEX_DEEPSLATE_LAPIS_ORE;
@@ -6667,7 +6363,6 @@ block_definitions[ 509 ].textures[ FACE_FRONT ] = TEX_DEEPSLATE_LAPIS_ORE;
 block_definitions[ 509 ].textures[ FACE_LEFT ] = TEX_DEEPSLATE_LAPIS_ORE;
 block_definitions[ 509 ].textures[ FACE_BACK ] = TEX_DEEPSLATE_LAPIS_ORE;
 block_definitions[ 509 ].icon_texture = TEX_DEEPSLATE_LAPIS_ORE;
-block_definitions[ 509 ].icon_is_isometric = false;
 
 // DEEPSLATE_REDSTONE_ORE (510)
 block_definitions[ 510 ].textures[ FACE_TOP ] = TEX_DEEPSLATE_REDSTONE_ORE;
@@ -6677,7 +6372,6 @@ block_definitions[ 510 ].textures[ FACE_FRONT ] = TEX_DEEPSLATE_REDSTONE_ORE;
 block_definitions[ 510 ].textures[ FACE_LEFT ] = TEX_DEEPSLATE_REDSTONE_ORE;
 block_definitions[ 510 ].textures[ FACE_BACK ] = TEX_DEEPSLATE_REDSTONE_ORE;
 block_definitions[ 510 ].icon_texture = TEX_DEEPSLATE_REDSTONE_ORE;
-block_definitions[ 510 ].icon_is_isometric = false;
 
 // DEEPSLATE_TILE_DOUBLE_SLAB (511)
 block_definitions[ 511 ].textures[ FACE_TOP ] = TEX_DEEPSLATE_TILES;
@@ -6687,7 +6381,6 @@ block_definitions[ 511 ].textures[ FACE_FRONT ] = TEX_DEEPSLATE_TILES;
 block_definitions[ 511 ].textures[ FACE_LEFT ] = TEX_DEEPSLATE_TILES;
 block_definitions[ 511 ].textures[ FACE_BACK ] = TEX_DEEPSLATE_TILES;
 block_definitions[ 511 ].icon_texture = TEX_DEEPSLATE_TILES;
-block_definitions[ 511 ].icon_is_isometric = false;
 
 // DEEPSLATE_TILE_SLAB (512)
 block_definitions[ 512 ].textures[ FACE_TOP ] = TEX_DEEPSLATE_TILES;
@@ -6697,7 +6390,6 @@ block_definitions[ 512 ].textures[ FACE_FRONT ] = TEX_DEEPSLATE_TILES;
 block_definitions[ 512 ].textures[ FACE_LEFT ] = TEX_DEEPSLATE_TILES;
 block_definitions[ 512 ].textures[ FACE_BACK ] = TEX_DEEPSLATE_TILES;
 block_definitions[ 512 ].icon_texture = TEX_DEEPSLATE_TILES;
-block_definitions[ 512 ].icon_is_isometric = false;
 
 // DEEPSLATE_TILE_STAIRS (513)
 block_definitions[ 513 ].textures[ FACE_TOP ] = TEX_DEEPSLATE_TILES;
@@ -6707,7 +6399,6 @@ block_definitions[ 513 ].textures[ FACE_FRONT ] = TEX_DEEPSLATE_TILES;
 block_definitions[ 513 ].textures[ FACE_LEFT ] = TEX_DEEPSLATE_TILES;
 block_definitions[ 513 ].textures[ FACE_BACK ] = TEX_DEEPSLATE_TILES;
 block_definitions[ 513 ].icon_texture = TEX_DEEPSLATE_TILES;
-block_definitions[ 513 ].icon_is_isometric = false;
 
 // DEEPSLATE_TILE_WALL (514)
 block_definitions[ 514 ].textures[ FACE_TOP ] = TEX_DEEPSLATE_TILES;
@@ -6717,7 +6408,6 @@ block_definitions[ 514 ].textures[ FACE_FRONT ] = TEX_DEEPSLATE_TILES;
 block_definitions[ 514 ].textures[ FACE_LEFT ] = TEX_DEEPSLATE_TILES;
 block_definitions[ 514 ].textures[ FACE_BACK ] = TEX_DEEPSLATE_TILES;
 block_definitions[ 514 ].icon_texture = TEX_DEEPSLATE_TILES;
-block_definitions[ 514 ].icon_is_isometric = false;
 
 // DEEPSLATE_TILES (515)
 block_definitions[ 515 ].textures[ FACE_TOP ] = TEX_DEEPSLATE_TILES;
@@ -6727,7 +6417,6 @@ block_definitions[ 515 ].textures[ FACE_FRONT ] = TEX_DEEPSLATE_TILES;
 block_definitions[ 515 ].textures[ FACE_LEFT ] = TEX_DEEPSLATE_TILES;
 block_definitions[ 515 ].textures[ FACE_BACK ] = TEX_DEEPSLATE_TILES;
 block_definitions[ 515 ].icon_texture = TEX_DEEPSLATE_TILES;
-block_definitions[ 515 ].icon_is_isometric = false;
 
 // DEPRECATED_ANVIL (516)
 block_definitions[ 516 ].textures[ FACE_TOP ] = TEX_ANVIL_BASE;
@@ -6737,7 +6426,6 @@ block_definitions[ 516 ].textures[ FACE_FRONT ] = TEX_ANVIL_BASE;
 block_definitions[ 516 ].textures[ FACE_LEFT ] = TEX_ANVIL_BASE;
 block_definitions[ 516 ].textures[ FACE_BACK ] = TEX_ANVIL_BASE;
 block_definitions[ 516 ].icon_texture = TEX_ANVIL_BASE;
-block_definitions[ 516 ].icon_is_isometric = false;
 
 // DEPRECATED_PURPUR_BLOCK_1 (517)
 block_definitions[ 517 ].textures[ FACE_TOP ] = TEX_PURPUR_BLOCK;
@@ -6747,7 +6435,6 @@ block_definitions[ 517 ].textures[ FACE_FRONT ] = TEX_PURPUR_BLOCK;
 block_definitions[ 517 ].textures[ FACE_LEFT ] = TEX_PURPUR_BLOCK;
 block_definitions[ 517 ].textures[ FACE_BACK ] = TEX_PURPUR_BLOCK;
 block_definitions[ 517 ].icon_texture = TEX_PURPUR_BLOCK;
-block_definitions[ 517 ].icon_is_isometric = false;
 
 // DEPRECATED_PURPUR_BLOCK_2 (518)
 block_definitions[ 518 ].textures[ FACE_TOP ] = TEX_PURPUR_BLOCK;
@@ -6757,7 +6444,6 @@ block_definitions[ 518 ].textures[ FACE_FRONT ] = TEX_PURPUR_BLOCK;
 block_definitions[ 518 ].textures[ FACE_LEFT ] = TEX_PURPUR_BLOCK;
 block_definitions[ 518 ].textures[ FACE_BACK ] = TEX_PURPUR_BLOCK;
 block_definitions[ 518 ].icon_texture = TEX_PURPUR_BLOCK;
-block_definitions[ 518 ].icon_is_isometric = false;
 
 // DETECTOR_RAIL (519)
 block_definitions[ 519 ].textures[ FACE_TOP ] = TEX_RAIL_DETECTOR_POWERED;
@@ -6766,10 +6452,9 @@ block_definitions[ 519 ].textures[ FACE_RIGHT ] = TEX_RAIL_DETECTOR;
 block_definitions[ 519 ].textures[ FACE_FRONT ] = TEX_RAIL_DETECTOR;
 block_definitions[ 519 ].textures[ FACE_LEFT ] = TEX_RAIL_DETECTOR;
 block_definitions[ 519 ].textures[ FACE_BACK ] = TEX_RAIL_DETECTOR;
-block_definitions[ 519 ].icon_texture = TEX_RAIL_DETECTOR;
+block_definitions[ 519 ].icon_texture = TEX_RAIL_DETECTOR_POWERED;
 block_definitions[ 519 ].casts_shadow = false;
 block_definitions[ 519 ].hardness = 0.35f;
-block_definitions[ 519 ].icon_is_isometric = false;
 block_definitions[ 519 ].is_seethrough = true;
 block_definitions[ 519 ].no_light = 6815743;
 
@@ -6794,7 +6479,6 @@ block_definitions[ 521 ].textures[ FACE_FRONT ] = TEX_DIAMOND_ORE;
 block_definitions[ 521 ].textures[ FACE_LEFT ] = TEX_DIAMOND_ORE;
 block_definitions[ 521 ].textures[ FACE_BACK ] = TEX_DIAMOND_ORE;
 block_definitions[ 521 ].icon_texture = TEX_DIAMOND_ORE;
-block_definitions[ 521 ].icon_is_isometric = false;
 
 // DIORITE (522)
 block_definitions[ 522 ].textures[ FACE_TOP ] = TEX_STONE_DIORITE;
@@ -6804,7 +6488,6 @@ block_definitions[ 522 ].textures[ FACE_FRONT ] = TEX_STONE_DIORITE;
 block_definitions[ 522 ].textures[ FACE_LEFT ] = TEX_STONE_DIORITE;
 block_definitions[ 522 ].textures[ FACE_BACK ] = TEX_STONE_DIORITE;
 block_definitions[ 522 ].icon_texture = TEX_STONE_DIORITE;
-block_definitions[ 522 ].icon_is_isometric = false;
 
 // SPRUCE_DOOR_LOWER (523)
 block_definitions[ 523 ].textures[ FACE_TOP ] = TEX_AIR;
@@ -6894,7 +6577,6 @@ block_definitions[ 528 ].textures[ FACE_FRONT ] = TEX_STONE_DIORITE;
 block_definitions[ 528 ].textures[ FACE_LEFT ] = TEX_STONE_DIORITE;
 block_definitions[ 528 ].textures[ FACE_BACK ] = TEX_STONE_DIORITE;
 block_definitions[ 528 ].icon_texture = TEX_STONE_DIORITE;
-block_definitions[ 528 ].icon_is_isometric = false;
 
 // DIORITE_SLAB (529)
 block_definitions[ 529 ].textures[ FACE_TOP ] = TEX_STONE_DIORITE;
@@ -6904,7 +6586,6 @@ block_definitions[ 529 ].textures[ FACE_FRONT ] = TEX_STONE_DIORITE;
 block_definitions[ 529 ].textures[ FACE_LEFT ] = TEX_STONE_DIORITE;
 block_definitions[ 529 ].textures[ FACE_BACK ] = TEX_STONE_DIORITE;
 block_definitions[ 529 ].icon_texture = TEX_STONE_DIORITE;
-block_definitions[ 529 ].icon_is_isometric = false;
 
 // DIORITE_STAIRS (530)
 block_definitions[ 530 ].textures[ FACE_TOP ] = TEX_STONE_DIORITE;
@@ -6914,7 +6595,6 @@ block_definitions[ 530 ].textures[ FACE_FRONT ] = TEX_STONE_DIORITE;
 block_definitions[ 530 ].textures[ FACE_LEFT ] = TEX_STONE_DIORITE;
 block_definitions[ 530 ].textures[ FACE_BACK ] = TEX_STONE_DIORITE;
 block_definitions[ 530 ].icon_texture = TEX_STONE_DIORITE;
-block_definitions[ 530 ].icon_is_isometric = false;
 
 // DIORITE_WALL (531)
 block_definitions[ 531 ].textures[ FACE_TOP ] = TEX_STONE_DIORITE;
@@ -6924,7 +6604,6 @@ block_definitions[ 531 ].textures[ FACE_FRONT ] = TEX_STONE_DIORITE;
 block_definitions[ 531 ].textures[ FACE_LEFT ] = TEX_STONE_DIORITE;
 block_definitions[ 531 ].textures[ FACE_BACK ] = TEX_STONE_DIORITE;
 block_definitions[ 531 ].icon_texture = TEX_STONE_DIORITE;
-block_definitions[ 531 ].icon_is_isometric = false;
 
 // DIRT_WITH_ROOTS (532)
 block_definitions[ 532 ].textures[ FACE_TOP ] = TEX_DIRT_WITH_ROOTS;
@@ -6934,7 +6613,6 @@ block_definitions[ 532 ].textures[ FACE_FRONT ] = TEX_DIRT_WITH_ROOTS;
 block_definitions[ 532 ].textures[ FACE_LEFT ] = TEX_DIRT_WITH_ROOTS;
 block_definitions[ 532 ].textures[ FACE_BACK ] = TEX_DIRT_WITH_ROOTS;
 block_definitions[ 532 ].icon_texture = TEX_DIRT_WITH_ROOTS;
-block_definitions[ 532 ].icon_is_isometric = false;
 
 // DISPENSER (533)
 block_definitions[ 533 ].textures[ FACE_TOP ] = TEX_FURNACE_TOP;
@@ -6944,7 +6622,6 @@ block_definitions[ 533 ].textures[ FACE_FRONT ] = TEX_DISPENSER_FRONT_HORIZONTAL
 block_definitions[ 533 ].textures[ FACE_LEFT ] = TEX_FURNACE_SIDE;
 block_definitions[ 533 ].textures[ FACE_BACK ] = TEX_FURNACE_SIDE;
 block_definitions[ 533 ].icon_texture = TEX_FURNACE_TOP;
-block_definitions[ 533 ].icon_is_isometric = false;
 
 // DOUBLE_CUT_COPPER_SLAB (534)
 block_definitions[ 534 ].textures[ FACE_TOP ] = TEX_CUT_COPPER;
@@ -6954,7 +6631,6 @@ block_definitions[ 534 ].textures[ FACE_FRONT ] = TEX_CUT_COPPER;
 block_definitions[ 534 ].textures[ FACE_LEFT ] = TEX_CUT_COPPER;
 block_definitions[ 534 ].textures[ FACE_BACK ] = TEX_CUT_COPPER;
 block_definitions[ 534 ].icon_texture = TEX_CUT_COPPER;
-block_definitions[ 534 ].icon_is_isometric = false;
 
 // DOUBLE_PLANT (535)
 block_definitions[ 535 ].textures[ FACE_TOP ] = TEX_DOUBLE_PLANT_SUNFLOWER_FRONT;
@@ -6966,7 +6642,6 @@ block_definitions[ 535 ].textures[ FACE_BACK ] = TEX_DOUBLE_PLANT_SUNFLOWER_FRON
 block_definitions[ 535 ].icon_texture = TEX_DOUBLE_PLANT_SUNFLOWER_FRONT;
 block_definitions[ 535 ].casts_shadow = false;
 block_definitions[ 535 ].hardness = 0.35f;
-block_definitions[ 535 ].icon_is_isometric = false;
 block_definitions[ 535 ].is_seethrough = true;
 block_definitions[ 535 ].no_light = 6815743;
 
@@ -6977,8 +6652,7 @@ block_definitions[ 536 ].textures[ FACE_RIGHT ] = TEX_RED_SANDSTONE_NORMAL;
 block_definitions[ 536 ].textures[ FACE_FRONT ] = TEX_RED_SANDSTONE_NORMAL;
 block_definitions[ 536 ].textures[ FACE_LEFT ] = TEX_RED_SANDSTONE_NORMAL;
 block_definitions[ 536 ].textures[ FACE_BACK ] = TEX_RED_SANDSTONE_NORMAL;
-block_definitions[ 536 ].icon_texture = TEX_RED_SANDSTONE_NORMAL;
-block_definitions[ 536 ].icon_is_isometric = false;
+block_definitions[ 536 ].icon_texture = TEX_RED_SANDSTONE_TOP;
 
 // DOUBLE_STONE_SLAB3 (537)
 block_definitions[ 537 ].textures[ FACE_TOP ] = TEX_END_BRICKS;
@@ -6988,7 +6662,6 @@ block_definitions[ 537 ].textures[ FACE_FRONT ] = TEX_END_BRICKS;
 block_definitions[ 537 ].textures[ FACE_LEFT ] = TEX_END_BRICKS;
 block_definitions[ 537 ].textures[ FACE_BACK ] = TEX_END_BRICKS;
 block_definitions[ 537 ].icon_texture = TEX_END_BRICKS;
-block_definitions[ 537 ].icon_is_isometric = false;
 
 // DOUBLE_STONE_SLAB4 (538)
 block_definitions[ 538 ].textures[ FACE_TOP ] = TEX_STONEBRICK_MOSSY;
@@ -6998,7 +6671,6 @@ block_definitions[ 538 ].textures[ FACE_FRONT ] = TEX_STONEBRICK_MOSSY;
 block_definitions[ 538 ].textures[ FACE_LEFT ] = TEX_STONEBRICK_MOSSY;
 block_definitions[ 538 ].textures[ FACE_BACK ] = TEX_STONEBRICK_MOSSY;
 block_definitions[ 538 ].icon_texture = TEX_STONEBRICK_MOSSY;
-block_definitions[ 538 ].icon_is_isometric = false;
 
 // DOUBLE_WOODEN_SLAB (539)
 block_definitions[ 539 ].textures[ FACE_TOP ] = TEX_PLANKS_OAK;
@@ -7008,7 +6680,6 @@ block_definitions[ 539 ].textures[ FACE_FRONT ] = TEX_PLANKS_OAK;
 block_definitions[ 539 ].textures[ FACE_LEFT ] = TEX_PLANKS_OAK;
 block_definitions[ 539 ].textures[ FACE_BACK ] = TEX_PLANKS_OAK;
 block_definitions[ 539 ].icon_texture = TEX_PLANKS_OAK;
-block_definitions[ 539 ].icon_is_isometric = false;
 
 // DRIED_GHAST (540)
 block_definitions[ 540 ].textures[ FACE_TOP ] = TEX_DRIED_GHAST_STATE_1_TENTACLES;
@@ -7018,7 +6689,6 @@ block_definitions[ 540 ].textures[ FACE_FRONT ] = TEX_DRIED_GHAST_STATE_1_TENTAC
 block_definitions[ 540 ].textures[ FACE_LEFT ] = TEX_DRIED_GHAST_STATE_1_TENTACLES;
 block_definitions[ 540 ].textures[ FACE_BACK ] = TEX_DRIED_GHAST_STATE_1_TENTACLES;
 block_definitions[ 540 ].icon_texture = TEX_DRIED_GHAST_STATE_1_TENTACLES;
-block_definitions[ 540 ].icon_is_isometric = false;
 
 // DRIED_KELP_BLOCK (541)
 block_definitions[ 541 ].textures[ FACE_TOP ] = TEX_DRIED_KELP_TOP;
@@ -7028,7 +6698,6 @@ block_definitions[ 541 ].textures[ FACE_FRONT ] = TEX_DRIED_KELP_SIDE_A;
 block_definitions[ 541 ].textures[ FACE_LEFT ] = TEX_DRIED_KELP_SIDE_B;
 block_definitions[ 541 ].textures[ FACE_BACK ] = TEX_DRIED_KELP_SIDE_B;
 block_definitions[ 541 ].icon_texture = TEX_DRIED_KELP_TOP;
-block_definitions[ 541 ].icon_is_isometric = false;
 
 // DRIPSTONE_BLOCK (542)
 block_definitions[ 542 ].textures[ FACE_TOP ] = TEX_DRIPSTONE_BLOCK;
@@ -7038,7 +6707,6 @@ block_definitions[ 542 ].textures[ FACE_FRONT ] = TEX_DRIPSTONE_BLOCK;
 block_definitions[ 542 ].textures[ FACE_LEFT ] = TEX_DRIPSTONE_BLOCK;
 block_definitions[ 542 ].textures[ FACE_BACK ] = TEX_DRIPSTONE_BLOCK;
 block_definitions[ 542 ].icon_texture = TEX_DRIPSTONE_BLOCK;
-block_definitions[ 542 ].icon_is_isometric = false;
 
 // CACTUS_IN_POT (543)
 block_definitions[ 543 ].textures[ FACE_TOP ] = TEX_AIR;
@@ -7047,7 +6715,7 @@ block_definitions[ 543 ].textures[ FACE_RIGHT ] = TEX_CACTUS_IN_POT;
 block_definitions[ 543 ].textures[ FACE_FRONT ] = TEX_CACTUS_IN_POT;
 block_definitions[ 543 ].textures[ FACE_LEFT ] = TEX_CACTUS_IN_POT;
 block_definitions[ 543 ].textures[ FACE_BACK ] = TEX_CACTUS_IN_POT;
-block_definitions[ 543 ].icon_texture = TEX_CACTUS_IN_POT;
+block_definitions[ 543 ].icon_texture = TEX_AIR;
 block_definitions[ 543 ].affected_by_redstone_power = false;
 block_definitions[ 543 ].breaks_in_liquid = true;
 block_definitions[ 543 ].casts_shadow = false;
@@ -7067,7 +6735,6 @@ block_definitions[ 544 ].textures[ FACE_FRONT ] = TEX_DROPPER_FRONT_HORIZONTAL;
 block_definitions[ 544 ].textures[ FACE_LEFT ] = TEX_FURNACE_SIDE;
 block_definitions[ 544 ].textures[ FACE_BACK ] = TEX_FURNACE_SIDE;
 block_definitions[ 544 ].icon_texture = TEX_FURNACE_TOP;
-block_definitions[ 544 ].icon_is_isometric = false;
 
 // EMERALD_ORE (545)
 block_definitions[ 545 ].textures[ FACE_TOP ] = TEX_EMERALD_ORE;
@@ -7077,7 +6744,6 @@ block_definitions[ 545 ].textures[ FACE_FRONT ] = TEX_EMERALD_ORE;
 block_definitions[ 545 ].textures[ FACE_LEFT ] = TEX_EMERALD_ORE;
 block_definitions[ 545 ].textures[ FACE_BACK ] = TEX_EMERALD_ORE;
 block_definitions[ 545 ].icon_texture = TEX_EMERALD_ORE;
-block_definitions[ 545 ].icon_is_isometric = false;
 
 // ENCHANTING_TABLE (546)
 block_definitions[ 546 ].textures[ FACE_TOP ] = TEX_ENCHANTING_TABLE_TOP;
@@ -7086,10 +6752,9 @@ block_definitions[ 546 ].textures[ FACE_RIGHT ] = TEX_ENCHANTING_TABLE_SIDE;
 block_definitions[ 546 ].textures[ FACE_FRONT ] = TEX_ENCHANTING_TABLE_SIDE;
 block_definitions[ 546 ].textures[ FACE_LEFT ] = TEX_ENCHANTING_TABLE_SIDE;
 block_definitions[ 546 ].textures[ FACE_BACK ] = TEX_ENCHANTING_TABLE_SIDE;
-block_definitions[ 546 ].icon_texture = TEX_ENCHANTING_TABLE_SIDE;
+block_definitions[ 546 ].icon_texture = TEX_ENCHANTING_TABLE_TOP;
 block_definitions[ 546 ].casts_shadow = false;
 block_definitions[ 546 ].hardness = 0.35f;
-block_definitions[ 546 ].icon_is_isometric = false;
 block_definitions[ 546 ].is_seethrough = true;
 block_definitions[ 546 ].no_light = 6815743;
 
@@ -7101,7 +6766,6 @@ block_definitions[ 547 ].textures[ FACE_FRONT ] = TEX_END_BRICKS;
 block_definitions[ 547 ].textures[ FACE_LEFT ] = TEX_END_BRICKS;
 block_definitions[ 547 ].textures[ FACE_BACK ] = TEX_END_BRICKS;
 block_definitions[ 547 ].icon_texture = TEX_END_BRICKS;
-block_definitions[ 547 ].icon_is_isometric = false;
 
 // END_BRICKS (548)
 block_definitions[ 548 ].textures[ FACE_TOP ] = TEX_END_BRICKS;
@@ -7111,7 +6775,6 @@ block_definitions[ 548 ].textures[ FACE_FRONT ] = TEX_END_BRICKS;
 block_definitions[ 548 ].textures[ FACE_LEFT ] = TEX_END_BRICKS;
 block_definitions[ 548 ].textures[ FACE_BACK ] = TEX_END_BRICKS;
 block_definitions[ 548 ].icon_texture = TEX_END_BRICKS;
-block_definitions[ 548 ].icon_is_isometric = false;
 
 // END_GATEWAY (549)
 block_definitions[ 549 ].textures[ FACE_TOP ] = TEX_END_GATEWAY;
@@ -7124,7 +6787,6 @@ block_definitions[ 549 ].icon_texture = TEX_END_GATEWAY;
 block_definitions[ 549 ].casts_shadow = false;
 block_definitions[ 549 ].emits_light = 15;
 block_definitions[ 549 ].hardness = 0.35f;
-block_definitions[ 549 ].icon_is_isometric = false;
 block_definitions[ 549 ].is_seethrough = true;
 block_definitions[ 549 ].no_light = 6815743;
 
@@ -7139,7 +6801,6 @@ block_definitions[ 550 ].icon_texture = TEX_END_PORTAL;
 block_definitions[ 550 ].casts_shadow = false;
 block_definitions[ 550 ].emits_light = 15;
 block_definitions[ 550 ].hardness = 0.35f;
-block_definitions[ 550 ].icon_is_isometric = false;
 block_definitions[ 550 ].is_seethrough = true;
 block_definitions[ 550 ].no_light = 6815743;
 
@@ -7153,7 +6814,6 @@ block_definitions[ 551 ].textures[ FACE_BACK ] = TEX_ENDFRAME_EYE;
 block_definitions[ 551 ].icon_texture = TEX_ENDFRAME_EYE;
 block_definitions[ 551 ].casts_shadow = false;
 block_definitions[ 551 ].hardness = 0.35f;
-block_definitions[ 551 ].icon_is_isometric = false;
 block_definitions[ 551 ].is_seethrough = true;
 block_definitions[ 551 ].no_light = 6815743;
 
@@ -7165,7 +6825,6 @@ block_definitions[ 552 ].textures[ FACE_FRONT ] = TEX_END_STONE;
 block_definitions[ 552 ].textures[ FACE_LEFT ] = TEX_END_STONE;
 block_definitions[ 552 ].textures[ FACE_BACK ] = TEX_END_STONE;
 block_definitions[ 552 ].icon_texture = TEX_END_STONE;
-block_definitions[ 552 ].icon_is_isometric = false;
 
 // END_STONE_BRICK_DOUBLE_SLAB (553)
 block_definitions[ 553 ].textures[ FACE_TOP ] = TEX_END_BRICKS;
@@ -7175,7 +6834,6 @@ block_definitions[ 553 ].textures[ FACE_FRONT ] = TEX_END_BRICKS;
 block_definitions[ 553 ].textures[ FACE_LEFT ] = TEX_END_BRICKS;
 block_definitions[ 553 ].textures[ FACE_BACK ] = TEX_END_BRICKS;
 block_definitions[ 553 ].icon_texture = TEX_END_BRICKS;
-block_definitions[ 553 ].icon_is_isometric = false;
 
 // END_STONE_BRICK_SLAB (554)
 block_definitions[ 554 ].textures[ FACE_TOP ] = TEX_END_BRICKS;
@@ -7185,7 +6843,6 @@ block_definitions[ 554 ].textures[ FACE_FRONT ] = TEX_END_BRICKS;
 block_definitions[ 554 ].textures[ FACE_LEFT ] = TEX_END_BRICKS;
 block_definitions[ 554 ].textures[ FACE_BACK ] = TEX_END_BRICKS;
 block_definitions[ 554 ].icon_texture = TEX_END_BRICKS;
-block_definitions[ 554 ].icon_is_isometric = false;
 
 // PURPLE_CORAL2 (555)
 block_definitions[ 555 ].textures[ FACE_TOP ] = TEX_AIR;
@@ -7215,7 +6872,6 @@ block_definitions[ 556 ].textures[ FACE_FRONT ] = TEX_END_BRICKS;
 block_definitions[ 556 ].textures[ FACE_LEFT ] = TEX_END_BRICKS;
 block_definitions[ 556 ].textures[ FACE_BACK ] = TEX_END_BRICKS;
 block_definitions[ 556 ].icon_texture = TEX_END_BRICKS;
-block_definitions[ 556 ].icon_is_isometric = false;
 
 // ENDER_CHEST (557)
 block_definitions[ 557 ].textures[ FACE_TOP ] = TEX_ENDER_CHEST_TOP;
@@ -7225,7 +6881,6 @@ block_definitions[ 557 ].textures[ FACE_FRONT ] = TEX_ENDER_CHEST_FRONT;
 block_definitions[ 557 ].textures[ FACE_LEFT ] = TEX_ENDER_CHEST_SIDE;
 block_definitions[ 557 ].textures[ FACE_BACK ] = TEX_ENDER_CHEST_SIDE;
 block_definitions[ 557 ].icon_texture = TEX_ENDER_CHEST_TOP;
-block_definitions[ 557 ].icon_is_isometric = false;
 
 // EXPOSED_CHISELED_COPPER (558)
 block_definitions[ 558 ].textures[ FACE_TOP ] = TEX_EXPOSED_CHISELED_COPPER;
@@ -7235,7 +6890,6 @@ block_definitions[ 558 ].textures[ FACE_FRONT ] = TEX_EXPOSED_CHISELED_COPPER;
 block_definitions[ 558 ].textures[ FACE_LEFT ] = TEX_EXPOSED_CHISELED_COPPER;
 block_definitions[ 558 ].textures[ FACE_BACK ] = TEX_EXPOSED_CHISELED_COPPER;
 block_definitions[ 558 ].icon_texture = TEX_EXPOSED_CHISELED_COPPER;
-block_definitions[ 558 ].icon_is_isometric = false;
 
 // EXPOSED_COPPER (559)
 block_definitions[ 559 ].textures[ FACE_TOP ] = TEX_EXPOSED_COPPER;
@@ -7245,7 +6899,6 @@ block_definitions[ 559 ].textures[ FACE_FRONT ] = TEX_EXPOSED_COPPER;
 block_definitions[ 559 ].textures[ FACE_LEFT ] = TEX_EXPOSED_COPPER;
 block_definitions[ 559 ].textures[ FACE_BACK ] = TEX_EXPOSED_COPPER;
 block_definitions[ 559 ].icon_texture = TEX_EXPOSED_COPPER;
-block_definitions[ 559 ].icon_is_isometric = false;
 
 // EXPOSED_COPPER_BARS (560)
 block_definitions[ 560 ].textures[ FACE_TOP ] = TEX_EXPOSED_COPPER_BARS;
@@ -7257,7 +6910,6 @@ block_definitions[ 560 ].textures[ FACE_BACK ] = TEX_EXPOSED_COPPER_BARS;
 block_definitions[ 560 ].icon_texture = TEX_EXPOSED_COPPER_BARS;
 block_definitions[ 560 ].casts_shadow = false;
 block_definitions[ 560 ].hardness = 0.35f;
-block_definitions[ 560 ].icon_is_isometric = false;
 block_definitions[ 560 ].is_seethrough = true;
 block_definitions[ 560 ].no_light = 6815743;
 
@@ -7269,7 +6921,6 @@ block_definitions[ 561 ].textures[ FACE_FRONT ] = TEX_EXPOSED_COPPER_BULB;
 block_definitions[ 561 ].textures[ FACE_LEFT ] = TEX_EXPOSED_COPPER_BULB;
 block_definitions[ 561 ].textures[ FACE_BACK ] = TEX_EXPOSED_COPPER_BULB;
 block_definitions[ 561 ].icon_texture = TEX_EXPOSED_COPPER_BULB;
-block_definitions[ 561 ].icon_is_isometric = false;
 
 // EXPOSED_COPPER_CHAIN (562)
 block_definitions[ 562 ].textures[ FACE_TOP ] = TEX_EXPOSED_COPPER_CHAIN;
@@ -7281,7 +6932,6 @@ block_definitions[ 562 ].textures[ FACE_BACK ] = TEX_EXPOSED_COPPER_CHAIN;
 block_definitions[ 562 ].icon_texture = TEX_EXPOSED_COPPER_CHAIN;
 block_definitions[ 562 ].casts_shadow = false;
 block_definitions[ 562 ].hardness = 0.35f;
-block_definitions[ 562 ].icon_is_isometric = false;
 block_definitions[ 562 ].is_seethrough = true;
 block_definitions[ 562 ].no_light = 6815743;
 
@@ -7293,7 +6943,6 @@ block_definitions[ 563 ].textures[ FACE_FRONT ] = TEX_EXPOSED_COPPER_CHEST_INVEN
 block_definitions[ 563 ].textures[ FACE_LEFT ] = TEX_EXPOSED_COPPER_CHEST_INVENTORY_SIDE;
 block_definitions[ 563 ].textures[ FACE_BACK ] = TEX_EXPOSED_COPPER_CHEST_INVENTORY_SIDE;
 block_definitions[ 563 ].icon_texture = TEX_EXPOSED_COPPER_CHEST_INVENTORY_TOP;
-block_definitions[ 563 ].icon_is_isometric = false;
 
 // EXPOSED_COPPER_DOOR (564)
 block_definitions[ 564 ].textures[ FACE_TOP ] = TEX_EXPOSED_COPPER_DOOR_BOTTOM;
@@ -7302,10 +6951,9 @@ block_definitions[ 564 ].textures[ FACE_RIGHT ] = TEX_EXPOSED_COPPER_DOOR_TOP;
 block_definitions[ 564 ].textures[ FACE_FRONT ] = TEX_EXPOSED_COPPER_DOOR_TOP;
 block_definitions[ 564 ].textures[ FACE_LEFT ] = TEX_EXPOSED_COPPER_DOOR_TOP;
 block_definitions[ 564 ].textures[ FACE_BACK ] = TEX_EXPOSED_COPPER_DOOR_TOP;
-block_definitions[ 564 ].icon_texture = TEX_EXPOSED_COPPER_DOOR_TOP;
+block_definitions[ 564 ].icon_texture = TEX_EXPOSED_COPPER_DOOR_BOTTOM;
 block_definitions[ 564 ].casts_shadow = false;
 block_definitions[ 564 ].hardness = 0.35f;
-block_definitions[ 564 ].icon_is_isometric = false;
 block_definitions[ 564 ].is_seethrough = true;
 block_definitions[ 564 ].no_light = 6815743;
 
@@ -7317,7 +6965,6 @@ block_definitions[ 565 ].textures[ FACE_FRONT ] = TEX_EXPOSED_COPPER;
 block_definitions[ 565 ].textures[ FACE_LEFT ] = TEX_EXPOSED_COPPER;
 block_definitions[ 565 ].textures[ FACE_BACK ] = TEX_EXPOSED_COPPER;
 block_definitions[ 565 ].icon_texture = TEX_EXPOSED_COPPER;
-block_definitions[ 565 ].icon_is_isometric = false;
 
 // EXPOSED_COPPER_GRATE (566)
 block_definitions[ 566 ].textures[ FACE_TOP ] = TEX_EXPOSED_COPPER_GRATE;
@@ -7329,7 +6976,6 @@ block_definitions[ 566 ].textures[ FACE_BACK ] = TEX_EXPOSED_COPPER_GRATE;
 block_definitions[ 566 ].icon_texture = TEX_EXPOSED_COPPER_GRATE;
 block_definitions[ 566 ].casts_shadow = false;
 block_definitions[ 566 ].hardness = 0.35f;
-block_definitions[ 566 ].icon_is_isometric = false;
 block_definitions[ 566 ].is_seethrough = true;
 block_definitions[ 566 ].no_light = 6815743;
 
@@ -7343,7 +6989,6 @@ block_definitions[ 567 ].textures[ FACE_BACK ] = TEX_EXPOSED_COPPER_LANTERN;
 block_definitions[ 567 ].icon_texture = TEX_EXPOSED_COPPER_LANTERN;
 block_definitions[ 567 ].casts_shadow = false;
 block_definitions[ 567 ].hardness = 0.35f;
-block_definitions[ 567 ].icon_is_isometric = false;
 block_definitions[ 567 ].is_seethrough = true;
 block_definitions[ 567 ].no_light = 6815743;
 
@@ -7357,7 +7002,6 @@ block_definitions[ 568 ].textures[ FACE_BACK ] = TEX_EXPOSED_COPPER_TRAPDOOR;
 block_definitions[ 568 ].icon_texture = TEX_EXPOSED_COPPER_TRAPDOOR;
 block_definitions[ 568 ].casts_shadow = false;
 block_definitions[ 568 ].hardness = 0.35f;
-block_definitions[ 568 ].icon_is_isometric = false;
 block_definitions[ 568 ].is_seethrough = true;
 block_definitions[ 568 ].no_light = 6815743;
 
@@ -7369,7 +7013,6 @@ block_definitions[ 569 ].textures[ FACE_FRONT ] = TEX_EXPOSED_CUT_COPPER;
 block_definitions[ 569 ].textures[ FACE_LEFT ] = TEX_EXPOSED_CUT_COPPER;
 block_definitions[ 569 ].textures[ FACE_BACK ] = TEX_EXPOSED_CUT_COPPER;
 block_definitions[ 569 ].icon_texture = TEX_EXPOSED_CUT_COPPER;
-block_definitions[ 569 ].icon_is_isometric = false;
 
 // EXPOSED_CUT_COPPER_SLAB (570)
 block_definitions[ 570 ].textures[ FACE_TOP ] = TEX_EXPOSED_CUT_COPPER;
@@ -7379,7 +7022,6 @@ block_definitions[ 570 ].textures[ FACE_FRONT ] = TEX_EXPOSED_CUT_COPPER;
 block_definitions[ 570 ].textures[ FACE_LEFT ] = TEX_EXPOSED_CUT_COPPER;
 block_definitions[ 570 ].textures[ FACE_BACK ] = TEX_EXPOSED_CUT_COPPER;
 block_definitions[ 570 ].icon_texture = TEX_EXPOSED_CUT_COPPER;
-block_definitions[ 570 ].icon_is_isometric = false;
 
 // EXPOSED_CUT_COPPER_STAIRS (571)
 block_definitions[ 571 ].textures[ FACE_TOP ] = TEX_EXPOSED_CUT_COPPER;
@@ -7389,7 +7031,6 @@ block_definitions[ 571 ].textures[ FACE_FRONT ] = TEX_EXPOSED_CUT_COPPER;
 block_definitions[ 571 ].textures[ FACE_LEFT ] = TEX_EXPOSED_CUT_COPPER;
 block_definitions[ 571 ].textures[ FACE_BACK ] = TEX_EXPOSED_CUT_COPPER;
 block_definitions[ 571 ].icon_texture = TEX_EXPOSED_CUT_COPPER;
-block_definitions[ 571 ].icon_is_isometric = false;
 
 // EXPOSED_DOUBLE_CUT_COPPER_SLAB (572)
 block_definitions[ 572 ].textures[ FACE_TOP ] = TEX_EXPOSED_CUT_COPPER;
@@ -7399,7 +7040,6 @@ block_definitions[ 572 ].textures[ FACE_FRONT ] = TEX_EXPOSED_CUT_COPPER;
 block_definitions[ 572 ].textures[ FACE_LEFT ] = TEX_EXPOSED_CUT_COPPER;
 block_definitions[ 572 ].textures[ FACE_BACK ] = TEX_EXPOSED_CUT_COPPER;
 block_definitions[ 572 ].icon_texture = TEX_EXPOSED_CUT_COPPER;
-block_definitions[ 572 ].icon_is_isometric = false;
 
 // SEAGRASS (573)
 block_definitions[ 573 ].textures[ FACE_TOP ] = TEX_AIR;
@@ -7408,7 +7048,7 @@ block_definitions[ 573 ].textures[ FACE_RIGHT ] = TEX_SEAGRASS;
 block_definitions[ 573 ].textures[ FACE_FRONT ] = TEX_SEAGRASS;
 block_definitions[ 573 ].textures[ FACE_LEFT ] = TEX_SEAGRASS;
 block_definitions[ 573 ].textures[ FACE_BACK ] = TEX_SEAGRASS;
-block_definitions[ 573 ].icon_texture = TEX_SEAGRASS;
+block_definitions[ 573 ].icon_texture = TEX_AIR;
 block_definitions[ 573 ].affected_by_redstone_power = false;
 block_definitions[ 573 ].breaks_in_liquid = true;
 block_definitions[ 573 ].casts_shadow = false;
@@ -7428,7 +7068,7 @@ block_definitions[ 574 ].textures[ FACE_RIGHT ] = TEX_UNDERWATER_TUFT_TALL;
 block_definitions[ 574 ].textures[ FACE_FRONT ] = TEX_UNDERWATER_TUFT_TALL;
 block_definitions[ 574 ].textures[ FACE_LEFT ] = TEX_UNDERWATER_TUFT_TALL;
 block_definitions[ 574 ].textures[ FACE_BACK ] = TEX_UNDERWATER_TUFT_TALL;
-block_definitions[ 574 ].icon_texture = TEX_UNDERWATER_TUFT_TALL;
+block_definitions[ 574 ].icon_texture = TEX_AIR;
 block_definitions[ 574 ].affected_by_redstone_power = false;
 block_definitions[ 574 ].breaks_in_liquid = true;
 block_definitions[ 574 ].casts_shadow = false;
@@ -7471,7 +7111,6 @@ block_definitions[ 576 ].textures[ FACE_BACK ] = TEX_EXPOSED_LIGHTNING_ROD;
 block_definitions[ 576 ].icon_texture = TEX_EXPOSED_LIGHTNING_ROD;
 block_definitions[ 576 ].casts_shadow = false;
 block_definitions[ 576 ].hardness = 0.35f;
-block_definitions[ 576 ].icon_is_isometric = false;
 block_definitions[ 576 ].is_seethrough = true;
 block_definitions[ 576 ].no_light = 6815743;
 
@@ -7522,8 +7161,7 @@ block_definitions[ 579 ].textures[ FACE_RIGHT ] = TEX_DIRT;
 block_definitions[ 579 ].textures[ FACE_FRONT ] = TEX_DIRT;
 block_definitions[ 579 ].textures[ FACE_LEFT ] = TEX_DIRT;
 block_definitions[ 579 ].textures[ FACE_BACK ] = TEX_DIRT;
-block_definitions[ 579 ].icon_texture = TEX_DIRT;
-block_definitions[ 579 ].icon_is_isometric = false;
+block_definitions[ 579 ].icon_texture = TEX_FARMLAND_WET;
 
 // FENCE (580)
 block_definitions[ 580 ].textures[ FACE_TOP ] = TEX_PLANKS_OAK;
@@ -7533,7 +7171,6 @@ block_definitions[ 580 ].textures[ FACE_FRONT ] = TEX_PLANKS_OAK;
 block_definitions[ 580 ].textures[ FACE_LEFT ] = TEX_PLANKS_OAK;
 block_definitions[ 580 ].textures[ FACE_BACK ] = TEX_PLANKS_OAK;
 block_definitions[ 580 ].icon_texture = TEX_PLANKS_OAK;
-block_definitions[ 580 ].icon_is_isometric = false;
 
 // FENCE_GATE (581)
 block_definitions[ 581 ].textures[ FACE_TOP ] = TEX_PLANKS_OAK;
@@ -7543,7 +7180,6 @@ block_definitions[ 581 ].textures[ FACE_FRONT ] = TEX_PLANKS_OAK;
 block_definitions[ 581 ].textures[ FACE_LEFT ] = TEX_PLANKS_OAK;
 block_definitions[ 581 ].textures[ FACE_BACK ] = TEX_PLANKS_OAK;
 block_definitions[ 581 ].icon_texture = TEX_PLANKS_OAK;
-block_definitions[ 581 ].icon_is_isometric = false;
 
 // FIRE_CORAL_BLOCK (582)
 block_definitions[ 582 ].textures[ FACE_TOP ] = TEX_CORAL_RED;
@@ -7553,7 +7189,6 @@ block_definitions[ 582 ].textures[ FACE_FRONT ] = TEX_CORAL_RED;
 block_definitions[ 582 ].textures[ FACE_LEFT ] = TEX_CORAL_RED;
 block_definitions[ 582 ].textures[ FACE_BACK ] = TEX_CORAL_RED;
 block_definitions[ 582 ].icon_texture = TEX_CORAL_RED;
-block_definitions[ 582 ].icon_is_isometric = false;
 
 // FIRE_CORAL_WALL_FAN (583)
 block_definitions[ 583 ].textures[ FACE_TOP ] = TEX_CORAL_FAN_RED;
@@ -7565,7 +7200,6 @@ block_definitions[ 583 ].textures[ FACE_BACK ] = TEX_CORAL_FAN_RED;
 block_definitions[ 583 ].icon_texture = TEX_CORAL_FAN_RED;
 block_definitions[ 583 ].casts_shadow = false;
 block_definitions[ 583 ].hardness = 0.35f;
-block_definitions[ 583 ].icon_is_isometric = false;
 block_definitions[ 583 ].is_seethrough = true;
 block_definitions[ 583 ].no_light = 6815743;
 
@@ -7600,7 +7234,6 @@ block_definitions[ 585 ].textures[ FACE_FRONT ] = TEX_FLETCHER_TABLE_SIDE1;
 block_definitions[ 585 ].textures[ FACE_LEFT ] = TEX_FLETCHER_TABLE_SIDE2;
 block_definitions[ 585 ].textures[ FACE_BACK ] = TEX_FLETCHER_TABLE_SIDE1;
 block_definitions[ 585 ].icon_texture = TEX_FLETCHER_TABLE_TOP;
-block_definitions[ 585 ].icon_is_isometric = false;
 
 // FLOWERING_AZALEA (586)
 block_definitions[ 586 ].textures[ FACE_TOP ] = TEX_FLOWERING_AZALEA_TOP;
@@ -7612,7 +7245,6 @@ block_definitions[ 586 ].textures[ FACE_BACK ] = TEX_FLOWERING_AZALEA_SIDE;
 block_definitions[ 586 ].icon_texture = TEX_FLOWERING_AZALEA_TOP;
 block_definitions[ 586 ].casts_shadow = false;
 block_definitions[ 586 ].hardness = 0.35f;
-block_definitions[ 586 ].icon_is_isometric = false;
 block_definitions[ 586 ].is_seethrough = true;
 block_definitions[ 586 ].no_light = 6815743;
 
@@ -7624,7 +7256,6 @@ block_definitions[ 587 ].textures[ FACE_FRONT ] = TEX_ITEMFRAME_BACKGROUND;
 block_definitions[ 587 ].textures[ FACE_LEFT ] = TEX_ITEMFRAME_BACKGROUND;
 block_definitions[ 587 ].textures[ FACE_BACK ] = TEX_ITEMFRAME_BACKGROUND;
 block_definitions[ 587 ].icon_texture = TEX_ITEMFRAME_BACKGROUND;
-block_definitions[ 587 ].icon_is_isometric = false;
 
 // FROG_SPAWN (588)
 block_definitions[ 588 ].textures[ FACE_TOP ] = TEX_FROGSPAWN;
@@ -7637,7 +7268,6 @@ block_definitions[ 588 ].icon_texture = TEX_FROGSPAWN;
 block_definitions[ 588 ].affected_by_redstone_power = false;
 block_definitions[ 588 ].casts_shadow = false;
 block_definitions[ 588 ].hardness = 0.449999988f;
-block_definitions[ 588 ].icon_is_isometric = false;
 block_definitions[ 588 ].is_seethrough = true;
 block_definitions[ 588 ].renderOrder = RenderOrder_Translucent;
 
@@ -7652,7 +7282,6 @@ block_definitions[ 589 ].icon_texture = TEX_FROSTED_ICE_0;
 block_definitions[ 589 ].affected_by_redstone_power = false;
 block_definitions[ 589 ].casts_shadow = false;
 block_definitions[ 589 ].hardness = 0.449999988f;
-block_definitions[ 589 ].icon_is_isometric = false;
 block_definitions[ 589 ].is_seethrough = true;
 block_definitions[ 589 ].renderOrder = RenderOrder_Translucent;
 
@@ -7664,7 +7293,6 @@ block_definitions[ 590 ].textures[ FACE_FRONT ] = TEX_GILDED_BLACKSTONE;
 block_definitions[ 590 ].textures[ FACE_LEFT ] = TEX_GILDED_BLACKSTONE;
 block_definitions[ 590 ].textures[ FACE_BACK ] = TEX_GILDED_BLACKSTONE;
 block_definitions[ 590 ].icon_texture = TEX_GILDED_BLACKSTONE;
-block_definitions[ 590 ].icon_is_isometric = false;
 
 // GLOW_FRAME (591)
 block_definitions[ 591 ].textures[ FACE_TOP ] = TEX_GLOW_ITEM_FRAME;
@@ -7674,7 +7302,6 @@ block_definitions[ 591 ].textures[ FACE_FRONT ] = TEX_GLOW_ITEM_FRAME;
 block_definitions[ 591 ].textures[ FACE_LEFT ] = TEX_GLOW_ITEM_FRAME;
 block_definitions[ 591 ].textures[ FACE_BACK ] = TEX_GLOW_ITEM_FRAME;
 block_definitions[ 591 ].icon_texture = TEX_GLOW_ITEM_FRAME;
-block_definitions[ 591 ].icon_is_isometric = false;
 
 // GLOW_LICHEN (592)
 block_definitions[ 592 ].textures[ FACE_TOP ] = TEX_AIR;
@@ -7708,7 +7335,6 @@ block_definitions[ 593 ].textures[ FACE_LEFT ] = TEX_GLOWING_OBSIDIAN;
 block_definitions[ 593 ].textures[ FACE_BACK ] = TEX_GLOWING_OBSIDIAN;
 block_definitions[ 593 ].icon_texture = TEX_GLOWING_OBSIDIAN;
 block_definitions[ 593 ].emits_light = 12;
-block_definitions[ 593 ].icon_is_isometric = false;
 
 // GOLDEN_DANDELION (594)
 block_definitions[ 594 ].textures[ FACE_TOP ] = TEX_AIR;
@@ -7739,10 +7365,9 @@ block_definitions[ 595 ].textures[ FACE_RIGHT ] = TEX_RAIL_GOLDEN;
 block_definitions[ 595 ].textures[ FACE_FRONT ] = TEX_RAIL_GOLDEN;
 block_definitions[ 595 ].textures[ FACE_LEFT ] = TEX_RAIL_GOLDEN;
 block_definitions[ 595 ].textures[ FACE_BACK ] = TEX_RAIL_GOLDEN;
-block_definitions[ 595 ].icon_texture = TEX_RAIL_GOLDEN;
+block_definitions[ 595 ].icon_texture = TEX_RAIL_GOLDEN_POWERED;
 block_definitions[ 595 ].casts_shadow = false;
 block_definitions[ 595 ].hardness = 0.35f;
-block_definitions[ 595 ].icon_is_isometric = false;
 block_definitions[ 595 ].is_seethrough = true;
 block_definitions[ 595 ].no_light = 6815743;
 
@@ -7754,7 +7379,6 @@ block_definitions[ 596 ].textures[ FACE_FRONT ] = TEX_STONE_GRANITE;
 block_definitions[ 596 ].textures[ FACE_LEFT ] = TEX_STONE_GRANITE;
 block_definitions[ 596 ].textures[ FACE_BACK ] = TEX_STONE_GRANITE;
 block_definitions[ 596 ].icon_texture = TEX_STONE_GRANITE;
-block_definitions[ 596 ].icon_is_isometric = false;
 
 // GRANITE_DOUBLE_SLAB (597)
 block_definitions[ 597 ].textures[ FACE_TOP ] = TEX_STONE_GRANITE;
@@ -7764,7 +7388,6 @@ block_definitions[ 597 ].textures[ FACE_FRONT ] = TEX_STONE_GRANITE;
 block_definitions[ 597 ].textures[ FACE_LEFT ] = TEX_STONE_GRANITE;
 block_definitions[ 597 ].textures[ FACE_BACK ] = TEX_STONE_GRANITE;
 block_definitions[ 597 ].icon_texture = TEX_STONE_GRANITE;
-block_definitions[ 597 ].icon_is_isometric = false;
 
 // GRANITE_SLAB (598)
 block_definitions[ 598 ].textures[ FACE_TOP ] = TEX_STONE_GRANITE;
@@ -7774,7 +7397,6 @@ block_definitions[ 598 ].textures[ FACE_FRONT ] = TEX_STONE_GRANITE;
 block_definitions[ 598 ].textures[ FACE_LEFT ] = TEX_STONE_GRANITE;
 block_definitions[ 598 ].textures[ FACE_BACK ] = TEX_STONE_GRANITE;
 block_definitions[ 598 ].icon_texture = TEX_STONE_GRANITE;
-block_definitions[ 598 ].icon_is_isometric = false;
 
 // GRANITE_STAIRS (599)
 block_definitions[ 599 ].textures[ FACE_TOP ] = TEX_STONE_GRANITE;
@@ -7784,7 +7406,6 @@ block_definitions[ 599 ].textures[ FACE_FRONT ] = TEX_STONE_GRANITE;
 block_definitions[ 599 ].textures[ FACE_LEFT ] = TEX_STONE_GRANITE;
 block_definitions[ 599 ].textures[ FACE_BACK ] = TEX_STONE_GRANITE;
 block_definitions[ 599 ].icon_texture = TEX_STONE_GRANITE;
-block_definitions[ 599 ].icon_is_isometric = false;
 
 // GRANITE_WALL (600)
 block_definitions[ 600 ].textures[ FACE_TOP ] = TEX_STONE_GRANITE;
@@ -7794,7 +7415,6 @@ block_definitions[ 600 ].textures[ FACE_FRONT ] = TEX_STONE_GRANITE;
 block_definitions[ 600 ].textures[ FACE_LEFT ] = TEX_STONE_GRANITE;
 block_definitions[ 600 ].textures[ FACE_BACK ] = TEX_STONE_GRANITE;
 block_definitions[ 600 ].icon_texture = TEX_STONE_GRANITE;
-block_definitions[ 600 ].icon_is_isometric = false;
 
 // GRASS_PATH (601)
 block_definitions[ 601 ].textures[ FACE_TOP ] = TEX_GRASS_PATH_TOP;
@@ -7803,10 +7423,9 @@ block_definitions[ 601 ].textures[ FACE_RIGHT ] = TEX_GRASS_PATH_SIDE;
 block_definitions[ 601 ].textures[ FACE_FRONT ] = TEX_GRASS_PATH_SIDE;
 block_definitions[ 601 ].textures[ FACE_LEFT ] = TEX_GRASS_PATH_SIDE;
 block_definitions[ 601 ].textures[ FACE_BACK ] = TEX_GRASS_PATH_SIDE;
-block_definitions[ 601 ].icon_texture = TEX_GRASS_PATH_SIDE;
+block_definitions[ 601 ].icon_texture = TEX_GRASS_PATH_TOP;
 block_definitions[ 601 ].casts_shadow = false;
 block_definitions[ 601 ].hardness = 0.35f;
-block_definitions[ 601 ].icon_is_isometric = false;
 block_definitions[ 601 ].is_seethrough = true;
 block_definitions[ 601 ].no_light = 6815743;
 
@@ -7820,7 +7439,6 @@ block_definitions[ 602 ].textures[ FACE_BACK ] = TEX_GRAY_CANDLE;
 block_definitions[ 602 ].icon_texture = TEX_GRAY_CANDLE;
 block_definitions[ 602 ].casts_shadow = false;
 block_definitions[ 602 ].hardness = 0.35f;
-block_definitions[ 602 ].icon_is_isometric = false;
 block_definitions[ 602 ].is_seethrough = true;
 block_definitions[ 602 ].no_light = 6815743;
 
@@ -7831,10 +7449,9 @@ block_definitions[ 603 ].textures[ FACE_RIGHT ] = TEX_CAKE_SIDE;
 block_definitions[ 603 ].textures[ FACE_FRONT ] = TEX_CAKE_SIDE;
 block_definitions[ 603 ].textures[ FACE_LEFT ] = TEX_CAKE_SIDE;
 block_definitions[ 603 ].textures[ FACE_BACK ] = TEX_CAKE_SIDE;
-block_definitions[ 603 ].icon_texture = TEX_CAKE_SIDE;
+block_definitions[ 603 ].icon_texture = TEX_CAKE_TOP;
 block_definitions[ 603 ].casts_shadow = false;
 block_definitions[ 603 ].hardness = 0.35f;
-block_definitions[ 603 ].icon_is_isometric = false;
 block_definitions[ 603 ].is_seethrough = true;
 block_definitions[ 603 ].no_light = 6815743;
 
@@ -7846,7 +7463,6 @@ block_definitions[ 604 ].textures[ FACE_FRONT ] = TEX_WOOL_COLORED_GRAY;
 block_definitions[ 604 ].textures[ FACE_LEFT ] = TEX_WOOL_COLORED_GRAY;
 block_definitions[ 604 ].textures[ FACE_BACK ] = TEX_WOOL_COLORED_GRAY;
 block_definitions[ 604 ].icon_texture = TEX_WOOL_COLORED_GRAY;
-block_definitions[ 604 ].icon_is_isometric = false;
 
 // GRAY_CONCRETE (605)
 block_definitions[ 605 ].textures[ FACE_TOP ] = TEX_CONCRETE_GRAY;
@@ -7856,7 +7472,6 @@ block_definitions[ 605 ].textures[ FACE_FRONT ] = TEX_CONCRETE_GRAY;
 block_definitions[ 605 ].textures[ FACE_LEFT ] = TEX_CONCRETE_GRAY;
 block_definitions[ 605 ].textures[ FACE_BACK ] = TEX_CONCRETE_GRAY;
 block_definitions[ 605 ].icon_texture = TEX_CONCRETE_GRAY;
-block_definitions[ 605 ].icon_is_isometric = false;
 
 // GRAY_CONCRETE_DOUBLE_SLAB (606)
 block_definitions[ 606 ].textures[ FACE_TOP ] = TEX_CONCRETE_GRAY;
@@ -7866,7 +7481,6 @@ block_definitions[ 606 ].textures[ FACE_FRONT ] = TEX_CONCRETE_GRAY;
 block_definitions[ 606 ].textures[ FACE_LEFT ] = TEX_CONCRETE_GRAY;
 block_definitions[ 606 ].textures[ FACE_BACK ] = TEX_CONCRETE_GRAY;
 block_definitions[ 606 ].icon_texture = TEX_CONCRETE_GRAY;
-block_definitions[ 606 ].icon_is_isometric = false;
 
 // GRAY_CONCRETE_POWDER (607)
 block_definitions[ 607 ].textures[ FACE_TOP ] = TEX_CONCRETE_POWDER_GRAY;
@@ -7876,7 +7490,6 @@ block_definitions[ 607 ].textures[ FACE_FRONT ] = TEX_CONCRETE_POWDER_GRAY;
 block_definitions[ 607 ].textures[ FACE_LEFT ] = TEX_CONCRETE_POWDER_GRAY;
 block_definitions[ 607 ].textures[ FACE_BACK ] = TEX_CONCRETE_POWDER_GRAY;
 block_definitions[ 607 ].icon_texture = TEX_CONCRETE_POWDER_GRAY;
-block_definitions[ 607 ].icon_is_isometric = false;
 
 // GRAY_CONCRETE_SLAB (608)
 block_definitions[ 608 ].textures[ FACE_TOP ] = TEX_CONCRETE_GRAY;
@@ -7886,7 +7499,6 @@ block_definitions[ 608 ].textures[ FACE_FRONT ] = TEX_CONCRETE_GRAY;
 block_definitions[ 608 ].textures[ FACE_LEFT ] = TEX_CONCRETE_GRAY;
 block_definitions[ 608 ].textures[ FACE_BACK ] = TEX_CONCRETE_GRAY;
 block_definitions[ 608 ].icon_texture = TEX_CONCRETE_GRAY;
-block_definitions[ 608 ].icon_is_isometric = false;
 
 // GRAY_CONCRETE_STAIRS (609)
 block_definitions[ 609 ].textures[ FACE_TOP ] = TEX_CONCRETE_GRAY;
@@ -7896,7 +7508,6 @@ block_definitions[ 609 ].textures[ FACE_FRONT ] = TEX_CONCRETE_GRAY;
 block_definitions[ 609 ].textures[ FACE_LEFT ] = TEX_CONCRETE_GRAY;
 block_definitions[ 609 ].textures[ FACE_BACK ] = TEX_CONCRETE_GRAY;
 block_definitions[ 609 ].icon_texture = TEX_CONCRETE_GRAY;
-block_definitions[ 609 ].icon_is_isometric = false;
 
 // GRAY_GLAZED_TERRACOTTA (610)
 block_definitions[ 610 ].textures[ FACE_TOP ] = TEX_GLAZED_TERRACOTTA_GRAY;
@@ -7906,7 +7517,6 @@ block_definitions[ 610 ].textures[ FACE_FRONT ] = TEX_GLAZED_TERRACOTTA_GRAY;
 block_definitions[ 610 ].textures[ FACE_LEFT ] = TEX_GLAZED_TERRACOTTA_GRAY;
 block_definitions[ 610 ].textures[ FACE_BACK ] = TEX_GLAZED_TERRACOTTA_GRAY;
 block_definitions[ 610 ].icon_texture = TEX_GLAZED_TERRACOTTA_GRAY;
-block_definitions[ 610 ].icon_is_isometric = false;
 
 // GRAY_SHULKER_BOX (611)
 block_definitions[ 611 ].textures[ FACE_TOP ] = TEX_SHULKER_TOP_GRAY;
@@ -7916,7 +7526,6 @@ block_definitions[ 611 ].textures[ FACE_FRONT ] = TEX_SHULKER_TOP_GRAY;
 block_definitions[ 611 ].textures[ FACE_LEFT ] = TEX_SHULKER_TOP_GRAY;
 block_definitions[ 611 ].textures[ FACE_BACK ] = TEX_SHULKER_TOP_GRAY;
 block_definitions[ 611 ].icon_texture = TEX_SHULKER_TOP_GRAY;
-block_definitions[ 611 ].icon_is_isometric = false;
 
 // GRAY_STAINED_GLASS_PANE (612)
 block_definitions[ 612 ].textures[ FACE_TOP ] = TEX_GLASS_GRAY;
@@ -7929,7 +7538,6 @@ block_definitions[ 612 ].icon_texture = TEX_GLASS_GRAY;
 block_definitions[ 612 ].affected_by_redstone_power = false;
 block_definitions[ 612 ].casts_shadow = false;
 block_definitions[ 612 ].hardness = 0.449999988f;
-block_definitions[ 612 ].icon_is_isometric = false;
 block_definitions[ 612 ].is_seethrough = true;
 block_definitions[ 612 ].renderOrder = RenderOrder_Translucent;
 
@@ -7941,7 +7549,6 @@ block_definitions[ 613 ].textures[ FACE_FRONT ] = TEX_HARDENED_CLAY_STAINED_GRAY
 block_definitions[ 613 ].textures[ FACE_LEFT ] = TEX_HARDENED_CLAY_STAINED_GRAY;
 block_definitions[ 613 ].textures[ FACE_BACK ] = TEX_HARDENED_CLAY_STAINED_GRAY;
 block_definitions[ 613 ].icon_texture = TEX_HARDENED_CLAY_STAINED_GRAY;
-block_definitions[ 613 ].icon_is_isometric = false;
 
 // GRAY_WOOL (614)
 block_definitions[ 614 ].textures[ FACE_TOP ] = TEX_WOOL_COLORED_GRAY;
@@ -7951,7 +7558,6 @@ block_definitions[ 614 ].textures[ FACE_FRONT ] = TEX_WOOL_COLORED_GRAY;
 block_definitions[ 614 ].textures[ FACE_LEFT ] = TEX_WOOL_COLORED_GRAY;
 block_definitions[ 614 ].textures[ FACE_BACK ] = TEX_WOOL_COLORED_GRAY;
 block_definitions[ 614 ].icon_texture = TEX_WOOL_COLORED_GRAY;
-block_definitions[ 614 ].icon_is_isometric = false;
 
 // GRAY_WOOL_DOUBLE_SLAB (615)
 block_definitions[ 615 ].textures[ FACE_TOP ] = TEX_WOOL_COLORED_GRAY;
@@ -7961,7 +7567,6 @@ block_definitions[ 615 ].textures[ FACE_FRONT ] = TEX_WOOL_COLORED_GRAY;
 block_definitions[ 615 ].textures[ FACE_LEFT ] = TEX_WOOL_COLORED_GRAY;
 block_definitions[ 615 ].textures[ FACE_BACK ] = TEX_WOOL_COLORED_GRAY;
 block_definitions[ 615 ].icon_texture = TEX_WOOL_COLORED_GRAY;
-block_definitions[ 615 ].icon_is_isometric = false;
 
 // GRAY_WOOL_SLAB (616)
 block_definitions[ 616 ].textures[ FACE_TOP ] = TEX_WOOL_COLORED_GRAY;
@@ -7971,7 +7576,6 @@ block_definitions[ 616 ].textures[ FACE_FRONT ] = TEX_WOOL_COLORED_GRAY;
 block_definitions[ 616 ].textures[ FACE_LEFT ] = TEX_WOOL_COLORED_GRAY;
 block_definitions[ 616 ].textures[ FACE_BACK ] = TEX_WOOL_COLORED_GRAY;
 block_definitions[ 616 ].icon_texture = TEX_WOOL_COLORED_GRAY;
-block_definitions[ 616 ].icon_is_isometric = false;
 
 // GRAY_WOOL_STAIRS (617)
 block_definitions[ 617 ].textures[ FACE_TOP ] = TEX_WOOL_COLORED_GRAY;
@@ -7981,7 +7585,6 @@ block_definitions[ 617 ].textures[ FACE_FRONT ] = TEX_WOOL_COLORED_GRAY;
 block_definitions[ 617 ].textures[ FACE_LEFT ] = TEX_WOOL_COLORED_GRAY;
 block_definitions[ 617 ].textures[ FACE_BACK ] = TEX_WOOL_COLORED_GRAY;
 block_definitions[ 617 ].icon_texture = TEX_WOOL_COLORED_GRAY;
-block_definitions[ 617 ].icon_is_isometric = false;
 
 // GREEN_CANDLE (618)
 block_definitions[ 618 ].textures[ FACE_TOP ] = TEX_GREEN_CANDLE;
@@ -7993,7 +7596,6 @@ block_definitions[ 618 ].textures[ FACE_BACK ] = TEX_GREEN_CANDLE;
 block_definitions[ 618 ].icon_texture = TEX_GREEN_CANDLE;
 block_definitions[ 618 ].casts_shadow = false;
 block_definitions[ 618 ].hardness = 0.35f;
-block_definitions[ 618 ].icon_is_isometric = false;
 block_definitions[ 618 ].is_seethrough = true;
 block_definitions[ 618 ].no_light = 6815743;
 
@@ -8004,10 +7606,9 @@ block_definitions[ 619 ].textures[ FACE_RIGHT ] = TEX_CAKE_SIDE;
 block_definitions[ 619 ].textures[ FACE_FRONT ] = TEX_CAKE_SIDE;
 block_definitions[ 619 ].textures[ FACE_LEFT ] = TEX_CAKE_SIDE;
 block_definitions[ 619 ].textures[ FACE_BACK ] = TEX_CAKE_SIDE;
-block_definitions[ 619 ].icon_texture = TEX_CAKE_SIDE;
+block_definitions[ 619 ].icon_texture = TEX_CAKE_TOP;
 block_definitions[ 619 ].casts_shadow = false;
 block_definitions[ 619 ].hardness = 0.35f;
-block_definitions[ 619 ].icon_is_isometric = false;
 block_definitions[ 619 ].is_seethrough = true;
 block_definitions[ 619 ].no_light = 6815743;
 
@@ -8019,7 +7620,6 @@ block_definitions[ 620 ].textures[ FACE_FRONT ] = TEX_WOOL_COLORED_GREEN;
 block_definitions[ 620 ].textures[ FACE_LEFT ] = TEX_WOOL_COLORED_GREEN;
 block_definitions[ 620 ].textures[ FACE_BACK ] = TEX_WOOL_COLORED_GREEN;
 block_definitions[ 620 ].icon_texture = TEX_WOOL_COLORED_GREEN;
-block_definitions[ 620 ].icon_is_isometric = false;
 
 // GREEN_CONCRETE (621)
 block_definitions[ 621 ].textures[ FACE_TOP ] = TEX_CONCRETE_GREEN;
@@ -8029,7 +7629,6 @@ block_definitions[ 621 ].textures[ FACE_FRONT ] = TEX_CONCRETE_GREEN;
 block_definitions[ 621 ].textures[ FACE_LEFT ] = TEX_CONCRETE_GREEN;
 block_definitions[ 621 ].textures[ FACE_BACK ] = TEX_CONCRETE_GREEN;
 block_definitions[ 621 ].icon_texture = TEX_CONCRETE_GREEN;
-block_definitions[ 621 ].icon_is_isometric = false;
 
 // GREEN_CONCRETE_DOUBLE_SLAB (622)
 block_definitions[ 622 ].textures[ FACE_TOP ] = TEX_CONCRETE_GREEN;
@@ -8039,7 +7638,6 @@ block_definitions[ 622 ].textures[ FACE_FRONT ] = TEX_CONCRETE_GREEN;
 block_definitions[ 622 ].textures[ FACE_LEFT ] = TEX_CONCRETE_GREEN;
 block_definitions[ 622 ].textures[ FACE_BACK ] = TEX_CONCRETE_GREEN;
 block_definitions[ 622 ].icon_texture = TEX_CONCRETE_GREEN;
-block_definitions[ 622 ].icon_is_isometric = false;
 
 // GREEN_CONCRETE_POWDER (623)
 block_definitions[ 623 ].textures[ FACE_TOP ] = TEX_CONCRETE_POWDER_GREEN;
@@ -8049,7 +7647,6 @@ block_definitions[ 623 ].textures[ FACE_FRONT ] = TEX_CONCRETE_POWDER_GREEN;
 block_definitions[ 623 ].textures[ FACE_LEFT ] = TEX_CONCRETE_POWDER_GREEN;
 block_definitions[ 623 ].textures[ FACE_BACK ] = TEX_CONCRETE_POWDER_GREEN;
 block_definitions[ 623 ].icon_texture = TEX_CONCRETE_POWDER_GREEN;
-block_definitions[ 623 ].icon_is_isometric = false;
 
 // GREEN_CONCRETE_SLAB (624)
 block_definitions[ 624 ].textures[ FACE_TOP ] = TEX_CONCRETE_GREEN;
@@ -8059,7 +7656,6 @@ block_definitions[ 624 ].textures[ FACE_FRONT ] = TEX_CONCRETE_GREEN;
 block_definitions[ 624 ].textures[ FACE_LEFT ] = TEX_CONCRETE_GREEN;
 block_definitions[ 624 ].textures[ FACE_BACK ] = TEX_CONCRETE_GREEN;
 block_definitions[ 624 ].icon_texture = TEX_CONCRETE_GREEN;
-block_definitions[ 624 ].icon_is_isometric = false;
 
 // GREEN_CONCRETE_STAIRS (625)
 block_definitions[ 625 ].textures[ FACE_TOP ] = TEX_CONCRETE_GREEN;
@@ -8069,7 +7665,6 @@ block_definitions[ 625 ].textures[ FACE_FRONT ] = TEX_CONCRETE_GREEN;
 block_definitions[ 625 ].textures[ FACE_LEFT ] = TEX_CONCRETE_GREEN;
 block_definitions[ 625 ].textures[ FACE_BACK ] = TEX_CONCRETE_GREEN;
 block_definitions[ 625 ].icon_texture = TEX_CONCRETE_GREEN;
-block_definitions[ 625 ].icon_is_isometric = false;
 
 // GREEN_GLAZED_TERRACOTTA (626)
 block_definitions[ 626 ].textures[ FACE_TOP ] = TEX_GLAZED_TERRACOTTA_GREEN;
@@ -8079,7 +7674,6 @@ block_definitions[ 626 ].textures[ FACE_FRONT ] = TEX_GLAZED_TERRACOTTA_GREEN;
 block_definitions[ 626 ].textures[ FACE_LEFT ] = TEX_GLAZED_TERRACOTTA_GREEN;
 block_definitions[ 626 ].textures[ FACE_BACK ] = TEX_GLAZED_TERRACOTTA_GREEN;
 block_definitions[ 626 ].icon_texture = TEX_GLAZED_TERRACOTTA_GREEN;
-block_definitions[ 626 ].icon_is_isometric = false;
 
 // GREEN_SHULKER_BOX (627)
 block_definitions[ 627 ].textures[ FACE_TOP ] = TEX_SHULKER_TOP_GREEN;
@@ -8089,7 +7683,6 @@ block_definitions[ 627 ].textures[ FACE_FRONT ] = TEX_SHULKER_TOP_GREEN;
 block_definitions[ 627 ].textures[ FACE_LEFT ] = TEX_SHULKER_TOP_GREEN;
 block_definitions[ 627 ].textures[ FACE_BACK ] = TEX_SHULKER_TOP_GREEN;
 block_definitions[ 627 ].icon_texture = TEX_SHULKER_TOP_GREEN;
-block_definitions[ 627 ].icon_is_isometric = false;
 
 // GREEN_STAINED_GLASS_PANE (628)
 block_definitions[ 628 ].textures[ FACE_TOP ] = TEX_GLASS_GREEN;
@@ -8102,7 +7695,6 @@ block_definitions[ 628 ].icon_texture = TEX_GLASS_GREEN;
 block_definitions[ 628 ].affected_by_redstone_power = false;
 block_definitions[ 628 ].casts_shadow = false;
 block_definitions[ 628 ].hardness = 0.449999988f;
-block_definitions[ 628 ].icon_is_isometric = false;
 block_definitions[ 628 ].is_seethrough = true;
 block_definitions[ 628 ].renderOrder = RenderOrder_Translucent;
 
@@ -8114,7 +7706,6 @@ block_definitions[ 629 ].textures[ FACE_FRONT ] = TEX_HARDENED_CLAY_STAINED_GREE
 block_definitions[ 629 ].textures[ FACE_LEFT ] = TEX_HARDENED_CLAY_STAINED_GREEN;
 block_definitions[ 629 ].textures[ FACE_BACK ] = TEX_HARDENED_CLAY_STAINED_GREEN;
 block_definitions[ 629 ].icon_texture = TEX_HARDENED_CLAY_STAINED_GREEN;
-block_definitions[ 629 ].icon_is_isometric = false;
 
 // GREEN_WOOL (630)
 block_definitions[ 630 ].textures[ FACE_TOP ] = TEX_WOOL_COLORED_GREEN;
@@ -8124,7 +7715,6 @@ block_definitions[ 630 ].textures[ FACE_FRONT ] = TEX_WOOL_COLORED_GREEN;
 block_definitions[ 630 ].textures[ FACE_LEFT ] = TEX_WOOL_COLORED_GREEN;
 block_definitions[ 630 ].textures[ FACE_BACK ] = TEX_WOOL_COLORED_GREEN;
 block_definitions[ 630 ].icon_texture = TEX_WOOL_COLORED_GREEN;
-block_definitions[ 630 ].icon_is_isometric = false;
 
 // GREEN_WOOL_DOUBLE_SLAB (631)
 block_definitions[ 631 ].textures[ FACE_TOP ] = TEX_WOOL_COLORED_GREEN;
@@ -8134,7 +7724,6 @@ block_definitions[ 631 ].textures[ FACE_FRONT ] = TEX_WOOL_COLORED_GREEN;
 block_definitions[ 631 ].textures[ FACE_LEFT ] = TEX_WOOL_COLORED_GREEN;
 block_definitions[ 631 ].textures[ FACE_BACK ] = TEX_WOOL_COLORED_GREEN;
 block_definitions[ 631 ].icon_texture = TEX_WOOL_COLORED_GREEN;
-block_definitions[ 631 ].icon_is_isometric = false;
 
 // GREEN_WOOL_SLAB (632)
 block_definitions[ 632 ].textures[ FACE_TOP ] = TEX_WOOL_COLORED_GREEN;
@@ -8144,7 +7733,6 @@ block_definitions[ 632 ].textures[ FACE_FRONT ] = TEX_WOOL_COLORED_GREEN;
 block_definitions[ 632 ].textures[ FACE_LEFT ] = TEX_WOOL_COLORED_GREEN;
 block_definitions[ 632 ].textures[ FACE_BACK ] = TEX_WOOL_COLORED_GREEN;
 block_definitions[ 632 ].icon_texture = TEX_WOOL_COLORED_GREEN;
-block_definitions[ 632 ].icon_is_isometric = false;
 
 // GREEN_WOOL_STAIRS (633)
 block_definitions[ 633 ].textures[ FACE_TOP ] = TEX_WOOL_COLORED_GREEN;
@@ -8154,7 +7742,6 @@ block_definitions[ 633 ].textures[ FACE_FRONT ] = TEX_WOOL_COLORED_GREEN;
 block_definitions[ 633 ].textures[ FACE_LEFT ] = TEX_WOOL_COLORED_GREEN;
 block_definitions[ 633 ].textures[ FACE_BACK ] = TEX_WOOL_COLORED_GREEN;
 block_definitions[ 633 ].icon_texture = TEX_WOOL_COLORED_GREEN;
-block_definitions[ 633 ].icon_is_isometric = false;
 
 // GRINDSTONE (634)
 block_definitions[ 634 ].textures[ FACE_TOP ] = TEX_GRINDSTONE_ROUND;
@@ -8166,7 +7753,6 @@ block_definitions[ 634 ].textures[ FACE_BACK ] = TEX_GRINDSTONE_PIVOT;
 block_definitions[ 634 ].icon_texture = TEX_GRINDSTONE_ROUND;
 block_definitions[ 634 ].casts_shadow = false;
 block_definitions[ 634 ].hardness = 0.35f;
-block_definitions[ 634 ].icon_is_isometric = false;
 block_definitions[ 634 ].is_seethrough = true;
 block_definitions[ 634 ].no_light = 6815743;
 
@@ -8200,7 +7786,6 @@ block_definitions[ 636 ].textures[ FACE_FRONT ] = TEX_HARDENED_CLAY;
 block_definitions[ 636 ].textures[ FACE_LEFT ] = TEX_HARDENED_CLAY;
 block_definitions[ 636 ].textures[ FACE_BACK ] = TEX_HARDENED_CLAY;
 block_definitions[ 636 ].icon_texture = TEX_HARDENED_CLAY;
-block_definitions[ 636 ].icon_is_isometric = false;
 
 // HAY_BLOCK (637)
 block_definitions[ 637 ].textures[ FACE_TOP ] = TEX_HAY_BLOCK_TOP;
@@ -8209,8 +7794,7 @@ block_definitions[ 637 ].textures[ FACE_RIGHT ] = TEX_HAY_BLOCK_SIDE;
 block_definitions[ 637 ].textures[ FACE_FRONT ] = TEX_HAY_BLOCK_SIDE;
 block_definitions[ 637 ].textures[ FACE_LEFT ] = TEX_HAY_BLOCK_SIDE;
 block_definitions[ 637 ].textures[ FACE_BACK ] = TEX_HAY_BLOCK_SIDE;
-block_definitions[ 637 ].icon_texture = TEX_HAY_BLOCK_SIDE;
-block_definitions[ 637 ].icon_is_isometric = false;
+block_definitions[ 637 ].icon_texture = TEX_HAY_BLOCK_TOP;
 
 // HEAVY_CORE (638)
 block_definitions[ 638 ].textures[ FACE_TOP ] = TEX_HEAVY_CORE;
@@ -8222,7 +7806,6 @@ block_definitions[ 638 ].textures[ FACE_BACK ] = TEX_HEAVY_CORE;
 block_definitions[ 638 ].icon_texture = TEX_HEAVY_CORE;
 block_definitions[ 638 ].casts_shadow = false;
 block_definitions[ 638 ].hardness = 0.35f;
-block_definitions[ 638 ].icon_is_isometric = false;
 block_definitions[ 638 ].is_seethrough = true;
 block_definitions[ 638 ].no_light = 6815743;
 
@@ -8234,7 +7817,6 @@ block_definitions[ 639 ].textures[ FACE_FRONT ] = TEX_IRON_BLOCK;
 block_definitions[ 639 ].textures[ FACE_LEFT ] = TEX_IRON_BLOCK;
 block_definitions[ 639 ].textures[ FACE_BACK ] = TEX_IRON_BLOCK;
 block_definitions[ 639 ].icon_texture = TEX_IRON_BLOCK;
-block_definitions[ 639 ].icon_is_isometric = false;
 
 // HONEY_BLOCK (640)
 block_definitions[ 640 ].textures[ FACE_TOP ] = TEX_HONEY_TOP;
@@ -8243,11 +7825,10 @@ block_definitions[ 640 ].textures[ FACE_RIGHT ] = TEX_HONEY_SIDE;
 block_definitions[ 640 ].textures[ FACE_FRONT ] = TEX_HONEY_SIDE;
 block_definitions[ 640 ].textures[ FACE_LEFT ] = TEX_HONEY_SIDE;
 block_definitions[ 640 ].textures[ FACE_BACK ] = TEX_HONEY_SIDE;
-block_definitions[ 640 ].icon_texture = TEX_HONEY_SIDE;
+block_definitions[ 640 ].icon_texture = TEX_HONEY_TOP;
 block_definitions[ 640 ].affected_by_redstone_power = false;
 block_definitions[ 640 ].casts_shadow = false;
 block_definitions[ 640 ].hardness = 0.449999988f;
-block_definitions[ 640 ].icon_is_isometric = false;
 block_definitions[ 640 ].is_seethrough = true;
 block_definitions[ 640 ].renderOrder = RenderOrder_Translucent;
 
@@ -8259,7 +7840,6 @@ block_definitions[ 641 ].textures[ FACE_FRONT ] = TEX_HONEYCOMB;
 block_definitions[ 641 ].textures[ FACE_LEFT ] = TEX_HONEYCOMB;
 block_definitions[ 641 ].textures[ FACE_BACK ] = TEX_HONEYCOMB;
 block_definitions[ 641 ].icon_texture = TEX_HONEYCOMB;
-block_definitions[ 641 ].icon_is_isometric = false;
 
 // HOPPER (642)
 block_definitions[ 642 ].textures[ FACE_TOP ] = TEX_HOPPER_TOP;
@@ -8268,10 +7848,9 @@ block_definitions[ 642 ].textures[ FACE_RIGHT ] = TEX_HOPPER_OUTSIDE;
 block_definitions[ 642 ].textures[ FACE_FRONT ] = TEX_HOPPER_OUTSIDE;
 block_definitions[ 642 ].textures[ FACE_LEFT ] = TEX_HOPPER_OUTSIDE;
 block_definitions[ 642 ].textures[ FACE_BACK ] = TEX_HOPPER_OUTSIDE;
-block_definitions[ 642 ].icon_texture = TEX_HOPPER_OUTSIDE;
+block_definitions[ 642 ].icon_texture = TEX_HOPPER_TOP;
 block_definitions[ 642 ].casts_shadow = false;
 block_definitions[ 642 ].hardness = 0.35f;
-block_definitions[ 642 ].icon_is_isometric = false;
 block_definitions[ 642 ].is_seethrough = true;
 block_definitions[ 642 ].no_light = 6815743;
 
@@ -8283,7 +7862,6 @@ block_definitions[ 643 ].textures[ FACE_FRONT ] = TEX_CORAL_YELLOW;
 block_definitions[ 643 ].textures[ FACE_LEFT ] = TEX_CORAL_YELLOW;
 block_definitions[ 643 ].textures[ FACE_BACK ] = TEX_CORAL_YELLOW;
 block_definitions[ 643 ].icon_texture = TEX_CORAL_YELLOW;
-block_definitions[ 643 ].icon_is_isometric = false;
 
 // HORN_CORAL_WALL_FAN (644)
 block_definitions[ 644 ].textures[ FACE_TOP ] = TEX_CORAL_FAN_YELLOW;
@@ -8295,7 +7873,6 @@ block_definitions[ 644 ].textures[ FACE_BACK ] = TEX_CORAL_FAN_YELLOW;
 block_definitions[ 644 ].icon_texture = TEX_CORAL_FAN_YELLOW;
 block_definitions[ 644 ].casts_shadow = false;
 block_definitions[ 644 ].hardness = 0.35f;
-block_definitions[ 644 ].icon_is_isometric = false;
 block_definitions[ 644 ].is_seethrough = true;
 block_definitions[ 644 ].no_light = 6815743;
 
@@ -8310,7 +7887,6 @@ block_definitions[ 645 ].icon_texture = TEX_ICE;
 block_definitions[ 645 ].affected_by_redstone_power = false;
 block_definitions[ 645 ].casts_shadow = false;
 block_definitions[ 645 ].hardness = 0.449999988f;
-block_definitions[ 645 ].icon_is_isometric = false;
 block_definitions[ 645 ].is_seethrough = true;
 block_definitions[ 645 ].renderOrder = RenderOrder_Translucent;
 
@@ -8322,7 +7898,6 @@ block_definitions[ 646 ].textures[ FACE_FRONT ] = TEX_STONEBRICK_CARVED;
 block_definitions[ 646 ].textures[ FACE_LEFT ] = TEX_STONEBRICK_CARVED;
 block_definitions[ 646 ].textures[ FACE_BACK ] = TEX_STONEBRICK_CARVED;
 block_definitions[ 646 ].icon_texture = TEX_STONEBRICK_CARVED;
-block_definitions[ 646 ].icon_is_isometric = false;
 
 // INFESTED_COBBLESTONE (647)
 block_definitions[ 647 ].textures[ FACE_TOP ] = TEX_COBBLESTONE;
@@ -8332,7 +7907,6 @@ block_definitions[ 647 ].textures[ FACE_FRONT ] = TEX_COBBLESTONE;
 block_definitions[ 647 ].textures[ FACE_LEFT ] = TEX_COBBLESTONE;
 block_definitions[ 647 ].textures[ FACE_BACK ] = TEX_COBBLESTONE;
 block_definitions[ 647 ].icon_texture = TEX_COBBLESTONE;
-block_definitions[ 647 ].icon_is_isometric = false;
 
 // INFESTED_CRACKED_STONE_BRICKS (648)
 block_definitions[ 648 ].textures[ FACE_TOP ] = TEX_STONEBRICK_CRACKED;
@@ -8342,7 +7916,6 @@ block_definitions[ 648 ].textures[ FACE_FRONT ] = TEX_STONEBRICK_CRACKED;
 block_definitions[ 648 ].textures[ FACE_LEFT ] = TEX_STONEBRICK_CRACKED;
 block_definitions[ 648 ].textures[ FACE_BACK ] = TEX_STONEBRICK_CRACKED;
 block_definitions[ 648 ].icon_texture = TEX_STONEBRICK_CRACKED;
-block_definitions[ 648 ].icon_is_isometric = false;
 
 // INFESTED_DEEPSLATE (649)
 block_definitions[ 649 ].textures[ FACE_TOP ] = TEX_DEEPSLATE_TOP;
@@ -8351,8 +7924,7 @@ block_definitions[ 649 ].textures[ FACE_RIGHT ] = TEX_DEEPSLATE;
 block_definitions[ 649 ].textures[ FACE_FRONT ] = TEX_DEEPSLATE;
 block_definitions[ 649 ].textures[ FACE_LEFT ] = TEX_DEEPSLATE;
 block_definitions[ 649 ].textures[ FACE_BACK ] = TEX_DEEPSLATE;
-block_definitions[ 649 ].icon_texture = TEX_DEEPSLATE;
-block_definitions[ 649 ].icon_is_isometric = false;
+block_definitions[ 649 ].icon_texture = TEX_DEEPSLATE_TOP;
 
 // INFESTED_MOSSY_STONE_BRICKS (650)
 block_definitions[ 650 ].textures[ FACE_TOP ] = TEX_STONEBRICK_MOSSY;
@@ -8362,7 +7934,6 @@ block_definitions[ 650 ].textures[ FACE_FRONT ] = TEX_STONEBRICK_MOSSY;
 block_definitions[ 650 ].textures[ FACE_LEFT ] = TEX_STONEBRICK_MOSSY;
 block_definitions[ 650 ].textures[ FACE_BACK ] = TEX_STONEBRICK_MOSSY;
 block_definitions[ 650 ].icon_texture = TEX_STONEBRICK_MOSSY;
-block_definitions[ 650 ].icon_is_isometric = false;
 
 // INFESTED_STONE (651)
 block_definitions[ 651 ].textures[ FACE_TOP ] = TEX_STONE;
@@ -8372,7 +7943,6 @@ block_definitions[ 651 ].textures[ FACE_FRONT ] = TEX_STONE;
 block_definitions[ 651 ].textures[ FACE_LEFT ] = TEX_STONE;
 block_definitions[ 651 ].textures[ FACE_BACK ] = TEX_STONE;
 block_definitions[ 651 ].icon_texture = TEX_STONE;
-block_definitions[ 651 ].icon_is_isometric = false;
 
 // INFESTED_STONE_BRICKS (652)
 block_definitions[ 652 ].textures[ FACE_TOP ] = TEX_STONEBRICK;
@@ -8382,7 +7952,6 @@ block_definitions[ 652 ].textures[ FACE_FRONT ] = TEX_STONEBRICK;
 block_definitions[ 652 ].textures[ FACE_LEFT ] = TEX_STONEBRICK;
 block_definitions[ 652 ].textures[ FACE_BACK ] = TEX_STONEBRICK;
 block_definitions[ 652 ].icon_texture = TEX_STONEBRICK;
-block_definitions[ 652 ].icon_is_isometric = false;
 
 // IRON_BARS (653)
 block_definitions[ 653 ].textures[ FACE_TOP ] = TEX_IRON_BARS;
@@ -8394,7 +7963,6 @@ block_definitions[ 653 ].textures[ FACE_BACK ] = TEX_IRON_BARS;
 block_definitions[ 653 ].icon_texture = TEX_IRON_BARS;
 block_definitions[ 653 ].casts_shadow = false;
 block_definitions[ 653 ].hardness = 0.35f;
-block_definitions[ 653 ].icon_is_isometric = false;
 block_definitions[ 653 ].is_seethrough = true;
 block_definitions[ 653 ].no_light = 6815743;
 
@@ -8408,7 +7976,6 @@ block_definitions[ 654 ].textures[ FACE_BACK ] = TEX_IRON_TRAPDOOR;
 block_definitions[ 654 ].icon_texture = TEX_IRON_TRAPDOOR;
 block_definitions[ 654 ].casts_shadow = false;
 block_definitions[ 654 ].hardness = 0.35f;
-block_definitions[ 654 ].icon_is_isometric = false;
 block_definitions[ 654 ].is_seethrough = true;
 block_definitions[ 654 ].no_light = 6815743;
 
@@ -8420,7 +7987,6 @@ block_definitions[ 655 ].textures[ FACE_FRONT ] = TEX_JIGSAW_BACK;
 block_definitions[ 655 ].textures[ FACE_LEFT ] = TEX_JIGSAW_SIDE;
 block_definitions[ 655 ].textures[ FACE_BACK ] = TEX_JIGSAW_FRONT;
 block_definitions[ 655 ].icon_texture = TEX_JIGSAW_LOCK;
-block_definitions[ 655 ].icon_is_isometric = false;
 
 // JUKEBOX (656)
 block_definitions[ 656 ].textures[ FACE_TOP ] = TEX_JUKEBOX_TOP;
@@ -8429,8 +7995,7 @@ block_definitions[ 656 ].textures[ FACE_RIGHT ] = TEX_JUKEBOX_SIDE;
 block_definitions[ 656 ].textures[ FACE_FRONT ] = TEX_JUKEBOX_SIDE;
 block_definitions[ 656 ].textures[ FACE_LEFT ] = TEX_JUKEBOX_SIDE;
 block_definitions[ 656 ].textures[ FACE_BACK ] = TEX_JUKEBOX_SIDE;
-block_definitions[ 656 ].icon_texture = TEX_JUKEBOX_SIDE;
-block_definitions[ 656 ].icon_is_isometric = false;
+block_definitions[ 656 ].icon_texture = TEX_JUKEBOX_TOP;
 
 // JUNGLE_DOUBLE_SLAB (657)
 block_definitions[ 657 ].textures[ FACE_TOP ] = TEX_PLANKS_JUNGLE;
@@ -8440,7 +8005,6 @@ block_definitions[ 657 ].textures[ FACE_FRONT ] = TEX_PLANKS_JUNGLE;
 block_definitions[ 657 ].textures[ FACE_LEFT ] = TEX_PLANKS_JUNGLE;
 block_definitions[ 657 ].textures[ FACE_BACK ] = TEX_PLANKS_JUNGLE;
 block_definitions[ 657 ].icon_texture = TEX_PLANKS_JUNGLE;
-block_definitions[ 657 ].icon_is_isometric = false;
 
 // JUNGLE_FENCE (658)
 block_definitions[ 658 ].textures[ FACE_TOP ] = TEX_PLANKS_JUNGLE;
@@ -8450,7 +8014,6 @@ block_definitions[ 658 ].textures[ FACE_FRONT ] = TEX_PLANKS_JUNGLE;
 block_definitions[ 658 ].textures[ FACE_LEFT ] = TEX_PLANKS_JUNGLE;
 block_definitions[ 658 ].textures[ FACE_BACK ] = TEX_PLANKS_JUNGLE;
 block_definitions[ 658 ].icon_texture = TEX_PLANKS_JUNGLE;
-block_definitions[ 658 ].icon_is_isometric = false;
 
 // JUNGLE_FENCE_GATE (659)
 block_definitions[ 659 ].textures[ FACE_TOP ] = TEX_PLANKS_JUNGLE;
@@ -8460,7 +8023,6 @@ block_definitions[ 659 ].textures[ FACE_FRONT ] = TEX_PLANKS_JUNGLE;
 block_definitions[ 659 ].textures[ FACE_LEFT ] = TEX_PLANKS_JUNGLE;
 block_definitions[ 659 ].textures[ FACE_BACK ] = TEX_PLANKS_JUNGLE;
 block_definitions[ 659 ].icon_texture = TEX_PLANKS_JUNGLE;
-block_definitions[ 659 ].icon_is_isometric = false;
 
 // JUNGLE_HANGING_SIGN (660)
 block_definitions[ 660 ].textures[ FACE_TOP ] = TEX_PLANKS_JUNGLE;
@@ -8470,7 +8032,6 @@ block_definitions[ 660 ].textures[ FACE_FRONT ] = TEX_PLANKS_JUNGLE;
 block_definitions[ 660 ].textures[ FACE_LEFT ] = TEX_PLANKS_JUNGLE;
 block_definitions[ 660 ].textures[ FACE_BACK ] = TEX_PLANKS_JUNGLE;
 block_definitions[ 660 ].icon_texture = TEX_PLANKS_JUNGLE;
-block_definitions[ 660 ].icon_is_isometric = false;
 
 // JUNGLE_SHELF (661)
 block_definitions[ 661 ].textures[ FACE_TOP ] = TEX_JUNGLE_SHELF;
@@ -8480,7 +8041,6 @@ block_definitions[ 661 ].textures[ FACE_FRONT ] = TEX_JUNGLE_SHELF;
 block_definitions[ 661 ].textures[ FACE_LEFT ] = TEX_JUNGLE_SHELF;
 block_definitions[ 661 ].textures[ FACE_BACK ] = TEX_JUNGLE_SHELF;
 block_definitions[ 661 ].icon_texture = TEX_JUNGLE_SHELF;
-block_definitions[ 661 ].icon_is_isometric = false;
 
 // JUNGLE_STAIRS (662)
 block_definitions[ 662 ].textures[ FACE_TOP ] = TEX_PLANKS_JUNGLE;
@@ -8490,7 +8050,6 @@ block_definitions[ 662 ].textures[ FACE_FRONT ] = TEX_PLANKS_JUNGLE;
 block_definitions[ 662 ].textures[ FACE_LEFT ] = TEX_PLANKS_JUNGLE;
 block_definitions[ 662 ].textures[ FACE_BACK ] = TEX_PLANKS_JUNGLE;
 block_definitions[ 662 ].icon_texture = TEX_PLANKS_JUNGLE;
-block_definitions[ 662 ].icon_is_isometric = false;
 
 // JUNGLE_STANDING_SIGN (663)
 block_definitions[ 663 ].textures[ FACE_TOP ] = TEX_PLANKS_JUNGLE;
@@ -8500,7 +8059,6 @@ block_definitions[ 663 ].textures[ FACE_FRONT ] = TEX_PLANKS_JUNGLE;
 block_definitions[ 663 ].textures[ FACE_LEFT ] = TEX_PLANKS_JUNGLE;
 block_definitions[ 663 ].textures[ FACE_BACK ] = TEX_PLANKS_JUNGLE;
 block_definitions[ 663 ].icon_texture = TEX_PLANKS_JUNGLE;
-block_definitions[ 663 ].icon_is_isometric = false;
 
 // JUNGLE_TRAPDOOR (664)
 block_definitions[ 664 ].textures[ FACE_TOP ] = TEX_JUNGLE_TRAPDOOR;
@@ -8512,7 +8070,6 @@ block_definitions[ 664 ].textures[ FACE_BACK ] = TEX_JUNGLE_TRAPDOOR;
 block_definitions[ 664 ].icon_texture = TEX_JUNGLE_TRAPDOOR;
 block_definitions[ 664 ].casts_shadow = false;
 block_definitions[ 664 ].hardness = 0.35f;
-block_definitions[ 664 ].icon_is_isometric = false;
 block_definitions[ 664 ].is_seethrough = true;
 block_definitions[ 664 ].no_light = 6815743;
 
@@ -8524,7 +8081,6 @@ block_definitions[ 665 ].textures[ FACE_FRONT ] = TEX_PLANKS_JUNGLE;
 block_definitions[ 665 ].textures[ FACE_LEFT ] = TEX_PLANKS_JUNGLE;
 block_definitions[ 665 ].textures[ FACE_BACK ] = TEX_PLANKS_JUNGLE;
 block_definitions[ 665 ].icon_texture = TEX_PLANKS_JUNGLE;
-block_definitions[ 665 ].icon_is_isometric = false;
 
 // JUNGLE_WOOD (666)
 block_definitions[ 666 ].textures[ FACE_TOP ] = TEX_LOG_JUNGLE;
@@ -8534,7 +8090,6 @@ block_definitions[ 666 ].textures[ FACE_FRONT ] = TEX_LOG_JUNGLE;
 block_definitions[ 666 ].textures[ FACE_LEFT ] = TEX_LOG_JUNGLE;
 block_definitions[ 666 ].textures[ FACE_BACK ] = TEX_LOG_JUNGLE;
 block_definitions[ 666 ].icon_texture = TEX_LOG_JUNGLE;
-block_definitions[ 666 ].icon_is_isometric = false;
 
 // LANTERN (667)
 block_definitions[ 667 ].textures[ FACE_TOP ] = TEX_LANTERN;
@@ -8547,7 +8102,6 @@ block_definitions[ 667 ].icon_texture = TEX_LANTERN;
 block_definitions[ 667 ].casts_shadow = false;
 block_definitions[ 667 ].emits_light = 15;
 block_definitions[ 667 ].hardness = 0.35f;
-block_definitions[ 667 ].icon_is_isometric = false;
 block_definitions[ 667 ].is_seethrough = true;
 block_definitions[ 667 ].no_light = 6815743;
 
@@ -8559,7 +8113,6 @@ block_definitions[ 668 ].textures[ FACE_FRONT ] = TEX_LAPIS_BLOCK;
 block_definitions[ 668 ].textures[ FACE_LEFT ] = TEX_LAPIS_BLOCK;
 block_definitions[ 668 ].textures[ FACE_BACK ] = TEX_LAPIS_BLOCK;
 block_definitions[ 668 ].icon_texture = TEX_LAPIS_BLOCK;
-block_definitions[ 668 ].icon_is_isometric = false;
 
 // LAPIS_ORE (669)
 block_definitions[ 669 ].textures[ FACE_TOP ] = TEX_LAPIS_ORE;
@@ -8569,7 +8122,6 @@ block_definitions[ 669 ].textures[ FACE_FRONT ] = TEX_LAPIS_ORE;
 block_definitions[ 669 ].textures[ FACE_LEFT ] = TEX_LAPIS_ORE;
 block_definitions[ 669 ].textures[ FACE_BACK ] = TEX_LAPIS_ORE;
 block_definitions[ 669 ].icon_texture = TEX_LAPIS_ORE;
-block_definitions[ 669 ].icon_is_isometric = false;
 
 // LARGE_AMETHYST_BUD (670)
 block_definitions[ 670 ].textures[ FACE_TOP ] = TEX_LARGE_AMETHYST_BUD;
@@ -8582,7 +8134,6 @@ block_definitions[ 670 ].icon_texture = TEX_LARGE_AMETHYST_BUD;
 block_definitions[ 670 ].casts_shadow = false;
 block_definitions[ 670 ].emits_light = 4;
 block_definitions[ 670 ].hardness = 0.35f;
-block_definitions[ 670 ].icon_is_isometric = false;
 block_definitions[ 670 ].is_seethrough = true;
 block_definitions[ 670 ].no_light = 6815743;
 
@@ -8619,7 +8170,6 @@ block_definitions[ 672 ].icon_texture = TEX_CAULDRON_TOP;
 block_definitions[ 672 ].affected_by_redstone_power = false;
 block_definitions[ 672 ].casts_shadow = false;
 block_definitions[ 672 ].hardness = 0.449999988f;
-block_definitions[ 672 ].icon_is_isometric = false;
 block_definitions[ 672 ].is_seethrough = true;
 block_definitions[ 672 ].renderOrder = RenderOrder_Translucent;
 
@@ -8655,7 +8205,6 @@ block_definitions[ 674 ].textures[ FACE_BACK ] = TEX_LEAVES_OAK_CARRIED;
 block_definitions[ 674 ].icon_texture = TEX_LEAVES_OAK_CARRIED;
 block_definitions[ 674 ].casts_shadow = false;
 block_definitions[ 674 ].hardness = 0.35f;
-block_definitions[ 674 ].icon_is_isometric = false;
 block_definitions[ 674 ].is_seethrough = true;
 block_definitions[ 674 ].no_light = 6815743;
 
@@ -8669,7 +8218,6 @@ block_definitions[ 675 ].textures[ FACE_BACK ] = TEX_LEAVES_ACACIA_CARRIED;
 block_definitions[ 675 ].icon_texture = TEX_LEAVES_ACACIA_CARRIED;
 block_definitions[ 675 ].casts_shadow = false;
 block_definitions[ 675 ].hardness = 0.35f;
-block_definitions[ 675 ].icon_is_isometric = false;
 block_definitions[ 675 ].is_seethrough = true;
 block_definitions[ 675 ].no_light = 6815743;
 
@@ -8681,7 +8229,6 @@ block_definitions[ 676 ].textures[ FACE_FRONT ] = TEX_LECTERN_SIDES;
 block_definitions[ 676 ].textures[ FACE_LEFT ] = TEX_LECTERN_SIDES;
 block_definitions[ 676 ].textures[ FACE_BACK ] = TEX_LECTERN_FRONT;
 block_definitions[ 676 ].icon_texture = TEX_LECTERN_TOP;
-block_definitions[ 676 ].icon_is_isometric = false;
 
 // LEVER (677)
 block_definitions[ 677 ].textures[ FACE_TOP ] = TEX_LEVER;
@@ -8693,7 +8240,6 @@ block_definitions[ 677 ].textures[ FACE_BACK ] = TEX_LEVER;
 block_definitions[ 677 ].icon_texture = TEX_LEVER;
 block_definitions[ 677 ].casts_shadow = false;
 block_definitions[ 677 ].hardness = 0.35f;
-block_definitions[ 677 ].icon_is_isometric = false;
 block_definitions[ 677 ].is_seethrough = true;
 block_definitions[ 677 ].no_light = 6815743;
 
@@ -8707,7 +8253,6 @@ block_definitions[ 678 ].textures[ FACE_BACK ] = TEX_LIGHT_BLUE_CANDLE;
 block_definitions[ 678 ].icon_texture = TEX_LIGHT_BLUE_CANDLE;
 block_definitions[ 678 ].casts_shadow = false;
 block_definitions[ 678 ].hardness = 0.35f;
-block_definitions[ 678 ].icon_is_isometric = false;
 block_definitions[ 678 ].is_seethrough = true;
 block_definitions[ 678 ].no_light = 6815743;
 
@@ -8718,10 +8263,9 @@ block_definitions[ 679 ].textures[ FACE_RIGHT ] = TEX_CAKE_SIDE;
 block_definitions[ 679 ].textures[ FACE_FRONT ] = TEX_CAKE_SIDE;
 block_definitions[ 679 ].textures[ FACE_LEFT ] = TEX_CAKE_SIDE;
 block_definitions[ 679 ].textures[ FACE_BACK ] = TEX_CAKE_SIDE;
-block_definitions[ 679 ].icon_texture = TEX_CAKE_SIDE;
+block_definitions[ 679 ].icon_texture = TEX_CAKE_TOP;
 block_definitions[ 679 ].casts_shadow = false;
 block_definitions[ 679 ].hardness = 0.35f;
-block_definitions[ 679 ].icon_is_isometric = false;
 block_definitions[ 679 ].is_seethrough = true;
 block_definitions[ 679 ].no_light = 6815743;
 
@@ -8733,7 +8277,6 @@ block_definitions[ 680 ].textures[ FACE_FRONT ] = TEX_WOOL_COLORED_LIGHT_BLUE;
 block_definitions[ 680 ].textures[ FACE_LEFT ] = TEX_WOOL_COLORED_LIGHT_BLUE;
 block_definitions[ 680 ].textures[ FACE_BACK ] = TEX_WOOL_COLORED_LIGHT_BLUE;
 block_definitions[ 680 ].icon_texture = TEX_WOOL_COLORED_LIGHT_BLUE;
-block_definitions[ 680 ].icon_is_isometric = false;
 
 // LIGHT_BLUE_CONCRETE (681)
 block_definitions[ 681 ].textures[ FACE_TOP ] = TEX_CONCRETE_LIGHT_BLUE;
@@ -8743,7 +8286,6 @@ block_definitions[ 681 ].textures[ FACE_FRONT ] = TEX_CONCRETE_LIGHT_BLUE;
 block_definitions[ 681 ].textures[ FACE_LEFT ] = TEX_CONCRETE_LIGHT_BLUE;
 block_definitions[ 681 ].textures[ FACE_BACK ] = TEX_CONCRETE_LIGHT_BLUE;
 block_definitions[ 681 ].icon_texture = TEX_CONCRETE_LIGHT_BLUE;
-block_definitions[ 681 ].icon_is_isometric = false;
 
 // LIGHT_BLUE_CONCRETE_DOUBLE_SLAB (682)
 block_definitions[ 682 ].textures[ FACE_TOP ] = TEX_CONCRETE_LIGHT_BLUE;
@@ -8753,7 +8295,6 @@ block_definitions[ 682 ].textures[ FACE_FRONT ] = TEX_CONCRETE_LIGHT_BLUE;
 block_definitions[ 682 ].textures[ FACE_LEFT ] = TEX_CONCRETE_LIGHT_BLUE;
 block_definitions[ 682 ].textures[ FACE_BACK ] = TEX_CONCRETE_LIGHT_BLUE;
 block_definitions[ 682 ].icon_texture = TEX_CONCRETE_LIGHT_BLUE;
-block_definitions[ 682 ].icon_is_isometric = false;
 
 // LIGHT_BLUE_CONCRETE_POWDER (683)
 block_definitions[ 683 ].textures[ FACE_TOP ] = TEX_CONCRETE_POWDER_LIGHT_BLUE;
@@ -8763,7 +8304,6 @@ block_definitions[ 683 ].textures[ FACE_FRONT ] = TEX_CONCRETE_POWDER_LIGHT_BLUE
 block_definitions[ 683 ].textures[ FACE_LEFT ] = TEX_CONCRETE_POWDER_LIGHT_BLUE;
 block_definitions[ 683 ].textures[ FACE_BACK ] = TEX_CONCRETE_POWDER_LIGHT_BLUE;
 block_definitions[ 683 ].icon_texture = TEX_CONCRETE_POWDER_LIGHT_BLUE;
-block_definitions[ 683 ].icon_is_isometric = false;
 
 // LIGHT_BLUE_CONCRETE_SLAB (684)
 block_definitions[ 684 ].textures[ FACE_TOP ] = TEX_CONCRETE_LIGHT_BLUE;
@@ -8773,7 +8313,6 @@ block_definitions[ 684 ].textures[ FACE_FRONT ] = TEX_CONCRETE_LIGHT_BLUE;
 block_definitions[ 684 ].textures[ FACE_LEFT ] = TEX_CONCRETE_LIGHT_BLUE;
 block_definitions[ 684 ].textures[ FACE_BACK ] = TEX_CONCRETE_LIGHT_BLUE;
 block_definitions[ 684 ].icon_texture = TEX_CONCRETE_LIGHT_BLUE;
-block_definitions[ 684 ].icon_is_isometric = false;
 
 // LIGHT_BLUE_CONCRETE_STAIRS (685)
 block_definitions[ 685 ].textures[ FACE_TOP ] = TEX_CONCRETE_LIGHT_BLUE;
@@ -8783,7 +8322,6 @@ block_definitions[ 685 ].textures[ FACE_FRONT ] = TEX_CONCRETE_LIGHT_BLUE;
 block_definitions[ 685 ].textures[ FACE_LEFT ] = TEX_CONCRETE_LIGHT_BLUE;
 block_definitions[ 685 ].textures[ FACE_BACK ] = TEX_CONCRETE_LIGHT_BLUE;
 block_definitions[ 685 ].icon_texture = TEX_CONCRETE_LIGHT_BLUE;
-block_definitions[ 685 ].icon_is_isometric = false;
 
 // LIGHT_BLUE_GLAZED_TERRACOTTA (686)
 block_definitions[ 686 ].textures[ FACE_TOP ] = TEX_GLAZED_TERRACOTTA_LIGHT_BLUE;
@@ -8793,7 +8331,6 @@ block_definitions[ 686 ].textures[ FACE_FRONT ] = TEX_GLAZED_TERRACOTTA_LIGHT_BL
 block_definitions[ 686 ].textures[ FACE_LEFT ] = TEX_GLAZED_TERRACOTTA_LIGHT_BLUE;
 block_definitions[ 686 ].textures[ FACE_BACK ] = TEX_GLAZED_TERRACOTTA_LIGHT_BLUE;
 block_definitions[ 686 ].icon_texture = TEX_GLAZED_TERRACOTTA_LIGHT_BLUE;
-block_definitions[ 686 ].icon_is_isometric = false;
 
 // LIGHT_BLUE_SHULKER_BOX (687)
 block_definitions[ 687 ].textures[ FACE_TOP ] = TEX_SHULKER_TOP_LIGHT_BLUE;
@@ -8803,7 +8340,6 @@ block_definitions[ 687 ].textures[ FACE_FRONT ] = TEX_SHULKER_TOP_LIGHT_BLUE;
 block_definitions[ 687 ].textures[ FACE_LEFT ] = TEX_SHULKER_TOP_LIGHT_BLUE;
 block_definitions[ 687 ].textures[ FACE_BACK ] = TEX_SHULKER_TOP_LIGHT_BLUE;
 block_definitions[ 687 ].icon_texture = TEX_SHULKER_TOP_LIGHT_BLUE;
-block_definitions[ 687 ].icon_is_isometric = false;
 
 // LIGHT_BLUE_STAINED_GLASS_PANE (688)
 block_definitions[ 688 ].textures[ FACE_TOP ] = TEX_GLASS_LIGHT_BLUE;
@@ -8816,7 +8352,6 @@ block_definitions[ 688 ].icon_texture = TEX_GLASS_LIGHT_BLUE;
 block_definitions[ 688 ].affected_by_redstone_power = false;
 block_definitions[ 688 ].casts_shadow = false;
 block_definitions[ 688 ].hardness = 0.449999988f;
-block_definitions[ 688 ].icon_is_isometric = false;
 block_definitions[ 688 ].is_seethrough = true;
 block_definitions[ 688 ].renderOrder = RenderOrder_Translucent;
 
@@ -8828,7 +8363,6 @@ block_definitions[ 689 ].textures[ FACE_FRONT ] = TEX_HARDENED_CLAY_STAINED_LIGH
 block_definitions[ 689 ].textures[ FACE_LEFT ] = TEX_HARDENED_CLAY_STAINED_LIGHT_BLUE;
 block_definitions[ 689 ].textures[ FACE_BACK ] = TEX_HARDENED_CLAY_STAINED_LIGHT_BLUE;
 block_definitions[ 689 ].icon_texture = TEX_HARDENED_CLAY_STAINED_LIGHT_BLUE;
-block_definitions[ 689 ].icon_is_isometric = false;
 
 // LIGHT_BLUE_WOOL (690)
 block_definitions[ 690 ].textures[ FACE_TOP ] = TEX_WOOL_COLORED_LIGHT_BLUE;
@@ -8838,7 +8372,6 @@ block_definitions[ 690 ].textures[ FACE_FRONT ] = TEX_WOOL_COLORED_LIGHT_BLUE;
 block_definitions[ 690 ].textures[ FACE_LEFT ] = TEX_WOOL_COLORED_LIGHT_BLUE;
 block_definitions[ 690 ].textures[ FACE_BACK ] = TEX_WOOL_COLORED_LIGHT_BLUE;
 block_definitions[ 690 ].icon_texture = TEX_WOOL_COLORED_LIGHT_BLUE;
-block_definitions[ 690 ].icon_is_isometric = false;
 
 // LIGHT_BLUE_WOOL_DOUBLE_SLAB (691)
 block_definitions[ 691 ].textures[ FACE_TOP ] = TEX_WOOL_COLORED_LIGHT_BLUE;
@@ -8848,7 +8381,6 @@ block_definitions[ 691 ].textures[ FACE_FRONT ] = TEX_WOOL_COLORED_LIGHT_BLUE;
 block_definitions[ 691 ].textures[ FACE_LEFT ] = TEX_WOOL_COLORED_LIGHT_BLUE;
 block_definitions[ 691 ].textures[ FACE_BACK ] = TEX_WOOL_COLORED_LIGHT_BLUE;
 block_definitions[ 691 ].icon_texture = TEX_WOOL_COLORED_LIGHT_BLUE;
-block_definitions[ 691 ].icon_is_isometric = false;
 
 // LIGHT_BLUE_WOOL_SLAB (692)
 block_definitions[ 692 ].textures[ FACE_TOP ] = TEX_WOOL_COLORED_LIGHT_BLUE;
@@ -8858,7 +8390,6 @@ block_definitions[ 692 ].textures[ FACE_FRONT ] = TEX_WOOL_COLORED_LIGHT_BLUE;
 block_definitions[ 692 ].textures[ FACE_LEFT ] = TEX_WOOL_COLORED_LIGHT_BLUE;
 block_definitions[ 692 ].textures[ FACE_BACK ] = TEX_WOOL_COLORED_LIGHT_BLUE;
 block_definitions[ 692 ].icon_texture = TEX_WOOL_COLORED_LIGHT_BLUE;
-block_definitions[ 692 ].icon_is_isometric = false;
 
 // LIGHT_BLUE_WOOL_STAIRS (693)
 block_definitions[ 693 ].textures[ FACE_TOP ] = TEX_WOOL_COLORED_LIGHT_BLUE;
@@ -8868,7 +8399,6 @@ block_definitions[ 693 ].textures[ FACE_FRONT ] = TEX_WOOL_COLORED_LIGHT_BLUE;
 block_definitions[ 693 ].textures[ FACE_LEFT ] = TEX_WOOL_COLORED_LIGHT_BLUE;
 block_definitions[ 693 ].textures[ FACE_BACK ] = TEX_WOOL_COLORED_LIGHT_BLUE;
 block_definitions[ 693 ].icon_texture = TEX_WOOL_COLORED_LIGHT_BLUE;
-block_definitions[ 693 ].icon_is_isometric = false;
 
 // LIGHT_GRAY_CANDLE (694)
 block_definitions[ 694 ].textures[ FACE_TOP ] = TEX_LIGHT_GRAY_CANDLE;
@@ -8880,7 +8410,6 @@ block_definitions[ 694 ].textures[ FACE_BACK ] = TEX_LIGHT_GRAY_CANDLE;
 block_definitions[ 694 ].icon_texture = TEX_LIGHT_GRAY_CANDLE;
 block_definitions[ 694 ].casts_shadow = false;
 block_definitions[ 694 ].hardness = 0.35f;
-block_definitions[ 694 ].icon_is_isometric = false;
 block_definitions[ 694 ].is_seethrough = true;
 block_definitions[ 694 ].no_light = 6815743;
 
@@ -8891,10 +8420,9 @@ block_definitions[ 695 ].textures[ FACE_RIGHT ] = TEX_CAKE_SIDE;
 block_definitions[ 695 ].textures[ FACE_FRONT ] = TEX_CAKE_SIDE;
 block_definitions[ 695 ].textures[ FACE_LEFT ] = TEX_CAKE_SIDE;
 block_definitions[ 695 ].textures[ FACE_BACK ] = TEX_CAKE_SIDE;
-block_definitions[ 695 ].icon_texture = TEX_CAKE_SIDE;
+block_definitions[ 695 ].icon_texture = TEX_CAKE_TOP;
 block_definitions[ 695 ].casts_shadow = false;
 block_definitions[ 695 ].hardness = 0.35f;
-block_definitions[ 695 ].icon_is_isometric = false;
 block_definitions[ 695 ].is_seethrough = true;
 block_definitions[ 695 ].no_light = 6815743;
 
@@ -8906,7 +8434,6 @@ block_definitions[ 696 ].textures[ FACE_FRONT ] = TEX_WOOL_COLORED_SILVER;
 block_definitions[ 696 ].textures[ FACE_LEFT ] = TEX_WOOL_COLORED_SILVER;
 block_definitions[ 696 ].textures[ FACE_BACK ] = TEX_WOOL_COLORED_SILVER;
 block_definitions[ 696 ].icon_texture = TEX_WOOL_COLORED_SILVER;
-block_definitions[ 696 ].icon_is_isometric = false;
 
 // LIGHT_GRAY_CONCRETE (697)
 block_definitions[ 697 ].textures[ FACE_TOP ] = TEX_CONCRETE_SILVER;
@@ -8916,7 +8443,6 @@ block_definitions[ 697 ].textures[ FACE_FRONT ] = TEX_CONCRETE_SILVER;
 block_definitions[ 697 ].textures[ FACE_LEFT ] = TEX_CONCRETE_SILVER;
 block_definitions[ 697 ].textures[ FACE_BACK ] = TEX_CONCRETE_SILVER;
 block_definitions[ 697 ].icon_texture = TEX_CONCRETE_SILVER;
-block_definitions[ 697 ].icon_is_isometric = false;
 
 // LIGHT_GRAY_CONCRETE_DOUBLE_SLAB (698)
 block_definitions[ 698 ].textures[ FACE_TOP ] = TEX_CONCRETE_SILVER;
@@ -8926,7 +8452,6 @@ block_definitions[ 698 ].textures[ FACE_FRONT ] = TEX_CONCRETE_SILVER;
 block_definitions[ 698 ].textures[ FACE_LEFT ] = TEX_CONCRETE_SILVER;
 block_definitions[ 698 ].textures[ FACE_BACK ] = TEX_CONCRETE_SILVER;
 block_definitions[ 698 ].icon_texture = TEX_CONCRETE_SILVER;
-block_definitions[ 698 ].icon_is_isometric = false;
 
 // LIGHT_GRAY_CONCRETE_POWDER (699)
 block_definitions[ 699 ].textures[ FACE_TOP ] = TEX_CONCRETE_POWDER_SILVER;
@@ -8936,7 +8461,6 @@ block_definitions[ 699 ].textures[ FACE_FRONT ] = TEX_CONCRETE_POWDER_SILVER;
 block_definitions[ 699 ].textures[ FACE_LEFT ] = TEX_CONCRETE_POWDER_SILVER;
 block_definitions[ 699 ].textures[ FACE_BACK ] = TEX_CONCRETE_POWDER_SILVER;
 block_definitions[ 699 ].icon_texture = TEX_CONCRETE_POWDER_SILVER;
-block_definitions[ 699 ].icon_is_isometric = false;
 
 // LIGHT_GRAY_CONCRETE_SLAB (700)
 block_definitions[ 700 ].textures[ FACE_TOP ] = TEX_CONCRETE_SILVER;
@@ -8946,7 +8470,6 @@ block_definitions[ 700 ].textures[ FACE_FRONT ] = TEX_CONCRETE_SILVER;
 block_definitions[ 700 ].textures[ FACE_LEFT ] = TEX_CONCRETE_SILVER;
 block_definitions[ 700 ].textures[ FACE_BACK ] = TEX_CONCRETE_SILVER;
 block_definitions[ 700 ].icon_texture = TEX_CONCRETE_SILVER;
-block_definitions[ 700 ].icon_is_isometric = false;
 
 // LIGHT_GRAY_CONCRETE_STAIRS (701)
 block_definitions[ 701 ].textures[ FACE_TOP ] = TEX_CONCRETE_SILVER;
@@ -8956,7 +8479,6 @@ block_definitions[ 701 ].textures[ FACE_FRONT ] = TEX_CONCRETE_SILVER;
 block_definitions[ 701 ].textures[ FACE_LEFT ] = TEX_CONCRETE_SILVER;
 block_definitions[ 701 ].textures[ FACE_BACK ] = TEX_CONCRETE_SILVER;
 block_definitions[ 701 ].icon_texture = TEX_CONCRETE_SILVER;
-block_definitions[ 701 ].icon_is_isometric = false;
 
 // LIGHT_GRAY_SHULKER_BOX (702)
 block_definitions[ 702 ].textures[ FACE_TOP ] = TEX_SHULKER_TOP_SILVER;
@@ -8966,7 +8488,6 @@ block_definitions[ 702 ].textures[ FACE_FRONT ] = TEX_SHULKER_TOP_SILVER;
 block_definitions[ 702 ].textures[ FACE_LEFT ] = TEX_SHULKER_TOP_SILVER;
 block_definitions[ 702 ].textures[ FACE_BACK ] = TEX_SHULKER_TOP_SILVER;
 block_definitions[ 702 ].icon_texture = TEX_SHULKER_TOP_SILVER;
-block_definitions[ 702 ].icon_is_isometric = false;
 
 // LIGHT_GRAY_STAINED_GLASS (703)
 block_definitions[ 703 ].textures[ FACE_TOP ] = TEX_GLASS_SILVER;
@@ -8979,7 +8500,6 @@ block_definitions[ 703 ].icon_texture = TEX_GLASS_SILVER;
 block_definitions[ 703 ].affected_by_redstone_power = false;
 block_definitions[ 703 ].casts_shadow = false;
 block_definitions[ 703 ].hardness = 0.449999988f;
-block_definitions[ 703 ].icon_is_isometric = false;
 block_definitions[ 703 ].is_seethrough = true;
 block_definitions[ 703 ].renderOrder = RenderOrder_Translucent;
 
@@ -8994,7 +8514,6 @@ block_definitions[ 704 ].icon_texture = TEX_GLASS_SILVER;
 block_definitions[ 704 ].affected_by_redstone_power = false;
 block_definitions[ 704 ].casts_shadow = false;
 block_definitions[ 704 ].hardness = 0.449999988f;
-block_definitions[ 704 ].icon_is_isometric = false;
 block_definitions[ 704 ].is_seethrough = true;
 block_definitions[ 704 ].renderOrder = RenderOrder_Translucent;
 
@@ -9006,7 +8525,6 @@ block_definitions[ 705 ].textures[ FACE_FRONT ] = TEX_HARDENED_CLAY_STAINED_SILV
 block_definitions[ 705 ].textures[ FACE_LEFT ] = TEX_HARDENED_CLAY_STAINED_SILVER;
 block_definitions[ 705 ].textures[ FACE_BACK ] = TEX_HARDENED_CLAY_STAINED_SILVER;
 block_definitions[ 705 ].icon_texture = TEX_HARDENED_CLAY_STAINED_SILVER;
-block_definitions[ 705 ].icon_is_isometric = false;
 
 // LIGHT_GRAY_WOOL (706)
 block_definitions[ 706 ].textures[ FACE_TOP ] = TEX_WOOL_COLORED_SILVER;
@@ -9016,7 +8534,6 @@ block_definitions[ 706 ].textures[ FACE_FRONT ] = TEX_WOOL_COLORED_SILVER;
 block_definitions[ 706 ].textures[ FACE_LEFT ] = TEX_WOOL_COLORED_SILVER;
 block_definitions[ 706 ].textures[ FACE_BACK ] = TEX_WOOL_COLORED_SILVER;
 block_definitions[ 706 ].icon_texture = TEX_WOOL_COLORED_SILVER;
-block_definitions[ 706 ].icon_is_isometric = false;
 
 // LIGHT_GRAY_WOOL_DOUBLE_SLAB (707)
 block_definitions[ 707 ].textures[ FACE_TOP ] = TEX_WOOL_COLORED_SILVER;
@@ -9026,7 +8543,6 @@ block_definitions[ 707 ].textures[ FACE_FRONT ] = TEX_WOOL_COLORED_SILVER;
 block_definitions[ 707 ].textures[ FACE_LEFT ] = TEX_WOOL_COLORED_SILVER;
 block_definitions[ 707 ].textures[ FACE_BACK ] = TEX_WOOL_COLORED_SILVER;
 block_definitions[ 707 ].icon_texture = TEX_WOOL_COLORED_SILVER;
-block_definitions[ 707 ].icon_is_isometric = false;
 
 // LIGHT_GRAY_WOOL_SLAB (708)
 block_definitions[ 708 ].textures[ FACE_TOP ] = TEX_WOOL_COLORED_SILVER;
@@ -9036,7 +8552,6 @@ block_definitions[ 708 ].textures[ FACE_FRONT ] = TEX_WOOL_COLORED_SILVER;
 block_definitions[ 708 ].textures[ FACE_LEFT ] = TEX_WOOL_COLORED_SILVER;
 block_definitions[ 708 ].textures[ FACE_BACK ] = TEX_WOOL_COLORED_SILVER;
 block_definitions[ 708 ].icon_texture = TEX_WOOL_COLORED_SILVER;
-block_definitions[ 708 ].icon_is_isometric = false;
 
 // LIGHT_GRAY_WOOL_STAIRS (709)
 block_definitions[ 709 ].textures[ FACE_TOP ] = TEX_WOOL_COLORED_SILVER;
@@ -9046,7 +8561,6 @@ block_definitions[ 709 ].textures[ FACE_FRONT ] = TEX_WOOL_COLORED_SILVER;
 block_definitions[ 709 ].textures[ FACE_LEFT ] = TEX_WOOL_COLORED_SILVER;
 block_definitions[ 709 ].textures[ FACE_BACK ] = TEX_WOOL_COLORED_SILVER;
 block_definitions[ 709 ].icon_texture = TEX_WOOL_COLORED_SILVER;
-block_definitions[ 709 ].icon_is_isometric = false;
 
 // LIGHT_WEIGHTED_PRESSURE_PLATE (710)
 block_definitions[ 710 ].textures[ FACE_TOP ] = TEX_GOLD_BLOCK;
@@ -9056,7 +8570,6 @@ block_definitions[ 710 ].textures[ FACE_FRONT ] = TEX_GOLD_BLOCK;
 block_definitions[ 710 ].textures[ FACE_LEFT ] = TEX_GOLD_BLOCK;
 block_definitions[ 710 ].textures[ FACE_BACK ] = TEX_GOLD_BLOCK;
 block_definitions[ 710 ].icon_texture = TEX_GOLD_BLOCK;
-block_definitions[ 710 ].icon_is_isometric = false;
 
 // LIGHTNING_ROD (711)
 block_definitions[ 711 ].textures[ FACE_TOP ] = TEX_LIGHTNING_ROD;
@@ -9068,7 +8581,6 @@ block_definitions[ 711 ].textures[ FACE_BACK ] = TEX_LIGHTNING_ROD;
 block_definitions[ 711 ].icon_texture = TEX_LIGHTNING_ROD;
 block_definitions[ 711 ].casts_shadow = false;
 block_definitions[ 711 ].hardness = 0.35f;
-block_definitions[ 711 ].icon_is_isometric = false;
 block_definitions[ 711 ].is_seethrough = true;
 block_definitions[ 711 ].no_light = 6815743;
 
@@ -9104,7 +8616,6 @@ block_definitions[ 713 ].textures[ FACE_BACK ] = TEX_LIME_CANDLE;
 block_definitions[ 713 ].icon_texture = TEX_LIME_CANDLE;
 block_definitions[ 713 ].casts_shadow = false;
 block_definitions[ 713 ].hardness = 0.35f;
-block_definitions[ 713 ].icon_is_isometric = false;
 block_definitions[ 713 ].is_seethrough = true;
 block_definitions[ 713 ].no_light = 6815743;
 
@@ -9115,10 +8626,9 @@ block_definitions[ 714 ].textures[ FACE_RIGHT ] = TEX_CAKE_SIDE;
 block_definitions[ 714 ].textures[ FACE_FRONT ] = TEX_CAKE_SIDE;
 block_definitions[ 714 ].textures[ FACE_LEFT ] = TEX_CAKE_SIDE;
 block_definitions[ 714 ].textures[ FACE_BACK ] = TEX_CAKE_SIDE;
-block_definitions[ 714 ].icon_texture = TEX_CAKE_SIDE;
+block_definitions[ 714 ].icon_texture = TEX_CAKE_TOP;
 block_definitions[ 714 ].casts_shadow = false;
 block_definitions[ 714 ].hardness = 0.35f;
-block_definitions[ 714 ].icon_is_isometric = false;
 block_definitions[ 714 ].is_seethrough = true;
 block_definitions[ 714 ].no_light = 6815743;
 
@@ -9130,7 +8640,6 @@ block_definitions[ 715 ].textures[ FACE_FRONT ] = TEX_WOOL_COLORED_LIME;
 block_definitions[ 715 ].textures[ FACE_LEFT ] = TEX_WOOL_COLORED_LIME;
 block_definitions[ 715 ].textures[ FACE_BACK ] = TEX_WOOL_COLORED_LIME;
 block_definitions[ 715 ].icon_texture = TEX_WOOL_COLORED_LIME;
-block_definitions[ 715 ].icon_is_isometric = false;
 
 // LIME_CONCRETE (716)
 block_definitions[ 716 ].textures[ FACE_TOP ] = TEX_CONCRETE_LIME;
@@ -9140,7 +8649,6 @@ block_definitions[ 716 ].textures[ FACE_FRONT ] = TEX_CONCRETE_LIME;
 block_definitions[ 716 ].textures[ FACE_LEFT ] = TEX_CONCRETE_LIME;
 block_definitions[ 716 ].textures[ FACE_BACK ] = TEX_CONCRETE_LIME;
 block_definitions[ 716 ].icon_texture = TEX_CONCRETE_LIME;
-block_definitions[ 716 ].icon_is_isometric = false;
 
 // LIME_CONCRETE_DOUBLE_SLAB (717)
 block_definitions[ 717 ].textures[ FACE_TOP ] = TEX_CONCRETE_LIME;
@@ -9150,7 +8658,6 @@ block_definitions[ 717 ].textures[ FACE_FRONT ] = TEX_CONCRETE_LIME;
 block_definitions[ 717 ].textures[ FACE_LEFT ] = TEX_CONCRETE_LIME;
 block_definitions[ 717 ].textures[ FACE_BACK ] = TEX_CONCRETE_LIME;
 block_definitions[ 717 ].icon_texture = TEX_CONCRETE_LIME;
-block_definitions[ 717 ].icon_is_isometric = false;
 
 // LIME_CONCRETE_POWDER (718)
 block_definitions[ 718 ].textures[ FACE_TOP ] = TEX_CONCRETE_POWDER_LIME;
@@ -9160,7 +8667,6 @@ block_definitions[ 718 ].textures[ FACE_FRONT ] = TEX_CONCRETE_POWDER_LIME;
 block_definitions[ 718 ].textures[ FACE_LEFT ] = TEX_CONCRETE_POWDER_LIME;
 block_definitions[ 718 ].textures[ FACE_BACK ] = TEX_CONCRETE_POWDER_LIME;
 block_definitions[ 718 ].icon_texture = TEX_CONCRETE_POWDER_LIME;
-block_definitions[ 718 ].icon_is_isometric = false;
 
 // LIME_CONCRETE_SLAB (719)
 block_definitions[ 719 ].textures[ FACE_TOP ] = TEX_CONCRETE_LIME;
@@ -9170,7 +8676,6 @@ block_definitions[ 719 ].textures[ FACE_FRONT ] = TEX_CONCRETE_LIME;
 block_definitions[ 719 ].textures[ FACE_LEFT ] = TEX_CONCRETE_LIME;
 block_definitions[ 719 ].textures[ FACE_BACK ] = TEX_CONCRETE_LIME;
 block_definitions[ 719 ].icon_texture = TEX_CONCRETE_LIME;
-block_definitions[ 719 ].icon_is_isometric = false;
 
 // LIME_CONCRETE_STAIRS (720)
 block_definitions[ 720 ].textures[ FACE_TOP ] = TEX_CONCRETE_LIME;
@@ -9180,7 +8685,6 @@ block_definitions[ 720 ].textures[ FACE_FRONT ] = TEX_CONCRETE_LIME;
 block_definitions[ 720 ].textures[ FACE_LEFT ] = TEX_CONCRETE_LIME;
 block_definitions[ 720 ].textures[ FACE_BACK ] = TEX_CONCRETE_LIME;
 block_definitions[ 720 ].icon_texture = TEX_CONCRETE_LIME;
-block_definitions[ 720 ].icon_is_isometric = false;
 
 // LIME_GLAZED_TERRACOTTA (721)
 block_definitions[ 721 ].textures[ FACE_TOP ] = TEX_GLAZED_TERRACOTTA_LIME;
@@ -9190,7 +8694,6 @@ block_definitions[ 721 ].textures[ FACE_FRONT ] = TEX_GLAZED_TERRACOTTA_LIME;
 block_definitions[ 721 ].textures[ FACE_LEFT ] = TEX_GLAZED_TERRACOTTA_LIME;
 block_definitions[ 721 ].textures[ FACE_BACK ] = TEX_GLAZED_TERRACOTTA_LIME;
 block_definitions[ 721 ].icon_texture = TEX_GLAZED_TERRACOTTA_LIME;
-block_definitions[ 721 ].icon_is_isometric = false;
 
 // LIME_SHULKER_BOX (722)
 block_definitions[ 722 ].textures[ FACE_TOP ] = TEX_SHULKER_TOP_LIME;
@@ -9200,7 +8703,6 @@ block_definitions[ 722 ].textures[ FACE_FRONT ] = TEX_SHULKER_TOP_LIME;
 block_definitions[ 722 ].textures[ FACE_LEFT ] = TEX_SHULKER_TOP_LIME;
 block_definitions[ 722 ].textures[ FACE_BACK ] = TEX_SHULKER_TOP_LIME;
 block_definitions[ 722 ].icon_texture = TEX_SHULKER_TOP_LIME;
-block_definitions[ 722 ].icon_is_isometric = false;
 
 // LIME_STAINED_GLASS_PANE (723)
 block_definitions[ 723 ].textures[ FACE_TOP ] = TEX_GLASS_LIME;
@@ -9213,7 +8715,6 @@ block_definitions[ 723 ].icon_texture = TEX_GLASS_LIME;
 block_definitions[ 723 ].affected_by_redstone_power = false;
 block_definitions[ 723 ].casts_shadow = false;
 block_definitions[ 723 ].hardness = 0.449999988f;
-block_definitions[ 723 ].icon_is_isometric = false;
 block_definitions[ 723 ].is_seethrough = true;
 block_definitions[ 723 ].renderOrder = RenderOrder_Translucent;
 
@@ -9225,7 +8726,6 @@ block_definitions[ 724 ].textures[ FACE_FRONT ] = TEX_HARDENED_CLAY_STAINED_LIME
 block_definitions[ 724 ].textures[ FACE_LEFT ] = TEX_HARDENED_CLAY_STAINED_LIME;
 block_definitions[ 724 ].textures[ FACE_BACK ] = TEX_HARDENED_CLAY_STAINED_LIME;
 block_definitions[ 724 ].icon_texture = TEX_HARDENED_CLAY_STAINED_LIME;
-block_definitions[ 724 ].icon_is_isometric = false;
 
 // LIME_WOOL (725)
 block_definitions[ 725 ].textures[ FACE_TOP ] = TEX_WOOL_COLORED_LIME;
@@ -9235,7 +8735,6 @@ block_definitions[ 725 ].textures[ FACE_FRONT ] = TEX_WOOL_COLORED_LIME;
 block_definitions[ 725 ].textures[ FACE_LEFT ] = TEX_WOOL_COLORED_LIME;
 block_definitions[ 725 ].textures[ FACE_BACK ] = TEX_WOOL_COLORED_LIME;
 block_definitions[ 725 ].icon_texture = TEX_WOOL_COLORED_LIME;
-block_definitions[ 725 ].icon_is_isometric = false;
 
 // LIME_WOOL_DOUBLE_SLAB (726)
 block_definitions[ 726 ].textures[ FACE_TOP ] = TEX_WOOL_COLORED_LIME;
@@ -9245,7 +8744,6 @@ block_definitions[ 726 ].textures[ FACE_FRONT ] = TEX_WOOL_COLORED_LIME;
 block_definitions[ 726 ].textures[ FACE_LEFT ] = TEX_WOOL_COLORED_LIME;
 block_definitions[ 726 ].textures[ FACE_BACK ] = TEX_WOOL_COLORED_LIME;
 block_definitions[ 726 ].icon_texture = TEX_WOOL_COLORED_LIME;
-block_definitions[ 726 ].icon_is_isometric = false;
 
 // LIME_WOOL_SLAB (727)
 block_definitions[ 727 ].textures[ FACE_TOP ] = TEX_WOOL_COLORED_LIME;
@@ -9255,7 +8753,6 @@ block_definitions[ 727 ].textures[ FACE_FRONT ] = TEX_WOOL_COLORED_LIME;
 block_definitions[ 727 ].textures[ FACE_LEFT ] = TEX_WOOL_COLORED_LIME;
 block_definitions[ 727 ].textures[ FACE_BACK ] = TEX_WOOL_COLORED_LIME;
 block_definitions[ 727 ].icon_texture = TEX_WOOL_COLORED_LIME;
-block_definitions[ 727 ].icon_is_isometric = false;
 
 // LIME_WOOL_STAIRS (728)
 block_definitions[ 728 ].textures[ FACE_TOP ] = TEX_WOOL_COLORED_LIME;
@@ -9265,7 +8762,6 @@ block_definitions[ 728 ].textures[ FACE_FRONT ] = TEX_WOOL_COLORED_LIME;
 block_definitions[ 728 ].textures[ FACE_LEFT ] = TEX_WOOL_COLORED_LIME;
 block_definitions[ 728 ].textures[ FACE_BACK ] = TEX_WOOL_COLORED_LIME;
 block_definitions[ 728 ].icon_texture = TEX_WOOL_COLORED_LIME;
-block_definitions[ 728 ].icon_is_isometric = false;
 
 // LIT_BLAST_FURNACE (729)
 block_definitions[ 729 ].textures[ FACE_TOP ] = TEX_BLAST_FURNACE_TOP;
@@ -9275,7 +8771,6 @@ block_definitions[ 729 ].textures[ FACE_FRONT ] = TEX_BLAST_FURNACE_SIDE;
 block_definitions[ 729 ].textures[ FACE_LEFT ] = TEX_BLAST_FURNACE_SIDE;
 block_definitions[ 729 ].textures[ FACE_BACK ] = TEX_BLAST_FURNACE_SIDE;
 block_definitions[ 729 ].icon_texture = TEX_BLAST_FURNACE_TOP;
-block_definitions[ 729 ].icon_is_isometric = false;
 
 // LIT_DEEPSLATE_REDSTONE_ORE (730)
 block_definitions[ 730 ].textures[ FACE_TOP ] = TEX_DEEPSLATE_REDSTONE_ORE;
@@ -9286,7 +8781,6 @@ block_definitions[ 730 ].textures[ FACE_LEFT ] = TEX_DEEPSLATE_REDSTONE_ORE;
 block_definitions[ 730 ].textures[ FACE_BACK ] = TEX_DEEPSLATE_REDSTONE_ORE;
 block_definitions[ 730 ].icon_texture = TEX_DEEPSLATE_REDSTONE_ORE;
 block_definitions[ 730 ].emits_light = 9;
-block_definitions[ 730 ].icon_is_isometric = false;
 
 // LIT_PUMPKIN (731)
 block_definitions[ 731 ].textures[ FACE_TOP ] = TEX_PUMPKIN_TOP;
@@ -9297,7 +8791,6 @@ block_definitions[ 731 ].textures[ FACE_LEFT ] = TEX_PUMPKIN_SIDE;
 block_definitions[ 731 ].textures[ FACE_BACK ] = TEX_PUMPKIN_SIDE;
 block_definitions[ 731 ].icon_texture = TEX_PUMPKIN_TOP;
 block_definitions[ 731 ].emits_light = 15;
-block_definitions[ 731 ].icon_is_isometric = false;
 
 // LIT_REDSTONE_ORE (732)
 block_definitions[ 732 ].textures[ FACE_TOP ] = TEX_REDSTONE_ORE;
@@ -9308,7 +8801,6 @@ block_definitions[ 732 ].textures[ FACE_LEFT ] = TEX_REDSTONE_ORE;
 block_definitions[ 732 ].textures[ FACE_BACK ] = TEX_REDSTONE_ORE;
 block_definitions[ 732 ].icon_texture = TEX_REDSTONE_ORE;
 block_definitions[ 732 ].emits_light = 9;
-block_definitions[ 732 ].icon_is_isometric = false;
 
 // LIT_SMOKER (733)
 block_definitions[ 733 ].textures[ FACE_TOP ] = TEX_SMOKER_TOP;
@@ -9318,7 +8810,6 @@ block_definitions[ 733 ].textures[ FACE_FRONT ] = TEX_SMOKER_SIDE;
 block_definitions[ 733 ].textures[ FACE_LEFT ] = TEX_SMOKER_SIDE;
 block_definitions[ 733 ].textures[ FACE_BACK ] = TEX_SMOKER_SIDE;
 block_definitions[ 733 ].icon_texture = TEX_SMOKER_TOP;
-block_definitions[ 733 ].icon_is_isometric = false;
 
 // LODESTONE (734)
 block_definitions[ 734 ].textures[ FACE_TOP ] = TEX_LODESTONE_TOP;
@@ -9327,8 +8818,7 @@ block_definitions[ 734 ].textures[ FACE_RIGHT ] = TEX_LODESTONE_SIDE;
 block_definitions[ 734 ].textures[ FACE_FRONT ] = TEX_LODESTONE_SIDE;
 block_definitions[ 734 ].textures[ FACE_LEFT ] = TEX_LODESTONE_SIDE;
 block_definitions[ 734 ].textures[ FACE_BACK ] = TEX_LODESTONE_SIDE;
-block_definitions[ 734 ].icon_texture = TEX_LODESTONE_SIDE;
-block_definitions[ 734 ].icon_is_isometric = false;
+block_definitions[ 734 ].icon_texture = TEX_LODESTONE_TOP;
 
 // LOG (735)
 block_definitions[ 735 ].textures[ FACE_TOP ] = TEX_LOG_OAK_TOP;
@@ -9337,8 +8827,7 @@ block_definitions[ 735 ].textures[ FACE_RIGHT ] = TEX_LOG_OAK;
 block_definitions[ 735 ].textures[ FACE_FRONT ] = TEX_LOG_OAK;
 block_definitions[ 735 ].textures[ FACE_LEFT ] = TEX_LOG_OAK;
 block_definitions[ 735 ].textures[ FACE_BACK ] = TEX_LOG_OAK;
-block_definitions[ 735 ].icon_texture = TEX_LOG_OAK;
-block_definitions[ 735 ].icon_is_isometric = false;
+block_definitions[ 735 ].icon_texture = TEX_LOG_OAK_TOP;
 
 // LOG2 (736)
 block_definitions[ 736 ].textures[ FACE_TOP ] = TEX_LOG_ACACIA_TOP;
@@ -9347,8 +8836,7 @@ block_definitions[ 736 ].textures[ FACE_RIGHT ] = TEX_LOG_ACACIA;
 block_definitions[ 736 ].textures[ FACE_FRONT ] = TEX_LOG_ACACIA;
 block_definitions[ 736 ].textures[ FACE_LEFT ] = TEX_LOG_ACACIA;
 block_definitions[ 736 ].textures[ FACE_BACK ] = TEX_LOG_ACACIA;
-block_definitions[ 736 ].icon_texture = TEX_LOG_ACACIA;
-block_definitions[ 736 ].icon_is_isometric = false;
+block_definitions[ 736 ].icon_texture = TEX_LOG_ACACIA_TOP;
 
 // LOOM (737)
 block_definitions[ 737 ].textures[ FACE_TOP ] = TEX_LOOM_TOP;
@@ -9358,7 +8846,6 @@ block_definitions[ 737 ].textures[ FACE_FRONT ] = TEX_LOOM_SIDE;
 block_definitions[ 737 ].textures[ FACE_LEFT ] = TEX_LOOM_SIDE;
 block_definitions[ 737 ].textures[ FACE_BACK ] = TEX_LOOM_FRONT;
 block_definitions[ 737 ].icon_texture = TEX_LOOM_TOP;
-block_definitions[ 737 ].icon_is_isometric = false;
 
 // MAGENTA_CANDLE (738)
 block_definitions[ 738 ].textures[ FACE_TOP ] = TEX_MAGENTA_CANDLE;
@@ -9370,7 +8857,6 @@ block_definitions[ 738 ].textures[ FACE_BACK ] = TEX_MAGENTA_CANDLE;
 block_definitions[ 738 ].icon_texture = TEX_MAGENTA_CANDLE;
 block_definitions[ 738 ].casts_shadow = false;
 block_definitions[ 738 ].hardness = 0.35f;
-block_definitions[ 738 ].icon_is_isometric = false;
 block_definitions[ 738 ].is_seethrough = true;
 block_definitions[ 738 ].no_light = 6815743;
 
@@ -9381,10 +8867,9 @@ block_definitions[ 739 ].textures[ FACE_RIGHT ] = TEX_CAKE_SIDE;
 block_definitions[ 739 ].textures[ FACE_FRONT ] = TEX_CAKE_SIDE;
 block_definitions[ 739 ].textures[ FACE_LEFT ] = TEX_CAKE_SIDE;
 block_definitions[ 739 ].textures[ FACE_BACK ] = TEX_CAKE_SIDE;
-block_definitions[ 739 ].icon_texture = TEX_CAKE_SIDE;
+block_definitions[ 739 ].icon_texture = TEX_CAKE_TOP;
 block_definitions[ 739 ].casts_shadow = false;
 block_definitions[ 739 ].hardness = 0.35f;
-block_definitions[ 739 ].icon_is_isometric = false;
 block_definitions[ 739 ].is_seethrough = true;
 block_definitions[ 739 ].no_light = 6815743;
 
@@ -9396,7 +8881,6 @@ block_definitions[ 740 ].textures[ FACE_FRONT ] = TEX_WOOL_COLORED_MAGENTA;
 block_definitions[ 740 ].textures[ FACE_LEFT ] = TEX_WOOL_COLORED_MAGENTA;
 block_definitions[ 740 ].textures[ FACE_BACK ] = TEX_WOOL_COLORED_MAGENTA;
 block_definitions[ 740 ].icon_texture = TEX_WOOL_COLORED_MAGENTA;
-block_definitions[ 740 ].icon_is_isometric = false;
 
 // MAGENTA_CONCRETE (741)
 block_definitions[ 741 ].textures[ FACE_TOP ] = TEX_CONCRETE_MAGENTA;
@@ -9406,7 +8890,6 @@ block_definitions[ 741 ].textures[ FACE_FRONT ] = TEX_CONCRETE_MAGENTA;
 block_definitions[ 741 ].textures[ FACE_LEFT ] = TEX_CONCRETE_MAGENTA;
 block_definitions[ 741 ].textures[ FACE_BACK ] = TEX_CONCRETE_MAGENTA;
 block_definitions[ 741 ].icon_texture = TEX_CONCRETE_MAGENTA;
-block_definitions[ 741 ].icon_is_isometric = false;
 
 // MAGENTA_CONCRETE_DOUBLE_SLAB (742)
 block_definitions[ 742 ].textures[ FACE_TOP ] = TEX_CONCRETE_MAGENTA;
@@ -9416,7 +8899,6 @@ block_definitions[ 742 ].textures[ FACE_FRONT ] = TEX_CONCRETE_MAGENTA;
 block_definitions[ 742 ].textures[ FACE_LEFT ] = TEX_CONCRETE_MAGENTA;
 block_definitions[ 742 ].textures[ FACE_BACK ] = TEX_CONCRETE_MAGENTA;
 block_definitions[ 742 ].icon_texture = TEX_CONCRETE_MAGENTA;
-block_definitions[ 742 ].icon_is_isometric = false;
 
 // MAGENTA_CONCRETE_POWDER (743)
 block_definitions[ 743 ].textures[ FACE_TOP ] = TEX_CONCRETE_POWDER_MAGENTA;
@@ -9426,7 +8908,6 @@ block_definitions[ 743 ].textures[ FACE_FRONT ] = TEX_CONCRETE_POWDER_MAGENTA;
 block_definitions[ 743 ].textures[ FACE_LEFT ] = TEX_CONCRETE_POWDER_MAGENTA;
 block_definitions[ 743 ].textures[ FACE_BACK ] = TEX_CONCRETE_POWDER_MAGENTA;
 block_definitions[ 743 ].icon_texture = TEX_CONCRETE_POWDER_MAGENTA;
-block_definitions[ 743 ].icon_is_isometric = false;
 
 // MAGENTA_CONCRETE_SLAB (744)
 block_definitions[ 744 ].textures[ FACE_TOP ] = TEX_CONCRETE_MAGENTA;
@@ -9436,7 +8917,6 @@ block_definitions[ 744 ].textures[ FACE_FRONT ] = TEX_CONCRETE_MAGENTA;
 block_definitions[ 744 ].textures[ FACE_LEFT ] = TEX_CONCRETE_MAGENTA;
 block_definitions[ 744 ].textures[ FACE_BACK ] = TEX_CONCRETE_MAGENTA;
 block_definitions[ 744 ].icon_texture = TEX_CONCRETE_MAGENTA;
-block_definitions[ 744 ].icon_is_isometric = false;
 
 // MAGENTA_CONCRETE_STAIRS (745)
 block_definitions[ 745 ].textures[ FACE_TOP ] = TEX_CONCRETE_MAGENTA;
@@ -9446,7 +8926,6 @@ block_definitions[ 745 ].textures[ FACE_FRONT ] = TEX_CONCRETE_MAGENTA;
 block_definitions[ 745 ].textures[ FACE_LEFT ] = TEX_CONCRETE_MAGENTA;
 block_definitions[ 745 ].textures[ FACE_BACK ] = TEX_CONCRETE_MAGENTA;
 block_definitions[ 745 ].icon_texture = TEX_CONCRETE_MAGENTA;
-block_definitions[ 745 ].icon_is_isometric = false;
 
 // MAGENTA_GLAZED_TERRACOTTA (746)
 block_definitions[ 746 ].textures[ FACE_TOP ] = TEX_GLAZED_TERRACOTTA_MAGENTA;
@@ -9456,7 +8935,6 @@ block_definitions[ 746 ].textures[ FACE_FRONT ] = TEX_GLAZED_TERRACOTTA_MAGENTA;
 block_definitions[ 746 ].textures[ FACE_LEFT ] = TEX_GLAZED_TERRACOTTA_MAGENTA;
 block_definitions[ 746 ].textures[ FACE_BACK ] = TEX_GLAZED_TERRACOTTA_MAGENTA;
 block_definitions[ 746 ].icon_texture = TEX_GLAZED_TERRACOTTA_MAGENTA;
-block_definitions[ 746 ].icon_is_isometric = false;
 
 // MAGENTA_SHULKER_BOX (747)
 block_definitions[ 747 ].textures[ FACE_TOP ] = TEX_SHULKER_TOP_MAGENTA;
@@ -9466,7 +8944,6 @@ block_definitions[ 747 ].textures[ FACE_FRONT ] = TEX_SHULKER_TOP_MAGENTA;
 block_definitions[ 747 ].textures[ FACE_LEFT ] = TEX_SHULKER_TOP_MAGENTA;
 block_definitions[ 747 ].textures[ FACE_BACK ] = TEX_SHULKER_TOP_MAGENTA;
 block_definitions[ 747 ].icon_texture = TEX_SHULKER_TOP_MAGENTA;
-block_definitions[ 747 ].icon_is_isometric = false;
 
 // MAGENTA_STAINED_GLASS (748)
 block_definitions[ 748 ].textures[ FACE_TOP ] = TEX_GLASS_MAGENTA;
@@ -9479,7 +8956,6 @@ block_definitions[ 748 ].icon_texture = TEX_GLASS_MAGENTA;
 block_definitions[ 748 ].affected_by_redstone_power = false;
 block_definitions[ 748 ].casts_shadow = false;
 block_definitions[ 748 ].hardness = 0.449999988f;
-block_definitions[ 748 ].icon_is_isometric = false;
 block_definitions[ 748 ].is_seethrough = true;
 block_definitions[ 748 ].renderOrder = RenderOrder_Translucent;
 
@@ -9494,7 +8970,6 @@ block_definitions[ 749 ].icon_texture = TEX_GLASS_MAGENTA;
 block_definitions[ 749 ].affected_by_redstone_power = false;
 block_definitions[ 749 ].casts_shadow = false;
 block_definitions[ 749 ].hardness = 0.449999988f;
-block_definitions[ 749 ].icon_is_isometric = false;
 block_definitions[ 749 ].is_seethrough = true;
 block_definitions[ 749 ].renderOrder = RenderOrder_Translucent;
 
@@ -9506,7 +8981,6 @@ block_definitions[ 750 ].textures[ FACE_FRONT ] = TEX_HARDENED_CLAY_STAINED_MAGE
 block_definitions[ 750 ].textures[ FACE_LEFT ] = TEX_HARDENED_CLAY_STAINED_MAGENTA;
 block_definitions[ 750 ].textures[ FACE_BACK ] = TEX_HARDENED_CLAY_STAINED_MAGENTA;
 block_definitions[ 750 ].icon_texture = TEX_HARDENED_CLAY_STAINED_MAGENTA;
-block_definitions[ 750 ].icon_is_isometric = false;
 
 // MAGENTA_WOOL (751)
 block_definitions[ 751 ].textures[ FACE_TOP ] = TEX_WOOL_COLORED_MAGENTA;
@@ -9516,7 +8990,6 @@ block_definitions[ 751 ].textures[ FACE_FRONT ] = TEX_WOOL_COLORED_MAGENTA;
 block_definitions[ 751 ].textures[ FACE_LEFT ] = TEX_WOOL_COLORED_MAGENTA;
 block_definitions[ 751 ].textures[ FACE_BACK ] = TEX_WOOL_COLORED_MAGENTA;
 block_definitions[ 751 ].icon_texture = TEX_WOOL_COLORED_MAGENTA;
-block_definitions[ 751 ].icon_is_isometric = false;
 
 // MAGENTA_WOOL_DOUBLE_SLAB (752)
 block_definitions[ 752 ].textures[ FACE_TOP ] = TEX_WOOL_COLORED_MAGENTA;
@@ -9526,7 +8999,6 @@ block_definitions[ 752 ].textures[ FACE_FRONT ] = TEX_WOOL_COLORED_MAGENTA;
 block_definitions[ 752 ].textures[ FACE_LEFT ] = TEX_WOOL_COLORED_MAGENTA;
 block_definitions[ 752 ].textures[ FACE_BACK ] = TEX_WOOL_COLORED_MAGENTA;
 block_definitions[ 752 ].icon_texture = TEX_WOOL_COLORED_MAGENTA;
-block_definitions[ 752 ].icon_is_isometric = false;
 
 // MAGENTA_WOOL_SLAB (753)
 block_definitions[ 753 ].textures[ FACE_TOP ] = TEX_WOOL_COLORED_MAGENTA;
@@ -9536,7 +9008,6 @@ block_definitions[ 753 ].textures[ FACE_FRONT ] = TEX_WOOL_COLORED_MAGENTA;
 block_definitions[ 753 ].textures[ FACE_LEFT ] = TEX_WOOL_COLORED_MAGENTA;
 block_definitions[ 753 ].textures[ FACE_BACK ] = TEX_WOOL_COLORED_MAGENTA;
 block_definitions[ 753 ].icon_texture = TEX_WOOL_COLORED_MAGENTA;
-block_definitions[ 753 ].icon_is_isometric = false;
 
 // MAGENTA_WOOL_STAIRS (754)
 block_definitions[ 754 ].textures[ FACE_TOP ] = TEX_WOOL_COLORED_MAGENTA;
@@ -9546,7 +9017,6 @@ block_definitions[ 754 ].textures[ FACE_FRONT ] = TEX_WOOL_COLORED_MAGENTA;
 block_definitions[ 754 ].textures[ FACE_LEFT ] = TEX_WOOL_COLORED_MAGENTA;
 block_definitions[ 754 ].textures[ FACE_BACK ] = TEX_WOOL_COLORED_MAGENTA;
 block_definitions[ 754 ].icon_texture = TEX_WOOL_COLORED_MAGENTA;
-block_definitions[ 754 ].icon_is_isometric = false;
 
 // MAGMA (755)
 block_definitions[ 755 ].textures[ FACE_TOP ] = TEX_MAGMA;
@@ -9557,7 +9027,6 @@ block_definitions[ 755 ].textures[ FACE_LEFT ] = TEX_MAGMA;
 block_definitions[ 755 ].textures[ FACE_BACK ] = TEX_MAGMA;
 block_definitions[ 755 ].icon_texture = TEX_MAGMA;
 block_definitions[ 755 ].emits_light = 3;
-block_definitions[ 755 ].icon_is_isometric = false;
 
 // MANGROVE_BUTTON (756)
 block_definitions[ 756 ].textures[ FACE_TOP ] = TEX_MANGROVE_PLANKS;
@@ -9567,7 +9036,6 @@ block_definitions[ 756 ].textures[ FACE_FRONT ] = TEX_MANGROVE_PLANKS;
 block_definitions[ 756 ].textures[ FACE_LEFT ] = TEX_MANGROVE_PLANKS;
 block_definitions[ 756 ].textures[ FACE_BACK ] = TEX_MANGROVE_PLANKS;
 block_definitions[ 756 ].icon_texture = TEX_MANGROVE_PLANKS;
-block_definitions[ 756 ].icon_is_isometric = false;
 
 // MANGROVE_DOOR (757)
 block_definitions[ 757 ].textures[ FACE_TOP ] = TEX_MANGROVE_DOOR_BOTTOM;
@@ -9576,8 +9044,7 @@ block_definitions[ 757 ].textures[ FACE_RIGHT ] = TEX_MANGROVE_DOOR_TOP;
 block_definitions[ 757 ].textures[ FACE_FRONT ] = TEX_MANGROVE_DOOR_TOP;
 block_definitions[ 757 ].textures[ FACE_LEFT ] = TEX_MANGROVE_DOOR_TOP;
 block_definitions[ 757 ].textures[ FACE_BACK ] = TEX_MANGROVE_DOOR_TOP;
-block_definitions[ 757 ].icon_texture = TEX_MANGROVE_DOOR_TOP;
-block_definitions[ 757 ].icon_is_isometric = false;
+block_definitions[ 757 ].icon_texture = TEX_MANGROVE_DOOR_BOTTOM;
 
 // MANGROVE_DOUBLE_SLAB (758)
 block_definitions[ 758 ].textures[ FACE_TOP ] = TEX_MANGROVE_PLANKS;
@@ -9587,7 +9054,6 @@ block_definitions[ 758 ].textures[ FACE_FRONT ] = TEX_MANGROVE_PLANKS;
 block_definitions[ 758 ].textures[ FACE_LEFT ] = TEX_MANGROVE_PLANKS;
 block_definitions[ 758 ].textures[ FACE_BACK ] = TEX_MANGROVE_PLANKS;
 block_definitions[ 758 ].icon_texture = TEX_MANGROVE_PLANKS;
-block_definitions[ 758 ].icon_is_isometric = false;
 
 // MANGROVE_FENCE (759)
 block_definitions[ 759 ].textures[ FACE_TOP ] = TEX_MANGROVE_PLANKS;
@@ -9597,7 +9063,6 @@ block_definitions[ 759 ].textures[ FACE_FRONT ] = TEX_MANGROVE_PLANKS;
 block_definitions[ 759 ].textures[ FACE_LEFT ] = TEX_MANGROVE_PLANKS;
 block_definitions[ 759 ].textures[ FACE_BACK ] = TEX_MANGROVE_PLANKS;
 block_definitions[ 759 ].icon_texture = TEX_MANGROVE_PLANKS;
-block_definitions[ 759 ].icon_is_isometric = false;
 
 // MANGROVE_FENCE_GATE (760)
 block_definitions[ 760 ].textures[ FACE_TOP ] = TEX_MANGROVE_PLANKS;
@@ -9607,7 +9072,6 @@ block_definitions[ 760 ].textures[ FACE_FRONT ] = TEX_MANGROVE_PLANKS;
 block_definitions[ 760 ].textures[ FACE_LEFT ] = TEX_MANGROVE_PLANKS;
 block_definitions[ 760 ].textures[ FACE_BACK ] = TEX_MANGROVE_PLANKS;
 block_definitions[ 760 ].icon_texture = TEX_MANGROVE_PLANKS;
-block_definitions[ 760 ].icon_is_isometric = false;
 
 // MANGROVE_HANGING_SIGN (761)
 block_definitions[ 761 ].textures[ FACE_TOP ] = TEX_MANGROVE_PLANKS;
@@ -9617,7 +9081,6 @@ block_definitions[ 761 ].textures[ FACE_FRONT ] = TEX_MANGROVE_PLANKS;
 block_definitions[ 761 ].textures[ FACE_LEFT ] = TEX_MANGROVE_PLANKS;
 block_definitions[ 761 ].textures[ FACE_BACK ] = TEX_MANGROVE_PLANKS;
 block_definitions[ 761 ].icon_texture = TEX_MANGROVE_PLANKS;
-block_definitions[ 761 ].icon_is_isometric = false;
 
 // MANGROVE_LEAVES (762)
 block_definitions[ 762 ].textures[ FACE_TOP ] = TEX_MANGROVE_LEAVES_CARRIED;
@@ -9629,7 +9092,6 @@ block_definitions[ 762 ].textures[ FACE_BACK ] = TEX_MANGROVE_LEAVES_CARRIED;
 block_definitions[ 762 ].icon_texture = TEX_MANGROVE_LEAVES_CARRIED;
 block_definitions[ 762 ].casts_shadow = false;
 block_definitions[ 762 ].hardness = 0.35f;
-block_definitions[ 762 ].icon_is_isometric = false;
 block_definitions[ 762 ].is_seethrough = true;
 block_definitions[ 762 ].no_light = 6815743;
 
@@ -9640,8 +9102,7 @@ block_definitions[ 763 ].textures[ FACE_RIGHT ] = TEX_MANGROVE_LOG_SIDE;
 block_definitions[ 763 ].textures[ FACE_FRONT ] = TEX_MANGROVE_LOG_SIDE;
 block_definitions[ 763 ].textures[ FACE_LEFT ] = TEX_MANGROVE_LOG_SIDE;
 block_definitions[ 763 ].textures[ FACE_BACK ] = TEX_MANGROVE_LOG_SIDE;
-block_definitions[ 763 ].icon_texture = TEX_MANGROVE_LOG_SIDE;
-block_definitions[ 763 ].icon_is_isometric = false;
+block_definitions[ 763 ].icon_texture = TEX_MANGROVE_LOG_TOP;
 
 // MANGROVE_PLANKS (764)
 block_definitions[ 764 ].textures[ FACE_TOP ] = TEX_MANGROVE_PLANKS;
@@ -9651,7 +9112,6 @@ block_definitions[ 764 ].textures[ FACE_FRONT ] = TEX_MANGROVE_PLANKS;
 block_definitions[ 764 ].textures[ FACE_LEFT ] = TEX_MANGROVE_PLANKS;
 block_definitions[ 764 ].textures[ FACE_BACK ] = TEX_MANGROVE_PLANKS;
 block_definitions[ 764 ].icon_texture = TEX_MANGROVE_PLANKS;
-block_definitions[ 764 ].icon_is_isometric = false;
 
 // MANGROVE_PRESSURE_PLATE (765)
 block_definitions[ 765 ].textures[ FACE_TOP ] = TEX_MANGROVE_PLANKS;
@@ -9661,7 +9121,6 @@ block_definitions[ 765 ].textures[ FACE_FRONT ] = TEX_MANGROVE_PLANKS;
 block_definitions[ 765 ].textures[ FACE_LEFT ] = TEX_MANGROVE_PLANKS;
 block_definitions[ 765 ].textures[ FACE_BACK ] = TEX_MANGROVE_PLANKS;
 block_definitions[ 765 ].icon_texture = TEX_MANGROVE_PLANKS;
-block_definitions[ 765 ].icon_is_isometric = false;
 
 // MANGROVE_PROPAGULE (766)
 block_definitions[ 766 ].textures[ FACE_TOP ] = TEX_AIR;
@@ -9692,10 +9151,9 @@ block_definitions[ 767 ].textures[ FACE_RIGHT ] = TEX_MANGROVE_ROOTS_SIDE;
 block_definitions[ 767 ].textures[ FACE_FRONT ] = TEX_MANGROVE_ROOTS_SIDE;
 block_definitions[ 767 ].textures[ FACE_LEFT ] = TEX_MANGROVE_ROOTS_SIDE;
 block_definitions[ 767 ].textures[ FACE_BACK ] = TEX_MANGROVE_ROOTS_SIDE;
-block_definitions[ 767 ].icon_texture = TEX_MANGROVE_ROOTS_SIDE;
+block_definitions[ 767 ].icon_texture = TEX_MANGROVE_ROOTS_TOP;
 block_definitions[ 767 ].casts_shadow = false;
 block_definitions[ 767 ].hardness = 0.35f;
-block_definitions[ 767 ].icon_is_isometric = false;
 block_definitions[ 767 ].is_seethrough = true;
 block_definitions[ 767 ].no_light = 6815743;
 
@@ -9707,7 +9165,6 @@ block_definitions[ 768 ].textures[ FACE_FRONT ] = TEX_MANGROVE_SHELF;
 block_definitions[ 768 ].textures[ FACE_LEFT ] = TEX_MANGROVE_SHELF;
 block_definitions[ 768 ].textures[ FACE_BACK ] = TEX_MANGROVE_SHELF;
 block_definitions[ 768 ].icon_texture = TEX_MANGROVE_SHELF;
-block_definitions[ 768 ].icon_is_isometric = false;
 
 // MANGROVE_SLAB (769)
 block_definitions[ 769 ].textures[ FACE_TOP ] = TEX_MANGROVE_PLANKS;
@@ -9717,7 +9174,6 @@ block_definitions[ 769 ].textures[ FACE_FRONT ] = TEX_MANGROVE_PLANKS;
 block_definitions[ 769 ].textures[ FACE_LEFT ] = TEX_MANGROVE_PLANKS;
 block_definitions[ 769 ].textures[ FACE_BACK ] = TEX_MANGROVE_PLANKS;
 block_definitions[ 769 ].icon_texture = TEX_MANGROVE_PLANKS;
-block_definitions[ 769 ].icon_is_isometric = false;
 
 // MANGROVE_STAIRS (770)
 block_definitions[ 770 ].textures[ FACE_TOP ] = TEX_MANGROVE_PLANKS;
@@ -9727,7 +9183,6 @@ block_definitions[ 770 ].textures[ FACE_FRONT ] = TEX_MANGROVE_PLANKS;
 block_definitions[ 770 ].textures[ FACE_LEFT ] = TEX_MANGROVE_PLANKS;
 block_definitions[ 770 ].textures[ FACE_BACK ] = TEX_MANGROVE_PLANKS;
 block_definitions[ 770 ].icon_texture = TEX_MANGROVE_PLANKS;
-block_definitions[ 770 ].icon_is_isometric = false;
 
 // MANGROVE_STANDING_SIGN (771)
 block_definitions[ 771 ].textures[ FACE_TOP ] = TEX_MANGROVE_PLANKS;
@@ -9737,7 +9192,6 @@ block_definitions[ 771 ].textures[ FACE_FRONT ] = TEX_MANGROVE_PLANKS;
 block_definitions[ 771 ].textures[ FACE_LEFT ] = TEX_MANGROVE_PLANKS;
 block_definitions[ 771 ].textures[ FACE_BACK ] = TEX_MANGROVE_PLANKS;
 block_definitions[ 771 ].icon_texture = TEX_MANGROVE_PLANKS;
-block_definitions[ 771 ].icon_is_isometric = false;
 
 // MANGROVE_TRAPDOOR (772)
 block_definitions[ 772 ].textures[ FACE_TOP ] = TEX_MANGROVE_TRAPDOOR;
@@ -9749,7 +9203,6 @@ block_definitions[ 772 ].textures[ FACE_BACK ] = TEX_MANGROVE_TRAPDOOR;
 block_definitions[ 772 ].icon_texture = TEX_MANGROVE_TRAPDOOR;
 block_definitions[ 772 ].casts_shadow = false;
 block_definitions[ 772 ].hardness = 0.35f;
-block_definitions[ 772 ].icon_is_isometric = false;
 block_definitions[ 772 ].is_seethrough = true;
 block_definitions[ 772 ].no_light = 6815743;
 
@@ -9761,7 +9214,6 @@ block_definitions[ 773 ].textures[ FACE_FRONT ] = TEX_MANGROVE_PLANKS;
 block_definitions[ 773 ].textures[ FACE_LEFT ] = TEX_MANGROVE_PLANKS;
 block_definitions[ 773 ].textures[ FACE_BACK ] = TEX_MANGROVE_PLANKS;
 block_definitions[ 773 ].icon_texture = TEX_MANGROVE_PLANKS;
-block_definitions[ 773 ].icon_is_isometric = false;
 
 // MANGROVE_WOOD (774)
 block_definitions[ 774 ].textures[ FACE_TOP ] = TEX_MANGROVE_LOG_SIDE;
@@ -9771,7 +9223,6 @@ block_definitions[ 774 ].textures[ FACE_FRONT ] = TEX_MANGROVE_LOG_SIDE;
 block_definitions[ 774 ].textures[ FACE_LEFT ] = TEX_MANGROVE_LOG_SIDE;
 block_definitions[ 774 ].textures[ FACE_BACK ] = TEX_MANGROVE_LOG_SIDE;
 block_definitions[ 774 ].icon_texture = TEX_MANGROVE_LOG_SIDE;
-block_definitions[ 774 ].icon_is_isometric = false;
 
 // MEDIUM_AMETHYST_BUD (775)
 block_definitions[ 775 ].textures[ FACE_TOP ] = TEX_MEDIUM_AMETHYST_BUD;
@@ -9784,7 +9235,6 @@ block_definitions[ 775 ].icon_texture = TEX_MEDIUM_AMETHYST_BUD;
 block_definitions[ 775 ].casts_shadow = false;
 block_definitions[ 775 ].emits_light = 2;
 block_definitions[ 775 ].hardness = 0.35f;
-block_definitions[ 775 ].icon_is_isometric = false;
 block_definitions[ 775 ].is_seethrough = true;
 block_definitions[ 775 ].no_light = 6815743;
 
@@ -9795,8 +9245,7 @@ block_definitions[ 776 ].textures[ FACE_RIGHT ] = TEX_MELON_SIDE;
 block_definitions[ 776 ].textures[ FACE_FRONT ] = TEX_MELON_SIDE;
 block_definitions[ 776 ].textures[ FACE_LEFT ] = TEX_MELON_SIDE;
 block_definitions[ 776 ].textures[ FACE_BACK ] = TEX_MELON_SIDE;
-block_definitions[ 776 ].icon_texture = TEX_MELON_SIDE;
-block_definitions[ 776 ].icon_is_isometric = false;
+block_definitions[ 776 ].icon_texture = TEX_MELON_TOP;
 
 // MONSTER_EGG (777)
 block_definitions[ 777 ].textures[ FACE_TOP ] = TEX_COBBLESTONE;
@@ -9806,7 +9255,6 @@ block_definitions[ 777 ].textures[ FACE_FRONT ] = TEX_COBBLESTONE;
 block_definitions[ 777 ].textures[ FACE_LEFT ] = TEX_COBBLESTONE;
 block_definitions[ 777 ].textures[ FACE_BACK ] = TEX_COBBLESTONE;
 block_definitions[ 777 ].icon_texture = TEX_COBBLESTONE;
-block_definitions[ 777 ].icon_is_isometric = false;
 
 // MOSS_BLOCK (778)
 block_definitions[ 778 ].textures[ FACE_TOP ] = TEX_MOSS_BLOCK;
@@ -9816,7 +9264,6 @@ block_definitions[ 778 ].textures[ FACE_FRONT ] = TEX_MOSS_BLOCK;
 block_definitions[ 778 ].textures[ FACE_LEFT ] = TEX_MOSS_BLOCK;
 block_definitions[ 778 ].textures[ FACE_BACK ] = TEX_MOSS_BLOCK;
 block_definitions[ 778 ].icon_texture = TEX_MOSS_BLOCK;
-block_definitions[ 778 ].icon_is_isometric = false;
 
 // MOSS_CARPET (779)
 block_definitions[ 779 ].textures[ FACE_TOP ] = TEX_MOSS_BLOCK;
@@ -9826,7 +9273,6 @@ block_definitions[ 779 ].textures[ FACE_FRONT ] = TEX_MOSS_BLOCK;
 block_definitions[ 779 ].textures[ FACE_LEFT ] = TEX_MOSS_BLOCK;
 block_definitions[ 779 ].textures[ FACE_BACK ] = TEX_MOSS_BLOCK;
 block_definitions[ 779 ].icon_texture = TEX_MOSS_BLOCK;
-block_definitions[ 779 ].icon_is_isometric = false;
 
 // MOSSY_COBBLESTONE (780)
 block_definitions[ 780 ].textures[ FACE_TOP ] = TEX_COBBLESTONE_MOSSY;
@@ -9836,7 +9282,6 @@ block_definitions[ 780 ].textures[ FACE_FRONT ] = TEX_COBBLESTONE_MOSSY;
 block_definitions[ 780 ].textures[ FACE_LEFT ] = TEX_COBBLESTONE_MOSSY;
 block_definitions[ 780 ].textures[ FACE_BACK ] = TEX_COBBLESTONE_MOSSY;
 block_definitions[ 780 ].icon_texture = TEX_COBBLESTONE_MOSSY;
-block_definitions[ 780 ].icon_is_isometric = false;
 
 // MOSSY_COBBLESTONE_DOUBLE_SLAB (781)
 block_definitions[ 781 ].textures[ FACE_TOP ] = TEX_COBBLESTONE_MOSSY;
@@ -9846,7 +9291,6 @@ block_definitions[ 781 ].textures[ FACE_FRONT ] = TEX_COBBLESTONE_MOSSY;
 block_definitions[ 781 ].textures[ FACE_LEFT ] = TEX_COBBLESTONE_MOSSY;
 block_definitions[ 781 ].textures[ FACE_BACK ] = TEX_COBBLESTONE_MOSSY;
 block_definitions[ 781 ].icon_texture = TEX_COBBLESTONE_MOSSY;
-block_definitions[ 781 ].icon_is_isometric = false;
 
 // MOSSY_COBBLESTONE_SLAB (782)
 block_definitions[ 782 ].textures[ FACE_TOP ] = TEX_COBBLESTONE_MOSSY;
@@ -9856,7 +9300,6 @@ block_definitions[ 782 ].textures[ FACE_FRONT ] = TEX_COBBLESTONE_MOSSY;
 block_definitions[ 782 ].textures[ FACE_LEFT ] = TEX_COBBLESTONE_MOSSY;
 block_definitions[ 782 ].textures[ FACE_BACK ] = TEX_COBBLESTONE_MOSSY;
 block_definitions[ 782 ].icon_texture = TEX_COBBLESTONE_MOSSY;
-block_definitions[ 782 ].icon_is_isometric = false;
 
 // MOSSY_COBBLESTONE_STAIRS (783)
 block_definitions[ 783 ].textures[ FACE_TOP ] = TEX_COBBLESTONE_MOSSY;
@@ -9866,7 +9309,6 @@ block_definitions[ 783 ].textures[ FACE_FRONT ] = TEX_COBBLESTONE_MOSSY;
 block_definitions[ 783 ].textures[ FACE_LEFT ] = TEX_COBBLESTONE_MOSSY;
 block_definitions[ 783 ].textures[ FACE_BACK ] = TEX_COBBLESTONE_MOSSY;
 block_definitions[ 783 ].icon_texture = TEX_COBBLESTONE_MOSSY;
-block_definitions[ 783 ].icon_is_isometric = false;
 
 // MOSSY_COBBLESTONE_WALL (784)
 block_definitions[ 784 ].textures[ FACE_TOP ] = TEX_COBBLESTONE_MOSSY;
@@ -9876,7 +9318,6 @@ block_definitions[ 784 ].textures[ FACE_FRONT ] = TEX_COBBLESTONE_MOSSY;
 block_definitions[ 784 ].textures[ FACE_LEFT ] = TEX_COBBLESTONE_MOSSY;
 block_definitions[ 784 ].textures[ FACE_BACK ] = TEX_COBBLESTONE_MOSSY;
 block_definitions[ 784 ].icon_texture = TEX_COBBLESTONE_MOSSY;
-block_definitions[ 784 ].icon_is_isometric = false;
 
 // MOSSY_STONE_BRICK_DOUBLE_SLAB (785)
 block_definitions[ 785 ].textures[ FACE_TOP ] = TEX_STONEBRICK_MOSSY;
@@ -9886,7 +9327,6 @@ block_definitions[ 785 ].textures[ FACE_FRONT ] = TEX_STONEBRICK_MOSSY;
 block_definitions[ 785 ].textures[ FACE_LEFT ] = TEX_STONEBRICK_MOSSY;
 block_definitions[ 785 ].textures[ FACE_BACK ] = TEX_STONEBRICK_MOSSY;
 block_definitions[ 785 ].icon_texture = TEX_STONEBRICK_MOSSY;
-block_definitions[ 785 ].icon_is_isometric = false;
 
 // MOSSY_STONE_BRICK_SLAB (786)
 block_definitions[ 786 ].textures[ FACE_TOP ] = TEX_STONEBRICK_MOSSY;
@@ -9896,7 +9336,6 @@ block_definitions[ 786 ].textures[ FACE_FRONT ] = TEX_STONEBRICK_MOSSY;
 block_definitions[ 786 ].textures[ FACE_LEFT ] = TEX_STONEBRICK_MOSSY;
 block_definitions[ 786 ].textures[ FACE_BACK ] = TEX_STONEBRICK_MOSSY;
 block_definitions[ 786 ].icon_texture = TEX_STONEBRICK_MOSSY;
-block_definitions[ 786 ].icon_is_isometric = false;
 
 // MOSSY_STONE_BRICK_STAIRS (787)
 block_definitions[ 787 ].textures[ FACE_TOP ] = TEX_STONEBRICK_MOSSY;
@@ -9906,7 +9345,6 @@ block_definitions[ 787 ].textures[ FACE_FRONT ] = TEX_STONEBRICK_MOSSY;
 block_definitions[ 787 ].textures[ FACE_LEFT ] = TEX_STONEBRICK_MOSSY;
 block_definitions[ 787 ].textures[ FACE_BACK ] = TEX_STONEBRICK_MOSSY;
 block_definitions[ 787 ].icon_texture = TEX_STONEBRICK_MOSSY;
-block_definitions[ 787 ].icon_is_isometric = false;
 
 // MOSSY_STONE_BRICK_WALL (788)
 block_definitions[ 788 ].textures[ FACE_TOP ] = TEX_STONEBRICK_MOSSY;
@@ -9916,7 +9354,6 @@ block_definitions[ 788 ].textures[ FACE_FRONT ] = TEX_STONEBRICK_MOSSY;
 block_definitions[ 788 ].textures[ FACE_LEFT ] = TEX_STONEBRICK_MOSSY;
 block_definitions[ 788 ].textures[ FACE_BACK ] = TEX_STONEBRICK_MOSSY;
 block_definitions[ 788 ].icon_texture = TEX_STONEBRICK_MOSSY;
-block_definitions[ 788 ].icon_is_isometric = false;
 
 // MOSSY_STONE_BRICKS (789)
 block_definitions[ 789 ].textures[ FACE_TOP ] = TEX_STONEBRICK_MOSSY;
@@ -9926,7 +9363,6 @@ block_definitions[ 789 ].textures[ FACE_FRONT ] = TEX_STONEBRICK_MOSSY;
 block_definitions[ 789 ].textures[ FACE_LEFT ] = TEX_STONEBRICK_MOSSY;
 block_definitions[ 789 ].textures[ FACE_BACK ] = TEX_STONEBRICK_MOSSY;
 block_definitions[ 789 ].icon_texture = TEX_STONEBRICK_MOSSY;
-block_definitions[ 789 ].icon_is_isometric = false;
 
 // MUD (790)
 block_definitions[ 790 ].textures[ FACE_TOP ] = TEX_MUD;
@@ -9936,7 +9372,6 @@ block_definitions[ 790 ].textures[ FACE_FRONT ] = TEX_MUD;
 block_definitions[ 790 ].textures[ FACE_LEFT ] = TEX_MUD;
 block_definitions[ 790 ].textures[ FACE_BACK ] = TEX_MUD;
 block_definitions[ 790 ].icon_texture = TEX_MUD;
-block_definitions[ 790 ].icon_is_isometric = false;
 
 // MUD_BRICK_DOUBLE_SLAB (791)
 block_definitions[ 791 ].textures[ FACE_TOP ] = TEX_MUD_BRICKS;
@@ -9946,7 +9381,6 @@ block_definitions[ 791 ].textures[ FACE_FRONT ] = TEX_MUD_BRICKS;
 block_definitions[ 791 ].textures[ FACE_LEFT ] = TEX_MUD_BRICKS;
 block_definitions[ 791 ].textures[ FACE_BACK ] = TEX_MUD_BRICKS;
 block_definitions[ 791 ].icon_texture = TEX_MUD_BRICKS;
-block_definitions[ 791 ].icon_is_isometric = false;
 
 // KELP (792)
 block_definitions[ 792 ].textures[ FACE_TOP ] = TEX_AIR;
@@ -9976,7 +9410,6 @@ block_definitions[ 793 ].textures[ FACE_FRONT ] = TEX_MUD_BRICKS;
 block_definitions[ 793 ].textures[ FACE_LEFT ] = TEX_MUD_BRICKS;
 block_definitions[ 793 ].textures[ FACE_BACK ] = TEX_MUD_BRICKS;
 block_definitions[ 793 ].icon_texture = TEX_MUD_BRICKS;
-block_definitions[ 793 ].icon_is_isometric = false;
 
 // MUD_BRICK_STAIRS (794)
 block_definitions[ 794 ].textures[ FACE_TOP ] = TEX_MUD_BRICKS;
@@ -9986,7 +9419,6 @@ block_definitions[ 794 ].textures[ FACE_FRONT ] = TEX_MUD_BRICKS;
 block_definitions[ 794 ].textures[ FACE_LEFT ] = TEX_MUD_BRICKS;
 block_definitions[ 794 ].textures[ FACE_BACK ] = TEX_MUD_BRICKS;
 block_definitions[ 794 ].icon_texture = TEX_MUD_BRICKS;
-block_definitions[ 794 ].icon_is_isometric = false;
 
 // MUD_BRICK_WALL (795)
 block_definitions[ 795 ].textures[ FACE_TOP ] = TEX_MUD_BRICKS;
@@ -9996,7 +9428,6 @@ block_definitions[ 795 ].textures[ FACE_FRONT ] = TEX_MUD_BRICKS;
 block_definitions[ 795 ].textures[ FACE_LEFT ] = TEX_MUD_BRICKS;
 block_definitions[ 795 ].textures[ FACE_BACK ] = TEX_MUD_BRICKS;
 block_definitions[ 795 ].icon_texture = TEX_MUD_BRICKS;
-block_definitions[ 795 ].icon_is_isometric = false;
 
 // MUD_BRICKS (796)
 block_definitions[ 796 ].textures[ FACE_TOP ] = TEX_MUD_BRICKS;
@@ -10006,7 +9437,6 @@ block_definitions[ 796 ].textures[ FACE_FRONT ] = TEX_MUD_BRICKS;
 block_definitions[ 796 ].textures[ FACE_LEFT ] = TEX_MUD_BRICKS;
 block_definitions[ 796 ].textures[ FACE_BACK ] = TEX_MUD_BRICKS;
 block_definitions[ 796 ].icon_texture = TEX_MUD_BRICKS;
-block_definitions[ 796 ].icon_is_isometric = false;
 
 // MUDDY_MANGROVE_ROOTS (797)
 block_definitions[ 797 ].textures[ FACE_TOP ] = TEX_MUDDY_MANGROVE_ROOTS_TOP;
@@ -10015,8 +9445,7 @@ block_definitions[ 797 ].textures[ FACE_RIGHT ] = TEX_MUDDY_MANGROVE_ROOTS_SIDE;
 block_definitions[ 797 ].textures[ FACE_FRONT ] = TEX_MUDDY_MANGROVE_ROOTS_SIDE;
 block_definitions[ 797 ].textures[ FACE_LEFT ] = TEX_MUDDY_MANGROVE_ROOTS_SIDE;
 block_definitions[ 797 ].textures[ FACE_BACK ] = TEX_MUDDY_MANGROVE_ROOTS_SIDE;
-block_definitions[ 797 ].icon_texture = TEX_MUDDY_MANGROVE_ROOTS_SIDE;
-block_definitions[ 797 ].icon_is_isometric = false;
+block_definitions[ 797 ].icon_texture = TEX_MUDDY_MANGROVE_ROOTS_TOP;
 
 // BLACK_TORCH (798)
 block_definitions[ 798 ].textures[ FACE_TOP ] = TEX_BLACK_TORCH;
@@ -10046,7 +9475,6 @@ block_definitions[ 799 ].textures[ FACE_FRONT ] = TEX_MUSHROOM_BLOCK_SKIN_STEM;
 block_definitions[ 799 ].textures[ FACE_LEFT ] = TEX_MUSHROOM_BLOCK_SKIN_STEM;
 block_definitions[ 799 ].textures[ FACE_BACK ] = TEX_MUSHROOM_BLOCK_SKIN_STEM;
 block_definitions[ 799 ].icon_texture = TEX_MUSHROOM_BLOCK_SKIN_STEM;
-block_definitions[ 799 ].icon_is_isometric = false;
 
 // NETHER_BRICK (800)
 block_definitions[ 800 ].textures[ FACE_TOP ] = TEX_NETHER_BRICK;
@@ -10056,7 +9484,6 @@ block_definitions[ 800 ].textures[ FACE_FRONT ] = TEX_NETHER_BRICK;
 block_definitions[ 800 ].textures[ FACE_LEFT ] = TEX_NETHER_BRICK;
 block_definitions[ 800 ].textures[ FACE_BACK ] = TEX_NETHER_BRICK;
 block_definitions[ 800 ].icon_texture = TEX_NETHER_BRICK;
-block_definitions[ 800 ].icon_is_isometric = false;
 
 // NETHER_BRICK_DOUBLE_SLAB (801)
 block_definitions[ 801 ].textures[ FACE_TOP ] = TEX_NETHER_BRICK;
@@ -10066,7 +9493,6 @@ block_definitions[ 801 ].textures[ FACE_FRONT ] = TEX_NETHER_BRICK;
 block_definitions[ 801 ].textures[ FACE_LEFT ] = TEX_NETHER_BRICK;
 block_definitions[ 801 ].textures[ FACE_BACK ] = TEX_NETHER_BRICK;
 block_definitions[ 801 ].icon_texture = TEX_NETHER_BRICK;
-block_definitions[ 801 ].icon_is_isometric = false;
 
 // NETHER_BRICK_FENCE (802)
 block_definitions[ 802 ].textures[ FACE_TOP ] = TEX_NETHER_BRICK;
@@ -10076,7 +9502,6 @@ block_definitions[ 802 ].textures[ FACE_FRONT ] = TEX_NETHER_BRICK;
 block_definitions[ 802 ].textures[ FACE_LEFT ] = TEX_NETHER_BRICK;
 block_definitions[ 802 ].textures[ FACE_BACK ] = TEX_NETHER_BRICK;
 block_definitions[ 802 ].icon_texture = TEX_NETHER_BRICK;
-block_definitions[ 802 ].icon_is_isometric = false;
 
 // NETHER_BRICK_SLAB (803)
 block_definitions[ 803 ].textures[ FACE_TOP ] = TEX_NETHER_BRICK;
@@ -10086,7 +9511,6 @@ block_definitions[ 803 ].textures[ FACE_FRONT ] = TEX_NETHER_BRICK;
 block_definitions[ 803 ].textures[ FACE_LEFT ] = TEX_NETHER_BRICK;
 block_definitions[ 803 ].textures[ FACE_BACK ] = TEX_NETHER_BRICK;
 block_definitions[ 803 ].icon_texture = TEX_NETHER_BRICK;
-block_definitions[ 803 ].icon_is_isometric = false;
 
 // NETHER_BRICK_STAIRS (804)
 block_definitions[ 804 ].textures[ FACE_TOP ] = TEX_NETHER_BRICK;
@@ -10096,7 +9520,6 @@ block_definitions[ 804 ].textures[ FACE_FRONT ] = TEX_NETHER_BRICK;
 block_definitions[ 804 ].textures[ FACE_LEFT ] = TEX_NETHER_BRICK;
 block_definitions[ 804 ].textures[ FACE_BACK ] = TEX_NETHER_BRICK;
 block_definitions[ 804 ].icon_texture = TEX_NETHER_BRICK;
-block_definitions[ 804 ].icon_is_isometric = false;
 
 // NETHER_BRICK_WALL (805)
 block_definitions[ 805 ].textures[ FACE_TOP ] = TEX_NETHER_BRICK;
@@ -10106,7 +9529,6 @@ block_definitions[ 805 ].textures[ FACE_FRONT ] = TEX_NETHER_BRICK;
 block_definitions[ 805 ].textures[ FACE_LEFT ] = TEX_NETHER_BRICK;
 block_definitions[ 805 ].textures[ FACE_BACK ] = TEX_NETHER_BRICK;
 block_definitions[ 805 ].icon_texture = TEX_NETHER_BRICK;
-block_definitions[ 805 ].icon_is_isometric = false;
 
 // NETHER_GOLD_ORE (806)
 block_definitions[ 806 ].textures[ FACE_TOP ] = TEX_NETHER_GOLD_ORE;
@@ -10116,7 +9538,6 @@ block_definitions[ 806 ].textures[ FACE_FRONT ] = TEX_NETHER_GOLD_ORE;
 block_definitions[ 806 ].textures[ FACE_LEFT ] = TEX_NETHER_GOLD_ORE;
 block_definitions[ 806 ].textures[ FACE_BACK ] = TEX_NETHER_GOLD_ORE;
 block_definitions[ 806 ].icon_texture = TEX_NETHER_GOLD_ORE;
-block_definitions[ 806 ].icon_is_isometric = false;
 
 // NETHER_SPROUTS (807)
 block_definitions[ 807 ].textures[ FACE_TOP ] = TEX_AIR;
@@ -10148,7 +9569,6 @@ block_definitions[ 808 ].textures[ FACE_FRONT ] = TEX_NETHER_WART_BLOCK;
 block_definitions[ 808 ].textures[ FACE_LEFT ] = TEX_NETHER_WART_BLOCK;
 block_definitions[ 808 ].textures[ FACE_BACK ] = TEX_NETHER_WART_BLOCK;
 block_definitions[ 808 ].icon_texture = TEX_NETHER_WART_BLOCK;
-block_definitions[ 808 ].icon_is_isometric = false;
 
 // BLUE_TORCH (809)
 block_definitions[ 809 ].textures[ FACE_TOP ] = TEX_BLUE_TORCH;
@@ -10178,7 +9598,6 @@ block_definitions[ 810 ].textures[ FACE_FRONT ] = TEX_NETHERITE_BLOCK;
 block_definitions[ 810 ].textures[ FACE_LEFT ] = TEX_NETHERITE_BLOCK;
 block_definitions[ 810 ].textures[ FACE_BACK ] = TEX_NETHERITE_BLOCK;
 block_definitions[ 810 ].icon_texture = TEX_NETHERITE_BLOCK;
-block_definitions[ 810 ].icon_is_isometric = false;
 
 // NETHERRACK (811)
 block_definitions[ 811 ].textures[ FACE_TOP ] = TEX_NETHERRACK;
@@ -10188,7 +9607,6 @@ block_definitions[ 811 ].textures[ FACE_FRONT ] = TEX_NETHERRACK;
 block_definitions[ 811 ].textures[ FACE_LEFT ] = TEX_NETHERRACK;
 block_definitions[ 811 ].textures[ FACE_BACK ] = TEX_NETHERRACK;
 block_definitions[ 811 ].icon_texture = TEX_NETHERRACK;
-block_definitions[ 811 ].icon_is_isometric = false;
 
 // NETHERREACTOR (812)
 block_definitions[ 812 ].textures[ FACE_TOP ] = TEX_REACTOR_CORE_STAGE_0;
@@ -10198,7 +9616,6 @@ block_definitions[ 812 ].textures[ FACE_FRONT ] = TEX_REACTOR_CORE_STAGE_0;
 block_definitions[ 812 ].textures[ FACE_LEFT ] = TEX_REACTOR_CORE_STAGE_0;
 block_definitions[ 812 ].textures[ FACE_BACK ] = TEX_REACTOR_CORE_STAGE_0;
 block_definitions[ 812 ].icon_texture = TEX_REACTOR_CORE_STAGE_0;
-block_definitions[ 812 ].icon_is_isometric = false;
 
 // NORMAL_STONE_DOUBLE_SLAB (813)
 block_definitions[ 813 ].textures[ FACE_TOP ] = TEX_STONE;
@@ -10208,7 +9625,6 @@ block_definitions[ 813 ].textures[ FACE_FRONT ] = TEX_STONE;
 block_definitions[ 813 ].textures[ FACE_LEFT ] = TEX_STONE;
 block_definitions[ 813 ].textures[ FACE_BACK ] = TEX_STONE;
 block_definitions[ 813 ].icon_texture = TEX_STONE;
-block_definitions[ 813 ].icon_is_isometric = false;
 
 // NORMAL_STONE_STAIRS (814)
 block_definitions[ 814 ].textures[ FACE_TOP ] = TEX_STONE;
@@ -10218,7 +9634,6 @@ block_definitions[ 814 ].textures[ FACE_FRONT ] = TEX_STONE;
 block_definitions[ 814 ].textures[ FACE_LEFT ] = TEX_STONE;
 block_definitions[ 814 ].textures[ FACE_BACK ] = TEX_STONE;
 block_definitions[ 814 ].icon_texture = TEX_STONE;
-block_definitions[ 814 ].icon_is_isometric = false;
 
 // NOTEBLOCK (815)
 block_definitions[ 815 ].textures[ FACE_TOP ] = TEX_NOTEBLOCK;
@@ -10228,7 +9643,6 @@ block_definitions[ 815 ].textures[ FACE_FRONT ] = TEX_NOTEBLOCK;
 block_definitions[ 815 ].textures[ FACE_LEFT ] = TEX_NOTEBLOCK;
 block_definitions[ 815 ].textures[ FACE_BACK ] = TEX_NOTEBLOCK;
 block_definitions[ 815 ].icon_texture = TEX_NOTEBLOCK;
-block_definitions[ 815 ].icon_is_isometric = false;
 
 // OAK_DOUBLE_SLAB (816)
 block_definitions[ 816 ].textures[ FACE_TOP ] = TEX_PLANKS_OAK;
@@ -10238,7 +9652,6 @@ block_definitions[ 816 ].textures[ FACE_FRONT ] = TEX_PLANKS_OAK;
 block_definitions[ 816 ].textures[ FACE_LEFT ] = TEX_PLANKS_OAK;
 block_definitions[ 816 ].textures[ FACE_BACK ] = TEX_PLANKS_OAK;
 block_definitions[ 816 ].icon_texture = TEX_PLANKS_OAK;
-block_definitions[ 816 ].icon_is_isometric = false;
 
 // SPRUCE_PRESSURE_PLATE (817)
 block_definitions[ 817 ].textures[ FACE_TOP ] = TEX_PLANKS_SPRUCE;
@@ -10392,7 +9805,6 @@ block_definitions[ 824 ].textures[ FACE_FRONT ] = TEX_PLANKS_OAK;
 block_definitions[ 824 ].textures[ FACE_LEFT ] = TEX_PLANKS_OAK;
 block_definitions[ 824 ].textures[ FACE_BACK ] = TEX_PLANKS_OAK;
 block_definitions[ 824 ].icon_texture = TEX_PLANKS_OAK;
-block_definitions[ 824 ].icon_is_isometric = false;
 
 // OAK_HANGING_SIGN (825)
 block_definitions[ 825 ].textures[ FACE_TOP ] = TEX_PLANKS_OAK;
@@ -10402,7 +9814,6 @@ block_definitions[ 825 ].textures[ FACE_FRONT ] = TEX_PLANKS_OAK;
 block_definitions[ 825 ].textures[ FACE_LEFT ] = TEX_PLANKS_OAK;
 block_definitions[ 825 ].textures[ FACE_BACK ] = TEX_PLANKS_OAK;
 block_definitions[ 825 ].icon_texture = TEX_PLANKS_OAK;
-block_definitions[ 825 ].icon_is_isometric = false;
 
 // OAK_SHELF (826)
 block_definitions[ 826 ].textures[ FACE_TOP ] = TEX_OAK_SHELF;
@@ -10412,7 +9823,6 @@ block_definitions[ 826 ].textures[ FACE_FRONT ] = TEX_OAK_SHELF;
 block_definitions[ 826 ].textures[ FACE_LEFT ] = TEX_OAK_SHELF;
 block_definitions[ 826 ].textures[ FACE_BACK ] = TEX_OAK_SHELF;
 block_definitions[ 826 ].icon_texture = TEX_OAK_SHELF;
-block_definitions[ 826 ].icon_is_isometric = false;
 
 // OAK_STAIRS (827)
 block_definitions[ 827 ].textures[ FACE_TOP ] = TEX_PLANKS_OAK;
@@ -10422,7 +9832,6 @@ block_definitions[ 827 ].textures[ FACE_FRONT ] = TEX_PLANKS_OAK;
 block_definitions[ 827 ].textures[ FACE_LEFT ] = TEX_PLANKS_OAK;
 block_definitions[ 827 ].textures[ FACE_BACK ] = TEX_PLANKS_OAK;
 block_definitions[ 827 ].icon_texture = TEX_PLANKS_OAK;
-block_definitions[ 827 ].icon_is_isometric = false;
 
 // OAK_WOOD (828)
 block_definitions[ 828 ].textures[ FACE_TOP ] = TEX_LOG_OAK;
@@ -10432,7 +9841,6 @@ block_definitions[ 828 ].textures[ FACE_FRONT ] = TEX_LOG_OAK;
 block_definitions[ 828 ].textures[ FACE_LEFT ] = TEX_LOG_OAK;
 block_definitions[ 828 ].textures[ FACE_BACK ] = TEX_LOG_OAK;
 block_definitions[ 828 ].icon_texture = TEX_LOG_OAK;
-block_definitions[ 828 ].icon_is_isometric = false;
 
 // OBSERVER (829)
 block_definitions[ 829 ].textures[ FACE_TOP ] = TEX_OBSERVER_TOP;
@@ -10442,7 +9850,6 @@ block_definitions[ 829 ].textures[ FACE_FRONT ] = TEX_OBSERVER_BACK;
 block_definitions[ 829 ].textures[ FACE_LEFT ] = TEX_OBSERVER_SIDE;
 block_definitions[ 829 ].textures[ FACE_BACK ] = TEX_OBSERVER_FRONT;
 block_definitions[ 829 ].icon_texture = TEX_OBSERVER_TOP;
-block_definitions[ 829 ].icon_is_isometric = false;
 
 // OBSIDIAN (830)
 block_definitions[ 830 ].textures[ FACE_TOP ] = TEX_OBSIDIAN;
@@ -10452,7 +9859,6 @@ block_definitions[ 830 ].textures[ FACE_FRONT ] = TEX_OBSIDIAN;
 block_definitions[ 830 ].textures[ FACE_LEFT ] = TEX_OBSIDIAN;
 block_definitions[ 830 ].textures[ FACE_BACK ] = TEX_OBSIDIAN;
 block_definitions[ 830 ].icon_texture = TEX_OBSIDIAN;
-block_definitions[ 830 ].icon_is_isometric = false;
 
 // OCHRE_FROGLIGHT (831)
 block_definitions[ 831 ].textures[ FACE_TOP ] = TEX_OCHRE_FROGLIGHT_TOP;
@@ -10461,9 +9867,8 @@ block_definitions[ 831 ].textures[ FACE_RIGHT ] = TEX_OCHRE_FROGLIGHT_SIDE;
 block_definitions[ 831 ].textures[ FACE_FRONT ] = TEX_OCHRE_FROGLIGHT_SIDE;
 block_definitions[ 831 ].textures[ FACE_LEFT ] = TEX_OCHRE_FROGLIGHT_SIDE;
 block_definitions[ 831 ].textures[ FACE_BACK ] = TEX_OCHRE_FROGLIGHT_SIDE;
-block_definitions[ 831 ].icon_texture = TEX_OCHRE_FROGLIGHT_SIDE;
+block_definitions[ 831 ].icon_texture = TEX_OCHRE_FROGLIGHT_TOP;
 block_definitions[ 831 ].emits_light = 15;
-block_definitions[ 831 ].icon_is_isometric = false;
 
 // OPEN_EYEBLOSSOM (832)
 block_definitions[ 832 ].textures[ FACE_TOP ] = TEX_AIR;
@@ -10497,7 +9902,6 @@ block_definitions[ 833 ].textures[ FACE_BACK ] = TEX_ORANGE_CANDLE;
 block_definitions[ 833 ].icon_texture = TEX_ORANGE_CANDLE;
 block_definitions[ 833 ].casts_shadow = false;
 block_definitions[ 833 ].hardness = 0.35f;
-block_definitions[ 833 ].icon_is_isometric = false;
 block_definitions[ 833 ].is_seethrough = true;
 block_definitions[ 833 ].no_light = 6815743;
 
@@ -10508,10 +9912,9 @@ block_definitions[ 834 ].textures[ FACE_RIGHT ] = TEX_CAKE_SIDE;
 block_definitions[ 834 ].textures[ FACE_FRONT ] = TEX_CAKE_SIDE;
 block_definitions[ 834 ].textures[ FACE_LEFT ] = TEX_CAKE_SIDE;
 block_definitions[ 834 ].textures[ FACE_BACK ] = TEX_CAKE_SIDE;
-block_definitions[ 834 ].icon_texture = TEX_CAKE_SIDE;
+block_definitions[ 834 ].icon_texture = TEX_CAKE_TOP;
 block_definitions[ 834 ].casts_shadow = false;
 block_definitions[ 834 ].hardness = 0.35f;
-block_definitions[ 834 ].icon_is_isometric = false;
 block_definitions[ 834 ].is_seethrough = true;
 block_definitions[ 834 ].no_light = 6815743;
 
@@ -10523,7 +9926,6 @@ block_definitions[ 835 ].textures[ FACE_FRONT ] = TEX_WOOL_COLORED_ORANGE;
 block_definitions[ 835 ].textures[ FACE_LEFT ] = TEX_WOOL_COLORED_ORANGE;
 block_definitions[ 835 ].textures[ FACE_BACK ] = TEX_WOOL_COLORED_ORANGE;
 block_definitions[ 835 ].icon_texture = TEX_WOOL_COLORED_ORANGE;
-block_definitions[ 835 ].icon_is_isometric = false;
 
 // ORANGE_CONCRETE (836)
 block_definitions[ 836 ].textures[ FACE_TOP ] = TEX_CONCRETE_ORANGE;
@@ -10533,7 +9935,6 @@ block_definitions[ 836 ].textures[ FACE_FRONT ] = TEX_CONCRETE_ORANGE;
 block_definitions[ 836 ].textures[ FACE_LEFT ] = TEX_CONCRETE_ORANGE;
 block_definitions[ 836 ].textures[ FACE_BACK ] = TEX_CONCRETE_ORANGE;
 block_definitions[ 836 ].icon_texture = TEX_CONCRETE_ORANGE;
-block_definitions[ 836 ].icon_is_isometric = false;
 
 // ORANGE_CONCRETE_DOUBLE_SLAB (837)
 block_definitions[ 837 ].textures[ FACE_TOP ] = TEX_CONCRETE_ORANGE;
@@ -10543,7 +9944,6 @@ block_definitions[ 837 ].textures[ FACE_FRONT ] = TEX_CONCRETE_ORANGE;
 block_definitions[ 837 ].textures[ FACE_LEFT ] = TEX_CONCRETE_ORANGE;
 block_definitions[ 837 ].textures[ FACE_BACK ] = TEX_CONCRETE_ORANGE;
 block_definitions[ 837 ].icon_texture = TEX_CONCRETE_ORANGE;
-block_definitions[ 837 ].icon_is_isometric = false;
 
 // ORANGE_CONCRETE_POWDER (838)
 block_definitions[ 838 ].textures[ FACE_TOP ] = TEX_CONCRETE_POWDER_ORANGE;
@@ -10553,7 +9953,6 @@ block_definitions[ 838 ].textures[ FACE_FRONT ] = TEX_CONCRETE_POWDER_ORANGE;
 block_definitions[ 838 ].textures[ FACE_LEFT ] = TEX_CONCRETE_POWDER_ORANGE;
 block_definitions[ 838 ].textures[ FACE_BACK ] = TEX_CONCRETE_POWDER_ORANGE;
 block_definitions[ 838 ].icon_texture = TEX_CONCRETE_POWDER_ORANGE;
-block_definitions[ 838 ].icon_is_isometric = false;
 
 // ORANGE_CONCRETE_SLAB (839)
 block_definitions[ 839 ].textures[ FACE_TOP ] = TEX_CONCRETE_ORANGE;
@@ -10563,7 +9962,6 @@ block_definitions[ 839 ].textures[ FACE_FRONT ] = TEX_CONCRETE_ORANGE;
 block_definitions[ 839 ].textures[ FACE_LEFT ] = TEX_CONCRETE_ORANGE;
 block_definitions[ 839 ].textures[ FACE_BACK ] = TEX_CONCRETE_ORANGE;
 block_definitions[ 839 ].icon_texture = TEX_CONCRETE_ORANGE;
-block_definitions[ 839 ].icon_is_isometric = false;
 
 // ORANGE_CONCRETE_STAIRS (840)
 block_definitions[ 840 ].textures[ FACE_TOP ] = TEX_CONCRETE_ORANGE;
@@ -10573,7 +9971,6 @@ block_definitions[ 840 ].textures[ FACE_FRONT ] = TEX_CONCRETE_ORANGE;
 block_definitions[ 840 ].textures[ FACE_LEFT ] = TEX_CONCRETE_ORANGE;
 block_definitions[ 840 ].textures[ FACE_BACK ] = TEX_CONCRETE_ORANGE;
 block_definitions[ 840 ].icon_texture = TEX_CONCRETE_ORANGE;
-block_definitions[ 840 ].icon_is_isometric = false;
 
 // ORANGE_GLAZED_TERRACOTTA (841)
 block_definitions[ 841 ].textures[ FACE_TOP ] = TEX_GLAZED_TERRACOTTA_ORANGE;
@@ -10583,7 +9980,6 @@ block_definitions[ 841 ].textures[ FACE_FRONT ] = TEX_GLAZED_TERRACOTTA_ORANGE;
 block_definitions[ 841 ].textures[ FACE_LEFT ] = TEX_GLAZED_TERRACOTTA_ORANGE;
 block_definitions[ 841 ].textures[ FACE_BACK ] = TEX_GLAZED_TERRACOTTA_ORANGE;
 block_definitions[ 841 ].icon_texture = TEX_GLAZED_TERRACOTTA_ORANGE;
-block_definitions[ 841 ].icon_is_isometric = false;
 
 // ORANGE_POPLAR_LEAVES (842)
 block_definitions[ 842 ].textures[ FACE_TOP ] = TEX_ORANGE_POPLAR_LEAVES;
@@ -10595,7 +9991,6 @@ block_definitions[ 842 ].textures[ FACE_BACK ] = TEX_ORANGE_POPLAR_LEAVES;
 block_definitions[ 842 ].icon_texture = TEX_ORANGE_POPLAR_LEAVES;
 block_definitions[ 842 ].casts_shadow = false;
 block_definitions[ 842 ].hardness = 0.35f;
-block_definitions[ 842 ].icon_is_isometric = false;
 block_definitions[ 842 ].is_seethrough = true;
 block_definitions[ 842 ].no_light = 6815743;
 
@@ -10607,7 +10002,6 @@ block_definitions[ 843 ].textures[ FACE_FRONT ] = TEX_SHULKER_TOP_ORANGE;
 block_definitions[ 843 ].textures[ FACE_LEFT ] = TEX_SHULKER_TOP_ORANGE;
 block_definitions[ 843 ].textures[ FACE_BACK ] = TEX_SHULKER_TOP_ORANGE;
 block_definitions[ 843 ].icon_texture = TEX_SHULKER_TOP_ORANGE;
-block_definitions[ 843 ].icon_is_isometric = false;
 
 // ORANGE_STAINED_GLASS (844)
 block_definitions[ 844 ].textures[ FACE_TOP ] = TEX_GLASS_ORANGE;
@@ -10620,7 +10014,6 @@ block_definitions[ 844 ].icon_texture = TEX_GLASS_ORANGE;
 block_definitions[ 844 ].affected_by_redstone_power = false;
 block_definitions[ 844 ].casts_shadow = false;
 block_definitions[ 844 ].hardness = 0.449999988f;
-block_definitions[ 844 ].icon_is_isometric = false;
 block_definitions[ 844 ].is_seethrough = true;
 block_definitions[ 844 ].renderOrder = RenderOrder_Translucent;
 
@@ -10635,7 +10028,6 @@ block_definitions[ 845 ].icon_texture = TEX_GLASS_ORANGE;
 block_definitions[ 845 ].affected_by_redstone_power = false;
 block_definitions[ 845 ].casts_shadow = false;
 block_definitions[ 845 ].hardness = 0.449999988f;
-block_definitions[ 845 ].icon_is_isometric = false;
 block_definitions[ 845 ].is_seethrough = true;
 block_definitions[ 845 ].renderOrder = RenderOrder_Translucent;
 
@@ -10647,7 +10039,6 @@ block_definitions[ 846 ].textures[ FACE_FRONT ] = TEX_HARDENED_CLAY_STAINED_ORAN
 block_definitions[ 846 ].textures[ FACE_LEFT ] = TEX_HARDENED_CLAY_STAINED_ORANGE;
 block_definitions[ 846 ].textures[ FACE_BACK ] = TEX_HARDENED_CLAY_STAINED_ORANGE;
 block_definitions[ 846 ].icon_texture = TEX_HARDENED_CLAY_STAINED_ORANGE;
-block_definitions[ 846 ].icon_is_isometric = false;
 
 // ORANGE_WOOL (847)
 block_definitions[ 847 ].textures[ FACE_TOP ] = TEX_WOOL_COLORED_ORANGE;
@@ -10657,7 +10048,6 @@ block_definitions[ 847 ].textures[ FACE_FRONT ] = TEX_WOOL_COLORED_ORANGE;
 block_definitions[ 847 ].textures[ FACE_LEFT ] = TEX_WOOL_COLORED_ORANGE;
 block_definitions[ 847 ].textures[ FACE_BACK ] = TEX_WOOL_COLORED_ORANGE;
 block_definitions[ 847 ].icon_texture = TEX_WOOL_COLORED_ORANGE;
-block_definitions[ 847 ].icon_is_isometric = false;
 
 // ORANGE_WOOL_DOUBLE_SLAB (848)
 block_definitions[ 848 ].textures[ FACE_TOP ] = TEX_WOOL_COLORED_ORANGE;
@@ -10667,7 +10057,6 @@ block_definitions[ 848 ].textures[ FACE_FRONT ] = TEX_WOOL_COLORED_ORANGE;
 block_definitions[ 848 ].textures[ FACE_LEFT ] = TEX_WOOL_COLORED_ORANGE;
 block_definitions[ 848 ].textures[ FACE_BACK ] = TEX_WOOL_COLORED_ORANGE;
 block_definitions[ 848 ].icon_texture = TEX_WOOL_COLORED_ORANGE;
-block_definitions[ 848 ].icon_is_isometric = false;
 
 // ORANGE_WOOL_SLAB (849)
 block_definitions[ 849 ].textures[ FACE_TOP ] = TEX_WOOL_COLORED_ORANGE;
@@ -10677,7 +10066,6 @@ block_definitions[ 849 ].textures[ FACE_FRONT ] = TEX_WOOL_COLORED_ORANGE;
 block_definitions[ 849 ].textures[ FACE_LEFT ] = TEX_WOOL_COLORED_ORANGE;
 block_definitions[ 849 ].textures[ FACE_BACK ] = TEX_WOOL_COLORED_ORANGE;
 block_definitions[ 849 ].icon_texture = TEX_WOOL_COLORED_ORANGE;
-block_definitions[ 849 ].icon_is_isometric = false;
 
 // ORANGE_WOOL_STAIRS (850)
 block_definitions[ 850 ].textures[ FACE_TOP ] = TEX_WOOL_COLORED_ORANGE;
@@ -10687,7 +10075,6 @@ block_definitions[ 850 ].textures[ FACE_FRONT ] = TEX_WOOL_COLORED_ORANGE;
 block_definitions[ 850 ].textures[ FACE_LEFT ] = TEX_WOOL_COLORED_ORANGE;
 block_definitions[ 850 ].textures[ FACE_BACK ] = TEX_WOOL_COLORED_ORANGE;
 block_definitions[ 850 ].icon_texture = TEX_WOOL_COLORED_ORANGE;
-block_definitions[ 850 ].icon_is_isometric = false;
 
 // OXIDIZED_CHISELED_COPPER (851)
 block_definitions[ 851 ].textures[ FACE_TOP ] = TEX_OXIDIZED_CHISELED_COPPER;
@@ -10697,7 +10084,6 @@ block_definitions[ 851 ].textures[ FACE_FRONT ] = TEX_OXIDIZED_CHISELED_COPPER;
 block_definitions[ 851 ].textures[ FACE_LEFT ] = TEX_OXIDIZED_CHISELED_COPPER;
 block_definitions[ 851 ].textures[ FACE_BACK ] = TEX_OXIDIZED_CHISELED_COPPER;
 block_definitions[ 851 ].icon_texture = TEX_OXIDIZED_CHISELED_COPPER;
-block_definitions[ 851 ].icon_is_isometric = false;
 
 // DEAD_TUBE_CORAL (852)
 block_definitions[ 852 ].textures[ FACE_TOP ] = TEX_AIR;
@@ -10807,7 +10193,6 @@ block_definitions[ 857 ].textures[ FACE_FRONT ] = TEX_OXIDIZED_COPPER;
 block_definitions[ 857 ].textures[ FACE_LEFT ] = TEX_OXIDIZED_COPPER;
 block_definitions[ 857 ].textures[ FACE_BACK ] = TEX_OXIDIZED_COPPER;
 block_definitions[ 857 ].icon_texture = TEX_OXIDIZED_COPPER;
-block_definitions[ 857 ].icon_is_isometric = false;
 
 // OXIDIZED_COPPER_BARS (858)
 block_definitions[ 858 ].textures[ FACE_TOP ] = TEX_OXIDIZED_COPPER_BARS;
@@ -10819,7 +10204,6 @@ block_definitions[ 858 ].textures[ FACE_BACK ] = TEX_OXIDIZED_COPPER_BARS;
 block_definitions[ 858 ].icon_texture = TEX_OXIDIZED_COPPER_BARS;
 block_definitions[ 858 ].casts_shadow = false;
 block_definitions[ 858 ].hardness = 0.35f;
-block_definitions[ 858 ].icon_is_isometric = false;
 block_definitions[ 858 ].is_seethrough = true;
 block_definitions[ 858 ].no_light = 6815743;
 
@@ -10831,7 +10215,6 @@ block_definitions[ 859 ].textures[ FACE_FRONT ] = TEX_OXIDIZED_COPPER_BULB;
 block_definitions[ 859 ].textures[ FACE_LEFT ] = TEX_OXIDIZED_COPPER_BULB;
 block_definitions[ 859 ].textures[ FACE_BACK ] = TEX_OXIDIZED_COPPER_BULB;
 block_definitions[ 859 ].icon_texture = TEX_OXIDIZED_COPPER_BULB;
-block_definitions[ 859 ].icon_is_isometric = false;
 
 // OXIDIZED_COPPER_CHAIN (860)
 block_definitions[ 860 ].textures[ FACE_TOP ] = TEX_OXIDIZED_COPPER_CHAIN;
@@ -10843,7 +10226,6 @@ block_definitions[ 860 ].textures[ FACE_BACK ] = TEX_OXIDIZED_COPPER_CHAIN;
 block_definitions[ 860 ].icon_texture = TEX_OXIDIZED_COPPER_CHAIN;
 block_definitions[ 860 ].casts_shadow = false;
 block_definitions[ 860 ].hardness = 0.35f;
-block_definitions[ 860 ].icon_is_isometric = false;
 block_definitions[ 860 ].is_seethrough = true;
 block_definitions[ 860 ].no_light = 6815743;
 
@@ -10855,7 +10237,6 @@ block_definitions[ 861 ].textures[ FACE_FRONT ] = TEX_OXIDIZED_COPPER_CHEST_INVE
 block_definitions[ 861 ].textures[ FACE_LEFT ] = TEX_OXIDIZED_COPPER_CHEST_INVENTORY_SIDE;
 block_definitions[ 861 ].textures[ FACE_BACK ] = TEX_OXIDIZED_COPPER_CHEST_INVENTORY_SIDE;
 block_definitions[ 861 ].icon_texture = TEX_OXIDIZED_COPPER_CHEST_INVENTORY_TOP;
-block_definitions[ 861 ].icon_is_isometric = false;
 
 // OXIDIZED_COPPER_DOOR (862)
 block_definitions[ 862 ].textures[ FACE_TOP ] = TEX_OXIDIZED_COPPER_DOOR_BOTTOM;
@@ -10864,10 +10245,9 @@ block_definitions[ 862 ].textures[ FACE_RIGHT ] = TEX_OXIDIZED_COPPER_DOOR_TOP;
 block_definitions[ 862 ].textures[ FACE_FRONT ] = TEX_OXIDIZED_COPPER_DOOR_TOP;
 block_definitions[ 862 ].textures[ FACE_LEFT ] = TEX_OXIDIZED_COPPER_DOOR_TOP;
 block_definitions[ 862 ].textures[ FACE_BACK ] = TEX_OXIDIZED_COPPER_DOOR_TOP;
-block_definitions[ 862 ].icon_texture = TEX_OXIDIZED_COPPER_DOOR_TOP;
+block_definitions[ 862 ].icon_texture = TEX_OXIDIZED_COPPER_DOOR_BOTTOM;
 block_definitions[ 862 ].casts_shadow = false;
 block_definitions[ 862 ].hardness = 0.35f;
-block_definitions[ 862 ].icon_is_isometric = false;
 block_definitions[ 862 ].is_seethrough = true;
 block_definitions[ 862 ].no_light = 6815743;
 
@@ -10879,7 +10259,6 @@ block_definitions[ 863 ].textures[ FACE_FRONT ] = TEX_OXIDIZED_COPPER;
 block_definitions[ 863 ].textures[ FACE_LEFT ] = TEX_OXIDIZED_COPPER;
 block_definitions[ 863 ].textures[ FACE_BACK ] = TEX_OXIDIZED_COPPER;
 block_definitions[ 863 ].icon_texture = TEX_OXIDIZED_COPPER;
-block_definitions[ 863 ].icon_is_isometric = false;
 
 // WHITE_TORCH (864)
 block_definitions[ 864 ].textures[ FACE_TOP ] = TEX_WHITE_TORCH;
@@ -10911,7 +10290,6 @@ block_definitions[ 865 ].textures[ FACE_BACK ] = TEX_OXIDIZED_COPPER_GRATE;
 block_definitions[ 865 ].icon_texture = TEX_OXIDIZED_COPPER_GRATE;
 block_definitions[ 865 ].casts_shadow = false;
 block_definitions[ 865 ].hardness = 0.35f;
-block_definitions[ 865 ].icon_is_isometric = false;
 block_definitions[ 865 ].is_seethrough = true;
 block_definitions[ 865 ].no_light = 6815743;
 
@@ -10925,7 +10303,6 @@ block_definitions[ 866 ].textures[ FACE_BACK ] = TEX_OXIDIZED_COPPER_LANTERN;
 block_definitions[ 866 ].icon_texture = TEX_OXIDIZED_COPPER_LANTERN;
 block_definitions[ 866 ].casts_shadow = false;
 block_definitions[ 866 ].hardness = 0.35f;
-block_definitions[ 866 ].icon_is_isometric = false;
 block_definitions[ 866 ].is_seethrough = true;
 block_definitions[ 866 ].no_light = 6815743;
 
@@ -10939,7 +10316,6 @@ block_definitions[ 867 ].textures[ FACE_BACK ] = TEX_OXIDIZED_COPPER_TRAPDOOR;
 block_definitions[ 867 ].icon_texture = TEX_OXIDIZED_COPPER_TRAPDOOR;
 block_definitions[ 867 ].casts_shadow = false;
 block_definitions[ 867 ].hardness = 0.35f;
-block_definitions[ 867 ].icon_is_isometric = false;
 block_definitions[ 867 ].is_seethrough = true;
 block_definitions[ 867 ].no_light = 6815743;
 
@@ -10951,7 +10327,6 @@ block_definitions[ 868 ].textures[ FACE_FRONT ] = TEX_OXIDIZED_CUT_COPPER;
 block_definitions[ 868 ].textures[ FACE_LEFT ] = TEX_OXIDIZED_CUT_COPPER;
 block_definitions[ 868 ].textures[ FACE_BACK ] = TEX_OXIDIZED_CUT_COPPER;
 block_definitions[ 868 ].icon_texture = TEX_OXIDIZED_CUT_COPPER;
-block_definitions[ 868 ].icon_is_isometric = false;
 
 // OXIDIZED_CUT_COPPER_SLAB (869)
 block_definitions[ 869 ].textures[ FACE_TOP ] = TEX_OXIDIZED_CUT_COPPER;
@@ -10961,7 +10336,6 @@ block_definitions[ 869 ].textures[ FACE_FRONT ] = TEX_OXIDIZED_CUT_COPPER;
 block_definitions[ 869 ].textures[ FACE_LEFT ] = TEX_OXIDIZED_CUT_COPPER;
 block_definitions[ 869 ].textures[ FACE_BACK ] = TEX_OXIDIZED_CUT_COPPER;
 block_definitions[ 869 ].icon_texture = TEX_OXIDIZED_CUT_COPPER;
-block_definitions[ 869 ].icon_is_isometric = false;
 
 // OXIDIZED_CUT_COPPER_STAIRS (870)
 block_definitions[ 870 ].textures[ FACE_TOP ] = TEX_OXIDIZED_CUT_COPPER;
@@ -10971,7 +10345,6 @@ block_definitions[ 870 ].textures[ FACE_FRONT ] = TEX_OXIDIZED_CUT_COPPER;
 block_definitions[ 870 ].textures[ FACE_LEFT ] = TEX_OXIDIZED_CUT_COPPER;
 block_definitions[ 870 ].textures[ FACE_BACK ] = TEX_OXIDIZED_CUT_COPPER;
 block_definitions[ 870 ].icon_texture = TEX_OXIDIZED_CUT_COPPER;
-block_definitions[ 870 ].icon_is_isometric = false;
 
 // OXIDIZED_DOUBLE_CUT_COPPER_SLAB (871)
 block_definitions[ 871 ].textures[ FACE_TOP ] = TEX_OXIDIZED_CUT_COPPER;
@@ -10981,7 +10354,6 @@ block_definitions[ 871 ].textures[ FACE_FRONT ] = TEX_OXIDIZED_CUT_COPPER;
 block_definitions[ 871 ].textures[ FACE_LEFT ] = TEX_OXIDIZED_CUT_COPPER;
 block_definitions[ 871 ].textures[ FACE_BACK ] = TEX_OXIDIZED_CUT_COPPER;
 block_definitions[ 871 ].icon_texture = TEX_OXIDIZED_CUT_COPPER;
-block_definitions[ 871 ].icon_is_isometric = false;
 
 // OXIDIZED_LIGHTNING_ROD (872)
 block_definitions[ 872 ].textures[ FACE_TOP ] = TEX_OXIDIZED_LIGHTNING_ROD;
@@ -10993,7 +10365,6 @@ block_definitions[ 872 ].textures[ FACE_BACK ] = TEX_OXIDIZED_LIGHTNING_ROD;
 block_definitions[ 872 ].icon_texture = TEX_OXIDIZED_LIGHTNING_ROD;
 block_definitions[ 872 ].casts_shadow = false;
 block_definitions[ 872 ].hardness = 0.35f;
-block_definitions[ 872 ].icon_is_isometric = false;
 block_definitions[ 872 ].is_seethrough = true;
 block_definitions[ 872 ].no_light = 6815743;
 
@@ -11005,7 +10376,6 @@ block_definitions[ 873 ].textures[ FACE_FRONT ] = TEX_ICE_PACKED;
 block_definitions[ 873 ].textures[ FACE_LEFT ] = TEX_ICE_PACKED;
 block_definitions[ 873 ].textures[ FACE_BACK ] = TEX_ICE_PACKED;
 block_definitions[ 873 ].icon_texture = TEX_ICE_PACKED;
-block_definitions[ 873 ].icon_is_isometric = false;
 
 // PURPLE_TORCH (874)
 block_definitions[ 874 ].textures[ FACE_TOP ] = TEX_PURPLE_TORCH;
@@ -11075,7 +10445,6 @@ block_definitions[ 877 ].textures[ FACE_FRONT ] = TEX_PACKED_MUD;
 block_definitions[ 877 ].textures[ FACE_LEFT ] = TEX_PACKED_MUD;
 block_definitions[ 877 ].textures[ FACE_BACK ] = TEX_PACKED_MUD;
 block_definitions[ 877 ].icon_texture = TEX_PACKED_MUD;
-block_definitions[ 877 ].icon_is_isometric = false;
 
 // PALE_HANGING_MOSS (878)
 block_definitions[ 878 ].textures[ FACE_TOP ] = TEX_AIR;
@@ -11107,7 +10476,6 @@ block_definitions[ 879 ].textures[ FACE_FRONT ] = TEX_PALE_MOSS_BLOCK;
 block_definitions[ 879 ].textures[ FACE_LEFT ] = TEX_PALE_MOSS_BLOCK;
 block_definitions[ 879 ].textures[ FACE_BACK ] = TEX_PALE_MOSS_BLOCK;
 block_definitions[ 879 ].icon_texture = TEX_PALE_MOSS_BLOCK;
-block_definitions[ 879 ].icon_is_isometric = false;
 
 // PALE_MOSS_CARPET (880)
 block_definitions[ 880 ].textures[ FACE_TOP ] = TEX_PALE_MOSS_CARPET_SIDE_BASE;
@@ -11119,7 +10487,6 @@ block_definitions[ 880 ].textures[ FACE_BACK ] = TEX_PALE_MOSS_CARPET_SIDE_BASE;
 block_definitions[ 880 ].icon_texture = TEX_PALE_MOSS_CARPET_SIDE_BASE;
 block_definitions[ 880 ].casts_shadow = false;
 block_definitions[ 880 ].hardness = 0.35f;
-block_definitions[ 880 ].icon_is_isometric = false;
 block_definitions[ 880 ].is_seethrough = true;
 block_definitions[ 880 ].no_light = 6815743;
 
@@ -11131,7 +10498,6 @@ block_definitions[ 881 ].textures[ FACE_FRONT ] = TEX_PALE_OAK_PLANKS;
 block_definitions[ 881 ].textures[ FACE_LEFT ] = TEX_PALE_OAK_PLANKS;
 block_definitions[ 881 ].textures[ FACE_BACK ] = TEX_PALE_OAK_PLANKS;
 block_definitions[ 881 ].icon_texture = TEX_PALE_OAK_PLANKS;
-block_definitions[ 881 ].icon_is_isometric = false;
 
 // PALE_OAK_DOOR (882)
 block_definitions[ 882 ].textures[ FACE_TOP ] = TEX_PALE_OAK_DOOR_BOTTOM;
@@ -11140,8 +10506,7 @@ block_definitions[ 882 ].textures[ FACE_RIGHT ] = TEX_PALE_OAK_DOOR_TOP;
 block_definitions[ 882 ].textures[ FACE_FRONT ] = TEX_PALE_OAK_DOOR_TOP;
 block_definitions[ 882 ].textures[ FACE_LEFT ] = TEX_PALE_OAK_DOOR_TOP;
 block_definitions[ 882 ].textures[ FACE_BACK ] = TEX_PALE_OAK_DOOR_TOP;
-block_definitions[ 882 ].icon_texture = TEX_PALE_OAK_DOOR_TOP;
-block_definitions[ 882 ].icon_is_isometric = false;
+block_definitions[ 882 ].icon_texture = TEX_PALE_OAK_DOOR_BOTTOM;
 
 // PALE_OAK_DOUBLE_SLAB (883)
 block_definitions[ 883 ].textures[ FACE_TOP ] = TEX_PALE_OAK_PLANKS;
@@ -11151,7 +10516,6 @@ block_definitions[ 883 ].textures[ FACE_FRONT ] = TEX_PALE_OAK_PLANKS;
 block_definitions[ 883 ].textures[ FACE_LEFT ] = TEX_PALE_OAK_PLANKS;
 block_definitions[ 883 ].textures[ FACE_BACK ] = TEX_PALE_OAK_PLANKS;
 block_definitions[ 883 ].icon_texture = TEX_PALE_OAK_PLANKS;
-block_definitions[ 883 ].icon_is_isometric = false;
 
 // PALE_OAK_FENCE (884)
 block_definitions[ 884 ].textures[ FACE_TOP ] = TEX_PALE_OAK_PLANKS;
@@ -11161,7 +10525,6 @@ block_definitions[ 884 ].textures[ FACE_FRONT ] = TEX_PALE_OAK_PLANKS;
 block_definitions[ 884 ].textures[ FACE_LEFT ] = TEX_PALE_OAK_PLANKS;
 block_definitions[ 884 ].textures[ FACE_BACK ] = TEX_PALE_OAK_PLANKS;
 block_definitions[ 884 ].icon_texture = TEX_PALE_OAK_PLANKS;
-block_definitions[ 884 ].icon_is_isometric = false;
 
 // PALE_OAK_FENCE_GATE (885)
 block_definitions[ 885 ].textures[ FACE_TOP ] = TEX_PALE_OAK_PLANKS;
@@ -11171,7 +10534,6 @@ block_definitions[ 885 ].textures[ FACE_FRONT ] = TEX_PALE_OAK_PLANKS;
 block_definitions[ 885 ].textures[ FACE_LEFT ] = TEX_PALE_OAK_PLANKS;
 block_definitions[ 885 ].textures[ FACE_BACK ] = TEX_PALE_OAK_PLANKS;
 block_definitions[ 885 ].icon_texture = TEX_PALE_OAK_PLANKS;
-block_definitions[ 885 ].icon_is_isometric = false;
 
 // PALE_OAK_HANGING_SIGN (886)
 block_definitions[ 886 ].textures[ FACE_TOP ] = TEX_PALE_OAK_PLANKS;
@@ -11181,7 +10543,6 @@ block_definitions[ 886 ].textures[ FACE_FRONT ] = TEX_PALE_OAK_PLANKS;
 block_definitions[ 886 ].textures[ FACE_LEFT ] = TEX_PALE_OAK_PLANKS;
 block_definitions[ 886 ].textures[ FACE_BACK ] = TEX_PALE_OAK_PLANKS;
 block_definitions[ 886 ].icon_texture = TEX_PALE_OAK_PLANKS;
-block_definitions[ 886 ].icon_is_isometric = false;
 
 // PALE_OAK_LEAVES (887)
 block_definitions[ 887 ].textures[ FACE_TOP ] = TEX_PALE_OAK_LEAVES;
@@ -11193,7 +10554,6 @@ block_definitions[ 887 ].textures[ FACE_BACK ] = TEX_PALE_OAK_LEAVES;
 block_definitions[ 887 ].icon_texture = TEX_PALE_OAK_LEAVES;
 block_definitions[ 887 ].casts_shadow = false;
 block_definitions[ 887 ].hardness = 0.35f;
-block_definitions[ 887 ].icon_is_isometric = false;
 block_definitions[ 887 ].is_seethrough = true;
 block_definitions[ 887 ].no_light = 6815743;
 
@@ -11204,8 +10564,7 @@ block_definitions[ 888 ].textures[ FACE_RIGHT ] = TEX_PALE_OAK_LOG_SIDE;
 block_definitions[ 888 ].textures[ FACE_FRONT ] = TEX_PALE_OAK_LOG_SIDE;
 block_definitions[ 888 ].textures[ FACE_LEFT ] = TEX_PALE_OAK_LOG_SIDE;
 block_definitions[ 888 ].textures[ FACE_BACK ] = TEX_PALE_OAK_LOG_SIDE;
-block_definitions[ 888 ].icon_texture = TEX_PALE_OAK_LOG_SIDE;
-block_definitions[ 888 ].icon_is_isometric = false;
+block_definitions[ 888 ].icon_texture = TEX_PALE_OAK_LOG_TOP;
 
 // PALE_OAK_PLANKS (889)
 block_definitions[ 889 ].textures[ FACE_TOP ] = TEX_PALE_OAK_PLANKS;
@@ -11215,7 +10574,6 @@ block_definitions[ 889 ].textures[ FACE_FRONT ] = TEX_PALE_OAK_PLANKS;
 block_definitions[ 889 ].textures[ FACE_LEFT ] = TEX_PALE_OAK_PLANKS;
 block_definitions[ 889 ].textures[ FACE_BACK ] = TEX_PALE_OAK_PLANKS;
 block_definitions[ 889 ].icon_texture = TEX_PALE_OAK_PLANKS;
-block_definitions[ 889 ].icon_is_isometric = false;
 
 // PALE_OAK_PRESSURE_PLATE (890)
 block_definitions[ 890 ].textures[ FACE_TOP ] = TEX_PALE_OAK_PLANKS;
@@ -11225,7 +10583,6 @@ block_definitions[ 890 ].textures[ FACE_FRONT ] = TEX_PALE_OAK_PLANKS;
 block_definitions[ 890 ].textures[ FACE_LEFT ] = TEX_PALE_OAK_PLANKS;
 block_definitions[ 890 ].textures[ FACE_BACK ] = TEX_PALE_OAK_PLANKS;
 block_definitions[ 890 ].icon_texture = TEX_PALE_OAK_PLANKS;
-block_definitions[ 890 ].icon_is_isometric = false;
 
 // PALE_OAK_SAPLING (891)
 block_definitions[ 891 ].textures[ FACE_TOP ] = TEX_AIR;
@@ -11257,7 +10614,6 @@ block_definitions[ 892 ].textures[ FACE_FRONT ] = TEX_PALE_OAK_SHELF;
 block_definitions[ 892 ].textures[ FACE_LEFT ] = TEX_PALE_OAK_SHELF;
 block_definitions[ 892 ].textures[ FACE_BACK ] = TEX_PALE_OAK_SHELF;
 block_definitions[ 892 ].icon_texture = TEX_PALE_OAK_SHELF;
-block_definitions[ 892 ].icon_is_isometric = false;
 
 // PALE_OAK_SLAB (893)
 block_definitions[ 893 ].textures[ FACE_TOP ] = TEX_PALE_OAK_PLANKS;
@@ -11267,7 +10623,6 @@ block_definitions[ 893 ].textures[ FACE_FRONT ] = TEX_PALE_OAK_PLANKS;
 block_definitions[ 893 ].textures[ FACE_LEFT ] = TEX_PALE_OAK_PLANKS;
 block_definitions[ 893 ].textures[ FACE_BACK ] = TEX_PALE_OAK_PLANKS;
 block_definitions[ 893 ].icon_texture = TEX_PALE_OAK_PLANKS;
-block_definitions[ 893 ].icon_is_isometric = false;
 
 // PALE_OAK_STAIRS (894)
 block_definitions[ 894 ].textures[ FACE_TOP ] = TEX_PALE_OAK_PLANKS;
@@ -11277,7 +10632,6 @@ block_definitions[ 894 ].textures[ FACE_FRONT ] = TEX_PALE_OAK_PLANKS;
 block_definitions[ 894 ].textures[ FACE_LEFT ] = TEX_PALE_OAK_PLANKS;
 block_definitions[ 894 ].textures[ FACE_BACK ] = TEX_PALE_OAK_PLANKS;
 block_definitions[ 894 ].icon_texture = TEX_PALE_OAK_PLANKS;
-block_definitions[ 894 ].icon_is_isometric = false;
 
 // PALE_OAK_STANDING_SIGN (895)
 block_definitions[ 895 ].textures[ FACE_TOP ] = TEX_PALE_OAK_PLANKS;
@@ -11287,7 +10641,6 @@ block_definitions[ 895 ].textures[ FACE_FRONT ] = TEX_PALE_OAK_PLANKS;
 block_definitions[ 895 ].textures[ FACE_LEFT ] = TEX_PALE_OAK_PLANKS;
 block_definitions[ 895 ].textures[ FACE_BACK ] = TEX_PALE_OAK_PLANKS;
 block_definitions[ 895 ].icon_texture = TEX_PALE_OAK_PLANKS;
-block_definitions[ 895 ].icon_is_isometric = false;
 
 // PALE_OAK_TRAPDOOR (896)
 block_definitions[ 896 ].textures[ FACE_TOP ] = TEX_PALE_OAK_TRAPDOOR;
@@ -11297,7 +10650,6 @@ block_definitions[ 896 ].textures[ FACE_FRONT ] = TEX_PALE_OAK_TRAPDOOR;
 block_definitions[ 896 ].textures[ FACE_LEFT ] = TEX_PALE_OAK_TRAPDOOR;
 block_definitions[ 896 ].textures[ FACE_BACK ] = TEX_PALE_OAK_TRAPDOOR;
 block_definitions[ 896 ].icon_texture = TEX_PALE_OAK_TRAPDOOR;
-block_definitions[ 896 ].icon_is_isometric = false;
 
 // PALE_OAK_WALL_SIGN (897)
 block_definitions[ 897 ].textures[ FACE_TOP ] = TEX_PALE_OAK_PLANKS;
@@ -11307,7 +10659,6 @@ block_definitions[ 897 ].textures[ FACE_FRONT ] = TEX_PALE_OAK_PLANKS;
 block_definitions[ 897 ].textures[ FACE_LEFT ] = TEX_PALE_OAK_PLANKS;
 block_definitions[ 897 ].textures[ FACE_BACK ] = TEX_PALE_OAK_PLANKS;
 block_definitions[ 897 ].icon_texture = TEX_PALE_OAK_PLANKS;
-block_definitions[ 897 ].icon_is_isometric = false;
 
 // PALE_OAK_WOOD (898)
 block_definitions[ 898 ].textures[ FACE_TOP ] = TEX_PALE_OAK_LOG_SIDE;
@@ -11317,7 +10668,6 @@ block_definitions[ 898 ].textures[ FACE_FRONT ] = TEX_PALE_OAK_LOG_SIDE;
 block_definitions[ 898 ].textures[ FACE_LEFT ] = TEX_PALE_OAK_LOG_SIDE;
 block_definitions[ 898 ].textures[ FACE_BACK ] = TEX_PALE_OAK_LOG_SIDE;
 block_definitions[ 898 ].icon_texture = TEX_PALE_OAK_LOG_SIDE;
-block_definitions[ 898 ].icon_is_isometric = false;
 
 // PEARLESCENT_FROGLIGHT (899)
 block_definitions[ 899 ].textures[ FACE_TOP ] = TEX_PEARLESCENT_FROGLIGHT_TOP;
@@ -11326,9 +10676,8 @@ block_definitions[ 899 ].textures[ FACE_RIGHT ] = TEX_PEARLESCENT_FROGLIGHT_SIDE
 block_definitions[ 899 ].textures[ FACE_FRONT ] = TEX_PEARLESCENT_FROGLIGHT_SIDE;
 block_definitions[ 899 ].textures[ FACE_LEFT ] = TEX_PEARLESCENT_FROGLIGHT_SIDE;
 block_definitions[ 899 ].textures[ FACE_BACK ] = TEX_PEARLESCENT_FROGLIGHT_SIDE;
-block_definitions[ 899 ].icon_texture = TEX_PEARLESCENT_FROGLIGHT_SIDE;
+block_definitions[ 899 ].icon_texture = TEX_PEARLESCENT_FROGLIGHT_TOP;
 block_definitions[ 899 ].emits_light = 15;
-block_definitions[ 899 ].icon_is_isometric = false;
 
 // PETRIFIED_OAK_DOUBLE_SLAB (900)
 block_definitions[ 900 ].textures[ FACE_TOP ] = TEX_PLANKS_OAK;
@@ -11338,7 +10687,6 @@ block_definitions[ 900 ].textures[ FACE_FRONT ] = TEX_PLANKS_OAK;
 block_definitions[ 900 ].textures[ FACE_LEFT ] = TEX_PLANKS_OAK;
 block_definitions[ 900 ].textures[ FACE_BACK ] = TEX_PLANKS_OAK;
 block_definitions[ 900 ].icon_texture = TEX_PLANKS_OAK;
-block_definitions[ 900 ].icon_is_isometric = false;
 
 // PETRIFIED_OAK_SLAB (901)
 block_definitions[ 901 ].textures[ FACE_TOP ] = TEX_PLANKS_OAK;
@@ -11348,7 +10696,6 @@ block_definitions[ 901 ].textures[ FACE_FRONT ] = TEX_PLANKS_OAK;
 block_definitions[ 901 ].textures[ FACE_LEFT ] = TEX_PLANKS_OAK;
 block_definitions[ 901 ].textures[ FACE_BACK ] = TEX_PLANKS_OAK;
 block_definitions[ 901 ].icon_texture = TEX_PLANKS_OAK;
-block_definitions[ 901 ].icon_is_isometric = false;
 
 // PINK_CANDLE (902)
 block_definitions[ 902 ].textures[ FACE_TOP ] = TEX_PINK_CANDLE;
@@ -11360,7 +10707,6 @@ block_definitions[ 902 ].textures[ FACE_BACK ] = TEX_PINK_CANDLE;
 block_definitions[ 902 ].icon_texture = TEX_PINK_CANDLE;
 block_definitions[ 902 ].casts_shadow = false;
 block_definitions[ 902 ].hardness = 0.35f;
-block_definitions[ 902 ].icon_is_isometric = false;
 block_definitions[ 902 ].is_seethrough = true;
 block_definitions[ 902 ].no_light = 6815743;
 
@@ -11371,10 +10717,9 @@ block_definitions[ 903 ].textures[ FACE_RIGHT ] = TEX_CAKE_SIDE;
 block_definitions[ 903 ].textures[ FACE_FRONT ] = TEX_CAKE_SIDE;
 block_definitions[ 903 ].textures[ FACE_LEFT ] = TEX_CAKE_SIDE;
 block_definitions[ 903 ].textures[ FACE_BACK ] = TEX_CAKE_SIDE;
-block_definitions[ 903 ].icon_texture = TEX_CAKE_SIDE;
+block_definitions[ 903 ].icon_texture = TEX_CAKE_TOP;
 block_definitions[ 903 ].casts_shadow = false;
 block_definitions[ 903 ].hardness = 0.35f;
-block_definitions[ 903 ].icon_is_isometric = false;
 block_definitions[ 903 ].is_seethrough = true;
 block_definitions[ 903 ].no_light = 6815743;
 
@@ -11386,7 +10731,6 @@ block_definitions[ 904 ].textures[ FACE_FRONT ] = TEX_WOOL_COLORED_PINK;
 block_definitions[ 904 ].textures[ FACE_LEFT ] = TEX_WOOL_COLORED_PINK;
 block_definitions[ 904 ].textures[ FACE_BACK ] = TEX_WOOL_COLORED_PINK;
 block_definitions[ 904 ].icon_texture = TEX_WOOL_COLORED_PINK;
-block_definitions[ 904 ].icon_is_isometric = false;
 
 // PINK_CONCRETE (905)
 block_definitions[ 905 ].textures[ FACE_TOP ] = TEX_CONCRETE_PINK;
@@ -11396,7 +10740,6 @@ block_definitions[ 905 ].textures[ FACE_FRONT ] = TEX_CONCRETE_PINK;
 block_definitions[ 905 ].textures[ FACE_LEFT ] = TEX_CONCRETE_PINK;
 block_definitions[ 905 ].textures[ FACE_BACK ] = TEX_CONCRETE_PINK;
 block_definitions[ 905 ].icon_texture = TEX_CONCRETE_PINK;
-block_definitions[ 905 ].icon_is_isometric = false;
 
 // PINK_CONCRETE_DOUBLE_SLAB (906)
 block_definitions[ 906 ].textures[ FACE_TOP ] = TEX_CONCRETE_PINK;
@@ -11406,7 +10749,6 @@ block_definitions[ 906 ].textures[ FACE_FRONT ] = TEX_CONCRETE_PINK;
 block_definitions[ 906 ].textures[ FACE_LEFT ] = TEX_CONCRETE_PINK;
 block_definitions[ 906 ].textures[ FACE_BACK ] = TEX_CONCRETE_PINK;
 block_definitions[ 906 ].icon_texture = TEX_CONCRETE_PINK;
-block_definitions[ 906 ].icon_is_isometric = false;
 
 // PINK_CONCRETE_POWDER (907)
 block_definitions[ 907 ].textures[ FACE_TOP ] = TEX_CONCRETE_POWDER_PINK;
@@ -11416,7 +10758,6 @@ block_definitions[ 907 ].textures[ FACE_FRONT ] = TEX_CONCRETE_POWDER_PINK;
 block_definitions[ 907 ].textures[ FACE_LEFT ] = TEX_CONCRETE_POWDER_PINK;
 block_definitions[ 907 ].textures[ FACE_BACK ] = TEX_CONCRETE_POWDER_PINK;
 block_definitions[ 907 ].icon_texture = TEX_CONCRETE_POWDER_PINK;
-block_definitions[ 907 ].icon_is_isometric = false;
 
 // PINK_CONCRETE_SLAB (908)
 block_definitions[ 908 ].textures[ FACE_TOP ] = TEX_CONCRETE_PINK;
@@ -11426,7 +10767,6 @@ block_definitions[ 908 ].textures[ FACE_FRONT ] = TEX_CONCRETE_PINK;
 block_definitions[ 908 ].textures[ FACE_LEFT ] = TEX_CONCRETE_PINK;
 block_definitions[ 908 ].textures[ FACE_BACK ] = TEX_CONCRETE_PINK;
 block_definitions[ 908 ].icon_texture = TEX_CONCRETE_PINK;
-block_definitions[ 908 ].icon_is_isometric = false;
 
 // PINK_CONCRETE_STAIRS (909)
 block_definitions[ 909 ].textures[ FACE_TOP ] = TEX_CONCRETE_PINK;
@@ -11436,7 +10776,6 @@ block_definitions[ 909 ].textures[ FACE_FRONT ] = TEX_CONCRETE_PINK;
 block_definitions[ 909 ].textures[ FACE_LEFT ] = TEX_CONCRETE_PINK;
 block_definitions[ 909 ].textures[ FACE_BACK ] = TEX_CONCRETE_PINK;
 block_definitions[ 909 ].icon_texture = TEX_CONCRETE_PINK;
-block_definitions[ 909 ].icon_is_isometric = false;
 
 // PINK_GLAZED_TERRACOTTA (910)
 block_definitions[ 910 ].textures[ FACE_TOP ] = TEX_GLAZED_TERRACOTTA_PINK;
@@ -11446,7 +10785,6 @@ block_definitions[ 910 ].textures[ FACE_FRONT ] = TEX_GLAZED_TERRACOTTA_PINK;
 block_definitions[ 910 ].textures[ FACE_LEFT ] = TEX_GLAZED_TERRACOTTA_PINK;
 block_definitions[ 910 ].textures[ FACE_BACK ] = TEX_GLAZED_TERRACOTTA_PINK;
 block_definitions[ 910 ].icon_texture = TEX_GLAZED_TERRACOTTA_PINK;
-block_definitions[ 910 ].icon_is_isometric = false;
 
 // PINK_PETALS (911)
 block_definitions[ 911 ].textures[ FACE_TOP ] = TEX_AIR;
@@ -11478,7 +10816,6 @@ block_definitions[ 912 ].textures[ FACE_FRONT ] = TEX_SHULKER_TOP_PINK;
 block_definitions[ 912 ].textures[ FACE_LEFT ] = TEX_SHULKER_TOP_PINK;
 block_definitions[ 912 ].textures[ FACE_BACK ] = TEX_SHULKER_TOP_PINK;
 block_definitions[ 912 ].icon_texture = TEX_SHULKER_TOP_PINK;
-block_definitions[ 912 ].icon_is_isometric = false;
 
 // PINK_STAINED_GLASS (913)
 block_definitions[ 913 ].textures[ FACE_TOP ] = TEX_GLASS_PINK;
@@ -11491,7 +10828,6 @@ block_definitions[ 913 ].icon_texture = TEX_GLASS_PINK;
 block_definitions[ 913 ].affected_by_redstone_power = false;
 block_definitions[ 913 ].casts_shadow = false;
 block_definitions[ 913 ].hardness = 0.449999988f;
-block_definitions[ 913 ].icon_is_isometric = false;
 block_definitions[ 913 ].is_seethrough = true;
 block_definitions[ 913 ].renderOrder = RenderOrder_Translucent;
 
@@ -11506,7 +10842,6 @@ block_definitions[ 914 ].icon_texture = TEX_GLASS_PINK;
 block_definitions[ 914 ].affected_by_redstone_power = false;
 block_definitions[ 914 ].casts_shadow = false;
 block_definitions[ 914 ].hardness = 0.449999988f;
-block_definitions[ 914 ].icon_is_isometric = false;
 block_definitions[ 914 ].is_seethrough = true;
 block_definitions[ 914 ].renderOrder = RenderOrder_Translucent;
 
@@ -11518,7 +10853,6 @@ block_definitions[ 915 ].textures[ FACE_FRONT ] = TEX_HARDENED_CLAY_STAINED_PINK
 block_definitions[ 915 ].textures[ FACE_LEFT ] = TEX_HARDENED_CLAY_STAINED_PINK;
 block_definitions[ 915 ].textures[ FACE_BACK ] = TEX_HARDENED_CLAY_STAINED_PINK;
 block_definitions[ 915 ].icon_texture = TEX_HARDENED_CLAY_STAINED_PINK;
-block_definitions[ 915 ].icon_is_isometric = false;
 
 // PINK_WOOL (916)
 block_definitions[ 916 ].textures[ FACE_TOP ] = TEX_WOOL_COLORED_PINK;
@@ -11528,7 +10862,6 @@ block_definitions[ 916 ].textures[ FACE_FRONT ] = TEX_WOOL_COLORED_PINK;
 block_definitions[ 916 ].textures[ FACE_LEFT ] = TEX_WOOL_COLORED_PINK;
 block_definitions[ 916 ].textures[ FACE_BACK ] = TEX_WOOL_COLORED_PINK;
 block_definitions[ 916 ].icon_texture = TEX_WOOL_COLORED_PINK;
-block_definitions[ 916 ].icon_is_isometric = false;
 
 // PINK_WOOL_DOUBLE_SLAB (917)
 block_definitions[ 917 ].textures[ FACE_TOP ] = TEX_WOOL_COLORED_PINK;
@@ -11538,7 +10871,6 @@ block_definitions[ 917 ].textures[ FACE_FRONT ] = TEX_WOOL_COLORED_PINK;
 block_definitions[ 917 ].textures[ FACE_LEFT ] = TEX_WOOL_COLORED_PINK;
 block_definitions[ 917 ].textures[ FACE_BACK ] = TEX_WOOL_COLORED_PINK;
 block_definitions[ 917 ].icon_texture = TEX_WOOL_COLORED_PINK;
-block_definitions[ 917 ].icon_is_isometric = false;
 
 // PINK_WOOL_SLAB (918)
 block_definitions[ 918 ].textures[ FACE_TOP ] = TEX_WOOL_COLORED_PINK;
@@ -11548,7 +10880,6 @@ block_definitions[ 918 ].textures[ FACE_FRONT ] = TEX_WOOL_COLORED_PINK;
 block_definitions[ 918 ].textures[ FACE_LEFT ] = TEX_WOOL_COLORED_PINK;
 block_definitions[ 918 ].textures[ FACE_BACK ] = TEX_WOOL_COLORED_PINK;
 block_definitions[ 918 ].icon_texture = TEX_WOOL_COLORED_PINK;
-block_definitions[ 918 ].icon_is_isometric = false;
 
 // PINK_WOOL_STAIRS (919)
 block_definitions[ 919 ].textures[ FACE_TOP ] = TEX_WOOL_COLORED_PINK;
@@ -11558,7 +10889,6 @@ block_definitions[ 919 ].textures[ FACE_FRONT ] = TEX_WOOL_COLORED_PINK;
 block_definitions[ 919 ].textures[ FACE_LEFT ] = TEX_WOOL_COLORED_PINK;
 block_definitions[ 919 ].textures[ FACE_BACK ] = TEX_WOOL_COLORED_PINK;
 block_definitions[ 919 ].icon_texture = TEX_WOOL_COLORED_PINK;
-block_definitions[ 919 ].icon_is_isometric = false;
 
 // PITCHER_CROP (920)
 block_definitions[ 920 ].textures[ FACE_TOP ] = TEX_AIR;
@@ -11612,7 +10942,6 @@ block_definitions[ 922 ].textures[ FACE_FRONT ] = TEX_PLANKS_OAK;
 block_definitions[ 922 ].textures[ FACE_LEFT ] = TEX_PLANKS_OAK;
 block_definitions[ 922 ].textures[ FACE_BACK ] = TEX_PLANKS_OAK;
 block_definitions[ 922 ].icon_texture = TEX_PLANKS_OAK;
-block_definitions[ 922 ].icon_is_isometric = false;
 
 // POINTED_DRIPSTONE (923)
 block_definitions[ 923 ].textures[ FACE_TOP ] = TEX_AIR;
@@ -11644,7 +10973,6 @@ block_definitions[ 924 ].textures[ FACE_FRONT ] = TEX_STONE_ANDESITE_SMOOTH;
 block_definitions[ 924 ].textures[ FACE_LEFT ] = TEX_STONE_ANDESITE_SMOOTH;
 block_definitions[ 924 ].textures[ FACE_BACK ] = TEX_STONE_ANDESITE_SMOOTH;
 block_definitions[ 924 ].icon_texture = TEX_STONE_ANDESITE_SMOOTH;
-block_definitions[ 924 ].icon_is_isometric = false;
 
 // POLISHED_ANDESITE_DOUBLE_SLAB (925)
 block_definitions[ 925 ].textures[ FACE_TOP ] = TEX_STONE_ANDESITE_SMOOTH;
@@ -11654,7 +10982,6 @@ block_definitions[ 925 ].textures[ FACE_FRONT ] = TEX_STONE_ANDESITE_SMOOTH;
 block_definitions[ 925 ].textures[ FACE_LEFT ] = TEX_STONE_ANDESITE_SMOOTH;
 block_definitions[ 925 ].textures[ FACE_BACK ] = TEX_STONE_ANDESITE_SMOOTH;
 block_definitions[ 925 ].icon_texture = TEX_STONE_ANDESITE_SMOOTH;
-block_definitions[ 925 ].icon_is_isometric = false;
 
 // POLISHED_ANDESITE_SLAB (926)
 block_definitions[ 926 ].textures[ FACE_TOP ] = TEX_STONE_ANDESITE_SMOOTH;
@@ -11664,7 +10991,6 @@ block_definitions[ 926 ].textures[ FACE_FRONT ] = TEX_STONE_ANDESITE_SMOOTH;
 block_definitions[ 926 ].textures[ FACE_LEFT ] = TEX_STONE_ANDESITE_SMOOTH;
 block_definitions[ 926 ].textures[ FACE_BACK ] = TEX_STONE_ANDESITE_SMOOTH;
 block_definitions[ 926 ].icon_texture = TEX_STONE_ANDESITE_SMOOTH;
-block_definitions[ 926 ].icon_is_isometric = false;
 
 // POLISHED_ANDESITE_STAIRS (927)
 block_definitions[ 927 ].textures[ FACE_TOP ] = TEX_STONE_ANDESITE_SMOOTH;
@@ -11674,7 +11000,6 @@ block_definitions[ 927 ].textures[ FACE_FRONT ] = TEX_STONE_ANDESITE_SMOOTH;
 block_definitions[ 927 ].textures[ FACE_LEFT ] = TEX_STONE_ANDESITE_SMOOTH;
 block_definitions[ 927 ].textures[ FACE_BACK ] = TEX_STONE_ANDESITE_SMOOTH;
 block_definitions[ 927 ].icon_texture = TEX_STONE_ANDESITE_SMOOTH;
-block_definitions[ 927 ].icon_is_isometric = false;
 
 // POLISHED_BASALT (928)
 block_definitions[ 928 ].textures[ FACE_TOP ] = TEX_POLISHED_BASALT_TOP;
@@ -11683,8 +11008,7 @@ block_definitions[ 928 ].textures[ FACE_RIGHT ] = TEX_POLISHED_BASALT_SIDE;
 block_definitions[ 928 ].textures[ FACE_FRONT ] = TEX_POLISHED_BASALT_SIDE;
 block_definitions[ 928 ].textures[ FACE_LEFT ] = TEX_POLISHED_BASALT_SIDE;
 block_definitions[ 928 ].textures[ FACE_BACK ] = TEX_POLISHED_BASALT_SIDE;
-block_definitions[ 928 ].icon_texture = TEX_POLISHED_BASALT_SIDE;
-block_definitions[ 928 ].icon_is_isometric = false;
+block_definitions[ 928 ].icon_texture = TEX_POLISHED_BASALT_TOP;
 
 // POLISHED_BLACKSTONE (929)
 block_definitions[ 929 ].textures[ FACE_TOP ] = TEX_POLISHED_BLACKSTONE;
@@ -11694,7 +11018,6 @@ block_definitions[ 929 ].textures[ FACE_FRONT ] = TEX_POLISHED_BLACKSTONE;
 block_definitions[ 929 ].textures[ FACE_LEFT ] = TEX_POLISHED_BLACKSTONE;
 block_definitions[ 929 ].textures[ FACE_BACK ] = TEX_POLISHED_BLACKSTONE;
 block_definitions[ 929 ].icon_texture = TEX_POLISHED_BLACKSTONE;
-block_definitions[ 929 ].icon_is_isometric = false;
 
 // POLISHED_BLACKSTONE_BRICK_DOUBLE_SLAB (930)
 block_definitions[ 930 ].textures[ FACE_TOP ] = TEX_POLISHED_BLACKSTONE_BRICKS;
@@ -11704,7 +11027,6 @@ block_definitions[ 930 ].textures[ FACE_FRONT ] = TEX_POLISHED_BLACKSTONE_BRICKS
 block_definitions[ 930 ].textures[ FACE_LEFT ] = TEX_POLISHED_BLACKSTONE_BRICKS;
 block_definitions[ 930 ].textures[ FACE_BACK ] = TEX_POLISHED_BLACKSTONE_BRICKS;
 block_definitions[ 930 ].icon_texture = TEX_POLISHED_BLACKSTONE_BRICKS;
-block_definitions[ 930 ].icon_is_isometric = false;
 
 // POLISHED_BLACKSTONE_BRICK_SLAB (931)
 block_definitions[ 931 ].textures[ FACE_TOP ] = TEX_POLISHED_BLACKSTONE_BRICKS;
@@ -11714,7 +11036,6 @@ block_definitions[ 931 ].textures[ FACE_FRONT ] = TEX_POLISHED_BLACKSTONE_BRICKS
 block_definitions[ 931 ].textures[ FACE_LEFT ] = TEX_POLISHED_BLACKSTONE_BRICKS;
 block_definitions[ 931 ].textures[ FACE_BACK ] = TEX_POLISHED_BLACKSTONE_BRICKS;
 block_definitions[ 931 ].icon_texture = TEX_POLISHED_BLACKSTONE_BRICKS;
-block_definitions[ 931 ].icon_is_isometric = false;
 
 // POLISHED_BLACKSTONE_BRICK_STAIRS (932)
 block_definitions[ 932 ].textures[ FACE_TOP ] = TEX_POLISHED_BLACKSTONE_BRICKS;
@@ -11724,7 +11045,6 @@ block_definitions[ 932 ].textures[ FACE_FRONT ] = TEX_POLISHED_BLACKSTONE_BRICKS
 block_definitions[ 932 ].textures[ FACE_LEFT ] = TEX_POLISHED_BLACKSTONE_BRICKS;
 block_definitions[ 932 ].textures[ FACE_BACK ] = TEX_POLISHED_BLACKSTONE_BRICKS;
 block_definitions[ 932 ].icon_texture = TEX_POLISHED_BLACKSTONE_BRICKS;
-block_definitions[ 932 ].icon_is_isometric = false;
 
 // POLISHED_BLACKSTONE_BRICK_WALL (933)
 block_definitions[ 933 ].textures[ FACE_TOP ] = TEX_POLISHED_BLACKSTONE_BRICKS;
@@ -11734,7 +11054,6 @@ block_definitions[ 933 ].textures[ FACE_FRONT ] = TEX_POLISHED_BLACKSTONE_BRICKS
 block_definitions[ 933 ].textures[ FACE_LEFT ] = TEX_POLISHED_BLACKSTONE_BRICKS;
 block_definitions[ 933 ].textures[ FACE_BACK ] = TEX_POLISHED_BLACKSTONE_BRICKS;
 block_definitions[ 933 ].icon_texture = TEX_POLISHED_BLACKSTONE_BRICKS;
-block_definitions[ 933 ].icon_is_isometric = false;
 
 // POLISHED_BLACKSTONE_BRICKS (934)
 block_definitions[ 934 ].textures[ FACE_TOP ] = TEX_POLISHED_BLACKSTONE_BRICKS;
@@ -11744,7 +11063,6 @@ block_definitions[ 934 ].textures[ FACE_FRONT ] = TEX_POLISHED_BLACKSTONE_BRICKS
 block_definitions[ 934 ].textures[ FACE_LEFT ] = TEX_POLISHED_BLACKSTONE_BRICKS;
 block_definitions[ 934 ].textures[ FACE_BACK ] = TEX_POLISHED_BLACKSTONE_BRICKS;
 block_definitions[ 934 ].icon_texture = TEX_POLISHED_BLACKSTONE_BRICKS;
-block_definitions[ 934 ].icon_is_isometric = false;
 
 // POLISHED_BLACKSTONE_BUTTON (935)
 block_definitions[ 935 ].textures[ FACE_TOP ] = TEX_POLISHED_BLACKSTONE;
@@ -11754,7 +11072,6 @@ block_definitions[ 935 ].textures[ FACE_FRONT ] = TEX_POLISHED_BLACKSTONE;
 block_definitions[ 935 ].textures[ FACE_LEFT ] = TEX_POLISHED_BLACKSTONE;
 block_definitions[ 935 ].textures[ FACE_BACK ] = TEX_POLISHED_BLACKSTONE;
 block_definitions[ 935 ].icon_texture = TEX_POLISHED_BLACKSTONE;
-block_definitions[ 935 ].icon_is_isometric = false;
 
 // POLISHED_BLACKSTONE_DOUBLE_SLAB (936)
 block_definitions[ 936 ].textures[ FACE_TOP ] = TEX_POLISHED_BLACKSTONE;
@@ -11764,7 +11081,6 @@ block_definitions[ 936 ].textures[ FACE_FRONT ] = TEX_POLISHED_BLACKSTONE;
 block_definitions[ 936 ].textures[ FACE_LEFT ] = TEX_POLISHED_BLACKSTONE;
 block_definitions[ 936 ].textures[ FACE_BACK ] = TEX_POLISHED_BLACKSTONE;
 block_definitions[ 936 ].icon_texture = TEX_POLISHED_BLACKSTONE;
-block_definitions[ 936 ].icon_is_isometric = false;
 
 // POLISHED_BLACKSTONE_PRESSURE_PLATE (937)
 block_definitions[ 937 ].textures[ FACE_TOP ] = TEX_POLISHED_BLACKSTONE;
@@ -11774,7 +11090,6 @@ block_definitions[ 937 ].textures[ FACE_FRONT ] = TEX_POLISHED_BLACKSTONE;
 block_definitions[ 937 ].textures[ FACE_LEFT ] = TEX_POLISHED_BLACKSTONE;
 block_definitions[ 937 ].textures[ FACE_BACK ] = TEX_POLISHED_BLACKSTONE;
 block_definitions[ 937 ].icon_texture = TEX_POLISHED_BLACKSTONE;
-block_definitions[ 937 ].icon_is_isometric = false;
 
 // POLISHED_BLACKSTONE_SLAB (938)
 block_definitions[ 938 ].textures[ FACE_TOP ] = TEX_POLISHED_BLACKSTONE;
@@ -11784,7 +11099,6 @@ block_definitions[ 938 ].textures[ FACE_FRONT ] = TEX_POLISHED_BLACKSTONE;
 block_definitions[ 938 ].textures[ FACE_LEFT ] = TEX_POLISHED_BLACKSTONE;
 block_definitions[ 938 ].textures[ FACE_BACK ] = TEX_POLISHED_BLACKSTONE;
 block_definitions[ 938 ].icon_texture = TEX_POLISHED_BLACKSTONE;
-block_definitions[ 938 ].icon_is_isometric = false;
 
 // POLISHED_BLACKSTONE_STAIRS (939)
 block_definitions[ 939 ].textures[ FACE_TOP ] = TEX_POLISHED_BLACKSTONE;
@@ -11794,7 +11108,6 @@ block_definitions[ 939 ].textures[ FACE_FRONT ] = TEX_POLISHED_BLACKSTONE;
 block_definitions[ 939 ].textures[ FACE_LEFT ] = TEX_POLISHED_BLACKSTONE;
 block_definitions[ 939 ].textures[ FACE_BACK ] = TEX_POLISHED_BLACKSTONE;
 block_definitions[ 939 ].icon_texture = TEX_POLISHED_BLACKSTONE;
-block_definitions[ 939 ].icon_is_isometric = false;
 
 // POLISHED_BLACKSTONE_WALL (940)
 block_definitions[ 940 ].textures[ FACE_TOP ] = TEX_POLISHED_BLACKSTONE;
@@ -11804,7 +11117,6 @@ block_definitions[ 940 ].textures[ FACE_FRONT ] = TEX_POLISHED_BLACKSTONE;
 block_definitions[ 940 ].textures[ FACE_LEFT ] = TEX_POLISHED_BLACKSTONE;
 block_definitions[ 940 ].textures[ FACE_BACK ] = TEX_POLISHED_BLACKSTONE;
 block_definitions[ 940 ].icon_texture = TEX_POLISHED_BLACKSTONE;
-block_definitions[ 940 ].icon_is_isometric = false;
 
 // POLISHED_CINNABAR (941)
 block_definitions[ 941 ].textures[ FACE_TOP ] = TEX_POLISHED_CINNABAR;
@@ -11814,7 +11126,6 @@ block_definitions[ 941 ].textures[ FACE_FRONT ] = TEX_POLISHED_CINNABAR;
 block_definitions[ 941 ].textures[ FACE_LEFT ] = TEX_POLISHED_CINNABAR;
 block_definitions[ 941 ].textures[ FACE_BACK ] = TEX_POLISHED_CINNABAR;
 block_definitions[ 941 ].icon_texture = TEX_POLISHED_CINNABAR;
-block_definitions[ 941 ].icon_is_isometric = false;
 
 // POLISHED_CINNABAR_DOUBLE_SLAB (942)
 block_definitions[ 942 ].textures[ FACE_TOP ] = TEX_POLISHED_CINNABAR;
@@ -11824,7 +11135,6 @@ block_definitions[ 942 ].textures[ FACE_FRONT ] = TEX_POLISHED_CINNABAR;
 block_definitions[ 942 ].textures[ FACE_LEFT ] = TEX_POLISHED_CINNABAR;
 block_definitions[ 942 ].textures[ FACE_BACK ] = TEX_POLISHED_CINNABAR;
 block_definitions[ 942 ].icon_texture = TEX_POLISHED_CINNABAR;
-block_definitions[ 942 ].icon_is_isometric = false;
 
 // POLISHED_CINNABAR_SLAB (943)
 block_definitions[ 943 ].textures[ FACE_TOP ] = TEX_POLISHED_CINNABAR;
@@ -11834,7 +11144,6 @@ block_definitions[ 943 ].textures[ FACE_FRONT ] = TEX_POLISHED_CINNABAR;
 block_definitions[ 943 ].textures[ FACE_LEFT ] = TEX_POLISHED_CINNABAR;
 block_definitions[ 943 ].textures[ FACE_BACK ] = TEX_POLISHED_CINNABAR;
 block_definitions[ 943 ].icon_texture = TEX_POLISHED_CINNABAR;
-block_definitions[ 943 ].icon_is_isometric = false;
 
 // POLISHED_CINNABAR_STAIRS (944)
 block_definitions[ 944 ].textures[ FACE_TOP ] = TEX_POLISHED_CINNABAR;
@@ -11844,7 +11153,6 @@ block_definitions[ 944 ].textures[ FACE_FRONT ] = TEX_POLISHED_CINNABAR;
 block_definitions[ 944 ].textures[ FACE_LEFT ] = TEX_POLISHED_CINNABAR;
 block_definitions[ 944 ].textures[ FACE_BACK ] = TEX_POLISHED_CINNABAR;
 block_definitions[ 944 ].icon_texture = TEX_POLISHED_CINNABAR;
-block_definitions[ 944 ].icon_is_isometric = false;
 
 // POLISHED_CINNABAR_WALL (945)
 block_definitions[ 945 ].textures[ FACE_TOP ] = TEX_POLISHED_CINNABAR;
@@ -11854,7 +11162,6 @@ block_definitions[ 945 ].textures[ FACE_FRONT ] = TEX_POLISHED_CINNABAR;
 block_definitions[ 945 ].textures[ FACE_LEFT ] = TEX_POLISHED_CINNABAR;
 block_definitions[ 945 ].textures[ FACE_BACK ] = TEX_POLISHED_CINNABAR;
 block_definitions[ 945 ].icon_texture = TEX_POLISHED_CINNABAR;
-block_definitions[ 945 ].icon_is_isometric = false;
 
 // POLISHED_DEEPSLATE (946)
 block_definitions[ 946 ].textures[ FACE_TOP ] = TEX_POLISHED_DEEPSLATE;
@@ -11864,7 +11171,6 @@ block_definitions[ 946 ].textures[ FACE_FRONT ] = TEX_POLISHED_DEEPSLATE;
 block_definitions[ 946 ].textures[ FACE_LEFT ] = TEX_POLISHED_DEEPSLATE;
 block_definitions[ 946 ].textures[ FACE_BACK ] = TEX_POLISHED_DEEPSLATE;
 block_definitions[ 946 ].icon_texture = TEX_POLISHED_DEEPSLATE;
-block_definitions[ 946 ].icon_is_isometric = false;
 
 // POLISHED_DEEPSLATE_DOUBLE_SLAB (947)
 block_definitions[ 947 ].textures[ FACE_TOP ] = TEX_POLISHED_DEEPSLATE;
@@ -11874,7 +11180,6 @@ block_definitions[ 947 ].textures[ FACE_FRONT ] = TEX_POLISHED_DEEPSLATE;
 block_definitions[ 947 ].textures[ FACE_LEFT ] = TEX_POLISHED_DEEPSLATE;
 block_definitions[ 947 ].textures[ FACE_BACK ] = TEX_POLISHED_DEEPSLATE;
 block_definitions[ 947 ].icon_texture = TEX_POLISHED_DEEPSLATE;
-block_definitions[ 947 ].icon_is_isometric = false;
 
 // POLISHED_DEEPSLATE_SLAB (948)
 block_definitions[ 948 ].textures[ FACE_TOP ] = TEX_POLISHED_DEEPSLATE;
@@ -11884,7 +11189,6 @@ block_definitions[ 948 ].textures[ FACE_FRONT ] = TEX_POLISHED_DEEPSLATE;
 block_definitions[ 948 ].textures[ FACE_LEFT ] = TEX_POLISHED_DEEPSLATE;
 block_definitions[ 948 ].textures[ FACE_BACK ] = TEX_POLISHED_DEEPSLATE;
 block_definitions[ 948 ].icon_texture = TEX_POLISHED_DEEPSLATE;
-block_definitions[ 948 ].icon_is_isometric = false;
 
 // POLISHED_DEEPSLATE_STAIRS (949)
 block_definitions[ 949 ].textures[ FACE_TOP ] = TEX_POLISHED_DEEPSLATE;
@@ -11894,7 +11198,6 @@ block_definitions[ 949 ].textures[ FACE_FRONT ] = TEX_POLISHED_DEEPSLATE;
 block_definitions[ 949 ].textures[ FACE_LEFT ] = TEX_POLISHED_DEEPSLATE;
 block_definitions[ 949 ].textures[ FACE_BACK ] = TEX_POLISHED_DEEPSLATE;
 block_definitions[ 949 ].icon_texture = TEX_POLISHED_DEEPSLATE;
-block_definitions[ 949 ].icon_is_isometric = false;
 
 // POLISHED_DEEPSLATE_WALL (950)
 block_definitions[ 950 ].textures[ FACE_TOP ] = TEX_POLISHED_DEEPSLATE;
@@ -11904,7 +11207,6 @@ block_definitions[ 950 ].textures[ FACE_FRONT ] = TEX_POLISHED_DEEPSLATE;
 block_definitions[ 950 ].textures[ FACE_LEFT ] = TEX_POLISHED_DEEPSLATE;
 block_definitions[ 950 ].textures[ FACE_BACK ] = TEX_POLISHED_DEEPSLATE;
 block_definitions[ 950 ].icon_texture = TEX_POLISHED_DEEPSLATE;
-block_definitions[ 950 ].icon_is_isometric = false;
 
 // POLISHED_DIORITE (951)
 block_definitions[ 951 ].textures[ FACE_TOP ] = TEX_STONE_DIORITE_SMOOTH;
@@ -11914,7 +11216,6 @@ block_definitions[ 951 ].textures[ FACE_FRONT ] = TEX_STONE_DIORITE_SMOOTH;
 block_definitions[ 951 ].textures[ FACE_LEFT ] = TEX_STONE_DIORITE_SMOOTH;
 block_definitions[ 951 ].textures[ FACE_BACK ] = TEX_STONE_DIORITE_SMOOTH;
 block_definitions[ 951 ].icon_texture = TEX_STONE_DIORITE_SMOOTH;
-block_definitions[ 951 ].icon_is_isometric = false;
 
 // POLISHED_DIORITE_DOUBLE_SLAB (952)
 block_definitions[ 952 ].textures[ FACE_TOP ] = TEX_STONE_DIORITE_SMOOTH;
@@ -11924,7 +11225,6 @@ block_definitions[ 952 ].textures[ FACE_FRONT ] = TEX_STONE_DIORITE_SMOOTH;
 block_definitions[ 952 ].textures[ FACE_LEFT ] = TEX_STONE_DIORITE_SMOOTH;
 block_definitions[ 952 ].textures[ FACE_BACK ] = TEX_STONE_DIORITE_SMOOTH;
 block_definitions[ 952 ].icon_texture = TEX_STONE_DIORITE_SMOOTH;
-block_definitions[ 952 ].icon_is_isometric = false;
 
 // POLISHED_DIORITE_SLAB (953)
 block_definitions[ 953 ].textures[ FACE_TOP ] = TEX_STONE_DIORITE_SMOOTH;
@@ -11934,7 +11234,6 @@ block_definitions[ 953 ].textures[ FACE_FRONT ] = TEX_STONE_DIORITE_SMOOTH;
 block_definitions[ 953 ].textures[ FACE_LEFT ] = TEX_STONE_DIORITE_SMOOTH;
 block_definitions[ 953 ].textures[ FACE_BACK ] = TEX_STONE_DIORITE_SMOOTH;
 block_definitions[ 953 ].icon_texture = TEX_STONE_DIORITE_SMOOTH;
-block_definitions[ 953 ].icon_is_isometric = false;
 
 // POLISHED_DIORITE_STAIRS (954)
 block_definitions[ 954 ].textures[ FACE_TOP ] = TEX_STONE_DIORITE_SMOOTH;
@@ -11944,7 +11243,6 @@ block_definitions[ 954 ].textures[ FACE_FRONT ] = TEX_STONE_DIORITE_SMOOTH;
 block_definitions[ 954 ].textures[ FACE_LEFT ] = TEX_STONE_DIORITE_SMOOTH;
 block_definitions[ 954 ].textures[ FACE_BACK ] = TEX_STONE_DIORITE_SMOOTH;
 block_definitions[ 954 ].icon_texture = TEX_STONE_DIORITE_SMOOTH;
-block_definitions[ 954 ].icon_is_isometric = false;
 
 // POLISHED_GRANITE (955)
 block_definitions[ 955 ].textures[ FACE_TOP ] = TEX_STONE_GRANITE_SMOOTH;
@@ -11954,7 +11252,6 @@ block_definitions[ 955 ].textures[ FACE_FRONT ] = TEX_STONE_GRANITE_SMOOTH;
 block_definitions[ 955 ].textures[ FACE_LEFT ] = TEX_STONE_GRANITE_SMOOTH;
 block_definitions[ 955 ].textures[ FACE_BACK ] = TEX_STONE_GRANITE_SMOOTH;
 block_definitions[ 955 ].icon_texture = TEX_STONE_GRANITE_SMOOTH;
-block_definitions[ 955 ].icon_is_isometric = false;
 
 // POLISHED_GRANITE_DOUBLE_SLAB (956)
 block_definitions[ 956 ].textures[ FACE_TOP ] = TEX_STONE_GRANITE_SMOOTH;
@@ -11964,7 +11261,6 @@ block_definitions[ 956 ].textures[ FACE_FRONT ] = TEX_STONE_GRANITE_SMOOTH;
 block_definitions[ 956 ].textures[ FACE_LEFT ] = TEX_STONE_GRANITE_SMOOTH;
 block_definitions[ 956 ].textures[ FACE_BACK ] = TEX_STONE_GRANITE_SMOOTH;
 block_definitions[ 956 ].icon_texture = TEX_STONE_GRANITE_SMOOTH;
-block_definitions[ 956 ].icon_is_isometric = false;
 
 // POLISHED_GRANITE_SLAB (957)
 block_definitions[ 957 ].textures[ FACE_TOP ] = TEX_STONE_GRANITE_SMOOTH;
@@ -11974,7 +11270,6 @@ block_definitions[ 957 ].textures[ FACE_FRONT ] = TEX_STONE_GRANITE_SMOOTH;
 block_definitions[ 957 ].textures[ FACE_LEFT ] = TEX_STONE_GRANITE_SMOOTH;
 block_definitions[ 957 ].textures[ FACE_BACK ] = TEX_STONE_GRANITE_SMOOTH;
 block_definitions[ 957 ].icon_texture = TEX_STONE_GRANITE_SMOOTH;
-block_definitions[ 957 ].icon_is_isometric = false;
 
 // POLISHED_GRANITE_STAIRS (958)
 block_definitions[ 958 ].textures[ FACE_TOP ] = TEX_STONE_GRANITE_SMOOTH;
@@ -11984,7 +11279,6 @@ block_definitions[ 958 ].textures[ FACE_FRONT ] = TEX_STONE_GRANITE_SMOOTH;
 block_definitions[ 958 ].textures[ FACE_LEFT ] = TEX_STONE_GRANITE_SMOOTH;
 block_definitions[ 958 ].textures[ FACE_BACK ] = TEX_STONE_GRANITE_SMOOTH;
 block_definitions[ 958 ].icon_texture = TEX_STONE_GRANITE_SMOOTH;
-block_definitions[ 958 ].icon_is_isometric = false;
 
 // POLISHED_SULFUR (959)
 block_definitions[ 959 ].textures[ FACE_TOP ] = TEX_POLISHED_SULFUR;
@@ -11994,7 +11288,6 @@ block_definitions[ 959 ].textures[ FACE_FRONT ] = TEX_POLISHED_SULFUR;
 block_definitions[ 959 ].textures[ FACE_LEFT ] = TEX_POLISHED_SULFUR;
 block_definitions[ 959 ].textures[ FACE_BACK ] = TEX_POLISHED_SULFUR;
 block_definitions[ 959 ].icon_texture = TEX_POLISHED_SULFUR;
-block_definitions[ 959 ].icon_is_isometric = false;
 
 // POLISHED_SULFUR_DOUBLE_SLAB (960)
 block_definitions[ 960 ].textures[ FACE_TOP ] = TEX_POLISHED_SULFUR;
@@ -12004,7 +11297,6 @@ block_definitions[ 960 ].textures[ FACE_FRONT ] = TEX_POLISHED_SULFUR;
 block_definitions[ 960 ].textures[ FACE_LEFT ] = TEX_POLISHED_SULFUR;
 block_definitions[ 960 ].textures[ FACE_BACK ] = TEX_POLISHED_SULFUR;
 block_definitions[ 960 ].icon_texture = TEX_POLISHED_SULFUR;
-block_definitions[ 960 ].icon_is_isometric = false;
 
 // POLISHED_SULFUR_SLAB (961)
 block_definitions[ 961 ].textures[ FACE_TOP ] = TEX_POLISHED_SULFUR;
@@ -12014,7 +11306,6 @@ block_definitions[ 961 ].textures[ FACE_FRONT ] = TEX_POLISHED_SULFUR;
 block_definitions[ 961 ].textures[ FACE_LEFT ] = TEX_POLISHED_SULFUR;
 block_definitions[ 961 ].textures[ FACE_BACK ] = TEX_POLISHED_SULFUR;
 block_definitions[ 961 ].icon_texture = TEX_POLISHED_SULFUR;
-block_definitions[ 961 ].icon_is_isometric = false;
 
 // POLISHED_SULFUR_STAIRS (962)
 block_definitions[ 962 ].textures[ FACE_TOP ] = TEX_POLISHED_SULFUR;
@@ -12024,7 +11315,6 @@ block_definitions[ 962 ].textures[ FACE_FRONT ] = TEX_POLISHED_SULFUR;
 block_definitions[ 962 ].textures[ FACE_LEFT ] = TEX_POLISHED_SULFUR;
 block_definitions[ 962 ].textures[ FACE_BACK ] = TEX_POLISHED_SULFUR;
 block_definitions[ 962 ].icon_texture = TEX_POLISHED_SULFUR;
-block_definitions[ 962 ].icon_is_isometric = false;
 
 // POLISHED_SULFUR_WALL (963)
 block_definitions[ 963 ].textures[ FACE_TOP ] = TEX_POLISHED_SULFUR;
@@ -12034,7 +11324,6 @@ block_definitions[ 963 ].textures[ FACE_FRONT ] = TEX_POLISHED_SULFUR;
 block_definitions[ 963 ].textures[ FACE_LEFT ] = TEX_POLISHED_SULFUR;
 block_definitions[ 963 ].textures[ FACE_BACK ] = TEX_POLISHED_SULFUR;
 block_definitions[ 963 ].icon_texture = TEX_POLISHED_SULFUR;
-block_definitions[ 963 ].icon_is_isometric = false;
 
 // POLISHED_TUFF (964)
 block_definitions[ 964 ].textures[ FACE_TOP ] = TEX_POLISHED_TUFF;
@@ -12044,7 +11333,6 @@ block_definitions[ 964 ].textures[ FACE_FRONT ] = TEX_POLISHED_TUFF;
 block_definitions[ 964 ].textures[ FACE_LEFT ] = TEX_POLISHED_TUFF;
 block_definitions[ 964 ].textures[ FACE_BACK ] = TEX_POLISHED_TUFF;
 block_definitions[ 964 ].icon_texture = TEX_POLISHED_TUFF;
-block_definitions[ 964 ].icon_is_isometric = false;
 
 // POLISHED_TUFF_DOUBLE_SLAB (965)
 block_definitions[ 965 ].textures[ FACE_TOP ] = TEX_POLISHED_TUFF;
@@ -12054,7 +11342,6 @@ block_definitions[ 965 ].textures[ FACE_FRONT ] = TEX_POLISHED_TUFF;
 block_definitions[ 965 ].textures[ FACE_LEFT ] = TEX_POLISHED_TUFF;
 block_definitions[ 965 ].textures[ FACE_BACK ] = TEX_POLISHED_TUFF;
 block_definitions[ 965 ].icon_texture = TEX_POLISHED_TUFF;
-block_definitions[ 965 ].icon_is_isometric = false;
 
 // POLISHED_TUFF_SLAB (966)
 block_definitions[ 966 ].textures[ FACE_TOP ] = TEX_POLISHED_TUFF;
@@ -12064,7 +11351,6 @@ block_definitions[ 966 ].textures[ FACE_FRONT ] = TEX_POLISHED_TUFF;
 block_definitions[ 966 ].textures[ FACE_LEFT ] = TEX_POLISHED_TUFF;
 block_definitions[ 966 ].textures[ FACE_BACK ] = TEX_POLISHED_TUFF;
 block_definitions[ 966 ].icon_texture = TEX_POLISHED_TUFF;
-block_definitions[ 966 ].icon_is_isometric = false;
 
 // POLISHED_TUFF_STAIRS (967)
 block_definitions[ 967 ].textures[ FACE_TOP ] = TEX_POLISHED_TUFF;
@@ -12074,7 +11360,6 @@ block_definitions[ 967 ].textures[ FACE_FRONT ] = TEX_POLISHED_TUFF;
 block_definitions[ 967 ].textures[ FACE_LEFT ] = TEX_POLISHED_TUFF;
 block_definitions[ 967 ].textures[ FACE_BACK ] = TEX_POLISHED_TUFF;
 block_definitions[ 967 ].icon_texture = TEX_POLISHED_TUFF;
-block_definitions[ 967 ].icon_is_isometric = false;
 
 // POLISHED_TUFF_WALL (968)
 block_definitions[ 968 ].textures[ FACE_TOP ] = TEX_POLISHED_TUFF;
@@ -12084,7 +11369,6 @@ block_definitions[ 968 ].textures[ FACE_FRONT ] = TEX_POLISHED_TUFF;
 block_definitions[ 968 ].textures[ FACE_LEFT ] = TEX_POLISHED_TUFF;
 block_definitions[ 968 ].textures[ FACE_BACK ] = TEX_POLISHED_TUFF;
 block_definitions[ 968 ].icon_texture = TEX_POLISHED_TUFF;
-block_definitions[ 968 ].icon_is_isometric = false;
 
 // POPLAR_BUTTON (969)
 block_definitions[ 969 ].textures[ FACE_TOP ] = TEX_POPLAR_PLANKS;
@@ -12094,7 +11378,6 @@ block_definitions[ 969 ].textures[ FACE_FRONT ] = TEX_POPLAR_PLANKS;
 block_definitions[ 969 ].textures[ FACE_LEFT ] = TEX_POPLAR_PLANKS;
 block_definitions[ 969 ].textures[ FACE_BACK ] = TEX_POPLAR_PLANKS;
 block_definitions[ 969 ].icon_texture = TEX_POPLAR_PLANKS;
-block_definitions[ 969 ].icon_is_isometric = false;
 
 // POPLAR_DOOR (970)
 block_definitions[ 970 ].textures[ FACE_TOP ] = TEX_POPLAR_DOOR_BOTTOM;
@@ -12103,10 +11386,9 @@ block_definitions[ 970 ].textures[ FACE_RIGHT ] = TEX_POPLAR_DOOR_TOP;
 block_definitions[ 970 ].textures[ FACE_FRONT ] = TEX_POPLAR_DOOR_TOP;
 block_definitions[ 970 ].textures[ FACE_LEFT ] = TEX_POPLAR_DOOR_TOP;
 block_definitions[ 970 ].textures[ FACE_BACK ] = TEX_POPLAR_DOOR_TOP;
-block_definitions[ 970 ].icon_texture = TEX_POPLAR_DOOR_TOP;
+block_definitions[ 970 ].icon_texture = TEX_POPLAR_DOOR_BOTTOM;
 block_definitions[ 970 ].casts_shadow = false;
 block_definitions[ 970 ].hardness = 0.35f;
-block_definitions[ 970 ].icon_is_isometric = false;
 block_definitions[ 970 ].is_seethrough = true;
 block_definitions[ 970 ].no_light = 6815743;
 
@@ -12118,7 +11400,6 @@ block_definitions[ 971 ].textures[ FACE_FRONT ] = TEX_POPLAR_PLANKS;
 block_definitions[ 971 ].textures[ FACE_LEFT ] = TEX_POPLAR_PLANKS;
 block_definitions[ 971 ].textures[ FACE_BACK ] = TEX_POPLAR_PLANKS;
 block_definitions[ 971 ].icon_texture = TEX_POPLAR_PLANKS;
-block_definitions[ 971 ].icon_is_isometric = false;
 
 // POPLAR_FENCE (972)
 block_definitions[ 972 ].textures[ FACE_TOP ] = TEX_POPLAR_PLANKS;
@@ -12128,7 +11409,6 @@ block_definitions[ 972 ].textures[ FACE_FRONT ] = TEX_POPLAR_PLANKS;
 block_definitions[ 972 ].textures[ FACE_LEFT ] = TEX_POPLAR_PLANKS;
 block_definitions[ 972 ].textures[ FACE_BACK ] = TEX_POPLAR_PLANKS;
 block_definitions[ 972 ].icon_texture = TEX_POPLAR_PLANKS;
-block_definitions[ 972 ].icon_is_isometric = false;
 
 // POPLAR_FENCE_GATE (973)
 block_definitions[ 973 ].textures[ FACE_TOP ] = TEX_POPLAR_PLANKS;
@@ -12138,7 +11418,6 @@ block_definitions[ 973 ].textures[ FACE_FRONT ] = TEX_POPLAR_PLANKS;
 block_definitions[ 973 ].textures[ FACE_LEFT ] = TEX_POPLAR_PLANKS;
 block_definitions[ 973 ].textures[ FACE_BACK ] = TEX_POPLAR_PLANKS;
 block_definitions[ 973 ].icon_texture = TEX_POPLAR_PLANKS;
-block_definitions[ 973 ].icon_is_isometric = false;
 
 // POPLAR_HANGING_SIGN (974)
 block_definitions[ 974 ].textures[ FACE_TOP ] = TEX_POPLAR_PLANKS;
@@ -12148,7 +11427,6 @@ block_definitions[ 974 ].textures[ FACE_FRONT ] = TEX_POPLAR_PLANKS;
 block_definitions[ 974 ].textures[ FACE_LEFT ] = TEX_POPLAR_PLANKS;
 block_definitions[ 974 ].textures[ FACE_BACK ] = TEX_POPLAR_PLANKS;
 block_definitions[ 974 ].icon_texture = TEX_POPLAR_PLANKS;
-block_definitions[ 974 ].icon_is_isometric = false;
 
 // POPLAR_LOG (975)
 block_definitions[ 975 ].textures[ FACE_TOP ] = TEX_POPLAR_LOG_TOP;
@@ -12157,8 +11435,7 @@ block_definitions[ 975 ].textures[ FACE_RIGHT ] = TEX_POPLAR_LOG_SIDE;
 block_definitions[ 975 ].textures[ FACE_FRONT ] = TEX_POPLAR_LOG_SIDE;
 block_definitions[ 975 ].textures[ FACE_LEFT ] = TEX_POPLAR_LOG_SIDE;
 block_definitions[ 975 ].textures[ FACE_BACK ] = TEX_POPLAR_LOG_SIDE;
-block_definitions[ 975 ].icon_texture = TEX_POPLAR_LOG_SIDE;
-block_definitions[ 975 ].icon_is_isometric = false;
+block_definitions[ 975 ].icon_texture = TEX_POPLAR_LOG_TOP;
 
 // POPLAR_PLANKS (976)
 block_definitions[ 976 ].textures[ FACE_TOP ] = TEX_POPLAR_PLANKS;
@@ -12168,7 +11445,6 @@ block_definitions[ 976 ].textures[ FACE_FRONT ] = TEX_POPLAR_PLANKS;
 block_definitions[ 976 ].textures[ FACE_LEFT ] = TEX_POPLAR_PLANKS;
 block_definitions[ 976 ].textures[ FACE_BACK ] = TEX_POPLAR_PLANKS;
 block_definitions[ 976 ].icon_texture = TEX_POPLAR_PLANKS;
-block_definitions[ 976 ].icon_is_isometric = false;
 
 // POPLAR_PRESSURE_PLATE (977)
 block_definitions[ 977 ].textures[ FACE_TOP ] = TEX_POPLAR_PLANKS;
@@ -12178,7 +11454,6 @@ block_definitions[ 977 ].textures[ FACE_FRONT ] = TEX_POPLAR_PLANKS;
 block_definitions[ 977 ].textures[ FACE_LEFT ] = TEX_POPLAR_PLANKS;
 block_definitions[ 977 ].textures[ FACE_BACK ] = TEX_POPLAR_PLANKS;
 block_definitions[ 977 ].icon_texture = TEX_POPLAR_PLANKS;
-block_definitions[ 977 ].icon_is_isometric = false;
 
 // POPLAR_SAPLING (978)
 block_definitions[ 978 ].textures[ FACE_TOP ] = TEX_AIR;
@@ -12210,7 +11485,6 @@ block_definitions[ 979 ].textures[ FACE_FRONT ] = TEX_POPLAR_SHELF;
 block_definitions[ 979 ].textures[ FACE_LEFT ] = TEX_POPLAR_SHELF;
 block_definitions[ 979 ].textures[ FACE_BACK ] = TEX_POPLAR_SHELF;
 block_definitions[ 979 ].icon_texture = TEX_POPLAR_SHELF;
-block_definitions[ 979 ].icon_is_isometric = false;
 
 // POPLAR_SLAB (980)
 block_definitions[ 980 ].textures[ FACE_TOP ] = TEX_POPLAR_PLANKS;
@@ -12220,7 +11494,6 @@ block_definitions[ 980 ].textures[ FACE_FRONT ] = TEX_POPLAR_PLANKS;
 block_definitions[ 980 ].textures[ FACE_LEFT ] = TEX_POPLAR_PLANKS;
 block_definitions[ 980 ].textures[ FACE_BACK ] = TEX_POPLAR_PLANKS;
 block_definitions[ 980 ].icon_texture = TEX_POPLAR_PLANKS;
-block_definitions[ 980 ].icon_is_isometric = false;
 
 // POPLAR_STAIRS (981)
 block_definitions[ 981 ].textures[ FACE_TOP ] = TEX_POPLAR_PLANKS;
@@ -12230,7 +11503,6 @@ block_definitions[ 981 ].textures[ FACE_FRONT ] = TEX_POPLAR_PLANKS;
 block_definitions[ 981 ].textures[ FACE_LEFT ] = TEX_POPLAR_PLANKS;
 block_definitions[ 981 ].textures[ FACE_BACK ] = TEX_POPLAR_PLANKS;
 block_definitions[ 981 ].icon_texture = TEX_POPLAR_PLANKS;
-block_definitions[ 981 ].icon_is_isometric = false;
 
 // POPLAR_STANDING_SIGN (982)
 block_definitions[ 982 ].textures[ FACE_TOP ] = TEX_POPLAR_PLANKS;
@@ -12240,7 +11512,6 @@ block_definitions[ 982 ].textures[ FACE_FRONT ] = TEX_POPLAR_PLANKS;
 block_definitions[ 982 ].textures[ FACE_LEFT ] = TEX_POPLAR_PLANKS;
 block_definitions[ 982 ].textures[ FACE_BACK ] = TEX_POPLAR_PLANKS;
 block_definitions[ 982 ].icon_texture = TEX_POPLAR_PLANKS;
-block_definitions[ 982 ].icon_is_isometric = false;
 
 // POPLAR_TRAPDOOR (983)
 block_definitions[ 983 ].textures[ FACE_TOP ] = TEX_POPLAR_TRAPDOOR;
@@ -12252,7 +11523,6 @@ block_definitions[ 983 ].textures[ FACE_BACK ] = TEX_POPLAR_TRAPDOOR;
 block_definitions[ 983 ].icon_texture = TEX_POPLAR_TRAPDOOR;
 block_definitions[ 983 ].casts_shadow = false;
 block_definitions[ 983 ].hardness = 0.35f;
-block_definitions[ 983 ].icon_is_isometric = false;
 block_definitions[ 983 ].is_seethrough = true;
 block_definitions[ 983 ].no_light = 6815743;
 
@@ -12264,7 +11534,6 @@ block_definitions[ 984 ].textures[ FACE_FRONT ] = TEX_POPLAR_PLANKS;
 block_definitions[ 984 ].textures[ FACE_LEFT ] = TEX_POPLAR_PLANKS;
 block_definitions[ 984 ].textures[ FACE_BACK ] = TEX_POPLAR_PLANKS;
 block_definitions[ 984 ].icon_texture = TEX_POPLAR_PLANKS;
-block_definitions[ 984 ].icon_is_isometric = false;
 
 // POPLAR_WOOD (985)
 block_definitions[ 985 ].textures[ FACE_TOP ] = TEX_POPLAR_LOG_SIDE;
@@ -12274,7 +11543,6 @@ block_definitions[ 985 ].textures[ FACE_FRONT ] = TEX_POPLAR_LOG_SIDE;
 block_definitions[ 985 ].textures[ FACE_LEFT ] = TEX_POPLAR_LOG_SIDE;
 block_definitions[ 985 ].textures[ FACE_BACK ] = TEX_POPLAR_LOG_SIDE;
 block_definitions[ 985 ].icon_texture = TEX_POPLAR_LOG_SIDE;
-block_definitions[ 985 ].icon_is_isometric = false;
 
 // POTATOES (986)
 block_definitions[ 986 ].textures[ FACE_TOP ] = TEX_AIR;
@@ -12306,7 +11574,6 @@ block_definitions[ 987 ].textures[ FACE_FRONT ] = TEX_POTENT_SULFUR;
 block_definitions[ 987 ].textures[ FACE_LEFT ] = TEX_POTENT_SULFUR;
 block_definitions[ 987 ].textures[ FACE_BACK ] = TEX_POTENT_SULFUR;
 block_definitions[ 987 ].icon_texture = TEX_POTENT_SULFUR;
-block_definitions[ 987 ].icon_is_isometric = false;
 
 // POWDER_SNOW (988)
 block_definitions[ 988 ].textures[ FACE_TOP ] = TEX_POWDER_SNOW;
@@ -12316,7 +11583,6 @@ block_definitions[ 988 ].textures[ FACE_FRONT ] = TEX_POWDER_SNOW;
 block_definitions[ 988 ].textures[ FACE_LEFT ] = TEX_POWDER_SNOW;
 block_definitions[ 988 ].textures[ FACE_BACK ] = TEX_POWDER_SNOW;
 block_definitions[ 988 ].icon_texture = TEX_POWDER_SNOW;
-block_definitions[ 988 ].icon_is_isometric = false;
 
 // POWERED_COMPARATOR (989)
 block_definitions[ 989 ].textures[ FACE_TOP ] = TEX_COMPARATOR_OFF;
@@ -12325,8 +11591,7 @@ block_definitions[ 989 ].textures[ FACE_RIGHT ] = TEX_STONE_SLAB_TOP;
 block_definitions[ 989 ].textures[ FACE_FRONT ] = TEX_STONE_SLAB_TOP;
 block_definitions[ 989 ].textures[ FACE_LEFT ] = TEX_STONE_SLAB_TOP;
 block_definitions[ 989 ].textures[ FACE_BACK ] = TEX_STONE_SLAB_TOP;
-block_definitions[ 989 ].icon_texture = TEX_STONE_SLAB_TOP;
-block_definitions[ 989 ].icon_is_isometric = false;
+block_definitions[ 989 ].icon_texture = TEX_COMPARATOR_OFF;
 
 // POWERED_REPEATER (990)
 block_definitions[ 990 ].textures[ FACE_TOP ] = TEX_REPEATER_OFF;
@@ -12335,8 +11600,7 @@ block_definitions[ 990 ].textures[ FACE_RIGHT ] = TEX_STONE_SLAB_TOP;
 block_definitions[ 990 ].textures[ FACE_FRONT ] = TEX_STONE_SLAB_TOP;
 block_definitions[ 990 ].textures[ FACE_LEFT ] = TEX_STONE_SLAB_TOP;
 block_definitions[ 990 ].textures[ FACE_BACK ] = TEX_STONE_SLAB_TOP;
-block_definitions[ 990 ].icon_texture = TEX_STONE_SLAB_TOP;
-block_definitions[ 990 ].icon_is_isometric = false;
+block_definitions[ 990 ].icon_texture = TEX_REPEATER_OFF;
 
 // PRISMARINE (991)
 block_definitions[ 991 ].textures[ FACE_TOP ] = TEX_PRISMARINE_ROUGH;
@@ -12346,7 +11610,6 @@ block_definitions[ 991 ].textures[ FACE_FRONT ] = TEX_PRISMARINE_ROUGH;
 block_definitions[ 991 ].textures[ FACE_LEFT ] = TEX_PRISMARINE_ROUGH;
 block_definitions[ 991 ].textures[ FACE_BACK ] = TEX_PRISMARINE_ROUGH;
 block_definitions[ 991 ].icon_texture = TEX_PRISMARINE_ROUGH;
-block_definitions[ 991 ].icon_is_isometric = false;
 
 // PRISMARINE_BRICK_DOUBLE_SLAB (992)
 block_definitions[ 992 ].textures[ FACE_TOP ] = TEX_PRISMARINE_BRICKS;
@@ -12356,7 +11619,6 @@ block_definitions[ 992 ].textures[ FACE_FRONT ] = TEX_PRISMARINE_BRICKS;
 block_definitions[ 992 ].textures[ FACE_LEFT ] = TEX_PRISMARINE_BRICKS;
 block_definitions[ 992 ].textures[ FACE_BACK ] = TEX_PRISMARINE_BRICKS;
 block_definitions[ 992 ].icon_texture = TEX_PRISMARINE_BRICKS;
-block_definitions[ 992 ].icon_is_isometric = false;
 
 // PRISMARINE_BRICK_SLAB (993)
 block_definitions[ 993 ].textures[ FACE_TOP ] = TEX_PRISMARINE_BRICKS;
@@ -12366,7 +11628,6 @@ block_definitions[ 993 ].textures[ FACE_FRONT ] = TEX_PRISMARINE_BRICKS;
 block_definitions[ 993 ].textures[ FACE_LEFT ] = TEX_PRISMARINE_BRICKS;
 block_definitions[ 993 ].textures[ FACE_BACK ] = TEX_PRISMARINE_BRICKS;
 block_definitions[ 993 ].icon_texture = TEX_PRISMARINE_BRICKS;
-block_definitions[ 993 ].icon_is_isometric = false;
 
 // PRISMARINE_BRICKS (994)
 block_definitions[ 994 ].textures[ FACE_TOP ] = TEX_PRISMARINE_BRICKS;
@@ -12376,7 +11637,6 @@ block_definitions[ 994 ].textures[ FACE_FRONT ] = TEX_PRISMARINE_BRICKS;
 block_definitions[ 994 ].textures[ FACE_LEFT ] = TEX_PRISMARINE_BRICKS;
 block_definitions[ 994 ].textures[ FACE_BACK ] = TEX_PRISMARINE_BRICKS;
 block_definitions[ 994 ].icon_texture = TEX_PRISMARINE_BRICKS;
-block_definitions[ 994 ].icon_is_isometric = false;
 
 // PRISMARINE_BRICKS_STAIRS (995)
 block_definitions[ 995 ].textures[ FACE_TOP ] = TEX_PRISMARINE_BRICKS;
@@ -12386,7 +11646,6 @@ block_definitions[ 995 ].textures[ FACE_FRONT ] = TEX_PRISMARINE_BRICKS;
 block_definitions[ 995 ].textures[ FACE_LEFT ] = TEX_PRISMARINE_BRICKS;
 block_definitions[ 995 ].textures[ FACE_BACK ] = TEX_PRISMARINE_BRICKS;
 block_definitions[ 995 ].icon_texture = TEX_PRISMARINE_BRICKS;
-block_definitions[ 995 ].icon_is_isometric = false;
 
 // PRISMARINE_DOUBLE_SLAB (996)
 block_definitions[ 996 ].textures[ FACE_TOP ] = TEX_PRISMARINE_ROUGH;
@@ -12396,7 +11655,6 @@ block_definitions[ 996 ].textures[ FACE_FRONT ] = TEX_PRISMARINE_ROUGH;
 block_definitions[ 996 ].textures[ FACE_LEFT ] = TEX_PRISMARINE_ROUGH;
 block_definitions[ 996 ].textures[ FACE_BACK ] = TEX_PRISMARINE_ROUGH;
 block_definitions[ 996 ].icon_texture = TEX_PRISMARINE_ROUGH;
-block_definitions[ 996 ].icon_is_isometric = false;
 
 // PRISMARINE_SLAB (997)
 block_definitions[ 997 ].textures[ FACE_TOP ] = TEX_PRISMARINE_ROUGH;
@@ -12406,7 +11664,6 @@ block_definitions[ 997 ].textures[ FACE_FRONT ] = TEX_PRISMARINE_ROUGH;
 block_definitions[ 997 ].textures[ FACE_LEFT ] = TEX_PRISMARINE_ROUGH;
 block_definitions[ 997 ].textures[ FACE_BACK ] = TEX_PRISMARINE_ROUGH;
 block_definitions[ 997 ].icon_texture = TEX_PRISMARINE_ROUGH;
-block_definitions[ 997 ].icon_is_isometric = false;
 
 // DEAD_TUBE_CORAL_FAN (998)
 block_definitions[ 998 ].textures[ FACE_TOP ] = TEX_AIR;
@@ -12515,7 +11772,7 @@ block_definitions[ 1003 ].textures[ FACE_RIGHT ] = TEX_PINECONE;
 block_definitions[ 1003 ].textures[ FACE_FRONT ] = TEX_PINECONE;
 block_definitions[ 1003 ].textures[ FACE_LEFT ] = TEX_PINECONE;
 block_definitions[ 1003 ].textures[ FACE_BACK ] = TEX_PINECONE;
-block_definitions[ 1003 ].icon_texture = TEX_PINECONE;
+block_definitions[ 1003 ].icon_texture = TEX_AIR;
 block_definitions[ 1003 ].affected_by_redstone_power = false;
 block_definitions[ 1003 ].breaks_in_liquid = true;
 block_definitions[ 1003 ].casts_shadow = false;
@@ -12595,7 +11852,6 @@ block_definitions[ 1007 ].textures[ FACE_FRONT ] = TEX_PRISMARINE_ROUGH;
 block_definitions[ 1007 ].textures[ FACE_LEFT ] = TEX_PRISMARINE_ROUGH;
 block_definitions[ 1007 ].textures[ FACE_BACK ] = TEX_PRISMARINE_ROUGH;
 block_definitions[ 1007 ].icon_texture = TEX_PRISMARINE_ROUGH;
-block_definitions[ 1007 ].icon_is_isometric = false;
 
 // PRISMARINE_WALL (1008)
 block_definitions[ 1008 ].textures[ FACE_TOP ] = TEX_PRISMARINE_ROUGH;
@@ -12605,7 +11861,6 @@ block_definitions[ 1008 ].textures[ FACE_FRONT ] = TEX_PRISMARINE_ROUGH;
 block_definitions[ 1008 ].textures[ FACE_LEFT ] = TEX_PRISMARINE_ROUGH;
 block_definitions[ 1008 ].textures[ FACE_BACK ] = TEX_PRISMARINE_ROUGH;
 block_definitions[ 1008 ].icon_texture = TEX_PRISMARINE_ROUGH;
-block_definitions[ 1008 ].icon_is_isometric = false;
 
 // PUMPKIN (1009)
 block_definitions[ 1009 ].textures[ FACE_TOP ] = TEX_PUMPKIN_TOP;
@@ -12615,7 +11870,6 @@ block_definitions[ 1009 ].textures[ FACE_FRONT ] = TEX_PUMPKIN_FACE_OFF;
 block_definitions[ 1009 ].textures[ FACE_LEFT ] = TEX_PUMPKIN_SIDE;
 block_definitions[ 1009 ].textures[ FACE_BACK ] = TEX_PUMPKIN_SIDE;
 block_definitions[ 1009 ].icon_texture = TEX_PUMPKIN_TOP;
-block_definitions[ 1009 ].icon_is_isometric = false;
 
 // BAMBOO_SAPLING (1010)
 block_definitions[ 1010 ].textures[ FACE_TOP ] = TEX_AIR;
@@ -12624,7 +11878,7 @@ block_definitions[ 1010 ].textures[ FACE_RIGHT ] = TEX_BAMBOO_SAPLING;
 block_definitions[ 1010 ].textures[ FACE_FRONT ] = TEX_BAMBOO_SAPLING;
 block_definitions[ 1010 ].textures[ FACE_LEFT ] = TEX_BAMBOO_SAPLING;
 block_definitions[ 1010 ].textures[ FACE_BACK ] = TEX_BAMBOO_SAPLING;
-block_definitions[ 1010 ].icon_texture = TEX_BAMBOO_SAPLING;
+block_definitions[ 1010 ].icon_texture = TEX_AIR;
 block_definitions[ 1010 ].affected_by_redstone_power = false;
 block_definitions[ 1010 ].breaks_in_liquid = true;
 block_definitions[ 1010 ].casts_shadow = false;
@@ -12665,7 +11919,6 @@ block_definitions[ 1012 ].textures[ FACE_BACK ] = TEX_PURPLE_CANDLE;
 block_definitions[ 1012 ].icon_texture = TEX_PURPLE_CANDLE;
 block_definitions[ 1012 ].casts_shadow = false;
 block_definitions[ 1012 ].hardness = 0.35f;
-block_definitions[ 1012 ].icon_is_isometric = false;
 block_definitions[ 1012 ].is_seethrough = true;
 block_definitions[ 1012 ].no_light = 6815743;
 
@@ -12676,10 +11929,9 @@ block_definitions[ 1013 ].textures[ FACE_RIGHT ] = TEX_CAKE_SIDE;
 block_definitions[ 1013 ].textures[ FACE_FRONT ] = TEX_CAKE_SIDE;
 block_definitions[ 1013 ].textures[ FACE_LEFT ] = TEX_CAKE_SIDE;
 block_definitions[ 1013 ].textures[ FACE_BACK ] = TEX_CAKE_SIDE;
-block_definitions[ 1013 ].icon_texture = TEX_CAKE_SIDE;
+block_definitions[ 1013 ].icon_texture = TEX_CAKE_TOP;
 block_definitions[ 1013 ].casts_shadow = false;
 block_definitions[ 1013 ].hardness = 0.35f;
-block_definitions[ 1013 ].icon_is_isometric = false;
 block_definitions[ 1013 ].is_seethrough = true;
 block_definitions[ 1013 ].no_light = 6815743;
 
@@ -12691,7 +11943,6 @@ block_definitions[ 1014 ].textures[ FACE_FRONT ] = TEX_WOOL_COLORED_PURPLE;
 block_definitions[ 1014 ].textures[ FACE_LEFT ] = TEX_WOOL_COLORED_PURPLE;
 block_definitions[ 1014 ].textures[ FACE_BACK ] = TEX_WOOL_COLORED_PURPLE;
 block_definitions[ 1014 ].icon_texture = TEX_WOOL_COLORED_PURPLE;
-block_definitions[ 1014 ].icon_is_isometric = false;
 
 // PURPLE_CONCRETE (1015)
 block_definitions[ 1015 ].textures[ FACE_TOP ] = TEX_CONCRETE_PURPLE;
@@ -12701,7 +11952,6 @@ block_definitions[ 1015 ].textures[ FACE_FRONT ] = TEX_CONCRETE_PURPLE;
 block_definitions[ 1015 ].textures[ FACE_LEFT ] = TEX_CONCRETE_PURPLE;
 block_definitions[ 1015 ].textures[ FACE_BACK ] = TEX_CONCRETE_PURPLE;
 block_definitions[ 1015 ].icon_texture = TEX_CONCRETE_PURPLE;
-block_definitions[ 1015 ].icon_is_isometric = false;
 
 // PURPLE_CONCRETE_DOUBLE_SLAB (1016)
 block_definitions[ 1016 ].textures[ FACE_TOP ] = TEX_CONCRETE_PURPLE;
@@ -12711,7 +11961,6 @@ block_definitions[ 1016 ].textures[ FACE_FRONT ] = TEX_CONCRETE_PURPLE;
 block_definitions[ 1016 ].textures[ FACE_LEFT ] = TEX_CONCRETE_PURPLE;
 block_definitions[ 1016 ].textures[ FACE_BACK ] = TEX_CONCRETE_PURPLE;
 block_definitions[ 1016 ].icon_texture = TEX_CONCRETE_PURPLE;
-block_definitions[ 1016 ].icon_is_isometric = false;
 
 // PURPLE_CONCRETE_POWDER (1017)
 block_definitions[ 1017 ].textures[ FACE_TOP ] = TEX_CONCRETE_POWDER_PURPLE;
@@ -12721,7 +11970,6 @@ block_definitions[ 1017 ].textures[ FACE_FRONT ] = TEX_CONCRETE_POWDER_PURPLE;
 block_definitions[ 1017 ].textures[ FACE_LEFT ] = TEX_CONCRETE_POWDER_PURPLE;
 block_definitions[ 1017 ].textures[ FACE_BACK ] = TEX_CONCRETE_POWDER_PURPLE;
 block_definitions[ 1017 ].icon_texture = TEX_CONCRETE_POWDER_PURPLE;
-block_definitions[ 1017 ].icon_is_isometric = false;
 
 // PURPLE_CONCRETE_SLAB (1018)
 block_definitions[ 1018 ].textures[ FACE_TOP ] = TEX_CONCRETE_PURPLE;
@@ -12731,7 +11979,6 @@ block_definitions[ 1018 ].textures[ FACE_FRONT ] = TEX_CONCRETE_PURPLE;
 block_definitions[ 1018 ].textures[ FACE_LEFT ] = TEX_CONCRETE_PURPLE;
 block_definitions[ 1018 ].textures[ FACE_BACK ] = TEX_CONCRETE_PURPLE;
 block_definitions[ 1018 ].icon_texture = TEX_CONCRETE_PURPLE;
-block_definitions[ 1018 ].icon_is_isometric = false;
 
 // PURPLE_CONCRETE_STAIRS (1019)
 block_definitions[ 1019 ].textures[ FACE_TOP ] = TEX_CONCRETE_PURPLE;
@@ -12741,7 +11988,6 @@ block_definitions[ 1019 ].textures[ FACE_FRONT ] = TEX_CONCRETE_PURPLE;
 block_definitions[ 1019 ].textures[ FACE_LEFT ] = TEX_CONCRETE_PURPLE;
 block_definitions[ 1019 ].textures[ FACE_BACK ] = TEX_CONCRETE_PURPLE;
 block_definitions[ 1019 ].icon_texture = TEX_CONCRETE_PURPLE;
-block_definitions[ 1019 ].icon_is_isometric = false;
 
 // PURPLE_GLAZED_TERRACOTTA (1020)
 block_definitions[ 1020 ].textures[ FACE_TOP ] = TEX_GLAZED_TERRACOTTA_PURPLE;
@@ -12751,7 +11997,6 @@ block_definitions[ 1020 ].textures[ FACE_FRONT ] = TEX_GLAZED_TERRACOTTA_PURPLE;
 block_definitions[ 1020 ].textures[ FACE_LEFT ] = TEX_GLAZED_TERRACOTTA_PURPLE;
 block_definitions[ 1020 ].textures[ FACE_BACK ] = TEX_GLAZED_TERRACOTTA_PURPLE;
 block_definitions[ 1020 ].icon_texture = TEX_GLAZED_TERRACOTTA_PURPLE;
-block_definitions[ 1020 ].icon_is_isometric = false;
 
 // PURPLE_SHULKER_BOX (1021)
 block_definitions[ 1021 ].textures[ FACE_TOP ] = TEX_SHULKER_TOP_PURPLE;
@@ -12761,7 +12006,6 @@ block_definitions[ 1021 ].textures[ FACE_FRONT ] = TEX_SHULKER_TOP_PURPLE;
 block_definitions[ 1021 ].textures[ FACE_LEFT ] = TEX_SHULKER_TOP_PURPLE;
 block_definitions[ 1021 ].textures[ FACE_BACK ] = TEX_SHULKER_TOP_PURPLE;
 block_definitions[ 1021 ].icon_texture = TEX_SHULKER_TOP_PURPLE;
-block_definitions[ 1021 ].icon_is_isometric = false;
 
 // PURPLE_STAINED_GLASS (1022)
 block_definitions[ 1022 ].textures[ FACE_TOP ] = TEX_GLASS_PURPLE;
@@ -12774,7 +12018,6 @@ block_definitions[ 1022 ].icon_texture = TEX_GLASS_PURPLE;
 block_definitions[ 1022 ].affected_by_redstone_power = false;
 block_definitions[ 1022 ].casts_shadow = false;
 block_definitions[ 1022 ].hardness = 0.449999988f;
-block_definitions[ 1022 ].icon_is_isometric = false;
 block_definitions[ 1022 ].is_seethrough = true;
 block_definitions[ 1022 ].renderOrder = RenderOrder_Translucent;
 
@@ -12789,7 +12032,6 @@ block_definitions[ 1023 ].icon_texture = TEX_GLASS_PURPLE;
 block_definitions[ 1023 ].affected_by_redstone_power = false;
 block_definitions[ 1023 ].casts_shadow = false;
 block_definitions[ 1023 ].hardness = 0.449999988f;
-block_definitions[ 1023 ].icon_is_isometric = false;
 block_definitions[ 1023 ].is_seethrough = true;
 block_definitions[ 1023 ].renderOrder = RenderOrder_Translucent;
 
@@ -12801,7 +12043,6 @@ block_definitions[ 1024 ].textures[ FACE_FRONT ] = TEX_HARDENED_CLAY_STAINED_PUR
 block_definitions[ 1024 ].textures[ FACE_LEFT ] = TEX_HARDENED_CLAY_STAINED_PURPLE;
 block_definitions[ 1024 ].textures[ FACE_BACK ] = TEX_HARDENED_CLAY_STAINED_PURPLE;
 block_definitions[ 1024 ].icon_texture = TEX_HARDENED_CLAY_STAINED_PURPLE;
-block_definitions[ 1024 ].icon_is_isometric = false;
 
 // PURPLE_WOOL (1025)
 block_definitions[ 1025 ].textures[ FACE_TOP ] = TEX_WOOL_COLORED_PURPLE;
@@ -12811,7 +12052,6 @@ block_definitions[ 1025 ].textures[ FACE_FRONT ] = TEX_WOOL_COLORED_PURPLE;
 block_definitions[ 1025 ].textures[ FACE_LEFT ] = TEX_WOOL_COLORED_PURPLE;
 block_definitions[ 1025 ].textures[ FACE_BACK ] = TEX_WOOL_COLORED_PURPLE;
 block_definitions[ 1025 ].icon_texture = TEX_WOOL_COLORED_PURPLE;
-block_definitions[ 1025 ].icon_is_isometric = false;
 
 // PURPLE_WOOL_DOUBLE_SLAB (1026)
 block_definitions[ 1026 ].textures[ FACE_TOP ] = TEX_WOOL_COLORED_PURPLE;
@@ -12821,7 +12061,6 @@ block_definitions[ 1026 ].textures[ FACE_FRONT ] = TEX_WOOL_COLORED_PURPLE;
 block_definitions[ 1026 ].textures[ FACE_LEFT ] = TEX_WOOL_COLORED_PURPLE;
 block_definitions[ 1026 ].textures[ FACE_BACK ] = TEX_WOOL_COLORED_PURPLE;
 block_definitions[ 1026 ].icon_texture = TEX_WOOL_COLORED_PURPLE;
-block_definitions[ 1026 ].icon_is_isometric = false;
 
 // PURPLE_WOOL_SLAB (1027)
 block_definitions[ 1027 ].textures[ FACE_TOP ] = TEX_WOOL_COLORED_PURPLE;
@@ -12831,7 +12070,6 @@ block_definitions[ 1027 ].textures[ FACE_FRONT ] = TEX_WOOL_COLORED_PURPLE;
 block_definitions[ 1027 ].textures[ FACE_LEFT ] = TEX_WOOL_COLORED_PURPLE;
 block_definitions[ 1027 ].textures[ FACE_BACK ] = TEX_WOOL_COLORED_PURPLE;
 block_definitions[ 1027 ].icon_texture = TEX_WOOL_COLORED_PURPLE;
-block_definitions[ 1027 ].icon_is_isometric = false;
 
 // PURPLE_WOOL_STAIRS (1028)
 block_definitions[ 1028 ].textures[ FACE_TOP ] = TEX_WOOL_COLORED_PURPLE;
@@ -12841,7 +12079,6 @@ block_definitions[ 1028 ].textures[ FACE_FRONT ] = TEX_WOOL_COLORED_PURPLE;
 block_definitions[ 1028 ].textures[ FACE_LEFT ] = TEX_WOOL_COLORED_PURPLE;
 block_definitions[ 1028 ].textures[ FACE_BACK ] = TEX_WOOL_COLORED_PURPLE;
 block_definitions[ 1028 ].icon_texture = TEX_WOOL_COLORED_PURPLE;
-block_definitions[ 1028 ].icon_is_isometric = false;
 
 // PURPUR_BLOCK (1029)
 block_definitions[ 1029 ].textures[ FACE_TOP ] = TEX_PURPUR_BLOCK;
@@ -12851,7 +12088,6 @@ block_definitions[ 1029 ].textures[ FACE_FRONT ] = TEX_PURPUR_BLOCK;
 block_definitions[ 1029 ].textures[ FACE_LEFT ] = TEX_PURPUR_BLOCK;
 block_definitions[ 1029 ].textures[ FACE_BACK ] = TEX_PURPUR_BLOCK;
 block_definitions[ 1029 ].icon_texture = TEX_PURPUR_BLOCK;
-block_definitions[ 1029 ].icon_is_isometric = false;
 
 // PURPUR_DOUBLE_SLAB (1030)
 block_definitions[ 1030 ].textures[ FACE_TOP ] = TEX_PURPUR_BLOCK;
@@ -12861,7 +12097,6 @@ block_definitions[ 1030 ].textures[ FACE_FRONT ] = TEX_PURPUR_BLOCK;
 block_definitions[ 1030 ].textures[ FACE_LEFT ] = TEX_PURPUR_BLOCK;
 block_definitions[ 1030 ].textures[ FACE_BACK ] = TEX_PURPUR_BLOCK;
 block_definitions[ 1030 ].icon_texture = TEX_PURPUR_BLOCK;
-block_definitions[ 1030 ].icon_is_isometric = false;
 
 // PURPUR_PILLAR (1031)
 block_definitions[ 1031 ].textures[ FACE_TOP ] = TEX_PURPUR_PILLAR_TOP;
@@ -12870,8 +12105,7 @@ block_definitions[ 1031 ].textures[ FACE_RIGHT ] = TEX_PURPUR_PILLAR;
 block_definitions[ 1031 ].textures[ FACE_FRONT ] = TEX_PURPUR_PILLAR;
 block_definitions[ 1031 ].textures[ FACE_LEFT ] = TEX_PURPUR_PILLAR;
 block_definitions[ 1031 ].textures[ FACE_BACK ] = TEX_PURPUR_PILLAR;
-block_definitions[ 1031 ].icon_texture = TEX_PURPUR_PILLAR;
-block_definitions[ 1031 ].icon_is_isometric = false;
+block_definitions[ 1031 ].icon_texture = TEX_PURPUR_PILLAR_TOP;
 
 // PURPUR_SLAB (1032)
 block_definitions[ 1032 ].textures[ FACE_TOP ] = TEX_PURPUR_BLOCK;
@@ -12881,7 +12115,6 @@ block_definitions[ 1032 ].textures[ FACE_FRONT ] = TEX_PURPUR_BLOCK;
 block_definitions[ 1032 ].textures[ FACE_LEFT ] = TEX_PURPUR_BLOCK;
 block_definitions[ 1032 ].textures[ FACE_BACK ] = TEX_PURPUR_BLOCK;
 block_definitions[ 1032 ].icon_texture = TEX_PURPUR_BLOCK;
-block_definitions[ 1032 ].icon_is_isometric = false;
 
 // PURPUR_STAIRS (1033)
 block_definitions[ 1033 ].textures[ FACE_TOP ] = TEX_PURPUR_BLOCK;
@@ -12891,7 +12124,6 @@ block_definitions[ 1033 ].textures[ FACE_FRONT ] = TEX_PURPUR_BLOCK;
 block_definitions[ 1033 ].textures[ FACE_LEFT ] = TEX_PURPUR_BLOCK;
 block_definitions[ 1033 ].textures[ FACE_BACK ] = TEX_PURPUR_BLOCK;
 block_definitions[ 1033 ].icon_texture = TEX_PURPUR_BLOCK;
-block_definitions[ 1033 ].icon_is_isometric = false;
 
 // QUARTZ_BLOCK (1034)
 block_definitions[ 1034 ].textures[ FACE_TOP ] = TEX_QUARTZ_BLOCK_TOP;
@@ -12900,8 +12132,7 @@ block_definitions[ 1034 ].textures[ FACE_RIGHT ] = TEX_QUARTZ_BLOCK_SIDE;
 block_definitions[ 1034 ].textures[ FACE_FRONT ] = TEX_QUARTZ_BLOCK_SIDE;
 block_definitions[ 1034 ].textures[ FACE_LEFT ] = TEX_QUARTZ_BLOCK_SIDE;
 block_definitions[ 1034 ].textures[ FACE_BACK ] = TEX_QUARTZ_BLOCK_SIDE;
-block_definitions[ 1034 ].icon_texture = TEX_QUARTZ_BLOCK_SIDE;
-block_definitions[ 1034 ].icon_is_isometric = false;
+block_definitions[ 1034 ].icon_texture = TEX_QUARTZ_BLOCK_TOP;
 
 // QUARTZ_BRICKS (1035)
 block_definitions[ 1035 ].textures[ FACE_TOP ] = TEX_QUARTZ_BRICKS;
@@ -12911,7 +12142,6 @@ block_definitions[ 1035 ].textures[ FACE_FRONT ] = TEX_QUARTZ_BRICKS;
 block_definitions[ 1035 ].textures[ FACE_LEFT ] = TEX_QUARTZ_BRICKS;
 block_definitions[ 1035 ].textures[ FACE_BACK ] = TEX_QUARTZ_BRICKS;
 block_definitions[ 1035 ].icon_texture = TEX_QUARTZ_BRICKS;
-block_definitions[ 1035 ].icon_is_isometric = false;
 
 // QUARTZ_DOUBLE_SLAB (1036)
 block_definitions[ 1036 ].textures[ FACE_TOP ] = TEX_QUARTZ_BLOCK_TOP;
@@ -12920,8 +12150,7 @@ block_definitions[ 1036 ].textures[ FACE_RIGHT ] = TEX_QUARTZ_BLOCK_SIDE;
 block_definitions[ 1036 ].textures[ FACE_FRONT ] = TEX_QUARTZ_BLOCK_SIDE;
 block_definitions[ 1036 ].textures[ FACE_LEFT ] = TEX_QUARTZ_BLOCK_SIDE;
 block_definitions[ 1036 ].textures[ FACE_BACK ] = TEX_QUARTZ_BLOCK_SIDE;
-block_definitions[ 1036 ].icon_texture = TEX_QUARTZ_BLOCK_SIDE;
-block_definitions[ 1036 ].icon_is_isometric = false;
+block_definitions[ 1036 ].icon_texture = TEX_QUARTZ_BLOCK_TOP;
 
 // QUARTZ_ORE (1037)
 block_definitions[ 1037 ].textures[ FACE_TOP ] = TEX_QUARTZ_ORE;
@@ -12931,7 +12160,6 @@ block_definitions[ 1037 ].textures[ FACE_FRONT ] = TEX_QUARTZ_ORE;
 block_definitions[ 1037 ].textures[ FACE_LEFT ] = TEX_QUARTZ_ORE;
 block_definitions[ 1037 ].textures[ FACE_BACK ] = TEX_QUARTZ_ORE;
 block_definitions[ 1037 ].icon_texture = TEX_QUARTZ_ORE;
-block_definitions[ 1037 ].icon_is_isometric = false;
 
 // QUARTZ_PILLAR (1038)
 block_definitions[ 1038 ].textures[ FACE_TOP ] = TEX_QUARTZ_BLOCK_LINES_TOP;
@@ -12940,8 +12168,7 @@ block_definitions[ 1038 ].textures[ FACE_RIGHT ] = TEX_QUARTZ_BLOCK_LINES;
 block_definitions[ 1038 ].textures[ FACE_FRONT ] = TEX_QUARTZ_BLOCK_LINES;
 block_definitions[ 1038 ].textures[ FACE_LEFT ] = TEX_QUARTZ_BLOCK_LINES;
 block_definitions[ 1038 ].textures[ FACE_BACK ] = TEX_QUARTZ_BLOCK_LINES;
-block_definitions[ 1038 ].icon_texture = TEX_QUARTZ_BLOCK_LINES;
-block_definitions[ 1038 ].icon_is_isometric = false;
+block_definitions[ 1038 ].icon_texture = TEX_QUARTZ_BLOCK_LINES_TOP;
 
 // QUARTZ_SLAB (1039)
 block_definitions[ 1039 ].textures[ FACE_TOP ] = TEX_QUARTZ_BLOCK_TOP;
@@ -12950,8 +12177,7 @@ block_definitions[ 1039 ].textures[ FACE_RIGHT ] = TEX_QUARTZ_BLOCK_SIDE;
 block_definitions[ 1039 ].textures[ FACE_FRONT ] = TEX_QUARTZ_BLOCK_SIDE;
 block_definitions[ 1039 ].textures[ FACE_LEFT ] = TEX_QUARTZ_BLOCK_SIDE;
 block_definitions[ 1039 ].textures[ FACE_BACK ] = TEX_QUARTZ_BLOCK_SIDE;
-block_definitions[ 1039 ].icon_texture = TEX_QUARTZ_BLOCK_SIDE;
-block_definitions[ 1039 ].icon_is_isometric = false;
+block_definitions[ 1039 ].icon_texture = TEX_QUARTZ_BLOCK_TOP;
 
 // QUARTZ_STAIRS (1040)
 block_definitions[ 1040 ].textures[ FACE_TOP ] = TEX_QUARTZ_BLOCK_TOP;
@@ -12960,8 +12186,7 @@ block_definitions[ 1040 ].textures[ FACE_RIGHT ] = TEX_QUARTZ_BLOCK_SIDE;
 block_definitions[ 1040 ].textures[ FACE_FRONT ] = TEX_QUARTZ_BLOCK_SIDE;
 block_definitions[ 1040 ].textures[ FACE_LEFT ] = TEX_QUARTZ_BLOCK_SIDE;
 block_definitions[ 1040 ].textures[ FACE_BACK ] = TEX_QUARTZ_BLOCK_SIDE;
-block_definitions[ 1040 ].icon_texture = TEX_QUARTZ_BLOCK_SIDE;
-block_definitions[ 1040 ].icon_is_isometric = false;
+block_definitions[ 1040 ].icon_texture = TEX_QUARTZ_BLOCK_TOP;
 
 // RAIL (1041)
 block_definitions[ 1041 ].textures[ FACE_TOP ] = TEX_RAIL_NORMAL_TURNED;
@@ -12970,10 +12195,9 @@ block_definitions[ 1041 ].textures[ FACE_RIGHT ] = TEX_RAIL_NORMAL;
 block_definitions[ 1041 ].textures[ FACE_FRONT ] = TEX_RAIL_NORMAL;
 block_definitions[ 1041 ].textures[ FACE_LEFT ] = TEX_RAIL_NORMAL;
 block_definitions[ 1041 ].textures[ FACE_BACK ] = TEX_RAIL_NORMAL;
-block_definitions[ 1041 ].icon_texture = TEX_RAIL_NORMAL;
+block_definitions[ 1041 ].icon_texture = TEX_RAIL_NORMAL_TURNED;
 block_definitions[ 1041 ].casts_shadow = false;
 block_definitions[ 1041 ].hardness = 0.35f;
-block_definitions[ 1041 ].icon_is_isometric = false;
 block_definitions[ 1041 ].is_seethrough = true;
 block_definitions[ 1041 ].no_light = 6815743;
 
@@ -12985,7 +12209,6 @@ block_definitions[ 1042 ].textures[ FACE_FRONT ] = TEX_RAW_COPPER_BLOCK;
 block_definitions[ 1042 ].textures[ FACE_LEFT ] = TEX_RAW_COPPER_BLOCK;
 block_definitions[ 1042 ].textures[ FACE_BACK ] = TEX_RAW_COPPER_BLOCK;
 block_definitions[ 1042 ].icon_texture = TEX_RAW_COPPER_BLOCK;
-block_definitions[ 1042 ].icon_is_isometric = false;
 
 // RAW_GOLD_BLOCK (1043)
 block_definitions[ 1043 ].textures[ FACE_TOP ] = TEX_RAW_GOLD_BLOCK;
@@ -12995,7 +12218,6 @@ block_definitions[ 1043 ].textures[ FACE_FRONT ] = TEX_RAW_GOLD_BLOCK;
 block_definitions[ 1043 ].textures[ FACE_LEFT ] = TEX_RAW_GOLD_BLOCK;
 block_definitions[ 1043 ].textures[ FACE_BACK ] = TEX_RAW_GOLD_BLOCK;
 block_definitions[ 1043 ].icon_texture = TEX_RAW_GOLD_BLOCK;
-block_definitions[ 1043 ].icon_is_isometric = false;
 
 // RAW_IRON_BLOCK (1044)
 block_definitions[ 1044 ].textures[ FACE_TOP ] = TEX_RAW_IRON_BLOCK;
@@ -13005,7 +12227,6 @@ block_definitions[ 1044 ].textures[ FACE_FRONT ] = TEX_RAW_IRON_BLOCK;
 block_definitions[ 1044 ].textures[ FACE_LEFT ] = TEX_RAW_IRON_BLOCK;
 block_definitions[ 1044 ].textures[ FACE_BACK ] = TEX_RAW_IRON_BLOCK;
 block_definitions[ 1044 ].icon_texture = TEX_RAW_IRON_BLOCK;
-block_definitions[ 1044 ].icon_is_isometric = false;
 
 // RED_CANDLE (1045)
 block_definitions[ 1045 ].textures[ FACE_TOP ] = TEX_RED_CANDLE;
@@ -13017,7 +12238,6 @@ block_definitions[ 1045 ].textures[ FACE_BACK ] = TEX_RED_CANDLE;
 block_definitions[ 1045 ].icon_texture = TEX_RED_CANDLE;
 block_definitions[ 1045 ].casts_shadow = false;
 block_definitions[ 1045 ].hardness = 0.35f;
-block_definitions[ 1045 ].icon_is_isometric = false;
 block_definitions[ 1045 ].is_seethrough = true;
 block_definitions[ 1045 ].no_light = 6815743;
 
@@ -13028,10 +12248,9 @@ block_definitions[ 1046 ].textures[ FACE_RIGHT ] = TEX_CAKE_SIDE;
 block_definitions[ 1046 ].textures[ FACE_FRONT ] = TEX_CAKE_SIDE;
 block_definitions[ 1046 ].textures[ FACE_LEFT ] = TEX_CAKE_SIDE;
 block_definitions[ 1046 ].textures[ FACE_BACK ] = TEX_CAKE_SIDE;
-block_definitions[ 1046 ].icon_texture = TEX_CAKE_SIDE;
+block_definitions[ 1046 ].icon_texture = TEX_CAKE_TOP;
 block_definitions[ 1046 ].casts_shadow = false;
 block_definitions[ 1046 ].hardness = 0.35f;
-block_definitions[ 1046 ].icon_is_isometric = false;
 block_definitions[ 1046 ].is_seethrough = true;
 block_definitions[ 1046 ].no_light = 6815743;
 
@@ -13043,7 +12262,6 @@ block_definitions[ 1047 ].textures[ FACE_FRONT ] = TEX_WOOL_COLORED_RED;
 block_definitions[ 1047 ].textures[ FACE_LEFT ] = TEX_WOOL_COLORED_RED;
 block_definitions[ 1047 ].textures[ FACE_BACK ] = TEX_WOOL_COLORED_RED;
 block_definitions[ 1047 ].icon_texture = TEX_WOOL_COLORED_RED;
-block_definitions[ 1047 ].icon_is_isometric = false;
 
 // RED_CONCRETE (1048)
 block_definitions[ 1048 ].textures[ FACE_TOP ] = TEX_CONCRETE_RED;
@@ -13053,7 +12271,6 @@ block_definitions[ 1048 ].textures[ FACE_FRONT ] = TEX_CONCRETE_RED;
 block_definitions[ 1048 ].textures[ FACE_LEFT ] = TEX_CONCRETE_RED;
 block_definitions[ 1048 ].textures[ FACE_BACK ] = TEX_CONCRETE_RED;
 block_definitions[ 1048 ].icon_texture = TEX_CONCRETE_RED;
-block_definitions[ 1048 ].icon_is_isometric = false;
 
 // RED_CONCRETE_DOUBLE_SLAB (1049)
 block_definitions[ 1049 ].textures[ FACE_TOP ] = TEX_CONCRETE_RED;
@@ -13063,7 +12280,6 @@ block_definitions[ 1049 ].textures[ FACE_FRONT ] = TEX_CONCRETE_RED;
 block_definitions[ 1049 ].textures[ FACE_LEFT ] = TEX_CONCRETE_RED;
 block_definitions[ 1049 ].textures[ FACE_BACK ] = TEX_CONCRETE_RED;
 block_definitions[ 1049 ].icon_texture = TEX_CONCRETE_RED;
-block_definitions[ 1049 ].icon_is_isometric = false;
 
 // RED_CONCRETE_POWDER (1050)
 block_definitions[ 1050 ].textures[ FACE_TOP ] = TEX_CONCRETE_POWDER_RED;
@@ -13073,7 +12289,6 @@ block_definitions[ 1050 ].textures[ FACE_FRONT ] = TEX_CONCRETE_POWDER_RED;
 block_definitions[ 1050 ].textures[ FACE_LEFT ] = TEX_CONCRETE_POWDER_RED;
 block_definitions[ 1050 ].textures[ FACE_BACK ] = TEX_CONCRETE_POWDER_RED;
 block_definitions[ 1050 ].icon_texture = TEX_CONCRETE_POWDER_RED;
-block_definitions[ 1050 ].icon_is_isometric = false;
 
 // RED_CONCRETE_SLAB (1051)
 block_definitions[ 1051 ].textures[ FACE_TOP ] = TEX_CONCRETE_RED;
@@ -13083,7 +12298,6 @@ block_definitions[ 1051 ].textures[ FACE_FRONT ] = TEX_CONCRETE_RED;
 block_definitions[ 1051 ].textures[ FACE_LEFT ] = TEX_CONCRETE_RED;
 block_definitions[ 1051 ].textures[ FACE_BACK ] = TEX_CONCRETE_RED;
 block_definitions[ 1051 ].icon_texture = TEX_CONCRETE_RED;
-block_definitions[ 1051 ].icon_is_isometric = false;
 
 // FLOWER_IN_POT (1052)
 block_definitions[ 1052 ].textures[ FACE_TOP ] = TEX_AIR;
@@ -13092,7 +12306,7 @@ block_definitions[ 1052 ].textures[ FACE_RIGHT ] = TEX_FLOWER_IN_POT;
 block_definitions[ 1052 ].textures[ FACE_FRONT ] = TEX_FLOWER_IN_POT;
 block_definitions[ 1052 ].textures[ FACE_LEFT ] = TEX_FLOWER_IN_POT;
 block_definitions[ 1052 ].textures[ FACE_BACK ] = TEX_FLOWER_IN_POT;
-block_definitions[ 1052 ].icon_texture = TEX_FLOWER_IN_POT;
+block_definitions[ 1052 ].icon_texture = TEX_AIR;
 block_definitions[ 1052 ].affected_by_redstone_power = false;
 block_definitions[ 1052 ].breaks_in_liquid = true;
 block_definitions[ 1052 ].casts_shadow = false;
@@ -13111,7 +12325,7 @@ block_definitions[ 1053 ].textures[ FACE_RIGHT ] = TEX_PURPLE_FLOWER_IN_POT;
 block_definitions[ 1053 ].textures[ FACE_FRONT ] = TEX_PURPLE_FLOWER_IN_POT;
 block_definitions[ 1053 ].textures[ FACE_LEFT ] = TEX_PURPLE_FLOWER_IN_POT;
 block_definitions[ 1053 ].textures[ FACE_BACK ] = TEX_PURPLE_FLOWER_IN_POT;
-block_definitions[ 1053 ].icon_texture = TEX_PURPLE_FLOWER_IN_POT;
+block_definitions[ 1053 ].icon_texture = TEX_AIR;
 block_definitions[ 1053 ].affected_by_redstone_power = false;
 block_definitions[ 1053 ].breaks_in_liquid = true;
 block_definitions[ 1053 ].casts_shadow = false;
@@ -13130,7 +12344,7 @@ block_definitions[ 1054 ].textures[ FACE_RIGHT ] = TEX_WHITE_FLOWER_IN_POT;
 block_definitions[ 1054 ].textures[ FACE_FRONT ] = TEX_WHITE_FLOWER_IN_POT;
 block_definitions[ 1054 ].textures[ FACE_LEFT ] = TEX_WHITE_FLOWER_IN_POT;
 block_definitions[ 1054 ].textures[ FACE_BACK ] = TEX_WHITE_FLOWER_IN_POT;
-block_definitions[ 1054 ].icon_texture = TEX_WHITE_FLOWER_IN_POT;
+block_definitions[ 1054 ].icon_texture = TEX_AIR;
 block_definitions[ 1054 ].affected_by_redstone_power = false;
 block_definitions[ 1054 ].breaks_in_liquid = true;
 block_definitions[ 1054 ].casts_shadow = false;
@@ -13149,7 +12363,7 @@ block_definitions[ 1055 ].textures[ FACE_RIGHT ] = TEX_BAMBOO_IN_POT;
 block_definitions[ 1055 ].textures[ FACE_FRONT ] = TEX_BAMBOO_IN_POT;
 block_definitions[ 1055 ].textures[ FACE_LEFT ] = TEX_BAMBOO_IN_POT;
 block_definitions[ 1055 ].textures[ FACE_BACK ] = TEX_BAMBOO_IN_POT;
-block_definitions[ 1055 ].icon_texture = TEX_BAMBOO_IN_POT;
+block_definitions[ 1055 ].icon_texture = TEX_AIR;
 block_definitions[ 1055 ].affected_by_redstone_power = false;
 block_definitions[ 1055 ].breaks_in_liquid = true;
 block_definitions[ 1055 ].casts_shadow = false;
@@ -13187,7 +12401,7 @@ block_definitions[ 1057 ].textures[ FACE_RIGHT ] = TEX_BLUE_FLOWER_IN_POT;
 block_definitions[ 1057 ].textures[ FACE_FRONT ] = TEX_BLUE_FLOWER_IN_POT;
 block_definitions[ 1057 ].textures[ FACE_LEFT ] = TEX_BLUE_FLOWER_IN_POT;
 block_definitions[ 1057 ].textures[ FACE_BACK ] = TEX_BLUE_FLOWER_IN_POT;
-block_definitions[ 1057 ].icon_texture = TEX_BLUE_FLOWER_IN_POT;
+block_definitions[ 1057 ].icon_texture = TEX_AIR;
 block_definitions[ 1057 ].affected_by_redstone_power = false;
 block_definitions[ 1057 ].breaks_in_liquid = true;
 block_definitions[ 1057 ].casts_shadow = false;
@@ -13206,7 +12420,7 @@ block_definitions[ 1058 ].textures[ FACE_RIGHT ] = TEX_BROWN_MUSHROOM_IN_POT;
 block_definitions[ 1058 ].textures[ FACE_FRONT ] = TEX_BROWN_MUSHROOM_IN_POT;
 block_definitions[ 1058 ].textures[ FACE_LEFT ] = TEX_BROWN_MUSHROOM_IN_POT;
 block_definitions[ 1058 ].textures[ FACE_BACK ] = TEX_BROWN_MUSHROOM_IN_POT;
-block_definitions[ 1058 ].icon_texture = TEX_BROWN_MUSHROOM_IN_POT;
+block_definitions[ 1058 ].icon_texture = TEX_AIR;
 block_definitions[ 1058 ].affected_by_redstone_power = false;
 block_definitions[ 1058 ].breaks_in_liquid = true;
 block_definitions[ 1058 ].casts_shadow = false;
@@ -13225,7 +12439,7 @@ block_definitions[ 1059 ].textures[ FACE_RIGHT ] = TEX_BLUE_FLOWER2_IN_POT;
 block_definitions[ 1059 ].textures[ FACE_FRONT ] = TEX_BLUE_FLOWER2_IN_POT;
 block_definitions[ 1059 ].textures[ FACE_LEFT ] = TEX_BLUE_FLOWER2_IN_POT;
 block_definitions[ 1059 ].textures[ FACE_BACK ] = TEX_BLUE_FLOWER2_IN_POT;
-block_definitions[ 1059 ].icon_texture = TEX_BLUE_FLOWER2_IN_POT;
+block_definitions[ 1059 ].icon_texture = TEX_AIR;
 block_definitions[ 1059 ].affected_by_redstone_power = false;
 block_definitions[ 1059 ].breaks_in_liquid = true;
 block_definitions[ 1059 ].casts_shadow = false;
@@ -13244,7 +12458,7 @@ block_definitions[ 1060 ].textures[ FACE_RIGHT ] = TEX_YELLOW_FLOWER_IN_POT;
 block_definitions[ 1060 ].textures[ FACE_FRONT ] = TEX_YELLOW_FLOWER_IN_POT;
 block_definitions[ 1060 ].textures[ FACE_LEFT ] = TEX_YELLOW_FLOWER_IN_POT;
 block_definitions[ 1060 ].textures[ FACE_BACK ] = TEX_YELLOW_FLOWER_IN_POT;
-block_definitions[ 1060 ].icon_texture = TEX_YELLOW_FLOWER_IN_POT;
+block_definitions[ 1060 ].icon_texture = TEX_AIR;
 block_definitions[ 1060 ].affected_by_redstone_power = false;
 block_definitions[ 1060 ].breaks_in_liquid = true;
 block_definitions[ 1060 ].casts_shadow = false;
@@ -13359,7 +12573,6 @@ block_definitions[ 1066 ].textures[ FACE_FRONT ] = TEX_CONCRETE_RED;
 block_definitions[ 1066 ].textures[ FACE_LEFT ] = TEX_CONCRETE_RED;
 block_definitions[ 1066 ].textures[ FACE_BACK ] = TEX_CONCRETE_RED;
 block_definitions[ 1066 ].icon_texture = TEX_CONCRETE_RED;
-block_definitions[ 1066 ].icon_is_isometric = false;
 
 // RED_GLAZED_TERRACOTTA (1067)
 block_definitions[ 1067 ].textures[ FACE_TOP ] = TEX_GLAZED_TERRACOTTA_RED;
@@ -13369,7 +12582,6 @@ block_definitions[ 1067 ].textures[ FACE_FRONT ] = TEX_GLAZED_TERRACOTTA_RED;
 block_definitions[ 1067 ].textures[ FACE_LEFT ] = TEX_GLAZED_TERRACOTTA_RED;
 block_definitions[ 1067 ].textures[ FACE_BACK ] = TEX_GLAZED_TERRACOTTA_RED;
 block_definitions[ 1067 ].icon_texture = TEX_GLAZED_TERRACOTTA_RED;
-block_definitions[ 1067 ].icon_is_isometric = false;
 
 // RED_MUSHROOM_BLOCK (1068)
 block_definitions[ 1068 ].textures[ FACE_TOP ] = TEX_MUSHROOM_BLOCK_INSIDE;
@@ -13379,7 +12591,6 @@ block_definitions[ 1068 ].textures[ FACE_FRONT ] = TEX_MUSHROOM_BLOCK_INSIDE;
 block_definitions[ 1068 ].textures[ FACE_LEFT ] = TEX_MUSHROOM_BLOCK_INSIDE;
 block_definitions[ 1068 ].textures[ FACE_BACK ] = TEX_MUSHROOM_BLOCK_INSIDE;
 block_definitions[ 1068 ].icon_texture = TEX_MUSHROOM_BLOCK_INSIDE;
-block_definitions[ 1068 ].icon_is_isometric = false;
 
 // RED_NETHER_BRICK (1069)
 block_definitions[ 1069 ].textures[ FACE_TOP ] = TEX_RED_NETHER_BRICK;
@@ -13389,7 +12600,6 @@ block_definitions[ 1069 ].textures[ FACE_FRONT ] = TEX_RED_NETHER_BRICK;
 block_definitions[ 1069 ].textures[ FACE_LEFT ] = TEX_RED_NETHER_BRICK;
 block_definitions[ 1069 ].textures[ FACE_BACK ] = TEX_RED_NETHER_BRICK;
 block_definitions[ 1069 ].icon_texture = TEX_RED_NETHER_BRICK;
-block_definitions[ 1069 ].icon_is_isometric = false;
 
 // RED_NETHER_BRICK_DOUBLE_SLAB (1070)
 block_definitions[ 1070 ].textures[ FACE_TOP ] = TEX_RED_NETHER_BRICK;
@@ -13399,7 +12609,6 @@ block_definitions[ 1070 ].textures[ FACE_FRONT ] = TEX_RED_NETHER_BRICK;
 block_definitions[ 1070 ].textures[ FACE_LEFT ] = TEX_RED_NETHER_BRICK;
 block_definitions[ 1070 ].textures[ FACE_BACK ] = TEX_RED_NETHER_BRICK;
 block_definitions[ 1070 ].icon_texture = TEX_RED_NETHER_BRICK;
-block_definitions[ 1070 ].icon_is_isometric = false;
 
 // RED_NETHER_BRICK_SLAB (1071)
 block_definitions[ 1071 ].textures[ FACE_TOP ] = TEX_RED_NETHER_BRICK;
@@ -13409,7 +12618,6 @@ block_definitions[ 1071 ].textures[ FACE_FRONT ] = TEX_RED_NETHER_BRICK;
 block_definitions[ 1071 ].textures[ FACE_LEFT ] = TEX_RED_NETHER_BRICK;
 block_definitions[ 1071 ].textures[ FACE_BACK ] = TEX_RED_NETHER_BRICK;
 block_definitions[ 1071 ].icon_texture = TEX_RED_NETHER_BRICK;
-block_definitions[ 1071 ].icon_is_isometric = false;
 
 // RED_NETHER_BRICK_STAIRS (1072)
 block_definitions[ 1072 ].textures[ FACE_TOP ] = TEX_RED_NETHER_BRICK;
@@ -13419,7 +12627,6 @@ block_definitions[ 1072 ].textures[ FACE_FRONT ] = TEX_RED_NETHER_BRICK;
 block_definitions[ 1072 ].textures[ FACE_LEFT ] = TEX_RED_NETHER_BRICK;
 block_definitions[ 1072 ].textures[ FACE_BACK ] = TEX_RED_NETHER_BRICK;
 block_definitions[ 1072 ].icon_texture = TEX_RED_NETHER_BRICK;
-block_definitions[ 1072 ].icon_is_isometric = false;
 
 // RED_NETHER_BRICK_WALL (1073)
 block_definitions[ 1073 ].textures[ FACE_TOP ] = TEX_RED_NETHER_BRICK;
@@ -13429,7 +12636,6 @@ block_definitions[ 1073 ].textures[ FACE_FRONT ] = TEX_RED_NETHER_BRICK;
 block_definitions[ 1073 ].textures[ FACE_LEFT ] = TEX_RED_NETHER_BRICK;
 block_definitions[ 1073 ].textures[ FACE_BACK ] = TEX_RED_NETHER_BRICK;
 block_definitions[ 1073 ].icon_texture = TEX_RED_NETHER_BRICK;
-block_definitions[ 1073 ].icon_is_isometric = false;
 
 // RED_POPLAR_LEAVES (1074)
 block_definitions[ 1074 ].textures[ FACE_TOP ] = TEX_RED_POPLAR_LEAVES;
@@ -13441,7 +12647,6 @@ block_definitions[ 1074 ].textures[ FACE_BACK ] = TEX_RED_POPLAR_LEAVES;
 block_definitions[ 1074 ].icon_texture = TEX_RED_POPLAR_LEAVES;
 block_definitions[ 1074 ].casts_shadow = false;
 block_definitions[ 1074 ].hardness = 0.35f;
-block_definitions[ 1074 ].icon_is_isometric = false;
 block_definitions[ 1074 ].is_seethrough = true;
 block_definitions[ 1074 ].no_light = 6815743;
 
@@ -13452,8 +12657,7 @@ block_definitions[ 1075 ].textures[ FACE_RIGHT ] = TEX_RED_SANDSTONE_NORMAL;
 block_definitions[ 1075 ].textures[ FACE_FRONT ] = TEX_RED_SANDSTONE_NORMAL;
 block_definitions[ 1075 ].textures[ FACE_LEFT ] = TEX_RED_SANDSTONE_NORMAL;
 block_definitions[ 1075 ].textures[ FACE_BACK ] = TEX_RED_SANDSTONE_NORMAL;
-block_definitions[ 1075 ].icon_texture = TEX_RED_SANDSTONE_NORMAL;
-block_definitions[ 1075 ].icon_is_isometric = false;
+block_definitions[ 1075 ].icon_texture = TEX_RED_SANDSTONE_TOP;
 
 // RED_SANDSTONE_STAIRS (1076)
 block_definitions[ 1076 ].textures[ FACE_TOP ] = TEX_RED_SANDSTONE_TOP;
@@ -13462,8 +12666,7 @@ block_definitions[ 1076 ].textures[ FACE_RIGHT ] = TEX_RED_SANDSTONE_NORMAL;
 block_definitions[ 1076 ].textures[ FACE_FRONT ] = TEX_RED_SANDSTONE_NORMAL;
 block_definitions[ 1076 ].textures[ FACE_LEFT ] = TEX_RED_SANDSTONE_NORMAL;
 block_definitions[ 1076 ].textures[ FACE_BACK ] = TEX_RED_SANDSTONE_NORMAL;
-block_definitions[ 1076 ].icon_texture = TEX_RED_SANDSTONE_NORMAL;
-block_definitions[ 1076 ].icon_is_isometric = false;
+block_definitions[ 1076 ].icon_texture = TEX_RED_SANDSTONE_TOP;
 
 // RED_SANDSTONE_WALL (1077)
 block_definitions[ 1077 ].textures[ FACE_TOP ] = TEX_RED_SANDSTONE_NORMAL;
@@ -13473,7 +12676,6 @@ block_definitions[ 1077 ].textures[ FACE_FRONT ] = TEX_RED_SANDSTONE_NORMAL;
 block_definitions[ 1077 ].textures[ FACE_LEFT ] = TEX_RED_SANDSTONE_NORMAL;
 block_definitions[ 1077 ].textures[ FACE_BACK ] = TEX_RED_SANDSTONE_NORMAL;
 block_definitions[ 1077 ].icon_texture = TEX_RED_SANDSTONE_NORMAL;
-block_definitions[ 1077 ].icon_is_isometric = false;
 
 // RED_SHULKER_BOX (1078)
 block_definitions[ 1078 ].textures[ FACE_TOP ] = TEX_SHULKER_TOP_RED;
@@ -13483,7 +12685,6 @@ block_definitions[ 1078 ].textures[ FACE_FRONT ] = TEX_SHULKER_TOP_RED;
 block_definitions[ 1078 ].textures[ FACE_LEFT ] = TEX_SHULKER_TOP_RED;
 block_definitions[ 1078 ].textures[ FACE_BACK ] = TEX_SHULKER_TOP_RED;
 block_definitions[ 1078 ].icon_texture = TEX_SHULKER_TOP_RED;
-block_definitions[ 1078 ].icon_is_isometric = false;
 
 // RED_STAINED_GLASS (1079)
 block_definitions[ 1079 ].textures[ FACE_TOP ] = TEX_GLASS_RED;
@@ -13496,7 +12697,6 @@ block_definitions[ 1079 ].icon_texture = TEX_GLASS_RED;
 block_definitions[ 1079 ].affected_by_redstone_power = false;
 block_definitions[ 1079 ].casts_shadow = false;
 block_definitions[ 1079 ].hardness = 0.449999988f;
-block_definitions[ 1079 ].icon_is_isometric = false;
 block_definitions[ 1079 ].is_seethrough = true;
 block_definitions[ 1079 ].renderOrder = RenderOrder_Translucent;
 
@@ -13511,7 +12711,6 @@ block_definitions[ 1080 ].icon_texture = TEX_GLASS_RED;
 block_definitions[ 1080 ].affected_by_redstone_power = false;
 block_definitions[ 1080 ].casts_shadow = false;
 block_definitions[ 1080 ].hardness = 0.449999988f;
-block_definitions[ 1080 ].icon_is_isometric = false;
 block_definitions[ 1080 ].is_seethrough = true;
 block_definitions[ 1080 ].renderOrder = RenderOrder_Translucent;
 
@@ -13523,7 +12722,6 @@ block_definitions[ 1081 ].textures[ FACE_FRONT ] = TEX_HARDENED_CLAY_STAINED_RED
 block_definitions[ 1081 ].textures[ FACE_LEFT ] = TEX_HARDENED_CLAY_STAINED_RED;
 block_definitions[ 1081 ].textures[ FACE_BACK ] = TEX_HARDENED_CLAY_STAINED_RED;
 block_definitions[ 1081 ].icon_texture = TEX_HARDENED_CLAY_STAINED_RED;
-block_definitions[ 1081 ].icon_is_isometric = false;
 
 // RED_WOOL (1082)
 block_definitions[ 1082 ].textures[ FACE_TOP ] = TEX_WOOL_COLORED_RED;
@@ -13533,7 +12731,6 @@ block_definitions[ 1082 ].textures[ FACE_FRONT ] = TEX_WOOL_COLORED_RED;
 block_definitions[ 1082 ].textures[ FACE_LEFT ] = TEX_WOOL_COLORED_RED;
 block_definitions[ 1082 ].textures[ FACE_BACK ] = TEX_WOOL_COLORED_RED;
 block_definitions[ 1082 ].icon_texture = TEX_WOOL_COLORED_RED;
-block_definitions[ 1082 ].icon_is_isometric = false;
 
 // RED_WOOL_DOUBLE_SLAB (1083)
 block_definitions[ 1083 ].textures[ FACE_TOP ] = TEX_WOOL_COLORED_RED;
@@ -13543,7 +12740,6 @@ block_definitions[ 1083 ].textures[ FACE_FRONT ] = TEX_WOOL_COLORED_RED;
 block_definitions[ 1083 ].textures[ FACE_LEFT ] = TEX_WOOL_COLORED_RED;
 block_definitions[ 1083 ].textures[ FACE_BACK ] = TEX_WOOL_COLORED_RED;
 block_definitions[ 1083 ].icon_texture = TEX_WOOL_COLORED_RED;
-block_definitions[ 1083 ].icon_is_isometric = false;
 
 // RED_WOOL_SLAB (1084)
 block_definitions[ 1084 ].textures[ FACE_TOP ] = TEX_WOOL_COLORED_RED;
@@ -13553,7 +12749,6 @@ block_definitions[ 1084 ].textures[ FACE_FRONT ] = TEX_WOOL_COLORED_RED;
 block_definitions[ 1084 ].textures[ FACE_LEFT ] = TEX_WOOL_COLORED_RED;
 block_definitions[ 1084 ].textures[ FACE_BACK ] = TEX_WOOL_COLORED_RED;
 block_definitions[ 1084 ].icon_texture = TEX_WOOL_COLORED_RED;
-block_definitions[ 1084 ].icon_is_isometric = false;
 
 // RED_WOOL_STAIRS (1085)
 block_definitions[ 1085 ].textures[ FACE_TOP ] = TEX_WOOL_COLORED_RED;
@@ -13563,7 +12758,6 @@ block_definitions[ 1085 ].textures[ FACE_FRONT ] = TEX_WOOL_COLORED_RED;
 block_definitions[ 1085 ].textures[ FACE_LEFT ] = TEX_WOOL_COLORED_RED;
 block_definitions[ 1085 ].textures[ FACE_BACK ] = TEX_WOOL_COLORED_RED;
 block_definitions[ 1085 ].icon_texture = TEX_WOOL_COLORED_RED;
-block_definitions[ 1085 ].icon_is_isometric = false;
 
 // REDSTONE_ORE (1086)
 block_definitions[ 1086 ].textures[ FACE_TOP ] = TEX_REDSTONE_ORE;
@@ -13573,7 +12767,6 @@ block_definitions[ 1086 ].textures[ FACE_FRONT ] = TEX_REDSTONE_ORE;
 block_definitions[ 1086 ].textures[ FACE_LEFT ] = TEX_REDSTONE_ORE;
 block_definitions[ 1086 ].textures[ FACE_BACK ] = TEX_REDSTONE_ORE;
 block_definitions[ 1086 ].icon_texture = TEX_REDSTONE_ORE;
-block_definitions[ 1086 ].icon_is_isometric = false;
 
 // REINFORCED_DEEPSLATE (1087)
 block_definitions[ 1087 ].textures[ FACE_TOP ] = TEX_REINFORCED_DEEPSLATE_TOP;
@@ -13582,8 +12775,7 @@ block_definitions[ 1087 ].textures[ FACE_RIGHT ] = TEX_REINFORCED_DEEPSLATE_SIDE
 block_definitions[ 1087 ].textures[ FACE_FRONT ] = TEX_REINFORCED_DEEPSLATE_SIDE;
 block_definitions[ 1087 ].textures[ FACE_LEFT ] = TEX_REINFORCED_DEEPSLATE_SIDE;
 block_definitions[ 1087 ].textures[ FACE_BACK ] = TEX_REINFORCED_DEEPSLATE_SIDE;
-block_definitions[ 1087 ].icon_texture = TEX_REINFORCED_DEEPSLATE_SIDE;
-block_definitions[ 1087 ].icon_is_isometric = false;
+block_definitions[ 1087 ].icon_texture = TEX_REINFORCED_DEEPSLATE_TOP;
 
 // REPEATING_COMMAND_BLOCK (1088)
 block_definitions[ 1088 ].textures[ FACE_TOP ] = TEX_REPEATING_COMMAND_BLOCK_CONDITIONAL_MIPMAP;
@@ -13593,7 +12785,6 @@ block_definitions[ 1088 ].textures[ FACE_FRONT ] = TEX_REPEATING_COMMAND_BLOCK_B
 block_definitions[ 1088 ].textures[ FACE_LEFT ] = TEX_REPEATING_COMMAND_BLOCK_SIDE_MIPMAP;
 block_definitions[ 1088 ].textures[ FACE_BACK ] = TEX_REPEATING_COMMAND_BLOCK_FRONT_MIPMAP;
 block_definitions[ 1088 ].icon_texture = TEX_REPEATING_COMMAND_BLOCK_CONDITIONAL_MIPMAP;
-block_definitions[ 1088 ].icon_is_isometric = false;
 
 // RESIN_BLOCK (1089)
 block_definitions[ 1089 ].textures[ FACE_TOP ] = TEX_RESIN_BLOCK;
@@ -13603,7 +12794,6 @@ block_definitions[ 1089 ].textures[ FACE_FRONT ] = TEX_RESIN_BLOCK;
 block_definitions[ 1089 ].textures[ FACE_LEFT ] = TEX_RESIN_BLOCK;
 block_definitions[ 1089 ].textures[ FACE_BACK ] = TEX_RESIN_BLOCK;
 block_definitions[ 1089 ].icon_texture = TEX_RESIN_BLOCK;
-block_definitions[ 1089 ].icon_is_isometric = false;
 
 // RESIN_BRICK_DOUBLE_SLAB (1090)
 block_definitions[ 1090 ].textures[ FACE_TOP ] = TEX_RESIN_BRICKS;
@@ -13613,7 +12803,6 @@ block_definitions[ 1090 ].textures[ FACE_FRONT ] = TEX_RESIN_BRICKS;
 block_definitions[ 1090 ].textures[ FACE_LEFT ] = TEX_RESIN_BRICKS;
 block_definitions[ 1090 ].textures[ FACE_BACK ] = TEX_RESIN_BRICKS;
 block_definitions[ 1090 ].icon_texture = TEX_RESIN_BRICKS;
-block_definitions[ 1090 ].icon_is_isometric = false;
 
 // RESIN_BRICK_SLAB (1091)
 block_definitions[ 1091 ].textures[ FACE_TOP ] = TEX_RESIN_BRICKS;
@@ -13623,7 +12812,6 @@ block_definitions[ 1091 ].textures[ FACE_FRONT ] = TEX_RESIN_BRICKS;
 block_definitions[ 1091 ].textures[ FACE_LEFT ] = TEX_RESIN_BRICKS;
 block_definitions[ 1091 ].textures[ FACE_BACK ] = TEX_RESIN_BRICKS;
 block_definitions[ 1091 ].icon_texture = TEX_RESIN_BRICKS;
-block_definitions[ 1091 ].icon_is_isometric = false;
 
 // RESIN_BRICK_STAIRS (1092)
 block_definitions[ 1092 ].textures[ FACE_TOP ] = TEX_RESIN_BRICKS;
@@ -13633,7 +12821,6 @@ block_definitions[ 1092 ].textures[ FACE_FRONT ] = TEX_RESIN_BRICKS;
 block_definitions[ 1092 ].textures[ FACE_LEFT ] = TEX_RESIN_BRICKS;
 block_definitions[ 1092 ].textures[ FACE_BACK ] = TEX_RESIN_BRICKS;
 block_definitions[ 1092 ].icon_texture = TEX_RESIN_BRICKS;
-block_definitions[ 1092 ].icon_is_isometric = false;
 
 // RESIN_BRICK_WALL (1093)
 block_definitions[ 1093 ].textures[ FACE_TOP ] = TEX_RESIN_BRICKS;
@@ -13643,7 +12830,6 @@ block_definitions[ 1093 ].textures[ FACE_FRONT ] = TEX_RESIN_BRICKS;
 block_definitions[ 1093 ].textures[ FACE_LEFT ] = TEX_RESIN_BRICKS;
 block_definitions[ 1093 ].textures[ FACE_BACK ] = TEX_RESIN_BRICKS;
 block_definitions[ 1093 ].icon_texture = TEX_RESIN_BRICKS;
-block_definitions[ 1093 ].icon_is_isometric = false;
 
 // RESIN_BRICKS (1094)
 block_definitions[ 1094 ].textures[ FACE_TOP ] = TEX_RESIN_BRICKS;
@@ -13653,7 +12839,6 @@ block_definitions[ 1094 ].textures[ FACE_FRONT ] = TEX_RESIN_BRICKS;
 block_definitions[ 1094 ].textures[ FACE_LEFT ] = TEX_RESIN_BRICKS;
 block_definitions[ 1094 ].textures[ FACE_BACK ] = TEX_RESIN_BRICKS;
 block_definitions[ 1094 ].icon_texture = TEX_RESIN_BRICKS;
-block_definitions[ 1094 ].icon_is_isometric = false;
 
 // RESIN_CLUMP (1095)
 block_definitions[ 1095 ].textures[ FACE_TOP ] = TEX_RESIN_CLUMP;
@@ -13665,7 +12850,6 @@ block_definitions[ 1095 ].textures[ FACE_BACK ] = TEX_RESIN_CLUMP;
 block_definitions[ 1095 ].icon_texture = TEX_RESIN_CLUMP;
 block_definitions[ 1095 ].casts_shadow = false;
 block_definitions[ 1095 ].hardness = 0.35f;
-block_definitions[ 1095 ].icon_is_isometric = false;
 block_definitions[ 1095 ].is_seethrough = true;
 block_definitions[ 1095 ].no_light = 6815743;
 
@@ -13676,8 +12860,7 @@ block_definitions[ 1096 ].textures[ FACE_RIGHT ] = TEX_RESPAWN_ANCHOR_SIDE0;
 block_definitions[ 1096 ].textures[ FACE_FRONT ] = TEX_RESPAWN_ANCHOR_SIDE0;
 block_definitions[ 1096 ].textures[ FACE_LEFT ] = TEX_RESPAWN_ANCHOR_SIDE0;
 block_definitions[ 1096 ].textures[ FACE_BACK ] = TEX_RESPAWN_ANCHOR_SIDE0;
-block_definitions[ 1096 ].icon_texture = TEX_RESPAWN_ANCHOR_SIDE0;
-block_definitions[ 1096 ].icon_is_isometric = false;
+block_definitions[ 1096 ].icon_texture = TEX_RESPAWN_ANCHOR_TOP_OFF;
 
 // ROSE_BUSH (1097)
 block_definitions[ 1097 ].textures[ FACE_TOP ] = TEX_AIR;
@@ -13708,8 +12891,7 @@ block_definitions[ 1098 ].textures[ FACE_RIGHT ] = TEX_SANDSTONE_NORMAL;
 block_definitions[ 1098 ].textures[ FACE_FRONT ] = TEX_SANDSTONE_NORMAL;
 block_definitions[ 1098 ].textures[ FACE_LEFT ] = TEX_SANDSTONE_NORMAL;
 block_definitions[ 1098 ].textures[ FACE_BACK ] = TEX_SANDSTONE_NORMAL;
-block_definitions[ 1098 ].icon_texture = TEX_SANDSTONE_NORMAL;
-block_definitions[ 1098 ].icon_is_isometric = false;
+block_definitions[ 1098 ].icon_texture = TEX_SANDSTONE_TOP;
 
 // SANDSTONE_STAIRS (1099)
 block_definitions[ 1099 ].textures[ FACE_TOP ] = TEX_SANDSTONE_TOP;
@@ -13718,8 +12900,7 @@ block_definitions[ 1099 ].textures[ FACE_RIGHT ] = TEX_SANDSTONE_NORMAL;
 block_definitions[ 1099 ].textures[ FACE_FRONT ] = TEX_SANDSTONE_NORMAL;
 block_definitions[ 1099 ].textures[ FACE_LEFT ] = TEX_SANDSTONE_NORMAL;
 block_definitions[ 1099 ].textures[ FACE_BACK ] = TEX_SANDSTONE_NORMAL;
-block_definitions[ 1099 ].icon_texture = TEX_SANDSTONE_NORMAL;
-block_definitions[ 1099 ].icon_is_isometric = false;
+block_definitions[ 1099 ].icon_texture = TEX_SANDSTONE_TOP;
 
 // SANDSTONE_WALL (1100)
 block_definitions[ 1100 ].textures[ FACE_TOP ] = TEX_SANDSTONE_NORMAL;
@@ -13729,7 +12910,6 @@ block_definitions[ 1100 ].textures[ FACE_FRONT ] = TEX_SANDSTONE_NORMAL;
 block_definitions[ 1100 ].textures[ FACE_LEFT ] = TEX_SANDSTONE_NORMAL;
 block_definitions[ 1100 ].textures[ FACE_BACK ] = TEX_SANDSTONE_NORMAL;
 block_definitions[ 1100 ].icon_texture = TEX_SANDSTONE_NORMAL;
-block_definitions[ 1100 ].icon_is_isometric = false;
 
 // SAPLING (1101)
 block_definitions[ 1101 ].textures[ FACE_TOP ] = TEX_AIR;
@@ -13760,10 +12940,9 @@ block_definitions[ 1102 ].textures[ FACE_RIGHT ] = TEX_SCAFFOLDING_SIDE;
 block_definitions[ 1102 ].textures[ FACE_FRONT ] = TEX_SCAFFOLDING_SIDE;
 block_definitions[ 1102 ].textures[ FACE_LEFT ] = TEX_SCAFFOLDING_SIDE;
 block_definitions[ 1102 ].textures[ FACE_BACK ] = TEX_SCAFFOLDING_SIDE;
-block_definitions[ 1102 ].icon_texture = TEX_SCAFFOLDING_SIDE;
+block_definitions[ 1102 ].icon_texture = TEX_SCAFFOLDING_TOP;
 block_definitions[ 1102 ].casts_shadow = false;
 block_definitions[ 1102 ].hardness = 0.35f;
-block_definitions[ 1102 ].icon_is_isometric = false;
 block_definitions[ 1102 ].is_seethrough = true;
 block_definitions[ 1102 ].no_light = 6815743;
 
@@ -13775,7 +12954,6 @@ block_definitions[ 1103 ].textures[ FACE_FRONT ] = TEX_SCULK;
 block_definitions[ 1103 ].textures[ FACE_LEFT ] = TEX_SCULK;
 block_definitions[ 1103 ].textures[ FACE_BACK ] = TEX_SCULK;
 block_definitions[ 1103 ].icon_texture = TEX_SCULK;
-block_definitions[ 1103 ].icon_is_isometric = false;
 
 // SCULK_CATALYST (1104)
 block_definitions[ 1104 ].textures[ FACE_TOP ] = TEX_SCULK_CATALYST_TOP;
@@ -13784,9 +12962,8 @@ block_definitions[ 1104 ].textures[ FACE_RIGHT ] = TEX_SCULK_CATALYST_SIDE;
 block_definitions[ 1104 ].textures[ FACE_FRONT ] = TEX_SCULK_CATALYST_SIDE;
 block_definitions[ 1104 ].textures[ FACE_LEFT ] = TEX_SCULK_CATALYST_SIDE;
 block_definitions[ 1104 ].textures[ FACE_BACK ] = TEX_SCULK_CATALYST_SIDE;
-block_definitions[ 1104 ].icon_texture = TEX_SCULK_CATALYST_SIDE;
+block_definitions[ 1104 ].icon_texture = TEX_SCULK_CATALYST_TOP;
 block_definitions[ 1104 ].emits_light = 6;
-block_definitions[ 1104 ].icon_is_isometric = false;
 
 // SCULK_SENSOR (1105)
 block_definitions[ 1105 ].textures[ FACE_TOP ] = TEX_SCULK_SENSOR_TENDRIL_INACTIVE;
@@ -13795,10 +12972,9 @@ block_definitions[ 1105 ].textures[ FACE_RIGHT ] = TEX_SCULK_SENSOR_TENDRIL_ACTI
 block_definitions[ 1105 ].textures[ FACE_FRONT ] = TEX_SCULK_SENSOR_TENDRIL_ACTIVE;
 block_definitions[ 1105 ].textures[ FACE_LEFT ] = TEX_SCULK_SENSOR_TENDRIL_ACTIVE;
 block_definitions[ 1105 ].textures[ FACE_BACK ] = TEX_SCULK_SENSOR_TENDRIL_ACTIVE;
-block_definitions[ 1105 ].icon_texture = TEX_SCULK_SENSOR_TENDRIL_ACTIVE;
+block_definitions[ 1105 ].icon_texture = TEX_SCULK_SENSOR_TENDRIL_INACTIVE;
 block_definitions[ 1105 ].casts_shadow = false;
 block_definitions[ 1105 ].hardness = 0.35f;
-block_definitions[ 1105 ].icon_is_isometric = false;
 block_definitions[ 1105 ].is_seethrough = true;
 block_definitions[ 1105 ].no_light = 6815743;
 
@@ -13810,7 +12986,6 @@ block_definitions[ 1106 ].textures[ FACE_FRONT ] = TEX_SCULK_SHRIEKER_INNER_TOP;
 block_definitions[ 1106 ].textures[ FACE_LEFT ] = TEX_SCULK_SHRIEKER_INNER_TOP;
 block_definitions[ 1106 ].textures[ FACE_BACK ] = TEX_SCULK_SHRIEKER_INNER_TOP;
 block_definitions[ 1106 ].icon_texture = TEX_SCULK_SHRIEKER_INNER_TOP;
-block_definitions[ 1106 ].icon_is_isometric = false;
 
 // SCULK_VEIN (1107)
 block_definitions[ 1107 ].textures[ FACE_TOP ] = TEX_AIR;
@@ -13842,7 +13017,6 @@ block_definitions[ 1108 ].textures[ FACE_FRONT ] = TEX_SEA_LANTERN;
 block_definitions[ 1108 ].textures[ FACE_LEFT ] = TEX_SEA_LANTERN;
 block_definitions[ 1108 ].textures[ FACE_BACK ] = TEX_SEA_LANTERN;
 block_definitions[ 1108 ].icon_texture = TEX_SEA_LANTERN;
-block_definitions[ 1108 ].icon_is_isometric = false;
 
 // SEA_PICKLE (1109)
 block_definitions[ 1109 ].textures[ FACE_TOP ] = TEX_AIR;
@@ -13897,7 +13071,6 @@ block_definitions[ 1111 ].textures[ FACE_LEFT ] = TEX_SHROOMLIGHT;
 block_definitions[ 1111 ].textures[ FACE_BACK ] = TEX_SHROOMLIGHT;
 block_definitions[ 1111 ].icon_texture = TEX_SHROOMLIGHT;
 block_definitions[ 1111 ].emits_light = 15;
-block_definitions[ 1111 ].icon_is_isometric = false;
 
 // SHULKER_BOX (1112)
 block_definitions[ 1112 ].textures[ FACE_TOP ] = TEX_SHULKER_TOP_WHITE;
@@ -13907,7 +13080,6 @@ block_definitions[ 1112 ].textures[ FACE_FRONT ] = TEX_SHULKER_TOP_WHITE;
 block_definitions[ 1112 ].textures[ FACE_LEFT ] = TEX_SHULKER_TOP_WHITE;
 block_definitions[ 1112 ].textures[ FACE_BACK ] = TEX_SHULKER_TOP_WHITE;
 block_definitions[ 1112 ].icon_texture = TEX_SHULKER_TOP_WHITE;
-block_definitions[ 1112 ].icon_is_isometric = false;
 
 // SILVER_GLAZED_TERRACOTTA (1113)
 block_definitions[ 1113 ].textures[ FACE_TOP ] = TEX_GLAZED_TERRACOTTA_SILVER;
@@ -13917,7 +13089,6 @@ block_definitions[ 1113 ].textures[ FACE_FRONT ] = TEX_GLAZED_TERRACOTTA_SILVER;
 block_definitions[ 1113 ].textures[ FACE_LEFT ] = TEX_GLAZED_TERRACOTTA_SILVER;
 block_definitions[ 1113 ].textures[ FACE_BACK ] = TEX_GLAZED_TERRACOTTA_SILVER;
 block_definitions[ 1113 ].icon_texture = TEX_GLAZED_TERRACOTTA_SILVER;
-block_definitions[ 1113 ].icon_is_isometric = false;
 
 // SKULL (1114)
 block_definitions[ 1114 ].textures[ FACE_TOP ] = TEX_SOUL_SAND;
@@ -13927,7 +13098,6 @@ block_definitions[ 1114 ].textures[ FACE_FRONT ] = TEX_SOUL_SAND;
 block_definitions[ 1114 ].textures[ FACE_LEFT ] = TEX_SOUL_SAND;
 block_definitions[ 1114 ].textures[ FACE_BACK ] = TEX_SOUL_SAND;
 block_definitions[ 1114 ].icon_texture = TEX_SOUL_SAND;
-block_definitions[ 1114 ].icon_is_isometric = false;
 
 // SLIME (1115)
 block_definitions[ 1115 ].textures[ FACE_TOP ] = TEX_SLIME;
@@ -13940,7 +13110,6 @@ block_definitions[ 1115 ].icon_texture = TEX_SLIME;
 block_definitions[ 1115 ].affected_by_redstone_power = false;
 block_definitions[ 1115 ].casts_shadow = false;
 block_definitions[ 1115 ].hardness = 0.449999988f;
-block_definitions[ 1115 ].icon_is_isometric = false;
 block_definitions[ 1115 ].is_seethrough = true;
 block_definitions[ 1115 ].renderOrder = RenderOrder_Translucent;
 
@@ -13955,7 +13124,6 @@ block_definitions[ 1116 ].icon_texture = TEX_SMALL_AMETHYST_BUD;
 block_definitions[ 1116 ].casts_shadow = false;
 block_definitions[ 1116 ].emits_light = 1;
 block_definitions[ 1116 ].hardness = 0.35f;
-block_definitions[ 1116 ].icon_is_isometric = false;
 block_definitions[ 1116 ].is_seethrough = true;
 block_definitions[ 1116 ].no_light = 6815743;
 
@@ -13969,7 +13137,6 @@ block_definitions[ 1117 ].textures[ FACE_BACK ] = TEX_SMALL_DRIPLEAF_STEM_TOP;
 block_definitions[ 1117 ].icon_texture = TEX_SMALL_DRIPLEAF_TOP;
 block_definitions[ 1117 ].casts_shadow = false;
 block_definitions[ 1117 ].hardness = 0.35f;
-block_definitions[ 1117 ].icon_is_isometric = false;
 block_definitions[ 1117 ].is_seethrough = true;
 block_definitions[ 1117 ].no_light = 6815743;
 
@@ -13981,7 +13148,6 @@ block_definitions[ 1118 ].textures[ FACE_FRONT ] = TEX_SMITHING_TABLE_FRONT;
 block_definitions[ 1118 ].textures[ FACE_LEFT ] = TEX_SMITHING_TABLE_SIDE;
 block_definitions[ 1118 ].textures[ FACE_BACK ] = TEX_SMITHING_TABLE_FRONT;
 block_definitions[ 1118 ].icon_texture = TEX_SMITHING_TABLE_TOP;
-block_definitions[ 1118 ].icon_is_isometric = false;
 
 // SMOKER (1119)
 block_definitions[ 1119 ].textures[ FACE_TOP ] = TEX_SMOKER_TOP;
@@ -13991,7 +13157,6 @@ block_definitions[ 1119 ].textures[ FACE_FRONT ] = TEX_SMOKER_FRONT_OFF;
 block_definitions[ 1119 ].textures[ FACE_LEFT ] = TEX_SMOKER_SIDE;
 block_definitions[ 1119 ].textures[ FACE_BACK ] = TEX_SMOKER_SIDE;
 block_definitions[ 1119 ].icon_texture = TEX_SMOKER_TOP;
-block_definitions[ 1119 ].icon_is_isometric = false;
 
 // SMOOTH_BASALT (1120)
 block_definitions[ 1120 ].textures[ FACE_TOP ] = TEX_SMOOTH_BASALT;
@@ -14001,7 +13166,6 @@ block_definitions[ 1120 ].textures[ FACE_FRONT ] = TEX_SMOOTH_BASALT;
 block_definitions[ 1120 ].textures[ FACE_LEFT ] = TEX_SMOOTH_BASALT;
 block_definitions[ 1120 ].textures[ FACE_BACK ] = TEX_SMOOTH_BASALT;
 block_definitions[ 1120 ].icon_texture = TEX_SMOOTH_BASALT;
-block_definitions[ 1120 ].icon_is_isometric = false;
 
 // SMOOTH_QUARTZ (1121)
 block_definitions[ 1121 ].textures[ FACE_TOP ] = TEX_QUARTZ_BLOCK_BOTTOM;
@@ -14011,7 +13175,6 @@ block_definitions[ 1121 ].textures[ FACE_FRONT ] = TEX_QUARTZ_BLOCK_BOTTOM;
 block_definitions[ 1121 ].textures[ FACE_LEFT ] = TEX_QUARTZ_BLOCK_BOTTOM;
 block_definitions[ 1121 ].textures[ FACE_BACK ] = TEX_QUARTZ_BLOCK_BOTTOM;
 block_definitions[ 1121 ].icon_texture = TEX_QUARTZ_BLOCK_BOTTOM;
-block_definitions[ 1121 ].icon_is_isometric = false;
 
 // SMOOTH_QUARTZ_DOUBLE_SLAB (1122)
 block_definitions[ 1122 ].textures[ FACE_TOP ] = TEX_QUARTZ_BLOCK_BOTTOM;
@@ -14021,7 +13184,6 @@ block_definitions[ 1122 ].textures[ FACE_FRONT ] = TEX_QUARTZ_BLOCK_BOTTOM;
 block_definitions[ 1122 ].textures[ FACE_LEFT ] = TEX_QUARTZ_BLOCK_BOTTOM;
 block_definitions[ 1122 ].textures[ FACE_BACK ] = TEX_QUARTZ_BLOCK_BOTTOM;
 block_definitions[ 1122 ].icon_texture = TEX_QUARTZ_BLOCK_BOTTOM;
-block_definitions[ 1122 ].icon_is_isometric = false;
 
 // SMOOTH_QUARTZ_SLAB (1123)
 block_definitions[ 1123 ].textures[ FACE_TOP ] = TEX_QUARTZ_BLOCK_BOTTOM;
@@ -14031,7 +13193,6 @@ block_definitions[ 1123 ].textures[ FACE_FRONT ] = TEX_QUARTZ_BLOCK_BOTTOM;
 block_definitions[ 1123 ].textures[ FACE_LEFT ] = TEX_QUARTZ_BLOCK_BOTTOM;
 block_definitions[ 1123 ].textures[ FACE_BACK ] = TEX_QUARTZ_BLOCK_BOTTOM;
 block_definitions[ 1123 ].icon_texture = TEX_QUARTZ_BLOCK_BOTTOM;
-block_definitions[ 1123 ].icon_is_isometric = false;
 
 // SMOOTH_QUARTZ_STAIRS (1124)
 block_definitions[ 1124 ].textures[ FACE_TOP ] = TEX_QUARTZ_BLOCK_BOTTOM;
@@ -14041,7 +13202,6 @@ block_definitions[ 1124 ].textures[ FACE_FRONT ] = TEX_QUARTZ_BLOCK_BOTTOM;
 block_definitions[ 1124 ].textures[ FACE_LEFT ] = TEX_QUARTZ_BLOCK_BOTTOM;
 block_definitions[ 1124 ].textures[ FACE_BACK ] = TEX_QUARTZ_BLOCK_BOTTOM;
 block_definitions[ 1124 ].icon_texture = TEX_QUARTZ_BLOCK_BOTTOM;
-block_definitions[ 1124 ].icon_is_isometric = false;
 
 // SMOOTH_RED_SANDSTONE_DOUBLE_SLAB (1125)
 block_definitions[ 1125 ].textures[ FACE_TOP ] = TEX_RED_SANDSTONE_TOP;
@@ -14051,7 +13211,6 @@ block_definitions[ 1125 ].textures[ FACE_FRONT ] = TEX_RED_SANDSTONE_TOP;
 block_definitions[ 1125 ].textures[ FACE_LEFT ] = TEX_RED_SANDSTONE_TOP;
 block_definitions[ 1125 ].textures[ FACE_BACK ] = TEX_RED_SANDSTONE_TOP;
 block_definitions[ 1125 ].icon_texture = TEX_RED_SANDSTONE_TOP;
-block_definitions[ 1125 ].icon_is_isometric = false;
 
 // SMOOTH_RED_SANDSTONE_SLAB (1126)
 block_definitions[ 1126 ].textures[ FACE_TOP ] = TEX_RED_SANDSTONE_TOP;
@@ -14061,7 +13220,6 @@ block_definitions[ 1126 ].textures[ FACE_FRONT ] = TEX_RED_SANDSTONE_TOP;
 block_definitions[ 1126 ].textures[ FACE_LEFT ] = TEX_RED_SANDSTONE_TOP;
 block_definitions[ 1126 ].textures[ FACE_BACK ] = TEX_RED_SANDSTONE_TOP;
 block_definitions[ 1126 ].icon_texture = TEX_RED_SANDSTONE_TOP;
-block_definitions[ 1126 ].icon_is_isometric = false;
 
 // SMOOTH_RED_SANDSTONE_STAIRS (1127)
 block_definitions[ 1127 ].textures[ FACE_TOP ] = TEX_RED_SANDSTONE_TOP;
@@ -14071,7 +13229,6 @@ block_definitions[ 1127 ].textures[ FACE_FRONT ] = TEX_RED_SANDSTONE_TOP;
 block_definitions[ 1127 ].textures[ FACE_LEFT ] = TEX_RED_SANDSTONE_TOP;
 block_definitions[ 1127 ].textures[ FACE_BACK ] = TEX_RED_SANDSTONE_TOP;
 block_definitions[ 1127 ].icon_texture = TEX_RED_SANDSTONE_TOP;
-block_definitions[ 1127 ].icon_is_isometric = false;
 
 // SMOOTH_SANDSTONE (1128)
 block_definitions[ 1128 ].textures[ FACE_TOP ] = TEX_SANDSTONE_TOP;
@@ -14081,7 +13238,6 @@ block_definitions[ 1128 ].textures[ FACE_FRONT ] = TEX_SANDSTONE_TOP;
 block_definitions[ 1128 ].textures[ FACE_LEFT ] = TEX_SANDSTONE_TOP;
 block_definitions[ 1128 ].textures[ FACE_BACK ] = TEX_SANDSTONE_TOP;
 block_definitions[ 1128 ].icon_texture = TEX_SANDSTONE_TOP;
-block_definitions[ 1128 ].icon_is_isometric = false;
 
 // SMOOTH_SANDSTONE_DOUBLE_SLAB (1129)
 block_definitions[ 1129 ].textures[ FACE_TOP ] = TEX_SANDSTONE_TOP;
@@ -14091,7 +13247,6 @@ block_definitions[ 1129 ].textures[ FACE_FRONT ] = TEX_SANDSTONE_TOP;
 block_definitions[ 1129 ].textures[ FACE_LEFT ] = TEX_SANDSTONE_TOP;
 block_definitions[ 1129 ].textures[ FACE_BACK ] = TEX_SANDSTONE_TOP;
 block_definitions[ 1129 ].icon_texture = TEX_SANDSTONE_TOP;
-block_definitions[ 1129 ].icon_is_isometric = false;
 
 // SMOOTH_SANDSTONE_SLAB (1130)
 block_definitions[ 1130 ].textures[ FACE_TOP ] = TEX_SANDSTONE_TOP;
@@ -14101,7 +13256,6 @@ block_definitions[ 1130 ].textures[ FACE_FRONT ] = TEX_SANDSTONE_TOP;
 block_definitions[ 1130 ].textures[ FACE_LEFT ] = TEX_SANDSTONE_TOP;
 block_definitions[ 1130 ].textures[ FACE_BACK ] = TEX_SANDSTONE_TOP;
 block_definitions[ 1130 ].icon_texture = TEX_SANDSTONE_TOP;
-block_definitions[ 1130 ].icon_is_isometric = false;
 
 // SMOOTH_SANDSTONE_STAIRS (1131)
 block_definitions[ 1131 ].textures[ FACE_TOP ] = TEX_SANDSTONE_TOP;
@@ -14111,7 +13265,6 @@ block_definitions[ 1131 ].textures[ FACE_FRONT ] = TEX_SANDSTONE_TOP;
 block_definitions[ 1131 ].textures[ FACE_LEFT ] = TEX_SANDSTONE_TOP;
 block_definitions[ 1131 ].textures[ FACE_BACK ] = TEX_SANDSTONE_TOP;
 block_definitions[ 1131 ].icon_texture = TEX_SANDSTONE_TOP;
-block_definitions[ 1131 ].icon_is_isometric = false;
 
 // SMOOTH_STONE (1132)
 block_definitions[ 1132 ].textures[ FACE_TOP ] = TEX_STONE_SLAB_TOP;
@@ -14121,7 +13274,6 @@ block_definitions[ 1132 ].textures[ FACE_FRONT ] = TEX_STONE_SLAB_TOP;
 block_definitions[ 1132 ].textures[ FACE_LEFT ] = TEX_STONE_SLAB_TOP;
 block_definitions[ 1132 ].textures[ FACE_BACK ] = TEX_STONE_SLAB_TOP;
 block_definitions[ 1132 ].icon_texture = TEX_STONE_SLAB_TOP;
-block_definitions[ 1132 ].icon_is_isometric = false;
 
 // SMOOTH_STONE_DOUBLE_SLAB (1133)
 block_definitions[ 1133 ].textures[ FACE_TOP ] = TEX_STONE_SLAB_TOP;
@@ -14130,8 +13282,7 @@ block_definitions[ 1133 ].textures[ FACE_RIGHT ] = TEX_STONE_SLAB_SIDE;
 block_definitions[ 1133 ].textures[ FACE_FRONT ] = TEX_STONE_SLAB_SIDE;
 block_definitions[ 1133 ].textures[ FACE_LEFT ] = TEX_STONE_SLAB_SIDE;
 block_definitions[ 1133 ].textures[ FACE_BACK ] = TEX_STONE_SLAB_SIDE;
-block_definitions[ 1133 ].icon_texture = TEX_STONE_SLAB_SIDE;
-block_definitions[ 1133 ].icon_is_isometric = false;
+block_definitions[ 1133 ].icon_texture = TEX_STONE_SLAB_TOP;
 
 // SMOOTH_STONE_SLAB (1134)
 block_definitions[ 1134 ].textures[ FACE_TOP ] = TEX_STONE_SLAB_TOP;
@@ -14140,8 +13291,7 @@ block_definitions[ 1134 ].textures[ FACE_RIGHT ] = TEX_STONE_SLAB_SIDE;
 block_definitions[ 1134 ].textures[ FACE_FRONT ] = TEX_STONE_SLAB_SIDE;
 block_definitions[ 1134 ].textures[ FACE_LEFT ] = TEX_STONE_SLAB_SIDE;
 block_definitions[ 1134 ].textures[ FACE_BACK ] = TEX_STONE_SLAB_SIDE;
-block_definitions[ 1134 ].icon_texture = TEX_STONE_SLAB_SIDE;
-block_definitions[ 1134 ].icon_is_isometric = false;
+block_definitions[ 1134 ].icon_texture = TEX_STONE_SLAB_TOP;
 
 // SNIFFER_EGG (1135)
 block_definitions[ 1135 ].textures[ FACE_TOP ] = TEX_SNIFFER_EGG;
@@ -14153,7 +13303,6 @@ block_definitions[ 1135 ].textures[ FACE_BACK ] = TEX_SNIFFER_EGG;
 block_definitions[ 1135 ].icon_texture = TEX_SNIFFER_EGG;
 block_definitions[ 1135 ].casts_shadow = false;
 block_definitions[ 1135 ].hardness = 0.35f;
-block_definitions[ 1135 ].icon_is_isometric = false;
 block_definitions[ 1135 ].is_seethrough = true;
 block_definitions[ 1135 ].no_light = 6815743;
 
@@ -14165,7 +13314,6 @@ block_definitions[ 1136 ].textures[ FACE_FRONT ] = TEX_SNOW;
 block_definitions[ 1136 ].textures[ FACE_LEFT ] = TEX_SNOW;
 block_definitions[ 1136 ].textures[ FACE_BACK ] = TEX_SNOW;
 block_definitions[ 1136 ].icon_texture = TEX_SNOW;
-block_definitions[ 1136 ].icon_is_isometric = false;
 
 // SOUL_CAMPFIRE (1137)
 block_definitions[ 1137 ].textures[ FACE_TOP ] = TEX_SOUL_CAMPFIRE;
@@ -14174,11 +13322,10 @@ block_definitions[ 1137 ].textures[ FACE_RIGHT ] = TEX_SOUL_CAMPFIRE_LOG_LIT;
 block_definitions[ 1137 ].textures[ FACE_FRONT ] = TEX_SOUL_CAMPFIRE_LOG_LIT;
 block_definitions[ 1137 ].textures[ FACE_LEFT ] = TEX_SOUL_CAMPFIRE_LOG_LIT;
 block_definitions[ 1137 ].textures[ FACE_BACK ] = TEX_SOUL_CAMPFIRE_LOG_LIT;
-block_definitions[ 1137 ].icon_texture = TEX_SOUL_CAMPFIRE_LOG_LIT;
+block_definitions[ 1137 ].icon_texture = TEX_SOUL_CAMPFIRE;
 block_definitions[ 1137 ].casts_shadow = false;
 block_definitions[ 1137 ].emits_light = 10;
 block_definitions[ 1137 ].hardness = 0.35f;
-block_definitions[ 1137 ].icon_is_isometric = false;
 block_definitions[ 1137 ].is_seethrough = true;
 block_definitions[ 1137 ].no_light = 6815743;
 
@@ -14216,7 +13363,6 @@ block_definitions[ 1139 ].icon_texture = TEX_SOUL_LANTERN;
 block_definitions[ 1139 ].casts_shadow = false;
 block_definitions[ 1139 ].emits_light = 10;
 block_definitions[ 1139 ].hardness = 0.35f;
-block_definitions[ 1139 ].icon_is_isometric = false;
 block_definitions[ 1139 ].is_seethrough = true;
 block_definitions[ 1139 ].no_light = 6815743;
 
@@ -14228,7 +13374,6 @@ block_definitions[ 1140 ].textures[ FACE_FRONT ] = TEX_SOUL_SAND;
 block_definitions[ 1140 ].textures[ FACE_LEFT ] = TEX_SOUL_SAND;
 block_definitions[ 1140 ].textures[ FACE_BACK ] = TEX_SOUL_SAND;
 block_definitions[ 1140 ].icon_texture = TEX_SOUL_SAND;
-block_definitions[ 1140 ].icon_is_isometric = false;
 
 // SOUL_SOIL (1141)
 block_definitions[ 1141 ].textures[ FACE_TOP ] = TEX_SOUL_SOIL;
@@ -14238,7 +13383,6 @@ block_definitions[ 1141 ].textures[ FACE_FRONT ] = TEX_SOUL_SOIL;
 block_definitions[ 1141 ].textures[ FACE_LEFT ] = TEX_SOUL_SOIL;
 block_definitions[ 1141 ].textures[ FACE_BACK ] = TEX_SOUL_SOIL;
 block_definitions[ 1141 ].icon_texture = TEX_SOUL_SOIL;
-block_definitions[ 1141 ].icon_is_isometric = false;
 
 // SOUL_TORCH (1142)
 block_definitions[ 1142 ].textures[ FACE_TOP ] = TEX_SOUL_TORCH;
@@ -14251,7 +13395,6 @@ block_definitions[ 1142 ].icon_texture = TEX_SOUL_TORCH;
 block_definitions[ 1142 ].casts_shadow = false;
 block_definitions[ 1142 ].emits_light = 10;
 block_definitions[ 1142 ].hardness = 0.35f;
-block_definitions[ 1142 ].icon_is_isometric = false;
 block_definitions[ 1142 ].is_seethrough = true;
 block_definitions[ 1142 ].no_light = 6815743;
 
@@ -14263,7 +13406,6 @@ block_definitions[ 1143 ].textures[ FACE_FRONT ] = TEX_SPONGE;
 block_definitions[ 1143 ].textures[ FACE_LEFT ] = TEX_SPONGE;
 block_definitions[ 1143 ].textures[ FACE_BACK ] = TEX_SPONGE;
 block_definitions[ 1143 ].icon_texture = TEX_SPONGE;
-block_definitions[ 1143 ].icon_is_isometric = false;
 
 // SPORE_BLOSSOM (1144)
 block_definitions[ 1144 ].textures[ FACE_TOP ] = TEX_AIR;
@@ -14295,7 +13437,6 @@ block_definitions[ 1145 ].textures[ FACE_FRONT ] = TEX_PLANKS_SPRUCE;
 block_definitions[ 1145 ].textures[ FACE_LEFT ] = TEX_PLANKS_SPRUCE;
 block_definitions[ 1145 ].textures[ FACE_BACK ] = TEX_PLANKS_SPRUCE;
 block_definitions[ 1145 ].icon_texture = TEX_PLANKS_SPRUCE;
-block_definitions[ 1145 ].icon_is_isometric = false;
 
 // SPRUCE_FENCE (1146)
 block_definitions[ 1146 ].textures[ FACE_TOP ] = TEX_PLANKS_SPRUCE;
@@ -14305,7 +13446,6 @@ block_definitions[ 1146 ].textures[ FACE_FRONT ] = TEX_PLANKS_SPRUCE;
 block_definitions[ 1146 ].textures[ FACE_LEFT ] = TEX_PLANKS_SPRUCE;
 block_definitions[ 1146 ].textures[ FACE_BACK ] = TEX_PLANKS_SPRUCE;
 block_definitions[ 1146 ].icon_texture = TEX_PLANKS_SPRUCE;
-block_definitions[ 1146 ].icon_is_isometric = false;
 
 // SPRUCE_FENCE_GATE (1147)
 block_definitions[ 1147 ].textures[ FACE_TOP ] = TEX_PLANKS_SPRUCE;
@@ -14315,7 +13455,6 @@ block_definitions[ 1147 ].textures[ FACE_FRONT ] = TEX_PLANKS_SPRUCE;
 block_definitions[ 1147 ].textures[ FACE_LEFT ] = TEX_PLANKS_SPRUCE;
 block_definitions[ 1147 ].textures[ FACE_BACK ] = TEX_PLANKS_SPRUCE;
 block_definitions[ 1147 ].icon_texture = TEX_PLANKS_SPRUCE;
-block_definitions[ 1147 ].icon_is_isometric = false;
 
 // SPRUCE_HANGING_SIGN (1148)
 block_definitions[ 1148 ].textures[ FACE_TOP ] = TEX_PLANKS_SPRUCE;
@@ -14325,7 +13464,6 @@ block_definitions[ 1148 ].textures[ FACE_FRONT ] = TEX_PLANKS_SPRUCE;
 block_definitions[ 1148 ].textures[ FACE_LEFT ] = TEX_PLANKS_SPRUCE;
 block_definitions[ 1148 ].textures[ FACE_BACK ] = TEX_PLANKS_SPRUCE;
 block_definitions[ 1148 ].icon_texture = TEX_PLANKS_SPRUCE;
-block_definitions[ 1148 ].icon_is_isometric = false;
 
 // SPRUCE_LOG (1149)
 block_definitions[ 1149 ].textures[ FACE_TOP ] = TEX_LOG_SPRUCE_TOP;
@@ -14334,8 +13472,7 @@ block_definitions[ 1149 ].textures[ FACE_RIGHT ] = TEX_LOG_SPRUCE;
 block_definitions[ 1149 ].textures[ FACE_FRONT ] = TEX_LOG_SPRUCE;
 block_definitions[ 1149 ].textures[ FACE_LEFT ] = TEX_LOG_SPRUCE;
 block_definitions[ 1149 ].textures[ FACE_BACK ] = TEX_LOG_SPRUCE;
-block_definitions[ 1149 ].icon_texture = TEX_LOG_SPRUCE;
-block_definitions[ 1149 ].icon_is_isometric = false;
+block_definitions[ 1149 ].icon_texture = TEX_LOG_SPRUCE_TOP;
 
 // SPRUCE_SAPLING (1150)
 block_definitions[ 1150 ].textures[ FACE_TOP ] = TEX_AIR;
@@ -14367,7 +13504,6 @@ block_definitions[ 1151 ].textures[ FACE_FRONT ] = TEX_SPRUCE_SHELF;
 block_definitions[ 1151 ].textures[ FACE_LEFT ] = TEX_SPRUCE_SHELF;
 block_definitions[ 1151 ].textures[ FACE_BACK ] = TEX_SPRUCE_SHELF;
 block_definitions[ 1151 ].icon_texture = TEX_SPRUCE_SHELF;
-block_definitions[ 1151 ].icon_is_isometric = false;
 
 // SPRUCE_STAIRS (1152)
 block_definitions[ 1152 ].textures[ FACE_TOP ] = TEX_PLANKS_SPRUCE;
@@ -14377,7 +13513,6 @@ block_definitions[ 1152 ].textures[ FACE_FRONT ] = TEX_PLANKS_SPRUCE;
 block_definitions[ 1152 ].textures[ FACE_LEFT ] = TEX_PLANKS_SPRUCE;
 block_definitions[ 1152 ].textures[ FACE_BACK ] = TEX_PLANKS_SPRUCE;
 block_definitions[ 1152 ].icon_texture = TEX_PLANKS_SPRUCE;
-block_definitions[ 1152 ].icon_is_isometric = false;
 
 // SPRUCE_STANDING_SIGN (1153)
 block_definitions[ 1153 ].textures[ FACE_TOP ] = TEX_PLANKS_SPRUCE;
@@ -14387,7 +13522,6 @@ block_definitions[ 1153 ].textures[ FACE_FRONT ] = TEX_PLANKS_SPRUCE;
 block_definitions[ 1153 ].textures[ FACE_LEFT ] = TEX_PLANKS_SPRUCE;
 block_definitions[ 1153 ].textures[ FACE_BACK ] = TEX_PLANKS_SPRUCE;
 block_definitions[ 1153 ].icon_texture = TEX_PLANKS_SPRUCE;
-block_definitions[ 1153 ].icon_is_isometric = false;
 
 // SPRUCE_TRAPDOOR (1154)
 block_definitions[ 1154 ].textures[ FACE_TOP ] = TEX_SPRUCE_TRAPDOOR;
@@ -14397,7 +13531,6 @@ block_definitions[ 1154 ].textures[ FACE_FRONT ] = TEX_SPRUCE_TRAPDOOR;
 block_definitions[ 1154 ].textures[ FACE_LEFT ] = TEX_SPRUCE_TRAPDOOR;
 block_definitions[ 1154 ].textures[ FACE_BACK ] = TEX_SPRUCE_TRAPDOOR;
 block_definitions[ 1154 ].icon_texture = TEX_SPRUCE_TRAPDOOR;
-block_definitions[ 1154 ].icon_is_isometric = false;
 
 // SPRUCE_WALL_SIGN (1155)
 block_definitions[ 1155 ].textures[ FACE_TOP ] = TEX_PLANKS_SPRUCE;
@@ -14407,7 +13540,6 @@ block_definitions[ 1155 ].textures[ FACE_FRONT ] = TEX_PLANKS_SPRUCE;
 block_definitions[ 1155 ].textures[ FACE_LEFT ] = TEX_PLANKS_SPRUCE;
 block_definitions[ 1155 ].textures[ FACE_BACK ] = TEX_PLANKS_SPRUCE;
 block_definitions[ 1155 ].icon_texture = TEX_PLANKS_SPRUCE;
-block_definitions[ 1155 ].icon_is_isometric = false;
 
 // SPRUCE_WOOD (1156)
 block_definitions[ 1156 ].textures[ FACE_TOP ] = TEX_LOG_SPRUCE;
@@ -14417,7 +13549,6 @@ block_definitions[ 1156 ].textures[ FACE_FRONT ] = TEX_LOG_SPRUCE;
 block_definitions[ 1156 ].textures[ FACE_LEFT ] = TEX_LOG_SPRUCE;
 block_definitions[ 1156 ].textures[ FACE_BACK ] = TEX_LOG_SPRUCE;
 block_definitions[ 1156 ].icon_texture = TEX_LOG_SPRUCE;
-block_definitions[ 1156 ].icon_is_isometric = false;
 
 // STAINED_GLASS (1157)
 block_definitions[ 1157 ].textures[ FACE_TOP ] = TEX_GLASS_WHITE;
@@ -14430,7 +13561,6 @@ block_definitions[ 1157 ].icon_texture = TEX_GLASS_WHITE;
 block_definitions[ 1157 ].affected_by_redstone_power = false;
 block_definitions[ 1157 ].casts_shadow = false;
 block_definitions[ 1157 ].hardness = 0.449999988f;
-block_definitions[ 1157 ].icon_is_isometric = false;
 block_definitions[ 1157 ].is_seethrough = true;
 block_definitions[ 1157 ].renderOrder = RenderOrder_Translucent;
 
@@ -14445,7 +13575,6 @@ block_definitions[ 1158 ].icon_texture = TEX_GLASS_WHITE;
 block_definitions[ 1158 ].affected_by_redstone_power = false;
 block_definitions[ 1158 ].casts_shadow = false;
 block_definitions[ 1158 ].hardness = 0.449999988f;
-block_definitions[ 1158 ].icon_is_isometric = false;
 block_definitions[ 1158 ].is_seethrough = true;
 block_definitions[ 1158 ].renderOrder = RenderOrder_Translucent;
 
@@ -14457,7 +13586,6 @@ block_definitions[ 1159 ].textures[ FACE_FRONT ] = TEX_HARDENED_CLAY_STAINED_WHI
 block_definitions[ 1159 ].textures[ FACE_LEFT ] = TEX_HARDENED_CLAY_STAINED_WHITE;
 block_definitions[ 1159 ].textures[ FACE_BACK ] = TEX_HARDENED_CLAY_STAINED_WHITE;
 block_definitions[ 1159 ].icon_texture = TEX_HARDENED_CLAY_STAINED_WHITE;
-block_definitions[ 1159 ].icon_is_isometric = false;
 
 // STANDING_BANNER (1160)
 block_definitions[ 1160 ].textures[ FACE_TOP ] = TEX_PLANKS_OAK;
@@ -14467,7 +13595,6 @@ block_definitions[ 1160 ].textures[ FACE_FRONT ] = TEX_PLANKS_OAK;
 block_definitions[ 1160 ].textures[ FACE_LEFT ] = TEX_PLANKS_OAK;
 block_definitions[ 1160 ].textures[ FACE_BACK ] = TEX_PLANKS_OAK;
 block_definitions[ 1160 ].icon_texture = TEX_PLANKS_OAK;
-block_definitions[ 1160 ].icon_is_isometric = false;
 
 // STANDING_SIGN (1161)
 block_definitions[ 1161 ].textures[ FACE_TOP ] = TEX_PLANKS_OAK;
@@ -14477,7 +13604,6 @@ block_definitions[ 1161 ].textures[ FACE_FRONT ] = TEX_PLANKS_OAK;
 block_definitions[ 1161 ].textures[ FACE_LEFT ] = TEX_PLANKS_OAK;
 block_definitions[ 1161 ].textures[ FACE_BACK ] = TEX_PLANKS_OAK;
 block_definitions[ 1161 ].icon_texture = TEX_PLANKS_OAK;
-block_definitions[ 1161 ].icon_is_isometric = false;
 
 // STONE_BRICK_DOUBLE_SLAB (1162)
 block_definitions[ 1162 ].textures[ FACE_TOP ] = TEX_STONEBRICK;
@@ -14487,7 +13613,6 @@ block_definitions[ 1162 ].textures[ FACE_FRONT ] = TEX_STONEBRICK;
 block_definitions[ 1162 ].textures[ FACE_LEFT ] = TEX_STONEBRICK;
 block_definitions[ 1162 ].textures[ FACE_BACK ] = TEX_STONEBRICK;
 block_definitions[ 1162 ].icon_texture = TEX_STONEBRICK;
-block_definitions[ 1162 ].icon_is_isometric = false;
 
 // STONE_BRICK_STAIRS (1163)
 block_definitions[ 1163 ].textures[ FACE_TOP ] = TEX_STONEBRICK;
@@ -14497,7 +13622,6 @@ block_definitions[ 1163 ].textures[ FACE_FRONT ] = TEX_STONEBRICK;
 block_definitions[ 1163 ].textures[ FACE_LEFT ] = TEX_STONEBRICK;
 block_definitions[ 1163 ].textures[ FACE_BACK ] = TEX_STONEBRICK;
 block_definitions[ 1163 ].icon_texture = TEX_STONEBRICK;
-block_definitions[ 1163 ].icon_is_isometric = false;
 
 // STONE_BRICK_WALL (1164)
 block_definitions[ 1164 ].textures[ FACE_TOP ] = TEX_STONEBRICK;
@@ -14507,7 +13631,6 @@ block_definitions[ 1164 ].textures[ FACE_FRONT ] = TEX_STONEBRICK;
 block_definitions[ 1164 ].textures[ FACE_LEFT ] = TEX_STONEBRICK;
 block_definitions[ 1164 ].textures[ FACE_BACK ] = TEX_STONEBRICK;
 block_definitions[ 1164 ].icon_texture = TEX_STONEBRICK;
-block_definitions[ 1164 ].icon_is_isometric = false;
 
 // STONE_PRESSURE_PLATE (1165)
 block_definitions[ 1165 ].textures[ FACE_TOP ] = TEX_STONE;
@@ -14517,7 +13640,6 @@ block_definitions[ 1165 ].textures[ FACE_FRONT ] = TEX_STONE;
 block_definitions[ 1165 ].textures[ FACE_LEFT ] = TEX_STONE;
 block_definitions[ 1165 ].textures[ FACE_BACK ] = TEX_STONE;
 block_definitions[ 1165 ].icon_texture = TEX_STONE;
-block_definitions[ 1165 ].icon_is_isometric = false;
 
 // STONE_SLAB (1166)
 block_definitions[ 1166 ].textures[ FACE_TOP ] = TEX_STONE_SLAB_TOP;
@@ -14526,8 +13648,7 @@ block_definitions[ 1166 ].textures[ FACE_RIGHT ] = TEX_STONE_SLAB_SIDE;
 block_definitions[ 1166 ].textures[ FACE_FRONT ] = TEX_STONE_SLAB_SIDE;
 block_definitions[ 1166 ].textures[ FACE_LEFT ] = TEX_STONE_SLAB_SIDE;
 block_definitions[ 1166 ].textures[ FACE_BACK ] = TEX_STONE_SLAB_SIDE;
-block_definitions[ 1166 ].icon_texture = TEX_STONE_SLAB_SIDE;
-block_definitions[ 1166 ].icon_is_isometric = false;
+block_definitions[ 1166 ].icon_texture = TEX_STONE_SLAB_TOP;
 
 // STONE_SLAB2 (1167)
 block_definitions[ 1167 ].textures[ FACE_TOP ] = TEX_RED_SANDSTONE_TOP;
@@ -14536,8 +13657,7 @@ block_definitions[ 1167 ].textures[ FACE_RIGHT ] = TEX_RED_SANDSTONE_NORMAL;
 block_definitions[ 1167 ].textures[ FACE_FRONT ] = TEX_RED_SANDSTONE_NORMAL;
 block_definitions[ 1167 ].textures[ FACE_LEFT ] = TEX_RED_SANDSTONE_NORMAL;
 block_definitions[ 1167 ].textures[ FACE_BACK ] = TEX_RED_SANDSTONE_NORMAL;
-block_definitions[ 1167 ].icon_texture = TEX_RED_SANDSTONE_NORMAL;
-block_definitions[ 1167 ].icon_is_isometric = false;
+block_definitions[ 1167 ].icon_texture = TEX_RED_SANDSTONE_TOP;
 
 // STONE_SLAB3 (1168)
 block_definitions[ 1168 ].textures[ FACE_TOP ] = TEX_END_BRICKS;
@@ -14547,7 +13667,6 @@ block_definitions[ 1168 ].textures[ FACE_FRONT ] = TEX_END_BRICKS;
 block_definitions[ 1168 ].textures[ FACE_LEFT ] = TEX_END_BRICKS;
 block_definitions[ 1168 ].textures[ FACE_BACK ] = TEX_END_BRICKS;
 block_definitions[ 1168 ].icon_texture = TEX_END_BRICKS;
-block_definitions[ 1168 ].icon_is_isometric = false;
 
 // STONE_SLAB4 (1169)
 block_definitions[ 1169 ].textures[ FACE_TOP ] = TEX_STONEBRICK_MOSSY;
@@ -14557,7 +13676,6 @@ block_definitions[ 1169 ].textures[ FACE_FRONT ] = TEX_STONEBRICK_MOSSY;
 block_definitions[ 1169 ].textures[ FACE_LEFT ] = TEX_STONEBRICK_MOSSY;
 block_definitions[ 1169 ].textures[ FACE_BACK ] = TEX_STONEBRICK_MOSSY;
 block_definitions[ 1169 ].icon_texture = TEX_STONEBRICK_MOSSY;
-block_definitions[ 1169 ].icon_is_isometric = false;
 
 // STONE_STAIRS (1170)
 block_definitions[ 1170 ].textures[ FACE_TOP ] = TEX_COBBLESTONE;
@@ -14567,7 +13685,6 @@ block_definitions[ 1170 ].textures[ FACE_FRONT ] = TEX_COBBLESTONE;
 block_definitions[ 1170 ].textures[ FACE_LEFT ] = TEX_COBBLESTONE;
 block_definitions[ 1170 ].textures[ FACE_BACK ] = TEX_COBBLESTONE;
 block_definitions[ 1170 ].icon_texture = TEX_COBBLESTONE;
-block_definitions[ 1170 ].icon_is_isometric = false;
 
 // STONEBRICK (1171)
 block_definitions[ 1171 ].textures[ FACE_TOP ] = TEX_STONEBRICK;
@@ -14577,7 +13694,6 @@ block_definitions[ 1171 ].textures[ FACE_FRONT ] = TEX_STONEBRICK;
 block_definitions[ 1171 ].textures[ FACE_LEFT ] = TEX_STONEBRICK;
 block_definitions[ 1171 ].textures[ FACE_BACK ] = TEX_STONEBRICK;
 block_definitions[ 1171 ].icon_texture = TEX_STONEBRICK;
-block_definitions[ 1171 ].icon_is_isometric = false;
 
 // STONECUTTER (1172)
 block_definitions[ 1172 ].textures[ FACE_TOP ] = TEX_STONECUTTER_TOP;
@@ -14587,7 +13703,6 @@ block_definitions[ 1172 ].textures[ FACE_FRONT ] = TEX_STONECUTTER_SIDE;
 block_definitions[ 1172 ].textures[ FACE_LEFT ] = TEX_STONECUTTER_OTHER_SIDE;
 block_definitions[ 1172 ].textures[ FACE_BACK ] = TEX_STONECUTTER_SIDE;
 block_definitions[ 1172 ].icon_texture = TEX_STONECUTTER_TOP;
-block_definitions[ 1172 ].icon_is_isometric = false;
 
 // STONECUTTER_BLOCK (1173)
 block_definitions[ 1173 ].textures[ FACE_TOP ] = TEX_STONECUTTER2_TOP;
@@ -14599,7 +13714,6 @@ block_definitions[ 1173 ].textures[ FACE_BACK ] = TEX_STONECUTTER2_SIDE;
 block_definitions[ 1173 ].icon_texture = TEX_STONECUTTER2_TOP;
 block_definitions[ 1173 ].casts_shadow = false;
 block_definitions[ 1173 ].hardness = 0.35f;
-block_definitions[ 1173 ].icon_is_isometric = false;
 block_definitions[ 1173 ].is_seethrough = true;
 block_definitions[ 1173 ].no_light = 6815743;
 
@@ -14610,8 +13724,7 @@ block_definitions[ 1174 ].textures[ FACE_RIGHT ] = TEX_STRIPPED_ACACIA_LOG;
 block_definitions[ 1174 ].textures[ FACE_FRONT ] = TEX_STRIPPED_ACACIA_LOG;
 block_definitions[ 1174 ].textures[ FACE_LEFT ] = TEX_STRIPPED_ACACIA_LOG;
 block_definitions[ 1174 ].textures[ FACE_BACK ] = TEX_STRIPPED_ACACIA_LOG;
-block_definitions[ 1174 ].icon_texture = TEX_STRIPPED_ACACIA_LOG;
-block_definitions[ 1174 ].icon_is_isometric = false;
+block_definitions[ 1174 ].icon_texture = TEX_STRIPPED_ACACIA_LOG_TOP;
 
 // STRIPPED_ACACIA_WOOD (1175)
 block_definitions[ 1175 ].textures[ FACE_TOP ] = TEX_STRIPPED_ACACIA_LOG;
@@ -14621,7 +13734,6 @@ block_definitions[ 1175 ].textures[ FACE_FRONT ] = TEX_STRIPPED_ACACIA_LOG;
 block_definitions[ 1175 ].textures[ FACE_LEFT ] = TEX_STRIPPED_ACACIA_LOG;
 block_definitions[ 1175 ].textures[ FACE_BACK ] = TEX_STRIPPED_ACACIA_LOG;
 block_definitions[ 1175 ].icon_texture = TEX_STRIPPED_ACACIA_LOG;
-block_definitions[ 1175 ].icon_is_isometric = false;
 
 // STRIPPED_BAMBOO_BLOCK (1176)
 block_definitions[ 1176 ].textures[ FACE_TOP ] = TEX_STRIPPED_BAMBOO_BLOCK_TOP;
@@ -14630,8 +13742,7 @@ block_definitions[ 1176 ].textures[ FACE_RIGHT ] = TEX_STRIPPED_BAMBOO_BLOCK;
 block_definitions[ 1176 ].textures[ FACE_FRONT ] = TEX_STRIPPED_BAMBOO_BLOCK;
 block_definitions[ 1176 ].textures[ FACE_LEFT ] = TEX_STRIPPED_BAMBOO_BLOCK;
 block_definitions[ 1176 ].textures[ FACE_BACK ] = TEX_STRIPPED_BAMBOO_BLOCK;
-block_definitions[ 1176 ].icon_texture = TEX_STRIPPED_BAMBOO_BLOCK;
-block_definitions[ 1176 ].icon_is_isometric = false;
+block_definitions[ 1176 ].icon_texture = TEX_STRIPPED_BAMBOO_BLOCK_TOP;
 
 // STRIPPED_BIRCH_LOG (1177)
 block_definitions[ 1177 ].textures[ FACE_TOP ] = TEX_STRIPPED_BIRCH_LOG_TOP;
@@ -14640,8 +13751,7 @@ block_definitions[ 1177 ].textures[ FACE_RIGHT ] = TEX_STRIPPED_BIRCH_LOG;
 block_definitions[ 1177 ].textures[ FACE_FRONT ] = TEX_STRIPPED_BIRCH_LOG;
 block_definitions[ 1177 ].textures[ FACE_LEFT ] = TEX_STRIPPED_BIRCH_LOG;
 block_definitions[ 1177 ].textures[ FACE_BACK ] = TEX_STRIPPED_BIRCH_LOG;
-block_definitions[ 1177 ].icon_texture = TEX_STRIPPED_BIRCH_LOG;
-block_definitions[ 1177 ].icon_is_isometric = false;
+block_definitions[ 1177 ].icon_texture = TEX_STRIPPED_BIRCH_LOG_TOP;
 
 // STRIPPED_BIRCH_WOOD (1178)
 block_definitions[ 1178 ].textures[ FACE_TOP ] = TEX_STRIPPED_BIRCH_LOG;
@@ -14651,7 +13761,6 @@ block_definitions[ 1178 ].textures[ FACE_FRONT ] = TEX_STRIPPED_BIRCH_LOG;
 block_definitions[ 1178 ].textures[ FACE_LEFT ] = TEX_STRIPPED_BIRCH_LOG;
 block_definitions[ 1178 ].textures[ FACE_BACK ] = TEX_STRIPPED_BIRCH_LOG;
 block_definitions[ 1178 ].icon_texture = TEX_STRIPPED_BIRCH_LOG;
-block_definitions[ 1178 ].icon_is_isometric = false;
 
 // STRIPPED_CHERRY_LOG (1179)
 block_definitions[ 1179 ].textures[ FACE_TOP ] = TEX_STRIPPED_CHERRY_LOG_TOP;
@@ -14660,8 +13769,7 @@ block_definitions[ 1179 ].textures[ FACE_RIGHT ] = TEX_STRIPPED_CHERRY_LOG_SIDE;
 block_definitions[ 1179 ].textures[ FACE_FRONT ] = TEX_STRIPPED_CHERRY_LOG_SIDE;
 block_definitions[ 1179 ].textures[ FACE_LEFT ] = TEX_STRIPPED_CHERRY_LOG_SIDE;
 block_definitions[ 1179 ].textures[ FACE_BACK ] = TEX_STRIPPED_CHERRY_LOG_SIDE;
-block_definitions[ 1179 ].icon_texture = TEX_STRIPPED_CHERRY_LOG_SIDE;
-block_definitions[ 1179 ].icon_is_isometric = false;
+block_definitions[ 1179 ].icon_texture = TEX_STRIPPED_CHERRY_LOG_TOP;
 
 // STRIPPED_CHERRY_WOOD (1180)
 block_definitions[ 1180 ].textures[ FACE_TOP ] = TEX_STRIPPED_CHERRY_LOG_SIDE;
@@ -14671,7 +13779,6 @@ block_definitions[ 1180 ].textures[ FACE_FRONT ] = TEX_STRIPPED_CHERRY_LOG_SIDE;
 block_definitions[ 1180 ].textures[ FACE_LEFT ] = TEX_STRIPPED_CHERRY_LOG_SIDE;
 block_definitions[ 1180 ].textures[ FACE_BACK ] = TEX_STRIPPED_CHERRY_LOG_SIDE;
 block_definitions[ 1180 ].icon_texture = TEX_STRIPPED_CHERRY_LOG_SIDE;
-block_definitions[ 1180 ].icon_is_isometric = false;
 
 // STRIPPED_CRIMSON_HYPHAE (1181)
 block_definitions[ 1181 ].textures[ FACE_TOP ] = TEX_STRIPPED_CRIMSON_STEM_SIDE;
@@ -14681,7 +13788,6 @@ block_definitions[ 1181 ].textures[ FACE_FRONT ] = TEX_STRIPPED_CRIMSON_STEM_SID
 block_definitions[ 1181 ].textures[ FACE_LEFT ] = TEX_STRIPPED_CRIMSON_STEM_SIDE;
 block_definitions[ 1181 ].textures[ FACE_BACK ] = TEX_STRIPPED_CRIMSON_STEM_SIDE;
 block_definitions[ 1181 ].icon_texture = TEX_STRIPPED_CRIMSON_STEM_SIDE;
-block_definitions[ 1181 ].icon_is_isometric = false;
 
 // STRIPPED_CRIMSON_STEM (1182)
 block_definitions[ 1182 ].textures[ FACE_TOP ] = TEX_STRIPPED_CRIMSON_STEM_TOP;
@@ -14690,8 +13796,7 @@ block_definitions[ 1182 ].textures[ FACE_RIGHT ] = TEX_STRIPPED_CRIMSON_STEM_SID
 block_definitions[ 1182 ].textures[ FACE_FRONT ] = TEX_STRIPPED_CRIMSON_STEM_SIDE;
 block_definitions[ 1182 ].textures[ FACE_LEFT ] = TEX_STRIPPED_CRIMSON_STEM_SIDE;
 block_definitions[ 1182 ].textures[ FACE_BACK ] = TEX_STRIPPED_CRIMSON_STEM_SIDE;
-block_definitions[ 1182 ].icon_texture = TEX_STRIPPED_CRIMSON_STEM_SIDE;
-block_definitions[ 1182 ].icon_is_isometric = false;
+block_definitions[ 1182 ].icon_texture = TEX_STRIPPED_CRIMSON_STEM_TOP;
 
 // STRIPPED_DARK_OAK_LOG (1183)
 block_definitions[ 1183 ].textures[ FACE_TOP ] = TEX_STRIPPED_DARK_OAK_LOG_TOP;
@@ -14700,8 +13805,7 @@ block_definitions[ 1183 ].textures[ FACE_RIGHT ] = TEX_STRIPPED_DARK_OAK_LOG;
 block_definitions[ 1183 ].textures[ FACE_FRONT ] = TEX_STRIPPED_DARK_OAK_LOG;
 block_definitions[ 1183 ].textures[ FACE_LEFT ] = TEX_STRIPPED_DARK_OAK_LOG;
 block_definitions[ 1183 ].textures[ FACE_BACK ] = TEX_STRIPPED_DARK_OAK_LOG;
-block_definitions[ 1183 ].icon_texture = TEX_STRIPPED_DARK_OAK_LOG;
-block_definitions[ 1183 ].icon_is_isometric = false;
+block_definitions[ 1183 ].icon_texture = TEX_STRIPPED_DARK_OAK_LOG_TOP;
 
 // STRIPPED_DARK_OAK_WOOD (1184)
 block_definitions[ 1184 ].textures[ FACE_TOP ] = TEX_STRIPPED_DARK_OAK_LOG;
@@ -14711,7 +13815,6 @@ block_definitions[ 1184 ].textures[ FACE_FRONT ] = TEX_STRIPPED_DARK_OAK_LOG;
 block_definitions[ 1184 ].textures[ FACE_LEFT ] = TEX_STRIPPED_DARK_OAK_LOG;
 block_definitions[ 1184 ].textures[ FACE_BACK ] = TEX_STRIPPED_DARK_OAK_LOG;
 block_definitions[ 1184 ].icon_texture = TEX_STRIPPED_DARK_OAK_LOG;
-block_definitions[ 1184 ].icon_is_isometric = false;
 
 // STRIPPED_JUNGLE_LOG (1185)
 block_definitions[ 1185 ].textures[ FACE_TOP ] = TEX_STRIPPED_JUNGLE_LOG_TOP;
@@ -14720,8 +13823,7 @@ block_definitions[ 1185 ].textures[ FACE_RIGHT ] = TEX_STRIPPED_JUNGLE_LOG;
 block_definitions[ 1185 ].textures[ FACE_FRONT ] = TEX_STRIPPED_JUNGLE_LOG;
 block_definitions[ 1185 ].textures[ FACE_LEFT ] = TEX_STRIPPED_JUNGLE_LOG;
 block_definitions[ 1185 ].textures[ FACE_BACK ] = TEX_STRIPPED_JUNGLE_LOG;
-block_definitions[ 1185 ].icon_texture = TEX_STRIPPED_JUNGLE_LOG;
-block_definitions[ 1185 ].icon_is_isometric = false;
+block_definitions[ 1185 ].icon_texture = TEX_STRIPPED_JUNGLE_LOG_TOP;
 
 // STRIPPED_JUNGLE_WOOD (1186)
 block_definitions[ 1186 ].textures[ FACE_TOP ] = TEX_STRIPPED_JUNGLE_LOG;
@@ -14731,7 +13833,6 @@ block_definitions[ 1186 ].textures[ FACE_FRONT ] = TEX_STRIPPED_JUNGLE_LOG;
 block_definitions[ 1186 ].textures[ FACE_LEFT ] = TEX_STRIPPED_JUNGLE_LOG;
 block_definitions[ 1186 ].textures[ FACE_BACK ] = TEX_STRIPPED_JUNGLE_LOG;
 block_definitions[ 1186 ].icon_texture = TEX_STRIPPED_JUNGLE_LOG;
-block_definitions[ 1186 ].icon_is_isometric = false;
 
 // STRIPPED_MANGROVE_LOG (1187)
 block_definitions[ 1187 ].textures[ FACE_TOP ] = TEX_STRIPPED_MANGROVE_LOG_TOP;
@@ -14740,8 +13841,7 @@ block_definitions[ 1187 ].textures[ FACE_RIGHT ] = TEX_STRIPPED_MANGROVE_LOG_SID
 block_definitions[ 1187 ].textures[ FACE_FRONT ] = TEX_STRIPPED_MANGROVE_LOG_SIDE;
 block_definitions[ 1187 ].textures[ FACE_LEFT ] = TEX_STRIPPED_MANGROVE_LOG_SIDE;
 block_definitions[ 1187 ].textures[ FACE_BACK ] = TEX_STRIPPED_MANGROVE_LOG_SIDE;
-block_definitions[ 1187 ].icon_texture = TEX_STRIPPED_MANGROVE_LOG_SIDE;
-block_definitions[ 1187 ].icon_is_isometric = false;
+block_definitions[ 1187 ].icon_texture = TEX_STRIPPED_MANGROVE_LOG_TOP;
 
 // STRIPPED_MANGROVE_WOOD (1188)
 block_definitions[ 1188 ].textures[ FACE_TOP ] = TEX_STRIPPED_MANGROVE_LOG_SIDE;
@@ -14751,7 +13851,6 @@ block_definitions[ 1188 ].textures[ FACE_FRONT ] = TEX_STRIPPED_MANGROVE_LOG_SID
 block_definitions[ 1188 ].textures[ FACE_LEFT ] = TEX_STRIPPED_MANGROVE_LOG_SIDE;
 block_definitions[ 1188 ].textures[ FACE_BACK ] = TEX_STRIPPED_MANGROVE_LOG_SIDE;
 block_definitions[ 1188 ].icon_texture = TEX_STRIPPED_MANGROVE_LOG_SIDE;
-block_definitions[ 1188 ].icon_is_isometric = false;
 
 // STRIPPED_OAK_LOG (1189)
 block_definitions[ 1189 ].textures[ FACE_TOP ] = TEX_STRIPPED_OAK_LOG_TOP;
@@ -14760,8 +13859,7 @@ block_definitions[ 1189 ].textures[ FACE_RIGHT ] = TEX_STRIPPED_OAK_LOG;
 block_definitions[ 1189 ].textures[ FACE_FRONT ] = TEX_STRIPPED_OAK_LOG;
 block_definitions[ 1189 ].textures[ FACE_LEFT ] = TEX_STRIPPED_OAK_LOG;
 block_definitions[ 1189 ].textures[ FACE_BACK ] = TEX_STRIPPED_OAK_LOG;
-block_definitions[ 1189 ].icon_texture = TEX_STRIPPED_OAK_LOG;
-block_definitions[ 1189 ].icon_is_isometric = false;
+block_definitions[ 1189 ].icon_texture = TEX_STRIPPED_OAK_LOG_TOP;
 
 // STRIPPED_OAK_WOOD (1190)
 block_definitions[ 1190 ].textures[ FACE_TOP ] = TEX_STRIPPED_OAK_LOG;
@@ -14771,7 +13869,6 @@ block_definitions[ 1190 ].textures[ FACE_FRONT ] = TEX_STRIPPED_OAK_LOG;
 block_definitions[ 1190 ].textures[ FACE_LEFT ] = TEX_STRIPPED_OAK_LOG;
 block_definitions[ 1190 ].textures[ FACE_BACK ] = TEX_STRIPPED_OAK_LOG;
 block_definitions[ 1190 ].icon_texture = TEX_STRIPPED_OAK_LOG;
-block_definitions[ 1190 ].icon_is_isometric = false;
 
 // STRIPPED_PALE_OAK_LOG (1191)
 block_definitions[ 1191 ].textures[ FACE_TOP ] = TEX_STRIPPED_PALE_OAK_LOG_TOP;
@@ -14780,8 +13877,7 @@ block_definitions[ 1191 ].textures[ FACE_RIGHT ] = TEX_STRIPPED_PALE_OAK_LOG_SID
 block_definitions[ 1191 ].textures[ FACE_FRONT ] = TEX_STRIPPED_PALE_OAK_LOG_SIDE;
 block_definitions[ 1191 ].textures[ FACE_LEFT ] = TEX_STRIPPED_PALE_OAK_LOG_SIDE;
 block_definitions[ 1191 ].textures[ FACE_BACK ] = TEX_STRIPPED_PALE_OAK_LOG_SIDE;
-block_definitions[ 1191 ].icon_texture = TEX_STRIPPED_PALE_OAK_LOG_SIDE;
-block_definitions[ 1191 ].icon_is_isometric = false;
+block_definitions[ 1191 ].icon_texture = TEX_STRIPPED_PALE_OAK_LOG_TOP;
 
 // STRIPPED_PALE_OAK_WOOD (1192)
 block_definitions[ 1192 ].textures[ FACE_TOP ] = TEX_STRIPPED_PALE_OAK_LOG_SIDE;
@@ -14791,7 +13887,6 @@ block_definitions[ 1192 ].textures[ FACE_FRONT ] = TEX_STRIPPED_PALE_OAK_LOG_SID
 block_definitions[ 1192 ].textures[ FACE_LEFT ] = TEX_STRIPPED_PALE_OAK_LOG_SIDE;
 block_definitions[ 1192 ].textures[ FACE_BACK ] = TEX_STRIPPED_PALE_OAK_LOG_SIDE;
 block_definitions[ 1192 ].icon_texture = TEX_STRIPPED_PALE_OAK_LOG_SIDE;
-block_definitions[ 1192 ].icon_is_isometric = false;
 
 // STRIPPED_POPLAR_LOG (1193)
 block_definitions[ 1193 ].textures[ FACE_TOP ] = TEX_STRIPPED_POPLAR_LOG_TOP;
@@ -14800,8 +13895,7 @@ block_definitions[ 1193 ].textures[ FACE_RIGHT ] = TEX_STRIPPED_POPLAR_LOG_SIDE;
 block_definitions[ 1193 ].textures[ FACE_FRONT ] = TEX_STRIPPED_POPLAR_LOG_SIDE;
 block_definitions[ 1193 ].textures[ FACE_LEFT ] = TEX_STRIPPED_POPLAR_LOG_SIDE;
 block_definitions[ 1193 ].textures[ FACE_BACK ] = TEX_STRIPPED_POPLAR_LOG_SIDE;
-block_definitions[ 1193 ].icon_texture = TEX_STRIPPED_POPLAR_LOG_SIDE;
-block_definitions[ 1193 ].icon_is_isometric = false;
+block_definitions[ 1193 ].icon_texture = TEX_STRIPPED_POPLAR_LOG_TOP;
 
 // STRIPPED_POPLAR_WOOD (1194)
 block_definitions[ 1194 ].textures[ FACE_TOP ] = TEX_STRIPPED_POPLAR_LOG_SIDE;
@@ -14811,7 +13905,6 @@ block_definitions[ 1194 ].textures[ FACE_FRONT ] = TEX_STRIPPED_POPLAR_LOG_SIDE;
 block_definitions[ 1194 ].textures[ FACE_LEFT ] = TEX_STRIPPED_POPLAR_LOG_SIDE;
 block_definitions[ 1194 ].textures[ FACE_BACK ] = TEX_STRIPPED_POPLAR_LOG_SIDE;
 block_definitions[ 1194 ].icon_texture = TEX_STRIPPED_POPLAR_LOG_SIDE;
-block_definitions[ 1194 ].icon_is_isometric = false;
 
 // STRIPPED_SPRUCE_LOG (1195)
 block_definitions[ 1195 ].textures[ FACE_TOP ] = TEX_STRIPPED_SPRUCE_LOG_TOP;
@@ -14820,8 +13913,7 @@ block_definitions[ 1195 ].textures[ FACE_RIGHT ] = TEX_STRIPPED_SPRUCE_LOG;
 block_definitions[ 1195 ].textures[ FACE_FRONT ] = TEX_STRIPPED_SPRUCE_LOG;
 block_definitions[ 1195 ].textures[ FACE_LEFT ] = TEX_STRIPPED_SPRUCE_LOG;
 block_definitions[ 1195 ].textures[ FACE_BACK ] = TEX_STRIPPED_SPRUCE_LOG;
-block_definitions[ 1195 ].icon_texture = TEX_STRIPPED_SPRUCE_LOG;
-block_definitions[ 1195 ].icon_is_isometric = false;
+block_definitions[ 1195 ].icon_texture = TEX_STRIPPED_SPRUCE_LOG_TOP;
 
 // STRIPPED_SPRUCE_WOOD (1196)
 block_definitions[ 1196 ].textures[ FACE_TOP ] = TEX_STRIPPED_SPRUCE_LOG;
@@ -14831,7 +13923,6 @@ block_definitions[ 1196 ].textures[ FACE_FRONT ] = TEX_STRIPPED_SPRUCE_LOG;
 block_definitions[ 1196 ].textures[ FACE_LEFT ] = TEX_STRIPPED_SPRUCE_LOG;
 block_definitions[ 1196 ].textures[ FACE_BACK ] = TEX_STRIPPED_SPRUCE_LOG;
 block_definitions[ 1196 ].icon_texture = TEX_STRIPPED_SPRUCE_LOG;
-block_definitions[ 1196 ].icon_is_isometric = false;
 
 // STRIPPED_WARPED_HYPHAE (1197)
 block_definitions[ 1197 ].textures[ FACE_TOP ] = TEX_STRIPPED_WARPED_STEM_SIDE;
@@ -14841,7 +13932,6 @@ block_definitions[ 1197 ].textures[ FACE_FRONT ] = TEX_STRIPPED_WARPED_STEM_SIDE
 block_definitions[ 1197 ].textures[ FACE_LEFT ] = TEX_STRIPPED_WARPED_STEM_SIDE;
 block_definitions[ 1197 ].textures[ FACE_BACK ] = TEX_STRIPPED_WARPED_STEM_SIDE;
 block_definitions[ 1197 ].icon_texture = TEX_STRIPPED_WARPED_STEM_SIDE;
-block_definitions[ 1197 ].icon_is_isometric = false;
 
 // STRIPPED_WARPED_STEM (1198)
 block_definitions[ 1198 ].textures[ FACE_TOP ] = TEX_STRIPPED_WARPED_STEM_TOP;
@@ -14850,8 +13940,7 @@ block_definitions[ 1198 ].textures[ FACE_RIGHT ] = TEX_STRIPPED_WARPED_STEM_SIDE
 block_definitions[ 1198 ].textures[ FACE_FRONT ] = TEX_STRIPPED_WARPED_STEM_SIDE;
 block_definitions[ 1198 ].textures[ FACE_LEFT ] = TEX_STRIPPED_WARPED_STEM_SIDE;
 block_definitions[ 1198 ].textures[ FACE_BACK ] = TEX_STRIPPED_WARPED_STEM_SIDE;
-block_definitions[ 1198 ].icon_texture = TEX_STRIPPED_WARPED_STEM_SIDE;
-block_definitions[ 1198 ].icon_is_isometric = false;
+block_definitions[ 1198 ].icon_texture = TEX_STRIPPED_WARPED_STEM_TOP;
 
 // STRUCTURE_BLOCK (1199)
 block_definitions[ 1199 ].textures[ FACE_TOP ] = TEX_STRUCTURE_BLOCK;
@@ -14861,7 +13950,6 @@ block_definitions[ 1199 ].textures[ FACE_FRONT ] = TEX_STRUCTURE_BLOCK;
 block_definitions[ 1199 ].textures[ FACE_LEFT ] = TEX_STRUCTURE_BLOCK;
 block_definitions[ 1199 ].textures[ FACE_BACK ] = TEX_STRUCTURE_BLOCK;
 block_definitions[ 1199 ].icon_texture = TEX_STRUCTURE_BLOCK;
-block_definitions[ 1199 ].icon_is_isometric = false;
 
 // STRUCTURE_VOID (1200)
 block_definitions[ 1200 ].textures[ FACE_TOP ] = TEX_STRUCTURE_VOID;
@@ -14874,7 +13962,6 @@ block_definitions[ 1200 ].icon_texture = TEX_STRUCTURE_VOID;
 block_definitions[ 1200 ].affected_by_redstone_power = false;
 block_definitions[ 1200 ].casts_shadow = false;
 block_definitions[ 1200 ].hardness = 0.449999988f;
-block_definitions[ 1200 ].icon_is_isometric = false;
 block_definitions[ 1200 ].is_seethrough = true;
 block_definitions[ 1200 ].renderOrder = RenderOrder_Translucent;
 
@@ -14886,7 +13973,6 @@ block_definitions[ 1201 ].textures[ FACE_FRONT ] = TEX_SULFUR;
 block_definitions[ 1201 ].textures[ FACE_LEFT ] = TEX_SULFUR;
 block_definitions[ 1201 ].textures[ FACE_BACK ] = TEX_SULFUR;
 block_definitions[ 1201 ].icon_texture = TEX_SULFUR;
-block_definitions[ 1201 ].icon_is_isometric = false;
 
 // SULFUR_BRICK_DOUBLE_SLAB (1202)
 block_definitions[ 1202 ].textures[ FACE_TOP ] = TEX_SULFUR_BRICKS;
@@ -14896,7 +13982,6 @@ block_definitions[ 1202 ].textures[ FACE_FRONT ] = TEX_SULFUR_BRICKS;
 block_definitions[ 1202 ].textures[ FACE_LEFT ] = TEX_SULFUR_BRICKS;
 block_definitions[ 1202 ].textures[ FACE_BACK ] = TEX_SULFUR_BRICKS;
 block_definitions[ 1202 ].icon_texture = TEX_SULFUR_BRICKS;
-block_definitions[ 1202 ].icon_is_isometric = false;
 
 // SULFUR_BRICK_SLAB (1203)
 block_definitions[ 1203 ].textures[ FACE_TOP ] = TEX_SULFUR_BRICKS;
@@ -14906,7 +13991,6 @@ block_definitions[ 1203 ].textures[ FACE_FRONT ] = TEX_SULFUR_BRICKS;
 block_definitions[ 1203 ].textures[ FACE_LEFT ] = TEX_SULFUR_BRICKS;
 block_definitions[ 1203 ].textures[ FACE_BACK ] = TEX_SULFUR_BRICKS;
 block_definitions[ 1203 ].icon_texture = TEX_SULFUR_BRICKS;
-block_definitions[ 1203 ].icon_is_isometric = false;
 
 // SULFUR_BRICK_STAIRS (1204)
 block_definitions[ 1204 ].textures[ FACE_TOP ] = TEX_SULFUR_BRICKS;
@@ -14916,7 +14000,6 @@ block_definitions[ 1204 ].textures[ FACE_FRONT ] = TEX_SULFUR_BRICKS;
 block_definitions[ 1204 ].textures[ FACE_LEFT ] = TEX_SULFUR_BRICKS;
 block_definitions[ 1204 ].textures[ FACE_BACK ] = TEX_SULFUR_BRICKS;
 block_definitions[ 1204 ].icon_texture = TEX_SULFUR_BRICKS;
-block_definitions[ 1204 ].icon_is_isometric = false;
 
 // SULFUR_BRICK_WALL (1205)
 block_definitions[ 1205 ].textures[ FACE_TOP ] = TEX_SULFUR_BRICKS;
@@ -14926,7 +14009,6 @@ block_definitions[ 1205 ].textures[ FACE_FRONT ] = TEX_SULFUR_BRICKS;
 block_definitions[ 1205 ].textures[ FACE_LEFT ] = TEX_SULFUR_BRICKS;
 block_definitions[ 1205 ].textures[ FACE_BACK ] = TEX_SULFUR_BRICKS;
 block_definitions[ 1205 ].icon_texture = TEX_SULFUR_BRICKS;
-block_definitions[ 1205 ].icon_is_isometric = false;
 
 // SULFUR_BRICKS (1206)
 block_definitions[ 1206 ].textures[ FACE_TOP ] = TEX_SULFUR_BRICKS;
@@ -14936,7 +14018,6 @@ block_definitions[ 1206 ].textures[ FACE_FRONT ] = TEX_SULFUR_BRICKS;
 block_definitions[ 1206 ].textures[ FACE_LEFT ] = TEX_SULFUR_BRICKS;
 block_definitions[ 1206 ].textures[ FACE_BACK ] = TEX_SULFUR_BRICKS;
 block_definitions[ 1206 ].icon_texture = TEX_SULFUR_BRICKS;
-block_definitions[ 1206 ].icon_is_isometric = false;
 
 // SULFUR_DOUBLE_SLAB (1207)
 block_definitions[ 1207 ].textures[ FACE_TOP ] = TEX_SULFUR;
@@ -14946,7 +14027,6 @@ block_definitions[ 1207 ].textures[ FACE_FRONT ] = TEX_SULFUR;
 block_definitions[ 1207 ].textures[ FACE_LEFT ] = TEX_SULFUR;
 block_definitions[ 1207 ].textures[ FACE_BACK ] = TEX_SULFUR;
 block_definitions[ 1207 ].icon_texture = TEX_SULFUR;
-block_definitions[ 1207 ].icon_is_isometric = false;
 
 // SULFUR_SLAB (1208)
 block_definitions[ 1208 ].textures[ FACE_TOP ] = TEX_SULFUR;
@@ -14956,7 +14036,6 @@ block_definitions[ 1208 ].textures[ FACE_FRONT ] = TEX_SULFUR;
 block_definitions[ 1208 ].textures[ FACE_LEFT ] = TEX_SULFUR;
 block_definitions[ 1208 ].textures[ FACE_BACK ] = TEX_SULFUR;
 block_definitions[ 1208 ].icon_texture = TEX_SULFUR;
-block_definitions[ 1208 ].icon_is_isometric = false;
 
 // SULFUR_SPIKE (1209)
 block_definitions[ 1209 ].textures[ FACE_TOP ] = TEX_SULFUR_SPIKE_DOWN_BASE;
@@ -14968,7 +14047,6 @@ block_definitions[ 1209 ].textures[ FACE_BACK ] = TEX_SULFUR_SPIKE_DOWN_TIP;
 block_definitions[ 1209 ].icon_texture = TEX_SULFUR_SPIKE_DOWN_BASE;
 block_definitions[ 1209 ].casts_shadow = false;
 block_definitions[ 1209 ].hardness = 0.35f;
-block_definitions[ 1209 ].icon_is_isometric = false;
 block_definitions[ 1209 ].is_seethrough = true;
 block_definitions[ 1209 ].no_light = 6815743;
 
@@ -14980,7 +14058,6 @@ block_definitions[ 1210 ].textures[ FACE_FRONT ] = TEX_SULFUR;
 block_definitions[ 1210 ].textures[ FACE_LEFT ] = TEX_SULFUR;
 block_definitions[ 1210 ].textures[ FACE_BACK ] = TEX_SULFUR;
 block_definitions[ 1210 ].icon_texture = TEX_SULFUR;
-block_definitions[ 1210 ].icon_is_isometric = false;
 
 // SULFUR_WALL (1211)
 block_definitions[ 1211 ].textures[ FACE_TOP ] = TEX_SULFUR;
@@ -14990,7 +14067,6 @@ block_definitions[ 1211 ].textures[ FACE_FRONT ] = TEX_SULFUR;
 block_definitions[ 1211 ].textures[ FACE_LEFT ] = TEX_SULFUR;
 block_definitions[ 1211 ].textures[ FACE_BACK ] = TEX_SULFUR;
 block_definitions[ 1211 ].icon_texture = TEX_SULFUR;
-block_definitions[ 1211 ].icon_is_isometric = false;
 
 // SUSPICIOUS_GRAVEL (1212)
 block_definitions[ 1212 ].textures[ FACE_TOP ] = TEX_SUSPICIOUS_GRAVEL_0;
@@ -15000,7 +14076,6 @@ block_definitions[ 1212 ].textures[ FACE_FRONT ] = TEX_SUSPICIOUS_GRAVEL_0;
 block_definitions[ 1212 ].textures[ FACE_LEFT ] = TEX_SUSPICIOUS_GRAVEL_0;
 block_definitions[ 1212 ].textures[ FACE_BACK ] = TEX_SUSPICIOUS_GRAVEL_0;
 block_definitions[ 1212 ].icon_texture = TEX_SUSPICIOUS_GRAVEL_0;
-block_definitions[ 1212 ].icon_is_isometric = false;
 
 // SUSPICIOUS_SAND (1213)
 block_definitions[ 1213 ].textures[ FACE_TOP ] = TEX_SUSPICIOUS_SAND_0;
@@ -15010,7 +14085,6 @@ block_definitions[ 1213 ].textures[ FACE_FRONT ] = TEX_SUSPICIOUS_SAND_0;
 block_definitions[ 1213 ].textures[ FACE_LEFT ] = TEX_SUSPICIOUS_SAND_0;
 block_definitions[ 1213 ].textures[ FACE_BACK ] = TEX_SUSPICIOUS_SAND_0;
 block_definitions[ 1213 ].icon_texture = TEX_SUSPICIOUS_SAND_0;
-block_definitions[ 1213 ].icon_is_isometric = false;
 
 // SWEET_BERRY_BUSH (1214)
 block_definitions[ 1214 ].textures[ FACE_TOP ] = TEX_AIR;
@@ -15107,8 +14181,7 @@ block_definitions[ 1218 ].textures[ FACE_RIGHT ] = TEX_TARGET_SIDE;
 block_definitions[ 1218 ].textures[ FACE_FRONT ] = TEX_TARGET_SIDE;
 block_definitions[ 1218 ].textures[ FACE_LEFT ] = TEX_TARGET_SIDE;
 block_definitions[ 1218 ].textures[ FACE_BACK ] = TEX_TARGET_SIDE;
-block_definitions[ 1218 ].icon_texture = TEX_TARGET_SIDE;
-block_definitions[ 1218 ].icon_is_isometric = false;
+block_definitions[ 1218 ].icon_texture = TEX_TARGET_TOP;
 
 // TINTED_GLASS (1219)
 block_definitions[ 1219 ].textures[ FACE_TOP ] = TEX_TINTED_GLASS;
@@ -15121,7 +14194,6 @@ block_definitions[ 1219 ].icon_texture = TEX_TINTED_GLASS;
 block_definitions[ 1219 ].affected_by_redstone_power = false;
 block_definitions[ 1219 ].casts_shadow = false;
 block_definitions[ 1219 ].hardness = 0.449999988f;
-block_definitions[ 1219 ].icon_is_isometric = false;
 block_definitions[ 1219 ].is_seethrough = true;
 block_definitions[ 1219 ].renderOrder = RenderOrder_Translucent;
 
@@ -15386,7 +14458,6 @@ block_definitions[ 1234 ].textures[ FACE_BACK ] = TEX_TRAPDOOR;
 block_definitions[ 1234 ].icon_texture = TEX_TRAPDOOR;
 block_definitions[ 1234 ].casts_shadow = false;
 block_definitions[ 1234 ].hardness = 0.35f;
-block_definitions[ 1234 ].icon_is_isometric = false;
 block_definitions[ 1234 ].is_seethrough = true;
 block_definitions[ 1234 ].no_light = 6815743;
 
@@ -15398,7 +14469,6 @@ block_definitions[ 1235 ].textures[ FACE_FRONT ] = TEX_TRAPPED_CHEST_FRONT;
 block_definitions[ 1235 ].textures[ FACE_LEFT ] = TEX_CHEST_SIDE;
 block_definitions[ 1235 ].textures[ FACE_BACK ] = TEX_CHEST_SIDE;
 block_definitions[ 1235 ].icon_texture = TEX_CHEST_TOP;
-block_definitions[ 1235 ].icon_is_isometric = false;
 
 // TRIAL_SPAWNER (1236)
 block_definitions[ 1236 ].textures[ FACE_TOP ] = TEX_TRIAL_SPAWNER_TOP_INACTIVE;
@@ -15407,10 +14477,9 @@ block_definitions[ 1236 ].textures[ FACE_RIGHT ] = TEX_TRIAL_SPAWNER_SIDE_INACTI
 block_definitions[ 1236 ].textures[ FACE_FRONT ] = TEX_TRIAL_SPAWNER_SIDE_INACTIVE;
 block_definitions[ 1236 ].textures[ FACE_LEFT ] = TEX_TRIAL_SPAWNER_SIDE_INACTIVE;
 block_definitions[ 1236 ].textures[ FACE_BACK ] = TEX_TRIAL_SPAWNER_SIDE_INACTIVE;
-block_definitions[ 1236 ].icon_texture = TEX_TRIAL_SPAWNER_SIDE_INACTIVE;
+block_definitions[ 1236 ].icon_texture = TEX_TRIAL_SPAWNER_TOP_INACTIVE;
 block_definitions[ 1236 ].casts_shadow = false;
 block_definitions[ 1236 ].hardness = 0.35f;
-block_definitions[ 1236 ].icon_is_isometric = false;
 block_definitions[ 1236 ].is_seethrough = true;
 block_definitions[ 1236 ].no_light = 6815743;
 
@@ -15424,7 +14493,6 @@ block_definitions[ 1237 ].textures[ FACE_BACK ] = TEX_TRIP_WIRE;
 block_definitions[ 1237 ].icon_texture = TEX_TRIP_WIRE;
 block_definitions[ 1237 ].casts_shadow = false;
 block_definitions[ 1237 ].hardness = 0.35f;
-block_definitions[ 1237 ].icon_is_isometric = false;
 block_definitions[ 1237 ].is_seethrough = true;
 block_definitions[ 1237 ].no_light = 6815743;
 
@@ -15438,7 +14506,6 @@ block_definitions[ 1238 ].textures[ FACE_BACK ] = TEX_TRIP_WIRE_SOURCE;
 block_definitions[ 1238 ].icon_texture = TEX_TRIP_WIRE_SOURCE;
 block_definitions[ 1238 ].casts_shadow = false;
 block_definitions[ 1238 ].hardness = 0.35f;
-block_definitions[ 1238 ].icon_is_isometric = false;
 block_definitions[ 1238 ].is_seethrough = true;
 block_definitions[ 1238 ].no_light = 6815743;
 
@@ -15450,7 +14517,6 @@ block_definitions[ 1239 ].textures[ FACE_FRONT ] = TEX_CORAL_BLUE;
 block_definitions[ 1239 ].textures[ FACE_LEFT ] = TEX_CORAL_BLUE;
 block_definitions[ 1239 ].textures[ FACE_BACK ] = TEX_CORAL_BLUE;
 block_definitions[ 1239 ].icon_texture = TEX_CORAL_BLUE;
-block_definitions[ 1239 ].icon_is_isometric = false;
 
 // TUBE_CORAL_WALL_FAN (1240)
 block_definitions[ 1240 ].textures[ FACE_TOP ] = TEX_CORAL_FAN_BLUE;
@@ -15462,7 +14528,6 @@ block_definitions[ 1240 ].textures[ FACE_BACK ] = TEX_CORAL_FAN_BLUE;
 block_definitions[ 1240 ].icon_texture = TEX_CORAL_FAN_BLUE;
 block_definitions[ 1240 ].casts_shadow = false;
 block_definitions[ 1240 ].hardness = 0.35f;
-block_definitions[ 1240 ].icon_is_isometric = false;
 block_definitions[ 1240 ].is_seethrough = true;
 block_definitions[ 1240 ].no_light = 6815743;
 
@@ -15474,7 +14539,6 @@ block_definitions[ 1241 ].textures[ FACE_FRONT ] = TEX_TUFF;
 block_definitions[ 1241 ].textures[ FACE_LEFT ] = TEX_TUFF;
 block_definitions[ 1241 ].textures[ FACE_BACK ] = TEX_TUFF;
 block_definitions[ 1241 ].icon_texture = TEX_TUFF;
-block_definitions[ 1241 ].icon_is_isometric = false;
 
 // TUFF_BRICK_DOUBLE_SLAB (1242)
 block_definitions[ 1242 ].textures[ FACE_TOP ] = TEX_TUFF_BRICKS;
@@ -15484,7 +14548,6 @@ block_definitions[ 1242 ].textures[ FACE_FRONT ] = TEX_TUFF_BRICKS;
 block_definitions[ 1242 ].textures[ FACE_LEFT ] = TEX_TUFF_BRICKS;
 block_definitions[ 1242 ].textures[ FACE_BACK ] = TEX_TUFF_BRICKS;
 block_definitions[ 1242 ].icon_texture = TEX_TUFF_BRICKS;
-block_definitions[ 1242 ].icon_is_isometric = false;
 
 // TUFF_BRICK_SLAB (1243)
 block_definitions[ 1243 ].textures[ FACE_TOP ] = TEX_TUFF_BRICKS;
@@ -15494,7 +14557,6 @@ block_definitions[ 1243 ].textures[ FACE_FRONT ] = TEX_TUFF_BRICKS;
 block_definitions[ 1243 ].textures[ FACE_LEFT ] = TEX_TUFF_BRICKS;
 block_definitions[ 1243 ].textures[ FACE_BACK ] = TEX_TUFF_BRICKS;
 block_definitions[ 1243 ].icon_texture = TEX_TUFF_BRICKS;
-block_definitions[ 1243 ].icon_is_isometric = false;
 
 // REDSTONE_WIRE_L_Q4_UNPOWERED (1244)
 block_definitions[ 1244 ].textures[ FACE_TOP ] = TEX_REDSTONE_WIRE_L_Q4_UNPOWERED;
@@ -15588,7 +14650,6 @@ block_definitions[ 1248 ].textures[ FACE_FRONT ] = TEX_TUFF_BRICKS;
 block_definitions[ 1248 ].textures[ FACE_LEFT ] = TEX_TUFF_BRICKS;
 block_definitions[ 1248 ].textures[ FACE_BACK ] = TEX_TUFF_BRICKS;
 block_definitions[ 1248 ].icon_texture = TEX_TUFF_BRICKS;
-block_definitions[ 1248 ].icon_is_isometric = false;
 
 // undefined (1249)
 block_definitions[ 1249 ].textures[ FACE_TOP ] = TEX_AIR;
@@ -15608,7 +14669,6 @@ block_definitions[ 1250 ].textures[ FACE_FRONT ] = TEX_TUFF_BRICKS;
 block_definitions[ 1250 ].textures[ FACE_LEFT ] = TEX_TUFF_BRICKS;
 block_definitions[ 1250 ].textures[ FACE_BACK ] = TEX_TUFF_BRICKS;
 block_definitions[ 1250 ].icon_texture = TEX_TUFF_BRICKS;
-block_definitions[ 1250 ].icon_is_isometric = false;
 
 // TUFF_BRICKS (1251)
 block_definitions[ 1251 ].textures[ FACE_TOP ] = TEX_TUFF_BRICKS;
@@ -15618,7 +14678,6 @@ block_definitions[ 1251 ].textures[ FACE_FRONT ] = TEX_TUFF_BRICKS;
 block_definitions[ 1251 ].textures[ FACE_LEFT ] = TEX_TUFF_BRICKS;
 block_definitions[ 1251 ].textures[ FACE_BACK ] = TEX_TUFF_BRICKS;
 block_definitions[ 1251 ].icon_texture = TEX_TUFF_BRICKS;
-block_definitions[ 1251 ].icon_is_isometric = false;
 
 // TUFF_DOUBLE_SLAB (1252)
 block_definitions[ 1252 ].textures[ FACE_TOP ] = TEX_TUFF;
@@ -15628,7 +14687,6 @@ block_definitions[ 1252 ].textures[ FACE_FRONT ] = TEX_TUFF;
 block_definitions[ 1252 ].textures[ FACE_LEFT ] = TEX_TUFF;
 block_definitions[ 1252 ].textures[ FACE_BACK ] = TEX_TUFF;
 block_definitions[ 1252 ].icon_texture = TEX_TUFF;
-block_definitions[ 1252 ].icon_is_isometric = false;
 
 // TUFF_SLAB (1253)
 block_definitions[ 1253 ].textures[ FACE_TOP ] = TEX_TUFF;
@@ -15638,7 +14696,6 @@ block_definitions[ 1253 ].textures[ FACE_FRONT ] = TEX_TUFF;
 block_definitions[ 1253 ].textures[ FACE_LEFT ] = TEX_TUFF;
 block_definitions[ 1253 ].textures[ FACE_BACK ] = TEX_TUFF;
 block_definitions[ 1253 ].icon_texture = TEX_TUFF;
-block_definitions[ 1253 ].icon_is_isometric = false;
 
 // TUFF_STAIRS (1254)
 block_definitions[ 1254 ].textures[ FACE_TOP ] = TEX_TUFF;
@@ -15648,7 +14705,6 @@ block_definitions[ 1254 ].textures[ FACE_FRONT ] = TEX_TUFF;
 block_definitions[ 1254 ].textures[ FACE_LEFT ] = TEX_TUFF;
 block_definitions[ 1254 ].textures[ FACE_BACK ] = TEX_TUFF;
 block_definitions[ 1254 ].icon_texture = TEX_TUFF;
-block_definitions[ 1254 ].icon_is_isometric = false;
 
 // TUFF_WALL (1255)
 block_definitions[ 1255 ].textures[ FACE_TOP ] = TEX_TUFF;
@@ -15658,7 +14714,6 @@ block_definitions[ 1255 ].textures[ FACE_FRONT ] = TEX_TUFF;
 block_definitions[ 1255 ].textures[ FACE_LEFT ] = TEX_TUFF;
 block_definitions[ 1255 ].textures[ FACE_BACK ] = TEX_TUFF;
 block_definitions[ 1255 ].icon_texture = TEX_TUFF;
-block_definitions[ 1255 ].icon_is_isometric = false;
 
 // TWISTING_VINES (1256)
 block_definitions[ 1256 ].textures[ FACE_TOP ] = TEX_AIR;
@@ -15690,7 +14745,6 @@ block_definitions[ 1257 ].textures[ FACE_FRONT ] = TEX_SHULKER_TOP_UNDYED;
 block_definitions[ 1257 ].textures[ FACE_LEFT ] = TEX_SHULKER_TOP_UNDYED;
 block_definitions[ 1257 ].textures[ FACE_BACK ] = TEX_SHULKER_TOP_UNDYED;
 block_definitions[ 1257 ].icon_texture = TEX_SHULKER_TOP_UNDYED;
-block_definitions[ 1257 ].icon_is_isometric = false;
 
 // UNPOWERED_COMPARATOR (1258)
 block_definitions[ 1258 ].textures[ FACE_TOP ] = TEX_COMPARATOR_OFF;
@@ -15699,8 +14753,7 @@ block_definitions[ 1258 ].textures[ FACE_RIGHT ] = TEX_STONE_SLAB_TOP;
 block_definitions[ 1258 ].textures[ FACE_FRONT ] = TEX_STONE_SLAB_TOP;
 block_definitions[ 1258 ].textures[ FACE_LEFT ] = TEX_STONE_SLAB_TOP;
 block_definitions[ 1258 ].textures[ FACE_BACK ] = TEX_STONE_SLAB_TOP;
-block_definitions[ 1258 ].icon_texture = TEX_STONE_SLAB_TOP;
-block_definitions[ 1258 ].icon_is_isometric = false;
+block_definitions[ 1258 ].icon_texture = TEX_COMPARATOR_OFF;
 
 // UNPOWERED_REPEATER (1259)
 block_definitions[ 1259 ].textures[ FACE_TOP ] = TEX_REPEATER_OFF;
@@ -15709,8 +14762,7 @@ block_definitions[ 1259 ].textures[ FACE_RIGHT ] = TEX_STONE_SLAB_TOP;
 block_definitions[ 1259 ].textures[ FACE_FRONT ] = TEX_STONE_SLAB_TOP;
 block_definitions[ 1259 ].textures[ FACE_LEFT ] = TEX_STONE_SLAB_TOP;
 block_definitions[ 1259 ].textures[ FACE_BACK ] = TEX_STONE_SLAB_TOP;
-block_definitions[ 1259 ].icon_texture = TEX_STONE_SLAB_TOP;
-block_definitions[ 1259 ].icon_is_isometric = false;
+block_definitions[ 1259 ].icon_texture = TEX_REPEATER_OFF;
 
 // VAULT (1260)
 block_definitions[ 1260 ].textures[ FACE_TOP ] = TEX_VAULT_TOP;
@@ -15722,7 +14774,6 @@ block_definitions[ 1260 ].textures[ FACE_BACK ] = TEX_VAULT_FRONT_OFF;
 block_definitions[ 1260 ].icon_texture = TEX_VAULT_TOP;
 block_definitions[ 1260 ].casts_shadow = false;
 block_definitions[ 1260 ].hardness = 0.35f;
-block_definitions[ 1260 ].icon_is_isometric = false;
 block_definitions[ 1260 ].is_seethrough = true;
 block_definitions[ 1260 ].no_light = 6815743;
 
@@ -15733,9 +14784,8 @@ block_definitions[ 1261 ].textures[ FACE_RIGHT ] = TEX_VERDANT_FROGLIGHT_SIDE;
 block_definitions[ 1261 ].textures[ FACE_FRONT ] = TEX_VERDANT_FROGLIGHT_SIDE;
 block_definitions[ 1261 ].textures[ FACE_LEFT ] = TEX_VERDANT_FROGLIGHT_SIDE;
 block_definitions[ 1261 ].textures[ FACE_BACK ] = TEX_VERDANT_FROGLIGHT_SIDE;
-block_definitions[ 1261 ].icon_texture = TEX_VERDANT_FROGLIGHT_SIDE;
+block_definitions[ 1261 ].icon_texture = TEX_VERDANT_FROGLIGHT_TOP;
 block_definitions[ 1261 ].emits_light = 15;
-block_definitions[ 1261 ].icon_is_isometric = false;
 
 // VINE (1262)
 block_definitions[ 1262 ].textures[ FACE_TOP ] = TEX_VINE_CARRIED;
@@ -15747,7 +14797,6 @@ block_definitions[ 1262 ].textures[ FACE_BACK ] = TEX_VINE_CARRIED;
 block_definitions[ 1262 ].icon_texture = TEX_VINE_CARRIED;
 block_definitions[ 1262 ].casts_shadow = false;
 block_definitions[ 1262 ].hardness = 0.35f;
-block_definitions[ 1262 ].icon_is_isometric = false;
 block_definitions[ 1262 ].is_seethrough = true;
 block_definitions[ 1262 ].no_light = 6815743;
 
@@ -15759,7 +14808,6 @@ block_definitions[ 1263 ].textures[ FACE_FRONT ] = TEX_PLANKS_OAK;
 block_definitions[ 1263 ].textures[ FACE_LEFT ] = TEX_PLANKS_OAK;
 block_definitions[ 1263 ].textures[ FACE_BACK ] = TEX_PLANKS_OAK;
 block_definitions[ 1263 ].icon_texture = TEX_PLANKS_OAK;
-block_definitions[ 1263 ].icon_is_isometric = false;
 
 // WALL_SIGN (1264)
 block_definitions[ 1264 ].textures[ FACE_TOP ] = TEX_PLANKS_OAK;
@@ -15769,7 +14817,6 @@ block_definitions[ 1264 ].textures[ FACE_FRONT ] = TEX_PLANKS_OAK;
 block_definitions[ 1264 ].textures[ FACE_LEFT ] = TEX_PLANKS_OAK;
 block_definitions[ 1264 ].textures[ FACE_BACK ] = TEX_PLANKS_OAK;
 block_definitions[ 1264 ].icon_texture = TEX_PLANKS_OAK;
-block_definitions[ 1264 ].icon_is_isometric = false;
 
 // WARPED_BUTTON (1265)
 block_definitions[ 1265 ].textures[ FACE_TOP ] = TEX_WARPED_PLANKS;
@@ -15779,7 +14826,6 @@ block_definitions[ 1265 ].textures[ FACE_FRONT ] = TEX_WARPED_PLANKS;
 block_definitions[ 1265 ].textures[ FACE_LEFT ] = TEX_WARPED_PLANKS;
 block_definitions[ 1265 ].textures[ FACE_BACK ] = TEX_WARPED_PLANKS;
 block_definitions[ 1265 ].icon_texture = TEX_WARPED_PLANKS;
-block_definitions[ 1265 ].icon_is_isometric = false;
 
 // WARPED_DOOR (1266)
 block_definitions[ 1266 ].textures[ FACE_TOP ] = TEX_WARPED_DOOR_LOWER;
@@ -15788,8 +14834,7 @@ block_definitions[ 1266 ].textures[ FACE_RIGHT ] = TEX_WARPED_DOOR_TOP;
 block_definitions[ 1266 ].textures[ FACE_FRONT ] = TEX_WARPED_DOOR_TOP;
 block_definitions[ 1266 ].textures[ FACE_LEFT ] = TEX_WARPED_DOOR_TOP;
 block_definitions[ 1266 ].textures[ FACE_BACK ] = TEX_WARPED_DOOR_TOP;
-block_definitions[ 1266 ].icon_texture = TEX_WARPED_DOOR_TOP;
-block_definitions[ 1266 ].icon_is_isometric = false;
+block_definitions[ 1266 ].icon_texture = TEX_WARPED_DOOR_LOWER;
 
 // WARPED_DOUBLE_SLAB (1267)
 block_definitions[ 1267 ].textures[ FACE_TOP ] = TEX_WARPED_PLANKS;
@@ -15799,7 +14844,6 @@ block_definitions[ 1267 ].textures[ FACE_FRONT ] = TEX_WARPED_PLANKS;
 block_definitions[ 1267 ].textures[ FACE_LEFT ] = TEX_WARPED_PLANKS;
 block_definitions[ 1267 ].textures[ FACE_BACK ] = TEX_WARPED_PLANKS;
 block_definitions[ 1267 ].icon_texture = TEX_WARPED_PLANKS;
-block_definitions[ 1267 ].icon_is_isometric = false;
 
 // WARPED_FENCE (1268)
 block_definitions[ 1268 ].textures[ FACE_TOP ] = TEX_WARPED_PLANKS;
@@ -15809,7 +14853,6 @@ block_definitions[ 1268 ].textures[ FACE_FRONT ] = TEX_WARPED_PLANKS;
 block_definitions[ 1268 ].textures[ FACE_LEFT ] = TEX_WARPED_PLANKS;
 block_definitions[ 1268 ].textures[ FACE_BACK ] = TEX_WARPED_PLANKS;
 block_definitions[ 1268 ].icon_texture = TEX_WARPED_PLANKS;
-block_definitions[ 1268 ].icon_is_isometric = false;
 
 // WARPED_FENCE_GATE (1269)
 block_definitions[ 1269 ].textures[ FACE_TOP ] = TEX_WARPED_PLANKS;
@@ -15819,7 +14862,6 @@ block_definitions[ 1269 ].textures[ FACE_FRONT ] = TEX_WARPED_PLANKS;
 block_definitions[ 1269 ].textures[ FACE_LEFT ] = TEX_WARPED_PLANKS;
 block_definitions[ 1269 ].textures[ FACE_BACK ] = TEX_WARPED_PLANKS;
 block_definitions[ 1269 ].icon_texture = TEX_WARPED_PLANKS;
-block_definitions[ 1269 ].icon_is_isometric = false;
 
 // WARPED_FUNGUS (1270)
 block_definitions[ 1270 ].textures[ FACE_TOP ] = TEX_AIR;
@@ -15851,7 +14893,6 @@ block_definitions[ 1271 ].textures[ FACE_FRONT ] = TEX_WARPED_PLANKS;
 block_definitions[ 1271 ].textures[ FACE_LEFT ] = TEX_WARPED_PLANKS;
 block_definitions[ 1271 ].textures[ FACE_BACK ] = TEX_WARPED_PLANKS;
 block_definitions[ 1271 ].icon_texture = TEX_WARPED_PLANKS;
-block_definitions[ 1271 ].icon_is_isometric = false;
 
 // WARPED_HYPHAE (1272)
 block_definitions[ 1272 ].textures[ FACE_TOP ] = TEX_WARPED_STEM_SIDE;
@@ -15861,7 +14902,6 @@ block_definitions[ 1272 ].textures[ FACE_FRONT ] = TEX_WARPED_STEM_SIDE;
 block_definitions[ 1272 ].textures[ FACE_LEFT ] = TEX_WARPED_STEM_SIDE;
 block_definitions[ 1272 ].textures[ FACE_BACK ] = TEX_WARPED_STEM_SIDE;
 block_definitions[ 1272 ].icon_texture = TEX_WARPED_STEM_SIDE;
-block_definitions[ 1272 ].icon_is_isometric = false;
 
 // WARPED_NYLIUM (1273)
 block_definitions[ 1273 ].textures[ FACE_TOP ] = TEX_WARPED_NYLIUM_TOP;
@@ -15870,8 +14910,7 @@ block_definitions[ 1273 ].textures[ FACE_RIGHT ] = TEX_WARPED_NYLIUM_SIDE;
 block_definitions[ 1273 ].textures[ FACE_FRONT ] = TEX_WARPED_NYLIUM_SIDE;
 block_definitions[ 1273 ].textures[ FACE_LEFT ] = TEX_WARPED_NYLIUM_SIDE;
 block_definitions[ 1273 ].textures[ FACE_BACK ] = TEX_WARPED_NYLIUM_SIDE;
-block_definitions[ 1273 ].icon_texture = TEX_WARPED_NYLIUM_SIDE;
-block_definitions[ 1273 ].icon_is_isometric = false;
+block_definitions[ 1273 ].icon_texture = TEX_WARPED_NYLIUM_TOP;
 
 // WARPED_PLANKS (1274)
 block_definitions[ 1274 ].textures[ FACE_TOP ] = TEX_WARPED_PLANKS;
@@ -15881,7 +14920,6 @@ block_definitions[ 1274 ].textures[ FACE_FRONT ] = TEX_WARPED_PLANKS;
 block_definitions[ 1274 ].textures[ FACE_LEFT ] = TEX_WARPED_PLANKS;
 block_definitions[ 1274 ].textures[ FACE_BACK ] = TEX_WARPED_PLANKS;
 block_definitions[ 1274 ].icon_texture = TEX_WARPED_PLANKS;
-block_definitions[ 1274 ].icon_is_isometric = false;
 
 // WARPED_PRESSURE_PLATE (1275)
 block_definitions[ 1275 ].textures[ FACE_TOP ] = TEX_WARPED_PLANKS;
@@ -15891,7 +14929,6 @@ block_definitions[ 1275 ].textures[ FACE_FRONT ] = TEX_WARPED_PLANKS;
 block_definitions[ 1275 ].textures[ FACE_LEFT ] = TEX_WARPED_PLANKS;
 block_definitions[ 1275 ].textures[ FACE_BACK ] = TEX_WARPED_PLANKS;
 block_definitions[ 1275 ].icon_texture = TEX_WARPED_PLANKS;
-block_definitions[ 1275 ].icon_is_isometric = false;
 
 // WARPED_ROOTS (1276)
 block_definitions[ 1276 ].textures[ FACE_TOP ] = TEX_AIR;
@@ -15923,7 +14960,6 @@ block_definitions[ 1277 ].textures[ FACE_FRONT ] = TEX_WARPED_SHELF;
 block_definitions[ 1277 ].textures[ FACE_LEFT ] = TEX_WARPED_SHELF;
 block_definitions[ 1277 ].textures[ FACE_BACK ] = TEX_WARPED_SHELF;
 block_definitions[ 1277 ].icon_texture = TEX_WARPED_SHELF;
-block_definitions[ 1277 ].icon_is_isometric = false;
 
 // WARPED_SLAB (1278)
 block_definitions[ 1278 ].textures[ FACE_TOP ] = TEX_WARPED_PLANKS;
@@ -15933,7 +14969,6 @@ block_definitions[ 1278 ].textures[ FACE_FRONT ] = TEX_WARPED_PLANKS;
 block_definitions[ 1278 ].textures[ FACE_LEFT ] = TEX_WARPED_PLANKS;
 block_definitions[ 1278 ].textures[ FACE_BACK ] = TEX_WARPED_PLANKS;
 block_definitions[ 1278 ].icon_texture = TEX_WARPED_PLANKS;
-block_definitions[ 1278 ].icon_is_isometric = false;
 
 // WARPED_STAIRS (1279)
 block_definitions[ 1279 ].textures[ FACE_TOP ] = TEX_WARPED_PLANKS;
@@ -15943,7 +14978,6 @@ block_definitions[ 1279 ].textures[ FACE_FRONT ] = TEX_WARPED_PLANKS;
 block_definitions[ 1279 ].textures[ FACE_LEFT ] = TEX_WARPED_PLANKS;
 block_definitions[ 1279 ].textures[ FACE_BACK ] = TEX_WARPED_PLANKS;
 block_definitions[ 1279 ].icon_texture = TEX_WARPED_PLANKS;
-block_definitions[ 1279 ].icon_is_isometric = false;
 
 // WARPED_STANDING_SIGN (1280)
 block_definitions[ 1280 ].textures[ FACE_TOP ] = TEX_WARPED_PLANKS;
@@ -15953,7 +14987,6 @@ block_definitions[ 1280 ].textures[ FACE_FRONT ] = TEX_WARPED_PLANKS;
 block_definitions[ 1280 ].textures[ FACE_LEFT ] = TEX_WARPED_PLANKS;
 block_definitions[ 1280 ].textures[ FACE_BACK ] = TEX_WARPED_PLANKS;
 block_definitions[ 1280 ].icon_texture = TEX_WARPED_PLANKS;
-block_definitions[ 1280 ].icon_is_isometric = false;
 
 // WARPED_STEM (1281)
 block_definitions[ 1281 ].textures[ FACE_TOP ] = TEX_WARPED_STEM_TOP;
@@ -15962,8 +14995,7 @@ block_definitions[ 1281 ].textures[ FACE_RIGHT ] = TEX_WARPED_STEM_SIDE;
 block_definitions[ 1281 ].textures[ FACE_FRONT ] = TEX_WARPED_STEM_SIDE;
 block_definitions[ 1281 ].textures[ FACE_LEFT ] = TEX_WARPED_STEM_SIDE;
 block_definitions[ 1281 ].textures[ FACE_BACK ] = TEX_WARPED_STEM_SIDE;
-block_definitions[ 1281 ].icon_texture = TEX_WARPED_STEM_SIDE;
-block_definitions[ 1281 ].icon_is_isometric = false;
+block_definitions[ 1281 ].icon_texture = TEX_WARPED_STEM_TOP;
 
 // WARPED_TRAPDOOR (1282)
 block_definitions[ 1282 ].textures[ FACE_TOP ] = TEX_WARPED_TRAPDOOR;
@@ -15975,7 +15007,6 @@ block_definitions[ 1282 ].textures[ FACE_BACK ] = TEX_WARPED_TRAPDOOR;
 block_definitions[ 1282 ].icon_texture = TEX_WARPED_TRAPDOOR;
 block_definitions[ 1282 ].casts_shadow = false;
 block_definitions[ 1282 ].hardness = 0.35f;
-block_definitions[ 1282 ].icon_is_isometric = false;
 block_definitions[ 1282 ].is_seethrough = true;
 block_definitions[ 1282 ].no_light = 6815743;
 
@@ -15987,7 +15018,6 @@ block_definitions[ 1283 ].textures[ FACE_FRONT ] = TEX_WARPED_PLANKS;
 block_definitions[ 1283 ].textures[ FACE_LEFT ] = TEX_WARPED_PLANKS;
 block_definitions[ 1283 ].textures[ FACE_BACK ] = TEX_WARPED_PLANKS;
 block_definitions[ 1283 ].icon_texture = TEX_WARPED_PLANKS;
-block_definitions[ 1283 ].icon_is_isometric = false;
 
 // WARPED_WART_BLOCK (1284)
 block_definitions[ 1284 ].textures[ FACE_TOP ] = TEX_WARPED_WART_BLOCK;
@@ -15997,7 +15027,6 @@ block_definitions[ 1284 ].textures[ FACE_FRONT ] = TEX_WARPED_WART_BLOCK;
 block_definitions[ 1284 ].textures[ FACE_LEFT ] = TEX_WARPED_WART_BLOCK;
 block_definitions[ 1284 ].textures[ FACE_BACK ] = TEX_WARPED_WART_BLOCK;
 block_definitions[ 1284 ].icon_texture = TEX_WARPED_WART_BLOCK;
-block_definitions[ 1284 ].icon_is_isometric = false;
 
 // WAXED_CHISELED_COPPER (1285)
 block_definitions[ 1285 ].textures[ FACE_TOP ] = TEX_CHISELED_COPPER;
@@ -16007,7 +15036,6 @@ block_definitions[ 1285 ].textures[ FACE_FRONT ] = TEX_CHISELED_COPPER;
 block_definitions[ 1285 ].textures[ FACE_LEFT ] = TEX_CHISELED_COPPER;
 block_definitions[ 1285 ].textures[ FACE_BACK ] = TEX_CHISELED_COPPER;
 block_definitions[ 1285 ].icon_texture = TEX_CHISELED_COPPER;
-block_definitions[ 1285 ].icon_is_isometric = false;
 
 // WAXED_COPPER (1286)
 block_definitions[ 1286 ].textures[ FACE_TOP ] = TEX_COPPER_BLOCK;
@@ -16017,7 +15045,6 @@ block_definitions[ 1286 ].textures[ FACE_FRONT ] = TEX_COPPER_BLOCK;
 block_definitions[ 1286 ].textures[ FACE_LEFT ] = TEX_COPPER_BLOCK;
 block_definitions[ 1286 ].textures[ FACE_BACK ] = TEX_COPPER_BLOCK;
 block_definitions[ 1286 ].icon_texture = TEX_COPPER_BLOCK;
-block_definitions[ 1286 ].icon_is_isometric = false;
 
 // WAXED_COPPER_BARS (1287)
 block_definitions[ 1287 ].textures[ FACE_TOP ] = TEX_COPPER_BARS;
@@ -16029,7 +15056,6 @@ block_definitions[ 1287 ].textures[ FACE_BACK ] = TEX_COPPER_BARS;
 block_definitions[ 1287 ].icon_texture = TEX_COPPER_BARS;
 block_definitions[ 1287 ].casts_shadow = false;
 block_definitions[ 1287 ].hardness = 0.35f;
-block_definitions[ 1287 ].icon_is_isometric = false;
 block_definitions[ 1287 ].is_seethrough = true;
 block_definitions[ 1287 ].no_light = 6815743;
 
@@ -16041,7 +15067,6 @@ block_definitions[ 1288 ].textures[ FACE_FRONT ] = TEX_COPPER_BULB;
 block_definitions[ 1288 ].textures[ FACE_LEFT ] = TEX_COPPER_BULB;
 block_definitions[ 1288 ].textures[ FACE_BACK ] = TEX_COPPER_BULB;
 block_definitions[ 1288 ].icon_texture = TEX_COPPER_BULB;
-block_definitions[ 1288 ].icon_is_isometric = false;
 
 // WAXED_COPPER_CHAIN (1289)
 block_definitions[ 1289 ].textures[ FACE_TOP ] = TEX_COPPER_CHAIN;
@@ -16053,7 +15078,6 @@ block_definitions[ 1289 ].textures[ FACE_BACK ] = TEX_COPPER_CHAIN;
 block_definitions[ 1289 ].icon_texture = TEX_COPPER_CHAIN;
 block_definitions[ 1289 ].casts_shadow = false;
 block_definitions[ 1289 ].hardness = 0.35f;
-block_definitions[ 1289 ].icon_is_isometric = false;
 block_definitions[ 1289 ].is_seethrough = true;
 block_definitions[ 1289 ].no_light = 6815743;
 
@@ -16065,7 +15089,6 @@ block_definitions[ 1290 ].textures[ FACE_FRONT ] = TEX_COPPER_CHEST_INVENTORY_FR
 block_definitions[ 1290 ].textures[ FACE_LEFT ] = TEX_COPPER_CHEST_INVENTORY_SIDE;
 block_definitions[ 1290 ].textures[ FACE_BACK ] = TEX_COPPER_CHEST_INVENTORY_SIDE;
 block_definitions[ 1290 ].icon_texture = TEX_COPPER_CHEST_INVENTORY_TOP;
-block_definitions[ 1290 ].icon_is_isometric = false;
 
 // WAXED_COPPER_DOOR (1291)
 block_definitions[ 1291 ].textures[ FACE_TOP ] = TEX_COPPER_DOOR_BOTTOM;
@@ -16074,10 +15097,9 @@ block_definitions[ 1291 ].textures[ FACE_RIGHT ] = TEX_COPPER_DOOR_TOP;
 block_definitions[ 1291 ].textures[ FACE_FRONT ] = TEX_COPPER_DOOR_TOP;
 block_definitions[ 1291 ].textures[ FACE_LEFT ] = TEX_COPPER_DOOR_TOP;
 block_definitions[ 1291 ].textures[ FACE_BACK ] = TEX_COPPER_DOOR_TOP;
-block_definitions[ 1291 ].icon_texture = TEX_COPPER_DOOR_TOP;
+block_definitions[ 1291 ].icon_texture = TEX_COPPER_DOOR_BOTTOM;
 block_definitions[ 1291 ].casts_shadow = false;
 block_definitions[ 1291 ].hardness = 0.35f;
-block_definitions[ 1291 ].icon_is_isometric = false;
 block_definitions[ 1291 ].is_seethrough = true;
 block_definitions[ 1291 ].no_light = 6815743;
 
@@ -16089,7 +15111,6 @@ block_definitions[ 1292 ].textures[ FACE_FRONT ] = TEX_COPPER_BLOCK;
 block_definitions[ 1292 ].textures[ FACE_LEFT ] = TEX_COPPER_BLOCK;
 block_definitions[ 1292 ].textures[ FACE_BACK ] = TEX_COPPER_BLOCK;
 block_definitions[ 1292 ].icon_texture = TEX_COPPER_BLOCK;
-block_definitions[ 1292 ].icon_is_isometric = false;
 
 // WAXED_COPPER_GRATE (1293)
 block_definitions[ 1293 ].textures[ FACE_TOP ] = TEX_COPPER_GRATE;
@@ -16101,7 +15122,6 @@ block_definitions[ 1293 ].textures[ FACE_BACK ] = TEX_COPPER_GRATE;
 block_definitions[ 1293 ].icon_texture = TEX_COPPER_GRATE;
 block_definitions[ 1293 ].casts_shadow = false;
 block_definitions[ 1293 ].hardness = 0.35f;
-block_definitions[ 1293 ].icon_is_isometric = false;
 block_definitions[ 1293 ].is_seethrough = true;
 block_definitions[ 1293 ].no_light = 6815743;
 
@@ -16115,7 +15135,6 @@ block_definitions[ 1294 ].textures[ FACE_BACK ] = TEX_COPPER_LANTERN;
 block_definitions[ 1294 ].icon_texture = TEX_COPPER_LANTERN;
 block_definitions[ 1294 ].casts_shadow = false;
 block_definitions[ 1294 ].hardness = 0.35f;
-block_definitions[ 1294 ].icon_is_isometric = false;
 block_definitions[ 1294 ].is_seethrough = true;
 block_definitions[ 1294 ].no_light = 6815743;
 
@@ -16129,7 +15148,6 @@ block_definitions[ 1295 ].textures[ FACE_BACK ] = TEX_COPPER_TRAPDOOR;
 block_definitions[ 1295 ].icon_texture = TEX_COPPER_TRAPDOOR;
 block_definitions[ 1295 ].casts_shadow = false;
 block_definitions[ 1295 ].hardness = 0.35f;
-block_definitions[ 1295 ].icon_is_isometric = false;
 block_definitions[ 1295 ].is_seethrough = true;
 block_definitions[ 1295 ].no_light = 6815743;
 
@@ -16141,7 +15159,6 @@ block_definitions[ 1296 ].textures[ FACE_FRONT ] = TEX_CUT_COPPER;
 block_definitions[ 1296 ].textures[ FACE_LEFT ] = TEX_CUT_COPPER;
 block_definitions[ 1296 ].textures[ FACE_BACK ] = TEX_CUT_COPPER;
 block_definitions[ 1296 ].icon_texture = TEX_CUT_COPPER;
-block_definitions[ 1296 ].icon_is_isometric = false;
 
 // WAXED_CUT_COPPER_SLAB (1297)
 block_definitions[ 1297 ].textures[ FACE_TOP ] = TEX_CUT_COPPER;
@@ -16151,7 +15168,6 @@ block_definitions[ 1297 ].textures[ FACE_FRONT ] = TEX_CUT_COPPER;
 block_definitions[ 1297 ].textures[ FACE_LEFT ] = TEX_CUT_COPPER;
 block_definitions[ 1297 ].textures[ FACE_BACK ] = TEX_CUT_COPPER;
 block_definitions[ 1297 ].icon_texture = TEX_CUT_COPPER;
-block_definitions[ 1297 ].icon_is_isometric = false;
 
 // WAXED_CUT_COPPER_STAIRS (1298)
 block_definitions[ 1298 ].textures[ FACE_TOP ] = TEX_CUT_COPPER;
@@ -16161,7 +15177,6 @@ block_definitions[ 1298 ].textures[ FACE_FRONT ] = TEX_CUT_COPPER;
 block_definitions[ 1298 ].textures[ FACE_LEFT ] = TEX_CUT_COPPER;
 block_definitions[ 1298 ].textures[ FACE_BACK ] = TEX_CUT_COPPER;
 block_definitions[ 1298 ].icon_texture = TEX_CUT_COPPER;
-block_definitions[ 1298 ].icon_is_isometric = false;
 
 // WAXED_DOUBLE_CUT_COPPER_SLAB (1299)
 block_definitions[ 1299 ].textures[ FACE_TOP ] = TEX_CUT_COPPER;
@@ -16171,7 +15186,6 @@ block_definitions[ 1299 ].textures[ FACE_FRONT ] = TEX_CUT_COPPER;
 block_definitions[ 1299 ].textures[ FACE_LEFT ] = TEX_CUT_COPPER;
 block_definitions[ 1299 ].textures[ FACE_BACK ] = TEX_CUT_COPPER;
 block_definitions[ 1299 ].icon_texture = TEX_CUT_COPPER;
-block_definitions[ 1299 ].icon_is_isometric = false;
 
 // WAXED_EXPOSED_CHISELED_COPPER (1300)
 block_definitions[ 1300 ].textures[ FACE_TOP ] = TEX_EXPOSED_CHISELED_COPPER;
@@ -16181,7 +15195,6 @@ block_definitions[ 1300 ].textures[ FACE_FRONT ] = TEX_EXPOSED_CHISELED_COPPER;
 block_definitions[ 1300 ].textures[ FACE_LEFT ] = TEX_EXPOSED_CHISELED_COPPER;
 block_definitions[ 1300 ].textures[ FACE_BACK ] = TEX_EXPOSED_CHISELED_COPPER;
 block_definitions[ 1300 ].icon_texture = TEX_EXPOSED_CHISELED_COPPER;
-block_definitions[ 1300 ].icon_is_isometric = false;
 
 // WAXED_EXPOSED_COPPER (1301)
 block_definitions[ 1301 ].textures[ FACE_TOP ] = TEX_EXPOSED_COPPER;
@@ -16191,7 +15204,6 @@ block_definitions[ 1301 ].textures[ FACE_FRONT ] = TEX_EXPOSED_COPPER;
 block_definitions[ 1301 ].textures[ FACE_LEFT ] = TEX_EXPOSED_COPPER;
 block_definitions[ 1301 ].textures[ FACE_BACK ] = TEX_EXPOSED_COPPER;
 block_definitions[ 1301 ].icon_texture = TEX_EXPOSED_COPPER;
-block_definitions[ 1301 ].icon_is_isometric = false;
 
 // WAXED_EXPOSED_COPPER_BARS (1302)
 block_definitions[ 1302 ].textures[ FACE_TOP ] = TEX_EXPOSED_COPPER_BARS;
@@ -16203,7 +15215,6 @@ block_definitions[ 1302 ].textures[ FACE_BACK ] = TEX_EXPOSED_COPPER_BARS;
 block_definitions[ 1302 ].icon_texture = TEX_EXPOSED_COPPER_BARS;
 block_definitions[ 1302 ].casts_shadow = false;
 block_definitions[ 1302 ].hardness = 0.35f;
-block_definitions[ 1302 ].icon_is_isometric = false;
 block_definitions[ 1302 ].is_seethrough = true;
 block_definitions[ 1302 ].no_light = 6815743;
 
@@ -16215,7 +15226,6 @@ block_definitions[ 1303 ].textures[ FACE_FRONT ] = TEX_EXPOSED_COPPER_BULB;
 block_definitions[ 1303 ].textures[ FACE_LEFT ] = TEX_EXPOSED_COPPER_BULB;
 block_definitions[ 1303 ].textures[ FACE_BACK ] = TEX_EXPOSED_COPPER_BULB;
 block_definitions[ 1303 ].icon_texture = TEX_EXPOSED_COPPER_BULB;
-block_definitions[ 1303 ].icon_is_isometric = false;
 
 // WAXED_EXPOSED_COPPER_CHAIN (1304)
 block_definitions[ 1304 ].textures[ FACE_TOP ] = TEX_EXPOSED_COPPER_CHAIN;
@@ -16227,7 +15237,6 @@ block_definitions[ 1304 ].textures[ FACE_BACK ] = TEX_EXPOSED_COPPER_CHAIN;
 block_definitions[ 1304 ].icon_texture = TEX_EXPOSED_COPPER_CHAIN;
 block_definitions[ 1304 ].casts_shadow = false;
 block_definitions[ 1304 ].hardness = 0.35f;
-block_definitions[ 1304 ].icon_is_isometric = false;
 block_definitions[ 1304 ].is_seethrough = true;
 block_definitions[ 1304 ].no_light = 6815743;
 
@@ -16239,7 +15248,6 @@ block_definitions[ 1305 ].textures[ FACE_FRONT ] = TEX_EXPOSED_COPPER_CHEST_INVE
 block_definitions[ 1305 ].textures[ FACE_LEFT ] = TEX_EXPOSED_COPPER_CHEST_INVENTORY_SIDE;
 block_definitions[ 1305 ].textures[ FACE_BACK ] = TEX_EXPOSED_COPPER_CHEST_INVENTORY_SIDE;
 block_definitions[ 1305 ].icon_texture = TEX_EXPOSED_COPPER_CHEST_INVENTORY_TOP;
-block_definitions[ 1305 ].icon_is_isometric = false;
 
 // WAXED_EXPOSED_COPPER_DOOR (1306)
 block_definitions[ 1306 ].textures[ FACE_TOP ] = TEX_EXPOSED_COPPER_DOOR_BOTTOM;
@@ -16248,10 +15256,9 @@ block_definitions[ 1306 ].textures[ FACE_RIGHT ] = TEX_EXPOSED_COPPER_DOOR_TOP;
 block_definitions[ 1306 ].textures[ FACE_FRONT ] = TEX_EXPOSED_COPPER_DOOR_TOP;
 block_definitions[ 1306 ].textures[ FACE_LEFT ] = TEX_EXPOSED_COPPER_DOOR_TOP;
 block_definitions[ 1306 ].textures[ FACE_BACK ] = TEX_EXPOSED_COPPER_DOOR_TOP;
-block_definitions[ 1306 ].icon_texture = TEX_EXPOSED_COPPER_DOOR_TOP;
+block_definitions[ 1306 ].icon_texture = TEX_EXPOSED_COPPER_DOOR_BOTTOM;
 block_definitions[ 1306 ].casts_shadow = false;
 block_definitions[ 1306 ].hardness = 0.35f;
-block_definitions[ 1306 ].icon_is_isometric = false;
 block_definitions[ 1306 ].is_seethrough = true;
 block_definitions[ 1306 ].no_light = 6815743;
 
@@ -16263,7 +15270,6 @@ block_definitions[ 1307 ].textures[ FACE_FRONT ] = TEX_EXPOSED_COPPER;
 block_definitions[ 1307 ].textures[ FACE_LEFT ] = TEX_EXPOSED_COPPER;
 block_definitions[ 1307 ].textures[ FACE_BACK ] = TEX_EXPOSED_COPPER;
 block_definitions[ 1307 ].icon_texture = TEX_EXPOSED_COPPER;
-block_definitions[ 1307 ].icon_is_isometric = false;
 
 // WAXED_EXPOSED_COPPER_GRATE (1308)
 block_definitions[ 1308 ].textures[ FACE_TOP ] = TEX_EXPOSED_COPPER_GRATE;
@@ -16275,7 +15281,6 @@ block_definitions[ 1308 ].textures[ FACE_BACK ] = TEX_EXPOSED_COPPER_GRATE;
 block_definitions[ 1308 ].icon_texture = TEX_EXPOSED_COPPER_GRATE;
 block_definitions[ 1308 ].casts_shadow = false;
 block_definitions[ 1308 ].hardness = 0.35f;
-block_definitions[ 1308 ].icon_is_isometric = false;
 block_definitions[ 1308 ].is_seethrough = true;
 block_definitions[ 1308 ].no_light = 6815743;
 
@@ -16289,7 +15294,6 @@ block_definitions[ 1309 ].textures[ FACE_BACK ] = TEX_EXPOSED_COPPER_LANTERN;
 block_definitions[ 1309 ].icon_texture = TEX_EXPOSED_COPPER_LANTERN;
 block_definitions[ 1309 ].casts_shadow = false;
 block_definitions[ 1309 ].hardness = 0.35f;
-block_definitions[ 1309 ].icon_is_isometric = false;
 block_definitions[ 1309 ].is_seethrough = true;
 block_definitions[ 1309 ].no_light = 6815743;
 
@@ -16303,7 +15307,6 @@ block_definitions[ 1310 ].textures[ FACE_BACK ] = TEX_EXPOSED_COPPER_TRAPDOOR;
 block_definitions[ 1310 ].icon_texture = TEX_EXPOSED_COPPER_TRAPDOOR;
 block_definitions[ 1310 ].casts_shadow = false;
 block_definitions[ 1310 ].hardness = 0.35f;
-block_definitions[ 1310 ].icon_is_isometric = false;
 block_definitions[ 1310 ].is_seethrough = true;
 block_definitions[ 1310 ].no_light = 6815743;
 
@@ -16315,7 +15318,6 @@ block_definitions[ 1311 ].textures[ FACE_FRONT ] = TEX_EXPOSED_CUT_COPPER;
 block_definitions[ 1311 ].textures[ FACE_LEFT ] = TEX_EXPOSED_CUT_COPPER;
 block_definitions[ 1311 ].textures[ FACE_BACK ] = TEX_EXPOSED_CUT_COPPER;
 block_definitions[ 1311 ].icon_texture = TEX_EXPOSED_CUT_COPPER;
-block_definitions[ 1311 ].icon_is_isometric = false;
 
 // WAXED_EXPOSED_CUT_COPPER_SLAB (1312)
 block_definitions[ 1312 ].textures[ FACE_TOP ] = TEX_EXPOSED_CUT_COPPER;
@@ -16325,7 +15327,6 @@ block_definitions[ 1312 ].textures[ FACE_FRONT ] = TEX_EXPOSED_CUT_COPPER;
 block_definitions[ 1312 ].textures[ FACE_LEFT ] = TEX_EXPOSED_CUT_COPPER;
 block_definitions[ 1312 ].textures[ FACE_BACK ] = TEX_EXPOSED_CUT_COPPER;
 block_definitions[ 1312 ].icon_texture = TEX_EXPOSED_CUT_COPPER;
-block_definitions[ 1312 ].icon_is_isometric = false;
 
 // WAXED_EXPOSED_CUT_COPPER_STAIRS (1313)
 block_definitions[ 1313 ].textures[ FACE_TOP ] = TEX_EXPOSED_CUT_COPPER;
@@ -16335,7 +15336,6 @@ block_definitions[ 1313 ].textures[ FACE_FRONT ] = TEX_EXPOSED_CUT_COPPER;
 block_definitions[ 1313 ].textures[ FACE_LEFT ] = TEX_EXPOSED_CUT_COPPER;
 block_definitions[ 1313 ].textures[ FACE_BACK ] = TEX_EXPOSED_CUT_COPPER;
 block_definitions[ 1313 ].icon_texture = TEX_EXPOSED_CUT_COPPER;
-block_definitions[ 1313 ].icon_is_isometric = false;
 
 // WAXED_EXPOSED_DOUBLE_CUT_COPPER_SLAB (1314)
 block_definitions[ 1314 ].textures[ FACE_TOP ] = TEX_EXPOSED_CUT_COPPER;
@@ -16345,7 +15345,6 @@ block_definitions[ 1314 ].textures[ FACE_FRONT ] = TEX_EXPOSED_CUT_COPPER;
 block_definitions[ 1314 ].textures[ FACE_LEFT ] = TEX_EXPOSED_CUT_COPPER;
 block_definitions[ 1314 ].textures[ FACE_BACK ] = TEX_EXPOSED_CUT_COPPER;
 block_definitions[ 1314 ].icon_texture = TEX_EXPOSED_CUT_COPPER;
-block_definitions[ 1314 ].icon_is_isometric = false;
 
 // WAXED_EXPOSED_LIGHTNING_ROD (1315)
 block_definitions[ 1315 ].textures[ FACE_TOP ] = TEX_EXPOSED_LIGHTNING_ROD;
@@ -16357,7 +15356,6 @@ block_definitions[ 1315 ].textures[ FACE_BACK ] = TEX_EXPOSED_LIGHTNING_ROD;
 block_definitions[ 1315 ].icon_texture = TEX_EXPOSED_LIGHTNING_ROD;
 block_definitions[ 1315 ].casts_shadow = false;
 block_definitions[ 1315 ].hardness = 0.35f;
-block_definitions[ 1315 ].icon_is_isometric = false;
 block_definitions[ 1315 ].is_seethrough = true;
 block_definitions[ 1315 ].no_light = 6815743;
 
@@ -16371,7 +15369,6 @@ block_definitions[ 1316 ].textures[ FACE_BACK ] = TEX_LIGHTNING_ROD;
 block_definitions[ 1316 ].icon_texture = TEX_LIGHTNING_ROD;
 block_definitions[ 1316 ].casts_shadow = false;
 block_definitions[ 1316 ].hardness = 0.35f;
-block_definitions[ 1316 ].icon_is_isometric = false;
 block_definitions[ 1316 ].is_seethrough = true;
 block_definitions[ 1316 ].no_light = 6815743;
 
@@ -16383,7 +15380,6 @@ block_definitions[ 1317 ].textures[ FACE_FRONT ] = TEX_OXIDIZED_CHISELED_COPPER;
 block_definitions[ 1317 ].textures[ FACE_LEFT ] = TEX_OXIDIZED_CHISELED_COPPER;
 block_definitions[ 1317 ].textures[ FACE_BACK ] = TEX_OXIDIZED_CHISELED_COPPER;
 block_definitions[ 1317 ].icon_texture = TEX_OXIDIZED_CHISELED_COPPER;
-block_definitions[ 1317 ].icon_is_isometric = false;
 
 // WAXED_OXIDIZED_COPPER (1318)
 block_definitions[ 1318 ].textures[ FACE_TOP ] = TEX_OXIDIZED_COPPER;
@@ -16393,7 +15389,6 @@ block_definitions[ 1318 ].textures[ FACE_FRONT ] = TEX_OXIDIZED_COPPER;
 block_definitions[ 1318 ].textures[ FACE_LEFT ] = TEX_OXIDIZED_COPPER;
 block_definitions[ 1318 ].textures[ FACE_BACK ] = TEX_OXIDIZED_COPPER;
 block_definitions[ 1318 ].icon_texture = TEX_OXIDIZED_COPPER;
-block_definitions[ 1318 ].icon_is_isometric = false;
 
 // WAXED_OXIDIZED_COPPER_BARS (1319)
 block_definitions[ 1319 ].textures[ FACE_TOP ] = TEX_OXIDIZED_COPPER_BARS;
@@ -16405,7 +15400,6 @@ block_definitions[ 1319 ].textures[ FACE_BACK ] = TEX_OXIDIZED_COPPER_BARS;
 block_definitions[ 1319 ].icon_texture = TEX_OXIDIZED_COPPER_BARS;
 block_definitions[ 1319 ].casts_shadow = false;
 block_definitions[ 1319 ].hardness = 0.35f;
-block_definitions[ 1319 ].icon_is_isometric = false;
 block_definitions[ 1319 ].is_seethrough = true;
 block_definitions[ 1319 ].no_light = 6815743;
 
@@ -16417,7 +15411,6 @@ block_definitions[ 1320 ].textures[ FACE_FRONT ] = TEX_OXIDIZED_COPPER_BULB;
 block_definitions[ 1320 ].textures[ FACE_LEFT ] = TEX_OXIDIZED_COPPER_BULB;
 block_definitions[ 1320 ].textures[ FACE_BACK ] = TEX_OXIDIZED_COPPER_BULB;
 block_definitions[ 1320 ].icon_texture = TEX_OXIDIZED_COPPER_BULB;
-block_definitions[ 1320 ].icon_is_isometric = false;
 
 // WAXED_OXIDIZED_COPPER_CHAIN (1321)
 block_definitions[ 1321 ].textures[ FACE_TOP ] = TEX_OXIDIZED_COPPER_CHAIN;
@@ -16429,7 +15422,6 @@ block_definitions[ 1321 ].textures[ FACE_BACK ] = TEX_OXIDIZED_COPPER_CHAIN;
 block_definitions[ 1321 ].icon_texture = TEX_OXIDIZED_COPPER_CHAIN;
 block_definitions[ 1321 ].casts_shadow = false;
 block_definitions[ 1321 ].hardness = 0.35f;
-block_definitions[ 1321 ].icon_is_isometric = false;
 block_definitions[ 1321 ].is_seethrough = true;
 block_definitions[ 1321 ].no_light = 6815743;
 
@@ -16441,7 +15433,6 @@ block_definitions[ 1322 ].textures[ FACE_FRONT ] = TEX_OXIDIZED_COPPER_CHEST_INV
 block_definitions[ 1322 ].textures[ FACE_LEFT ] = TEX_OXIDIZED_COPPER_CHEST_INVENTORY_SIDE;
 block_definitions[ 1322 ].textures[ FACE_BACK ] = TEX_OXIDIZED_COPPER_CHEST_INVENTORY_SIDE;
 block_definitions[ 1322 ].icon_texture = TEX_OXIDIZED_COPPER_CHEST_INVENTORY_TOP;
-block_definitions[ 1322 ].icon_is_isometric = false;
 
 // WAXED_OXIDIZED_COPPER_DOOR (1323)
 block_definitions[ 1323 ].textures[ FACE_TOP ] = TEX_OXIDIZED_COPPER_DOOR_BOTTOM;
@@ -16450,10 +15441,9 @@ block_definitions[ 1323 ].textures[ FACE_RIGHT ] = TEX_OXIDIZED_COPPER_DOOR_TOP;
 block_definitions[ 1323 ].textures[ FACE_FRONT ] = TEX_OXIDIZED_COPPER_DOOR_TOP;
 block_definitions[ 1323 ].textures[ FACE_LEFT ] = TEX_OXIDIZED_COPPER_DOOR_TOP;
 block_definitions[ 1323 ].textures[ FACE_BACK ] = TEX_OXIDIZED_COPPER_DOOR_TOP;
-block_definitions[ 1323 ].icon_texture = TEX_OXIDIZED_COPPER_DOOR_TOP;
+block_definitions[ 1323 ].icon_texture = TEX_OXIDIZED_COPPER_DOOR_BOTTOM;
 block_definitions[ 1323 ].casts_shadow = false;
 block_definitions[ 1323 ].hardness = 0.35f;
-block_definitions[ 1323 ].icon_is_isometric = false;
 block_definitions[ 1323 ].is_seethrough = true;
 block_definitions[ 1323 ].no_light = 6815743;
 
@@ -16465,7 +15455,6 @@ block_definitions[ 1324 ].textures[ FACE_FRONT ] = TEX_OXIDIZED_COPPER;
 block_definitions[ 1324 ].textures[ FACE_LEFT ] = TEX_OXIDIZED_COPPER;
 block_definitions[ 1324 ].textures[ FACE_BACK ] = TEX_OXIDIZED_COPPER;
 block_definitions[ 1324 ].icon_texture = TEX_OXIDIZED_COPPER;
-block_definitions[ 1324 ].icon_is_isometric = false;
 
 // WAXED_OXIDIZED_COPPER_GRATE (1325)
 block_definitions[ 1325 ].textures[ FACE_TOP ] = TEX_OXIDIZED_COPPER_GRATE;
@@ -16477,7 +15466,6 @@ block_definitions[ 1325 ].textures[ FACE_BACK ] = TEX_OXIDIZED_COPPER_GRATE;
 block_definitions[ 1325 ].icon_texture = TEX_OXIDIZED_COPPER_GRATE;
 block_definitions[ 1325 ].casts_shadow = false;
 block_definitions[ 1325 ].hardness = 0.35f;
-block_definitions[ 1325 ].icon_is_isometric = false;
 block_definitions[ 1325 ].is_seethrough = true;
 block_definitions[ 1325 ].no_light = 6815743;
 
@@ -16491,7 +15479,6 @@ block_definitions[ 1326 ].textures[ FACE_BACK ] = TEX_OXIDIZED_COPPER_LANTERN;
 block_definitions[ 1326 ].icon_texture = TEX_OXIDIZED_COPPER_LANTERN;
 block_definitions[ 1326 ].casts_shadow = false;
 block_definitions[ 1326 ].hardness = 0.35f;
-block_definitions[ 1326 ].icon_is_isometric = false;
 block_definitions[ 1326 ].is_seethrough = true;
 block_definitions[ 1326 ].no_light = 6815743;
 
@@ -16505,7 +15492,6 @@ block_definitions[ 1327 ].textures[ FACE_BACK ] = TEX_OXIDIZED_COPPER_TRAPDOOR;
 block_definitions[ 1327 ].icon_texture = TEX_OXIDIZED_COPPER_TRAPDOOR;
 block_definitions[ 1327 ].casts_shadow = false;
 block_definitions[ 1327 ].hardness = 0.35f;
-block_definitions[ 1327 ].icon_is_isometric = false;
 block_definitions[ 1327 ].is_seethrough = true;
 block_definitions[ 1327 ].no_light = 6815743;
 
@@ -16517,7 +15503,6 @@ block_definitions[ 1328 ].textures[ FACE_FRONT ] = TEX_OXIDIZED_CUT_COPPER;
 block_definitions[ 1328 ].textures[ FACE_LEFT ] = TEX_OXIDIZED_CUT_COPPER;
 block_definitions[ 1328 ].textures[ FACE_BACK ] = TEX_OXIDIZED_CUT_COPPER;
 block_definitions[ 1328 ].icon_texture = TEX_OXIDIZED_CUT_COPPER;
-block_definitions[ 1328 ].icon_is_isometric = false;
 
 // WAXED_OXIDIZED_CUT_COPPER_SLAB (1329)
 block_definitions[ 1329 ].textures[ FACE_TOP ] = TEX_OXIDIZED_CUT_COPPER;
@@ -16527,7 +15512,6 @@ block_definitions[ 1329 ].textures[ FACE_FRONT ] = TEX_OXIDIZED_CUT_COPPER;
 block_definitions[ 1329 ].textures[ FACE_LEFT ] = TEX_OXIDIZED_CUT_COPPER;
 block_definitions[ 1329 ].textures[ FACE_BACK ] = TEX_OXIDIZED_CUT_COPPER;
 block_definitions[ 1329 ].icon_texture = TEX_OXIDIZED_CUT_COPPER;
-block_definitions[ 1329 ].icon_is_isometric = false;
 
 // WAXED_OXIDIZED_CUT_COPPER_STAIRS (1330)
 block_definitions[ 1330 ].textures[ FACE_TOP ] = TEX_OXIDIZED_CUT_COPPER;
@@ -16537,7 +15521,6 @@ block_definitions[ 1330 ].textures[ FACE_FRONT ] = TEX_OXIDIZED_CUT_COPPER;
 block_definitions[ 1330 ].textures[ FACE_LEFT ] = TEX_OXIDIZED_CUT_COPPER;
 block_definitions[ 1330 ].textures[ FACE_BACK ] = TEX_OXIDIZED_CUT_COPPER;
 block_definitions[ 1330 ].icon_texture = TEX_OXIDIZED_CUT_COPPER;
-block_definitions[ 1330 ].icon_is_isometric = false;
 
 // WAXED_OXIDIZED_DOUBLE_CUT_COPPER_SLAB (1331)
 block_definitions[ 1331 ].textures[ FACE_TOP ] = TEX_OXIDIZED_CUT_COPPER;
@@ -16547,7 +15530,6 @@ block_definitions[ 1331 ].textures[ FACE_FRONT ] = TEX_OXIDIZED_CUT_COPPER;
 block_definitions[ 1331 ].textures[ FACE_LEFT ] = TEX_OXIDIZED_CUT_COPPER;
 block_definitions[ 1331 ].textures[ FACE_BACK ] = TEX_OXIDIZED_CUT_COPPER;
 block_definitions[ 1331 ].icon_texture = TEX_OXIDIZED_CUT_COPPER;
-block_definitions[ 1331 ].icon_is_isometric = false;
 
 // WAXED_OXIDIZED_LIGHTNING_ROD (1332)
 block_definitions[ 1332 ].textures[ FACE_TOP ] = TEX_OXIDIZED_LIGHTNING_ROD;
@@ -16559,7 +15541,6 @@ block_definitions[ 1332 ].textures[ FACE_BACK ] = TEX_OXIDIZED_LIGHTNING_ROD;
 block_definitions[ 1332 ].icon_texture = TEX_OXIDIZED_LIGHTNING_ROD;
 block_definitions[ 1332 ].casts_shadow = false;
 block_definitions[ 1332 ].hardness = 0.35f;
-block_definitions[ 1332 ].icon_is_isometric = false;
 block_definitions[ 1332 ].is_seethrough = true;
 block_definitions[ 1332 ].no_light = 6815743;
 
@@ -16571,7 +15552,6 @@ block_definitions[ 1333 ].textures[ FACE_FRONT ] = TEX_WEATHERED_CHISELED_COPPER
 block_definitions[ 1333 ].textures[ FACE_LEFT ] = TEX_WEATHERED_CHISELED_COPPER;
 block_definitions[ 1333 ].textures[ FACE_BACK ] = TEX_WEATHERED_CHISELED_COPPER;
 block_definitions[ 1333 ].icon_texture = TEX_WEATHERED_CHISELED_COPPER;
-block_definitions[ 1333 ].icon_is_isometric = false;
 
 // WAXED_WEATHERED_COPPER (1334)
 block_definitions[ 1334 ].textures[ FACE_TOP ] = TEX_WEATHERED_COPPER;
@@ -16581,7 +15561,6 @@ block_definitions[ 1334 ].textures[ FACE_FRONT ] = TEX_WEATHERED_COPPER;
 block_definitions[ 1334 ].textures[ FACE_LEFT ] = TEX_WEATHERED_COPPER;
 block_definitions[ 1334 ].textures[ FACE_BACK ] = TEX_WEATHERED_COPPER;
 block_definitions[ 1334 ].icon_texture = TEX_WEATHERED_COPPER;
-block_definitions[ 1334 ].icon_is_isometric = false;
 
 // WAXED_WEATHERED_COPPER_BARS (1335)
 block_definitions[ 1335 ].textures[ FACE_TOP ] = TEX_WEATHERED_COPPER_BARS;
@@ -16593,7 +15572,6 @@ block_definitions[ 1335 ].textures[ FACE_BACK ] = TEX_WEATHERED_COPPER_BARS;
 block_definitions[ 1335 ].icon_texture = TEX_WEATHERED_COPPER_BARS;
 block_definitions[ 1335 ].casts_shadow = false;
 block_definitions[ 1335 ].hardness = 0.35f;
-block_definitions[ 1335 ].icon_is_isometric = false;
 block_definitions[ 1335 ].is_seethrough = true;
 block_definitions[ 1335 ].no_light = 6815743;
 
@@ -16605,7 +15583,6 @@ block_definitions[ 1336 ].textures[ FACE_FRONT ] = TEX_WEATHERED_COPPER_BULB;
 block_definitions[ 1336 ].textures[ FACE_LEFT ] = TEX_WEATHERED_COPPER_BULB;
 block_definitions[ 1336 ].textures[ FACE_BACK ] = TEX_WEATHERED_COPPER_BULB;
 block_definitions[ 1336 ].icon_texture = TEX_WEATHERED_COPPER_BULB;
-block_definitions[ 1336 ].icon_is_isometric = false;
 
 // WAXED_WEATHERED_COPPER_CHAIN (1337)
 block_definitions[ 1337 ].textures[ FACE_TOP ] = TEX_WEATHERED_COPPER_CHAIN;
@@ -16617,7 +15594,6 @@ block_definitions[ 1337 ].textures[ FACE_BACK ] = TEX_WEATHERED_COPPER_CHAIN;
 block_definitions[ 1337 ].icon_texture = TEX_WEATHERED_COPPER_CHAIN;
 block_definitions[ 1337 ].casts_shadow = false;
 block_definitions[ 1337 ].hardness = 0.35f;
-block_definitions[ 1337 ].icon_is_isometric = false;
 block_definitions[ 1337 ].is_seethrough = true;
 block_definitions[ 1337 ].no_light = 6815743;
 
@@ -16629,7 +15605,6 @@ block_definitions[ 1338 ].textures[ FACE_FRONT ] = TEX_WEATHERED_COPPER_CHEST_IN
 block_definitions[ 1338 ].textures[ FACE_LEFT ] = TEX_WEATHERED_COPPER_CHEST_INVENTORY_SIDE;
 block_definitions[ 1338 ].textures[ FACE_BACK ] = TEX_WEATHERED_COPPER_CHEST_INVENTORY_SIDE;
 block_definitions[ 1338 ].icon_texture = TEX_WEATHERED_COPPER_CHEST_INVENTORY_TOP;
-block_definitions[ 1338 ].icon_is_isometric = false;
 
 // WAXED_WEATHERED_COPPER_DOOR (1339)
 block_definitions[ 1339 ].textures[ FACE_TOP ] = TEX_WEATHERED_COPPER_DOOR_BOTTOM;
@@ -16638,10 +15613,9 @@ block_definitions[ 1339 ].textures[ FACE_RIGHT ] = TEX_WEATHERED_COPPER_DOOR_TOP
 block_definitions[ 1339 ].textures[ FACE_FRONT ] = TEX_WEATHERED_COPPER_DOOR_TOP;
 block_definitions[ 1339 ].textures[ FACE_LEFT ] = TEX_WEATHERED_COPPER_DOOR_TOP;
 block_definitions[ 1339 ].textures[ FACE_BACK ] = TEX_WEATHERED_COPPER_DOOR_TOP;
-block_definitions[ 1339 ].icon_texture = TEX_WEATHERED_COPPER_DOOR_TOP;
+block_definitions[ 1339 ].icon_texture = TEX_WEATHERED_COPPER_DOOR_BOTTOM;
 block_definitions[ 1339 ].casts_shadow = false;
 block_definitions[ 1339 ].hardness = 0.35f;
-block_definitions[ 1339 ].icon_is_isometric = false;
 block_definitions[ 1339 ].is_seethrough = true;
 block_definitions[ 1339 ].no_light = 6815743;
 
@@ -16653,7 +15627,6 @@ block_definitions[ 1340 ].textures[ FACE_FRONT ] = TEX_WEATHERED_COPPER;
 block_definitions[ 1340 ].textures[ FACE_LEFT ] = TEX_WEATHERED_COPPER;
 block_definitions[ 1340 ].textures[ FACE_BACK ] = TEX_WEATHERED_COPPER;
 block_definitions[ 1340 ].icon_texture = TEX_WEATHERED_COPPER;
-block_definitions[ 1340 ].icon_is_isometric = false;
 
 // WAXED_WEATHERED_COPPER_GRATE (1341)
 block_definitions[ 1341 ].textures[ FACE_TOP ] = TEX_WEATHERED_COPPER_GRATE;
@@ -16665,7 +15638,6 @@ block_definitions[ 1341 ].textures[ FACE_BACK ] = TEX_WEATHERED_COPPER_GRATE;
 block_definitions[ 1341 ].icon_texture = TEX_WEATHERED_COPPER_GRATE;
 block_definitions[ 1341 ].casts_shadow = false;
 block_definitions[ 1341 ].hardness = 0.35f;
-block_definitions[ 1341 ].icon_is_isometric = false;
 block_definitions[ 1341 ].is_seethrough = true;
 block_definitions[ 1341 ].no_light = 6815743;
 
@@ -16679,7 +15651,6 @@ block_definitions[ 1342 ].textures[ FACE_BACK ] = TEX_WEATHERED_COPPER_LANTERN;
 block_definitions[ 1342 ].icon_texture = TEX_WEATHERED_COPPER_LANTERN;
 block_definitions[ 1342 ].casts_shadow = false;
 block_definitions[ 1342 ].hardness = 0.35f;
-block_definitions[ 1342 ].icon_is_isometric = false;
 block_definitions[ 1342 ].is_seethrough = true;
 block_definitions[ 1342 ].no_light = 6815743;
 
@@ -16693,7 +15664,6 @@ block_definitions[ 1343 ].textures[ FACE_BACK ] = TEX_WEATHERED_COPPER_TRAPDOOR;
 block_definitions[ 1343 ].icon_texture = TEX_WEATHERED_COPPER_TRAPDOOR;
 block_definitions[ 1343 ].casts_shadow = false;
 block_definitions[ 1343 ].hardness = 0.35f;
-block_definitions[ 1343 ].icon_is_isometric = false;
 block_definitions[ 1343 ].is_seethrough = true;
 block_definitions[ 1343 ].no_light = 6815743;
 
@@ -16705,7 +15675,6 @@ block_definitions[ 1344 ].textures[ FACE_FRONT ] = TEX_WEATHERED_CUT_COPPER;
 block_definitions[ 1344 ].textures[ FACE_LEFT ] = TEX_WEATHERED_CUT_COPPER;
 block_definitions[ 1344 ].textures[ FACE_BACK ] = TEX_WEATHERED_CUT_COPPER;
 block_definitions[ 1344 ].icon_texture = TEX_WEATHERED_CUT_COPPER;
-block_definitions[ 1344 ].icon_is_isometric = false;
 
 // WAXED_WEATHERED_CUT_COPPER_SLAB (1345)
 block_definitions[ 1345 ].textures[ FACE_TOP ] = TEX_WEATHERED_CUT_COPPER;
@@ -16715,7 +15684,6 @@ block_definitions[ 1345 ].textures[ FACE_FRONT ] = TEX_WEATHERED_CUT_COPPER;
 block_definitions[ 1345 ].textures[ FACE_LEFT ] = TEX_WEATHERED_CUT_COPPER;
 block_definitions[ 1345 ].textures[ FACE_BACK ] = TEX_WEATHERED_CUT_COPPER;
 block_definitions[ 1345 ].icon_texture = TEX_WEATHERED_CUT_COPPER;
-block_definitions[ 1345 ].icon_is_isometric = false;
 
 // WAXED_WEATHERED_CUT_COPPER_STAIRS (1346)
 block_definitions[ 1346 ].textures[ FACE_TOP ] = TEX_WEATHERED_CUT_COPPER;
@@ -16725,7 +15693,6 @@ block_definitions[ 1346 ].textures[ FACE_FRONT ] = TEX_WEATHERED_CUT_COPPER;
 block_definitions[ 1346 ].textures[ FACE_LEFT ] = TEX_WEATHERED_CUT_COPPER;
 block_definitions[ 1346 ].textures[ FACE_BACK ] = TEX_WEATHERED_CUT_COPPER;
 block_definitions[ 1346 ].icon_texture = TEX_WEATHERED_CUT_COPPER;
-block_definitions[ 1346 ].icon_is_isometric = false;
 
 // WAXED_WEATHERED_DOUBLE_CUT_COPPER_SLAB (1347)
 block_definitions[ 1347 ].textures[ FACE_TOP ] = TEX_WEATHERED_CUT_COPPER;
@@ -16735,7 +15702,6 @@ block_definitions[ 1347 ].textures[ FACE_FRONT ] = TEX_WEATHERED_CUT_COPPER;
 block_definitions[ 1347 ].textures[ FACE_LEFT ] = TEX_WEATHERED_CUT_COPPER;
 block_definitions[ 1347 ].textures[ FACE_BACK ] = TEX_WEATHERED_CUT_COPPER;
 block_definitions[ 1347 ].icon_texture = TEX_WEATHERED_CUT_COPPER;
-block_definitions[ 1347 ].icon_is_isometric = false;
 
 // WAXED_WEATHERED_LIGHTNING_ROD (1348)
 block_definitions[ 1348 ].textures[ FACE_TOP ] = TEX_WEATHERED_LIGHTNING_ROD;
@@ -16747,7 +15713,6 @@ block_definitions[ 1348 ].textures[ FACE_BACK ] = TEX_WEATHERED_LIGHTNING_ROD;
 block_definitions[ 1348 ].icon_texture = TEX_WEATHERED_LIGHTNING_ROD;
 block_definitions[ 1348 ].casts_shadow = false;
 block_definitions[ 1348 ].hardness = 0.35f;
-block_definitions[ 1348 ].icon_is_isometric = false;
 block_definitions[ 1348 ].is_seethrough = true;
 block_definitions[ 1348 ].no_light = 6815743;
 
@@ -16759,7 +15724,6 @@ block_definitions[ 1349 ].textures[ FACE_FRONT ] = TEX_WEATHERED_CHISELED_COPPER
 block_definitions[ 1349 ].textures[ FACE_LEFT ] = TEX_WEATHERED_CHISELED_COPPER;
 block_definitions[ 1349 ].textures[ FACE_BACK ] = TEX_WEATHERED_CHISELED_COPPER;
 block_definitions[ 1349 ].icon_texture = TEX_WEATHERED_CHISELED_COPPER;
-block_definitions[ 1349 ].icon_is_isometric = false;
 
 // WEATHERED_COPPER (1350)
 block_definitions[ 1350 ].textures[ FACE_TOP ] = TEX_WEATHERED_COPPER;
@@ -16769,7 +15733,6 @@ block_definitions[ 1350 ].textures[ FACE_FRONT ] = TEX_WEATHERED_COPPER;
 block_definitions[ 1350 ].textures[ FACE_LEFT ] = TEX_WEATHERED_COPPER;
 block_definitions[ 1350 ].textures[ FACE_BACK ] = TEX_WEATHERED_COPPER;
 block_definitions[ 1350 ].icon_texture = TEX_WEATHERED_COPPER;
-block_definitions[ 1350 ].icon_is_isometric = false;
 
 // WEATHERED_COPPER_BARS (1351)
 block_definitions[ 1351 ].textures[ FACE_TOP ] = TEX_WEATHERED_COPPER_BARS;
@@ -16781,7 +15744,6 @@ block_definitions[ 1351 ].textures[ FACE_BACK ] = TEX_WEATHERED_COPPER_BARS;
 block_definitions[ 1351 ].icon_texture = TEX_WEATHERED_COPPER_BARS;
 block_definitions[ 1351 ].casts_shadow = false;
 block_definitions[ 1351 ].hardness = 0.35f;
-block_definitions[ 1351 ].icon_is_isometric = false;
 block_definitions[ 1351 ].is_seethrough = true;
 block_definitions[ 1351 ].no_light = 6815743;
 
@@ -16793,7 +15755,6 @@ block_definitions[ 1352 ].textures[ FACE_FRONT ] = TEX_WEATHERED_COPPER_BULB;
 block_definitions[ 1352 ].textures[ FACE_LEFT ] = TEX_WEATHERED_COPPER_BULB;
 block_definitions[ 1352 ].textures[ FACE_BACK ] = TEX_WEATHERED_COPPER_BULB;
 block_definitions[ 1352 ].icon_texture = TEX_WEATHERED_COPPER_BULB;
-block_definitions[ 1352 ].icon_is_isometric = false;
 
 // WEATHERED_COPPER_CHAIN (1353)
 block_definitions[ 1353 ].textures[ FACE_TOP ] = TEX_WEATHERED_COPPER_CHAIN;
@@ -16805,7 +15766,6 @@ block_definitions[ 1353 ].textures[ FACE_BACK ] = TEX_WEATHERED_COPPER_CHAIN;
 block_definitions[ 1353 ].icon_texture = TEX_WEATHERED_COPPER_CHAIN;
 block_definitions[ 1353 ].casts_shadow = false;
 block_definitions[ 1353 ].hardness = 0.35f;
-block_definitions[ 1353 ].icon_is_isometric = false;
 block_definitions[ 1353 ].is_seethrough = true;
 block_definitions[ 1353 ].no_light = 6815743;
 
@@ -16817,7 +15777,6 @@ block_definitions[ 1354 ].textures[ FACE_FRONT ] = TEX_WEATHERED_COPPER_CHEST_IN
 block_definitions[ 1354 ].textures[ FACE_LEFT ] = TEX_WEATHERED_COPPER_CHEST_INVENTORY_SIDE;
 block_definitions[ 1354 ].textures[ FACE_BACK ] = TEX_WEATHERED_COPPER_CHEST_INVENTORY_SIDE;
 block_definitions[ 1354 ].icon_texture = TEX_WEATHERED_COPPER_CHEST_INVENTORY_TOP;
-block_definitions[ 1354 ].icon_is_isometric = false;
 
 // WEATHERED_COPPER_DOOR (1355)
 block_definitions[ 1355 ].textures[ FACE_TOP ] = TEX_WEATHERED_COPPER_DOOR_BOTTOM;
@@ -16826,10 +15785,9 @@ block_definitions[ 1355 ].textures[ FACE_RIGHT ] = TEX_WEATHERED_COPPER_DOOR_TOP
 block_definitions[ 1355 ].textures[ FACE_FRONT ] = TEX_WEATHERED_COPPER_DOOR_TOP;
 block_definitions[ 1355 ].textures[ FACE_LEFT ] = TEX_WEATHERED_COPPER_DOOR_TOP;
 block_definitions[ 1355 ].textures[ FACE_BACK ] = TEX_WEATHERED_COPPER_DOOR_TOP;
-block_definitions[ 1355 ].icon_texture = TEX_WEATHERED_COPPER_DOOR_TOP;
+block_definitions[ 1355 ].icon_texture = TEX_WEATHERED_COPPER_DOOR_BOTTOM;
 block_definitions[ 1355 ].casts_shadow = false;
 block_definitions[ 1355 ].hardness = 0.35f;
-block_definitions[ 1355 ].icon_is_isometric = false;
 block_definitions[ 1355 ].is_seethrough = true;
 block_definitions[ 1355 ].no_light = 6815743;
 
@@ -16841,7 +15799,6 @@ block_definitions[ 1356 ].textures[ FACE_FRONT ] = TEX_WEATHERED_COPPER;
 block_definitions[ 1356 ].textures[ FACE_LEFT ] = TEX_WEATHERED_COPPER;
 block_definitions[ 1356 ].textures[ FACE_BACK ] = TEX_WEATHERED_COPPER;
 block_definitions[ 1356 ].icon_texture = TEX_WEATHERED_COPPER;
-block_definitions[ 1356 ].icon_is_isometric = false;
 
 // WEATHERED_COPPER_GRATE (1357)
 block_definitions[ 1357 ].textures[ FACE_TOP ] = TEX_WEATHERED_COPPER_GRATE;
@@ -16853,7 +15810,6 @@ block_definitions[ 1357 ].textures[ FACE_BACK ] = TEX_WEATHERED_COPPER_GRATE;
 block_definitions[ 1357 ].icon_texture = TEX_WEATHERED_COPPER_GRATE;
 block_definitions[ 1357 ].casts_shadow = false;
 block_definitions[ 1357 ].hardness = 0.35f;
-block_definitions[ 1357 ].icon_is_isometric = false;
 block_definitions[ 1357 ].is_seethrough = true;
 block_definitions[ 1357 ].no_light = 6815743;
 
@@ -16867,7 +15823,6 @@ block_definitions[ 1358 ].textures[ FACE_BACK ] = TEX_WEATHERED_COPPER_LANTERN;
 block_definitions[ 1358 ].icon_texture = TEX_WEATHERED_COPPER_LANTERN;
 block_definitions[ 1358 ].casts_shadow = false;
 block_definitions[ 1358 ].hardness = 0.35f;
-block_definitions[ 1358 ].icon_is_isometric = false;
 block_definitions[ 1358 ].is_seethrough = true;
 block_definitions[ 1358 ].no_light = 6815743;
 
@@ -16881,7 +15836,6 @@ block_definitions[ 1359 ].textures[ FACE_BACK ] = TEX_WEATHERED_COPPER_TRAPDOOR;
 block_definitions[ 1359 ].icon_texture = TEX_WEATHERED_COPPER_TRAPDOOR;
 block_definitions[ 1359 ].casts_shadow = false;
 block_definitions[ 1359 ].hardness = 0.35f;
-block_definitions[ 1359 ].icon_is_isometric = false;
 block_definitions[ 1359 ].is_seethrough = true;
 block_definitions[ 1359 ].no_light = 6815743;
 
@@ -16893,7 +15847,6 @@ block_definitions[ 1360 ].textures[ FACE_FRONT ] = TEX_WEATHERED_CUT_COPPER;
 block_definitions[ 1360 ].textures[ FACE_LEFT ] = TEX_WEATHERED_CUT_COPPER;
 block_definitions[ 1360 ].textures[ FACE_BACK ] = TEX_WEATHERED_CUT_COPPER;
 block_definitions[ 1360 ].icon_texture = TEX_WEATHERED_CUT_COPPER;
-block_definitions[ 1360 ].icon_is_isometric = false;
 
 // WEATHERED_CUT_COPPER_SLAB (1361)
 block_definitions[ 1361 ].textures[ FACE_TOP ] = TEX_WEATHERED_CUT_COPPER;
@@ -16903,7 +15856,6 @@ block_definitions[ 1361 ].textures[ FACE_FRONT ] = TEX_WEATHERED_CUT_COPPER;
 block_definitions[ 1361 ].textures[ FACE_LEFT ] = TEX_WEATHERED_CUT_COPPER;
 block_definitions[ 1361 ].textures[ FACE_BACK ] = TEX_WEATHERED_CUT_COPPER;
 block_definitions[ 1361 ].icon_texture = TEX_WEATHERED_CUT_COPPER;
-block_definitions[ 1361 ].icon_is_isometric = false;
 
 // WEATHERED_CUT_COPPER_STAIRS (1362)
 block_definitions[ 1362 ].textures[ FACE_TOP ] = TEX_WEATHERED_CUT_COPPER;
@@ -16913,7 +15865,6 @@ block_definitions[ 1362 ].textures[ FACE_FRONT ] = TEX_WEATHERED_CUT_COPPER;
 block_definitions[ 1362 ].textures[ FACE_LEFT ] = TEX_WEATHERED_CUT_COPPER;
 block_definitions[ 1362 ].textures[ FACE_BACK ] = TEX_WEATHERED_CUT_COPPER;
 block_definitions[ 1362 ].icon_texture = TEX_WEATHERED_CUT_COPPER;
-block_definitions[ 1362 ].icon_is_isometric = false;
 
 // WEATHERED_DOUBLE_CUT_COPPER_SLAB (1363)
 block_definitions[ 1363 ].textures[ FACE_TOP ] = TEX_WEATHERED_CUT_COPPER;
@@ -16923,7 +15874,6 @@ block_definitions[ 1363 ].textures[ FACE_FRONT ] = TEX_WEATHERED_CUT_COPPER;
 block_definitions[ 1363 ].textures[ FACE_LEFT ] = TEX_WEATHERED_CUT_COPPER;
 block_definitions[ 1363 ].textures[ FACE_BACK ] = TEX_WEATHERED_CUT_COPPER;
 block_definitions[ 1363 ].icon_texture = TEX_WEATHERED_CUT_COPPER;
-block_definitions[ 1363 ].icon_is_isometric = false;
 
 // WEATHERED_LIGHTNING_ROD (1364)
 block_definitions[ 1364 ].textures[ FACE_TOP ] = TEX_WEATHERED_LIGHTNING_ROD;
@@ -16935,7 +15885,6 @@ block_definitions[ 1364 ].textures[ FACE_BACK ] = TEX_WEATHERED_LIGHTNING_ROD;
 block_definitions[ 1364 ].icon_texture = TEX_WEATHERED_LIGHTNING_ROD;
 block_definitions[ 1364 ].casts_shadow = false;
 block_definitions[ 1364 ].hardness = 0.35f;
-block_definitions[ 1364 ].icon_is_isometric = false;
 block_definitions[ 1364 ].is_seethrough = true;
 block_definitions[ 1364 ].no_light = 6815743;
 
@@ -16969,7 +15918,6 @@ block_definitions[ 1366 ].textures[ FACE_FRONT ] = TEX_SPONGE_WET;
 block_definitions[ 1366 ].textures[ FACE_LEFT ] = TEX_SPONGE_WET;
 block_definitions[ 1366 ].textures[ FACE_BACK ] = TEX_SPONGE_WET;
 block_definitions[ 1366 ].icon_texture = TEX_SPONGE_WET;
-block_definitions[ 1366 ].icon_is_isometric = false;
 
 // WHITE_CANDLE (1367)
 block_definitions[ 1367 ].textures[ FACE_TOP ] = TEX_WHITE_CANDLE;
@@ -16981,7 +15929,6 @@ block_definitions[ 1367 ].textures[ FACE_BACK ] = TEX_WHITE_CANDLE;
 block_definitions[ 1367 ].icon_texture = TEX_WHITE_CANDLE;
 block_definitions[ 1367 ].casts_shadow = false;
 block_definitions[ 1367 ].hardness = 0.35f;
-block_definitions[ 1367 ].icon_is_isometric = false;
 block_definitions[ 1367 ].is_seethrough = true;
 block_definitions[ 1367 ].no_light = 6815743;
 
@@ -16992,10 +15939,9 @@ block_definitions[ 1368 ].textures[ FACE_RIGHT ] = TEX_CAKE_SIDE;
 block_definitions[ 1368 ].textures[ FACE_FRONT ] = TEX_CAKE_SIDE;
 block_definitions[ 1368 ].textures[ FACE_LEFT ] = TEX_CAKE_SIDE;
 block_definitions[ 1368 ].textures[ FACE_BACK ] = TEX_CAKE_SIDE;
-block_definitions[ 1368 ].icon_texture = TEX_CAKE_SIDE;
+block_definitions[ 1368 ].icon_texture = TEX_CAKE_TOP;
 block_definitions[ 1368 ].casts_shadow = false;
 block_definitions[ 1368 ].hardness = 0.35f;
-block_definitions[ 1368 ].icon_is_isometric = false;
 block_definitions[ 1368 ].is_seethrough = true;
 block_definitions[ 1368 ].no_light = 6815743;
 
@@ -17007,7 +15953,6 @@ block_definitions[ 1369 ].textures[ FACE_FRONT ] = TEX_WOOL_COLORED_WHITE;
 block_definitions[ 1369 ].textures[ FACE_LEFT ] = TEX_WOOL_COLORED_WHITE;
 block_definitions[ 1369 ].textures[ FACE_BACK ] = TEX_WOOL_COLORED_WHITE;
 block_definitions[ 1369 ].icon_texture = TEX_WOOL_COLORED_WHITE;
-block_definitions[ 1369 ].icon_is_isometric = false;
 
 // WHITE_CONCRETE (1370)
 block_definitions[ 1370 ].textures[ FACE_TOP ] = TEX_CONCRETE_WHITE;
@@ -17017,7 +15962,6 @@ block_definitions[ 1370 ].textures[ FACE_FRONT ] = TEX_CONCRETE_WHITE;
 block_definitions[ 1370 ].textures[ FACE_LEFT ] = TEX_CONCRETE_WHITE;
 block_definitions[ 1370 ].textures[ FACE_BACK ] = TEX_CONCRETE_WHITE;
 block_definitions[ 1370 ].icon_texture = TEX_CONCRETE_WHITE;
-block_definitions[ 1370 ].icon_is_isometric = false;
 
 // WHITE_CONCRETE_DOUBLE_SLAB (1371)
 block_definitions[ 1371 ].textures[ FACE_TOP ] = TEX_CONCRETE_WHITE;
@@ -17027,7 +15971,6 @@ block_definitions[ 1371 ].textures[ FACE_FRONT ] = TEX_CONCRETE_WHITE;
 block_definitions[ 1371 ].textures[ FACE_LEFT ] = TEX_CONCRETE_WHITE;
 block_definitions[ 1371 ].textures[ FACE_BACK ] = TEX_CONCRETE_WHITE;
 block_definitions[ 1371 ].icon_texture = TEX_CONCRETE_WHITE;
-block_definitions[ 1371 ].icon_is_isometric = false;
 
 // WHITE_CONCRETE_POWDER (1372)
 block_definitions[ 1372 ].textures[ FACE_TOP ] = TEX_CONCRETE_POWDER_WHITE;
@@ -17037,7 +15980,6 @@ block_definitions[ 1372 ].textures[ FACE_FRONT ] = TEX_CONCRETE_POWDER_WHITE;
 block_definitions[ 1372 ].textures[ FACE_LEFT ] = TEX_CONCRETE_POWDER_WHITE;
 block_definitions[ 1372 ].textures[ FACE_BACK ] = TEX_CONCRETE_POWDER_WHITE;
 block_definitions[ 1372 ].icon_texture = TEX_CONCRETE_POWDER_WHITE;
-block_definitions[ 1372 ].icon_is_isometric = false;
 
 // WHITE_CONCRETE_SLAB (1373)
 block_definitions[ 1373 ].textures[ FACE_TOP ] = TEX_CONCRETE_WHITE;
@@ -17047,7 +15989,6 @@ block_definitions[ 1373 ].textures[ FACE_FRONT ] = TEX_CONCRETE_WHITE;
 block_definitions[ 1373 ].textures[ FACE_LEFT ] = TEX_CONCRETE_WHITE;
 block_definitions[ 1373 ].textures[ FACE_BACK ] = TEX_CONCRETE_WHITE;
 block_definitions[ 1373 ].icon_texture = TEX_CONCRETE_WHITE;
-block_definitions[ 1373 ].icon_is_isometric = false;
 
 // WHITE_CONCRETE_STAIRS (1374)
 block_definitions[ 1374 ].textures[ FACE_TOP ] = TEX_CONCRETE_WHITE;
@@ -17057,7 +15998,6 @@ block_definitions[ 1374 ].textures[ FACE_FRONT ] = TEX_CONCRETE_WHITE;
 block_definitions[ 1374 ].textures[ FACE_LEFT ] = TEX_CONCRETE_WHITE;
 block_definitions[ 1374 ].textures[ FACE_BACK ] = TEX_CONCRETE_WHITE;
 block_definitions[ 1374 ].icon_texture = TEX_CONCRETE_WHITE;
-block_definitions[ 1374 ].icon_is_isometric = false;
 
 // WHITE_GLAZED_TERRACOTTA (1375)
 block_definitions[ 1375 ].textures[ FACE_TOP ] = TEX_GLAZED_TERRACOTTA_WHITE;
@@ -17067,7 +16007,6 @@ block_definitions[ 1375 ].textures[ FACE_FRONT ] = TEX_GLAZED_TERRACOTTA_WHITE;
 block_definitions[ 1375 ].textures[ FACE_LEFT ] = TEX_GLAZED_TERRACOTTA_WHITE;
 block_definitions[ 1375 ].textures[ FACE_BACK ] = TEX_GLAZED_TERRACOTTA_WHITE;
 block_definitions[ 1375 ].icon_texture = TEX_GLAZED_TERRACOTTA_WHITE;
-block_definitions[ 1375 ].icon_is_isometric = false;
 
 // WHITE_SHULKER_BOX (1376)
 block_definitions[ 1376 ].textures[ FACE_TOP ] = TEX_SHULKER_TOP_WHITE;
@@ -17077,7 +16016,6 @@ block_definitions[ 1376 ].textures[ FACE_FRONT ] = TEX_SHULKER_TOP_WHITE;
 block_definitions[ 1376 ].textures[ FACE_LEFT ] = TEX_SHULKER_TOP_WHITE;
 block_definitions[ 1376 ].textures[ FACE_BACK ] = TEX_SHULKER_TOP_WHITE;
 block_definitions[ 1376 ].icon_texture = TEX_SHULKER_TOP_WHITE;
-block_definitions[ 1376 ].icon_is_isometric = false;
 
 // WHITE_STAINED_GLASS_PANE (1377)
 block_definitions[ 1377 ].textures[ FACE_TOP ] = TEX_GLASS_WHITE;
@@ -17090,7 +16028,6 @@ block_definitions[ 1377 ].icon_texture = TEX_GLASS_WHITE;
 block_definitions[ 1377 ].affected_by_redstone_power = false;
 block_definitions[ 1377 ].casts_shadow = false;
 block_definitions[ 1377 ].hardness = 0.449999988f;
-block_definitions[ 1377 ].icon_is_isometric = false;
 block_definitions[ 1377 ].is_seethrough = true;
 block_definitions[ 1377 ].renderOrder = RenderOrder_Translucent;
 
@@ -17102,7 +16039,6 @@ block_definitions[ 1378 ].textures[ FACE_FRONT ] = TEX_HARDENED_CLAY_STAINED_WHI
 block_definitions[ 1378 ].textures[ FACE_LEFT ] = TEX_HARDENED_CLAY_STAINED_WHITE;
 block_definitions[ 1378 ].textures[ FACE_BACK ] = TEX_HARDENED_CLAY_STAINED_WHITE;
 block_definitions[ 1378 ].icon_texture = TEX_HARDENED_CLAY_STAINED_WHITE;
-block_definitions[ 1378 ].icon_is_isometric = false;
 
 // WHITE_WOOL (1379)
 block_definitions[ 1379 ].textures[ FACE_TOP ] = TEX_WOOL_COLORED_WHITE;
@@ -17112,7 +16048,6 @@ block_definitions[ 1379 ].textures[ FACE_FRONT ] = TEX_WOOL_COLORED_WHITE;
 block_definitions[ 1379 ].textures[ FACE_LEFT ] = TEX_WOOL_COLORED_WHITE;
 block_definitions[ 1379 ].textures[ FACE_BACK ] = TEX_WOOL_COLORED_WHITE;
 block_definitions[ 1379 ].icon_texture = TEX_WOOL_COLORED_WHITE;
-block_definitions[ 1379 ].icon_is_isometric = false;
 
 // WHITE_WOOL_DOUBLE_SLAB (1380)
 block_definitions[ 1380 ].textures[ FACE_TOP ] = TEX_WOOL_COLORED_WHITE;
@@ -17122,7 +16057,6 @@ block_definitions[ 1380 ].textures[ FACE_FRONT ] = TEX_WOOL_COLORED_WHITE;
 block_definitions[ 1380 ].textures[ FACE_LEFT ] = TEX_WOOL_COLORED_WHITE;
 block_definitions[ 1380 ].textures[ FACE_BACK ] = TEX_WOOL_COLORED_WHITE;
 block_definitions[ 1380 ].icon_texture = TEX_WOOL_COLORED_WHITE;
-block_definitions[ 1380 ].icon_is_isometric = false;
 
 // WHITE_WOOL_SLAB (1381)
 block_definitions[ 1381 ].textures[ FACE_TOP ] = TEX_WOOL_COLORED_WHITE;
@@ -17132,7 +16066,6 @@ block_definitions[ 1381 ].textures[ FACE_FRONT ] = TEX_WOOL_COLORED_WHITE;
 block_definitions[ 1381 ].textures[ FACE_LEFT ] = TEX_WOOL_COLORED_WHITE;
 block_definitions[ 1381 ].textures[ FACE_BACK ] = TEX_WOOL_COLORED_WHITE;
 block_definitions[ 1381 ].icon_texture = TEX_WOOL_COLORED_WHITE;
-block_definitions[ 1381 ].icon_is_isometric = false;
 
 // WHITE_WOOL_STAIRS (1382)
 block_definitions[ 1382 ].textures[ FACE_TOP ] = TEX_WOOL_COLORED_WHITE;
@@ -17142,7 +16075,6 @@ block_definitions[ 1382 ].textures[ FACE_FRONT ] = TEX_WOOL_COLORED_WHITE;
 block_definitions[ 1382 ].textures[ FACE_LEFT ] = TEX_WOOL_COLORED_WHITE;
 block_definitions[ 1382 ].textures[ FACE_BACK ] = TEX_WOOL_COLORED_WHITE;
 block_definitions[ 1382 ].icon_texture = TEX_WOOL_COLORED_WHITE;
-block_definitions[ 1382 ].icon_is_isometric = false;
 
 // WILDFLOWERS (1383)
 block_definitions[ 1383 ].textures[ FACE_TOP ] = TEX_AIR;
@@ -17174,7 +16106,6 @@ block_definitions[ 1384 ].textures[ FACE_FRONT ] = TEX_LOG_OAK;
 block_definitions[ 1384 ].textures[ FACE_LEFT ] = TEX_LOG_OAK;
 block_definitions[ 1384 ].textures[ FACE_BACK ] = TEX_LOG_OAK;
 block_definitions[ 1384 ].icon_texture = TEX_LOG_OAK;
-block_definitions[ 1384 ].icon_is_isometric = false;
 
 // WOODEN_PRESSURE_PLATE (1385)
 block_definitions[ 1385 ].textures[ FACE_TOP ] = TEX_PLANKS_OAK;
@@ -17184,7 +16115,6 @@ block_definitions[ 1385 ].textures[ FACE_FRONT ] = TEX_PLANKS_OAK;
 block_definitions[ 1385 ].textures[ FACE_LEFT ] = TEX_PLANKS_OAK;
 block_definitions[ 1385 ].textures[ FACE_BACK ] = TEX_PLANKS_OAK;
 block_definitions[ 1385 ].icon_texture = TEX_PLANKS_OAK;
-block_definitions[ 1385 ].icon_is_isometric = false;
 
 // WOODEN_SLAB (1386)
 block_definitions[ 1386 ].textures[ FACE_TOP ] = TEX_PLANKS_OAK;
@@ -17194,7 +16124,6 @@ block_definitions[ 1386 ].textures[ FACE_FRONT ] = TEX_PLANKS_OAK;
 block_definitions[ 1386 ].textures[ FACE_LEFT ] = TEX_PLANKS_OAK;
 block_definitions[ 1386 ].textures[ FACE_BACK ] = TEX_PLANKS_OAK;
 block_definitions[ 1386 ].icon_texture = TEX_PLANKS_OAK;
-block_definitions[ 1386 ].icon_is_isometric = false;
 
 // WOOL (1387)
 block_definitions[ 1387 ].textures[ FACE_TOP ] = TEX_WOOL_COLORED_WHITE;
@@ -17204,7 +16133,6 @@ block_definitions[ 1387 ].textures[ FACE_FRONT ] = TEX_WOOL_COLORED_WHITE;
 block_definitions[ 1387 ].textures[ FACE_LEFT ] = TEX_WOOL_COLORED_WHITE;
 block_definitions[ 1387 ].textures[ FACE_BACK ] = TEX_WOOL_COLORED_WHITE;
 block_definitions[ 1387 ].icon_texture = TEX_WOOL_COLORED_WHITE;
-block_definitions[ 1387 ].icon_is_isometric = false;
 
 // YELLOW_CANDLE (1388)
 block_definitions[ 1388 ].textures[ FACE_TOP ] = TEX_YELLOW_CANDLE;
@@ -17216,7 +16144,6 @@ block_definitions[ 1388 ].textures[ FACE_BACK ] = TEX_YELLOW_CANDLE;
 block_definitions[ 1388 ].icon_texture = TEX_YELLOW_CANDLE;
 block_definitions[ 1388 ].casts_shadow = false;
 block_definitions[ 1388 ].hardness = 0.35f;
-block_definitions[ 1388 ].icon_is_isometric = false;
 block_definitions[ 1388 ].is_seethrough = true;
 block_definitions[ 1388 ].no_light = 6815743;
 
@@ -17227,10 +16154,9 @@ block_definitions[ 1389 ].textures[ FACE_RIGHT ] = TEX_CAKE_SIDE;
 block_definitions[ 1389 ].textures[ FACE_FRONT ] = TEX_CAKE_SIDE;
 block_definitions[ 1389 ].textures[ FACE_LEFT ] = TEX_CAKE_SIDE;
 block_definitions[ 1389 ].textures[ FACE_BACK ] = TEX_CAKE_SIDE;
-block_definitions[ 1389 ].icon_texture = TEX_CAKE_SIDE;
+block_definitions[ 1389 ].icon_texture = TEX_CAKE_TOP;
 block_definitions[ 1389 ].casts_shadow = false;
 block_definitions[ 1389 ].hardness = 0.35f;
-block_definitions[ 1389 ].icon_is_isometric = false;
 block_definitions[ 1389 ].is_seethrough = true;
 block_definitions[ 1389 ].no_light = 6815743;
 
@@ -17242,7 +16168,6 @@ block_definitions[ 1390 ].textures[ FACE_FRONT ] = TEX_WOOL_COLORED_YELLOW;
 block_definitions[ 1390 ].textures[ FACE_LEFT ] = TEX_WOOL_COLORED_YELLOW;
 block_definitions[ 1390 ].textures[ FACE_BACK ] = TEX_WOOL_COLORED_YELLOW;
 block_definitions[ 1390 ].icon_texture = TEX_WOOL_COLORED_YELLOW;
-block_definitions[ 1390 ].icon_is_isometric = false;
 
 // YELLOW_CONCRETE (1391)
 block_definitions[ 1391 ].textures[ FACE_TOP ] = TEX_CONCRETE_YELLOW;
@@ -17252,7 +16177,6 @@ block_definitions[ 1391 ].textures[ FACE_FRONT ] = TEX_CONCRETE_YELLOW;
 block_definitions[ 1391 ].textures[ FACE_LEFT ] = TEX_CONCRETE_YELLOW;
 block_definitions[ 1391 ].textures[ FACE_BACK ] = TEX_CONCRETE_YELLOW;
 block_definitions[ 1391 ].icon_texture = TEX_CONCRETE_YELLOW;
-block_definitions[ 1391 ].icon_is_isometric = false;
 
 // YELLOW_CONCRETE_DOUBLE_SLAB (1392)
 block_definitions[ 1392 ].textures[ FACE_TOP ] = TEX_CONCRETE_YELLOW;
@@ -17262,7 +16186,6 @@ block_definitions[ 1392 ].textures[ FACE_FRONT ] = TEX_CONCRETE_YELLOW;
 block_definitions[ 1392 ].textures[ FACE_LEFT ] = TEX_CONCRETE_YELLOW;
 block_definitions[ 1392 ].textures[ FACE_BACK ] = TEX_CONCRETE_YELLOW;
 block_definitions[ 1392 ].icon_texture = TEX_CONCRETE_YELLOW;
-block_definitions[ 1392 ].icon_is_isometric = false;
 
 // YELLOW_CONCRETE_POWDER (1393)
 block_definitions[ 1393 ].textures[ FACE_TOP ] = TEX_CONCRETE_POWDER_YELLOW;
@@ -17272,7 +16195,6 @@ block_definitions[ 1393 ].textures[ FACE_FRONT ] = TEX_CONCRETE_POWDER_YELLOW;
 block_definitions[ 1393 ].textures[ FACE_LEFT ] = TEX_CONCRETE_POWDER_YELLOW;
 block_definitions[ 1393 ].textures[ FACE_BACK ] = TEX_CONCRETE_POWDER_YELLOW;
 block_definitions[ 1393 ].icon_texture = TEX_CONCRETE_POWDER_YELLOW;
-block_definitions[ 1393 ].icon_is_isometric = false;
 
 // YELLOW_CONCRETE_SLAB (1394)
 block_definitions[ 1394 ].textures[ FACE_TOP ] = TEX_CONCRETE_YELLOW;
@@ -17282,7 +16204,6 @@ block_definitions[ 1394 ].textures[ FACE_FRONT ] = TEX_CONCRETE_YELLOW;
 block_definitions[ 1394 ].textures[ FACE_LEFT ] = TEX_CONCRETE_YELLOW;
 block_definitions[ 1394 ].textures[ FACE_BACK ] = TEX_CONCRETE_YELLOW;
 block_definitions[ 1394 ].icon_texture = TEX_CONCRETE_YELLOW;
-block_definitions[ 1394 ].icon_is_isometric = false;
 
 // YELLOW_CONCRETE_STAIRS (1395)
 block_definitions[ 1395 ].textures[ FACE_TOP ] = TEX_CONCRETE_YELLOW;
@@ -17292,7 +16213,6 @@ block_definitions[ 1395 ].textures[ FACE_FRONT ] = TEX_CONCRETE_YELLOW;
 block_definitions[ 1395 ].textures[ FACE_LEFT ] = TEX_CONCRETE_YELLOW;
 block_definitions[ 1395 ].textures[ FACE_BACK ] = TEX_CONCRETE_YELLOW;
 block_definitions[ 1395 ].icon_texture = TEX_CONCRETE_YELLOW;
-block_definitions[ 1395 ].icon_is_isometric = false;
 
 // YELLOW_GLAZED_TERRACOTTA (1396)
 block_definitions[ 1396 ].textures[ FACE_TOP ] = TEX_GLAZED_TERRACOTTA_YELLOW;
@@ -17302,7 +16222,6 @@ block_definitions[ 1396 ].textures[ FACE_FRONT ] = TEX_GLAZED_TERRACOTTA_YELLOW;
 block_definitions[ 1396 ].textures[ FACE_LEFT ] = TEX_GLAZED_TERRACOTTA_YELLOW;
 block_definitions[ 1396 ].textures[ FACE_BACK ] = TEX_GLAZED_TERRACOTTA_YELLOW;
 block_definitions[ 1396 ].icon_texture = TEX_GLAZED_TERRACOTTA_YELLOW;
-block_definitions[ 1396 ].icon_is_isometric = false;
 
 // YELLOW_POPLAR_LEAVES (1397)
 block_definitions[ 1397 ].textures[ FACE_TOP ] = TEX_YELLOW_POPLAR_LEAVES;
@@ -17314,7 +16233,6 @@ block_definitions[ 1397 ].textures[ FACE_BACK ] = TEX_YELLOW_POPLAR_LEAVES;
 block_definitions[ 1397 ].icon_texture = TEX_YELLOW_POPLAR_LEAVES;
 block_definitions[ 1397 ].casts_shadow = false;
 block_definitions[ 1397 ].hardness = 0.35f;
-block_definitions[ 1397 ].icon_is_isometric = false;
 block_definitions[ 1397 ].is_seethrough = true;
 block_definitions[ 1397 ].no_light = 6815743;
 
@@ -17326,7 +16244,6 @@ block_definitions[ 1398 ].textures[ FACE_FRONT ] = TEX_SHULKER_TOP_YELLOW;
 block_definitions[ 1398 ].textures[ FACE_LEFT ] = TEX_SHULKER_TOP_YELLOW;
 block_definitions[ 1398 ].textures[ FACE_BACK ] = TEX_SHULKER_TOP_YELLOW;
 block_definitions[ 1398 ].icon_texture = TEX_SHULKER_TOP_YELLOW;
-block_definitions[ 1398 ].icon_is_isometric = false;
 
 // YELLOW_STAINED_GLASS (1399)
 block_definitions[ 1399 ].textures[ FACE_TOP ] = TEX_GLASS_YELLOW;
@@ -17339,7 +16256,6 @@ block_definitions[ 1399 ].icon_texture = TEX_GLASS_YELLOW;
 block_definitions[ 1399 ].affected_by_redstone_power = false;
 block_definitions[ 1399 ].casts_shadow = false;
 block_definitions[ 1399 ].hardness = 0.449999988f;
-block_definitions[ 1399 ].icon_is_isometric = false;
 block_definitions[ 1399 ].is_seethrough = true;
 block_definitions[ 1399 ].renderOrder = RenderOrder_Translucent;
 
@@ -17354,7 +16270,6 @@ block_definitions[ 1400 ].icon_texture = TEX_GLASS_YELLOW;
 block_definitions[ 1400 ].affected_by_redstone_power = false;
 block_definitions[ 1400 ].casts_shadow = false;
 block_definitions[ 1400 ].hardness = 0.449999988f;
-block_definitions[ 1400 ].icon_is_isometric = false;
 block_definitions[ 1400 ].is_seethrough = true;
 block_definitions[ 1400 ].renderOrder = RenderOrder_Translucent;
 
@@ -17366,7 +16281,6 @@ block_definitions[ 1401 ].textures[ FACE_FRONT ] = TEX_HARDENED_CLAY_STAINED_YEL
 block_definitions[ 1401 ].textures[ FACE_LEFT ] = TEX_HARDENED_CLAY_STAINED_YELLOW;
 block_definitions[ 1401 ].textures[ FACE_BACK ] = TEX_HARDENED_CLAY_STAINED_YELLOW;
 block_definitions[ 1401 ].icon_texture = TEX_HARDENED_CLAY_STAINED_YELLOW;
-block_definitions[ 1401 ].icon_is_isometric = false;
 
 // YELLOW_WOOL (1402)
 block_definitions[ 1402 ].textures[ FACE_TOP ] = TEX_WOOL_COLORED_YELLOW;
@@ -17376,7 +16290,6 @@ block_definitions[ 1402 ].textures[ FACE_FRONT ] = TEX_WOOL_COLORED_YELLOW;
 block_definitions[ 1402 ].textures[ FACE_LEFT ] = TEX_WOOL_COLORED_YELLOW;
 block_definitions[ 1402 ].textures[ FACE_BACK ] = TEX_WOOL_COLORED_YELLOW;
 block_definitions[ 1402 ].icon_texture = TEX_WOOL_COLORED_YELLOW;
-block_definitions[ 1402 ].icon_is_isometric = false;
 
 // YELLOW_WOOL_DOUBLE_SLAB (1403)
 block_definitions[ 1403 ].textures[ FACE_TOP ] = TEX_WOOL_COLORED_YELLOW;
@@ -17386,7 +16299,6 @@ block_definitions[ 1403 ].textures[ FACE_FRONT ] = TEX_WOOL_COLORED_YELLOW;
 block_definitions[ 1403 ].textures[ FACE_LEFT ] = TEX_WOOL_COLORED_YELLOW;
 block_definitions[ 1403 ].textures[ FACE_BACK ] = TEX_WOOL_COLORED_YELLOW;
 block_definitions[ 1403 ].icon_texture = TEX_WOOL_COLORED_YELLOW;
-block_definitions[ 1403 ].icon_is_isometric = false;
 
 // YELLOW_WOOL_SLAB (1404)
 block_definitions[ 1404 ].textures[ FACE_TOP ] = TEX_WOOL_COLORED_YELLOW;
@@ -17396,7 +16308,6 @@ block_definitions[ 1404 ].textures[ FACE_FRONT ] = TEX_WOOL_COLORED_YELLOW;
 block_definitions[ 1404 ].textures[ FACE_LEFT ] = TEX_WOOL_COLORED_YELLOW;
 block_definitions[ 1404 ].textures[ FACE_BACK ] = TEX_WOOL_COLORED_YELLOW;
 block_definitions[ 1404 ].icon_texture = TEX_WOOL_COLORED_YELLOW;
-block_definitions[ 1404 ].icon_is_isometric = false;
 
 // YELLOW_WOOL_STAIRS (1405)
 block_definitions[ 1405 ].textures[ FACE_TOP ] = TEX_WOOL_COLORED_YELLOW;
@@ -17406,7 +16317,6 @@ block_definitions[ 1405 ].textures[ FACE_FRONT ] = TEX_WOOL_COLORED_YELLOW;
 block_definitions[ 1405 ].textures[ FACE_LEFT ] = TEX_WOOL_COLORED_YELLOW;
 block_definitions[ 1405 ].textures[ FACE_BACK ] = TEX_WOOL_COLORED_YELLOW;
 block_definitions[ 1405 ].icon_texture = TEX_WOOL_COLORED_YELLOW;
-block_definitions[ 1405 ].icon_is_isometric = false;
 
 // undefined (1406)
 block_definitions[ 1406 ].textures[ FACE_TOP ] = TEX_AIR;

@@ -1,9 +1,7 @@
 {
-  "icon": "birch_shelf",
-  "icon_is_isometric": false,
-  "id": 128,
-  "name": "BIRCH_SHELF",
-  "textures": {
-    "all": "birch_shelf"
-  }
+ "id": 128,
+ "name": "BIRCH_SHELF",
+ "textures": {
+  "all": "birch_shelf"
+ }
 }

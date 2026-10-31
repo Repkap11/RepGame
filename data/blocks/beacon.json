@@ -1,16 +1,14 @@
 {
-  "casts_shadow": false,
-  "emits_light": 15,
-  "hardness": 0.35,
-  "icon": "glass",
-  "icon_is_isometric": false,
-  "id": 113,
-  "is_seethrough": true,
-  "name": "BEACON",
-  "no_light": 6815743,
-  "textures": {
-    "bottom": "obsidian",
-    "side": "glass",
-    "top": "beacon"
-  }
+ "casts_shadow": false,
+ "emits_light": 15,
+ "hardness": 0.35,
+ "id": 113,
+ "is_seethrough": true,
+ "name": "BEACON",
+ "no_light": 6815743,
+ "textures": {
+  "bottom": "obsidian",
+  "side": "glass",
+  "top": "beacon"
+ }
 }

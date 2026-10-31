@@ -1,9 +1,7 @@
 {
-  "icon": "cinnabar_bricks",
-  "icon_is_isometric": false,
-  "id": 307,
-  "name": "CINNABAR_BRICKS",
-  "textures": {
-    "all": "cinnabar_bricks"
-  }
+ "id": 307,
+ "name": "CINNABAR_BRICKS",
+ "textures": {
+  "all": "cinnabar_bricks"
+ }
 }

@@ -1,9 +1,7 @@
 {
-  "icon": "poplar_planks",
-  "icon_is_isometric": false,
-  "id": 969,
-  "name": "POPLAR_BUTTON",
-  "textures": {
-    "all": "poplar_planks"
-  }
+ "id": 969,
+ "name": "POPLAR_BUTTON",
+ "textures": {
+  "all": "poplar_planks"
+ }
 }

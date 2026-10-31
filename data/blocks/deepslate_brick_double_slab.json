@@ -1,9 +1,7 @@
 {
-  "icon": "deepslate_bricks",
-  "icon_is_isometric": false,
-  "id": 492,
-  "name": "DEEPSLATE_BRICK_DOUBLE_SLAB",
-  "textures": {
-    "all": "deepslate_bricks"
-  }
+ "id": 492,
+ "name": "DEEPSLATE_BRICK_DOUBLE_SLAB",
+ "textures": {
+  "all": "deepslate_bricks"
+ }
 }

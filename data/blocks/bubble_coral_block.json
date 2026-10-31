@@ -1,9 +1,7 @@
 {
-  "icon": "coral_purple",
-  "icon_is_isometric": false,
-  "id": 227,
-  "name": "BUBBLE_CORAL_BLOCK",
-  "textures": {
-    "all": "coral_purple"
-  }
+ "id": 227,
+ "name": "BUBBLE_CORAL_BLOCK",
+ "textures": {
+  "all": "coral_purple"
+ }
 }

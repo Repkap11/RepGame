@@ -1,9 +1,7 @@
 {
-  "icon": "planks_spruce",
-  "icon_is_isometric": false,
-  "id": 1155,
-  "name": "SPRUCE_WALL_SIGN",
-  "textures": {
-    "all": "planks_spruce"
-  }
+ "id": 1155,
+ "name": "SPRUCE_WALL_SIGN",
+ "textures": {
+  "all": "planks_spruce"
+ }
 }

@@ -1,9 +1,7 @@
 {
-  "icon": "deepslate_emerald_ore",
-  "icon_is_isometric": false,
-  "id": 506,
-  "name": "DEEPSLATE_EMERALD_ORE",
-  "textures": {
-    "all": "deepslate_emerald_ore"
-  }
+ "id": 506,
+ "name": "DEEPSLATE_EMERALD_ORE",
+ "textures": {
+  "all": "deepslate_emerald_ore"
+ }
 }

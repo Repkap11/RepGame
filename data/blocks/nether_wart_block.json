@@ -1,9 +1,7 @@
 {
-  "icon": "nether_wart_block",
-  "icon_is_isometric": false,
-  "id": 808,
-  "name": "NETHER_WART_BLOCK",
-  "textures": {
-    "all": "nether_wart_block"
-  }
+ "id": 808,
+ "name": "NETHER_WART_BLOCK",
+ "textures": {
+  "all": "nether_wart_block"
+ }
 }

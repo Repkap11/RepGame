@@ -1,14 +1,12 @@
 {
-  "casts_shadow": false,
-  "emits_light": 5,
-  "hardness": 0.35,
-  "icon": "amethyst_cluster",
-  "icon_is_isometric": false,
-  "id": 53,
-  "is_seethrough": true,
-  "name": "AMETHYST_CLUSTER",
-  "no_light": 6815743,
-  "textures": {
-    "all": "amethyst_cluster"
-  }
+ "casts_shadow": false,
+ "emits_light": 5,
+ "hardness": 0.35,
+ "id": 53,
+ "is_seethrough": true,
+ "name": "AMETHYST_CLUSTER",
+ "no_light": 6815743,
+ "textures": {
+  "all": "amethyst_cluster"
+ }
 }

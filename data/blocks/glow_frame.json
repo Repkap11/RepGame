@@ -1,9 +1,7 @@
 {
-  "icon": "glow_item_frame",
-  "icon_is_isometric": false,
-  "id": 591,
-  "name": "GLOW_FRAME",
-  "textures": {
-    "all": "glow_item_frame"
-  }
+ "id": 591,
+ "name": "GLOW_FRAME",
+ "textures": {
+  "all": "glow_item_frame"
+ }
 }

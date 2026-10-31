@@ -1,18 +1,16 @@
 {
-  "casts_shadow": false,
-  "hardness": 0.35,
-  "icon": "flowering_azalea_top",
-  "icon_is_isometric": false,
-  "id": 586,
-  "is_seethrough": true,
-  "name": "FLOWERING_AZALEA",
-  "no_light": 6815743,
-  "textures": {
-    "back": "flowering_azalea_side",
-    "bottom": "potted_flowering_azalea_bush_top",
-    "front": "potted_flowering_azalea_bush_side",
-    "left": "potted_flowering_azalea_bush_plant",
-    "right": "azalea_plant",
-    "top": "flowering_azalea_top"
-  }
+ "casts_shadow": false,
+ "hardness": 0.35,
+ "id": 586,
+ "is_seethrough": true,
+ "name": "FLOWERING_AZALEA",
+ "no_light": 6815743,
+ "textures": {
+  "back": "flowering_azalea_side",
+  "bottom": "potted_flowering_azalea_bush_top",
+  "front": "potted_flowering_azalea_bush_side",
+  "left": "potted_flowering_azalea_bush_plant",
+  "right": "azalea_plant",
+  "top": "flowering_azalea_top"
+ }
 }

@@ -1,9 +1,7 @@
 {
-  "icon": "concrete_lime",
-  "icon_is_isometric": false,
-  "id": 717,
-  "name": "LIME_CONCRETE_DOUBLE_SLAB",
-  "textures": {
-    "all": "concrete_lime"
-  }
+ "id": 717,
+ "name": "LIME_CONCRETE_DOUBLE_SLAB",
+ "textures": {
+  "all": "concrete_lime"
+ }
 }

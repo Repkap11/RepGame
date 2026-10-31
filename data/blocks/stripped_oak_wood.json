@@ -1,9 +1,7 @@
 {
-  "icon": "stripped_oak_log",
-  "icon_is_isometric": false,
-  "id": 1190,
-  "name": "STRIPPED_OAK_WOOD",
-  "textures": {
-    "all": "stripped_oak_log"
-  }
+ "id": 1190,
+ "name": "STRIPPED_OAK_WOOD",
+ "textures": {
+  "all": "stripped_oak_log"
+ }
 }

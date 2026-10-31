@@ -1,11 +1,9 @@
 {
-  "icon": "stripped_poplar_log_side",
-  "icon_is_isometric": false,
-  "id": 1193,
-  "name": "STRIPPED_POPLAR_LOG",
-  "textures": {
-    "bottom": "stripped_poplar_log_top",
-    "side": "stripped_poplar_log_side",
-    "top": "stripped_poplar_log_top"
-  }
+ "id": 1193,
+ "name": "STRIPPED_POPLAR_LOG",
+ "textures": {
+  "bottom": "stripped_poplar_log_top",
+  "side": "stripped_poplar_log_side",
+  "top": "stripped_poplar_log_top"
+ }
 }

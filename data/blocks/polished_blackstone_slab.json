@@ -1,9 +1,7 @@
 {
-  "icon": "polished_blackstone",
-  "icon_is_isometric": false,
-  "id": 938,
-  "name": "POLISHED_BLACKSTONE_SLAB",
-  "textures": {
-    "all": "polished_blackstone"
-  }
+ "id": 938,
+ "name": "POLISHED_BLACKSTONE_SLAB",
+ "textures": {
+  "all": "polished_blackstone"
+ }
 }

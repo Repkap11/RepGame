@@ -1,11 +1,9 @@
 {
-  "icon": "deepslate",
-  "icon_is_isometric": false,
-  "id": 491,
-  "name": "DEEPSLATE",
-  "textures": {
-    "bottom": "deepslate_top",
-    "side": "deepslate",
-    "top": "deepslate_top"
-  }
+ "id": 491,
+ "name": "DEEPSLATE",
+ "textures": {
+  "bottom": "deepslate_top",
+  "side": "deepslate",
+  "top": "deepslate_top"
+ }
 }

@@ -1,9 +1,7 @@
 {
-  "icon": "planks_jungle",
-  "icon_is_isometric": false,
-  "id": 663,
-  "name": "JUNGLE_STANDING_SIGN",
-  "textures": {
-    "all": "planks_jungle"
-  }
+ "id": 663,
+ "name": "JUNGLE_STANDING_SIGN",
+ "textures": {
+  "all": "planks_jungle"
+ }
 }

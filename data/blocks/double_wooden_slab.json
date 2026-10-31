@@ -1,9 +1,7 @@
 {
-  "icon": "planks_oak",
-  "icon_is_isometric": false,
-  "id": 539,
-  "name": "DOUBLE_WOODEN_SLAB",
-  "textures": {
-    "all": "planks_oak"
-  }
+ "id": 539,
+ "name": "DOUBLE_WOODEN_SLAB",
+ "textures": {
+  "all": "planks_oak"
+ }
 }

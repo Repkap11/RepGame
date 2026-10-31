@@ -1,9 +1,7 @@
 {
-  "icon": "cobblestone",
-  "icon_is_isometric": false,
-  "id": 325,
-  "name": "COBBLESTONE_DOUBLE_SLAB",
-  "textures": {
-    "all": "cobblestone"
-  }
+ "id": 325,
+ "name": "COBBLESTONE_DOUBLE_SLAB",
+ "textures": {
+  "all": "cobblestone"
+ }
 }

@@ -1,9 +1,7 @@
 {
-  "icon": "concrete_lime",
-  "icon_is_isometric": false,
-  "id": 720,
-  "name": "LIME_CONCRETE_STAIRS",
-  "textures": {
-    "all": "concrete_lime"
-  }
+ "id": 720,
+ "name": "LIME_CONCRETE_STAIRS",
+ "textures": {
+  "all": "concrete_lime"
+ }
 }

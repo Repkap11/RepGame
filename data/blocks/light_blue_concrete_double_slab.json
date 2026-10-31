@@ -1,9 +1,7 @@
 {
-  "icon": "concrete_light_blue",
-  "icon_is_isometric": false,
-  "id": 682,
-  "name": "LIGHT_BLUE_CONCRETE_DOUBLE_SLAB",
-  "textures": {
-    "all": "concrete_light_blue"
-  }
+ "id": 682,
+ "name": "LIGHT_BLUE_CONCRETE_DOUBLE_SLAB",
+ "textures": {
+  "all": "concrete_light_blue"
+ }
 }

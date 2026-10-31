@@ -1,9 +1,7 @@
 {
-  "icon": "tuff_bricks",
-  "icon_is_isometric": false,
-  "id": 1248,
-  "name": "TUFF_BRICK_STAIRS",
-  "textures": {
-    "all": "tuff_bricks"
-  }
+ "id": 1248,
+ "name": "TUFF_BRICK_STAIRS",
+ "textures": {
+  "all": "tuff_bricks"
+ }
 }

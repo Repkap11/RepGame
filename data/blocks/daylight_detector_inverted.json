@@ -1,11 +1,9 @@
 {
-  "icon": "daylight_detector_side",
-  "icon_is_isometric": false,
-  "id": 471,
-  "name": "DAYLIGHT_DETECTOR_INVERTED",
-  "textures": {
-    "bottom": "daylight_detector_side",
-    "side": "daylight_detector_side",
-    "top": "daylight_detector_top"
-  }
+ "id": 471,
+ "name": "DAYLIGHT_DETECTOR_INVERTED",
+ "textures": {
+  "bottom": "daylight_detector_side",
+  "side": "daylight_detector_side",
+  "top": "daylight_detector_top"
+ }
 }

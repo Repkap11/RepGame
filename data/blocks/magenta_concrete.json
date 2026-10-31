@@ -1,9 +1,7 @@
 {
-  "icon": "concrete_magenta",
-  "icon_is_isometric": false,
-  "id": 741,
-  "name": "MAGENTA_CONCRETE",
-  "textures": {
-    "all": "concrete_magenta"
-  }
+ "id": 741,
+ "name": "MAGENTA_CONCRETE",
+ "textures": {
+  "all": "concrete_magenta"
+ }
 }

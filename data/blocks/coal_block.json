@@ -1,9 +1,7 @@
 {
-  "icon": "coal_block",
-  "icon_is_isometric": false,
-  "id": 314,
-  "name": "COAL_BLOCK",
-  "textures": {
-    "all": "coal_block"
-  }
+ "id": 314,
+ "name": "COAL_BLOCK",
+ "textures": {
+  "all": "coal_block"
+ }
 }

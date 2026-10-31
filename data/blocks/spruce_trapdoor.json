@@ -1,9 +1,7 @@
 {
-  "icon": "spruce_trapdoor",
-  "icon_is_isometric": false,
-  "id": 1154,
-  "name": "SPRUCE_TRAPDOOR",
-  "textures": {
-    "all": "spruce_trapdoor"
-  }
+ "id": 1154,
+ "name": "SPRUCE_TRAPDOOR",
+ "textures": {
+  "all": "spruce_trapdoor"
+ }
 }

@@ -1,9 +1,7 @@
 {
-  "icon": "brick",
-  "icon_is_isometric": false,
-  "id": 206,
-  "name": "BRICK_WALL",
-  "textures": {
-    "all": "brick"
-  }
+ "id": 206,
+ "name": "BRICK_WALL",
+ "textures": {
+  "all": "brick"
+ }
 }

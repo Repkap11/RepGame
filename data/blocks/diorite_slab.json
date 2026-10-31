@@ -1,9 +1,7 @@
 {
-  "icon": "stone_diorite",
-  "icon_is_isometric": false,
-  "id": 529,
-  "name": "DIORITE_SLAB",
-  "textures": {
-    "all": "stone_diorite"
-  }
+ "id": 529,
+ "name": "DIORITE_SLAB",
+ "textures": {
+  "all": "stone_diorite"
+ }
 }

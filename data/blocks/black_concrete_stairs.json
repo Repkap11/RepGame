@@ -1,9 +1,7 @@
 {
-  "icon": "concrete_black",
-  "icon_is_isometric": false,
-  "id": 158,
-  "name": "BLACK_CONCRETE_STAIRS",
-  "textures": {
-    "all": "concrete_black"
-  }
+ "id": 158,
+ "name": "BLACK_CONCRETE_STAIRS",
+ "textures": {
+  "all": "concrete_black"
+ }
 }

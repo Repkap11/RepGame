@@ -1,9 +1,7 @@
 {
-  "icon": "stonebrick_mossy",
-  "icon_is_isometric": false,
-  "id": 786,
-  "name": "MOSSY_STONE_BRICK_SLAB",
-  "textures": {
-    "all": "stonebrick_mossy"
-  }
+ "id": 786,
+ "name": "MOSSY_STONE_BRICK_SLAB",
+ "textures": {
+  "all": "stonebrick_mossy"
+ }
 }

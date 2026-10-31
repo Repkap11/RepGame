@@ -1,9 +1,7 @@
 {
-  "icon": "wool_colored_black",
-  "icon_is_isometric": false,
-  "id": 170,
-  "name": "BLACK_WOOL_STAIRS",
-  "textures": {
-    "all": "wool_colored_black"
-  }
+ "id": 170,
+ "name": "BLACK_WOOL_STAIRS",
+ "textures": {
+  "all": "wool_colored_black"
+ }
 }

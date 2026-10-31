@@ -1,14 +1,12 @@
 {
-  "affected_by_redstone_power": false,
-  "casts_shadow": false,
-  "hardness": 0.449999988,
-  "icon": "structure_void",
-  "icon_is_isometric": false,
-  "id": 1200,
-  "is_seethrough": true,
-  "name": "STRUCTURE_VOID",
-  "render_order": "Translucent",
-  "textures": {
-    "all": "structure_void"
-  }
+ "affected_by_redstone_power": false,
+ "casts_shadow": false,
+ "hardness": 0.449999988,
+ "id": 1200,
+ "is_seethrough": true,
+ "name": "STRUCTURE_VOID",
+ "render_order": "Translucent",
+ "textures": {
+  "all": "structure_void"
+ }
 }

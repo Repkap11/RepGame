@@ -1,9 +1,7 @@
 {
-  "icon": "coral_yellow_dead",
-  "icon_is_isometric": false,
-  "id": 483,
-  "name": "DEAD_HORN_CORAL_BLOCK",
-  "textures": {
-    "all": "coral_yellow_dead"
-  }
+ "id": 483,
+ "name": "DEAD_HORN_CORAL_BLOCK",
+ "textures": {
+  "all": "coral_yellow_dead"
+ }
 }

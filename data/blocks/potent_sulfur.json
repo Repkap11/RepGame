@@ -1,9 +1,7 @@
 {
-  "icon": "potent_sulfur",
-  "icon_is_isometric": false,
-  "id": 987,
-  "name": "POTENT_SULFUR",
-  "textures": {
-    "all": "potent_sulfur"
-  }
+ "id": 987,
+ "name": "POTENT_SULFUR",
+ "textures": {
+  "all": "potent_sulfur"
+ }
 }

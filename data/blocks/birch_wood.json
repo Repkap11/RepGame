@@ -1,9 +1,7 @@
 {
-  "icon": "log_birch",
-  "icon_is_isometric": false,
-  "id": 149,
-  "name": "BIRCH_WOOD",
-  "textures": {
-    "all": "log_birch"
-  }
+ "id": 149,
+ "name": "BIRCH_WOOD",
+ "textures": {
+  "all": "log_birch"
+ }
 }

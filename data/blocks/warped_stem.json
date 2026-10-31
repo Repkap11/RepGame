@@ -1,11 +1,9 @@
 {
-  "icon": "warped_stem_side",
-  "icon_is_isometric": false,
-  "id": 1281,
-  "name": "WARPED_STEM",
-  "textures": {
-    "bottom": "warped_stem_top",
-    "side": "warped_stem_side",
-    "top": "warped_stem_top"
-  }
+ "id": 1281,
+ "name": "WARPED_STEM",
+ "textures": {
+  "bottom": "warped_stem_top",
+  "side": "warped_stem_side",
+  "top": "warped_stem_top"
+ }
 }

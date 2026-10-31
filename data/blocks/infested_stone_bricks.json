@@ -1,9 +1,7 @@
 {
-  "icon": "stonebrick",
-  "icon_is_isometric": false,
-  "id": 652,
-  "name": "INFESTED_STONE_BRICKS",
-  "textures": {
-    "all": "stonebrick"
-  }
+ "id": 652,
+ "name": "INFESTED_STONE_BRICKS",
+ "textures": {
+  "all": "stonebrick"
+ }
 }

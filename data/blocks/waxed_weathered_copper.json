@@ -1,9 +1,7 @@
 {
-  "icon": "weathered_copper",
-  "icon_is_isometric": false,
-  "id": 1334,
-  "name": "WAXED_WEATHERED_COPPER",
-  "textures": {
-    "all": "weathered_copper"
-  }
+ "id": 1334,
+ "name": "WAXED_WEATHERED_COPPER",
+ "textures": {
+  "all": "weathered_copper"
+ }
 }

@@ -1,14 +1,12 @@
 {
-  "icon": "pumpkin_top",
-  "icon_is_isometric": false,
-  "id": 1009,
-  "name": "PUMPKIN",
-  "textures": {
-    "back": "pumpkin_side",
-    "bottom": "pumpkin_top",
-    "front": "pumpkin_face_off",
-    "left": "pumpkin_side",
-    "right": "pumpkin_side",
-    "top": "pumpkin_top"
-  }
+ "id": 1009,
+ "name": "PUMPKIN",
+ "textures": {
+  "back": "pumpkin_side",
+  "bottom": "pumpkin_top",
+  "front": "pumpkin_face_off",
+  "left": "pumpkin_side",
+  "right": "pumpkin_side",
+  "top": "pumpkin_top"
+ }
 }

@@ -1,9 +1,7 @@
 {
-  "icon": "sulfur_bricks",
-  "icon_is_isometric": false,
-  "id": 1206,
-  "name": "SULFUR_BRICKS",
-  "textures": {
-    "all": "sulfur_bricks"
-  }
+ "id": 1206,
+ "name": "SULFUR_BRICKS",
+ "textures": {
+  "all": "sulfur_bricks"
+ }
 }

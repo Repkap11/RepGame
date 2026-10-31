@@ -1,9 +1,7 @@
 {
-  "icon": "oxidized_cut_copper",
-  "icon_is_isometric": false,
-  "id": 869,
-  "name": "OXIDIZED_CUT_COPPER_SLAB",
-  "textures": {
-    "all": "oxidized_cut_copper"
-  }
+ "id": 869,
+ "name": "OXIDIZED_CUT_COPPER_SLAB",
+ "textures": {
+  "all": "oxidized_cut_copper"
+ }
 }

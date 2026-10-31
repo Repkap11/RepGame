@@ -1,9 +1,7 @@
 {
-  "icon": "prismarine_bricks",
-  "icon_is_isometric": false,
-  "id": 995,
-  "name": "PRISMARINE_BRICKS_STAIRS",
-  "textures": {
-    "all": "prismarine_bricks"
-  }
+ "id": 995,
+ "name": "PRISMARINE_BRICKS_STAIRS",
+ "textures": {
+  "all": "prismarine_bricks"
+ }
 }

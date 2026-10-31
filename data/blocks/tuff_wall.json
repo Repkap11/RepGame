@@ -1,9 +1,7 @@
 {
-  "icon": "tuff",
-  "icon_is_isometric": false,
-  "id": 1255,
-  "name": "TUFF_WALL",
-  "textures": {
-    "all": "tuff"
-  }
+ "id": 1255,
+ "name": "TUFF_WALL",
+ "textures": {
+  "all": "tuff"
+ }
 }

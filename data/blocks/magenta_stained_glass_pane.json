@@ -1,19 +1,17 @@
 {
-  "affected_by_redstone_power": false,
-  "casts_shadow": false,
-  "hardness": 0.449999988,
-  "icon": "glass_magenta",
-  "icon_is_isometric": false,
-  "id": 749,
-  "is_seethrough": true,
-  "name": "MAGENTA_STAINED_GLASS_PANE",
-  "render_order": "Translucent",
-  "textures": {
-    "back": "glass_magenta",
-    "bottom": "glass_magenta",
-    "front": "glass_magenta",
-    "left": "glass_magenta",
-    "right": "glass_pane_top_magenta",
-    "top": "glass_magenta"
-  }
+ "affected_by_redstone_power": false,
+ "casts_shadow": false,
+ "hardness": 0.449999988,
+ "id": 749,
+ "is_seethrough": true,
+ "name": "MAGENTA_STAINED_GLASS_PANE",
+ "render_order": "Translucent",
+ "textures": {
+  "back": "glass_magenta",
+  "bottom": "glass_magenta",
+  "front": "glass_magenta",
+  "left": "glass_magenta",
+  "right": "glass_pane_top_magenta",
+  "top": "glass_magenta"
+ }
 }

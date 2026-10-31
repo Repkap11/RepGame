@@ -1,14 +1,12 @@
 {
-  "icon": "chain_command_block_conditional_mipmap",
-  "icon_is_isometric": false,
-  "id": 256,
-  "name": "CHAIN_COMMAND_BLOCK",
-  "textures": {
-    "back": "chain_command_block_front_mipmap",
-    "bottom": "chain_command_block_conditional_mipmap",
-    "front": "chain_command_block_back_mipmap",
-    "left": "chain_command_block_side_mipmap",
-    "right": "chain_command_block_side_mipmap",
-    "top": "chain_command_block_conditional_mipmap"
-  }
+ "id": 256,
+ "name": "CHAIN_COMMAND_BLOCK",
+ "textures": {
+  "back": "chain_command_block_front_mipmap",
+  "bottom": "chain_command_block_conditional_mipmap",
+  "front": "chain_command_block_back_mipmap",
+  "left": "chain_command_block_side_mipmap",
+  "right": "chain_command_block_side_mipmap",
+  "top": "chain_command_block_conditional_mipmap"
+ }
 }

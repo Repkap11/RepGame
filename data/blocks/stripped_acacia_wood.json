@@ -1,9 +1,7 @@
 {
-  "icon": "stripped_acacia_log",
-  "icon_is_isometric": false,
-  "id": 1175,
-  "name": "STRIPPED_ACACIA_WOOD",
-  "textures": {
-    "all": "stripped_acacia_log"
-  }
+ "id": 1175,
+ "name": "STRIPPED_ACACIA_WOOD",
+ "textures": {
+  "all": "stripped_acacia_log"
+ }
 }

@@ -1,9 +1,7 @@
 {
-  "icon": "weathered_copper",
-  "icon_is_isometric": false,
-  "id": 1356,
-  "name": "WEATHERED_COPPER_GOLEM_STATUE",
-  "textures": {
-    "all": "weathered_copper"
-  }
+ "id": 1356,
+ "name": "WEATHERED_COPPER_GOLEM_STATUE",
+ "textures": {
+  "all": "weathered_copper"
+ }
 }

@@ -1,9 +1,7 @@
 {
-  "icon": "concrete_powder_pink",
-  "icon_is_isometric": false,
-  "id": 907,
-  "name": "PINK_CONCRETE_POWDER",
-  "textures": {
-    "all": "concrete_powder_pink"
-  }
+ "id": 907,
+ "name": "PINK_CONCRETE_POWDER",
+ "textures": {
+  "all": "concrete_powder_pink"
+ }
 }

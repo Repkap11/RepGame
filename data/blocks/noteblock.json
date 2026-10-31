@@ -1,9 +1,7 @@
 {
-  "icon": "noteblock",
-  "icon_is_isometric": false,
-  "id": 815,
-  "name": "NOTEBLOCK",
-  "textures": {
-    "all": "noteblock"
-  }
+ "id": 815,
+ "name": "NOTEBLOCK",
+ "textures": {
+  "all": "noteblock"
+ }
 }

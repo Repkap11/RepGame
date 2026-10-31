@@ -1,9 +1,7 @@
 {
-  "icon": "cobbled_deepslate",
-  "icon_is_isometric": false,
-  "id": 323,
-  "name": "COBBLED_DEEPSLATE_STAIRS",
-  "textures": {
-    "all": "cobbled_deepslate"
-  }
+ "id": 323,
+ "name": "COBBLED_DEEPSLATE_STAIRS",
+ "textures": {
+  "all": "cobbled_deepslate"
+ }
 }

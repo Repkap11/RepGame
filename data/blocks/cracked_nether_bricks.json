@@ -1,9 +1,7 @@
 {
-  "icon": "cracked_nether_bricks",
-  "icon_is_isometric": false,
-  "id": 372,
-  "name": "CRACKED_NETHER_BRICKS",
-  "textures": {
-    "all": "cracked_nether_bricks"
-  }
+ "id": 372,
+ "name": "CRACKED_NETHER_BRICKS",
+ "textures": {
+  "all": "cracked_nether_bricks"
+ }
 }

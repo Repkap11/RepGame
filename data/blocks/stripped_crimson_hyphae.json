@@ -1,9 +1,7 @@
 {
-  "icon": "stripped_crimson_stem_side",
-  "icon_is_isometric": false,
-  "id": 1181,
-  "name": "STRIPPED_CRIMSON_HYPHAE",
-  "textures": {
-    "all": "stripped_crimson_stem_side"
-  }
+ "id": 1181,
+ "name": "STRIPPED_CRIMSON_HYPHAE",
+ "textures": {
+  "all": "stripped_crimson_stem_side"
+ }
 }

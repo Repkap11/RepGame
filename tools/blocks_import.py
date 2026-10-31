@@ -64,10 +64,180 @@ FLOAT_FIELDS = {"hardness"}
 VEC3_SHORT = {"scale", "offset", "tex_offset"}
 VEC3_BOOL = {"hides_self"}
 STRUCT_META = {"id", "name", "aliases", "textures", "icon",
-               "render_order", "needs_place_on_any_solid"}
+               "render_order", "needs_place_on_any_solid", "creative"}
 KNOWN_KEYS = STRUCT_META | BOOL_FIELDS | INT_FIELDS | FLOAT_FIELDS | VEC3_SHORT | VEC3_BOOL
 
 TEX_META_KEYS = {"source", "random_rotate", "tint", "alpha", "frame", "keep"}
+
+# --- creative inventory ordering -------------------------------------------
+
+# Ids that were real blocks before the Bedrock import (snapshot, committed).
+# Their members win representative ties so legacy blocks stay visible.
+KEPT_IDS_FILE = os.path.join(DATA_DIR, "kept_block_ids.txt")
+CREATIVE_REPORT = os.environ.get("CREATIVE_ORDER_REPORT", "/tmp/repgame_creative/creative_order.txt")
+
+# Longest match wins; strip exactly one suffix, only if something remains.
+SHAPE_SUFFIXES = sorted([
+    "DOUBLE_SLAB", "SLAB", "STAIRS", "WALL_SIGN", "STANDING_SIGN",
+    "HANGING_SIGN", "SIGN", "WALL", "FENCE_GATE", "FENCE", "TRAPDOOR",
+    "DOOR_UPPER", "DOOR_LOWER", "DOOR", "BUTTON", "PRESSURE_PLATE",
+    "PLANKS", "LOG", "WOOD", "HYPHAE", "STEM", "LEAVES", "SAPLING",
+    "SHELF", "CARPET", "BRICKS", "BRICK", "TILES", "BLOCK", "ORE",
+    "CANDLE_CAKE", "CANDLE", "CONCRETE_POWDER", "CONCRETE", "WOOL",
+    "STAINED_GLASS_PANE", "STAINED_GLASS", "TERRACOTTA",
+    "GLAZED_TERRACOTTA", "SHULKER_BOX", "IN_POT", "BANNER",
+], key=len, reverse=True)
+
+# Menu order inside a material group: base, planks, log/wood family,
+# stripped variants, leaves, sapling, slab, stairs, wall, fence,
+# fence gate, door, trapdoor, button, pressure plate, signs, others.
+SHAPE_RANKS = {
+    "PLANKS": 1, "LOG": 2, "WOOD": 3, "HYPHAE": 4, "STEM": 4,
+    "LEAVES": 5, "SAPLING": 6, "DOUBLE_SLAB": 7, "SLAB": 7,
+    "CARPET": 8, "STAIRS": 8, "WALL": 9, "FENCE": 10, "FENCE_GATE": 11,
+    "DOOR": 12, "DOOR_UPPER": 12, "DOOR_LOWER": 12, "TRAPDOOR": 13,
+    "BUTTON": 14, "PRESSURE_PLATE": 15,
+    "STANDING_SIGN": 16, "WALL_SIGN": 16, "HANGING_SIGN": 16, "SIGN": 16,
+}
+SHAPE_WORDS = set(SHAPE_SUFFIXES)
+
+
+def shape_rank(name):
+    """0 = base; suffixed shapes rank by SHAPE_RANKS, else 17. A name that is
+    itself a shape word (CARPET) gets that shape's rank. In dye families the
+    colour word is part of the base name."""
+    for p in ("STRIPPED_", "WAXED_"):
+        if name.startswith(p):
+            return 4
+    if name in SHAPE_WORDS:
+        return SHAPE_RANKS.get(name, 17)
+    n = name
+    for c in DYE_COLORS:
+        if n.startswith(c + "_"):
+            n = n[len(c) + 1:]
+            if n in DYE_FAMILIES:
+                # The remainder is the dye family's base name — but if that
+                # name is itself a shape (CARPET), it keeps its shape rank.
+                return SHAPE_RANKS.get(n, 0)
+            base = strip_shape_suffix(n)
+            if base in DYE_FAMILIES:
+                suffix = n[len(base) + 1:] if n.startswith(base + "_") else ""
+                return SHAPE_RANKS.get(suffix, 17)
+            break  # colour-prefixed but not a dye family — keep whole name
+    for sfx in SHAPE_SUFFIXES:
+        if n.endswith("_" + sfx) and len(n) > len(sfx) + 1:
+            return SHAPE_RANKS.get(sfx, 17)
+    return 0
+
+
+# Legacy multi-variant Bedrock keys and custom duplicates of Bedrock-named
+# blocks. They lose the representative choice to any other group member
+# (implemented as the bottom rank tier, which also satisfies "lowest shape
+# rank first" for every sanity case).
+LEGACY_CREATIVE_NAMES = {
+    "LOG", "LOG2", "LEAVES", "LEAVES2", "WOOL", "CARPET", "CONCRETE",
+    "CONCRETEPOWDER", "STAINED_GLASS", "STAINED_GLASS_PANE",
+    "STAINED_HARDENED_CLAY", "HARDENED_CLAY", "PLANKS", "WOOD", "SAPLING",
+    "RED_FLOWER", "YELLOW_FLOWER", "DOUBLE_PLANT", "TALLGRASS",
+    "CORAL", "CORAL_BLOCK", "CORAL_FAN", "CORAL_FAN_DEAD", "CORAL_FAN_HANG",
+    "CORAL_FAN_HANG2", "CORAL_FAN_HANG3",
+    # Custom RepGame duplicates whose Bedrock-named equivalents exist now.
+    "GLASS_PALE_BLUE", "GLASS_TINT_GREEN", "LARGE_BLUE_FLOWER",
+    "DOUBLE_STONE_SLAB", "NORMAL_STONE_SLAB",
+}
+LEGACY_SHAPE_RANK = 18
+
+
+def strip_shape_suffix(name):
+    for sfx in SHAPE_SUFFIXES:
+        if name.endswith("_" + sfx) and len(name) > len(sfx) + 1:
+            return name[: -(len(sfx) + 1)]
+    return name
+
+
+# Match two-word colours before their single-word tails.
+DYE_COLORS = ["WHITE", "ORANGE", "MAGENTA", "LIGHT_BLUE", "YELLOW", "LIME",
+              "PINK", "GRAY", "LIGHT_GRAY", "CYAN", "PURPLE", "BLUE",
+              "BROWN", "GREEN", "RED", "BLACK"]
+# Only these colour families are real dye sets. Names merely starting with a
+# colour word (RED_SAND, RED_MUSHROOM, *_TORCH, *_FLOWER, GRAYSCALE_CORAL_*)
+# keep their own material.
+DYE_FAMILIES = {"WOOL", "CARPET", "CONCRETE", "CONCRETE_POWDER",
+                "STAINED_GLASS", "STAINED_GLASS_PANE", "TERRACOTTA",
+                "GLAZED_TERRACOTTA", "SHULKER_BOX", "CANDLE", "CANDLE_CAKE"}
+
+
+def material_key(name):
+    """(material, dye_index) — dye_index is -1 for non-dye groups."""
+    n = name
+    for p in ("STRIPPED_", "WAXED_"):
+        if n.startswith(p):
+            n = n[len(p):]
+    for i, c in enumerate(DYE_COLORS):
+        if n.startswith(c + "_"):
+            rest = n[len(c) + 1:]
+            if rest in DYE_FAMILIES:
+                return rest, i
+            base = strip_shape_suffix(rest)
+            if base in DYE_FAMILIES:
+                return base, i
+            break  # starts with a colour but isn't a dye item — no recheck
+    return strip_shape_suffix(n) or n, -1
+
+
+def creative_signature(b, r, layers):
+    """Signatures compare packed layer indices, so byte-identical tiles
+    dedupe even when their names differ."""
+    iso = b.get("icon_is_isometric", True)
+    return (
+        tuple(layers[f] for f in r["faces"]),
+        # Isometric icons are drawn from the faces; icon_texture only
+        # matters for flat icons.
+        0 if iso else layers[r["icon"]],
+        iso,
+        tuple(b.get("scale", [16, 16, 16])),
+        tuple(b.get("offset", [0, 0, 0])),
+        tuple(b.get("tex_offset", [0, 0, 0])),
+        b.get("render_order", "Opaque"),
+    )
+
+
+def compute_creative(blocks, resolved, kept_ids, layers):
+    """Return (ordered list of representative bids, {bid: [hidden bids]})."""
+    groups = {}
+    forced = []
+    for bid, b in blocks.items():
+        if b.get("creative") is False or not b.get("is_pickable", True):
+            continue
+        if b.get("creative") is True:
+            forced.append(bid)
+            continue
+        groups.setdefault(creative_signature(b, resolved[bid], layers), []).append(bid)
+    reps = []
+    hidden = {}
+    for sig, members in groups.items():
+        def rep_key(bid):
+            name = blocks[bid]["name"]
+            mat, dye = material_key(name)
+            return (
+                LEGACY_SHAPE_RANK if name in LEGACY_CREATIVE_NAMES
+                else shape_rank(name),
+                0 if (dye >= 0 and mat in DYE_FAMILIES) else 1,  # dyed wins in family
+                0 if name == mat else 1,                        # base block
+                0 if bid in kept_ids else 1,                    # legacy kept blocks
+                bid,
+            )
+        rep = min(members, key=rep_key)
+        reps.append(rep)
+        hidden[rep] = sorted(m for m in members if m != rep)
+    listed = reps + forced
+
+    def order_key(bid):
+        mat, dye = material_key(blocks[bid]["name"])
+        return (mat, dye + 1, shape_rank(blocks[bid]["name"]),
+                blocks[bid]["name"])
+    listed.sort(key=order_key)
+    return listed, hidden
 
 
 def fail(msg):
@@ -122,6 +292,8 @@ def load_blocks():
         if "aliases" in b:
             if not isinstance(b["aliases"], list) or not all(re.match(r"^[A-Z][A-Z0-9_]*$", a) for a in b["aliases"]):
                 fail("%s: bad aliases" % fname)
+        if "creative" in b and not isinstance(b["creative"], bool):
+            fail("%s: creative must be a bool" % fname)
         b["_file"] = fname
         blocks[bid] = b
         names[name] = bid
@@ -231,7 +403,9 @@ def main():
     for bid, b in sorted(blocks.items()):
         name = b["name"].lower()
         faces = resolve_faces(name, b)
-        icon = b.get("icon", name)
+        # No explicit icon: the default isometric cube icon is drawn from the
+        # faces; icon_texture just needs to be a real layer.
+        icon = b.get("icon", faces[FACE_KEYS.index("top")])
         if "icon" in b and "icon_is_isometric" not in b:
             b["icon_is_isometric"] = False
         resolved[bid] = {"faces": faces, "icon": icon}
@@ -241,12 +415,43 @@ def main():
         if m.get("keep"):
             used.add(name)
 
-    # Layer order: rotatable textures first (sorted), then the rest sorted.
-    rotatable = sorted(n for n in used if tex_meta.get(n, {}).get("random_rotate"))
-    rest = sorted(used - set(rotatable))
-    order = rotatable + rest
-    layers = {name: i for i, name in enumerate(order)}
-    count = len(order)
+    # Resolve every texture once (frame/tint/alpha applied), then collapse
+    # byte-identical tiles into a single layer. The canonical name is the
+    # alphabetically first member; other names still get TEX_* defines.
+    images = {}
+    for name in sorted(used):
+        images[name] = resolve_image(name, tex_meta.get(name, {}))
+    canon_members = {}  # canonical name -> [member names]
+    for name in sorted(images):
+        key = images[name].tobytes()
+        canon_members.setdefault(key, []).append(name)
+    members = {}
+    canonical = {}  # name -> canonical
+    for names in canon_members.values():
+        canon = min(names)
+        members[canon] = names
+        for n in names:
+            canonical[n] = canon
+    canonical_names = sorted(members)
+
+    # Layer order: rotatable layers first (a layer is rotatable if ANY member
+    # has random_rotate), then the rest; sorted by canonical name.
+    rotatable_canon = sorted(
+        c for c in canonical_names
+        if any(tex_meta.get(n, {}).get("random_rotate") for n in members[c]))
+    rest_canon = sorted(set(canonical_names) - set(rotatable_canon))
+    layer_order = rotatable_canon + rest_canon
+    layers = {}
+    for i, canon in enumerate(layer_order):
+        for n in members[canon]:
+            layers[n] = i
+    count = len(layer_order)
+    merged_count = len(used) - count
+    # Merged sets mixing rotatable and non-rotatable members: the non-rotatable
+    # members now ride the rotatable layer — flag for review.
+    mixed_rotatable = [(c, members[c]) for c in rotatable_canon
+                       if not all(tex_meta.get(n, {}).get("random_rotate")
+                                  for n in members[c])]
     if count > TEXTURE_COUNT_MAX:
         fail("TEXTURE_COUNT %d exceeds %d (GLES texture-array limit)" %
              (count, TEXTURE_COUNT_MAX))
@@ -254,10 +459,8 @@ def main():
 
     # Pack the atlas.
     atlas = Image.new("RGBA", (ACROSS * TILE, rows * TILE), (0, 0, 0, 0))
-    for name in order:
-        img = resolve_image(name, tex_meta.get(name, {}))
-        i = layers[name]
-        atlas.paste(img, ((i % ACROSS) * TILE, (i // ACROSS) * TILE))
+    for i, canon in enumerate(layer_order):
+        atlas.paste(images[canon], ((i % ACROSS) * TILE, (i // ACROSS) * TILE))
     atlas.save(OUT_PNG)
 
     # include/common/block_ids_gen.hpp
@@ -289,10 +492,14 @@ def main():
     # include/common/texture_ids_gen.hpp — #define only, safe for the GLSL
     # preprocessor (gcc -E -I include).
     out = [HEADER, "#ifndef REPGAME_TEXTURE_IDS_GEN_HPP\n#define REPGAME_TEXTURE_IDS_GEN_HPP\n\n"]
-    for name in order:
-        out.append("#define TEX_%s %d\n" % (name.upper(), layers[name]))
+    for name in sorted(layers):
+        canon = canonical[name]
+        if canon != name:
+            out.append("#define TEX_%s TEX_%s\n" % (name.upper(), canon.upper()))
+        else:
+            out.append("#define TEX_%s %d\n" % (name.upper(), layers[name]))
     out.append("\n#define TEXTURE_COUNT %d\n" % count)
-    out.append("#define TEXTURE_ROTATABLE_COUNT %d\n" % len(rotatable))
+    out.append("#define TEXTURE_ROTATABLE_COUNT %d\n" % len(rotatable_canon))
     out.append("#define BLOCK_TEXTURE_ATLAS_ROWS %d\n" % rows)
     out.append("\n#endif\n")
     with open(OUT_TEX, "w") as f:
@@ -316,7 +523,7 @@ def main():
             out.append("block_definitions[ %d ].textures[ %s ] = TEX_%s;\n" % (bid, FACE_CONST[face], r["faces"][FACE_KEYS.index(face)].upper()))
         out.append("block_definitions[ %d ].icon_texture = TEX_%s;\n" % (bid, r["icon"].upper()))
         for key in sorted(b):
-            if key in {"_file", "id", "name", "aliases", "textures", "icon"}:
+            if key in {"_file", "id", "name", "aliases", "textures", "icon", "creative"}:
                 continue
             val = b[key]
             prefix = "block_definitions[ %d ]." % bid
@@ -339,9 +546,44 @@ def main():
     with open(OUT_INC, "w") as f:
         f.writelines(out)
 
+    # include/common/creative_order_gen.hpp + human-readable report.
+    kept_ids = set()
+    if os.path.exists(KEPT_IDS_FILE):
+        kept_ids = {int(l) for l in open(KEPT_IDS_FILE) if l.strip()}
+    creative, hidden = compute_creative(blocks, resolved, kept_ids, layers)
+    out_cre = os.path.join(OUT_DIR, "creative_order_gen.hpp") if OUT_DIR else \
+        os.path.join(ROOT, "include", "common", "creative_order_gen.hpp")
+    out = [HEADER, "#pragma once\n\n#include \"common/block_ids_gen.hpp\"\n\n"]
+    out.append("#define CREATIVE_BLOCK_COUNT %d\n" % len(creative))
+    out.append("static const BlockID CREATIVE_BLOCKS[CREATIVE_BLOCK_COUNT] = {\n")
+    for bid in creative:
+        out.append("    %s,\n" % blocks[bid]["name"])
+    out.append("};\n")
+    with open(out_cre, "w") as f:
+        f.writelines(out)
+    rep_lines = []
+    for bid in creative:
+        dups = ", ".join(blocks[h]["name"] for h in hidden.get(bid, []))
+        mat, _dye = material_key(blocks[bid]["name"])
+        rep_lines.append("%s\t%s\t%d\thidden duplicates: %s\n" %
+                         (mat, blocks[bid]["name"], bid, dups or "-"))
+    os.makedirs(os.path.dirname(CREATIVE_REPORT), exist_ok=True)
+    with open(CREATIVE_REPORT, "w") as f:
+        f.write("material\tname\tid\thidden duplicates\n")
+        f.writelines(rep_lines)
+
     print("blocks_import: %d blocks, %d textures (%d rotatable), atlas %dx%d -> %s" %
-          (len(blocks), count, len(rotatable), atlas.width, atlas.height,
+          (len(blocks), count, len(rotatable_canon), atlas.width, atlas.height,
            ", ".join(os.path.relpath(p, ROOT) for p in (OUT_IDS, OUT_TEX, OUT_INC, OUT_PNG))))
+    pickable = sum(1 for b in blocks.values() if b.get("is_pickable", True))
+    hidden_n = sum(len(v) for v in hidden.values())
+    print("blocks_import: creative %d listed of %d pickable (%d hidden duplicates) -> %s" %
+          (len(creative), pickable, hidden_n, os.path.relpath(out_cre, ROOT)))
+    if merged_count:
+        print("blocks_import: %d textures merged into existing layers by identical pixels" % merged_count)
+    for canon, names in mixed_rotatable:
+        print("blocks_import: WARNING rotatable layer %s merges non-rotatable %s" %
+              (canon, [n for n in names if not tex_meta.get(n, {}).get("random_rotate")]))
 
 
 if __name__ == "__main__":

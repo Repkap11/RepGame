@@ -1,9 +1,7 @@
 {
-  "icon": "mud_bricks",
-  "icon_is_isometric": false,
-  "id": 794,
-  "name": "MUD_BRICK_STAIRS",
-  "textures": {
-    "all": "mud_bricks"
-  }
+ "id": 794,
+ "name": "MUD_BRICK_STAIRS",
+ "textures": {
+  "all": "mud_bricks"
+ }
 }

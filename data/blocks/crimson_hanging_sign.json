@@ -1,9 +1,7 @@
 {
-  "icon": "crimson_planks",
-  "icon_is_isometric": false,
-  "id": 397,
-  "name": "CRIMSON_HANGING_SIGN",
-  "textures": {
-    "all": "crimson_planks"
-  }
+ "id": 397,
+ "name": "CRIMSON_HANGING_SIGN",
+ "textures": {
+  "all": "crimson_planks"
+ }
 }

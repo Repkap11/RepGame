@@ -1,9 +1,7 @@
 {
-  "icon": "planks_acacia",
-  "icon_is_isometric": false,
-  "id": 23,
-  "name": "ACACIA_STAIRS",
-  "textures": {
-    "all": "planks_acacia"
-  }
+ "id": 23,
+ "name": "ACACIA_STAIRS",
+ "textures": {
+  "all": "planks_acacia"
+ }
 }

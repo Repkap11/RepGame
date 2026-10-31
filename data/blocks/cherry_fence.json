@@ -1,9 +1,7 @@
 {
-  "icon": "cherry_planks",
-  "icon_is_isometric": false,
-  "id": 261,
-  "name": "CHERRY_FENCE",
-  "textures": {
-    "all": "cherry_planks"
-  }
+ "id": 261,
+ "name": "CHERRY_FENCE",
+ "textures": {
+  "all": "cherry_planks"
+ }
 }

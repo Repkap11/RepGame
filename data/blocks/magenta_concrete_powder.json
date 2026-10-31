@@ -1,9 +1,7 @@
 {
-  "icon": "concrete_powder_magenta",
-  "icon_is_isometric": false,
-  "id": 743,
-  "name": "MAGENTA_CONCRETE_POWDER",
-  "textures": {
-    "all": "concrete_powder_magenta"
-  }
+ "id": 743,
+ "name": "MAGENTA_CONCRETE_POWDER",
+ "textures": {
+  "all": "concrete_powder_magenta"
+ }
 }

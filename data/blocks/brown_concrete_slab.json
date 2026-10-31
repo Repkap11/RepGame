@@ -1,9 +1,7 @@
 {
-  "icon": "concrete_brown",
-  "icon_is_isometric": false,
-  "id": 213,
-  "name": "BROWN_CONCRETE_SLAB",
-  "textures": {
-    "all": "concrete_brown"
-  }
+ "id": 213,
+ "name": "BROWN_CONCRETE_SLAB",
+ "textures": {
+  "all": "concrete_brown"
+ }
 }

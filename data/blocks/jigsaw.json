@@ -1,14 +1,12 @@
 {
-  "icon": "jigsaw_lock",
-  "icon_is_isometric": false,
-  "id": 655,
-  "name": "JIGSAW",
-  "textures": {
-    "back": "jigsaw_front",
-    "bottom": "jigsaw_side",
-    "front": "jigsaw_back",
-    "left": "jigsaw_side",
-    "right": "jigsaw_side",
-    "top": "jigsaw_lock"
-  }
+ "id": 655,
+ "name": "JIGSAW",
+ "textures": {
+  "back": "jigsaw_front",
+  "bottom": "jigsaw_side",
+  "front": "jigsaw_back",
+  "left": "jigsaw_side",
+  "right": "jigsaw_side",
+  "top": "jigsaw_lock"
+ }
 }

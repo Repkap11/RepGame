@@ -1,9 +1,7 @@
 {
-  "icon": "concrete_white",
-  "icon_is_isometric": false,
-  "id": 330,
-  "name": "CONCRETE",
-  "textures": {
-    "all": "concrete_white"
-  }
+ "id": 330,
+ "name": "CONCRETE",
+ "textures": {
+  "all": "concrete_white"
+ }
 }

@@ -1,11 +1,9 @@
 {
-  "icon": "blackstone",
-  "icon_is_isometric": false,
-  "id": 171,
-  "name": "BLACKSTONE",
-  "textures": {
-    "bottom": "blackstone_top",
-    "side": "blackstone",
-    "top": "blackstone_top"
-  }
+ "id": 171,
+ "name": "BLACKSTONE",
+ "textures": {
+  "bottom": "blackstone_top",
+  "side": "blackstone",
+  "top": "blackstone_top"
+ }
 }

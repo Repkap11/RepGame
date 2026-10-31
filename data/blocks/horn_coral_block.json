@@ -1,9 +1,7 @@
 {
-  "icon": "coral_yellow",
-  "icon_is_isometric": false,
-  "id": 643,
-  "name": "HORN_CORAL_BLOCK",
-  "textures": {
-    "all": "coral_yellow"
-  }
+ "id": 643,
+ "name": "HORN_CORAL_BLOCK",
+ "textures": {
+  "all": "coral_yellow"
+ }
 }

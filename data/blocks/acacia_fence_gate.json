@@ -1,9 +1,7 @@
 {
-  "icon": "planks_acacia",
-  "icon_is_isometric": false,
-  "id": 10,
-  "name": "ACACIA_FENCE_GATE",
-  "textures": {
-    "all": "planks_acacia"
-  }
+ "id": 10,
+ "name": "ACACIA_FENCE_GATE",
+ "textures": {
+  "all": "planks_acacia"
+ }
 }

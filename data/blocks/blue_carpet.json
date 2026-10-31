@@ -1,9 +1,7 @@
 {
-  "icon": "wool_colored_blue",
-  "icon_is_isometric": false,
-  "id": 181,
-  "name": "BLUE_CARPET",
-  "textures": {
-    "all": "wool_colored_blue"
-  }
+ "id": 181,
+ "name": "BLUE_CARPET",
+ "textures": {
+  "all": "wool_colored_blue"
+ }
 }

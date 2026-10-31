@@ -1,9 +1,7 @@
 {
-  "icon": "cobblestone",
-  "icon_is_isometric": false,
-  "id": 777,
-  "name": "MONSTER_EGG",
-  "textures": {
-    "all": "cobblestone"
-  }
+ "id": 777,
+ "name": "MONSTER_EGG",
+ "textures": {
+  "all": "cobblestone"
+ }
 }

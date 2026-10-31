@@ -1,9 +1,7 @@
 {
-  "icon": "dark_oak_shelf",
-  "icon_is_isometric": false,
-  "id": 452,
-  "name": "DARK_OAK_SHELF",
-  "textures": {
-    "all": "dark_oak_shelf"
-  }
+ "id": 452,
+ "name": "DARK_OAK_SHELF",
+ "textures": {
+  "all": "dark_oak_shelf"
+ }
 }

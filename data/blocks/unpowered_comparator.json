@@ -1,11 +1,9 @@
 {
-  "icon": "stone_slab_top",
-  "icon_is_isometric": false,
-  "id": 1258,
-  "name": "UNPOWERED_COMPARATOR",
-  "textures": {
-    "bottom": "stone_slab_top",
-    "side": "stone_slab_top",
-    "top": "comparator_off"
-  }
+ "id": 1258,
+ "name": "UNPOWERED_COMPARATOR",
+ "textures": {
+  "bottom": "stone_slab_top",
+  "side": "stone_slab_top",
+  "top": "comparator_off"
+ }
 }

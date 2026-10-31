@@ -1,9 +1,7 @@
 {
-  "icon": "polished_deepslate",
-  "icon_is_isometric": false,
-  "id": 950,
-  "name": "POLISHED_DEEPSLATE_WALL",
-  "textures": {
-    "all": "polished_deepslate"
-  }
+ "id": 950,
+ "name": "POLISHED_DEEPSLATE_WALL",
+ "textures": {
+  "all": "polished_deepslate"
+ }
 }

@@ -1,9 +1,7 @@
 {
-  "icon": "weathered_cut_copper",
-  "icon_is_isometric": false,
-  "id": 1347,
-  "name": "WAXED_WEATHERED_DOUBLE_CUT_COPPER_SLAB",
-  "textures": {
-    "all": "weathered_cut_copper"
-  }
+ "id": 1347,
+ "name": "WAXED_WEATHERED_DOUBLE_CUT_COPPER_SLAB",
+ "textures": {
+  "all": "weathered_cut_copper"
+ }
 }

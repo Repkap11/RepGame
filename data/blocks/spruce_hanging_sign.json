@@ -1,9 +1,7 @@
 {
-  "icon": "planks_spruce",
-  "icon_is_isometric": false,
-  "id": 1148,
-  "name": "SPRUCE_HANGING_SIGN",
-  "textures": {
-    "all": "planks_spruce"
-  }
+ "id": 1148,
+ "name": "SPRUCE_HANGING_SIGN",
+ "textures": {
+  "all": "planks_spruce"
+ }
 }

@@ -1,9 +1,7 @@
 {
-  "icon": "wool_colored_lime",
-  "icon_is_isometric": false,
-  "id": 725,
-  "name": "LIME_WOOL",
-  "textures": {
-    "all": "wool_colored_lime"
-  }
+ "id": 725,
+ "name": "LIME_WOOL",
+ "textures": {
+  "all": "wool_colored_lime"
+ }
 }

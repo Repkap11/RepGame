@@ -1,14 +1,12 @@
 {
-  "icon": "smithing_table_top",
-  "icon_is_isometric": false,
-  "id": 1118,
-  "name": "SMITHING_TABLE",
-  "textures": {
-    "back": "smithing_table_front",
-    "bottom": "smithing_table_bottom",
-    "front": "smithing_table_front",
-    "left": "smithing_table_side",
-    "right": "smithing_table_side",
-    "top": "smithing_table_top"
-  }
+ "id": 1118,
+ "name": "SMITHING_TABLE",
+ "textures": {
+  "back": "smithing_table_front",
+  "bottom": "smithing_table_bottom",
+  "front": "smithing_table_front",
+  "left": "smithing_table_side",
+  "right": "smithing_table_side",
+  "top": "smithing_table_top"
+ }
 }

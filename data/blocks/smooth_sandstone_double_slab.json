@@ -1,9 +1,7 @@
 {
-  "icon": "sandstone_top",
-  "icon_is_isometric": false,
-  "id": 1129,
-  "name": "SMOOTH_SANDSTONE_DOUBLE_SLAB",
-  "textures": {
-    "all": "sandstone_top"
-  }
+ "id": 1129,
+ "name": "SMOOTH_SANDSTONE_DOUBLE_SLAB",
+ "textures": {
+  "all": "sandstone_top"
+ }
 }

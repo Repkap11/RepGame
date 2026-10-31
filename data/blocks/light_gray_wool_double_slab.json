@@ -1,9 +1,7 @@
 {
-  "icon": "wool_colored_silver",
-  "icon_is_isometric": false,
-  "id": 707,
-  "name": "LIGHT_GRAY_WOOL_DOUBLE_SLAB",
-  "textures": {
-    "all": "wool_colored_silver"
-  }
+ "id": 707,
+ "name": "LIGHT_GRAY_WOOL_DOUBLE_SLAB",
+ "textures": {
+  "all": "wool_colored_silver"
+ }
 }

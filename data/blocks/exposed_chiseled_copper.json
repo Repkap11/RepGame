@@ -1,9 +1,7 @@
 {
-  "icon": "exposed_chiseled_copper",
-  "icon_is_isometric": false,
-  "id": 558,
-  "name": "EXPOSED_CHISELED_COPPER",
-  "textures": {
-    "all": "exposed_chiseled_copper"
-  }
+ "id": 558,
+ "name": "EXPOSED_CHISELED_COPPER",
+ "textures": {
+  "all": "exposed_chiseled_copper"
+ }
 }

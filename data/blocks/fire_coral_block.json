@@ -1,9 +1,7 @@
 {
-  "icon": "coral_red",
-  "icon_is_isometric": false,
-  "id": 582,
-  "name": "FIRE_CORAL_BLOCK",
-  "textures": {
-    "all": "coral_red"
-  }
+ "id": 582,
+ "name": "FIRE_CORAL_BLOCK",
+ "textures": {
+  "all": "coral_red"
+ }
 }

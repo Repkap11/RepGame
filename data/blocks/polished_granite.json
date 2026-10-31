@@ -1,9 +1,7 @@
 {
-  "icon": "stone_granite_smooth",
-  "icon_is_isometric": false,
-  "id": 955,
-  "name": "POLISHED_GRANITE",
-  "textures": {
-    "all": "stone_granite_smooth"
-  }
+ "id": 955,
+ "name": "POLISHED_GRANITE",
+ "textures": {
+  "all": "stone_granite_smooth"
+ }
 }

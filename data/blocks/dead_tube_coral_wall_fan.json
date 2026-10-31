@@ -1,13 +1,11 @@
 {
-  "casts_shadow": false,
-  "hardness": 0.35,
-  "icon": "coral_fan_blue_dead",
-  "icon_is_isometric": false,
-  "id": 486,
-  "is_seethrough": true,
-  "name": "DEAD_TUBE_CORAL_WALL_FAN",
-  "no_light": 6815743,
-  "textures": {
-    "all": "coral_fan_blue_dead"
-  }
+ "casts_shadow": false,
+ "hardness": 0.35,
+ "id": 486,
+ "is_seethrough": true,
+ "name": "DEAD_TUBE_CORAL_WALL_FAN",
+ "no_light": 6815743,
+ "textures": {
+  "all": "coral_fan_blue_dead"
+ }
 }

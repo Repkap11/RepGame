@@ -1,9 +1,7 @@
 {
-  "icon": "prismarine_rough",
-  "icon_is_isometric": false,
-  "id": 991,
-  "name": "PRISMARINE",
-  "textures": {
-    "all": "prismarine_rough"
-  }
+ "id": 991,
+ "name": "PRISMARINE",
+ "textures": {
+  "all": "prismarine_rough"
+ }
 }

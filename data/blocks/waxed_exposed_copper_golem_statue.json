@@ -1,9 +1,7 @@
 {
-  "icon": "exposed_copper",
-  "icon_is_isometric": false,
-  "id": 1307,
-  "name": "WAXED_EXPOSED_COPPER_GOLEM_STATUE",
-  "textures": {
-    "all": "exposed_copper"
-  }
+ "id": 1307,
+ "name": "WAXED_EXPOSED_COPPER_GOLEM_STATUE",
+ "textures": {
+  "all": "exposed_copper"
+ }
 }

@@ -1,11 +1,9 @@
 {
-  "icon": "lodestone_side",
-  "icon_is_isometric": false,
-  "id": 734,
-  "name": "LODESTONE",
-  "textures": {
-    "bottom": "lodestone_top",
-    "side": "lodestone_side",
-    "top": "lodestone_top"
-  }
+ "id": 734,
+ "name": "LODESTONE",
+ "textures": {
+  "bottom": "lodestone_top",
+  "side": "lodestone_side",
+  "top": "lodestone_top"
+ }
 }

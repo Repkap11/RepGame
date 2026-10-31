@@ -1,9 +1,7 @@
 {
-  "icon": "deepslate_gold_ore",
-  "icon_is_isometric": false,
-  "id": 507,
-  "name": "DEEPSLATE_GOLD_ORE",
-  "textures": {
-    "all": "deepslate_gold_ore"
-  }
+ "id": 507,
+ "name": "DEEPSLATE_GOLD_ORE",
+ "textures": {
+  "all": "deepslate_gold_ore"
+ }
 }

@@ -1,9 +1,7 @@
 {
-  "icon": "end_bricks",
-  "icon_is_isometric": false,
-  "id": 553,
-  "name": "END_STONE_BRICK_DOUBLE_SLAB",
-  "textures": {
-    "all": "end_bricks"
-  }
+ "id": 553,
+ "name": "END_STONE_BRICK_DOUBLE_SLAB",
+ "textures": {
+  "all": "end_bricks"
+ }
 }

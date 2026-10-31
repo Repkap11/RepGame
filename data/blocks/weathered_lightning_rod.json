@@ -1,13 +1,11 @@
 {
-  "casts_shadow": false,
-  "hardness": 0.35,
-  "icon": "weathered_lightning_rod",
-  "icon_is_isometric": false,
-  "id": 1364,
-  "is_seethrough": true,
-  "name": "WEATHERED_LIGHTNING_ROD",
-  "no_light": 6815743,
-  "textures": {
-    "all": "weathered_lightning_rod"
-  }
+ "casts_shadow": false,
+ "hardness": 0.35,
+ "id": 1364,
+ "is_seethrough": true,
+ "name": "WEATHERED_LIGHTNING_ROD",
+ "no_light": 6815743,
+ "textures": {
+  "all": "weathered_lightning_rod"
+ }
 }

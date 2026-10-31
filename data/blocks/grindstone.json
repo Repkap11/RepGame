@@ -1,18 +1,16 @@
 {
-  "casts_shadow": false,
-  "hardness": 0.35,
-  "icon": "grindstone_round",
-  "icon_is_isometric": false,
-  "id": 634,
-  "is_seethrough": true,
-  "name": "GRINDSTONE",
-  "no_light": 6815743,
-  "textures": {
-    "back": "grindstone_pivot",
-    "bottom": "log_big_oak",
-    "front": "grindstone_side",
-    "left": "grindstone_side",
-    "right": "grindstone_side",
-    "top": "grindstone_round"
-  }
+ "casts_shadow": false,
+ "hardness": 0.35,
+ "id": 634,
+ "is_seethrough": true,
+ "name": "GRINDSTONE",
+ "no_light": 6815743,
+ "textures": {
+  "back": "grindstone_pivot",
+  "bottom": "log_big_oak",
+  "front": "grindstone_side",
+  "left": "grindstone_side",
+  "right": "grindstone_side",
+  "top": "grindstone_round"
+ }
 }

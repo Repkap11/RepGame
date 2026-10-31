@@ -1,9 +1,7 @@
 {
-  "icon": "quartz_ore",
-  "icon_is_isometric": false,
-  "id": 1037,
-  "name": "QUARTZ_ORE",
-  "textures": {
-    "all": "quartz_ore"
-  }
+ "id": 1037,
+ "name": "QUARTZ_ORE",
+ "textures": {
+  "all": "quartz_ore"
+ }
 }

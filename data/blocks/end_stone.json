@@ -1,9 +1,7 @@
 {
-  "icon": "end_stone",
-  "icon_is_isometric": false,
-  "id": 552,
-  "name": "END_STONE",
-  "textures": {
-    "all": "end_stone"
-  }
+ "id": 552,
+ "name": "END_STONE",
+ "textures": {
+  "all": "end_stone"
+ }
 }

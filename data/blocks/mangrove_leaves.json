@@ -1,13 +1,11 @@
 {
-  "casts_shadow": false,
-  "hardness": 0.35,
-  "icon": "mangrove_leaves_carried",
-  "icon_is_isometric": false,
-  "id": 762,
-  "is_seethrough": true,
-  "name": "MANGROVE_LEAVES",
-  "no_light": 6815743,
-  "textures": {
-    "all": "mangrove_leaves_carried"
-  }
+ "casts_shadow": false,
+ "hardness": 0.35,
+ "id": 762,
+ "is_seethrough": true,
+ "name": "MANGROVE_LEAVES",
+ "no_light": 6815743,
+ "textures": {
+  "all": "mangrove_leaves_carried"
+ }
 }

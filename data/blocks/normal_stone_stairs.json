@@ -1,9 +1,7 @@
 {
-  "icon": "stone",
-  "icon_is_isometric": false,
-  "id": 814,
-  "name": "NORMAL_STONE_STAIRS",
-  "textures": {
-    "all": "stone"
-  }
+ "id": 814,
+ "name": "NORMAL_STONE_STAIRS",
+ "textures": {
+  "all": "stone"
+ }
 }

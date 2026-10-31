@@ -1,9 +1,7 @@
 {
-  "icon": "concrete_purple",
-  "icon_is_isometric": false,
-  "id": 1019,
-  "name": "PURPLE_CONCRETE_STAIRS",
-  "textures": {
-    "all": "concrete_purple"
-  }
+ "id": 1019,
+ "name": "PURPLE_CONCRETE_STAIRS",
+ "textures": {
+  "all": "concrete_purple"
+ }
 }

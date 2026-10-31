@@ -1,9 +1,7 @@
 {
-  "icon": "stone",
-  "icon_is_isometric": false,
-  "id": 651,
-  "name": "INFESTED_STONE",
-  "textures": {
-    "all": "stone"
-  }
+ "id": 651,
+ "name": "INFESTED_STONE",
+ "textures": {
+  "all": "stone"
+ }
 }

@@ -1,9 +1,7 @@
 {
-  "icon": "warped_planks",
-  "icon_is_isometric": false,
-  "id": 1265,
-  "name": "WARPED_BUTTON",
-  "textures": {
-    "all": "warped_planks"
-  }
+ "id": 1265,
+ "name": "WARPED_BUTTON",
+ "textures": {
+  "all": "warped_planks"
+ }
 }

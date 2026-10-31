@@ -1,9 +1,7 @@
 {
-  "icon": "stone_andesite",
-  "icon_is_isometric": false,
-  "id": 63,
-  "name": "ANDESITE_SLAB",
-  "textures": {
-    "all": "stone_andesite"
-  }
+ "id": 63,
+ "name": "ANDESITE_SLAB",
+ "textures": {
+  "all": "stone_andesite"
+ }
 }

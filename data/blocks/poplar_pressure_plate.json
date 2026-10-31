@@ -1,9 +1,7 @@
 {
-  "icon": "poplar_planks",
-  "icon_is_isometric": false,
-  "id": 977,
-  "name": "POPLAR_PRESSURE_PLATE",
-  "textures": {
-    "all": "poplar_planks"
-  }
+ "id": 977,
+ "name": "POPLAR_PRESSURE_PLATE",
+ "textures": {
+  "all": "poplar_planks"
+ }
 }

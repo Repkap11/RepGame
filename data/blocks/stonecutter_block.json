@@ -1,18 +1,16 @@
 {
-  "casts_shadow": false,
-  "hardness": 0.35,
-  "icon": "stonecutter2_top",
-  "icon_is_isometric": false,
-  "id": 1173,
-  "is_seethrough": true,
-  "name": "STONECUTTER_BLOCK",
-  "no_light": 6815743,
-  "textures": {
-    "back": "stonecutter2_side",
-    "bottom": "stonecutter2_bottom",
-    "front": "stonecutter2_side",
-    "left": "stonecutter2_saw",
-    "right": "stonecutter2_saw",
-    "top": "stonecutter2_top"
-  }
+ "casts_shadow": false,
+ "hardness": 0.35,
+ "id": 1173,
+ "is_seethrough": true,
+ "name": "STONECUTTER_BLOCK",
+ "no_light": 6815743,
+ "textures": {
+  "back": "stonecutter2_side",
+  "bottom": "stonecutter2_bottom",
+  "front": "stonecutter2_side",
+  "left": "stonecutter2_saw",
+  "right": "stonecutter2_saw",
+  "top": "stonecutter2_top"
+ }
 }

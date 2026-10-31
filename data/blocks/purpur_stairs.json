@@ -1,9 +1,7 @@
 {
-  "icon": "purpur_block",
-  "icon_is_isometric": false,
-  "id": 1033,
-  "name": "PURPUR_STAIRS",
-  "textures": {
-    "all": "purpur_block"
-  }
+ "id": 1033,
+ "name": "PURPUR_STAIRS",
+ "textures": {
+  "all": "purpur_block"
+ }
 }

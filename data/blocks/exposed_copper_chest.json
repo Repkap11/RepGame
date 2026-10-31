@@ -1,14 +1,12 @@
 {
-  "icon": "exposed_copper_chest_inventory_top",
-  "icon_is_isometric": false,
-  "id": 563,
-  "name": "EXPOSED_COPPER_CHEST",
-  "textures": {
-    "back": "exposed_copper_chest_inventory_side",
-    "bottom": "exposed_copper_chest_inventory_top",
-    "front": "exposed_copper_chest_inventory_front",
-    "left": "exposed_copper_chest_inventory_side",
-    "right": "exposed_copper_chest_inventory_side",
-    "top": "exposed_copper_chest_inventory_top"
-  }
+ "id": 563,
+ "name": "EXPOSED_COPPER_CHEST",
+ "textures": {
+  "back": "exposed_copper_chest_inventory_side",
+  "bottom": "exposed_copper_chest_inventory_top",
+  "front": "exposed_copper_chest_inventory_front",
+  "left": "exposed_copper_chest_inventory_side",
+  "right": "exposed_copper_chest_inventory_side",
+  "top": "exposed_copper_chest_inventory_top"
+ }
 }

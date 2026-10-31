@@ -1,9 +1,7 @@
 {
-  "icon": "poplar_planks",
-  "icon_is_isometric": false,
-  "id": 976,
-  "name": "POPLAR_PLANKS",
-  "textures": {
-    "all": "poplar_planks"
-  }
+ "id": 976,
+ "name": "POPLAR_PLANKS",
+ "textures": {
+  "all": "poplar_planks"
+ }
 }

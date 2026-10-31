@@ -1,9 +1,7 @@
 {
-  "icon": "weathered_chiseled_copper",
-  "icon_is_isometric": false,
-  "id": 1333,
-  "name": "WAXED_WEATHERED_CHISELED_COPPER",
-  "textures": {
-    "all": "weathered_chiseled_copper"
-  }
+ "id": 1333,
+ "name": "WAXED_WEATHERED_CHISELED_COPPER",
+ "textures": {
+  "all": "weathered_chiseled_copper"
+ }
 }

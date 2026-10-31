@@ -1,9 +1,7 @@
 {
-  "icon": "hardened_clay",
-  "icon_is_isometric": false,
-  "id": 636,
-  "name": "HARDENED_CLAY",
-  "textures": {
-    "all": "hardened_clay"
-  }
+ "id": 636,
+ "name": "HARDENED_CLAY",
+ "textures": {
+  "all": "hardened_clay"
+ }
 }

@@ -1,9 +1,7 @@
 {
-  "icon": "purpur_block",
-  "icon_is_isometric": false,
-  "id": 1030,
-  "name": "PURPUR_DOUBLE_SLAB",
-  "textures": {
-    "all": "purpur_block"
-  }
+ "id": 1030,
+ "name": "PURPUR_DOUBLE_SLAB",
+ "textures": {
+  "all": "purpur_block"
+ }
 }

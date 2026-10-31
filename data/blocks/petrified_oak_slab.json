@@ -1,9 +1,7 @@
 {
-  "icon": "planks_oak",
-  "icon_is_isometric": false,
-  "id": 901,
-  "name": "PETRIFIED_OAK_SLAB",
-  "textures": {
-    "all": "planks_oak"
-  }
+ "id": 901,
+ "name": "PETRIFIED_OAK_SLAB",
+ "textures": {
+  "all": "planks_oak"
+ }
 }

@@ -1,9 +1,7 @@
 {
-  "icon": "quartz_block_bottom",
-  "icon_is_isometric": false,
-  "id": 1122,
-  "name": "SMOOTH_QUARTZ_DOUBLE_SLAB",
-  "textures": {
-    "all": "quartz_block_bottom"
-  }
+ "id": 1122,
+ "name": "SMOOTH_QUARTZ_DOUBLE_SLAB",
+ "textures": {
+  "all": "quartz_block_bottom"
+ }
 }

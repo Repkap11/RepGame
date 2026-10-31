@@ -1,9 +1,7 @@
 {
-  "icon": "crimson_planks",
-  "icon_is_isometric": false,
-  "id": 416,
-  "name": "CRIMSON_WALL_SIGN",
-  "textures": {
-    "all": "crimson_planks"
-  }
+ "id": 416,
+ "name": "CRIMSON_WALL_SIGN",
+ "textures": {
+  "all": "crimson_planks"
+ }
 }

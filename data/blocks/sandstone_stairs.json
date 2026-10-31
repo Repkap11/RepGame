@@ -1,11 +1,9 @@
 {
-  "icon": "sandstone_normal",
-  "icon_is_isometric": false,
-  "id": 1099,
-  "name": "SANDSTONE_STAIRS",
-  "textures": {
-    "bottom": "sandstone_bottom",
-    "side": "sandstone_normal",
-    "top": "sandstone_top"
-  }
+ "id": 1099,
+ "name": "SANDSTONE_STAIRS",
+ "textures": {
+  "bottom": "sandstone_bottom",
+  "side": "sandstone_normal",
+  "top": "sandstone_top"
+ }
 }

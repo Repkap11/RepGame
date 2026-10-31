@@ -1,9 +1,7 @@
 {
-  "icon": "obsidian",
-  "icon_is_isometric": false,
-  "id": 830,
-  "name": "OBSIDIAN",
-  "textures": {
-    "all": "obsidian"
-  }
+ "id": 830,
+ "name": "OBSIDIAN",
+ "textures": {
+  "all": "obsidian"
+ }
 }

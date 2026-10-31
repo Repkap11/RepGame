@@ -1,9 +1,7 @@
 {
-  "icon": "honeycomb",
-  "icon_is_isometric": false,
-  "id": 641,
-  "name": "HONEYCOMB_BLOCK",
-  "textures": {
-    "all": "honeycomb"
-  }
+ "id": 641,
+ "name": "HONEYCOMB_BLOCK",
+ "textures": {
+  "all": "honeycomb"
+ }
 }

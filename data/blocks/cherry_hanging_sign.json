@@ -1,9 +1,7 @@
 {
-  "icon": "cherry_planks",
-  "icon_is_isometric": false,
-  "id": 264,
-  "name": "CHERRY_HANGING_SIGN",
-  "textures": {
-    "all": "cherry_planks"
-  }
+ "id": 264,
+ "name": "CHERRY_HANGING_SIGN",
+ "textures": {
+  "all": "cherry_planks"
+ }
 }

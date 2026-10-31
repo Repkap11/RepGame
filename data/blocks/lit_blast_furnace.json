@@ -1,14 +1,12 @@
 {
-  "icon": "blast_furnace_top",
-  "icon_is_isometric": false,
-  "id": 729,
-  "name": "LIT_BLAST_FURNACE",
-  "textures": {
-    "back": "blast_furnace_side",
-    "bottom": "blast_furnace_top",
-    "front": "blast_furnace_side",
-    "left": "blast_furnace_side",
-    "right": "blast_furnace_front_on",
-    "top": "blast_furnace_top"
-  }
+ "id": 729,
+ "name": "LIT_BLAST_FURNACE",
+ "textures": {
+  "back": "blast_furnace_side",
+  "bottom": "blast_furnace_top",
+  "front": "blast_furnace_side",
+  "left": "blast_furnace_side",
+  "right": "blast_furnace_front_on",
+  "top": "blast_furnace_top"
+ }
 }

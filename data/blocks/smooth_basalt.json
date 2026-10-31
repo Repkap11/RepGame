@@ -1,9 +1,7 @@
 {
-  "icon": "smooth_basalt",
-  "icon_is_isometric": false,
-  "id": 1120,
-  "name": "SMOOTH_BASALT",
-  "textures": {
-    "all": "smooth_basalt"
-  }
+ "id": 1120,
+ "name": "SMOOTH_BASALT",
+ "textures": {
+  "all": "smooth_basalt"
+ }
 }

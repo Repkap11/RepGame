@@ -1,9 +1,7 @@
 {
-  "icon": "glazed_terracotta_green",
-  "icon_is_isometric": false,
-  "id": 626,
-  "name": "GREEN_GLAZED_TERRACOTTA",
-  "textures": {
-    "all": "glazed_terracotta_green"
-  }
+ "id": 626,
+ "name": "GREEN_GLAZED_TERRACOTTA",
+ "textures": {
+  "all": "glazed_terracotta_green"
+ }
 }

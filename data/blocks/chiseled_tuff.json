@@ -1,11 +1,9 @@
 {
-  "icon": "chiseled_tuff",
-  "icon_is_isometric": false,
-  "id": 292,
-  "name": "CHISELED_TUFF",
-  "textures": {
-    "bottom": "chiseled_tuff_top",
-    "side": "chiseled_tuff",
-    "top": "chiseled_tuff_top"
-  }
+ "id": 292,
+ "name": "CHISELED_TUFF",
+ "textures": {
+  "bottom": "chiseled_tuff_top",
+  "side": "chiseled_tuff",
+  "top": "chiseled_tuff_top"
+ }
 }

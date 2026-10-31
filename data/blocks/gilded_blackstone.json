@@ -1,9 +1,7 @@
 {
-  "icon": "gilded_blackstone",
-  "icon_is_isometric": false,
-  "id": 590,
-  "name": "GILDED_BLACKSTONE",
-  "textures": {
-    "all": "gilded_blackstone"
-  }
+ "id": 590,
+ "name": "GILDED_BLACKSTONE",
+ "textures": {
+  "all": "gilded_blackstone"
+ }
 }

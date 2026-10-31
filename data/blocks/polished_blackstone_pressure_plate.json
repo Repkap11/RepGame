@@ -1,9 +1,7 @@
 {
-  "icon": "polished_blackstone",
-  "icon_is_isometric": false,
-  "id": 937,
-  "name": "POLISHED_BLACKSTONE_PRESSURE_PLATE",
-  "textures": {
-    "all": "polished_blackstone"
-  }
+ "id": 937,
+ "name": "POLISHED_BLACKSTONE_PRESSURE_PLATE",
+ "textures": {
+  "all": "polished_blackstone"
+ }
 }

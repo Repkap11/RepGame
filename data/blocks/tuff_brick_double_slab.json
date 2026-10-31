@@ -1,9 +1,7 @@
 {
-  "icon": "tuff_bricks",
-  "icon_is_isometric": false,
-  "id": 1242,
-  "name": "TUFF_BRICK_DOUBLE_SLAB",
-  "textures": {
-    "all": "tuff_bricks"
-  }
+ "id": 1242,
+ "name": "TUFF_BRICK_DOUBLE_SLAB",
+ "textures": {
+  "all": "tuff_bricks"
+ }
 }

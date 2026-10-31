@@ -1,9 +1,7 @@
 {
-  "icon": "planks_big_oak",
-  "icon_is_isometric": false,
-  "id": 450,
-  "name": "DARK_OAK_HANGING_SIGN",
-  "textures": {
-    "all": "planks_big_oak"
-  }
+ "id": 450,
+ "name": "DARK_OAK_HANGING_SIGN",
+ "textures": {
+  "all": "planks_big_oak"
+ }
 }

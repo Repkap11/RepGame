@@ -1,15 +1,13 @@
 {
-  "casts_shadow": false,
-  "hardness": 0.35,
-  "icon": "anvil_base",
-  "icon_is_isometric": false,
-  "id": 67,
-  "is_seethrough": true,
-  "name": "ANVIL",
-  "no_light": 6815743,
-  "textures": {
-    "bottom": "anvil_base",
-    "side": "anvil_base",
-    "top": "anvil_top_damaged_0"
-  }
+ "casts_shadow": false,
+ "hardness": 0.35,
+ "id": 67,
+ "is_seethrough": true,
+ "name": "ANVIL",
+ "no_light": 6815743,
+ "textures": {
+  "bottom": "anvil_base",
+  "side": "anvil_base",
+  "top": "anvil_top_damaged_0"
+ }
 }

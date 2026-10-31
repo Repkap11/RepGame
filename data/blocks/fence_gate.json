@@ -1,9 +1,7 @@
 {
-  "icon": "planks_oak",
-  "icon_is_isometric": false,
-  "id": 581,
-  "name": "FENCE_GATE",
-  "textures": {
-    "all": "planks_oak"
-  }
+ "id": 581,
+ "name": "FENCE_GATE",
+ "textures": {
+  "all": "planks_oak"
+ }
 }

@@ -1,9 +1,7 @@
 {
-  "icon": "cherry_shelf",
-  "icon_is_isometric": false,
-  "id": 270,
-  "name": "CHERRY_SHELF",
-  "textures": {
-    "all": "cherry_shelf"
-  }
+ "id": 270,
+ "name": "CHERRY_SHELF",
+ "textures": {
+  "all": "cherry_shelf"
+ }
 }

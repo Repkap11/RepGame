@@ -1,9 +1,7 @@
 {
-  "icon": "bamboo_planks",
-  "icon_is_isometric": false,
-  "id": 84,
-  "name": "BAMBOO_HANGING_SIGN",
-  "textures": {
-    "all": "bamboo_planks"
-  }
+ "id": 84,
+ "name": "BAMBOO_HANGING_SIGN",
+ "textures": {
+  "all": "bamboo_planks"
+ }
 }

@@ -1,9 +1,7 @@
 {
-  "icon": "cobbled_deepslate",
-  "icon_is_isometric": false,
-  "id": 324,
-  "name": "COBBLED_DEEPSLATE_WALL",
-  "textures": {
-    "all": "cobbled_deepslate"
-  }
+ "id": 324,
+ "name": "COBBLED_DEEPSLATE_WALL",
+ "textures": {
+  "all": "cobbled_deepslate"
+ }
 }

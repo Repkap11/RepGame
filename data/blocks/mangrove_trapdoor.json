@@ -1,13 +1,11 @@
 {
-  "casts_shadow": false,
-  "hardness": 0.35,
-  "icon": "mangrove_trapdoor",
-  "icon_is_isometric": false,
-  "id": 772,
-  "is_seethrough": true,
-  "name": "MANGROVE_TRAPDOOR",
-  "no_light": 6815743,
-  "textures": {
-    "all": "mangrove_trapdoor"
-  }
+ "casts_shadow": false,
+ "hardness": 0.35,
+ "id": 772,
+ "is_seethrough": true,
+ "name": "MANGROVE_TRAPDOOR",
+ "no_light": 6815743,
+ "textures": {
+  "all": "mangrove_trapdoor"
+ }
 }

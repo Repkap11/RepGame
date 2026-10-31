@@ -1,9 +1,7 @@
 {
-  "icon": "moss_block",
-  "icon_is_isometric": false,
-  "id": 779,
-  "name": "MOSS_CARPET",
-  "textures": {
-    "all": "moss_block"
-  }
+ "id": 779,
+ "name": "MOSS_CARPET",
+ "textures": {
+  "all": "moss_block"
+ }
 }

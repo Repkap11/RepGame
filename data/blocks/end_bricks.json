@@ -1,9 +1,7 @@
 {
-  "icon": "end_bricks",
-  "icon_is_isometric": false,
-  "id": 548,
-  "name": "END_BRICKS",
-  "textures": {
-    "all": "end_bricks"
-  }
+ "id": 548,
+ "name": "END_BRICKS",
+ "textures": {
+  "all": "end_bricks"
+ }
 }

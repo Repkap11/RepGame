@@ -1,9 +1,7 @@
 {
-  "icon": "stripped_cherry_log_side",
-  "icon_is_isometric": false,
-  "id": 1180,
-  "name": "STRIPPED_CHERRY_WOOD",
-  "textures": {
-    "all": "stripped_cherry_log_side"
-  }
+ "id": 1180,
+ "name": "STRIPPED_CHERRY_WOOD",
+ "textures": {
+  "all": "stripped_cherry_log_side"
+ }
 }

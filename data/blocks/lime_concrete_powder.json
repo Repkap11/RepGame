@@ -1,9 +1,7 @@
 {
-  "icon": "concrete_powder_lime",
-  "icon_is_isometric": false,
-  "id": 718,
-  "name": "LIME_CONCRETE_POWDER",
-  "textures": {
-    "all": "concrete_powder_lime"
-  }
+ "id": 718,
+ "name": "LIME_CONCRETE_POWDER",
+ "textures": {
+  "all": "concrete_powder_lime"
+ }
 }

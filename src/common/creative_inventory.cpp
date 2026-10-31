@@ -1,5 +1,6 @@
 #include "common/RepGame.hpp"
 #include "common/inventory_renderer.hpp"
+#include "common/creative_order_gen.hpp"
 
 void CreativeInventory::init( const VertexBufferLayout &ui_overlay_vbl_vertex, const VertexBufferLayout &ui_overlay_vbl_instance, const int width, const int height ) {
     this->width = width;
@@ -18,47 +19,29 @@ void CreativeInventory::incrementSelectedPage( int offset ) {
 
 BlockID CreativeInventory::whichBlockClicked( const int screen_x, const int screen_y ) {
     const int slot = this->inventory_renderer.whichSlotClicked( screen_x, screen_y );
-    if ( slot < 0 || slot > LAST_BLOCK_ID ) {
+    if ( slot < 0 || slot >= this->num_blocks_max ) {
         return LAST_BLOCK_ID;
     }
     return this->slots[ slot ].block_id;
 }
 
 void CreativeInventory::load_blocks_for_selected_page( ) {
+    const int num_pages = ( CREATIVE_BLOCK_COUNT + this->num_blocks_max - 1 ) / this->num_blocks_max;
     if ( this->selected_page < 0 ) {
-        this->selected_page = LAST_BLOCK_ID / this->num_blocks_max;
+        this->selected_page = num_pages - 1;
     }
-    int starting_block = this->selected_page * this->num_blocks_max;
-
-    if ( starting_block >= LAST_BLOCK_ID ) {
-        starting_block = 0;
+    if ( this->selected_page >= num_pages ) {
         this->selected_page = 0;
     }
-    int i_block = starting_block;
+    int i_block = this->selected_page * this->num_blocks_max;
     for ( int y = this->height - 1; y >= 0; y-- ) {
         for ( int x = 0; x < this->width; x++ ) {
             const int i_slot = y * this->width + x;
             InventorySlot &slot = this->slots[ i_slot ];
 
-            // bool is_pickable = false;
-            // do {
-            //     i_block++;
-            //     Block *block = block_definition_get_definition( ( BlockID )i_block );
-            //     is_pickable = block->is_pickable;
-            // } while ( !is_pickable );
-
-            i_block++;
-            BlockID blockId = static_cast<BlockID>( i_block );
-            if ( blockId > LAST_BLOCK_ID ) {
-                blockId = LAST_BLOCK_ID;
-            } else {
-                const Block *block = block_definition_get_definition( blockId );
-                if ( !block->is_pickable ) {
-                    blockId = LAST_BLOCK_ID;
-                }
-            }
-            slot.block_id = blockId;
+            slot.block_id = i_block < ( int )CREATIVE_BLOCK_COUNT ? CREATIVE_BLOCKS[ i_block ] : LAST_BLOCK_ID;
             slot.quantity = 0;
+            i_block++;
             this->inventory_renderer.changeSlotItem( i_slot, slot );
         }
     }

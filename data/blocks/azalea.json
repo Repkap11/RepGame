@@ -1,18 +1,16 @@
 {
-  "casts_shadow": false,
-  "hardness": 0.35,
-  "icon": "azalea_top",
-  "icon_is_isometric": false,
-  "id": 69,
-  "is_seethrough": true,
-  "name": "AZALEA",
-  "no_light": 6815743,
-  "textures": {
-    "back": "azalea_side",
-    "bottom": "potted_azalea_bush_top",
-    "front": "potted_azalea_bush_side",
-    "left": "potted_azalea_bush_plant",
-    "right": "azalea_plant",
-    "top": "azalea_top"
-  }
+ "casts_shadow": false,
+ "hardness": 0.35,
+ "id": 69,
+ "is_seethrough": true,
+ "name": "AZALEA",
+ "no_light": 6815743,
+ "textures": {
+  "back": "azalea_side",
+  "bottom": "potted_azalea_bush_top",
+  "front": "potted_azalea_bush_side",
+  "left": "potted_azalea_bush_plant",
+  "right": "azalea_plant",
+  "top": "azalea_top"
+ }
 }

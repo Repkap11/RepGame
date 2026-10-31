@@ -1,11 +1,9 @@
 {
-  "icon": "log_acacia",
-  "icon_is_isometric": false,
-  "id": 736,
-  "name": "LOG2",
-  "textures": {
-    "bottom": "log_acacia_top",
-    "side": "log_acacia",
-    "top": "log_acacia_top"
-  }
+ "id": 736,
+ "name": "LOG2",
+ "textures": {
+  "bottom": "log_acacia_top",
+  "side": "log_acacia",
+  "top": "log_acacia_top"
+ }
 }

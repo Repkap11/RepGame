@@ -1,9 +1,7 @@
 {
-  "icon": "suspicious_gravel_0",
-  "icon_is_isometric": false,
-  "id": 1212,
-  "name": "SUSPICIOUS_GRAVEL",
-  "textures": {
-    "all": "suspicious_gravel_0"
-  }
+ "id": 1212,
+ "name": "SUSPICIOUS_GRAVEL",
+ "textures": {
+  "all": "suspicious_gravel_0"
+ }
 }

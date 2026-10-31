@@ -1,9 +1,7 @@
 {
-  "icon": "oxidized_copper_bulb",
-  "icon_is_isometric": false,
-  "id": 859,
-  "name": "OXIDIZED_COPPER_BULB",
-  "textures": {
-    "all": "oxidized_copper_bulb"
-  }
+ "id": 859,
+ "name": "OXIDIZED_COPPER_BULB",
+ "textures": {
+  "all": "oxidized_copper_bulb"
+ }
 }

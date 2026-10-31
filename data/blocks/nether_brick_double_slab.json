@@ -1,9 +1,7 @@
 {
-  "icon": "nether_brick",
-  "icon_is_isometric": false,
-  "id": 801,
-  "name": "NETHER_BRICK_DOUBLE_SLAB",
-  "textures": {
-    "all": "nether_brick"
-  }
+ "id": 801,
+ "name": "NETHER_BRICK_DOUBLE_SLAB",
+ "textures": {
+  "all": "nether_brick"
+ }
 }

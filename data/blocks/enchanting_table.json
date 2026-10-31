@@ -1,15 +1,13 @@
 {
-  "casts_shadow": false,
-  "hardness": 0.35,
-  "icon": "enchanting_table_side",
-  "icon_is_isometric": false,
-  "id": 546,
-  "is_seethrough": true,
-  "name": "ENCHANTING_TABLE",
-  "no_light": 6815743,
-  "textures": {
-    "bottom": "enchanting_table_bottom",
-    "side": "enchanting_table_side",
-    "top": "enchanting_table_top"
-  }
+ "casts_shadow": false,
+ "hardness": 0.35,
+ "id": 546,
+ "is_seethrough": true,
+ "name": "ENCHANTING_TABLE",
+ "no_light": 6815743,
+ "textures": {
+  "bottom": "enchanting_table_bottom",
+  "side": "enchanting_table_side",
+  "top": "enchanting_table_top"
+ }
 }

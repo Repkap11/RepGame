@@ -1,9 +1,7 @@
 {
-  "icon": "hardened_clay_stained_black",
-  "icon_is_isometric": false,
-  "id": 163,
-  "name": "BLACK_TERRACOTTA",
-  "textures": {
-    "all": "hardened_clay_stained_black"
-  }
+ "id": 163,
+ "name": "BLACK_TERRACOTTA",
+ "textures": {
+  "all": "hardened_clay_stained_black"
+ }
 }

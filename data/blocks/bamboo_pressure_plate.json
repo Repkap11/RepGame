@@ -1,9 +1,7 @@
 {
-  "icon": "bamboo_planks",
-  "icon_is_isometric": false,
-  "id": 97,
-  "name": "BAMBOO_PRESSURE_PLATE",
-  "textures": {
-    "all": "bamboo_planks"
-  }
+ "id": 97,
+ "name": "BAMBOO_PRESSURE_PLATE",
+ "textures": {
+  "all": "bamboo_planks"
+ }
 }

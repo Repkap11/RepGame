@@ -1,11 +1,9 @@
 {
-  "icon": "log_oak",
-  "icon_is_isometric": false,
-  "id": 735,
-  "name": "LOG",
-  "textures": {
-    "bottom": "log_oak_top",
-    "side": "log_oak",
-    "top": "log_oak_top"
-  }
+ "id": 735,
+ "name": "LOG",
+ "textures": {
+  "bottom": "log_oak_top",
+  "side": "log_oak",
+  "top": "log_oak_top"
+ }
 }

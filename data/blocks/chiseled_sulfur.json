@@ -1,9 +1,7 @@
 {
-  "icon": "chiseled_sulfur",
-  "icon_is_isometric": false,
-  "id": 291,
-  "name": "CHISELED_SULFUR",
-  "textures": {
-    "all": "chiseled_sulfur"
-  }
+ "id": 291,
+ "name": "CHISELED_SULFUR",
+ "textures": {
+  "all": "chiseled_sulfur"
+ }
 }

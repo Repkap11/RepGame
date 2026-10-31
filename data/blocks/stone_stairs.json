@@ -1,9 +1,7 @@
 {
-  "icon": "cobblestone",
-  "icon_is_isometric": false,
-  "id": 1170,
-  "name": "STONE_STAIRS",
-  "textures": {
-    "all": "cobblestone"
-  }
+ "id": 1170,
+ "name": "STONE_STAIRS",
+ "textures": {
+  "all": "cobblestone"
+ }
 }

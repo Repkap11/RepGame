@@ -1,9 +1,7 @@
 {
-  "icon": "polished_deepslate",
-  "icon_is_isometric": false,
-  "id": 948,
-  "name": "POLISHED_DEEPSLATE_SLAB",
-  "textures": {
-    "all": "polished_deepslate"
-  }
+ "id": 948,
+ "name": "POLISHED_DEEPSLATE_SLAB",
+ "textures": {
+  "all": "polished_deepslate"
+ }
 }

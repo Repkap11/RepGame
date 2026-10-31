@@ -1,9 +1,7 @@
 {
-  "icon": "concrete_black",
-  "icon_is_isometric": false,
-  "id": 155,
-  "name": "BLACK_CONCRETE_DOUBLE_SLAB",
-  "textures": {
-    "all": "concrete_black"
-  }
+ "id": 155,
+ "name": "BLACK_CONCRETE_DOUBLE_SLAB",
+ "textures": {
+  "all": "concrete_black"
+ }
 }

@@ -1,9 +1,7 @@
 {
-  "icon": "deepslate_iron_ore",
-  "icon_is_isometric": false,
-  "id": 508,
-  "name": "DEEPSLATE_IRON_ORE",
-  "textures": {
-    "all": "deepslate_iron_ore"
-  }
+ "id": 508,
+ "name": "DEEPSLATE_IRON_ORE",
+ "textures": {
+  "all": "deepslate_iron_ore"
+ }
 }

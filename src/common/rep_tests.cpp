@@ -14,6 +14,7 @@
 #include "common/mobs.hpp"
 #include "common/net/packet.hpp"
 #include "common/mob_uv.hpp"
+#include "common/creative_order_gen.hpp"
 #include "common/utils/map_storage.hpp"
 
 #include <stdlib.h>
@@ -374,6 +375,57 @@ int test_save_migration( ) {
     check_bool( "chunk: out-of-range id loads AIR", save_chunk_block_id( LAST_BLOCK_ID + 42 ) == AIR );
     check_bool( "chunk: real block survives", save_chunk_block_id( GRASS ) == GRASS );
     check_bool( "sentinel 1249 is not a defined block", !block_id_defined( LEGACY_EMPTY_BLOCK_ID ) );
+    return failures;
+}
+
+// Creative inventory ordering: generated CREATIVE_BLOCKS must contain only
+// defined pickable blocks with no duplicates, must include the material
+// representatives, and must keep every legacy block with a unique look.
+int test_creative( ) {
+    if ( block_definitions == nullptr ) {
+        block_definitions_initilize_definitions( nullptr );
+    }
+    int failures = 0;
+    auto check_bool = [ & ]( const char *name, bool cond ) {
+        pr_test( "  %-55s %s", name, cond ? "PASS" : "FAIL" );
+        if ( !cond ) {
+            failures++;
+        }
+    };
+
+    unsigned char seen[ LAST_BLOCK_ID ] = { 0 };
+    int dupes = 0, bad = 0;
+    for ( unsigned int i = 0; i < CREATIVE_BLOCK_COUNT; i++ ) {
+        const BlockID bid = CREATIVE_BLOCKS[ i ];
+        if ( seen[ bid ] ) {
+            dupes++;
+            continue;
+        }
+        seen[ bid ] = 1;
+        if ( !block_id_defined( bid ) || !block_definition_get_definition( bid )->is_pickable ) {
+            bad++;
+        }
+    }
+    check_bool( "creative: no duplicate ids", dupes == 0 );
+    check_bool( "creative: all entries defined and pickable", bad == 0 );
+
+    auto contains = [ & ]( BlockID bid ) { return seen[ bid ] != 0; };
+    check_bool( "creative: ACACIA_PLANKS listed", contains( ACACIA_PLANKS ) );
+    check_bool( "creative: ACACIA_FENCE hidden", !contains( ACACIA_FENCE ) );
+    check_bool( "creative: ACACIA_DOUBLE_SLAB hidden", !contains( ACACIA_DOUBLE_SLAB ) );
+    check_bool( "creative: GRASS listed", contains( GRASS ) );
+    check_bool( "creative: STONE listed", contains( STONE ) );
+    check_bool( "creative: TNT listed", contains( TNT ) );
+    check_bool( "creative: OAK_LEAVES listed", contains( OAK_LEAVES ) );
+    check_bool( "creative: COBBLESTONE_SLAB listed", contains( COBBLESTONE_SLAB ) );
+    check_bool( "creative: STONE_BUTTON listed", contains( STONE_BUTTON ) );
+    check_bool( "creative: WHITE_WOOL listed", contains( WHITE_WOOL ) );
+    check_bool( "creative: WOOL (legacy name) hidden", !contains( WOOL ) );
+    check_bool( "creative: WHITE_CONCRETE_POWDER listed", contains( WHITE_CONCRETE_POWDER ) );
+    check_bool( "creative: ACACIA_LEAVES listed", contains( ACACIA_LEAVES ) );
+    check_bool( "creative: OAK_LOG listed", contains( OAK_LOG ) );
+    check_bool( "creative: LIGHT_BLUE_STAINED_GLASS listed", contains( LIGHT_BLUE_STAINED_GLASS ) );
+    check_bool( "creative: GLASS_PALE_BLUE hidden", !contains( GLASS_PALE_BLUE ) );
     return failures;
 }
 
@@ -1445,6 +1497,7 @@ constexpr Test all_tests[] = {  //
     MK_TEST( redstone ),        //
     MK_TEST( sneak ),           //
     MK_TEST( save_migration ),  //
+    MK_TEST( creative ),        //
     MK_TEST( mapgen ),          //
     MK_TEST( waterlog ),        //
     MK_TEST( lighting ),        //

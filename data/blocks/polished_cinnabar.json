@@ -1,9 +1,7 @@
 {
-  "icon": "polished_cinnabar",
-  "icon_is_isometric": false,
-  "id": 941,
-  "name": "POLISHED_CINNABAR",
-  "textures": {
-    "all": "polished_cinnabar"
-  }
+ "id": 941,
+ "name": "POLISHED_CINNABAR",
+ "textures": {
+  "all": "polished_cinnabar"
+ }
 }

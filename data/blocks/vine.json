@@ -1,13 +1,11 @@
 {
-  "casts_shadow": false,
-  "hardness": 0.35,
-  "icon": "vine_carried",
-  "icon_is_isometric": false,
-  "id": 1262,
-  "is_seethrough": true,
-  "name": "VINE",
-  "no_light": 6815743,
-  "textures": {
-    "all": "vine_carried"
-  }
+ "casts_shadow": false,
+ "hardness": 0.35,
+ "id": 1262,
+ "is_seethrough": true,
+ "name": "VINE",
+ "no_light": 6815743,
+ "textures": {
+  "all": "vine_carried"
+ }
 }

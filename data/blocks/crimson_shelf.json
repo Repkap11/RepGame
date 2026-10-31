@@ -1,9 +1,7 @@
 {
-  "icon": "crimson_shelf",
-  "icon_is_isometric": false,
-  "id": 407,
-  "name": "CRIMSON_SHELF",
-  "textures": {
-    "all": "crimson_shelf"
-  }
+ "id": 407,
+ "name": "CRIMSON_SHELF",
+ "textures": {
+  "all": "crimson_shelf"
+ }
 }

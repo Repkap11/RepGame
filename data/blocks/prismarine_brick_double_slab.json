@@ -1,9 +1,7 @@
 {
-  "icon": "prismarine_bricks",
-  "icon_is_isometric": false,
-  "id": 992,
-  "name": "PRISMARINE_BRICK_DOUBLE_SLAB",
-  "textures": {
-    "all": "prismarine_bricks"
-  }
+ "id": 992,
+ "name": "PRISMARINE_BRICK_DOUBLE_SLAB",
+ "textures": {
+  "all": "prismarine_bricks"
+ }
 }

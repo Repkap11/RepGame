@@ -1,9 +1,7 @@
 {
-  "icon": "copper_block",
-  "icon_is_isometric": false,
-  "id": 1286,
-  "name": "WAXED_COPPER",
-  "textures": {
-    "all": "copper_block"
-  }
+ "id": 1286,
+ "name": "WAXED_COPPER",
+ "textures": {
+  "all": "copper_block"
+ }
 }

@@ -1,11 +1,9 @@
 {
-  "icon": "stone_slab_side",
-  "icon_is_isometric": false,
-  "id": 1166,
-  "name": "STONE_SLAB",
-  "textures": {
-    "bottom": "stone_slab_top",
-    "side": "stone_slab_side",
-    "top": "stone_slab_top"
-  }
+ "id": 1166,
+ "name": "STONE_SLAB",
+ "textures": {
+  "bottom": "stone_slab_top",
+  "side": "stone_slab_side",
+  "top": "stone_slab_top"
+ }
 }

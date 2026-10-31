@@ -468,6 +468,18 @@ soul_* 10, magma 3, crying_obsidian 10, glowingobsidian 12, glow_lichen 7,
 sculk_catalyst 6, amethyst cluster/buds 5/4/2/1, brewing_stand 1,
 lit redstone ores 9, cave_vines_*_with_berries 14, firefly_bush 2.
 
+The creative menu lists `CREATIVE_BLOCKS` from
+`include/common/creative_order_gen.hpp`, computed by the importer. Pickable
+blocks are deduped by visual signature (6 face textures + icon +
+icon_is_isometric + scale/offset/tex_offset + render_order): each identical
+group contributes one representative (prefer the block named after its
+material, then the lowest shape rank, then a pre-import id from
+`data/kept_block_ids.txt`, then lowest id); hidden duplicates stay real,
+placeable blocks. `"creative": true|false` in a block JSON forces listing
+on/off. The list is grouped by material — the name minus `STRIPPED_`/`WAXED_`
+prefixes and one shape suffix, with dye-coloured blocks grouped into colour
+families (WOOL, CONCRETE, STAINED_GLASS, ...) sorted in dye order.
+
 ## Mobs
 
 Client-local passive mobs (pigs) plus network-driven remote players

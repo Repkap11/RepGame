@@ -1,9 +1,7 @@
 {
-  "icon": "stone_diorite",
-  "icon_is_isometric": false,
-  "id": 530,
-  "name": "DIORITE_STAIRS",
-  "textures": {
-    "all": "stone_diorite"
-  }
+ "id": 530,
+ "name": "DIORITE_STAIRS",
+ "textures": {
+  "all": "stone_diorite"
+ }
 }

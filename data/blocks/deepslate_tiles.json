@@ -1,9 +1,7 @@
 {
-  "icon": "deepslate_tiles",
-  "icon_is_isometric": false,
-  "id": 515,
-  "name": "DEEPSLATE_TILES",
-  "textures": {
-    "all": "deepslate_tiles"
-  }
+ "id": 515,
+ "name": "DEEPSLATE_TILES",
+ "textures": {
+  "all": "deepslate_tiles"
+ }
 }

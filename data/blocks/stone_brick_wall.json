@@ -1,9 +1,7 @@
 {
-  "icon": "stonebrick",
-  "icon_is_isometric": false,
-  "id": 1164,
-  "name": "STONE_BRICK_WALL",
-  "textures": {
-    "all": "stonebrick"
-  }
+ "id": 1164,
+ "name": "STONE_BRICK_WALL",
+ "textures": {
+  "all": "stonebrick"
+ }
 }

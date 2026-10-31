@@ -1,9 +1,7 @@
 {
-  "icon": "log_oak",
-  "icon_is_isometric": false,
-  "id": 828,
-  "name": "OAK_WOOD",
-  "textures": {
-    "all": "log_oak"
-  }
+ "id": 828,
+ "name": "OAK_WOOD",
+ "textures": {
+  "all": "log_oak"
+ }
 }

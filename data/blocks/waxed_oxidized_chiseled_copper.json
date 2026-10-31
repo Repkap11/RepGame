@@ -1,9 +1,7 @@
 {
-  "icon": "oxidized_chiseled_copper",
-  "icon_is_isometric": false,
-  "id": 1317,
-  "name": "WAXED_OXIDIZED_CHISELED_COPPER",
-  "textures": {
-    "all": "oxidized_chiseled_copper"
-  }
+ "id": 1317,
+ "name": "WAXED_OXIDIZED_CHISELED_COPPER",
+ "textures": {
+  "all": "oxidized_chiseled_copper"
+ }
 }

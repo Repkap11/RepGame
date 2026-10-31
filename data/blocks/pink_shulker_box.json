@@ -1,9 +1,7 @@
 {
-  "icon": "shulker_top_pink",
-  "icon_is_isometric": false,
-  "id": 912,
-  "name": "PINK_SHULKER_BOX",
-  "textures": {
-    "all": "shulker_top_pink"
-  }
+ "id": 912,
+ "name": "PINK_SHULKER_BOX",
+ "textures": {
+  "all": "shulker_top_pink"
+ }
 }

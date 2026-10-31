@@ -1,9 +1,7 @@
 {
-  "icon": "concrete_silver",
-  "icon_is_isometric": false,
-  "id": 697,
-  "name": "LIGHT_GRAY_CONCRETE",
-  "textures": {
-    "all": "concrete_silver"
-  }
+ "id": 697,
+ "name": "LIGHT_GRAY_CONCRETE",
+ "textures": {
+  "all": "concrete_silver"
+ }
 }

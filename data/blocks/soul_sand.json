@@ -1,9 +1,7 @@
 {
-  "icon": "soul_sand",
-  "icon_is_isometric": false,
-  "id": 1140,
-  "name": "SOUL_SAND",
-  "textures": {
-    "all": "soul_sand"
-  }
+ "id": 1140,
+ "name": "SOUL_SAND",
+ "textures": {
+  "all": "soul_sand"
+ }
 }

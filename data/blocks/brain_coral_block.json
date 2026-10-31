@@ -1,9 +1,7 @@
 {
-  "icon": "coral_pink",
-  "icon_is_isometric": false,
-  "id": 200,
-  "name": "BRAIN_CORAL_BLOCK",
-  "textures": {
-    "all": "coral_pink"
-  }
+ "id": 200,
+ "name": "BRAIN_CORAL_BLOCK",
+ "textures": {
+  "all": "coral_pink"
+ }
 }

@@ -1,9 +1,7 @@
 {
-  "icon": "copper_bulb",
-  "icon_is_isometric": false,
-  "id": 1288,
-  "name": "WAXED_COPPER_BULB",
-  "textures": {
-    "all": "copper_bulb"
-  }
+ "id": 1288,
+ "name": "WAXED_COPPER_BULB",
+ "textures": {
+  "all": "copper_bulb"
+ }
 }

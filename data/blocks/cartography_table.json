@@ -1,14 +1,12 @@
 {
-  "icon": "cartography_table_top",
-  "icon_is_isometric": false,
-  "id": 245,
-  "name": "CARTOGRAPHY_TABLE",
-  "textures": {
-    "back": "cartography_table_side3",
-    "bottom": "planks_big_oak",
-    "front": "cartography_table_side1",
-    "left": "cartography_table_side2",
-    "right": "cartography_table_side3",
-    "top": "cartography_table_top"
-  }
+ "id": 245,
+ "name": "CARTOGRAPHY_TABLE",
+ "textures": {
+  "back": "cartography_table_side3",
+  "bottom": "planks_big_oak",
+  "front": "cartography_table_side1",
+  "left": "cartography_table_side2",
+  "right": "cartography_table_side3",
+  "top": "cartography_table_top"
+ }
 }

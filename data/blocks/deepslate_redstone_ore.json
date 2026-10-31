@@ -1,9 +1,7 @@
 {
-  "icon": "deepslate_redstone_ore",
-  "icon_is_isometric": false,
-  "id": 510,
-  "name": "DEEPSLATE_REDSTONE_ORE",
-  "textures": {
-    "all": "deepslate_redstone_ore"
-  }
+ "id": 510,
+ "name": "DEEPSLATE_REDSTONE_ORE",
+ "textures": {
+  "all": "deepslate_redstone_ore"
+ }
 }

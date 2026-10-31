@@ -1,9 +1,7 @@
 {
-  "icon": "reactor_core_stage_0",
-  "icon_is_isometric": false,
-  "id": 812,
-  "name": "NETHERREACTOR",
-  "textures": {
-    "all": "reactor_core_stage_0"
-  }
+ "id": 812,
+ "name": "NETHERREACTOR",
+ "textures": {
+  "all": "reactor_core_stage_0"
+ }
 }

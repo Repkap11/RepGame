@@ -1,11 +1,9 @@
 {
-  "icon": "stripped_acacia_log",
-  "icon_is_isometric": false,
-  "id": 1174,
-  "name": "STRIPPED_ACACIA_LOG",
-  "textures": {
-    "bottom": "stripped_acacia_log_top",
-    "side": "stripped_acacia_log",
-    "top": "stripped_acacia_log_top"
-  }
+ "id": 1174,
+ "name": "STRIPPED_ACACIA_LOG",
+ "textures": {
+  "bottom": "stripped_acacia_log_top",
+  "side": "stripped_acacia_log",
+  "top": "stripped_acacia_log_top"
+ }
 }

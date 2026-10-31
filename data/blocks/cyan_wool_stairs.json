@@ -1,9 +1,7 @@
 {
-  "icon": "wool_colored_cyan",
-  "icon_is_isometric": false,
-  "id": 445,
-  "name": "CYAN_WOOL_STAIRS",
-  "textures": {
-    "all": "wool_colored_cyan"
-  }
+ "id": 445,
+ "name": "CYAN_WOOL_STAIRS",
+ "textures": {
+  "all": "wool_colored_cyan"
+ }
 }

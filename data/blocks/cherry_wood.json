@@ -1,9 +1,7 @@
 {
-  "icon": "cherry_log_side",
-  "icon_is_isometric": false,
-  "id": 278,
-  "name": "CHERRY_WOOD",
-  "textures": {
-    "all": "cherry_log_side"
-  }
+ "id": 278,
+ "name": "CHERRY_WOOD",
+ "textures": {
+  "all": "cherry_log_side"
+ }
 }

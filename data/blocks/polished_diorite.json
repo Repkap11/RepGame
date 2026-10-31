@@ -1,9 +1,7 @@
 {
-  "icon": "stone_diorite_smooth",
-  "icon_is_isometric": false,
-  "id": 951,
-  "name": "POLISHED_DIORITE",
-  "textures": {
-    "all": "stone_diorite_smooth"
-  }
+ "id": 951,
+ "name": "POLISHED_DIORITE",
+ "textures": {
+  "all": "stone_diorite_smooth"
+ }
 }

@@ -1,9 +1,7 @@
 {
-  "icon": "stone_granite_smooth",
-  "icon_is_isometric": false,
-  "id": 956,
-  "name": "POLISHED_GRANITE_DOUBLE_SLAB",
-  "textures": {
-    "all": "stone_granite_smooth"
-  }
+ "id": 956,
+ "name": "POLISHED_GRANITE_DOUBLE_SLAB",
+ "textures": {
+  "all": "stone_granite_smooth"
+ }
 }

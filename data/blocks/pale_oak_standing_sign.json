@@ -1,9 +1,7 @@
 {
-  "icon": "pale_oak_planks",
-  "icon_is_isometric": false,
-  "id": 895,
-  "name": "PALE_OAK_STANDING_SIGN",
-  "textures": {
-    "all": "pale_oak_planks"
-  }
+ "id": 895,
+ "name": "PALE_OAK_STANDING_SIGN",
+ "textures": {
+  "all": "pale_oak_planks"
+ }
 }

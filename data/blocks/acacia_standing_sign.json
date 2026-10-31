@@ -1,9 +1,7 @@
 {
-  "icon": "planks_acacia",
-  "icon_is_isometric": false,
-  "id": 24,
-  "name": "ACACIA_STANDING_SIGN",
-  "textures": {
-    "all": "planks_acacia"
-  }
+ "id": 24,
+ "name": "ACACIA_STANDING_SIGN",
+ "textures": {
+  "all": "planks_acacia"
+ }
 }

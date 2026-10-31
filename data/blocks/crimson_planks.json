@@ -1,9 +1,7 @@
 {
-  "icon": "crimson_planks",
-  "icon_is_isometric": false,
-  "id": 403,
-  "name": "CRIMSON_PLANKS",
-  "textures": {
-    "all": "crimson_planks"
-  }
+ "id": 403,
+ "name": "CRIMSON_PLANKS",
+ "textures": {
+  "all": "crimson_planks"
+ }
 }

@@ -1,9 +1,7 @@
 {
-  "icon": "polished_sulfur",
-  "icon_is_isometric": false,
-  "id": 961,
-  "name": "POLISHED_SULFUR_SLAB",
-  "textures": {
-    "all": "polished_sulfur"
-  }
+ "id": 961,
+ "name": "POLISHED_SULFUR_SLAB",
+ "textures": {
+  "all": "polished_sulfur"
+ }
 }

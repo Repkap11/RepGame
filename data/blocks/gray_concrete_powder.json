@@ -1,9 +1,7 @@
 {
-  "icon": "concrete_powder_gray",
-  "icon_is_isometric": false,
-  "id": 607,
-  "name": "GRAY_CONCRETE_POWDER",
-  "textures": {
-    "all": "concrete_powder_gray"
-  }
+ "id": 607,
+ "name": "GRAY_CONCRETE_POWDER",
+ "textures": {
+  "all": "concrete_powder_gray"
+ }
 }

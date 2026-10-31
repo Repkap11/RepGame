@@ -1,9 +1,7 @@
 {
-  "icon": "poplar_log_side",
-  "icon_is_isometric": false,
-  "id": 985,
-  "name": "POPLAR_WOOD",
-  "textures": {
-    "all": "poplar_log_side"
-  }
+ "id": 985,
+ "name": "POPLAR_WOOD",
+ "textures": {
+  "all": "poplar_log_side"
+ }
 }

@@ -1,9 +1,7 @@
 {
-  "icon": "glazed_terracotta_purple",
-  "icon_is_isometric": false,
-  "id": 1020,
-  "name": "PURPLE_GLAZED_TERRACOTTA",
-  "textures": {
-    "all": "glazed_terracotta_purple"
-  }
+ "id": 1020,
+ "name": "PURPLE_GLAZED_TERRACOTTA",
+ "textures": {
+  "all": "glazed_terracotta_purple"
+ }
 }

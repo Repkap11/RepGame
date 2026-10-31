@@ -1,9 +1,7 @@
 {
-  "icon": "hardened_clay_stained_white",
-  "icon_is_isometric": false,
-  "id": 1378,
-  "name": "WHITE_TERRACOTTA",
-  "textures": {
-    "all": "hardened_clay_stained_white"
-  }
+ "id": 1378,
+ "name": "WHITE_TERRACOTTA",
+ "textures": {
+  "all": "hardened_clay_stained_white"
+ }
 }

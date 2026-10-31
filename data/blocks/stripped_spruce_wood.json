@@ -1,9 +1,7 @@
 {
-  "icon": "stripped_spruce_log",
-  "icon_is_isometric": false,
-  "id": 1196,
-  "name": "STRIPPED_SPRUCE_WOOD",
-  "textures": {
-    "all": "stripped_spruce_log"
-  }
+ "id": 1196,
+ "name": "STRIPPED_SPRUCE_WOOD",
+ "textures": {
+  "all": "stripped_spruce_log"
+ }
 }

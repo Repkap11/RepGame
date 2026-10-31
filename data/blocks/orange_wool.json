@@ -1,9 +1,7 @@
 {
-  "icon": "wool_colored_orange",
-  "icon_is_isometric": false,
-  "id": 847,
-  "name": "ORANGE_WOOL",
-  "textures": {
-    "all": "wool_colored_orange"
-  }
+ "id": 847,
+ "name": "ORANGE_WOOL",
+ "textures": {
+  "all": "wool_colored_orange"
+ }
 }

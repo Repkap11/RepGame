@@ -1,9 +1,7 @@
 {
-  "icon": "planks_birch",
-  "icon_is_isometric": false,
-  "id": 137,
-  "name": "BIRCH_STAIRS",
-  "textures": {
-    "all": "planks_birch"
-  }
+ "id": 137,
+ "name": "BIRCH_STAIRS",
+ "textures": {
+  "all": "planks_birch"
+ }
 }

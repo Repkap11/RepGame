@@ -1,14 +1,12 @@
 {
-  "icon": "stonecutter_top",
-  "icon_is_isometric": false,
-  "id": 1172,
-  "name": "STONECUTTER",
-  "textures": {
-    "back": "stonecutter_side",
-    "bottom": "stonecutter_bottom",
-    "front": "stonecutter_side",
-    "left": "stonecutter_other_side",
-    "right": "stonecutter_other_side",
-    "top": "stonecutter_top"
-  }
+ "id": 1172,
+ "name": "STONECUTTER",
+ "textures": {
+  "back": "stonecutter_side",
+  "bottom": "stonecutter_bottom",
+  "front": "stonecutter_side",
+  "left": "stonecutter_other_side",
+  "right": "stonecutter_other_side",
+  "top": "stonecutter_top"
+ }
 }

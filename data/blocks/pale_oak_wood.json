@@ -1,9 +1,7 @@
 {
-  "icon": "pale_oak_log_side",
-  "icon_is_isometric": false,
-  "id": 898,
-  "name": "PALE_OAK_WOOD",
-  "textures": {
-    "all": "pale_oak_log_side"
-  }
+ "id": 898,
+ "name": "PALE_OAK_WOOD",
+ "textures": {
+  "all": "pale_oak_log_side"
+ }
 }

@@ -1,9 +1,7 @@
 {
-  "icon": "hardened_clay_stained_lime",
-  "icon_is_isometric": false,
-  "id": 724,
-  "name": "LIME_TERRACOTTA",
-  "textures": {
-    "all": "hardened_clay_stained_lime"
-  }
+ "id": 724,
+ "name": "LIME_TERRACOTTA",
+ "textures": {
+  "all": "hardened_clay_stained_lime"
+ }
 }

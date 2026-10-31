@@ -1,9 +1,7 @@
 {
-  "icon": "calcite",
-  "icon_is_isometric": false,
-  "id": 239,
-  "name": "CALCITE",
-  "textures": {
-    "all": "calcite"
-  }
+ "id": 239,
+ "name": "CALCITE",
+ "textures": {
+  "all": "calcite"
+ }
 }

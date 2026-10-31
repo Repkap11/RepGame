@@ -1,9 +1,7 @@
 {
-  "icon": "stonebrick_mossy",
-  "icon_is_isometric": false,
-  "id": 650,
-  "name": "INFESTED_MOSSY_STONE_BRICKS",
-  "textures": {
-    "all": "stonebrick_mossy"
-  }
+ "id": 650,
+ "name": "INFESTED_MOSSY_STONE_BRICKS",
+ "textures": {
+  "all": "stonebrick_mossy"
+ }
 }

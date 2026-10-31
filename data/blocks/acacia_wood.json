@@ -1,9 +1,7 @@
 {
-  "icon": "log_acacia",
-  "icon_is_isometric": false,
-  "id": 44,
-  "name": "ACACIA_WOOD",
-  "textures": {
-    "all": "log_acacia"
-  }
+ "id": 44,
+ "name": "ACACIA_WOOD",
+ "textures": {
+  "all": "log_acacia"
+ }
 }

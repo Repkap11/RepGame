@@ -1,9 +1,7 @@
 {
-  "icon": "birch_trapdoor",
-  "icon_is_isometric": false,
-  "id": 139,
-  "name": "BIRCH_TRAPDOOR",
-  "textures": {
-    "all": "birch_trapdoor"
-  }
+ "id": 139,
+ "name": "BIRCH_TRAPDOOR",
+ "textures": {
+  "all": "birch_trapdoor"
+ }
 }

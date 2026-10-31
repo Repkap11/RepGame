@@ -1,12 +1,10 @@
 {
-  "emits_light": 6,
-  "icon": "sculk_catalyst_side",
-  "icon_is_isometric": false,
-  "id": 1104,
-  "name": "SCULK_CATALYST",
-  "textures": {
-    "bottom": "sculk_catalyst_bottom",
-    "side": "sculk_catalyst_side",
-    "top": "sculk_catalyst_top"
-  }
+ "emits_light": 6,
+ "id": 1104,
+ "name": "SCULK_CATALYST",
+ "textures": {
+  "bottom": "sculk_catalyst_bottom",
+  "side": "sculk_catalyst_side",
+  "top": "sculk_catalyst_top"
+ }
 }

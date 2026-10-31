@@ -1,14 +1,12 @@
 {
-  "icon": "lectern_top",
-  "icon_is_isometric": false,
-  "id": 676,
-  "name": "LECTERN",
-  "textures": {
-    "back": "lectern_front",
-    "bottom": "planks_oak",
-    "front": "lectern_sides",
-    "left": "lectern_sides",
-    "right": "lectern_base",
-    "top": "lectern_top"
-  }
+ "id": 676,
+ "name": "LECTERN",
+ "textures": {
+  "back": "lectern_front",
+  "bottom": "planks_oak",
+  "front": "lectern_sides",
+  "left": "lectern_sides",
+  "right": "lectern_base",
+  "top": "lectern_top"
+ }
 }

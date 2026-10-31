@@ -1,12 +1,10 @@
 {
-  "emits_light": 15,
-  "icon": "ochre_froglight_side",
-  "icon_is_isometric": false,
-  "id": 831,
-  "name": "OCHRE_FROGLIGHT",
-  "textures": {
-    "bottom": "ochre_froglight_top",
-    "side": "ochre_froglight_side",
-    "top": "ochre_froglight_top"
-  }
+ "emits_light": 15,
+ "id": 831,
+ "name": "OCHRE_FROGLIGHT",
+ "textures": {
+  "bottom": "ochre_froglight_top",
+  "side": "ochre_froglight_side",
+  "top": "ochre_froglight_top"
+ }
 }

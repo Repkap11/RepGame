@@ -1,9 +1,7 @@
 {
-  "icon": "stone_granite",
-  "icon_is_isometric": false,
-  "id": 600,
-  "name": "GRANITE_WALL",
-  "textures": {
-    "all": "stone_granite"
-  }
+ "id": 600,
+ "name": "GRANITE_WALL",
+ "textures": {
+  "all": "stone_granite"
+ }
 }

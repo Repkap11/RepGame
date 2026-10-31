@@ -1,9 +1,7 @@
 {
-  "icon": "shulker_top_gray",
-  "icon_is_isometric": false,
-  "id": 611,
-  "name": "GRAY_SHULKER_BOX",
-  "textures": {
-    "all": "shulker_top_gray"
-  }
+ "id": 611,
+ "name": "GRAY_SHULKER_BOX",
+ "textures": {
+  "all": "shulker_top_gray"
+ }
 }

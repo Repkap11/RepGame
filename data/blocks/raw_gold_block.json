@@ -1,9 +1,7 @@
 {
-  "icon": "raw_gold_block",
-  "icon_is_isometric": false,
-  "id": 1043,
-  "name": "RAW_GOLD_BLOCK",
-  "textures": {
-    "all": "raw_gold_block"
-  }
+ "id": 1043,
+ "name": "RAW_GOLD_BLOCK",
+ "textures": {
+  "all": "raw_gold_block"
+ }
 }

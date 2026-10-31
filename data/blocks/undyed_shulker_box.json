@@ -1,9 +1,7 @@
 {
-  "icon": "shulker_top_undyed",
-  "icon_is_isometric": false,
-  "id": 1257,
-  "name": "UNDYED_SHULKER_BOX",
-  "textures": {
-    "all": "shulker_top_undyed"
-  }
+ "id": 1257,
+ "name": "UNDYED_SHULKER_BOX",
+ "textures": {
+  "all": "shulker_top_undyed"
+ }
 }

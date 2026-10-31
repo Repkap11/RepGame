@@ -1,9 +1,7 @@
 {
-  "icon": "poplar_planks",
-  "icon_is_isometric": false,
-  "id": 973,
-  "name": "POPLAR_FENCE_GATE",
-  "textures": {
-    "all": "poplar_planks"
-  }
+ "id": 973,
+ "name": "POPLAR_FENCE_GATE",
+ "textures": {
+  "all": "poplar_planks"
+ }
 }

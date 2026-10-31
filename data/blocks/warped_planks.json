@@ -1,9 +1,7 @@
 {
-  "icon": "warped_planks",
-  "icon_is_isometric": false,
-  "id": 1274,
-  "name": "WARPED_PLANKS",
-  "textures": {
-    "all": "warped_planks"
-  }
+ "id": 1274,
+ "name": "WARPED_PLANKS",
+ "textures": {
+  "all": "warped_planks"
+ }
 }

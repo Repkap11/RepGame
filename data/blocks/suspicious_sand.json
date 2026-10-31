@@ -1,9 +1,7 @@
 {
-  "icon": "suspicious_sand_0",
-  "icon_is_isometric": false,
-  "id": 1213,
-  "name": "SUSPICIOUS_SAND",
-  "textures": {
-    "all": "suspicious_sand_0"
-  }
+ "id": 1213,
+ "name": "SUSPICIOUS_SAND",
+ "textures": {
+  "all": "suspicious_sand_0"
+ }
 }

@@ -1,9 +1,7 @@
 {
-  "icon": "red_nether_brick",
-  "icon_is_isometric": false,
-  "id": 1071,
-  "name": "RED_NETHER_BRICK_SLAB",
-  "textures": {
-    "all": "red_nether_brick"
-  }
+ "id": 1071,
+ "name": "RED_NETHER_BRICK_SLAB",
+ "textures": {
+  "all": "red_nether_brick"
+ }
 }

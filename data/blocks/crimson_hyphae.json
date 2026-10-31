@@ -1,9 +1,7 @@
 {
-  "icon": "crimson_log_side",
-  "icon_is_isometric": false,
-  "id": 401,
-  "name": "CRIMSON_HYPHAE",
-  "textures": {
-    "all": "crimson_log_side"
-  }
+ "id": 401,
+ "name": "CRIMSON_HYPHAE",
+ "textures": {
+  "all": "crimson_log_side"
+ }
 }

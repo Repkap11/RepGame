@@ -1,9 +1,7 @@
 {
-  "icon": "sculk",
-  "icon_is_isometric": false,
-  "id": 1103,
-  "name": "SCULK",
-  "textures": {
-    "all": "sculk"
-  }
+ "id": 1103,
+ "name": "SCULK",
+ "textures": {
+  "all": "sculk"
+ }
 }

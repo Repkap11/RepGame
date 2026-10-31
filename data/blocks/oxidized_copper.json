@@ -1,9 +1,7 @@
 {
-  "icon": "oxidized_copper",
-  "icon_is_isometric": false,
-  "id": 857,
-  "name": "OXIDIZED_COPPER",
-  "textures": {
-    "all": "oxidized_copper"
-  }
+ "id": 857,
+ "name": "OXIDIZED_COPPER",
+ "textures": {
+  "all": "oxidized_copper"
+ }
 }

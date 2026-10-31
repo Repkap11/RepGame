@@ -1,18 +1,16 @@
 {
-  "casts_shadow": false,
-  "hardness": 0.35,
-  "icon": "sulfur_spike_down_base",
-  "icon_is_isometric": false,
-  "id": 1209,
-  "is_seethrough": true,
-  "name": "SULFUR_SPIKE",
-  "no_light": 6815743,
-  "textures": {
-    "back": "sulfur_spike_down_tip",
-    "bottom": "sulfur_spike_down_frustum",
-    "front": "sulfur_spike_down_middle",
-    "left": "sulfur_spike_down_tip_merge",
-    "right": "sulfur_spike_down_base",
-    "top": "sulfur_spike_down_base"
-  }
+ "casts_shadow": false,
+ "hardness": 0.35,
+ "id": 1209,
+ "is_seethrough": true,
+ "name": "SULFUR_SPIKE",
+ "no_light": 6815743,
+ "textures": {
+  "back": "sulfur_spike_down_tip",
+  "bottom": "sulfur_spike_down_frustum",
+  "front": "sulfur_spike_down_middle",
+  "left": "sulfur_spike_down_tip_merge",
+  "right": "sulfur_spike_down_base",
+  "top": "sulfur_spike_down_base"
+ }
 }

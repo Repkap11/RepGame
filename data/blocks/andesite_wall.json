@@ -1,9 +1,7 @@
 {
-  "icon": "stone_andesite",
-  "icon_is_isometric": false,
-  "id": 66,
-  "name": "ANDESITE_WALL",
-  "textures": {
-    "all": "stone_andesite"
-  }
+ "id": 66,
+ "name": "ANDESITE_WALL",
+ "textures": {
+  "all": "stone_andesite"
+ }
 }

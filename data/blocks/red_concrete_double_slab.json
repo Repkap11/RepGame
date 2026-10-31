@@ -1,9 +1,7 @@
 {
-  "icon": "concrete_red",
-  "icon_is_isometric": false,
-  "id": 1049,
-  "name": "RED_CONCRETE_DOUBLE_SLAB",
-  "textures": {
-    "all": "concrete_red"
-  }
+ "id": 1049,
+ "name": "RED_CONCRETE_DOUBLE_SLAB",
+ "textures": {
+  "all": "concrete_red"
+ }
 }

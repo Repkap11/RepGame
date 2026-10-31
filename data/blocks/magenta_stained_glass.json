@@ -1,14 +1,12 @@
 {
-  "affected_by_redstone_power": false,
-  "casts_shadow": false,
-  "hardness": 0.449999988,
-  "icon": "glass_magenta",
-  "icon_is_isometric": false,
-  "id": 748,
-  "is_seethrough": true,
-  "name": "MAGENTA_STAINED_GLASS",
-  "render_order": "Translucent",
-  "textures": {
-    "all": "glass_magenta"
-  }
+ "affected_by_redstone_power": false,
+ "casts_shadow": false,
+ "hardness": 0.449999988,
+ "id": 748,
+ "is_seethrough": true,
+ "name": "MAGENTA_STAINED_GLASS",
+ "render_order": "Translucent",
+ "textures": {
+  "all": "glass_magenta"
+ }
 }

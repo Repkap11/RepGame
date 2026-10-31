@@ -1,9 +1,7 @@
 {
-  "icon": "wool_colored_red",
-  "icon_is_isometric": false,
-  "id": 1082,
-  "name": "RED_WOOL",
-  "textures": {
-    "all": "wool_colored_red"
-  }
+ "id": 1082,
+ "name": "RED_WOOL",
+ "textures": {
+  "all": "wool_colored_red"
+ }
 }

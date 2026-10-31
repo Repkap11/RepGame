@@ -1,9 +1,7 @@
 {
-  "icon": "hardened_clay_stained_pink",
-  "icon_is_isometric": false,
-  "id": 915,
-  "name": "PINK_TERRACOTTA",
-  "textures": {
-    "all": "hardened_clay_stained_pink"
-  }
+ "id": 915,
+ "name": "PINK_TERRACOTTA",
+ "textures": {
+  "all": "hardened_clay_stained_pink"
+ }
 }

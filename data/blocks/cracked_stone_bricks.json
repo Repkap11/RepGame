@@ -1,9 +1,7 @@
 {
-  "icon": "stonebrick_cracked",
-  "icon_is_isometric": false,
-  "id": 374,
-  "name": "CRACKED_STONE_BRICKS",
-  "textures": {
-    "all": "stonebrick_cracked"
-  }
+ "id": 374,
+ "name": "CRACKED_STONE_BRICKS",
+ "textures": {
+  "all": "stonebrick_cracked"
+ }
 }

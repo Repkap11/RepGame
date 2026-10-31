@@ -1,18 +1,16 @@
 {
-  "casts_shadow": false,
-  "hardness": 0.35,
-  "icon": "vault_top",
-  "icon_is_isometric": false,
-  "id": 1260,
-  "is_seethrough": true,
-  "name": "VAULT",
-  "no_light": 6815743,
-  "textures": {
-    "back": "vault_front_off",
-    "bottom": "vault_bottom",
-    "front": "vault_side_off",
-    "left": "vault_side_off",
-    "right": "vault_side_off",
-    "top": "vault_top"
-  }
+ "casts_shadow": false,
+ "hardness": 0.35,
+ "id": 1260,
+ "is_seethrough": true,
+ "name": "VAULT",
+ "no_light": 6815743,
+ "textures": {
+  "back": "vault_front_off",
+  "bottom": "vault_bottom",
+  "front": "vault_side_off",
+  "left": "vault_side_off",
+  "right": "vault_side_off",
+  "top": "vault_top"
+ }
 }

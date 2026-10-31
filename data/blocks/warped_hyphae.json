@@ -1,9 +1,7 @@
 {
-  "icon": "warped_stem_side",
-  "icon_is_isometric": false,
-  "id": 1272,
-  "name": "WARPED_HYPHAE",
-  "textures": {
-    "all": "warped_stem_side"
-  }
+ "id": 1272,
+ "name": "WARPED_HYPHAE",
+ "textures": {
+  "all": "warped_stem_side"
+ }
 }

@@ -1,11 +1,9 @@
 {
-  "icon": "stripped_pale_oak_log_side",
-  "icon_is_isometric": false,
-  "id": 1191,
-  "name": "STRIPPED_PALE_OAK_LOG",
-  "textures": {
-    "bottom": "stripped_pale_oak_log_top",
-    "side": "stripped_pale_oak_log_side",
-    "top": "stripped_pale_oak_log_top"
-  }
+ "id": 1191,
+ "name": "STRIPPED_PALE_OAK_LOG",
+ "textures": {
+  "bottom": "stripped_pale_oak_log_top",
+  "side": "stripped_pale_oak_log_side",
+  "top": "stripped_pale_oak_log_top"
+ }
 }

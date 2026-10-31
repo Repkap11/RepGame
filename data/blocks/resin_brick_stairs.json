@@ -1,9 +1,7 @@
 {
-  "icon": "resin_bricks",
-  "icon_is_isometric": false,
-  "id": 1092,
-  "name": "RESIN_BRICK_STAIRS",
-  "textures": {
-    "all": "resin_bricks"
-  }
+ "id": 1092,
+ "name": "RESIN_BRICK_STAIRS",
+ "textures": {
+  "all": "resin_bricks"
+ }
 }

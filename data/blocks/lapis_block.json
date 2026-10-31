@@ -1,9 +1,7 @@
 {
-  "icon": "lapis_block",
-  "icon_is_isometric": false,
-  "id": 668,
-  "name": "LAPIS_BLOCK",
-  "textures": {
-    "all": "lapis_block"
-  }
+ "id": 668,
+ "name": "LAPIS_BLOCK",
+ "textures": {
+  "all": "lapis_block"
+ }
 }

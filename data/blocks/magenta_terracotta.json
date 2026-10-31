@@ -1,9 +1,7 @@
 {
-  "icon": "hardened_clay_stained_magenta",
-  "icon_is_isometric": false,
-  "id": 750,
-  "name": "MAGENTA_TERRACOTTA",
-  "textures": {
-    "all": "hardened_clay_stained_magenta"
-  }
+ "id": 750,
+ "name": "MAGENTA_TERRACOTTA",
+ "textures": {
+  "all": "hardened_clay_stained_magenta"
+ }
 }

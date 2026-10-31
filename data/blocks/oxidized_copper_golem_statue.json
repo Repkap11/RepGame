@@ -1,9 +1,7 @@
 {
-  "icon": "oxidized_copper",
-  "icon_is_isometric": false,
-  "id": 863,
-  "name": "OXIDIZED_COPPER_GOLEM_STATUE",
-  "textures": {
-    "all": "oxidized_copper"
-  }
+ "id": 863,
+ "name": "OXIDIZED_COPPER_GOLEM_STATUE",
+ "textures": {
+  "all": "oxidized_copper"
+ }
 }

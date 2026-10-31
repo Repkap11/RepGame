@@ -1,9 +1,7 @@
 {
-  "icon": "brick",
-  "icon_is_isometric": false,
-  "id": 204,
-  "name": "BRICK_DOUBLE_SLAB",
-  "textures": {
-    "all": "brick"
-  }
+ "id": 204,
+ "name": "BRICK_DOUBLE_SLAB",
+ "textures": {
+  "all": "brick"
+ }
 }

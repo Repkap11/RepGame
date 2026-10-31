@@ -1,9 +1,7 @@
 {
-  "icon": "warped_planks",
-  "icon_is_isometric": false,
-  "id": 1280,
-  "name": "WARPED_STANDING_SIGN",
-  "textures": {
-    "all": "warped_planks"
-  }
+ "id": 1280,
+ "name": "WARPED_STANDING_SIGN",
+ "textures": {
+  "all": "warped_planks"
+ }
 }

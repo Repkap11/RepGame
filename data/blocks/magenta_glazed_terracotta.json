@@ -1,9 +1,7 @@
 {
-  "icon": "glazed_terracotta_magenta",
-  "icon_is_isometric": false,
-  "id": 746,
-  "name": "MAGENTA_GLAZED_TERRACOTTA",
-  "textures": {
-    "all": "glazed_terracotta_magenta"
-  }
+ "id": 746,
+ "name": "MAGENTA_GLAZED_TERRACOTTA",
+ "textures": {
+  "all": "glazed_terracotta_magenta"
+ }
 }

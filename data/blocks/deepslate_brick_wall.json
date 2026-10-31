@@ -1,9 +1,7 @@
 {
-  "icon": "deepslate_bricks",
-  "icon_is_isometric": false,
-  "id": 496,
-  "name": "DEEPSLATE_BRICK_WALL",
-  "textures": {
-    "all": "deepslate_bricks"
-  }
+ "id": 496,
+ "name": "DEEPSLATE_BRICK_WALL",
+ "textures": {
+  "all": "deepslate_bricks"
+ }
 }

@@ -1,9 +1,7 @@
 {
-  "icon": "exposed_copper_bulb",
-  "icon_is_isometric": false,
-  "id": 561,
-  "name": "EXPOSED_COPPER_BULB",
-  "textures": {
-    "all": "exposed_copper_bulb"
-  }
+ "id": 561,
+ "name": "EXPOSED_COPPER_BULB",
+ "textures": {
+  "all": "exposed_copper_bulb"
+ }
 }

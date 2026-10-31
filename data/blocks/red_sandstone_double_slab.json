@@ -1,11 +1,9 @@
 {
-  "icon": "red_sandstone_normal",
-  "icon_is_isometric": false,
-  "id": 1075,
-  "name": "RED_SANDSTONE_DOUBLE_SLAB",
-  "textures": {
-    "bottom": "red_sandstone_bottom",
-    "side": "red_sandstone_normal",
-    "top": "red_sandstone_top"
-  }
+ "id": 1075,
+ "name": "RED_SANDSTONE_DOUBLE_SLAB",
+ "textures": {
+  "bottom": "red_sandstone_bottom",
+  "side": "red_sandstone_normal",
+  "top": "red_sandstone_top"
+ }
 }

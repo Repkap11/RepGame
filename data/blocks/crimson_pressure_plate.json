@@ -1,9 +1,7 @@
 {
-  "icon": "crimson_planks",
-  "icon_is_isometric": false,
-  "id": 404,
-  "name": "CRIMSON_PRESSURE_PLATE",
-  "textures": {
-    "all": "crimson_planks"
-  }
+ "id": 404,
+ "name": "CRIMSON_PRESSURE_PLATE",
+ "textures": {
+  "all": "crimson_planks"
+ }
 }

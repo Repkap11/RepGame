@@ -1,9 +1,7 @@
 {
-  "icon": "deepslate_tiles",
-  "icon_is_isometric": false,
-  "id": 511,
-  "name": "DEEPSLATE_TILE_DOUBLE_SLAB",
-  "textures": {
-    "all": "deepslate_tiles"
-  }
+ "id": 511,
+ "name": "DEEPSLATE_TILE_DOUBLE_SLAB",
+ "textures": {
+  "all": "deepslate_tiles"
+ }
 }

@@ -1,9 +1,7 @@
 {
-  "icon": "stone",
-  "icon_is_isometric": false,
-  "id": 1165,
-  "name": "STONE_PRESSURE_PLATE",
-  "textures": {
-    "all": "stone"
-  }
+ "id": 1165,
+ "name": "STONE_PRESSURE_PLATE",
+ "textures": {
+  "all": "stone"
+ }
 }

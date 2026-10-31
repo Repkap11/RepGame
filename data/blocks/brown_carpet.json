@@ -1,9 +1,7 @@
 {
-  "icon": "wool_colored_brown",
-  "icon_is_isometric": false,
-  "id": 209,
-  "name": "BROWN_CARPET",
-  "textures": {
-    "all": "wool_colored_brown"
-  }
+ "id": 209,
+ "name": "BROWN_CARPET",
+ "textures": {
+  "all": "wool_colored_brown"
+ }
 }

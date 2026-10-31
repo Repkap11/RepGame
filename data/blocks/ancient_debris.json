@@ -1,11 +1,9 @@
 {
-  "icon": "ancient_debris_side",
-  "icon_is_isometric": false,
-  "id": 54,
-  "name": "ANCIENT_DEBRIS",
-  "textures": {
-    "bottom": "ancient_debris_top",
-    "side": "ancient_debris_side",
-    "top": "ancient_debris_top"
-  }
+ "id": 54,
+ "name": "ANCIENT_DEBRIS",
+ "textures": {
+  "bottom": "ancient_debris_top",
+  "side": "ancient_debris_side",
+  "top": "ancient_debris_top"
+ }
 }

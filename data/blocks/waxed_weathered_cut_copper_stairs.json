@@ -1,9 +1,7 @@
 {
-  "icon": "weathered_cut_copper",
-  "icon_is_isometric": false,
-  "id": 1346,
-  "name": "WAXED_WEATHERED_CUT_COPPER_STAIRS",
-  "textures": {
-    "all": "weathered_cut_copper"
-  }
+ "id": 1346,
+ "name": "WAXED_WEATHERED_CUT_COPPER_STAIRS",
+ "textures": {
+  "all": "weathered_cut_copper"
+ }
 }

@@ -1,13 +1,11 @@
 {
-  "casts_shadow": false,
-  "hardness": 0.35,
-  "icon": "orange_candle",
-  "icon_is_isometric": false,
-  "id": 833,
-  "is_seethrough": true,
-  "name": "ORANGE_CANDLE",
-  "no_light": 6815743,
-  "textures": {
-    "all": "orange_candle"
-  }
+ "casts_shadow": false,
+ "hardness": 0.35,
+ "id": 833,
+ "is_seethrough": true,
+ "name": "ORANGE_CANDLE",
+ "no_light": 6815743,
+ "textures": {
+  "all": "orange_candle"
+ }
 }

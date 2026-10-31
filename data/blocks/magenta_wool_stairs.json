@@ -1,9 +1,7 @@
 {
-  "icon": "wool_colored_magenta",
-  "icon_is_isometric": false,
-  "id": 754,
-  "name": "MAGENTA_WOOL_STAIRS",
-  "textures": {
-    "all": "wool_colored_magenta"
-  }
+ "id": 754,
+ "name": "MAGENTA_WOOL_STAIRS",
+ "textures": {
+  "all": "wool_colored_magenta"
+ }
 }

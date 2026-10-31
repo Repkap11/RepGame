@@ -1,11 +1,9 @@
 {
-  "icon": "muddy_mangrove_roots_side",
-  "icon_is_isometric": false,
-  "id": 797,
-  "name": "MUDDY_MANGROVE_ROOTS",
-  "textures": {
-    "bottom": "muddy_mangrove_roots_top",
-    "side": "muddy_mangrove_roots_side",
-    "top": "muddy_mangrove_roots_top"
-  }
+ "id": 797,
+ "name": "MUDDY_MANGROVE_ROOTS",
+ "textures": {
+  "bottom": "muddy_mangrove_roots_top",
+  "side": "muddy_mangrove_roots_side",
+  "top": "muddy_mangrove_roots_top"
+ }
 }

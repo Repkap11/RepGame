@@ -1,9 +1,7 @@
 {
-  "icon": "planks_oak",
-  "icon_is_isometric": false,
-  "id": 1263,
-  "name": "WALL_BANNER",
-  "textures": {
-    "all": "planks_oak"
-  }
+ "id": 1263,
+ "name": "WALL_BANNER",
+ "textures": {
+  "all": "planks_oak"
+ }
 }

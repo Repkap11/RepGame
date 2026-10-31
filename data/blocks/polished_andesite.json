@@ -1,9 +1,7 @@
 {
-  "icon": "stone_andesite_smooth",
-  "icon_is_isometric": false,
-  "id": 924,
-  "name": "POLISHED_ANDESITE",
-  "textures": {
-    "all": "stone_andesite_smooth"
-  }
+ "id": 924,
+ "name": "POLISHED_ANDESITE",
+ "textures": {
+  "all": "stone_andesite_smooth"
+ }
 }

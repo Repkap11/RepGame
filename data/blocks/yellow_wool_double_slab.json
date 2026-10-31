@@ -1,9 +1,7 @@
 {
-  "icon": "wool_colored_yellow",
-  "icon_is_isometric": false,
-  "id": 1403,
-  "name": "YELLOW_WOOL_DOUBLE_SLAB",
-  "textures": {
-    "all": "wool_colored_yellow"
-  }
+ "id": 1403,
+ "name": "YELLOW_WOOL_DOUBLE_SLAB",
+ "textures": {
+  "all": "wool_colored_yellow"
+ }
 }

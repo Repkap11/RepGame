@@ -1,9 +1,7 @@
 {
-  "icon": "wool_colored_magenta",
-  "icon_is_isometric": false,
-  "id": 751,
-  "name": "MAGENTA_WOOL",
-  "textures": {
-    "all": "wool_colored_magenta"
-  }
+ "id": 751,
+ "name": "MAGENTA_WOOL",
+ "textures": {
+  "all": "wool_colored_magenta"
+ }
 }

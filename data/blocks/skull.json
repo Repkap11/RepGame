@@ -1,9 +1,7 @@
 {
-  "icon": "soul_sand",
-  "icon_is_isometric": false,
-  "id": 1114,
-  "name": "SKULL",
-  "textures": {
-    "all": "soul_sand"
-  }
+ "id": 1114,
+ "name": "SKULL",
+ "textures": {
+  "all": "soul_sand"
+ }
 }

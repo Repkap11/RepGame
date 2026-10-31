@@ -1,9 +1,7 @@
 {
-  "icon": "exposed_copper",
-  "icon_is_isometric": false,
-  "id": 559,
-  "name": "EXPOSED_COPPER",
-  "textures": {
-    "all": "exposed_copper"
-  }
+ "id": 559,
+ "name": "EXPOSED_COPPER",
+ "textures": {
+  "all": "exposed_copper"
+ }
 }

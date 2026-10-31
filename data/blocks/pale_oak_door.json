@@ -1,11 +1,9 @@
 {
-  "icon": "pale_oak_door_top",
-  "icon_is_isometric": false,
-  "id": 882,
-  "name": "PALE_OAK_DOOR",
-  "textures": {
-    "bottom": "pale_oak_door_bottom",
-    "side": "pale_oak_door_top",
-    "top": "pale_oak_door_bottom"
-  }
+ "id": 882,
+ "name": "PALE_OAK_DOOR",
+ "textures": {
+  "bottom": "pale_oak_door_bottom",
+  "side": "pale_oak_door_top",
+  "top": "pale_oak_door_bottom"
+ }
 }

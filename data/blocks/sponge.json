@@ -1,9 +1,7 @@
 {
-  "icon": "sponge",
-  "icon_is_isometric": false,
-  "id": 1143,
-  "name": "SPONGE",
-  "textures": {
-    "all": "sponge"
-  }
+ "id": 1143,
+ "name": "SPONGE",
+ "textures": {
+  "all": "sponge"
+ }
 }

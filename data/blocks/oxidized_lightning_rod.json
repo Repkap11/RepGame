@@ -1,13 +1,11 @@
 {
-  "casts_shadow": false,
-  "hardness": 0.35,
-  "icon": "oxidized_lightning_rod",
-  "icon_is_isometric": false,
-  "id": 872,
-  "is_seethrough": true,
-  "name": "OXIDIZED_LIGHTNING_ROD",
-  "no_light": 6815743,
-  "textures": {
-    "all": "oxidized_lightning_rod"
-  }
+ "casts_shadow": false,
+ "hardness": 0.35,
+ "id": 872,
+ "is_seethrough": true,
+ "name": "OXIDIZED_LIGHTNING_ROD",
+ "no_light": 6815743,
+ "textures": {
+  "all": "oxidized_lightning_rod"
+ }
 }
