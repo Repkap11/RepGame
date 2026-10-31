@@ -5,3 +5,4 @@
 # overrides bone rest rotations (degrees) where the rest pose comes from an
 # animation file rather than the geo (the pig body's 90° setup rotation).
 pig|models/entity/pig_v1.0.geo.json|geometry.pig|textures/entity/pig/pig.png|body=-90,0,0
+player|models/mobs.json|geometry.humanoid.custom|textures/entity/steve.png

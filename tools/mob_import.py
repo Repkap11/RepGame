@@ -61,6 +61,7 @@ def parse_bone(b):
     name = b.get("name")
     if not name:
         fail("bone without a name")
+    never_render = bool(b.get("neverRender", False))
     cubes = []
     bone_mirror = bool(b.get("mirror", False))
     for c in b.get("cubes", []):
@@ -82,6 +83,7 @@ def parse_bone(b):
         "pivot": [float(v) for v in b.get("pivot", [0.0, 0.0, 0.0])],
         "rot": [float(v) for v in b.get("rotation", b.get("bind_pose_rotation", [0.0, 0.0, 0.0]))],
         "mirror": bone_mirror,
+        "never_render": never_render,
         "cubes": cubes,
     }
 
@@ -193,13 +195,31 @@ def main():
             fail("missing geo file %s" % path)
         geo = resolve_geometry(load_geometries(path), e["geo_id"])
         bones = [parse_bone(b) for b in geo["bones"]]
+        # Bedrock's neverRender bones (armor slot holders, base-model stubs)
+        # carry no renderable geometry for us.
+        bones = [b for b in bones if not b["never_render"]]
+        # Cube-less bones are transform-only parents; drop the ones nothing
+        # references (cape/item attachment points, armor stubs).
+        referenced = {b["parent"] for b in bones if b["parent"] is not None}
+        bones = [b for b in bones if b["cubes"] or b["name"] in referenced]
         for b in bones:
             if b["name"] in e["rot_overrides"]:
                 b["rot"] = e["rot_overrides"][b["name"]]
         for b in bones:
             if b["parent"] is not None and not any(p["name"] == b["parent"] for p in bones):
                 fail("%s: bone %s has unknown parent %s" % (e["name"], b["name"], b["parent"]))
-        models.append({"name": e["name"], "tw": geo["tw"], "th": geo["th"], "bones": bones})
+        # bone_world[i] composes bone_world[parent] in index order, so every
+        # parent must come first (.custom lists body before its waist).
+        ordered = []
+        remaining = list(bones)
+        while remaining:
+            emitted = {b["name"] for b in ordered}
+            ready = [b for b in remaining if b["parent"] is None or b["parent"] in emitted]
+            if not ready:
+                fail("%s: bone parent cycle at %s" % (e["name"], remaining[0]["name"]))
+            ordered.append(ready[0])
+            remaining.remove(ready[0])
+        models.append({"name": e["name"], "tw": geo["tw"], "th": geo["th"], "bones": ordered})
         for s in e["skins"]:
             base = os.path.splitext(os.path.basename(s))[0]
             skins.append(e["name"] if base == e["name"] else "%s_%s" % (e["name"], base))
@@ -301,12 +321,28 @@ def main():
     with open(GEN_HPP, "w") as f:
         f.write("\n".join(out))
 
-    # --- self-check (pig model counts; sheep a:b inheritance, print only).
-    pig = models[0]
-    assert pig["name"] == "pig" and len(pig["bones"]) == 6, "pig must have 6 bones"
+    # --- self-check (pig model counts; player layout; sheep a:b inheritance,
+    # print only).
+    for m in models:
+        seen = set()
+        for b in m["bones"]:
+            assert b["parent"] is None or b["parent"] in seen, (
+                "%s: parent %s must precede %s" % (m["name"], b["parent"], b["name"])
+            )
+            seen.add(b["name"])
+    pig = next(m for m in models if m["name"] == "pig")
+    assert len(pig["bones"]) == 6, "pig must have 6 bones"
     assert sum(len(b["cubes"]) for b in pig["bones"]) == 7, "pig must have 7 cubes"
     head = next(b for b in pig["bones"] if b["name"] == "head")
     assert len(head["cubes"]) == 2 and head["cubes"][1]["size"] == [4.0, 3.0, 1.0], "snout must be the head's second cube"
+    player = next((m for m in models if m["name"] == "player"), None)
+    if player is not None:
+        names = {b["name"] for b in player["bones"]}
+        for want in ("head", "body", "leftArm", "rightArm", "leftLeg", "rightLeg"):
+            assert want in names, "player: missing bone %s" % want
+        overlays = {"hat", "jacket", "leftSleeve", "rightSleeve", "leftPants", "rightPants"}
+        assert overlays <= names, "player: missing overlay bones %s" % (overlays - names)
+        assert sum(len(b["cubes"]) for b in player["bones"]) == 12, "player must have 12 cubes"
     sheep_path = os.path.join(BEDROCK_SAMPLES, "models/entity/sheep_v1.0.geo.json")
     if os.path.isfile(sheep_path):
         sheep = resolve_geometry(load_geometries(sheep_path), "geometry.sheep")

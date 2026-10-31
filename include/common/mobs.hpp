@@ -46,6 +46,9 @@ class MobManager {
         int say_ticks;    // ambient "say" countdown
         float step_acc;   // horizontal distance since the last step sound
         glm::dvec3 kb;    // knockback impulse, decays ~x0.85/tick
+        uint32_t uid;     // != 0 for network-driven mobs (MOB_AI_REMOTE)
+        float look_yaw;   // remote look target, degrees (angle_H convention)
+        float look_pitch; // remote look target, degrees (angle_V convention)
         std::vector<entt::entity> parts; // one render entity per model cube
     };
     // A chunk this manager took ownership of via adopt_chunk: its mobs file
@@ -62,19 +65,29 @@ class MobManager {
     std::vector<Mob> mobs;
     std::vector<OwnedChunk> owned_chunks;
     std::mt19937 rng;
+    uint32_t next_uid;
     MapStorage *storage;
     long poll_count;
     RenderChain<ParticleVertex, MobPartInstance> render_chain;
 
     void tick_mob( World &world, Mob &mob, const MobTypeDef &def, const glm::dvec3 &player_pos );
+    void tick_remote( Mob &mob );
     void poll_owned( World &world );
     std::vector<Mob>::iterator remove_mob( std::vector<Mob>::iterator it );
+    bool spawn_any( MobType type, const glm::dvec3 &pos, float yaw, int persistent );
 
   public:
     MobManager( );
     void init( const VertexBufferLayout &vbl_object_vertex, const VertexBufferLayout &vbl_mob_instance );
     void init_storage( MapStorage *storage ) { this->storage = storage; }
     bool spawn( MobType type, const glm::dvec3 &pos, float yaw, int persistent = 1 );
+    // Network-driven mobs (remote players): spawned/posed/removed by the
+    // multiplayer layer via a stable uid. persistent=0, invisible to the
+    // raycast and the mob count, immune to the chunk-live freeze. Works even
+    // with REPGAME_MOBS=0.
+    uint32_t spawn_remote( MobType type );
+    void set_remote_pose( uint32_t uid, const glm::dvec3 &eye_pos, float look_yaw_deg, float look_pitch_deg );
+    void remove_remote( uint32_t uid );
     // Spawn `type` three blocks in front of `camera_pos` along `look`, dropped
     // onto the ground (persistent). Debug spawn key.
     bool spawn_in_front( MobType type, const glm::dvec3 &camera_pos, const glm::dvec3 &look, World &world );
@@ -100,6 +113,35 @@ class MobManager {
     // Persist every owned chunk's mobs (World::cleanup).
     void persist_all( );
     size_t count( ) const { return this->mobs.size( ); }
+    size_t remote_count( ) const {
+        size_t n = 0;
+        for ( const Mob &mob : this->mobs ) {
+            n += mob.uid != 0;
+        }
+        return n;
+    }
     bool is_enabled( ) const { return this->enabled; }
     void cleanup( );
 };
+
+// Recovers angle_H/angle_V (degrees) from the rotation matrix the network
+// layer ships in player-location packets: RepGame::build_camera_view makes
+// rot = RY(180 - H) * RX(V). Pure math, kept here for rep_tests.
+inline void mob_look_from_camera_rotation( const glm::mat4 &rot, float *yaw_deg, float *pitch_deg ) {
+    // M = RY(a)*RX(b): M[1][2] = -sin b, M[2][0] = -sin a, M[0][0] = cos a
+    // (glm is column-major: m[col][row]).
+    *pitch_deg = glm::degrees( asinf( glm::clamp( -rot[ 2 ][ 1 ], -1.0f, 1.0f ) ) );
+    const float a = atan2f( -rot[ 0 ][ 2 ], rot[ 0 ][ 0 ] );
+    float yaw = 180.0f - glm::degrees( a );
+    yaw = fmodf( yaw + 360.0f, 360.0f );
+    *yaw_deg = yaw;
+}
+
+// Head-look animator angles for update_render's bone_anim (added to the
+// bone's rest rotation in bone_local_matrix). head_yaw > 0 turns the head
+// in the +yaw sense of the forward convention (sin yaw, 0, -cos yaw);
+// head_pitch > 0 looks up. In the bone's pivot frame a +X rotation pitches
+// the face up and a -Y rotation turns it toward +yaw.
+inline glm::vec3 mob_head_anim( float head_yaw, float head_pitch ) {
+    return glm::vec3( head_pitch, -head_yaw, 0.0f );
+}

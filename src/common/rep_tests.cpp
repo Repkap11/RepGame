@@ -1171,6 +1171,147 @@ int test_mobs( ) {
         }
     }
 
+    // --- 9: generated player model shape -----------------------------------
+    {
+        const MobModelDef &model = mob_models[ MOB_MODEL_PLAYER ];
+        check_bool( "player: 12 cubes", model.cube_count == 12 );
+        bool ordered = true;
+        bool found[ 6 ] = { false };
+        const char *want[ 6 ] = { "head", "body", "leftArm", "rightArm", "leftLeg", "rightLeg" };
+        int overlays = 0;
+        for ( int i = 0; i < model.bone_count; i++ ) {
+            const MobBoneDef &b = model.bones[ i ];
+            if ( b.parent >= i ) {
+                ordered = false;
+            }
+            for ( int w = 0; w < 6; w++ ) {
+                found[ w ] = found[ w ] || strcmp( b.name, want[ w ] ) == 0;
+            }
+            if ( strstr( b.name, "Sleeve" ) != nullptr || strstr( b.name, "Pants" ) != nullptr || strcmp( b.name, "hat" ) == 0 || strcmp( b.name, "jacket" ) == 0 ) {
+                overlays++;
+            }
+        }
+        bool all_found = true;
+        for ( int w = 0; w < 6; w++ ) {
+            all_found = all_found && found[ w ];
+        }
+        check_bool( "player: parents precede children", ordered );
+        check_bool( "player: head/body/arms/legs present", all_found );
+        check_bool( "player: 6 overlay bones", overlays == 6 );
+    }
+
+    // --- 10: camera-rotation -> (yaw, pitch) round trip ---------------------
+    {
+        const float Hs[ 6 ] = { 0.0f, 45.0f, 90.0f, 180.0f, 270.0f, 359.0f };
+        const float Vs[ 4 ] = { -60.0f, 0.0f, 30.0f, 89.0f };
+        bool ok = true;
+        for ( float H : Hs ) {
+            for ( float V : Vs ) {
+                // RepGame::build_camera_view's rotation (replicated: it's a
+                // private const member).
+                glm::mat4 rot = glm::rotate( glm::mat4( 1.0f ), glm::radians( -H + 180.0f ), glm::vec3( 0.0f, 1.0f, 0.0f ) );
+                rot = glm::rotate( rot, glm::radians( V ), glm::vec3( 1.0f, 0.0f, 0.0f ) );
+                float yaw = -1.0f, pitch = -999.0f;
+                mob_look_from_camera_rotation( rot, &yaw, &pitch );
+                float dyaw = fabsf( yaw - H );
+                if ( dyaw > 180.0f ) {
+                    dyaw = 360.0f - dyaw;
+                }
+                if ( dyaw > 1e-3f || fabsf( pitch - V ) > 1e-3f ) {
+                    pr_test( "    rot round-trip H=%g V=%g -> yaw=%g pitch=%g", H, V, yaw, pitch );
+                    ok = false;
+                }
+            }
+        }
+        check_bool( "camera rotation: yaw/pitch round trip", ok );
+    }
+
+    // --- 10b: head-look forward direction ------------------------------------
+    // Replicates update_render's math: the head's world rotation is
+    // RY(-body_yaw) * RX(anim.x) * RY(anim.y) (bone_local_matrix multiplies
+    // Rx*Ry*Rz, so anim.y hits the model -Z first, then anim.x), and the
+    // model's face is -Z.
+    {
+        const auto head_forward = []( float body_yaw, float head_yaw, float head_pitch ) {
+            const glm::vec3 anim = mob_head_anim( head_yaw, head_pitch );
+            glm::mat4 m = glm::rotate( glm::mat4( 1.0f ), glm::radians( -body_yaw ), glm::vec3( 0.0f, 1.0f, 0.0f ) );
+            m = glm::rotate( m, glm::radians( anim.x ), glm::vec3( 1.0f, 0.0f, 0.0f ) );
+            m = glm::rotate( m, glm::radians( anim.y ), glm::vec3( 0.0f, 1.0f, 0.0f ) );
+            return glm::vec3( m * glm::vec4( 0.0f, 0.0f, -1.0f, 0.0f ) );
+        };
+        const glm::vec3 up = head_forward( 0.0f, 0.0f, 30.0f );
+        check_bool( "head look: +pitch looks up", up.y > 0.4f );
+        const glm::vec3 turned = head_forward( 0.0f, 40.0f, 0.0f );
+        // +yaw forward is (sin yaw, 0, -cos yaw): +40 turns toward +X.
+        check_bool( "head look: +yaw turns toward +yaw", turned.x > 0.6f );
+        const glm::vec3 body_turned = head_forward( 90.0f, -40.0f, 0.0f );
+        check_near( "head look: net yaw tracks body", body_turned.z, -cosf( glm::radians( 50.0f ) ), 1e-3f );
+    }
+
+    // --- 11: remote (network-driven) mobs -----------------------------------
+    {
+        MobManager mobs;
+        const uint32_t uid = mobs.spawn_remote( MOB_PLAYER );
+        check_bool( "remote: spawn_remote gives uid", uid != 0 && mobs.mobs.size( ) == 1 );
+        // First pose is a teleport-sized jump -> snaps to eye - eye_h.
+        mobs.set_remote_pose( uid, glm::dvec3( 10.5, 11.0 + PLAYER_EYE_HEIGHT, 10.5 ), 0.0f, 0.0f );
+        for ( int i = 0; i < 30; i++ ) {
+            mobs.tick( world, player_pos );
+        }
+        check_near( "remote: feet converge to eye - 1.62", mobs.mobs[ 0 ].pos.y, 11.0, 1e-3 );
+
+        // Walking 0.2 blocks/tick: leg_amp rises, walk_dist accumulates, and
+        // stopping decays the swing back to ~0.
+        for ( int i = 0; i < 40; i++ ) {
+            const double tx = mobs.mobs[ 0 ].target.x + 0.2;
+            mobs.set_remote_pose( uid, glm::dvec3( tx, mobs.mobs[ 0 ].target.y + PLAYER_EYE_HEIGHT, 10.5 ), 90.0f, 0.0f );
+            mobs.tick( world, player_pos );
+        }
+        check_bool( "remote: walk amp rises", mobs.mobs[ 0 ].leg_amp > 0.5f );
+        check_bool( "remote: walk dist accumulates", mobs.mobs[ 0 ].walk_dist > 0.0f );
+        for ( int i = 0; i < 60; i++ ) {
+            mobs.tick( world, player_pos );
+        }
+        check_bool( "remote: amp decays when stopped", mobs.mobs[ 0 ].leg_amp < 0.05f );
+
+        // Stationary body, look 120° off: the body drags so the head stays
+        // within 50°.
+        mobs.set_remote_pose( uid, glm::dvec3( mobs.mobs[ 0 ].pos.x, mobs.mobs[ 0 ].pos.y + PLAYER_EYE_HEIGHT, mobs.mobs[ 0 ].pos.z ), mobs.mobs[ 0 ].yaw + 120.0f, 0.0f );
+        mobs.tick( world, player_pos );
+        check_bool( "remote: head yaw clamped to 50", fabsf( mobs.mobs[ 0 ].head_yaw ) <= 50.01f );
+
+        // Remote mobs are invisible to the crosshair raycast...
+        const glm::dvec3 origin( mobs.mobs[ 0 ].pos.x - 3.0, mobs.mobs[ 0 ].pos.y + 0.9, mobs.mobs[ 0 ].pos.z );
+        double dist = 0.0;
+        check_bool( "remote: raycast misses", mobs.raycast( origin, glm::dvec3( 1.0, 0.0, 0.0 ), 6.0, &dist ) < 0 );
+
+        // ...never persisted...
+        const char *orig_home = getenv( "HOME" );
+        char orig_home_buf[ 512 ] = { 0 };
+        if ( orig_home != nullptr ) {
+            strncpy( orig_home_buf, orig_home, sizeof( orig_home_buf ) - 1 );
+        }
+        setenv( "HOME", "/tmp/repgame_test_mobs_home", 1 );
+        MapStorage storage;
+        storage.init( "TestMobs" );
+        mobs.init_storage( &storage );
+        mobs.owned_chunks.push_back( { glm::ivec3( 0, 0, 0 ), 0, 0 } );
+        mobs.spawn( MOB_PIG, glm::dvec3( 10.5, 11.0, 10.5 ), 0.0f, 1 );
+        mobs.persist_all( );
+        std::vector<MobFileRecord> out;
+        check_bool( "remote: no mobs record", storage.load_mobs( glm::ivec3( 0, 0, 0 ), out ) == 1 && out.size( ) == 1 && out[ 0 ].type == MOB_PIG );
+        if ( orig_home != nullptr ) {
+            setenv( "HOME", orig_home_buf, 1 );
+        } else {
+            unsetenv( "HOME" );
+        }
+
+        // ...and spawn_remote works with REPGAME_MOBS=0 semantics.
+        MobManager off;
+        off.enabled = false;
+        check_bool( "remote: spawn works when disabled", off.spawn_remote( MOB_PLAYER ) != 0 );
+    }
+
     return failures;
 }
 

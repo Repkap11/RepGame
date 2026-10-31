@@ -1,25 +1,20 @@
 #pragma once
 
-#include "common/Particle.hpp"
-#include "common/RenderChain.hpp"
+#include <stdint.h>
 
-class ChunkLoader;
+#include "common/constants.hpp"
+#include "common/mobs.hpp"
 
+// Remote players render through the mob pipeline (MOB_PLAYER, MOB_AI_REMOTE):
+// each connected player_id maps to a network-driven mob's uid.
 class MultiplayerAvatars {
-    entt::entity entity_map[ MAX_CLIENT_FDS ];
-    glm::mat4 initial_mat;
-    RenderChain<ParticleVertex, ParticlePosition> render_chain;
-
-    static void init_particle( ParticlePosition &mob );
+    MobManager *mobs;
+    uint32_t uid_map[ MAX_CLIENT_FDS ];
 
   public:
-    void init( const VertexBufferLayout &vbl_object_vertex, const VertexBufferLayout &vbl_object_position );
-    void add( unsigned int particle_id );
-    void update_position( int particle_id, float x, float y, float z, const glm::mat4 &rotation );
-    void remove( unsigned int particle_id );
-    // Re-sample the world light field at each avatar's position. Runs per
-    // frame (avatars get no updates while standing still, but torches move).
-    void update_lighting( const ChunkLoader &chunk_loader );
-    void draw( const Renderer &renderer, const Shader &shader );
+    void init( MobManager *mob_manager );
+    void add( unsigned int player_id );
+    void update_position( int player_id, float x, float y, float z, const glm::mat4 &rotation );
+    void remove( unsigned int player_id );
     void cleanup( );
 };

@@ -30,8 +30,8 @@ typedef struct {
     int tex_h;
 } MobModelDef;
 
-enum MobModel { MOB_MODEL_PIG, MOB_MODEL_COUNT };
-enum MobSkin { MOB_SKIN_PIG, MOB_SKIN_COUNT };
+enum MobModel { MOB_MODEL_PIG, MOB_MODEL_PLAYER, MOB_MODEL_COUNT };
+enum MobSkin { MOB_SKIN_PIG, MOB_SKIN_PLAYER_STEVE, MOB_SKIN_COUNT };
 
 static const MobCubeDef mob_cubes_pig[] = {
     { { -5.0f, 7.0f, -5.0f }, { 10.0f, 16.0f, 8.0f }, { 28.0f, 8.0f }, 0.0f, 0 },
@@ -51,6 +51,38 @@ static const MobBoneDef mob_bones_pig[] = {
     { "leg3", -1, { 3.0f, 6.0f, -5.0f }, { 0.0f, 0.0f, 0.0f }, 1, 6, 1 },
 };
 
+static const MobCubeDef mob_cubes_player[] = {
+    { { -4.0f, 12.0f, -2.0f }, { 8.0f, 12.0f, 4.0f }, { 16.0f, 16.0f }, 0.0f, 0 },
+    { { -4.0f, 24.0f, -4.0f }, { 8.0f, 8.0f, 8.0f }, { 0.0f, 0.0f }, 0.0f, 0 },
+    { { -4.0f, 24.0f, -4.0f }, { 8.0f, 8.0f, 8.0f }, { 32.0f, 0.0f }, 0.5f, 0 },
+    { { 4.0f, 12.0f, -2.0f }, { 4.0f, 12.0f, 4.0f }, { 32.0f, 48.0f }, 0.0f, 0 },
+    { { 4.0f, 12.0f, -2.0f }, { 4.0f, 12.0f, 4.0f }, { 48.0f, 48.0f }, 0.25f, 0 },
+    { { -8.0f, 12.0f, -2.0f }, { 4.0f, 12.0f, 4.0f }, { 40.0f, 16.0f }, 0.0f, 0 },
+    { { -8.0f, 12.0f, -2.0f }, { 4.0f, 12.0f, 4.0f }, { 40.0f, 32.0f }, 0.25f, 0 },
+    { { -0.1f, 0.0f, -2.0f }, { 4.0f, 12.0f, 4.0f }, { 16.0f, 48.0f }, 0.0f, 0 },
+    { { -0.1f, 0.0f, -2.0f }, { 4.0f, 12.0f, 4.0f }, { 0.0f, 48.0f }, 0.25f, 0 },
+    { { -3.9f, 0.0f, -2.0f }, { 4.0f, 12.0f, 4.0f }, { 0.0f, 16.0f }, 0.0f, 0 },
+    { { -3.9f, 0.0f, -2.0f }, { 4.0f, 12.0f, 4.0f }, { 0.0f, 32.0f }, 0.25f, 0 },
+    { { -4.0f, 12.0f, -2.0f }, { 8.0f, 12.0f, 4.0f }, { 16.0f, 32.0f }, 0.25f, 0 },
+};
+static const MobBoneDef mob_bones_player[] = {
+    { "root", -1, { 0.0f, 0.0f, 0.0f }, { 0.0f, 0.0f, 0.0f }, 0, 0, 0 },
+    { "waist", 0, { 0.0f, 12.0f, 0.0f }, { 0.0f, 0.0f, 0.0f }, 0, 0, 0 },
+    { "body", 1, { 0.0f, 24.0f, 0.0f }, { 0.0f, 0.0f, 0.0f }, 0, 0, 1 },
+    { "head", 2, { 0.0f, 24.0f, 0.0f }, { 0.0f, 0.0f, 0.0f }, 0, 1, 1 },
+    { "hat", 3, { 0.0f, 24.0f, 0.0f }, { 0.0f, 0.0f, 0.0f }, 0, 2, 1 },
+    { "leftArm", 2, { 5.0f, 22.0f, 0.0f }, { 0.0f, 0.0f, 0.0f }, 0, 3, 1 },
+    { "leftSleeve", 5, { 5.0f, 22.0f, 0.0f }, { 0.0f, 0.0f, 0.0f }, 0, 4, 1 },
+    { "rightArm", 2, { -5.0f, 22.0f, 0.0f }, { 0.0f, 0.0f, 0.0f }, 0, 5, 1 },
+    { "rightSleeve", 7, { -5.0f, 22.0f, 0.0f }, { 0.0f, 0.0f, 0.0f }, 0, 6, 1 },
+    { "leftLeg", 0, { 1.9f, 12.0f, 0.0f }, { 0.0f, 0.0f, 0.0f }, 0, 7, 1 },
+    { "leftPants", 9, { 1.9f, 12.0f, 0.0f }, { 0.0f, 0.0f, 0.0f }, 0, 8, 1 },
+    { "rightLeg", 0, { -1.9f, 12.0f, 0.0f }, { 0.0f, 0.0f, 0.0f }, 0, 9, 1 },
+    { "rightPants", 11, { -1.9f, 12.0f, 0.0f }, { 0.0f, 0.0f, 0.0f }, 0, 10, 1 },
+    { "jacket", 2, { 0.0f, 24.0f, 0.0f }, { 0.0f, 0.0f, 0.0f }, 0, 11, 1 },
+};
+
 static const MobModelDef mob_models[ MOB_MODEL_COUNT ] = {
     { mob_bones_pig, mob_cubes_pig, 6, 7, 64, 32 },
+    { mob_bones_player, mob_cubes_player, 14, 12, 64, 64 },
 };

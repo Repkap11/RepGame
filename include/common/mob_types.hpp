@@ -3,16 +3,20 @@
 #include "common/mob_models_gen.hpp"
 #include "common/block_definitions.hpp"
 
-enum MobType { MOB_PIG = 0, MOB_TYPE_COUNT };
+enum MobType { MOB_PIG = 0, MOB_PLAYER, MOB_TYPE_COUNT };
 
 // AI profiles — the extension point for future hostile or flying mobs.
-enum MobAI { MOB_AI_PASSIVE_WANDER = 0 };
+enum MobAI {
+    MOB_AI_PASSIVE_WANDER = 0,
+    MOB_AI_REMOTE, // pose driven by the network (remote players)
+};
 
 // Procedural animators; MobTypeDef::anims is a bitmask of these.
 enum MobAnim {
     MOB_ANIM_QUADRUPED_WALK = 1 << 0, // leg0/3 vs leg1/2 diagonal gait
     MOB_ANIM_HEAD_LOOK = 1 << 1,      // head tracks the nearest player
     MOB_ANIM_DEATH_TIP = 1 << 2,      // 90° side roll over 0.5 s (all types)
+    MOB_ANIM_HUMANOID_WALK = 1 << 3,  // opposite arm+leg swing (Bedrock humanoid.move)
 };
 
 typedef struct {
@@ -47,8 +51,11 @@ typedef struct {
     MobAI ai;
     unsigned int anims;
     // Bone names the animators bind to (head for look-at, legs for the gait).
+    // Quadrupeds use bone_legs[0..3]; humanoids use bone_legs[0..1] and
+    // bone_arms[0..1], each as (right, left).
     const char *bone_head;
     const char *bone_legs[ 4 ];
+    const char *bone_arms[ 2 ];
 } MobTypeDef;
 
 extern const MobTypeDef mob_types[ MOB_TYPE_COUNT ];

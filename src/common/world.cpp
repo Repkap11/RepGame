@@ -96,7 +96,7 @@ void World::init( const glm::dvec3 &camera_pos, int width, int height, MapStorag
     this->mob_shader.init( &mob_vertex, &object_fragment );
 
     this->skyBox.init( this->vbl_object_vertex, this->vbl_object_position );
-    this->multiplayer_avatars.init( this->vbl_object_vertex, this->vbl_object_position );
+    this->multiplayer_avatars.init( &this->mobs );
     this->blockDebris.init( this->vbl_object_vertex, this->vbl_debris_instance );
     this->primedTnt.init( this->vbl_object_vertex, this->vbl_primed_tnt_instance );
     this->mobs.init( this->vbl_object_vertex, this->vbl_mob_instance );
@@ -476,12 +476,10 @@ void World::draw( const Texture &blocksTexture, const glm::mat4 &mvp, const glm:
     // updates while standing still; debris spawns while the broken cell's
     // recheck is still queued — per-frame resampling covers both. Runs on
     // the render thread like the light probes.
-    this->multiplayer_avatars.update_lighting( this->chunkLoader );
     this->blockDebris.update_lighting( this->chunkLoader );
     this->primedTnt.update_lighting( this->chunkLoader );
     // Rebuild every mob part transform with the tick-interpolated pose.
     this->mobs.update_render( alpha, this->chunkLoader );
-    this->multiplayer_avatars.draw( this->renderer, this->object_shader );      // Mobs
     this->blockDebris.draw( this->renderer, this->debris_shader, time_s );      // Break particles
     this->primedTnt.draw( this->renderer, this->primed_tnt_shader, time_s );    // Ignited TNT
     this->mobs.draw( this->renderer, this->mob_shader );                        // Mob parts
@@ -596,8 +594,6 @@ void World::draw( const Texture &blocksTexture, const glm::mat4 &mvp, const glm:
         // Same as the main pass: the reflected sky draw left its texture bound.
         this->object_shader.set_uniform1i_texture( "u_Texture", blocksTexture );
         this->object_shader.set_uniform1f( "u_ReflectionHeight", offset + renderOriginF.y );
-        this->multiplayer_avatars.draw( this->renderer, this->object_shader ); // Reflected mobs
-
         this->mob_shader.set_uniform1i_texture( "u_Texture", this->mobsTexture );
         this->mob_shader.set_uniform1f( "u_ExtraAlpha", 1.0f );
         this->mob_shader.set_uniform1i( "u_DrawToReflection", 1 );

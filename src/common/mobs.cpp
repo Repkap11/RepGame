@@ -31,28 +31,28 @@ MobManager::MobManager( ) {
     this->render_inited = false;
     this->storage = nullptr;
     this->poll_count = 0;
+    this->next_uid = 1;
     this->rng.seed( 0x9e3779b9u );
 }
 
 void MobManager::init( const VertexBufferLayout &vbl_object_vertex, const VertexBufferLayout &vbl_mob_instance ) {
-    if ( !this->enabled ) {
-        return;
-    }
+    // Rendering is always available (remote players draw even under
+    // REPGAME_MOBS=0); `enabled` only gates spawning, ticking and persistence.
     this->render_chain.init( vbl_object_vertex, vbl_mob_instance, vd_data_player_object, VB_DATA_SIZE_PARTICLE, ib_data_solid, IB_SOLID_SIZE );
     this->render_inited = true;
 
     // REPGAME_MOB_TEST="pig,x,y,z,yaw;..." — exact spawns for deterministic
     // captures and physics tests.
     const char *spec = getenv( "REPGAME_MOB_TEST" );
-    if ( spec != NULL ) {
+    if ( spec != NULL && this->enabled ) {
         char buf[ 1024 ];
         strncpy( buf, spec, sizeof( buf ) - 1 );
         buf[ sizeof( buf ) - 1 ] = 0;
         for ( char *entry = strtok( buf, ";" ); entry != NULL; entry = strtok( NULL, ";" ) ) {
             char type_name[ 32 ];
-            float x, y, z, yaw = 0.0f;
-            if ( sscanf( entry, "%31[^,],%f,%f,%f,%f", type_name, &x, &y, &z, &yaw ) < 4 ) {
-                pr_debug( "REPGAME_MOB_TEST: bad entry '%s' (want type,x,y,z,yaw)", entry );
+            float x, y, z, yaw = 0.0f, pitch = 0.0f;
+            if ( sscanf( entry, "%31[^,],%f,%f,%f,%f,%f", type_name, &x, &y, &z, &yaw, &pitch ) < 4 ) {
+                pr_debug( "REPGAME_MOB_TEST: bad entry '%s' (want type,x,y,z,yaw[,pitch])", entry );
                 continue;
             }
             MobType type = MOB_TYPE_COUNT;
@@ -65,6 +65,13 @@ void MobManager::init( const VertexBufferLayout &vbl_object_vertex, const Vertex
                 pr_debug( "REPGAME_MOB_TEST: unknown type '%s'", type_name );
                 continue;
             }
+            if ( mob_types[ type ].ai == MOB_AI_REMOTE ) {
+                // Remote types (player): x,y,z is the feet position and the
+                // optional pitch is the head's, via the remote pose path.
+                const uint32_t uid = this->spawn_remote( type );
+                this->set_remote_pose( uid, glm::dvec3( x, y + mob_types[ type ].eye_h, z ), yaw, pitch );
+                continue;
+            }
             // MOB_TEST spawns are non-persistent: they never reach a mobs file
             // and natural spawn/load is disabled for the whole run.
             this->spawn( type, glm::dvec3( x, y, z ), yaw, 0 );
@@ -73,7 +80,14 @@ void MobManager::init( const VertexBufferLayout &vbl_object_vertex, const Vertex
 }
 
 bool MobManager::spawn( MobType type, const glm::dvec3 &pos, float yaw, int persistent ) {
-    if ( !this->enabled || this->mobs.size( ) >= MAX_MOBS ) {
+    if ( !this->enabled ) {
+        return false;
+    }
+    return this->spawn_any( type, pos, yaw, persistent );
+}
+
+bool MobManager::spawn_any( MobType type, const glm::dvec3 &pos, float yaw, int persistent ) {
+    if ( this->mobs.size( ) >= MAX_MOBS ) {
         return false;
     }
     const MobTypeDef &def = mob_types[ type ];
@@ -103,6 +117,9 @@ bool MobManager::spawn( MobType type, const glm::dvec3 &pos, float yaw, int pers
     mob.say_ticks = say( this->rng );
     mob.step_acc = 0.0f;
     mob.kb = glm::dvec3( 0.0 );
+    mob.uid = 0;
+    mob.look_yaw = 0.0f;
+    mob.look_pitch = 0.0f;
     if ( this->render_inited ) {
         const MobModelDef &model = mob_models[ def.model ];
         for ( int i = 0; i < model.cube_count; i++ ) {
@@ -143,6 +160,73 @@ bool MobManager::spawn_in_front( MobType type, const glm::dvec3 &camera_pos, con
     bool found = false;
     const double ground = ground_top_at( world, bx, bz, static_cast<int>( floor( at.y ) ), 30, &found );
     return this->spawn( type, glm::dvec3( at.x, found ? ground : at.y, at.z ), 0.0f, 1 );
+}
+
+uint32_t MobManager::spawn_remote( MobType type ) {
+    // Spawned far below the world: the first set_remote_pose counts as a >8
+    // block jump and snaps to the real position.
+    if ( !this->spawn_any( type, glm::dvec3( 0.0, -256.0, 0.0 ), 0.0f, 0 ) ) {
+        return 0;
+    }
+    Mob &mob = this->mobs.back( );
+    mob.uid = this->next_uid++;
+    mob.target = mob.pos;
+    return mob.uid;
+}
+
+void MobManager::set_remote_pose( uint32_t uid, const glm::dvec3 &eye_pos, float look_yaw_deg, float look_pitch_deg ) {
+    for ( Mob &mob : this->mobs ) {
+        if ( mob.uid == uid ) {
+            mob.target = eye_pos - glm::dvec3( 0.0, mob_types[ mob.type ].eye_h, 0.0 );
+            mob.look_yaw = look_yaw_deg;
+            mob.look_pitch = look_pitch_deg;
+            return;
+        }
+    }
+}
+
+void MobManager::remove_remote( uint32_t uid ) {
+    for ( auto it = this->mobs.begin( ); it != this->mobs.end( ); ++it ) {
+        if ( it->uid == uid ) {
+            this->remove_mob( it );
+            return;
+        }
+    }
+}
+
+// Network-driven pose: ease toward the latest target (snap over 8 blocks),
+// accumulate walk_dist from the applied horizontal motion, drive leg_amp
+// like Java's limbSwingAmount, and keep the head within 50° of the body.
+void MobManager::tick_remote( Mob &mob ) {
+    mob.prev_pos = mob.pos;
+    mob.prev_yaw = mob.yaw;
+    const glm::dvec3 delta = mob.target - mob.pos;
+    if ( glm::length( delta ) > 8.0 ) {
+        mob.pos = mob.target;
+    } else {
+        mob.pos += delta * 0.35;
+    }
+    const glm::dvec3 moved = mob.pos - mob.prev_pos;
+    const double hd = std::hypot( moved.x, moved.z );
+    mob.walk_dist += static_cast<float>( hd );
+    const float amp_target = static_cast<float>( fmin( hd * ( UPS_RATE / 20.0 ) * 4.0, 1.0 ) );
+    mob.leg_amp += ( amp_target - mob.leg_amp ) * 0.2f;
+
+    if ( hd > 1e-4 ) {
+        // While moving, the body eases toward the travel direction.
+        const float want_yaw = static_cast<float>( atan2( moved.x, -moved.z ) * ( 180.0 / M_PI ) );
+        mob.yaw += wrap_degrees( want_yaw - mob.yaw ) * 0.2f;
+    }
+    // The head can't lead the body by more than 50°: drag the body along.
+    const float lead = wrap_degrees( mob.look_yaw - mob.yaw );
+    if ( lead > 50.0f ) {
+        mob.yaw = wrap_degrees( mob.look_yaw - 50.0f );
+    } else if ( lead < -50.0f ) {
+        mob.yaw = wrap_degrees( mob.look_yaw + 50.0f );
+    }
+    mob.head_yaw = wrap_degrees( mob.look_yaw - mob.yaw );
+    // angle_V > 0 looks down; the head animator's pitch > 0 looks up.
+    mob.head_pitch = -mob.look_pitch;
 }
 
 void MobManager::tick_mob( World &world, Mob &mob, const MobTypeDef &def, const glm::dvec3 &player_pos ) {
@@ -320,7 +404,7 @@ int MobManager::raycast( const glm::dvec3 &origin, const glm::dvec3 &dir, double
     double best_t = max_dist;
     for ( size_t i = 0; i < this->mobs.size( ); i++ ) {
         const Mob &mob = this->mobs[ i ];
-        if ( mob.death_ticks > 0 ) {
+        if ( mob.death_ticks > 0 || mob.uid != 0 ) {
             continue;
         }
         const double hw = mob_types[ mob.type ].hitbox_w / 2.0;
@@ -498,11 +582,22 @@ void MobManager::persist_all( ) {
 }
 
 void MobManager::tick( World &world, const glm::dvec3 &player_pos ) {
-    if ( !this->enabled || RepGame::capture_mode( ) ) {
-        return;
-    }
+    // Remote mobs tick in every mode (they're driven by the network, not the
+    // world); everything else freezes under REPGAME_MOBS=0 and capture mode.
+    const bool freeze = !this->enabled || RepGame::capture_mode( );
     const glm::dvec3 csize( CHUNK_SIZE_X, CHUNK_SIZE_Y, CHUNK_SIZE_Z );
     for ( auto it = this->mobs.begin( ); it != this->mobs.end( ); ) {
+        if ( it->uid != 0 ) {
+            this->tick_remote( *it );
+            ++it;
+            continue;
+        }
+        if ( freeze ) {
+            it->prev_pos = it->pos;
+            it->prev_yaw = it->yaw;
+            ++it;
+            continue;
+        }
         // A mob whose feet chunk isn't live is frozen: parked/released slots
         // report LAST_BLOCK_ID from get_loaded_block and a LOADING slot at the
         // same position hasn't finished adopting back yet.
@@ -541,7 +636,7 @@ static glm::mat4 bone_local_matrix( const MobBoneDef &bone, const glm::vec3 &ani
 }
 
 void MobManager::update_render( float alpha, const ChunkLoader &chunk_loader ) {
-    if ( !this->enabled || !this->render_inited ) {
+    if ( !this->render_inited ) {
         return;
     }
     for ( Mob &mob : this->mobs ) {
@@ -577,14 +672,26 @@ void MobManager::update_render( float alpha, const ChunkLoader &chunk_loader ) {
         for ( int i = 0; i < bone_count; i++ ) {
             const MobBoneDef &bone = model.bones[ i ];
             if ( ( def.anims & MOB_ANIM_HEAD_LOOK ) && def.bone_head != NULL && strcmp( bone.name, def.bone_head ) == 0 ) {
-                bone_anim[ i ].y = -mob.head_yaw;
-                bone_anim[ i ].x = -mob.head_pitch;
+                bone_anim[ i ] = mob_head_anim( mob.head_yaw, mob.head_pitch );
             }
             if ( def.anims & MOB_ANIM_QUADRUPED_WALK ) {
                 for ( int leg = 0; leg < 4; leg++ ) {
                     if ( def.bone_legs[ leg ] != NULL && strcmp( bone.name, def.bone_legs[ leg ] ) == 0 ) {
                         const float sign = ( leg == 0 || leg == 3 ) ? 1.0f : -1.0f;
                         bone_anim[ i ].x += sign * 80.0f * cosf( phase ) * mob.leg_amp;
+                    }
+                }
+            }
+            if ( def.anims & MOB_ANIM_HUMANOID_WALK ) {
+                // Bedrock animation.humanoid.move: tcos0 = cos(phase)*57.3°,
+                // opposite arm and leg swing together (right leg + left arm).
+                const float tcos0 = cosf( phase ) * 57.3f * mob.leg_amp;
+                for ( int limb = 0; limb < 2; limb++ ) {
+                    if ( def.bone_legs[ limb ] != NULL && strcmp( bone.name, def.bone_legs[ limb ] ) == 0 ) {
+                        bone_anim[ i ].x += ( limb == 0 ? 1.4f : -1.4f ) * tcos0;
+                    }
+                    if ( def.bone_arms[ limb ] != NULL && strcmp( bone.name, def.bone_arms[ limb ] ) == 0 ) {
+                        bone_anim[ i ].x += ( limb == 0 ? -1.0f : 1.0f ) * tcos0;
                     }
                 }
             }
@@ -621,7 +728,7 @@ void MobManager::update_render( float alpha, const ChunkLoader &chunk_loader ) {
 }
 
 void MobManager::draw( const Renderer &renderer, const Shader &shader ) {
-    if ( !this->enabled || !this->render_inited ) {
+    if ( !this->render_inited ) {
         return;
     }
     this->render_chain.draw( renderer, shader );

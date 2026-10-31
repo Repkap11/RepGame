@@ -394,8 +394,9 @@ manifest anymore.
 
 ## Mobs
 
-Client-local passive mobs (pigs only so far), driven by a type table and
-models imported from Bedrock `geo.json`. Simulation (gravity, collision,
+Client-local passive mobs (pigs) plus network-driven remote players
+(`MOB_PLAYER`), driven by a type table and models imported from Bedrock
+`geo.json`. Simulation (gravity, collision,
 auto-jump, buoyancy, idle/wander/panic AI, hit flash, death tip-over) runs
 in `MobManager::tick` (`src/common/mobs.cpp`); rendering rebuilds one
 instanced `RenderChain<ParticleVertex, MobPartInstance>` per frame from
@@ -403,16 +404,30 @@ CPU-evaluated bone transforms (`mob_vertex.glsl` + `object_fragment`;
 negative `v_flash` is a red hurt tint). Mobs are drawn in both the main
 and reflection passes and share the chunk light sampling.
 
-- `REPGAME_MOBS=0` — disables spawning, simulation and rendering entirely.
-- `REPGAME_MOB_TEST="pig,x,y,z,yaw[;...]"` — exact deterministic spawns
-  (non-persistent; also disables natural spawn and mobs-file loading for
-  the run).
+- `REPGAME_MOBS=0` — disables local mobs (spawning, simulation,
+  persistence) but NOT remote players: `spawn_remote` and remote
+  rendering still work.
+- `REPGAME_MOB_TEST="type,x,y,z,yaw[,pitch][;...]"` — exact deterministic
+  spawns (non-persistent; also disables natural spawn and mobs-file
+  loading for the run). `player` entries spawn a remote `MOB_PLAYER` at
+  feet position through `set_remote_pose` (the optional pitch is the look
+  pitch).
 - Capture mode (`REPGAME_CAPTURE`) freezes mob AI and physics — spawn
   poses are as authored, no falls or wandering mid-capture.
 - `n` — debug spawn key: drops a pig on the ground three blocks in front
   of the player (`MobManager::spawn_in_front`; edge-triggered through
   `Input`, handled in `RepGame::tick`, persistent). The ImGui overlay
-  shows `Mobs: <n>`.
+  shows `Mobs: <n> (players <m>)` — remote players count separately.
+
+Remote players: `MultiplayerAvatars` is a thin adapter over `MobManager`
+(`player_id → uid` map) — `add`/`update_position`/`remove` translate to
+`spawn_remote`/`set_remote_pose`/`remove_remote` on a `MOB_PLAYER` mob.
+The packet position is the sender's eye position (feet = eye −
+`PLAYER_EYE_HEIGHT`); the camera rotation matrix is inverted by
+`mob_look_from_camera_rotation` (`mobs.hpp`). `MOB_AI_REMOTE` mobs skip
+physics/AI, ease toward the latest network pose, walk-animate from the
+horizontal delta (`MOB_ANIM_HUMANOID_WALK`), never persist, never
+raycast, and keep ticking in capture mode.
 
 Adding a mob:
 
