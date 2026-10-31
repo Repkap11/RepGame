@@ -1,6 +1,7 @@
 {
  "id": 1203,
  "name": "SULFUR_BRICK_SLAB",
+ "shape": "slab",
  "textures": {
   "all": "sulfur_bricks"
  }

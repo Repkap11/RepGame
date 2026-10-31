@@ -1,6 +1,7 @@
 {
  "id": 225,
  "name": "BROWN_WOOL_STAIRS",
+ "shape": "stairs",
  "textures": {
   "all": "wool_colored_brown"
  }

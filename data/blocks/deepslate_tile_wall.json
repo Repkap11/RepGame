@@ -1,6 +1,7 @@
 {
  "id": 514,
  "name": "DEEPSLATE_TILE_WALL",
+ "shape": "wall",
  "textures": {
   "all": "deepslate_tiles"
  }

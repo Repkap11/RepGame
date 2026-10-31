@@ -1,6 +1,7 @@
 {
  "id": 1160,
  "name": "STANDING_BANNER",
+ "shape": "banner",
  "textures": {
   "all": "planks_oak"
  }

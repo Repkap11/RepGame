@@ -1,6 +1,7 @@
 {
  "id": 90,
  "name": "BAMBOO_MOSAIC_STAIRS",
+ "shape": "stairs",
  "textures": {
   "all": "bamboo_mosaic"
  }

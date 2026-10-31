@@ -1,6 +1,7 @@
 {
  "id": 1148,
  "name": "SPRUCE_HANGING_SIGN",
+ "shape": "hanging_sign",
  "textures": {
   "all": "planks_spruce"
  }

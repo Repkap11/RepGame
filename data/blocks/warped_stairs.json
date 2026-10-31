@@ -1,6 +1,7 @@
 {
  "id": 1279,
  "name": "WARPED_STAIRS",
+ "shape": "stairs",
  "textures": {
   "all": "warped_planks"
  }

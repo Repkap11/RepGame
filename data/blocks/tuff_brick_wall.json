@@ -1,6 +1,7 @@
 {
  "id": 1250,
  "name": "TUFF_BRICK_WALL",
+ "shape": "wall",
  "textures": {
   "all": "tuff_bricks"
  }

@@ -1,6 +1,7 @@
 {
  "id": 383,
  "name": "CRIMSON_FENCE",
+ "shape": "fence",
  "textures": {
   "all": "crimson_planks"
  }

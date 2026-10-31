@@ -1,6 +1,7 @@
 {
  "id": 884,
  "name": "PALE_OAK_FENCE",
+ "shape": "fence",
  "textures": {
   "all": "pale_oak_planks"
  }

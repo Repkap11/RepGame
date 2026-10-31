@@ -1,6 +1,7 @@
 {
  "id": 429,
  "name": "CYAN_CARPET",
+ "shape": "carpet",
  "textures": {
   "all": "wool_colored_cyan"
  }

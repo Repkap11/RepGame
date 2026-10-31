@@ -1,6 +1,7 @@
 {
  "id": 1268,
  "name": "WARPED_FENCE",
+ "shape": "fence",
  "textures": {
   "all": "warped_planks"
  }

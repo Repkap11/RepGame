@@ -1,6 +1,7 @@
 {
  "id": 1155,
  "name": "SPRUCE_WALL_SIGN",
+ "shape": "sign",
  "textures": {
   "all": "planks_spruce"
  }

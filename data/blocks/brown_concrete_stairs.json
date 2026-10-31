@@ -1,6 +1,7 @@
 {
  "id": 214,
  "name": "BROWN_CONCRETE_STAIRS",
+ "shape": "stairs",
  "textures": {
   "all": "concrete_brown"
  }

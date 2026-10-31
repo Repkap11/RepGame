@@ -1,6 +1,7 @@
 {
  "id": 1085,
  "name": "RED_WOOL_STAIRS",
+ "shape": "stairs",
  "textures": {
   "all": "wool_colored_red"
  }

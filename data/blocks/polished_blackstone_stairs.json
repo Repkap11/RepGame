@@ -1,6 +1,7 @@
 {
  "id": 939,
  "name": "POLISHED_BLACKSTONE_STAIRS",
+ "shape": "stairs",
  "textures": {
   "all": "polished_blackstone"
  }

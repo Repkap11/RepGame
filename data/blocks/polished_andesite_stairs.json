@@ -1,6 +1,7 @@
 {
  "id": 927,
  "name": "POLISHED_ANDESITE_STAIRS",
+ "shape": "stairs",
  "textures": {
   "all": "stone_andesite_smooth"
  }

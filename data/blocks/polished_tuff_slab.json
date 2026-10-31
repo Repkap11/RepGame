@@ -1,6 +1,7 @@
 {
  "id": 966,
  "name": "POLISHED_TUFF_SLAB",
+ "shape": "slab",
  "textures": {
   "all": "polished_tuff"
  }

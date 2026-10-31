@@ -1,6 +1,7 @@
 {
  "id": 895,
  "name": "PALE_OAK_STANDING_SIGN",
+ "shape": "sign",
  "textures": {
   "all": "pale_oak_planks"
  }

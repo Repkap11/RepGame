@@ -1,6 +1,7 @@
 {
  "id": 827,
  "name": "OAK_STAIRS",
+ "shape": "stairs",
  "textures": {
   "all": "planks_oak"
  }

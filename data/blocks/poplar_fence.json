@@ -1,6 +1,7 @@
 {
  "id": 972,
  "name": "POPLAR_FENCE",
+ "shape": "fence",
  "textures": {
   "all": "poplar_planks"
  }

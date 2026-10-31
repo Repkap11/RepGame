@@ -1,6 +1,7 @@
 {
  "id": 1210,
  "name": "SULFUR_STAIRS",
+ "shape": "stairs",
  "textures": {
   "all": "sulfur"
  }

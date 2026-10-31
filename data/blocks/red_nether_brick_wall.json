@@ -1,6 +1,7 @@
 {
  "id": 1073,
  "name": "RED_NETHER_BRICK_WALL",
+ "shape": "wall",
  "textures": {
   "all": "red_nether_brick"
  }

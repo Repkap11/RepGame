@@ -1,6 +1,7 @@
 {
  "id": 1271,
  "name": "WARPED_HANGING_SIGN",
+ "shape": "hanging_sign",
  "textures": {
   "all": "warped_planks"
  }

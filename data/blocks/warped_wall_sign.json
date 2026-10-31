@@ -1,6 +1,7 @@
 {
  "id": 1283,
  "name": "WARPED_WALL_SIGN",
+ "shape": "sign",
  "textures": {
   "all": "warped_planks"
  }

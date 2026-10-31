@@ -1,6 +1,7 @@
 {
  "id": 466,
  "name": "DARKOAK_STANDING_SIGN",
+ "shape": "sign",
  "textures": {
   "all": "planks_big_oak"
  }

@@ -1,6 +1,7 @@
 {
  "id": 263,
  "name": "CHERRY_FENCE_GATE",
+ "shape": "fence_gate",
  "textures": {
   "all": "cherry_planks"
  }

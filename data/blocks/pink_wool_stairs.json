@@ -1,6 +1,7 @@
 {
  "id": 919,
  "name": "PINK_WOOL_STAIRS",
+ "shape": "stairs",
  "textures": {
   "all": "wool_colored_pink"
  }

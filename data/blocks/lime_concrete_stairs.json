@@ -1,6 +1,7 @@
 {
  "id": 720,
  "name": "LIME_CONCRETE_STAIRS",
+ "shape": "stairs",
  "textures": {
   "all": "concrete_lime"
  }

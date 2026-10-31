@@ -1,6 +1,7 @@
 {
  "id": 1154,
  "name": "SPRUCE_TRAPDOOR",
+ "shape": "trapdoor",
  "textures": {
   "all": "spruce_trapdoor"
  }

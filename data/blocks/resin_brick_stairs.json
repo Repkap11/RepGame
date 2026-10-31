@@ -1,6 +1,7 @@
 {
  "id": 1092,
  "name": "RESIN_BRICK_STAIRS",
+ "shape": "stairs",
  "textures": {
   "all": "resin_bricks"
  }

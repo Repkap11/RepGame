@@ -1,6 +1,7 @@
 {
  "id": 413,
  "name": "CRIMSON_STANDING_SIGN",
+ "shape": "sign",
  "textures": {
   "all": "crimson_planks"
  }

@@ -1,6 +1,7 @@
 {
  "id": 759,
  "name": "MANGROVE_FENCE",
+ "shape": "fence",
  "textures": {
   "all": "mangrove_planks"
  }

@@ -1,6 +1,7 @@
 {
  "id": 1007,
  "name": "PRISMARINE_STAIRS",
+ "shape": "stairs",
  "textures": {
   "all": "prismarine_rough"
  }

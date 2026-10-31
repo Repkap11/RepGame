@@ -1,6 +1,7 @@
 {
  "id": 961,
  "name": "POLISHED_SULFUR_SLAB",
+ "shape": "slab",
  "textures": {
   "all": "polished_sulfur"
  }

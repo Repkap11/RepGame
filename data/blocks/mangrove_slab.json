@@ -1,6 +1,7 @@
 {
  "id": 769,
  "name": "MANGROVE_SLAB",
+ "shape": "slab",
  "textures": {
   "all": "mangrove_planks"
  }

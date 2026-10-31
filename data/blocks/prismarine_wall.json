@@ -1,6 +1,7 @@
 {
  "id": 1008,
  "name": "PRISMARINE_WALL",
+ "shape": "wall",
  "textures": {
   "all": "prismarine_rough"
  }

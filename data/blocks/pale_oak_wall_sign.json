@@ -1,6 +1,7 @@
 {
  "id": 897,
  "name": "PALE_OAK_WALL_SIGN",
+ "shape": "sign",
  "textures": {
   "all": "pale_oak_planks"
  }

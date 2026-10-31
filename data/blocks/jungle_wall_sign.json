@@ -1,6 +1,7 @@
 {
  "id": 665,
  "name": "JUNGLE_WALL_SIGN",
+ "shape": "sign",
  "textures": {
   "all": "planks_jungle"
  }

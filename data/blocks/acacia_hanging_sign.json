@@ -1,6 +1,7 @@
 {
  "id": 11,
  "name": "ACACIA_HANGING_SIGN",
+ "shape": "hanging_sign",
  "textures": {
   "all": "planks_acacia"
  }

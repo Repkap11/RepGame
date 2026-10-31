@@ -1,6 +1,7 @@
 {
  "id": 127,
  "name": "BIRCH_HANGING_SIGN",
+ "shape": "hanging_sign",
  "textures": {
   "all": "planks_birch"
  }

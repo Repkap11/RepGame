@@ -1,6 +1,7 @@
 {
  "id": 1346,
  "name": "WAXED_WEATHERED_CUT_COPPER_STAIRS",
+ "shape": "stairs",
  "textures": {
   "all": "weathered_cut_copper"
  }

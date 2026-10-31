@@ -1,6 +1,7 @@
 {
  "id": 639,
  "name": "HEAVY_WEIGHTED_PRESSURE_PLATE",
+ "shape": "pressure_plate",
  "textures": {
   "all": "iron_block"
  }

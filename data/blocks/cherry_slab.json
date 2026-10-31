@@ -1,6 +1,7 @@
 {
  "id": 271,
  "name": "CHERRY_SLAB",
+ "shape": "slab",
  "textures": {
   "all": "cherry_planks"
  }

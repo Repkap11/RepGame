@@ -1,6 +1,7 @@
 {
  "id": 1091,
  "name": "RESIN_BRICK_SLAB",
+ "shape": "slab",
  "textures": {
   "all": "resin_bricks"
  }

@@ -411,7 +411,8 @@ int test_creative( ) {
 
     auto contains = [ & ]( BlockID bid ) { return seen[ bid ] != 0; };
     check_bool( "creative: ACACIA_PLANKS listed", contains( ACACIA_PLANKS ) );
-    check_bool( "creative: ACACIA_FENCE hidden", !contains( ACACIA_FENCE ) );
+    check_bool( "creative: ACACIA_FENCE listed", contains( ACACIA_FENCE ) );
+    check_bool( "creative: ACACIA_STAIRS listed", contains( ACACIA_STAIRS ) );
     check_bool( "creative: ACACIA_DOUBLE_SLAB hidden", !contains( ACACIA_DOUBLE_SLAB ) );
     check_bool( "creative: GRASS listed", contains( GRASS ) );
     check_bool( "creative: STONE listed", contains( STONE ) );

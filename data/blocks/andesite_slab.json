@@ -1,6 +1,7 @@
 {
  "id": 63,
  "name": "ANDESITE_SLAB",
+ "shape": "slab",
  "textures": {
   "all": "stone_andesite"
  }

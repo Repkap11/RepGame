@@ -1,6 +1,7 @@
 {
  "id": 962,
  "name": "POLISHED_SULFUR_STAIRS",
+ "shape": "stairs",
  "textures": {
   "all": "polished_sulfur"
  }

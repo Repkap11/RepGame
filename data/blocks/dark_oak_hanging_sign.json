@@ -1,6 +1,7 @@
 {
  "id": 450,
  "name": "DARK_OAK_HANGING_SIGN",
+ "shape": "hanging_sign",
  "textures": {
   "all": "planks_big_oak"
  }

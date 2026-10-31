@@ -1,6 +1,7 @@
 {
  "id": 103,
  "name": "BAMBOO_STAIRS",
+ "shape": "stairs",
  "textures": {
   "all": "bamboo_planks"
  }

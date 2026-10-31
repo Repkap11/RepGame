@@ -63,11 +63,70 @@ INT_FIELDS = {"no_light", "flows", "initial_redstone_power", "emits_light", "lig
 FLOAT_FIELDS = {"hardness"}
 VEC3_SHORT = {"scale", "offset", "tex_offset"}
 VEC3_BOOL = {"hides_self"}
-STRUCT_META = {"id", "name", "aliases", "textures", "icon",
+STRUCT_META = {"id", "name", "aliases", "textures", "icon", "shape",
                "render_order", "needs_place_on_any_solid", "creative"}
 KNOWN_KEYS = STRUCT_META | BOOL_FIELDS | INT_FIELDS | FLOAT_FIELDS | VEC3_SHORT | VEC3_BOOL
 
 TEX_META_KEYS = {"source", "random_rotate", "tint", "alpha", "frame", "keep"}
+
+SHAPES_JSON = os.path.join(DATA_DIR, "shapes.json")
+
+
+def load_shapes():
+    """data/shapes.json: silhouette masks + geometry templates for the
+    "shape" block key. Returns {"cutout": props, "masks": {name: rows},
+    "templates": {name: {"template": BLOCK, "drop": [...], <overrides>}}."""
+    if not os.path.exists(SHAPES_JSON):
+        return {"cutout": {}, "masks": {}, "templates": {}}
+    with open(SHAPES_JSON) as f:
+        s = json.load(f)
+    masks = s.get("masks", {})
+    for name, rows in masks.items():
+        if (not isinstance(rows, list) or len(rows) != TILE or
+                any(not isinstance(r, str) or len(r) != TILE or
+                    set(r) - {"#", "."} for r in rows)):
+            fail("shapes.json: mask %r must be %d rows of %d '#'/'.' chars" %
+                 (name, TILE, TILE))
+    templates = s.get("templates", {})
+    for name, t in templates.items():
+        if not isinstance(t, dict) or not isinstance(t.get("template"), str):
+            fail("shapes.json: template %r must be an object with a \"template\" block name" % name)
+    return {"cutout": s.get("cutout", {}), "masks": masks, "templates": templates}
+
+
+SHAPES = load_shapes()
+
+
+def apply_shape(blocks, names):
+    """Apply each block's "shape": mask shapes get the shared cutout property
+    set; template shapes copy geometry + behaviour from a named block.
+    Explicit keys in the block's own JSON always win."""
+    for bid, b in blocks.items():
+        shape = b.get("shape")
+        if shape is None:
+            continue
+        if shape in SHAPES["masks"]:
+            for k, v in SHAPES["cutout"].items():
+                b.setdefault(k, v)
+        elif shape in SHAPES["templates"]:
+            t = SHAPES["templates"][shape]
+            tname = t["template"]
+            tbid = names.get(tname)
+            if tbid is None:
+                fail("%s: shape %r template block %s not found" % (b["_file"], shape, tname))
+            explicit = set(b) - {"_file"}
+            skip = {"id", "name", "aliases", "textures", "icon", "shape",
+                    "creative", "_file"} | set(t.get("drop", []))
+            for k, v in blocks[tbid].items():
+                if k not in skip and k not in explicit:
+                    b[k] = v
+            # shapes.json entry overrides beat the template but not the
+            # block's own JSON.
+            for k, v in t.items():
+                if k not in ("template", "drop") and k not in explicit:
+                    b[k] = v
+        else:
+            fail("%s: unknown shape %r (not in shapes.json)" % (b["_file"], shape))
 
 # --- creative inventory ordering -------------------------------------------
 
@@ -297,6 +356,7 @@ def load_blocks():
         b["_file"] = fname
         blocks[bid] = b
         names[name] = bid
+    apply_shape(blocks, names)
     return blocks
 
 
@@ -421,6 +481,34 @@ def main():
     images = {}
     for name in sorted(used):
         images[name] = resolve_image(name, tex_meta.get(name, {}))
+
+    # Silhouette (mask) shapes: the 4 side faces become generated
+    # <face_tex>__<shape> tiles — the fully resolved face image (frame/tint/
+    # alpha already applied) with masked-out pixels set to transparent black.
+    # Top and bottom keep the plain material texture. The generated tiles
+    # merge like any other byte-identical texture.
+    side_idx = [FACE_KEYS.index(k) for k in SIDE_FACES]
+    for bid, b in sorted(blocks.items()):
+        shape = b.get("shape")
+        if shape not in SHAPES["masks"]:
+            continue
+        mask = SHAPES["masks"][shape]
+        faces = resolved[bid]["faces"]
+        for i in side_idx:
+            src = faces[i]
+            mname = "%s__%s" % (src, shape)
+            if mname not in images:
+                img = images[src].copy()
+                px = img.load()
+                for r in range(TILE):
+                    mrow = mask[r]
+                    for c in range(TILE):
+                        if mrow[c] == ".":
+                            px[c, r] = (0, 0, 0, 0)
+                images[mname] = img
+            faces[i] = mname
+            used.add(mname)
+
     canon_members = {}  # canonical name -> [member names]
     for name in sorted(images):
         key = images[name].tobytes()
@@ -542,7 +630,7 @@ def main():
             out.append("block_definitions[ %d ].textures[ %s ] = TEX_%s;\n" % (bid, FACE_CONST[face], r["faces"][FACE_KEYS.index(face)].upper()))
         out.append("block_definitions[ %d ].icon_texture = TEX_%s;\n" % (bid, r["icon"].upper()))
         for key in sorted(b):
-            if key in {"_file", "id", "name", "aliases", "textures", "icon", "creative"}:
+            if key in {"_file", "id", "name", "aliases", "textures", "icon", "shape", "creative"}:
                 continue
             val = b[key]
             prefix = "block_definitions[ %d ]." % bid

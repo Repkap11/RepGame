@@ -1,6 +1,7 @@
 {
  "id": 547,
  "name": "END_BRICK_STAIRS",
+ "shape": "stairs",
  "textures": {
   "all": "end_bricks"
  }

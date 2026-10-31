@@ -1,6 +1,7 @@
 {
  "id": 531,
  "name": "DIORITE_WALL",
+ "shape": "wall",
  "textures": {
   "all": "stone_diorite"
  }

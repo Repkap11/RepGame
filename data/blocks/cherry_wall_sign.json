@@ -1,6 +1,7 @@
 {
  "id": 277,
  "name": "CHERRY_WALL_SIGN",
+ "shape": "sign",
  "textures": {
   "all": "cherry_planks"
  }

@@ -1,6 +1,7 @@
 {
  "id": 901,
  "name": "PETRIFIED_OAK_SLAB",
+ "shape": "slab",
  "textures": {
   "all": "planks_oak"
  }

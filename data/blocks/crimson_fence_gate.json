@@ -1,6 +1,7 @@
 {
  "id": 384,
  "name": "CRIMSON_FENCE_GATE",
+ "shape": "fence_gate",
  "textures": {
   "all": "crimson_planks"
  }

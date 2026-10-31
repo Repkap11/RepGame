@@ -1,6 +1,7 @@
 {
  "id": 696,
  "name": "LIGHT_GRAY_CARPET",
+ "shape": "carpet",
  "textures": {
   "all": "wool_colored_silver"
  }

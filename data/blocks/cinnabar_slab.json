@@ -1,6 +1,7 @@
 {
  "id": 309,
  "name": "CINNABAR_SLAB",
+ "shape": "slab",
  "textures": {
   "all": "cinnabar"
  }

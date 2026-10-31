@@ -1,6 +1,7 @@
 {
  "id": 787,
  "name": "MOSSY_STONE_BRICK_STAIRS",
+ "shape": "stairs",
  "textures": {
   "all": "stonebrick_mossy"
  }

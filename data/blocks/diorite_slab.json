@@ -1,6 +1,7 @@
 {
  "id": 529,
  "name": "DIORITE_SLAB",
+ "shape": "slab",
  "textures": {
   "all": "stone_diorite"
  }

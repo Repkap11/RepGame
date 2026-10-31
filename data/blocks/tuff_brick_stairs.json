@@ -1,6 +1,7 @@
 {
  "id": 1248,
  "name": "TUFF_BRICK_STAIRS",
+ "shape": "stairs",
  "textures": {
   "all": "tuff_bricks"
  }

@@ -1,6 +1,7 @@
 {
  "id": 66,
  "name": "ANDESITE_WALL",
+ "shape": "wall",
  "textures": {
   "all": "stone_andesite"
  }

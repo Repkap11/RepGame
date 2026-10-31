@@ -1,6 +1,7 @@
 {
  "id": 539,
  "name": "DOUBLE_WOODEN_SLAB",
+ "shape": "slab",
  "textures": {
   "all": "planks_oak"
  }

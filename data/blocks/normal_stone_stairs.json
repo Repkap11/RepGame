@@ -1,6 +1,7 @@
 {
  "id": 814,
  "name": "NORMAL_STONE_STAIRS",
+ "shape": "stairs",
  "textures": {
   "all": "stone"
  }

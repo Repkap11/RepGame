@@ -1,6 +1,7 @@
 {
  "id": 660,
  "name": "JUNGLE_HANGING_SIGN",
+ "shape": "hanging_sign",
  "textures": {
   "all": "planks_jungle"
  }

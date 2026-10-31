@@ -1,6 +1,7 @@
 {
  "id": 264,
  "name": "CHERRY_HANGING_SIGN",
+ "shape": "hanging_sign",
  "textures": {
   "all": "cherry_planks"
  }

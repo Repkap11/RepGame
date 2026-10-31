@@ -1,6 +1,7 @@
 {
  "id": 982,
  "name": "POPLAR_STANDING_SIGN",
+ "shape": "sign",
  "textures": {
   "all": "poplar_planks"
  }

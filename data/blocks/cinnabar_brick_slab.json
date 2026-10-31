@@ -1,6 +1,7 @@
 {
  "id": 304,
  "name": "CINNABAR_BRICK_SLAB",
+ "shape": "slab",
  "textures": {
   "all": "cinnabar_bricks"
  }

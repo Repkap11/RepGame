@@ -1,6 +1,7 @@
 {
  "id": 496,
  "name": "DEEPSLATE_BRICK_WALL",
+ "shape": "wall",
  "textures": {
   "all": "deepslate_bricks"
  }

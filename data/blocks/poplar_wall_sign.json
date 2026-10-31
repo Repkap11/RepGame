@@ -1,6 +1,7 @@
 {
  "id": 984,
  "name": "POPLAR_WALL_SIGN",
+ "shape": "sign",
  "textures": {
   "all": "poplar_planks"
  }

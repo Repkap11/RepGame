@@ -1,6 +1,7 @@
 {
  "id": 378,
  "name": "CRIMSON_BUTTON",
+ "shape": "button",
  "textures": {
   "all": "crimson_planks"
  }

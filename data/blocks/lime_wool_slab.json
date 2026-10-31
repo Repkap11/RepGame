@@ -1,6 +1,7 @@
 {
  "id": 727,
  "name": "LIME_WOOL_SLAB",
+ "shape": "slab",
  "textures": {
   "all": "wool_colored_lime"
  }

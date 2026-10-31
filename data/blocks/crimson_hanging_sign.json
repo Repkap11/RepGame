@@ -1,6 +1,7 @@
 {
  "id": 397,
  "name": "CRIMSON_HANGING_SIGN",
+ "shape": "hanging_sign",
  "textures": {
   "all": "crimson_planks"
  }

@@ -1,6 +1,7 @@
 {
  "id": 409,
  "name": "CRIMSON_SLAB",
+ "shape": "slab",
  "textures": {
   "all": "crimson_planks"
  }

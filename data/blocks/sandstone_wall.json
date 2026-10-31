@@ -1,6 +1,7 @@
 {
  "id": 1100,
  "name": "SANDSTONE_WALL",
+ "shape": "wall",
  "textures": {
   "all": "sandstone_normal"
  }

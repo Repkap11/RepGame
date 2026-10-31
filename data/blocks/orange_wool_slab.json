@@ -1,6 +1,7 @@
 {
  "id": 849,
  "name": "ORANGE_WOOL_SLAB",
+ "shape": "slab",
  "textures": {
   "all": "wool_colored_orange"
  }

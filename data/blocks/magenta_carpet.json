@@ -1,6 +1,7 @@
 {
  "id": 740,
  "name": "MAGENTA_CARPET",
+ "shape": "carpet",
  "textures": {
   "all": "wool_colored_magenta"
  }

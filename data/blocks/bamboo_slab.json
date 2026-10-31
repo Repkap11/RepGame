@@ -1,6 +1,7 @@
 {
  "id": 102,
  "name": "BAMBOO_SLAB",
+ "shape": "slab",
  "textures": {
   "all": "bamboo_planks"
  }

@@ -1,6 +1,7 @@
 {
  "id": 662,
  "name": "JUNGLE_STAIRS",
+ "shape": "stairs",
  "textures": {
   "all": "planks_jungle"
  }

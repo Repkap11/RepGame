@@ -1,6 +1,7 @@
 {
  "id": 953,
  "name": "POLISHED_DIORITE_SLAB",
+ "shape": "slab",
  "textures": {
   "all": "stone_diorite_smooth"
  }

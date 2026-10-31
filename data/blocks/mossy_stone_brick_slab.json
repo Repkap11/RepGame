@@ -1,6 +1,7 @@
 {
  "id": 786,
  "name": "MOSSY_STONE_BRICK_SLAB",
+ "shape": "slab",
  "textures": {
   "all": "stonebrick_mossy"
  }

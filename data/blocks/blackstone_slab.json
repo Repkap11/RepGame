@@ -1,6 +1,7 @@
 {
  "id": 174,
  "name": "BLACKSTONE_SLAB",
+ "shape": "slab",
  "textures": {
   "all": "blackstone"
  }

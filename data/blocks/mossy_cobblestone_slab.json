@@ -1,6 +1,7 @@
 {
  "id": 782,
  "name": "MOSSY_COBBLESTONE_SLAB",
+ "shape": "slab",
  "textures": {
   "all": "cobblestone_mossy"
  }

@@ -1,6 +1,7 @@
 {
  "id": 728,
  "name": "LIME_WOOL_STAIRS",
+ "shape": "stairs",
  "textures": {
   "all": "wool_colored_lime"
  }

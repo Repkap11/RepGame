@@ -1,6 +1,7 @@
 {
  "id": 1076,
  "name": "RED_SANDSTONE_STAIRS",
+ "shape": "stairs",
  "textures": {
   "bottom": "red_sandstone_bottom",
   "side": "red_sandstone_normal",

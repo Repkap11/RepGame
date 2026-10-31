@@ -465,7 +465,8 @@ tiles copy `GLASS`/leaves (see-through, `should_draw_*` off);
 partial-alpha tiles copy a translucent template like `GLASS_LIGHT_BLUE`;
 cross-quad plants copy the `Flowers` render template. Unrenderable shapes
 (stairs, fences, walls, doors, signs, beds, rails, panes, trapdoors...) are
-placeholder full cubes until a render class exists for them. Default
+placeholder full cubes until a render class exists for them — see
+`data/shapes.json` below for the workaround. Default
 hardness is 1.5. Light emitters set `emits_light` and mirror the torch-style
 flags (`no_light`, `casts_shadow:false`): sea_lantern/lantern/shroomlight/
 lit_pumpkin/beacon/conduit/froglights/campfire/end_gateway/end_portal 15,
@@ -484,6 +485,20 @@ placeable blocks. `"creative": true|false` in a block JSON forces listing
 on/off. The list is grouped by material — the name minus `STRIPPED_`/`WAXED_`
 prefixes and one shape suffix, with dye-coloured blocks grouped into colour
 families (WOOL, CONCRETE, STAINED_GLASS, ...) sorted in dye order.
+
+A block JSON may set `"shape": "<name>"` (defined in `data/shapes.json`,
+two kinds). **Mask shapes** (stairs, fence, fence_gate, wall, banner,
+hanging_sign, sign) are for silhouettes we can't render: the importer
+replaces the 4 side faces with generated `<face_tex>__<shape>` tiles — the
+resolved source tile with the mask's `.` pixels cut to transparent black —
+and applies the shared `cutout` property set (see-through, no light
+blocking, no shadow). Top/bottom keep the plain material texture.
+**Template shapes** (slab, button, pressure_plate, carpet, trapdoor) copy
+geometry (`scale`/`offset`/`tex_offset`) plus behaviour properties
+(`is_button`, `is_pressure_plate`, `collides_with_player`, ...) from a named
+kept block via `"template"`; `"drop"` removes copied keys and other entry
+keys override the template but not the block's own JSON. Textures always
+stay the block's own.
 
 `REPGAME_BLOCK_WORLD=1` ("block world") is a debug mode for eyeballing
 every block: `make linux-run-blocks` runs it. Normal terrain, structures,

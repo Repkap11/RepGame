@@ -1,6 +1,7 @@
 {
  "id": 949,
  "name": "POLISHED_DEEPSLATE_STAIRS",
+ "shape": "stairs",
  "textures": {
   "all": "polished_deepslate"
  }

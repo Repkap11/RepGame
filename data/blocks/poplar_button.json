@@ -1,6 +1,7 @@
 {
  "id": 969,
  "name": "POPLAR_BUTTON",
+ "shape": "button",
  "textures": {
   "all": "poplar_planks"
  }

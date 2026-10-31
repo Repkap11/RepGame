@@ -1,6 +1,7 @@
 {
  "id": 709,
  "name": "LIGHT_GRAY_WOOL_STAIRS",
+ "shape": "stairs",
  "textures": {
   "all": "wool_colored_silver"
  }

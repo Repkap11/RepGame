@@ -1,6 +1,7 @@
 {
  "id": 904,
  "name": "PINK_CARPET",
+ "shape": "carpet",
  "textures": {
   "all": "wool_colored_pink"
  }

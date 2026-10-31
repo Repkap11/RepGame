@@ -1,6 +1,7 @@
 {
  "id": 980,
  "name": "POPLAR_SLAB",
+ "shape": "slab",
  "textures": {
   "all": "poplar_planks"
  }

@@ -1,6 +1,7 @@
 {
  "id": 1093,
  "name": "RESIN_BRICK_WALL",
+ "shape": "wall",
  "textures": {
   "all": "resin_bricks"
  }

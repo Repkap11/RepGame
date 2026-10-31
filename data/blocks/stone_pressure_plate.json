@@ -1,6 +1,7 @@
 {
  "id": 1165,
  "name": "STONE_PRESSURE_PLATE",
+ "shape": "pressure_plate",
  "textures": {
   "all": "stone"
  }

@@ -1,6 +1,7 @@
 {
  "id": 75,
  "name": "BAMBOO_BUTTON",
+ "shape": "button",
  "textures": {
   "all": "bamboo_planks"
  }

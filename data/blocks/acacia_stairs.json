@@ -1,6 +1,7 @@
 {
  "id": 23,
  "name": "ACACIA_STAIRS",
+ "shape": "stairs",
  "textures": {
   "all": "planks_acacia"
  }

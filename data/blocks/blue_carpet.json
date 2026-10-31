@@ -1,6 +1,7 @@
 {
  "id": 181,
  "name": "BLUE_CARPET",
+ "shape": "carpet",
  "textures": {
   "all": "wool_colored_blue"
  }

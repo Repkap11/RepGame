@@ -1,6 +1,7 @@
 {
  "id": 926,
  "name": "POLISHED_ANDESITE_SLAB",
+ "shape": "slab",
  "textures": {
   "all": "stone_andesite_smooth"
  }

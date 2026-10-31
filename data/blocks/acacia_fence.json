@@ -1,6 +1,7 @@
 {
  "id": 7,
  "name": "ACACIA_FENCE",
+ "shape": "fence",
  "textures": {
   "all": "planks_acacia"
  }

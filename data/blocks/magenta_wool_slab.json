@@ -1,6 +1,7 @@
 {
  "id": 753,
  "name": "MAGENTA_WOOL_SLAB",
+ "shape": "slab",
  "textures": {
   "all": "wool_colored_magenta"
  }

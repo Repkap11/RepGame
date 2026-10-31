@@ -1,6 +1,7 @@
 {
  "id": 107,
  "name": "BAMBOO_WALL_SIGN",
+ "shape": "sign",
  "textures": {
   "all": "bamboo_planks"
  }

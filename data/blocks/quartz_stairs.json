@@ -1,6 +1,7 @@
 {
  "id": 1040,
  "name": "QUARTZ_STAIRS",
+ "shape": "stairs",
  "textures": {
   "bottom": "quartz_block_top",
   "side": "quartz_block_side",

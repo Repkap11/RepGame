@@ -1,6 +1,7 @@
 {
  "id": 954,
  "name": "POLISHED_DIORITE_STAIRS",
+ "shape": "stairs",
  "textures": {
   "all": "stone_diorite_smooth"
  }

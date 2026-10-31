@@ -1,6 +1,7 @@
 {
  "id": 1269,
  "name": "WARPED_FENCE_GATE",
+ "shape": "fence_gate",
  "textures": {
   "all": "warped_planks"
  }

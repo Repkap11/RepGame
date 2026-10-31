@@ -1,6 +1,7 @@
 {
  "id": 765,
  "name": "MANGROVE_PRESSURE_PLATE",
+ "shape": "pressure_plate",
  "textures": {
   "all": "mangrove_planks"
  }

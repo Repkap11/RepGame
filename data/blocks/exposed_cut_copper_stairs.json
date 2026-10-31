@@ -1,6 +1,7 @@
 {
  "id": 571,
  "name": "EXPOSED_CUT_COPPER_STAIRS",
+ "shape": "stairs",
  "textures": {
   "all": "exposed_cut_copper"
  }

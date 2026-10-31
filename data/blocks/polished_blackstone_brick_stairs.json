@@ -1,6 +1,7 @@
 {
  "id": 932,
  "name": "POLISHED_BLACKSTONE_BRICK_STAIRS",
+ "shape": "stairs",
  "textures": {
   "all": "polished_blackstone_bricks"
  }

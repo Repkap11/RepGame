@@ -1,6 +1,7 @@
 {
  "id": 513,
  "name": "DEEPSLATE_TILE_STAIRS",
+ "shape": "stairs",
  "textures": {
   "all": "deepslate_tiles"
  }

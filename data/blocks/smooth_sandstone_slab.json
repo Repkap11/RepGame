@@ -1,6 +1,7 @@
 {
  "id": 1130,
  "name": "SMOOTH_SANDSTONE_SLAB",
+ "shape": "slab",
  "textures": {
   "all": "sandstone_top"
  }

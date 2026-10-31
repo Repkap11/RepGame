@@ -1,6 +1,7 @@
 {
  "id": 1123,
  "name": "SMOOTH_QUARTZ_SLAB",
+ "shape": "slab",
  "textures": {
   "all": "quartz_block_bottom"
  }

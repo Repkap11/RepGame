@@ -1,6 +1,7 @@
 {
  "id": 257,
  "name": "CHERRY_BUTTON",
+ "shape": "button",
  "textures": {
   "all": "cherry_planks"
  }

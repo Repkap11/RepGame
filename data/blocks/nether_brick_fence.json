@@ -1,6 +1,7 @@
 {
  "id": 802,
  "name": "NETHER_BRICK_FENCE",
+ "shape": "fence",
  "textures": {
   "all": "nether_brick"
  }

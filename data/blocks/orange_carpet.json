@@ -1,6 +1,7 @@
 {
  "id": 835,
  "name": "ORANGE_CARPET",
+ "shape": "carpet",
  "textures": {
   "all": "wool_colored_orange"
  }

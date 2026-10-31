@@ -1,6 +1,7 @@
 {
  "id": 1126,
  "name": "SMOOTH_RED_SANDSTONE_SLAB",
+ "shape": "slab",
  "textures": {
   "all": "red_sandstone_top"
  }

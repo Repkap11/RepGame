@@ -1,6 +1,7 @@
 {
  "id": 967,
  "name": "POLISHED_TUFF_STAIRS",
+ "shape": "stairs",
  "textures": {
   "all": "polished_tuff"
  }

@@ -1,6 +1,7 @@
 {
  "id": 977,
  "name": "POPLAR_PRESSURE_PLATE",
+ "shape": "pressure_plate",
  "textures": {
   "all": "poplar_planks"
  }

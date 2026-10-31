@@ -1,6 +1,7 @@
 {
  "id": 556,
  "name": "END_STONE_BRICK_WALL",
+ "shape": "wall",
  "textures": {
   "all": "end_bricks"
  }

@@ -1,6 +1,7 @@
 {
  "id": 1146,
  "name": "SPRUCE_FENCE",
+ "shape": "fence",
  "textures": {
   "all": "planks_spruce"
  }

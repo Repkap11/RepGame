@@ -1,6 +1,7 @@
 {
  "id": 944,
  "name": "POLISHED_CINNABAR_STAIRS",
+ "shape": "stairs",
  "textures": {
   "all": "polished_cinnabar"
  }

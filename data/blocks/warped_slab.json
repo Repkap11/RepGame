@@ -1,6 +1,7 @@
 {
  "id": 1278,
  "name": "WARPED_SLAB",
+ "shape": "slab",
  "textures": {
   "all": "warped_planks"
  }

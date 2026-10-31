@@ -1,6 +1,7 @@
 {
  "id": 1297,
  "name": "WAXED_CUT_COPPER_SLAB",
+ "shape": "slab",
  "textures": {
   "all": "cut_copper"
  }

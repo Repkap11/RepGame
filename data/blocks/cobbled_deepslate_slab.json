@@ -1,6 +1,7 @@
 {
  "id": 322,
  "name": "COBBLED_DEEPSLATE_SLAB",
+ "shape": "slab",
  "textures": {
   "all": "cobbled_deepslate"
  }

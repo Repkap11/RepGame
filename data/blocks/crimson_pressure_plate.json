@@ -1,6 +1,7 @@
 {
  "id": 404,
  "name": "CRIMSON_PRESSURE_PLATE",
+ "shape": "pressure_plate",
  "textures": {
   "all": "crimson_planks"
  }

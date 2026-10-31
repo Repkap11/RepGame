@@ -1,6 +1,7 @@
 {
  "id": 940,
  "name": "POLISHED_BLACKSTONE_WALL",
+ "shape": "wall",
  "textures": {
   "all": "polished_blackstone"
  }

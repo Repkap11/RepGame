@@ -1,6 +1,7 @@
 {
  "id": 1084,
  "name": "RED_WOOL_SLAB",
+ "shape": "slab",
  "textures": {
   "all": "wool_colored_red"
  }

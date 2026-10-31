@@ -1,6 +1,7 @@
 {
  "id": 1170,
  "name": "STONE_STAIRS",
+ "shape": "stairs",
  "textures": {
   "all": "cobblestone"
  }

@@ -1,6 +1,7 @@
 {
  "id": 1204,
  "name": "SULFUR_BRICK_STAIRS",
+ "shape": "stairs",
  "textures": {
   "all": "sulfur_bricks"
  }

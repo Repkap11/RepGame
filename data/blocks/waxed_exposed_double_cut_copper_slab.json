@@ -1,6 +1,7 @@
 {
  "id": 1314,
  "name": "WAXED_EXPOSED_DOUBLE_CUT_COPPER_SLAB",
+ "shape": "slab",
  "textures": {
   "all": "exposed_cut_copper"
  }

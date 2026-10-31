@@ -1,6 +1,7 @@
 {
  "id": 326,
  "name": "COBBLESTONE_WALL",
+ "shape": "wall",
  "textures": {
   "all": "cobblestone"
  }

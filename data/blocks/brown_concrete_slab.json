@@ -1,6 +1,7 @@
 {
  "id": 213,
  "name": "BROWN_CONCRETE_SLAB",
+ "shape": "slab",
  "textures": {
   "all": "concrete_brown"
  }

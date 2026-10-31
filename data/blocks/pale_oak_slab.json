@@ -1,6 +1,7 @@
 {
  "id": 893,
  "name": "PALE_OAK_SLAB",
+ "shape": "slab",
  "textures": {
   "all": "pale_oak_planks"
  }

@@ -1,6 +1,7 @@
 {
  "id": 948,
  "name": "POLISHED_DEEPSLATE_SLAB",
+ "shape": "slab",
  "textures": {
   "all": "polished_deepslate"
  }

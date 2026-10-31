@@ -1,6 +1,7 @@
 {
  "id": 890,
  "name": "PALE_OAK_PRESSURE_PLATE",
+ "shape": "pressure_plate",
  "textures": {
   "all": "pale_oak_planks"
  }

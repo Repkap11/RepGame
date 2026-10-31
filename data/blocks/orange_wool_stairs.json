@@ -1,6 +1,7 @@
 {
  "id": 850,
  "name": "ORANGE_WOOL_STAIRS",
+ "shape": "stairs",
  "textures": {
   "all": "wool_colored_orange"
  }

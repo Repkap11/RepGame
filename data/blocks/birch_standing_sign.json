@@ -1,6 +1,7 @@
 {
  "id": 138,
  "name": "BIRCH_STANDING_SIGN",
+ "shape": "sign",
  "textures": {
   "all": "planks_birch"
  }

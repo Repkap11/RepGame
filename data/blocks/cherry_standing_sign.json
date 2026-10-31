@@ -1,6 +1,7 @@
 {
  "id": 273,
  "name": "CHERRY_STANDING_SIGN",
+ "shape": "sign",
  "textures": {
   "all": "cherry_planks"
  }

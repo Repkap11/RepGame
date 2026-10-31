@@ -1,6 +1,7 @@
 {
  "id": 773,
  "name": "MANGROVE_WALL_SIGN",
+ "shape": "sign",
  "textures": {
   "all": "mangrove_planks"
  }

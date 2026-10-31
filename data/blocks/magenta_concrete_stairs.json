@@ -1,6 +1,7 @@
 {
  "id": 745,
  "name": "MAGENTA_CONCRETE_STAIRS",
+ "shape": "stairs",
  "textures": {
   "all": "concrete_magenta"
  }

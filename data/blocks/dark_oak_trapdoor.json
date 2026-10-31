@@ -1,6 +1,7 @@
 {
  "id": 459,
  "name": "DARK_OAK_TRAPDOOR",
+ "shape": "trapdoor",
  "textures": {
   "all": "dark_oak_trapdoor"
  }

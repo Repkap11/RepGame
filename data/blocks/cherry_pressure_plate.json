@@ -1,6 +1,7 @@
 {
  "id": 268,
  "name": "CHERRY_PRESSURE_PLATE",
+ "shape": "pressure_plate",
  "textures": {
   "all": "cherry_planks"
  }

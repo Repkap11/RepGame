@@ -1,6 +1,7 @@
 {
  "id": 1275,
  "name": "WARPED_PRESSURE_PLATE",
+ "shape": "pressure_plate",
  "textures": {
   "all": "warped_planks"
  }

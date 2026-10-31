@@ -1,6 +1,7 @@
 {
  "id": 64,
  "name": "ANDESITE_STAIRS",
+ "shape": "stairs",
  "textures": {
   "all": "stone_andesite"
  }

@@ -1,6 +1,7 @@
 {
  "id": 1264,
  "name": "WALL_SIGN",
+ "shape": "sign",
  "textures": {
   "all": "planks_oak"
  }

@@ -1,6 +1,7 @@
 {
  "id": 205,
  "name": "BRICK_STAIRS",
+ "shape": "stairs",
  "textures": {
   "all": "brick"
  }

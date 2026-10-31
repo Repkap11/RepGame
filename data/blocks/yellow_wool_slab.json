@@ -1,6 +1,7 @@
 {
  "id": 1404,
  "name": "YELLOW_WOOL_SLAB",
+ "shape": "slab",
  "textures": {
   "all": "wool_colored_yellow"
  }

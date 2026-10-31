@@ -1,6 +1,7 @@
 {
  "id": 756,
  "name": "MANGROVE_BUTTON",
+ "shape": "button",
  "textures": {
   "all": "mangrove_planks"
  }

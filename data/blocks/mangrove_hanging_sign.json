@@ -1,6 +1,7 @@
 {
  "id": 761,
  "name": "MANGROVE_HANGING_SIGN",
+ "shape": "hanging_sign",
  "textures": {
   "all": "mangrove_planks"
  }

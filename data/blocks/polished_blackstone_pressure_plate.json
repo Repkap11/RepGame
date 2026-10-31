@@ -1,6 +1,7 @@
 {
  "id": 937,
  "name": "POLISHED_BLACKSTONE_PRESSURE_PLATE",
+ "shape": "pressure_plate",
  "textures": {
   "all": "polished_blackstone"
  }

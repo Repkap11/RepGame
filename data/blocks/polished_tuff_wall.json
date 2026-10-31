@@ -1,6 +1,7 @@
 {
  "id": 968,
  "name": "POLISHED_TUFF_WALL",
+ "shape": "wall",
  "textures": {
   "all": "polished_tuff"
  }

@@ -1,6 +1,7 @@
 {
  "id": 468,
  "name": "DARKOAK_WALL_SIGN",
+ "shape": "sign",
  "textures": {
   "all": "planks_big_oak"
  }

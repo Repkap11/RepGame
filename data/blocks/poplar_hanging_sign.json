@@ -1,6 +1,7 @@
 {
  "id": 974,
  "name": "POPLAR_HANGING_SIGN",
+ "shape": "hanging_sign",
  "textures": {
   "all": "poplar_planks"
  }

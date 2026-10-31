@@ -1,6 +1,7 @@
 {
  "id": 311,
  "name": "CINNABAR_WALL",
+ "shape": "wall",
  "textures": {
   "all": "cinnabar"
  }

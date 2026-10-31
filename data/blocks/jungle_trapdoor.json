@@ -5,6 +5,7 @@
  "is_seethrough": true,
  "name": "JUNGLE_TRAPDOOR",
  "no_light": 6815743,
+ "shape": "trapdoor",
  "textures": {
   "all": "jungle_trapdoor"
  }

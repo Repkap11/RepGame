@@ -1,6 +1,7 @@
 {
  "id": 981,
  "name": "POPLAR_STAIRS",
+ "shape": "stairs",
  "textures": {
   "all": "poplar_planks"
  }

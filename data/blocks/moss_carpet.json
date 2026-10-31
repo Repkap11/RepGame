@@ -1,6 +1,7 @@
 {
  "id": 779,
  "name": "MOSS_CARPET",
+ "shape": "carpet",
  "textures": {
   "all": "moss_block"
  }

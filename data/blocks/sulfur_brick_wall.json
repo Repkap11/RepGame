@@ -1,6 +1,7 @@
 {
  "id": 1205,
  "name": "SULFUR_BRICK_WALL",
+ "shape": "wall",
  "textures": {
   "all": "sulfur_bricks"
  }

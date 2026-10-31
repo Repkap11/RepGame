@@ -1,6 +1,7 @@
 {
  "id": 784,
  "name": "MOSSY_COBBLESTONE_WALL",
+ "shape": "wall",
  "textures": {
   "all": "cobblestone_mossy"
  }

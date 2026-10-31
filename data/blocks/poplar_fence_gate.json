@@ -1,6 +1,7 @@
 {
  "id": 973,
  "name": "POPLAR_FENCE_GATE",
+ "shape": "fence_gate",
  "textures": {
   "all": "poplar_planks"
  }

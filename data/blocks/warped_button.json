@@ -1,6 +1,7 @@
 {
  "id": 1265,
  "name": "WARPED_BUTTON",
+ "shape": "button",
  "textures": {
   "all": "warped_planks"
  }

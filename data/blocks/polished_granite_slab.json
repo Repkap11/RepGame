@@ -1,6 +1,7 @@
 {
  "id": 957,
  "name": "POLISHED_GRANITE_SLAB",
+ "shape": "slab",
  "textures": {
   "all": "stone_granite_smooth"
  }

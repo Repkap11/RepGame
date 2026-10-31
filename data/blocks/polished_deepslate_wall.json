@@ -1,6 +1,7 @@
 {
  "id": 950,
  "name": "POLISHED_DEEPSLATE_WALL",
+ "shape": "wall",
  "textures": {
   "all": "polished_deepslate"
  }

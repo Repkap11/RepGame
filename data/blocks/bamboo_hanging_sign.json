@@ -1,6 +1,7 @@
 {
  "id": 84,
  "name": "BAMBOO_HANGING_SIGN",
+ "shape": "hanging_sign",
  "textures": {
   "all": "bamboo_planks"
  }

@@ -1,6 +1,7 @@
 {
  "id": 793,
  "name": "MUD_BRICK_SLAB",
+ "shape": "slab",
  "textures": {
   "all": "mud_bricks"
  }

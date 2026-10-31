@@ -1,6 +1,7 @@
 {
  "id": 710,
  "name": "LIGHT_WEIGHTED_PRESSURE_PLATE",
+ "shape": "pressure_plate",
  "textures": {
   "all": "gold_block"
  }

@@ -1,6 +1,7 @@
 {
  "id": 1208,
  "name": "SULFUR_SLAB",
+ "shape": "slab",
  "textures": {
   "all": "sulfur"
  }

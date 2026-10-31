@@ -1,6 +1,7 @@
 {
  "id": 1395,
  "name": "YELLOW_CONCRETE_STAIRS",
+ "shape": "stairs",
  "textures": {
   "all": "concrete_yellow"
  }

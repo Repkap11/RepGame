@@ -1,6 +1,7 @@
 {
  "id": 416,
  "name": "CRIMSON_WALL_SIGN",
+ "shape": "sign",
  "textures": {
   "all": "crimson_planks"
  }

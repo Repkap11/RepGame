@@ -1,6 +1,7 @@
 {
  "id": 137,
  "name": "BIRCH_STAIRS",
+ "shape": "stairs",
  "textures": {
   "all": "planks_birch"
  }

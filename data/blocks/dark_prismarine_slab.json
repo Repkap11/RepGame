@@ -1,6 +1,7 @@
 {
  "id": 464,
  "name": "DARK_PRISMARINE_SLAB",
+ "shape": "slab",
  "textures": {
   "all": "prismarine_dark"
  }

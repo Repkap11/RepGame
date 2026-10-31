@@ -1,6 +1,7 @@
 {
  "id": 423,
  "name": "CUT_RED_SANDSTONE_SLAB",
+ "shape": "slab",
  "textures": {
   "bottom": "red_sandstone_top",
   "side": "red_sandstone_smooth",

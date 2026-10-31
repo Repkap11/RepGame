@@ -1,6 +1,7 @@
 {
  "id": 598,
  "name": "GRANITE_SLAB",
+ "shape": "slab",
  "textures": {
   "all": "stone_granite"
  }

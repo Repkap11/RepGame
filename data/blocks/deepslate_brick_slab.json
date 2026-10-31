@@ -1,6 +1,7 @@
 {
  "id": 494,
  "name": "DEEPSLATE_BRICK_SLAB",
+ "shape": "slab",
  "textures": {
   "all": "deepslate_bricks"
  }

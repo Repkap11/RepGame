@@ -1,6 +1,7 @@
 {
  "id": 1047,
  "name": "RED_CARPET",
+ "shape": "carpet",
  "textures": {
   "all": "wool_colored_red"
  }

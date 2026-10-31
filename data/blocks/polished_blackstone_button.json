@@ -1,6 +1,7 @@
 {
  "id": 935,
  "name": "POLISHED_BLACKSTONE_BUTTON",
+ "shape": "button",
  "textures": {
   "all": "polished_blackstone"
  }

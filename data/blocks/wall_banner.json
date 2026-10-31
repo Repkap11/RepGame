@@ -1,6 +1,7 @@
 {
  "id": 1263,
  "name": "WALL_BANNER",
+ "shape": "banner",
  "textures": {
   "all": "planks_oak"
  }

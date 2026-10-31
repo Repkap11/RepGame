@@ -1,6 +1,7 @@
 {
  "id": 805,
  "name": "NETHER_BRICK_WALL",
+ "shape": "wall",
  "textures": {
   "all": "nether_brick"
  }

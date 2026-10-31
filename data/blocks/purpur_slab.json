@@ -1,6 +1,7 @@
 {
  "id": 1032,
  "name": "PURPUR_SLAB",
+ "shape": "slab",
  "textures": {
   "all": "purpur_block"
  }

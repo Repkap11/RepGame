@@ -5,6 +5,7 @@
  "is_seethrough": true,
  "name": "PALE_MOSS_CARPET",
  "no_light": 6815743,
+ "shape": "carpet",
  "textures": {
   "all": "pale_moss_carpet_side_base"
  }

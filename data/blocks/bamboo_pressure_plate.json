@@ -1,6 +1,7 @@
 {
  "id": 97,
  "name": "BAMBOO_PRESSURE_PLATE",
+ "shape": "pressure_plate",
  "textures": {
   "all": "bamboo_planks"
  }

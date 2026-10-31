@@ -1,6 +1,7 @@
 {
  "id": 958,
  "name": "POLISHED_GRANITE_STAIRS",
+ "shape": "stairs",
  "textures": {
   "all": "stone_granite_smooth"
  }

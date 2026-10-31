@@ -1,6 +1,7 @@
 {
  "id": 869,
  "name": "OXIDIZED_CUT_COPPER_SLAB",
+ "shape": "slab",
  "textures": {
   "all": "oxidized_cut_copper"
  }
