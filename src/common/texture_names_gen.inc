@@ -754,6 +754,7 @@
     "planks_oak",
     "planks_oak__banner",
     "planks_oak__fence",
+    "planks_oak__fence_gate",
     "planks_oak__hanging_sign",
     "planks_oak__sign",
     "planks_oak__stairs",

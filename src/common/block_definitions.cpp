@@ -39,6 +39,8 @@ void block_definitions_initilize_definitions( Texture *texture ) {
         block->hardness = 1.5f;
         block->connects_to_redstone_dust = false;
         block->is_redstone_dust = false;
+        block->is_fence = false;
+        block->is_fence_gate = false;
         block->emits_light = 0;
         block->is_button = false;
         block->is_pressure_plate = false;

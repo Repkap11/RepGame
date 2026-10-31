@@ -43,7 +43,11 @@ static bool block_collision_aabb( World &world, const glm::ivec3 &block_pos, glm
     if ( !block->collides_with_player ) {
         return false;
     }
-    const unsigned char rot = blockState.rotation;
+    // Open fence gates don't collide — an open gate can be walked through.
+    if ( block->is_fence_gate && ( blockState.rotation & BLOCK_ROTATE_GATE_OPEN ) != 0 ) {
+        return false;
+    }
+    const unsigned char rot = block_yaw( block, blockState.rotation );
     const bool piston_extended = block->is_piston && blockState.current_redstone_power > 0;
     if ( !block->non_full_size && !piston_extended ) {
         out_min = glm::dvec3( block_pos );

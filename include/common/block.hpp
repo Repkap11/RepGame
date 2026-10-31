@@ -216,6 +216,47 @@ static inline void piston_base_shape( unsigned char rotation, short scale[ 3 ], 
 
 #define PIXEL_TO_FLOAT( pixel ) ( ( ( float )( pixel ) ) / ( 16.0f ) )
 
+// ---- Fences and fence gates -------------------------------------------------
+// One sub-box of a fence/gate model, in pixel units (0-16). skip_faces is a
+// bit per FACE_* — those faces get NO_LIGHT_NO_DRAW in the emitted instance.
+typedef struct {
+    signed char scale[ 3 ];
+    signed char offset[ 3 ];
+    unsigned char skip_faces;
+} BlockBox;
+
+// Fence connection mask bits (the four horizontal directions).
+#define FENCE_CONNECT_POS_X 1u
+#define FENCE_CONNECT_NEG_X 2u
+#define FENCE_CONNECT_POS_Z 4u
+#define FENCE_CONNECT_NEG_Z 8u
+#define FENCE_MAX_BOXES 5
+#define FENCE_GATE_MAX_BOXES 8
+// Fence gates store open/closed in rotation bit 2; the facing is rotation & 3
+// and a gate spans world x when ( rotation & 1 ) == 0.
+#define BLOCK_ROTATE_GATE_OPEN 4
+
+// Whether a fence connects to a horizontal neighbor: same-family fences
+// (nether brick only to nether brick), gates whose span axis matches the
+// connection direction, and full solid blocks.
+bool fence_connects_to( const Block *fence, BlockID neighbor_id, unsigned char neighbor_rotation, bool along_x );
+// Fill `out` with the fence's boxes for a connection mask; box 0 is the post.
+// Returns the box count.
+int fence_boxes( unsigned connections, BlockBox out[ FENCE_MAX_BOXES ] );
+// Fill `out` with the gate's definition-space (rotation 0, spans x) boxes;
+// the shader turns them with face_shift = rot & 3. Returns the box count.
+int fence_gate_boxes( bool open, BlockBox out[ FENCE_GATE_MAX_BOXES ] );
+// Right-click toggle: closing clears bit 2; opening sets it, retargeting the
+// facing to the player's yaw when it shares the gate's axis (so the gate
+// opens away from the player).
+unsigned char fence_gate_toggle_rotation( unsigned char rotation, unsigned char player_yaw_rot );
+// The yaw part of a rotation for single-box consumers (collision, raycast,
+// selection, debris): an open gate keeps its facing and must never reach the
+// rotation >= 4 wall-torch branches.
+static inline unsigned char block_yaw( const Block *b, unsigned char rot ) {
+    return b->is_fence_gate ? ( rot & 3 ) : rot;
+}
+
 // See world.cpp for vbl
 typedef struct {
     float x;

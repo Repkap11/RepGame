@@ -412,6 +412,9 @@ int test_creative( ) {
     auto contains = [ & ]( BlockID bid ) { return seen[ bid ] != 0; };
     check_bool( "creative: ACACIA_PLANKS listed", contains( ACACIA_PLANKS ) );
     check_bool( "creative: ACACIA_FENCE listed", contains( ACACIA_FENCE ) );
+    check_bool( "creative: FENCE (oak fence) listed", contains( FENCE ) );
+    check_bool( "creative: FENCE_GATE (oak gate) listed", contains( FENCE_GATE ) );
+    check_bool( "creative: OAK_FENCE hidden behind FENCE", !contains( OAK_FENCE ) );
     check_bool( "creative: ACACIA_STAIRS listed", contains( ACACIA_STAIRS ) );
     check_bool( "creative: ACACIA_DOUBLE_SLAB hidden", !contains( ACACIA_DOUBLE_SLAB ) );
     check_bool( "creative: GRASS listed", contains( GRASS ) );
@@ -427,6 +430,131 @@ int test_creative( ) {
     check_bool( "creative: OAK_LOG listed", contains( OAK_LOG ) );
     check_bool( "creative: LIGHT_BLUE_STAINED_GLASS listed", contains( LIGHT_BLUE_STAINED_GLASS ) );
     check_bool( "creative: GLASS_PALE_BLUE hidden", !contains( GLASS_PALE_BLUE ) );
+    return failures;
+}
+
+// Fences and fence gates: connection rules, box geometry, the right-click
+// toggle rotation, the generated definitions, creative listing, and the
+// block-world showcase layout.
+int test_fences( ) {
+    if ( block_definitions == nullptr ) {
+        block_definitions_initilize_definitions( nullptr );
+    }
+    int failures = 0;
+    auto check_bool = [ & ]( const char *name, bool cond ) {
+        pr_test( "  %-55s %s", name, cond ? "PASS" : "FAIL" );
+        if ( !cond ) {
+            failures++;
+        }
+    };
+
+    // Every emitted box must stay inside the 0..16 cell.
+    auto boxes_in_bounds = [ & ]( const BlockBox *boxes, int n ) {
+        for ( int i = 0; i < n; i++ ) {
+            for ( int a = 0; a < 3; a++ ) {
+                if ( boxes[ i ].offset[ a ] < 0 || boxes[ i ].scale[ a ] <= 0 || boxes[ i ].offset[ a ] + boxes[ i ].scale[ a ] > 16 ) {
+                    return false;
+                }
+            }
+        }
+        return true;
+    };
+
+    // --- fence_boxes -----------------------------------------------------
+    BlockBox boxes[ FENCE_GATE_MAX_BOXES ];
+    check_bool( "fence: no connections gives just the post",
+                fence_boxes( 0, boxes ) == 1 &&                                                            //
+                    boxes[ 0 ].scale[ 0 ] == 4 && boxes[ 0 ].scale[ 1 ] == 16 && boxes[ 0 ].scale[ 2 ] == 4 && //
+                    boxes[ 0 ].offset[ 0 ] == 6 && boxes[ 0 ].offset[ 1 ] == 0 && boxes[ 0 ].offset[ 2 ] == 6 );
+    check_bool( "fence: one side gives post + 2 rails", fence_boxes( FENCE_CONNECT_POS_X, boxes ) == 3 );
+    check_bool( "fence: +x lower rail x 10..16 y 6..9",
+                boxes[ 1 ].offset[ 0 ] == 10 && boxes[ 1 ].scale[ 0 ] == 6 && //
+                    boxes[ 1 ].offset[ 1 ] == 6 && boxes[ 1 ].scale[ 1 ] == 3 && //
+                    boxes[ 1 ].offset[ 2 ] == 7 && boxes[ 1 ].scale[ 2 ] == 2 );
+    check_bool( "fence: +x upper rail y 12..15",
+                boxes[ 2 ].offset[ 1 ] == 12 && boxes[ 2 ].scale[ 1 ] == 3 );
+    check_bool( "fence: rail ends skip both x faces",
+                boxes[ 1 ].skip_faces == ( ( 1u << FACE_LEFT ) | ( 1u << FACE_RIGHT ) ) );
+    check_bool( "fence: opposite sides merge into 3 boxes",
+                fence_boxes( FENCE_CONNECT_POS_X | FENCE_CONNECT_NEG_X, boxes ) == 3 && //
+                    boxes[ 1 ].offset[ 0 ] == 0 && boxes[ 1 ].scale[ 0 ] == 16 );
+    check_bool( "fence: all four sides give 5 boxes", fence_boxes( 0xF, boxes ) == 5 );
+    bool all_bounds = true;
+    for ( unsigned conn = 0; conn < 16; conn++ ) {
+        const int n = fence_boxes( conn, boxes );
+        all_bounds &= n == 1 + 2 * ( ( conn & ( FENCE_CONNECT_POS_X | FENCE_CONNECT_NEG_X ) ) != 0 ) + 2 * ( ( conn & ( FENCE_CONNECT_POS_Z | FENCE_CONNECT_NEG_Z ) ) != 0 );
+        all_bounds &= boxes_in_bounds( boxes, n );
+    }
+    check_bool( "fence: every connection mask stays in bounds", all_bounds );
+
+    // --- fence_connects_to -------------------------------------------------
+    const Block *oak = block_definition_get_definition( OAK_FENCE );
+    const Block *nether = block_definition_get_definition( NETHER_BRICK_FENCE );
+    check_bool( "fence: oak connects to spruce fence", fence_connects_to( oak, SPRUCE_FENCE, 0, true ) );
+    check_bool( "fence: nether connects to nether", fence_connects_to( nether, NETHER_BRICK_FENCE, 0, true ) );
+    check_bool( "fence: oak connects to solid stone", fence_connects_to( oak, STONE, 0, true ) );
+    check_bool( "fence: oak does not connect to nether", !fence_connects_to( oak, NETHER_BRICK_FENCE, 0, true ) );
+    check_bool( "fence: oak does not connect to glass", !fence_connects_to( oak, GLASS, 0, true ) );
+    check_bool( "fence: oak does not connect to air", !fence_connects_to( oak, AIR, 0, true ) );
+    check_bool( "fence: gate rot 0 connects along x", fence_connects_to( oak, FENCE_GATE, 0, true ) );
+    check_bool( "fence: gate rot 0 not along z", !fence_connects_to( oak, FENCE_GATE, 0, false ) );
+    check_bool( "fence: gate rot 1 connects along z", fence_connects_to( oak, FENCE_GATE, 1, false ) );
+    check_bool( "fence: gate rot 4 (open) still along x", fence_connects_to( oak, FENCE_GATE, BLOCK_ROTATE_GATE_OPEN, true ) );
+
+    // --- fence_gate_boxes (definition space, spans x) ----------------------
+    check_bool( "gate: closed gives 5 boxes", fence_gate_boxes( false, boxes ) == 5 );
+    check_bool( "gate: closed posts at x 0..2 and 14..16",
+                boxes[ 0 ].offset[ 0 ] == 0 && boxes[ 0 ].scale[ 0 ] == 2 && boxes[ 1 ].offset[ 0 ] == 14 && //
+                    boxes[ 0 ].offset[ 1 ] == 5 && boxes[ 0 ].scale[ 1 ] == 11 && boxes[ 0 ].offset[ 2 ] == 7 && boxes[ 0 ].scale[ 2 ] == 2 );
+    check_bool( "gate: closed rail x 2..14 y 6..9",
+                boxes[ 2 ].offset[ 0 ] == 2 && boxes[ 2 ].scale[ 0 ] == 12 && boxes[ 2 ].offset[ 1 ] == 6 && boxes[ 2 ].scale[ 1 ] == 3 );
+    check_bool( "gate: closed upright x 6..10 y 6..15",
+                boxes[ 4 ].offset[ 0 ] == 6 && boxes[ 4 ].scale[ 0 ] == 4 && boxes[ 4 ].offset[ 1 ] == 6 && boxes[ 4 ].scale[ 1 ] == 9 );
+    check_bool( "gate: closed in bounds", boxes_in_bounds( boxes, 5 ) );
+    check_bool( "gate: open gives 8 boxes", fence_gate_boxes( true, boxes ) == 8 );
+    check_bool( "gate: open leaves fold to z<7",
+                boxes[ 2 ].offset[ 2 ] == 3 && boxes[ 2 ].scale[ 2 ] == 4 && //
+                    boxes[ 4 ].offset[ 2 ] == 1 && boxes[ 4 ].scale[ 2 ] == 2 && boxes[ 4 ].offset[ 1 ] == 6 && boxes[ 4 ].scale[ 1 ] == 9 );
+    check_bool( "gate: open in bounds", boxes_in_bounds( boxes, 8 ) );
+
+    // --- fence_gate_toggle_rotation ----------------------------------------
+    check_bool( "gate toggle: closed 0 + player 0 -> open 0", fence_gate_toggle_rotation( 0, 0 ) == 4 );
+    check_bool( "gate toggle: closed 0 + player 2 -> open 2", fence_gate_toggle_rotation( 0, 2 ) == 6 );
+    check_bool( "gate toggle: closed 0 + player 1 -> open 0", fence_gate_toggle_rotation( 0, 1 ) == 4 );
+    check_bool( "gate toggle: open 2 -> closed 2", fence_gate_toggle_rotation( 6, 0 ) == 2 );
+
+    // --- generated definitions ----------------------------------------------
+    check_bool( "def: OAK_FENCE is_fence + post box",
+                oak->is_fence && !oak->is_fence_gate &&           //
+                    oak->scale.x == 4 && oak->scale.y == 16 && oak->scale.z == 4 && //
+                    oak->offset.x == 6 && oak->offset.y == 0 && oak->offset.z == 6 );
+    const Block *spruce_gate = block_definition_get_definition( SPRUCE_FENCE_GATE );
+    check_bool( "def: SPRUCE_FENCE_GATE is_fence_gate + rotates",
+                spruce_gate->is_fence_gate && !spruce_gate->is_fence && spruce_gate->rotate_on_placement && //
+                    spruce_gate->scale.x == 16 && spruce_gate->scale.y == 11 && spruce_gate->scale.z == 4 && //
+                    spruce_gate->offset.x == 0 && spruce_gate->offset.y == 5 && spruce_gate->offset.z == 6 );
+    check_bool( "def: NETHER_BRICK_FENCE is_fence", nether->is_fence );
+
+    // Creative listing: the oak fence/gate show up as the legacy FENCE and
+    // FENCE_GATE ids (they win the dedupe now that OAK_FENCE shares the fence
+    // model signature — there is no separate OAK_FENCE_GATE block).
+    unsigned char in_creative[ LAST_BLOCK_ID ] = { 0 };
+    for ( unsigned int i = 0; i < CREATIVE_BLOCK_COUNT; i++ ) {
+        in_creative[ CREATIVE_BLOCKS[ i ] ] = 1;
+    }
+    check_bool( "creative: FENCE (oak) listed", in_creative[ FENCE ] != 0 );
+    check_bool( "creative: FENCE_GATE (oak) listed", in_creative[ FENCE_GATE ] != 0 );
+
+    // --- block-world showcase (z<0, y=1) ------------------------------------
+    check_bool( "showcase: gate inline in oak run", MapGen::block_world_id( -6, 1, -2 ) == FENCE_GATE );
+    check_bool( "showcase: oak fence beside gate", MapGen::block_world_id( -7, 1, -2 ) == OAK_FENCE && MapGen::block_world_id( -5, 1, -2 ) == OAK_FENCE );
+    check_bool( "showcase: cross center", MapGen::block_world_id( 0, 1, -5 ) == OAK_FENCE );
+    check_bool( "showcase: cross arm -z", MapGen::block_world_id( 0, 1, -4 ) == OAK_FENCE );
+    check_bool( "showcase: lone post", MapGen::block_world_id( 4, 1, -4 ) == OAK_FENCE );
+    check_bool( "showcase: planks connector", MapGen::block_world_id( 7, 1, -4 ) == OAK_PLANKS );
+    check_bool( "showcase: oak vs nether pair", MapGen::block_world_id( 6, 1, -8 ) == OAK_FENCE && MapGen::block_world_id( 7, 1, -8 ) == NETHER_BRICK_FENCE );
+    check_bool( "showcase: nether run", MapGen::block_world_id( 10, 1, -8 ) == NETHER_BRICK_FENCE );
+    check_bool( "showcase: air around layout", MapGen::block_world_id( -2, 1, -4 ) == AIR );
     return failures;
 }
 
@@ -1693,6 +1821,7 @@ constexpr Test all_tests[] = {  //
     MK_TEST( sneak ),           //
     MK_TEST( save_migration ),  //
     MK_TEST( creative ),        //
+    MK_TEST( fences ),          //
     MK_TEST( block_world ),     //
     MK_TEST( mapgen ),          //
     MK_TEST( waterlog ),        //

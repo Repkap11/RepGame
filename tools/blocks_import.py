@@ -58,6 +58,7 @@ BOOL_FIELDS = {
     "connects_to_redstone_dust", "is_redstone_dust", "is_torch", "is_button",
     "is_pressure_plate", "is_redstone_mechanism", "is_piston", "is_sticky_piston",
     "is_piston_head", "is_tnt", "is_inverse_tnt", "piston_immovable",
+    "is_fence", "is_fence_gate",
 }
 INT_FIELDS = {"no_light", "flows", "initial_redstone_power", "emits_light", "light_absorb"}
 FLOAT_FIELDS = {"hardness"}
@@ -72,26 +73,41 @@ TEX_META_KEYS = {"source", "random_rotate", "tint", "alpha", "frame", "keep", "o
 SHAPES_JSON = os.path.join(DATA_DIR, "shapes.json")
 
 
+def check_mask_grid(rows, what):
+    if (not isinstance(rows, list) or len(rows) != TILE or
+            any(not isinstance(r, str) or len(r) != TILE or
+                set(r) - {"#", "."} for r in rows)):
+        fail("shapes.json: %s must be %d rows of %d '#'/'.' chars" %
+             (what, TILE, TILE))
+
+
 def load_shapes():
     """data/shapes.json: silhouette masks + geometry templates for the
     "shape" block key. Returns {"cutout": props, "masks": {name: rows},
+    "models": {name: {<props>, "icon_mask": rows}},
     "templates": {name: {"template": BLOCK, "drop": [...], <overrides>}}."""
     if not os.path.exists(SHAPES_JSON):
-        return {"cutout": {}, "masks": {}, "templates": {}}
+        return {"cutout": {}, "masks": {}, "models": {}, "templates": {}}
     with open(SHAPES_JSON) as f:
         s = json.load(f)
     masks = s.get("masks", {})
     for name, rows in masks.items():
-        if (not isinstance(rows, list) or len(rows) != TILE or
-                any(not isinstance(r, str) or len(r) != TILE or
-                    set(r) - {"#", "."} for r in rows)):
-            fail("shapes.json: mask %r must be %d rows of %d '#'/'.' chars" %
-                 (name, TILE, TILE))
+        check_mask_grid(rows, "mask %r" % name)
+    models = s.get("models", {})
+    for name, m in models.items():
+        if not isinstance(m, dict):
+            fail("shapes.json: model %r must be an object" % name)
+        unknown = set(m) - (KNOWN_KEYS | {"icon_mask"})
+        if unknown:
+            fail("shapes.json: model %r has unknown keys %s" % (name, sorted(unknown)))
+        if "icon_mask" in m:
+            check_mask_grid(m["icon_mask"], "model %r icon_mask" % name)
     templates = s.get("templates", {})
     for name, t in templates.items():
         if not isinstance(t, dict) or not isinstance(t.get("template"), str):
             fail("shapes.json: template %r must be an object with a \"template\" block name" % name)
-    return {"cutout": s.get("cutout", {}), "masks": masks, "templates": templates}
+    return {"cutout": s.get("cutout", {}), "masks": masks, "models": models,
+            "templates": templates}
 
 
 SHAPES = load_shapes()
@@ -108,6 +124,15 @@ def apply_shape(blocks, names):
         if shape in SHAPES["masks"]:
             for k, v in SHAPES["cutout"].items():
                 b.setdefault(k, v)
+        elif shape in SHAPES["models"]:
+            # Model shapes keep the block's plain textures: the cutout
+            # property set plus the entry's own properties apply as defaults;
+            # the entry's icon_mask only cuts the flat inventory icon.
+            for k, v in SHAPES["cutout"].items():
+                b.setdefault(k, v)
+            for k, v in SHAPES["models"][shape].items():
+                if k != "icon_mask":
+                    b.setdefault(k, v)
         elif shape in SHAPES["templates"]:
             t = SHAPES["templates"][shape]
             tname = t["template"]
@@ -516,27 +541,37 @@ def main():
     # alpha already applied) with masked-out pixels set to transparent black.
     # Top and bottom keep the plain material texture. The generated tiles
     # merge like any other byte-identical texture.
+    # Model shapes keep every plain face; the same generated tile is made
+    # from the side texture and used only as the flat inventory icon, so the
+    # icon still shows the silhouette.
+    def masked_tile(src, shape, mask):
+        mname = "%s__%s" % (src, shape)
+        if mname not in images:
+            img = images[src].copy()
+            px = img.load()
+            for r in range(TILE):
+                mrow = mask[r]
+                for c in range(TILE):
+                    if mrow[c] == ".":
+                        px[c, r] = (0, 0, 0, 0)
+            images[mname] = img
+        used.add(mname)
+        return mname
+
     side_idx = [FACE_KEYS.index(k) for k in SIDE_FACES]
     for bid, b in sorted(blocks.items()):
         shape = b.get("shape")
-        if shape not in SHAPES["masks"]:
-            continue
-        mask = SHAPES["masks"][shape]
-        faces = resolved[bid]["faces"]
-        for i in side_idx:
-            src = faces[i]
-            mname = "%s__%s" % (src, shape)
-            if mname not in images:
-                img = images[src].copy()
-                px = img.load()
-                for r in range(TILE):
-                    mrow = mask[r]
-                    for c in range(TILE):
-                        if mrow[c] == ".":
-                            px[c, r] = (0, 0, 0, 0)
-                images[mname] = img
-            faces[i] = mname
-            used.add(mname)
+        if shape in SHAPES["masks"]:
+            mask = SHAPES["masks"][shape]
+            faces = resolved[bid]["faces"]
+            for i in side_idx:
+                faces[i] = masked_tile(faces[i], shape, mask)
+        elif shape in SHAPES["models"]:
+            model = SHAPES["models"][shape]
+            if "icon_mask" in model and "icon" not in b:
+                src = resolved[bid]["faces"][FACE_KEYS.index("front")]
+                resolved[bid]["icon"] = masked_tile(src, shape, model["icon_mask"])
+                b.setdefault("icon_is_isometric", False)
 
     canon_members = {}  # canonical name -> [member names]
     for name in sorted(images):

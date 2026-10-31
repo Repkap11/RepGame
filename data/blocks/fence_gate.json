@@ -1,6 +1,7 @@
 {
  "id": 581,
  "name": "FENCE_GATE",
+ "shape": "fence_gate",
  "textures": {
   "all": "planks_oak"
  }

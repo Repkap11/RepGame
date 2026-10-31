@@ -84,15 +84,20 @@ block_definitions[ 6 ].icon_is_isometric = true;
 // ACACIA_FENCE (7)
 block_definitions[ 7 ].textures[ FACE_TOP ] = TEX_PLANKS_ACACIA;
 block_definitions[ 7 ].textures[ FACE_BOTTOM ] = TEX_PLANKS_ACACIA;
-block_definitions[ 7 ].textures[ FACE_RIGHT ] = TEX_PLANKS_ACACIA__FENCE;
-block_definitions[ 7 ].textures[ FACE_FRONT ] = TEX_PLANKS_ACACIA__FENCE;
-block_definitions[ 7 ].textures[ FACE_LEFT ] = TEX_PLANKS_ACACIA__FENCE;
-block_definitions[ 7 ].textures[ FACE_BACK ] = TEX_PLANKS_ACACIA__FENCE;
-block_definitions[ 7 ].icon_texture = TEX_PLANKS_ACACIA;
+block_definitions[ 7 ].textures[ FACE_RIGHT ] = TEX_PLANKS_ACACIA;
+block_definitions[ 7 ].textures[ FACE_FRONT ] = TEX_PLANKS_ACACIA;
+block_definitions[ 7 ].textures[ FACE_LEFT ] = TEX_PLANKS_ACACIA;
+block_definitions[ 7 ].textures[ FACE_BACK ] = TEX_PLANKS_ACACIA;
+block_definitions[ 7 ].icon_texture = TEX_PLANKS_ACACIA__FENCE;
 block_definitions[ 7 ].casts_shadow = false;
 block_definitions[ 7 ].hardness = 0.35f;
+block_definitions[ 7 ].icon_is_isometric = false;
+block_definitions[ 7 ].is_fence = true;
 block_definitions[ 7 ].is_seethrough = true;
 block_definitions[ 7 ].no_light = 6815743;
+block_definitions[ 7 ].offset = { 6, 0, 6 };
+block_definitions[ 7 ].scale = { 4, 16, 4 };
+block_definitions[ 7 ].tex_offset = { -6, 0, -6 };
 
 // BRICK_BLOCK (8)
 block_definitions[ 8 ].textures[ FACE_TOP ] = TEX_BRICK;
@@ -122,15 +127,21 @@ block_definitions[ 9 ].is_tnt = true;
 // ACACIA_FENCE_GATE (10)
 block_definitions[ 10 ].textures[ FACE_TOP ] = TEX_PLANKS_ACACIA;
 block_definitions[ 10 ].textures[ FACE_BOTTOM ] = TEX_PLANKS_ACACIA;
-block_definitions[ 10 ].textures[ FACE_RIGHT ] = TEX_PLANKS_ACACIA__FENCE_GATE;
-block_definitions[ 10 ].textures[ FACE_FRONT ] = TEX_PLANKS_ACACIA__FENCE_GATE;
-block_definitions[ 10 ].textures[ FACE_LEFT ] = TEX_PLANKS_ACACIA__FENCE_GATE;
-block_definitions[ 10 ].textures[ FACE_BACK ] = TEX_PLANKS_ACACIA__FENCE_GATE;
-block_definitions[ 10 ].icon_texture = TEX_PLANKS_ACACIA;
+block_definitions[ 10 ].textures[ FACE_RIGHT ] = TEX_PLANKS_ACACIA;
+block_definitions[ 10 ].textures[ FACE_FRONT ] = TEX_PLANKS_ACACIA;
+block_definitions[ 10 ].textures[ FACE_LEFT ] = TEX_PLANKS_ACACIA;
+block_definitions[ 10 ].textures[ FACE_BACK ] = TEX_PLANKS_ACACIA;
+block_definitions[ 10 ].icon_texture = TEX_PLANKS_ACACIA__FENCE_GATE;
 block_definitions[ 10 ].casts_shadow = false;
 block_definitions[ 10 ].hardness = 0.35f;
+block_definitions[ 10 ].icon_is_isometric = false;
+block_definitions[ 10 ].is_fence_gate = true;
 block_definitions[ 10 ].is_seethrough = true;
 block_definitions[ 10 ].no_light = 6815743;
+block_definitions[ 10 ].offset = { 0, 5, 6 };
+block_definitions[ 10 ].rotate_on_placement = true;
+block_definitions[ 10 ].scale = { 16, 11, 4 };
+block_definitions[ 10 ].tex_offset = { 0, -5, -6 };
 
 // ACACIA_HANGING_SIGN (11)
 block_definitions[ 11 ].textures[ FACE_TOP ] = TEX_PLANKS_ACACIA;
@@ -1117,28 +1128,39 @@ block_definitions[ 81 ].renderOrder = RenderOrder_Flowers;
 // BAMBOO_FENCE (82)
 block_definitions[ 82 ].textures[ FACE_TOP ] = TEX_BAMBOO_FENCE;
 block_definitions[ 82 ].textures[ FACE_BOTTOM ] = TEX_BAMBOO_FENCE;
-block_definitions[ 82 ].textures[ FACE_RIGHT ] = TEX_BAMBOO_FENCE__FENCE;
-block_definitions[ 82 ].textures[ FACE_FRONT ] = TEX_BAMBOO_FENCE__FENCE;
-block_definitions[ 82 ].textures[ FACE_LEFT ] = TEX_BAMBOO_FENCE__FENCE;
-block_definitions[ 82 ].textures[ FACE_BACK ] = TEX_BAMBOO_FENCE__FENCE;
-block_definitions[ 82 ].icon_texture = TEX_BAMBOO_FENCE;
+block_definitions[ 82 ].textures[ FACE_RIGHT ] = TEX_BAMBOO_FENCE;
+block_definitions[ 82 ].textures[ FACE_FRONT ] = TEX_BAMBOO_FENCE;
+block_definitions[ 82 ].textures[ FACE_LEFT ] = TEX_BAMBOO_FENCE;
+block_definitions[ 82 ].textures[ FACE_BACK ] = TEX_BAMBOO_FENCE;
+block_definitions[ 82 ].icon_texture = TEX_BAMBOO_FENCE__FENCE;
 block_definitions[ 82 ].casts_shadow = false;
 block_definitions[ 82 ].hardness = 0.35f;
+block_definitions[ 82 ].icon_is_isometric = false;
+block_definitions[ 82 ].is_fence = true;
 block_definitions[ 82 ].is_seethrough = true;
 block_definitions[ 82 ].no_light = 6815743;
+block_definitions[ 82 ].offset = { 6, 0, 6 };
+block_definitions[ 82 ].scale = { 4, 16, 4 };
+block_definitions[ 82 ].tex_offset = { -6, 0, -6 };
 
 // BAMBOO_FENCE_GATE (83)
 block_definitions[ 83 ].textures[ FACE_TOP ] = TEX_BAMBOO_FENCE_GATE;
 block_definitions[ 83 ].textures[ FACE_BOTTOM ] = TEX_BAMBOO_FENCE_GATE;
-block_definitions[ 83 ].textures[ FACE_RIGHT ] = TEX_BAMBOO_FENCE_GATE__FENCE_GATE;
-block_definitions[ 83 ].textures[ FACE_FRONT ] = TEX_BAMBOO_FENCE_GATE__FENCE_GATE;
-block_definitions[ 83 ].textures[ FACE_LEFT ] = TEX_BAMBOO_FENCE_GATE__FENCE_GATE;
-block_definitions[ 83 ].textures[ FACE_BACK ] = TEX_BAMBOO_FENCE_GATE__FENCE_GATE;
-block_definitions[ 83 ].icon_texture = TEX_BAMBOO_FENCE_GATE;
+block_definitions[ 83 ].textures[ FACE_RIGHT ] = TEX_BAMBOO_FENCE_GATE;
+block_definitions[ 83 ].textures[ FACE_FRONT ] = TEX_BAMBOO_FENCE_GATE;
+block_definitions[ 83 ].textures[ FACE_LEFT ] = TEX_BAMBOO_FENCE_GATE;
+block_definitions[ 83 ].textures[ FACE_BACK ] = TEX_BAMBOO_FENCE_GATE;
+block_definitions[ 83 ].icon_texture = TEX_BAMBOO_FENCE_GATE__FENCE_GATE;
 block_definitions[ 83 ].casts_shadow = false;
 block_definitions[ 83 ].hardness = 0.35f;
+block_definitions[ 83 ].icon_is_isometric = false;
+block_definitions[ 83 ].is_fence_gate = true;
 block_definitions[ 83 ].is_seethrough = true;
 block_definitions[ 83 ].no_light = 6815743;
+block_definitions[ 83 ].offset = { 0, 5, 6 };
+block_definitions[ 83 ].rotate_on_placement = true;
+block_definitions[ 83 ].scale = { 16, 11, 4 };
+block_definitions[ 83 ].tex_offset = { 0, -5, -6 };
 
 // BAMBOO_HANGING_SIGN (84)
 block_definitions[ 84 ].textures[ FACE_TOP ] = TEX_BAMBOO_PLANKS;
@@ -1729,28 +1751,39 @@ block_definitions[ 124 ].tex_offset = { -5, 0, -1 };
 // BIRCH_FENCE (125)
 block_definitions[ 125 ].textures[ FACE_TOP ] = TEX_PLANKS_BIRCH;
 block_definitions[ 125 ].textures[ FACE_BOTTOM ] = TEX_PLANKS_BIRCH;
-block_definitions[ 125 ].textures[ FACE_RIGHT ] = TEX_PLANKS_BIRCH__FENCE;
-block_definitions[ 125 ].textures[ FACE_FRONT ] = TEX_PLANKS_BIRCH__FENCE;
-block_definitions[ 125 ].textures[ FACE_LEFT ] = TEX_PLANKS_BIRCH__FENCE;
-block_definitions[ 125 ].textures[ FACE_BACK ] = TEX_PLANKS_BIRCH__FENCE;
-block_definitions[ 125 ].icon_texture = TEX_PLANKS_BIRCH;
+block_definitions[ 125 ].textures[ FACE_RIGHT ] = TEX_PLANKS_BIRCH;
+block_definitions[ 125 ].textures[ FACE_FRONT ] = TEX_PLANKS_BIRCH;
+block_definitions[ 125 ].textures[ FACE_LEFT ] = TEX_PLANKS_BIRCH;
+block_definitions[ 125 ].textures[ FACE_BACK ] = TEX_PLANKS_BIRCH;
+block_definitions[ 125 ].icon_texture = TEX_PLANKS_BIRCH__FENCE;
 block_definitions[ 125 ].casts_shadow = false;
 block_definitions[ 125 ].hardness = 0.35f;
+block_definitions[ 125 ].icon_is_isometric = false;
+block_definitions[ 125 ].is_fence = true;
 block_definitions[ 125 ].is_seethrough = true;
 block_definitions[ 125 ].no_light = 6815743;
+block_definitions[ 125 ].offset = { 6, 0, 6 };
+block_definitions[ 125 ].scale = { 4, 16, 4 };
+block_definitions[ 125 ].tex_offset = { -6, 0, -6 };
 
 // BIRCH_FENCE_GATE (126)
 block_definitions[ 126 ].textures[ FACE_TOP ] = TEX_PLANKS_BIRCH;
 block_definitions[ 126 ].textures[ FACE_BOTTOM ] = TEX_PLANKS_BIRCH;
-block_definitions[ 126 ].textures[ FACE_RIGHT ] = TEX_PLANKS_BIRCH__FENCE_GATE;
-block_definitions[ 126 ].textures[ FACE_FRONT ] = TEX_PLANKS_BIRCH__FENCE_GATE;
-block_definitions[ 126 ].textures[ FACE_LEFT ] = TEX_PLANKS_BIRCH__FENCE_GATE;
-block_definitions[ 126 ].textures[ FACE_BACK ] = TEX_PLANKS_BIRCH__FENCE_GATE;
-block_definitions[ 126 ].icon_texture = TEX_PLANKS_BIRCH;
+block_definitions[ 126 ].textures[ FACE_RIGHT ] = TEX_PLANKS_BIRCH;
+block_definitions[ 126 ].textures[ FACE_FRONT ] = TEX_PLANKS_BIRCH;
+block_definitions[ 126 ].textures[ FACE_LEFT ] = TEX_PLANKS_BIRCH;
+block_definitions[ 126 ].textures[ FACE_BACK ] = TEX_PLANKS_BIRCH;
+block_definitions[ 126 ].icon_texture = TEX_PLANKS_BIRCH__FENCE_GATE;
 block_definitions[ 126 ].casts_shadow = false;
 block_definitions[ 126 ].hardness = 0.35f;
+block_definitions[ 126 ].icon_is_isometric = false;
+block_definitions[ 126 ].is_fence_gate = true;
 block_definitions[ 126 ].is_seethrough = true;
 block_definitions[ 126 ].no_light = 6815743;
+block_definitions[ 126 ].offset = { 0, 5, 6 };
+block_definitions[ 126 ].rotate_on_placement = true;
+block_definitions[ 126 ].scale = { 16, 11, 4 };
+block_definitions[ 126 ].tex_offset = { 0, -5, -6 };
 
 // BIRCH_HANGING_SIGN (127)
 block_definitions[ 127 ].textures[ FACE_TOP ] = TEX_PLANKS_BIRCH;
@@ -3536,15 +3569,20 @@ block_definitions[ 260 ].waterloggable = true;
 // CHERRY_FENCE (261)
 block_definitions[ 261 ].textures[ FACE_TOP ] = TEX_CHERRY_PLANKS;
 block_definitions[ 261 ].textures[ FACE_BOTTOM ] = TEX_CHERRY_PLANKS;
-block_definitions[ 261 ].textures[ FACE_RIGHT ] = TEX_CHERRY_PLANKS__FENCE;
-block_definitions[ 261 ].textures[ FACE_FRONT ] = TEX_CHERRY_PLANKS__FENCE;
-block_definitions[ 261 ].textures[ FACE_LEFT ] = TEX_CHERRY_PLANKS__FENCE;
-block_definitions[ 261 ].textures[ FACE_BACK ] = TEX_CHERRY_PLANKS__FENCE;
-block_definitions[ 261 ].icon_texture = TEX_CHERRY_PLANKS;
+block_definitions[ 261 ].textures[ FACE_RIGHT ] = TEX_CHERRY_PLANKS;
+block_definitions[ 261 ].textures[ FACE_FRONT ] = TEX_CHERRY_PLANKS;
+block_definitions[ 261 ].textures[ FACE_LEFT ] = TEX_CHERRY_PLANKS;
+block_definitions[ 261 ].textures[ FACE_BACK ] = TEX_CHERRY_PLANKS;
+block_definitions[ 261 ].icon_texture = TEX_CHERRY_PLANKS__FENCE;
 block_definitions[ 261 ].casts_shadow = false;
 block_definitions[ 261 ].hardness = 0.35f;
+block_definitions[ 261 ].icon_is_isometric = false;
+block_definitions[ 261 ].is_fence = true;
 block_definitions[ 261 ].is_seethrough = true;
 block_definitions[ 261 ].no_light = 6815743;
+block_definitions[ 261 ].offset = { 6, 0, 6 };
+block_definitions[ 261 ].scale = { 4, 16, 4 };
+block_definitions[ 261 ].tex_offset = { -6, 0, -6 };
 
 // WOODEN_BUTTON (262)
 block_definitions[ 262 ].textures[ FACE_TOP ] = TEX_PLANKS_OAK;
@@ -3571,15 +3609,21 @@ block_definitions[ 262 ].tex_offset = { -7, -6, -5 };
 // CHERRY_FENCE_GATE (263)
 block_definitions[ 263 ].textures[ FACE_TOP ] = TEX_CHERRY_PLANKS;
 block_definitions[ 263 ].textures[ FACE_BOTTOM ] = TEX_CHERRY_PLANKS;
-block_definitions[ 263 ].textures[ FACE_RIGHT ] = TEX_CHERRY_PLANKS__FENCE_GATE;
-block_definitions[ 263 ].textures[ FACE_FRONT ] = TEX_CHERRY_PLANKS__FENCE_GATE;
-block_definitions[ 263 ].textures[ FACE_LEFT ] = TEX_CHERRY_PLANKS__FENCE_GATE;
-block_definitions[ 263 ].textures[ FACE_BACK ] = TEX_CHERRY_PLANKS__FENCE_GATE;
-block_definitions[ 263 ].icon_texture = TEX_CHERRY_PLANKS;
+block_definitions[ 263 ].textures[ FACE_RIGHT ] = TEX_CHERRY_PLANKS;
+block_definitions[ 263 ].textures[ FACE_FRONT ] = TEX_CHERRY_PLANKS;
+block_definitions[ 263 ].textures[ FACE_LEFT ] = TEX_CHERRY_PLANKS;
+block_definitions[ 263 ].textures[ FACE_BACK ] = TEX_CHERRY_PLANKS;
+block_definitions[ 263 ].icon_texture = TEX_CHERRY_PLANKS__FENCE_GATE;
 block_definitions[ 263 ].casts_shadow = false;
 block_definitions[ 263 ].hardness = 0.35f;
+block_definitions[ 263 ].icon_is_isometric = false;
+block_definitions[ 263 ].is_fence_gate = true;
 block_definitions[ 263 ].is_seethrough = true;
 block_definitions[ 263 ].no_light = 6815743;
+block_definitions[ 263 ].offset = { 0, 5, 6 };
+block_definitions[ 263 ].rotate_on_placement = true;
+block_definitions[ 263 ].scale = { 16, 11, 4 };
+block_definitions[ 263 ].tex_offset = { 0, -5, -6 };
 
 // CHERRY_HANGING_SIGN (264)
 block_definitions[ 264 ].textures[ FACE_TOP ] = TEX_CHERRY_PLANKS;
@@ -5174,28 +5218,39 @@ block_definitions[ 382 ].renderOrder = RenderOrder_Flowers;
 // CRIMSON_FENCE (383)
 block_definitions[ 383 ].textures[ FACE_TOP ] = TEX_CRIMSON_PLANKS;
 block_definitions[ 383 ].textures[ FACE_BOTTOM ] = TEX_CRIMSON_PLANKS;
-block_definitions[ 383 ].textures[ FACE_RIGHT ] = TEX_CRIMSON_PLANKS__FENCE;
-block_definitions[ 383 ].textures[ FACE_FRONT ] = TEX_CRIMSON_PLANKS__FENCE;
-block_definitions[ 383 ].textures[ FACE_LEFT ] = TEX_CRIMSON_PLANKS__FENCE;
-block_definitions[ 383 ].textures[ FACE_BACK ] = TEX_CRIMSON_PLANKS__FENCE;
-block_definitions[ 383 ].icon_texture = TEX_CRIMSON_PLANKS;
+block_definitions[ 383 ].textures[ FACE_RIGHT ] = TEX_CRIMSON_PLANKS;
+block_definitions[ 383 ].textures[ FACE_FRONT ] = TEX_CRIMSON_PLANKS;
+block_definitions[ 383 ].textures[ FACE_LEFT ] = TEX_CRIMSON_PLANKS;
+block_definitions[ 383 ].textures[ FACE_BACK ] = TEX_CRIMSON_PLANKS;
+block_definitions[ 383 ].icon_texture = TEX_CRIMSON_PLANKS__FENCE;
 block_definitions[ 383 ].casts_shadow = false;
 block_definitions[ 383 ].hardness = 0.35f;
+block_definitions[ 383 ].icon_is_isometric = false;
+block_definitions[ 383 ].is_fence = true;
 block_definitions[ 383 ].is_seethrough = true;
 block_definitions[ 383 ].no_light = 6815743;
+block_definitions[ 383 ].offset = { 6, 0, 6 };
+block_definitions[ 383 ].scale = { 4, 16, 4 };
+block_definitions[ 383 ].tex_offset = { -6, 0, -6 };
 
 // CRIMSON_FENCE_GATE (384)
 block_definitions[ 384 ].textures[ FACE_TOP ] = TEX_CRIMSON_PLANKS;
 block_definitions[ 384 ].textures[ FACE_BOTTOM ] = TEX_CRIMSON_PLANKS;
-block_definitions[ 384 ].textures[ FACE_RIGHT ] = TEX_CRIMSON_PLANKS__FENCE_GATE;
-block_definitions[ 384 ].textures[ FACE_FRONT ] = TEX_CRIMSON_PLANKS__FENCE_GATE;
-block_definitions[ 384 ].textures[ FACE_LEFT ] = TEX_CRIMSON_PLANKS__FENCE_GATE;
-block_definitions[ 384 ].textures[ FACE_BACK ] = TEX_CRIMSON_PLANKS__FENCE_GATE;
-block_definitions[ 384 ].icon_texture = TEX_CRIMSON_PLANKS;
+block_definitions[ 384 ].textures[ FACE_RIGHT ] = TEX_CRIMSON_PLANKS;
+block_definitions[ 384 ].textures[ FACE_FRONT ] = TEX_CRIMSON_PLANKS;
+block_definitions[ 384 ].textures[ FACE_LEFT ] = TEX_CRIMSON_PLANKS;
+block_definitions[ 384 ].textures[ FACE_BACK ] = TEX_CRIMSON_PLANKS;
+block_definitions[ 384 ].icon_texture = TEX_CRIMSON_PLANKS__FENCE_GATE;
 block_definitions[ 384 ].casts_shadow = false;
 block_definitions[ 384 ].hardness = 0.35f;
+block_definitions[ 384 ].icon_is_isometric = false;
+block_definitions[ 384 ].is_fence_gate = true;
 block_definitions[ 384 ].is_seethrough = true;
 block_definitions[ 384 ].no_light = 6815743;
+block_definitions[ 384 ].offset = { 0, 5, 6 };
+block_definitions[ 384 ].rotate_on_placement = true;
+block_definitions[ 384 ].scale = { 16, 11, 4 };
+block_definitions[ 384 ].tex_offset = { 0, -5, -6 };
 
 // POPPY (385)
 block_definitions[ 385 ].textures[ FACE_TOP ] = TEX_AIR;
@@ -6051,28 +6106,39 @@ block_definitions[ 447 ].icon_texture = TEX_PLANKS_BIG_OAK;
 // DARK_OAK_FENCE (448)
 block_definitions[ 448 ].textures[ FACE_TOP ] = TEX_PLANKS_BIG_OAK;
 block_definitions[ 448 ].textures[ FACE_BOTTOM ] = TEX_PLANKS_BIG_OAK;
-block_definitions[ 448 ].textures[ FACE_RIGHT ] = TEX_PLANKS_BIG_OAK__FENCE;
-block_definitions[ 448 ].textures[ FACE_FRONT ] = TEX_PLANKS_BIG_OAK__FENCE;
-block_definitions[ 448 ].textures[ FACE_LEFT ] = TEX_PLANKS_BIG_OAK__FENCE;
-block_definitions[ 448 ].textures[ FACE_BACK ] = TEX_PLANKS_BIG_OAK__FENCE;
-block_definitions[ 448 ].icon_texture = TEX_PLANKS_BIG_OAK;
+block_definitions[ 448 ].textures[ FACE_RIGHT ] = TEX_PLANKS_BIG_OAK;
+block_definitions[ 448 ].textures[ FACE_FRONT ] = TEX_PLANKS_BIG_OAK;
+block_definitions[ 448 ].textures[ FACE_LEFT ] = TEX_PLANKS_BIG_OAK;
+block_definitions[ 448 ].textures[ FACE_BACK ] = TEX_PLANKS_BIG_OAK;
+block_definitions[ 448 ].icon_texture = TEX_PLANKS_BIG_OAK__FENCE;
 block_definitions[ 448 ].casts_shadow = false;
 block_definitions[ 448 ].hardness = 0.35f;
+block_definitions[ 448 ].icon_is_isometric = false;
+block_definitions[ 448 ].is_fence = true;
 block_definitions[ 448 ].is_seethrough = true;
 block_definitions[ 448 ].no_light = 6815743;
+block_definitions[ 448 ].offset = { 6, 0, 6 };
+block_definitions[ 448 ].scale = { 4, 16, 4 };
+block_definitions[ 448 ].tex_offset = { -6, 0, -6 };
 
 // DARK_OAK_FENCE_GATE (449)
 block_definitions[ 449 ].textures[ FACE_TOP ] = TEX_PLANKS_BIG_OAK;
 block_definitions[ 449 ].textures[ FACE_BOTTOM ] = TEX_PLANKS_BIG_OAK;
-block_definitions[ 449 ].textures[ FACE_RIGHT ] = TEX_PLANKS_BIG_OAK__FENCE_GATE;
-block_definitions[ 449 ].textures[ FACE_FRONT ] = TEX_PLANKS_BIG_OAK__FENCE_GATE;
-block_definitions[ 449 ].textures[ FACE_LEFT ] = TEX_PLANKS_BIG_OAK__FENCE_GATE;
-block_definitions[ 449 ].textures[ FACE_BACK ] = TEX_PLANKS_BIG_OAK__FENCE_GATE;
-block_definitions[ 449 ].icon_texture = TEX_PLANKS_BIG_OAK;
+block_definitions[ 449 ].textures[ FACE_RIGHT ] = TEX_PLANKS_BIG_OAK;
+block_definitions[ 449 ].textures[ FACE_FRONT ] = TEX_PLANKS_BIG_OAK;
+block_definitions[ 449 ].textures[ FACE_LEFT ] = TEX_PLANKS_BIG_OAK;
+block_definitions[ 449 ].textures[ FACE_BACK ] = TEX_PLANKS_BIG_OAK;
+block_definitions[ 449 ].icon_texture = TEX_PLANKS_BIG_OAK__FENCE_GATE;
 block_definitions[ 449 ].casts_shadow = false;
 block_definitions[ 449 ].hardness = 0.35f;
+block_definitions[ 449 ].icon_is_isometric = false;
+block_definitions[ 449 ].is_fence_gate = true;
 block_definitions[ 449 ].is_seethrough = true;
 block_definitions[ 449 ].no_light = 6815743;
+block_definitions[ 449 ].offset = { 0, 5, 6 };
+block_definitions[ 449 ].rotate_on_placement = true;
+block_definitions[ 449 ].scale = { 16, 11, 4 };
+block_definitions[ 449 ].tex_offset = { 0, -5, -6 };
 
 // DARK_OAK_HANGING_SIGN (450)
 block_definitions[ 450 ].textures[ FACE_TOP ] = TEX_PLANKS_BIG_OAK;
@@ -7716,7 +7782,16 @@ block_definitions[ 580 ].textures[ FACE_RIGHT ] = TEX_PLANKS_OAK;
 block_definitions[ 580 ].textures[ FACE_FRONT ] = TEX_PLANKS_OAK;
 block_definitions[ 580 ].textures[ FACE_LEFT ] = TEX_PLANKS_OAK;
 block_definitions[ 580 ].textures[ FACE_BACK ] = TEX_PLANKS_OAK;
-block_definitions[ 580 ].icon_texture = TEX_PLANKS_OAK;
+block_definitions[ 580 ].icon_texture = TEX_PLANKS_OAK__FENCE;
+block_definitions[ 580 ].casts_shadow = false;
+block_definitions[ 580 ].hardness = 0.35f;
+block_definitions[ 580 ].icon_is_isometric = false;
+block_definitions[ 580 ].is_fence = true;
+block_definitions[ 580 ].is_seethrough = true;
+block_definitions[ 580 ].no_light = 6815743;
+block_definitions[ 580 ].offset = { 6, 0, 6 };
+block_definitions[ 580 ].scale = { 4, 16, 4 };
+block_definitions[ 580 ].tex_offset = { -6, 0, -6 };
 
 // FENCE_GATE (581)
 block_definitions[ 581 ].textures[ FACE_TOP ] = TEX_PLANKS_OAK;
@@ -7725,7 +7800,17 @@ block_definitions[ 581 ].textures[ FACE_RIGHT ] = TEX_PLANKS_OAK;
 block_definitions[ 581 ].textures[ FACE_FRONT ] = TEX_PLANKS_OAK;
 block_definitions[ 581 ].textures[ FACE_LEFT ] = TEX_PLANKS_OAK;
 block_definitions[ 581 ].textures[ FACE_BACK ] = TEX_PLANKS_OAK;
-block_definitions[ 581 ].icon_texture = TEX_PLANKS_OAK;
+block_definitions[ 581 ].icon_texture = TEX_PLANKS_OAK__FENCE_GATE;
+block_definitions[ 581 ].casts_shadow = false;
+block_definitions[ 581 ].hardness = 0.35f;
+block_definitions[ 581 ].icon_is_isometric = false;
+block_definitions[ 581 ].is_fence_gate = true;
+block_definitions[ 581 ].is_seethrough = true;
+block_definitions[ 581 ].no_light = 6815743;
+block_definitions[ 581 ].offset = { 0, 5, 6 };
+block_definitions[ 581 ].rotate_on_placement = true;
+block_definitions[ 581 ].scale = { 16, 11, 4 };
+block_definitions[ 581 ].tex_offset = { 0, -5, -6 };
 
 // FIRE_CORAL_BLOCK (582)
 block_definitions[ 582 ].textures[ FACE_TOP ] = TEX_CORAL_RED;
@@ -8633,28 +8718,39 @@ block_definitions[ 657 ].icon_texture = TEX_PLANKS_JUNGLE;
 // JUNGLE_FENCE (658)
 block_definitions[ 658 ].textures[ FACE_TOP ] = TEX_PLANKS_JUNGLE;
 block_definitions[ 658 ].textures[ FACE_BOTTOM ] = TEX_PLANKS_JUNGLE;
-block_definitions[ 658 ].textures[ FACE_RIGHT ] = TEX_PLANKS_JUNGLE__FENCE;
-block_definitions[ 658 ].textures[ FACE_FRONT ] = TEX_PLANKS_JUNGLE__FENCE;
-block_definitions[ 658 ].textures[ FACE_LEFT ] = TEX_PLANKS_JUNGLE__FENCE;
-block_definitions[ 658 ].textures[ FACE_BACK ] = TEX_PLANKS_JUNGLE__FENCE;
-block_definitions[ 658 ].icon_texture = TEX_PLANKS_JUNGLE;
+block_definitions[ 658 ].textures[ FACE_RIGHT ] = TEX_PLANKS_JUNGLE;
+block_definitions[ 658 ].textures[ FACE_FRONT ] = TEX_PLANKS_JUNGLE;
+block_definitions[ 658 ].textures[ FACE_LEFT ] = TEX_PLANKS_JUNGLE;
+block_definitions[ 658 ].textures[ FACE_BACK ] = TEX_PLANKS_JUNGLE;
+block_definitions[ 658 ].icon_texture = TEX_PLANKS_JUNGLE__FENCE;
 block_definitions[ 658 ].casts_shadow = false;
 block_definitions[ 658 ].hardness = 0.35f;
+block_definitions[ 658 ].icon_is_isometric = false;
+block_definitions[ 658 ].is_fence = true;
 block_definitions[ 658 ].is_seethrough = true;
 block_definitions[ 658 ].no_light = 6815743;
+block_definitions[ 658 ].offset = { 6, 0, 6 };
+block_definitions[ 658 ].scale = { 4, 16, 4 };
+block_definitions[ 658 ].tex_offset = { -6, 0, -6 };
 
 // JUNGLE_FENCE_GATE (659)
 block_definitions[ 659 ].textures[ FACE_TOP ] = TEX_PLANKS_JUNGLE;
 block_definitions[ 659 ].textures[ FACE_BOTTOM ] = TEX_PLANKS_JUNGLE;
-block_definitions[ 659 ].textures[ FACE_RIGHT ] = TEX_PLANKS_JUNGLE__FENCE_GATE;
-block_definitions[ 659 ].textures[ FACE_FRONT ] = TEX_PLANKS_JUNGLE__FENCE_GATE;
-block_definitions[ 659 ].textures[ FACE_LEFT ] = TEX_PLANKS_JUNGLE__FENCE_GATE;
-block_definitions[ 659 ].textures[ FACE_BACK ] = TEX_PLANKS_JUNGLE__FENCE_GATE;
-block_definitions[ 659 ].icon_texture = TEX_PLANKS_JUNGLE;
+block_definitions[ 659 ].textures[ FACE_RIGHT ] = TEX_PLANKS_JUNGLE;
+block_definitions[ 659 ].textures[ FACE_FRONT ] = TEX_PLANKS_JUNGLE;
+block_definitions[ 659 ].textures[ FACE_LEFT ] = TEX_PLANKS_JUNGLE;
+block_definitions[ 659 ].textures[ FACE_BACK ] = TEX_PLANKS_JUNGLE;
+block_definitions[ 659 ].icon_texture = TEX_PLANKS_JUNGLE__FENCE_GATE;
 block_definitions[ 659 ].casts_shadow = false;
 block_definitions[ 659 ].hardness = 0.35f;
+block_definitions[ 659 ].icon_is_isometric = false;
+block_definitions[ 659 ].is_fence_gate = true;
 block_definitions[ 659 ].is_seethrough = true;
 block_definitions[ 659 ].no_light = 6815743;
+block_definitions[ 659 ].offset = { 0, 5, 6 };
+block_definitions[ 659 ].rotate_on_placement = true;
+block_definitions[ 659 ].scale = { 16, 11, 4 };
+block_definitions[ 659 ].tex_offset = { 0, -5, -6 };
 
 // JUNGLE_HANGING_SIGN (660)
 block_definitions[ 660 ].textures[ FACE_TOP ] = TEX_PLANKS_JUNGLE;
@@ -9836,28 +9932,39 @@ block_definitions[ 758 ].icon_texture = TEX_MANGROVE_PLANKS;
 // MANGROVE_FENCE (759)
 block_definitions[ 759 ].textures[ FACE_TOP ] = TEX_MANGROVE_PLANKS;
 block_definitions[ 759 ].textures[ FACE_BOTTOM ] = TEX_MANGROVE_PLANKS;
-block_definitions[ 759 ].textures[ FACE_RIGHT ] = TEX_MANGROVE_PLANKS__FENCE;
-block_definitions[ 759 ].textures[ FACE_FRONT ] = TEX_MANGROVE_PLANKS__FENCE;
-block_definitions[ 759 ].textures[ FACE_LEFT ] = TEX_MANGROVE_PLANKS__FENCE;
-block_definitions[ 759 ].textures[ FACE_BACK ] = TEX_MANGROVE_PLANKS__FENCE;
-block_definitions[ 759 ].icon_texture = TEX_MANGROVE_PLANKS;
+block_definitions[ 759 ].textures[ FACE_RIGHT ] = TEX_MANGROVE_PLANKS;
+block_definitions[ 759 ].textures[ FACE_FRONT ] = TEX_MANGROVE_PLANKS;
+block_definitions[ 759 ].textures[ FACE_LEFT ] = TEX_MANGROVE_PLANKS;
+block_definitions[ 759 ].textures[ FACE_BACK ] = TEX_MANGROVE_PLANKS;
+block_definitions[ 759 ].icon_texture = TEX_MANGROVE_PLANKS__FENCE;
 block_definitions[ 759 ].casts_shadow = false;
 block_definitions[ 759 ].hardness = 0.35f;
+block_definitions[ 759 ].icon_is_isometric = false;
+block_definitions[ 759 ].is_fence = true;
 block_definitions[ 759 ].is_seethrough = true;
 block_definitions[ 759 ].no_light = 6815743;
+block_definitions[ 759 ].offset = { 6, 0, 6 };
+block_definitions[ 759 ].scale = { 4, 16, 4 };
+block_definitions[ 759 ].tex_offset = { -6, 0, -6 };
 
 // MANGROVE_FENCE_GATE (760)
 block_definitions[ 760 ].textures[ FACE_TOP ] = TEX_MANGROVE_PLANKS;
 block_definitions[ 760 ].textures[ FACE_BOTTOM ] = TEX_MANGROVE_PLANKS;
-block_definitions[ 760 ].textures[ FACE_RIGHT ] = TEX_MANGROVE_PLANKS__FENCE_GATE;
-block_definitions[ 760 ].textures[ FACE_FRONT ] = TEX_MANGROVE_PLANKS__FENCE_GATE;
-block_definitions[ 760 ].textures[ FACE_LEFT ] = TEX_MANGROVE_PLANKS__FENCE_GATE;
-block_definitions[ 760 ].textures[ FACE_BACK ] = TEX_MANGROVE_PLANKS__FENCE_GATE;
-block_definitions[ 760 ].icon_texture = TEX_MANGROVE_PLANKS;
+block_definitions[ 760 ].textures[ FACE_RIGHT ] = TEX_MANGROVE_PLANKS;
+block_definitions[ 760 ].textures[ FACE_FRONT ] = TEX_MANGROVE_PLANKS;
+block_definitions[ 760 ].textures[ FACE_LEFT ] = TEX_MANGROVE_PLANKS;
+block_definitions[ 760 ].textures[ FACE_BACK ] = TEX_MANGROVE_PLANKS;
+block_definitions[ 760 ].icon_texture = TEX_MANGROVE_PLANKS__FENCE_GATE;
 block_definitions[ 760 ].casts_shadow = false;
 block_definitions[ 760 ].hardness = 0.35f;
+block_definitions[ 760 ].icon_is_isometric = false;
+block_definitions[ 760 ].is_fence_gate = true;
 block_definitions[ 760 ].is_seethrough = true;
 block_definitions[ 760 ].no_light = 6815743;
+block_definitions[ 760 ].offset = { 0, 5, 6 };
+block_definitions[ 760 ].rotate_on_placement = true;
+block_definitions[ 760 ].scale = { 16, 11, 4 };
+block_definitions[ 760 ].tex_offset = { 0, -5, -6 };
 
 // MANGROVE_HANGING_SIGN (761)
 block_definitions[ 761 ].textures[ FACE_TOP ] = TEX_MANGROVE_PLANKS;
@@ -10365,15 +10472,20 @@ block_definitions[ 801 ].icon_texture = TEX_NETHER_BRICK;
 // NETHER_BRICK_FENCE (802)
 block_definitions[ 802 ].textures[ FACE_TOP ] = TEX_NETHER_BRICK;
 block_definitions[ 802 ].textures[ FACE_BOTTOM ] = TEX_NETHER_BRICK;
-block_definitions[ 802 ].textures[ FACE_RIGHT ] = TEX_NETHER_BRICK__FENCE;
-block_definitions[ 802 ].textures[ FACE_FRONT ] = TEX_NETHER_BRICK__FENCE;
-block_definitions[ 802 ].textures[ FACE_LEFT ] = TEX_NETHER_BRICK__FENCE;
-block_definitions[ 802 ].textures[ FACE_BACK ] = TEX_NETHER_BRICK__FENCE;
-block_definitions[ 802 ].icon_texture = TEX_NETHER_BRICK;
+block_definitions[ 802 ].textures[ FACE_RIGHT ] = TEX_NETHER_BRICK;
+block_definitions[ 802 ].textures[ FACE_FRONT ] = TEX_NETHER_BRICK;
+block_definitions[ 802 ].textures[ FACE_LEFT ] = TEX_NETHER_BRICK;
+block_definitions[ 802 ].textures[ FACE_BACK ] = TEX_NETHER_BRICK;
+block_definitions[ 802 ].icon_texture = TEX_NETHER_BRICK__FENCE;
 block_definitions[ 802 ].casts_shadow = false;
 block_definitions[ 802 ].hardness = 0.35f;
+block_definitions[ 802 ].icon_is_isometric = false;
+block_definitions[ 802 ].is_fence = true;
 block_definitions[ 802 ].is_seethrough = true;
 block_definitions[ 802 ].no_light = 6815743;
+block_definitions[ 802 ].offset = { 6, 0, 6 };
+block_definitions[ 802 ].scale = { 4, 16, 4 };
+block_definitions[ 802 ].tex_offset = { -6, 0, -6 };
 
 // NETHER_BRICK_SLAB (803)
 block_definitions[ 803 ].textures[ FACE_TOP ] = TEX_NETHER_BRICK;
@@ -10688,15 +10800,20 @@ block_definitions[ 823 ].tex_offset = { -4, 0, -4 };
 // OAK_FENCE (824)
 block_definitions[ 824 ].textures[ FACE_TOP ] = TEX_PLANKS_OAK;
 block_definitions[ 824 ].textures[ FACE_BOTTOM ] = TEX_PLANKS_OAK;
-block_definitions[ 824 ].textures[ FACE_RIGHT ] = TEX_PLANKS_OAK__FENCE;
-block_definitions[ 824 ].textures[ FACE_FRONT ] = TEX_PLANKS_OAK__FENCE;
-block_definitions[ 824 ].textures[ FACE_LEFT ] = TEX_PLANKS_OAK__FENCE;
-block_definitions[ 824 ].textures[ FACE_BACK ] = TEX_PLANKS_OAK__FENCE;
-block_definitions[ 824 ].icon_texture = TEX_PLANKS_OAK;
+block_definitions[ 824 ].textures[ FACE_RIGHT ] = TEX_PLANKS_OAK;
+block_definitions[ 824 ].textures[ FACE_FRONT ] = TEX_PLANKS_OAK;
+block_definitions[ 824 ].textures[ FACE_LEFT ] = TEX_PLANKS_OAK;
+block_definitions[ 824 ].textures[ FACE_BACK ] = TEX_PLANKS_OAK;
+block_definitions[ 824 ].icon_texture = TEX_PLANKS_OAK__FENCE;
 block_definitions[ 824 ].casts_shadow = false;
 block_definitions[ 824 ].hardness = 0.35f;
+block_definitions[ 824 ].icon_is_isometric = false;
+block_definitions[ 824 ].is_fence = true;
 block_definitions[ 824 ].is_seethrough = true;
 block_definitions[ 824 ].no_light = 6815743;
+block_definitions[ 824 ].offset = { 6, 0, 6 };
+block_definitions[ 824 ].scale = { 4, 16, 4 };
+block_definitions[ 824 ].tex_offset = { -6, 0, -6 };
 
 // OAK_HANGING_SIGN (825)
 block_definitions[ 825 ].textures[ FACE_TOP ] = TEX_PLANKS_OAK;
@@ -11482,28 +11599,39 @@ block_definitions[ 883 ].icon_texture = TEX_PALE_OAK_PLANKS;
 // PALE_OAK_FENCE (884)
 block_definitions[ 884 ].textures[ FACE_TOP ] = TEX_PALE_OAK_PLANKS;
 block_definitions[ 884 ].textures[ FACE_BOTTOM ] = TEX_PALE_OAK_PLANKS;
-block_definitions[ 884 ].textures[ FACE_RIGHT ] = TEX_PALE_OAK_PLANKS__FENCE;
-block_definitions[ 884 ].textures[ FACE_FRONT ] = TEX_PALE_OAK_PLANKS__FENCE;
-block_definitions[ 884 ].textures[ FACE_LEFT ] = TEX_PALE_OAK_PLANKS__FENCE;
-block_definitions[ 884 ].textures[ FACE_BACK ] = TEX_PALE_OAK_PLANKS__FENCE;
-block_definitions[ 884 ].icon_texture = TEX_PALE_OAK_PLANKS;
+block_definitions[ 884 ].textures[ FACE_RIGHT ] = TEX_PALE_OAK_PLANKS;
+block_definitions[ 884 ].textures[ FACE_FRONT ] = TEX_PALE_OAK_PLANKS;
+block_definitions[ 884 ].textures[ FACE_LEFT ] = TEX_PALE_OAK_PLANKS;
+block_definitions[ 884 ].textures[ FACE_BACK ] = TEX_PALE_OAK_PLANKS;
+block_definitions[ 884 ].icon_texture = TEX_PALE_OAK_PLANKS__FENCE;
 block_definitions[ 884 ].casts_shadow = false;
 block_definitions[ 884 ].hardness = 0.35f;
+block_definitions[ 884 ].icon_is_isometric = false;
+block_definitions[ 884 ].is_fence = true;
 block_definitions[ 884 ].is_seethrough = true;
 block_definitions[ 884 ].no_light = 6815743;
+block_definitions[ 884 ].offset = { 6, 0, 6 };
+block_definitions[ 884 ].scale = { 4, 16, 4 };
+block_definitions[ 884 ].tex_offset = { -6, 0, -6 };
 
 // PALE_OAK_FENCE_GATE (885)
 block_definitions[ 885 ].textures[ FACE_TOP ] = TEX_PALE_OAK_PLANKS;
 block_definitions[ 885 ].textures[ FACE_BOTTOM ] = TEX_PALE_OAK_PLANKS;
-block_definitions[ 885 ].textures[ FACE_RIGHT ] = TEX_PALE_OAK_PLANKS__FENCE_GATE;
-block_definitions[ 885 ].textures[ FACE_FRONT ] = TEX_PALE_OAK_PLANKS__FENCE_GATE;
-block_definitions[ 885 ].textures[ FACE_LEFT ] = TEX_PALE_OAK_PLANKS__FENCE_GATE;
-block_definitions[ 885 ].textures[ FACE_BACK ] = TEX_PALE_OAK_PLANKS__FENCE_GATE;
-block_definitions[ 885 ].icon_texture = TEX_PALE_OAK_PLANKS;
+block_definitions[ 885 ].textures[ FACE_RIGHT ] = TEX_PALE_OAK_PLANKS;
+block_definitions[ 885 ].textures[ FACE_FRONT ] = TEX_PALE_OAK_PLANKS;
+block_definitions[ 885 ].textures[ FACE_LEFT ] = TEX_PALE_OAK_PLANKS;
+block_definitions[ 885 ].textures[ FACE_BACK ] = TEX_PALE_OAK_PLANKS;
+block_definitions[ 885 ].icon_texture = TEX_PALE_OAK_PLANKS__FENCE_GATE;
 block_definitions[ 885 ].casts_shadow = false;
 block_definitions[ 885 ].hardness = 0.35f;
+block_definitions[ 885 ].icon_is_isometric = false;
+block_definitions[ 885 ].is_fence_gate = true;
 block_definitions[ 885 ].is_seethrough = true;
 block_definitions[ 885 ].no_light = 6815743;
+block_definitions[ 885 ].offset = { 0, 5, 6 };
+block_definitions[ 885 ].rotate_on_placement = true;
+block_definitions[ 885 ].scale = { 16, 11, 4 };
+block_definitions[ 885 ].tex_offset = { 0, -5, -6 };
 
 // PALE_OAK_HANGING_SIGN (886)
 block_definitions[ 886 ].textures[ FACE_TOP ] = TEX_PALE_OAK_PLANKS;
@@ -12576,28 +12704,39 @@ block_definitions[ 971 ].icon_texture = TEX_POPLAR_PLANKS;
 // POPLAR_FENCE (972)
 block_definitions[ 972 ].textures[ FACE_TOP ] = TEX_POPLAR_PLANKS;
 block_definitions[ 972 ].textures[ FACE_BOTTOM ] = TEX_POPLAR_PLANKS;
-block_definitions[ 972 ].textures[ FACE_RIGHT ] = TEX_POPLAR_PLANKS__FENCE;
-block_definitions[ 972 ].textures[ FACE_FRONT ] = TEX_POPLAR_PLANKS__FENCE;
-block_definitions[ 972 ].textures[ FACE_LEFT ] = TEX_POPLAR_PLANKS__FENCE;
-block_definitions[ 972 ].textures[ FACE_BACK ] = TEX_POPLAR_PLANKS__FENCE;
-block_definitions[ 972 ].icon_texture = TEX_POPLAR_PLANKS;
+block_definitions[ 972 ].textures[ FACE_RIGHT ] = TEX_POPLAR_PLANKS;
+block_definitions[ 972 ].textures[ FACE_FRONT ] = TEX_POPLAR_PLANKS;
+block_definitions[ 972 ].textures[ FACE_LEFT ] = TEX_POPLAR_PLANKS;
+block_definitions[ 972 ].textures[ FACE_BACK ] = TEX_POPLAR_PLANKS;
+block_definitions[ 972 ].icon_texture = TEX_POPLAR_PLANKS__FENCE;
 block_definitions[ 972 ].casts_shadow = false;
 block_definitions[ 972 ].hardness = 0.35f;
+block_definitions[ 972 ].icon_is_isometric = false;
+block_definitions[ 972 ].is_fence = true;
 block_definitions[ 972 ].is_seethrough = true;
 block_definitions[ 972 ].no_light = 6815743;
+block_definitions[ 972 ].offset = { 6, 0, 6 };
+block_definitions[ 972 ].scale = { 4, 16, 4 };
+block_definitions[ 972 ].tex_offset = { -6, 0, -6 };
 
 // POPLAR_FENCE_GATE (973)
 block_definitions[ 973 ].textures[ FACE_TOP ] = TEX_POPLAR_PLANKS;
 block_definitions[ 973 ].textures[ FACE_BOTTOM ] = TEX_POPLAR_PLANKS;
-block_definitions[ 973 ].textures[ FACE_RIGHT ] = TEX_POPLAR_PLANKS__FENCE_GATE;
-block_definitions[ 973 ].textures[ FACE_FRONT ] = TEX_POPLAR_PLANKS__FENCE_GATE;
-block_definitions[ 973 ].textures[ FACE_LEFT ] = TEX_POPLAR_PLANKS__FENCE_GATE;
-block_definitions[ 973 ].textures[ FACE_BACK ] = TEX_POPLAR_PLANKS__FENCE_GATE;
-block_definitions[ 973 ].icon_texture = TEX_POPLAR_PLANKS;
+block_definitions[ 973 ].textures[ FACE_RIGHT ] = TEX_POPLAR_PLANKS;
+block_definitions[ 973 ].textures[ FACE_FRONT ] = TEX_POPLAR_PLANKS;
+block_definitions[ 973 ].textures[ FACE_LEFT ] = TEX_POPLAR_PLANKS;
+block_definitions[ 973 ].textures[ FACE_BACK ] = TEX_POPLAR_PLANKS;
+block_definitions[ 973 ].icon_texture = TEX_POPLAR_PLANKS__FENCE_GATE;
 block_definitions[ 973 ].casts_shadow = false;
 block_definitions[ 973 ].hardness = 0.35f;
+block_definitions[ 973 ].icon_is_isometric = false;
+block_definitions[ 973 ].is_fence_gate = true;
 block_definitions[ 973 ].is_seethrough = true;
 block_definitions[ 973 ].no_light = 6815743;
+block_definitions[ 973 ].offset = { 0, 5, 6 };
+block_definitions[ 973 ].rotate_on_placement = true;
+block_definitions[ 973 ].scale = { 16, 11, 4 };
+block_definitions[ 973 ].tex_offset = { 0, -5, -6 };
 
 // POPLAR_HANGING_SIGN (974)
 block_definitions[ 974 ].textures[ FACE_TOP ] = TEX_POPLAR_PLANKS;
@@ -14812,28 +14951,39 @@ block_definitions[ 1145 ].icon_texture = TEX_PLANKS_SPRUCE;
 // SPRUCE_FENCE (1146)
 block_definitions[ 1146 ].textures[ FACE_TOP ] = TEX_PLANKS_SPRUCE;
 block_definitions[ 1146 ].textures[ FACE_BOTTOM ] = TEX_PLANKS_SPRUCE;
-block_definitions[ 1146 ].textures[ FACE_RIGHT ] = TEX_PLANKS_SPRUCE__FENCE;
-block_definitions[ 1146 ].textures[ FACE_FRONT ] = TEX_PLANKS_SPRUCE__FENCE;
-block_definitions[ 1146 ].textures[ FACE_LEFT ] = TEX_PLANKS_SPRUCE__FENCE;
-block_definitions[ 1146 ].textures[ FACE_BACK ] = TEX_PLANKS_SPRUCE__FENCE;
-block_definitions[ 1146 ].icon_texture = TEX_PLANKS_SPRUCE;
+block_definitions[ 1146 ].textures[ FACE_RIGHT ] = TEX_PLANKS_SPRUCE;
+block_definitions[ 1146 ].textures[ FACE_FRONT ] = TEX_PLANKS_SPRUCE;
+block_definitions[ 1146 ].textures[ FACE_LEFT ] = TEX_PLANKS_SPRUCE;
+block_definitions[ 1146 ].textures[ FACE_BACK ] = TEX_PLANKS_SPRUCE;
+block_definitions[ 1146 ].icon_texture = TEX_PLANKS_SPRUCE__FENCE;
 block_definitions[ 1146 ].casts_shadow = false;
 block_definitions[ 1146 ].hardness = 0.35f;
+block_definitions[ 1146 ].icon_is_isometric = false;
+block_definitions[ 1146 ].is_fence = true;
 block_definitions[ 1146 ].is_seethrough = true;
 block_definitions[ 1146 ].no_light = 6815743;
+block_definitions[ 1146 ].offset = { 6, 0, 6 };
+block_definitions[ 1146 ].scale = { 4, 16, 4 };
+block_definitions[ 1146 ].tex_offset = { -6, 0, -6 };
 
 // SPRUCE_FENCE_GATE (1147)
 block_definitions[ 1147 ].textures[ FACE_TOP ] = TEX_PLANKS_SPRUCE;
 block_definitions[ 1147 ].textures[ FACE_BOTTOM ] = TEX_PLANKS_SPRUCE;
-block_definitions[ 1147 ].textures[ FACE_RIGHT ] = TEX_PLANKS_SPRUCE__FENCE_GATE;
-block_definitions[ 1147 ].textures[ FACE_FRONT ] = TEX_PLANKS_SPRUCE__FENCE_GATE;
-block_definitions[ 1147 ].textures[ FACE_LEFT ] = TEX_PLANKS_SPRUCE__FENCE_GATE;
-block_definitions[ 1147 ].textures[ FACE_BACK ] = TEX_PLANKS_SPRUCE__FENCE_GATE;
-block_definitions[ 1147 ].icon_texture = TEX_PLANKS_SPRUCE;
+block_definitions[ 1147 ].textures[ FACE_RIGHT ] = TEX_PLANKS_SPRUCE;
+block_definitions[ 1147 ].textures[ FACE_FRONT ] = TEX_PLANKS_SPRUCE;
+block_definitions[ 1147 ].textures[ FACE_LEFT ] = TEX_PLANKS_SPRUCE;
+block_definitions[ 1147 ].textures[ FACE_BACK ] = TEX_PLANKS_SPRUCE;
+block_definitions[ 1147 ].icon_texture = TEX_PLANKS_SPRUCE__FENCE_GATE;
 block_definitions[ 1147 ].casts_shadow = false;
 block_definitions[ 1147 ].hardness = 0.35f;
+block_definitions[ 1147 ].icon_is_isometric = false;
+block_definitions[ 1147 ].is_fence_gate = true;
 block_definitions[ 1147 ].is_seethrough = true;
 block_definitions[ 1147 ].no_light = 6815743;
+block_definitions[ 1147 ].offset = { 0, 5, 6 };
+block_definitions[ 1147 ].rotate_on_placement = true;
+block_definitions[ 1147 ].scale = { 16, 11, 4 };
+block_definitions[ 1147 ].tex_offset = { 0, -5, -6 };
 
 // SPRUCE_HANGING_SIGN (1148)
 block_definitions[ 1148 ].textures[ FACE_TOP ] = TEX_PLANKS_SPRUCE;
@@ -16356,28 +16506,39 @@ block_definitions[ 1267 ].icon_texture = TEX_WARPED_PLANKS;
 // WARPED_FENCE (1268)
 block_definitions[ 1268 ].textures[ FACE_TOP ] = TEX_WARPED_PLANKS;
 block_definitions[ 1268 ].textures[ FACE_BOTTOM ] = TEX_WARPED_PLANKS;
-block_definitions[ 1268 ].textures[ FACE_RIGHT ] = TEX_WARPED_PLANKS__FENCE;
-block_definitions[ 1268 ].textures[ FACE_FRONT ] = TEX_WARPED_PLANKS__FENCE;
-block_definitions[ 1268 ].textures[ FACE_LEFT ] = TEX_WARPED_PLANKS__FENCE;
-block_definitions[ 1268 ].textures[ FACE_BACK ] = TEX_WARPED_PLANKS__FENCE;
-block_definitions[ 1268 ].icon_texture = TEX_WARPED_PLANKS;
+block_definitions[ 1268 ].textures[ FACE_RIGHT ] = TEX_WARPED_PLANKS;
+block_definitions[ 1268 ].textures[ FACE_FRONT ] = TEX_WARPED_PLANKS;
+block_definitions[ 1268 ].textures[ FACE_LEFT ] = TEX_WARPED_PLANKS;
+block_definitions[ 1268 ].textures[ FACE_BACK ] = TEX_WARPED_PLANKS;
+block_definitions[ 1268 ].icon_texture = TEX_WARPED_PLANKS__FENCE;
 block_definitions[ 1268 ].casts_shadow = false;
 block_definitions[ 1268 ].hardness = 0.35f;
+block_definitions[ 1268 ].icon_is_isometric = false;
+block_definitions[ 1268 ].is_fence = true;
 block_definitions[ 1268 ].is_seethrough = true;
 block_definitions[ 1268 ].no_light = 6815743;
+block_definitions[ 1268 ].offset = { 6, 0, 6 };
+block_definitions[ 1268 ].scale = { 4, 16, 4 };
+block_definitions[ 1268 ].tex_offset = { -6, 0, -6 };
 
 // WARPED_FENCE_GATE (1269)
 block_definitions[ 1269 ].textures[ FACE_TOP ] = TEX_WARPED_PLANKS;
 block_definitions[ 1269 ].textures[ FACE_BOTTOM ] = TEX_WARPED_PLANKS;
-block_definitions[ 1269 ].textures[ FACE_RIGHT ] = TEX_WARPED_PLANKS__FENCE_GATE;
-block_definitions[ 1269 ].textures[ FACE_FRONT ] = TEX_WARPED_PLANKS__FENCE_GATE;
-block_definitions[ 1269 ].textures[ FACE_LEFT ] = TEX_WARPED_PLANKS__FENCE_GATE;
-block_definitions[ 1269 ].textures[ FACE_BACK ] = TEX_WARPED_PLANKS__FENCE_GATE;
-block_definitions[ 1269 ].icon_texture = TEX_WARPED_PLANKS;
+block_definitions[ 1269 ].textures[ FACE_RIGHT ] = TEX_WARPED_PLANKS;
+block_definitions[ 1269 ].textures[ FACE_FRONT ] = TEX_WARPED_PLANKS;
+block_definitions[ 1269 ].textures[ FACE_LEFT ] = TEX_WARPED_PLANKS;
+block_definitions[ 1269 ].textures[ FACE_BACK ] = TEX_WARPED_PLANKS;
+block_definitions[ 1269 ].icon_texture = TEX_WARPED_PLANKS__FENCE_GATE;
 block_definitions[ 1269 ].casts_shadow = false;
 block_definitions[ 1269 ].hardness = 0.35f;
+block_definitions[ 1269 ].icon_is_isometric = false;
+block_definitions[ 1269 ].is_fence_gate = true;
 block_definitions[ 1269 ].is_seethrough = true;
 block_definitions[ 1269 ].no_light = 6815743;
+block_definitions[ 1269 ].offset = { 0, 5, 6 };
+block_definitions[ 1269 ].rotate_on_placement = true;
+block_definitions[ 1269 ].scale = { 16, 11, 4 };
+block_definitions[ 1269 ].tex_offset = { 0, -5, -6 };
 
 // WARPED_FUNGUS (1270)
 block_definitions[ 1270 ].textures[ FACE_TOP ] = TEX_AIR;

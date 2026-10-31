@@ -75,17 +75,19 @@ void BlockDebris::spawn_block_break( const glm::ivec3 &block_pos, const BlockSta
     // the geometry that was actually visible.
     glm::ivec3 scale16( block->scale.x, block->scale.y, block->scale.z );
     glm::ivec3 offset16( block->offset.x, block->offset.y, block->offset.z );
-    if ( blockState.rotation == BLOCK_ROTATE_90 ) {
+    // Open gates (rotation 4-7) yaw by their facing — never the torch branch.
+    const unsigned char rot = block_yaw( block, blockState.rotation );
+    if ( rot == BLOCK_ROTATE_90 ) {
         const int sx = scale16.x;
         scale16.x = scale16.z;
         scale16.z = sx;
         const int ox = offset16.x;
         offset16.x = 16 - block->scale.z - block->offset.z;
         offset16.z = ox;
-    } else if ( blockState.rotation == BLOCK_ROTATE_180 ) {
+    } else if ( rot == BLOCK_ROTATE_180 ) {
         offset16.x = 16 - block->scale.x - block->offset.x;
         offset16.z = 16 - block->scale.z - block->offset.z;
-    } else if ( blockState.rotation == BLOCK_ROTATE_270 ) {
+    } else if ( rot == BLOCK_ROTATE_270 ) {
         const int sx = scale16.x;
         scale16.x = scale16.z;
         scale16.z = sx;
@@ -96,13 +98,13 @@ void BlockDebris::spawn_block_break( const glm::ivec3 &block_pos, const BlockSta
     // Wall-mounted torches (rotation 4-7) hug their wall — the same offset
     // push chunk.cpp applies.
     if ( block->is_torch ) {
-        if ( blockState.rotation == 4 ) {
+        if ( rot == 4 ) {
             offset16.x = 0;
-        } else if ( blockState.rotation == 5 ) {
+        } else if ( rot == 5 ) {
             offset16.z = 14;
-        } else if ( blockState.rotation == 6 ) {
+        } else if ( rot == 6 ) {
             offset16.x = 14;
-        } else if ( blockState.rotation == 7 ) {
+        } else if ( rot == 7 ) {
             offset16.z = 0;
         }
     }

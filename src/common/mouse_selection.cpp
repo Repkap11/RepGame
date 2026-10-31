@@ -131,7 +131,7 @@ void MouseSelection::set_block( const glm::ivec3 &pos, const bool shouldDraw, co
             }
         }
 
-        blockCoords.face_shift = blockState.rotation;
+        blockCoords.face_shift = block_yaw( block, blockState.rotation );
 
         this->render_chain_mouse_selection.invalidate( this->entity );
     }

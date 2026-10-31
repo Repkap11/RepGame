@@ -908,6 +908,32 @@ int Chunk::can_extend_rect( const BlockState &blockState, const unsigned int *pa
 
 void Chunk::calculate_populated_blocks( ) {
     int num_instances[ LAST_RENDER_ORDER ] = { 0 };
+    // Each populated_blocks layer starts at CHUNK_BLOCK_SIZE slots, but a
+    // fence cell emits up to FENCE_MAX_BOXES instances (a gate
+    // FENCE_GATE_MAX_BOXES), so a fence-heavy chunk can overflow it. Grow by
+    // doubling before an emit that wouldn't fit. Never keep a BlockCoords*
+    // across a grow — realloc can move the buffer.
+    int capacity[ LAST_RENDER_ORDER ];
+    for ( int renderOrder = 0; renderOrder < LAST_RENDER_ORDER; renderOrder++ ) {
+        capacity[ renderOrder ] = CHUNK_BLOCK_SIZE;
+    }
+    auto ensure_capacity = [ & ]( int renderOrder, int extra ) {
+        const int needed = num_instances[ renderOrder ] + extra;
+        if ( needed <= capacity[ renderOrder ] ) {
+            return;
+        }
+        int new_capacity = capacity[ renderOrder ];
+        while ( new_capacity < needed ) {
+            new_capacity *= 2;
+        }
+        BlockCoords *grown = static_cast<BlockCoords *>( realloc( this->layers[ renderOrder ].populated_blocks, new_capacity * sizeof( BlockCoords ) ) );
+        if ( grown == nullptr ) {
+            pr_debug( "Error, out of memory growing populated_blocks" );
+            return;
+        }
+        this->layers[ renderOrder ].populated_blocks = grown;
+        capacity[ renderOrder ] = new_capacity;
+    };
 
     // Empty chunks (all air): skip meshing entirely — and skip the
     // populated_blocks mallocs + workingSpace memset, which are only needed
@@ -1113,6 +1139,39 @@ void Chunk::calculate_populated_blocks( ) {
                         }
                         workingSpace[ index ].has_been_drawn = true;
 
+                        // Fences and gates emit several box instances per
+                        // cell instead of the single scaled cube: the fence
+                        // post plus rails for each connected side (connection
+                        // mask from the 4 horizontal neighbor cells — the
+                        // halo is valid there, the same reads the
+                        // redstone-dust code does), or the gate's closed/open
+                        // definition-space model.
+                        BlockBox boxes[ FENCE_GATE_MAX_BOXES ];
+                        int num_boxes = 0;
+                        if ( block->is_fence ) {
+                            unsigned connections = 0;
+                            const int conn_dir[ 4 ][ 4 ] = { // dx, dz, connect bit, along_x
+                                { 1, 0, FENCE_CONNECT_POS_X, 1 },
+                                { -1, 0, FENCE_CONNECT_NEG_X, 1 },
+                                { 0, 1, FENCE_CONNECT_POS_Z, 0 },
+                                { 0, -1, FENCE_CONNECT_NEG_Z, 0 },
+                            };
+                            for ( int d = 0; d < 4; d++ ) {
+                                const BlockCell ncell = this->cells[ get_index_from_coords( x + conn_dir[ d ][ 0 ], y, z + conn_dir[ d ][ 1 ] ) ];
+                                if ( fence_connects_to( block, block_cell_id( ncell ), block_cell_rotation( ncell ), conn_dir[ d ][ 3 ] ) ) {
+                                    connections |= conn_dir[ d ][ 2 ];
+                                }
+                            }
+                            num_boxes = fence_boxes( connections, boxes );
+                        } else if ( block->is_fence_gate ) {
+                            num_boxes = fence_gate_boxes( ( blockState.rotation & BLOCK_ROTATE_GATE_OPEN ) != 0, boxes );
+                        }
+                        const int emit_count = num_boxes > 0 ? num_boxes : 1;
+                        ensure_capacity( block->renderOrder, emit_count );
+                        if ( num_instances[ block->renderOrder ] + emit_count > capacity[ block->renderOrder ] ) {
+                            continue; // OOM — drop this cell's instances.
+                        }
+
                         BlockCoords *blockCoord;
 
                         blockCoord = &this->layers[ block->renderOrder ].populated_blocks[ num_instances[ block->renderOrder ] ];
@@ -1209,6 +1268,40 @@ void Chunk::calculate_populated_blocks( ) {
                             }
                         }
 
+                        // Multi-box models (fences, gates): box 0 overwrites
+                        // the base instance; extra boxes copy it wholesale so
+                        // they inherit its packed_lighting, then get their own
+                        // scale/offset, tex_offset = -offset (the torch
+                        // convention: texture position follows world
+                        // position), and NO_LIGHT_NO_DRAW on skip_faces —
+                        // rail ends buried in the post or a connected cell.
+                        if ( num_boxes > 0 ) {
+                            const unsigned char yaw = block_yaw( block, blockState.rotation );
+                            for ( int i = 0; i < num_boxes; i++ ) {
+                                BlockCoords *boxCoord = blockCoord;
+                                if ( i > 0 ) {
+                                    boxCoord = &this->layers[ block->renderOrder ].populated_blocks[ num_instances[ block->renderOrder ] ];
+                                    num_instances[ block->renderOrder ] += 1;
+                                    *boxCoord = *blockCoord;
+                                }
+                                boxCoord->scale_x = boxes[ i ].scale[ 0 ];
+                                boxCoord->scale_y = boxes[ i ].scale[ 1 ];
+                                boxCoord->scale_z = boxes[ i ].scale[ 2 ];
+                                boxCoord->offset_x = boxes[ i ].offset[ 0 ];
+                                boxCoord->offset_y = boxes[ i ].offset[ 1 ];
+                                boxCoord->offset_z = boxes[ i ].offset[ 2 ];
+                                boxCoord->tex_offset_x = -boxes[ i ].offset[ 0 ];
+                                boxCoord->tex_offset_y = -boxes[ i ].offset[ 1 ];
+                                boxCoord->tex_offset_z = -boxes[ i ].offset[ 2 ];
+                                boxCoord->face_shift = yaw;
+                                for ( int f = 0; f < NUM_FACES_IN_CUBE; f++ ) {
+                                    if ( boxes[ i ].skip_faces & ( 1u << f ) ) {
+                                        boxCoord->packed_lighting[ f ] = NO_LIGHT_NO_DRAW;
+                                    }
+                                }
+                            }
+                        }
+
                     }
 
                     // A waterlogged block at the top of a water column (no
@@ -1220,6 +1313,10 @@ void Chunk::calculate_populated_blocks( ) {
                         const BlockCell above_cell = this->cells[ get_index_from_coords( x, y + 1, z ) ];
                         if ( block_cell_id( above_cell ) != WATER && !block_cell_waterlogged( above_cell ) ) {
                             Block *water = block_definition_get_definition( WATER );
+                            ensure_capacity( RenderOrder_Water, 1 );
+                            if ( num_instances[ RenderOrder_Water ] + 1 > capacity[ RenderOrder_Water ] ) {
+                                continue; // OOM
+                            }
                             BlockCoords *waterCoord = &this->layers[ RenderOrder_Water ].populated_blocks[ num_instances[ RenderOrder_Water ] ];
                             num_instances[ RenderOrder_Water ] += 1;
 

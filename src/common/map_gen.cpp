@@ -43,6 +43,40 @@ BlockID MapGen::block_world_id( const int x, const int y, const int z ) {
     if ( y != 1 ) {
         return AIR;
     }
+    // Fence showcase in the free z<0 region (rotation can't be set from
+    // mapgen, so all gates are rotation-0 closed and span x). Covers every
+    // connection shape: a run with an inline gate, an L corner, a T, a +
+    // cross, a lone post, a planks connection, the wooden/nether non-
+    // connection, and a nether brick run.
+    if ( z < 0 ) {
+        static const struct {
+            int x, z;
+            BlockID id;
+        } showcase[] = {
+            // Oak run along x with an inline gate.
+            { -9, -2, OAK_FENCE }, { -8, -2, OAK_FENCE }, { -7, -2, OAK_FENCE }, { -6, -2, FENCE_GATE }, { -5, -2, OAK_FENCE }, { -4, -2, OAK_FENCE },
+            // L corner.
+            { -9, -5, OAK_FENCE }, { -8, -5, OAK_FENCE }, { -9, -6, OAK_FENCE },
+            // T junction: crossbar along x, stem along -z.
+            { -5, -5, OAK_FENCE }, { -4, -5, OAK_FENCE }, { -3, -5, OAK_FENCE }, { -4, -6, OAK_FENCE }, { -4, -7, OAK_FENCE },
+            // + cross.
+            { 0, -5, OAK_FENCE }, { -1, -5, OAK_FENCE }, { 1, -5, OAK_FENCE }, { 0, -4, OAK_FENCE }, { 0, -6, OAK_FENCE },
+            // Single post on its own.
+            { 4, -4, OAK_FENCE },
+            // Fence against planks connects.
+            { 6, -4, OAK_FENCE }, { 7, -4, OAK_PLANKS },
+            // Oak touching nether brick must NOT connect.
+            { 6, -8, OAK_FENCE }, { 7, -8, NETHER_BRICK_FENCE },
+            // Nether brick run.
+            { 9, -8, NETHER_BRICK_FENCE }, { 10, -8, NETHER_BRICK_FENCE }, { 11, -8, NETHER_BRICK_FENCE },
+        };
+        for ( const auto &s : showcase ) {
+            if ( s.x == x && s.z == z ) {
+                return s.id;
+            }
+        }
+        return AIR;
+    }
     // 32 per row along +x starting at x=2, rows stepping +z from z=2; one
     // air cell between neighbours in both directions.
     if ( x < 2 || z < 2 || ( ( x - 2 ) & 1 ) || ( ( z - 2 ) & 1 ) ) {

@@ -27,11 +27,14 @@ int contains_pixel( Block *pixel_block, BlockState &block_state, const glm::dvec
     char offset_x = pixel_block->offset.x;
     char offset_y = pixel_block->offset.y;
     char offset_z = pixel_block->offset.z;
+    // Fence gates mask their open bit out of the yaw — an open gate
+    // (rotation 4-7) must never reach the wall-torch branch below.
+    const unsigned char rot = block_yaw( pixel_block, block_state.rotation );
     if ( pixel_block->is_piston_head ) {
         // The yaw cases below only remap x/z; piston heads also face up/down,
         // so take the whole plate box from the shared helper.
         short head_scale[ 3 ], head_offset[ 3 ];
-        piston_head_shape( block_state.rotation, head_scale, head_offset );
+        piston_head_shape( rot, head_scale, head_offset );
         scale_x = head_scale[ 0 ];
         scale_y = head_scale[ 1 ];
         scale_z = head_scale[ 2 ];
@@ -41,37 +44,37 @@ int contains_pixel( Block *pixel_block, BlockState &block_state, const glm::dvec
     } else if ( pixel_block->is_piston && block_state.current_redstone_power > 0 ) {
         // Extended base: full cube minus the 4px slab at the head end.
         short base_scale[ 3 ], base_offset[ 3 ];
-        piston_base_shape( block_state.rotation, base_scale, base_offset );
+        piston_base_shape( rot, base_scale, base_offset );
         scale_x = base_scale[ 0 ];
         scale_y = base_scale[ 1 ];
         scale_z = base_scale[ 2 ];
         offset_x = base_offset[ 0 ];
         offset_y = base_offset[ 1 ];
         offset_z = base_offset[ 2 ];
-    } else if ( block_state.rotation == BLOCK_ROTATE_0 ) {
-    } else if ( block_state.rotation == BLOCK_ROTATE_90 ) {
+    } else if ( rot == BLOCK_ROTATE_0 ) {
+    } else if ( rot == BLOCK_ROTATE_90 ) {
         scale_x = pixel_block->scale.z;
         scale_z = pixel_block->scale.x;
         offset_x = 16 - pixel_block->scale.z - pixel_block->offset.z;
         offset_z = pixel_block->offset.x;
-    } else if ( block_state.rotation == BLOCK_ROTATE_180 ) {
+    } else if ( rot == BLOCK_ROTATE_180 ) {
         offset_x = 16 - pixel_block->scale.x - pixel_block->offset.x;
         offset_z = 16 - pixel_block->scale.z - pixel_block->offset.z;
-    } else if ( block_state.rotation == BLOCK_ROTATE_270 ) {
+    } else if ( rot == BLOCK_ROTATE_270 ) {
         scale_x = pixel_block->scale.z;
         scale_z = pixel_block->scale.x;
         offset_x = pixel_block->offset.z;
         offset_z = 16 - pixel_block->scale.x - pixel_block->offset.x;
-    } else if ( block_state.rotation >= 4 ) {
+    } else if ( rot >= 4 ) {
         // Side-mounted torch: push bounding box towards the wall
         // rotation 4=attached LEFT, 5=attached FRONT, 6=attached RIGHT, 7=attached BACK
-        if ( block_state.rotation == 4 ) {
+        if ( rot == 4 ) {
             offset_x = 0;
-        } else if ( block_state.rotation == 5 ) {
+        } else if ( rot == 5 ) {
             offset_z = 16 - pixel_block->scale.z;
-        } else if ( block_state.rotation == 6 ) {
+        } else if ( rot == 6 ) {
             offset_x = 16 - pixel_block->scale.x;
-        } else if ( block_state.rotation == 7 ) {
+        } else if ( rot == 7 ) {
             offset_z = 0;
         }
     }

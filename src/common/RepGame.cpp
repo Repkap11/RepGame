@@ -753,6 +753,19 @@ void RepGame::process_mouse_events( ) {
             globalGameState.input.click_delay_right = 30;
         }
     }
+    if ( globalGameState.block_selection.selectionInBounds && globalGameState.input.mouse.buttons.right && !globalGameState.input.mouse.buttons.right_pressed_in_ui && globalGameState.input.click_delay_right == 0 ) {
+        // Right-clicking a fence gate toggles it open/closed instead of
+        // placing against it. Sneaking skips the interaction so the block
+        // can be placed.
+        const BlockState target_state = globalGameState.world.get_loaded_block( globalGameState.block_selection.pos_destroy );
+        if ( target_state.id != LAST_BLOCK_ID && block_definition_get_definition( target_state.id )->is_fence_gate && !globalGameState.input.movement.sneakPressed ) {
+            BlockState toggled_state = target_state;
+            toggled_state.rotation = fence_gate_toggle_rotation( target_state.rotation, getPlacedRotation( target_state.id ) );
+            auto toggleEvent = std::make_shared<PlayerBlockPlacedEvent>( globalGameState.tick_number, globalGameState.block_selection.pos_destroy, toggled_state, true );
+            globalGameState.blockUpdateQueue.addBlockUpdate( toggleEvent );
+            globalGameState.input.click_delay_right = 30;
+        }
+    }
     if ( ( globalGameState.block_selection.selectionInBounds || globalGameState.block_selection.floatSelectionInBounds ) && globalGameState.input.mouse.buttons.right && !globalGameState.input.mouse.buttons.right_pressed_in_ui && globalGameState.input.click_delay_right == 0 ) {
         // Placing a block
         BlockID holdingBlock = globalGameState.hotbar.getSelectedBlock( );

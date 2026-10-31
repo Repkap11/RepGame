@@ -78,6 +78,12 @@ typedef struct {
     bool connects_to_redstone_dust;
     bool is_redstone_dust;
     bool is_torch;
+    // Fences draw as a post plus rails that connect to neighbors; gates draw
+    // a closed or open multi-box model (see fence_boxes/fence_gate_boxes in
+    // block.cpp). Gates store their open state in rotation bit 2
+    // (BLOCK_ROTATE_GATE_OPEN); the facing is rotation & 3.
+    bool is_fence;
+    bool is_fence_gate;
     // Flood-fill light emitted by this block, 0-15 (torches 14, lava/lamps 15,
     // lit furnace 13, portal 11, redstone torch 7). Stored in the chunk's
     // light[] volume and sampled by the fragment shader — never baked into the

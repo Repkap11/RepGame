@@ -503,18 +503,38 @@ prefixes and one shape suffix, with dye-coloured blocks grouped into colour
 families (WOOL, CONCRETE, STAINED_GLASS, ...) sorted in dye order.
 
 A block JSON may set `"shape": "<name>"` (defined in `data/shapes.json`,
-two kinds). **Mask shapes** (stairs, fence, fence_gate, wall, banner,
+three kinds). **Mask shapes** (stairs, wall, banner,
 hanging_sign, sign) are for silhouettes we can't render: the importer
 replaces the 4 side faces with generated `<face_tex>__<shape>` tiles — the
 resolved source tile with the mask's `.` pixels cut to transparent black —
 and applies the shared `cutout` property set (see-through, no light
 blocking, no shadow). Top/bottom keep the plain material texture.
+**Model shapes** (fence, fence_gate) have real multi-box geometry: the
+importer applies the `cutout` set plus the entry's own properties
+(`is_fence`, `scale`, `offset`, ...) and keeps the block's plain textures;
+the entry's `"icon_mask"` grid only cuts a generated `<side_tex>__<shape>`
+tile used as the flat inventory icon (`icon_is_isometric=false`).
 **Template shapes** (slab, button, pressure_plate, carpet, trapdoor) copy
 geometry (`scale`/`offset`/`tex_offset`) plus behaviour properties
 (`is_button`, `is_pressure_plate`, `collides_with_player`, ...) from a named
 kept block via `"template"`; `"drop"` removes copied keys and other entry
 keys override the template but not the block's own JSON. Textures always
 stay the block's own.
+
+Fences and fence gates draw several box instances per cell in the CPU
+meshing pass (chunk.cpp phase 2, `fence_boxes`/`fence_gate_boxes` in
+block.cpp): a 4x16x4 post plus 2px rails that connect to neighbors.
+Wooden fences connect to any wooden fence, nether brick only to nether
+brick, and every fence connects to gates whose span axis matches the
+direction and to `is_solid` blocks; rails on both sides of an axis merge
+into one 0..16 box, and rail end faces get `NO_LIGHT_NO_DRAW`. Gates rotate
+on placement and store open/closed in rotation bit 2
+(`BLOCK_ROTATE_GATE_OPEN`; facing is `rotation & 3`, the gate spans world x
+when `(rotation & 1) == 0`); right-click toggles them (sneak + right-click
+places instead), and open gates don't collide. `block_yaw` masks the open
+bit for single-box consumers (collision, raycast, selection, debris), so
+gates never hit the `rotation >= 4` wall-torch branches. Collision and
+selection stay a single box — the fence post or the gate's bounding box.
 
 `REPGAME_BLOCK_WORLD=1` ("block world") is a debug mode for eyeballing
 every block: `make linux-run-blocks` runs it. Normal terrain, structures,
@@ -524,7 +544,10 @@ SANDSTONE for y≤0 (solid, not a one-block floor, so the light cascade has
 no void volume to sweep) with every defined non-AIR block placed
 once at y=1 on a 2-spaced grid (32 per row, starting at x=2/z=2), ordered
 `CREATIVE_BLOCKS` first then the remaining defined ids ascending — the
-layout lives in `MapGen::block_world_id`. The HUD shows the targeted
+layout lives in `MapGen::block_world_id`. The z<0 half of the y=1 plane
+holds a fixed fence showcase: an oak run with an inline gate, an L corner,
+a T and a + junction, a lone post, a fence against planks, an oak fence
+against nether brick (must not connect), and a nether brick run. The HUD shows the targeted
 block's `NAME (id)` and face textures under the crosshair; spawn is
 (0.5, y=2, 0.5) facing +x/+z in creative mode.
 

@@ -16,6 +16,153 @@ inline void change_all_textures_to( unsigned short *face, TextureID new_texture 
         }                                                                                                                                                                                                                                      \
     }
 
+bool fence_connects_to( const Block *fence, BlockID neighbor_id, unsigned char neighbor_rotation, bool along_x ) {
+    const Block *neighbor = block_definition_get_definition( neighbor_id );
+    if ( neighbor->is_fence_gate ) {
+        // A gate spans world x when ( rot & 1 ) == 0; it connects to fences
+        // on the two sides perpendicular to its span.
+        return ( ( neighbor_rotation & 1 ) == 0 ) == along_x;
+    }
+    if ( neighbor->is_fence ) {
+        // Nether brick fences only connect to nether brick fences; wooden
+        // fences connect to every other wooden fence.
+        if ( fence->id == NETHER_BRICK_FENCE ) {
+            return neighbor_id == NETHER_BRICK_FENCE;
+        }
+        return neighbor_id != NETHER_BRICK_FENCE;
+    }
+    return neighbor->is_solid;
+}
+
+// Rail thickness 2px centered on the post (z/x 7..9), heights 6..9 and 12..15.
+// Both end faces of a rail are always hidden — the inner end sits against the
+// post and the outer end touches the connected cell — so they skip drawing.
+int fence_boxes( unsigned connections, BlockBox out[ FENCE_MAX_BOXES ] ) {
+    int n = 0;
+    out[ n ].scale[ 0 ] = 4;
+    out[ n ].scale[ 1 ] = 16;
+    out[ n ].scale[ 2 ] = 4;
+    out[ n ].offset[ 0 ] = 6;
+    out[ n ].offset[ 1 ] = 0;
+    out[ n ].offset[ 2 ] = 6;
+    out[ n ].skip_faces = 0;
+    n++;
+    const unsigned char skip_x = ( 1u << FACE_LEFT ) | ( 1u << FACE_RIGHT );
+    const unsigned char skip_z = ( 1u << FACE_FRONT ) | ( 1u << FACE_BACK );
+    if ( connections & ( FENCE_CONNECT_POS_X | FENCE_CONNECT_NEG_X ) ) {
+        // Opposite connections merge into one rail spanning the whole cell.
+        signed char lo = 0, hi = 16;
+        if ( !( connections & FENCE_CONNECT_POS_X ) ) {
+            hi = 6; // post face at x=6
+        } else if ( !( connections & FENCE_CONNECT_NEG_X ) ) {
+            lo = 10; // post face at x=10
+        }
+        for ( int rail = 0; rail < 2; rail++ ) {
+            out[ n ].scale[ 0 ] = hi - lo;
+            out[ n ].scale[ 1 ] = 3;
+            out[ n ].scale[ 2 ] = 2;
+            out[ n ].offset[ 0 ] = lo;
+            out[ n ].offset[ 1 ] = rail == 0 ? 6 : 12;
+            out[ n ].offset[ 2 ] = 7;
+            out[ n ].skip_faces = skip_x;
+            n++;
+        }
+    }
+    if ( connections & ( FENCE_CONNECT_POS_Z | FENCE_CONNECT_NEG_Z ) ) {
+        signed char lo = 0, hi = 16;
+        if ( !( connections & FENCE_CONNECT_POS_Z ) ) {
+            hi = 6;
+        } else if ( !( connections & FENCE_CONNECT_NEG_Z ) ) {
+            lo = 10;
+        }
+        for ( int rail = 0; rail < 2; rail++ ) {
+            out[ n ].scale[ 0 ] = 2;
+            out[ n ].scale[ 1 ] = 3;
+            out[ n ].scale[ 2 ] = hi - lo;
+            out[ n ].offset[ 0 ] = 7;
+            out[ n ].offset[ 1 ] = rail == 0 ? 6 : 12;
+            out[ n ].offset[ 2 ] = lo;
+            out[ n ].skip_faces = skip_z;
+            n++;
+        }
+    }
+    return n;
+}
+
+// Definition space at rotation 0: the gate spans x, posts at x 0..2 and
+// 14..16. Open leaves fold toward def -z (camera yaw 0 looks toward -z).
+int fence_gate_boxes( bool open, BlockBox out[ FENCE_GATE_MAX_BOXES ] ) {
+    int n = 0;
+    for ( int post = 0; post < 2; post++ ) {
+        out[ n ].scale[ 0 ] = 2;
+        out[ n ].scale[ 1 ] = 11;
+        out[ n ].scale[ 2 ] = 2;
+        out[ n ].offset[ 0 ] = post == 0 ? 0 : 14;
+        out[ n ].offset[ 1 ] = 5;
+        out[ n ].offset[ 2 ] = 7;
+        out[ n ].skip_faces = 0;
+        n++;
+    }
+    if ( !open ) {
+        // Rails x 2..14 at y 6..9 / 12..15, plus the center upright x 6..10,
+        // y 6..15 — all z 7..9.
+        for ( int rail = 0; rail < 2; rail++ ) {
+            out[ n ].scale[ 0 ] = 12;
+            out[ n ].scale[ 1 ] = 3;
+            out[ n ].scale[ 2 ] = 2;
+            out[ n ].offset[ 0 ] = 2;
+            out[ n ].offset[ 1 ] = rail == 0 ? 6 : 12;
+            out[ n ].offset[ 2 ] = 7;
+            out[ n ].skip_faces = 0;
+            n++;
+        }
+        out[ n ].scale[ 0 ] = 4;
+        out[ n ].scale[ 1 ] = 9;
+        out[ n ].scale[ 2 ] = 2;
+        out[ n ].offset[ 0 ] = 6;
+        out[ n ].offset[ 1 ] = 6;
+        out[ n ].offset[ 2 ] = 7;
+        out[ n ].skip_faces = 0;
+        n++;
+    } else {
+        // Each leaf swings to the side of its post: rails z 3..7 and the
+        // leaf edge upright z 1..3, at x 0..2 and x 14..16.
+        for ( int leaf = 0; leaf < 2; leaf++ ) {
+            const signed char lx = leaf == 0 ? 0 : 14;
+            for ( int rail = 0; rail < 2; rail++ ) {
+                out[ n ].scale[ 0 ] = 2;
+                out[ n ].scale[ 1 ] = 3;
+                out[ n ].scale[ 2 ] = 4;
+                out[ n ].offset[ 0 ] = lx;
+                out[ n ].offset[ 1 ] = rail == 0 ? 6 : 12;
+                out[ n ].offset[ 2 ] = 3;
+                out[ n ].skip_faces = 0;
+                n++;
+            }
+            out[ n ].scale[ 0 ] = 2;
+            out[ n ].scale[ 1 ] = 9;
+            out[ n ].scale[ 2 ] = 2;
+            out[ n ].offset[ 0 ] = lx;
+            out[ n ].offset[ 1 ] = 6;
+            out[ n ].offset[ 2 ] = 1;
+            out[ n ].skip_faces = 0;
+            n++;
+        }
+    }
+    return n;
+}
+
+unsigned char fence_gate_toggle_rotation( unsigned char rotation, unsigned char player_yaw_rot ) {
+    if ( rotation & BLOCK_ROTATE_GATE_OPEN ) {
+        return static_cast<unsigned char>( rotation & ~BLOCK_ROTATE_GATE_OPEN );
+    }
+    unsigned char facing = rotation & 3;
+    if ( ( player_yaw_rot & 1 ) == ( facing & 1 ) ) {
+        facing = static_cast<unsigned char>( player_yaw_rot & 3 );
+    }
+    return static_cast<unsigned char>( facing | BLOCK_ROTATE_GATE_OPEN );
+}
+
 void block_adjust_coord_based_on_state( const Block *block, const BlockState *blockState, BlockCoords *blockCoord ) {
     if ( blockState->display_id == REDSTONE_LAMP && blockState->current_redstone_power > 0 ) {
         change_all_textures_to( blockCoord->face, TEX_REDSTONE_LAMP_ON );
