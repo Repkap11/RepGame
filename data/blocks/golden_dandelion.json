@@ -4,7 +4,6 @@
   "casts_shadow": false,
   "collides_with_player": false,
   "hardness": 0,
-  "icon": "golden_dandelion",
   "icon_is_isometric": false,
   "id": 594,
   "is_seethrough": true,

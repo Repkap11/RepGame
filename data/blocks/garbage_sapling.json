@@ -4,7 +4,6 @@
   "casts_shadow": false,
   "collides_with_player": false,
   "hardness": 0,
-  "icon": "garbage_sappling",
   "icon_is_isometric": false,
   "id": 81,
   "is_seethrough": true,

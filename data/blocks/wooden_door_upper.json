@@ -1,7 +1,6 @@
 {
   "casts_shadow": false,
   "collides_with_player": false,
-  "icon": "block_122",
   "icon_is_isometric": false,
   "id": 122,
   "is_seethrough": true,

@@ -1,7 +1,5 @@
 {
   "hardness": 0.75,
-  "icon": "dirt_podzol_top",
-  "icon_is_isometric": true,
   "id": 400,
   "name": "PODZOL",
   "textures": {

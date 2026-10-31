@@ -4,7 +4,6 @@
   "casts_shadow": false,
   "collides_with_player": false,
   "hardness": 0,
-  "icon": "flower_tulip_orange",
   "icon_is_isometric": false,
   "id": 390,
   "is_seethrough": true,

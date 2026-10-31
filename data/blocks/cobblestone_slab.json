@@ -1,7 +1,5 @@
 {
   "hardness": 4,
-  "icon": "cobblestone",
-  "icon_is_isometric": true,
   "id": 19,
   "name": "COBBLESTONE_SLAB",
   "scale": [

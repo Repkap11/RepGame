@@ -5,7 +5,6 @@
   "collides_with_player": false,
   "emits_light": 15,
   "hardness": 0,
-  "icon": "fire_0",
   "icon_is_isometric": false,
   "id": 92,
   "is_seethrough": true,

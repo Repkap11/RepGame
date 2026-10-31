@@ -4,7 +4,6 @@
   "casts_shadow": false,
   "collides_with_player": false,
   "hardness": 0,
-  "icon": "nether_wart_stage_0",
   "icon_is_isometric": false,
   "id": 339,
   "is_seethrough": true,

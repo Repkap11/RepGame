@@ -4,7 +4,6 @@
   "casts_shadow": false,
   "collides_with_player": false,
   "hardness": 0,
-  "icon": "poplar_sapling",
   "icon_is_isometric": false,
   "id": 978,
   "is_seethrough": true,

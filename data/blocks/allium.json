@@ -4,7 +4,6 @@
   "casts_shadow": false,
   "collides_with_player": false,
   "hardness": 0,
-  "icon": "flower_allium",
   "icon_is_isometric": false,
   "id": 47,
   "is_seethrough": true,

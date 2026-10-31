@@ -4,7 +4,6 @@
   "casts_shadow": false,
   "collides_with_player": false,
   "hardness": 0,
-  "icon": "pumpkin_stem_disconnected",
   "icon_is_isometric": false,
   "id": 1011,
   "is_seethrough": true,

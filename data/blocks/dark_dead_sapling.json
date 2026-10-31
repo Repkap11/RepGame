@@ -4,7 +4,6 @@
   "casts_shadow": false,
   "collides_with_player": false,
   "hardness": 0,
-  "icon": "deadbush",
   "icon_is_isometric": false,
   "id": 56,
   "is_seethrough": true,

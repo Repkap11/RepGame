@@ -4,7 +4,6 @@
   "casts_shadow": false,
   "collides_with_player": false,
   "hardness": 0,
-  "icon": "purple_coral3",
   "icon_is_isometric": false,
   "id": 575,
   "is_seethrough": true,

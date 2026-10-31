@@ -3,7 +3,6 @@
   "can_float_on_water": true,
   "casts_shadow": false,
   "hardness": 0,
-  "icon": "carried_waterlily",
   "icon_is_isometric": false,
   "id": 109,
   "is_seethrough": true,

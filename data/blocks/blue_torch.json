@@ -27,11 +27,8 @@
     -7
   ],
   "textures": {
-    "back": "blue_torch",
-    "bottom": "blue_torch",
-    "front": "blue_torch",
-    "left": "blue_torch",
-    "right": "blue_torch",
-    "top": "blue_torch"
+    "bottom": "blue_torch_bottom",
+    "side": "blue_torch",
+    "top": "blue_torch_top"
   }
 }

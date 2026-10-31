@@ -5,7 +5,6 @@
   "collides_with_player": false,
   "emits_light": 7,
   "hardness": 0,
-  "icon": "glow_lichen",
   "icon_is_isometric": false,
   "id": 592,
   "is_seethrough": true,

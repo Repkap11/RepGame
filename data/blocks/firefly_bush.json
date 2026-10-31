@@ -5,7 +5,6 @@
   "collides_with_player": false,
   "emits_light": 2,
   "hardness": 0,
-  "icon": "firefly_bush",
   "icon_is_isometric": false,
   "id": 584,
   "is_seethrough": true,

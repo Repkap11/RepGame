@@ -4,7 +4,6 @@
   "collides_with_player": false,
   "connects_to_redstone_dust": true,
   "hardness": 0.5,
-  "icon": "planks_birch",
   "icon_is_isometric": false,
   "id": 454,
   "is_button": true,

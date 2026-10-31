@@ -5,7 +5,6 @@
   "casts_shadow": false,
   "collides_with_player": false,
   "hardness": 0,
-  "icon": "redstone_torch_off",
   "icon_is_isometric": false,
   "id": 172,
   "is_pickable": false,

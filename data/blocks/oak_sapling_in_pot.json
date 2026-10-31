@@ -4,7 +4,6 @@
   "casts_shadow": false,
   "collides_with_player": false,
   "hardness": 0,
-  "icon": "oak_sappling_in_pot",
   "icon_is_isometric": false,
   "id": 1061,
   "is_seethrough": true,

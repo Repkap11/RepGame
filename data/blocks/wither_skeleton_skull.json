@@ -1,7 +1,6 @@
 {
   "casts_shadow": false,
   "collides_with_player": false,
-  "icon": "whither_skeleton_head",
   "icon_is_isometric": false,
   "id": 235,
   "name": "WITHER_SKELETON_SKULL",

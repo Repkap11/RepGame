@@ -1,7 +1,5 @@
 {
   "hardness": 2,
-  "icon": "planks_spruce",
-  "icon_is_isometric": true,
   "id": 475,
   "name": "SPRUCE_SLAB",
   "scale": [

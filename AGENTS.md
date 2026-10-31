@@ -432,6 +432,13 @@ repo-authored 16x16 tiles; `data/textures.json` carries per-texture metadata:
   the processed base, e.g. `grass_side_carried` is Bedrock `dirt` plus the
   grayscale `grass_side` fringe tinted to the legacy green. The tint applies
   to the overlay only.
+- `extract` — `{from: [x,y], size: [w,h], to: [x,y]}`: blit a rect of the
+  resolved tile onto a fresh transparent tile. Torch top/bottom faces sample
+  the window that tracks the cuboid's x/z position (cols/rows 7-8 for the
+  2-wide stick), not the spot the sprite paints the cap or base — `torch_top`
+  is Bedrock `torch_on` with the cap rect (rows 6-7) copied to the sampled
+  window (rows 7-8), `torch_bottom` likewise with the stick end (rows
+  13-14).
 - `random_rotate` — tile participates in per-block random rotation.
 - `keep` — pack even when no block references it (e.g. `player_selection`).
 

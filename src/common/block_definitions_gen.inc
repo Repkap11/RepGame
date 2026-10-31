@@ -28,7 +28,6 @@ block_definitions[ 1 ].textures[ FACE_LEFT ] = TEX_GRASS_SIDE_CARRIED;
 block_definitions[ 1 ].textures[ FACE_BACK ] = TEX_GRASS_SIDE_CARRIED;
 block_definitions[ 1 ].icon_texture = TEX_GRASS_CARRIED;
 block_definitions[ 1 ].hardness = 0.75f;
-block_definitions[ 1 ].icon_is_isometric = true;
 
 // STONE (2)
 block_definitions[ 2 ].textures[ FACE_TOP ] = TEX_STONE;
@@ -68,7 +67,6 @@ block_definitions[ 5 ].textures[ FACE_LEFT ] = TEX_PLANKS_OAK;
 block_definitions[ 5 ].textures[ FACE_BACK ] = TEX_PLANKS_OAK;
 block_definitions[ 5 ].icon_texture = TEX_PLANKS_OAK;
 block_definitions[ 5 ].hardness = 2.0f;
-block_definitions[ 5 ].icon_is_isometric = true;
 
 // DOUBLE_STONE_SLAB (6)
 block_definitions[ 6 ].textures[ FACE_TOP ] = TEX_STONE_SLAB_TOP;
@@ -108,7 +106,6 @@ block_definitions[ 8 ].textures[ FACE_LEFT ] = TEX_BRICK;
 block_definitions[ 8 ].textures[ FACE_BACK ] = TEX_BRICK;
 block_definitions[ 8 ].icon_texture = TEX_BRICK;
 block_definitions[ 8 ].hardness = 4.0f;
-block_definitions[ 8 ].icon_is_isometric = true;
 
 // TNT (9)
 block_definitions[ 9 ].textures[ FACE_TOP ] = TEX_TNT_TOP;
@@ -163,7 +160,7 @@ block_definitions[ 12 ].textures[ FACE_RIGHT ] = TEX_WEB;
 block_definitions[ 12 ].textures[ FACE_FRONT ] = TEX_WEB;
 block_definitions[ 12 ].textures[ FACE_LEFT ] = TEX_WEB;
 block_definitions[ 12 ].textures[ FACE_BACK ] = TEX_WEB;
-block_definitions[ 12 ].icon_texture = TEX_AIR;
+block_definitions[ 12 ].icon_texture = TEX_WEB;
 block_definitions[ 12 ].affected_by_redstone_power = false;
 block_definitions[ 12 ].breaks_in_liquid = true;
 block_definitions[ 12 ].casts_shadow = false;
@@ -257,7 +254,6 @@ block_definitions[ 17 ].textures[ FACE_LEFT ] = TEX_BRICK;
 block_definitions[ 17 ].textures[ FACE_BACK ] = TEX_BRICK;
 block_definitions[ 17 ].icon_texture = TEX_BRICK;
 block_definitions[ 17 ].hardness = 4.0f;
-block_definitions[ 17 ].icon_is_isometric = true;
 block_definitions[ 17 ].scale = { 16, 8, 16 };
 block_definitions[ 17 ].tex_offset = { 0, -4, 0 };
 
@@ -283,7 +279,6 @@ block_definitions[ 19 ].textures[ FACE_LEFT ] = TEX_COBBLESTONE;
 block_definitions[ 19 ].textures[ FACE_BACK ] = TEX_COBBLESTONE;
 block_definitions[ 19 ].icon_texture = TEX_COBBLESTONE;
 block_definitions[ 19 ].hardness = 4.0f;
-block_definitions[ 19 ].icon_is_isometric = true;
 block_definitions[ 19 ].scale = { 16, 8, 16 };
 block_definitions[ 19 ].tex_offset = { 0, -4, 0 };
 
@@ -478,7 +473,7 @@ block_definitions[ 36 ].textures[ FACE_RIGHT ] = TEX_BARRIER;
 block_definitions[ 36 ].textures[ FACE_FRONT ] = TEX_BARRIER;
 block_definitions[ 36 ].textures[ FACE_LEFT ] = TEX_BARRIER;
 block_definitions[ 36 ].textures[ FACE_BACK ] = TEX_BARRIER;
-block_definitions[ 36 ].icon_texture = TEX_AIR;
+block_definitions[ 36 ].icon_texture = TEX_BARRIER;
 block_definitions[ 36 ].affected_by_redstone_power = false;
 block_definitions[ 36 ].breaks_in_liquid = true;
 block_definitions[ 36 ].casts_shadow = false;
@@ -575,7 +570,6 @@ block_definitions[ 41 ].textures[ FACE_LEFT ] = TEX_STONEBRICK;
 block_definitions[ 41 ].textures[ FACE_BACK ] = TEX_STONEBRICK;
 block_definitions[ 41 ].icon_texture = TEX_STONEBRICK;
 block_definitions[ 41 ].hardness = 4.0f;
-block_definitions[ 41 ].icon_is_isometric = true;
 block_definitions[ 41 ].scale = { 16, 8, 16 };
 block_definitions[ 41 ].tex_offset = { 0, -4, 0 };
 
@@ -588,7 +582,6 @@ block_definitions[ 42 ].textures[ FACE_LEFT ] = TEX_PLANKS_OAK;
 block_definitions[ 42 ].textures[ FACE_BACK ] = TEX_PLANKS_OAK;
 block_definitions[ 42 ].icon_texture = TEX_PLANKS_OAK;
 block_definitions[ 42 ].hardness = 2.0f;
-block_definitions[ 42 ].icon_is_isometric = true;
 block_definitions[ 42 ].scale = { 16, 8, 16 };
 block_definitions[ 42 ].tex_offset = { 0, -4, 0 };
 
@@ -749,7 +742,7 @@ block_definitions[ 55 ].textures[ FACE_RIGHT ] = TEX_DARK_BARRIER;
 block_definitions[ 55 ].textures[ FACE_FRONT ] = TEX_DARK_BARRIER;
 block_definitions[ 55 ].textures[ FACE_LEFT ] = TEX_DARK_BARRIER;
 block_definitions[ 55 ].textures[ FACE_BACK ] = TEX_DARK_BARRIER;
-block_definitions[ 55 ].icon_texture = TEX_AIR;
+block_definitions[ 55 ].icon_texture = TEX_DARK_BARRIER;
 block_definitions[ 55 ].affected_by_redstone_power = false;
 block_definitions[ 55 ].breaks_in_liquid = true;
 block_definitions[ 55 ].casts_shadow = false;
@@ -827,7 +820,6 @@ block_definitions[ 60 ].textures[ FACE_LEFT ] = TEX_CRAFTING_TABLE_SIDE;
 block_definitions[ 60 ].textures[ FACE_BACK ] = TEX_CRAFTING_TABLE_FRONT;
 block_definitions[ 60 ].icon_texture = TEX_CRAFTING_TABLE_TOP;
 block_definitions[ 60 ].hardness = 2.0f;
-block_definitions[ 60 ].icon_is_isometric = true;
 
 // FURNACE (61)
 block_definitions[ 61 ].textures[ FACE_TOP ] = TEX_FURNACE_TOP;
@@ -859,7 +851,6 @@ block_definitions[ 63 ].textures[ FACE_LEFT ] = TEX_STONE_ANDESITE;
 block_definitions[ 63 ].textures[ FACE_BACK ] = TEX_STONE_ANDESITE;
 block_definitions[ 63 ].icon_texture = TEX_STONE_ANDESITE;
 block_definitions[ 63 ].hardness = 4.0f;
-block_definitions[ 63 ].icon_is_isometric = true;
 block_definitions[ 63 ].scale = { 16, 8, 16 };
 block_definitions[ 63 ].tex_offset = { 0, -4, 0 };
 
@@ -1067,7 +1058,6 @@ block_definitions[ 77 ].textures[ FACE_BACK ] = TEX_LEAVES_OAK_CARRIED;
 block_definitions[ 77 ].icon_texture = TEX_LEAVES_OAK_CARRIED;
 block_definitions[ 77 ].casts_shadow = false;
 block_definitions[ 77 ].hardness = 0.349999994f;
-block_definitions[ 77 ].icon_is_isometric = true;
 block_definitions[ 77 ].is_seethrough = true;
 block_definitions[ 77 ].light_absorb = 6;
 block_definitions[ 77 ].no_light = 6815743;
@@ -1090,7 +1080,6 @@ block_definitions[ 79 ].textures[ FACE_LEFT ] = TEX_STONEBRICK;
 block_definitions[ 79 ].textures[ FACE_BACK ] = TEX_STONEBRICK;
 block_definitions[ 79 ].icon_texture = TEX_STONEBRICK;
 block_definitions[ 79 ].hardness = 4.0f;
-block_definitions[ 79 ].icon_is_isometric = true;
 
 // DEADBUSH (80)
 block_definitions[ 80 ].textures[ FACE_TOP ] = TEX_AIR;
@@ -1099,7 +1088,7 @@ block_definitions[ 80 ].textures[ FACE_RIGHT ] = TEX_DEADBUSH;
 block_definitions[ 80 ].textures[ FACE_FRONT ] = TEX_DEADBUSH;
 block_definitions[ 80 ].textures[ FACE_LEFT ] = TEX_DEADBUSH;
 block_definitions[ 80 ].textures[ FACE_BACK ] = TEX_DEADBUSH;
-block_definitions[ 80 ].icon_texture = TEX_AIR;
+block_definitions[ 80 ].icon_texture = TEX_DEADBUSH;
 block_definitions[ 80 ].affected_by_redstone_power = false;
 block_definitions[ 80 ].breaks_in_liquid = true;
 block_definitions[ 80 ].casts_shadow = false;
@@ -1239,7 +1228,6 @@ block_definitions[ 89 ].textures[ FACE_LEFT ] = TEX_BAMBOO_MOSAIC;
 block_definitions[ 89 ].textures[ FACE_BACK ] = TEX_BAMBOO_MOSAIC;
 block_definitions[ 89 ].icon_texture = TEX_BAMBOO_MOSAIC;
 block_definitions[ 89 ].hardness = 4.0f;
-block_definitions[ 89 ].icon_is_isometric = true;
 block_definitions[ 89 ].scale = { 16, 8, 16 };
 block_definitions[ 89 ].tex_offset = { 0, -4, 0 };
 
@@ -1353,7 +1341,7 @@ block_definitions[ 96 ].textures[ FACE_RIGHT ] = TEX_RED_MUSHROOM_IN_POT;
 block_definitions[ 96 ].textures[ FACE_FRONT ] = TEX_RED_MUSHROOM_IN_POT;
 block_definitions[ 96 ].textures[ FACE_LEFT ] = TEX_RED_MUSHROOM_IN_POT;
 block_definitions[ 96 ].textures[ FACE_BACK ] = TEX_RED_MUSHROOM_IN_POT;
-block_definitions[ 96 ].icon_texture = TEX_AIR;
+block_definitions[ 96 ].icon_texture = TEX_RED_MUSHROOM_IN_POT;
 block_definitions[ 96 ].affected_by_redstone_power = false;
 block_definitions[ 96 ].breaks_in_liquid = true;
 block_definitions[ 96 ].casts_shadow = false;
@@ -1435,7 +1423,6 @@ block_definitions[ 102 ].textures[ FACE_LEFT ] = TEX_BAMBOO_PLANKS;
 block_definitions[ 102 ].textures[ FACE_BACK ] = TEX_BAMBOO_PLANKS;
 block_definitions[ 102 ].icon_texture = TEX_BAMBOO_PLANKS;
 block_definitions[ 102 ].hardness = 4.0f;
-block_definitions[ 102 ].icon_is_isometric = true;
 block_definitions[ 102 ].scale = { 16, 8, 16 };
 block_definitions[ 102 ].tex_offset = { 0, -4, 0 };
 
@@ -1491,7 +1478,7 @@ block_definitions[ 106 ].textures[ FACE_RIGHT ] = TEX_REEDS;
 block_definitions[ 106 ].textures[ FACE_FRONT ] = TEX_REEDS;
 block_definitions[ 106 ].textures[ FACE_LEFT ] = TEX_REEDS;
 block_definitions[ 106 ].textures[ FACE_BACK ] = TEX_REEDS;
-block_definitions[ 106 ].icon_texture = TEX_AIR;
+block_definitions[ 106 ].icon_texture = TEX_REEDS;
 block_definitions[ 106 ].affected_by_redstone_power = false;
 block_definitions[ 106 ].breaks_in_liquid = true;
 block_definitions[ 106 ].casts_shadow = false;
@@ -1562,7 +1549,6 @@ block_definitions[ 111 ].textures[ FACE_LEFT ] = TEX_MYCELIUM_SIDE;
 block_definitions[ 111 ].textures[ FACE_BACK ] = TEX_MYCELIUM_SIDE;
 block_definitions[ 111 ].icon_texture = TEX_MYCELIUM_TOP;
 block_definitions[ 111 ].hardness = 0.75f;
-block_definitions[ 111 ].icon_is_isometric = true;
 
 // BIRCH_SAPLING (112)
 block_definitions[ 112 ].textures[ FACE_TOP ] = TEX_AIR;
@@ -1683,8 +1669,8 @@ block_definitions[ 120 ].icon_texture = TEX_REDSTONE_WIRE_L_Q4_POWERED;
 block_definitions[ 120 ].is_pickable = false;
 
 // TORCH (121)
-block_definitions[ 121 ].textures[ FACE_TOP ] = TEX_TORCH_ON;
-block_definitions[ 121 ].textures[ FACE_BOTTOM ] = TEX_TORCH_ON;
+block_definitions[ 121 ].textures[ FACE_TOP ] = TEX_TORCH_TOP;
+block_definitions[ 121 ].textures[ FACE_BOTTOM ] = TEX_TORCH_BOTTOM;
 block_definitions[ 121 ].textures[ FACE_RIGHT ] = TEX_TORCH_ON;
 block_definitions[ 121 ].textures[ FACE_FRONT ] = TEX_TORCH_ON;
 block_definitions[ 121 ].textures[ FACE_LEFT ] = TEX_TORCH_ON;
@@ -1741,7 +1727,7 @@ block_definitions[ 124 ].textures[ FACE_RIGHT ] = TEX_LADDER;
 block_definitions[ 124 ].textures[ FACE_FRONT ] = TEX_LADDER;
 block_definitions[ 124 ].textures[ FACE_LEFT ] = TEX_LADDER;
 block_definitions[ 124 ].textures[ FACE_BACK ] = TEX_LADDER;
-block_definitions[ 124 ].icon_texture = TEX_LADDER_TOP;
+block_definitions[ 124 ].icon_texture = TEX_LADDER;
 block_definitions[ 124 ].casts_shadow = false;
 block_definitions[ 124 ].collides_with_player = false;
 block_definitions[ 124 ].hardness = 0.5f;
@@ -2018,7 +2004,6 @@ block_definitions[ 140 ].textures[ FACE_BACK ] = TEX_LEAVES_BIRCH_CARRIED;
 block_definitions[ 140 ].icon_texture = TEX_LEAVES_BIRCH_CARRIED;
 block_definitions[ 140 ].casts_shadow = false;
 block_definitions[ 140 ].hardness = 0.349999994f;
-block_definitions[ 140 ].icon_is_isometric = true;
 block_definitions[ 140 ].is_seethrough = true;
 block_definitions[ 140 ].light_absorb = 6;
 block_definitions[ 140 ].no_light = 6815743;
@@ -2085,8 +2070,8 @@ block_definitions[ 144 ].piston_immovable = true;
 block_definitions[ 144 ].scale = { 16, 16, 4 };
 
 // BURNT_OUT_TORCH (145)
-block_definitions[ 145 ].textures[ FACE_TOP ] = TEX_BURNT_OUT_TORCH;
-block_definitions[ 145 ].textures[ FACE_BOTTOM ] = TEX_BURNT_OUT_TORCH;
+block_definitions[ 145 ].textures[ FACE_TOP ] = TEX_BURNT_OUT_TORCH_TOP;
+block_definitions[ 145 ].textures[ FACE_BOTTOM ] = TEX_BURNT_OUT_TORCH_BOTTOM;
 block_definitions[ 145 ].textures[ FACE_RIGHT ] = TEX_BURNT_OUT_TORCH;
 block_definitions[ 145 ].textures[ FACE_FRONT ] = TEX_BURNT_OUT_TORCH;
 block_definitions[ 145 ].textures[ FACE_LEFT ] = TEX_BURNT_OUT_TORCH;
@@ -2248,7 +2233,6 @@ block_definitions[ 157 ].textures[ FACE_LEFT ] = TEX_CONCRETE_BLACK;
 block_definitions[ 157 ].textures[ FACE_BACK ] = TEX_CONCRETE_BLACK;
 block_definitions[ 157 ].icon_texture = TEX_CONCRETE_BLACK;
 block_definitions[ 157 ].hardness = 4.0f;
-block_definitions[ 157 ].icon_is_isometric = true;
 block_definitions[ 157 ].scale = { 16, 8, 16 };
 block_definitions[ 157 ].tex_offset = { 0, -4, 0 };
 
@@ -2398,7 +2382,6 @@ block_definitions[ 169 ].textures[ FACE_LEFT ] = TEX_WOOL_COLORED_BLACK;
 block_definitions[ 169 ].textures[ FACE_BACK ] = TEX_WOOL_COLORED_BLACK;
 block_definitions[ 169 ].icon_texture = TEX_WOOL_COLORED_BLACK;
 block_definitions[ 169 ].hardness = 4.0f;
-block_definitions[ 169 ].icon_is_isometric = true;
 block_definitions[ 169 ].scale = { 16, 8, 16 };
 block_definitions[ 169 ].tex_offset = { 0, -4, 0 };
 
@@ -2467,7 +2450,6 @@ block_definitions[ 174 ].textures[ FACE_LEFT ] = TEX_BLACKSTONE;
 block_definitions[ 174 ].textures[ FACE_BACK ] = TEX_BLACKSTONE;
 block_definitions[ 174 ].icon_texture = TEX_BLACKSTONE;
 block_definitions[ 174 ].hardness = 4.0f;
-block_definitions[ 174 ].icon_is_isometric = true;
 block_definitions[ 174 ].scale = { 16, 8, 16 };
 block_definitions[ 174 ].tex_offset = { 0, -4, 0 };
 
@@ -2604,7 +2586,6 @@ block_definitions[ 185 ].textures[ FACE_LEFT ] = TEX_CONCRETE_BLUE;
 block_definitions[ 185 ].textures[ FACE_BACK ] = TEX_CONCRETE_BLUE;
 block_definitions[ 185 ].icon_texture = TEX_CONCRETE_BLUE;
 block_definitions[ 185 ].hardness = 4.0f;
-block_definitions[ 185 ].icon_is_isometric = true;
 block_definitions[ 185 ].scale = { 16, 8, 16 };
 block_definitions[ 185 ].tex_offset = { 0, -4, 0 };
 
@@ -2708,7 +2689,6 @@ block_definitions[ 195 ].textures[ FACE_LEFT ] = TEX_WOOL_COLORED_BLUE;
 block_definitions[ 195 ].textures[ FACE_BACK ] = TEX_WOOL_COLORED_BLUE;
 block_definitions[ 195 ].icon_texture = TEX_WOOL_COLORED_BLUE;
 block_definitions[ 195 ].hardness = 4.0f;
-block_definitions[ 195 ].icon_is_isometric = true;
 block_definitions[ 195 ].scale = { 16, 8, 16 };
 block_definitions[ 195 ].tex_offset = { 0, -4, 0 };
 
@@ -2735,7 +2715,6 @@ block_definitions[ 197 ].textures[ FACE_BACK ] = TEX_LEAVES_SPRUCE_CARRIED;
 block_definitions[ 197 ].icon_texture = TEX_LEAVES_SPRUCE_CARRIED;
 block_definitions[ 197 ].casts_shadow = false;
 block_definitions[ 197 ].hardness = 0.349999994f;
-block_definitions[ 197 ].icon_is_isometric = true;
 block_definitions[ 197 ].is_seethrough = true;
 block_definitions[ 197 ].light_absorb = 6;
 block_definitions[ 197 ].no_light = 6815743;
@@ -2945,7 +2924,6 @@ block_definitions[ 213 ].textures[ FACE_LEFT ] = TEX_CONCRETE_BROWN;
 block_definitions[ 213 ].textures[ FACE_BACK ] = TEX_CONCRETE_BROWN;
 block_definitions[ 213 ].icon_texture = TEX_CONCRETE_BROWN;
 block_definitions[ 213 ].hardness = 4.0f;
-block_definitions[ 213 ].icon_is_isometric = true;
 block_definitions[ 213 ].scale = { 16, 8, 16 };
 block_definitions[ 213 ].tex_offset = { 0, -4, 0 };
 
@@ -2978,7 +2956,7 @@ block_definitions[ 216 ].textures[ FACE_RIGHT ] = TEX_RED_FLOWER_IN_POT;
 block_definitions[ 216 ].textures[ FACE_FRONT ] = TEX_RED_FLOWER_IN_POT;
 block_definitions[ 216 ].textures[ FACE_LEFT ] = TEX_RED_FLOWER_IN_POT;
 block_definitions[ 216 ].textures[ FACE_BACK ] = TEX_RED_FLOWER_IN_POT;
-block_definitions[ 216 ].icon_texture = TEX_AIR;
+block_definitions[ 216 ].icon_texture = TEX_RED_FLOWER_IN_POT;
 block_definitions[ 216 ].affected_by_redstone_power = false;
 block_definitions[ 216 ].breaks_in_liquid = true;
 block_definitions[ 216 ].casts_shadow = false;
@@ -3078,7 +3056,6 @@ block_definitions[ 224 ].textures[ FACE_LEFT ] = TEX_WOOL_COLORED_BROWN;
 block_definitions[ 224 ].textures[ FACE_BACK ] = TEX_WOOL_COLORED_BROWN;
 block_definitions[ 224 ].icon_texture = TEX_WOOL_COLORED_BROWN;
 block_definitions[ 224 ].hardness = 4.0f;
-block_definitions[ 224 ].icon_is_isometric = true;
 block_definitions[ 224 ].scale = { 16, 8, 16 };
 block_definitions[ 224 ].tex_offset = { 0, -4, 0 };
 
@@ -3392,7 +3369,7 @@ block_definitions[ 248 ].textures[ FACE_RIGHT ] = TEX_DRAGON_EGG;
 block_definitions[ 248 ].textures[ FACE_FRONT ] = TEX_DRAGON_EGG;
 block_definitions[ 248 ].textures[ FACE_LEFT ] = TEX_DRAGON_EGG;
 block_definitions[ 248 ].textures[ FACE_BACK ] = TEX_DRAGON_EGG;
-block_definitions[ 248 ].icon_texture = TEX_AIR;
+block_definitions[ 248 ].icon_texture = TEX_DRAGON_EGG;
 block_definitions[ 248 ].affected_by_redstone_power = false;
 block_definitions[ 248 ].breaks_in_liquid = true;
 block_definitions[ 248 ].casts_shadow = false;
@@ -3737,7 +3714,6 @@ block_definitions[ 271 ].textures[ FACE_LEFT ] = TEX_CHERRY_PLANKS;
 block_definitions[ 271 ].textures[ FACE_BACK ] = TEX_CHERRY_PLANKS;
 block_definitions[ 271 ].icon_texture = TEX_CHERRY_PLANKS;
 block_definitions[ 271 ].hardness = 4.0f;
-block_definitions[ 271 ].icon_is_isometric = true;
 block_definitions[ 271 ].scale = { 16, 8, 16 };
 block_definitions[ 271 ].tex_offset = { 0, -4, 0 };
 
@@ -3794,7 +3770,7 @@ block_definitions[ 275 ].textures[ FACE_RIGHT ] = TEX_FLOWER_POT;
 block_definitions[ 275 ].textures[ FACE_FRONT ] = TEX_FLOWER_POT;
 block_definitions[ 275 ].textures[ FACE_LEFT ] = TEX_FLOWER_POT;
 block_definitions[ 275 ].textures[ FACE_BACK ] = TEX_FLOWER_POT;
-block_definitions[ 275 ].icon_texture = TEX_AIR;
+block_definitions[ 275 ].icon_texture = TEX_FLOWER_POT;
 block_definitions[ 275 ].affected_by_redstone_power = false;
 block_definitions[ 275 ].breaks_in_liquid = true;
 block_definitions[ 275 ].casts_shadow = false;
@@ -3994,7 +3970,6 @@ block_definitions[ 293 ].textures[ FACE_BACK ] = TEX_LEAVES_JUNGLE_CARRIED;
 block_definitions[ 293 ].icon_texture = TEX_LEAVES_JUNGLE_CARRIED;
 block_definitions[ 293 ].casts_shadow = false;
 block_definitions[ 293 ].hardness = 0.349999994f;
-block_definitions[ 293 ].icon_is_isometric = true;
 block_definitions[ 293 ].is_seethrough = true;
 block_definitions[ 293 ].light_absorb = 6;
 block_definitions[ 293 ].no_light = 6815743;
@@ -4017,7 +3992,6 @@ block_definitions[ 295 ].textures[ FACE_LEFT ] = TEX_PLANKS_SPRUCE;
 block_definitions[ 295 ].textures[ FACE_BACK ] = TEX_PLANKS_SPRUCE;
 block_definitions[ 295 ].icon_texture = TEX_PLANKS_SPRUCE;
 block_definitions[ 295 ].hardness = 2.0f;
-block_definitions[ 295 ].icon_is_isometric = true;
 
 // JUNGLE_PLANKS (296)
 block_definitions[ 296 ].textures[ FACE_TOP ] = TEX_PLANKS_JUNGLE;
@@ -4028,7 +4002,6 @@ block_definitions[ 296 ].textures[ FACE_LEFT ] = TEX_PLANKS_JUNGLE;
 block_definitions[ 296 ].textures[ FACE_BACK ] = TEX_PLANKS_JUNGLE;
 block_definitions[ 296 ].icon_texture = TEX_PLANKS_JUNGLE;
 block_definitions[ 296 ].hardness = 2.0f;
-block_definitions[ 296 ].icon_is_isometric = true;
 
 // CARROT_0 (297)
 block_definitions[ 297 ].textures[ FACE_TOP ] = TEX_AIR;
@@ -4152,7 +4125,6 @@ block_definitions[ 304 ].textures[ FACE_LEFT ] = TEX_CINNABAR_BRICKS;
 block_definitions[ 304 ].textures[ FACE_BACK ] = TEX_CINNABAR_BRICKS;
 block_definitions[ 304 ].icon_texture = TEX_CINNABAR_BRICKS;
 block_definitions[ 304 ].hardness = 4.0f;
-block_definitions[ 304 ].icon_is_isometric = true;
 block_definitions[ 304 ].scale = { 16, 8, 16 };
 block_definitions[ 304 ].tex_offset = { 0, -4, 0 };
 
@@ -4209,7 +4181,6 @@ block_definitions[ 309 ].textures[ FACE_LEFT ] = TEX_CINNABAR;
 block_definitions[ 309 ].textures[ FACE_BACK ] = TEX_CINNABAR;
 block_definitions[ 309 ].icon_texture = TEX_CINNABAR;
 block_definitions[ 309 ].hardness = 4.0f;
-block_definitions[ 309 ].icon_is_isometric = true;
 block_definitions[ 309 ].scale = { 16, 8, 16 };
 block_definitions[ 309 ].tex_offset = { 0, -4, 0 };
 
@@ -4297,7 +4268,6 @@ block_definitions[ 316 ].textures[ FACE_LEFT ] = TEX_REDSTONE_LAMP_OFF;
 block_definitions[ 316 ].textures[ FACE_BACK ] = TEX_REDSTONE_LAMP_OFF;
 block_definitions[ 316 ].icon_texture = TEX_REDSTONE_LAMP_OFF;
 block_definitions[ 316 ].hardness = 0.449999988f;
-block_definitions[ 316 ].icon_is_isometric = true;
 block_definitions[ 316 ].is_redstone_mechanism = true;
 
 // LIT_REDSTONE_LAMP (317)
@@ -4315,7 +4285,6 @@ block_definitions[ 317 ].casts_shadow = false;
 block_definitions[ 317 ].collides_with_player = false;
 block_definitions[ 317 ].emits_light = 15;
 block_definitions[ 317 ].hardness = 0.449999988f;
-block_definitions[ 317 ].icon_is_isometric = true;
 block_definitions[ 317 ].is_pickable = false;
 block_definitions[ 317 ].is_seethrough = true;
 block_definitions[ 317 ].no_light = 6815743;
@@ -4339,7 +4308,6 @@ block_definitions[ 319 ].textures[ FACE_LEFT ] = TEX_PLANKS_BIRCH;
 block_definitions[ 319 ].textures[ FACE_BACK ] = TEX_PLANKS_BIRCH;
 block_definitions[ 319 ].icon_texture = TEX_PLANKS_BIRCH;
 block_definitions[ 319 ].hardness = 2.0f;
-block_definitions[ 319 ].icon_is_isometric = true;
 
 // REDSTONE_WIRE_L_Q2_POWERED (320)
 block_definitions[ 320 ].textures[ FACE_TOP ] = TEX_REDSTONE_WIRE_L_Q2_POWERED;
@@ -4369,7 +4337,6 @@ block_definitions[ 322 ].textures[ FACE_LEFT ] = TEX_COBBLED_DEEPSLATE;
 block_definitions[ 322 ].textures[ FACE_BACK ] = TEX_COBBLED_DEEPSLATE;
 block_definitions[ 322 ].icon_texture = TEX_COBBLED_DEEPSLATE;
 block_definitions[ 322 ].hardness = 4.0f;
-block_definitions[ 322 ].icon_is_isometric = true;
 block_definitions[ 322 ].scale = { 16, 8, 16 };
 block_definitions[ 322 ].tex_offset = { 0, -4, 0 };
 
@@ -4773,7 +4740,7 @@ block_definitions[ 352 ].textures[ FACE_RIGHT ] = TEX_CHORUS_2;
 block_definitions[ 352 ].textures[ FACE_FRONT ] = TEX_CHORUS_2;
 block_definitions[ 352 ].textures[ FACE_LEFT ] = TEX_CHORUS_2;
 block_definitions[ 352 ].textures[ FACE_BACK ] = TEX_CHORUS_2;
-block_definitions[ 352 ].icon_texture = TEX_AIR;
+block_definitions[ 352 ].icon_texture = TEX_CHORUS_2;
 block_definitions[ 352 ].affected_by_redstone_power = false;
 block_definitions[ 352 ].breaks_in_liquid = true;
 block_definitions[ 352 ].casts_shadow = false;
@@ -4937,7 +4904,6 @@ block_definitions[ 361 ].icon_texture = TEX_GLASS_BLACK;
 block_definitions[ 361 ].affected_by_redstone_power = false;
 block_definitions[ 361 ].casts_shadow = false;
 block_definitions[ 361 ].hardness = 0.449999988f;
-block_definitions[ 361 ].icon_is_isometric = true;
 block_definitions[ 361 ].is_seethrough = true;
 block_definitions[ 361 ].renderOrder = RenderOrder_Translucent;
 
@@ -4952,7 +4918,6 @@ block_definitions[ 362 ].icon_texture = TEX_GLASS_BLUE;
 block_definitions[ 362 ].affected_by_redstone_power = false;
 block_definitions[ 362 ].casts_shadow = false;
 block_definitions[ 362 ].hardness = 0.449999988f;
-block_definitions[ 362 ].icon_is_isometric = true;
 block_definitions[ 362 ].is_seethrough = true;
 block_definitions[ 362 ].renderOrder = RenderOrder_Translucent;
 
@@ -4967,7 +4932,6 @@ block_definitions[ 363 ].icon_texture = TEX_GLASS_BROWN;
 block_definitions[ 363 ].affected_by_redstone_power = false;
 block_definitions[ 363 ].casts_shadow = false;
 block_definitions[ 363 ].hardness = 0.449999988f;
-block_definitions[ 363 ].icon_is_isometric = true;
 block_definitions[ 363 ].is_seethrough = true;
 block_definitions[ 363 ].renderOrder = RenderOrder_Translucent;
 
@@ -4982,7 +4946,6 @@ block_definitions[ 364 ].icon_texture = TEX_GLASS_LIGHT_BLUE;
 block_definitions[ 364 ].affected_by_redstone_power = false;
 block_definitions[ 364 ].casts_shadow = false;
 block_definitions[ 364 ].hardness = 0.449999988f;
-block_definitions[ 364 ].icon_is_isometric = true;
 block_definitions[ 364 ].is_seethrough = true;
 block_definitions[ 364 ].renderOrder = RenderOrder_Translucent;
 
@@ -4997,7 +4960,6 @@ block_definitions[ 365 ].icon_texture = TEX_GLASS_GRAY;
 block_definitions[ 365 ].affected_by_redstone_power = false;
 block_definitions[ 365 ].casts_shadow = false;
 block_definitions[ 365 ].hardness = 0.449999988f;
-block_definitions[ 365 ].icon_is_isometric = true;
 block_definitions[ 365 ].is_seethrough = true;
 block_definitions[ 365 ].renderOrder = RenderOrder_Translucent;
 
@@ -5012,7 +4974,6 @@ block_definitions[ 366 ].icon_texture = TEX_GLASS_GREEN;
 block_definitions[ 366 ].affected_by_redstone_power = false;
 block_definitions[ 366 ].casts_shadow = false;
 block_definitions[ 366 ].hardness = 0.449999988f;
-block_definitions[ 366 ].icon_is_isometric = true;
 block_definitions[ 366 ].is_seethrough = true;
 block_definitions[ 366 ].renderOrder = RenderOrder_Translucent;
 
@@ -5027,7 +4988,6 @@ block_definitions[ 367 ].icon_texture = TEX_GLASS_LIME;
 block_definitions[ 367 ].affected_by_redstone_power = false;
 block_definitions[ 367 ].casts_shadow = false;
 block_definitions[ 367 ].hardness = 0.449999988f;
-block_definitions[ 367 ].icon_is_isometric = true;
 block_definitions[ 367 ].is_seethrough = true;
 block_definitions[ 367 ].renderOrder = RenderOrder_Translucent;
 
@@ -5056,7 +5016,6 @@ block_definitions[ 369 ].icon_texture = TEX_GLASS_LIGHT_BLUE;
 block_definitions[ 369 ].affected_by_redstone_power = false;
 block_definitions[ 369 ].casts_shadow = false;
 block_definitions[ 369 ].hardness = 0.449999988f;
-block_definitions[ 369 ].icon_is_isometric = true;
 block_definitions[ 369 ].is_seethrough = true;
 block_definitions[ 369 ].renderOrder = RenderOrder_Translucent;
 
@@ -5071,7 +5030,6 @@ block_definitions[ 370 ].icon_texture = TEX_GLASS_WHITE;
 block_definitions[ 370 ].affected_by_redstone_power = false;
 block_definitions[ 370 ].casts_shadow = false;
 block_definitions[ 370 ].hardness = 0.449999988f;
-block_definitions[ 370 ].icon_is_isometric = true;
 block_definitions[ 370 ].is_seethrough = true;
 block_definitions[ 370 ].renderOrder = RenderOrder_Translucent;
 
@@ -5292,7 +5250,7 @@ block_definitions[ 386 ].textures[ FACE_RIGHT ] = TEX_LARGE_BLUE_FLOWER;
 block_definitions[ 386 ].textures[ FACE_FRONT ] = TEX_LARGE_BLUE_FLOWER;
 block_definitions[ 386 ].textures[ FACE_LEFT ] = TEX_LARGE_BLUE_FLOWER;
 block_definitions[ 386 ].textures[ FACE_BACK ] = TEX_LARGE_BLUE_FLOWER;
-block_definitions[ 386 ].icon_texture = TEX_AIR;
+block_definitions[ 386 ].icon_texture = TEX_LARGE_BLUE_FLOWER;
 block_definitions[ 386 ].affected_by_redstone_power = false;
 block_definitions[ 386 ].breaks_in_liquid = true;
 block_definitions[ 386 ].casts_shadow = false;
@@ -5428,7 +5386,7 @@ block_definitions[ 393 ].textures[ FACE_RIGHT ] = TEX_SMALL_SUNFLOWER;
 block_definitions[ 393 ].textures[ FACE_FRONT ] = TEX_SMALL_SUNFLOWER;
 block_definitions[ 393 ].textures[ FACE_LEFT ] = TEX_SMALL_SUNFLOWER;
 block_definitions[ 393 ].textures[ FACE_BACK ] = TEX_SMALL_SUNFLOWER;
-block_definitions[ 393 ].icon_texture = TEX_AIR;
+block_definitions[ 393 ].icon_texture = TEX_SMALL_SUNFLOWER;
 block_definitions[ 393 ].affected_by_redstone_power = false;
 block_definitions[ 393 ].breaks_in_liquid = true;
 block_definitions[ 393 ].casts_shadow = false;
@@ -5563,7 +5521,6 @@ block_definitions[ 400 ].textures[ FACE_LEFT ] = TEX_DIRT_PODZOL_SIDE;
 block_definitions[ 400 ].textures[ FACE_BACK ] = TEX_DIRT_PODZOL_SIDE;
 block_definitions[ 400 ].icon_texture = TEX_DIRT_PODZOL_TOP;
 block_definitions[ 400 ].hardness = 0.75f;
-block_definitions[ 400 ].icon_is_isometric = true;
 
 // CRIMSON_HYPHAE (401)
 block_definitions[ 401 ].textures[ FACE_TOP ] = TEX_CRIMSON_LOG_SIDE;
@@ -5674,7 +5631,6 @@ block_definitions[ 409 ].textures[ FACE_LEFT ] = TEX_CRIMSON_PLANKS;
 block_definitions[ 409 ].textures[ FACE_BACK ] = TEX_CRIMSON_PLANKS;
 block_definitions[ 409 ].icon_texture = TEX_CRIMSON_PLANKS;
 block_definitions[ 409 ].hardness = 4.0f;
-block_definitions[ 409 ].icon_is_isometric = true;
 block_definitions[ 409 ].scale = { 16, 8, 16 };
 block_definitions[ 409 ].tex_offset = { 0, -4, 0 };
 
@@ -5687,7 +5643,6 @@ block_definitions[ 410 ].textures[ FACE_LEFT ] = TEX_PLANKS_ACACIA;
 block_definitions[ 410 ].textures[ FACE_BACK ] = TEX_PLANKS_ACACIA;
 block_definitions[ 410 ].icon_texture = TEX_PLANKS_ACACIA;
 block_definitions[ 410 ].hardness = 2.0f;
-block_definitions[ 410 ].icon_is_isometric = true;
 
 // DARK_OAK_PLANKS (411)
 block_definitions[ 411 ].textures[ FACE_TOP ] = TEX_PLANKS_BIG_OAK;
@@ -5698,7 +5653,6 @@ block_definitions[ 411 ].textures[ FACE_LEFT ] = TEX_PLANKS_BIG_OAK;
 block_definitions[ 411 ].textures[ FACE_BACK ] = TEX_PLANKS_BIG_OAK;
 block_definitions[ 411 ].icon_texture = TEX_PLANKS_BIG_OAK;
 block_definitions[ 411 ].hardness = 2.0f;
-block_definitions[ 411 ].icon_is_isometric = true;
 
 // CRIMSON_STAIRS (412)
 block_definitions[ 412 ].textures[ FACE_TOP ] = TEX_CRIMSON_PLANKS;
@@ -5795,7 +5749,6 @@ block_definitions[ 419 ].textures[ FACE_LEFT ] = TEX_CUT_COPPER;
 block_definitions[ 419 ].textures[ FACE_BACK ] = TEX_CUT_COPPER;
 block_definitions[ 419 ].icon_texture = TEX_CUT_COPPER;
 block_definitions[ 419 ].hardness = 4.0f;
-block_definitions[ 419 ].icon_is_isometric = true;
 block_definitions[ 419 ].scale = { 16, 8, 16 };
 block_definitions[ 419 ].tex_offset = { 0, -4, 0 };
 
@@ -5839,7 +5792,6 @@ block_definitions[ 423 ].textures[ FACE_LEFT ] = TEX_RED_SANDSTONE_SMOOTH;
 block_definitions[ 423 ].textures[ FACE_BACK ] = TEX_RED_SANDSTONE_SMOOTH;
 block_definitions[ 423 ].icon_texture = TEX_RED_SANDSTONE_TOP;
 block_definitions[ 423 ].hardness = 4.0f;
-block_definitions[ 423 ].icon_is_isometric = true;
 block_definitions[ 423 ].scale = { 16, 8, 16 };
 block_definitions[ 423 ].tex_offset = { 0, -4, 0 };
 
@@ -5870,7 +5822,6 @@ block_definitions[ 426 ].textures[ FACE_LEFT ] = TEX_SANDSTONE_SMOOTH;
 block_definitions[ 426 ].textures[ FACE_BACK ] = TEX_SANDSTONE_SMOOTH;
 block_definitions[ 426 ].icon_texture = TEX_SANDSTONE_TOP;
 block_definitions[ 426 ].hardness = 4.0f;
-block_definitions[ 426 ].icon_is_isometric = true;
 block_definitions[ 426 ].scale = { 16, 8, 16 };
 block_definitions[ 426 ].tex_offset = { 0, -4, 0 };
 
@@ -5955,7 +5906,6 @@ block_definitions[ 433 ].textures[ FACE_LEFT ] = TEX_CONCRETE_CYAN;
 block_definitions[ 433 ].textures[ FACE_BACK ] = TEX_CONCRETE_CYAN;
 block_definitions[ 433 ].icon_texture = TEX_CONCRETE_CYAN;
 block_definitions[ 433 ].hardness = 4.0f;
-block_definitions[ 433 ].icon_is_isometric = true;
 block_definitions[ 433 ].scale = { 16, 8, 16 };
 block_definitions[ 433 ].tex_offset = { 0, -4, 0 };
 
@@ -6076,7 +6026,6 @@ block_definitions[ 444 ].textures[ FACE_LEFT ] = TEX_WOOL_COLORED_CYAN;
 block_definitions[ 444 ].textures[ FACE_BACK ] = TEX_WOOL_COLORED_CYAN;
 block_definitions[ 444 ].icon_texture = TEX_WOOL_COLORED_CYAN;
 block_definitions[ 444 ].hardness = 4.0f;
-block_definitions[ 444 ].icon_is_isometric = true;
 block_definitions[ 444 ].scale = { 16, 8, 16 };
 block_definitions[ 444 ].tex_offset = { 0, -4, 0 };
 
@@ -6337,7 +6286,7 @@ block_definitions[ 460 ].textures[ FACE_RIGHT ] = TEX_GRASS_TUFT4;
 block_definitions[ 460 ].textures[ FACE_FRONT ] = TEX_GRASS_TUFT4;
 block_definitions[ 460 ].textures[ FACE_LEFT ] = TEX_GRASS_TUFT4;
 block_definitions[ 460 ].textures[ FACE_BACK ] = TEX_GRASS_TUFT4;
-block_definitions[ 460 ].icon_texture = TEX_AIR;
+block_definitions[ 460 ].icon_texture = TEX_GRASS_TUFT4;
 block_definitions[ 460 ].affected_by_redstone_power = false;
 block_definitions[ 460 ].breaks_in_liquid = true;
 block_definitions[ 460 ].casts_shadow = false;
@@ -6385,7 +6334,6 @@ block_definitions[ 464 ].textures[ FACE_LEFT ] = TEX_PRISMARINE_DARK;
 block_definitions[ 464 ].textures[ FACE_BACK ] = TEX_PRISMARINE_DARK;
 block_definitions[ 464 ].icon_texture = TEX_PRISMARINE_DARK;
 block_definitions[ 464 ].hardness = 4.0f;
-block_definitions[ 464 ].icon_is_isometric = true;
 block_definitions[ 464 ].scale = { 16, 8, 16 };
 block_definitions[ 464 ].tex_offset = { 0, -4, 0 };
 
@@ -6525,7 +6473,6 @@ block_definitions[ 475 ].textures[ FACE_LEFT ] = TEX_PLANKS_SPRUCE;
 block_definitions[ 475 ].textures[ FACE_BACK ] = TEX_PLANKS_SPRUCE;
 block_definitions[ 475 ].icon_texture = TEX_PLANKS_SPRUCE;
 block_definitions[ 475 ].hardness = 2.0f;
-block_definitions[ 475 ].icon_is_isometric = true;
 block_definitions[ 475 ].scale = { 16, 8, 16 };
 block_definitions[ 475 ].tex_offset = { 0, -4, 0 };
 
@@ -6538,7 +6485,6 @@ block_definitions[ 476 ].textures[ FACE_LEFT ] = TEX_PLANKS_BIRCH;
 block_definitions[ 476 ].textures[ FACE_BACK ] = TEX_PLANKS_BIRCH;
 block_definitions[ 476 ].icon_texture = TEX_PLANKS_BIRCH;
 block_definitions[ 476 ].hardness = 2.0f;
-block_definitions[ 476 ].icon_is_isometric = true;
 block_definitions[ 476 ].scale = { 16, 8, 16 };
 block_definitions[ 476 ].tex_offset = { 0, -4, 0 };
 
@@ -6551,7 +6497,6 @@ block_definitions[ 477 ].textures[ FACE_LEFT ] = TEX_PLANKS_JUNGLE;
 block_definitions[ 477 ].textures[ FACE_BACK ] = TEX_PLANKS_JUNGLE;
 block_definitions[ 477 ].icon_texture = TEX_PLANKS_JUNGLE;
 block_definitions[ 477 ].hardness = 2.0f;
-block_definitions[ 477 ].icon_is_isometric = true;
 block_definitions[ 477 ].scale = { 16, 8, 16 };
 block_definitions[ 477 ].tex_offset = { 0, -4, 0 };
 
@@ -6564,7 +6509,6 @@ block_definitions[ 478 ].textures[ FACE_LEFT ] = TEX_PLANKS_ACACIA;
 block_definitions[ 478 ].textures[ FACE_BACK ] = TEX_PLANKS_ACACIA;
 block_definitions[ 478 ].icon_texture = TEX_PLANKS_ACACIA;
 block_definitions[ 478 ].hardness = 2.0f;
-block_definitions[ 478 ].icon_is_isometric = true;
 block_definitions[ 478 ].scale = { 16, 8, 16 };
 block_definitions[ 478 ].tex_offset = { 0, -4, 0 };
 
@@ -6577,7 +6521,6 @@ block_definitions[ 479 ].textures[ FACE_LEFT ] = TEX_PLANKS_BIG_OAK;
 block_definitions[ 479 ].textures[ FACE_BACK ] = TEX_PLANKS_BIG_OAK;
 block_definitions[ 479 ].icon_texture = TEX_PLANKS_BIG_OAK;
 block_definitions[ 479 ].hardness = 2.0f;
-block_definitions[ 479 ].icon_is_isometric = true;
 block_definitions[ 479 ].scale = { 16, 8, 16 };
 block_definitions[ 479 ].tex_offset = { 0, -4, 0 };
 
@@ -6746,7 +6689,6 @@ block_definitions[ 494 ].textures[ FACE_LEFT ] = TEX_DEEPSLATE_BRICKS;
 block_definitions[ 494 ].textures[ FACE_BACK ] = TEX_DEEPSLATE_BRICKS;
 block_definitions[ 494 ].icon_texture = TEX_DEEPSLATE_BRICKS;
 block_definitions[ 494 ].hardness = 4.0f;
-block_definitions[ 494 ].icon_is_isometric = true;
 block_definitions[ 494 ].scale = { 16, 8, 16 };
 block_definitions[ 494 ].tex_offset = { 0, -4, 0 };
 
@@ -6955,7 +6897,6 @@ block_definitions[ 512 ].textures[ FACE_LEFT ] = TEX_DEEPSLATE_TILES;
 block_definitions[ 512 ].textures[ FACE_BACK ] = TEX_DEEPSLATE_TILES;
 block_definitions[ 512 ].icon_texture = TEX_DEEPSLATE_TILES;
 block_definitions[ 512 ].hardness = 4.0f;
-block_definitions[ 512 ].icon_is_isometric = true;
 block_definitions[ 512 ].scale = { 16, 8, 16 };
 block_definitions[ 512 ].tex_offset = { 0, -4, 0 };
 
@@ -7165,7 +7106,6 @@ block_definitions[ 529 ].textures[ FACE_LEFT ] = TEX_STONE_DIORITE;
 block_definitions[ 529 ].textures[ FACE_BACK ] = TEX_STONE_DIORITE;
 block_definitions[ 529 ].icon_texture = TEX_STONE_DIORITE;
 block_definitions[ 529 ].hardness = 4.0f;
-block_definitions[ 529 ].icon_is_isometric = true;
 block_definitions[ 529 ].scale = { 16, 8, 16 };
 block_definitions[ 529 ].tex_offset = { 0, -4, 0 };
 
@@ -7222,7 +7162,6 @@ block_definitions[ 534 ].textures[ FACE_LEFT ] = TEX_CUT_COPPER;
 block_definitions[ 534 ].textures[ FACE_BACK ] = TEX_CUT_COPPER;
 block_definitions[ 534 ].icon_texture = TEX_CUT_COPPER;
 block_definitions[ 534 ].hardness = 4.0f;
-block_definitions[ 534 ].icon_is_isometric = true;
 block_definitions[ 534 ].scale = { 16, 8, 16 };
 block_definitions[ 534 ].tex_offset = { 0, -4, 0 };
 
@@ -7275,7 +7214,6 @@ block_definitions[ 539 ].textures[ FACE_LEFT ] = TEX_PLANKS_OAK;
 block_definitions[ 539 ].textures[ FACE_BACK ] = TEX_PLANKS_OAK;
 block_definitions[ 539 ].icon_texture = TEX_PLANKS_OAK;
 block_definitions[ 539 ].hardness = 4.0f;
-block_definitions[ 539 ].icon_is_isometric = true;
 block_definitions[ 539 ].scale = { 16, 8, 16 };
 block_definitions[ 539 ].tex_offset = { 0, -4, 0 };
 
@@ -7313,7 +7251,7 @@ block_definitions[ 543 ].textures[ FACE_RIGHT ] = TEX_CACTUS_IN_POT;
 block_definitions[ 543 ].textures[ FACE_FRONT ] = TEX_CACTUS_IN_POT;
 block_definitions[ 543 ].textures[ FACE_LEFT ] = TEX_CACTUS_IN_POT;
 block_definitions[ 543 ].textures[ FACE_BACK ] = TEX_CACTUS_IN_POT;
-block_definitions[ 543 ].icon_texture = TEX_AIR;
+block_definitions[ 543 ].icon_texture = TEX_CACTUS_IN_POT;
 block_definitions[ 543 ].affected_by_redstone_power = false;
 block_definitions[ 543 ].breaks_in_liquid = true;
 block_definitions[ 543 ].casts_shadow = false;
@@ -7446,7 +7384,6 @@ block_definitions[ 554 ].textures[ FACE_LEFT ] = TEX_END_BRICKS;
 block_definitions[ 554 ].textures[ FACE_BACK ] = TEX_END_BRICKS;
 block_definitions[ 554 ].icon_texture = TEX_END_BRICKS;
 block_definitions[ 554 ].hardness = 4.0f;
-block_definitions[ 554 ].icon_is_isometric = true;
 block_definitions[ 554 ].scale = { 16, 8, 16 };
 block_definitions[ 554 ].tex_offset = { 0, -4, 0 };
 
@@ -7639,7 +7576,6 @@ block_definitions[ 570 ].textures[ FACE_LEFT ] = TEX_EXPOSED_CUT_COPPER;
 block_definitions[ 570 ].textures[ FACE_BACK ] = TEX_EXPOSED_CUT_COPPER;
 block_definitions[ 570 ].icon_texture = TEX_EXPOSED_CUT_COPPER;
 block_definitions[ 570 ].hardness = 4.0f;
-block_definitions[ 570 ].icon_is_isometric = true;
 block_definitions[ 570 ].scale = { 16, 8, 16 };
 block_definitions[ 570 ].tex_offset = { 0, -4, 0 };
 
@@ -7665,7 +7601,6 @@ block_definitions[ 572 ].textures[ FACE_LEFT ] = TEX_EXPOSED_CUT_COPPER;
 block_definitions[ 572 ].textures[ FACE_BACK ] = TEX_EXPOSED_CUT_COPPER;
 block_definitions[ 572 ].icon_texture = TEX_EXPOSED_CUT_COPPER;
 block_definitions[ 572 ].hardness = 4.0f;
-block_definitions[ 572 ].icon_is_isometric = true;
 block_definitions[ 572 ].scale = { 16, 8, 16 };
 block_definitions[ 572 ].tex_offset = { 0, -4, 0 };
 
@@ -7676,7 +7611,7 @@ block_definitions[ 573 ].textures[ FACE_RIGHT ] = TEX_SEAGRASS;
 block_definitions[ 573 ].textures[ FACE_FRONT ] = TEX_SEAGRASS;
 block_definitions[ 573 ].textures[ FACE_LEFT ] = TEX_SEAGRASS;
 block_definitions[ 573 ].textures[ FACE_BACK ] = TEX_SEAGRASS;
-block_definitions[ 573 ].icon_texture = TEX_AIR;
+block_definitions[ 573 ].icon_texture = TEX_SEAGRASS;
 block_definitions[ 573 ].affected_by_redstone_power = false;
 block_definitions[ 573 ].breaks_in_liquid = true;
 block_definitions[ 573 ].casts_shadow = false;
@@ -7696,7 +7631,7 @@ block_definitions[ 574 ].textures[ FACE_RIGHT ] = TEX_UNDERWATER_TUFT_TALL;
 block_definitions[ 574 ].textures[ FACE_FRONT ] = TEX_UNDERWATER_TUFT_TALL;
 block_definitions[ 574 ].textures[ FACE_LEFT ] = TEX_UNDERWATER_TUFT_TALL;
 block_definitions[ 574 ].textures[ FACE_BACK ] = TEX_UNDERWATER_TUFT_TALL;
-block_definitions[ 574 ].icon_texture = TEX_AIR;
+block_definitions[ 574 ].icon_texture = TEX_UNDERWATER_TUFT_TALL;
 block_definitions[ 574 ].affected_by_redstone_power = false;
 block_definitions[ 574 ].breaks_in_liquid = true;
 block_definitions[ 574 ].casts_shadow = false;
@@ -8045,7 +7980,6 @@ block_definitions[ 598 ].textures[ FACE_LEFT ] = TEX_STONE_GRANITE;
 block_definitions[ 598 ].textures[ FACE_BACK ] = TEX_STONE_GRANITE;
 block_definitions[ 598 ].icon_texture = TEX_STONE_GRANITE;
 block_definitions[ 598 ].hardness = 4.0f;
-block_definitions[ 598 ].icon_is_isometric = true;
 block_definitions[ 598 ].scale = { 16, 8, 16 };
 block_definitions[ 598 ].tex_offset = { 0, -4, 0 };
 
@@ -8168,7 +8102,6 @@ block_definitions[ 608 ].textures[ FACE_LEFT ] = TEX_CONCRETE_GRAY;
 block_definitions[ 608 ].textures[ FACE_BACK ] = TEX_CONCRETE_GRAY;
 block_definitions[ 608 ].icon_texture = TEX_CONCRETE_GRAY;
 block_definitions[ 608 ].hardness = 4.0f;
-block_definitions[ 608 ].icon_is_isometric = true;
 block_definitions[ 608 ].scale = { 16, 8, 16 };
 block_definitions[ 608 ].tex_offset = { 0, -4, 0 };
 
@@ -8253,7 +8186,6 @@ block_definitions[ 616 ].textures[ FACE_LEFT ] = TEX_WOOL_COLORED_GRAY;
 block_definitions[ 616 ].textures[ FACE_BACK ] = TEX_WOOL_COLORED_GRAY;
 block_definitions[ 616 ].icon_texture = TEX_WOOL_COLORED_GRAY;
 block_definitions[ 616 ].hardness = 4.0f;
-block_definitions[ 616 ].icon_is_isometric = true;
 block_definitions[ 616 ].scale = { 16, 8, 16 };
 block_definitions[ 616 ].tex_offset = { 0, -4, 0 };
 
@@ -8351,7 +8283,6 @@ block_definitions[ 624 ].textures[ FACE_LEFT ] = TEX_CONCRETE_GREEN;
 block_definitions[ 624 ].textures[ FACE_BACK ] = TEX_CONCRETE_GREEN;
 block_definitions[ 624 ].icon_texture = TEX_CONCRETE_GREEN;
 block_definitions[ 624 ].hardness = 4.0f;
-block_definitions[ 624 ].icon_is_isometric = true;
 block_definitions[ 624 ].scale = { 16, 8, 16 };
 block_definitions[ 624 ].tex_offset = { 0, -4, 0 };
 
@@ -8436,7 +8367,6 @@ block_definitions[ 632 ].textures[ FACE_LEFT ] = TEX_WOOL_COLORED_GREEN;
 block_definitions[ 632 ].textures[ FACE_BACK ] = TEX_WOOL_COLORED_GREEN;
 block_definitions[ 632 ].icon_texture = TEX_WOOL_COLORED_GREEN;
 block_definitions[ 632 ].hardness = 4.0f;
-block_definitions[ 632 ].icon_is_isometric = true;
 block_definitions[ 632 ].scale = { 16, 8, 16 };
 block_definitions[ 632 ].tex_offset = { 0, -4, 0 };
 
@@ -9092,7 +9022,6 @@ block_definitions[ 684 ].textures[ FACE_LEFT ] = TEX_CONCRETE_LIGHT_BLUE;
 block_definitions[ 684 ].textures[ FACE_BACK ] = TEX_CONCRETE_LIGHT_BLUE;
 block_definitions[ 684 ].icon_texture = TEX_CONCRETE_LIGHT_BLUE;
 block_definitions[ 684 ].hardness = 4.0f;
-block_definitions[ 684 ].icon_is_isometric = true;
 block_definitions[ 684 ].scale = { 16, 8, 16 };
 block_definitions[ 684 ].tex_offset = { 0, -4, 0 };
 
@@ -9177,7 +9106,6 @@ block_definitions[ 692 ].textures[ FACE_LEFT ] = TEX_WOOL_COLORED_LIGHT_BLUE;
 block_definitions[ 692 ].textures[ FACE_BACK ] = TEX_WOOL_COLORED_LIGHT_BLUE;
 block_definitions[ 692 ].icon_texture = TEX_WOOL_COLORED_LIGHT_BLUE;
 block_definitions[ 692 ].hardness = 4.0f;
-block_definitions[ 692 ].icon_is_isometric = true;
 block_definitions[ 692 ].scale = { 16, 8, 16 };
 block_definitions[ 692 ].tex_offset = { 0, -4, 0 };
 
@@ -9275,7 +9203,6 @@ block_definitions[ 700 ].textures[ FACE_LEFT ] = TEX_CONCRETE_SILVER;
 block_definitions[ 700 ].textures[ FACE_BACK ] = TEX_CONCRETE_SILVER;
 block_definitions[ 700 ].icon_texture = TEX_CONCRETE_SILVER;
 block_definitions[ 700 ].hardness = 4.0f;
-block_definitions[ 700 ].icon_is_isometric = true;
 block_definitions[ 700 ].scale = { 16, 8, 16 };
 block_definitions[ 700 ].tex_offset = { 0, -4, 0 };
 
@@ -9365,7 +9292,6 @@ block_definitions[ 708 ].textures[ FACE_LEFT ] = TEX_WOOL_COLORED_SILVER;
 block_definitions[ 708 ].textures[ FACE_BACK ] = TEX_WOOL_COLORED_SILVER;
 block_definitions[ 708 ].icon_texture = TEX_WOOL_COLORED_SILVER;
 block_definitions[ 708 ].hardness = 4.0f;
-block_definitions[ 708 ].icon_is_isometric = true;
 block_definitions[ 708 ].scale = { 16, 8, 16 };
 block_definitions[ 708 ].tex_offset = { 0, -4, 0 };
 
@@ -9518,7 +9444,6 @@ block_definitions[ 719 ].textures[ FACE_LEFT ] = TEX_CONCRETE_LIME;
 block_definitions[ 719 ].textures[ FACE_BACK ] = TEX_CONCRETE_LIME;
 block_definitions[ 719 ].icon_texture = TEX_CONCRETE_LIME;
 block_definitions[ 719 ].hardness = 4.0f;
-block_definitions[ 719 ].icon_is_isometric = true;
 block_definitions[ 719 ].scale = { 16, 8, 16 };
 block_definitions[ 719 ].tex_offset = { 0, -4, 0 };
 
@@ -9603,7 +9528,6 @@ block_definitions[ 727 ].textures[ FACE_LEFT ] = TEX_WOOL_COLORED_LIME;
 block_definitions[ 727 ].textures[ FACE_BACK ] = TEX_WOOL_COLORED_LIME;
 block_definitions[ 727 ].icon_texture = TEX_WOOL_COLORED_LIME;
 block_definitions[ 727 ].hardness = 4.0f;
-block_definitions[ 727 ].icon_is_isometric = true;
 block_definitions[ 727 ].scale = { 16, 8, 16 };
 block_definitions[ 727 ].tex_offset = { 0, -4, 0 };
 
@@ -9785,7 +9709,6 @@ block_definitions[ 744 ].textures[ FACE_LEFT ] = TEX_CONCRETE_MAGENTA;
 block_definitions[ 744 ].textures[ FACE_BACK ] = TEX_CONCRETE_MAGENTA;
 block_definitions[ 744 ].icon_texture = TEX_CONCRETE_MAGENTA;
 block_definitions[ 744 ].hardness = 4.0f;
-block_definitions[ 744 ].icon_is_isometric = true;
 block_definitions[ 744 ].scale = { 16, 8, 16 };
 block_definitions[ 744 ].tex_offset = { 0, -4, 0 };
 
@@ -9884,7 +9807,6 @@ block_definitions[ 753 ].textures[ FACE_LEFT ] = TEX_WOOL_COLORED_MAGENTA;
 block_definitions[ 753 ].textures[ FACE_BACK ] = TEX_WOOL_COLORED_MAGENTA;
 block_definitions[ 753 ].icon_texture = TEX_WOOL_COLORED_MAGENTA;
 block_definitions[ 753 ].hardness = 4.0f;
-block_definitions[ 753 ].icon_is_isometric = true;
 block_definitions[ 753 ].scale = { 16, 8, 16 };
 block_definitions[ 753 ].tex_offset = { 0, -4, 0 };
 
@@ -10105,7 +10027,6 @@ block_definitions[ 769 ].textures[ FACE_LEFT ] = TEX_MANGROVE_PLANKS;
 block_definitions[ 769 ].textures[ FACE_BACK ] = TEX_MANGROVE_PLANKS;
 block_definitions[ 769 ].icon_texture = TEX_MANGROVE_PLANKS;
 block_definitions[ 769 ].hardness = 4.0f;
-block_definitions[ 769 ].icon_is_isometric = true;
 block_definitions[ 769 ].scale = { 16, 8, 16 };
 block_definitions[ 769 ].tex_offset = { 0, -4, 0 };
 
@@ -10262,7 +10183,6 @@ block_definitions[ 782 ].textures[ FACE_LEFT ] = TEX_COBBLESTONE_MOSSY;
 block_definitions[ 782 ].textures[ FACE_BACK ] = TEX_COBBLESTONE_MOSSY;
 block_definitions[ 782 ].icon_texture = TEX_COBBLESTONE_MOSSY;
 block_definitions[ 782 ].hardness = 4.0f;
-block_definitions[ 782 ].icon_is_isometric = true;
 block_definitions[ 782 ].scale = { 16, 8, 16 };
 block_definitions[ 782 ].tex_offset = { 0, -4, 0 };
 
@@ -10310,7 +10230,6 @@ block_definitions[ 786 ].textures[ FACE_LEFT ] = TEX_STONEBRICK_MOSSY;
 block_definitions[ 786 ].textures[ FACE_BACK ] = TEX_STONEBRICK_MOSSY;
 block_definitions[ 786 ].icon_texture = TEX_STONEBRICK_MOSSY;
 block_definitions[ 786 ].hardness = 4.0f;
-block_definitions[ 786 ].icon_is_isometric = true;
 block_definitions[ 786 ].scale = { 16, 8, 16 };
 block_definitions[ 786 ].tex_offset = { 0, -4, 0 };
 
@@ -10396,7 +10315,6 @@ block_definitions[ 793 ].textures[ FACE_LEFT ] = TEX_MUD_BRICKS;
 block_definitions[ 793 ].textures[ FACE_BACK ] = TEX_MUD_BRICKS;
 block_definitions[ 793 ].icon_texture = TEX_MUD_BRICKS;
 block_definitions[ 793 ].hardness = 4.0f;
-block_definitions[ 793 ].icon_is_isometric = true;
 block_definitions[ 793 ].scale = { 16, 8, 16 };
 block_definitions[ 793 ].tex_offset = { 0, -4, 0 };
 
@@ -10445,8 +10363,8 @@ block_definitions[ 797 ].textures[ FACE_BACK ] = TEX_MUDDY_MANGROVE_ROOTS_SIDE;
 block_definitions[ 797 ].icon_texture = TEX_MUDDY_MANGROVE_ROOTS_TOP;
 
 // BLACK_TORCH (798)
-block_definitions[ 798 ].textures[ FACE_TOP ] = TEX_BLACK_TORCH;
-block_definitions[ 798 ].textures[ FACE_BOTTOM ] = TEX_BLACK_TORCH;
+block_definitions[ 798 ].textures[ FACE_TOP ] = TEX_BLACK_TORCH_TOP;
+block_definitions[ 798 ].textures[ FACE_BOTTOM ] = TEX_BLACK_TORCH_BOTTOM;
 block_definitions[ 798 ].textures[ FACE_RIGHT ] = TEX_BLACK_TORCH;
 block_definitions[ 798 ].textures[ FACE_FRONT ] = TEX_BLACK_TORCH;
 block_definitions[ 798 ].textures[ FACE_LEFT ] = TEX_BLACK_TORCH;
@@ -10518,7 +10436,6 @@ block_definitions[ 803 ].textures[ FACE_LEFT ] = TEX_NETHER_BRICK;
 block_definitions[ 803 ].textures[ FACE_BACK ] = TEX_NETHER_BRICK;
 block_definitions[ 803 ].icon_texture = TEX_NETHER_BRICK;
 block_definitions[ 803 ].hardness = 4.0f;
-block_definitions[ 803 ].icon_is_isometric = true;
 block_definitions[ 803 ].scale = { 16, 8, 16 };
 block_definitions[ 803 ].tex_offset = { 0, -4, 0 };
 
@@ -10589,8 +10506,8 @@ block_definitions[ 808 ].textures[ FACE_BACK ] = TEX_NETHER_WART_BLOCK;
 block_definitions[ 808 ].icon_texture = TEX_NETHER_WART_BLOCK;
 
 // BLUE_TORCH (809)
-block_definitions[ 809 ].textures[ FACE_TOP ] = TEX_BLUE_TORCH;
-block_definitions[ 809 ].textures[ FACE_BOTTOM ] = TEX_BLUE_TORCH;
+block_definitions[ 809 ].textures[ FACE_TOP ] = TEX_BLUE_TORCH_TOP;
+block_definitions[ 809 ].textures[ FACE_BOTTOM ] = TEX_BLUE_TORCH_BOTTOM;
 block_definitions[ 809 ].textures[ FACE_RIGHT ] = TEX_BLUE_TORCH;
 block_definitions[ 809 ].textures[ FACE_FRONT ] = TEX_BLUE_TORCH;
 block_definitions[ 809 ].textures[ FACE_LEFT ] = TEX_BLUE_TORCH;
@@ -11012,7 +10929,6 @@ block_definitions[ 839 ].textures[ FACE_LEFT ] = TEX_CONCRETE_ORANGE;
 block_definitions[ 839 ].textures[ FACE_BACK ] = TEX_CONCRETE_ORANGE;
 block_definitions[ 839 ].icon_texture = TEX_CONCRETE_ORANGE;
 block_definitions[ 839 ].hardness = 4.0f;
-block_definitions[ 839 ].icon_is_isometric = true;
 block_definitions[ 839 ].scale = { 16, 8, 16 };
 block_definitions[ 839 ].tex_offset = { 0, -4, 0 };
 
@@ -11124,7 +11040,6 @@ block_definitions[ 849 ].textures[ FACE_LEFT ] = TEX_WOOL_COLORED_ORANGE;
 block_definitions[ 849 ].textures[ FACE_BACK ] = TEX_WOOL_COLORED_ORANGE;
 block_definitions[ 849 ].icon_texture = TEX_WOOL_COLORED_ORANGE;
 block_definitions[ 849 ].hardness = 4.0f;
-block_definitions[ 849 ].icon_is_isometric = true;
 block_definitions[ 849 ].scale = { 16, 8, 16 };
 block_definitions[ 849 ].tex_offset = { 0, -4, 0 };
 
@@ -11326,8 +11241,8 @@ block_definitions[ 863 ].textures[ FACE_BACK ] = TEX_OXIDIZED_COPPER;
 block_definitions[ 863 ].icon_texture = TEX_OXIDIZED_COPPER;
 
 // WHITE_TORCH (864)
-block_definitions[ 864 ].textures[ FACE_TOP ] = TEX_WHITE_TORCH;
-block_definitions[ 864 ].textures[ FACE_BOTTOM ] = TEX_WHITE_TORCH;
+block_definitions[ 864 ].textures[ FACE_TOP ] = TEX_WHITE_TORCH_TOP;
+block_definitions[ 864 ].textures[ FACE_BOTTOM ] = TEX_WHITE_TORCH_BOTTOM;
 block_definitions[ 864 ].textures[ FACE_RIGHT ] = TEX_WHITE_TORCH;
 block_definitions[ 864 ].textures[ FACE_FRONT ] = TEX_WHITE_TORCH;
 block_definitions[ 864 ].textures[ FACE_LEFT ] = TEX_WHITE_TORCH;
@@ -11408,7 +11323,6 @@ block_definitions[ 869 ].textures[ FACE_LEFT ] = TEX_OXIDIZED_CUT_COPPER;
 block_definitions[ 869 ].textures[ FACE_BACK ] = TEX_OXIDIZED_CUT_COPPER;
 block_definitions[ 869 ].icon_texture = TEX_OXIDIZED_CUT_COPPER;
 block_definitions[ 869 ].hardness = 4.0f;
-block_definitions[ 869 ].icon_is_isometric = true;
 block_definitions[ 869 ].scale = { 16, 8, 16 };
 block_definitions[ 869 ].tex_offset = { 0, -4, 0 };
 
@@ -11434,7 +11348,6 @@ block_definitions[ 871 ].textures[ FACE_LEFT ] = TEX_OXIDIZED_CUT_COPPER;
 block_definitions[ 871 ].textures[ FACE_BACK ] = TEX_OXIDIZED_CUT_COPPER;
 block_definitions[ 871 ].icon_texture = TEX_OXIDIZED_CUT_COPPER;
 block_definitions[ 871 ].hardness = 4.0f;
-block_definitions[ 871 ].icon_is_isometric = true;
 block_definitions[ 871 ].scale = { 16, 8, 16 };
 block_definitions[ 871 ].tex_offset = { 0, -4, 0 };
 
@@ -11461,8 +11374,8 @@ block_definitions[ 873 ].textures[ FACE_BACK ] = TEX_ICE_PACKED;
 block_definitions[ 873 ].icon_texture = TEX_ICE_PACKED;
 
 // PURPLE_TORCH (874)
-block_definitions[ 874 ].textures[ FACE_TOP ] = TEX_PURPLE_TORCH;
-block_definitions[ 874 ].textures[ FACE_BOTTOM ] = TEX_PURPLE_TORCH;
+block_definitions[ 874 ].textures[ FACE_TOP ] = TEX_PURPLE_TORCH_TOP;
+block_definitions[ 874 ].textures[ FACE_BOTTOM ] = TEX_PURPLE_TORCH_BOTTOM;
 block_definitions[ 874 ].textures[ FACE_RIGHT ] = TEX_PURPLE_TORCH;
 block_definitions[ 874 ].textures[ FACE_FRONT ] = TEX_PURPLE_TORCH;
 block_definitions[ 874 ].textures[ FACE_LEFT ] = TEX_PURPLE_TORCH;
@@ -11481,8 +11394,8 @@ block_definitions[ 874 ].scale = { 2, 10, 2 };
 block_definitions[ 874 ].tex_offset = { -7, 0, -7 };
 
 // RED_TORCH (875)
-block_definitions[ 875 ].textures[ FACE_TOP ] = TEX_RED_TORCH;
-block_definitions[ 875 ].textures[ FACE_BOTTOM ] = TEX_RED_TORCH;
+block_definitions[ 875 ].textures[ FACE_TOP ] = TEX_RED_TORCH_TOP;
+block_definitions[ 875 ].textures[ FACE_BOTTOM ] = TEX_RED_TORCH_BOTTOM;
 block_definitions[ 875 ].textures[ FACE_RIGHT ] = TEX_RED_TORCH;
 block_definitions[ 875 ].textures[ FACE_FRONT ] = TEX_RED_TORCH;
 block_definitions[ 875 ].textures[ FACE_LEFT ] = TEX_RED_TORCH;
@@ -11501,8 +11414,8 @@ block_definitions[ 875 ].scale = { 2, 10, 2 };
 block_definitions[ 875 ].tex_offset = { -7, 0, -7 };
 
 // CYAN_TORCH (876)
-block_definitions[ 876 ].textures[ FACE_TOP ] = TEX_CYAN_TORCH;
-block_definitions[ 876 ].textures[ FACE_BOTTOM ] = TEX_CYAN_TORCH;
+block_definitions[ 876 ].textures[ FACE_TOP ] = TEX_CYAN_TORCH_TOP;
+block_definitions[ 876 ].textures[ FACE_BOTTOM ] = TEX_CYAN_TORCH_BOTTOM;
 block_definitions[ 876 ].textures[ FACE_RIGHT ] = TEX_CYAN_TORCH;
 block_definitions[ 876 ].textures[ FACE_FRONT ] = TEX_CYAN_TORCH;
 block_definitions[ 876 ].textures[ FACE_LEFT ] = TEX_CYAN_TORCH;
@@ -11760,7 +11673,6 @@ block_definitions[ 893 ].textures[ FACE_LEFT ] = TEX_PALE_OAK_PLANKS;
 block_definitions[ 893 ].textures[ FACE_BACK ] = TEX_PALE_OAK_PLANKS;
 block_definitions[ 893 ].icon_texture = TEX_PALE_OAK_PLANKS;
 block_definitions[ 893 ].hardness = 4.0f;
-block_definitions[ 893 ].icon_is_isometric = true;
 block_definitions[ 893 ].scale = { 16, 8, 16 };
 block_definitions[ 893 ].tex_offset = { 0, -4, 0 };
 
@@ -11858,7 +11770,6 @@ block_definitions[ 901 ].textures[ FACE_LEFT ] = TEX_PLANKS_OAK;
 block_definitions[ 901 ].textures[ FACE_BACK ] = TEX_PLANKS_OAK;
 block_definitions[ 901 ].icon_texture = TEX_PLANKS_OAK;
 block_definitions[ 901 ].hardness = 4.0f;
-block_definitions[ 901 ].icon_is_isometric = true;
 block_definitions[ 901 ].scale = { 16, 8, 16 };
 block_definitions[ 901 ].tex_offset = { 0, -4, 0 };
 
@@ -11943,7 +11854,6 @@ block_definitions[ 908 ].textures[ FACE_LEFT ] = TEX_CONCRETE_PINK;
 block_definitions[ 908 ].textures[ FACE_BACK ] = TEX_CONCRETE_PINK;
 block_definitions[ 908 ].icon_texture = TEX_CONCRETE_PINK;
 block_definitions[ 908 ].hardness = 4.0f;
-block_definitions[ 908 ].icon_is_isometric = true;
 block_definitions[ 908 ].scale = { 16, 8, 16 };
 block_definitions[ 908 ].tex_offset = { 0, -4, 0 };
 
@@ -12064,7 +11974,6 @@ block_definitions[ 918 ].textures[ FACE_LEFT ] = TEX_WOOL_COLORED_PINK;
 block_definitions[ 918 ].textures[ FACE_BACK ] = TEX_WOOL_COLORED_PINK;
 block_definitions[ 918 ].icon_texture = TEX_WOOL_COLORED_PINK;
 block_definitions[ 918 ].hardness = 4.0f;
-block_definitions[ 918 ].icon_is_isometric = true;
 block_definitions[ 918 ].scale = { 16, 8, 16 };
 block_definitions[ 918 ].tex_offset = { 0, -4, 0 };
 
@@ -12183,7 +12092,6 @@ block_definitions[ 926 ].textures[ FACE_LEFT ] = TEX_STONE_ANDESITE_SMOOTH;
 block_definitions[ 926 ].textures[ FACE_BACK ] = TEX_STONE_ANDESITE_SMOOTH;
 block_definitions[ 926 ].icon_texture = TEX_STONE_ANDESITE_SMOOTH;
 block_definitions[ 926 ].hardness = 4.0f;
-block_definitions[ 926 ].icon_is_isometric = true;
 block_definitions[ 926 ].scale = { 16, 8, 16 };
 block_definitions[ 926 ].tex_offset = { 0, -4, 0 };
 
@@ -12236,7 +12144,6 @@ block_definitions[ 931 ].textures[ FACE_LEFT ] = TEX_POLISHED_BLACKSTONE_BRICKS;
 block_definitions[ 931 ].textures[ FACE_BACK ] = TEX_POLISHED_BLACKSTONE_BRICKS;
 block_definitions[ 931 ].icon_texture = TEX_POLISHED_BLACKSTONE_BRICKS;
 block_definitions[ 931 ].hardness = 4.0f;
-block_definitions[ 931 ].icon_is_isometric = true;
 block_definitions[ 931 ].scale = { 16, 8, 16 };
 block_definitions[ 931 ].tex_offset = { 0, -4, 0 };
 
@@ -12335,7 +12242,6 @@ block_definitions[ 938 ].textures[ FACE_LEFT ] = TEX_POLISHED_BLACKSTONE;
 block_definitions[ 938 ].textures[ FACE_BACK ] = TEX_POLISHED_BLACKSTONE;
 block_definitions[ 938 ].icon_texture = TEX_POLISHED_BLACKSTONE;
 block_definitions[ 938 ].hardness = 4.0f;
-block_definitions[ 938 ].icon_is_isometric = true;
 block_definitions[ 938 ].scale = { 16, 8, 16 };
 block_definitions[ 938 ].tex_offset = { 0, -4, 0 };
 
@@ -12392,7 +12298,6 @@ block_definitions[ 943 ].textures[ FACE_LEFT ] = TEX_POLISHED_CINNABAR;
 block_definitions[ 943 ].textures[ FACE_BACK ] = TEX_POLISHED_CINNABAR;
 block_definitions[ 943 ].icon_texture = TEX_POLISHED_CINNABAR;
 block_definitions[ 943 ].hardness = 4.0f;
-block_definitions[ 943 ].icon_is_isometric = true;
 block_definitions[ 943 ].scale = { 16, 8, 16 };
 block_definitions[ 943 ].tex_offset = { 0, -4, 0 };
 
@@ -12449,7 +12354,6 @@ block_definitions[ 948 ].textures[ FACE_LEFT ] = TEX_POLISHED_DEEPSLATE;
 block_definitions[ 948 ].textures[ FACE_BACK ] = TEX_POLISHED_DEEPSLATE;
 block_definitions[ 948 ].icon_texture = TEX_POLISHED_DEEPSLATE;
 block_definitions[ 948 ].hardness = 4.0f;
-block_definitions[ 948 ].icon_is_isometric = true;
 block_definitions[ 948 ].scale = { 16, 8, 16 };
 block_definitions[ 948 ].tex_offset = { 0, -4, 0 };
 
@@ -12506,7 +12410,6 @@ block_definitions[ 953 ].textures[ FACE_LEFT ] = TEX_STONE_DIORITE_SMOOTH;
 block_definitions[ 953 ].textures[ FACE_BACK ] = TEX_STONE_DIORITE_SMOOTH;
 block_definitions[ 953 ].icon_texture = TEX_STONE_DIORITE_SMOOTH;
 block_definitions[ 953 ].hardness = 4.0f;
-block_definitions[ 953 ].icon_is_isometric = true;
 block_definitions[ 953 ].scale = { 16, 8, 16 };
 block_definitions[ 953 ].tex_offset = { 0, -4, 0 };
 
@@ -12550,7 +12453,6 @@ block_definitions[ 957 ].textures[ FACE_LEFT ] = TEX_STONE_GRANITE_SMOOTH;
 block_definitions[ 957 ].textures[ FACE_BACK ] = TEX_STONE_GRANITE_SMOOTH;
 block_definitions[ 957 ].icon_texture = TEX_STONE_GRANITE_SMOOTH;
 block_definitions[ 957 ].hardness = 4.0f;
-block_definitions[ 957 ].icon_is_isometric = true;
 block_definitions[ 957 ].scale = { 16, 8, 16 };
 block_definitions[ 957 ].tex_offset = { 0, -4, 0 };
 
@@ -12594,7 +12496,6 @@ block_definitions[ 961 ].textures[ FACE_LEFT ] = TEX_POLISHED_SULFUR;
 block_definitions[ 961 ].textures[ FACE_BACK ] = TEX_POLISHED_SULFUR;
 block_definitions[ 961 ].icon_texture = TEX_POLISHED_SULFUR;
 block_definitions[ 961 ].hardness = 4.0f;
-block_definitions[ 961 ].icon_is_isometric = true;
 block_definitions[ 961 ].scale = { 16, 8, 16 };
 block_definitions[ 961 ].tex_offset = { 0, -4, 0 };
 
@@ -12651,7 +12552,6 @@ block_definitions[ 966 ].textures[ FACE_LEFT ] = TEX_POLISHED_TUFF;
 block_definitions[ 966 ].textures[ FACE_BACK ] = TEX_POLISHED_TUFF;
 block_definitions[ 966 ].icon_texture = TEX_POLISHED_TUFF;
 block_definitions[ 966 ].hardness = 4.0f;
-block_definitions[ 966 ].icon_is_isometric = true;
 block_definitions[ 966 ].scale = { 16, 8, 16 };
 block_definitions[ 966 ].tex_offset = { 0, -4, 0 };
 
@@ -12853,7 +12753,6 @@ block_definitions[ 980 ].textures[ FACE_LEFT ] = TEX_POPLAR_PLANKS;
 block_definitions[ 980 ].textures[ FACE_BACK ] = TEX_POPLAR_PLANKS;
 block_definitions[ 980 ].icon_texture = TEX_POPLAR_PLANKS;
 block_definitions[ 980 ].hardness = 4.0f;
-block_definitions[ 980 ].icon_is_isometric = true;
 block_definitions[ 980 ].scale = { 16, 8, 16 };
 block_definitions[ 980 ].tex_offset = { 0, -4, 0 };
 
@@ -13009,7 +12908,6 @@ block_definitions[ 993 ].textures[ FACE_LEFT ] = TEX_PRISMARINE_BRICKS;
 block_definitions[ 993 ].textures[ FACE_BACK ] = TEX_PRISMARINE_BRICKS;
 block_definitions[ 993 ].icon_texture = TEX_PRISMARINE_BRICKS;
 block_definitions[ 993 ].hardness = 4.0f;
-block_definitions[ 993 ].icon_is_isometric = true;
 block_definitions[ 993 ].scale = { 16, 8, 16 };
 block_definitions[ 993 ].tex_offset = { 0, -4, 0 };
 
@@ -13053,7 +12951,6 @@ block_definitions[ 997 ].textures[ FACE_LEFT ] = TEX_PRISMARINE_ROUGH;
 block_definitions[ 997 ].textures[ FACE_BACK ] = TEX_PRISMARINE_ROUGH;
 block_definitions[ 997 ].icon_texture = TEX_PRISMARINE_ROUGH;
 block_definitions[ 997 ].hardness = 4.0f;
-block_definitions[ 997 ].icon_is_isometric = true;
 block_definitions[ 997 ].scale = { 16, 8, 16 };
 block_definitions[ 997 ].tex_offset = { 0, -4, 0 };
 
@@ -13164,7 +13061,7 @@ block_definitions[ 1003 ].textures[ FACE_RIGHT ] = TEX_PINECONE;
 block_definitions[ 1003 ].textures[ FACE_FRONT ] = TEX_PINECONE;
 block_definitions[ 1003 ].textures[ FACE_LEFT ] = TEX_PINECONE;
 block_definitions[ 1003 ].textures[ FACE_BACK ] = TEX_PINECONE;
-block_definitions[ 1003 ].icon_texture = TEX_AIR;
+block_definitions[ 1003 ].icon_texture = TEX_PINECONE;
 block_definitions[ 1003 ].affected_by_redstone_power = false;
 block_definitions[ 1003 ].breaks_in_liquid = true;
 block_definitions[ 1003 ].casts_shadow = false;
@@ -13278,7 +13175,7 @@ block_definitions[ 1010 ].textures[ FACE_RIGHT ] = TEX_BAMBOO_SAPLING;
 block_definitions[ 1010 ].textures[ FACE_FRONT ] = TEX_BAMBOO_SAPLING;
 block_definitions[ 1010 ].textures[ FACE_LEFT ] = TEX_BAMBOO_SAPLING;
 block_definitions[ 1010 ].textures[ FACE_BACK ] = TEX_BAMBOO_SAPLING;
-block_definitions[ 1010 ].icon_texture = TEX_AIR;
+block_definitions[ 1010 ].icon_texture = TEX_BAMBOO_SAPLING;
 block_definitions[ 1010 ].affected_by_redstone_power = false;
 block_definitions[ 1010 ].breaks_in_liquid = true;
 block_definitions[ 1010 ].casts_shadow = false;
@@ -13390,7 +13287,6 @@ block_definitions[ 1018 ].textures[ FACE_LEFT ] = TEX_CONCRETE_PURPLE;
 block_definitions[ 1018 ].textures[ FACE_BACK ] = TEX_CONCRETE_PURPLE;
 block_definitions[ 1018 ].icon_texture = TEX_CONCRETE_PURPLE;
 block_definitions[ 1018 ].hardness = 4.0f;
-block_definitions[ 1018 ].icon_is_isometric = true;
 block_definitions[ 1018 ].scale = { 16, 8, 16 };
 block_definitions[ 1018 ].tex_offset = { 0, -4, 0 };
 
@@ -13489,7 +13385,6 @@ block_definitions[ 1027 ].textures[ FACE_LEFT ] = TEX_WOOL_COLORED_PURPLE;
 block_definitions[ 1027 ].textures[ FACE_BACK ] = TEX_WOOL_COLORED_PURPLE;
 block_definitions[ 1027 ].icon_texture = TEX_WOOL_COLORED_PURPLE;
 block_definitions[ 1027 ].hardness = 4.0f;
-block_definitions[ 1027 ].icon_is_isometric = true;
 block_definitions[ 1027 ].scale = { 16, 8, 16 };
 block_definitions[ 1027 ].tex_offset = { 0, -4, 0 };
 
@@ -13542,7 +13437,6 @@ block_definitions[ 1032 ].textures[ FACE_LEFT ] = TEX_PURPUR_BLOCK;
 block_definitions[ 1032 ].textures[ FACE_BACK ] = TEX_PURPUR_BLOCK;
 block_definitions[ 1032 ].icon_texture = TEX_PURPUR_BLOCK;
 block_definitions[ 1032 ].hardness = 4.0f;
-block_definitions[ 1032 ].icon_is_isometric = true;
 block_definitions[ 1032 ].scale = { 16, 8, 16 };
 block_definitions[ 1032 ].tex_offset = { 0, -4, 0 };
 
@@ -13613,7 +13507,6 @@ block_definitions[ 1039 ].textures[ FACE_LEFT ] = TEX_QUARTZ_BLOCK_SIDE;
 block_definitions[ 1039 ].textures[ FACE_BACK ] = TEX_QUARTZ_BLOCK_SIDE;
 block_definitions[ 1039 ].icon_texture = TEX_QUARTZ_BLOCK_TOP;
 block_definitions[ 1039 ].hardness = 4.0f;
-block_definitions[ 1039 ].icon_is_isometric = true;
 block_definitions[ 1039 ].scale = { 16, 8, 16 };
 block_definitions[ 1039 ].tex_offset = { 0, -4, 0 };
 
@@ -13751,7 +13644,6 @@ block_definitions[ 1051 ].textures[ FACE_LEFT ] = TEX_CONCRETE_RED;
 block_definitions[ 1051 ].textures[ FACE_BACK ] = TEX_CONCRETE_RED;
 block_definitions[ 1051 ].icon_texture = TEX_CONCRETE_RED;
 block_definitions[ 1051 ].hardness = 4.0f;
-block_definitions[ 1051 ].icon_is_isometric = true;
 block_definitions[ 1051 ].scale = { 16, 8, 16 };
 block_definitions[ 1051 ].tex_offset = { 0, -4, 0 };
 
@@ -13762,7 +13654,7 @@ block_definitions[ 1052 ].textures[ FACE_RIGHT ] = TEX_FLOWER_IN_POT;
 block_definitions[ 1052 ].textures[ FACE_FRONT ] = TEX_FLOWER_IN_POT;
 block_definitions[ 1052 ].textures[ FACE_LEFT ] = TEX_FLOWER_IN_POT;
 block_definitions[ 1052 ].textures[ FACE_BACK ] = TEX_FLOWER_IN_POT;
-block_definitions[ 1052 ].icon_texture = TEX_AIR;
+block_definitions[ 1052 ].icon_texture = TEX_FLOWER_IN_POT;
 block_definitions[ 1052 ].affected_by_redstone_power = false;
 block_definitions[ 1052 ].breaks_in_liquid = true;
 block_definitions[ 1052 ].casts_shadow = false;
@@ -13781,7 +13673,7 @@ block_definitions[ 1053 ].textures[ FACE_RIGHT ] = TEX_PURPLE_FLOWER_IN_POT;
 block_definitions[ 1053 ].textures[ FACE_FRONT ] = TEX_PURPLE_FLOWER_IN_POT;
 block_definitions[ 1053 ].textures[ FACE_LEFT ] = TEX_PURPLE_FLOWER_IN_POT;
 block_definitions[ 1053 ].textures[ FACE_BACK ] = TEX_PURPLE_FLOWER_IN_POT;
-block_definitions[ 1053 ].icon_texture = TEX_AIR;
+block_definitions[ 1053 ].icon_texture = TEX_PURPLE_FLOWER_IN_POT;
 block_definitions[ 1053 ].affected_by_redstone_power = false;
 block_definitions[ 1053 ].breaks_in_liquid = true;
 block_definitions[ 1053 ].casts_shadow = false;
@@ -13800,7 +13692,7 @@ block_definitions[ 1054 ].textures[ FACE_RIGHT ] = TEX_WHITE_FLOWER_IN_POT;
 block_definitions[ 1054 ].textures[ FACE_FRONT ] = TEX_WHITE_FLOWER_IN_POT;
 block_definitions[ 1054 ].textures[ FACE_LEFT ] = TEX_WHITE_FLOWER_IN_POT;
 block_definitions[ 1054 ].textures[ FACE_BACK ] = TEX_WHITE_FLOWER_IN_POT;
-block_definitions[ 1054 ].icon_texture = TEX_AIR;
+block_definitions[ 1054 ].icon_texture = TEX_WHITE_FLOWER_IN_POT;
 block_definitions[ 1054 ].affected_by_redstone_power = false;
 block_definitions[ 1054 ].breaks_in_liquid = true;
 block_definitions[ 1054 ].casts_shadow = false;
@@ -13819,7 +13711,7 @@ block_definitions[ 1055 ].textures[ FACE_RIGHT ] = TEX_BAMBOO_IN_POT;
 block_definitions[ 1055 ].textures[ FACE_FRONT ] = TEX_BAMBOO_IN_POT;
 block_definitions[ 1055 ].textures[ FACE_LEFT ] = TEX_BAMBOO_IN_POT;
 block_definitions[ 1055 ].textures[ FACE_BACK ] = TEX_BAMBOO_IN_POT;
-block_definitions[ 1055 ].icon_texture = TEX_AIR;
+block_definitions[ 1055 ].icon_texture = TEX_BAMBOO_IN_POT;
 block_definitions[ 1055 ].affected_by_redstone_power = false;
 block_definitions[ 1055 ].breaks_in_liquid = true;
 block_definitions[ 1055 ].casts_shadow = false;
@@ -13857,7 +13749,7 @@ block_definitions[ 1057 ].textures[ FACE_RIGHT ] = TEX_BLUE_FLOWER_IN_POT;
 block_definitions[ 1057 ].textures[ FACE_FRONT ] = TEX_BLUE_FLOWER_IN_POT;
 block_definitions[ 1057 ].textures[ FACE_LEFT ] = TEX_BLUE_FLOWER_IN_POT;
 block_definitions[ 1057 ].textures[ FACE_BACK ] = TEX_BLUE_FLOWER_IN_POT;
-block_definitions[ 1057 ].icon_texture = TEX_AIR;
+block_definitions[ 1057 ].icon_texture = TEX_BLUE_FLOWER_IN_POT;
 block_definitions[ 1057 ].affected_by_redstone_power = false;
 block_definitions[ 1057 ].breaks_in_liquid = true;
 block_definitions[ 1057 ].casts_shadow = false;
@@ -13876,7 +13768,7 @@ block_definitions[ 1058 ].textures[ FACE_RIGHT ] = TEX_BROWN_MUSHROOM_IN_POT;
 block_definitions[ 1058 ].textures[ FACE_FRONT ] = TEX_BROWN_MUSHROOM_IN_POT;
 block_definitions[ 1058 ].textures[ FACE_LEFT ] = TEX_BROWN_MUSHROOM_IN_POT;
 block_definitions[ 1058 ].textures[ FACE_BACK ] = TEX_BROWN_MUSHROOM_IN_POT;
-block_definitions[ 1058 ].icon_texture = TEX_AIR;
+block_definitions[ 1058 ].icon_texture = TEX_BROWN_MUSHROOM_IN_POT;
 block_definitions[ 1058 ].affected_by_redstone_power = false;
 block_definitions[ 1058 ].breaks_in_liquid = true;
 block_definitions[ 1058 ].casts_shadow = false;
@@ -13895,7 +13787,7 @@ block_definitions[ 1059 ].textures[ FACE_RIGHT ] = TEX_BLUE_FLOWER2_IN_POT;
 block_definitions[ 1059 ].textures[ FACE_FRONT ] = TEX_BLUE_FLOWER2_IN_POT;
 block_definitions[ 1059 ].textures[ FACE_LEFT ] = TEX_BLUE_FLOWER2_IN_POT;
 block_definitions[ 1059 ].textures[ FACE_BACK ] = TEX_BLUE_FLOWER2_IN_POT;
-block_definitions[ 1059 ].icon_texture = TEX_AIR;
+block_definitions[ 1059 ].icon_texture = TEX_BLUE_FLOWER2_IN_POT;
 block_definitions[ 1059 ].affected_by_redstone_power = false;
 block_definitions[ 1059 ].breaks_in_liquid = true;
 block_definitions[ 1059 ].casts_shadow = false;
@@ -13914,7 +13806,7 @@ block_definitions[ 1060 ].textures[ FACE_RIGHT ] = TEX_YELLOW_FLOWER_IN_POT;
 block_definitions[ 1060 ].textures[ FACE_FRONT ] = TEX_YELLOW_FLOWER_IN_POT;
 block_definitions[ 1060 ].textures[ FACE_LEFT ] = TEX_YELLOW_FLOWER_IN_POT;
 block_definitions[ 1060 ].textures[ FACE_BACK ] = TEX_YELLOW_FLOWER_IN_POT;
-block_definitions[ 1060 ].icon_texture = TEX_AIR;
+block_definitions[ 1060 ].icon_texture = TEX_YELLOW_FLOWER_IN_POT;
 block_definitions[ 1060 ].affected_by_redstone_power = false;
 block_definitions[ 1060 ].breaks_in_liquid = true;
 block_definitions[ 1060 ].casts_shadow = false;
@@ -14079,7 +13971,6 @@ block_definitions[ 1071 ].textures[ FACE_LEFT ] = TEX_RED_NETHER_BRICK;
 block_definitions[ 1071 ].textures[ FACE_BACK ] = TEX_RED_NETHER_BRICK;
 block_definitions[ 1071 ].icon_texture = TEX_RED_NETHER_BRICK;
 block_definitions[ 1071 ].hardness = 4.0f;
-block_definitions[ 1071 ].icon_is_isometric = true;
 block_definitions[ 1071 ].scale = { 16, 8, 16 };
 block_definitions[ 1071 ].tex_offset = { 0, -4, 0 };
 
@@ -14230,7 +14121,6 @@ block_definitions[ 1084 ].textures[ FACE_LEFT ] = TEX_WOOL_COLORED_RED;
 block_definitions[ 1084 ].textures[ FACE_BACK ] = TEX_WOOL_COLORED_RED;
 block_definitions[ 1084 ].icon_texture = TEX_WOOL_COLORED_RED;
 block_definitions[ 1084 ].hardness = 4.0f;
-block_definitions[ 1084 ].icon_is_isometric = true;
 block_definitions[ 1084 ].scale = { 16, 8, 16 };
 block_definitions[ 1084 ].tex_offset = { 0, -4, 0 };
 
@@ -14301,7 +14191,6 @@ block_definitions[ 1091 ].textures[ FACE_LEFT ] = TEX_RESIN_BRICKS;
 block_definitions[ 1091 ].textures[ FACE_BACK ] = TEX_RESIN_BRICKS;
 block_definitions[ 1091 ].icon_texture = TEX_RESIN_BRICKS;
 block_definitions[ 1091 ].hardness = 4.0f;
-block_definitions[ 1091 ].icon_is_isometric = true;
 block_definitions[ 1091 ].scale = { 16, 8, 16 };
 block_definitions[ 1091 ].tex_offset = { 0, -4, 0 };
 
@@ -14702,7 +14591,6 @@ block_definitions[ 1123 ].textures[ FACE_LEFT ] = TEX_QUARTZ_BLOCK_BOTTOM;
 block_definitions[ 1123 ].textures[ FACE_BACK ] = TEX_QUARTZ_BLOCK_BOTTOM;
 block_definitions[ 1123 ].icon_texture = TEX_QUARTZ_BLOCK_BOTTOM;
 block_definitions[ 1123 ].hardness = 4.0f;
-block_definitions[ 1123 ].icon_is_isometric = true;
 block_definitions[ 1123 ].scale = { 16, 8, 16 };
 block_definitions[ 1123 ].tex_offset = { 0, -4, 0 };
 
@@ -14737,7 +14625,6 @@ block_definitions[ 1126 ].textures[ FACE_LEFT ] = TEX_RED_SANDSTONE_TOP;
 block_definitions[ 1126 ].textures[ FACE_BACK ] = TEX_RED_SANDSTONE_TOP;
 block_definitions[ 1126 ].icon_texture = TEX_RED_SANDSTONE_TOP;
 block_definitions[ 1126 ].hardness = 4.0f;
-block_definitions[ 1126 ].icon_is_isometric = true;
 block_definitions[ 1126 ].scale = { 16, 8, 16 };
 block_definitions[ 1126 ].tex_offset = { 0, -4, 0 };
 
@@ -14781,7 +14668,6 @@ block_definitions[ 1130 ].textures[ FACE_LEFT ] = TEX_SANDSTONE_TOP;
 block_definitions[ 1130 ].textures[ FACE_BACK ] = TEX_SANDSTONE_TOP;
 block_definitions[ 1130 ].icon_texture = TEX_SANDSTONE_TOP;
 block_definitions[ 1130 ].hardness = 4.0f;
-block_definitions[ 1130 ].icon_is_isometric = true;
 block_definitions[ 1130 ].scale = { 16, 8, 16 };
 block_definitions[ 1130 ].tex_offset = { 0, -4, 0 };
 
@@ -14825,7 +14711,6 @@ block_definitions[ 1134 ].textures[ FACE_LEFT ] = TEX_STONE_SLAB_SIDE;
 block_definitions[ 1134 ].textures[ FACE_BACK ] = TEX_STONE_SLAB_SIDE;
 block_definitions[ 1134 ].icon_texture = TEX_STONE_SLAB_TOP;
 block_definitions[ 1134 ].hardness = 4.0f;
-block_definitions[ 1134 ].icon_is_isometric = true;
 block_definitions[ 1134 ].scale = { 16, 8, 16 };
 block_definitions[ 1134 ].tex_offset = { 0, -4, 0 };
 
@@ -15257,7 +15142,6 @@ block_definitions[ 1166 ].textures[ FACE_LEFT ] = TEX_STONE_SLAB_SIDE;
 block_definitions[ 1166 ].textures[ FACE_BACK ] = TEX_STONE_SLAB_SIDE;
 block_definitions[ 1166 ].icon_texture = TEX_STONE_SLAB_TOP;
 block_definitions[ 1166 ].hardness = 4.0f;
-block_definitions[ 1166 ].icon_is_isometric = true;
 block_definitions[ 1166 ].scale = { 16, 8, 16 };
 block_definitions[ 1166 ].tex_offset = { 0, -4, 0 };
 
@@ -15607,7 +15491,6 @@ block_definitions[ 1203 ].textures[ FACE_LEFT ] = TEX_SULFUR_BRICKS;
 block_definitions[ 1203 ].textures[ FACE_BACK ] = TEX_SULFUR_BRICKS;
 block_definitions[ 1203 ].icon_texture = TEX_SULFUR_BRICKS;
 block_definitions[ 1203 ].hardness = 4.0f;
-block_definitions[ 1203 ].icon_is_isometric = true;
 block_definitions[ 1203 ].scale = { 16, 8, 16 };
 block_definitions[ 1203 ].tex_offset = { 0, -4, 0 };
 
@@ -15664,7 +15547,6 @@ block_definitions[ 1208 ].textures[ FACE_LEFT ] = TEX_SULFUR;
 block_definitions[ 1208 ].textures[ FACE_BACK ] = TEX_SULFUR;
 block_definitions[ 1208 ].icon_texture = TEX_SULFUR;
 block_definitions[ 1208 ].hardness = 4.0f;
-block_definitions[ 1208 ].icon_is_isometric = true;
 block_definitions[ 1208 ].scale = { 16, 8, 16 };
 block_definitions[ 1208 ].tex_offset = { 0, -4, 0 };
 
@@ -16197,7 +16079,6 @@ block_definitions[ 1243 ].textures[ FACE_LEFT ] = TEX_TUFF_BRICKS;
 block_definitions[ 1243 ].textures[ FACE_BACK ] = TEX_TUFF_BRICKS;
 block_definitions[ 1243 ].icon_texture = TEX_TUFF_BRICKS;
 block_definitions[ 1243 ].hardness = 4.0f;
-block_definitions[ 1243 ].icon_is_isometric = true;
 block_definitions[ 1243 ].scale = { 16, 8, 16 };
 block_definitions[ 1243 ].tex_offset = { 0, -4, 0 };
 
@@ -16348,7 +16229,6 @@ block_definitions[ 1253 ].textures[ FACE_LEFT ] = TEX_TUFF;
 block_definitions[ 1253 ].textures[ FACE_BACK ] = TEX_TUFF;
 block_definitions[ 1253 ].icon_texture = TEX_TUFF;
 block_definitions[ 1253 ].hardness = 4.0f;
-block_definitions[ 1253 ].icon_is_isometric = true;
 block_definitions[ 1253 ].scale = { 16, 8, 16 };
 block_definitions[ 1253 ].tex_offset = { 0, -4, 0 };
 
@@ -16688,7 +16568,6 @@ block_definitions[ 1278 ].textures[ FACE_LEFT ] = TEX_WARPED_PLANKS;
 block_definitions[ 1278 ].textures[ FACE_BACK ] = TEX_WARPED_PLANKS;
 block_definitions[ 1278 ].icon_texture = TEX_WARPED_PLANKS;
 block_definitions[ 1278 ].hardness = 4.0f;
-block_definitions[ 1278 ].icon_is_isometric = true;
 block_definitions[ 1278 ].scale = { 16, 8, 16 };
 block_definitions[ 1278 ].tex_offset = { 0, -4, 0 };
 
@@ -16915,7 +16794,6 @@ block_definitions[ 1297 ].textures[ FACE_LEFT ] = TEX_CUT_COPPER;
 block_definitions[ 1297 ].textures[ FACE_BACK ] = TEX_CUT_COPPER;
 block_definitions[ 1297 ].icon_texture = TEX_CUT_COPPER;
 block_definitions[ 1297 ].hardness = 4.0f;
-block_definitions[ 1297 ].icon_is_isometric = true;
 block_definitions[ 1297 ].scale = { 16, 8, 16 };
 block_definitions[ 1297 ].tex_offset = { 0, -4, 0 };
 
@@ -16941,7 +16819,6 @@ block_definitions[ 1299 ].textures[ FACE_LEFT ] = TEX_CUT_COPPER;
 block_definitions[ 1299 ].textures[ FACE_BACK ] = TEX_CUT_COPPER;
 block_definitions[ 1299 ].icon_texture = TEX_CUT_COPPER;
 block_definitions[ 1299 ].hardness = 4.0f;
-block_definitions[ 1299 ].icon_is_isometric = true;
 block_definitions[ 1299 ].scale = { 16, 8, 16 };
 block_definitions[ 1299 ].tex_offset = { 0, -4, 0 };
 
@@ -17092,7 +16969,6 @@ block_definitions[ 1312 ].textures[ FACE_LEFT ] = TEX_EXPOSED_CUT_COPPER;
 block_definitions[ 1312 ].textures[ FACE_BACK ] = TEX_EXPOSED_CUT_COPPER;
 block_definitions[ 1312 ].icon_texture = TEX_EXPOSED_CUT_COPPER;
 block_definitions[ 1312 ].hardness = 4.0f;
-block_definitions[ 1312 ].icon_is_isometric = true;
 block_definitions[ 1312 ].scale = { 16, 8, 16 };
 block_definitions[ 1312 ].tex_offset = { 0, -4, 0 };
 
@@ -17118,7 +16994,6 @@ block_definitions[ 1314 ].textures[ FACE_LEFT ] = TEX_EXPOSED_CUT_COPPER;
 block_definitions[ 1314 ].textures[ FACE_BACK ] = TEX_EXPOSED_CUT_COPPER;
 block_definitions[ 1314 ].icon_texture = TEX_EXPOSED_CUT_COPPER;
 block_definitions[ 1314 ].hardness = 4.0f;
-block_definitions[ 1314 ].icon_is_isometric = true;
 block_definitions[ 1314 ].scale = { 16, 8, 16 };
 block_definitions[ 1314 ].tex_offset = { 0, -4, 0 };
 
@@ -17295,7 +17170,6 @@ block_definitions[ 1329 ].textures[ FACE_LEFT ] = TEX_OXIDIZED_CUT_COPPER;
 block_definitions[ 1329 ].textures[ FACE_BACK ] = TEX_OXIDIZED_CUT_COPPER;
 block_definitions[ 1329 ].icon_texture = TEX_OXIDIZED_CUT_COPPER;
 block_definitions[ 1329 ].hardness = 4.0f;
-block_definitions[ 1329 ].icon_is_isometric = true;
 block_definitions[ 1329 ].scale = { 16, 8, 16 };
 block_definitions[ 1329 ].tex_offset = { 0, -4, 0 };
 
@@ -17321,7 +17195,6 @@ block_definitions[ 1331 ].textures[ FACE_LEFT ] = TEX_OXIDIZED_CUT_COPPER;
 block_definitions[ 1331 ].textures[ FACE_BACK ] = TEX_OXIDIZED_CUT_COPPER;
 block_definitions[ 1331 ].icon_texture = TEX_OXIDIZED_CUT_COPPER;
 block_definitions[ 1331 ].hardness = 4.0f;
-block_definitions[ 1331 ].icon_is_isometric = true;
 block_definitions[ 1331 ].scale = { 16, 8, 16 };
 block_definitions[ 1331 ].tex_offset = { 0, -4, 0 };
 
@@ -17485,7 +17358,6 @@ block_definitions[ 1345 ].textures[ FACE_LEFT ] = TEX_WEATHERED_CUT_COPPER;
 block_definitions[ 1345 ].textures[ FACE_BACK ] = TEX_WEATHERED_CUT_COPPER;
 block_definitions[ 1345 ].icon_texture = TEX_WEATHERED_CUT_COPPER;
 block_definitions[ 1345 ].hardness = 4.0f;
-block_definitions[ 1345 ].icon_is_isometric = true;
 block_definitions[ 1345 ].scale = { 16, 8, 16 };
 block_definitions[ 1345 ].tex_offset = { 0, -4, 0 };
 
@@ -17511,7 +17383,6 @@ block_definitions[ 1347 ].textures[ FACE_LEFT ] = TEX_WEATHERED_CUT_COPPER;
 block_definitions[ 1347 ].textures[ FACE_BACK ] = TEX_WEATHERED_CUT_COPPER;
 block_definitions[ 1347 ].icon_texture = TEX_WEATHERED_CUT_COPPER;
 block_definitions[ 1347 ].hardness = 4.0f;
-block_definitions[ 1347 ].icon_is_isometric = true;
 block_definitions[ 1347 ].scale = { 16, 8, 16 };
 block_definitions[ 1347 ].tex_offset = { 0, -4, 0 };
 
@@ -17675,7 +17546,6 @@ block_definitions[ 1361 ].textures[ FACE_LEFT ] = TEX_WEATHERED_CUT_COPPER;
 block_definitions[ 1361 ].textures[ FACE_BACK ] = TEX_WEATHERED_CUT_COPPER;
 block_definitions[ 1361 ].icon_texture = TEX_WEATHERED_CUT_COPPER;
 block_definitions[ 1361 ].hardness = 4.0f;
-block_definitions[ 1361 ].icon_is_isometric = true;
 block_definitions[ 1361 ].scale = { 16, 8, 16 };
 block_definitions[ 1361 ].tex_offset = { 0, -4, 0 };
 
@@ -17701,7 +17571,6 @@ block_definitions[ 1363 ].textures[ FACE_LEFT ] = TEX_WEATHERED_CUT_COPPER;
 block_definitions[ 1363 ].textures[ FACE_BACK ] = TEX_WEATHERED_CUT_COPPER;
 block_definitions[ 1363 ].icon_texture = TEX_WEATHERED_CUT_COPPER;
 block_definitions[ 1363 ].hardness = 4.0f;
-block_definitions[ 1363 ].icon_is_isometric = true;
 block_definitions[ 1363 ].scale = { 16, 8, 16 };
 block_definitions[ 1363 ].tex_offset = { 0, -4, 0 };
 
@@ -17830,7 +17699,6 @@ block_definitions[ 1373 ].textures[ FACE_LEFT ] = TEX_CONCRETE_WHITE;
 block_definitions[ 1373 ].textures[ FACE_BACK ] = TEX_CONCRETE_WHITE;
 block_definitions[ 1373 ].icon_texture = TEX_CONCRETE_WHITE;
 block_definitions[ 1373 ].hardness = 4.0f;
-block_definitions[ 1373 ].icon_is_isometric = true;
 block_definitions[ 1373 ].scale = { 16, 8, 16 };
 block_definitions[ 1373 ].tex_offset = { 0, -4, 0 };
 
@@ -17915,7 +17783,6 @@ block_definitions[ 1381 ].textures[ FACE_LEFT ] = TEX_WOOL_COLORED_WHITE;
 block_definitions[ 1381 ].textures[ FACE_BACK ] = TEX_WOOL_COLORED_WHITE;
 block_definitions[ 1381 ].icon_texture = TEX_WOOL_COLORED_WHITE;
 block_definitions[ 1381 ].hardness = 4.0f;
-block_definitions[ 1381 ].icon_is_isometric = true;
 block_definitions[ 1381 ].scale = { 16, 8, 16 };
 block_definitions[ 1381 ].tex_offset = { 0, -4, 0 };
 
@@ -17992,7 +17859,6 @@ block_definitions[ 1386 ].textures[ FACE_LEFT ] = TEX_PLANKS_OAK;
 block_definitions[ 1386 ].textures[ FACE_BACK ] = TEX_PLANKS_OAK;
 block_definitions[ 1386 ].icon_texture = TEX_PLANKS_OAK;
 block_definitions[ 1386 ].hardness = 4.0f;
-block_definitions[ 1386 ].icon_is_isometric = true;
 block_definitions[ 1386 ].scale = { 16, 8, 16 };
 block_definitions[ 1386 ].tex_offset = { 0, -4, 0 };
 
@@ -18086,7 +17952,6 @@ block_definitions[ 1394 ].textures[ FACE_LEFT ] = TEX_CONCRETE_YELLOW;
 block_definitions[ 1394 ].textures[ FACE_BACK ] = TEX_CONCRETE_YELLOW;
 block_definitions[ 1394 ].icon_texture = TEX_CONCRETE_YELLOW;
 block_definitions[ 1394 ].hardness = 4.0f;
-block_definitions[ 1394 ].icon_is_isometric = true;
 block_definitions[ 1394 ].scale = { 16, 8, 16 };
 block_definitions[ 1394 ].tex_offset = { 0, -4, 0 };
 
@@ -18198,7 +18063,6 @@ block_definitions[ 1404 ].textures[ FACE_LEFT ] = TEX_WOOL_COLORED_YELLOW;
 block_definitions[ 1404 ].textures[ FACE_BACK ] = TEX_WOOL_COLORED_YELLOW;
 block_definitions[ 1404 ].icon_texture = TEX_WOOL_COLORED_YELLOW;
 block_definitions[ 1404 ].hardness = 4.0f;
-block_definitions[ 1404 ].icon_is_isometric = true;
 block_definitions[ 1404 ].scale = { 16, 8, 16 };
 block_definitions[ 1404 ].tex_offset = { 0, -4, 0 };
 

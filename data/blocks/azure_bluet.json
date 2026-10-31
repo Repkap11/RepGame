@@ -4,7 +4,6 @@
   "casts_shadow": false,
   "collides_with_player": false,
   "hardness": 0,
-  "icon": "flower_houstonia",
   "icon_is_isometric": false,
   "id": 388,
   "is_seethrough": true,

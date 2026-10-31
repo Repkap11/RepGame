@@ -4,7 +4,6 @@
   "casts_shadow": false,
   "collides_with_player": false,
   "hardness": 0,
-  "icon": "cherry_sapling",
   "icon_is_isometric": false,
   "id": 269,
   "is_seethrough": true,

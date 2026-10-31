@@ -4,7 +4,6 @@
   "collides_with_player": false,
   "emits_light": 14,
   "hardness": 0,
-  "icon": "torch_on",
   "icon_is_isometric": false,
   "id": 121,
   "is_torch": true,
@@ -28,11 +27,8 @@
     -7
   ],
   "textures": {
-    "back": "torch_on",
-    "bottom": "torch_on",
-    "front": "torch_on",
-    "left": "torch_on",
-    "right": "torch_on",
-    "top": "torch_on"
+    "bottom": "torch_bottom",
+    "side": "torch_on",
+    "top": "torch_top"
   }
 }

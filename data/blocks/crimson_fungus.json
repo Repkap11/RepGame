@@ -4,7 +4,6 @@
   "casts_shadow": false,
   "collides_with_player": false,
   "hardness": 0,
-  "icon": "crimson_fungus",
   "icon_is_isometric": false,
   "id": 396,
   "is_seethrough": true,

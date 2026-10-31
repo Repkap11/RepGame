@@ -4,7 +4,6 @@
   "casts_shadow": false,
   "collides_with_player": false,
   "hardness": 0,
-  "icon": "double_plant_syringa_top",
   "icon_is_isometric": false,
   "id": 712,
   "is_seethrough": true,

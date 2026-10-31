@@ -152,6 +152,22 @@
   "black_candle": {
     "source": "textures/items/candles/black_candle"
   },
+  "black_torch_bottom": {
+    "source": "black_torch",
+    "extract": {
+      "from": [7, 13],
+      "size": [2, 2],
+      "to": [7, 7]
+    }
+  },
+  "black_torch_top": {
+    "source": "black_torch",
+    "extract": {
+      "from": [7, 6],
+      "size": [2, 2],
+      "to": [7, 7]
+    }
+  },
   "blackstone": {
     "source": "textures/blocks/blackstone"
   },
@@ -175,6 +191,22 @@
   },
   "blue_ice": {
     "source": "textures/blocks/blue_ice"
+  },
+  "blue_torch_bottom": {
+    "source": "blue_torch",
+    "extract": {
+      "from": [7, 13],
+      "size": [2, 2],
+      "to": [7, 7]
+    }
+  },
+  "blue_torch_top": {
+    "source": "blue_torch",
+    "extract": {
+      "from": [7, 6],
+      "size": [2, 2],
+      "to": [7, 7]
+    }
   },
   "bone_block_side": {
     "source": "textures/blocks/bone_block_side"
@@ -211,6 +243,22 @@
   },
   "budding_amethyst": {
     "source": "textures/blocks/budding_amethyst"
+  },
+  "burnt_out_torch_bottom": {
+    "source": "burnt_out_torch",
+    "extract": {
+      "from": [7, 13],
+      "size": [2, 2],
+      "to": [7, 7]
+    }
+  },
+  "burnt_out_torch_top": {
+    "source": "burnt_out_torch",
+    "extract": {
+      "from": [7, 6],
+      "size": [2, 2],
+      "to": [7, 7]
+    }
   },
   "bush": {
     "source": "textures/items/bush"
@@ -751,6 +799,22 @@
   },
   "cyan_candle": {
     "source": "textures/items/candles/cyan_candle"
+  },
+  "cyan_torch_bottom": {
+    "source": "cyan_torch",
+    "extract": {
+      "from": [7, 13],
+      "size": [2, 2],
+      "to": [7, 7]
+    }
+  },
+  "cyan_torch_top": {
+    "source": "cyan_torch",
+    "extract": {
+      "from": [7, 6],
+      "size": [2, 2],
+      "to": [7, 7]
+    }
   },
   "dark_oak_shelf": {
     "source": "textures/blocks/dark_oak_shelf"
@@ -1918,6 +1982,22 @@
   "purple_candle": {
     "source": "textures/items/candles/purple_candle"
   },
+  "purple_torch_bottom": {
+    "source": "purple_torch",
+    "extract": {
+      "from": [7, 13],
+      "size": [2, 2],
+      "to": [7, 7]
+    }
+  },
+  "purple_torch_top": {
+    "source": "purple_torch",
+    "extract": {
+      "from": [7, 6],
+      "size": [2, 2],
+      "to": [7, 7]
+    }
+  },
   "purpur_block": {
     "source": "textures/blocks/purpur_block"
   },
@@ -2016,6 +2096,22 @@
   },
   "red_sandstone_top": {
     "source": "textures/blocks/red_sandstone_top"
+  },
+  "red_torch_bottom": {
+    "source": "red_torch",
+    "extract": {
+      "from": [7, 13],
+      "size": [2, 2],
+      "to": [7, 7]
+    }
+  },
+  "red_torch_top": {
+    "source": "red_torch",
+    "extract": {
+      "from": [7, 6],
+      "size": [2, 2],
+      "to": [7, 7]
+    }
   },
   "redstone_block": {
     "source": "textures/blocks/redstone_block"
@@ -2520,8 +2616,24 @@
   "tnt_top": {
     "source": "textures/blocks/tnt_top"
   },
+  "torch_bottom": {
+    "source": "torch_on",
+    "extract": {
+      "from": [7, 13],
+      "size": [2, 2],
+      "to": [7, 7]
+    }
+  },
   "torch_on": {
     "source": "textures/blocks/torch_on"
+  },
+  "torch_top": {
+    "source": "torch_on",
+    "extract": {
+      "from": [7, 6],
+      "size": [2, 2],
+      "to": [7, 7]
+    }
   },
   "torchflower": {
     "source": "textures/blocks/torchflower"
@@ -2709,6 +2821,22 @@
   },
   "white_candle": {
     "source": "textures/items/candles/white_candle"
+  },
+  "white_torch_bottom": {
+    "source": "white_torch",
+    "extract": {
+      "from": [7, 13],
+      "size": [2, 2],
+      "to": [7, 7]
+    }
+  },
+  "white_torch_top": {
+    "source": "white_torch",
+    "extract": {
+      "from": [7, 6],
+      "size": [2, 2],
+      "to": [7, 7]
+    }
   },
   "wildflowers": {
     "source": "textures/items/wildflowers"

@@ -4,7 +4,6 @@
   "casts_shadow": false,
   "collides_with_player": false,
   "hardness": 0,
-  "icon": "pitcher_crop_top_stage_4",
   "icon_is_isometric": false,
   "id": 921,
   "is_seethrough": true,

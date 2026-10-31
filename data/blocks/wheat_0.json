@@ -4,7 +4,6 @@
   "casts_shadow": false,
   "collides_with_player": false,
   "hardness": 0,
-  "icon": "wheat_stage_0",
   "icon_is_isometric": false,
   "id": 129,
   "is_seethrough": true,

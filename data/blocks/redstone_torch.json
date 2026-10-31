@@ -5,7 +5,6 @@
   "connects_to_redstone_dust": true,
   "emits_light": 7,
   "hardness": 0,
-  "icon": "redstone_torch_on",
   "icon_is_isometric": false,
   "id": 65,
   "is_torch": true,

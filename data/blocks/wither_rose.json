@@ -4,7 +4,6 @@
   "casts_shadow": false,
   "collides_with_player": false,
   "hardness": 0,
-  "icon": "flower_wither_rose",
   "icon_is_isometric": false,
   "id": 1006,
   "is_seethrough": true,

@@ -4,7 +4,6 @@
   "casts_shadow": false,
   "collides_with_player": false,
   "hardness": 0,
-  "icon": "tall_dry_grass",
   "icon_is_isometric": false,
   "id": 1215,
   "is_seethrough": true,

@@ -26,11 +26,8 @@
     -7
   ],
   "textures": {
-    "back": "burnt_out_torch",
-    "bottom": "burnt_out_torch",
-    "front": "burnt_out_torch",
-    "left": "burnt_out_torch",
-    "right": "burnt_out_torch",
-    "top": "burnt_out_torch"
+    "bottom": "burnt_out_torch_bottom",
+    "side": "burnt_out_torch",
+    "top": "burnt_out_torch_top"
   }
 }

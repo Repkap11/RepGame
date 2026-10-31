@@ -27,11 +27,8 @@
     -7
   ],
   "textures": {
-    "back": "purple_torch",
-    "bottom": "purple_torch",
-    "front": "purple_torch",
-    "left": "purple_torch",
-    "right": "purple_torch",
-    "top": "purple_torch"
+    "bottom": "purple_torch_bottom",
+    "side": "purple_torch",
+    "top": "purple_torch_top"
   }
 }

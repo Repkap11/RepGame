@@ -2,8 +2,6 @@
   "affected_by_redstone_power": false,
   "casts_shadow": false,
   "hardness": 0.449999988,
-  "icon": "glass_gray",
-  "icon_is_isometric": true,
   "id": 365,
   "is_seethrough": true,
   "name": "GRAY_STAINED_GLASS",

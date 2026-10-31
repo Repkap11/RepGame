@@ -68,7 +68,7 @@ STRUCT_META = {"id", "name", "aliases", "textures", "icon", "shape",
                "render_order", "needs_place_on_any_solid", "creative"}
 KNOWN_KEYS = STRUCT_META | BOOL_FIELDS | INT_FIELDS | FLOAT_FIELDS | VEC3_SHORT | VEC3_BOOL
 
-TEX_META_KEYS = {"source", "random_rotate", "tint", "alpha", "frame", "keep", "overlay"}
+TEX_META_KEYS = {"source", "random_rotate", "tint", "alpha", "frame", "keep", "overlay", "extract"}
 
 SHAPES_JSON = os.path.join(DATA_DIR, "shapes.json")
 
@@ -491,6 +491,27 @@ def resolve_image(name, meta):
         if otint is not None:
             ov = apply_tint(ov, otint, name)
         img = Image.alpha_composite(img, ov)
+    extract = meta.get("extract")
+    if extract is not None:
+        # {from: [x, y], size: [w, h], to: [x, y]} — blit a rect of the
+        # resolved tile onto a fresh transparent tile. Torch top/bottom
+        # faces sample the window that tracks the cuboid's x/z position
+        # (cols/rows 7-8 for the 2-wide stick), not the spot where the
+        # sprite paints the cap or base; extract copies it there.
+        if not isinstance(extract, dict) or set(extract) != {"from", "size", "to"}:
+            fail("texture %r: extract must be {from, size, to}" % name)
+        fr, sz, to = extract["from"], extract["size"], extract["to"]
+        if any(not isinstance(v, list) or len(v) != 2 or
+               not all(isinstance(i, int) for i in v) for v in (fr, sz, to)):
+            fail("texture %r: extract from/size/to must be [x, y] int pairs" % name)
+        if not (0 <= fr[0] and 0 <= fr[1] and sz[0] > 0 and sz[1] > 0 and
+                fr[0] + sz[0] <= TILE and fr[1] + sz[1] <= TILE and
+                0 <= to[0] and 0 <= to[1] and
+                to[0] + sz[0] <= TILE and to[1] + sz[1] <= TILE):
+            fail("texture %r: extract rect out of bounds" % name)
+        out = Image.new("RGBA", (TILE, TILE), (0, 0, 0, 0))
+        out.paste(img.crop((fr[0], fr[1], fr[0] + sz[0], fr[1] + sz[1])), tuple(to))
+        img = out
     return img
 
 
@@ -517,9 +538,16 @@ def main():
     for bid, b in sorted(blocks.items()):
         name = b["name"].lower()
         faces = resolve_faces(name, b)
-        # No explicit icon: the default isometric cube icon is drawn from the
-        # faces; icon_texture just needs to be a real layer.
-        icon = b.get("icon", faces[FACE_KEYS.index("top")])
+        # No explicit icon: flat icons face the viewer, so the front texture
+        # is the natural default; floor decals like redstone wire have air
+        # sides and keep the top face. Isometric icons are drawn from the
+        # faces and ignore icon_texture, so top is fine there.
+        if not b.get("icon_is_isometric", True):
+            front = faces[FACE_KEYS.index("front")]
+            icon = faces[FACE_KEYS.index("top")] if front == "air" else front
+        else:
+            icon = faces[FACE_KEYS.index("top")]
+        icon = b.get("icon", icon)
         if "icon" in b and "icon_is_isometric" not in b:
             b["icon_is_isometric"] = False
         resolved[bid] = {"faces": faces, "icon": icon}

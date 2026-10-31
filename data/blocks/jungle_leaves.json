@@ -1,8 +1,6 @@
 {
   "casts_shadow": false,
   "hardness": 0.349999994,
-  "icon": "leaves_jungle_carried",
-  "icon_is_isometric": true,
   "id": 293,
   "is_seethrough": true,
   "light_absorb": 6,

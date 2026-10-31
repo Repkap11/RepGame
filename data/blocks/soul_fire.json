@@ -5,7 +5,6 @@
   "collides_with_player": false,
   "emits_light": 10,
   "hardness": 0,
-  "icon": "soul_fire_0",
   "icon_is_isometric": false,
   "id": 1138,
   "is_seethrough": true,

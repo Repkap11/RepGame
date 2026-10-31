@@ -1,7 +1,6 @@
 {
   "hardness": 0.5,
   "icon": "cake_top",
-  "icon_is_isometric": false,
   "id": 178,
   "is_seethrough": true,
   "name": "CAKE",
