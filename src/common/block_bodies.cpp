@@ -121,6 +121,7 @@ bool BlockBodies::settle_land( RepGameState &state, Body &b ) {
         world.set_loaded_block( cell, b.state );
         state.multiplayer.set_block( cell, b.state );
         queue_neighbor_block_updates( state.blockUpdateQueue, world, state.tick_number, cell );
+        lift_bodies_above( cell, b.id );
         return true;
     }
     if ( !cur_block->collides_with_player ) {
@@ -132,6 +133,53 @@ bool BlockBodies::settle_land( RepGameState &state, Body &b ) {
     // A solid block at the rest cell shouldn't happen — the body was resting
     // on top of it — but never clobber it.
     return false;
+}
+
+void BlockBodies::lift_bodies_above( const glm::ivec3 &cell, const uint32_t skip_id ) {
+    struct Pusher {
+        double xmin, xmax, zmin, zmax, top, center_y;
+    };
+    std::vector<Pusher> pushers;
+    pushers.push_back( { static_cast<double>( cell.x ), cell.x + 1.0, static_cast<double>( cell.z ), cell.z + 1.0, cell.y + 1.0,
+                         cell.y + 0.5 } );
+    std::vector<size_t> order( this->bodies.size( ) );
+    for ( size_t i = 0; i < order.size( ); i++ ) {
+        order[ i ] = i;
+    }
+    std::sort( order.begin( ), order.end( ), [ this ]( size_t a, size_t b ) { return this->bodies[ a ].min.y < this->bodies[ b ].min.y; } );
+    for ( const size_t oi : order ) {
+        Body &b = this->bodies[ oi ];
+        if ( b.id == skip_id ) {
+            continue;
+        }
+        const double bcy = b.min.y + BODY_SIZE * 0.5;
+        double lift_top = -1e30;
+        for ( const Pusher &p : pushers ) {
+            // Strict XZ footprint overlap, bottom embedded below the pusher's
+            // top, center above the pusher's center (resting on/embedded from
+            // above — not beside or below).
+            if ( b.min.x + BODY_SIZE <= p.xmin || b.min.x >= p.xmax || b.min.z + BODY_SIZE <= p.zmin || b.min.z >= p.zmax ) {
+                continue;
+            }
+            if ( b.min.y >= p.top || bcy <= p.center_y ) {
+                continue;
+            }
+            if ( p.top > lift_top ) {
+                lift_top = p.top;
+            }
+        }
+        if ( lift_top == -1e30 ) {
+            continue;
+        }
+        const double dy = lift_top + 1e-4 - b.min.y;
+        b.min.y += dy;
+        b.prev_min.y += dy; // don't let render interpolation show the lift
+        if ( b.vel.y < 0.0 ) {
+            b.vel.y = 0.0;
+        }
+        pushers.push_back( { b.min.x, b.min.x + BODY_SIZE, b.min.z, b.min.z + BODY_SIZE, b.min.y + BODY_SIZE,
+                             b.min.y + BODY_SIZE * 0.5 } );
+    }
 }
 
 uint32_t BlockBodies::spawn_falling( const glm::ivec3 &cell, const BlockState &state, const glm::dvec3 &vel ) {

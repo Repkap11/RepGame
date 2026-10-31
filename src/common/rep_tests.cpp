@@ -1323,6 +1323,50 @@ int test_falling_blocks( ) {
     failures += check_id( world, "gap: sand fell into the hole", glm::ivec3( 7, 10, 10 ), SAND );
     check_bool( "gap: no bodies remain", world.bodies.count_falling( ) == 0 );
 
+    // --- Stacked release: breaking the support under stacked sand must not
+    // let an upper body dip into the block a lower body just wrote (the
+    // "falls into the just-landed block, then pops up" bug). Each tick, no
+    // falling body may sit below the top of the highest written sand cell. ---
+    auto stack_test = [ & ]( const char *name, const glm::ivec3 &base, const int count ) {
+        world.set_loaded_block( base + glm::ivec3( 0, -1, 0 ), stone ); // floor
+        world.set_loaded_block( base, stone );
+        for ( int i = 0; i < count; i++ ) {
+            world.set_loaded_block( base + glm::ivec3( 0, 1 + i, 0 ), sand );
+        }
+        place( base, BLOCK_STATE_AIR ); // break the support
+        bool dipped = false;
+        for ( int t = 0; t < 4 * UPS_RATE; t++ ) {
+            tick( );
+            int top_y = -1;
+            for ( int i = 0; i < count; i++ ) {
+                if ( world.get_loaded_block( base + glm::ivec3( 0, i, 0 ) ).id == SAND ) {
+                    top_y = base.y + i;
+                }
+            }
+            if ( top_y < 0 ) {
+                continue;
+            }
+            for ( const auto &db : world.bodies.debug_bodies( ) ) {
+                if ( db.kind == BlockBodies::BODY_FALLING && db.min.y < top_y + 1.0 - 0.03 ) {
+                    dipped = true;
+                }
+            }
+        }
+        char label[ 96 ];
+        snprintf( label, sizeof( label ), "%s: body never dips below landed sand", name );
+        check_bool( label, !dipped );
+        for ( int i = 0; i < count; i++ ) {
+            snprintf( label, sizeof( label ), "%s: sand at %d", name, base.y + i );
+            failures += check_id( world, label, base + glm::ivec3( 0, i, 0 ), SAND );
+        }
+        snprintf( label, sizeof( label ), "%s: air above the stack", name );
+        failures += check_id( world, label, base + glm::ivec3( 0, count, 0 ), AIR );
+        snprintf( label, sizeof( label ), "%s: no bodies remain", name );
+        check_bool( label, world.bodies.count_falling( ) == 0 );
+    };
+    stack_test( "stack2", glm::ivec3( 34, 10, 34 ), 2 );
+    stack_test( "stack3", glm::ivec3( 37, 10, 37 ), 3 );
+
     // --- Water: a drop through water is slower than the same drop in air. ---
     world.set_loaded_block( glm::ivec3( 20, 10, 20 ), stone );
     for ( int y = 11; y <= 15; y++ ) {

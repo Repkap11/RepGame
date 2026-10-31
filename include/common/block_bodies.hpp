@@ -88,6 +88,13 @@ class BlockBodies {
     // breaks it into debris when the cell holds a non-colliding
     // non-replaceable block. Returns true when the body is consumed.
     bool settle_land( RepGameState &state, Body &b );
+    // After a body lands and writes a full 1.0 block at `cell`, bodies that
+    // were resting on it (their 0.98 box sat ~0.02 inside the new block)
+    // would sink through — the collision clamp only fires on face-crossing.
+    // Lift every body whose footprint overlaps the cell and whose bottom is
+    // embedded in it; lifted bodies cascade upward as new pushers. `skip_id`
+    // excludes the body being landed (still in this->bodies during tick).
+    void lift_bodies_above( const glm::ivec3 &cell, uint32_t skip_id );
     void remove_body( size_t i );
     bool body_chunk_live( World &world, const Body &b ) const;
 
