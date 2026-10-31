@@ -257,7 +257,8 @@ vars set, behaviour is unchanged.
   park/release and re-entry paths while streaming continues.
   `REPGAME_FLY_TICKS=n` exits at tick n via the normal
   cleanup path. `player.dat` is not written. Combine with
-  `SDL_VIDEODRIVER=offscreen` for headless runs.
+  `SDL_VIDEODRIVER=offscreen SDL_AUDIODRIVER=dummy` for headless runs
+  (the dummy audio driver keeps test runs from playing music/sfx).
 - `REPGAME_LIGHT_CLAIM_RADIUS` — `1..4` (default 1): Chebyshev distance
   between light-job center columns that counts as a claim conflict. 4
   reproduces the old 5x5-key-overlap semantics; 1 lets jobs two columns
