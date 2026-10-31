@@ -247,6 +247,11 @@ static inline BlockState block_state_normalize( const BlockState &cur, BlockStat
 void block_definitions_initilize_definitions( Texture *texture );
 void block_definitions_free_definitions( );
 
+// Generated name tables (block_names_gen.inc / texture_names_gen.inc).
+// Undefined ids return nullptr.
+const char *block_definition_get_name( BlockID id );
+const char *texture_name( TextureID id );
+
 // Global block definition table (allocated in block_definitions.cpp).
 extern Block *block_definitions;
 

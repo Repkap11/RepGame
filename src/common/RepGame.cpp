@@ -1980,6 +1980,17 @@ void RepGame::initializeGameState( const char *world_name ) {
     globalGameState.map_storage.init( world_name );
     PlayerData saved_data;
     globalGameState.spawn_pending = !globalGameState.map_storage.read_player_data( saved_data );
+    if ( repgame_block_world( ) ) {
+        // Block world: spawn on the sandstone floor at the grid start,
+        // looking into +x/+z, creative, walking (not flying).
+        globalGameState.spawn_pending = true;
+        globalGameState.camera.pos = glm::dvec3( 0.5, 2.0, 0.5 );
+        globalGameState.camera.angle_H = 135.0f;
+        globalGameState.camera.angle_V = 15.0f;
+        globalGameState.input.player_flying = false;
+        globalGameState.input.no_clip = false;
+        globalGameState.game_mode = GameMode_Creative;
+    }
     if ( !globalGameState.spawn_pending ) {
         globalGameState.camera.pos.x = saved_data.world_x;
         globalGameState.camera.pos.y = saved_data.world_y;
@@ -2029,7 +2040,7 @@ RepGameState *RepGame::init( const char *world_name, const bool connect_multi, c
     globalSupportsAnisotropic = supportsAnisotropicFiltering;
 
     // Start broadcasting chunk updates
-    if ( connect_multi ) {
+    if ( connect_multi && !repgame_block_world( ) ) {
         globalGameState.multiplayer.init( host, 25566 );
         // multiplayer_init( "localhost", 25566 );
     }
@@ -2794,6 +2805,33 @@ void RepGame::draw_ui_pass( const glm::dvec3 &render_pos, float daylight ) {
         const glm::vec2 held_light = globalGameState.world.chunkLoader.light_sample( glm::vec3( render_pos ) );
         const float held_block_light = glm::max( glm::max( held_light.x * daylight, held_light.y ), imgui_overlay_get_imgui_debug_vars( ).min_ambient );
         globalGameState.ui_overlay.draw( globalGameState.main_inventory, globalGameState.survival_inventory, globalGameState.hotbar, globalGameState.game_mode, globalGameState.world.renderer, globalGameState.blocksTexture, globalGameState.input, globalGameState.font_renderer, globalGameState.screen.ortho_center, chest_contents ? &globalGameState.chest.inventory_renderer : nullptr, chest_contents, held_block_light );
+        if ( repgame_block_world( ) && globalGameState.block_selection.selectionInBounds ) {
+            // Block world: name the targeted block under the crosshair.
+            const BlockState target = globalGameState.world.get_loaded_block( globalGameState.block_selection.pos_destroy );
+            if ( target.id < LAST_BLOCK_ID ) {
+                const char *bname = block_definition_get_name( target.id );
+                char buf[ 160 ];
+                const Block *def = block_definition_get_definition( target.id );
+                const char *top = texture_name( def->textures[ FACE_TOP ] );
+                const char *side = texture_name( def->textures[ FACE_FRONT ] );
+                snprintf( buf, sizeof( buf ), "%s (%d)  top=%s side=%s",
+                          bname ? bname : "?", (int)target.id,
+                          top ? top : "?", side ? side : "?" );
+                const float text_size = 22.0f;
+                const float white[ 4 ] = { 1.0f, 1.0f, 1.0f, 1.0f };
+                const float tx = -globalGameState.font_renderer.getTextWidth( buf, text_size ) / 2.0f;
+                // Just above the hotbar: slot 0's cell bottom plus the
+                // selected-slot highlight height (1.15x cell) and a small gap.
+                float slot_x, slot_y;
+                int block_size, cell_size;
+                float ty = -36.0f;
+                if ( globalGameState.hotbar.inventory_renderer.getSlotPosition( 0, slot_x, slot_y ) ) {
+                    globalGameState.hotbar.inventory_renderer.getBlockMetrics( block_size, cell_size );
+                    ty = slot_y + cell_size * 1.15f + 8.0f;
+                }
+                globalGameState.font_renderer.drawString( globalGameState.world.renderer, buf, tx, ty, text_size, white, globalGameState.screen.ortho_center );
+            }
+        }
     }
     if ( !g_capture.enabled && globalGameState.is_holding_inventory_slot ) {
         int block_size, cell_size;

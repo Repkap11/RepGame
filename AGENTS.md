@@ -10,6 +10,8 @@ binary lands at `out/linux/release/RepGame`.
   (PowerVR, GLES 3.2, Weston/Wayland); binary lands at `out/arm/release/RepGame`.
   See "ARM build" below.
 - `make linux-run` — build and launch (fullscreen)
+- `make linux-run-blocks` — build and launch the block world
+  (`REPGAME_BLOCK_WORLD=1`, see "Blocks & textures")
 - `make linux_debug` / `make linux_debug-run` — debug build
 - `make android` — Android assets + build; `make android-run` to deploy to a device
 - `make deploy` — build the portable Linux AppImage and rsync it to repkap11.com
@@ -440,6 +442,9 @@ outputs (idempotent/deterministic — a dirty diff after rerun is a bug):
   `TEXTURE_COUNT`, `TEXTURE_ROTATABLE_COUNT`, `BLOCK_TEXTURE_ATLAS_ROWS`
 - `src/common/block_definitions_gen.inc` — all 6 `textures[]` + `icon_texture`
   per block plus non-default fields
+- `src/common/block_names_gen.inc` / `src/common/texture_names_gen.inc` —
+  per-id name tables backing `block_definition_get_name` / `texture_name`
+  (nullptr for undefined ids)
 - `bitmaps/blocks.png` — 24-column atlas, layer `i` at col `i%24`, row `i/24`
 
 Layer order is deterministic: `random_rotate` textures first (name-sorted),
@@ -479,6 +484,18 @@ placeable blocks. `"creative": true|false` in a block JSON forces listing
 on/off. The list is grouped by material — the name minus `STRIPPED_`/`WAXED_`
 prefixes and one shape suffix, with dye-coloured blocks grouped into colour
 families (WOOL, CONCRETE, STAINED_GLASS, ...) sorted in dye order.
+
+`REPGAME_BLOCK_WORLD=1` ("block world") is a debug mode for eyeballing
+every block: `make linux-run-blocks` runs it. Normal terrain, structures,
+water, mobs, persistence and multiplayer are all off — nothing is read or
+written under `~/.repgame` and no server is contacted. The ground is solid
+SANDSTONE for y≤0 (solid, not a one-block floor, so the light cascade has
+no void volume to sweep) with every defined non-AIR block placed
+once at y=1 on a 2-spaced grid (32 per row, starting at x=2/z=2), ordered
+`CREATIVE_BLOCKS` first then the remaining defined ids ascending — the
+layout lives in `MapGen::block_world_id`. The HUD shows the targeted
+block's `NAME (id)` and face textures under the crosshair; spawn is
+(0.5, y=2, 0.5) facing +x/+z in creative mode.
 
 ## Mobs
 

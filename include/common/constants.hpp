@@ -1,5 +1,16 @@
 #pragma once
 
+#include <stdlib.h>
+
+// REPGAME_BLOCK_WORLD=1 runs the "block world" debug mode: a flat sandstone
+// floor with every defined block laid out on a grid instead of generated
+// terrain. No map gen, structures, mobs, disk I/O or server connection.
+static inline bool repgame_block_world( ) {
+    static const bool enabled = getenv( "REPGAME_BLOCK_WORLD" ) != nullptr &&
+                                atoi( getenv( "REPGAME_BLOCK_WORLD" ) ) != 0;
+    return enabled;
+}
+
 #define MOUSE_SENSITIVITY 0.18f
 // Low-pass filter factor for look deltas. Each tick the applied delta is blended
 // with the previous smoothed delta: smoothed = smoothed*(1-X) + raw*X.

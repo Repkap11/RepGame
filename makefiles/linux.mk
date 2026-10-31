@@ -164,6 +164,9 @@ linux-run: linux
 linux-run2: linux
 	./$(LINUX_OUT)/release/$(TARGET) $(WORLD_DEBUG) www.repkap11.com
 
+linux-run-blocks: linux
+	REPGAME_BLOCK_WORLD=1 ./$(LINUX_OUT)/release/$(TARGET) BlockWorld
+
 dev: linux_debug-run
 
 linux_debug-run: linux_debug
@@ -193,4 +196,4 @@ $(LINUX_OUT): | out
 
 .PRECIOUS: $(LINUX_OUT)/release/$(TARGET) $(LINUX_OUT)/debug/$(TARGET) $(OBJECTS_LINUX_DEBUG) $(OBJECTS_LINUX_RELEASE) $(OBJECTS_COMMON_LINUX_RELEASE) $(OBJECTS_COMMON_LINUX_DEBUG) $(SHADER_BLOBS_LINUX) $(SHADER_PROCESSED_LINUX) $(BITMAP_BLOBS_LINUX) $(FONT_BLOBS_LINUX) $(SOUND_BLOBS_LINUX)
 
-.PHONY: linux linux-run clean-linux linux-deploy dev
+.PHONY: linux linux-run linux-run2 linux-run-blocks clean-linux linux-deploy dev

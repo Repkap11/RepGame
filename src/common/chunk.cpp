@@ -624,6 +624,38 @@ void Chunk::load_terrain( MapStorage &map_storage ) {
             }
         }
     }
+    static const bool block_world = repgame_block_world( );
+    if ( !loaded && block_world ) {
+        // Block-world debug layout (REPGAME_BLOCK_WORLD): solid sandstone
+        // ground up to y=0, every defined block on a grid at y=1, air above.
+        // Chunks entirely above y=2 (border included) are all air; chunks
+        // below fill solid the same way as any other cell range.
+        const int bw_min_y = this->chunk_pos.y * CHUNK_SIZE_Y - 1;
+        if ( bw_min_y > 2 ) {
+            this->free_block_storage( );
+            chunk_free_air_mask( this->light_air_mask );
+            this->light_air_mask = nullptr;
+            this->is_empty_chunk = true;
+            this->dirty = 0;
+            goto skip_to_mesh;
+        }
+        if ( this->cells == nullptr ) {
+            this->cells = chunk_alloc_cells( );
+        }
+        {
+            const glm::ivec3 chunk_offset = this->chunk_pos * glm::ivec3( CHUNK_SIZE_X, CHUNK_SIZE_Y, CHUNK_SIZE_Z );
+            for ( int x = chunk_offset.x - 1; x < chunk_offset.x + CHUNK_SIZE_INTERNAL_X - 1; x++ ) {
+                for ( int z = chunk_offset.z - 1; z < chunk_offset.z + CHUNK_SIZE_INTERNAL_Z - 1; z++ ) {
+                    for ( int y = chunk_offset.y - 1; y < chunk_offset.y + CHUNK_SIZE_INTERNAL_Y - 1; y++ ) {
+                        const int index = Chunk::get_index_from_coords( glm::ivec3( x, y, z ) - chunk_offset );
+                        this->cells[ index ] = static_cast<BlockCell>( MapGen::block_world_id( x, y, z ) );
+                    }
+                }
+            }
+        }
+        this->dirty = 0;
+        goto skip_to_mesh;
+    }
     if ( !loaded ) {
         // We haven't loaded this chunk before, map gen it.
         // Cheap CPU-side check: if the entire chunk is above the terrain surface,

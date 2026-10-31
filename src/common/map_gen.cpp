@@ -1,4 +1,5 @@
 #include <stdlib.h>
+#include <vector>
 
 #include "common/RepGame.hpp"
 #include "common/map_gen.hpp"
@@ -11,6 +12,51 @@
 #define MAP_GEN_PERLIN2D( x, z, f, d, s ) perlin_noise2d( x, z, f, d, s )
 #define MAP_GEN_PERLIN3D( x, y, z, f, d, s ) perlin_noise3d( x, y, z, f, d, s )
 #include "common/map_gen_fields.hpp"
+#include "common/creative_order_gen.hpp"
+
+// Block-world order: the creative list first (material-grouped), then every
+// other defined non-AIR id in ascending order. Built once.
+static const std::vector<BlockID> &block_world_table( ) {
+    static const std::vector<BlockID> table = []( ) {
+        std::vector<BlockID> t( CREATIVE_BLOCKS, CREATIVE_BLOCKS + CREATIVE_BLOCK_COUNT );
+        unsigned char in_list[ LAST_BLOCK_ID ] = { 0 };
+        for ( unsigned int i = 0; i < CREATIVE_BLOCK_COUNT; i++ ) {
+            in_list[ CREATIVE_BLOCKS[ i ] ] = 1;
+        }
+        in_list[ AIR ] = 1;
+        for ( unsigned int id = 0; id < (unsigned int)LAST_BLOCK_ID; id++ ) {
+            if ( !in_list[ id ] && block_id_defined( id ) ) {
+                t.push_back( static_cast<BlockID>( id ) );
+            }
+        }
+        return t;
+    }( );
+    return table;
+}
+
+BlockID MapGen::block_world_id( const int x, const int y, const int z ) {
+    if ( y <= 0 ) {
+        // Solid ground: an air void under the floor would make the light
+        // cascade run removal BFS over the whole connected void volume.
+        return SANDSTONE;
+    }
+    if ( y != 1 ) {
+        return AIR;
+    }
+    // 32 per row along +x starting at x=2, rows stepping +z from z=2; one
+    // air cell between neighbours in both directions.
+    if ( x < 2 || z < 2 || ( ( x - 2 ) & 1 ) || ( ( z - 2 ) & 1 ) ) {
+        return AIR;
+    }
+    const int col = ( x - 2 ) / 2;
+    const int row = ( z - 2 ) / 2;
+    if ( col >= 32 ) {
+        return AIR;
+    }
+    const size_t k = (size_t)row * 32 + (size_t)col;
+    const std::vector<BlockID> &t = block_world_table( );
+    return k < t.size( ) ? t[ k ] : AIR;
+}
 
 float MapGen::calculateTerrainHeight( const int x, const int z ) {
 #if REPGAME_MAP_GEN_LEGACY
@@ -66,6 +112,9 @@ float MapGen::maxTerrainHeight( ) {
 }
 
 BlockID MapGen::gen_block_id( const int x, const int y, const int z ) {
+    if ( repgame_block_world( ) ) {
+        return block_world_id( x, y, z );
+    }
 #if REPGAME_MAP_GEN_LEGACY
     return mgl_pick_block( x, y, z, mgl_base_height( x, z ) );
 #else

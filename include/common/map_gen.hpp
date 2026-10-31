@@ -47,6 +47,10 @@ class MapGen {
     // Used by structure gen for border-crossing ground checks and by spawn
     // placement; identical formulas to all backends by construction.
     static BlockID gen_block_id( int x, int y, int z );
+    // Block-world debug layout (REPGAME_BLOCK_WORLD): sandstone floor at
+    // y=0, every defined block on a 32-wide grid standing on it at y=1.
+    // O(1) per cell; used by Chunk::load_terrain and gen_block_id.
+    static BlockID block_world_id( int x, int y, int z );
 };
 void map_gen_load_block_cuda( glm::ivec3 *chunk_pos, BlockCell *cells );
 bool map_gen_load_block_hip( glm::ivec3 *chunk_pos, BlockCell *cells );

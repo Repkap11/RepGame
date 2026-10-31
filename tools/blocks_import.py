@@ -491,6 +491,25 @@ def main():
 
     # include/common/texture_ids_gen.hpp — #define only, safe for the GLSL
     # preprocessor (gcc -E -I include).
+    # src/common/block_names_gen.inc — name table, nullptr for undefined ids.
+    out_names = os.path.join(OUT_DIR, "block_names_gen.inc") if OUT_DIR else \
+        os.path.join(ROOT, "src", "common", "block_names_gen.inc")
+    out = [HEADER]
+    for bid in range(LAST_BLOCK_ID):
+        b = blocks.get(bid)
+        out.append('    "%s",\n' % b["name"] if b else "    nullptr,\n")
+    with open(out_names, "w") as f:
+        f.writelines(out)
+
+    # src/common/texture_names_gen.inc — canonical name per layer.
+    out_tnames = os.path.join(OUT_DIR, "texture_names_gen.inc") if OUT_DIR else \
+        os.path.join(ROOT, "src", "common", "texture_names_gen.inc")
+    out = [HEADER]
+    for canon in layer_order:
+        out.append('    "%s",\n' % canon)
+    with open(out_tnames, "w") as f:
+        f.writelines(out)
+
     out = [HEADER, "#ifndef REPGAME_TEXTURE_IDS_GEN_HPP\n#define REPGAME_TEXTURE_IDS_GEN_HPP\n\n"]
     for name in sorted(layers):
         canon = canonical[name]

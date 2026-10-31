@@ -429,6 +429,68 @@ int test_creative( ) {
     return failures;
 }
 
+// Block-world debug layout (REPGAME_BLOCK_WORLD path — block_world_id itself
+// is env-independent): sandstone floor, grid order = CREATIVE_BLOCKS then
+// remaining defined ids ascending, one air cell between neighbours.
+int test_block_world( ) {
+    if ( block_definitions == nullptr ) {
+        block_definitions_initilize_definitions( nullptr );
+    }
+    int failures = 0;
+    auto check_bool = [ & ]( const char *name, bool cond ) {
+        pr_test( "  %-55s %s", name, cond ? "PASS" : "FAIL" );
+        if ( !cond ) {
+            failures++;
+        }
+    };
+
+    check_bool( "bw: floor is sandstone at y=0", MapGen::block_world_id( 0, 0, 0 ) == SANDSTONE );
+    check_bool( "bw: floor is sandstone far away", MapGen::block_world_id( -500, 0, 700 ) == SANDSTONE );
+    check_bool( "bw: air above floor", MapGen::block_world_id( 2, 2, 2 ) == AIR );
+    check_bool( "bw: sandstone below floor", MapGen::block_world_id( 2, -1, 2 ) == SANDSTONE );
+    check_bool( "bw: grid slot 0 is CREATIVE_BLOCKS[0]", MapGen::block_world_id( 2, 1, 2 ) == CREATIVE_BLOCKS[ 0 ] );
+    check_bool( "bw: grid slot 1 is CREATIVE_BLOCKS[1]", MapGen::block_world_id( 4, 1, 2 ) == CREATIVE_BLOCKS[ 1 ] );
+    check_bool( "bw: slot 32 wraps to next row", MapGen::block_world_id( 2, 1, 4 ) == CREATIVE_BLOCKS[ 32 ] );
+    check_bool( "bw: air gap between slots", MapGen::block_world_id( 3, 1, 2 ) == AIR );
+    check_bool( "bw: air gap between rows", MapGen::block_world_id( 2, 1, 3 ) == AIR );
+    check_bool( "bw: air before grid start", MapGen::block_world_id( 1, 1, 2 ) == AIR );
+    check_bool( "bw: air past row width", MapGen::block_world_id( 2 + 64, 1, 2 ) == AIR );
+
+    // Every defined non-AIR id must appear on the grid exactly once.
+    unsigned char expected[ LAST_BLOCK_ID ] = { 0 };
+    unsigned char seen[ LAST_BLOCK_ID ] = { 0 };
+    int expected_count = 0;
+    for ( unsigned int i = 0; i < CREATIVE_BLOCK_COUNT; i++ ) {
+        expected[ CREATIVE_BLOCKS[ i ] ] = 1;
+    }
+    for ( unsigned int id = 1; id < (unsigned int)LAST_BLOCK_ID; id++ ) {
+        if ( !expected[ id ] && block_id_defined( id ) ) {
+            expected[ id ] = 1;
+        }
+    }
+    expected[ AIR ] = 0;
+    for ( unsigned int id = 0; id < (unsigned int)LAST_BLOCK_ID; id++ ) {
+        expected_count += expected[ id ];
+    }
+    int seen_count = 0, dupes = 0, strays = 0;
+    for ( int k = 0; k < expected_count + 64; k++ ) {
+        const BlockID id = MapGen::block_world_id( 2 + 2 * ( k % 32 ), 1, 2 + 2 * ( k / 32 ) );
+        if ( id == AIR ) {
+            continue;
+        }
+        if ( !expected[ id ] ) {
+            strays++;
+        } else if ( seen[ id ] ) {
+            dupes++;
+        } else {
+            seen[ id ] = 1;
+            seen_count++;
+        }
+    }
+    check_bool( "bw: every defined non-AIR id placed once", seen_count == expected_count && dupes == 0 && strays == 0 );
+    return failures;
+}
+
 // Terrain generator invariants, checked through the public single-cell API
 // (MapGen::gen_block_id is the same code the CUDA/HIP kernels share via
 // map_gen_fields.hpp). Seed is fixed so every check is deterministic.
@@ -1498,6 +1560,7 @@ constexpr Test all_tests[] = {  //
     MK_TEST( sneak ),           //
     MK_TEST( save_migration ),  //
     MK_TEST( creative ),        //
+    MK_TEST( block_world ),     //
     MK_TEST( mapgen ),          //
     MK_TEST( waterlog ),        //
     MK_TEST( lighting ),        //

@@ -27,6 +27,11 @@ void MapStorage::init( const char *world_name ) {
     char *dir = getRepGamePath( );
     snprintf( this->map_name, MAP_NAME_MAX_LENGTH, "%s%s%s", dir, REPGAME_PATH_DIVIDOR, world_name );
     pr_debug( "Loading map from:%s", this->map_name );
+    if ( repgame_block_world( ) ) {
+        // Block world creates no map dir and touches no files.
+        free( dir );
+        return;
+    }
     mkdir_p( this->map_name );
     pr_debug( "Map dir ready:%s", this->map_name );
     free( dir );
@@ -102,6 +107,9 @@ void persist_blocks_encode( MapStorage &storage, const glm::ivec3 &chunk_offset,
 } // namespace
 
 void MapStorage::persist_chunk( const Chunk &chunk ) {
+    if ( repgame_block_world( ) ) {
+        return;
+    }
     if ( chunk.dirty ) {
         if ( chunk.cells != nullptr ) {
             persist_blocks_encode( *this, chunk.chunk_pos,
@@ -124,6 +132,9 @@ void MapStorage::persist_chunk( const Chunk &chunk ) {
 }
 
 void MapStorage::persist_dirty_blocks( const glm::ivec3 &chunk_offset, const BlockState *blocks ) {
+    if ( repgame_block_world( ) ) {
+        return;
+    }
     if ( blocks == NULL ) {
         return;
     }
@@ -131,6 +142,9 @@ void MapStorage::persist_dirty_blocks( const glm::ivec3 &chunk_offset, const Blo
 }
 
 int MapStorage::check_if_chunk_exists( const glm::ivec3 &chunk_offset ) {
+    if ( repgame_block_world( ) ) {
+        return 0;
+    }
     char file_name[ CHUNK_NAME_MAX_LENGTH ];
     snprintf( file_name, CHUNK_NAME_MAX_LENGTH, FILE_ROOT_CHUNK, this->map_name, chunk_offset.x, chunk_offset.y, chunk_offset.z );
     struct stat st;
@@ -149,6 +163,9 @@ struct __attribute__( ( packed ) ) ChestFileRecord {
 };
 
 void MapStorage::persist_chests( const glm::ivec3 &chunk_offset, const ChestContentsMap &chests ) {
+    if ( repgame_block_world( ) ) {
+        return;
+    }
     char file_name[ CHUNK_NAME_MAX_LENGTH ];
     snprintf( file_name, CHUNK_NAME_MAX_LENGTH, FILE_ROOT_CHEST, this->map_name, chunk_offset.x, chunk_offset.y, chunk_offset.z );
     if ( chests.empty( ) ) {
@@ -181,6 +198,9 @@ void MapStorage::persist_chests( const glm::ivec3 &chunk_offset, const ChestCont
 }
 
 int MapStorage::load_chests( const glm::ivec3 &chunk_offset, ChestContentsMap &out ) {
+    if ( repgame_block_world( ) ) {
+        return 0;
+    }
     char file_name[ CHUNK_NAME_MAX_LENGTH ];
     snprintf( file_name, CHUNK_NAME_MAX_LENGTH, FILE_ROOT_CHEST, this->map_name, chunk_offset.x, chunk_offset.y, chunk_offset.z );
     FILE *read_ptr = fopen( file_name, MAP_READ_MODE );
@@ -231,6 +251,9 @@ int MapStorage::load_chests( const glm::ivec3 &chunk_offset, ChestContentsMap &o
 // The file's existence alone marks the chunk populated — an empty file (or
 // one holding only the header) is kept, never deleted.
 void MapStorage::persist_mobs( const glm::ivec3 &chunk_offset, const std::vector<MobFileRecord> &mobs ) {
+    if ( repgame_block_world( ) ) {
+        return;
+    }
     char file_name[ CHUNK_NAME_MAX_LENGTH ];
     snprintf( file_name, CHUNK_NAME_MAX_LENGTH, FILE_ROOT_MOBS, this->map_name, chunk_offset.x, chunk_offset.y, chunk_offset.z );
     FILE *write_ptr = fopen( file_name, "wb" );
@@ -252,6 +275,9 @@ void MapStorage::persist_mobs( const glm::ivec3 &chunk_offset, const std::vector
 }
 
 int MapStorage::load_mobs( const glm::ivec3 &chunk_offset, std::vector<MobFileRecord> &out ) {
+    if ( repgame_block_world( ) ) {
+        return 0;
+    }
     char file_name[ CHUNK_NAME_MAX_LENGTH ];
     snprintf( file_name, CHUNK_NAME_MAX_LENGTH, FILE_ROOT_MOBS, this->map_name, chunk_offset.x, chunk_offset.y, chunk_offset.z );
     FILE *read_ptr = fopen( file_name, MAP_READ_MODE );
@@ -381,6 +407,9 @@ int load_blocks_decode( MapStorage &storage, const glm::ivec3 &chunk_offset, Sin
 } // namespace
 
 int MapStorage::load_chunk( Chunk &chunk ) {
+    if ( repgame_block_world( ) ) {
+        return 0;
+    }
     if ( chunk.cells == nullptr ) {
         // cells stays null for chunks with no save file (all-air is implied);
         // a saved chunk needs the array before the RLE stream can decode.
@@ -394,6 +423,9 @@ int MapStorage::load_chunk( Chunk &chunk ) {
                                chunk.dirty, false );
 }
 int MapStorage::load_blocks( const glm::ivec3 &chunk_offset, BlockState *blocks, int &dirty, bool expect_empty_blocks ) {
+    if ( repgame_block_world( ) ) {
+        return 0;
+    }
     return load_blocks_decode( *this, chunk_offset,
                                [blocks]( int index, const BlockState &s ) { blocks[ index ] = s; },
                                dirty, expect_empty_blocks );
@@ -465,6 +497,9 @@ static void sanitize_slots( InventorySlot *slots, int count ) {
 }
 
 int MapStorage::read_player_data( PlayerData &player_data ) {
+    if ( repgame_block_world( ) ) {
+        return 0;
+    }
     char file_name[ CHUNK_NAME_MAX_LENGTH ];
     snprintf( file_name, CHUNK_NAME_MAX_LENGTH, FILE_ROOT_PLAYER_DATA, this->map_name );
     FILE *read_ptr = fopen( file_name, MAP_READ_MODE );
@@ -536,6 +571,9 @@ int MapStorage::read_player_data( PlayerData &player_data ) {
 }
 
 void MapStorage::write_player_data( const PlayerData &player_data ) {
+    if ( repgame_block_world( ) ) {
+        return;
+    }
     char file_name[ CHUNK_NAME_MAX_LENGTH ];
     snprintf( file_name, CHUNK_NAME_MAX_LENGTH, FILE_ROOT_PLAYER_DATA, this->map_name );
     FILE *write_ptr = fopen( file_name, "wb" );
@@ -555,6 +593,9 @@ void MapStorage::write_player_data( const PlayerData &player_data ) {
 // (DAY_LENGTH_TICKS per day, see light.hpp). Read returns 0 when the file is
 // absent so the caller can apply its own default.
 int MapStorage::read_world_time( int64_t &world_time ) {
+    if ( repgame_block_world( ) ) {
+        return 0;
+    }
     char file_name[ CHUNK_NAME_MAX_LENGTH ];
     snprintf( file_name, CHUNK_NAME_MAX_LENGTH, FILE_ROOT_WORLD_DATA, this->map_name );
     FILE *read_ptr = fopen( file_name, MAP_READ_MODE );
@@ -572,6 +613,9 @@ int MapStorage::read_world_time( int64_t &world_time ) {
 }
 
 void MapStorage::write_world_time( int64_t world_time ) {
+    if ( repgame_block_world( ) ) {
+        return;
+    }
     char file_name[ CHUNK_NAME_MAX_LENGTH ];
     snprintf( file_name, CHUNK_NAME_MAX_LENGTH, FILE_ROOT_WORLD_DATA, this->map_name );
     FILE *write_ptr = fopen( file_name, "wb" );

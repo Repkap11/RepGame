@@ -110,3 +110,25 @@ void block_definitions_initilize_definitions( Texture *texture ) {
 void block_definitions_free_definitions( ) {
     free( block_definitions );
 }
+
+static const char *const BLOCK_NAMES[ LAST_BLOCK_ID ] = {
+#include "block_names_gen.inc"
+};
+
+const char *block_definition_get_name( BlockID id ) {
+    if ( id < LAST_BLOCK_ID ) {
+        return BLOCK_NAMES[ id ];
+    }
+    return nullptr;
+}
+
+static const char *const TEXTURE_NAMES[ TEXTURE_COUNT ] = {
+#include "texture_names_gen.inc"
+};
+
+const char *texture_name( TextureID id ) {
+    if ( id < TEXTURE_COUNT ) {
+        return TEXTURE_NAMES[ id ];
+    }
+    return nullptr;
+}
