@@ -11,6 +11,10 @@
 #include "common/utils/ray_traversal.hpp"
 #include "common/world.hpp"
 
+// Bedrock modified_distance_moved / Java limbSwing advance about 4 units per
+// block; the quadruped walk anim's 38.17°/unit is calibrated against that.
+#define MOB_GAIT_UNITS_PER_BLOCK 4.0f
+
 static float wrap_degrees( float deg ) {
     while ( deg > 180.0f ) {
         deg -= 360.0f;
@@ -569,7 +573,7 @@ void MobManager::update_render( float alpha, const ChunkLoader &chunk_loader ) {
         for ( int i = 0; i < bone_count; i++ ) {
             bone_anim[ i ] = glm::vec3( 0.0f );
         }
-        const float phase = glm::radians( mob.walk_dist * 38.17f );
+        const float phase = glm::radians( mob.walk_dist * MOB_GAIT_UNITS_PER_BLOCK * 38.17f );
         for ( int i = 0; i < bone_count; i++ ) {
             const MobBoneDef &bone = model.bones[ i ];
             if ( ( def.anims & MOB_ANIM_HEAD_LOOK ) && def.bone_head != NULL && strcmp( bone.name, def.bone_head ) == 0 ) {
