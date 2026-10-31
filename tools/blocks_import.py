@@ -67,7 +67,7 @@ STRUCT_META = {"id", "name", "aliases", "textures", "icon", "shape",
                "render_order", "needs_place_on_any_solid", "creative"}
 KNOWN_KEYS = STRUCT_META | BOOL_FIELDS | INT_FIELDS | FLOAT_FIELDS | VEC3_SHORT | VEC3_BOOL
 
-TEX_META_KEYS = {"source", "random_rotate", "tint", "alpha", "frame", "keep"}
+TEX_META_KEYS = {"source", "random_rotate", "tint", "alpha", "frame", "keep", "overlay"}
 
 SHAPES_JSON = os.path.join(DATA_DIR, "shapes.json")
 
@@ -381,9 +381,8 @@ def resolve_faces(name, b):
     return [faces[k] for k in FACE_KEYS]
 
 
-def resolve_image(name, meta):
-    """Find the source image for a texture, apply frame crop + tint."""
-    src = meta.get("source")
+def find_image_path(src, name, what="texture"):
+    """Resolve a texture source spec (or bare texture name) to a file path."""
     candidates = []
     if src:
         if src.endswith((".png", ".tga")):
@@ -411,9 +410,27 @@ def resolve_image(name, meta):
         ]
     path = next((c for c in candidates if os.path.exists(c)), None)
     if not path:
-        fail("texture %r: no image found (tried %s). If the source lives in "
+        fail("%s %r: no image found (tried %s). If the source lives in "
              "bedrock-samples, run `make bedrock-samples` or set BEDROCK_SAMPLES" %
-             (name, [os.path.relpath(c, ROOT) for c in candidates]))
+             (what, src or name, [os.path.relpath(c, ROOT) for c in candidates]))
+    return path
+
+
+def apply_tint(img, tint, name):
+    if not re.match(r"^#[0-9a-fA-F]{6}$", tint):
+        fail("texture %r: bad tint %r" % (name, tint))
+    tr, tg, tb = int(tint[1:3], 16), int(tint[3:5], 16), int(tint[5:7], 16)
+    r, g, b_, a = img.split()
+    lut_r = [min(255, (i * tr) // 255) for i in range(256)]
+    lut_g = [min(255, (i * tg) // 255) for i in range(256)]
+    lut_b = [min(255, (i * tb) // 255) for i in range(256)]
+    return Image.merge("RGBA", (r.point(lut_r), g.point(lut_g), b_.point(lut_b), a))
+
+
+def resolve_image(name, meta):
+    """Find the source image for a texture, apply frame crop + tint."""
+    src = meta.get("source")
+    path = find_image_path(src, name)
     img = Image.open(path).convert("RGBA")
     frame = meta.get("frame", 0)
     if not isinstance(frame, int) or frame < 0:
@@ -423,20 +440,32 @@ def resolve_image(name, meta):
         fail("texture %r (%s): not %dx%d after frame crop (is %s)" % (name, os.path.relpath(path, ROOT), TILE, TILE, img.size))
     tint = meta.get("tint")
     if tint is not None:
-        if not re.match(r"^#[0-9a-fA-F]{6}$", tint):
-            fail("texture %r: bad tint %r" % (name, tint))
-        tr, tg, tb = int(tint[1:3], 16), int(tint[3:5], 16), int(tint[5:7], 16)
-        r, g, b_, a = img.split()
-        lut_r = [min(255, (i * tr) // 255) for i in range(256)]
-        lut_g = [min(255, (i * tg) // 255) for i in range(256)]
-        lut_b = [min(255, (i * tb) // 255) for i in range(256)]
-        img = Image.merge("RGBA", (r.point(lut_r), g.point(lut_g), b_.point(lut_b), a))
+        img = apply_tint(img, tint, name)
     alpha = meta.get("alpha")
     if alpha is not None:
         if not isinstance(alpha, int) or not (0 <= alpha <= 255):
             fail("texture %r: bad alpha %r (need 0-255)" % (name, alpha))
         r, g, b_, a = img.split()
         img = Image.merge("RGBA", (r, g, b_, a.point(lambda v: alpha if v else 0)))
+    overlay = meta.get("overlay")
+    if overlay is not None:
+        # A second (typically grayscale) tile alpha-composited over the base —
+        # e.g. the grass fringe over dirt. Optional tint applies to the
+        # overlay only.
+        if not isinstance(overlay, dict) or set(overlay) - {"source", "tint", "frame"}:
+            fail("texture %r: overlay must be {source, tint?, frame?}" % name)
+        opath = find_image_path(overlay.get("source"), name, "overlay")
+        ov = Image.open(opath).convert("RGBA")
+        oframe = overlay.get("frame", 0)
+        if not isinstance(oframe, int) or oframe < 0:
+            fail("texture %r overlay: bad frame %r" % (name, oframe))
+        ov = ov.crop((0, oframe * TILE, TILE, (oframe + 1) * TILE))
+        if ov.size != (TILE, TILE):
+            fail("texture %r overlay (%s): not %dx%d" % (name, os.path.relpath(opath, ROOT), TILE, TILE))
+        otint = overlay.get("tint")
+        if otint is not None:
+            ov = apply_tint(ov, otint, name)
+        img = Image.alpha_composite(img, ov)
     return img
 
 

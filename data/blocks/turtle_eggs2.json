@@ -4,7 +4,7 @@
   "casts_shadow": false,
   "collides_with_player": false,
   "hardness": 0,
-  "icon": "turtle_egg_slightly_cracked",
+  "icon": "legacy_turtle_eggs2",
   "icon_is_isometric": false,
   "id": 823,
   "is_seethrough": true,
@@ -31,7 +31,7 @@
   ],
   "textures": {
     "bottom": "air",
-    "side": "turtle_egg_slightly_cracked",
+    "side": "legacy_turtle_eggs2",
     "top": "air"
   }
 }

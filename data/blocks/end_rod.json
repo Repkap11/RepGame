@@ -15,7 +15,8 @@
   "render_order": "Flowers",
   "textures": {
     "bottom": "air",
-    "side": "end_rod",
+    "side": "legacy_end_rod",
     "top": "air"
-  }
+  },
+  "icon": "legacy_end_rod"
 }

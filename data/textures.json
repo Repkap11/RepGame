@@ -961,7 +961,8 @@
     "source": "textures/blocks/farmland_wet"
   },
   "fern_carried": {
-    "source": "textures/blocks/fern_carried"
+    "source": "textures/blocks/fern",
+    "tint": "#70B55D"
   },
   "fire_0": {
     "source": "textures/blocks/fire_0"
@@ -1223,7 +1224,8 @@
   },
   "grass_carried": {
     "random_rotate": true,
-    "source": "textures/blocks/grass_carried"
+    "source": "textures/blocks/grass_top",
+    "tint": "#93E67D"
   },
   "grass_path_side": {
     "source": "textures/blocks/grass_path_side"
@@ -1232,7 +1234,11 @@
     "source": "textures/blocks/grass_path_top"
   },
   "grass_side_carried": {
-    "source": "textures/blocks/grass_side_carried"
+    "overlay": {
+      "source": "textures/blocks/grass_side",
+      "tint": "#6CC064"
+    },
+    "source": "textures/blocks/dirt"
   },
   "grass_side_snowed": {
     "source": "textures/blocks/grass_side_snowed"
@@ -2495,7 +2501,8 @@
     "source": "textures/blocks/tall_dry_grass"
   },
   "tallgrass_carried": {
-    "source": "textures/blocks/tallgrass_carried"
+    "source": "textures/blocks/tallgrass",
+    "tint": "#77C263"
   },
   "target_side": {
     "source": "textures/blocks/target_side"

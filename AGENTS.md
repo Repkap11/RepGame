@@ -428,6 +428,10 @@ repo-authored 16x16 tiles; `data/textures.json` carries per-texture metadata:
 - `alpha` — `0..255` written into every nonzero-alpha pixel (transparent
   pixels stay 0). For Bedrock sources that are opaque where our tile was
   translucent (e.g. `water_still` vs `water`).
+- `overlay` — `{source, tint?, frame?}`: a second tile alpha-composited over
+  the processed base, e.g. `grass_side_carried` is Bedrock `dirt` plus the
+  grayscale `grass_side` fringe tinted to the legacy green. The tint applies
+  to the overlay only.
 - `random_rotate` — tile participates in per-block random rotation.
 - `keep` — pack even when no block references it (e.g. `player_selection`).
 

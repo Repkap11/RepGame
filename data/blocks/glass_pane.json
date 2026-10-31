@@ -23,11 +23,11 @@
     0
   ],
   "textures": {
-    "back": "glass",
-    "bottom": "glass_pane_top",
-    "front": "glass",
-    "left": "glass_pane_top",
-    "right": "glass_pane_top",
-    "top": "glass_pane_top"
+    "back": "legacy_glass",
+    "bottom": "legacy_glass_pane",
+    "front": "legacy_glass",
+    "left": "legacy_glass_pane",
+    "right": "legacy_glass_pane",
+    "top": "legacy_glass_pane"
   }
 }
