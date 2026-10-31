@@ -25,7 +25,13 @@ class Multiplayer {
     // Unused on other platforms.
     int ws_handle = -1;
     int portno = 0;
+    std::string hostname;
     std::atomic<bool> active{ false };
+    // True while an async connect is in flight (POSIX connect thread or WASM
+    // WebSocket handshake); cleared on success (alongside active=true) and
+    // on every failure path. Lets the overlay show "connecting" vs
+    // "disconnected" during the bounded connect window.
+    std::atomic<bool> connect_pending{ false };
     std::thread connect_thread;
 
     // Diffs that arrived from the server before the client's terrain gen
@@ -64,6 +70,11 @@ class Multiplayer {
     // server adopts the value and broadcasts it back to all clients.
     void send_world_time( long world_time );
     bool is_active( ) const { return this->active.load( ); }
+    bool is_connecting( ) const { return this->connect_pending.load( ); }
+    // Server the client is (trying to be) connected to; empty when
+    // multiplayer was never started (single player).
+    const std::string &server_hostname( ) const { return this->hostname; }
+    int server_port( ) const { return this->portno; }
     void update_players_position( const glm::vec3 &player_pos, const glm::mat4 &rotation, float eye_height );
     void request_chunk( const glm::ivec3 &chunk_pos );
     // Returns false (and queues nothing) when not connected, so callers

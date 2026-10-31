@@ -7,6 +7,8 @@
 // always false and nothing here is reachable.
 
 void Multiplayer::init( const char *hostname, int port ) {
+    this->hostname = hostname;
+    this->portno = port;
 }
 
 void Multiplayer::process_events( RepGameState &state ) {

@@ -25,6 +25,7 @@ struct WasmMultiplayerHooks {
         pr_debug( "Multiplayer websocket connected" );
         mp->framed_socket.adopt_manual( );
         mp->active = true;
+        mp->connect_pending = false;
         return true;
     }
 
@@ -41,6 +42,7 @@ struct WasmMultiplayerHooks {
         Multiplayer *mp = static_cast<Multiplayer *>( userData );
         pr_debug( "Multiplayer websocket error" );
         mp->active = false;
+        mp->connect_pending = false;
         mp->framed_socket.flag_error( );
         return true;
     }
@@ -49,6 +51,7 @@ struct WasmMultiplayerHooks {
         Multiplayer *mp = static_cast<Multiplayer *>( userData );
         pr_debug( "Multiplayer websocket closed: clean=%d code=%u", event->wasClean, event->code );
         mp->active = false;
+        mp->connect_pending = false;
         mp->framed_socket.mark_closed( );
         // Deleting an already-closed handle is a harmless error return.
         emscripten_websocket_delete( event->socket );
@@ -62,6 +65,7 @@ void Multiplayer::init( const char *hostname, const int port ) {
 
     this->active = false;
     this->portno = port;
+    this->hostname = hostname;
     this->prev_player_pos = glm::vec3( 0.0f );
     this->prev_rotation = glm::mat4( 1.0f );
 
@@ -94,6 +98,7 @@ void Multiplayer::init( const char *hostname, const int port ) {
     emscripten_websocket_set_onmessage_callback( this->ws_handle, this, WasmMultiplayerHooks::on_message );
     emscripten_websocket_set_onerror_callback( this->ws_handle, this, WasmMultiplayerHooks::on_error );
     emscripten_websocket_set_onclose_callback( this->ws_handle, this, WasmMultiplayerHooks::on_close );
+    this->connect_pending = true;
 }
 
 void Multiplayer::flush_outbound( ) {
@@ -113,6 +118,7 @@ void Multiplayer::flush_outbound( ) {
 
 void Multiplayer::disconnect( ) {
     this->active = false;
+    this->connect_pending = false;
     this->framed_socket.mark_closed( );
     if ( this->ws_handle > 0 ) {
         // Forcefully tears down the connection (no close handshake); used
@@ -163,5 +169,6 @@ void Multiplayer::cleanup( ) {
         this->ws_handle = -1;
     }
     this->active = false;
+    this->connect_pending = false;
     this->pending_diffs.clear( );
 }

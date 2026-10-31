@@ -22,6 +22,7 @@ void Multiplayer::init( const char *hostname, const int port ) {
 
     this->active = false;
     this->portno = port;
+    this->hostname = hostname;
     this->prev_player_pos = glm::vec3( 0.0f );
     this->prev_rotation = glm::mat4( 1.0f );
 
@@ -37,10 +38,18 @@ void Multiplayer::init( const char *hostname, const int port ) {
 
     // Perform DNS + nonblocking connect + poll on a background thread so a
     // down/unreachable server cannot stall startup.
+    this->connect_pending = true;
     this->connect_thread = std::thread( &Multiplayer::connect_async, this, std::string( hostname ) );
 }
 
 void Multiplayer::connect_async( const std::string &hostname ) {
+    // Cleared on every exit path (success or failure) so is_connecting()
+    // only reads true while the attempt is actually in flight.
+    struct ConnectPendingGuard {
+        std::atomic<bool> &flag;
+        ~ConnectPendingGuard( ) { flag = false; }
+    } pending_guard{ this->connect_pending };
+
     struct addrinfo hints;
     struct addrinfo *result = nullptr;
 
@@ -123,6 +132,7 @@ void Multiplayer::flush_outbound( ) {
 
 void Multiplayer::disconnect( ) {
     this->active = false;
+    this->connect_pending = false;
     this->framed_socket.mark_closed( );
     if ( this->sockfd >= 0 ) {
         close( this->sockfd );
@@ -177,5 +187,6 @@ void Multiplayer::cleanup( ) {
         this->sockfd = -1;
         this->active = false;
     }
+    this->connect_pending = false;
     this->pending_diffs.clear( );
 }

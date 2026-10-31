@@ -164,6 +164,15 @@ void imgui_overlay_draw( ImGuiOverlay *imgui_overlay, Input &input, RepGameState
                 acceleration = "CPU";
             }
             ImGui::Text( "Acceleration: %s", acceleration );
+            // Server connection status; empty hostname means no server was
+            // requested (single player), so show "off" instead.
+            const std::string &server = state.multiplayer.server_hostname( );
+            if ( server.empty( ) ) {
+                ImGui::TextUnformatted( "Multiplayer: off" );
+            } else {
+                const char *mp_status = state.multiplayer.is_active( ) ? "connected" : ( state.multiplayer.is_connecting( ) ? "connecting" : "disconnected" );
+                ImGui::Text( "Multiplayer: %s:%d %s", server.c_str( ), state.multiplayer.server_port( ), mp_status );
+            }
             // Day/night clock (read-only; PageUp/PageDown nudge world_time,
             // which propagates to the server when connected).
             const long time_of_day = debug_vars.world_time % DAY_LENGTH_TICKS;
