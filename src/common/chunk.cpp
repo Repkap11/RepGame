@@ -1166,7 +1166,10 @@ void Chunk::calculate_populated_blocks( ) {
                         } else if ( block->is_fence_gate ) {
                             num_boxes = fence_gate_boxes( ( blockState.rotation & BLOCK_ROTATE_GATE_OPEN ) != 0, boxes );
                         }
-                        const int emit_count = num_boxes > 0 ? num_boxes : 1;
+                        // A lit redstone torch emits a second instance: the
+                        // 4-wide orb head around the stick's top.
+                        const bool redstone_orb = blockState.display_id == REDSTONE_TORCH && blockState.current_redstone_power > 0;
+                        const int emit_count = ( num_boxes > 0 ? num_boxes : 1 ) + ( redstone_orb ? 1 : 0 );
                         ensure_capacity( block->renderOrder, emit_count );
                         if ( num_instances[ block->renderOrder ] + emit_count > capacity[ block->renderOrder ] ) {
                             continue; // OOM — drop this cell's instances.
@@ -1265,6 +1268,35 @@ void Chunk::calculate_populated_blocks( ) {
                             } else if ( blockState.rotation == 7 ) {
                                 // Attached BACK: push to front (towards wall at z-1)
                                 blockCoord->offset_z = 0;
+                            }
+                        }
+
+                        // Lit redstone torches get Java's
+                        // template_redstone_torch glow: a hollow 3x3x3 shell
+                        // around the stick's top whose quads face inward
+                        // (BLOCK_COORDS_INSIDE_OUT), so back-face culling
+                        // leaves the far walls as a red glow behind the
+                        // stick. It copies the stick instance (lighting,
+                        // face_shift) and follows the wall-mount shift via
+                        // offset * 2 - 1, with a fixed tex_offset like the
+                        // stick. BLOCK_COORDS_HALF_PIXEL gives the half-pixel
+                        // placement Java uses (6.5 -> 13 in 1/32 units).
+                        if ( redstone_orb ) {
+                            BlockCoords *orb = &this->layers[ block->renderOrder ].populated_blocks[ num_instances[ block->renderOrder ] ];
+                            num_instances[ block->renderOrder ] += 1;
+                            *orb = *blockCoord;
+                            orb->face_shift = ( blockCoord->face_shift & BLOCK_COORDS_ROTATION_MASK ) | BLOCK_COORDS_INSIDE_OUT | BLOCK_COORDS_HALF_PIXEL;
+                            orb->scale_x = 6;
+                            orb->scale_y = 6;
+                            orb->scale_z = 6;
+                            orb->offset_x = blockCoord->offset_x * 2 - 1;
+                            orb->offset_y = 15;
+                            orb->offset_z = blockCoord->offset_z * 2 - 1;
+                            orb->tex_offset_x = -13;
+                            orb->tex_offset_y = -15;
+                            orb->tex_offset_z = -13;
+                            for ( int f = 0; f < NUM_FACES_IN_CUBE; f++ ) {
+                                orb->face[ f ] = TEX_REDSTONE_TORCH_GLOW;
                             }
                         }
 
@@ -1405,7 +1437,7 @@ void Chunk::program_terrain( ) {
                 for ( int i = 0; i < renderLayer.num_instances && reported < 40; i++ ) {
                     const BlockCoords &b = renderLayer.populated_blocks[ i ];
                     int bad = b.mesh_x < 1 || b.mesh_x > 32 || b.mesh_y < 1 || b.mesh_y > 32 || b.mesh_z < 1 || b.mesh_z > 32;
-                    bad |= b.face_shift > 7u;
+                    bad |= ( b.face_shift & BLOCK_COORDS_ROTATION_MASK ) > 7u || ( b.face_shift & ~( BLOCK_COORDS_ROTATION_MASK | BLOCK_COORDS_INSIDE_OUT | BLOCK_COORDS_HALF_PIXEL ) ) != 0;
                     bad |= ( b.x < ox - 1.0f ) || ( b.x > ox + CHUNK_SIZE_X + 1.0f );
                     bad |= ( b.y < oy - 1.0f ) || ( b.y > oy + CHUNK_SIZE_Y + 1.0f );
                     bad |= ( b.z < oz - 1.0f ) || ( b.z > oz + CHUNK_SIZE_Z + 1.0f );

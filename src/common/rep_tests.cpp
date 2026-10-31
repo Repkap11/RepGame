@@ -16,6 +16,7 @@
 #include "common/mob_uv.hpp"
 #include "common/creative_order_gen.hpp"
 #include "common/utils/map_storage.hpp"
+#include "common/utils/ray_traversal.hpp"
 
 #include <stdlib.h>
 #include <string.h>
@@ -2365,10 +2366,54 @@ int test_mobs( ) {
     return failures;
 }
 
+// Torch pick box (torch_pick_shape): 4px wide on x/z so torches are easier to
+// target than the 2px drawn stick; wall mounts (rotation 4-7) hug their wall.
+// Rays are cast horizontally at the stick's mid-height.
+int test_torch_pick( ) {
+    if ( block_definitions == nullptr ) {
+        block_definitions_initilize_definitions( nullptr );
+    }
+    RepGameState &gs = *new RepGameState( );
+    gs.tick_number = 0;
+    gs.camera.pos = glm::dvec3( 0, 0, 0 );
+    test_setup_world( gs.world );
+    World &world = gs.world;
+
+    const BlockState stone = { STONE, 0, 0, STONE, 0 };
+    // Floor torch on a support; wall torch attached to the -x face of a
+    // support (rotation 4 = attached LEFT, box pushed to x+0).
+    world.set_loaded_block( glm::ivec3( 10, 10, 10 ), stone );
+    world.set_loaded_block( glm::ivec3( 10, 11, 10 ), { TORCH, 0, 0, TORCH, 0 } );
+    world.set_loaded_block( glm::ivec3( 19, 11, 10 ), stone );
+    world.set_loaded_block( glm::ivec3( 20, 11, 10 ), { TORCH, 4, 0, TORCH, 0 } );
+
+    int failures = 0;
+    const double mid_y = 11.0 + 5.0 / 16.0;
+    auto ray = [ & ]( const char *name, const glm::dvec3 &from, const glm::dvec3 &to, const glm::ivec3 &expect, bool expect_hit ) {
+        glm::ivec3 out( -1, -1, -1 );
+        int which_face = -1;
+        RayTraversal::find_block_from_to( world, nullptr, from, to, out, &which_face, 0, 1, 0, 0 );
+        const bool ok = ( out == expect ) == expect_hit;
+        pr_test( "  %-55s hit=(%d,%d,%d)  %s", name, out.x, out.y, out.z, ok ? "PASS" : "FAIL" );
+        if ( !ok ) {
+            failures++;
+        }
+    };
+    // The floor torch's pick box spans x/z 6..10 px: inside it but outside
+    // the old 2px stick (7..9 px) still hits; just outside misses.
+    ray( "floor torch: x + 6.5px inside new pick box", glm::dvec3( 10.40625, mid_y, 9.5 ), glm::dvec3( 10.40625, mid_y, 11.5 ), glm::ivec3( 10, 11, 10 ), true );
+    ray( "floor torch: x + 5.5px outside pick box", glm::dvec3( 10.34375, mid_y, 9.5 ), glm::dvec3( 10.34375, mid_y, 11.5 ), glm::ivec3( 10, 11, 10 ), false );
+    // Wall torch pushed to the cell's -x edge: pick box spans x 0..4 px.
+    ray( "wall torch (rot 4): x + 3.5px inside pick box", glm::dvec3( 20.21875, mid_y, 9.5 ), glm::dvec3( 20.21875, mid_y, 11.5 ), glm::ivec3( 20, 11, 10 ), true );
+
+    return failures;
+}
+
 constexpr Test all_tests[] = {  //
     MK_TEST( ecs ),             //
     MK_TEST( vr_projection ),   //
     MK_TEST( redstone ),        //
+    MK_TEST( torch_pick ),      //
     MK_TEST( sneak ),           //
     MK_TEST( save_migration ),  //
     MK_TEST( creative ),        //

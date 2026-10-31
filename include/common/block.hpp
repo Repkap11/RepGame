@@ -214,6 +214,29 @@ static inline void piston_base_shape( unsigned char rotation, short scale[ 3 ], 
     }
 }
 
+// Pixel-space (0-16) pick/bounding box of a torch: 4px wide on x/z instead of
+// the 2px drawn stick so torches are easier to hit. Both the ray test
+// (ray_traversal.cpp) and the selection outline (mouse_selection.cpp) use it;
+// the drawn mesh and debris stay on the 2px stick. Wall mounts (rotation 4-7)
+// hug their wall with the same mapping chunk.cpp applies.
+static inline void torch_pick_shape( const Block *b, unsigned char rotation, short scale[ 3 ], short offset[ 3 ] ) {
+    scale[ 0 ] = 4;
+    scale[ 1 ] = b->scale.y;
+    scale[ 2 ] = 4;
+    offset[ 0 ] = 6;
+    offset[ 1 ] = b->offset.y;
+    offset[ 2 ] = 6;
+    if ( rotation == 4 ) {
+        offset[ 0 ] = 0;
+    } else if ( rotation == 5 ) {
+        offset[ 2 ] = 16 - 4;
+    } else if ( rotation == 6 ) {
+        offset[ 0 ] = 16 - 4;
+    } else if ( rotation == 7 ) {
+        offset[ 2 ] = 0;
+    }
+}
+
 #define PIXEL_TO_FLOAT( pixel ) ( ( ( float )( pixel ) ) / ( 16.0f ) )
 
 // ---- Fences and fence gates -------------------------------------------------
@@ -260,6 +283,13 @@ unsigned char fence_gate_toggle_rotation( unsigned char rotation, unsigned char 
 static inline unsigned char block_yaw( const Block *b, unsigned char rot ) {
     return b->is_fence_gate ? ( rot & 3 ) : rot;
 }
+
+// face_shift flag bits: the low nibble holds the yaw rotation (0-7).
+#define BLOCK_COORDS_ROTATION_MASK 0xfu
+// Mirror the unit cube so every quad faces inward (inward-facing shells).
+#define BLOCK_COORDS_INSIDE_OUT 0x10u
+// scale/offset/tex_offset are in 1/32 block instead of 1/16.
+#define BLOCK_COORDS_HALF_PIXEL 0x20u
 
 // See world.cpp for vbl
 typedef struct {

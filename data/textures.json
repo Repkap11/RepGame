@@ -2126,16 +2126,34 @@
     "source": "textures/blocks/redstone_ore"
   },
   "redstone_torch_bottom": {
+    "source": "redstone_torch_on",
+    "extract": {
+      "from": [7, 13],
+      "size": [2, 2],
+      "to": [7, 7]
+    }
+  },
+  "redstone_torch_glow": {
     "keep": true
   },
   "redstone_torch_off": {
     "source": "textures/blocks/redstone_torch_off"
   },
   "redstone_torch_off_top": {
-    "keep": true
+    "source": "redstone_torch_off",
+    "extract": {
+      "from": [7, 6],
+      "size": [2, 2],
+      "to": [7, 7]
+    }
   },
-  "redstone_torch_on": {
-    "source": "textures/blocks/redstone_torch_on"
+  "redstone_torch_top": {
+    "source": "redstone_torch_on",
+    "extract": {
+      "from": [7, 6],
+      "size": [2, 2],
+      "to": [7, 7]
+    }
   },
   "redstone_wire_line_2_powered": {
     "keep": true

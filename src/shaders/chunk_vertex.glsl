@@ -31,7 +31,7 @@ layout(location = 5) in uint mesh_size_packed;
 layout(location = 6) in uvec3 blockTexture;
 layout(location = 7) in uvec3 packed_lighting_1;
 layout(location = 8) in uvec3 packed_lighting_2;
-layout(location = 9) in uint rotation;
+layout(location = 9) in uint rotation_packed;
 layout(location = 10) in ivec3 blockCoords_scale;
 layout(location = 11) in ivec3 blockCoords_offset;
 layout(location = 12) in ivec3 texCoords_offset;
@@ -63,6 +63,11 @@ flat out int v_block_auto_rotates;
 #define BLOCK_ROTATE_180 2u
 #define BLOCK_ROTATE_270 3u
 
+// Must match block.hpp BlockCoords face_shift flag bits.
+#define BLOCK_COORDS_ROTATION_MASK 0xfu
+#define BLOCK_COORDS_INSIDE_OUT 0x10u
+#define BLOCK_COORDS_HALF_PIXEL 0x20u
+
 #define NO_LIGHT_NO_DRAW 0x6fffffu
 
 // Must match the flower verts at the end of vd_data_solid in block.hpp.
@@ -83,14 +88,22 @@ void main() {
         return;
     }
 
+    uint rotation = rotation_packed & BLOCK_COORDS_ROTATION_MASK;
+    bool inside_out = (rotation_packed & BLOCK_COORDS_INSIDE_OUT) != 0u;
+    float unit_div = (rotation_packed & BLOCK_COORDS_HALF_PIXEL) != 0u ? 32.0 : 16.0;
+    // Mirroring all three axes keeps the box in the same space but flips the
+    // triangle winding, so the back-face cull drops the near walls of an
+    // inside-out shell and each quad's faceType normal points inward.
+    vec3 cube_pos = inside_out ? vec3(1.0) - position : position;
+
     vec3 mesh_size = vec3((mesh_size_packed & 0xffu), (mesh_size_packed & 0xff00u) >> 8, (mesh_size_packed & 0xff0000u) >> 16);
-    vec3 meshed_position = position * (mesh_size - u_DebugScaleOffset);
+    vec3 meshed_position = cube_pos * (mesh_size - u_DebugScaleOffset);
 
     vec3 adjusted_position = meshed_position;
 
-    vec3 blockCoords_scale_f = vec3(blockCoords_scale) / 16.0f;
-    vec3 blockCoords_offset_f = vec3(blockCoords_offset) / 16.0f;
-    vec3 texCoords_offset_f = vec3(texCoords_offset) / 16.0f;
+    vec3 blockCoords_scale_f = vec3(blockCoords_scale) / unit_div;
+    vec3 blockCoords_offset_f = vec3(blockCoords_offset) / unit_div;
+    vec3 texCoords_offset_f = vec3(texCoords_offset) / unit_div;
 
     vec3 blockCoords_scale_adjust = blockCoords_scale_f;
     vec3 blockCoords_offset_adjust = blockCoords_offset_f;
@@ -130,8 +143,8 @@ void main() {
         vec3 face_extent = (mesh_size - u_DebugScaleOffset) * blockCoords_scale_adjust;
         vec3 face_axis_a = (faceType == FACE_RIGHT || faceType == FACE_LEFT) ? vec3(0.0, 1.0, 0.0) : vec3(1.0, 0.0, 0.0);
         vec3 face_axis_b = (faceType == FACE_FRONT || faceType == FACE_BACK) ? vec3(0.0, 1.0, 0.0) : vec3(0.0, 0.0, 1.0);
-        vec4 clip_a = u_MVP * vec4(v_world_coords + face_axis_a * face_extent * (1.0 - 2.0 * position), 1.0);
-        vec4 clip_b = u_MVP * vec4(v_world_coords + face_axis_b * face_extent * (1.0 - 2.0 * position), 1.0);
+        vec4 clip_a = u_MVP * vec4(v_world_coords + face_axis_a * face_extent * (1.0 - 2.0 * cube_pos), 1.0);
+        vec4 clip_b = u_MVP * vec4(v_world_coords + face_axis_b * face_extent * (1.0 - 2.0 * cube_pos), 1.0);
         if(gl_Position.w > 1e-4 && clip_a.w > 1e-4 && clip_b.w > 1e-4) {
             vec2 half_vp = 0.5 * u_ViewportSize;
             vec2 px = gl_Position.xy / gl_Position.w * half_vp;

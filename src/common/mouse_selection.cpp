@@ -118,17 +118,16 @@ void MouseSelection::set_block( const glm::ivec3 &pos, const bool shouldDraw, co
             blockCoords.scale_z = 1;
         }
 
-        // Offset selection box for side-mounted torches
-        if ( block->is_torch && blockState.rotation >= 4 ) {
-            if ( blockState.rotation == 4 ) {
-                blockCoords.offset_x = 0;
-            } else if ( blockState.rotation == 5 ) {
-                blockCoords.offset_z = 16 - block->scale.z;
-            } else if ( blockState.rotation == 6 ) {
-                blockCoords.offset_x = 16 - block->scale.x;
-            } else if ( blockState.rotation == 7 ) {
-                blockCoords.offset_z = 0;
-            }
+        // Torches select on the wider 4px pick box (side mounts hug the wall).
+        if ( block->is_torch ) {
+            short torch_scale[ 3 ], torch_offset[ 3 ];
+            torch_pick_shape( block, blockState.rotation, torch_scale, torch_offset );
+            blockCoords.scale_x = torch_scale[ 0 ];
+            blockCoords.scale_y = torch_scale[ 1 ];
+            blockCoords.scale_z = torch_scale[ 2 ];
+            blockCoords.offset_x = torch_offset[ 0 ];
+            blockCoords.offset_y = torch_offset[ 1 ];
+            blockCoords.offset_z = torch_offset[ 2 ];
         }
 
         blockCoords.face_shift = block_yaw( block, blockState.rotation );

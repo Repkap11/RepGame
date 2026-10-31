@@ -438,7 +438,16 @@ repo-authored 16x16 tiles; `data/textures.json` carries per-texture metadata:
   2-wide stick), not the spot the sprite paints the cap or base — `torch_top`
   is Bedrock `torch_on` with the cap rect (rows 6-7) copied to the sampled
   window (rows 7-8), `torch_bottom` likewise with the stick end (rows
-  13-14).
+  13-14). `data/textures/redstone_torch_on.png` is the Java-edition tile on
+  purpose: Java paints the lit jewel's visible 2-column core pink/red, while
+  Bedrock's clipped core is plain yellow-white and reads as a normal torch.
+  `redstone_torch_glow` (`keep`) is the solid fd0000 tile for the lit
+  torch's inward-facing 3x3x3 glow shell (Java's `template_redstone_torch`),
+  emitted in `chunk.cpp` with the `BLOCK_COORDS_INSIDE_OUT |
+  BLOCK_COORDS_HALF_PIXEL` `face_shift` flags — INSIDE_OUT mirrors the unit
+  cube so every quad faces inward (back-face culling leaves the far walls),
+  HALF_PIXEL makes scale/offset/tex_offset 1/32-block units instead of
+  1/16.
 - `random_rotate` — tile participates in per-block random rotation.
 - `keep` — pack even when no block references it (e.g. `player_selection`).
 

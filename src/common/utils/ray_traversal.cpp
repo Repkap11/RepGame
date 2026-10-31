@@ -51,6 +51,17 @@ int contains_pixel( Block *pixel_block, BlockState &block_state, const glm::dvec
         offset_x = base_offset[ 0 ];
         offset_y = base_offset[ 1 ];
         offset_z = base_offset[ 2 ];
+    } else if ( pixel_block->is_torch ) {
+        // Torches pick on a 4px-wide box (easier to hit than the 2px
+        // stick). Before the rot==0 case: floor torches are rotation 0.
+        short torch_scale[ 3 ], torch_offset[ 3 ];
+        torch_pick_shape( pixel_block, rot, torch_scale, torch_offset );
+        scale_x = torch_scale[ 0 ];
+        scale_y = torch_scale[ 1 ];
+        scale_z = torch_scale[ 2 ];
+        offset_x = torch_offset[ 0 ];
+        offset_y = torch_offset[ 1 ];
+        offset_z = torch_offset[ 2 ];
     } else if ( rot == BLOCK_ROTATE_0 ) {
     } else if ( rot == BLOCK_ROTATE_90 ) {
         scale_x = pixel_block->scale.z;
