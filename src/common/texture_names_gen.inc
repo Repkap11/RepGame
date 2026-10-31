@@ -509,7 +509,6 @@
     "grass_path_top",
     "grass_side_carried",
     "grass_side_snowed",
-    "grass_tuft3",
     "grass_tuft4",
     "gravel",
     "gray_candle",

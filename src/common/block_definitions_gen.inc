@@ -766,7 +766,7 @@ block_definitions[ 56 ].needs_place_on_any_solid[ FACE_TOP ] = true;
 block_definitions[ 56 ].no_light = 0;
 block_definitions[ 56 ].renderOrder = RenderOrder_Flowers;
 
-// SHORT_GRASS (57)
+// GRASS_TUFT (57)
 block_definitions[ 57 ].textures[ FACE_TOP ] = TEX_AIR;
 block_definitions[ 57 ].textures[ FACE_BOTTOM ] = TEX_AIR;
 block_definitions[ 57 ].textures[ FACE_RIGHT ] = TEX_TALLGRASS_CARRIED;
@@ -5447,14 +5447,14 @@ block_definitions[ 397 ].hardness = 0.35f;
 block_definitions[ 397 ].is_seethrough = true;
 block_definitions[ 397 ].no_light = 6815743;
 
-// FERN (398)
+// SHORT_GRASS (398)
 block_definitions[ 398 ].textures[ FACE_TOP ] = TEX_AIR;
 block_definitions[ 398 ].textures[ FACE_BOTTOM ] = TEX_AIR;
-block_definitions[ 398 ].textures[ FACE_RIGHT ] = TEX_FERN_CARRIED;
-block_definitions[ 398 ].textures[ FACE_FRONT ] = TEX_FERN_CARRIED;
-block_definitions[ 398 ].textures[ FACE_LEFT ] = TEX_FERN_CARRIED;
-block_definitions[ 398 ].textures[ FACE_BACK ] = TEX_FERN_CARRIED;
-block_definitions[ 398 ].icon_texture = TEX_FERN_CARRIED;
+block_definitions[ 398 ].textures[ FACE_RIGHT ] = TEX_TALLGRASS_CARRIED;
+block_definitions[ 398 ].textures[ FACE_FRONT ] = TEX_TALLGRASS_CARRIED;
+block_definitions[ 398 ].textures[ FACE_LEFT ] = TEX_TALLGRASS_CARRIED;
+block_definitions[ 398 ].textures[ FACE_BACK ] = TEX_TALLGRASS_CARRIED;
+block_definitions[ 398 ].icon_texture = TEX_TALLGRASS_CARRIED;
 block_definitions[ 398 ].affected_by_redstone_power = false;
 block_definitions[ 398 ].breaks_in_liquid = true;
 block_definitions[ 398 ].casts_shadow = false;
@@ -5469,14 +5469,14 @@ block_definitions[ 398 ].renderOrder = RenderOrder_Flowers;
 block_definitions[ 398 ].scale = { 14, 16, 14 };
 block_definitions[ 398 ].tex_offset = { -1, 0, -1 };
 
-// GRASS_TUFT3 (399)
+// FERN (399)
 block_definitions[ 399 ].textures[ FACE_TOP ] = TEX_AIR;
 block_definitions[ 399 ].textures[ FACE_BOTTOM ] = TEX_AIR;
-block_definitions[ 399 ].textures[ FACE_RIGHT ] = TEX_GRASS_TUFT3;
-block_definitions[ 399 ].textures[ FACE_FRONT ] = TEX_GRASS_TUFT3;
-block_definitions[ 399 ].textures[ FACE_LEFT ] = TEX_GRASS_TUFT3;
-block_definitions[ 399 ].textures[ FACE_BACK ] = TEX_GRASS_TUFT3;
-block_definitions[ 399 ].icon_texture = TEX_AIR;
+block_definitions[ 399 ].textures[ FACE_RIGHT ] = TEX_FERN_CARRIED;
+block_definitions[ 399 ].textures[ FACE_FRONT ] = TEX_FERN_CARRIED;
+block_definitions[ 399 ].textures[ FACE_LEFT ] = TEX_FERN_CARRIED;
+block_definitions[ 399 ].textures[ FACE_BACK ] = TEX_FERN_CARRIED;
+block_definitions[ 399 ].icon_texture = TEX_FERN_CARRIED;
 block_definitions[ 399 ].affected_by_redstone_power = false;
 block_definitions[ 399 ].breaks_in_liquid = true;
 block_definitions[ 399 ].casts_shadow = false;

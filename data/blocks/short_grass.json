@@ -6,14 +6,29 @@
   "hardness": 0,
   "icon": "tallgrass_carried",
   "icon_is_isometric": false,
-  "id": 57,
+  "id": 398,
   "is_seethrough": true,
   "name": "SHORT_GRASS",
   "needs_place_on_any_solid": {
     "top": true
   },
   "no_light": 0,
+  "offset": [
+    1,
+    0,
+    1
+  ],
   "render_order": "Flowers",
+  "scale": [
+    14,
+    16,
+    14
+  ],
+  "tex_offset": [
+    -1,
+    0,
+    -1
+  ],
   "textures": {
     "bottom": "air",
     "side": "tallgrass_carried",

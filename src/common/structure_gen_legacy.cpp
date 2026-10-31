@@ -91,7 +91,7 @@ static BlockID sgl_is_long_grass_roll( int x, int z, int is_forest ) {
         }
 
         if ( noise2 > 0.8 ) {
-            return FERN;
+            return SHORT_GRASS;
         }
     }
 
@@ -518,7 +518,7 @@ void StructureGen::place_legacy( Chunk &chunk ) {
             }
             const int y = surface_y;
             if ( block_below == GRASS && y != 0 ) {
-                if ( !sgl_is_next_to( chunk, x, y, z, FERN ) ) {
+                if ( !sgl_is_next_to( chunk, x, y, z, SHORT_GRASS ) ) {
                     const int is_forest = sgl_is_forest( world_x, world_z );
                     BlockID grass_type = sgl_is_long_grass_roll( world_x, world_z, is_forest );
                     Block *grass_block = block_definition_get_definition( grass_type );

@@ -4,10 +4,11 @@
   "casts_shadow": false,
   "collides_with_player": false,
   "hardness": 0,
+  "icon": "tallgrass_carried",
   "icon_is_isometric": false,
-  "id": 399,
+  "id": 57,
   "is_seethrough": true,
-  "name": "GRASS_TUFT3",
+  "name": "GRASS_TUFT",
   "needs_place_on_any_solid": {
     "top": true
   },
@@ -15,7 +16,7 @@
   "render_order": "Flowers",
   "textures": {
     "bottom": "air",
-    "side": "grass_tuft3",
+    "side": "tallgrass_carried",
     "top": "air"
   }
 }
