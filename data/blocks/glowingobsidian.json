@@ -1,0 +1,10 @@
+{
+  "emits_light": 12,
+  "icon": "glowing_obsidian",
+  "icon_is_isometric": false,
+  "id": 593,
+  "name": "GLOWINGOBSIDIAN",
+  "textures": {
+    "all": "glowing_obsidian"
+  }
+}

@@ -1,0 +1,9 @@
+{
+  "icon": "cobblestone",
+  "icon_is_isometric": false,
+  "id": 326,
+  "name": "COBBLESTONE_WALL",
+  "textures": {
+    "all": "cobblestone"
+  }
+}

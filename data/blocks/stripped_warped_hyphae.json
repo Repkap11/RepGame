@@ -1,0 +1,9 @@
+{
+  "icon": "stripped_warped_stem_side",
+  "icon_is_isometric": false,
+  "id": 1197,
+  "name": "STRIPPED_WARPED_HYPHAE",
+  "textures": {
+    "all": "stripped_warped_stem_side"
+  }
+}

@@ -1,0 +1,13 @@
+{
+  "casts_shadow": false,
+  "hardness": 0.35,
+  "icon": "resin_clump",
+  "icon_is_isometric": false,
+  "id": 1095,
+  "is_seethrough": true,
+  "name": "RESIN_CLUMP",
+  "no_light": 6815743,
+  "textures": {
+    "all": "resin_clump"
+  }
+}

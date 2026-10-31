@@ -1,0 +1,9 @@
+{
+  "icon": "prismarine_bricks",
+  "icon_is_isometric": false,
+  "id": 994,
+  "name": "PRISMARINE_BRICKS",
+  "textures": {
+    "all": "prismarine_bricks"
+  }
+}

@@ -1,0 +1,9 @@
+{
+  "icon": "prismarine_dark",
+  "icon_is_isometric": false,
+  "id": 465,
+  "name": "DARK_PRISMARINE_STAIRS",
+  "textures": {
+    "all": "prismarine_dark"
+  }
+}

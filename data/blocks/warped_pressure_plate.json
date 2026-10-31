@@ -1,0 +1,9 @@
+{
+  "icon": "warped_planks",
+  "icon_is_isometric": false,
+  "id": 1275,
+  "name": "WARPED_PRESSURE_PLATE",
+  "textures": {
+    "all": "warped_planks"
+  }
+}

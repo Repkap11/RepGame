@@ -1,0 +1,9 @@
+{
+  "icon": "coral_blue_dead",
+  "icon_is_isometric": false,
+  "id": 485,
+  "name": "DEAD_TUBE_CORAL_BLOCK",
+  "textures": {
+    "all": "coral_blue_dead"
+  }
+}

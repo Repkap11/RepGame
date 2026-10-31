@@ -1,0 +1,9 @@
+{
+  "icon": "prismarine_dark",
+  "icon_is_isometric": false,
+  "id": 463,
+  "name": "DARK_PRISMARINE_DOUBLE_SLAB",
+  "textures": {
+    "all": "prismarine_dark"
+  }
+}

@@ -1,0 +1,9 @@
+{
+  "icon": "chiseled_nether_bricks",
+  "icon_is_isometric": false,
+  "id": 285,
+  "name": "CHISELED_NETHER_BRICKS",
+  "textures": {
+    "all": "chiseled_nether_bricks"
+  }
+}

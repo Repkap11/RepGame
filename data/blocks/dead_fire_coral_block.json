@@ -1,0 +1,9 @@
+{
+  "icon": "coral_red_dead",
+  "icon_is_isometric": false,
+  "id": 481,
+  "name": "DEAD_FIRE_CORAL_BLOCK",
+  "textures": {
+    "all": "coral_red_dead"
+  }
+}

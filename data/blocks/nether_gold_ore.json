@@ -1,0 +1,9 @@
+{
+  "icon": "nether_gold_ore",
+  "icon_is_isometric": false,
+  "id": 806,
+  "name": "NETHER_GOLD_ORE",
+  "textures": {
+    "all": "nether_gold_ore"
+  }
+}

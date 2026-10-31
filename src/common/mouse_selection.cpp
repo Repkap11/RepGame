@@ -57,7 +57,7 @@ void MouseSelection::init( const VertexBufferLayout &vbl_block, const VertexBuff
     BlockCoords &blockCoords = pair.second;
 
     for ( int i = 0; i < NUM_FACES_IN_CUBE; i++ ) {
-        blockCoords.face[ i ] = PLAYER_SELECTION - 1;
+        blockCoords.face[ i ] = TEX_PLAYER_SELECTION;
     }
     blockCoords.x = 0;
     blockCoords.y = 0;

@@ -1,0 +1,18 @@
+{
+  "connects_to_redstone_dust": true,
+  "icon": "piston_top_normal",
+  "icon_is_isometric": true,
+  "id": 141,
+  "is_piston": true,
+  "is_redstone_mechanism": true,
+  "name": "PISTON",
+  "rotate_on_placement": true,
+  "textures": {
+    "back": "piston_bottom",
+    "bottom": "piston_side_down",
+    "front": "piston_top_normal",
+    "left": "piston_side_right",
+    "right": "piston_side_left",
+    "top": "piston_side_up"
+  }
+}

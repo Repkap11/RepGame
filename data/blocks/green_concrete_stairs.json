@@ -1,0 +1,9 @@
+{
+  "icon": "concrete_green",
+  "icon_is_isometric": false,
+  "id": 625,
+  "name": "GREEN_CONCRETE_STAIRS",
+  "textures": {
+    "all": "concrete_green"
+  }
+}

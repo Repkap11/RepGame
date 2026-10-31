@@ -1,0 +1,9 @@
+{
+  "icon": "quartz_bricks",
+  "icon_is_isometric": false,
+  "id": 1035,
+  "name": "QUARTZ_BRICKS",
+  "textures": {
+    "all": "quartz_bricks"
+  }
+}

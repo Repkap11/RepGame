@@ -1,0 +1,15 @@
+{
+  "emits_light": 15,
+  "icon": "pumpkin_top",
+  "icon_is_isometric": false,
+  "id": 731,
+  "name": "LIT_PUMPKIN",
+  "textures": {
+    "back": "pumpkin_side",
+    "bottom": "pumpkin_top",
+    "front": "pumpkin_face_off",
+    "left": "pumpkin_side",
+    "right": "pumpkin_side",
+    "top": "pumpkin_top"
+  }
+}

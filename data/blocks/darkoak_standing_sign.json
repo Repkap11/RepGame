@@ -1,0 +1,9 @@
+{
+  "icon": "planks_big_oak",
+  "icon_is_isometric": false,
+  "id": 466,
+  "name": "DARKOAK_STANDING_SIGN",
+  "textures": {
+    "all": "planks_big_oak"
+  }
+}

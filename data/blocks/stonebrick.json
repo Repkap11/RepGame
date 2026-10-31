@@ -1,0 +1,9 @@
+{
+  "icon": "stonebrick",
+  "icon_is_isometric": false,
+  "id": 1171,
+  "name": "STONEBRICK",
+  "textures": {
+    "all": "stonebrick"
+  }
+}

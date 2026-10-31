@@ -1,0 +1,9 @@
+{
+  "icon": "end_bricks",
+  "icon_is_isometric": false,
+  "id": 1168,
+  "name": "STONE_SLAB3",
+  "textures": {
+    "all": "end_bricks"
+  }
+}

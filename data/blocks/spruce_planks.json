@@ -1,0 +1,15 @@
+{
+  "hardness": 2,
+  "icon": "planks_spruce",
+  "icon_is_isometric": true,
+  "id": 295,
+  "name": "SPRUCE_PLANKS",
+  "textures": {
+    "back": "planks_spruce",
+    "bottom": "planks_spruce",
+    "front": "planks_spruce",
+    "left": "planks_spruce",
+    "right": "planks_spruce",
+    "top": "planks_spruce"
+  }
+}

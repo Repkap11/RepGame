@@ -1,0 +1,9 @@
+{
+  "icon": "cracked_deepslate_tiles",
+  "icon_is_isometric": false,
+  "id": 371,
+  "name": "CRACKED_DEEPSLATE_TILES",
+  "textures": {
+    "all": "cracked_deepslate_tiles"
+  }
+}

@@ -1,0 +1,9 @@
+{
+  "icon": "stone_granite",
+  "icon_is_isometric": false,
+  "id": 597,
+  "name": "GRANITE_DOUBLE_SLAB",
+  "textures": {
+    "all": "stone_granite"
+  }
+}

@@ -1,0 +1,9 @@
+{
+  "icon": "resin_bricks",
+  "icon_is_isometric": false,
+  "id": 1093,
+  "name": "RESIN_BRICK_WALL",
+  "textures": {
+    "all": "resin_bricks"
+  }
+}

@@ -1,0 +1,13 @@
+{
+  "hardness": 4,
+  "id": 33,
+  "name": "DIAMOND_BLOCK",
+  "textures": {
+    "back": "diamond_block",
+    "bottom": "diamond_block",
+    "front": "diamond_block",
+    "left": "diamond_block",
+    "right": "diamond_block",
+    "top": "diamond_block"
+  }
+}

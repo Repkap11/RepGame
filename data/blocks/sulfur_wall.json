@@ -1,0 +1,9 @@
+{
+  "icon": "sulfur",
+  "icon_is_isometric": false,
+  "id": 1211,
+  "name": "SULFUR_WALL",
+  "textures": {
+    "all": "sulfur"
+  }
+}

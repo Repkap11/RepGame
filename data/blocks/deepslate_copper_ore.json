@@ -1,0 +1,9 @@
+{
+  "icon": "deepslate_copper_ore",
+  "icon_is_isometric": false,
+  "id": 504,
+  "name": "DEEPSLATE_COPPER_ORE",
+  "textures": {
+    "all": "deepslate_copper_ore"
+  }
+}

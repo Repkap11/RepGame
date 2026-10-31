@@ -1,0 +1,19 @@
+{
+  "affected_by_redstone_power": false,
+  "breaks_in_liquid": true,
+  "casts_shadow": false,
+  "collides_with_player": false,
+  "hardness": -1,
+  "icon_is_isometric": false,
+  "id": 36,
+  "is_seethrough": true,
+  "name": "BARRIER",
+  "no_light": 0,
+  "piston_immovable": true,
+  "render_order": "Flowers",
+  "textures": {
+    "bottom": "air",
+    "side": "barrier",
+    "top": "air"
+  }
+}

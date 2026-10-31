@@ -1,0 +1,13 @@
+{
+  "hardness": 4,
+  "id": 49,
+  "name": "GOLD_ORE",
+  "textures": {
+    "back": "gold_ore",
+    "bottom": "gold_ore",
+    "front": "gold_ore",
+    "left": "gold_ore",
+    "right": "gold_ore",
+    "top": "gold_ore"
+  }
+}

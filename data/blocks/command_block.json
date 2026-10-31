@@ -1,0 +1,14 @@
+{
+  "icon": "command_block_conditional_mipmap",
+  "icon_is_isometric": false,
+  "id": 328,
+  "name": "COMMAND_BLOCK",
+  "textures": {
+    "back": "command_block_front_mipmap",
+    "bottom": "command_block_conditional_mipmap",
+    "front": "command_block_back_mipmap",
+    "left": "command_block_side_mipmap",
+    "right": "command_block_side_mipmap",
+    "top": "command_block_conditional_mipmap"
+  }
+}

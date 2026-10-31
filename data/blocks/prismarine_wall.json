@@ -1,0 +1,9 @@
+{
+  "icon": "prismarine_rough",
+  "icon_is_isometric": false,
+  "id": 1008,
+  "name": "PRISMARINE_WALL",
+  "textures": {
+    "all": "prismarine_rough"
+  }
+}

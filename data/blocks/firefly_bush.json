@@ -1,0 +1,38 @@
+{
+  "affected_by_redstone_power": false,
+  "breaks_in_liquid": true,
+  "casts_shadow": false,
+  "collides_with_player": false,
+  "emits_light": 2,
+  "hardness": 0,
+  "icon": "firefly_bush",
+  "icon_is_isometric": false,
+  "id": 584,
+  "is_seethrough": true,
+  "name": "FIREFLY_BUSH",
+  "needs_place_on_any_solid": {
+    "top": true
+  },
+  "no_light": 0,
+  "offset": [
+    5,
+    0,
+    5
+  ],
+  "render_order": "Flowers",
+  "scale": [
+    6,
+    11,
+    6
+  ],
+  "tex_offset": [
+    -5,
+    0,
+    -5
+  ],
+  "textures": {
+    "bottom": "air",
+    "side": "firefly_bush",
+    "top": "air"
+  }
+}

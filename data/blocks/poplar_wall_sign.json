@@ -1,0 +1,9 @@
+{
+  "icon": "poplar_planks",
+  "icon_is_isometric": false,
+  "id": 984,
+  "name": "POPLAR_WALL_SIGN",
+  "textures": {
+    "all": "poplar_planks"
+  }
+}

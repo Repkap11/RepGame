@@ -1,0 +1,11 @@
+{
+  "icon": "respawn_anchor_side0",
+  "icon_is_isometric": false,
+  "id": 1096,
+  "name": "RESPAWN_ANCHOR",
+  "textures": {
+    "bottom": "respawn_anchor_bottom",
+    "side": "respawn_anchor_side0",
+    "top": "respawn_anchor_top_off"
+  }
+}

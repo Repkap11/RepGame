@@ -1,0 +1,9 @@
+{
+  "icon": "concrete_pink",
+  "icon_is_isometric": false,
+  "id": 909,
+  "name": "PINK_CONCRETE_STAIRS",
+  "textures": {
+    "all": "concrete_pink"
+  }
+}

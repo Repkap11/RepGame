@@ -1,0 +1,9 @@
+{
+  "icon": "poplar_planks",
+  "icon_is_isometric": false,
+  "id": 974,
+  "name": "POPLAR_HANGING_SIGN",
+  "textures": {
+    "all": "poplar_planks"
+  }
+}

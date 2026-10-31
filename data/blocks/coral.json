@@ -1,0 +1,13 @@
+{
+  "casts_shadow": false,
+  "hardness": 0.35,
+  "icon": "coral_plant_blue",
+  "icon_is_isometric": false,
+  "id": 353,
+  "is_seethrough": true,
+  "name": "CORAL",
+  "no_light": 6815743,
+  "textures": {
+    "all": "coral_plant_blue"
+  }
+}

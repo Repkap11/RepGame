@@ -1,0 +1,14 @@
+{
+  "affected_by_redstone_power": false,
+  "casts_shadow": false,
+  "hardness": 0.449999988,
+  "icon": "frogspawn",
+  "icon_is_isometric": false,
+  "id": 588,
+  "is_seethrough": true,
+  "name": "FROG_SPAWN",
+  "render_order": "Translucent",
+  "textures": {
+    "all": "frogspawn"
+  }
+}

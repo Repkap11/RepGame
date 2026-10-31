@@ -408,7 +408,7 @@ MG_FN5( BlockID, mg_surface_block, int, x, int, y, int, z, MapGenColumn, col, bo
         if ( col.mesa_riser > 0.0f ) {
             return STONE;
         }
-        return ORANGE_SAND;
+        return RED_SAND;
     }
     if ( dy > 16.0f || col.steepness > 7.0f ) {
         return STONE; // High shelf tops and cliff faces stay rocky.
@@ -426,7 +426,7 @@ MG_FN5( BlockID, mg_surface_block, int, x, int, y, int, z, MapGenColumn, col, bo
         return MG_TERN( exposed, MYCELIUM, DIRT ); // Rare mushroom fields.
     }
     if ( col.weird > 0.75f ) {
-        return MG_TERN( exposed, PODZEL, DIRT ); // Dark forest floor.
+        return MG_TERN( exposed, PODZOL, DIRT ); // Dark forest floor.
     }
     if ( col.biome < 0.22f ) {
         return MG_TERN( exposed, SNOWY_GRASS, DIRT ); // Snowy plains.
@@ -522,12 +522,12 @@ MG_FN4( BlockID, mg_pick_block, int, x, int, y, int, z, MapGenColumn, col ) {
                     return GLASS_PALE_BLUE;
                 }
                 if ( gc < 0.5f ) {
-                    return GLASS_LIGHT_BLUE;
+                    return LIGHT_BLUE_STAINED_GLASS;
                 }
                 if ( gc < 0.75f ) {
-                    return GLASS_LIGHT_GREEN;
+                    return LIME_STAINED_GLASS;
                 }
-                return GLASS_WHITE;
+                return WHITE_STAINED_GLASS;
             }
         }
     }

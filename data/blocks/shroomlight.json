@@ -1,0 +1,10 @@
+{
+  "emits_light": 15,
+  "icon": "shroomlight",
+  "icon_is_isometric": false,
+  "id": 1111,
+  "name": "SHROOMLIGHT",
+  "textures": {
+    "all": "shroomlight"
+  }
+}

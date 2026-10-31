@@ -1,0 +1,9 @@
+{
+  "icon": "sculk_shrieker_inner_top",
+  "icon_is_isometric": false,
+  "id": 1106,
+  "name": "SCULK_SHRIEKER",
+  "textures": {
+    "all": "sculk_shrieker_inner_top"
+  }
+}

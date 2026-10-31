@@ -1,0 +1,11 @@
+{
+  "icon": "stripped_birch_log",
+  "icon_is_isometric": false,
+  "id": 1177,
+  "name": "STRIPPED_BIRCH_LOG",
+  "textures": {
+    "bottom": "stripped_birch_log_top",
+    "side": "stripped_birch_log",
+    "top": "stripped_birch_log_top"
+  }
+}

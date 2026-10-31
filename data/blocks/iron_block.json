@@ -1,0 +1,13 @@
+{
+  "hardness": 4,
+  "id": 31,
+  "name": "IRON_BLOCK",
+  "textures": {
+    "back": "iron_block",
+    "bottom": "iron_block",
+    "front": "iron_block",
+    "left": "iron_block",
+    "right": "iron_block",
+    "top": "iron_block"
+  }
+}

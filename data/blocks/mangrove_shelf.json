@@ -1,0 +1,9 @@
+{
+  "icon": "mangrove_shelf",
+  "icon_is_isometric": false,
+  "id": 768,
+  "name": "MANGROVE_SHELF",
+  "textures": {
+    "all": "mangrove_shelf"
+  }
+}

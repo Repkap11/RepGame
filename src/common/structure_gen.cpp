@@ -91,7 +91,7 @@ static void sg_write_ground( Chunk &chunk, const int lx, const int ly, const int
     const BlockID cur = chunk.get_block( glm::ivec3( lx, ly, lz ) ).id;
     switch ( cur ) {
         case OAK_LOG:
-        case BIRTCH_LOG:
+        case BIRCH_LOG:
         case JUNGLE_LOG:
         case ACACIA_LOG:
         case DARK_OAK_LOG:
@@ -173,7 +173,7 @@ static bool sg_tree_for_cell( const int cx, const int cz, int *out_tx, int *out_
     if ( biome > 0.72f ) {
         if ( weird >= 0.55f ) {
             spec->log = JUNGLE_LOG;
-            spec->leaf = JUNGLE_LEAF;
+            spec->leaf = JUNGLE_LEAVES;
             spec->shape = SHAPE_JUNGLE;
             if ( sg_roll( cx, cz, 7 ) < 0.20f ) {
                 // Rare emergent giants: 2x2 trunk, tall crown over the canopy.
@@ -186,7 +186,7 @@ static bool sg_tree_for_cell( const int cx, const int cz, int *out_tx, int *out_
             }
         } else {
             spec->log = ACACIA_LOG;
-            spec->leaf = LEAF;
+            spec->leaf = OAK_LEAVES;
             spec->shape = SHAPE_ACACIA;
             spec->trunk_h = 4 + (int)( hr * 3.0f );
             spec->canopy_r = 2;
@@ -196,31 +196,31 @@ static bool sg_tree_for_cell( const int cx, const int cz, int *out_tx, int *out_
         }
     } else if ( biome < 0.22f ) {
         spec->log = DARK_OAK_LOG;
-        spec->leaf = PINE_LEAF;
+        spec->leaf = SPRUCE_LEAVES;
         spec->shape = SHAPE_PINE;
         spec->trunk_h = 7 + (int)( hr * 4.0f );
         spec->canopy_r = 2;
     } else if ( weird > 0.75f ) {
         spec->log = DARK_OAK_LOG;
-        spec->leaf = LEAF;
+        spec->leaf = OAK_LEAVES;
         spec->shape = SHAPE_BLOB;
         spec->trunk_h = 6 + (int)( hr * 3.0f );
         spec->canopy_r = 4;
     } else if ( sr < 0.5f ) {
         spec->log = OAK_LOG;
-        spec->leaf = LEAF;
+        spec->leaf = OAK_LEAVES;
         spec->shape = SHAPE_BLOB;
         spec->trunk_h = 4 + (int)( hr * 3.0f );
         spec->canopy_r = 3;
     } else if ( sr < 0.85f ) {
-        spec->log = BIRTCH_LOG;
-        spec->leaf = BIRTCH_LEAVES;
+        spec->log = BIRCH_LOG;
+        spec->leaf = BIRCH_LEAVES;
         spec->shape = SHAPE_BLOB;
         spec->trunk_h = 5 + (int)( hr * 3.0f );
         spec->canopy_r = 3;
     } else {
         spec->log = DARK_OAK_LOG;
-        spec->leaf = PINE_LEAF;
+        spec->leaf = SPRUCE_LEAVES;
         spec->shape = SHAPE_PINE;
         spec->trunk_h = 7 + (int)( hr * 4.0f );
         spec->canopy_r = 2;
@@ -373,7 +373,7 @@ void StructureGen::place_trees( Chunk &chunk, const int cox, const int coy, cons
                 continue;
             }
             const BlockID ground = MapGen::gen_block_id( tx, gy, tz );
-            if ( ground != GRASS && ground != PODZEL && ground != MYCELIUM && ground != SNOWY_GRASS && ground != DIRT && ground != SNOW ) {
+            if ( ground != GRASS && ground != PODZOL && ground != MYCELIUM && ground != SNOWY_GRASS && ground != DIRT && ground != SNOW ) {
                 continue;
             }
             // Skip trees that can't touch this chunk's y range (+/-1 border).
@@ -392,29 +392,29 @@ void StructureGen::place_trees( Chunk &chunk, const int cox, const int coy, cons
 
 static BlockID sg_pick_flower( const int wx, const int wz ) {
     const float r = sg_roll( wx, wz, 30 );
-    if ( r < 0.20f ) return YELLOW_FLOWER;
+    if ( r < 0.20f ) return DANDELION;
     if ( r < 0.35f ) return RED_FLOWER;
-    if ( r < 0.45f ) return BLUE_FLOWER;
-    if ( r < 0.55f ) return POPPY_FLOWER;
+    if ( r < 0.45f ) return BLUE_ORCHID;
+    if ( r < 0.55f ) return POPPY;
     if ( r < 0.62f ) return RED_TULIP;
     if ( r < 0.68f ) return ORANGE_TULIP;
     if ( r < 0.74f ) return WHITE_TULIP;
     if ( r < 0.80f ) return PINK_TULIP;
-    if ( r < 0.88f ) return BLUE_FLOWER2;
-    if ( r < 0.94f ) return WHITE_FLOWER;
-    return LARGE_WHITE_FLOWER;
+    if ( r < 0.88f ) return CORNFLOWER;
+    if ( r < 0.94f ) return OXEYE_DAISY;
+    return AZURE_BLUET;
 }
 
 static BlockID sg_pick_coral( const int wx, const int wz ) {
     const float r = sg_roll( wx, wz, 31 );
-    if ( r < 0.15f ) return BLUE_CORAL;
-    if ( r < 0.30f ) return BLUE_CORAL2;
-    if ( r < 0.45f ) return RED_CORAL;
-    if ( r < 0.55f ) return RED_CORAL2;
-    if ( r < 0.70f ) return PURPLE_CORAL;
+    if ( r < 0.15f ) return TUBE_CORAL;
+    if ( r < 0.30f ) return TUBE_CORAL_FAN;
+    if ( r < 0.45f ) return FIRE_CORAL;
+    if ( r < 0.55f ) return FIRE_CORAL_FAN;
+    if ( r < 0.70f ) return BUBBLE_CORAL;
     if ( r < 0.80f ) return PURPLE_CORAL2;
-    if ( r < 0.90f ) return YELLOW_CORAL;
-    return YELLOW_CORAL2;
+    if ( r < 0.90f ) return HORN_CORAL;
+    return HORN_CORAL_FAN;
 }
 
 void StructureGen::place_decorations( Chunk &chunk, const int cox, const int coy, const int coz ) {
@@ -454,9 +454,9 @@ void StructureGen::place_decorations( Chunk &chunk, const int cox, const int coy
                     if ( roll < 0.03f ) {
                         sg_write_decor( chunk, lx, surface_y, lz, sg_pick_coral( wx, wz ) );
                     } else if ( roll < 0.10f ) {
-                        sg_write_decor( chunk, lx, surface_y, lz, SEAWEED );
+                        sg_write_decor( chunk, lx, surface_y, lz, KELP );
                     } else if ( roll < 0.16f ) {
-                        sg_write_decor( chunk, lx, surface_y, lz, roll < 0.13f ? UNDERWATER_TUFT_SHORT : UNDERWATER_TUFT_TALL );
+                        sg_write_decor( chunk, lx, surface_y, lz, roll < 0.13f ? SEAGRASS : UNDERWATER_TUFT_TALL );
                     }
                 }
                 continue;
@@ -470,21 +470,21 @@ void StructureGen::place_decorations( Chunk &chunk, const int cox, const int coy
                         // Jungle-edge bamboo, a few blocks tall.
                         const int h = 2 + (int)( sg_roll( wx, wz, 41 ) * 3.0f );
                         for ( int i = 0; i < h && surface_y + i < CHUNK_SIZE_Y; i++ ) {
-                            sg_write_decor( chunk, lx, surface_y + i, lz, BAMBOO );
+                            sg_write_decor( chunk, lx, surface_y + i, lz, BAMBOO_SAPLING );
                         }
                     } else if ( weird > 0.35f && weird < 0.60f && roll < 0.30f ) {
                         // Meadows: denser tufts and flowers.
-                        sg_write_decor( chunk, lx, surface_y, lz, roll < 0.10f ? sg_pick_flower( wx, wz ) : ( roll < 0.20f ? GRASS_TUFT3 : GRASS_TUFT2 ) );
+                        sg_write_decor( chunk, lx, surface_y, lz, roll < 0.10f ? sg_pick_flower( wx, wz ) : ( roll < 0.20f ? GRASS_TUFT3 : FERN ) );
                     } else if ( roll < 0.10f ) {
-                        sg_write_decor( chunk, lx, surface_y, lz, roll < 0.03f ? sg_pick_flower( wx, wz ) : GRASS_TUFT2 );
+                        sg_write_decor( chunk, lx, surface_y, lz, roll < 0.03f ? sg_pick_flower( wx, wz ) : FERN );
                     } else if ( roll > 0.985f ) {
                         // Rare saplings matching the local tree mix.
-                        const BlockID sap = biome < 0.22f ? DARK_OAK_SAPPLING : biome > 0.72f ? ACACIA_SAPPLING : sg_roll( wx, wz, 42 ) < 0.5f ? SAPPLING : BIRTCH_SAPPLING;
+                        const BlockID sap = biome < 0.22f ? DARK_OAK_SAPLING : biome > 0.72f ? ACACIA_SAPLING : sg_roll( wx, wz, 42 ) < 0.5f ? OAK_SAPLING : BIRCH_SAPLING;
                         sg_write_decor( chunk, lx, surface_y, lz, sap );
                     }
                     break;
                 }
-                case PODZEL:
+                case PODZOL:
                     if ( roll < 0.10f ) {
                         sg_write_decor( chunk, lx, surface_y, lz, sg_roll( wx, wz, 43 ) < 0.5f ? BROWN_MUSHROOM : RED_MUSHROOM );
                     }
@@ -503,13 +503,13 @@ void StructureGen::place_decorations( Chunk &chunk, const int cox, const int coy
                     // Reeds on sand next to water.
                     if ( roll < 0.05f && sg_is_next_to( chunk, lx, surface_y - 1, lz, WATER ) && surface_y + 2 < CHUNK_SIZE_Y ) {
                         for ( int i = 0; i < 3; i++ ) {
-                            sg_write_decor( chunk, lx, surface_y + i, lz, REED );
+                            sg_write_decor( chunk, lx, surface_y + i, lz, REEDS );
                         }
                     }
                     break;
-                case ORANGE_SAND:
+                case RED_SAND:
                     if ( roll < 0.08f ) {
-                        sg_write_decor( chunk, lx, surface_y, lz, sg_roll( wx, wz, 45 ) < 0.5f ? DARK_DEAD_SAPPLING : LIGHT_DEAD_SAPPLING );
+                        sg_write_decor( chunk, lx, surface_y, lz, sg_roll( wx, wz, 45 ) < 0.5f ? DARK_DEAD_SAPLING : DEADBUSH );
                     }
                     break;
                 default:
@@ -574,7 +574,7 @@ static bool sg_feature_for_cell( const int cx, const int cz, SGFeature *f ) {
         f->kind = SG_FEAT_SPIRE;
         f->n_sub = 3 + (int)( sg_roll( cx, cz, 63 ) * (float)( SG_FEATURE_MAX_SUB - 2 ) ); // 3..6
         const float hr = sg_roll( cx, cz, 64 );
-        f->glass = hr < 0.3f ? GLASS_PALE_BLUE : hr < 0.55f ? GLASS_LIGHT_BLUE : hr < 0.8f ? GLASS_LIGHT_GREEN : GLASS_WHITE;
+        f->glass = hr < 0.3f ? GLASS_PALE_BLUE : hr < 0.55f ? LIGHT_BLUE_STAINED_GLASS : hr < 0.8f ? LIME_STAINED_GLASS : WHITE_STAINED_GLASS;
         for ( int i = 0; i < f->n_sub; i++ ) {
             f->sx[ i ] = f->ax + ( sg_roll( cx, cz, 70 + i * 2 ) - 0.5f ) * 44.0f;
             f->sz[ i ] = f->az + ( sg_roll( cx, cz, 71 + i * 2 ) - 0.5f ) * 44.0f;
@@ -670,11 +670,11 @@ static void sg_scorch_ground( Chunk &chunk, const int lx, const int ly, const in
         case GRASS:
         case DIRT:
         case SAND:
-        case ORANGE_SAND:
+        case RED_SAND:
         case GRAVEL:
         case SNOWY_GRASS:
         case SNOW:
-        case PODZEL:
+        case PODZOL:
         case MYCELIUM:
             chunk.set_block( glm::ivec3( lx, ly, lz ), { COBBLESTONE, BLOCK_ROTATE_0, 0, COBBLESTONE, 0 } );
             break;
@@ -770,7 +770,7 @@ void StructureGen::place_features( Chunk &chunk, const int cox, const int coy, c
                     continue;
                 }
                 for ( int i = 0; i < h; i++ ) {
-                    const BlockID id = i == h - 1 ? GLOWSTONE : STONE_BRICK;
+                    const BlockID id = i == h - 1 ? GLOWSTONE : STONE_BRICKS;
                     if ( !sg_write_feature( chunk, lx, surface_y + i, lz, id ) ) {
                         break;
                     }
@@ -802,11 +802,11 @@ static BlockID sg_crystal_glass( const unsigned int h ) {
         case 0:
             return GLASS_PALE_BLUE;
         case 1:
-            return GLASS_LIGHT_BLUE;
+            return LIGHT_BLUE_STAINED_GLASS;
         case 2:
-            return GLASS_LIGHT_GREEN;
+            return LIME_STAINED_GLASS;
         default:
-            return GLASS_WHITE;
+            return WHITE_STAINED_GLASS;
     }
 }
 

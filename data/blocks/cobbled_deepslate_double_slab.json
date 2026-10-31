@@ -1,0 +1,9 @@
+{
+  "icon": "cobbled_deepslate",
+  "icon_is_isometric": false,
+  "id": 321,
+  "name": "COBBLED_DEEPSLATE_DOUBLE_SLAB",
+  "textures": {
+    "all": "cobbled_deepslate"
+  }
+}

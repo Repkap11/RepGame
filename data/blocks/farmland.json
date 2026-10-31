@@ -1,0 +1,11 @@
+{
+  "icon": "dirt",
+  "icon_is_isometric": false,
+  "id": 579,
+  "name": "FARMLAND",
+  "textures": {
+    "bottom": "dirt",
+    "side": "dirt",
+    "top": "farmland_wet"
+  }
+}

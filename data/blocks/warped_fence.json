@@ -1,0 +1,9 @@
+{
+  "icon": "warped_planks",
+  "icon_is_isometric": false,
+  "id": 1268,
+  "name": "WARPED_FENCE",
+  "textures": {
+    "all": "warped_planks"
+  }
+}

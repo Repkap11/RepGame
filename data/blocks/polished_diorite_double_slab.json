@@ -1,0 +1,9 @@
+{
+  "icon": "stone_diorite_smooth",
+  "icon_is_isometric": false,
+  "id": 952,
+  "name": "POLISHED_DIORITE_DOUBLE_SLAB",
+  "textures": {
+    "all": "stone_diorite_smooth"
+  }
+}

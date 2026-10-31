@@ -1,0 +1,15 @@
+{
+  "hardness": 4,
+  "icon": "brick",
+  "icon_is_isometric": true,
+  "id": 8,
+  "name": "BRICK_BLOCK",
+  "textures": {
+    "back": "brick",
+    "bottom": "brick",
+    "front": "brick",
+    "left": "brick",
+    "right": "brick",
+    "top": "brick"
+  }
+}

@@ -1,0 +1,9 @@
+{
+  "icon": "copper_ore",
+  "icon_is_isometric": false,
+  "id": 346,
+  "name": "COPPER_ORE",
+  "textures": {
+    "all": "copper_ore"
+  }
+}

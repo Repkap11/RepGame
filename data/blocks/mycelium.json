@@ -1,0 +1,12 @@
+{
+  "hardness": 0.75,
+  "icon": "mycelium_top",
+  "icon_is_isometric": true,
+  "id": 111,
+  "name": "MYCELIUM",
+  "textures": {
+    "bottom": "dirt",
+    "side": "mycelium_side",
+    "top": "mycelium_top"
+  }
+}

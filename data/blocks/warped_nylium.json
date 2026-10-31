@@ -1,0 +1,11 @@
+{
+  "icon": "warped_nylium_side",
+  "icon_is_isometric": false,
+  "id": 1273,
+  "name": "WARPED_NYLIUM",
+  "textures": {
+    "bottom": "netherrack",
+    "side": "warped_nylium_side",
+    "top": "warped_nylium_top"
+  }
+}

@@ -1,0 +1,15 @@
+{
+  "hardness": 2,
+  "icon": "planks_big_oak",
+  "icon_is_isometric": true,
+  "id": 411,
+  "name": "DARK_OAK_PLANKS",
+  "textures": {
+    "back": "planks_big_oak",
+    "bottom": "planks_big_oak",
+    "front": "planks_big_oak",
+    "left": "planks_big_oak",
+    "right": "planks_big_oak",
+    "top": "planks_big_oak"
+  }
+}

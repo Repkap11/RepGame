@@ -1,0 +1,9 @@
+{
+  "icon": "wool_colored_pink",
+  "icon_is_isometric": false,
+  "id": 904,
+  "name": "PINK_CARPET",
+  "textures": {
+    "all": "wool_colored_pink"
+  }
+}

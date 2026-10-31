@@ -1,0 +1,9 @@
+{
+  "icon": "sulfur",
+  "icon_is_isometric": false,
+  "id": 1210,
+  "name": "SULFUR_STAIRS",
+  "textures": {
+    "all": "sulfur"
+  }
+}

@@ -1,0 +1,14 @@
+{
+  "casts_shadow": false,
+  "emits_light": 14,
+  "hardness": 0.35,
+  "icon": "cave_vines_head",
+  "icon_is_isometric": false,
+  "id": 253,
+  "is_seethrough": true,
+  "name": "CAVE_VINES_HEAD_WITH_BERRIES",
+  "no_light": 6815743,
+  "textures": {
+    "all": "cave_vines_head"
+  }
+}

@@ -1,0 +1,9 @@
+{
+  "icon": "exposed_copper",
+  "icon_is_isometric": false,
+  "id": 565,
+  "name": "EXPOSED_COPPER_GOLEM_STATUE",
+  "textures": {
+    "all": "exposed_copper"
+  }
+}

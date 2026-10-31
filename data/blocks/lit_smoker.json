@@ -1,0 +1,14 @@
+{
+  "icon": "smoker_top",
+  "icon_is_isometric": false,
+  "id": 733,
+  "name": "LIT_SMOKER",
+  "textures": {
+    "back": "smoker_side",
+    "bottom": "smoker_bottom",
+    "front": "smoker_side",
+    "left": "smoker_side",
+    "right": "smoker_front_on",
+    "top": "smoker_top"
+  }
+}

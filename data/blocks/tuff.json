@@ -1,0 +1,9 @@
+{
+  "icon": "tuff",
+  "icon_is_isometric": false,
+  "id": 1241,
+  "name": "TUFF",
+  "textures": {
+    "all": "tuff"
+  }
+}

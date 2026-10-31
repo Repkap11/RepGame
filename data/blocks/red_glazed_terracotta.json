@@ -1,0 +1,9 @@
+{
+  "icon": "glazed_terracotta_red",
+  "icon_is_isometric": false,
+  "id": 1067,
+  "name": "RED_GLAZED_TERRACOTTA",
+  "textures": {
+    "all": "glazed_terracotta_red"
+  }
+}

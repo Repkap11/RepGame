@@ -765,10 +765,10 @@ void RepGame::process_mouse_events( ) {
                 BlockState targetBlock = globalGameState.world.get_loaded_block( globalGameState.block_selection.pos_destroy );
                 if ( targetBlock.id != LAST_BLOCK_ID && block_definition_get_definition( targetBlock.id )->is_redstone_dust ) {
                     BlockState new_block_state = targetBlock;
-                    if ( targetBlock.display_id == REDSTONE_CROSS ) {
-                        new_block_state.display_id = REDSTONE_DOT;
-                    } else if ( targetBlock.display_id == REDSTONE_DOT ) {
-                        new_block_state.display_id = REDSTONE_CROSS;
+                    if ( targetBlock.display_id == REDSTONE_WIRE_CROSS ) {
+                        new_block_state.display_id = REDSTONE_WIRE_DOT;
+                    } else if ( targetBlock.display_id == REDSTONE_WIRE_DOT ) {
+                        new_block_state.display_id = REDSTONE_WIRE_CROSS;
                     } else {
                         // Has connections, can't toggle — fall through to place new dust
                         new_block_state.display_id = LAST_BLOCK_ID; // sentinel: don't toggle
@@ -2015,7 +2015,7 @@ void RepGame::initializeGameState( const char *world_name ) {
     globalGameState.ui_overlay.set_holding_block( selectedBlock );
 }
 
-MK_TEXTURE( textures, 384, 832, 16, 16 );
+MK_TEXTURE( blocks, 384, BLOCK_TEXTURE_ATLAS_ROWS * 16, 16, 16 );
 
 static bool globalSupportsAnisotropic;
 
@@ -2060,7 +2060,7 @@ RepGameState *RepGame::init( const char *world_name, const bool connect_multi, c
     vbl_ui_overlay_instance.push_float( 3 );        // UIOverlayInstance block_offset
     vbl_ui_overlay_instance.push_float( 3 );        // UIOverlayInstance block_tex_offset
 
-    globalGameState.blocksTexture.init( texture_source_textures, 0 );
+    globalGameState.blocksTexture.init( texture_source_blocks, 0 );
     block_definitions_initilize_definitions( &globalGameState.blocksTexture );
 
     globalGameState.main_inventory.init( vbl_ui_overlay_vertex, vbl_ui_overlay_instance, MAIN_INVENTORY_WIDTH, MAIN_INVENTORY_HEIGHT );

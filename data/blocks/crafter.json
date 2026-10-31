@@ -1,0 +1,14 @@
+{
+  "icon": "crafter_top",
+  "icon_is_isometric": false,
+  "id": 375,
+  "name": "CRAFTER",
+  "textures": {
+    "back": "crafter_north",
+    "bottom": "crafter_bottom",
+    "front": "crafter_south",
+    "left": "crafter_west",
+    "right": "crafter_east",
+    "top": "crafter_top"
+  }
+}

@@ -100,7 +100,7 @@ void PistonEvent::performAction( BlockUpdateQueue &blockUpdateQueue, RepGameStat
             return;
         }
 
-        const BlockID head_id = base->is_sticky_piston ? PISTON_HEAD_STICKY : PISTON_HEAD;
+        const BlockID head_id = base->is_sticky_piston ? STICKY_PISTON_ARM_COLLISION : PISTON_ARM_COLLISION;
         // Move the chain one cell forward, farthest first so no cell is read
         // after being overwritten.
         for ( int i = dest_i; i >= 2; i-- ) {

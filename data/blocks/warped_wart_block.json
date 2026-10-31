@@ -1,0 +1,9 @@
+{
+  "icon": "warped_wart_block",
+  "icon_is_isometric": false,
+  "id": 1284,
+  "name": "WARPED_WART_BLOCK",
+  "textures": {
+    "all": "warped_wart_block"
+  }
+}

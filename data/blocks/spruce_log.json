@@ -1,0 +1,11 @@
+{
+  "icon": "log_spruce",
+  "icon_is_isometric": false,
+  "id": 1149,
+  "name": "SPRUCE_LOG",
+  "textures": {
+    "bottom": "log_spruce_top",
+    "side": "log_spruce",
+    "top": "log_spruce_top"
+  }
+}

@@ -1,0 +1,9 @@
+{
+  "icon": "cherry_planks",
+  "icon_is_isometric": false,
+  "id": 273,
+  "name": "CHERRY_STANDING_SIGN",
+  "textures": {
+    "all": "cherry_planks"
+  }
+}

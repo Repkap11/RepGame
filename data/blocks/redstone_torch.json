@@ -1,0 +1,37 @@
+{
+  "breaks_in_liquid": true,
+  "casts_shadow": false,
+  "collides_with_player": false,
+  "connects_to_redstone_dust": true,
+  "emits_light": 7,
+  "hardness": 0,
+  "icon": "redstone_torch_on",
+  "icon_is_isometric": false,
+  "id": 65,
+  "is_torch": true,
+  "name": "REDSTONE_TORCH",
+  "needs_place_on_any_solid": {
+    "top": true
+  },
+  "offset": [
+    7,
+    0,
+    7
+  ],
+  "scale": [
+    2,
+    10,
+    2
+  ],
+  "tex_offset": [
+    -7,
+    0,
+    -7
+  ],
+  "textures": {
+    "bottom": "redstone_torch_bottom",
+    "side": "redstone_torch_on",
+    "top": "redstone_torch_top"
+  },
+  "transmits_redstone_power": true
+}

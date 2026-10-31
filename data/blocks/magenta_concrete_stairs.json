@@ -1,0 +1,9 @@
+{
+  "icon": "concrete_magenta",
+  "icon_is_isometric": false,
+  "id": 745,
+  "name": "MAGENTA_CONCRETE_STAIRS",
+  "textures": {
+    "all": "concrete_magenta"
+  }
+}

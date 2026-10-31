@@ -1,0 +1,9 @@
+{
+  "icon": "wool_colored_cyan",
+  "icon_is_isometric": false,
+  "id": 429,
+  "name": "CYAN_CARPET",
+  "textures": {
+    "all": "wool_colored_cyan"
+  }
+}

@@ -1,0 +1,9 @@
+{
+  "icon": "poplar_planks",
+  "icon_is_isometric": false,
+  "id": 971,
+  "name": "POPLAR_DOUBLE_SLAB",
+  "textures": {
+    "all": "poplar_planks"
+  }
+}

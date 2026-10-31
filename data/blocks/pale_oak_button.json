@@ -1,0 +1,9 @@
+{
+  "icon": "pale_oak_planks",
+  "icon_is_isometric": false,
+  "id": 881,
+  "name": "PALE_OAK_BUTTON",
+  "textures": {
+    "all": "pale_oak_planks"
+  }
+}

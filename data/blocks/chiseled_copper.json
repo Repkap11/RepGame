@@ -1,0 +1,9 @@
+{
+  "icon": "chiseled_copper",
+  "icon_is_isometric": false,
+  "id": 283,
+  "name": "CHISELED_COPPER",
+  "textures": {
+    "all": "chiseled_copper"
+  }
+}

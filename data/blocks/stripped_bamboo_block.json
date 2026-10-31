@@ -1,0 +1,11 @@
+{
+  "icon": "stripped_bamboo_block",
+  "icon_is_isometric": false,
+  "id": 1176,
+  "name": "STRIPPED_BAMBOO_BLOCK",
+  "textures": {
+    "bottom": "stripped_bamboo_block_top",
+    "side": "stripped_bamboo_block",
+    "top": "stripped_bamboo_block_top"
+  }
+}

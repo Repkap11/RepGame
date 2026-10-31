@@ -1,0 +1,9 @@
+{
+  "icon": "weathered_copper_bulb",
+  "icon_is_isometric": false,
+  "id": 1352,
+  "name": "WEATHERED_COPPER_BULB",
+  "textures": {
+    "all": "weathered_copper_bulb"
+  }
+}

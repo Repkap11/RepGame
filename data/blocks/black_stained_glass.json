@@ -1,0 +1,19 @@
+{
+  "affected_by_redstone_power": false,
+  "casts_shadow": false,
+  "hardness": 0.449999988,
+  "icon": "glass_black",
+  "icon_is_isometric": true,
+  "id": 361,
+  "is_seethrough": true,
+  "name": "BLACK_STAINED_GLASS",
+  "render_order": "Translucent",
+  "textures": {
+    "back": "glass_black",
+    "bottom": "glass_black",
+    "front": "glass_black",
+    "left": "glass_black",
+    "right": "glass_black",
+    "top": "glass_black"
+  }
+}

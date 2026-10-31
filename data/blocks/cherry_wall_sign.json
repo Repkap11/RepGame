@@ -1,0 +1,9 @@
+{
+  "icon": "cherry_planks",
+  "icon_is_isometric": false,
+  "id": 277,
+  "name": "CHERRY_WALL_SIGN",
+  "textures": {
+    "all": "cherry_planks"
+  }
+}

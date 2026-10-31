@@ -1,0 +1,13 @@
+{
+  "casts_shadow": false,
+  "hardness": 0.35,
+  "icon": "trip_wire",
+  "icon_is_isometric": false,
+  "id": 1237,
+  "is_seethrough": true,
+  "name": "TRIPWIRE",
+  "no_light": 6815743,
+  "textures": {
+    "all": "trip_wire"
+  }
+}

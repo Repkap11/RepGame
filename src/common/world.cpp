@@ -86,9 +86,6 @@ void World::init( const glm::dvec3 &camera_pos, int width, int height, MapStorag
 
     this->chunkLoader.init( camera_pos, this->vbl_block, this->vbl_coords, map_storage, render_radius );
 
-    float *random_rotation_blocks = block_definitions_get_random_rotations( );
-
-    this->chunkLoader.shader.set_uniform1fv( "u_RandomRotationBlocks", random_rotation_blocks, MAX_ROTATABLE_BLOCK );
 
     this->object_shader.init( &object_vertex, &object_fragment );
     this->debris_shader.init( &debris_vertex, &object_fragment );
@@ -1216,8 +1213,8 @@ bool World::do_random_tick_on_block( const Chunk &chunk, const glm::vec3 &pos, B
         }
     }
     if ( id == BlockID::DIRT ) {
-        if ( blockUp->renderOrder != RenderOrder_Opaque && world_any_neighbor_grass_id( chunk, pos, BlockID::PODZEL ) ) {
-            blockState.id = BlockID::PODZEL;
+        if ( blockUp->renderOrder != RenderOrder_Opaque && world_any_neighbor_grass_id( chunk, pos, BlockID::PODZOL ) ) {
+            blockState.id = BlockID::PODZOL;
             blockState.display_id = blockState.id;
             return true;
         }

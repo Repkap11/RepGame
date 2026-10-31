@@ -1,0 +1,9 @@
+{
+  "icon": "stripped_jungle_log",
+  "icon_is_isometric": false,
+  "id": 1186,
+  "name": "STRIPPED_JUNGLE_WOOD",
+  "textures": {
+    "all": "stripped_jungle_log"
+  }
+}

@@ -1,0 +1,35 @@
+{
+  "casts_shadow": false,
+  "collides_with_player": false,
+  "connects_to_redstone_dust": true,
+  "hardness": 0.5,
+  "icon": "planks_birch",
+  "icon_is_isometric": false,
+  "id": 818,
+  "is_pressure_plate": true,
+  "is_seethrough": true,
+  "name": "BIRCH_PRESSURE_PLATE",
+  "needs_place_on_any_solid": {
+    "top": true
+  },
+  "offset": [
+    1,
+    0,
+    1
+  ],
+  "scale": [
+    14,
+    2,
+    14
+  ],
+  "tex_offset": [
+    -1,
+    0,
+    -1
+  ],
+  "textures": {
+    "bottom": "planks_birch",
+    "side": "planks_birch",
+    "top": "planks_birch"
+  }
+}

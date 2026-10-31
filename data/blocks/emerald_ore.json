@@ -1,0 +1,9 @@
+{
+  "icon": "emerald_ore",
+  "icon_is_isometric": false,
+  "id": 545,
+  "name": "EMERALD_ORE",
+  "textures": {
+    "all": "emerald_ore"
+  }
+}

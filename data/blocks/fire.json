@@ -1,0 +1,23 @@
+{
+  "affected_by_redstone_power": false,
+  "breaks_in_liquid": true,
+  "casts_shadow": false,
+  "collides_with_player": false,
+  "emits_light": 15,
+  "hardness": 0,
+  "icon": "fire_0",
+  "icon_is_isometric": false,
+  "id": 92,
+  "is_seethrough": true,
+  "name": "FIRE",
+  "needs_place_on_any_solid": {
+    "top": true
+  },
+  "no_light": 0,
+  "render_order": "Flowers",
+  "textures": {
+    "bottom": "air",
+    "side": "fire_0",
+    "top": "air"
+  }
+}

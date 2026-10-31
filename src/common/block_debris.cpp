@@ -56,12 +56,12 @@ void BlockDebris::spawn_block_break( const glm::ivec3 &block_pos, const BlockSta
     }
     block_adjust_coord_based_on_state( block, &blockState, &coords );
 
-    // Keep only faces that actually render: AIR marks faces that never draw
-    // (dust sides, door tops/bottoms, cross-rendered flower tops/bottoms).
+    // Keep only faces that actually render: TEX_AIR marks faces that never
+    // draw (dust sides, door tops/bottoms, cross-rendered flower tops/bottoms).
     int candidates[ NUM_FACES_IN_CUBE ];
     int num_candidates = 0;
     for ( int f = 0; f < NUM_FACES_IN_CUBE; f++ ) {
-        if ( coords.face[ f ] == AIR ) {
+        if ( coords.face[ f ] == TEX_AIR ) {
             continue;
         }
         candidates[ num_candidates++ ] = f;
@@ -128,8 +128,7 @@ void BlockDebris::spawn_block_break( const glm::ivec3 &block_pos, const BlockSta
         const int face = candidates[ rand( ) % num_candidates ];
         const unsigned short texture = coords.face[ face ];
         for ( int f = 0; f < NUM_FACES_IN_CUBE; f++ ) {
-            // Same -1 as chunk meshing (chunk.cpp): the shader offsets by 1.
-            d.face[ f ] = texture - 1;
+            d.face[ f ] = texture;
         }
         // Sampled texel window per axis: chunk_vertex's v_TexCoordBlock maps a
         // face to tile range [-tex_offset, scale - tex_offset). Staying inside

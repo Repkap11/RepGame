@@ -1,0 +1,9 @@
+{
+  "icon": "polished_sulfur",
+  "icon_is_isometric": false,
+  "id": 959,
+  "name": "POLISHED_SULFUR",
+  "textures": {
+    "all": "polished_sulfur"
+  }
+}

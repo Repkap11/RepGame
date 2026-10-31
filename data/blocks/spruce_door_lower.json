@@ -1,0 +1,23 @@
+{
+  "casts_shadow": false,
+  "collides_with_player": false,
+  "icon": "block_523",
+  "icon_is_isometric": false,
+  "id": 523,
+  "is_seethrough": true,
+  "name": "SPRUCE_DOOR_LOWER",
+  "needs_place_on_any_solid": {
+    "top": true
+  },
+  "rotate_on_placement": true,
+  "scale": [
+    16,
+    16,
+    1
+  ],
+  "textures": {
+    "bottom": "air",
+    "side": "block_523",
+    "top": "air"
+  }
+}

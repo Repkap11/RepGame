@@ -1,0 +1,9 @@
+{
+  "icon": "cut_copper",
+  "icon_is_isometric": false,
+  "id": 418,
+  "name": "CUT_COPPER",
+  "textures": {
+    "all": "cut_copper"
+  }
+}

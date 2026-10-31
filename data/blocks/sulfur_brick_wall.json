@@ -1,0 +1,9 @@
+{
+  "icon": "sulfur_bricks",
+  "icon_is_isometric": false,
+  "id": 1205,
+  "name": "SULFUR_BRICK_WALL",
+  "textures": {
+    "all": "sulfur_bricks"
+  }
+}

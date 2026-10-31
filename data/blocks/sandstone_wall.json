@@ -1,0 +1,9 @@
+{
+  "icon": "sandstone_normal",
+  "icon_is_isometric": false,
+  "id": 1100,
+  "name": "SANDSTONE_WALL",
+  "textures": {
+    "all": "sandstone_normal"
+  }
+}

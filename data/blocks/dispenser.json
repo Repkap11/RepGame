@@ -1,0 +1,14 @@
+{
+  "icon": "furnace_top",
+  "icon_is_isometric": false,
+  "id": 533,
+  "name": "DISPENSER",
+  "textures": {
+    "back": "furnace_side",
+    "bottom": "furnace_top",
+    "front": "dispenser_front_horizontal",
+    "left": "furnace_side",
+    "right": "furnace_side",
+    "top": "furnace_top"
+  }
+}

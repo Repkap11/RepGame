@@ -1,0 +1,9 @@
+{
+  "icon": "netherrack",
+  "icon_is_isometric": false,
+  "id": 811,
+  "name": "NETHERRACK",
+  "textures": {
+    "all": "netherrack"
+  }
+}

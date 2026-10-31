@@ -1,0 +1,13 @@
+{
+  "hardness": 0.75,
+  "id": 27,
+  "name": "SAND",
+  "textures": {
+    "back": "sand",
+    "bottom": "sand",
+    "front": "sand",
+    "left": "sand",
+    "right": "sand",
+    "top": "sand"
+  }
+}

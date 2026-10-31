@@ -1,0 +1,13 @@
+{
+  "id": 249,
+  "is_pickable": false,
+  "name": "REDSTONE_WIRE_T_L_POWERED",
+  "textures": {
+    "back": "redstone_wire_t_l_powered",
+    "bottom": "redstone_wire_t_l_powered",
+    "front": "redstone_wire_t_l_powered",
+    "left": "redstone_wire_t_l_powered",
+    "right": "redstone_wire_t_l_powered",
+    "top": "redstone_wire_t_l_powered"
+  }
+}

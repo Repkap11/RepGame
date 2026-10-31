@@ -1,0 +1,9 @@
+{
+  "icon": "mud",
+  "icon_is_isometric": false,
+  "id": 790,
+  "name": "MUD",
+  "textures": {
+    "all": "mud"
+  }
+}

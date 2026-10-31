@@ -1,0 +1,16 @@
+{
+  "connects_to_redstone_dust": true,
+  "id": 520,
+  "is_inverse_tnt": true,
+  "is_redstone_mechanism": true,
+  "is_tnt": true,
+  "name": "INVERSE_TNT",
+  "textures": {
+    "back": "inverse_tnt",
+    "bottom": "inverse_tnt",
+    "front": "inverse_tnt",
+    "left": "inverse_tnt",
+    "right": "inverse_tnt",
+    "top": "inverse_tnt"
+  }
+}

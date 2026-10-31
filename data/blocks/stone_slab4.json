@@ -1,0 +1,9 @@
+{
+  "icon": "stonebrick_mossy",
+  "icon_is_isometric": false,
+  "id": 1169,
+  "name": "STONE_SLAB4",
+  "textures": {
+    "all": "stonebrick_mossy"
+  }
+}

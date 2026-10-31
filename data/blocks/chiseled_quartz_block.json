@@ -1,0 +1,11 @@
+{
+  "icon": "quartz_block_chiseled",
+  "icon_is_isometric": false,
+  "id": 287,
+  "name": "CHISELED_QUARTZ_BLOCK",
+  "textures": {
+    "bottom": "quartz_block_chiseled_top",
+    "side": "quartz_block_chiseled",
+    "top": "quartz_block_chiseled_top"
+  }
+}

@@ -1,0 +1,11 @@
+{
+  "icon": "poplar_log_side",
+  "icon_is_isometric": false,
+  "id": 975,
+  "name": "POPLAR_LOG",
+  "textures": {
+    "bottom": "poplar_log_top",
+    "side": "poplar_log_side",
+    "top": "poplar_log_top"
+  }
+}

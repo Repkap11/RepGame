@@ -1,0 +1,9 @@
+{
+  "icon": "cherry_planks",
+  "icon_is_isometric": false,
+  "id": 259,
+  "name": "CHERRY_DOUBLE_SLAB",
+  "textures": {
+    "all": "cherry_planks"
+  }
+}

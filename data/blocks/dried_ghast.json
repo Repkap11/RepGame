@@ -1,0 +1,9 @@
+{
+  "icon": "dried_ghast_state_1_tentacles",
+  "icon_is_isometric": false,
+  "id": 540,
+  "name": "DRIED_GHAST",
+  "textures": {
+    "all": "dried_ghast_state_1_tentacles"
+  }
+}

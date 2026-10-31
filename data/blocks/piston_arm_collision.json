@@ -1,0 +1,23 @@
+{
+  "casts_shadow": false,
+  "icon": "piston_top_normal",
+  "icon_is_isometric": false,
+  "id": 143,
+  "is_pickable": false,
+  "is_piston_head": true,
+  "name": "PISTON_ARM_COLLISION",
+  "offset": [
+    0,
+    0,
+    12
+  ],
+  "piston_immovable": true,
+  "scale": [
+    16,
+    16,
+    4
+  ],
+  "textures": {
+    "all": "piston_top_normal"
+  }
+}

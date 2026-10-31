@@ -1,0 +1,9 @@
+{
+  "icon": "wool_colored_lime",
+  "icon_is_isometric": false,
+  "id": 715,
+  "name": "LIME_CARPET",
+  "textures": {
+    "all": "wool_colored_lime"
+  }
+}

@@ -1,0 +1,23 @@
+{
+  "affected_by_redstone_power": false,
+  "breaks_in_liquid": true,
+  "casts_shadow": false,
+  "collides_with_player": false,
+  "hardness": 0,
+  "icon": "purple_coral3",
+  "icon_is_isometric": false,
+  "id": 575,
+  "is_seethrough": true,
+  "name": "BUBBLE_CORAL_FAN",
+  "needs_place_on_any_solid": {
+    "top": true
+  },
+  "no_light": 0,
+  "render_order": "Flowers",
+  "textures": {
+    "bottom": "air",
+    "side": "purple_coral3",
+    "top": "air"
+  },
+  "waterloggable": true
+}

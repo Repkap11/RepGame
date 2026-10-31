@@ -1,0 +1,10 @@
+{
+  "emits_light": 3,
+  "icon": "magma",
+  "icon_is_isometric": false,
+  "id": 755,
+  "name": "MAGMA",
+  "textures": {
+    "all": "magma"
+  }
+}

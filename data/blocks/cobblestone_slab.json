@@ -1,0 +1,22 @@
+{
+  "hardness": 4,
+  "icon": "cobblestone",
+  "icon_is_isometric": true,
+  "id": 19,
+  "name": "COBBLESTONE_SLAB",
+  "scale": [
+    16,
+    8,
+    16
+  ],
+  "tex_offset": [
+    0,
+    -4,
+    0
+  ],
+  "textures": {
+    "bottom": "cobblestone",
+    "side": "cobblestone",
+    "top": "cobblestone"
+  }
+}

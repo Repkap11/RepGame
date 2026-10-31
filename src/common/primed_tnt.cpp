@@ -43,8 +43,7 @@ entt::entity PrimedTnt::spawn( const glm::vec3 &center, const glm::vec3 &velocit
     }
     block_adjust_coord_based_on_state( block, &block_state, &coords );
     for ( int f = 0; f < NUM_FACES_IN_CUBE; f++ ) {
-        // Same -1 as chunk meshing (chunk.cpp): the shader offsets by 1.
-        d.face[ f ] = coords.face[ f ] - 1;
+        d.face[ f ] = coords.face[ f ];
     }
 
     d.spawn = center;

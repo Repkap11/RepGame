@@ -1,0 +1,9 @@
+{
+  "icon": "tuff",
+  "icon_is_isometric": false,
+  "id": 1254,
+  "name": "TUFF_STAIRS",
+  "textures": {
+    "all": "tuff"
+  }
+}

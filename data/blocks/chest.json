@@ -1,0 +1,14 @@
+{
+  "icon": "chest_top",
+  "icon_is_isometric": false,
+  "id": 279,
+  "name": "CHEST",
+  "textures": {
+    "back": "chest_side",
+    "bottom": "chest_top",
+    "front": "chest_front",
+    "left": "chest_side",
+    "right": "chest_side",
+    "top": "chest_top"
+  }
+}

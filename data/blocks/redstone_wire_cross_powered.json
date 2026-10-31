@@ -1,0 +1,13 @@
+{
+  "id": 1225,
+  "is_pickable": false,
+  "name": "REDSTONE_WIRE_CROSS_POWERED",
+  "textures": {
+    "back": "redstone_wire_cross_powered",
+    "bottom": "redstone_wire_cross_powered",
+    "front": "redstone_wire_cross_powered",
+    "left": "redstone_wire_cross_powered",
+    "right": "redstone_wire_cross_powered",
+    "top": "redstone_wire_cross_powered"
+  }
+}

@@ -1,0 +1,15 @@
+{
+  "hardness": 4,
+  "icon": "stonebrick",
+  "icon_is_isometric": true,
+  "id": 79,
+  "name": "STONE_BRICKS",
+  "textures": {
+    "back": "stonebrick",
+    "bottom": "stonebrick",
+    "front": "stonebrick",
+    "left": "stonebrick",
+    "right": "stonebrick",
+    "top": "stonebrick"
+  }
+}

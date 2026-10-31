@@ -1,0 +1,9 @@
+{
+  "icon": "chiseled_deepslate",
+  "icon_is_isometric": false,
+  "id": 284,
+  "name": "CHISELED_DEEPSLATE",
+  "textures": {
+    "all": "chiseled_deepslate"
+  }
+}

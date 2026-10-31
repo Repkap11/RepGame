@@ -1,0 +1,9 @@
+{
+  "icon": "copper_block",
+  "icon_is_isometric": false,
+  "id": 1292,
+  "name": "WAXED_COPPER_GOLEM_STATUE",
+  "textures": {
+    "all": "copper_block"
+  }
+}

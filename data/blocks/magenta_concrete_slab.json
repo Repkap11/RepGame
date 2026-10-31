@@ -1,0 +1,9 @@
+{
+  "icon": "concrete_magenta",
+  "icon_is_isometric": false,
+  "id": 744,
+  "name": "MAGENTA_CONCRETE_SLAB",
+  "textures": {
+    "all": "concrete_magenta"
+  }
+}

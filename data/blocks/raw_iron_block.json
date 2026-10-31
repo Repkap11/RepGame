@@ -1,0 +1,9 @@
+{
+  "icon": "raw_iron_block",
+  "icon_is_isometric": false,
+  "id": 1044,
+  "name": "RAW_IRON_BLOCK",
+  "textures": {
+    "all": "raw_iron_block"
+  }
+}

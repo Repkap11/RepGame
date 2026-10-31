@@ -1,0 +1,22 @@
+{
+  "hardness": 2,
+  "icon": "planks_spruce",
+  "icon_is_isometric": true,
+  "id": 475,
+  "name": "SPRUCE_SLAB",
+  "scale": [
+    16,
+    8,
+    16
+  ],
+  "tex_offset": [
+    0,
+    -4,
+    0
+  ],
+  "textures": {
+    "bottom": "planks_spruce",
+    "side": "planks_spruce",
+    "top": "planks_spruce"
+  }
+}

@@ -1,0 +1,11 @@
+{
+  "icon": "target_side",
+  "icon_is_isometric": false,
+  "id": 1218,
+  "name": "TARGET",
+  "textures": {
+    "bottom": "target_top",
+    "side": "target_side",
+    "top": "target_top"
+  }
+}

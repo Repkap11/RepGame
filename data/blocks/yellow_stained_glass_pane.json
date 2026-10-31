@@ -1,0 +1,19 @@
+{
+  "affected_by_redstone_power": false,
+  "casts_shadow": false,
+  "hardness": 0.449999988,
+  "icon": "glass_yellow",
+  "icon_is_isometric": false,
+  "id": 1400,
+  "is_seethrough": true,
+  "name": "YELLOW_STAINED_GLASS_PANE",
+  "render_order": "Translucent",
+  "textures": {
+    "back": "glass_yellow",
+    "bottom": "glass_yellow",
+    "front": "glass_yellow",
+    "left": "glass_yellow",
+    "right": "glass_pane_top_yellow",
+    "top": "glass_yellow"
+  }
+}

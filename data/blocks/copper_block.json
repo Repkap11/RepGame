@@ -1,0 +1,9 @@
+{
+  "icon": "copper_block",
+  "icon_is_isometric": false,
+  "id": 334,
+  "name": "COPPER_BLOCK",
+  "textures": {
+    "all": "copper_block"
+  }
+}

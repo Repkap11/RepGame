@@ -1,0 +1,9 @@
+{
+  "icon": "redstone_ore",
+  "icon_is_isometric": false,
+  "id": 1086,
+  "name": "REDSTONE_ORE",
+  "textures": {
+    "all": "redstone_ore"
+  }
+}

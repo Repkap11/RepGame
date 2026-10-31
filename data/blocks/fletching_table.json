@@ -1,0 +1,14 @@
+{
+  "icon": "fletcher_table_top",
+  "icon_is_isometric": false,
+  "id": 585,
+  "name": "FLETCHING_TABLE",
+  "textures": {
+    "back": "fletcher_table_side1",
+    "bottom": "planks_birch",
+    "front": "fletcher_table_side1",
+    "left": "fletcher_table_side2",
+    "right": "fletcher_table_side2",
+    "top": "fletcher_table_top"
+  }
+}

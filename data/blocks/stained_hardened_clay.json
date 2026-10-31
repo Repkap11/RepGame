@@ -1,0 +1,9 @@
+{
+  "icon": "hardened_clay_stained_white",
+  "icon_is_isometric": false,
+  "id": 1159,
+  "name": "STAINED_HARDENED_CLAY",
+  "textures": {
+    "all": "hardened_clay_stained_white"
+  }
+}

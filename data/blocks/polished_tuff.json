@@ -1,0 +1,9 @@
+{
+  "icon": "polished_tuff",
+  "icon_is_isometric": false,
+  "id": 964,
+  "name": "POLISHED_TUFF",
+  "textures": {
+    "all": "polished_tuff"
+  }
+}

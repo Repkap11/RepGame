@@ -1,0 +1,11 @@
+{
+  "icon": "melon_side",
+  "icon_is_isometric": false,
+  "id": 776,
+  "name": "MELON_BLOCK",
+  "textures": {
+    "bottom": "melon_top",
+    "side": "melon_side",
+    "top": "melon_top"
+  }
+}

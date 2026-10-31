@@ -1,0 +1,16 @@
+{
+  "affected_by_redstone_power": false,
+  "connects_to_redstone_dust": true,
+  "hardness": 4,
+  "id": 35,
+  "initial_redstone_power": 15,
+  "name": "REDSTONE_BLOCK",
+  "textures": {
+    "back": "redstone_block",
+    "bottom": "redstone_block",
+    "front": "redstone_block",
+    "left": "redstone_block",
+    "right": "redstone_block",
+    "top": "redstone_block"
+  }
+}

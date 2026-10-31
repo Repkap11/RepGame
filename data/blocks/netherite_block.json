@@ -1,0 +1,9 @@
+{
+  "icon": "netherite_block",
+  "icon_is_isometric": false,
+  "id": 810,
+  "name": "NETHERITE_BLOCK",
+  "textures": {
+    "all": "netherite_block"
+  }
+}

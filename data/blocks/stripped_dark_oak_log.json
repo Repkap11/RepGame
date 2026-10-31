@@ -1,0 +1,11 @@
+{
+  "icon": "stripped_dark_oak_log",
+  "icon_is_isometric": false,
+  "id": 1183,
+  "name": "STRIPPED_DARK_OAK_LOG",
+  "textures": {
+    "bottom": "stripped_dark_oak_log_top",
+    "side": "stripped_dark_oak_log",
+    "top": "stripped_dark_oak_log_top"
+  }
+}

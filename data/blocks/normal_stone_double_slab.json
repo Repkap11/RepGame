@@ -1,0 +1,9 @@
+{
+  "icon": "stone",
+  "icon_is_isometric": false,
+  "id": 813,
+  "name": "NORMAL_STONE_DOUBLE_SLAB",
+  "textures": {
+    "all": "stone"
+  }
+}

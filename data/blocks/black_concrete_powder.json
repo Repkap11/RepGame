@@ -1,0 +1,9 @@
+{
+  "icon": "concrete_powder_black",
+  "icon_is_isometric": false,
+  "id": 156,
+  "name": "BLACK_CONCRETE_POWDER",
+  "textures": {
+    "all": "concrete_powder_black"
+  }
+}

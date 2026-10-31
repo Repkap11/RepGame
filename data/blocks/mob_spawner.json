@@ -1,0 +1,14 @@
+{
+  "hardness": 4,
+  "id": 98,
+  "name": "MOB_SPAWNER",
+  "piston_immovable": true,
+  "textures": {
+    "back": "mob_spawner",
+    "bottom": "mob_spawner",
+    "front": "mob_spawner",
+    "left": "mob_spawner",
+    "right": "mob_spawner",
+    "top": "mob_spawner"
+  }
+}

@@ -1,0 +1,15 @@
+{
+  "hardness": 2,
+  "icon": "planks_acacia",
+  "icon_is_isometric": true,
+  "id": 410,
+  "name": "ACACIA_PLANKS",
+  "textures": {
+    "back": "planks_acacia",
+    "bottom": "planks_acacia",
+    "front": "planks_acacia",
+    "left": "planks_acacia",
+    "right": "planks_acacia",
+    "top": "planks_acacia"
+  }
+}

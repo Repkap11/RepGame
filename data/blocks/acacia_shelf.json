@@ -1,0 +1,9 @@
+{
+  "icon": "acacia_shelf",
+  "icon_is_isometric": false,
+  "id": 22,
+  "name": "ACACIA_SHELF",
+  "textures": {
+    "all": "acacia_shelf"
+  }
+}

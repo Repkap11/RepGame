@@ -1,0 +1,32 @@
+{
+  "casts_shadow": false,
+  "collides_with_player": false,
+  "icon": "skeleton_head",
+  "icon_is_isometric": false,
+  "id": 234,
+  "name": "SKELETON_SKULL",
+  "offset": [
+    4,
+    0,
+    4
+  ],
+  "rotate_on_placement": true,
+  "scale": [
+    8,
+    8,
+    8
+  ],
+  "tex_offset": [
+    -4,
+    -4,
+    -4
+  ],
+  "textures": {
+    "back": "skeleton_head",
+    "bottom": "skeleton_head",
+    "front": "skeleton_head",
+    "left": "skeleton_head",
+    "right": "skeleton_head",
+    "top": "skeleton_head"
+  }
+}

@@ -1,0 +1,9 @@
+{
+  "icon": "coral_pink_dead",
+  "icon_is_isometric": false,
+  "id": 472,
+  "name": "DEAD_BRAIN_CORAL_BLOCK",
+  "textures": {
+    "all": "coral_pink_dead"
+  }
+}

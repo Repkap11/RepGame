@@ -1,0 +1,9 @@
+{
+  "icon": "planks_acacia",
+  "icon_is_isometric": false,
+  "id": 4,
+  "name": "ACACIA_DOUBLE_SLAB",
+  "textures": {
+    "all": "planks_acacia"
+  }
+}

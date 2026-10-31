@@ -1,0 +1,9 @@
+{
+  "icon": "anvil_base",
+  "icon_is_isometric": false,
+  "id": 516,
+  "name": "DEPRECATED_ANVIL",
+  "textures": {
+    "all": "anvil_base"
+  }
+}

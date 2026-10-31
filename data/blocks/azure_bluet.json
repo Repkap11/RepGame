@@ -1,0 +1,37 @@
+{
+  "affected_by_redstone_power": false,
+  "breaks_in_liquid": true,
+  "casts_shadow": false,
+  "collides_with_player": false,
+  "hardness": 0,
+  "icon": "flower_houstonia",
+  "icon_is_isometric": false,
+  "id": 388,
+  "is_seethrough": true,
+  "name": "AZURE_BLUET",
+  "needs_place_on_any_solid": {
+    "top": true
+  },
+  "no_light": 0,
+  "offset": [
+    4,
+    0,
+    4
+  ],
+  "render_order": "Flowers",
+  "scale": [
+    8,
+    11,
+    8
+  ],
+  "tex_offset": [
+    -4,
+    0,
+    -4
+  ],
+  "textures": {
+    "bottom": "air",
+    "side": "flower_houstonia",
+    "top": "air"
+  }
+}

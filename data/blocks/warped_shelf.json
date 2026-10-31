@@ -1,0 +1,9 @@
+{
+  "icon": "warped_shelf",
+  "icon_is_isometric": false,
+  "id": 1277,
+  "name": "WARPED_SHELF",
+  "textures": {
+    "all": "warped_shelf"
+  }
+}

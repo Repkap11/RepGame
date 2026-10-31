@@ -1,0 +1,11 @@
+{
+  "icon": "polished_basalt_side",
+  "icon_is_isometric": false,
+  "id": 928,
+  "name": "POLISHED_BASALT",
+  "textures": {
+    "bottom": "polished_basalt_top",
+    "side": "polished_basalt_side",
+    "top": "polished_basalt_top"
+  }
+}

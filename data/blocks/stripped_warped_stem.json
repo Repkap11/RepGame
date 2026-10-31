@@ -1,0 +1,11 @@
+{
+  "icon": "stripped_warped_stem_side",
+  "icon_is_isometric": false,
+  "id": 1198,
+  "name": "STRIPPED_WARPED_STEM",
+  "textures": {
+    "bottom": "stripped_warped_stem_top",
+    "side": "stripped_warped_stem_side",
+    "top": "stripped_warped_stem_top"
+  }
+}

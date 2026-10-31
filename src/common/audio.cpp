@@ -11,53 +11,53 @@ static const char *block_material( int block_id ) {
     switch ( block_id ) {
     // Soil + vegetation (leaves, flowers, crops, TNT) -> grass
     case GRASS:
-    case GRASS_SIDE:
+
     case SNOWY_GRASS:
     case MYCELIUM:
-    case MYCELIUM_SIDE:
-    case PODZEL:
-    case PODZEL_SIDE:
+
+    case PODZOL:
+
     case TNT:
-    case TNT_TOP:
-    case TNT_BOTTOM:
-    case SPIDER_WEB:
+
+
+    case WEB:
     case FIRE:
-    case LEAF:
-    case BIRTCH_LEAVES:
-    case PINE_LEAF:
-    case JUNGLE_LEAF:
+    case OAK_LEAVES:
+    case BIRCH_LEAVES:
+    case SPRUCE_LEAVES:
+    case JUNGLE_LEAVES:
     case RED_FLOWER:
-    case YELLOW_FLOWER:
-    case BLUE_FLOWER:
-    case POPPY_FLOWER:
+    case DANDELION:
+    case BLUE_ORCHID:
+    case POPPY:
     case LARGE_BLUE_FLOWER:
-    case LARGE_PURPLE_FLOWER:
-    case LARGE_WHITE_FLOWER:
+    case PEONY:
+    case AZURE_BLUET:
     case RED_TULIP:
     case ORANGE_TULIP:
     case WHITE_TULIP:
     case PINK_TULIP:
     case SMALL_SUNFLOWER:
-    case LARGE_SUNFLOWER:
-    case SMALL_LILLIC_FLOWER:
-    case SAPPLING:
+    case SUNFLOWER:
+    case LILY_OF_THE_VALLEY:
+    case OAK_SAPLING:
     case JUNGLE_SAPLING:
-    case BIRTCH_SAPPLING:
-    case DARK_OAK_SAPPLING:
-    case FAT_OAK_SAPPLING:
-    case ACACIA_SAPPLING:
-    case LIGHT_DEAD_SAPPLING:
-    case DARK_DEAD_SAPPLING:
-    case GARBAGE_SAPPLING:
-    case BIRTCH_SAPLING_IN_POT:
-    case OAK_SAPPLING_IN_POT:
-    case LIGHT_DEAD_SAPPLING_IN_POT:
-    case PINE_SAPPLING_IN_POT:
-    case DARK_OAK_SAPPLING_IN_POT:
-    case WHITE_FLOWER_SAPPLING_IN_POT:
+    case BIRCH_SAPLING:
+    case DARK_OAK_SAPLING:
+    case FAT_OAK_SAPLING:
+    case ACACIA_SAPLING:
+    case DEADBUSH:
+    case DARK_DEAD_SAPLING:
+    case GARBAGE_SAPLING:
+    case BIRCH_SAPLING_IN_POT:
+    case OAK_SAPLING_IN_POT:
+    case LIGHT_DEAD_SAPLING_IN_POT:
+    case SPRUCE_SAPLING_IN_POT:
+    case DARK_OAK_SAPLING_IN_POT:
+    case WHITE_FLOWER_SAPLING_IN_POT:
     case RED_FLOWER_IN_POT:
-    case GRASS_TUFT:
-    case GRASS_TUFT2:
+    case SHORT_GRASS:
+    case FERN:
     case GRASS_TUFT3:
     case GRASS_TUFT4:
     case WHEAT_0:
@@ -73,14 +73,14 @@ static const char *block_material( int block_id ) {
     case CARROT_2:
     case CARROT_3:
     case CARROT_4:
-    case REED:
-    case LILLYPAD:
-    case MELLON_STEM:
+    case REEDS:
+    case WATERLILY:
+    case MELON_STEM:
     case NETHER_WART_1:
     case NETHER_WART_2:
     case NETHER_WART_3:
-    case CHORUS_0:
-    case CHORUS_1:
+    case CHORUS_PLANT:
+    case CHORUS_FLOWER:
     case CHORUS_2:
     case RED_MUSHROOM:
     case BROWN_MUSHROOM:
@@ -90,99 +90,98 @@ static const char *block_material( int block_id ) {
     case GRAVEL:
         return "gravel";
     case SAND:
-    case ORANGE_SAND:
+    case RED_SAND:
         return "sand";
     case SNOW:
         return "snow";
     // Logs, planks, wooden parts, chests, work stations, torches
-    case OAK_PLANK:
+    case OAK_PLANKS:
     case OAK_LOG:
-    case OAK_LOG_TOP:
+
     case OAK_SLAB:
-    case DOUBLE_SLAB:
-    case SLAB_TOP:
-    case PINE_PLANK:
-    case BIRTCH_PLANK:
-    case JUNGLE_PLANK:
-    case ACACIA_PLANK:
-    case DARK_OAK_PLANK:
-    case BIRTCH_LOG:
-    case BIRTCH_LOG_TOP:
+    case DOUBLE_STONE_SLAB:
+
+    case SPRUCE_PLANKS:
+    case BIRCH_PLANKS:
+    case JUNGLE_PLANKS:
+    case ACACIA_PLANKS:
+    case DARK_OAK_PLANKS:
+    case BIRCH_LOG:
+
     case JUNGLE_LOG:
-    case JUNGLE_LOG_TOP:
+
     case ACACIA_LOG:
-    case ACACIA_LOG_TOP:
+
     case DARK_OAK_LOG:
-    case DARK_OAK_LOG_TOP:
-    case PINE_SLAB:
-    case BIRTCH_SLAB:
+    case SPRUCE_SLAB:
+    case BIRCH_SLAB:
     case JUNGLE_SLAB:
     case ACACIA_SLAB:
     case DARK_OAK_SLAB:
-    case OAK_BUTTON:
-    case PINE_BUTTON:
-    case BIRTCH_BUTTON:
+    case WOODEN_BUTTON:
+    case SPRUCE_BUTTON:
+    case BIRCH_BUTTON:
     case JUNGLE_BUTTON:
     case ACACIA_BUTTON:
     case DARK_OAK_BUTTON:
-    case PINE_PRESSURE_PLATE:
-    case BIRTCH_PRESSURE_PLATE:
+    case SPRUCE_PRESSURE_PLATE:
+    case BIRCH_PRESSURE_PLATE:
     case JUNGLE_PRESSURE_PLATE:
     case ACACIA_PRESSURE_PLATE:
     case DARK_OAK_PRESSURE_PLATE:
-    case CRAFTING_BENCH:
-    case CRAFTING_BENCH_SIDE1:
-    case CRAFTING_BENCH_SIDE2:
-    case BOOK_CASE:
+    case CRAFTING_TABLE:
+
+
+    case BOOKSHELF:
     case BED:
-    case BEAT:
+    case BEETROOT:
     case TORCH:
     case BURNT_OUT_TORCH:
     case BLACK_TORCH:
     case BLUE_TORCH:
-    case EMPTY_POT:
+    case FLOWER_POT:
     case CACTUS_IN_POT:
-    case SINGLE_CHEST_TOP:
-    case CHEST_SIDE:
+
+
     case SINGLE_CHEST_LATCH:
     case DOUBLE_CHEST_LEFT_LATCH:
     case DOUBLE_CHEST_RIGHT_LATCH:
-    case DOUBLE_CHEST_RIGHT_BACK:
-    case DOUBLE_CHEST_LEFT_BACK:
-    case DOUBLE_CHEST_RIGHT_SIDE:
-    case DOUBLE_CHEST_RIGHT_TOP:
-    case DOUBLE_CHEST_LEFT_TOP:
+
+
+
+
+
         return "wood";
     // Sea life -> coral
-    case BLUE_CORAL:
-    case BLUE_CORAL2:
-    case PURPLE_CORAL:
+    case TUBE_CORAL:
+    case TUBE_CORAL_FAN:
+    case BUBBLE_CORAL:
     case PURPLE_CORAL2:
-    case PURPLE_CORAL3:
-    case RED_CORAL:
-    case RED_CORAL2:
-    case YELLOW_CORAL:
-    case YELLOW_CORAL2:
-    case UNDERWATER_TUFT_SHORT:
+    case BUBBLE_CORAL_FAN:
+    case FIRE_CORAL:
+    case FIRE_CORAL_FAN:
+    case HORN_CORAL:
+    case HORN_CORAL_FAN:
+    case SEAGRASS:
     case UNDERWATER_TUFT_TALL:
-    case SEAWEED:
+    case KELP:
         return "coral";
     // Glass + glowstone + lamps shatter
     case GLASS:
     case GLASS_PANE:
-    case GLASS_BLACK:
-    case GLASS_BLUE:
-    case GLASS_BROWN:
-    case GLASS_LIGHT_BLUE:
-    case GLASS_GRAY:
-    case GLASS_DARK_GREEN:
-    case GLASS_LIGHT_GREEN:
+    case BLACK_STAINED_GLASS:
+    case BLUE_STAINED_GLASS:
+    case BROWN_STAINED_GLASS:
+    case LIGHT_BLUE_STAINED_GLASS:
+    case GRAY_STAINED_GLASS:
+    case GREEN_STAINED_GLASS:
+    case LIME_STAINED_GLASS:
     case GLASS_TINT_GREEN:
     case GLASS_PALE_BLUE:
-    case GLASS_WHITE:
+    case WHITE_STAINED_GLASS:
     case GLOWSTONE:
     case REDSTONE_LAMP:
-    case REDSTONE_LAMP_POWERED:
+    case LIT_REDSTONE_LAMP:
         return "glass";
     case LADDER:
         return "ladder";

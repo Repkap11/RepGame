@@ -1,0 +1,11 @@
+{
+  "icon": "stripped_crimson_stem_side",
+  "icon_is_isometric": false,
+  "id": 1182,
+  "name": "STRIPPED_CRIMSON_STEM",
+  "textures": {
+    "bottom": "stripped_crimson_stem_top",
+    "side": "stripped_crimson_stem_side",
+    "top": "stripped_crimson_stem_top"
+  }
+}

@@ -1,0 +1,31 @@
+{
+  "casts_shadow": false,
+  "collides_with_player": false,
+  "icon_is_isometric": false,
+  "id": 237,
+  "name": "PLAYER_HEAD",
+  "offset": [
+    4,
+    0,
+    4
+  ],
+  "rotate_on_placement": true,
+  "scale": [
+    8,
+    8,
+    8
+  ],
+  "tex_offset": [
+    -4,
+    -4,
+    -4
+  ],
+  "textures": {
+    "back": "player_head",
+    "bottom": "player_head",
+    "front": "player_head",
+    "left": "player_head",
+    "right": "player_head",
+    "top": "player_head"
+  }
+}

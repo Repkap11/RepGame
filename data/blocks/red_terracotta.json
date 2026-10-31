@@ -1,0 +1,9 @@
+{
+  "icon": "hardened_clay_stained_red",
+  "icon_is_isometric": false,
+  "id": 1081,
+  "name": "RED_TERRACOTTA",
+  "textures": {
+    "all": "hardened_clay_stained_red"
+  }
+}

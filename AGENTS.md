@@ -392,6 +392,82 @@ manifest anymore.
 - `REPGAME_MUSIC_GAP` — max seconds of silence between tracks (default
   240; gap is uniform in `[gap/4, gap]`, `0` = continuous shuffle).
 
+## Blocks & textures (data-driven)
+
+Block definitions live one JSON file per `BlockID` in `data/blocks/<name>.json`.
+`id` is the persisted/network block id — never renumber; `LAST_BLOCK_ID` is
+2047 (the maximum `BlockCell` can hold via `BLOCK_CELL_ID_MASK`). Ids may
+contain gaps — `block_id_defined()`/`BLOCK_DEFINED_BITS` reports which ids
+have a file; undefined ids get the C++ defaults (`is_pickable=false`, all
+faces `TEX_AIR`) so creative skips them. **Id 1249 is permanently reserved**:
+it was the empty-slot sentinel in pre-2047 saves and the importer fails if
+any file claims it; load paths map it to empty (`save_slot_id_is_empty`) /
+`AIR` (`save_chunk_block_id`), and `NET_PROTOCOL_VERSION` was bumped for the
+new id space. Removing a block frees its id for reuse — old saves holding a
+removed id get the AIR/empty migration paths (the file name must equal the
+lowercased `name`). Face keys in `"textures"`: `all`, `side`,
+`top`, `bottom`, `left`, `right`, `front`, `back` (specific beats `side` beats
+`all`, mapped to the `FACE_*` constants); `"icon"` names the non-isometric
+inventory texture and implies `icon_is_isometric=false`. Remaining keys are
+snake_case `Block` fields — unknown keys are a hard error; fields equal to the
+defaults are omitted. `"aliases"` lists extra enum names for the same id.
+
+Texture layers are independent `TextureID`s. `data/textures/<name>.png` holds
+repo-authored 16x16 tiles; `data/textures.json` carries per-texture metadata:
+
+- `source` — override image source. `textures/...` paths are relative to the
+  Bedrock resource pack root (extensionless, `.png`/`.tga` auto-detected);
+  plain names try `data/textures/`, `textures/blocks/*.png|tga`, then
+  `textures/items/`.
+- `frame` — index into a vertically stacked flipbook (default 0); the crop
+  must be 16x16 after framing.
+- `tint` — `"#rrggbb"` multiplied into RGB only (alpha preserved).
+- `alpha` — `0..255` written into every nonzero-alpha pixel (transparent
+  pixels stay 0). For Bedrock sources that are opaque where our tile was
+  translucent (e.g. `water_still` vs `water`).
+- `random_rotate` — tile participates in per-block random rotation.
+- `keep` — pack even when no block references it (e.g. `player_selection`).
+
+`make bedrock-samples` clones Mojang's bedrock-samples (pinned
+`BEDROCK_SAMPLES_TAG`) into `bedrock-samples/` (git-ignored);
+`make blocks-import` runs `tools/blocks_import.py` with
+`BEDROCK_SAMPLES=bedrock-samples/resource_pack` and regenerates the committed
+outputs (idempotent/deterministic — a dirty diff after rerun is a bug):
+
+- `include/common/block_ids_gen.hpp` — `BlockID` enum, explicit values + aliases
+- `include/common/texture_ids_gen.hpp` — `#define`-only `TEX_<NAME>` layer ids
+  (safe for the shader preprocessor; compare as `uint(TEX_*)` in GLSL), plus
+  `TEXTURE_COUNT`, `TEXTURE_ROTATABLE_COUNT`, `BLOCK_TEXTURE_ATLAS_ROWS`
+- `src/common/block_definitions_gen.inc` — all 6 `textures[]` + `icon_texture`
+  per block plus non-default fields
+- `bitmaps/blocks.png` — 24-column atlas, layer `i` at col `i%24`, row `i/24`
+
+Layer order is deterministic: `random_rotate` textures first (name-sorted),
+then the rest name-sorted, so the vertex shader tests
+`texture_id < uint(TEXTURE_ROTATABLE_COUNT)` — all layers are 0-based end to
+end. Adding a block = add `data/blocks/foo.json` (+ tile under
+`data/textures/` or a `source` in `textures.json`), `make blocks-import`,
+rebuild. `make mobs-import` similarly regenerates `mob_models_gen.hpp` +
+`mobs.png` from `tools/mobs_manifest.txt` (see Mobs). For scripting,
+`BLOCKS_IMPORT_DATA_DIR` / `BLOCKS_IMPORT_OUT_DIR` redirect the importer's
+input/output (used for testing against a copy of `data/`). `TEXTURE_COUNT`
+must stay ≤ 2048 (GLES3 guarantees far fewer layers; the importer enforces
+it — today it is ~1020).
+
+New blocks get their property set by render class, copied from a template
+block rather than hand-tuned: opaque cubes use the defaults; binary-cutout
+tiles copy `GLASS`/leaves (see-through, `should_draw_*` off);
+partial-alpha tiles copy a translucent template like `GLASS_LIGHT_BLUE`;
+cross-quad plants copy the `Flowers` render template. Unrenderable shapes
+(stairs, fences, walls, doors, signs, beds, rails, panes, trapdoors...) are
+placeholder full cubes until a render class exists for them. Default
+hardness is 1.5. Light emitters set `emits_light` and mirror the torch-style
+flags (`no_light`, `casts_shadow:false`): sea_lantern/lantern/shroomlight/
+lit_pumpkin/beacon/conduit/froglights/campfire/end_gateway/end_portal 15,
+soul_* 10, magma 3, crying_obsidian 10, glowingobsidian 12, glow_lichen 7,
+sculk_catalyst 6, amethyst cluster/buds 5/4/2/1, brewing_stand 1,
+lit redstone ores 9, cave_vines_*_with_berries 14, firefly_bush 2.
+
 ## Mobs
 
 Client-local passive mobs (pigs) plus network-driven remote players
@@ -437,7 +513,8 @@ Adding a mob:
 1. Add a line to `tools/mobs_manifest.txt`:
    `name|geo_file|geometry_id|skin1,skin2,...[|bone=rx,ry,rz;...]` —
    `geo_file`/`skin` paths are under `BEDROCK_SAMPLES`
-   (`/home/paul/Software/bedrock-samples/resource_pack` by default), the
+   (`bedrock-samples/resource_pack` in the repo by default — see
+   "Blocks & textures"), the
    trailing field overrides rest-pose bone rotations that Bedrock keeps in
    animation files (the pig's `body=-90,0,0` comes from
    `animation.pig.setup.v1.0`; with `+90` the body cube swings up and back

@@ -1,0 +1,9 @@
+{
+  "icon": "blue_ice",
+  "icon_is_isometric": false,
+  "id": 188,
+  "name": "BLUE_ICE",
+  "textures": {
+    "all": "blue_ice"
+  }
+}

@@ -1,0 +1,11 @@
+{
+  "icon": "purpur_pillar",
+  "icon_is_isometric": false,
+  "id": 1031,
+  "name": "PURPUR_PILLAR",
+  "textures": {
+    "bottom": "purpur_pillar_top",
+    "side": "purpur_pillar",
+    "top": "purpur_pillar_top"
+  }
+}

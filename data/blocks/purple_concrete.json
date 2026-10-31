@@ -1,0 +1,9 @@
+{
+  "icon": "concrete_purple",
+  "icon_is_isometric": false,
+  "id": 1015,
+  "name": "PURPLE_CONCRETE",
+  "textures": {
+    "all": "concrete_purple"
+  }
+}

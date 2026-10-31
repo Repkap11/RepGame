@@ -1,0 +1,9 @@
+{
+  "icon": "bamboo_planks",
+  "icon_is_isometric": false,
+  "id": 102,
+  "name": "BAMBOO_SLAB",
+  "textures": {
+    "all": "bamboo_planks"
+  }
+}

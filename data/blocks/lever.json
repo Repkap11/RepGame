@@ -1,0 +1,18 @@
+{
+  "casts_shadow": false,
+  "hardness": 0.35,
+  "icon": "lever",
+  "icon_is_isometric": false,
+  "id": 677,
+  "is_seethrough": true,
+  "name": "LEVER",
+  "no_light": 6815743,
+  "textures": {
+    "back": "lever",
+    "bottom": "lever",
+    "front": "lever",
+    "left": "lever",
+    "right": "cobblestone",
+    "top": "lever"
+  }
+}

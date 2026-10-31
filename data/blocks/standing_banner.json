@@ -1,0 +1,9 @@
+{
+  "icon": "planks_oak",
+  "icon_is_isometric": false,
+  "id": 1160,
+  "name": "STANDING_BANNER",
+  "textures": {
+    "all": "planks_oak"
+  }
+}

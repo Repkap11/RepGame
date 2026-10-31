@@ -1,0 +1,14 @@
+{
+  "affected_by_redstone_power": false,
+  "casts_shadow": false,
+  "hardness": 0.449999988,
+  "icon": "glass_red",
+  "icon_is_isometric": false,
+  "id": 1079,
+  "is_seethrough": true,
+  "name": "RED_STAINED_GLASS",
+  "render_order": "Translucent",
+  "textures": {
+    "all": "glass_red"
+  }
+}

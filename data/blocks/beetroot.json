@@ -1,0 +1,22 @@
+{
+  "affected_by_redstone_power": false,
+  "breaks_in_liquid": true,
+  "casts_shadow": false,
+  "collides_with_player": false,
+  "hardness": 0,
+  "icon": "beetroots_stage_3",
+  "icon_is_isometric": false,
+  "id": 467,
+  "is_seethrough": true,
+  "name": "BEETROOT",
+  "needs_place_on_any_solid": {
+    "top": true
+  },
+  "no_light": 0,
+  "render_order": "Flowers",
+  "textures": {
+    "bottom": "air",
+    "side": "beetroots_stage_3",
+    "top": "air"
+  }
+}

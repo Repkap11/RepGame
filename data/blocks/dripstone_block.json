@@ -1,0 +1,9 @@
+{
+  "icon": "dripstone_block",
+  "icon_is_isometric": false,
+  "id": 542,
+  "name": "DRIPSTONE_BLOCK",
+  "textures": {
+    "all": "dripstone_block"
+  }
+}

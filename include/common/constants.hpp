@@ -230,8 +230,6 @@ static_assert( CHUNK_RADIUS_Y > 0, "CHUNK_RADIUS_Y too small" );
 #define NO_LIGHT_NO_DRAW 0x6fffff
 #define NO_LIGHT_BRIGHT 0
 
-#define MAX_ROTATABLE_BLOCK 100
-
 // Bounded timeout for the background TCP connect attempt to a multiplayer
 // server. Prevents the OS default (~75s+) from stalling if SYNs are silently
 // dropped by a down/unreachable host.

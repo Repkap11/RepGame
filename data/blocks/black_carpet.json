@@ -1,0 +1,9 @@
+{
+  "icon": "wool_colored_black",
+  "icon_is_isometric": false,
+  "id": 152,
+  "name": "BLACK_CARPET",
+  "textures": {
+    "all": "wool_colored_black"
+  }
+}

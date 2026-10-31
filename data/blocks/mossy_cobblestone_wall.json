@@ -1,0 +1,9 @@
+{
+  "icon": "cobblestone_mossy",
+  "icon_is_isometric": false,
+  "id": 784,
+  "name": "MOSSY_COBBLESTONE_WALL",
+  "textures": {
+    "all": "cobblestone_mossy"
+  }
+}

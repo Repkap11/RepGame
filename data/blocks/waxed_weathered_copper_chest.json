@@ -1,0 +1,14 @@
+{
+  "icon": "weathered_copper_chest_inventory_top",
+  "icon_is_isometric": false,
+  "id": 1338,
+  "name": "WAXED_WEATHERED_COPPER_CHEST",
+  "textures": {
+    "back": "weathered_copper_chest_inventory_side",
+    "bottom": "weathered_copper_chest_inventory_top",
+    "front": "weathered_copper_chest_inventory_front",
+    "left": "weathered_copper_chest_inventory_side",
+    "right": "weathered_copper_chest_inventory_side",
+    "top": "weathered_copper_chest_inventory_top"
+  }
+}

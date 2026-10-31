@@ -1,0 +1,14 @@
+{
+  "icon": "smoker_top",
+  "icon_is_isometric": false,
+  "id": 1119,
+  "name": "SMOKER",
+  "textures": {
+    "back": "smoker_side",
+    "bottom": "smoker_bottom",
+    "front": "smoker_front_off",
+    "left": "smoker_side",
+    "right": "smoker_side",
+    "top": "smoker_top"
+  }
+}

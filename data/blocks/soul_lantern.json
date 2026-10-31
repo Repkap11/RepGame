@@ -1,0 +1,14 @@
+{
+  "casts_shadow": false,
+  "emits_light": 10,
+  "hardness": 0.35,
+  "icon": "soul_lantern",
+  "icon_is_isometric": false,
+  "id": 1139,
+  "is_seethrough": true,
+  "name": "SOUL_LANTERN",
+  "no_light": 6815743,
+  "textures": {
+    "all": "soul_lantern"
+  }
+}

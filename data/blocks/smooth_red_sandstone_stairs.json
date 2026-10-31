@@ -1,0 +1,9 @@
+{
+  "icon": "red_sandstone_top",
+  "icon_is_isometric": false,
+  "id": 1127,
+  "name": "SMOOTH_RED_SANDSTONE_STAIRS",
+  "textures": {
+    "all": "red_sandstone_top"
+  }
+}

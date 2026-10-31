@@ -1,0 +1,9 @@
+{
+  "icon": "concrete_green",
+  "icon_is_isometric": false,
+  "id": 624,
+  "name": "GREEN_CONCRETE_SLAB",
+  "textures": {
+    "all": "concrete_green"
+  }
+}

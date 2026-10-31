@@ -1,0 +1,11 @@
+{
+  "icon": "sandstone_smooth",
+  "icon_is_isometric": false,
+  "id": 424,
+  "name": "CUT_SANDSTONE",
+  "textures": {
+    "bottom": "sandstone_top",
+    "side": "sandstone_smooth",
+    "top": "sandstone_top"
+  }
+}

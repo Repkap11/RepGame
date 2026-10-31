@@ -1,0 +1,33 @@
+{
+  "casts_shadow": false,
+  "collides_with_player": false,
+  "hardness": 0.5,
+  "icon_is_isometric": false,
+  "id": 124,
+  "is_seethrough": true,
+  "name": "LADDER",
+  "needs_place_on_any_solid": {
+    "front": true
+  },
+  "offset": [
+    1,
+    0,
+    0
+  ],
+  "rotate_on_placement": true,
+  "scale": [
+    14,
+    16,
+    1
+  ],
+  "tex_offset": [
+    -5,
+    0,
+    -1
+  ],
+  "textures": {
+    "bottom": "ladder_top",
+    "side": "ladder",
+    "top": "ladder_top"
+  }
+}

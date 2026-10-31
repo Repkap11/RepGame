@@ -1,0 +1,9 @@
+{
+  "icon": "stone_diorite_smooth",
+  "icon_is_isometric": false,
+  "id": 954,
+  "name": "POLISHED_DIORITE_STAIRS",
+  "textures": {
+    "all": "stone_diorite_smooth"
+  }
+}

@@ -1,0 +1,13 @@
+{
+  "hardness": 0.75,
+  "id": 28,
+  "name": "GRAVEL",
+  "textures": {
+    "back": "gravel",
+    "bottom": "gravel",
+    "front": "gravel",
+    "left": "gravel",
+    "right": "gravel",
+    "top": "gravel"
+  }
+}

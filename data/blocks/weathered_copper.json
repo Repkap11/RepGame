@@ -1,0 +1,9 @@
+{
+  "icon": "weathered_copper",
+  "icon_is_isometric": false,
+  "id": 1350,
+  "name": "WEATHERED_COPPER",
+  "textures": {
+    "all": "weathered_copper"
+  }
+}

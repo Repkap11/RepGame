@@ -1,0 +1,9 @@
+{
+  "icon": "coarse_dirt",
+  "icon_is_isometric": false,
+  "id": 315,
+  "name": "COARSE_DIRT",
+  "textures": {
+    "all": "coarse_dirt"
+  }
+}

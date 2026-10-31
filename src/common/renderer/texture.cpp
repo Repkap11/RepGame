@@ -67,7 +67,7 @@ static unsigned char *readFileBytes( const char *filename, int *out_len ) {
 #if defined( REPGAME_ANDROID )
 static CachedTexture readTextureDataFromCache( const char *filename ) {
     pr_debug( "Returning texture for %s", filename );
-    if ( strcmp( filename, "bitmaps/textures.bin" ) == 0 )
+    if ( strcmp( filename, "bitmaps/blocks.bin" ) == 0 )
         return cached_texture[ 0 ];
     if ( strcmp( filename, "bitmaps/sky4.bin" ) == 0 )
         return cached_texture[ 1 ];

@@ -1,0 +1,33 @@
+{
+  "casts_shadow": false,
+  "hardness": 0.449999988,
+  "icon": "glass_pane_top",
+  "icon_is_isometric": true,
+  "id": 221,
+  "is_seethrough": true,
+  "name": "GLASS_PANE",
+  "offset": [
+    0,
+    0,
+    7
+  ],
+  "rotate_on_placement": true,
+  "scale": [
+    16,
+    16,
+    2
+  ],
+  "tex_offset": [
+    -7,
+    0,
+    0
+  ],
+  "textures": {
+    "back": "glass",
+    "bottom": "glass_pane_top",
+    "front": "glass",
+    "left": "glass_pane_top",
+    "right": "glass_pane_top",
+    "top": "glass_pane_top"
+  }
+}

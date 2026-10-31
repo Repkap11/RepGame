@@ -1,0 +1,13 @@
+{
+  "casts_shadow": false,
+  "hardness": 0.35,
+  "icon": "candle",
+  "icon_is_isometric": false,
+  "id": 242,
+  "is_seethrough": true,
+  "name": "CANDLE",
+  "no_light": 6815743,
+  "textures": {
+    "all": "candle"
+  }
+}

@@ -1,0 +1,13 @@
+{
+  "hardness": 4,
+  "id": 32,
+  "name": "GOLD_BLOCK",
+  "textures": {
+    "back": "gold_block",
+    "bottom": "gold_block",
+    "front": "gold_block",
+    "left": "gold_block",
+    "right": "gold_block",
+    "top": "gold_block"
+  }
+}

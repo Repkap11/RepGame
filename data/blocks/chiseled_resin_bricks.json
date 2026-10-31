@@ -1,0 +1,9 @@
+{
+  "icon": "chiseled_resin_bricks",
+  "icon_is_isometric": false,
+  "id": 288,
+  "name": "CHISELED_RESIN_BRICKS",
+  "textures": {
+    "all": "chiseled_resin_bricks"
+  }
+}

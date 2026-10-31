@@ -1,0 +1,14 @@
+{
+  "hardness": -1,
+  "id": 26,
+  "name": "BEDROCK",
+  "piston_immovable": true,
+  "textures": {
+    "back": "bedrock",
+    "bottom": "bedrock",
+    "front": "bedrock",
+    "left": "bedrock",
+    "right": "bedrock",
+    "top": "bedrock"
+  }
+}

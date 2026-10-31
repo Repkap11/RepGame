@@ -1,0 +1,14 @@
+{
+  "icon": "oxidized_copper_chest_inventory_top",
+  "icon_is_isometric": false,
+  "id": 1322,
+  "name": "WAXED_OXIDIZED_COPPER_CHEST",
+  "textures": {
+    "back": "oxidized_copper_chest_inventory_side",
+    "bottom": "oxidized_copper_chest_inventory_top",
+    "front": "oxidized_copper_chest_inventory_front",
+    "left": "oxidized_copper_chest_inventory_side",
+    "right": "oxidized_copper_chest_inventory_side",
+    "top": "oxidized_copper_chest_inventory_top"
+  }
+}

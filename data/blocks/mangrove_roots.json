@@ -1,0 +1,15 @@
+{
+  "casts_shadow": false,
+  "hardness": 0.35,
+  "icon": "mangrove_roots_side",
+  "icon_is_isometric": false,
+  "id": 767,
+  "is_seethrough": true,
+  "name": "MANGROVE_ROOTS",
+  "no_light": 6815743,
+  "textures": {
+    "bottom": "mangrove_roots_top",
+    "side": "mangrove_roots_side",
+    "top": "mangrove_roots_top"
+  }
+}

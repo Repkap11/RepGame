@@ -216,7 +216,7 @@ int MapStorage::load_chests( const glm::ivec3 &chunk_offset, ChestContentsMap &o
             memcpy( contents.slots, record + slot_prefix, slot_bytes );
         }
         for ( int s = 0; s < CHEST_SLOTS; s++ ) {
-            if ( contents.slots[ s ].block_id >= LAST_BLOCK_ID ) {
+            if ( save_slot_id_is_empty( contents.slots[ s ].block_id ) ) {
                 contents.slots[ s ].block_id = LAST_BLOCK_ID;
                 contents.slots[ s ].quantity = 0;
             }
@@ -356,9 +356,16 @@ int load_blocks_decode( MapStorage &storage, const glm::ivec3 &chunk_offset, Sin
                 blockState.display_id = blockState.id;
             }
         }
+        if ( blockState.id == LEGACY_EMPTY_BLOCK_ID ) {
+            // Pre-2047 saves stored the empty sentinel as a real id.
+            blockState = BLOCK_STATE_AIR;
+        }
+        if ( blockState.display_id == LEGACY_EMPTY_BLOCK_ID ) {
+            blockState.display_id = blockState.id;
+        }
         if ( !expect_empty_blocks && blockState.id >= LAST_BLOCK_ID ) {
             pr_debug( "Got strange block in %s :%d", file_name, blockState.id );
-            // blockState.id = GOLD_BLOCK;
+            blockState = BLOCK_STATE_AIR;
         }
         for ( unsigned int j = 0; j < block_storage_num; j++ ) {
             sink( block_index++, blockState );
@@ -447,6 +454,16 @@ struct __attribute__( ( packed ) ) PlayerDataNoDistance {
     long world_time;
 };
 
+static void sanitize_slots( InventorySlot *slots, int count ) {
+    for ( int i = 0; i < count; i++ ) {
+        InventorySlot &slot = slots[ i ];
+        if ( save_slot_id_is_empty( slot.block_id ) ) {
+            slot.block_id = LAST_BLOCK_ID;
+            slot.quantity = 0;
+        }
+    }
+}
+
 int MapStorage::read_player_data( PlayerData &player_data ) {
     char file_name[ CHUNK_NAME_MAX_LENGTH ];
     snprintf( file_name, CHUNK_NAME_MAX_LENGTH, FILE_ROOT_PLAYER_DATA, this->map_name );
@@ -462,12 +479,16 @@ int MapStorage::read_player_data( PlayerData &player_data ) {
     pr_debug( "Read player data:%s (%d bytes)", file_name, ( int )persist_data_length );
     if ( persist_data_length == sizeof( PlayerData ) ) {
         memcpy( &player_data, buffer, sizeof( PlayerData ) );
+        sanitize_slots( player_data.hotbar_inventory, HOTBAR_WIDTH * HOTBAR_HEIGHT );
+        sanitize_slots( player_data.survival_inventory, SURVIVAL_INVENTORY_WIDTH * SURVIVAL_INVENTORY_HEIGHT );
         return 1;
     }
     if ( persist_data_length == sizeof( PlayerDataNoDistance ) ) {
         // Saves from before render_distance existed: strict prefix of
         // PlayerData; render_distance stays 0 (absent) from the memset.
         memcpy( &player_data, buffer, sizeof( PlayerDataNoDistance ) );
+        sanitize_slots( player_data.hotbar_inventory, HOTBAR_WIDTH * HOTBAR_HEIGHT );
+        sanitize_slots( player_data.survival_inventory, SURVIVAL_INVENTORY_WIDTH * SURVIVAL_INVENTORY_HEIGHT );
         return 1;
     }
     if ( persist_data_length == sizeof( PlayerDataNoTime ) ) {
@@ -487,6 +508,8 @@ int MapStorage::read_player_data( PlayerData &player_data ) {
         player_data.selected_hotbar_slot = legacy.selected_hotbar_slot;
         player_data.game_mode = legacy.game_mode;
         memcpy( player_data.survival_inventory, legacy.survival_inventory, sizeof( legacy.survival_inventory ) );
+        sanitize_slots( player_data.hotbar_inventory, HOTBAR_WIDTH * HOTBAR_HEIGHT );
+        sanitize_slots( player_data.survival_inventory, SURVIVAL_INVENTORY_WIDTH * SURVIVAL_INVENTORY_HEIGHT );
         return 1;
     }
     if ( persist_data_length == sizeof( PlayerDataLegacy ) ) {
@@ -504,6 +527,8 @@ int MapStorage::read_player_data( PlayerData &player_data ) {
         player_data.selected_hotbar_slot = legacy.selected_hotbar_slot;
         player_data.game_mode = legacy.game_mode;
         memcpy( player_data.survival_inventory, legacy.survival_inventory, sizeof( legacy.survival_inventory ) );
+        sanitize_slots( player_data.hotbar_inventory, HOTBAR_WIDTH * HOTBAR_HEIGHT );
+        sanitize_slots( player_data.survival_inventory, SURVIVAL_INVENTORY_WIDTH * SURVIVAL_INVENTORY_HEIGHT );
         return 1;
     }
     pr_debug( "Warning, wrong size player data. Read:%d expected:%d %d %d or %d", ( int )persist_data_length, ( int )sizeof( PlayerData ), ( int )sizeof( PlayerDataNoDistance ), ( int )sizeof( PlayerDataNoTime ), ( int )sizeof( PlayerDataLegacy ) );

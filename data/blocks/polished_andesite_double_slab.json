@@ -1,0 +1,9 @@
+{
+  "icon": "stone_andesite_smooth",
+  "icon_is_isometric": false,
+  "id": 925,
+  "name": "POLISHED_ANDESITE_DOUBLE_SLAB",
+  "textures": {
+    "all": "stone_andesite_smooth"
+  }
+}

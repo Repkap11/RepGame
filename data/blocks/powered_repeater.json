@@ -1,0 +1,11 @@
+{
+  "icon": "stone_slab_top",
+  "icon_is_isometric": false,
+  "id": 990,
+  "name": "POWERED_REPEATER",
+  "textures": {
+    "bottom": "stone_slab_top",
+    "side": "stone_slab_top",
+    "top": "repeater_off"
+  }
+}

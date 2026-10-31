@@ -1,0 +1,11 @@
+{
+  "icon": "quartz_block_lines",
+  "icon_is_isometric": false,
+  "id": 1038,
+  "name": "QUARTZ_PILLAR",
+  "textures": {
+    "bottom": "quartz_block_lines_top",
+    "side": "quartz_block_lines",
+    "top": "quartz_block_lines_top"
+  }
+}

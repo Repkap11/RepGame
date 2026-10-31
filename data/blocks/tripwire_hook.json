@@ -1,0 +1,18 @@
+{
+  "casts_shadow": false,
+  "hardness": 0.35,
+  "icon": "trip_wire_source",
+  "icon_is_isometric": false,
+  "id": 1238,
+  "is_seethrough": true,
+  "name": "TRIPWIRE_HOOK",
+  "no_light": 6815743,
+  "textures": {
+    "back": "trip_wire_source",
+    "bottom": "planks_oak",
+    "front": "trip_wire",
+    "left": "trip_wire",
+    "right": "trip_wire",
+    "top": "trip_wire_source"
+  }
+}

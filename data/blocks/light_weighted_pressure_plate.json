@@ -1,0 +1,9 @@
+{
+  "icon": "gold_block",
+  "icon_is_isometric": false,
+  "id": 710,
+  "name": "LIGHT_WEIGHTED_PRESSURE_PLATE",
+  "textures": {
+    "all": "gold_block"
+  }
+}

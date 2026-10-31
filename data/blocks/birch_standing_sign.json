@@ -1,0 +1,9 @@
+{
+  "icon": "planks_birch",
+  "icon_is_isometric": false,
+  "id": 138,
+  "name": "BIRCH_STANDING_SIGN",
+  "textures": {
+    "all": "planks_birch"
+  }
+}

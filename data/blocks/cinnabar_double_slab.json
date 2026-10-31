@@ -1,0 +1,9 @@
+{
+  "icon": "cinnabar",
+  "icon_is_isometric": false,
+  "id": 308,
+  "name": "CINNABAR_DOUBLE_SLAB",
+  "textures": {
+    "all": "cinnabar"
+  }
+}

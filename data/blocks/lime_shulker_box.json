@@ -1,0 +1,9 @@
+{
+  "icon": "shulker_top_lime",
+  "icon_is_isometric": false,
+  "id": 722,
+  "name": "LIME_SHULKER_BOX",
+  "textures": {
+    "all": "shulker_top_lime"
+  }
+}

@@ -1,0 +1,9 @@
+{
+  "icon": "planks_oak",
+  "icon_is_isometric": false,
+  "id": 827,
+  "name": "OAK_STAIRS",
+  "textures": {
+    "all": "planks_oak"
+  }
+}

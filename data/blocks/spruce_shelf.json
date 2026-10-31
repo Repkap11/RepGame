@@ -1,0 +1,9 @@
+{
+  "icon": "spruce_shelf",
+  "icon_is_isometric": false,
+  "id": 1151,
+  "name": "SPRUCE_SHELF",
+  "textures": {
+    "all": "spruce_shelf"
+  }
+}

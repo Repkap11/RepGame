@@ -1,0 +1,36 @@
+{
+  "affected_by_redstone_power": false,
+  "casts_shadow": false,
+  "collides_with_player": false,
+  "emits_light": 11,
+  "hardness": -1,
+  "hides_self": [
+    true,
+    true,
+    false
+  ],
+  "id": 45,
+  "is_seethrough": true,
+  "name": "PORTAL",
+  "offset": [
+    0,
+    0,
+    6
+  ],
+  "piston_immovable": true,
+  "render_order": "Translucent",
+  "rotate_on_placement": true,
+  "scale": [
+    16,
+    16,
+    4
+  ],
+  "textures": {
+    "back": "portal",
+    "bottom": "portal",
+    "front": "portal",
+    "left": "portal",
+    "right": "portal",
+    "top": "portal"
+  }
+}

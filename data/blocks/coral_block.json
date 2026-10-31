@@ -1,0 +1,9 @@
+{
+  "icon": "coral_blue",
+  "icon_is_isometric": false,
+  "id": 354,
+  "name": "CORAL_BLOCK",
+  "textures": {
+    "all": "coral_blue"
+  }
+}

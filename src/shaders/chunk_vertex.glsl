@@ -16,8 +16,7 @@ uniform float u_FaceGrowPx;
 // Current render-target size in pixels (for the screen-space grow).
 uniform vec2 u_ViewportSize;
 
-#define MAX_ROTATABLE_BLOCK 100u
-uniform float u_RandomRotationBlocks[MAX_ROTATABLE_BLOCK];
+#include "common/texture_ids_gen.hpp"
 
 // See CubeFace in block.h
 // This defines all the triangles of a cube
@@ -252,13 +251,7 @@ void main() {
     // } else {
     //     v_blockID = blockTexture2[ faceType - 3u ];
     // }
-    if(v_blockID >= MAX_ROTATABLE_BLOCK) {
-        // v_blockID is the texture layer (textures[face] - 1): ids >=
-        // MAX_ROTATABLE_BLOCK index past the end of this 100-element array
-        // (e.g. SNOWY_GRASS sides = 100), reading whatever adjacent uniform
-        // the driver hands back and randomly rotating those faces.
-        v_block_auto_rotates = 0;
-    } else {
-        v_block_auto_rotates = int(u_RandomRotationBlocks[v_blockID] == 1.0f);
-    }
+    // v_blockID is the 0-based texture layer; the rotatable textures are
+    // packed first so a layer rotates iff it's below TEXTURE_ROTATABLE_COUNT.
+    v_block_auto_rotates = int(v_blockID < uint(TEXTURE_ROTATABLE_COUNT));
 }

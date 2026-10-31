@@ -1,0 +1,32 @@
+{
+  "casts_shadow": false,
+  "collides_with_player": false,
+  "icon": "whither_skeleton_head",
+  "icon_is_isometric": false,
+  "id": 235,
+  "name": "WITHER_SKELETON_SKULL",
+  "offset": [
+    4,
+    0,
+    4
+  ],
+  "rotate_on_placement": true,
+  "scale": [
+    8,
+    8,
+    8
+  ],
+  "tex_offset": [
+    -4,
+    -4,
+    -4
+  ],
+  "textures": {
+    "back": "whither_skeleton_head",
+    "bottom": "whither_skeleton_head",
+    "front": "whither_skeleton_head",
+    "left": "whither_skeleton_head",
+    "right": "whither_skeleton_head",
+    "top": "whither_skeleton_head"
+  }
+}

@@ -1,0 +1,9 @@
+{
+  "icon": "chiseled_cinnabar",
+  "icon_is_isometric": false,
+  "id": 282,
+  "name": "CHISELED_CINNABAR",
+  "textures": {
+    "all": "chiseled_cinnabar"
+  }
+}

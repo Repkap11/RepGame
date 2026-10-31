@@ -1,0 +1,11 @@
+{
+  "icon": "reinforced_deepslate_side",
+  "icon_is_isometric": false,
+  "id": 1087,
+  "name": "REINFORCED_DEEPSLATE",
+  "textures": {
+    "bottom": "reinforced_deepslate_bottom",
+    "side": "reinforced_deepslate_side",
+    "top": "reinforced_deepslate_top"
+  }
+}

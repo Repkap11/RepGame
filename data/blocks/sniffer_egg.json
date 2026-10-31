@@ -1,0 +1,13 @@
+{
+  "casts_shadow": false,
+  "hardness": 0.35,
+  "icon": "sniffer_egg",
+  "icon_is_isometric": false,
+  "id": 1135,
+  "is_seethrough": true,
+  "name": "SNIFFER_EGG",
+  "no_light": 6815743,
+  "textures": {
+    "all": "sniffer_egg"
+  }
+}

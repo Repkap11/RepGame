@@ -1,0 +1,9 @@
+{
+  "icon": "planks_oak",
+  "icon_is_isometric": false,
+  "id": 922,
+  "name": "PLANKS",
+  "textures": {
+    "all": "planks_oak"
+  }
+}

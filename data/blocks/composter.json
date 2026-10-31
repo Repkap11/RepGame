@@ -1,0 +1,15 @@
+{
+  "casts_shadow": false,
+  "hardness": 0.35,
+  "icon": "composter_side",
+  "icon_is_isometric": false,
+  "id": 329,
+  "is_seethrough": true,
+  "name": "COMPOSTER",
+  "no_light": 6815743,
+  "textures": {
+    "bottom": "composter_bottom",
+    "side": "composter_side",
+    "top": "composter_top"
+  }
+}

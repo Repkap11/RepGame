@@ -1,0 +1,13 @@
+{
+  "hardness": 4,
+  "id": 2,
+  "name": "STONE",
+  "textures": {
+    "back": "stone",
+    "bottom": "stone",
+    "front": "stone",
+    "left": "stone",
+    "right": "stone",
+    "top": "stone"
+  }
+}

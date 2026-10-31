@@ -1,0 +1,9 @@
+{
+  "icon": "concrete_light_blue",
+  "icon_is_isometric": false,
+  "id": 685,
+  "name": "LIGHT_BLUE_CONCRETE_STAIRS",
+  "textures": {
+    "all": "concrete_light_blue"
+  }
+}

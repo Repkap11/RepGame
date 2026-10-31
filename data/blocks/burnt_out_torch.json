@@ -1,0 +1,36 @@
+{
+  "breaks_in_liquid": true,
+  "casts_shadow": false,
+  "collides_with_player": false,
+  "hardness": 0,
+  "icon_is_isometric": false,
+  "id": 145,
+  "is_torch": true,
+  "name": "BURNT_OUT_TORCH",
+  "needs_place_on_any_solid": {
+    "top": true
+  },
+  "offset": [
+    7,
+    0,
+    7
+  ],
+  "scale": [
+    2,
+    10,
+    2
+  ],
+  "tex_offset": [
+    -7,
+    0,
+    -7
+  ],
+  "textures": {
+    "back": "burnt_out_torch",
+    "bottom": "burnt_out_torch",
+    "front": "burnt_out_torch",
+    "left": "burnt_out_torch",
+    "right": "burnt_out_torch",
+    "top": "burnt_out_torch"
+  }
+}

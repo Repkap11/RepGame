@@ -1,0 +1,9 @@
+{
+  "icon": "sponge_wet",
+  "icon_is_isometric": false,
+  "id": 1366,
+  "name": "WET_SPONGE",
+  "textures": {
+    "all": "sponge_wet"
+  }
+}

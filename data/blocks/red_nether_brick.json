@@ -1,0 +1,9 @@
+{
+  "icon": "red_nether_brick",
+  "icon_is_isometric": false,
+  "id": 1069,
+  "name": "RED_NETHER_BRICK",
+  "textures": {
+    "all": "red_nether_brick"
+  }
+}

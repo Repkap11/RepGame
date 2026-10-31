@@ -1,0 +1,16 @@
+{
+  "hardness": 4,
+  "icon": "furnace_front_off",
+  "icon_is_isometric": true,
+  "id": 61,
+  "name": "FURNACE",
+  "rotate_on_placement": true,
+  "textures": {
+    "back": "furnace_side",
+    "bottom": "furnace_top",
+    "front": "furnace_front_off",
+    "left": "furnace_side",
+    "right": "furnace_side",
+    "top": "furnace_top"
+  }
+}

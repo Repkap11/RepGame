@@ -1,0 +1,13 @@
+{
+  "hardness": 4,
+  "id": 34,
+  "name": "EMERALD_BLOCK",
+  "textures": {
+    "back": "emerald_block",
+    "bottom": "emerald_block",
+    "front": "emerald_block",
+    "left": "emerald_block",
+    "right": "emerald_block",
+    "top": "emerald_block"
+  }
+}

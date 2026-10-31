@@ -12,7 +12,7 @@ import sys
 from PIL import Image
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-BEDROCK_SAMPLES = os.environ.get("BEDROCK_SAMPLES", "/home/paul/Software/bedrock-samples/resource_pack")
+BEDROCK_SAMPLES = os.environ.get("BEDROCK_SAMPLES", os.path.join(ROOT, "bedrock-samples", "resource_pack"))
 MANIFEST = os.path.join(ROOT, "tools", "mobs_manifest.txt")
 GEN_HPP = os.path.join(ROOT, "include", "common", "mob_models_gen.hpp")
 OUT_PNG = os.path.join(ROOT, "bitmaps", "mobs.png")

@@ -1,0 +1,11 @@
+{
+  "icon": "jukebox_side",
+  "icon_is_isometric": false,
+  "id": 656,
+  "name": "JUKEBOX",
+  "textures": {
+    "bottom": "jukebox_side",
+    "side": "jukebox_side",
+    "top": "jukebox_top"
+  }
+}

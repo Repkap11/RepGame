@@ -1,0 +1,38 @@
+{
+  "breaks_in_liquid": true,
+  "casts_shadow": false,
+  "collides_with_player": false,
+  "emits_light": 14,
+  "hardness": 0,
+  "icon": "torch_on",
+  "icon_is_isometric": false,
+  "id": 121,
+  "is_torch": true,
+  "name": "TORCH",
+  "needs_place_on_any_solid": {
+    "top": true
+  },
+  "offset": [
+    7,
+    0,
+    7
+  ],
+  "scale": [
+    2,
+    10,
+    2
+  ],
+  "tex_offset": [
+    -7,
+    0,
+    -7
+  ],
+  "textures": {
+    "back": "torch_on",
+    "bottom": "torch_on",
+    "front": "torch_on",
+    "left": "torch_on",
+    "right": "torch_on",
+    "top": "torch_on"
+  }
+}

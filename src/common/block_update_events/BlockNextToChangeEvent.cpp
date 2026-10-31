@@ -15,7 +15,7 @@ BlockNextToChangeEvent::BlockNextToChangeEvent( long tick_number, const glm::ive
 // i.e. the dust would weakly power a solid block in that direction.
 // dir_from_dust points from the dust toward the block being powered.
 // Mapping: x+1=left, x-1=right, z+1=front, z-1=back (matching the connection naming in perform_checks).
-// A dot (REDSTONE_DOT) points nowhere horizontally — it only powers the block below it.
+// A dot (REDSTONE_WIRE_DOT) points nowhere horizontally — it only powers the block below it.
 inline bool dust_points_toward( BlockID display_id, const glm::ivec3 &dir_from_dust ) {
     if ( dir_from_dust.y != 0 ) {
         return false; // vertical power is handled separately
@@ -26,18 +26,18 @@ inline bool dust_points_toward( BlockID display_id, const glm::ivec3 &dir_from_d
     bool points_back  = ( dir_from_dust.z == -1 );    // dust connects toward z-1
 
     switch ( display_id ) {
-        case REDSTONE_CROSS:     return true;
-        case REDSTONE_LINE_1:    return points_left || points_right;
-        case REDSTONE_LINE_2:    return points_front || points_back;
-        case REDSTONE_DUST_L_Q1: return points_right || points_front;  // x-1, z+1
-        case REDSTONE_DUST_L_Q2: return points_left || points_front;   // x+1, z+1
-        case REDSTONE_DUST_L_Q3: return points_left || points_back;    // x+1, z-1
-        case REDSTONE_DUST_L_Q4: return points_right || points_back;   // x-1, z-1
-        case REDSTONE_DUST_T_B:  return points_left || points_right || points_front;  // missing back
-        case REDSTONE_DUST_T_R:  return points_left || points_front || points_back;   // missing right
-        case REDSTONE_DUST_T_F:  return points_right || points_left || points_back;    // missing front
-        case REDSTONE_DUST_T_L:  return points_right || points_front || points_back;   // missing left
-        case REDSTONE_DOT:       return false;  // dot powers only the block below
+        case REDSTONE_WIRE_CROSS:     return true;
+        case REDSTONE_WIRE_LINE_1:    return points_left || points_right;
+        case REDSTONE_WIRE_LINE_2:    return points_front || points_back;
+        case REDSTONE_WIRE_L_Q1: return points_right || points_front;  // x-1, z+1
+        case REDSTONE_WIRE_L_Q2: return points_left || points_front;   // x+1, z+1
+        case REDSTONE_WIRE_L_Q3: return points_left || points_back;    // x+1, z-1
+        case REDSTONE_WIRE_L_Q4: return points_right || points_back;   // x-1, z-1
+        case REDSTONE_WIRE_T_B:  return points_left || points_right || points_front;  // missing back
+        case REDSTONE_WIRE_T_R:  return points_left || points_front || points_back;   // missing right
+        case REDSTONE_WIRE_T_F:  return points_right || points_left || points_back;    // missing front
+        case REDSTONE_WIRE_T_L:  return points_right || points_front || points_back;   // missing left
+        case REDSTONE_WIRE_DOT:       return false;  // dot powers only the block below
         default:                 return true;   // fallback: power all sides
     }
 }
@@ -345,32 +345,32 @@ void perform_checks( BlockUpdateQueue &blockUpdateQueue, World &world, long tick
                 }
 
                 if ( connects_left && connects_right && connects_front && connects_back ) {
-                    new_display_block_id = REDSTONE_CROSS;
+                    new_display_block_id = REDSTONE_WIRE_CROSS;
 
                 } else if ( connects_left && connects_front && connects_right ) {
-                    new_display_block_id = REDSTONE_DUST_T_B;
+                    new_display_block_id = REDSTONE_WIRE_T_B;
                 } else if ( connects_left && connects_front && connects_back ) {
-                    new_display_block_id = REDSTONE_DUST_T_R;
+                    new_display_block_id = REDSTONE_WIRE_T_R;
                 } else if ( connects_right && connects_back && connects_left ) {
-                    new_display_block_id = REDSTONE_DUST_T_F;
+                    new_display_block_id = REDSTONE_WIRE_T_F;
                 } else if ( connects_right && connects_back && connects_front ) {
-                    new_display_block_id = REDSTONE_DUST_T_L;
+                    new_display_block_id = REDSTONE_WIRE_T_L;
 
                 } else if ( connects_left && connects_front ) {
-                    new_display_block_id = REDSTONE_DUST_L_Q2;
+                    new_display_block_id = REDSTONE_WIRE_L_Q2;
                 } else if ( connects_right && connects_back ) {
-                    new_display_block_id = REDSTONE_DUST_L_Q4;
+                    new_display_block_id = REDSTONE_WIRE_L_Q4;
                 } else if ( connects_right && connects_front ) {
-                    new_display_block_id = REDSTONE_DUST_L_Q1;
+                    new_display_block_id = REDSTONE_WIRE_L_Q1;
                 } else if ( connects_left && connects_back ) {
-                    new_display_block_id = REDSTONE_DUST_L_Q3;
+                    new_display_block_id = REDSTONE_WIRE_L_Q3;
                 } else if ( connects_left || connects_right ) {
-                    new_display_block_id = REDSTONE_LINE_1;
+                    new_display_block_id = REDSTONE_WIRE_LINE_1;
                 } else if ( connects_front || connects_back ) {
-                    new_display_block_id = REDSTONE_LINE_2;
+                    new_display_block_id = REDSTONE_WIRE_LINE_2;
                 } else {
                     // No connections: preserve dot state if toggled, otherwise default to cross
-                    new_display_block_id = ( affecting_block_state.display_id == REDSTONE_DOT ) ? REDSTONE_DOT : REDSTONE_CROSS;
+                    new_display_block_id = ( affecting_block_state.display_id == REDSTONE_WIRE_DOT ) ? REDSTONE_WIRE_DOT : REDSTONE_WIRE_CROSS;
                 }
 
                 new_block_state.display_id = new_display_block_id;

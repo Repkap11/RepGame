@@ -1,0 +1,14 @@
+{
+  "icon": "ender_chest_top",
+  "icon_is_isometric": false,
+  "id": 557,
+  "name": "ENDER_CHEST",
+  "textures": {
+    "back": "ender_chest_side",
+    "bottom": "ender_chest_top",
+    "front": "ender_chest_front",
+    "left": "ender_chest_side",
+    "right": "ender_chest_side",
+    "top": "ender_chest_top"
+  }
+}

@@ -1,0 +1,9 @@
+{
+  "icon": "planks_big_oak",
+  "icon_is_isometric": false,
+  "id": 448,
+  "name": "DARK_OAK_FENCE",
+  "textures": {
+    "all": "planks_big_oak"
+  }
+}

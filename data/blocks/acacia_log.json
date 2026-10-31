@@ -1,0 +1,12 @@
+{
+  "hardness": 2,
+  "icon": "log_acacia",
+  "icon_is_isometric": true,
+  "id": 406,
+  "name": "ACACIA_LOG",
+  "textures": {
+    "bottom": "log_acacia_top",
+    "side": "log_acacia",
+    "top": "log_acacia_top"
+  }
+}

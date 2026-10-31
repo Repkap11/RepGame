@@ -1,0 +1,9 @@
+{
+  "icon": "stonebrick_carved",
+  "icon_is_isometric": false,
+  "id": 646,
+  "name": "INFESTED_CHISELED_STONE_BRICKS",
+  "textures": {
+    "all": "stonebrick_carved"
+  }
+}

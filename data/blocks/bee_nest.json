@@ -1,0 +1,14 @@
+{
+  "icon": "bee_nest_top",
+  "icon_is_isometric": false,
+  "id": 114,
+  "name": "BEE_NEST",
+  "textures": {
+    "back": "bee_nest_side",
+    "bottom": "bee_nest_bottom",
+    "front": "bee_nest_front",
+    "left": "bee_nest_side",
+    "right": "bee_nest_side",
+    "top": "bee_nest_top"
+  }
+}

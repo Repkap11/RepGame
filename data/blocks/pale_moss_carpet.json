@@ -1,0 +1,13 @@
+{
+  "casts_shadow": false,
+  "hardness": 0.35,
+  "icon": "pale_moss_carpet_side_base",
+  "icon_is_isometric": false,
+  "id": 880,
+  "is_seethrough": true,
+  "name": "PALE_MOSS_CARPET",
+  "no_light": 6815743,
+  "textures": {
+    "all": "pale_moss_carpet_side_base"
+  }
+}

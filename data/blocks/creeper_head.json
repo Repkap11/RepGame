@@ -1,0 +1,31 @@
+{
+  "casts_shadow": false,
+  "collides_with_player": false,
+  "icon_is_isometric": false,
+  "id": 238,
+  "name": "CREEPER_HEAD",
+  "offset": [
+    4,
+    0,
+    4
+  ],
+  "rotate_on_placement": true,
+  "scale": [
+    8,
+    8,
+    8
+  ],
+  "tex_offset": [
+    -4,
+    -4,
+    -4
+  ],
+  "textures": {
+    "back": "creeper_head",
+    "bottom": "creeper_head",
+    "front": "creeper_head",
+    "left": "creeper_head",
+    "right": "creeper_head",
+    "top": "creeper_head"
+  }
+}

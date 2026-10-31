@@ -819,7 +819,7 @@ int Chunk::can_extend_rect( const BlockState &blockState, const unsigned int *pa
     //         pr_debug( "Error, there must be 2 values different in a plane" );
     //     }
     // }
-    // if ( blockState.id == REDSTONE_CROSS ) {
+    // if ( blockState.id == REDSTONE_WIRE_CROSS ) {
     //     pr_debug( "Trying to mesh" );
     // }
     int num_checked_blocks = 0;
@@ -989,7 +989,7 @@ void Chunk::calculate_populated_blocks( ) {
 
                     const BlockState blockState = this->state_at( index );
                     Block *block = block_definition_get_definition( blockState.display_id );
-                    // if ( blockState.display_id == REDSTONE_CROSS ) {
+                    // if ( blockState.display_id == REDSTONE_WIRE_CROSS ) {
                     //     pr_debug( "Got cross" );
                     // }
                     bool visiable_block = workingSpace[ index ].visible;
@@ -1095,7 +1095,7 @@ void Chunk::calculate_populated_blocks( ) {
                         // is visible and shows a dust strip on the side of the solid block below.
                         if ( block->is_redstone_dust ) {
                             // Use LINE_2 (perpendicular to LINE_1) so the line appears vertical on side faces
-                            BlockID side_texture = blockState.current_redstone_power > 0 ? REDSTONE_LINE_2_POWERED : REDSTONE_LINE_2_UNPOWERED;
+                            TextureID side_texture = blockState.current_redstone_power > 0 ? TEX_REDSTONE_WIRE_LINE_2_POWERED : TEX_REDSTONE_WIRE_LINE_2_UNPOWERED;
                             const int horiz_dx[ 4 ] = { 1, -1, 0, 0 };
                             const int horiz_dz[ 4 ] = { 0, 0, 1, -1 };
                             const int horiz_face[ 4 ] = { FACE_RIGHT, FACE_LEFT, FACE_FRONT, FACE_BACK };
@@ -1155,10 +1155,6 @@ void Chunk::calculate_populated_blocks( ) {
                             }
                         }
 
-                        // They are offset by 1 in the shader...
-                        for ( int i = 0; i < NUM_FACES_IN_CUBE; i++ ) {
-                            blockCoord->face[ i ] = blockCoord->face[ i ] - 1;
-                        }
                     }
 
                     // A waterlogged block at the top of a water column (no
@@ -1191,7 +1187,7 @@ void Chunk::calculate_populated_blocks( ) {
                             waterCoord->tex_offset_y = water->tex_offset.y;
                             waterCoord->tex_offset_z = water->tex_offset.z;
                             for ( int i = 0; i < NUM_FACES_IN_CUBE; i++ ) {
-                                waterCoord->face[ i ] = water->textures[ i ] - 1;
+                                waterCoord->face[ i ] = water->textures[ i ];
                                 waterCoord->packed_lighting[ i ] = i == FACE_TOP ? NO_LIGHT_BRIGHT : NO_LIGHT_NO_DRAW;
                             }
                         }
@@ -1261,7 +1257,7 @@ void Chunk::program_terrain( ) {
                     bad |= ( b.y < oy - 1.0f ) || ( b.y > oy + CHUNK_SIZE_Y + 1.0f );
                     bad |= ( b.z < oz - 1.0f ) || ( b.z > oz + CHUNK_SIZE_Z + 1.0f );
                     for ( int f = 0; f < NUM_FACES_IN_CUBE; f++ ) {
-                        bad |= b.face[ f ] > 1500;
+                        bad |= b.face[ f ] >= TEXTURE_COUNT;
                     }
                     if ( bad ) {
                         reported++;

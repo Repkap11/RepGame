@@ -1,0 +1,15 @@
+{
+  "hardness": 2,
+  "icon": "planks_jungle",
+  "icon_is_isometric": true,
+  "id": 296,
+  "name": "JUNGLE_PLANKS",
+  "textures": {
+    "back": "planks_jungle",
+    "bottom": "planks_jungle",
+    "front": "planks_jungle",
+    "left": "planks_jungle",
+    "right": "planks_jungle",
+    "top": "planks_jungle"
+  }
+}

@@ -1,0 +1,30 @@
+{
+  "aliases": [
+    "REDSTONE_WIRE_LINE_1"
+  ],
+  "breaks_in_liquid": true,
+  "casts_shadow": false,
+  "collides_with_player": false,
+  "connects_to_redstone_dust": true,
+  "hardness": 0,
+  "icon_is_isometric": false,
+  "id": 1228,
+  "is_pickable": false,
+  "is_redstone_dust": true,
+  "is_seethrough": true,
+  "name": "REDSTONE_WIRE_LINE_1_UNPOWERED",
+  "needs_place_on_any_solid": {
+    "top": true
+  },
+  "scale": [
+    16,
+    1,
+    16
+  ],
+  "textures": {
+    "bottom": "air",
+    "side": "air",
+    "top": "redstone_wire_line_1_unpowered"
+  },
+  "transmits_redstone_power": true
+}

@@ -1,0 +1,9 @@
+{
+  "icon": "cinnabar",
+  "icon_is_isometric": false,
+  "id": 310,
+  "name": "CINNABAR_STAIRS",
+  "textures": {
+    "all": "cinnabar"
+  }
+}

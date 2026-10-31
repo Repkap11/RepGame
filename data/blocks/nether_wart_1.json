@@ -1,0 +1,22 @@
+{
+  "affected_by_redstone_power": false,
+  "breaks_in_liquid": true,
+  "casts_shadow": false,
+  "collides_with_player": false,
+  "hardness": 0,
+  "icon": "nether_wart_stage_0",
+  "icon_is_isometric": false,
+  "id": 339,
+  "is_seethrough": true,
+  "name": "NETHER_WART_1",
+  "needs_place_on_any_solid": {
+    "top": true
+  },
+  "no_light": 0,
+  "render_order": "Flowers",
+  "textures": {
+    "bottom": "air",
+    "side": "nether_wart_stage_0",
+    "top": "air"
+  }
+}

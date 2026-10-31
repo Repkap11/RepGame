@@ -1,0 +1,9 @@
+{
+  "icon": "hardened_clay_stained_light_blue",
+  "icon_is_isometric": false,
+  "id": 689,
+  "name": "LIGHT_BLUE_TERRACOTTA",
+  "textures": {
+    "all": "hardened_clay_stained_light_blue"
+  }
+}

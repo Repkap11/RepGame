@@ -1,0 +1,9 @@
+{
+  "icon": "wool_colored_orange",
+  "icon_is_isometric": false,
+  "id": 848,
+  "name": "ORANGE_WOOL_DOUBLE_SLAB",
+  "textures": {
+    "all": "wool_colored_orange"
+  }
+}

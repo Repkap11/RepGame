@@ -1,0 +1,9 @@
+{
+  "icon": "concrete_powder_cyan",
+  "icon_is_isometric": false,
+  "id": 432,
+  "name": "CYAN_CONCRETE_POWDER",
+  "textures": {
+    "all": "concrete_powder_cyan"
+  }
+}

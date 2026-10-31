@@ -1,0 +1,13 @@
+{
+  "hardness": 4,
+  "id": 51,
+  "name": "COAL_ORE",
+  "textures": {
+    "back": "coal_ore",
+    "bottom": "coal_ore",
+    "front": "coal_ore",
+    "left": "coal_ore",
+    "right": "coal_ore",
+    "top": "coal_ore"
+  }
+}

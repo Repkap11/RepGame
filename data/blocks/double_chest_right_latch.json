@@ -1,0 +1,30 @@
+{
+  "hardness": 2,
+  "id": 166,
+  "name": "DOUBLE_CHEST_RIGHT_LATCH",
+  "offset": [
+    0,
+    0,
+    1
+  ],
+  "piston_immovable": true,
+  "rotate_on_placement": true,
+  "scale": [
+    15,
+    15,
+    14
+  ],
+  "tex_offset": [
+    0,
+    0,
+    -1
+  ],
+  "textures": {
+    "back": "double_chest_right_back",
+    "bottom": "double_chest_right_top",
+    "front": "double_chest_right_latch",
+    "left": "double_chest_right_side",
+    "right": "double_chest_right_side",
+    "top": "double_chest_right_top"
+  }
+}

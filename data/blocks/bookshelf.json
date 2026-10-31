@@ -1,0 +1,10 @@
+{
+  "hardness": 2,
+  "id": 52,
+  "name": "BOOKSHELF",
+  "textures": {
+    "bottom": "planks_oak",
+    "side": "bookshelf",
+    "top": "planks_oak"
+  }
+}

@@ -1,0 +1,13 @@
+{
+  "hardness": 4,
+  "id": 25,
+  "name": "COBBLESTONE",
+  "textures": {
+    "back": "cobblestone",
+    "bottom": "cobblestone",
+    "front": "cobblestone",
+    "left": "cobblestone",
+    "right": "cobblestone",
+    "top": "cobblestone"
+  }
+}

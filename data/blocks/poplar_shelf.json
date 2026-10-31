@@ -1,0 +1,9 @@
+{
+  "icon": "poplar_shelf",
+  "icon_is_isometric": false,
+  "id": 979,
+  "name": "POPLAR_SHELF",
+  "textures": {
+    "all": "poplar_shelf"
+  }
+}

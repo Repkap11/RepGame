@@ -1,0 +1,17 @@
+{
+  "emits_light": 13,
+  "hardness": 4,
+  "icon": "furnace_front_on",
+  "icon_is_isometric": true,
+  "id": 86,
+  "name": "LIT_FURNACE",
+  "rotate_on_placement": true,
+  "textures": {
+    "back": "furnace_side",
+    "bottom": "furnace_top",
+    "front": "furnace_front_on",
+    "left": "furnace_side",
+    "right": "furnace_side",
+    "top": "furnace_top"
+  }
+}

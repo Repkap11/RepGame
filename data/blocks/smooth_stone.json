@@ -1,0 +1,9 @@
+{
+  "icon": "stone_slab_top",
+  "icon_is_isometric": false,
+  "id": 1132,
+  "name": "SMOOTH_STONE",
+  "textures": {
+    "all": "stone_slab_top"
+  }
+}

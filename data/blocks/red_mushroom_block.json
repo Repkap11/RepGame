@@ -1,0 +1,9 @@
+{
+  "icon": "mushroom_block_inside",
+  "icon_is_isometric": false,
+  "id": 1068,
+  "name": "RED_MUSHROOM_BLOCK",
+  "textures": {
+    "all": "mushroom_block_inside"
+  }
+}

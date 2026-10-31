@@ -1,0 +1,9 @@
+{
+  "icon": "wool_colored_magenta",
+  "icon_is_isometric": false,
+  "id": 752,
+  "name": "MAGENTA_WOOL_DOUBLE_SLAB",
+  "textures": {
+    "all": "wool_colored_magenta"
+  }
+}

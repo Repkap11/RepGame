@@ -1,0 +1,9 @@
+{
+  "icon": "oxidized_cut_copper",
+  "icon_is_isometric": false,
+  "id": 870,
+  "name": "OXIDIZED_CUT_COPPER_STAIRS",
+  "textures": {
+    "all": "oxidized_cut_copper"
+  }
+}

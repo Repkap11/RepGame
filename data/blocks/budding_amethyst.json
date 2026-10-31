@@ -1,0 +1,9 @@
+{
+  "icon": "budding_amethyst",
+  "icon_is_isometric": false,
+  "id": 229,
+  "name": "BUDDING_AMETHYST",
+  "textures": {
+    "all": "budding_amethyst"
+  }
+}

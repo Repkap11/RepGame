@@ -1,0 +1,9 @@
+{
+  "icon": "polished_deepslate",
+  "icon_is_isometric": false,
+  "id": 946,
+  "name": "POLISHED_DEEPSLATE",
+  "textures": {
+    "all": "polished_deepslate"
+  }
+}

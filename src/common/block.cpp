@@ -1,7 +1,7 @@
 #include "common/RepGame.hpp"
 #include "common/block.hpp"
 
-inline void change_all_textures_to( unsigned short *face, BlockID new_texture ) {
+inline void change_all_textures_to( unsigned short *face, TextureID new_texture ) {
     for ( int i = 0; i < NUM_FACES_IN_CUBE; i++ ) {
         face[ i ] = new_texture;
     }
@@ -10,51 +10,51 @@ inline void change_all_textures_to( unsigned short *face, BlockID new_texture ) 
 #define REDSTONE_DUST_IF( name )                                                                                                                                                                                                               \
     if ( blockState->display_id == name ) {                                                                                                                                                                                                    \
         if ( blockState->current_redstone_power > 0 ) {                                                                                                                                                                                        \
-            blockCoord->face[ FACE_TOP ] = name##_POWERED;                                                                                                                                                                                     \
+            blockCoord->face[ FACE_TOP ] = TEX_##name##_POWERED;                                                                                                                                                                                     \
         } else {                                                                                                                                                                                                                               \
-            blockCoord->face[ FACE_TOP ] = name##_UNPOWERED;                                                                                                                                                                                   \
+            blockCoord->face[ FACE_TOP ] = TEX_##name##_UNPOWERED;                                                                                                                                                                                   \
         }                                                                                                                                                                                                                                      \
     }
 
 void block_adjust_coord_based_on_state( const Block *block, const BlockState *blockState, BlockCoords *blockCoord ) {
-    if ( blockState->display_id == REDSTONE_LAMP_UNPOWERED && blockState->current_redstone_power > 0 ) {
-        change_all_textures_to( blockCoord->face, REDSTONE_LAMP_POWERED );
+    if ( blockState->display_id == REDSTONE_LAMP && blockState->current_redstone_power > 0 ) {
+        change_all_textures_to( blockCoord->face, TEX_REDSTONE_LAMP_ON );
     }
 
-    REDSTONE_DUST_IF( REDSTONE_LINE_1 )
-    REDSTONE_DUST_IF( REDSTONE_LINE_2 )
-    REDSTONE_DUST_IF( REDSTONE_CROSS )
-    REDSTONE_DUST_IF( REDSTONE_DOT )
+    REDSTONE_DUST_IF( REDSTONE_WIRE_LINE_1 )
+    REDSTONE_DUST_IF( REDSTONE_WIRE_LINE_2 )
+    REDSTONE_DUST_IF( REDSTONE_WIRE_CROSS )
+    REDSTONE_DUST_IF( REDSTONE_WIRE_DOT )
 
-    REDSTONE_DUST_IF( REDSTONE_DUST_L_Q1 )
-    REDSTONE_DUST_IF( REDSTONE_DUST_L_Q2 )
-    REDSTONE_DUST_IF( REDSTONE_DUST_L_Q3 )
-    REDSTONE_DUST_IF( REDSTONE_DUST_L_Q4 )
+    REDSTONE_DUST_IF( REDSTONE_WIRE_L_Q1 )
+    REDSTONE_DUST_IF( REDSTONE_WIRE_L_Q2 )
+    REDSTONE_DUST_IF( REDSTONE_WIRE_L_Q3 )
+    REDSTONE_DUST_IF( REDSTONE_WIRE_L_Q4 )
 
-    REDSTONE_DUST_IF( REDSTONE_DUST_T_F )
-    REDSTONE_DUST_IF( REDSTONE_DUST_T_R )
-    REDSTONE_DUST_IF( REDSTONE_DUST_T_B )
-    REDSTONE_DUST_IF( REDSTONE_DUST_T_L )
+    REDSTONE_DUST_IF( REDSTONE_WIRE_T_F )
+    REDSTONE_DUST_IF( REDSTONE_WIRE_T_R )
+    REDSTONE_DUST_IF( REDSTONE_WIRE_T_B )
+    REDSTONE_DUST_IF( REDSTONE_WIRE_T_L )
 
-    // if ( blockState->display_id == REDSTONE_LINE_1 ) {
+    // if ( blockState->display_id == REDSTONE_WIRE_LINE_1 ) {
     //     if ( blockState->current_redstone_power > 0 ) {
-    //         change_all_textures_to( blockCoord->face, REDSTONE_LINE_1_POWERED );
+    //         change_all_textures_to( blockCoord->face, REDSTONE_WIRE_LINE_1_POWERED );
     //     } else {
-    //         change_all_textures_to( blockCoord->face, REDSTONE_LINE_1_UNPOWERED );
+    //         change_all_textures_to( blockCoord->face, REDSTONE_WIRE_LINE_1_UNPOWERED );
     //     }
     // }
-    // if ( blockState->display_id == REDSTONE_LINE_2 ) {
+    // if ( blockState->display_id == REDSTONE_WIRE_LINE_2 ) {
     //     if ( blockState->current_redstone_power > 0 ) {
-    //         change_all_textures_to( blockCoord->face, REDSTONE_LINE_2_POWERED );
+    //         change_all_textures_to( blockCoord->face, REDSTONE_WIRE_LINE_2_POWERED );
     //     } else {
-    //         change_all_textures_to( blockCoord->face, REDSTONE_LINE_2_UNPOWERED );
+    //         change_all_textures_to( blockCoord->face, REDSTONE_WIRE_LINE_2_UNPOWERED );
     //     }
     // }
-    // if ( blockState->display_id == REDSTONE_CROSS ) {
+    // if ( blockState->display_id == REDSTONE_WIRE_CROSS ) {
     //     if ( blockState->current_redstone_power > 0 ) {
-    //         change_all_textures_to( blockCoord->face, REDSTONE_CROSS_POWERED );
+    //         change_all_textures_to( blockCoord->face, REDSTONE_WIRE_CROSS_POWERED );
     //     } else {
-    //         change_all_textures_to( blockCoord->face, REDSTONE_CROSS_UNPOWERED );
+    //         change_all_textures_to( blockCoord->face, REDSTONE_WIRE_CROSS_UNPOWERED );
     //     }
     // }
     if ( blockState->display_id == REDSTONE_TORCH && blockState->current_redstone_power == 0 ) {
@@ -62,11 +62,11 @@ void block_adjust_coord_based_on_state( const Block *block, const BlockState *bl
         // using their dedicated textures.
         for ( int i = 0; i < NUM_FACES_IN_CUBE; i++ ) {
             if ( i != FACE_TOP && i != FACE_BOTTOM ) {
-                blockCoord->face[ i ] = REDSTONE_TORCH_OFF;
+                blockCoord->face[ i ] = TEX_REDSTONE_TORCH_OFF;
             }
         }
-        blockCoord->face[ FACE_TOP ] = REDSTONE_TORCH_OFF_TOP;
-        blockCoord->face[ FACE_BOTTOM ] = REDSTONE_TORCH_BOTTOM;
+        blockCoord->face[ FACE_TOP ] = TEX_REDSTONE_TORCH_OFF_TOP;
+        blockCoord->face[ FACE_BOTTOM ] = TEX_REDSTONE_TORCH_BOTTOM;
     }
 
     // Pressed activators get thinner: plates squash down, buttons sink into
@@ -92,25 +92,25 @@ void block_adjust_coord_based_on_state( const Block *block, const BlockState *bl
             const int head_slot = rot == PISTON_ROTATE_UP ? FACE_TOP : rot == PISTON_ROTATE_DOWN ? FACE_BOTTOM : FACE_FRONT;
             if ( rot == PISTON_ROTATE_UP || rot == PISTON_ROTATE_DOWN ) {
                 // Vertical: all four laterals are v-thin (v runs along y).
-                const BlockID side = rot == PISTON_ROTATE_UP ? PISTON_SIDE_UP : PISTON_SIDE_DOWN_EXT;
+                const TextureID side = rot == PISTON_ROTATE_UP ? TEX_PISTON_SIDE_UP : TEX_PISTON_SIDE_DOWN_EXT;
                 blockCoord->face[ FACE_RIGHT ] = side;
                 blockCoord->face[ FACE_LEFT ] = side;
                 blockCoord->face[ FACE_FRONT ] = side;
                 blockCoord->face[ FACE_BACK ] = side;
-                blockCoord->face[ head_slot ] = PISTON_FRONT_EXTENDED;
-                blockCoord->face[ head_slot == FACE_TOP ? FACE_BOTTOM : FACE_TOP ] = PISTON_BACK;
+                blockCoord->face[ head_slot ] = TEX_PISTON_FRONT_EXTENDED;
+                blockCoord->face[ head_slot == FACE_TOP ? FACE_BOTTOM : FACE_TOP ] = TEX_PISTON_BOTTOM;
             } else {
                 // Horizontal: the shader rotates the TOP/BOTTOM texcoords with
                 // the block yaw, so the thin axis always lands on the slot's
                 // band edge — the assignment is rotation-invariant, matching
                 // the retracted one with each UV-low-band tile swapped for its
                 // *_EXT variant.
-                blockCoord->face[ FACE_TOP ] = PISTON_SIDE_UP;
-                blockCoord->face[ FACE_BOTTOM ] = PISTON_SIDE_DOWN_EXT;
-                blockCoord->face[ FACE_RIGHT ] = PISTON_SIDE_LEFT;
-                blockCoord->face[ FACE_LEFT ] = PISTON_SIDE_RIGHT_EXT;
-                blockCoord->face[ FACE_FRONT ] = PISTON_FRONT_EXTENDED;
-                blockCoord->face[ FACE_BACK ] = PISTON_BACK;
+                blockCoord->face[ FACE_TOP ] = TEX_PISTON_SIDE_UP;
+                blockCoord->face[ FACE_BOTTOM ] = TEX_PISTON_SIDE_DOWN_EXT;
+                blockCoord->face[ FACE_RIGHT ] = TEX_PISTON_SIDE_LEFT;
+                blockCoord->face[ FACE_LEFT ] = TEX_PISTON_SIDE_RIGHT_EXT;
+                blockCoord->face[ FACE_FRONT ] = TEX_PISTON_FRONT_EXTENDED;
+                blockCoord->face[ FACE_BACK ] = TEX_PISTON_BOTTOM;
             }
             if ( rot == PISTON_ROTATE_UP ) {
                 blockCoord->scale_y = 12;
@@ -125,12 +125,12 @@ void block_adjust_coord_based_on_state( const Block *block, const BlockState *bl
             // Head faces straight up/down: the shader only yaws, so permute the
             // face textures here. All laterals get the same band variant, so
             // the shader's rot-5 lateral index shift is harmless.
-            const BlockID face_tile = block->is_sticky_piston ? PISTON_HEAD_STICKY_FACE : PISTON_HEAD_FACE;
+            const TextureID face_tile = block->is_sticky_piston ? TEX_PISTON_TOP_STICKY : TEX_PISTON_TOP_NORMAL;
             const int head_slot = rot == PISTON_ROTATE_UP ? FACE_TOP : FACE_BOTTOM;
             const int back_slot = rot == PISTON_ROTATE_UP ? FACE_BOTTOM : FACE_TOP;
-            const BlockID side = rot == PISTON_ROTATE_UP ? PISTON_SIDE_UP : PISTON_SIDE_DOWN;
+            const TextureID side = rot == PISTON_ROTATE_UP ? TEX_PISTON_SIDE_UP : TEX_PISTON_SIDE_DOWN;
             blockCoord->face[ head_slot ] = face_tile;
-            blockCoord->face[ back_slot ] = PISTON_BACK;
+            blockCoord->face[ back_slot ] = TEX_PISTON_BOTTOM;
             blockCoord->face[ FACE_RIGHT ] = side;
             blockCoord->face[ FACE_LEFT ] = side;
             blockCoord->face[ FACE_FRONT ] = side;
@@ -143,13 +143,13 @@ void block_adjust_coord_based_on_state( const Block *block, const BlockState *bl
             // stays the same (RIGHT slot's band edge is always u1, LEFT's u0;
             // TOP always wants the band at v1, BOTTOM at v0 — the shader
             // rotates top/bottom texcoords with the block).
-            const BlockID face_tile = block->is_sticky_piston ? PISTON_HEAD_STICKY_FACE : PISTON_HEAD_FACE;
+            const TextureID face_tile = block->is_sticky_piston ? TEX_PISTON_TOP_STICKY : TEX_PISTON_TOP_NORMAL;
             blockCoord->face[ FACE_FRONT ] = face_tile;
-            blockCoord->face[ FACE_BACK ] = PISTON_BACK;
-            blockCoord->face[ FACE_TOP ] = PISTON_SIDE_UP;
-            blockCoord->face[ FACE_BOTTOM ] = PISTON_SIDE_DOWN;
-            blockCoord->face[ FACE_RIGHT ] = PISTON_SIDE_LEFT;
-            blockCoord->face[ FACE_LEFT ] = PISTON_SIDE_RIGHT;
+            blockCoord->face[ FACE_BACK ] = TEX_PISTON_BOTTOM;
+            blockCoord->face[ FACE_TOP ] = TEX_PISTON_SIDE_UP;
+            blockCoord->face[ FACE_BOTTOM ] = TEX_PISTON_SIDE_DOWN;
+            blockCoord->face[ FACE_RIGHT ] = TEX_PISTON_SIDE_LEFT;
+            blockCoord->face[ FACE_LEFT ] = TEX_PISTON_SIDE_RIGHT;
         }
     }
 
@@ -161,36 +161,36 @@ void block_adjust_coord_based_on_state( const Block *block, const BlockState *bl
         // each rim face gets the band tile matching its thin axis and reads
         // as a wooden plate edge. The head-end face keeps the head tile; the
         // plate's interior back face gets the plain body tile.
-        const BlockID head_tile = block->id == PISTON_HEAD_STICKY ? PISTON_HEAD_STICKY_FACE : PISTON_HEAD_FACE;
+        const TextureID head_tile = block->id == STICKY_PISTON_ARM_COLLISION ? TEX_PISTON_TOP_STICKY : TEX_PISTON_TOP_NORMAL;
         const unsigned char rot = blockState->rotation;
         if ( rot == PISTON_ROTATE_UP || rot == PISTON_ROTATE_DOWN ) {
             // Horizontal plate — the shader only applies yaw to the canonical
             // forward-facing plate, so bake the vertical geometry here. Every
             // lateral slot lands on a rim thin in v.
-            blockCoord->face[ FACE_TOP ] = rot == PISTON_ROTATE_UP ? head_tile : PISTON_BACK;
-            blockCoord->face[ FACE_BOTTOM ] = rot == PISTON_ROTATE_UP ? PISTON_BACK : head_tile;
-            blockCoord->face[ FACE_FRONT ] = PISTON_SIDE_DOWN;
-            blockCoord->face[ FACE_BACK ] = PISTON_SIDE_DOWN;
-            blockCoord->face[ FACE_RIGHT ] = PISTON_SIDE_DOWN;
-            blockCoord->face[ FACE_LEFT ] = PISTON_SIDE_DOWN;
+            blockCoord->face[ FACE_TOP ] = rot == PISTON_ROTATE_UP ? head_tile : TEX_PISTON_BOTTOM;
+            blockCoord->face[ FACE_BOTTOM ] = rot == PISTON_ROTATE_UP ? TEX_PISTON_BOTTOM : head_tile;
+            blockCoord->face[ FACE_FRONT ] = TEX_PISTON_SIDE_DOWN;
+            blockCoord->face[ FACE_BACK ] = TEX_PISTON_SIDE_DOWN;
+            blockCoord->face[ FACE_RIGHT ] = TEX_PISTON_SIDE_DOWN;
+            blockCoord->face[ FACE_LEFT ] = TEX_PISTON_SIDE_DOWN;
             blockCoord->scale_y = 4;
             blockCoord->scale_z = 16;
             blockCoord->offset_z = 0;
             blockCoord->offset_y = rot == PISTON_ROTATE_UP ? 12 : 0;
         } else {
             blockCoord->face[ FACE_FRONT ] = head_tile;
-            blockCoord->face[ FACE_BACK ] = PISTON_BACK;
+            blockCoord->face[ FACE_BACK ] = TEX_PISTON_BOTTOM;
             if ( rot == BLOCK_ROTATE_90 || rot == BLOCK_ROTATE_270 ) {
                 // Plate thin in x: all four rim faces sample columns 0-3.
-                blockCoord->face[ FACE_TOP ] = PISTON_SIDE_RIGHT;
-                blockCoord->face[ FACE_BOTTOM ] = PISTON_SIDE_RIGHT;
-                blockCoord->face[ FACE_RIGHT ] = PISTON_SIDE_RIGHT;
-                blockCoord->face[ FACE_LEFT ] = PISTON_SIDE_RIGHT;
+                blockCoord->face[ FACE_TOP ] = TEX_PISTON_SIDE_RIGHT;
+                blockCoord->face[ FACE_BOTTOM ] = TEX_PISTON_SIDE_RIGHT;
+                blockCoord->face[ FACE_RIGHT ] = TEX_PISTON_SIDE_RIGHT;
+                blockCoord->face[ FACE_LEFT ] = TEX_PISTON_SIDE_RIGHT;
             } else {
-                blockCoord->face[ FACE_TOP ] = PISTON_SIDE_DOWN;
-                blockCoord->face[ FACE_BOTTOM ] = PISTON_SIDE_DOWN;
-                blockCoord->face[ FACE_RIGHT ] = PISTON_SIDE_RIGHT;
-                blockCoord->face[ FACE_LEFT ] = PISTON_SIDE_RIGHT;
+                blockCoord->face[ FACE_TOP ] = TEX_PISTON_SIDE_DOWN;
+                blockCoord->face[ FACE_BOTTOM ] = TEX_PISTON_SIDE_DOWN;
+                blockCoord->face[ FACE_RIGHT ] = TEX_PISTON_SIDE_RIGHT;
+                blockCoord->face[ FACE_LEFT ] = TEX_PISTON_SIDE_RIGHT;
             }
         }
     }

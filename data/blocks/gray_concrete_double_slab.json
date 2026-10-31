@@ -1,0 +1,9 @@
+{
+  "icon": "concrete_gray",
+  "icon_is_isometric": false,
+  "id": 606,
+  "name": "GRAY_CONCRETE_DOUBLE_SLAB",
+  "textures": {
+    "all": "concrete_gray"
+  }
+}

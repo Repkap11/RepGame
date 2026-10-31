@@ -1,0 +1,9 @@
+{
+  "icon": "purpur_block",
+  "icon_is_isometric": false,
+  "id": 517,
+  "name": "DEPRECATED_PURPUR_BLOCK_1",
+  "textures": {
+    "all": "purpur_block"
+  }
+}

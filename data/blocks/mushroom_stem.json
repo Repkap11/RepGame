@@ -1,0 +1,9 @@
+{
+  "icon": "mushroom_block_skin_stem",
+  "icon_is_isometric": false,
+  "id": 799,
+  "name": "MUSHROOM_STEM",
+  "textures": {
+    "all": "mushroom_block_skin_stem"
+  }
+}

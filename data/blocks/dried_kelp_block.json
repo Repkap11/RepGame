@@ -1,0 +1,14 @@
+{
+  "icon": "dried_kelp_top",
+  "icon_is_isometric": false,
+  "id": 541,
+  "name": "DRIED_KELP_BLOCK",
+  "textures": {
+    "back": "dried_kelp_side_b",
+    "bottom": "dried_kelp_top",
+    "front": "dried_kelp_side_a",
+    "left": "dried_kelp_side_b",
+    "right": "dried_kelp_side_a",
+    "top": "dried_kelp_top"
+  }
+}

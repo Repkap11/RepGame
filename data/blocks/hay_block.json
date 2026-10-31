@@ -1,0 +1,11 @@
+{
+  "icon": "hay_block_side",
+  "icon_is_isometric": false,
+  "id": 637,
+  "name": "HAY_BLOCK",
+  "textures": {
+    "bottom": "hay_block_top",
+    "side": "hay_block_side",
+    "top": "hay_block_top"
+  }
+}

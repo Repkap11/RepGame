@@ -1,0 +1,9 @@
+{
+  "icon": "mangrove_planks",
+  "icon_is_isometric": false,
+  "id": 765,
+  "name": "MANGROVE_PRESSURE_PLATE",
+  "textures": {
+    "all": "mangrove_planks"
+  }
+}

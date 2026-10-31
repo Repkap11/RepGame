@@ -1,0 +1,19 @@
+{
+  "affected_by_redstone_power": false,
+  "casts_shadow": false,
+  "hardness": 0.449999988,
+  "icon": "cauldron_top",
+  "icon_is_isometric": false,
+  "id": 250,
+  "is_seethrough": true,
+  "name": "CAULDRON",
+  "render_order": "Translucent",
+  "textures": {
+    "back": "cauldron_side",
+    "bottom": "cauldron_bottom",
+    "front": "cauldron_inner",
+    "left": "cauldron_water",
+    "right": "water_still_grey",
+    "top": "cauldron_top"
+  }
+}

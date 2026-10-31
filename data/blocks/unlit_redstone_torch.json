@@ -1,0 +1,40 @@
+{
+  "affected_by_redstone_power": false,
+  "breaks_in_liquid": true,
+  "can_be_placed_in": true,
+  "casts_shadow": false,
+  "collides_with_player": false,
+  "hardness": 0,
+  "icon": "redstone_torch_off",
+  "icon_is_isometric": false,
+  "id": 172,
+  "is_pickable": false,
+  "is_seethrough": true,
+  "is_torch": true,
+  "name": "UNLIT_REDSTONE_TORCH",
+  "needs_place_on_any_solid": {
+    "top": true
+  },
+  "no_light": 6815743,
+  "offset": [
+    7,
+    0,
+    7
+  ],
+  "render_order": "Transparent",
+  "scale": [
+    2,
+    10,
+    2
+  ],
+  "tex_offset": [
+    -7,
+    0,
+    -7
+  ],
+  "textures": {
+    "bottom": "redstone_torch_bottom",
+    "side": "redstone_torch_off",
+    "top": "redstone_torch_off_top"
+  }
+}

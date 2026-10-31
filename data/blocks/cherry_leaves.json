@@ -1,0 +1,13 @@
+{
+  "casts_shadow": false,
+  "hardness": 0.35,
+  "icon": "cherry_leaves",
+  "icon_is_isometric": false,
+  "id": 265,
+  "is_seethrough": true,
+  "name": "CHERRY_LEAVES",
+  "no_light": 6815743,
+  "textures": {
+    "all": "cherry_leaves"
+  }
+}

@@ -1,0 +1,9 @@
+{
+  "icon": "coral_purple_dead",
+  "icon_is_isometric": false,
+  "id": 474,
+  "name": "DEAD_BUBBLE_CORAL_BLOCK",
+  "textures": {
+    "all": "coral_purple_dead"
+  }
+}

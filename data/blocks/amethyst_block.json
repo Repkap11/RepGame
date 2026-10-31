@@ -1,0 +1,9 @@
+{
+  "icon": "amethyst_block",
+  "icon_is_isometric": false,
+  "id": 48,
+  "name": "AMETHYST_BLOCK",
+  "textures": {
+    "all": "amethyst_block"
+  }
+}

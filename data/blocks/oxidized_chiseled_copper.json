@@ -1,0 +1,9 @@
+{
+  "icon": "oxidized_chiseled_copper",
+  "icon_is_isometric": false,
+  "id": 851,
+  "name": "OXIDIZED_CHISELED_COPPER",
+  "textures": {
+    "all": "oxidized_chiseled_copper"
+  }
+}

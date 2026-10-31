@@ -1,0 +1,9 @@
+{
+  "icon": "structure_block",
+  "icon_is_isometric": false,
+  "id": 1199,
+  "name": "STRUCTURE_BLOCK",
+  "textures": {
+    "all": "structure_block"
+  }
+}

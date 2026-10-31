@@ -1,0 +1,9 @@
+{
+  "icon": "bamboo_mosaic",
+  "icon_is_isometric": false,
+  "id": 85,
+  "name": "BAMBOO_MOSAIC",
+  "textures": {
+    "all": "bamboo_mosaic"
+  }
+}

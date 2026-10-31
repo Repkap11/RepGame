@@ -1,0 +1,9 @@
+{
+  "icon": "hardened_clay_stained_gray",
+  "icon_is_isometric": false,
+  "id": 613,
+  "name": "GRAY_TERRACOTTA",
+  "textures": {
+    "all": "hardened_clay_stained_gray"
+  }
+}

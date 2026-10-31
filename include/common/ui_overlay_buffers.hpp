@@ -97,10 +97,10 @@ inline void set_block_icon( UIOverlayInstance &inst, const Block *block ) {
     for ( int face = 0; face < ISOMETRIC_FACES; face++ ) {
         if ( !block->icon_is_isometric ) {
             // Like Reeds
-            inst.id_isos[ face ] = block->inventory_non_isometric_id - 1;
+            inst.id_isos[ face ] = block->icon_texture;
         } else {
             // Like grass
-            inst.id_isos[ face ] = ( block->textures[ inventory_isometric_face[ face ] ] - 1 );
+            inst.id_isos[ face ] = block->textures[ inventory_isometric_face[ face ] ];
         }
     }
     inst.block_scale[ 0 ] = block->scale.x;

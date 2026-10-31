@@ -1,0 +1,9 @@
+{
+  "icon": "lapis_ore",
+  "icon_is_isometric": false,
+  "id": 669,
+  "name": "LAPIS_ORE",
+  "textures": {
+    "all": "lapis_ore"
+  }
+}

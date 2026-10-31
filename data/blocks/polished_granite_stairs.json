@@ -1,0 +1,9 @@
+{
+  "icon": "stone_granite_smooth",
+  "icon_is_isometric": false,
+  "id": 958,
+  "name": "POLISHED_GRANITE_STAIRS",
+  "textures": {
+    "all": "stone_granite_smooth"
+  }
+}

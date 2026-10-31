@@ -1,0 +1,20 @@
+{
+  "casts_shadow": false,
+  "hardness": 0.449999988,
+  "hides_self": [
+    true,
+    true,
+    true
+  ],
+  "id": 74,
+  "is_seethrough": true,
+  "name": "GLASS",
+  "textures": {
+    "back": "glass",
+    "bottom": "glass",
+    "front": "glass",
+    "left": "glass",
+    "right": "glass",
+    "top": "glass"
+  }
+}

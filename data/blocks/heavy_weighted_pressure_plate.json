@@ -1,0 +1,9 @@
+{
+  "icon": "iron_block",
+  "icon_is_isometric": false,
+  "id": 639,
+  "name": "HEAVY_WEIGHTED_PRESSURE_PLATE",
+  "textures": {
+    "all": "iron_block"
+  }
+}

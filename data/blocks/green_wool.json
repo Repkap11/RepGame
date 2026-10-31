@@ -1,0 +1,9 @@
+{
+  "icon": "wool_colored_green",
+  "icon_is_isometric": false,
+  "id": 630,
+  "name": "GREEN_WOOL",
+  "textures": {
+    "all": "wool_colored_green"
+  }
+}

@@ -1,0 +1,11 @@
+{
+  "icon": "creaking_heart_side_inactive",
+  "icon_is_isometric": false,
+  "id": 377,
+  "name": "CREAKING_HEART",
+  "textures": {
+    "bottom": "creaking_heart_top_inactive",
+    "side": "creaking_heart_side_inactive",
+    "top": "creaking_heart_top_inactive"
+  }
+}

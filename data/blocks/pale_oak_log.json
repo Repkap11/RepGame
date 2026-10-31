@@ -1,0 +1,11 @@
+{
+  "icon": "pale_oak_log_side",
+  "icon_is_isometric": false,
+  "id": 888,
+  "name": "PALE_OAK_LOG",
+  "textures": {
+    "bottom": "pale_oak_log_top",
+    "side": "pale_oak_log_side",
+    "top": "pale_oak_log_top"
+  }
+}

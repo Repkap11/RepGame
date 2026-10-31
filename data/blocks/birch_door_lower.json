@@ -1,0 +1,23 @@
+{
+  "casts_shadow": false,
+  "collides_with_player": false,
+  "icon": "block_524",
+  "icon_is_isometric": false,
+  "id": 524,
+  "is_seethrough": true,
+  "name": "BIRCH_DOOR_LOWER",
+  "needs_place_on_any_solid": {
+    "top": true
+  },
+  "rotate_on_placement": true,
+  "scale": [
+    16,
+    16,
+    1
+  ],
+  "textures": {
+    "bottom": "air",
+    "side": "block_524",
+    "top": "air"
+  }
+}

@@ -1,0 +1,9 @@
+{
+  "icon": "ice_packed",
+  "icon_is_isometric": false,
+  "id": 873,
+  "name": "PACKED_ICE",
+  "textures": {
+    "all": "ice_packed"
+  }
+}

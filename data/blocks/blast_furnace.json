@@ -1,0 +1,14 @@
+{
+  "icon": "blast_furnace_top",
+  "icon_is_isometric": false,
+  "id": 177,
+  "name": "BLAST_FURNACE",
+  "textures": {
+    "back": "blast_furnace_side",
+    "bottom": "blast_furnace_top",
+    "front": "blast_furnace_front_off",
+    "left": "blast_furnace_side",
+    "right": "blast_furnace_side",
+    "top": "blast_furnace_top"
+  }
+}

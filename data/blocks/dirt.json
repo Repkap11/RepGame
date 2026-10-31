@@ -1,0 +1,13 @@
+{
+  "hardness": 0.75,
+  "id": 3,
+  "name": "DIRT",
+  "textures": {
+    "back": "dirt",
+    "bottom": "dirt",
+    "front": "dirt",
+    "left": "dirt",
+    "right": "dirt",
+    "top": "dirt"
+  }
+}

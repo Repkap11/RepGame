@@ -1,0 +1,9 @@
+{
+  "icon": "red_sandstone_normal",
+  "icon_is_isometric": false,
+  "id": 1077,
+  "name": "RED_SANDSTONE_WALL",
+  "textures": {
+    "all": "red_sandstone_normal"
+  }
+}

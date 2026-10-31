@@ -123,7 +123,7 @@ out/wasm/fs/src/shaders/%.glsl: src/shaders/%.glsl include/common/chunk_dimensio
 # the dialect macros in wgsl_dialect.hpp to emit WGSL. -I out/wasm/gen finds
 # the generated block_ids.inc. Headers the dialect sources #include are listed
 # so logic edits rebuild the shader.
-out/wasm/gen/block_ids.inc: include/common/block_definitions.hpp tools/gen_wgsl_block_ids.awk | out/wasm
+out/wasm/gen/block_ids.inc: include/common/block_ids_gen.hpp tools/gen_wgsl_block_ids.awk | out/wasm
 	mkdir -p $(dir $@)
 	awk -f tools/gen_wgsl_block_ids.awk $< > $@
 

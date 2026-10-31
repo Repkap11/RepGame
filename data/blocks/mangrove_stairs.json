@@ -1,0 +1,9 @@
+{
+  "icon": "mangrove_planks",
+  "icon_is_isometric": false,
+  "id": 770,
+  "name": "MANGROVE_STAIRS",
+  "textures": {
+    "all": "mangrove_planks"
+  }
+}

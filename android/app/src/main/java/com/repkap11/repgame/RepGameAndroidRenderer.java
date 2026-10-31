@@ -27,7 +27,7 @@ public class RepGameAndroidRenderer implements GLSurfaceView.Renderer {
 
     @Override
     public void onSurfaceCreated(GL10 gl, EGLConfig config) {
-        InputStream blocksIS = mApplicationContext.getResources().openRawResource(R.raw.textures);
+        InputStream blocksIS = mApplicationContext.getResources().openRawResource(R.raw.blocks);
         InputStream skyIS = mApplicationContext.getResources().openRawResource(R.raw.sky4);
         byte[] blocks = null;
         byte[] sky = null;

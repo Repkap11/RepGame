@@ -1,0 +1,11 @@
+{
+  "icon": "cherry_log_side",
+  "icon_is_isometric": false,
+  "id": 266,
+  "name": "CHERRY_LOG",
+  "textures": {
+    "bottom": "cherry_log_top",
+    "side": "cherry_log_side",
+    "top": "cherry_log_top"
+  }
+}

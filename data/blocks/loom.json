@@ -1,0 +1,14 @@
+{
+  "icon": "loom_top",
+  "icon_is_isometric": false,
+  "id": 737,
+  "name": "LOOM",
+  "textures": {
+    "back": "loom_front",
+    "bottom": "loom_bottom",
+    "front": "loom_side",
+    "left": "loom_side",
+    "right": "loom_side",
+    "top": "loom_top"
+  }
+}

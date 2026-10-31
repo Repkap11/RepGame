@@ -1,0 +1,9 @@
+{
+  "icon": "wool_colored_red",
+  "icon_is_isometric": false,
+  "id": 1047,
+  "name": "RED_CARPET",
+  "textures": {
+    "all": "wool_colored_red"
+  }
+}

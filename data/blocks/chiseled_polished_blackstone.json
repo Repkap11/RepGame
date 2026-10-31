@@ -1,0 +1,9 @@
+{
+  "icon": "chiseled_polished_blackstone",
+  "icon_is_isometric": false,
+  "id": 286,
+  "name": "CHISELED_POLISHED_BLACKSTONE",
+  "textures": {
+    "all": "chiseled_polished_blackstone"
+  }
+}

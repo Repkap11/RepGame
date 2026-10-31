@@ -1,0 +1,18 @@
+{
+  "affected_by_redstone_power": false,
+  "breaks_in_liquid": true,
+  "casts_shadow": false,
+  "collides_with_player": false,
+  "hardness": 0,
+  "icon_is_isometric": false,
+  "id": 12,
+  "is_seethrough": true,
+  "name": "WEB",
+  "no_light": 0,
+  "render_order": "Flowers",
+  "textures": {
+    "bottom": "air",
+    "side": "web",
+    "top": "air"
+  }
+}

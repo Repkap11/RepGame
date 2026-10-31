@@ -1,0 +1,9 @@
+{
+  "icon": "stripped_mangrove_log_side",
+  "icon_is_isometric": false,
+  "id": 1188,
+  "name": "STRIPPED_MANGROVE_WOOD",
+  "textures": {
+    "all": "stripped_mangrove_log_side"
+  }
+}

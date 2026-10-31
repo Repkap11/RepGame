@@ -1,0 +1,9 @@
+{
+  "icon": "stone_diorite",
+  "icon_is_isometric": false,
+  "id": 522,
+  "name": "DIORITE",
+  "textures": {
+    "all": "stone_diorite"
+  }
+}

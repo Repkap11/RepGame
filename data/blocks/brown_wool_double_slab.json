@@ -1,0 +1,9 @@
+{
+  "icon": "wool_colored_brown",
+  "icon_is_isometric": false,
+  "id": 223,
+  "name": "BROWN_WOOL_DOUBLE_SLAB",
+  "textures": {
+    "all": "wool_colored_brown"
+  }
+}

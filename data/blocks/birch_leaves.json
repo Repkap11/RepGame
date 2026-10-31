@@ -1,0 +1,19 @@
+{
+  "casts_shadow": false,
+  "hardness": 0.349999994,
+  "icon": "leaves_birch_carried",
+  "icon_is_isometric": true,
+  "id": 140,
+  "is_seethrough": true,
+  "light_absorb": 6,
+  "name": "BIRCH_LEAVES",
+  "no_light": 6815743,
+  "textures": {
+    "back": "leaves_birch_carried",
+    "bottom": "leaves_birch_carried",
+    "front": "leaves_birch_carried",
+    "left": "leaves_birch_carried",
+    "right": "leaves_birch_carried",
+    "top": "leaves_birch_carried"
+  }
+}

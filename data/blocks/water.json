@@ -1,0 +1,28 @@
+{
+  "can_be_placed_in": true,
+  "casts_shadow": false,
+  "collides_with_player": false,
+  "flows": 20,
+  "hardness": 0,
+  "hides_self": [
+    true,
+    true,
+    true
+  ],
+  "icon": "water_still",
+  "icon_is_isometric": false,
+  "id": 95,
+  "is_pickable": false,
+  "is_seethrough": true,
+  "name": "WATER",
+  "no_light": 0,
+  "render_order": "Water",
+  "textures": {
+    "back": "water_still",
+    "bottom": "water_still",
+    "front": "water_still",
+    "left": "water_still",
+    "right": "water_still",
+    "top": "water_still"
+  }
+}

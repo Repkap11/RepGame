@@ -1,0 +1,37 @@
+{
+  "breaks_in_liquid": true,
+  "casts_shadow": false,
+  "collides_with_player": false,
+  "emits_light": 14,
+  "hardness": 0,
+  "icon_is_isometric": false,
+  "id": 875,
+  "is_torch": true,
+  "name": "RED_TORCH",
+  "needs_place_on_any_solid": {
+    "top": true
+  },
+  "offset": [
+    7,
+    0,
+    7
+  ],
+  "scale": [
+    2,
+    10,
+    2
+  ],
+  "tex_offset": [
+    -7,
+    0,
+    -7
+  ],
+  "textures": {
+    "back": "red_torch",
+    "bottom": "red_torch",
+    "front": "red_torch",
+    "left": "red_torch",
+    "right": "red_torch",
+    "top": "red_torch"
+  }
+}

@@ -2,7 +2,7 @@
 // Shares CHUNK_SIZE_*/CHUNK_SIZE_INTERNAL_* with the C++ side so the light
 // volume divisor below always matches the compiled chunk geometry.
 #include "common/chunk_dimensions.hpp"
-#define MAX_ROTATABLE_BLOCK 100u
+#include "common/texture_ids_gen.hpp"
 #define eps 0.00001f
 // Edge length of the per-chunk light volume in texels (interior + 1-cell halo).
 // Per-axis: internal dims need not be equal (e.g. X/Z=128, Y=64).
@@ -45,7 +45,6 @@ uniform vec3 u_LightBase;
 uniform float u_Daylight;
 uniform float u_MinAmbient;
 uniform float u_ReflectionHeight;
-uniform float u_RandomRotationBlocks[MAX_ROTATABLE_BLOCK];
 uniform float u_ShowRotation;
 uniform int u_TintUnderWater;
 uniform int u_Underwater;
@@ -176,7 +175,7 @@ void main() {
     // the dedicated water pass (u_FluidAnim), which contains just water/lava.
     if(u_FluidAnim == 1) {
         vec2 wpos = v_world_coords.xz;
-        if(v_blockID == 94u) { // WATER top texture (WATER block id - 1)
+        if(v_blockID == uint(TEX_WATER_STILL)) { // WATER top texture
             vec2 flow = vec2(u_Time * 0.045f, u_Time * 0.032f);
             vec2 warp = vec2(sin(wpos.x * 1.7f + u_Time * 1.8f), sin(wpos.y * 1.5f + u_Time * 1.4f)) * 0.18f;
             vec4 c1 = texture(u_Texture, vec3(working + flow + warp, v_blockID));
@@ -194,7 +193,7 @@ void main() {
             // underneath reads as "transparent" otherwise.
             texColor.rgb = mix(texColor.rgb, vec3(0.04f, 0.18f, 0.58f), 0.78f);
             texColor.a *= 0.8f + 0.2f * fresnel;
-        } else if(v_blockID == 93u) { // LAVA top texture
+        } else if(v_blockID == uint(TEX_LAVA_STILL)) { // LAVA top texture
             vec2 flow = vec2(u_Time * 0.008f, u_Time * 0.011f);
             vec2 warp = vec2(sin(wpos.x * 0.9f + u_Time * 0.45f), sin(wpos.y * 1.1f + u_Time * 0.38f)) * 0.07f;
             texColor = texture(u_Texture, vec3(working + flow + warp, v_blockID));

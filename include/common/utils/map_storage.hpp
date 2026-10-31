@@ -18,6 +18,17 @@ struct BlockState;
 
 #include "common/chest.hpp"
 
+// Save migration (pre-2047 format): LEGACY_EMPTY_BLOCK_ID was the empty-slot
+// marker, and ids now past LAST_BLOCK_ID or undefined load as empty slots or
+// as AIR in chunks.
+static inline bool save_slot_id_is_empty( uint32_t id ) {
+    return id == LEGACY_EMPTY_BLOCK_ID || id >= LAST_BLOCK_ID || !block_id_defined( id );
+}
+
+static inline BlockID save_chunk_block_id( uint32_t id ) {
+    return ( id == LEGACY_EMPTY_BLOCK_ID || id >= LAST_BLOCK_ID ) ? AIR : static_cast<BlockID>( id );
+}
+
 // Per-mob save record (persist_mobs/load_mobs). Packed on disk; readers copy
 // only the shared prefix so records from a build with a different size still
 // parse. Records with type >= MOB_TYPE_COUNT are skipped by the loader.

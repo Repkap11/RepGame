@@ -1,0 +1,9 @@
+{
+  "icon": "planks_jungle",
+  "icon_is_isometric": false,
+  "id": 659,
+  "name": "JUNGLE_FENCE_GATE",
+  "textures": {
+    "all": "planks_jungle"
+  }
+}

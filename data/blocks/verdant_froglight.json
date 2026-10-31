@@ -1,0 +1,12 @@
+{
+  "emits_light": 15,
+  "icon": "verdant_froglight_side",
+  "icon_is_isometric": false,
+  "id": 1261,
+  "name": "VERDANT_FROGLIGHT",
+  "textures": {
+    "bottom": "verdant_froglight_top",
+    "side": "verdant_froglight_side",
+    "top": "verdant_froglight_top"
+  }
+}

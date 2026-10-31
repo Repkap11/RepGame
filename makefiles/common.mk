@@ -100,9 +100,24 @@ clean-sounds:
 # bitmaps/mobs.png from tools/mobs_manifest.txt against the local
 # bedrock-samples checkout (not part of the normal build — the outputs are
 # committed). BEDROCK_SAMPLES points at the resource_pack dir.
-BEDROCK_SAMPLES ?= /home/paul/Software/bedrock-samples/resource_pack
+BEDROCK_SAMPLES_TAG ?= v1.26.60.5
+BEDROCK_SAMPLES ?= $(CURDIR)/bedrock-samples/resource_pack
+
+# In-repo, git-ignored checkout of Mojang/bedrock-samples used by the import
+# tools. Clone it once with `make bedrock-samples`.
+bedrock-samples:
+	git clone --depth 1 --branch $(BEDROCK_SAMPLES_TAG) https://github.com/Mojang/bedrock-samples.git bedrock-samples
+
 mobs-import:
 	BEDROCK_SAMPLES=$(BEDROCK_SAMPLES) python3 tools/mob_import.py
+
+# Block definition/texture importer: regenerates
+# include/common/block_ids_gen.hpp, include/common/texture_ids_gen.hpp,
+# src/common/block_definitions_gen.inc and bitmaps/blocks.png from
+# data/blocks/*.json + data/textures/*.png (outputs are committed, so normal
+# builds never need bedrock-samples).
+blocks-import:
+	BEDROCK_SAMPLES=$(BEDROCK_SAMPLES) python3 tools/blocks_import.py
 
 check:
 	cppcheck -j$(CPUS) --quiet --enable=warning,style,performance,portability,information,missingInclude -iinclude/common/vendor -DREPGAME_LINUX src
@@ -124,6 +139,6 @@ clean: clean-vars
 clean-vars:
 	rm -rf out/vars
 
-.PHONY: clean-bitmaps check clean-vars test-vars mobs-import
+.PHONY: clean-bitmaps check clean-vars test-vars mobs-import blocks-import
 
 .PRECIOUS: $(BITMAP_BINS)

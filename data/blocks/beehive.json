@@ -1,0 +1,14 @@
+{
+  "icon": "beehive_top",
+  "icon_is_isometric": false,
+  "id": 115,
+  "name": "BEEHIVE",
+  "textures": {
+    "back": "beehive_side",
+    "bottom": "beehive_top",
+    "front": "beehive_front",
+    "left": "beehive_side",
+    "right": "beehive_side",
+    "top": "beehive_top"
+  }
+}

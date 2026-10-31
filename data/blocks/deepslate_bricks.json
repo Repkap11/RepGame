@@ -1,0 +1,9 @@
+{
+  "icon": "deepslate_bricks",
+  "icon_is_isometric": false,
+  "id": 497,
+  "name": "DEEPSLATE_BRICKS",
+  "textures": {
+    "all": "deepslate_bricks"
+  }
+}

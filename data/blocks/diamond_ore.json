@@ -1,0 +1,9 @@
+{
+  "icon": "diamond_ore",
+  "icon_is_isometric": false,
+  "id": 521,
+  "name": "DIAMOND_ORE",
+  "textures": {
+    "all": "diamond_ore"
+  }
+}

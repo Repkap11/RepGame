@@ -131,10 +131,10 @@ bool PacketReader::read_block_state( BlockState &out ) {
     if ( !read_u8( rotation ) ) return false;
     if ( !read_i32( power ) ) return false;
     if ( !read_u32( display_id ) ) return false;
-    out.id = static_cast<BlockID>( id );
+    out.id = ( id == LEGACY_EMPTY_BLOCK_ID || id >= LAST_BLOCK_ID ) ? AIR : static_cast<BlockID>( id );
     out.rotation = rotation;
     out.current_redstone_power = power;
-    out.display_id = static_cast<BlockID>( display_id );
+    out.display_id = ( display_id == LEGACY_EMPTY_BLOCK_ID || display_id >= LAST_BLOCK_ID ) ? out.id : static_cast<BlockID>( display_id );
     uint8_t waterlogged = 0;
     read_u8( waterlogged ); // older peers don't send it — absence means dry
     out.waterlogged = waterlogged;

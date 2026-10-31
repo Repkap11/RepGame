@@ -1,0 +1,9 @@
+{
+  "icon": "jungle_shelf",
+  "icon_is_isometric": false,
+  "id": 661,
+  "name": "JUNGLE_SHELF",
+  "textures": {
+    "all": "jungle_shelf"
+  }
+}

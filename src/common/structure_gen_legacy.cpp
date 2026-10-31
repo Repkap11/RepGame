@@ -79,7 +79,7 @@ static BlockID sgl_is_long_grass_roll( int x, int z, int is_forest ) {
     if ( is_tuftland ) {
         const float noise2 = perlin_noise2d( x, z, 1.0f, 3, MAP_SEED + 9 );
         if ( noise2 > 0.95 ) {
-            return YELLOW_FLOWER;
+            return DANDELION;
         }
 
         if ( noise2 > 0.93 ) {
@@ -87,11 +87,11 @@ static BlockID sgl_is_long_grass_roll( int x, int z, int is_forest ) {
         }
 
         if ( noise2 > 0.91 ) {
-            return BLUE_FLOWER;
+            return BLUE_ORCHID;
         }
 
         if ( noise2 > 0.8 ) {
-            return GRASS_TUFT2;
+            return FERN;
         }
     }
 
@@ -414,16 +414,16 @@ void StructureGen::place_legacy( Chunk &chunk ) {
     const int coy = chunk.chunk_pos.y * CHUNK_SIZE_Y;
     const int coz = chunk.chunk_pos.z * CHUNK_SIZE_Z;
 
-    const Block *leaf = block_definition_get_definition( LEAF );
+    const Block *leaf = block_definition_get_definition( OAK_LEAVES );
     const Block *oak_log = block_definition_get_definition( OAK_LOG );
     const Block *dirt = block_definition_get_definition( DIRT );
-    const Block *reed = block_definition_get_definition( REED );
+    const Block *reed = block_definition_get_definition( REEDS );
     const Block *glowstone = block_definition_get_definition( GLOWSTONE );
 
-    const BlockState leaf_state = { LEAF, 0, leaf->initial_redstone_power, LEAF, 0 };
+    const BlockState leaf_state = { OAK_LEAVES, 0, leaf->initial_redstone_power, OAK_LEAVES, 0 };
     const BlockState oak_log_state = { OAK_LOG, 0, oak_log->initial_redstone_power, OAK_LOG, 0 };
     const BlockState dirt_state = { DIRT, 0, dirt->initial_redstone_power, DIRT, 0 };
-    const BlockState reed_state = { REED, 0, reed->initial_redstone_power, REED, 0 };
+    const BlockState reed_state = { REEDS, 0, reed->initial_redstone_power, REEDS, 0 };
     const BlockState glowstone_state = { GLOWSTONE, 0, glowstone->initial_redstone_power, GLOWSTONE, 0 };
 
     // ---- Pass 1: trees ---------------------------------------------------
@@ -518,7 +518,7 @@ void StructureGen::place_legacy( Chunk &chunk ) {
             }
             const int y = surface_y;
             if ( block_below == GRASS && y != 0 ) {
-                if ( !sgl_is_next_to( chunk, x, y, z, GRASS_TUFT2 ) ) {
+                if ( !sgl_is_next_to( chunk, x, y, z, FERN ) ) {
                     const int is_forest = sgl_is_forest( world_x, world_z );
                     BlockID grass_type = sgl_is_long_grass_roll( world_x, world_z, is_forest );
                     Block *grass_block = block_definition_get_definition( grass_type );

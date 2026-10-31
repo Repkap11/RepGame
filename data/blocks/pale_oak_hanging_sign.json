@@ -1,0 +1,9 @@
+{
+  "icon": "pale_oak_planks",
+  "icon_is_isometric": false,
+  "id": 886,
+  "name": "PALE_OAK_HANGING_SIGN",
+  "textures": {
+    "all": "pale_oak_planks"
+  }
+}

@@ -1,0 +1,11 @@
+{
+  "icon": "quartz_block_side",
+  "icon_is_isometric": false,
+  "id": 1036,
+  "name": "QUARTZ_DOUBLE_SLAB",
+  "textures": {
+    "bottom": "quartz_block_top",
+    "side": "quartz_block_side",
+    "top": "quartz_block_top"
+  }
+}

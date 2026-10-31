@@ -1,0 +1,9 @@
+{
+  "icon": "tuff_bricks",
+  "icon_is_isometric": false,
+  "id": 1250,
+  "name": "TUFF_BRICK_WALL",
+  "textures": {
+    "all": "tuff_bricks"
+  }
+}

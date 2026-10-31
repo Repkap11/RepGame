@@ -1,0 +1,9 @@
+{
+  "icon": "wool_colored_lime",
+  "icon_is_isometric": false,
+  "id": 726,
+  "name": "LIME_WOOL_DOUBLE_SLAB",
+  "textures": {
+    "all": "wool_colored_lime"
+  }
+}

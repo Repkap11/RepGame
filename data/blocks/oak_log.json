@@ -1,0 +1,12 @@
+{
+  "hardness": 2,
+  "icon": "log_oak",
+  "icon_is_isometric": true,
+  "id": 29,
+  "name": "OAK_LOG",
+  "textures": {
+    "bottom": "log_oak_top",
+    "side": "log_oak",
+    "top": "log_oak_top"
+  }
+}

@@ -1,0 +1,13 @@
+{
+  "hardness": 4,
+  "id": 50,
+  "name": "IRON_ORE",
+  "textures": {
+    "back": "iron_ore",
+    "bottom": "iron_ore",
+    "front": "iron_ore",
+    "left": "iron_ore",
+    "right": "iron_ore",
+    "top": "iron_ore"
+  }
+}

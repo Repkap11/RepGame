@@ -1,0 +1,14 @@
+{
+  "icon": "copper_chest_inventory_top",
+  "icon_is_isometric": false,
+  "id": 1290,
+  "name": "WAXED_COPPER_CHEST",
+  "textures": {
+    "back": "copper_chest_inventory_side",
+    "bottom": "copper_chest_inventory_top",
+    "front": "copper_chest_inventory_front",
+    "left": "copper_chest_inventory_side",
+    "right": "copper_chest_inventory_side",
+    "top": "copper_chest_inventory_top"
+  }
+}

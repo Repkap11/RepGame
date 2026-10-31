@@ -1,0 +1,13 @@
+{
+  "casts_shadow": false,
+  "hardness": 0.35,
+  "icon": "weathered_copper_bars",
+  "icon_is_isometric": false,
+  "id": 1335,
+  "is_seethrough": true,
+  "name": "WAXED_WEATHERED_COPPER_BARS",
+  "no_light": 6815743,
+  "textures": {
+    "all": "weathered_copper_bars"
+  }
+}

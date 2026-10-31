@@ -1,0 +1,11 @@
+{
+  "icon": "crimson_nylium_side",
+  "icon_is_isometric": false,
+  "id": 402,
+  "name": "CRIMSON_NYLIUM",
+  "textures": {
+    "bottom": "netherrack",
+    "side": "crimson_nylium_side",
+    "top": "crimson_nylium_top"
+  }
+}

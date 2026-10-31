@@ -1,0 +1,19 @@
+{
+  "affected_by_redstone_power": false,
+  "casts_shadow": false,
+  "hardness": 0.449999988,
+  "icon": "glass_brown",
+  "icon_is_isometric": false,
+  "id": 219,
+  "is_seethrough": true,
+  "name": "BROWN_STAINED_GLASS_PANE",
+  "render_order": "Translucent",
+  "textures": {
+    "back": "glass_brown",
+    "bottom": "glass_brown",
+    "front": "glass_brown",
+    "left": "glass_brown",
+    "right": "glass_pane_top_brown",
+    "top": "glass_brown"
+  }
+}

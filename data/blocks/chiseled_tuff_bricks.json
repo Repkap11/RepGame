@@ -1,0 +1,11 @@
+{
+  "icon": "chiseled_tuff_bricks",
+  "icon_is_isometric": false,
+  "id": 294,
+  "name": "CHISELED_TUFF_BRICKS",
+  "textures": {
+    "bottom": "chiseled_tuff_bricks_top",
+    "side": "chiseled_tuff_bricks",
+    "top": "chiseled_tuff_bricks_top"
+  }
+}

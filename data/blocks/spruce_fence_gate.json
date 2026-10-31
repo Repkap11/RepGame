@@ -1,0 +1,9 @@
+{
+  "icon": "planks_spruce",
+  "icon_is_isometric": false,
+  "id": 1147,
+  "name": "SPRUCE_FENCE_GATE",
+  "textures": {
+    "all": "planks_spruce"
+  }
+}

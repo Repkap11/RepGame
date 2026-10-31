@@ -1,0 +1,13 @@
+{
+  "emits_light": 15,
+  "id": 154,
+  "name": "GLOWSTONE",
+  "textures": {
+    "back": "glowstone",
+    "bottom": "glowstone",
+    "front": "glowstone",
+    "left": "glowstone",
+    "right": "glowstone",
+    "top": "glowstone"
+  }
+}

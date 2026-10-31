@@ -1,0 +1,9 @@
+{
+  "icon": "stripped_pale_oak_log_side",
+  "icon_is_isometric": false,
+  "id": 1192,
+  "name": "STRIPPED_PALE_OAK_WOOD",
+  "textures": {
+    "all": "stripped_pale_oak_log_side"
+  }
+}

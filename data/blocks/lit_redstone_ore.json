@@ -1,0 +1,10 @@
+{
+  "emits_light": 9,
+  "icon": "redstone_ore",
+  "icon_is_isometric": false,
+  "id": 732,
+  "name": "LIT_REDSTONE_ORE",
+  "textures": {
+    "all": "redstone_ore"
+  }
+}

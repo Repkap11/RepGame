@@ -160,35 +160,35 @@ int test_redstone( ) {
         gs.blockUpdateQueue.addBlockUpdate( std::make_shared<PlayerBlockPlacedEvent>( gs.tick_number, pos, block_state, false ) );
     };
     place( glm::ivec3( 10, 11, 10 ), { REDSTONE_TORCH, 0, 0, REDSTONE_TORCH, 0 } );  // T1: floor torch
-    place( glm::ivec3( 11, 12, 10 ), { REDSTONE_CROSS, 0, 0, REDSTONE_CROSS, 0 } ); // D: dust beside B
-    place( glm::ivec3( 10, 13, 10 ), { REDSTONE_CROSS, 0, 0, REDSTONE_CROSS, 0 } ); // D2: dust on top of B
+    place( glm::ivec3( 11, 12, 10 ), { REDSTONE_WIRE_CROSS, 0, 0, REDSTONE_WIRE_CROSS, 0 } ); // D: dust beside B
+    place( glm::ivec3( 10, 13, 10 ), { REDSTONE_WIRE_CROSS, 0, 0, REDSTONE_WIRE_CROSS, 0 } ); // D2: dust on top of B
     place( glm::ivec3( 9, 12, 10 ), { REDSTONE_TORCH, 6, 0, REDSTONE_TORCH, 0 } );  // T2: attached to B
     place( glm::ivec3( 10, 12, 11 ), { PISTON, 0, 0, PISTON, 0 } );                // piston beside B, faces +z
     place( glm::ivec3( 10, 12, 9 ), { REDSTONE_LAMP, 0, 0, REDSTONE_LAMP, 0 } );   // lamp beside B
-    place( glm::ivec3( 10, 12, 8 ), { REDSTONE_CROSS, 0, 0, REDSTONE_CROSS, 0 } ); // D3: dust beside lamp
+    place( glm::ivec3( 10, 12, 8 ), { REDSTONE_WIRE_CROSS, 0, 0, REDSTONE_WIRE_CROSS, 0 } ); // D3: dust beside lamp
     place( glm::ivec3( 13, 11, 10 ), { REDSTONE_TORCH, 0, 0, REDSTONE_TORCH, 0 } ); // T3: floor torch under glass
     place( glm::ivec3( 13, 12, 10 ), { GLASS, 0, 0, GLASS, 0 } );                  // glass above T3: can't be powered
-    place( glm::ivec3( 13, 13, 10 ), { REDSTONE_CROSS, 0, 0, REDSTONE_CROSS, 0 } ); // G_d: dust on glass
+    place( glm::ivec3( 13, 13, 10 ), { REDSTONE_WIRE_CROSS, 0, 0, REDSTONE_WIRE_CROSS, 0 } ); // G_d: dust on glass
     place( glm::ivec3( 10, 13, 9 ), { REDSTONE_LAMP, 0, 0, REDSTONE_LAMP, 0 } );   // lamp2 above lit lamp
     place( glm::ivec3( 9, 12, 11 ), { REDSTONE_LAMP, 0, 0, REDSTONE_LAMP, 0 } );   // lamp3 beside powered piston
 
     // Glass staircase: source at the bottom must climb it.
-    place( glm::ivec3( 20, 11, 10 ), { REDSTONE_CROSS, 0, 0, REDSTONE_CROSS, 0 } ); // s1
-    place( glm::ivec3( 21, 12, 10 ), { REDSTONE_CROSS, 0, 0, REDSTONE_CROSS, 0 } ); // s2
-    place( glm::ivec3( 22, 13, 10 ), { REDSTONE_CROSS, 0, 0, REDSTONE_CROSS, 0 } ); // s3
+    place( glm::ivec3( 20, 11, 10 ), { REDSTONE_WIRE_CROSS, 0, 0, REDSTONE_WIRE_CROSS, 0 } ); // s1
+    place( glm::ivec3( 21, 12, 10 ), { REDSTONE_WIRE_CROSS, 0, 0, REDSTONE_WIRE_CROSS, 0 } ); // s2
+    place( glm::ivec3( 22, 13, 10 ), { REDSTONE_WIRE_CROSS, 0, 0, REDSTONE_WIRE_CROSS, 0 } ); // s3
     place( glm::ivec3( 20, 11, 11 ), { REDSTONE_BLOCK, 0, 0, REDSTONE_BLOCK, 0 } ); // source beside s1
 
     // Stone staircase: source at the top must descend it.
-    place( glm::ivec3( 25, 11, 10 ), { REDSTONE_CROSS, 0, 0, REDSTONE_CROSS, 0 } ); // s4
-    place( glm::ivec3( 26, 12, 10 ), { REDSTONE_CROSS, 0, 0, REDSTONE_CROSS, 0 } ); // s5
+    place( glm::ivec3( 25, 11, 10 ), { REDSTONE_WIRE_CROSS, 0, 0, REDSTONE_WIRE_CROSS, 0 } ); // s4
+    place( glm::ivec3( 26, 12, 10 ), { REDSTONE_WIRE_CROSS, 0, 0, REDSTONE_WIRE_CROSS, 0 } ); // s5
     place( glm::ivec3( 26, 12, 11 ), { REDSTONE_BLOCK, 0, 0, REDSTONE_BLOCK, 0 } ); // source beside s5
 
     // Blocked staircases.
-    place( glm::ivec3( 28, 11, 10 ), { REDSTONE_CROSS, 0, 0, REDSTONE_CROSS, 0 } ); // b1
-    place( glm::ivec3( 29, 12, 10 ), { REDSTONE_CROSS, 0, 0, REDSTONE_CROSS, 0 } ); // b2 (blocked)
+    place( glm::ivec3( 28, 11, 10 ), { REDSTONE_WIRE_CROSS, 0, 0, REDSTONE_WIRE_CROSS, 0 } ); // b1
+    place( glm::ivec3( 29, 12, 10 ), { REDSTONE_WIRE_CROSS, 0, 0, REDSTONE_WIRE_CROSS, 0 } ); // b2 (blocked)
     place( glm::ivec3( 28, 11, 11 ), { REDSTONE_BLOCK, 0, 0, REDSTONE_BLOCK, 0 } ); // source beside b1
-    place( glm::ivec3( 28, 11, 14 ), { REDSTONE_CROSS, 0, 0, REDSTONE_CROSS, 0 } ); // b3
-    place( glm::ivec3( 29, 12, 14 ), { REDSTONE_CROSS, 0, 0, REDSTONE_CROSS, 0 } ); // b4 (glass corner)
+    place( glm::ivec3( 28, 11, 14 ), { REDSTONE_WIRE_CROSS, 0, 0, REDSTONE_WIRE_CROSS, 0 } ); // b3
+    place( glm::ivec3( 29, 12, 14 ), { REDSTONE_WIRE_CROSS, 0, 0, REDSTONE_WIRE_CROSS, 0 } ); // b4 (glass corner)
     place( glm::ivec3( 28, 11, 15 ), { REDSTONE_BLOCK, 0, 0, REDSTONE_BLOCK, 0 } ); // source beside b3
 
     // Latch regression: two adjacent lamps must not sustain each other once
@@ -210,7 +210,7 @@ int test_redstone( ) {
     failures += check_power( world, "T2: torch attached to powered block", glm::ivec3( 9, 12, 10 ), 0 );
     failures += check_power( world, "piston beside powered block", glm::ivec3( 10, 12, 11 ), 1 );
     failures += check_power( world, "lamp beside powered block", glm::ivec3( 10, 12, 9 ), 1 );
-    failures += check_id( world, "piston head extended into (10,12,12)", glm::ivec3( 10, 12, 12 ), PISTON_HEAD );
+    failures += check_id( world, "piston head extended into (10,12,12)", glm::ivec3( 10, 12, 12 ), PISTON_ARM_COLLISION );
     failures += check_power( world, "D3: dust beside powered lamp (no emit)", glm::ivec3( 10, 12, 8 ), 0 );
     failures += check_power( world, "glass above torch (non-solid, no power)", glm::ivec3( 13, 12, 10 ), 0 );
     failures += check_power( world, "dust on glass (no power through glass)", glm::ivec3( 13, 13, 10 ), 0 );
@@ -344,6 +344,39 @@ int test_sneak( ) {
     return failures;
 }
 
+// Pre-2047 save migration: 1249 was the empty-slot marker, and ids that are
+// now undefined or past LAST_BLOCK_ID must load as empty slots / AIR.
+int test_save_migration( ) {
+    if ( block_definitions == nullptr ) {
+        block_definitions_initilize_definitions( nullptr );
+    }
+    int failures = 0;
+    auto check_bool = [ & ]( const char *name, bool cond ) {
+        pr_test( "  %-55s %s", name, cond ? "PASS" : "FAIL" );
+        if ( !cond ) {
+            failures++;
+        }
+    };
+
+    check_bool( "slot: sentinel 1249 loads empty", save_slot_id_is_empty( LEGACY_EMPTY_BLOCK_ID ) );
+    uint32_t undefined_id = LAST_BLOCK_ID;
+    for ( uint32_t i = 0; i < LAST_BLOCK_ID; i++ ) {
+        if ( i != LEGACY_EMPTY_BLOCK_ID && !block_id_defined( i ) ) {
+            undefined_id = i;
+            break;
+        }
+    }
+    check_bool( "slot: an undefined id exists below LAST_BLOCK_ID", undefined_id < LAST_BLOCK_ID );
+    check_bool( "slot: undefined id loads empty", undefined_id < LAST_BLOCK_ID && save_slot_id_is_empty( undefined_id ) );
+    check_bool( "slot: out-of-range id loads empty", save_slot_id_is_empty( LAST_BLOCK_ID + 42 ) );
+    check_bool( "slot: real block survives", !save_slot_id_is_empty( GRASS ) );
+    check_bool( "chunk: sentinel 1249 loads AIR", save_chunk_block_id( LEGACY_EMPTY_BLOCK_ID ) == AIR );
+    check_bool( "chunk: out-of-range id loads AIR", save_chunk_block_id( LAST_BLOCK_ID + 42 ) == AIR );
+    check_bool( "chunk: real block survives", save_chunk_block_id( GRASS ) == GRASS );
+    check_bool( "sentinel 1249 is not a defined block", !block_id_defined( LEGACY_EMPTY_BLOCK_ID ) );
+    return failures;
+}
+
 // Terrain generator invariants, checked through the public single-cell API
 // (MapGen::gen_block_id is the same code the CUDA/HIP kernels share via
 // map_gen_fields.hpp). Seed is fixed so every check is deterministic.
@@ -388,8 +421,8 @@ int test_mapgen( ) {
             }
             if ( top_solid > -10000 ) {
                 const BlockID surf = MapGen::gen_block_id( x, top_solid, z );
-                if ( surf == GRASS || surf == PODZEL || surf == MYCELIUM ) grass++;
-                if ( surf == SAND || surf == ORANGE_SAND || surf == GRAVEL ) sand_like++;
+                if ( surf == GRASS || surf == PODZOL || surf == MYCELIUM ) grass++;
+                if ( surf == SAND || surf == RED_SAND || surf == GRAVEL ) sand_like++;
                 if ( surf == SNOW || surf == SNOWY_GRASS ) snow_like++;
             }
         }
@@ -478,13 +511,13 @@ int test_waterlog( ) {
 
     // Coral written into a water cell becomes waterlogged; on dry land it
     // does not (the original "always waterlogged" bug).
-    world.set_loaded_block( glm::ivec3( 10, 10, 10 ), { SEAWEED, 0, 0, SEAWEED, 0 } );
+    world.set_loaded_block( glm::ivec3( 10, 10, 10 ), { KELP, 0, 0, KELP, 0 } );
     const BlockState wet = world.get_loaded_block( glm::ivec3( 10, 10, 10 ) );
-    check_bool( "plant placed in water keeps id", wet.id == SEAWEED );
+    check_bool( "plant placed in water keeps id", wet.id == KELP );
     check_bool( "plant placed in water is waterlogged", wet.waterlogged == 1 );
-    world.set_loaded_block( glm::ivec3( 20, 10, 20 ), { SEAWEED, 0, 0, SEAWEED, 0 } );
+    world.set_loaded_block( glm::ivec3( 20, 10, 20 ), { KELP, 0, 0, KELP, 0 } );
     const BlockState dry = world.get_loaded_block( glm::ivec3( 20, 10, 20 ) );
-    check_bool( "plant placed on land is not waterlogged", dry.id == SEAWEED && dry.waterlogged == 0 );
+    check_bool( "plant placed on land is not waterlogged", dry.id == KELP && dry.waterlogged == 0 );
 
     // Water expanding onto a waterloggable block waterlogs it instead of
     // replacing it; into an already-waterlogged cell it must not fire at
@@ -502,7 +535,7 @@ int test_waterlog( ) {
     // ticks and the queue explodes past the 100k-event guard (exit). The
     // state must also hold: coral stays waterlogged, neighbor stays water.
     const BlockState after = world.get_loaded_block( glm::ivec3( 10, 10, 10 ) );
-    check_bool( "waterlogged coral survives water expansion", after.id == SEAWEED && after.waterlogged == 1 );
+    check_bool( "waterlogged coral survives water expansion", after.id == KELP && after.waterlogged == 1 );
     failures += check_id( world, "water cell beside coral stays water", glm::ivec3( 11, 10, 10 ), WATER );
 
     // Breaking a waterlogged block leaves its water behind.
@@ -582,7 +615,7 @@ int test_lighting( ) {
     // light_absorb (7 at absorb 6), so torchlight inside a leaf dims hard,
     // and the far side settles at the best wraparound path (glass costs -1).
     world.set_loaded_block( glm::ivec3( 10, 20, 10 ), { TORCH, 0, 0, TORCH, 0 } );
-    world.set_loaded_block( glm::ivec3( 12, 20, 10 ), { LEAF, 0, 0, LEAF, 0 } );
+    world.set_loaded_block( glm::ivec3( 12, 20, 10 ), { OAK_LEAVES, 0, 0, OAK_LEAVES, 0 } );
     cl.light_process_queue( 1000000 );
     check_light( "air cell beside torch", glm::ivec3( 11, 20, 10 ), LIGHT_CHANNEL_BLOCK, 13 );
     check_light( "leaf cell holds light", glm::ivec3( 12, 20, 10 ), LIGHT_CHANNEL_BLOCK, 6 );
@@ -739,7 +772,7 @@ int test_structure_border( ) {
     };
 
     // A tree part in a halo plane can only have come from structure gen —
-    // terrain never emits LEAF/OAK_LOG — so counting them proves trees reach
+    // terrain never emits OAK_LEAVES/OAK_LOG — so counting them proves trees reach
     // borders, and the face comparisons then prove they mirror correctly.
     int border_tree_cells = 0;
     int mismatches = 0;
@@ -837,14 +870,14 @@ int test_structure_border( ) {
                         for ( int lz = -1; lz <= CHUNK_SIZE_Z; lz++ ) {
                             for ( int lx : { -1, CHUNK_SIZE_X } ) {
                                 const BlockID id = c->get_block( glm::ivec3( lx, ly, lz ) ).id;
-                                if ( id == LEAF || id == OAK_LOG || id == GLOWSTONE ) {
+                                if ( id == OAK_LEAVES || id == OAK_LOG || id == GLOWSTONE ) {
                                     border_tree_cells++;
                                 }
                             }
                             for ( int lx = -1; lx <= CHUNK_SIZE_X; lx++ ) {
                                 for ( int lz2 : { -1, CHUNK_SIZE_Z } ) {
                                     const BlockID id = c->get_block( glm::ivec3( lx, ly, lz2 ) ).id;
-                                    if ( id == LEAF || id == OAK_LOG || id == GLOWSTONE ) {
+                                    if ( id == OAK_LEAVES || id == OAK_LOG || id == GLOWSTONE ) {
                                         border_tree_cells++;
                                     }
                                 }
@@ -1411,6 +1444,7 @@ constexpr Test all_tests[] = {  //
     MK_TEST( vr_projection ),   //
     MK_TEST( redstone ),        //
     MK_TEST( sneak ),           //
+    MK_TEST( save_migration ),  //
     MK_TEST( mapgen ),          //
     MK_TEST( waterlog ),        //
     MK_TEST( lighting ),        //

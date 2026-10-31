@@ -1,0 +1,31 @@
+{
+  "casts_shadow": false,
+  "collides_with_player": false,
+  "icon_is_isometric": false,
+  "id": 236,
+  "name": "ZOMBIE_HEAD",
+  "offset": [
+    4,
+    0,
+    4
+  ],
+  "rotate_on_placement": true,
+  "scale": [
+    8,
+    8,
+    8
+  ],
+  "tex_offset": [
+    -4,
+    -4,
+    -4
+  ],
+  "textures": {
+    "back": "zombie_head",
+    "bottom": "zombie_head",
+    "front": "zombie_head",
+    "left": "zombie_head",
+    "right": "zombie_head",
+    "top": "zombie_head"
+  }
+}

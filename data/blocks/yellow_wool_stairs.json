@@ -1,0 +1,9 @@
+{
+  "icon": "wool_colored_yellow",
+  "icon_is_isometric": false,
+  "id": 1405,
+  "name": "YELLOW_WOOL_STAIRS",
+  "textures": {
+    "all": "wool_colored_yellow"
+  }
+}

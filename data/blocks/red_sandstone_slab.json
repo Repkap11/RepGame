@@ -1,0 +1,22 @@
+{
+  "hardness": 4,
+  "icon": "red_sandstone_normal",
+  "icon_is_isometric": true,
+  "id": 493,
+  "name": "RED_SANDSTONE_SLAB",
+  "scale": [
+    16,
+    8,
+    16
+  ],
+  "tex_offset": [
+    0,
+    -4,
+    0
+  ],
+  "textures": {
+    "bottom": "red_sandstone_bottom",
+    "side": "red_sandstone_normal",
+    "top": "red_sandstone_top"
+  }
+}

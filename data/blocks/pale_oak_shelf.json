@@ -1,0 +1,9 @@
+{
+  "icon": "pale_oak_shelf",
+  "icon_is_isometric": false,
+  "id": 892,
+  "name": "PALE_OAK_SHELF",
+  "textures": {
+    "all": "pale_oak_shelf"
+  }
+}

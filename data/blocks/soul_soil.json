@@ -1,0 +1,9 @@
+{
+  "icon": "soul_soil",
+  "icon_is_isometric": false,
+  "id": 1141,
+  "name": "SOUL_SOIL",
+  "textures": {
+    "all": "soul_soil"
+  }
+}

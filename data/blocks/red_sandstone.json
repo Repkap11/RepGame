@@ -1,0 +1,12 @@
+{
+  "hardness": 4,
+  "icon": "red_sandstone_normal",
+  "icon_is_isometric": true,
+  "id": 488,
+  "name": "RED_SANDSTONE",
+  "textures": {
+    "bottom": "red_sandstone_bottom",
+    "side": "red_sandstone_normal",
+    "top": "red_sandstone_top"
+  }
+}

@@ -1,0 +1,9 @@
+{
+  "icon": "clay",
+  "icon_is_isometric": false,
+  "id": 312,
+  "name": "CLAY",
+  "textures": {
+    "all": "clay"
+  }
+}

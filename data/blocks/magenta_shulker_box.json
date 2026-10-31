@@ -1,0 +1,9 @@
+{
+  "icon": "shulker_top_magenta",
+  "icon_is_isometric": false,
+  "id": 747,
+  "name": "MAGENTA_SHULKER_BOX",
+  "textures": {
+    "all": "shulker_top_magenta"
+  }
+}

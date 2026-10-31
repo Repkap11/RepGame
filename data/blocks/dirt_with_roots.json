@@ -1,0 +1,9 @@
+{
+  "icon": "dirt_with_roots",
+  "icon_is_isometric": false,
+  "id": 532,
+  "name": "DIRT_WITH_ROOTS",
+  "textures": {
+    "all": "dirt_with_roots"
+  }
+}

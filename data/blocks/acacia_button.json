@@ -1,0 +1,37 @@
+{
+  "breaks_in_liquid": true,
+  "casts_shadow": false,
+  "collides_with_player": false,
+  "connects_to_redstone_dust": true,
+  "hardness": 0.5,
+  "icon": "planks_acacia",
+  "icon_is_isometric": false,
+  "id": 456,
+  "is_button": true,
+  "is_seethrough": true,
+  "name": "ACACIA_BUTTON",
+  "needs_place_on_any_solid": {
+    "front": true
+  },
+  "offset": [
+    5,
+    6,
+    0
+  ],
+  "rotate_on_placement": true,
+  "scale": [
+    6,
+    4,
+    2
+  ],
+  "tex_offset": [
+    -7,
+    -6,
+    -5
+  ],
+  "textures": {
+    "bottom": "planks_acacia",
+    "side": "planks_acacia",
+    "top": "planks_acacia"
+  }
+}

@@ -1,0 +1,19 @@
+{
+  "affected_by_redstone_power": false,
+  "casts_shadow": false,
+  "hardness": 0.449999988,
+  "icon": "glass_light_blue",
+  "icon_is_isometric": true,
+  "id": 369,
+  "is_seethrough": true,
+  "name": "GLASS_PALE_BLUE",
+  "render_order": "Translucent",
+  "textures": {
+    "back": "glass_light_blue",
+    "bottom": "glass_light_blue",
+    "front": "glass_light_blue",
+    "left": "glass_light_blue",
+    "right": "glass_light_blue",
+    "top": "glass_light_blue"
+  }
+}

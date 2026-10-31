@@ -1,0 +1,9 @@
+{
+  "icon": "concrete_lime",
+  "icon_is_isometric": false,
+  "id": 716,
+  "name": "LIME_CONCRETE",
+  "textures": {
+    "all": "concrete_lime"
+  }
+}

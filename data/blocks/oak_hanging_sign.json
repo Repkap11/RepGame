@@ -1,0 +1,9 @@
+{
+  "icon": "planks_oak",
+  "icon_is_isometric": false,
+  "id": 825,
+  "name": "OAK_HANGING_SIGN",
+  "textures": {
+    "all": "planks_oak"
+  }
+}
