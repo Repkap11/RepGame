@@ -766,7 +766,11 @@ the grid's bottom pinned a quarter stride above the survival panel's items.
 While the table is open, shift-clicking a survival or hotbar slot moves the
 stack (half for right-shift-click) into the 3x3 grid via `crafting_grid_add`
 (merge matching stacks, then empty cells, top-left first); without a table
-the usual survival↔hotbar shift-move applies.
+the usual survival↔hotbar shift-move applies. Drag crafting is supported on
+grid slots only: holding a stack and dragging with the left button splits it
+evenly across the slots (right button places one each) via the pure
+`crafting_drag_distribute` helper, re-applied from a drag-start snapshot each
+tick for a live preview.
 
 ## Mobs
 

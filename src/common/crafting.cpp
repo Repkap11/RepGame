@@ -100,3 +100,37 @@ int crafting_find_recipe( const ItemID *grid, int dim ) {
     }
     return -1;
 }
+
+bool crafting_drag_accepts( const InventorySlot &slot, const InventorySlot &held ) {
+    if ( held.item_id == LAST_BLOCK_ID || held.quantity <= 0 ) {
+        return false;
+    }
+    if ( slot.item_id == LAST_BLOCK_ID || slot.quantity <= 0 ) {
+        return true;
+    }
+    return slot.item_id == held.item_id && slot.quantity < item_max_stack( held.item_id );
+}
+
+void crafting_drag_distribute( InventorySlot *slots, const int *targets, int n, InventorySlot &held, bool one_each ) {
+    const int per = one_each ? 1 : held.quantity / n;
+    const int max_stack = item_max_stack( held.item_id );
+    for ( int i = 0; i < n && held.quantity > 0; i++ ) {
+        InventorySlot &slot = slots[ targets[ i ] ];
+        const bool slot_empty = slot.item_id == LAST_BLOCK_ID || slot.quantity <= 0;
+        const int room = slot_empty ? max_stack : max_stack - slot.quantity;
+        const int give = per < room ? per : room;
+        if ( give <= 0 ) {
+            continue;
+        }
+        if ( slot_empty ) {
+            slot.item_id = held.item_id;
+            slot.quantity = 0;
+        }
+        slot.quantity += give;
+        held.quantity -= give;
+    }
+    if ( held.quantity <= 0 ) {
+        held.item_id = LAST_BLOCK_ID;
+        held.quantity = 0;
+    }
+}

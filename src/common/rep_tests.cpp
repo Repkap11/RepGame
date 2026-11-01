@@ -3252,6 +3252,54 @@ int test_crafting( ) {
         expect_none( "empty grid -> -1", grid, 3 );
     }
 
+    // Drag crafting: distribute a held stack over the dragged slots.
+    {
+        InventorySlot slots[ 9 ];
+        for ( InventorySlot &s : slots ) {
+            s.item_id = LAST_BLOCK_ID;
+            s.quantity = 0;
+        }
+        InventorySlot held = { OAK_PLANKS, 64 };
+        const int targets[] = { 0, 1, 2 };
+        crafting_drag_distribute( slots, targets, 3, held, false );
+        report( "drag split 64 over 3 slots", slots[ 0 ].quantity == 21 && slots[ 1 ].quantity == 21 && slots[ 2 ].quantity == 21 && held.quantity == 1 );
+    }
+    {
+        InventorySlot slots[ 9 ];
+        for ( InventorySlot &s : slots ) {
+            s.item_id = LAST_BLOCK_ID;
+            s.quantity = 0;
+        }
+        slots[ 0 ].item_id = OAK_PLANKS;
+        slots[ 0 ].quantity = 60;
+        InventorySlot held = { OAK_PLANKS, 10 };
+        const int targets[] = { 0, 1 };
+        crafting_drag_distribute( slots, targets, 2, held, false );
+        report( "drag split capped by slot room", slots[ 0 ].quantity == 64 && slots[ 1 ].quantity == 5 && held.quantity == 1 );
+    }
+    {
+        InventorySlot slots[ 9 ];
+        for ( InventorySlot &s : slots ) {
+            s.item_id = LAST_BLOCK_ID;
+            s.quantity = 0;
+        }
+        InventorySlot held = { OAK_PLANKS, 2 };
+        const int targets[] = { 0, 1 };
+        crafting_drag_distribute( slots, targets, 2, held, true );
+        report( "right-drag one per slot", slots[ 0 ].quantity == 1 && slots[ 1 ].quantity == 1 && held.item_id == LAST_BLOCK_ID && held.quantity == 0 );
+    }
+    {
+        const InventorySlot empty = { LAST_BLOCK_ID, 0 };
+        const InventorySlot room = { OAK_PLANKS, 5 };
+        const InventorySlot full = { OAK_PLANKS, 64 };
+        const InventorySlot other = { SPRUCE_PLANKS, 1 };
+        const InventorySlot held = { OAK_PLANKS, 10 };
+        report( "drag accepts an empty slot", crafting_drag_accepts( empty, held ) );
+        report( "drag accepts same item with room", crafting_drag_accepts( room, held ) );
+        report( "drag rejects same item full", !crafting_drag_accepts( full, held ) );
+        report( "drag rejects a different item", !crafting_drag_accepts( other, held ) );
+    }
+
     return failures;
 }
 

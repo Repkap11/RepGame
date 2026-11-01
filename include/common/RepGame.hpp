@@ -162,6 +162,16 @@ struct RepGameState {
         InventorySlot output_slot;
         int recipe;
         InventoryRenderer grid2, grid3, output;
+        // In-progress button-drag split: the applied state is live in slots /
+        // held; the snapshots let each new target re-distribute from scratch.
+        struct {
+            bool active;
+            bool right;
+            InventorySlot snapshot_slots[ 9 ];
+            InventorySlot snapshot_held;
+            int targets[ 9 ];
+            int count;
+        } drag;
     } crafting;
     struct {
         int selectionInBounds;

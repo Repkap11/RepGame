@@ -889,6 +889,36 @@ static void hotbar_slot_to_crafting( RepGameState &state, int slot_index, bool h
     state.ui_overlay.set_holding_item( state.hotbar.getSelectedItem( ) );
 }
 
+// Drag crafting: while a mouse button is held over grid slots, the held
+// stack is re-distributed over the accumulated targets from the drag-start
+// snapshot, so the grid shows a live preview until the button is released.
+static void crafting_drag_apply( RepGameState &state ) {
+    for ( int i = 0; i < 9; i++ ) {
+        state.crafting.slots[ i ] = state.crafting.drag.snapshot_slots[ i ];
+    }
+    state.held_inventory_slot = state.crafting.drag.snapshot_held;
+    crafting_drag_distribute( state.crafting.slots, state.crafting.drag.targets, state.crafting.drag.count, state.held_inventory_slot, state.crafting.drag.right );
+    state.is_holding_inventory_slot = state.held_inventory_slot.item_id != LAST_BLOCK_ID && state.held_inventory_slot.quantity > 0;
+    InventoryRenderer &grid = crafting_grid( state );
+    const int dim = crafting_dim( state );
+    for ( int i = 0; i < dim * dim; i++ ) {
+        grid.changeSlotItem( i, state.crafting.slots[ i ] );
+    }
+    crafting_recompute( state );
+}
+
+static void crafting_drag_start( RepGameState &state, int craft_slot, bool right ) {
+    state.crafting.drag.active = true;
+    state.crafting.drag.right = right;
+    for ( int i = 0; i < 9; i++ ) {
+        state.crafting.drag.snapshot_slots[ i ] = state.crafting.slots[ i ];
+    }
+    state.crafting.drag.snapshot_held = state.held_inventory_slot;
+    state.crafting.drag.targets[ 0 ] = craft_slot;
+    state.crafting.drag.count = 1;
+    crafting_drag_apply( state );
+}
+
 // Breaks the block under the cursor. In survival mode the mined block is
 // added to the hotbar first, then falls back to the survival inventory.
 // Launch velocity (blocks/tick at UPS_RATE) for block-break and mob drops: a
@@ -981,6 +1011,8 @@ static void throw_item( RepGameState &state, const ItemID item, const int count 
 // thrown as an item entity when there's no room. Idempotent — the every-tick
 // inventory-closed branch calls it — and resets table_open.
 static void crafting_return_grid( RepGameState &state ) {
+    // Any in-progress drag ends; the already-applied state is final.
+    state.crafting.drag.active = false;
     const bool was_open = state.crafting.table_open;
     state.crafting.table_open = false;
     bool any = false;
@@ -1792,6 +1824,35 @@ void RepGame::process_inventory_events( ) {
         return;
     }
     if ( globalGameState.input.inventory_open ) {
+        // An in-progress grid drag: releasing the button makes the applied
+        // state final; while it's held, sweep newly hovered grid slots into
+        // the target list and re-apply the snapshot-based distribution.
+        if ( globalGameState.crafting.drag.active ) {
+            const bool drag_held = globalGameState.crafting.drag.right ? globalGameState.input.mouse.buttons.right : globalGameState.input.mouse.buttons.left;
+            if ( !drag_held || !crafting_grid_visible( globalGameState ) ) {
+                globalGameState.crafting.drag.active = false;
+            } else {
+                const int gs = crafting_grid( globalGameState ).whichSlotClicked( globalGameState.input.mouse.absPosition.x, globalGameState.input.mouse.absPosition.y );
+                const int cells = crafting_dim( globalGameState ) * crafting_dim( globalGameState );
+                if ( gs >= 0 && gs < cells ) {
+                    bool seen = false;
+                    for ( int i = 0; i < globalGameState.crafting.drag.count; i++ ) {
+                        seen = seen || globalGameState.crafting.drag.targets[ i ] == gs;
+                    }
+                    if ( !seen && globalGameState.crafting.drag.count + 1 <= globalGameState.crafting.drag.snapshot_held.quantity && crafting_drag_accepts( globalGameState.crafting.drag.snapshot_slots[ gs ], globalGameState.crafting.drag.snapshot_held ) ) {
+                        globalGameState.crafting.drag.targets[ globalGameState.crafting.drag.count ] = gs;
+                        globalGameState.crafting.drag.count++;
+                        crafting_drag_apply( globalGameState );
+                    }
+                }
+            }
+            // The other button's clicks do nothing during a drag.
+            if ( globalGameState.crafting.drag.right ) {
+                globalGameState.input.mouse.buttons.left_click_handled = true;
+            } else {
+                globalGameState.input.mouse.buttons.right_click_handled = true;
+            }
+        }
         // Crafting panel hit tests, shared by the left/middle/right click
         // branches below.
         const bool craft_ui = crafting_grid_visible( globalGameState );
@@ -1819,6 +1880,9 @@ void RepGame::process_inventory_events( ) {
                 // otherwise pick up / merge / swap.
                 if ( globalGameState.input.shift_held ) {
                     crafting_slot_to_player( globalGameState, craft_slot );
+                } else if ( globalGameState.is_holding_inventory_slot && crafting_drag_accepts( globalGameState.crafting.slots[ craft_slot ], globalGameState.held_inventory_slot ) ) {
+                    // Holding a stack that fits: begin a left-drag split.
+                    crafting_drag_start( globalGameState, craft_slot, false );
                 } else {
                     slot_pickup_or_swap( globalGameState.crafting.slots[ craft_slot ], globalGameState.held_inventory_slot, globalGameState.is_holding_inventory_slot );
                     crafting_grid( globalGameState ).changeSlotItem( craft_slot, globalGameState.crafting.slots[ craft_slot ] );
@@ -1946,10 +2010,15 @@ void RepGame::process_inventory_events( ) {
                 // throws one item of it.
                 throw_held_cursor_stack( globalGameState, false );
             } else if ( craft_slot >= 0 ) {
-                // Grid slot right-click: take half, or place one.
-                slot_right_click( globalGameState.crafting.slots[ craft_slot ], globalGameState.held_inventory_slot, globalGameState.is_holding_inventory_slot );
-                crafting_grid( globalGameState ).changeSlotItem( craft_slot, globalGameState.crafting.slots[ craft_slot ] );
-                crafting_recompute( globalGameState );
+                // Grid slot right-click: take half, or place one — or begin
+                // a right-drag that places one item per slot.
+                if ( globalGameState.is_holding_inventory_slot && crafting_drag_accepts( globalGameState.crafting.slots[ craft_slot ], globalGameState.held_inventory_slot ) ) {
+                    crafting_drag_start( globalGameState, craft_slot, true );
+                } else {
+                    slot_right_click( globalGameState.crafting.slots[ craft_slot ], globalGameState.held_inventory_slot, globalGameState.is_holding_inventory_slot );
+                    crafting_grid( globalGameState ).changeSlotItem( craft_slot, globalGameState.crafting.slots[ craft_slot ] );
+                    crafting_recompute( globalGameState );
+                }
             } else if ( craft_out >= 0 ) {
                 if ( globalGameState.input.shift_held ) {
                     crafting_craft_all( globalGameState );
@@ -2674,6 +2743,7 @@ void RepGame::initializeGameState( const char *world_name ) {
         r->options.center_x = 0;
     }
     globalGameState.crafting.table_open = false;
+    globalGameState.crafting.drag.active = false;
     globalGameState.crafting.recipe = -1;
     globalGameState.crafting.output_slot.item_id = LAST_BLOCK_ID;
     globalGameState.crafting.output_slot.quantity = 0;
