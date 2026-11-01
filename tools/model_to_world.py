@@ -12,7 +12,9 @@ client generates a sandstone floor under the model.
 """
 
 import argparse
+import concurrent.futures
 import json
+import multiprocessing
 import os
 import re
 import struct
@@ -36,6 +38,10 @@ CHUNK = 62           # usable chunk extent
 CHUNK_INTERNAL = 64  # stored extent including the 1-cell halo
 RECORD_SIZE = 18     # sizeof(STORAGE_TYPE): BlockState(14) + u32 count
 ALPHA_THRESHOLD = 0.75
+GLASS_MIN_SHARE = 0.3  # glass wins a voxel with >= this share of its votes
+# Cap on outside-air flood fill iterations; unreached cells count as
+# inside, which just falls back to plain majority votes.
+FLOOD_MAX_SWEEPS = 8
 BATCH_TRIS = 200000
 
 # On-disk RLE record: packed BlockState {u32 id, u8 rotation, i32 power,
@@ -147,8 +153,18 @@ def srgb_to_lab(rgb):
     return np.stack([L, a, b], axis=-1)
 
 
+class BakedGeometry:
+    """Transformed vertex data plus the ORIGINAL visual reference.
+
+    Visuals are shared, not copied (trimesh's geometry.copy() deep-copies
+    them and breaks material identity — needed for the id-image cache).
+    """
+
+    __slots__ = ("vertices", "faces", "visual")
+
+
 def load_geometries(path, up):
-    """Baked world-space meshes, one per scene-graph geometry node."""
+    """Baked world-space geometries, one per scene-graph geometry node."""
     scene = trimesh.load(path, force="scene")
     parts = []
     for node in scene.graph.nodes_geometry:
@@ -156,8 +172,12 @@ def load_geometries(path, up):
         geom = scene.geometry[geom_name]
         if not isinstance(geom, trimesh.Trimesh):
             continue
-        g = geom.copy()
-        g.apply_transform(transform)
+        g = BakedGeometry()
+        g.vertices = trimesh.transformations.transform_points(
+            geom.vertices, transform
+        )
+        g.faces = geom.faces
+        g.visual = geom.visual
         parts.append(g)
     if not parts:
         sys.exit("No triangle geometry found in model.")
@@ -165,7 +185,9 @@ def load_geometries(path, up):
         # Z-up model -> Y-up world: rotate -90 degrees about x.
         rot = trimesh.transformations.rotation_matrix(-np.pi / 2, [1, 0, 0])
         for g in parts:
-            g.apply_transform(rot)
+            g.vertices = trimesh.transformations.transform_points(
+                g.vertices, rot
+            )
     return parts
 
 
@@ -183,58 +205,124 @@ def norm_factor(f):
     return out
 
 
-def material_rgba_image(geom, overrides=None):
-    """Per-geometry color source.
+def block_lut(pal_lab, pal_ids):
+    """sRGB -> palette block id lookup, quantized to 64 levels per channel.
 
-    Returns (img_rgba_float_0_255 or None, uv_faces (n,3,2) or None,
-    face_rgba (n,4) 0..255, label, effective mean rgba).
-
-    `overrides` maps material name -> sRGB (0..255). A matching material is
-    painted that flat color (no texture/factor); alpha comes from the
-    material's factor when present.
-
-    Texture: PBR baseColorTexture * baseColorFactor, or SimpleMaterial
-    image/diffuse. glTF baseColorFactor is LINEAR and baseColorTexture is
-    sRGB — combine in linear space and convert back to sRGB for palette
-    matching. KHR_texture_transform is ignored (base UVs used as authored).
-    Fallbacks: face/vertex colors (treated as sRGB), material color (linear),
-    light gray.
+    Cell (r,g,b) holds the nearest block for sRGB value ((i*4+2)/255) per
+    channel; one 4096-cell slab at a time keeps the distance temp small.
     """
-    n = len(geom.faces)
-    visual = geom.visual
-    colors = np.tile(np.array([204.0, 204.0, 204.0, 255.0]), (n, 1))
+    lut = np.empty((64, 64, 64), dtype=np.uint16)
+    q = np.arange(64)
+    gg, bb = np.meshgrid(q, q, indexing="ij")
+    g = (gg * 4 + 2) / 255.0
+    b = (bb * 4 + 2) / 255.0
+    for r in range(64):
+        rgb = np.stack(
+            [np.full(g.shape, (r * 4 + 2) / 255.0), g, b], axis=-1
+        ).reshape(-1, 3)
+        lab = srgb_to_lab(rgb)
+        lut[r] = nearest_palette(lab, pal_lab, pal_ids).reshape(64, 64)
+    return lut
 
+
+def rgba_to_block_ids(rgba, opaque_lut, glass_lut):
+    """rgba (...,4) in 0..255 -> same-shape id array. Ids < 2048 are opaque
+    palette entries; >= 2048 are glass palette ids + 2048."""
+    rgba = np.asarray(rgba)
+    q = np.clip(rgba[..., :3], 0, 255).astype(np.int32) >> 2
+    ids = opaque_lut[q[..., 0], q[..., 1], q[..., 2]].astype(np.int32)
+    if glass_lut is not None:
+        gmask = (rgba[..., 3] / 255.0) < ALPHA_THRESHOLD
+        ids[gmask] = glass_lut[
+            q[..., 0][gmask], q[..., 1][gmask], q[..., 2][gmask]
+        ].astype(np.int32) + 2048
+    return ids
+
+
+def material_probe(geom, overrides):
+    """Classify a geometry's color source without baking anything.
+
+    Returns (kind, info, label):
+      'override': info = (rgb sRGB 0..255 (3,), alpha 0..255)
+      'texture' : info = (img, factor (4,), key, alt, uv)
+      'color'   : info = None — face/vertex/material color path.
+    """
+    visual = geom.visual
     uv = getattr(visual, "uv", None)
     mat = getattr(visual, "material", None)
     label = getattr(mat, "name", None) or type(mat).__name__ if mat is not None else "none"
     if overrides and mat is not None and getattr(mat, "name", None) in overrides:
-        rgb = overrides[mat.name]
         a = 255.0
         if getattr(mat, "baseColorFactor", None) is not None:
             a = np.clip(norm_factor(mat.baseColorFactor)[3] * 255.0, 0, 255)
-        colors[:, :3] = rgb
-        colors[:, 3] = a
-        eff = np.concatenate([rgb, [a]])
-        return None, None, colors, f"{mat.name} (override)", eff
+        return "override", (overrides[mat.name], a), f"{mat.name} (override)"
     if uv is not None and len(uv) >= geom.vertices.shape[0]:
         img = getattr(mat, "image", None) if mat is not None else None
         if img is None and mat is not None and hasattr(mat, "baseColorTexture"):
             img = mat.baseColorTexture
-        factor = np.ones(4)  # linear-space multiplier
-        if mat is not None and getattr(mat, "baseColorFactor", None) is not None:
-            factor = norm_factor(mat.baseColorFactor)
-        elif mat is not None and getattr(mat, "diffuse", None) is not None:
-            factor = norm_factor(mat.diffuse)
         if img is not None:
-            arr = np.asarray(img.convert("RGBA"), dtype=np.float64)
-            # texture rgb is sRGB, factor is linear: multiply in linear space
-            rgb = linear_to_srgb(srgb_to_linear(arr[..., :3] / 255.0) * factor[:3]) * 255.0
-            arr[..., :3] = np.clip(rgb, 0, 255)
-            arr[..., 3] = np.clip(arr[..., 3] * factor[3], 0, 255)
-            eff = np.concatenate([arr[..., :3].reshape(-1, 3).mean(0), [arr[..., 3].mean()]])
-            return arr, uv[geom.faces], colors, label, eff
-        # textured uv but no image: fall through to color sources
+            factor = np.ones(4)  # linear-space multiplier
+            if mat is not None and getattr(mat, "baseColorFactor", None) is not None:
+                factor = norm_factor(mat.baseColorFactor)
+            elif mat is not None and getattr(mat, "diffuse", None) is not None:
+                factor = norm_factor(mat.diffuse)
+            # Cache keys exactly as material_id_source used: id(mat), with
+            # (name, image id, factor) aliasing duplicate material objects.
+            key = ("mat", id(mat))
+            alt = (getattr(mat, "name", None), id(img), factor.tobytes())
+            return "texture", (img, factor, key, alt, uv), label
+    return "color", None, label
 
+
+def bake_arr(arr, factor, opaque_lut, glass_lut):
+    """RGBA float 0..255 x linear factor -> (id_img int32, eff mean rgba)."""
+    arr = arr.copy()
+    rgb = linear_to_srgb(srgb_to_linear(arr[..., :3] / 255.0) * factor[:3]) * 255.0
+    arr[..., :3] = np.clip(rgb, 0, 255)
+    arr[..., 3] = np.clip(arr[..., 3] * factor[3], 0, 255)
+    id_img = rgba_to_block_ids(arr, opaque_lut, glass_lut)
+    eff = np.concatenate([arr[..., :3].reshape(-1, 3).mean(0), [arr[..., 3].mean()]])
+    return id_img, eff
+
+
+def bake_image_group(group, opaque_lut, glass_lut):
+    """(img, [bake jobs]) -> [((key, alt), id_img, eff)].
+
+    One image is decoded once per group — PIL lazy decoding is not
+    thread-safe, so jobs sharing an img object must stay in one task.
+    """
+    img, jobs = group
+    arr = np.asarray(img.convert("RGBA"), dtype=np.float64)
+    out = []
+    for _img, factor, key, alt in jobs:
+        id_img, eff = bake_arr(arr, factor, opaque_lut, glass_lut)
+        out.append(((key, alt), id_img, eff))
+    return out
+
+
+def resolve_source(geom, pr, opaque_lut, glass_lut, mat_cache):
+    """Turn a material_probe result into the sampling-time source.
+
+    Returns (id_img or None, uv_faces or None, face_ids or None, label,
+    eff). 'texture' probes must already be baked into mat_cache.
+    """
+    kind, info, label = pr
+    n = len(geom.faces)
+    if kind == "texture":
+        img, factor, key, alt, uv = info
+        e = mat_cache.get(key) or mat_cache[alt]
+        id_img, _, eff = e
+        return id_img, uv[geom.faces], None, label, eff
+    colors = np.tile(np.array([204.0, 204.0, 204.0, 255.0]), (n, 1))
+    if kind == "override":
+        rgb, a = info
+        colors[:, :3] = rgb
+        colors[:, 3] = a
+        eff = np.concatenate([rgb, [a]])
+        return (None, None, rgba_to_block_ids(colors, opaque_lut, glass_lut),
+                label, eff)
+    visual = geom.visual
+    mat = getattr(visual, "material", None)
     face_colors = getattr(visual, "face_colors", None)
     vertex_colors = getattr(visual, "vertex_colors", None)
     if face_colors is not None and len(face_colors) == n:
@@ -250,7 +338,8 @@ def material_rgba_image(geom, overrides=None):
             srgb = np.clip(linear_to_srgb(b[:3]) * 255.0, 0, 255)
             colors[:, :3] = srgb
             colors[:, 3] = np.clip(b[3] * 255.0, 0, 255)
-    return None, None, colors, label, colors.mean(axis=0)
+    return (None, None, rgba_to_block_ids(colors, opaque_lut, glass_lut),
+            label, colors.mean(axis=0))
 
 
 def sample_image(img, uv):
@@ -266,6 +355,178 @@ def nearest_palette(lab, pal_lab, pal_ids):
     return pal_ids[d.argmin(1)]
 
 
+# Read-only inputs for fork workers (inherited copy-on-write — never
+# pickled). Filled before the pool is created.
+_WORK = {}
+
+
+def _sample_unit(unit):
+    """Sample one (part, tri_lo, tri_hi) range; returns locally reduced
+    (unique_keys int64, summed_weights float64)."""
+    gi, lo, hi = unit
+    verts, faces = _WORK["parts"][gi]
+    id_img, uv_faces, face_ids = _WORK["src"][gi]
+    origin, scale, dims = _WORK["origin"], _WORK["scale"], _WORK["dims"]
+    gv = (verts - origin) * scale
+    tris = gv[faces[lo:hi]]
+    vote_keys = []
+    vote_w = []
+    t = tris
+    e01 = t[:, 1] - t[:, 0]
+    e02 = t[:, 2] - t[:, 0]
+    e12 = t[:, 2] - t[:, 1]
+    nrm = np.cross(e01, e02)
+    nl = np.linalg.norm(nrm, axis=1)
+    areas = 0.5 * nl
+    u = np.zeros_like(nrm)
+    ok = nl > 0
+    u[ok] = nrm[ok] / nl[ok, None]
+    # per-triangle facing bits: +x=1, -x=2, +y=4, -y=8, +z=16, -z=32
+    smask = (
+        (u[:, 0] > 0.1) * 1 + (u[:, 0] < -0.1) * 2
+        + (u[:, 1] > 0.1) * 4 + (u[:, 1] < -0.1) * 8
+        + (u[:, 2] > 0.1) * 16 + (u[:, 2] < -0.1) * 32
+    ).astype(np.int64)
+    e = np.stack(
+        [
+            np.linalg.norm(e01, axis=1),
+            np.linalg.norm(e12, axis=1),
+            np.linalg.norm(t[:, 2] - t[:, 0], axis=1),
+        ],
+        axis=1,
+    )
+    ns = np.maximum(1, np.ceil(e.max(axis=1) / 0.5)).astype(np.int64)
+    for n in np.unique(ns):
+        idx = np.where(ns == n)[0]
+        tt = t[idx]
+        ii, jj = np.meshgrid(np.arange(n + 1), np.arange(n + 1), indexing="ij")
+        m = (ii + jj) <= n
+        # barycentric lattice sample points (i/n, j/n), i+j<=n
+        B = np.stack([ii[m] / n, jj[m] / n], axis=1).astype(np.float64)
+        B = np.concatenate([B, 1.0 - B.sum(1, keepdims=True)], axis=1)
+        pts = np.einsum("tcd,sc->tsd", tt, B).reshape(-1, 3)
+        tri_of = np.repeat(idx, len(B))
+        b_of = np.tile(np.arange(len(B)), len(idx))
+        vox = np.clip(np.floor(pts), 0, dims - 1).astype(np.int64)
+        del pts
+        vlin = (vox[:, 0] * dims[1] + vox[:, 1]) * dims[2] + vox[:, 2]
+        del vox
+        if id_img is not None:
+            suv = np.einsum("sd,sdv->sv", B[b_of], uv_faces[lo + tri_of])
+            ids = sample_image(id_img, suv).astype(np.int64)
+            del suv
+        else:
+            ids = face_ids[lo + tri_of].astype(np.int64)
+        # key = (vox * 64 + facing_mask) * 4096 + (bid | 2048 for glass)
+        vote_keys.append((vlin * 64 + smask[tri_of]) * 4096 + ids)
+        vote_w.append(np.repeat(areas[idx] / len(B), len(B)))
+        del vlin, ids
+    keys = np.concatenate(vote_keys)
+    weights = np.concatenate(vote_w)
+    uk, inv = np.unique(keys, return_inverse=True)
+    return uk, np.bincount(inv, weights=weights)
+
+
+def merge_votes(pairs):
+    """Merge [(unique_keys, weights)] into a single reduced pair."""
+    k = np.concatenate([p[0] for p in pairs])
+    w = np.concatenate([p[1] for p in pairs])
+    uk, inv = np.unique(k, return_inverse=True)
+    return uk, np.bincount(inv, weights=w)
+
+
+def outside_air(occ):
+    """6-connected flood fill of ~occ from the grid boundary.
+
+    Repeated axis sweeps: for each axis, contiguous air runs per line are
+    identified by cumsum(occ); a run is outside if any of its cells is
+    already outside. Run boundaries and the transposed (rest, n) layouts
+    of the static masks are precomputed once; each sweep is one strided
+    gather of `outside`, a reduceat over runs, and a scatter back.
+    Returns (outside bool, PADDED dims+2, iteration count) — the padded
+    ring is outside air, which is what out-of-grid neighbours resolve to.
+    """
+    P = np.pad(occ, 1)          # occupied; the pad layer is air
+    air = ~P
+    outside = air.copy()
+    outside[1:-1, 1:-1, 1:-1] = False  # only the border ring starts outside
+    # Static per-axis data: (rest, n) contiguous masks + run segmentation.
+    layouts = []
+    for ax in range(3):
+        n = P.shape[ax]
+        rest = P.size // n
+        Pa = np.ascontiguousarray(
+            np.moveaxis(P, ax, 0).reshape(n, rest).T
+        )
+        Aa = np.ascontiguousarray(
+            np.moveaxis(air, ax, 0).reshape(n, rest).T
+        )
+        cum = np.cumsum(Pa, axis=1, dtype=np.int32)
+        g = (cum + np.arange(rest, dtype=np.int32)[:, None] * (n + 1)).ravel()
+        bounds = np.flatnonzero(np.r_[True, g[1:] != g[:-1], True])
+        layouts.append((ax, n, rest, Aa, bounds, np.diff(bounds)))
+    it = 0
+    while it < FLOOD_MAX_SWEEPS:
+        it += 1
+        before = outside.sum()
+        for ax, n, rest, Aa, bounds, lens in layouts:
+            osh = np.moveaxis(outside, ax, 0).shape  # (n, d1, d2)
+            # gather outside into this axis's contiguous (rest, n) layout
+            Oa = np.ascontiguousarray(
+                np.moveaxis(outside, ax, 0).reshape(n, rest).T
+            )
+            runmax = np.maximum.reduceat(
+                Oa.ravel(), bounds[:-1]
+            ).astype(bool)
+            new = np.repeat(runmax, lens) & Aa.ravel()
+            np.moveaxis(outside, ax, 0)[:] = (
+                new.reshape(rest, n).T.reshape(osh)
+            )
+        if outside.sum() == before:
+            break
+    return outside, it
+
+
+def _write_chunk_unit(cc):
+    """Write one chunk file; returns ((cx,cy,cz), {bid: count})."""
+    cx, cy, cz = cc
+    grid, dims = _WORK["grid"], _WORK["dims"]
+    x0, y0, z0 = _WORK["x0"], _WORK["y0"], _WORK["z0"]
+    lx, ly, lz = _WORK["lx"], _WORK["ly"], _WORK["lz"]
+    wyv = cy * CHUNK + ly
+    wxv = cx * CHUNK + lx
+    wzv = cz * CHUNK + lz
+    gx, gy, gz = wxv - x0, wyv - y0, wzv - z0
+    inside = (
+        (gx >= 0) & (gx < dims[0])
+        & (gy >= 0) & (gy < dims[1])
+        & (gz >= 0) & (gz < dims[2])
+    )
+    vals = np.full(gx.shape, -1, np.int64)
+    if inside.any():
+        vals[inside] = grid[gx[inside], gy[inside], gz[inside]]
+    default = np.where(wyv <= 0, _WORK["sandstone_id"], 0)
+    ids = np.where(vals >= 0, vals, default).ravel()
+    # usage counts only interior cells (local 0..61), not the halo.
+    nonhalo = (lx >= 0) & (lx <= 61) & (ly >= 0) & (ly <= 61) & (lz >= 0) & (lz <= 61)
+    usage = {}
+    for bid, cnt in zip(*np.unique(vals[nonhalo & (vals >= 0)], return_counts=True)):
+        usage[int(bid)] = int(cnt)
+    # RLE in index order
+    change = np.flatnonzero(np.r_[True, ids[1:] != ids[:-1], True])
+    rec = np.empty(len(change) - 1, RECORD_DTYPE)
+    rec["id"] = ids[change[:-1]]
+    rec["rotation"] = 0
+    rec["power"] = 0
+    rec["display_id"] = rec["id"]
+    rec["waterlogged"] = 0
+    rec["num"] = np.diff(change)
+    with open(_WORK["world_dir"] / f"chunk_{cx}_{cy}_{cz}", "wb") as f:
+        f.write(struct.pack("<I", RECORD_SIZE))
+        f.write(rec.tobytes())
+    return cc, usage
+
+
 def main():
     ap = argparse.ArgumentParser(description="Voxelize a 3D model into a RepGame flat world.")
     ap.add_argument("model")
@@ -277,6 +538,13 @@ def main():
     ap.add_argument("--no-glass", action="store_true")
     ap.add_argument("--force", action="store_true")
     ap.add_argument("--verbose", action="store_true")
+    ap.add_argument(
+        "--jobs",
+        type=int,
+        default=os.cpu_count() or 1,
+        help="worker threads/processes for baking, sampling and chunk writing "
+        "(default: all cores; 1 = fully in-process, for debugging)",
+    )
     ap.add_argument(
         "--color",
         action="append",
@@ -311,6 +579,9 @@ def main():
     opaque_lab = srgb_to_lab(opaque_rgb)
     glass_lab = srgb_to_lab(glass_rgb) if len(glass_ids) else None
     print(f"Palette: {len(opaque_ids)} opaque, {len(glass_ids)} glass")
+    # Quantized sRGB -> block id LUTs; all later palette work is a lookup.
+    opaque_lut = block_lut(opaque_lab, opaque_ids)
+    glass_lut = block_lut(glass_lab, glass_ids) if glass_lab is not None else None
 
     sandstone_id = next(
         (
@@ -327,7 +598,9 @@ def main():
     parts = load_geometries(args.model, args.up)
     nverts = sum(len(g.vertices) for g in parts)
     nfaces = sum(len(g.faces) for g in parts)
-    bounds = np.array([g.bounds for g in parts])  # (G,2,3)
+    bounds = np.array(
+        [(g.vertices.min(axis=0), g.vertices.max(axis=0)) for g in parts]
+    )  # (G,2,3)
     bmin, bmax = bounds[:, 0].min(0), bounds[:, 1].max(0)
     extents = bmax - bmin
     print(f"  {nverts} verts, {nfaces} tris across {len(parts)} geometries, extents {extents}")
@@ -337,87 +610,98 @@ def main():
     dims = np.maximum(np.ceil(extents * scale), 1).astype(np.int64) + 1
     print(f"  voxel dims: {dims[0]} x {dims[1]} x {dims[2]} blocks")
 
+    jobs = max(1, args.jobs)
+
+    # --- classify materials; bake unique textures in parallel --------------
+    probes = []
+    bake_jobs = {}  # key -> (img, factor, key, alt)
+    mat_cache = {}  # key/alt -> (id_img, label, eff)
+    for geom in parts:
+        pr = material_probe(geom, overrides)
+        probes.append(pr)
+        if pr[0] == "texture":
+            img, factor, key, alt, uv = pr[1]
+            if key in mat_cache or alt in mat_cache:
+                continue
+            if key not in bake_jobs and alt not in bake_jobs:
+                bake_jobs[key] = (img, factor, key, alt)
+    if bake_jobs:
+        # Group by image object so a PIL image is only decoded inside one
+        # task (its lazy decoder races across threads otherwise).
+        bake_groups = {}
+        for j in bake_jobs.values():
+            bake_groups.setdefault(id(j[0]), (j[0], []))[1].append(j)
+        work = lambda g: bake_image_group(g, opaque_lut, glass_lut)
+        if jobs > 1 and len(bake_groups) > 1:
+            with concurrent.futures.ThreadPoolExecutor(jobs) as ex:
+                baked = list(ex.map(work, bake_groups.values()))
+        else:
+            baked = [work(g) for g in bake_groups.values()]
+        for group_result in baked:
+            for (key, alt), id_img, eff in group_result:
+                mat_cache[key] = mat_cache[alt] = (id_img, None, eff)
+
+    # Resolve each part's sampling source (pure cache hits for textures).
+    part_src = []
+    mat_stats = {}  # label -> [tri_count, effective mean rgba]
+    matched_overrides = set()
+    for geom, pr in zip(parts, probes):
+        id_img, uv_faces, face_ids, label, eff = resolve_source(
+            geom, pr, opaque_lut, glass_lut, mat_cache
+        )
+        part_src.append((id_img, uv_faces, face_ids))
+        mat_stats.setdefault(label, [0, eff])
+        mat_stats[label][0] += len(geom.faces)
+        if pr[0] == "override":
+            matched_overrides.add(label[: -len(" (override)")])
+
     # --- sampling pass: collect (vox, block_id[, glass]) votes --------------
     # combined key per sample: vox_linear * 4096 + (bid | 2048 for glass).
     # Each sample votes with weight tri_area/samples_in_tri (voxel units) so
-    # dense tiny-triangle meshes don't outvote large smooth panels.
-    vote_keys = []
-    vote_w = []
-    mat_stats = {}  # label -> [tri_count, effective mean rgba]
-    matched_overrides = set()
-    for gi, geom in enumerate(parts):
-        gv = ((geom.vertices - origin) * scale).astype(np.float64)
-        tris = gv[geom.faces]  # (n,3,3)
-        img, uv_faces, face_rgba, label, eff = material_rgba_image(geom, overrides)
-        mat_stats.setdefault(label, [0, eff])
-        mat_stats[label][0] += len(geom.faces)
-        if overrides and label.endswith(" (override)"):
-            matched_overrides.add(label[: -len(" (override)")])
-        for lo in range(0, len(tris), BATCH_TRIS):
-            hi = min(lo + BATCH_TRIS, len(tris))
-            t = tris[lo:hi]
-            e01 = t[:, 1] - t[:, 0]
-            e02 = t[:, 2] - t[:, 0]
-            e12 = t[:, 2] - t[:, 1]
-            areas = 0.5 * np.linalg.norm(np.cross(e01, e02), axis=1)
-            e = np.stack(
-                [
-                    np.linalg.norm(e01, axis=1),
-                    np.linalg.norm(e12, axis=1),
-                    np.linalg.norm(t[:, 2] - t[:, 0], axis=1),
-                ],
-                axis=1,
-            )
-            ns = np.maximum(1, np.ceil(e.max(axis=1) / 0.5)).astype(np.int64)
-            for n in np.unique(ns):
-                idx = np.where(ns == n)[0]
-                tt = t[idx]
-                ii, jj = np.meshgrid(
-                    np.arange(n + 1), np.arange(n + 1), indexing="ij"
-                )
-                m = (ii + jj) <= n
-                # barycentric lattice sample points (i/n, j/n), i+j<=n
-                B = np.stack([ii[m] / n, jj[m] / n], axis=1).astype(np.float64)
-                B = np.concatenate([B, 1.0 - B.sum(1, keepdims=True)], axis=1)
-                pts = np.einsum("tcd,sc->tsd", tt, B).reshape(-1, 3)
-                tri_of = np.repeat(idx, len(B))
-                b_of = np.tile(np.arange(len(B)), len(idx))
-                vox = np.clip(np.floor(pts), 0, dims - 1).astype(np.int64)
-                del pts
-                vlin = (vox[:, 0] * dims[1] + vox[:, 1]) * dims[2] + vox[:, 2]
-                del vox
-                if img is not None:
-                    suv = np.einsum(
-                        "sd,sdv->sv", B[b_of], uv_faces[lo + tri_of]
-                    )
-                    rgba = sample_image(img, suv)
-                    del suv
-                else:
-                    rgba = face_rgba[lo + tri_of]
-                lab = srgb_to_lab(rgba[:, :3] / 255.0)
-                alpha = rgba[:, 3] / 255.0
-                del rgba
-                keys = np.empty(len(vlin), np.int64)
-                gm = (
-                    alpha < ALPHA_THRESHOLD
-                    if glass_lab is not None
-                    else np.zeros(len(vlin), bool)
-                )
-                om = ~gm
-                if om.any():
-                    keys[om] = vlin[om] * 4096 + nearest_palette(
-                        lab[om], opaque_lab, opaque_ids
-                    )
-                if gm.any():
-                    keys[gm] = vlin[gm] * 4096 + 2048 + nearest_palette(
-                        lab[gm], glass_lab, glass_ids
-                    )
-                vote_keys.append(keys)
-                vote_w.append(np.repeat(areas[idx] / len(B), len(B)))
-                del keys, vlin, lab
-            del t, e, ns
-        print(f"  sampled geometry {gi + 1}/{len(parts)}", flush=True)
-        del tris, gv
+    # dense tiny-triangle meshes don't outvote large smooth panels. Work
+    # units are (part, lo, hi) tri ranges, largest first; each returns
+    # locally reduced (unique keys, weights) which the parent merges.
+    units = [
+        (gi, lo, min(lo + BATCH_TRIS, len(p.faces)))
+        for gi, p in enumerate(parts)
+        for lo in range(0, len(p.faces), BATCH_TRIS)
+    ]
+    units.sort(key=lambda u: u[1] - u[2])  # largest first
+    _WORK["parts"] = [(g.vertices, g.faces) for g in parts]
+    _WORK["src"] = part_src
+    _WORK["origin"], _WORK["scale"], _WORK["dims"] = origin, scale, dims
+
+    pool = None
+    if jobs > 1:
+        try:
+            ctx = multiprocessing.get_context("fork")
+            pool = ctx.Pool(jobs)
+            results = pool.imap_unordered(_sample_unit, units)
+        except (ValueError, OSError):
+            print("note: 'fork' unavailable, falling back to --jobs 1",
+                  file=sys.stderr)
+            jobs = 1
+    if jobs == 1:
+        results = map(_sample_unit, units)
+
+    acc = []  # [(unique_keys, weights)] from workers, periodically merged
+    acc_len = 0
+    done = 0
+    next_report = 1
+    for uk, w in results:
+        acc.append((uk, w))
+        acc_len += len(uk)
+        if acc_len > 50_000_000:
+            acc = [merge_votes(acc)]
+            acc_len = len(acc[0][0])
+        done += 1
+        if done * 10 // len(units) >= next_report or done == len(units):
+            next_report = done * 10 // len(units) + 1
+            print(f"  sampling {done}/{len(units)} units", flush=True)
+    if pool is not None:
+        pool.close()
+        pool.join()
+        pool = None
 
     for name in set(overrides) - matched_overrides:
         print(f"warning: --color '{name}' matched no material", file=sys.stderr)
@@ -432,15 +716,55 @@ def main():
                 f"mean_sRGB=({eff[0]:.0f},{eff[1]:.0f},{eff[2]:.0f}) a={eff[3]:.0f}"
             )
 
-    keys = np.concatenate(vote_keys)
-    weights = np.concatenate(vote_w)
-    del vote_keys, vote_w
-    uk, inv = np.unique(keys, return_inverse=True)
-    del keys
-    wsum = np.bincount(inv, weights=weights)
-    del inv, weights
+    uk, wsum = merge_votes(acc)
+    del acc
+    # key = (vox * 64 + facing_mask) * 4096 + (bid | 2048 for glass)
+    vox_of = uk >> 18
+    mask_of = ((uk >> 12) & 63).astype(np.uint8)
+    low = uk & 4095
+    del uk
+
+    # --- visible-vote filter -------------------------------------------------
+    # A vote only "sees" the voxel exterior if the sample's triangle faces
+    # toward a neighbour that is outside air. Occupancy is unaffected.
+    occ = np.zeros(int(np.prod(dims)), bool)
+    occ[vox_of] = True
+    occ = occ.reshape(tuple(dims))
+    outside, fiters = outside_air(occ)  # padded (dims+2); pad ring = outside
+    print(f"  outside-air flood fill: {fiters} sweep iterations")
+    # O[vox]: 6-bit mask of which neighbours are outside air (same bit
+    # convention as the per-sample facing mask). Grid cell (i,j,k) maps
+    # to padded index (i+1,j+1,k+1), so out-of-grid neighbours correctly
+    # read the pad ring (outside air).
+    Og = np.zeros(tuple(dims), np.uint8)
+    Og |= outside[2:, 1:-1, 1:-1]                        # +x -> bit0
+    Og |= (outside[:-2, 1:-1, 1:-1] << 1).astype(np.uint8)
+    Og |= (outside[1:-1, 2:, 1:-1] << 2).astype(np.uint8)
+    Og |= (outside[1:-1, :-2, 1:-1] << 3).astype(np.uint8)
+    Og |= (outside[1:-1, 1:-1, 2:] << 4).astype(np.uint8)
+    Og |= (outside[1:-1, 1:-1, :-2] << 5).astype(np.uint8)
+    O = Og.reshape(-1)[vox_of]
+    del Og, occ
+    vis = (mask_of & O) != 0
+    # Voxels with at least one visible entry drop the rest; voxels with no
+    # visible entry (interior, or broken/flipped normals) keep all entries.
+    starts = np.flatnonzero(np.r_[True, vox_of[1:] != vox_of[:-1]])
+    counts = np.diff(np.r_[starts, len(vox_of)])
+    anyvis = np.maximum.reduceat(vis.astype(np.uint8), starts) > 0
+    keep = vis | np.repeat(~anyvis, counts)
+    vox2 = vox_of[keep]
+    low2 = low[keep]
+    w2 = wsum[keep]
+    del vox_of, mask_of, low, wsum, vis, O, starts, counts, anyvis, keep
+    key2 = vox2 * 4096 + low2
+    del vox2, low2
+    uk, inv = np.unique(key2, return_inverse=True)
+    del key2
+    wsum = np.bincount(inv, weights=w2)
+    del inv, w2
     vox_of = uk >> 12
     low = uk & 4095
+    del uk
     is_glass_vote = low >= 2048
     bid_of = np.where(is_glass_vote, low - 2048, low)
 
@@ -475,7 +799,13 @@ def main():
     gw_u = np.where(has_g, gw[gi_c] if len(gw) else 0, -1.0)
     obid_u = np.where(has_o, obid[oi_c] if len(obid) else 0, -1)
     gbid_u = np.where(has_g, gbid[gi_c] if len(gbid) else 0, -1)
-    winners = np.where(ow_u >= gw_u, obid_u, gbid_u)
+    # Per-voxel total weight (all entries), for the glass-share rule.
+    starts2 = np.flatnonzero(np.r_[True, vox_of[1:] != vox_of[:-1], True])
+    total_u = np.add.reduceat(wsum, starts2[:-1])
+    # Glass wins if it outvotes opaque, or holds >= GLASS_MIN_SHARE of the
+    # voxel's total vote (thin glass next to opaque trim stays glass).
+    gwins = (gw_u > ow_u) | (gw_u >= GLASS_MIN_SHARE * total_u)
+    winners = np.where(gwins, gbid_u, obid_u)
 
     grid = np.full(int(np.prod(dims)), -1, np.int16)
     grid[uniq_vox] = winners.astype(np.int16)
@@ -502,47 +832,37 @@ def main():
                 czs = (wz + dz) // CHUNK
                 needed.update(zip(cxs.tolist(), cys.tolist(), czs.tolist()))
 
-    usage = {}
-    written = 0
-    ly, lx, lz = np.meshgrid(
+    # index order: y, x, z (z fastest) matches (y+1)*64*64 + (x+1)*64 + (z+1)
+    _WORK.update(
+        grid=grid,
+        x0=x0, y0=y0, z0=z0,
+        sandstone_id=sandstone_id,
+        world_dir=world_dir,
+    )
+    _WORK["ly"], _WORK["lx"], _WORK["lz"] = np.meshgrid(
         np.arange(-1, CHUNK_INTERNAL - 1),
         np.arange(-1, CHUNK_INTERNAL - 1),
         np.arange(-1, CHUNK_INTERNAL - 1),
         indexing="ij",
-    )  # index order: y, x, z (z fastest) matches (y+1)*64*64 + (x+1)*64 + (z+1)
-    for cx, cy, cz in sorted(needed):
-        wyv = cy * CHUNK + ly
-        wxv = cx * CHUNK + lx
-        wzv = cz * CHUNK + lz
-        gx, gy, gz = wxv - x0, wyv - y0, wzv - z0
-        inside = (
-            (gx >= 0) & (gx < dims[0])
-            & (gy >= 0) & (gy < dims[1])
-            & (gz >= 0) & (gz < dims[2])
-        )
-        vals = np.full(gx.shape, -1, np.int64)
-        if inside.any():
-            vals[inside] = grid[gx[inside], gy[inside], gz[inside]]
-        default = np.where(wyv <= 0, sandstone_id, 0)
-        ids = np.where(vals >= 0, vals, default).ravel()
-        # usage counts only interior cells (local 0..61), not the halo —
-        # halo cells belong to the neighbouring chunk's interior.
-        nonhalo = (lx >= 0) & (lx <= 61) & (ly >= 0) & (ly <= 61) & (lz >= 0) & (lz <= 61)
-        for bid, cnt in zip(*np.unique(vals[nonhalo & (vals >= 0)], return_counts=True)):
-            usage[int(bid)] = usage.get(int(bid), 0) + int(cnt)
-        # RLE in index order
-        change = np.flatnonzero(np.r_[True, ids[1:] != ids[:-1], True])
-        rec = np.empty(len(change) - 1, RECORD_DTYPE)
-        rec["id"] = ids[change[:-1]]
-        rec["rotation"] = 0
-        rec["power"] = 0
-        rec["display_id"] = rec["id"]
-        rec["waterlogged"] = 0
-        rec["num"] = np.diff(change)
-        with open(world_dir / f"chunk_{cx}_{cy}_{cz}", "wb") as f:
-            f.write(struct.pack("<I", RECORD_SIZE))
-            f.write(rec.tobytes())
+    )
+    if jobs > 1:
+        ctx = multiprocessing.get_context("fork")
+        pool = ctx.Pool(jobs)
+    chunk_results = (
+        pool.imap_unordered(_write_chunk_unit, sorted(needed))
+        if pool is not None
+        else map(_write_chunk_unit, sorted(needed))
+    )
+    usage = {}
+    written = 0
+    for _, u in chunk_results:
+        for bid, cnt in u.items():
+            usage[bid] = usage.get(bid, 0) + cnt
         written += 1
+    if pool is not None:
+        pool.close()
+        pool.join()
+        pool = None
 
     with open(world_dir / "world_type", "w") as f:
         f.write("flat\n")

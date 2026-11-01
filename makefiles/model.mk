@@ -8,9 +8,17 @@ MODEL_PY := $(MODEL_VENV)/bin/python
 CAR_ZIP ?= $(HOME)/Downloads/ferrari-daytona-sp3-wwwvecarzcom/source/Ferrari_Daytona_SP3_Body_Smooth版2_上传100MB.zip
 CAR_GLB := out/models/ferrari/fixV.glb
 CAR_WORLD ?= ModelFerrari
-CAR_WORLD_DIR := $(HOME)/.repgame/$(CAR_WORLD)
-CAR_SIZE ?= 256
 CAR_COLORS ?= --color Carpaint=\#8E2323
+
+# CAR_GLB := /home/paul/Downloads/2021_alfa_romeo_giulia_gtam.glb
+# CAR_WORLD ?= ModelAlfa
+
+# CAR_GLB := "/home/paul/Downloads/busto-ellie-wiliams-tlou/source/Busto Ellie Wiliams.glb"
+# CAR_WORLD ?= ModelEllie
+
+
+CAR_WORLD_DIR := $(HOME)/.repgame/$(CAR_WORLD)
+CAR_SIZE ?= 512
 
 # Args stamp: regenerates the world when CAR_SIZE/CAR_COLORS change. The
 # file's mtime only moves when the content actually differs.
@@ -44,9 +52,8 @@ car-run: car linux
 	./$(LINUX_OUT)/release/$(TARGET) $(CAR_WORLD)
 
 # Force a fresh regen — also wipes player.dat and any in-game edits.
-car-reset:
+clean-car:
 	@test -n "$(CAR_WORLD)" || (echo "CAR_WORLD must not be empty" && exit 1)
 	rm -rf "$(CAR_WORLD_DIR)"
-	$(MAKE) car
 
-.PHONY: car car-run car-reset
+.PHONY: car car-run clean-car
