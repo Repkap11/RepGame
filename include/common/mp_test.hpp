@@ -22,6 +22,11 @@
 //   tnt x y z                      spawn a primed TNT body (normal ignite path)
 //   setblock x y z <block>         normal player edit (BLOCK_UPDATE)
 //   probe x y z                    emit a "probe" event with the block there
+//   role x y z                     emit a "role" event with this client's
+//                                  role for that chunk
+//   mode survival|creative         pin the game mode each tick (survival
+//                                  also pins walking state so the
+//                                  REPGAME_FLY pin can't undo it)
 //   time <ticks>                   set world time (and broadcast it)
 //   dump [tag]                     force a state dump right now
 //   quit                           clean exit through the normal path

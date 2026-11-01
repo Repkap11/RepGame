@@ -3,9 +3,10 @@
 
 Spins up a real RepGameServer plus headless RepGame clients, drives them via
 the REPGAME_MP_CTL command file, and asserts on the REPGAME_MP_DUMP JSONL
-stream (see AGENTS.md "Multiplayer entity sync" / src/common/mp_test.cpp).
+stream (see docs/entities.md "Multiplayer entity sync", the mp-test skill
+and src/common/mp_test.cpp).
 
-Usage: tools/mp_test.py [-k substr] [--list] [--keep] [--timeout N]
+Usage: tools/mp_test.py [-k substr] [--list] [--keep]
 """
 
 import argparse
@@ -794,20 +795,20 @@ def sc_disconnect_cleanup(run, A, B):
 
 
 SCENARIOS = [
-    ("item_mirror_visuals", sc_item_mirror_visuals, 2),
-    ("item_pickup", sc_item_pickup, 2),
-    ("pickup_race", sc_pickup_race, 2),
-    ("item_transfer", sc_item_transfer, 2),
-    ("boundary_rest", sc_boundary_rest, 2),
-    ("ownership_flip_no_dup", sc_ownership_flip_no_dup, 2),
-    ("natural_mobs", sc_natural_mobs, 2),
-    ("mob_hit_kill", sc_mob_hit_kill, 2),
-    ("hostile_targets_remote", sc_hostile_targets_remote, 2),
-    ("falling_block", sc_falling_block, 2),
-    ("tnt_explosion", sc_tnt_explosion, 2),
-    ("tnt_handover", sc_tnt_handover, 2),
-    ("persistence", sc_persistence, 2),
-    ("disconnect_cleanup", sc_disconnect_cleanup, 2),
+    ("item_mirror_visuals", sc_item_mirror_visuals),
+    ("item_pickup", sc_item_pickup),
+    ("pickup_race", sc_pickup_race),
+    ("item_transfer", sc_item_transfer),
+    ("boundary_rest", sc_boundary_rest),
+    ("ownership_flip_no_dup", sc_ownership_flip_no_dup),
+    ("natural_mobs", sc_natural_mobs),
+    ("mob_hit_kill", sc_mob_hit_kill),
+    ("hostile_targets_remote", sc_hostile_targets_remote),
+    ("falling_block", sc_falling_block),
+    ("tnt_explosion", sc_tnt_explosion),
+    ("tnt_handover", sc_tnt_handover),
+    ("persistence", sc_persistence),
+    ("disconnect_cleanup", sc_disconnect_cleanup),
 ]
 
 
@@ -819,21 +820,21 @@ def main():
     args = ap.parse_args()
 
     if args.list:
-        for name, _, _ in SCENARIOS:
+        for name, _ in SCENARIOS:
             print(name)
         return 0
     for p in (SERVER, CLIENT):
         if not os.path.exists(p):
-            print("missing binary: %s (run make linux server-test first)" % p)
+            print("missing binary: %s (run make linux server first, or make mp-test)" % p)
             return 2
 
-    selected = [(n, f, c) for n, f, c in SCENARIOS if not args.filt or args.filt in n]
+    selected = [(n, f) for n, f in SCENARIOS if not args.filt or args.filt in n]
     if args.filt and not selected:
         print("no scenarios match -k %r" % args.filt)
         return 2
 
     fails = []
-    for name, fn, nclients in selected:
+    for name, fn in selected:
         print("=== %s" % name, flush=True)
         run = Run(name, keep=args.keep)
         failed = False
