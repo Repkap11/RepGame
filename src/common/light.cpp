@@ -544,12 +544,16 @@ BlockID ChunkLoader::light_block_id_at( const glm::ivec3 &block_pos ) const {
 // normalized (sky, block) in [0,1]. Cells whose owner chunk isn't loaded yet
 // read as full sky light — the same optimistic fill light_fill_chunk gives a
 // fresh chunk — so e.g. the in-hand block tracks the time of day during
-// load-in instead of going black.
+// load-in instead of going black. Corners sitting inside opaque blocks
+// (e.g. the ground under a resting item) hold no light, so they're masked
+// out of the blend; if every corner is opaque the plain blend is returned.
 glm::vec2 ChunkLoader::light_sample( const glm::vec3 &pos ) const {
     const glm::vec3 q = pos - 0.5f;
     const glm::ivec3 base = glm::ivec3( glm::floor( q ) );
     const glm::vec3 f = q - glm::vec3( base );
     glm::vec2 accum( 0.0f );
+    glm::vec2 masked( 0.0f );
+    float wsum = 0.0f;
     for ( int dz = 0; dz <= 1; dz++ ) {
         for ( int dy = 0; dy <= 1; dy++ ) {
             for ( int dx = 0; dx <= 1; dx++ ) {
@@ -561,8 +565,18 @@ glm::vec2 ChunkLoader::light_sample( const glm::vec3 &pos ) const {
                 if ( blk > 0 ) {
                     accum.y += w * static_cast<float>( blk );
                 }
+                if ( sky < 0 || !light_opaque_id( this->light_block_id_at( cell ) ) ) {
+                    wsum += w;
+                    masked.x += w * static_cast<float>( sky < 0 ? LIGHT_MAX_LEVEL : sky );
+                    if ( blk > 0 ) {
+                        masked.y += w * static_cast<float>( blk );
+                    }
+                }
             }
         }
+    }
+    if ( wsum > 1e-4f ) {
+        return masked / ( wsum * static_cast<float>( LIGHT_MAX_LEVEL ) );
     }
     return accum / static_cast<float>( LIGHT_MAX_LEVEL );
 }
