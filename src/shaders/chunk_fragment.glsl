@@ -374,9 +374,11 @@ void main() {
         vec2 light_far = min(mix(light_air, light_mip.rg, LIGHT_FAR_AO), vec2(1.0));
         light_sample = mix(light_sample, light_far, clamp(light_lod, 0.0, 1.0));
     }
-    // u_MinAmbient floors the result: cells with no skylight and no block
-    // light (deep caves) still get a faint ambient instead of pure black.
-    float scene_light = max(max(light_sample.r * u_Daylight, light_sample.g), u_MinAmbient);
+    // u_MinAmbient lifts the result linearly (0 -> m, 1 -> 1): cells with no
+    // skylight and no block light (deep caves) still get a faint ambient
+    // instead of pure black, without flattening light falloff the way a
+    // max() floor would.
+    float scene_light = mix(u_MinAmbient, 1.0, max(light_sample.r * u_Daylight, light_sample.g));
     // u_DebugFlags bit 1: lighting off.
     if((u_DebugFlags & 1) != 0) {
         scene_light = 1.0;

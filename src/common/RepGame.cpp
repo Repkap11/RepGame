@@ -3698,9 +3698,9 @@ void RepGame::draw_ui_pass( const glm::dvec3 &render_pos, float daylight ) {
         }
         // Light the in-hand block from the flood-fill volume at the eye,
         // combined like the chunk/object shaders (skylight scales with
-        // the day factor, torch light doesn't, min ambient floors caves).
+        // the day factor, torch light doesn't, min ambient lifts caves).
         const glm::vec2 held_light = globalGameState.world.chunkLoader.light_sample( glm::vec3( render_pos ) );
-        const float held_block_light = glm::max( glm::max( held_light.x * daylight, held_light.y ), imgui_overlay_get_imgui_debug_vars( ).min_ambient );
+        const float held_block_light = glm::mix( imgui_overlay_get_imgui_debug_vars( ).min_ambient, 1.0f, glm::max( held_light.x * daylight, held_light.y ) );
         globalGameState.ui_overlay.draw( globalGameState.main_inventory, globalGameState.survival_inventory, globalGameState.hotbar, globalGameState.game_mode, globalGameState.world.renderer, globalGameState.blocksTexture, globalGameState.input, globalGameState.font_renderer, globalGameState.screen.ortho_center, chest_contents ? &globalGameState.chest.inventory_renderer : nullptr, chest_contents, globalGameState.crafting.table_open, held_block_light );
         if ( crafting_grid_visible( globalGameState ) ) {
             const int dim = crafting_dim( globalGameState );

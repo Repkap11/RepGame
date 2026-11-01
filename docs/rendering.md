@@ -58,7 +58,9 @@ LOW-tier path (no reflections/post-process).
 - `REPGAME_NIGHT_AMBIENT` / `REPGAME_MIN_AMBIENT` — night brightness floors
   (0-1, defaults 0.20 / 0.05). `night_ambient` is the moonlight floor on the
   daylight factor (outdoor night: terrain, sky, mobs, fog all scale by it);
-  `min_ambient` is the absolute light floor so caves aren't pure black —
+  `min_ambient` is the cave light floor so caves aren't pure black. It is a
+  linear lift, not a clamp: `light = mix(min_ambient, 1, raw)`, so falloff
+  gradients stay smooth at high settings and full light stays 1.0. It is
   also adjustable live from the pause menu (Cave Brightness row) and
   persisted in `player.dat`. Not
   HDR-related — these are sRGB-encoded light values, identical in SDR and

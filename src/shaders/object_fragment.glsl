@@ -82,11 +82,11 @@ void main( ) {
     // light: the sky channel scales with the day/night factor, the block
     // channel (torches etc.) doesn't — same combine as chunk_fragment.
     // v_light is the per-face directional shade applied on top. u_MinAmbient
-    // floors non-sky objects so unlit caves aren't invisible; the sky itself
+    // linearly lifts non-sky objects so unlit caves aren't invisible; the sky itself
     // keeps the old path (v_light * daylight) or the night sky would wash out.
     float scene_light;
     if ( u_IsSky == 0 ) {
-        scene_light = v_light * max( max( v_light_field.x * u_Daylight, v_light_field.y ), u_MinAmbient );
+        scene_light = v_light * mix( u_MinAmbient, 1.0, max( v_light_field.x * u_Daylight, v_light_field.y ) );
     } else {
         scene_light = v_light * u_Daylight;
     }
