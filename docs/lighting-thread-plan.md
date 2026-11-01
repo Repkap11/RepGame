@@ -195,7 +195,7 @@ shards discussed earlier:
   rechecks bypass the priority window at claim time, so holding the slot
   just delays edits up to the cap.
 - A BACKLOG CAP bounds the flood's self-regeneration: once
-  light_bfs_pending exceeds LIGHT_BFS_CAP_FLOOD (~1M), pushes spawned BY
+  light_bfs_pending exceeds LIGHT_BFS_CAP_FLOOD (8M), pushes spawned BY
   pops (add/remove step expansion — the march) are refused and their
   target chunk flagged light_stale. Sprint-flying streams remove/respread
   floods into the queue faster than the single drainer pops them — each
@@ -207,7 +207,14 @@ shards discussed earlier:
   corresponded to a refused push, so its chunk is flagged. External
   pushes (finalize/cascade/border/recheck — fresh chunk light) still land,
   so streaming keeps converging; they refuse only past LIGHT_BFS_CAP_ALL
-  (~4M) as an absolute bound. Refusals also set the chunk's light_reseed,
+  (16M) as an absolute bound. The cap must sit ABOVE the legitimate peak
+  backlog or it multiplies work: every refusal re-flags a whole chunk for
+  a full relight, and the healed volume re-runs its share of the flood.
+  Large shadowed volumes (flat-world voxelized models — the whole space
+  under a car is one remove/respread flood) peak at ~2.3M seeds; at the
+  old ~1M cap the stationary car world did ~620M pops over ~50s to
+  converge, vs ~57-69M pops and ~5s with the 8M cap. Refusals also set
+  the chunk's light_reseed,
   so the heal is a FULL relight — light_finalize_chunk wipes the volume
   and re-seeds every emitter via light_fill_chunk before cascade/border
   sync. A partial re-finalize is not enough: a truncated remove flood
@@ -220,8 +227,12 @@ shards discussed earlier:
   the near radius (suppressed while pending is over the cap so a flagged
   near chunk can't re-finalize into refusals forever), and
   light_heal_idle re-finalizes up to LIGHT_HEAL_PER_FRAME flagged chunks
-  per frame once pending drops under STARVE_MIN — heal seeds lift pending
-  back over the gate so the scan self-throttles into small waves. The
+  per frame once pending hits 0 — heal seeds lift pending back over the
+  gate so the scan self-throttles into small waves. Feeding at any deeper
+  backlog livelocks: each heal burst re-emits tens of thousands of
+  cascade/border seeds, re-floods past LIGHT_BFS_CAP_FLOOD, and the cap
+  flags more chunks stale than 8/frame can heal (the stationary-player
+  car world oscillated 0.25-1M seeds forever on exactly this loop). The
   same gate also drops seeds aimed at missing/is_loading chunks at push
   time (a loading chunk's whole volume is rebuilt by its own finalize
   anyway).

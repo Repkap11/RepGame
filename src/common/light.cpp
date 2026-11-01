@@ -243,15 +243,25 @@ static std::atomic<long> light_tick_counter{ 0 };
 // after it formed; flagged chunks re-finalize lazily (light_heal_*). Seeds
 // pushed by producers (finalize/cascade/border sync/recheck) still land, so
 // fresh chunk light keeps converging during streaming.
-#define LIGHT_BFS_CAP_FLOOD ( 1 << 20 )
+// Every refusal costs a full relight of its chunk later, which re-runs that
+// chunk's share of the flood — so a cap below the legitimate peak backlog
+// multiplies work instead of bounding it. Large shadowed volumes (flat-world
+// voxelized models: the whole space under a car is one remove/respread
+// flood) peak at ~2.3M seeds; at the old 1M cap the stationary car world did
+// ~10x the BFS work and took ~50s to converge instead of ~5s. Seeds are ~16
+// bytes, so 8M is ~128MB of transient queue at worst.
+#define LIGHT_BFS_CAP_FLOOD ( 1 << 23 )
 // Absolute bound: even external far-lane pushes are refused past this.
-#define LIGHT_BFS_CAP_ALL ( 4 << 20 )
+#define LIGHT_BFS_CAP_ALL ( 1 << 24 )
 // Chunks re-finalized per frame by the idle stale-heal scan, and the backlog
-// under which heals may feed. Heal seeds are external pushes (they always
-// land), so the feed can run well above STARVE_MIN — keeping the pile fed
-// while flagged chunks still exist is what shortens the post-flight tail.
+// under which heals may feed. Feed only on an EMPTY queue: each healed chunk
+// re-emits thousands of cascade/border seeds, so feeding into a deep backlog
+// re-floods it past LIGHT_BFS_CAP_FLOOD — which caps pushes and flags more
+// chunks stale than 8/frame can ever heal (the car world's plateau was this
+// loop, not seed starvation). At pend==0 the trickle of 8-chunk bursts drains
+// between frames and the finite flag supply runs out.
 #define LIGHT_HEAL_PER_FRAME 8
-#define LIGHT_HEAL_FEED ( 256 << 10 )
+#define LIGHT_HEAL_FEED 0
 // Upload debounce: a chunk whose light was written within the last
 // LIGHT_UPLOAD_QUIET_TICKS game ticks waits — a mid-march/mid-relight
 // snapshot shows the transient floor state as a one-frame black flash.
