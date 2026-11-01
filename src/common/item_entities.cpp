@@ -41,12 +41,15 @@
 #define ITEM_MERGE_INTERVAL 10
 
 // The shared extruded-sprite mesh: a 16x16 tile in the unit square [0,1]²
-// extruded 1/16 in z. Front/back quads cover the full tile; per texel column
-// i two side quads (x=i/16 facing -x, x=(i+1)/16 facing +x) and per texel row
-// j two cap quads sample exactly that column/row's texel (u or v fixed at the
-// texel center), so the fragment's per-texel alpha test carves the icon's
-// silhouette out of the slices. 66 quads total.
-#define ITEM_SPRITE_QUADS ( 2 + 16 * 4 )
+// extruded 1/16 in z. Every quad — front/back texel cells and the side/cap
+// slices — is pinned to exactly one texel: all four vertices carry that
+// texel's center uv, so uv interpolation is constant across the quad and the
+// fragment's per-texel alpha test is all-or-nothing per quad. Without that,
+// MSAA shades a pixel straddling a texel boundary once at its center and a
+// center landing in a transparent texel discards the whole pixel even though
+// its covered samples lie in the opaque texel — see-through pinholes along
+// the icon's texel grid. 1536 quads total.
+#define ITEM_SPRITE_QUADS ( 16 * 16 * 6 )
 #define ITEM_SPRITE_VERTS ( ITEM_SPRITE_QUADS * 4 )
 #define ITEM_SPRITE_INDICES ( ITEM_SPRITE_QUADS * 6 )
 
@@ -100,19 +103,23 @@ static void build_item_sprite_mesh( ) {
     item_sprite_mesh_built = true;
     int q = 0;
     const float d = 1.0f / 16.0f;
-    // Front (+z) and back (-z) faces show the whole icon.
-    sprite_quad( q++, 0.0f, 0.0f, 1.0f, 1.0f, d, d, FACE_FRONT, 0.0f, 0.0f, 1.0f, 1.0f, 0 );
-    sprite_quad( q++, 0.0f, 0.0f, 1.0f, 1.0f, 0.0f, 0.0f, FACE_BACK, 0.0f, 0.0f, 1.0f, 1.0f, 1 );
     for ( int i = 0; i < 16; i++ ) {
-        const float u = ( i + 0.5f ) / 16.0f;
-        // Left edge of column i (normal -x) and right edge (normal +x):
-        // fixed u at the texel center, v sweeps the whole column.
-        sprite_quad( q++, i * d, 0.0f, i * d, 1.0f, 0.0f, d, FACE_LEFT, u, 0.0f, u, 1.0f, 0 );
-        sprite_quad( q++, ( i + 1 ) * d, 0.0f, ( i + 1 ) * d, 1.0f, 0.0f, d, FACE_RIGHT, u, 0.0f, u, 1.0f, 1 );
-        // Bottom edge of row i (normal -y) and top edge (normal +y):
-        // fixed v at the texel center, u sweeps the whole row.
-        sprite_quad( q++, 0.0f, i * d, 1.0f, i * d, 0.0f, d, FACE_BOTTOM, 0.0f, u, 1.0f, u, 0 );
-        sprite_quad( q++, 0.0f, ( i + 1 ) * d, 1.0f, ( i + 1 ) * d, 0.0f, d, FACE_TOP, 0.0f, u, 1.0f, u, 1 );
+        for ( int j = 0; j < 16; j++ ) {
+            const float u = ( i + 0.5f ) / 16.0f;
+            const float v = ( j + 0.5f ) / 16.0f;
+            // Front (+z) and back (-z): one quad per texel, u along +x and v
+            // along +y as before so the icon isn't mirrored.
+            sprite_quad( q++, i * d, j * d, ( i + 1 ) * d, ( j + 1 ) * d, d, d, FACE_FRONT, u, v, u, v, 0 );
+            sprite_quad( q++, i * d, j * d, ( i + 1 ) * d, ( j + 1 ) * d, 0.0f, 0.0f, FACE_BACK, u, v, u, v, 1 );
+            // Left edge of column i (normal -x) and right edge (normal +x),
+            // row j of that column.
+            sprite_quad( q++, i * d, j * d, i * d, ( j + 1 ) * d, 0.0f, d, FACE_LEFT, u, v, u, v, 0 );
+            sprite_quad( q++, ( i + 1 ) * d, j * d, ( i + 1 ) * d, ( j + 1 ) * d, 0.0f, d, FACE_RIGHT, u, v, u, v, 1 );
+            // Bottom edge of row j (normal -y) and top edge (normal +y),
+            // column i of that row.
+            sprite_quad( q++, i * d, j * d, ( i + 1 ) * d, j * d, 0.0f, d, FACE_BOTTOM, u, v, u, v, 0 );
+            sprite_quad( q++, i * d, ( j + 1 ) * d, ( i + 1 ) * d, ( j + 1 ) * d, 0.0f, d, FACE_TOP, u, v, u, v, 1 );
+        }
     }
 }
 

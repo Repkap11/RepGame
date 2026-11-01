@@ -16,10 +16,13 @@ class MapStorage;
 class NetEntities;
 struct RepGameState;
 
-// Per-instance data for the extruded-sprite item draw: one shared 66-quad
+// Per-instance data for the extruded-sprite item draw: one shared 1536-quad
 // mesh (item_entities.cpp) is instanced per item, sampling a single atlas
-// layer in item_sprite_vertex.glsl. The transform is rebuilt each frame by
-// ItemEntities::update_render (spin + bob on the CPU).
+// layer in item_sprite_vertex.glsl. Every quad is pinned to a single texel's
+// center uv so the per-texel alpha test is all-or-nothing per quad — MSAA
+// pixel-center shading then can't drop covered samples at texel boundaries.
+// The transform is rebuilt each frame by ItemEntities::update_render (spin +
+// bob on the CPU).
 typedef struct {
     unsigned int tex_layer; // atlas layer of the item's flat icon
     glm::mat4 transform;    // unit-square sprite -> world

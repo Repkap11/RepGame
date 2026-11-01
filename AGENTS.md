@@ -703,7 +703,10 @@ leaving the remainder on the ground. A `pop` sfx plays on pickup.
 Rendering: isometric block items draw as a 0.25 cube through the
 falling-block path (`ParticlePosition`, `object_shader`); everything else
 (pure items, sprite-icon blocks) draws as an extruded sprite — one shared
-66-quad mesh (front/back + per-texel-column/row edge slices, 1/16 deep) via
+1536-quad mesh (per-texel front/back cells + per-texel-column/row edge
+slices, 1/16 deep — every quad pinned to one texel's center uv so the
+alpha test is all-or-nothing per quad and MSAA pixel-center shading can't
+drop covered samples at texel boundaries) via
 `item_sprite_vertex.glsl`, instanced with `{uint layer, mat4 transform,
 vec2 light}`. The fragment's `u_ExactTexel` path in `object_fragment.glsl`
 texelFetches at lod 0 so edge slices alpha-test per texel without mipmap
