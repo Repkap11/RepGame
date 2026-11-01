@@ -15,6 +15,15 @@ binary lands at `out/linux/release/RepGame`.
 - `make linux_debug` / `make linux_debug-run` — debug build
 - `make android` — Android assets + build; `make android-run` to deploy to a device
 - `make deploy` — build the portable Linux AppImage and rsync it to repkap11.com
+- `make server-deploy` — `tools/server_deploy.sh`: push HEAD to the `repkap11`
+  remote's master, ff-pull + `make server` on repkap11.com (build happens before
+  the old server is stopped), Ctrl-C the server in tmux session `repgame`
+  (pane found via the `@repgame_server` pane option, since automatic-rename
+  clobbers window names; graceful flush), start `make server-run` there, then attach.
+  Uncommitted changes only warn. Aborts if `RepGameServer.service` is active or
+  another RepGameServer is running outside that session. Overrides:
+  `SERVER_HOST`, `SERVER_DIR`, `SERVER_GIT_REMOTE`, `SERVER_BRANCH`,
+  `SERVER_TMUX_SESSION`, `SERVER_ATTACH=0`.
 - `make steamframe` / `make steamframe_debug` — aarch64 GLES build for Valve's
   Steam Frame against the pinned Steam Runtime sysroot; binary lands at
   `out/steamframe/<release|debug>/RepGame`. Static SDL3 + static OpenXR loader,

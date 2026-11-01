@@ -32,6 +32,11 @@ out/server: | out
 server-run: server
 	./out/server/$(REPSERVER)
 
+# Push HEAD to the repkap11 remote, rebuild on repkap11.com and restart the
+# server in tmux session 'repgame' (see tools/server_deploy.sh for overrides).
+server-deploy:
+	./tools/server_deploy.sh
+
 server-test: server
 	./out/server/$(REPSERVER) --selftest
 
@@ -57,4 +62,4 @@ clean: clean-server
 clean-server:
 	rm -rf out/server
 
-.PHONY: server clean-server server-run server-test
+.PHONY: server clean-server server-run server-test server-deploy
