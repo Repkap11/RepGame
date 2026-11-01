@@ -7,6 +7,7 @@
 #include "common/RepGame.hpp"
 #include "common/audio.hpp"
 #include "common/multiplayer.hpp"
+#include "common/net_entities.hpp"
 #include "common/block.hpp"
 #include "common/map_gen.hpp"
 #include "common/structure_gen.hpp"
@@ -25,13 +26,6 @@ TntExplodeEvent::TntExplodeEvent( long tick_number, const glm::ivec3 &pos, const
 // Debris per destroyed block — less than DEBRIS_PER_BLOCK since a blast
 // destroys hundreds of blocks in one tick.
 #define DEBRIS_PER_EXPLODED_BLOCK 12
-// Peak body push (blocks/tick) at the blast center, falling to 0 at
-// TNT_BLAST_RADIUS + 2.
-#define TNT_IMPULSE_RADIUS ( TNT_BLAST_RADIUS + 2 )
-// Blocks/tick at the blast center, fading to 0 at the radius edge — enough to
-// scatter nearby bodies a handful of blocks without throwing them into
-// unloaded chunks (a body freezes while its containing chunk isn't live).
-#define TNT_IMPULSE_STRENGTH 0.03
 
 static float frand( ) {
     return static_cast<float>( rand( ) ) / static_cast<float>( RAND_MAX );
@@ -77,6 +71,9 @@ void TntExplodeEvent::performAction( BlockUpdateQueue &blockUpdateQueue, RepGame
         this->block_pos = glm::ivec3( glm::floor( c ) );
     }
     const glm::dvec3 center = glm::dvec3( this->block_pos ) + glm::dvec3( 0.5 );
+    // Multiplayer: other clients play the sound and shove their own
+    // entities; the block changes arrive via BLOCK_UPDATE (no-op unbound).
+    repGameState.multiplayer.entities.send_explosion( center.x, center.y, center.z, TNT_IMPULSE_RADIUS );
 
     // Inverse TNT: restore every loaded block in the blast sphere to the
     // full natural world (terrain + structures: trees, decorations, features,

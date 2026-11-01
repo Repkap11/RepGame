@@ -6,9 +6,11 @@
 #include "common/Particle.hpp"
 #include "common/RenderChain.hpp"
 #include "common/block_definitions.hpp"
+#include "common/net/packet.hpp"
 #include "common/utils/collision.hpp"
 
 class ChunkLoader;
+class NetEntities;
 class World;
 struct RepGameState;
 
@@ -46,6 +48,19 @@ class BlockBodies {
         long fuse_ticks = 0;
         entt::entity entity = entt::null;                          // render chain entity (render_inited only)
         unsigned short face[ NUM_FACES_IN_CUBE ] = { 0 };          // resolved texture layers
+        // Multiplayer sync (net_id 0 / net_mirror false in single player).
+        // Bodies are "causer simulates": the spawning client simulates, the
+        // server relays; other clients render net_mirror bodies. net_chunk
+        // is the chunk the server's record sits in (role-drop matching).
+        NetEntityId net_id = 0;
+        bool net_mirror = false;
+        glm::dvec3 net_min = glm::dvec3( 0.0 );
+        glm::dvec3 net_vel = glm::dvec3( 0.0 );
+        glm::ivec3 net_chunk = glm::ivec3( 0 );
+        bool net_sent = false;
+        glm::dvec3 net_sent_min = glm::dvec3( 0.0 );
+        glm::dvec3 net_sent_vel = glm::dvec3( 0.0 );
+        long net_keyframe_tick = -1;
     };
 
     void init( const VertexBufferLayout &vbl_object_vertex, const VertexBufferLayout &vbl_object_position, const VertexBufferLayout &vbl_primed_tnt_instance );
@@ -82,6 +97,27 @@ class BlockBodies {
     // Test/debug: snapshot of every live body.
     std::vector<Body> debug_bodies( ) const { return this->bodies; }
 
+    // ---- Multiplayer sync ("causer simulates"; NetEntities drives these —
+    // all no-ops in single player). Unlike items/mobs, chunk ownership does
+    // NOT gate body state: whoever spawned the body streams it.
+    void set_multiplayer_mode( bool mp_mode, NetEntities *net );
+    bool multiplayer_mode( ) const { return this->mp_mode; }
+    void net_apply_spawn( const NetEntityRecord &rec, bool mirror, long now_tick );
+    void net_apply_state( const NetEntityStateEntry &e );
+    void net_apply_remove( NetEntityId net_id );
+    // ENTITY_TRANSFER adopt=1 (sim handover after a disconnect): become the
+    // simulating client. For PRIMED_TNT also schedules the explode event the
+    // previous sim's queue carried.
+    void net_apply_transfer( RepGameState &state, const NetEntityRecord &rec );
+    // CHUNK_ROLE: NONE drops mirror bodies of that chunk; VIEWER/OWNER
+    // resync mirrors against the records (owned bodies untouched — roles
+    // don't transfer body ownership).
+    void net_apply_chunk_role( const glm::ivec3 &chunk, uint8_t role, const std::vector<NetEntityRecord> &records );
+    // Multiplayer dropped: mirror bodies would freeze mid-air — remove them.
+    void net_disconnect( );
+    // ENTITY_STATE entries for bodies we simulate (ownership = !net_mirror).
+    void collect_net_state( std::vector<NetEntityStateEntry> &out, long tick_number );
+
   private:
     // Writes the body back into the world at its rest cell (set block +
     // multiplayer + neighbor updates + debris for a replaced plant), or
@@ -97,6 +133,16 @@ class BlockBodies {
     void lift_bodies_above( const glm::ivec3 &cell, uint32_t skip_id );
     void remove_body( size_t i );
     bool body_chunk_live( World &world, const Body &b ) const;
+    // Multiplayer: mint a net id for a just-spawned body and announce it
+    // with ENTITY_SPAWN (no-op unbound / net_id already set).
+    void announce_spawn( Body &b );
+    void send_net_remove( Body &b, uint8_t reason );
+    Body *find_by_net_id( NetEntityId net_id );
+    // Spawn one body from a wire record (mirror or freshly adopted).
+    bool spawn_record( const NetEntityRecord &rec, bool mirror, long now_tick );
+
+    NetEntities *net = nullptr;
+    bool mp_mode = false;
 
     std::vector<Body> bodies;
     uint32_t next_id = 1;

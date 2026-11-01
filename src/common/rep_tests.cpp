@@ -3754,6 +3754,98 @@ int test_net_mobs( ) {
     return failures;
 }
 
+int test_net_bodies( ) {
+    if ( block_definitions == nullptr ) {
+        block_definitions_initilize_definitions( nullptr );
+    }
+    RepGameState &gs = *new RepGameState( );
+    gs.tick_number = 0;
+    gs.camera.pos = glm::dvec3( 0, 0, 0 );
+    test_setup_world( gs.world );
+
+    int failures = 0;
+    auto check_bool = [ & ]( const char *name, bool cond ) {
+        pr_test( "  %-55s %s", name, cond ? "PASS" : "FAIL" );
+        if ( !cond ) {
+            failures++;
+        }
+    };
+
+    Multiplayer mp;
+    NetEntities net( &mp );
+    // Use the world's own bodies: TntExplodeEvent consumes the body through
+    // repGameState.world.bodies.take(), so a standalone instance wouldn't
+    // observe the rescheduled event.
+    BlockBodies &bodies = gs.world.bodies;
+    bodies.set_multiplayer_mode( true, &net );
+
+    const BlockState sand = { SAND, 0, 0, SAND, 0 };
+    const BlockState tnt_state = { TNT, 0, 0, TNT, 0 };
+
+    // Mirror body: interpolation only — it doesn't fall, doesn't land,
+    // ignores impulses, and only ENTITY_REMOVE takes it away.
+    {
+        NetEntityRecord rec{};
+        rec.id = ( static_cast<NetEntityId>( 7 ) << 32 ) | 1;
+        rec.kind = NetEntityKind::BODY;
+        rec.x = 10.0;
+        rec.y = 40.0;
+        rec.z = 10.0;
+        rec.type = BlockBodies::BODY_FALLING;
+        rec.block_state = sand;
+        bodies.net_apply_spawn( rec, /*mirror*/ true, gs.tick_number );
+        check_bool( "body mirror: spawned", bodies.debug_bodies( ).size( ) == 1 );
+        check_bool( "body mirror: flagged mirror", bodies.debug_bodies( )[ 0 ].net_mirror );
+        for ( int i = 0; i < 50; i++ ) {
+            bodies.tick( gs );
+        }
+        check_bool( "body mirror: no physics (floats)", fabs( bodies.debug_bodies( )[ 0 ].min.y - 40.0 ) < 0.05 );
+        bodies.impulse( glm::dvec3( 10.5, 40.5, 10.5 ), 6.0, 0.05 );
+        check_bool( "body mirror: impulse ignored", glm::length( bodies.debug_bodies( )[ 0 ].vel ) < 1e-6 );
+        bodies.net_apply_remove( rec.id );
+        check_bool( "body mirror: ENTITY_REMOVE removes", bodies.debug_bodies( ).empty( ) );
+    }
+
+    // Owned body: streams ENTITY_STATE without any chunk role (the causer
+    // simulates, chunk ownership is irrelevant).
+    {
+        NetEntityRecord rec{};
+        rec.id = ( static_cast<NetEntityId>( 7 ) << 32 ) | 2;
+        rec.kind = NetEntityKind::BODY;
+        rec.x = 10.0;
+        rec.y = 40.0;
+        rec.z = 10.0;
+        rec.type = BlockBodies::BODY_FALLING;
+        rec.block_state = sand;
+        bodies.net_apply_spawn( rec, /*mirror*/ false, gs.tick_number );
+        std::vector<NetEntityStateEntry> out;
+        bodies.collect_net_state( out, 0 );
+        check_bool( "body owned: emits state entry", out.size( ) == 1 && out[ 0 ].id == rec.id );
+        bodies.net_apply_remove( rec.id );
+    }
+
+    // ENTITY_TRANSFER adopt=1 for a primed TNT body: becomes owned and the
+    // explosion is rescheduled from the wire fuse — it fires at
+    // tick_number + remaining and consumes the body.
+    {
+        NetEntityRecord rec{};
+        rec.id = ( static_cast<NetEntityId>( 7 ) << 32 ) | 3;
+        rec.kind = NetEntityKind::BODY;
+        rec.x = 10.0;
+        rec.y = 40.0;
+        rec.z = 10.0;
+        rec.type = BlockBodies::BODY_PRIMED_TNT;
+        rec.block_state = tnt_state;
+        rec.fuse_ticks = 10;
+        bodies.net_apply_transfer( gs, rec );
+        check_bool( "body transfer: spawned owned", bodies.debug_bodies( ).size( ) == 1 && !bodies.debug_bodies( )[ 0 ].net_mirror );
+        gs.blockUpdateQueue.processAllBlockUpdates( gs, gs.tick_number + 11 );
+        check_bool( "body transfer: reschedule explodes + consumes body", bodies.debug_bodies( ).empty( ) );
+    }
+
+    return failures;
+}
+
 constexpr Test all_tests[] = {  //
     MK_TEST( ecs ),             //
     MK_TEST( vr_projection ),   //
@@ -3778,6 +3870,7 @@ constexpr Test all_tests[] = {  //
     MK_TEST( net_entities ),     //
     MK_TEST( net_item_crossing ), //
     MK_TEST( net_mobs ),          //
+    MK_TEST( net_bodies ),         //
     MK_TEST( crafting ),         //
     { nullptr, nullptr }
 

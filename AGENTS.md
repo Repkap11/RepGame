@@ -719,9 +719,10 @@ and `World::cleanup` persists every owned chunk. A chunk whose items were
 all picked up rewrites its file empty so stale records can't resurrect.
 Pickup delay is not persisted (loaded items are pickable immediately).
 No reads or writes in capture mode, fly mode, block world, or
-`REPGAME_MOBS=0`/`REPGAME_MOB_TEST` runs — same gates as mobs. Multiplayer
-is identical to single-player: items are client-local and persist to the
-local world dir exactly like mobs.
+`REPGAME_MOBS=0`/`REPGAME_MOB_TEST` runs — same gates as mobs. In
+multiplayer the local file paths are off entirely: item identity,
+persistence and pickup are server-arbitrated (see "Multiplayer entity
+sync").
 
 ## Crafting
 
@@ -906,8 +907,12 @@ persists+removes mobs whose owning chunk leaves the active window
 (parked/reused — `CHUNK_LOADING` at the same position has not left).
 `World::cleanup` persists every owned chunk. `despawnable` (night-spawn)
 mobs are never written. No writes in capture or fly
-mode. Natural spawn stands herds on `spawn_on` column tops with hitbox
-headroom inside the chunk.
+mode — and no local reads/writes at all in multiplayer, where the server
+holds `mobs_`/`items_` sidecars and the populated markers (see
+"Multiplayer entity sync"). Natural spawn stands herds on `spawn_on`
+column tops with hitbox headroom inside the chunk; in multiplayer the
+chunk's owning client runs the roll on its CHUNK_ROLE grant and reports
+`CHUNK_POPULATED`.
 
 Hitting: left click raycasts mobs (`MobManager::raycast`, AABB slab test)
 against `block_selection.ray_origin/ray_dir`; a mob nearer than the
@@ -968,5 +973,66 @@ blocks draw through `render_falling` + `object_shader`
 instance transform). Chains are only touched after `init()`/`render_inited`,
 so headless tests simulate fine. Landed bodies keep an instance at their rest
 cell until the target chunk's `needs_repopulation` drains (the remesh safety
-net). Remote multiplayer block updates deliberately don't run these events —
-only the client that caused a change simulates bodies.
+net). In multiplayer each body is simulated by the client that caused it
+(the existing "causer simulates" rule — remote block updates still don't
+run these events) and mirrored to viewers; see "Multiplayer entity sync"
+for the spawn/state/remove/handover rules.
+
+## Multiplayer entity sync
+
+Protocol v5 (`include/common/net/packet.hpp`) — "server arbitrates, owner
+client simulates". The server (`ServerEntities`, `server_entities.cpp`)
+holds the authoritative entity table per chunk and never simulates;
+clients (`NetEntities`, `net_entities.cpp`) announce what they own and
+mirror the rest. A client declares its interest with VIEW (clamped to
+`NET_ENTITY_RADIUS_XZ` ±8 / `NET_ENTITY_RADIUS_Y` ±3 chunks); per covered
+chunk the server assigns roles — OWNER to the nearest covering player
+(hysteresis: the incumbent keeps it while within best+2 chunks), VIEWER
+to the rest — and pushes CHUNK_ROLE grants carrying the chunk's live
+records. Net ids are `(session << 32) | counter`; session 0 is
+server-minted (chunk-load restores), `0xFFFFFFFF` high word is the
+deterministic natural-mob namespace. Every streamed entity carries a
+`net_chunk` — the server's belief of its chunk — which drives all local
+ownership checks, so an entity keeps streaming while it physically
+crosses until the server's ENTITY_TRANSFER lands.
+
+Messages (`NetMsgType`): WELCOME assigns the session id; VIEW declares
+coverage; CHUNK_ROLE grants/revokes per-chunk roles with records;
+ENTITY_SPAWN announces a new entity; ENTITY_STATE streams pos/vel (batched
+every 6 ticks, changed-epsilon + ~1 s keyframes); ENTITY_REMOVE removes
+with a reason; ENTITY_TRANSFER switches ownership (adopt=1) or demotes to
+mirror (adopt=0); ENTITY_ACTION carries hits against remote entities;
+PICKUP_REQUEST/PICKUP_RESULT arbitrate item pickup races server-side
+(exactly one grant, partial pickups reduce the count via a server state);
+CHUNK_POPULATED marks a chunk's natural-mob roll done; PLAYER_HIT carries
+a remote mob's melee hit to its target; EXPLOSION relays a blast.
+
+Items and mobs are chunk-owner simulated: the OWNER spawns, streams
+states, and sends removals (LANDED/DIED/DESPAWN/PICKED_UP/EXPLODED);
+everyone else holds easing mirrors. The server persists items and
+non-despawnable mobs in `items_`/`mobs_` sidecar files on uncover —
+client-side entity files are off whenever a hostname is given
+(`multiplayer_mode`). Natural mob spawning runs on the OWNER of an
+unpopulated chunk from `Chunk::spawn_mobs`'s seeded roll, announced with
+`NET_MOB_FLAG_NATURAL` and completed by CHUNK_POPULATED (empty roll still
+writes the marker). Hits on mirrored mobs go through ENTITY_ACTION to the
+owner; owned hostiles also target remote players via `remote_targets` and
+reach them through PLAYER_HIT (`NetPlayerPayload.flags` bit0 =
+targetable).
+
+Bodies (falling blocks + primed TNT) differ: the *causing* client
+simulates — ENTITY_SPAWN fixes a sim fd, only that client's states and
+removals count, chunk crossings never transfer, and crossing/spawning
+into uncovered space just drops the server record (bodies are never
+persisted). When the sim disconnects, the body's chunk owner takes over
+via ENTITY_TRANSFER adopt=1 (primed TNT reschedules its fuse event
+locally); bodies in uncovered chunks are erased. Mirrors interpolate
+only — no physics, landing, impulses, or collisions — and die on
+ENTITY_REMOVE, CHUNK_ROLE NONE, or disconnect. Blasts send EXPLOSION
+after running locally; receivers play the sound and impulse their own
+bodies/items (mirrors skip impulses — their sim applies it), while block
+damage arrives separately through BLOCK_UPDATE.
+
+`make server-test` covers ownership, hysteresis, relays, crossing,
+pickup arbitration, persistence, natural-spawn gating, body sim rules,
+handover and disconnect cleanup end-to-end against the real ServerLogic.

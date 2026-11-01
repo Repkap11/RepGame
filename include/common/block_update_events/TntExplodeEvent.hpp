@@ -9,6 +9,12 @@
 #define TNT_CHAIN_FUSE_MIN_TICKS ( UPS_RATE / 2 )
 #define TNT_CHAIN_FUSE_SPREAD_TICKS ( UPS_RATE )
 #define TNT_BLAST_RADIUS 4
+// Peak body/item push (blocks/tick) at the blast center, fading to 0 at
+// TNT_IMPULSE_RADIUS — shoves live bodies and item entities around the
+// blast without throwing them into unloaded chunks. Shared with the
+// EXPLOSION receive path (it applies the same impulse to owned entities).
+#define TNT_IMPULSE_RADIUS ( TNT_BLAST_RADIUS + 2 )
+#define TNT_IMPULSE_STRENGTH 0.03
 
 // Removes the block at center's cell (only if it is still TNT) and launches a
 // primed TNT body from it. Used by the redstone ignite path in

@@ -247,6 +247,7 @@ void ServerEntities::uncover_chunk( const glm::ivec3 &chunk ) {
     }
     for ( const auto &pair : it->second.entities ) {
         this->entity_chunk.erase( pair.first );
+        this->body_sim_fd.erase( pair.first );
     }
     this->persist_chunk_entities( it->second, chunk );
     for ( int fd : it->second.viewers ) {
@@ -369,6 +370,35 @@ void ServerEntities::on_client_disconnected( Server &server, int client_fd ) {
         EntityClientView empty_view;
         this->recompute_boxes( server, client_fd, view, empty_view );
     }
+    // Sim handover for bodies this client simulated: the body's chunk owner
+    // takes over (ENTITY_TRANSFER adopt=1 — its viewers keep mirrors, the
+    // new sim's states continue the stream). A body in an uncovered chunk
+    // has nobody to take it — drop it.
+    std::vector<NetEntityId> sim_bodies;
+    for ( const auto &pair : this->body_sim_fd ) {
+        if ( pair.second == client_fd ) {
+            sim_bodies.push_back( pair.first );
+        }
+    }
+    for ( const NetEntityId id : sim_bodies ) {
+        glm::ivec3 chunk;
+        ServerChunkEntities *ce = find_entity_chunk( id, &chunk );
+        if ( ce == nullptr ) {
+            this->body_sim_fd.erase( id );
+            continue;
+        }
+        if ( ce->owner_fd >= 0 ) {
+            this->body_sim_fd[ id ] = ce->owner_fd;
+            NetEntityTransferPayload adopt{ ce->entities[ id ], 1 };
+            PacketWriter w;
+            net_serialize_entity_transfer( w, adopt );
+            server.queue_message( ce->owner_fd, NetMsgType::ENTITY_TRANSFER, 0, w.take_buf( ) );
+        } else {
+            ce->entities.erase( id );
+            this->entity_chunk.erase( id );
+            this->body_sim_fd.erase( id );
+        }
+    }
 }
 
 void ServerEntities::on_player_position( Server &server, int client_fd, float x, float y, float z ) {
@@ -432,6 +462,9 @@ bool ServerEntities::on_client_message( Server &server, int client_fd, NetMsgTyp
             if ( rec.kind == NetEntityKind::MOB && ( rec.flags & NET_MOB_FLAG_NATURAL ) ) {
                 return true; // natural spawns only land in owned covered chunks
             }
+            if ( rec.kind == NetEntityKind::BODY ) {
+                return true; // bodies are never persisted — the causer keeps simulating
+            }
             // Uncovered: persist straight to the sidecar and stop.
             this->persist_stray_entity( rec, chunk );
             return true;
@@ -446,6 +479,9 @@ bool ServerEntities::on_client_message( Server &server, int client_fd, NetMsgTyp
         }
         it->second.entities[ rec.id ] = rec;
         this->entity_chunk[ rec.id ] = chunk;
+        if ( rec.kind == NetEntityKind::BODY ) {
+            this->body_sim_fd[ rec.id ] = client_fd; // causer simulates
+        }
         this->mark_dirty( it->second, rec.kind );
         PacketWriter w;
         net_write_entity_record( w, rec );
@@ -468,8 +504,14 @@ bool ServerEntities::on_client_message( Server &server, int client_fd, NetMsgTyp
         for ( const NetEntityStateEntry &e : p.entries ) {
             glm::ivec3 cur_chunk;
             ServerChunkEntities *ce = find_entity_chunk( e.id, &cur_chunk );
-            if ( ce == nullptr || ce->owner_fd != client_fd ) {
-                continue; // only the owner of the entity's chunk may move it
+            if ( ce == nullptr ) {
+                continue;
+            }
+            const bool is_body = ce->entities[ e.id ].kind == NetEntityKind::BODY;
+            // BODY: only its simulating client may move it. Others: only the
+            // chunk owner.
+            if ( is_body ? this->body_sim_fd[ e.id ] != client_fd : ce->owner_fd != client_fd ) {
+                continue;
             }
             NetEntityRecord &rec = ce->entities[ e.id ];
             rec.x = e.x;
@@ -492,13 +534,19 @@ bool ServerEntities::on_client_message( Server &server, int client_fd, NetMsgTyp
                 this->entity_chunk.erase( e.id );
                 auto nit = this->chunks.find( new_chunk );
                 if ( nit == this->chunks.end( ) ) {
-                    // New chunk uncovered: persist it there and drop it from
-                    // the sender's simulation.
-                    this->persist_stray_entity( moved, new_chunk );
-                    NetEntityRemovePayload rem{ e.id, NET_REMOVE_LEFT_VIEW };
-                    PacketWriter wr;
-                    net_serialize_entity_remove( wr, rem );
-                    server.queue_message( client_fd, NetMsgType::ENTITY_REMOVE, 0, wr.take_buf( ) );
+                    if ( is_body ) {
+                        // Bodies are never persisted and keep being simulated
+                        // by their causer — just drop the record, tell no one.
+                        this->body_sim_fd.erase( e.id );
+                    } else {
+                        // New chunk uncovered: persist it there and drop it
+                        // from the sender's simulation.
+                        this->persist_stray_entity( moved, new_chunk );
+                        NetEntityRemovePayload rem{ e.id, NET_REMOVE_LEFT_VIEW };
+                        PacketWriter wr;
+                        net_serialize_entity_remove( wr, rem );
+                        server.queue_message( client_fd, NetMsgType::ENTITY_REMOVE, 0, wr.take_buf( ) );
+                    }
                 } else {
                     nit->second.entities[ e.id ] = moved;
                     this->entity_chunk[ e.id ] = new_chunk;
@@ -522,8 +570,10 @@ bool ServerEntities::on_client_message( Server &server, int client_fd, NetMsgTyp
                             }
                         }
                     }
-                    // Ownership transfer when the new chunk has a different owner.
-                    if ( nit->second.owner_fd != client_fd ) {
+                    // Ownership transfer when the new chunk has a different
+                    // owner. Bodies never transfer — the causer keeps
+                    // simulating across chunk boundaries.
+                    if ( !is_body && nit->second.owner_fd != client_fd ) {
                         NetEntityTransferPayload adopt{ moved, 1 };
                         PacketWriter wa;
                         net_serialize_entity_transfer( wa, adopt );
@@ -564,12 +614,18 @@ bool ServerEntities::on_client_message( Server &server, int client_fd, NetMsgTyp
         }
         glm::ivec3 chunk;
         ServerChunkEntities *ce = find_entity_chunk( p.id, &chunk );
-        if ( ce == nullptr || ce->owner_fd != client_fd ) {
-            return true; // only the owner may remove
+        if ( ce == nullptr ) {
+            return true;
         }
         const NetEntityKind kind = ce->entities[ p.id ].kind;
+        // BODY removals come from the simulating client; others from the
+        // chunk owner.
+        if ( kind == NetEntityKind::BODY ? this->body_sim_fd[ p.id ] != client_fd : ce->owner_fd != client_fd ) {
+            return true;
+        }
         ce->entities.erase( p.id );
         this->entity_chunk.erase( p.id );
+        this->body_sim_fd.erase( p.id );
         this->mark_dirty( *ce, kind );
         PacketWriter w;
         net_serialize_entity_remove( w, p );
@@ -606,6 +662,7 @@ bool ServerEntities::on_client_message( Server &server, int client_fd, NetMsgTyp
                 granted = rec->count;
                 ce->entities.erase( p.id );
                 this->entity_chunk.erase( p.id );
+                this->body_sim_fd.erase( p.id );
                 ce->items_dirty = true;
                 NetEntityRemovePayload rem{ p.id, NET_REMOVE_PICKED_UP };
                 PacketWriter w;

@@ -346,6 +346,31 @@ NetEntityRecord mob_record( NetEntityId id, uint32_t type, uint32_t flags, doubl
     return rec;
 }
 
+// BODY_FALLING / BODY_PRIMED_TNT kind values (block_bodies.hpp pulls in
+// client-only headers; the server only carries `type` opaquely).
+constexpr uint32_t TEST_BODY_FALLING = 0;
+constexpr uint32_t TEST_BODY_TNT = 1;
+
+NetEntityRecord body_record( NetEntityId id, uint32_t body_kind, BlockID block, int32_t fuse, double x, double y, double z ) {
+    NetEntityRecord rec;
+    rec.id = id;
+    rec.kind = NetEntityKind::BODY;
+    rec.x = x;
+    rec.y = y;
+    rec.z = z;
+    rec.type = body_kind;
+    rec.block_state = BlockState{ block, 0, 0, block, 0 };
+    rec.fuse_ticks = fuse;
+    return rec;
+}
+
+void send_entity_remove( Server &server, SimClient &c, NetEntityId id, uint8_t reason ) {
+    NetEntityRemovePayload p{ id, reason };
+    PacketWriter w;
+    net_serialize_entity_remove( w, p );
+    server.test_logic( ).on_client_message( server, c.fd, NetMsgType::ENTITY_REMOVE, 0, w.buf( ) );
+}
+
 void send_entity_action( Server &server, SimClient &c, NetEntityId id ) {
     NetEntityActionPayload p{};
     p.id = id;
@@ -901,6 +926,168 @@ int server_selftest( ) {
 
         disconnect_client( server, ma );
         disconnect_client( server, mb );
+    }
+
+    // === Body sync: the causer simulates, not the chunk owner. ba owns no
+    // chunk the body sits in; bb owns chunk 2; bc is an extra viewer.
+    {
+        SimClient ba = connect_client( server );
+        SimClient bb = connect_client( server );
+        SimClient bc = connect_client( server );
+        const std::vector<ReceivedFrame> wba = drain_client( server, ba );
+        drain_client( server, bb );
+        drain_client( server, bc );
+        const uint32_t sess_ba = welcome_session( wba );
+
+        send_player_location( server, ba, -70.0f, 30.0f, 10.0f ); // chunk -2
+        send_player_location( server, bb, 130.0f, 30.0f, 10.0f ); // chunk 2
+        send_player_location( server, bc, 250.0f, 30.0f, 10.0f ); // chunk 4
+        send_view( server, ba, glm::ivec3( -1, 0, 0 ), 2, 1 ); // covers -3..1
+        send_view( server, bb, glm::ivec3( 2, 0, 0 ), 2, 1 );  // covers 0..4
+        send_view( server, bc, glm::ivec3( 4, 0, 0 ), 0, 1 );  // covers only 4
+        drain_client( server, ba );
+        drain_client( server, bb );
+        drain_client( server, bc );
+
+        const glm::ivec3 c2( 2, 0, 0 ), c4( 4, 0, 0 );
+        const ServerEntities &se3 = server.test_logic( ).test_entities( );
+        check( se3.owner_of( c2 ) == bb.fd, "body: chunk 2 owned by B" );
+        check( se3.owner_of( c4 ) == bb.fd, "body: chunk 4 owned by B (hysteresis over C)" );
+
+        // ba spawns a primed-TNT body in bb-owned chunk 2: accepted, relayed
+        // to the other viewers (bb), never echoed to the sim.
+        const NetEntityId body1 = ( static_cast<NetEntityId>( sess_ba ) << 32 ) | 0xB1;
+        send_entity_spawn( server, ba, body_record( body1, TEST_BODY_TNT, TNT, 40, 130.0, 30.0, 10.0 ) );
+        check( se3.entity_count_of( c2 ) == 1, "body: causer spawn into foreign chunk accepted" );
+        {
+            const std::vector<ReceivedFrame> fa = drain_client( server, ba );
+            const std::vector<ReceivedFrame> fb = drain_client( server, bb );
+            check( frames_of_type( fa, NetMsgType::ENTITY_SPAWN ).empty( ), "body: spawn not echoed to sim" );
+            check( frames_of_type( fb, NetMsgType::ENTITY_SPAWN ).size( ) == 1, "body: spawn relayed to viewer" );
+        }
+
+        // ENTITY_STATE / ENTITY_REMOVE from the chunk owner (not the sim) are
+        // ignored; the sim's state relays.
+        send_entity_state( server, bb, body1, 131.0, 30.0, 10.0, 0 );
+        {
+            const std::vector<ReceivedFrame> fa = drain_client( server, ba );
+            check( frames_of_type( fa, NetMsgType::ENTITY_STATE ).empty( ), "body: chunk-owner state ignored (not sim)" );
+        }
+        send_entity_remove( server, bb, body1, NET_REMOVE_EXPLODED );
+        check( se3.entity_count_of( c2 ) == 1, "body: chunk-owner remove ignored (not sim)" );
+        send_entity_state( server, ba, body1, 131.0, 30.0, 10.0, 0 );
+        {
+            const std::vector<ReceivedFrame> fb = drain_client( server, bb );
+            check( frames_of_type( fb, NetMsgType::ENTITY_STATE ).size( ) == 1, "body: sim state relayed to viewer" );
+        }
+
+        // Crossing c2 -> c4: no ENTITY_TRANSFER for bodies; viewer fan-out
+        // spawns it for bc (who didn't view c2).
+        send_entity_state( server, ba, body1, 250.0, 30.0, 10.0, 0 );
+        {
+            const std::vector<ReceivedFrame> fa = drain_client( server, ba );
+            const std::vector<ReceivedFrame> fb = drain_client( server, bb );
+            const std::vector<ReceivedFrame> fc = drain_client( server, bc );
+            check( frames_of_type( fa, NetMsgType::ENTITY_TRANSFER ).empty( ) &&
+                       frames_of_type( fb, NetMsgType::ENTITY_TRANSFER ).empty( ) &&
+                       frames_of_type( fc, NetMsgType::ENTITY_TRANSFER ).empty( ),
+                   "body: chunk crossing never transfers" );
+            check( frames_of_type( fc, NetMsgType::ENTITY_SPAWN ).size( ) == 1, "body: crossing spawns for new viewer" );
+            check( frames_of_type( fb, NetMsgType::ENTITY_REMOVE ).empty( ), "body: shared viewer keeps it" );
+        }
+
+        // Crossing into an uncovered chunk drops the record silently: the
+        // sim keeps going (no messages), nothing is persisted.
+        send_entity_state( server, ba, body1, 60.0 * 64.0, 30.0, 10.0, 0 ); // chunk 60, uncovered
+        {
+            const std::vector<ReceivedFrame> fa = drain_client( server, ba );
+            const std::vector<ReceivedFrame> fb = drain_client( server, bb );
+            const std::vector<ReceivedFrame> fc = drain_client( server, bc );
+            check( frames_of_type( fa, NetMsgType::ENTITY_REMOVE ).empty( ) &&
+                       frames_of_type( fa, NetMsgType::ENTITY_TRANSFER ).empty( ),
+                   "body: uncovered crossing tells the sim nothing" );
+            check( se3.entity_count_of( c4 ) == 0, "body: uncovered crossing drops the record" );
+            (void)fb;
+            (void)fc;
+            send_entity_state( server, ba, body1, 3900.0, 30.0, 10.0, 0 );
+            const std::vector<ReceivedFrame> fb2 = drain_client( server, bb );
+            check( frames_of_type( fb2, NetMsgType::ENTITY_STATE ).empty( ), "body: dropped record ignores later states" );
+        }
+
+        // BODY records are never persisted: park one in chunk -2 (covered
+        // only by ba), uncover it, re-cover — the role grant comes back
+        // empty.
+        const glm::ivec3 c_n2b( -2, 0, 1 );
+        const NetEntityId body2 = ( static_cast<NetEntityId>( sess_ba ) << 32 ) | 0xB2;
+        send_entity_spawn( server, ba, body_record( body2, TEST_BODY_FALLING, SAND, 0, -70.0, 30.0, 70.0 ) );
+        check( se3.entity_count_of( c_n2b ) == 1, "body: second spawn lands in -2,0,1" );
+        drain_client( server, ba );
+        drain_client( server, bb );
+        drain_client( server, bc );
+        send_view( server, ba, glm::ivec3( -1, 0, 0 ), 0, 1 ); // uncovers -2
+        drain_client( server, ba );
+        {
+            MapStorage check_storage;
+            check_storage.init( TEST_WORLD );
+            std::vector<ItemFileRecord> items;
+            std::vector<MobFileRecord> mobs;
+            check( check_storage.load_items( c_n2b, items ) == 0 && check_storage.load_mobs( c_n2b, mobs ) == 0,
+                   "body: uncovered body writes nothing to disk" );
+        }
+        send_view( server, ba, glm::ivec3( -1, 0, 0 ), 2, 1 ); // re-cover -2
+        {
+            const std::vector<ReceivedFrame> fa = drain_client( server, ba );
+            int rec_count = -1;
+            for ( const ReceivedFrame &f : frames_of_type( fa, NetMsgType::CHUNK_ROLE ) ) {
+                PacketReader r( f.payload.data( ), f.payload.size( ) );
+                NetChunkRolePayload p;
+                if ( net_deserialize_chunk_role( r, p ) && glm::ivec3( p.cx, p.cy, p.cz ) == c_n2b ) {
+                    rec_count = static_cast<int>( p.records.size( ) );
+                }
+            }
+            check( rec_count == 0, "body: re-covered chunk has no resurrected body (records=%d)", rec_count );
+        }
+
+        // Spawn into an uncovered chunk is ignored outright (no stray
+        // persistence, no record).
+        const NetEntityId body_far = ( static_cast<NetEntityId>( sess_ba ) << 32 ) | 0xBF;
+        send_entity_spawn( server, ba, body_record( body_far, TEST_BODY_FALLING, SAND, 0, 70.0 * 64.0, 30.0, 10.0 ) );
+        send_entity_state( server, ba, body_far, 70.0 * 64.0 + 1.0, 30.0, 10.0, 0 );
+        {
+            const std::vector<ReceivedFrame> fb = drain_client( server, bb );
+            check( frames_of_type( fb, NetMsgType::ENTITY_STATE ).empty( ), "body: uncovered spawn leaves no record" );
+        }
+
+        // Sim disconnect: body3 sits in bb-owned c2 — the sim role hands
+        // over to the chunk owner with ENTITY_TRANSFER adopt=1; the mirror
+        // stream continues from the new sim.
+        const NetEntityId body3 = ( static_cast<NetEntityId>( sess_ba ) << 32 ) | 0xB3;
+        send_entity_spawn( server, ba, body_record( body3, TEST_BODY_TNT, TNT, 40, 130.0, 30.0, 10.0 ) );
+        drain_client( server, ba );
+        drain_client( server, bb );
+        drain_client( server, bc );
+        disconnect_client( server, ba );
+        {
+            const std::vector<ReceivedFrame> fb = drain_client( server, bb );
+            int adopt = -1;
+            for ( const ReceivedFrame &f : frames_of_type( fb, NetMsgType::ENTITY_TRANSFER ) ) {
+                PacketReader r( f.payload.data( ), f.payload.size( ) );
+                NetEntityTransferPayload p;
+                if ( net_deserialize_entity_transfer( r, p ) && p.record.id == body3 ) {
+                    adopt = p.adopt;
+                }
+            }
+            check( adopt == 1, "body: sim disconnect hands ENTITY_TRANSFER adopt=1 to chunk owner" );
+            // The new sim's states are accepted: moving it into c4 spawns
+            // the body for bc (a viewer of c4 that never saw c2).
+            send_entity_state( server, bb, body3, 250.0, 30.0, 10.0, 0 );
+            drain_client( server, bb );
+            const std::vector<ReceivedFrame> fc2 = drain_client( server, bc );
+            check( frames_of_type( fc2, NetMsgType::ENTITY_SPAWN ).size( ) == 1, "body: post-handover sim state moves the record" );
+        }
+
+        disconnect_client( server, bb );
+        disconnect_client( server, bc );
     }
 
     server.cleanup( );

@@ -274,6 +274,9 @@ uint32_t ItemEntities::spawn( const ItemID item, const int count, const glm::dve
 
 void ItemEntities::impulse( const glm::dvec3 &center, const double radius, const double strength ) {
     for ( ItemEntity &it : this->items ) {
+        if ( it.remote ) {
+            continue; // mirrors are shoved by their own owner's blast
+        }
         const glm::dvec3 offset = item_center( it ) - center;
         const double d = glm::length( offset );
         if ( d >= radius ) {

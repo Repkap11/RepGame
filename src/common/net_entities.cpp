@@ -4,6 +4,8 @@
 
 #include "common/RepGame.hpp"
 #include "common/audio.hpp"
+#include "common/block_bodies.hpp"
+#include "common/block_update_events/TntExplodeEvent.hpp"
 #include "common/chunk.hpp"
 #include "common/item_entities.hpp"
 #include "common/multiplayer.hpp"
@@ -148,6 +150,7 @@ void NetEntities::apply_chunk_role( RepGameState &state, const PendingRole &gran
     }
     state.world.items.net_apply_chunk_role( grant.chunk, grant.role, grant.records );
     state.world.mobs.net_apply_chunk_role( state, grant.chunk, grant.role, grant.populated, grant.records );
+    state.world.bodies.net_apply_chunk_role( grant.chunk, grant.role, grant.records );
 }
 
 bool NetEntities::handle( RepGameState &state, NetMsgType type, int32_t player_id, PacketReader &r ) {
@@ -208,6 +211,10 @@ bool NetEntities::handle( RepGameState &state, NetMsgType type, int32_t player_i
             } else if ( rec.kind == NetEntityKind::MOB ) {
                 const bool mirror = !this->owns_chunk( chunk_of_dpos( glm::dvec3( rec.x, rec.y, rec.z ) ) );
                 state.world.mobs.net_apply_spawn( rec, mirror );
+            } else if ( rec.kind == NetEntityKind::BODY ) {
+                // Bodies are causer-simulated: a relayed spawn is always a
+                // mirror here (unless we already own that net_id).
+                state.world.bodies.net_apply_spawn( rec, true, state.tick_number );
             }
             return true;
         }
@@ -222,6 +229,8 @@ bool NetEntities::handle( RepGameState &state, NetMsgType type, int32_t player_i
                     state.world.items.net_apply_state( e );
                 } else if ( e.kind == static_cast<uint8_t>( NetEntityKind::MOB ) ) {
                     state.world.mobs.net_apply_state( e );
+                } else if ( e.kind == static_cast<uint8_t>( NetEntityKind::BODY ) ) {
+                    state.world.bodies.net_apply_state( e );
                 }
             }
             return true;
@@ -232,9 +241,10 @@ bool NetEntities::handle( RepGameState &state, NetMsgType type, int32_t player_i
                 pr_debug( "Malformed ENTITY_REMOVE" );
                 return true;
             }
-            // One kind owns the id; try both.
+            // One kind owns the id; try all three.
             state.world.items.net_apply_remove( p.id );
             state.world.mobs.net_apply_remove( p.id );
+            state.world.bodies.net_apply_remove( p.id );
             return true;
         }
         case NetMsgType::ENTITY_TRANSFER: {
@@ -257,6 +267,11 @@ bool NetEntities::handle( RepGameState &state, NetMsgType type, int32_t player_i
                 } else {
                     const glm::ivec3 chunk = chunk_of_dpos( glm::dvec3( p.record.x, p.record.y, p.record.z ) );
                     state.world.mobs.net_release_entity( p.record, this->views_chunk( chunk ) );
+                }
+            } else if ( p.record.kind == NetEntityKind::BODY ) {
+                // Sim handover after the previous sim disconnected.
+                if ( p.adopt ) {
+                    state.world.bodies.net_apply_transfer( state, p.record );
                 }
             }
             return true;
@@ -295,7 +310,15 @@ bool NetEntities::handle( RepGameState &state, NetMsgType type, int32_t player_i
                 pr_debug( "Malformed EXPLOSION" );
                 return true;
             }
-            // Phase 3 (block bodies): consumed here, no handler yet.
+            // A remote client's blast: play its audio and shove the entities
+            // we own. Blocks arrive separately via BLOCK_UPDATE; mirrors are
+            // skipped inside the impulse loops (their sim got this too).
+            const glm::dvec3 center( p.x, p.y, p.z );
+            if ( glm::length( center - state.camera.pos ) < 96.0 ) {
+                audio_play_sfx( "explode" );
+            }
+            state.world.bodies.impulse( center, p.radius, TNT_IMPULSE_STRENGTH );
+            state.world.items.impulse( center, p.radius, TNT_IMPULSE_STRENGTH );
             return true;
         }
         case NetMsgType::ENTITY_ACTION: {
@@ -317,6 +340,8 @@ void NetEntities::tick( RepGameState &state ) {
     if ( !this->mp->is_active( ) ) {
         if ( this->welcomed || !this->roles.empty( ) || this->view_sent ) {
             this->reset( );
+            // Mirror bodies would freeze mid-air without their sim.
+            state.world.bodies.net_disconnect( );
         }
         return;
     }
@@ -349,6 +374,7 @@ void NetEntities::tick( RepGameState &state ) {
         NetEntityStatePayload p;
         state.world.items.collect_net_state( *this, p.entries, state.tick_number );
         state.world.mobs.collect_net_state( *this, p.entries, state.tick_number );
+        state.world.bodies.collect_net_state( p.entries, state.tick_number );
         if ( !p.entries.empty( ) ) {
             PacketWriter w;
             net_serialize_entity_state( w, p );

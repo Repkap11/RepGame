@@ -10,7 +10,9 @@
 #include "common/chunk_loader.hpp"
 #include "common/chunk.hpp"
 #include "common/multiplayer.hpp"
+#include "common/net_entities.hpp"
 #include "common/block_update_events/PlayerBlockPlacedEvent.hpp"
+#include "common/block_update_events/TntExplodeEvent.hpp"
 
 // Per-tick constants at UPS_RATE (144). Body gravity matches the old primed
 // TNT's 9.8 blocks/s² — NOT the player's GRAVITY_STRENGTH (0.002/tick² ≈
@@ -149,7 +151,7 @@ void BlockBodies::lift_bodies_above( const glm::ivec3 &cell, const uint32_t skip
     std::sort( order.begin( ), order.end( ), [ this ]( size_t a, size_t b ) { return this->bodies[ a ].min.y < this->bodies[ b ].min.y; } );
     for ( const size_t oi : order ) {
         Body &b = this->bodies[ oi ];
-        if ( b.id == skip_id ) {
+        if ( b.id == skip_id || b.net_mirror ) {
             continue;
         }
         const double bcy = b.min.y + BODY_SIZE * 0.5;
@@ -200,6 +202,9 @@ uint32_t BlockBodies::spawn_falling( const glm::ivec3 &cell, const BlockState &s
     b.vel = vel;
     resolve_body_faces( state, b.face );
     this->bodies.push_back( b );
+    // Multiplayer: announce the spawn (mints a net id). No-op unbound or
+    // before WELCOME — those bodies stay local-only.
+    this->announce_spawn( this->bodies.back( ) );
     return b.id;
 }
 
@@ -213,6 +218,7 @@ uint32_t BlockBodies::spawn_primed_tnt( RepGameState &state, const glm::dvec3 &c
                 continue;
             }
             if ( settle_land( state, b ) ) {
+                this->send_net_remove( b, NET_REMOVE_LANDED );
                 if ( this->render_inited ) {
                     Landed l;
                     l.min = b.min;
@@ -223,6 +229,7 @@ uint32_t BlockBodies::spawn_primed_tnt( RepGameState &state, const glm::dvec3 &c
                     this->landed.push_back( l );
                 }
             } else {
+                this->send_net_remove( b, NET_REMOVE_DESPAWN );
                 state.world.spawn_block_debris( glm::ivec3( glm::floor( body_center( b ) ) ), b.state, AIR );
                 if ( b.entity != entt::null ) {
                     this->render_falling.remove( b.entity );
@@ -248,6 +255,7 @@ uint32_t BlockBodies::spawn_primed_tnt( RepGameState &state, const glm::dvec3 &c
     b.fuse_ticks = fuse_ticks;
     resolve_body_faces( b.state, b.face );
     this->bodies.push_back( b );
+    this->announce_spawn( this->bodies.back( ) );
     return b.id;
 }
 
@@ -260,6 +268,8 @@ bool BlockBodies::take( const uint32_t id, glm::dvec3 *center ) {
             if ( center != nullptr ) {
                 *center = body_center( this->bodies[ i ] );
             }
+            // The fuse's explosion consumed it — mirrors see EXPLODED.
+            this->send_net_remove( this->bodies[ i ], NET_REMOVE_EXPLODED );
             remove_body( i );
             return true;
         }
@@ -269,6 +279,9 @@ bool BlockBodies::take( const uint32_t id, glm::dvec3 *center ) {
 
 void BlockBodies::impulse( const glm::dvec3 &center, const double radius, const double strength ) {
     for ( Body &b : this->bodies ) {
+        if ( b.net_mirror ) {
+            continue; // mirrors are shoved by their own sim's blast
+        }
         const glm::dvec3 offset = body_center( b ) - center;
         const double d = glm::length( offset );
         if ( d >= radius ) {
@@ -283,6 +296,10 @@ void BlockBodies::impulse( const glm::dvec3 &center, const double radius, const 
 void BlockBodies::land_all( RepGameState &state ) {
     World &world = state.world;
     for ( Body &b : this->bodies ) {
+        if ( b.net_mirror ) {
+            continue; // mirrors land on their own sim's client
+        }
+        this->send_net_remove( b, NET_REMOVE_DESPAWN );
         const glm::dvec3 c = body_center( b );
         const glm::ivec3 cell = b.kind == BODY_FALLING ? rest_cell( b.min )
                                                      : glm::ivec3( glm::floor( c ) );
@@ -315,6 +332,9 @@ void BlockBodies::tick( RepGameState &state ) {
     std::unordered_map<int64_t, std::vector<int>> hash;
     hash.reserve( this->bodies.size( ) * 4 );
     for ( size_t i = 0; i < this->bodies.size( ); i++ ) {
+        if ( this->bodies[ i ].net_mirror ) {
+            continue; // mirrors never collide with simulated bodies
+        }
         const glm::dvec3 &mn = this->bodies[ i ].min;
         const glm::dvec3 mx = mn + glm::dvec3( BODY_SIZE );
         const glm::ivec3 c0( glm::floor( mn ) );
@@ -342,6 +362,19 @@ void BlockBodies::tick( RepGameState &state ) {
     for ( const size_t oi : order ) {
         Body &b = this->bodies[ oi ];
         b.prev_min = b.min;
+        if ( b.net_mirror ) {
+            // Mirror of a remote-simulated body: interpolation only — no
+            // physics, settling, impulses or collisions. ENTITY_REMOVE (or
+            // CHUNK_ROLE NONE / disconnect) ends it.
+            const glm::dvec3 delta = b.net_min - b.min;
+            if ( glm::length( delta ) > 4.0 ) {
+                b.min = b.net_min;
+            } else {
+                b.min += delta * 0.35;
+            }
+            b.vel = b.net_vel;
+            continue;
+        }
         if ( freeze || !body_chunk_live( world, b ) ) {
             continue;
         }
@@ -454,6 +487,7 @@ void BlockBodies::tick( RepGameState &state ) {
                              std::fabs( b.min.y - glm::round( b.min.y ) ) < BODY_ALIGN_EPS;
         if ( b.grounded && slow && aligned && supported && hit_extra_axis[ 1 ] < 0 ) {
             if ( ++b.settle_ticks >= BODY_SETTLE_TICKS && settle_land( state, b ) ) {
+                this->send_net_remove( b, NET_REMOVE_LANDED );
                 landed_idx.push_back( oi );
             }
         } else {
@@ -576,4 +610,236 @@ void BlockBodies::cleanup( ) {
     this->render_tnt.clear( );
     this->bodies.clear( );
     this->landed.clear( );
+}
+
+// ---------------------------------------------------------------------------
+// Multiplayer sync ("causer simulates", not chunk-owner simulates). The
+// spawning client streams ENTITY_STATE for bodies it created; mirrors just
+// interpolate. All paths are no-ops in single player.
+// ---------------------------------------------------------------------------
+
+static glm::ivec3 body_net_chunk_of( const glm::dvec3 &pos ) {
+    return glm::ivec3( glm::floor( pos / glm::dvec3( CHUNK_SIZE_X, CHUNK_SIZE_Y, CHUNK_SIZE_Z ) ) );
+}
+
+void BlockBodies::set_multiplayer_mode( const bool mp_mode, NetEntities *net ) {
+    this->mp_mode = mp_mode;
+    this->net = mp_mode ? net : nullptr;
+}
+
+void BlockBodies::announce_spawn( Body &b ) {
+    if ( this->net == nullptr || b.net_id != 0 ) {
+        return;
+    }
+    const NetEntityId nid = this->net->mint_id( );
+    if ( nid == 0 ) {
+        return;
+    }
+    b.net_id = nid;
+    b.net_chunk = body_net_chunk_of( b.min );
+    NetEntityRecord rec;
+    rec.id = nid;
+    rec.kind = NetEntityKind::BODY;
+    rec.x = b.min.x;
+    rec.y = b.min.y;
+    rec.z = b.min.z;
+    rec.vx = static_cast<float>( b.vel.x );
+    rec.vy = static_cast<float>( b.vel.y );
+    rec.vz = static_cast<float>( b.vel.z );
+    rec.type = static_cast<uint32_t>( b.kind );
+    rec.block_state = b.state;
+    rec.fuse_ticks = static_cast<int32_t>( std::max<long>( 0, b.fuse_ticks - ( this->now_tick - b.fuse_start_tick ) ) );
+    this->net->send_spawn( rec );
+}
+
+void BlockBodies::send_net_remove( Body &b, const uint8_t reason ) {
+    if ( this->net == nullptr || b.net_id == 0 || b.net_mirror ) {
+        return;
+    }
+    this->net->send_remove( b.net_id, reason );
+}
+
+BlockBodies::Body *BlockBodies::find_by_net_id( const NetEntityId net_id ) {
+    if ( net_id == 0 ) {
+        return nullptr;
+    }
+    for ( Body &b : this->bodies ) {
+        if ( b.net_id == net_id ) {
+            return &b;
+        }
+    }
+    return nullptr;
+}
+
+bool BlockBodies::spawn_record( const NetEntityRecord &rec, const bool mirror, const long now_tick ) {
+    if ( this->bodies.size( ) >= MAX_BLOCK_BODIES || rec.type > BODY_PRIMED_TNT ) {
+        return false;
+    }
+    Body b;
+    b.id = this->next_id++;
+    if ( this->next_id == 0 ) {
+        this->next_id = 1;
+    }
+    b.kind = static_cast<BodyKind>( rec.type );
+    b.state = rec.block_state;
+    b.mass = b.kind == BODY_FALLING ? block_definition_get_definition( b.state.id )->fall_mass : 1.0f;
+    b.min = glm::dvec3( rec.x, rec.y, rec.z );
+    b.prev_min = b.min;
+    b.vel = glm::dvec3( rec.vx, rec.vy, rec.vz );
+    if ( b.kind == BODY_PRIMED_TNT ) {
+        // Mirrors blink from their own clock with the stream's remaining
+        // fuse; adopted bodies keep the wire fuse for the explode event.
+        b.fuse_start_tick = now_tick;
+        b.fuse_ticks = rec.fuse_ticks;
+    }
+    resolve_body_faces( b.state, b.face );
+    b.net_id = rec.id;
+    b.net_mirror = mirror;
+    b.net_min = b.min;
+    b.net_vel = b.vel;
+    b.net_chunk = body_net_chunk_of( b.min );
+    this->bodies.push_back( b );
+    return true;
+}
+
+void BlockBodies::net_apply_spawn( const NetEntityRecord &rec, const bool mirror, const long now_tick ) {
+    Body *existing = this->find_by_net_id( rec.id );
+    if ( existing != nullptr ) {
+        if ( existing->net_mirror ) {
+            existing->net_min = glm::dvec3( rec.x, rec.y, rec.z );
+            existing->net_vel = glm::dvec3( rec.vx, rec.vy, rec.vz );
+            existing->net_chunk = body_net_chunk_of( existing->net_min );
+        }
+        return;
+    }
+    this->spawn_record( rec, mirror, now_tick );
+}
+
+void BlockBodies::net_apply_state( const NetEntityStateEntry &e ) {
+    Body *b = this->find_by_net_id( e.id );
+    if ( b == nullptr || !b->net_mirror ) {
+        return;
+    }
+    b->net_min = glm::dvec3( e.x, e.y, e.z );
+    b->net_vel = glm::dvec3( e.vx, e.vy, e.vz );
+    b->net_chunk = body_net_chunk_of( b->net_min );
+}
+
+void BlockBodies::net_apply_remove( const NetEntityId net_id ) {
+    for ( size_t i = 0; i < this->bodies.size( ); i++ ) {
+        if ( this->bodies[ i ].net_id == net_id && net_id != 0 ) {
+            remove_body( i );
+            return;
+        }
+    }
+}
+
+void BlockBodies::net_apply_transfer( RepGameState &state, const NetEntityRecord &rec ) {
+    // Sim handover after the previous simulating client disconnected: we now
+    // own the body. Mirrors with this id become owned; missing bodies spawn.
+    Body *b = this->find_by_net_id( rec.id );
+    if ( b == nullptr ) {
+        if ( !this->spawn_record( rec, false, state.tick_number ) ) {
+            return;
+        }
+        b = &this->bodies.back( );
+    }
+    b->net_mirror = false;
+    b->net_sent = false; // stream resumes with the next collect
+    if ( b->kind == BODY_PRIMED_TNT ) {
+        // The previous sim's explode event died with it — reschedule from
+        // the wire record's remaining fuse, same shape as tnt_launch's.
+        const bool inverse = block_definition_get_definition( b->state.id )->is_inverse_tnt;
+        const long remaining = std::max<long>( 1, b->fuse_ticks );
+        const glm::ivec3 explode_pos = glm::ivec3( glm::floor( body_center( *b ) ) );
+        state.blockUpdateQueue.addBlockUpdate( std::make_shared<TntExplodeEvent>( state.tick_number + remaining, explode_pos, b->id, inverse ) );
+    }
+}
+
+void BlockBodies::net_apply_chunk_role( const glm::ivec3 &chunk, const uint8_t role, const std::vector<NetEntityRecord> &records ) {
+    if ( role == NET_ROLE_NONE ) {
+        for ( size_t i = 0; i < this->bodies.size( ); ) {
+            if ( this->bodies[ i ].net_mirror && this->bodies[ i ].net_chunk == chunk ) {
+                remove_body( i );
+            } else {
+                i++;
+            }
+        }
+        return;
+    }
+    // VIEWER/OWNER: sync mirror bodies to the record list. Roles don't move
+    // body ownership — bodies we already simulate are left alone.
+    std::unordered_map<NetEntityId, const NetEntityRecord *> by_id;
+    for ( const NetEntityRecord &rec : records ) {
+        if ( rec.kind == NetEntityKind::BODY ) {
+            by_id[ rec.id ] = &rec;
+        }
+    }
+    for ( size_t i = 0; i < this->bodies.size( ); ) {
+        const Body &b = this->bodies[ i ];
+        if ( b.net_mirror && b.net_id != 0 && b.net_chunk == chunk && by_id.find( b.net_id ) == by_id.end( ) ) {
+            remove_body( i );
+        } else {
+            i++;
+        }
+    }
+    for ( const NetEntityRecord &rec : records ) {
+        if ( rec.kind != NetEntityKind::BODY ) {
+            continue;
+        }
+        Body *existing = this->find_by_net_id( rec.id );
+        if ( existing != nullptr ) {
+            if ( existing->net_mirror ) {
+                existing->net_min = glm::dvec3( rec.x, rec.y, rec.z );
+                existing->net_vel = glm::dvec3( rec.vx, rec.vy, rec.vz );
+                existing->net_chunk = body_net_chunk_of( existing->net_min );
+            }
+        } else {
+            this->spawn_record( rec, true, this->now_tick );
+        }
+    }
+}
+
+void BlockBodies::net_disconnect( ) {
+    // Mirror bodies freeze mid-air without their sim — drop them. Bodies we
+    // simulate keep flying locally.
+    for ( size_t i = 0; i < this->bodies.size( ); ) {
+        if ( this->bodies[ i ].net_mirror ) {
+            remove_body( i );
+        } else {
+            i++;
+        }
+    }
+}
+
+void BlockBodies::collect_net_state( std::vector<NetEntityStateEntry> &out, const long tick_number ) {
+    for ( Body &b : this->bodies ) {
+        if ( b.net_id == 0 || b.net_mirror ) {
+            continue;
+        }
+        const bool keyframe = tick_number - b.net_keyframe_tick >= UPS_RATE;
+        const bool changed = !b.net_sent ||                                  //
+                             glm::length( b.min - b.net_sent_min ) > 1e-4 || //
+                             glm::length( b.vel - b.net_sent_vel ) > 1e-4;
+        if ( !changed && !keyframe ) {
+            continue;
+        }
+        NetEntityStateEntry e;
+        e.id = b.net_id;
+        e.kind = static_cast<uint8_t>( NetEntityKind::BODY );
+        e.x = b.min.x;
+        e.y = b.min.y;
+        e.z = b.min.z;
+        e.vx = static_cast<float>( b.vel.x );
+        e.vy = static_cast<float>( b.vel.y );
+        e.vz = static_cast<float>( b.vel.z );
+        out.push_back( e );
+        b.net_sent = true;
+        b.net_sent_min = b.min;
+        b.net_sent_vel = b.vel;
+        b.net_chunk = body_net_chunk_of( b.min );
+        if ( keyframe ) {
+            b.net_keyframe_tick = tick_number;
+        }
+    }
 }
