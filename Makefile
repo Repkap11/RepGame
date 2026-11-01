@@ -48,6 +48,7 @@ include makefiles/common.mk
 -include makefiles/docker.mk
 -include makefiles/imgui.mk
 -include makefiles/entt.mk
+-include makefiles/model.mk
 
 out:
 	mkdir -p $@

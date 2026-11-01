@@ -2816,6 +2816,12 @@ void RepGame::initializeGameState( const char *world_name ) {
         globalGameState.input.no_clip = false;
         globalGameState.game_mode = GameMode_Creative;
     }
+    if ( repgame_flat_world( ) && globalGameState.spawn_pending ) {
+        // Flat world with no player.dat: creative + flying so the visitor
+        // can immediately orbit the voxelized model. A save still wins.
+        globalGameState.input.player_flying = true;
+        globalGameState.game_mode = GameMode_Creative;
+    }
     if ( !globalGameState.spawn_pending ) {
         globalGameState.camera.pos.x = saved_data.world_x;
         globalGameState.camera.pos.y = saved_data.world_y;
@@ -2870,13 +2876,19 @@ RepGameState *RepGame::init( const char *world_name, const bool connect_multi, c
     globalGameState.screen.height = DEFAULT_WINDOW_HEIGHT;
     globalSupportsAnisotropic = supportsAnisotropicFiltering;
 
+    // Flat-world marker (`<world>/world_type` = "flat") must be read before
+    // any chunk generation starts — the map storage init happens later.
+    MapStorage::detect_flat_world( world_name );
+
     // Start broadcasting chunk updates
-    if ( connect_multi && !repgame_block_world( ) ) {
+    if ( connect_multi && !repgame_block_world( ) && !repgame_flat_world( ) ) {
         int port = 25566;
         if ( const char *v = getenv( "REPGAME_PORT" ) ) {
             port = atoi( v );
         }
         globalGameState.multiplayer.init( host, port );
+    } else if ( connect_multi && repgame_flat_world( ) ) {
+        pr_debug( "Flat world: skipping multiplayer connect to %s", host );
     }
 
     glEnable( GL_DEPTH_TEST );

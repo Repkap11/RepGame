@@ -23,6 +23,29 @@
 #define MAP_READ_MODE "rb"
 #endif
 
+bool MapStorage::detect_flat_world( const char *world_name ) {
+    g_repgame_flat_world = false;
+    if ( repgame_block_world( ) ) {
+        return false;
+    }
+    char *dir = getRepGamePath( );
+    char path[ MAP_NAME_MAX_LENGTH ];
+    snprintf( path, MAP_NAME_MAX_LENGTH, "%s%s%s%sworld_type", dir, REPGAME_PATH_DIVIDOR, world_name, REPGAME_PATH_DIVIDOR );
+    free( dir );
+    FILE *read_ptr = fopen( path, "rb" );
+    if ( read_ptr == NULL ) {
+        return false;
+    }
+    char token[ 32 ] = { 0 };
+    const int matched = fscanf( read_ptr, "%31s", token );
+    fclose( read_ptr );
+    g_repgame_flat_world = matched == 1 && strcmp( token, "flat" ) == 0;
+    if ( g_repgame_flat_world ) {
+        pr_debug( "Flat world: %s", world_name );
+    }
+    return g_repgame_flat_world;
+}
+
 void MapStorage::init( const char *world_name ) {
     char *dir = getRepGamePath( );
     snprintf( this->map_name, MAP_NAME_MAX_LENGTH, "%s%s%s", dir, REPGAME_PATH_DIVIDOR, world_name );

@@ -117,6 +117,12 @@ BlockID MapGen::block_world_id( const int x, const int y, const int z ) {
     return k < t.size( ) ? t[ k ] : AIR;
 }
 
+BlockID MapGen::flat_world_id( const int x, const int y, const int z ) {
+    // Solid ground like block_world: an air void under the floor would make
+    // the light cascade run removal BFS over the whole connected void volume.
+    return y <= 0 ? SANDSTONE : AIR;
+}
+
 float MapGen::calculateTerrainHeight( const int x, const int z ) {
 #if REPGAME_MAP_GEN_LEGACY
     return mgl_base_height( x, z );
@@ -173,6 +179,9 @@ float MapGen::maxTerrainHeight( ) {
 BlockID MapGen::gen_block_id( const int x, const int y, const int z ) {
     if ( repgame_block_world( ) ) {
         return block_world_id( x, y, z );
+    }
+    if ( repgame_flat_world( ) ) {
+        return flat_world_id( x, y, z );
     }
 #if REPGAME_MAP_GEN_LEGACY
     return mgl_pick_block( x, y, z, mgl_base_height( x, z ) );

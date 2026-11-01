@@ -63,6 +63,10 @@ class MapStorage {
 
   public:
     void init( const char *world_name );
+    // Reads `<world dir>/world_type`; a first token of `flat` sets
+    // g_repgame_flat_world (sandstone-floor generator, see
+    // MapGen::flat_world_id). Must run before init()/any chunk generation.
+    static bool detect_flat_world( const char *world_name );
     void persist_chunk( const Chunk &chunk );
     void persist_dirty_blocks( const glm::ivec3 &chunk_offset, const BlockState *blocks );
     // Writes (or, when `chests` is empty, removes) the chest contents file for

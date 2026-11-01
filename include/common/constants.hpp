@@ -11,6 +11,16 @@ static inline bool repgame_block_world( ) {
     return enabled;
 }
 
+// Per-world "flat" mode: a save dir containing a `world_type` file whose
+// first token is `flat` generates a plain sandstone floor at y=0 with air
+// above instead of terrain. Set by MapStorage::detect_flat_world before any
+// chunk generation starts; tools/model_to_world.py writes pre-voxelized
+// chunk files into such worlds.
+inline bool g_repgame_flat_world = false;
+static inline bool repgame_flat_world( ) {
+    return g_repgame_flat_world;
+}
+
 #define MOUSE_SENSITIVITY 0.18f
 // Low-pass filter factor for look deltas. Each tick the applied delta is blended
 // with the previous smoothed delta: smoothed = smoothed*(1-X) + raw*X.

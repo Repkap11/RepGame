@@ -1194,6 +1194,13 @@ int test_block_world( ) {
         }
     }
     check_bool( "bw: every defined non-AIR id placed once", seen_count == expected_count && dupes == 0 && strays == 0 );
+
+    // Flat world (world_type `flat`): sandstone floor at y=0, air above —
+    // same ground as block world without the grid.
+    check_bool( "flat: floor is sandstone at y=0", MapGen::flat_world_id( 0, 0, 0 ) == SANDSTONE );
+    check_bool( "flat: sandstone below floor", MapGen::flat_world_id( 5, -3, 9 ) == SANDSTONE );
+    check_bool( "flat: air above floor", MapGen::flat_world_id( 0, 1, 0 ) == AIR );
+    check_bool( "flat: air far above", MapGen::flat_world_id( 100, 50, -7 ) == AIR );
     return failures;
 }
 

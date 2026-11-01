@@ -51,6 +51,10 @@ class MapGen {
     // y=0, every defined block on a 32-wide grid standing on it at y=1.
     // O(1) per cell; used by Chunk::load_terrain and gen_block_id.
     static BlockID block_world_id( int x, int y, int z );
+    // Flat-world generator (world_type `flat`, set via
+    // MapStorage::detect_flat_world): solid sandstone at y<=0, air above.
+    // Saved chunks still load from disk — this only fills ungenerated cells.
+    static BlockID flat_world_id( int x, int y, int z );
 };
 void map_gen_load_block_cuda( glm::ivec3 *chunk_pos, BlockCell *cells );
 bool map_gen_load_block_hip( glm::ivec3 *chunk_pos, BlockCell *cells );

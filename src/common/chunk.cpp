@@ -613,6 +613,7 @@ void Chunk::load_terrain( MapStorage &map_storage ) {
 #endif
     // pr_debug( "Loading chunk terrain x:%d y:%d z:%d", this->chunk_x, this->chunk_y, this->chunk_z );
     const int loaded = map_storage.load_chunk( *this );
+    const bool flat_world = repgame_flat_world( );
 #if TERRAIN_GEN_PROFILING
     t_load_disk = now_us( ) - t0;
     if ( loaded ) profiling_disk_load_count.fetch_add( 1, std::memory_order_relaxed );
@@ -641,13 +642,14 @@ void Chunk::load_terrain( MapStorage &map_storage ) {
         }
     }
     static const bool block_world = repgame_block_world( );
-    if ( !loaded && block_world ) {
+    if ( !loaded && ( block_world || flat_world ) ) {
         // Block-world debug layout (REPGAME_BLOCK_WORLD): solid sandstone
         // ground up to y=0, every defined block on a grid at y=1, air above.
-        // Chunks entirely above y=2 (border included) are all air; chunks
-        // below fill solid the same way as any other cell range.
+        // Flat worlds (world_type `flat`) are the same minus the grid.
+        // Chunks entirely above the layout (border included) are all air;
+        // chunks below fill solid the same way as any other cell range.
         const int bw_min_y = this->chunk_pos.y * CHUNK_SIZE_Y - 1;
-        if ( bw_min_y > 2 ) {
+        if ( bw_min_y > ( flat_world ? 0 : 2 ) ) {
             this->free_block_storage( );
             chunk_free_air_mask( this->light_air_mask );
             this->light_air_mask = nullptr;
@@ -666,7 +668,7 @@ void Chunk::load_terrain( MapStorage &map_storage ) {
                 for ( int z = chunk_offset.z - 1; z < chunk_offset.z + CHUNK_SIZE_INTERNAL_Z - 1; z++ ) {
                     for ( int y = chunk_offset.y - 1; y < chunk_offset.y + CHUNK_SIZE_INTERNAL_Y - 1; y++ ) {
                         const int index = Chunk::get_index_from_coords( glm::ivec3( x, y, z ) - chunk_offset );
-                        this->cells[ index ] = static_cast<BlockCell>( MapGen::block_world_id( x, y, z ) );
+                        this->cells[ index ] = static_cast<BlockCell>( flat_world ? MapGen::flat_world_id( x, y, z ) : MapGen::block_world_id( x, y, z ) );
                     }
                 }
             }
