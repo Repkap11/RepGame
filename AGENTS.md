@@ -745,6 +745,11 @@ A shaped pattern is 1–3 equal-length rows (≤3 chars); space is an empty
 cell, every pattern char must be in `key` and every key must be used.
 `count` defaults to 1 and is capped by `item_max_stack(result)`.
 
+The starter set covers planks/sticks/table/chest/torch/furnace plus slabs
+(3-across, x6) and stairs (L-shape, x4) for every plank type, cobblestone and
+cobbled deepslate, and wooden/stone/diamond pickaxe, sword, shovel, axe and
+hoe (`max_stack` 1, no behaviour yet).
+
 `include/common/crafting.hpp` / `src/common/crafting.cpp` hold the pure
 matcher (no GL): shaped recipes compare the bounding box of the non-empty
 grid cells to the recipe's w×h and also try the horizontally mirrored

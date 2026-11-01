@@ -3252,6 +3252,77 @@ int test_crafting( ) {
         expect_none( "empty grid -> -1", grid, 3 );
     }
 
+    // Slabs: a full row of planks. Bottom row of the 3x3 works; the 1x3
+    // recipe can't fit the 2x2 grid.
+    {
+        ItemID grid[ 9 ] = { LAST_BLOCK_ID, LAST_BLOCK_ID, LAST_BLOCK_ID,
+                             LAST_BLOCK_ID, LAST_BLOCK_ID, LAST_BLOCK_ID,
+                             OAK_PLANKS, OAK_PLANKS, OAK_PLANKS };
+        expect( "slab, bottom row of 3x3", grid, 3, OAK_SLAB, 6 );
+        int slab_idx = -1;
+        for ( int i = 0; i < CRAFT_RECIPE_COUNT; i++ ) {
+            if ( CRAFT_RECIPES[ i ].result == OAK_SLAB ) {
+                slab_idx = i;
+            }
+        }
+        report( "slab recipe exists in the table", slab_idx >= 0 );
+        ItemID full2[ 4 ] = { OAK_PLANKS, OAK_PLANKS, OAK_PLANKS, OAK_PLANKS };
+        report( "slab recipe can't match in 2x2", slab_idx < 0 || !crafting_recipe_matches( CRAFT_RECIPES[ slab_idx ], full2, 2 ) );
+    }
+
+    // Stairs: the L-shape in cobblestone gives STONE_STAIRS, mirrored too.
+    {
+        ItemID grid[ 9 ] = { COBBLESTONE, LAST_BLOCK_ID, LAST_BLOCK_ID,
+                             COBBLESTONE, COBBLESTONE, LAST_BLOCK_ID,
+                             COBBLESTONE, COBBLESTONE, COBBLESTONE };
+        expect( "stairs, cobblestone L", grid, 3, STONE_STAIRS, 4 );
+        ItemID mirrored[ 9 ] = { LAST_BLOCK_ID, LAST_BLOCK_ID, COBBLESTONE,
+                                 LAST_BLOCK_ID, COBBLESTONE, COBBLESTONE,
+                                 COBBLESTONE, COBBLESTONE, COBBLESTONE };
+        expect( "stairs, cobblestone L mirrored", mirrored, 3, STONE_STAIRS, 4 );
+    }
+
+    // Tools: mixed plank types still match via the #planks tag; a stone
+    // sword accepts either stone in an off-centre column; diamond shovel.
+    {
+        ItemID grid[ 9 ] = { OAK_PLANKS, BIRCH_PLANKS, SPRUCE_PLANKS,
+                             LAST_BLOCK_ID, STICK, LAST_BLOCK_ID,
+                             LAST_BLOCK_ID, STICK, LAST_BLOCK_ID };
+        expect( "wooden pickaxe, mixed planks", grid, 3, WOODEN_PICKAXE, 1 );
+    }
+    {
+        ItemID grid[ 9 ] = { LAST_BLOCK_ID, COBBLED_DEEPSLATE, LAST_BLOCK_ID,
+                             LAST_BLOCK_ID, COBBLED_DEEPSLATE, LAST_BLOCK_ID,
+                             LAST_BLOCK_ID, STICK, LAST_BLOCK_ID };
+        expect( "stone sword, off-centre column", grid, 3, STONE_SWORD, 1 );
+    }
+    {
+        ItemID grid[ 9 ] = { DIAMOND, LAST_BLOCK_ID, LAST_BLOCK_ID,
+                             STICK, LAST_BLOCK_ID, LAST_BLOCK_ID,
+                             STICK, LAST_BLOCK_ID, LAST_BLOCK_ID };
+        expect( "diamond shovel", grid, 3, DIAMOND_SHOVEL, 1 );
+    }
+    {
+        // Axe ["##","#S"," S"] with mixed planks; the mirrored layout with
+        // cobblestone gives the stone axe, not something else.
+        ItemID grid[ 9 ] = { OAK_PLANKS, BIRCH_PLANKS, LAST_BLOCK_ID,
+                             SPRUCE_PLANKS, STICK, LAST_BLOCK_ID,
+                             LAST_BLOCK_ID, STICK, LAST_BLOCK_ID };
+        expect( "wooden axe, mixed planks", grid, 3, WOODEN_AXE, 1 );
+        ItemID mirrored[ 9 ] = { COBBLESTONE, COBBLESTONE, LAST_BLOCK_ID,
+                                 STICK, COBBLESTONE, LAST_BLOCK_ID,
+                                 STICK, LAST_BLOCK_ID, LAST_BLOCK_ID };
+        expect( "stone axe, mirrored", mirrored, 3, STONE_AXE, 1 );
+    }
+    {
+        // Hoe ["##"," S"," S"] in the right two columns.
+        ItemID grid[ 9 ] = { LAST_BLOCK_ID, DIAMOND, DIAMOND,
+                             LAST_BLOCK_ID, LAST_BLOCK_ID, STICK,
+                             LAST_BLOCK_ID, LAST_BLOCK_ID, STICK };
+        expect( "diamond hoe, right columns", grid, 3, DIAMOND_HOE, 1 );
+    }
+    report( "tools stack to 1", item_max_stack( WOODEN_PICKAXE ) == 1 && item_max_stack( DIAMOND_SWORD ) == 1 );
+
     // Drag crafting: distribute a held stack over the dragged slots.
     {
         InventorySlot slots[ 9 ];
