@@ -474,9 +474,9 @@ void StructureGen::place_decorations( Chunk &chunk, const int cox, const int coy
                         }
                     } else if ( weird > 0.35f && weird < 0.60f && roll < 0.30f ) {
                         // Meadows: denser tufts and flowers.
-                        sg_write_decor( chunk, lx, surface_y, lz, roll < 0.10f ? sg_pick_flower( wx, wz ) : ( roll < 0.20f ? GRASS_TUFT3 : FERN ) );
+                        sg_write_decor( chunk, lx, surface_y, lz, roll < 0.10f ? sg_pick_flower( wx, wz ) : ( roll < 0.20f ? FERN : SHORT_GRASS ) );
                     } else if ( roll < 0.10f ) {
-                        sg_write_decor( chunk, lx, surface_y, lz, roll < 0.03f ? sg_pick_flower( wx, wz ) : FERN );
+                        sg_write_decor( chunk, lx, surface_y, lz, roll < 0.03f ? sg_pick_flower( wx, wz ) : SHORT_GRASS );
                     } else if ( roll > 0.985f ) {
                         // Rare saplings matching the local tree mix.
                         const BlockID sap = biome < 0.22f ? DARK_OAK_SAPLING : biome > 0.72f ? ACACIA_SAPLING : sg_roll( wx, wz, 42 ) < 0.5f ? OAK_SAPLING : BIRCH_SAPLING;
