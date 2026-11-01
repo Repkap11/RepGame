@@ -253,7 +253,7 @@ int InventoryRenderer::whichSlotClicked( int screen_x, int screen_y ) const {
         return -1;
     }
 
-    if ( block_grid_coord_x > this->width || block_grid_coord_y > this->height ) {
+    if ( block_grid_coord_x >= this->width || block_grid_coord_y >= this->height ) {
         // pr_debug( "Coord too high %d %d", block_grid_coord_x, block_grid_coord_y );
         return -1;
     }
