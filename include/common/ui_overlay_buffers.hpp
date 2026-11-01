@@ -36,10 +36,10 @@ constexpr static UIOverlayVertex vb_isometric_quad_held[ VB_ISOMETRIC_QUAD_SIZE 
     { 1.0f, 0.8125f, { 0, 1 }, 1, ISO_FACE_RIGHT, { 1, 1, 0 } }, // e
 
     // Quad (adjusted for the in-hand held-block icon)
-    { 0.5f, 0.0f + 0.24, { 0, 0 }, 0, ISO_FACE_FRONT, { 0, 0, 0 } },    //
-    { 0.5f, 0.625f + 0.24, { 0, 1 }, 0, ISO_FACE_FRONT, { 0, 0, 0 } },  //
-    { 1.0f, 0.1875f + 0.24, { 1, 0 }, 0, ISO_FACE_FRONT, { 0, 0, 0 } }, //
-    { 1.0f, 0.8125f + 0.24, { 1, 1 }, 0, ISO_FACE_FRONT, { 0, 0, 0 } }  //
+    { 0.5f, 0.0f + 0.24, { 1, 0 }, 0, ISO_FACE_FRONT, { 0, 0, 0 } },    //
+    { 0.5f, 0.625f + 0.24, { 1, 1 }, 0, ISO_FACE_FRONT, { 0, 0, 0 } },  //
+    { 1.0f, 0.1875f + 0.24, { 0, 0 }, 0, ISO_FACE_FRONT, { 0, 0, 0 } }, //
+    { 1.0f, 0.8125f + 0.24, { 0, 1 }, 0, ISO_FACE_FRONT, { 0, 0, 0 } }  //
 };
 
 // Vertex buffer for inventory grid icons and the dragged item. The
@@ -63,10 +63,10 @@ constexpr static UIOverlayVertex vb_isometric_quad_inventory[ VB_ISOMETRIC_QUAD_
     { 1.0f, 0.8125f, { 0, 1 }, 1, ISO_FACE_RIGHT, { 1, 1, 0 } }, // e
 
     // Quad
-    { 0, 0, { 0, 0 }, 0, ISO_FACE_FRONT, { 0, 0, 0 } }, //
-    { 0, 1, { 0, 1 }, 0, ISO_FACE_FRONT, { 0, 0, 0 } }, //
-    { 1, 0, { 1, 0 }, 0, ISO_FACE_FRONT, { 0, 0, 0 } }, //
-    { 1, 1, { 1, 1 }, 0, ISO_FACE_FRONT, { 0, 0, 0 } }  //
+    { 0, 0, { 1, 0 }, 0, ISO_FACE_FRONT, { 0, 0, 0 } }, //
+    { 0, 1, { 1, 1 }, 0, ISO_FACE_FRONT, { 0, 0, 0 } }, //
+    { 1, 0, { 0, 0 }, 0, ISO_FACE_FRONT, { 0, 0, 0 } }, //
+    { 1, 1, { 0, 1 }, 0, ISO_FACE_FRONT, { 0, 0, 0 } }  //
 };
 
 #define IB_ISOMETRIC_QUAD_SIZE 24
