@@ -118,8 +118,8 @@ out/model_venv/bin/python tools/model_to_world.py MODEL --world NAME \
 
 Example pipeline for the Ferrari Daytona SP3 model:
 
-- `make car` — creates `out/model_venv`, unzips `fixV.glb` from `CAR_ZIP`
-  into `out/models/ferrari/`, and generates `~/.repgame/$(CAR_WORLD)`.
+- `make car` — creates `out/model_venv` and voxelizes the .glb at
+  `CAR_GLB` into `~/.repgame/$(CAR_WORLD)`.
   Incremental: `world_type` is the stamp; it regenerates only when the glb,
   `tools/model_to_world.py`, or the args (`out/models/<world>.args`, rewritten
   only when `CAR_SIZE`/`CAR_COLORS` change) are newer, or the world dir is
@@ -129,8 +129,8 @@ Example pipeline for the Ferrari Daytona SP3 model:
 - `make clean-car` — wipe the world dir (including `player.dat` and any
   in-game edits); the next `make car` regenerates it.
 
-Overrides: `CAR_ZIP` (source zip), `CAR_WORLD` (default `ModelFerrari`),
-`CAR_SIZE` (default 512), `CAR_COLORS` (default
+Overrides: `CAR_GLB` (source .glb), `CAR_WORLD` (default `ModelFerrari`),
+`CAR_SIZE` (default 256), `CAR_COLORS` (default
 `--color Carpaint=#8E2323`; inside a makefile escape `#` as `\#`, on the
 command line it can be written plainly), `CAR_PREFER` (default
 `--prefer Object_423,Object_426,Metal_Brushed,Ferrari_Logo_Front,`

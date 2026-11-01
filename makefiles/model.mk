@@ -1,26 +1,27 @@
-# Model-to-world voxelizer: builds the venv, unpacks the car model, and
-# generates a flat world under ~/.repgame via tools/model_to_world.py.
+# Model-to-world voxelizer: builds the venv and generates a flat world
+# under ~/.repgame from a local .glb via tools/model_to_world.py.
 # See "Flat worlds / model voxelizer" in AGENTS.md.
 
 MODEL_VENV := out/model_venv
 MODEL_PY := $(MODEL_VENV)/bin/python
 
-CAR_ZIP ?= $(HOME)/Downloads/ferrari-daytona-sp3-wwwvecarzcom/source/Ferrari_Daytona_SP3_Body_Smooth版2_上传100MB.zip
-CAR_GLB := out/models/ferrari/fixV.glb
+CAR_GLB ?= $(HOME)/Downloads/ferrari-daytona-sp3-wwwvecarzcom/source/Ferrari_Daytona_SP3_Body_Smooth版2_上传100MB/fixV.glb
 CAR_WORLD ?= ModelFerrari
 CAR_COLORS ?= --color Carpaint=\#8E2323
 # Object_423/426 are the gas cap and its ring (part names, not materials).
 CAR_PREFER ?= --prefer Object_423,Object_426,Metal_Brushed,Ferrari_Logo_Front,Ferrari_Logo_Side,Grill,Carpaint
 
-# CAR_GLB := /home/paul/Downloads/2021_alfa_romeo_giulia_gtam.glb
+# CAR_GLB ?= /home/paul/Downloads/2021_alfa_romeo_giulia_gtam.glb
 # CAR_WORLD ?= ModelAlfa
 
-# CAR_GLB := "/home/paul/Downloads/busto-ellie-wiliams-tlou/source/Busto Ellie Wiliams.glb"
+# NB: paths with spaces break make's prerequisite lists — point CAR_GLB
+# at a space-free path (symlink/copy) instead.
+# CAR_GLB ?= /home/paul/Downloads/busto-ellie-wiliams-tlou/source/BustoEllieWiliams.glb
 # CAR_WORLD ?= ModelEllie
 
 
 CAR_WORLD_DIR := $(HOME)/.repgame/$(CAR_WORLD)
-CAR_SIZE ?= 512
+CAR_SIZE ?= 256
 
 # Args stamp: regenerates the world when CAR_SIZE/CAR_COLORS/CAR_PREFER
 # change. The file's mtime only moves when the content actually differs.
@@ -36,16 +37,14 @@ $(MODEL_PY):
 	$(MODEL_PY) -m pip install 'trimesh==4.12.2' numpy pillow
 
 $(CAR_GLB):
-	@test -f "$(CAR_ZIP)" || (echo "CAR_ZIP not found: $(CAR_ZIP) (override with CAR_ZIP=...)" && exit 1)
-	mkdir -p out/models/ferrari
-	unzip -o -j "$(CAR_ZIP)" fixV.glb -d out/models/ferrari
+	@test -f "$(CAR_GLB)" || (echo "CAR_GLB not found: $(CAR_GLB) (override with CAR_GLB=...)" && exit 1)
 
 # world_type is the last file the tool writes; touch it so a failed run
 # can't leave a fresh-looking stamp.
 $(CAR_WORLD_DIR)/world_type: $(MODEL_PY) $(CAR_GLB) tools/model_to_world.py $(CAR_ARGS_FILE)
 	@test -n "$(CAR_WORLD)" || (echo "CAR_WORLD must not be empty" && exit 1)
 	rm -rf "$(CAR_WORLD_DIR)"
-	$(MODEL_PY) tools/model_to_world.py $(CAR_GLB) --world $(CAR_WORLD) $(CAR_ARGS)
+	$(MODEL_PY) tools/model_to_world.py "$(CAR_GLB)" --world $(CAR_WORLD) $(CAR_ARGS)
 	touch $@
 
 car: $(CAR_WORLD_DIR)/world_type
