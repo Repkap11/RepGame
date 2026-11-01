@@ -3,6 +3,7 @@
 #include <unistd.h>
 
 #include <emscripten.h>
+#include <emscripten/html5.h>
 
 #include "common/RepGame.hpp"
 #include "common/audio.hpp"
@@ -232,6 +233,89 @@ extern "C" EMSCRIPTEN_KEEPALIVE void repgame_wasm_request_menu( ) {
     }
 }
 
+static bool gate_prev_menu_open = false, gate_prev_inventory_open = false;
+static bool pending_menu_close = false, pending_inventory_close = false;
+static double pending_since_ms = 0;
+// Id of the latest gate lock request; results come back per-request via
+// repgame_wasm_pointer_lock_result so a stale failure can't clobber a newer
+// request.
+static int lock_request_id = 0;
+
+static void gate_request_lock( ) {
+    ++lock_request_id;
+    pending_since_ms = emscripten_get_now( );
+    EM_ASM( { repgame_gate_request_pointer_lock( $0 ); }, lock_request_id );
+}
+
+// Pointer lock gate: Chrome refuses re-lock within ~1s of the last release.
+// If the pause menu or inventory closed this tick but the browser hasn't
+// granted the lock yet, revert the close so the UI never disappears without
+// the lock behind it; apply it for real once the lock lands.
+static void gate_pointer_lock_transition( RepGame &repgame ) {
+    Input &in = repgame.getInputState( );
+    // Touch devices never get pointer lock; capture mode is scripted.
+    if ( RepGame::capture_mode( ) || EM_ASM_INT( { return typeof pointerLockSupported !== 'undefined' && pointerLockSupported ? 1 : 0; } ) == 0 ) {
+        gate_prev_menu_open = in.menu_open;
+        gate_prev_inventory_open = in.inventory_open;
+        return;
+    }
+    EmscriptenPointerlockChangeEvent pointerlock_status;
+    emscripten_get_pointerlock_status( &pointerlock_status );
+    if ( pointerlock_status.isActive ) {
+        if ( pending_menu_close || pending_inventory_close ) {
+            // Lock arrived — apply the close we held back.
+            if ( pending_menu_close ) {
+                in.menu_open = false;
+            }
+            if ( pending_inventory_close ) {
+                in.inventory_open = false;
+            }
+            pending_menu_close = false;
+            pending_inventory_close = false;
+        }
+    } else if ( pending_menu_close || pending_inventory_close ) {
+        // Still waiting. If the user performed another close action (Resume
+        // click, E/Escape), re-assert the UI and issue a fresh request so
+        // that action's user activation isn't wasted; the new id supersedes
+        // the old request.
+        if ( !in.menu_open && !in.inventory_open ) {
+            in.menu_open = pending_menu_close;
+            in.inventory_open = pending_inventory_close;
+            gate_request_lock( );
+        }
+        if ( emscripten_get_now( ) - pending_since_ms > 1500 ) {
+            pending_menu_close = false;
+            pending_inventory_close = false;
+        }
+    } else if ( ( gate_prev_menu_open && !in.menu_open ) || ( gate_prev_inventory_open && !in.inventory_open ) ) {
+        if ( !in.menu_open && !in.inventory_open ) {
+            // A close this tick while unlocked means the game is about to
+            // want the lock — hold it until the browser grants it.
+            pending_menu_close = gate_prev_menu_open;
+            pending_inventory_close = gate_prev_inventory_open;
+            in.menu_open = gate_prev_menu_open;
+            in.inventory_open = gate_prev_inventory_open;
+            // Request the lock ourselves (SDL2's own request is unhandled);
+            // the result arrives via repgame_wasm_pointer_lock_result.
+            gate_request_lock( );
+        }
+    }
+    gate_prev_menu_open = in.menu_open;
+    gate_prev_inventory_open = in.inventory_open;
+}
+
+// Called from JS (index.js) with the outcome of a specific gate lock
+// request. Only the latest request's failure counts — a stale rejection
+// racing a newer request is ignored — and success is applied by the
+// locked-branch polling in the gate.
+extern "C" EMSCRIPTEN_KEEPALIVE void repgame_wasm_pointer_lock_result( int id, int ok ) {
+    if ( id != lock_request_id || !( pending_menu_close || pending_inventory_close ) || ok ) {
+        return;
+    }
+    pending_menu_close = false;
+    pending_inventory_close = false;
+}
+
 // How often player.dat is rewritten during play, so a crash or tab close
 // loses at most this much position/inventory progress. Chunk edits already
 // persist continuously via the terrain loading threads.
@@ -350,6 +434,9 @@ void main_loop_wasm( void *arg ) {
     while ( next_game_step <= now_ms && computer_is_too_slow_limit-- ) {
         repgame_main_probe.phase = PHASE_SDL_EVENTS;
         repgame_linux_process_sdl_events( repgame );
+        // Revert key-driven menu/inventory closes while the browser still
+        // hasn't granted pointer lock, before SDL/tick see the want-lock.
+        gate_pointer_lock_transition( repgame );
         repgame_main_probe.phase = PHASE_POINTER_STATE;
         repgame_linux_process_window_and_pointer_state( repgame );
         repgame_main_probe.phase = PHASE_TICK;
@@ -368,6 +455,10 @@ void main_loop_wasm( void *arg ) {
     } else if ( alpha > 1.0f ) {
         alpha = 1.0f;
     }
+
+    // Catch tick-driven closes (e.g. the Resume button) so the unlocked
+    // frame is never drawn.
+    gate_pointer_lock_transition( repgame );
 
     repgame_main_probe.phase = PHASE_CLEAR;
     repgame.clear( );

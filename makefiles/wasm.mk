@@ -15,7 +15,7 @@ CFLAGS_LINK_WASM := -O3 \
 			--use-port=emdawnwebgpu \
 			-s MAX_WEBGL_VERSION=2 \
 			-s ASSERTIONS=1 \
-			-s EXPORTED_FUNCTIONS='["_main", "_repgame_wasm_start_storage", "_repgame_wasm_request_exit", "_repgame_wasm_request_menu", "_repgame_wasm_set_server", "_repgame_main_probe_get"]' \
+			-s EXPORTED_FUNCTIONS='["_main", "_repgame_wasm_start_storage", "_repgame_wasm_request_exit", "_repgame_wasm_request_menu", "_repgame_wasm_pointer_lock_result", "_repgame_wasm_set_server", "_repgame_main_probe_get"]' \
 			-lwebsocket.js \
 			-s EXPORTED_RUNTIME_METHODS='["ccall", "cwrap"]' \
 			-pthread \
@@ -95,6 +95,9 @@ WASM_DIRS = $(patsubst src%,out/wasm%,$(shell find src -type d)) \
 
 out/wasm/%.o: src/%.cpp $(HEADERS) src/wasm/RepGameSDL2.cpp | out/wasm
 	$(CC_WASM) $(INCLUDES_COMMON) $(CFLAGS_WASM) -c $< -o $@
+
+# src/wasm/input.cpp is just #include "../linux/input.cpp".
+out/wasm/wasm/input.o: src/linux/input.cpp
 
 # imgui_impl_opengl3 auto-detects Emscripten as GLES2/WebGL1, but the game
 # creates a WebGL2/GLES3 context (SDL_GL_CONTEXT_MAJOR_VERSION=3,

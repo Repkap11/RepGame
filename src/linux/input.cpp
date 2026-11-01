@@ -105,6 +105,14 @@ void Input::keysInput( const SDL_Keycode key, const bool pressed ) {
     // consistent.
     if ( pressed && this->menu_open ) {
         if ( key == SDLK_ESCAPE ) {
+#if !defined( REPGAME_WASM )
+            // Browsers never let Escape acquire pointer lock (it grants no
+            // user activation), so on WASM the menu closes via Resume only.
+            this->onMenuClicked( );
+#endif
+        } else if ( key == 'e' || key == 'i' ) {
+            // The inventory key also resumes (on WASM it's the only key that
+            // can, since it grants the activation pointer lock needs).
             this->onMenuClicked( );
         } else if ( key == SDLK_F12 ) {
             this->screenshot_requested = true;
@@ -120,6 +128,11 @@ void Input::keysInput( const SDL_Keycode key, const bool pressed ) {
             break;
         case SDLK_ESCAPE: // escape
             if ( pressed ) {
+#if defined( REPGAME_WASM )
+                // Same reason as above: Escape can't re-lock the pointer, so
+                // from the inventory it goes to the pause menu, not gameplay.
+                this->inventory_open = false;
+#endif
                 this->onMenuClicked( );
             }
             break;

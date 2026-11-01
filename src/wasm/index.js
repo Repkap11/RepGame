@@ -68,15 +68,51 @@ window.addEventListener("keydown", function(e) {
 
 // On-screen error log for mobile debugging (no DevTools available).
 // Errors are shown as a red overlay at the top of the page.
+// Each message is its own entry that expires after ERROR_TIMEOUT_MS; at most
+// ERROR_MAX_ENTRIES are shown (oldest dropped), repeats of a visible message
+// bump its counter and restart its timer, and tapping an entry dismisses it.
+var ERROR_TIMEOUT_MS = 10000;
+var ERROR_MAX_ENTRIES = 5;
 var errorOverlay = null;
+var errorEntries = new Map();
+function removeErrorEntry(msg) {
+  var entry = errorEntries.get(msg);
+  if (!entry) return;
+  clearTimeout(entry.timer);
+  entry.el.remove();
+  errorEntries.delete(msg);
+}
 function showError(msg) {
   console.error(msg);
+  msg = String(msg);
   if (!errorOverlay) {
     errorOverlay = document.createElement("div");
-    errorOverlay.style.cssText = "position:fixed;top:0;left:0;right:0;z-index:9999;background:red;color:white;font-family:monospace;font-size:12px;padding:8px;white-space:pre-wrap;max-height:50vh;overflow:auto;";
+    errorOverlay.style.cssText = "position:fixed;top:0;left:0;right:0;z-index:9999;max-height:30vh;overflow:hidden;";
     document.body.appendChild(errorOverlay);
   }
-  errorOverlay.textContent += msg + "\n";
+  var entry = errorEntries.get(msg);
+  if (entry) {
+    entry.count++;
+    entry.el.textContent = msg + " (x" + entry.count + ")";
+    clearTimeout(entry.timer);
+    errorEntries.delete(msg); // Re-insert so it counts as the newest.
+  } else {
+    var el = document.createElement("div");
+    el.style.cssText = "background:red;color:white;font-family:monospace;font-size:12px;padding:4px 8px;margin-bottom:1px;white-space:pre-wrap;max-height:4.5em;overflow:hidden;cursor:pointer;";
+    el.textContent = msg;
+    el.addEventListener("click", function(e) {
+      e.stopPropagation();
+      removeErrorEntry(msg);
+    });
+    errorOverlay.appendChild(el);
+    entry = { el: el, count: 1 };
+  }
+  errorOverlay.appendChild(entry.el); // Move to the bottom (newest).
+  entry.timer = setTimeout(function() { removeErrorEntry(msg); }, ERROR_TIMEOUT_MS);
+  errorEntries.set(msg, entry);
+  while (errorEntries.size > ERROR_MAX_ENTRIES) {
+    removeErrorEntry(errorEntries.keys().next().value);
+  }
 }
 window.addEventListener("error", function(e) {
   // emscripten_set_main_loop throws a C++ "unwind" exception each frame to
@@ -86,6 +122,16 @@ window.addEventListener("error", function(e) {
   showError(e.message + (e.filename ? " (" + e.filename + ":" + e.lineno + ")" : ""));
 });
 window.addEventListener("unhandledrejection", function(e) {
+  // SDL's emscripten port calls requestPointerLock() without handling the
+  // returned promise; toggling the inventory/menu quickly trips the browser's
+  // re-lock cooldown. Harmless — the next input retries — so keep it off the
+  // overlay.
+  var reasonMsg = e.reason && e.reason.message ? e.reason.message : String(e.reason);
+  if (/pointer ?lock|exited the lock/i.test(reasonMsg)) {
+    console.warn("Ignored pointer lock rejection: " + reasonMsg);
+    e.preventDefault();
+    return;
+  }
   showError("Promise rejection: " + (e.reason && e.reason.message ? e.reason.message : e.reason));
 });
 
@@ -193,6 +239,9 @@ var gameWantsPointerLock = false;
 // unlock as ESC if the pointer was actually observed locked during the
 // current "wants lock" epoch.
 var hadPointerLockForCurrentWant = false;
+// Set once any lock is granted. Devices without pointer lock (touch) fail
+// every request, so only treat failures as recoverable where locking works.
+var pointerLockSupported = false;
 
 // Called from C++ every frame via EM_ASM.
 function repgame_set_game_wants_pointer_lock(wants) {
@@ -212,6 +261,7 @@ function repgame_set_game_wants_pointer_lock(wants) {
 document.addEventListener("pointerlockchange", function() {
   if (document.pointerLockElement) {
     hadPointerLockForCurrentWant = true;
+    pointerLockSupported = true;
     return;
   }
   if (!gameRunning || !document.hasFocus()) {
@@ -230,6 +280,42 @@ document.addEventListener("pointerlockchange", function() {
   // The game wants pointer lock, had it, and lost it - this is ESC.
   Module.ccall("repgame_wasm_request_menu");
 });
+
+// A lock request the browser refused (e.g. the ~1s re-lock cooldown after
+// closing the inventory/menu quickly) would leave the game in play mode with
+// a free cursor. Fall back to the pause menu instead; Resume retries the lock
+// from a fresh click. Ignored while the game doesn't want the lock (the user
+// already reopened a menu) or once the lock is held. Gated-close failures
+// are reported per request via repgame_gate_request_pointer_lock instead.
+document.addEventListener("pointerlockerror", function() {
+  if (gameRunning && pointerLockSupported && gameWantsPointerLock && !document.pointerLockElement) {
+    Module.ccall("repgame_wasm_request_menu");
+  }
+});
+
+// Called from C++ (the pointer-lock gate) to request a lock whose result is
+// reported back per request id via repgame_wasm_pointer_lock_result, so a
+// stale rejection can't be confused with the latest request.
+function repgame_gate_request_pointer_lock(id) {
+  var canvas = Module.canvas || document.getElementById("canvas");
+  function report(ok) {
+    Module.ccall("repgame_wasm_pointer_lock_result", null, ["number", "number"], [id, ok]);
+  }
+  var r = canvas.requestPointerLock();
+  if (r && r.then) {
+    r.then(function() { report(1); }, function() { report(0); });
+  } else {
+    // Older browsers return undefined: watch for a one-shot pointerlockerror,
+    // removed again if a lock change arrives first.
+    var onError = function() {
+      document.removeEventListener("pointerlockchange", onChange);
+      report(0);
+    };
+    var onChange = function() { document.removeEventListener("pointerlockerror", onError); };
+    document.addEventListener("pointerlockerror", onError, { once: true });
+    document.addEventListener("pointerlockchange", onChange, { once: true });
+  }
+}
 
 // Browsers that do deliver the lock-breaking ESC keydown to the page would
 // otherwise let SDL toggle the menu right after the pointerlockchange path
@@ -346,7 +432,8 @@ function setup_click_handler() {
 
   function callback(event) {
     console.log("Got a press");
-    canvas.requestPointerLock();
+    var lockResult = canvas.requestPointerLock();
+    if (lockResult && lockResult.catch) lockResult.catch(function() {});
     if (first_time) {
       document.addEventListener("keydown", function() {
         request_pointer_lock_if_wanted();
