@@ -29,6 +29,8 @@ void Multiplayer::handle_frame( RepGameState &state, const std::vector<uint8_t> 
         | ( static_cast<uint32_t>( payload[ 5 ] ) << 24 ) );
     if ( version != NET_PROTOCOL_VERSION ) {
         pr_debug( "Protocol version mismatch: got %u expected %u", version, NET_PROTOCOL_VERSION );
+        this->mismatched_server_version = version;
+        this->disconnect( );
         return;
     }
 

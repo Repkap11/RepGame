@@ -1104,6 +1104,35 @@ int server_selftest( ) {
         disconnect_client( server, bc );
     }
 
+    // === Protocol version mismatch: a validly framed message (correct
+    // magic/CRC) carrying a foreign version byte must tear the connection
+    // down — the client slot is marked disconnected and the server's end of
+    // the socket is closed. ---
+    {
+        SimClient v = connect_client( server );
+        drain_client( server, v );
+
+        // Build a real frame, then patch the version byte and fix the CRC.
+        FramedSocket fs;
+        fs.adopt_manual( );
+        fs.send_message( NetMsgType::PLAYER_LOCATION, 0, { } );
+        std::vector<uint8_t> frame = *fs.pop_send_frame( );
+        frame[ 12 ] = NET_PROTOCOL_VERSION + 1;
+        const uint32_t crc = net_crc32( frame.data( ) + 8, frame.size( ) - 8 );
+        frame[ 4 ] = static_cast<uint8_t>( crc );
+        frame[ 5 ] = static_cast<uint8_t>( crc >> 8 );
+        frame[ 6 ] = static_cast<uint8_t>( crc >> 16 );
+        frame[ 7 ] = static_cast<uint8_t>( crc >> 24 );
+        check( write( v.peer_fd, frame.data( ), frame.size( ) ) == static_cast<ssize_t>( frame.size( ) ),
+               "mismatch: wrote %zu-byte foreign-version frame", frame.size( ) );
+
+        server.test_handle_client_read( v.fd );
+        check( server.test_client( v.fd ).connected == 0, "mismatch: server marks client disconnected" );
+        char byte;
+        check( recv( v.peer_fd, &byte, 1, 0 ) == 0, "mismatch: server closed its end of the socket" );
+        close( v.peer_fd );
+    }
+
     server.cleanup( );
 
     std::filesystem::remove_all( world_dir( ) );

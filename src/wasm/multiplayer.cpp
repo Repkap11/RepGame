@@ -68,6 +68,7 @@ void Multiplayer::init( const char *hostname, const int port ) {
     this->hostname = hostname;
     this->prev_player_pos = glm::vec3( 0.0f );
     this->prev_rotation = glm::mat4( 1.0f );
+    this->mismatched_server_version = -1;
 
     if ( !emscripten_websocket_is_supported( ) ) {
         pr_debug( "WebSocket not supported in this browser" );
@@ -156,6 +157,9 @@ void Multiplayer::process_events( RepGameState &state ) {
             return;
         }
         this->handle_frame( state, *payload );
+        if ( !this->active ) {
+            return;
+        }
     }
 }
 

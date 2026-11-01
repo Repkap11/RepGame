@@ -36,6 +36,10 @@ class Multiplayer {
     // "disconnected" during the bounded connect window.
     std::atomic<bool> connect_pending{ false };
     std::thread connect_thread;
+    // Peer protocol version from a frame that forced a disconnect; -1 when
+    // the connection ended (or is running) without a mismatch. Read by the
+    // ImGui overlay via protocol_mismatch_version().
+    int mismatched_server_version = -1;
 
     // Diffs that arrived from the server before the client's terrain gen
     // finished for that chunk. Keyed by chunk_pos; applied when the chunk
@@ -85,6 +89,8 @@ class Multiplayer {
     void send_payload( NetMsgType type, int32_t player_id, const std::vector<uint8_t> &payload );
     bool is_active( ) const { return this->active.load( ); }
     bool is_connecting( ) const { return this->connect_pending.load( ); }
+    // The server's protocol version if we disconnected over a mismatch, -1 otherwise.
+    int protocol_mismatch_version( ) const { return this->mismatched_server_version; }
     // Server the client is (trying to be) connected to; empty when
     // multiplayer was never started (single player).
     const std::string &server_hostname( ) const { return this->hostname; }

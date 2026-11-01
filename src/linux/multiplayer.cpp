@@ -25,6 +25,7 @@ void Multiplayer::init( const char *hostname, const int port ) {
     this->hostname = hostname;
     this->prev_player_pos = glm::vec3( 0.0f );
     this->prev_rotation = glm::mat4( 1.0f );
+    this->mismatched_server_version = -1;
 
     // Create the socket on the main thread so we own its lifecycle. The
     // background connect thread uses this->sockfd but never closes it; on
@@ -167,6 +168,9 @@ void Multiplayer::process_events( RepGameState &state ) {
             return;
         }
         this->handle_frame( state, *payload );
+        if ( !this->active ) {
+            return;
+        }
     }
 }
 

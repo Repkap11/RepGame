@@ -139,8 +139,9 @@ void Server::handle_client_ready_for_read( int client_fd ) {
             | ( static_cast<uint32_t>( ( *payload )[ 4 ] ) << 16 )
             | ( static_cast<uint32_t>( ( *payload )[ 5 ] ) << 24 ) );
         if ( version != NET_PROTOCOL_VERSION ) {
-            pr_debug( "Protocol version mismatch: got %u expected %u", version, NET_PROTOCOL_VERSION );
-            continue;
+            pr_debug( "Protocol version mismatch: client_fd %d got %u expected %u", client_fd, version, NET_PROTOCOL_VERSION );
+            disconnected = 1;
+            break;
         }
 
         // Store player position for PLAYER_LOCATION so on_client_connected can

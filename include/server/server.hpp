@@ -65,4 +65,7 @@ class Server {
     void test_del_epoll( int client_fd ) {
         this->del_epoll( client_fd );
     }
+    void test_handle_client_read( int client_fd ) {
+        this->handle_client_ready_for_read( client_fd );
+    }
 };
