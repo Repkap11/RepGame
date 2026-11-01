@@ -161,7 +161,7 @@ WASM_DEPLOY_REMOTE_PATH := paul@repkap11.com:/home/paul/website/${TARGET_LOWER}
 deploy: wasm-deploy
 
 wasm-deploy: wasm
-	rsync -r out/wasm/delivery/ ${WASM_DEPLOY_REMOTE_PATH}
+	rsync -rt out/wasm/delivery/ ${WASM_DEPLOY_REMOTE_PATH}
 
 clean: clean-wasm
 
