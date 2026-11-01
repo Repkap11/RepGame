@@ -2069,7 +2069,7 @@ int test_falling_blocks( ) {
     check_bool( "blast: no bodies from in-radius blocks", world.bodies.count_falling( ) == 1 );
     // The impulse pushed the flyer away from the blast center.
     const glm::dvec3 blast_center = glm::dvec3( blast ) + glm::dvec3( 0.5 );
-    glm::dvec3 flyer_min, flyer_vel;
+    glm::dvec3 flyer_min( 0.0 ), flyer_vel( 0.0 );
     for ( const auto &db : world.bodies.debug_bodies( ) ) {
         if ( db.id == flyer ) {
             flyer_min = db.min;

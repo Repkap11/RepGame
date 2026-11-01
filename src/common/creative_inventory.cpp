@@ -90,9 +90,9 @@ void CreativeInventory::load_blocks_for_selected_page( ) {
             InventorySlot &slot = this->slots[ i_slot ];
 
             if ( this->selected_page == 0 ) {
-                slot.item_id = i_common < ( int )CREATIVE_COMMON_COUNT ? CREATIVE_COMMON_BLOCKS[ i_common ] : LAST_BLOCK_ID;
+                slot.item_id = i_common < ( int )CREATIVE_COMMON_COUNT ? ( ItemID )CREATIVE_COMMON_BLOCKS[ i_common ] : ( ItemID )LAST_BLOCK_ID;
             } else {
-                slot.item_id = i_block < ( int )CREATIVE_BLOCK_COUNT ? CREATIVE_BLOCKS[ i_block ] : LAST_BLOCK_ID;
+                slot.item_id = i_block < ( int )CREATIVE_BLOCK_COUNT ? ( ItemID )CREATIVE_BLOCKS[ i_block ] : ( ItemID )LAST_BLOCK_ID;
             }
             slot.quantity = 0;
             i_block++;
