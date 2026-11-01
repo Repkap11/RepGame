@@ -7,7 +7,6 @@
 
 // Z order within the UI depth pass (larger screen_z wins; draw_ui_pass
 // clears depth before the menu so these only order against each other).
-#define ORDER_Z_MENU_BACKDROP 0.5f
 #define ORDER_Z_MENU_PANEL 0.6f
 #define ORDER_Z_MENU_BUTTON 0.7f
 #define ORDER_Z_MENU_HOVER 0.8f
@@ -160,8 +159,6 @@ void PauseMenu::onScreenSizeChange( const int width, const int height, const Fon
     this->title_center_y = panel_top - pad - title_height + font.getCapHeight( this->title_size ) / 2.0f;
 
     this->render_chain_quads.clear( );
-    // Dim the whole screen, then the panel.
-    add_quad( this->render_chain_quads, -width / 2.0f, -height / 2.0f, ( float )width, ( float )height, ORDER_Z_MENU_BACKDROP, 0.0f, 0.0f, 0.0f, 0.6f );
     add_quad( this->render_chain_quads, panel_left, panel_bottom, panel_width, panel_height, ORDER_Z_MENU_PANEL, 0.1f, 0.1f, 0.1f, 0.85f );
 
     const float buttons_left = panel_left + pad;
