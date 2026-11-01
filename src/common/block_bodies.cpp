@@ -722,7 +722,7 @@ void BlockBodies::net_apply_state( const NetEntityStateEntry &e ) {
     }
     b->net_min = glm::dvec3( e.x, e.y, e.z );
     b->net_vel = glm::dvec3( e.vx, e.vy, e.vz );
-    b->net_chunk = body_net_chunk_of( b->net_min );
+    b->net_chunk = net_entity_next_chunk( b->net_chunk, b->net_min );
 }
 
 void BlockBodies::net_apply_remove( const NetEntityId net_id ) {
@@ -756,7 +756,7 @@ void BlockBodies::net_apply_transfer( RepGameState &state, const NetEntityRecord
     }
 }
 
-void BlockBodies::net_apply_chunk_role( const glm::ivec3 &chunk, const uint8_t role, const std::vector<NetEntityRecord> &records ) {
+void BlockBodies::net_apply_chunk_role( const glm::ivec3 &chunk, const uint8_t role, const std::vector<NetEntityRecord> &records, const std::set<NetEntityId> &keep_ids ) {
     if ( role == NET_ROLE_NONE ) {
         for ( size_t i = 0; i < this->bodies.size( ); ) {
             if ( this->bodies[ i ].net_mirror && this->bodies[ i ].net_chunk == chunk ) {
@@ -777,7 +777,7 @@ void BlockBodies::net_apply_chunk_role( const glm::ivec3 &chunk, const uint8_t r
     }
     for ( size_t i = 0; i < this->bodies.size( ); ) {
         const Body &b = this->bodies[ i ];
-        if ( b.net_mirror && b.net_id != 0 && b.net_chunk == chunk && by_id.find( b.net_id ) == by_id.end( ) ) {
+        if ( b.net_mirror && b.net_id != 0 && b.net_chunk == chunk && by_id.find( b.net_id ) == by_id.end( ) && !keep_ids.count( b.net_id ) ) {
             remove_body( i );
         } else {
             i++;
@@ -792,10 +792,12 @@ void BlockBodies::net_apply_chunk_role( const glm::ivec3 &chunk, const uint8_t r
             if ( existing->net_mirror ) {
                 existing->net_min = glm::dvec3( rec.x, rec.y, rec.z );
                 existing->net_vel = glm::dvec3( rec.vx, rec.vy, rec.vz );
-                existing->net_chunk = body_net_chunk_of( existing->net_min );
+                // The grant's chunk is authoritative (margin records have
+                // floor(pos) != the server's chunk).
+                existing->net_chunk = chunk;
             }
-        } else {
-            this->spawn_record( rec, true, this->now_tick );
+        } else if ( this->spawn_record( rec, true, this->now_tick ) ) {
+            this->bodies.back( ).net_chunk = chunk;
         }
     }
 }
@@ -837,7 +839,8 @@ void BlockBodies::collect_net_state( std::vector<NetEntityStateEntry> &out, cons
         b.net_sent = true;
         b.net_sent_min = b.min;
         b.net_sent_vel = b.vel;
-        b.net_chunk = body_net_chunk_of( b.min );
+        // The server now applies its boundary hysteresis to this pos.
+        b.net_chunk = net_entity_next_chunk( b.net_chunk, b.min );
         if ( keyframe ) {
             b.net_keyframe_tick = tick_number;
         }

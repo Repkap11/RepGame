@@ -9,6 +9,12 @@
 #include <sys/socket.h>
 #endif
 
+// Keep send() from raising SIGPIPE on POSIX (kills the whole process when a
+// peer vanishes mid-write); Windows/WASM has neither the flag nor the signal.
+#ifndef MSG_NOSIGNAL
+#define MSG_NOSIGNAL 0
+#endif
+
 #define fs_pr_debug( fmt, ... ) fprintf( stderr, "framed_socket:%s:%d:%s():" fmt "\n", __FILE__, __LINE__, __func__, ##__VA_ARGS__ )
 
 void FramedSocket::reset_buffers( ) {
@@ -160,7 +166,7 @@ int FramedSocket::flush( ) {
         const size_t remaining = front.size( ) - send_offset_;
         const char *send_start = reinterpret_cast<const char *>( front.data( ) ) + send_offset_;
 
-        ssize_t nsent = send( fd_, send_start, remaining, 0 );
+        ssize_t nsent = send( fd_, send_start, remaining, MSG_NOSIGNAL );
         if ( nsent < 0 ) {
             if ( errno == EAGAIN || errno == EWOULDBLOCK ) {
                 // Socket buffer full; try again next flush.

@@ -315,6 +315,9 @@ int main( int argc, const char **argv ) {
     // route both through the same graceful shutdown so flushAll runs.
     sigaction( SIGTERM, &sigIntHandler, NULL );
     sigaction( SIGHUP, &sigIntHandler, NULL );
+    // A peer vanishing between the last poll and the next flush must not kill
+    // the server — sends already pass MSG_NOSIGNAL; this covers the rest.
+    signal( SIGPIPE, SIG_IGN );
 
     server.init( portnum );
     server.serve( );

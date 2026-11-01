@@ -699,8 +699,22 @@ int server_selftest( ) {
             check( granted == 4, "entity: partial pickup grants room-limited count (got %d)", granted );
         }
 
-        // Chunk crossing: A moves item2 from chunk 1 into chunk 2 (B-owned).
-        send_entity_state( server, ea, item2, 130.0, 30.0, 10.0, 6 );
+        // Boundary hysteresis: a state resting inside the 0.5-block margin
+        // of chunk 2 keeps the record in chunk 1 — no move, no transfer.
+        send_entity_state( server, ea, item2, 124.3, 30.0, 10.0, 6 ); // 0.3 into c2
+        {
+            const std::vector<ReceivedFrame> fa = drain_client( server, ea );
+            const std::vector<ReceivedFrame> fb = drain_client( server, eb );
+            check( frames_of_type( fa, NetMsgType::ENTITY_TRANSFER ).empty( ) &&
+                       frames_of_type( fb, NetMsgType::ENTITY_TRANSFER ).empty( ),
+                   "entity: margin rest does not transfer" );
+            check( se.entity_count_of( c1 ) == 1 && se.entity_count_of( c2 ) == 0,
+                   "entity: margin rest keeps record in old chunk (c1=%zu c2=%zu)",
+                   se.entity_count_of( c1 ), se.entity_count_of( c2 ) );
+        }
+        // Chunk crossing: A moves item2 from chunk 1 into chunk 2 (B-owned)
+        // — 1.0 inside the new chunk, past the margin.
+        send_entity_state( server, ea, item2, 125.0, 30.0, 10.0, 6 );
         {
             const std::vector<ReceivedFrame> fa = drain_client( server, ea );
             const std::vector<ReceivedFrame> fb = drain_client( server, eb );

@@ -36,8 +36,17 @@ class NetEntities {
         uint8_t role;
         uint8_t populated;
         std::vector<NetEntityRecord> records;
+        // Ids that entered this chunk (spawn relays, transfers, our own
+        // spawns) after the grant was received: they are legitimately absent
+        // from the stale record snapshot, so apply-time resync must keep them.
+        std::set<NetEntityId> late_ids;
     };
     std::vector<PendingRole> pending_roles;
+
+    // Ids removed this session (ENTITY_REMOVE). Filters stale record lists:
+    // an entity removed while its chunk's grant sat pending must not be
+    // resurrected when the grant applies. Ids are never reused.
+    std::set<NetEntityId> gone_ids;
 
     // Last VIEW we sent, to resend only on change.
     bool view_sent = false;
@@ -46,6 +55,7 @@ class NetEntities {
     int view_ry = -1;
 
     void apply_chunk_role( RepGameState &state, const PendingRole &grant );
+    PendingRole *pending_for( const glm::ivec3 &chunk );
     bool chunk_live( RepGameState &state, const glm::ivec3 &chunk ) const;
     void send_view( int cx, int cy, int cz, int rx, int ry );
 
@@ -67,6 +77,18 @@ class NetEntities {
 
     bool connected( ) const { return this->welcomed; }
     uint32_t session( ) const { return this->session_id; }
+    // Granted non-NONE roles (mp_test `ready` detection + dump summary).
+    size_t role_count( ) const { return this->roles.size( ); }
+    void role_counts( int *owners, int *viewers ) const {
+        *owners = *viewers = 0;
+        for ( const auto &pair : this->roles ) {
+            if ( pair.second == NET_ROLE_OWNER ) {
+                ( *owners )++;
+            } else if ( pair.second == NET_ROLE_VIEWER ) {
+                ( *viewers )++;
+            }
+        }
+    }
 
     // Mint a client-side entity id: (session_id << 32) | counter. Returns 0
     // before WELCOME — those entities stay local-only.

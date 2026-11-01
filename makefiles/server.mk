@@ -40,6 +40,11 @@ server-deploy:
 server-test: server
 	./out/server/$(REPSERVER) --selftest
 
+# End-to-end multiplayer scenarios: real server + headless clients driven
+# through REPGAME_MP_CTL / REPGAME_MP_DUMP (tools/mp_test.py).
+mp-test: linux server
+	python3 tools/mp_test.py
+
 server-systemd-install: server
 	sudo cp $(REPSERVER).service /etc/systemd/system/$(REPSERVER).service
 	sudo systemctl daemon-reload
@@ -62,4 +67,4 @@ clean: clean-server
 clean-server:
 	rm -rf out/server
 
-.PHONY: server clean-server server-run server-test server-deploy
+.PHONY: server clean-server server-run server-test mp-test server-deploy

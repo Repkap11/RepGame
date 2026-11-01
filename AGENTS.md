@@ -1011,7 +1011,10 @@ crosses until the server's ENTITY_TRANSFER lands.
 Messages (`NetMsgType`): WELCOME assigns the session id; VIEW declares
 coverage; CHUNK_ROLE grants/revokes per-chunk roles with records;
 ENTITY_SPAWN announces a new entity; ENTITY_STATE streams pos/vel (batched
-every 6 ticks, changed-epsilon + ~1 s keyframes); ENTITY_REMOVE removes
+every 6 ticks, changed-epsilon + ~1 s keyframes; chunk crossings apply the
+shared `net_entity_next_chunk` margin — an entity only changes chunks once
+it sits NET_ENTITY_CHUNK_MARGIN=0.5 blocks inside the new one, so a
+boundary-resting entity never flip-flops owners); ENTITY_REMOVE removes
 with a reason; ENTITY_TRANSFER switches ownership (adopt=1) or demotes to
 mirror (adopt=0); ENTITY_ACTION carries hits against remote entities;
 PICKUP_REQUEST/PICKUP_RESULT arbitrate item pickup races server-side
@@ -1048,3 +1051,28 @@ damage arrives separately through BLOCK_UPDATE.
 `make server-test` covers ownership, hysteresis, relays, crossing,
 pickup arbitration, persistence, natural-spawn gating, body sim rules,
 handover and disconnect cleanup end-to-end against the real ServerLogic.
+
+### Multiplayer e2e harness
+
+`make mp-test` runs `tools/mp_test.py`: it boots a real `RepGameServer`
+plus headless clients (`SDL_VIDEODRIVER=offscreen`,
+`SDL_AUDIODRIVER=dummy`) on a free port and drives them through 13
+scenarios (item mirrors/pickup/race/transfer, ownership flips, natural
+mobs, mob combat, remote targeting, falling blocks, TNT blast/handover,
+persistence, disconnect cleanup), asserting cross-client consistency
+from per-tick JSON dumps.
+
+Client-side test seams (all env-gated, zero cost when unset):
+`REPGAME_PORT` overrides the server port; `REPGAME_MP_CTL=<file>` is an
+append-only command file read each tick (`goto`, `drop`, `mob`, `hit`,
+`fall`, `tnt`, `setblock`, `time`, `mode`, `probe`, `role`, `dump`,
+`quit`);
+`REPGAME_MP_DUMP=<file>` receives a `{"type":"state"}` JSONL snapshot
+every `REPGAME_MP_DUMP_EVERY` ticks (positions, inventory, and every
+entity's net id/remote flag/position/animation params — net ids as
+decimal strings) plus `{"type":"event"}` lines for `ready`, `probe`,
+`explosion_received`, `entity_transfer`, `pickup_result`,
+`player_hit_received`, `cmd_error`, `quit`. "ready" means connected +
+WELCOME + at least one chunk role grant applied. The driver keeps each
+scenario's temp dir (`/tmp/mptest_<name>_*`) on failure; `--keep`
+retains them all, `-k <substr>` filters, `--list` lists.

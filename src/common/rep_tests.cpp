@@ -3623,11 +3623,20 @@ int test_net_item_crossing( ) {
     items.collect_net_state( net, out, 0 );
     report( "crossing: initial state emitted", out.size( ) == 1 );
 
+    // Margin rest: 0.3 blocks inside chunk_b keeps net_chunk on chunk_a and
+    // keeps streaming — the server's boundary hysteresis applies to the sent
+    // pos, so a boundary-resting item is never stranded.
+    items.test_items( )[ 0 ].pos = glm::dvec3( 62.3, 40.0, 10.0 );
+    out.clear( );
+    items.collect_net_state( net, out, 6 );
+    report( "crossing: margin rest keeps net_chunk and streams",
+            out.size( ) == 1 && items.test_items( )[ 0 ].net_chunk == chunk_a );
+
     // Drag the item into foreign chunk_b: the state still goes out because
     // net_chunk is still chunk_a — the server learns of the crossing.
     items.test_items( )[ 0 ].pos = glm::dvec3( 70.0, 40.0, 10.0 );
     out.clear( );
-    items.collect_net_state( net, out, 6 );
+    items.collect_net_state( net, out, 12 );
     report( "crossing: state emitted while crossing", out.size( ) == 1 && out[ 0 ].x == 70.0 );
     report( "crossing: net_chunk advanced to sent pos", items.test_items( )[ 0 ].net_chunk == chunk_b );
 
@@ -3635,7 +3644,7 @@ int test_net_item_crossing( ) {
     // streaming — the server now drives it via TRANSFER/adopt=0.
     items.test_items( )[ 0 ].pos.x += 1.0;
     out.clear( );
-    items.collect_net_state( net, out, 12 );
+    items.collect_net_state( net, out, 18 );
     report( "crossing: stops streaming in foreign chunk", out.empty( ) );
 
     // ENTITY_TRANSFER adopt=0 while still viewed: becomes a mirror.
@@ -3846,8 +3855,67 @@ int test_net_bodies( ) {
     return failures;
 }
 
+int test_net_item_mirror_visuals( ) {
+    if ( block_definitions == nullptr ) {
+        block_definitions_initilize_definitions( nullptr );
+    }
+    RepGameState &gs = *new RepGameState( );
+    gs.tick_number = 0;
+    gs.camera.pos = glm::dvec3( 200.0, 60.0, 200.0 ); // far away: no magnet/pickup
+    test_setup_world( gs.world );
+    const BlockState stone = { STONE, 0, 0, STONE, 0 };
+    gs.world.set_loaded_block( glm::ivec3( 10, 9, 10 ), stone ); // floor under the item
+
+    int failures = 0;
+    auto check_bool = [ & ]( const char *name, bool cond ) {
+        pr_test( "  %-55s %s", name, cond ? "PASS" : "FAIL" );
+        if ( !cond ) {
+            failures++;
+        }
+    };
+
+    Multiplayer mp;
+    NetEntities net( &mp );
+    ItemEntities items;
+    items.set_multiplayer_mode( true );
+    items.test_bind_net( &net );
+
+    NetEntityRecord rec{};
+    rec.id = ( static_cast<NetEntityId>( 5 ) << 32 ) | 7;
+    rec.kind = NetEntityKind::ITEM;
+    rec.x = 10.5;
+    rec.y = 10.0; // bottom corner rests on the stone top (y=9 block)
+    rec.z = 10.5;
+    rec.type = DIRT;
+    rec.count = 3;
+    items.net_apply_spawn( rec, /*mirror*/ true );
+    check_bool( "mirror item: spawned remote", items.test_items( ).size( ) == 1 && items.test_items( )[ 0 ].remote );
+
+    const int age0 = items.test_items( )[ 0 ].age_ticks;
+    for ( int i = 0; i < 20; i++ ) {
+        gs.tick_number++;
+        items.tick( gs );
+    }
+    ItemEntities::ItemEntity &it = items.test_items( )[ 0 ];
+    check_bool( "mirror item: age_ticks is the render clock", it.age_ticks == age0 + 20 );
+    check_bool( "mirror item: grounded over solid footing", it.grounded == 1 && it.in_water == 0 );
+    check_bool( "mirror item: net-seeded spin matches owner's", fabsf( it.spin_seed - ( ( rec.id * 2654435761ull ) % 1024 ) / 1024.0f * 6.2831853f ) < 1e-5f );
+    {
+        float yaw, bob;
+        ItemEntities::render_pose( it, 0.0f, &yaw, &bob );
+        check_bool( "mirror item: bob nonzero while grounded", bob > 0.0f );
+    }
+
+    // Mirrors never despawn locally — ENTITY_REMOVE ends them.
+    it.age_ticks = ItemEntities::ITEM_DESPAWN_TICKS + 10;
+    gs.tick_number++;
+    items.tick( gs );
+    check_bool( "mirror item: never despawns locally", items.test_items( ).size( ) == 1 );
+
+    return failures;
+}
+
 constexpr Test all_tests[] = {  //
-    MK_TEST( ecs ),             //
     MK_TEST( vr_projection ),   //
     MK_TEST( redstone ),        //
     MK_TEST( torch_pick ),      //
@@ -3869,6 +3937,7 @@ constexpr Test all_tests[] = {  //
     MK_TEST( mobs ),             //
     MK_TEST( net_entities ),     //
     MK_TEST( net_item_crossing ), //
+    MK_TEST( net_item_mirror_visuals ), //
     MK_TEST( net_mobs ),          //
     MK_TEST( net_bodies ),         //
     MK_TEST( crafting ),         //

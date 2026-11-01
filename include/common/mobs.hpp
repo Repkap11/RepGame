@@ -240,13 +240,17 @@ class MobManager {
     // CHUNK_ROLE: drop the chunk (NONE) or re-sync its mob records
     // (VIEWER -> mirrors, OWNER -> locally simulated; populated==0 rolls the
     // natural spawn on the live chunk and reports CHUNK_POPULATED).
-    void net_apply_chunk_role( RepGameState &state, const glm::ivec3 &chunk, uint8_t role, uint8_t populated, const std::vector<NetEntityRecord> &records );
+    void net_apply_chunk_role( RepGameState &state, const glm::ivec3 &chunk, uint8_t role, uint8_t populated, const std::vector<NetEntityRecord> &records,
+                               const std::set<NetEntityId> &keep_ids );
     // ENTITY_TRANSFER adopt=0: become a mirror if still viewed, else drop.
     void net_release_entity( const NetEntityRecord &rec, bool still_viewed );
     // Owner-side outbound batch (same cadence/keyframes as items).
     void collect_net_state( NetEntities &net, std::vector<NetEntityStateEntry> &out, long tick_number );
 
     size_t count( ) const { return this->mobs.size( ); }
+    // mp_test dump seam: snapshot of every live mob (remote players
+    // included).
+    std::vector<Mob> debug_mobs( ) const { return this->mobs; }
     size_t remote_count( ) const {
         size_t n = 0;
         for ( const Mob &mob : this->mobs ) {

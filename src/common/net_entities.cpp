@@ -8,6 +8,7 @@
 #include "common/block_update_events/TntExplodeEvent.hpp"
 #include "common/chunk.hpp"
 #include "common/item_entities.hpp"
+#include "common/mp_test.hpp"
 #include "common/multiplayer.hpp"
 #include "common/world.hpp"
 
@@ -53,6 +54,7 @@ void NetEntities::reset( ) {
     this->welcomed = false;
     this->roles.clear( );
     this->pending_roles.clear( );
+    this->gone_ids.clear( );
     this->view_sent = false;
     this->view_rx = -1;
     this->view_ry = -1;
@@ -74,9 +76,23 @@ void NetEntities::send_view( int cx, int cy, int cz, int rx, int ry ) {
     this->view_ry = ry;
 }
 
+NetEntities::PendingRole *NetEntities::pending_for( const glm::ivec3 &chunk ) {
+    for ( PendingRole &p : this->pending_roles ) {
+        if ( p.chunk == chunk ) {
+            return &p;
+        }
+    }
+    return nullptr;
+}
+
 void NetEntities::send_spawn( const NetEntityRecord &rec ) {
     if ( !this->welcomed ) {
         return;
+    }
+    // Own spawn into a chunk whose grant is still pending: the grant's
+    // record snapshot predates this entity, so exempt it from the resync wipe.
+    if ( PendingRole *p = this->pending_for( chunk_of_dpos( glm::dvec3( rec.x, rec.y, rec.z ) ) ) ) {
+        p->late_ids.insert( rec.id );
     }
     PacketWriter w;
     net_write_entity_record( w, rec );
@@ -87,6 +103,7 @@ void NetEntities::send_remove( NetEntityId id, uint8_t reason ) {
     if ( !this->welcomed ) {
         return;
     }
+    this->gone_ids.insert( id );
     NetEntityRemovePayload p{ id, reason };
     PacketWriter w;
     net_serialize_entity_remove( w, p );
@@ -148,9 +165,19 @@ void NetEntities::apply_chunk_role( RepGameState &state, const PendingRole &gran
     } else {
         this->roles[ grant.chunk ] = grant.role;
     }
-    state.world.items.net_apply_chunk_role( grant.chunk, grant.role, grant.records );
-    state.world.mobs.net_apply_chunk_role( state, grant.chunk, grant.role, grant.populated, grant.records );
-    state.world.bodies.net_apply_chunk_role( grant.chunk, grant.role, grant.records );
+    // The record snapshot predates apply time for pending grants: drop ids
+    // removed since the grant arrived (dead entities must not resurrect),
+    // and keep post-grant spawns (late_ids) out of the resync wipe.
+    std::vector<NetEntityRecord> records;
+    records.reserve( grant.records.size( ) );
+    for ( const NetEntityRecord &rec : grant.records ) {
+        if ( !this->gone_ids.count( rec.id ) ) {
+            records.push_back( rec );
+        }
+    }
+    state.world.items.net_apply_chunk_role( grant.chunk, grant.role, records, grant.late_ids );
+    state.world.mobs.net_apply_chunk_role( state, grant.chunk, grant.role, grant.populated, records, grant.late_ids );
+    state.world.bodies.net_apply_chunk_role( grant.chunk, grant.role, records, grant.late_ids );
 }
 
 bool NetEntities::handle( RepGameState &state, NetMsgType type, int32_t player_id, PacketReader &r ) {
@@ -164,6 +191,7 @@ bool NetEntities::handle( RepGameState &state, NetMsgType type, int32_t player_i
             this->session_id = p.session_id;
             this->welcomed = true;
             this->view_sent = false; // next tick advertises the view
+            mp_test::event( &state, "welcome", "\"session\":\"%u\"", p.session_id );
             return true;
         }
         case NetMsgType::CHUNK_ROLE: {
@@ -205,11 +233,17 @@ bool NetEntities::handle( RepGameState &state, NetMsgType type, int32_t player_i
                 pr_debug( "Malformed ENTITY_SPAWN" );
                 return true;
             }
+            const glm::ivec3 rec_chunk = chunk_of_dpos( glm::dvec3( rec.x, rec.y, rec.z ) );
+            // This spawn postdates any pending grant's record snapshot for
+            // its chunk — exempt it from that grant's resync wipe.
+            if ( PendingRole *pend = this->pending_for( rec_chunk ) ) {
+                pend->late_ids.insert( rec.id );
+            }
             if ( rec.kind == NetEntityKind::ITEM ) {
-                const bool mirror = !this->owns_chunk( chunk_of_dpos( glm::dvec3( rec.x, rec.y, rec.z ) ) );
+                const bool mirror = !this->owns_chunk( rec_chunk );
                 state.world.items.net_apply_spawn( rec, mirror );
             } else if ( rec.kind == NetEntityKind::MOB ) {
-                const bool mirror = !this->owns_chunk( chunk_of_dpos( glm::dvec3( rec.x, rec.y, rec.z ) ) );
+                const bool mirror = !this->owns_chunk( rec_chunk );
                 state.world.mobs.net_apply_spawn( rec, mirror );
             } else if ( rec.kind == NetEntityKind::BODY ) {
                 // Bodies are causer-simulated: a relayed spawn is always a
@@ -241,6 +275,10 @@ bool NetEntities::handle( RepGameState &state, NetMsgType type, int32_t player_i
                 pr_debug( "Malformed ENTITY_REMOVE" );
                 return true;
             }
+            this->gone_ids.insert( p.id );
+            for ( PendingRole &pend : this->pending_roles ) {
+                pend.late_ids.erase( p.id );
+            }
             // One kind owns the id; try all three.
             state.world.items.net_apply_remove( p.id );
             state.world.mobs.net_apply_remove( p.id );
@@ -252,6 +290,13 @@ bool NetEntities::handle( RepGameState &state, NetMsgType type, int32_t player_i
             if ( !net_deserialize_entity_transfer( r, p ) ) {
                 pr_debug( "Malformed ENTITY_TRANSFER" );
                 return true;
+            }
+            mp_test::event( &state, "entity_transfer", "\"id\":\"%llu\",\"kind\":%d,\"adopt\":%d",
+                            static_cast<unsigned long long>( p.record.id ), static_cast<int>( p.record.kind ), p.adopt );
+            if ( p.adopt ) {
+                if ( PendingRole *pend = this->pending_for( chunk_of_dpos( glm::dvec3( p.record.x, p.record.y, p.record.z ) ) ) ) {
+                    pend->late_ids.insert( p.record.id );
+                }
             }
             if ( p.record.kind == NetEntityKind::ITEM ) {
                 if ( p.adopt ) {
@@ -282,6 +327,8 @@ bool NetEntities::handle( RepGameState &state, NetMsgType type, int32_t player_i
                 pr_debug( "Malformed PICKUP_RESULT" );
                 return true;
             }
+            mp_test::event( &state, "pickup_result", "\"id\":\"%llu\",\"item\":%d,\"granted\":%d",
+                            static_cast<unsigned long long>( p.id ), p.item, p.granted );
             ItemEntities::ItemEntity *it = state.world.items.find_by_net_id( p.id );
             if ( p.granted > 0 ) {
                 RepGame::give_item_to_player( state, static_cast<ItemID>( p.item ), p.granted );
@@ -301,6 +348,7 @@ bool NetEntities::handle( RepGameState &state, NetMsgType type, int32_t player_i
                 pr_debug( "Malformed PLAYER_HIT" );
                 return true;
             }
+            mp_test::event( &state, "player_hit_received", "\"damage\":%g", p.damage );
             RepGame::player_hurt( state, glm::dvec3( p.fx, p.fy, p.fz ), p.damage );
             return true;
         }
@@ -310,6 +358,8 @@ bool NetEntities::handle( RepGameState &state, NetMsgType type, int32_t player_i
                 pr_debug( "Malformed EXPLOSION" );
                 return true;
             }
+            mp_test::event( &state, "explosion_received", "\"x\":%g,\"y\":%g,\"z\":%g,\"radius\":%g",
+                            p.x, p.y, p.z, p.radius );
             // A remote client's blast: play its audio and shove the entities
             // we own. Blocks arrive separately via BLOCK_UPDATE; mirrors are
             // skipped inside the impulse loops (their sim got this too).

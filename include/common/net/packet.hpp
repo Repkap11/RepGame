@@ -122,6 +122,38 @@ static constexpr uint32_t NET_MOB_FLAG_FUSE = 1u << 2;        // creeper fuse li
 static constexpr uint32_t NET_MOB_FLAG_DESPAWNABLE = 1u << 8; // night-spawner mob, never persisted
 static constexpr uint32_t NET_MOB_FLAG_NATURAL = 1u << 9;     // deterministic natural-spawn roll
 
+// Chunk assignment for net entities. Spawns and records use the plain
+// chunk; streamed positions advance through net_entity_next_chunk so the
+// server and every client apply the same boundary hysteresis — an entity
+// resting within NET_ENTITY_CHUNK_MARGIN of a boundary stays in its
+// current chunk instead of bouncing between owners.
+inline glm::ivec3 net_entity_chunk_of( const glm::dvec3 &pos ) {
+    return glm::ivec3( glm::floor( pos / glm::dvec3( CHUNK_SIZE_X, CHUNK_SIZE_Y, CHUNK_SIZE_Z ) ) );
+}
+
+static constexpr double NET_ENTITY_CHUNK_MARGIN = 0.5;
+
+// Chunk the entity occupies after a streamed ENTITY_STATE at pos, given
+// the record currently sits in cur. A chunk axis only changes once the
+// entity sits at least NET_ENTITY_CHUNK_MARGIN inside the new chunk.
+inline glm::ivec3 net_entity_next_chunk( const glm::ivec3 &cur, const glm::dvec3 &pos ) {
+    glm::ivec3 next = net_entity_chunk_of( pos );
+    if ( next == cur ) {
+        return cur;
+    }
+    const double sz[ 3 ] = { CHUNK_SIZE_X, CHUNK_SIZE_Y, CHUNK_SIZE_Z };
+    const double p[ 3 ] = { pos.x, pos.y, pos.z };
+    for ( int a = 0; a < 3; a++ ) {
+        const double fr = p[ a ] - next[ a ] * sz[ a ];
+        if ( next[ a ] > cur[ a ] && fr < NET_ENTITY_CHUNK_MARGIN ) {
+            next[ a ] = cur[ a ]; // still pressed on the boundary
+        } else if ( next[ a ] < cur[ a ] && fr > sz[ a ] - NET_ENTITY_CHUNK_MARGIN ) {
+            next[ a ] = cur[ a ];
+        }
+    }
+    return next;
+}
+
 // ---------------------------------------------------------------------------
 // PacketWriter: append-only little-endian byte buffer.
 // ---------------------------------------------------------------------------

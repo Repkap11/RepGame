@@ -1,6 +1,7 @@
 #pragma once
 
 #include <cstdint>
+#include <set>
 #include <vector>
 
 #include "common/Particle.hpp"
@@ -98,6 +99,10 @@ class ItemEntities {
     // Rebuilds both instance buffers for this frame. alpha interpolates
     // prev_pos -> pos.
     void update_render( float alpha, const ChunkLoader &chunk_loader );
+    // The visual pose the renderer derives per item (spin about +y, rest
+    // bob): shared by update_render and the mp_test dump so mirrors and
+    // owners report comparable values.
+    static void render_pose( const ItemEntity &it, float alpha, float *yaw, float *bob );
     void draw( const Renderer &renderer, const Shader &object_shader, const Shader &item_sprite_shader );
 
     size_t count( ) const { return this->items.size( ); }
@@ -136,7 +141,7 @@ class ItemEntities {
     void net_apply_remove( NetEntityId net_id );
     // CHUNK_ROLE: drop the chunk (NONE) or re-sync it to the authoritative
     // record set (VIEWER -> mirrors, OWNER -> locally simulated).
-    void net_apply_chunk_role( const glm::ivec3 &chunk, uint8_t role, const std::vector<NetEntityRecord> &records );
+    void net_apply_chunk_role( const glm::ivec3 &chunk, uint8_t role, const std::vector<NetEntityRecord> &records, const std::set<NetEntityId> &keep_ids );
     // ENTITY_TRANSFER adopt=0: become a mirror if our role still covers the
     // entity's chunk, else drop it.
     void net_release_entity( const NetEntityRecord &rec, bool still_viewed );

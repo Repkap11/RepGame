@@ -1,6 +1,7 @@
 #pragma once
 
 #include <cstdint>
+#include <set>
 #include <vector>
 
 #include "common/Particle.hpp"
@@ -112,7 +113,7 @@ class BlockBodies {
     // CHUNK_ROLE: NONE drops mirror bodies of that chunk; VIEWER/OWNER
     // resync mirrors against the records (owned bodies untouched — roles
     // don't transfer body ownership).
-    void net_apply_chunk_role( const glm::ivec3 &chunk, uint8_t role, const std::vector<NetEntityRecord> &records );
+    void net_apply_chunk_role( const glm::ivec3 &chunk, uint8_t role, const std::vector<NetEntityRecord> &records, const std::set<NetEntityId> &keep_ids );
     // Multiplayer dropped: mirror bodies would freeze mid-air — remove them.
     void net_disconnect( );
     // ENTITY_STATE entries for bodies we simulate (ownership = !net_mirror).

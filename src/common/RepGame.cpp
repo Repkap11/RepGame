@@ -17,6 +17,7 @@
 #include "common/utils/ray_traversal.hpp"
 #include "common/utils/collision.hpp"
 #include "common/multiplayer.hpp"
+#include "common/mp_test.hpp"
 #include "common/light.hpp"
 #include "common/map_gen.hpp"
 #include "common/block_update_events/PlayerBlockPlacedEvent.hpp"
@@ -214,6 +215,13 @@ static void fly_parse( ) {
 bool RepGame::fly_mode( ) {
     fly_parse( );
     return g_fly.enabled;
+}
+
+void RepGame::mp_test_goto( RepGameState &state, const glm::dvec3 &pos ) {
+    // Move the fly origin so a speed-0 pin tracks the command.
+    g_fly.start = pos;
+    state.camera.pos = pos;
+    state.camera.prev_pos = pos;
 }
 
 BlockID RepGame::change_block( const int place, BlockState blockState ) {
@@ -2634,6 +2642,10 @@ void RepGame::tick( ) {
                   s.light_dropped, s.light_bfs_active, s.light_bfs_priority, s.light_bfs_starve, s.light_seeds,
                   s.light_stale_count, s.chunks_occluded, s.chunks_drawable, dbg );
     }
+
+    // Multiplayer test harness: ctl commands + JSONL dumps (no-op without
+    // REPGAME_MP_DUMP).
+    mp_test::tick( globalGameState );
 }
 
 // Whether either cell a standing player would occupy at (x, y, z) is solid
@@ -2854,8 +2866,11 @@ RepGameState *RepGame::init( const char *world_name, const bool connect_multi, c
 
     // Start broadcasting chunk updates
     if ( connect_multi && !repgame_block_world( ) ) {
-        globalGameState.multiplayer.init( host, 25566 );
-        // multiplayer_init( "localhost", 25566 );
+        int port = 25566;
+        if ( const char *v = getenv( "REPGAME_PORT" ) ) {
+            port = atoi( v );
+        }
+        globalGameState.multiplayer.init( host, port );
     }
 
     glEnable( GL_DEPTH_TEST );

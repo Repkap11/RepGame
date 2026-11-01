@@ -474,6 +474,9 @@ bool ServerEntities::on_client_message( Server &server, int client_fd, NetMsgTyp
             // an unpopulated chunk; duplicates (id already present) and late
             // arrivals after CHUNK_POPULATED are dropped silently.
             if ( it->second.owner_fd != client_fd || it->second.populated ) {
+                se_pr_debug( "Dropping NATURAL spawn id=%llu chunk=%d,%d,%d from:%d owner:%d populated:%d dup:%d",
+                             (unsigned long long)rec.id, chunk.x, chunk.y, chunk.z, client_fd, it->second.owner_fd,
+                             (int)it->second.populated, (int)( it->second.entities.count( rec.id ) != 0 ) );
                 return true;
             }
         }
@@ -526,7 +529,11 @@ bool ServerEntities::on_client_message( Server &server, int client_fd, NetMsgTyp
             rec.flags = e.flags;
             this->mark_dirty( *ce, rec.kind );
 
-            const glm::ivec3 new_chunk = chunk_of_pos( e.x, e.y, e.z );
+            // Chunk-crossing hysteresis (net_entity_next_chunk): an entity
+            // resting on a boundary stays in its current chunk instead of
+            // bouncing the record between owners every state packet. The
+            // client applies the same rule to net_chunk after each send.
+            const glm::ivec3 new_chunk = net_entity_next_chunk( cur_chunk, glm::dvec3( e.x, e.y, e.z ) );
             if ( new_chunk != cur_chunk ) {
                 // The entity crossed a chunk boundary: move the record.
                 NetEntityRecord moved = rec;

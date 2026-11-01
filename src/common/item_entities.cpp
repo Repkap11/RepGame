@@ -201,6 +201,18 @@ static glm::dvec3 item_min( const ItemEntities::ItemEntity &it ) {
     return it.pos - glm::dvec3( ItemEntities::ITEM_SIZE * 0.5, 0.0, ItemEntities::ITEM_SIZE * 0.5 );
 }
 
+// Spin phase seed: derived from the entity id in single player but from
+// the wire net_id in multiplayer so every client's mirror spins in phase.
+static float item_spin_seed( const uint64_t id ) {
+    return static_cast<float>( ( id * 2654435761ull ) % 1024 ) / 1024.0f * 6.2831853f;
+}
+
+void ItemEntities::render_pose( const ItemEntity &it, const float alpha, float *yaw, float *bob ) {
+    const double t = static_cast<double>( it.age_ticks + static_cast<double>( alpha ) ) / UPS_RATE;
+    *yaw = it.spin_seed + static_cast<float>( t ) * 2.0f;
+    *bob = ( it.grounded || it.in_water ) ? 0.05f + 0.05f * sinf( it.spin_seed + static_cast<float>( t ) * 2.0f ) : 0.0f;
+}
+
 bool ItemEntities::item_chunk_live( World &world, const ItemEntity &it ) const {
     const Chunk *chunk = world.get_loaded_chunk( glm::ivec3( glm::floor( item_center( it ) ) ) );
     return chunk != nullptr && chunk->load_state == CHUNK_LIVE;
@@ -247,7 +259,7 @@ uint32_t ItemEntities::spawn( const ItemID item, const int count, const glm::dve
     it.vel = vel;
     it.pickup_delay = pickup_delay;
     it.persistent = persistent;
-    it.spin_seed = static_cast<float>( ( it.id * 2654435761u ) % 1024 ) / 1024.0f * 6.2831853f;
+    it.spin_seed = item_spin_seed( it.id );
     if ( item_is_block( item ) ) {
         resolve_item_faces( item, it.face );
     }
@@ -260,6 +272,7 @@ uint32_t ItemEntities::spawn( const ItemID item, const int count, const glm::dve
         const NetEntityId nid = this->net->mint_id( );
         if ( nid != 0 ) {
             back.net_id = nid;
+            back.spin_seed = item_spin_seed( nid );
             NetEntityRecord rec;
             rec.id = nid;
             rec.kind = NetEntityKind::ITEM;
@@ -333,8 +346,10 @@ void ItemEntities::tick( RepGameState &state ) {
         }
 
         if ( it.remote ) {
-            // Mirror of a remote-owned entity: no physics, merging, aging or
-            // despawning — just ease toward the last streamed target.
+            // Mirror of a remote-owned entity: no physics or merging —
+            // ease toward the last streamed target. age_ticks still ticks:
+            // it's the spin/bob render clock (despawn below is owner-only).
+            it.age_ticks++;
             if ( it.pickup_delay > 0 ) {
                 it.pickup_delay--;
             }
@@ -351,6 +366,16 @@ void ItemEntities::tick( RepGameState &state ) {
             if ( it.pickup_delay == 0 && cd < ITEM_MAGNET_RADIUS && cd > 1e-6 ) {
                 it.pos += to_chest / cd * ITEM_MAGNET_PULL * 0.02;
             }
+            // Same medium test as the owner so bob floats identically, and
+            // grounded iff ~resting over solid footing.
+            const BlockState medium = world.get_loaded_block( glm::ivec3( glm::floor( item_center( it ) ) ) );
+            it.in_water = medium.id == WATER || medium.waterlogged;
+            const BlockState under = world.get_loaded_block(
+                glm::ivec3( glm::floor( item_center( it ) - glm::dvec3( 0.0, ITEM_SIZE * 0.5 + 1e-3, 0.0 ) ) ) );
+            it.grounded = std::fabs( it.net_vel.y ) < 1e-3 &&
+                          ( under.id == LAST_BLOCK_ID || block_definition_get_definition( under.id )->collides_with_player )
+                              ? 1
+                              : 0;
         } else {
         it.age_ticks++;
         if ( it.pickup_delay > 0 ) {
@@ -435,7 +460,7 @@ void ItemEntities::tick( RepGameState &state ) {
             }
         }
 
-        if ( it.age_ticks >= ITEM_DESPAWN_TICKS ) {
+        if ( !it.remote && it.age_ticks >= ITEM_DESPAWN_TICKS ) {
             this->send_net_remove( it, NET_REMOVE_DESPAWN );
             dead.push_back( i );
         }
@@ -648,6 +673,7 @@ uint32_t ItemEntities::spawn_record( const NetEntityRecord &rec, const bool mirr
                                      rec.pickup_delay, 1, true );
     ItemEntity &it = this->items.back( );
     it.net_id = rec.id;
+    it.spin_seed = item_spin_seed( rec.id );
     it.remote = mirror;
     it.net_pos = glm::dvec3( rec.x, rec.y, rec.z );
     it.net_vel = glm::dvec3( rec.vx, rec.vy, rec.vz );
@@ -675,8 +701,9 @@ void ItemEntities::net_apply_state( const NetEntityStateEntry &e ) {
         return;
     }
     // The incoming state reflects the server's belief: track the chunk it
-    // places the entity in, and only treat it as ours when we own that chunk.
-    it->net_chunk = glm::ivec3( glm::floor( glm::dvec3( e.x, e.y, e.z ) / glm::dvec3( CHUNK_SIZE_X, CHUNK_SIZE_Y, CHUNK_SIZE_Z ) ) );
+    // places the entity in (same boundary hysteresis the server applies),
+    // and only treat it as ours when we own that chunk.
+    it->net_chunk = net_entity_next_chunk( it->net_chunk, glm::dvec3( e.x, e.y, e.z ) );
     const bool owned_here = this->net != nullptr && this->net->owns_chunk( it->net_chunk );
     if ( it->remote || !owned_here ) {
         // Mirror (or a predicted spawn we don't own): the streamed state is
@@ -722,7 +749,7 @@ void ItemEntities::net_release_entity( const NetEntityRecord &rec, const bool st
     }
 }
 
-void ItemEntities::net_apply_chunk_role( const glm::ivec3 &chunk, const uint8_t role, const std::vector<NetEntityRecord> &records ) {
+void ItemEntities::net_apply_chunk_role( const glm::ivec3 &chunk, const uint8_t role, const std::vector<NetEntityRecord> &records, const std::set<NetEntityId> &keep_ids ) {
     if ( role == NET_ROLE_NONE ) {
         // Chunk left our view entirely: drop its synced entities.
         for ( size_t i = 0; i < this->items.size( ); ) {
@@ -746,7 +773,7 @@ void ItemEntities::net_apply_chunk_role( const glm::ivec3 &chunk, const uint8_t 
     }
     for ( size_t i = 0; i < this->items.size( ); ) {
         const ItemEntity &it = this->items[ i ];
-        if ( it.net_id != 0 && it.net_chunk == chunk && by_id.find( it.net_id ) == by_id.end( ) ) {
+        if ( it.net_id != 0 && it.net_chunk == chunk && by_id.find( it.net_id ) == by_id.end( ) && !keep_ids.count( it.net_id ) ) {
             remove_item( i );
         } else {
             i++;
@@ -761,15 +788,20 @@ void ItemEntities::net_apply_chunk_role( const glm::ivec3 &chunk, const uint8_t 
             existing->remote = !owned;
             existing->net_pos = glm::dvec3( rec.x, rec.y, rec.z );
             existing->net_vel = glm::dvec3( rec.vx, rec.vy, rec.vz );
-            existing->net_chunk = glm::ivec3( glm::floor( existing->net_pos / glm::dvec3( CHUNK_SIZE_X, CHUNK_SIZE_Y, CHUNK_SIZE_Z ) ) );
+            // The grant's chunk is authoritative — a record resting in the
+            // boundary margin has floor(pos) != the server's chunk.
+            existing->net_chunk = chunk;
         } else {
             this->spawn_record( rec, !owned );
+            ItemEntity *sp = this->find_by_net_id( rec.id );
+            if ( sp != nullptr ) {
+                sp->net_chunk = chunk;
+            }
         }
     }
 }
 
 void ItemEntities::collect_net_state( NetEntities &net, std::vector<NetEntityStateEntry> &out, const long tick_number ) {
-    const glm::dvec3 csize( CHUNK_SIZE_X, CHUNK_SIZE_Y, CHUNK_SIZE_Z );
     for ( ItemEntity &it : this->items ) {
         if ( it.net_id == 0 || it.remote || it.pickup_pending ) {
             continue;
@@ -803,8 +835,8 @@ void ItemEntities::collect_net_state( NetEntities &net, std::vector<NetEntitySta
         it.net_sent_pos = it.pos;
         it.net_sent_vel = it.vel;
         it.net_sent_count = it.count;
-        // The server now believes the entity sits at this pos's chunk.
-        it.net_chunk = glm::ivec3( glm::floor( it.pos / csize ) );
+        // The server now applies its boundary hysteresis to this pos.
+        it.net_chunk = net_entity_next_chunk( it.net_chunk, it.pos );
         if ( keyframe ) {
             it.net_keyframe_tick = tick_number;
         }
@@ -823,12 +855,11 @@ void ItemEntities::update_render( const float alpha, const ChunkLoader &chunk_lo
         }
         const bool cube = item_is_block( it.item ) && item_icon_is_isometric( it.item );
         const glm::dvec3 rpos = glm::mix( it.prev_pos, it.pos, static_cast<double>( alpha ) );
-        const double t = static_cast<double>( it.age_ticks + static_cast<double>( alpha ) ) / UPS_RATE;
         const glm::vec2 light = chunk_loader.light_sample( glm::vec3( item_center( it ) ) );
         // Spin about the vertical axis; lift bobs in [0, 0.1] (never below
         // the rest position) while the item rests on the ground or floats.
-        const float yaw = it.spin_seed + static_cast<float>( t ) * 2.0f;
-        const float bob = ( it.grounded || it.in_water ) ? 0.05f + 0.05f * sinf( it.spin_seed + static_cast<float>( t ) * 2.0f ) : 0.0f;
+        float yaw, bob;
+        render_pose( it, alpha, &yaw, &bob );
         if ( cube ) {
             if ( it.entity == entt::null ) {
                 const std::pair<entt::entity, ParticlePosition &> data = this->render_cube.create_instance( );

@@ -10,6 +10,7 @@
 #include "common/chunk.hpp"
 #include "common/chunk_loader.hpp"
 #include "common/light.hpp"
+#include "common/mp_test.hpp"
 #include "common/net_entities.hpp"
 #include "common/utils/collision.hpp"
 #include "common/utils/ray_traversal.hpp"
@@ -1328,9 +1329,10 @@ void MobManager::net_apply_state( const NetEntityStateEntry &e ) {
     if ( mob == nullptr ) {
         return;
     }
-    // Track the chunk the server's copy sits in; a predicted local spawn we
-    // don't own flips to a mirror on its first authoritative state.
-    mob->net_chunk = mob_net_chunk_of( glm::dvec3( e.x, e.y, e.z ) );
+    // Track the chunk the server's copy sits in (same boundary hysteresis
+    // the server applies); a predicted local spawn we don't own flips to a
+    // mirror on its first authoritative state.
+    mob->net_chunk = net_entity_next_chunk( mob->net_chunk, glm::dvec3( e.x, e.y, e.z ) );
     const bool owned_here = this->net != nullptr && this->net->owns_chunk( mob->net_chunk );
     if ( !mob->net_mirror && owned_here ) {
         // Owned: no server-originated mob state (partial pickups are items
@@ -1413,6 +1415,8 @@ void MobManager::net_apply_action( RepGameState &state, const NetEntityActionPay
     }
     const int index = static_cast<int>( mob - this->mobs.data( ) );
     const bool killed = this->hurt( index, p.damage, glm::dvec3( p.ax, p.ay, p.az ) );
+    mp_test::event( &state, "mob_action_hit", "\"id\":\"%llu\",\"dmg\":%g,\"killed\":%d,\"survival\":%d",
+                    (unsigned long long)p.id, p.damage, (int)killed, (int)p.attacker_survival );
     if ( killed && p.attacker_survival ) {
         RepGame::spawn_mob_drops( state, mob_types[ this->mobs[ index ].type ], this->mobs[ index ].pos );
     }
@@ -1433,7 +1437,7 @@ void MobManager::mirror_hit_feedback( const int index, const glm::dvec3 &attacke
 }
 
 void MobManager::net_apply_chunk_role( RepGameState &state, const glm::ivec3 &chunk, const uint8_t role, const uint8_t populated,
-                                       const std::vector<NetEntityRecord> &records ) {
+                                       const std::vector<NetEntityRecord> &records, const std::set<NetEntityId> &keep_ids ) {
     if ( !this->enabled ) {
         return;
     }
@@ -1455,7 +1459,7 @@ void MobManager::net_apply_chunk_role( RepGameState &state, const glm::ivec3 &ch
         }
     }
     for ( auto it = this->mobs.begin( ); it != this->mobs.end( ); ) {
-        if ( it->net_id != 0 && it->net_chunk == chunk && by_id.find( it->net_id ) == by_id.end( ) ) {
+        if ( it->net_id != 0 && it->net_chunk == chunk && by_id.find( it->net_id ) == by_id.end( ) && !keep_ids.count( it->net_id ) ) {
             it = this->remove_mob( it );
         } else {
             ++it;
@@ -1471,13 +1475,19 @@ void MobManager::net_apply_chunk_role( RepGameState &state, const glm::ivec3 &ch
             existing->net_pos = glm::dvec3( rec.x, rec.y, rec.z );
             existing->net_vel = glm::dvec3( rec.vx, rec.vy, rec.vz );
             existing->net_yaw = rec.yaw;
-            existing->net_chunk = mob_net_chunk_of( existing->net_pos );
+            // The grant's chunk is authoritative — a record resting in the
+            // boundary margin has floor(pos) != the server's chunk.
+            existing->net_chunk = chunk;
             existing->variant = rec.count;
             existing->health = rec.health;
             existing->net_flags = rec.flags;
             existing->despawnable = ( rec.flags & NET_MOB_FLAG_DESPAWNABLE ) ? 1 : 0;
         } else {
             this->spawn_record( rec, !owned );
+            Mob *sp = this->find_by_net_id( rec.id );
+            if ( sp != nullptr ) {
+                sp->net_chunk = chunk;
+            }
         }
     }
 
@@ -1523,7 +1533,6 @@ void MobManager::net_apply_chunk_role( RepGameState &state, const glm::ivec3 &ch
 }
 
 void MobManager::collect_net_state( NetEntities &net, std::vector<NetEntityStateEntry> &out, const long tick_number ) {
-    const glm::dvec3 csize( CHUNK_SIZE_X, CHUNK_SIZE_Y, CHUNK_SIZE_Z );
     for ( Mob &mob : this->mobs ) {
         if ( mob.net_id == 0 || mob.net_mirror || mob.uid != 0 ) {
             continue;
@@ -1562,8 +1571,8 @@ void MobManager::collect_net_state( NetEntities &net, std::vector<NetEntityState
         mob.net_sent_yaw = mob.yaw;
         mob.net_sent_health = mob.health;
         mob.net_sent_flags = flags;
-        // The server now believes the mob sits at this pos's chunk.
-        mob.net_chunk = glm::ivec3( glm::floor( mob.pos / csize ) );
+        // The server now applies its boundary hysteresis to this pos.
+        mob.net_chunk = net_entity_next_chunk( mob.net_chunk, mob.pos );
         if ( keyframe ) {
             mob.net_keyframe_tick = tick_number;
         }
