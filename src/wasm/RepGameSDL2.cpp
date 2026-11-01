@@ -5,6 +5,7 @@
 #include <emscripten.h>
 
 #include "common/RepGame.hpp"
+#include "common/audio.hpp"
 #include "common/rep_tests.hpp"
 #include "common/map_gen.hpp"
 
@@ -291,6 +292,10 @@ void main_loop_wasm( void *arg ) {
     repgame_main_probe.frame++;
     RepGame &repgame = *static_cast<RepGame *>( arg );
     if ( repgame.shouldExit( ) ) {
+        // Stop audio before the blocking save below: SDL2's ScriptProcessorNode
+        // is refilled from this thread, and while cleanup() stalls it the
+        // browser loops the last buffer as a harsh constant tone.
+        audio_cleanup( );
         // Release terrain workers parked on WebGPU mapgen jobs BEFORE
         // cleanup() joins them — job completion needs this thread's JS event
         // loop, which never runs again once cleanup blocks in pthread_join.
