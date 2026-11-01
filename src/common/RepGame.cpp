@@ -620,7 +620,7 @@ static void crafting_recompute( RepGameState &state ) {
 }
 
 // Lay out the grid + output panels: fixed stride taken from the survival
-// panel, grid top pinned to the creative panel's top (the chest's spot),
+// panel, grid bottom pinned a quarter stride above the survival items,
 // and the grid + one-stride gap + 1x1 output group centered horizontally.
 static void crafting_layout( RepGameState &state ) {
     const int w = static_cast<int>( state.screen.width );
@@ -637,7 +637,7 @@ static void crafting_layout( RepGameState &state ) {
         InventoryRenderer &grid = *grids[ i ];
         grid.options.fixed_cell_stride = stride;
         grid.options.center_x = static_cast<int>( grid_w - group_w ) / 2;
-        grid.options.pin_top_y = state.main_inventory.inventory_renderer.getInvTop( );
+        grid.options.pin_bottom_y = state.survival_inventory.inventory_renderer.getItemsTop( ) + static_cast<int>( stride * 0.25f );
         grid.onSizeChange( w, h, state.crafting.slots );
         if ( dim == active_dim ) {
             state.crafting.output.options.fixed_cell_stride = stride;
@@ -2555,7 +2555,8 @@ void RepGame::initializeGameState( const char *world_name ) {
     globalGameState.chest.inventory_renderer.options.center_x = 0;
 
     // Crafting panels: fixed-stride cells (the stride comes from the
-    // survival panel at changeSize), top pinned to the creative panel's top.
+    // survival panel at changeSize), bottom pinned just above the survival
+    // panel's items.
     for ( InventoryRenderer *r : { &globalGameState.crafting.grid2, &globalGameState.crafting.grid3, &globalGameState.crafting.output } ) {
         r->options.active_height_percent = 0.5f;
         r->options.max_height_percent = 0.5f;

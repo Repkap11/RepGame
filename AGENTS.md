@@ -762,7 +762,7 @@ inventory-closed branch, the creative-mode toggle, and `cleanup()` before
 `save_player_data()`) moves them survival → hotbar → thrown item entity.
 Layout uses fixed-stride `InventoryRenderer` panels sharing the survival
 panel's cell stride, with the group (grid + gap + 1x1 output) centred and
-the top pinned where the chest sits.
+the grid's bottom pinned a quarter stride above the survival panel's items.
 
 ## Mobs
 
