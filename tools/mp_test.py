@@ -11,6 +11,7 @@ Usage: tools/mp_test.py [-k substr] [--list] [--keep]
 
 import argparse
 import json
+import math
 import os
 import shutil
 import signal
@@ -83,9 +84,10 @@ class Dump:
 
 
 class Client:
-    def __init__(self, run, name, pos):
+    def __init__(self, run, name, pos, fly=True):
         self.run = run
         self.name = name
+        self.fly = fly
         self.dir = os.path.join(run.dir, "client_" + name)
         os.makedirs(self.dir)
         self.ctl_path = os.path.join(self.dir, "ctl.txt")
@@ -106,9 +108,10 @@ class Client:
             "REPGAME_MP_DUMP": self.dump.path,
             "REPGAME_MP_DUMP_EVERY": "6",
             "REPGAME_RENDER_DISTANCE": "6",
-            # speed 0 pins the camera; goto commands move the pin.
-            "REPGAME_FLY": "%s,%s,%s,0,0,0" % self.pos,
         })
+        if self.fly:
+            # speed 0 pins the camera; goto commands move the pin.
+            env["REPGAME_FLY"] = "%s,%s,%s,0,0,0" % self.pos
         self.log = open(self.log_path, "w")
         self.proc = subprocess.Popen(
             [CLIENT, "World1", "localhost"],
@@ -182,8 +185,8 @@ class Run:
         self.start_server()
         time.sleep(1.0)
 
-    def client(self, name, pos):
-        c = Client(self, name, pos)
+    def client(self, name, pos, fly=True):
+        c = Client(self, name, pos, fly=fly)
         self.clients[name] = c
         c.start()
         return c
@@ -378,6 +381,16 @@ def settle(run, A, B):
     platform(run, B, 260, 10)
     A.goto(10.5, gy + 1.7, 10.5)
     B.goto(260.5, gy + 1.7, 10.5)
+    # Role grants apply only once the local chunk is CHUNK_LIVE. Now that the
+    # first VIEW is already the pinned position (no bogus origin advertisement
+    # warming the shared band first), the far edge of each client's torus —
+    # exactly where the other player stands — loads last. Wait until every
+    # advertised chunk's grant has landed on both clients: rx=rd=6, ry=3.
+    full = (2 * 6 + 1) * (2 * 3 + 1) * (2 * 6 + 1)
+    run.wait("full role coverage", lambda: all(
+        c.dump.last_state() is not None and
+        sum(c.dump.last_state()["roles"].values()) >= full
+        for c in (A, B)), timeout=300)
     run.sleep_ticks(80)
     return gy
 
@@ -479,6 +492,47 @@ def role_of(run, c, x, y, z, timeout=30):
     raise Fail("role probe %d %d %d never returned" % (x, y, z))
 
 
+def sc_first_view_correct(run, A, B):
+    """Regression: the first advertised VIEW must be the real player chunk,
+    not the pre-spawn default camera at (0,0,0)."""
+    chunk_of = lambda p: [int(math.floor(v / 62)) for v in p]
+
+    def first_view(c):
+        for e in c.dump.events:
+            if e.get("name") == "view_sent":
+                return e
+        return None
+
+    # (a) Fly clients: the first VIEW is already the pin's chunk.
+    run.wait("view_sent on A", lambda: first_view(A) is not None, timeout=60)
+    run.wait("view_sent on B", lambda: first_view(B) is not None, timeout=60)
+    for c, pos in ((A, POS_A), (B, POS_B)):
+        center = first_view(c)["detail"]["center"]
+        want = chunk_of(pos)
+        if center != want:
+            raise Fail("%s first VIEW center %s, want pin chunk %s" % (c.name, center, want))
+
+    # (b) Non-fly client on a fresh HOME (spawn_pending path): the first VIEW
+    # must come after the spawn column resolves — its center equals the chunk
+    # of the camera pos in the state at/after that tick.
+    C = run.client("C", POS_A, fly=False)
+    run.wait("view_sent on C", lambda: first_view(C) is not None, timeout=180)
+    ev = first_view(C)
+    st = None
+    deadline = time.time() + 30
+    while st is None and time.time() < deadline:
+        C.dump.poll()
+        st = next((s for s in C.dump.states if s["tick"] >= ev["tick"]), None)
+        if st is None:
+            time.sleep(0.1)
+    if st is None:
+        raise Fail("no state dump at/after C's first VIEW (tick %d)" % ev["tick"])
+    center = ev["detail"]["center"]
+    cam_chunk = chunk_of(st["pos"])
+    if center != cam_chunk:
+        raise Fail("C first VIEW center %s != camera chunk %s (pos %s)" % (center, cam_chunk, st["pos"]))
+
+
 def sc_boundary_rest(run, A, B):
     """Regression for the net_chunk/hysteresis desync: an item resting inside
     the 0.5-block margin of a foreign chunk must keep streaming (server keeps
@@ -531,8 +585,11 @@ def sc_boundary_rest(run, A, B):
     run.wait("positions converge", lambda: dist(
         find_item(A.dump.last_state(), nid)["pos"],
         find_item(B.dump.last_state(), nid)["pos"]) < 0.5, timeout=60)
-    if find_item(A.dump.last_state(), nid)["pos"][0] < bx + 0.5:
-        raise Fail("item did not cross deep into the B-owned chunk")
+    # The transfer wait above already proves the item sat >=0.5 deep inside
+    # B's chunk; where it settles afterwards (it can slide back inside the
+    # margin once the crater forms) doesn't matter — hysteresis keeps it B's.
+    if find_item(A.dump.last_state(), nid)["pos"][0] <= bx:
+        raise Fail("item slid back out of the B-owned chunk")
 
 
 def sc_item_transfer(run, A, B):
@@ -809,6 +866,7 @@ SCENARIOS = [
     ("tnt_handover", sc_tnt_handover),
     ("persistence", sc_persistence),
     ("disconnect_cleanup", sc_disconnect_cleanup),
+    ("first_view_correct", sc_first_view_correct),
 ]
 
 

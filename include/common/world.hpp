@@ -25,6 +25,11 @@ class World {
     friend int test_falling_blocks( );
 
     ChunkLoader chunkLoader;
+    // Back-pointer to the owning RepGameState's Multiplayer, bound after
+    // world.init(): lets an edit into a not-yet-live slot queue itself as a
+    // pending diff so it lands at the next load's finalize (the sender's own
+    // BLOCK_UPDATE never loops back from the server).
+    Multiplayer *multiplayer = nullptr;
     Renderer renderer;
     SkyBox skyBox;
     MultiplayerAvatars multiplayer_avatars;

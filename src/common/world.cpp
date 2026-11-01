@@ -1018,14 +1018,29 @@ void World::spawn_block_debris( const glm::ivec3 &block_pos, const BlockState &p
 void World::set_loaded_block( const glm::ivec3 &block_pos, BlockState blockState ) {
     glm::ivec3 chunk_pos = glm::floor( glm::vec3( block_pos ) / CHUNK_SIZE_F );
 
-    if ( Chunk *chunk_prt = this->chunkLoader.get_chunk( chunk_pos ) ) {
-        Chunk &chunk = *chunk_prt;
-        if ( chunk.load_state ) {
-            // Parked/loading slot — there may be no block storage to write
-            // (parking releases it). Multiplayer edits re-arrive as diffs on
-            // the next load, so dropping is safe.
-            return;
+    Chunk *chunk_prt = this->chunkLoader.get_chunk( chunk_pos );
+    if ( chunk_prt == nullptr || chunk_prt->load_state ) {
+        // Parked/loading slot — there may be no block storage to write
+        // (parking releases it). Multiplayer edits re-arrive as diffs on the
+        // next load ONLY for other clients: the sender's own BLOCK_UPDATE is
+        // never relayed back, so queue the write the same way a received
+        // update would be — it lands at the next load's finalize.
+        if ( this->multiplayer != nullptr ) {
+            NetChunkDiffResultPayload diff;
+            diff.chunk_x = chunk_pos.x;
+            diff.chunk_y = chunk_pos.y;
+            diff.chunk_z = chunk_pos.z;
+            NetChunkDiffEntry entry;
+            entry.blocks_index = static_cast<uint32_t>( Chunk::get_index_from_coords( block_pos - chunk_pos * CHUNK_SIZE_I ) );
+            entry.blockState = blockState;
+            diff.diffs.push_back( entry );
+            diff.num_diffs = 1;
+            this->multiplayer->queue_pending_diff( diff );
         }
+        return;
+    }
+    {
+        Chunk &chunk = *chunk_prt;
         glm::ivec3 diff = block_pos - chunk_pos * CHUNK_SIZE_I;
         // pr_debug( "Orig Offset: %d %d %d", diff_x, diff_y, diff_z );
 
@@ -1104,10 +1119,6 @@ void World::set_loaded_block( const glm::ivec3 &block_pos, BlockState blockState
         // thread (inline when it isn't running). No-op while the chunk has
         // no light volume.
         this->chunkLoader.light_submit_recheck( block_pos );
-
-    } else {
-        // This just means mouse is not pointing at a block
-        // pr_debug( "Could not find the pointed to chunk" );
     }
 }
 

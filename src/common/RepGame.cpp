@@ -2842,6 +2842,12 @@ void RepGame::initializeGameState( const char *world_name ) {
             globalGameState.input.render_distance = r;
         }
     }
+    // Fly mode pins the camera every tick, but the pin runs after the network
+    // tick: start at the pin so the first VIEW/location is already correct.
+    if ( RepGame::fly_mode( ) ) {
+        globalGameState.camera.pos = g_fly.start;
+        globalGameState.spawn_pending = false;
+    }
     // Seed the interpolation snapshot so the first rendered frame doesn't blend from zeroes.
     globalGameState.camera.prev_pos = globalGameState.camera.pos;
     globalGameState.camera.prev_eye_height = globalGameState.camera.eye_height;
@@ -2917,6 +2923,7 @@ RepGameState *RepGame::init( const char *world_name, const bool connect_multi, c
     initializeGameState( world_name );
 
     globalGameState.world.init( globalGameState.camera.pos, globalGameState.screen.width, globalGameState.screen.height, globalGameState.map_storage, globalGameState.input.render_distance );
+    globalGameState.world.multiplayer = &globalGameState.multiplayer;
 
     globalGameState.ui_overlay.init( vbl_ui_overlay_vertex, vbl_ui_overlay_instance );
     globalGameState.pause_menu.init( vbl_ui_overlay_vertex, vbl_ui_overlay_instance );
@@ -3090,7 +3097,9 @@ void RepGame::draw_frame( float alpha, const RenderView *views, int num_views ) 
     const uint8_t send_flags = ( globalGameState.game_mode == GameMode_Survival && !globalGameState.input.no_clip )
                                    ? NET_PLAYER_FLAG_TARGETABLE
                                    : 0;
-    globalGameState.multiplayer.update_players_position( glm::vec3( render_pos ), render_rotation, send_eye_height, send_flags );
+    if ( !globalGameState.spawn_pending ) {
+        globalGameState.multiplayer.update_players_position( glm::vec3( render_pos ), render_rotation, send_eye_height, send_flags );
+    }
 
 #if defined( REPGAME_WASM )
     // With pthreads enabled, terrain generation runs on background workers and

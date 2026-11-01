@@ -406,7 +406,9 @@ void NetEntities::tick( RepGameState &state ) {
             i++;
         }
     }
-    if ( !this->welcomed ) {
+    // Hold VIEW until the player's real position is known: advertising the
+    // pre-spawn default would grab ownership of chunks we never stand in.
+    if ( !this->welcomed || state.spawn_pending ) {
         return;
     }
 
@@ -417,6 +419,7 @@ void NetEntities::tick( RepGameState &state ) {
     const int ry = std::min( CHUNK_RADIUS_Y, NET_ENTITY_RADIUS_Y );
     if ( !this->view_sent || center != this->view_center || rx != this->view_rx || ry != this->view_ry ) {
         this->send_view( center.x, center.y, center.z, rx, ry );
+        mp_test::event( &state, "view_sent", "\"center\":[%d,%d,%d],\"rx\":%d,\"ry\":%d", center.x, center.y, center.z, rx, ry );
     }
 
     // Owned entities stream state at ~24 Hz.

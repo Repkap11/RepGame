@@ -56,6 +56,11 @@ static void jnet_id( const NetEntityId id ) {
 }
 
 void mp_test::event( RepGameState *state, const char *name, const char *fmt, ... ) {
+    if ( !g_inited ) {
+        // entities.tick runs before mp_test::tick — events emitted that early
+        // (e.g. the first VIEW) must not be lost to lazy init.
+        init( );
+    }
     if ( g_dump == nullptr ) {
         return;
     }
