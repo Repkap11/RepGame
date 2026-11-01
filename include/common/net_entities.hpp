@@ -82,6 +82,8 @@ class NetEntities {
     void send_pickup_request( NetEntityId id, int32_t room );
     void send_entity_action( const NetEntityActionPayload &p );
     void send_explosion( double x, double y, double z, float radius );
+    void send_chunk_populated( const glm::ivec3 &chunk );
+    void send_player_hit( int32_t target_player_id, const glm::dvec3 &from, float damage );
 
     // rep_tests seam: grant a role without a CHUNK_ROLE frame.
     void test_set_role( const glm::ivec3 &chunk, int role ) {

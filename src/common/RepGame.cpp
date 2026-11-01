@@ -1099,6 +1099,20 @@ int RepGame::inventory_space_for_item( RepGameState &state, ItemID item ) {
     return state.hotbar.spaceFor( item ) + state.survival_inventory.spaceFor( item );
 }
 
+void RepGame::spawn_mob_drops( RepGameState &state, const MobTypeDef &def, const glm::dvec3 &pos ) {
+    const glm::dvec3 drop_pos = pos + glm::dvec3( 0.0, 0.3, 0.0 );
+    for ( int i = 0; i < 2; i++ ) {
+        const MobDrop &drop = def.drops[ i ];
+        if ( drop.item == LAST_BLOCK_ID ) {
+            continue;
+        }
+        const int count = drop.min + rand( ) % ( drop.max - drop.min + 1 );
+        if ( count > 0 ) {
+            state.world.items.spawn( drop.item, count, drop_pos, item_drop_hop( ), 10 );
+        }
+    }
+}
+
 int RepGame::give_item_to_player( RepGameState &state, ItemID item, int quantity ) {
     const int bar_space = state.hotbar.spaceFor( item );
     const int to_bar = quantity < bar_space ? quantity : bar_space;
@@ -1165,24 +1179,28 @@ void RepGame::process_mouse_events( ) {
                                                            globalGameState.block_selection.selectionInBounds, globalGameState.block_selection.pos_destroy, nullptr );
     }
     if ( hit_mob >= 0 ) {
-        // Survival: HIT_DAMAGE per click; creative kills in one hit. A
-        // survival kill hands the type's drops to the player's inventories.
-        const bool killed = globalGameState.world.mobs.hurt( hit_mob, globalGameState.game_mode == GameMode_Survival ? HIT_DAMAGE : 1000.0f, globalGameState.camera.pos );
         globalGameState.input.click_delay_left = 30;
         globalGameState.block_mining.progress_ticks = 0.0f;
         globalGameState.vr.haptic_pending = true;
-        if ( killed && globalGameState.game_mode == GameMode_Survival ) {
-            const MobTypeDef &def = globalGameState.world.mobs.def_at( hit_mob );
-            const glm::dvec3 drop_pos = globalGameState.world.mobs.pos_at( hit_mob ) + glm::dvec3( 0.0, 0.3, 0.0 );
-            for ( int i = 0; i < 2; i++ ) {
-                const MobDrop &drop = def.drops[ i ];
-                if ( drop.item == LAST_BLOCK_ID ) {
-                    continue;
-                }
-                const int count = drop.min + rand( ) % ( drop.max - drop.min + 1 );
-                if ( count > 0 ) {
-                    globalGameState.world.items.spawn( drop.item, count, drop_pos, item_drop_hop( ), 10 );
-                }
+        if ( globalGameState.world.mobs.net_mirror_at( hit_mob ) ) {
+            // A remote-owned mob: flash + sfx now, damage lands via
+            // ENTITY_ACTION on the owner.
+            globalGameState.world.mobs.mirror_hit_feedback( hit_mob, globalGameState.camera.pos );
+            NetEntityActionPayload act;
+            act.id = globalGameState.world.mobs.net_id_at( hit_mob );
+            act.action = NET_ACTION_HIT;
+            act.damage = globalGameState.game_mode == GameMode_Survival ? HIT_DAMAGE : 1000.0f;
+            act.ax = globalGameState.camera.pos.x;
+            act.ay = globalGameState.camera.pos.y;
+            act.az = globalGameState.camera.pos.z;
+            act.attacker_survival = globalGameState.game_mode == GameMode_Survival;
+            globalGameState.multiplayer.entities.send_entity_action( act );
+        } else {
+            // Survival: HIT_DAMAGE per click; creative kills in one hit. A
+            // survival kill hands the type's drops to the player's inventories.
+            const bool killed = globalGameState.world.mobs.hurt( hit_mob, globalGameState.game_mode == GameMode_Survival ? HIT_DAMAGE : 1000.0f, globalGameState.camera.pos );
+            if ( killed && globalGameState.game_mode == GameMode_Survival ) {
+                spawn_mob_drops( globalGameState, globalGameState.world.mobs.def_at( hit_mob ), globalGameState.world.mobs.pos_at( hit_mob ) );
             }
         }
     }
@@ -2482,6 +2500,11 @@ void RepGame::tick( ) {
     mob_in.player_targetable = globalGameState.game_mode == GameMode_Survival && !globalGameState.input.no_clip;
     mob_in.world_time = globalGameState.world_time;
     mob_in.player_eye_height = PLAYER_EYE_HEIGHT - ( globalGameState.input.movement.sneakPressed ? PLAYER_SNEAK_EYE_DROP : 0.0f );
+    // Owned hostiles also consider remote players (positions + targetable
+    // flags come from the PLAYER_LOCATION stream).
+    if ( globalGameState.multiplayer.multiplayer_mode( ) ) {
+        globalGameState.world.multiplayer_avatars.fill_remote_targets( mob_in.remote_targets );
+    }
     MobTickOutput mob_out;
     globalGameState.world.mobs.tick( globalGameState.world, globalGameState.camera.pos, &mob_in, &mob_out );
     // Falling blocks + primed TNT bodies integrate on the same cadence.
@@ -2492,7 +2515,12 @@ void RepGame::tick( ) {
     // ENTITY_STATE for owned entities. No-op in single player.
     globalGameState.multiplayer.entities.tick( globalGameState );
     for ( const MobPlayerHit &hit : mob_out.player_hits ) {
-        RepGame::player_hurt( globalGameState, hit.from, hit.damage );
+        if ( hit.target_player_id < 0 ) {
+            RepGame::player_hurt( globalGameState, hit.from, hit.damage );
+        } else {
+            // An owned hostile connected on a remote player — forward it.
+            globalGameState.multiplayer.entities.send_player_hit( hit.target_player_id, hit.from, hit.damage );
+        }
     }
     for ( const glm::dvec3 &pos : mob_out.explosions ) {
         globalGameState.blockUpdateQueue.addBlockUpdate(

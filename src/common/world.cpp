@@ -215,6 +215,9 @@ void World::render( Multiplayer &multiplayer, const glm::dvec3 &camera_pos, cons
     // In multiplayer the item files live on the server: local reads/writes
     // stay off for the whole session once a hostname was given.
     this->items.set_multiplayer_mode( multiplayer.multiplayer_mode( ) );
+    // Same for mobs: local mobs_* files and the natural-spawn roll route
+    // through CHUNK_ROLE/populated instead.
+    this->mobs.set_multiplayer_mode( multiplayer.multiplayer_mode( ), &multiplayer.entities );
     this->chunkLoader.render_chunks( multiplayer, camera_pos, limit_render );
     // Hand each just-finalized chunk's pending mobs to the manager (loaded
     // records or the natural-spawn roll); skipped chunks stay owned next pass.

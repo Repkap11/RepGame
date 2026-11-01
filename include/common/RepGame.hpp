@@ -385,6 +385,9 @@ class RepGame {
     // A hostile mob's melee hit lands here: knockback away from `from` plus
     // the player_hurt sound. `damage` is unused until player health exists.
     static void player_hurt( RepGameState &state, const glm::dvec3 &from, float damage );
+    // Spawn a killed mob's drops at `pos` (used by the local kill path and
+    // the owner-side ENTITY_ACTION HIT path; item spawns sync via phase 1).
+    static void spawn_mob_drops( RepGameState &state, const MobTypeDef &def, const glm::dvec3 &pos );
 
     int rep_tests_start( );
 };

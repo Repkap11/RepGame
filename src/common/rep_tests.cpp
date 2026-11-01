@@ -3289,6 +3289,17 @@ int test_net_entities( ) {
         memset( &in, 0, sizeof( in ) );
         report( "net entities: player flags round trip", net_deserialize_player( r, in ) && in.flags == NET_PLAYER_FLAG_TARGETABLE );
     }
+    { // CHUNK_POPULATED
+        NetChunkPopulatedPayload out{ -3, 0, 7 };
+        PacketWriter w;
+        net_serialize_chunk_populated( w, out );
+        PacketReader r( w.buf( ).data( ), w.buf( ).size( ) );
+        NetChunkPopulatedPayload in{ 0, 0, 0 };
+        report( "net entities: CHUNK_POPULATED round trip", net_deserialize_chunk_populated( r, in ) && in.cx == -3 && in.cy == 0 && in.cz == 7 );
+        PacketReader rt( w.buf( ).data( ), w.buf( ).size( ) - 1 );
+        NetChunkPopulatedPayload junk{ 0, 0, 0 };
+        report( "net entities: CHUNK_POPULATED truncated rejects", !net_deserialize_chunk_populated( rt, junk ) );
+    }
     return failures;
 }
 
@@ -3634,6 +3645,115 @@ int test_net_item_crossing( ) {
     return failures;
 }
 
+int test_net_mobs( ) {
+    if ( block_definitions == nullptr ) {
+        block_definitions_initilize_definitions( nullptr );
+    }
+    RepGameState &gs = *new RepGameState( );
+    gs.tick_number = 0;
+    gs.camera.pos = glm::dvec3( 0, 0, 0 );
+    test_setup_world( gs.world );
+    World &world = gs.world;
+    const glm::dvec3 player_pos( 1.5, 50.0, 1.5 ); // far away: no look-at/sounds
+
+    int failures = 0;
+    auto check_bool = [ & ]( const char *name, bool cond ) {
+        pr_test( "  %-55s %s", name, cond ? "PASS" : "FAIL" );
+        if ( !cond ) {
+            failures++;
+        }
+    };
+
+    const BlockState stone = { STONE, 0, 0, STONE, 0 };
+    for ( int x = 5; x <= 30; x++ ) {
+        for ( int z = 5; z <= 15; z++ ) {
+            world.set_loaded_block( glm::ivec3( x, 10, z ), stone );
+        }
+    }
+
+    // Mirror: no physics — a mob spawned mid-air stays at its net target
+    // instead of falling, and only ENTITY_REMOVE takes it away.
+    {
+        Multiplayer mp;
+        NetEntities net( &mp );
+        MobManager mobs;
+        mobs.set_multiplayer_mode( true, &net );
+        NetEntityRecord rec{};
+        rec.id = ( static_cast<NetEntityId>( 7 ) << 32 ) | 9;
+        rec.kind = NetEntityKind::MOB;
+        rec.x = 10.5;
+        rec.y = 40.0;
+        rec.z = 10.5;
+        rec.type = MOB_PIG;
+        rec.health = 10.0f;
+        mobs.net_apply_spawn( rec, /*mirror*/ true );
+        check_bool( "mirror: spawned from record", mobs.mobs.size( ) == 1 );
+        check_bool( "mirror: flagged mirror", mobs.mobs[ 0 ].net_mirror );
+        for ( int i = 0; i < 100; i++ ) {
+            mobs.tick( world, player_pos );
+        }
+        check_bool( "mirror: no physics (floats at target)", fabs( mobs.mobs[ 0 ].pos.y - 40.0 ) < 0.01 && !mobs.mobs.empty( ) );
+
+        // DYING rising edge starts the tip-over; nothing removes it locally.
+        NetEntityStateEntry e{};
+        e.id = rec.id;
+        e.kind = static_cast<uint8_t>( NetEntityKind::MOB );
+        e.x = rec.x;
+        e.y = rec.y;
+        e.z = rec.z;
+        e.flags = NET_MOB_FLAG_DYING;
+        mobs.net_apply_state( e );
+        check_bool( "mirror: DYING starts death anim", mobs.mobs[ 0 ].death_ticks > 0 );
+        for ( int i = 0; i < 200; i++ ) {
+            mobs.tick( world, player_pos );
+        }
+        check_bool( "mirror: still present without ENTITY_REMOVE", mobs.mobs.size( ) == 1 );
+        mobs.net_apply_remove( rec.id );
+        check_bool( "mirror: ENTITY_REMOVE removes", mobs.mobs.empty( ) );
+    }
+
+    // Hostile targeting: a nearer remote targetable player beats the local
+    // one and the melee hit carries that player id for PLAYER_HIT.
+    {
+        MobManager mobs;
+        check_bool( "spawn zombie", mobs.spawn( MOB_ZOMBIE, glm::dvec3( 10.5, 11.0, 10.5 ), 0.0f, 1 ) );
+        MobTickInput in{};
+        in.player_targetable = true;
+        in.world_time = DAY_LENGTH_TICKS / 4;
+        in.player_eye_height = PLAYER_EYE_HEIGHT;
+        in.remote_targets.push_back( { 7, glm::dvec3( 11.0, 12.5, 10.5 ), 1.62f, true } );
+        MobTickOutput out;
+        mobs.tick( world, player_pos, &in, &out );
+        bool remote_hit = false;
+        for ( const MobPlayerHit &hit : out.player_hits ) {
+            remote_hit |= hit.target_player_id == 7;
+        }
+        check_bool( "hostile: melee hit targets remote player", remote_hit );
+    }
+
+    // ENTITY_ACTION HIT on an owned mob applies real damage.
+    {
+        Multiplayer mp;
+        NetEntities net( &mp );
+        MobManager mobs;
+        mobs.set_multiplayer_mode( true, &net );
+        check_bool( "action: spawn pig", mobs.spawn( MOB_PIG, glm::dvec3( 10.5, 11.0, 10.5 ), 0.0f, 1 ) );
+        MobManager::Mob &mob = mobs.mobs[ 0 ];
+        mob.net_id = 42;
+        mob.net_chunk = glm::ivec3( 0, 0, 0 );
+        net.test_set_role( glm::ivec3( 0, 0, 0 ), NET_ROLE_OWNER );
+        NetEntityActionPayload p{};
+        p.id = 42;
+        p.action = NET_ACTION_HIT;
+        p.damage = 4.0f;
+        p.attacker_survival = 1;
+        mobs.net_apply_action( gs, p );
+        check_bool( "action: owned mob takes damage", mobs.mobs[ 0 ].health < 10.0f - 0.01f );
+    }
+
+    return failures;
+}
+
 constexpr Test all_tests[] = {  //
     MK_TEST( ecs ),             //
     MK_TEST( vr_projection ),   //
@@ -3657,6 +3777,7 @@ constexpr Test all_tests[] = {  //
     MK_TEST( mobs ),             //
     MK_TEST( net_entities ),     //
     MK_TEST( net_item_crossing ), //
+    MK_TEST( net_mobs ),          //
     MK_TEST( crafting ),         //
     { nullptr, nullptr }
 

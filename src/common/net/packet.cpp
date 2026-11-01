@@ -624,3 +624,16 @@ bool net_deserialize_explosion( PacketReader &r, NetExplosionPayload &p ) {
     if ( !r.read_f32( p.radius ) ) return false;
     return true;
 }
+
+void net_serialize_chunk_populated( PacketWriter &w, const NetChunkPopulatedPayload &p ) {
+    w.write_i32( p.cx );
+    w.write_i32( p.cy );
+    w.write_i32( p.cz );
+}
+
+bool net_deserialize_chunk_populated( PacketReader &r, NetChunkPopulatedPayload &p ) {
+    if ( !r.read_i32( p.cx ) ) return false;
+    if ( !r.read_i32( p.cy ) ) return false;
+    if ( !r.read_i32( p.cz ) ) return false;
+    return true;
+}

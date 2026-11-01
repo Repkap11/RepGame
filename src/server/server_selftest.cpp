@@ -26,6 +26,7 @@
 
 #include "server/server.hpp"
 #include "common/net/packet.hpp"
+#include "common/mob_types.hpp"
 #include "common/chunk.hpp"
 #include "common/utils/file_utils.hpp"
 #include "common/utils/map_storage.hpp"
@@ -331,6 +332,35 @@ NetEntityRecord item_record( NetEntityId id, uint32_t item, int32_t count, doubl
     rec.type = item;
     rec.count = count;
     return rec;
+}
+
+NetEntityRecord mob_record( NetEntityId id, uint32_t type, uint32_t flags, double x, double y, double z ) {
+    NetEntityRecord rec;
+    rec.id = id;
+    rec.kind = NetEntityKind::MOB;
+    rec.x = x;
+    rec.y = y;
+    rec.z = z;
+    rec.type = type;
+    rec.flags = flags;
+    return rec;
+}
+
+void send_entity_action( Server &server, SimClient &c, NetEntityId id ) {
+    NetEntityActionPayload p{};
+    p.id = id;
+    p.action = NET_ACTION_HIT;
+    p.damage = 4.0f;
+    PacketWriter w;
+    net_serialize_entity_action( w, p );
+    server.test_logic( ).on_client_message( server, c.fd, NetMsgType::ENTITY_ACTION, 0, w.buf( ) );
+}
+
+void send_chunk_populated( Server &server, SimClient &c, const glm::ivec3 &chunk ) {
+    NetChunkPopulatedPayload p{ chunk.x, chunk.y, chunk.z };
+    PacketWriter w;
+    net_serialize_chunk_populated( w, p );
+    server.test_logic( ).on_client_message( server, c.fd, NetMsgType::CHUNK_POPULATED, 0, w.buf( ) );
 }
 
 // Cross-check the raw chunk files on disk (what survives a server restart).
@@ -756,6 +786,121 @@ int server_selftest( ) {
             check( se.owner_of( c1 ) == ea.fd, "entity: A owns chunk 1 after B disconnect" );
         }
         disconnect_client( server, ea );
+    }
+
+    // === Mob sync specifics: NATURAL gating, CHUNK_POPULATED, persistence
+    // filters, ENTITY_ACTION routing. Same chunk geometry as above.
+    {
+        SimClient ma = connect_client( server );
+        SimClient mb = connect_client( server );
+        drain_client( server, ma );
+        drain_client( server, mb );
+        send_player_location( server, ma, -70.0f, 30.0f, 10.0f ); // chunk -2
+        send_player_location( server, mb, 130.0f, 30.0f, 10.0f ); // chunk 2
+        send_view( server, ma, glm::ivec3( -1, 0, 0 ), 2, 1 );    // covers -3..1
+        send_view( server, mb, glm::ivec3( 2, 0, 0 ), 2, 1 );     // covers 0..4
+        drain_client( server, ma );
+        drain_client( server, mb );
+        const glm::ivec3 c_n2( -2, 0, 0 ), c2( 2, 0, 0 );
+        const ServerEntities &se2 = server.test_logic( ).test_entities( );
+        check( se2.owner_of( c_n2 ) == ma.fd, "mob: chunk -2 owned by A" );
+        check( se2.owner_of( c2 ) == mb.fd, "mob: chunk 2 owned by B" );
+
+        // A natural-spawn record from the owner of an unpopulated chunk is
+        // accepted and relayed to the other viewers of that chunk.
+        const NetEntityId nat1 = ( 0xFFFFFFFFull << 32 ) | 0xABCDE;
+        send_entity_spawn( server, ma, mob_record( nat1, MOB_PIG, NET_MOB_FLAG_NATURAL, -70.0, 30.0, 10.0 ) );
+        check( se2.entity_count_of( c_n2 ) == 1, "mob: natural spawn from owner accepted" );
+        {
+            const std::vector<ReceivedFrame> fb = drain_client( server, mb );
+            // B doesn't view chunk -2, so nothing relays there — the accept
+            // shows in the live table instead.
+            (void)fb;
+        }
+        // The same id re-sent (re-roll after an ownership flip) dedupes.
+        send_entity_spawn( server, ma, mob_record( nat1, MOB_PIG, NET_MOB_FLAG_NATURAL, -70.0, 30.0, 10.0 ) );
+        check( se2.entity_count_of( c_n2 ) == 1, "mob: duplicate natural id dedupes" );
+
+        // CHUNK_POPULATED from a non-owner is ignored; from the owner it
+        // marks the chunk and rejects later natural spawns.
+        send_chunk_populated( server, mb, c_n2 );
+        check( !se2.populated_of( c_n2 ), "mob: CHUNK_POPULATED from non-owner ignored" );
+        send_chunk_populated( server, ma, c_n2 );
+        check( se2.populated_of( c_n2 ), "mob: CHUNK_POPULATED from owner marks chunk" );
+        const NetEntityId nat2 = ( 0xFFFFFFFFull << 32 ) | 0x12345;
+        send_entity_spawn( server, ma, mob_record( nat2, MOB_COW, NET_MOB_FLAG_NATURAL, -71.0, 30.0, 10.0 ) );
+        check( se2.entity_count_of( c_n2 ) == 1, "mob: natural spawn after populated rejected" );
+
+        // Natural spawn into B's chunk from A (not its owner) is dropped.
+        const NetEntityId nat3 = ( 0xFFFFFFFFull << 32 ) | 0x5555;
+        send_entity_spawn( server, ma, mob_record( nat3, MOB_SHEEP, NET_MOB_FLAG_NATURAL, 130.0, 30.0, 10.0 ) );
+        check( se2.entity_count_of( c2 ) == 0, "mob: natural spawn from non-owner rejected" );
+
+        // ENTITY_ACTION routes to the entity chunk's owner, whoever sent it.
+        const NetEntityId despawn_mob = ( static_cast<NetEntityId>( 1 ) << 32 ) | 0x77;
+        send_entity_spawn( server, mb, mob_record( despawn_mob, MOB_ZOMBIE, NET_MOB_FLAG_DESPAWNABLE, 130.0, 30.0, 10.0 ) );
+        drain_client( server, ma );
+        drain_client( server, mb );
+        send_entity_action( server, ma, despawn_mob );
+        {
+            const std::vector<ReceivedFrame> fa = drain_client( server, ma );
+            const std::vector<ReceivedFrame> fb = drain_client( server, mb );
+            check( frames_of_type( fa, NetMsgType::ENTITY_ACTION ).empty( ), "mob: action not sent to non-owner" );
+            check( frames_of_type( fb, NetMsgType::ENTITY_ACTION ).size( ) == 1, "mob: action forwarded to owner" );
+        }
+
+        // Despawnable mobs are never persisted: uncovering chunk 2 leaves no
+        // mobs file (it wasn't populated either).
+        send_view( server, mb, glm::ivec3( 3, 0, 0 ), 0, 1 ); // move cover off chunk 2
+        {
+            MapStorage check_storage;
+            check_storage.init( TEST_WORLD );
+            std::vector<MobFileRecord> persisted;
+            const int existed = check_storage.load_mobs( c2, persisted );
+            check( existed == 0, "mob: despawnable-only chunk leaves no mobs file (existed=%d)", existed );
+        }
+
+        // Chunk -2 was populated: uncover writes the marker file plus nat1's
+        // record (PIG, not despawnable), and re-cover reports populated=1.
+        send_view( server, ma, glm::ivec3( -1, 0, 0 ), 0, 1 ); // covers only -1: uncovers -2
+        {
+            MapStorage check_storage;
+            check_storage.init( TEST_WORLD );
+            std::vector<MobFileRecord> persisted;
+            const int existed = check_storage.load_mobs( c_n2, persisted );
+            check( existed == 1 && persisted.size( ) == 1 && persisted[ 0 ].type == MOB_PIG,
+                   "mob: populated chunk persists marker + records (existed=%d n=%zu)", existed, persisted.size( ) );
+        }
+        send_view( server, ma, glm::ivec3( -1, 0, 0 ), 2, 1 ); // re-cover
+        {
+            const std::vector<ReceivedFrame> fa = drain_client( server, ma );
+            int seen_populated = -1;
+            for ( const ReceivedFrame &f : frames_of_type( fa, NetMsgType::CHUNK_ROLE ) ) {
+                PacketReader r( f.payload.data( ), f.payload.size( ) );
+                NetChunkRolePayload p;
+                if ( net_deserialize_chunk_role( r, p ) && glm::ivec3( p.cx, p.cy, p.cz ) == c_n2 ) {
+                    seen_populated = p.populated;
+                }
+            }
+            check( seen_populated == 1, "mob: re-cover reports populated=1 (got %d)", seen_populated );
+        }
+
+        // A zero-mob populated roll still writes the marker file.
+        send_view( server, ma, glm::ivec3( -1, 0, 0 ), 0, 1 ); // cover only -1
+        drain_client( server, ma );
+        send_chunk_populated( server, ma, glm::ivec3( -1, 0, 0 ) );
+        send_view( server, ma, glm::ivec3( 5, 0, 0 ), 0, 1 ); // move cover away from -1 (uncovers it)
+        {
+            MapStorage check_storage;
+            check_storage.init( TEST_WORLD );
+            std::vector<MobFileRecord> persisted;
+            const int existed = check_storage.load_mobs( glm::ivec3( -1, 0, 0 ), persisted );
+            check( existed == 1 && persisted.empty( ), "mob: zero-mob populated roll writes empty marker (existed=%d n=%zu)", existed,
+                   persisted.size( ) );
+        }
+
+        disconnect_client( server, ma );
+        disconnect_client( server, mb );
     }
 
     server.cleanup( );

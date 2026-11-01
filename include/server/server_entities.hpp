@@ -106,4 +106,12 @@ class ServerEntities {
     size_t covered_chunk_count( ) const {
         return this->chunks.size( );
     }
+    size_t entity_count_of( const glm::ivec3 &chunk ) const {
+        const auto it = this->chunks.find( chunk );
+        return it == this->chunks.end( ) ? 0 : it->second.entities.size( );
+    }
+    bool populated_of( const glm::ivec3 &chunk ) const {
+        const auto it = this->chunks.find( chunk );
+        return it != this->chunks.end( ) && it->second.populated;
+    }
 };

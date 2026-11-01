@@ -211,15 +211,15 @@ void ServerEntities::persist_chunk_entities( ServerChunkEntities &ce, const glm:
         ce.items_dirty = false;
     }
     if ( ce.mobs_dirty ) {
-        // Phase 1: persist every MOB record. Keep the populated marker
+        // Persist non-despawnable MOB records. Keep the populated marker
         // semantics — only write when a mobs file existed or mobs are
         // present, so a never-populated chunk doesn't gain a marker.
         bool any_mobs = false;
         std::vector<MobFileRecord> out;
         for ( const auto &pair : ce.entities ) {
             const NetEntityRecord &e = pair.second;
-            if ( e.kind != NetEntityKind::MOB ) {
-                continue;
+            if ( e.kind != NetEntityKind::MOB || ( e.flags & NET_MOB_FLAG_DESPAWNABLE ) ) {
+                continue; // night-spawner mobs are never persisted
             }
             any_mobs = true;
             MobFileRecord rec = {};
@@ -230,7 +230,7 @@ void ServerEntities::persist_chunk_entities( ServerChunkEntities &ce, const glm:
             rec.z = e.z;
             rec.yaw = e.yaw;
             rec.health = e.health;
-            rec.flags = e.flags;
+            rec.flags = 0; // net flag bits are live state, not file state
             out.push_back( rec );
         }
         if ( any_mobs || ce.populated ) {
@@ -429,9 +429,20 @@ bool ServerEntities::on_client_message( Server &server, int client_fd, NetMsgTyp
         const glm::ivec3 chunk = chunk_of_pos( rec.x, rec.y, rec.z );
         const auto it = this->chunks.find( chunk );
         if ( it == this->chunks.end( ) ) {
+            if ( rec.kind == NetEntityKind::MOB && ( rec.flags & NET_MOB_FLAG_NATURAL ) ) {
+                return true; // natural spawns only land in owned covered chunks
+            }
             // Uncovered: persist straight to the sidecar and stop.
             this->persist_stray_entity( rec, chunk );
             return true;
+        }
+        if ( rec.kind == NetEntityKind::MOB && ( rec.flags & NET_MOB_FLAG_NATURAL ) ) {
+            // Deterministic natural-spawn roll: only the chunk owner may seed
+            // an unpopulated chunk; duplicates (id already present) and late
+            // arrivals after CHUNK_POPULATED are dropped silently.
+            if ( it->second.owner_fd != client_fd || it->second.populated ) {
+                return true;
+            }
         }
         it->second.entities[ rec.id ] = rec;
         this->entity_chunk[ rec.id ] = chunk;
@@ -633,6 +644,22 @@ bool ServerEntities::on_client_message( Server &server, int client_fd, NetMsgTyp
         PacketWriter w;
         net_serialize_pickup_result( w, result );
         server.queue_message( client_fd, NetMsgType::PICKUP_RESULT, 0, w.take_buf( ) );
+        return true;
+    }
+
+    if ( type == NetMsgType::CHUNK_POPULATED ) {
+        NetChunkPopulatedPayload p;
+        if ( !net_deserialize_chunk_populated( r, p ) ) {
+            se_pr_debug( "Malformed CHUNK_POPULATED from:%d", client_fd );
+            return true;
+        }
+        const auto it = this->chunks.find( glm::ivec3( p.cx, p.cy, p.cz ) );
+        if ( it != this->chunks.end( ) && it->second.owner_fd == client_fd ) {
+            // The owner's natural-spawn roll ran (even a zero-mob roll): mark
+            // the chunk populated so the empty-marker file persists.
+            it->second.populated = true;
+            it->second.mobs_dirty = true;
+        }
         return true;
     }
 

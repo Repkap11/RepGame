@@ -18,6 +18,8 @@ void MultiplayerAvatars::add( const unsigned int player_id ) {
 
 void MultiplayerAvatars::update_position( const int player_id, const float x, const float y, const float z, const glm::mat4 &rotation, const float eye_height, const uint8_t flags ) {
     this->flags_map[ player_id ] = flags;
+    this->eye_pos_map[ player_id ] = glm::dvec3( x, y, z );
+    this->eye_height_map[ player_id ] = eye_height;
     const uint32_t uid = this->uid_map[ player_id ];
     if ( uid == 0 ) {
         return;
@@ -31,6 +33,15 @@ void MultiplayerAvatars::update_position( const int player_id, const float x, co
 
 bool MultiplayerAvatars::targetable( const int player_id ) const {
     return ( this->flags_map[ player_id ] & NET_PLAYER_FLAG_TARGETABLE ) != 0;
+}
+
+void MultiplayerAvatars::fill_remote_targets( std::vector<MobRemoteTarget> &out ) const {
+    for ( int fd = 0; fd < MAX_CLIENT_FDS; fd++ ) {
+        if ( this->uid_map[ fd ] == 0 ) {
+            continue;
+        }
+        out.push_back( { fd, this->eye_pos_map[ fd ], this->eye_height_map[ fd ], this->targetable( fd ) } );
+    }
 }
 
 void MultiplayerAvatars::remove( const unsigned int player_id ) {

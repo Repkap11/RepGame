@@ -120,6 +120,26 @@ void NetEntities::send_explosion( double x, double y, double z, float radius ) {
     this->mp->send_payload( NetMsgType::EXPLOSION, 0, w.take_buf( ) );
 }
 
+void NetEntities::send_chunk_populated( const glm::ivec3 &chunk ) {
+    if ( !this->welcomed ) {
+        return;
+    }
+    NetChunkPopulatedPayload p{ chunk.x, chunk.y, chunk.z };
+    PacketWriter w;
+    net_serialize_chunk_populated( w, p );
+    this->mp->send_payload( NetMsgType::CHUNK_POPULATED, 0, w.take_buf( ) );
+}
+
+void NetEntities::send_player_hit( const int32_t target_player_id, const glm::dvec3 &from, const float damage ) {
+    if ( !this->welcomed ) {
+        return;
+    }
+    NetPlayerHitPayload p{ target_player_id, from.x, from.y, from.z, damage };
+    PacketWriter w;
+    net_serialize_player_hit( w, p );
+    this->mp->send_payload( NetMsgType::PLAYER_HIT, 0, w.take_buf( ) );
+}
+
 void NetEntities::apply_chunk_role( RepGameState &state, const PendingRole &grant ) {
     if ( grant.role == NET_ROLE_NONE ) {
         this->roles.erase( grant.chunk );
@@ -127,6 +147,7 @@ void NetEntities::apply_chunk_role( RepGameState &state, const PendingRole &gran
         this->roles[ grant.chunk ] = grant.role;
     }
     state.world.items.net_apply_chunk_role( grant.chunk, grant.role, grant.records );
+    state.world.mobs.net_apply_chunk_role( state, grant.chunk, grant.role, grant.populated, grant.records );
 }
 
 bool NetEntities::handle( RepGameState &state, NetMsgType type, int32_t player_id, PacketReader &r ) {
@@ -184,6 +205,9 @@ bool NetEntities::handle( RepGameState &state, NetMsgType type, int32_t player_i
             if ( rec.kind == NetEntityKind::ITEM ) {
                 const bool mirror = !this->owns_chunk( chunk_of_dpos( glm::dvec3( rec.x, rec.y, rec.z ) ) );
                 state.world.items.net_apply_spawn( rec, mirror );
+            } else if ( rec.kind == NetEntityKind::MOB ) {
+                const bool mirror = !this->owns_chunk( chunk_of_dpos( glm::dvec3( rec.x, rec.y, rec.z ) ) );
+                state.world.mobs.net_apply_spawn( rec, mirror );
             }
             return true;
         }
@@ -196,6 +220,8 @@ bool NetEntities::handle( RepGameState &state, NetMsgType type, int32_t player_i
             for ( const NetEntityStateEntry &e : p.entries ) {
                 if ( e.kind == static_cast<uint8_t>( NetEntityKind::ITEM ) ) {
                     state.world.items.net_apply_state( e );
+                } else if ( e.kind == static_cast<uint8_t>( NetEntityKind::MOB ) ) {
+                    state.world.mobs.net_apply_state( e );
                 }
             }
             return true;
@@ -206,7 +232,9 @@ bool NetEntities::handle( RepGameState &state, NetMsgType type, int32_t player_i
                 pr_debug( "Malformed ENTITY_REMOVE" );
                 return true;
             }
+            // One kind owns the id; try both.
             state.world.items.net_apply_remove( p.id );
+            state.world.mobs.net_apply_remove( p.id );
             return true;
         }
         case NetMsgType::ENTITY_TRANSFER: {
@@ -222,6 +250,13 @@ bool NetEntities::handle( RepGameState &state, NetMsgType type, int32_t player_i
                 } else {
                     const glm::ivec3 chunk = chunk_of_dpos( glm::dvec3( p.record.x, p.record.y, p.record.z ) );
                     state.world.items.net_release_entity( p.record, this->views_chunk( chunk ) );
+                }
+            } else if ( p.record.kind == NetEntityKind::MOB ) {
+                if ( p.adopt ) {
+                    state.world.mobs.net_apply_spawn( p.record, false );
+                } else {
+                    const glm::ivec3 chunk = chunk_of_dpos( glm::dvec3( p.record.x, p.record.y, p.record.z ) );
+                    state.world.mobs.net_release_entity( p.record, this->views_chunk( chunk ) );
                 }
             }
             return true;
@@ -264,8 +299,13 @@ bool NetEntities::handle( RepGameState &state, NetMsgType type, int32_t player_i
             return true;
         }
         case NetMsgType::ENTITY_ACTION: {
-            // Forwarded to us as the owner of the entity's chunk; the mob
-            // side lands in phase 2. Items take no actions.
+            NetEntityActionPayload p;
+            if ( !net_deserialize_entity_action( r, p ) ) {
+                pr_debug( "Malformed ENTITY_ACTION" );
+                return true;
+            }
+            // Forwarded to us as the owner of the entity's chunk (mob HITs).
+            state.world.mobs.net_apply_action( state, p );
             return true;
         }
         default:
@@ -308,6 +348,7 @@ void NetEntities::tick( RepGameState &state ) {
     if ( state.tick_number % NET_ENTITY_STATE_INTERVAL_TICKS == 0 ) {
         NetEntityStatePayload p;
         state.world.items.collect_net_state( *this, p.entries, state.tick_number );
+        state.world.mobs.collect_net_state( *this, p.entries, state.tick_number );
         if ( !p.entries.empty( ) ) {
             PacketWriter w;
             net_serialize_entity_state( w, p );

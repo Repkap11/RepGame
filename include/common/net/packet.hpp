@@ -62,6 +62,7 @@ enum class NetMsgType : uint8_t {
     PICKUP_RESULT = 21,
     PLAYER_HIT = 22,
     EXPLOSION = 23,
+    CHUNK_POPULATED = 24,
 };
 
 // ---------------------------------------------------------------------------
@@ -111,6 +112,15 @@ enum NetEntityAction : uint8_t {
 
 // NetPlayerPayload flags (bit0: targetable = survival && !no_clip).
 static constexpr uint8_t NET_PLAYER_FLAG_TARGETABLE = 0x1;
+
+// NetEntityRecord.flags / NetEntityStateEntry.flags bits for MOB entities.
+// Low bits are live anim state (not persisted); the high bits are spawn
+// provenance persisted through the records.
+static constexpr uint32_t NET_MOB_FLAG_HURT = 1u << 0;        // hurt_ticks > 0
+static constexpr uint32_t NET_MOB_FLAG_DYING = 1u << 1;       // death anim playing
+static constexpr uint32_t NET_MOB_FLAG_FUSE = 1u << 2;        // creeper fuse lit
+static constexpr uint32_t NET_MOB_FLAG_DESPAWNABLE = 1u << 8; // night-spawner mob, never persisted
+static constexpr uint32_t NET_MOB_FLAG_NATURAL = 1u << 9;     // deterministic natural-spawn roll
 
 // ---------------------------------------------------------------------------
 // PacketWriter: append-only little-endian byte buffer.
@@ -395,3 +405,11 @@ struct NetExplosionPayload {
 };
 void net_serialize_explosion( PacketWriter &w, const NetExplosionPayload &p );
 bool net_deserialize_explosion( PacketReader &r, NetExplosionPayload &p );
+
+// CHUNK_POPULATED (client -> server): the chunk's natural-spawn roll ran —
+// mark it populated so no other owner re-rolls it.
+struct NetChunkPopulatedPayload {
+    int32_t cx, cy, cz;
+};
+void net_serialize_chunk_populated( PacketWriter &w, const NetChunkPopulatedPayload &p );
+bool net_deserialize_chunk_populated( PacketReader &r, NetChunkPopulatedPayload &p );

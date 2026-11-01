@@ -3,12 +3,14 @@
 #include <cmath>
 #include <cstring>
 #include <stdlib.h>
+#include <unordered_map>
 
 #include "common/RepGame.hpp"
 #include "common/audio.hpp"
 #include "common/chunk.hpp"
 #include "common/chunk_loader.hpp"
 #include "common/light.hpp"
+#include "common/net_entities.hpp"
 #include "common/utils/collision.hpp"
 #include "common/utils/ray_traversal.hpp"
 #include "common/world.hpp"
@@ -88,7 +90,13 @@ bool MobManager::spawn( MobType type, const glm::dvec3 &pos, float yaw, int pers
     if ( !this->enabled ) {
         return false;
     }
-    return this->spawn_any( type, pos, yaw, persistent );
+    if ( !this->spawn_any( type, pos, yaw, persistent ) ) {
+        return false;
+    }
+    // Multiplayer: announce the spawn (mints a net id). No-op unbound or
+    // before WELCOME — those mobs stay local-only like net_id-0 items.
+    this->announce_spawn( this->mobs.back( ) );
+    return true;
 }
 
 bool MobManager::spawn_any( MobType type, const glm::dvec3 &pos, float yaw, int persistent ) {
@@ -135,6 +143,21 @@ bool MobManager::spawn_any( MobType type, const glm::dvec3 &pos, float yaw, int 
     mob.uid = 0;
     mob.look_yaw = 0.0f;
     mob.look_pitch = 0.0f;
+    mob.net_id = 0;
+    mob.net_mirror = false;
+    mob.net_chunk = glm::ivec3( glm::floor( pos / glm::dvec3( CHUNK_SIZE_X, CHUNK_SIZE_Y, CHUNK_SIZE_Z ) ) );
+    mob.net_pos = pos;
+    mob.net_vel = glm::dvec3( 0.0 );
+    mob.net_yaw = yaw;
+    mob.net_flags = 0;
+    mob.net_natural = false;
+    mob.net_sent = false;
+    mob.net_sent_pos = pos;
+    mob.net_sent_vel = glm::dvec3( 0.0 );
+    mob.net_sent_yaw = yaw;
+    mob.net_sent_health = def.max_health;
+    mob.net_sent_flags = 0;
+    mob.net_keyframe_tick = -1;
     if ( this->render_inited ) {
         const MobModelDef &model = mob_models[ def.model ];
         for ( int i = 0; i < model.cube_count; i++ ) {
@@ -279,14 +302,36 @@ void MobManager::tick_mob( World &world, Mob &mob, const MobTypeDef &def, const 
     const glm::dvec3 player_feet = player_pos - glm::dvec3( 0.0, in->player_eye_height, 0.0 );
     const double player_dist_xz = std::hypot( player_feet.x - mob.pos.x, player_feet.z - mob.pos.z );
 
-    // Hostile targeting: acquire inside 16 blocks of the player's feet, drop
-    // past 24. A non-targetable player means passive wandering.
+    // Nearest targetable player among the local player and the remote
+    // targets (multiplayer): hostiles chase whoever that is.
+    glm::dvec3 target_feet = player_feet;
+    double target_dist_xz = player_dist_xz;
+    int32_t target_player_id = -1; // -1 = the local player
+    if ( !in->player_targetable ) {
+        target_dist_xz = 1e30;
+    }
+    for ( const MobRemoteTarget &remote : in->remote_targets ) {
+        if ( !remote.targetable ) {
+            continue;
+        }
+        const glm::dvec3 feet = remote.eye_pos - glm::dvec3( 0.0, remote.eye_height, 0.0 );
+        const double d = std::hypot( feet.x - mob.pos.x, feet.z - mob.pos.z );
+        if ( d < target_dist_xz ) {
+            target_dist_xz = d;
+            target_feet = feet;
+            target_player_id = remote.player_id;
+        }
+    }
+    const bool any_targetable = target_dist_xz < 1e29;
+
+    // Hostile targeting: acquire inside 16 blocks of the target's feet, drop
+    // past 24. No targetable player means passive wandering.
     if ( hostile ) {
-        if ( !in->player_targetable ) {
+        if ( !any_targetable ) {
             mob.targeting = 0;
-        } else if ( !mob.targeting && player_dist_xz < 16.0 ) {
+        } else if ( !mob.targeting && target_dist_xz < 16.0 ) {
             mob.targeting = 1;
-        } else if ( mob.targeting && player_dist_xz > 24.0 ) {
+        } else if ( mob.targeting && target_dist_xz > 24.0 ) {
             mob.targeting = 0;
         }
     }
@@ -336,8 +381,8 @@ void MobManager::tick_mob( World &world, Mob &mob, const MobTypeDef &def, const 
 
     float speed = 0.0f;
     if ( hostile && mob.targeting ) {
-        // Chase: face the player's feet, turning at most 10°/tick.
-        const glm::dvec2 to_player( player_feet.x - mob.pos.x, player_feet.z - mob.pos.z );
+        // Chase: face the target's feet, turning at most 10°/tick.
+        const glm::dvec2 to_player( target_feet.x - mob.pos.x, target_feet.z - mob.pos.z );
         const float want_yaw = static_cast<float>( atan2( to_player.x, -to_player.y ) * ( 180.0 / M_PI ) );
         mob.yaw += glm::clamp( wrap_degrees( want_yaw - mob.yaw ), -10.0f, 10.0f );
         speed = def.chase_speed;
@@ -346,17 +391,17 @@ void MobManager::tick_mob( World &world, Mob &mob, const MobTypeDef &def, const 
             if ( mob.attack_ticks > 0 ) {
                 mob.attack_ticks--;
             }
-            if ( mob.attack_ticks <= 0 && player_dist_xz < def.hitbox_w / 2.0 + 0.3 + 0.5 && fabs( player_feet.y - mob.pos.y ) < 1.5 ) {
+            if ( mob.attack_ticks <= 0 && target_dist_xz < def.hitbox_w / 2.0 + 0.3 + 0.5 && fabs( target_feet.y - mob.pos.y ) < 1.5 ) {
                 mob.attack_ticks = UPS_RATE;
                 if ( out != nullptr ) {
-                    out->player_hits.push_back( { mob.pos, def.attack_damage } );
+                    out->player_hits.push_back( { mob.pos, def.attack_damage, target_player_id } );
                 }
             }
         } else {
             // Creeper fuse: lit inside 3 blocks; the mob stands still while
             // fusing and defuses (counts back down) past 7 blocks. The tick
             // loop explodes it at the end of the fuse.
-            if ( mob.fuse_ticks > 0 || player_dist_xz < 3.0 ) {
+            if ( mob.fuse_ticks > 0 || target_dist_xz < 3.0 ) {
                 speed = 0.0f;
                 if ( mob.fuse_ticks == 0 ) {
                     mob.fuse_ticks = 1;
@@ -368,7 +413,7 @@ void MobManager::tick_mob( World &world, Mob &mob, const MobTypeDef &def, const 
     // A lit creeper always ticks its fuse: up while in range, down (defuse)
     // when the player left or stopped being targetable.
     if ( def.ai == MOB_AI_HOSTILE_CREEPER && mob.fuse_ticks > 0 ) {
-        if ( mob.targeting && player_dist_xz <= 7.0 ) {
+        if ( mob.targeting && target_dist_xz <= 7.0 ) {
             mob.fuse_ticks++;
         } else {
             mob.fuse_ticks--;
@@ -609,7 +654,9 @@ bool MobManager::hurt( int index, float damage, const glm::dvec3 &attacker_pos )
 // frame. Claims ownership (so the leave path knows whether to persist) and
 // spawns the worker-side pending_mobs as live mobs.
 void MobManager::adopt_chunk( Chunk &chunk ) {
-    if ( !this->enabled || this->test_mode ) {
+    // Multiplayer: mob files live server-side; the roll runs on CHUNK_ROLE
+    // OWNER instead, so local pending_mobs are discarded.
+    if ( !this->enabled || this->test_mode || this->mp_mode ) {
         chunk.pending_mobs.clear( );
         return;
     }
@@ -635,6 +682,9 @@ void MobManager::adopt_chunk( Chunk &chunk ) {
 // CHUNK_LOADING at the same pos has not left — the slot is being reused for
 // the same position.
 void MobManager::poll_owned( World &world ) {
+    if ( this->mp_mode ) {
+        return; // no local mobs_* persistence in multiplayer
+    }
     const glm::dvec3 csize( CHUNK_SIZE_X, CHUNK_SIZE_Y, CHUNK_SIZE_Z );
     for ( size_t i = 0; i < this->owned_chunks.size( ); ) {
         const OwnedChunk &owned = this->owned_chunks[ i ];
@@ -676,7 +726,7 @@ void MobManager::poll_owned( World &world ) {
 }
 
 void MobManager::persist_all( ) {
-    if ( this->storage == nullptr || RepGame::capture_mode( ) || RepGame::fly_mode( ) ) {
+    if ( this->storage == nullptr || RepGame::capture_mode( ) || RepGame::fly_mode( ) || this->mp_mode ) {
         return;
     }
     const glm::dvec3 csize( CHUNK_SIZE_X, CHUNK_SIZE_Y, CHUNK_SIZE_Z );
@@ -714,13 +764,28 @@ void MobManager::tick( World &world, const glm::dvec3 &player_pos, const MobTick
             ++it;
             continue;
         }
+        if ( it->net_mirror ) {
+            // Mirror of a remote-owned mob: interpolation + flag-driven
+            // visuals only, no physics/AI/despawn. ENTITY_REMOVE ends it.
+            this->tick_mirror( *it, player_pos );
+            ++it;
+            continue;
+        }
         // Night-spawner mobs vanish instead of freezing or lingering: past 64
         // blocks outright, a slow random roll past 40, or when their feet
-        // chunk leaves the live window.
+        // chunk leaves the live window. In multiplayer the distance is to
+        // the nearest player (local or remote).
         if ( it->despawnable ) {
-            const double dist = glm::distance( it->pos, player_feet );
+            double dist = glm::distance( it->pos, player_feet );
+            if ( in != nullptr ) {
+                for ( const MobRemoteTarget &remote : in->remote_targets ) {
+                    const glm::dvec3 feet = remote.eye_pos - glm::dvec3( 0.0, remote.eye_height, 0.0 );
+                    dist = fmin( dist, glm::distance( it->pos, feet ) );
+                }
+            }
             std::uniform_real_distribution<double> roll( 0.0, 1.0 );
             if ( dist > 64.0 || ( dist > 40.0 && roll( this->rng ) < 1.0 / ( 8.0 * UPS_RATE ) ) ) {
+                this->send_net_remove( *it, NET_REMOVE_DESPAWN );
                 it = this->remove_mob( it );
                 continue;
             }
@@ -739,6 +804,7 @@ void MobManager::tick( World &world, const glm::dvec3 &player_pos, const MobTick
         const Chunk *chunk = world.chunkLoader.get_chunk( feet_chunk );
         if ( chunk == nullptr || chunk->load_state != CHUNK_LIVE ) {
             if ( it->despawnable ) {
+                this->send_net_remove( *it, NET_REMOVE_DESPAWN );
                 it = this->remove_mob( it );
                 continue;
             }
@@ -748,6 +814,7 @@ void MobManager::tick( World &world, const glm::dvec3 &player_pos, const MobTick
             continue;
         }
         if ( it->death_ticks > 0 && it->death_ticks > static_cast<int>( 0.5f * UPS_RATE ) ) {
+            this->send_net_remove( *it, NET_REMOVE_DIED );
             it = this->remove_mob( it );
             continue;
         }
@@ -758,6 +825,7 @@ void MobManager::tick( World &world, const glm::dvec3 &player_pos, const MobTick
             if ( out != nullptr ) {
                 out->explosions.push_back( it->pos );
             }
+            this->send_net_remove( *it, NET_REMOVE_EXPLODED );
             it = this->remove_mob( it );
             continue;
         }
@@ -783,7 +851,9 @@ void MobManager::tick_spawner( World &world, const glm::dvec3 &player_feet, cons
     this->spawn_ticks = 0;
     int live = 0;
     for ( const Mob &mob : this->mobs ) {
-        live += mob.despawnable;
+        // In multiplayer only despawnables in chunks we own count: mirrors
+        // and other clients' owned mobs aren't ours to budget.
+        live += mob.despawnable && ( this->net == nullptr || this->net->owns_chunk( mob.net_chunk ) );
     }
     if ( live >= 12 ) {
         return;
@@ -819,13 +889,19 @@ void MobManager::tick_spawner( World &world, const glm::dvec3 &player_feet, cons
         if ( chunk == nullptr || chunk->load_state != CHUNK_LIVE ) {
             continue;
         }
+        // Multiplayer: the night spawner only places into chunks we own.
+        if ( this->mp_mode && ( this->net == nullptr || !this->net->owns_chunk( feet_chunk ) ) ) {
+            continue;
+        }
         const glm::vec2 light = world.chunkLoader.light_sample( glm::vec3( feet_pos ) + glm::vec3( 0.0f, 0.5f, 0.0f ) );
         if ( !hostile_spawn_light_ok( light.x, light.y, daylight ) ) {
             continue;
         }
         const MobType type = type_roll( this->rng ) < 0.6 ? MOB_ZOMBIE : MOB_CREEPER;
         if ( this->spawn_any( type, feet_pos, yaw_pick( this->rng ), 0 ) ) {
-            this->mobs.back( ).despawnable = 1;
+            Mob &mob = this->mobs.back( );
+            mob.despawnable = 1;
+            this->announce_spawn( mob );
             live++;
             if ( live >= 12 ) {
                 return;
@@ -1037,4 +1113,459 @@ void MobManager::draw( const Renderer &renderer, const Shader &shader ) {
 void MobManager::cleanup( ) {
     this->render_chain.clear( );
     this->mobs.clear( );
+}
+
+// ---------------------------------------------------------------------------
+// Multiplayer sync (server arbitrates, owner client simulates). Same model
+// as ItemEntities: net_chunk is the chunk the server believes the mob sits
+// in; all ownership checks key off it so a crossing still streams until
+// ENTITY_TRANSFER arrives. All paths are no-ops in single player.
+// ---------------------------------------------------------------------------
+
+static glm::ivec3 mob_net_chunk_of( const glm::dvec3 &pos ) {
+    return glm::ivec3( glm::floor( pos / glm::dvec3( CHUNK_SIZE_X, CHUNK_SIZE_Y, CHUNK_SIZE_Z ) ) );
+}
+
+// Deterministic id for a natural-spawn roll product: session 0xFFFFFFFF so
+// it can't collide with client- or server-minted ids, and identical rolls
+// on different owners produce the same id (the server's map insert dedupes).
+static NetEntityId natural_net_id( const glm::ivec3 &chunk, int index ) {
+    uint64_t h = 1469598103934665603ull;
+    const uint64_t vals[] = { static_cast<uint64_t>( static_cast<uint32_t>( chunk.x ) ),
+                              static_cast<uint64_t>( static_cast<uint32_t>( chunk.y ) ),
+                              static_cast<uint64_t>( static_cast<uint32_t>( chunk.z ) ),
+                              static_cast<uint64_t>( static_cast<uint32_t>( index ) ) };
+    for ( const uint64_t v : vals ) {
+        h ^= v;
+        h *= 1099511628211ull;
+    }
+    const uint32_t low = static_cast<uint32_t>( h ^ ( h >> 32 ) ) | 1u;
+    return ( 0xFFFFFFFFull << 32 ) | low;
+}
+
+uint32_t MobManager::mob_net_flags( const Mob &mob ) {
+    uint32_t f = mob.net_flags & ( NET_MOB_FLAG_DESPAWNABLE | NET_MOB_FLAG_NATURAL );
+    if ( mob.despawnable ) {
+        f |= NET_MOB_FLAG_DESPAWNABLE;
+    }
+    if ( mob.net_natural ) {
+        f |= NET_MOB_FLAG_NATURAL;
+    }
+    if ( mob.hurt_ticks > 0 ) {
+        f |= NET_MOB_FLAG_HURT;
+    }
+    if ( mob.death_ticks > 0 ) {
+        f |= NET_MOB_FLAG_DYING;
+    }
+    if ( mob.fuse_ticks > 0 ) {
+        f |= NET_MOB_FLAG_FUSE;
+    }
+    return f;
+}
+
+void MobManager::set_multiplayer_mode( const bool mp_mode, NetEntities *net ) {
+    this->mp_mode = mp_mode;
+    this->net = mp_mode ? net : nullptr;
+    if ( !mp_mode ) {
+        this->rolled_chunks.clear( );
+    }
+}
+
+void MobManager::announce_spawn( Mob &mob ) {
+    if ( this->net == nullptr || mob.net_id != 0 || mob.uid != 0 ) {
+        return;
+    }
+    const NetEntityId nid = this->net->mint_id( );
+    if ( nid == 0 ) {
+        return;
+    }
+    mob.net_id = nid;
+    mob.net_chunk = mob_net_chunk_of( mob.pos );
+    NetEntityRecord rec;
+    rec.id = nid;
+    rec.kind = NetEntityKind::MOB;
+    rec.x = mob.pos.x;
+    rec.y = mob.pos.y;
+    rec.z = mob.pos.z;
+    rec.vx = static_cast<float>( mob.vel.x );
+    rec.vy = static_cast<float>( mob.vel.y );
+    rec.vz = static_cast<float>( mob.vel.z );
+    rec.yaw = mob.yaw;
+    rec.type = mob.type;
+    rec.count = mob.variant;
+    rec.health = mob.health;
+    rec.flags = mob_net_flags( mob );
+    this->net->send_spawn( rec );
+}
+
+void MobManager::send_net_remove( Mob &mob, const uint8_t reason ) {
+    if ( this->net == nullptr || mob.net_id == 0 ) {
+        return;
+    }
+    // Never announce removals for chunks we don't own (server-belief chunk).
+    if ( this->net->owns_chunk( mob.net_chunk ) ) {
+        this->net->send_remove( mob.net_id, reason );
+    }
+}
+
+MobManager::Mob *MobManager::find_by_net_id( const NetEntityId net_id ) {
+    if ( net_id == 0 ) {
+        return nullptr;
+    }
+    for ( Mob &mob : this->mobs ) {
+        if ( mob.net_id == net_id ) {
+            return &mob;
+        }
+    }
+    return nullptr;
+}
+
+// Mirror of a remote-owned mob: no physics/AI/spawner/despawn — ease pos and
+// yaw toward the last streamed targets, derive the gait from the applied
+// horizontal motion, and let the flag-driven visuals (hurt flash, tip-over,
+// creeper swell) play out. Ambient say/step sounds still run locally.
+void MobManager::tick_mirror( Mob &mob, const glm::dvec3 &player_pos ) {
+    mob.prev_pos = mob.pos;
+    mob.prev_yaw = mob.yaw;
+    mob.prev_sneak = mob.sneak;
+    const glm::dvec3 delta = mob.net_pos - mob.pos;
+    if ( glm::length( delta ) > 4.0 ) {
+        mob.pos = mob.net_pos;
+    } else {
+        mob.pos += delta * 0.35;
+    }
+    mob.yaw += wrap_degrees( mob.net_yaw - mob.yaw ) * 0.35f;
+    mob.vel = mob.net_vel;
+    const glm::dvec3 moved = mob.pos - mob.prev_pos;
+    const double hd = std::hypot( moved.x, moved.z );
+    mob.walk_dist += static_cast<float>( hd );
+    const float amp_target = static_cast<float>( fmin( hd * ( UPS_RATE / 20.0 ) * 4.0, 1.0 ) );
+    mob.leg_amp += ( amp_target - mob.leg_amp ) * 0.2f;
+    mob.wing_phase += 0.06f;
+    if ( mob.hurt_ticks > 0 ) {
+        mob.hurt_ticks--;
+    }
+    if ( mob.death_ticks > 0 ) {
+        // The tip-over plays through but nothing removes the mob locally —
+        // only ENTITY_REMOVE does.
+        mob.death_ticks++;
+    }
+    if ( mob.fuse_ticks > 0 ) {
+        mob.fuse_ticks++; // swell progress; cleared when the FUSE flag drops
+    }
+
+    const MobTypeDef &def = mob_types[ mob.type ];
+    const double dist = glm::distance( mob.pos, player_pos );
+    if ( def.sound_say != NULL && --mob.say_ticks <= 0 ) {
+        std::uniform_int_distribution<int> say( 10 * UPS_RATE, 30 * UPS_RATE );
+        mob.say_ticks = say( this->rng );
+        if ( dist < 16.0 ) {
+            audio_play_sfx_gain( def.sound_say, 1.0f - static_cast<float>( dist ) / 16.0f );
+        }
+    }
+    mob.step_acc += static_cast<float>( hd );
+    if ( def.sound_step != NULL && mob.step_acc >= 0.7f && dist < 8.0 ) {
+        mob.step_acc = 0.0f;
+        audio_play_sfx_gain( def.sound_step, def.step_gain * ( 1.0f - static_cast<float>( dist ) / 16.0f ) );
+    }
+}
+
+bool MobManager::spawn_record( const NetEntityRecord &rec, const bool mirror ) {
+    if ( !this->enabled || rec.type >= MOB_TYPE_COUNT ) {
+        return false;
+    }
+    if ( mob_types[ rec.type ].ai == MOB_AI_REMOTE ) {
+        return false; // remote players come through spawn_remote, never this path
+    }
+    if ( !this->spawn_any( static_cast<MobType>( rec.type ), glm::dvec3( rec.x, rec.y, rec.z ), rec.yaw, 1 ) ) {
+        return false;
+    }
+    Mob &mob = this->mobs.back( );
+    mob.net_id = rec.id;
+    mob.net_mirror = mirror;
+    mob.net_pos = glm::dvec3( rec.x, rec.y, rec.z );
+    mob.net_vel = glm::dvec3( rec.vx, rec.vy, rec.vz );
+    mob.net_yaw = rec.yaw;
+    mob.net_chunk = mob_net_chunk_of( mob.net_pos );
+    mob.variant = rec.count;
+    mob.health = rec.health;
+    mob.net_flags = rec.flags;
+    mob.despawnable = ( rec.flags & NET_MOB_FLAG_DESPAWNABLE ) ? 1 : 0;
+    mob.net_natural = ( rec.flags & NET_MOB_FLAG_NATURAL ) != 0;
+    if ( rec.flags & NET_MOB_FLAG_HURT ) {
+        mob.hurt_ticks = static_cast<int>( 0.3f * UPS_RATE );
+    }
+    if ( rec.flags & NET_MOB_FLAG_DYING ) {
+        mob.death_ticks = 1;
+    }
+    if ( rec.flags & NET_MOB_FLAG_FUSE ) {
+        mob.fuse_ticks = 1;
+    }
+    return true;
+}
+
+void MobManager::net_apply_spawn( const NetEntityRecord &rec, const bool mirror ) {
+    if ( !this->enabled ) {
+        return;
+    }
+    Mob *existing = this->find_by_net_id( rec.id );
+    if ( existing != nullptr ) {
+        existing->net_mirror = mirror;
+        existing->net_pos = glm::dvec3( rec.x, rec.y, rec.z );
+        existing->net_vel = glm::dvec3( rec.vx, rec.vy, rec.vz );
+        existing->net_yaw = rec.yaw;
+        existing->net_chunk = mob_net_chunk_of( existing->net_pos );
+        return;
+    }
+    this->spawn_record( rec, mirror );
+}
+
+void MobManager::net_apply_state( const NetEntityStateEntry &e ) {
+    if ( !this->enabled ) {
+        return;
+    }
+    Mob *mob = this->find_by_net_id( e.id );
+    if ( mob == nullptr ) {
+        return;
+    }
+    // Track the chunk the server's copy sits in; a predicted local spawn we
+    // don't own flips to a mirror on its first authoritative state.
+    mob->net_chunk = mob_net_chunk_of( glm::dvec3( e.x, e.y, e.z ) );
+    const bool owned_here = this->net != nullptr && this->net->owns_chunk( mob->net_chunk );
+    if ( !mob->net_mirror && owned_here ) {
+        // Owned: no server-originated mob state (partial pickups are items
+        // only); just keep the provenance flag bits in sync.
+        mob->net_flags = ( mob->net_flags & ~( NET_MOB_FLAG_DESPAWNABLE | NET_MOB_FLAG_NATURAL ) ) |
+                         ( e.flags & ( NET_MOB_FLAG_DESPAWNABLE | NET_MOB_FLAG_NATURAL ) );
+        return;
+    }
+    const uint32_t old_flags = mob->net_flags;
+    mob->net_mirror = true;
+    mob->net_pos = glm::dvec3( e.x, e.y, e.z );
+    mob->net_vel = glm::dvec3( e.vx, e.vy, e.vz );
+    mob->net_yaw = e.yaw;
+    mob->variant = e.count;
+    mob->health = e.health;
+    mob->net_flags = e.flags;
+    mob->despawnable = ( e.flags & NET_MOB_FLAG_DESPAWNABLE ) ? 1 : 0;
+    const MobTypeDef &def = mob_types[ mob->type ];
+    // Rising-edge flag visuals: the owner's sim already played its sfx, so
+    // mirror playback is full-gain (no attacker distance to fade against).
+    if ( ( e.flags & NET_MOB_FLAG_HURT ) && !( old_flags & NET_MOB_FLAG_HURT ) ) {
+        mob->hurt_ticks = static_cast<int>( 0.3f * UPS_RATE );
+        if ( def.sound_hurt != NULL ) {
+            audio_play_sfx( def.sound_hurt );
+        }
+    }
+    if ( ( e.flags & NET_MOB_FLAG_DYING ) && !( old_flags & NET_MOB_FLAG_DYING ) ) {
+        mob->death_ticks = 1;
+        if ( def.sound_death != NULL ) {
+            audio_play_sfx( def.sound_death );
+        }
+    }
+    if ( e.flags & NET_MOB_FLAG_FUSE ) {
+        if ( !( old_flags & NET_MOB_FLAG_FUSE ) ) {
+            mob->fuse_ticks = 1;
+            audio_play_sfx( "fuse" );
+        }
+    } else {
+        mob->fuse_ticks = 0;
+    }
+}
+
+void MobManager::net_apply_remove( const NetEntityId net_id ) {
+    for ( auto it = this->mobs.begin( ); it != this->mobs.end( ); ++it ) {
+        if ( it->net_id == net_id && net_id != 0 ) {
+            this->remove_mob( it );
+            return;
+        }
+    }
+}
+
+void MobManager::net_release_entity( const NetEntityRecord &rec, const bool still_viewed ) {
+    Mob *mob = this->find_by_net_id( rec.id );
+    if ( mob == nullptr ) {
+        return;
+    }
+    if ( still_viewed ) {
+        mob->net_mirror = true;
+        mob->net_pos = glm::dvec3( rec.x, rec.y, rec.z );
+        mob->net_vel = glm::dvec3( rec.vx, rec.vy, rec.vz );
+        mob->net_yaw = rec.yaw;
+        mob->net_chunk = mob_net_chunk_of( mob->net_pos );
+    } else {
+        for ( auto it = this->mobs.begin( ); it != this->mobs.end( ); ++it ) {
+            if ( &*it == mob ) {
+                this->remove_mob( it );
+                return;
+            }
+        }
+    }
+}
+
+void MobManager::net_apply_action( RepGameState &state, const NetEntityActionPayload &p ) {
+    if ( !this->enabled || p.action != NET_ACTION_HIT ) {
+        return;
+    }
+    Mob *mob = this->find_by_net_id( p.id );
+    if ( mob == nullptr || mob->net_mirror || this->net == nullptr || !this->net->owns_chunk( mob->net_chunk ) ) {
+        return;
+    }
+    const int index = static_cast<int>( mob - this->mobs.data( ) );
+    const bool killed = this->hurt( index, p.damage, glm::dvec3( p.ax, p.ay, p.az ) );
+    if ( killed && p.attacker_survival ) {
+        RepGame::spawn_mob_drops( state, mob_types[ this->mobs[ index ].type ], this->mobs[ index ].pos );
+    }
+}
+
+void MobManager::mirror_hit_feedback( const int index, const glm::dvec3 &attacker_pos ) {
+    if ( index < 0 || index >= static_cast<int>( this->mobs.size( ) ) ) {
+        return;
+    }
+    Mob &mob = this->mobs[ index ];
+    const MobTypeDef &def = mob_types[ mob.type ];
+    mob.hurt_ticks = static_cast<int>( 0.3f * UPS_RATE );
+    const double dist = glm::distance( mob.pos, attacker_pos );
+    const float gain = glm::clamp( 1.0f - static_cast<float>( dist ) / 16.0f, 0.0f, 1.0f );
+    if ( def.sound_hurt != NULL ) {
+        audio_play_sfx_gain( def.sound_hurt, gain );
+    }
+}
+
+void MobManager::net_apply_chunk_role( RepGameState &state, const glm::ivec3 &chunk, const uint8_t role, const uint8_t populated,
+                                       const std::vector<NetEntityRecord> &records ) {
+    if ( !this->enabled ) {
+        return;
+    }
+    if ( role == NET_ROLE_NONE ) {
+        for ( auto it = this->mobs.begin( ); it != this->mobs.end( ); ) {
+            if ( it->net_id != 0 && it->net_chunk == chunk ) {
+                it = this->remove_mob( it );
+            } else {
+                ++it;
+            }
+        }
+        return;
+    }
+    const bool owned = role == NET_ROLE_OWNER;
+    std::unordered_map<NetEntityId, const NetEntityRecord *> by_id;
+    for ( const NetEntityRecord &rec : records ) {
+        if ( rec.kind == NetEntityKind::MOB ) {
+            by_id[ rec.id ] = &rec;
+        }
+    }
+    for ( auto it = this->mobs.begin( ); it != this->mobs.end( ); ) {
+        if ( it->net_id != 0 && it->net_chunk == chunk && by_id.find( it->net_id ) == by_id.end( ) ) {
+            it = this->remove_mob( it );
+        } else {
+            ++it;
+        }
+    }
+    for ( const NetEntityRecord &rec : records ) {
+        if ( rec.kind != NetEntityKind::MOB ) {
+            continue;
+        }
+        Mob *existing = this->find_by_net_id( rec.id );
+        if ( existing != nullptr ) {
+            existing->net_mirror = !owned;
+            existing->net_pos = glm::dvec3( rec.x, rec.y, rec.z );
+            existing->net_vel = glm::dvec3( rec.vx, rec.vy, rec.vz );
+            existing->net_yaw = rec.yaw;
+            existing->net_chunk = mob_net_chunk_of( existing->net_pos );
+            existing->variant = rec.count;
+            existing->health = rec.health;
+            existing->net_flags = rec.flags;
+            existing->despawnable = ( rec.flags & NET_MOB_FLAG_DESPAWNABLE ) ? 1 : 0;
+        } else {
+            this->spawn_record( rec, !owned );
+        }
+    }
+
+    // Freshly owned + never rolled this session + the server hasn't seen a
+    // roll (populated==0): run the deterministic roll on the live chunk and
+    // report CHUNK_POPULATED either way (a zero-mob roll is still a roll).
+    if ( owned && !populated && !this->test_mode && this->net != nullptr && !this->rolled_chunks.count( chunk ) ) {
+        this->rolled_chunks.insert( chunk );
+        Chunk *live = state.world.get_loaded_chunk( chunk * CHUNK_SIZE_I + CHUNK_SIZE_I / 2 );
+        if ( live != nullptr && live->load_state == CHUNK_LIVE ) {
+            live->pending_mobs.clear( );
+            live->spawn_mobs( );
+            int index = 0;
+            for ( const MobFileRecord &record : live->pending_mobs ) {
+                if ( record.type < MOB_TYPE_COUNT &&
+                     this->spawn_any( static_cast<MobType>( record.type ), glm::dvec3( record.x, record.y, record.z ), record.yaw, 1 ) ) {
+                    Mob &mob = this->mobs.back( );
+                    mob.variant = record.variant;
+                    mob.health = record.health;
+                    mob.net_id = natural_net_id( chunk, index );
+                    mob.net_natural = true;
+                    mob.net_flags |= NET_MOB_FLAG_NATURAL;
+                    NetEntityRecord rec;
+                    rec.id = mob.net_id;
+                    rec.kind = NetEntityKind::MOB;
+                    rec.x = mob.pos.x;
+                    rec.y = mob.pos.y;
+                    rec.z = mob.pos.z;
+                    rec.yaw = mob.yaw;
+                    rec.type = mob.type;
+                    rec.count = mob.variant;
+                    rec.health = mob.health;
+                    rec.flags = mob_net_flags( mob );
+                    this->net->send_spawn( rec );
+                }
+                index++;
+            }
+            live->pending_mobs.clear( );
+            live->mobs_spawned = 1;
+        }
+        this->net->send_chunk_populated( chunk );
+    }
+}
+
+void MobManager::collect_net_state( NetEntities &net, std::vector<NetEntityStateEntry> &out, const long tick_number ) {
+    const glm::dvec3 csize( CHUNK_SIZE_X, CHUNK_SIZE_Y, CHUNK_SIZE_Z );
+    for ( Mob &mob : this->mobs ) {
+        if ( mob.net_id == 0 || mob.net_mirror || mob.uid != 0 ) {
+            continue;
+        }
+        if ( !net.owns_chunk( mob.net_chunk ) ) {
+            continue;
+        }
+        const uint32_t flags = mob_net_flags( mob );
+        const bool keyframe = tick_number - mob.net_keyframe_tick >= UPS_RATE;
+        const bool changed = !mob.net_sent ||                                   //
+                             glm::length( mob.pos - mob.net_sent_pos ) > 1e-4 || //
+                             glm::length( mob.vel - mob.net_sent_vel ) > 1e-4 || //
+                             fabsf( mob.yaw - mob.net_sent_yaw ) > 1e-4f ||      //
+                             mob.health != mob.net_sent_health ||                //
+                             flags != mob.net_sent_flags;
+        if ( !changed && !keyframe ) {
+            continue;
+        }
+        NetEntityStateEntry e;
+        e.id = mob.net_id;
+        e.kind = static_cast<uint8_t>( NetEntityKind::MOB );
+        e.x = mob.pos.x;
+        e.y = mob.pos.y;
+        e.z = mob.pos.z;
+        e.vx = static_cast<float>( mob.vel.x );
+        e.vy = static_cast<float>( mob.vel.y );
+        e.vz = static_cast<float>( mob.vel.z );
+        e.yaw = mob.yaw;
+        e.count = mob.variant;
+        e.health = mob.health;
+        e.flags = flags;
+        out.push_back( e );
+        mob.net_sent = true;
+        mob.net_sent_pos = mob.pos;
+        mob.net_sent_vel = mob.vel;
+        mob.net_sent_yaw = mob.yaw;
+        mob.net_sent_health = mob.health;
+        mob.net_sent_flags = flags;
+        // The server now believes the mob sits at this pos's chunk.
+        mob.net_chunk = glm::ivec3( glm::floor( mob.pos / csize ) );
+        if ( keyframe ) {
+            mob.net_keyframe_tick = tick_number;
+        }
+    }
 }

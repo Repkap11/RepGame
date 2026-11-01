@@ -1,18 +1,32 @@
 #pragma once
 
 #include <random>
+#include <set>
 #include <vector>
 
 #include "common/Particle.hpp"
 #include "common/RenderChain.hpp"
+#include "common/chest.hpp" // Compare_I_Vec3
 #include "common/mob_types.hpp"
+#include "common/net/packet.hpp"
 #include "common/utils/map_storage.hpp"
 
 class World;
 class Chunk;
 class ChunkLoader;
+class NetEntities;
+struct RepGameState;
 
 #define MAX_MOBS 256
+
+// A remote player's targeting data (built from MultiplayerAvatars): hostile
+// owned mobs pick the nearest targetable player among local + remote.
+struct MobRemoteTarget {
+    int32_t player_id;
+    glm::dvec3 eye_pos;
+    float eye_height;
+    bool targetable;
+};
 
 // Optional input to MobManager::tick: NULL means the player isn't targetable,
 // world_time is noon, and the night spawner stays off.
@@ -20,6 +34,9 @@ struct MobTickInput {
     bool player_targetable;
     long world_time;
     float player_eye_height; // player_pos is the eye; feet = pos - eye_height
+    // Remote players (multiplayer): hostile targeting and despawn distance
+    // consider these alongside the local player.
+    std::vector<MobRemoteTarget> remote_targets = {};
 };
 
 // A hostile mob's melee hit on the player (damage is informational — there is
@@ -27,6 +44,7 @@ struct MobTickInput {
 struct MobPlayerHit {
     glm::dvec3 from;
     float damage;
+    int32_t target_player_id = -1; // -1 = local player; else PLAYER_HIT target
 };
 
 // Per-tick results for RepGame: melee hits to apply and creeper explosions to
@@ -57,6 +75,7 @@ inline bool hostile_spawn_light_ok( float sky, float block, float daylight ) {
 // capture mode freezes AI and physics.
 class MobManager {
     friend int test_mobs( );
+    friend int test_net_mobs( );
     struct Mob {
         MobType type;
         int variant;
@@ -94,6 +113,23 @@ class MobManager {
         int fuse_ticks;     // creeper fuse; >0 while lit, counts down to defuse
         int burn_acc;       // daylight-burn damage accumulator ticks
         float wing_phase;   // wing-flap oscillator
+        // Multiplayer sync (net_id 0 / net_mirror false in single player):
+        NetEntityId net_id;     // server-assigned identity; 0 = local-only
+        bool net_mirror;        // mirror of a remote-owned mob: no sim
+        glm::ivec3 net_chunk;   // chunk the server believes it's in
+        glm::dvec3 net_pos;     // mirror interpolation target (feet)
+        glm::dvec3 net_vel;
+        float net_yaw;
+        uint32_t net_flags;     // last seen/sent NET_MOB_FLAG_* bits
+        bool net_natural;       // our own natural-spawn roll product
+        // Outbound state tracking for owner-side ENTITY_STATE throttling.
+        bool net_sent;
+        glm::dvec3 net_sent_pos;
+        glm::dvec3 net_sent_vel;
+        float net_sent_yaw;
+        float net_sent_health;
+        uint32_t net_sent_flags;
+        long net_keyframe_tick;
         std::vector<entt::entity> parts; // one render entity per model cube
     };
     // A chunk this manager took ownership of via adopt_chunk: its mobs file
@@ -116,14 +152,30 @@ class MobManager {
     long poll_count;
     long spawn_ticks; // 2 s countdown for the night spawner
     RenderChain<ParticleVertex, MobPartInstance> render_chain;
+    // Multiplayer sync hub; bound while multiplayer_mode (hostname given).
+    NetEntities *net = nullptr;
+    bool mp_mode = false;
+    // Chunks whose natural-spawn roll already ran this session (re-roll
+    // dedupe across ownership flips).
+    std::set<glm::ivec3, Compare_I_Vec3> rolled_chunks;
 
     void tick_mob( World &world, Mob &mob, const MobTypeDef &def, const glm::dvec3 &player_pos,
                    const MobTickInput *in, MobTickOutput *out );
     void tick_remote( Mob &mob );
+    void tick_mirror( Mob &mob, const glm::dvec3 &player_pos );
     void poll_owned( World &world );
     void tick_spawner( World &world, const glm::dvec3 &player_feet, const MobTickInput &in );
     std::vector<Mob>::iterator remove_mob( std::vector<Mob>::iterator it );
     bool spawn_any( MobType type, const glm::dvec3 &pos, float yaw, int persistent );
+    // Streamed NET_MOB_FLAG_* bits for a mob (dynamic + provenance bits).
+    static uint32_t mob_net_flags( const Mob &mob );
+    // Multiplayer: mint a net id for a just-spawned local mob and announce it
+    // with ENTITY_SPAWN (no-op unbound / net_id already set).
+    void announce_spawn( Mob &mob );
+    void send_net_remove( Mob &mob, uint8_t reason );
+    Mob *find_by_net_id( NetEntityId net_id );
+    // Spawn one entity from a wire record (mirror or freshly owned).
+    bool spawn_record( const NetEntityRecord &rec, bool mirror );
 
   public:
     MobManager( );
@@ -168,6 +220,32 @@ class MobManager {
     void draw( const Renderer &renderer, const Shader &shader );
     // Persist every owned chunk's mobs (World::cleanup).
     void persist_all( );
+
+    // ---- Multiplayer sync (NetEntities drives these; all no-ops in single
+    // player). Local mobs_* file reads/writes are off in multiplayer mode.
+    void set_multiplayer_mode( bool mp_mode, NetEntities *net );
+    bool multiplayer_mode( ) const { return this->mp_mode; }
+    // Whether a raycast-resolved mob is a remote-owned mirror (hitting it
+    // sends ENTITY_ACTION instead of applying damage locally).
+    bool net_mirror_at( int index ) const { return index >= 0 && this->mobs[ index ].net_mirror; }
+    NetEntityId net_id_at( int index ) const { return index >= 0 ? this->mobs[ index ].net_id : 0; }
+    // Local hurt feedback for a mirror hit (flash + sfx, no damage).
+    void mirror_hit_feedback( int index, const glm::dvec3 &attacker_pos );
+    // Incoming record handlers (called by NetEntities).
+    void net_apply_spawn( const NetEntityRecord &rec, bool mirror );
+    void net_apply_state( const NetEntityStateEntry &e );
+    void net_apply_remove( NetEntityId net_id );
+    // ENTITY_ACTION forwarded to us as the chunk's owner (HIT).
+    void net_apply_action( RepGameState &state, const NetEntityActionPayload &p );
+    // CHUNK_ROLE: drop the chunk (NONE) or re-sync its mob records
+    // (VIEWER -> mirrors, OWNER -> locally simulated; populated==0 rolls the
+    // natural spawn on the live chunk and reports CHUNK_POPULATED).
+    void net_apply_chunk_role( RepGameState &state, const glm::ivec3 &chunk, uint8_t role, uint8_t populated, const std::vector<NetEntityRecord> &records );
+    // ENTITY_TRANSFER adopt=0: become a mirror if still viewed, else drop.
+    void net_release_entity( const NetEntityRecord &rec, bool still_viewed );
+    // Owner-side outbound batch (same cadence/keyframes as items).
+    void collect_net_state( NetEntities &net, std::vector<NetEntityStateEntry> &out, long tick_number );
+
     size_t count( ) const { return this->mobs.size( ); }
     size_t remote_count( ) const {
         size_t n = 0;
