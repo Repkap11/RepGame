@@ -22,20 +22,32 @@ BEDROCK_SAMPLES = os.environ.get("BEDROCK_SAMPLES", os.path.join(ROOT, "bedrock-
 DATA_DIR = os.environ.get("BLOCKS_IMPORT_DATA_DIR", os.path.join(ROOT, "data"))
 OUT_DIR = os.environ.get("BLOCKS_IMPORT_OUT_DIR")
 BLOCKS_DIR = os.path.join(DATA_DIR, "blocks")
+ITEMS_DIR = os.path.join(DATA_DIR, "items")
 TEXTURES_DIR = os.path.join(DATA_DIR, "textures")
 TEXTURES_JSON = os.path.join(DATA_DIR, "textures.json")
 if OUT_DIR:
     OUT_IDS = os.path.join(OUT_DIR, "block_ids_gen.hpp")
+    OUT_ITEM_IDS = os.path.join(OUT_DIR, "item_ids_gen.hpp")
     OUT_TEX = os.path.join(OUT_DIR, "texture_ids_gen.hpp")
     OUT_INC = os.path.join(OUT_DIR, "block_definitions_gen.inc")
+    OUT_ITEM_INC = os.path.join(OUT_DIR, "item_definitions_gen.inc")
+    OUT_ITEM_NAMES = os.path.join(OUT_DIR, "item_names_gen.inc")
+    OUT_DROPS = os.path.join(OUT_DIR, "block_drops_gen.inc")
     OUT_PNG = os.path.join(OUT_DIR, "blocks.png")
 else:
     OUT_IDS = os.path.join(ROOT, "include", "common", "block_ids_gen.hpp")
+    OUT_ITEM_IDS = os.path.join(ROOT, "include", "common", "item_ids_gen.hpp")
     OUT_TEX = os.path.join(ROOT, "include", "common", "texture_ids_gen.hpp")
     OUT_INC = os.path.join(ROOT, "src", "common", "block_definitions_gen.inc")
+    OUT_ITEM_INC = os.path.join(ROOT, "src", "common", "item_definitions_gen.inc")
+    OUT_ITEM_NAMES = os.path.join(ROOT, "src", "common", "item_names_gen.inc")
+    OUT_DROPS = os.path.join(ROOT, "src", "common", "block_drops_gen.inc")
     OUT_PNG = os.path.join(ROOT, "bitmaps", "blocks.png")
 
 LAST_BLOCK_ID = 2047
+# ItemID space: 0..LAST_BLOCK_ID-1 are block items (same value as BlockID),
+# LAST_BLOCK_ID itself is the empty-slot sentinel, pure items start here.
+ITEM_ID_BASE = 2048
 # Legacy empty-slot sentinel in pre-2047 saves; never a real block id.
 RESERVED_BLOCK_ID = 1249
 TEXTURE_COUNT_MAX = 2048
@@ -68,8 +80,11 @@ VEC3_BOOL = {"hides_self"}
 # Keys holding another block's name, emitted raw as the enum constant.
 BLOCK_REF_FIELDS = {"door_partner"}
 STRUCT_META = {"id", "name", "aliases", "textures", "icon", "shape",
-               "render_order", "needs_place_on_any_solid", "creative"}
+               "render_order", "needs_place_on_any_solid", "creative", "drops"}
 KNOWN_KEYS = STRUCT_META | BOOL_FIELDS | INT_FIELDS | FLOAT_FIELDS | VEC3_SHORT | VEC3_BOOL | BLOCK_REF_FIELDS
+
+ITEM_KNOWN_KEYS = {"id", "name", "icon", "max_stack", "aliases"}
+DROP_KEYS = {"item", "min", "max", "chance"}
 
 TEX_META_KEYS = {"source", "random_rotate", "tint", "alpha", "frame", "keep", "overlay", "extract"}
 
@@ -381,6 +396,28 @@ def load_blocks():
                 fail("%s: bad aliases" % fname)
         if "creative" in b and not isinstance(b["creative"], bool):
             fail("%s: creative must be a bool" % fname)
+        if "drops" in b:
+            if not isinstance(b["drops"], list):
+                fail("%s: drops must be a list" % fname)
+            for d in b["drops"]:
+                if not isinstance(d, dict) or set(d) - DROP_KEYS or "item" not in d:
+                    fail("%s: bad drops entry %r (needs item/min/max/chance)" % (fname, d))
+                if not isinstance(d["item"], str) or not re.match(r"^[A-Z][A-Z0-9_]*$", d["item"]):
+                    fail("%s: drops item must be a block or item name" % fname)
+                mn = d.get("min", 1)
+                mx = d.get("max", 1)
+                ch = d.get("chance", 1.0)
+                if not isinstance(mn, int) or not isinstance(mx, int) or mn < 0 or mx < mn:
+                    fail("%s: bad drops min/max %r/%r" % (fname, mn, mx))
+                if not isinstance(ch, (int, float)) or not (0.0 < float(ch) <= 1.0):
+                    fail("%s: bad drops chance %r (need 0 < chance <= 1)" % (fname, ch))
+                d.setdefault("min", 1)
+                d.setdefault("max", 1)
+                d.setdefault("chance", 1.0)
+            # Entries with chance < 1 are mutually exclusive alternatives
+            # rolled as one cumulative draw — their chances must sum to <= 1.
+            if sum(d["chance"] for d in b["drops"] if d["chance"] < 1.0) > 1.0 + 1e-9:
+                fail("%s: chance < 1 drops must sum to <= 1.0" % fname)
         for k in BLOCK_REF_FIELDS & set(b):
             if not isinstance(b[k], str) or not re.match(r"^[A-Z][A-Z0-9_]*$", b[k]):
                 fail("%s: %s must be a block name string" % (fname, k))
@@ -405,6 +442,55 @@ def load_blocks():
         if bool(b.get("is_door_upper")) == bool(pb.get("is_door_upper")):
             fail("%s: door pair %s/%s needs exactly one is_door_upper" % (b["_file"], b["name"], partner))
     return blocks
+
+
+def load_items(block_names):
+    """data/items/<name>.json — one file per pure (non-block) item. Ids live
+    at ITEM_ID_BASE and above; a block id IS its block item."""
+    items = {}
+    names = {}
+    for path in sorted(glob.glob(os.path.join(ITEMS_DIR, "*.json"))):
+        fname = os.path.basename(path)
+        with open(path) as f:
+            try:
+                it = json.load(f)
+            except json.JSONDecodeError as e:
+                fail("%s: %s" % (fname, e))
+        unknown = set(it) - ITEM_KNOWN_KEYS
+        if unknown:
+            fail("%s: unknown keys %s" % (fname, sorted(unknown)))
+        iid = it.get("id")
+        name = it.get("name")
+        if not isinstance(iid, int) or iid < ITEM_ID_BASE:
+            fail("%s: bad id %r (need id >= %d)" % (fname, iid, ITEM_ID_BASE))
+        if not isinstance(name, str) or not re.match(r"^[A-Z][A-Z0-9_]*$", name):
+            fail("%s: bad name %r" % (fname, name))
+        if iid in items:
+            fail("%s: duplicate id %d (also in %s)" % (fname, iid, items[iid]["_file"]))
+        if name in names:
+            fail("%s: duplicate name %s" % (fname, name))
+        if name in block_names:
+            fail("%s: name %s collides with a block name" % (fname, name))
+        if fname != name.lower() + ".json":
+            fail("%s: file name must be <name>.json (name is %s)" % (fname, name))
+        icon = it.get("icon")
+        if not isinstance(icon, str):
+            fail("%s: icon must be a texture name string" % fname)
+        if "max_stack" in it:
+            ms = it["max_stack"]
+            if not isinstance(ms, int) or not (1 <= ms <= 127):
+                fail("%s: bad max_stack %r (need 1-127)" % (fname, ms))
+        if "aliases" in it:
+            if not isinstance(it["aliases"], list) or not all(re.match(r"^[A-Z][A-Z0-9_]*$", a) for a in it["aliases"]):
+                fail("%s: bad aliases" % fname)
+        it["_file"] = fname
+        items[iid] = it
+        names[name] = iid
+        for a in it.get("aliases", []):
+            names[a] = iid
+    if items and sorted(items) != list(range(ITEM_ID_BASE, ITEM_ID_BASE + len(items))):
+        fail("item ids must be contiguous from %d" % ITEM_ID_BASE)
+    return items, names
 
 
 def resolve_faces(name, b):
@@ -542,6 +628,22 @@ def main():
         fail("BEDROCK_SAMPLES %r does not exist - run `make bedrock-samples` "
              "or set BEDROCK_SAMPLES to a resource_pack directory" % BEDROCK_SAMPLES)
     blocks = load_blocks()
+    block_names = {b["name"]: bid for bid, b in blocks.items()}
+    for b in blocks.values():
+        for a in b.get("aliases", []):
+            block_names.setdefault(a, b["id"])
+    items, item_names = load_items(block_names)
+
+    # Resolve drops "item" names to ids (block name -> block item id, item
+    # name -> ITEM_ID_BASE+ id).
+    for bid, b in blocks.items():
+        for d in b.get("drops", []):
+            iid = block_names.get(d["item"])
+            if iid is None:
+                iid = item_names.get(d["item"])
+            if iid is None:
+                fail("%s: drops item %r is not a block or item name" % (b["_file"], d["item"]))
+            d["_id"] = iid
 
     tex_meta = {}
     if os.path.exists(TEXTURES_JSON):
@@ -575,6 +677,9 @@ def main():
         resolved[bid] = {"faces": faces, "icon": icon}
         used.update(faces)
         used.add(icon)
+    # Item icons are packed into the same atlas.
+    for iid, it in sorted(items.items()):
+        used.add(it["icon"])
     for name, m in tex_meta.items():
         if m.get("keep"):
             used.add(name)
@@ -691,6 +796,80 @@ def main():
     with open(OUT_IDS, "w") as f:
         f.writelines(out)
 
+    # include/common/item_ids_gen.hpp — pure-item enum (block items keep the
+    # BlockID value) + a bitset marking defined item ids.
+    out = [HEADER, "#pragma once\n\n", "typedef enum {\n"]
+    for iid, it in sorted(items.items()):
+        names = [it["name"]] + it.get("aliases", [])
+        for n in names:
+            out.append("    %s = %d,\n" % (n, iid))
+    out.append("\n    ITEM_ID_BASE = %d,\n" % ITEM_ID_BASE)
+    item_id_end = max(items) + 1 if items else ITEM_ID_BASE
+    out.append("    ITEM_ID_END = %d,\n" % item_id_end)
+    out.append("} ItemEnum;\n\n")
+    out.append("#define ITEM_DEFINED_BITS_LEN %d\n" % ((item_id_end - ITEM_ID_BASE + 7) // 8))
+    out.append("static const unsigned char ITEM_DEFINED_BITS[ITEM_DEFINED_BITS_LEN] = {\n")
+    for i in range(0, item_id_end - ITEM_ID_BASE, 8):
+        byte = 0
+        for bit in range(8):
+            if ITEM_ID_BASE + i + bit in items:
+                byte |= 1 << bit
+        out.append("0x%02x," % byte)
+    out.append("\n};\n")
+    out.append("static inline int item_id_defined( unsigned int id ) {\n")
+    out.append("    return id >= (unsigned int)ITEM_ID_BASE && id < (unsigned int)ITEM_ID_END && ( ITEM_DEFINED_BITS[ ( id - ITEM_ID_BASE ) >> 3 ] & ( 1u << ( ( id - ITEM_ID_BASE ) & 7 ) ) ) != 0;\n")
+    out.append("}\n")
+    with open(OUT_ITEM_IDS, "w") as f:
+        f.writelines(out)
+
+    # src/common/item_definitions_gen.inc — icon layer + max stack per item,
+    # indexed by id - ITEM_ID_BASE.
+    out = [HEADER]
+    for iid in range(ITEM_ID_BASE, item_id_end):
+        it = items.get(iid)
+        if it is None:
+            out.append("    { TEX_AIR, 0 },\n")
+            continue
+        out.append("    { TEX_%s, %d },\n" % (it["icon"].upper(), it.get("max_stack", 64)))
+    with open(OUT_ITEM_INC, "w") as f:
+        f.writelines(out)
+
+    # src/common/item_names_gen.inc — per-item name table.
+    out = [HEADER]
+    for iid in range(ITEM_ID_BASE, item_id_end):
+        it = items.get(iid)
+        out.append('    "%s",\n' % it["name"] if it else "    nullptr,\n")
+    with open(OUT_ITEM_NAMES, "w") as f:
+        f.writelines(out)
+
+    # src/common/block_drops_gen.inc — flat drop entries plus a sorted
+    # (id, offset, count) lookup table. Blocks with no "drops" key are not in
+    # the table and keep the default drop (the block itself).
+    out = [HEADER]
+    drop_blocks = sorted(bid for bid, b in blocks.items() if "drops" in b)
+    flat = []
+    for bid in drop_blocks:
+        for d in blocks[bid]["drops"]:
+            flat.append((d["_id"], d["min"], d["max"], d["chance"]))
+    out.append("static const BlockDropGen BLOCK_DROP_ENTRIES[] = {\n")
+    for iid, mn, mx, ch in flat:
+        iname = None
+        if iid < LAST_BLOCK_ID:
+            iname = blocks[iid]["name"]
+        else:
+            iname = items[iid]["name"]
+        out.append("    { %s, %d, %d, %sf },\n" % (iname, mn, mx, fmt_float(ch)))
+    out.append("};\n\n")
+    out.append("static const BlockDropTableGen BLOCK_DROP_TABLE[] = {\n")
+    off = 0
+    for bid in drop_blocks:
+        b = blocks[bid]
+        out.append("    { %s, %d, %d },\n" % (b["name"], off, len(b["drops"])))
+        off += len(b["drops"])
+    out.append("};\n")
+    with open(OUT_DROPS, "w") as f:
+        f.writelines(out)
+
     # include/common/texture_ids_gen.hpp — #define only, safe for the GLSL
     # preprocessor (gcc -E -I include).
     # src/common/block_names_gen.inc — name table, nullptr for undefined ids.
@@ -744,7 +923,7 @@ def main():
             out.append("block_definitions[ %d ].textures[ %s ] = TEX_%s;\n" % (bid, FACE_CONST[face], r["faces"][FACE_KEYS.index(face)].upper()))
         out.append("block_definitions[ %d ].icon_texture = TEX_%s;\n" % (bid, r["icon"].upper()))
         for key in sorted(b):
-            if key in {"_file", "id", "name", "aliases", "textures", "icon", "shape", "creative"}:
+            if key in {"_file", "id", "name", "aliases", "textures", "icon", "shape", "creative", "drops"}:
                 continue
             val = b[key]
             prefix = "block_definitions[ %d ]." % bid
@@ -776,11 +955,13 @@ def main():
     creative, hidden = compute_creative(blocks, resolved, kept_ids, layers)
     out_cre = os.path.join(OUT_DIR, "creative_order_gen.hpp") if OUT_DIR else \
         os.path.join(ROOT, "include", "common", "creative_order_gen.hpp")
-    out = [HEADER, "#pragma once\n\n#include \"common/block_ids_gen.hpp\"\n\n"]
-    out.append("#define CREATIVE_BLOCK_COUNT %d\n" % len(creative))
-    out.append("static const BlockID CREATIVE_BLOCKS[CREATIVE_BLOCK_COUNT] = {\n")
+    out = [HEADER, "#pragma once\n\n#include \"common/item.hpp\"\n\n"]
+    out.append("#define CREATIVE_BLOCK_COUNT %d\n" % (len(creative) + len(items)))
+    out.append("static const ItemID CREATIVE_BLOCKS[CREATIVE_BLOCK_COUNT] = {\n")
     for bid in creative:
         out.append("    %s,\n" % blocks[bid]["name"])
+    for iid, it in sorted(items.items()):
+        out.append("    %s,\n" % it["name"])
     out.append("};\n")
     with open(out_cre, "w") as f:
         f.writelines(out)
@@ -797,7 +978,7 @@ def main():
 
     print("blocks_import: %d blocks, %d textures (%d rotatable), atlas %dx%d -> %s" %
           (len(blocks), count, len(rotatable_canon), atlas.width, atlas.height,
-           ", ".join(os.path.relpath(p, ROOT) for p in (OUT_IDS, OUT_TEX, OUT_INC, OUT_PNG))))
+           ", ".join(os.path.relpath(p, ROOT) for p in (OUT_IDS, OUT_ITEM_IDS, OUT_TEX, OUT_INC, OUT_ITEM_INC, OUT_ITEM_NAMES, OUT_DROPS, OUT_PNG))))
     pickable = sum(1 for b in blocks.values() if b.get("is_pickable", True))
     hidden_n = sum(len(v) for v in hidden.values())
     print("blocks_import: creative %d listed of %d pickable (%d hidden duplicates) -> %s" %

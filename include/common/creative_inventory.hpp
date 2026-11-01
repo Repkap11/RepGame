@@ -1,7 +1,7 @@
 #pragma once
 
 #include "common/inventory_renderer.hpp"
-#include "common/block_definitions.hpp"
+#include "common/item.hpp"
 #include <map>
 
 class CreativeInventory {
@@ -18,6 +18,6 @@ class CreativeInventory {
     void onScreenSizeChange( int width, int height );
     void draw( const Renderer &renderer, const Texture &blocksTexture, const Shader &shader );
     void incrementSelectedPage( int offset );
-    BlockID whichBlockClicked( int screen_x, int screen_y );
+    ItemID whichItemClicked( int screen_x, int screen_y );
     void cleanup( );
 };

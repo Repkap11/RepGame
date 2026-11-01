@@ -21,6 +21,9 @@ uniform vec3 u_Origin;
 // min-ambient floor uses it to keep the night sky from washing out.
 uniform int u_IsSky;
 uniform int u_OpaqueFog;
+// Set only on the item-sprite program: sample exact atlas texels (texelFetch,
+// lod 0) so the extrusion slices alpha-test per texel without mipmap bleed.
+uniform int u_ExactTexel;
 
 uniform float u_FogNear;
 uniform float u_FogFar;
@@ -55,7 +58,12 @@ void main( ) {
         discard;
     }
     vec2 uv = clamp( v_tex_coords, v_tex_bounds.xy, v_tex_bounds.zw );
-    vec4 texColor = texture( u_Texture, vec3( uv, v_blockID ) );
+    vec4 texColor;
+    if ( u_ExactTexel != 0 ) {
+        texColor = texelFetch( u_Texture, ivec3( clamp( ivec2( floor( uv * 16.0 ) ), 0, 15 ), int( v_blockID + 0.5 ) ), 0 );
+    } else {
+        texColor = texture( u_Texture, vec3( uv, v_blockID ) );
+    }
     // vec4 texColor = vec4( 1, 0, 0, 1 );
     if ( texColor.a == 0.0 ) {
         discard;

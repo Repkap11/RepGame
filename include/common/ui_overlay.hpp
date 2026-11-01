@@ -59,7 +59,7 @@ class UIOverlay {
     RenderChain<UIOverlayVertex, UIOverlayInstance> render_chain_crosshair;
     RenderChain<UIOverlayVertex, UIOverlayInstance> render_chain_held_block;
     RenderChain<UIOverlayVertex, UIOverlayInstance> render_chain_dragged_item;
-    BlockID heldBlockID;
+    ItemID heldItemID;
     int screen_width;
     int screen_height;
     // VR quad-layer mode: skip the screen-space in-hand block and the
@@ -71,7 +71,7 @@ class UIOverlay {
     void init( const VertexBufferLayout &ui_overlay_vbl_vertex, const VertexBufferLayout &ui_overlay_vbl_instance );
     void on_screen_size_change( int width, int height );
     void set_vr_mode( bool vr_mode );
-    void set_holding_block( BlockID holding_block );
+    void set_holding_item( ItemID holding_item );
     // chest_renderer/chest_contents are non-null while a chest is open: the
     // creative palette is suppressed and the chest panel draws on top of the
     // player inventory. held_block_light is the scene light sampled at the

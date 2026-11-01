@@ -1469,6 +1469,9 @@
   "lapis_ore": {
     "source": "textures/blocks/lapis_ore"
   },
+  "lapis_lazuli": {
+    "source": "textures/items/dye_powder_blue"
+  },
   "large_amethyst_bud": {
     "source": "textures/blocks/large_amethyst_bud"
   },

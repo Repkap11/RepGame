@@ -197,3 +197,4 @@ creeper_death|mc_pack/mob/creeper/death.wav|sfx|Creeper death
 player_hurt_1|mc_pack/damage/hit1.wav|sfx|Player hurt
 player_hurt_2|mc_pack/damage/hit2.wav|sfx|Player hurt
 player_hurt_3|mc_pack/damage/hit3.wav|sfx|Player hurt
+pop_1|mc_pack/random/pop.wav|sfx|Item pickup

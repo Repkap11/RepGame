@@ -1,11 +1,25 @@
 {
- "casts_shadow": false,
- "hardness": 0.35,
- "id": 265,
- "is_seethrough": true,
- "name": "CHERRY_LEAVES",
- "no_light": 6815743,
- "textures": {
-  "all": "cherry_leaves"
- }
+  "casts_shadow": false,
+  "hardness": 0.35,
+  "id": 265,
+  "is_seethrough": true,
+  "name": "CHERRY_LEAVES",
+  "no_light": 6815743,
+  "textures": {
+    "all": "cherry_leaves"
+  },
+  "drops": [
+    {
+      "item": "CHERRY_SAPLING",
+      "min": 1,
+      "max": 1,
+      "chance": 0.05
+    },
+    {
+      "item": "STICK",
+      "min": 1,
+      "max": 1,
+      "chance": 0.02
+    }
+  ]
 }

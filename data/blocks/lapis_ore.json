@@ -1,7 +1,15 @@
 {
- "id": 669,
- "name": "LAPIS_ORE",
- "textures": {
-  "all": "lapis_ore"
- }
+  "id": 669,
+  "name": "LAPIS_ORE",
+  "textures": {
+    "all": "lapis_ore"
+  },
+  "drops": [
+    {
+      "item": "LAPIS_LAZULI",
+      "min": 4,
+      "max": 8,
+      "chance": 1.0
+    }
+  ]
 }

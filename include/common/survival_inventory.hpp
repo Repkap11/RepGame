@@ -1,11 +1,13 @@
 #pragma once
 
 #include "common/inventory_renderer.hpp"
-#include "common/block_definitions.hpp"
+#include "common/item.hpp"
 
 class FontRenderer;
 
 class SurvivalInventory {
+    friend void test_setup_inventories( struct RepGameState &gs );
+    friend int test_item_entities( );
     int width;
     int height;
     int num_slots;
@@ -16,20 +18,20 @@ class SurvivalInventory {
     void init( const VertexBufferLayout &ui_overlay_vbl_vertex, const VertexBufferLayout &ui_overlay_vbl_instance, int width, int height );
     void onScreenSizeChange( int width, int height );
 
-    // Adds the given block to the inventory. Returns the number of items that
+    // Adds the given item to the inventory. Returns the number of items that
     // could not be added (0 = all added). If the inventory is full, the leftover
     // is returned so the caller can decide to drop it.
-    int addBlock( BlockID blockId, int quantity );
+    int addItem( ItemID itemId, int quantity );
 
     // Moves the entire stack from the given slot to the hotbar. Returns true if
     // the move succeeded. prefer_selected_slot is forwarded to
-    // Hotbar::addBlockWithQuantity (also selects the slot that received items).
+    // Hotbar::addItemWithQuantity (also selects the slot that received items).
     bool moveToHotbar( int slot_index, class Hotbar &hotbar, bool prefer_selected_slot );
 
-    // Finds the given block in the inventory and moves the stack to the
+    // Finds the given item in the inventory and moves the stack to the
     // hotbar, preferring non-full stacks over full ones. Returns true if the
-    // block was found and moved.
-    bool moveBlockToHotbar( BlockID blockId, class Hotbar &hotbar, bool prefer_selected_slot );
+    // item was found and moved.
+    bool moveItemToHotbar( ItemID itemId, class Hotbar &hotbar, bool prefer_selected_slot );
 
     // Moves half of the given slot's stack (rounded up) to the hotbar.
     // Returns true if anything moved.
@@ -40,15 +42,15 @@ class SurvivalInventory {
     void swapSlot( int slot_index, InventorySlot &held );
 
     // Minecraft-style click-to-pick-up / click-to-place. If held is empty,
-    // picks up the slot's contents into held. If held has the same block type,
-    // merges into the slot's stack up to MAX_STACK_SIZE with any leftover
+    // picks up the slot's contents into held. If held has the same item type,
+    // merges into the slot's stack up to its max stack with any leftover
     // staying in held. Otherwise swaps held with the slot's contents.
     // Updates is_holding accordingly.
     void pickupOrSwapSlot( int slot_index, InventorySlot &held, bool &is_holding );
 
     // Minecraft-style right-click. If held is empty, picks up half of the
-    // slot's stack (rounded up). If held has items, places a single block into
-    // the slot if it is empty or has the same block type with room.
+    // slot's stack (rounded up). If held has items, places a single item into
+    // the slot if it is empty or has the same item type with room.
     void rightClickSlot( int slot_index, InventorySlot &held, bool &is_holding );
 
     // Returns a pointer to the slot data (for save/load and rendering).

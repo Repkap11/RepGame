@@ -282,6 +282,8 @@ void Chunk::release_terrain( ) {
     this->pending_mobs.clear( );
     this->mobs_file_present = 0;
     this->mobs_spawned = 0;
+    this->pending_items.clear( );
+    this->items_file_present = 0;
 }
 
 void Chunk::draw( const Renderer &renderer, const Texture &texture, Shader &shader, RenderOrder renderOrder, bool draw_reflect, const glm::vec3 &render_origin, int light_base_loc ) {
@@ -809,11 +811,16 @@ skip_to_mesh:
     this->pending_mobs.clear( );
     this->mobs_file_present = 0;
     this->mobs_spawned = 0;
+    this->pending_items.clear( );
+    this->items_file_present = 0;
     if ( !no_mobs ) {
         this->mobs_file_present = map_storage.load_mobs( this->chunk_pos, this->pending_mobs ) ? 1 : 0;
         if ( !this->mobs_file_present && !loaded ) {
             this->mobs_spawned = this->spawn_mobs( ) ? 1 : 0;
         }
+        // Dropped items follow the same test-mode rules as mobs: no file
+        // reads (or writes) under REPGAME_MOBS=0 / REPGAME_MOB_TEST.
+        this->items_file_present = map_storage.load_items( this->chunk_pos, this->pending_items ) ? 1 : 0;
     }
     // Flood-fill emitters + column_open flags on the worker. Skylight is
     // resolved on the lighting thread by ChunkLoader::light_finalize_chunk.

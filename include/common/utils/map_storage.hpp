@@ -12,17 +12,19 @@ struct BlockState;
 #define FILE_ROOT_CHUNK "%s/chunk_%d_%d_%d"
 #define FILE_ROOT_CHEST "%s/chest_%d_%d_%d"
 #define FILE_ROOT_MOBS "%s/mobs_%d_%d_%d"
+#define FILE_ROOT_ITEMS "%s/items_%d_%d_%d"
 #define FILE_ROOT_PLAYER_DATA "%s/player.dat"
 #define FILE_ROOT_WORLD_DATA "%s/world.dat"
 #include <glm.hpp>
 
 #include "common/chest.hpp"
+#include "common/item.hpp"
 
 // Save migration (pre-2047 format): LEGACY_EMPTY_BLOCK_ID was the empty-slot
-// marker, and ids now past LAST_BLOCK_ID or undefined load as empty slots or
-// as AIR in chunks.
+// marker, and ids now past LAST_BLOCK_ID or undefined (in either the block
+// or item range) load as empty slots or as AIR in chunks.
 static inline bool save_slot_id_is_empty( uint32_t id ) {
-    return id == LEGACY_EMPTY_BLOCK_ID || id >= LAST_BLOCK_ID || !block_id_defined( id );
+    return id == LEGACY_EMPTY_BLOCK_ID || !item_id_valid( id );
 }
 
 static inline BlockID save_chunk_block_id( uint32_t id ) {
@@ -39,6 +41,19 @@ struct __attribute__( ( packed ) ) MobFileRecord {
     float yaw;
     float health;
     uint32_t flags;
+};
+
+// Per-item save record (persist_items/load_items). Packed on disk; readers
+// copy only the shared prefix so records from a build with a different size
+// still parse. Records whose item fails item_id_valid or whose count <= 0
+// are skipped by the loader. Pickup delay is not persisted — loaded items
+// are pickable immediately.
+struct __attribute__( ( packed ) ) ItemFileRecord {
+    uint32_t item;
+    int32_t count;
+    double x, y, z;
+    float vx, vy, vz;
+    int32_t age_ticks;
 };
 
 struct PlayerData;
@@ -67,6 +82,13 @@ class MapStorage {
     // Loads mob records into `out`. Returns 1 when the file existed — even
     // when it holds zero records (the populated marker).
     int load_mobs( const glm::ivec3 &chunk_offset, std::vector<MobFileRecord> &out );
+    // Writes the chunk's dropped-item records. An empty list still writes
+    // the file — unlike mobs there is no natural respawn, so an empty file
+    // and a missing one are equivalent; writing it just keeps a chunk whose
+    // items were all picked up from resurrecting stale records.
+    void persist_items( const glm::ivec3 &chunk_offset, const std::vector<ItemFileRecord> &items );
+    // Loads dropped-item records into `out`. Returns 1 when the file existed.
+    int load_items( const glm::ivec3 &chunk_offset, std::vector<ItemFileRecord> &out );
     int read_player_data( PlayerData &player_data );
     void write_player_data( const PlayerData &player_data );
     // Server-side world clock (world.dat). Returns 1 if the file existed and

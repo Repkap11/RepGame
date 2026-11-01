@@ -1,6 +1,7 @@
 #include "common/net/packet.hpp"
 
 #include "common/constants.hpp"
+#include "common/item.hpp"
 
 #include <cstdio>
 
@@ -257,23 +258,23 @@ bool net_deserialize_chunk_diff_result( PacketReader &r, NetChunkDiffResultPaylo
     return true;
 }
 
-// InventorySlot on the wire: { u32 block_id, i32 quantity }.
+// InventorySlot on the wire: { u32 item_id, i32 quantity }.
 static void net_write_inventory_slot( PacketWriter &w, const InventorySlot &slot ) {
-    w.write_u32( static_cast<uint32_t>( slot.block_id ) );
+    w.write_u32( slot.item_id );
     w.write_i32( slot.quantity );
 }
 
 static bool net_read_inventory_slot( PacketReader &r, InventorySlot &slot ) {
-    uint32_t block_id;
+    uint32_t item_id;
     int32_t quantity;
-    if ( !r.read_u32( block_id ) ) return false;
+    if ( !r.read_u32( item_id ) ) return false;
     if ( !r.read_i32( quantity ) ) return false;
-    if ( block_id >= LAST_BLOCK_ID ) {
+    if ( !item_id_valid( item_id ) ) {
         // Unknown/out-of-range id: normalize to the empty slot sentinel.
-        block_id = LAST_BLOCK_ID;
+        item_id = LAST_BLOCK_ID;
         quantity = 0;
     }
-    slot.block_id = static_cast<BlockID>( block_id );
+    slot.item_id = item_id;
     slot.quantity = quantity;
     return true;
 }

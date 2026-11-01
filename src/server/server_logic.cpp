@@ -1,6 +1,7 @@
 
 #include "server/server_logic.hpp"
 #include "common/utils/file_utils.hpp"
+#include "common/item.hpp"
 #include "common/RepGame.hpp"
 #include "common/light.hpp"
 #include "common/net/packet.hpp"
@@ -309,11 +310,11 @@ void ServerLogic::handleChestSetSlot( Server &server, int client_fd, const glm::
         return;
     }
     InventorySlot clean = value;
-    if ( clean.block_id >= LAST_BLOCK_ID || clean.quantity <= 0 ) {
-        clean.block_id = LAST_BLOCK_ID;
+    if ( !item_id_valid( clean.item_id ) || clean.quantity <= 0 ) {
+        clean.item_id = LAST_BLOCK_ID;
         clean.quantity = 0;
-    } else if ( clean.quantity > MAX_STACK_SIZE ) {
-        clean.quantity = MAX_STACK_SIZE;
+    } else if ( clean.quantity > item_max_stack( clean.item_id ) ) {
+        clean.quantity = item_max_stack( clean.item_id );
     }
     const glm::ivec3 chunk_pos = glm::floor( glm::vec3( chest_pos ) / CHUNK_SIZE_F );
     ChestChunkState &cs = this->ensureChestChunk( chunk_pos );

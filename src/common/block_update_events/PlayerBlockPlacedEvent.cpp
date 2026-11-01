@@ -59,6 +59,34 @@ void queue_neighbor_block_updates( BlockUpdateQueue &blockUpdateQueue, World &wo
     }
 }
 
+// Doors place as a lower+upper pair: a lower needs a collidable support
+// below and a replaceable cell above for the upper half.
+static bool door_lower_can_place( World &world, const glm::ivec3 &pos ) {
+    const BlockState below = world.get_loaded_block( pos + glm::ivec3( 0, -1, 0 ) );
+    const BlockState upper_current = world.get_loaded_block( pos + glm::ivec3( 0, 1, 0 ) );
+    return below.id != LAST_BLOCK_ID && block_definition_get_definition( below.id )->collides_with_player && //
+           upper_current.id != LAST_BLOCK_ID && block_definition_get_definition( upper_current.id )->can_be_placed_in;
+}
+
+bool player_placement_valid( World &world, const glm::ivec3 &pos, const BlockState &blockState ) {
+    const BlockState current_block_state = world.get_loaded_block( pos );
+    if ( current_block_state.id == LAST_BLOCK_ID ) {
+        return false;
+    }
+    if ( BlockStates_equal( blockState, current_block_state ) ) {
+        return false;
+    }
+    Block *new_block = block_definition_get_definition( blockState.id );
+    Block *current_block = block_definition_get_definition( current_block_state.id );
+    if ( !current_block->can_be_placed_in && !( new_block->flows != 0 && current_block->breaks_in_liquid ) ) {
+        return false;
+    }
+    if ( new_block->is_door && !new_block->is_door_upper ) {
+        return door_lower_can_place( world, pos );
+    }
+    return block_can_survive_at( world, pos, blockState );
+}
+
 void PlayerBlockPlacedEvent::performAction( BlockUpdateQueue &blockUpdateQueue, RepGameState &repGameState ) {
     BlockState current_block_state = repGameState.world.get_loaded_block( this->block_pos );
     // A door power update takes only the power: the rotation was computed
@@ -99,10 +127,8 @@ void PlayerBlockPlacedEvent::performAction( BlockUpdateQueue &blockUpdateQueue, 
     if ( !this->state_update && this->blockState.id != AIR && new_block->is_door && !new_block->is_door_upper ) {
         World &world = repGameState.world;
         const glm::ivec3 upper_pos = this->block_pos + glm::ivec3( 0, 1, 0 );
-        const BlockState below = world.get_loaded_block( this->block_pos + glm::ivec3( 0, -1, 0 ) );
         const BlockState upper_current = world.get_loaded_block( upper_pos );
-        if ( below.id == LAST_BLOCK_ID || !block_definition_get_definition( below.id )->collides_with_player ||
-             upper_current.id == LAST_BLOCK_ID || !block_definition_get_definition( upper_current.id )->can_be_placed_in ) {
+        if ( !door_lower_can_place( world, this->block_pos ) ) {
             return;
         }
         // Hinge right when a same-facing door lower sits on the placer's

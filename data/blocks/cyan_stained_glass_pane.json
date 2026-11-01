@@ -1,17 +1,18 @@
 {
- "affected_by_redstone_power": false,
- "casts_shadow": false,
- "hardness": 0.449999988,
- "id": 440,
- "is_seethrough": true,
- "name": "CYAN_STAINED_GLASS_PANE",
- "render_order": "Translucent",
- "textures": {
-  "back": "glass_cyan",
-  "bottom": "glass_cyan",
-  "front": "glass_cyan",
-  "left": "glass_cyan",
-  "right": "glass_pane_top_cyan",
-  "top": "glass_cyan"
- }
+  "affected_by_redstone_power": false,
+  "casts_shadow": false,
+  "hardness": 0.449999988,
+  "id": 440,
+  "is_seethrough": true,
+  "name": "CYAN_STAINED_GLASS_PANE",
+  "render_order": "Translucent",
+  "textures": {
+    "back": "glass_cyan",
+    "bottom": "glass_cyan",
+    "front": "glass_cyan",
+    "left": "glass_cyan",
+    "right": "glass_pane_top_cyan",
+    "top": "glass_cyan"
+  },
+  "drops": []
 }

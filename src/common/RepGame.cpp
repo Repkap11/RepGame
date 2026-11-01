@@ -238,6 +238,9 @@ BlockID RepGame::change_block( const int place, BlockState blockState ) {
     } else {
         block = globalGameState.block_selection.pos_destroy;
     }
+    if ( place && !player_placement_valid( globalGameState.world, block, blockState ) ) {
+        return LAST_BLOCK_ID;
+    }
     BlockID previous_block_id = globalGameState.world.get_loaded_block( block ).id;
     // globalGameState.world.set_loaded_block( block, blockState );
     auto blockPlacedEvent = std::make_shared<PlayerBlockPlacedEvent>( globalGameState.tick_number, block, blockState, false );
@@ -296,15 +299,15 @@ unsigned char RepGame::getPlacedRotation( const BlockID blockID ) const {
 //     return true;
 // }
 
-void RepGame::add_to_hotbar( const bool alsoSelect, const BlockID blockId ) {
-    if ( globalGameState.hotbar.getSelectedBlock( ) == blockId ) {
-        // We don't support having the same block in the hotbar or inventory more than once, until there are qtys.
+void RepGame::add_to_hotbar( const bool alsoSelect, const ItemID itemId ) {
+    if ( globalGameState.hotbar.getSelectedItem( ) == itemId ) {
+        // We don't support having the same item in the hotbar or inventory more than once, until there are qtys.
         return;
     }
-    if ( globalGameState.hotbar.addBlock( alsoSelect, blockId ) ) {
-        // The block we added might have gone into our selected slot.
-        const BlockID selectedBlock = globalGameState.hotbar.getSelectedBlock( );
-        globalGameState.ui_overlay.set_holding_block( selectedBlock );
+    if ( globalGameState.hotbar.addItem( alsoSelect, itemId ) ) {
+        // The item we added might have gone into our selected slot.
+        const ItemID selectedBlock = globalGameState.hotbar.getSelectedItem( );
+        globalGameState.ui_overlay.set_holding_item( selectedBlock );
     }
 }
 
@@ -314,19 +317,19 @@ void RepGame::add_to_hotbar( const bool alsoSelect, const BlockID blockId ) {
 void repgame_loot_chest_contents( RepGameState &state, const ChestContents &contents ) {
     for ( int i = 0; i < CHEST_SLOTS; i++ ) {
         const InventorySlot &slot = contents.slots[ i ];
-        if ( slot.block_id == LAST_BLOCK_ID || slot.quantity <= 0 ) {
+        if ( slot.item_id == LAST_BLOCK_ID || slot.quantity <= 0 ) {
             continue;
         }
-        int leftover = state.survival_inventory.addBlock( slot.block_id, slot.quantity );
+        int leftover = state.survival_inventory.addItem( slot.item_id, slot.quantity );
         if ( leftover > 0 ) {
-            const int hotbar_space = state.hotbar.spaceFor( slot.block_id );
+            const int hotbar_space = state.hotbar.spaceFor( slot.item_id );
             const int to_hotbar = leftover < hotbar_space ? leftover : hotbar_space;
             if ( to_hotbar > 0 ) {
-                state.hotbar.addBlockWithQuantity( slot.block_id, to_hotbar, false );
+                state.hotbar.addItemWithQuantity( slot.item_id, to_hotbar, false );
             }
         }
     }
-    state.ui_overlay.set_holding_block( state.hotbar.getSelectedBlock( ) );
+    state.ui_overlay.set_holding_item( state.hotbar.getSelectedItem( ) );
 }
 
 void RepGame::open_chest( const glm::ivec3 &pos ) {
@@ -383,27 +386,27 @@ static void chest_pickup_or_swap( RepGameState &state, int slot_index ) {
     InventorySlot slot = contents->slots[ slot_index ];
     InventorySlot &held = state.held_inventory_slot;
     if ( !state.is_holding_inventory_slot ) {
-        if ( slot.block_id == LAST_BLOCK_ID || slot.quantity <= 0 ) {
+        if ( slot.item_id == LAST_BLOCK_ID || slot.quantity <= 0 ) {
             return;
         }
         held = slot;
-        slot.block_id = LAST_BLOCK_ID;
+        slot.item_id = LAST_BLOCK_ID;
         slot.quantity = 0;
         state.is_holding_inventory_slot = true;
-    } else if ( slot.block_id == held.block_id && slot.quantity > 0 && slot.quantity < MAX_STACK_SIZE ) {
-        const int space = MAX_STACK_SIZE - slot.quantity;
+    } else if ( slot.item_id == held.item_id && slot.quantity > 0 && slot.quantity < item_max_stack( held.item_id ) ) {
+        const int space = item_max_stack( held.item_id ) - slot.quantity;
         const int to_move = held.quantity < space ? held.quantity : space;
         slot.quantity += to_move;
         held.quantity -= to_move;
         if ( held.quantity <= 0 ) {
-            held.block_id = LAST_BLOCK_ID;
+            held.item_id = LAST_BLOCK_ID;
             state.is_holding_inventory_slot = false;
         }
     } else {
         const InventorySlot tmp = slot;
         slot = held;
         held = tmp;
-        if ( held.block_id == LAST_BLOCK_ID || held.quantity <= 0 ) {
+        if ( held.item_id == LAST_BLOCK_ID || held.quantity <= 0 ) {
             state.is_holding_inventory_slot = false;
         }
     }
@@ -419,32 +422,32 @@ static void chest_right_click( RepGameState &state, int slot_index ) {
     InventorySlot &held = state.held_inventory_slot;
     if ( !state.is_holding_inventory_slot ) {
         // Pick up half the stack, rounded up.
-        if ( slot.block_id == LAST_BLOCK_ID || slot.quantity <= 0 ) {
+        if ( slot.item_id == LAST_BLOCK_ID || slot.quantity <= 0 ) {
             return;
         }
         const int take = ( slot.quantity + 1 ) / 2;
-        held.block_id = slot.block_id;
+        held.item_id = slot.item_id;
         held.quantity = take;
         slot.quantity -= take;
         if ( slot.quantity <= 0 ) {
-            slot.block_id = LAST_BLOCK_ID;
+            slot.item_id = LAST_BLOCK_ID;
             slot.quantity = 0;
         }
         state.is_holding_inventory_slot = true;
     } else {
         // Place one held item into an empty or matching non-full slot.
-        if ( slot.block_id == LAST_BLOCK_ID || slot.quantity <= 0 ) {
-            slot.block_id = held.block_id;
+        if ( slot.item_id == LAST_BLOCK_ID || slot.quantity <= 0 ) {
+            slot.item_id = held.item_id;
             slot.quantity = 1;
             held.quantity--;
-        } else if ( slot.block_id == held.block_id && slot.quantity < MAX_STACK_SIZE ) {
+        } else if ( slot.item_id == held.item_id && slot.quantity < item_max_stack( held.item_id ) ) {
             slot.quantity++;
             held.quantity--;
         } else {
             return;
         }
         if ( held.quantity <= 0 ) {
-            held.block_id = LAST_BLOCK_ID;
+            held.item_id = LAST_BLOCK_ID;
             state.is_holding_inventory_slot = false;
         }
     }
@@ -453,7 +456,7 @@ static void chest_right_click( RepGameState &state, int slot_index ) {
 
 // Merge a stack into the chest (shift-click from a player inventory). Returns
 // the leftover count that didn't fit.
-static int chest_add( RepGameState &state, BlockID block_id, int quantity ) {
+static int chest_add( RepGameState &state, ItemID item_id, int quantity ) {
     ChestContents *contents = state.world.get_or_create_chest_contents( state.chest.pos );
     if ( contents == nullptr ) {
         return quantity;
@@ -461,8 +464,8 @@ static int chest_add( RepGameState &state, BlockID block_id, int quantity ) {
     int remaining = quantity;
     for ( int i = 0; i < CHEST_SLOTS && remaining > 0; i++ ) {
         InventorySlot &slot = contents->slots[ i ];
-        if ( slot.block_id == block_id && slot.quantity > 0 && slot.quantity < MAX_STACK_SIZE ) {
-            const int space = MAX_STACK_SIZE - slot.quantity;
+        if ( slot.item_id == item_id && slot.quantity > 0 && slot.quantity < item_max_stack( item_id ) ) {
+            const int space = item_max_stack( item_id ) - slot.quantity;
             const int to_add = remaining < space ? remaining : space;
             slot.quantity += to_add;
             remaining -= to_add;
@@ -471,9 +474,9 @@ static int chest_add( RepGameState &state, BlockID block_id, int quantity ) {
     }
     for ( int i = 0; i < CHEST_SLOTS && remaining > 0; i++ ) {
         InventorySlot &slot = contents->slots[ i ];
-        if ( slot.block_id == LAST_BLOCK_ID || slot.quantity <= 0 ) {
-            const int to_add = remaining < MAX_STACK_SIZE ? remaining : MAX_STACK_SIZE;
-            slot.block_id = block_id;
+        if ( slot.item_id == LAST_BLOCK_ID || slot.quantity <= 0 ) {
+            const int to_add = remaining < item_max_stack( item_id ) ? remaining : item_max_stack( item_id );
+            slot.item_id = item_id;
             slot.quantity = to_add;
             remaining -= to_add;
             chest_sync_slot( state, i, slot );
@@ -489,20 +492,20 @@ static void chest_slot_to_player( RepGameState &state, int slot_index ) {
         return;
     }
     InventorySlot slot = contents->slots[ slot_index ];
-    if ( slot.block_id == LAST_BLOCK_ID || slot.quantity <= 0 ) {
+    if ( slot.item_id == LAST_BLOCK_ID || slot.quantity <= 0 ) {
         return;
     }
-    int leftover = state.survival_inventory.addBlock( slot.block_id, slot.quantity );
+    int leftover = state.survival_inventory.addItem( slot.item_id, slot.quantity );
     if ( leftover > 0 ) {
-        const int hotbar_space = state.hotbar.spaceFor( slot.block_id );
+        const int hotbar_space = state.hotbar.spaceFor( slot.item_id );
         const int to_hotbar = leftover < hotbar_space ? leftover : hotbar_space;
         if ( to_hotbar > 0 ) {
-            state.hotbar.addBlockWithQuantity( slot.block_id, to_hotbar, false );
+            state.hotbar.addItemWithQuantity( slot.item_id, to_hotbar, false );
             leftover -= to_hotbar;
         }
     }
     if ( leftover <= 0 ) {
-        slot.block_id = LAST_BLOCK_ID;
+        slot.item_id = LAST_BLOCK_ID;
         slot.quantity = 0;
     } else {
         slot.quantity = leftover;
@@ -522,18 +525,18 @@ static void chest_move_to_player( RepGameState &state, int slot_index, bool half
         return;
     }
     InventorySlot slot = contents->slots[ slot_index ];
-    if ( slot.block_id == LAST_BLOCK_ID || slot.quantity <= 0 ) {
+    if ( slot.item_id == LAST_BLOCK_ID || slot.quantity <= 0 ) {
         return;
     }
     const int want = ( slot.quantity + 1 ) / 2;
-    int moved = want - state.survival_inventory.addBlock( slot.block_id, want );
-    // addBlock returns the leftover; moved = want - leftover.
+    int moved = want - state.survival_inventory.addItem( slot.item_id, want );
+    // addItem returns the leftover; moved = want - leftover.
     if ( moved <= 0 ) {
         return;
     }
     slot.quantity -= moved;
     if ( slot.quantity <= 0 ) {
-        slot.block_id = LAST_BLOCK_ID;
+        slot.item_id = LAST_BLOCK_ID;
         slot.quantity = 0;
     }
     chest_sync_slot( state, slot_index, slot );
@@ -543,17 +546,17 @@ static void chest_move_to_player( RepGameState &state, int slot_index, bool half
 // stack (or half, for right-shift-click) into the chest.
 static void survival_slot_to_chest( RepGameState &state, int slot_index, bool half ) {
     InventorySlot &slot = state.survival_inventory.getSlotsMut( )[ slot_index ];
-    if ( slot.block_id == LAST_BLOCK_ID || slot.quantity <= 0 ) {
+    if ( slot.item_id == LAST_BLOCK_ID || slot.quantity <= 0 ) {
         return;
     }
     const int want = half ? ( slot.quantity + 1 ) / 2 : slot.quantity;
-    const int moved = want - chest_add( state, slot.block_id, want );
+    const int moved = want - chest_add( state, slot.item_id, want );
     if ( moved <= 0 ) {
         return;
     }
     slot.quantity -= moved;
     if ( slot.quantity <= 0 ) {
-        slot.block_id = LAST_BLOCK_ID;
+        slot.item_id = LAST_BLOCK_ID;
         slot.quantity = 0;
     }
     state.survival_inventory.inventory_renderer.changeSlotItem( slot_index, slot );
@@ -561,25 +564,33 @@ static void survival_slot_to_chest( RepGameState &state, int slot_index, bool ha
 
 static void hotbar_slot_to_chest( RepGameState &state, int slot_index, bool half ) {
     InventorySlot slot = state.hotbar.getSlotContents( slot_index );
-    if ( slot.block_id == LAST_BLOCK_ID || slot.quantity <= 0 ) {
+    if ( slot.item_id == LAST_BLOCK_ID || slot.quantity <= 0 ) {
         return;
     }
     const int want = half ? ( slot.quantity + 1 ) / 2 : slot.quantity;
-    const int moved = want - chest_add( state, slot.block_id, want );
+    const int moved = want - chest_add( state, slot.item_id, want );
     if ( moved <= 0 ) {
         return;
     }
     slot.quantity -= moved;
     if ( slot.quantity <= 0 ) {
-        slot.block_id = LAST_BLOCK_ID;
+        slot.item_id = LAST_BLOCK_ID;
         slot.quantity = 0;
     }
     state.hotbar.setSlotContents( slot_index, slot );
-    state.ui_overlay.set_holding_block( state.hotbar.getSelectedBlock( ) );
+    state.ui_overlay.set_holding_item( state.hotbar.getSelectedItem( ) );
 }
 
 // Breaks the block under the cursor. In survival mode the mined block is
 // added to the hotbar first, then falls back to the survival inventory.
+// Launch velocity (blocks/tick at UPS_RATE) for block-break and mob drops: a
+// small pop that peaks ~0.2-0.35 blocks up and drifts <0.3 sideways under the
+// item gravity/drag, so drops fall back roughly where they spawned.
+static glm::dvec3 item_drop_hop( ) {
+    const auto r = [ ]( ) { return rand( ) / ( double )RAND_MAX; };
+    return glm::dvec3( ( r( ) - 0.5 ) * 0.008, 0.018 + r( ) * 0.007, ( r( ) - 0.5 ) * 0.008 );
+}
+
 void RepGame::break_selected_block( ) {
     // Debris is spawned by the queued PlayerBlockPlacedEvent, which covers all
     // block-removal paths (mining, support loss, water, remote edits).
@@ -611,11 +622,23 @@ void RepGame::break_selected_block( ) {
         }
     }
     if ( globalGameState.game_mode == GameMode_Survival && previous_block != LAST_BLOCK_ID && previous_block != AIR ) {
-        // A door's upper half drops the lower's item.
-        const BlockID drop_id = door_item_id( previous_block );
-        const Block *blockDef = block_definition_get_definition( drop_id );
-        if ( blockDef->is_pickable && blockDef->renderOrder != RenderOrder_Transparent && blockDef->renderOrder != RenderOrder_Water ) {
-            RepGame::give_block_to_player( globalGameState, drop_id, 1 );
+        // A door's upper half drops the lower's item. Blocks with a "drops"
+        // table roll it; the rest drop themselves (kept behind the pickable /
+        // render-order gate). See block_roll_drops. Each rolled drop spawns
+        // as an item entity at the broken cell with a small random hop.
+        static uint32_t drop_rng_state = 0x9e3779b9u;
+        ItemStack drops[ 8 ];
+        const int num_drops = block_roll_drops( door_item_id( previous_block ), &drop_rng_state, drops, 8 );
+        const glm::dvec3 drop_pos = glm::dvec3( globalGameState.block_selection.pos_destroy ) + glm::dvec3( 0.5 );
+        for ( int i = 0; i < num_drops; i++ ) {
+            const ItemID drop_id = drops[ i ].item_id;
+            if ( item_is_block( drop_id ) ) {
+                const Block *blockDef = block_definition_get_definition( static_cast<BlockID>( drop_id ) );
+                if ( !blockDef->is_pickable || blockDef->renderOrder == RenderOrder_Transparent || blockDef->renderOrder == RenderOrder_Water ) {
+                    continue;
+                }
+            }
+            globalGameState.world.items.spawn( drop_id, drops[ i ].count, drop_pos, item_drop_hop( ), 10 );
         }
     }
 }
@@ -638,11 +661,57 @@ void RepGame::player_hurt( RepGameState &state, const glm::dvec3 &from, float da
     audio_play_sfx( "player_hurt" );
 }
 
-void RepGame::give_block_to_player( RepGameState &state, BlockID block, int quantity ) {
-    const bool added = state.hotbar.addBlockWithQuantity( block, quantity );
-    if ( !added ) {
-        state.survival_inventory.addBlock( block, quantity );
+// Throws `count` of `item` out of the player as an item entity: spawned just
+// ahead of the eye, tossed along the look direction with a little lift, and
+// un-pickable briefly (40 ticks) so it leaves the pickup radius.
+static void throw_item( RepGameState &state, const ItemID item, const int count ) {
+    const glm::dvec3 look = glm::dvec3( state.camera.look );
+    state.world.items.spawn( item, count, state.camera.pos + look * 0.3, look * 0.045 + glm::dvec3( 0.0, 0.01, 0.0 ), 40 );
+}
+
+// A click while the inventory is open is "outside the panels" when it lands
+// on no visible inventory panel rect — chest (if open), the creative or
+// survival inventory, or the hotbar strip.
+static bool off_inventory_panels( RepGameState &state ) {
+    const int x = state.input.mouse.absPosition.x;
+    const int y = state.input.mouse.absPosition.y;
+    if ( state.chest.open && state.chest.inventory_renderer.containsPoint( x, y ) ) {
+        return false;
     }
+    if ( state.game_mode == GameMode_Creative ) {
+        if ( state.main_inventory.inventory_renderer.containsPoint( x, y ) ) {
+            return false;
+        }
+    } else if ( state.survival_inventory.inventory_renderer.containsPoint( x, y ) ) {
+        return false;
+    }
+    return !state.hotbar.inventory_renderer.containsPoint( x, y );
+}
+
+// Throws the held cursor stack (whole) or one item from it as an item
+// entity; the remainder stays on the cursor.
+static void throw_held_cursor_stack( RepGameState &state, const bool whole ) {
+    if ( !state.is_holding_inventory_slot || state.held_inventory_slot.item_id == LAST_BLOCK_ID || state.held_inventory_slot.quantity <= 0 ) {
+        return;
+    }
+    const int qty = whole ? state.held_inventory_slot.quantity : 1;
+    throw_item( state, state.held_inventory_slot.item_id, qty );
+    state.held_inventory_slot.quantity -= qty;
+    if ( state.held_inventory_slot.quantity <= 0 ) {
+        state.held_inventory_slot.item_id = LAST_BLOCK_ID;
+        state.is_holding_inventory_slot = false;
+    }
+}
+
+int RepGame::give_item_to_player( RepGameState &state, ItemID item, int quantity ) {
+    const int bar_space = state.hotbar.spaceFor( item );
+    const int to_bar = quantity < bar_space ? quantity : bar_space;
+    if ( to_bar > 0 && !state.hotbar.addItemWithQuantity( item, to_bar ) ) {
+        // addItemWithQuantity also rejects uncollectable items (e.g.
+        // transparent blocks): nothing fit at all.
+        return quantity;
+    }
+    return state.survival_inventory.addItem( item, quantity - to_bar );
 }
 
 void RepGame::resolve_target_mob( RepGameState &state, const glm::dvec3 &ray_origin ) {
@@ -669,21 +738,21 @@ void RepGame::process_mouse_events( ) {
             // it (nothing is pulled from the survival inventory); only move a
             // whole stack when the bar's stacks are full (or the block isn't
             // on the bar at all).
-            int bar_slot = globalGameState.hotbar.findSlotWithBlock( pick_id, true );
+            int bar_slot = globalGameState.hotbar.findSlotWithItem( pick_id, true );
             if ( bar_slot >= 0 ) {
                 globalGameState.hotbar.setSelectedSlot( bar_slot );
-            } else if ( !globalGameState.survival_inventory.moveBlockToHotbar( pick_id, globalGameState.hotbar, true ) ) {
+            } else if ( !globalGameState.survival_inventory.moveItemToHotbar( pick_id, globalGameState.hotbar, true ) ) {
                 // Nothing to move: select an existing (full) stack on the bar.
-                int full_slot = globalGameState.hotbar.findSlotWithBlock( pick_id, false );
+                int full_slot = globalGameState.hotbar.findSlotWithItem( pick_id, false );
                 if ( full_slot >= 0 ) {
                     globalGameState.hotbar.setSelectedSlot( full_slot );
                 }
             }
             // Debug feature: also give 1 of the picked block so spamming
             // middle-click restocks the bar without mining.
-            globalGameState.hotbar.addBlockWithQuantity( pick_id, 1 );
-            BlockID selectedBlock = globalGameState.hotbar.getSelectedBlock( );
-            globalGameState.ui_overlay.set_holding_block( selectedBlock );
+            globalGameState.hotbar.addItemWithQuantity( pick_id, 1 );
+            ItemID selectedBlock = globalGameState.hotbar.getSelectedItem( );
+            globalGameState.ui_overlay.set_holding_item( selectedBlock );
         } else if ( pick_id != LAST_BLOCK_ID ) {
             // Creative mode: always give the block.
             RepGame::add_to_hotbar( true, pick_id );
@@ -708,9 +777,16 @@ void RepGame::process_mouse_events( ) {
         globalGameState.vr.haptic_pending = true;
         if ( killed && globalGameState.game_mode == GameMode_Survival ) {
             const MobTypeDef &def = globalGameState.world.mobs.def_at( hit_mob );
-            if ( def.drop_block != LAST_BLOCK_ID ) {
-                const int drop = def.drop_min + rand( ) % ( def.drop_max - def.drop_min + 1 );
-                RepGame::give_block_to_player( globalGameState, def.drop_block, drop );
+            const glm::dvec3 drop_pos = globalGameState.world.mobs.pos_at( hit_mob ) + glm::dvec3( 0.0, 0.3, 0.0 );
+            for ( int i = 0; i < 2; i++ ) {
+                const MobDrop &drop = def.drops[ i ];
+                if ( drop.item == LAST_BLOCK_ID ) {
+                    continue;
+                }
+                const int count = drop.min + rand( ) % ( drop.max - drop.min + 1 );
+                if ( count > 0 ) {
+                    globalGameState.world.items.spawn( drop.item, count, drop_pos, item_drop_hop( ), 10 );
+                }
             }
         }
     }
@@ -810,8 +886,9 @@ void RepGame::process_mouse_events( ) {
         }
     }
     if ( ( globalGameState.block_selection.selectionInBounds || globalGameState.block_selection.floatSelectionInBounds ) && globalGameState.input.mouse.buttons.right && !globalGameState.input.mouse.buttons.right_pressed_in_ui && globalGameState.input.click_delay_right == 0 ) {
-        // Placing a block
-        BlockID holdingBlock = globalGameState.hotbar.getSelectedBlock( );
+        // Placing a block — non-block items can't be placed.
+        const ItemID held_item = globalGameState.hotbar.getSelectedItem( );
+        const BlockID holdingBlock = item_is_block( held_item ) ? static_cast<BlockID>( held_item ) : LAST_BLOCK_ID;
         if ( holdingBlock != LAST_BLOCK_ID ) {
             const Block *holdingBlockDef = block_definition_get_definition( holdingBlock );
             bool did_toggle_dust = false;
@@ -858,8 +935,8 @@ void RepGame::process_mouse_events( ) {
                     }
                     if ( placed_block != LAST_BLOCK_ID && globalGameState.game_mode == GameMode_Survival ) {
                         globalGameState.hotbar.consumeSelected( 1 );
-                        BlockID newHolding = globalGameState.hotbar.getSelectedBlock( );
-                        globalGameState.ui_overlay.set_holding_block( newHolding );
+                        ItemID newHolding = globalGameState.hotbar.getSelectedItem( );
+                        globalGameState.ui_overlay.set_holding_item( newHolding );
                     }
                     globalGameState.input.click_delay_right = 30;
                 }
@@ -1280,9 +1357,13 @@ void RepGame::process_inventory_events( ) {
     }
     if ( globalGameState.input.drop_item ) {
         globalGameState.input.drop_item = false;
-        globalGameState.hotbar.dropSelectedItem( );
-        BlockID holdingBlock = globalGameState.hotbar.getSelectedBlock( );
-        globalGameState.ui_overlay.set_holding_block( holdingBlock );
+        // Q throws one of the selected item; Ctrl+Q throws the whole stack.
+        const int qty = globalGameState.input.ctrl_held ? globalGameState.hotbar.getSelectedQuantity( ) : 1;
+        const ItemID held = globalGameState.hotbar.getSelectedItem( );
+        if ( held != LAST_BLOCK_ID && qty > 0 && globalGameState.hotbar.consumeSelected( qty ) ) {
+            throw_item( globalGameState, held, qty );
+            globalGameState.ui_overlay.set_holding_item( globalGameState.hotbar.getSelectedItem( ) );
+        }
     }
     // A screen tap (touch platforms) is a click at absPosition while the
     // inventory is open, or a hotbar slot tap-select while it is closed.
@@ -1291,7 +1372,11 @@ void RepGame::process_inventory_events( ) {
     if ( globalGameState.input.inventory_open ) {
         if ( ( globalGameState.input.mouse.buttons.left && globalGameState.input.mouse.buttons.left_pressed_in_ui && globalGameState.input.mouse.buttons.left_click_handled == false ) || screen_tap ) {
             globalGameState.input.mouse.buttons.left_click_handled = true;
-            if ( globalGameState.chest.open ) {
+            if ( !screen_tap && globalGameState.is_holding_inventory_slot && off_inventory_panels( globalGameState ) ) {
+                // Left-click outside every panel while holding a stack throws
+                // the whole stack as an item entity.
+                throw_held_cursor_stack( globalGameState, true );
+            } else if ( globalGameState.chest.open ) {
                 // Chest UI: chest slots win, then survival, then hotbar.
                 const int chest_slot = globalGameState.chest.inventory_renderer.whichSlotClicked( globalGameState.input.mouse.absPosition.x, globalGameState.input.mouse.absPosition.y );
                 if ( chest_slot >= 0 && chest_slot < CHEST_SLOTS ) {
@@ -1316,22 +1401,22 @@ void RepGame::process_inventory_events( ) {
                             } else {
                                 globalGameState.hotbar.pickupOrSwapSlot( hotbar_slot, globalGameState.held_inventory_slot, globalGameState.is_holding_inventory_slot );
                             }
-                            globalGameState.ui_overlay.set_holding_block( globalGameState.hotbar.getSelectedBlock( ) );
+                            globalGameState.ui_overlay.set_holding_item( globalGameState.hotbar.getSelectedItem( ) );
                         }
                     }
                 }
             } else if ( globalGameState.game_mode == GameMode_Creative ) {
-                BlockID blockId = globalGameState.main_inventory.whichBlockClicked( globalGameState.input.mouse.absPosition.x, globalGameState.input.mouse.absPosition.y );
-                // pr_debug( "Clicked on %d %d blockID:%d", globalGameState.input.mouse.absPosition.x, globalGameState.input.mouse.absPosition.y, blockId );
-                if ( blockId != LAST_BLOCK_ID ) {
-                    add_to_hotbar( true, blockId );
+                ItemID itemId = globalGameState.main_inventory.whichItemClicked( globalGameState.input.mouse.absPosition.x, globalGameState.input.mouse.absPosition.y );
+                // pr_debug( "Clicked on %d %d itemId:%d", globalGameState.input.mouse.absPosition.x, globalGameState.input.mouse.absPosition.y, itemId );
+                if ( itemId != LAST_BLOCK_ID ) {
+                    add_to_hotbar( true, itemId );
                 } else {
                     // Clicks on the visible hotbar select its slots too.
                     const int hotbar_slot = globalGameState.hotbar.inventory_renderer.whichSlotClicked( globalGameState.input.mouse.absPosition.x, globalGameState.input.mouse.absPosition.y );
                     if ( hotbar_slot >= 0 ) {
                         globalGameState.hotbar.setSelectedSlot( hotbar_slot );
-                        const BlockID selectedBlock = globalGameState.hotbar.getSelectedBlock( );
-                        globalGameState.ui_overlay.set_holding_block( selectedBlock );
+                        const ItemID selectedBlock = globalGameState.hotbar.getSelectedItem( );
+                        globalGameState.ui_overlay.set_holding_item( selectedBlock );
                     }
                 }
             } else {
@@ -1342,14 +1427,14 @@ void RepGame::process_inventory_events( ) {
                     int slot = globalGameState.survival_inventory.whichSlotClicked( globalGameState.input.mouse.absPosition.x, globalGameState.input.mouse.absPosition.y );
                     if ( slot >= 0 ) {
                         globalGameState.survival_inventory.moveToHotbar( slot, globalGameState.hotbar, false );
-                        BlockID selectedBlock = globalGameState.hotbar.getSelectedBlock( );
-                        globalGameState.ui_overlay.set_holding_block( selectedBlock );
+                        ItemID selectedBlock = globalGameState.hotbar.getSelectedItem( );
+                        globalGameState.ui_overlay.set_holding_item( selectedBlock );
                     } else {
                         int hotbar_slot = globalGameState.hotbar.inventory_renderer.whichSlotClicked( globalGameState.input.mouse.absPosition.x, globalGameState.input.mouse.absPosition.y );
                         if ( hotbar_slot >= 0 ) {
                             globalGameState.hotbar.moveToSurvivalInventory( hotbar_slot, globalGameState.survival_inventory );
-                            BlockID selectedBlock = globalGameState.hotbar.getSelectedBlock( );
-                            globalGameState.ui_overlay.set_holding_block( selectedBlock );
+                            ItemID selectedBlock = globalGameState.hotbar.getSelectedItem( );
+                            globalGameState.ui_overlay.set_holding_item( selectedBlock );
                         }
                     }
                 } else {
@@ -1361,8 +1446,8 @@ void RepGame::process_inventory_events( ) {
                         int hotbar_slot = globalGameState.hotbar.inventory_renderer.whichSlotClicked( globalGameState.input.mouse.absPosition.x, globalGameState.input.mouse.absPosition.y );
                         if ( hotbar_slot >= 0 ) {
                             globalGameState.hotbar.pickupOrSwapSlot( hotbar_slot, globalGameState.held_inventory_slot, globalGameState.is_holding_inventory_slot );
-                            BlockID selectedBlock = globalGameState.hotbar.getSelectedBlock( );
-                            globalGameState.ui_overlay.set_holding_block( selectedBlock );
+                            ItemID selectedBlock = globalGameState.hotbar.getSelectedItem( );
+                            globalGameState.ui_overlay.set_holding_item( selectedBlock );
                         }
                     }
                 }
@@ -1382,14 +1467,18 @@ void RepGame::process_inventory_events( ) {
                 int slot = globalGameState.survival_inventory.whichSlotClicked( globalGameState.input.mouse.absPosition.x, globalGameState.input.mouse.absPosition.y );
                 if ( slot >= 0 ) {
                     globalGameState.survival_inventory.moveToHotbar( slot, globalGameState.hotbar, false );
-                    BlockID selectedBlock = globalGameState.hotbar.getSelectedBlock( );
-                    globalGameState.ui_overlay.set_holding_block( selectedBlock );
+                    ItemID selectedBlock = globalGameState.hotbar.getSelectedItem( );
+                    globalGameState.ui_overlay.set_holding_item( selectedBlock );
                 }
             }
         }
         if ( globalGameState.input.mouse.buttons.right && globalGameState.input.mouse.buttons.right_pressed_in_ui && globalGameState.input.mouse.buttons.right_click_handled == false ) {
             globalGameState.input.mouse.buttons.right_click_handled = true;
-            if ( globalGameState.chest.open ) {
+            if ( globalGameState.is_holding_inventory_slot && off_inventory_panels( globalGameState ) ) {
+                // Right-click outside every panel while holding a stack
+                // throws one item of it.
+                throw_held_cursor_stack( globalGameState, false );
+            } else if ( globalGameState.chest.open ) {
                 const int chest_slot = globalGameState.chest.inventory_renderer.whichSlotClicked( globalGameState.input.mouse.absPosition.x, globalGameState.input.mouse.absPosition.y );
                 if ( chest_slot >= 0 && chest_slot < CHEST_SLOTS ) {
                     if ( globalGameState.input.shift_held ) {
@@ -1413,7 +1502,7 @@ void RepGame::process_inventory_events( ) {
                             } else {
                                 globalGameState.hotbar.rightClickSlot( hotbar_slot, globalGameState.held_inventory_slot, globalGameState.is_holding_inventory_slot );
                             }
-                            globalGameState.ui_overlay.set_holding_block( globalGameState.hotbar.getSelectedBlock( ) );
+                            globalGameState.ui_overlay.set_holding_item( globalGameState.hotbar.getSelectedItem( ) );
                         }
                     }
                 }
@@ -1430,8 +1519,8 @@ void RepGame::process_inventory_events( ) {
                             globalGameState.hotbar.moveHalfToSurvivalInventory( hotbar_slot, globalGameState.survival_inventory );
                         }
                     }
-                    BlockID selectedBlock = globalGameState.hotbar.getSelectedBlock( );
-                    globalGameState.ui_overlay.set_holding_block( selectedBlock );
+                    ItemID selectedBlock = globalGameState.hotbar.getSelectedItem( );
+                    globalGameState.ui_overlay.set_holding_item( selectedBlock );
                 } else if ( slot >= 0 ) {
                     // Right-click picks up half a stack (rounded up), or
                     // places a single held block into the slot.
@@ -1440,8 +1529,8 @@ void RepGame::process_inventory_events( ) {
                     int hotbar_slot = globalGameState.hotbar.inventory_renderer.whichSlotClicked( globalGameState.input.mouse.absPosition.x, globalGameState.input.mouse.absPosition.y );
                     if ( hotbar_slot >= 0 ) {
                         globalGameState.hotbar.rightClickSlot( hotbar_slot, globalGameState.held_inventory_slot, globalGameState.is_holding_inventory_slot );
-                        BlockID selectedBlock = globalGameState.hotbar.getSelectedBlock( );
-                        globalGameState.ui_overlay.set_holding_block( selectedBlock );
+                        ItemID selectedBlock = globalGameState.hotbar.getSelectedItem( );
+                        globalGameState.ui_overlay.set_holding_item( selectedBlock );
                     }
                 }
             }
@@ -1452,8 +1541,8 @@ void RepGame::process_inventory_events( ) {
             const int slot = globalGameState.hotbar.inventory_renderer.whichSlotClicked( globalGameState.input.mouse.absPosition.x, globalGameState.input.mouse.absPosition.y );
             if ( slot >= 0 ) {
                 globalGameState.hotbar.setSelectedSlot( slot );
-                const BlockID selectedBlock = globalGameState.hotbar.getSelectedBlock( );
-                globalGameState.ui_overlay.set_holding_block( selectedBlock );
+                const ItemID selectedBlock = globalGameState.hotbar.getSelectedItem( );
+                globalGameState.ui_overlay.set_holding_item( selectedBlock );
             }
         }
         // Steal any left/middle click events so they don't trigger right when we open the inventory.
@@ -1465,11 +1554,11 @@ void RepGame::process_inventory_events( ) {
         // If we were holding an inventory item when the inventory closed, return
         // it to the survival inventory to avoid item loss.
         if ( globalGameState.is_holding_inventory_slot ) {
-            int leftover = globalGameState.survival_inventory.addBlock( globalGameState.held_inventory_slot.block_id, globalGameState.held_inventory_slot.quantity );
+            int leftover = globalGameState.survival_inventory.addItem( globalGameState.held_inventory_slot.item_id, globalGameState.held_inventory_slot.quantity );
             if ( leftover > 0 ) {
-                globalGameState.hotbar.addBlockWithQuantity( globalGameState.held_inventory_slot.block_id, leftover );
+                globalGameState.hotbar.addItemWithQuantity( globalGameState.held_inventory_slot.item_id, leftover );
             }
-            globalGameState.held_inventory_slot.block_id = LAST_BLOCK_ID;
+            globalGameState.held_inventory_slot.item_id = LAST_BLOCK_ID;
             globalGameState.held_inventory_slot.quantity = 0;
             globalGameState.is_holding_inventory_slot = false;
         }
@@ -1609,11 +1698,11 @@ void RepGame::tick( ) {
         if ( globalGameState.input.inventory_open && globalGameState.game_mode == GameMode_Creative ) {
             globalGameState.main_inventory.incrementSelectedPage( wheel_diff );
         } else if ( globalGameState.input.inventory_open && globalGameState.game_mode == GameMode_Survival ) {
-            BlockID holdingBlock = globalGameState.hotbar.incrementSelectedSlot( wheel_diff );
-            globalGameState.ui_overlay.set_holding_block( holdingBlock );
+            ItemID holdingBlock = globalGameState.hotbar.incrementSelectedSlot( wheel_diff );
+            globalGameState.ui_overlay.set_holding_item( holdingBlock );
         } else if ( !globalGameState.input.inventory_open ) {
-            BlockID holdingBlock = globalGameState.hotbar.incrementSelectedSlot( wheel_diff );
-            globalGameState.ui_overlay.set_holding_block( holdingBlock );
+            ItemID holdingBlock = globalGameState.hotbar.incrementSelectedSlot( wheel_diff );
+            globalGameState.ui_overlay.set_holding_item( holdingBlock );
         }
     }
 
@@ -1658,8 +1747,8 @@ void RepGame::tick( ) {
         // tick; the ray is recomputed every tick so it's at most 1 tick old).
         globalGameState.block_selection.ray_origin = ray_origin;
         globalGameState.block_selection.ray_dir = glm::normalize( pos_with_reach - ray_origin );
-        const BlockID selected_block = globalGameState.hotbar.getSelectedBlock( );
-        const int pick_water = selected_block != LAST_BLOCK_ID && block_definition_get_definition( selected_block )->can_float_on_water;
+        const ItemID selected_block = globalGameState.hotbar.getSelectedItem( );
+        const int pick_water = item_is_block( selected_block ) && block_definition_get_definition( static_cast<BlockID>( selected_block ) )->can_float_on_water;
         globalGameState.block_selection.selectionInBounds = RayTraversal::find_block_from_to( globalGameState.world, nullptr, ray_origin, pos_with_reach, globalGameState.block_selection.pos_destroy, &whichFace, 0, 1, 0, 0 );
 
         globalGameState.block_selection.face = whichFace;
@@ -1818,6 +1907,8 @@ void RepGame::tick( ) {
     globalGameState.world.mobs.tick( globalGameState.world, globalGameState.camera.pos, &mob_in, &mob_out );
     // Falling blocks + primed TNT bodies integrate on the same cadence.
     globalGameState.world.bodies.tick( globalGameState );
+    // Dropped item entities: physics, merge, magnet/pickup, despawn.
+    globalGameState.world.items.tick( globalGameState );
     for ( const MobPlayerHit &hit : mob_out.player_hits ) {
         RepGame::player_hurt( globalGameState, hit.from, hit.damage );
     }
@@ -2101,8 +2192,8 @@ void RepGame::initializeGameState( const char *world_name ) {
     globalGameState.camera.prev_eye_height = globalGameState.camera.eye_height;
     globalGameState.camera.prev_angle_H = globalGameState.camera.angle_H;
     globalGameState.camera.prev_angle_V = globalGameState.camera.angle_V;
-    BlockID selectedBlock = globalGameState.hotbar.getSelectedBlock( );
-    globalGameState.ui_overlay.set_holding_block( selectedBlock );
+    ItemID selectedBlock = globalGameState.hotbar.getSelectedItem( );
+    globalGameState.ui_overlay.set_holding_item( selectedBlock );
 }
 
 MK_TEXTURE( blocks, 384, BLOCK_TEXTURE_ATLAS_ROWS * 16, 16, 16 );
@@ -2158,7 +2249,7 @@ RepGameState *RepGame::init( const char *world_name, const bool connect_multi, c
     globalGameState.hotbar.init( vbl_ui_overlay_vertex, vbl_ui_overlay_instance, HOTBAR_WIDTH, HOTBAR_HEIGHT );
     globalGameState.chest.inventory_renderer.init( vbl_ui_overlay_vertex, vbl_ui_overlay_instance, CHEST_INVENTORY_WIDTH, CHEST_INVENTORY_HEIGHT );
     globalGameState.game_mode = GameMode_Creative;
-    globalGameState.held_inventory_slot.block_id = LAST_BLOCK_ID;
+    globalGameState.held_inventory_slot.item_id = LAST_BLOCK_ID;
     globalGameState.held_inventory_slot.quantity = 0;
     globalGameState.is_holding_inventory_slot = false;
 
@@ -2170,8 +2261,8 @@ RepGameState *RepGame::init( const char *world_name, const bool connect_multi, c
     imgui_overlay_init( &globalGameState.imgui_overlay );
     globalGameState.font_renderer.init( );
 
-    BlockID selectedBlock = globalGameState.hotbar.getSelectedBlock( );
-    globalGameState.ui_overlay.set_holding_block( selectedBlock );
+    ItemID selectedBlock = globalGameState.hotbar.getSelectedItem( );
+    globalGameState.ui_overlay.set_holding_item( selectedBlock );
 
     int iMultiSample = 0;
     int iNumSamples = 0;
@@ -2488,6 +2579,7 @@ void RepGame::draw_frame( float alpha, const RenderView *views, int num_views ) 
     debugVars.debris_particles = static_cast<int>( globalGameState.world.blockDebris.count( ) );
     debugVars.primed_tnt = static_cast<int>( globalGameState.world.bodies.count_tnt( ) );
     debugVars.falling_blocks = static_cast<int>( globalGameState.world.bodies.count_falling( ) );
+    debugVars.item_entities = static_cast<int>( globalGameState.world.items.count( ) );
     // PageUp/PageDown nudges: ±1 hour per keypress (±6 with Shift),
     // accumulated on the input side. Wrap into one day cycle.
     if ( globalGameState.input.time_skip_hours != 0 ) {

@@ -18,9 +18,14 @@
 // other defined non-AIR id in ascending order. Built once.
 static const std::vector<BlockID> &block_world_table( ) {
     static const std::vector<BlockID> table = []( ) {
-        std::vector<BlockID> t( CREATIVE_BLOCKS, CREATIVE_BLOCKS + CREATIVE_BLOCK_COUNT );
+        std::vector<BlockID> t;
         unsigned char in_list[ LAST_BLOCK_ID ] = { 0 };
         for ( unsigned int i = 0; i < CREATIVE_BLOCK_COUNT; i++ ) {
+            // The creative list ends with pure items — not placeable blocks.
+            if ( !item_is_block( CREATIVE_BLOCKS[ i ] ) ) {
+                continue;
+            }
+            t.push_back( static_cast<BlockID>( CREATIVE_BLOCKS[ i ] ) );
             in_list[ CREATIVE_BLOCKS[ i ] ] = 1;
         }
         in_list[ AIR ] = 1;

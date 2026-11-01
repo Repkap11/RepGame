@@ -7,6 +7,7 @@ class World;
 #include "common/multiplayer_avatars.hpp"
 #include "common/block_debris.hpp"
 #include "common/block_bodies.hpp"
+#include "common/item_entities.hpp"
 #include "common/mobs.hpp"
 #include "common/renderer/full_screen_quad.hpp"
 #include "common/RenderChain.hpp"
@@ -35,6 +36,7 @@ class World {
     VertexBufferLayout vbl_debris_instance;
     VertexBufferLayout vbl_primed_tnt_instance;
     VertexBufferLayout vbl_mob_instance;
+    VertexBufferLayout vbl_item_instance;
     Texture reflectionTexture;
     Texture blockTexture;
     Texture fogTexture;
@@ -58,6 +60,7 @@ class World {
     Shader debris_shader;
     Shader primed_tnt_shader;
     Shader mob_shader;
+    Shader item_sprite_shader;
 
     int can_fixup_chunk( const Chunk &chunk, const glm::ivec3 &offset ) const;
     void fixup_chunk( const Chunk &chunk, const glm::ivec3 &offset, const glm::ivec3 &pos, const BlockState &blockState );
@@ -92,6 +95,10 @@ class World {
     // anvils) and primed TNT. ticked from the game loop right after
     // mobs.tick; rendered through two instanced chains in draw.
     BlockBodies bodies;
+    // Dropped item entities: client-local physics + pickup; ticked right
+    // after bodies, rendered as mini cubes (isometric block items) or
+    // extruded sprites.
+    ItemEntities items;
     // void overlay_blocks( const glm::ivec3 &block_pos, BlockState *blockStates, int numBlockStates );
 
     static BlockState get_block_from_chunk( const Chunk &chunk, const glm::ivec3 &block );

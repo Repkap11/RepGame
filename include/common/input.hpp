@@ -59,6 +59,9 @@ class Input {
     // frame. CHUNK_RADIUS_* remains the compiled-in torus capacity.
     int render_distance;
     bool drop_item;
+    // Ctrl modifier state, sampled like shift_held — Ctrl+Q throws the whole
+    // selected stack instead of one item.
+    bool ctrl_held;
     bool screenshot_requested;
     bool toggle_game_mode;
     // Set by the 'v' key; consumed by the SDL frame loop to flip

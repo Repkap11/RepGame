@@ -43,7 +43,7 @@ struct ChestContents {
 
     void clear( ) {
         for ( int i = 0; i < CHEST_SLOTS; i++ ) {
-            slots[ i ].block_id = LAST_BLOCK_ID;
+            slots[ i ].item_id = LAST_BLOCK_ID;
             slots[ i ].quantity = 0;
         }
     }

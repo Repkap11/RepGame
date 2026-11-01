@@ -1,7 +1,14 @@
 #pragma once
 
 #include "common/mob_models_gen.hpp"
-#include "common/block_definitions.hpp"
+#include "common/item.hpp"
+
+// One roll of a mob's drop table: `min`..`max` of `item` (uniform).
+typedef struct {
+    ItemID item;
+    int min;
+    int max;
+} MobDrop;
 
 enum MobType { MOB_PIG = 0, MOB_PLAYER, MOB_COW, MOB_CHICKEN, MOB_SHEEP, MOB_ZOMBIE, MOB_CREEPER, MOB_TYPE_COUNT };
 
@@ -44,9 +51,9 @@ typedef struct {
     float attack_damage;
     // Max downward speed in blocks/tick; 0 = no cap (chicken glides).
     float fall_cap;
-    BlockID drop_block;
-    int drop_min;
-    int drop_max;
+    // Items handed to the player when the mob is killed in survival. Unused
+    // entries have item == LAST_BLOCK_ID.
+    MobDrop drops[ 2 ];
     // Sound pool names; NULL when the type has no such sound. Consumed by the
     // audio pass (phase 2).
     const char *sound_say;

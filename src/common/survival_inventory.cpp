@@ -23,7 +23,7 @@ void SurvivalInventory::init( const VertexBufferLayout &ui_overlay_vbl_vertex, c
 
     for ( int i_slot = 0; i_slot < this->num_slots; i_slot++ ) {
         InventorySlot &slot = this->slots[ i_slot ];
-        slot.block_id = LAST_BLOCK_ID;
+        slot.item_id = LAST_BLOCK_ID;
         slot.quantity = 0;
     }
 }
@@ -32,13 +32,11 @@ void SurvivalInventory::onScreenSizeChange( int width, int height ) {
     this->inventory_renderer.onSizeChange( width, height, this->slots );
 }
 
-int SurvivalInventory::addBlock( BlockID blockId, int quantity ) {
+int SurvivalInventory::addItem( ItemID itemId, int quantity ) {
     if ( quantity <= 0 ) {
         return 0;
     }
-    const Block *block = block_definition_get_definition( blockId );
-    const RenderOrder renderOrder = block->renderOrder;
-    if ( renderOrder == RenderOrder_Transparent ) {
+    if ( item_is_block( itemId ) && block_definition_get_definition( static_cast<BlockID>( itemId ) )->renderOrder == RenderOrder_Transparent ) {
         // Can't collect transparent blocks.
         return quantity;
     }
@@ -48,8 +46,8 @@ int SurvivalInventory::addBlock( BlockID blockId, int quantity ) {
     // First, try to add to existing stacks of the same block.
     for ( int i = 0; i < this->num_slots && remaining > 0; i++ ) {
         InventorySlot &slot = this->slots[ i ];
-        if ( slot.block_id == blockId && slot.quantity > 0 && slot.quantity < MAX_STACK_SIZE ) {
-            int space = MAX_STACK_SIZE - slot.quantity;
+        if ( slot.item_id == itemId && slot.quantity > 0 && slot.quantity < item_max_stack( itemId ) ) {
+            int space = item_max_stack( itemId ) - slot.quantity;
             int to_add = ( remaining < space ) ? remaining : space;
             slot.quantity += to_add;
             remaining -= to_add;
@@ -60,9 +58,9 @@ int SurvivalInventory::addBlock( BlockID blockId, int quantity ) {
     // Then, try to fill empty slots.
     for ( int i = 0; i < this->num_slots && remaining > 0; i++ ) {
         InventorySlot &slot = this->slots[ i ];
-        if ( slot.block_id == LAST_BLOCK_ID || slot.quantity == 0 ) {
-            int to_add = ( remaining < MAX_STACK_SIZE ) ? remaining : MAX_STACK_SIZE;
-            slot.block_id = blockId;
+        if ( slot.item_id == LAST_BLOCK_ID || slot.quantity == 0 ) {
+            int to_add = ( remaining < item_max_stack( itemId ) ) ? remaining : item_max_stack( itemId );
+            slot.item_id = itemId;
             slot.quantity = to_add;
             remaining -= to_add;
             this->inventory_renderer.changeSlotItem( i, slot );
@@ -77,27 +75,27 @@ bool SurvivalInventory::moveToHotbar( int slot_index, class Hotbar &hotbar, bool
         return false;
     }
     InventorySlot &slot = this->slots[ slot_index ];
-    if ( slot.block_id == LAST_BLOCK_ID || slot.quantity <= 0 ) {
+    if ( slot.item_id == LAST_BLOCK_ID || slot.quantity <= 0 ) {
         return false;
     }
-    bool added = hotbar.addBlockWithQuantity( slot.block_id, slot.quantity, prefer_selected_slot );
+    bool added = hotbar.addItemWithQuantity( slot.item_id, slot.quantity, prefer_selected_slot );
     if ( !added ) {
         return false;
     }
     // Clear the survival inventory slot.
-    slot.block_id = LAST_BLOCK_ID;
+    slot.item_id = LAST_BLOCK_ID;
     slot.quantity = 0;
     this->inventory_renderer.changeSlotItem( slot_index, slot );
     return true;
 }
 
-bool SurvivalInventory::moveBlockToHotbar( BlockID blockId, class Hotbar &hotbar, bool prefer_selected_slot ) {
+bool SurvivalInventory::moveItemToHotbar( ItemID itemId, class Hotbar &hotbar, bool prefer_selected_slot ) {
     int full_slot = -1;
     for ( int i = 0; i < this->num_slots; i++ ) {
         const InventorySlot &slot = this->slots[ i ];
-        if ( slot.block_id == blockId && slot.quantity > 0 ) {
+        if ( slot.item_id == itemId && slot.quantity > 0 ) {
             // Prefer moving a non-full stack over a full one.
-            if ( slot.quantity < MAX_STACK_SIZE ) {
+            if ( slot.quantity < item_max_stack( itemId ) ) {
                 return this->moveToHotbar( i, hotbar, prefer_selected_slot );
             }
             if ( full_slot < 0 ) {
@@ -116,24 +114,24 @@ bool SurvivalInventory::moveHalfToHotbar( int slot_index, class Hotbar &hotbar )
         return false;
     }
     InventorySlot &slot = this->slots[ slot_index ];
-    if ( slot.block_id == LAST_BLOCK_ID || slot.quantity <= 0 ) {
+    if ( slot.item_id == LAST_BLOCK_ID || slot.quantity <= 0 ) {
         return false;
     }
     int to_move = ( slot.quantity + 1 ) / 2;
-    int space = hotbar.spaceFor( slot.block_id );
+    int space = hotbar.spaceFor( slot.item_id );
     if ( to_move > space ) {
         to_move = space;
     }
     if ( to_move <= 0 ) {
         return false;
     }
-    bool added = hotbar.addBlockWithQuantity( slot.block_id, to_move, false );
+    bool added = hotbar.addItemWithQuantity( slot.item_id, to_move, false );
     if ( !added ) {
         return false;
     }
     slot.quantity -= to_move;
     if ( slot.quantity <= 0 ) {
-        slot.block_id = LAST_BLOCK_ID;
+        slot.item_id = LAST_BLOCK_ID;
         slot.quantity = 0;
     }
     this->inventory_renderer.changeSlotItem( slot_index, slot );
@@ -158,25 +156,25 @@ void SurvivalInventory::pickupOrSwapSlot( int slot_index, InventorySlot &held, b
     InventorySlot &slot = this->slots[ slot_index ];
     if ( !is_holding ) {
         // Pick up the slot's contents.
-        if ( slot.block_id == LAST_BLOCK_ID || slot.quantity <= 0 ) {
+        if ( slot.item_id == LAST_BLOCK_ID || slot.quantity <= 0 ) {
             return; // Nothing to pick up.
         }
         held = slot;
-        slot.block_id = LAST_BLOCK_ID;
+        slot.item_id = LAST_BLOCK_ID;
         slot.quantity = 0;
         this->inventory_renderer.changeSlotItem( slot_index, slot );
         is_holding = true;
     } else {
-        // Same block type: merge into the slot's stack up to MAX_STACK_SIZE,
+        // Same item type: merge into the slot's stack up to its max stack,
         // with any leftover staying on the cursor.
-        if ( slot.block_id == held.block_id && slot.quantity > 0 && slot.quantity < MAX_STACK_SIZE ) {
-            int space = MAX_STACK_SIZE - slot.quantity;
+        if ( slot.item_id == held.item_id && slot.quantity > 0 && slot.quantity < item_max_stack( held.item_id ) ) {
+            int space = item_max_stack( held.item_id ) - slot.quantity;
             int to_move = ( held.quantity < space ) ? held.quantity : space;
             slot.quantity += to_move;
             held.quantity -= to_move;
             this->inventory_renderer.changeSlotItem( slot_index, slot );
             if ( held.quantity <= 0 ) {
-                held.block_id = LAST_BLOCK_ID;
+                held.item_id = LAST_BLOCK_ID;
                 is_holding = false;
             }
             return;
@@ -188,7 +186,7 @@ void SurvivalInventory::pickupOrSwapSlot( int slot_index, InventorySlot &held, b
         this->inventory_renderer.changeSlotItem( slot_index, slot );
         // If we placed into an empty slot, we're no longer holding.
         // If we swapped, we're now holding the swapped-out stack.
-        if ( held.block_id == LAST_BLOCK_ID || held.quantity <= 0 ) {
+        if ( held.item_id == LAST_BLOCK_ID || held.quantity <= 0 ) {
             is_holding = false;
         }
     }
@@ -201,26 +199,26 @@ void SurvivalInventory::rightClickSlot( int slot_index, InventorySlot &held, boo
     InventorySlot &slot = this->slots[ slot_index ];
     if ( !is_holding ) {
         // Pick up half of the stack, rounded up.
-        if ( slot.block_id == LAST_BLOCK_ID || slot.quantity <= 0 ) {
+        if ( slot.item_id == LAST_BLOCK_ID || slot.quantity <= 0 ) {
             return;
         }
         int take = ( slot.quantity + 1 ) / 2;
-        held.block_id = slot.block_id;
+        held.item_id = slot.item_id;
         held.quantity = take;
         slot.quantity -= take;
         if ( slot.quantity <= 0 ) {
-            slot.block_id = LAST_BLOCK_ID;
+            slot.item_id = LAST_BLOCK_ID;
             slot.quantity = 0;
         }
         this->inventory_renderer.changeSlotItem( slot_index, slot );
         is_holding = true;
     } else {
         // Place a single block into the slot.
-        if ( slot.block_id == LAST_BLOCK_ID || slot.quantity <= 0 ) {
-            slot.block_id = held.block_id;
+        if ( slot.item_id == LAST_BLOCK_ID || slot.quantity <= 0 ) {
+            slot.item_id = held.item_id;
             slot.quantity = 1;
             held.quantity--;
-        } else if ( slot.block_id == held.block_id && slot.quantity < MAX_STACK_SIZE ) {
+        } else if ( slot.item_id == held.item_id && slot.quantity < item_max_stack( held.item_id ) ) {
             slot.quantity++;
             held.quantity--;
         } else {
@@ -229,7 +227,7 @@ void SurvivalInventory::rightClickSlot( int slot_index, InventorySlot &held, boo
         }
         this->inventory_renderer.changeSlotItem( slot_index, slot );
         if ( held.quantity <= 0 ) {
-            held.block_id = LAST_BLOCK_ID;
+            held.item_id = LAST_BLOCK_ID;
             is_holding = false;
         }
     }
@@ -268,7 +266,7 @@ void SurvivalInventory::draw( const Renderer &renderer, const Texture &blocksTex
 void SurvivalInventory::drawQuantities( const Renderer &renderer, FontRenderer &font, const glm::mat4 &mvp ) {
     for ( int i = 0; i < this->num_slots; i++ ) {
         const InventorySlot &slot = this->slots[ i ];
-        if ( slot.block_id == LAST_BLOCK_ID || slot.quantity <= 0 ) {
+        if ( slot.item_id == LAST_BLOCK_ID || slot.quantity <= 0 ) {
             continue;
         }
         float slot_x, slot_y;

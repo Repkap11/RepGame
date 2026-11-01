@@ -16,6 +16,7 @@
 #include "common/net/packet.hpp"
 #include "common/mob_uv.hpp"
 #include "common/creative_order_gen.hpp"
+#include "common/item.hpp"
 #include "common/utils/map_storage.hpp"
 #include "common/utils/ray_traversal.hpp"
 
@@ -347,6 +348,449 @@ int test_sneak( ) {
     return failures;
 }
 
+// Item id space (Phase 1 non-block items): block items share the BlockID
+// value, pure items live at ITEM_ID_BASE+, LAST_BLOCK_ID stays the empty
+// sentinel. Covers item_id_valid/item_is_block/item_max_stack, the wire
+// slot format, and the generated block drop table.
+int test_items( ) {
+    if ( block_definitions == nullptr ) {
+        block_definitions_initilize_definitions( nullptr );
+    }
+    int failures = 0;
+    auto check_bool = [ & ]( const char *name, bool cond ) {
+        pr_test( "  %-55s %s", name, cond ? "PASS" : "FAIL" );
+        if ( !cond ) {
+            failures++;
+        }
+    };
+
+    check_bool( "item: block id is a block item", item_is_block( GRASS ) );
+    check_bool( "item: pure item is not a block item", !item_is_block( STICK ) );
+    check_bool( "item: defined block is valid", item_id_valid( GRASS ) );
+    check_bool( "item: defined item is valid", item_id_valid( STICK ) && item_id_valid( APPLE ) );
+    check_bool( "item: ITEM_ID_END is invalid", !item_id_valid( ITEM_ID_END ) );
+    check_bool( "item: sentinel is invalid", !item_id_valid( LAST_BLOCK_ID ) );
+    check_bool( "item: block max stack", item_max_stack( GRASS ) == MAX_STACK_SIZE );
+    check_bool( "item: pure item max stack default", item_max_stack( STICK ) == 64 );
+    check_bool( "item: icon for pure item", item_icon_texture( STICK ) != item_icon_texture( DIAMOND ) );
+    check_bool( "item: pure item is flat icon", !item_icon_is_isometric( STICK ) );
+    check_bool( "item: item_name", item_name( STICK ) != nullptr && item_name( GRASS ) != nullptr );
+
+    // Wire slot round trip: a real item survives; an undefined item-range id
+    // is normalized to empty.
+    {
+        NetChestSetSlotPayload out_p = { 1, 2, 3, 4, { STICK, 7 } };
+        PacketWriter w;
+        net_serialize_chest_set_slot( w, out_p );
+        std::vector<uint8_t> buf = w.take_buf( );
+        PacketReader r( buf.data( ), buf.size( ) );
+        NetChestSetSlotPayload in_p;
+        memset( &in_p, 0, sizeof( in_p ) );
+        check_bool( "net slot: deserialize", net_deserialize_chest_set_slot( r, in_p ) );
+        check_bool( "net slot: item id survives", in_p.slot_value.item_id == STICK && in_p.slot_value.quantity == 7 );
+
+        NetChestSetSlotPayload bad_p = { 1, 2, 3, 4, { ITEM_ID_END, 7 } };
+        PacketWriter w2;
+        net_serialize_chest_set_slot( w2, bad_p );
+        std::vector<uint8_t> buf2 = w2.take_buf( );
+        PacketReader r2( buf2.data( ), buf2.size( ) );
+        NetChestSetSlotPayload in_p2;
+        memset( &in_p2, 0, sizeof( in_p2 ) );
+        check_bool( "net slot: deserialize bad id", net_deserialize_chest_set_slot( r2, in_p2 ) );
+        check_bool( "net slot: undefined id clamps empty", in_p2.slot_value.item_id == LAST_BLOCK_ID && in_p2.slot_value.quantity == 0 );
+    }
+
+    // Block drop table (deterministic rng): table entries roll, no-table
+    // blocks drop themselves, drops:[] drops nothing.
+    {
+        uint32_t rng = 12345;
+        ItemStack drops[ 4 ];
+        check_bool( "drops: stone -> 1 cobblestone", block_roll_drops( STONE, &rng, drops, 4 ) == 1 && drops[ 0 ].item_id == COBBLESTONE && drops[ 0 ].count == 1 );
+        rng = 12345;
+        check_bool( "drops: glass -> nothing", block_roll_drops( GLASS, &rng, drops, 4 ) == 0 );
+        rng = 12345;
+        check_bool( "drops: diamond ore -> diamond", block_roll_drops( DIAMOND_ORE, &rng, drops, 4 ) == 1 && drops[ 0 ].item_id == DIAMOND && drops[ 0 ].count == 1 );
+        rng = 12345;
+        check_bool( "drops: unlisted block -> itself", block_roll_drops( DIRT, &rng, drops, 4 ) == 1 && drops[ 0 ].item_id == DIRT && drops[ 0 ].count == 1 );
+        // Lapis ore rolls 4-8 lapis.
+        rng = 999;
+        int n = block_roll_drops( LAPIS_ORE, &rng, drops, 4 );
+        check_bool( "drops: lapis ore -> 4-8 lapis", n == 1 && drops[ 0 ].item_id == LAPIS_LAZULI && drops[ 0 ].count >= 4 && drops[ 0 ].count <= 8 );
+        // Gravel's two <1.0 chances are mutually exclusive: exactly one item
+        // per roll, either flint or gravel, over many seeds.
+        int gravel_ok = 1, saw_flint = 0, saw_gravel = 0;
+        for ( uint32_t seed = 1; seed <= 500; seed++ ) {
+            rng = seed * 2654435761u;
+            const int m = block_roll_drops( GRAVEL, &rng, drops, 4 );
+            if ( m != 1 || ( drops[ 0 ].item_id != FLINT && drops[ 0 ].item_id != GRAVEL ) ) {
+                gravel_ok = 0;
+            } else if ( drops[ 0 ].item_id == FLINT ) {
+                saw_flint = 1;
+            } else {
+                saw_gravel = 1;
+            }
+        }
+        check_bool( "drops: gravel rolls exactly one item", gravel_ok && saw_flint && saw_gravel );
+        // Oak leaves: sapling/stick/apple are mutually exclusive too.
+        int leaves_ok = 1;
+        for ( uint32_t seed = 1; seed <= 500; seed++ ) {
+            rng = seed * 40503u;
+            if ( block_roll_drops( OAK_LEAVES, &rng, drops, 4 ) > 1 ) {
+                leaves_ok = 0;
+            }
+        }
+        check_bool( "drops: oak leaves at most one item", leaves_ok );
+    }
+    return failures;
+}
+
+// Fills the hotbar + survival inventory fields headlessly (init() does GL
+// work; friend access mirrors test_mobs).
+void test_setup_inventories( RepGameState &gs ) {
+    gs.hotbar.width = HOTBAR_WIDTH;
+    gs.hotbar.height = HOTBAR_HEIGHT;
+    gs.hotbar.num_blocks_max = HOTBAR_WIDTH * HOTBAR_HEIGHT;
+    gs.hotbar.slots = static_cast<InventorySlot *>( calloc( gs.hotbar.num_blocks_max, sizeof( InventorySlot ) ) );
+    for ( int i = 0; i < gs.hotbar.num_blocks_max; i++ ) {
+        gs.hotbar.slots[ i ].item_id = LAST_BLOCK_ID;
+        gs.hotbar.slots[ i ].quantity = 0;
+    }
+    gs.hotbar.selected_slot = 0;
+    InventoryRenderer &ir = gs.hotbar.inventory_renderer;
+    ir.width = HOTBAR_WIDTH;
+    ir.height = HOTBAR_HEIGHT;
+    ir.num_blocks_max = HOTBAR_WIDTH * HOTBAR_HEIGHT;
+    ir.screen_width = 800;
+    ir.screen_height = 600;
+    ir.inv_items_x = 0;
+    ir.inv_items_y = 0;
+    ir.inv_cell_stride = 1.0f;
+    ir.inv_block_size = 1;
+    ir.inv_block_offset = 0;
+    ir.slots_entities = static_cast<entt::entity *>( calloc( ir.num_blocks_max, sizeof( entt::entity ) ) );
+    for ( int i = 0; i < ir.num_blocks_max; i++ ) {
+        ir.slots_entities[ i ] = entt::null;
+    }
+
+    SurvivalInventory &si = gs.survival_inventory;
+    si.width = SURVIVAL_INVENTORY_WIDTH;
+    si.height = SURVIVAL_INVENTORY_HEIGHT;
+    si.num_slots = SURVIVAL_INVENTORY_WIDTH * SURVIVAL_INVENTORY_HEIGHT;
+    si.slots = static_cast<InventorySlot *>( calloc( si.num_slots, sizeof( InventorySlot ) ) );
+    for ( int i = 0; i < si.num_slots; i++ ) {
+        si.slots[ i ].item_id = LAST_BLOCK_ID;
+        si.slots[ i ].quantity = 0;
+    }
+    InventoryRenderer &sir = si.inventory_renderer;
+    sir.width = SURVIVAL_INVENTORY_WIDTH;
+    sir.height = SURVIVAL_INVENTORY_HEIGHT;
+    sir.num_blocks_max = si.num_slots;
+    sir.screen_width = 800;
+    sir.screen_height = 600;
+    sir.inv_items_x = 0;
+    sir.inv_items_y = 0;
+    sir.inv_cell_stride = 1.0f;
+    sir.inv_block_size = 1;
+    sir.inv_block_offset = 0;
+    sir.slots_entities = static_cast<entt::entity *>( calloc( sir.num_blocks_max, sizeof( entt::entity ) ) );
+    for ( int i = 0; i < sir.num_blocks_max; i++ ) {
+        sir.slots_entities[ i ] = entt::null;
+    }
+}
+
+// Dropped item entities: falling/resting, water float, merging, despawn,
+// chunk freeze, pickup remainder, cap eviction.
+int test_item_entities( ) {
+    if ( block_definitions == nullptr ) {
+        block_definitions_initilize_definitions( nullptr );
+    }
+    RepGameState &gs = *new RepGameState( );
+    gs.tick_number = 0;
+    gs.camera.pos = glm::dvec3( 1.5, 60.0, 1.5 ); // far away: no pickup
+    gs.camera.player_height = PLAYER_HEIGHT;
+    gs.camera.eye_height = PLAYER_EYE_HEIGHT;
+    test_setup_world( gs.world );
+    test_setup_inventories( gs );
+    World &world = gs.world;
+
+    int failures = 0;
+    auto check_bool = [ & ]( const char *name, bool cond ) {
+        pr_test( "  %-55s %s", name, cond ? "PASS" : "FAIL" );
+        if ( !cond ) {
+            failures++;
+        }
+    };
+    auto check_near = [ & ]( const char *name, double actual, double expected, double tol ) {
+        const bool ok = fabs( actual - expected ) <= tol;
+        pr_test( "  %-55s value=%-9.4f expected=%-9.4f  %s", name, actual, expected, ok ? "PASS" : "FAIL" );
+        if ( !ok ) {
+            failures++;
+        }
+    };
+
+    const BlockState stone = { STONE, 0, 0, STONE, 0 };
+    const BlockState water = { WATER, 0, 0, WATER, 0 };
+    // Stone floor at y=10 (top surface 11) over a generous area, plus a
+    // walled water column at (25, *, 25) standing 5 deep on the floor.
+    for ( int x = 5; x <= 30; x++ ) {
+        for ( int z = 5; z <= 30; z++ ) {
+            world.set_loaded_block( glm::ivec3( x, 10, z ), stone );
+        }
+    }
+    for ( int y = 11; y <= 15; y++ ) {
+        world.set_loaded_block( glm::ivec3( 25, y, 25 ), water );
+        // Contain the column so it can't pour out.
+        world.set_loaded_block( glm::ivec3( 24, y, 25 ), stone );
+        world.set_loaded_block( glm::ivec3( 26, y, 25 ), stone );
+        world.set_loaded_block( glm::ivec3( 25, y, 24 ), stone );
+        world.set_loaded_block( glm::ivec3( 25, y, 26 ), stone );
+    }
+
+    // --- fall + rest --------------------------------------------------------
+    {
+        ItemEntities items;
+        items.spawn( STICK, 3, glm::dvec3( 10.5, 14.0, 10.5 ), glm::dvec3( 0.0 ), 0 );
+        for ( int i = 0; i < 200 && !items.debug_items( )[ 0 ].grounded; i++ ) {
+            gs.tick_number++;
+            items.tick( gs );
+        }
+        const ItemEntities::ItemEntity it = items.debug_items( )[ 0 ];
+        check_bool( "item: lands and grounds", it.grounded == 1 );
+        check_near( "item: rests at floor top", it.pos.y, 11.0, 0.02 );
+    }
+
+    // --- water float ---------------------------------------------------------
+    {
+        ItemEntities items;
+        items.spawn( STICK, 1, glm::dvec3( 25.5, 11.2, 25.5 ), glm::dvec3( 0.0 ), 0 );
+        double top = -1;
+        for ( int i = 0; i < 400; i++ ) {
+            gs.tick_number++;
+            items.tick( gs );
+            top = items.debug_items( )[ 0 ].pos.y;
+        }
+        // Buoyancy + rise cap should leave it bobbing near the water surface
+        // (top water cell spans 15..16): resting pos near 16.
+        check_near( "item: floats to water surface", top, 16.0, 0.6 );
+    }
+
+    // --- merge ---------------------------------------------------------------
+    {
+        ItemEntities items;
+        items.spawn( STICK, 10, glm::dvec3( 10.4, 11.0, 10.4 ), glm::dvec3( 0.0 ), 0 );
+        items.spawn( STICK, 10, glm::dvec3( 10.6, 11.0, 10.6 ), glm::dvec3( 0.0 ), 0 );
+        items.spawn( APPLE, 5, glm::dvec3( 10.5, 11.0, 10.9 ), glm::dvec3( 0.0 ), 0 );
+        for ( int i = 0; i < 25; i++ ) {
+            gs.tick_number++;
+            items.tick( gs );
+        }
+        int sticks = 0, apples = 0, entities = 0;
+        for ( const auto &d : items.debug_items( ) ) {
+            entities++;
+            if ( d.item == STICK ) {
+                sticks += d.count;
+            } else if ( d.item == APPLE ) {
+                apples += d.count;
+            }
+        }
+        check_bool( "item: same items merge", entities == 2 && sticks == 20 && apples == 5 );
+    }
+
+    // --- merge respects max_stack --------------------------------------------
+    {
+        ItemEntities items;
+        items.spawn( STICK, 60, glm::dvec3( 10.4, 11.0, 10.4 ), glm::dvec3( 0.0 ), 0 );
+        items.spawn( STICK, 60, glm::dvec3( 10.6, 11.0, 10.6 ), glm::dvec3( 0.0 ), 0 );
+        for ( int i = 0; i < 25; i++ ) {
+            gs.tick_number++;
+            items.tick( gs );
+        }
+        int total = 0, entities = 0, over = 0;
+        for ( const auto &d : items.debug_items( ) ) {
+            entities++;
+            total += d.count;
+            if ( d.count > item_max_stack( STICK ) ) {
+                over++;
+            }
+        }
+        check_bool( "item: merge capped at max_stack", entities == 2 && total == 120 && over == 0 );
+    }
+
+    // --- despawn -------------------------------------------------------------
+    {
+        ItemEntities items;
+        items.spawn( STICK, 1, glm::dvec3( 10.5, 11.0, 10.5 ), glm::dvec3( 0.0 ), 0 );
+        check_bool( "item: alive before despawn", items.count( ) == 1 );
+        for ( int i = 0; i < ItemEntities::ITEM_DESPAWN_TICKS + 5; i++ ) {
+            gs.tick_number++;
+            items.tick( gs );
+        }
+        check_bool( "item: despawns at 5 minutes", items.count( ) == 0 );
+    }
+
+    // --- frozen in a non-live chunk -------------------------------------------
+    {
+        ItemEntities items;
+        items.spawn( STICK, 1, glm::dvec3( 1000.5, 60.0, 1000.5 ), glm::dvec3( 0.0, 0.5, 0.0 ), 0 );
+        for ( int i = 0; i < 40; i++ ) {
+            gs.tick_number++;
+            items.tick( gs );
+        }
+        const ItemEntities::ItemEntity it = items.debug_items( )[ 0 ];
+        check_bool( "item: frozen in unloaded chunk", it.pos == glm::dvec3( 1000.5, 60.0, 1000.5 ) && it.age_ticks == 0 );
+    }
+
+    // --- pickup into a full inventory leaves the remainder ---------------------
+    {
+        test_setup_inventories( gs ); // fresh empty inventories
+        check_bool( "give: empty inventory takes all", RepGame::give_item_to_player( gs, STICK, 3 ) == 0 );
+        check_bool( "give: went to hotbar", gs.hotbar.findSlotWithItem( STICK, false ) >= 0 );
+        for ( int i = 0; i < gs.hotbar.num_blocks_max; i++ ) {
+            gs.hotbar.slots[ i ].item_id = COBBLESTONE;
+            gs.hotbar.slots[ i ].quantity = 64;
+        }
+        for ( int i = 0; i < gs.survival_inventory.num_slots; i++ ) {
+            gs.survival_inventory.slots[ i ].item_id = COBBLESTONE;
+            gs.survival_inventory.slots[ i ].quantity = 64;
+        }
+        check_bool( "give: full inventory returns all", RepGame::give_item_to_player( gs, APPLE, 5 ) == 5 );
+    }
+
+    // --- pickup: empty inventory collects, full keeps the remainder ------------
+    {
+        test_setup_inventories( gs );
+        ItemEntities items;
+        // Feet at y=11 on the floor; the item spawns inside the feet AABB.
+        gs.camera.pos = glm::dvec3( 10.5, 11.0 + PLAYER_EYE_HEIGHT, 10.5 );
+        items.spawn( STICK, 7, glm::dvec3( 10.5, 11.0, 10.5 ), glm::dvec3( 0.0 ), 0 );
+        gs.tick_number++;
+        items.tick( gs );
+        check_bool( "item: picked up into empty hotbar", items.count( ) == 0 && gs.hotbar.findSlotWithItem( STICK, false ) >= 0 );
+        // Full inventory: the entity keeps its whole stack.
+        for ( int i = 0; i < gs.hotbar.num_blocks_max; i++ ) {
+            gs.hotbar.slots[ i ].item_id = COBBLESTONE;
+            gs.hotbar.slots[ i ].quantity = 64;
+        }
+        for ( int i = 0; i < gs.survival_inventory.num_slots; i++ ) {
+            gs.survival_inventory.slots[ i ].item_id = COBBLESTONE;
+            gs.survival_inventory.slots[ i ].quantity = 64;
+        }
+        items.spawn( APPLE, 4, glm::dvec3( 10.5, 11.0, 10.5 ), glm::dvec3( 0.0 ), 0 );
+        gs.tick_number++;
+        items.tick( gs );
+        check_bool( "item: full inventory keeps the stack", items.count( ) == 1 && items.debug_items( )[ 0 ].count == 4 );
+        gs.camera.pos = glm::dvec3( 1.5, 60.0, 1.5 ); // back out of pickup range
+    }
+
+    // --- cap eviction ----------------------------------------------------------
+    {
+        ItemEntities items;
+        for ( int i = 0; i < static_cast<int>( ItemEntities::MAX_ITEM_ENTITIES ) + 5; i++ ) {
+            items.spawn( STICK, 1, glm::dvec3( 10.5 + ( i % 8 ) * 0.1, 11.0, 10.5 + ( i % 8 ) * 0.1 ), glm::dvec3( 0.0 ), 0 );
+        }
+        check_bool( "item: cap holds", items.count( ) == ItemEntities::MAX_ITEM_ENTITIES );
+        // The 5 oldest were evicted: lowest surviving id is 6.
+        uint32_t min_id = UINT32_MAX;
+        for ( const auto &d : items.debug_items( ) ) {
+            min_id = std::min( min_id, d.id );
+        }
+        check_bool( "item: oldest evicted first", min_id == 6 );
+    }
+
+    // --- persistence: record round trip, invalid records, adopt/persist ------
+    {
+        const char *orig_home = getenv( "HOME" );
+        char orig_home_buf[ 512 ] = { 0 };
+        if ( orig_home != nullptr ) {
+            strncpy( orig_home_buf, orig_home, sizeof( orig_home_buf ) - 1 );
+        }
+        setenv( "HOME", "/tmp/repgame_test_items_home", 1 );
+        MapStorage storage;
+        storage.init( "TestItems" );
+
+        // Record round trip.
+        ItemFileRecord rec = { 0, 0, 0.0, 0.0, 0.0, 0.0f, 0.0f, 0.0f, 0 };
+        rec.item = STICK;
+        rec.count = 5;
+        rec.x = 3.5;
+        rec.y = 12.0;
+        rec.z = 4.5;
+        rec.vx = 0.1f;
+        rec.vy = -0.2f;
+        rec.vz = 0.3f;
+        rec.age_ticks = 1234;
+        storage.persist_items( glm::ivec3( 0, 0, 0 ), { rec } );
+        std::vector<ItemFileRecord> out;
+        check_bool( "persist: item file round trips", storage.load_items( glm::ivec3( 0, 0, 0 ), out ) == 1 && out.size( ) == 1 && out[ 0 ].item == STICK && out[ 0 ].count == 5 && out[ 0 ].age_ticks == 1234 && fabs( out[ 0 ].x - 3.5 ) < 1e-9 && fabs( out[ 0 ].vy + 0.2f ) < 1e-6 );
+
+        // Invalid id / zero count are skipped.
+        ItemFileRecord bad_id = rec;
+        bad_id.item = 999999u;
+        ItemFileRecord bad_count = rec;
+        bad_count.count = 0;
+        storage.persist_items( glm::ivec3( 0, 0, 0 ), { bad_id, bad_count, rec } );
+        check_bool( "persist: invalid records skipped", storage.load_items( glm::ivec3( 0, 0, 0 ), out ) == 1 && out.size( ) == 1 && out[ 0 ].item == STICK );
+
+        // A larger on-disk record_size still parses the shared prefix.
+        {
+            char file_name[ CHUNK_NAME_MAX_LENGTH ];
+            snprintf( file_name, CHUNK_NAME_MAX_LENGTH, FILE_ROOT_ITEMS, storage.get_map_name( ), 0, 0, 0 );
+            FILE *fp = fopen( file_name, "wb" );
+            const uint32_t big_size = sizeof( ItemFileRecord ) + 8;
+            uint32_t one = 1;
+            fwrite( &big_size, sizeof( uint32_t ), 1, fp );
+            fwrite( &one, sizeof( uint32_t ), 1, fp );
+            fwrite( &rec, sizeof( ItemFileRecord ), 1, fp );
+            const char pad[ 8 ] = { 0 };
+            fwrite( pad, 1, sizeof( pad ), fp );
+            fclose( fp );
+            check_bool( "persist: larger record_size parses prefix", storage.load_items( glm::ivec3( 0, 0, 0 ), out ) == 1 && out.size( ) == 1 && out[ 0 ].item == STICK && out[ 0 ].count == 5 );
+        }
+        // A tiny record_size leaves count 0 -> skipped.
+        {
+            char file_name[ CHUNK_NAME_MAX_LENGTH ];
+            snprintf( file_name, CHUNK_NAME_MAX_LENGTH, FILE_ROOT_ITEMS, storage.get_map_name( ), 0, 0, 0 );
+            FILE *fp = fopen( file_name, "wb" );
+            const uint32_t tiny_size = 4;
+            uint32_t one = 1;
+            fwrite( &tiny_size, sizeof( uint32_t ), 1, fp );
+            fwrite( &one, sizeof( uint32_t ), 1, fp );
+            fwrite( &rec.item, sizeof( uint32_t ), 1, fp );
+            fclose( fp );
+            check_bool( "persist: tiny record_size skipped", storage.load_items( glm::ivec3( 0, 0, 0 ), out ) == 1 && out.empty( ) );
+        }
+
+        // Adopt drains pending records into live entities; persist writes
+        // them back out for the owned chunk.
+        ItemEntities items;
+        items.init_storage( &storage );
+        Chunk chunk;
+        chunk.chunk_pos = glm::ivec3( 0, 0, 0 );
+        chunk.pending_items.push_back( rec );
+        chunk.items_file_present = 1;
+        items.adopt_chunk( chunk );
+        check_bool( "persist: adopt spawns record", items.count( ) == 1 && chunk.pending_items.empty( ) );
+        if ( items.count( ) == 1 ) {
+            const ItemEntities::ItemEntity it = items.debug_items( )[ 0 ];
+            check_bool( "persist: adopt restores fields", it.item == STICK && it.count == 5 && it.age_ticks == 1234 && it.pickup_delay == 0 && fabs( it.vel.y + 0.2 ) < 1e-6 );
+        }
+        items.persist_all( );
+        check_bool( "persist: persist_all writes item", storage.load_items( glm::ivec3( 0, 0, 0 ), out ) == 1 && out.size( ) == 1 && out[ 0 ].item == STICK && out[ 0 ].count == 5 );
+        // Non-persistent entities (REPGAME_ITEM_TEST) never reach the file.
+        items.spawn( APPLE, 2, glm::dvec3( 4.0, 12.0, 4.0 ), glm::dvec3( 0.0 ), 0, 0 );
+        items.persist_all( );
+        check_bool( "persist: non-persistent excluded", storage.load_items( glm::ivec3( 0, 0, 0 ), out ) == 1 && out.size( ) == 1 );
+
+        if ( orig_home != nullptr ) {
+            setenv( "HOME", orig_home_buf, 1 );
+        } else {
+            unsetenv( "HOME" );
+        }
+    }
+
+    return failures;
+}
+
 // Pre-2047 save migration: 1249 was the empty-slot marker, and ids that are
 // now undefined or past LAST_BLOCK_ID must load as empty slots / AIR.
 int test_save_migration( ) {
@@ -373,6 +817,8 @@ int test_save_migration( ) {
     check_bool( "slot: undefined id loads empty", undefined_id < LAST_BLOCK_ID && save_slot_id_is_empty( undefined_id ) );
     check_bool( "slot: out-of-range id loads empty", save_slot_id_is_empty( LAST_BLOCK_ID + 42 ) );
     check_bool( "slot: real block survives", !save_slot_id_is_empty( GRASS ) );
+    check_bool( "slot: pure item survives", !save_slot_id_is_empty( STICK ) );
+    check_bool( "slot: undefined item id loads empty", save_slot_id_is_empty( ITEM_ID_END ) );
     check_bool( "chunk: sentinel 1249 loads AIR", save_chunk_block_id( LEGACY_EMPTY_BLOCK_ID ) == AIR );
     check_bool( "chunk: out-of-range id loads AIR", save_chunk_block_id( LAST_BLOCK_ID + 42 ) == AIR );
     check_bool( "chunk: real block survives", save_chunk_block_id( GRASS ) == GRASS );
@@ -396,9 +842,20 @@ int test_creative( ) {
     };
 
     unsigned char seen[ LAST_BLOCK_ID ] = { 0 };
-    int dupes = 0, bad = 0;
+    unsigned char seen_items[ ITEM_ID_END - ITEM_ID_BASE ] = { 0 };
+    int dupes = 0, bad = 0, item_bad = 0;
     for ( unsigned int i = 0; i < CREATIVE_BLOCK_COUNT; i++ ) {
-        const BlockID bid = CREATIVE_BLOCKS[ i ];
+        const ItemID iid = CREATIVE_BLOCKS[ i ];
+        if ( !item_is_block( iid ) ) {
+            // Pure items tail the list: defined and non-duplicated.
+            if ( !item_id_defined( iid ) || seen_items[ iid - ITEM_ID_BASE ] ) {
+                item_bad++;
+                continue;
+            }
+            seen_items[ iid - ITEM_ID_BASE ] = 1;
+            continue;
+        }
+        const BlockID bid = static_cast<BlockID>( iid );
         if ( seen[ bid ] ) {
             dupes++;
             continue;
@@ -410,6 +867,8 @@ int test_creative( ) {
     }
     check_bool( "creative: no duplicate ids", dupes == 0 );
     check_bool( "creative: all entries defined and pickable", bad == 0 );
+    check_bool( "creative: item tail defined and unique", item_bad == 0 );
+    check_bool( "creative: STICK item listed", seen_items[ STICK - ITEM_ID_BASE ] != 0 );
 
     auto contains = [ & ]( BlockID bid ) { return seen[ bid ] != 0; };
     check_bool( "creative: ACACIA_PLANKS listed", contains( ACACIA_PLANKS ) );
@@ -542,7 +1001,10 @@ int test_fences( ) {
     // model signature — there is no separate OAK_FENCE_GATE block).
     unsigned char in_creative[ LAST_BLOCK_ID ] = { 0 };
     for ( unsigned int i = 0; i < CREATIVE_BLOCK_COUNT; i++ ) {
-        in_creative[ CREATIVE_BLOCKS[ i ] ] = 1;
+        // Skip the pure items that tail the creative list.
+        if ( item_is_block( CREATIVE_BLOCKS[ i ] ) ) {
+            in_creative[ CREATIVE_BLOCKS[ i ] ] = 1;
+        }
     }
     check_bool( "creative: FENCE (oak) listed", in_creative[ FENCE ] != 0 );
     check_bool( "creative: FENCE_GATE (oak) listed", in_creative[ FENCE_GATE ] != 0 );
@@ -700,7 +1162,10 @@ int test_block_world( ) {
     unsigned char seen[ LAST_BLOCK_ID ] = { 0 };
     int expected_count = 0;
     for ( unsigned int i = 0; i < CREATIVE_BLOCK_COUNT; i++ ) {
-        expected[ CREATIVE_BLOCKS[ i ] ] = 1;
+        // The creative list ends with pure items, which the block world skips.
+        if ( item_is_block( CREATIVE_BLOCKS[ i ] ) ) {
+            expected[ CREATIVE_BLOCKS[ i ] ] = 1;
+        }
     }
     for ( unsigned int id = 1; id < (unsigned int)LAST_BLOCK_ID; id++ ) {
         if ( !expected[ id ] && block_id_defined( id ) ) {
@@ -1994,7 +2459,7 @@ int test_mobs( ) {
         gs.hotbar.num_blocks_max = HOTBAR_WIDTH * HOTBAR_HEIGHT;
         gs.hotbar.slots = static_cast<InventorySlot *>( calloc( gs.hotbar.num_blocks_max, sizeof( InventorySlot ) ) );
         for ( int i = 0; i < gs.hotbar.num_blocks_max; i++ ) {
-            gs.hotbar.slots[ i ].block_id = LAST_BLOCK_ID;
+            gs.hotbar.slots[ i ].item_id = LAST_BLOCK_ID;
             gs.hotbar.slots[ i ].quantity = 0;
         }
         gs.hotbar.selected_slot = 0;
@@ -2025,9 +2490,11 @@ int test_mobs( ) {
         check_bool( "hit 2: survives", !mobs.hurt( 0, 4.0f, attacker ) );
         check_bool( "hit 3: kills (survival)", mobs.hurt( 0, 4.0f, attacker ) );
         check_bool( "death: tip-over started", mobs.mobs[ 0 ].death_ticks > 0 );
-        // Survival drop path: the killed pig hands drop_block to the player.
-        RepGame::give_block_to_player( gs, RED_MUSHROOM, 1 );
-        check_bool( "drop: RED_MUSHROOM in inventory", gs.hotbar.findSlotWithBlock( RED_MUSHROOM, false ) >= 0 );
+        // Survival drop path: the killed pig's drops go to the player.
+        const MobTypeDef &pig_def = mob_types[ MOB_PIG ];
+        check_bool( "pig drops: PORKCHOP 1-3", pig_def.drops[ 0 ].item == PORKCHOP && pig_def.drops[ 0 ].min == 1 && pig_def.drops[ 0 ].max == 3 );
+        RepGame::give_item_to_player( gs, pig_def.drops[ 0 ].item, pig_def.drops[ 0 ].min );
+        check_bool( "drop: PORKCHOP in inventory", gs.hotbar.findSlotWithItem( PORKCHOP, false ) >= 0 );
         // Creative: one hit kills; the caller simply doesn't run the drop.
         MobManager mobs2;
         mobs2.spawn( MOB_PIG, glm::dvec3( 10.5, 11.0, 10.5 ), 0.0f, 1 );
@@ -2582,12 +3049,54 @@ int test_torch_pick( ) {
     return failures;
 }
 
+// A right-click placement the event would silently reject must be detected
+// before the event is queued (the caller plays sfx and consumes a hotbar
+// block whenever change_block doesn't return LAST_BLOCK_ID).
+int test_player_placement_valid( ) {
+    if ( block_definitions == nullptr ) {
+        block_definitions_initilize_definitions( nullptr );
+    }
+    RepGameState &gs = *new RepGameState( );
+    gs.tick_number = 0;
+    gs.camera.pos = glm::dvec3( 0, 0, 0 );
+    test_setup_world( gs.world );
+    World &world = gs.world;
+
+    const BlockState stone = { STONE, 0, 0, STONE, 0 };
+    const BlockState torch = { TORCH, 0, 0, TORCH, 0 };
+    world.set_loaded_block( glm::ivec3( 10, 10, 10 ), stone ); // torch support
+    world.set_loaded_block( glm::ivec3( 10, 11, 10 ), torch ); // occupied torch cell
+    world.set_loaded_block( glm::ivec3( 12, 10, 10 ), stone ); // support for the valid cell
+
+    int failures = 0;
+    auto check = [ & ]( const char *name, const glm::ivec3 &pos, const BlockState &block_state, bool expected ) {
+        const bool got = player_placement_valid( world, pos, block_state );
+        const bool ok = got == expected;
+        pr_test( "  %-55s valid=%d expected=%d  %s", name, got, expected, ok ? "PASS" : "FAIL" );
+        if ( !ok ) {
+            failures++;
+        }
+    };
+    check( "torch into occupied torch cell", glm::ivec3( 10, 11, 10 ), torch, false );
+    check( "stone into occupied torch cell", glm::ivec3( 10, 11, 10 ), stone, false );
+    check( "torch into occupied solid cell", glm::ivec3( 12, 10, 10 ), torch, false );
+    check( "torch into empty cell with support", glm::ivec3( 12, 11, 10 ), torch, true );
+    check( "torch into empty cell without support", glm::ivec3( 15, 11, 10 ), torch, false );
+    check( "stone into empty cell", glm::ivec3( 14, 11, 10 ), stone, true );
+    check( "stone into unloaded cell", glm::ivec3( 100, 10, 10 ), stone, false );
+
+    return failures;
+}
+
 constexpr Test all_tests[] = {  //
     MK_TEST( ecs ),             //
     MK_TEST( vr_projection ),   //
     MK_TEST( redstone ),        //
     MK_TEST( torch_pick ),      //
+    MK_TEST( player_placement_valid ), //
     MK_TEST( sneak ),           //
+    MK_TEST( items ),          //
+    MK_TEST( item_entities ),  //
     MK_TEST( save_migration ),  //
     MK_TEST( creative ),        //
     MK_TEST( fences ),          //

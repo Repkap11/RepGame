@@ -1,7 +1,15 @@
 {
- "id": 508,
- "name": "DEEPSLATE_IRON_ORE",
- "textures": {
-  "all": "deepslate_iron_ore"
- }
+  "id": 508,
+  "name": "DEEPSLATE_IRON_ORE",
+  "textures": {
+    "all": "deepslate_iron_ore"
+  },
+  "drops": [
+    {
+      "item": "RAW_IRON",
+      "min": 1,
+      "max": 1,
+      "chance": 1.0
+    }
+  ]
 }

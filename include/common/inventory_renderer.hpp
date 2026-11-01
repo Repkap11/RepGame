@@ -41,6 +41,7 @@ class InventoryRenderer {
     // Headless test init (test_mobs): fields are filled directly since
     // init() does GL work.
     friend int test_mobs( );
+    friend void test_setup_inventories( struct RepGameState &gs );
     // Cell layout
     int width;
     int height;
@@ -100,6 +101,13 @@ class InventoryRenderer {
     void setSelectedSlot( int slot_index );
     void draw( const Renderer &renderer, const Texture &blocksTexture, const Shader &shader );
     int whichSlotClicked( int screen_x, int screen_y ) const;
+    // True when the raw screen point lands inside the panel's rect (the same
+    // centered, y-up coords whichSlotClicked computes).
+    bool containsPoint( int screen_x, int screen_y ) const {
+        const int x = screen_x - this->screen_width / 2;
+        const int y = -( screen_y - this->screen_height / 2 );
+        return x >= this->inv_x && x < this->inv_x + this->inv_width && y >= this->inv_y && y < this->inv_y + this->inv_height;
+    }
     // Panel edges in centered screen coords (set by onSizeChange) so other
     // panels can align to them via options.pin_bottom_y / pin_top_y.
     int getInvBottom( ) const;

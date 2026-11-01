@@ -9,5 +9,13 @@
     "left": "iron_ore",
     "right": "iron_ore",
     "top": "iron_ore"
-  }
+  },
+  "drops": [
+    {
+      "item": "RAW_IRON",
+      "min": 1,
+      "max": 1,
+      "chance": 1.0
+    }
+  ]
 }

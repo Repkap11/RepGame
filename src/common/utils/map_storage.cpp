@@ -236,8 +236,8 @@ int MapStorage::load_chests( const glm::ivec3 &chunk_offset, ChestContentsMap &o
             memcpy( contents.slots, record + slot_prefix, slot_bytes );
         }
         for ( int s = 0; s < CHEST_SLOTS; s++ ) {
-            if ( save_slot_id_is_empty( contents.slots[ s ].block_id ) ) {
-                contents.slots[ s ].block_id = LAST_BLOCK_ID;
+            if ( save_slot_id_is_empty( contents.slots[ s ].item_id ) ) {
+                contents.slots[ s ].item_id = LAST_BLOCK_ID;
                 contents.slots[ s ].quantity = 0;
             }
         }
@@ -310,6 +310,70 @@ int MapStorage::load_mobs( const glm::ivec3 &chunk_offset, std::vector<MobFileRe
             continue;
         }
         out.push_back( mob );
+    }
+    free( raw );
+    return 1;
+}
+
+// Item file layout: u32 record_size, u32 count, then `count` ItemFileRecords.
+// Same conventions as the mobs file.
+void MapStorage::persist_items( const glm::ivec3 &chunk_offset, const std::vector<ItemFileRecord> &items ) {
+    if ( repgame_block_world( ) ) {
+        return;
+    }
+    char file_name[ CHUNK_NAME_MAX_LENGTH ];
+    snprintf( file_name, CHUNK_NAME_MAX_LENGTH, FILE_ROOT_ITEMS, this->map_name, chunk_offset.x, chunk_offset.y, chunk_offset.z );
+    FILE *write_ptr = fopen( file_name, "wb" );
+    if ( write_ptr == NULL ) {
+        pr_debug( "fopen failed for items file:%s", file_name );
+        return;
+    }
+    uint32_t record_size = sizeof( ItemFileRecord );
+    fwrite( &record_size, sizeof( uint32_t ), 1, write_ptr );
+    uint32_t num_items = static_cast<uint32_t>( items.size( ) );
+    fwrite( &num_items, sizeof( uint32_t ), 1, write_ptr );
+    for ( const ItemFileRecord &record : items ) {
+        fwrite( &record, sizeof( ItemFileRecord ), 1, write_ptr );
+    }
+#if defined( REPGAME_WASM )
+    fdatasync( fileno( write_ptr ) );
+#endif
+    fclose( write_ptr );
+}
+
+int MapStorage::load_items( const glm::ivec3 &chunk_offset, std::vector<ItemFileRecord> &out ) {
+    if ( repgame_block_world( ) ) {
+        return 0;
+    }
+    char file_name[ CHUNK_NAME_MAX_LENGTH ];
+    snprintf( file_name, CHUNK_NAME_MAX_LENGTH, FILE_ROOT_ITEMS, this->map_name, chunk_offset.x, chunk_offset.y, chunk_offset.z );
+    FILE *read_ptr = fopen( file_name, MAP_READ_MODE );
+    if ( read_ptr == NULL ) {
+        return 0;
+    }
+    out.clear( );
+    uint32_t record_size = 0;
+    if ( fread( &record_size, sizeof( uint32_t ), 1, read_ptr ) != 1 || record_size == 0 ) {
+        fclose( read_ptr );
+        return 1;
+    }
+    uint32_t num_items = 0;
+    if ( fread( &num_items, sizeof( uint32_t ), 1, read_ptr ) != 1 || num_items > 65535 ) {
+        fclose( read_ptr );
+        return 1;
+    }
+    char *raw = static_cast<char *>( calloc( num_items, record_size ) );
+    size_t num_read = fread( raw, record_size, num_items, read_ptr );
+    fclose( read_ptr );
+    for ( size_t i = 0; i < num_read; i++ ) {
+        const char *record = &raw[ i * record_size ];
+        ItemFileRecord item = { 0, 0, 0.0, 0.0, 0.0, 0.0f, 0.0f, 0.0f, 0 };
+        const size_t prefix = sizeof( ItemFileRecord ) <= (size_t)record_size ? sizeof( ItemFileRecord ) : (size_t)record_size;
+        memcpy( &item, record, prefix );
+        if ( !item_id_valid( item.item ) || item.count <= 0 ) {
+            continue;
+        }
+        out.push_back( item );
     }
     free( raw );
     return 1;
@@ -491,8 +555,8 @@ struct __attribute__( ( packed ) ) PlayerDataNoDistance {
 static void sanitize_slots( InventorySlot *slots, int count ) {
     for ( int i = 0; i < count; i++ ) {
         InventorySlot &slot = slots[ i ];
-        if ( save_slot_id_is_empty( slot.block_id ) ) {
-            slot.block_id = LAST_BLOCK_ID;
+        if ( save_slot_id_is_empty( slot.item_id ) ) {
+            slot.item_id = LAST_BLOCK_ID;
             slot.quantity = 0;
         }
     }

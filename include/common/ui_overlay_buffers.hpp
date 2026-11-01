@@ -2,7 +2,7 @@
 
 #include "common/constants.hpp"
 #include "common/ui_overlay.hpp"
-#include "common/block_definitions.hpp"
+#include "common/item.hpp"
 
 // Number of isometric faces rendered for a block icon (top, front, right).
 #define ISOMETRIC_FACES 3
@@ -113,3 +113,33 @@ inline void set_block_icon( UIOverlayInstance &inst, const Block *block ) {
     inst.block_tex_offset[ 1 ] = block->tex_offset.y;
     inst.block_tex_offset[ 2 ] = block->tex_offset.z;
 }
+
+// Populates the item-icon fields of a UIOverlayInstance from an ItemID:
+// is_isometric, tint, and id_isos. Block items forward to their Block
+// definition (isometric icons draw from the face textures); pure items draw
+// flat with full-block scale. The caller is responsible for setting screen
+// position, size, z-order, and is_block.
+inline void set_item_icon( UIOverlayInstance &inst, ItemID item_id ) {
+    if ( !item_is_block( item_id ) ) {
+        inst.is_isometric = 0u;
+        for ( int i = 0; i < 4; i++ ) {
+            inst.tint[ i ] = 1.0f;
+        }
+        const TextureID icon = item_icon_texture( item_id );
+        for ( int face = 0; face < ISOMETRIC_FACES; face++ ) {
+            inst.id_isos[ face ] = icon;
+        }
+        inst.block_scale[ 0 ] = 16;
+        inst.block_scale[ 1 ] = 16;
+        inst.block_scale[ 2 ] = 16;
+        inst.block_offset[ 0 ] = 0;
+        inst.block_offset[ 1 ] = 0;
+        inst.block_offset[ 2 ] = 0;
+        inst.block_tex_offset[ 0 ] = 0;
+        inst.block_tex_offset[ 1 ] = 0;
+        inst.block_tex_offset[ 2 ] = 0;
+        return;
+    }
+    set_block_icon( inst, block_definition_get_definition( static_cast<BlockID>( item_id ) ) );
+}
+

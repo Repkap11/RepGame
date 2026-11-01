@@ -26,6 +26,7 @@ struct ImGuiDebugVars {
     int debris_particles;
     int primed_tnt;
     int falling_blocks;
+    int item_entities;
 };
 
 #if ( defined( REPGAME_WINDOWS ) || defined( REPGAME_LINUX ) || defined( REPGAME_WASM ) )

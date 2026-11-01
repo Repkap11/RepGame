@@ -9,6 +9,11 @@
 // blocks per action.
 void queue_neighbor_block_updates( BlockUpdateQueue &blockUpdateQueue, World &world, long tick_number, const glm::ivec3 &pos );
 
+// Mirrors the rejection checks PlayerBlockPlacedEvent::performAction applies
+// to a non-state_update, non-AIR placement, so a caller can tell up front
+// whether placing blockState at pos would be silently dropped.
+bool player_placement_valid( World &world, const glm::ivec3 &pos, const BlockState &blockState );
+
 class PlayerBlockPlacedEvent : public BlockUpdateEvent {
   public:
     PlayerBlockPlacedEvent( long tick_number, const glm::ivec3 &block, BlockState blockState, bool state_update );

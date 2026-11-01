@@ -261,7 +261,7 @@ class RepGame {
     void break_selected_block( );
     unsigned char getPlacedRotation( BlockID blockID ) const;
     void initializeGameState( const char *world_name );
-    void add_to_hotbar( bool alsoSelect, BlockID blockId );
+    void add_to_hotbar( bool alsoSelect, ItemID itemId );
     void process_mouse_events( );
     void process_camera_angle( );
     // Builds the camera's look vector, rotation matrix, and view matrices from the
@@ -346,7 +346,9 @@ class RepGame {
     static bool fly_mode( );
     // Survival pickup shared by block-break and mob drops: hotbar first
     // (stacking onto matching slots), overflow to the survival inventory.
-    static void give_block_to_player( RepGameState &state, BlockID block, int quantity );
+    // Hotbar first, survival inventory for the overflow. Returns the count
+    // that didn't fit (0 when everything was given).
+    static int give_item_to_player( RepGameState &state, ItemID item, int quantity );
     // Mob-vs-block target resolution for the crosshair ray. Sets
     // block_selection.target_mob/target_mob_dist and, when the mob is nearer
     // than the selected block cell (or no block is selected), clears

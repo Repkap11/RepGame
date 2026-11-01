@@ -7,7 +7,7 @@
 // buttons, pressure plates, pistons, TNT/inverse TNT, gravity blocks,
 // chests, fence gates, the oak door). The generated CREATIVE_BLOCKS list starts on
 // page 1, so the common entries appear there too.
-static const BlockID CREATIVE_COMMON_BLOCKS[] = {
+static const ItemID CREATIVE_COMMON_BLOCKS[] = {
     GRASS,
     DIRT,
     STONE,
@@ -65,12 +65,12 @@ void CreativeInventory::incrementSelectedPage( int offset ) {
     this->load_blocks_for_selected_page( );
 }
 
-BlockID CreativeInventory::whichBlockClicked( const int screen_x, const int screen_y ) {
+ItemID CreativeInventory::whichItemClicked( const int screen_x, const int screen_y ) {
     const int slot = this->inventory_renderer.whichSlotClicked( screen_x, screen_y );
     if ( slot < 0 || slot >= this->num_blocks_max ) {
         return LAST_BLOCK_ID;
     }
-    return this->slots[ slot ].block_id;
+    return this->slots[ slot ].item_id;
 }
 
 void CreativeInventory::load_blocks_for_selected_page( ) {
@@ -90,9 +90,9 @@ void CreativeInventory::load_blocks_for_selected_page( ) {
             InventorySlot &slot = this->slots[ i_slot ];
 
             if ( this->selected_page == 0 ) {
-                slot.block_id = i_common < ( int )CREATIVE_COMMON_COUNT ? CREATIVE_COMMON_BLOCKS[ i_common ] : LAST_BLOCK_ID;
+                slot.item_id = i_common < ( int )CREATIVE_COMMON_COUNT ? CREATIVE_COMMON_BLOCKS[ i_common ] : LAST_BLOCK_ID;
             } else {
-                slot.block_id = i_block < ( int )CREATIVE_BLOCK_COUNT ? CREATIVE_BLOCKS[ i_block ] : LAST_BLOCK_ID;
+                slot.item_id = i_block < ( int )CREATIVE_BLOCK_COUNT ? CREATIVE_BLOCKS[ i_block ] : LAST_BLOCK_ID;
             }
             slot.quantity = 0;
             i_block++;

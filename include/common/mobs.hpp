@@ -153,6 +153,8 @@ class MobManager {
     // hit started the death animation.
     bool hurt( int index, float damage, const glm::dvec3 &attacker_pos );
     const MobTypeDef &def_at( int index ) const { return mob_types[ this->mobs[ index ].type ]; }
+    // The mob's feet position (for dropping items where it died).
+    glm::dvec3 pos_at( int index ) const { return this->mobs[ index ].pos; }
     // Drain a just-finalized chunk's pending_mobs into live mobs and record
     // ownership. Skips chunks already owned, parked/loading leftovers, and
     // test mode.

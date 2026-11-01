@@ -29,5 +29,6 @@
     "left": "legacy_glass_pane",
     "right": "legacy_glass_pane",
     "top": "legacy_glass_pane"
-  }
+  },
+  "drops": []
 }

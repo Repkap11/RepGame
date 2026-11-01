@@ -18,6 +18,7 @@ MK_SHADER( object_fragment );
 MK_SHADER( debris_vertex );
 MK_SHADER( primed_tnt_vertex );
 MK_SHADER( mob_vertex );
+MK_SHADER( item_sprite_vertex );
 
 MK_TEXTURE( mobs, 64, 64 * MOB_SKIN_COUNT, 64, 64 );
 
@@ -86,6 +87,14 @@ void World::init( const glm::dvec3 &camera_pos, int width, int height, MapStorag
     this->vbl_mob_instance.push_float( 4 ); // uv_a (u, v, w, h in skin px)
     this->vbl_mob_instance.push_float( 4 ); // uv_b (d, skin_layer, mirror, flash)
 
+    // These are from ItemSpriteInstance
+    this->vbl_item_instance.push_unsigned_int( 1 ); // atlas layer
+    this->vbl_item_instance.push_float( 4 );        // transform
+    this->vbl_item_instance.push_float( 4 );        // transform
+    this->vbl_item_instance.push_float( 4 );        // transform
+    this->vbl_item_instance.push_float( 4 );        // transform
+    this->vbl_item_instance.push_float( 2 );        // light (sky, block)
+
     this->chunkLoader.init( camera_pos, this->vbl_block, this->vbl_coords, map_storage, render_radius );
 
 
@@ -93,13 +102,18 @@ void World::init( const glm::dvec3 &camera_pos, int width, int height, MapStorag
     this->debris_shader.init( &debris_vertex, &object_fragment );
     this->primed_tnt_shader.init( &primed_tnt_vertex, &object_fragment );
     this->mob_shader.init( &mob_vertex, &object_fragment );
+    this->item_sprite_shader.init( &item_sprite_vertex, &object_fragment );
 
     this->skyBox.init( this->vbl_object_vertex, this->vbl_object_position );
     this->multiplayer_avatars.init( &this->mobs );
     this->blockDebris.init( this->vbl_object_vertex, this->vbl_debris_instance );
     this->bodies.init( this->vbl_object_vertex, this->vbl_object_position, this->vbl_primed_tnt_instance );
+    this->items.init( this->vbl_object_vertex, this->vbl_object_position, this->vbl_item_instance );
+    // The sprite program alpha-tests the atlas at exact texels (no mip bleed).
+    this->item_sprite_shader.set_uniform1i( "u_ExactTexel", 1 );
     this->mobs.init( this->vbl_object_vertex, this->vbl_mob_instance );
     this->mobs.init_storage( &map_storage );
+    this->items.init_storage( &map_storage );
     this->mouseSelection.init( this->vbl_block, this->vbl_coords );
 
     // Mob skins: NEAREST like the block atlas but no mipmaps — face UV
@@ -204,6 +218,7 @@ void World::render( Multiplayer &multiplayer, const glm::dvec3 &camera_pos, cons
     if ( !this->chunkLoader.just_finalized.empty( ) ) {
         for ( Chunk *chunk : this->chunkLoader.just_finalized ) {
             this->mobs.adopt_chunk( *chunk );
+            this->items.adopt_chunk( *chunk );
         }
         this->chunkLoader.just_finalized.clear( );
     }
@@ -357,6 +372,18 @@ void World::draw( const Texture &blocksTexture, const glm::mat4 &mvp, const glm:
     this->primed_tnt_shader.set_uniform1f( "u_MinAmbient", min_ambient );
     this->primed_tnt_shader.set_uniform1f( "u_Time", time_s );
 
+    // Item sprites also share object_fragment.glsl — same fog/water set.
+    this->item_sprite_shader.set_uniform1f( "u_FogNear", fog_near );
+    this->item_sprite_shader.set_uniform1f( "u_FogFar", fog_far );
+    this->item_sprite_shader.set_uniform1f( "u_WaterFogNear", water_fog_near );
+    this->item_sprite_shader.set_uniform1f( "u_WaterFogFar", water_fog_far );
+    this->item_sprite_shader.set_uniform1i( "u_Underwater", underwater_wash );
+    this->item_sprite_shader.set_uniform3f( "u_CameraPos", camera_pos_rebased.x, camera_pos_rebased.y, camera_pos_rebased.z );
+    this->item_sprite_shader.set_uniform3f( "u_SkyAvgColor", fog_blend_color.r, fog_blend_color.g, fog_blend_color.b );
+    this->item_sprite_shader.set_uniform1i( "u_OpaqueFog", useFogBlend ? 1 : 0 );
+    this->item_sprite_shader.set_uniform1f( "u_Daylight", daylight );
+    this->item_sprite_shader.set_uniform1f( "u_MinAmbient", min_ambient );
+
     // Mobs share object_fragment.glsl — same fog/water set.
     this->mob_shader.set_uniform1f( "u_FogNear", fog_near );
     this->mob_shader.set_uniform1f( "u_FogFar", fog_far );
@@ -434,6 +461,15 @@ void World::draw( const Texture &blocksTexture, const glm::mat4 &mvp, const glm:
     this->primed_tnt_shader.set_uniform1i( "u_IsSky", 0 );
     this->primed_tnt_shader.set_uniform3f( "u_Origin", renderOriginF.x, renderOriginF.y, renderOriginF.z );
 
+    this->item_sprite_shader.set_uniform1i( "u_DrawToReflection", 0 );
+    this->item_sprite_shader.set_uniform1i_texture( "u_Texture", blocksTexture );
+    this->item_sprite_shader.set_uniform1f( "u_ReflectionHeight", 0 );
+    this->item_sprite_shader.set_uniform1i( "u_TintUnderWater", object_water_tint_type );
+    this->item_sprite_shader.set_uniform1f( "u_ExtraAlpha", 1.0f );
+    this->item_sprite_shader.set_uniform_mat4f( "u_MVP", mvp );
+    this->item_sprite_shader.set_uniform1i( "u_IsSky", 0 );
+    this->item_sprite_shader.set_uniform3f( "u_Origin", renderOriginF.x, renderOriginF.y, renderOriginF.z );
+
     this->mob_shader.set_uniform1i( "u_DrawToReflection", 0 );
     this->mob_shader.set_uniform1i_texture( "u_Texture", this->mobsTexture );
     this->mob_shader.set_uniform1f( "u_ReflectionHeight", 0 );
@@ -480,8 +516,11 @@ void World::draw( const Texture &blocksTexture, const glm::mat4 &mvp, const glm:
     this->mobs.update_render( alpha, this->chunkLoader );
     // Rebuild the block-body transforms (falling blocks + primed TNT).
     this->bodies.update_render( alpha, this->chunkLoader );
+    // Rebuild the dropped-item transforms (cubes + extruded sprites).
+    this->items.update_render( alpha, this->chunkLoader );
     this->blockDebris.draw( this->renderer, this->debris_shader, time_s );      // Break particles
     this->bodies.draw( this->renderer, this->object_shader, this->primed_tnt_shader ); // Falling blocks + ignited TNT
+    this->items.draw( this->renderer, this->object_shader, this->item_sprite_shader ); // Dropped items
     this->mobs.draw( this->renderer, this->mob_shader );                        // Mob parts
 
     this->chunkLoader.calculate_cull( mvp, false, renderOrigin );
@@ -620,7 +659,16 @@ void World::draw( const Texture &blocksTexture, const glm::mat4 &mvp, const glm:
         this->primed_tnt_shader.set_uniform3f( "u_Origin", renderOriginF.x, renderOriginF.y, renderOriginF.z );
         this->primed_tnt_shader.set_uniform1f( "u_ReflectionHeight", offset + renderOriginF.y );
         this->primed_tnt_shader.set_uniform1i( "u_TintUnderWater", object_water_tint_type );
+        this->item_sprite_shader.set_uniform1i_texture( "u_Texture", blocksTexture );
+        this->item_sprite_shader.set_uniform1f( "u_ExtraAlpha", 1.0f );
+        this->item_sprite_shader.set_uniform1i( "u_DrawToReflection", 1 );
+        this->item_sprite_shader.set_uniform1i( "u_IsSky", 0 );
+        this->item_sprite_shader.set_uniform_mat4f( "u_MVP", mvp_reflect );
+        this->item_sprite_shader.set_uniform3f( "u_Origin", renderOriginF.x, renderOriginF.y, renderOriginF.z );
+        this->item_sprite_shader.set_uniform1f( "u_ReflectionHeight", offset + renderOriginF.y );
+        this->item_sprite_shader.set_uniform1i( "u_TintUnderWater", object_water_tint_type );
         this->bodies.draw( this->renderer, this->object_shader, this->primed_tnt_shader ); // Reflected bodies
+        this->items.draw( this->renderer, this->object_shader, this->item_sprite_shader ); // Reflected items
 
         this->chunkLoader.shader.set_uniform1i( "u_DrawToReflection", true );
         this->chunkLoader.shader.set_uniform1f( "u_ExtraAlpha", 1.0f ); // this make reflections not solid...
@@ -726,13 +774,16 @@ void World::draw( const Texture &blocksTexture, const glm::mat4 &mvp, const glm:
 }
 void World::cleanup( MapStorage &map_storage ) {
 
-    // Persist every owned chunk's mobs before the loader tears down.
+    // Persist every owned chunk's mobs and dropped items before the loader
+    // tears down.
     this->mobs.persist_all( );
+    this->items.persist_all( );
     this->chunkLoader.cleanup( map_storage );
     this->skyBox.destroy( );
     this->multiplayer_avatars.cleanup( );
     this->blockDebris.cleanup( );
     this->bodies.cleanup( );
+    this->items.cleanup( );
     this->mobs.cleanup( );
     this->mouseSelection.destroy( );
     this->debris_shader.destroy( );

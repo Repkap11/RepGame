@@ -97,6 +97,7 @@ void Input::mouseWheel( const int x_delta, const int y_delta ) {
 void Input::keysInput( const SDL_Keycode key, const bool pressed ) {
 
     this->shift_held = ( SDL_GetModState( ) & SDL_KMOD_SHIFT ) != 0;
+    this->ctrl_held = ( SDL_GetModState( ) & SDL_KMOD_CTRL ) != 0;
 
     switch ( key ) {
         case 'q':

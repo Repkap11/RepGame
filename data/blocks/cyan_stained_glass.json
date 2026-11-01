@@ -1,12 +1,13 @@
 {
- "affected_by_redstone_power": false,
- "casts_shadow": false,
- "hardness": 0.449999988,
- "id": 439,
- "is_seethrough": true,
- "name": "CYAN_STAINED_GLASS",
- "render_order": "Translucent",
- "textures": {
-  "all": "glass_cyan"
- }
+  "affected_by_redstone_power": false,
+  "casts_shadow": false,
+  "hardness": 0.449999988,
+  "id": 439,
+  "is_seethrough": true,
+  "name": "CYAN_STAINED_GLASS",
+  "render_order": "Translucent",
+  "textures": {
+    "all": "glass_cyan"
+  },
+  "drops": []
 }

@@ -207,6 +207,7 @@ void imgui_overlay_draw( ImGuiOverlay *imgui_overlay, Input &input, RepGameState
                          debug_vars.debris_particles, debug_vars.primed_tnt, debug_vars.falling_blocks );
             ImGui::Text( "Mobs: %d (players %d)", static_cast<int>( state.world.mobs.count( ) - state.world.mobs.remote_count( ) ),
                          static_cast<int>( state.world.mobs.remote_count( ) ) );
+            ImGui::Text( "Items: %d", debug_vars.item_entities );
 
             // debug_vars.corner1.x = round( debug_vars.corner1.x * 20 ) / 20;
             // debug_vars.corner1.y = round( debug_vars.corner1.y * 20 ) / 20;

@@ -1,11 +1,25 @@
 {
- "casts_shadow": false,
- "hardness": 0.35,
- "id": 887,
- "is_seethrough": true,
- "name": "PALE_OAK_LEAVES",
- "no_light": 6815743,
- "textures": {
-  "all": "pale_oak_leaves"
- }
+  "casts_shadow": false,
+  "hardness": 0.35,
+  "id": 887,
+  "is_seethrough": true,
+  "name": "PALE_OAK_LEAVES",
+  "no_light": 6815743,
+  "textures": {
+    "all": "pale_oak_leaves"
+  },
+  "drops": [
+    {
+      "item": "PALE_OAK_SAPLING",
+      "min": 1,
+      "max": 1,
+      "chance": 0.05
+    },
+    {
+      "item": "STICK",
+      "min": 1,
+      "max": 1,
+      "chance": 0.02
+    }
+  ]
 }

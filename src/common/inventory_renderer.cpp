@@ -287,16 +287,15 @@ void InventoryRenderer::renderBackground( ) {
 void InventoryRenderer::singleItemRender( int slot_index, const InventorySlot &inventory_slot ) {
     entt::entity &slot_entity = this->slots_entities[ slot_index ];
 
-    BlockID block_id = inventory_slot.block_id;
-    if ( block_id == LAST_BLOCK_ID ) {
+    const ItemID item_id = inventory_slot.item_id;
+    if ( item_id == LAST_BLOCK_ID ) {
         if ( slot_entity != entt::null ) {
             this->render_chain_inventory_icons.remove( slot_entity );
         }
         slot_entity = entt::null;
         return;
     }
-    Block *block = block_definition_get_definition( block_id );
-    if ( block->renderOrder == RenderOrder_Transparent ) {
+    if ( item_is_block( item_id ) && block_definition_get_definition( static_cast<BlockID>( item_id ) )->renderOrder == RenderOrder_Transparent ) {
         if ( slot_entity != entt::null ) {
             this->render_chain_inventory_icons.remove( slot_entity );
         }
@@ -326,7 +325,7 @@ void InventoryRenderer::singleItemRender( int slot_index, const InventorySlot &i
     ui_vertex.screen_x = this->inv_items_x + block_grid_coord_x * this->inv_cell_stride + this->inv_block_offset;
     ui_vertex.screen_y = this->inv_items_y + block_grid_coord_y * this->inv_cell_stride + this->inv_block_offset;
 
-    set_block_icon( ui_vertex, block );
+    set_item_icon( ui_vertex, item_id );
 
     this->render_chain_inventory_icons.invalidate( slot_entity );
 }

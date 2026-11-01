@@ -1,7 +1,15 @@
 {
- "id": 506,
- "name": "DEEPSLATE_EMERALD_ORE",
- "textures": {
-  "all": "deepslate_emerald_ore"
- }
+  "id": 506,
+  "name": "DEEPSLATE_EMERALD_ORE",
+  "textures": {
+    "all": "deepslate_emerald_ore"
+  },
+  "drops": [
+    {
+      "item": "EMERALD",
+      "min": 1,
+      "max": 1,
+      "chance": 1.0
+    }
+  ]
 }

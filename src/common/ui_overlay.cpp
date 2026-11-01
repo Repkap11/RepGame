@@ -69,16 +69,15 @@ void UIOverlay::on_screen_size_change( int width, int height ) {
     this->screen_width = width;
     this->screen_height = height;
     // When the screen changes, we need to reprocess the held block graphics
-    set_holding_block( this->heldBlockID );
+    set_holding_item( this->heldItemID );
 }
 
-void UIOverlay::set_holding_block( BlockID holding_block ) {
-    this->heldBlockID = holding_block;
-    if ( this->heldBlockID == LAST_BLOCK_ID ) {
+void UIOverlay::set_holding_item( ItemID holding_item ) {
+    this->heldItemID = holding_item;
+    if ( this->heldItemID == LAST_BLOCK_ID || !item_id_valid( this->heldItemID ) ) {
         this->render_chain_held_block.clear( );
         return;
     }
-    Block *holdingBlock = block_definition_get_definition( this->heldBlockID );
 
     vb_data_holding_block_instance.width = this->screen_width / 4;
     vb_data_holding_block_instance.height = this->screen_width / 4;
@@ -87,7 +86,7 @@ void UIOverlay::set_holding_block( BlockID holding_block ) {
     vb_data_holding_block_instance.screen_y = -1.3 * this->screen_height / 2;
     vb_data_holding_block_instance.screen_z = 0;
 
-    set_block_icon( vb_data_holding_block_instance, holdingBlock );
+    set_item_icon( vb_data_holding_block_instance, this->heldItemID );
 
     this->render_chain_held_block.clear( );
     auto pair = this->render_chain_held_block.create_instance( );
@@ -126,7 +125,7 @@ void UIOverlay::draw( CreativeInventory &creative_inventory, SurvivalInventory &
             chest_renderer->draw( renderer, blocksTexture, this->shader );
             for ( int i = 0; i < CHEST_SLOTS; i++ ) {
                 const InventorySlot &slot = chest_contents->slots[ i ];
-                if ( slot.block_id == LAST_BLOCK_ID || slot.quantity <= 0 ) {
+                if ( slot.item_id == LAST_BLOCK_ID || slot.quantity <= 0 ) {
                     continue;
                 }
                 float slot_x, slot_y;
@@ -152,7 +151,7 @@ void UIOverlay::draw( CreativeInventory &creative_inventory, SurvivalInventory &
 }
 
 void UIOverlay::draw_held_inventory_item( const InventorySlot &held, bool is_holding, int mouse_x, int mouse_y, int block_size, int cell_size, const Renderer &renderer, const Texture &blocksTexture, FontRenderer &font, const glm::mat4 &mvp_ui ) {
-    if ( !is_holding || held.block_id == LAST_BLOCK_ID || held.quantity <= 0 ) {
+    if ( !is_holding || held.item_id == LAST_BLOCK_ID || held.quantity <= 0 ) {
         return;
     }
     // The font renderer (called from drawQuantities) binds its own texture on
@@ -164,8 +163,6 @@ void UIOverlay::draw_held_inventory_item( const InventorySlot &held, bool is_hol
 
     this->shader.set_uniform_mat4f( "u_MVP", mvp_ui );
     this->shader.set_uniform1i_texture( "u_Texture", blocksTexture );
-
-    Block *holdingBlock = block_definition_get_definition( held.block_id );
 
     // Convert mouse screen coords (top-left origin, Y-down) to centered
     // UI coords (center origin, Y-up).
@@ -191,7 +188,7 @@ void UIOverlay::draw_held_inventory_item( const InventorySlot &held, bool is_hol
     ui_vertex.height = block_size;
     ui_vertex.is_block = 1;
 
-    set_block_icon( ui_vertex, holdingBlock );
+    set_item_icon( ui_vertex, held.item_id );
 
     this->render_chain_dragged_item.draw( renderer, this->shader );
 

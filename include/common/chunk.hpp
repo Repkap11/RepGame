@@ -103,6 +103,7 @@ class Chunk {
     friend class MapStorage;
     friend class MobManager;
     friend class BlockBodies;
+    friend class ItemEntities;
     friend class TerrainLoadingThread;
     friend class Multiplayer;
     friend class TntExplodeEvent;
@@ -112,6 +113,7 @@ class Chunk {
     friend void light_pending_enqueue( Chunk &chunk );
     friend int test_lighting( );
     friend int test_structure_border( );
+    friend int test_item_entities( );
 
     int load_state;
     int gl_initialized;
@@ -146,6 +148,13 @@ class Chunk {
     std::vector<MobFileRecord> pending_mobs;
     int mobs_file_present;
     int mobs_spawned;
+    // Dropped-item sidecar, same pattern as pending_mobs: filled by
+    // load_terrain on the worker, drained by ItemEntities::adopt_chunk after
+    // finalize. items_file_present tracks whether an items file existed so
+    // the leave path rewrites it (even empty) instead of reviving stale
+    // records.
+    std::vector<ItemFileRecord> pending_items;
+    int items_file_present;
     int should_render;
     int cached_cull_normal;
     int cached_cull_reflect;

@@ -169,9 +169,11 @@ static BlockState BLOCK_STATE_LAST_BLOCK_ID = { LAST_BLOCK_ID, BLOCK_ROTATE_0, 0
 
 // One inventory stack. Used by the hotbar, survival/creative inventories,
 // chest contents, player.dat, and the chest wire protocol — lives here so
-// storage and net code can use it without renderer headers.
+// storage and net code can use it without renderer headers. item_id is an
+// ItemID (item.hpp): 0..LAST_BLOCK_ID-1 block items, LAST_BLOCK_ID empty,
+// ITEM_ID_BASE+ pure items.
 typedef struct __attribute__( ( packed ) ) {
-    BlockID block_id;
+    uint32_t item_id;
     int quantity;
 } InventorySlot;
 
