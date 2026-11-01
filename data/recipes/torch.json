@@ -1,0 +1,1 @@
+{ "pattern": [ "C", "S" ], "key": { "C": "COAL", "S": "STICK" }, "result": "TORCH", "count": 4 }

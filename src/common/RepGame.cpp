@@ -581,6 +581,231 @@ static void hotbar_slot_to_chest( RepGameState &state, int slot_index, bool half
     state.ui_overlay.set_holding_item( state.hotbar.getSelectedItem( ) );
 }
 
+// --- Crafting helpers -----------------------------------------------------
+// The crafting grid is 2x2 in the survival inventory and 3x3 while a
+// crafting table is open (either mode). Slots live in renderer order (slot
+// 0 is the BOTTOM-left cell) and get flipped to top-first for the matcher.
+
+static int crafting_dim( const RepGameState &state ) {
+    return state.crafting.table_open ? 3 : 2;
+}
+
+static bool crafting_grid_visible( const RepGameState &state ) {
+    return state.input.inventory_open && !state.chest.open && ( state.crafting.table_open || state.game_mode == GameMode_Survival );
+}
+
+static InventoryRenderer &crafting_grid( RepGameState &state ) {
+    return state.crafting.table_open ? state.crafting.grid3 : state.crafting.grid2;
+}
+
+// Repaint the output slot from the freshly re-matched recipe. Called after
+// every grid mutation.
+static void crafting_recompute( RepGameState &state ) {
+    const int dim = crafting_dim( state );
+    ItemID top[ 9 ];
+    for ( int r = 0; r < dim; r++ ) {
+        for ( int c = 0; c < dim; c++ ) {
+            top[ r * dim + c ] = state.crafting.slots[ ( dim - 1 - r ) * dim + c ].item_id;
+        }
+    }
+    state.crafting.recipe = crafting_find_recipe( top, dim );
+    if ( state.crafting.recipe >= 0 ) {
+        state.crafting.output_slot.item_id = CRAFT_RECIPES[ state.crafting.recipe ].result;
+        state.crafting.output_slot.quantity = CRAFT_RECIPES[ state.crafting.recipe ].count;
+    } else {
+        state.crafting.output_slot.item_id = LAST_BLOCK_ID;
+        state.crafting.output_slot.quantity = 0;
+    }
+    state.crafting.output.changeSlotItem( 0, state.crafting.output_slot );
+}
+
+// Lay out the grid + output panels: fixed stride taken from the survival
+// panel, grid top pinned to the creative panel's top (the chest's spot),
+// and the grid + one-stride gap + 1x1 output group centered horizontally.
+static void crafting_layout( RepGameState &state ) {
+    const int w = static_cast<int>( state.screen.width );
+    const int h = static_cast<int>( state.screen.height );
+    const float stride = state.survival_inventory.inventory_renderer.getCellStride( );
+    const int active_dim = crafting_dim( state );
+    InventoryRenderer *grids[] = { &state.crafting.grid2, &state.crafting.grid3 };
+    for ( int i = 0; i < 2; i++ ) {
+        const int dim = i + 2;
+        const float off = stride * 0.1f;
+        const float grid_w = stride * dim + off;
+        const float out_w = stride + off;
+        const float group_w = grid_w + stride + out_w;
+        InventoryRenderer &grid = *grids[ i ];
+        grid.options.fixed_cell_stride = stride;
+        grid.options.center_x = static_cast<int>( grid_w - group_w ) / 2;
+        grid.options.pin_top_y = state.main_inventory.inventory_renderer.getInvTop( );
+        grid.onSizeChange( w, h, state.crafting.slots );
+        if ( dim == active_dim ) {
+            state.crafting.output.options.fixed_cell_stride = stride;
+            state.crafting.output.options.center_x = static_cast<int>( group_w - out_w ) / 2;
+            // Vertically centered on the grid (the grid panel is square).
+            state.crafting.output.options.pin_bottom_y = grid.getInvBottom( ) + static_cast<int>( ( grid_w - out_w ) / 2 );
+            InventorySlot out_slot = state.crafting.output_slot;
+            state.crafting.output.onSizeChange( w, h, &out_slot );
+        }
+    }
+}
+
+// Generic slot click semantics for the crafting grid (the chest variants
+// also sync to the chunk/server; grid slots are local state).
+static void slot_pickup_or_swap( InventorySlot &slot, InventorySlot &held, bool &is_holding ) {
+    if ( !is_holding ) {
+        if ( slot.item_id == LAST_BLOCK_ID || slot.quantity <= 0 ) {
+            return;
+        }
+        held = slot;
+        slot.item_id = LAST_BLOCK_ID;
+        slot.quantity = 0;
+        is_holding = true;
+    } else if ( slot.item_id == held.item_id && slot.quantity > 0 && slot.quantity < item_max_stack( held.item_id ) ) {
+        const int space = item_max_stack( held.item_id ) - slot.quantity;
+        const int to_move = held.quantity < space ? held.quantity : space;
+        slot.quantity += to_move;
+        held.quantity -= to_move;
+        if ( held.quantity <= 0 ) {
+            held.item_id = LAST_BLOCK_ID;
+            is_holding = false;
+        }
+    } else {
+        const InventorySlot tmp = slot;
+        slot = held;
+        held = tmp;
+        if ( held.item_id == LAST_BLOCK_ID || held.quantity <= 0 ) {
+            is_holding = false;
+        }
+    }
+}
+
+static void slot_right_click( InventorySlot &slot, InventorySlot &held, bool &is_holding ) {
+    if ( !is_holding ) {
+        if ( slot.item_id == LAST_BLOCK_ID || slot.quantity <= 0 ) {
+            return;
+        }
+        const int take = ( slot.quantity + 1 ) / 2;
+        held.item_id = slot.item_id;
+        held.quantity = take;
+        slot.quantity -= take;
+        if ( slot.quantity <= 0 ) {
+            slot.item_id = LAST_BLOCK_ID;
+            slot.quantity = 0;
+        }
+        is_holding = true;
+    } else {
+        if ( slot.item_id == LAST_BLOCK_ID || slot.quantity <= 0 ) {
+            slot.item_id = held.item_id;
+            slot.quantity = 1;
+            held.quantity--;
+        } else if ( slot.item_id == held.item_id && slot.quantity < item_max_stack( held.item_id ) ) {
+            slot.quantity++;
+            held.quantity--;
+        } else {
+            return;
+        }
+        if ( held.quantity <= 0 ) {
+            held.item_id = LAST_BLOCK_ID;
+            is_holding = false;
+        }
+    }
+}
+
+// Shift-click on a grid slot: move the stack to the player (survival, then
+// hotbar); any leftover stays in the grid.
+static void crafting_slot_to_player( RepGameState &state, int slot_index ) {
+    InventorySlot &slot = state.crafting.slots[ slot_index ];
+    if ( slot.item_id == LAST_BLOCK_ID || slot.quantity <= 0 ) {
+        return;
+    }
+    int leftover = state.survival_inventory.addItem( slot.item_id, slot.quantity );
+    if ( leftover > 0 ) {
+        const int hotbar_space = state.hotbar.spaceFor( slot.item_id );
+        const int to_hotbar = leftover < hotbar_space ? leftover : hotbar_space;
+        if ( to_hotbar > 0 ) {
+            state.hotbar.addItemWithQuantity( slot.item_id, to_hotbar, false );
+            leftover -= to_hotbar;
+        }
+    }
+    if ( leftover <= 0 ) {
+        slot.item_id = LAST_BLOCK_ID;
+        slot.quantity = 0;
+    } else {
+        slot.quantity = leftover;
+    }
+    crafting_grid( state ).changeSlotItem( slot_index, slot );
+    state.ui_overlay.set_holding_item( state.hotbar.getSelectedItem( ) );
+    crafting_recompute( state );
+}
+
+// Consume one item from every non-empty cell of the active grid.
+static void crafting_consume_grid( RepGameState &state ) {
+    const int dim = crafting_dim( state );
+    for ( int i = 0; i < dim * dim; i++ ) {
+        InventorySlot &slot = state.crafting.slots[ i ];
+        if ( slot.item_id == LAST_BLOCK_ID || slot.quantity <= 0 ) {
+            continue;
+        }
+        slot.quantity--;
+        if ( slot.quantity <= 0 ) {
+            slot.item_id = LAST_BLOCK_ID;
+            slot.quantity = 0;
+        }
+        crafting_grid( state ).changeSlotItem( i, slot );
+    }
+}
+
+// Take the result onto the cursor: allowed when the hand is empty, or holds
+// the same item with room for the whole result.
+static void crafting_take_result( RepGameState &state ) {
+    if ( state.crafting.recipe < 0 ) {
+        return;
+    }
+    const CraftRecipe &r = CRAFT_RECIPES[ state.crafting.recipe ];
+    InventorySlot &held = state.held_inventory_slot;
+    if ( state.is_holding_inventory_slot && ( held.item_id != r.result || held.quantity + r.count > item_max_stack( r.result ) ) ) {
+        return;
+    }
+    crafting_consume_grid( state );
+    if ( state.is_holding_inventory_slot ) {
+        held.quantity += r.count;
+    } else {
+        held.item_id = r.result;
+        held.quantity = r.count;
+        state.is_holding_inventory_slot = true;
+    }
+    audio_play_sfx( "pop" );
+    crafting_recompute( state );
+}
+
+// Shift-click on the output: craft repeatedly while the recipe matches and
+// the result fits in survival + hotbar space (survival first).
+static void crafting_craft_all( RepGameState &state ) {
+    bool crafted = false;
+    for ( int iter = 0; iter < 64; iter++ ) {
+        if ( state.crafting.recipe < 0 ) {
+            break;
+        }
+        const CraftRecipe &r = CRAFT_RECIPES[ state.crafting.recipe ];
+        const int space = state.survival_inventory.spaceFor( r.result ) + state.hotbar.spaceFor( r.result );
+        if ( space < r.count ) {
+            break;
+        }
+        crafting_consume_grid( state );
+        const int leftover = state.survival_inventory.addItem( r.result, r.count );
+        if ( leftover > 0 ) {
+            state.hotbar.addItemWithQuantity( r.result, leftover, false );
+        }
+        crafted = true;
+    }
+    if ( crafted ) {
+        audio_play_sfx( "pop" );
+        state.ui_overlay.set_holding_item( state.hotbar.getSelectedItem( ) );
+    }
+    crafting_recompute( state );
+}
+
 // Breaks the block under the cursor. In survival mode the mined block is
 // added to the hotbar first, then falls back to the survival inventory.
 // Launch velocity (blocks/tick at UPS_RATE) for block-break and mob drops: a
@@ -669,6 +894,51 @@ static void throw_item( RepGameState &state, const ItemID item, const int count 
     state.world.items.spawn( item, count, state.camera.pos + look * 0.3, look * 0.045 + glm::dvec3( 0.0, 0.01, 0.0 ), 40 );
 }
 
+// Returns the grid contents to the player: survival, then hotbar, then
+// thrown as an item entity when there's no room. Idempotent — the every-tick
+// inventory-closed branch calls it — and resets table_open.
+static void crafting_return_grid( RepGameState &state ) {
+    const bool was_open = state.crafting.table_open;
+    state.crafting.table_open = false;
+    bool any = false;
+    for ( int i = 0; i < 9; i++ ) {
+        any = any || ( state.crafting.slots[ i ].item_id != LAST_BLOCK_ID && state.crafting.slots[ i ].quantity > 0 );
+    }
+    if ( !was_open && !any ) {
+        return;
+    }
+    for ( int i = 0; i < 9; i++ ) {
+        InventorySlot &slot = state.crafting.slots[ i ];
+        if ( slot.item_id == LAST_BLOCK_ID || slot.quantity <= 0 ) {
+            continue;
+        }
+        int leftover = state.survival_inventory.addItem( slot.item_id, slot.quantity );
+        if ( leftover > 0 ) {
+            const int hotbar_space = state.hotbar.spaceFor( slot.item_id );
+            const int to_hotbar = leftover < hotbar_space ? leftover : hotbar_space;
+            if ( to_hotbar > 0 ) {
+                state.hotbar.addItemWithQuantity( slot.item_id, to_hotbar, false );
+                leftover -= to_hotbar;
+            }
+        }
+        if ( leftover > 0 ) {
+            throw_item( state, slot.item_id, leftover );
+        }
+        slot.item_id = LAST_BLOCK_ID;
+        slot.quantity = 0;
+        if ( i < 4 ) {
+            state.crafting.grid2.changeSlotItem( i, slot );
+        }
+        state.crafting.grid3.changeSlotItem( i, slot );
+    }
+    if ( was_open ) {
+        // The output panel moves back to the 2x2 group.
+        crafting_layout( state );
+    }
+    crafting_recompute( state );
+    state.ui_overlay.set_holding_item( state.hotbar.getSelectedItem( ) );
+}
+
 // A click while the inventory is open is "outside the panels" when it lands
 // on no visible inventory panel rect — chest (if open), the creative or
 // survival inventory, or the hotbar strip.
@@ -676,6 +946,10 @@ static bool off_inventory_panels( RepGameState &state ) {
     const int x = state.input.mouse.absPosition.x;
     const int y = state.input.mouse.absPosition.y;
     if ( state.chest.open && state.chest.inventory_renderer.containsPoint( x, y ) ) {
+        return false;
+    }
+    if ( crafting_grid_visible( state ) &&
+         ( crafting_grid( state ).containsPoint( x, y ) || state.crafting.output.containsPoint( x, y ) ) ) {
         return false;
     }
     if ( state.game_mode == GameMode_Creative ) {
@@ -855,6 +1129,15 @@ void RepGame::process_mouse_events( ) {
         const BlockState target_state = globalGameState.world.get_loaded_block( globalGameState.block_selection.pos_destroy );
         if ( block_is_chest( target_state.id ) && !globalGameState.input.movement.sneakPressed ) {
             this->open_chest( globalGameState.block_selection.pos_destroy );
+            globalGameState.input.click_delay_right = 30;
+        }
+        // Right-clicking a crafting table opens the 3x3 grid instead of
+        // placing against it. Sneaking skips the interaction.
+        if ( target_state.id == CRAFTING_TABLE && !globalGameState.input.movement.sneakPressed ) {
+            globalGameState.crafting.table_open = true;
+            globalGameState.crafting.table_pos = globalGameState.block_selection.pos_destroy;
+            globalGameState.input.inventory_open = true;
+            crafting_layout( globalGameState );
             globalGameState.input.click_delay_right = 30;
         }
     }
@@ -1341,6 +1624,11 @@ void RepGame::process_inventory_events( ) {
             globalGameState.game_mode = GameMode_Survival;
         } else {
             globalGameState.game_mode = GameMode_Creative;
+            // Creative hides the 2x2 grid; return its contents. The 3x3
+            // stays visible while a table is open.
+            if ( !globalGameState.crafting.table_open ) {
+                crafting_return_grid( globalGameState );
+            }
         }
         pr_debug( "Game mode toggled to: %s", globalGameState.game_mode == GameMode_Creative ? "Creative" : "Survival" );
     }
@@ -1421,12 +1709,45 @@ void RepGame::process_inventory_events( ) {
         return;
     }
     if ( globalGameState.input.inventory_open ) {
+        // Crafting panel hit tests, shared by the left/middle/right click
+        // branches below.
+        const bool craft_ui = crafting_grid_visible( globalGameState );
+        int craft_slot = -1;
+        int craft_out = -1;
+        if ( craft_ui ) {
+            const int mx = globalGameState.input.mouse.absPosition.x;
+            const int my = globalGameState.input.mouse.absPosition.y;
+            const int gs = crafting_grid( globalGameState ).whichSlotClicked( mx, my );
+            if ( gs >= 0 && gs < crafting_dim( globalGameState ) * crafting_dim( globalGameState ) ) {
+                craft_slot = gs;
+            }
+            if ( globalGameState.crafting.output.whichSlotClicked( mx, my ) >= 0 ) {
+                craft_out = 0;
+            }
+        }
         if ( ( globalGameState.input.mouse.buttons.left && globalGameState.input.mouse.buttons.left_pressed_in_ui && globalGameState.input.mouse.buttons.left_click_handled == false ) || screen_tap ) {
             globalGameState.input.mouse.buttons.left_click_handled = true;
             if ( !screen_tap && globalGameState.is_holding_inventory_slot && off_inventory_panels( globalGameState ) ) {
                 // Left-click outside every panel while holding a stack throws
                 // the whole stack as an item entity.
                 throw_held_cursor_stack( globalGameState, true );
+            } else if ( craft_slot >= 0 ) {
+                // Grid slot: shift-click moves the stack to the player;
+                // otherwise pick up / merge / swap.
+                if ( globalGameState.input.shift_held ) {
+                    crafting_slot_to_player( globalGameState, craft_slot );
+                } else {
+                    slot_pickup_or_swap( globalGameState.crafting.slots[ craft_slot ], globalGameState.held_inventory_slot, globalGameState.is_holding_inventory_slot );
+                    crafting_grid( globalGameState ).changeSlotItem( craft_slot, globalGameState.crafting.slots[ craft_slot ] );
+                    crafting_recompute( globalGameState );
+                }
+            } else if ( craft_out >= 0 ) {
+                // Output slot: take the result (shift-click crafts all).
+                if ( globalGameState.input.shift_held ) {
+                    crafting_craft_all( globalGameState );
+                } else {
+                    crafting_take_result( globalGameState );
+                }
             } else if ( globalGameState.chest.open ) {
                 // Chest UI: chest slots win, then survival, then hotbar.
                 const int chest_slot = globalGameState.chest.inventory_renderer.whichSlotClicked( globalGameState.input.mouse.absPosition.x, globalGameState.input.mouse.absPosition.y );
@@ -1456,7 +1777,7 @@ void RepGame::process_inventory_events( ) {
                         }
                     }
                 }
-            } else if ( globalGameState.game_mode == GameMode_Creative ) {
+            } else if ( globalGameState.game_mode == GameMode_Creative && !craft_ui ) {
                 ItemID itemId = globalGameState.main_inventory.whichItemClicked( globalGameState.input.mouse.absPosition.x, globalGameState.input.mouse.absPosition.y );
                 // pr_debug( "Clicked on %d %d itemId:%d", globalGameState.input.mouse.absPosition.x, globalGameState.input.mouse.absPosition.y, itemId );
                 if ( itemId != LAST_BLOCK_ID ) {
@@ -1506,7 +1827,9 @@ void RepGame::process_inventory_events( ) {
         }
         if ( globalGameState.input.mouse.buttons.middle && globalGameState.input.mouse.buttons.middle_pressed_in_ui && globalGameState.input.mouse.buttons.middle_click_handled == false ) {
             globalGameState.input.mouse.buttons.middle_click_handled = true;
-            if ( globalGameState.chest.open ) {
+            if ( craft_slot >= 0 || craft_out >= 0 ) {
+                // Middle-click on crafting panels does nothing.
+            } else if ( globalGameState.chest.open ) {
                 // Middle-click on a chest slot moves the stack to the player.
                 const int chest_slot = globalGameState.chest.inventory_renderer.whichSlotClicked( globalGameState.input.mouse.absPosition.x, globalGameState.input.mouse.absPosition.y );
                 if ( chest_slot >= 0 && chest_slot < CHEST_SLOTS ) {
@@ -1529,6 +1852,17 @@ void RepGame::process_inventory_events( ) {
                 // Right-click outside every panel while holding a stack
                 // throws one item of it.
                 throw_held_cursor_stack( globalGameState, false );
+            } else if ( craft_slot >= 0 ) {
+                // Grid slot right-click: take half, or place one.
+                slot_right_click( globalGameState.crafting.slots[ craft_slot ], globalGameState.held_inventory_slot, globalGameState.is_holding_inventory_slot );
+                crafting_grid( globalGameState ).changeSlotItem( craft_slot, globalGameState.crafting.slots[ craft_slot ] );
+                crafting_recompute( globalGameState );
+            } else if ( craft_out >= 0 ) {
+                if ( globalGameState.input.shift_held ) {
+                    crafting_craft_all( globalGameState );
+                } else {
+                    crafting_take_result( globalGameState );
+                }
             } else if ( globalGameState.chest.open ) {
                 const int chest_slot = globalGameState.chest.inventory_renderer.whichSlotClicked( globalGameState.input.mouse.absPosition.x, globalGameState.input.mouse.absPosition.y );
                 if ( chest_slot >= 0 && chest_slot < CHEST_SLOTS ) {
@@ -1557,7 +1891,7 @@ void RepGame::process_inventory_events( ) {
                         }
                     }
                 }
-            } else if ( globalGameState.game_mode == GameMode_Survival ) {
+            } else if ( globalGameState.game_mode == GameMode_Survival || craft_ui ) {
                 int slot = globalGameState.survival_inventory.whichSlotClicked( globalGameState.input.mouse.absPosition.x, globalGameState.input.mouse.absPosition.y );
                 if ( globalGameState.input.shift_held ) {
                     // Shift-right-click: transfer half of the stack (rounded
@@ -1600,8 +1934,11 @@ void RepGame::process_inventory_events( ) {
         globalGameState.input.mouse.buttons.left_click_handled = true;
         globalGameState.input.mouse.buttons.right_click_handled = true;
         globalGameState.input.mouse.buttons.middle_click_handled = true;
-        // Closing the inventory (E / tap) also closes any open chest.
+        // Closing the inventory (E / tap) also closes any open chest and
+        // returns any crafting-grid contents to the player (idempotent —
+        // this branch runs every tick while the inventory is closed).
         this->close_chest( );
+        crafting_return_grid( globalGameState );
         // If we were holding an inventory item when the inventory closed, return
         // it to the survival inventory to avoid item loss.
         if ( globalGameState.is_holding_inventory_slot ) {
@@ -1772,6 +2109,18 @@ void RepGame::tick( ) {
         const double dist = glm::length( globalGameState.camera.pos - chest_center );
         if ( !block_is_chest( chest_state.id ) || dist > REACH_DISTANCE + 2.0 ) {
             this->close_chest( );
+            globalGameState.input.inventory_open = false;
+        }
+    }
+
+    // Same for an open crafting table: closes when the block is gone (broken
+    // by anyone), its chunk unloaded, or the player walks out of reach.
+    if ( globalGameState.crafting.table_open ) {
+        const BlockState table_state = globalGameState.world.get_loaded_block( globalGameState.crafting.table_pos );
+        const glm::dvec3 table_center = glm::dvec3( globalGameState.crafting.table_pos ) + glm::dvec3( 0.5 );
+        const double dist = glm::length( globalGameState.camera.pos - table_center );
+        if ( table_state.id != CRAFTING_TABLE || dist > REACH_DISTANCE + 2.0 ) {
+            crafting_return_grid( globalGameState );
             globalGameState.input.inventory_open = false;
         }
     }
@@ -2176,6 +2525,8 @@ void RepGame::initializeGameState( const char *world_name ) {
     globalGameState.main_inventory.inventory_renderer.options.pin_bottom_y = INV_PIN_Y_DISABLED;
     globalGameState.main_inventory.inventory_renderer.options.pin_top_y = INV_PIN_Y_DISABLED;
     globalGameState.main_inventory.inventory_renderer.options.shows_selection_slot = false;
+    globalGameState.main_inventory.inventory_renderer.options.fixed_cell_stride = 0.0f;
+    globalGameState.main_inventory.inventory_renderer.options.center_x = 0;
 
     globalGameState.hotbar.inventory_renderer.options.active_height_percent = 1.0f;
     globalGameState.hotbar.inventory_renderer.options.max_height_percent = hotbar_height_percent;
@@ -2186,6 +2537,8 @@ void RepGame::initializeGameState( const char *world_name ) {
     globalGameState.hotbar.inventory_renderer.options.pin_bottom_y = INV_PIN_Y_DISABLED;
     globalGameState.hotbar.inventory_renderer.options.pin_top_y = INV_PIN_Y_DISABLED;
     globalGameState.hotbar.inventory_renderer.options.shows_selection_slot = true;
+    globalGameState.hotbar.inventory_renderer.options.fixed_cell_stride = 0.0f;
+    globalGameState.hotbar.inventory_renderer.options.center_x = 0;
 
     // Chest panel pinned to the top of the screen; the player inventory and
     // hotbar render below it.
@@ -2198,6 +2551,32 @@ void RepGame::initializeGameState( const char *world_name ) {
     globalGameState.chest.inventory_renderer.options.pin_bottom_y = INV_PIN_Y_DISABLED;
     globalGameState.chest.inventory_renderer.options.pin_top_y = INV_PIN_Y_DISABLED;
     globalGameState.chest.inventory_renderer.options.shows_selection_slot = false;
+    globalGameState.chest.inventory_renderer.options.fixed_cell_stride = 0.0f;
+    globalGameState.chest.inventory_renderer.options.center_x = 0;
+
+    // Crafting panels: fixed-stride cells (the stride comes from the
+    // survival panel at changeSize), top pinned to the creative panel's top.
+    for ( InventoryRenderer *r : { &globalGameState.crafting.grid2, &globalGameState.crafting.grid3, &globalGameState.crafting.output } ) {
+        r->options.active_height_percent = 0.5f;
+        r->options.max_height_percent = 0.5f;
+        r->options.max_width_percent = 0.6f;
+        r->options.bottom_reserved_percent = 0.0f;
+        r->options.gravity_bottom = false;
+        r->options.gravity_top = false;
+        r->options.pin_bottom_y = INV_PIN_Y_DISABLED;
+        r->options.pin_top_y = INV_PIN_Y_DISABLED;
+        r->options.shows_selection_slot = false;
+        r->options.fixed_cell_stride = 0.0f;
+        r->options.center_x = 0;
+    }
+    globalGameState.crafting.table_open = false;
+    globalGameState.crafting.recipe = -1;
+    globalGameState.crafting.output_slot.item_id = LAST_BLOCK_ID;
+    globalGameState.crafting.output_slot.quantity = 0;
+    for ( int i = 0; i < 9; i++ ) {
+        globalGameState.crafting.slots[ i ].item_id = LAST_BLOCK_ID;
+        globalGameState.crafting.slots[ i ].quantity = 0;
+    }
 
     globalGameState.map_storage.init( world_name );
     PlayerData saved_data;
@@ -2300,6 +2679,9 @@ RepGameState *RepGame::init( const char *world_name, const bool connect_multi, c
     globalGameState.survival_inventory.init( vbl_ui_overlay_vertex, vbl_ui_overlay_instance, SURVIVAL_INVENTORY_WIDTH, SURVIVAL_INVENTORY_HEIGHT );
     globalGameState.hotbar.init( vbl_ui_overlay_vertex, vbl_ui_overlay_instance, HOTBAR_WIDTH, HOTBAR_HEIGHT );
     globalGameState.chest.inventory_renderer.init( vbl_ui_overlay_vertex, vbl_ui_overlay_instance, CHEST_INVENTORY_WIDTH, CHEST_INVENTORY_HEIGHT );
+    globalGameState.crafting.grid2.init( vbl_ui_overlay_vertex, vbl_ui_overlay_instance, 2, 2 );
+    globalGameState.crafting.grid3.init( vbl_ui_overlay_vertex, vbl_ui_overlay_instance, 3, 3 );
+    globalGameState.crafting.output.init( vbl_ui_overlay_vertex, vbl_ui_overlay_instance, 1, 1 );
     globalGameState.game_mode = GameMode_Creative;
     globalGameState.held_inventory_slot.item_id = LAST_BLOCK_ID;
     globalGameState.held_inventory_slot.quantity = 0;
@@ -2375,6 +2757,7 @@ void RepGame::changeSize( const int w, const int h ) {
         globalGameState.chest.inventory_renderer.options.pin_top_y = globalGameState.main_inventory.inventory_renderer.getInvTop( );
         globalGameState.chest.inventory_renderer.onSizeChange( w, h, chest_contents->slots );
     }
+    crafting_layout( globalGameState );
     globalGameState.screen.proj = glm::perspective<float>( glm::radians( CAMERA_FOV ), globalGameState.screen.width / globalGameState.screen.height, 0.1f, CAMERA_FAR_PLANE );
     globalGameState.screen.ortho = glm::ortho<float>( 0.f, w, 0.f, h, -1.f, 1.f );
     globalGameState.screen.ortho_center = glm::ortho<float>( -w / 2.0f, w / 2.0f, -h / 2.0f, h / 2.0f, -1.f, 1.f );
@@ -2988,6 +3371,9 @@ void RepGame::cleanup( ) {
         return;
     }
 
+    // Return any crafting-grid contents before the save so quitting with
+    // items in the grid doesn't lose them.
+    crafting_return_grid( globalGameState );
     // Capture/fly mode never writes player.dat — it would store the teleported
     // view over the user's save.
     if ( !g_capture.enabled && !g_fly.enabled ) {
@@ -3005,6 +3391,9 @@ void RepGame::cleanup( ) {
     globalGameState.survival_inventory.cleanup( );
     globalGameState.hotbar.cleanup( );
     globalGameState.chest.inventory_renderer.cleanup( );
+    globalGameState.crafting.grid2.cleanup( );
+    globalGameState.crafting.grid3.cleanup( );
+    globalGameState.crafting.output.cleanup( );
     globalGameState.pause_menu.cleanup( );
     imgui_overlay_cleanup( &globalGameState.imgui_overlay );
     block_definitions_free_definitions( );
@@ -3045,7 +3434,19 @@ void RepGame::draw_ui_pass( const glm::dvec3 &render_pos, float daylight ) {
         // the day factor, torch light doesn't, min ambient floors caves).
         const glm::vec2 held_light = globalGameState.world.chunkLoader.light_sample( glm::vec3( render_pos ) );
         const float held_block_light = glm::max( glm::max( held_light.x * daylight, held_light.y ), imgui_overlay_get_imgui_debug_vars( ).min_ambient );
-        globalGameState.ui_overlay.draw( globalGameState.main_inventory, globalGameState.survival_inventory, globalGameState.hotbar, globalGameState.game_mode, globalGameState.world.renderer, globalGameState.blocksTexture, globalGameState.input, globalGameState.font_renderer, globalGameState.screen.ortho_center, chest_contents ? &globalGameState.chest.inventory_renderer : nullptr, chest_contents, held_block_light );
+        globalGameState.ui_overlay.draw( globalGameState.main_inventory, globalGameState.survival_inventory, globalGameState.hotbar, globalGameState.game_mode, globalGameState.world.renderer, globalGameState.blocksTexture, globalGameState.input, globalGameState.font_renderer, globalGameState.screen.ortho_center, chest_contents ? &globalGameState.chest.inventory_renderer : nullptr, chest_contents, globalGameState.crafting.table_open, held_block_light );
+        if ( crafting_grid_visible( globalGameState ) ) {
+            const int dim = crafting_dim( globalGameState );
+            InventoryRenderer &grid = crafting_grid( globalGameState );
+            globalGameState.ui_overlay.draw_slot_panel( grid, globalGameState.crafting.slots, dim * dim, globalGameState.world.renderer, globalGameState.blocksTexture, globalGameState.font_renderer, globalGameState.screen.ortho_center );
+            globalGameState.ui_overlay.draw_slot_panel( globalGameState.crafting.output, &globalGameState.crafting.output_slot, 1, globalGameState.world.renderer, globalGameState.blocksTexture, globalGameState.font_renderer, globalGameState.screen.ortho_center );
+            // "->" arrow centered in the one-stride gap between the panels.
+            const float arrow_size = 24.0f;
+            const float arrow_x = ( grid.getInvRight( ) + globalGameState.crafting.output.getInvLeft( ) ) / 2.0f - globalGameState.font_renderer.getTextWidth( "->", arrow_size ) / 2.0f;
+            const float arrow_y = ( grid.getInvTop( ) + grid.getInvBottom( ) ) / 2.0f - arrow_size / 2.0f;
+            const float white[ 4 ] = { 1.0f, 1.0f, 1.0f, 1.0f };
+            globalGameState.font_renderer.drawString( globalGameState.world.renderer, "->", arrow_x, arrow_y, arrow_size, white, globalGameState.screen.ortho_center );
+        }
         if ( repgame_block_world( ) && globalGameState.block_selection.selectionInBounds ) {
             // Block world: name the targeted block under the crosshair.
             const BlockState target = globalGameState.world.get_loaded_block( globalGameState.block_selection.pos_destroy );

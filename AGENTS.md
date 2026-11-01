@@ -723,6 +723,47 @@ No reads or writes in capture mode, fly mode, block world, or
 is identical to single-player: items are client-local and persist to the
 local world dir exactly like mobs.
 
+## Crafting
+
+Data-driven recipes: one JSON per recipe in `data/recipes/*.json` plus
+shared tags in `data/item_tags.json` (`{"tag": ["NAME", ...]}` — referenced
+as `"#tag"` in ingredients). `make blocks-import` validates them (unknown
+keys, unknown names/tags, malformed patterns and out-of-range counts are
+hard errors) and emits `src/common/recipes_gen.inc` — option arrays plus a
+`CraftRecipe` table in sorted filename order, so output is deterministic.
+
+Recipe format — exactly one of `pattern` (shaped) or `ingredients`
+(shapeless):
+
+```
+shaped:    {"pattern": ["#", "#"], "key": {"#": <ing>}, "result": "STICK", "count": 4}
+shapeless: {"ingredients": [<ing>, ...], "result": "OAK_PLANKS", "count": 4}
+<ing> := "NAME" | "#tag" | ["NAME" | "#tag", ...]
+```
+
+A shaped pattern is 1–3 equal-length rows (≤3 chars); space is an empty
+cell, every pattern char must be in `key` and every key must be used.
+`count` defaults to 1 and is capped by `item_max_stack(result)`.
+
+`include/common/crafting.hpp` / `src/common/crafting.cpp` hold the pure
+matcher (no GL): shaped recipes compare the bounding box of the non-empty
+grid cells to the recipe's w×h and also try the horizontally mirrored
+layout; shapeless assignment backtracks so overlapping option lists work.
+`crafting_find_recipe(grid, dim)` returns the first match in table order.
+`test_crafting` in rep_tests.cpp covers it.
+
+UI: the grid slots live in `RepGameState::crafting` (renderer order —
+slot 0 is the BOTTOM-left cell; they get flipped to top-first before the
+matcher). A 2x2 grid shows in the survival inventory; right-clicking a
+CRAFTING_TABLE opens a 3x3 in either game mode (closing on the same
+gone/out-of-reach checks as a chest). Grid contents are temporary:
+`crafting_return_grid` (idempotent, called from the every-tick
+inventory-closed branch, the creative-mode toggle, and `cleanup()` before
+`save_player_data()`) moves them survival → hotbar → thrown item entity.
+Layout uses fixed-stride `InventoryRenderer` panels sharing the survival
+panel's cell stride, with the group (grid + gap + 1x1 output) centred and
+the top pinned where the chest sits.
+
 ## Mobs
 
 Client-local mobs — passive pig, cow, chicken and sheep plus hostile

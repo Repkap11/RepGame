@@ -23,6 +23,10 @@ class SurvivalInventory {
     // is returned so the caller can decide to drop it.
     int addItem( ItemID itemId, int quantity );
 
+    // How many of the given item would fit in the inventory (stack space in
+    // matching slots plus empty slots).
+    int spaceFor( ItemID itemId ) const;
+
     // Moves the entire stack from the given slot to the hotbar. Returns true if
     // the move succeeded. prefer_selected_slot is forwarded to
     // Hotbar::addItemWithQuantity (also selects the slot that received items).

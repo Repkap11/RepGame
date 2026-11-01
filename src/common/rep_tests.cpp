@@ -3088,6 +3088,173 @@ int test_player_placement_valid( ) {
     return failures;
 }
 
+// Crafting recipe matching (src/common/crafting.cpp + generated
+// recipes_gen.inc): shaped bounding-box semantics with mirroring, shapeless
+// backtracking assignment, and the starter recipe table.
+int test_crafting( ) {
+    int failures = 0;
+    const auto report = [ &failures ]( const char *name, bool ok ) {
+        pr_test( "  %-55s %s", name, ok ? "PASS" : "FAIL" );
+        if ( !ok ) {
+            failures++;
+        }
+    };
+    const auto expect = [ &report ]( const char *name, const ItemID *grid, int dim, ItemID want, int want_count ) {
+        const int idx = crafting_find_recipe( grid, dim );
+        report( name, idx >= 0 && CRAFT_RECIPES[ idx ].result == want && CRAFT_RECIPES[ idx ].count == want_count );
+    };
+    const auto expect_none = [ &report ]( const char *name, const ItemID *grid, int dim ) {
+        report( name, crafting_find_recipe( grid, dim ) < 0 );
+    };
+
+    // Table sanity: non-empty, every result is a real item.
+    bool sane = CRAFT_RECIPE_COUNT > 0;
+    for ( int i = 0; i < CRAFT_RECIPE_COUNT; i++ ) {
+        sane = sane && item_id_valid( CRAFT_RECIPES[ i ].result );
+    }
+    report( "recipe table non-empty, results valid", sane );
+
+    // Log -> planks: a single OAK_LOG in any cell crafts OAK_PLANKS x4, in
+    // both the 2x2 and 3x3 grids. STRIPPED_OAK_LOG works too.
+    for ( int dim = 2; dim <= 3; dim++ ) {
+        for ( int i = 0; i < dim * dim; i++ ) {
+            ItemID grid[ 9 ];
+            for ( ItemID &g : grid ) {
+                g = LAST_BLOCK_ID;
+            }
+            grid[ i ] = OAK_LOG;
+            char name[ 80 ];
+            snprintf( name, sizeof( name ), "OAK_LOG cell %d in %dx%d -> OAK_PLANKS x4", i, dim, dim );
+            expect( name, grid, dim, OAK_PLANKS, 4 );
+        }
+        ItemID grid[ 9 ];
+        for ( ItemID &g : grid ) {
+            g = LAST_BLOCK_ID;
+        }
+        grid[ 0 ] = STRIPPED_OAK_LOG;
+        char name[ 80 ];
+        snprintf( name, sizeof( name ), "STRIPPED_OAK_LOG in %dx%d -> OAK_PLANKS x4", dim, dim );
+        expect( name, grid, dim, OAK_PLANKS, 4 );
+    }
+
+    // Sticks: a vertical plank pair. Left column in 2x2, right column in
+    // 3x3, and mixed wood types all match; a horizontal pair does not.
+    {
+        ItemID grid[ 4 ] = { OAK_PLANKS, LAST_BLOCK_ID, OAK_PLANKS, LAST_BLOCK_ID };
+        expect( "sticks, left column 2x2", grid, 2, STICK, 4 );
+    }
+    {
+        ItemID grid[ 9 ] = { LAST_BLOCK_ID, LAST_BLOCK_ID, OAK_PLANKS,
+                             LAST_BLOCK_ID, LAST_BLOCK_ID, SPRUCE_PLANKS,
+                             LAST_BLOCK_ID, LAST_BLOCK_ID, LAST_BLOCK_ID };
+        expect( "sticks, right column 3x3 (mixed planks)", grid, 3, STICK, 4 );
+    }
+    {
+        ItemID grid[ 4 ] = { OAK_PLANKS, OAK_PLANKS, LAST_BLOCK_ID, LAST_BLOCK_ID };
+        expect_none( "sticks, horizontal pair 2x2 -> no match", grid, 2 );
+    }
+
+    // Crafting table: a mixed-planks 2x2 in the 2x2 grid, and an offset
+    // 2x2 block in the 3x3 grid.
+    {
+        ItemID grid[ 4 ] = { OAK_PLANKS, SPRUCE_PLANKS, BIRCH_PLANKS, OAK_PLANKS };
+        expect( "crafting table, mixed planks 2x2", grid, 2, CRAFTING_TABLE, 1 );
+    }
+    {
+        ItemID grid[ 9 ] = { LAST_BLOCK_ID, LAST_BLOCK_ID, LAST_BLOCK_ID,
+                             LAST_BLOCK_ID, OAK_PLANKS, SPRUCE_PLANKS,
+                             LAST_BLOCK_ID, BIRCH_PLANKS, OAK_PLANKS };
+        expect( "crafting table, offset 2x2 in 3x3", grid, 3, CRAFTING_TABLE, 1 );
+    }
+
+    // Chest: the 3x3 ring matches (result is the container block), a filled
+    // centre does not, and the ring can't fit the 2x2 grid.
+    {
+        ItemID ring[ 9 ] = { OAK_PLANKS, OAK_PLANKS, OAK_PLANKS,
+                             OAK_PLANKS, LAST_BLOCK_ID, OAK_PLANKS,
+                             OAK_PLANKS, OAK_PLANKS, OAK_PLANKS };
+        expect( "chest ring in 3x3 -> SINGLE_CHEST_LATCH", ring, 3, SINGLE_CHEST_LATCH, 1 );
+        ItemID filled[ 9 ] = { OAK_PLANKS, OAK_PLANKS, OAK_PLANKS,
+                               OAK_PLANKS, OAK_PLANKS, OAK_PLANKS,
+                               OAK_PLANKS, OAK_PLANKS, OAK_PLANKS };
+        expect_none( "chest ring with filled centre -> no match", filled, 3 );
+        // A 3x3 recipe can never match a 2x2 grid (the bounding box can't
+        // exceed the grid).
+        int chest_idx = -1;
+        for ( int i = 0; i < CRAFT_RECIPE_COUNT; i++ ) {
+            if ( CRAFT_RECIPES[ i ].result == SINGLE_CHEST_LATCH ) {
+                chest_idx = i;
+            }
+        }
+        report( "chest recipe exists in the table", chest_idx >= 0 );
+        ItemID full2[ 4 ] = { OAK_PLANKS, OAK_PLANKS, OAK_PLANKS, OAK_PLANKS };
+        report( "chest recipe can't match in 2x2", chest_idx < 0 || !crafting_recipe_matches( CRAFT_RECIPES[ chest_idx ], full2, 2 ) );
+    }
+
+    // Torch: COAL over STICK gives TORCH x4; reversed does not.
+    {
+        ItemID grid[ 9 ] = { LAST_BLOCK_ID, COAL, LAST_BLOCK_ID,
+                             LAST_BLOCK_ID, STICK, LAST_BLOCK_ID,
+                             LAST_BLOCK_ID, LAST_BLOCK_ID, LAST_BLOCK_ID };
+        expect( "torch, COAL over STICK", grid, 3, TORCH, 4 );
+        ItemID reversed[ 9 ] = { LAST_BLOCK_ID, STICK, LAST_BLOCK_ID,
+                                 LAST_BLOCK_ID, COAL, LAST_BLOCK_ID,
+                                 LAST_BLOCK_ID, LAST_BLOCK_ID, LAST_BLOCK_ID };
+        expect_none( "torch, STICK over COAL -> no match", reversed, 3 );
+    }
+
+    // Mirrored shaped matching: an asymmetric recipe (top-left empty)
+    // matches a grid holding the mirrored layout.
+    {
+        const ItemID opts[] = { OAK_PLANKS };
+        CraftRecipe asym = {};
+        asym.shaped = 1;
+        asym.width = 2;
+        asym.height = 2;
+        asym.cells[ 0 ] = { nullptr, 0 };   // top-left empty
+        asym.cells[ 1 ] = { opts, 1 };      // top-right
+        asym.cells[ 2 ] = { opts, 1 };      // bottom-left
+        asym.cells[ 3 ] = { opts, 1 };      // bottom-right
+        asym.result = TORCH;
+        asym.count = 1;
+        ItemID plain[ 9 ] = { LAST_BLOCK_ID, OAK_PLANKS, LAST_BLOCK_ID,
+                              OAK_PLANKS, OAK_PLANKS, LAST_BLOCK_ID,
+                              LAST_BLOCK_ID, LAST_BLOCK_ID, LAST_BLOCK_ID };
+        report( "synthetic shaped, layout as written", crafting_recipe_matches( asym, plain, 3 ) );
+        ItemID mirrored[ 9 ] = { OAK_PLANKS, LAST_BLOCK_ID, LAST_BLOCK_ID,
+                                 OAK_PLANKS, OAK_PLANKS, LAST_BLOCK_ID,
+                                 LAST_BLOCK_ID, LAST_BLOCK_ID, LAST_BLOCK_ID };
+        report( "synthetic shaped, mirrored layout", crafting_recipe_matches( asym, mirrored, 3 ) );
+    }
+
+    // Shapeless backtracking: ingredient options [OAK,SPRUCE] then [OAK].
+    // The grid lists OAK first, so a greedy assignment would feed OAK to
+    // the wide option and strand SPRUCE; backtracking succeeds.
+    {
+        const ItemID both[] = { OAK_PLANKS, SPRUCE_PLANKS };
+        const ItemID oak_only[] = { OAK_PLANKS };
+        CraftRecipe shapeless = {};
+        shapeless.shaped = 0;
+        shapeless.cells[ 0 ] = { both, 2 };
+        shapeless.cells[ 1 ] = { oak_only, 1 };
+        shapeless.result = TORCH;
+        shapeless.count = 1;
+        ItemID grid[ 4 ] = { OAK_PLANKS, SPRUCE_PLANKS, LAST_BLOCK_ID, LAST_BLOCK_ID };
+        report( "synthetic shapeless, backtracking assignment", crafting_recipe_matches( shapeless, grid, 2 ) );
+    }
+
+    // Empty grid matches nothing.
+    {
+        ItemID grid[ 9 ];
+        for ( ItemID &g : grid ) {
+            g = LAST_BLOCK_ID;
+        }
+        expect_none( "empty grid -> -1", grid, 3 );
+    }
+
+    return failures;
+}
+
 constexpr Test all_tests[] = {  //
     MK_TEST( ecs ),             //
     MK_TEST( vr_projection ),   //
@@ -3109,6 +3276,7 @@ constexpr Test all_tests[] = {  //
     MK_TEST( falling_blocks ),  //
     MK_TEST( structure_border ), //
     MK_TEST( mobs ),             //
+    MK_TEST( crafting ),         //
     { nullptr, nullptr }
 
 };

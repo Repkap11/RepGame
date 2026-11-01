@@ -59,7 +59,22 @@ void InventoryRenderer::onSizeChange( const int screen_width, const int screen_h
     this->inv_height = fminf( ui_height_basis * this->options.max_height_percent, ( float )screen_height );
     this->inv_width = this->screen_width * this->options.max_width_percent;
 
-    this->inv_x = -this->inv_width / 2;
+    constexpr float cell_fraction = 0.9;
+    const bool fixed_stride = this->options.fixed_cell_stride > 0.0f;
+    if ( fixed_stride ) {
+        // Fixed stride: cells are exactly the given size, the items rect is
+        // stride*w + offset by stride*h + offset, and the panel rect equals
+        // the items rect.
+        this->inv_cell_stride = this->options.fixed_cell_stride;
+        this->inv_cell_size = this->inv_cell_stride * cell_fraction;
+        this->inv_cell_offset = this->inv_cell_stride * ( 1.0f - cell_fraction );
+        this->inv_items_width = this->inv_cell_stride * this->width + this->inv_cell_offset;
+        this->inv_items_height = this->inv_cell_stride * this->height + this->inv_cell_offset;
+        this->inv_width = this->inv_items_width;
+        this->inv_height = this->inv_items_height;
+    }
+
+    this->inv_x = this->options.center_x - this->inv_width / 2;
     const bool pinned_bottom = this->options.pin_bottom_y != INV_PIN_Y_DISABLED;
     const bool pinned_top = this->options.pin_top_y != INV_PIN_Y_DISABLED;
     if ( pinned_bottom ) {
@@ -74,12 +89,13 @@ void InventoryRenderer::onSizeChange( const int screen_width, const int screen_h
         this->inv_y = -this->inv_height / 2;
     }
 
-    constexpr float cell_fraction = 0.9;
     // Max stride of each cell.
     const int width_limit = this->inv_width / this->width;
     const int height_limit = this->inv_height * this->options.active_height_percent / this->height;
     const bool height_limited = height_limit < width_limit;
-    if ( height_limited ) {
+    if ( fixed_stride ) {
+        // Cell metrics already set above; skip auto sizing.
+    } else if ( height_limited ) {
         this->inv_items_height = height_limit * this->height;
         this->inv_cell_stride = this->inv_items_height / ( cell_fraction * this->height + ( this->height + 1 ) * ( 1.0f - cell_fraction ) );
         this->inv_cell_size = this->inv_cell_stride * cell_fraction;
@@ -102,13 +118,19 @@ void InventoryRenderer::onSizeChange( const int screen_width, const int screen_h
         }
     }
 
-    this->inv_items_x = this->inv_x - ( this->inv_items_width - this->inv_width ) / 2;
-    if ( this->options.gravity_top ) {
+    if ( fixed_stride ) {
+        // The panel rect equals the items rect.
+        this->inv_items_x = this->inv_x;
+        this->inv_items_y = this->inv_y;
+    } else if ( this->options.gravity_top ) {
+        this->inv_items_x = this->inv_x - ( this->inv_items_width - this->inv_width ) / 2;
         // Items region hugs the top of the panel.
         this->inv_items_y = this->inv_y + this->inv_height - this->inv_items_height;
     } else if ( height_limited || this->options.gravity_bottom ) {
+        this->inv_items_x = this->inv_x - ( this->inv_items_width - this->inv_width ) / 2;
         this->inv_items_y = this->inv_y;
     } else {
+        this->inv_items_x = this->inv_x - ( this->inv_items_width - this->inv_width ) / 2;
         // This adjusts the bottom padding to match the horizontal padding when the horizontal padding has accumulated rounding error.
         this->inv_items_y = this->inv_y + ( ( this->inv_width - inv_items_width ) / 2 );
     }
@@ -131,6 +153,14 @@ int InventoryRenderer::getInvBottom( ) const {
 
 int InventoryRenderer::getInvTop( ) const {
     return this->inv_y + this->inv_height;
+}
+
+float InventoryRenderer::getCellStride( ) const {
+    return this->inv_cell_stride;
+}
+
+int InventoryRenderer::getItemsTop( ) const {
+    return this->inv_items_y + this->inv_items_height;
 }
 
 void InventoryRenderer::setSelectedSlot( int slot_index ) {

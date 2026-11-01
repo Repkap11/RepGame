@@ -23,6 +23,8 @@ DATA_DIR = os.environ.get("BLOCKS_IMPORT_DATA_DIR", os.path.join(ROOT, "data"))
 OUT_DIR = os.environ.get("BLOCKS_IMPORT_OUT_DIR")
 BLOCKS_DIR = os.path.join(DATA_DIR, "blocks")
 ITEMS_DIR = os.path.join(DATA_DIR, "items")
+RECIPES_DIR = os.path.join(DATA_DIR, "recipes")
+ITEM_TAGS_JSON = os.path.join(DATA_DIR, "item_tags.json")
 TEXTURES_DIR = os.path.join(DATA_DIR, "textures")
 TEXTURES_JSON = os.path.join(DATA_DIR, "textures.json")
 if OUT_DIR:
@@ -33,6 +35,7 @@ if OUT_DIR:
     OUT_ITEM_INC = os.path.join(OUT_DIR, "item_definitions_gen.inc")
     OUT_ITEM_NAMES = os.path.join(OUT_DIR, "item_names_gen.inc")
     OUT_DROPS = os.path.join(OUT_DIR, "block_drops_gen.inc")
+    OUT_RECIPES = os.path.join(OUT_DIR, "recipes_gen.inc")
     OUT_PNG = os.path.join(OUT_DIR, "blocks.png")
 else:
     OUT_IDS = os.path.join(ROOT, "include", "common", "block_ids_gen.hpp")
@@ -42,6 +45,7 @@ else:
     OUT_ITEM_INC = os.path.join(ROOT, "src", "common", "item_definitions_gen.inc")
     OUT_ITEM_NAMES = os.path.join(ROOT, "src", "common", "item_names_gen.inc")
     OUT_DROPS = os.path.join(ROOT, "src", "common", "block_drops_gen.inc")
+    OUT_RECIPES = os.path.join(ROOT, "src", "common", "recipes_gen.inc")
     OUT_PNG = os.path.join(ROOT, "bitmaps", "blocks.png")
 
 LAST_BLOCK_ID = 2047
@@ -85,6 +89,7 @@ KNOWN_KEYS = STRUCT_META | BOOL_FIELDS | INT_FIELDS | FLOAT_FIELDS | VEC3_SHORT 
 
 ITEM_KNOWN_KEYS = {"id", "name", "icon", "max_stack", "aliases"}
 DROP_KEYS = {"item", "min", "max", "chance"}
+RECIPE_KEYS = {"pattern", "key", "ingredients", "result", "count"}
 
 TEX_META_KEYS = {"source", "random_rotate", "tint", "alpha", "frame", "keep", "overlay", "extract"}
 
@@ -493,6 +498,161 @@ def load_items(block_names):
     return items, names
 
 
+def load_item_tags(block_names, item_names):
+    """data/item_tags.json: {"tag": ["BLOCK_OR_ITEM_NAME", ...]} used by
+    recipe ingredients as "#tag"."""
+    if not os.path.exists(ITEM_TAGS_JSON):
+        return {}
+    with open(ITEM_TAGS_JSON) as f:
+        tags = json.load(f)
+    if not isinstance(tags, dict):
+        fail("item_tags.json: must be an object")
+    for tag, members in tags.items():
+        if not isinstance(tag, str) or not re.match(r"^[a-z][a-z0-9_]*$", tag):
+            fail("item_tags.json: bad tag name %r" % tag)
+        if not isinstance(members, list) or not members:
+            fail("item_tags.json: tag %r must be a non-empty list" % tag)
+        for m in members:
+            if not isinstance(m, str) or (m not in block_names and m not in item_names):
+                fail("item_tags.json: tag %r member %r is not a block or item name" % (tag, m))
+    return tags
+
+
+def load_recipes(tags, blocks, items):
+    """data/recipes/*.json, sorted filename order. Returns a list of
+    {"shaped": bool, "width", "height", "cells": [id list or None] *9,
+    "result": id, "count": int}; a recipe has exactly one of "pattern"
+    (shaped) or "ingredients" (shapeless)."""
+    block_names = {b["name"]: bid for bid, b in blocks.items()}
+    item_names = {it["name"]: iid for iid, it in items.items()}
+    for b in blocks.values():
+        for a in b.get("aliases", []):
+            block_names.setdefault(a, b["id"])
+    for it in items.values():
+        for a in it.get("aliases", []):
+            item_names.setdefault(a, it["id"])
+
+    def resolve_name(name, what):
+        iid = block_names.get(name)
+        if iid is None:
+            iid = item_names.get(name)
+        if iid is None:
+            fail("%s: %r is not a block or item name" % (what, name))
+        return iid
+
+    def ingredient_ids(ing, what):
+        # <ing> := "NAME" | "#tag" | [ "NAME" | "#tag", ... ] -> option ids.
+        if isinstance(ing, str):
+            opts = [ing]
+        elif isinstance(ing, list) and ing and all(isinstance(x, str) for x in ing):
+            opts = ing
+        else:
+            fail("%s: bad ingredient %r" % (what, ing))
+        ids = []
+        for o in opts:
+            if o.startswith("#"):
+                tag = o[1:]
+                if tag not in tags:
+                    fail("%s: unknown item tag %r" % (what, o))
+                ids.extend(resolve_name(m, what) for m in tags[tag])
+            else:
+                ids.append(resolve_name(o, what))
+        seen = set()
+        return [i for i in ids if not (i in seen or seen.add(i))]
+
+    recipes = []
+    for path in sorted(glob.glob(os.path.join(RECIPES_DIR, "*.json"))):
+        fname = os.path.basename(path)
+        with open(path) as f:
+            try:
+                r = json.load(f)
+            except json.JSONDecodeError as e:
+                fail("%s: %s" % (fname, e))
+        unknown = set(r) - RECIPE_KEYS
+        if unknown:
+            fail("%s: unknown keys %s" % (fname, sorted(unknown)))
+        if ("pattern" in r) == ("ingredients" in r):
+            fail("%s: need exactly one of \"pattern\" or \"ingredients\"" % fname)
+        if "result" not in r or not isinstance(r["result"], str):
+            fail("%s: result must be a block or item name" % fname)
+        result = resolve_name(r["result"], fname)
+        max_stack = 64 if result < LAST_BLOCK_ID else items[result].get("max_stack", 64)
+        count = r.get("count", 1)
+        if not isinstance(count, int) or not (1 <= count <= max_stack):
+            fail("%s: bad count %r (need 1-%d)" % (fname, count, max_stack))
+        cells = [None] * 9
+        if "pattern" in r:
+            pattern = r["pattern"]
+            if (not isinstance(pattern, list) or not (1 <= len(pattern) <= 3) or
+                    any(not isinstance(row, str) or not (1 <= len(row) <= 3) for row in pattern) or
+                    len({len(row) for row in pattern}) != 1):
+                fail("%s: pattern must be 1-3 rows, all the same length (<=3 chars)" % fname)
+            key = r.get("key")
+            if not isinstance(key, dict):
+                fail("%s: shaped recipe needs a key object" % fname)
+            used = {ch for row in pattern for ch in row if ch != " "}
+            for k in key:
+                if not isinstance(k, str) or len(k) != 1 or k == " ":
+                    fail("%s: key entries must be single non-space characters" % fname)
+            if set(key) != used:
+                fail("%s: key must cover exactly the pattern characters %s" % (fname, sorted(used)))
+            w, h = len(pattern[0]), len(pattern)
+            for y, row in enumerate(pattern):
+                for x, ch in enumerate(row):
+                    if ch != " ":
+                        cells[y * w + x] = ingredient_ids(key[ch], fname)
+            shaped, width, height = True, w, h
+        else:
+            ingredients = r["ingredients"]
+            if not isinstance(ingredients, list) or not (1 <= len(ingredients) <= 9):
+                fail("%s: ingredients must be a list of 1-9 entries" % fname)
+            for i, ing in enumerate(ingredients):
+                cells[i] = ingredient_ids(ing, fname)
+            shaped, width, height = False, 0, 0
+        recipes.append({"shaped": shaped, "width": width, "height": height,
+                        "cells": cells, "result": result, "count": count,
+                        "_file": fname})
+    return recipes
+
+
+def emit_recipes(recipes, blocks, items):
+    """src/common/recipes_gen.inc — option arrays (RECIPE_OPTS_<n>, deduped
+    by first use) then CRAFT_RECIPES entries with cells packed dense
+    (shaped: row-major within width, width*height used; shapeless: first
+    n cells)."""
+    def id_name(iid):
+        return blocks[iid]["name"] if iid < LAST_BLOCK_ID else items[iid]["name"]
+
+    out = [HEADER]
+    opt_arrays = {}
+
+    def opt_array(ids):
+        key = tuple(ids)
+        if key not in opt_arrays:
+            opt_arrays[key] = len(opt_arrays)
+        return "RECIPE_OPTS_%d" % opt_arrays[key]
+
+    entries = []
+    for rec in recipes:
+        cells_code = []
+        for ids in rec["cells"]:
+            if ids is None:
+                cells_code.append("{ nullptr, 0 }")
+            else:
+                cells_code.append("{ %s, %d }" % (opt_array(ids), len(ids)))
+        entries.append("    { %d, %d, %d, { %s }, %s, %d },\n" %
+                       (1 if rec["shaped"] else 0, rec["width"], rec["height"],
+                        ", ".join(cells_code), id_name(rec["result"]), rec["count"]))
+    for key in sorted(opt_arrays, key=opt_arrays.get):
+        out.append("static const ItemID %s[] = { %s };\n" %
+                   (opt_array(key), ", ".join(id_name(i) for i in key)))
+    out.append("\nconst CraftRecipe CRAFT_RECIPES[] = {\n")
+    out.extend(entries)
+    out.append("};\n")
+    with open(OUT_RECIPES, "w") as f:
+        f.writelines(out)
+
+
 def resolve_faces(name, b):
     """JSON textures dict -> per-face texture name list (FACE_* order)."""
     tex = b.get("textures", {})
@@ -644,6 +804,8 @@ def main():
             if iid is None:
                 fail("%s: drops item %r is not a block or item name" % (b["_file"], d["item"]))
             d["_id"] = iid
+
+    emit_recipes(load_recipes(load_item_tags(block_names, item_names), blocks, items), blocks, items)
 
     tex_meta = {}
     if os.path.exists(TEXTURES_JSON):
@@ -978,7 +1140,7 @@ def main():
 
     print("blocks_import: %d blocks, %d textures (%d rotatable), atlas %dx%d -> %s" %
           (len(blocks), count, len(rotatable_canon), atlas.width, atlas.height,
-           ", ".join(os.path.relpath(p, ROOT) for p in (OUT_IDS, OUT_ITEM_IDS, OUT_TEX, OUT_INC, OUT_ITEM_INC, OUT_ITEM_NAMES, OUT_DROPS, OUT_PNG))))
+           ", ".join(os.path.relpath(p, ROOT) for p in (OUT_IDS, OUT_ITEM_IDS, OUT_TEX, OUT_INC, OUT_ITEM_INC, OUT_ITEM_NAMES, OUT_DROPS, OUT_RECIPES, OUT_PNG))))
     pickable = sum(1 for b in blocks.values() if b.get("is_pickable", True))
     hidden_n = sum(len(v) for v in hidden.values())
     print("blocks_import: creative %d listed of %d pickable (%d hidden duplicates) -> %s" %

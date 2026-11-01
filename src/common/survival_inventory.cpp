@@ -20,6 +20,8 @@ void SurvivalInventory::init( const VertexBufferLayout &ui_overlay_vbl_vertex, c
     this->inventory_renderer.options.pin_bottom_y = INV_PIN_Y_DISABLED;
     this->inventory_renderer.options.pin_top_y = INV_PIN_Y_DISABLED;
     this->inventory_renderer.options.shows_selection_slot = false;
+    this->inventory_renderer.options.fixed_cell_stride = 0.0f;
+    this->inventory_renderer.options.center_x = 0;
 
     for ( int i_slot = 0; i_slot < this->num_slots; i_slot++ ) {
         InventorySlot &slot = this->slots[ i_slot ];
@@ -68,6 +70,19 @@ int SurvivalInventory::addItem( ItemID itemId, int quantity ) {
     }
 
     return remaining;
+}
+
+int SurvivalInventory::spaceFor( ItemID itemId ) const {
+    int space = 0;
+    for ( int i = 0; i < this->num_slots; i++ ) {
+        const InventorySlot &slot = this->slots[ i ];
+        if ( slot.item_id == LAST_BLOCK_ID || slot.quantity <= 0 ) {
+            space += item_max_stack( itemId );
+        } else if ( slot.item_id == itemId ) {
+            space += item_max_stack( itemId ) - slot.quantity;
+        }
+    }
+    return space;
 }
 
 bool SurvivalInventory::moveToHotbar( int slot_index, class Hotbar &hotbar, bool prefer_selected_slot ) {

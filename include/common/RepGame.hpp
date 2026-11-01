@@ -33,6 +33,7 @@ typedef enum {
 #include "pause_menu.hpp"
 #include "multiplayer.hpp"
 #include "common/BlockUpdateQueue.hpp"
+#include "common/crafting.hpp"
 
 #include "common/utils/ecs.hpp"
 
@@ -150,6 +151,18 @@ struct RepGameState {
     // the block removal with a CHEST_CONTENTS snapshot used for looting, so
     // contents are never lost to a client that never opened the chest.
     std::unordered_set<glm::ivec3> pending_chest_loot;
+    // Crafting grid: 2x2 in the survival inventory, 3x3 while a crafting
+    // table is open (either game mode). Grid contents are temporary — they
+    // return to the player when the UI closes. slots are in renderer order
+    // (slot 0 is the BOTTOM-left cell); the matcher wants top-first.
+    struct {
+        bool table_open;
+        glm::ivec3 table_pos;
+        InventorySlot slots[ 9 ];
+        InventorySlot output_slot;
+        int recipe;
+        InventoryRenderer grid2, grid3, output;
+    } crafting;
     struct {
         int selectionInBounds;
         int face;

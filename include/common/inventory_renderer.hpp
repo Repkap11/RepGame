@@ -35,6 +35,11 @@ typedef struct {
     // panel's bottom edge, pin_top_y its top edge.
     int pin_bottom_y;
     int pin_top_y;
+    // Pixel cell stride override (0 = auto): the items rect is exactly
+    // stride*w + offset by stride*h + offset, the panel rect equals the
+    // items rect, and center_x gives the panel's horizontal center.
+    float fixed_cell_stride;
+    int center_x;
 } InventoryRenderOptions;
 
 class InventoryRenderer {
@@ -112,6 +117,18 @@ class InventoryRenderer {
     // panels can align to them via options.pin_bottom_y / pin_top_y.
     int getInvBottom( ) const;
     int getInvTop( ) const;
+    // Panel horizontal edges (centered coords) — for positioning text in the
+    // gap between two panels.
+    int getInvLeft( ) const {
+        return this->inv_x;
+    }
+    int getInvRight( ) const {
+        return this->inv_x + this->inv_width;
+    }
+    // Cell stride and items-rect top edge (centered coords), for stacking
+    // fixed-stride panels at another panel's scale.
+    float getCellStride( ) const;
+    int getItemsTop( ) const;
     // Returns the screen-space position of the bottom-right corner of the given
     // slot (for rendering quantity text). Returns false if the slot index is
     // out of bounds.
