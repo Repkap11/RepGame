@@ -28,7 +28,7 @@ static constexpr int32_t NET_CHUNK_BLOCK_SIZE = ( CHUNK_SIZE_X + 2 ) * ( CHUNK_S
 
 // Wire-format constants. Keep in sync with framed_socket.cpp.
 static constexpr uint32_t NET_MAGIC = 0x52475054u; // 'R','G','P','T' little-endian
-static constexpr uint8_t NET_PROTOCOL_VERSION = 4;
+static constexpr uint8_t NET_PROTOCOL_VERSION = 5;
 // Largest payload we will accept. Chunk diffs dominate; a chunk can have at
 // most CHUNK_BLOCK_SIZE (~35k) diffs, each ~12 bytes -> ~420KB. Round up.
 static constexpr uint32_t NET_MAX_PAYLOAD_LEN = 1u << 20; // 1 MiB
@@ -50,7 +50,67 @@ enum class NetMsgType : uint8_t {
     CHEST_CONTENTS = 9,
     CHEST_SET_SLOT = 10,
     WORLD_TIME = 11,
+    WELCOME = 12,
+    VIEW = 13,
+    CHUNK_ROLE = 14,
+    ENTITY_SPAWN = 15,
+    ENTITY_STATE = 16,
+    ENTITY_REMOVE = 17,
+    ENTITY_TRANSFER = 18,
+    ENTITY_ACTION = 19,
+    PICKUP_REQUEST = 20,
+    PICKUP_RESULT = 21,
+    PLAYER_HIT = 22,
+    EXPLOSION = 23,
 };
+
+// ---------------------------------------------------------------------------
+// Entity sync ("server arbitrates, owner client simulates").
+// A NetEntityId is (session_id << 32) | counter; session 0 ids are minted by
+// the server for disk-loaded entities.
+// ---------------------------------------------------------------------------
+typedef uint64_t NetEntityId;
+
+enum class NetEntityKind : uint8_t {
+    MOB = 0,
+    ITEM = 1,
+    BODY = 2,
+};
+
+// Entity sync window (half-extent in chunks, chebyshev). The client clamps
+// its VIEW radius to these.
+static constexpr int NET_ENTITY_RADIUS_XZ = 8;
+static constexpr int NET_ENTITY_RADIUS_Y = 3;
+// How often an owner streams ENTITY_STATE for its entities (~24 Hz).
+static constexpr int NET_ENTITY_STATE_INTERVAL_TICKS = 6;
+// Bound on batched record/state lists per message.
+static constexpr uint32_t NET_ENTITY_MAX_LIST = 4096;
+
+// CHUNK_ROLE roles.
+enum NetChunkRole : uint8_t {
+    NET_ROLE_NONE = 0,
+    NET_ROLE_VIEWER = 1,
+    NET_ROLE_OWNER = 2,
+};
+
+// ENTITY_REMOVE reasons.
+enum NetEntityRemoveReason : uint8_t {
+    NET_REMOVE_DESPAWN = 0,
+    NET_REMOVE_DIED = 1,
+    NET_REMOVE_MERGED = 2,
+    NET_REMOVE_LANDED = 3,
+    NET_REMOVE_EXPLODED = 4,
+    NET_REMOVE_PICKED_UP = 5,
+    NET_REMOVE_LEFT_VIEW = 6,
+};
+
+// ENTITY_ACTION actions.
+enum NetEntityAction : uint8_t {
+    NET_ACTION_HIT = 0,
+};
+
+// NetPlayerPayload flags (bit0: targetable = survival && !no_clip).
+static constexpr uint8_t NET_PLAYER_FLAG_TARGETABLE = 0x1;
 
 // ---------------------------------------------------------------------------
 // PacketWriter: append-only little-endian byte buffer.
@@ -61,10 +121,13 @@ class PacketWriter {
     explicit PacketWriter( NetMsgType type, int32_t player_id );
 
     void write_u8( uint8_t v );
+    void write_u16( uint16_t v );
     void write_u32( uint32_t v );
     void write_i32( int32_t v );
+    void write_u64( uint64_t v );
     void write_i64( int64_t v );
     void write_f32( float v );
+    void write_f64( double v );
     void write_bytes( const void *data, size_t len );
 
     // Serialize a BlockState field-by-field (no padding/endianness drift).
@@ -88,10 +151,13 @@ class PacketReader {
     }
 
     bool read_u8( uint8_t &out );
+    bool read_u16( uint16_t &out );
     bool read_u32( uint32_t &out );
     bool read_i32( int32_t &out );
+    bool read_u64( uint64_t &out );
     bool read_i64( int64_t &out );
     bool read_f32( float &out );
+    bool read_f64( double &out );
     bool read_bytes( void *out, size_t n );
     bool read_block_state( BlockState &out );
 
@@ -120,6 +186,7 @@ struct NetPlayerPayload {
     float x, y, z;
     float rotation[ 16 ];
     float eye_height; // feet-to-eye distance (drops while sneaking)
+    uint8_t flags;    // NET_PLAYER_FLAG_*
 };
 void net_serialize_player( PacketWriter &w, const NetPlayerPayload &p );
 bool net_deserialize_player( PacketReader &r, NetPlayerPayload &p );
@@ -191,3 +258,140 @@ struct NetWorldTimePayload {
 };
 void net_serialize_world_time( PacketWriter &w, const NetWorldTimePayload &p );
 bool net_deserialize_world_time( PacketReader &r, NetWorldTimePayload &p );
+
+// ---------------------------------------------------------------------------
+// Entity sync messages (see NetEntityKind above).
+// ---------------------------------------------------------------------------
+
+// One record shape for all entity kinds; unused per-kind fields are 0.
+//   pos    MOB: feet, ITEM: box bottom-center, BODY: min corner
+//   type   MOB: MobType, ITEM: ItemID, BODY: BodyKind
+//   count  ITEM: stack count, MOB: variant
+//   flags  MOB: MobFileRecord.flags + anim bits, BODY: unused
+struct NetEntityRecord {
+    NetEntityId id = 0;
+    NetEntityKind kind = NetEntityKind::MOB;
+    double x = 0.0, y = 0.0, z = 0.0;
+    float vx = 0.0f, vy = 0.0f, vz = 0.0f;
+    float yaw = 0.0f;
+    uint32_t type = 0;
+    int32_t count = 0;
+    float health = 0.0f;
+    int32_t age_ticks = 0;
+    int32_t pickup_delay = 0;
+    uint32_t flags = 0;
+    BlockState block_state = { AIR, 0, 0, AIR, 0 };
+    int32_t fuse_ticks = 0;
+};
+void net_write_entity_record( PacketWriter &w, const NetEntityRecord &rec );
+bool net_read_entity_record( PacketReader &r, NetEntityRecord &rec );
+
+// WELCOME (server -> client): session id for minting NetEntityIds.
+struct NetWelcomePayload {
+    uint32_t session_id;
+};
+void net_serialize_welcome( PacketWriter &w, const NetWelcomePayload &p );
+bool net_deserialize_welcome( PacketReader &r, NetWelcomePayload &p );
+
+// VIEW (client -> server): view center chunk + radius (client clamps to
+// NET_ENTITY_RADIUS_*).
+struct NetViewPayload {
+    int32_t cx, cy, cz;
+    uint8_t radius_xz, radius_y;
+};
+void net_serialize_view( PacketWriter &w, const NetViewPayload &p );
+bool net_deserialize_view( PacketReader &r, NetViewPayload &p );
+
+// CHUNK_ROLE (server -> client): role grant/revoke for one chunk, with the
+// chunk's authoritative entity records for VIEWER/OWNER (n=0 for NONE).
+struct NetChunkRolePayload {
+    int32_t cx, cy, cz;
+    uint8_t role;
+    uint8_t populated;
+    std::vector<NetEntityRecord> records;
+};
+void net_serialize_chunk_role( PacketWriter &w, const NetChunkRolePayload &p );
+bool net_deserialize_chunk_role( PacketReader &r, NetChunkRolePayload &p );
+
+// ENTITY_SPAWN (client -> server -> viewers): one record.
+// Serialization is net_write_entity_record / net_read_entity_record.
+
+// ENTITY_STATE (owner -> server -> viewers; also server-originated):
+// lightweight per-entity update.
+struct NetEntityStateEntry {
+    NetEntityId id = 0;
+    uint8_t kind = 0;
+    double x = 0.0, y = 0.0, z = 0.0;
+    float vx = 0.0f, vy = 0.0f, vz = 0.0f;
+    float yaw = 0.0f;
+    int32_t count = 0;
+    float health = 0.0f;
+    uint32_t flags = 0;
+};
+struct NetEntityStatePayload {
+    std::vector<NetEntityStateEntry> entries;
+};
+void net_serialize_entity_state( PacketWriter &w, const NetEntityStatePayload &p );
+bool net_deserialize_entity_state( PacketReader &r, NetEntityStatePayload &p );
+
+// ENTITY_REMOVE (owner -> server -> viewers).
+struct NetEntityRemovePayload {
+    NetEntityId id;
+    uint8_t reason; // NetEntityRemoveReason
+};
+void net_serialize_entity_remove( PacketWriter &w, const NetEntityRemovePayload &p );
+bool net_deserialize_entity_remove( PacketReader &r, NetEntityRemovePayload &p );
+
+// ENTITY_TRANSFER (server -> client): the entity moved to a chunk with a
+// different owner. adopt=1: you now simulate it; adopt=0: you no longer do.
+struct NetEntityTransferPayload {
+    NetEntityRecord record;
+    uint8_t adopt;
+};
+void net_serialize_entity_transfer( PacketWriter &w, const NetEntityTransferPayload &p );
+bool net_deserialize_entity_transfer( PacketReader &r, NetEntityTransferPayload &p );
+
+// ENTITY_ACTION (client -> server -> entity chunk's owner).
+struct NetEntityActionPayload {
+    NetEntityId id;
+    uint8_t action; // NetEntityAction
+    float damage;
+    double ax, ay, az; // attacker position
+    uint8_t attacker_survival;
+};
+void net_serialize_entity_action( PacketWriter &w, const NetEntityActionPayload &p );
+bool net_deserialize_entity_action( PacketReader &r, NetEntityActionPayload &p );
+
+// PICKUP_REQUEST (client -> server): requester can hold `room` of the item.
+struct NetPickupRequestPayload {
+    NetEntityId id;
+    int32_t room;
+};
+void net_serialize_pickup_request( PacketWriter &w, const NetPickupRequestPayload &p );
+bool net_deserialize_pickup_request( PacketReader &r, NetPickupRequestPayload &p );
+
+// PICKUP_RESULT (server -> requester): granted items (0 = denied/missing).
+struct NetPickupResultPayload {
+    NetEntityId id;
+    uint32_t item;
+    int32_t granted;
+};
+void net_serialize_pickup_result( PacketWriter &w, const NetPickupResultPayload &p );
+bool net_deserialize_pickup_result( PacketReader &r, NetPickupResultPayload &p );
+
+// PLAYER_HIT (mob owner -> server -> target client).
+struct NetPlayerHitPayload {
+    int32_t target_player_id;
+    double fx, fy, fz; // hit source position
+    float damage;
+};
+void net_serialize_player_hit( PacketWriter &w, const NetPlayerHitPayload &p );
+bool net_deserialize_player_hit( PacketReader &r, NetPlayerHitPayload &p );
+
+// EXPLOSION (client -> server -> all other clients).
+struct NetExplosionPayload {
+    double x, y, z;
+    float radius;
+};
+void net_serialize_explosion( PacketWriter &w, const NetExplosionPayload &p );
+bool net_deserialize_explosion( PacketReader &r, NetExplosionPayload &p );

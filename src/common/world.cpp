@@ -212,6 +212,9 @@ void World::change_size( int width, int height ) {
 }
 
 void World::render( Multiplayer &multiplayer, const glm::dvec3 &camera_pos, const int limit_render, const glm::mat4 &rotation ) {
+    // In multiplayer the item files live on the server: local reads/writes
+    // stay off for the whole session once a hostname was given.
+    this->items.set_multiplayer_mode( multiplayer.multiplayer_mode( ) );
     this->chunkLoader.render_chunks( multiplayer, camera_pos, limit_render );
     // Hand each just-finalized chunk's pending mobs to the manager (loaded
     // records or the natural-spawn roll); skipped chunks stay owned next pass.

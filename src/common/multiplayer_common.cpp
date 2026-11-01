@@ -35,6 +35,11 @@ void Multiplayer::handle_frame( RepGameState &state, const std::vector<uint8_t> 
     // Reader over the type-specific payload (after the 6-byte fixed header).
     PacketReader r( payload.data( ) + 6, payload.size( ) - 6 );
 
+    // Entity-protocol messages route to the sync hub.
+    if ( this->entities.handle( state, type, player_id, r ) ) {
+        return;
+    }
+
     switch ( type ) {
         case NetMsgType::CHUNK_DIFF_RESULT: {
             NetChunkDiffResultPayload diff;
@@ -101,7 +106,7 @@ void Multiplayer::handle_frame( RepGameState &state, const std::vector<uint8_t> 
             }
             world.multiplayer_avatars.add( player_id );
             glm::mat4 rotation = glm::make_mat4( p.rotation );
-            world.multiplayer_avatars.update_position( player_id, p.x, p.y, p.z, rotation, p.eye_height );
+            world.multiplayer_avatars.update_position( player_id, p.x, p.y, p.z, rotation, p.eye_height, p.flags );
             break;
         }
         case NetMsgType::PLAYER_LOCATION: {
@@ -111,7 +116,7 @@ void Multiplayer::handle_frame( RepGameState &state, const std::vector<uint8_t> 
                 return;
             }
             glm::mat4 rotation = glm::make_mat4( p.rotation );
-            world.multiplayer_avatars.update_position( player_id, p.x, p.y, p.z, rotation, p.eye_height );
+            world.multiplayer_avatars.update_position( player_id, p.x, p.y, p.z, rotation, p.eye_height, p.flags );
             break;
         }
         case NetMsgType::PLAYER_CONNECTED: {
@@ -234,22 +239,36 @@ bool Multiplayer::request_chunks_box( const glm::ivec3 &min, uint8_t sx, uint8_t
     return true;
 }
 
-void Multiplayer::update_players_position( const glm::vec3 &player_pos, const glm::mat4 &rotation, float eye_height ) {
+void Multiplayer::send_payload( NetMsgType type, int32_t player_id, const std::vector<uint8_t> &payload ) {
     if ( !this->active ) {
         return;
     }
-    if ( prev_player_pos == player_pos && prev_rotation == rotation && prev_eye_height == eye_height ) {
+    this->framed_socket.send_message( type, player_id, payload );
+    this->flush_outbound( );
+    if ( this->framed_socket.had_error( ) ) {
+        pr_debug( "Multiplayer send error, disconnecting" );
+        this->disconnect( );
+    }
+}
+
+void Multiplayer::update_players_position( const glm::vec3 &player_pos, const glm::mat4 &rotation, float eye_height, uint8_t flags ) {
+    if ( !this->active ) {
+        return;
+    }
+    if ( prev_player_pos == player_pos && prev_rotation == rotation && prev_eye_height == eye_height && prev_flags == flags ) {
         return;
     }
     prev_player_pos = player_pos;
     prev_rotation = rotation;
     prev_eye_height = eye_height;
+    prev_flags = flags;
     NetPlayerPayload p;
     p.x = player_pos.x;
     p.y = player_pos.y;
     p.z = player_pos.z;
     memcpy( p.rotation, glm::value_ptr( rotation ), sizeof( glm::mat4 ) );
     p.eye_height = eye_height;
+    p.flags = flags;
 
     PacketWriter w;
     net_serialize_player( w, p );

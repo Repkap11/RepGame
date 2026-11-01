@@ -17,6 +17,7 @@ struct PacketType_DataPlayer {
     float z;
     float rotation[ 4 * 4 ];
     float eye_height;
+    uint8_t flags; // NET_PLAYER_FLAG_* (targetable etc.)
 };
 
 struct ClientData {

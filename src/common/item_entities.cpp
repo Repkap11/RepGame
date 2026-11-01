@@ -14,6 +14,7 @@
 #include "common/chunk_loader.hpp"
 #include "common/chunk.hpp"
 #include "common/multiplayer.hpp"
+#include "common/net_entities.hpp"
 
 // Per-tick constants at UPS_RATE (144). Gravity and air drag are MC's item
 // values (0.04/tick², 0.98 at 20 TPS) rescaled to 144 UPS: ~16 blocks/s²
@@ -198,19 +199,25 @@ bool ItemEntities::item_chunk_live( World &world, const ItemEntity &it ) const {
     return chunk != nullptr && chunk->load_state == CHUNK_LIVE;
 }
 
+void ItemEntities::drop_render_instance( ItemEntity &it ) {
+    if ( it.entity == entt::null ) {
+        return;
+    }
+    if ( item_is_block( it.item ) && item_icon_is_isometric( it.item ) ) {
+        this->render_cube.remove( it.entity );
+    } else {
+        this->render_sprite.remove( it.entity );
+    }
+    it.entity = entt::null;
+}
+
 void ItemEntities::remove_item( const size_t i ) {
     ItemEntity &it = this->items[ i ];
-    if ( it.entity != entt::null ) {
-        if ( item_is_block( it.item ) && item_icon_is_isometric( it.item ) ) {
-            this->render_cube.remove( it.entity );
-        } else {
-            this->render_sprite.remove( it.entity );
-        }
-    }
+    drop_render_instance( it );
     this->items.erase( this->items.begin( ) + i );
 }
 
-uint32_t ItemEntities::spawn( const ItemID item, const int count, const glm::dvec3 &pos, const glm::dvec3 &vel, const int pickup_delay, const int persistent ) {
+uint32_t ItemEntities::spawn( const ItemID item, const int count, const glm::dvec3 &pos, const glm::dvec3 &vel, const int pickup_delay, const int persistent, const bool from_net ) {
     if ( this->items.size( ) >= MAX_ITEM_ENTITIES ) {
         // Evict the oldest entity (lowest id).
         size_t oldest = 0;
@@ -238,6 +245,30 @@ uint32_t ItemEntities::spawn( const ItemID item, const int count, const glm::dve
         resolve_item_faces( item, it.face );
     }
     this->items.push_back( it );
+    ItemEntity &back = this->items.back( );
+    back.net_chunk = glm::ivec3( glm::floor( pos / glm::dvec3( CHUNK_SIZE_X, CHUNK_SIZE_Y, CHUNK_SIZE_Z ) ) );
+    // Multiplayer: announce the spawn to the server. mint_id returns 0
+    // before WELCOME — those entities stay local-only forever.
+    if ( this->net != nullptr && !from_net ) {
+        const NetEntityId nid = this->net->mint_id( );
+        if ( nid != 0 ) {
+            back.net_id = nid;
+            NetEntityRecord rec;
+            rec.id = nid;
+            rec.kind = NetEntityKind::ITEM;
+            rec.x = back.pos.x;
+            rec.y = back.pos.y;
+            rec.z = back.pos.z;
+            rec.vx = static_cast<float>( back.vel.x );
+            rec.vy = static_cast<float>( back.vel.y );
+            rec.vz = static_cast<float>( back.vel.z );
+            rec.type = back.item;
+            rec.count = back.count;
+            rec.age_ticks = back.age_ticks;
+            rec.pickup_delay = back.pickup_delay;
+            this->net->send_spawn( rec );
+        }
+    }
     return it.id;
 }
 
@@ -265,6 +296,9 @@ void ItemEntities::tick( RepGameState &state ) {
     World &world = state.world;
     this->now_tick = state.tick_number;
     const bool freeze = RepGame::capture_mode( );
+    // Bind the sync hub while multiplayer is on; entities with net_id 0
+    // (spawned before WELCOME) behave exactly like single player.
+    this->net = this->mp_mode ? &state.multiplayer.entities : nullptr;
 
     // Player feet AABB (camera pos is the eye position).
     const double feet_y = state.camera.pos.y - state.camera.eye_height;
@@ -287,6 +321,27 @@ void ItemEntities::tick( RepGameState &state ) {
         if ( freeze || !item_chunk_live( world, it ) ) {
             continue;
         }
+
+        if ( it.remote ) {
+            // Mirror of a remote-owned entity: no physics, merging, aging or
+            // despawning — just ease toward the last streamed target.
+            if ( it.pickup_delay > 0 ) {
+                it.pickup_delay--;
+            }
+            const glm::dvec3 delta = it.net_pos - it.pos;
+            if ( glm::length( delta ) > 4.0 ) {
+                it.pos = it.net_pos;
+            } else {
+                it.pos += delta * 0.35;
+            }
+            it.vel = it.net_vel;
+            // Magnet is visual only for mirrors: drift toward the chest.
+            const glm::dvec3 to_chest = chest - item_center( it );
+            const double cd = glm::length( to_chest );
+            if ( it.pickup_delay == 0 && cd < ITEM_MAGNET_RADIUS && cd > 1e-6 ) {
+                it.pos += to_chest / cd * ITEM_MAGNET_PULL * 0.02;
+            }
+        } else {
         it.age_ticks++;
         if ( it.pickup_delay > 0 ) {
             it.pickup_delay--;
@@ -336,12 +391,26 @@ void ItemEntities::tick( RepGameState &state ) {
             it.vel.x *= ITEM_GROUND_FRICTION;
             it.vel.z *= ITEM_GROUND_FRICTION;
         }
+        } // end remote/owned branch
 
         // Pickup: the item box overlaps the feet AABB expanded a little.
+        {
+        glm::dvec3 min = item_min( it );
+        glm::dvec3 max = min + glm::dvec3( ITEM_SIZE );
         if ( it.pickup_delay == 0 && //
              max.x > state.camera.pos.x - half_w - ITEM_PICKUP_EXPAND_XZ && min.x < state.camera.pos.x + half_w + ITEM_PICKUP_EXPAND_XZ && //
              max.z > state.camera.pos.z - half_w - ITEM_PICKUP_EXPAND_XZ && min.z < state.camera.pos.z + half_w + ITEM_PICKUP_EXPAND_XZ && //
              max.y > feet_y - ITEM_PICKUP_EXPAND_Y && min.y < feet_y + state.camera.player_height + ITEM_PICKUP_EXPAND_Y ) {
+            if ( this->mp_mode && it.net_id != 0 ) {
+                // Synced entity (owned or mirror): the server arbitrates the
+                // pickup. One request per overlap; hidden while it flies.
+                if ( !it.pickup_pending && this->net != nullptr && this->net->connected( ) ) {
+                    const int room = RepGame::inventory_space_for_item( state, it.item );
+                    this->net->send_pickup_request( it.net_id, room );
+                    it.pickup_pending = true;
+                }
+                continue;
+            }
             const int leftover = RepGame::give_item_to_player( state, it.item, it.count );
             if ( leftover < it.count ) {
                 audio_play_sfx_gain( "pop", 0.5f );
@@ -357,16 +426,19 @@ void ItemEntities::tick( RepGameState &state ) {
         }
 
         if ( it.age_ticks >= ITEM_DESPAWN_TICKS ) {
+            this->send_net_remove( it, NET_REMOVE_DESPAWN );
             dead.push_back( i );
+        }
         }
     }
 
     // Merge pass: same item, close together, into the older entity. Runs
-    // before removals so indices stay valid.
+    // before removals so indices stay valid. Mirrors and hidden
+    // pickup-pending items don't take part.
     if ( do_merge ) {
         for ( size_t i = 0; i < this->items.size( ); i++ ) {
             ItemEntity &a = this->items[ i ];
-            if ( a.count >= item_max_stack( a.item ) ) {
+            if ( a.count >= item_max_stack( a.item ) || a.remote || a.pickup_pending ) {
                 continue;
             }
             const glm::ivec3 cc( glm::floor( item_center( a ) ) );
@@ -382,7 +454,7 @@ void ItemEntities::tick( RepGameState &state ) {
                                 continue;
                             }
                             ItemEntity &b = this->items[ j ];
-                            if ( b.item != a.item || a.count >= item_max_stack( a.item ) ) {
+                            if ( b.item != a.item || a.count >= item_max_stack( a.item ) || b.remote || b.pickup_pending ) {
                                 continue;
                             }
                             if ( glm::length( item_center( a ) - item_center( b ) ) >= ITEM_MERGE_RADIUS ) {
@@ -400,6 +472,7 @@ void ItemEntities::tick( RepGameState &state ) {
         // Zero-count merged-away entities die with the rest.
         for ( size_t i = 0; i < this->items.size( ); i++ ) {
             if ( this->items[ i ].count <= 0 ) {
+                this->send_net_remove( this->items[ i ], NET_REMOVE_MERGED );
                 dead.push_back( i );
             }
         }
@@ -429,7 +502,8 @@ static bool item_persistence_enabled( ) {
 }
 
 void ItemEntities::adopt_chunk( Chunk &chunk ) {
-    if ( this->storage == nullptr || !item_persistence_enabled( ) ) {
+    // Multiplayer mode: entity files live server-side; nothing local to load.
+    if ( this->storage == nullptr || !item_persistence_enabled( ) || this->mp_mode ) {
         chunk.pending_items.clear( );
         return;
     }
@@ -493,7 +567,7 @@ void ItemEntities::poll_owned( World &world ) {
 }
 
 void ItemEntities::persist_all( ) {
-    if ( this->storage == nullptr || !item_persistence_enabled( ) || RepGame::capture_mode( ) || RepGame::fly_mode( ) ) {
+    if ( this->storage == nullptr || !item_persistence_enabled( ) || RepGame::capture_mode( ) || RepGame::fly_mode( ) || this->mp_mode ) {
         return;
     }
     const glm::dvec3 csize( CHUNK_SIZE_X, CHUNK_SIZE_Y, CHUNK_SIZE_Z );
@@ -520,11 +594,223 @@ void ItemEntities::persist_all( ) {
     }
 }
 
+// ---------------------------------------------------------------------------
+// Multiplayer sync (server arbitrates, owner client simulates). mp_mode is
+// set from World::render once a hostname exists; while it's set, local
+// items_* file reads/writes are off and every networked entity obeys the
+// records streamed through NetEntities.
+// ---------------------------------------------------------------------------
+
+void ItemEntities::set_multiplayer_mode( const bool mp_mode ) {
+    this->mp_mode = mp_mode;
+    if ( !mp_mode ) {
+        this->net = nullptr;
+    }
+}
+
+void ItemEntities::send_net_remove( ItemEntity &it, const uint8_t reason ) {
+    if ( this->net == nullptr || it.net_id == 0 ) {
+        return;
+    }
+    // Never announce removals for chunks we don't own (server-belief chunk).
+    if ( this->net->owns_chunk( it.net_chunk ) ) {
+        this->net->send_remove( it.net_id, reason );
+    }
+}
+
+ItemEntities::ItemEntity *ItemEntities::find_by_net_id( const NetEntityId net_id ) {
+    if ( net_id == 0 ) {
+        return nullptr;
+    }
+    for ( ItemEntity &it : this->items ) {
+        if ( it.net_id == net_id ) {
+            return &it;
+        }
+    }
+    return nullptr;
+}
+
+// Spawn one entity from a wire record (CHUNK_ROLE / ENTITY_SPAWN /
+// ENTITY_TRANSFER). mirror=true means another client simulates it.
+uint32_t ItemEntities::spawn_record( const NetEntityRecord &rec, const bool mirror ) {
+    const uint32_t id = this->spawn( static_cast<ItemID>( rec.type ), rec.count,
+                                     glm::dvec3( rec.x, rec.y, rec.z ), glm::dvec3( rec.vx, rec.vy, rec.vz ),
+                                     rec.pickup_delay, 1, true );
+    ItemEntity &it = this->items.back( );
+    it.net_id = rec.id;
+    it.remote = mirror;
+    it.net_pos = glm::dvec3( rec.x, rec.y, rec.z );
+    it.net_vel = glm::dvec3( rec.vx, rec.vy, rec.vz );
+    it.net_chunk = glm::ivec3( glm::floor( glm::dvec3( rec.x, rec.y, rec.z ) / glm::dvec3( CHUNK_SIZE_X, CHUNK_SIZE_Y, CHUNK_SIZE_Z ) ) );
+    it.age_ticks = rec.age_ticks;
+    return id;
+}
+
+void ItemEntities::net_apply_spawn( const NetEntityRecord &rec, const bool mirror ) {
+    ItemEntity *existing = this->find_by_net_id( rec.id );
+    if ( existing != nullptr ) {
+        // Already local (e.g. our own predicted spawn): just set ownership.
+        existing->remote = mirror;
+        existing->net_pos = glm::dvec3( rec.x, rec.y, rec.z );
+        existing->net_vel = glm::dvec3( rec.vx, rec.vy, rec.vz );
+        existing->net_chunk = glm::ivec3( glm::floor( existing->net_pos / glm::dvec3( CHUNK_SIZE_X, CHUNK_SIZE_Y, CHUNK_SIZE_Z ) ) );
+        return;
+    }
+    this->spawn_record( rec, mirror );
+}
+
+void ItemEntities::net_apply_state( const NetEntityStateEntry &e ) {
+    ItemEntity *it = this->find_by_net_id( e.id );
+    if ( it == nullptr ) {
+        return;
+    }
+    // The incoming state reflects the server's belief: track the chunk it
+    // places the entity in, and only treat it as ours when we own that chunk.
+    it->net_chunk = glm::ivec3( glm::floor( glm::dvec3( e.x, e.y, e.z ) / glm::dvec3( CHUNK_SIZE_X, CHUNK_SIZE_Y, CHUNK_SIZE_Z ) ) );
+    const bool owned_here = this->net != nullptr && this->net->owns_chunk( it->net_chunk );
+    if ( it->remote || !owned_here ) {
+        // Mirror (or a predicted spawn we don't own): the streamed state is
+        // authoritative — ease toward it.
+        it->remote = true;
+        it->net_pos = glm::dvec3( e.x, e.y, e.z );
+        it->net_vel = glm::dvec3( e.vx, e.vy, e.vz );
+        it->count = e.count;
+    } else {
+        // Owned: only the count is server-driven (partial pickups).
+        it->count = e.count;
+    }
+    // pickup_pending is deliberately NOT cleared here — a routine state must
+    // not unhide an item whose PICKUP_RESULT hasn't landed (re-requests).
+}
+
+void ItemEntities::net_apply_remove( const NetEntityId net_id ) {
+    for ( size_t i = 0; i < this->items.size( ); i++ ) {
+        if ( this->items[ i ].net_id == net_id && net_id != 0 ) {
+            remove_item( i );
+            return;
+        }
+    }
+}
+
+void ItemEntities::net_release_entity( const NetEntityRecord &rec, const bool still_viewed ) {
+    ItemEntity *it = this->find_by_net_id( rec.id );
+    if ( it == nullptr ) {
+        return;
+    }
+    if ( still_viewed ) {
+        it->remote = true;
+        it->net_pos = glm::dvec3( rec.x, rec.y, rec.z );
+        it->net_vel = glm::dvec3( rec.vx, rec.vy, rec.vz );
+        it->net_chunk = glm::ivec3( glm::floor( it->net_pos / glm::dvec3( CHUNK_SIZE_X, CHUNK_SIZE_Y, CHUNK_SIZE_Z ) ) );
+    } else {
+        for ( size_t i = 0; i < this->items.size( ); i++ ) {
+            if ( &this->items[ i ] == it ) {
+                remove_item( i );
+                return;
+            }
+        }
+    }
+}
+
+void ItemEntities::net_apply_chunk_role( const glm::ivec3 &chunk, const uint8_t role, const std::vector<NetEntityRecord> &records ) {
+    if ( role == NET_ROLE_NONE ) {
+        // Chunk left our view entirely: drop its synced entities.
+        for ( size_t i = 0; i < this->items.size( ); ) {
+            const ItemEntity &it = this->items[ i ];
+            if ( it.net_id != 0 && it.net_chunk == chunk ) {
+                remove_item( i );
+            } else {
+                i++;
+            }
+        }
+        return;
+    }
+    const bool owned = role == NET_ROLE_OWNER;
+    // The record list is authoritative: synced items in this chunk that the
+    // server doesn't know about are dropped.
+    std::unordered_map<NetEntityId, const NetEntityRecord *> by_id;
+    for ( const NetEntityRecord &rec : records ) {
+        if ( rec.kind == NetEntityKind::ITEM ) {
+            by_id[ rec.id ] = &rec;
+        }
+    }
+    for ( size_t i = 0; i < this->items.size( ); ) {
+        const ItemEntity &it = this->items[ i ];
+        if ( it.net_id != 0 && it.net_chunk == chunk && by_id.find( it.net_id ) == by_id.end( ) ) {
+            remove_item( i );
+        } else {
+            i++;
+        }
+    }
+    for ( const NetEntityRecord &rec : records ) {
+        if ( rec.kind != NetEntityKind::ITEM ) {
+            continue;
+        }
+        ItemEntity *existing = this->find_by_net_id( rec.id );
+        if ( existing != nullptr ) {
+            existing->remote = !owned;
+            existing->net_pos = glm::dvec3( rec.x, rec.y, rec.z );
+            existing->net_vel = glm::dvec3( rec.vx, rec.vy, rec.vz );
+            existing->net_chunk = glm::ivec3( glm::floor( existing->net_pos / glm::dvec3( CHUNK_SIZE_X, CHUNK_SIZE_Y, CHUNK_SIZE_Z ) ) );
+        } else {
+            this->spawn_record( rec, !owned );
+        }
+    }
+}
+
+void ItemEntities::collect_net_state( NetEntities &net, std::vector<NetEntityStateEntry> &out, const long tick_number ) {
+    const glm::dvec3 csize( CHUNK_SIZE_X, CHUNK_SIZE_Y, CHUNK_SIZE_Z );
+    for ( ItemEntity &it : this->items ) {
+        if ( it.net_id == 0 || it.remote || it.pickup_pending ) {
+            continue;
+        }
+        // Ownership keys off the chunk the server believes the entity is in:
+        // when it crosses into a foreign chunk we keep streaming so the
+        // server sees the crossing and issues ENTITY_TRANSFER.
+        if ( !net.owns_chunk( it.net_chunk ) ) {
+            continue;
+        }
+        const bool keyframe = tick_number - it.net_keyframe_tick >= UPS_RATE;
+        const bool changed = !it.net_sent ||                                  //
+                             glm::length( it.pos - it.net_sent_pos ) > 1e-4 || //
+                             glm::length( it.vel - it.net_sent_vel ) > 1e-4 || //
+                             it.count != it.net_sent_count;
+        if ( !changed && !keyframe ) {
+            continue;
+        }
+        NetEntityStateEntry e;
+        e.id = it.net_id;
+        e.kind = static_cast<uint8_t>( NetEntityKind::ITEM );
+        e.x = it.pos.x;
+        e.y = it.pos.y;
+        e.z = it.pos.z;
+        e.vx = static_cast<float>( it.vel.x );
+        e.vy = static_cast<float>( it.vel.y );
+        e.vz = static_cast<float>( it.vel.z );
+        e.count = it.count;
+        out.push_back( e );
+        it.net_sent = true;
+        it.net_sent_pos = it.pos;
+        it.net_sent_vel = it.vel;
+        it.net_sent_count = it.count;
+        // The server now believes the entity sits at this pos's chunk.
+        it.net_chunk = glm::ivec3( glm::floor( it.pos / csize ) );
+        if ( keyframe ) {
+            it.net_keyframe_tick = tick_number;
+        }
+    }
+}
+
 void ItemEntities::update_render( const float alpha, const ChunkLoader &chunk_loader ) {
     if ( !this->render_inited ) {
         return;
     }
     for ( ItemEntity &it : this->items ) {
+        if ( it.pickup_pending ) {
+            // PICKUP_REQUEST in flight: hidden until the server rules.
+            drop_render_instance( it );
+            continue;
+        }
         const bool cube = item_is_block( it.item ) && item_icon_is_isometric( it.item );
         const glm::dvec3 rpos = glm::mix( it.prev_pos, it.pos, static_cast<double>( alpha ) );
         const double t = static_cast<double>( it.age_ticks + static_cast<double>( alpha ) ) / UPS_RATE;

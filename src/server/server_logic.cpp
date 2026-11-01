@@ -13,6 +13,7 @@
 
 void ServerLogic::init( const char *world_name ) {
     this->map_storage.init( world_name );
+    this->entities.init( &this->map_storage );
     int64_t saved_world_time = 0;
     if ( this->map_storage.read_world_time( saved_world_time ) ) {
         this->world_time_base = saved_world_time;
@@ -52,6 +53,7 @@ void ServerLogic::broadcastWorldTime( Server &server ) {
 
 void ServerLogic::on_client_connected( Server &server, int client_fd ) {
     pr_debug( "%d", client_fd );
+    this->entities.on_client_connected( server, client_fd );
 
     // First client of a session starts the clock (it freezes again when the
     // last one leaves); everyone gets told the current time right away.
@@ -86,6 +88,7 @@ void ServerLogic::on_client_connected( Server &server, int client_fd ) {
             p.z = playerData->z;
             memcpy( p.rotation, playerData->rotation, sizeof( p.rotation ) );
             p.eye_height = playerData->eye_height;
+            p.flags = playerData->flags;
             PacketWriter w;
             net_serialize_player( w, p );
             server.queue_message( client_fd, NetMsgType::CLIENT_INIT, online_id, w.take_buf( ) );
@@ -384,6 +387,7 @@ void ServerLogic::persistChunk( const glm::ivec3 &chunk_pos ) {
 
 void ServerLogic::persistAll( ) {
     this->map_storage.write_world_time( this->worldTimeNow( ) );
+    this->entities.flush_all( );
     size_t saved = 0;
     for ( const auto &[ chunk_pos, entry ] : this->world_cache ) {
         if ( entry.blocks.empty( ) ) {
@@ -507,6 +511,10 @@ void ServerLogic::on_client_message( Server &server, int client_fd, NetMsgType t
 
     PacketReader r( payload.data( ), payload.size( ) );
 
+    if ( this->entities.on_client_message( server, client_fd, type, payload ) ) {
+        return;
+    }
+
     if ( type == NetMsgType::BLOCK_UPDATE ) {
         NetBlockUpdatePayload bu;
         if ( !net_deserialize_block_update( r, bu ) ) {
@@ -562,6 +570,7 @@ void ServerLogic::on_client_message( Server &server, int client_fd, NetMsgType t
             pr_debug( "Malformed PLAYER_LOCATION from:%d", client_fd );
             return;
         }
+        this->entities.on_player_position( server, client_fd, p.x, p.y, p.z );
         // Forward to all other clients.
         PacketWriter w;
         net_serialize_player( w, p );
@@ -620,6 +629,7 @@ void ServerLogic::on_client_message( Server &server, int client_fd, NetMsgType t
 
 void ServerLogic::on_client_disconnected( Server &server, int client_fd ) {
     this->unsubscribeChest( client_fd );
+    this->entities.on_client_disconnected( server, client_fd );
     for ( int prop_id = 0; prop_id < MAX_CLIENT_FDS; prop_id++ ) {
         if ( prop_id == client_fd ) {
             continue;

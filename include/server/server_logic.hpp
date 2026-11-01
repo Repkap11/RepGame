@@ -6,6 +6,7 @@
 #include "common/constants.hpp"
 #include "common/net/framed_socket.hpp"
 #include "common/utils/map_storage.hpp"
+#include "server/server_entities.hpp"
 
 #include <chrono>
 #include <map>
@@ -48,6 +49,9 @@ struct ChestChunkState {
 
 class ServerLogic {
     MapStorage map_storage;
+    // Entity arbitration: chunk ownership, sidecar persistence, pickup
+    // races. No simulation.
+    ServerEntities entities;
     std::map<glm::ivec3, ChunkCacheEntry, Compare_I_Vec3> world_cache;
     // Chunks known to have no edits (no save file, or a file with zero
     // diffs): diff requests skip the disk entirely for these.
@@ -128,5 +132,9 @@ class ServerLogic {
     // Selftest hook: number of chunks known to have no edits.
     size_t knownEmptyChunkCount( ) const {
         return this->known_empty_chunks.size( );
+    }
+    // Selftest hook: entity arbitration state.
+    ServerEntities &test_entities( ) {
+        return this->entities;
     }
 };

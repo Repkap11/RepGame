@@ -232,6 +232,107 @@ void expect_diff( const DiffView &view, const glm::ivec3 &chunk_pos, const glm::
            eit->second.id, want.id );
 }
 
+// ---- entity-sync helpers -------------------------------------------------
+
+void send_view( Server &server, SimClient &c, const glm::ivec3 &center, uint8_t rx, uint8_t ry ) {
+    NetViewPayload p{ center.x, center.y, center.z, rx, ry };
+    PacketWriter w;
+    net_serialize_view( w, p );
+    server.test_logic( ).on_client_message( server, c.fd, NetMsgType::VIEW, 0, w.buf( ) );
+}
+
+void send_player_location( Server &server, SimClient &c, float x, float y, float z ) {
+    NetPlayerPayload p;
+    memset( &p, 0, sizeof( p ) );
+    p.x = x;
+    p.y = y;
+    p.z = z;
+    PacketWriter w;
+    net_serialize_player( w, p );
+    server.test_logic( ).on_client_message( server, c.fd, NetMsgType::PLAYER_LOCATION, 0, w.buf( ) );
+}
+
+void send_entity_spawn( Server &server, SimClient &c, const NetEntityRecord &rec ) {
+    PacketWriter w;
+    net_write_entity_record( w, rec );
+    server.test_logic( ).on_client_message( server, c.fd, NetMsgType::ENTITY_SPAWN, 0, w.buf( ) );
+}
+
+void send_entity_state( Server &server, SimClient &c, NetEntityId id, double x, double y, double z, int32_t count ) {
+    NetEntityStatePayload p;
+    NetEntityStateEntry e;
+    e.id = id;
+    e.kind = static_cast<uint8_t>( NetEntityKind::ITEM );
+    e.x = x;
+    e.y = y;
+    e.z = z;
+    e.count = count;
+    p.entries.push_back( e );
+    PacketWriter w;
+    net_serialize_entity_state( w, p );
+    server.test_logic( ).on_client_message( server, c.fd, NetMsgType::ENTITY_STATE, 0, w.buf( ) );
+}
+
+void send_pickup_request( Server &server, SimClient &c, NetEntityId id, int32_t room ) {
+    NetPickupRequestPayload p{ id, room };
+    PacketWriter w;
+    net_serialize_pickup_request( w, p );
+    server.test_logic( ).on_client_message( server, c.fd, NetMsgType::PICKUP_REQUEST, 0, w.buf( ) );
+}
+
+// All frames of `type` in the client's outbox.
+std::vector<ReceivedFrame> frames_of_type( const std::vector<ReceivedFrame> &frames, NetMsgType type ) {
+    std::vector<ReceivedFrame> out;
+    for ( const ReceivedFrame &f : frames ) {
+        if ( f.type == type ) {
+            out.push_back( f );
+        }
+    }
+    return out;
+}
+
+// Latest CHUNK_ROLE seen for `chunk` in `frames`; -1 if none.
+int last_role_for( const std::vector<ReceivedFrame> &frames, const glm::ivec3 &chunk ) {
+    int role = -1;
+    for ( const ReceivedFrame &f : frames ) {
+        if ( f.type != NetMsgType::CHUNK_ROLE ) {
+            continue;
+        }
+        PacketReader r( f.payload.data( ), f.payload.size( ) );
+        NetChunkRolePayload p;
+        if ( net_deserialize_chunk_role( r, p ) && glm::ivec3( p.cx, p.cy, p.cz ) == chunk ) {
+            role = p.role;
+        }
+    }
+    return role;
+}
+
+uint32_t welcome_session( const std::vector<ReceivedFrame> &frames ) {
+    for ( const ReceivedFrame &f : frames ) {
+        if ( f.type != NetMsgType::WELCOME ) {
+            continue;
+        }
+        PacketReader r( f.payload.data( ), f.payload.size( ) );
+        NetWelcomePayload p;
+        if ( net_deserialize_welcome( r, p ) ) {
+            return p.session_id;
+        }
+    }
+    return 0;
+}
+
+NetEntityRecord item_record( NetEntityId id, uint32_t item, int32_t count, double x, double y, double z ) {
+    NetEntityRecord rec;
+    rec.id = id;
+    rec.kind = NetEntityKind::ITEM;
+    rec.x = x;
+    rec.y = y;
+    rec.z = z;
+    rec.type = item;
+    rec.count = count;
+    return rec;
+}
+
 // Cross-check the raw chunk files on disk (what survives a server restart).
 void expect_disk_block( MapStorage &storage, const glm::ivec3 &chunk_pos, const glm::ivec3 &pos, const BlockState &want ) {
     BlockState *blocks = static_cast<BlockState *>( malloc( CHUNK_BLOCK_SIZE * sizeof( BlockState ) ) );
@@ -440,6 +541,221 @@ int server_selftest( ) {
         collect_diffs( server, c, ke_view );
         expect_diff( ke_view, ke, ke_pos, stone );
         disconnect_client( server, c );
+    }
+
+    // === Entity sync (server arbitrates, owner client simulates) ==========
+    // Chunk geometry: CHUNK_SIZE 62. A's player sits in chunk -1 with view
+    // center -1 (covers x -3..1); B's player in chunk 2 with view center 2
+    // (covers x 0..4). Overlap: chunks 0 and 1.
+    {
+        SimClient ea = connect_client( server );
+        SimClient eb = connect_client( server );
+        const std::vector<ReceivedFrame> wa = drain_client( server, ea );
+        const std::vector<ReceivedFrame> wb = drain_client( server, eb );
+        const uint32_t sess_a = welcome_session( wa );
+        const uint32_t sess_b = welcome_session( wb );
+        check( sess_a != 0 && sess_b != 0 && sess_a != sess_b,
+               "WELCOME session ids distinct (a=%u b=%u)", sess_a, sess_b );
+
+        send_player_location( server, ea, -70.0f, 30.0f, 10.0f ); // chunk -2
+        send_player_location( server, eb, 130.0f, 30.0f, 10.0f ); // chunk 2
+        send_view( server, ea, glm::ivec3( -1, 0, 0 ), 2, 1 );
+        send_view( server, eb, glm::ivec3( 2, 0, 0 ), 2, 1 );
+
+        const glm::ivec3 c0( 0, 0, 0 ), c1( 1, 0, 0 ), c2( 2, 0, 0 ), c_n3( -3, 0, 0 );
+        const ServerEntities &se = server.test_logic( ).test_entities( );
+        // Chunk 1: A (dist 3, player chunk -2) vs B (dist 1, player chunk 2).
+        // A covered it first; hysteresis keeps A (3 <= 1+2).
+        check( se.owner_of( c1 ) == ea.fd, "entity: nearer challenger does not steal (owner=%d a=%d)", se.owner_of( c1 ), ea.fd );
+        check( se.owner_of( c2 ) == eb.fd, "entity: solo-covered chunk owned by B (owner=%d b=%d)", se.owner_of( c2 ), eb.fd );
+        {
+            const std::vector<ReceivedFrame> fa = drain_client( server, ea );
+            const std::vector<ReceivedFrame> fb = drain_client( server, eb );
+            check( last_role_for( fa, c1 ) == NET_ROLE_OWNER, "entity: A role OWNER for chunk 1" );
+            check( last_role_for( fb, c1 ) == NET_ROLE_VIEWER, "entity: B role VIEWER for chunk 1" );
+        }
+
+        // ENTITY_SPAWN relays to the other viewers only.
+        const NetEntityId item1 = ( static_cast<NetEntityId>( sess_a ) << 32 ) | 1;
+        send_entity_spawn( server, ea, item_record( item1, DIRT, 5, 70.0, 30.0, 10.0 ) ); // chunk 1
+        {
+            const std::vector<ReceivedFrame> fa = drain_client( server, ea );
+            const std::vector<ReceivedFrame> fb = drain_client( server, eb );
+            check( frames_of_type( fa, NetMsgType::ENTITY_SPAWN ).empty( ), "entity: spawn not echoed to sender" );
+            check( frames_of_type( fb, NetMsgType::ENTITY_SPAWN ).size( ) == 1, "entity: spawn relayed to viewer" );
+        }
+
+        // ENTITY_STATE from a non-owner is ignored; from the owner relays.
+        send_entity_state( server, eb, item1, 71.0, 30.0, 10.0, 5 );
+        {
+            const std::vector<ReceivedFrame> fa = drain_client( server, ea );
+            check( frames_of_type( fa, NetMsgType::ENTITY_STATE ).empty( ), "entity: non-owner state ignored" );
+        }
+        send_entity_state( server, ea, item1, 71.0, 30.0, 10.0, 5 );
+        {
+            const std::vector<ReceivedFrame> fb = drain_client( server, eb );
+            check( frames_of_type( fb, NetMsgType::ENTITY_STATE ).size( ) == 1, "entity: owner state relayed to viewer" );
+        }
+
+        // Pickup race on item1 (in chunk 1): exactly one request grants.
+        send_pickup_request( server, ea, item1, 10 );
+        send_pickup_request( server, eb, item1, 10 );
+        {
+            const std::vector<ReceivedFrame> fa = drain_client( server, ea );
+            const std::vector<ReceivedFrame> fb = drain_client( server, eb );
+            int granted_a = -1, granted_b = -1;
+            for ( const ReceivedFrame &f : frames_of_type( fa, NetMsgType::PICKUP_RESULT ) ) {
+                PacketReader r( f.payload.data( ), f.payload.size( ) );
+                NetPickupResultPayload p;
+                if ( net_deserialize_pickup_result( r, p ) ) granted_a = p.granted;
+            }
+            for ( const ReceivedFrame &f : frames_of_type( fb, NetMsgType::PICKUP_RESULT ) ) {
+                PacketReader r( f.payload.data( ), f.payload.size( ) );
+                NetPickupResultPayload p;
+                if ( net_deserialize_pickup_result( r, p ) ) granted_b = p.granted;
+            }
+            check( granted_a == 5 && granted_b == 0, "entity: pickup race grants exactly once (a=%d b=%d)", granted_a, granted_b );
+            check( frames_of_type( fa, NetMsgType::ENTITY_REMOVE ).size( ) == 1 && frames_of_type( fb, NetMsgType::ENTITY_REMOVE ).size( ) == 1,
+                   "entity: PICKED_UP remove broadcast to all viewers" );
+        }
+
+        // Partial pickup reduces the count via a server-originated state.
+        const NetEntityId item2 = ( static_cast<NetEntityId>( sess_a ) << 32 ) | 2;
+        send_entity_spawn( server, ea, item_record( item2, STONE, 10, 70.0, 30.0, 10.0 ) );
+        drain_client( server, ea );
+        drain_client( server, eb );
+        send_pickup_request( server, eb, item2, 4 );
+        {
+            const std::vector<ReceivedFrame> fa = drain_client( server, ea );
+            const std::vector<ReceivedFrame> fb = drain_client( server, eb );
+            int saw_count = -1;
+            for ( const ReceivedFrame &f : frames_of_type( fa, NetMsgType::ENTITY_STATE ) ) {
+                PacketReader r( f.payload.data( ), f.payload.size( ) );
+                NetEntityStatePayload p;
+                if ( net_deserialize_entity_state( r, p ) && !p.entries.empty( ) ) saw_count = p.entries[ 0 ].count;
+            }
+            check( saw_count == 6, "entity: partial pickup broadcasts reduced count (got %d)", saw_count );
+            int granted = -1;
+            for ( const ReceivedFrame &f : frames_of_type( fb, NetMsgType::PICKUP_RESULT ) ) {
+                PacketReader r( f.payload.data( ), f.payload.size( ) );
+                NetPickupResultPayload p;
+                if ( net_deserialize_pickup_result( r, p ) ) granted = p.granted;
+            }
+            check( granted == 4, "entity: partial pickup grants room-limited count (got %d)", granted );
+        }
+
+        // Chunk crossing: A moves item2 from chunk 1 into chunk 2 (B-owned).
+        send_entity_state( server, ea, item2, 130.0, 30.0, 10.0, 6 );
+        {
+            const std::vector<ReceivedFrame> fa = drain_client( server, ea );
+            const std::vector<ReceivedFrame> fb = drain_client( server, eb );
+            int adopt_a = -1, adopt_b = -1;
+            for ( const ReceivedFrame &f : frames_of_type( fa, NetMsgType::ENTITY_TRANSFER ) ) {
+                PacketReader r( f.payload.data( ), f.payload.size( ) );
+                NetEntityTransferPayload p;
+                if ( net_deserialize_entity_transfer( r, p ) ) adopt_a = p.adopt;
+            }
+            for ( const ReceivedFrame &f : frames_of_type( fb, NetMsgType::ENTITY_TRANSFER ) ) {
+                PacketReader r( f.payload.data( ), f.payload.size( ) );
+                NetEntityTransferPayload p;
+                if ( net_deserialize_entity_transfer( r, p ) ) adopt_b = p.adopt;
+            }
+            check( adopt_b == 1 && adopt_a == 0, "entity: crossing transfers ownership (a=%d b=%d)", adopt_a, adopt_b );
+        }
+
+        // The crossed entity still resolves through the index: B (new owner)
+        // picks it up whole, then a second request finds nothing.
+        send_pickup_request( server, eb, item2, 10 );
+        send_pickup_request( server, eb, item2, 10 );
+        {
+            const std::vector<ReceivedFrame> fb = drain_client( server, eb );
+            int results = 0, removes = 0;
+            int granted_first = -1;
+            for ( const ReceivedFrame &f : frames_of_type( fb, NetMsgType::PICKUP_RESULT ) ) {
+                PacketReader r( f.payload.data( ), f.payload.size( ) );
+                NetPickupResultPayload p;
+                if ( net_deserialize_pickup_result( r, p ) ) {
+                    if ( results == 0 ) granted_first = p.granted;
+                    results++;
+                }
+            }
+            removes = static_cast<int>( frames_of_type( fb, NetMsgType::ENTITY_REMOVE ).size( ) );
+            check( granted_first == 6 && results == 2, "entity: post-crossing pickup resolves (granted=%d results=%d)", granted_first, results );
+            check( removes == 1, "entity: post-crossing pickup broadcasts remove (got %d)", removes );
+        }
+        drain_client( server, ea );
+
+        // Hysteresis: moving A's player 1 chunk farther than B for chunk 1
+        // keeps ownership; 3 chunks farther flips it, both get CHUNK_ROLE.
+        send_player_location( server, ea, -60.0f, 30.0f, 10.0f ); // chunk -1: dist 2 vs B 1
+        drain_client( server, ea );
+        drain_client( server, eb );
+        check( se.owner_of( c1 ) == ea.fd, "entity: owner 1 chunk farther keeps ownership" );
+        send_player_location( server, ea, -200.0f, 30.0f, 10.0f ); // chunk -4: dist 5 vs B 1
+        {
+            const std::vector<ReceivedFrame> fa = drain_client( server, ea );
+            const std::vector<ReceivedFrame> fb = drain_client( server, eb );
+            check( last_role_for( fb, c1 ) == NET_ROLE_OWNER && last_role_for( fa, c1 ) == NET_ROLE_VIEWER,
+                   "entity: owner 3+ chunks farther flips (both notified)" );
+            check( se.owner_of( c1 ) == eb.fd, "entity: B owns chunk 1 after flip" );
+        }
+
+        // View shrink -> uncover -> items file persists; re-cover reloads.
+        const NetEntityId item3 = ( static_cast<NetEntityId>( sess_a ) << 32 ) | 3;
+        send_entity_spawn( server, ea, item_record( item3, GOLD_BLOCK, 8, -180.0, 30.0, 10.0 ) ); // chunk -3, only A covers
+        drain_client( server, ea );
+        drain_client( server, eb );
+        send_view( server, ea, glm::ivec3( -1, 0, 0 ), 0, 1 ); // covers only (-1, y, 0)
+        {
+            const std::vector<ReceivedFrame> fa = drain_client( server, ea );
+            check( last_role_for( fa, c_n3 ) == NET_ROLE_NONE, "entity: uncovered chunk sends CHUNK_ROLE NONE" );
+        }
+        drain_client( server, eb );
+        {
+            MapStorage check_storage;
+            check_storage.init( TEST_WORLD );
+            std::vector<ItemFileRecord> persisted;
+            const int existed = check_storage.load_items( c_n3, persisted );
+            check( existed == 1 && persisted.size( ) == 1 && persisted[ 0 ].item == GOLD_BLOCK && persisted[ 0 ].count == 8,
+                   "entity: uncovered chunk persists items file (existed=%d n=%zu)", existed, persisted.size( ) );
+        }
+        send_view( server, ea, glm::ivec3( -1, 0, 0 ), 2, 1 ); // re-cover
+        {
+            const std::vector<ReceivedFrame> fa = drain_client( server, ea );
+            bool reloaded = false;
+            for ( const ReceivedFrame &f : frames_of_type( fa, NetMsgType::CHUNK_ROLE ) ) {
+                PacketReader r( f.payload.data( ), f.payload.size( ) );
+                NetChunkRolePayload p;
+                if ( net_deserialize_chunk_role( r, p ) && glm::ivec3( p.cx, p.cy, p.cz ) == c_n3 && p.role == NET_ROLE_OWNER &&
+                     p.records.size( ) == 1 && p.records[ 0 ].type == GOLD_BLOCK && p.records[ 0 ].count == 8 ) {
+                    reloaded = true;
+                }
+            }
+            check( reloaded, "entity: re-covered chunk reloads persisted item records" );
+        }
+
+        // Owner disconnect: put an item into B-owned chunk 1, drop B, and A
+        // (still viewing) takes over with the records.
+        const NetEntityId item4 = ( static_cast<NetEntityId>( sess_b ) << 32 ) | 1;
+        send_entity_spawn( server, eb, item_record( item4, SAND, 7, 70.0, 30.0, 10.0 ) );
+        drain_client( server, ea );
+        drain_client( server, eb );
+        disconnect_client( server, eb );
+        {
+            const std::vector<ReceivedFrame> fa = drain_client( server, ea );
+            bool got_owner = false;
+            for ( const ReceivedFrame &f : frames_of_type( fa, NetMsgType::CHUNK_ROLE ) ) {
+                PacketReader r( f.payload.data( ), f.payload.size( ) );
+                NetChunkRolePayload p;
+                if ( net_deserialize_chunk_role( r, p ) && glm::ivec3( p.cx, p.cy, p.cz ) == c1 && p.role == NET_ROLE_OWNER &&
+                     p.records.size( ) == 1 && p.records[ 0 ].type == SAND && p.records[ 0 ].count == 7 ) {
+                    got_owner = true;
+                }
+            }
+            check( got_owner, "entity: owner disconnect hands OWNER + records to remaining viewer" );
+            check( se.owner_of( c1 ) == ea.fd, "entity: A owns chunk 1 after B disconnect" );
+        }
+        disconnect_client( server, ea );
     }
 
     server.cleanup( );

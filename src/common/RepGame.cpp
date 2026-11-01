@@ -1092,6 +1092,13 @@ static void throw_held_cursor_stack( RepGameState &state, const bool whole ) {
     }
 }
 
+// Non-mutating twin of give_item_to_player: how many of `item` the hotbar +
+// survival inventory could accept right now. Used as `room` in multiplayer
+// PICKUP_REQUESTs.
+int RepGame::inventory_space_for_item( RepGameState &state, ItemID item ) {
+    return state.hotbar.spaceFor( item ) + state.survival_inventory.spaceFor( item );
+}
+
 int RepGame::give_item_to_player( RepGameState &state, ItemID item, int quantity ) {
     const int bar_space = state.hotbar.spaceFor( item );
     const int to_bar = quantity < bar_space ? quantity : bar_space;
@@ -2481,6 +2488,9 @@ void RepGame::tick( ) {
     globalGameState.world.bodies.tick( globalGameState );
     // Dropped item entities: physics, merge, magnet/pickup, despawn.
     globalGameState.world.items.tick( globalGameState );
+    // Entity sync: apply pending role grants, advertise the VIEW, stream
+    // ENTITY_STATE for owned entities. No-op in single player.
+    globalGameState.multiplayer.entities.tick( globalGameState );
     for ( const MobPlayerHit &hit : mob_out.player_hits ) {
         RepGame::player_hurt( globalGameState, hit.from, hit.damage );
     }
@@ -3034,7 +3044,10 @@ void RepGame::draw_frame( float alpha, const RenderView *views, int num_views ) 
     // eye height consistently with the rest of the packet.
     const float send_eye_height = g_capture.enabled ? static_cast<float>( globalGameState.camera.eye_height )
                                                     : static_cast<float>( globalGameState.camera.eye_height_render );
-    globalGameState.multiplayer.update_players_position( glm::vec3( render_pos ), render_rotation, send_eye_height );
+    const uint8_t send_flags = ( globalGameState.game_mode == GameMode_Survival && !globalGameState.input.no_clip )
+                                   ? NET_PLAYER_FLAG_TARGETABLE
+                                   : 0;
+    globalGameState.multiplayer.update_players_position( glm::vec3( render_pos ), render_rotation, send_eye_height, send_flags );
 
 #if defined( REPGAME_WASM )
     // With pthreads enabled, terrain generation runs on background workers and

@@ -374,6 +374,8 @@ class RepGame {
     // Hotbar first, survival inventory for the overflow. Returns the count
     // that didn't fit (0 when everything was given).
     static int give_item_to_player( RepGameState &state, ItemID item, int quantity );
+    // Non-mutating capacity check matching give_item_to_player's targets.
+    static int inventory_space_for_item( RepGameState &state, ItemID item );
     // Mob-vs-block target resolution for the crosshair ray. Sets
     // block_selection.target_mob/target_mob_dist and, when the mob is nearer
     // than the selected block cell (or no block is selected), clears

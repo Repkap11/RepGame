@@ -104,6 +104,7 @@ class Chunk {
     friend class MobManager;
     friend class BlockBodies;
     friend class ItemEntities;
+    friend class NetEntities;
     friend class TerrainLoadingThread;
     friend class Multiplayer;
     friend class TntExplodeEvent;
