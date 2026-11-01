@@ -41,6 +41,20 @@ binary lands at `out/linux/release/RepGame`.
   they shadow the GL extension's copies and break EGL).
 - Run: `./out/linux/release/RepGame <WorldName> <host>` (e.g. `RepGame World1 localhost`)
 
+## Pause menu
+
+- Escape (desktop) or the "Menu" button / Back (Android) opens the pause menu
+  — it no longer quits directly. Pressing it again resumes; Back/inv while
+  the inventory is open closes the inventory instead.
+- Rows: Resume, Graphics quality (same as `r`; hidden where
+  `SUPPORTS_FRAME_BUFFER` is 0 — Android/WASM always render the LOW path),
+  Render Distance `-`/`+` (clamped to `1..RENDER_RADIUS_MAX`; clicking the
+  label resets to `RENDER_RADIUS_DEFAULT`, same as `0`), Block Debug
+  View (`m`), Game Mode, Flying, Debug Overlay (only where
+  `SUPPORTS_IMGUI_OVERLAY`), and Exit Game (`input.exitGame`).
+- In-game text uses ProggyClean (`fonts/proggyclean.ttf`) drawn at integer
+  multiples of 13px with nearest filtering (`FontRenderer::pixelScale`).
+
 ## ARM build (aarch64 Yocto board, GLES/Wayland)
 
 Cross-compiles the Linux client for a Yocto aarch64 board (PowerVR GLES 3.2,

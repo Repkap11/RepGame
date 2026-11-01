@@ -38,11 +38,23 @@ class FontRenderer {
     unsigned int ibo_id;
     int max_quads;
 
+    // Screen size, needed to snap text origins to the pixel grid (the UI
+    // ortho origin is the screen center, so odd dimensions offset by half).
+    int screen_width = 0;
+    int screen_height = 0;
+
   public:
     void init( );
+    void onScreenSizeChange( int w, int h );
+    // Integer magnification for a requested pixel size: the 13px raster is
+    // drawn at k× nearest-neighbour scale so text stays pixel-crisp.
+    int pixelScale( float size ) const;
     void drawString( const Renderer &renderer, const char *text, float x, float y, float size, const float tint[ 4 ], const glm::mat4 &mvp );
     float getTextWidth( const char *text, float size ) const;
     float getAscent( float size ) const;
     float getDescent( float size ) const;
+    // Capital-letter height (top of 'H' above baseline) at the snapped scale;
+    // used to center text by its visible cap height rather than the ascent.
+    float getCapHeight( float size ) const;
     void cleanup( );
 };

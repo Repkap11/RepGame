@@ -74,8 +74,11 @@ public class RepGameActivity extends AppCompatActivity {
 
     @Override
     public void onBackPressed() {
-        if (mUIOverlay != null && mUIOverlay.isInventoryOpen()) {
-            mUIOverlay.closeInventory();
+        if (mUIOverlay != null && mRendererSet) {
+            // Back is the Android Escape: it closes the inventory or the
+            // pause menu when one is open, otherwise it opens the menu.
+            // Exiting goes through the menu's Exit Game button.
+            mUIOverlay.onMenuClicked();
         } else {
             super.onBackPressed();
         }

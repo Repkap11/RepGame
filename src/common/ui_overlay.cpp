@@ -142,7 +142,7 @@ void UIOverlay::draw( CreativeInventory &creative_inventory, SurvivalInventory &
                 font.drawString( renderer, buf, tx, ty, text_size, tint, mvp_ui );
             }
         }
-    } else if ( !this->vr_mode ) {
+    } else if ( !this->vr_mode && !input.menu_open ) {
         glBlendFunc( GL_ONE_MINUS_DST_COLOR, GL_ZERO );
         this->render_chain_crosshair.draw( renderer, this->shader );
         glBlendFunc( GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA );

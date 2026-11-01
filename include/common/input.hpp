@@ -50,6 +50,9 @@ class Input {
     int click_delay_middle;
     bool debug_mode;
     bool inventory_open;
+    // Pause menu open (Escape / Android menu button). Releases the pointer
+    // like inventory_open and routes clicks to PauseMenu::hitTest.
+    bool menu_open;
     bool player_flying;
     bool player_sprinting;
     bool no_clip;
@@ -94,5 +97,8 @@ class Input {
     void setButtonState( int left, int middle, int right );
     void onInventoryClicked( );
 #endif
+    // Escape (desktop) / Menu button (Android): closes the inventory if it's
+    // open, otherwise toggles the pause menu.
+    void onMenuClicked( );
     void lookMove( int x, int y );
 };

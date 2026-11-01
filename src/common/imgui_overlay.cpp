@@ -123,7 +123,9 @@ void imgui_overlay_draw( ImGuiOverlay *imgui_overlay, Input &input, RepGameState
         pr_debug( "ImGui overlay: %s", imgui_overlay->shown ? "on" : "off" );
     }
 
-    if ( imgui_overlay->shown ) {
+    // Hidden while the pause menu is up so the overlay doesn't draw on top of
+    // it; NewFrame/Render still run below to keep ImGui's frame state intact.
+    if ( imgui_overlay->shown && !input.menu_open ) {
         ImGuiIO &io = ImGui::GetIO( );
         if ( false ) {
             ImGui::ShowDemoWindow( &input.inventory_open );

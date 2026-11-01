@@ -79,5 +79,10 @@ class UIOverlay {
     // to shade the in-hand block like the world does.
     void draw( CreativeInventory &creative_inventory, SurvivalInventory &survival_inventory, Hotbar &hotbar, GameMode game_mode, const Renderer &renderer, const Texture &blocksTexture, Input &input, FontRenderer &font, const glm::mat4 &mvp_ui, InventoryRenderer *chest_renderer, const ChestContents *chest_contents, float held_block_light );
     void draw_held_inventory_item( const InventorySlot &held, bool is_holding, int mouse_x, int mouse_y, int block_size, int cell_size, const Renderer &renderer, const Texture &blocksTexture, FontRenderer &font, const glm::mat4 &mvp_ui );
+    // Exposes the shared ui_overlay shader so the pause menu (drawn from
+    // RepGame::draw_ui_pass) uses the same program.
+    Shader &get_shader( ) {
+        return this->shader;
+    }
     void cleanup( );
 };

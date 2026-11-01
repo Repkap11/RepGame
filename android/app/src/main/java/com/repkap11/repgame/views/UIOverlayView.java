@@ -1,5 +1,6 @@
 package com.repkap11.repgame.views;
 
+import android.app.Activity;
 import android.content.Context;
 import android.content.res.TypedArray;
 import android.graphics.Canvas;
@@ -40,6 +41,10 @@ public class UIOverlayView extends View implements View.OnTouchListener {
     // close it without a button press), so this is only a mirror used to detect
     // when the overlay needs a redraw; isInventoryOpen() reads the live value.
     private boolean mInventoryOpen = false;
+    // Same mirror for the pause menu; while it's open the C++ side owns the
+    // whole screen and every touch becomes a menu tap.
+    private boolean mMenuOpen = false;
+    private boolean mExitHandled = false;
     private RepGameAndroidRenderer mRenderWrapper;
     private int mMoveX;
     private int mMoveY;
@@ -76,6 +81,9 @@ public class UIOverlayView extends View implements View.OnTouchListener {
     private int mPageY;
     private int mPageButtonRadius;
     private int mHotbarTop;
+    private int mMenuX;
+    private int mMenuY;
+    private int mMenuRadius;
 
     public UIOverlayView(Context context, @Nullable AttributeSet attrs) {
         super(context, attrs);
@@ -105,6 +113,11 @@ public class UIOverlayView extends View implements View.OnTouchListener {
     @Override
     protected void onDraw(Canvas canvas) {
         super.onDraw(canvas);
+        if (isMenuOpen()) {
+            // The pause menu is drawn by the game and covers the screen;
+            // none of the touch controls apply.
+            return;
+        }
         if (isInventoryOpen()) {
             drawButton(canvas, mInventoryX, mInventoryY, mInventoryRadius, "Close", false);
             boolean creative = mRenderWrapper.getGameMode() == 0;
@@ -123,6 +136,7 @@ public class UIOverlayView extends View implements View.OnTouchListener {
         drawButton(canvas, mMouseMiddleX, mMouseMiddleY, mMouseRadius, "Pick", mMouseMiddlePointerId != -1);
         drawButton(canvas, mMouseRightX, mMouseRightY, mMouseRadius, "Place", mMouseRightPointerId != -1);
         drawButton(canvas, mInventoryX, mInventoryY, mInventoryRadius, "Inv", false);
+        drawButton(canvas, mMenuX, mMenuY, mMenuRadius, "Menu", false);
     }
 
     @Override
@@ -169,6 +183,11 @@ public class UIOverlayView extends View implements View.OnTouchListener {
         mPageNextX = w - mPagePrevX;
         mPageY = h / 2;
 
+        // Pause-menu button: top-center, same height/size as Jump.
+        mMenuRadius = mJumpRadius;
+        mMenuX = w / 2;
+        mMenuY = mJumpY;
+
         mTextPaint.setTextSize(mMouseRadius * 0.45f);
 
         super.onSizeChanged(w, h, oldw, oldh);
@@ -180,6 +199,43 @@ public class UIOverlayView extends View implements View.OnTouchListener {
 
     public boolean isInventoryOpen() {
         return mRenderWrapper != null && mRenderWrapper.isInventoryOpen();
+    }
+
+    public boolean isMenuOpen() {
+        return mRenderWrapper != null && mRenderWrapper.isMenuOpen();
+    }
+
+    // Back button / Menu button: closes the inventory if it's open,
+    // otherwise toggles the pause menu. Never exits directly.
+    public void onMenuClicked() {
+        if (mRenderWrapper != null) {
+            mRenderWrapper.onMenuClicked();
+            mMenuOpen = isMenuOpen();
+            mInventoryOpen = isInventoryOpen();
+            if (mMenuOpen) {
+                releaseAllControls();
+            }
+            invalidate();
+        }
+    }
+
+    // The menu just opened: drop every held control so no gameplay input
+    // (joystick, look drag, jump, mouse buttons) leaks in while it's up.
+    private void releaseAllControls() {
+        handleHMove(mMoveX, mMoveY);
+        mMovePointerId = -1;
+        mLookPointerId = -1;
+        if (mJumpPointerId != -1) {
+            mJumpPointerId = -1;
+            handleJump();
+        }
+        if (mMouseLeftPointerId != -1 || mMouseMiddlePointerId != -1 || mMouseRightPointerId != -1) {
+            mMouseLeftPointerId = -1;
+            mMouseMiddlePointerId = -1;
+            mMouseRightPointerId = -1;
+            handleMouseButtons();
+        }
+        invalidate();
     }
 
     public void closeInventory() {
@@ -198,6 +254,18 @@ public class UIOverlayView extends View implements View.OnTouchListener {
             if (open != mInventoryOpen) {
                 mInventoryOpen = open;
                 invalidate();
+            }
+            boolean menuOpen = isMenuOpen();
+            if (menuOpen != mMenuOpen) {
+                mMenuOpen = menuOpen;
+                if (menuOpen) {
+                    releaseAllControls();
+                }
+                invalidate();
+            }
+            if (!mExitHandled && mRenderWrapper != null && mRenderWrapper.shouldExit()) {
+                mExitHandled = true;
+                ((Activity) getContext()).finish();
             }
             postDelayed(this, INVENTORY_SYNC_INTERVAL_MS);
         }
@@ -230,6 +298,15 @@ public class UIOverlayView extends View implements View.OnTouchListener {
         switch (event.getActionMasked()) {
             case MotionEvent.ACTION_DOWN:
             case MotionEvent.ACTION_POINTER_DOWN:
+                if (isMenuOpen()) {
+                    // While the pause menu is up every touch is a menu tap,
+                    // delivered through the same path as inventory clicks.
+                    mInventoryTouchPointerId = actionPointer;
+                    mInventoryDownX = (int) event.getX(actionIndex);
+                    mInventoryDownY = (int) event.getY(actionIndex);
+                    mRenderWrapper.setMousePosition(mInventoryDownX, mInventoryDownY);
+                    break;
+                }
                 if (isInventoryOpen()) {
                     boolean creative = mRenderWrapper.getGameMode() == 0;
                     if (withinCircle(event, actionIndex, mInventoryX, mInventoryY, mInventoryRadius)) {
@@ -270,6 +347,8 @@ public class UIOverlayView extends View implements View.OnTouchListener {
                     handleMouseButtons();
                 } else if (withinCircle(event, actionIndex, mInventoryX, mInventoryY, mInventoryRadius)) {
                     handleInventoryButton();
+                } else if (withinCircle(event, actionIndex, mMenuX, mMenuY, mMenuRadius)) {
+                    onMenuClicked();
                 } else {
                     mLookPointerId = actionPointer;
                     mLookDownX = (int) event.getX(actionIndex);
@@ -323,11 +402,13 @@ public class UIOverlayView extends View implements View.OnTouchListener {
             case MotionEvent.ACTION_MOVE:
                 for (int i = 0; i < event.getPointerCount(); i++) {
                     int pointerId = event.getPointerId(i);
-                    if (pointerId == mMovePointerId) {
-                        handleHMove((int) event.getX(i), (int) event.getY(i));
-                    }
-                    if (pointerId == mLookPointerId) {
-                        handleLook((int) event.getX(i), (int) event.getY(i), false);
+                    if (!isMenuOpen()) {
+                        if (pointerId == mMovePointerId) {
+                            handleHMove((int) event.getX(i), (int) event.getY(i));
+                        }
+                        if (pointerId == mLookPointerId) {
+                            handleLook((int) event.getX(i), (int) event.getY(i), false);
+                        }
                     }
                     if (pointerId == mInventoryTouchPointerId) {
                         mRenderWrapper.setMousePosition((int) event.getX(i), (int) event.getY(i));

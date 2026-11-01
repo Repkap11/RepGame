@@ -30,6 +30,7 @@ typedef enum {
 #include "hotbar.hpp"
 #include "survival_inventory.hpp"
 #include "font_renderer.hpp"
+#include "pause_menu.hpp"
 #include "multiplayer.hpp"
 #include "common/BlockUpdateQueue.hpp"
 
@@ -130,6 +131,7 @@ struct RepGameState {
     CreativeInventory main_inventory;
     SurvivalInventory survival_inventory;
     Hotbar hotbar;
+    PauseMenu pause_menu;
     GameMode game_mode;
     // Item stack currently being dragged with the mouse (Minecraft-style
     // click-to-pick-up / click-to-place). When is_holding_inventory_slot is

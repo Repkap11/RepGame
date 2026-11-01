@@ -102,6 +102,18 @@ public class RepGameAndroidRenderer implements GLSurfaceView.Renderer {
         return RepGameJNIWrapper.isInventoryOpen();
     }
 
+    public void onMenuClicked() {
+        RepGameJNIWrapper.onMenuClicked();
+    }
+
+    public boolean isMenuOpen() {
+        return RepGameJNIWrapper.isMenuOpen();
+    }
+
+    public boolean shouldExit() {
+        return RepGameJNIWrapper.shouldExit();
+    }
+
 
     public void onDestroy() {
         RepGameJNIWrapper.onSurfaceDestroyed();

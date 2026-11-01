@@ -43,4 +43,10 @@ class RepGameJNIWrapper {
 
     public static native boolean isInventoryOpen();
 
+    public static native void onMenuClicked();
+
+    public static native boolean isMenuOpen();
+
+    public static native boolean shouldExit();
+
 }

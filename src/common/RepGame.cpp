@@ -1369,6 +1369,57 @@ void RepGame::process_inventory_events( ) {
     // inventory is open, or a hotbar slot tap-select while it is closed.
     const bool screen_tap = globalGameState.input.screen_tap_pending;
     globalGameState.input.screen_tap_pending = false;
+    if ( globalGameState.input.menu_open ) {
+        // The pause menu eats every click/tap while it's up; the inventory
+        // and hotbar below it stay inert.
+        if ( ( globalGameState.input.mouse.buttons.left && globalGameState.input.mouse.buttons.left_pressed_in_ui && globalGameState.input.mouse.buttons.left_click_handled == false ) || screen_tap ) {
+            globalGameState.input.mouse.buttons.left_click_handled = true;
+            switch ( globalGameState.pause_menu.hitTest( globalGameState.input.mouse.absPosition.x, globalGameState.input.mouse.absPosition.y ) ) {
+                case PauseMenu::BUTTON_RESUME:
+                    globalGameState.input.menu_open = false;
+                    break;
+                case PauseMenu::BUTTON_GRAPHICS:
+                    // Same as the 'r' key.
+                    globalGameState.input.worldDrawQuality = static_cast<WorldDrawQuality>( ( globalGameState.input.worldDrawQuality + 1 ) % WorldDrawQuality::LAST );
+                    break;
+                case PauseMenu::BUTTON_RENDER_MINUS:
+                    if ( globalGameState.input.render_distance > 1 ) {
+                        globalGameState.input.render_distance--;
+                    }
+                    break;
+                case PauseMenu::BUTTON_RENDER_PLUS:
+                    if ( globalGameState.input.render_distance < RENDER_RADIUS_MAX ) {
+                        globalGameState.input.render_distance++;
+                    }
+                    break;
+                case PauseMenu::BUTTON_RENDER_RESET:
+                    // Same as the '0' key.
+                    globalGameState.input.render_distance = RENDER_RADIUS_DEFAULT;
+                    break;
+                case PauseMenu::BUTTON_DEBUG_VIEW:
+                    globalGameState.input.debug_mode = !globalGameState.input.debug_mode;
+                    break;
+                case PauseMenu::BUTTON_GAME_MODE:
+                    globalGameState.input.toggle_game_mode = true;
+                    break;
+                case PauseMenu::BUTTON_FLYING:
+                    globalGameState.input.player_flying = !globalGameState.input.player_flying;
+                    break;
+                case PauseMenu::BUTTON_IMGUI:
+                    globalGameState.input.toggle_imgui = true;
+                    break;
+                case PauseMenu::BUTTON_EXIT:
+                    globalGameState.input.exitGame = true;
+                    break;
+                default:
+                    break;
+            }
+        }
+        globalGameState.input.mouse.buttons.left_click_handled = true;
+        globalGameState.input.mouse.buttons.right_click_handled = true;
+        globalGameState.input.mouse.buttons.middle_click_handled = true;
+        return;
+    }
     if ( globalGameState.input.inventory_open ) {
         if ( ( globalGameState.input.mouse.buttons.left && globalGameState.input.mouse.buttons.left_pressed_in_ui && globalGameState.input.mouse.buttons.left_click_handled == false ) || screen_tap ) {
             globalGameState.input.mouse.buttons.left_click_handled = true;
@@ -1694,7 +1745,7 @@ void RepGame::tick( ) {
     globalGameState.multiplayer.process_events( globalGameState );
 
     int wheel_diff = globalGameState.input.mouse.previousPosition.wheel_counts - globalGameState.input.mouse.currentPosition.wheel_counts;
-    if ( wheel_diff != 0 ) {
+    if ( wheel_diff != 0 && !globalGameState.input.menu_open ) {
         if ( globalGameState.input.inventory_open && globalGameState.game_mode == GameMode_Creative ) {
             globalGameState.main_inventory.incrementSelectedPage( wheel_diff );
         } else if ( globalGameState.input.inventory_open && globalGameState.game_mode == GameMode_Survival ) {
@@ -2040,6 +2091,7 @@ void RepGame::initializeGameState( const char *world_name ) {
     globalGameState.input.exitGame = false;
     globalGameState.input.player_flying = false;
     globalGameState.input.inventory_open = false;
+    globalGameState.input.menu_open = false;
     globalGameState.chest.open = false;
     globalGameState.pending_chest_loot.clear( );
     globalGameState.input.no_clip = false;
@@ -2258,6 +2310,7 @@ RepGameState *RepGame::init( const char *world_name, const bool connect_multi, c
     globalGameState.world.init( globalGameState.camera.pos, globalGameState.screen.width, globalGameState.screen.height, globalGameState.map_storage, globalGameState.input.render_distance );
 
     globalGameState.ui_overlay.init( vbl_ui_overlay_vertex, vbl_ui_overlay_instance );
+    globalGameState.pause_menu.init( vbl_ui_overlay_vertex, vbl_ui_overlay_instance );
     imgui_overlay_init( &globalGameState.imgui_overlay );
     globalGameState.font_renderer.init( );
 
@@ -2282,7 +2335,7 @@ bool RepGame::shouldExit( ) const {
 }
 
 bool RepGame::should_lock_pointer( ) const {
-    return !g_capture.enabled && !globalGameState.input.inventory_open;
+    return !g_capture.enabled && !globalGameState.input.inventory_open && !globalGameState.input.menu_open;
 }
 void RepGame::changeSize( const int w, const int h ) {
     // pr_debug( "Screen Size Change:%dx%d", w, h );
@@ -2299,6 +2352,8 @@ void RepGame::changeSize( const int w, const int h ) {
     globalGameState.input.mouse.previousPosition.x = w / 2;
     globalGameState.input.mouse.previousPosition.y = h / 2;
     globalGameState.ui_overlay.on_screen_size_change( w, h );
+    globalGameState.pause_menu.onScreenSizeChange( w, h, globalGameState.font_renderer );
+    globalGameState.font_renderer.onScreenSizeChange( w, h );
     globalGameState.main_inventory.onScreenSizeChange( w, h );
     // Align the survival panel's bottom edge with the creative panel's bottom,
     // and the chest panel's top edge with the creative panel's top, so the
@@ -2532,7 +2587,7 @@ void RepGame::draw_frame( float alpha, const RenderView *views, int num_views ) 
             // inv_mvp lets the fullscreen water shader unproject pixels to the
             // rebased world frame for screen-space reflections.
             const glm::mat4 inv_mvp = glm::inverse( mvp );
-            globalGameState.world.draw( globalGameState.blocksTexture, mvp, inv_mvp, mvp_reflect, mvp_sky, mvp_sky_reflect, globalGameState.input.debug_mode, !globalGameState.input.inventory_open, render_pos.y, headInWater,
+            globalGameState.world.draw( globalGameState.blocksTexture, mvp, inv_mvp, mvp_reflect, mvp_sky, mvp_sky_reflect, globalGameState.input.debug_mode, !globalGameState.input.inventory_open && !globalGameState.input.menu_open, render_pos.y, headInWater,
                                         globalGameState.input.worldDrawQuality, render_pos, renderOrigin, time_s, daylight, debugVars.min_ambient, alpha );
         } else {
             // Stereo: per-eye view = body yaw ∘ tracked eye pose, eye position
@@ -2561,7 +2616,7 @@ void RepGame::draw_frame( float alpha, const RenderView *views, int num_views ) 
                 glViewport( 0, 0, view.width, view.height );
                 glClear( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT );
                 globalGameState.world.chunkLoader.set_occlusion_probe_pass( i == 0 );
-                globalGameState.world.draw( globalGameState.blocksTexture, mvp, inv_mvp, mvp_reflect, mvp_sky, mvp_sky_reflect, globalGameState.input.debug_mode, !globalGameState.input.inventory_open, static_cast<float>( eye_pos.y ), headInWater,
+                globalGameState.world.draw( globalGameState.blocksTexture, mvp, inv_mvp, mvp_reflect, mvp_sky, mvp_sky_reflect, globalGameState.input.debug_mode, !globalGameState.input.inventory_open && !globalGameState.input.menu_open, static_cast<float>( eye_pos.y ), headInWater,
                                             globalGameState.input.worldDrawQuality, eye_pos, renderOrigin, time_s, daylight, debugVars.min_ambient, alpha );
             }
             globalGameState.world.chunkLoader.set_occlusion_probe_pass( true );
@@ -2790,6 +2845,17 @@ void RepGame::process_vr_input( ) {
     const VrControllerInput &in = globalGameState.vr.input;
     const VrControllerInput &prev = globalGameState.vr.prev_input;
 
+    // While the pause menu is up no controller action reaches gameplay.
+    // prev still tracks in so nothing edge-fires when the menu closes.
+    if ( input.menu_open ) {
+        input.movement.sizeH = 0.0f;
+        input.movement.angleH = 0.0f;
+        input.movement.jumpPressed = false;
+        input.movement.sneakPressed = false;
+        globalGameState.vr.prev_input = globalGameState.vr.input;
+        return;
+    }
+
     // Left stick drives horizontal movement. Inside the deadzone the stick
     // hands control back to the keyboard exactly once (move_active).
     const float move_len = glm::length( in.move );
@@ -2939,6 +3005,7 @@ void RepGame::cleanup( ) {
     globalGameState.survival_inventory.cleanup( );
     globalGameState.hotbar.cleanup( );
     globalGameState.chest.inventory_renderer.cleanup( );
+    globalGameState.pause_menu.cleanup( );
     imgui_overlay_cleanup( &globalGameState.imgui_overlay );
     block_definitions_free_definitions( );
     audio_cleanup( );
@@ -3011,6 +3078,10 @@ void RepGame::draw_ui_pass( const glm::dvec3 &render_pos, float daylight ) {
         int block_size, cell_size;
         globalGameState.survival_inventory.inventory_renderer.getBlockMetrics( block_size, cell_size );
         globalGameState.ui_overlay.draw_held_inventory_item( globalGameState.held_inventory_slot, globalGameState.is_holding_inventory_slot, globalGameState.input.mouse.absPosition.x, globalGameState.input.mouse.absPosition.y, block_size, cell_size, globalGameState.world.renderer, globalGameState.blocksTexture, globalGameState.font_renderer, globalGameState.screen.ortho_center );
+    }
+    // The pause menu draws last, on top of the hotbar/inventory/held item.
+    if ( !g_capture.enabled && globalGameState.input.menu_open ) {
+        globalGameState.pause_menu.draw( globalGameState.world.renderer, globalGameState.ui_overlay.get_shader( ), globalGameState.blocksTexture, globalGameState.font_renderer, globalGameState.screen.ortho_center, globalGameState );
     }
     // Laser-pointer marker where the aim ray hits the world-locked UI quad.
     if ( globalGameState.vr.active && globalGameState.input.inventory_open && globalGameState.vr.pointer_on_ui ) {

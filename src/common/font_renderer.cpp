@@ -1,13 +1,15 @@
+#include <math.h>
+
 #include "common/RepGame.hpp"
 #include "common/font_renderer.hpp"
 #include "common/renderer/shader.hpp"
 #include "common/vendor/stb_truetype.hpp"
 
 #if defined( REPGAME_LINUX ) || defined( REPGAME_WINDOWS )
-MK_BLOB( fonts, silkscreen, ttf );
+MK_BLOB( fonts, proggyclean, ttf );
 static const unsigned char *get_font_data( int *out_size ) {
-    *out_size = silkscreen.length;
-    return reinterpret_cast<const unsigned char *>( silkscreen.source );
+    *out_size = proggyclean.length;
+    return reinterpret_cast<const unsigned char *>( proggyclean.source );
 }
 #elif defined( REPGAME_WASM )
 #include <cstdio>
@@ -15,7 +17,7 @@ static unsigned char *wasm_font_data = nullptr;
 static int wasm_font_size = 0;
 static const unsigned char *get_font_data( int *out_size ) {
     if ( !wasm_font_data ) {
-        FILE *f = fopen( "fonts/silkscreen.ttf", "rb" );
+        FILE *f = fopen( "fonts/proggyclean.ttf", "rb" );
         if ( !f ) {
             pr_debug( "Failed to open font file" );
             *out_size = 0;
@@ -35,7 +37,7 @@ static const unsigned char *get_font_data( int *out_size ) {
 #elif defined( REPGAME_ANDROID )
 extern unsigned char *repgame_android_getAssetBytes( const char *filename, int *out_size );
 static const unsigned char *get_font_data( int *out_size ) {
-    return repgame_android_getAssetBytes( "fonts/silkscreen.ttf", out_size );
+    return repgame_android_getAssetBytes( "fonts/proggyclean.ttf", out_size );
 }
 #endif
 
@@ -66,7 +68,7 @@ void FontRenderer::init( ) {
         return;
     }
 
-    this->font_size = 48.0f;
+    this->font_size = 13.0f;
     this->first_char = 32;
     this->num_chars = 95; // 32..126
 
@@ -80,8 +82,8 @@ void FontRenderer::init( ) {
 
     // Use stbtt_PackBegin/stbtt_PackFontRange to create the atlas.
     // This handles glyph packing and UV coordinate computation correctly.
-    this->atlas_width = 2048;
-    this->atlas_height = 512;
+    this->atlas_width = 256;
+    this->atlas_height = 128;
 
     unsigned char *atlas_pixels = static_cast<unsigned char *>( calloc( atlas_width * atlas_height, 1 ) );
 
@@ -93,8 +95,18 @@ void FontRenderer::init( ) {
         return;
     }
 
-    stbtt_PackFontRange( &pack_ctx, font_data, 0, font_size, first_char, num_chars, glyphs );
+    const int packed = stbtt_PackFontRange( &pack_ctx, font_data, 0, font_size, first_char, num_chars, glyphs );
     stbtt_PackEnd( &pack_ctx );
+    if ( !packed ) {
+        // Some glyphs didn't fit; they'd render as empty quads.
+        pr_debug( "FontRenderer: pack failed for %d glyphs into %dx%d atlas", num_chars, atlas_width, atlas_height );
+    }
+
+    // Crisp 1-bit font: threshold the rasterized coverage to hard on/off so
+    // no partially-covered (gray) pixels survive.
+    for ( int i = 0; i < atlas_width * atlas_height; i++ ) {
+        atlas_pixels[ i ] = atlas_pixels[ i ] >= 128 ? 255 : 0;
+    }
 
     // Convert the single-channel atlas to RGBA for maximum driver compatibility.
     unsigned char *atlas_rgba = static_cast<unsigned char *>( malloc( atlas_width * atlas_height * 4 ) );
@@ -163,30 +175,58 @@ void FontRenderer::init( ) {
     pr_debug( "FontRenderer initialized: atlas %dx%d, ascent=%.1f descent=%.1f", atlas_width, atlas_height, ascent, descent );
 }
 
+int FontRenderer::pixelScale( float size ) const {
+    int k = static_cast<int>( lroundf( size / font_size ) );
+    return k < 1 ? 1 : k;
+}
+
+void FontRenderer::onScreenSizeChange( int w, int h ) {
+    this->screen_width = w;
+    this->screen_height = h;
+}
+
 float FontRenderer::getTextWidth( const char *text, float size ) const {
-    float scale = size / font_size;
+    // Advances are integer-rounded at the raster size, matching the pen
+    // stepping in drawString, so measured and drawn widths always agree.
+    const int k = pixelScale( size );
     float width = 0;
     for ( const char *p = text; *p; p++ ) {
         int codepoint = static_cast<unsigned char>( *p );
         if ( codepoint < first_char || codepoint >= first_char + num_chars ) continue;
         const stbtt_packedchar &g = glyphs[ codepoint - first_char ];
-        width += g.xadvance * scale;
+        width += roundf( g.xadvance );
     }
-    return width;
+    return width * k;
 }
 
 float FontRenderer::getAscent( float size ) const {
-    return ascent * ( size / font_size );
+    return roundf( ascent ) * pixelScale( size );
 }
 
 float FontRenderer::getDescent( float size ) const {
-    return descent * ( size / font_size );
+    return roundf( descent ) * pixelScale( size );
+}
+
+float FontRenderer::getCapHeight( float size ) const {
+    // yoff is the glyph bitmap's top bearing above the pen baseline
+    // (negative for a capital letter that rises above it).
+    if ( 'H' < first_char || 'H' >= first_char + num_chars ) {
+        return getAscent( size );
+    }
+    return roundf( -glyphs[ 'H' - first_char ].yoff ) * pixelScale( size );
 }
 
 void FontRenderer::drawString( const Renderer &renderer, const char *text, float x, float y, float size, const float tint[ 4 ], const glm::mat4 &mvp ) {
-    float scale = size / font_size;
+    const int k = pixelScale( size );
     float pen_x = 0;
     float pen_y = 0;
+
+    // Snap the draw origin onto the screen pixel grid. screen.ortho_center's
+    // origin is the screen center, so on odd-sized screens plain integer x/y
+    // is already off by half a pixel; floor(x + w/2) - w/2 lands on a real
+    // texel boundary either way.
+    const float ox = floorf( x + this->screen_width * 0.5f ) - this->screen_width * 0.5f;
+    const float oy = floorf( y + this->screen_height * 0.5f ) - this->screen_height * 0.5f;
 
     // Build vertex data for all glyphs using stbtt_GetPackedQuad.
     // We render at the native font_size (pen starts at 0,0), then scale
@@ -199,16 +239,22 @@ void FontRenderer::drawString( const Renderer &renderer, const char *text, float
         if ( codepoint < first_char || codepoint >= first_char + num_chars ) continue;
 
         stbtt_aligned_quad q;
-        stbtt_GetPackedQuad( glyphs, atlas_width, atlas_height, codepoint - first_char, &pen_x, &pen_y, &q, 0 );
+        const float pen_start = pen_x;
+        // align_to_integer=1 keeps every quad corner integer at the raster
+        // size; the pen is then stepped by the integer-rounded advance so
+        // fractional xadvance can't drift glyphs off the pixel grid.
+        stbtt_GetPackedQuad( glyphs, atlas_width, atlas_height, codepoint - first_char, &pen_x, &pen_y, &q, 1 );
+        pen_x = pen_start + roundf( glyphs[ codepoint - first_char ].xadvance );
 
         // Scale quad positions from native font_size to requested size,
-        // and translate to (x, y).
+        // and translate to (x, y). Every offset is an integer number of
+        // raster texels, so each font texel covers a k×k pixel block.
         // stbtt uses y-down coordinates: y0=top (negative, above pen),
         // y1=bottom (positive, below pen). Our screen is y-up, so flip Y.
-        float sx0 = x + q.x0 * scale;
-        float sy0 = y - q.y0 * scale;  // top of glyph (above baseline)
-        float sx1 = x + q.x1 * scale;
-        float sy1 = y - q.y1 * scale;  // bottom of glyph (below baseline)
+        float sx0 = ox + q.x0 * k;
+        float sy0 = oy - q.y0 * k;  // top of glyph (above baseline)
+        float sx1 = ox + q.x1 * k;
+        float sy1 = oy - q.y1 * k;  // bottom of glyph (below baseline)
 
         TextVertex *quad = &vertices[ quad_count * 4 ];
         // stbtt uses y-down: y0=top (negative, above pen), y1=bottom (positive, below pen).

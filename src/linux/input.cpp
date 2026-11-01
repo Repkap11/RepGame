@@ -69,19 +69,19 @@ void Input::mouseInput( const int button, const int state ) {
         case SDL_BUTTON_LEFT:
             this->mouse.buttons.left = !state;
             this->mouse.buttons.left_click_handled = state;
-            this->mouse.buttons.left_pressed_in_ui = !state && this->inventory_open;
+            this->mouse.buttons.left_pressed_in_ui = !state && ( this->inventory_open || this->menu_open );
             // pr_debug( "Left Click %d", !state );
             break;
         case SDL_BUTTON_RIGHT:
             this->mouse.buttons.right = !state;
             this->mouse.buttons.right_click_handled = state;
-            this->mouse.buttons.right_pressed_in_ui = !state && this->inventory_open;
+            this->mouse.buttons.right_pressed_in_ui = !state && ( this->inventory_open || this->menu_open );
             // pr_debug( "Right Click %d", !state );
             break;
         case SDL_BUTTON_MIDDLE:
             this->mouse.buttons.middle = !state;
             this->mouse.buttons.middle_click_handled = state;
-            this->mouse.buttons.middle_pressed_in_ui = !state && this->inventory_open;
+            this->mouse.buttons.middle_pressed_in_ui = !state && ( this->inventory_open || this->menu_open );
             // pr_debug( "Middle Click %d", !state );
             break;
 
@@ -99,12 +99,29 @@ void Input::keysInput( const SDL_Keycode key, const bool pressed ) {
     this->shift_held = ( SDL_GetModState( ) & SDL_KMOD_SHIFT ) != 0;
     this->ctrl_held = ( SDL_GetModState( ) & SDL_KMOD_CTRL ) != 0;
 
+    // While the pause menu is up only these keys do anything; every other
+    // press (including SDL key-repeat, which arrives as pressed) is
+    // swallowed. Releases still fall through so the held-key flags stay
+    // consistent.
+    if ( pressed && this->menu_open ) {
+        if ( key == SDLK_ESCAPE ) {
+            this->onMenuClicked( );
+        } else if ( key == SDLK_F12 ) {
+            this->screenshot_requested = true;
+        } else if ( key == 'c' && this->ctrl_held ) {
+            this->exitGame = true;
+        }
+        return;
+    }
+
     switch ( key ) {
         case 'q':
             this->drop_item = true;
             break;
         case SDLK_ESCAPE: // escape
-            this->exitGame = true;
+            if ( pressed ) {
+                this->onMenuClicked( );
+            }
             break;
 
         case 'w':
@@ -262,6 +279,21 @@ void Input::keysInput( const SDL_Keycode key, const bool pressed ) {
             break;
     }
     processMovement( );
+}
+
+void Input::onMenuClicked( ) {
+    if ( this->inventory_open ) {
+        this->inventory_open = false;
+    } else {
+        this->menu_open = !this->menu_open;
+        if ( this->menu_open ) {
+            // Drop held keys so a key held across the open doesn't keep the
+            // player moving while the menu is up.
+            front = back = left = right = up = down = false;
+            this->player_sprinting = false;
+            this->processMovement( );
+        }
+    }
 }
 
 void Input::lookMove( const int x, const int y ) {

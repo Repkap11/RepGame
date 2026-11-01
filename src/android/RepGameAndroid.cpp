@@ -198,6 +198,10 @@ JNIEXPORT void JNICALL Java_com_repkap11_repgame_RepGameJNIWrapper_onInventoryCl
     repgame.getInputState( ).onInventoryClicked( );
 }
 
+JNIEXPORT void JNICALL Java_com_repkap11_repgame_RepGameJNIWrapper_onMenuClicked( JNIEnv *env, jobject obj ) {
+    repgame.getInputState( ).onMenuClicked( );
+}
+
 JNIEXPORT void JNICALL Java_com_repkap11_repgame_RepGameJNIWrapper_inventoryPageScrolled( JNIEnv *env, jobject obj, jint direction ) {
     Input &input = repgame.getInputState( );
     // Feed the wheel counter so the tick loop applies the same page/hotbar
@@ -234,6 +238,14 @@ JNIEXPORT jint JNICALL Java_com_repkap11_repgame_RepGameJNIWrapper_getGameMode( 
 
 JNIEXPORT jboolean JNICALL Java_com_repkap11_repgame_RepGameJNIWrapper_isInventoryOpen( JNIEnv *env, jobject obj ) {
     return repgame.getInputState( ).inventory_open ? JNI_TRUE : JNI_FALSE;
+}
+
+JNIEXPORT jboolean JNICALL Java_com_repkap11_repgame_RepGameJNIWrapper_isMenuOpen( JNIEnv *env, jobject obj ) {
+    return repgame.getInputState( ).menu_open ? JNI_TRUE : JNI_FALSE;
+}
+
+JNIEXPORT jboolean JNICALL Java_com_repkap11_repgame_RepGameJNIWrapper_shouldExit( JNIEnv *env, jobject obj ) {
+    return repgame.shouldExit( ) ? JNI_TRUE : JNI_FALSE;
 }
 
 } // End Extern C
