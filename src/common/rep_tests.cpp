@@ -66,6 +66,26 @@ int test_vr_projection( ) {
     return worst < 1e-5f ? 0 : 1;
 }
 
+// Pause-menu stepper for the min_ambient light floor: snaps to the
+// MIN_AMBIENT_STEP grid (off-grid inputs snap first) and clamps to
+// [0, MIN_AMBIENT_MAX].
+int test_min_ambient_step( ) {
+    int failures = 0;
+    auto check_near = [ & ]( const char *name, float actual, float expected ) {
+        const bool ok = fabsf( actual - expected ) <= 1e-6f;
+        pr_test( "  %-55s value=%-9.4f expected=%-9.4f  %s", name, actual, expected, ok ? "PASS" : "FAIL" );
+        if ( !ok ) {
+            failures++;
+        }
+    };
+    check_near( "min_ambient_step: 5% +1 -> 10%", min_ambient_step( 0.05f, 1 ), 0.10f );
+    check_near( "min_ambient_step: 5% -1 -> 0%", min_ambient_step( 0.05f, -1 ), 0.0f );
+    check_near( "min_ambient_step: 0% -1 clamps at 0%", min_ambient_step( 0.0f, -1 ), 0.0f );
+    check_near( "min_ambient_step: 100% +1 clamps at 100%", min_ambient_step( 1.0f, 1 ), 1.0f );
+    check_near( "min_ambient_step: off-grid 7% +1 -> 10%", min_ambient_step( 0.07f, 1 ), 0.10f );
+    return failures;
+}
+
 // Builds a World backed by a single loaded chunk at the origin (no GL needed:
 // chunk.cells is a plain array and Chunk::init's GL work is lazy). Positions
 // outside that chunk read LAST_BLOCK_ID like an unloaded chunk.
@@ -3924,6 +3944,7 @@ int test_net_item_mirror_visuals( ) {
 
 constexpr Test all_tests[] = {  //
     MK_TEST( vr_projection ),   //
+    MK_TEST( min_ambient_step ), //
     MK_TEST( redstone ),        //
     MK_TEST( torch_pick ),      //
     MK_TEST( player_placement_valid ), //

@@ -34,7 +34,7 @@ the index, not the reference.
 | `REPGAME_LIGHT_CLAIM_RADIUS` | 1 | all | `1..4`: Chebyshev claim-conflict radius between light-job center columns | docs/rendering.md |
 | `REPGAME_LIGHT_MIPMAPS` | 1 | all | `0`/`1`: mipmapped light volume vs flat RG8 volume | docs/rendering.md |
 | `REPGAME_LIGHT_WORKERS` | 4 | all | `1..8`: light worker pool size | docs/rendering.md |
-| `REPGAME_MIN_AMBIENT` | 0.05 | all | absolute light floor 0..1 (caves not pure black) | docs/rendering.md |
+| `REPGAME_MIN_AMBIENT` | 0.05 | all | absolute light floor 0..1 (caves not pure black); overrides the `player.dat` value set by the pause-menu Cave Brightness row | docs/rendering.md |
 | `REPGAME_MOBS` | on | all | `0` disables local mobs (spawn/sim/persistence), not remote players | docs/mobs.md |
 | `REPGAME_MOB_SPAWNER` | on | all | `0` disables only the night spawner | docs/mobs.md |
 | `REPGAME_MOB_TEST` | unset | all | `"type,x,y,z,yaw[,pitch[,sneak]][;...]"` deterministic mob spawns; disables natural spawn + mob-file loading | docs/mobs.md |

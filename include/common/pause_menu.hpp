@@ -23,6 +23,12 @@ class PauseMenu {
         BUTTON_RENDER_MINUS,
         BUTTON_RENDER_PLUS,
         BUTTON_RENDER_RESET,
+        // Marks the cave-brightness row; like the render row its buttons
+        // return BUTTON_BRIGHT_MINUS / _RESET / _PLUS.
+        BUTTON_BRIGHT_ROW,
+        BUTTON_BRIGHT_MINUS,
+        BUTTON_BRIGHT_PLUS,
+        BUTTON_BRIGHT_RESET,
         BUTTON_DEBUG_VIEW,
         BUTTON_GAME_MODE,
         BUTTON_FLYING,
@@ -39,10 +45,10 @@ class PauseMenu {
     };
     // Per-row label anchors parallel to the layout pass.
     struct Row {
-        int button; // BUTTON_*; BUTTON_RENDER_ROW for the -/+ row
+        int button; // BUTTON_*; BUTTON_*_ROW for the -/+ stepper rows
         float center_y;
-        float left_cx;  // render row only: minus-button center x
-        float right_cx; // render row only: plus-button center x
+        float left_cx;  // stepper rows only: minus-button center x
+        float right_cx; // stepper rows only: plus-button center x
     };
     static constexpr int MAX_ROWS = 16;
 

@@ -1832,6 +1832,15 @@ void RepGame::process_inventory_events( ) {
                     // Same as the '0' key.
                     globalGameState.input.render_distance = RENDER_RADIUS_DEFAULT;
                     break;
+                case PauseMenu::BUTTON_BRIGHT_MINUS:
+                    imgui_overlay_get_imgui_debug_vars( ).min_ambient = min_ambient_step( imgui_overlay_get_imgui_debug_vars( ).min_ambient, -1 );
+                    break;
+                case PauseMenu::BUTTON_BRIGHT_PLUS:
+                    imgui_overlay_get_imgui_debug_vars( ).min_ambient = min_ambient_step( imgui_overlay_get_imgui_debug_vars( ).min_ambient, 1 );
+                    break;
+                case PauseMenu::BUTTON_BRIGHT_RESET:
+                    imgui_overlay_get_imgui_debug_vars( ).min_ambient = MIN_AMBIENT_DEFAULT;
+                    break;
                 case PauseMenu::BUTTON_DEBUG_VIEW:
                     globalGameState.input.debug_mode = !globalGameState.input.debug_mode;
                     break;
@@ -2847,6 +2856,12 @@ void RepGame::initializeGameState( const char *world_name ) {
             }
             globalGameState.input.render_distance = r;
         }
+        // Same idea for the cave-brightness floor: the saved value wins
+        // over the default but not over REPGAME_MIN_AMBIENT; old saves
+        // lack the field (-1) and corrupt values clamp to [0, max].
+        if ( !getenv( "REPGAME_MIN_AMBIENT" ) && saved_data.min_ambient >= 0.0f ) {
+            imgui_overlay_get_imgui_debug_vars( ).min_ambient = glm::clamp( saved_data.min_ambient, 0.0f, MIN_AMBIENT_MAX );
+        }
     }
     // Fly mode pins the camera every tick, but the pin runs after the network
     // tick: start at the pin so the first VIEW/location is already correct.
@@ -3612,6 +3627,7 @@ void RepGame::save_player_data( ) {
     globalGameState.survival_inventory.saveInventory( saved_data.survival_inventory );
     saved_data.world_time = globalGameState.world_time;
     saved_data.render_distance = globalGameState.input.render_distance;
+    saved_data.min_ambient = imgui_overlay_get_imgui_debug_vars( ).min_ambient;
 
     globalGameState.map_storage.write_player_data( saved_data );
 }

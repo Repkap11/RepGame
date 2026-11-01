@@ -277,6 +277,10 @@ struct __attribute__( ( packed ) ) PlayerData {
     // world_time (map_storage accepts the pre-render_distance layout).
     // 0 in old saves → absent, the default is used instead.
     int render_distance;
+    // Cave brightness floor (ImGuiDebugVars::min_ambient); appended last
+    // like render_distance (map_storage accepts the pre-min_ambient
+    // layout). Negative in old saves → absent, the default is used instead.
+    float min_ambient;
 };
 
 class RepGame {

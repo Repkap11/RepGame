@@ -14,6 +14,24 @@
 
 static const char *const quality_names[] = { "LOW", "MEDIUM", "HIGH", "X_HIGH" };
 
+// Both -/+ stepper rows (render distance, cave brightness) share the
+// [-] [label] [+] layout; stepper_ids maps a row kind to its button ids.
+static bool is_stepper_row( const int button ) {
+    return button == PauseMenu::BUTTON_RENDER_ROW || button == PauseMenu::BUTTON_BRIGHT_ROW;
+}
+
+static void stepper_ids( const int row_button, int &minus, int &reset, int &plus ) {
+    if ( row_button == PauseMenu::BUTTON_RENDER_ROW ) {
+        minus = PauseMenu::BUTTON_RENDER_MINUS;
+        reset = PauseMenu::BUTTON_RENDER_RESET;
+        plus = PauseMenu::BUTTON_RENDER_PLUS;
+    } else {
+        minus = PauseMenu::BUTTON_BRIGHT_MINUS;
+        reset = PauseMenu::BUTTON_BRIGHT_RESET;
+        plus = PauseMenu::BUTTON_BRIGHT_PLUS;
+    }
+}
+
 void PauseMenu::init( const VertexBufferLayout &vbl_vertex, const VertexBufferLayout &vbl_instance ) {
     this->render_chain_quads.init( vbl_vertex, vbl_instance, vb_isometric_quad_inventory, VB_ISOMETRIC_QUAD_SIZE, ib_isometric_quad, IB_ISOMETRIC_QUAD_SIZE );
     this->render_chain_hover.init( vbl_vertex, vbl_instance, vb_isometric_quad_inventory, VB_ISOMETRIC_QUAD_SIZE, ib_isometric_quad, IB_ISOMETRIC_QUAD_SIZE );
@@ -51,6 +69,7 @@ void PauseMenu::onScreenSizeChange( const int width, const int height, const Fon
     row_kinds[ n++ ] = BUTTON_GRAPHICS;
 #endif
     row_kinds[ n++ ] = BUTTON_RENDER_ROW;
+    row_kinds[ n++ ] = BUTTON_BRIGHT_ROW;
     row_kinds[ n++ ] = BUTTON_DEBUG_VIEW;
     row_kinds[ n++ ] = BUTTON_GAME_MODE;
     row_kinds[ n++ ] = BUTTON_FLYING;
@@ -74,6 +93,8 @@ void PauseMenu::onScreenSizeChange( const int width, const int height, const Fon
             case BUTTON_RENDER_ROW:
                 snprintf( buf, buf_size, "Render Distance: %d", RENDER_RADIUS_MAX );
                 return buf;
+            case BUTTON_BRIGHT_ROW:
+                return "Cave Brightness: 100%";
             case BUTTON_DEBUG_VIEW:
                 return "Block Debug View: Off";
             case BUTTON_GAME_MODE:
@@ -109,7 +130,7 @@ void PauseMenu::onScreenSizeChange( const int width, const int height, const Fon
         for ( int i = 0; i < n; i++ ) {
             const char *label = worst_label( row_kinds[ i ], worst_buf, sizeof( worst_buf ) );
             float row_w;
-            if ( row_kinds[ i ] == BUTTON_RENDER_ROW ) {
+            if ( is_stepper_row( row_kinds[ i ] ) ) {
                 // - and + squares at the ends, reset button between them.
                 row_w = 2.0f * button_height + 2.0f * gap + 2.0f * hpad + font.getTextWidth( label, t );
             } else {
@@ -156,9 +177,11 @@ void PauseMenu::onScreenSizeChange( const int width, const int height, const Fon
         row.center_y = btn_cy;
         row.left_cx = 0.0f;
         row.right_cx = 0.0f;
-        if ( row_kinds[ i ] == BUTTON_RENDER_ROW ) {
-            // [-] [Render Distance: N] [+]: the middle button resets the
-            // distance to the default, like the '0' key.
+        if ( is_stepper_row( row_kinds[ i ] ) ) {
+            // [-] [label] [+]: the middle button resets the value to the
+            // default (like the '0' key for render distance).
+            int minus, reset, plus;
+            stepper_ids( row_kinds[ i ], minus, reset, plus );
             const float minus_x = buttons_left;
             const float plus_x = buttons_right - button_height;
             const float mid_x = minus_x + button_height + gap;
@@ -168,9 +191,9 @@ void PauseMenu::onScreenSizeChange( const int width, const int height, const Fon
             add_quad( this->render_chain_quads, plus_x, btn_y, button_height, button_height, ORDER_Z_MENU_BUTTON, 0.35f, 0.35f, 0.35f, 1.0f );
             row.left_cx = minus_x + button_height / 2.0f;
             row.right_cx = plus_x + button_height / 2.0f;
-            this->regions[ this->num_regions++ ] = Region{ BUTTON_RENDER_MINUS, minus_x, btn_y, button_height, button_height };
-            this->regions[ this->num_regions++ ] = Region{ BUTTON_RENDER_RESET, mid_x, btn_y, mid_w, button_height };
-            this->regions[ this->num_regions++ ] = Region{ BUTTON_RENDER_PLUS, plus_x, btn_y, button_height, button_height };
+            this->regions[ this->num_regions++ ] = Region{ minus, minus_x, btn_y, button_height, button_height };
+            this->regions[ this->num_regions++ ] = Region{ reset, mid_x, btn_y, mid_w, button_height };
+            this->regions[ this->num_regions++ ] = Region{ plus, plus_x, btn_y, button_height, button_height };
         } else {
             add_quad( this->render_chain_quads, buttons_left, btn_y, button_width, button_height, ORDER_Z_MENU_BUTTON, 0.35f, 0.35f, 0.35f, 1.0f );
             this->regions[ this->num_regions++ ] = Region{ row_kinds[ i ], buttons_left, btn_y, button_width, button_height };
@@ -233,12 +256,12 @@ void PauseMenu::draw( const Renderer &renderer, Shader &shader, const Texture &b
             case BUTTON_GRAPHICS:
                 snprintf( buf, sizeof( buf ), "Graphics: %s", quality_names[ state.input.worldDrawQuality ] );
                 break;
-            case BUTTON_RENDER_ROW: {
+            case BUTTON_RENDER_ROW:
                 snprintf( buf, sizeof( buf ), "Render Distance: %d", state.input.render_distance );
-                font.drawString( renderer, "-", row.left_cx - font.getTextWidth( "-", this->text_size ) / 2.0f, baseline, this->text_size, white, mvp );
-                font.drawString( renderer, "+", row.right_cx - font.getTextWidth( "+", this->text_size ) / 2.0f, baseline, this->text_size, white, mvp );
                 break;
-            }
+            case BUTTON_BRIGHT_ROW:
+                snprintf( buf, sizeof( buf ), "Cave Brightness: %d%%", ( int )lroundf( imgui_overlay_get_imgui_debug_vars( ).min_ambient * 100.0f ) );
+                break;
             case BUTTON_DEBUG_VIEW:
                 snprintf( buf, sizeof( buf ), "Block Debug View: %s", state.input.debug_mode ? "On" : "Off" );
                 break;
@@ -257,6 +280,10 @@ void PauseMenu::draw( const Renderer &renderer, Shader &shader, const Texture &b
             default:
                 buf[ 0 ] = '\0';
                 break;
+        }
+        if ( is_stepper_row( row.button ) ) {
+            font.drawString( renderer, "-", row.left_cx - font.getTextWidth( "-", this->text_size ) / 2.0f, baseline, this->text_size, white, mvp );
+            font.drawString( renderer, "+", row.right_cx - font.getTextWidth( "+", this->text_size ) / 2.0f, baseline, this->text_size, white, mvp );
         }
         if ( buf[ 0 ] != '\0' ) {
             font.drawString( renderer, buf, -font.getTextWidth( buf, this->text_size ) / 2.0f, baseline, this->text_size, white, mvp );

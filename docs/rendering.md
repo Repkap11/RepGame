@@ -19,7 +19,10 @@ LOW-tier path (no reflections/post-process).
 - Rows: Resume, Graphics quality (same as `r`; hidden where
   `SUPPORTS_FRAME_BUFFER` is 0 — Android/WASM always render the LOW path),
   Render Distance `-`/`+` (clamped to `1..RENDER_RADIUS_MAX`; clicking the
-  label resets to `RENDER_RADIUS_DEFAULT`, same as `0`), Block Debug
+  label resets to `RENDER_RADIUS_DEFAULT`, same as `0`), Cave Brightness
+  `-`/`+` (5% steps, clamped 0..100% of `min_ambient`; clicking the label
+  resets to the 5% default — the value persists in `player.dat` and
+  `REPGAME_MIN_AMBIENT` overrides the saved value), Block Debug
   View (`m`), Game Mode, Flying, Debug Overlay (only where
   `SUPPORTS_IMGUI_OVERLAY`), and Exit Game (`input.exitGame`).
 - In-game text uses ProggyClean (`fonts/proggyclean.ttf`) drawn at integer
@@ -55,7 +58,9 @@ LOW-tier path (no reflections/post-process).
 - `REPGAME_NIGHT_AMBIENT` / `REPGAME_MIN_AMBIENT` — night brightness floors
   (0-1, defaults 0.20 / 0.05). `night_ambient` is the moonlight floor on the
   daylight factor (outdoor night: terrain, sky, mobs, fog all scale by it);
-  `min_ambient` is the absolute light floor so caves aren't pure black. Not
+  `min_ambient` is the absolute light floor so caves aren't pure black —
+  also adjustable live from the pause menu (Cave Brightness row) and
+  persisted in `player.dat`. Not
   HDR-related — these are sRGB-encoded light values, identical in SDR and
   HDR.
 - `REPGAME_LIGHT_MIPMAPS` — `0|1`: runtime switch for the mipmapped light

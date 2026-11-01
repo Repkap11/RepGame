@@ -1,3 +1,5 @@
+#include <math.h>
+
 #include "common/imgui_overlay.hpp"
 #include "common/audio.hpp"
 #include "common/map_gen.hpp"
@@ -19,6 +21,14 @@ ImGuiDebugVars &imgui_overlay_get_imgui_debug_vars( ) {
         }
     }
     return debug_vars;
+}
+
+float min_ambient_step( const float current, const int dir ) {
+    // Round to the step grid first so off-grid values (e.g. from
+    // REPGAME_MIN_AMBIENT) snap cleanly and repeated clicks don't drift.
+    const float steps = roundf( current / MIN_AMBIENT_STEP ) + dir;
+    const float next = steps * MIN_AMBIENT_STEP;
+    return fminf( fmaxf( next, 0.0f ), MIN_AMBIENT_MAX );
 }
 
 #if SUPPORTS_IMGUI_OVERLAY

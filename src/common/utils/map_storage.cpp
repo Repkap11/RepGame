@@ -575,6 +575,27 @@ struct __attribute__( ( packed ) ) PlayerDataNoDistance {
     long world_time;
 };
 
+// Layout written before min_ambient was appended (still has
+// render_distance). It is a strict prefix of PlayerData, so a plain prefix
+// memcpy suffices — min_ambient stays -1 (absent) from the memset.
+struct __attribute__( ( packed ) ) PlayerDataNoAmbient {
+    int reserved;
+    double world_x;
+    double world_y;
+    double world_z;
+    float angle_H;
+    float angle_V;
+    bool flying;
+    bool no_clip;
+    int worldDrawQuality;
+    InventorySlot hotbar_inventory[ HOTBAR_WIDTH * HOTBAR_HEIGHT ];
+    int selected_hotbar_slot;
+    GameMode game_mode;
+    InventorySlot survival_inventory[ SURVIVAL_INVENTORY_WIDTH * SURVIVAL_INVENTORY_HEIGHT ];
+    long world_time;
+    int render_distance;
+};
+
 static void sanitize_slots( InventorySlot *slots, int count ) {
     for ( int i = 0; i < count; i++ ) {
         InventorySlot &slot = slots[ i ];
@@ -597,6 +618,9 @@ int MapStorage::read_player_data( PlayerData &player_data ) {
         return 0;
     }
     memset( &player_data, 0, sizeof( PlayerData ) );
+    // Negative marks "absent" so every shorter legacy layout below leaves
+    // min_ambient unset (render_distance uses 0 for the same purpose).
+    player_data.min_ambient = -1.0f;
     unsigned char buffer[ sizeof( PlayerData ) ];
     size_t persist_data_length = fread( buffer, 1, sizeof( buffer ), read_ptr );
     fclose( read_ptr );
@@ -607,9 +631,18 @@ int MapStorage::read_player_data( PlayerData &player_data ) {
         sanitize_slots( player_data.survival_inventory, SURVIVAL_INVENTORY_WIDTH * SURVIVAL_INVENTORY_HEIGHT );
         return 1;
     }
+    if ( persist_data_length == sizeof( PlayerDataNoAmbient ) ) {
+        // Saves from before min_ambient existed: strict prefix of
+        // PlayerData; min_ambient stays -1 (absent) from the memset.
+        memcpy( &player_data, buffer, sizeof( PlayerDataNoAmbient ) );
+        sanitize_slots( player_data.hotbar_inventory, HOTBAR_WIDTH * HOTBAR_HEIGHT );
+        sanitize_slots( player_data.survival_inventory, SURVIVAL_INVENTORY_WIDTH * SURVIVAL_INVENTORY_HEIGHT );
+        return 1;
+    }
     if ( persist_data_length == sizeof( PlayerDataNoDistance ) ) {
         // Saves from before render_distance existed: strict prefix of
-        // PlayerData; render_distance stays 0 (absent) from the memset.
+        // PlayerData; render_distance stays 0 (absent) and min_ambient -1
+        // (absent) from the memset.
         memcpy( &player_data, buffer, sizeof( PlayerDataNoDistance ) );
         sanitize_slots( player_data.hotbar_inventory, HOTBAR_WIDTH * HOTBAR_HEIGHT );
         sanitize_slots( player_data.survival_inventory, SURVIVAL_INVENTORY_WIDTH * SURVIVAL_INVENTORY_HEIGHT );
@@ -655,7 +688,7 @@ int MapStorage::read_player_data( PlayerData &player_data ) {
         sanitize_slots( player_data.survival_inventory, SURVIVAL_INVENTORY_WIDTH * SURVIVAL_INVENTORY_HEIGHT );
         return 1;
     }
-    pr_debug( "Warning, wrong size player data. Read:%d expected:%d %d %d or %d", ( int )persist_data_length, ( int )sizeof( PlayerData ), ( int )sizeof( PlayerDataNoDistance ), ( int )sizeof( PlayerDataNoTime ), ( int )sizeof( PlayerDataLegacy ) );
+    pr_debug( "Warning, wrong size player data. Read:%d expected:%d %d %d %d or %d", ( int )persist_data_length, ( int )sizeof( PlayerData ), ( int )sizeof( PlayerDataNoAmbient ), ( int )sizeof( PlayerDataNoDistance ), ( int )sizeof( PlayerDataNoTime ), ( int )sizeof( PlayerDataLegacy ) );
     return 0;
 }
 

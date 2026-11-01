@@ -9,6 +9,12 @@ typedef struct {
 
 #include "RepGame.hpp"
 
+// Absolute light floor (ImGuiDebugVars::min_ambient): default, pause-menu
+// step size, and max.
+#define MIN_AMBIENT_DEFAULT 0.05f
+#define MIN_AMBIENT_STEP 0.05f
+#define MIN_AMBIENT_MAX 1.0f
+
 struct ImGuiDebugVars {
     glm::vec3 player_pos;
     // Day/night clock (see light.hpp) — displayed in the overlay.
@@ -17,7 +23,7 @@ struct ImGuiDebugVars {
     // Minimum light levels (0-1): min_ambient is an absolute floor applied in
     // the chunk/object shaders so pitch-black caves stay faintly visible;
     // night_ambient is a floor on the daylight factor, i.e. "moonlight".
-    float min_ambient = 0.05f;
+    float min_ambient = MIN_AMBIENT_DEFAULT;
     float night_ambient = 0.20f;
     // Chunk-loading and lighting queue depths, refreshed once per frame by
     // RepGame::draw (see LoaderDebugStats in chunk_loader.hpp).
@@ -43,3 +49,6 @@ void imgui_overlay_handle_sdl2_event( ImGuiOverlay *ui_overlay, SDL_Event *event
 void imgui_overlay_draw( ImGuiOverlay *ui_overlay, Input &input, RepGameState &state );
 void imgui_overlay_cleanup( ImGuiOverlay *ui_overlay );
 ImGuiDebugVars &imgui_overlay_get_imgui_debug_vars( );
+// Pause-menu stepper for min_ambient: snaps current to the MIN_AMBIENT_STEP
+// grid, moves dir steps, and clamps to [0, MIN_AMBIENT_MAX].
+float min_ambient_step( float current, int dir );
