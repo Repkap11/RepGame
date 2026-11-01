@@ -43,6 +43,22 @@ void repgame_linux_process_sdl_events( RepGame &repgame ) {
     // Capture mode: ignore user input entirely (the camera is scripted), but
     // still honor window resize/close — same rule as the desktop loop.
     const bool capture = RepGame::capture_mode( );
+    // Gate look motion on the browser's ACTUAL pointer lock state. SDL2's
+    // emscripten backend can't warp the cursor and browser pointer lock is
+    // granted asynchronously, so queued pre-lock absolute-position events
+    // (and Chrome's spurious first movementX/Y after lock) would produce a
+    // huge xrel/yrel camera snap. Drop all mouse motion in the lock-acquire
+    // batch; if that batch had none, drop the first motion after it instead.
+    static bool was_pointer_locked = false;
+    static bool discard_locked_motion = false;
+    EmscriptenPointerlockChangeEvent pointerlock_status;
+    emscripten_get_pointerlock_status( &pointerlock_status );
+    const bool pointer_locked = pointerlock_status.isActive;
+    if ( pointer_locked && !was_pointer_locked ) {
+        discard_locked_motion = true;
+    }
+    was_pointer_locked = pointer_locked;
+    bool discarded_this_batch = false;
     while ( SDL_PollEvent( &event ) ) {
         bool handledMouse = false;
         bool handledKeyboard = false;
@@ -106,7 +122,18 @@ void repgame_linux_process_sdl_events( RepGame &repgame ) {
                 if ( handledMouse ) {
                     break;
                 }
-                input.lookMove( event.motion.xrel, event.motion.yrel );
+                // Touch-drag look works without pointer lock; real mouse
+                // motion is applied only while the browser reports the
+                // pointer locked (and not in the discard batch — see above).
+                if ( event.motion.which == SDL_TOUCH_MOUSEID ) {
+                    input.lookMove( event.motion.xrel, event.motion.yrel );
+                } else if ( pointer_locked ) {
+                    if ( discard_locked_motion ) {
+                        discarded_this_batch = true;
+                    } else {
+                        input.lookMove( event.motion.xrel, event.motion.yrel );
+                    }
+                }
                 input.mousePosition( event.motion.x, event.motion.y );
                 if ( touch_active ) {
                     int dx = event.motion.x - touch_start_x;
@@ -119,6 +146,9 @@ void repgame_linux_process_sdl_events( RepGame &repgame ) {
             default:
                 break;
         }
+    }
+    if ( discard_locked_motion && discarded_this_batch ) {
+        discard_locked_motion = false;
     }
     if ( input.toggle_vsync ) {
         input.toggle_vsync = false;
@@ -348,7 +378,6 @@ enum {
 
 int is_locking_pointer = 0;
 void repgame_linux_process_window_and_pointer_state( RepGame &repgame ) {
-    int width, height;
     const bool should_lock_pointer = repgame.should_lock_pointer( );
     // Sync the game's expected pointer lock state to JS every frame. The
     // pointerlockchange listener in index.js checks this to distinguish
@@ -368,11 +397,14 @@ void repgame_linux_process_window_and_pointer_state( RepGame &repgame ) {
         input.mouse.buttons.left_pressed_in_ui = false;
         input.mouse.buttons.right_pressed_in_ui = false;
         input.mouse.buttons.middle_pressed_in_ui = false;
+        // Clear smoothed look deltas so stale motion can't carry across the
+        // transition (the browser can't warp the cursor — SDL_WarpMouseInWindow
+        // is a no-op here that would only corrupt SDL's last position).
+        input.mouse.smoothed_dx = 0.0f;
+        input.mouse.smoothed_dy = 0.0f;
 #if ALLOW_GRAB_MOUSE
         SDL_SetRelativeMouseMode( should_lock_pointer ? SDL_TRUE : SDL_FALSE );
 #endif
-        SDL_GetWindowSize( sdl_window, &width, &height );
-        SDL_WarpMouseInWindow( sdl_window, width / 2, height / 2 );
         is_locking_pointer = should_lock_pointer;
     }
 }
