@@ -227,12 +227,15 @@ shards discussed earlier:
   the near radius (suppressed while pending is over the cap so a flagged
   near chunk can't re-finalize into refusals forever), and
   light_heal_idle re-finalizes up to LIGHT_HEAL_PER_FRAME flagged chunks
-  per frame once pending hits 0 — heal seeds lift pending back over the
-  gate so the scan self-throttles into small waves. Feeding at any deeper
-  backlog livelocks: each heal burst re-emits tens of thousands of
-  cascade/border seeds, re-floods past LIGHT_BFS_CAP_FLOOD, and the cap
-  flags more chunks stale than 8/frame can heal (the stationary-player
-  car world oscillated 0.25-1M seeds forever on exactly this loop). The
+  per frame once pending drops under LIGHT_HEAL_FEED (256k) — heal seeds
+  lift pending back over the gate so the scan self-throttles into small
+  waves, and feeding above STARVE_MIN keeps the pile fed while flagged
+  chunks remain, shortening the post-flight tail. The feed must stay far
+  below LIGHT_BFS_CAP_FLOOD: each heal burst re-emits tens of thousands
+  of cascade/border seeds, and if that re-floods past the cap, the cap
+  flags more chunks stale than 8/frame can heal (with the old 1M cap the
+  stationary-player car world oscillated 0.25-1M seeds forever on
+  exactly this loop). The
   same gate also drops seeds aimed at missing/is_loading chunks at push
   time (a loading chunk's whole volume is rebuilt by its own finalize
   anyway).

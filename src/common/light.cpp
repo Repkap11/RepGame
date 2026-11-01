@@ -254,14 +254,15 @@ static std::atomic<long> light_tick_counter{ 0 };
 // Absolute bound: even external far-lane pushes are refused past this.
 #define LIGHT_BFS_CAP_ALL ( 1 << 24 )
 // Chunks re-finalized per frame by the idle stale-heal scan, and the backlog
-// under which heals may feed. Feed only on an EMPTY queue: each healed chunk
-// re-emits thousands of cascade/border seeds, so feeding into a deep backlog
-// re-floods it past LIGHT_BFS_CAP_FLOOD — which caps pushes and flags more
-// chunks stale than 8/frame can ever heal (the car world's plateau was this
-// loop, not seed starvation). At pend==0 the trickle of 8-chunk bursts drains
-// between frames and the finite flag supply runs out.
+// under which heals may feed. Heal seeds are external pushes (they always
+// land), so the feed can run well above STARVE_MIN — keeping the pile fed
+// while flagged chunks still exist is what shortens the post-flight tail.
+// The feed must stay far below LIGHT_BFS_CAP_FLOOD: each healed chunk
+// re-emits thousands of cascade/border seeds, and a heal burst that lifts
+// the backlog past the cap flags more chunks stale than 8/frame can heal —
+// a self-sustaining loop (the car world livelocked on it with the old 1M cap).
 #define LIGHT_HEAL_PER_FRAME 8
-#define LIGHT_HEAL_FEED 0
+#define LIGHT_HEAL_FEED ( 256 << 10 )
 // Upload debounce: a chunk whose light was written within the last
 // LIGHT_UPLOAD_QUIET_TICKS game ticks waits — a mid-march/mid-relight
 // snapshot shows the transient floor state as a one-frame black flash.
