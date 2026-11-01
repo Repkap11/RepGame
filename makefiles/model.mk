@@ -9,6 +9,8 @@ CAR_ZIP ?= $(HOME)/Downloads/ferrari-daytona-sp3-wwwvecarzcom/source/Ferrari_Day
 CAR_GLB := out/models/ferrari/fixV.glb
 CAR_WORLD ?= ModelFerrari
 CAR_COLORS ?= --color Carpaint=\#8E2323
+# Object_423/426 are the gas cap and its ring (part names, not materials).
+CAR_PREFER ?= --prefer Object_423,Object_426,Metal_Brushed,Ferrari_Logo_Front,Ferrari_Logo_Side,Grill,Carpaint
 
 # CAR_GLB := /home/paul/Downloads/2021_alfa_romeo_giulia_gtam.glb
 # CAR_WORLD ?= ModelAlfa
@@ -20,9 +22,9 @@ CAR_COLORS ?= --color Carpaint=\#8E2323
 CAR_WORLD_DIR := $(HOME)/.repgame/$(CAR_WORLD)
 CAR_SIZE ?= 512
 
-# Args stamp: regenerates the world when CAR_SIZE/CAR_COLORS change. The
-# file's mtime only moves when the content actually differs.
-CAR_ARGS := --size $(CAR_SIZE) $(CAR_COLORS)
+# Args stamp: regenerates the world when CAR_SIZE/CAR_COLORS/CAR_PREFER
+# change. The file's mtime only moves when the content actually differs.
+CAR_ARGS := --size $(CAR_SIZE) $(CAR_COLORS) $(CAR_PREFER)
 CAR_ARGS_FILE := out/models/$(CAR_WORLD).args
 
 ifneq ($(filter car car-run car-reset,$(MAKECMDGOALS)),)

@@ -4,7 +4,7 @@
 Usage:
     model_to_world.py MODEL --world NAME [--size 64] [--up y|z] [--x 4]
                         [--repgame-dir ~/.repgame] [--no-glass] [--force]
-                        [--color NAME=#RRGGBB]...
+                        [--color NAME=#RRGGBB]... [--prefer A,B,C]...
 
 Writes chunk files (the same RLE format MapStorage persists) for a flat
 world under <repgame-dir>/<world>/ plus a `world_type` marker file so the
@@ -39,6 +39,7 @@ CHUNK_INTERNAL = 64  # stored extent including the 1-cell halo
 RECORD_SIZE = 18     # sizeof(STORAGE_TYPE): BlockState(14) + u32 count
 ALPHA_THRESHOLD = 0.75
 GLASS_MIN_SHARE = 0.3  # glass wins a voxel with >= this share of its votes
+PREFER_BOOST = 1e6     # vote-weight multiplier for --prefer materials
 # Cap on outside-air flood fill iterations; unreached cells count as
 # inside, which just falls back to plain majority votes.
 FLOOD_MAX_SWEEPS = 8
@@ -160,7 +161,7 @@ class BakedGeometry:
     them and breaks material identity — needed for the id-image cache).
     """
 
-    __slots__ = ("vertices", "faces", "visual")
+    __slots__ = ("vertices", "faces", "visual", "names")
 
 
 def load_geometries(path, up):
@@ -178,6 +179,7 @@ def load_geometries(path, up):
         )
         g.faces = geom.faces
         g.visual = geom.visual
+        g.names = (node, geom_name)  # scene node name, geometry name
         parts.append(g)
     if not parts:
         sys.exit("No triangle geometry found in model.")
@@ -419,7 +421,8 @@ def _sample_unit(unit):
             ids = face_ids[lo + tri_of].astype(np.int64)
         # key = (vox * 64 + facing_mask) * 4096 + (bid | 2048 for glass)
         vote_keys.append((vlin * 64 + smask[tri_of]) * 4096 + ids)
-        vote_w.append(np.repeat(areas[idx] / len(B), len(B)))
+        boost = _WORK["boost"][gi] if "boost" in _WORK else 1.0
+        vote_w.append(np.repeat(areas[idx] / len(B), len(B)) * boost)
         del vlin, ids
     keys = np.concatenate(vote_keys)
     weights = np.concatenate(vote_w)
@@ -552,6 +555,15 @@ def main():
         metavar="NAME=#RRGGBB",
         help="Override a material's color (repeatable), e.g. --color Carpaint=#8E2323",
     )
+    ap.add_argument(
+        "--prefer",
+        action="append",
+        default=[],
+        metavar="A,B,C",
+        help="Ordered priority list of materials, scene-node or geometry "
+        "names that win every voxel they touch (repeatable; earlier names "
+        "win over later ones), e.g. --prefer Metal_Brushed,Carpaint",
+    )
     args = ap.parse_args()
 
     overrides = {}
@@ -643,9 +655,17 @@ def main():
 
     # Resolve each part's sampling source (pure cache hits for textures).
     part_src = []
+    part_boost = np.ones(len(parts), np.float64)
+    # Ordered priority list: rank-0 material gets PREFER_BOOST**N, rank-1
+    # gets **(N-1), ... unlisted materials keep weight 1.
+    prefer_list = [
+        n.strip() for spec in args.prefer for n in spec.split(",") if n.strip()
+    ]
+    prefer_rank = {n: r for r, n in enumerate(prefer_list)}
+    matched_prefers = set()
     mat_stats = {}  # label -> [tri_count, effective mean rgba]
     matched_overrides = set()
-    for geom, pr in zip(parts, probes):
+    for gi, (geom, pr) in enumerate(zip(parts, probes)):
         id_img, uv_faces, face_ids, label, eff = resolve_source(
             geom, pr, opaque_lut, glass_lut, mat_cache
         )
@@ -654,6 +674,15 @@ def main():
         mat_stats[label][0] += len(geom.faces)
         if pr[0] == "override":
             matched_overrides.add(label[: -len(" (override)")])
+        # --prefer entries may name a material, a scene node or a
+        # geometry; best (lowest) rank wins per part.
+        mat = getattr(geom.visual, "material", None)
+        cands = [getattr(mat, "name", None), *geom.names]
+        matched = [c for c in cands if c is not None and c in prefer_rank]
+        if matched:
+            r = min(prefer_rank[c] for c in matched)
+            part_boost[gi] = PREFER_BOOST ** (len(prefer_list) - r)
+            matched_prefers.update(matched)
 
     # --- sampling pass: collect (vox, block_id[, glass]) votes --------------
     # combined key per sample: vox_linear * 4096 + (bid | 2048 for glass).
@@ -670,6 +699,7 @@ def main():
     _WORK["parts"] = [(g.vertices, g.faces) for g in parts]
     _WORK["src"] = part_src
     _WORK["origin"], _WORK["scale"], _WORK["dims"] = origin, scale, dims
+    _WORK["boost"] = part_boost
 
     pool = None
     if jobs > 1:
@@ -705,6 +735,8 @@ def main():
 
     for name in set(overrides) - matched_overrides:
         print(f"warning: --color '{name}' matched no material", file=sys.stderr)
+    for name in set(prefer_list) - matched_prefers:
+        print(f"warning: --prefer '{name}' matched no material", file=sys.stderr)
 
     if args.verbose:
         print("Materials by tri count:")

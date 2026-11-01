@@ -42,6 +42,7 @@ out/model_venv/bin/python tools/model_to_world.py MODEL --world NAME \
 | `--force` | Overwrite a world that already has chunk files. Only files it writes are replaced; nothing is deleted, so stale chunks from a bigger previous run can remain — `rm -rf` the world for a clean regen. |
 | `--verbose` | Per-material triangle counts and effective colors — use this to find material names for `--color`. |
 | `--color NAME=#RRGGBB` | Repeatable. Paint the material named NAME a flat sRGB color, ignoring its texture/factor. Unmatched names warn. |
+| `--prefer A,B,C` | Repeatable, comma-separated ordered priority list: listed entries win every voxel they touch (vote weight `PREFER_BOOST ** (N - rank)`, after the visible-vote filter); earlier names beat later ones. Entries may be material names or glTF scene-node/geometry names (from the file, e.g. Blender's outliner), which lets you target single parts like the gas cap. Trade-off: real trim edges adjacent to them also get painted as that material. |
 | `--jobs N` | Worker processes for baking/sampling/chunk writing (default: all cores). `--jobs 1` runs everything in-process — use it for debugging. |
 
 ### How it works
@@ -129,6 +130,12 @@ Example pipeline for the Ferrari Daytona SP3 model:
   in-game edits); the next `make car` regenerates it.
 
 Overrides: `CAR_ZIP` (source zip), `CAR_WORLD` (default `ModelFerrari`),
-`CAR_SIZE` (default 1024), `CAR_COLORS` (default
+`CAR_SIZE` (default 512), `CAR_COLORS` (default
 `--color Carpaint=#8E2323`; inside a makefile escape `#` as `\#`, on the
-command line it can be written plainly).
+command line it can be written plainly), `CAR_PREFER` (default
+`--prefer Object_423,Object_426,Metal_Brushed,Ferrari_Logo_Front,`
+`Ferrari_Logo_Side,Grill,Carpaint`; `make car CAR_PREFER=` disables).
+`CAR_PREFER` is an ordered priority list of material or glTF
+node/geometry names (Object_423/426 are the gas cap and its ring) —
+listed entries win every voxel they touch, earlier names beat later
+ones; real trim edges next to them are painted too.
