@@ -1001,10 +1001,10 @@ void RepGame::player_hurt( RepGameState &state, const glm::dvec3 &from, float da
 
 // Throws `count` of `item` out of the player as an item entity: spawned just
 // ahead of the eye, tossed along the look direction with a little lift, and
-// un-pickable briefly (40 ticks) so it leaves the pickup radius.
+// un-pickable briefly (2 seconds) so it leaves the pickup radius.
 static void throw_item( RepGameState &state, const ItemID item, const int count ) {
     const glm::dvec3 look = glm::dvec3( state.camera.look );
-    state.world.items.spawn( item, count, state.camera.pos + look * 0.3, look * 0.045 + glm::dvec3( 0.0, 0.01, 0.0 ), 40 );
+    state.world.items.spawn( item, count, state.camera.pos + look * 0.3, look * 0.045 + glm::dvec3( 0.0, 0.01, 0.0 ), 2 * UPS_RATE );
 }
 
 // Returns the grid contents to the player: survival, then hotbar, then
