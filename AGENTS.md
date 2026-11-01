@@ -763,6 +763,10 @@ inventory-closed branch, the creative-mode toggle, and `cleanup()` before
 Layout uses fixed-stride `InventoryRenderer` panels sharing the survival
 panel's cell stride, with the group (grid + gap + 1x1 output) centred and
 the grid's bottom pinned a quarter stride above the survival panel's items.
+While the table is open, shift-clicking a survival or hotbar slot moves the
+stack (half for right-shift-click) into the 3x3 grid via `crafting_grid_add`
+(merge matching stacks, then empty cells, top-left first); without a table
+the usual survival↔hotbar shift-move applies.
 
 ## Mobs
 

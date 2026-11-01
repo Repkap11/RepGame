@@ -798,12 +798,95 @@ static void crafting_craft_all( RepGameState &state ) {
             state.hotbar.addItemWithQuantity( r.result, leftover, false );
         }
         crafted = true;
+        // Re-match after consuming so the loop stops once the grid runs out.
+        crafting_recompute( state );
     }
     if ( crafted ) {
         audio_play_sfx( "pop" );
         state.ui_overlay.set_holding_item( state.hotbar.getSelectedItem( ) );
     }
     crafting_recompute( state );
+}
+
+// Add `quantity` of `item` to the open 3x3 table grid: merge into matching
+// stacks first, then fill empty cells, both in top-left-first reading order
+// (renderer slot 0 is bottom-left). Returns the leftover.
+static int crafting_grid_add( RepGameState &state, ItemID item, int quantity ) {
+    if ( !state.crafting.table_open ) {
+        return quantity;
+    }
+    const int max_stack = item_max_stack( item );
+    bool moved = false;
+    for ( int r = 0; r < 3 && quantity > 0; r++ ) {
+        for ( int c = 0; c < 3 && quantity > 0; c++ ) {
+            const int i = ( 2 - r ) * 3 + c;
+            InventorySlot &slot = state.crafting.slots[ i ];
+            if ( slot.item_id == item && slot.quantity < max_stack ) {
+                const int add = std::min( max_stack - slot.quantity, quantity );
+                slot.quantity += add;
+                quantity -= add;
+                state.crafting.grid3.changeSlotItem( i, slot );
+                moved = true;
+            }
+        }
+    }
+    for ( int r = 0; r < 3 && quantity > 0; r++ ) {
+        for ( int c = 0; c < 3 && quantity > 0; c++ ) {
+            const int i = ( 2 - r ) * 3 + c;
+            InventorySlot &slot = state.crafting.slots[ i ];
+            if ( slot.item_id == LAST_BLOCK_ID || slot.quantity <= 0 ) {
+                const int add = std::min( max_stack, quantity );
+                slot.item_id = item;
+                slot.quantity = add;
+                quantity -= add;
+                state.crafting.grid3.changeSlotItem( i, slot );
+                moved = true;
+            }
+        }
+    }
+    if ( moved ) {
+        crafting_recompute( state );
+    }
+    return quantity;
+}
+
+// Shift-click on a survival-inventory slot while a crafting table is open:
+// move the stack (or half, for right-shift-click) into the 3x3 grid.
+static void survival_slot_to_crafting( RepGameState &state, int slot_index, bool half ) {
+    InventorySlot &slot = state.survival_inventory.getSlotsMut( )[ slot_index ];
+    if ( slot.item_id == LAST_BLOCK_ID || slot.quantity <= 0 ) {
+        return;
+    }
+    const int want = half ? ( slot.quantity + 1 ) / 2 : slot.quantity;
+    const int moved = want - crafting_grid_add( state, slot.item_id, want );
+    if ( moved <= 0 ) {
+        return;
+    }
+    slot.quantity -= moved;
+    if ( slot.quantity <= 0 ) {
+        slot.item_id = LAST_BLOCK_ID;
+        slot.quantity = 0;
+    }
+    state.survival_inventory.inventory_renderer.changeSlotItem( slot_index, slot );
+}
+
+static void hotbar_slot_to_crafting( RepGameState &state, int slot_index, bool half ) {
+    InventorySlot slot = state.hotbar.getSlotContents( slot_index );
+    if ( slot.item_id == LAST_BLOCK_ID || slot.quantity <= 0 ) {
+        return;
+    }
+    const int want = half ? ( slot.quantity + 1 ) / 2 : slot.quantity;
+    const int moved = want - crafting_grid_add( state, slot.item_id, want );
+    if ( moved <= 0 ) {
+        return;
+    }
+    slot.quantity -= moved;
+    if ( slot.quantity <= 0 ) {
+        slot.item_id = LAST_BLOCK_ID;
+        slot.quantity = 0;
+    }
+    state.hotbar.setSlotContents( slot_index, slot );
+    state.ui_overlay.set_holding_item( state.hotbar.getSelectedItem( ) );
 }
 
 // Breaks the block under the cursor. In survival mode the mined block is
@@ -1795,16 +1878,26 @@ void RepGame::process_inventory_events( ) {
                 // Survival mode
                 bool shift_held = globalGameState.input.shift_held;
                 if ( shift_held ) {
-                    // Shift-click: move the stack to the other inventory.
+                    // Shift-click: move the stack to the other inventory, or
+                    // into the table grid while a crafting table is open.
+                    const bool to_crafting = globalGameState.crafting.table_open;
                     int slot = globalGameState.survival_inventory.whichSlotClicked( globalGameState.input.mouse.absPosition.x, globalGameState.input.mouse.absPosition.y );
                     if ( slot >= 0 ) {
-                        globalGameState.survival_inventory.moveToHotbar( slot, globalGameState.hotbar, false );
+                        if ( to_crafting ) {
+                            survival_slot_to_crafting( globalGameState, slot, false );
+                        } else {
+                            globalGameState.survival_inventory.moveToHotbar( slot, globalGameState.hotbar, false );
+                        }
                         ItemID selectedBlock = globalGameState.hotbar.getSelectedItem( );
                         globalGameState.ui_overlay.set_holding_item( selectedBlock );
                     } else {
                         int hotbar_slot = globalGameState.hotbar.inventory_renderer.whichSlotClicked( globalGameState.input.mouse.absPosition.x, globalGameState.input.mouse.absPosition.y );
                         if ( hotbar_slot >= 0 ) {
-                            globalGameState.hotbar.moveToSurvivalInventory( hotbar_slot, globalGameState.survival_inventory );
+                            if ( to_crafting ) {
+                                hotbar_slot_to_crafting( globalGameState, hotbar_slot, false );
+                            } else {
+                                globalGameState.hotbar.moveToSurvivalInventory( hotbar_slot, globalGameState.survival_inventory );
+                            }
                             ItemID selectedBlock = globalGameState.hotbar.getSelectedItem( );
                             globalGameState.ui_overlay.set_holding_item( selectedBlock );
                         }
@@ -1895,13 +1988,23 @@ void RepGame::process_inventory_events( ) {
                 int slot = globalGameState.survival_inventory.whichSlotClicked( globalGameState.input.mouse.absPosition.x, globalGameState.input.mouse.absPosition.y );
                 if ( globalGameState.input.shift_held ) {
                     // Shift-right-click: transfer half of the stack (rounded
-                    // up) between the survival inventory and the hotbar.
+                    // up) between the survival inventory and the hotbar, or
+                    // into the table grid while a crafting table is open.
+                    const bool to_crafting = globalGameState.crafting.table_open;
                     if ( slot >= 0 ) {
-                        globalGameState.survival_inventory.moveHalfToHotbar( slot, globalGameState.hotbar );
+                        if ( to_crafting ) {
+                            survival_slot_to_crafting( globalGameState, slot, true );
+                        } else {
+                            globalGameState.survival_inventory.moveHalfToHotbar( slot, globalGameState.hotbar );
+                        }
                     } else {
                         int hotbar_slot = globalGameState.hotbar.inventory_renderer.whichSlotClicked( globalGameState.input.mouse.absPosition.x, globalGameState.input.mouse.absPosition.y );
                         if ( hotbar_slot >= 0 ) {
-                            globalGameState.hotbar.moveHalfToSurvivalInventory( hotbar_slot, globalGameState.survival_inventory );
+                            if ( to_crafting ) {
+                                hotbar_slot_to_crafting( globalGameState, hotbar_slot, true );
+                            } else {
+                                globalGameState.hotbar.moveHalfToSurvivalInventory( hotbar_slot, globalGameState.survival_inventory );
+                            }
                         }
                     }
                     ItemID selectedBlock = globalGameState.hotbar.getSelectedItem( );
