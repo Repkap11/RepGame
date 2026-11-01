@@ -228,8 +228,19 @@ document.addEventListener("pointerlockchange", function() {
     return;
   }
   // The game wants pointer lock, had it, and lost it - this is ESC.
-  request_exit();
+  Module.ccall("repgame_wasm_request_menu");
 });
+
+// Browsers that do deliver the lock-breaking ESC keydown to the page would
+// otherwise let SDL toggle the menu right after the pointerlockchange path
+// opened it (closing it again). Swallow ESC while locked and open the menu
+// here instead; repgame_wasm_request_menu is idempotent.
+window.addEventListener("keydown", function(e) {
+  if (gameRunning && e.key === "Escape" && document.pointerLockElement) {
+    e.stopPropagation();
+    Module.ccall("repgame_wasm_request_menu");
+  }
+}, true);
 
 // When the pointer isn't locked (e.g. inventory open), a right-click opens
 // the browser's context menu. The menu swallows the mouseup, so SDL never

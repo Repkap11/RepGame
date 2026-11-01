@@ -223,6 +223,15 @@ extern "C" EMSCRIPTEN_KEEPALIVE void repgame_wasm_request_exit( ) {
     }
 }
 
+// Called from JS (index.js) when ESC breaks pointer lock during gameplay —
+// the browser consumes that keypress, so SDL never sees it. Opens the pause
+// menu (idempotent, unlike the ESC toggle in Input::keysInput).
+extern "C" EMSCRIPTEN_KEEPALIVE void repgame_wasm_request_menu( ) {
+    if ( globalGameState && !globalGameState->input.menu_open && !globalGameState->input.inventory_open ) {
+        globalGameState->input.onMenuClicked( );
+    }
+}
+
 // How often player.dat is rewritten during play, so a crash or tab close
 // loses at most this much position/inventory progress. Chunk edits already
 // persist continuously via the terrain loading threads.
