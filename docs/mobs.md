@@ -120,6 +120,15 @@ is normalized on import: Bedrock renders entity skins opaque, so nonzero
 alpha (e.g. sheep.tga's a=3 undercoat/face texels) is promoted to 255 —
 only true a=0 texels stay cutout.
 
+`MobManager::draw` disables `GL_CULL_FACE` for the instanced cube pass
+(Java renders entities `entityCutoutNoCull`; Bedrock's `chicken_legs`
+material is no-cull too): some skins leave cube faces untextured — the
+chicken leg only paints its back + bottom rects — so the far side's
+interior must show through the near face's alpha cutout. The cull-face
+mode is left alone so the reflection pass's `GL_FRONT` survives. A
+`GL_POLYGON_OFFSET_FILL` bias keeps feet — coplanar with the block top
+face — from z-fighting the ground.
+
 Persistence: each chunk's mobs live in `mobs_x_y_z` beside the
 `chunk_x_y_z`/`chest_x_y_z` files — `u32 record_size`, `u32 count`, then
 packed `MobFileRecord`s (readers copy the shared prefix and skip

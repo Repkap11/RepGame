@@ -1109,7 +1109,21 @@ void MobManager::draw( const Renderer &renderer, const Shader &shader ) {
     if ( !this->render_inited ) {
         return;
     }
+    // Mob parts draw double-sided (Java renders entities entityCutoutNoCull,
+    // Bedrock gives leg bones a no-cull material): some skins leave cube
+    // faces untextured — the chicken leg only paints its back + bottom rects
+    // — so the far side's interior must show through the near face's alpha
+    // cutout. The cull-face mode is untouched, so the water-reflection
+    // pass's GL_FRONT setting survives the re-enable.
+    glDisable( GL_CULL_FACE );
+    // Feet rest exactly on the block top face — a small depth bias keeps the
+    // coplanar foot rects (chicken toes) from z-fighting the ground.
+    glEnable( GL_POLYGON_OFFSET_FILL );
+    glPolygonOffset( -1.0f, -1.0f );
     this->render_chain.draw( renderer, shader );
+    glPolygonOffset( 0.0f, 0.0f );
+    glDisable( GL_POLYGON_OFFSET_FILL );
+    glEnable( GL_CULL_FACE );
 }
 
 void MobManager::cleanup( ) {
