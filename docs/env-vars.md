@@ -47,9 +47,9 @@ the index, not the reference.
 | `REPGAME_MUSIC_VOLUME` | 0.5 | all | linear music gain 0..1 | docs/audio.md |
 | `REPGAME_NIGHT_AMBIENT` | 0.20 | all | moonlight floor on the daylight factor 0..1 | docs/rendering.md |
 | `REPGAME_NO_HIP` | unset | desktop (HIP builds) | forces the CPU path for all HIP GPU work | docs/rendering.md |
-| `REPGAME_NO_HIP_MAPGEN` | unset | desktop (HIP builds) | forces CPU terrain mapgen only | docs/rendering.md |
+| `REPGAME_NO_HIP_MAPGEN` | unset | desktop (HIP builds) | forces CPU terrain mapgen only | docs/mapgen.md |
 | `REPGAME_NO_HIP_MESH` | unset | desktop (HIP builds) | forces CPU meshing only | docs/rendering.md |
-| `REPGAME_NO_WEBGPU_MAPGEN` | unset | WASM | disables the WebGPU mapgen half of the backend | docs/rendering.md |
+| `REPGAME_NO_WEBGPU_MAPGEN` | unset | WASM | disables the WebGPU mapgen half of the backend | docs/mapgen.md |
 | `REPGAME_NO_WEBGPU_MESH` | unset | WASM | disables the WebGPU mesh half of the backend | docs/rendering.md |
 | `REPGAME_OCCLUSION` | 1 | all | `0` disables the hardware occlusion-culling probe pass | docs/rendering.md |
 | `REPGAME_PORT` | 25566 | all | server port override (read in `RepGame::init` when a hostname is given) | mp-test skill |
