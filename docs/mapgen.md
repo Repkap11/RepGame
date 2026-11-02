@@ -33,6 +33,10 @@ seed.
    decorations and cave crystals over the generated terrain.
 6. Chest/mob sidecar loads, natural mob spawns, `light_fill_chunk`.
 
+What happens to a chunk around this call — window shifts, finalize,
+light, meshing, parking — is the loader lifecycle in `docs/chunks.md`;
+the light pass in step 6 is expanded in `docs/lighting.md`.
+
 `TERRAIN_GEN_PROFILING` (constants.hpp) prints per-stage timings every 100
 chunks.
 

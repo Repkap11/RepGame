@@ -123,8 +123,9 @@ only true a=0 texels stay cutout.
 Persistence: each chunk's mobs live in `mobs_x_y_z` beside the
 `chunk_x_y_z`/`chest_x_y_z` files — `u32 record_size`, `u32 count`, then
 packed `MobFileRecord`s (readers copy the shared prefix and skip
-`type >= MOB_TYPE_COUNT`). An existing-but-empty file is a *populated
-marker*: a chunk whose herd was killed or removed never naturally
+`type >= MOB_TYPE_COUNT`; file formats: `docs/persistence.md`). An
+existing-but-empty file is a *populated marker*: a chunk whose herd was
+killed or removed never naturally
 respawns. The terrain worker loads the file (or rolls the `spawn_chance`
 ≈1/12 natural spawn on fresh terrain, seeded `hash(chunk_pos, type,
 MAP_SEED)`) into `Chunk::pending_mobs`; `World::render` hands

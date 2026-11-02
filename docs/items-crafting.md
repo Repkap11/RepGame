@@ -146,7 +146,8 @@ layout; shapeless assignment backtracks so overlapping option lists work.
 `crafting_find_recipe(grid, dim)` returns the first match in table order.
 `test_crafting` in `src/common/tests/test_crafting.cpp` covers it.
 
-UI: the grid slots live in `RepGameState::ui.crafting` (renderer order —
+UI: the grid slots live in `RepGameState::ui.crafting` (see `docs/ui.md`;
+renderer order —
 slot 0 is the BOTTOM-left cell; they get flipped to top-first before the
 matcher). A 2x2 grid shows in the survival inventory; right-clicking a
 CRAFTING_TABLE opens a 3x3 in either game mode (closing on the same

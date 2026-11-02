@@ -180,7 +180,8 @@ Right-click toggles non-`door_redstone_only` doors through `DoorEvent`
 `is_redstone_mechanism`, so each half stores 0/1 power: a state update
 whose combined lower|upper power changed queues `DoorEvent(SYNC_POWER)`
 one tick out, giving MC edge semantics — rising opens, falling closes, and
-a hand toggle in between persists.
+a hand toggle in between persists. The full power model, dust shapes and
+the event queue everything rides on are in `docs/redstone.md`.
 
 `REPGAME_BLOCK_WORLD=1` ("block world") is a debug mode for eyeballing
 every block: `make linux-run-blocks` runs it. Normal terrain, structures,

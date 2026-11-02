@@ -5,7 +5,9 @@ The dedicated server is a thin C++ binary under `src/server/`
 the world save, relays block updates, and arbitrates entity ownership
 (`ServerEntities` in `src/server/server_entities.cpp`) but never simulates
 gameplay — owner clients do that and stream the results. `RepGameServer
---selftest` (`make server-test`) exercises the sync rules end-to-end.
+--selftest` (`make server-test`) exercises the sync rules end-to-end. The
+wire framing, session handshake, chunk diffs, chest sync and world clock
+that ride the same connection are in `docs/multiplayer.md`.
 
 ## Block bodies (falling blocks + primed TNT)
 

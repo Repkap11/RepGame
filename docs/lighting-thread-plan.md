@@ -1,5 +1,8 @@
 # Lighting thread plan
 
+Design notes for the lighting worker/queues. The light model itself —
+packed volume, channels, propagation rules — is `docs/lighting.md`.
+
 Goal: get light propagation/finalization off the render thread. Frame-rate
 regression vs master (250fps -> ~50fps, now ~165 steady / ~70 while streaming)
 is dominated by `light_finalize_chunk` (~2.4ms/chunk of pure CPU: cascade,

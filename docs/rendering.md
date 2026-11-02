@@ -30,6 +30,10 @@ LOW-tier path (no reflections/post-process).
 
 ## Render distance, fog and light
 
+The chunk lifecycle behind render distance (torus, parking, streaming)
+is `docs/chunks.md`; the light model these tunables feed is
+`docs/lighting.md`.
+
 - `REPGAME_FACE_GROW_PX` — override the screen-space face grow in pixels
   (default 0.125, `CHUNK_FACE_GROW_PX`).
 - `REPGAME_FOG_RANGE` — width of the distance-fog band in blocks (default
