@@ -91,9 +91,12 @@ Adding a mob:
 2. `make mobs-import` runs `tools/mob_import.py` →
    `include/common/mob_models_gen.hpp` + `bitmaps/mobs.png`. Output is
    deterministic (byte-identical reruns); the importer handles geo.json
-   1.8 (`"geometry.a:geometry.b"` inheritance) and 1.12, box UVs only
-   (per-face UVs are rejected), bone mirror/pivot/rotation, and pads each
-   skin into one 64x64 layer of the atlas.
+   1.8 and 1.12, box UVs only (per-face UVs are rejected), bone
+   mirror/pivot/rotation, and pads each skin into one 64x64 layer of the
+   atlas. `"geometry.a:geometry.b"` inheritance merges bones by name:
+   a same-named child bone's cubes layer on top of the parent's (that's
+   how the sheep's wool sits over the sheared body — `reset: true` on a
+   bone drops the inherited content instead).
 3. Add a `MobTypeDef` row in `src/common/mob_types.cpp` (+ `MOB_*` enum in
    `mob_types.hpp`): model/skin bindings, hitbox, health,
    walk/panic/chase speeds, `fall_cap`, `attack_damage`, drops, sound
@@ -112,7 +115,10 @@ layer index into `mobs.png`, `MK_TEXTURE(mobs, 64, 64*MOB_SKIN_COUNT,
 The loader maps skin pixel `(px, py)` to UV `(1 - px/64, 1 - py/64)` —
 vertical flip from the texture load plus a per-tile X mirror; mirrored
 cubes also swap left/right face rects (`mob_face_rect` in
-`include/common/mob_uv.hpp`, also unit-tested in `test_mobs`).
+`include/common/mob_uv.hpp`, also unit-tested in `test_mobs`). Skin alpha
+is normalized on import: Bedrock renders entity skins opaque, so nonzero
+alpha (e.g. sheep.tga's a=3 undercoat/face texels) is promoted to 255 —
+only true a=0 texels stay cutout.
 
 Persistence: each chunk's mobs live in `mobs_x_y_z` beside the
 `chunk_x_y_z`/`chest_x_y_z` files — `u32 record_size`, `u32 count`, then

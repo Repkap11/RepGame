@@ -103,6 +103,7 @@ def load_geometries(path):
             geos[ident] = {
                 "tw": int(desc.get("texture_width", 64)),
                 "th": int(desc.get("texture_height", 64)),
+                "tex_set": "texture_width" in desc or "texture_height" in desc,
                 "bones": g.get("bones", []),
                 "parent": parent,
             }
@@ -118,6 +119,7 @@ def load_geometries(path):
             geos[ident] = {
                 "tw": int(g.get("texturewidth", 64)),
                 "th": int(g.get("textureheight", 64)),
+                "tex_set": "texturewidth" in g or "textureheight" in g,
                 "bones": g.get("bones", []),
                 "parent": parent,
             }
@@ -125,22 +127,51 @@ def load_geometries(path):
 
 
 def resolve_geometry(geos, ident):
-    # Resolve a:b inheritance: bones merge by name (child wins), texture size
-    # inherits when the child leaves it at the default.
+    # Resolve a:b inheritance. A same-named child bone merges into the parent
+    # bone field-by-field (child wins), and its cubes are ADDED to the
+    # inherited ones — that's how the sheep's wool cubes layer over the
+    # sheared body so the face and leg bottoms still show. "reset": true
+    # drops the inherited bone outright (armor pieces strip the body to keep
+    # only their own part). A child cube at the exact same box replaces the
+    # parent's cube there so coincident twins never z-fight.
     if ident not in geos:
         fail("geometry id %s not found" % ident)
     geo = geos[ident]
     if geo["parent"] is None:
         return geo
     parent = resolve_geometry(geos, geo["parent"])
-    if "texturewidth" not in geo and geo["tw"] == 64:
+    if not geo["tex_set"]:
         geo["tw"] = parent["tw"]
-    if "textureheight" not in geo and geo["th"] == 64:
         geo["th"] = parent["th"]
-    parent_bones = {b["name"]: b for b in parent["bones"]}
-    for b in geo["bones"]:
-        parent_bones.pop(b["name"], None)
-    geo["bones"] = geo["bones"] + list(parent_bones.values())
+    bones = [dict(b) for b in parent["bones"]]
+    order = {b["name"]: i for i, b in enumerate(bones)}
+    for child in geo["bones"]:
+        name = child["name"]
+        if name not in order:
+            order[name] = len(bones)
+            bones.append(child)
+            continue
+        base = bones[order[name]]
+        if child.get("reset"):
+            merged = {k: base[k] for k in ("name", "parent", "pivot", "rotation", "bind_pose_rotation") if k in base}
+            merged.update({k: v for k, v in child.items() if k != "reset"})
+        else:
+            boxes = {(tuple(c["origin"]), tuple(c["size"])) for c in child.get("cubes", [])}
+            merged = dict(base)
+            merged.update(child)
+            merged["cubes"] = [c for c in base.get("cubes", []) if (tuple(c["origin"]), tuple(c["size"])) not in boxes] + child.get(
+                "cubes", []
+            )
+            if child.get("cubes"):
+                # The child brings its own renderable content, so rendering
+                # flags of the parent's slot must not leak in (the player's
+                # hat over humanoid's hidden hat bone; custom's explicitly
+                # mapped left limbs over humanoid's mirrored right limbs).
+                for flag in ("neverRender", "mirror"):
+                    if flag not in child:
+                        merged.pop(flag, None)
+        bones[order[name]] = merged
+    geo["bones"] = bones
     geo["parent"] = None
     return geo
 
@@ -244,6 +275,11 @@ def main():
             img = Image.open(skin_path).convert("RGBA")
             if img.width > LAYER_SIZE or img.height > LAYER_SIZE:
                 fail("skin %s is %dx%d, max is 64x64" % (s, img.width, img.height))
+            # Bedrock renders entity skins with an opaque material: nonzero
+            # alpha bytes are authoring layer markers (sheep.tga stores its
+            # undercoat/face texels as a=3), not real transparency. Promote
+            # them to opaque — the renderer's a==0 cutout keeps true holes.
+            img.putalpha(img.getchannel("A").point(lambda a: 255 if a else 0))
             base = os.path.splitext(os.path.basename(s))[0]
             skin_name = e["name"] if base == e["name"] else "%s_%s" % (e["name"], base)
             atlas.paste(img, (0, skins.index(skin_name) * LAYER_SIZE))
