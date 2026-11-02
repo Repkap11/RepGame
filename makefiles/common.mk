@@ -59,6 +59,16 @@ clean-bitmaps:
 # tools/sounds_manifest.txt, converted to OGG Vorbis by tools/convert_sounds.sh
 # (needs ffmpeg), and embedded as blobs like the bitmaps. When sounds/ is
 # absent (fresh clones) the build silently compiles the audio stub instead.
+# The sources are copyrighted Minecraft WAVs, so they're fetched as a tarball
+# from repkap11.com (same pattern as the glew zip in windows.mk) rather than
+# tracked in git. Not an `install` dep — `make mc_pack_build` once, manually.
+# The dir target makes it idempotent: skipped when sounds/mc_pack exists.
+mc_pack_build: sounds/mc_pack
+sounds/mc_pack:
+	mkdir -p sounds
+	wget -q https://repkap11.com/files/repgame/mc_pack.tar.gz -O mc_pack.tar.gz
+	bsdtar -xvzf mc_pack.tar.gz -C sounds
+	rm -rf mc_pack.tar.gz
 ifneq ($(wildcard sounds),)
 REPGAME_AUDIO ?= 1
 endif
@@ -104,7 +114,9 @@ BEDROCK_SAMPLES_TAG ?= v1.26.60.5
 BEDROCK_SAMPLES ?= $(CURDIR)/bedrock-samples/resource_pack
 
 # In-repo, git-ignored checkout of Mojang/bedrock-samples used by the import
-# tools. Clone it once with `make bedrock-samples`.
+# tools. Clone it once with `make bedrock_samples_build`; the dir target
+# makes it idempotent (skipped when bedrock-samples/ already exists).
+bedrock_samples_build: bedrock-samples
 bedrock-samples:
 	git clone --depth 1 --branch $(BEDROCK_SAMPLES_TAG) https://github.com/Mojang/bedrock-samples.git bedrock-samples
 
@@ -145,6 +157,6 @@ test: tests server-test
 
 test-all: test mp-test
 
-.PHONY: clean-bitmaps check clean-vars test-vars mobs-import blocks-import test test-all
+.PHONY: clean-bitmaps check clean-vars test-vars mobs-import blocks-import test test-all mc_pack_build
 
 .PRECIOUS: $(BITMAP_BINS)

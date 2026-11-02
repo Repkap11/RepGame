@@ -704,7 +704,7 @@ def find_image_path(src, name, what="texture"):
     path = next((c for c in candidates if os.path.exists(c)), None)
     if not path:
         fail("%s %r: no image found (tried %s). If the source lives in "
-             "bedrock-samples, run `make bedrock-samples` or set BEDROCK_SAMPLES" %
+             "bedrock-samples, run `make bedrock_samples_build` or set BEDROCK_SAMPLES" %
              (what, src or name, [os.path.relpath(c, ROOT) for c in candidates]))
     return path
 
@@ -785,7 +785,7 @@ def resolve_image(name, meta):
 
 def main():
     if not os.path.isdir(BEDROCK_SAMPLES):
-        fail("BEDROCK_SAMPLES %r does not exist - run `make bedrock-samples` "
+        fail("BEDROCK_SAMPLES %r does not exist - run `make bedrock_samples_build` "
              "or set BEDROCK_SAMPLES to a resource_pack directory" % BEDROCK_SAMPLES)
     blocks = load_blocks()
     block_names = {b["name"]: bid for bid, b in blocks.items()}

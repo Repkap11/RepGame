@@ -42,8 +42,8 @@ recipes). This skill is the procedure.
 
 ## Regenerating
 
-1. First time only: `make bedrock-samples` (clones the pinned resource
-   pack; needed whenever a `source` resolves into it).
+1. First time only: `make bedrock_samples_build` (clones the pinned
+   resource pack; needed whenever a `source` resolves into it).
 2. `make blocks-import` — validates everything and regenerates the
    committed outputs (`*_gen.*`, `bitmaps/blocks.png`, recipes). It must
    be idempotent/deterministic: a dirty diff after a rerun is a bug.

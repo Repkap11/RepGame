@@ -11,6 +11,7 @@ appimage_build
 imgui_build
 imgui.ini
 entt_build
+emsdk
 imgui.ini
 
 # VS Code
@@ -27,9 +28,9 @@ imgui.ini
 
 .flatpak-builder/
 
-# Debug screenshots from F12
-screenshots/screenshot_*.tga
-screenshots/
+# Debug screenshots from F12 / REPGAME_CAPTURE; repgame.png is the tracked README image
+screenshots/*
+!screenshots/repgame.png
 prebuilt
 
 # Mojang bedrock-samples checkout (make bedrock-samples) — texture/model source for blocks-import / mobs-import

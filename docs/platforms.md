@@ -16,7 +16,7 @@ file-level `out/...` rules) are omitted on purpose.
 - `make player` — delete `~/.repgame/$(WORLD)/player.dat`.
 - `make update-world` — prepend an 8-byte header to every `chunk_*` file
   under `~/.repgame/$(WORLD)/` (save-format migration helper).
-- `make bedrock-samples` — clone Mojang's bedrock-samples (pinned
+- `make bedrock_samples_build` — clone Mojang's bedrock-samples (pinned
   `BEDROCK_SAMPLES_TAG`) into `bedrock-samples/` (git-ignored); the input
   to `make blocks-import` / `make mobs-import` (see docs/blocks.md).
 - `make sounds-prebuilt` — convert every manifest sound into
@@ -75,8 +75,10 @@ verifies the result is glibc ≤ 2.31 and pulls no `libstdc++`/`libgcc_s`.
 
 ## WASM
 
-- `make wasm` — Emscripten build into `out/wasm/delivery/` (needs emsdk;
-  `make wasm-install` installs the host packages).
+- `make wasm` — Emscripten build into `out/wasm/delivery/` (needs emsdk —
+  `make emsdk_build` clones it into `emsdk/`; override with
+  `EM_ROOT` or `EMSDK_VERSION`. `make wasm-install` installs the
+  host packages).
 - `make wasm-start-server` — serve `out/wasm/delivery` on :8080 via
   `wasm_server.py` (COOP/COEP headers for SharedArrayBuffer).
 - `make wasm-run` — build + open in Chrome (`WASM_START_COMMAND`).

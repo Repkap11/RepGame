@@ -43,12 +43,18 @@ CFLAGS_LINK_WASM += -s INITIAL_MEMORY=3968MB
 # shows up as a stack-cookie smash. 8MB covers arbitrarily large messages.
 CFLAGS_LINK_WASM += -s STACK_SIZE=8MB
 
-# Vanilla upstream emsdk:
-#   git clone https://github.com/emscripten-core/emsdk.git
-#   ./emsdk install latest && ./emsdk activate latest
-# (The old note about swapping in Repkap11/emscripten is stale — the fork
-# work was abandoned and the pointer-lock patches it carried are upstream.)
-EM_ROOT := /home/paul/Software/Rep/emsdk/upstream/
+# Vanilla upstream emsdk in an in-repo, git-ignored checkout — `make
+# emsdk_build` clones it and installs/activates the toolchain. (The old note
+# about swapping in Repkap11/emscripten is stale — the fork work was
+# abandoned and the pointer-lock patches it carried are upstream.)
+# EM_ROOT ?= leaves room for `make wasm EM_ROOT=/elsewhere/upstream`.
+EMSDK_VERSION ?= latest
+EM_ROOT ?= $(CURDIR)/emsdk/upstream
+emsdk_build: emsdk
+emsdk:
+	git clone https://github.com/emscripten-core/emsdk.git emsdk
+	emsdk/emsdk install $(EMSDK_VERSION)
+	emsdk/emsdk activate $(EMSDK_VERSION)
 CC_WASM := ${EM_ROOT}/emscripten/em++
 
 ifeq ($(USE_CCACHE),1)
@@ -74,6 +80,7 @@ OBJECTS_WASM := $(patsubst src/%.cpp,out/wasm/%.o, $(wildcard src/wasm/*.cpp))
 SRC_IMGUI_WASM := imgui_build/backends/imgui_impl_sdl2.cpp $(wildcard imgui_build/imgui*.cpp) imgui_build/backends/imgui_impl_opengl3.cpp
 OBJECTS_IMGUI_WASM := $(patsubst imgui_build/%.cpp,out/wasm/imgui/%.o, $(SRC_IMGUI_WASM))
 
+install: emsdk
 wasm-install: packages
 	sudo npm install -g http-server
 

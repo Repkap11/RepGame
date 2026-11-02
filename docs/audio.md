@@ -48,7 +48,9 @@ throwaway buffer meanwhile).
 
 Sources: `sounds/mc_pack` is a Minecraft assets tree (WAV) — only the
 overworld music (game/, water/, creative/) is in the rotation; nether/end/
-menu/records are excluded.
+menu/records are excluded. `make mc_pack_build` downloads it: a tarball of
+just the manifest-listed WAVs hosted at repkap11.com/files/repgame
+(copyrighted, so untracked — not an `install` dep).
 
 - `REPGAME_AUDIO` — `0` disables all audio (default on when built with
   audio). Audio is also skipped entirely in capture mode.

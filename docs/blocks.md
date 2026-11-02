@@ -53,7 +53,7 @@ repo-authored 16x16 tiles; `data/textures.json` carries per-texture metadata:
 - `random_rotate` — tile participates in per-block random rotation.
 - `keep` — pack even when no block references it (e.g. `player_selection`).
 
-`make bedrock-samples` clones Mojang's bedrock-samples (pinned
+`make bedrock_samples_build` clones Mojang's bedrock-samples (pinned
 `BEDROCK_SAMPLES_TAG`) into `bedrock-samples/` (git-ignored);
 `make blocks-import` runs `tools/blocks_import.py` with
 `BEDROCK_SAMPLES=bedrock-samples/resource_pack` and regenerates the committed
