@@ -27,20 +27,28 @@ Any world can be made flat by hand: `echo flat > ~/.repgame/NAME/world_type`.
 ```sh
 python3 -m venv out/model_venv   # one-time; out/ is gitignored
 out/model_venv/bin/pip install 'trimesh==4.12.2' numpy pillow
-out/model_venv/bin/python tools/model_to_world.py MODEL --world NAME \
-    [--size 64] [--up y|z] [--x 4] [--repgame-dir ~/.repgame] \
-    [--no-glass] [--force] [--verbose] [--color NAME=#RRGGBB]...
+out/model_venv/bin/python tools/model_to_world.py MODEL [MODEL ...] \
+    --world NAME [--size 64] [--up y|z] [--x 4] [--gap 8] \
+    [--repgame-dir ~/.repgame] [--no-glass] [--force] [--verbose] \
+    [--color NAME=#RRGGBB]...
 ./out/linux/release/RepGame NAME
 ```
+
+Multiple `MODEL`s each get their own voxel grid scaled to `--size` on the
+longest side, and are laid out in a row along +x — the first at `--x`,
+each next one `--gap` blocks past the previous model's end. Each is
+z-centered on 0 and sits on y=1, all in one world.
 
 | Option | Meaning |
 |---|---|
 | `--size` | Longest model side in blocks (default 64). |
-| `--up z` | Model is Z-up (most CAD/Blender-native exports); default Y-up (glTF). |
-| `--x` | World x of the model's min corner (default 4, keeps spawn at 0,0 clear). The model is centered on z=0 and sits on y=1. |
+| `--up z` | Model is Z-up (most CAD/Blender-native exports); default Y-up (glTF). Applies to every model. |
+| `--x` | World x of the first model's min corner (default 4, keeps spawn at 0,0 clear). Each model is centered on z=0 and sits on y=1. |
+| `--gap` | Empty blocks between consecutive models along +x (default 8). |
 | `--no-glass` | Opaque palette only. |
 | `--force` | Overwrite a world that already has chunk files. Only files it writes are replaced; nothing is deleted, so stale chunks from a bigger previous run can remain — `rm -rf` the world for a clean regen. |
 | `--verbose` | Per-material triangle counts and effective colors — use this to find material names for `--color`. |
+| `--list` | Print every material's tri count, mean sRGB/alpha and a few scene-node names (the names usable by `--color`/`--prefer`), then exit — no world written, `--world` not required. With multiple models the tables are merged (matching `--color`/`--prefer`, which apply globally). `--color`/`--prefer` args are still validated so typos warn. |
 | `--color NAME=#RRGGBB` | Repeatable. Paint the material named NAME a flat sRGB color, ignoring its texture/factor. Unmatched names warn. |
 | `--prefer A,B,C` | Repeatable, comma-separated ordered priority list: listed entries win every voxel they touch (vote weight `PREFER_BOOST ** (N - rank)`, after the visible-vote filter); earlier names beat later ones. Entries may be material names or glTF scene-node/geometry names (from the file, e.g. Blender's outliner), which lets you target single parts like the gas cap. Trade-off: real trim edges adjacent to them also get painted as that material. |
 | `--jobs N` | Worker processes for baking/sampling/chunk writing (default: all cores). `--jobs 1` runs everything in-process — use it for debugging. |
@@ -116,26 +124,35 @@ out/model_venv/bin/python tools/model_to_world.py MODEL --world NAME \
 
 ## make car / car-run (makefiles/model.mk)
 
-Example pipeline for the Ferrari Daytona SP3 model:
+Example pipeline; by default it lines up every `.glb` in
+`~/Downloads/cars/` (a commented single-model Ferrari config shows the
+per-model overrides):
 
-- `make car` — creates `out/model_venv` and voxelizes the .glb at
-  `CAR_GLB` into `~/.repgame/$(CAR_WORLD)`.
-  Incremental: `world_type` is the stamp; it regenerates only when the glb,
-  `tools/model_to_world.py`, or the args (`out/models/<world>.args`, rewritten
-  only when `CAR_SIZE`/`CAR_COLORS` change) are newer, or the world dir is
-  gone. A regen `rm -rf`s the world dir first.
+- `make car` — creates `out/model_venv` and voxelizes the .glb file(s)
+  at `CAR_GLB` into `~/.repgame/$(CAR_WORLD)`, in a row along +x.
+  Incremental: `world_type` is the stamp; it regenerates only when any
+  glb, `tools/model_to_world.py`, or the args
+  (`out/models/<world>.args`, rewritten only when `CAR_SIZE`/`CAR_GAP`/
+  `CAR_COLORS`/`CAR_PREFER` or the file list itself changes) are newer,
+  or the world dir is gone. A regen `rm -rf`s the world dir first.
 - `make car-run` — `car` + `linux`, then launches the world. In-game edits
   and `player.dat` persist across runs until a regen.
+- `make car-mats` — list `$(CAR_GLB)`'s materials (tri counts, mean
+  colors, example node names) with `CAR_COLORS`/`CAR_PREFER` applied, so
+  typos warn before a long run. With multiple glbs the tables merge —
+  matching the global `--color`/`--prefer` semantics. Writes nothing.
 - `make clean-car` — wipe the world dir (including `player.dat` and any
   in-game edits); the next `make car` regenerates it.
 
-Overrides: `CAR_GLB` (source .glb), `CAR_WORLD` (default `ModelFerrari`),
-`CAR_SIZE` (default 256), `CAR_COLORS` (default
-`--color Carpaint=#8E2323`; inside a makefile escape `#` as `\#`, on the
-command line it can be written plainly), `CAR_PREFER` (default
-`--prefer Object_423,Object_426,Metal_Brushed,Ferrari_Logo_Front,`
-`Ferrari_Logo_Side,Grill,Carpaint`; `make car CAR_PREFER=` disables).
-`CAR_PREFER` is an ordered priority list of material or glTF
-node/geometry names (Object_423/426 are the gas cap and its ring) —
-listed entries win every voxel they touch, earlier names beat later
-ones; real trim edges next to them are painted too.
+Overrides: `CAR_GLB` (source .glb, or a space-separated list /
+`$(wildcard ...)` — list order is placement order), `CAR_WORLD`
+(default `ModelCars`), `CAR_SIZE` (default 512), `CAR_GAP` (default 8),
+`CAR_COLORS` and `CAR_PREFER` (empty by default; commented Ferrari
+values show per-model usage — inside a makefile escape `#` as `\#`, on
+the command line it can be written plainly; `make car CAR_PREFER=`
+disables). `CAR_COLORS`/`CAR_PREFER` apply to every model in the list —
+they only match names that exist in each file, so per-model overrides
+need a single-model `CAR_GLB`. `CAR_PREFER` is an ordered priority
+list of material or glTF node/geometry names — listed entries win every
+voxel they touch, earlier names beat later ones; real trim edges next
+to them are painted too.

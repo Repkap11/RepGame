@@ -2,9 +2,13 @@
 """Voxelize a 3D model into colored blocks and write a RepGame flat world.
 
 Usage:
-    model_to_world.py MODEL --world NAME [--size 64] [--up y|z] [--x 4]
-                        [--repgame-dir ~/.repgame] [--no-glass] [--force]
+    model_to_world.py MODEL [MODEL ...] --world NAME [--size 64] [--up y|z]
+                        [--x 4] [--gap 8] [--repgame-dir ~/.repgame]
+                        [--no-glass] [--force]
                         [--color NAME=#RRGGBB]... [--prefer A,B,C]...
+
+Multiple MODELs are each scaled to --size on their longest side and placed
+in a row along +x (--gap blocks apart), all z-centered on 0 at y=1.
 
 Writes chunk files (the same RLE format MapStorage persists) for a flat
 world under <repgame-dir>/<world>/ plus a `world_type` marker file so the
@@ -363,12 +367,12 @@ _WORK = {}
 
 
 def _sample_unit(unit):
-    """Sample one (part, tri_lo, tri_hi) range; returns locally reduced
-    (unique_keys int64, summed_weights float64)."""
-    gi, lo, hi = unit
+    """Sample one (model, part, tri_lo, tri_hi) range; returns locally
+    reduced (unique_keys int64, summed_weights float64)."""
+    mi, gi, lo, hi = unit
     verts, faces = _WORK["parts"][gi]
     id_img, uv_faces, face_ids = _WORK["src"][gi]
-    origin, scale, dims = _WORK["origin"], _WORK["scale"], _WORK["dims"]
+    origin, scale, dims = _WORK["tf"][mi]
     gv = (verts - origin) * scale
     tris = gv[faces[lo:hi]]
     vote_keys = []
@@ -411,7 +415,8 @@ def _sample_unit(unit):
         b_of = np.tile(np.arange(len(B)), len(idx))
         vox = np.clip(np.floor(pts), 0, dims - 1).astype(np.int64)
         del pts
-        vlin = (vox[:, 0] * dims[1] + vox[:, 1]) * dims[2] + vox[:, 2]
+        # vlin is globally unique: model mi's grid starts at vbase[mi].
+        vlin = (vox[:, 0] * dims[1] + vox[:, 1]) * dims[2] + vox[:, 2] + _WORK["vbase"][mi]
         del vox
         if id_img is not None:
             suv = np.einsum("sd,sdv->sv", B[b_of], uv_faces[lo + tri_of])
@@ -490,272 +495,8 @@ def outside_air(occ):
     return outside, it
 
 
-def _write_chunk_unit(cc):
-    """Write one chunk file; returns ((cx,cy,cz), {bid: count})."""
-    cx, cy, cz = cc
-    grid, dims = _WORK["grid"], _WORK["dims"]
-    x0, y0, z0 = _WORK["x0"], _WORK["y0"], _WORK["z0"]
-    lx, ly, lz = _WORK["lx"], _WORK["ly"], _WORK["lz"]
-    wyv = cy * CHUNK + ly
-    wxv = cx * CHUNK + lx
-    wzv = cz * CHUNK + lz
-    gx, gy, gz = wxv - x0, wyv - y0, wzv - z0
-    inside = (
-        (gx >= 0) & (gx < dims[0])
-        & (gy >= 0) & (gy < dims[1])
-        & (gz >= 0) & (gz < dims[2])
-    )
-    vals = np.full(gx.shape, -1, np.int64)
-    if inside.any():
-        vals[inside] = grid[gx[inside], gy[inside], gz[inside]]
-    default = np.where(wyv <= 0, _WORK["sandstone_id"], 0)
-    ids = np.where(vals >= 0, vals, default).ravel()
-    # usage counts only interior cells (local 0..61), not the halo.
-    nonhalo = (lx >= 0) & (lx <= 61) & (ly >= 0) & (ly <= 61) & (lz >= 0) & (lz <= 61)
-    usage = {}
-    for bid, cnt in zip(*np.unique(vals[nonhalo & (vals >= 0)], return_counts=True)):
-        usage[int(bid)] = int(cnt)
-    # RLE in index order
-    change = np.flatnonzero(np.r_[True, ids[1:] != ids[:-1], True])
-    rec = np.empty(len(change) - 1, RECORD_DTYPE)
-    rec["id"] = ids[change[:-1]]
-    rec["rotation"] = 0
-    rec["power"] = 0
-    rec["display_id"] = rec["id"]
-    rec["waterlogged"] = 0
-    rec["num"] = np.diff(change)
-    with open(_WORK["world_dir"] / f"chunk_{cx}_{cy}_{cz}", "wb") as f:
-        f.write(struct.pack("<I", RECORD_SIZE))
-        f.write(rec.tobytes())
-    return cc, usage
-
-
-def main():
-    ap = argparse.ArgumentParser(description="Voxelize a 3D model into a RepGame flat world.")
-    ap.add_argument("model")
-    ap.add_argument("--world", required=True)
-    ap.add_argument("--size", type=int, default=64)
-    ap.add_argument("--up", choices=["y", "z"], default="y")
-    ap.add_argument("--x", type=int, default=4)
-    ap.add_argument("--repgame-dir", default=os.path.expanduser("~/.repgame"))
-    ap.add_argument("--no-glass", action="store_true")
-    ap.add_argument("--force", action="store_true")
-    ap.add_argument("--verbose", action="store_true")
-    ap.add_argument(
-        "--jobs",
-        type=int,
-        default=os.cpu_count() or 1,
-        help="worker threads/processes for baking, sampling and chunk writing "
-        "(default: all cores; 1 = fully in-process, for debugging)",
-    )
-    ap.add_argument(
-        "--color",
-        action="append",
-        default=[],
-        metavar="NAME=#RRGGBB",
-        help="Override a material's color (repeatable), e.g. --color Carpaint=#8E2323",
-    )
-    ap.add_argument(
-        "--prefer",
-        action="append",
-        default=[],
-        metavar="A,B,C",
-        help="Ordered priority list of materials, scene-node or geometry "
-        "names that win every voxel they touch (repeatable; earlier names "
-        "win over later ones), e.g. --prefer Metal_Brushed,Carpaint",
-    )
-    args = ap.parse_args()
-
-    overrides = {}
-    for spec in args.color:
-        m = re.fullmatch(r"([^=]+)=#([0-9a-fA-F]{6})", spec.strip())
-        if not m:
-            sys.exit(f"Bad --color '{spec}' (want NAME=#RRGGBB)")
-        r, g, b = (int(m.group(2)[i : i + 2], 16) for i in (0, 2, 4))
-        overrides[m.group(1)] = np.array([r, g, b], dtype=np.float64)
-
-    world_dir = Path(args.repgame_dir) / args.world
-    if world_dir.is_dir() and any(world_dir.glob("chunk_*")) and not args.force:
-        sys.exit(f"{world_dir} already contains chunk files (use --force to overwrite).")
-    world_dir.mkdir(parents=True, exist_ok=True)
-
-    from PIL import Image
-
-    atlas = np.asarray(Image.open(REPO / "bitmaps/blocks.png").convert("RGBA"))
-    tex_ids = load_tex_ids()
-    opaque_ids, opaque_rgb, glass_ids, glass_rgb, names = build_palette(
-        atlas, tex_ids, not args.no_glass
-    )
-    if not len(opaque_ids):
-        sys.exit("Empty opaque palette.")
-    opaque_lab = srgb_to_lab(opaque_rgb)
-    glass_lab = srgb_to_lab(glass_rgb) if len(glass_ids) else None
-    print(f"Palette: {len(opaque_ids)} opaque, {len(glass_ids)} glass")
-    # Quantized sRGB -> block id LUTs; all later palette work is a lookup.
-    opaque_lut = block_lut(opaque_lab, opaque_ids)
-    glass_lut = block_lut(glass_lab, glass_ids) if glass_lab is not None else None
-
-    sandstone_id = next(
-        (
-            json.load(open(p))["id"]
-            for p in (REPO / "data/blocks").glob("*.json")
-            if json.load(open(p))["name"] == "SANDSTONE"
-        ),
-        None,
-    )
-    if sandstone_id is None:
-        sys.exit("SANDSTONE block not found in data/blocks.")
-
-    print(f"Loading {args.model} ...")
-    parts = load_geometries(args.model, args.up)
-    nverts = sum(len(g.vertices) for g in parts)
-    nfaces = sum(len(g.faces) for g in parts)
-    bounds = np.array(
-        [(g.vertices.min(axis=0), g.vertices.max(axis=0)) for g in parts]
-    )  # (G,2,3)
-    bmin, bmax = bounds[:, 0].min(0), bounds[:, 1].max(0)
-    extents = bmax - bmin
-    print(f"  {nverts} verts, {nfaces} tris across {len(parts)} geometries, extents {extents}")
-
-    scale = args.size / float(extents.max())
-    origin = bmin
-    dims = np.maximum(np.ceil(extents * scale), 1).astype(np.int64) + 1
-    print(f"  voxel dims: {dims[0]} x {dims[1]} x {dims[2]} blocks")
-
-    jobs = max(1, args.jobs)
-
-    # --- classify materials; bake unique textures in parallel --------------
-    probes = []
-    bake_jobs = {}  # key -> (img, factor, key, alt)
-    mat_cache = {}  # key/alt -> (id_img, label, eff)
-    for geom in parts:
-        pr = material_probe(geom, overrides)
-        probes.append(pr)
-        if pr[0] == "texture":
-            img, factor, key, alt, uv = pr[1]
-            if key in mat_cache or alt in mat_cache:
-                continue
-            if key not in bake_jobs and alt not in bake_jobs:
-                bake_jobs[key] = (img, factor, key, alt)
-    if bake_jobs:
-        # Group by image object so a PIL image is only decoded inside one
-        # task (its lazy decoder races across threads otherwise).
-        bake_groups = {}
-        for j in bake_jobs.values():
-            bake_groups.setdefault(id(j[0]), (j[0], []))[1].append(j)
-        work = lambda g: bake_image_group(g, opaque_lut, glass_lut)
-        if jobs > 1 and len(bake_groups) > 1:
-            with concurrent.futures.ThreadPoolExecutor(jobs) as ex:
-                baked = list(ex.map(work, bake_groups.values()))
-        else:
-            baked = [work(g) for g in bake_groups.values()]
-        for group_result in baked:
-            for (key, alt), id_img, eff in group_result:
-                mat_cache[key] = mat_cache[alt] = (id_img, None, eff)
-
-    # Resolve each part's sampling source (pure cache hits for textures).
-    part_src = []
-    part_boost = np.ones(len(parts), np.float64)
-    # Ordered priority list: rank-0 material gets PREFER_BOOST**N, rank-1
-    # gets **(N-1), ... unlisted materials keep weight 1.
-    prefer_list = [
-        n.strip() for spec in args.prefer for n in spec.split(",") if n.strip()
-    ]
-    prefer_rank = {n: r for r, n in enumerate(prefer_list)}
-    matched_prefers = set()
-    mat_stats = {}  # label -> [tri_count, effective mean rgba]
-    matched_overrides = set()
-    for gi, (geom, pr) in enumerate(zip(parts, probes)):
-        id_img, uv_faces, face_ids, label, eff = resolve_source(
-            geom, pr, opaque_lut, glass_lut, mat_cache
-        )
-        part_src.append((id_img, uv_faces, face_ids))
-        mat_stats.setdefault(label, [0, eff])
-        mat_stats[label][0] += len(geom.faces)
-        if pr[0] == "override":
-            matched_overrides.add(label[: -len(" (override)")])
-        # --prefer entries may name a material, a scene node or a
-        # geometry; best (lowest) rank wins per part.
-        mat = getattr(geom.visual, "material", None)
-        cands = [getattr(mat, "name", None), *geom.names]
-        matched = [c for c in cands if c is not None and c in prefer_rank]
-        if matched:
-            r = min(prefer_rank[c] for c in matched)
-            part_boost[gi] = PREFER_BOOST ** (len(prefer_list) - r)
-            matched_prefers.update(matched)
-
-    # --- sampling pass: collect (vox, block_id[, glass]) votes --------------
-    # combined key per sample: vox_linear * 4096 + (bid | 2048 for glass).
-    # Each sample votes with weight tri_area/samples_in_tri (voxel units) so
-    # dense tiny-triangle meshes don't outvote large smooth panels. Work
-    # units are (part, lo, hi) tri ranges, largest first; each returns
-    # locally reduced (unique keys, weights) which the parent merges.
-    units = [
-        (gi, lo, min(lo + BATCH_TRIS, len(p.faces)))
-        for gi, p in enumerate(parts)
-        for lo in range(0, len(p.faces), BATCH_TRIS)
-    ]
-    units.sort(key=lambda u: u[1] - u[2])  # largest first
-    _WORK["parts"] = [(g.vertices, g.faces) for g in parts]
-    _WORK["src"] = part_src
-    _WORK["origin"], _WORK["scale"], _WORK["dims"] = origin, scale, dims
-    _WORK["boost"] = part_boost
-
-    pool = None
-    if jobs > 1:
-        try:
-            ctx = multiprocessing.get_context("fork")
-            pool = ctx.Pool(jobs)
-            results = pool.imap_unordered(_sample_unit, units)
-        except (ValueError, OSError):
-            print("note: 'fork' unavailable, falling back to --jobs 1",
-                  file=sys.stderr)
-            jobs = 1
-    if jobs == 1:
-        results = map(_sample_unit, units)
-
-    acc = []  # [(unique_keys, weights)] from workers, periodically merged
-    acc_len = 0
-    done = 0
-    next_report = 1
-    for uk, w in results:
-        acc.append((uk, w))
-        acc_len += len(uk)
-        if acc_len > 50_000_000:
-            acc = [merge_votes(acc)]
-            acc_len = len(acc[0][0])
-        done += 1
-        if done * 10 // len(units) >= next_report or done == len(units):
-            next_report = done * 10 // len(units) + 1
-            print(f"  sampling {done}/{len(units)} units", flush=True)
-    if pool is not None:
-        pool.close()
-        pool.join()
-        pool = None
-
-    for name in set(overrides) - matched_overrides:
-        print(f"warning: --color '{name}' matched no material", file=sys.stderr)
-    for name in set(prefer_list) - matched_prefers:
-        print(f"warning: --prefer '{name}' matched no material", file=sys.stderr)
-
-    if args.verbose:
-        print("Materials by tri count:")
-        for label, (ntri, eff) in sorted(
-            mat_stats.items(), key=lambda kv: -kv[1][0]
-        )[:15]:
-            print(
-                f"  {label[:48]:50s} tris={ntri:8d} "
-                f"mean_sRGB=({eff[0]:.0f},{eff[1]:.0f},{eff[2]:.0f}) a={eff[3]:.0f}"
-            )
-
-    uk, wsum = merge_votes(acc)
-    del acc
-    # key = (vox * 64 + facing_mask) * 4096 + (bid | 2048 for glass)
-    vox_of = uk >> 18
-    mask_of = ((uk >> 12) & 63).astype(np.uint8)
-    low = uk & 4095
-    del uk
-
+def votes_to_grid(vox_of, mask_of, low, wsum, dims, tag=""):
+    """Visible-vote filter + per-voxel winner -> int16 block grid (dims)."""
     # --- visible-vote filter -------------------------------------------------
     # A vote only "sees" the voxel exterior if the sample's triangle faces
     # toward a neighbour that is outside air. Occupancy is unaffected.
@@ -763,7 +504,7 @@ def main():
     occ[vox_of] = True
     occ = occ.reshape(tuple(dims))
     outside, fiters = outside_air(occ)  # padded (dims+2); pad ring = outside
-    print(f"  outside-air flood fill: {fiters} sweep iterations")
+    print(f"  {tag}outside-air flood fill: {fiters} sweep iterations")
     # O[vox]: 6-bit mask of which neighbours are outside air (same bit
     # convention as the per-sample facing mask). Grid cell (i,j,k) maps
     # to padded index (i+1,j+1,k+1), so out-of-grid neighbours correctly
@@ -787,7 +528,6 @@ def main():
     vox2 = vox_of[keep]
     low2 = low[keep]
     w2 = wsum[keep]
-    del vox_of, mask_of, low, wsum, vis, O, starts, counts, anyvis, keep
     key2 = vox2 * 4096 + low2
     del vox2, low2
     uk, inv = np.unique(key2, return_inverse=True)
@@ -842,32 +582,359 @@ def main():
     grid = np.full(int(np.prod(dims)), -1, np.int16)
     grid[uniq_vox] = winners.astype(np.int16)
     grid = grid.reshape(tuple(dims))
-    nvox = int((grid >= 0).sum())
-    print(f"  {nvox} voxels after voting")
+    print(f"  {tag}{int((grid >= 0).sum())} voxels after voting")
+    return grid
 
-    # --- placement: min y -> y=1, min x -> --x, z centered on 0 --------------
-    x0 = args.x
-    y0 = 1
-    z0 = -(int(dims[2]) // 2)
-    ii, jj, kk = np.nonzero(grid >= 0)
-    wx, wy, wz = ii + x0, jj + y0, kk + z0
 
-    # Chunks whose 64^3 range (halo included) contains a model voxel:
-    # chunk cp covers world [62*cp - 1, 62*cp + 62], so a voxel at w belongs
-    # to floor((w-1)/62), floor(w/62) and floor((w+1)/62).
+def _write_chunk_unit(cc):
+    """Write one chunk file; returns ((cx,cy,cz), {bid: count})."""
+    cx, cy, cz = cc
+    lx, ly, lz = _WORK["lx"], _WORK["ly"], _WORK["lz"]
+    wyv = cy * CHUNK + ly
+    wxv = cx * CHUNK + lx
+    wzv = cz * CHUNK + lz
+    vals = np.full(lx.shape, -1, np.int64)
+    for grid, dims, x0, y0, z0 in _WORK["models"]:
+        gx, gy, gz = wxv - x0, wyv - y0, wzv - z0
+        inside = (
+            (gx >= 0) & (gx < dims[0])
+            & (gy >= 0) & (gy < dims[1])
+            & (gz >= 0) & (gz < dims[2])
+        )
+        # Models are placed non-overlapping; first bbox containing the
+        # cell wins.
+        m = inside & (vals < 0)
+        if m.any():
+            vals[m] = grid[gx[m], gy[m], gz[m]]
+    default = np.where(wyv <= 0, _WORK["sandstone_id"], 0)
+    ids = np.where(vals >= 0, vals, default).ravel()
+    # usage counts only interior cells (local 0..61), not the halo.
+    nonhalo = (lx >= 0) & (lx <= 61) & (ly >= 0) & (ly <= 61) & (lz >= 0) & (lz <= 61)
+    usage = {}
+    for bid, cnt in zip(*np.unique(vals[nonhalo & (vals >= 0)], return_counts=True)):
+        usage[int(bid)] = int(cnt)
+    # RLE in index order
+    change = np.flatnonzero(np.r_[True, ids[1:] != ids[:-1], True])
+    rec = np.empty(len(change) - 1, RECORD_DTYPE)
+    rec["id"] = ids[change[:-1]]
+    rec["rotation"] = 0
+    rec["power"] = 0
+    rec["display_id"] = rec["id"]
+    rec["waterlogged"] = 0
+    rec["num"] = np.diff(change)
+    with open(_WORK["world_dir"] / f"chunk_{cx}_{cy}_{cz}", "wb") as f:
+        f.write(struct.pack("<I", RECORD_SIZE))
+        f.write(rec.tobytes())
+    return cc, usage
+
+
+def report_materials(mat_stats, mat_nodes=None, limit=15):
+    """Print the 'Materials by tri count' table; mat_nodes adds --prefer hints."""
+    print("Materials by tri count:")
+    rows = sorted(mat_stats.items(), key=lambda kv: -kv[1][0])
+    for label, (ntri, eff) in rows[:limit] if limit else rows:
+        line = (
+            f"  {label[:48]:50s} tris={ntri:8d} "
+            f"mean_sRGB=({eff[0]:.0f},{eff[1]:.0f},{eff[2]:.0f}) a={eff[3]:.0f}"
+        )
+        if mat_nodes is not None:
+            nodes = sorted(mat_nodes.get(label, ()), key=len)
+            line += "  nodes: " + ", ".join(n[:40] for n in nodes[:3])
+        print(line)
+
+
+def main():
+    ap = argparse.ArgumentParser(description="Voxelize a 3D model into a RepGame flat world.")
+    ap.add_argument("model", nargs="+",
+                    help="model file(s); multiple are placed in a row along +x")
+    ap.add_argument("--world")  # required unless --list
+    ap.add_argument("--size", type=int, default=64)
+    ap.add_argument("--gap", type=int, default=8,
+                    help="blocks between models' bounding boxes (default 8)")
+    ap.add_argument("--up", choices=["y", "z"], default="y")
+    ap.add_argument("--x", type=int, default=4)
+    ap.add_argument("--repgame-dir", default=os.path.expanduser("~/.repgame"))
+    ap.add_argument("--no-glass", action="store_true")
+    ap.add_argument("--force", action="store_true")
+    ap.add_argument("--verbose", action="store_true")
+    ap.add_argument(
+        "--list",
+        action="store_true",
+        help="List materials (tri counts, mean colors, example node names) "
+        "for picking --color/--prefer names, then exit; no world written.",
+    )
+    ap.add_argument(
+        "--jobs",
+        type=int,
+        default=os.cpu_count() or 1,
+        help="worker threads/processes for baking, sampling and chunk writing "
+        "(default: all cores; 1 = fully in-process, for debugging)",
+    )
+    ap.add_argument(
+        "--color",
+        action="append",
+        default=[],
+        metavar="NAME=#RRGGBB",
+        help="Override a material's color (repeatable), e.g. --color Carpaint=#8E2323",
+    )
+    ap.add_argument(
+        "--prefer",
+        action="append",
+        default=[],
+        metavar="A,B,C",
+        help="Ordered priority list of materials, scene-node or geometry "
+        "names that win every voxel they touch (repeatable; earlier names "
+        "win over later ones), e.g. --prefer Metal_Brushed,Carpaint",
+    )
+    args = ap.parse_args()
+    if not args.list and not args.world:
+        ap.error("--world is required unless --list")
+
+    overrides = {}
+    for spec in args.color:
+        m = re.fullmatch(r"([^=]+)=#([0-9a-fA-F]{6})", spec.strip())
+        if not m:
+            sys.exit(f"Bad --color '{spec}' (want NAME=#RRGGBB)")
+        r, g, b = (int(m.group(2)[i : i + 2], 16) for i in (0, 2, 4))
+        overrides[m.group(1)] = np.array([r, g, b], dtype=np.float64)
+
+    if not args.list:
+        world_dir = Path(args.repgame_dir) / args.world
+        if world_dir.is_dir() and any(world_dir.glob("chunk_*")) and not args.force:
+            sys.exit(f"{world_dir} already contains chunk files (use --force to overwrite).")
+        world_dir.mkdir(parents=True, exist_ok=True)
+
+    from PIL import Image
+
+    atlas = np.asarray(Image.open(REPO / "bitmaps/blocks.png").convert("RGBA"))
+    tex_ids = load_tex_ids()
+    opaque_ids, opaque_rgb, glass_ids, glass_rgb, names = build_palette(
+        atlas, tex_ids, not args.no_glass
+    )
+    if not len(opaque_ids):
+        sys.exit("Empty opaque palette.")
+    opaque_lab = srgb_to_lab(opaque_rgb)
+    glass_lab = srgb_to_lab(glass_rgb) if len(glass_ids) else None
+    print(f"Palette: {len(opaque_ids)} opaque, {len(glass_ids)} glass")
+    # Quantized sRGB -> block id LUTs; all later palette work is a lookup.
+    opaque_lut = block_lut(opaque_lab, opaque_ids)
+    glass_lut = block_lut(glass_lab, glass_ids) if glass_lab is not None else None
+
+    sandstone_id = next(
+        (
+            json.load(open(p))["id"]
+            for p in (REPO / "data/blocks").glob("*.json")
+            if json.load(open(p))["name"] == "SANDSTONE"
+        ),
+        None,
+    )
+    if sandstone_id is None:
+        sys.exit("SANDSTONE block not found in data/blocks.")
+
+    models = []  # (path, parts, origin, scale, dims)
+    for path in args.model:
+        print(f"Loading {path} ...")
+        parts = load_geometries(path, args.up)
+        nverts = sum(len(g.vertices) for g in parts)
+        nfaces = sum(len(g.faces) for g in parts)
+        bounds = np.array(
+            [(g.vertices.min(axis=0), g.vertices.max(axis=0)) for g in parts]
+        )  # (G,2,3)
+        bmin, bmax = bounds[:, 0].min(0), bounds[:, 1].max(0)
+        extents = bmax - bmin
+        print(f"  {nverts} verts, {nfaces} tris across {len(parts)} geometries, extents {extents}")
+        scale = args.size / float(extents.max())
+        dims = np.maximum(np.ceil(extents * scale), 1).astype(np.int64) + 1
+        print(f"  voxel dims: {dims[0]} x {dims[1]} x {dims[2]} blocks")
+        models.append((path, parts, bmin, scale, dims))
+
+    jobs = max(1, args.jobs)
+
+    # --- classify materials; bake unique textures in parallel --------------
+    probes = []  # per model: [probe per part]
+    bake_jobs = {}  # key -> (img, factor, key, alt)
+    mat_cache = {}  # key/alt -> (id_img, label, eff)
+    for _, parts, _, _, _ in models:
+        prs = []
+        for geom in parts:
+            pr = material_probe(geom, overrides)
+            prs.append(pr)
+            if pr[0] == "texture":
+                img, factor, key, alt, uv = pr[1]
+                if key in mat_cache or alt in mat_cache:
+                    continue
+                if key not in bake_jobs and alt not in bake_jobs:
+                    bake_jobs[key] = (img, factor, key, alt)
+        probes.append(prs)
+    if bake_jobs:
+        # Group by image object so a PIL image is only decoded inside one
+        # task (its lazy decoder races across threads otherwise).
+        bake_groups = {}
+        for j in bake_jobs.values():
+            bake_groups.setdefault(id(j[0]), (j[0], []))[1].append(j)
+        work = lambda g: bake_image_group(g, opaque_lut, glass_lut)
+        if jobs > 1 and len(bake_groups) > 1:
+            with concurrent.futures.ThreadPoolExecutor(jobs) as ex:
+                baked = list(ex.map(work, bake_groups.values()))
+        else:
+            baked = [work(g) for g in bake_groups.values()]
+        for group_result in baked:
+            for (key, alt), id_img, eff in group_result:
+                mat_cache[key] = mat_cache[alt] = (id_img, None, eff)
+
+    # Resolve each part's sampling source (pure cache hits for textures).
+    part_src = []
+    part_owner = []  # part index -> model index
+    part_boost = []
+    # Ordered priority list: rank-0 material gets PREFER_BOOST**N, rank-1
+    # gets **(N-1), ... unlisted materials keep weight 1.
+    prefer_list = [
+        n.strip() for spec in args.prefer for n in spec.split(",") if n.strip()
+    ]
+    prefer_rank = {n: r for r, n in enumerate(prefer_list)}
+    matched_prefers = set()
+    mat_stats = {}  # label -> [tri_count, effective mean rgba]
+    mat_nodes = {}  # label -> {scene node names} (for --list)
+    matched_overrides = set()
+    for mi, (_, parts, _, _, _) in enumerate(models):
+        for geom, pr in zip(parts, probes[mi]):
+            id_img, uv_faces, face_ids, label, eff = resolve_source(
+                geom, pr, opaque_lut, glass_lut, mat_cache
+            )
+            part_src.append((id_img, uv_faces, face_ids))
+            part_owner.append(mi)
+            part_boost.append(1.0)
+            mat_stats.setdefault(label, [0, eff])
+            mat_stats[label][0] += len(geom.faces)
+            mat_nodes.setdefault(label, set()).add(geom.names[0])
+            if pr[0] == "override":
+                matched_overrides.add(label[: -len(" (override)")])
+            # --prefer entries may name a material, a scene node or a
+            # geometry; best (lowest) rank wins per part.
+            mat = getattr(geom.visual, "material", None)
+            cands = [getattr(mat, "name", None), *geom.names]
+            matched = [c for c in cands if c is not None and c in prefer_rank]
+            if matched:
+                r = min(prefer_rank[c] for c in matched)
+                part_boost[-1] = PREFER_BOOST ** (len(prefer_list) - r)
+                matched_prefers.update(matched)
+    part_boost = np.asarray(part_boost, np.float64)
+
+    for name in set(overrides) - matched_overrides:
+        print(f"warning: --color '{name}' matched no material", file=sys.stderr)
+    for name in set(prefer_list) - matched_prefers:
+        print(f"warning: --prefer '{name}' matched no material", file=sys.stderr)
+
+    if args.list:
+        report_materials(mat_stats, mat_nodes, limit=None)
+        return
+
+    # --- sampling pass: collect (vox, block_id[, glass]) votes --------------
+    # combined key per sample: vox_linear * 4096 + (bid | 2048 for glass).
+    # Each sample votes with weight tri_area/samples_in_tri (voxel units) so
+    # dense tiny-triangle meshes don't outvote large smooth panels. Work
+    # units are (model, part, lo, hi) tri ranges, largest first; each returns
+    # locally reduced (unique keys, weights) which the parent merges.
+    flat_parts = [g for _, parts, _, _, _ in models for g in parts]
+    units = [
+        (part_owner[gi], gi, lo, min(lo + BATCH_TRIS, len(p.faces)))
+        for gi, p in enumerate(flat_parts)
+        for lo in range(0, len(p.faces), BATCH_TRIS)
+    ]
+    units.sort(key=lambda u: u[2] - u[3])  # largest first
+    _WORK["parts"] = [(g.vertices, g.faces) for g in flat_parts]
+    _WORK["src"] = part_src
+    _WORK["tf"] = [(m[2], m[3], m[4]) for m in models]  # origin, scale, dims
+    # model mi's voxel ids are offset by vbase[mi] so keys are unique.
+    _WORK["vbase"] = np.concatenate(
+        [[0], np.cumsum([int(np.prod(m[4])) for m in models])]
+    ).astype(np.int64)
+    _WORK["boost"] = part_boost
+
+    pool = None
+    if jobs > 1:
+        try:
+            ctx = multiprocessing.get_context("fork")
+            pool = ctx.Pool(jobs)
+            results = pool.imap_unordered(_sample_unit, units)
+        except (ValueError, OSError):
+            print("note: 'fork' unavailable, falling back to --jobs 1",
+                  file=sys.stderr)
+            jobs = 1
+    if jobs == 1:
+        results = map(_sample_unit, units)
+
+    acc = []  # [(unique_keys, weights)] from workers, periodically merged
+    acc_len = 0
+    done = 0
+    next_report = 1
+    for uk, w in results:
+        acc.append((uk, w))
+        acc_len += len(uk)
+        if acc_len > 50_000_000:
+            acc = [merge_votes(acc)]
+            acc_len = len(acc[0][0])
+        done += 1
+        if done * 10 // len(units) >= next_report or done == len(units):
+            next_report = done * 10 // len(units) + 1
+            print(f"  sampling {done}/{len(units)} units", flush=True)
+    if pool is not None:
+        pool.close()
+        pool.join()
+        pool = None
+
+    if args.verbose:
+        report_materials(mat_stats)
+
+    uk, wsum = merge_votes(acc)
+    del acc
+    # key = (vox * 64 + facing_mask) * 4096 + (bid | 2048 for glass)
+    vox_of = uk >> 18
+    mask_of = ((uk >> 12) & 63).astype(np.uint8)
+    low = uk & 4095
+    del uk
+
+    # --- resolve each model's grid (votes are keyed by global voxel id; ---
+    # --- model mi's votes are the contiguous range [vbase[mi], vbase[mi+1]))
+    vbase = _WORK["vbase"]
+    cuts = np.searchsorted(vox_of, vbase)
+    multi = len(models) > 1
+    grids = []
+    for mi, (path, _, _, _, dims) in enumerate(models):
+        s = slice(cuts[mi], cuts[mi + 1])
+        tag = f"{Path(path).name}: " if multi else ""
+        grids.append(
+            votes_to_grid(
+                vox_of[s] - vbase[mi], mask_of[s], low[s], wsum[s], dims, tag
+            )
+        )
+    del vox_of, mask_of, low, wsum
+
+    # --- placement: min y -> y=1, first min x -> --x, z centered on 0; -----
+    # --- further models continue along +x with --gap between bboxes. -----
+    placed = []  # (grid, dims, x0, y0, z0)
     needed = set()
-    for dx in (-1, 0, 1):
-        cxs = (wx + dx) // CHUNK
-        for dy in (-1, 0, 1):
-            cys = (wy + dy) // CHUNK
-            for dz in (-1, 0, 1):
-                czs = (wz + dz) // CHUNK
-                needed.update(zip(cxs.tolist(), cys.tolist(), czs.tolist()))
+    x_cur = args.x
+    for (path, _, _, _, dims), grid in zip(models, grids):
+        x0, y0, z0 = x_cur, 1, -(int(dims[2]) // 2)
+        placed.append((grid, dims, x0, y0, z0))
+        x_cur += int(dims[0]) + args.gap
+        ii, jj, kk = np.nonzero(grid >= 0)
+        wx, wy, wz = ii + x0, jj + y0, kk + z0
+        # Chunks whose 64^3 range (halo included) contains a model voxel:
+        # chunk cp covers world [62*cp - 1, 62*cp + 62], so a voxel at w
+        # belongs to floor((w-1)/62), floor(w/62) and floor((w+1)/62).
+        for dx in (-1, 0, 1):
+            cxs = (wx + dx) // CHUNK
+            for dy in (-1, 0, 1):
+                cys = (wy + dy) // CHUNK
+                for dz in (-1, 0, 1):
+                    czs = (wz + dz) // CHUNK
+                    needed.update(zip(cxs.tolist(), cys.tolist(), czs.tolist()))
 
     # index order: y, x, z (z fastest) matches (y+1)*64*64 + (x+1)*64 + (z+1)
     _WORK.update(
-        grid=grid,
-        x0=x0, y0=y0, z0=z0,
+        models=placed,
         sandstone_id=sandstone_id,
         world_dir=world_dir,
     )
@@ -899,8 +966,17 @@ def main():
     with open(world_dir / "world_type", "w") as f:
         f.write("flat\n")
 
-    print(f"Model dims: {dims[0]} x {dims[1]} x {dims[2]} blocks")
-    print(f"Voxels placed: {nvox}")
+    if len(placed) == 1:
+        dims = placed[0][1]
+        print(f"Model dims: {dims[0]} x {dims[1]} x {dims[2]} blocks")
+    else:
+        print("Models placed:")
+        for (path, *_), (_, dims, x0, _, _) in zip(models, placed):
+            print(
+                f"  {Path(path).name}: {dims[0]} x {dims[1]} x {dims[2]}"
+                f" blocks @ x={x0}"
+            )
+    print(f"Voxels placed: {sum(int((g >= 0).sum()) for g, *_ in placed)}")
     print(f"Chunks written: {written}  ->  {world_dir}")
     print("Top blocks:")
     for bid, cnt in sorted(usage.items(), key=lambda kv: -kv[1])[:10]:

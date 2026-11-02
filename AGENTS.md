@@ -35,9 +35,10 @@ binary lands at `out/linux/release/RepGame`, the server at
 
 A save dir with a `world_type` file containing `flat` gets a sandstone floor
 and no terrain/multiplayer; `tools/model_to_world.py` voxelizes 3D models
-into such worlds. `make car` / `make car-run` build and launch the Ferrari
-example (incremental; `make clean-car` wipes the world so the next
-`make car` regenerates). See `docs/models.md`.
+into such worlds. `make car` / `make car-run` build and launch the car
+model(s) in `CAR_GLB` — multiple glbs go in a row along +x (incremental;
+`make clean-car` wipes the world so the next `make car` regenerates).
+See `docs/models.md`.
 
 ## Repo map
 
