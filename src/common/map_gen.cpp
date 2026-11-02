@@ -6,6 +6,7 @@
 #include "common/block_definitions.hpp"
 #include "common/perlin_noise.hpp"
 #include "common/chunk_loader.hpp"
+#include "common/utils/env_config.hpp"
 #include "common/chunk.hpp"
 
 #define MG_QUAL static inline
@@ -256,7 +257,7 @@ int MapGen::supports_hip( ) {
     // presence can't change mid-process — a lost device still falls back
     // per-chunk via load_block_hip returning false.
     static const int supported = []( ) {
-        if ( getenv( "REPGAME_NO_HIP" ) != nullptr ) {
+        if ( env_is_set( "REPGAME_NO_HIP" ) ) {
             return 0;
         }
         return MapGen::host_supports_hip( );

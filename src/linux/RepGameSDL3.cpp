@@ -5,6 +5,7 @@
 #include <chrono>
 
 #include "common/RepGame.hpp"
+#include "common/utils/env_config.hpp"
 #include "common/rep_tests.hpp"
 #ifdef REPGAME_LINUX
 #include "linux/wayland_cursor_warp.hpp"
@@ -73,7 +74,7 @@ void repgame_linux_process_sdl_events( RepGame &repgame ) {
         bool handledKeyboard = false;
 #if SUPPORTS_IMGUI_OVERLAY
         if ( !capture ) {
-            imgui_overlay_handle_sdl2_event( &globalGameState->imgui_overlay, &event, &handledMouse, &handledKeyboard );
+            imgui_overlay_handle_sdl2_event( &globalGameState->ui.imgui, &event, &handledMouse, &handledKeyboard );
         }
 #endif
         if ( capture && event.type != SDL_EVENT_WINDOW_RESIZED && event.type != SDL_EVENT_WINDOW_PIXEL_SIZE_CHANGED && event.type != SDL_EVENT_WINDOW_CLOSE_REQUESTED ) {
@@ -147,9 +148,9 @@ void main_loop_full( RepGame &repgame );
 void main_loop_vr( RepGame &repgame, OpenXRSession &xr );
 #endif
 
-int repgame_sdl2_main( const char *world_path, const char *host, const bool connect_multi, const bool tests ) {
-    if ( tests ) {
-        return rep_tests_start( );
+int repgame_sdl2_main( const char *world_path, const char *host, const bool connect_multi, const int test_argc, const char *const *test_argv ) {
+    if ( test_argv != nullptr ) {
+        return rep_tests_start( test_argc, test_argv );
     }
     // Video driver hint is set in main() (RepGameLinux.cpp) before the first
     // SDL_Init, since SDL_Init is idempotent and locks in the driver early.
@@ -194,7 +195,7 @@ int repgame_sdl2_main( const char *world_path, const char *host, const bool conn
     // odd sample counts and the swap-time resolve made the ImGui overlay
     // flicker. With a clean 4x this doesn't reproduce; if a driver ever
     // shows it again, REPGAME_WINDOW_MSAA=0 goes back to 0 samples.
-    static const bool window_msaa = !( getenv( "REPGAME_WINDOW_MSAA" ) && atoi( getenv( "REPGAME_WINDOW_MSAA" ) ) == 0 );
+    static const bool window_msaa = env_bool( "REPGAME_WINDOW_MSAA", true );
     SDL_GL_SetAttribute( SDL_GL_MULTISAMPLEBUFFERS, window_msaa ? 1 : 0 );
     SDL_GL_SetAttribute( SDL_GL_MULTISAMPLESAMPLES, window_msaa ? MSAA_SAMPLES : 0 );
 #endif
@@ -206,7 +207,7 @@ int repgame_sdl2_main( const char *world_path, const char *host, const bool conn
     // display on Wayland (where there's no native "primary" concept). Allow
     // overriding via REPGAME_DISPLAY env var (0-based index into display list).
     SDL_DisplayID display_id = SDL_GetPrimaryDisplay( );
-    if ( const char *display_env = getenv( "REPGAME_DISPLAY" ) ) {
+    if ( const char *display_env = env_get( "REPGAME_DISPLAY" ) ) {
         int parsed = atoi( display_env );
         int count = 0;
         const SDL_DisplayID *displays = SDL_GetDisplays( &count );
@@ -222,7 +223,8 @@ int repgame_sdl2_main( const char *world_path, const char *host, const bool conn
 #if defined( REPGAME_OPENXR )
     // OpenXR binds via XrGraphicsBindingEGLMNDX, so the SDL GL context must
     // be EGL (not GLX). REPGAME_VR=0 forces the flat path entirely.
-    const bool vr_disabled = ( getenv( "REPGAME_VR" ) && strcmp( getenv( "REPGAME_VR" ), "0" ) == 0 ) || getenv( "REPGAME_CAPTURE" );
+    const char *vr_env = env_get( "REPGAME_VR" );
+    const bool vr_disabled = ( vr_env && strcmp( vr_env, "0" ) == 0 ) || env_is_set( "REPGAME_CAPTURE" );
     if ( !vr_disabled ) {
         SDL_SetHint( SDL_HINT_VIDEO_FORCE_EGL, "1" );
     }
@@ -278,7 +280,7 @@ int repgame_sdl2_main( const char *world_path, const char *host, const bool conn
     RepGame &repgame = *repgamePrt;
     globalGameState = repgame.init( world_path, connect_multi, host, supportsAnisotropicFiltering );
 #if SUPPORTS_IMGUI_OVERLAY
-    imgui_overlay_attach_to_window( &globalGameState->imgui_overlay, sdl_window, sdl_context );
+    imgui_overlay_attach_to_window( &globalGameState->ui.imgui, sdl_window, sdl_context );
 #endif
 
     repgame_apply_vsync( );
@@ -491,7 +493,7 @@ static bool vr_mirror_enabled( ) {
 #else
     const bool default_mirror = true;
 #endif
-    const char *env = getenv( "REPGAME_VR_MIRROR" );
+    const char *env = env_get( "REPGAME_VR_MIRROR" );
     return env ? env[ 0 ] != '0' : default_mirror;
 }
 

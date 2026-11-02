@@ -148,9 +148,9 @@ void Multiplayer::handle_frame( RepGameState &state, const std::vector<uint8_t> 
                 }
             } else if ( block_is_chest( world.get_loaded_block( chest_pos ).id ) ) {
                 world.set_chest_contents( chest_pos, p.contents );
-                if ( state.chest.open && state.chest.pos == chest_pos ) {
+                if ( state.ui.chest.open && state.ui.chest.pos == chest_pos ) {
                     for ( int i = 0; i < CHEST_SLOTS; i++ ) {
-                        state.chest.inventory_renderer.changeSlotItem( i, p.contents.slots[ i ] );
+                        state.ui.chest.inventory_renderer.changeSlotItem( i, p.contents.slots[ i ] );
                     }
                 }
             }
@@ -164,8 +164,8 @@ void Multiplayer::handle_frame( RepGameState &state, const std::vector<uint8_t> 
             }
             const glm::ivec3 chest_pos( p.x, p.y, p.z );
             if ( world.set_chest_slot( chest_pos, static_cast<int>( p.slot_index ), p.slot_value ) &&
-                 state.chest.open && state.chest.pos == chest_pos ) {
-                state.chest.inventory_renderer.changeSlotItem( static_cast<int>( p.slot_index ), p.slot_value );
+                 state.ui.chest.open && state.ui.chest.pos == chest_pos ) {
+                state.ui.chest.inventory_renderer.changeSlotItem( static_cast<int>( p.slot_index ), p.slot_value );
             }
             break;
         }

@@ -147,10 +147,12 @@ SF_DIRS := $(patsubst src%,$(SF_OUT)/release%,$(shell find src -type d)) \
 
 $(SF_OUT)/release/%.o: src/%.cpp | $(SF_OUT)
 	@#Use g++ to build o file and a dependecy tree .d file for every cpp file
+	@mkdir -p $(@D)
 	$(CC_SF) $(INCLUDES_COMMON) $(CFLAGS_SF) $(CFLAGS_SF_RELEASE) -MMD -MP -MF $(patsubst %.o,%.d,$@) -MT $(patsubst %.d,%.o,$@) -c $< -o $@
 
 $(SF_OUT)/debug/%.o: src/%.cpp | $(SF_OUT)
 	@#Use g++ to build o file and a dependecy tree .d file for every cpp file
+	@mkdir -p $(@D)
 	$(CC_SF) $(INCLUDES_COMMON) $(CFLAGS_SF) $(CFLAGS_SF_DEBUG) -MMD -MP -MF $(patsubst %.o,%.d,$@) -MT $(patsubst %.d,%.o,$@) -c $< -o $@
 
 # Vendored imgui keeps -Wall/-Wextra warnings but isn't held to -Werror

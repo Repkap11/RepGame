@@ -94,6 +94,7 @@ WASM_DIRS = $(patsubst src%,out/wasm%,$(shell find src -type d)) \
 			out/wasm/imgui/backends
 
 out/wasm/%.o: src/%.cpp $(HEADERS) src/wasm/RepGameSDL2.cpp | out/wasm
+	@mkdir -p $(@D)
 	$(CC_WASM) $(INCLUDES_COMMON) $(CFLAGS_WASM) -c $< -o $@
 
 # src/wasm/input.cpp is just #include "../linux/input.cpp".

@@ -7,6 +7,7 @@
 #include "common/chunk.hpp"
 #include "common/map_gen.hpp"
 #include "common/mob_types.hpp"
+#include "common/utils/env_config.hpp"
 #include "common/mesh_gen.hpp"
 #include "common/utils/map_storage.hpp"
 #include "common/structure_gen.hpp"
@@ -740,8 +741,8 @@ void Chunk::load_terrain( MapStorage &map_storage ) {
         }
         // Per-chunk env checks are cached — this runs once per chunk on every
         // terrain worker, and the values can't change mid-process.
-        static const bool no_hip_mapgen = getenv( "REPGAME_NO_HIP_MAPGEN" ) != nullptr;
-        static const bool no_webgpu_mapgen = getenv( "REPGAME_NO_WEBGPU_MAPGEN" ) != nullptr;
+        static const bool no_hip_mapgen = env_is_set( "REPGAME_NO_HIP_MAPGEN" );
+        static const bool no_webgpu_mapgen = env_is_set( "REPGAME_NO_WEBGPU_MAPGEN" );
         if ( LOAD_CHUNKS_SUPPORTS_CUDA && MapGen::supports_cuda( ) ) {
             if ( firstTime ) {
                 firstTime = 0;
@@ -809,7 +810,7 @@ skip_to_mesh:
     // generated chunk rolls spawn_chance per type. Skipped entirely for
     // REPGAME_MOB_TEST runs and REPGAME_MOBS=0. Static env reads: this runs
     // once per chunk on every terrain worker and env can't change mid-run.
-    static const bool no_mobs = ( getenv( "REPGAME_MOBS" ) != nullptr && atoi( getenv( "REPGAME_MOBS" ) ) == 0 ) || getenv( "REPGAME_MOB_TEST" ) != nullptr;
+    static const bool no_mobs = !env_bool( "REPGAME_MOBS", true ) || env_is_set( "REPGAME_MOB_TEST" );
     this->pending_mobs.clear( );
     this->mobs_file_present = 0;
     this->mobs_spawned = 0;
@@ -986,13 +987,13 @@ void Chunk::calculate_populated_blocks( ) {
 
     bool used_gpu_mesh = false;
 #if defined( REPGAME_BUILD_WITH_HIP )
-    static const bool no_hip_mesh = getenv( "REPGAME_NO_HIP_MESH" ) != nullptr;
+    static const bool no_hip_mesh = env_is_set( "REPGAME_NO_HIP_MESH" );
     if ( LOAD_CHUNKS_SUPPORTS_HIP && MapGen::supports_hip( ) && !no_hip_mesh ) {
         used_gpu_mesh = mesh_gen_calculate_hip( this->cells, workingSpace );
     }
 #endif
 #if defined( REPGAME_WASM )
-    static const bool no_webgpu_mesh = getenv( "REPGAME_NO_WEBGPU_MESH" ) != nullptr;
+    static const bool no_webgpu_mesh = env_is_set( "REPGAME_NO_WEBGPU_MESH" );
     if ( !used_gpu_mesh && LOAD_CHUNKS_SUPPORTS_WEBGPU && !no_webgpu_mesh && MapGen::supports_webgpu( ) ) {
         used_gpu_mesh = mesh_gen_calculate_webgpu( this->cells, workingSpace );
     }
@@ -1430,7 +1431,7 @@ void Chunk::program_terrain( ) {
     // upload. Catches host-memory corruption (stray DMA writes from
     // concurrent GPU compute) before it reaches the GPU as garbage
     // instances / stray fragments.
-    static const int validate_instances = getenv( "REPGAME_VALIDATE_INSTANCES" ) != nullptr;
+    static const int validate_instances = env_is_set( "REPGAME_VALIDATE_INSTANCES" );
     for ( int renderOrder = 0; renderOrder < LAST_RENDER_ORDER; renderOrder++ ) {
         RenderLayer &renderLayer = this->layers[ renderOrder ];
         // populated_blocks is null for a re-finalized chunk that already

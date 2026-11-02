@@ -2,6 +2,7 @@
 #include "common/RepGame.hpp"
 #include "common/chunk.hpp"
 #include "common/chunk_loader.hpp"
+#include "common/utils/env_config.hpp"
 #include "common/renderer/screenshot.hpp"
 #include "common/block_update_events/BlockNextToChangeEvent.hpp"
 #include "common/block_update_events/BlockNextToChangeEvent.hpp"
@@ -287,7 +288,7 @@ void World::draw( const Texture &blocksTexture, const glm::mat4 &mvp, const glm:
     // unchanged), so the haze stays thin at large render distances instead
     // of scaling up, while still reaching full opacity at the edge to hide
     // chunk pop-in.
-    static const float fog_range_blocks = getenv( "REPGAME_FOG_RANGE" ) ? atof( getenv( "REPGAME_FOG_RANGE" ) ) : 96.0f;
+    static const float fog_range_blocks = env_float( "REPGAME_FOG_RANGE", 96.0f );
     // The fog band ends at the ACTIVE render edge (runtime radius), not the
     // torus capacity, so pop-in stays hidden at small render distances.
     const float render_distance = static_cast<float>( this->chunkLoader.render_distance_blocks( ) );

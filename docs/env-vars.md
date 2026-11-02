@@ -1,7 +1,13 @@
 # Environment variables
 
-Every `REPGAME_*` variable read via `getenv` in `src/`/`include/` (plus the
-WASM URL-param seam). On WASM every `REPGAME_*` URL query parameter becomes
+Every `REPGAME_*` variable read in `src/`/`include/` (plus the
+WASM URL-param seam). Reads go through the typed helpers in
+`include/common/utils/env_config.hpp` (`env_is_set`, `env_bool`,
+`env_int`, `env_long`, `env_float`, `env_double`, `env_str`) — don't add
+new `getenv` calls. The capture/fly/walktest harness variables are parsed
+once at startup into `RunPolicy` (`include/common/harness/run_policy.hpp`,
+`src/common/harness/run_policy.cpp`); production code reads the policy,
+not the environment. On WASM every `REPGAME_*` URL query parameter becomes
 an environment variable (`src/wasm/index.js` `preRun` copies them into
 Emscripten's `ENV`), so all of these work as `?REPGAME_FOO=...` there.
 "Platforms" lists where the variable is actually read; unset vars elsewhere

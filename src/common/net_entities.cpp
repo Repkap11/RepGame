@@ -333,7 +333,7 @@ bool NetEntities::handle( RepGameState &state, NetMsgType type, int32_t player_i
             if ( p.granted > 0 ) {
                 RepGame::give_item_to_player( state, static_cast<ItemID>( p.item ), p.granted );
                 audio_play_sfx_gain( "pop", 0.5f );
-                state.ui_overlay.set_holding_item( state.hotbar.getSelectedItem( ) );
+                state.ui.overlay.set_holding_item( state.hotbar.getSelectedItem( ) );
             }
             if ( it != nullptr ) {
                 // The ENTITY_REMOVE (full pickup) or updated ENTITY_STATE

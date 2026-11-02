@@ -6,6 +6,7 @@
 #include <emscripten/html5.h>
 
 #include "common/RepGame.hpp"
+#include "common/utils/env_config.hpp"
 #include "common/audio.hpp"
 #include "common/rep_tests.hpp"
 #include "common/map_gen.hpp"
@@ -64,7 +65,7 @@ void repgame_linux_process_sdl_events( RepGame &repgame ) {
         bool handledKeyboard = false;
 #if SUPPORTS_IMGUI_OVERLAY
         if ( !capture ) {
-            imgui_overlay_handle_sdl2_event( &globalGameState->imgui_overlay, &event, &handledMouse, &handledKeyboard );
+            imgui_overlay_handle_sdl2_event( &globalGameState->ui.imgui, &event, &handledMouse, &handledKeyboard );
         }
 #endif
         // pr_debug( "Event: mouse:%d keyboard:%d", handledMouse, handledKeyboard );
@@ -166,9 +167,9 @@ void main_loop_wasm( void *arg );
 
 static SDL_Window *sdl_window = nullptr;
 static SDL_GLContext sdl_context = nullptr;
-int repgame_sdl2_main( const char *world_path, const char *host, const bool connect_multi, const bool tests ) {
-    if ( tests ) {
-        return rep_tests_start( );
+int repgame_sdl2_main( const char *world_path, const char *host, const bool connect_multi, const int test_argc, const char *const *test_argv ) {
+    if ( test_argv != nullptr ) {
+        return rep_tests_start( test_argc, test_argv );
     }
     if ( SDL_Init( SDL_INIT_VIDEO | SDL_INIT_AUDIO ) != 0 ) { /* Initialize SDL's Video+Audio subsystems */
         pr_debug( "Unable to initialize SDL" );                 /* Or die on error */
@@ -191,8 +192,7 @@ int repgame_sdl2_main( const char *world_path, const char *host, const bool conn
     // EGL_SAMPLE_BUFFERS/EGL_SAMPLES to the WebGL `antialias` context
     // attribute; the browser picks the sample count (normally 4).
     // REPGAME_MSAA=0 disables it for A/B comparison.
-    const char *msaa_env = getenv( "REPGAME_MSAA" );
-    const bool msaa = !( msaa_env && atoi( msaa_env ) == 0 );
+    const bool msaa = env_bool( "REPGAME_MSAA", true );
     SDL_GL_SetAttribute( SDL_GL_MULTISAMPLEBUFFERS, msaa ? 1 : 0 );
     SDL_GL_SetAttribute( SDL_GL_MULTISAMPLESAMPLES, msaa ? 4 : 0 );
     pr_debug( "MSAA requested: %s", msaa ? "on (4x)" : "off (REPGAME_MSAA=0)" );
@@ -235,7 +235,7 @@ int repgame_sdl2_main( const char *world_path, const char *host, const bool conn
     RepGame &repgame = *repgamePrt;
     globalGameState = repgame.init( world_path, connect_multi, host, supportsAnisotropicFiltering );
 #if SUPPORTS_IMGUI_OVERLAY
-    imgui_overlay_attach_to_window( &globalGameState->imgui_overlay, sdl_window, sdl_context );
+    imgui_overlay_attach_to_window( &globalGameState->ui.imgui, sdl_window, sdl_context );
 #endif
     // Same as the native init path: seed screen size/proj explicitly so the
     // first frame is correct even if no SDL_WINDOWEVENT_RESIZED arrives

@@ -22,8 +22,10 @@ binary lands at `out/linux/release/RepGame`, the server at
 ## Testing
 
 - `make tests` — debug client unit tests (`RepGame tests`,
-  `src/common/rep_tests.cpp`)
+  `src/common/tests/`); `make tests TESTS="net_ mobs"` runs only tests whose
+  name contains a filter
 - `make server-test` — server self-test (`RepGameServer --selftest`)
+- `make test` — tests + server-test (`test-all` adds mp-test)
 - `make mp-test` — end-to-end multiplayer scenarios; see the `mp-test` skill
 - `make check` — cppcheck over `src/`
 - Capture-diff caveat: `capture_0` flat captures are bistable run-to-run —
@@ -44,6 +46,22 @@ See `docs/models.md`.
 
 - `src/common/` — platform-independent game code (world, mobs, items,
   bodies, crafting, light, net sync)
+- `src/common/game/` — the `RepGame` member-function implementation,
+  split by concern (player input/physics, inventory+crafting UI, tick,
+  init/save, render, VR); `src/common/RepGame.cpp` keeps only the thin
+  harness/state accessors. `include/common/game/` holds the matching state
+  types — `RepGame.hpp` is the API; `game_state.hpp` carries
+  `RepGameState` + `ScreenState`, with `player_state.hpp`, `ui_state.hpp`,
+  `vr_state.hpp` for the sub-structs
+- `src/common/harness/` — `RunPolicy`: the parsed capture/fly/walktest/
+  teleport debug state; all `REPGAME_*` env reads go through
+  `include/common/utils/env_config.hpp`
+- `src/common/tests/` — the in-game `rep_tests` suite, one file per
+  subsystem, run via `RepGame tests` / `make tests`
+- `src/common/utils/map_storage.cpp` + `player_data.cpp` — chunk files and
+  `player.dat`; the player save is a human-readable text format
+  (`include/common/player_data.hpp`), with the five historical binary
+  layouts still accepted on read
 - `src/linux/` — SDL3 desktop client (also base for ARM/SteamFrame/Windows)
 - `src/server/` — dedicated server (`ServerEntities`, `ServerLogic`)
 - `src/wasm/` — Emscripten client (SDL2, WASMFS, WebGPU backend)

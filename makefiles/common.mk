@@ -139,6 +139,12 @@ clean: clean-vars
 clean-vars:
 	rm -rf out/vars
 
-.PHONY: clean-bitmaps check clean-vars test-vars mobs-import blocks-import
+# All test suites: the in-game rep_tests + the server --selftest.
+# `make test-all` additionally runs the mp end-to-end scenarios (slow).
+test: tests server-test
+
+test-all: test mp-test
+
+.PHONY: clean-bitmaps check clean-vars test-vars mobs-import blocks-import test test-all
 
 .PRECIOUS: $(BITMAP_BINS)

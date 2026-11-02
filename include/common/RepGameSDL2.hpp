@@ -14,4 +14,6 @@
 #endif
 #endif
 
-int repgame_sdl2_main( const char *world_path, const char *host, bool connect_multi, bool tests );
+// test_argv != nullptr: run the rep_tests suite instead of the game, using
+// test_argv[0..test_argc) as optional test-name filters (see rep_tests.hpp).
+int repgame_sdl2_main( const char *world_path, const char *host, bool connect_multi, int test_argc, const char *const *test_argv );

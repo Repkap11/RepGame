@@ -151,7 +151,7 @@ void BlockBodies::lift_bodies_above( const glm::ivec3 &cell, const uint32_t skip
     std::sort( order.begin( ), order.end( ), [ this ]( size_t a, size_t b ) { return this->bodies[ a ].min.y < this->bodies[ b ].min.y; } );
     for ( const size_t oi : order ) {
         Body &b = this->bodies[ oi ];
-        if ( b.id == skip_id || b.net_mirror ) {
+        if ( b.id == skip_id || b.net.mirror ) {
             continue;
         }
         const double bcy = b.min.y + BODY_SIZE * 0.5;
@@ -279,7 +279,7 @@ bool BlockBodies::take( const uint32_t id, glm::dvec3 *center ) {
 
 void BlockBodies::impulse( const glm::dvec3 &center, const double radius, const double strength ) {
     for ( Body &b : this->bodies ) {
-        if ( b.net_mirror ) {
+        if ( b.net.mirror ) {
             continue; // mirrors are shoved by their own sim's blast
         }
         const glm::dvec3 offset = body_center( b ) - center;
@@ -296,7 +296,7 @@ void BlockBodies::impulse( const glm::dvec3 &center, const double radius, const 
 void BlockBodies::land_all( RepGameState &state ) {
     World &world = state.world;
     for ( Body &b : this->bodies ) {
-        if ( b.net_mirror ) {
+        if ( b.net.mirror ) {
             continue; // mirrors land on their own sim's client
         }
         this->send_net_remove( b, NET_REMOVE_DESPAWN );
@@ -332,7 +332,7 @@ void BlockBodies::tick( RepGameState &state ) {
     std::unordered_map<int64_t, std::vector<int>> hash;
     hash.reserve( this->bodies.size( ) * 4 );
     for ( size_t i = 0; i < this->bodies.size( ); i++ ) {
-        if ( this->bodies[ i ].net_mirror ) {
+        if ( this->bodies[ i ].net.mirror ) {
             continue; // mirrors never collide with simulated bodies
         }
         const glm::dvec3 &mn = this->bodies[ i ].min;
@@ -362,17 +362,17 @@ void BlockBodies::tick( RepGameState &state ) {
     for ( const size_t oi : order ) {
         Body &b = this->bodies[ oi ];
         b.prev_min = b.min;
-        if ( b.net_mirror ) {
+        if ( b.net.mirror ) {
             // Mirror of a remote-simulated body: interpolation only — no
             // physics, settling, impulses or collisions. ENTITY_REMOVE (or
             // CHUNK_ROLE NONE / disconnect) ends it.
-            const glm::dvec3 delta = b.net_min - b.min;
+            const glm::dvec3 delta = b.net.pos - b.min;
             if ( glm::length( delta ) > 4.0 ) {
-                b.min = b.net_min;
+                b.min = b.net.pos;
             } else {
                 b.min += delta * 0.35;
             }
-            b.vel = b.net_vel;
+            b.vel = b.net.vel;
             continue;
         }
         if ( freeze || !body_chunk_live( world, b ) ) {
@@ -619,7 +619,7 @@ void BlockBodies::cleanup( ) {
 // ---------------------------------------------------------------------------
 
 static glm::ivec3 body_net_chunk_of( const glm::dvec3 &pos ) {
-    return glm::ivec3( glm::floor( pos / glm::dvec3( CHUNK_SIZE_X, CHUNK_SIZE_Y, CHUNK_SIZE_Z ) ) );
+    return net_entity_chunk_of( pos );
 }
 
 void BlockBodies::set_multiplayer_mode( const bool mp_mode, NetEntities *net ) {
@@ -628,15 +628,15 @@ void BlockBodies::set_multiplayer_mode( const bool mp_mode, NetEntities *net ) {
 }
 
 void BlockBodies::announce_spawn( Body &b ) {
-    if ( this->net == nullptr || b.net_id != 0 ) {
+    if ( this->net == nullptr || b.net.id != 0 ) {
         return;
     }
     const NetEntityId nid = this->net->mint_id( );
     if ( nid == 0 ) {
         return;
     }
-    b.net_id = nid;
-    b.net_chunk = body_net_chunk_of( b.min );
+    b.net.id = nid;
+    b.net.chunk = body_net_chunk_of( b.min );
     NetEntityRecord rec;
     rec.id = nid;
     rec.kind = NetEntityKind::BODY;
@@ -653,22 +653,11 @@ void BlockBodies::announce_spawn( Body &b ) {
 }
 
 void BlockBodies::send_net_remove( Body &b, const uint8_t reason ) {
-    if ( this->net == nullptr || b.net_id == 0 || b.net_mirror ) {
-        return;
-    }
-    this->net->send_remove( b.net_id, reason );
+    netsync_send_remove( this->net, b.net, reason );
 }
 
 BlockBodies::Body *BlockBodies::find_by_net_id( const NetEntityId net_id ) {
-    if ( net_id == 0 ) {
-        return nullptr;
-    }
-    for ( Body &b : this->bodies ) {
-        if ( b.net_id == net_id ) {
-            return &b;
-        }
-    }
-    return nullptr;
+    return netsync_find( this->bodies, net_id );
 }
 
 bool BlockBodies::spawn_record( const NetEntityRecord &rec, const bool mirror, const long now_tick ) {
@@ -693,11 +682,7 @@ bool BlockBodies::spawn_record( const NetEntityRecord &rec, const bool mirror, c
         b.fuse_ticks = rec.fuse_ticks;
     }
     resolve_body_faces( b.state, b.face );
-    b.net_id = rec.id;
-    b.net_mirror = mirror;
-    b.net_min = b.min;
-    b.net_vel = b.vel;
-    b.net_chunk = body_net_chunk_of( b.min );
+    netsync_apply_record( b.net, rec, mirror );
     this->bodies.push_back( b );
     return true;
 }
@@ -705,10 +690,10 @@ bool BlockBodies::spawn_record( const NetEntityRecord &rec, const bool mirror, c
 void BlockBodies::net_apply_spawn( const NetEntityRecord &rec, const bool mirror, const long now_tick ) {
     Body *existing = this->find_by_net_id( rec.id );
     if ( existing != nullptr ) {
-        if ( existing->net_mirror ) {
-            existing->net_min = glm::dvec3( rec.x, rec.y, rec.z );
-            existing->net_vel = glm::dvec3( rec.vx, rec.vy, rec.vz );
-            existing->net_chunk = body_net_chunk_of( existing->net_min );
+        if ( existing->net.mirror ) {
+            existing->net.pos = glm::dvec3( rec.x, rec.y, rec.z );
+            existing->net.vel = glm::dvec3( rec.vx, rec.vy, rec.vz );
+            existing->net.chunk = body_net_chunk_of( existing->net.pos );
         }
         return;
     }
@@ -717,17 +702,17 @@ void BlockBodies::net_apply_spawn( const NetEntityRecord &rec, const bool mirror
 
 void BlockBodies::net_apply_state( const NetEntityStateEntry &e ) {
     Body *b = this->find_by_net_id( e.id );
-    if ( b == nullptr || !b->net_mirror ) {
+    if ( b == nullptr || !b->net.mirror ) {
         return;
     }
-    b->net_min = glm::dvec3( e.x, e.y, e.z );
-    b->net_vel = glm::dvec3( e.vx, e.vy, e.vz );
-    b->net_chunk = net_entity_next_chunk( b->net_chunk, b->net_min );
+    b->net.pos = glm::dvec3( e.x, e.y, e.z );
+    b->net.vel = glm::dvec3( e.vx, e.vy, e.vz );
+    netsync_track_chunk( b->net, b->net.pos );
 }
 
 void BlockBodies::net_apply_remove( const NetEntityId net_id ) {
     for ( size_t i = 0; i < this->bodies.size( ); i++ ) {
-        if ( this->bodies[ i ].net_id == net_id && net_id != 0 ) {
+        if ( this->bodies[ i ].net.id == net_id && net_id != 0 ) {
             remove_body( i );
             return;
         }
@@ -744,8 +729,8 @@ void BlockBodies::net_apply_transfer( RepGameState &state, const NetEntityRecord
         }
         b = &this->bodies.back( );
     }
-    b->net_mirror = false;
-    b->net_sent = false; // stream resumes with the next collect
+    b->net.mirror = false;
+    b->net.sent = false; // stream resumes with the next collect
     if ( b->kind == BODY_PRIMED_TNT ) {
         // The previous sim's explode event died with it — reschedule from
         // the wire record's remaining fuse, same shape as tnt_launch's.
@@ -759,7 +744,7 @@ void BlockBodies::net_apply_transfer( RepGameState &state, const NetEntityRecord
 void BlockBodies::net_apply_chunk_role( const glm::ivec3 &chunk, const uint8_t role, const std::vector<NetEntityRecord> &records, const std::set<NetEntityId> &keep_ids ) {
     if ( role == NET_ROLE_NONE ) {
         for ( size_t i = 0; i < this->bodies.size( ); ) {
-            if ( this->bodies[ i ].net_mirror && this->bodies[ i ].net_chunk == chunk ) {
+            if ( this->bodies[ i ].net.mirror && this->bodies[ i ].net.chunk == chunk ) {
                 remove_body( i );
             } else {
                 i++;
@@ -777,7 +762,7 @@ void BlockBodies::net_apply_chunk_role( const glm::ivec3 &chunk, const uint8_t r
     }
     for ( size_t i = 0; i < this->bodies.size( ); ) {
         const Body &b = this->bodies[ i ];
-        if ( b.net_mirror && b.net_id != 0 && b.net_chunk == chunk && by_id.find( b.net_id ) == by_id.end( ) && !keep_ids.count( b.net_id ) ) {
+        if ( b.net.mirror && b.net.id != 0 && b.net.chunk == chunk && by_id.find( b.net.id ) == by_id.end( ) && !keep_ids.count( b.net.id ) ) {
             remove_body( i );
         } else {
             i++;
@@ -789,15 +774,15 @@ void BlockBodies::net_apply_chunk_role( const glm::ivec3 &chunk, const uint8_t r
         }
         Body *existing = this->find_by_net_id( rec.id );
         if ( existing != nullptr ) {
-            if ( existing->net_mirror ) {
-                existing->net_min = glm::dvec3( rec.x, rec.y, rec.z );
-                existing->net_vel = glm::dvec3( rec.vx, rec.vy, rec.vz );
+            if ( existing->net.mirror ) {
+                existing->net.pos = glm::dvec3( rec.x, rec.y, rec.z );
+                existing->net.vel = glm::dvec3( rec.vx, rec.vy, rec.vz );
                 // The grant's chunk is authoritative (margin records have
                 // floor(pos) != the server's chunk).
-                existing->net_chunk = chunk;
+                existing->net.chunk = chunk;
             }
         } else if ( this->spawn_record( rec, true, this->now_tick ) ) {
-            this->bodies.back( ).net_chunk = chunk;
+            this->bodies.back( ).net.chunk = chunk;
         }
     }
 }
@@ -806,7 +791,7 @@ void BlockBodies::net_disconnect( ) {
     // Mirror bodies freeze mid-air without their sim — drop them. Bodies we
     // simulate keep flying locally.
     for ( size_t i = 0; i < this->bodies.size( ); ) {
-        if ( this->bodies[ i ].net_mirror ) {
+        if ( this->bodies[ i ].net.mirror ) {
             remove_body( i );
         } else {
             i++;
@@ -816,18 +801,16 @@ void BlockBodies::net_disconnect( ) {
 
 void BlockBodies::collect_net_state( std::vector<NetEntityStateEntry> &out, const long tick_number ) {
     for ( Body &b : this->bodies ) {
-        if ( b.net_id == 0 || b.net_mirror ) {
+        if ( b.net.id == 0 || b.net.mirror ) {
             continue;
         }
-        const bool keyframe = tick_number - b.net_keyframe_tick >= UPS_RATE;
-        const bool changed = !b.net_sent ||                                  //
-                             glm::length( b.min - b.net_sent_min ) > 1e-4 || //
-                             glm::length( b.vel - b.net_sent_vel ) > 1e-4;
+        const bool keyframe = netsync_keyframe_due( b.net, tick_number );
+        const bool changed = !b.net.sent || netsync_moved( b.net, b.min, b.vel );
         if ( !changed && !keyframe ) {
             continue;
         }
         NetEntityStateEntry e;
-        e.id = b.net_id;
+        e.id = b.net.id;
         e.kind = static_cast<uint8_t>( NetEntityKind::BODY );
         e.x = b.min.x;
         e.y = b.min.y;
@@ -836,13 +819,7 @@ void BlockBodies::collect_net_state( std::vector<NetEntityStateEntry> &out, cons
         e.vy = static_cast<float>( b.vel.y );
         e.vz = static_cast<float>( b.vel.z );
         out.push_back( e );
-        b.net_sent = true;
-        b.net_sent_min = b.min;
-        b.net_sent_vel = b.vel;
         // The server now applies its boundary hysteresis to this pos.
-        b.net_chunk = net_entity_next_chunk( b.net_chunk, b.min );
-        if ( keyframe ) {
-            b.net_keyframe_tick = tick_number;
-        }
+        netsync_mark_sent( b.net, b.min, b.vel, tick_number, keyframe );
     }
 }

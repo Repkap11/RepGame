@@ -49,5 +49,5 @@ int main( int argc, char **argv ) {
     const char *world_path = "repgame_wasm/World1";
     const char *server = g_server_url[ 0 ] ? g_server_url : NULL;
 
-    return repgame_sdl2_main( world_path, server, server != NULL, false );
+    return repgame_sdl2_main( world_path, server, server != NULL, 0, nullptr );
 }

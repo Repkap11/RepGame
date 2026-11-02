@@ -9,6 +9,7 @@
 #include "common/chest.hpp" // Compare_I_Vec3
 #include "common/mob_types.hpp"
 #include "common/net/packet.hpp"
+#include "common/net/net_sync.hpp"
 #include "common/utils/map_storage.hpp"
 
 class World;
@@ -113,23 +114,17 @@ class MobManager {
         int fuse_ticks;     // creeper fuse; >0 while lit, counts down to defuse
         int burn_acc;       // daylight-burn damage accumulator ticks
         float wing_phase;   // wing-flap oscillator
-        // Multiplayer sync (net_id 0 / net_mirror false in single player):
-        NetEntityId net_id;     // server-assigned identity; 0 = local-only
-        bool net_mirror;        // mirror of a remote-owned mob: no sim
-        glm::ivec3 net_chunk;   // chunk the server believes it's in
-        glm::dvec3 net_pos;     // mirror interpolation target (feet)
-        glm::dvec3 net_vel;
-        float net_yaw;
-        uint32_t net_flags;     // last seen/sent NET_MOB_FLAG_* bits
-        bool net_natural;       // our own natural-spawn roll product
-        // Outbound state tracking for owner-side ENTITY_STATE throttling.
-        bool net_sent;
-        glm::dvec3 net_sent_pos;
-        glm::dvec3 net_sent_vel;
+        // Multiplayer sync (net.id 0 / net.mirror false in single player):
+        // mirrors run no sim — tick_mirror eases pos/yaw toward the net
+        // targets and derives gait from the applied motion.
+        NetSync net;
+        float net_yaw;        // mirror look target, degrees
+        uint32_t net_flags;   // last seen/sent NET_MOB_FLAG_* bits
+        bool net_natural;     // our own natural-spawn roll product
+        // Outbound tracking for fields beyond the shared pos/vel throttle.
         float net_sent_yaw;
         float net_sent_health;
         uint32_t net_sent_flags;
-        long net_keyframe_tick;
         std::vector<entt::entity> parts; // one render entity per model cube
     };
     // A chunk this manager took ownership of via adopt_chunk: its mobs file
@@ -227,8 +222,8 @@ class MobManager {
     bool multiplayer_mode( ) const { return this->mp_mode; }
     // Whether a raycast-resolved mob is a remote-owned mirror (hitting it
     // sends ENTITY_ACTION instead of applying damage locally).
-    bool net_mirror_at( int index ) const { return index >= 0 && this->mobs[ index ].net_mirror; }
-    NetEntityId net_id_at( int index ) const { return index >= 0 ? this->mobs[ index ].net_id : 0; }
+    bool net_mirror_at( int index ) const { return index >= 0 && this->mobs[ index ].net.mirror; }
+    NetEntityId net_id_at( int index ) const { return index >= 0 ? this->mobs[ index ].net.id : 0; }
     // Local hurt feedback for a mirror hit (flash + sfx, no damage).
     void mirror_hit_feedback( int index, const glm::dvec3 &attacker_pos );
     // Incoming record handlers (called by NetEntities).

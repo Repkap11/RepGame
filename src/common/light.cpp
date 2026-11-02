@@ -12,6 +12,7 @@
 
 #include "common/RepGame.hpp" // GL headers + platform macros
 #include "common/light.hpp"
+#include "common/utils/env_config.hpp"
 #include "common/chunk_loader.hpp"
 #include "common/block_definitions.hpp"
 #include "common/renderer/texture.hpp"
@@ -843,8 +844,7 @@ static void light_cols_unlock( const int *cols, const int n ) {
 // 1 relies on the disjoint-cell argument above. Resolved once per process.
 static int light_claim_radius( ) {
     static const int r = []( ) {
-        const char *env = getenv( "REPGAME_LIGHT_CLAIM_RADIUS" );
-        const int v = env ? atoi( env ) : 1;
+        const int v = env_int( "REPGAME_LIGHT_CLAIM_RADIUS", 1 );
         return v < 1 ? 1 : ( v > 4 ? 4 : v );
     }( );
     return r;
@@ -854,8 +854,7 @@ static int light_claim_radius( ) {
 // sized for the max, so the env only changes how many threads spawn.
 static int light_worker_count( ) {
     static const int n = []( ) {
-        const char *env = getenv( "REPGAME_LIGHT_WORKERS" );
-        const int v = env ? atoi( env ) : 4;
+        const int v = env_int( "REPGAME_LIGHT_WORKERS", 4 );
         return v < 1 ? 1 : ( v > LIGHT_MAX_WORKERS ? LIGHT_MAX_WORKERS : v );
     }( );
     return n;
@@ -2586,10 +2585,9 @@ bool light_mipmaps_enabled( ) {
     // Resolved once and constant for the process lifetime — the texture
     // format and mip chain are decided by it.
     static const bool enabled = []( ) {
-        const char *env = getenv( "REPGAME_LIGHT_MIPMAPS" );
         // Default on everywhere; the env var is the escape hatch if a driver
         // makes 3D mipmap generation expensive on the upload path.
-        const bool e = env ? atoi( env ) != 0 : true;
+        const bool e = env_bool( "REPGAME_LIGHT_MIPMAPS", true );
         pr_debug( "Light mipmaps: %s", e ? "on" : "off" );
         return e;
     }( );

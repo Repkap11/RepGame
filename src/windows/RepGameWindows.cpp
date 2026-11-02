@@ -13,5 +13,5 @@ int main( int argc, char **argv ) {
         return -1;
     }
 
-    return repgame_sdl2_main( world_path, NULL, false, false );
+    return repgame_sdl2_main( world_path, NULL, false, 0, nullptr );
 }

@@ -33,6 +33,7 @@
 #include <webgpu/webgpu.h>
 
 #include "common/map_gen.hpp"
+#include "common/utils/env_config.hpp"
 #include "common/mesh_gen.hpp"
 #include "common/Logging.hpp"
 
@@ -869,7 +870,7 @@ void webgpu_mapgen_pump( ) {
 int MapGen::supports_webgpu( ) {
     // REPGAME_WEBGPU=1 opts the backend in — off by default (unlike
     // REPGAME_NO_HIP's opt-out). Resolved once per process.
-    static const int enabled = getenv( "REPGAME_WEBGPU" ) != nullptr && atoi( getenv( "REPGAME_WEBGPU" ) ) != 0;
+    static const int enabled = env_enabled( "REPGAME_WEBGPU" );
     if ( !enabled ) {
         return 0;
     }

@@ -1,5 +1,6 @@
 #include "common/audio.hpp"
 #include "common/block_definitions.hpp"
+#include "common/utils/env_config.hpp"
 
 #include <stdio.h>
 #include <string.h>
@@ -287,12 +288,13 @@ struct SfxPcm {
 };
 std::vector<SfxPcm> sfx_cache;
 
-float env_float( const char *name, float fallback ) {
-    const char *env = getenv( name );
+// Gain knobs clamp to [0,1] — unlike the generic env_float helper.
+static float env_gain( const char *name, float fallback ) {
+    const char *env = env_get( name );
     if ( !env ) {
         return fallback;
     }
-    const float v = atof( env );
+    const float v = static_cast<float>( atof( env ) );
     return v < 0.0f ? 0.0f : ( v > 1.0f ? 1.0f : v );
 }
 
@@ -603,21 +605,18 @@ static bool sfx_decode( int idx, SfxPcm *out ) {
 } // namespace
 
 void audio_init( ) {
-    const char *env_audio = getenv( "REPGAME_AUDIO" );
-    if ( ( env_audio && atoi( env_audio ) == 0 ) || RepGame::capture_mode( ) ) {
+    if ( !env_bool( "REPGAME_AUDIO", true ) || RepGame::capture_mode( ) ) {
         return;
     }
     srand( ( unsigned )time( NULL ) );
-    const char *env_music = getenv( "REPGAME_MUSIC" );
-    if ( env_music && atoi( env_music ) == 0 ) {
+    if ( !env_bool( "REPGAME_MUSIC", true ) ) {
         music_enabled = false;
     }
-    music_gain = env_float( "REPGAME_MUSIC_VOLUME", 0.5f );
-    sfx_gain = env_float( "REPGAME_SFX_VOLUME", 1.0f );
+    music_gain = env_gain( "REPGAME_MUSIC_VOLUME", 0.5f );
+    sfx_gain = env_gain( "REPGAME_SFX_VOLUME", 1.0f );
     // Seconds of silence between tracks, uniform in [gap/4, gap].
     // REPGAME_MUSIC_GAP=0 = continuous shuffle.
-    const char *env_gap = getenv( "REPGAME_MUSIC_GAP" );
-    const float gap_s = env_gap ? atof( env_gap ) : 240.0f;
+    const float gap_s = env_float( "REPGAME_MUSIC_GAP", 240.0f );
     gap_min_ticks = ( long )( gap_s * 0.25f * UPS_RATE );
     gap_span_ticks = ( long )( gap_s * 0.75f * UPS_RATE ) + 1;
 

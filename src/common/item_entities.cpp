@@ -1,4 +1,5 @@
 #include "common/item_entities.hpp"
+#include "common/utils/env_config.hpp"
 
 #include <algorithm>
 #include <climits>
@@ -153,7 +154,7 @@ void ItemEntities::init( const VertexBufferLayout &vbl_object_vertex, const Vert
     // REPGAME_ITEM_TEST="name,x,y,z[,count];..." — exact spawns for
     // deterministic captures, stationary with an effectively infinite
     // pickup delay so they stay put.
-    const char *spec = getenv( "REPGAME_ITEM_TEST" );
+    const char *spec = env_get( "REPGAME_ITEM_TEST" );
     if ( spec != nullptr ) {
         char buf[ 1024 ];
         strncpy( buf, spec, sizeof( buf ) - 1 );
@@ -265,13 +266,13 @@ uint32_t ItemEntities::spawn( const ItemID item, const int count, const glm::dve
     }
     this->items.push_back( it );
     ItemEntity &back = this->items.back( );
-    back.net_chunk = glm::ivec3( glm::floor( pos / glm::dvec3( CHUNK_SIZE_X, CHUNK_SIZE_Y, CHUNK_SIZE_Z ) ) );
+    back.net.chunk = glm::ivec3( glm::floor( pos / glm::dvec3( CHUNK_SIZE_X, CHUNK_SIZE_Y, CHUNK_SIZE_Z ) ) );
     // Multiplayer: announce the spawn to the server. mint_id returns 0
     // before WELCOME — those entities stay local-only forever.
     if ( this->net != nullptr && !from_net ) {
         const NetEntityId nid = this->net->mint_id( );
         if ( nid != 0 ) {
-            back.net_id = nid;
+            back.net.id = nid;
             back.spin_seed = item_spin_seed( nid );
             NetEntityRecord rec;
             rec.id = nid;
@@ -294,7 +295,7 @@ uint32_t ItemEntities::spawn( const ItemID item, const int count, const glm::dve
 
 void ItemEntities::impulse( const glm::dvec3 &center, const double radius, const double strength ) {
     for ( ItemEntity &it : this->items ) {
-        if ( it.remote ) {
+        if ( it.net.mirror ) {
             continue; // mirrors are shoved by their own owner's blast
         }
         const glm::dvec3 offset = item_center( it ) - center;
@@ -345,7 +346,7 @@ void ItemEntities::tick( RepGameState &state ) {
             continue;
         }
 
-        if ( it.remote ) {
+        if ( it.net.mirror ) {
             // Mirror of a remote-owned entity: no physics or merging —
             // ease toward the last streamed target. age_ticks still ticks:
             // it's the spin/bob render clock (despawn below is owner-only).
@@ -353,13 +354,13 @@ void ItemEntities::tick( RepGameState &state ) {
             if ( it.pickup_delay > 0 ) {
                 it.pickup_delay--;
             }
-            const glm::dvec3 delta = it.net_pos - it.pos;
+            const glm::dvec3 delta = it.net.pos - it.pos;
             if ( glm::length( delta ) > 4.0 ) {
-                it.pos = it.net_pos;
+                it.pos = it.net.pos;
             } else {
                 it.pos += delta * 0.35;
             }
-            it.vel = it.net_vel;
+            it.vel = it.net.vel;
             // Magnet is visual only for mirrors: drift toward the chest.
             const glm::dvec3 to_chest = chest - item_center( it );
             const double cd = glm::length( to_chest );
@@ -372,7 +373,7 @@ void ItemEntities::tick( RepGameState &state ) {
             it.in_water = medium.id == WATER || medium.waterlogged;
             const BlockState under = world.get_loaded_block(
                 glm::ivec3( glm::floor( item_center( it ) - glm::dvec3( 0.0, ITEM_SIZE * 0.5 + 1e-3, 0.0 ) ) ) );
-            it.grounded = std::fabs( it.net_vel.y ) < 1e-3 &&
+            it.grounded = std::fabs( it.net.vel.y ) < 1e-3 &&
                           ( under.id == LAST_BLOCK_ID || block_definition_get_definition( under.id )->collides_with_player )
                               ? 1
                               : 0;
@@ -436,12 +437,12 @@ void ItemEntities::tick( RepGameState &state ) {
              max.x > state.camera.pos.x - half_w - ITEM_PICKUP_EXPAND_XZ && min.x < state.camera.pos.x + half_w + ITEM_PICKUP_EXPAND_XZ && //
              max.z > state.camera.pos.z - half_w - ITEM_PICKUP_EXPAND_XZ && min.z < state.camera.pos.z + half_w + ITEM_PICKUP_EXPAND_XZ && //
              max.y > feet_y - ITEM_PICKUP_EXPAND_Y && min.y < feet_y + state.camera.player_height + ITEM_PICKUP_EXPAND_Y ) {
-            if ( this->mp_mode && it.net_id != 0 ) {
+            if ( this->mp_mode && it.net.id != 0 ) {
                 // Synced entity (owned or mirror): the server arbitrates the
                 // pickup. One request per overlap; hidden while it flies.
                 if ( !it.pickup_pending && this->net != nullptr && this->net->connected( ) ) {
                     const int room = RepGame::inventory_space_for_item( state, it.item );
-                    this->net->send_pickup_request( it.net_id, room );
+                    this->net->send_pickup_request( it.net.id, room );
                     it.pickup_pending = true;
                 }
                 continue;
@@ -451,7 +452,7 @@ void ItemEntities::tick( RepGameState &state ) {
                 audio_play_sfx_gain( "pop", 0.5f );
                 // The pickup may have filled the selected hotbar slot —
                 // refresh the held-item overlay.
-                state.ui_overlay.set_holding_item( state.hotbar.getSelectedItem( ) );
+                state.ui.overlay.set_holding_item( state.hotbar.getSelectedItem( ) );
             }
             it.count = leftover;
             if ( it.count <= 0 ) {
@@ -460,7 +461,7 @@ void ItemEntities::tick( RepGameState &state ) {
             }
         }
 
-        if ( !it.remote && it.age_ticks >= ITEM_DESPAWN_TICKS ) {
+        if ( !it.net.mirror && it.age_ticks >= ITEM_DESPAWN_TICKS ) {
             this->send_net_remove( it, NET_REMOVE_DESPAWN );
             dead.push_back( i );
         }
@@ -473,7 +474,7 @@ void ItemEntities::tick( RepGameState &state ) {
     if ( do_merge ) {
         for ( size_t i = 0; i < this->items.size( ); i++ ) {
             ItemEntity &a = this->items[ i ];
-            if ( a.count >= item_max_stack( a.item ) || a.remote || a.pickup_pending ) {
+            if ( a.count >= item_max_stack( a.item ) || a.net.mirror || a.pickup_pending ) {
                 continue;
             }
             const glm::ivec3 cc( glm::floor( item_center( a ) ) );
@@ -489,7 +490,7 @@ void ItemEntities::tick( RepGameState &state ) {
                                 continue;
                             }
                             ItemEntity &b = this->items[ j ];
-                            if ( b.item != a.item || a.count >= item_max_stack( a.item ) || b.remote || b.pickup_pending ) {
+                            if ( b.item != a.item || a.count >= item_max_stack( a.item ) || b.net.mirror || b.pickup_pending ) {
                                 continue;
                             }
                             if ( glm::length( item_center( a ) - item_center( b ) ) >= ITEM_MERGE_RADIUS ) {
@@ -532,7 +533,7 @@ void ItemEntities::tick( RepGameState &state ) {
 // Same test-mode gate as the chunk's mobs load: no item file reads or
 // writes under REPGAME_MOBS=0 / REPGAME_MOB_TEST.
 static bool item_persistence_enabled( ) {
-    static const bool enabled = !( getenv( "REPGAME_MOBS" ) != nullptr && atoi( getenv( "REPGAME_MOBS" ) ) == 0 ) && getenv( "REPGAME_MOB_TEST" ) == nullptr;
+    static const bool enabled = env_bool( "REPGAME_MOBS", true ) && !env_is_set( "REPGAME_MOB_TEST" );
     return enabled;
 }
 
@@ -644,25 +645,11 @@ void ItemEntities::set_multiplayer_mode( const bool mp_mode ) {
 }
 
 void ItemEntities::send_net_remove( ItemEntity &it, const uint8_t reason ) {
-    if ( this->net == nullptr || it.net_id == 0 ) {
-        return;
-    }
-    // Never announce removals for chunks we don't own (server-belief chunk).
-    if ( this->net->owns_chunk( it.net_chunk ) ) {
-        this->net->send_remove( it.net_id, reason );
-    }
+    netsync_send_remove_owned( this->net, it.net, reason );
 }
 
 ItemEntities::ItemEntity *ItemEntities::find_by_net_id( const NetEntityId net_id ) {
-    if ( net_id == 0 ) {
-        return nullptr;
-    }
-    for ( ItemEntity &it : this->items ) {
-        if ( it.net_id == net_id ) {
-            return &it;
-        }
-    }
-    return nullptr;
+    return netsync_find( this->items, net_id );
 }
 
 // Spawn one entity from a wire record (CHUNK_ROLE / ENTITY_SPAWN /
@@ -672,12 +659,8 @@ uint32_t ItemEntities::spawn_record( const NetEntityRecord &rec, const bool mirr
                                      glm::dvec3( rec.x, rec.y, rec.z ), glm::dvec3( rec.vx, rec.vy, rec.vz ),
                                      rec.pickup_delay, 1, true );
     ItemEntity &it = this->items.back( );
-    it.net_id = rec.id;
+    netsync_apply_record( it.net, rec, mirror );
     it.spin_seed = item_spin_seed( rec.id );
-    it.remote = mirror;
-    it.net_pos = glm::dvec3( rec.x, rec.y, rec.z );
-    it.net_vel = glm::dvec3( rec.vx, rec.vy, rec.vz );
-    it.net_chunk = glm::ivec3( glm::floor( glm::dvec3( rec.x, rec.y, rec.z ) / glm::dvec3( CHUNK_SIZE_X, CHUNK_SIZE_Y, CHUNK_SIZE_Z ) ) );
     it.age_ticks = rec.age_ticks;
     return id;
 }
@@ -686,10 +669,10 @@ void ItemEntities::net_apply_spawn( const NetEntityRecord &rec, const bool mirro
     ItemEntity *existing = this->find_by_net_id( rec.id );
     if ( existing != nullptr ) {
         // Already local (e.g. our own predicted spawn): just set ownership.
-        existing->remote = mirror;
-        existing->net_pos = glm::dvec3( rec.x, rec.y, rec.z );
-        existing->net_vel = glm::dvec3( rec.vx, rec.vy, rec.vz );
-        existing->net_chunk = glm::ivec3( glm::floor( existing->net_pos / glm::dvec3( CHUNK_SIZE_X, CHUNK_SIZE_Y, CHUNK_SIZE_Z ) ) );
+        existing->net.mirror = mirror;
+        existing->net.pos = glm::dvec3( rec.x, rec.y, rec.z );
+        existing->net.vel = glm::dvec3( rec.vx, rec.vy, rec.vz );
+        existing->net.chunk = net_entity_chunk_of( existing->net.pos );
         return;
     }
     this->spawn_record( rec, mirror );
@@ -703,14 +686,14 @@ void ItemEntities::net_apply_state( const NetEntityStateEntry &e ) {
     // The incoming state reflects the server's belief: track the chunk it
     // places the entity in (same boundary hysteresis the server applies),
     // and only treat it as ours when we own that chunk.
-    it->net_chunk = net_entity_next_chunk( it->net_chunk, glm::dvec3( e.x, e.y, e.z ) );
-    const bool owned_here = this->net != nullptr && this->net->owns_chunk( it->net_chunk );
-    if ( it->remote || !owned_here ) {
+    netsync_track_chunk( it->net, glm::dvec3( e.x, e.y, e.z ) );
+    const bool owned_here = this->net != nullptr && this->net->owns_chunk( it->net.chunk );
+    if ( it->net.mirror || !owned_here ) {
         // Mirror (or a predicted spawn we don't own): the streamed state is
         // authoritative — ease toward it.
-        it->remote = true;
-        it->net_pos = glm::dvec3( e.x, e.y, e.z );
-        it->net_vel = glm::dvec3( e.vx, e.vy, e.vz );
+        it->net.mirror = true;
+        it->net.pos = glm::dvec3( e.x, e.y, e.z );
+        it->net.vel = glm::dvec3( e.vx, e.vy, e.vz );
         it->count = e.count;
     } else {
         // Owned: only the count is server-driven (partial pickups).
@@ -722,7 +705,7 @@ void ItemEntities::net_apply_state( const NetEntityStateEntry &e ) {
 
 void ItemEntities::net_apply_remove( const NetEntityId net_id ) {
     for ( size_t i = 0; i < this->items.size( ); i++ ) {
-        if ( this->items[ i ].net_id == net_id && net_id != 0 ) {
+        if ( this->items[ i ].net.id == net_id && net_id != 0 ) {
             remove_item( i );
             return;
         }
@@ -735,10 +718,10 @@ void ItemEntities::net_release_entity( const NetEntityRecord &rec, const bool st
         return;
     }
     if ( still_viewed ) {
-        it->remote = true;
-        it->net_pos = glm::dvec3( rec.x, rec.y, rec.z );
-        it->net_vel = glm::dvec3( rec.vx, rec.vy, rec.vz );
-        it->net_chunk = glm::ivec3( glm::floor( it->net_pos / glm::dvec3( CHUNK_SIZE_X, CHUNK_SIZE_Y, CHUNK_SIZE_Z ) ) );
+        it->net.mirror = true;
+        it->net.pos = glm::dvec3( rec.x, rec.y, rec.z );
+        it->net.vel = glm::dvec3( rec.vx, rec.vy, rec.vz );
+        it->net.chunk = net_entity_chunk_of( it->net.pos );
     } else {
         for ( size_t i = 0; i < this->items.size( ); i++ ) {
             if ( &this->items[ i ] == it ) {
@@ -754,7 +737,7 @@ void ItemEntities::net_apply_chunk_role( const glm::ivec3 &chunk, const uint8_t 
         // Chunk left our view entirely: drop its synced entities.
         for ( size_t i = 0; i < this->items.size( ); ) {
             const ItemEntity &it = this->items[ i ];
-            if ( it.net_id != 0 && it.net_chunk == chunk ) {
+            if ( it.net.id != 0 && it.net.chunk == chunk ) {
                 remove_item( i );
             } else {
                 i++;
@@ -773,7 +756,7 @@ void ItemEntities::net_apply_chunk_role( const glm::ivec3 &chunk, const uint8_t 
     }
     for ( size_t i = 0; i < this->items.size( ); ) {
         const ItemEntity &it = this->items[ i ];
-        if ( it.net_id != 0 && it.net_chunk == chunk && by_id.find( it.net_id ) == by_id.end( ) && !keep_ids.count( it.net_id ) ) {
+        if ( it.net.id != 0 && it.net.chunk == chunk && by_id.find( it.net.id ) == by_id.end( ) && !keep_ids.count( it.net.id ) ) {
             remove_item( i );
         } else {
             i++;
@@ -785,17 +768,17 @@ void ItemEntities::net_apply_chunk_role( const glm::ivec3 &chunk, const uint8_t 
         }
         ItemEntity *existing = this->find_by_net_id( rec.id );
         if ( existing != nullptr ) {
-            existing->remote = !owned;
-            existing->net_pos = glm::dvec3( rec.x, rec.y, rec.z );
-            existing->net_vel = glm::dvec3( rec.vx, rec.vy, rec.vz );
+            existing->net.mirror = !owned;
+            existing->net.pos = glm::dvec3( rec.x, rec.y, rec.z );
+            existing->net.vel = glm::dvec3( rec.vx, rec.vy, rec.vz );
             // The grant's chunk is authoritative — a record resting in the
             // boundary margin has floor(pos) != the server's chunk.
-            existing->net_chunk = chunk;
+            existing->net.chunk = chunk;
         } else {
             this->spawn_record( rec, !owned );
             ItemEntity *sp = this->find_by_net_id( rec.id );
             if ( sp != nullptr ) {
-                sp->net_chunk = chunk;
+                sp->net.chunk = chunk;
             }
         }
     }
@@ -803,25 +786,24 @@ void ItemEntities::net_apply_chunk_role( const glm::ivec3 &chunk, const uint8_t 
 
 void ItemEntities::collect_net_state( NetEntities &net, std::vector<NetEntityStateEntry> &out, const long tick_number ) {
     for ( ItemEntity &it : this->items ) {
-        if ( it.net_id == 0 || it.remote || it.pickup_pending ) {
+        if ( it.net.id == 0 || it.net.mirror || it.pickup_pending ) {
             continue;
         }
         // Ownership keys off the chunk the server believes the entity is in:
         // when it crosses into a foreign chunk we keep streaming so the
         // server sees the crossing and issues ENTITY_TRANSFER.
-        if ( !net.owns_chunk( it.net_chunk ) ) {
+        if ( !net.owns_chunk( it.net.chunk ) ) {
             continue;
         }
-        const bool keyframe = tick_number - it.net_keyframe_tick >= UPS_RATE;
-        const bool changed = !it.net_sent ||                                  //
-                             glm::length( it.pos - it.net_sent_pos ) > 1e-4 || //
-                             glm::length( it.vel - it.net_sent_vel ) > 1e-4 || //
+        const bool keyframe = netsync_keyframe_due( it.net, tick_number );
+        const bool changed = !it.net.sent ||               //
+                             netsync_moved( it.net, it.pos, it.vel ) || //
                              it.count != it.net_sent_count;
         if ( !changed && !keyframe ) {
             continue;
         }
         NetEntityStateEntry e;
-        e.id = it.net_id;
+        e.id = it.net.id;
         e.kind = static_cast<uint8_t>( NetEntityKind::ITEM );
         e.x = it.pos.x;
         e.y = it.pos.y;
@@ -831,15 +813,9 @@ void ItemEntities::collect_net_state( NetEntities &net, std::vector<NetEntitySta
         e.vz = static_cast<float>( it.vel.z );
         e.count = it.count;
         out.push_back( e );
-        it.net_sent = true;
-        it.net_sent_pos = it.pos;
-        it.net_sent_vel = it.vel;
         it.net_sent_count = it.count;
         // The server now applies its boundary hysteresis to this pos.
-        it.net_chunk = net_entity_next_chunk( it.net_chunk, it.pos );
-        if ( keyframe ) {
-            it.net_keyframe_tick = tick_number;
-        }
+        netsync_mark_sent( it.net, it.pos, it.vel, tick_number, keyframe );
     }
 }
 

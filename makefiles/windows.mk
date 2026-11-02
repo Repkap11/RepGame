@@ -84,6 +84,7 @@ WINDOWS_DIRS = $(patsubst src%,out/windows%,$(shell find src -type d)) \
 
 out/windows/%.o: src/%.cpp windows_build | out/windows
 	@#Use g++ to build o file and a dependecy tree .d file for every cpp file
+	@mkdir -p $(@D)
 	$(CC_WINDOWS) $(INCLUDES_WINDOWS) $(INCLUDES_COMMON) $(CFLAGS_WINDOWS) -MMD -MP -MF $(patsubst %.o,%.d,$@) -MT $(patsubst %.d,%.o,$@) -c $< -o $@
 
 # Vendored imgui keeps -Wall/-Wextra warnings but isn't held to -Werror

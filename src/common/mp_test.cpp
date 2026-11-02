@@ -1,4 +1,5 @@
 #include "common/mp_test.hpp"
+#include "common/utils/env_config.hpp"
 
 #include <cstdarg>
 #include <cstdio>
@@ -151,11 +152,11 @@ void mp_test::dump_state( RepGameState &state, const char *tag ) {
         float yaw, bob;
         ItemEntities::render_pose( it, 0.0f, &yaw, &bob );
         jput( "%s{\"net_id\":", first ? "" : "," );
-        jnet_id( it.net_id );
+        jnet_id( it.net.id );
         jput( ",\"remote\":%d,\"pickup_pending\":%d,\"item\":%d,\"item_name\":\"%s\",\"count\":%d,"
               "\"pos\":[%.4f,%.4f,%.4f],\"vel\":[%.4f,%.4f,%.4f],\"age\":%d,\"grounded\":%d,\"in_water\":%d,"
               "\"spin_seed\":%.5f,\"yaw\":%.4f,\"bob\":%.4f}",
-              it.remote ? 1 : 0, it.pickup_pending ? 1 : 0, static_cast<int>( it.item ),
+              it.net.mirror ? 1 : 0, it.pickup_pending ? 1 : 0, static_cast<int>( it.item ),
               item_name( it.item ) != nullptr ? item_name( it.item ) : "?", it.count,
               it.pos.x, it.pos.y, it.pos.z, it.vel.x, it.vel.y, it.vel.z,
               it.age_ticks, it.grounded, it.in_water, it.spin_seed, yaw, bob );
@@ -167,13 +168,13 @@ void mp_test::dump_state( RepGameState &state, const char *tag ) {
     first = true;
     for ( const auto &m : state.world.mobs.debug_mobs( ) ) {
         jput( "%s{\"net_id\":", first ? "" : "," );
-        jnet_id( m.net_id );
+        jnet_id( m.net.id );
         jput( ",\"remote\":%d,\"uid\":%u,\"type\":%d,\"type_name\":\"%s\",\"variant\":%d,"
               "\"pos\":[%.4f,%.4f,%.4f],\"vel\":[%.4f,%.4f,%.4f],\"yaw\":%.3f,\"health\":%.3f,"
               "\"ai_state\":%d,\"hurt_ticks\":%d,\"death_ticks\":%d,\"fuse_ticks\":%d,"
               "\"walk_dist\":%.4f,\"leg_amp\":%.4f,\"head_yaw\":%.3f,\"head_pitch\":%.3f,"
               "\"sneak\":%.3f,\"despawnable\":%d,\"targeting\":%d,\"net_flags\":%u}",
-              m.net_mirror ? 1 : 0, m.uid, static_cast<int>( m.type ), mob_types[ m.type ].name, m.variant,
+              m.net.mirror ? 1 : 0, m.uid, static_cast<int>( m.type ), mob_types[ m.type ].name, m.variant,
               m.pos.x, m.pos.y, m.pos.z, m.vel.x, m.vel.y, m.vel.z, m.yaw, m.health,
               m.ai_state, m.hurt_ticks, m.death_ticks, m.fuse_ticks,
               m.walk_dist, m.leg_amp, m.head_yaw, m.head_pitch,
@@ -189,10 +190,10 @@ void mp_test::dump_state( RepGameState &state, const char *tag ) {
                                    ? b.fuse_ticks - ( state.tick_number - b.fuse_start_tick )
                                    : 0;
         jput( "%s{\"net_id\":", first ? "" : "," );
-        jnet_id( b.net_id );
+        jnet_id( b.net.id );
         jput( ",\"remote\":%d,\"kind\":%d,\"block\":%d,"
               "\"pos\":[%.4f,%.4f,%.4f],\"vel\":[%.4f,%.4f,%.4f],\"grounded\":%d,\"fuse_left\":%ld}",
-              b.net_mirror ? 1 : 0, static_cast<int>( b.kind ), static_cast<int>( b.state.id ),
+              b.net.mirror ? 1 : 0, static_cast<int>( b.kind ), static_cast<int>( b.state.id ),
               b.min.x, b.min.y, b.min.z, b.vel.x, b.vel.y, b.vel.z, b.grounded, fuse_left );
         first = false;
     }
@@ -353,16 +354,14 @@ void mp_test::init( ) {
         return;
     }
     g_inited = true;
-    const char *dump_path = getenv( "REPGAME_MP_DUMP" );
+    const char *dump_path = env_get( "REPGAME_MP_DUMP" );
     if ( dump_path == nullptr || dump_path[ 0 ] == '\0' ) {
         return;
     }
     g_dump = fopen( dump_path, "a" );
-    if ( const char *v = getenv( "REPGAME_MP_DUMP_EVERY" ) ) {
-        const int n = atoi( v );
-        if ( n > 0 ) {
-            g_dump_every = n;
-        }
+    const int n = env_int( "REPGAME_MP_DUMP_EVERY", 0 );
+    if ( n > 0 ) {
+        g_dump_every = n;
     }
 }
 
@@ -377,7 +376,7 @@ void mp_test::tick( RepGameState &state ) {
     // Drain newly appended complete lines from the ctl file (opened lazily —
     // the driver may create it after the client starts).
     if ( g_ctl == nullptr ) {
-        if ( const char *ctl_path = getenv( "REPGAME_MP_CTL" ) ) {
+        if ( const char *ctl_path = env_get( "REPGAME_MP_CTL" ) ) {
             g_ctl = fopen( ctl_path, "r" );
         }
     }

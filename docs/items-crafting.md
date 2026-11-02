@@ -144,14 +144,14 @@ matcher (no GL): shaped recipes compare the bounding box of the non-empty
 grid cells to the recipe's w×h and also try the horizontally mirrored
 layout; shapeless assignment backtracks so overlapping option lists work.
 `crafting_find_recipe(grid, dim)` returns the first match in table order.
-`test_crafting` in rep_tests.cpp covers it.
+`test_crafting` in `src/common/tests/test_crafting.cpp` covers it.
 
-UI: the grid slots live in `RepGameState::crafting` (renderer order —
+UI: the grid slots live in `RepGameState::ui.crafting` (renderer order —
 slot 0 is the BOTTOM-left cell; they get flipped to top-first before the
 matcher). A 2x2 grid shows in the survival inventory; right-clicking a
 CRAFTING_TABLE opens a 3x3 in either game mode (closing on the same
 gone/out-of-reach checks as a chest). Grid contents are temporary:
-`crafting_return_grid` (idempotent, called from the every-tick
+`repgame_crafting_return_grid` (idempotent, called from the every-tick
 inventory-closed branch, the creative-mode toggle, and `cleanup()` before
 `save_player_data()`) moves them survival → hotbar → thrown item entity.
 Layout uses fixed-stride `InventoryRenderer` panels sharing the survival

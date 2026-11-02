@@ -269,7 +269,7 @@ void PauseMenu::draw( const Renderer &renderer, Shader &shader, const Texture &b
                 snprintf( buf, sizeof( buf ), "Flying: %s", state.input.player_flying ? "On" : "Off" );
                 break;
             case BUTTON_IMGUI:
-                snprintf( buf, sizeof( buf ), "Debug Overlay: %s", state.imgui_overlay.shown ? "On" : "Off" );
+                snprintf( buf, sizeof( buf ), "Debug Overlay: %s", state.ui.imgui.shown ? "On" : "Off" );
                 break;
             case BUTTON_EXIT:
                 snprintf( buf, sizeof( buf ), "Exit Game" );

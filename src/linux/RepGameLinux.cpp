@@ -6,15 +6,20 @@ int main( int argc, char **argv ) {
     const char *world_path;
     const char *host;
     bool connect_multi = true;
-    bool tests = false;
-    if ( argc == 1 ) {
+    int test_argc = 0;
+    const char *const *test_argv = nullptr;
+    if ( argc >= 2 && strcmp( argv[ 1 ], "tests" ) == 0 ) {
+        // `RepGame tests [filter ...]` — remaining args are test-name filters.
+        world_path = argv[ 1 ];
+        connect_multi = false;
+        host = "";
+        test_argc = argc - 2;
+        test_argv = argv + 2;
+    } else if ( argc == 1 ) {
         world_path = "World1";
         connect_multi = false;
         host = "";
     } else if ( argc == 2 ) {
-        if ( strcmp( argv[ 1 ], "tests" ) == 0 ) {
-            tests = true;
-        }
         world_path = argv[ 1 ];
         connect_multi = false;
         host = "";
@@ -37,5 +42,5 @@ int main( int argc, char **argv ) {
     }
     SDL_Init( SDL_INIT_VIDEO );
     repgame_linux_install_signal_handlers( );
-    return repgame_sdl2_main( world_path, host, connect_multi, tests );
+    return repgame_sdl2_main( world_path, host, connect_multi, test_argc, test_argv );
 }

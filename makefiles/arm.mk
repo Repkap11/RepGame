@@ -117,10 +117,12 @@ ARM_DIRS := $(patsubst src%,$(ARM_OUT)/release%,$(shell find src -type d)) \
 
 $(ARM_OUT)/release/%.o: src/%.cpp | $(ARM_OUT)
 	@#Use g++ to build o file and a dependecy tree .d file for every cpp file
+	@mkdir -p $(@D)
 	$(CC_ARM) $(INCLUDES_COMMON) $(CFLAGS_ARM) $(CFLAGS_ARM_RELEASE) -MMD -MP -MF $(patsubst %.o,%.d,$@) -MT $(patsubst %.d,%.o,$@) -c $< -o $@
 
 $(ARM_OUT)/debug/%.o: src/%.cpp | $(ARM_OUT)
 	@#Use g++ to build o file and a dependecy tree .d file for every cpp file
+	@mkdir -p $(@D)
 	$(CC_ARM) $(INCLUDES_COMMON) $(CFLAGS_ARM) $(CFLAGS_ARM_DEBUG) -MMD -MP -MF $(patsubst %.o,%.d,$@) -MT $(patsubst %.d,%.o,$@) -c $< -o $@
 
 # Vendored imgui keeps -Wall/-Wextra warnings but isn't held to -Werror

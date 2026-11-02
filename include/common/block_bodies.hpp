@@ -8,6 +8,7 @@
 #include "common/RenderChain.hpp"
 #include "common/block_definitions.hpp"
 #include "common/net/packet.hpp"
+#include "common/net/net_sync.hpp"
 #include "common/utils/collision.hpp"
 
 class ChunkLoader;
@@ -49,19 +50,11 @@ class BlockBodies {
         long fuse_ticks = 0;
         entt::entity entity = entt::null;                          // render chain entity (render_inited only)
         unsigned short face[ NUM_FACES_IN_CUBE ] = { 0 };          // resolved texture layers
-        // Multiplayer sync (net_id 0 / net_mirror false in single player).
+        // Multiplayer sync (net.id 0 / net.mirror false in single player).
         // Bodies are "causer simulates": the spawning client simulates, the
-        // server relays; other clients render net_mirror bodies. net_chunk
+        // server relays; other clients render net.mirror bodies. net.chunk
         // is the chunk the server's record sits in (role-drop matching).
-        NetEntityId net_id = 0;
-        bool net_mirror = false;
-        glm::dvec3 net_min = glm::dvec3( 0.0 );
-        glm::dvec3 net_vel = glm::dvec3( 0.0 );
-        glm::ivec3 net_chunk = glm::ivec3( 0 );
-        bool net_sent = false;
-        glm::dvec3 net_sent_min = glm::dvec3( 0.0 );
-        glm::dvec3 net_sent_vel = glm::dvec3( 0.0 );
-        long net_keyframe_tick = -1;
+        NetSync net;
     };
 
     void init( const VertexBufferLayout &vbl_object_vertex, const VertexBufferLayout &vbl_object_position, const VertexBufferLayout &vbl_primed_tnt_instance );

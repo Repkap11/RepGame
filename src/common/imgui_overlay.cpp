@@ -1,6 +1,7 @@
 #include <math.h>
 
 #include "common/imgui_overlay.hpp"
+#include "common/utils/env_config.hpp"
 #include "common/audio.hpp"
 #include "common/map_gen.hpp"
 
@@ -13,12 +14,8 @@ ImGuiDebugVars &imgui_overlay_get_imgui_debug_vars( ) {
         // Night brightness overrides: REPGAME_NIGHT_AMBIENT is the
         // moonlight floor on the daylight factor (outdoor night),
         // REPGAME_MIN_AMBIENT is the absolute light floor (caves).
-        if ( const char *env = getenv( "REPGAME_NIGHT_AMBIENT" ) ) {
-            debug_vars.night_ambient = static_cast<float>( atof( env ) );
-        }
-        if ( const char *env = getenv( "REPGAME_MIN_AMBIENT" ) ) {
-            debug_vars.min_ambient = static_cast<float>( atof( env ) );
-        }
+        debug_vars.night_ambient = env_float( "REPGAME_NIGHT_AMBIENT", debug_vars.night_ambient );
+        debug_vars.min_ambient = env_float( "REPGAME_MIN_AMBIENT", debug_vars.min_ambient );
     }
     return debug_vars;
 }

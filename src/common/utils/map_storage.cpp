@@ -9,6 +9,7 @@
 
 #include "common/utils/map_storage.hpp"
 #include "common/RepGame.hpp"
+#include "common/player_data.hpp"
 #include "common/constants.hpp"
 #include "common/utils/file_utils.hpp"
 
@@ -520,82 +521,6 @@ int MapStorage::load_blocks( const glm::ivec3 &chunk_offset, BlockState *blocks,
                                dirty, expect_empty_blocks );
 }
 
-// Layout written by versions before world position switched float -> double.
-// Old save files are still accepted and their fields widened on load.
-struct __attribute__( ( packed ) ) PlayerDataLegacy {
-    int reserved;
-    float world_x;
-    float world_y;
-    float world_z;
-    float angle_H;
-    float angle_V;
-    bool flying;
-    bool no_clip;
-    int worldDrawQuality;
-    InventorySlot hotbar_inventory[ HOTBAR_WIDTH * HOTBAR_HEIGHT ];
-    int selected_hotbar_slot;
-    GameMode game_mode;
-    InventorySlot survival_inventory[ SURVIVAL_INVENTORY_WIDTH * SURVIVAL_INVENTORY_HEIGHT ];
-};
-
-// Layout written before world_time (day/night clock) was appended.
-struct __attribute__( ( packed ) ) PlayerDataNoTime {
-    int reserved;
-    double world_x;
-    double world_y;
-    double world_z;
-    float angle_H;
-    float angle_V;
-    bool flying;
-    bool no_clip;
-    int worldDrawQuality;
-    InventorySlot hotbar_inventory[ HOTBAR_WIDTH * HOTBAR_HEIGHT ];
-    int selected_hotbar_slot;
-    GameMode game_mode;
-    InventorySlot survival_inventory[ SURVIVAL_INVENTORY_WIDTH * SURVIVAL_INVENTORY_HEIGHT ];
-};
-
-// Layout written before render_distance was appended (still has
-// world_time). It is a strict prefix of PlayerData, so a plain prefix
-// memcpy suffices — render_distance stays 0 (absent) from the memset.
-struct __attribute__( ( packed ) ) PlayerDataNoDistance {
-    int reserved;
-    double world_x;
-    double world_y;
-    double world_z;
-    float angle_H;
-    float angle_V;
-    bool flying;
-    bool no_clip;
-    int worldDrawQuality;
-    InventorySlot hotbar_inventory[ HOTBAR_WIDTH * HOTBAR_HEIGHT ];
-    int selected_hotbar_slot;
-    GameMode game_mode;
-    InventorySlot survival_inventory[ SURVIVAL_INVENTORY_WIDTH * SURVIVAL_INVENTORY_HEIGHT ];
-    long world_time;
-};
-
-// Layout written before min_ambient was appended (still has
-// render_distance). It is a strict prefix of PlayerData, so a plain prefix
-// memcpy suffices — min_ambient stays -1 (absent) from the memset.
-struct __attribute__( ( packed ) ) PlayerDataNoAmbient {
-    int reserved;
-    double world_x;
-    double world_y;
-    double world_z;
-    float angle_H;
-    float angle_V;
-    bool flying;
-    bool no_clip;
-    int worldDrawQuality;
-    InventorySlot hotbar_inventory[ HOTBAR_WIDTH * HOTBAR_HEIGHT ];
-    int selected_hotbar_slot;
-    GameMode game_mode;
-    InventorySlot survival_inventory[ SURVIVAL_INVENTORY_WIDTH * SURVIVAL_INVENTORY_HEIGHT ];
-    long world_time;
-    int render_distance;
-};
-
 static void sanitize_slots( InventorySlot *slots, int count ) {
     for ( int i = 0; i < count; i++ ) {
         InventorySlot &slot = slots[ i ];
@@ -617,79 +542,18 @@ int MapStorage::read_player_data( PlayerData &player_data ) {
         pr_debug( "No player data:%s (%p)", file_name, read_ptr );
         return 0;
     }
-    memset( &player_data, 0, sizeof( PlayerData ) );
-    // Negative marks "absent" so every shorter legacy layout below leaves
-    // min_ambient unset (render_distance uses 0 for the same purpose).
-    player_data.min_ambient = -1.0f;
-    unsigned char buffer[ sizeof( PlayerData ) ];
+    // The text format is a few KB; the cap just guards against garbage files.
+    unsigned char buffer[ 64 * 1024 ];
     size_t persist_data_length = fread( buffer, 1, sizeof( buffer ), read_ptr );
     fclose( read_ptr );
     pr_debug( "Read player data:%s (%d bytes)", file_name, ( int )persist_data_length );
-    if ( persist_data_length == sizeof( PlayerData ) ) {
-        memcpy( &player_data, buffer, sizeof( PlayerData ) );
-        sanitize_slots( player_data.hotbar_inventory, HOTBAR_WIDTH * HOTBAR_HEIGHT );
-        sanitize_slots( player_data.survival_inventory, SURVIVAL_INVENTORY_WIDTH * SURVIVAL_INVENTORY_HEIGHT );
-        return 1;
+    if ( !player_data_parse( buffer, persist_data_length, player_data ) ) {
+        pr_debug( "Warning, unrecognized player data:%s", file_name );
+        return 0;
     }
-    if ( persist_data_length == sizeof( PlayerDataNoAmbient ) ) {
-        // Saves from before min_ambient existed: strict prefix of
-        // PlayerData; min_ambient stays -1 (absent) from the memset.
-        memcpy( &player_data, buffer, sizeof( PlayerDataNoAmbient ) );
-        sanitize_slots( player_data.hotbar_inventory, HOTBAR_WIDTH * HOTBAR_HEIGHT );
-        sanitize_slots( player_data.survival_inventory, SURVIVAL_INVENTORY_WIDTH * SURVIVAL_INVENTORY_HEIGHT );
-        return 1;
-    }
-    if ( persist_data_length == sizeof( PlayerDataNoDistance ) ) {
-        // Saves from before render_distance existed: strict prefix of
-        // PlayerData; render_distance stays 0 (absent) and min_ambient -1
-        // (absent) from the memset.
-        memcpy( &player_data, buffer, sizeof( PlayerDataNoDistance ) );
-        sanitize_slots( player_data.hotbar_inventory, HOTBAR_WIDTH * HOTBAR_HEIGHT );
-        sanitize_slots( player_data.survival_inventory, SURVIVAL_INVENTORY_WIDTH * SURVIVAL_INVENTORY_HEIGHT );
-        return 1;
-    }
-    if ( persist_data_length == sizeof( PlayerDataNoTime ) ) {
-        // Saves from before world_time existed: copy everything but the
-        // appended clock; world_time stays 0 (dawn) from the memset above.
-        PlayerDataNoTime legacy;
-        memcpy( &legacy, buffer, sizeof( PlayerDataNoTime ) );
-        player_data.world_x = legacy.world_x;
-        player_data.world_y = legacy.world_y;
-        player_data.world_z = legacy.world_z;
-        player_data.angle_H = legacy.angle_H;
-        player_data.angle_V = legacy.angle_V;
-        player_data.flying = legacy.flying;
-        player_data.no_clip = legacy.no_clip;
-        player_data.worldDrawQuality = legacy.worldDrawQuality;
-        memcpy( player_data.hotbar_inventory, legacy.hotbar_inventory, sizeof( legacy.hotbar_inventory ) );
-        player_data.selected_hotbar_slot = legacy.selected_hotbar_slot;
-        player_data.game_mode = legacy.game_mode;
-        memcpy( player_data.survival_inventory, legacy.survival_inventory, sizeof( legacy.survival_inventory ) );
-        sanitize_slots( player_data.hotbar_inventory, HOTBAR_WIDTH * HOTBAR_HEIGHT );
-        sanitize_slots( player_data.survival_inventory, SURVIVAL_INVENTORY_WIDTH * SURVIVAL_INVENTORY_HEIGHT );
-        return 1;
-    }
-    if ( persist_data_length == sizeof( PlayerDataLegacy ) ) {
-        PlayerDataLegacy legacy;
-        memcpy( &legacy, buffer, sizeof( PlayerDataLegacy ) );
-        player_data.world_x = legacy.world_x;
-        player_data.world_y = legacy.world_y;
-        player_data.world_z = legacy.world_z;
-        player_data.angle_H = legacy.angle_H;
-        player_data.angle_V = legacy.angle_V;
-        player_data.flying = legacy.flying;
-        player_data.no_clip = legacy.no_clip;
-        player_data.worldDrawQuality = legacy.worldDrawQuality;
-        memcpy( player_data.hotbar_inventory, legacy.hotbar_inventory, sizeof( legacy.hotbar_inventory ) );
-        player_data.selected_hotbar_slot = legacy.selected_hotbar_slot;
-        player_data.game_mode = legacy.game_mode;
-        memcpy( player_data.survival_inventory, legacy.survival_inventory, sizeof( legacy.survival_inventory ) );
-        sanitize_slots( player_data.hotbar_inventory, HOTBAR_WIDTH * HOTBAR_HEIGHT );
-        sanitize_slots( player_data.survival_inventory, SURVIVAL_INVENTORY_WIDTH * SURVIVAL_INVENTORY_HEIGHT );
-        return 1;
-    }
-    pr_debug( "Warning, wrong size player data. Read:%d expected:%d %d %d %d or %d", ( int )persist_data_length, ( int )sizeof( PlayerData ), ( int )sizeof( PlayerDataNoAmbient ), ( int )sizeof( PlayerDataNoDistance ), ( int )sizeof( PlayerDataNoTime ), ( int )sizeof( PlayerDataLegacy ) );
-    return 0;
+    sanitize_slots( player_data.hotbar_inventory, HOTBAR_WIDTH * HOTBAR_HEIGHT );
+    sanitize_slots( player_data.survival_inventory, SURVIVAL_INVENTORY_WIDTH * SURVIVAL_INVENTORY_HEIGHT );
+    return 1;
 }
 
 void MapStorage::write_player_data( const PlayerData &player_data ) {
@@ -703,7 +567,8 @@ void MapStorage::write_player_data( const PlayerData &player_data ) {
         pr_debug( "Can't write player:%s (%p)", file_name, write_ptr );
         return;
     }
-    fwrite( &player_data, sizeof( PlayerData ), 1, write_ptr );
+    const std::string text = player_data_serialize( player_data );
+    fwrite( text.data( ), 1, text.size( ), write_ptr );
 #if defined( REPGAME_WASM )
     // See persist_dirty_blocks: force the OPFS sync-access-handle flush.
     fdatasync( fileno( write_ptr ) );

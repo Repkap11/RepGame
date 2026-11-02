@@ -133,10 +133,13 @@ LINUX_DIRS := $(patsubst src%,$(LINUX_OUT)/release%,$(shell find src -type d)) \
 
 $(LINUX_OUT)/release/%.o: src/%.cpp | $(LINUX_OUT)
 	@#Use g++ to build o file and a dependecy tree .d file for every cpp file
+	@#mkdir -p (not just $(LINUX_OUT)) so new src/ subdirs build without a clean
+	@mkdir -p $(@D)
 	$(CC_LINUX) $(INCLUDES_COMMON) $(CFLAGS_LINUX) $(CFLAGS_LINUX_RELEASE) -MMD -MP -MF $(patsubst %.o,%.d,$@) -MT $(patsubst %.d,%.o,$@) -c $< -o $@
 
 $(LINUX_OUT)/debug/%.o: src/%.cpp | $(LINUX_OUT)
 	@#Use g++ to build o file and a dependecy tree .d file for every cpp file
+	@mkdir -p $(@D)
 	$(CC_LINUX) $(INCLUDES_COMMON) $(CFLAGS_LINUX) $(CFLAGS_LINUX_DEBUG) -MMD -MP -MF $(patsubst %.o,%.d,$@) -MT $(patsubst %.d,%.o,$@) -c $< -o $@
 
 
@@ -172,8 +175,10 @@ dev: linux_debug-run
 linux_debug-run: linux_debug
 	./$(LINUX_OUT)/debug/$(TARGET) $(WORLD_DEBUG) localhost
 
+# `make tests TESTS="net_ mobs"` runs only tests whose name contains a filter.
+TESTS ?=
 tests: linux_debug
-	./$(LINUX_OUT)/debug/$(TARGET) tests
+	./$(LINUX_OUT)/debug/$(TARGET) tests $(TESTS)
 
 # map:
 # 	rm -rf ~/.repgame/$(WORLD)
@@ -196,4 +201,4 @@ $(LINUX_OUT): | out
 
 .PRECIOUS: $(LINUX_OUT)/release/$(TARGET) $(LINUX_OUT)/debug/$(TARGET) $(OBJECTS_LINUX_DEBUG) $(OBJECTS_LINUX_RELEASE) $(OBJECTS_COMMON_LINUX_RELEASE) $(OBJECTS_COMMON_LINUX_DEBUG) $(SHADER_BLOBS_LINUX) $(SHADER_PROCESSED_LINUX) $(BITMAP_BLOBS_LINUX) $(FONT_BLOBS_LINUX) $(SOUND_BLOBS_LINUX)
 
-.PHONY: linux linux-run linux-run2 linux-run-blocks clean-linux linux-deploy dev
+.PHONY: linux linux-run linux-run2 linux-run-blocks clean-linux linux-deploy dev tests

@@ -79,7 +79,7 @@ to the rest — and pushes CHUNK_ROLE grants carrying the chunk's live
 records. Net ids are `(session << 32) | counter`; session 0 is
 server-minted (chunk-load restores), `0xFFFFFFFF` high word is the
 deterministic natural-mob namespace. Every streamed entity carries a
-`net_chunk` — the server's belief of its chunk — which drives all local
+`net.chunk` — the server's belief of its chunk — which drives all local
 ownership checks, so an entity keeps streaming while it physically
 crosses until the server's ENTITY_TRANSFER lands.
 
@@ -96,6 +96,18 @@ PICKUP_REQUEST/PICKUP_RESULT arbitrate item pickup races server-side
 (exactly one grant, partial pickups reduce the count via a server state);
 CHUNK_POPULATED marks a chunk's natural-mob roll done; PLAYER_HIT carries
 a remote mob's melee hit to its target; EXPLOSION relays a blast.
+
+Client-side, items, mobs and bodies share one bookkeeping struct:
+`NetSync` (`include/common/net/net_sync.hpp`) carries the net id, the
+mirror/owned flag, the server's-belief `chunk`, the easing target
+`pos`/`vel`, and the sent-state snapshot + keyframe tick that drive the
+6-tick batch cadence. The `netsync_*` helpers (`netsync_find`,
+`netsync_apply_record`, `netsync_track_chunk`, `netsync_send_remove`,
+`netsync_keyframe_due`/`netsync_moved`/`netsync_mark_sent`) implement the
+parts all three entity types used to duplicate: find-by-net-id, spawn
+from a record, chunk tracking via `net_entity_next_chunk`, removal, and
+send-throttle. Entity-specific payload (item count/pickup, mob
+yaw/health/variant/flags, body kind/fuse/transfer) stays per-type.
 
 Items and mobs are chunk-owner simulated: the OWNER spawns, streams
 states, and sends removals (LANDED/DIED/DESPAWN/PICKED_UP/EXPLODED);
@@ -133,7 +145,7 @@ Two behaviours currently in the tree are works-in-progress:
 
 - **Server-side chunk-crossing hysteresis** (WIP): the server applies
   `net_entity_next_chunk` (`NET_ENTITY_CHUNK_MARGIN` = 0.5,
-  `include/common/net/packet.hpp`) when it updates an entity's `net_chunk`
+  `include/common/net/packet.hpp`) when it updates an entity's `net.chunk`
   from streamed states in `server_entities.cpp` — an entity only changes
   chunks once it sits at least 0.5 blocks inside the new one, so a
   boundary-resting entity never flip-flops owners.

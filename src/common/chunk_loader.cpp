@@ -9,6 +9,7 @@
 
 #include "common/RepGame.hpp"
 #include "common/chunk_loader.hpp"
+#include "common/utils/env_config.hpp"
 #include "common/multiplayer.hpp"
 #include "common/net/packet.hpp"
 #include "common/utils/map_storage.hpp"
@@ -29,8 +30,7 @@ MK_SHADER( occl_fragment );
 static int occlusion_enabled( ) {
     static int enabled = -1;
     if ( enabled < 0 ) {
-        const char *env = getenv( "REPGAME_OCCLUSION" );
-        enabled = env ? atoi( env ) != 0 : 1;
+        enabled = env_bool( "REPGAME_OCCLUSION", true ) ? 1 : 0;
     }
     return enabled;
 }
@@ -712,7 +712,7 @@ void ChunkLoader::draw( const glm::mat4 &mvp, const Renderer &renderer, const Te
         shader.set_uniform2f( "u_ViewportSize", (float)vp[ 2 ], (float)vp[ 3 ] );
     }
     // Screen-space corner grow (chunk_vertex.glsl), tunable via env.
-    static const float face_grow_px = getenv( "REPGAME_FACE_GROW_PX" ) ? static_cast<float>( atof( getenv( "REPGAME_FACE_GROW_PX" ) ) ) : CHUNK_FACE_GROW_PX;
+    static const float face_grow_px = env_float( "REPGAME_FACE_GROW_PX", CHUNK_FACE_GROW_PX );
     // All per-chunk light volumes share one reserved texture unit; each chunk
     // binds its 3D texture + u_LightBase right before drawing (Chunk::draw).
     shader.set_uniform1i( "u_LightTex", light_texture_unit( ) );

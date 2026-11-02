@@ -8,6 +8,7 @@
 #include "common/RenderChain.hpp"
 #include "common/item.hpp"
 #include "common/net/packet.hpp"
+#include "common/net/net_sync.hpp"
 #include "common/utils/collision.hpp"
 
 class ChunkLoader;
@@ -60,23 +61,14 @@ class ItemEntities {
         entt::entity entity = entt::null;                   // render chain entity (render_inited only)
         unsigned short face[ NUM_FACES_IN_CUBE ] = { 0 };   // resolved texture layers (isometric block items)
 
-        // Multiplayer sync (all 0/false in single player):
-        NetEntityId net_id = 0;   // server-assigned identity; 0 = local-only
-        bool remote = false;      // mirror: skip physics/merge/despawn/aging
         bool pickup_pending = false; // PICKUP_REQUEST in flight; hidden
-        glm::dvec3 net_pos = glm::dvec3( 0.0 ); // mirror interpolation target
-        glm::dvec3 net_vel = glm::dvec3( 0.0 );
-        // Chunk the server believes this entity is in: set from records and
-        // advanced to the last-sent state pos. All ownership checks key off
-        // this (not the local pos) so a crossing still streams to the server
-        // until ENTITY_TRANSFER arrives.
-        glm::ivec3 net_chunk = glm::ivec3( 0 );
-        // Outbound state tracking for owner-side ENTITY_STATE throttling.
-        bool net_sent = false;
-        glm::dvec3 net_sent_pos = glm::dvec3( 0.0 );
-        glm::dvec3 net_sent_vel = glm::dvec3( 0.0 );
-        int net_sent_count = 0;
-        long net_keyframe_tick = -1;
+        // Multiplayer sync (net.id 0 / net.mirror false in single player):
+        // mirrors skip physics/merge/despawn/aging and ease toward net.pos.
+        // Ownership checks key off net.chunk (the chunk the server believes
+        // the entity is in) so a crossing still streams to the server until
+        // ENTITY_TRANSFER arrives.
+        NetSync net;
+        int net_sent_count = 0; // count streamed with the last ENTITY_STATE
     };
 
     void init( const VertexBufferLayout &vbl_object_vertex, const VertexBufferLayout &vbl_object_position, const VertexBufferLayout &vbl_item_instance );

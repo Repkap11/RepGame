@@ -4,6 +4,7 @@
 
 #define GL_GLEXT_PROTOTYPES
 #include "common/utils/file_utils.hpp"
+#include "common/utils/env_config.hpp"
 
 #include "common/RepGame.hpp"
 #include "common/renderer/texture.hpp"
@@ -238,7 +239,7 @@ void Texture::loadTexture( const TextureSourceData &texture_source, int blur_mag
     // texture bandwidth on mobile. Anisotropic filtering (when supported)
     // sharpens oblique views without blurring head-on surfaces.
     // REPGAME_TEX_MIPMAPS=0 restores the old NEAREST-only sampling for A/B.
-    static const bool tex_mipmaps = !( getenv( "REPGAME_TEX_MIPMAPS" ) && atoi( getenv( "REPGAME_TEX_MIPMAPS" ) ) == 0 );
+    static const bool tex_mipmaps = env_bool( "REPGAME_TEX_MIPMAPS", true );
     const bool gen_mipmaps = mipmaps && tex_mipmaps;
 
     // Mip chain dimensions, halving to 1x1 like GL's own mipmapping would.

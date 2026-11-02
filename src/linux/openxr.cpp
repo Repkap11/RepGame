@@ -6,6 +6,7 @@
 #include "linux/RepGameLinux.hpp"
 #include <EGL/egl.h>
 #include "common/RepGame.hpp"
+#include "common/utils/env_config.hpp"
 
 // Platform define selection must precede openxr_platform.h.
 #define XR_USE_PLATFORM_EGL
@@ -191,12 +192,9 @@ bool OpenXRSession::init( ) {
     if ( XR_FAILED( XR_LOG_CALL( impl->instance, xrEnumerateViewConfigurationViews( impl->instance, impl->system, XR_VIEW_CONFIGURATION_TYPE_PRIMARY_STEREO, 2, &num_views, eye_configs ) ) ) || num_views < 2 ) {
         return false;
     }
-    float scale = 1.0f;
-    if ( const char *env = getenv( "REPGAME_VR_RENDER_SCALE" ) ) {
-        scale = static_cast<float>( atof( env ) );
-        if ( scale <= 0.0f ) {
-            scale = 1.0f;
-        }
+    float scale = env_float( "REPGAME_VR_RENDER_SCALE", 1.0f );
+    if ( scale <= 0.0f ) {
+        scale = 1.0f;
     }
     const uint32_t rec_w = std::max( eye_configs[ 0 ].recommendedImageRectWidth, eye_configs[ 1 ].recommendedImageRectWidth );
     const uint32_t rec_h = std::max( eye_configs[ 0 ].recommendedImageRectHeight, eye_configs[ 1 ].recommendedImageRectHeight );
