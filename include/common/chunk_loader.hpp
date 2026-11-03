@@ -10,6 +10,7 @@
 #include "sky_box.hpp"
 #include "common/utils/terrain_loading_thread.hpp"
 #include "common/utils/map_storage.hpp"
+#include "common/utils/seed_fifo.hpp"
 
 class Multiplayer;
 class World;
@@ -184,8 +185,14 @@ class ChunkLoader {
     // the column re-enters the near radius, with no re-promote pass.
     // Pushes take the slot's own spinlock, so producers and per-column
     // drainers never serialize globally.
-    std::deque<LightSeed> light_add_queue[ LIGHT_COL_QUEUE_COUNT ][ 2 ][ LIGHT_MAX_LEVEL + 1 ];
-    std::deque<LightRemoveSeed> light_remove_queue[ LIGHT_COL_QUEUE_COUNT ];
+    //
+    // Buckets are SeedFifo (include/common/utils/seed_fifo.hpp): an empty
+    // fifo allocates nothing — a std::deque allocates a map + block even
+    // when empty, and the ~140k buckets here are almost all empty. Add
+    // seeds store just the position; the channel is implied by the [ch]
+    // index and re-attached at pop.
+    SeedFifo<glm::ivec3> light_add_queue[ LIGHT_COL_QUEUE_COUNT ][ 2 ][ LIGHT_MAX_LEVEL + 1 ];
+    SeedFifo<LightRemoveSeed> light_remove_queue[ LIGHT_COL_QUEUE_COUNT ];
     // push_back a remove seed under the column slot's queue lock.
     // internal=true marks flood-regen pushes (from add/remove step) which the
     // backlog cap may refuse; producer pushes leave it false.

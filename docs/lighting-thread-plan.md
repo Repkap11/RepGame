@@ -105,7 +105,9 @@ shards discussed earlier:
   no pri lanes, no re-promote pass, and a dark spot flown up to drains
   first. Out-of-window seeds squat in whatever slot the ring maps them
   to and die at pop when get_chunk fails — harmless. A per-slot
-  spinlock serializes deque ops against concurrent pushes.
+  spinlock serializes queue ops against concurrent pushes. The queues
+  themselves are `SeedFifo` (include/common/utils/seed_fifo.hpp) —
+  fixed-size blocks, no allocation while a bucket is empty.
 - **Column locks** (`light_col_locks`, hashed spinlock array) replaced the
   claim-vs-BFS exclusion too: a pop's read/write footprint is bounded by
   the 3x3 columns around its target — mirror writes only reach ±1 chunk
@@ -118,7 +120,7 @@ shards discussed earlier:
   slot early so another column can drain while the sweep moves on.
   No blocking, no lock-ordering cycle since pops never hold-and-wait.
 - `light_bfs_pending` (atomic) counts queued seeds so the cv predicate can
-  test queue-nonempty without touching deque internals from another
+  test queue-nonempty without touching queue internals from another
   thread; `light_colq_pending[]` does the same per column slot, and the
   predicate accepts any non-empty unowned slot.
 - `light_col_incident[]` counts queued seeds per column (same hash domain

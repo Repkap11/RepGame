@@ -457,7 +457,7 @@ void ChunkLoader::light_add_seed( const glm::ivec3 &block_pos, const int channel
     const int col = light_col_slot( block_pos );
     {
         LightSeedGuard guard( col );
-        this->light_add_queue[ col ][ channel ][ clamped ].push_back( { block_pos, static_cast<unsigned char>( channel ) } );
+        this->light_add_queue[ col ][ channel ][ clamped ].push_back( block_pos );
         light_colq_pending[ col ].fetch_add( 1, std::memory_order_relaxed );
     }
     light_col_incident_inc( block_pos );
@@ -1294,9 +1294,9 @@ int ChunkLoader::light_pop_seed( const int col, LightSeed &add_out, LightRemoveS
     }
     for ( level = LIGHT_MAX_LEVEL; level >= 0; level-- ) {
         for ( int ch = 0; ch < 2; ch++ ) {
-            std::deque<LightSeed> &bucket = this->light_add_queue[ col ][ ch ][ level ];
+            SeedFifo<glm::ivec3> &bucket = this->light_add_queue[ col ][ ch ][ level ];
             if ( !bucket.empty( ) ) {
-                add_out = bucket.front( );
+                add_out = LightSeed{ bucket.front( ), static_cast<unsigned char>( ch ) };
                 bucket.pop_front( );
                 return 1;
             }
@@ -1364,7 +1364,7 @@ void ChunkLoader::light_process_queue( const long long budget_us, const int col 
             {
                 LightSeedGuard guard( col );
                 if ( kind == 1 ) {
-                    this->light_add_queue[ col ][ add_seed.channel ][ level ].push_back( add_seed );
+                    this->light_add_queue[ col ][ add_seed.channel ][ level ].push_back( add_seed.pos );
                 } else {
                     this->light_remove_queue[ col ].push_back( rem_seed );
                 }
