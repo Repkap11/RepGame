@@ -27,7 +27,8 @@ int test_mapgen( ) {
                 if ( b == LAVA ) {
                     lava++;
                 }
-                if ( b == COAL_ORE || b == IRON_ORE || b == GOLD_ORE ) {
+                if ( b == COAL_ORE || b == IRON_ORE || b == GOLD_ORE || b == COPPER_ORE || b == LAPIS_ORE ||
+                     b == REDSTONE_ORE || b == DIAMOND_ORE || b == EMERALD_ORE ) {
                     ores++;
                 }
                 if ( b != AIR && b != WATER ) {
@@ -434,6 +435,18 @@ int test_structure_border( ) {
 
         // Every shared face, both directions: the outer halo cell of each
         // chunk vs the mirrored interior edge of its neighbor.
+        int shown = 0;
+        auto diff_cell = [ & ]( const Chunk *a, const Chunk *b, const glm::ivec3 &pa, const glm::ivec3 &pb ) {
+            const BlockID ia = a->get_block( pa ).id, ib = b->get_block( pb ).id;
+            if ( ia == ib ) {
+                return;
+            }
+            mismatches++;
+            if ( shown++ < 24 ) {
+                const glm::ivec3 wa = a->chunk_pos * glm::ivec3( CHUNK_SIZE_X, CHUNK_SIZE_Y, CHUNK_SIZE_Z ) + pa;
+                pr_test( "    mismatch world(%d %d %d): id %d vs %d", wa.x, wa.y, wa.z, (int)ia, (int)ib );
+            }
+        };
         for ( int gx = 0; gx < 3; gx++ ) {
             for ( int gy = 0; gy < 2; gy++ ) {
                 for ( int gz = 0; gz < 3; gz++ ) {
@@ -442,12 +455,8 @@ int test_structure_border( ) {
                         const Chunk *b = grid[ gx + 1 ][ gy ][ gz ];
                         for ( int ly = -1; ly <= CHUNK_SIZE_Y; ly++ ) {
                             for ( int lz = -1; lz <= CHUNK_SIZE_Z; lz++ ) {
-                                if ( a->get_block( glm::ivec3( CHUNK_SIZE_X, ly, lz ) ).id != b->get_block( glm::ivec3( 0, ly, lz ) ).id ) {
-                                    mismatches++;
-                                }
-                                if ( a->get_block( glm::ivec3( CHUNK_SIZE_X - 1, ly, lz ) ).id != b->get_block( glm::ivec3( -1, ly, lz ) ).id ) {
-                                    mismatches++;
-                                }
+                                diff_cell( a, b, glm::ivec3( CHUNK_SIZE_X, ly, lz ), glm::ivec3( 0, ly, lz ) );
+                                diff_cell( a, b, glm::ivec3( CHUNK_SIZE_X - 1, ly, lz ), glm::ivec3( -1, ly, lz ) );
                             }
                         }
                     }
@@ -455,12 +464,8 @@ int test_structure_border( ) {
                         const Chunk *b = grid[ gx ][ gy ][ gz + 1 ];
                         for ( int ly = -1; ly <= CHUNK_SIZE_Y; ly++ ) {
                             for ( int lx = -1; lx <= CHUNK_SIZE_X; lx++ ) {
-                                if ( a->get_block( glm::ivec3( lx, ly, CHUNK_SIZE_Z ) ).id != b->get_block( glm::ivec3( lx, ly, 0 ) ).id ) {
-                                    mismatches++;
-                                }
-                                if ( a->get_block( glm::ivec3( lx, ly, CHUNK_SIZE_Z - 1 ) ).id != b->get_block( glm::ivec3( lx, ly, -1 ) ).id ) {
-                                    mismatches++;
-                                }
+                                diff_cell( a, b, glm::ivec3( lx, ly, CHUNK_SIZE_Z ), glm::ivec3( lx, ly, 0 ) );
+                                diff_cell( a, b, glm::ivec3( lx, ly, CHUNK_SIZE_Z - 1 ), glm::ivec3( lx, ly, -1 ) );
                             }
                         }
                     }
@@ -468,12 +473,8 @@ int test_structure_border( ) {
                         const Chunk *b = grid[ gx ][ gy + 1 ][ gz ];
                         for ( int lx = -1; lx <= CHUNK_SIZE_X; lx++ ) {
                             for ( int lz = -1; lz <= CHUNK_SIZE_Z; lz++ ) {
-                                if ( a->get_block( glm::ivec3( lx, CHUNK_SIZE_Y, lz ) ).id != b->get_block( glm::ivec3( lx, 0, lz ) ).id ) {
-                                    mismatches++;
-                                }
-                                if ( a->get_block( glm::ivec3( lx, CHUNK_SIZE_Y - 1, lz ) ).id != b->get_block( glm::ivec3( lx, -1, lz ) ).id ) {
-                                    mismatches++;
-                                }
+                                diff_cell( a, b, glm::ivec3( lx, CHUNK_SIZE_Y, lz ), glm::ivec3( lx, 0, lz ) );
+                                diff_cell( a, b, glm::ivec3( lx, CHUNK_SIZE_Y - 1, lz ), glm::ivec3( lx, -1, lz ) );
                             }
                         }
                     }

@@ -4,6 +4,7 @@
 #include "common/constants.hpp"
 #include "common/block_definitions.hpp"
 #include "common/map_gen.hpp"
+#include <cstdlib>
 
 #define MG_QUAL static inline
 #define MAP_GEN_PERLIN2D( x, z, f, d, s ) perlin_noise2d( x, z, f, d, s )
@@ -37,13 +38,14 @@ static float sg_roll( const int x, const int z, const int seed ) {
     return (float)( sg_hash( x, 0, z, seed ) & 0xFFFFFFu ) / 16777216.0f;
 }
 
-static int sg_is_next_to( const Chunk &chunk, const int x, const int y, const int z, const BlockID block ) {
+// Reads pure map gen on world coords — two chunks always agree.
+static int sg_world_is_next_to( const int wx, const int wy, const int wz, const BlockID block ) {
     for ( int i = -1; i < 2; i++ ) {
         for ( int j = -1; j < 2; j++ ) {
             if ( i == 0 && j == 0 ) {
                 continue;
             }
-            if ( chunk.get_block( glm::ivec3( x + i, y, z + j ) ).id == block ) {
+            if ( MapGen::gen_block_id( wx + i, wy, wz + j ) == block ) {
                 return 1;
             }
         }
@@ -95,6 +97,12 @@ static void sg_write_ground( Chunk &chunk, const int lx, const int ly, const int
         case JUNGLE_LOG:
         case ACACIA_LOG:
         case DARK_OAK_LOG:
+        case CHERRY_LOG:
+        case PALE_OAK_LOG:
+        case MANGROVE_LOG:
+        case MUSHROOM_STEM:
+        case MANGROVE_ROOTS:
+        case MUDDY_MANGROVE_ROOTS:
         case LAST_BLOCK_ID:
             return;
         default:
@@ -110,15 +118,23 @@ static void sg_write_decor( Chunk &chunk, const int lx, const int ly, const int 
     }
 }
 
+// Unconditional canonical write — the caller checked replaceability.
+static void sg_write_block( Chunk &chunk, const int lx, const int ly, const int lz, const BlockID id ) {
+    const Block *def = block_definition_get_definition( id );
+    chunk.set_block( glm::ivec3( lx, ly, lz ), { id, BLOCK_ROTATE_0, def->initial_redstone_power, id, 0 } );
+}
+
 // ---------------------------------------------------------------------------
 // Trees
 // ---------------------------------------------------------------------------
 
 typedef enum {
-    SHAPE_BLOB,   // oak / birch / dark oak: ellipsoid crown
-    SHAPE_PINE,   // spruce: shrinking stacked rings
-    SHAPE_JUNGLE, // tall trunk, wide flat crown
-    SHAPE_ACACIA, // leaning trunk, flat top
+    SHAPE_BLOB,     // oak / birch / dark oak / cherry / pale oak: ellipsoid crown
+    SHAPE_PINE,     // spruce: shrinking stacked rings
+    SHAPE_JUNGLE,   // tall trunk, wide flat crown
+    SHAPE_ACACIA,   // leaning trunk, flat top
+    SHAPE_MUSHROOM, // giant mushroom: stem + stepped cap discs
+    SHAPE_MANGROVE, // stilt-rooted mangrove
 } TreeShape;
 
 typedef struct {
@@ -129,8 +145,40 @@ typedef struct {
     int canopy_r;
     int lean_x;
     int lean_z;
-    int giant; // 2x2 trunk
+    int giant;        // 2x2 trunk
+    BlockID hanger;   // AIR, or a hanging plant scattered under the canopy rim
+    int hanger_len;   // max hanging strand length
+    unsigned hanger_mask; // (sg_hash & mask) == 0 to hang — sparseness
 } TreeSpec;
+
+// ---------------------------------------------------------------------------
+// Biome gates shared by the tree and decoration passes. Species/decor picks
+// work off the same mg_* fields the terrain surface pick uses, so a column's
+// biome always agrees with the blocks it grows.
+// ---------------------------------------------------------------------------
+
+// Cold wastes: frozen lakes, ice spikes, pine stands, powder snow.
+static bool sg_is_cold( const float biome ) {
+    return biome < 0.22f;
+}
+
+// Hot+dry desert (mirrors the surface pick's red-sand gate).
+static bool sg_is_desert( const float biome, const float weird ) {
+    return biome > 0.72f && weird < 0.55f;
+}
+
+// Cherry groves: a narrow band inside temperate latitudes, further cut by a
+// patch mask so they show up as occasional small groves, not whole regions.
+static bool sg_is_cherry( const float biome, const float weird, const int x, const int z ) {
+    return biome > 0.30f && biome < 0.72f && weird > 0.635f && weird <= 0.685f &&
+           perlin_noise2d( x, z, 0.0022f, 2, MAP_SEED + 76 ) > 0.52f;
+}
+
+// Biome-only pre-gate for mangrove swamps; the full check also needs terrain
+// height (mg_is_swamp) and is only evaluated when this passes.
+static bool sg_is_swampy( const float biome, const float weird ) {
+    return biome > 0.45f && biome < 0.68f && weird > 0.30f && weird < 0.55f;
+}
 
 // Per-cell tree decision: position inside the cell, existence (biome-driven
 // density), species, size. Pure f(cell coords + world biome fields), so every
@@ -141,14 +189,28 @@ static bool sg_tree_for_cell( const int cx, const int cz, int *out_tx, int *out_
 
     const float biome = mg_biome( tx, tz );
     const float weird = mg_weird( tx, tz );
+    const bool pale = mg_is_pale( tx, tz, weird );
+    // Mangrove swamps need real terrain height — only evaluated inside the
+    // cheap biome pre-gate. This is just a pre-filter so swampy dry flats
+    // still roll normal species; place_trees gates on the found surface
+    // itself, since a submerged base height can hide an island top above.
+    const bool swampy_biome = sg_is_swampy( biome, weird );
+    const float th = swampy_biome ? MapGen::calculateTerrainHeight( tx, tz ) : 0.0f;
+    const bool swamp = swampy_biome && th != 0.0f && th > WATER_LEVEL - 7.5f && th < WATER_LEVEL + 1.0f;
 
     float density;
     if ( biome > 0.72f ) {
         density = weird >= 0.55f ? 0.95f : 0.05f; // jungle vs savanna/desert
     } else if ( biome < 0.22f ) {
         density = 0.45f; // snowy pine stands
+    } else if ( pale ) {
+        density = 0.90f; // pale garden: dense ghostly canopy
     } else if ( weird > 0.88f ) {
-        density = 0.04f; // mushroom fields are nearly barren
+        density = 0.25f; // mushroom fields: sparse giant mushrooms
+    } else if ( swamp ) {
+        density = 0.35f; // mangrove stands along the waterline
+    } else if ( sg_is_cherry( biome, weird, tx, tz ) ) {
+        density = 0.60f; // cherry groves
     } else if ( weird > 0.75f ) {
         density = 0.95f; // dark forest
     } else if ( weird > 0.40f ) {
@@ -170,11 +232,17 @@ static bool sg_tree_for_cell( const int cx, const int cz, int *out_tx, int *out_
     spec->lean_x = 0;
     spec->lean_z = 0;
     spec->giant = 0;
+    spec->hanger = AIR;
+    spec->hanger_len = 0;
+    spec->hanger_mask = 0;
     if ( biome > 0.72f ) {
         if ( weird >= 0.55f ) {
             spec->log = JUNGLE_LOG;
             spec->leaf = JUNGLE_LEAVES;
             spec->shape = SHAPE_JUNGLE;
+            spec->hanger = VINE;
+            spec->hanger_len = 4;
+            spec->hanger_mask = 3u;
             if ( sg_roll( cx, cz, 7 ) < 0.20f ) {
                 // Rare emergent giants: 2x2 trunk, tall crown over the canopy.
                 spec->giant = 1;
@@ -200,6 +268,38 @@ static bool sg_tree_for_cell( const int cx, const int cz, int *out_tx, int *out_
         spec->shape = SHAPE_PINE;
         spec->trunk_h = 7 + (int)( hr * 4.0f );
         spec->canopy_r = 2;
+    } else if ( pale ) {
+        spec->log = PALE_OAK_LOG;
+        spec->leaf = PALE_OAK_LEAVES;
+        spec->shape = SHAPE_BLOB;
+        spec->trunk_h = 7 + (int)( hr * 4.0f );
+        spec->canopy_r = 4;
+        spec->hanger = PALE_HANGING_MOSS;
+        spec->hanger_len = 3;
+        spec->hanger_mask = 7u;
+    } else if ( weird > 0.88f ) {
+        spec->log = MUSHROOM_STEM;
+        spec->leaf = sr < 0.6f ? RED_MUSHROOM_BLOCK : BROWN_MUSHROOM_BLOCK;
+        spec->shape = SHAPE_MUSHROOM;
+        spec->trunk_h = 4 + (int)( hr * 3.0f );
+        spec->canopy_r = 3 + ( sr > 0.7f ? 1 : 0 );
+    } else if ( swamp ) {
+        spec->log = MANGROVE_LOG;
+        spec->leaf = MANGROVE_LEAVES;
+        spec->shape = SHAPE_MANGROVE;
+        // Tall stilt trunks keep the canopy above the waterline even when the
+        // seabed sits a few blocks under it — swamps stay swimmable.
+        spec->trunk_h = 7 + (int)( hr * 4.0f );
+        spec->canopy_r = 3;
+        spec->hanger = MANGROVE_PROPAGULE;
+        spec->hanger_len = 1;
+        spec->hanger_mask = 3u;
+    } else if ( sg_is_cherry( biome, weird, tx, tz ) ) {
+        spec->log = CHERRY_LOG;
+        spec->leaf = CHERRY_LEAVES;
+        spec->shape = SHAPE_BLOB;
+        spec->trunk_h = 5 + (int)( hr * 3.0f );
+        spec->canopy_r = 3;
     } else if ( weird > 0.75f ) {
         spec->log = DARK_OAK_LOG;
         spec->leaf = OAK_LEAVES;
@@ -230,24 +330,91 @@ static bool sg_tree_for_cell( const int cx, const int cz, int *out_tx, int *out_
     return true;
 }
 
+// "No surface" sentinel: can't be a real y (seabeds legitimately sit at
+// negative y — a -1 sentinel there would silently reject every underwater
+// column, which is exactly what happened before this existed).
+#define SG_NO_SURFACE -1000000
+
 // Real surface of a column, derived from pure map gen (not this chunk's block
 // array) so every chunk agrees even when the ground lives in a different
-// chunk. Overhang sheets and floating islands can push the visible surface up
-// to OVERHANG_MAX_RISE above the heightmap, so the scan starts above that.
-static int sg_find_surface_y( const int wx, const int wz ) {
-    const MapGenColumn col = mg_column_info( wx, wz );
-    const int top = (int)( col.height + OVERHANG_MAX_RISE + 4.0f );
-    for ( int y = top; y >= (int)( col.height - 8.0f ); y-- ) {
+// chunk. The column's MapGenColumn comes back through `col` so callers can
+// pick blocks without recomputing the column fields. The scan window is the
+// Per-place() cache of mg_base_height over the column window [-1, CHUNK+1]
+// (the extra ring covers the steepness probes at +1/+1). The heightfield is
+// the most expensive 2D field and mg_column_info samples it three times per
+// column (center + two neighbors); caching collapses that to one eval per
+// column shared across all passes.
+struct SgHeightGrid {
+    float v[ ( CHUNK_SIZE_X + 3 ) * ( CHUNK_SIZE_Z + 3 ) ];
+    unsigned long long ok[ ( ( CHUNK_SIZE_X + 3 ) * ( CHUNK_SIZE_Z + 3 ) + 63 ) / 64 ];
+    int cox, coz;
+
+    SgHeightGrid( const int cox_, const int coz_ ) : cox( cox_ ), coz( coz_ ) {
+        memset( v, 0, sizeof( v ) );
+        memset( ok, 0, sizeof( ok ) );
+    }
+
+    float at( const int wx, const int wz ) {
+        const int ix = wx - cox + 1, iz = wz - coz + 1;
+        if ( ix < 0 || iz < 0 || ix > CHUNK_SIZE_X + 2 || iz > CHUNK_SIZE_Z + 2 ) {
+            return mg_base_height( wx, wz );
+        }
+        const int i = ix * ( CHUNK_SIZE_Z + 3 ) + iz;
+        const unsigned long long bit = 1ull << ( i & 63 );
+        if ( !( ok[ i >> 6 ] & bit ) ) {
+            v[ i ] = mg_base_height( wx, wz );
+            ok[ i >> 6 ] |= bit;
+        }
+        return v[ i ];
+    }
+};
+
+// Same fields as mg_column_info, but the three heightfield samples come
+// from the shared grid — bit-identical results, ~2/3 less heightfield work.
+static MapGenColumn sg_column_info( const int x, const int z, SgHeightGrid &hg ) {
+    MapGenColumn col;
+    col.height = hg.at( x, z );
+    col.steepness = fmaxf( fabsf( hg.at( x + 1, z ) - col.height ), fabsf( hg.at( x, z + 1 ) - col.height ) );
+    col.biome = mg_biome( x, z );
+    col.weird = mg_weird( x, z );
+    col.rough_gain = mg_rough_gain( x, z );
+    col.island = mg_island_strength( x, z );
+    col.island_dy0 = col.island > 0.0f ? mg_island_dy0( x, z ) : 0.0f;
+    col.island_tin = col.island > 0.0f ? mg_island_footprint( x, z ) : 0.0f;
+    col.mesa_riser = mg_mesa_riser( x, z );
+    return col;
+}
+
+// exact solid-reach bound: overhang sheets need dy < 0.45*rough_gain (the
+// ridged field tops out at n=0.45 with gate<=1), islands reach
+// island_dy0 + half_thickness, and the below-heightmap notch can carve at
+// most 0.5*rough_gain deep — far tighter than OVERHANG_MAX_RISE for flat
+// land. Cells are tested with mg_solid_at (cheap) and confirmed with
+// mg_pick_block (cave carving can still void an otherwise-solid cell).
+static int sg_find_surface_y( const int wx, const int wz, const MapGenColumn &col ) {
+    float top = col.height + 0.45f * col.rough_gain + 2.0f;
+    if ( col.island > 0.0f ) {
+        const float half = fminf( 3.0f + col.island * 24.0f, col.island_dy0 - 4.0f );
+        const float ti = col.height + col.island_dy0 + half + 2.0f;
+        top = top > ti ? top : ti;
+    }
+    const int bottom = (int)( col.height - 0.55f * col.rough_gain - 3.0f );
+    for ( int y = (int)top; y >= bottom; y-- ) {
+        if ( !mg_solid_at( wx, y, wz, col ) ) {
+            continue;
+        }
         const BlockID b = mg_pick_block( wx, y, wz, col );
         if ( b != AIR && b != WATER ) {
             return y;
         }
     }
-    return -1;
+    return SG_NO_SURFACE;
 }
 
-// Ellipsoid crown with hash-eaten edges.
-static void sg_canopy_blob( Chunk &chunk, const int cx, const int cy, const int cz, const int rx, const int ry, const int rz, const BlockState &leaf, const int seed ) {
+// Canopy edge-eating hashes take the chunk's world origin `co` and hash
+// world cell coords: two chunks computing the same border-crossing tree must
+// make the same call for the shared cell (halo mirroring depends on it).
+static void sg_canopy_blob( Chunk &chunk, const int cx, const int cy, const int cz, const int rx, const int ry, const int rz, const BlockState &leaf, const int seed, const glm::ivec3 &co ) {
     const float fx = (float)( rx * rx ), fy = (float)( ry * ry ), fz = (float)( rz * rz );
     for ( int dy = -ry; dy <= ry; dy++ ) {
         for ( int dx = -rx; dx <= rx; dx++ ) {
@@ -256,7 +423,7 @@ static void sg_canopy_blob( Chunk &chunk, const int cx, const int cy, const int 
                 if ( d > 1.0f ) {
                     continue;
                 }
-                if ( d > 0.45f && ( sg_hash( cx + dx, cy + dy, cz + dz, seed ) & 7u ) < 3u ) {
+                if ( d > 0.45f && ( sg_hash( co.x + cx + dx, co.y + cy + dy, co.z + cz + dz, seed ) & 7u ) < 3u ) {
                     continue;
                 }
                 sg_write_leaf( chunk, cx + dx, cy + dy, cz + dz, leaf );
@@ -266,18 +433,18 @@ static void sg_canopy_blob( Chunk &chunk, const int cx, const int cy, const int 
 }
 
 // Flat diamond-ish disc, with a sparser second layer above.
-static void sg_canopy_disc( Chunk &chunk, const int cx, const int cy, const int cz, const int r, const BlockState &leaf, const int seed ) {
+static void sg_canopy_disc( Chunk &chunk, const int cx, const int cy, const int cz, const int r, const BlockState &leaf, const int seed, const glm::ivec3 &co ) {
     for ( int dx = -r; dx <= r; dx++ ) {
         for ( int dz = -r; dz <= r; dz++ ) {
             const int d = abs( dx ) + abs( dz );
             if ( d > r + 1 ) {
                 continue;
             }
-            if ( d == r + 1 && ( sg_hash( cx + dx, cy, cz + dz, seed ) & 3u ) != 0u ) {
+            if ( d == r + 1 && ( sg_hash( co.x + cx + dx, co.y + cy, co.z + cz + dz, seed ) & 3u ) != 0u ) {
                 continue; // eat most rim cells
             }
             sg_write_leaf( chunk, cx + dx, cy, cz + dz, leaf );
-            if ( d < r - 1 && ( sg_hash( cx + dx, cy + 1, cz + dz, seed ) & 3u ) == 0u ) {
+            if ( d < r - 1 && ( sg_hash( co.x + cx + dx, co.y + cy + 1, co.z + cz + dz, seed ) & 3u ) == 0u ) {
                 sg_write_leaf( chunk, cx + dx, cy + 1, cz + dz, leaf );
             }
         }
@@ -285,7 +452,7 @@ static void sg_canopy_disc( Chunk &chunk, const int cx, const int cy, const int 
 }
 
 // Spruce: shrinking diamond rings every other layer up the trunk.
-static void sg_canopy_pine( Chunk &chunk, const int bx, const int by, const int bz, const int trunk_h, const BlockState &leaf, const int seed ) {
+static void sg_canopy_pine( Chunk &chunk, const int bx, const int by, const int bz, const int trunk_h, const BlockState &leaf, const int seed, const glm::ivec3 &co ) {
     for ( int i = 2; i <= trunk_h; i += 2 ) {
         const int r = i < trunk_h - 3 ? 2 : 1;
         const int y = by + i;
@@ -295,22 +462,88 @@ static void sg_canopy_pine( Chunk &chunk, const int bx, const int by, const int 
                 if ( d > r + 1 ) {
                     continue;
                 }
-                if ( abs( dx ) == r && abs( dz ) == r && ( sg_hash( bx + dx, y, bz + dz, seed ) & 3u ) != 0u ) {
+                if ( abs( dx ) == r && abs( dz ) == r && ( sg_hash( co.x + bx + dx, co.y + y, co.z + bz + dz, seed ) & 3u ) != 0u ) {
                     continue;
                 }
                 sg_write_leaf( chunk, bx + dx, y, bz + dz, leaf );
             }
         }
     }
+    // Tip: a leaf right above the trunk top plus the point — odd trunk
+    // heights would otherwise leave an air gap under the tip.
+    sg_write_leaf( chunk, bx, by + trunk_h, bz, leaf );
     sg_write_leaf( chunk, bx, by + trunk_h + 1, bz, leaf );
 }
 
-static void sg_place_tree( Chunk &chunk, const TreeSpec &spec, const int bx, const int by, const int bz ) {
+// Hanging under-canopy scatter (pale moss, vines, propagules): a leaf cell
+// with air below may grow a strand. Reads this chunk's own just-written
+// canopy and hashes world coords, so border-crossing trees hang identically
+// on both sides. One edge case: a leaf at world y == 1 (mod CHUNK_SIZE_Y)
+// sits at local 63 for the chunk below — out of its readable band — so it
+// can never evaluate that cell; both sides skip hangers there to stay
+// mirror-consistent.
+static void sg_canopy_hangers( Chunk &chunk, const TreeSpec &spec, const int bx, const int by, const int bz, const glm::ivec3 &co ) {
+    const int r = spec.canopy_r + 1;
+    const int y0 = by + spec.trunk_h - 3, y1 = by + spec.trunk_h + 3;
+    for ( int ly = y0; ly <= y1; ly++ ) {
+        for ( int dx = -r; dx <= r; dx++ ) {
+            for ( int dz = -r; dz <= r; dz++ ) {
+                if ( chunk.get_block( glm::ivec3( bx + dx, ly, bz + dz ) ).id != spec.leaf ) {
+                    continue;
+                }
+                const int leaf_wy = co.y + ly;
+                if ( ( leaf_wy % CHUNK_SIZE_Y + CHUNK_SIZE_Y ) % CHUNK_SIZE_Y == 1 ) {
+                    continue;
+                }
+                if ( chunk.get_block( glm::ivec3( bx + dx, ly - 1, bz + dz ) ).id != AIR ) {
+                    continue;
+                }
+                const unsigned int hh = sg_hash( co.x + bx + dx, co.y + ly, co.z + bz + dz, 20 );
+                if ( ( hh & spec.hanger_mask ) != 0u ) {
+                    continue;
+                }
+                const int len = 1 + (int)( ( hh >> 8 ) & 3u );
+                for ( int i = 1; i <= len && i <= spec.hanger_len; i++ ) {
+                    if ( chunk.get_block( glm::ivec3( bx + dx, ly - i, bz + dz ) ).id != AIR ) {
+                        break;
+                    }
+                    sg_write_block( chunk, bx + dx, ly - i, bz + dz, spec.hanger );
+                }
+            }
+        }
+    }
+}
+
+// Bee nest on the trunk side of oak/birch — rare, one roll per tree cell.
+static void sg_bee_nest( Chunk &chunk, const TreeSpec &spec, const int bx, const int by, const int bz, const glm::ivec3 &co ) {
+    if ( spec.log != OAK_LOG && spec.log != BIRCH_LOG ) {
+        return;
+    }
+    const int wx = co.x + bx;
+    const int wy = co.y + by;
+    const int wz = co.z + bz;
+    if ( ( sg_hash( wx, wy, wz, 58 ) & 63u ) != 0u ) {
+        return;
+    }
+    if ( chunk.get_block( glm::ivec3( bx + 1, by + 2, bz ) ).id == AIR ) {
+        sg_write_block( chunk, bx + 1, by + 2, bz, BEE_NEST );
+    }
+}
+
+static void sg_place_tree( Chunk &chunk, const TreeSpec &spec, const int bx, const int by, const int bz, const glm::ivec3 &co ) {
     const Block *log_def = block_definition_get_definition( spec.log );
     const Block *leaf_def = block_definition_get_definition( spec.leaf );
     const BlockState log_state = { spec.log, BLOCK_ROTATE_0, log_def->initial_redstone_power, spec.log, 0 };
     const BlockState leaf_state = { spec.leaf, BLOCK_ROTATE_0, leaf_def->initial_redstone_power, spec.leaf, 0 };
     const BlockState dirt_state = { DIRT, BLOCK_ROTATE_0, block_definition_get_definition( DIRT )->initial_redstone_power, DIRT, 0 };
+
+    if ( spec.shape == SHAPE_MUSHROOM ) {
+        // Giant mushrooms keep the mycelium under them.
+    } else if ( spec.shape == SHAPE_MANGROVE ) {
+        const Block *muddy_def = block_definition_get_definition( MUDDY_MANGROVE_ROOTS );
+        const BlockState muddy_state = { MUDDY_MANGROVE_ROOTS, BLOCK_ROTATE_0, muddy_def->initial_redstone_power, MUDDY_MANGROVE_ROOTS, 0 };
+        sg_write_ground( chunk, bx, by - 1, bz, muddy_state );
+    }
 
     if ( spec.giant ) {
         // 2x2 trunk: ground + log for each of the four columns.
@@ -325,7 +558,9 @@ static void sg_place_tree( Chunk &chunk, const TreeSpec &spec, const int bx, con
             sg_write_trunk( chunk, bx + 1, by + i, bz + 1, log_state, spec.leaf );
         }
     } else {
-        sg_write_ground( chunk, bx, by - 1, bz, dirt_state );
+        if ( spec.shape != SHAPE_MUSHROOM && spec.shape != SHAPE_MANGROVE ) {
+            sg_write_ground( chunk, bx, by - 1, bz, dirt_state );
+        }
         for ( int i = 0; i < spec.trunk_h; i++ ) {
             const int lx = spec.lean_x != 0 && i >= spec.trunk_h - 2 ? bx + spec.lean_x : bx;
             const int lz = spec.lean_z != 0 && i >= spec.trunk_h - 2 ? bz + spec.lean_z : bz;
@@ -336,21 +571,52 @@ static void sg_place_tree( Chunk &chunk, const TreeSpec &spec, const int bx, con
     const int tip_z = spec.lean_z != 0 ? bz + spec.lean_z : bz;
     const int top_y = by + spec.trunk_h;
 
+    if ( spec.shape == SHAPE_MANGROVE ) {
+        // Stilt roots arcing out from the trunk and down into the water/mud —
+        // a sparse, uneven ring hashed on world coords.
+        static const int ring[ 8 ][ 2 ] = { { 1, 0 }, { -1, 0 }, { 0, 1 }, { 0, -1 }, { 1, 1 }, { -1, -1 }, { 1, -1 }, { -1, 1 } };
+        for ( int o = 0; o < 8; o++ ) {
+            const int rx = bx + ring[ o ][ 0 ], rz = bz + ring[ o ][ 1 ];
+            if ( ( sg_hash( co.x + rx, co.y + by, co.z + rz, 19 ) & 3u ) == 0u ) {
+                continue;
+            }
+            for ( int ry = by + 1; ry >= by - 6; ry-- ) {
+                if ( !sg_can_replace( chunk, rx, ry, rz ) ) {
+                    break;
+                }
+                sg_write_block( chunk, rx, ry, rz, MANGROVE_ROOTS );
+            }
+        }
+    }
+
     switch ( spec.shape ) {
         case SHAPE_BLOB:
-            sg_canopy_blob( chunk, bx, top_y - 1, bz, spec.canopy_r, 2, spec.canopy_r, leaf_state, 11 );
+            sg_canopy_blob( chunk, bx, top_y - 1, bz, spec.canopy_r, 2, spec.canopy_r, leaf_state, 11, co );
             break;
         case SHAPE_PINE:
-            sg_canopy_pine( chunk, bx, by, bz, spec.trunk_h, leaf_state, 12 );
+            sg_canopy_pine( chunk, bx, by, bz, spec.trunk_h, leaf_state, 12, co );
             break;
         case SHAPE_JUNGLE:
-            sg_canopy_disc( chunk, bx, top_y, bz, spec.canopy_r, leaf_state, 13 );
-            sg_canopy_blob( chunk, bx, top_y + 1, bz, spec.canopy_r - 2, 1, spec.canopy_r - 2, leaf_state, 14 );
+            sg_canopy_disc( chunk, bx, top_y, bz, spec.canopy_r, leaf_state, 13, co );
+            sg_canopy_blob( chunk, bx, top_y + 1, bz, spec.canopy_r - 2, 1, spec.canopy_r - 2, leaf_state, 14, co );
             break;
         case SHAPE_ACACIA:
-            sg_canopy_disc( chunk, tip_x, top_y, tip_z, spec.canopy_r, leaf_state, 15 );
+            sg_canopy_disc( chunk, tip_x, top_y, tip_z, spec.canopy_r, leaf_state, 15, co );
+            break;
+        case SHAPE_MUSHROOM:
+            // Stepped cap: wide flat disc with a smaller one on top.
+            sg_canopy_disc( chunk, bx, top_y - 1, bz, spec.canopy_r + 1, leaf_state, 16, co );
+            sg_canopy_disc( chunk, bx, top_y, bz, spec.canopy_r, leaf_state, 17, co );
+            break;
+        case SHAPE_MANGROVE:
+            sg_canopy_blob( chunk, bx, top_y - 1, bz, spec.canopy_r, 2, spec.canopy_r, leaf_state, 18, co );
             break;
     }
+
+    if ( spec.hanger != AIR ) {
+        sg_canopy_hangers( chunk, spec, bx, by, bz, co );
+    }
+    sg_bee_nest( chunk, spec, bx, by, bz, co );
 }
 
 // Evaluate every tree cell whose canopy could reach this chunk and write the
@@ -368,20 +634,52 @@ void StructureGen::place_trees( Chunk &chunk, const int cox, const int coy, cons
             if ( !sg_tree_for_cell( cx, cz, &tx, &tz, &spec ) ) {
                 continue;
             }
-            const int gy = sg_find_surface_y( tx, tz );
-            if ( gy < 0 ) {
+            const MapGenColumn tcol = mg_column_info( tx, tz );
+            const int gy = sg_find_surface_y( tx, tz, tcol );
+            if ( gy == SG_NO_SURFACE ) {
                 continue;
             }
-            const BlockID ground = MapGen::gen_block_id( tx, gy, tz );
-            if ( ground != GRASS && ground != PODZOL && ground != MYCELIUM && ground != SNOWY_GRASS && ground != DIRT && ground != SNOW ) {
+            const BlockID ground = mg_pick_block( tx, gy, tz, tcol );
+            if ( spec.shape == SHAPE_MANGROVE ) {
+                // Must actually stand in the water: mg_base_height can be
+                // submerged while the found surface is a floating island or
+                // dry bank, which would leave the roots dangling in air.
+                // A seabed at gy<0 puts the trunk base in water (up to ~3
+                // blocks deep); gy == WATER_LEVEL is a waterline hump whose
+                // ring roots descend into neighboring water cells.
+                if ( gy > WATER_LEVEL || gy < WATER_LEVEL - 4 ) {
+                    continue;
+                }
+                // A waterline mud flat isn't enough either: there the root
+                // ring just buries into dirt. Require open water at the
+                // waterline next to the trunk so at least one stilt root
+                // lands in the water (a trunk base at y<=-1 is wet already).
+                bool wet_edge = gy < WATER_LEVEL - 1;
+                for ( int dx = -1; dx <= 1 && !wet_edge; dx++ ) {
+                    for ( int dz = -1; dz <= 1 && !wet_edge; dz++ ) {
+                        if ( dx == 0 && dz == 0 ) {
+                            continue;
+                        }
+                        wet_edge = MapGen::gen_block_id( tx + dx, WATER_LEVEL - 1, tz + dz ) == WATER;
+                    }
+                }
+                if ( !wet_edge ) {
+                    continue;
+                }
+                // Mangroves root in wet soil — including under shallow water.
+                if ( ground != MUD && ground != DIRT && ground != SAND && ground != GRAVEL && ground != GRASS ) {
+                    continue;
+                }
+            } else if ( gy < WATER_LEVEL || ( ground != GRASS && ground != PODZOL && ground != MYCELIUM && ground != SNOWY_GRASS && ground != DIRT && ground != SNOW && ground != PALE_MOSS_BLOCK ) ) {
                 continue;
             }
-            // Skip trees that can't touch this chunk's y range (+/-1 border).
+            // Skip trees that can't touch this chunk's y range (+/-1 border;
+            // mangrove stilt roots dangle up to 5 below the trunk base).
             const int top = gy + spec.trunk_h + 3;
-            if ( top < coy - 1 || gy + 1 > coy + CHUNK_SIZE_Y + 1 ) {
+            if ( top < coy - 1 || gy - 5 > coy + CHUNK_SIZE_Y ) {
                 continue;
             }
-            sg_place_tree( chunk, spec, tx - cox, gy + 1 - coy, tz - coz );
+            sg_place_tree( chunk, spec, tx - cox, gy + 1 - coy, tz - coz, glm::ivec3( cox, coy, coz ) );
         }
     }
 }
@@ -417,47 +715,107 @@ static BlockID sg_pick_coral( const int wx, const int wz ) {
     return HORN_CORAL_FAN;
 }
 
-void StructureGen::place_decorations( Chunk &chunk, const int cox, const int coy, const int coz ) {
-    for ( int lx = 0; lx < CHUNK_SIZE_X; lx++ ) {
+// Desert cacti: a short column, sometimes crowned with a cactus flower.
+static void sg_place_cactus( Chunk &chunk, const int lx, const int surface_y, const int lz, const int wx, const int wz ) {
+    const int h = 1 + (int)( sg_roll( wx, wz, 50 ) * 3.0f );
+    for ( int i = 0; i < h && surface_y + i <= CHUNK_SIZE_Y; i++ ) {
+        sg_write_decor( chunk, lx, surface_y + i, lz, CACTUS );
+    }
+    if ( sg_roll( wx, wz, 51 ) < 0.20f && surface_y + h <= CHUNK_SIZE_Y ) {
+        sg_write_decor( chunk, lx, surface_y + h, lz, CACTUS_FLOWER );
+    }
+}
+
+void StructureGen::place_decorations( Chunk &chunk, const int cox, const int coy, const int coz, SgHeightGrid &hg ) {
+    // Column loop covers the interior plus the +/-1 halo: decor rolls are
+    // per-world-column, so a scatter cell on a chunk edge is written
+    // identically by both sides — the halo-mirroring contract needs it.
+    for ( int lx = -1; lx <= CHUNK_SIZE_X; lx++ ) {
         const int wx = cox + lx;
-        for ( int lz = 0; lz < CHUNK_SIZE_Z; lz++ ) {
+        for ( int lz = -1; lz <= CHUNK_SIZE_Z; lz++ ) {
             const int wz = coz + lz;
 
-            // Scan down: the decoration cell is the air/water cell directly
-            // above the first solid-ish block. Water is skipped but noted so
-            // seabeds can get their own decoration set.
-            int surface_y = -1;
-            bool under_water = false;
-            BlockID ground = AIR;
-            for ( int ly = CHUNK_SIZE_Y - 1; ly > -1; ly-- ) {
-                const BlockID b = chunk.get_block( glm::ivec3( lx, ly, lz ) ).id;
-                if ( b == AIR ) {
-                    continue;
-                }
-                if ( b == WATER ) {
-                    under_water = true;
-                    continue;
-                }
-                ground = b;
-                surface_y = ly + 1;
-                break;
-            }
-            if ( surface_y < 0 || surface_y > CHUNK_SIZE_Y ) {
+            // Column surface from pure map gen (not this chunk's array), so
+            // every chunk agrees even when the ground sits in a neighbor's
+            // y-slab — the halo-mirroring contract needs it. The decoration
+            // cell is the air/water cell directly above the surface block;
+            // writes go through the +/-1 halo and set_block bounds them.
+            // Cheap slab cull first: surfaces can't exceed
+            // OVERHANG_MAX_RISE above (or a similar depth below) the base
+            // heightfield, so slabs they can't reach skip the column scan.
+            const float hb = hg.at( wx, wz );
+            if ( hb + 70.0f < coy || hb - 70.0f > coy + CHUNK_SIZE_Y ) {
                 continue;
             }
+            const MapGenColumn dcol = sg_column_info( wx, wz, hg );
+            const int gy = sg_find_surface_y( wx, wz, dcol );
+            if ( gy == SG_NO_SURFACE ) {
+                continue;
+            }
+            const int surface_y = gy + 1 - coy;
+            if ( surface_y < -1 || surface_y > CHUNK_SIZE_Y ) {
+                continue;
+            }
+            const BlockID ground = mg_pick_block( wx, gy, wz, dcol );
+            const bool under_water = gy < WATER_LEVEL;
 
             const float roll = sg_roll( wx, wz, 40 );
 
             if ( under_water ) {
-                // Shallow seabeds only, so deep oceans stay barren.
-                if ( ( ground == SAND || ground == GRAVEL || ground == DIRT ) && surface_y > WATER_LEVEL - 12 ) {
-                    if ( roll < 0.03f ) {
-                        sg_write_decor( chunk, lx, surface_y, lz, sg_pick_coral( wx, wz ) );
-                    } else if ( roll < 0.10f ) {
-                        sg_write_decor( chunk, lx, surface_y, lz, KELP );
-                    } else if ( roll < 0.16f ) {
-                        sg_write_decor( chunk, lx, surface_y, lz, roll < 0.13f ? SEAGRASS : UNDERWATER_TUFT_TALL );
+                // Frozen surfaces in the cold biome: a patchy ice sheet on
+                // the waterline cell, the odd snow drift on top.
+                if ( sg_is_cold( mg_biome( wx, wz ) ) ) {
+                    const int icy = WATER_LEVEL - 1 - coy;
+                    if ( mg_pick_block( wx, WATER_LEVEL - 1, wz, dcol ) == WATER &&
+                         perlin_noise2d( wx, wz, 0.01f, 2, MAP_SEED + 74 ) > 0.45f ) {
+                        sg_write_block( chunk, lx, icy, lz, ICE );
+                        if ( roll < 0.10f ) {
+                            sg_write_decor( chunk, lx, icy + 1, lz, SNOW_LAYER );
+                        }
                     }
+                }
+                // Shallow seabeds only, so deep oceans stay barren. The plant
+                // cell (gy+1) must itself be under water, and tall quads need
+                // an extra cell of headroom — otherwise decor sits on top of
+                // the surface or pokes through it.
+                if ( ( ground == SAND || ground == GRAVEL || ground == DIRT || ground == MUD ) && gy > WATER_LEVEL - 12 && gy <= WATER_LEVEL - 2 ) {
+                    const bool tall_ok = gy <= WATER_LEVEL - 3;
+                    if ( mg_is_swamp( dcol.biome, dcol.weird, dcol.height ) ) {
+                        // Swamp water stays murky — no coral, just sparse
+                        // seagrass and the odd tall tuft.
+                        if ( roll < 0.10f ) {
+                            sg_write_decor( chunk, lx, surface_y, lz, SEAGRASS );
+                        } else if ( roll < 0.14f && tall_ok ) {
+                            sg_write_decor( chunk, lx, surface_y, lz, UNDERWATER_TUFT_TALL );
+                        }
+                    } else if ( perlin_noise2d( wx, wz, 0.004f, 2, MAP_SEED + 72 ) > 0.62f ) {
+                        if ( roll < 0.20f ) {
+                            sg_write_decor( chunk, lx, surface_y, lz, sg_pick_coral( wx, wz ) );
+                        } else if ( roll < 0.28f ) {
+                            sg_write_decor( chunk, lx, surface_y, lz, SEA_PICKLE );
+                        } else if ( roll < 0.36f && tall_ok ) {
+                            sg_write_decor( chunk, lx, surface_y, lz, KELP );
+                        } else if ( roll < 0.44f ) {
+                            sg_write_decor( chunk, lx, surface_y, lz, tall_ok && roll > 0.40f ? UNDERWATER_TUFT_TALL : SEAGRASS );
+                        }
+                    } else if ( roll < 0.015f ) {
+                        sg_write_decor( chunk, lx, surface_y, lz, sg_pick_coral( wx, wz ) );
+                    } else if ( roll < 0.06f && tall_ok ) {
+                        sg_write_decor( chunk, lx, surface_y, lz, KELP );
+                    } else if ( roll < 0.10f ) {
+                        sg_write_decor( chunk, lx, surface_y, lz, tall_ok && roll > 0.08f ? UNDERWATER_TUFT_TALL : SEAGRASS );
+                    }
+                }
+                continue;
+            }
+
+            // Pale-garden ground is PALE_MOSS_BLOCK, not grass — carpet and a
+            // rare sapling, and no other scatter underneath the ghost canopy.
+            if ( ground == PALE_MOSS_BLOCK ) {
+                if ( roll < 0.30f ) {
+                    sg_write_decor( chunk, lx, surface_y, lz, PALE_MOSS_CARPET );
+                } else if ( roll > 0.995f ) {
+                    sg_write_decor( chunk, lx, surface_y, lz, PALE_OAK_SAPLING );
                 }
                 continue;
             }
@@ -466,17 +824,47 @@ void StructureGen::place_decorations( Chunk &chunk, const int cox, const int coy
                 case GRASS: {
                     const float biome = mg_biome( wx, wz );
                     const float weird = mg_weird( wx, wz );
-                    if ( biome > 0.72f && weird >= 0.55f && roll < 0.06f && sg_is_next_to( chunk, lx, surface_y - 1, lz, WATER ) ) {
+                    if ( sg_is_cherry( biome, weird, wx, wz ) ) {
+                        // Cherry groves: flowering-azalea undergrowth, pink
+                        // flowers, the odd cherry sapling.
+                        if ( roll < 0.10f ) {
+                            sg_write_decor( chunk, lx, surface_y, lz, sg_roll( wx, wz, 46 ) < 0.5f ? FLOWERING_AZALEA : AZALEA );
+                        } else if ( roll < 0.12f ) {
+                            const float fr = sg_roll( wx, wz, 30 );
+                            sg_write_decor( chunk, lx, surface_y, lz, fr < 0.4f ? PINK_TULIP : fr < 0.7f ? ALLIUM : sg_pick_flower( wx, wz ) );
+                        } else if ( roll > 0.99f ) {
+                            sg_write_decor( chunk, lx, surface_y, lz, CHERRY_SAPLING );
+                        }
+                    } else if ( sg_is_swampy( biome, weird ) && roll < 0.08f &&
+                                mg_is_swamp( biome, weird, MapGen::calculateTerrainHeight( wx, wz ) ) ) {
+                        // Propagules rooted in the mud flats.
+                        sg_write_decor( chunk, lx, surface_y, lz, MANGROVE_PROPAGULE );
+                    } else if ( weird <= 0.40f && perlin_noise2d( wx, wz, 0.006f, 2, MAP_SEED + 73 ) > 0.64f ) {
+                        // Flower fields: scattered blooms inside a rare mask.
+                        if ( roll < 0.07f ) {
+                            sg_write_decor( chunk, lx, surface_y, lz, SUNFLOWER );
+                        } else if ( roll < 0.14f ) {
+                            const float fr = sg_roll( wx, wz, 47 );
+                            sg_write_decor( chunk, lx, surface_y, lz, fr < 0.33f ? LILAC : fr < 0.66f ? PEONY : ROSE_BUSH );
+                        } else if ( roll < 0.28f ) {
+                            sg_write_decor( chunk, lx, surface_y, lz, sg_roll( wx, wz, 48 ) < 0.5f ? sg_pick_flower( wx, wz ) : SHORT_GRASS );
+                        }
+                    } else if ( biome < 0.72f && weird > 0.30f && weird < 0.60f &&
+                                perlin_noise2d( wx, wz, 0.02f, 1, MAP_SEED + 75 ) > 0.80f && roll < 0.015f ) {
+                        // Pumpkin/melon patches in temperate country.
+                        sg_write_decor( chunk, lx, surface_y, lz, sg_roll( wx, wz, 49 ) < 0.6f ? PUMPKIN : MELON_BLOCK );
+                    } else if ( biome > 0.72f && weird >= 0.55f && roll < 0.06f &&
+                                gy <= WATER_LEVEL + 3 && sg_world_is_next_to( wx, WATER_LEVEL - 1, wz, WATER ) ) {
                         // Jungle-edge bamboo, a few blocks tall.
                         const int h = 2 + (int)( sg_roll( wx, wz, 41 ) * 3.0f );
-                        for ( int i = 0; i < h && surface_y + i < CHUNK_SIZE_Y; i++ ) {
+                        for ( int i = 0; i < h && surface_y + i <= CHUNK_SIZE_Y; i++ ) {
                             sg_write_decor( chunk, lx, surface_y + i, lz, BAMBOO_SAPLING );
                         }
-                    } else if ( weird > 0.35f && weird < 0.60f && roll < 0.30f ) {
-                        // Meadows: denser tufts and flowers.
-                        sg_write_decor( chunk, lx, surface_y, lz, roll < 0.10f ? sg_pick_flower( wx, wz ) : ( roll < 0.20f ? FERN : SHORT_GRASS ) );
-                    } else if ( roll < 0.10f ) {
-                        sg_write_decor( chunk, lx, surface_y, lz, roll < 0.03f ? sg_pick_flower( wx, wz ) : SHORT_GRASS );
+                    } else if ( weird > 0.35f && weird < 0.60f && roll < 0.16f ) {
+                        // Meadows: a few tufts and flowers.
+                        sg_write_decor( chunk, lx, surface_y, lz, roll < 0.05f ? sg_pick_flower( wx, wz ) : ( roll < 0.10f ? FERN : SHORT_GRASS ) );
+                    } else if ( roll < 0.08f ) {
+                        sg_write_decor( chunk, lx, surface_y, lz, roll < 0.02f ? sg_pick_flower( wx, wz ) : SHORT_GRASS );
                     } else if ( roll > 0.985f ) {
                         // Rare saplings matching the local tree mix.
                         const BlockID sap = biome < 0.22f ? DARK_OAK_SAPLING : biome > 0.72f ? ACACIA_SAPLING : sg_roll( wx, wz, 42 ) < 0.5f ? OAK_SAPLING : BIRCH_SAPLING;
@@ -487,6 +875,9 @@ void StructureGen::place_decorations( Chunk &chunk, const int cox, const int coy
                 case PODZOL:
                     if ( roll < 0.10f ) {
                         sg_write_decor( chunk, lx, surface_y, lz, sg_roll( wx, wz, 43 ) < 0.5f ? BROWN_MUSHROOM : RED_MUSHROOM );
+                    } else if ( roll < 0.20f ) {
+                        // Dark-forest floor ferns.
+                        sg_write_decor( chunk, lx, surface_y, lz, sg_roll( wx, wz, 53 ) < 0.5f ? LARGE_FERN : FERN );
                     }
                     break;
                 case MYCELIUM:
@@ -495,21 +886,34 @@ void StructureGen::place_decorations( Chunk &chunk, const int cox, const int coy
                     }
                     break;
                 case SNOWY_GRASS:
-                    if ( roll < 0.02f ) {
+                case SNOW:
+                    if ( ground == SNOWY_GRASS && roll < 0.02f ) {
                         sg_write_decor( chunk, lx, surface_y, lz, PINECONE );
+                    } else if ( sg_is_cold( mg_biome( wx, wz ) ) && roll < 0.14f ) {
+                        // Snow drifts — occasionally a powder-snow trap.
+                        sg_write_decor( chunk, lx, surface_y, lz, sg_roll( wx, wz, 52 ) < 0.85f ? SNOW_LAYER : POWDER_SNOW );
                     }
                     break;
                 case SAND:
                     // Reeds on sand next to water.
-                    if ( roll < 0.05f && sg_is_next_to( chunk, lx, surface_y - 1, lz, WATER ) && surface_y + 2 < CHUNK_SIZE_Y ) {
+                    if ( roll < 0.05f && gy <= WATER_LEVEL + 3 && sg_world_is_next_to( wx, WATER_LEVEL - 1, wz, WATER ) && surface_y + 2 <= CHUNK_SIZE_Y ) {
                         for ( int i = 0; i < 3; i++ ) {
                             sg_write_decor( chunk, lx, surface_y + i, lz, REEDS );
                         }
+                    } else if ( roll < 0.015f && sg_is_desert( mg_biome( wx, wz ), mg_weird( wx, wz ) ) ) {
+                        sg_place_cactus( chunk, lx, surface_y, lz, wx, wz );
                     }
                     break;
                 case RED_SAND:
                     if ( roll < 0.08f ) {
                         sg_write_decor( chunk, lx, surface_y, lz, sg_roll( wx, wz, 45 ) < 0.5f ? DARK_DEAD_SAPLING : DEADBUSH );
+                    } else if ( roll < 0.05f ) {
+                        sg_place_cactus( chunk, lx, surface_y, lz, wx, wz );
+                    }
+                    break;
+                case MUD:
+                    if ( roll < 0.06f ) {
+                        sg_write_decor( chunk, lx, surface_y, lz, MANGROVE_PROPAGULE );
                     }
                     break;
                 default:
@@ -536,6 +940,8 @@ enum {
     SG_FEAT_SPIRE,    // cluster of colored-glass crystal spires, glowing tips
     SG_FEAT_VENT,     // volcanic cinder cone with a lava crater
     SG_FEAT_MONOLITH, // stone-brick pillar topped with glowstone + torch
+    SG_FEAT_ICESPIKE, // packed-ice spikes on cold land, blue-ice tips
+    SG_FEAT_ICEBERG,  // packed/blue ice cone floating on cold oceans
 };
 
 typedef struct {
@@ -559,14 +965,31 @@ static bool sg_feature_for_cell( const int cx, const int cz, SGFeature *f ) {
     }
     f->ax = cx * SG_FEATURE_CELL + 12.0f + sg_roll( cx, cz, 61 ) * ( SG_FEATURE_CELL - 24.0f );
     f->az = cz * SG_FEATURE_CELL + 12.0f + sg_roll( cx, cz, 62 ) * ( SG_FEATURE_CELL - 24.0f );
-    // Features stand on land. Islands still work: the per-column surface scan
-    // plants on the real top (which can be an island top).
-    if ( MapGen::calculateTerrainHeight( (int)f->ax, (int)f->az ) < WATER_LEVEL + 1.5f ) {
-        return false;
-    }
+    const float anchor_h = MapGen::calculateTerrainHeight( (int)f->ax, (int)f->az );
     const float biome = mg_biome( (int)f->ax, (int)f->az );
     const float weird = mg_weird( (int)f->ax, (int)f->az );
+    // Features stand on land — except icebergs, which need open cold ocean.
+    if ( anchor_h < WATER_LEVEL + 1.5f ) {
+        if ( r < 0.10f && biome < 0.22f && anchor_h < WATER_LEVEL - 4.0f ) {
+            f->kind = SG_FEAT_ICEBERG;
+            f->vradius = 5.0f + sg_roll( cx, cz, 90 ) * 6.0f;
+            f->vpeak = 5.0f + sg_roll( cx, cz, 91 ) * 7.0f;
+            return true;
+        }
+        return false;
+    }
     if ( r < 0.13f ) {
+        if ( sg_is_cold( biome ) ) {
+            // Packed-ice spikes in the frozen wastes.
+            f->kind = SG_FEAT_ICESPIKE;
+            f->n_sub = 2 + (int)( sg_roll( cx, cz, 63 ) * (float)( SG_FEATURE_MAX_SUB - 3 ) ); // 2..5
+            for ( int i = 0; i < f->n_sub; i++ ) {
+                f->sx[ i ] = f->ax + ( sg_roll( cx, cz, 70 + i * 2 ) - 0.5f ) * 30.0f;
+                f->sz[ i ] = f->az + ( sg_roll( cx, cz, 71 + i * 2 ) - 0.5f ) * 30.0f;
+                f->speak[ i ] = 9.0f + sg_roll( cx, cz, 80 + i ) * 12.0f;
+            }
+            return true;
+        }
         // Crystal spire clusters live in the weird zones and the cold wastes.
         if ( weird <= 0.60f && biome >= 0.20f ) {
             return false;
@@ -612,7 +1035,7 @@ static SGClaim sg_column_feature( const SGFeature *feats, const int n, const int
     for ( int i = 0; i < n; i++ ) {
         const SGFeature &f = feats[ i ];
         float h = 0.0f, d = 0.0f;
-        if ( f.kind == SG_FEAT_SPIRE ) {
+        if ( f.kind == SG_FEAT_SPIRE || f.kind == SG_FEAT_ICESPIKE ) {
             for ( int s = 0; s < f.n_sub; s++ ) {
                 const float dx = (float)wx - f.sx[ s ];
                 const float dz = (float)wz - f.sz[ s ];
@@ -622,6 +1045,13 @@ static SGClaim sg_column_feature( const SGFeature *feats, const int n, const int
                     h = hi;
                     d = di;
                 }
+            }
+        } else if ( f.kind == SG_FEAT_ICEBERG ) {
+            const float dx = (float)wx - f.ax;
+            const float dz = (float)wz - f.az;
+            d = sqrtf( dx * dx + dz * dz );
+            if ( d < f.vradius ) {
+                h = f.vpeak - d * 1.6f;
             }
         } else if ( f.kind == SG_FEAT_VENT ) {
             const float dx = (float)wx - f.ax;
@@ -651,10 +1081,11 @@ static SGClaim sg_column_feature( const SGFeature *feats, const int n, const int
 
 // Write one feature/crystal cell: only ever into air, water, or plants — a
 // feature yields to terrain, trunks and other solids instead of eating them.
-// Returns false when blocked, so callers can stop a column at the obstacle.
+// The +/-1 halo rows are writable so border cells mirror; returns false when
+// blocked or out of range, so callers can stop a column at the obstacle.
 static bool sg_write_feature( Chunk &chunk, const int lx, const int ly, const int lz, const BlockID id ) {
-    if ( ly < 0 || ly >= CHUNK_SIZE_Y ) {
-        return false; // interior cells only — the owning chunk writes its own
+    if ( ly < -1 || ly > CHUNK_SIZE_Y ) {
+        return false;
     }
     if ( !sg_can_replace( chunk, lx, ly, lz ) ) {
         return false;
@@ -702,52 +1133,88 @@ void StructureGen::place_features( Chunk &chunk, const int cox, const int coy, c
         return;
     }
 
-    for ( int lx = 0; lx < CHUNK_SIZE_X; lx++ ) {
+    // Column loop covers the interior plus the +/-1 halo: feature claims are
+    // per-world-column, so a feature cell on a chunk edge is written
+    // identically by both sides — the halo-mirroring contract needs it.
+    for ( int lx = -1; lx <= CHUNK_SIZE_X; lx++ ) {
         const int wx = cox + lx;
-        for ( int lz = 0; lz < CHUNK_SIZE_Z; lz++ ) {
+        for ( int lz = -1; lz <= CHUNK_SIZE_Z; lz++ ) {
             const int wz = coz + lz;
             const SGClaim c = sg_column_feature( feats, n_feats, wx, wz );
             if ( c.kind == SG_FEAT_NONE ) {
                 continue;
             }
-            // Column surface, scanned from the chunk's own array including
-            // the +/-1 halo rows: a base sitting exactly on a y-border is
-            // seen as halo by the chunk above, which then owns the feature.
-            // Writes stay inside this chunk's y-interior, so a feature
-            // crossing a border simply reads as a shorter one (its tip is
-            // drawn at the clipped height — never a chopped shaft).
-            int surface_y = -1;
-            bool under_water = false;
-            BlockID ground = AIR;
-            for ( int ly = CHUNK_SIZE_Y; ly >= -1; ly-- ) {
-                const BlockID b = chunk.get_block( glm::ivec3( lx, ly, lz ) ).id;
-                if ( b == AIR ) {
-                    continue;
-                }
-                if ( b == WATER ) {
-                    under_water = true;
-                    continue;
-                }
-                ground = b;
-                surface_y = ly + 1;
-                break;
+            // Column surface from pure map gen (not this chunk's array), so
+            // every chunk agrees even when the ground sits in a neighbor's
+            // y-slab — the halo-mirroring contract needs it. Shaft cells below
+            // this chunk's reach are skipped, not fatal; the owner writes them.
+            const MapGenColumn fcol = mg_column_info( wx, wz );
+            const int gy = sg_find_surface_y( wx, wz, fcol );
+            if ( gy == SG_NO_SURFACE ) {
+                continue;
             }
-            if ( surface_y < 0 ) {
+            const int surface_y = gy + 1 - coy;
+            if ( surface_y > CHUNK_SIZE_Y ) {
+                continue;
+            }
+            const BlockID ground = mg_pick_block( wx, gy, wz, fcol );
+            const bool under_water = gy < WATER_LEVEL;
+            // Submerged seabeds only carry icebergs — land features on a
+            // seabed were never reachable before and would look wrong.
+            if ( under_water && c.kind != SG_FEAT_ICEBERG ) {
                 continue;
             }
             // Features need real ground — not leaf canopies or trunks.
             if ( ground >= LAST_BLOCK_ID || !block_definition_get_definition( ground )->is_solid ) {
                 continue;
             }
-            const int h_max = CHUNK_SIZE_Y - surface_y;
+            if ( c.kind == SG_FEAT_ICEBERG ) {
+                if ( !under_water ) {
+                    continue;
+                }
+                // Floating berg: a cone rising over the waterline; below it
+                // only the inner half of the disc survives → tapering keel.
+                const int wy_lo = coy - 1 > WATER_LEVEL - 4 ? coy - 1 : WATER_LEVEL - 4;
+                const int wy_hi = coy + CHUNK_SIZE_Y < WATER_LEVEL + (int)c.h ? coy + CHUNK_SIZE_Y : WATER_LEVEL + (int)c.h;
+                for ( int wy = wy_lo; wy <= wy_hi; wy++ ) {
+                    if ( wy < WATER_LEVEL && c.dist > c.aux * 0.55f ) {
+                        continue; // keel only under the berg's core
+                    }
+                    const unsigned int hh = sg_hash( wx, wy, wz, 95 );
+                    const BlockID id = wy < WATER_LEVEL && ( hh & 7u ) == 0u ? BLUE_ICE : PACKED_ICE;
+                    sg_write_feature( chunk, lx, wy - coy, lz, id );
+                }
+                continue;
+            }
+            const int h_max = CHUNK_SIZE_Y + 1 - surface_y;
             const int h = (int)c.h < h_max ? (int)c.h : h_max;
             if ( h < 3 ) {
                 continue;
             }
+            if ( c.kind == SG_FEAT_ICESPIKE ) {
+                if ( under_water ) {
+                    continue;
+                }
+                for ( int i = 0; i < h; i++ ) {
+                    const int ly = surface_y + i;
+                    if ( ly < -1 ) {
+                        continue;
+                    }
+                    const BlockID id = i == h - 1 ? BLUE_ICE : PACKED_ICE;
+                    if ( !sg_write_feature( chunk, lx, ly, lz, id ) ) {
+                        break;
+                    }
+                }
+                continue;
+            }
             if ( c.kind == SG_FEAT_SPIRE ) {
                 for ( int i = 0; i < h; i++ ) {
+                    const int ly = surface_y + i;
+                    if ( ly < -1 ) {
+                        continue;
+                    }
                     const BlockID id = ( i == h - 1 || ( h >= 9 && i == h * 2 / 3 ) ) ? GLOWSTONE : c.glass;
-                    if ( !sg_write_feature( chunk, lx, surface_y + i, lz, id ) ) {
+                    if ( !sg_write_feature( chunk, lx, ly, lz, id ) ) {
                         break;
                     }
                 }
@@ -757,12 +1224,16 @@ void StructureGen::place_features( Chunk &chunk, const int cox, const int coy, c
                 }
                 const bool crater = c.dist < 1.9f;
                 for ( int i = 0; i < h; i++ ) {
+                    const int ly = surface_y + i;
+                    if ( ly < -1 ) {
+                        continue;
+                    }
                     const BlockID id = ( i == h - 1 ) ? ( crater ? LAVA : COBBLESTONE ) : STONE;
-                    if ( !sg_write_feature( chunk, lx, surface_y + i, lz, id ) ) {
+                    if ( !sg_write_feature( chunk, lx, ly, lz, id ) ) {
                         break;
                     }
                 }
-                if ( c.dist < c.aux * 0.75f && surface_y > 0 ) {
+                if ( c.dist < c.aux * 0.75f && surface_y > -1 ) {
                     sg_scorch_ground( chunk, lx, surface_y - 1, lz );
                 }
             } else { // SG_FEAT_MONOLITH
@@ -770,8 +1241,12 @@ void StructureGen::place_features( Chunk &chunk, const int cox, const int coy, c
                     continue;
                 }
                 for ( int i = 0; i < h; i++ ) {
+                    const int ly = surface_y + i;
+                    if ( ly < -1 ) {
+                        continue;
+                    }
                     const BlockID id = i == h - 1 ? GLOWSTONE : STONE_BRICKS;
-                    if ( !sg_write_feature( chunk, lx, surface_y + i, lz, id ) ) {
+                    if ( !sg_write_feature( chunk, lx, ly, lz, id ) ) {
                         break;
                     }
                 }
@@ -815,45 +1290,68 @@ static void sg_set_block( Chunk &chunk, const int lx, const int ly, const int lz
     chunk.set_block( glm::ivec3( lx, ly, lz ), { id, BLOCK_ROTATE_0, def->initial_redstone_power, id, 0 } );
 }
 
-void StructureGen::place_crystals( Chunk &chunk, const int cox, const int coy, const int coz ) {
-    for ( int lx = 0; lx < CHUNK_SIZE_X; lx++ ) {
+void StructureGen::place_crystals( Chunk &chunk, const int cox, const int coy, const int coz, SgHeightGrid &hg ) {
+    // Cells cover the +/-1 halo on all axes: formation anchors and lengths
+    // are derived from pure map gen (a roof can live in the neighbor's
+    // y-slab), so a crystal cell on a chunk edge is written identically by
+    // both sides — the halo-mirroring contract needs it.
+    for ( int lx = -1; lx <= CHUNK_SIZE_X; lx++ ) {
         const int wx = cox + lx;
-        for ( int lz = 0; lz < CHUNK_SIZE_Z; lz++ ) {
+        for ( int lz = -1; lz <= CHUNK_SIZE_Z; lz++ ) {
             const int wz = coz + lz;
             if ( sg_roll( wx >> 4, wz >> 4, 55 ) >= 0.38f ) {
                 continue;
             }
-            const float h = MapGen::calculateTerrainHeight( wx, wz );
-            for ( int ly = 0; ly < CHUNK_SIZE_Y; ly++ ) {
+            const float h = hg.at( wx, wz );
+            // Map gen is the authority for roof/floor solidity (the halo
+            // contract), but the chunk array is a safe negative: an array-AIR
+            // neighbor means map gen is air/water there too — structures only
+            // ever add blocks — so the expensive pick only runs under/above
+            // something solid. The column fields are computed once per column
+            // instead of once per cell (gen_block_id recomputes them).
+            MapGenColumn col;
+            bool col_init = false;
+            auto pick = [&]( const int py ) {
+                if ( !col_init ) {
+                    col = sg_column_info( wx, wz, hg );
+                    col_init = true;
+                }
+                return mg_pick_block( wx, py, wz, col );
+            };
+            for ( int ly = -1; ly <= CHUNK_SIZE_Y; ly++ ) {
                 if ( chunk.get_block( glm::ivec3( lx, ly, lz ) ).id != AIR ) {
                     continue;
                 }
                 const int wy = coy + ly;
                 // Ceiling formations hang off cave roofs (below the surface)
                 // and the undersides of overhangs / floating islands.
-                if ( wy < h - 5.0f || wy > h + 12.0f ) {
-                    const BlockID above = chunk.get_block( glm::ivec3( lx, ly + 1, lz ) ).id;
-                    if ( sg_is_solid_block( above ) ) {
-                        const unsigned int hh = sg_hash( wx, wy, wz, 56 );
-                        if ( ( hh & 1023u ) < 16u ) {
-                            const int len = 1 + (int)( ( hh >> 10 ) & 3u );
-                            const bool crystal = ( ( hh >> 17 ) & 15u ) == 0u;
-                            const bool glow = crystal || ( ( hh >> 14 ) & 7u ) < 3u;
-                            const BlockID body = crystal ? sg_crystal_glass( hh ) : STONE;
-                            int n = 0;
-                            while ( n < len && ly - 1 - n >= 0 && chunk.get_block( glm::ivec3( lx, ly - 1 - n, lz ) ).id == AIR ) {
-                                n++;
-                            }
-                            for ( int i = 0; i < n; i++ ) {
-                                sg_set_block( chunk, lx, ly - 1 - i, lz, i == n - 1 ? ( glow ? GLOWSTONE : STONE ) : body );
-                            }
+                if ( ( wy < h - 5.0f || wy > h + 12.0f ) &&
+                     chunk.get_block( glm::ivec3( lx, ly + 1, lz ) ).id != AIR &&
+                     sg_is_solid_block( pick( wy + 1 ) ) ) {
+                    const unsigned int hh = sg_hash( wx, wy, wz, 56 );
+                    if ( ( hh & 1023u ) < 16u ) {
+                        const int len = 1 + (int)( ( hh >> 10 ) & 3u );
+                        const bool crystal = ( ( hh >> 17 ) & 15u ) == 0u;
+                        const bool glow = crystal || ( ( hh >> 14 ) & 7u ) < 3u;
+                        const BlockID body = crystal ? sg_crystal_glass( hh ) : STONE;
+                        int n = 0;
+                        while ( n < len && pick( wy - 1 - n ) == AIR ) {
+                            n++;
                         }
-                        continue;
+                        for ( int i = 0; i < n; i++ ) {
+                            const int fy = ly - 1 - i;
+                            if ( fy < -1 || fy > CHUNK_SIZE_Y || chunk.get_block( glm::ivec3( lx, fy, lz ) ).id != AIR ) {
+                                continue;
+                            }
+                            sg_set_block( chunk, lx, fy, lz, i == n - 1 ? ( glow ? GLOWSTONE : STONE ) : body );
+                        }
                     }
+                    continue;
                 }
                 // Floor formations: cave floors only, above the lava layer.
-                if ( wy < h - 5.0f && wy > LAVA_LEVEL + 2 && ly > 0 ) {
-                    const BlockID below = chunk.get_block( glm::ivec3( lx, ly - 1, lz ) ).id;
+                if ( wy < h - 5.0f && wy > LAVA_LEVEL + 2 &&
+                     chunk.get_block( glm::ivec3( lx, ly - 1, lz ) ).id != AIR ) {
+                    const BlockID below = pick( wy - 1 );
                     if ( sg_is_solid_block( below ) ) {
                         const unsigned int hh = sg_hash( wx, wy, wz, 57 );
                         if ( ( hh & 1023u ) < 11u ) {
@@ -862,11 +1360,15 @@ void StructureGen::place_crystals( Chunk &chunk, const int cox, const int coy, c
                             const bool glow = crystal || ( ( hh >> 14 ) & 7u ) < 2u;
                             const BlockID body = crystal ? sg_crystal_glass( hh ) : STONE;
                             int n = 0;
-                            while ( n < len && ly + n < CHUNK_SIZE_Y && chunk.get_block( glm::ivec3( lx, ly + n, lz ) ).id == AIR ) {
+                            while ( n < len && pick( wy + n ) == AIR ) {
                                 n++;
                             }
                             for ( int i = 0; i < n; i++ ) {
-                                sg_set_block( chunk, lx, ly + i, lz, i == n - 1 ? ( glow ? GLOWSTONE : STONE ) : body );
+                                const int fy = ly + i;
+                                if ( fy < -1 || fy > CHUNK_SIZE_Y || chunk.get_block( glm::ivec3( lx, fy, lz ) ).id != AIR ) {
+                                    continue;
+                                }
+                                sg_set_block( chunk, lx, fy, lz, i == n - 1 ? ( glow ? GLOWSTONE : STONE ) : body );
                             }
                         } else if ( below == STONE && ( hh & 4095u ) < 5u ) {
                             // Rare embedded glow dot in the cave floor.
@@ -888,9 +1390,10 @@ void StructureGen::place( Chunk &chunk ) {
     const int cox = chunk.chunk_pos.x * CHUNK_SIZE_X;
     const int coy = chunk.chunk_pos.y * CHUNK_SIZE_Y;
     const int coz = chunk.chunk_pos.z * CHUNK_SIZE_Z;
+    SgHeightGrid hg( cox, coz );
     place_trees( chunk, cox, coy, coz );
     place_features( chunk, cox, coy, coz );
-    place_decorations( chunk, cox, coy, coz );
-    place_crystals( chunk, cox, coy, coz );
+    place_decorations( chunk, cox, coy, coz, hg );
+    place_crystals( chunk, cox, coy, coz, hg );
 #endif
 }

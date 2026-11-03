@@ -9,5 +9,6 @@
   "bottom": "mangrove_roots_top",
   "side": "mangrove_roots_side",
   "top": "mangrove_roots_top"
- }
+ },
+ "waterloggable": true
 }

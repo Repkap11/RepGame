@@ -66,6 +66,8 @@
     fn n( a1 : MG_T( t1 ), a2 : MG_T( t2 ), a3 : MG_T( t3 ), a4 : MG_T( t4 ), a5 : MG_T( t5 ) ) -> MG_T( r )
 #define MG_FN6( r, n, t1, a1, t2, a2, t3, a3, t4, a4, t5, a5, t6, a6 ) \
     fn n( a1 : MG_T( t1 ), a2 : MG_T( t2 ), a3 : MG_T( t3 ), a4 : MG_T( t4 ), a5 : MG_T( t5 ), a6 : MG_T( t6 ) ) -> MG_T( r )
+#define MG_FN7( r, n, t1, a1, t2, a2, t3, a3, t4, a4, t5, a5, t6, a6, t7, a7 ) \
+    fn n( a1 : MG_T( t1 ), a2 : MG_T( t2 ), a3 : MG_T( t3 ), a4 : MG_T( t4 ), a5 : MG_T( t5 ), a6 : MG_T( t6 ), a7 : MG_T( t7 ) ) -> MG_T( r )
 
 #define MG_LET( t, n, e ) let n : MG_T( t ) = e;
 #define MG_VAR( t, n, e ) var n : MG_T( t ) = e;
@@ -104,6 +106,8 @@
     MG_QUAL r n( const t1 a1, const t2 a2, const t3 a3, const t4 a4, const t5 a5 )
 #define MG_FN6( r, n, t1, a1, t2, a2, t3, a3, t4, a4, t5, a5, t6, a6 ) \
     MG_QUAL r n( const t1 a1, const t2 a2, const t3 a3, const t4 a4, const t5 a5, const t6 a6 )
+#define MG_FN7( r, n, t1, a1, t2, a2, t3, a3, t4, a4, t5, a5, t6, a6, t7, a7 ) \
+    MG_QUAL r n( const t1 a1, const t2 a2, const t3 a3, const t4 a4, const t5 a5, const t6 a6, const t7 a7 )
 
 #define MG_LET( t, n, e ) const t n = e;
 #define MG_VAR( t, n, e ) t n = e;

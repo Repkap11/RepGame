@@ -57,6 +57,7 @@ struct MapGenColumn {
     rough_gain : f32,  // overhang noise amplitude for this column
     island : f32,      // floating-island strength [0, 1]; 0 = no islands here
     island_dy0 : f32,  // island band center above the heightmap (blocks)
+    island_tin : f32,  // island footprint thickness factor [0, 1] (3 noise evals, hoisted per-column)
     mesa_riser : f32,  // 1 on the cliff bands of a terraced mesa, else 0
 };
 #else
@@ -68,6 +69,7 @@ typedef struct {
     float rough_gain;  // overhang noise amplitude for this column
     float island;      // floating-island strength [0, 1]; 0 = no islands here
     float island_dy0;  // island band center above the heightmap (blocks)
+    float island_tin;  // island footprint thickness factor [0, 1] (3 noise evals, hoisted per-column)
     float mesa_riser;  // 1 on the cliff bands of a terraced mesa, else 0
 } MapGenColumn;
 #endif

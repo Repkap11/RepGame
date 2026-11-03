@@ -158,13 +158,16 @@ bounded 3D zone mask, cheese rooms near the lava layer, rare mega-caverns,
 and a surface gate so most caves stay underground.
 
 **Block pick** (`mg_pick_block`): jittered bedrock top → air/water →
-exposed-top vs. underlayer surface pick (`mg_surface_block`: ocean floor,
-beach, desert red-sand with stone mesa risers, scree under cliffs,
+exposed-top vs. underlayer surface pick (`mg_surface_block`: ocean floor
+(muddy inside swamp gates), beach sand over sandstone, desert red-sand over
+red-sandstone with stone mesa risers, pale-garden moss, scree under cliffs,
 snowline, `MOUNTAIN_ROCK_LINE`, mycelium/podzol/snowy variants, island
 meadows) → deep pick (`mg_deep_block`: dirt/gravel pockets + depth-banded
-coal/iron/gold). Cliff-face magma veins (`col.steepness` gated) light
+coal/copper/iron/lapis/redstone/diamond/gold, plus emerald veins under
+mountains). Cliff-face magma veins (`col.steepness` gated) light
 overhangs at night; cave-carved space is `LAVA` at/below `LAVA_LEVEL`;
-deep rare geodes get a hollow heart in a glowstone/stained-glass shell.
+deep rare geodes get a hollow heart in a basalt→calcite→amethyst shell
+(with budding flecks and amethyst-cluster floor buds).
 
 **Structures** (`StructureGen::place`, `src/common/structure_gen.cpp`):
 `place_trees` → `place_features` → `place_decorations` → `place_crystals`,
@@ -172,16 +175,33 @@ all pure functions of world coords:
 
 - *Trees*: the world is gridded into `MAPGEN_TREE_CELL` cells each rolling
   at most one tree; biome/weird pick density and species (oak/birch blobs,
-  spruce pines, dark-oak forest, acacias, jungle incl. rare 2×2 giants), a
-  clearing field modulates groves. Each chunk re-derives every tree whose
-  canopy can reach it (`sg_tree_for_cell`, `sg_find_surface_y` — surface
-  found via `mg_pick_block`, not the chunk's array).
+  spruce pines, dark-oak forest, acacias, jungle incl. rare 2×2 giants,
+  cherry groves, pale-oak pale gardens, coastal mangroves rooted in
+  underwater mud (seabeds down to ~4 under the waterline; tall stilt trunks
+  keep the canopy above it), giant mushrooms on mycelium), a clearing field modulates
+  groves. Species can hang things under the canopy rim — pale hanging moss,
+  jungle vines, mangrove propagules — and oak/birch trunks rarely get bee
+  nests. Each chunk re-derives every tree whose canopy can reach it
+  (`sg_tree_for_cell`, `sg_find_surface_y` — surface found via `mg_solid_at`
+  + `mg_pick_block` on the column's exact solid-reach bound, not the chunk's
+  array, and "no surface" is `SG_NO_SURFACE` since real seabeds legitimately
+  sit at negative y); canopy scatter hashes are keyed on world coords so
+  border-crossing trees match on both sides.
 - *Features*: `SG_FEATURE_CELL`-gridded landmarks — crystal spire clusters,
-  volcanic cinder-cone vents (lava crater + scorched ground), beacon
-  monoliths — claimed per-column by tallest contribution (`sg_column_feature`).
+  packed-ice spike clusters (cold land), volcanic cinder-cone vents (lava
+  crater + scorched ground), beacon monoliths, icebergs (cold open ocean) —
+  claimed per-column by tallest contribution (`sg_column_feature`).
 - *Decorations*: per-column surface scatter — flowers/tufts/ferns,
-  jungle-edge bamboo, reeds, mushrooms, pinecones, deadbushes, saplings;
-  shallow seabeds get coral/kelp/seagrass.
+  sunflower/lilac/peony/rose flower fields, flowering azalea in cherry
+  groves, pale moss carpet in pale gardens, jungle-edge bamboo, reeds,
+  desert cacti (some flowered), pumpkin/melon patches, mushrooms and ferns
+  on podzol/mycelium, mangrove propagules on mud, pinecones, snow-layer
+  drifts + rare powder snow in the cold, deadbushes, saplings; shallow
+  seabeds get coral/kelp/seagrass (fully submerged cells only, with extra
+  headroom required for the tall quads; swamp water stays murky — sparse
+  seagrass/tufts, no coral), denser inside reef patches, and
+  cold-biome water surfaces freeze over in patchy ice sheets. Scatter is written into
+  the ±1 halo too, so edge cells mirror exactly.
 - *Cave crystals*: stalactites/stalagmites anchored to cave roofs and
   floors (and island undersides), occasionally glowstone-tipped, clustered
   in 16-block neighborhoods.

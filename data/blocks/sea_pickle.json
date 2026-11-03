@@ -32,5 +32,6 @@
     "bottom": "air",
     "side": "sea_pickle",
     "top": "air"
-  }
+  },
+  "waterloggable": true
 }

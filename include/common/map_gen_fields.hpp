@@ -114,6 +114,24 @@ MG_FN2( float, mg_desert, int, x, int, z ) {
     return hot * dry;
 }
 
+// Pale-garden field [0,1]: rare spooky woods inside the dark-forest/mushroom
+// latitudes. mg_is_pale is the gate shared by the surface pick and structure
+// gen — much rarer than the cherry-grove band.
+MG_FN2( float, mg_pale, int, x, int, z ) {
+    return MAP_GEN_PERLIN2D( x, z, 0.0013f, 3, MAP_SEED + 43 );
+}
+MG_FN3( bool, mg_is_pale, int, x, int, z, float, weird ) {
+    return weird > 0.82f && mg_pale( x, z ) > 0.72f;
+}
+
+// Mangrove-swamp gate shared by the surface pick and structure gen: warm,
+// wet-ish lowlands right at sea level — mangroves take over coasts and lake
+// edges in the right biomes.
+MG_FN3( bool, mg_is_swamp, float, biome, float, weird, float, height ) {
+    return biome > 0.45f && biome < 0.68f && weird > 0.30f && weird < 0.55f &&
+        height > WATER_LEVEL - 6.5f && height < WATER_LEVEL + 3.0f;
+}
+
 // Floating-island strength [0,1]: rare continent-scale archipelagos. The 3D
 // island field in mg_solid_at is only sampled where this is > 0.
 MG_FN2( float, mg_island_strength, int, x, int, z ) {
@@ -146,7 +164,9 @@ MG_FN2( float, mg_island_footprint, int, x, int, z ) {
 //   +11 bedrock jitter   +12 rolling   +13/+14 biome warp  +15/+16 weird warp
 //   +17 island mask      +18 island band   +34 canyon band   +35 canyon patch
 //   +36 geode zone mask  +40 island footprint  +41/+42 footprint warp
-// 3D fields use MAP_SEED + 20..33, +37..+39.
+//   +43 pale garden
+// 3D fields use MAP_SEED + 20..33, +37..+39, +44 copper, +45 lapis,
+//   +46 redstone, +47 diamond, +48 emerald.
 // ---------------------------------------------------------------------------
 
 MG_FN2( float, mg_base_height, int, x, int, z ) {
@@ -236,6 +256,7 @@ MG_FN2( MapGenColumn, mg_column_info, int, x, int, z ) {
     col.rough_gain = mg_rough_gain( x, z );
     col.island = mg_island_strength( x, z );
     col.island_dy0 = MG_TERN( col.island > 0.0f, mg_island_dy0( x, z ), 0.0f );
+    col.island_tin = MG_TERN( col.island > 0.0f, mg_island_footprint( x, z ), 0.0f );
     col.mesa_riser = mg_mesa_riser( x, z );
     return col;
 }
@@ -266,7 +287,7 @@ MG_FN4( bool, mg_solid_at, int, x, int, y, int, z, MapGenColumn, col ) {
     // is unconditionally solid; the outer half is a ragged 3D-noise shell,
     // so undersides come out lumpy and silhouettes stay broken.
     if ( dy > 0.0f && col.island > 0.0f ) {
-        MG_LET( float, tin, mg_island_footprint( x, z ) )
+        MG_LET( float, tin, col.island_tin )
         if ( tin > 0.0f ) {
             MG_VAR( float, half_thickness, ( 3.0f + col.island * 24.0f ) * tin )
             if ( half_thickness > col.island_dy0 - 4.0f ) {
@@ -284,6 +305,17 @@ MG_FN4( bool, mg_solid_at, int, x, int, y, int, z, MapGenColumn, col ) {
             }
         }
     }
+    MG_LET( float, gate, 1.0f - MG_ABS( dy ) / MG_TERN( dy < 0.0f, 35.0f, OVERHANG_MAX_RISE ) )
+    // Exact bounds on the noise terms below: n>=-0.5 under the heightmap and
+    // n<=0.45 above it, so deep-enough cells are always solid and high-enough
+    // cells never are — most air/deep cells skip the 3D noise eval entirely.
+    if ( dy < 0.0f ) {
+        if ( dy < -0.5f * col.rough_gain * gate ) {
+            return true;
+        }
+    } else if ( dy >= 0.45f * col.rough_gain * gate ) {
+        return false;
+    }
     MG_DECL( float, n )
     if ( dy < 0.0f ) {
         // Below the heightmap: smooth noise notches the surface inward.
@@ -295,7 +327,6 @@ MG_FN4( bool, mg_solid_at, int, x, int, y, int, z, MapGenColumn, col ) {
         MG_LET( float, raw, MAP_GEN_PERLIN3D( x, y, z, 0.06f, 3, MAP_SEED + 20 ) )
         n = 0.45f - MG_ABS( 2.0f * raw - 1.0f );
     }
-    MG_LET( float, gate, 1.0f - MG_ABS( dy ) / MG_TERN( dy < 0.0f, 35.0f, OVERHANG_MAX_RISE ) )
     return ( col.height - MG_F32( y ) ) + col.rough_gain * n * gate > 0.0f;
 }
 
@@ -308,7 +339,7 @@ MG_FN4( bool, mg_solid_at, int, x, int, y, int, z, MapGenColumn, col ) {
 // `dist < width` always yields ~`width` blocks of real air around a
 // continuous centerline. The gradient is forward-differenced; y is squashed
 // so centerlines wander mostly horizontally.
-MG_FN6( float, mg_channel_dist, float, x, float, y, float, z, float, freq, int, seed1, int, seed2 ) {
+MG_FN7( float, mg_channel_dist, float, x, float, y, float, z, float, freq, float, w, int, seed1, int, seed2 ) {
     MG_LET( float, C, 0.53f ) // noise mean — it is not zero-centered
     // Stretching y (factor > 1) amplifies the vertical gradient components,
     // so the centerline tangent (∇a×∇b) tilts toward horizontal — walkable
@@ -317,17 +348,27 @@ MG_FN6( float, mg_channel_dist, float, x, float, y, float, z, float, freq, int, 
     MG_LET( float, ys, y * 1.75f )
     MG_LET( float, a0, MAP_GEN_PERLIN3D( x, ys, z, freq, 2, seed1 ) - C )
     MG_LET( float, b0, MAP_GEN_PERLIN3D( x, ys, z, freq, 2, seed2 ) - C )
+    MG_LET( float, len, MG_SQRT( a0 * a0 + b0 * b0 ) )
+    // Exact early-out: |∂a/∂component| <= 3*freq for these depth-2 fields (the
+    // smooth-interp derivative peaks at 1.5/octave) and the y sample spans
+    // 1.75x, so g <= 3*freq*sqrt(4+2*1.75^2) ~= 9.55*freq. Inside the tube
+    // needs len < w*g <= w*gmax — when len already exceeds that, the cell is
+    // outside for certain and the six gradient samples can be skipped. The
+    // returned lower bound still fails the caller's width test identically.
+    MG_LET( float, gmax, 9.55f * freq + 0.002f )
+    if ( len > w * gmax ) {
+        return len / gmax;
+    }
     MG_LET( float, ax, MAP_GEN_PERLIN3D( x + 1.0f, ys, z, freq, 2, seed1 ) - C - a0 )
     MG_LET( float, ay, MAP_GEN_PERLIN3D( x, ys + 1.75f, z, freq, 2, seed1 ) - C - a0 )
     MG_LET( float, az, MAP_GEN_PERLIN3D( x, ys, z + 1.0f, freq, 2, seed1 ) - C - a0 )
     MG_LET( float, bx, MAP_GEN_PERLIN3D( x + 1.0f, ys, z, freq, 2, seed2 ) - C - b0 )
     MG_LET( float, by, MAP_GEN_PERLIN3D( x, ys + 1.75f, z, freq, 2, seed2 ) - C - b0 )
     MG_LET( float, bz, MAP_GEN_PERLIN3D( x, ys, z + 1.0f, freq, 2, seed2 ) - C - b0 )
-    MG_LET( float, dist, MG_SQRT( a0 * a0 + b0 * b0 ) )
     MG_LET( float, g, MG_SQRT( ax * ax + ay * ay + az * az + bx * bx + by * by + bz * bz ) )
     // Tiny floor avoids div-by-zero; where both fields are flat there is no
     // tube anyway and the large ratio correctly fails the width test.
-    return dist / ( g + 0.002f );
+    return len / ( g + 0.002f );
 }
 
 // Cave carving: two gradient-normalized channel pairs (wide winding mains +
@@ -351,12 +392,12 @@ MG_FN4( bool, mg_cave_carve, int, x, int, y, int, z, float, height ) {
     MG_LET( float, wGate, gate * zoneGate )
     // Main tunnels: low-frequency, ~3-6 blocks wide — the walkable trunks.
     MG_LET( float, wMain, ( 1.6f + 1.4f * depthR ) * wGate )
-    if ( mg_channel_dist( MG_F32( x ), MG_F32( y ), MG_F32( z ), 0.022f, MAP_SEED + 21, MAP_SEED + 22 ) < wMain ) {
+    if ( mg_channel_dist( MG_F32( x ), MG_F32( y ), MG_F32( z ), 0.022f, wMain, MAP_SEED + 21, MAP_SEED + 22 ) < wMain ) {
         return true;
     }
     // Branch tunnels: thinner, faster-winding connectors feeding the mains.
     MG_LET( float, wBranch, ( 0.9f + 0.6f * depthR ) * wGate )
-    if ( mg_channel_dist( MG_F32( x ), MG_F32( y ), MG_F32( z ), 0.05f, MAP_SEED + 23, MAP_SEED + 24 ) < wBranch ) {
+    if ( mg_channel_dist( MG_F32( x ), MG_F32( y ), MG_F32( z ), 0.05f, wBranch, MAP_SEED + 23, MAP_SEED + 24 ) < wBranch ) {
         return true;
     }
     // Small cheese rooms only just above the lava level so the deep layer
@@ -397,18 +438,29 @@ MG_FN5( BlockID, mg_surface_block, int, x, int, y, int, z, MapGenColumn, col, bo
         return MG_TERN( col.biome < 0.22f, SNOW, GRASS );
     }
     if ( col.height < WATER_LEVEL - 1.5f ) {
-        // Ocean/lake floor.
+        // Ocean/lake floor — muddy inside swamp gates.
+        if ( mg_is_swamp( col.biome, col.weird, col.height ) ) {
+            return MUD;
+        }
         return MG_TERN( mg_underwater( x, z ) > 0.5f, GRAVEL, SAND );
     }
     if ( col.height < WATER_LEVEL + 2.0f ) {
-        return SAND; // Beach band around sea level.
+        if ( mg_is_swamp( col.biome, col.weird, col.height ) ) {
+            return MUD; // Muddy banks where swamps meet the water.
+        }
+        // Beach band around sea level: sand on top, sandstone underneath.
+        return MG_TERN( exposed, SAND, SANDSTONE );
     }
     if ( col.biome > 0.72f && col.weird < 0.55f && col.height < 48.0f ) {
         // Desert, including terraced mesas: sandy treads, bare rock risers.
         if ( col.mesa_riser > 0.0f ) {
             return STONE;
         }
-        return RED_SAND;
+        return MG_TERN( exposed, RED_SAND, RED_SANDSTONE );
+    }
+    if ( mg_is_pale( x, z, col.weird ) ) {
+        // Pale garden: ghostly moss ground inside the dark latitudes.
+        return MG_TERN( exposed, PALE_MOSS_BLOCK, DIRT );
     }
     if ( dy > 16.0f || col.steepness > 7.0f ) {
         return STONE; // High shelf tops and cliff faces stay rocky.
@@ -438,24 +490,60 @@ MG_FN5( BlockID, mg_surface_block, int, x, int, y, int, z, MapGenColumn, col, bo
 MG_FN4( BlockID, mg_deep_block, int, x, int, y, int, z, MapGenColumn, col ) {
     MG_LET( float, depth, col.height - MG_F32( y ) )
     if ( depth > 4.0f ) {
-        MG_VAR( float, coal, MAP_GEN_PERLIN3D( x, y, z, 0.16f, 3, MAP_SEED + 28 ) )
+        MG_VAR( float, coal, MAP_GEN_PERLIN3D( x, y, z, 0.16f, 2, MAP_SEED + 28 ) )
         coal = coal * coal;
         if ( coal < 0.06f ) {
             return COAL_ORE;
         }
     }
     if ( depth > 10.0f && y < 15 ) {
-        MG_VAR( float, iron, MAP_GEN_PERLIN3D( x, y, z, 0.16f, 3, MAP_SEED + 29 ) )
+        MG_VAR( float, iron, MAP_GEN_PERLIN3D( x, y, z, 0.16f, 2, MAP_SEED + 29 ) )
         iron = iron * iron;
         if ( iron < 0.045f ) {
             return IRON_ORE;
         }
     }
     if ( y < -45 ) {
-        MG_VAR( float, gold, MAP_GEN_PERLIN3D( x, y, z, 0.16f, 3, MAP_SEED + 30 ) )
+        MG_VAR( float, gold, MAP_GEN_PERLIN3D( x, y, z, 0.16f, 2, MAP_SEED + 30 ) )
         gold = gold * gold;
         if ( gold < 0.04f ) {
             return GOLD_ORE;
+        }
+    }
+    if ( depth > 4.0f && y < 30 ) {
+        MG_VAR( float, copper, MAP_GEN_PERLIN3D( x, y, z, 0.16f, 2, MAP_SEED + 44 ) )
+        copper = copper * copper;
+        if ( copper < 0.05f ) {
+            return COPPER_ORE;
+        }
+    }
+    if ( depth > 8.0f && y < -5 ) {
+        MG_VAR( float, lapis, MAP_GEN_PERLIN3D( x, y, z, 0.16f, 2, MAP_SEED + 45 ) )
+        lapis = lapis * lapis;
+        if ( lapis < 0.04f ) {
+            return LAPIS_ORE;
+        }
+    }
+    if ( y < -20 ) {
+        MG_VAR( float, redstone, MAP_GEN_PERLIN3D( x, y, z, 0.16f, 2, MAP_SEED + 46 ) )
+        redstone = redstone * redstone;
+        if ( redstone < 0.04f ) {
+            return REDSTONE_ORE;
+        }
+    }
+    if ( y < -50 ) {
+        MG_VAR( float, diamond, MAP_GEN_PERLIN3D( x, y, z, 0.16f, 2, MAP_SEED + 47 ) )
+        diamond = diamond * diamond;
+        if ( diamond < 0.035f ) {
+            return DIAMOND_ORE;
+        }
+    }
+    if ( depth > 6.0f && col.height > 55.0f ) {
+        // Emeralds only under mountains: lower-frequency, sparser veins.
+        MG_VAR( float, emerald, MAP_GEN_PERLIN3D( x, y, z, 0.10f, 2, MAP_SEED + 48 ) )
+        emerald = emerald * emerald;
+        if ( emerald < 0.03f ) {
+            return EMERALD_ORE;
         }
     }
     MG_LET( float, pv, MAP_GEN_PERLIN3D( x, y, z, 0.09f, 2, MAP_SEED + 27 ) )
@@ -471,11 +559,17 @@ MG_FN4( BlockID, mg_deep_block, int, x, int, y, int, z, MapGenColumn, col ) {
 // Full per-cell terrain pick: bedrock floor, solid vs air/water, surface vs
 // deep selection, then cave carving (lava below LAVA_LEVEL).
 MG_FN4( BlockID, mg_pick_block, int, x, int, y, int, z, MapGenColumn, col ) {
-    if ( y <= mg_bedrock_top( x, z ) ) {
+    // mg_bedrock_top only reaches BEDROCK_LEVEL+4 — skip its noise eval above.
+    if ( y <= BEDROCK_LEVEL + 4 && y <= mg_bedrock_top( x, z ) ) {
         return BEDROCK;
     }
     if ( !mg_solid_at( x, y, z, col ) ) {
         return MG_TERN( y < WATER_LEVEL, WATER, AIR );
+    }
+    // Carve before selecting the block: carving doesn't read the pick, and
+    // carved cells skip the exposure/deep-block/ore noise entirely.
+    if ( mg_cave_carve( x, y, z, col.height ) ) {
+        return MG_TERN( y <= LAVA_LEVEL, LAVA, AIR );
     }
     MG_LET( float, dy, MG_F32( y ) - col.height )
     MG_DECL( BlockID, block )
@@ -494,40 +588,32 @@ MG_FN4( BlockID, mg_pick_block, int, x, int, y, int, z, MapGenColumn, col ) {
     if ( block == STONE && col.steepness > 5.0f && dy > -14.0f && MAP_GEN_PERLIN3D( x, y, z, 0.07f, 2, MAP_SEED + 32 ) > 0.88f ) {
         block = LAVA;
     }
-    if ( mg_cave_carve( x, y, z, col.height ) ) {
-        return MG_TERN( y <= LAVA_LEVEL, LAVA, AIR );
-    }
-    // Crystal geodes: rare deep pockets — a hollow heart wrapped in a
-    // glittering shell of glowstone, tinted glass and rock flecks. A 2D zone
-    // mask keeps them scarce and they live well under the surface, so they
-    // appear as glowing spheres found while caving (or breaking out of a
-    // cave wall) rather than terrain clutter.
+    // Amethyst geodes: rare deep pockets — a hollow heart wrapped in a
+    // basalt/calcite/amethyst shell, with crystal buds sprouting from the
+    // heart floor (AMETHYST_CLUSTER emits light, so geodes still glow). A 2D
+    // zone mask keeps them scarce and they live well under the surface, so
+    // they appear as glowing spheres found while caving (or breaking out of
+    // a cave wall) rather than terrain clutter.
     MG_LET( float, depth, col.height - MG_F32( y ) )
     if ( depth > 22.0f && y < 4 && y > BEDROCK_LEVEL + 14 ) {
         if ( MAP_GEN_PERLIN2D( x, z, 0.0035f, 1, MAP_SEED + 36 ) > 0.60f ) {
             MG_LET( float, g, MAP_GEN_PERLIN3D( x, y, z, 0.055f, 2, MAP_SEED + 37 ) )
             if ( g > 0.972f ) {
-                return AIR; // hollow geode heart
+                // Hollow heart: air, with a crystal bud wherever the cell
+                // below is shell material — buds only sit on geode floors,
+                // never float over cave-carved gaps.
+                MG_LET( float, gb, MAP_GEN_PERLIN3D( x, y - 1, z, 0.055f, 2, MAP_SEED + 37 ) )
+                return MG_TERN( gb > 0.90f && gb <= 0.972f, AMETHYST_CLUSTER, AIR );
+            }
+            if ( g > 0.955f ) {
+                // Inner amethyst shell, flecked with budding amethyst.
+                return MG_TERN( MAP_GEN_PERLIN3D( x, y, z, 0.65f, 1, MAP_SEED + 38 ) < 0.15f, BUDDING_AMETHYST, AMETHYST_BLOCK );
             }
             if ( g > 0.935f ) {
-                MG_LET( float, sp, MAP_GEN_PERLIN3D( x, y, z, 0.65f, 1, MAP_SEED + 38 ) )
-                if ( sp > 0.64f ) {
-                    return GLOWSTONE;
-                }
-                if ( sp < 0.18f ) {
-                    return STONE;
-                }
-                MG_LET( float, gc, MAP_GEN_PERLIN3D( x, y, z, 0.028f, 1, MAP_SEED + 39 ) )
-                if ( gc < 0.25f ) {
-                    return GLASS_PALE_BLUE;
-                }
-                if ( gc < 0.5f ) {
-                    return LIGHT_BLUE_STAINED_GLASS;
-                }
-                if ( gc < 0.75f ) {
-                    return LIME_STAINED_GLASS;
-                }
-                return WHITE_STAINED_GLASS;
+                return CALCITE;
+            }
+            if ( g > 0.912f ) {
+                return SMOOTH_BASALT;
             }
         }
     }

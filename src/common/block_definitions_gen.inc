@@ -10183,6 +10183,7 @@ block_definitions[ 767 ].casts_shadow = false;
 block_definitions[ 767 ].hardness = 0.35f;
 block_definitions[ 767 ].is_seethrough = true;
 block_definitions[ 767 ].no_light = 6815743;
+block_definitions[ 767 ].waterloggable = true;
 
 // MANGROVE_SHELF (768)
 block_definitions[ 768 ].textures[ FACE_TOP ] = TEX_MANGROVE_SHELF;
@@ -10536,6 +10537,7 @@ block_definitions[ 797 ].textures[ FACE_FRONT ] = TEX_MUDDY_MANGROVE_ROOTS_SIDE;
 block_definitions[ 797 ].textures[ FACE_LEFT ] = TEX_MUDDY_MANGROVE_ROOTS_SIDE;
 block_definitions[ 797 ].textures[ FACE_BACK ] = TEX_MUDDY_MANGROVE_ROOTS_SIDE;
 block_definitions[ 797 ].icon_texture = TEX_MUDDY_MANGROVE_ROOTS_TOP;
+block_definitions[ 797 ].waterloggable = true;
 
 // BLACK_TORCH (798)
 block_definitions[ 798 ].textures[ FACE_TOP ] = TEX_BLACK_TORCH_TOP;
@@ -14645,6 +14647,7 @@ block_definitions[ 1109 ].offset = { 5, 0, 5 };
 block_definitions[ 1109 ].renderOrder = RenderOrder_Flowers;
 block_definitions[ 1109 ].scale = { 6, 11, 6 };
 block_definitions[ 1109 ].tex_offset = { -5, 0, -5 };
+block_definitions[ 1109 ].waterloggable = true;
 
 // SHORT_DRY_GRASS (1110)
 block_definitions[ 1110 ].textures[ FACE_TOP ] = TEX_AIR;

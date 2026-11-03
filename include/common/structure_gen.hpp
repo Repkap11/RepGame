@@ -2,12 +2,14 @@
 
 #include "common/chunk.hpp"
 
+struct SgHeightGrid;
+
 class StructureGen {
 
     static void place_trees( Chunk &chunk, int chunk_offset_x, int chunk_offset_y, int chunk_offset_z );
     static void place_features( Chunk &chunk, int chunk_offset_x, int chunk_offset_y, int chunk_offset_z );
-    static void place_decorations( Chunk &chunk, int chunk_offset_x, int chunk_offset_y, int chunk_offset_z );
-    static void place_crystals( Chunk &chunk, int chunk_offset_x, int chunk_offset_y, int chunk_offset_z );
+    static void place_decorations( Chunk &chunk, int chunk_offset_x, int chunk_offset_y, int chunk_offset_z, SgHeightGrid &hg );
+    static void place_crystals( Chunk &chunk, int chunk_offset_x, int chunk_offset_y, int chunk_offset_z, SgHeightGrid &hg );
     static void place_legacy( Chunk &chunk );
 
   public:
