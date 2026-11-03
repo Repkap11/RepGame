@@ -139,8 +139,10 @@ Two stages: each column first computes a `MapGenColumn` via
 **Heightmap** (`mg_base_height`): continental `level` + `rolling` + `hills`
 + `ground`, plus masked domain-warped ridged mountains
 (`mg_mountain_mask` × `mg_mountain_ridge` × `MAX_MOUNTAIN_HEIGHT` — ranges,
-not uniform bumps), plus quantized mesa terraces on desert columns
-(`mg_desert`, `mg_mesa_riser`), minus slot canyons (a narrow band around a
+not uniform bumps), plus terraced mesas on desert columns — the heightmap
+itself is quantized into 7-block strata steps (`mg_desert` blends it in,
+`mg_mesa_riser` recovers the riser ramp from the stepped height), minus
+slot canyons (a narrow band around a
 low-frequency field midline, patch-gated, flooding below sea level instead
 of trenching to bedrock).
 
@@ -159,12 +161,14 @@ and a surface gate so most caves stay underground.
 
 **Block pick** (`mg_pick_block`): jittered bedrock top → air/water →
 exposed-top vs. underlayer surface pick (`mg_surface_block`: ocean floor
-(muddy inside swamp gates), beach sand over sandstone, desert red-sand over
-red-sandstone with stone mesa risers, pale-garden moss, scree under cliffs,
+(muddy inside swamp gates), beach sand over sandstone, desert badlands —
+banded terracotta strata (`mg_strata`) on risers and plateau tops, red sand
+over red sandstone on low basin floors, pale-garden moss, scree under cliffs,
 snowline, `MOUNTAIN_ROCK_LINE`, mycelium/podzol/snowy variants, island
 meadows) → deep pick (`mg_deep_block`: dirt/gravel pockets + depth-banded
 coal/copper/iron/lapis/redstone/diamond/gold, plus emerald veins under
-mountains). Cliff-face magma veins (`col.steepness` gated) light
+mountains, plus a terracotta-strata crust under desert badlands). Cliff-face
+magma veins (`col.steepness` gated) light
 overhangs at night; cave-carved space is `LAVA` at/below `LAVA_LEVEL`;
 deep rare geodes get a hollow heart in a basalt→calcite→amethyst shell
 (with budding flecks and amethyst-cluster floor buds).
@@ -193,7 +197,8 @@ all pure functions of world coords:
 - *Decorations*: per-column surface scatter — flowers/tufts/ferns,
   sunflower/lilac/peony/rose flower fields, flowering azalea in cherry
   groves, pale moss carpet in pale gardens, jungle-edge bamboo, reeds,
-  desert cacti (some flowered), pumpkin/melon patches, mushrooms and ferns
+  badlands scrub (cacti, dry tufts, leafy bushes, deadbushes, rare golden
+  dandelions and firefly bushes), pumpkin/melon patches, mushrooms and ferns
   on podzol/mycelium, mangrove propagules on mud, pinecones, snow-layer
   drifts + rare powder snow in the cold, deadbushes, saplings; shallow
   seabeds get coral/kelp/seagrass (fully submerged cells only, with extra

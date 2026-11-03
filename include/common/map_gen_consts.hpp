@@ -28,8 +28,8 @@
 #define MOUNTAIN_ROCK_LINE 30 // Above this, surface tends to bare stone.
 #define MAX_MOUNTAIN_HEIGHT 200.0f
 
-// Terraced mesa plateaus added on top of desert columns (map_gen_fields.hpp):
-// the quantizer can round the raw mesa term up by one full step.
+// Terraced mesa plateaus on desert columns (map_gen_fields.hpp): the
+// heightmap quantizer can lift terrain by the plateau offset plus one step.
 #define MESA_MAX_RISE 30.0f
 
 // Deepest a slot canyon can cut (map_gen_fields.hpp). Carving only lowers
@@ -58,7 +58,8 @@ struct MapGenColumn {
     island : f32,      // floating-island strength [0, 1]; 0 = no islands here
     island_dy0 : f32,  // island band center above the heightmap (blocks)
     island_tin : f32,  // island footprint thickness factor [0, 1] (3 noise evals, hoisted per-column)
-    mesa_riser : f32,  // 1 on the cliff bands of a terraced mesa, else 0
+    mesa_riser : f32,  // position within a mesa step: 0 on treads, ramps to 1 across cliff risers
+    desert : f32,      // hot+dry desertness [0, 1]; 0 outside desert badlands
 };
 #else
 typedef struct {
@@ -70,6 +71,7 @@ typedef struct {
     float island;      // floating-island strength [0, 1]; 0 = no islands here
     float island_dy0;  // island band center above the heightmap (blocks)
     float island_tin;  // island footprint thickness factor [0, 1] (3 noise evals, hoisted per-column)
-    float mesa_riser;  // 1 on the cliff bands of a terraced mesa, else 0
+    float mesa_riser;  // position within a mesa step: 0 on treads, ramps to 1 across cliff risers
+    float desert;      // hot+dry desertness [0, 1]; 0 outside desert badlands
 } MapGenColumn;
 #endif

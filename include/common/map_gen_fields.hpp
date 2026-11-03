@@ -164,7 +164,7 @@ MG_FN2( float, mg_island_footprint, int, x, int, z ) {
 //   +11 bedrock jitter   +12 rolling   +13/+14 biome warp  +15/+16 weird warp
 //   +17 island mask      +18 island band   +34 canyon band   +35 canyon patch
 //   +36 geode zone mask  +40 island footprint  +41/+42 footprint warp
-//   +43 pale garden
+//   +43 pale garden      +49 strata wobble     +50 strata palette
 // 3D fields use MAP_SEED + 20..33, +37..+39, +44 copper, +45 lapis,
 //   +46 redstone, +47 diamond, +48 emerald.
 // ---------------------------------------------------------------------------
@@ -182,20 +182,23 @@ MG_FN2( float, mg_base_height, int, x, int, z ) {
     MG_LET( float, ridge, mg_mountain_ridge( MAP_GEN_PERLIN2D( wx, wz, 0.0032f, 4, MAP_SEED + 6 ) ) )
     MG_LET( float, mountains, mask * ridge * MAX_MOUNTAIN_HEIGHT )
 
-    // Deserts rise into terraced mesas: the plateau lift is quantized into
-    // strata steps so the landscape forms wide flat treads and short cliff
-    // risers instead of a smooth dome. Max lift: ceil(26/7)*7 + ... <=
-    // MESA_MAX_RISE.
-    MG_VAR( float, mesa, 0.0f )
+    MG_VAR( float, h, level + rolling + hills + ground + mountains )
+
+    // Deserts terrace into mesas: the accumulated height itself is
+    // quantized into 7-block strata steps — flat treads with ramped cliff
+    // risers — so terrace lines follow the terrain's own contours instead
+    // of the desert field's iso-rings. The plateau lift is a whole number
+    // of steps (keeps mg_mesa_riser exact), `ground` stays unquantized so
+    // treads keep some texture, and the desertness blend tapers the
+    // terraces out at the biome edge. Max lift ~28 < MESA_MAX_RISE.
     MG_LET( float, desert, mg_desert( x, z ) )
     if ( desert > 0.0f ) {
-        MG_LET( float, raw, desert * 26.0f )
-        MG_LET( float, t, MG_FLOOR( raw / 7.0f ) )
-        MG_LET( float, f, raw / 7.0f - t )
-        mesa = t * 7.0f + mg_inverse_lerp( 0.55f, 0.95f, f ) * 7.0f;
+        MG_LET( float, hf, ( h - ground + desert * 21.0f ) / 7.0f )
+        MG_LET( float, t, MG_FLOOR( hf ) )
+        MG_LET( float, f, hf - t )
+        MG_LET( float, qh, t * 7.0f + mg_inverse_lerp( 0.55f, 0.95f, f ) * 7.0f + ground )
+        h = qh * desert + h * ( 1.0f - desert );
     }
-
-    MG_VAR( float, h, level + rolling + hills + ground + mountains + mesa )
 
     // Slot canyons: rare long gorges winding through the land. A narrow band
     // around the midline of a very-low-frequency field traces the slot; a
@@ -216,15 +219,19 @@ MG_FN2( float, mg_base_height, int, x, int, z ) {
     return h;
 }
 
-// Which part of a mesa step a column sits on: 0 on the flat treads, ramps to
-// 1 across the cliff risers. mg_surface_block exposes this as rock bands.
-MG_FN2( float, mg_mesa_riser, int, x, int, z ) {
-    MG_LET( float, desert, mg_desert( x, z ) )
+// Position within a mesa stratum step: 0 on the flat treads, ramping to 1
+// across the cliff risers. Derived from the quantized height — the plateau
+// lift is a whole number of steps, so at full desert the fractional part of
+// (height - ground)/7 is exactly the riser ramp; at partial desert it
+// degrades into a band position on the half-formed steps, which still reads
+// as eroded badlands. mg_surface_block exposes this as bare strata.
+MG_FN4( float, mg_mesa_riser, int, x, int, z, float, height, float, desert ) {
     if ( desert <= 0.0f ) {
         return 0.0f;
     }
-    MG_LET( float, f, desert * 26.0f / 7.0f )
-    return mg_inverse_lerp( 0.55f, 0.95f, f - MG_FLOOR( f ) );
+    MG_LET( float, ground, mg_ground_transform( MAP_GEN_PERLIN2D( x, z, 0.06f, 2, MAP_SEED + 1 ) ) )
+    MG_LET( float, f, ( height - ground ) / 7.0f )
+    return f - MG_FLOOR( f );
 }
 
 // Overhang gain: plains get a small bump factor, rough regions and mountain
@@ -257,7 +264,8 @@ MG_FN2( MapGenColumn, mg_column_info, int, x, int, z ) {
     col.island = mg_island_strength( x, z );
     col.island_dy0 = MG_TERN( col.island > 0.0f, mg_island_dy0( x, z ), 0.0f );
     col.island_tin = MG_TERN( col.island > 0.0f, mg_island_footprint( x, z ), 0.0f );
-    col.mesa_riser = mg_mesa_riser( x, z );
+    col.desert = mg_desert( x, z );
+    col.mesa_riser = mg_mesa_riser( x, z, col.height, col.desert );
     return col;
 }
 
@@ -424,6 +432,34 @@ MG_FN4( bool, mg_cave_carve, int, x, int, y, int, z, float, height ) {
 // Block selection
 // ---------------------------------------------------------------------------
 
+// Banded terracotta strata for desert badlands: ~4-block horizontal bands
+// with a slow lateral wobble, colored by a per-band pick so mesa cliffs read
+// as sedimentary strata instead of bare stone.
+MG_FN3( BlockID, mg_strata, int, x, int, y, int, z ) {
+    MG_LET( float, wob, ( MAP_GEN_PERLIN2D( x, z, 0.045f, 1, MAP_SEED + 49 ) - 0.5f ) * 9.0f )
+    MG_LET( int, band, MG_I32( MG_FLOOR( ( MG_F32( y ) + wob ) / 4.0f ) ) )
+    MG_LET( float, pick, MAP_GEN_PERLIN2D( band * 31 + 7, band * 17 + 3, 0.11f, 1, MAP_SEED + 50 ) )
+    if ( pick < 0.15f ) {
+        return WHITE_TERRACOTTA;
+    }
+    if ( pick < 0.30f ) {
+        return YELLOW_TERRACOTTA;
+    }
+    if ( pick < 0.50f ) {
+        return ORANGE_TERRACOTTA;
+    }
+    if ( pick < 0.72f ) {
+        return RED_TERRACOTTA;
+    }
+    if ( pick < 0.86f ) {
+        return BROWN_TERRACOTTA;
+    }
+    if ( pick < 0.95f ) {
+        return LIGHT_GRAY_TERRACOTTA;
+    }
+    return GRAY_TERRACOTTA;
+}
+
 // Top / near-top block of a column. `exposed` means the cell directly above is
 // non-solid (this is the visible surface); otherwise this is the underlayer.
 MG_FN5( BlockID, mg_surface_block, int, x, int, y, int, z, MapGenColumn, col, bool, exposed ) {
@@ -451,12 +487,17 @@ MG_FN5( BlockID, mg_surface_block, int, x, int, y, int, z, MapGenColumn, col, bo
         // Beach band around sea level: sand on top, sandstone underneath.
         return MG_TERN( exposed, SAND, SANDSTONE );
     }
-    if ( col.biome > 0.72f && col.weird < 0.55f && col.height < 48.0f ) {
-        // Desert, including terraced mesas: sandy treads, bare rock risers.
+    if ( col.desert > 0.0f ) {
+        // Desert badlands: banded terracotta strata — bare on cliff risers
+        // and plateau tops, skinned with red sand over red sandstone on the
+        // low flat basin floor.
         if ( col.mesa_riser > 0.0f ) {
-            return STONE;
+            return mg_strata( x, y, z );
         }
-        return MG_TERN( exposed, RED_SAND, RED_SANDSTONE );
+        if ( col.height < 28.0f ) {
+            return MG_TERN( exposed, RED_SAND, RED_SANDSTONE );
+        }
+        return mg_strata( x, y, z );
     }
     if ( mg_is_pale( x, z, col.weird ) ) {
         // Pale garden: ghostly moss ground inside the dark latitudes.
@@ -545,6 +586,11 @@ MG_FN4( BlockID, mg_deep_block, int, x, int, y, int, z, MapGenColumn, col ) {
         if ( emerald < 0.03f ) {
             return EMERALD_ORE;
         }
+    }
+    if ( col.desert > 0.0f && depth < 24.0f ) {
+        // Badlands crust: banded terracotta continues under the surface band
+        // (past the ore checks, so veins still spawn inside the strata).
+        return mg_strata( x, y, z );
     }
     MG_LET( float, pv, MAP_GEN_PERLIN3D( x, y, z, 0.09f, 2, MAP_SEED + 27 ) )
     if ( pv > 0.66f ) {

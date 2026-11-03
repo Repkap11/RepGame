@@ -381,7 +381,8 @@ static MapGenColumn sg_column_info( const int x, const int z, SgHeightGrid &hg )
     col.island = mg_island_strength( x, z );
     col.island_dy0 = col.island > 0.0f ? mg_island_dy0( x, z ) : 0.0f;
     col.island_tin = col.island > 0.0f ? mg_island_footprint( x, z ) : 0.0f;
-    col.mesa_riser = mg_mesa_riser( x, z );
+    col.desert = mg_desert( x, z );
+    col.mesa_riser = mg_mesa_riser( x, z, col.height, col.desert );
     return col;
 }
 
@@ -905,10 +906,28 @@ void StructureGen::place_decorations( Chunk &chunk, const int cox, const int coy
                     }
                     break;
                 case RED_SAND:
-                    if ( roll < 0.08f ) {
-                        sg_write_decor( chunk, lx, surface_y, lz, sg_roll( wx, wz, 45 ) < 0.5f ? DARK_DEAD_SAPLING : DEADBUSH );
-                    } else if ( roll < 0.05f ) {
+                case WHITE_TERRACOTTA:
+                case YELLOW_TERRACOTTA:
+                case ORANGE_TERRACOTTA:
+                case RED_TERRACOTTA:
+                case BROWN_TERRACOTTA:
+                case LIGHT_GRAY_TERRACOTTA:
+                case GRAY_TERRACOTTA:
+                    // Badlands scrub, sparse: rare cacti, dry tufts, leafy
+                    // and dead bushes, the odd golden dandelion or firefly
+                    // bush.
+                    if ( roll < 0.0025f ) {
                         sg_place_cactus( chunk, lx, surface_y, lz, wx, wz );
+                    } else if ( roll < 0.005f ) {
+                        sg_write_decor( chunk, lx, surface_y, lz, sg_roll( wx, wz, 45 ) < 0.5f ? GRASS_TUFT : SHORT_GRASS );
+                    } else if ( roll < 0.0065f ) {
+                        sg_write_decor( chunk, lx, surface_y, lz, BUSH );
+                    } else if ( roll < 0.008f ) {
+                        sg_write_decor( chunk, lx, surface_y, lz, sg_roll( wx, wz, 46 ) < 0.5f ? DARK_DEAD_SAPLING : DEADBUSH );
+                    } else if ( roll < 0.0085f ) {
+                        sg_write_decor( chunk, lx, surface_y, lz, sg_roll( wx, wz, 47 ) < 0.6f ? GOLDEN_DANDELION : DANDELION );
+                    } else if ( roll < 0.00875f ) {
+                        sg_write_decor( chunk, lx, surface_y, lz, FIREFLY_BUSH );
                     }
                     break;
                 case MUD:
