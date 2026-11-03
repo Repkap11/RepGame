@@ -91,10 +91,13 @@ also seals the downward hop of any diagonal route through it.
 
 ## Propagation
 
-Two work functions, both 26-direction chamfer BFS over `ChunkLoader`'s
+Two work functions, both 18-direction chamfer BFS over `ChunkLoader`'s
 queues (`src/common/light.cpp`). `light_step_dirs` lists the step set: 6
-face steps at cost 17 (one level), 12 edge diagonals at 24 (≈√2·17), and
-8 corner diagonals at 29 (≈√3·17). The weighted metric turns shadow
+face steps at cost 17 (one level) and 12 edge diagonals at 24 (≈√2·17).
+Corner diagonals aren't steps — corner-to-corner light arrives via
+edge + face at 41. (The old 8 corner steps at 29 were dropped after A/B
+showed them visually indistinguishable while costing propagation work.)
+The weighted metric turns shadow
 contours from Manhattan diamonds into near-circles and — because the raw
 values rarely land on whole display levels — dissolves the 16-step
 quantization banding without any presentation smoothing. A diagonal step
@@ -111,7 +114,7 @@ two opaque cells touching diagonally.
   cells. Emitters re-seed themselves so their emission survives any
   recomputation.
 - **Remove** (`light_push_remove_seed`): when a value drops, the old
-  value propagates a removal along the same 26 directions that erases
+  value propagates a removal along the same 18 directions that erases
   everything it previously lit, then neighbours re-seed adds for light
   that flows back in. This is what makes "break the torch" converge
   instead of leaving ghosts. Removal checks no floor/gate conditions —

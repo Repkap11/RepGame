@@ -11,6 +11,10 @@
 #include <thread>
 #include <vector>
 
+#if defined( _MSC_VER ) && !defined( __clang__ )
+#include <intrin.h>
+#endif
+
 #include "common/RepGame.hpp" // GL headers + platform macros
 #include "common/light.hpp"
 #include "common/utils/env_config.hpp"
@@ -44,8 +48,8 @@ static bool light_smooth_in_radius( const glm::ivec3 &center, const glm::ivec3 &
 // texture upload without cross-chunk reads.
 //
 // Propagation is a BFS over world-space cells with two queues:
-//  - add:   a cell's stored value is spread to its 26 neighbors at a
-//           chamfer cost per step (17/24/29 for face/edge/corner dirs;
+//  - add:   a cell's stored value is spread to its 18 neighbors at a
+//           chamfer cost per step (17/24 for face/edge dirs;
 //           skylight flowing straight down at full strength doesn't
 //           attenuate).
 //  - remove: a cell that lost light clears neighbors that were lit through
@@ -87,39 +91,126 @@ struct LightStepDir {
     signed char ngates;
     glm::ivec3 gate[ 3 ];
 };
-static const std::array<LightStepDir, 26> light_step_dirs = []( ) {
-    std::array<LightStepDir, 26> t{};
+// Faces (6, light_dirs order) then edge diagonals (12). Corner diagonals
+// are not steps: corner-to-corner light arrives via edge + face at cost
+// 41 (17+24) instead of the old 29 corner step — they were dropped for
+// costing propagation work while being visually indistinguishable.
+static const std::array<LightStepDir, 18> light_step_dirs = []( ) {
+    std::array<LightStepDir, 18> t{};
     int n = 0;
     for ( int i = 0; i < 6; i++ ) {
         t[ n++ ] = LightStepDir{ light_dirs[ i ], LIGHT_STEP_FACE, 0, {} };
     }
-    for ( int nface = 2; nface <= 3; nface++ ) {
-        for ( int dx = -1; dx <= 1; dx++ ) {
-            for ( int dy = -1; dy <= 1; dy++ ) {
-                for ( int dz = -1; dz <= 1; dz++ ) {
-                    if ( ( dx != 0 ) + ( dy != 0 ) + ( dz != 0 ) != nface ) {
-                        continue;
-                    }
-                    LightStepDir &e = t[ n++ ];
-                    e.d = glm::ivec3( dx, dy, dz );
-                    e.cost = static_cast<signed char>( nface == 2 ? LIGHT_STEP_EDGE : LIGHT_STEP_CORNER );
-                    int g = 0;
-                    if ( dx ) {
-                        e.gate[ g++ ] = glm::ivec3( dx, 0, 0 );
-                    }
-                    if ( dy ) {
-                        e.gate[ g++ ] = glm::ivec3( 0, dy, 0 );
-                    }
-                    if ( dz ) {
-                        e.gate[ g++ ] = glm::ivec3( 0, 0, dz );
-                    }
-                    e.ngates = static_cast<signed char>( g );
+    for ( int dx = -1; dx <= 1; dx++ ) {
+        for ( int dy = -1; dy <= 1; dy++ ) {
+            for ( int dz = -1; dz <= 1; dz++ ) {
+                if ( ( dx != 0 ) + ( dy != 0 ) + ( dz != 0 ) != 2 ) {
+                    continue;
                 }
+                LightStepDir &e = t[ n++ ];
+                e.d = glm::ivec3( dx, dy, dz );
+                e.cost = LIGHT_STEP_EDGE;
+                int g = 0;
+                if ( dx ) {
+                    e.gate[ g++ ] = glm::ivec3( dx, 0, 0 );
+                }
+                if ( dy ) {
+                    e.gate[ g++ ] = glm::ivec3( 0, dy, 0 );
+                }
+                if ( dz ) {
+                    e.gate[ g++ ] = glm::ivec3( 0, 0, dz );
+                }
+                e.ngates = static_cast<signed char>( g );
             }
         }
     }
     return t;
 }( );
+
+constexpr int LIGHT_STEP_COUNT = 18;
+
+// Per-position direction masks for the boundary scans below. Which step
+// dirs can pass a loop's geometric test depends only on where the source
+// cell sits in the local volume, so iterating just those dirs — in the
+// same ascending table order — is output-identical to scanning all 18
+// and skipping: a rejected dir never reaches light_add_seed, and the
+// seed written on a hit doesn't depend on which dir triggered it.
+//
+// Axis class of a local coordinate c (boundary scans see -1..32):
+// 0: c<0  1: c==0  2: interior  3: c==last  4: c>last. A cell's class
+// triple indexes LIGHT_STEP_MASKS as cx*25+cy*5+cz.
+static_assert( CHUNK_SIZE_X == CHUNK_SIZE_Y && CHUNK_SIZE_Y == CHUNK_SIZE_Z,
+               "light_step_masks assumes a cubic interior" );
+
+static inline int light_axis_class( const int c ) {
+    return c < 0 ? 0 : c == 0 ? 1 : c <= CHUNK_SIZE_X - 2 ? 2 : c == CHUNK_SIZE_X - 1 ? 3 : 4;
+}
+static inline int light_cell_class( const int x, const int y, const int z ) {
+    return light_axis_class( x ) * 25 + light_axis_class( y ) * 5 + light_axis_class( z );
+}
+
+struct LightStepMasks {
+    uint32_t in;     // target c+d stays inside the [0,CHUNK_SIZE) interior
+    uint32_t out_xz; // target leaves through an x or z face
+    uint32_t out_y;  // target leaves through a y face
+    uint32_t out;    // target leaves the interior on any axis
+};
+
+static const std::array<LightStepMasks, 125> light_step_masks = []( ) {
+    std::array<LightStepMasks, 125> t{};
+    for ( int cx = 0; cx < 5; cx++ ) {
+        for ( int cy = 0; cy < 5; cy++ ) {
+            for ( int cz = 0; cz < 5; cz++ ) {
+                // Any coordinate in the class gives the same masks; use a
+                // representative per class.
+                const glm::ivec3 c( cx == 0 ? -1 : cx == 1 ? 0 : cx == 2 ? 1 : cx == 3 ? CHUNK_SIZE_X - 1 : CHUNK_SIZE_X,
+                                    cy == 0 ? -1 : cy == 1 ? 0 : cy == 2 ? 1 : cy == 3 ? CHUNK_SIZE_Y - 1 : CHUNK_SIZE_Y,
+                                    cz == 0 ? -1 : cz == 1 ? 0 : cz == 2 ? 1 : cz == 3 ? CHUNK_SIZE_Z - 1 : CHUNK_SIZE_Z );
+                LightStepMasks m{};
+                for ( int d = 0; d < LIGHT_STEP_COUNT; d++ ) {
+                    const glm::ivec3 n = c + light_step_dirs[ d ].d;
+                    const glm::ivec3 o( n.x < 0 ? -1 : n.x >= CHUNK_SIZE_X ? 1 : 0,
+                                        n.y < 0 ? -1 : n.y >= CHUNK_SIZE_Y ? 1 : 0,
+                                        n.z < 0 ? -1 : n.z >= CHUNK_SIZE_Z ? 1 : 0 );
+                    const uint32_t bit = 1u << d;
+                    if ( o == glm::ivec3( 0 ) ) {
+                        m.in |= bit;
+                    } else {
+                        m.out |= bit;
+                        if ( o.x != 0 || o.z != 0 ) {
+                            m.out_xz |= bit;
+                        }
+                        if ( o.y != 0 ) {
+                            m.out_y |= bit;
+                        }
+                    }
+                }
+                t[ cx * 25 + cy * 5 + cz ] = m;
+            }
+        }
+    }
+    return t;
+}( );
+
+static const uint32_t light_step_down_mask = []( ) {
+    uint32_t m = 0;
+    for ( int d = 0; d < LIGHT_STEP_COUNT; d++ ) {
+        if ( light_step_dirs[ d ].d.y < 0 ) {
+            m |= 1u << d;
+        }
+    }
+    return m;
+}( );
+
+static inline int light_ctz32( const uint32_t v ) {
+#if defined( _MSC_VER ) && !defined( __clang__ )
+    unsigned long i;
+    _BitScanForward( &i, v );
+    return static_cast<int>( i );
+#else
+    return __builtin_ctz( v );
+#endif
+}
 
 // BlockID of the cell at internal coord `local` in a cells[] volume (halo
 // cells carry real neighbor data, so a ±1 neighborhood of an interior
@@ -1504,7 +1595,7 @@ void ChunkLoader::light_add_step( const LightSeed &seed ) {
     // from one. A null cells[] volume is all-air: nothing is a floor.
     const BlockID src_id = light_cell_id_at( chunk->cells, local );
     const bool src_blocks_down = block_definition_get_definition( src_id )->blocks_light_down;
-    for ( int d = 0; d < 26; d++ ) {
+    for ( int d = 0; d < LIGHT_STEP_COUNT; d++ ) {
         const LightStepDir &sd = light_step_dirs[ d ];
         if ( src_blocks_down && sd.d.y < 0 ) {
             continue;
@@ -1581,7 +1672,7 @@ void ChunkLoader::light_remove_step( const LightRemoveSeed &seed ) {
     // light floor now but its predecessor still fed the cells below. The
     // cascade must clear whatever the old value could have carried; cells
     // cleared too aggressively are re-lit by the add-seed fallback.
-    for ( int d = 0; d < 26; d++ ) {
+    for ( int d = 0; d < LIGHT_STEP_COUNT; d++ ) {
         const LightStepDir &sd = light_step_dirs[ d ];
         const glm::ivec3 n = seed.pos + sd.d;
         const glm::ivec3 n_local = local + sd.d;
@@ -2078,7 +2169,7 @@ void ChunkLoader::light_recheck_block( const glm::ivec3 &block_pos ) {
             }
         }
         // Re-pull from neighbors: pushes into this cell whatever they offer,
-        // and pushes this cell's value back out. All 26 directions — a
+        // and pushes this cell's value back out. All 18 directions — a
         // diagonal neighbor's offer may be this cell's best in-path.
         for ( const LightStepDir &sd : light_step_dirs ) {
             const int nv = this->light_get( block_pos + sd.d, ch );
@@ -2259,15 +2350,13 @@ void ChunkLoader::light_seed_interior_boundary( Chunk &chunk ) {
                     continue;
                 }
                 const bool src_floor = block_definition_get_definition( cell_id_at( c_local ) )->blocks_light_down;
-                for ( int d = 0; d < 26; d++ ) {
-                    const LightStepDir &sd = light_step_dirs[ d ];
-                    if ( src_floor && sd.d.y < 0 ) {
-                        continue;
-                    }
+                uint32_t dmask = light_step_masks[ light_cell_class( x, y, z ) ].in;
+                if ( src_floor ) {
+                    dmask &= ~light_step_down_mask;
+                }
+                for ( ; dmask; dmask &= dmask - 1 ) {
+                    const LightStepDir &sd = light_step_dirs[ light_ctz32( dmask ) ];
                     const glm::ivec3 n_local = c_local + sd.d;
-                    if ( n_local.x < 0 || n_local.x >= CHUNK_SIZE_X || n_local.y < 0 || n_local.y >= CHUNK_SIZE_Y || n_local.z < 0 || n_local.z >= CHUNK_SIZE_Z ) {
-                        continue;
-                    }
                     const int offered = cv - sd.cost;
                     if ( offered <= 0 ) {
                         continue;
@@ -2302,18 +2391,16 @@ void ChunkLoader::light_seed_interior_boundary( Chunk &chunk ) {
                         continue;
                     }
                     const bool src_floor = block_definition_get_definition( cell_id_at( c_local ) )->blocks_light_down;
-                    for ( int d = 0; d < 26; d++ ) {
-                        const LightStepDir &sd = light_step_dirs[ d ];
-                        if ( src_floor && sd.d.y < 0 ) {
-                            continue;
-                        }
+                    uint32_t dmask = light_step_masks[ light_cell_class( x, y, z ) ].out_xz;
+                    if ( src_floor ) {
+                        dmask &= ~light_step_down_mask;
+                    }
+                    for ( ; dmask; dmask &= dmask - 1 ) {
+                        const LightStepDir &sd = light_step_dirs[ light_ctz32( dmask ) ];
                         const glm::ivec3 n_local = c_local + sd.d;
                         const glm::ivec3 o( n_local.x < 0 ? -1 : n_local.x >= CHUNK_SIZE_X ? 1 : 0,
                                             n_local.y < 0 ? -1 : n_local.y >= CHUNK_SIZE_Y ? 1 : 0,
                                             n_local.z < 0 ? -1 : n_local.z >= CHUNK_SIZE_Z ? 1 : 0 );
-                        if ( o.x == 0 && o.z == 0 ) {
-                            continue; // lateral-shell scans only cross x/z faces
-                        }
                         const Chunk *nchunk = nb_cache[ ( o.x + 1 ) * 9 + ( o.y + 1 ) * 3 + ( o.z + 1 ) ];
                         if ( !nchunk || nchunk->load_state ) {
                             continue;
@@ -2355,18 +2442,17 @@ void ChunkLoader::light_seed_interior_boundary( Chunk &chunk ) {
                     continue;
                 }
                 const bool src_floor = block_definition_get_definition( cell_id_at( c_local ) )->blocks_light_down;
-                for ( int d = 0; d < 26; d++ ) {
+                uint32_t dmask = light_step_masks[ light_cell_class( x, y, z ) ].out_y;
+                if ( src_floor ) {
+                    dmask &= ~light_step_down_mask;
+                }
+                for ( ; dmask; dmask &= dmask - 1 ) {
+                    const int d = light_ctz32( dmask );
                     const LightStepDir &sd = light_step_dirs[ d ];
-                    if ( src_floor && sd.d.y < 0 ) {
-                        continue;
-                    }
                     const glm::ivec3 n_local = c_local + sd.d;
                     const glm::ivec3 o( n_local.x < 0 ? -1 : n_local.x >= CHUNK_SIZE_X ? 1 : 0,
                                         n_local.y < 0 ? -1 : n_local.y >= CHUNK_SIZE_Y ? 1 : 0,
                                         n_local.z < 0 ? -1 : n_local.z >= CHUNK_SIZE_Z ? 1 : 0 );
-                    if ( o.y == 0 ) {
-                        continue; // this probe only crosses y faces
-                    }
                     const Chunk *nchunk = nb_cache[ ( o.x + 1 ) * 9 + ( o.y + 1 ) * 3 + ( o.z + 1 ) ];
                     if ( !nchunk || nchunk->load_state ) {
                         continue;
@@ -2422,7 +2508,7 @@ void ChunkLoader::light_seed_column_boundary( const int world_x, const int world
             const glm::ivec3 pos( world_x, cy * CHUNK_SIZE_Y + y, world_z );
             const glm::ivec3 c_local( lx, y, lz );
             const bool src_floor = block_definition_get_definition( light_cell_id_at( chunk->cells, c_local ) )->blocks_light_down;
-            for ( int d = 0; d < 26; d++ ) {
+            for ( int d = 0; d < LIGHT_STEP_COUNT; d++ ) {
                 const LightStepDir &sd = light_step_dirs[ d ];
                 if ( src_floor && sd.d.y < 0 ) {
                     continue;
@@ -2497,31 +2583,33 @@ void ChunkLoader::light_border_sync( Chunk &chunk ) {
         // Only seed the BFS where this border cell's light can flow
         // into an under-lit non-opaque neighbor — mass load-in would
         // otherwise push one useless seed per nonzero border cell.
-        // All 26 step dirs count as inward whenever they land inside the
+        // All 18 step dirs count as inward whenever they land inside the
         // volume: a diagonal-only in-path is a real route under chamfer
         // propagation. Directions into other chunks' interiors are covered
         // by their own border syncs and by the propagation that wrote this
         // cell in the first place.
         const BlockID src_id = light_cell_id_at( chunk.cells, glm::ivec3( x, y, z ) );
         const bool src_floor = block_definition_get_definition( src_id )->blocks_light_down;
+        // Only interior targets feed our fresh volume: prune to the dirs
+        // that can land inside, once per cell (the per-channel loop reruns
+        // the dir scan).
+        uint32_t dmask = light_step_masks[ light_cell_class( x, y, z ) ].in;
+        if ( src_floor ) {
+            dmask &= ~light_step_down_mask;
+        }
         for ( int ch = 0; ch < 2; ch++ ) {
             const int cv = ch == LIGHT_CHANNEL_BLOCK ? light_get_block( canon ) : light_get_sky( canon );
             if ( cv <= 0 ) {
                 continue;
             }
-            for ( int d = 0; d < 26; d++ ) {
+            for ( uint32_t m = dmask; m; m &= m - 1 ) {
+                const int d = light_ctz32( m );
                 const LightStepDir &sd = light_step_dirs[ d ];
-                if ( src_floor && sd.d.y < 0 ) {
-                    continue;
-                }
                 const int offered = ( ch == LIGHT_CHANNEL_SKY && d == LIGHT_DIR_DOWN && cv == LIGHT_RAW_MAX ) ? LIGHT_RAW_MAX : cv - sd.cost;
                 if ( offered <= 0 ) {
                     continue;
                 }
                 const glm::ivec3 n_local = glm::ivec3( x, y, z ) + sd.d;
-                if ( n_local.x < 0 || n_local.x >= CHUNK_SIZE_X || n_local.y < 0 || n_local.y >= CHUNK_SIZE_Y || n_local.z < 0 || n_local.z >= CHUNK_SIZE_Z ) {
-                    continue; // only interior targets feed our fresh volume
-                }
                 const int nv = ch == LIGHT_CHANNEL_BLOCK ? light_get_block( light_read_cell( chunk, light_index( n_local.x, n_local.y, n_local.z ) ) )
                                                          : light_get_sky( light_read_cell( chunk, light_index( n_local.x, n_local.y, n_local.z ) ) );
                 if ( nv >= offered ) {
@@ -2634,7 +2722,7 @@ void ChunkLoader::light_border_sync( Chunk &chunk ) {
             }
             // Seed only if the spread would actually go somewhere: a
             // foreign-interior cell adjacent to w that is under-lit and
-            // non-opaque. All 26 step dirs count — a diagonal across a
+            // non-opaque. All 18 step dirs count — a diagonal across a
             // chunk corner is a real in-path under chamfer propagation.
             // Mass load-in otherwise pushes thousands of no-op seeds per
             // chunk — mirrors that needed syncing but whose interiors are
@@ -2642,19 +2730,19 @@ void ChunkLoader::light_border_sync( Chunk &chunk ) {
             const BlockID w_id = light_cell_id_at( chunk.cells, glm::ivec3( x, y, z ) );
             const bool w_floor = block_definition_get_definition( w_id )->blocks_light_down;
             const glm::ivec3 w_loc( x, y, z );
-            for ( int d = 0; d < 26; d++ ) {
-                const LightStepDir &sd = light_step_dirs[ d ];
-                if ( w_floor && sd.d.y < 0 ) {
-                    continue;
-                }
+            // Own-interior targets are handled by the propagation itself;
+            // prune to dirs that actually leave the volume.
+            uint32_t dmask = light_step_masks[ light_cell_class( x, y, z ) ].out;
+            if ( w_floor ) {
+                dmask &= ~light_step_down_mask;
+            }
+            for ( ; dmask; dmask &= dmask - 1 ) {
+                const LightStepDir &sd = light_step_dirs[ light_ctz32( dmask ) ];
                 const glm::ivec3 n_pos = w + sd.d;
                 const glm::ivec3 rel = n_pos - base;
                 const glm::ivec3 o( rel.x < 0 ? -1 : rel.x >= CHUNK_SIZE_X ? 1 : 0,
                                   rel.y < 0 ? -1 : rel.y >= CHUNK_SIZE_Y ? 1 : 0,
                                   rel.z < 0 ? -1 : rel.z >= CHUNK_SIZE_Z ? 1 : 0 );
-                if ( o == glm::ivec3( 0 ) ) {
-                    continue; // own interior — handled by the propagation itself
-                }
                 const Chunk *nax = nb_cache[ ( o.x + 1 ) * 9 + ( o.y + 1 ) * 3 + ( o.z + 1 ) ];
                 if ( !nax || nax->load_state ) {
                     continue;
@@ -2892,7 +2980,7 @@ void light_fill_chunk( Chunk &chunk ) {
         // Same source rule as light_add_step: a floor cell holds light but
         // never spreads it downward.
         const bool src_blocks_down = block_definition_get_definition( block_cell_id( chunk.cells[ chunk.get_index_from_coords( lx, ly, lz ) ] ) )->blocks_light_down;
-        for ( int d = 0; d < 26; d++ ) {
+        for ( int d = 0; d < LIGHT_STEP_COUNT; d++ ) {
             const LightStepDir &sd = light_step_dirs[ d ];
             if ( src_blocks_down && sd.d.y < 0 ) {
                 continue;

@@ -29,14 +29,13 @@
 
 // Raw channel units: 17 per display level fills the byte exactly
 // (15*17 = 255). Propagation is a chamfer-weighted flood — face steps cost
-// one level (17), edge diagonals ~sqrt(2) (24), corner diagonals ~sqrt(3)
-// (29) — so fractional distances survive in the raw value and iso-contours
-// are near-circular instead of Manhattan diamonds.
+// one level (17), edge diagonals ~sqrt(2) (24); corner diagonals aren't
+// steps (edge + face = 41) — so fractional distances survive in the raw
+// value and iso-contours are near-circular instead of Manhattan diamonds.
 #define LIGHT_RAW_PER_LEVEL 17
 #define LIGHT_RAW_MAX ( LIGHT_MAX_LEVEL * LIGHT_RAW_PER_LEVEL )
 #define LIGHT_STEP_FACE 17
 #define LIGHT_STEP_EDGE 24
-#define LIGHT_STEP_CORNER 29
 
 // Column flags live in chunk->light_columns: [0, flags_count) is column_open
 // (no light-blocking cell in this chunk's vertical column),
