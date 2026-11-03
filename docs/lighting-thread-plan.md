@@ -113,8 +113,12 @@ shards discussed earlier:
   the 3x3 columns around its target — mirror writes only reach ±1 chunk
   per axis and only toward the border the cell sits on, so `light_pop_cols`
   computes the precise 1-9 column set (1 for strictly-interior cells).
-  Claims take the 3x3 set. Pops try-lock with a bounded spin; a contested
-  seed re-queues at the back of its own column's level bucket — rotating
+  Claims take the 3x3 set. Pops try-lock with a bounded spin
+  (`light_col_lock_spin`, `LIGHT_COL_SPIN_TRIES` = 1024 tries with a CPU
+  pause hint) — sized to outlast a single pop-step hold (~µs) so
+  pop-vs-pop contention resolves inline instead of requeueing, while
+  ms-scale claim holds still time out and a contested seed re-queues at
+  the back of its own column's level bucket — rotating
   behind sibling seeds that likely touch columns the neighbor isn't
   holding — and a run of >256 consecutive contested pops releases the
   slot early so another column can drain while the sweep moves on.

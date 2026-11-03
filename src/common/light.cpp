@@ -17,6 +17,14 @@
 #include "common/block_definitions.hpp"
 #include "common/renderer/texture.hpp"
 
+static inline void light_cpu_relax( ) {
+#if defined( __x86_64__ ) || defined( __i386__ )
+    __builtin_ia32_pause( );
+#elif defined( __aarch64__ ) || defined( __arm__ )
+    __asm__ __volatile__( "yield" );
+#endif
+}
+
 // ---------------------------------------------------------------------------
 // Flood-fill lighting engine.
 //
@@ -664,6 +672,7 @@ static std::atomic<int> light_drain_count{ 0 }; // workers currently in a BFS sl
 // ascending index order and pop locks are try-locked (requeue on failure),
 // so there is no lock-ordering cycle: pops never hold-and-wait.
 #define LIGHT_COL_LOCK_COUNT 4096
+#define LIGHT_COL_SPIN_TRIES 1024
 static std::atomic<int> light_col_locks[ LIGHT_COL_LOCK_COUNT ];
 static inline int light_col_lock_index( const int cx, const int cz ) {
     // Odd multipliers spread adjacent columns to distant slots — the common
@@ -675,21 +684,23 @@ static bool light_col_lock_try( const int idx ) {
     return light_col_locks[ idx ].load( std::memory_order_relaxed ) == 0 &&
            light_col_locks[ idx ].compare_exchange_strong( expected, 1, std::memory_order_acquire, std::memory_order_relaxed );
 }
-// Bounded spin: pop-vs-pop holds last one step (~0.3-1µs), so ~32 tries
-// acquire the lock inline instead of paying a requeue round-trip. Claim
-// holds are ~ms and never resolve inside any reasonable spin — timing out
-// fast bounds the wasted CAS work per requeue.
+// Bounded spin: pop-vs-pop holds last one BFS step (~1µs) — 32 bare tries
+// timed out before the holder released, so most contested pops requeued
+// needlessly. ~1024 tries with a pause hint covers a step-length hold;
+// claim holds (~ms) still time out and the seed requeues.
 static bool light_col_lock_spin( const int idx ) {
-    for ( int i = 0; i < 32; i++ ) {
+    for ( int i = 0; i < LIGHT_COL_SPIN_TRIES; i++ ) {
         if ( light_col_lock_try( idx ) ) {
             return true;
         }
+        light_cpu_relax( );
     }
     return false;
 }
 static void light_col_lock_acquire( const int idx ) {
     for ( ;; ) {
         while ( light_col_locks[ idx ].load( std::memory_order_relaxed ) != 0 ) {
+            light_cpu_relax( );
         }
         int expected = 0;
         if ( light_col_locks[ idx ].compare_exchange_weak( expected, 1, std::memory_order_acquire, std::memory_order_relaxed ) ) {
