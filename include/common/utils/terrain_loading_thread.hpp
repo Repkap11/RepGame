@@ -1,16 +1,29 @@
 #pragma once
 
 #include <atomic>
+#include <condition_variable>
+#include <deque>
+#include <mutex>
 
 #include "common/chunk.hpp"
 
-struct LinkedList;
-struct LinkedListValue;
+struct TerrainWorkItem {
+    Chunk *chunk;
+    glm::ivec3 new_chunk_pos;
+    int persist;
+};
 
 class TerrainLoadingThread {
     MapStorage map_storage;
-    LinkedList *work_linked_list;
-    LinkedList *result_linked_list;
+    // Work queue: the render thread pushes and workers pop; work_cv lets
+    // idle workers sleep until work arrives instead of polling. Result
+    // queue: workers push, the render thread pops non-blocking. Both FIFO.
+    mutable std::mutex work_mutex;
+    std::condition_variable work_cv;
+    std::deque<TerrainWorkItem> work_queue;
+    bool stopping = false;
+    mutable std::mutex result_mutex;
+    std::deque<TerrainWorkItem> result_queue;
     // Loader-focus chunk column (render thread's chunk_center), so workers can
     // retarget stale requests instead of loading a position the camera has
     // already left. x/y/z packed via three atomics — a torn read just picks a
@@ -21,7 +34,7 @@ class TerrainLoadingThread {
     std::atomic<int> focus_x{ 0 }, focus_y{ 0 }, focus_z{ 0 }, focus_radius{ 0 };
     std::atomic<int> focus_valid{ 0 }; // 0 → retarget falls back to new_chunk_pos
 
-    void process_value( LinkedListValue *value );
+    void process_value( TerrainWorkItem &item );
     static void *process_background_tasks( void *arg );
 
   public:
