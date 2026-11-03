@@ -33,7 +33,10 @@ Chunks >=3 apart in x or z are fully independent.
 - Render thread (keeps): GL only -- light_ensure_texture,
   light_upload_dirty, per-chunk texture binds. Reads light[] while light
   thread writes it -> worst case a few torn texels for one frame, self-heals
-  via dirty marks.
+  via dirty marks. The expensive smoothed presentation fill is NOT render
+  work: smoothed chunks are claimed + queued for a light worker, which
+  fills a pooled buffer (light_stage_chunk) that the upload pass ships
+  verbatim — see the staging paragraph in docs/lighting.md.
 
 ## Implementation steps
 

@@ -271,7 +271,12 @@ void Chunk::release_terrain( ) {
     this->light_stale.store( 0, std::memory_order_relaxed );
     this->light_upload_defers = 0;
     this->light_uploaded_once = 0;
+    // Staged upload in flight: bump the generation so the worker's publish
+    // CAS fails and it frees its own buffer; a ready buffer (status==2) is
+    // render-owned and returned to the pool. The pool lives in light.cpp.
+    light_reset_staging( this );
     this->light_tex_mode = 0;
+    this->light_tex_flip = 0;
     this->light_finalized.store( 0, std::memory_order_relaxed );
     this->light_write_tick.store( 0, std::memory_order_relaxed );
     this->light_dirty_box.store( LIGHT_BOX_EMPTY, std::memory_order_relaxed );
@@ -604,7 +609,11 @@ void Chunk::load_terrain( MapStorage &map_storage ) {
     this->light_write_tick.store( 0, std::memory_order_relaxed );
     this->light_upload_defers = 0;
     this->light_uploaded_once = 0;
+    // See release_terrain — invalidates any staged upload claimed by a
+    // worker before this slot was reassigned.
+    light_reset_staging( this );
     this->light_tex_mode = 0;
+    this->light_tex_flip = 0;
     this->light_finalized.store( 0, std::memory_order_relaxed );
     this->light_dirty_box.store( LIGHT_BOX_EMPTY, std::memory_order_relaxed );
     this->light_uniform = 0;

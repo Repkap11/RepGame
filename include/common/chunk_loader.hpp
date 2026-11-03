@@ -237,6 +237,16 @@ class ChunkLoader {
     void light_process_pending_chunk( Chunk &chunk );
     void light_drain_pending( );
     void light_upload_dirty( int max_uploads );
+    // Worker-side upload staging: fills a pooled buffer with the chunk's
+    // dirty texels (the expensive smoothed presentation fill) so
+    // light_upload_dirty only pays the GL call. Runs on light workers.
+    void light_stage_chunk( Chunk &chunk );
+    // Shared box/mode computation and fill for the upload path — the render
+    // thread (inline fills) and staging workers both go through these.
+    // light_upload_box returns the presentation mode (0 = nothing to do)
+    // with *uplo/*sz the texel box to fill.
+    int light_upload_box( Chunk &chunk, uint64_t raw_box, glm::ivec3 *uplo, glm::ivec3 *sz, bool *self_smooth_out );
+    void light_fill_upload_box( Chunk &chunk, const glm::ivec3 &uplo, const glm::ivec3 &sz, bool mipmaps, bool self_smooth, unsigned char *dst );
 
     // Lighting-thread plumbing (docs/lighting-thread-plan.md). When the
     // thread is running, finalize/recheck calls enqueue instead of running

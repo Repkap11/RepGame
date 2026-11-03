@@ -113,6 +113,7 @@ class Chunk {
     friend void test_setup_world( World &world );
     friend void light_fill_chunk( Chunk &chunk );
     friend void light_air_mask_set( const Chunk &chunk, int index, BlockID id );
+    friend void light_reset_staging( Chunk *chunk );
     friend void light_pending_enqueue( Chunk &chunk );
     friend int test_lighting( );
     friend int test_structure_border( );
@@ -278,12 +279,28 @@ class Chunk {
     // are still pending. Render thread only; reset when the slot is reused.
     int light_uploaded_once = 0;
     // Presentation mode the texture was last fully filled under:
-    // 0 = never filled, 1 = raw expand, 2 = smoothed. Render thread only.
-    // A mismatch vs the current desired mode (Shadows toggle, or the chunk
-    // crossing REPGAME_LIGHT_SMOOTH_RADIUS) upgrades the next upload to a
+    // 0 = never filled, 1 = raw expand, 2 = smoothed. A mismatch vs the
+    // current desired mode (Shadows toggle, or the chunk crossing
+    // REPGAME_LIGHT_SMOOTH_RADIUS) upgrades the next upload to a
     // full-volume refill — partial fills under a new mode would leave a
-    // mixed-mode texture.
-    int light_tex_mode = 0;
+    // mixed-mode texture. Atomic: written by render on upload completion,
+    // read by staging workers computing the same check.
+    std::atomic<int> light_tex_mode{ 0 };
+    // The mode a flip was claimed for but has not landed yet (0 = none).
+    // Keeps repeated ensure calls from re-running the flip marks every
+    // frame while the queued refill is in flight.
+    std::atomic<int> light_tex_flip{ 0 };
+    // Worker-side upload staging: a light worker fills a pooled buffer with
+    // the chunk's dirty texels so the render thread only pays the GL call.
+    // light_stage_state packs a generation (high bits) and status (low 2):
+    //   0 idle, 1 worker staging, 2 staged data ready to upload.
+    // The CAS that publishes the buffer carries the generation the worker
+    // claimed under, so a slot recycled mid-stage (release bumps the
+    // generation) can never publish a stale buffer onto the new chunk.
+    std::atomic<unsigned> light_stage_state{ 0 };
+    unsigned char *light_stage_buf = nullptr; // pooled; valid while status==2
+    uint64_t light_stage_box = 0;             // packed texel box, status==2
+    int light_stage_mode = 0;                 // presentation mode, status==2
     // Set at the end of light_finalize_chunk — routes FINALIZE jobs for
     // never-finalized chunks (no real skylight yet, only the optimistic
     // fill) into the init job lane, ahead of far-lane work but behind

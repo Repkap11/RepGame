@@ -114,3 +114,10 @@ void light_fill_chunk( Chunk &chunk );
 // mask isn't allocated, so a missing mask always means "upload falls back
 // to the cells[] walk".
 void light_air_mask_set( const Chunk &chunk, int index, BlockID id );
+
+// Invalidates any worker-side staged upload buffer for this chunk: a ready
+// buffer is returned to the pool, an in-flight stage is orphaned so the
+// worker's publish CAS fails (it frees its own buffer). Called from
+// Chunk::release_terrain (render thread) and load_terrain (terrain worker)
+// — thread-safe; the buffer pool is internally locked.
+void light_reset_staging( Chunk *chunk );

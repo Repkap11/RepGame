@@ -166,6 +166,21 @@ volumes per frame, debounced per chunk (`light_write_tick`,
 on first draw — eager at finalize for drawable chunks so the cost isn't
 bunched into the first camera pan.
 
+The smoothed presentation fill is ~25x the raw expand per texel, so under
+"Smooth" it runs on the light workers instead of synchronously in the
+upload pass (render-thread `upl` was the dominant hitch): the pop loop
+claims the chunk (`light_stage_state` IDLE→BUSY) and queues it, a worker
+exchanges the dirty box, fills a pooled buffer
+(`ChunkLoader::light_stage_chunk` → `light_fill_upload_box`), and
+publishes READY — the next upload pass does only the GL calls. The state
+packs a generation above the status so a slot recycled mid-stage can't
+publish stale texels (`light_reset_staging` bumps it on
+release/reposition). Raw-mode chunks keep the inline fill — their expand
+is already cheap — and everything stays inline when no light workers run
+(WASM, tests). A new texture's creation fill is always the raw path; a
+smoothed chunk's first staged full-volume fill lands a few frames later
+(the delta is a few LSB, invisible in the interim).
+
 ## Day/night and tuning
 
 `light_daylight_factor(world_time)` maps `state.world_time`
