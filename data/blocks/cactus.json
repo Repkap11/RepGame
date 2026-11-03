@@ -5,6 +5,22 @@
  "is_seethrough": true,
  "name": "CACTUS",
  "no_light": 6815743,
+ "offset": [
+  1,
+  0,
+  1
+ ],
+ "scale": [
+  14,
+  16,
+  14
+ ],
+ "spine_shell": true,
+ "tex_offset": [
+  -1,
+  0,
+  -1
+ ],
  "textures": {
   "bottom": "cactus_bottom",
   "side": "cactus_side",

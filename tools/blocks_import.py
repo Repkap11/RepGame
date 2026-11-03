@@ -74,7 +74,7 @@ BOOL_FIELDS = {
     "connects_to_redstone_dust", "is_redstone_dust", "is_torch", "is_button",
     "is_pressure_plate", "is_redstone_mechanism", "is_piston", "is_sticky_piston",
     "is_piston_head", "is_tnt", "is_inverse_tnt", "piston_immovable",
-    "is_fence", "is_fence_gate", "falls_with_gravity",
+    "is_fence", "is_fence_gate", "falls_with_gravity", "spine_shell",
     "is_door", "is_door_upper", "door_redstone_only",
 }
 INT_FIELDS = {"no_light", "flows", "initial_redstone_power", "emits_light", "light_absorb"}

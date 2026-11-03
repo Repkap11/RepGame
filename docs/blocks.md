@@ -136,6 +136,20 @@ kept block via `"template"`; `"drop"` removes copied keys and other entry
 keys override the template but not the block's own JSON. Textures always
 stay the block's own.
 
+`"spine_shell": true` (cactus) replaces the block's mesh with Java's
+three-element cactus model: a full-cell box drawing only top/bottom, plus
+two 14-wide boxes drawing only their side quads, which sit 1px inside each
+cell edge and sample the whole side tile — the tile's opaque interior forms
+the inset body while its mostly-transparent edge columns land on the cell
+boundary as spines; the quads cross at the corners (independent planes, not
+a real cube). Side quads live inside the cell so they never z-fight;
+top/bottom sit on the boundary and are culled when the neighbor's opposing
+face covers it (`mesh_face_seethrough`, Java's `cullface`). With
+`spine_shell` the block's `scale`/`offset`/`tex_offset` describe only the
+pick/collision/icon box (cactus uses `[14,16,14]`/`[1,0,1]`), and
+`can_mesh_*` is disabled so emission stays per-cell — see `cactus.json` and
+the `block->spine_shell` block in chunk.cpp phase 2.
+
 Fences and fence gates draw several box instances per cell in the CPU
 meshing pass (chunk.cpp phase 2, `fence_boxes`/`fence_gate_boxes` in
 block.cpp): a 4x16x4 post plus 2px rails that connect to neighbors.

@@ -3192,6 +3192,10 @@ block_definitions[ 231 ].casts_shadow = false;
 block_definitions[ 231 ].hardness = 0.35f;
 block_definitions[ 231 ].is_seethrough = true;
 block_definitions[ 231 ].no_light = 6815743;
+block_definitions[ 231 ].offset = { 1, 0, 1 };
+block_definitions[ 231 ].scale = { 14, 16, 14 };
+block_definitions[ 231 ].spine_shell = true;
+block_definitions[ 231 ].tex_offset = { -1, 0, -1 };
 
 // CACTUS_FLOWER (232)
 block_definitions[ 232 ].textures[ FACE_TOP ] = TEX_AIR;

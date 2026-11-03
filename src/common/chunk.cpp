@@ -1179,7 +1179,7 @@ void Chunk::calculate_populated_blocks( ) {
                         // A lit redstone torch emits a second instance: the
                         // 4-wide orb head around the stick's top.
                         const bool redstone_orb = blockState.display_id == REDSTONE_TORCH && blockState.current_redstone_power > 0;
-                        const int emit_count = ( num_boxes > 0 ? num_boxes : 1 ) + ( redstone_orb ? 1 : 0 );
+                        const int emit_count = ( num_boxes > 0 ? num_boxes : 1 ) + ( redstone_orb ? 1 : 0 ) + ( block->spine_shell ? 2 : 0 );
                         ensure_capacity( block->renderOrder, emit_count );
                         if ( num_instances[ block->renderOrder ] + emit_count > capacity[ block->renderOrder ] ) {
                             continue; // OOM — drop this cell's instances.
@@ -1307,6 +1307,82 @@ void Chunk::calculate_populated_blocks( ) {
                             orb->tex_offset_z = -13;
                             for ( int f = 0; f < NUM_FACES_IN_CUBE; f++ ) {
                                 orb->face[ f ] = TEX_REDSTONE_TORCH_GLOW;
+                            }
+                        }
+
+                        // Spine-shell blocks (cactus) replace the core box
+                        // with Java's three-element model: a full-cell box
+                        // drawing only top and bottom, plus two 14-wide
+                        // boxes whose only faces are the side quads sitting
+                        // 1px inside each cell edge. Every face samples its
+                        // whole tile, so the side tile's opaque interior
+                        // forms the inset body while its mostly-transparent
+                        // edge columns read as spines poking out at the cell
+                        // boundary; the quads cross at the corners (they're
+                        // independent planes, not a real cube). The side
+                        // quads live inside the cell so they never z-fight;
+                        // top/bottom sit on the boundary and are culled when
+                        // the neighbor's opposing face fully covers it —
+                        // the same mesh_face_seethrough test phase 1 uses
+                        // (Java's cullface), read from the halo cells the
+                        // fence lookup already uses. Block scale/offset in
+                        // the JSON describes the pick/collision box only.
+                        if ( block->spine_shell ) {
+                            const GPUBlockDef *mesh_defs = mesh_def_table( );
+                            BlockCoords *qx = &this->layers[ block->renderOrder ].populated_blocks[ num_instances[ block->renderOrder ] ];
+                            num_instances[ block->renderOrder ] += 1;
+                            *qx = *blockCoord;
+                            qx->scale_x = 14;
+                            qx->scale_y = 16;
+                            qx->scale_z = 16;
+                            qx->offset_x = 1;
+                            qx->offset_y = 0;
+                            qx->offset_z = 0;
+                            qx->tex_offset_x = 0;
+                            qx->tex_offset_y = 0;
+                            qx->tex_offset_z = 0;
+                            qx->packed_lighting[ FACE_TOP ] = NO_LIGHT_NO_DRAW;
+                            qx->packed_lighting[ FACE_BOTTOM ] = NO_LIGHT_NO_DRAW;
+                            qx->packed_lighting[ FACE_FRONT ] = NO_LIGHT_NO_DRAW;
+                            qx->packed_lighting[ FACE_BACK ] = NO_LIGHT_NO_DRAW;
+
+                            BlockCoords *qz = &this->layers[ block->renderOrder ].populated_blocks[ num_instances[ block->renderOrder ] ];
+                            num_instances[ block->renderOrder ] += 1;
+                            *qz = *blockCoord;
+                            qz->scale_x = 16;
+                            qz->scale_y = 16;
+                            qz->scale_z = 14;
+                            qz->offset_x = 0;
+                            qz->offset_y = 0;
+                            qz->offset_z = 1;
+                            qz->tex_offset_x = 0;
+                            qz->tex_offset_y = 0;
+                            qz->tex_offset_z = 0;
+                            qz->packed_lighting[ FACE_TOP ] = NO_LIGHT_NO_DRAW;
+                            qz->packed_lighting[ FACE_BOTTOM ] = NO_LIGHT_NO_DRAW;
+                            qz->packed_lighting[ FACE_LEFT ] = NO_LIGHT_NO_DRAW;
+                            qz->packed_lighting[ FACE_RIGHT ] = NO_LIGHT_NO_DRAW;
+
+                            blockCoord->scale_x = 16;
+                            blockCoord->scale_y = 16;
+                            blockCoord->scale_z = 16;
+                            blockCoord->offset_x = 0;
+                            blockCoord->offset_y = 0;
+                            blockCoord->offset_z = 0;
+                            blockCoord->tex_offset_x = 0;
+                            blockCoord->tex_offset_y = 0;
+                            blockCoord->tex_offset_z = 0;
+                            blockCoord->packed_lighting[ FACE_RIGHT ] = NO_LIGHT_NO_DRAW;
+                            blockCoord->packed_lighting[ FACE_FRONT ] = NO_LIGHT_NO_DRAW;
+                            blockCoord->packed_lighting[ FACE_LEFT ] = NO_LIGHT_NO_DRAW;
+                            blockCoord->packed_lighting[ FACE_BACK ] = NO_LIGHT_NO_DRAW;
+                            for ( int f = FACE_TOP; f <= FACE_BOTTOM; f++ ) {
+                                const BlockCell ncell = this->cells[ get_index_from_coords( x, y + FACE_DIR_Y_OFFSETS[ f ], z ) ];
+                                const int nrot = block_cell_rotation( ncell );
+                                const int opposing_face = OPPOSITE_FACE[ mesh_rotated_face( f, nrot ) ];
+                                if ( !mesh_face_seethrough( mesh_defs[ block_cell_id( ncell ) ], block_cell_powered( ncell ), nrot, opposing_face ) ) {
+                                    blockCoord->packed_lighting[ f ] = NO_LIGHT_NO_DRAW;
+                                }
                             }
                         }
 

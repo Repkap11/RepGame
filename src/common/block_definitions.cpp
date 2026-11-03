@@ -41,6 +41,7 @@ void block_definitions_initilize_definitions( Texture *texture ) {
         block->is_redstone_dust = false;
         block->is_fence = false;
         block->is_fence_gate = false;
+        block->spine_shell = false;
         block->is_door = false;
         block->is_door_upper = false;
         block->door_redstone_only = false;
@@ -111,6 +112,13 @@ void block_definitions_initilize_definitions( Texture *texture ) {
             block->calculated.can_mesh_x = block->scale.x == 16 ? true : false;
             block->calculated.can_mesh_y = block->scale.y == 16 ? true : false;
             block->calculated.can_mesh_z = block->scale.z == 16 ? true : false;
+        }
+        // The spine shell is emitted per cell — merging the core into a
+        // multi-cell rect instance would give it the wrong boundary faces.
+        if ( block->spine_shell ) {
+            block->calculated.can_mesh_x = false;
+            block->calculated.can_mesh_y = false;
+            block->calculated.can_mesh_z = false;
         }
 
         if ( block->is_seethrough ) { // leaves, flowers, glass

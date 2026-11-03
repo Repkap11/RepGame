@@ -84,6 +84,14 @@ typedef struct {
     // (BLOCK_ROTATE_GATE_OPEN); the facing is rotation & 3.
     bool is_fence;
     bool is_fence_gate;
+    // Cactus-style Java model: the cell emits three instances — a full-cell
+    // box drawing only top and bottom, and two 14-wide boxes drawing only
+    // their side quads, which sit 1px inside each cell edge and sample the
+    // whole side tile (opaque interior = inset body, edge columns = spines
+    // at the boundary). Top/bottom are culled against covering neighbors.
+    // The block's own scale/offset then describes only the pick/collision
+    // box (chunk.cpp phase 2 emits the mesh).
+    bool spine_shell;
     // Doors are two-cell blocks: a lower half and an upper half (linked by
     // door_partner) whose 3px slab hitbox swings to an adjacent facing when
     // opened. Both halves store the current slab yaw in rotation bits 0-1 so
