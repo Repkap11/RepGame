@@ -3831,12 +3831,16 @@ void ChunkLoader::light_upload_dirty( const int max_uploads ) {
                 const unsigned stage_status = LIGHT_STAGE_STATUS( chunk->light_stage_state.load( std::memory_order_relaxed ) );
                 // BUSY stays listed untouched — the publishing worker
                 // re-enqueues it, and it's not waiting on eligibility so it
-                // doesn't accrue defers. IDLE and READY both take the same
-                // gates: a staged snapshot of a mid-march volume is still a
-                // mid-march upload — the quiet/defer rules exist to keep
-                // exactly those off the GPU.
-                if ( stage_status != LIGHT_STAGE_BUSY &&
-                     ( fresh || ( quiet && !busy ) || chunk->light_upload_defers >= cap ) ) {
+                // doesn't accrue defers. READY is always eligible: the
+                // quiet/busy/defer gates were already applied when the chunk
+                // was claimed for staging, so gating the finished buffer
+                // again just parks pool buffers behind a debounce window.
+                // IDLE takes the same gates as before: a snapshot of a
+                // mid-march volume is a mid-march upload — the quiet/defer
+                // rules exist to keep exactly those off the GPU.
+                if ( stage_status == LIGHT_STAGE_READY ||
+                     ( stage_status != LIGHT_STAGE_BUSY &&
+                       ( fresh || ( quiet && !busy ) || chunk->light_upload_defers >= cap ) ) ) {
                     eligible.push_back( chunk );
                 } else if ( stage_status != LIGHT_STAGE_BUSY ) {
                     chunk->light_upload_defers++;
@@ -3929,19 +3933,34 @@ void ChunkLoader::light_upload_dirty( const int max_uploads ) {
             if ( chunk.load_state || chunk.light_texture == 0 ) {
                 continue;
             }
-            const unsigned s = chunk.light_stage_state.load( std::memory_order_acquire );
-            if ( LIGHT_STAGE_STATUS( s ) != LIGHT_STAGE_READY || chunk.light_stage_buf == nullptr ) {
+            unsigned s = chunk.light_stage_state.load( std::memory_order_acquire );
+            if ( LIGHT_STAGE_STATUS( s ) != LIGHT_STAGE_READY ) {
                 continue;
             }
-            const glm::ivec3 ulo = light_box_min( chunk.light_stage_box );
-            const glm::ivec3 usz = light_box_max( chunk.light_stage_box ) - ulo + glm::ivec3( 1 );
+            // Take ownership with the CAS, not a post-upload store: a
+            // light_reset_staging on the terrain thread can flip the state
+            // and hand the same buffer out again — a failed CAS means reset
+            // owns it and we must not touch the fields. READY -> IDLE, same
+            // generation. Marks that landed during the stage already
+            // re-enqueued the chunk for the next pass.
+            unsigned char *buf = chunk.light_stage_buf;
+            const uint64_t stage_box = chunk.light_stage_box;
+            const int stage_mode = chunk.light_stage_mode;
+            if ( buf == nullptr ||
+                 !chunk.light_stage_state.compare_exchange_strong( s, s - 2,
+                                                                 std::memory_order_acq_rel, std::memory_order_relaxed ) ) {
+                continue;
+            }
+            chunk.light_stage_buf = nullptr;
+            const glm::ivec3 ulo = light_box_min( stage_box );
+            const glm::ivec3 usz = light_box_max( stage_box ) - ulo + glm::ivec3( 1 );
             uploads++;
             glActiveTexture( GL_TEXTURE0 + light_texture_unit( ) );
             glBindTexture( GL_TEXTURE_3D, chunk.light_texture );
             glPixelStorei( GL_UNPACK_ROW_LENGTH, 0 );
             glPixelStorei( GL_UNPACK_IMAGE_HEIGHT, 0 );
             glPixelStorei( GL_UNPACK_ALIGNMENT, 1 );
-            glTexSubImage3D( GL_TEXTURE_3D, 0, ulo.x, ulo.y, ulo.z, usz.x, usz.y, usz.z, mipmaps ? GL_RGBA : GL_RG, GL_UNSIGNED_BYTE, chunk.light_stage_buf );
+            glTexSubImage3D( GL_TEXTURE_3D, 0, ulo.x, ulo.y, ulo.z, usz.x, usz.y, usz.z, mipmaps ? GL_RGBA : GL_RG, GL_UNSIGNED_BYTE, buf );
             glPixelStorei( GL_UNPACK_ALIGNMENT, 4 );
             if ( mipmaps ) {
                 glGenerateMipmap( GL_TEXTURE_3D );
@@ -3949,16 +3968,12 @@ void ChunkLoader::light_upload_dirty( const int max_uploads ) {
             // A full-volume fill settles the texture's presentation mode;
             // partial fills keep whatever the last full fill used.
             if ( usz.x == CHUNK_SIZE_INTERNAL_X && usz.y == CHUNK_SIZE_INTERNAL_Y && usz.z == CHUNK_SIZE_INTERNAL_Z ) {
-                chunk.light_tex_mode.store( chunk.light_stage_mode, std::memory_order_relaxed );
-                if ( chunk.light_tex_flip == chunk.light_stage_mode ) {
+                chunk.light_tex_mode.store( stage_mode, std::memory_order_relaxed );
+                if ( chunk.light_tex_flip == stage_mode ) {
                     chunk.light_tex_flip = 0;
                 }
             }
-            light_stage_pool_give( chunk.light_stage_buf );
-            chunk.light_stage_buf = nullptr;
-            // READY -> IDLE, same generation. Marks that landed during the
-            // stage already re-enqueued the chunk for the next pass.
-            chunk.light_stage_state.store( s - 2, std::memory_order_release );
+            light_stage_pool_give( buf );
             continue;
         }
         if ( e.box == LIGHT_BOX_EMPTY || chunk.load_state ) {
@@ -4038,19 +4053,22 @@ void ChunkLoader::light_stage_chunk( Chunk &chunk ) {
         unclaim( );
         return;
     }
+    // Take the staging buffer before touching the dirty box: an empty pool
+    // must leave the box intact for the re-enqueued retry.
+    unsigned char *buf = light_stage_pool_take( );
+    if ( buf == nullptr ) {
+        unclaim( );
+        this->light_upload_enqueue( chunk ); // retry once a buffer frees up
+        return;
+    }
     // Exchange the dirty box here (not at render pop): marks landing before
     // this exchange fold into the fill; marks after it re-enqueue for the
     // next stage — the same no-lost-update ordering the old pop-time
     // exchange guaranteed.
     const uint64_t box = chunk.light_dirty_box.exchange( LIGHT_BOX_EMPTY, std::memory_order_acq_rel );
     if ( box == LIGHT_BOX_EMPTY || chunk.light_texture == 0 ) {
+        light_stage_pool_give( buf );
         unclaim( );
-        return;
-    }
-    unsigned char *buf = light_stage_pool_take( );
-    if ( buf == nullptr ) {
-        unclaim( );
-        this->light_upload_enqueue( chunk ); // retry once a buffer frees up
         return;
     }
     glm::ivec3 uplo, sz;
@@ -4389,6 +4407,15 @@ void ChunkLoader::light_thread_loop( ) {
             if ( light_thread_stop_flag ) {
                 return;
             }
+            // Stage work first: a staged fill only needs its GL upload slot
+            // (bounded by the per-frame upload cap), so it can't starve jobs
+            // — but leaving it behind job/pending selection lets a sustained
+            // finalize backlog starve it instead, wedging every pool buffer.
+            if ( !light_stage_list.empty( ) ) {
+                stage_chunk = light_stage_list.front( );
+                light_stage_list.pop_front( );
+            }
+            if ( stage_chunk == nullptr ) {
             for ( std::deque<LightJob> *jobs : { &light_jobs_near, &light_jobs_init, &light_jobs_far } ) {
                 // Nearest claimable job to the player wins. claim_free is a
                 // few int compares since the centers refactor, so the
@@ -4456,9 +4483,6 @@ void ChunkLoader::light_thread_loop( ) {
                     }
                 }
             }
-            if ( !claimed && stage_chunk == nullptr && !light_stage_list.empty( ) ) {
-                stage_chunk = light_stage_list.front( );
-                light_stage_list.pop_front( );
             }
             if ( !claimed && stage_chunk == nullptr && light_bfs_pending.load( ) > 0 ) {
                 want_drain = true;
