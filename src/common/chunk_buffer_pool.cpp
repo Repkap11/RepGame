@@ -1,32 +1,54 @@
 #include <string.h>
 #include <stdlib.h>
+#include <mutex>
 #include <vector>
 
 #include "common/RepGame.hpp"
 #include "common/chunk.hpp"
 
 // Chunk buffers are fixed-size and never resized, so freed buffers go into
-// small per-thread free lists rather than back to malloc: multi-megabyte
-// allocations bypass glibc's arena and hit mmap/munmap (+ page faults on
-// first touch) every time, which slots recycling between terrain (allocated)
-// and air (freed) chunks would otherwise pay constantly. thread_local means
-// no locking; a buffer freed on a different thread just joins that thread's
-// pool. The cap bounds retained memory (8 * ~0.5MB cells / ~1MB extras per
-// thread).
+// free lists rather than back to malloc: multi-megabyte allocations bypass
+// glibc's arena and hit mmap/munmap (+ page faults on first touch) every
+// time, which slots recycling between terrain (allocated) and air (freed)
+// chunks would otherwise pay constantly. The lists are shared across
+// threads — buffers are allocated on terrain worker threads but mostly
+// freed on the main thread, so per-thread lists rarely saw hits — guarded
+// by a mutex; zeroing and malloc/free run outside the lock. Each pool's
+// cap bounds retained memory to CHUNK_BUF_POOL_BUDGET_BYTES per buffer
+// type.
 namespace {
-constexpr int CHUNK_BUF_POOL_MAX = 8;
-thread_local std::vector<void *> s_pool_cells;
-thread_local std::vector<void *> s_pool_extras;
-thread_local std::vector<void *> s_pool_light;
-thread_local std::vector<void *> s_pool_light_columns;
-thread_local std::vector<void *> s_pool_air_mask;
+constexpr size_t CHUNK_BUF_POOL_BUDGET_BYTES = 64u << 20;
+
+struct ChunkBufPool {
+    explicit ChunkBufPool( size_t cap ) : cap( cap ) {
+    }
+    std::mutex mu;
+    std::vector<void *> free_list;
+    size_t cap;
+};
+
+constexpr size_t chunk_buf_pool_cap( const size_t bytes ) {
+    const size_t cap = CHUNK_BUF_POOL_BUDGET_BYTES / bytes;
+    return cap < 8 ? 8 : ( cap > 1024 ? 1024 : cap );
+}
+
+ChunkBufPool s_pool_cells( chunk_buf_pool_cap( CHUNK_BLOCK_SIZE * sizeof( BlockCell ) ) );
+ChunkBufPool s_pool_extras( chunk_buf_pool_cap( CHUNK_BLOCK_SIZE * sizeof( BlockExtra ) ) );
+ChunkBufPool s_pool_light( chunk_buf_pool_cap( CHUNK_BLOCK_SIZE ) );
+ChunkBufPool s_pool_light_columns( chunk_buf_pool_cap( 3 * LIGHT_FLAGS_COUNT ) );
+ChunkBufPool s_pool_air_mask( chunk_buf_pool_cap( CHUNK_BLOCK_SIZE / 8 ) );
 
 template <typename T>
-static T *chunk_pool_get( std::vector<void *> &pool, const size_t bytes, const bool zeroed ) {
-    void *p;
-    if ( !pool.empty( ) ) {
-        p = pool.back( );
-        pool.pop_back( );
+static T *chunk_pool_get( ChunkBufPool &pool, const size_t bytes, const bool zeroed ) {
+    void *p = nullptr;
+    {
+        std::lock_guard<std::mutex> lock( pool.mu );
+        if ( !pool.free_list.empty( ) ) {
+            p = pool.free_list.back( );
+            pool.free_list.pop_back( );
+        }
+    }
+    if ( p ) {
         if ( zeroed ) {
             memset( p, 0, bytes );
         }
@@ -36,15 +58,18 @@ static T *chunk_pool_get( std::vector<void *> &pool, const size_t bytes, const b
     return static_cast<T *>( p );
 }
 
-static void chunk_pool_put( std::vector<void *> &pool, void *p ) {
+static void chunk_pool_put( ChunkBufPool &pool, void *p ) {
     if ( !p ) {
         return;
     }
-    if ( pool.size( ) < CHUNK_BUF_POOL_MAX ) {
-        pool.push_back( p );
-    } else {
-        free( p );
+    {
+        std::lock_guard<std::mutex> lock( pool.mu );
+        if ( pool.free_list.size( ) < pool.cap ) {
+            pool.free_list.push_back( p );
+            return;
+        }
     }
+    free( p );
 }
 } // namespace
 
