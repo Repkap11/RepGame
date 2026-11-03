@@ -86,6 +86,17 @@ int light_texture_unit( );
 // overrides on every platform.
 bool light_mipmaps_enabled( );
 
+// The "Shadows" pause-menu setting: whether the uploaded light volume gets
+// the air-gated 3x3x3 smoothing blur (SMOOTH) or ships the raw chamfer field
+// (FAST). Runtime-toggleable — toggling re-uploads every live texture via
+// ChunkLoader::light_shadow_refresh_all. REPGAME_LIGHT_SMOOTH, when set,
+// pins the mode and ignores the menu (keeps captures/A-B runs
+// deterministic). light_shadow_smooth is read by worker and render
+// threads.
+bool light_shadow_smooth( );              // effective mode right now
+void light_shadow_smooth_set( bool on );  // user preference (no-op when forced)
+bool light_shadow_smooth_forced( );       // env var pinned the mode
+
 class Chunk;
 // Initial per-chunk light fill, run on the terrain worker from
 // Chunk::load_terrain: zeroes the volume, flood-fills emitters (block channel

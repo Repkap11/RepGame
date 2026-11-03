@@ -17,6 +17,7 @@ class PauseMenu {
         BUTTON_NONE = -1,
         BUTTON_RESUME = 0,
         BUTTON_GRAPHICS,
+        BUTTON_SHADOW,
         // Marks the render-distance row for layout/drawing; the row's
         // buttons return BUTTON_RENDER_MINUS / _RESET / _PLUS.
         BUTTON_RENDER_ROW,

@@ -31,6 +31,30 @@ sampling. `light_air_mask`/`light_shade_mask` are bit-caches of
 "cell admits light" / "cell is a light floor" the upload reads instead
 of walking `cells[]`.
 
+On top of the raw field, `light_fill_scratch_smooth` can smooth *only
+the uploaded copy* — `Chunk::light[]` stays exact — with a 3x3x3
+`[1,2,1]`-profile blur in raw units. Neighbour gating mirrors flood
+connectivity (`light_ctx_link`): non-air cells never contribute, edge
+diagonals need an open shared-face path (no corner leaks), and a light
+floor seals its vertical adjacencies. Maxed channels stay maxed so
+emitters and sun shafts aren't dimmed. Dirty sub-box uploads grow by
+the 1-cell footprint. This is the pause-menu "Shadows" setting
+(`input.shadow_quality` — `SHADOW_SMOOTH`/`SHADOW_FAST`, persisted in
+player.dat; toggling re-uploads every live texture via
+`ChunkLoader::light_shadow_refresh_all`). `REPGAME_LIGHT_SMOOTH=0|1`
+forces the mode and ignores the menu.
+
+Borders need two extra mechanisms. The blur footprint is one cell, but
+texels ON the volume edge (the halo ring) mirror a neighbour's interior
+cell and would need a second ring past the border; instead they delegate
+to the owning chunk's predicate bundle (`light_ctx_smooth_cell`'s `nb`
+table, filled by `Chunk::light_nb_ctxs`), so both chunks' textures store
+the identical smoothed byte — no seam by construction. And since a
+texel's uploaded value now depends on cells around it, an interior light
+change must re-upload those texels in every chunk that stores them:
+`light_mark_dirty_now` marks the mirror copies of border cells held by
+neighbouring chunks on top of the owning cell's own mark.
+
 Per-column skylight metadata lives in `chunk->light_columns`, three
 `CHUNK_SIZE_X*Z` planes indexed by `LIGHT_COLUMN_INDEX`: `column_open`
 (no light-blocking cell in this chunk's column), `sky_open_above` (no

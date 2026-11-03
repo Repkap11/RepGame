@@ -212,6 +212,8 @@ void RepGame::initializeGameState( const char *world_name ) {
         globalGameState.input.player_flying = saved_data.flying;
         globalGameState.input.no_clip = saved_data.no_clip;
         globalGameState.input.worldDrawQuality = static_cast<WorldDrawQuality>( saved_data.worldDrawQuality );
+        globalGameState.input.shadow_quality = static_cast<ShadowQuality>( saved_data.shadow_quality );
+        light_shadow_smooth_set( globalGameState.input.shadow_quality == SHADOW_SMOOTH );
         globalGameState.hotbar.applySavedInventory( saved_data.hotbar_inventory );
         globalGameState.hotbar.setSelectedSlot( saved_data.selected_hotbar_slot );
         globalGameState.game_mode = saved_data.game_mode;
@@ -354,6 +356,7 @@ void RepGame::save_player_data( ) {
     // In VR the live quality is the session's REPGAME_VR_QUALITY — persist
     // the flat preference instead so a VR run never overwrites it.
     saved_data.worldDrawQuality = static_cast<int>( globalGameState.vr.active ? globalGameState.vr.saved_quality : globalGameState.input.worldDrawQuality );
+    saved_data.shadow_quality = static_cast<int>( globalGameState.input.shadow_quality );
     globalGameState.hotbar.saveInventory( saved_data.hotbar_inventory );
     saved_data.selected_hotbar_slot = globalGameState.hotbar.getSelectedSlot( );
     saved_data.game_mode = globalGameState.game_mode;

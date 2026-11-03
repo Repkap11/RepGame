@@ -29,6 +29,11 @@ static inline void light_cpu_relax( ) {
 // ---------------------------------------------------------------------------
 // Flood-fill lighting engine.
 //
+
+// Defined with the upload-smoothing machinery far below; used by the
+// dirty-mark walk to skip the smoothing-only neighbour marks when off.
+static bool light_smooth_enabled( );
+
 // Chunk::light[] is a u16 per cell over the same 34^3 internal volume as
 // cells[]: high byte = skylight, low byte = block (emissive) light, both
 // in raw units (LIGHT_RAW_PER_LEVEL=17 per display level, 255 = level 15).
@@ -1079,7 +1084,7 @@ void ChunkLoader::light_upload_enqueue( Chunk &chunk ) {
     }
 }
 
-void ChunkLoader::light_mark_dirty_now( Chunk &chunk, const glm::ivec3 &local ) {
+void ChunkLoader::light_mark_texel( Chunk &chunk, const glm::ivec3 &local ) {
     chunk.light_write_tick.store( light_tick_counter.load( std::memory_order_relaxed ), std::memory_order_relaxed );
     const glm::ivec3 texel = local + glm::ivec3( 1 ); // internal -> texture coords
     // CAS-merge the texel into the dirty box BEFORE the listed check: the
@@ -1099,6 +1104,80 @@ void ChunkLoader::light_mark_dirty_now( Chunk &chunk, const glm::ivec3 &local ) 
         }
     }
     light_upload_enqueue( chunk );
+}
+
+void ChunkLoader::light_mark_dirty_now( Chunk &chunk, const glm::ivec3 &local ) {
+    light_mark_texel( chunk, local );
+    if ( (unsigned)local.x >= (unsigned)CHUNK_SIZE_X || (unsigned)local.y >= (unsigned)CHUNK_SIZE_Y ||
+         (unsigned)local.z >= (unsigned)CHUNK_SIZE_Z ) {
+        return; // halo mark — the owner-side marks already cover every other storer
+    }
+    // With smoothing off a texel's uploaded value is exactly its own cell —
+    // no neighbour's texels can depend on this change, so skip the walk.
+    if ( !light_smooth_enabled( ) ) {
+        return;
+    }
+    // Upload smoothing gives a texel's uploaded value a one-cell footprint,
+    // so a change here also invalidates the halo copies of our border cells
+    // stored in neighbouring chunks (whose smoothed values reach across the
+    // border). light_set's write-marks plus the uploader's +/-1 box
+    // expansion only cover chunks that store THIS cell; chase the rest:
+    // every other chunk that stores a texel within one cell of the change.
+    const glm::ivec3 pos = chunk.chunk_pos * CHUNK_SIZE_I + local;
+    for ( int dz = -1; dz <= 1; dz++ ) {
+        for ( int dy = -1; dy <= 1; dy++ ) {
+            for ( int dx = -1; dx <= 1; dx++ ) {
+                if ( dx == 0 && dy == 0 && dz == 0 ) {
+                    continue;
+                }
+                const glm::ivec3 w = pos + glm::ivec3( dx, dy, dz );
+                const glm::ivec3 op = light_chunk_pos_of( w );
+                const glm::ivec3 wl = w - op * CHUNK_SIZE_I;
+                // W's mirror copies live in the chunks across each axis
+                // where W sits on its owner's interior edge; the owner
+                // itself is already covered by this change's own marks.
+                const int ex = wl.x == 0 ? -1 : wl.x == CHUNK_SIZE_X - 1 ? 1 : 0;
+                const int ey = wl.y == 0 ? -1 : wl.y == CHUNK_SIZE_Y - 1 ? 1 : 0;
+                const int ez = wl.z == 0 ? -1 : wl.z == CHUNK_SIZE_Z - 1 ? 1 : 0;
+                if ( ( ex | ey | ez ) == 0 ) {
+                    continue;
+                }
+                int axis_opts[ 3 ][ 2 ];
+                int axis_count[ 3 ] = { 1, 1, 1 };
+                axis_opts[ 0 ][ 0 ] = 0;
+                axis_opts[ 1 ][ 0 ] = 0;
+                axis_opts[ 2 ][ 0 ] = 0;
+                if ( ex ) {
+                    axis_opts[ 0 ][ axis_count[ 0 ]++ ] = ex;
+                }
+                if ( ey ) {
+                    axis_opts[ 1 ][ axis_count[ 1 ]++ ] = ey;
+                }
+                if ( ez ) {
+                    axis_opts[ 2 ][ axis_count[ 2 ]++ ] = ez;
+                }
+                for ( int ix = 0; ix < axis_count[ 0 ]; ix++ ) {
+                    for ( int iy = 0; iy < axis_count[ 1 ]; iy++ ) {
+                        for ( int iz = 0; iz < axis_count[ 2 ]; iz++ ) {
+                            const glm::ivec3 off( axis_opts[ 0 ][ ix ], axis_opts[ 1 ][ iy ], axis_opts[ 2 ][ iz ] );
+                            if ( off == glm::ivec3( 0 ) || op + off == chunk.chunk_pos ) {
+                                continue; // owner / self — covered by this change's own marks
+                            }
+                            Chunk *c = this->get_chunk( op + off );
+                            if ( !c || c->load_state ) {
+                                continue;
+                            }
+                            const glm::ivec3 c_local = w - c->chunk_pos * CHUNK_SIZE_I;
+                            if ( !light_local_ok( c_local ) ) {
+                                continue; // slot recycled mid-scan; torn chunk_pos
+                            }
+                            light_mark_texel( *c, c_local );
+                        }
+                    }
+                }
+            }
+        }
+    }
 }
 
 void ChunkLoader::light_mark_dirty( Chunk &chunk, const glm::ivec3 &local ) {
@@ -1141,6 +1220,18 @@ void ChunkLoader::light_mark_dirty_all( Chunk &chunk ) {
                         glm::ivec3( CHUNK_SIZE_INTERNAL_X - 1, CHUNK_SIZE_INTERNAL_Y - 1, CHUNK_SIZE_INTERNAL_Z - 1 ) ),
         std::memory_order_release );
     light_upload_enqueue( chunk );
+}
+
+// The "Shadows" quality toggle flipped: the uploaded copy of every live
+// texture must be rebuilt under the new smoothing mode (the canonical
+// light[] field is unaffected either way).
+void ChunkLoader::light_shadow_refresh_all( ) {
+    for ( int i = 0; i < MAX_LOADED_CHUNKS; i++ ) {
+        Chunk &chunk = this->chunkArray[ i ];
+        if ( chunk.load_state == 0 && chunk.light_texture != 0 ) {
+            light_mark_dirty_all( chunk );
+        }
+    }
 }
 
 // Write to the cell's interior owner AND to every loaded neighbor whose halo
@@ -2847,7 +2938,298 @@ static inline uint32_t light_rg( const unsigned short packed ) {
     return static_cast<uint32_t>( ( packed >> 8 ) | ( ( packed & 0xFF ) << 8 ) );
 }
 
-void Chunk::light_ensure_texture( ) {
+// ---------------------------------------------------------------------------
+// Upload-time light smoothing
+//
+// The chamfer flood already carries sub-level precision, so the residual
+// stair-steps the 6-dir field used to show are gone — but a 3x3x3
+// [1,2,1]-profile blur over the uploaded copy softens the remaining
+// one-cell gradient kinks (Chunk::light[] stays exact). Neighbour gating
+// mirrors the flood's connectivity so nothing blends where light can't
+// flow:
+//  - only cells that admit light contribute (solid stays out of the mix);
+//  - a light floor (blocks_light_down) never mixes across its vertical
+//    side — nothing descends into it and its sideways-held light isn't
+//    smeared into the dark cell below;
+//  - an edge diagonal contributes only through a shared face neighbour, so
+//    a corner of solid blocks still separates the two sides;
+//  - corner (3-axis) neighbours are skipped outright: tiny weight, and a
+//    clean path check there needs three steps.
+// The "Shadows" quality setting, runtime-toggleable from the pause menu.
+// s_light_smooth_user holds the user's preference (-1 = not yet applied;
+// init pushes the persisted choice). REPGAME_LIGHT_SMOOTH, when set, pins
+// the mode for deterministic A/B runs.
+static std::atomic<int> s_light_smooth_user{ -1 };
+static int light_smooth_env_forced( ) {
+    static const int forced = env_is_set( "REPGAME_LIGHT_SMOOTH" ) ? ( env_bool( "REPGAME_LIGHT_SMOOTH", true ) ? 1 : 0 ) : -1;
+    return forced;
+}
+bool light_shadow_smooth_forced( ) {
+    return light_smooth_env_forced( ) >= 0;
+}
+bool light_shadow_smooth( ) {
+    const int forced = light_smooth_env_forced( );
+    if ( forced >= 0 ) {
+        return forced != 0;
+    }
+    const int u = s_light_smooth_user.load( std::memory_order_relaxed );
+    return u < 0 ? true : u != 0;
+}
+void light_shadow_smooth_set( const bool on ) {
+    s_light_smooth_user.store( on ? 1 : 0, std::memory_order_relaxed );
+    pr_debug( "Light smoothing: %s%s", light_shadow_smooth( ) ? "on" : "off", light_shadow_smooth_forced( ) ? " (env-forced)" : "" );
+}
+static bool light_smooth_enabled( ) {
+    return light_shadow_smooth( );
+}
+
+// Predicate bundle so the smoother doesn't care whether opacity came from
+// the cached bitmaps (mipmapped mode) or the cells[]/LUT walk.
+struct LightSmoothCtx {
+    const unsigned short *light;   // nullptr -> uniform volume (never smoothed)
+    const BlockCell *cells;        // nullptr -> whole volume admits light
+    const unsigned char *air_mask; // 1 bit/cell, cells[] index space
+    const unsigned char *shade_mask;
+    const unsigned char *air_lut;   // cells && !air_mask
+    const unsigned char *shade_lut; // cells && !shade_mask
+    // A texel on the volume edge (the halo ring) mirrors a neighbour chunk's
+    // interior cell, and its 3x3x3 footprint reaches one cell PAST the data
+    // this chunk holds — the blur needs a second ring that only the owner
+    // has. nb[] carries the owning neighbours' bundles (indexed
+    // (dx+1)*9+(dy+1)*3+(dz+1), nullptr when the neighbour isn't loaded) so a
+    // boundary texel delegates to the exact value the owner uploads: both
+    // chunks' textures then store the identical byte at the shared texel.
+    // nb == nullptr -> one-sided gather (the border texel is biased slightly
+    // low/high and the two chunks can disagree by a few LSB — visible seam).
+    const LightSmoothCtx *const *nb;
+    unsigned short uniform; // only consulted for a delegated owner with light == nullptr
+};
+
+// Callers pass the (private) chunk fields — Chunk/ChunkLoader member
+// functions have access where this free helper does not.
+static inline LightSmoothCtx light_smooth_ctx( const unsigned short *light, const BlockCell *cells,
+                                               const unsigned char *air_mask, const unsigned char *shade_mask ) {
+    LightSmoothCtx c;
+    c.light = light;
+    c.cells = cells;
+    c.air_mask = air_mask;
+    c.shade_mask = shade_mask;
+    c.air_lut = cells && !air_mask ? light_air_lut( ) : nullptr;
+    c.shade_lut = cells && !shade_mask ? light_shade_lut( ) : nullptr;
+    c.nb = nullptr;
+    c.uniform = 0;
+    return c;
+}
+
+// Fills nb_ctxs[]/nb_ptrs[] with the 26 neighbours' bundles around pos for
+// the boundary delegation above. A Chunk method: it reads OTHER chunks'
+// private light/cells/mask fields, which is legal inside the class but not
+// from a free helper — ChunkLoader (a friend) calls it too.
+void Chunk::light_nb_ctxs( const ChunkLoader &loader, const glm::ivec3 &pos,
+                           LightSmoothCtx nb_ctxs[ 27 ], const LightSmoothCtx *nb_ptrs[ 27 ] ) {
+    for ( int dx = -1; dx <= 1; dx++ ) {
+        for ( int dy = -1; dy <= 1; dy++ ) {
+            for ( int dz = -1; dz <= 1; dz++ ) {
+                const int i = ( dx + 1 ) * 9 + ( dy + 1 ) * 3 + ( dz + 1 );
+                nb_ptrs[ i ] = nullptr;
+                if ( dx == 0 && dy == 0 && dz == 0 ) {
+                    continue;
+                }
+                Chunk *nb = loader.get_chunk( pos + glm::ivec3( dx, dy, dz ) );
+                if ( nb == nullptr || nb->load_state != 0 || ( nb->light == nullptr && nb->cells == nullptr ) ) {
+                    continue; // absent/loading slot: boundary texels keep the one-sided gather
+                }
+                nb_ctxs[ i ] = light_smooth_ctx( nb->light, nb->cells, nb->light_air_mask, nb->light_shade_mask );
+                nb_ctxs[ i ].uniform = nb->light_uniform;
+                nb_ptrs[ i ] = &nb_ctxs[ i ];
+            }
+        }
+    }
+}
+
+// cells[]-order index (z-fastest) for the mask/BlockCell lookups.
+static inline int light_cells_index( const int x, const int y, const int z ) {
+    return ( y * CHUNK_SIZE_INTERNAL_X + x ) * CHUNK_SIZE_INTERNAL_Z + z;
+}
+
+static inline bool light_ctx_air( const LightSmoothCtx &c, const int x, const int y, const int z ) {
+    if ( (unsigned)x >= CHUNK_SIZE_INTERNAL_X || (unsigned)y >= CHUNK_SIZE_INTERNAL_Y || (unsigned)z >= CHUNK_SIZE_INTERNAL_Z ) {
+        return false;
+    }
+    if ( c.cells == nullptr ) {
+        return true;
+    }
+    const int i = light_cells_index( x, y, z );
+    if ( c.air_mask ) {
+        return ( c.air_mask[ i >> 3 ] >> ( i & 7 ) ) & 1u;
+    }
+    return c.air_lut[ block_cell_id( c.cells[ i ] ) ] != 0;
+}
+
+// Is this cell a light floor (blocks_light_down)? Only called on in-bounds
+// cells that already passed light_ctx_air.
+static inline bool light_ctx_floor( const LightSmoothCtx &c, const int x, const int y, const int z ) {
+    if ( c.cells == nullptr ) {
+        return false;
+    }
+    const int i = light_cells_index( x, y, z );
+    if ( c.shade_mask ) {
+        return ( c.shade_mask[ i >> 3 ] >> ( i & 7 ) ) & 1u;
+    }
+    return c.shade_lut[ block_cell_id( c.cells[ i ] ) ] == 0;
+}
+
+// Can light cross the face adjacency a<->b? b must admit light, and a light
+// floor seals the vertical adjacency in both directions.
+static inline bool light_ctx_link( const LightSmoothCtx &c, const bool a_shade, const int ax, const int ay, const int az,
+                                   const int bx, const int by, const int bz ) {
+    if ( !light_ctx_air( c, bx, by, bz ) ) {
+        return false;
+    }
+    if ( by != ay && ( a_shade || light_ctx_floor( c, bx, by, bz ) ) ) {
+        return false;
+    }
+    return true;
+}
+
+// Smoothed (sky, block) for one texel, out[0]/out[1] in 0-255. Caller only
+// invokes this on cells that admit light; c.light must be non-null.
+static void light_ctx_smooth_cell( const LightSmoothCtx &c, const int x, const int y, const int z, unsigned char *out ) {
+    // Boundary texel (the halo ring mirrors a neighbour's interior cell):
+    // compute the value the OWNER uploads so both chunks' textures hold the
+    // identical byte. A local blur here would lack the neighbour ring past
+    // the border and produce a few-LSB seam. Falls through to the one-sided
+    // gather when the neighbour isn't loaded.
+    const int ox = x == 0 ? -1 : x == CHUNK_SIZE_INTERNAL_X - 1 ? 1 : 0;
+    const int oy = y == 0 ? -1 : y == CHUNK_SIZE_INTERNAL_Y - 1 ? 1 : 0;
+    const int oz = z == 0 ? -1 : z == CHUNK_SIZE_INTERNAL_Z - 1 ? 1 : 0;
+    if ( ( ox | oy | oz ) != 0 && c.nb != nullptr ) {
+        const LightSmoothCtx *o = c.nb[ ( ox + 1 ) * 9 + ( oy + 1 ) * 3 + ( oz + 1 ) ];
+        if ( o != nullptr ) {
+            if ( o->light == nullptr ) {
+                light_expand_cell( o->uniform, out );
+            } else {
+                // Our 0 -> owner's interior max (volume coord
+                // CHUNK_SIZE_INTERNAL_*-2); our max -> its interior 0 (coord 1).
+                const int nx = ox < 0 ? CHUNK_SIZE_INTERNAL_X - 2 : ox > 0 ? 1 : x;
+                const int ny = oy < 0 ? CHUNK_SIZE_INTERNAL_Y - 2 : oy > 0 ? 1 : y;
+                const int nz = oz < 0 ? CHUNK_SIZE_INTERNAL_Z - 2 : oz > 0 ? 1 : z;
+                light_ctx_smooth_cell( *o, nx, ny, nz, out ); // interior: no re-delegation
+            }
+            return;
+        }
+    }
+    const int lidx = ( z * CHUNK_SIZE_INTERNAL_Y + y ) * CHUNK_SIZE_INTERNAL_X + x;
+    const unsigned short packed = c.light[ lidx ];
+    // Fast path: six identical face neighbours make the blur a no-op — this
+    // covers every uniform region (full sky, deep shadow) for 6 reads.
+    if ( x > 0 && x < CHUNK_SIZE_INTERNAL_X - 1 && y > 0 && y < CHUNK_SIZE_INTERNAL_Y - 1 && z > 0 && z < CHUNK_SIZE_INTERNAL_Z - 1 &&
+         c.light[ lidx - 1 ] == packed && c.light[ lidx + 1 ] == packed &&
+         c.light[ lidx - CHUNK_SIZE_INTERNAL_X ] == packed && c.light[ lidx + CHUNK_SIZE_INTERNAL_X ] == packed &&
+         c.light[ lidx - CHUNK_SIZE_INTERNAL_X * CHUNK_SIZE_INTERNAL_Y ] == packed &&
+         c.light[ lidx + CHUNK_SIZE_INTERNAL_X * CHUNK_SIZE_INTERNAL_Y ] == packed ) {
+        light_expand_cell( packed, out );
+        return;
+    }
+    static const int faces[ 6 ][ 3 ] = { { 1, 0, 0 }, { -1, 0, 0 }, { 0, 1, 0 }, { 0, -1, 0 }, { 0, 0, 1 }, { 0, 0, -1 } };
+    const bool c_shade = light_ctx_floor( c, x, y, z );
+    // [1,2,1]^3 profile truncated to faces+edges: centre 8, face 4, edge 2.
+    // Accumulate raw units — the byte channels already carry the sub-level
+    // precision the blur is meant to preserve.
+    int wsum = 8;
+    int ssky = 8 * light_get_sky( packed ), sblk = 8 * light_get_block( packed );
+    bool link[ 6 ];
+    for ( int f = 0; f < 6; f++ ) {
+        const int nx = x + faces[ f ][ 0 ], ny = y + faces[ f ][ 1 ], nz = z + faces[ f ][ 2 ];
+        link[ f ] = light_ctx_link( c, c_shade, x, y, z, nx, ny, nz );
+        if ( link[ f ] ) {
+            const unsigned short np = c.light[ ( nz * CHUNK_SIZE_INTERNAL_Y + ny ) * CHUNK_SIZE_INTERNAL_X + nx ];
+            wsum += 4;
+            ssky += 4 * light_get_sky( np );
+            sblk += 4 * light_get_block( np );
+        }
+    }
+    for ( int i = 0; i < 6; i++ ) {
+        for ( int j = i + 1; j < 6; j++ ) {
+            const int mx = faces[ i ][ 0 ] + faces[ j ][ 0 ], my = faces[ i ][ 1 ] + faces[ j ][ 1 ], mz = faces[ i ][ 2 ] + faces[ j ][ 2 ];
+            if ( mx == 0 && my == 0 && mz == 0 ) {
+                continue; // opposite face pair — no diagonal between them
+            }
+            const int dx = x + mx, dy = y + my, dz = z + mz;
+            if ( !light_ctx_air( c, dx, dy, dz ) || ( !link[ i ] && !link[ j ] ) ) {
+                continue;
+            }
+            // The corner path C->M->D must be open through at least one of
+            // the two shared face neighbours.
+            const int m1x = x + faces[ i ][ 0 ], m1y = y + faces[ i ][ 1 ], m1z = z + faces[ i ][ 2 ];
+            const int m2x = x + faces[ j ][ 0 ], m2y = y + faces[ j ][ 1 ], m2z = z + faces[ j ][ 2 ];
+            const bool p1 = link[ i ] && light_ctx_link( c, light_ctx_floor( c, m1x, m1y, m1z ), m1x, m1y, m1z, dx, dy, dz );
+            const bool p2 = link[ j ] && light_ctx_link( c, light_ctx_floor( c, m2x, m2y, m2z ), m2x, m2y, m2z, dx, dy, dz );
+            if ( p1 || p2 ) {
+                const unsigned short np = c.light[ ( dz * CHUNK_SIZE_INTERNAL_Y + dy ) * CHUNK_SIZE_INTERNAL_X + dx ];
+                wsum += 2;
+                ssky += 2 * light_get_sky( np );
+                sblk += 2 * light_get_block( np );
+            }
+        }
+    }
+    int sky = ( ssky + wsum / 2 ) / wsum;
+    int blk = ( sblk + wsum / 2 ) / wsum;
+    // Maxed channels stay maxed: emitters and sun-shaft cells keep 255 so
+    // the blur can't dim a torch face or an open-sky plateau.
+    if ( light_get_sky( packed ) == LIGHT_RAW_MAX ) {
+        sky = LIGHT_RAW_MAX;
+    }
+    if ( light_get_block( packed ) == LIGHT_RAW_MAX ) {
+        blk = LIGHT_RAW_MAX;
+    }
+    out[ 0 ] = static_cast<unsigned char>( sky );
+    out[ 1 ] = static_cast<unsigned char>( blk );
+}
+
+// Fill the upload scratch for [lo, lo+sz) in texel order (x fastest), with
+// air cells' RG replaced by the smoothed value. mipmaps selects RGBA8
+// texels (B = air mask, A = shade) vs RG8 pairs. c.light must be non-null.
+static void light_fill_scratch_smooth( const LightSmoothCtx &c, const glm::ivec3 lo, const glm::ivec3 sz, const bool mipmaps ) {
+    unsigned char *out8 = reinterpret_cast<unsigned char *>( s_light_upload_scratch );
+    for ( int z = 0; z < sz.z; z++ ) {
+        const int gz = lo.z + z;
+        for ( int y = 0; y < sz.y; y++ ) {
+            const int gy = lo.y + y;
+            for ( int x = 0; x < sz.x; x++, out8 += mipmaps ? 4 : 2 ) {
+                const int gx = lo.x + x;
+                const unsigned short packed = c.light[ ( gz * CHUNK_SIZE_INTERNAL_Y + gy ) * CHUNK_SIZE_INTERNAL_X + gx ];
+                if ( !light_ctx_air( c, gx, gy, gz ) ) {
+                    if ( mipmaps ) {
+                        const uint32_t a = c.cells && light_ctx_floor( c, gx, gy, gz ) ? 0u : 255u;
+                        *reinterpret_cast<uint32_t *>( out8 ) = light_rg( packed ) | ( a << 24 );
+                    } else {
+                        light_expand_cell( packed, out8 );
+                    }
+                    continue;
+                }
+                unsigned char s[ 2 ];
+                light_ctx_smooth_cell( c, gx, gy, gz, s );
+                if ( mipmaps ) {
+                    const uint32_t a = c.cells && light_ctx_floor( c, gx, gy, gz ) ? 0u : 255u;
+                    *reinterpret_cast<uint32_t *>( out8 ) = static_cast<uint32_t>( s[ 0 ] ) | ( static_cast<uint32_t>( s[ 1 ] ) << 8 ) | ( 255u << 16 ) | ( a << 24 );
+                } else {
+                    out8[ 0 ] = s[ 0 ];
+                    out8[ 1 ] = s[ 1 ];
+                }
+            }
+        }
+    }
+}
+
+void Chunk::light_ensure_texture( const ChunkLoader *loader ) {
+    // Boundary-texel delegation needs the owning neighbours' predicate
+    // bundles; build them once per call (shared by both fill loops).
+    LightSmoothCtx nb_ctxs[ 27 ];
+    const LightSmoothCtx *nb_ptrs[ 27 ] = {};
+    if ( loader != nullptr && light_smooth_enabled( ) ) {
+        light_nb_ctxs( *loader, this->chunk_pos, nb_ctxs, nb_ptrs );
+    }
     if ( this->light_texture != 0 ) {
         return;
     }
@@ -2892,6 +3274,10 @@ void Chunk::light_ensure_texture( ) {
             for ( int i = 0; i < CHUNK_BLOCK_SIZE; i++ ) {
                 out32[ i ] = cell;
             }
+        } else if ( this->light != nullptr && light_smooth_enabled( ) ) {
+            LightSmoothCtx ctx = light_smooth_ctx( this->light, this->cells, this->light_air_mask, this->light_shade_mask );
+            ctx.nb = loader ? nb_ptrs : nullptr;
+            light_fill_scratch_smooth( ctx, glm::ivec3( 0 ), glm::ivec3( CHUNK_SIZE_INTERNAL_X, CHUNK_SIZE_INTERNAL_Y, CHUNK_SIZE_INTERNAL_Z ), true );
         } else if ( this->cells == nullptr ) {
             // All-air but non-uniform light: still expand light[] per cell.
             uint32_t *out32 = s_light_upload_scratch;
@@ -2978,7 +3364,11 @@ void Chunk::light_ensure_texture( ) {
         }
     } else {
         unsigned char *out8 = reinterpret_cast<unsigned char *>( s_light_upload_scratch );
-        if ( this->light ) {
+        if ( this->light && light_smooth_enabled( ) ) {
+            LightSmoothCtx ctx = light_smooth_ctx( this->light, this->cells, this->light_air_mask, this->light_shade_mask );
+            ctx.nb = loader ? nb_ptrs : nullptr;
+            light_fill_scratch_smooth( ctx, glm::ivec3( 0 ), glm::ivec3( CHUNK_SIZE_INTERNAL_X, CHUNK_SIZE_INTERNAL_Y, CHUNK_SIZE_INTERNAL_Z ), false );
+        } else if ( this->light ) {
             for ( int i = 0; i < CHUNK_BLOCK_SIZE; i++ ) {
                 light_expand_cell( this->light[ i ], out8 + 2 * i );
             }
@@ -3131,7 +3521,18 @@ void ChunkLoader::light_upload_dirty( const int max_uploads ) {
         if ( hi.x < lo.x || hi.y < lo.y || hi.z < lo.z ) {
             continue;
         }
-        const glm::ivec3 sz = hi - lo + glm::ivec3( 1 );
+        glm::ivec3 sz = hi - lo + glm::ivec3( 1 );
+        glm::ivec3 uplo = lo;
+        // The smoother reads a 1-cell footprint around each texel, so a raw
+        // change just inside the box also rewrites texels one cell outside
+        // it — grow the subimage or its rim keeps stale smoothed values.
+        const bool smooth = light_smooth_enabled( ) && chunk.light != nullptr;
+        if ( smooth ) {
+            uplo = glm::max( lo - glm::ivec3( 1 ), glm::ivec3( 0 ) );
+            sz = glm::min( hi + glm::ivec3( 1 ),
+                           glm::ivec3( CHUNK_SIZE_INTERNAL_X - 1, CHUNK_SIZE_INTERNAL_Y - 1, CHUNK_SIZE_INTERNAL_Z - 1 ) ) -
+                 uplo + glm::ivec3( 1 );
+        }
         glActiveTexture( GL_TEXTURE0 + light_texture_unit( ) );
         glBindTexture( GL_TEXTURE_3D, chunk.light_texture );
         // Expand the packed (sky<<8|block) dirty region so the two channels
@@ -3150,7 +3551,20 @@ void ChunkLoader::light_upload_dirty( const int max_uploads ) {
         const unsigned char *shade_mask = mipmaps && !all_air ? chunk.light_shade_mask : nullptr;
         const unsigned char *air_lut = mipmaps && chunk.cells && air_mask == nullptr ? light_air_lut( ) : nullptr;
         const unsigned char *shade_lut = mipmaps && chunk.cells && air_mask == nullptr ? light_shade_lut( ) : nullptr;
-        if ( mipmaps && air_mask ) {
+        if ( smooth ) {
+            LightSmoothCtx nb_ctxs[ 27 ];
+            const LightSmoothCtx *nb_ptrs[ 27 ] = {};
+            // Boundary-texel delegation: only needed when the dirty box can
+            // actually reach the halo ring.
+            const bool edge = uplo.x == 0 || uplo.y == 0 || uplo.z == 0 ||
+                uplo.x + sz.x == CHUNK_SIZE_INTERNAL_X || uplo.y + sz.y == CHUNK_SIZE_INTERNAL_Y || uplo.z + sz.z == CHUNK_SIZE_INTERNAL_Z;
+            LightSmoothCtx ctx = light_smooth_ctx( chunk.light, chunk.cells, chunk.light_air_mask, chunk.light_shade_mask );
+            if ( edge ) {
+                Chunk::light_nb_ctxs( *this, chunk.chunk_pos, nb_ctxs, nb_ptrs );
+                ctx.nb = nb_ptrs;
+            }
+            light_fill_scratch_smooth( ctx, uplo, sz, mipmaps );
+        } else if ( mipmaps && air_mask ) {
             // Mask path: texel order (z, y, x — x fastest) so the light[]
             // rows and the scratch both stream linearly; the mask bit index
             // steps +CHUNK_SIZE_INTERNAL_Z per x (see light_ensure_texture —
@@ -3211,7 +3625,7 @@ void ChunkLoader::light_upload_dirty( const int max_uploads ) {
         glPixelStorei( GL_UNPACK_ROW_LENGTH, 0 );
         glPixelStorei( GL_UNPACK_IMAGE_HEIGHT, 0 );
         glPixelStorei( GL_UNPACK_ALIGNMENT, 1 );
-        glTexSubImage3D( GL_TEXTURE_3D, 0, lo.x, lo.y, lo.z, sz.x, sz.y, sz.z, mipmaps ? GL_RGBA : GL_RG, GL_UNSIGNED_BYTE, s_light_upload_scratch );
+        glTexSubImage3D( GL_TEXTURE_3D, 0, uplo.x, uplo.y, uplo.z, sz.x, sz.y, sz.z, mipmaps ? GL_RGBA : GL_RG, GL_UNSIGNED_BYTE, s_light_upload_scratch );
         glPixelStorei( GL_UNPACK_ALIGNMENT, 4 );
         if ( mipmaps ) {
             glGenerateMipmap( GL_TEXTURE_3D );

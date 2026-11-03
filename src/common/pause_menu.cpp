@@ -2,6 +2,7 @@
 #include <stdio.h>
 
 #include "common/RepGame.hpp"
+#include "common/light.hpp"
 #include "common/pause_menu.hpp"
 #include "common/ui_overlay_buffers.hpp"
 
@@ -67,6 +68,7 @@ void PauseMenu::onScreenSizeChange( const int width, const int height, const Fon
 #if SUPPORTS_FRAME_BUFFER
     row_kinds[ n++ ] = BUTTON_GRAPHICS;
 #endif
+    row_kinds[ n++ ] = BUTTON_SHADOW;
     row_kinds[ n++ ] = BUTTON_RENDER_ROW;
     row_kinds[ n++ ] = BUTTON_BRIGHT_ROW;
     row_kinds[ n++ ] = BUTTON_DEBUG_VIEW;
@@ -89,6 +91,8 @@ void PauseMenu::onScreenSizeChange( const int width, const int height, const Fon
                 return "Resume";
             case BUTTON_GRAPHICS:
                 return "Graphics: X_HIGH";
+            case BUTTON_SHADOW:
+                return "Shadows: Smooth (env)";
             case BUTTON_RENDER_ROW:
                 snprintf( buf, buf_size, "Render Distance: %d", RENDER_RADIUS_MAX );
                 return buf;
@@ -252,6 +256,10 @@ void PauseMenu::draw( const Renderer &renderer, Shader &shader, const Texture &b
                 break;
             case BUTTON_GRAPHICS:
                 snprintf( buf, sizeof( buf ), "Graphics: %s", quality_names[ state.input.worldDrawQuality ] );
+                break;
+            case BUTTON_SHADOW:
+                snprintf( buf, sizeof( buf ), "Shadows: %s%s", light_shadow_smooth( ) ? "Smooth" : "Fast",
+                          light_shadow_smooth_forced( ) ? " (env)" : "" );
                 break;
             case BUTTON_RENDER_ROW:
                 snprintf( buf, sizeof( buf ), "Render Distance: %d", state.input.render_distance );

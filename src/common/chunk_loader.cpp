@@ -230,7 +230,7 @@ void ChunkLoader::finalize_loaded_chunk( Chunk &chunk, Multiplayer &multiplayer,
     // cost across load-in under CHUNK_FINALIZE_BUDGET_US. Faceless chunks
     // still skip — only drawable chunks ever need the volume.
     if ( chunk.should_render ) {
-        chunk.light_ensure_texture( );
+        chunk.light_ensure_texture( this );
     }
     // Mob ownership handoff: World::render drains this list into
     // MobManager::adopt_chunk so pending_mobs (loaded records or the
@@ -857,6 +857,7 @@ void ChunkLoader::draw( const glm::mat4 &mvp, const Renderer &renderer, const Te
                         chunk.occl_fails = 0;
                     }
                     if ( chunk.occl_fails_gen != occl_view_gen || chunk.occl_fails < OCCL_HIDE_FRAMES ) {
+                        chunk.light_ensure_texture( this );
                         chunk.draw( renderer, texture, shader, static_cast<RenderOrder>( renderOrder ), draw_reflect, render_origin, light_base_loc );
                     }
                 }
@@ -912,6 +913,7 @@ void ChunkLoader::draw( const glm::mat4 &mvp, const Renderer &renderer, const Te
                     Chunk &chunk = *this->drawable_chunks[ back_to_front ? this->num_drawable - 1 - i : i ];
                     if ( draw_reflect ) {
                         if ( !chunk.cached_cull_reflect ) {
+                            chunk.light_ensure_texture( this );
                             chunk.draw( renderer, texture, shader, static_cast<RenderOrder>( renderOrder ), draw_reflect, render_origin, light_base_loc );
                         }
                     } else {
@@ -919,6 +921,7 @@ void ChunkLoader::draw( const glm::mat4 &mvp, const Renderer &renderer, const Te
                              ( occl && chunk.occl_fails_gen == occl_view_gen && chunk.occl_fails >= OCCL_HIDE_FRAMES && !cam_in_box( chunk ) ) ) {
                             continue;
                         }
+                        chunk.light_ensure_texture( this );
                         chunk.draw( renderer, texture, shader, static_cast<RenderOrder>( renderOrder ), draw_reflect, render_origin, light_base_loc );
                     }
                 }

@@ -39,6 +39,7 @@ the index, not the reference.
 | `REPGAME_ITEM_TEST` | unset | all | `"name,x,y,z[,count][;...]"` deterministic non-persistent item spawns at init | docs/items-crafting.md |
 | `REPGAME_LIGHT_CLAIM_RADIUS` | 1 | all | `1..4`: Chebyshev claim-conflict radius between light-job center columns | docs/rendering.md |
 | `REPGAME_LIGHT_MIPMAPS` | 1 | all | `0`/`1`: mipmapped light volume vs flat RG8 volume | docs/rendering.md |
+| `REPGAME_LIGHT_SMOOTH` | unset | all | `0`/`1`: force the Shadows quality mode (overrides the pause-menu setting) | docs/lighting.md |
 | `REPGAME_LIGHT_WORKERS` | 4 | all | `1..8`: light worker pool size | docs/rendering.md |
 | `REPGAME_MIN_AMBIENT` | 0.05 | all | absolute light floor 0..1 (caves not pure black); overrides the `player.dat` value set by the pause-menu Cave Brightness row | docs/rendering.md |
 | `REPGAME_MOBS` | on | all | `0` disables local mobs (spawn/sim/persistence), not remote players | docs/mobs.md |

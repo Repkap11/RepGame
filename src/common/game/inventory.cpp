@@ -838,6 +838,13 @@ void RepGame::process_inventory_events( ) {
                     // Same as the 'r' key.
                     globalGameState.input.worldDrawQuality = static_cast<WorldDrawQuality>( ( globalGameState.input.worldDrawQuality + 1 ) % WorldDrawQuality::LAST );
                     break;
+                case PauseMenu::BUTTON_SHADOW:
+                    // Rebuild every live light texture under the new upload
+                    // mode; the canonical light field is untouched.
+                    globalGameState.input.shadow_quality = globalGameState.input.shadow_quality == SHADOW_SMOOTH ? SHADOW_FAST : SHADOW_SMOOTH;
+                    light_shadow_smooth_set( globalGameState.input.shadow_quality == SHADOW_SMOOTH );
+                    globalGameState.world.chunkLoader.light_shadow_refresh_all( );
+                    break;
                 case PauseMenu::BUTTON_RENDER_MINUS:
                     if ( globalGameState.input.render_distance > 1 ) {
                         globalGameState.input.render_distance--;

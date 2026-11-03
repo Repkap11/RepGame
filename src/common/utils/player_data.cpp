@@ -187,6 +187,8 @@ std::string player_data_serialize( const PlayerData &data ) {
     out += line;
     snprintf( line, sizeof( line ), "draw_quality %d\n", data.worldDrawQuality );
     out += line;
+    snprintf( line, sizeof( line ), "shadow_quality %d\n", data.shadow_quality );
+    out += line;
     snprintf( line, sizeof( line ), "game_mode %d\n", static_cast<int>( data.game_mode ) );
     out += line;
     snprintf( line, sizeof( line ), "world_time %lld\n", static_cast<long long>( data.world_time ) );
@@ -324,6 +326,10 @@ static bool player_data_parse_text( const char *buf, size_t len, PlayerData &out
         } else if ( key_len == 12 && memcmp( s, "draw_quality", 12 ) == 0 ) {
             if ( parse_int( v, &v, iv ) ) {
                 out.worldDrawQuality = static_cast<int>( iv );
+            }
+        } else if ( key_len == 14 && memcmp( s, "shadow_quality", 14 ) == 0 ) {
+            if ( parse_int( v, &v, iv ) && iv >= 0 && iv <= 1 ) {
+                out.shadow_quality = static_cast<int>( iv );
             }
         } else if ( key_len == 9 && memcmp( s, "game_mode", 9 ) == 0 ) {
             if ( parse_int( v, &v, iv ) && iv >= 0 && iv <= GameMode_Survival ) {

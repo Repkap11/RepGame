@@ -207,6 +207,7 @@ class ChunkLoader {
     void light_set_nb( Chunk *const nb_cache[ 27 ], Chunk &owner, const glm::ivec3 &block_pos, int channel, int value );
     BlockID light_block_id_at( const glm::ivec3 &block_pos ) const;
     void light_mark_dirty( Chunk &chunk, const glm::ivec3 &local );
+    void light_mark_texel( Chunk &chunk, const glm::ivec3 &local );
     void light_mark_dirty_now( Chunk &chunk, const glm::ivec3 &local );
     void light_flush_deferred_marks( );
     void light_mark_dirty_all( Chunk &chunk );
@@ -271,6 +272,9 @@ class ChunkLoader {
     // the second eye so both eyes share one verdict generation.
     void set_occlusion_probe_pass( bool probe ) { this->occl_probe_pass = probe; }
     Chunk *get_chunk( const glm::ivec3 &pointed ) const;
+    // Re-upload every live light texture under the current smoothing mode —
+    // the "Shadows" quality toggle calls this (render thread).
+    void light_shadow_refresh_all( );
     // Apply one chunk-diff cell (CHUNK_DIFF_RESULT / apply_pending_diffs):
     // writes the receiving chunk's copy, mirrors it into every loaded
     // neighbor that also stores that world cell, and enqueues the touched

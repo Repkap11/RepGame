@@ -13,6 +13,8 @@
 
 class World;
 class TntExplodeEvent;
+class ChunkLoader;
+struct LightSmoothCtx;
 
 class RenderLayer {
     friend class Chunk;
@@ -284,10 +286,17 @@ class Chunk {
 
     int can_extend_rect( const BlockState &blockState, const unsigned int *packed_lighting, const WorkingSpace *workingSpace, const glm::ivec3 &starting, const glm::ivec3 &size, const glm::ivec3 &dir ) const;
 
+    // Fills the 26-slot neighbour predicate table the upload-time light
+    // smoother uses for boundary (halo) texels — light.cpp. Member function
+    // because it reads other chunks' private light/cells fields; the
+    // ChunkLoader friend calls it for the dirty-upload path too.
+    static void light_nb_ctxs( const ChunkLoader &loader, const glm::ivec3 &pos,
+                               LightSmoothCtx nb_ctxs[ 27 ], const LightSmoothCtx *nb_ptrs[ 27 ] );
+
   public:
     void init( const VertexBuffer &vb_block_solid, const VertexBuffer &vb_block_water, const VertexBufferLayout &vbl_block, const VertexBufferLayout &vbl_coords );
     void ensure_gl_init( );
-    void light_ensure_texture( ); // lazily create the 3D light texture (GL thread)
+    void light_ensure_texture( const ChunkLoader *loader = nullptr ); // lazily create the 3D light texture (GL thread)
     void draw( const Renderer &renderer, const Texture &texture, Shader &shader, RenderOrder renderOrder, bool draw_reflect, const glm::vec3 &render_origin, int light_base_loc );
     void load_terrain( MapStorage &map_storage ); // Load from file or map gen
     void program_terrain( );                      // Program into GPU
