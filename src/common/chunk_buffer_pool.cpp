@@ -34,7 +34,7 @@ constexpr size_t chunk_buf_pool_cap( const size_t bytes ) {
 
 ChunkBufPool s_pool_cells( chunk_buf_pool_cap( CHUNK_BLOCK_SIZE * sizeof( BlockCell ) ) );
 ChunkBufPool s_pool_extras( chunk_buf_pool_cap( CHUNK_BLOCK_SIZE * sizeof( BlockExtra ) ) );
-ChunkBufPool s_pool_light( chunk_buf_pool_cap( CHUNK_BLOCK_SIZE ) );
+ChunkBufPool s_pool_light( chunk_buf_pool_cap( CHUNK_BLOCK_SIZE * sizeof( unsigned short ) ) );
 ChunkBufPool s_pool_light_columns( chunk_buf_pool_cap( 3 * LIGHT_FLAGS_COUNT ) );
 ChunkBufPool s_pool_air_mask( chunk_buf_pool_cap( CHUNK_BLOCK_SIZE / 8 ) );
 
@@ -86,11 +86,11 @@ BlockExtra *chunk_alloc_extras( ) {
 void chunk_free_extras( BlockExtra *p ) {
     chunk_pool_put( s_pool_extras, p );
 }
-unsigned char *chunk_alloc_light( ) {
-    // Callers always rewrite the volume (fill memset/materialize memset).
-    return chunk_pool_get<unsigned char>( s_pool_light, CHUNK_BLOCK_SIZE, false );
+unsigned short *chunk_alloc_light( ) {
+    // Callers always rewrite the volume (fill memset/materialize fill).
+    return chunk_pool_get<unsigned short>( s_pool_light, CHUNK_BLOCK_SIZE * sizeof( unsigned short ), false );
 }
-void chunk_free_light( unsigned char *p ) {
+void chunk_free_light( unsigned short *p ) {
     chunk_pool_put( s_pool_light, p );
 }
 unsigned char *chunk_alloc_light_columns( ) {

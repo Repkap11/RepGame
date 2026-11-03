@@ -199,9 +199,9 @@ class ChunkLoader {
     void light_push_remove_seed( const glm::ivec3 &block_pos, int channel, int old_value, bool internal = false );
     static int light_emit_at( const Chunk &chunk, int index );
     // Null-light (uniform volume) helpers — light.cpp.
-    static inline unsigned char light_read_cell( const Chunk &chunk, int idx );
+    static inline unsigned short light_read_cell( const Chunk &chunk, int idx );
     static void light_materialize( Chunk &chunk );
-    static inline void light_write_cell( Chunk &chunk, int idx, unsigned char nv );
+    static inline void light_write_cell( Chunk &chunk, int idx, unsigned short nv );
     int light_get( const glm::ivec3 &block_pos, int channel ) const;
     void light_set( const glm::ivec3 &block_pos, int channel, int value );
     void light_set_nb( Chunk *const nb_cache[ 27 ], Chunk &owner, const glm::ivec3 &block_pos, int channel, int value );
@@ -276,8 +276,12 @@ class ChunkLoader {
     // neighbor that also stores that world cell, and enqueues the touched
     // chunks on repop_must so a modified seam remeshes in one pass.
     void apply_diff_block( Chunk &chunk, int index, const BlockState *blockState );
-    // TEMP diagnostic for the flood-fill lighting bring-up.
-    int light_probe( const glm::ivec3 &pos, int channel ) { return this->light_get( pos, channel ); }
+    // TEMP diagnostic for the flood-fill lighting bring-up. Reports display
+    // levels (light_get's raw units / LIGHT_RAW_PER_LEVEL).
+    int light_probe( const glm::ivec3 &pos, int channel ) {
+        const int v = this->light_get( pos, channel );
+        return v < 0 ? v : v / LIGHT_RAW_PER_LEVEL;
+    }
     BlockID light_probe_id( const glm::ivec3 &pos ) { return this->light_block_id_at( pos ); }
     // Trilinear (sky, block) light sample at a world position, normalized to
     // [0,1]. For dynamic objects baked into instance data (avatars, debris).

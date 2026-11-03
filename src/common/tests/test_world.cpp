@@ -120,11 +120,11 @@ int test_lighting( ) {
     ChunkLoader &cl = world.chunkLoader;
     cl.chunk_center = glm::ivec3( 0, 0, 0 );
     Chunk &chunk = cl.chunkArray[ chunk_slot_from_pos( glm::ivec3( 0, 0, 0 ) ) ];
-    chunk.light = static_cast<unsigned char *>( calloc( CHUNK_BLOCK_SIZE, 1 ) );
+    chunk.light = static_cast<unsigned short *>( calloc( CHUNK_BLOCK_SIZE, sizeof( unsigned short ) ) );
 
     int failures = 0;
     auto check_light = [ & ]( const char *name, const glm::ivec3 &pos, int channel, int expected ) {
-        const int v = cl.light_get( pos, channel );
+        const int v = cl.light_get( pos, channel ) / LIGHT_RAW_PER_LEVEL; // raw units -> display level
         const bool ok = v == expected;
         pr_test( "  %-55s light=%-2d expected=%-2d  %s", name, v, expected, ok ? "PASS" : "FAIL" );
         if ( !ok ) {
@@ -151,7 +151,9 @@ int test_lighting( ) {
     const BlockState stone = { STONE, 0, 0, STONE, 0 };
     world.set_loaded_block( glm::ivec3( 12, 10, 10 ), stone );
     cl.light_process_queue( 1000000 );
-    check_light( "behind wall detours (5 steps)", glm::ivec3( 13, 10, 10 ), LIGHT_CHANNEL_BLOCK, 9 );
+    // Chamfer metric: the wall detour short-cuts diagonally —
+    // 14 - (24+17+24)/17 ≈ 10.2 instead of the old L1 5-step 9.
+    check_light( "behind wall detours (chamfer)", glm::ivec3( 13, 10, 10 ), LIGHT_CHANNEL_BLOCK, 10 );
 
     // Breaking the torch removes its light entirely.
     world.set_loaded_block( glm::ivec3( 10, 10, 10 ), BLOCK_STATE_AIR );
@@ -169,7 +171,8 @@ int test_lighting( ) {
     check_light( "beside block +z over torch", glm::ivec3( 10, 11, 11 ), LIGHT_CHANNEL_BLOCK, 12 );
     check_light( "beside block -z over torch", glm::ivec3( 10, 11, 9 ), LIGHT_CHANNEL_BLOCK, 12 );
     check_light( "beside block +x over torch", glm::ivec3( 11, 11, 10 ), LIGHT_CHANNEL_BLOCK, 12 );
-    check_light( "above block over torch", glm::ivec3( 10, 12, 10 ), LIGHT_CHANNEL_BLOCK, 10 );
+    // Chamfer: 14 - 2*24/17 ≈ 11.2 (was 10 under L1).
+    check_light( "above block over torch", glm::ivec3( 10, 12, 10 ), LIGHT_CHANNEL_BLOCK, 11 );
     world.set_loaded_block( glm::ivec3( 10, 11, 10 ), BLOCK_STATE_AIR );
     world.set_loaded_block( glm::ivec3( 10, 10, 10 ), BLOCK_STATE_AIR );
     cl.light_process_queue( 1000000 );
@@ -182,7 +185,8 @@ int test_lighting( ) {
     cl.light_process_queue( 1000000 );
     check_light( "air cell beside torch", glm::ivec3( 11, 20, 10 ), LIGHT_CHANNEL_BLOCK, 13 );
     check_light( "leaf cell holds light", glm::ivec3( 12, 20, 10 ), LIGHT_CHANNEL_BLOCK, 6 );
-    check_light( "past leaf is dimmer", glm::ivec3( 13, 20, 10 ), LIGHT_CHANNEL_BLOCK, 9 );
+    // Chamfer: the wraparound short-cuts diagonally, 14 - 65/17 ≈ 10.2.
+    check_light( "past leaf is dimmer", glm::ivec3( 13, 20, 10 ), LIGHT_CHANNEL_BLOCK, 10 );
     world.set_loaded_block( glm::ivec3( 12, 20, 10 ), BLOCK_STATE_AIR );
     cl.light_process_queue( 1000000 );
     check_light( "past cleared leaf recovers", glm::ivec3( 13, 20, 10 ), LIGHT_CHANNEL_BLOCK, 11 );
@@ -339,7 +343,8 @@ int test_lighting( ) {
     world.set_loaded_block( glm::ivec3( 16, 21, 16 ), slab );
     cl.light_process_queue( 1000000 );
     check_light( "slab cell over-detoured torch", glm::ivec3( 16, 21, 16 ), LIGHT_CHANNEL_BLOCK, 13 );
-    check_light( "under slab only gets side path", glm::ivec3( 16, 20, 16 ), LIGHT_CHANNEL_BLOCK, 10 );
+    // Chamfer: torch -> edge-diag -> edge-diag = 14 - 48/17 ≈ 11.2.
+    check_light( "under slab only gets side path", glm::ivec3( 16, 20, 16 ), LIGHT_CHANNEL_BLOCK, 11 );
     world.set_loaded_block( glm::ivec3( 16, 21, 16 ), BLOCK_STATE_AIR );
     world.set_loaded_block( glm::ivec3( 16, 22, 16 ), BLOCK_STATE_AIR );
     cl.light_process_queue( 1000000 );

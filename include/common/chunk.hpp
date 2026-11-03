@@ -60,8 +60,8 @@ BlockCell *chunk_alloc_cells( );
 void chunk_free_cells( BlockCell *p );
 BlockExtra *chunk_alloc_extras( );
 void chunk_free_extras( BlockExtra *p );
-unsigned char *chunk_alloc_light( );
-void chunk_free_light( unsigned char *p );
+unsigned short *chunk_alloc_light( );
+void chunk_free_light( unsigned short *p );
 unsigned char *chunk_alloc_light_columns( );
 void chunk_free_light_columns( unsigned char *p );
 // Chunk::light_air_mask — CHUNK_BLOCK_SIZE/8 bytes, returned unzeroed (the
@@ -198,14 +198,15 @@ class Chunk {
 
     // ---- Flood-fill lighting (light.cpp) ----
     // Per-cell light volume covering the same internal region as blocks.
-    // Each byte packs skylight in the high nibble and block light in the low
-    // nibble. Kept out of the mesh entirely so light changes never force a
+    // Each u16 packs one byte per channel — skylight high, block light low —
+    // in raw units (LIGHT_RAW_PER_LEVEL per display level, see light.hpp).
+    // Kept out of the mesh entirely so light changes never force a
     // remesh: the fragment shader samples the matching 3D texture instead.
     // nullptr means the whole volume is uniform: every cell reads
     // light_uniform (light.cpp reads via light_read_cell; writes materialize
     // the array only when the new value differs).
-    unsigned char *light;
-    unsigned char light_uniform;
+    unsigned short *light;
+    unsigned short light_uniform;
     // Per interior column (x,z) in [0,CHUNK_SIZE): two flag arrays packed into
     // one buffer — column_open (no opaque cell in this chunk's column) then
     // sky_open_above (no opaque cell anywhere above in the loaded grid).

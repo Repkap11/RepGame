@@ -10,18 +10,24 @@ and propagation algorithm; the worker/queue concurrency design lives in
 ## Storage
 
 `Chunk::light[]` (`include/common/light.hpp`,
-`include/common/chunk.hpp`) is a byte per cell over the chunk's
-*internal* (halo-inclusive, `CHUNK_SIZE+2` per axis) layout — same index
-space as `cells[]`, addressed by `light_index`. Each byte packs two
-4-bit channels: high nibble skylight, low nibble block light, 0–15 each
-(`light_get_sky`/`light_get_block`, `LIGHT_MAX_LEVEL`).
+`include/common/chunk.hpp`) is an `unsigned short` per cell over the
+chunk's *internal* (halo-inclusive, `CHUNK_SIZE+2` per axis) layout —
+same index space as `cells[]`, addressed by `light_index`. Each short
+packs two byte channels: high byte skylight, low byte block light
+(`light_get_sky`/`light_get_block`). Channels hold *raw* light units,
+0–255 (`LIGHT_RAW_MAX`), with `LIGHT_RAW_PER_LEVEL` (17) raw units per
+display level so `LIGHT_MAX_LEVEL` (15) still describes the shader-facing
+range — 15 levels × 17 = 255. The sub-level granularity is what the
+chamfer propagation (below) needs: weighted step costs of 17/24/29 raw
+units wouldn't fit in a 4-bit nibble.
 
 A uniform all-zero volume is folded to `Chunk::light_uniform` instead of
 an allocation; `light[]` materializes on the first nonuniform write. The
-volume uploads to a per-chunk 3D texture — flat `GL_RG8` with each nibble
-expanded to its own byte (`light_expand_cell`), or a mipmapped RGBA8 mode
-(`light_mipmaps_enabled`, `REPGAME_LIGHT_MIPMAPS`) that additionally
-stores the lit-cell fraction for footprint-LOD sampling. `light_air_mask`/`light_shade_mask` are bit-caches of
+volume uploads to a per-chunk 3D texture — flat `GL_RG8` where each raw
+byte channel passes straight through (`light_expand_cell`), or a
+mipmapped RGBA8 mode (`light_mipmaps_enabled`, `REPGAME_LIGHT_MIPMAPS`)
+that additionally stores the lit-cell fraction for footprint-LOD
+sampling. `light_air_mask`/`light_shade_mask` are bit-caches of
 "cell admits light" / "cell is a light floor" the upload reads instead
 of walking `cells[]`.
 
@@ -34,25 +40,42 @@ y the sky cascade fills, so the fill needs no per-cell opacity reads.
 ## Values that drive it
 
 From `Block` (`include/common/block_definitions.hpp`): `emits_light`
-seeds the block channel; `light_absorb` is extra attenuation per cell;
-opacity (`light_opaque_id`) blocks both channels; `blocks_light_down`
-(slabs, path blocks) holds light *in* the cell but stops direct vertical
-descent — the "light floor" case.
+seeds the block channel (in display levels, scaled ×17 to raw);
+`light_absorb` is extra attenuation per cell (also display levels,
+charged per step entry); opacity (`light_opaque_id`) blocks both
+channels; `blocks_light_down` (slabs, path blocks) holds light *in* the
+cell but stops direct vertical descent — the "light floor" case, which
+also seals the downward hop of any diagonal route through it.
 
 ## Propagation
 
-Two work functions, both six-direction BFS over `ChunkLoader`'s queues
-(`src/common/light.cpp`):
+Two work functions, both 26-direction chamfer BFS over `ChunkLoader`'s
+queues (`src/common/light.cpp`). `light_step_dirs` lists the step set: 6
+face steps at cost 17 (one level), 12 edge diagonals at 24 (≈√2·17), and
+8 corner diagonals at 29 (≈√3·17). The weighted metric turns shadow
+contours from Manhattan diamonds into near-circles and — because the raw
+values rarely land on whole display levels — dissolves the 16-step
+quantization banding without any presentation smoothing. A diagonal step
+is additionally gated (`light_diag_open`): at least one shared-face cell
+must be non-opaque and neither hop may be a downward step sealed by a
+`blocks_light_down` cell, so light can't cut corners or squeeze between
+two opaque cells touching diagonally.
 
-- **Add** (`light_add_seed`/queue): a cell offers `v - 1 - absorb` to
-  each non-opaque neighbour; higher offers win, lower ones are dropped.
+- **Add** (`light_add_seed`/queue): a cell offers
+  `v - step_cost - absorb*17` (`light_offered`) to each reachable
+  non-opaque neighbour; higher offers win, lower ones are dropped.
   One exception: skylight moving straight *down* at full strength keeps
-  15 (sun shafts don't attenuate vertically). Emitters re-seed
-  themselves so their emission survives any recomputation.
+  255 (sun shafts don't attenuate vertically) through non-absorbing
+  cells. Emitters re-seed themselves so their emission survives any
+  recomputation.
 - **Remove** (`light_push_remove_seed`): when a value drops, the old
-  value propagates a removal that erases everything it previously lit,
-  then neighbours re-seed adds for light that flows back in. This is
-  what makes "break the torch" converge instead of leaving ghosts.
+  value propagates a removal along the same 26 directions that erases
+  everything it previously lit, then neighbours re-seed adds for light
+  that flows back in. This is what makes "break the torch" converge
+  instead of leaving ghosts. Removal checks no floor/gate conditions —
+  a cell's current block isn't what it was while it held the old value,
+  so the cascade clears whatever the old value could have carried and
+  relies on re-seeding to converge.
 
 Cross-chunk spread works because each chunk stores the first ring of its
 neighbours in its halo: `light_border_sync` copies boundary values both

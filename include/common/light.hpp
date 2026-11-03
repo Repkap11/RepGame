@@ -5,9 +5,11 @@
 #include "common/block_definitions.hpp" // BlockID for light_air_mask_set
 
 // Flood-fill lighting. Each chunk keeps a light[] volume matching the
-// internal 34^3 block layout: the high nibble is skylight, the low nibble is
-// block (emissive) light. The values are mirrored into a GL_R8 3D texture per
-// chunk so the fragment shader can sample light per face-adjacent air cell;
+// internal 34^3 block layout: each u16 cell packs one byte per channel —
+// skylight in the high byte, block (emissive) light in the low byte. Channel
+// values are raw units: LIGHT_RAW_PER_LEVEL per display level, so 255 =
+// level 15. The values are mirrored into a 3D texture per chunk so the
+// fragment shader can sample light per face-adjacent air cell;
 // nothing here touches the mesh, so light updates never cause a remesh.
 //
 // Light mutation is single-writer: on native builds a dedicated lighting
@@ -24,6 +26,17 @@
 #define LIGHT_CHANNEL_SKY 1
 
 #define LIGHT_MAX_LEVEL 15
+
+// Raw channel units: 17 per display level fills the byte exactly
+// (15*17 = 255). Propagation is a chamfer-weighted flood — face steps cost
+// one level (17), edge diagonals ~sqrt(2) (24), corner diagonals ~sqrt(3)
+// (29) — so fractional distances survive in the raw value and iso-contours
+// are near-circular instead of Manhattan diamonds.
+#define LIGHT_RAW_PER_LEVEL 17
+#define LIGHT_RAW_MAX ( LIGHT_MAX_LEVEL * LIGHT_RAW_PER_LEVEL )
+#define LIGHT_STEP_FACE 17
+#define LIGHT_STEP_EDGE 24
+#define LIGHT_STEP_CORNER 29
 
 // Column flags live in chunk->light_columns: [0, flags_count) is column_open
 // (no light-blocking cell in this chunk's vertical column),
@@ -43,12 +56,16 @@ static inline int light_index( int x, int y, int z ) {
     return ( ( z + 1 ) * CHUNK_SIZE_INTERNAL_Y + ( y + 1 ) ) * CHUNK_SIZE_INTERNAL_X + ( x + 1 );
 }
 
-static inline int light_get_block( unsigned char packed ) {
-    return packed & 0x0F;
+static inline int light_get_block( unsigned short packed ) {
+    return packed & 0xFF;
 }
 
-static inline int light_get_sky( unsigned char packed ) {
-    return ( packed >> 4 ) & 0x0F;
+static inline int light_get_sky( unsigned short packed ) {
+    return ( packed >> 8 ) & 0xFF;
+}
+
+static inline unsigned short light_pack( const int sky, const int block ) {
+    return static_cast<unsigned short>( ( sky << 8 ) | block );
 }
 
 // Day/night: one real-ish day is DAY_LENGTH_TICKS ticks of RepGame::tick.

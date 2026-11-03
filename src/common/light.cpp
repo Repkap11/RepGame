@@ -1,4 +1,5 @@
 #include <algorithm>
+#include <array>
 #include <atomic>
 #include <chrono>
 #include <condition_variable>
@@ -28,16 +29,19 @@ static inline void light_cpu_relax( ) {
 // ---------------------------------------------------------------------------
 // Flood-fill lighting engine.
 //
-// Chunk::light[] is a byte per cell over the same 34^3 internal volume as
-// cells[]: high nibble = skylight, low nibble = block (emissive) light.
+// Chunk::light[] is a u16 per cell over the same 34^3 internal volume as
+// cells[]: high byte = skylight, low byte = block (emissive) light, both
+// in raw units (LIGHT_RAW_PER_LEVEL=17 per display level, 255 = level 15).
 // Canonical values live in each chunk's interior (x,y,z in [0,32)); cells on
 // a chunk boundary are mirrored into the 7 neighboring chunks that store the
 // cell in their halo, so every chunk's light[] stays self-consistent for
 // texture upload without cross-chunk reads.
 //
 // Propagation is a BFS over world-space cells with two queues:
-//  - add:   a cell's stored value is spread to neighbors at -1 per step
-//           (skylight flowing straight down at 15 doesn't attenuate).
+//  - add:   a cell's stored value is spread to its 26 neighbors at a
+//           chamfer cost per step (17/24/29 for face/edge/corner dirs;
+//           skylight flowing straight down at full strength doesn't
+//           attenuate).
 //  - remove: a cell that lost light clears neighbors that were lit through
 //           it; boundary cells still lit from elsewhere are re-enqueued as
 //           add seeds (the standard remove-then-readd scheme).
@@ -63,6 +67,61 @@ static constexpr glm::ivec3 light_dirs[ 6 ] = {
     glm::ivec3( 0, 0, -1 ), // -z
 };
 static constexpr int LIGHT_DIR_DOWN = 3;
+
+// Chamfer propagation directions: the 26-cell neighborhood in one table.
+// Faces come first in light_dirs order so LIGHT_DIR_DOWN stays index 3.
+// A diagonal step additionally needs an open shared-face route (no corner
+// cutting): gate[] lists the face offsets that can form one — a step is
+// allowed when some gate cell admits light and neither sub-hop is sealed by
+// a light floor (a floor cell never spreads light downward, so a sub-hop
+// with dy<0 is sealed when its SOURCE cell blocks_light_down).
+struct LightStepDir {
+    glm::ivec3 d;
+    signed char cost;
+    signed char ngates;
+    glm::ivec3 gate[ 3 ];
+};
+static const std::array<LightStepDir, 26> light_step_dirs = []( ) {
+    std::array<LightStepDir, 26> t{};
+    int n = 0;
+    for ( int i = 0; i < 6; i++ ) {
+        t[ n++ ] = LightStepDir{ light_dirs[ i ], LIGHT_STEP_FACE, 0, {} };
+    }
+    for ( int nface = 2; nface <= 3; nface++ ) {
+        for ( int dx = -1; dx <= 1; dx++ ) {
+            for ( int dy = -1; dy <= 1; dy++ ) {
+                for ( int dz = -1; dz <= 1; dz++ ) {
+                    if ( ( dx != 0 ) + ( dy != 0 ) + ( dz != 0 ) != nface ) {
+                        continue;
+                    }
+                    LightStepDir &e = t[ n++ ];
+                    e.d = glm::ivec3( dx, dy, dz );
+                    e.cost = static_cast<signed char>( nface == 2 ? LIGHT_STEP_EDGE : LIGHT_STEP_CORNER );
+                    int g = 0;
+                    if ( dx ) {
+                        e.gate[ g++ ] = glm::ivec3( dx, 0, 0 );
+                    }
+                    if ( dy ) {
+                        e.gate[ g++ ] = glm::ivec3( 0, dy, 0 );
+                    }
+                    if ( dz ) {
+                        e.gate[ g++ ] = glm::ivec3( 0, 0, dz );
+                    }
+                    e.ngates = static_cast<signed char>( g );
+                }
+            }
+        }
+    }
+    return t;
+}( );
+
+// BlockID of the cell at internal coord `local` in a cells[] volume (halo
+// cells carry real neighbor data, so a ±1 neighborhood of an interior
+// source is always in-volume). Null volume -> AIR. `cells` is passed
+// explicitly: it's a private Chunk field only members/friends may name.
+// Defined after light_opaque_id below; declared for the step table users.
+static inline BlockID light_cell_id_at( const BlockCell *cells, const glm::ivec3 &local );
+static bool light_diag_open( const BlockCell *cells, const glm::ivec3 &local, const LightStepDir &sd, const bool src_floor );
 
 static inline long long light_now_us( ) {
     return std::chrono::duration_cast<std::chrono::microseconds>( std::chrono::steady_clock::now( ).time_since_epoch( ) ).count( );
@@ -101,15 +160,44 @@ static inline bool light_column_blocked_id( BlockID id ) {
     return def->casts_shadow || def->light_absorb > 0 || def->blocks_light_down;
 }
 
-// What a cell holding `v` offers neighbor cell `n_id` in direction `d`.
-// Entering costs 1 + the target's light_absorb; the straight-down 15 skylight
-// privilege only applies through non-absorbing cells.
+// What a cell holding `v` offers neighbor cell `n_id` in step direction `d`
+// (index into light_step_dirs). Entering costs the step's chamfer cost plus
+// the target's light_absorb (absorb counts display levels, so it scales by
+// LIGHT_RAW_PER_LEVEL); the straight-down full-strength skylight privilege
+// only applies through non-absorbing cells.
 static inline int light_offered( const int v, const int channel, const int d, const BlockID n_id ) {
     const int absorb = block_definition_get_definition( n_id )->light_absorb;
-    if ( channel == LIGHT_CHANNEL_SKY && d == LIGHT_DIR_DOWN && v == LIGHT_MAX_LEVEL && absorb == 0 ) {
-        return LIGHT_MAX_LEVEL;
+    if ( channel == LIGHT_CHANNEL_SKY && d == LIGHT_DIR_DOWN && v == LIGHT_RAW_MAX && absorb == 0 ) {
+        return LIGHT_RAW_MAX;
     }
-    return v - 1 - absorb;
+    return v - light_step_dirs[ d ].cost - absorb * LIGHT_RAW_PER_LEVEL;
+}
+
+static inline BlockID light_cell_id_at( const BlockCell *cells, const glm::ivec3 &local ) {
+    return cells ? block_cell_id( cells[ Chunk::get_index_from_coords( local ) ] ) : AIR;
+}
+
+// Gate check for a diagonal step local -> local+sd.d. Returns true when a
+// shared-face route is open: some gate face M is non-opaque, C->M isn't a
+// downward hop sealed by a floor source, and M->D isn't a downward hop
+// sealed by a floor M. Ids come from the chunk's own cells[] — gate cells
+// are always within the internal volume for an interior source.
+static bool light_diag_open( const BlockCell *cells, const glm::ivec3 &local, const LightStepDir &sd, const bool src_floor ) {
+    for ( int i = 0; i < sd.ngates; i++ ) {
+        const glm::ivec3 &f = sd.gate[ i ];
+        if ( f.y < 0 && src_floor ) {
+            continue;
+        }
+        const BlockID m_id = light_cell_id_at( cells, local + f );
+        if ( light_opaque_id( m_id ) ) {
+            continue;
+        }
+        if ( sd.d.y - f.y < 0 && block_definition_get_definition( m_id )->blocks_light_down ) {
+            continue;
+        }
+        return true;
+    }
+    return false;
 }
 
 // Bit i of chunk.light_air_mask mirrors the opacity of cells[i]: set = the
@@ -450,8 +538,9 @@ int ChunkLoader::light_seed_gate( const glm::ivec3 &block_pos, const bool near, 
     return 0;
 }
 
-// level is the light value the cell holds at push time; it only determines
-// which bucket the seed lands in (higher first), not what gets propagated.
+// level is the cell's raw light value at push time; it only determines
+// which bucket the seed lands in (buckets are per display level, higher
+// first), not what gets propagated.
 // The seed routes to its target column's slot; drainers claim the nearest
 // non-empty slot, so work for the column under the player drains first no
 // matter when it was queued.
@@ -460,12 +549,13 @@ void ChunkLoader::light_add_seed( const glm::ivec3 &block_pos, const int channel
     if ( this->light_seed_gate( block_pos, near, internal ) ) {
         return;
     }
-    const int clamped = level < 0 ? 0 : level > LIGHT_MAX_LEVEL ? LIGHT_MAX_LEVEL : level;
+    const int clamped = level < 0 ? 0 : level > LIGHT_RAW_MAX ? LIGHT_RAW_MAX : level;
+    const int bucket = clamped / LIGHT_RAW_PER_LEVEL;
     light_dbg_pushes++;
     const int col = light_col_slot( block_pos );
     {
         LightSeedGuard guard( col );
-        this->light_add_queue[ col ][ channel ][ clamped ].push_back( block_pos );
+        this->light_add_queue[ col ][ channel ][ bucket ].push_back( block_pos );
         light_colq_pending[ col ].fetch_add( 1, std::memory_order_relaxed );
     }
     light_col_incident_inc( block_pos );
@@ -503,7 +593,7 @@ static inline bool light_local_ok( const glm::ivec3 &l ) {
 // light_uniform (all-air chunks fold to optimistic sky=15; fully-dark fills
 // fold to 0). Reads return the uniform value; a write that differs
 // materializes the array first.
-unsigned char ChunkLoader::light_read_cell( const Chunk &chunk, const int idx ) {
+unsigned short ChunkLoader::light_read_cell( const Chunk &chunk, const int idx ) {
     return chunk.light ? chunk.light[ idx ] : chunk.light_uniform;
 }
 
@@ -512,13 +602,13 @@ void ChunkLoader::light_materialize( Chunk &chunk ) {
         return;
     }
     chunk.light = chunk_alloc_light( );
-    memset( chunk.light, chunk.light_uniform, CHUNK_BLOCK_SIZE );
+    std::fill_n( chunk.light, CHUNK_BLOCK_SIZE, chunk.light_uniform );
 }
 
-// Write packed value to cell idx. Materializes only when the new packed byte
+// Write packed value to cell idx. Materializes only when the new packed u16
 // actually differs from the uniform value — writing the uniform value into a
 // uniform volume is a no-op.
-void ChunkLoader::light_write_cell( Chunk &chunk, const int idx, const unsigned char nv ) {
+void ChunkLoader::light_write_cell( Chunk &chunk, const int idx, const unsigned short nv ) {
     if ( !chunk.light ) {
         if ( nv == chunk.light_uniform ) {
             return;
@@ -528,9 +618,10 @@ void ChunkLoader::light_write_cell( Chunk &chunk, const int idx, const unsigned 
     chunk.light[ idx ] = nv;
 }
 
-// Read the canonical (interior-owner) light value. Returns -1 when the cell's
-// owner chunk isn't loaded / is still generating — the propagation treats it
-// as out-of-bounds. A null light[] volume returns the uniform value instead.
+// Read the canonical (interior-owner) light value in raw units
+// (LIGHT_RAW_PER_LEVEL per display level). Returns -1 when the cell's owner
+// chunk isn't loaded / is still generating — the propagation treats it as
+// out-of-bounds. A null light[] volume returns the uniform value instead.
 int ChunkLoader::light_get( const glm::ivec3 &block_pos, const int channel ) const {
     const Chunk *chunk = this->get_chunk( light_chunk_pos_of( block_pos ) );
     if ( !chunk || chunk->load_state ) {
@@ -540,7 +631,7 @@ int ChunkLoader::light_get( const glm::ivec3 &block_pos, const int channel ) con
     if ( !light_local_ok( local ) ) {
         return -1; // chunk_pos raced with slot reuse; treat as out-of-bounds
     }
-    const unsigned char v = light_read_cell( *chunk, light_index( local.x, local.y, local.z ) );
+    const unsigned short v = light_read_cell( *chunk, light_index( local.x, local.y, local.z ) );
     return channel == LIGHT_CHANNEL_BLOCK ? light_get_block( v ) : light_get_sky( v );
 }
 
@@ -581,13 +672,13 @@ glm::vec2 ChunkLoader::light_sample( const glm::vec3 &pos ) const {
                 const glm::ivec3 cell = base + glm::ivec3( dx, dy, dz );
                 const int sky = this->light_get( cell, LIGHT_CHANNEL_SKY );
                 const int blk = this->light_get( cell, LIGHT_CHANNEL_BLOCK );
-                accum.x += w * static_cast<float>( sky < 0 ? LIGHT_MAX_LEVEL : sky );
+                accum.x += w * static_cast<float>( sky < 0 ? LIGHT_RAW_MAX : sky );
                 if ( blk > 0 ) {
                     accum.y += w * static_cast<float>( blk );
                 }
                 if ( sky < 0 || !light_opaque_id( this->light_block_id_at( cell ) ) ) {
                     wsum += w;
-                    masked.x += w * static_cast<float>( sky < 0 ? LIGHT_MAX_LEVEL : sky );
+                    masked.x += w * static_cast<float>( sky < 0 ? LIGHT_RAW_MAX : sky );
                     if ( blk > 0 ) {
                         masked.y += w * static_cast<float>( blk );
                     }
@@ -596,9 +687,9 @@ glm::vec2 ChunkLoader::light_sample( const glm::vec3 &pos ) const {
         }
     }
     if ( wsum > 1e-4f ) {
-        return masked / ( wsum * static_cast<float>( LIGHT_MAX_LEVEL ) );
+        return masked / ( wsum * static_cast<float>( LIGHT_RAW_MAX ) );
     }
-    return accum / static_cast<float>( LIGHT_MAX_LEVEL );
+    return accum / static_cast<float>( LIGHT_RAW_MAX );
 }
 
 // ---------------------------------------------------------------------------
@@ -1091,10 +1182,10 @@ void ChunkLoader::light_set( const glm::ivec3 &block_pos, const int channel, con
                     continue; // slot recycled mid-write; torn chunk_pos
                 }
                 const int idx = light_index( c_local.x, c_local.y, c_local.z );
-                const unsigned char cell = light_read_cell( *c, idx );
-                const unsigned char nv = channel == LIGHT_CHANNEL_BLOCK //
-                    ? static_cast<unsigned char>( ( cell & 0xF0 ) | value )
-                    : static_cast<unsigned char>( ( cell & 0x0F ) | ( value << 4 ) );
+                const unsigned short cell = light_read_cell( *c, idx );
+                const unsigned short nv = channel == LIGHT_CHANNEL_BLOCK //
+                    ? static_cast<unsigned short>( ( cell & 0xFF00 ) | value )
+                    : static_cast<unsigned short>( ( cell & 0x00FF ) | ( value << 8 ) );
                 if ( nv != cell ) {
                     light_write_cell( *c, idx, nv );
                     light_mark_dirty( *c, c_local );
@@ -1138,10 +1229,10 @@ void ChunkLoader::light_set_nb( Chunk *const nb_cache[ 27 ], Chunk &owner, const
                     continue; // slot recycled mid-write; torn chunk_pos
                 }
                 const int idx = light_index( c_local.x, c_local.y, c_local.z );
-                const unsigned char cell = light_read_cell( *c, idx );
-                const unsigned char nv = channel == LIGHT_CHANNEL_BLOCK //
-                    ? static_cast<unsigned char>( ( cell & 0xF0 ) | value )
-                    : static_cast<unsigned char>( ( cell & 0x0F ) | ( value << 4 ) );
+                const unsigned short cell = light_read_cell( *c, idx );
+                const unsigned short nv = channel == LIGHT_CHANNEL_BLOCK //
+                    ? static_cast<unsigned short>( ( cell & 0xFF00 ) | value )
+                    : static_cast<unsigned short>( ( cell & 0x00FF ) | ( value << 8 ) );
                 if ( nv != cell ) {
                     light_write_cell( *c, idx, nv );
                     light_mark_dirty( *c, c_local );
@@ -1167,36 +1258,36 @@ void ChunkLoader::light_add_step( const LightSeed &seed ) {
         return;
     }
     const glm::ivec3 local = seed.pos - cp * CHUNK_SIZE_I;
-    const unsigned char cell = light_read_cell( *chunk, light_index( local.x, local.y, local.z ) );
+    const unsigned short cell = light_read_cell( *chunk, light_index( local.x, local.y, local.z ) );
     const int v = seed.channel == LIGHT_CHANNEL_BLOCK ? light_get_block( cell ) : light_get_sky( cell );
     if ( v <= 0 ) {
         return;
     }
     const bool sky = seed.channel == LIGHT_CHANNEL_SKY;
     // Floor cells (blocks_light_down: slabs, path) hold light but never
-    // pass it downward — both channels skip the down spread from one. A
-    // null cells[] volume is all-air: nothing is a floor.
-    const BlockID src_id = chunk->cells ? block_cell_id( chunk->cells[ chunk->get_index_from_coords( local.x, local.y, local.z ) ] ) : AIR;
+    // pass it downward — both channels skip every downward-component step
+    // from one. A null cells[] volume is all-air: nothing is a floor.
+    const BlockID src_id = light_cell_id_at( chunk->cells, local );
     const bool src_blocks_down = block_definition_get_definition( src_id )->blocks_light_down;
-    for ( int d = 0; d < 6; d++ ) {
-        if ( src_blocks_down && d == LIGHT_DIR_DOWN ) {
+    for ( int d = 0; d < 26; d++ ) {
+        const LightStepDir &sd = light_step_dirs[ d ];
+        if ( src_blocks_down && sd.d.y < 0 ) {
             continue;
         }
-        const glm::ivec3 n_local = local + light_dirs[ d ];
+        const glm::ivec3 n_local = local + sd.d;
         // Best possible offer this direction (target's absorb can only lower
         // it): cells at or above it can't gain light from this step.
-        const int best = ( sky && d == LIGHT_DIR_DOWN && v == LIGHT_MAX_LEVEL ) ? LIGHT_MAX_LEVEL : v - 1;
+        const int best = ( sky && d == LIGHT_DIR_DOWN && v == LIGHT_RAW_MAX ) ? LIGHT_RAW_MAX : v - sd.cost;
         // Strictly-interior neighbor: same owner, no halo mirrors — direct
         // array ops only, no get_chunk/light_set lookups.
         if ( n_local.x > 0 && n_local.x < CHUNK_SIZE_X - 1 && n_local.y > 0 && n_local.y < CHUNK_SIZE_Y - 1 && n_local.z > 0 && n_local.z < CHUNK_SIZE_Z - 1 ) {
             const int nidx = light_index( n_local.x, n_local.y, n_local.z );
-            const unsigned char ncell = light_read_cell( *chunk, nidx );
+            const unsigned short ncell = light_read_cell( *chunk, nidx );
             const int nv = sky ? light_get_sky( ncell ) : light_get_block( ncell );
             if ( best <= nv ) {
                 continue;
             }
-            // A null cells[] volume is all-air: nothing is opaque.
-            const BlockID n_id = chunk->cells ? block_cell_id( chunk->cells[ chunk->get_index_from_coords( n_local.x, n_local.y, n_local.z ) ] ) : AIR;
+            const BlockID n_id = light_cell_id_at( chunk->cells, n_local );
             if ( light_opaque_id( n_id ) ) {
                 continue;
             }
@@ -1204,13 +1295,19 @@ void ChunkLoader::light_add_step( const LightSeed &seed ) {
             if ( offered <= nv ) {
                 continue;
             }
-            light_write_cell( *chunk, nidx, sky ? static_cast<unsigned char>( ( ncell & 0x0F ) | ( offered << 4 ) ) : static_cast<unsigned char>( ( ncell & 0xF0 ) | offered ) );
+            // Diagonal steps need an open shared-face route — a step that
+            // could only cut through solid corner cells would leak light
+            // the face BFS can't carry.
+            if ( sd.ngates && !light_diag_open( chunk->cells, local, sd, src_blocks_down ) ) {
+                continue;
+            }
+            light_write_cell( *chunk, nidx, sky ? static_cast<unsigned short>( ( ncell & 0x00FF ) | ( offered << 8 ) ) : static_cast<unsigned short>( ( ncell & 0xFF00 ) | offered ) );
             light_mark_dirty( *chunk, n_local );
             light_dbg_step_push++;
-            this->light_add_seed( seed.pos + light_dirs[ d ], seed.channel, offered, true );
+            this->light_add_seed( seed.pos + sd.d, seed.channel, offered, true );
             continue;
         }
-        const glm::ivec3 n = seed.pos + light_dirs[ d ];
+        const glm::ivec3 n = seed.pos + sd.d;
         const int nv = this->light_get( n, seed.channel );
         if ( nv < 0 || best <= nv ) {
             continue;
@@ -1221,6 +1318,9 @@ void ChunkLoader::light_add_step( const LightSeed &seed ) {
         }
         const int offered = light_offered( v, seed.channel, d, n_id );
         if ( offered <= nv ) {
+            continue;
+        }
+        if ( sd.ngates && !light_diag_open( chunk->cells, local, sd, src_blocks_down ) ) {
             continue;
         }
         this->light_set( n, seed.channel, offered );
@@ -1241,14 +1341,20 @@ void ChunkLoader::light_remove_step( const LightRemoveSeed &seed ) {
         return;
     }
     const glm::ivec3 local = seed.pos - cp * CHUNK_SIZE_I;
-    for ( int d = 0; d < 6; d++ ) {
-        const glm::ivec3 n = seed.pos + light_dirs[ d ];
-        const glm::ivec3 n_local = local + light_dirs[ d ];
+    // No floor/gate checks here, deliberately: this cell's CURRENT block
+    // isn't what it was while it held old_value — a fresh slab, say, is a
+    // light floor now but its predecessor still fed the cells below. The
+    // cascade must clear whatever the old value could have carried; cells
+    // cleared too aggressively are re-lit by the add-seed fallback.
+    for ( int d = 0; d < 26; d++ ) {
+        const LightStepDir &sd = light_step_dirs[ d ];
+        const glm::ivec3 n = seed.pos + sd.d;
+        const glm::ivec3 n_local = local + sd.d;
         const bool interior = n_local.x >= 0 && n_local.x < CHUNK_SIZE_X && n_local.y >= 0 && n_local.y < CHUNK_SIZE_Y && n_local.z >= 0 && n_local.z < CHUNK_SIZE_Z;
         int nv;
         BlockID n_id;
         if ( interior ) {
-            const unsigned char ncell = light_read_cell( *chunk, light_index( n_local.x, n_local.y, n_local.z ) );
+            const unsigned short ncell = light_read_cell( *chunk, light_index( n_local.x, n_local.y, n_local.z ) );
             nv = seed.channel == LIGHT_CHANNEL_BLOCK ? light_get_block( ncell ) : light_get_sky( ncell );
             // A null cells[] volume is all-air.
             n_id = chunk->cells ? block_cell_id( chunk->cells[ chunk->get_index_from_coords( n_local.x, n_local.y, n_local.z ) ] ) : AIR;
@@ -1264,15 +1370,15 @@ void ChunkLoader::light_remove_step( const LightRemoveSeed &seed ) {
         }
         const int expected = light_offered( seed.old_value, seed.channel, d, n_id );
         if ( nv <= expected ) {
-            const int floor_v = seed.channel == LIGHT_CHANNEL_BLOCK ? block_definition_get_definition( n_id )->emits_light : 0;
+            const int floor_v = seed.channel == LIGHT_CHANNEL_BLOCK ? block_definition_get_definition( n_id )->emits_light * LIGHT_RAW_PER_LEVEL : 0;
             // Strictly interior (no halo mirrors): write the floor directly
             // instead of going through light_set's mirror matrix.
             const bool strict = n_local.x > 0 && n_local.x < CHUNK_SIZE_X - 1 && n_local.y > 0 && n_local.y < CHUNK_SIZE_Y - 1 && n_local.z > 0 && n_local.z < CHUNK_SIZE_Z - 1;
             if ( strict ) {
                 const int widx = light_index( n_local.x, n_local.y, n_local.z );
-                const unsigned char wcell = light_read_cell( *chunk, widx );
-                light_write_cell( *chunk, widx, seed.channel == LIGHT_CHANNEL_BLOCK ? static_cast<unsigned char>( ( wcell & 0xF0 ) | floor_v )
-                                                                                  : static_cast<unsigned char>( ( wcell & 0x0F ) | ( floor_v << 4 ) ) );
+                const unsigned short wcell = light_read_cell( *chunk, widx );
+                light_write_cell( *chunk, widx, seed.channel == LIGHT_CHANNEL_BLOCK ? static_cast<unsigned short>( ( wcell & 0xFF00 ) | floor_v )
+                                                                                  : static_cast<unsigned short>( ( wcell & 0x00FF ) | ( floor_v << 8 ) ) );
                 light_mark_dirty( *chunk, n_local );
             } else {
                 this->light_set( n, seed.channel, floor_v );
@@ -1500,7 +1606,7 @@ void ChunkLoader::light_cascade_column( const int world_x, const int world_z ) {
                 const int fill_from = chunk->light_columns[ LIGHT_FILL_FROM_INDEX( lx, lz ) ];
                 for ( int y = CHUNK_SIZE_Y - 1; y >= fill_from; y-- ) {
                     const glm::ivec3 pos( world_x, cy * CHUNK_SIZE_Y + y, world_z );
-                    this->light_set( pos, LIGHT_CHANNEL_SKY, LIGHT_MAX_LEVEL );
+                    this->light_set( pos, LIGHT_CHANNEL_SKY, LIGHT_RAW_MAX );
                 }
             } else {
                 // Scan down for the first lit cell; the removal cascade clears
@@ -1594,12 +1700,12 @@ int ChunkLoader::light_cascade_columns( Chunk &start_chunk ) {
                         for ( int y = CHUNK_SIZE_Y - 1; y >= fill_from; y-- ) {
                             if ( col_interior && y > 0 && y < CHUNK_SIZE_Y - 1 ) {
                                 const int idx = light_index( x, y, z );
-                                light_write_cell( *chunk, idx, static_cast<unsigned char>( ( light_read_cell( *chunk, idx ) & 0x0F ) | ( LIGHT_MAX_LEVEL << 4 ) ) );
+                                light_write_cell( *chunk, idx, static_cast<unsigned short>( ( light_read_cell( *chunk, idx ) & 0x00FF ) | ( LIGHT_RAW_MAX << 8 ) ) );
                             } else {
                                 // y-shell cells mirror into the chunks
                                 // above/below; x/z shell cells mirror
                                 // sideways. Those need the mirror write.
-                                this->light_set_nb( nb_cache, *chunk, glm::ivec3( base_x + x, base_y + y, base_z + z ), LIGHT_CHANNEL_SKY, LIGHT_MAX_LEVEL );
+                                this->light_set_nb( nb_cache, *chunk, glm::ivec3( base_x + x, base_y + y, base_z + z ), LIGHT_CHANNEL_SKY, LIGHT_RAW_MAX );
                             }
                             cells_filled++;
                         }
@@ -1618,7 +1724,7 @@ int ChunkLoader::light_cascade_columns( Chunk &start_chunk ) {
                                 const glm::ivec3 pos( base_x + x, base_y + y, base_z + z );
                                 if ( col_interior && y > 0 && y < CHUNK_SIZE_Y - 1 ) {
                                     const int idx = light_index( x, y, z );
-                                    light_write_cell( *chunk, idx, static_cast<unsigned char>( light_read_cell( *chunk, idx ) & 0x0F ) );
+                                    light_write_cell( *chunk, idx, static_cast<unsigned short>( light_read_cell( *chunk, idx ) & 0x00FF ) );
                                     light_mark_dirty( *chunk, glm::ivec3( x, y, z ) );
                                 } else {
                                     this->light_set_nb( nb_cache, *chunk, pos, LIGHT_CHANNEL_SKY, 0 );
@@ -1722,7 +1828,7 @@ void ChunkLoader::light_recheck_block( const glm::ivec3 &block_pos ) {
         }
     }
 
-    const int emit = def->emits_light;
+    const int emit = def->emits_light * LIGHT_RAW_PER_LEVEL;
     for ( int ch = 0; ch < 2; ch++ ) {
         const int floor_v = ch == LIGHT_CHANNEL_BLOCK ? emit : 0;
         const int old_v = this->light_get( block_pos, ch );
@@ -1737,12 +1843,13 @@ void ChunkLoader::light_recheck_block( const glm::ivec3 &block_pos ) {
             }
         }
         // Re-pull from neighbors: pushes into this cell whatever they offer,
-        // and pushes this cell's value back out.
-        for ( const glm::ivec3 &d : light_dirs ) {
-            const int nv = this->light_get( block_pos + d, ch );
+        // and pushes this cell's value back out. All 26 directions — a
+        // diagonal neighbor's offer may be this cell's best in-path.
+        for ( const LightStepDir &sd : light_step_dirs ) {
+            const int nv = this->light_get( block_pos + sd.d, ch );
             if ( nv > 0 ) {
                 light_dbg_recheck_seed++;
-                this->light_add_seed( block_pos + d, ch, nv );
+                this->light_add_seed( block_pos + sd.d, ch, nv );
             }
         }
         const int self_v = this->light_get( block_pos, ch );
@@ -1864,7 +1971,6 @@ void ChunkLoader::light_seed_interior_boundary( Chunk &chunk ) {
     }
 
     // lit_top per column (x,z): the first lit y, or CHUNK_SIZE_Y when unlit.
-    static const glm::ivec2 xz_dirs[ 4 ] = { glm::ivec2( 1, 0 ), glm::ivec2( -1, 0 ), glm::ivec2( 0, 1 ), glm::ivec2( 0, -1 ) };
     for ( int x = 0; x < CHUNK_SIZE_X; x++ ) {
         for ( int z = 0; z < CHUNK_SIZE_Z; z++ ) {
             const int ci = LIGHT_COLUMN_INDEX( x, z );
@@ -1883,106 +1989,175 @@ void ChunkLoader::light_seed_interior_boundary( Chunk &chunk ) {
                 light_dbg_cascade_seed++;
                 this->light_add_seed( base + glm::ivec3( x, lit_top, z ), LIGHT_CHANNEL_SKY, cv );
             }
-            // Per lateral dir: interior columns get a lit_top cutoff; shell
-            // dirs need a per-cell cross-chunk check.
-            int nlt[ 4 ];
+            // Bound is the DEEPEST dark neighbor column: our lit cell at y
+            // borders darkness iff y < nlt for some of the 8 surrounding
+            // columns, so the scan must reach max(nlt), not min — with min,
+            // a column between open and shadowed neighbors (e.g. under a
+            // tree canopy) seeded nothing and the shadow stayed dark. +1:
+            // a lateral diagonal can dip one below its column's lit_top.
+            // Shell columns have no local lit_top — the boundary probe
+            // below covers them per cell.
             int m = lit_top;
-            for ( int d = 0; d < 4; d++ ) {
-                const int nx = x + xz_dirs[ d ].x;
-                const int nz = z + xz_dirs[ d ].y;
-                if ( nx >= 0 && nx < CHUNK_SIZE_X && nz >= 0 && nz < CHUNK_SIZE_Z ) {
-                    const int nci = LIGHT_COLUMN_INDEX( nx, nz );
-                    nlt[ d ] = flags[ LIGHT_FLAGS_COUNT + nci ] ? flags[ LIGHT_FILL_FROM_INDEX( nx, nz ) ] : CHUNK_SIZE_Y;
-                    // Bound is the DEEPEST dark neighbor: our lit cell at y
-                    // borders darkness iff y < nlt[d] for some dir, so the
-                    // scan must reach max(nlt), not min — with min, a column
-                    // between open and shadowed neighbors (e.g. under a tree
-                    // canopy) seeded nothing and the shadow stayed dark.
-                    if ( nlt[ d ] > m ) {
-                        m = nlt[ d ];
-                    }
-                } else {
-                    nlt[ d ] = -1; // shell dir: per-cell cross-chunk check
-                }
-            }
-            // Interior lateral bands: our lit cells below a neighbor's lit_top
-            // border below-fill cells (stored sky=0 in a fresh volume).
-            for ( int y = lit_top; y < m; y++ ) {
-                for ( int d = 0; d < 4; d++ ) {
-                    if ( nlt[ d ] < 0 || y >= nlt[ d ] ) {
+            for ( int dx = -1; dx <= 1; dx++ ) {
+                for ( int dz = -1; dz <= 1; dz++ ) {
+                    if ( !dx && !dz ) {
                         continue;
                     }
-                    const int nx = x + xz_dirs[ d ].x;
-                    const int nz = z + xz_dirs[ d ].y;
-                    const int cv = light_get_sky( light_read_cell( chunk, light_index( x, y, z ) ) );
-                    if ( light_get_sky( light_read_cell( chunk, light_index( nx, y, nz ) ) ) >= cv - 1 ) {
+                    const int nx = x + dx;
+                    const int nz = z + dz;
+                    if ( nx >= 0 && nx < CHUNK_SIZE_X && nz >= 0 && nz < CHUNK_SIZE_Z ) {
+                        const int nci = LIGHT_COLUMN_INDEX( nx, nz );
+                        const int nlt = flags[ LIGHT_FLAGS_COUNT + nci ] ? flags[ LIGHT_FILL_FROM_INDEX( nx, nz ) ] : CHUNK_SIZE_Y;
+                        if ( nlt > m ) {
+                            m = nlt;
+                        }
+                    }
+                }
+            }
+            const auto cell_id_at = [ & ]( const glm::ivec3 &l ) { return light_cell_id_at( chunk.cells, l ); };
+            // Interior lateral bands: our lit cells below a neighbor's lit_top
+            // border below-fill cells (stored sky=0 in a fresh volume).
+            for ( int y = lit_top; y <= m; y++ ) {
+                const glm::ivec3 c_local( x, y, z );
+                const int cv = light_get_sky( light_read_cell( chunk, light_index( x, y, z ) ) );
+                if ( cv <= LIGHT_STEP_FACE ) {
+                    continue;
+                }
+                const bool src_floor = block_definition_get_definition( cell_id_at( c_local ) )->blocks_light_down;
+                for ( int d = 0; d < 26; d++ ) {
+                    const LightStepDir &sd = light_step_dirs[ d ];
+                    if ( src_floor && sd.d.y < 0 ) {
+                        continue;
+                    }
+                    const glm::ivec3 n_local = c_local + sd.d;
+                    if ( n_local.x < 0 || n_local.x >= CHUNK_SIZE_X || n_local.y < 0 || n_local.y >= CHUNK_SIZE_Y || n_local.z < 0 || n_local.z >= CHUNK_SIZE_Z ) {
+                        continue;
+                    }
+                    const int offered = cv - sd.cost;
+                    if ( offered <= 0 ) {
+                        continue;
+                    }
+                    if ( light_get_sky( light_read_cell( chunk, light_index( n_local.x, n_local.y, n_local.z ) ) ) >= offered ) {
                         continue;
                     }
                     // A null cells[] volume is all-air: nothing is opaque.
-                    if ( chunk.cells && light_opaque_id( block_cell_id( chunk.cells[ chunk.get_index_from_coords( nx, y, nz ) ] ) ) ) {
+                    if ( chunk.cells && light_opaque_id( cell_id_at( n_local ) ) ) {
+                        continue;
+                    }
+                    if ( sd.ngates && !light_diag_open( chunk.cells, c_local, sd, src_floor ) ) {
                         continue;
                     }
                     light_dbg_cascade_seed++;
-                    this->light_add_seed( base + glm::ivec3( x, y, z ), LIGHT_CHANNEL_SKY, cv );
+                    this->light_add_seed( base + c_local, LIGHT_CHANNEL_SKY, cv );
                     break;
                 }
             }
             // Boundary cells: lit cells on the volume edge can border
             // under-lit cells in neighboring chunks regardless of column
-            // fills. Up is the cell at y=31; down is y=0 (only reachable in a
-            // fully-lit column); lateral shell dirs check every lit cell. The
-            // neighbor of an axis-aligned dir crosses exactly one chunk face,
-            // so it lands in nb_cache[(dir+1)] with the local coord wrapped.
-            for ( int d = 2; d <= 3; d++ ) {
-                const int y = ( d == 2 ) ? CHUNK_SIZE_Y - 1 : 0;
-                if ( y < lit_top ) {
-                    continue;
-                }
-                const glm::ivec3 dir = light_dirs[ d ];
-                const Chunk *nchunk = nb_cache[ ( dir.x + 1 ) * 9 + ( dir.y + 1 ) * 3 + ( dir.z + 1 ) ];
-                if ( !nchunk || nchunk->load_state ) {
-                    continue;
-                }
-                const int cv = light_get_sky( light_read_cell( chunk, light_index( x, y, z ) ) );
-                const int offered = ( d == LIGHT_DIR_DOWN && cv == LIGHT_MAX_LEVEL ) ? LIGHT_MAX_LEVEL : cv - 1;
-                const int ny = y + dir.y;
-                const int nwy = ny < 0 ? CHUNK_SIZE_Y - 1 : ny >= CHUNK_SIZE_Y ? 0 : ny;
-                const int nv = light_get_sky( light_read_cell( *nchunk, light_index( x, nwy, z ) ) );
-                if ( cv > 1 && offered > 0 && nv < offered ) {
-                    const BlockID n_id = nchunk->cells ? block_cell_id( nchunk->cells[ nchunk->get_index_from_coords( x, nwy, z ) ] ) : AIR;
-                    if ( !light_opaque_id( n_id ) ) {
+            // fills. Every step dir whose target lands in a foreign chunk's
+            // interior counts — under chamfer a diagonal across the corner is
+            // a real in-path. A neighbor crossing a chunk face/edge/corner
+            // lands in nb_cache[(offset+1)] with the local coord wrapped.
+            const bool on_shell = x == 0 || x == CHUNK_SIZE_X - 1 || z == 0 || z == CHUNK_SIZE_Z - 1;
+            if ( on_shell ) {
+                for ( int y = lit_top; y < CHUNK_SIZE_Y; y++ ) {
+                    const glm::ivec3 c_local( x, y, z );
+                    const int cv = light_get_sky( light_read_cell( chunk, light_index( x, y, z ) ) );
+                    if ( cv <= LIGHT_STEP_FACE ) {
+                        continue;
+                    }
+                    const bool src_floor = block_definition_get_definition( cell_id_at( c_local ) )->blocks_light_down;
+                    for ( int d = 0; d < 26; d++ ) {
+                        const LightStepDir &sd = light_step_dirs[ d ];
+                        if ( src_floor && sd.d.y < 0 ) {
+                            continue;
+                        }
+                        const glm::ivec3 n_local = c_local + sd.d;
+                        const glm::ivec3 o( n_local.x < 0 ? -1 : n_local.x >= CHUNK_SIZE_X ? 1 : 0,
+                                            n_local.y < 0 ? -1 : n_local.y >= CHUNK_SIZE_Y ? 1 : 0,
+                                            n_local.z < 0 ? -1 : n_local.z >= CHUNK_SIZE_Z ? 1 : 0 );
+                        if ( o.x == 0 && o.z == 0 ) {
+                            continue; // lateral-shell scans only cross x/z faces
+                        }
+                        const Chunk *nchunk = nb_cache[ ( o.x + 1 ) * 9 + ( o.y + 1 ) * 3 + ( o.z + 1 ) ];
+                        if ( !nchunk || nchunk->load_state ) {
+                            continue;
+                        }
+                        const glm::ivec3 n_loc = n_local - glm::ivec3( o.x * CHUNK_SIZE_X, o.y * CHUNK_SIZE_Y, o.z * CHUNK_SIZE_Z );
+                        if ( n_loc.x < 0 || n_loc.x >= CHUNK_SIZE_X || n_loc.y < 0 || n_loc.y >= CHUNK_SIZE_Y || n_loc.z < 0 || n_loc.z >= CHUNK_SIZE_Z ) {
+                            continue; // only the neighbor's interior is ours to seed
+                        }
+                        const int offered = cv - sd.cost;
+                        if ( offered <= 0 ) {
+                            continue;
+                        }
+                        const int nv = light_get_sky( light_read_cell( *nchunk, light_index( n_loc.x, n_loc.y, n_loc.z ) ) );
+                        if ( nv >= offered ) {
+                            continue;
+                        }
+                        const BlockID n_id = nchunk->cells ? block_cell_id( nchunk->cells[ nchunk->get_index_from_coords( n_loc.x, n_loc.y, n_loc.z ) ] ) : AIR;
+                        if ( light_opaque_id( n_id ) ) {
+                            continue;
+                        }
+                        if ( sd.ngates && !light_diag_open( chunk.cells, c_local, sd, src_floor ) ) {
+                            continue;
+                        }
                         light_dbg_cascade_seed++;
-                        this->light_add_seed( base + glm::ivec3( x, y, z ), LIGHT_CHANNEL_SKY, cv );
+                        this->light_add_seed( base + c_local, LIGHT_CHANNEL_SKY, cv );
+                        break;
                     }
                 }
             }
-            for ( int d = 0; d < 4; d++ ) {
-                if ( nlt[ d ] >= 0 ) {
-                    continue; // interior dir — covered by the band loop above
-                }
-                const glm::ivec2 dir2 = xz_dirs[ d ];
-                const Chunk *nchunk = nb_cache[ ( dir2.x + 1 ) * 9 + ( 0 + 1 ) * 3 + ( dir2.y + 1 ) ];
-                if ( !nchunk || nchunk->load_state ) {
+            // Top/bottom faces: every column's two y-shell cells probe the
+            // chunks above/below (down only reachable in a fully-lit column).
+            for ( const int y : { 0, CHUNK_SIZE_Y - 1 } ) {
+                if ( y < lit_top ) {
                     continue;
                 }
-                const int nx = x + dir2.x;
-                const int nz = z + dir2.y;
-                const int nwx = nx < 0 ? CHUNK_SIZE_X - 1 : nx >= CHUNK_SIZE_X ? 0 : nx;
-                const int nwz = nz < 0 ? CHUNK_SIZE_Z - 1 : nz >= CHUNK_SIZE_Z ? 0 : nz;
-                for ( int y = lit_top; y < CHUNK_SIZE_Y; y++ ) {
-                    const int cv = light_get_sky( light_read_cell( chunk, light_index( x, y, z ) ) );
-                    if ( cv <= 1 ) {
+                const glm::ivec3 c_local( x, y, z );
+                const int cv = light_get_sky( light_read_cell( chunk, light_index( x, y, z ) ) );
+                if ( cv <= LIGHT_STEP_FACE ) {
+                    continue;
+                }
+                const bool src_floor = block_definition_get_definition( cell_id_at( c_local ) )->blocks_light_down;
+                for ( int d = 0; d < 26; d++ ) {
+                    const LightStepDir &sd = light_step_dirs[ d ];
+                    if ( src_floor && sd.d.y < 0 ) {
                         continue;
                     }
-                    const int nv = light_get_sky( light_read_cell( *nchunk, light_index( nwx, y, nwz ) ) );
-                    if ( nv < cv - 1 ) {
-                        const BlockID n_id = nchunk->cells ? block_cell_id( nchunk->cells[ nchunk->get_index_from_coords( nwx, y, nwz ) ] ) : AIR;
-                        if ( !light_opaque_id( n_id ) ) {
-                            light_dbg_cascade_seed++;
-                            this->light_add_seed( base + glm::ivec3( x, y, z ), LIGHT_CHANNEL_SKY, cv );
-                            break;
-                        }
+                    const glm::ivec3 n_local = c_local + sd.d;
+                    const glm::ivec3 o( n_local.x < 0 ? -1 : n_local.x >= CHUNK_SIZE_X ? 1 : 0,
+                                        n_local.y < 0 ? -1 : n_local.y >= CHUNK_SIZE_Y ? 1 : 0,
+                                        n_local.z < 0 ? -1 : n_local.z >= CHUNK_SIZE_Z ? 1 : 0 );
+                    if ( o.y == 0 ) {
+                        continue; // this probe only crosses y faces
                     }
+                    const Chunk *nchunk = nb_cache[ ( o.x + 1 ) * 9 + ( o.y + 1 ) * 3 + ( o.z + 1 ) ];
+                    if ( !nchunk || nchunk->load_state ) {
+                        continue;
+                    }
+                    const glm::ivec3 n_loc = n_local - glm::ivec3( o.x * CHUNK_SIZE_X, o.y * CHUNK_SIZE_Y, o.z * CHUNK_SIZE_Z );
+                    if ( n_loc.x < 0 || n_loc.x >= CHUNK_SIZE_X || n_loc.y < 0 || n_loc.y >= CHUNK_SIZE_Y || n_loc.z < 0 || n_loc.z >= CHUNK_SIZE_Z ) {
+                        continue;
+                    }
+                    const int offered = ( d == LIGHT_DIR_DOWN && cv == LIGHT_RAW_MAX ) ? LIGHT_RAW_MAX : cv - sd.cost;
+                    if ( offered <= 0 ) {
+                        continue;
+                    }
+                    const int nv = light_get_sky( light_read_cell( *nchunk, light_index( n_loc.x, n_loc.y, n_loc.z ) ) );
+                    if ( nv >= offered ) {
+                        continue;
+                    }
+                    const BlockID n_id = nchunk->cells ? block_cell_id( nchunk->cells[ nchunk->get_index_from_coords( n_loc.x, n_loc.y, n_loc.z ) ] ) : AIR;
+                    if ( light_opaque_id( n_id ) ) {
+                        continue;
+                    }
+                    if ( sd.ngates && !light_diag_open( chunk.cells, c_local, sd, src_floor ) ) {
+                        continue;
+                    }
+                    light_dbg_cascade_seed++;
+                    this->light_add_seed( base + c_local, LIGHT_CHANNEL_SKY, cv );
+                    break;
                 }
             }
         }
@@ -2004,21 +2179,37 @@ void ChunkLoader::light_seed_column_boundary( const int world_x, const int world
             continue;
         }
         for ( int y = 0; y < CHUNK_SIZE_Y; y++ ) {
-            const unsigned char cell = light_read_cell( *chunk, light_index( lx, y, lz ) );
+            const unsigned short cell = light_read_cell( *chunk, light_index( lx, y, lz ) );
             const int cv = light_get_sky( cell );
             if ( cv <= 0 ) {
                 continue;
             }
             const glm::ivec3 pos( world_x, cy * CHUNK_SIZE_Y + y, world_z );
-            for ( int d = 0; d < 6; d++ ) {
-                const glm::ivec3 n = pos + light_dirs[ d ];
-                const int offered = ( d == LIGHT_DIR_DOWN && cv == LIGHT_MAX_LEVEL ) ? LIGHT_MAX_LEVEL : cv - 1;
-                const int nv = this->light_get( n, LIGHT_CHANNEL_SKY );
-                if ( nv >= 0 && nv < offered && !light_opaque_id( this->light_block_id_at( n ) ) ) {
-                    light_dbg_cascade_seed++;
-                    this->light_add_seed( pos, LIGHT_CHANNEL_SKY, cv );
-                    break;
+            const glm::ivec3 c_local( lx, y, lz );
+            const bool src_floor = block_definition_get_definition( light_cell_id_at( chunk->cells, c_local ) )->blocks_light_down;
+            for ( int d = 0; d < 26; d++ ) {
+                const LightStepDir &sd = light_step_dirs[ d ];
+                if ( src_floor && sd.d.y < 0 ) {
+                    continue;
                 }
+                const glm::ivec3 n = pos + sd.d;
+                const int offered = ( d == LIGHT_DIR_DOWN && cv == LIGHT_RAW_MAX ) ? LIGHT_RAW_MAX : cv - sd.cost;
+                if ( offered <= 0 ) {
+                    continue;
+                }
+                const int nv = this->light_get( n, LIGHT_CHANNEL_SKY );
+                if ( nv < 0 || nv >= offered ) {
+                    continue;
+                }
+                if ( light_opaque_id( this->light_block_id_at( n ) ) ) {
+                    continue;
+                }
+                if ( sd.ngates && !light_diag_open( chunk->cells, c_local, sd, src_floor ) ) {
+                    continue;
+                }
+                light_dbg_cascade_seed++;
+                this->light_add_seed( pos, LIGHT_CHANNEL_SKY, cv );
+                break;
             }
         }
     }
@@ -2062,7 +2253,7 @@ void ChunkLoader::light_border_sync( Chunk &chunk ) {
             return;
         }
         // owner's local = our (x,y,z) minus the chunk offset * 32.
-        const unsigned char canon = light_read_cell( *owner, light_index( x - ox * CHUNK_SIZE_X, y - oy * CHUNK_SIZE_Y, z - oz * CHUNK_SIZE_Z ) );
+        const unsigned short canon = light_read_cell( *owner, light_index( x - ox * CHUNK_SIZE_X, y - oy * CHUNK_SIZE_Y, z - oz * CHUNK_SIZE_Z ) );
         const int midx = light_index( x, y, z );
         if ( light_read_cell( chunk, midx ) != canon ) {
             light_write_cell( chunk, midx, canon );
@@ -2071,61 +2262,46 @@ void ChunkLoader::light_border_sync( Chunk &chunk ) {
         // Only seed the BFS where this border cell's light can flow
         // into an under-lit non-opaque neighbor — mass load-in would
         // otherwise push one useless seed per nonzero border cell.
-        // Only inward neighbors are checked: directions into other
-        // chunks' interiors are covered by their own border syncs and
-        // by the propagation that wrote this cell in the first place.
-        int inward_dirs[ 3 ];
-        int inward_count = 0;
-        if ( x < 0 ) {
-            inward_dirs[ inward_count++ ] = 0;
-        } else if ( x >= CHUNK_SIZE_X ) {
-            inward_dirs[ inward_count++ ] = 1;
-        }
-        if ( y < 0 ) {
-            inward_dirs[ inward_count++ ] = 2;
-        } else if ( y >= CHUNK_SIZE_Y ) {
-            inward_dirs[ inward_count++ ] = 3;
-        }
-        if ( z < 0 ) {
-            inward_dirs[ inward_count++ ] = 4;
-        } else if ( z >= CHUNK_SIZE_Z ) {
-            inward_dirs[ inward_count++ ] = 5;
-        }
+        // All 26 step dirs count as inward whenever they land inside the
+        // volume: a diagonal-only in-path is a real route under chamfer
+        // propagation. Directions into other chunks' interiors are covered
+        // by their own border syncs and by the propagation that wrote this
+        // cell in the first place.
+        const BlockID src_id = light_cell_id_at( chunk.cells, glm::ivec3( x, y, z ) );
+        const bool src_floor = block_definition_get_definition( src_id )->blocks_light_down;
         for ( int ch = 0; ch < 2; ch++ ) {
             const int cv = ch == LIGHT_CHANNEL_BLOCK ? light_get_block( canon ) : light_get_sky( canon );
             if ( cv <= 0 ) {
                 continue;
             }
-            for ( int i = 0; i < inward_count; i++ ) {
-                const int d = inward_dirs[ i ];
-                const int offered = ( ch == LIGHT_CHANNEL_SKY && d == LIGHT_DIR_DOWN && cv == LIGHT_MAX_LEVEL ) ? LIGHT_MAX_LEVEL : cv - 1;
-                const glm::ivec3 n_local = glm::ivec3( x, y, z ) + light_dirs[ d ];
-                int nv;
-                BlockID n_id;
-                if ( n_local.x >= 0 && n_local.x < CHUNK_SIZE_X && n_local.y >= 0 && n_local.y < CHUNK_SIZE_Y && n_local.z >= 0 && n_local.z < CHUNK_SIZE_Z ) {
-                    // Inward lands in our interior: direct array reads
-                    // instead of light_get's per-call chunk lookup.
-                    // cells[] is only consulted when the neighbor can
-                    // actually gain light.
-                    nv = ch == LIGHT_CHANNEL_BLOCK ? light_get_block( light_read_cell( chunk, light_index( n_local.x, n_local.y, n_local.z ) ) )
-                                                   : light_get_sky( light_read_cell( chunk, light_index( n_local.x, n_local.y, n_local.z ) ) );
-                    if ( nv >= offered ) {
-                        continue;
-                    }
-                    n_id = chunk.cells ? block_cell_id( chunk.cells[ chunk.get_index_from_coords( n_local.x, n_local.y, n_local.z ) ] ) : AIR;
-                } else {
-                    const glm::ivec3 n = base + glm::ivec3( x, y, z ) + light_dirs[ d ];
-                    nv = this->light_get( n, ch );
-                    if ( nv < 0 || nv >= offered ) {
-                        continue;
-                    }
-                    n_id = this->light_block_id_at( n );
+            for ( int d = 0; d < 26; d++ ) {
+                const LightStepDir &sd = light_step_dirs[ d ];
+                if ( src_floor && sd.d.y < 0 ) {
+                    continue;
                 }
-                if ( nv >= 0 && nv < offered && !light_opaque_id( n_id ) ) {
-                    light_dbg_border_seed++;
-                    this->light_add_seed( base + glm::ivec3( x, y, z ), ch, cv );
-                    break;
+                const int offered = ( ch == LIGHT_CHANNEL_SKY && d == LIGHT_DIR_DOWN && cv == LIGHT_RAW_MAX ) ? LIGHT_RAW_MAX : cv - sd.cost;
+                if ( offered <= 0 ) {
+                    continue;
                 }
+                const glm::ivec3 n_local = glm::ivec3( x, y, z ) + sd.d;
+                if ( n_local.x < 0 || n_local.x >= CHUNK_SIZE_X || n_local.y < 0 || n_local.y >= CHUNK_SIZE_Y || n_local.z < 0 || n_local.z >= CHUNK_SIZE_Z ) {
+                    continue; // only interior targets feed our fresh volume
+                }
+                const int nv = ch == LIGHT_CHANNEL_BLOCK ? light_get_block( light_read_cell( chunk, light_index( n_local.x, n_local.y, n_local.z ) ) )
+                                                         : light_get_sky( light_read_cell( chunk, light_index( n_local.x, n_local.y, n_local.z ) ) );
+                if ( nv >= offered ) {
+                    continue;
+                }
+                const BlockID n_id = light_cell_id_at( chunk.cells, n_local );
+                if ( light_opaque_id( n_id ) ) {
+                    continue;
+                }
+                if ( sd.ngates && !light_diag_open( chunk.cells, glm::ivec3( x, y, z ), sd, src_floor ) ) {
+                    continue;
+                }
+                light_dbg_border_seed++;
+                this->light_add_seed( base + glm::ivec3( x, y, z ), ch, cv );
+                break;
             }
         }
     };
@@ -2156,7 +2332,7 @@ void ChunkLoader::light_border_sync( Chunk &chunk ) {
     // scanning the whole volume and skipping non-shell cells.
     auto sync_interior_cell = [&]( const int x, const int y, const int z ) {
         const glm::ivec3 w = base + glm::ivec3( x, y, z );
-        const unsigned char canon = light_read_cell( chunk, light_index( x, y, z ) );
+        const unsigned short canon = light_read_cell( chunk, light_index( x, y, z ) );
         int rem_old[ 2 ] = { 0, 0 };
 
         int axis_opts[ 3 ][ 2 ];
@@ -2191,7 +2367,7 @@ void ChunkLoader::light_border_sync( Chunk &chunk ) {
                         continue; // slot recycled mid-write; torn chunk_pos
                     }
                     const int midx = light_index( n_local.x, n_local.y, n_local.z );
-                    const unsigned char old_mirror = light_read_cell( *nb, midx );
+                    const unsigned short old_mirror = light_read_cell( *nb, midx );
                     if ( old_mirror == canon ) {
                         continue;
                     }
@@ -2218,46 +2394,59 @@ void ChunkLoader::light_border_sync( Chunk &chunk ) {
                 light_dbg_remove_seed++;
                 this->light_push_remove_seed( w, ch, rem_old[ ch ] );
             }
-            if ( new_v <= 1 ) {
-                continue; // offered = new_v-1 can't light anything
+            if ( new_v <= LIGHT_STEP_FACE ) {
+                continue; // offered = new_v-17 can't light anything
             }
             // Seed only if the spread would actually go somewhere: a
-            // foreign-interior cell adjacent to w (across a face we
-            // sit on) that is under-lit and non-opaque. Mass load-in
-            // otherwise pushes thousands of no-op seeds per chunk —
-            // mirrors that needed syncing but whose interiors are
+            // foreign-interior cell adjacent to w that is under-lit and
+            // non-opaque. All 26 step dirs count — a diagonal across a
+            // chunk corner is a real in-path under chamfer propagation.
+            // Mass load-in otherwise pushes thousands of no-op seeds per
+            // chunk — mirrors that needed syncing but whose interiors are
             // already lit.
-            for ( int a = 0; a < 3; a++ ) {
-                const int off = local3[ a ] == 0 ? -1 : local3[ a ] == axis_size[ a ] - 1 ? 1 : 0;
-                if ( !off ) {
+            const BlockID w_id = light_cell_id_at( chunk.cells, glm::ivec3( x, y, z ) );
+            const bool w_floor = block_definition_get_definition( w_id )->blocks_light_down;
+            const glm::ivec3 w_loc( x, y, z );
+            for ( int d = 0; d < 26; d++ ) {
+                const LightStepDir &sd = light_step_dirs[ d ];
+                if ( w_floor && sd.d.y < 0 ) {
                     continue;
                 }
-                glm::ivec3 axo( 0 );
-                axo[ a ] = off;
-                const Chunk *nax = nb_cache[ ( axo.x + 1 ) * 9 + ( axo.y + 1 ) * 3 + ( axo.z + 1 ) ];
+                const glm::ivec3 n_pos = w + sd.d;
+                const glm::ivec3 rel = n_pos - base;
+                const glm::ivec3 o( rel.x < 0 ? -1 : rel.x >= CHUNK_SIZE_X ? 1 : 0,
+                                  rel.y < 0 ? -1 : rel.y >= CHUNK_SIZE_Y ? 1 : 0,
+                                  rel.z < 0 ? -1 : rel.z >= CHUNK_SIZE_Z ? 1 : 0 );
+                if ( o == glm::ivec3( 0 ) ) {
+                    continue; // own interior — handled by the propagation itself
+                }
+                const Chunk *nax = nb_cache[ ( o.x + 1 ) * 9 + ( o.y + 1 ) * 3 + ( o.z + 1 ) ];
                 if ( !nax || nax->load_state ) {
                     continue;
                 }
-                const glm::ivec3 n_pos = w + axo;
                 const glm::ivec3 n_loc = n_pos - nax->chunk_pos * CHUNK_SIZE_I;
                 if ( !light_local_ok( n_loc ) ||
                      n_loc.x < 0 || n_loc.x >= CHUNK_SIZE_X || n_loc.y < 0 || n_loc.y >= CHUNK_SIZE_Y || n_loc.z < 0 ||
                      n_loc.z >= CHUNK_SIZE_Z ) {
                     continue; // torn chunk_pos, or not nax's interior
                 }
-                const glm::ivec3 dir = light_dirs[ off > 0 ? a * 2 : a * 2 + 1 ];
-                const int offered = ( ch == LIGHT_CHANNEL_SKY && dir.y == -1 && new_v == LIGHT_MAX_LEVEL ) ? LIGHT_MAX_LEVEL : new_v - 1;
+                const int offered = ( ch == LIGHT_CHANNEL_SKY && sd.d.y == -1 && sd.ngates == 0 && new_v == LIGHT_RAW_MAX ) ? LIGHT_RAW_MAX
+                                                                                                                         : new_v - sd.cost;
                 const int nv = ch == LIGHT_CHANNEL_BLOCK ? light_get_block( light_read_cell( *nax, light_index( n_loc.x, n_loc.y, n_loc.z ) ) )
                                                          : light_get_sky( light_read_cell( *nax, light_index( n_loc.x, n_loc.y, n_loc.z ) ) );
                 if ( nv >= offered ) {
                     continue;
                 }
                 const BlockID n_id = nax->cells ? block_cell_id( nax->cells[ nax->get_index_from_coords( n_loc.x, n_loc.y, n_loc.z ) ] ) : AIR;
-                if ( !light_opaque_id( n_id ) ) {
-                    light_dbg_border_seed++;
-                    this->light_add_seed( w, ch, new_v );
-                    break;
+                if ( light_opaque_id( n_id ) ) {
+                    continue;
                 }
+                if ( sd.ngates && !light_diag_open( chunk.cells, w_loc, sd, w_floor ) ) {
+                    continue;
+                }
+                light_dbg_border_seed++;
+                this->light_add_seed( w, ch, new_v );
+                break;
             }
         }
     };
@@ -2381,7 +2570,7 @@ void light_fill_chunk( Chunk &chunk ) {
             chunk_free_air_mask( chunk.light_shade_mask );
             chunk.light_shade_mask = nullptr;
         }
-        chunk.light_uniform = static_cast<unsigned char>( LIGHT_MAX_LEVEL << 4 );
+        chunk.light_uniform = static_cast<unsigned short>( LIGHT_RAW_MAX << 8 );
         ChunkLoader::light_compute_column_open( chunk );
         if ( chunk.light_columns ) {
             memset( chunk.light_columns + LIGHT_FLAGS_COUNT, 1, LIGHT_FLAGS_COUNT );
@@ -2391,7 +2580,7 @@ void light_fill_chunk( Chunk &chunk ) {
     if ( !chunk.light ) {
         chunk.light = chunk_alloc_light( );
     }
-    memset( chunk.light, 0, CHUNK_BLOCK_SIZE );
+    std::fill_n( chunk.light, CHUNK_BLOCK_SIZE, static_cast<unsigned short>( 0 ) );
     // The mipmapped light texture's B channel is a per-cell air mask, and
     // computing it at upload time walks chunk.cells[] on the render
     // thread — ~0.2ms/chunk walking the 0.5MB cells[] array.
@@ -2450,46 +2639,51 @@ void light_fill_chunk( Chunk &chunk ) {
         int x, y, z;
         chunk.get_coords_from_index( i, x, y, z );
         const int lidx = light_index( x, y, z );
-        chunk.light[ lidx ] = static_cast<unsigned char>( emit );
+        chunk.light[ lidx ] = static_cast<unsigned short>( emit * LIGHT_RAW_PER_LEVEL );
         queue.push_back( lidx );
     }
     while ( !queue.empty( ) ) {
         const int idx = queue.back( );
         queue.pop_back( );
-        const int v = chunk.light[ idx ] & 0x0F;
-        if ( v <= 1 ) {
-            continue; // best possible offer (v-1) can't light anything
+        const int v = chunk.light[ idx ] & 0xFF;
+        if ( v <= LIGHT_STEP_FACE ) {
+            continue; // best possible offer (v-17) can't light anything
         }
         // light_index layout: x fastest, then y, then z.
         const int lx = ( idx % CHUNK_SIZE_INTERNAL_X ) - 1;
         const int ly = ( ( idx / CHUNK_SIZE_INTERNAL_X ) % CHUNK_SIZE_INTERNAL_Y ) - 1;
         const int lz = ( idx / ( CHUNK_SIZE_INTERNAL_X * CHUNK_SIZE_INTERNAL_Y ) ) - 1;
+        const glm::ivec3 c_local( lx, ly, lz );
         // Same source rule as light_add_step: a floor cell holds light but
         // never spreads it downward.
         const bool src_blocks_down = block_definition_get_definition( block_cell_id( chunk.cells[ chunk.get_index_from_coords( lx, ly, lz ) ] ) )->blocks_light_down;
-        for ( int d = 0; d < 6; d++ ) {
-            if ( src_blocks_down && d == LIGHT_DIR_DOWN ) {
+        for ( int d = 0; d < 26; d++ ) {
+            const LightStepDir &sd = light_step_dirs[ d ];
+            if ( src_blocks_down && sd.d.y < 0 ) {
                 continue;
             }
-            const int nx = lx + light_dirs[ d ].x;
-            const int ny = ly + light_dirs[ d ].y;
-            const int nz = lz + light_dirs[ d ].z;
+            const int nx = lx + sd.d.x;
+            const int ny = ly + sd.d.y;
+            const int nz = lz + sd.d.z;
             if ( nx < -1 || nx >= CHUNK_SIZE_X + 1 || ny < -1 || ny >= CHUNK_SIZE_Y + 1 || nz < -1 || nz >= CHUNK_SIZE_Z + 1 ) {
                 continue;
             }
             const int nidx = light_index( nx, ny, nz );
-            if ( v - 1 <= ( chunk.light[ nidx ] & 0x0F ) ) {
+            if ( v - sd.cost <= ( chunk.light[ nidx ] & 0xFF ) ) {
                 continue;
             }
             const BlockID n_id = block_cell_id( chunk.cells[ chunk.get_index_from_coords( nx, ny, nz ) ] );
             if ( light_opaque_id( n_id ) ) {
                 continue;
             }
-            const int offered = v - 1 - block_definition_get_definition( n_id )->light_absorb;
-            if ( offered <= ( chunk.light[ nidx ] & 0x0F ) ) {
+            const int offered = v - sd.cost - block_definition_get_definition( n_id )->light_absorb * LIGHT_RAW_PER_LEVEL;
+            if ( offered <= ( chunk.light[ nidx ] & 0xFF ) ) {
                 continue;
             }
-            chunk.light[ nidx ] = static_cast<unsigned char>( ( chunk.light[ nidx ] & 0xF0 ) | offered );
+            if ( sd.ngates && !light_diag_open( chunk.cells, c_local, sd, src_blocks_down ) ) {
+                continue;
+            }
+            chunk.light[ nidx ] = static_cast<unsigned short>( ( chunk.light[ nidx ] & 0xFF00 ) | offered );
             queue.push_back( nidx );
         }
     }
@@ -2533,17 +2727,17 @@ void light_fill_chunk( Chunk &chunk ) {
                     if ( y < ( shell ? top_opaque + 1 : fill_from ) ) {
                         continue;
                     }
-                    unsigned char &cell = chunk.light[ light_index( x, y, z ) ];
-                    cell = static_cast<unsigned char>( ( cell & 0x0F ) | ( LIGHT_MAX_LEVEL << 4 ) );
+                    unsigned short &cell = chunk.light[ light_index( x, y, z ) ];
+                    cell = static_cast<unsigned short>( ( cell & 0x00FF ) | ( LIGHT_RAW_MAX << 8 ) );
                 }
             }
         }
     }
     // Fold constant fills back to the uniform representation — a fully-dark
     // underground chunk (no emitters, all columns closed) or a fully-lit one
-    // keeps just the byte instead of the 262K array.
+    // keeps just the u16 instead of the 512K array.
     {
-        const unsigned char first = chunk.light[ 0 ];
+        const unsigned short first = chunk.light[ 0 ];
         bool uniform = true;
         for ( int i = 1; i < CHUNK_BLOCK_SIZE; i++ ) {
             if ( chunk.light[ i ] != first ) {
@@ -2571,13 +2765,13 @@ int light_texture_unit( ) {
     return s_light_tex_unit;
 }
 
-// light[] packs both channels in one byte (sky<<4 | block), but GL_LINEAR
+// light[] packs both channels in one u16 (sky<<8 | block), but GL_LINEAR
 // interpolates the raw value before any shader-side unpack — sampling between
 // a sky-lit cell and a torch-lit cell produces bright ridges where both
 // channels should dip. The texture therefore stores each channel separately
 // (R=sky, G=block) so filtering stays independent; expansion happens here on
-// upload. Values are stored *17 so UNORM8 filtering keeps ~8-bit precision
-// across the 0-15 range instead of ~4.
+// upload. Stored values are already raw units (17 per display level, max
+// 255), so the upload is a byte shuffle — full 8-bit precision in UNORM8.
 // The light-mipmap mode additionally carries B = 255 for cells that can
 // hold light (non-opaque per the same light_opaque_id the BFS uses — water
 // counts as air since it doesn't cast a shadow), 0 for solid, plus an
@@ -2641,24 +2835,16 @@ static const unsigned char *light_shade_lut( ) {
     return lut;
 }
 
-static inline void light_expand_cell( const unsigned char packed, unsigned char *out ) {
-    out[ 0 ] = static_cast<unsigned char>( ( packed >> 4 ) * 17 ); // sky
-    out[ 1 ] = static_cast<unsigned char>( ( packed & 0x0F ) * 17 ); // block
+static inline void light_expand_cell( const unsigned short packed, unsigned char *out ) {
+    out[ 0 ] = static_cast<unsigned char>( packed >> 8 ); // sky
+    out[ 1 ] = static_cast<unsigned char>( packed & 0xFF ); // block
 }
 
-// packed light byte -> (sky*17) | (block*17 << 8): the RG half of the RGBA8
-// texel in one u32, so the mipmapped fill can store a whole texel per cell
-// (little-endian byte order, matching the byte-wise path).
-static const uint32_t *light_rg_lut( ) {
-    static uint32_t lut[ 256 ];
-    static const bool init = []( ) {
-        for ( int i = 0; i < 256; i++ ) {
-            lut[ i ] = static_cast<uint32_t>( ( i >> 4 ) * 17 ) | ( static_cast<uint32_t>( ( i & 0x0F ) * 17 ) << 8 );
-        }
-        return true;
-    }( );
-    ( void ) init;
-    return lut;
+// packed light u16 (sky<<8|block) -> sky | (block<<8): the RG half of the
+// RGBA8 texel in one u32 — a byte swap (little-endian byte order, matching
+// the byte-wise path).
+static inline uint32_t light_rg( const unsigned short packed ) {
+    return static_cast<uint32_t>( ( packed >> 8 ) | ( ( packed & 0xFF ) << 8 ) );
 }
 
 void Chunk::light_ensure_texture( ) {
@@ -2701,17 +2887,16 @@ void Chunk::light_ensure_texture( ) {
         //    shade mask isn't there to contradict it — the mask/fallback
         //    paths below stamp A per cell.
         if ( this->light == nullptr && ( this->cells == nullptr || ( this->light_uniform != 0 && this->light_air_mask == nullptr ) ) ) {
-            const uint32_t cell = light_rg_lut( )[ this->light_uniform ] | 0xFFFF0000u; // B=255, A=255
+            const uint32_t cell = light_rg( this->light_uniform ) | 0xFFFF0000u; // B=255, A=255
             uint32_t *out32 = s_light_upload_scratch;
             for ( int i = 0; i < CHUNK_BLOCK_SIZE; i++ ) {
                 out32[ i ] = cell;
             }
         } else if ( this->cells == nullptr ) {
             // All-air but non-uniform light: still expand light[] per cell.
-            const uint32_t *rg_lut = light_rg_lut( );
             uint32_t *out32 = s_light_upload_scratch;
             for ( int i = 0; i < CHUNK_BLOCK_SIZE; i++ ) {
-                out32[ i ] = rg_lut[ this->light[ i ] ] | 0xFFFF0000u;
+                out32[ i ] = light_rg( this->light[ i ] ) | 0xFFFF0000u;
             }
         } else if ( this->light_air_mask != nullptr ) {
             // Mask built: iterate in texel order (x fastest) so light[] reads
@@ -2722,13 +2907,12 @@ void Chunk::light_ensure_texture( ) {
             // X_INT*Z_INT/8 mask bytes serve 8 consecutive tz planes.
             const unsigned char *air_mask = this->light_air_mask;
             const unsigned char *shade_mask = this->light_shade_mask;
-            const uint32_t *rg_lut = light_rg_lut( );
             uint32_t *out32 = s_light_upload_scratch;
             if ( this->light == nullptr ) {
                 // Uniform-dark volume (light_uniform==0 — nonzero went to the
                 // fast path above): every cell's RG is the same constant and
                 // B is exactly the mask bit, so no per-cell light read.
-                const uint32_t base = rg_lut[ this->light_uniform ];
+                const uint32_t base = light_rg( this->light_uniform );
                 for ( int tz = 0; tz < CHUNK_SIZE_INTERNAL_Z; tz++ ) {
                     const unsigned char *mrow = air_mask + ( tz >> 3 );
                     const unsigned char *srow = shade_mask ? shade_mask + ( tz >> 3 ) : nullptr;
@@ -2751,18 +2935,18 @@ void Chunk::light_ensure_texture( ) {
                     const unsigned char *srow = shade_mask ? shade_mask + ( tz >> 3 ) : nullptr;
                     const int shift = tz & 7;
                     for ( int ty = 0; ty < CHUNK_SIZE_INTERNAL_Y; ty++ ) {
-                        const unsigned char *lrow = this->light + ( tz * CHUNK_SIZE_INTERNAL_Y + ty ) * CHUNK_SIZE_INTERNAL_X;
+                        const unsigned short *lrow = this->light + ( tz * CHUNK_SIZE_INTERNAL_Y + ty ) * CHUNK_SIZE_INTERNAL_X;
                         const unsigned char *mty = mrow + ty * ( CHUNK_SIZE_INTERNAL_X * CHUNK_SIZE_INTERNAL_Z / 8 );
                         const unsigned char *sty = srow ? srow + ty * ( CHUNK_SIZE_INTERNAL_X * CHUNK_SIZE_INTERNAL_Z / 8 ) : nullptr;
                         for ( int tx = 0; tx < CHUNK_SIZE_INTERNAL_X; tx++, out32++ ) {
-                            const unsigned char packed = lrow[ tx ];
+                            const unsigned short packed = lrow[ tx ];
                             // The mask is authoritative for opacity — a lit
                             // cell is provably non-opaque (its bit is set),
                             // and a solid cell reads B=0 even while its light
                             // is still propagating out.
                             const uint32_t air = ( static_cast<uint32_t>( mty[ tx * ( CHUNK_SIZE_INTERNAL_Z / 8 ) ] ) >> shift ) & 1u;
                             const uint32_t shade = sty ? ( ( static_cast<uint32_t>( sty[ tx * ( CHUNK_SIZE_INTERNAL_Z / 8 ) ] ) >> shift ) & 1u ) : 0u;
-                            *out32 = rg_lut[ packed ] | ( air * 255u << 16 ) | ( ( 255u - shade * 255u ) << 24 );
+                            *out32 = light_rg( packed ) | ( air * 255u << 16 ) | ( ( 255u - shade * 255u ) << 24 );
                         }
                     }
                 }
@@ -2772,13 +2956,13 @@ void Chunk::light_ensure_texture( ) {
             // alongside light[]. The two arrays transpose (light[] x-fastest,
             // cells[] z-fastest), so iterate z innermost — cells[] reads
             // stream sequentially while the strided accesses move to the
-            // small cache-resident arrays (light[] is 256KB, scratch 1MB).
+            // small cache-resident arrays (light[] is 512KB, scratch 1MB).
             const unsigned char *air_lut = light_air_lut( );
             const unsigned char *shade_lut = light_shade_lut( );
             int tx = 0, ty = 0, tz = 0;
             for ( int i = 0; i < CHUNK_BLOCK_SIZE; i++ ) {
                 const int lidx = ( tz * CHUNK_SIZE_INTERNAL_Y + ty ) * CHUNK_SIZE_INTERNAL_X + tx;
-                const unsigned char packed = this->light ? this->light[ lidx ] : this->light_uniform;
+                const unsigned short packed = this->light ? this->light[ lidx ] : this->light_uniform;
                 unsigned char *out = out8 + 4 * lidx;
                 light_expand_cell( packed, out );
                 out[ 2 ] = packed != 0 ? 255 : air_lut[ block_cell_id( this->cells[ i ] ) ];
@@ -2950,7 +3134,7 @@ void ChunkLoader::light_upload_dirty( const int max_uploads ) {
         const glm::ivec3 sz = hi - lo + glm::ivec3( 1 );
         glActiveTexture( GL_TEXTURE0 + light_texture_unit( ) );
         glBindTexture( GL_TEXTURE_3D, chunk.light_texture );
-        // Expand the packed (sky<<4|block) dirty region so the two channels
+        // Expand the packed (sky<<8|block) dirty region so the two channels
         // filter independently — see light_expand_cell / light_air_lut. The
         // scratch is tightly packed so the default unpack stride applies.
         const bool mipmaps = light_mipmaps_enabled( );
@@ -2971,21 +3155,20 @@ void ChunkLoader::light_upload_dirty( const int max_uploads ) {
             // rows and the scratch both stream linearly; the mask bit index
             // steps +CHUNK_SIZE_INTERNAL_Z per x (see light_ensure_texture —
             // byte index (z>>3) + (Z_INT/8)*x + (X_INT*Z_INT/8)*y, tested bit z&7).
-            const uint32_t *rg_lut = light_rg_lut( );
             uint32_t *out = s_light_upload_scratch;
             for ( int z = 0; z < sz.z; z++ ) {
                 const unsigned char *mrow = air_mask + ( ( lo.z + z ) >> 3 );
                 const unsigned char *srow = shade_mask ? shade_mask + ( ( lo.z + z ) >> 3 ) : nullptr;
                 const int shift = ( lo.z + z ) & 7;
                 for ( int y = 0; y < sz.y; y++ ) {
-                    const unsigned char *lrow = chunk.light ? chunk.light + ( ( lo.z + z ) * CHUNK_SIZE_INTERNAL_Y + ( lo.y + y ) ) * CHUNK_SIZE_INTERNAL_X + lo.x : nullptr;
+                    const unsigned short *lrow = chunk.light ? chunk.light + ( ( lo.z + z ) * CHUNK_SIZE_INTERNAL_Y + ( lo.y + y ) ) * CHUNK_SIZE_INTERNAL_X + lo.x : nullptr;
                     const unsigned char *mty = mrow + ( lo.y + y ) * ( CHUNK_SIZE_INTERNAL_X * CHUNK_SIZE_INTERNAL_Z / 8 ) + lo.x * ( CHUNK_SIZE_INTERNAL_Z / 8 );
                     const unsigned char *sty = srow ? srow + ( lo.y + y ) * ( CHUNK_SIZE_INTERNAL_X * CHUNK_SIZE_INTERNAL_Z / 8 ) + lo.x * ( CHUNK_SIZE_INTERNAL_Z / 8 ) : nullptr;
                     for ( int x = 0; x < sz.x; x++, out++ ) {
-                        const unsigned char packed = lrow ? lrow[ x ] : chunk.light_uniform;
+                        const unsigned short packed = lrow ? lrow[ x ] : chunk.light_uniform;
                         const uint32_t air = ( static_cast<uint32_t>( mty[ x * ( CHUNK_SIZE_INTERNAL_Z / 8 ) ] ) >> shift ) & 1u;
                         const uint32_t shade = sty ? ( ( static_cast<uint32_t>( sty[ x * ( CHUNK_SIZE_INTERNAL_Z / 8 ) ] ) >> shift ) & 1u ) : 0u;
-                        *out = rg_lut[ packed ] | ( air * 255u << 16 ) | ( ( 255u - shade * 255u ) << 24 );
+                        *out = light_rg( packed ) | ( air * 255u << 16 ) | ( ( 255u - shade * 255u ) << 24 );
                     }
                 }
             }
@@ -2998,10 +3181,10 @@ void ChunkLoader::light_upload_dirty( const int max_uploads ) {
                     // scratch take the strided steps.
                     for ( int x = 0; x < sz.x; x++ ) {
                         unsigned char *out = reinterpret_cast<unsigned char *>( s_light_upload_scratch ) + 4 * ( y * sz.x + x );
-                        const unsigned char *lrow = chunk.light ? chunk.light + ( ( lo.z ) * CHUNK_SIZE_INTERNAL_Y + ( lo.y + y ) ) * CHUNK_SIZE_INTERNAL_X + lo.x + x : nullptr;
+                        const unsigned short *lrow = chunk.light ? chunk.light + ( ( lo.z ) * CHUNK_SIZE_INTERNAL_Y + ( lo.y + y ) ) * CHUNK_SIZE_INTERNAL_X + lo.x + x : nullptr;
                         int bidx = ( lo.y + y ) * CHUNK_SIZE_INTERNAL_X * CHUNK_SIZE_INTERNAL_Z + ( lo.x + x ) * CHUNK_SIZE_INTERNAL_Z + lo.z;
                         for ( int z = 0; z < sz.z; z++, out += 4 * sz.y * sz.x, bidx++ ) {
-                            const unsigned char packed = lrow ? lrow[ z * CHUNK_SIZE_INTERNAL_Y * CHUNK_SIZE_INTERNAL_X ] : chunk.light_uniform;
+                            const unsigned short packed = lrow ? lrow[ z * CHUNK_SIZE_INTERNAL_Y * CHUNK_SIZE_INTERNAL_X ] : chunk.light_uniform;
                             light_expand_cell( packed, out );
                             out[ 2 ] = all_air || packed != 0 ? 255 : air_lut[ block_cell_id( chunk.cells[ bidx ] ) ];
                             out[ 3 ] = all_air ? 255 : shade_lut[ block_cell_id( chunk.cells[ bidx ] ) ];
@@ -3011,7 +3194,7 @@ void ChunkLoader::light_upload_dirty( const int max_uploads ) {
                     for ( int z = 0; z < sz.z; z++ ) {
                         unsigned char *out = reinterpret_cast<unsigned char *>( s_light_upload_scratch ) + 2 * ( z * sz.y + y ) * sz.x;
                         if ( chunk.light ) {
-                            const unsigned char *row = chunk.light + ( ( lo.z + z ) * CHUNK_SIZE_INTERNAL_Y + ( lo.y + y ) ) * CHUNK_SIZE_INTERNAL_X + lo.x;
+                            const unsigned short *row = chunk.light + ( ( lo.z + z ) * CHUNK_SIZE_INTERNAL_Y + ( lo.y + y ) ) * CHUNK_SIZE_INTERNAL_X + lo.x;
                             for ( int x = 0; x < sz.x; x++ ) {
                                 light_expand_cell( row[ x ], out + 2 * x );
                             }
