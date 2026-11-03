@@ -277,6 +277,13 @@ class Chunk {
     // fill is mostly correct and beats showing a black hole while seeds
     // are still pending. Render thread only; reset when the slot is reused.
     int light_uploaded_once = 0;
+    // Presentation mode the texture was last fully filled under:
+    // 0 = never filled, 1 = raw expand, 2 = smoothed. Render thread only.
+    // A mismatch vs the current desired mode (Shadows toggle, or the chunk
+    // crossing REPGAME_LIGHT_SMOOTH_RADIUS) upgrades the next upload to a
+    // full-volume refill — partial fills under a new mode would leave a
+    // mixed-mode texture.
+    int light_tex_mode = 0;
     // Set at the end of light_finalize_chunk — routes FINALIZE jobs for
     // never-finalized chunks (no real skylight yet, only the optimistic
     // fill) into the init job lane, ahead of far-lane work but behind
@@ -290,13 +297,13 @@ class Chunk {
     // smoother uses for boundary (halo) texels — light.cpp. Member function
     // because it reads other chunks' private light/cells fields; the
     // ChunkLoader friend calls it for the dirty-upload path too.
-    static void light_nb_ctxs( const ChunkLoader &loader, const glm::ivec3 &pos,
-                               LightSmoothCtx nb_ctxs[ 27 ], const LightSmoothCtx *nb_ptrs[ 27 ] );
+    static void light_nb_ctxs( const ChunkLoader &loader, const glm::ivec3 &pos, const glm::ivec3 &center,
+                               LightSmoothCtx nb_ctxs[ 27 ], const LightSmoothCtx *nb_ptrs[ 27 ], unsigned *raw_owners );
 
   public:
     void init( const VertexBuffer &vb_block_solid, const VertexBuffer &vb_block_water, const VertexBufferLayout &vbl_block, const VertexBufferLayout &vbl_coords );
     void ensure_gl_init( );
-    void light_ensure_texture( const ChunkLoader *loader = nullptr ); // lazily create the 3D light texture (GL thread)
+    void light_ensure_texture( ChunkLoader *loader = nullptr ); // lazily create the 3D light texture (GL thread)
     void draw( const Renderer &renderer, const Texture &texture, Shader &shader, RenderOrder renderOrder, bool draw_reflect, const glm::vec3 &render_origin, int light_base_loc );
     void load_terrain( MapStorage &map_storage ); // Load from file or map gen
     void program_terrain( );                      // Program into GPU

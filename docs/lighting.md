@@ -44,6 +44,22 @@ player.dat; toggling re-uploads every live texture via
 `ChunkLoader::light_shadow_refresh_all`). `REPGAME_LIGHT_SMOOTH=0|1`
 forces the mode and ignores the menu.
 
+Under "Smooth" the blur only runs on chunks within
+`REPGAME_LIGHT_SMOOTH_RADIUS` chunks of the camera
+(`light_smooth_in_radius`); farther chunks upload the raw field —
+the smoothing delta is sub-perceptual at that distance and streamed-in
+chunks stay cheap. Mixed-mode borders stay byte-exact: a halo texel
+delegates to its *owner's* presentation mode, so a smoothed chunk
+bordering a raw one computes the raw byte for shared texels
+(`raw_owners`), and a raw chunk bordering a smoothed one still delegates
+its halo texels to the smoothed interior. Each texture records the mode
+it was last fully filled under (`light_tex_mode`); on drift — toggle or
+radius crossing — `light_ensure_texture`/`light_upload_dirty` upgrade the
+next upload to a full-volume refill, so no texture ever mixes modes
+mid-volume. A flip isn't a field change, so the mirror-mark walk never
+fires for it: `light_remark_owned_halos` separately re-marks the ring
+slabs the flipped chunk owns inside its neighbours' volumes.
+
 Borders need two extra mechanisms. The blur footprint is one cell, but
 texels ON the volume edge (the halo ring) mirror a neighbour's interior
 cell and would need a second ring past the border; instead they delegate
@@ -53,7 +69,9 @@ the identical smoothed byte — no seam by construction. And since a
 texel's uploaded value now depends on cells around it, an interior light
 change must re-upload those texels in every chunk that stores them:
 `light_mark_dirty_now` marks the mirror copies of border cells held by
-neighbouring chunks on top of the owning cell's own mark.
+neighbouring chunks on top of the owning cell's own mark — but only for
+positions whose owner smoothes (raw owners' texels don't depend on the
+footprint).
 
 Per-column skylight metadata lives in `chunk->light_columns`, three
 `CHUNK_SIZE_X*Z` planes indexed by `LIGHT_COLUMN_INDEX`: `column_open`

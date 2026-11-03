@@ -210,7 +210,6 @@ class ChunkLoader {
     void light_mark_texel( Chunk &chunk, const glm::ivec3 &local );
     void light_mark_dirty_now( Chunk &chunk, const glm::ivec3 &local );
     void light_flush_deferred_marks( );
-    void light_mark_dirty_all( Chunk &chunk );
     void light_upload_enqueue( Chunk &chunk );
     // Congestion/dead-target/flood-cap gate used by both seed push paths.
     int light_seed_gate( const glm::ivec3 &block_pos, bool near, bool internal );
@@ -272,9 +271,18 @@ class ChunkLoader {
     // the second eye so both eyes share one verdict generation.
     void set_occlusion_probe_pass( bool probe ) { this->occl_probe_pass = probe; }
     Chunk *get_chunk( const glm::ivec3 &pointed ) const;
+    const glm::ivec3 &get_chunk_center( ) const { return this->chunk_center; }
     // Re-upload every live light texture under the current smoothing mode —
     // the "Shadows" quality toggle calls this (render thread).
     void light_shadow_refresh_all( );
+    // Whole-volume dirty mark + upload enqueue (render thread); used by
+    // Chunk::light_ensure_texture when a chunk's presentation mode drifts.
+    void light_mark_dirty_all( Chunk &chunk );
+    void light_mark_texel_box( Chunk &chunk, const glm::ivec3 &lo, const glm::ivec3 &hi );
+    // Re-mark the ring texels `flipped` owns inside its neighbours' volumes
+    // — needed when its upload presentation mode changes without any field
+    // change (Shadows toggle / smoothing-radius crossing).
+    void light_remark_owned_halos( Chunk &flipped );
     // Apply one chunk-diff cell (CHUNK_DIFF_RESULT / apply_pending_diffs):
     // writes the receiving chunk's copy, mirrors it into every loaded
     // neighbor that also stores that world cell, and enqueues the touched

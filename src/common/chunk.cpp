@@ -271,6 +271,7 @@ void Chunk::release_terrain( ) {
     this->light_stale.store( 0, std::memory_order_relaxed );
     this->light_upload_defers = 0;
     this->light_uploaded_once = 0;
+    this->light_tex_mode = 0;
     this->light_finalized.store( 0, std::memory_order_relaxed );
     this->light_write_tick.store( 0, std::memory_order_relaxed );
     this->light_dirty_box.store( LIGHT_BOX_EMPTY, std::memory_order_relaxed );
@@ -603,6 +604,7 @@ void Chunk::load_terrain( MapStorage &map_storage ) {
     this->light_write_tick.store( 0, std::memory_order_relaxed );
     this->light_upload_defers = 0;
     this->light_uploaded_once = 0;
+    this->light_tex_mode = 0;
     this->light_finalized.store( 0, std::memory_order_relaxed );
     this->light_dirty_box.store( LIGHT_BOX_EMPTY, std::memory_order_relaxed );
     this->light_uniform = 0;
