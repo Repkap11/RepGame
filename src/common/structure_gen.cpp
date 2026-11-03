@@ -937,8 +937,6 @@ void StructureGen::place_decorations( Chunk &chunk, const int cox, const int coy
 
 enum {
     SG_FEAT_NONE,
-    SG_FEAT_SPIRE,    // cluster of colored-glass crystal spires, glowing tips
-    SG_FEAT_VENT,     // volcanic cinder cone with a lava crater
     SG_FEAT_MONOLITH, // stone-brick pillar topped with glowstone + torch
     SG_FEAT_ICESPIKE, // packed-ice spikes on cold land, blue-ice tips
     SG_FEAT_ICEBERG,  // packed/blue ice cone floating on cold oceans
@@ -947,11 +945,10 @@ enum {
 typedef struct {
     int kind;
     float ax, az; // anchor / center column
-    // spire cluster:
+    // spike clusters:
     int n_sub;
     float sx[ SG_FEATURE_MAX_SUB ], sz[ SG_FEATURE_MAX_SUB ], speak[ SG_FEATURE_MAX_SUB ];
-    BlockID glass;
-    // vent:
+    // radial cones (icebergs):
     float vradius, vpeak;
     // monolith:
     int mono_h;
@@ -967,7 +964,6 @@ static bool sg_feature_for_cell( const int cx, const int cz, SGFeature *f ) {
     f->az = cz * SG_FEATURE_CELL + 12.0f + sg_roll( cx, cz, 62 ) * ( SG_FEATURE_CELL - 24.0f );
     const float anchor_h = MapGen::calculateTerrainHeight( (int)f->ax, (int)f->az );
     const float biome = mg_biome( (int)f->ax, (int)f->az );
-    const float weird = mg_weird( (int)f->ax, (int)f->az );
     // Features stand on land — except icebergs, which need open cold ocean.
     if ( anchor_h < WATER_LEVEL + 1.5f ) {
         if ( r < 0.10f && biome < 0.22f && anchor_h < WATER_LEVEL - 4.0f ) {
@@ -979,41 +975,21 @@ static bool sg_feature_for_cell( const int cx, const int cz, SGFeature *f ) {
         return false;
     }
     if ( r < 0.13f ) {
-        if ( sg_is_cold( biome ) ) {
-            // Packed-ice spikes in the frozen wastes.
-            f->kind = SG_FEAT_ICESPIKE;
-            f->n_sub = 2 + (int)( sg_roll( cx, cz, 63 ) * (float)( SG_FEATURE_MAX_SUB - 3 ) ); // 2..5
-            for ( int i = 0; i < f->n_sub; i++ ) {
-                f->sx[ i ] = f->ax + ( sg_roll( cx, cz, 70 + i * 2 ) - 0.5f ) * 30.0f;
-                f->sz[ i ] = f->az + ( sg_roll( cx, cz, 71 + i * 2 ) - 0.5f ) * 30.0f;
-                f->speak[ i ] = 9.0f + sg_roll( cx, cz, 80 + i ) * 12.0f;
-            }
-            return true;
-        }
-        // Crystal spire clusters live in the weird zones and the cold wastes.
-        if ( weird <= 0.60f && biome >= 0.20f ) {
+        // Packed-ice spikes in the frozen wastes.
+        if ( !sg_is_cold( biome ) ) {
             return false;
         }
-        f->kind = SG_FEAT_SPIRE;
-        f->n_sub = 3 + (int)( sg_roll( cx, cz, 63 ) * (float)( SG_FEATURE_MAX_SUB - 2 ) ); // 3..6
-        const float hr = sg_roll( cx, cz, 64 );
-        f->glass = hr < 0.3f ? GLASS_PALE_BLUE : hr < 0.55f ? LIGHT_BLUE_STAINED_GLASS : hr < 0.8f ? LIME_STAINED_GLASS : WHITE_STAINED_GLASS;
+        f->kind = SG_FEAT_ICESPIKE;
+        f->n_sub = 2 + (int)( sg_roll( cx, cz, 63 ) * (float)( SG_FEATURE_MAX_SUB - 3 ) ); // 2..5
         for ( int i = 0; i < f->n_sub; i++ ) {
-            f->sx[ i ] = f->ax + ( sg_roll( cx, cz, 70 + i * 2 ) - 0.5f ) * 44.0f;
-            f->sz[ i ] = f->az + ( sg_roll( cx, cz, 71 + i * 2 ) - 0.5f ) * 44.0f;
-            f->speak[ i ] = 7.0f + sg_roll( cx, cz, 80 + i ) * 10.0f;
+            f->sx[ i ] = f->ax + ( sg_roll( cx, cz, 70 + i * 2 ) - 0.5f ) * 30.0f;
+            f->sz[ i ] = f->az + ( sg_roll( cx, cz, 71 + i * 2 ) - 0.5f ) * 30.0f;
+            f->speak[ i ] = 9.0f + sg_roll( cx, cz, 80 + i ) * 12.0f;
         }
         return true;
     }
     if ( r < 0.21f ) {
-        // Volcanic vents — anywhere but the mushroom fields.
-        if ( weird >= 0.85f ) {
-            return false;
-        }
-        f->kind = SG_FEAT_VENT;
-        f->vradius = 6.0f + sg_roll( cx, cz, 90 ) * 4.0f;
-        f->vpeak = 7.0f + sg_roll( cx, cz, 91 ) * 5.0f;
-        return true;
+        return false;
     }
     // Beacon monoliths.
     f->kind = SG_FEAT_MONOLITH;
@@ -1025,17 +1001,16 @@ static bool sg_feature_for_cell( const int cx, const int cz, SGFeature *f ) {
 typedef struct {
     int kind;
     float h;
-    float dist;    // column distance to the winning anchor
-    float aux;     // vent radius
-    BlockID glass; // spire hue
+    float dist; // column distance to the winning anchor
+    float aux;  // iceberg radius
 } SGClaim;
 
 static SGClaim sg_column_feature( const SGFeature *feats, const int n, const int wx, const int wz ) {
-    SGClaim best = { SG_FEAT_NONE, 0.0f, 0.0f, 0.0f, AIR };
+    SGClaim best = { SG_FEAT_NONE, 0.0f, 0.0f, 0.0f };
     for ( int i = 0; i < n; i++ ) {
         const SGFeature &f = feats[ i ];
         float h = 0.0f, d = 0.0f;
-        if ( f.kind == SG_FEAT_SPIRE || f.kind == SG_FEAT_ICESPIKE ) {
+        if ( f.kind == SG_FEAT_ICESPIKE ) {
             for ( int s = 0; s < f.n_sub; s++ ) {
                 const float dx = (float)wx - f.sx[ s ];
                 const float dz = (float)wz - f.sz[ s ];
@@ -1053,13 +1028,6 @@ static SGClaim sg_column_feature( const SGFeature *feats, const int n, const int
             if ( d < f.vradius ) {
                 h = f.vpeak - d * 1.6f;
             }
-        } else if ( f.kind == SG_FEAT_VENT ) {
-            const float dx = (float)wx - f.ax;
-            const float dz = (float)wz - f.az;
-            d = sqrtf( dx * dx + dz * dz );
-            if ( d < f.vradius ) {
-                h = f.vpeak - d * 1.4f;
-            }
         } else {
             const float dx = (float)wx - f.ax;
             const float dz = (float)wz - f.az;
@@ -1073,7 +1041,6 @@ static SGClaim sg_column_feature( const SGFeature *feats, const int n, const int
             best.h = h;
             best.dist = d;
             best.aux = f.vradius;
-            best.glass = f.glass;
         }
     }
     return best;
@@ -1093,25 +1060,6 @@ static bool sg_write_feature( Chunk &chunk, const int lx, const int ly, const in
     const Block *def = block_definition_get_definition( id );
     chunk.set_block( glm::ivec3( lx, ly, lz ), { id, BLOCK_ROTATE_0, def->initial_redstone_power, id, 0 } );
     return true;
-}
-
-// Scorch a terrain cell under a vent: surface soils become cobblestone.
-static void sg_scorch_ground( Chunk &chunk, const int lx, const int ly, const int lz ) {
-    switch ( chunk.get_block( glm::ivec3( lx, ly, lz ) ).id ) {
-        case GRASS:
-        case DIRT:
-        case SAND:
-        case RED_SAND:
-        case GRAVEL:
-        case SNOWY_GRASS:
-        case SNOW:
-        case PODZOL:
-        case MYCELIUM:
-            chunk.set_block( glm::ivec3( lx, ly, lz ), { COBBLESTONE, BLOCK_ROTATE_0, 0, COBBLESTONE, 0 } );
-            break;
-        default:
-            break;
-    }
 }
 
 void StructureGen::place_features( Chunk &chunk, const int cox, const int coy, const int coz ) {
@@ -1207,36 +1155,7 @@ void StructureGen::place_features( Chunk &chunk, const int cox, const int coy, c
                 }
                 continue;
             }
-            if ( c.kind == SG_FEAT_SPIRE ) {
-                for ( int i = 0; i < h; i++ ) {
-                    const int ly = surface_y + i;
-                    if ( ly < -1 ) {
-                        continue;
-                    }
-                    const BlockID id = ( i == h - 1 || ( h >= 9 && i == h * 2 / 3 ) ) ? GLOWSTONE : c.glass;
-                    if ( !sg_write_feature( chunk, lx, ly, lz, id ) ) {
-                        break;
-                    }
-                }
-            } else if ( c.kind == SG_FEAT_VENT ) {
-                if ( under_water ) {
-                    continue;
-                }
-                const bool crater = c.dist < 1.9f;
-                for ( int i = 0; i < h; i++ ) {
-                    const int ly = surface_y + i;
-                    if ( ly < -1 ) {
-                        continue;
-                    }
-                    const BlockID id = ( i == h - 1 ) ? ( crater ? LAVA : COBBLESTONE ) : STONE;
-                    if ( !sg_write_feature( chunk, lx, ly, lz, id ) ) {
-                        break;
-                    }
-                }
-                if ( c.dist < c.aux * 0.75f && surface_y > -1 ) {
-                    sg_scorch_ground( chunk, lx, surface_y - 1, lz );
-                }
-            } else { // SG_FEAT_MONOLITH
+            { // SG_FEAT_MONOLITH
                 if ( under_water ) {
                     continue;
                 }
@@ -1259,10 +1178,11 @@ void StructureGen::place_features( Chunk &chunk, const int cox, const int coy, c
 }
 
 // ---------------------------------------------------------------------------
-// Cave crystals & stalactites: per-cell deterministic decorations anchored to
-// solid ceilings (cave roofs, overhang undersides, floating-island bottoms)
-// and floors. Clusters live in 16-block neighborhoods so caves alternate
-// between bare and glittering.
+// Formations & sheltered glow: per-cell deterministic decorations anchored
+// to solid ceilings and floors. Deep caves get plain stone stalactites and
+// stalagmites; sheltered rock near the surface (overhang lips, cave mouths,
+// island undersides) gets glow-lichen colonies and rare glow-berry strands.
+// Clusters live in 16-block neighborhoods.
 // ---------------------------------------------------------------------------
 
 static bool sg_is_solid_block( const BlockID id ) {
@@ -1272,28 +1192,15 @@ static bool sg_is_solid_block( const BlockID id ) {
     return block_definition_get_definition( id )->is_solid;
 }
 
-static BlockID sg_crystal_glass( const unsigned int h ) {
-    switch ( ( h >> 21 ) & 3u ) {
-        case 0:
-            return GLASS_PALE_BLUE;
-        case 1:
-            return LIGHT_BLUE_STAINED_GLASS;
-        case 2:
-            return LIME_STAINED_GLASS;
-        default:
-            return WHITE_STAINED_GLASS;
-    }
-}
-
 static void sg_set_block( Chunk &chunk, const int lx, const int ly, const int lz, const BlockID id ) {
     const Block *def = block_definition_get_definition( id );
     chunk.set_block( glm::ivec3( lx, ly, lz ), { id, BLOCK_ROTATE_0, def->initial_redstone_power, id, 0 } );
 }
 
-void StructureGen::place_crystals( Chunk &chunk, const int cox, const int coy, const int coz, SgHeightGrid &hg ) {
+void StructureGen::place_formations( Chunk &chunk, const int cox, const int coy, const int coz, SgHeightGrid &hg ) {
     // Cells cover the +/-1 halo on all axes: formation anchors and lengths
     // are derived from pure map gen (a roof can live in the neighbor's
-    // y-slab), so a crystal cell on a chunk edge is written identically by
+    // y-slab), so a formation cell on a chunk edge is written identically by
     // both sides — the halo-mirroring contract needs it.
     for ( int lx = -1; lx <= CHUNK_SIZE_X; lx++ ) {
         const int wx = cox + lx;
@@ -1303,6 +1210,9 @@ void StructureGen::place_crystals( Chunk &chunk, const int cox, const int coy, c
                 continue;
             }
             const float h = hg.at( wx, wz );
+            // Lichen colonies: a patchy 2D mask so sheltered rock gets
+            // clustered patches instead of an even sprinkle.
+            const bool lichen_zone = perlin_noise2d( wx, wz, 0.02f, 2, MAP_SEED + 77 ) > 0.55f;
             // Map gen is the authority for roof/floor solidity (the halo
             // contract), but the chunk array is a safe negative: an array-AIR
             // neighbor means map gen is air/water there too — structures only
@@ -1323,17 +1233,31 @@ void StructureGen::place_crystals( Chunk &chunk, const int cox, const int coy, c
                     continue;
                 }
                 const int wy = coy + ly;
-                // Ceiling formations hang off cave roofs (below the surface)
-                // and the undersides of overhangs / floating islands.
-                if ( ( wy < h - 5.0f || wy > h + 12.0f ) &&
-                     chunk.get_block( glm::ivec3( lx, ly + 1, lz ) ).id != AIR &&
-                     sg_is_solid_block( pick( wy + 1 ) ) ) {
+                if ( chunk.get_block( glm::ivec3( lx, ly + 1, lz ) ).id != AIR && sg_is_solid_block( pick( wy + 1 ) ) ) {
                     const unsigned int hh = sg_hash( wx, wy, wz, 56 );
-                    if ( ( hh & 1023u ) < 16u ) {
+                    if ( wy >= h - 5.0f ) {
+                        // Sheltered rock near/above the surface: lichen
+                        // patches on overhang lips, cave mouths and island
+                        // undersides; rare glow-berry strands on low ledges.
+                        if ( lichen_zone && ( hh & 255u ) < 90u ) {
+                            sg_set_block( chunk, lx, ly, lz, GLOW_LICHEN );
+                        } else if ( wy < h + 8.0f && ( hh & 2047u ) < 10u ) {
+                            const int len = 1 + (int)( ( hh >> 11 ) & 3u );
+                            int n = 0;
+                            while ( n < len && chunk.get_block( glm::ivec3( lx, ly - n, lz ) ).id == AIR ) {
+                                n++;
+                            }
+                            for ( int i = 0; i < n; i++ ) {
+                                const int fy = ly - i;
+                                if ( fy < -1 || fy > CHUNK_SIZE_Y ) {
+                                    continue;
+                                }
+                                sg_set_block( chunk, lx, fy, lz, i == n - 1 ? CAVE_VINES_HEAD_WITH_BERRIES : CAVE_VINES_BODY_WITH_BERRIES );
+                            }
+                        }
+                    } else if ( ( hh & 1023u ) < 16u ) {
+                        // Deep cave roofs: plain stone stalactites.
                         const int len = 1 + (int)( ( hh >> 10 ) & 3u );
-                        const bool crystal = ( ( hh >> 17 ) & 15u ) == 0u;
-                        const bool glow = crystal || ( ( hh >> 14 ) & 7u ) < 3u;
-                        const BlockID body = crystal ? sg_crystal_glass( hh ) : STONE;
                         int n = 0;
                         while ( n < len && pick( wy - 1 - n ) == AIR ) {
                             n++;
@@ -1343,7 +1267,7 @@ void StructureGen::place_crystals( Chunk &chunk, const int cox, const int coy, c
                             if ( fy < -1 || fy > CHUNK_SIZE_Y || chunk.get_block( glm::ivec3( lx, fy, lz ) ).id != AIR ) {
                                 continue;
                             }
-                            sg_set_block( chunk, lx, fy, lz, i == n - 1 ? ( glow ? GLOWSTONE : STONE ) : body );
+                            sg_set_block( chunk, lx, fy, lz, STONE );
                         }
                     }
                     continue;
@@ -1355,10 +1279,8 @@ void StructureGen::place_crystals( Chunk &chunk, const int cox, const int coy, c
                     if ( sg_is_solid_block( below ) ) {
                         const unsigned int hh = sg_hash( wx, wy, wz, 57 );
                         if ( ( hh & 1023u ) < 11u ) {
+                            // Plain stone stalagmites.
                             const int len = 1 + (int)( ( hh >> 10 ) & 3u );
-                            const bool crystal = ( ( hh >> 17 ) & 15u ) == 0u;
-                            const bool glow = crystal || ( ( hh >> 14 ) & 7u ) < 2u;
-                            const BlockID body = crystal ? sg_crystal_glass( hh ) : STONE;
                             int n = 0;
                             while ( n < len && pick( wy + n ) == AIR ) {
                                 n++;
@@ -1368,11 +1290,12 @@ void StructureGen::place_crystals( Chunk &chunk, const int cox, const int coy, c
                                 if ( fy < -1 || fy > CHUNK_SIZE_Y || chunk.get_block( glm::ivec3( lx, fy, lz ) ).id != AIR ) {
                                     continue;
                                 }
-                                sg_set_block( chunk, lx, fy, lz, i == n - 1 ? ( glow ? GLOWSTONE : STONE ) : body );
+                                sg_set_block( chunk, lx, fy, lz, STONE );
                             }
-                        } else if ( below == STONE && ( hh & 4095u ) < 5u ) {
-                            // Rare embedded glow dot in the cave floor.
-                            sg_set_block( chunk, lx, ly - 1, lz, GLOWSTONE );
+                        } else if ( wy < LAVA_LEVEL + 12 && below == STONE && ( hh & 2047u ) < 6u ) {
+                            // Ember seams: floor stone near the lava band
+                            // occasionally swaps to magma for a faint glow.
+                            sg_set_block( chunk, lx, ly - 1, lz, MAGMA );
                         }
                     }
                 }
@@ -1394,6 +1317,6 @@ void StructureGen::place( Chunk &chunk ) {
     place_trees( chunk, cox, coy, coz );
     place_features( chunk, cox, coy, coz );
     place_decorations( chunk, cox, coy, coz, hg );
-    place_crystals( chunk, cox, coy, coz, hg );
+    place_formations( chunk, cox, coy, coz, hg );
 #endif
 }

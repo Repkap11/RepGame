@@ -30,7 +30,7 @@ seed.
    written in canonical state (waterlogged bit 0); `Chunk::set_block`
    applies waterlogging rules to later writes.
 5. `StructureGen::place` — CPU-only pass that stamps trees, features,
-   decorations and cave crystals over the generated terrain.
+   decorations and cave formations over the generated terrain.
 6. Chest/mob sidecar loads, natural mob spawns, `light_fill_chunk`.
 
 What happens to a chunk around this call — window shifts, finalize,
@@ -170,7 +170,7 @@ deep rare geodes get a hollow heart in a basalt→calcite→amethyst shell
 (with budding flecks and amethyst-cluster floor buds).
 
 **Structures** (`StructureGen::place`, `src/common/structure_gen.cpp`):
-`place_trees` → `place_features` → `place_decorations` → `place_crystals`,
+`place_trees` → `place_features` → `place_decorations` → `place_formations`,
 all pure functions of world coords:
 
 - *Trees*: the world is gridded into `MAPGEN_TREE_CELL` cells each rolling
@@ -187,9 +187,8 @@ all pure functions of world coords:
   array, and "no surface" is `SG_NO_SURFACE` since real seabeds legitimately
   sit at negative y); canopy scatter hashes are keyed on world coords so
   border-crossing trees match on both sides.
-- *Features*: `SG_FEATURE_CELL`-gridded landmarks — crystal spire clusters,
-  packed-ice spike clusters (cold land), volcanic cinder-cone vents (lava
-  crater + scorched ground), beacon monoliths, icebergs (cold open ocean) —
+- *Features*: `SG_FEATURE_CELL`-gridded landmarks — packed-ice spike
+  clusters (cold land), beacon monoliths, icebergs (cold open ocean) —
   claimed per-column by tallest contribution (`sg_column_feature`).
 - *Decorations*: per-column surface scatter — flowers/tufts/ferns,
   sunflower/lilac/peony/rose flower fields, flowering azalea in cherry
@@ -202,9 +201,12 @@ all pure functions of world coords:
   seagrass/tufts, no coral), denser inside reef patches, and
   cold-biome water surfaces freeze over in patchy ice sheets. Scatter is written into
   the ±1 halo too, so edge cells mirror exactly.
-- *Cave crystals*: stalactites/stalagmites anchored to cave roofs and
-  floors (and island undersides), occasionally glowstone-tipped, clustered
-  in 16-block neighborhoods.
+- *Formations & sheltered glow*: plain stone stalactites/stalagmites on
+  cave roofs and floors below the surface (with rare magma seams in floor
+  stone near the lava band), while sheltered rock at and above the surface
+  — overhang lips, cave mouths, floating-island undersides — gets
+  glow-lichen colonies and rare glow-berry vines. Reef sea pickles also
+  emit a soft underwater light. All clustered in 16-block neighborhoods.
 
 ## Bounds contracts
 

@@ -14638,6 +14638,7 @@ block_definitions[ 1109 ].affected_by_redstone_power = false;
 block_definitions[ 1109 ].breaks_in_liquid = true;
 block_definitions[ 1109 ].casts_shadow = false;
 block_definitions[ 1109 ].collides_with_player = false;
+block_definitions[ 1109 ].emits_light = 5;
 block_definitions[ 1109 ].hardness = 0.0f;
 block_definitions[ 1109 ].icon_is_isometric = false;
 block_definitions[ 1109 ].is_seethrough = true;

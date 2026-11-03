@@ -3,6 +3,7 @@
   "breaks_in_liquid": true,
   "casts_shadow": false,
   "collides_with_player": false,
+  "emits_light": 5,
   "hardness": 0,
   "icon_is_isometric": false,
   "id": 1109,
