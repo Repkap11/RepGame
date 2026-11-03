@@ -917,6 +917,13 @@ int Chunk::can_extend_rect( const BlockState &blockState, const unsigned int *pa
 
 
 void Chunk::calculate_populated_blocks( ) {
+    // Meshing writes instances into a per-render-order thread-local scratch
+    // buffer (same lifetime model as tls_workingSpace below): lazily malloc'd
+    // at CHUNK_BLOCK_SIZE on first use and never freed, so chunks don't pay
+    // a multi-megabyte malloc + page faults per mesh. The used instances are
+    // memcpy'd into a right-sized malloc at the end.
+    static thread_local BlockCoords *tls_mesh_scratch[ LAST_RENDER_ORDER ] = { nullptr };
+    static thread_local int tls_mesh_scratch_cap[ LAST_RENDER_ORDER ] = { 0 };
     int num_instances[ LAST_RENDER_ORDER ] = { 0 };
     // Each populated_blocks layer starts at CHUNK_BLOCK_SIZE slots, but a
     // fence cell emits up to FENCE_MAX_BOXES instances (a gate
@@ -943,6 +950,8 @@ void Chunk::calculate_populated_blocks( ) {
         }
         this->layers[ renderOrder ].populated_blocks = grown;
         capacity[ renderOrder ] = new_capacity;
+        tls_mesh_scratch[ renderOrder ] = grown;
+        tls_mesh_scratch_cap[ renderOrder ] = new_capacity;
     };
 
     // Empty chunks (all air): skip meshing entirely — and skip the
@@ -962,13 +971,19 @@ void Chunk::calculate_populated_blocks( ) {
         return;
     }
 
-    // populated_blocks are filled sequentially (only num_instances entries are read later),
-    // so malloc suffices — no need to zero ~18.8MB per chunk.
-    for ( RenderLayer &layer : this->layers ) {
+    // populated_blocks are filled sequentially (only num_instances entries are read
+    // later) into the scratch buffer — no need to zero ~18.8MB per chunk.
+    for ( int renderOrder = 0; renderOrder < LAST_RENDER_ORDER; renderOrder++ ) {
+        RenderLayer &layer = this->layers[ renderOrder ];
         if ( layer.populated_blocks ) {
             pr_debug( "Error, populated blocks already populated" );
         }
-        layer.populated_blocks = static_cast<BlockCoords *>( malloc( CHUNK_BLOCK_SIZE * sizeof( BlockCoords ) ) );
+        if ( !tls_mesh_scratch[ renderOrder ] ) {
+            tls_mesh_scratch[ renderOrder ] = static_cast<BlockCoords *>( malloc( CHUNK_BLOCK_SIZE * sizeof( BlockCoords ) ) );
+            tls_mesh_scratch_cap[ renderOrder ] = CHUNK_BLOCK_SIZE;
+        }
+        layer.populated_blocks = tls_mesh_scratch[ renderOrder ];
+        capacity[ renderOrder ] = tls_mesh_scratch_cap[ renderOrder ];
     }
     // workingSpace needs has_been_drawn=false initially; reuse a thread-local buffer
     // to avoid calloc's page-mapping overhead. memset on resident pages is much faster.
@@ -1486,18 +1501,16 @@ void Chunk::calculate_populated_blocks( ) {
     }
     for ( int renderOrder = 0; renderOrder < LAST_RENDER_ORDER; renderOrder++ ) {
         this->layers[ renderOrder ].num_instances = num_instances[ renderOrder ];
-        // populated_blocks was allocated at full CHUNK_BLOCK_SIZE capacity but
-        // only num_instances entries were used. Shrink it before the chunk
-        // sits in the worker->render result queue, where the excess would be
-        // held until program_terrain frees it.
+        // Copy the used instances out of the scratch buffer into a right-sized
+        // allocation — populated_blocks must never point into the scratch past
+        // this function, since program_terrain/unprogram_terrain free() it.
         if ( num_instances[ renderOrder ] == 0 ) {
-            free( this->layers[ renderOrder ].populated_blocks );
             this->layers[ renderOrder ].populated_blocks = nullptr;
         } else {
-            BlockCoords *shrunk = static_cast<BlockCoords *>( realloc( this->layers[ renderOrder ].populated_blocks, num_instances[ renderOrder ] * sizeof( BlockCoords ) ) );
-            if ( shrunk ) {
-                this->layers[ renderOrder ].populated_blocks = shrunk;
-            }
+            const int n = num_instances[ renderOrder ];
+            BlockCoords *out = static_cast<BlockCoords *>( malloc( n * sizeof( BlockCoords ) ) );
+            memcpy( out, this->layers[ renderOrder ].populated_blocks, n * sizeof( BlockCoords ) );
+            this->layers[ renderOrder ].populated_blocks = out;
         }
     }
 }
