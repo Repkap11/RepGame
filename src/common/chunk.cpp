@@ -1509,7 +1509,12 @@ void Chunk::calculate_populated_blocks( ) {
         } else {
             const int n = num_instances[ renderOrder ];
             BlockCoords *out = static_cast<BlockCoords *>( malloc( n * sizeof( BlockCoords ) ) );
-            memcpy( out, this->layers[ renderOrder ].populated_blocks, n * sizeof( BlockCoords ) );
+            if ( out ) {
+                memcpy( out, this->layers[ renderOrder ].populated_blocks, n * sizeof( BlockCoords ) );
+            } else {
+                pr_debug( "Error, out of memory copying populated_blocks" );
+                this->layers[ renderOrder ].num_instances = 0;
+            }
             this->layers[ renderOrder ].populated_blocks = out;
         }
     }
