@@ -148,6 +148,10 @@ builds share the checked-in `cmake/toolchains/steamframe.cmake`.
 
 ## Server packaging
 
+- `make server-install` — one-time setup for a server-only host: apt-installs
+  just `SERVER_PACKAGES` (clang, ccache, cmake, ninja, wget, bsdtar, tmux) and
+  fetches `entt_build/`. No SDL3/GLEW/CUDA/HIP/imgui — use it instead of
+  `make install` on repkap11.com.
 - `make server-deploy` — `tools/server_deploy.sh`: push HEAD to the `repkap11`
   remote's master, ff-pull + `make server` on repkap11.com (cmake `server`
   preset — configures with no SDL3/GLEW/wayland; build happens before

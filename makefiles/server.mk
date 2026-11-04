@@ -14,6 +14,16 @@ all: server
 
 server: out/server/$(REPSERVER)
 
+# Server-only host setup (repkap11.com): just what `make server` and
+# tools/server_deploy.sh need — no SDL3/GLEW/CUDA/HIP/flatpak/emsdk like the
+# full `make install`. entt is the only third-party source the server uses.
+SERVER_PACKAGES := clang ccache cmake ninja-build wget libarchive-tools tmux
+
+# entt_build runs after apt (it needs wget + bsdtar), hence the sub-make.
+server-install:
+	sudo apt-get install -y $(SERVER_PACKAGES)
+	$(MAKE) entt_build
+
 server-run: server
 	./out/server/$(REPSERVER)
 
@@ -52,4 +62,4 @@ clean: clean-server
 clean-server:
 	rm -rf out/server
 
-.PHONY: server clean-server server-run server-test mp-test server-deploy
+.PHONY: server clean-server server-run server-test mp-test server-deploy server-install

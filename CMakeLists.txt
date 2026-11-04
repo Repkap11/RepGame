@@ -66,8 +66,13 @@ endif()
 option(REPGAME_CUDA "Build CUDA GPU objects" ${_cuda_default})
 option(REPGAME_HIP "Build HIP GPU objects" ${_hip_default})
 
-if(NOT EXISTS ${CMAKE_SOURCE_DIR}/imgui_build OR NOT EXISTS ${CMAKE_SOURCE_DIR}/entt_build)
-	message(FATAL_ERROR "imgui_build/ or entt_build/ is missing — run `make install` first")
+if(NOT EXISTS ${CMAKE_SOURCE_DIR}/entt_build)
+	message(FATAL_ERROR "entt_build/ is missing — run `make install` (or `make server-install` on a server-only host) first")
+endif()
+# The dedicated server never includes ImGui, so a server-only host doesn't
+# need imgui_build/.
+if(REPGAME_BUILD_CLIENT AND NOT EXISTS ${CMAKE_SOURCE_DIR}/imgui_build)
+	message(FATAL_ERROR "imgui_build/ is missing — run `make install` first")
 endif()
 
 list(APPEND CMAKE_MODULE_PATH ${CMAKE_SOURCE_DIR}/cmake)
