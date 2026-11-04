@@ -1,3 +1,4 @@
+#include <limits.h>
 #include <math.h>
 
 #include "common/RepGame.hpp"
@@ -43,6 +44,13 @@ static const unsigned char *get_font_data( int *out_size ) {
 
 MK_SHADER( text_vertex );
 MK_SHADER( text_fragment );
+
+// Gap between adjacent glyphs' ink, in raster texels (scaled by k with
+// everything else): each glyph advances by its ink width plus this.
+static constexpr int kLetterSpacing = 1;
+// Pen step for glyphs with no ink (space): the original cell was 7
+// texels; 4 reads as a word gap in a proportional pixel font.
+static constexpr int kSpaceAdvance = 4;
 
 // Interleaved vertex: position (x,y) + UV (u,v) per corner.
 struct TextVertex {
@@ -106,6 +114,30 @@ void FontRenderer::init( ) {
     // no partially-covered (gray) pixels survive.
     for ( int i = 0; i < atlas_width * atlas_height; i++ ) {
         atlas_pixels[ i ] = atlas_pixels[ i ] >= 128 ? 255 : 0;
+    }
+
+    // Proportional metrics: each glyph's leftmost/rightmost lit column in
+    // the same pen-relative integer geometry drawString uses
+    // (align_to_integer=1 from pen 0,0, so the bitmap lands at round(xoff)
+    // relative to the pen). The quad is shifted so ink starts at the pen
+    // and the pen steps by ink width + kLetterSpacing; glyphs with no ink
+    // (space) step by kSpaceAdvance.
+    for ( int i = 0; i < num_chars; i++ ) {
+        const stbtt_packedchar &g = glyphs[ i ];
+        const int qx0 = static_cast<int>( floorf( g.xoff + 0.5f ) );
+        int min_col = INT_MAX, max_col = INT_MIN;
+        for ( int y = g.y0; y < g.y1; y++ ) {
+            for ( int x = g.x0; x < g.x1; x++ ) {
+                if ( atlas_pixels[ y * atlas_width + x ] ) {
+                    const int col = qx0 + ( x - g.x0 );
+                    if ( col < min_col ) min_col = col;
+                    if ( col > max_col ) max_col = col;
+                }
+            }
+        }
+        this->glyph_has_ink[ i ] = min_col != INT_MAX;
+        this->glyph_shift[ i ] = min_col == INT_MAX ? 0 : -min_col;
+        this->glyph_advance[ i ] = min_col == INT_MAX ? kSpaceAdvance : max_col - min_col + 1 + kLetterSpacing;
     }
 
     // Convert the single-channel atlas to RGBA for maximum driver compatibility.
@@ -186,15 +218,22 @@ void FontRenderer::onScreenSizeChange( int w, int h ) {
 }
 
 float FontRenderer::getTextWidth( const char *text, float size ) const {
-    // Advances are integer-rounded at the raster size, matching the pen
-    // stepping in drawString, so measured and drawn widths always agree.
+    // Width is the sum of proportional pen steps, matching drawString, so
+    // measured and drawn widths always agree. The last glyph's trailing
+    // ink gap is excluded so the result is the visible extent (keeps
+    // centred/right-aligned text exact).
     const int k = pixelScale( size );
     float width = 0;
+    int last_idx = -1;
     for ( const char *p = text; *p; p++ ) {
         int codepoint = static_cast<unsigned char>( *p );
         if ( codepoint < first_char || codepoint >= first_char + num_chars ) continue;
-        const stbtt_packedchar &g = glyphs[ codepoint - first_char ];
-        width += roundf( g.xadvance );
+        const int cur_idx = codepoint - first_char;
+        width += this->glyph_advance[ cur_idx ];
+        last_idx = cur_idx;
+    }
+    if ( last_idx >= 0 && this->glyph_has_ink[ last_idx ] ) {
+        width -= kLetterSpacing;
     }
     return width * k;
 }
@@ -250,14 +289,18 @@ void FontRenderer::drawString( const Renderer &renderer, const char *text, float
     for ( const char *p = text; *p && quad_count < max_quads; p++ ) {
         int codepoint = static_cast<unsigned char>( *p );
         if ( codepoint < first_char || codepoint >= first_char + num_chars ) continue;
+        const int cur_idx = codepoint - first_char;
 
         stbtt_aligned_quad q;
         const float pen_start = pen_x;
         // align_to_integer=1 keeps every quad corner integer at the raster
-        // size; the pen is then stepped by the integer-rounded advance so
-        // fractional xadvance can't drift glyphs off the pixel grid.
-        stbtt_GetPackedQuad( glyphs, atlas_width, atlas_height, codepoint - first_char, &pen_x, &pen_y, &q, 1 );
-        pen_x = pen_start + roundf( glyphs[ codepoint - first_char ].xadvance );
+        // size; glyph_shift then moves the ink so its leftmost column sits
+        // at the pen, and the pen steps by the proportional advance — all
+        // integer texel counts, so nothing drifts off the pixel grid.
+        stbtt_GetPackedQuad( glyphs, atlas_width, atlas_height, cur_idx, &pen_x, &pen_y, &q, 1 );
+        q.x0 += this->glyph_shift[ cur_idx ];
+        q.x1 += this->glyph_shift[ cur_idx ];
+        pen_x = pen_start + this->glyph_advance[ cur_idx ];
 
         // Scale quad positions from native font_size to requested size,
         // and translate to (x, y). Every offset is an integer number of

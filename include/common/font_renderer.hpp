@@ -27,6 +27,14 @@ class FontRenderer {
     int first_char;
     int num_chars;
 
+    // Proportional metrics computed at init from the thresholded atlas.
+    // glyph_shift repositions the quad so the leftmost ink column sits at
+    // the pen; glyph_advance is the pen step (ink width + kLetterSpacing,
+    // kSpaceAdvance for glyphs with no ink like space).
+    int glyph_shift[ 95 ];
+    int glyph_advance[ 95 ];
+    bool glyph_has_ink[ 95 ];
+
     float font_size; // rasterized pixel size
     float ascent;
     float descent;

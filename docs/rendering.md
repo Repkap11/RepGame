@@ -28,7 +28,10 @@ LOW-tier path (no reflections/post-process).
   Debug Overlay (only where `SUPPORTS_IMGUI_OVERLAY`, else Block Debug
   View alone); and Exit Game (`input.exitGame`).
 - In-game text uses ProggyClean (`fonts/proggyclean.ttf`) drawn at integer
-  multiples of 13px with nearest filtering (`FontRenderer::pixelScale`).
+  multiples of 13px with nearest filtering (`FontRenderer::pixelScale`),
+  rendered proportionally: each glyph advances by its ink width plus 1
+  raster texel (`glyph_advance` in `font_renderer.cpp`), with a 4-texel
+  space.
 
 ## Render distance, fog and light
 
