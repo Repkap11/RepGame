@@ -187,8 +187,7 @@ void imgui_overlay_draw( ImGuiOverlay *imgui_overlay, Input &input, RepGameState
             if ( server.empty( ) ) {
                 ImGui::TextUnformatted( "Multiplayer: off" );
             } else if ( !state.multiplayer.is_active( ) && !state.multiplayer.is_connecting( ) && state.multiplayer.protocol_mismatch_version( ) >= 0 ) {
-                ImGui::Text( "Multiplayer: %s:%d disconnected (protocol mismatch: server v%d, client v%d)",
-                             server.c_str( ), state.multiplayer.server_port( ),
+                ImGui::Text( "Multiplayer: version mismatch (server v%d, client v%d)",
                              state.multiplayer.protocol_mismatch_version( ), NET_PROTOCOL_VERSION );
             } else {
                 const char *mp_status = state.multiplayer.is_active( ) ? "connected" : ( state.multiplayer.is_connecting( ) ? "connecting" : "disconnected" );
