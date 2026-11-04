@@ -194,7 +194,7 @@ void RepGame::draw_vr_ui( unsigned int fbo, int width, int height ) {
     glBlendFuncSeparate( GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA, GL_ONE, GL_ONE_MINUS_SRC_ALPHA );
     const glm::dvec3 render_pos = globalGameState.camera.pos + glm::dvec3( 0.0, globalGameState.camera.eye_height_render, 0.0 );
     const float daylight = glm::max( light_daylight_factor( globalGameState.world_time ), imgui_overlay_get_imgui_debug_vars( ).night_ambient );
-    draw_ui_pass( render_pos, daylight );
+    draw_ui_pass( render_pos, daylight, false );
     glBlendFunc( GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA );
     FrameBuffer::set_display( 0 );
 }

@@ -88,7 +88,9 @@ matching and the output slot are documented with the item/recipe data in
 - `ImGuiOverlay` (`SUPPORTS_IMGUI_OVERLAY` platforms): `shown` toggled
   by 'g' or `SHOW_IMGUI` at start; `ImGuiDebugVars` (position, world
   time, daylight, ambient floors, `LoaderDebugStats`, entity counts) is
-  refreshed per frame from `RepGame::draw`.
+  refreshed per frame from `RepGame::draw`. It stays visible while the
+  pause menu is open — `draw_ui_pass` draws it just before the menu, so
+  the menu panel lands on top.
 - `FontRenderer` draws bitmap text at integer `pixelScale` sizes —
   stack counts, pause labels, overlay text.
 

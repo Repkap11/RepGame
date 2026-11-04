@@ -301,10 +301,7 @@ void RepGame::draw_frame( float alpha, const RenderView *views, int num_views ) 
 
     {
         const long long t_ui_start = repgame_now_us( );
-        draw_ui_pass( render_pos, daylight );
-        if ( !run_policy().capture.enabled ) {
-            imgui_overlay_draw( &globalGameState.ui.imgui, globalGameState.input, globalGameState );
-        }
+        draw_ui_pass( render_pos, daylight, !run_policy().capture.enabled );
         profiling.us_ui_draw = repgame_now_us( ) - t_ui_start;
     }
     showErrors( );
@@ -465,9 +462,9 @@ glm::mat4 RepGame::projection_from_fov( float angle_left, float angle_right, flo
 }
 // The UI draw sequence shared by the flat tail and the VR UI layer pass.
 // Caller owns the bound FBO, viewport and blend state — this does the atlas
-// rebind, depth/stencil clear, overlay + held-item draws, and the VR laser
-// pointer marker.
-void RepGame::draw_ui_pass( const glm::dvec3 &render_pos, float daylight ) {
+// rebind, depth/stencil clear, overlay + held-item + ImGui draws, and the
+// VR laser pointer marker.
+void RepGame::draw_ui_pass( const glm::dvec3 &render_pos, float daylight, bool draw_imgui ) {
     // glTexParameteri edits the texture bound on the *active* unit, so
     // re-bind the atlas first — world.draw leaves the light unit active.
     globalGameState.blocksTexture.bind( );
@@ -536,7 +533,12 @@ void RepGame::draw_ui_pass( const glm::dvec3 &render_pos, float daylight ) {
         globalGameState.survival_inventory.inventory_renderer.getBlockMetrics( block_size, cell_size );
         globalGameState.ui.overlay.draw_held_inventory_item( globalGameState.ui.held_slot, globalGameState.ui.holding_slot, globalGameState.input.mouse.absPosition.x, globalGameState.input.mouse.absPosition.y, block_size, cell_size, globalGameState.world.renderer, globalGameState.blocksTexture, globalGameState.ui.font, globalGameState.screen.ortho_center );
     }
-    // The pause menu draws last, on top of the hotbar/inventory/held item.
+    // The ImGui overlay stays up under the pause menu but behind it.
+    if ( draw_imgui ) {
+        imgui_overlay_draw( &globalGameState.ui.imgui, globalGameState.input, globalGameState );
+    }
+    // The pause menu draws last, on top of the hotbar/inventory/held item
+    // and the ImGui overlay.
     if ( !run_policy().capture.enabled && globalGameState.input.menu_open ) {
         globalGameState.ui.pause.draw( globalGameState.world.renderer, globalGameState.ui.overlay.get_shader( ), globalGameState.blocksTexture, globalGameState.ui.font, globalGameState.screen.ortho_center, globalGameState );
     }

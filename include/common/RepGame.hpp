@@ -47,8 +47,10 @@ class RepGame {
     void process_vr_input( );
     // The UI draw sequence shared by the flat tail and draw_vr_ui: atlas
     // bind + CLAMP wrap, depth/stencil clear, ui_overlay + held item +
-    // VR pointer marker. Caller owns the FBO/bind/blend state.
-    void draw_ui_pass( const glm::dvec3 &render_pos, float daylight );
+    // VR pointer marker. Caller owns the FBO/bind/blend state. draw_imgui
+    // draws the ImGui debug overlay behind the pause menu (flat path only;
+    // VR passes false).
+    void draw_ui_pass( const glm::dvec3 &render_pos, float daylight, bool draw_imgui );
 
   public:
     // Per-frame profiling data (microseconds). Updated by draw() and read by
