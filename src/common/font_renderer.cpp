@@ -90,10 +90,13 @@ void FontRenderer::init( ) {
 
     // Use stbtt_PackBegin/stbtt_PackFontRange to create the atlas.
     // This handles glyph packing and UV coordinate computation correctly.
-    this->atlas_width = 256;
-    this->atlas_height = 128;
+    constexpr int kAtlasWidth = 256;
+    constexpr int kAtlasHeight = 128;
+    constexpr size_t kAtlasPixels = static_cast<size_t>( kAtlasWidth ) * kAtlasHeight;
+    this->atlas_width = kAtlasWidth;
+    this->atlas_height = kAtlasHeight;
 
-    unsigned char *atlas_pixels = static_cast<unsigned char *>( calloc( atlas_width * atlas_height, 1 ) );
+    unsigned char *atlas_pixels = static_cast<unsigned char *>( calloc( kAtlasPixels, 1 ) );
 
     stbtt_pack_context pack_ctx;
     int pack_ok = stbtt_PackBegin( &pack_ctx, atlas_pixels, atlas_width, atlas_height, 0, 1, nullptr );
@@ -141,8 +144,8 @@ void FontRenderer::init( ) {
     }
 
     // Convert the single-channel atlas to RGBA for maximum driver compatibility.
-    unsigned char *atlas_rgba = static_cast<unsigned char *>( malloc( atlas_width * atlas_height * 4 ) );
-    for ( int i = 0; i < atlas_width * atlas_height; i++ ) {
+    unsigned char *atlas_rgba = static_cast<unsigned char *>( malloc( kAtlasPixels * 4 ) );
+    for ( size_t i = 0; i < kAtlasPixels; i++ ) {
         unsigned char a = atlas_pixels[ i ];
         atlas_rgba[ i * 4 + 0 ] = 255;
         atlas_rgba[ i * 4 + 1 ] = 255;
