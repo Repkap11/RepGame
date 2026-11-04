@@ -6,7 +6,7 @@
 #include "common/renderer/shader.hpp"
 #include "common/vendor/stb_truetype.hpp"
 
-#if defined( REPGAME_LINUX ) || defined( REPGAME_WINDOWS )
+#if defined( REPGAME_LINUX ) || defined( REPGAME_WINDOWS ) || defined( REPGAME_ANDROID )
 MK_BLOB( fonts, proggyclean, ttf );
 static const unsigned char *get_font_data( int *out_size ) {
     *out_size = proggyclean.length;
@@ -34,11 +34,6 @@ static const unsigned char *get_font_data( int *out_size ) {
     }
     *out_size = wasm_font_size;
     return wasm_font_data;
-}
-#elif defined( REPGAME_ANDROID )
-extern unsigned char *repgame_android_getAssetBytes( const char *filename, int *out_size );
-static const unsigned char *get_font_data( int *out_size ) {
-    return repgame_android_getAssetBytes( "fonts/proggyclean.ttf", out_size );
 }
 #endif
 

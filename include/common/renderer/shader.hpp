@@ -5,7 +5,7 @@
 #include "binary_blobs.hpp"
 #include "common/renderer/texture.hpp"
 
-#if defined( REPGAME_LINUX ) || defined( REPGAME_WINDOWS )
+#if defined( REPGAME_LINUX ) || defined( REPGAME_WINDOWS ) || defined( REPGAME_ANDROID )
 typedef BinaryBlob ShaderSourceData;
 #define MK_SHADER( name ) MK_BLOB( src_shaders, name, glsl )
 
@@ -14,12 +14,6 @@ typedef struct {
     const char *path;
 } ShaderSourceData;
 #define MK_SHADER( name ) ShaderSourceData name = { .path = #name ".glsl" }
-
-#elif defined( REPGAME_ANDROID )
-typedef struct {
-    const char *resource_path;
-} ShaderSourceData;
-#define MK_SHADER( name ) ShaderSourceData name = { .resource_path = "shaders/" #name ".glsl" }
 #endif
 
 class Shader {

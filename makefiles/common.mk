@@ -45,48 +45,6 @@ LINUX_OUT ?= out/linux
 # this to out/appimage-portable so host and Docker AppImages don't clobber.
 APPIMAGE_OUT ?= out/appimage
 
-# Shader preprocessor: runs the C preprocessor on GLSL sources at build time.
-# -x assembler-with-cpp passes #version through untouched (it's not a valid C
-# preprocessor directive) while still expanding #define/#if/#ifdef/#endif.
-# -P suppresses line markers for clean GLSL output.
-# -nostdinc prevents system headers from leaking into shader preprocessing.
-# -I include/ lets shaders #include preprocessor-safe headers (e.g.
-# include/common/chunk_dimensions.hpp). Per-platform makefiles append only
-# -DREPGAME_<PLATFORM> (so that header picks the right CHUNK_SIZE_*) — the
-# quality tiers are runtime-only; all platforms compile the same shaders.
-SHADER_PP := gcc -E -P -x assembler-with-cpp -nostdinc -I include
-# Shader dep files live outside the output dirs: android assets and
-# out/wasm/fs are shipped verbatim, so .d files there would be packaged.
-SHADER_DEP_DIR := out/shader-deps
-# $(call shader_pp,<extra flags>) preprocesses $< to $@ and writes a gcc
-# dep file so every #included header becomes a prerequisite.
-define shader_pp
-@mkdir -p $(dir $@) $(dir $(SHADER_DEP_DIR)/$@)
-$(SHADER_PP) -MMD -MP -MT $@ -MF $(SHADER_DEP_DIR)/$@.d $(1) $< -o $@
-endef
-
-# Game textures are PNGs decoded by stb_image at load time. bitmaps/icons/
-# holds packaging assets (appimage/flatpak/wasm page), not textures — the
-# non-recursive wildcard only embeds the top level.
-BITMAP_PNGS := $(wildcard bitmaps/*.png)
-BITMAP_BINS := $(patsubst bitmaps/%.png,out/bitmaps/%.bin,$(BITMAP_PNGS))
-
-# Embed the whole .png as-is; texture.cpp decodes it with stb_image at load.
-out/bitmaps/%.bin : bitmaps/%.png makefiles/common.mk | out/bitmaps
-	cp $< $@
-
-out/bitmaps: | out
-	mkdir -p out/bitmaps
-	touch $@
-
-clean: clean-bitmaps
-clean-bitmaps:
-	rm -rf out/bitmaps
-
-clean: clean-shader-deps
-clean-shader-deps:
-	rm -rf out/shader-deps
-
 # Sounds: the source audio in sounds/ (untracked — see .gitignore) is listed in
 # tools/sounds_manifest.txt, converted to OGG Vorbis by tools/convert_sounds.sh
 # (needs ffmpeg), and embedded as blobs like the bitmaps. When sounds/ is
@@ -175,6 +133,4 @@ test: tests server-test
 
 test-all: test mp-test
 
-.PHONY: clean-bitmaps check mobs-import blocks-import test test-all mc_pack_build
-
-.PRECIOUS: $(BITMAP_BINS)
+.PHONY: check mobs-import blocks-import test test-all mc_pack_build

@@ -107,9 +107,10 @@ builds share the checked-in `cmake/toolchains/steamframe.cmake`.
 
 ## Android
 
-- `make android` / `make android_debug` — assets + APK build
-  (`android-shaders`, `android-bitmaps`, `android-fonts`,
-  `android-find-new-files` are the sub-steps).
+- `make android` / `make android_debug` — Gradle APK build; shaders,
+  bitmaps and fonts embed in libRepGameAndroid.so as blobs like the
+  desktop platforms (android/app/CMakeLists.txt reuses
+  `cmake/RepGameBlobs.cmake`).
 - `make android-run` / `make android_debug-run` — install to a device over
   adb and tail logcat.
 - `make android-deploy` — rsync the release APK to repkap11.com.

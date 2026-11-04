@@ -6,6 +6,10 @@
 # _WIN32 branch covers the mingw build; otherwise the .note.GNU-stack section
 # keeps the linked stack non-executable (the old `-z noexecstack` blob flag).
 
+# Repo root — this file is also included from android/app/CMakeLists.txt,
+# where CMAKE_SOURCE_DIR is android/app, so paths can't use it directly.
+get_filename_component(REPGAME_ROOT "${CMAKE_CURRENT_LIST_DIR}/.." ABSOLUTE)
+
 # repgame_blob(<out_var> <prefix> <name> <ext> <input file>)
 # Emits ${CMAKE_BINARY_DIR}/blobs/<prefix>_<name>_<ext>.S and returns it.
 function(repgame_blob out_var prefix name ext input)
@@ -24,7 +28,11 @@ _binary_${prefix}_${name}_${ext}_end:
 .global _binary_${prefix}_${name}_${ext}_size
 .set _binary_${prefix}_${name}_${ext}_size, _binary_${prefix}_${name}_${ext}_end - _binary_${prefix}_${name}_${ext}_start
 #if !defined(_WIN32)
+#if defined(__arm__) || defined(__aarch64__)
+.section .note.GNU-stack,\"\",%progbits
+#else
 .section .note.GNU-stack,\"\",@progbits
+#endif
 #endif
 ")
 	# The assembler depfile doesn't track .incbin — depend on the embedded
@@ -39,7 +47,7 @@ endfunction()
 function(repgame_preprocess_glsl out_dir out_list)
 	cmake_parse_arguments(PP "" "" "DEFINES" ${ARGN})
 	set(processed)
-	file(GLOB shader_srcs CONFIGURE_DEPENDS ${CMAKE_SOURCE_DIR}/src/shaders/*.glsl)
+	file(GLOB shader_srcs CONFIGURE_DEPENDS ${REPGAME_ROOT}/src/shaders/*.glsl)
 	foreach(src ${shader_srcs})
 		get_filename_component(name ${src} NAME_WE)
 		set(pp ${out_dir}/${name}.glsl)
@@ -49,7 +57,7 @@ function(repgame_preprocess_glsl out_dir out_list)
 		add_custom_command(OUTPUT ${pp}
 			COMMAND ${CMAKE_COMMAND} -E make_directory ${out_dir}
 			COMMAND ${CMAKE_COMMAND} -E make_directory ${CMAKE_BINARY_DIR}/shader-deps
-			COMMAND gcc -E -P -x assembler-with-cpp -nostdinc -I ${CMAKE_SOURCE_DIR}/include ${PP_DEFINES}
+			COMMAND gcc -E -P -x assembler-with-cpp -nostdinc -I ${REPGAME_ROOT}/include ${PP_DEFINES}
 				-MMD -MP -MT ${pp} -MF ${dep} ${src} -o ${pp}
 			DEPFILE ${dep}
 			DEPENDS ${src}
@@ -71,14 +79,14 @@ function(repgame_preprocess_wgsl out_dir gen_dir out_list)
 	set(block_ids ${gen_dir}/block_ids.inc)
 	add_custom_command(OUTPUT ${block_ids}
 		COMMAND ${CMAKE_COMMAND} -E make_directory ${gen_dir}
-		COMMAND awk -f ${CMAKE_SOURCE_DIR}/tools/gen_wgsl_block_ids.awk
-			${CMAKE_SOURCE_DIR}/include/common/block_ids_gen.hpp > ${block_ids}
-		DEPENDS ${CMAKE_SOURCE_DIR}/include/common/block_ids_gen.hpp
-			${CMAKE_SOURCE_DIR}/tools/gen_wgsl_block_ids.awk
+		COMMAND awk -f ${REPGAME_ROOT}/tools/gen_wgsl_block_ids.awk
+			${REPGAME_ROOT}/include/common/block_ids_gen.hpp > ${block_ids}
+		DEPENDS ${REPGAME_ROOT}/include/common/block_ids_gen.hpp
+			${REPGAME_ROOT}/tools/gen_wgsl_block_ids.awk
 		COMMENT "gen_wgsl_block_ids.awk block_ids.inc"
 		VERBATIM)
 	set(processed)
-	file(GLOB wgsl_srcs CONFIGURE_DEPENDS ${CMAKE_SOURCE_DIR}/src/shaders/*.wgsl)
+	file(GLOB wgsl_srcs CONFIGURE_DEPENDS ${REPGAME_ROOT}/src/shaders/*.wgsl)
 	foreach(src ${wgsl_srcs})
 		get_filename_component(name ${src} NAME_WE)
 		set(pp ${out_dir}/${name}.wgsl)
@@ -86,7 +94,7 @@ function(repgame_preprocess_wgsl out_dir gen_dir out_list)
 		add_custom_command(OUTPUT ${pp}
 			COMMAND ${CMAKE_COMMAND} -E make_directory ${out_dir}
 			COMMAND ${CMAKE_COMMAND} -E make_directory ${CMAKE_BINARY_DIR}/shader-deps
-			COMMAND gcc -E -P -x assembler-with-cpp -nostdinc -I ${CMAKE_SOURCE_DIR}/include -I ${gen_dir} -DREPGAME_WGSL_GEN
+			COMMAND gcc -E -P -x assembler-with-cpp -nostdinc -I ${REPGAME_ROOT}/include -I ${gen_dir} -DREPGAME_WGSL_GEN
 				-MMD -MP -MT ${pp} -MF ${dep} ${src} -o ${pp}
 			DEPFILE ${dep}
 			DEPENDS ${src} ${block_ids}
@@ -109,6 +117,35 @@ function(repgame_shader_blobs out_blobs out_processed)
 		repgame_blob(blob src_shaders ${name} glsl ${pp})
 		list(APPEND blobs ${blob})
 	endforeach()
+	set(${out_blobs} ${blobs} PARENT_SCOPE)
+	set(${out_processed} ${processed} PARENT_SCOPE)
+endfunction()
+
+# repgame_asset_blobs(<out_blobs> <out_processed> DEFINES <d>...)
+# Everything the client embeds except sounds: preprocessed GLSL blobs plus
+# the bitmaps/*.png (out_bitmaps prefix, bin ext — the names MK_TEXTURE
+# expects) and fonts/*.ttf (fonts prefix) blob sources.
+function(repgame_asset_blobs out_blobs out_processed)
+	cmake_parse_arguments(PP "" "" "DEFINES" ${ARGN})
+	repgame_shader_blobs(shader_blobs processed DEFINES ${PP_DEFINES})
+	set(blobs ${shader_blobs})
+
+	# Bitmaps embed the .png directly (stb_image decodes at load); symbols use
+	# the out_bitmaps_<name>_bin name MK_TEXTURE expects.
+	file(GLOB bitmap_pngs CONFIGURE_DEPENDS ${REPGAME_ROOT}/bitmaps/*.png)
+	foreach(png ${bitmap_pngs})
+		get_filename_component(name ${png} NAME_WE)
+		repgame_blob(blob out_bitmaps ${name} bin ${png})
+		list(APPEND blobs ${blob})
+	endforeach()
+
+	file(GLOB font_ttfs CONFIGURE_DEPENDS ${REPGAME_ROOT}/fonts/*.ttf)
+	foreach(ttf ${font_ttfs})
+		get_filename_component(name ${ttf} NAME_WE)
+		repgame_blob(blob fonts ${name} ttf ${ttf})
+		list(APPEND blobs ${blob})
+	endforeach()
+
 	set(${out_blobs} ${blobs} PARENT_SCOPE)
 	set(${out_processed} ${processed} PARENT_SCOPE)
 endfunction()

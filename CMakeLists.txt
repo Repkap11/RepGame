@@ -3,7 +3,8 @@ project(RepGame CXX)
 
 # One CMake build parameterized by platform (REPGAME_PLATFORM):
 # linux (client/server/GPU), arm, steamframe, windows, wasm. Android reuses
-# cmake/RepGameSources.cmake from its own Gradle-driven CMakeLists.
+# cmake/RepGameSources.cmake and cmake/RepGameBlobs.cmake from its own
+# Gradle-driven CMakeLists.
 # Make stays the task runner — see makefiles/*.mk.
 set(REPGAME_PLATFORM "linux" CACHE STRING "Target platform: linux|arm|steamframe|windows|wasm")
 set_property(CACHE REPGAME_PLATFORM PROPERTY STRINGS linux arm steamframe windows wasm)
@@ -199,24 +200,8 @@ endif()
 # ---- blobs (every platform except wasm) -----------------------------------
 set(REPGAME_BLOB_SOURCES)
 if(REPGAME_BUILD_CLIENT AND NOT REPGAME_PLATFORM STREQUAL "wasm")
-	repgame_shader_blobs(shader_blobs shader_processed DEFINES ${REPGAME_PLATFORM_SHADER_DEFINES})
-	list(APPEND REPGAME_BLOB_SOURCES ${shader_blobs})
-
-	# Bitmaps embed the .png directly (stb_image decodes at load); symbols use
-	# the out_bitmaps_<name>_bin name MK_TEXTURE expects.
-	file(GLOB bitmap_pngs CONFIGURE_DEPENDS ${CMAKE_SOURCE_DIR}/bitmaps/*.png)
-	foreach(png ${bitmap_pngs})
-		get_filename_component(name ${png} NAME_WE)
-		repgame_blob(blob out_bitmaps ${name} bin ${png})
-		list(APPEND REPGAME_BLOB_SOURCES ${blob})
-	endforeach()
-
-	file(GLOB font_ttfs CONFIGURE_DEPENDS ${CMAKE_SOURCE_DIR}/fonts/*.ttf)
-	foreach(ttf ${font_ttfs})
-		get_filename_component(name ${ttf} NAME_WE)
-		repgame_blob(blob fonts ${name} ttf ${ttf})
-		list(APPEND REPGAME_BLOB_SOURCES ${blob})
-	endforeach()
+	repgame_asset_blobs(asset_blobs shader_processed DEFINES ${REPGAME_PLATFORM_SHADER_DEFINES})
+	list(APPEND REPGAME_BLOB_SOURCES ${asset_blobs})
 
 	if(REPGAME_AUDIO)
 		# Sound blob per manifest entry; the .ogg conversion stays in make —
@@ -239,8 +224,8 @@ endif()
 set(REPGAME_WASM_FS_FILES)
 if(REPGAME_BUILD_CLIENT AND REPGAME_PLATFORM STREQUAL "wasm")
 	set(_fs ${CMAKE_BINARY_DIR}/fs)
-	# Same set as make's BITMAP_PNGS (bitmaps/*.png — icons/ is a subdir and
-	# doesn't ship in the preload).
+	# Same bitmap set as the blob builds (bitmaps/*.png — icons/ is a subdir
+	# and doesn't ship in the preload).
 	file(GLOB bitmap_pngs CONFIGURE_DEPENDS ${CMAKE_SOURCE_DIR}/bitmaps/*.png)
 	repgame_preprocess_glsl(${_fs}/src/shaders wasm_glsl DEFINES -DREPGAME_WASM)
 	repgame_preprocess_wgsl(${_fs}/src/shaders ${CMAKE_BINARY_DIR}/gen wasm_wgsl)

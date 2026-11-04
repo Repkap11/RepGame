@@ -7,7 +7,7 @@ typedef struct {
     int length;
 } BinaryBlob;
 
-#if defined( REPGAME_ANDROID ) || defined( REPGAME_WASM )
+#if defined( REPGAME_WASM )
 #define MK_BLOB( prefix, name, postfix )
 #else
 #define MK_BLOB( prefix, name, postfix )                                                                                                                                                                                                       \

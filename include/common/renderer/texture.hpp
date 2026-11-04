@@ -3,7 +3,7 @@
 
 #include "binary_blobs.hpp"
 typedef struct {
-#if defined( REPGAME_LINUX ) || defined( REPGAME_WINDOWS )
+#if defined( REPGAME_LINUX ) || defined( REPGAME_WINDOWS ) || defined( REPGAME_ANDROID )
     const BinaryBlob *blob;
 #else
     const char *filename;
@@ -14,7 +14,7 @@ typedef struct {
     unsigned int tile_size_down;
 } TextureSourceData;
 
-#if defined( REPGAME_LINUX ) || defined( REPGAME_WINDOWS )
+#if defined( REPGAME_LINUX ) || defined( REPGAME_WINDOWS ) || defined( REPGAME_ANDROID )
 #define MK_TEXTURE( name, width_, height_, tile_size_across_, tile_size_down_ )                                                                                                                                                                \
     MK_BLOB( out_bitmaps, name, bin );                                                                                                                                                                                                         \
     const TextureSourceData texture_source_##name = { .blob = &name, .width = width_, .height = height_, .tile_size_across = tile_size_across_, .tile_size_down = tile_size_down_ }
@@ -65,7 +65,6 @@ class Texture {
     // depth-stencil texture which stays attached for stencil only. Lets the
     // water shader read scene depth (for SSR) without texture views.
     void init_empty_depth( int blur_mag );
-    static void set_texture_data( unsigned int which_texture, unsigned char *textures, int textures_len );
 
     void destroy( );
     void bind( ) const;

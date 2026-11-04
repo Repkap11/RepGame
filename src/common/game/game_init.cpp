@@ -341,9 +341,6 @@ RepGameState *RepGame::init( const char *world_name, const bool connect_multi, c
     return &globalGameState;
 }
 
-void RepGame::set_textures( const unsigned int which_texture, unsigned char *textures, const int textures_len ) {
-    Texture::set_texture_data( which_texture, textures, textures_len );
-}
 void RepGame::save_player_data( ) {
     PlayerData saved_data;
     saved_data.world_x = globalGameState.camera.pos.x;

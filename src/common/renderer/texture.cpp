@@ -29,19 +29,6 @@ static unsigned char *decode_texture_png( const unsigned char *png, int png_len,
 #if defined( REPGAME_ANDROID )
 #define GL_TEXTURE_MAX_ANISOTROPY_EXT 0x84FE
 #define GL_MAX_TEXTURE_MAX_ANISOTROPY_EXT 0x84FF
-typedef struct {
-    unsigned char *png;
-    int png_len;
-} CachedTexture;
-static CachedTexture cached_texture[ 2 ];
-void Texture::set_texture_data( unsigned int which_texture, unsigned char *textures, int textures_len ) {
-    cached_texture[ which_texture ].png = textures;
-    cached_texture[ which_texture ].png_len = textures_len;
-}
-#else
-void Texture::set_texture_data( unsigned int which_texture, unsigned char *textures, int textures_len ) {
-    pr_debug( "textures_set_texture_data doesnt need to be called on Linux WASM or Windows" );
-}
 #endif
 
 #if defined( REPGAME_WASM )
@@ -63,17 +50,6 @@ static unsigned char *readFileBytes( const char *filename, int *out_len ) {
     fclose( file );
     *out_len = ( int )len;
     return data;
-}
-#endif
-#if defined( REPGAME_ANDROID )
-static CachedTexture readTextureDataFromCache( const char *filename ) {
-    pr_debug( "Returning texture for %s", filename );
-    if ( strcmp( filename, "bitmaps/blocks.bin" ) == 0 )
-        return cached_texture[ 0 ];
-    if ( strcmp( filename, "bitmaps/sky4.bin" ) == 0 )
-        return cached_texture[ 1 ];
-    pr_debug( "Cant find a texture for:%s", filename );
-    exit( 1 );
 }
 #endif
 
@@ -197,17 +173,13 @@ void Texture::loadTexture( const TextureSourceData &texture_source, int blur_mag
 
     int mem_size = texture_source.width * texture_source.height * BYTES_PER_PIXEL;
 
-#if defined( REPGAME_LINUX ) || defined( REPGAME_WINDOWS )
+#if defined( REPGAME_LINUX ) || defined( REPGAME_WINDOWS ) || defined( REPGAME_ANDROID )
     data = decode_texture_png( ( const unsigned char * )texture_source.blob->source, texture_source.blob->length, texture_source.width, texture_source.height );
 #elif defined( REPGAME_WASM )
     int png_len;
     unsigned char *png = readFileBytes( texture_source.filename, &png_len );
     data = decode_texture_png( png, png_len, texture_source.width, texture_source.height );
     free( png );
-#elif defined( REPGAME_ANDROID )
-    CachedTexture cached = readTextureDataFromCache( texture_source.filename );
-    data = decode_texture_png( cached.png, cached.png_len, texture_source.width, texture_source.height );
-    delete[] cached.png;
 #else
     data = NULL;
     pr_debug( "Undefined platform in textures.cpp mem_size:%d", mem_size );

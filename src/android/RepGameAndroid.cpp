@@ -3,50 +3,9 @@
 #include <string.h>
 #include <time.h>
 
-#include <android/asset_manager.h>
-#include <android/asset_manager_jni.h>
-
 #include "common/RepGame.hpp"
 
-static AAssetManager *assetManager;
 static RepGame repgame;
-
-char *repgame_android_getShaderString( const char *filename ) {
-    AAssetDir *assetDir = AAssetManager_openDir( assetManager, "" );
-    AAsset *asset = AAssetManager_open( assetManager, filename, AASSET_MODE_STREAMING );
-
-    int size = ( int )AAsset_getLength( asset );
-    size += 1;
-    char *buf = ( char * )malloc( size );
-
-    pr_debug( "About to asset %s size:%d", filename, size );
-
-    /* read the entire file into a string */
-    int read_size = AAsset_read( asset, buf, size );
-    pr_debug( "Read asset size:%d out of %d", read_size, size );
-    buf[ read_size ] = '\0';
-
-    AAsset_close( asset );
-    AAssetDir_close( assetDir );
-    pr_debug( "Done asset" );
-    return buf;
-}
-
-unsigned char *repgame_android_getAssetBytes( const char *filename, int *out_size ) {
-    AAsset *asset = AAssetManager_open( assetManager, filename, AASSET_MODE_STREAMING );
-    if ( !asset ) {
-        pr_debug( "Failed to open asset %s", filename );
-        *out_size = 0;
-        return nullptr;
-    }
-    int size = ( int )AAsset_getLength( asset );
-    unsigned char *buf = ( unsigned char * )malloc( size );
-    int read_size = AAsset_read( asset, buf, size );
-    AAsset_close( asset );
-    pr_debug( "Read binary asset %s size:%d/%d", filename, read_size, size );
-    *out_size = read_size;
-    return buf;
-}
 
 extern "C" {
 
@@ -62,27 +21,12 @@ static inline long long now_us( void ) {
     return ( long long )res.tv_sec * 1000000LL + ( long long )res.tv_nsec / 1000LL;
 }
 
-unsigned char *as_unsigned_char_array( JNIEnv *env, jbyteArray array, int *out_size ) {
-    int len = env->GetArrayLength( array );
-    unsigned char *buf = new unsigned char[ len ];
-    env->GetByteArrayRegion( array, 0, len, reinterpret_cast<jbyte *>( buf ) );
-    *out_size = len;
-    return buf;
-}
 int next_game_step;
 
-JNIEXPORT void JNICALL Java_com_repkap11_repgame_RepGameJNIWrapper_onSurfaceCreated( JNIEnv *env, jobject obj, jbyteArray texture_bytes0, jbyteArray texture_bytes1, jobject assetManager_java, jstring world_name_java ) {
+JNIEXPORT void JNICALL Java_com_repkap11_repgame_RepGameJNIWrapper_onSurfaceCreated( JNIEnv *env, jobject obj, jstring world_name_java ) {
     pr_debug( "################################# START #################################" );
     pr_debug( "Using OpenGL Version:%s", glGetString( GL_VERSION ) );
-    int textures_len;
-    unsigned char *texture;
     const char *world_name = env->GetStringUTFChars( world_name_java, 0 );
-
-    texture = as_unsigned_char_array( env, texture_bytes0, &textures_len );
-    repgame.set_textures( 0, texture, textures_len );
-    texture = as_unsigned_char_array( env, texture_bytes1, &textures_len );
-    repgame.set_textures( 1, texture, textures_len );
-    assetManager = AAssetManager_fromJava( env, assetManager_java );
 
     repgame.init( world_name, true, "repkap11.com", true );
     // repgame.init( world_name, true, "192.168.1.8", true );

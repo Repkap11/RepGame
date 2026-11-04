@@ -64,14 +64,10 @@ unsigned int shaderCompile( int type, const ShaderSourceData *shader_data ) {
 
     shader = glCreateShader( type );
 
-#if defined( REPGAME_LINUX ) || defined( REPGAME_WINDOWS )
+#if defined( REPGAME_LINUX ) || defined( REPGAME_WINDOWS ) || defined( REPGAME_ANDROID )
     glShaderSource( shader, 1, ( const char ** )&shader_data->source, &shader_data->length );
 #elif defined( REPGAME_WASM )
     char *source = shaderLoadSourceFromFile( shader_data->path );
-    int length = strlen( source );
-    glShaderSource( shader, 1, ( const char ** )&source, &length );
-#elif defined( REPGAME_ANDROID )
-    char *source = repgame_android_getShaderString( shader_data->resource_path );
     int length = strlen( source );
     glShaderSource( shader, 1, ( const char ** )&source, &length );
 #endif

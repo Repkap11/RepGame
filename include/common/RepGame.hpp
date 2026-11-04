@@ -90,7 +90,6 @@ class RepGame {
     // OpenXR convention: angleLeft/angleDown are negative). Matches
     // glm::perspective for symmetric FOVs; GL [-1,1] clip depth.
     static glm::mat4 projection_from_fov( float angle_left, float angle_right, float angle_up, float angle_down, float near_z, float far_z );
-    static void set_textures( unsigned int which_texture, unsigned char *textures, int textures_len );
     void cleanup( );
     // Writes current position/inventory/mode/clock to player.dat. Called by
     // cleanup() and, on WASM, periodically so crashes don't lose player state.
