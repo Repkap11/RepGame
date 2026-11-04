@@ -500,18 +500,10 @@ void RepGame::draw_ui_pass( const glm::dvec3 &render_pos, float daylight, bool d
             const float white[ 4 ] = { 1.0f, 1.0f, 1.0f, 1.0f };
             globalGameState.ui.font.drawString( globalGameState.world.renderer, "->", arrow_x, arrow_y, arrow_size, white, globalGameState.screen.ortho_center );
         }
-        if ( repgame_block_world( ) && globalGameState.block_selection.selectionInBounds ) {
-            // Block world: name the targeted block under the crosshair.
-            const BlockState target = globalGameState.world.get_loaded_block( globalGameState.block_selection.pos_destroy );
-            if ( target.id < LAST_BLOCK_ID ) {
-                const char *bname = block_definition_get_name( target.id );
-                char buf[ 160 ];
-                const Block *def = block_definition_get_definition( target.id );
-                const char *top = texture_name( def->textures[ FACE_TOP ] );
-                const char *side = texture_name( def->textures[ FACE_FRONT ] );
-                snprintf( buf, sizeof( buf ), "%s (%d)  top=%s side=%s",
-                          bname ? bname : "?", (int)target.id,
-                          top ? top : "?", side ? side : "?" );
+        {
+            // Name the item in the selected hotbar slot (empty slot: nothing).
+            const char *buf = item_name( globalGameState.hotbar.getSelectedItem( ) );
+            if ( buf ) {
                 const float text_size = 22.0f;
                 const float white[ 4 ] = { 1.0f, 1.0f, 1.0f, 1.0f };
                 const float tx = -globalGameState.ui.font.getTextWidth( buf, text_size ) / 2.0f;

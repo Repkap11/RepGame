@@ -209,6 +209,6 @@ once at y=1 on a 2-spaced grid (32 per row, starting at x=2/z=2), ordered
 layout lives in `MapGen::block_world_id`. The z<0 half of the y=1 plane
 holds a fixed fence showcase: an oak run with an inline gate, an L corner,
 a T and a + junction, a lone post, a fence against planks, an oak fence
-against nether brick (must not connect), and a nether brick run. The HUD shows the targeted
-block's `NAME (id)` and face textures under the crosshair; spawn is
+against nether brick (must not connect), and a nether brick run. The ImGui debug overlay
+shows the targeted block's `NAME (id)` ("Looking At"); spawn is
 (0.5, y=2, 0.5) facing +x/+z in creative mode.

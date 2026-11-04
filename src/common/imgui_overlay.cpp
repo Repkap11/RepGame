@@ -3,6 +3,7 @@
 #include "common/imgui_overlay.hpp"
 #include "common/utils/env_config.hpp"
 #include "common/audio.hpp"
+#include "common/block_definitions.hpp"
 #include "common/map_gen.hpp"
 
 ImGuiDebugVars debug_vars;
@@ -158,6 +159,13 @@ void imgui_overlay_draw( ImGuiOverlay *imgui_overlay, Input &input, RepGameState
             ImGui::Begin( "RepGame", nullptr, windowFlags );
             ImGui::Text( "Application average %.3f ms/frame (%.1f FPS)", 1000.0f / io.Framerate, io.Framerate );
             ImGui::Text( "Player Pos: %9.1f %9.1f %9.1f", debug_vars.player_pos.x, debug_vars.player_pos.y, debug_vars.player_pos.z );
+            if ( state.block_selection.selectionInBounds ) {
+                const BlockState target = state.world.get_loaded_block( state.block_selection.pos_destroy );
+                const char *bname = target.id < LAST_BLOCK_ID ? block_definition_get_name( target.id ) : nullptr;
+                ImGui::Text( "Looking At: %s (%d)", bname ? bname : "?", (int)target.id );
+            } else {
+                ImGui::TextUnformatted( "Looking At: --" );
+            }
             ImGui::Text( "Render Mode: %s", qualityName );
             ImGui::Text( "Render Distance: %d chunks (%d blocks)  [=/+ and -, 0 resets]", input.render_distance, input.render_distance * CHUNK_SIZE_X );
             const char *video_driver = SDL_GetCurrentVideoDriver( );
