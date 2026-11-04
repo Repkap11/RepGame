@@ -154,9 +154,14 @@ int repgame_sdl2_main( const char *world_path, const char *host, const bool conn
     }
     // Video driver hint is set in main() (RepGameLinux.cpp) before the first
     // SDL_Init, since SDL_Init is idempotent and locks in the driver early.
-    if ( !SDL_Init( SDL_INIT_VIDEO | SDL_INIT_AUDIO ) ) { /* Initialize SDL's Video+Audio subsystems */
+    if ( !SDL_Init( SDL_INIT_VIDEO ) ) {
         pr_debug( "Unable to initialize SDL: %s", SDL_GetError( ) ); /* Or die on error */
         exit( 1 );
+    }
+    // Audio is optional: with no reachable backend (e.g. a sandbox without an
+    // audio socket) audio_init's device open fails and the game runs silent.
+    if ( !SDL_InitSubSystem( SDL_INIT_AUDIO ) ) {
+        pr_debug( "SDL audio unavailable: %s", SDL_GetError( ) );
     }
     pr_debug( "SDL video driver: %s (hint=%s)", SDL_GetCurrentVideoDriver( ), SDL_GetHint( SDL_HINT_VIDEO_DRIVER ) );
 

@@ -19,6 +19,8 @@ finish-args:
   # GPU compute for terrain/mesh gen: ROCm needs /dev/kfd and CUDA needs
   # /dev/nvidia* — neither is covered by --device=dri. Supersedes dri.
   - --device=all
+  # Audio (PulseAudio socket; PipeWire serves it via pipewire-pulse)
+  - --socket=pulseaudio
   # Needs to talk to the network:
   - --share=network
 modules:
