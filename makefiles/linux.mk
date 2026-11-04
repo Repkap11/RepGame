@@ -19,8 +19,10 @@ CFLAGS_LINUX += -DREPGAME_LINUX
 # this stops glew.h from pulling in <GL/glu.h>.
 CFLAGS_LINUX += -DGLEW_NO_GLU
 
+ifneq ($(REPGAME_COMPLETION),1)
 CFLAGS_LINUX += $(shell pkg-config --cflags sdl3)
 CFLAGS_LINUX += $(shell pkg-config --cflags wayland-client)
+endif
 CFLAGS_LINUX += $(CFLAGS_AUDIO)
 # Honored on the link line; ?= silences the undefined-variable warning when
 # the environment doesn't set it (e.g. flatpak-builder passes -L/app/lib).
@@ -84,7 +86,9 @@ SOUND_BLOBS_LINUX := $(patsubst %,$(LINUX_OUT)/sounds/%.o,$(SOUNDS_ENABLED))
 $(LINUX_OUT)/shaders/%.glsl: src/shaders/%.glsl makefiles/common.mk makefiles/linux.mk | $(LINUX_OUT)
 	$(call shader_pp,-DREPGAME_LINUX)
 
+ifneq ($(REPGAME_COMPLETION),1)
 -include $(patsubst %,$(SHADER_DEP_DIR)/%.d,$(SHADER_PROCESSED_LINUX))
+endif
 
 $(LINUX_OUT)/shaders/%.o : $(LINUX_OUT)/shaders/%.glsl makefiles/linux.mk | $(LINUX_OUT)
 	ld $(LFLAGS) -r -b binary $< -o $@_no_section
@@ -120,9 +124,9 @@ deploy: linux-deploy
 linux-deploy: $(LINUX_OUT)/release/$(TARGET)
 	rsync $< paul@repkap11.com:/home/paul/website/${TARGET_LOWER}
 
-LINUX_DIRS := $(patsubst src%,$(LINUX_OUT)/release%,$(shell find src -type d)) \
-		$(patsubst src%,$(LINUX_OUT)/debug%,$(shell find src -type d)) \
-		$(patsubst src%,$(LINUX_OUT)%,$(shell find src -type d)) \
+LINUX_DIRS := $(patsubst src%,$(LINUX_OUT)/release%,$(SRC_DIRS)) \
+		$(patsubst src%,$(LINUX_OUT)/debug%,$(SRC_DIRS)) \
+		$(patsubst src%,$(LINUX_OUT)%,$(SRC_DIRS)) \
 		$(LINUX_OUT)/debug $(LINUX_OUT)/release \
 		$(LINUX_OUT)/shaders $(LINUX_OUT)/bitmaps $(LINUX_OUT)/fonts \
 		$(LINUX_OUT)/sounds \
@@ -154,7 +158,9 @@ $(LINUX_OUT)/release/imgui/%.o: imgui_build/%.cpp | $(LINUX_OUT)
 	$(CC_LINUX) $(INCLUDES_COMMON) $(CFLAGS_LINUX) $(CFLAGS_LINUX_RELEASE) -Wno-error -MMD -MP -MF $(patsubst %.o,%.d,$@) -MT $(patsubst %.d,%.o,$@) -c $< -o $@
 
 #Include these .d files, so the dependicies are known for secondary builds.
+ifneq ($(REPGAME_COMPLETION),1)
 -include $(DEPS_LINUX)
+endif
 
 $(LINUX_OUT)/release/$(TARGET): $(OBJECTS_IMGUI_LINUX_RELEASE) $(OBJECTS_COMMON_LINUX_RELEASE) $(OBJECTS_LINUX_RELEASE) $(SHADER_BLOBS_LINUX) $(BITMAP_BLOBS_LINUX) $(FONT_BLOBS_LINUX) $(SOUND_BLOBS_LINUX) | $(LINUX_OUT)
 	$(CC_LINUX) -flto $(CCLD_LINUX) $(CFLAGS_LINUX) $(CFLAGS_LINUX_RELEASE) $(OBJECTS_LINUX_RELEASE) $(OBJECTS_IMGUI_LINUX_RELEASE) $(OBJECTS_COMMON_LINUX_RELEASE) $(SHADER_BLOBS_LINUX) $(BITMAP_BLOBS_LINUX) $(FONT_BLOBS_LINUX) $(SOUND_BLOBS_LINUX) $(LDFLAGS) $(LIBS_LINUX) -o $@

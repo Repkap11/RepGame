@@ -87,7 +87,7 @@ wasm-install: packages
 all: wasm
 wasm: out/wasm/delivery/$(TARGET).js out/wasm/delivery/index.html out/wasm/delivery/reset.css out/wasm/delivery/index.css out/wasm/delivery/index.js out/wasm/delivery/icon.png
 
-WASM_DIRS = $(patsubst src%,out/wasm%,$(shell find src -type d)) \
+WASM_DIRS = $(patsubst src%,out/wasm%,$(SRC_DIRS)) \
 			out/wasm \
 			out/wasm/fs \
 			out/wasm/fs/src \
@@ -141,7 +141,9 @@ out/wasm/gen/block_ids.inc: include/common/block_ids_gen.hpp tools/gen_wgsl_bloc
 out/wasm/fs/src/shaders/%.wgsl: src/shaders/%.wgsl out/wasm/gen/block_ids.inc makefiles/common.mk makefiles/wasm.mk | out/wasm
 	$(call shader_pp,-I out/wasm/gen -DREPGAME_WGSL_GEN)
 
+ifneq ($(REPGAME_COMPLETION),1)
 -include $(patsubst %,$(SHADER_DEP_DIR)/%.d,$(WASM_SHADERS) $(WASM_WGSL_SHADERS))
+endif
 
 out/wasm/fs/bitmaps/% : out/bitmaps/% | out/wasm
 	cp $< $@

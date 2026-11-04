@@ -78,7 +78,9 @@ SOUND_BLOBS_ARM := $(patsubst %,$(ARM_OUT)/sounds/%.o,$(SOUNDS_ENABLED))
 $(ARM_OUT)/shaders/%.glsl: src/shaders/%.glsl makefiles/common.mk makefiles/arm.mk | $(ARM_OUT)
 	$(call shader_pp,-DREPGAME_LINUX -DREPGAME_GLES)
 
+ifneq ($(REPGAME_COMPLETION),1)
 -include $(patsubst %,$(SHADER_DEP_DIR)/%.d,$(SHADER_PROCESSED_ARM))
+endif
 
 $(ARM_OUT)/shaders/%.o : $(ARM_OUT)/shaders/%.glsl makefiles/arm.mk | $(ARM_OUT)
 	$(LD_BLOB_ARM) $(LFLAGS_ARM) -r -b binary $< -o $@_no_section
@@ -107,9 +109,9 @@ $(ARM_OUT)/sounds/%.o : $(SOUND_OGG_DIR)/%.ogg makefiles/arm.mk makefiles/common
 arm: $(ARM_OUT)/release/$(TARGET)
 arm_debug: $(ARM_OUT)/debug/$(TARGET)
 
-ARM_DIRS := $(patsubst src%,$(ARM_OUT)/release%,$(shell find src -type d)) \
-	$(patsubst src%,$(ARM_OUT)/debug%,$(shell find src -type d)) \
-	$(patsubst src%,$(ARM_OUT)%,$(shell find src -type d)) \
+ARM_DIRS := $(patsubst src%,$(ARM_OUT)/release%,$(SRC_DIRS)) \
+	$(patsubst src%,$(ARM_OUT)/debug%,$(SRC_DIRS)) \
+	$(patsubst src%,$(ARM_OUT)%,$(SRC_DIRS)) \
 	$(ARM_OUT)/debug $(ARM_OUT)/release \
 	$(ARM_OUT)/shaders $(ARM_OUT)/bitmaps $(ARM_OUT)/fonts \
 	$(ARM_OUT)/sounds \
@@ -136,7 +138,9 @@ $(ARM_OUT)/release/imgui/%.o: imgui_build/%.cpp | $(ARM_OUT)
 	$(CC_ARM) $(INCLUDES_COMMON) $(CFLAGS_ARM) $(CFLAGS_ARM_RELEASE) -Wno-error -MMD -MP -MF $(patsubst %.o,%.d,$@) -MT $(patsubst %.d,%.o,$@) -c $< -o $@
 
 #Include these .d files, so the dependicies are known for secondary builds.
+ifneq ($(REPGAME_COMPLETION),1)
 -include $(DEPS_ARM)
+endif
 
 $(ARM_OUT)/release/$(TARGET): $(OBJECTS_IMGUI_ARM_RELEASE) $(OBJECTS_COMMON_ARM_RELEASE) $(OBJECTS_ARM_RELEASE) $(SHADER_BLOBS_ARM) $(BITMAP_BLOBS_ARM) $(FONT_BLOBS_ARM) $(SOUND_BLOBS_ARM) | $(ARM_OUT)
 	$(CC_ARM) -flto $(CCLD_ARM) $(CFLAGS_ARM) $(CFLAGS_ARM_RELEASE) $(OBJECTS_ARM_RELEASE) $(OBJECTS_IMGUI_ARM_RELEASE) $(OBJECTS_COMMON_ARM_RELEASE) $(SHADER_BLOBS_ARM) $(BITMAP_BLOBS_ARM) $(FONT_BLOBS_ARM) $(SOUND_BLOBS_ARM) $(LIBS_ARM) -o $@

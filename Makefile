@@ -6,10 +6,15 @@ endif
 
 #This target can be used to depend on the contents of the makefiles
 
-CPUS ?= $(shell nproc || echo 1)
+#bash-completion runs `make -npq __BASH_MAKE_COMPLETION__=1 .DEFAULT`; skip dep files and pkg-config then
+ifdef __BASH_MAKE_COMPLETION__
+REPGAME_COMPLETION := 1
+endif
+REPGAME_COMPLETION ?= 0
 
-#Current version of Ubuntu running make
-UBUNTU_VERSION := $(shell lsb_release -r -s)
+ifndef CPUS
+CPUS := $(shell nproc || echo 1)
+endif
 
 #SHELL = sh -xv
 

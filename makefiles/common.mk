@@ -41,7 +41,8 @@ define shader_pp
 $(SHADER_PP) -MMD -MP -MT $@ -MF $(SHADER_DEP_DIR)/$@.d $(1) $< -o $@
 endef
 
-SRC_COMMON := $(wildcard src/common/*.cpp) $(wildcard src/common/**/*.cpp) 
+SRC_DIRS := $(shell find src -type d)
+SRC_COMMON := $(wildcard src/common/*.cpp) $(wildcard src/common/**/*.cpp)
 SRC_IMGUI := imgui_build/backends/imgui_impl_sdl3.cpp $(wildcard imgui_build/imgui*.cpp)  imgui_build/backends/imgui_impl_opengl3.cpp
 SRC_ALL_C := $(wildcard src/**/*.cpp) $(wildcard src/**/**/*.cpp) $(wildcard src/**/*.cu) $(wildcard src/**/**/*.cu)
 INCLUDES_COMMON := -I include/ -I include/glm -I imgui_build -I imgui_build/backends -isystem entt_build/src

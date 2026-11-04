@@ -30,14 +30,10 @@ CFLAGS_HIP :=  $(CFLAGS_WARNINGS) -Wno-c++20-designator \
 CFLAGS_HIP_COMPILE := -x hip -c -fno-rtti
 
 
-SUPPORTS_HIP := $(shell lspci | grep VGA | grep -i amd | wc -l )
-
-# ifeq ($(SUPPORTS_HIP),1) #If the current linux GPU is AMD, use HIP to accelerate terrain gen
 LIBS_LINUX += -lamdhip64
 CFLAGS_LINUX += -DREPGAME_BUILD_WITH_HIP
 OBJECTS_COMMON_LINUX_RELEASE += $(OBJECTS_HIP)
 OBJECTS_COMMON_LINUX_DEBUG += $(OBJECTS_HIP)
-# endif
 
 
 $(LINUX_OUT)/linux/hip/%.o: src/linux/hip/%.hip $(HEADERS) | $(LINUX_OUT)

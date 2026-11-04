@@ -6,7 +6,7 @@ REPSERVER := $(TARGET)Server
 
 OBJECTS_SERVER = $(patsubst src/server/%.cpp,out/server/%.o, $(wildcard src/server/*.cpp) out/linux/debug/common/utils/file_utils.o out/linux/debug/common/utils/map_storage.o out/linux/debug/common/utils/player_data.o out/linux/debug/common/chunk_buffer_pool.o out/linux/debug/common/net/packet.o out/linux/debug/common/net/framed_socket.o)
 DEPS_SERVER := $(patsubst src/server/%.cpp,out/server/%.d, $(wildcard src/server/*.cpp))
-SERVER_DIRS := $(patsubst src/server%,out/server%,$(shell find src/server -type d))
+SERVER_DIRS := $(patsubst src/server%,out/server%,$(filter src/server%,$(SRC_DIRS)))
 
 
 out/server/$(REPSERVER): $(OBJECTS_SERVER) $(REP_MAKEFILES) | out/server
@@ -21,7 +21,9 @@ out/server/%.o: src/server/%.cpp | out/server
 	$(CC_LINUX) $(INCLUDES_COMMON) $(CFLAGS_LINUX) $(CFLAGS_LINUX_DEBUG) -MMD -MP -MF $(patsubst %.o,%.d,$@) -MT $(patsubst %.d,%.o,$@) -c $< -o $@
 
 #Include these .d files, so the dependicies are known for secondary builds.
+ifneq ($(REPGAME_COMPLETION),1)
 -include $(DEPS_SERVER)
+endif
 
 .PRECIOUS: out/server/$(REPSERVER) $(OBJECTS_SERVER)
 

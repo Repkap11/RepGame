@@ -42,7 +42,9 @@ SOUND_BLOBS_WINDOWS := $(patsubst %,out/windows/sounds/%.o,$(SOUNDS_ENABLED))
 out/windows/shaders/%.glsl: src/shaders/%.glsl makefiles/common.mk makefiles/windows.mk | out/windows
 	$(call shader_pp,-DREPGAME_WINDOWS)
 
+ifneq ($(REPGAME_COMPLETION),1)
 -include $(patsubst %,$(SHADER_DEP_DIR)/%.d,$(SHADER_PROCESSED_WINDOWS))
+endif
 
 out/windows/shaders/%.o : out/windows/shaders/%.glsl makefiles/windows.mk | out/windows
 	$(LD_WINDOWS) -r -b binary $< -o $@_no_section
@@ -77,7 +79,7 @@ deploy: windows-deploy
 windows-deploy: out/windows/$(TARGET).exe
 	rsync $< paul@repkap11.com:/home/paul/website/${TARGET_LOWER}
 
-WINDOWS_DIRS = $(patsubst src%,out/windows%,$(shell find src -type d)) \
+WINDOWS_DIRS = $(patsubst src%,out/windows%,$(SRC_DIRS)) \
 		out/windows/shaders out/windows/bitmaps out/windows/fonts \
 		out/windows/sounds \
 		out/windows/imgui \
@@ -94,7 +96,9 @@ out/windows/imgui/%.o: imgui_build/%.cpp windows_build | out/windows
 	$(CC_WINDOWS) $(INCLUDES_WINDOWS) $(INCLUDES_COMMON) $(CFLAGS_WINDOWS) -Wno-error -MMD -MP -MF $(patsubst %.o,%.d,$@) -MT $(patsubst %.d,%.o,$@) -c $< -o $@
 
 #Include these .d files, so the dependicies are known for secondary builds.
+ifneq ($(REPGAME_COMPLETION),1)
 -include $(DEPS_WINDOWS)
+endif
 
 out/windows/$(TARGET).exe: windows_build $(OBJECTS_COMMON_WINDOWS) $(OBJECTS_IMGUI_WINDOWS) $(OBJECTS_WINDOWS) $(SHADER_BLOBS_WINDOWS) $(BITMAP_BLOBS_WINDOWS) $(FONT_BLOBS_WINDOWS) $(SOUND_BLOBS_WINDOWS) | out/windows
 	$(CC_WINDOWS) -flto $(CFLAGS_WINDOWS) $(OBJECTS_WINDOWS) $(OBJECTS_COMMON_WINDOWS) $(OBJECTS_IMGUI_WINDOWS) $(SHADER_BLOBS_WINDOWS) $(BITMAP_BLOBS_WINDOWS) $(FONT_BLOBS_WINDOWS) $(SOUND_BLOBS_WINDOWS) $(LIBS_WINDOWS) -o $@

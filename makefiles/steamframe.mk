@@ -108,7 +108,9 @@ SOUND_BLOBS_SF := $(patsubst %,$(SF_OUT)/sounds/%.o,$(SOUNDS_ENABLED))
 $(SF_OUT)/shaders/%.glsl: src/shaders/%.glsl makefiles/common.mk makefiles/steamframe.mk | $(SF_OUT)
 	$(call shader_pp,-DREPGAME_LINUX -DREPGAME_GLES -DREPGAME_STEAMFRAME)
 
+ifneq ($(REPGAME_COMPLETION),1)
 -include $(patsubst %,$(SHADER_DEP_DIR)/%.d,$(SHADER_PROCESSED_SF))
+endif
 
 $(SF_OUT)/shaders/%.o : $(SF_OUT)/shaders/%.glsl makefiles/steamframe.mk | $(SF_OUT)
 	$(SF_OBJCOPY) -I binary -O elf64-littleaarch64 $< $@_no_section
@@ -137,9 +139,9 @@ $(SF_OUT)/sounds/%.o : $(SOUND_OGG_DIR)/%.ogg makefiles/steamframe.mk makefiles/
 steamframe: $(SF_OUT)/release/$(TARGET)
 steamframe_debug: $(SF_OUT)/debug/$(TARGET)
 
-SF_DIRS := $(patsubst src%,$(SF_OUT)/release%,$(shell find src -type d)) \
-	$(patsubst src%,$(SF_OUT)/debug%,$(shell find src -type d)) \
-	$(patsubst src%,$(SF_OUT)%,$(shell find src -type d)) \
+SF_DIRS := $(patsubst src%,$(SF_OUT)/release%,$(SRC_DIRS)) \
+	$(patsubst src%,$(SF_OUT)/debug%,$(SRC_DIRS)) \
+	$(patsubst src%,$(SF_OUT)%,$(SRC_DIRS)) \
 	$(SF_OUT)/debug $(SF_OUT)/release \
 	$(SF_OUT)/shaders $(SF_OUT)/bitmaps $(SF_OUT)/fonts \
 	$(SF_OUT)/sounds \
@@ -166,7 +168,9 @@ $(SF_OUT)/release/imgui/%.o: imgui_build/%.cpp | $(SF_OUT)
 	$(CC_SF) $(INCLUDES_COMMON) $(CFLAGS_SF) $(CFLAGS_SF_RELEASE) -Wno-error -MMD -MP -MF $(patsubst %.o,%.d,$@) -MT $(patsubst %.d,%.o,$@) -c $< -o $@
 
 #Include these .d files, so the dependicies are known for secondary builds.
+ifneq ($(REPGAME_COMPLETION),1)
 -include $(DEPS_SF)
+endif
 
 # No UPX for the Frame build — the devkit upload wants a plain ELF.
 $(SF_OUT)/release/$(TARGET): $(OBJECTS_IMGUI_SF_RELEASE) $(OBJECTS_COMMON_SF_RELEASE) $(OBJECTS_SF_RELEASE) $(SHADER_BLOBS_SF) $(BITMAP_BLOBS_SF) $(FONT_BLOBS_SF) $(SOUND_BLOBS_SF) | $(SF_OUT)

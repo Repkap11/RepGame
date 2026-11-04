@@ -68,7 +68,9 @@ android-fonts: $(ANDROID_FONTS)
 android/app/src/main/assets/shaders/%.glsl: src/shaders/%.glsl makefiles/common.mk makefiles/android.mk | $(ANDROID_DIRS)
 	$(call shader_pp,-DREPGAME_ANDROID)
 
+ifneq ($(REPGAME_COMPLETION),1)
 -include $(patsubst %,$(SHADER_DEP_DIR)/%.d,$(ANDROID_SHADERS))
+endif
 
 android/app/src/main/res/raw/%: out/bitmaps/% | $(ANDROID_DIRS)
 	cp $< $@
