@@ -62,22 +62,30 @@ void PauseMenu::onScreenSizeChange( const int width, const int height, const Fon
     this->num_regions = 0;
     this->num_rows = 0;
 
-    int row_kinds[ MAX_ROWS ];
-    int n = 0;
-    row_kinds[ n++ ] = BUTTON_RESUME;
+    // Lines of one or two side-by-side buttons; the steppers are always
+    // alone on their line. Compile-time gaps leave a single-button line,
+    // which is just a full-width button.
+    struct Line {
+        int kinds[ 3 ];
+        int count;
+    };
+    Line lines[ MAX_ROWS ];
+    int nl = 0;
+    lines[ nl++ ] = Line{ { BUTTON_RESUME }, 1 };
 #if SUPPORTS_FRAME_BUFFER
-    row_kinds[ n++ ] = BUTTON_GRAPHICS;
+    lines[ nl++ ] = Line{ { BUTTON_GRAPHICS, BUTTON_SHADOW }, 2 };
+#else
+    lines[ nl++ ] = Line{ { BUTTON_SHADOW }, 1 };
 #endif
-    row_kinds[ n++ ] = BUTTON_SHADOW;
-    row_kinds[ n++ ] = BUTTON_RENDER_ROW;
-    row_kinds[ n++ ] = BUTTON_BRIGHT_ROW;
-    row_kinds[ n++ ] = BUTTON_DEBUG_VIEW;
-    row_kinds[ n++ ] = BUTTON_GAME_MODE;
-    row_kinds[ n++ ] = BUTTON_FLYING;
+    lines[ nl++ ] = Line{ { BUTTON_RENDER_ROW }, 1 };
+    lines[ nl++ ] = Line{ { BUTTON_BRIGHT_ROW }, 1 };
+    lines[ nl++ ] = Line{ { BUTTON_GAME_MODE, BUTTON_FLYING }, 2 };
 #if SUPPORTS_IMGUI_OVERLAY
-    row_kinds[ n++ ] = BUTTON_IMGUI;
+    lines[ nl++ ] = Line{ { BUTTON_DEBUG_VIEW, BUTTON_IMGUI }, 2 };
+#else
+    lines[ nl++ ] = Line{ { BUTTON_DEBUG_VIEW }, 1 };
 #endif
-    row_kinds[ n++ ] = BUTTON_EXIT;
+    lines[ nl++ ] = Line{ { BUTTON_EXIT }, 1 };
 
     // Like InventoryRenderer::onSizeChange, the UI is sized as a fraction of
     // a 16:9-normalized height so buttons stay finger-sized on wide phones.
@@ -130,21 +138,32 @@ void PauseMenu::onScreenSizeChange( const int width, const int height, const Fon
         title_height = font.getCapHeight( this->title_size );
         const float hpad = t;               // text padding inside a button
         button_width = 0.0f;
-        for ( int i = 0; i < n; i++ ) {
-            const char *label = worst_label( row_kinds[ i ], worst_buf, sizeof( worst_buf ) );
-            float row_w;
-            if ( is_stepper_row( row_kinds[ i ] ) ) {
+        for ( int i = 0; i < nl; i++ ) {
+            const Line &line = lines[ i ];
+            float line_w;
+            if ( line.count == 1 && is_stepper_row( line.kinds[ 0 ] ) ) {
                 // - and + squares at the ends, reset button between them.
-                row_w = 2.0f * button_height + 2.0f * gap + 2.0f * hpad + font.getTextWidth( label, t );
+                const char *label = worst_label( line.kinds[ 0 ], worst_buf, sizeof( worst_buf ) );
+                line_w = 2.0f * button_height + 2.0f * gap + 2.0f * hpad + font.getTextWidth( label, t );
             } else {
-                row_w = font.getTextWidth( label, t ) + 2.0f * hpad;
+                // c equal cells sharing the line's gap; a single-button
+                // line degenerates to its own worst-label width.
+                float max_cell_w = 0.0f;
+                for ( int j = 0; j < line.count; j++ ) {
+                    const char *label = worst_label( line.kinds[ j ], worst_buf, sizeof( worst_buf ) );
+                    const float cell_w = font.getTextWidth( label, t ) + 2.0f * hpad;
+                    if ( cell_w > max_cell_w ) {
+                        max_cell_w = cell_w;
+                    }
+                }
+                line_w = line.count * max_cell_w + ( line.count - 1 ) * gap;
             }
-            if ( row_w > button_width ) {
-                button_width = row_w;
+            if ( line_w > button_width ) {
+                button_width = line_w;
             }
         }
         panel_width = button_width + 2.0f * pad;
-        panel_height = pad + title_height + pad + n * button_height + ( n - 1 ) * gap + pad;
+        panel_height = pad + title_height + pad + nl * button_height + ( nl - 1 ) * gap + pad;
         if ( panel_height <= height * 0.9f && panel_width <= width * 0.95f ) {
             break;
         }
@@ -169,20 +188,16 @@ void PauseMenu::onScreenSizeChange( const int width, const int height, const Fon
     const float buttons_right = panel_right - pad;
     // Same padding between the title band and the first button.
     const float buttons_top = panel_top - pad - title_height - pad;
-    for ( int i = 0; i < n; i++ ) {
+    for ( int i = 0; i < nl; i++ ) {
+        const Line &line = lines[ i ];
         const float btn_top = buttons_top - i * ( button_height + gap );
         const float btn_y = btn_top - button_height;
         const float btn_cy = btn_y + button_height / 2.0f;
-        Row &row = this->rows[ this->num_rows++ ];
-        row.button = row_kinds[ i ];
-        row.center_y = btn_cy;
-        row.left_cx = 0.0f;
-        row.right_cx = 0.0f;
-        if ( is_stepper_row( row_kinds[ i ] ) ) {
+        if ( line.count == 1 && is_stepper_row( line.kinds[ 0 ] ) ) {
             // [-] [label] [+]: the middle button resets the value to the
             // default (like the '0' key for render distance).
             int minus, reset, plus;
-            stepper_ids( row_kinds[ i ], minus, reset, plus );
+            stepper_ids( line.kinds[ 0 ], minus, reset, plus );
             const float minus_x = buttons_left;
             const float plus_x = buttons_right - button_height;
             const float mid_x = minus_x + button_height + gap;
@@ -190,14 +205,32 @@ void PauseMenu::onScreenSizeChange( const int width, const int height, const Fon
             add_quad( this->render_chain_quads, minus_x, btn_y, button_height, button_height, ORDER_Z_MENU_BUTTON, 0.35f, 0.35f, 0.35f, 1.0f );
             add_quad( this->render_chain_quads, mid_x, btn_y, mid_w, button_height, ORDER_Z_MENU_BUTTON, 0.35f, 0.35f, 0.35f, 1.0f );
             add_quad( this->render_chain_quads, plus_x, btn_y, button_height, button_height, ORDER_Z_MENU_BUTTON, 0.35f, 0.35f, 0.35f, 1.0f );
+            Row &row = this->rows[ this->num_rows++ ];
+            row.button = line.kinds[ 0 ];
+            row.center_x = mid_x + mid_w / 2.0f;
+            row.center_y = btn_cy;
             row.left_cx = minus_x + button_height / 2.0f;
             row.right_cx = plus_x + button_height / 2.0f;
             this->regions[ this->num_regions++ ] = Region{ minus, minus_x, btn_y, button_height, button_height };
             this->regions[ this->num_regions++ ] = Region{ reset, mid_x, btn_y, mid_w, button_height };
             this->regions[ this->num_regions++ ] = Region{ plus, plus_x, btn_y, button_height, button_height };
         } else {
-            add_quad( this->render_chain_quads, buttons_left, btn_y, button_width, button_height, ORDER_Z_MENU_BUTTON, 0.35f, 0.35f, 0.35f, 1.0f );
-            this->regions[ this->num_regions++ ] = Region{ row_kinds[ i ], buttons_left, btn_y, button_width, button_height };
+            // Equal cells; x edges snap to whole pixels (like the panel
+            // edges) so the gaps between cells stay even.
+            const float cell_w = ( button_width - ( line.count - 1 ) * gap ) / line.count;
+            for ( int j = 0; j < line.count; j++ ) {
+                const float cell_x = j == 0 ? buttons_left : lroundf( buttons_left + j * ( cell_w + gap ) );
+                const float cell_right = j == line.count - 1 ? buttons_right : lroundf( cell_x + cell_w );
+                const float cell_w_px = cell_right - cell_x;
+                add_quad( this->render_chain_quads, cell_x, btn_y, cell_w_px, button_height, ORDER_Z_MENU_BUTTON, 0.35f, 0.35f, 0.35f, 1.0f );
+                Row &row = this->rows[ this->num_rows++ ];
+                row.button = line.kinds[ j ];
+                row.center_x = cell_x + cell_w_px / 2.0f;
+                row.center_y = btn_cy;
+                row.left_cx = 0.0f;
+                row.right_cx = 0.0f;
+                this->regions[ this->num_regions++ ] = Region{ line.kinds[ j ], cell_x, btn_y, cell_w_px, button_height };
+            }
         }
     }
 }
@@ -291,7 +324,7 @@ void PauseMenu::draw( const Renderer &renderer, Shader &shader, const Texture &b
             font.drawString( renderer, "+", row.right_cx - font.getTextWidth( "+", this->text_size ) / 2.0f, baseline, this->text_size, white, mvp );
         }
         if ( buf[ 0 ] != '\0' ) {
-            font.drawString( renderer, buf, -font.getTextWidth( buf, this->text_size ) / 2.0f, baseline, this->text_size, white, mvp );
+            font.drawString( renderer, buf, row.center_x - font.getTextWidth( buf, this->text_size ) / 2.0f, baseline, this->text_size, white, mvp );
         }
     }
     showErrors( );

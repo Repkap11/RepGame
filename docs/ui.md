@@ -79,8 +79,9 @@ matching and the output slot are documented with the item/recipe data in
   `held_block_light` sampled at the camera), and the dragged item — all
   through the shared ui_overlay shader that `PauseMenu` also borrows via
   `get_shader`.
-- `PauseMenu` lays out button rows in centered coords (`hitTest` returns
-  `BUTTON_*`); rows are compile-time-gated
+- `PauseMenu` lays out buttons in centered coords (`hitTest` returns
+  `BUTTON_*`), grouped into lines of one or two side-by-side cells; line
+  contents are compile-time-gated
   (`SUPPORTS_FRAME_BUFFER`/`SUPPORTS_IMGUI_OVERLAY`) and the steppers
   reuse `min_ambient_step`. `input.menu_open` swallows gameplay input
   while it's up.

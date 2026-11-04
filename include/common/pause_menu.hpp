@@ -6,11 +6,11 @@
 
 struct RepGameState;
 
-// Escape / Android-menu pause screen: a dim backdrop, a centered panel, and a
-// column of tappable buttons drawn with the flat (non-block) UIOverlay
-// instancing path. Row visibility is compile-time: the graphics-quality row
-// only exists where SUPPORTS_FRAME_BUFFER, the ImGui row where
-// SUPPORTS_IMGUI_OVERLAY.
+// Escape / Android-menu pause screen: a dim backdrop, a centered panel, and
+// tappable buttons drawn with the flat (non-block) UIOverlay instancing
+// path, laid out in lines of one or two side-by-side cells. Line contents
+// are compile-time: the graphics-quality button only exists where
+// SUPPORTS_FRAME_BUFFER, the ImGui one where SUPPORTS_IMGUI_OVERLAY.
 class PauseMenu {
   public:
     enum Button {
@@ -44,9 +44,10 @@ class PauseMenu {
         int button;
         float x, y, w, h;
     };
-    // Per-row label anchors parallel to the layout pass.
+    // Per-button label anchors parallel to the layout pass.
     struct Row {
         int button; // BUTTON_*; BUTTON_*_ROW for the -/+ stepper rows
+        float center_x; // label center: cell center, or the stepper's mid button
         float center_y;
         float left_cx;  // stepper rows only: minus-button center x
         float right_cx; // stepper rows only: plus-button center x

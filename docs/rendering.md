@@ -16,15 +16,17 @@ LOW-tier path (no reflections/post-process).
 - Escape (desktop) or the "Menu" button / Back (Android) opens the pause menu
   — it no longer quits directly. Pressing it again resumes; Back/inv while
   the inventory is open closes the inventory instead.
-- Rows: Resume, Graphics quality (same as `r`; hidden where
-  `SUPPORTS_FRAME_BUFFER` is 0 — Android/WASM always render the LOW path),
-  Render Distance `-`/`+` (clamped to `1..RENDER_RADIUS_MAX`; clicking the
-  label resets to `RENDER_RADIUS_DEFAULT`, same as `0`), Cave Brightness
-  `-`/`+` (5% steps, clamped 0..100% of `min_ambient`; clicking the label
-  resets to the 5% default — the value persists in `player.dat` and
-  `REPGAME_MIN_AMBIENT` overrides the saved value), Block Debug
-  View (`m`), Game Mode, Flying, Debug Overlay (only where
-  `SUPPORTS_IMGUI_OVERLAY`), and Exit Game (`input.exitGame`).
+- Buttons are grouped into lines of one or two side-by-side cells: Resume;
+  Graphics quality | Shadows (Graphics is the `r` key quality, absent where
+  `SUPPORTS_FRAME_BUFFER` is 0 — Android/WASM always render the LOW path,
+  leaving Shadows full-width); Render Distance `-`/`+` (clamped to
+  `1..RENDER_RADIUS_MAX`; clicking the label resets to
+  `RENDER_RADIUS_DEFAULT`, same as `0`); Cave Brightness `-`/`+` (5% steps,
+  clamped 0..100% of `min_ambient`; clicking the label resets to the 5%
+  default — the value persists in `player.dat` and `REPGAME_MIN_AMBIENT`
+  overrides the saved value); Game Mode | Flying; Block Debug View (`m`) |
+  Debug Overlay (only where `SUPPORTS_IMGUI_OVERLAY`, else Block Debug
+  View alone); and Exit Game (`input.exitGame`).
 - In-game text uses ProggyClean (`fonts/proggyclean.ttf`) drawn at integer
   multiples of 13px with nearest filtering (`FontRenderer::pixelScale`).
 
