@@ -115,7 +115,10 @@ shards discussed earlier:
   claim-vs-BFS exclusion too: a pop's read/write footprint is bounded by
   the 3x3 columns around its target — mirror writes only reach ±1 chunk
   per axis and only toward the border the cell sits on, so `light_pop_cols`
-  computes the precise 1-9 column set (1 for strictly-interior cells).
+  computes the precise 1-9 column set (1 for strictly-interior cells) from
+  every step direction — an xz edge diagonal from a cell one in from a
+  chunk corner writes the corner cell, whose mirrors reach the diagonal
+  chunk.
   Claims take the 3x3 set. Pops try-lock with a bounded spin
   (`light_col_lock_spin`, `LIGHT_COL_SPIN_TRIES` = 1024 tries with a CPU
   pause hint) — sized to outlast a single pop-step hold (~µs) so

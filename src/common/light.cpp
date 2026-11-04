@@ -1025,7 +1025,7 @@ static int light_claim_cols( const int cx, const int cz, int out[ 9 ] ) {
 }
 
 // Lock set for one BFS seed — the columns the step can read or write. The
-// step reads pos's own cell and inspects/writes its 6 neighbors; each
+// step reads pos's own cell and inspects/writes its 18 step neighbors; each
 // neighbor write goes through light_set, whose mirror matrix reaches the
 // cell's own column +/-1 on each axis where the cell sits on a border —
 // the cartesian product of its border-axis offsets. Face-edge seeds take
@@ -1050,8 +1050,11 @@ static int light_pop_cols( const glm::ivec3 &block_pos, LightPopCol out[ 9 ] ) {
     int n = 0;
     glm::ivec2 seen[ 9 ];
     seen[ n++ ] = glm::ivec2( cp.x, cp.z );
-    for ( const glm::ivec3 &d : light_dirs ) {
-        const glm::ivec3 p = block_pos + d;
+    // Every step dir, not just faces: an xz edge diagonal from a cell one
+    // in from a chunk corner writes the corner cell, whose mirrors reach
+    // the diagonal chunk — a column no face neighbor's offsets cover.
+    for ( const LightStepDir &sd : light_step_dirs ) {
+        const glm::ivec3 p = block_pos + sd.d;
         const glm::ivec3 c = light_chunk_pos_of( p );
         const glm::ivec3 l = p - c * CHUNK_SIZE_I;
         const int xo = l.x == 0 ? -1 : ( l.x == CHUNK_SIZE_X - 1 ? 1 : 0 );
@@ -1455,6 +1458,75 @@ void ChunkLoader::light_mark_dirty_all( Chunk &chunk ) {
                         glm::ivec3( CHUNK_SIZE_INTERNAL_X - 1, CHUNK_SIZE_INTERNAL_Y - 1, CHUNK_SIZE_INTERNAL_Z - 1 ) ),
         std::memory_order_release );
     light_upload_enqueue( chunk );
+    // Bulk rewrites (finalize, reseed) bypass the per-cell mirror-mark walk,
+    // but a smoothing owner's halo texels in its neighbours depend on cells
+    // one in from its border — which no mirror write touches. Re-mark the
+    // slabs this chunk owns so those copies follow the new field.
+    if ( light_smooth_enabled( ) ) {
+        if ( light_smooth_in_radius( this->chunk_center, chunk.chunk_pos ) ) {
+            this->light_remark_owned_halos( chunk );
+        }
+        this->light_remark_shell_copies( chunk );
+    }
+}
+
+// Second-order halo dependency of a bulk rewrite: a cell w in the one-cell
+// shell around `chunk` belongs to a neighbour O, and if O smooths, w's
+// texel reads our border cells. Copies of w held in O's OTHER neighbours
+// (w on one of O's borders) therefore change too — the per-cell walk in
+// light_mark_dirty_now reaches them, a whole-volume mark doesn't. Only
+// shell cells on an edge of O have such copies, so most of the scan is
+// arithmetic.
+void ChunkLoader::light_remark_shell_copies( Chunk &chunk ) {
+    const glm::ivec3 base = chunk.chunk_pos * CHUNK_SIZE_I;
+    const glm::ivec3 sz( CHUNK_SIZE_X, CHUNK_SIZE_Y, CHUNK_SIZE_Z );
+    for ( int x = -1; x <= CHUNK_SIZE_X; x++ ) {
+        for ( int y = -1; y <= CHUNK_SIZE_Y; y++ ) {
+            for ( int z = -1; z <= CHUNK_SIZE_Z; z++ ) {
+                const bool inside_x = x >= 0 && x < CHUNK_SIZE_X;
+                const bool inside_y = y >= 0 && y < CHUNK_SIZE_Y;
+                if ( inside_x && inside_y && z >= 0 && z < CHUNK_SIZE_Z ) {
+                    z = CHUNK_SIZE_Z - 1; // skip our own volume
+                    continue;
+                }
+                const glm::ivec3 w = base + glm::ivec3( x, y, z );
+                const glm::ivec3 op = light_chunk_pos_of( w );
+                if ( !light_smooth_in_radius( this->chunk_center, op ) ) {
+                    continue;
+                }
+                const glm::ivec3 wl = w - op * CHUNK_SIZE_I;
+                int opts[ 3 ][ 2 ];
+                int cnt[ 3 ];
+                for ( int a = 0; a < 3; a++ ) {
+                    opts[ a ][ 0 ] = 0;
+                    cnt[ a ] = 1;
+                    if ( wl[ a ] == 0 ) {
+                        opts[ a ][ cnt[ a ]++ ] = -1;
+                    } else if ( wl[ a ] == sz[ a ] - 1 ) {
+                        opts[ a ][ cnt[ a ]++ ] = 1;
+                    }
+                }
+                for ( int ix = 0; ix < cnt[ 0 ]; ix++ ) {
+                    for ( int iy = 0; iy < cnt[ 1 ]; iy++ ) {
+                        for ( int iz = 0; iz < cnt[ 2 ]; iz++ ) {
+                            const glm::ivec3 off( opts[ 0 ][ ix ], opts[ 1 ][ iy ], opts[ 2 ][ iz ] );
+                            if ( off == glm::ivec3( 0 ) || op + off == chunk.chunk_pos ) {
+                                continue; // owner / us — covered by the owner's own marks
+                            }
+                            Chunk *c = this->get_chunk( op + off );
+                            if ( !c || c->load_state || c->light_texture == 0 ) {
+                                continue;
+                            }
+                            const glm::ivec3 c_local = w - c->chunk_pos * CHUNK_SIZE_I;
+                            if ( light_local_ok( c_local ) ) {
+                                light_mark_texel( *c, c_local );
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
 }
 
 // The "Shadows" quality toggle flipped: the uploaded copy of every live
@@ -3959,11 +4031,25 @@ void ChunkLoader::light_upload_dirty( const int max_uploads ) {
                 chunk->light_upload_listed.store( 0, std::memory_order_release );
                 chunk->light_upload_defers = 0;
                 chunk->light_uploaded_once = 1;
+                // Taking a READY buffer consumes only what the worker
+                // snapshotted; marks that landed during the stage are still
+                // in the box, and their enqueue found the chunk already
+                // listed. Keep it listed (it survives the rebuild below) so
+                // the next pass uploads them. The no-op RMW orders this read
+                // against concurrent mark CASes the way the IDLE path's
+                // exchange does: a mark after it sees listed==0 and
+                // re-enqueues itself.
+                const auto take_ready = [ & ]( ) {
+                    if ( chunk->light_dirty_box.fetch_add( 0, std::memory_order_acq_rel ) != LIGHT_BOX_EMPTY ) {
+                        chunk->light_upload_listed.store( 1, std::memory_order_relaxed );
+                    }
+                    entries.push_back( { chunk, 0, true } );
+                };
                 unsigned s = chunk->light_stage_state.load( std::memory_order_relaxed );
                 if ( LIGHT_STAGE_STATUS( s ) == LIGHT_STAGE_READY ) {
                     // The worker already exchanged the box and filled the
                     // staged buffer — just upload it.
-                    entries.push_back( { chunk, 0, true } );
+                    take_ready( );
                     continue;
                 }
                 // A smoothed fill costs ~25x the raw expand — hand it to a
@@ -3987,7 +4073,7 @@ void ChunkLoader::light_upload_dirty( const int max_uploads ) {
                 // The CAS can only fail if a worker published mid-pass —
                 // its staged buffer is newer than what we'd fill inline.
                 if ( LIGHT_STAGE_STATUS( s ) == LIGHT_STAGE_READY ) {
-                    entries.push_back( { chunk, 0, true } );
+                    take_ready( );
                     continue;
                 }
                 entries.push_back( { chunk, chunk->light_dirty_box.exchange( LIGHT_BOX_EMPTY, std::memory_order_acq_rel ), false } );
@@ -4331,6 +4417,169 @@ void ChunkLoader::light_heal_idle( ) {
             healed++;
         }
     }
+}
+
+// Fixed-point check over every interior cell of each settled chunk: a
+// converged field has every non-opaque cell equal to the best offer from
+// its step neighbors (or its own emission). Sources across a chunk face
+// read the owner's canonical value and gates from the owner's cells[].
+// Under-lit = some neighbor offers more than stored; over-lit = stored
+// exceeds every offer (stale light nothing supports) — skipped where a
+// source chunk is missing, since the offer is then only a lower bound.
+// Also counts halo mirrors that disagree with their canonical owner.
+void ChunkLoader::light_debug_verify( ) {
+    long long cells = 0, under[ 2 ] = { 0, 0 }, over[ 2 ] = { 0, 0 }, mirror_bad = 0;
+    int logged = 0;
+    const auto settled = []( const Chunk *c ) { return c && !c->load_state && c->light_finalized.load( std::memory_order_relaxed ); };
+    for ( int i = 0; i < MAX_LOADED_CHUNKS; i++ ) {
+        Chunk &chunk = this->chunkArray[ i ];
+        if ( !settled( &chunk ) ) {
+            continue;
+        }
+        const Chunk *nb[ 27 ];
+        for ( int k = 0; k < 27; k++ ) {
+            const glm::ivec3 o( k / 9 - 1, ( k / 3 ) % 3 - 1, k % 3 - 1 );
+            nb[ k ] = o == glm::ivec3( 0 ) ? &chunk : this->get_chunk( chunk.chunk_pos + o );
+        }
+        const auto owner_of = [ & ]( const glm::ivec3 &l, glm::ivec3 &l_out ) -> const Chunk * {
+            const glm::ivec3 o( l.x < 0 ? -1 : l.x >= CHUNK_SIZE_X ? 1 : 0, l.y < 0 ? -1 : l.y >= CHUNK_SIZE_Y ? 1 : 0, l.z < 0 ? -1 : l.z >= CHUNK_SIZE_Z ? 1 : 0 );
+            l_out = l - o * CHUNK_SIZE_I;
+            const Chunk *c = nb[ ( o.x + 1 ) * 9 + ( o.y + 1 ) * 3 + ( o.z + 1 ) ];
+            return settled( c ) ? c : nullptr;
+        };
+        for ( int x = -1; x <= CHUNK_SIZE_X; x++ ) {
+            for ( int y = -1; y <= CHUNK_SIZE_Y; y++ ) {
+                for ( int z = -1; z <= CHUNK_SIZE_Z; z++ ) {
+                    const glm::ivec3 c( x, y, z );
+                    const bool halo = x < 0 || y < 0 || z < 0 || x >= CHUNK_SIZE_X || y >= CHUNK_SIZE_Y || z >= CHUNK_SIZE_Z;
+                    const unsigned short cell = light_read_cell( chunk, light_index( x, y, z ) );
+                    if ( halo ) {
+                        glm::ivec3 ol;
+                        const Chunk *owner = owner_of( c, ol );
+                        if ( owner && light_read_cell( *owner, light_index( ol.x, ol.y, ol.z ) ) != cell ) {
+                            mirror_bad++;
+                        }
+                        continue;
+                    }
+                    const BlockID c_id = light_cell_id_at( chunk.cells, c );
+                    if ( light_opaque_id( c_id ) ) {
+                        continue;
+                    }
+                    cells++;
+                    for ( int ch = 0; ch < 2; ch++ ) {
+                        const int stored = ch == LIGHT_CHANNEL_BLOCK ? light_get_block( cell ) : light_get_sky( cell );
+                        int best = ch == LIGHT_CHANNEL_BLOCK ? block_definition_get_definition( c_id )->emits_light * LIGHT_RAW_PER_LEVEL : 0;
+                        bool complete = true;
+                        for ( int d = 0; d < LIGHT_STEP_COUNT; d++ ) {
+                            const LightStepDir &sd = light_step_dirs[ d ];
+                            glm::ivec3 sl;
+                            const Chunk *src = owner_of( c - sd.d, sl );
+                            if ( !src ) {
+                                complete = false;
+                                continue;
+                            }
+                            const unsigned short scell = light_read_cell( *src, light_index( sl.x, sl.y, sl.z ) );
+                            const int sv = ch == LIGHT_CHANNEL_BLOCK ? light_get_block( scell ) : light_get_sky( scell );
+                            if ( sv <= 0 ) {
+                                continue;
+                            }
+                            const bool s_floor = block_definition_get_definition( light_cell_id_at( src->cells, sl ) )->blocks_light_down;
+                            if ( s_floor && sd.d.y < 0 ) {
+                                continue;
+                            }
+                            if ( sd.ngates && !light_diag_open( src->cells, sl, sd, s_floor ) ) {
+                                continue;
+                            }
+                            best = std::max( best, light_offered( sv, ch, d, c_id ) );
+                        }
+                        const bool is_under = stored < best;
+                        const bool is_over = complete && stored > best && stored > 0;
+                        if ( !is_under && !is_over ) {
+                            continue;
+                        }
+                        ( is_under ? under : over )[ ch ]++;
+                        if ( logged < 20 ) {
+                            logged++;
+                            const glm::ivec3 w = chunk.chunk_pos * CHUNK_SIZE_I + c;
+                            pr_debug( "Light verify: %s-lit %s at (%d,%d,%d) stored=%d best=%d", is_under ? "under" : "over", ch == LIGHT_CHANNEL_SKY ? "sky" : "block",
+                                      w.x, w.y, w.z, stored, best );
+                        }
+                    }
+                }
+            }
+        }
+    }
+    pr_debug( "Light verify: %lld cells, under sky=%lld block=%lld, over sky=%lld block=%lld, bad mirrors=%lld", cells, under[ LIGHT_CHANNEL_SKY ],
+              under[ LIGHT_CHANNEL_BLOCK ], over[ LIGHT_CHANNEL_SKY ], over[ LIGHT_CHANNEL_BLOCK ], mirror_bad );
+#if ( defined( REPGAME_LINUX ) || defined( REPGAME_WINDOWS ) ) && !defined( REPGAME_GLES )
+    // GPU side: read each light texture back and compare with a fresh
+    // full-volume fill of the current field — catches lost/stale uploads
+    // that leave the screen dark over a correct field.
+    const bool mipmaps = light_mipmaps_enabled( );
+    const int bpp = mipmaps ? 4 : 2;
+    const glm::ivec3 full( CHUNK_SIZE_INTERNAL_X, CHUNK_SIZE_INTERNAL_Y, CHUNK_SIZE_INTERNAL_Z );
+    std::vector<unsigned char> want( static_cast<size_t>( CHUNK_BLOCK_SIZE ) * bpp ), got( want.size( ) );
+    long long tex_checked = 0, tex_bad_chunks = 0, tex_bad_texels = 0, tex_mode_pending = 0;
+    int tex_logged = 0;
+    for ( int i = 0; i < MAX_LOADED_CHUNKS; i++ ) {
+        Chunk &chunk = this->chunkArray[ i ];
+        if ( !settled( &chunk ) || chunk.light_texture == 0 ) {
+            continue;
+        }
+        const bool self_smooth = chunk.light != nullptr && light_smooth_here( this, chunk.chunk_pos );
+        if ( chunk.light_tex_mode.load( std::memory_order_relaxed ) != ( self_smooth ? 2 : 1 ) ) {
+            tex_mode_pending++;
+            continue;
+        }
+        tex_checked++;
+        this->light_fill_upload_box( chunk, glm::ivec3( 0 ), full, mipmaps, self_smooth, want.data( ) );
+        glActiveTexture( GL_TEXTURE0 + light_texture_unit( ) );
+        glBindTexture( GL_TEXTURE_3D, chunk.light_texture );
+        glPixelStorei( GL_PACK_ALIGNMENT, 1 );
+        glGetTexImage( GL_TEXTURE_3D, 0, mipmaps ? GL_RGBA : GL_RG, GL_UNSIGNED_BYTE, got.data( ) );
+        glPixelStorei( GL_PACK_ALIGNMENT, 4 );
+        long long bad = 0;
+        for ( size_t t = 0; t < want.size( ); t += bpp ) {
+            if ( std::memcmp( &want[ t ], &got[ t ], bpp ) == 0 ) {
+                continue;
+            }
+            bad++;
+            if ( tex_logged < 20 ) {
+                tex_logged++;
+                const int idx = static_cast<int>( t / bpp );
+                const glm::ivec3 l( idx % CHUNK_SIZE_INTERNAL_X - 1, ( idx / CHUNK_SIZE_INTERNAL_X ) % CHUNK_SIZE_INTERNAL_Y - 1,
+                                    idx / ( CHUNK_SIZE_INTERNAL_X * CHUNK_SIZE_INTERNAL_Y ) - 1 );
+                const glm::ivec3 w = chunk.chunk_pos * CHUNK_SIZE_I + l;
+                // Owner's own texel for the same cell (halo texels must match it).
+                int owner_tex = -1, owner_mode = -1, owner_smooth = -1;
+                const Chunk *owner = this->get_chunk( light_chunk_pos_of( w ) );
+                if ( owner && owner != &chunk && owner->light_texture != 0 ) {
+                    std::vector<unsigned char> ob( want.size( ) );
+                    glBindTexture( GL_TEXTURE_3D, owner->light_texture );
+                    glPixelStorei( GL_PACK_ALIGNMENT, 1 );
+                    glGetTexImage( GL_TEXTURE_3D, 0, mipmaps ? GL_RGBA : GL_RG, GL_UNSIGNED_BYTE, ob.data( ) );
+                    glPixelStorei( GL_PACK_ALIGNMENT, 4 );
+                    glBindTexture( GL_TEXTURE_3D, chunk.light_texture );
+                    const glm::ivec3 ol = w - owner->chunk_pos * CHUNK_SIZE_I + glm::ivec3( 1 );
+                    owner_tex = ob[ static_cast<size_t>( ( ol.z * CHUNK_SIZE_INTERNAL_Y + ol.y ) * CHUNK_SIZE_INTERNAL_X + ol.x ) * bpp ];
+                    owner_mode = owner->light_tex_mode.load( std::memory_order_relaxed );
+                    owner_smooth = owner->light != nullptr && light_smooth_here( this, owner->chunk_pos );
+                }
+                pr_debug( "Light verify: stale texel chunk (%d,%d,%d) mode=%d at (%d,%d,%d) want=%d,%d,%d,%d got=%d,%d,%d,%d owner_tex=%d owner_mode=%d owner_smooth=%d",
+                          chunk.chunk_pos.x, chunk.chunk_pos.y, chunk.chunk_pos.z, chunk.light_tex_mode.load( std::memory_order_relaxed ), w.x, w.y, w.z, want[ t ],
+                          want[ t + 1 ], bpp > 2 ? want[ t + 2 ] : 0, bpp > 2 ? want[ t + 3 ] : 0, got[ t ], got[ t + 1 ], bpp > 2 ? got[ t + 2 ] : 0,
+                          bpp > 2 ? got[ t + 3 ] : 0, owner_tex, owner_mode, owner_smooth );
+            }
+        }
+        if ( bad ) {
+            tex_bad_chunks++;
+            tex_bad_texels += bad;
+        }
+    }
+    glBindTexture( GL_TEXTURE_3D, 0 );
+    pr_debug( "Light verify: textures checked=%lld stale chunks=%lld stale texels=%lld mode-flip pending=%lld", tex_checked, tex_bad_chunks, tex_bad_texels,
+              tex_mode_pending );
+#endif
 }
 
 void ChunkLoader::light_submit_finalize( Chunk &chunk ) {

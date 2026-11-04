@@ -71,7 +71,16 @@ change must re-upload those texels in every chunk that stores them:
 `light_mark_dirty_now` marks the mirror copies of border cells held by
 neighbouring chunks on top of the owning cell's own mark — but only for
 positions whose owner smoothes (raw owners' texels don't depend on the
-footprint).
+footprint). Bulk rewrites (finalize, reseed, cascade fills) skip that
+per-cell walk, so `light_mark_dirty_all` re-marks the owned halo slabs
+via `light_remark_owned_halos` whenever the chunk smooths.
+
+`REPGAME_LIGHT_VERIFY=1` (fly mode) runs `light_debug_verify` once at the
+settle point and again when the post-flight hover drains: it checks every
+settled cell against the best offer from its step neighbours (under/over
+lit), halo mirrors against their canonical owner, and reads each light
+texture back to compare with a fresh fill of the current field (stale
+uploads). A clean run logs all zeros.
 
 Per-column skylight metadata lives in `chunk->light_columns`, three
 `CHUNK_SIZE_X*Z` planes indexed by `LIGHT_COLUMN_INDEX`: `column_open`

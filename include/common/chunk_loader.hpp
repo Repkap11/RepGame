@@ -293,6 +293,7 @@ class ChunkLoader {
     // — needed when its upload presentation mode changes without any field
     // change (Shadows toggle / smoothing-radius crossing).
     void light_remark_owned_halos( Chunk &flipped );
+    void light_remark_shell_copies( Chunk &chunk );
     // Apply one chunk-diff cell (CHUNK_DIFF_RESULT / apply_pending_diffs):
     // writes the receiving chunk's copy, mirrors it into every loaded
     // neighbor that also stores that world cell, and enqueues the touched
@@ -322,6 +323,10 @@ class ChunkLoader {
         return total;
     }
     void debug_loader_stats( LoaderDebugStats *out ) const;
+    // Debug (REPGAME_LIGHT_VERIFY): scan settled chunks for cells whose
+    // stored light disagrees with what their neighbors offer; logs counts
+    // and the first few offenders. Only meaningful with the queues idle.
+    void light_debug_verify( );
     void cleanup( MapStorage &map_storage );
 };
 

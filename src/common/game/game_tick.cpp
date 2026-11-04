@@ -395,14 +395,27 @@ void RepGame::tick( ) {
         // Settle gate: hold at the start position until the loader and light
         // queues have been idle REPGAME_FLY_SETTLE consecutive ticks (or the
         // timeout expires) so the flight starts from a converged baseline.
+        const auto loader_idle = [&]( ) {
+            LoaderDebugStats s;
+            globalGameState.world.chunkLoader.debug_loader_stats( &s );
+            return s.chunks_loading == 0 && s.terrain_queued == 0 && s.terrain_results == 0 && s.light_jobs == 0 && s.light_pending == 0 &&
+                   s.light_dirty == 0 && s.light_bfs_active == 0 && s.light_seeds == 0 && s.light_stale_count == 0;
+        };
+        // REPGAME_LIGHT_VERIFY also checks once the post-flight hover has
+        // drained (phase 2), so streaming-time light bugs get caught too.
+        static int verify_hover_streak = 0;
+        if ( run_policy().fly.phase == 2 && verify_hover_streak >= 0 && env_bool( "REPGAME_LIGHT_VERIFY", false ) ) {
+            verify_hover_streak = loader_idle( ) ? verify_hover_streak + 1 : 0;
+            if ( verify_hover_streak >= ( run_policy().fly.settle_ticks > 0 ? run_policy().fly.settle_ticks : 1 ) ) {
+                pr_debug( "Fly mode: hover drained at tick %ld", globalGameState.tick_number );
+                globalGameState.world.chunkLoader.light_debug_verify( );
+                verify_hover_streak = -1;
+            }
+        }
         if ( run_policy().fly.phase == 0 ) {
             bool go = true;
             if ( run_policy().fly.settle_ticks > 0 && globalGameState.tick_number < run_policy().fly.settle_timeout ) {
-                LoaderDebugStats s;
-                globalGameState.world.chunkLoader.debug_loader_stats( &s );
-                const bool idle = s.chunks_loading == 0 && s.terrain_queued == 0 && s.terrain_results == 0 &&
-                                  s.light_jobs == 0 && s.light_pending == 0 && s.light_dirty == 0 &&
-                                  s.light_bfs_active == 0 && s.light_seeds == 0 && s.light_stale_count == 0;
+                const bool idle = loader_idle( );
                 run_policy().fly.idle_streak = idle ? run_policy().fly.idle_streak + 1 : 0;
                 go = run_policy().fly.idle_streak >= run_policy().fly.settle_ticks;
             }
@@ -410,6 +423,9 @@ void RepGame::tick( ) {
                 run_policy().fly.phase = 1;
                 run_policy().fly.fly_start_tick = globalGameState.tick_number;
                 pr_debug( "Fly mode: settled, flight begins at tick %ld", run_policy().fly.fly_start_tick );
+                if ( env_bool( "REPGAME_LIGHT_VERIFY", false ) ) {
+                    globalGameState.world.chunkLoader.light_debug_verify( );
+                }
             }
         }
         // Absolute pin (not a velocity) so the flight path is exact and
