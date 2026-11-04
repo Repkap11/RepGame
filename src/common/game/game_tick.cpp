@@ -404,7 +404,7 @@ void RepGame::tick( ) {
         // REPGAME_LIGHT_VERIFY also checks once the post-flight hover has
         // drained (phase 2), so streaming-time light bugs get caught too.
         static int verify_hover_streak = 0;
-        if ( run_policy().fly.phase == 2 && verify_hover_streak >= 0 && env_bool( "REPGAME_LIGHT_VERIFY", false ) ) {
+        if ( run_policy().fly.phase == 2 && verify_hover_streak >= 0 && env_int( "REPGAME_LIGHT_VERIFY", 0 ) > 0 ) {
             verify_hover_streak = loader_idle( ) ? verify_hover_streak + 1 : 0;
             if ( verify_hover_streak >= ( run_policy().fly.settle_ticks > 0 ? run_policy().fly.settle_ticks : 1 ) ) {
                 pr_debug( "Fly mode: hover drained at tick %ld", globalGameState.tick_number );
@@ -423,7 +423,10 @@ void RepGame::tick( ) {
                 run_policy().fly.phase = 1;
                 run_policy().fly.fly_start_tick = globalGameState.tick_number;
                 pr_debug( "Fly mode: settled, flight begins at tick %ld", run_policy().fly.fly_start_tick );
-                if ( env_bool( "REPGAME_LIGHT_VERIFY", false ) ) {
+                // 2 = hover check only: the settle check freezes the main
+                // loop for seconds, and the tick catch-up afterwards skews
+                // the flight's timing metrics.
+                if ( env_int( "REPGAME_LIGHT_VERIFY", 0 ) == 1 ) {
                     globalGameState.world.chunkLoader.light_debug_verify( );
                 }
             }

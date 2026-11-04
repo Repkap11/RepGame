@@ -293,7 +293,6 @@ class ChunkLoader {
     // — needed when its upload presentation mode changes without any field
     // change (Shadows toggle / smoothing-radius crossing).
     void light_remark_owned_halos( Chunk &flipped );
-    void light_remark_shell_copies( Chunk &chunk );
     // Apply one chunk-diff cell (CHUNK_DIFF_RESULT / apply_pending_diffs):
     // writes the receiving chunk's copy, mirrors it into every loaded
     // neighbor that also stores that world cell, and enqueues the touched

@@ -1458,75 +1458,6 @@ void ChunkLoader::light_mark_dirty_all( Chunk &chunk ) {
                         glm::ivec3( CHUNK_SIZE_INTERNAL_X - 1, CHUNK_SIZE_INTERNAL_Y - 1, CHUNK_SIZE_INTERNAL_Z - 1 ) ),
         std::memory_order_release );
     light_upload_enqueue( chunk );
-    // Bulk rewrites (finalize, reseed) bypass the per-cell mirror-mark walk,
-    // but a smoothing owner's halo texels in its neighbours depend on cells
-    // one in from its border — which no mirror write touches. Re-mark the
-    // slabs this chunk owns so those copies follow the new field.
-    if ( light_smooth_enabled( ) ) {
-        if ( light_smooth_in_radius( this->chunk_center, chunk.chunk_pos ) ) {
-            this->light_remark_owned_halos( chunk );
-        }
-        this->light_remark_shell_copies( chunk );
-    }
-}
-
-// Second-order halo dependency of a bulk rewrite: a cell w in the one-cell
-// shell around `chunk` belongs to a neighbour O, and if O smooths, w's
-// texel reads our border cells. Copies of w held in O's OTHER neighbours
-// (w on one of O's borders) therefore change too — the per-cell walk in
-// light_mark_dirty_now reaches them, a whole-volume mark doesn't. Only
-// shell cells on an edge of O have such copies, so most of the scan is
-// arithmetic.
-void ChunkLoader::light_remark_shell_copies( Chunk &chunk ) {
-    const glm::ivec3 base = chunk.chunk_pos * CHUNK_SIZE_I;
-    const glm::ivec3 sz( CHUNK_SIZE_X, CHUNK_SIZE_Y, CHUNK_SIZE_Z );
-    for ( int x = -1; x <= CHUNK_SIZE_X; x++ ) {
-        for ( int y = -1; y <= CHUNK_SIZE_Y; y++ ) {
-            for ( int z = -1; z <= CHUNK_SIZE_Z; z++ ) {
-                const bool inside_x = x >= 0 && x < CHUNK_SIZE_X;
-                const bool inside_y = y >= 0 && y < CHUNK_SIZE_Y;
-                if ( inside_x && inside_y && z >= 0 && z < CHUNK_SIZE_Z ) {
-                    z = CHUNK_SIZE_Z - 1; // skip our own volume
-                    continue;
-                }
-                const glm::ivec3 w = base + glm::ivec3( x, y, z );
-                const glm::ivec3 op = light_chunk_pos_of( w );
-                if ( !light_smooth_in_radius( this->chunk_center, op ) ) {
-                    continue;
-                }
-                const glm::ivec3 wl = w - op * CHUNK_SIZE_I;
-                int opts[ 3 ][ 2 ];
-                int cnt[ 3 ];
-                for ( int a = 0; a < 3; a++ ) {
-                    opts[ a ][ 0 ] = 0;
-                    cnt[ a ] = 1;
-                    if ( wl[ a ] == 0 ) {
-                        opts[ a ][ cnt[ a ]++ ] = -1;
-                    } else if ( wl[ a ] == sz[ a ] - 1 ) {
-                        opts[ a ][ cnt[ a ]++ ] = 1;
-                    }
-                }
-                for ( int ix = 0; ix < cnt[ 0 ]; ix++ ) {
-                    for ( int iy = 0; iy < cnt[ 1 ]; iy++ ) {
-                        for ( int iz = 0; iz < cnt[ 2 ]; iz++ ) {
-                            const glm::ivec3 off( opts[ 0 ][ ix ], opts[ 1 ][ iy ], opts[ 2 ][ iz ] );
-                            if ( off == glm::ivec3( 0 ) || op + off == chunk.chunk_pos ) {
-                                continue; // owner / us — covered by the owner's own marks
-                            }
-                            Chunk *c = this->get_chunk( op + off );
-                            if ( !c || c->load_state || c->light_texture == 0 ) {
-                                continue;
-                            }
-                            const glm::ivec3 c_local = w - c->chunk_pos * CHUNK_SIZE_I;
-                            if ( light_local_ok( c_local ) ) {
-                                light_mark_texel( *c, c_local );
-                            }
-                        }
-                    }
-                }
-            }
-        }
-    }
 }
 
 // The "Shadows" quality toggle flipped: the uploaded copy of every live
@@ -4007,27 +3938,43 @@ void ChunkLoader::light_upload_dirty( const int max_uploads ) {
                     light_dbg_upload_deferred++;
                 }
             }
-            const size_t take = eligible.size( ) > n ? n : eligible.size( );
-            // Nearest of the eligible backlog first: selection-sort just the
-            // `take` prefix (take is bounded by the small per-frame cap) so
-            // the upload budget lands on the visible region first.
-            for ( size_t i = 0; i < take; i++ ) {
-                size_t best = i;
-                const glm::ivec3 bd = eligible[ i ]->chunk_pos - this->chunk_center;
-                int best_d2 = bd.x * bd.x + bd.z * bd.z;
-                for ( size_t j = i + 1; j < eligible.size( ); j++ ) {
-                    const glm::ivec3 d = eligible[ j ]->chunk_pos - this->chunk_center;
-                    const int d2 = d.x * d.x + d.z * d.z;
-                    if ( d2 < best_d2 ) {
-                        best_d2 = d2;
-                        best = j;
-                    }
+            // Nearest of the eligible backlog first so the upload budget
+            // lands on the visible region.
+            std::sort( eligible.begin( ), eligible.end( ), [ this ]( const Chunk *a, const Chunk *b ) {
+                const glm::ivec3 da = a->chunk_pos - this->chunk_center;
+                const glm::ivec3 db = b->chunk_pos - this->chunk_center;
+                return da.x * da.x + da.z * da.z < db.x * db.x + db.z * db.z;
+            } );
+            entries.reserve( entries.size( ) + eligible.size( ) );
+            for ( Chunk *chunk : eligible ) {
+                unsigned s = chunk->light_stage_state.load( std::memory_order_relaxed );
+                const bool ready = LIGHT_STAGE_STATUS( s ) == LIGHT_STAGE_READY;
+                // A smoothed fill costs ~25x the raw expand — hand it to a
+                // light worker (the claim CAS keeps the handoff
+                // single-shot; the worker re-enqueues on publish). That
+                // covers the just-outside-radius shell too: those chunks
+                // still run the ctx kernel for owner-delegated halo texels.
+                // Genuinely raw chunks keep the inline fill: their expand
+                // is already cheap, so a round trip would only add latency.
+                // No async lighting (WASM without pthreads, tests) means
+                // nobody would service the stage queue — stay inline there.
+                const bool wants_stage = !ready && chunk->light != nullptr && light_async_active( ) && light_smooth_enabled( ) &&
+                    ( light_smooth_in_radius( this->chunk_center, chunk->chunk_pos ) ||
+                      light_any_nb_in_radius( this->chunk_center, chunk->chunk_pos ) );
+                // READY uploads are just the GL call and they return a pool
+                // buffer, so they never wait on the budget — parking them
+                // behind nearer IDLE work starved the pool. A stage claim
+                // only goes out when a buffer is actually free (claims
+                // queued but not yet started count as taken): a claim that
+                // can't get one would bounce straight back and burn the
+                // budget every frame, starving everything behind it —
+                // including far raw chunks that need no buffer at all.
+                if ( !ready && n == 0 ) {
+                    continue;
                 }
-                std::swap( eligible[ i ], eligible[ best ] );
-            }
-            entries.reserve( entries.size( ) + take );
-            for ( size_t i = 0; i < take; i++ ) {
-                Chunk *chunk = eligible[ i ];
+                if ( wants_stage && light_stage_live + static_cast<int>( light_stage_list.size( ) ) >= LIGHT_STAGE_MAX ) {
+                    continue; // stays listed for a later pass
+                }
                 chunk->light_upload_listed.store( 0, std::memory_order_release );
                 chunk->light_upload_defers = 0;
                 chunk->light_uploaded_once = 1;
@@ -4045,27 +3992,14 @@ void ChunkLoader::light_upload_dirty( const int max_uploads ) {
                     }
                     entries.push_back( { chunk, 0, true } );
                 };
-                unsigned s = chunk->light_stage_state.load( std::memory_order_relaxed );
-                if ( LIGHT_STAGE_STATUS( s ) == LIGHT_STAGE_READY ) {
+                if ( ready ) {
                     // The worker already exchanged the box and filled the
                     // staged buffer — just upload it.
                     take_ready( );
                     continue;
                 }
-                // A smoothed fill costs ~25x the raw expand — hand it to a
-                // light worker (the claim CAS keeps the handoff
-                // single-shot; the worker re-enqueues on publish). That
-                // covers the just-outside-radius shell too: those chunks
-                // still run the ctx kernel for owner-delegated halo texels.
-                // Genuinely raw chunks keep the inline fill: their expand
-                // is already cheap, so a round trip would only add latency.
-                // No async lighting (WASM without pthreads, tests) means
-                // nobody would service the stage queue — stay inline there.
-                if ( chunk->light != nullptr && light_async_active( ) && light_smooth_enabled( ) &&
-                     ( light_smooth_in_radius( this->chunk_center, chunk->chunk_pos ) ||
-                       light_any_nb_in_radius( this->chunk_center, chunk->chunk_pos ) ) &&
-                     chunk->light_stage_state.compare_exchange_strong( s, s + 1,
-                                                                     std::memory_order_acq_rel, std::memory_order_relaxed ) ) {
+                n--;
+                if ( wants_stage && chunk->light_stage_state.compare_exchange_strong( s, s + 1, std::memory_order_acq_rel, std::memory_order_relaxed ) ) {
                     light_stage_list.push_back( chunk );
                     wake_stage = true;
                     continue;
@@ -4080,17 +4014,13 @@ void ChunkLoader::light_upload_dirty( const int max_uploads ) {
             }
             // Rebuild minus taken entries (they're the ones now listed==0).
             std::vector<Chunk *> keep;
-            keep.reserve( list->size( ) - take );
+            keep.reserve( list->size( ) );
             for ( Chunk *chunk : *list ) {
                 if ( chunk->light_upload_listed.load( std::memory_order_relaxed ) ) {
                     keep.push_back( chunk );
                 }
             }
             list->swap( keep );
-            n -= take;
-            if ( n == 0 ) {
-                break;
-            }
         }
     }
     if ( wake_stage ) {

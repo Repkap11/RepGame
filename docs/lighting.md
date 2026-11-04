@@ -71,9 +71,7 @@ change must re-upload those texels in every chunk that stores them:
 `light_mark_dirty_now` marks the mirror copies of border cells held by
 neighbouring chunks on top of the owning cell's own mark — but only for
 positions whose owner smoothes (raw owners' texels don't depend on the
-footprint). Bulk rewrites (finalize, reseed, cascade fills) skip that
-per-cell walk, so `light_mark_dirty_all` re-marks the owned halo slabs
-via `light_remark_owned_halos` whenever the chunk smooths.
+footprint).
 
 `REPGAME_LIGHT_VERIFY=1` (fly mode) runs `light_debug_verify` once at the
 settle point and again when the post-flight hover drains: it checks every
@@ -192,6 +190,15 @@ is already cheap — and everything stays inline when no light workers run
 (WASM, tests). A new texture's creation fill is always the raw path; a
 smoothed chunk's first staged full-volume fill lands a few frames later
 (the delta is a few LSB, invisible in the interim).
+
+Upload-pass budget: READY uploads go first and never count against the
+per-frame cap (they're only the GL call and they free a pool buffer). A
+stage claim is only issued when a pool buffer is free (`light_stage_live`
+plus claims still queued); a chunk that wants staging but can't get one
+stays listed without spending a slot. Before this, claims that bounced
+off an empty pool ate the whole cap every frame while the camera moved,
+and the far list — raw chunks that need no buffer — never uploaded until
+the player flew close enough to make those chunks near.
 
 ## Day/night and tuning
 
