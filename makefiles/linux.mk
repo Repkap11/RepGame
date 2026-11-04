@@ -52,6 +52,9 @@ CCLD_LINUX := -fuse-ld=lld
 
 ifeq ($(CC_LINUX),g++)
 	CFLAGS_LINUX += -no-pie
+	# GCC 15 (flatpak SDK) flags every bounded snprintf whose %s args could
+	# exceed the buffer; truncation there is intended, so don't fail on it.
+	CFLAGS_LINUX += -Wno-format-truncation
 else
 	# clang (like wasm.mk/hip.mk): -Werror flags the C++17-incompatible
 	# designated initializers used throughout; and -no-pie isn't a clang flag.
