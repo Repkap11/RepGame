@@ -1,5 +1,6 @@
 // RepGame member functions: the per-frame draw path.
 
+#include <algorithm>
 #include <cmath>
 #include <ctime>
 #include <string>
@@ -502,8 +503,11 @@ void RepGame::draw_ui_pass( const glm::dvec3 &render_pos, float daylight, bool d
         }
         {
             // Name the item in the selected hotbar slot (empty slot: nothing).
-            const char *buf = item_name( globalGameState.hotbar.getSelectedItem( ) );
-            if ( buf ) {
+            const char *name = item_name( globalGameState.hotbar.getSelectedItem( ) );
+            if ( name ) {
+                std::string label( name );
+                std::replace( label.begin( ), label.end( ), '_', ' ' );
+                const char *buf = label.c_str( );
                 const float text_size = 22.0f;
                 const float white[ 4 ] = { 1.0f, 1.0f, 1.0f, 1.0f };
                 const float tx = -globalGameState.ui.font.getTextWidth( buf, text_size ) / 2.0f;
