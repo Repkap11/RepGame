@@ -127,19 +127,21 @@ out/wasm/delivery/index.js: src/wasm/index.js | out/wasm
 out/wasm/delivery/%.css: src/wasm/%.css | out/wasm
 	cp $< $@
 
-out/wasm/fs/src/shaders/%.glsl: src/shaders/%.glsl $(SHADER_DEPS) makefiles/common.mk makefiles/wasm.mk | out/wasm
-	$(SHADER_PP) -DREPGAME_WASM $< -o $@
+out/wasm/fs/src/shaders/%.glsl: src/shaders/%.glsl makefiles/common.mk makefiles/wasm.mk | out/wasm
+	$(call shader_pp,-DREPGAME_WASM)
 
 # WGSL: same preprocessor trick as .glsl, plus -DREPGAME_WGSL_GEN which flips
 # the dialect macros in wgsl_dialect.hpp to emit WGSL. -I out/wasm/gen finds
-# the generated block_ids.inc. Headers the dialect sources #include are listed
-# so logic edits rebuild the shader.
+# the generated block_ids.inc. Headers the dialect sources #include are
+# tracked via the generated dep file so logic edits rebuild the shader.
 out/wasm/gen/block_ids.inc: include/common/block_ids_gen.hpp tools/gen_wgsl_block_ids.awk | out/wasm
 	mkdir -p $(dir $@)
 	awk -f tools/gen_wgsl_block_ids.awk $< > $@
 
-out/wasm/fs/src/shaders/%.wgsl: src/shaders/%.wgsl out/wasm/gen/block_ids.inc include/common/wgsl_dialect.hpp include/common/perlin_noise_shared.hpp include/common/map_gen_fields.hpp include/common/map_gen_fields_legacy.hpp include/common/map_gen_consts.hpp include/common/map_logic.hpp include/common/mesh_gen_shared.hpp include/common/mesh_gen_fns.hpp include/common/mesh_vis_logic.hpp include/common/chunk_dimensions.hpp | out/wasm
-	$(SHADER_PP) -I out/wasm/gen -DREPGAME_WGSL_GEN $< -o $@
+out/wasm/fs/src/shaders/%.wgsl: src/shaders/%.wgsl out/wasm/gen/block_ids.inc makefiles/common.mk makefiles/wasm.mk | out/wasm
+	$(call shader_pp,-I out/wasm/gen -DREPGAME_WGSL_GEN)
+
+-include $(patsubst %,$(SHADER_DEP_DIR)/%.d,$(WASM_SHADERS) $(WASM_WGSL_SHADERS))
 
 out/wasm/fs/bitmaps/% : out/bitmaps/% | out/wasm
 	cp $< $@

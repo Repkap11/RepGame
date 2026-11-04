@@ -31,7 +31,15 @@ APPIMAGE_OUT ?= out/appimage
 # -DREPGAME_<PLATFORM> (so that header picks the right CHUNK_SIZE_*) — the
 # quality tiers are runtime-only; all platforms compile the same shaders.
 SHADER_PP := gcc -E -P -x assembler-with-cpp -nostdinc -I include
-SHADER_DEPS := include/common/chunk_dimensions.hpp include/common/texture_ids_gen.hpp
+# Shader dep files live outside the output dirs: android assets and
+# out/wasm/fs are shipped verbatim, so .d files there would be packaged.
+SHADER_DEP_DIR := out/shader-deps
+# $(call shader_pp,<extra flags>) preprocesses $< to $@ and writes a gcc
+# dep file so every #included header becomes a prerequisite.
+define shader_pp
+@mkdir -p $(dir $@) $(dir $(SHADER_DEP_DIR)/$@)
+$(SHADER_PP) -MMD -MP -MT $@ -MF $(SHADER_DEP_DIR)/$@.d $(1) $< -o $@
+endef
 
 SRC_COMMON := $(wildcard src/common/*.cpp) $(wildcard src/common/**/*.cpp) 
 SRC_IMGUI := imgui_build/backends/imgui_impl_sdl3.cpp $(wildcard imgui_build/imgui*.cpp)  imgui_build/backends/imgui_impl_opengl3.cpp
@@ -55,6 +63,10 @@ out/bitmaps: | out
 clean: clean-bitmaps
 clean-bitmaps:
 	rm -rf out/bitmaps
+
+clean: clean-shader-deps
+clean-shader-deps:
+	rm -rf out/shader-deps
 
 # Sounds: the source audio in sounds/ (untracked — see .gitignore) is listed in
 # tools/sounds_manifest.txt, converted to OGG Vorbis by tools/convert_sounds.sh

@@ -81,9 +81,10 @@ SOUND_BLOBS_LINUX := $(patsubst %,$(LINUX_OUT)/sounds/%.o,$(SOUNDS_ENABLED))
 # Preprocess shaders through the C preprocessor at build time. The preprocessed
 # .glsl file lives in $(LINUX_OUT)/shaders/ alongside the .o blob. The blob symbols
 # are renamed to match what MK_BLOB(src_shaders, <name>, glsl) expects.
-$(LINUX_OUT)/shaders/%.glsl: src/shaders/%.glsl $(SHADER_DEPS) makefiles/common.mk makefiles/linux.mk | $(LINUX_OUT)
-	@mkdir -p $(dir $@)
-	$(SHADER_PP) -DREPGAME_LINUX $< -o $@
+$(LINUX_OUT)/shaders/%.glsl: src/shaders/%.glsl makefiles/common.mk makefiles/linux.mk | $(LINUX_OUT)
+	$(call shader_pp,-DREPGAME_LINUX)
+
+-include $(patsubst %,$(SHADER_DEP_DIR)/%.d,$(SHADER_PROCESSED_LINUX))
 
 $(LINUX_OUT)/shaders/%.o : $(LINUX_OUT)/shaders/%.glsl makefiles/linux.mk | $(LINUX_OUT)
 	ld $(LFLAGS) -r -b binary $< -o $@_no_section

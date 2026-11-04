@@ -65,8 +65,10 @@ android-bitmaps: $(ANDROID_BITMAPS)
 
 android-fonts: $(ANDROID_FONTS)
 
-android/app/src/main/assets/shaders/%.glsl: src/shaders/%.glsl $(SHADER_DEPS) makefiles/common.mk makefiles/android.mk | $(ANDROID_DIRS)
-	$(SHADER_PP) -DREPGAME_ANDROID $< -o $@
+android/app/src/main/assets/shaders/%.glsl: src/shaders/%.glsl makefiles/common.mk makefiles/android.mk | $(ANDROID_DIRS)
+	$(call shader_pp,-DREPGAME_ANDROID)
+
+-include $(patsubst %,$(SHADER_DEP_DIR)/%.d,$(ANDROID_SHADERS))
 
 android/app/src/main/res/raw/%: out/bitmaps/% | $(ANDROID_DIRS)
 	cp $< $@

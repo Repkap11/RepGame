@@ -105,9 +105,10 @@ SOUND_BLOBS_SF := $(patsubst %,$(SF_OUT)/sounds/%.o,$(SOUNDS_ENABLED))
 # Preprocess shaders through the C preprocessor at build time. The preprocessed
 # .glsl file lives in $(SF_OUT)/shaders/ alongside the .o blob. The blob symbols
 # are renamed to match what MK_BLOB(src_shaders, <name>, glsl) expects.
-$(SF_OUT)/shaders/%.glsl: src/shaders/%.glsl $(SHADER_DEPS) makefiles/common.mk makefiles/steamframe.mk | $(SF_OUT)
-	@mkdir -p $(dir $@)
-	$(SHADER_PP) -DREPGAME_LINUX -DREPGAME_GLES -DREPGAME_STEAMFRAME $< -o $@
+$(SF_OUT)/shaders/%.glsl: src/shaders/%.glsl makefiles/common.mk makefiles/steamframe.mk | $(SF_OUT)
+	$(call shader_pp,-DREPGAME_LINUX -DREPGAME_GLES -DREPGAME_STEAMFRAME)
+
+-include $(patsubst %,$(SHADER_DEP_DIR)/%.d,$(SHADER_PROCESSED_SF))
 
 $(SF_OUT)/shaders/%.o : $(SF_OUT)/shaders/%.glsl makefiles/steamframe.mk | $(SF_OUT)
 	$(SF_OBJCOPY) -I binary -O elf64-littleaarch64 $< $@_no_section
