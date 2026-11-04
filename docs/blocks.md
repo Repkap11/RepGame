@@ -50,7 +50,8 @@ repo-authored 16x16 tiles; `data/textures.json` carries per-texture metadata:
   cube so every quad faces inward (back-face culling leaves the far walls),
   HALF_PIXEL makes scale/offset/tex_offset 1/32-block units instead of
   1/16.
-- `random_rotate` — tile participates in per-block random rotation.
+- `random_rotate` — tile participates in per-block random rotation. Used by
+  dirt, grass top, snow and all leaf tiles.
 - `keep` — pack even when no block references it (e.g. `player_selection`).
 
 `make bedrock_samples_build` clones Mojang's bedrock-samples (pinned

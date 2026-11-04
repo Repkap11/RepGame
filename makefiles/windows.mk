@@ -39,7 +39,7 @@ SOUND_BLOBS_WINDOWS := $(patsubst %,out/windows/sounds/%.o,$(SOUNDS_ENABLED))
 
 # Preprocess shaders through the C preprocessor at build time. Blob symbols are
 # renamed to match what MK_BLOB(src_shaders, <name>, glsl) expects.
-out/windows/shaders/%.glsl: src/shaders/%.glsl include/common/chunk_dimensions.hpp makefiles/common.mk makefiles/windows.mk | out/windows
+out/windows/shaders/%.glsl: src/shaders/%.glsl $(SHADER_DEPS) makefiles/common.mk makefiles/windows.mk | out/windows
 	@mkdir -p $(dir $@)
 	$(SHADER_PP) -DREPGAME_WINDOWS $< -o $@
 

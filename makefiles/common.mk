@@ -31,6 +31,7 @@ APPIMAGE_OUT ?= out/appimage
 # -DREPGAME_<PLATFORM> (so that header picks the right CHUNK_SIZE_*) — the
 # quality tiers are runtime-only; all platforms compile the same shaders.
 SHADER_PP := gcc -E -P -x assembler-with-cpp -nostdinc -I include
+SHADER_DEPS := include/common/chunk_dimensions.hpp include/common/texture_ids_gen.hpp
 
 SRC_COMMON := $(wildcard src/common/*.cpp) $(wildcard src/common/**/*.cpp) 
 SRC_IMGUI := imgui_build/backends/imgui_impl_sdl3.cpp $(wildcard imgui_build/imgui*.cpp)  imgui_build/backends/imgui_impl_opengl3.cpp

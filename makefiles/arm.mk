@@ -75,7 +75,7 @@ SOUND_BLOBS_ARM := $(patsubst %,$(ARM_OUT)/sounds/%.o,$(SOUNDS_ENABLED))
 # Preprocess shaders through the C preprocessor at build time. The preprocessed
 # .glsl file lives in $(ARM_OUT)/shaders/ alongside the .o blob. The blob symbols
 # are renamed to match what MK_BLOB(src_shaders, <name>, glsl) expects.
-$(ARM_OUT)/shaders/%.glsl: src/shaders/%.glsl include/common/chunk_dimensions.hpp makefiles/common.mk makefiles/arm.mk | $(ARM_OUT)
+$(ARM_OUT)/shaders/%.glsl: src/shaders/%.glsl $(SHADER_DEPS) makefiles/common.mk makefiles/arm.mk | $(ARM_OUT)
 	@mkdir -p $(dir $@)
 	$(SHADER_PP) -DREPGAME_LINUX -DREPGAME_GLES $< -o $@
 

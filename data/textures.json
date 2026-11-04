@@ -33,9 +33,11 @@
     "source": "textures/blocks/anvil_top_damaged_2"
   },
   "azalea_leaves": {
+    "random_rotate": true,
     "source": "textures/blocks/azalea_leaves"
   },
   "azalea_leaves_flowers": {
+    "random_rotate": true,
     "source": "textures/blocks/azalea_leaves_flowers"
   },
   "azalea_plant": {
@@ -372,6 +374,7 @@
     "source": "textures/blocks/cherry_door_top"
   },
   "cherry_leaves": {
+    "random_rotate": true,
     "source": "textures/blocks/cherry_leaves"
   },
   "cherry_log_side": {
@@ -1482,21 +1485,27 @@
     "source": "textures/items/leaf_litter"
   },
   "leaves_acacia_carried": {
+    "random_rotate": true,
     "source": "textures/blocks/leaves_acacia_carried"
   },
   "leaves_big_oak_carried": {
+    "random_rotate": true,
     "source": "textures/blocks/leaves_big_oak_carried"
   },
   "leaves_birch_carried": {
+    "random_rotate": true,
     "source": "textures/blocks/leaves_birch_carried"
   },
   "leaves_jungle_carried": {
+    "random_rotate": true,
     "source": "textures/blocks/leaves_jungle_carried"
   },
   "leaves_oak_carried": {
+    "random_rotate": true,
     "source": "textures/blocks/leaves_oak_carried"
   },
   "leaves_spruce_carried": {
+    "random_rotate": true,
     "source": "textures/blocks/leaves_spruce_carried"
   },
   "lectern_base": {
@@ -1593,6 +1602,7 @@
     "source": "textures/blocks/mangrove_door_top"
   },
   "mangrove_leaves_carried": {
+    "random_rotate": true,
     "source": "textures/blocks/mangrove_leaves_carried"
   },
   "mangrove_log_side": {
@@ -1725,6 +1735,7 @@
     "source": "textures/items/candles/orange_candle"
   },
   "orange_poplar_leaves": {
+    "random_rotate": true,
     "source": "textures/blocks/orange_poplar_leaves"
   },
   "oxidized_chiseled_copper": {
@@ -1791,6 +1802,7 @@
     "source": "textures/blocks/pale_oak_door_top"
   },
   "pale_oak_leaves": {
+    "random_rotate": true,
     "source": "textures/blocks/pale_oak_leaves"
   },
   "pale_oak_log_side": {
@@ -2080,6 +2092,7 @@
     "source": "textures/blocks/red_nether_brick"
   },
   "red_poplar_leaves": {
+    "random_rotate": true,
     "source": "textures/blocks/red_poplar_leaves"
   },
   "red_sand": {
@@ -2914,6 +2927,7 @@
     "source": "textures/items/candles/yellow_candle"
   },
   "yellow_poplar_leaves": {
+    "random_rotate": true,
     "source": "textures/blocks/yellow_poplar_leaves"
   }
 }
