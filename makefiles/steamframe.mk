@@ -42,9 +42,6 @@ SF_OPENXR ?= 1
 CMAKE_SF_DFLAGS := -DREPGAME_SF_SYSROOT=$(SF_SYSROOT) -DREPGAME_SDL3_PREFIX=$(SF_SDL3_PREFIX) \
 	-DREPGAME_AUDIO=$(REPGAME_AUDIO) -DREPGAME_SOUND_OGG_DIR=$(abspath $(SOUND_OGG_DIR)) \
 	-DREPGAME_OPENXR=$(SF_OPENXR) -DREPGAME_OPENXR_PREFIX=$(OPENXR_SF_PREFIX)
-ifeq ($(USE_CCACHE),1)
-CMAKE_SF_DFLAGS += -DCMAKE_CXX_COMPILER_LAUNCHER=ccache
-endif
 SF_OPENXR_DEP :=
 ifeq ($(SF_OPENXR),1)
 SF_OPENXR_DEP := $(OPENXR_SF_LIB)
@@ -70,18 +67,14 @@ steamframe_debug: $(SF_OUT)/debug/$(TARGET)
 # The static SDL3 headers are on every compile line, so SDL3 (and the OpenXR
 # loader) must be installed before cmake compiles anything.
 $(SF_OUT)/release/$(TARGET): $(SOUND_OGGS) $(SF_SDL3_PREFIX)/lib/libSDL3.a $(SF_OPENXR_DEP) FORCE
-	cmake --preset steamframe-release -B $(SF_OUT)/cmake-release $(CMAKE_SF_DFLAGS) \
-		-DREPGAME_OUTPUT_DIR=$(abspath $(SF_OUT))/release
-	MAKEFLAGS="$(CMAKE_MAKEFLAGS)" cmake --build $(SF_OUT)/cmake-release
+	$(call cmake_build,steamframe-release,$(SF_OUT)/cmake-release,$(CMAKE_SF_DFLAGS) \
+		-DREPGAME_OUTPUT_DIR=$(abspath $(SF_OUT))/release)
 	$(call sf_verify_binary,$@)
 
 $(SF_OUT)/debug/$(TARGET): $(SOUND_OGGS) $(SF_SDL3_PREFIX)/lib/libSDL3.a $(SF_OPENXR_DEP) FORCE
-	cmake --preset steamframe-debug -B $(SF_OUT)/cmake-debug $(CMAKE_SF_DFLAGS) \
-		-DREPGAME_OUTPUT_DIR=$(abspath $(SF_OUT))/debug
-	MAKEFLAGS="$(CMAKE_MAKEFLAGS)" cmake --build $(SF_OUT)/cmake-debug
+	$(call cmake_build,steamframe-debug,$(SF_OUT)/cmake-debug,$(CMAKE_SF_DFLAGS) \
+		-DREPGAME_OUTPUT_DIR=$(abspath $(SF_OUT))/debug)
 	$(call sf_verify_binary,$@)
-
-FORCE:
 
 # Steam Linux Runtime 3.0 (sniper) arm64 sysroot: a rootfs tarball verified
 # against the snapshot's SHA256SUMS before extraction.
@@ -178,4 +171,4 @@ clean-steamframe:
 clean-steamframe-deps:
 	rm -rf out/steamframe-sysroot out/steamframe-sdl3
 
-.PHONY: steamframe steamframe_debug steamframe-sysroot steamframe-sdl3 steamframe-dist clean-steamframe clean-steamframe-deps FORCE
+.PHONY: steamframe steamframe_debug steamframe-sysroot steamframe-sdl3 steamframe-dist clean-steamframe clean-steamframe-deps

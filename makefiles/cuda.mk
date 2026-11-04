@@ -13,7 +13,7 @@ REPGAME_PACKAGES += nvidia-cuda-toolkit
 # auto-detect by toolchain presence, so no per-target -D flags are needed.
 $(LINUX_OUT)/cmake-gpu/CMakeCache.txt:
 	cmake -S . -B $(LINUX_OUT)/cmake-gpu -DREPGAME_BUILD_CLIENT=OFF -DREPGAME_BUILD_SERVER=OFF \
-		-DREPGAME_GPU_OUT=$(abspath $(LINUX_OUT)) $(CMAKE_GPU_LAUNCHER)
+		-DREPGAME_GPU_OUT=$(abspath $(LINUX_OUT)) $(CMAKE_CCACHE)
 
 cuda: $(LINUX_OUT)/cmake-gpu/CMakeCache.txt
 	MAKEFLAGS="$(CMAKE_MAKEFLAGS)" cmake --build $(LINUX_OUT)/cmake-gpu --target repgame_cuda

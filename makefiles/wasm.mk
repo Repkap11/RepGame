@@ -15,9 +15,6 @@ EMSDK_TOOLCHAIN := $(abspath $(EM_ROOT))/emscripten/cmake/Modules/Platform/Emscr
 CMAKE_WASM_DFLAGS := -DCMAKE_TOOLCHAIN_FILE=$(EMSDK_TOOLCHAIN) \
 	-DREPGAME_AUDIO=$(REPGAME_AUDIO) -DREPGAME_SOUND_OGG_DIR=$(abspath $(SOUND_OGG_DIR)) \
 	-DREPGAME_OUTPUT_DIR=$(abspath out/wasm/delivery)
-ifeq ($(USE_CCACHE),1)
-CMAKE_WASM_DFLAGS += -DCMAKE_CXX_COMPILER_LAUNCHER=ccache
-endif
 
 install: emsdk
 wasm-install: packages
@@ -30,10 +27,8 @@ wasm: out/wasm/delivery/$(TARGET).js out/wasm/delivery/index.html out/wasm/deliv
 # (preprocessed shaders, WGSL + generated block_ids.inc, bitmaps, fonts,
 # sounds) and linked with --preload-file.
 out/wasm/delivery/$(TARGET).js: $(SOUND_OGGS) $(EM_ROOT)/emscripten/em++ FORCE
-	$(EMCMAKE) cmake --preset wasm -B out/wasm/cmake $(CMAKE_WASM_DFLAGS)
+	$(EMCMAKE) cmake --preset wasm -B out/wasm/cmake $(CMAKE_CCACHE) $(CMAKE_WASM_DFLAGS)
 	MAKEFLAGS="$(CMAKE_MAKEFLAGS)" cmake --build out/wasm/cmake
-
-FORCE:
 
 out/wasm/delivery/index.html: src/wasm/index.html | out/wasm
 	cp $< $@
@@ -79,4 +74,4 @@ clean-wasm:
 out/wasm: | out
 	mkdir -p out/wasm/delivery
 
-.PHONY: wasm wasm-run clean-wasm wasm-deploy wasm-install emsdk_build emsdk FORCE
+.PHONY: wasm wasm-run clean-wasm wasm-deploy wasm-install emsdk_build emsdk

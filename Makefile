@@ -84,6 +84,5 @@ vars:
 AFTER_VARS := $(.VARIABLES)
 ALL_VARS := $(shell echo "$(BEFORE_VARS) $(AFTER_VARS)" | xargs -n1 | sort | uniq -u | grep -v "^BEFORE_VARS$$")
 # $(info Val: [${ALL_VARS}])
-$(info Val: [${CFLAGS_LINUX}])
 endif
 

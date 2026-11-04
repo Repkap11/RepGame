@@ -20,9 +20,6 @@ WINDOWS_SDL3_VERSION := 3.4.16
 
 CMAKE_WINDOWS_DFLAGS := -DREPGAME_AUDIO=$(REPGAME_AUDIO) -DREPGAME_SOUND_OGG_DIR=$(abspath $(SOUND_OGG_DIR)) \
 	-DREPGAME_OUTPUT_DIR=$(abspath out/windows)
-ifeq ($(USE_CCACHE),1)
-CMAKE_WINDOWS_DFLAGS += -DCMAKE_CXX_COMPILER_LAUNCHER=ccache
-endif
 
 # Downloaded deps. Not tracked by git.
 WINDOWS_DEP := windows_build/sdl3/SDL3-$(WINDOWS_SDL3_VERSION).tar.gz windows_build/glew/glew-2.1.0-mingw-w64.zip
@@ -32,10 +29,7 @@ windows : out/windows/RepGame.exe
 # File target so other makefiles can depend on it. Re-running cmake every
 # time is cheap and makes -D overrides stick.
 out/windows/RepGame.exe : $(SOUND_OGGS) windows_build FORCE
-	cmake --preset windows -B out/windows/cmake $(CMAKE_WINDOWS_DFLAGS)
-	MAKEFLAGS="$(CMAKE_MAKEFLAGS)" cmake --build out/windows/cmake
-
-FORCE:
+	$(call cmake_build,windows,out/windows/cmake,$(CMAKE_WINDOWS_DFLAGS))
 
 windows-run : out/windows/RepGame.exe
 	wine out/windows/RepGame.exe "$(WORLD_DEBUG)"
@@ -64,4 +58,4 @@ clean: clean-windows
 clean-windows:
 	rm -rf out/windows
 
-.PHONY: windows windows-run windows-deploy windows_build clean-windows FORCE
+.PHONY: windows windows-run windows-deploy windows_build clean-windows

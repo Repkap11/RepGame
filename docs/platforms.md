@@ -15,7 +15,9 @@ file-level `out/...` rules) are omitted on purpose.
   `WORLD_DEBUG` world (second client alongside `linux-run`).
 - Linux build knobs: `LINUX_CXX` (compiler), `LINUX_USE_LLD`, `LINUX_LTO`
   (thin LTO on the Release build via `REPGAME_LTO`/`CMAKE_INTERPROCEDURAL_OPTIMIZATION`,
-  default 1 — `make linux LINUX_LTO=0` disables it).
+  default 1 — `make linux LINUX_LTO=0` disables it). With clang+lld a ThinLTO
+  cache under `<build dir>/thinlto-cache` makes incremental release relinks
+  cheap (wiped by clean-linux); the gcc flatpak path gets no cache.
 - `make player` — delete `~/.repgame/$(WORLD)/player.dat`.
 - `make update-world` — prepend an 8-byte header to every `chunk_*` file
   under `~/.repgame/$(WORLD)/` (save-format migration helper).

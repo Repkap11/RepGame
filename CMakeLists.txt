@@ -328,6 +328,15 @@ if(REPGAME_BUILD_CLIENT)
 		if(REPGAME_USE_LLD)
 			target_link_options(RepGame PRIVATE -fuse-ld=lld)
 		endif()
+		# ThinLTO cache: a one-file change re-optimizes only that module at
+		# link instead of the whole binary. Lives in the build dir so
+		# clean-linux wipes it. Clang+lld only — gcc/GNU ld (e.g. flatpak)
+		# just doesn't get a cache.
+		if(REPGAME_LTO AND REPGAME_USE_LLD AND CMAKE_CXX_COMPILER_ID MATCHES "Clang")
+			target_link_options(RepGame PRIVATE
+				$<$<CONFIG:Release>:-Wl,--thinlto-cache-dir=${CMAKE_BINARY_DIR}/thinlto-cache>
+				$<$<CONFIG:Release>:-Wl,--thinlto-cache-policy=cache_size_bytes=2g>)
+		endif()
 		repgame_gpu_link(RepGame)
 		# Link line kept literal from linux.mk; LTO comes from REPGAME_LTO /
 		# CMAKE_INTERPROCEDURAL_OPTIMIZATION (-flto=thin on compile+link).
@@ -335,8 +344,9 @@ if(REPGAME_BUILD_CLIENT)
 			-lSDL3 -Wl,-Bstatic -lGLEW -Wl,-Bdynamic -lGL -lpthread -lm -ldl
 			-static-libgcc -static-libstdc++ -lwayland-client)
 	elseif(REPGAME_PLATFORM STREQUAL "arm")
-		# Release link had -flto in arm.mk (debug didn't); kept conditional.
-		target_link_options(RepGame PRIVATE -fuse-ld=lld $<$<CONFIG:Release>:-flto>)
+		# The old arm.mk's link-only -flto was a no-op (objects were never
+		# LTO-compiled) and is dropped here.
+		target_link_options(RepGame PRIVATE -fuse-ld=lld)
 		target_link_libraries(RepGame PRIVATE
 			${REPGAME_SDL3_PREFIX}/lib/libSDL3.a -lGLESv2 -lwayland-client
 			-lpthread -lm -ldl -static-libgcc -static-libstdc++)
@@ -346,7 +356,7 @@ if(REPGAME_BUILD_CLIENT)
 		# in sniper. A static libSDL3.a resolves its video backends at link
 		# time (SDL_*_SHARED ended up OFF), so the Wayland/X11 support libs
 		# it recorded must be linked too — all present in the sniper runtime.
-		target_link_options(RepGame PRIVATE -fuse-ld=lld $<$<CONFIG:Release>:-flto>)
+		target_link_options(RepGame PRIVATE -fuse-ld=lld)
 		target_link_libraries(RepGame PRIVATE
 			${REPGAME_SDL3_PREFIX}/lib/libSDL3.a -lGLESv2 -lEGL
 			-lwayland-client -lwayland-cursor -lwayland-egl -lxkbcommon
@@ -354,7 +364,6 @@ if(REPGAME_BUILD_CLIENT)
 			-lpulse
 			-lpthread -lm -ldl -static-libgcc -static-libstdc++)
 	elseif(REPGAME_PLATFORM STREQUAL "windows")
-		target_link_options(RepGame PRIVATE -flto)
 		target_link_libraries(RepGame PRIVATE
 			${CMAKE_SOURCE_DIR}/windows_build/glew/lib/libglew32.a
 			${CMAKE_SOURCE_DIR}/windows_build/sdl3/x86_64-w64-mingw32/lib/libSDL3.dll.a

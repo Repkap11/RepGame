@@ -3,18 +3,12 @@
 REPSERVER := $(TARGET)Server
 
 CMAKE_SERVER_DFLAGS := -DCMAKE_CXX_COMPILER=$(LINUX_CXX) -DREPGAME_AUDIO=$(REPGAME_AUDIO)
-ifeq ($(USE_CCACHE),1)
-CMAKE_SERVER_DFLAGS += -DCMAKE_CXX_COMPILER_LAUNCHER=ccache
-endif
 
 # Thin wrapper over CMake (see CMakeLists.txt — REPGAME_BUILD_SERVER). The
 # server preset is Debug with CLIENT=OFF so hosts without SDL3/GLEW/wayland
 # still configure (repkap11.com builds it via tools/server_deploy.sh).
 out/server/$(REPSERVER): FORCE
-	cmake --preset server -B out/server/cmake $(CMAKE_SERVER_DFLAGS)
-	MAKEFLAGS="$(CMAKE_MAKEFLAGS)" cmake --build out/server/cmake
-
-FORCE:
+	$(call cmake_build,server,out/server/cmake,$(CMAKE_SERVER_DFLAGS))
 
 all: server
 

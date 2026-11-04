@@ -22,19 +22,11 @@ OPENXR_DEP :=
 
 CMAKE_CLIENT_DFLAGS := -DCMAKE_CXX_COMPILER=$(LINUX_CXX) -DREPGAME_USE_LLD=$(LINUX_USE_LLD) \
 	-DREPGAME_LTO=$(LINUX_LTO) -DREPGAME_AUDIO=$(REPGAME_AUDIO) -DREPGAME_OPENXR=$(REPGAME_OPENXR)
-ifeq ($(USE_CCACHE),1)
-CMAKE_CLIENT_DFLAGS += -DCMAKE_CXX_COMPILER_LAUNCHER=ccache
-endif
 ifneq ($(SOUND_OGG_DIR),)
 CMAKE_CLIENT_DFLAGS += -DREPGAME_SOUND_OGG_DIR=$(abspath $(SOUND_OGG_DIR))
 endif
 ifneq ($(GPU_PREBUILT_DIR),)
 CMAKE_CLIENT_DFLAGS += -DREPGAME_GPU_PREBUILT_DIR=$(abspath $(GPU_PREBUILT_DIR))
-endif
-
-# ccache for the nvcc/hipcc custom commands in cmake/RepGameGpu.cmake.
-ifeq ($(USE_CCACHE),1)
-CMAKE_GPU_LAUNCHER := -DCMAKE_CXX_COMPILER_LAUNCHER=ccache
 endif
 
 # REPGAME_OPENXR=1 (common.mk): LINUX_OUT moves to out/linux-openxr so flat
@@ -54,16 +46,12 @@ linux: $(LINUX_OUT)/release/$(TARGET)
 linux_debug: $(LINUX_OUT)/debug/$(TARGET)
 
 $(LINUX_OUT)/release/$(TARGET): $(SOUND_OGGS) $(OPENXR_DEP) FORCE
-	cmake --preset linux-release -B $(LINUX_OUT)/cmake-release $(CMAKE_CLIENT_DFLAGS) \
-		-DREPGAME_OUTPUT_DIR=$(abspath $(LINUX_OUT))/release
-	MAKEFLAGS="$(CMAKE_MAKEFLAGS)" cmake --build $(LINUX_OUT)/cmake-release
+	$(call cmake_build,linux-release,$(LINUX_OUT)/cmake-release,$(CMAKE_CLIENT_DFLAGS) \
+		-DREPGAME_OUTPUT_DIR=$(abspath $(LINUX_OUT))/release)
 
 $(LINUX_OUT)/debug/$(TARGET): $(SOUND_OGGS) $(OPENXR_DEP) FORCE
-	cmake --preset linux-debug -B $(LINUX_OUT)/cmake-debug $(CMAKE_CLIENT_DFLAGS) \
-		-DREPGAME_OUTPUT_DIR=$(abspath $(LINUX_OUT))/debug
-	MAKEFLAGS="$(CMAKE_MAKEFLAGS)" cmake --build $(LINUX_OUT)/cmake-debug
-
-FORCE:
+	$(call cmake_build,linux-debug,$(LINUX_OUT)/cmake-debug,$(CMAKE_CLIENT_DFLAGS) \
+		-DREPGAME_OUTPUT_DIR=$(abspath $(LINUX_OUT))/debug)
 
 deploy: linux-deploy
 
@@ -97,4 +85,4 @@ clean: clean-linux
 clean-linux:
 	rm -rf out/linux out/linux-portable
 
-.PHONY: linux linux_debug linux-run linux-run2 linux-run-blocks clean-linux linux-deploy dev tests FORCE
+.PHONY: linux linux_debug linux-run linux-run2 linux-run-blocks clean-linux linux-deploy dev tests

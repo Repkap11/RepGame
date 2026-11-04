@@ -24,9 +24,6 @@ ARM_SDL3_PREFIX := $(abspath $(ARM_SDL3_DIR))/install
 
 CMAKE_ARM_DFLAGS := -DREPGAME_ARM_SDK=$(abspath $(ARM_SDK)) -DREPGAME_SDL3_PREFIX=$(ARM_SDL3_PREFIX) \
 	-DREPGAME_AUDIO=$(REPGAME_AUDIO) -DREPGAME_SOUND_OGG_DIR=$(abspath $(SOUND_OGG_DIR))
-ifeq ($(USE_CCACHE),1)
-CMAKE_ARM_DFLAGS += -DCMAKE_CXX_COMPILER_LAUNCHER=ccache
-endif
 
 arm: $(ARM_OUT)/release/$(TARGET)
 arm_debug: $(ARM_OUT)/debug/$(TARGET)
@@ -34,16 +31,12 @@ arm_debug: $(ARM_OUT)/debug/$(TARGET)
 # The static SDL3 headers are on every compile line, so SDL3 must be
 # installed before cmake compiles anything.
 $(ARM_OUT)/release/$(TARGET): $(SOUND_OGGS) $(ARM_SDL3_PREFIX)/lib/libSDL3.a FORCE
-	cmake --preset arm-release -B $(ARM_OUT)/cmake-release $(CMAKE_ARM_DFLAGS) \
-		-DREPGAME_OUTPUT_DIR=$(abspath $(ARM_OUT))/release
-	MAKEFLAGS="$(CMAKE_MAKEFLAGS)" cmake --build $(ARM_OUT)/cmake-release
+	$(call cmake_build,arm-release,$(ARM_OUT)/cmake-release,$(CMAKE_ARM_DFLAGS) \
+		-DREPGAME_OUTPUT_DIR=$(abspath $(ARM_OUT))/release)
 
 $(ARM_OUT)/debug/$(TARGET): $(SOUND_OGGS) $(ARM_SDL3_PREFIX)/lib/libSDL3.a FORCE
-	cmake --preset arm-debug -B $(ARM_OUT)/cmake-debug $(CMAKE_ARM_DFLAGS) \
-		-DREPGAME_OUTPUT_DIR=$(abspath $(ARM_OUT))/debug
-	MAKEFLAGS="$(CMAKE_MAKEFLAGS)" cmake --build $(ARM_OUT)/cmake-debug
-
-FORCE:
+	$(call cmake_build,arm-debug,$(ARM_OUT)/cmake-debug,$(CMAKE_ARM_DFLAGS) \
+		-DREPGAME_OUTPUT_DIR=$(abspath $(ARM_OUT))/debug)
 
 # Static SDL3 built inside the Yocto SDK environment (Wayland client only, no
 # X11/KMSDRM/Vulkan, GLES on). Same release tarball as the Dockerfile.
@@ -84,4 +77,4 @@ clean: clean-arm
 clean-arm:
 	rm -rf out/arm out/arm-sdl3
 
-.PHONY: arm arm_debug arm-sdl3 arm-deploy arm-run arm_debug-run clean-arm FORCE
+.PHONY: arm arm_debug arm-sdl3 arm-deploy arm-run arm_debug-run clean-arm

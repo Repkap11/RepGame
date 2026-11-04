@@ -16,9 +16,19 @@ endif
 # CMake's generated Makefiles.
 CMAKE_MAKEFLAGS := $(filter-out --warn-undefined-variables,$(MAKEFLAGS))
 
-# Warning set shared by every platform (now in CMakeLists.txt's repgame_flags):
-# warnings are errors so a warning on one toolchain can't silently ship on
-# another.
+ifeq ($(USE_CCACHE),1)
+CMAKE_CCACHE := -DCMAKE_CXX_COMPILER_LAUNCHER=ccache
+else
+CMAKE_CCACHE :=
+endif
+# $(call cmake_build,<preset>,<build dir>,<-D flags>): re-run configure (so -D
+# overrides always stick) then build.
+define cmake_build
+cmake --preset $(1) -B $(2) $(CMAKE_CCACHE) $(3)
+MAKEFLAGS="$(CMAKE_MAKEFLAGS)" cmake --build $(2)
+endef
+FORCE:
+.PHONY: FORCE
 
 # OpenXR (VR) support for the linux build: REPGAME_OPENXR=1 compiles the
 # OpenXR code paths and moves objects to out/linux-openxr so flat and VR
@@ -115,10 +125,6 @@ ifeq ($(SOUND_OGG_DIR),out/sounds)
 SOUND_OGGS := $(patsubst %,out/sounds/%.ogg,$(SOUNDS_ENABLED))
 endif
 endif
-
-# Generated MK_BLOB decls + music/sfx tables included by audio.cpp — now a
-# CMake custom command per build dir (CMakeLists.txt); android.mk preprocesses
-# shaders into assets but compiles audio.cpp in Gradle/CMake too.
 
 # Host-side conversion for builds that can't run ffmpeg in their sandbox
 # (flatpak). Mirrors the gpu-prebuilt pattern: `make flatpak` depends on this.
