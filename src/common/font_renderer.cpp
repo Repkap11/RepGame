@@ -216,6 +216,19 @@ float FontRenderer::getCapHeight( float size ) const {
     return roundf( -glyphs[ 'H' - first_char ].yoff ) * pixelScale( size );
 }
 
+void FontRenderer::drawStringOutlined( const Renderer &renderer, const char *text, float x, float y, float size, const float tint[ 4 ], const glm::mat4 &mvp ) {
+    const float k = static_cast<float>( pixelScale( size ) );
+    const float black[ 4 ] = { 0.0f, 0.0f, 0.0f, tint[ 3 ] };
+    for ( int dy = -1; dy <= 1; dy++ ) {
+        for ( int dx = -1; dx <= 1; dx++ ) {
+            if ( dx || dy ) {
+                drawString( renderer, text, x + dx * k, y + dy * k, size, black, mvp );
+            }
+        }
+    }
+    drawString( renderer, text, x, y, size, tint, mvp );
+}
+
 void FontRenderer::drawString( const Renderer &renderer, const char *text, float x, float y, float size, const float tint[ 4 ], const glm::mat4 &mvp ) {
     const int k = pixelScale( size );
     float pen_x = 0;

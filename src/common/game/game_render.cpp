@@ -516,7 +516,7 @@ void RepGame::draw_ui_pass( const glm::dvec3 &render_pos, float daylight, bool d
                     globalGameState.hotbar.inventory_renderer.getBlockMetrics( block_size, cell_size );
                     ty = slot_y + cell_size * 1.15f + 8.0f;
                 }
-                globalGameState.ui.font.drawString( globalGameState.world.renderer, buf, tx, ty, text_size, white, globalGameState.screen.ortho_center );
+                globalGameState.ui.font.drawStringOutlined( globalGameState.world.renderer, buf, tx, ty, text_size, white, globalGameState.screen.ortho_center );
             }
         }
     }

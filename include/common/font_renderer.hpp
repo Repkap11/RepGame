@@ -50,6 +50,9 @@ class FontRenderer {
     // drawn at k× nearest-neighbour scale so text stays pixel-crisp.
     int pixelScale( float size ) const;
     void drawString( const Renderer &renderer, const char *text, float x, float y, float size, const float tint[ 4 ], const glm::mat4 &mvp );
+    // drawString with a one-raster-texel black outline (8 offset passes
+    // under the tinted text) so it reads against any background.
+    void drawStringOutlined( const Renderer &renderer, const char *text, float x, float y, float size, const float tint[ 4 ], const glm::mat4 &mvp );
     float getTextWidth( const char *text, float size ) const;
     float getAscent( float size ) const;
     float getDescent( float size ) const;

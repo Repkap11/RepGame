@@ -80,7 +80,8 @@ matching and the output slot are documented with the item/recipe data in
   through the shared ui_overlay shader that `PauseMenu` also borrows via
   `get_shader`.
 - `draw_ui_pass` (`game_render.cpp`) names the selected hotbar item
-  (`item_name`) just above the hotbar; empty slots show nothing.
+  (`item_name`) just above the hotbar, black-outlined via
+  `FontRenderer::drawStringOutlined`; empty slots show nothing.
 - `PauseMenu` lays out buttons in centered coords (`hitTest` returns
   `BUTTON_*`), grouped into lines of one or two side-by-side cells; line
   contents are compile-time-gated
