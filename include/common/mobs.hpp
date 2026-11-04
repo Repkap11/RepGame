@@ -121,6 +121,13 @@ class MobManager {
         float net_yaw;        // mirror look target, degrees
         uint32_t net_flags;   // last seen/sent NET_MOB_FLAG_* bits
         bool net_natural;     // our own natural-spawn roll product
+        // Natural-mob provenance: the deterministic roll assigns every
+        // product a net_natural_mob_id (home chunk + roll index); SP stores
+        // it in the file record's net_id, MP keeps it as net.id. 0 for
+        // non-natural mobs. `touched` is the sticky player-interacted bit —
+        // pristine naturals (natural && !touched) are never persisted.
+        NetEntityId natural_id = 0;
+        bool touched = false;
         // Outbound tracking for fields beyond the shared pos/vel throttle.
         float net_sent_yaw;
         float net_sent_health;
@@ -129,11 +136,13 @@ class MobManager {
     };
     // A chunk this manager took ownership of via adopt_chunk: its mobs file
     // was loaded (or the natural-spawn roll ran) and its mobs persist back to
-    // the same file when the chunk leaves the active window.
+    // the same file when the chunk leaves the active window. `removed` holds
+    // the tombstoned natural-roll indices (touched/killed naturals) written
+    // alongside the records.
     struct OwnedChunk {
         glm::ivec3 pos;
         int file_present;
-        int spawned;
+        std::set<uint8_t> removed;
     };
     bool enabled;
     bool spawner_enabled; // REPGAME_MOB_SPAWNER=0 disables the night spawner
@@ -150,9 +159,6 @@ class MobManager {
     // Multiplayer sync hub; bound while multiplayer_mode (hostname given).
     NetEntities *net = nullptr;
     bool mp_mode = false;
-    // Chunks whose natural-spawn roll already ran this session (re-roll
-    // dedupe across ownership flips).
-    std::set<glm::ivec3, Compare_I_Vec3> rolled_chunks;
 
     void tick_mob( World &world, Mob &mob, const MobTypeDef &def, const glm::dvec3 &player_pos,
                    const MobTickInput *in, MobTickOutput *out );
@@ -169,6 +175,11 @@ class MobManager {
     void announce_spawn( Mob &mob );
     void send_net_remove( Mob &mob, uint8_t reason );
     Mob *find_by_net_id( NetEntityId net_id );
+    // First player interaction with an owned mob: sets `touched` and, for a
+    // natural mob, tombstones its roll index — into the home chunk's
+    // OwnedChunk when owned, else straight into its sidecar (SP only; the
+    // server does this bookkeeping in multiplayer).
+    void mark_touched( Mob &mob );
     // Spawn one entity from a wire record (mirror or freshly owned).
     bool spawn_record( const NetEntityRecord &rec, bool mirror );
 
@@ -205,7 +216,7 @@ class MobManager {
     // Drain a just-finalized chunk's pending_mobs into live mobs and record
     // ownership. Skips chunks already owned, parked/loading leftovers, and
     // test mode.
-    void adopt_chunk( Chunk &chunk );
+    void adopt_chunk( World &world, Chunk &chunk );
     void tick( World &world, const glm::dvec3 &player_pos, const MobTickInput *in = nullptr, MobTickOutput *out = nullptr );
     // Per-bone world matrices in model space (pixels) at render alpha: rest
     // pose + walk/head-look animator rotations, then the sneak pose as a
@@ -233,10 +244,12 @@ class MobManager {
     // ENTITY_ACTION forwarded to us as the chunk's owner (HIT).
     void net_apply_action( RepGameState &state, const NetEntityActionPayload &p );
     // CHUNK_ROLE: drop the chunk (NONE) or re-sync its mob records
-    // (VIEWER -> mirrors, OWNER -> locally simulated; populated==0 rolls the
-    // natural spawn on the live chunk and reports CHUNK_POPULATED).
+    // (VIEWER -> mirrors, OWNER -> locally simulated; populated==0 re-runs
+    // the deterministic natural roll on the live chunk — skipping
+    // `removed_natural` indices and ids already live locally — and reports
+    // CHUNK_POPULATED).
     void net_apply_chunk_role( RepGameState &state, const glm::ivec3 &chunk, uint8_t role, uint8_t populated, const std::vector<NetEntityRecord> &records,
-                               const std::set<NetEntityId> &keep_ids );
+                               const std::vector<uint8_t> &removed_natural, const std::set<NetEntityId> &keep_ids );
     // ENTITY_TRANSFER adopt=0: become a mirror if still viewed, else drop.
     void net_release_entity( const NetEntityRecord &rec, bool still_viewed );
     // Owner-side outbound batch (same cadence/keyframes as items).

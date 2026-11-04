@@ -1,5 +1,7 @@
 // Mob simulation tests — split out of rep_tests.cpp.
 #include "test_util.hpp"
+
+#include <filesystem>
 // Passive-mob checks on the phase-1 rig plus phase-2 hitting/persistence:
 // physics (drop settle, auto-jump, slab step-up), the mob raycast, damage /
 // knockback / drops, the mobs-file record format, the face-rect unwrap and
@@ -235,16 +237,17 @@ int test_mobs( ) {
         check_bool( "creative hit: kills in 1", mobs2.hurt( 0, 1000.0f, attacker ) );
     }
 
-    // --- 6: mobs file round trip, empty marker, unknown type ---------------
+    // --- 6: mobs file round trip, net_id + removed, empty removes file -----
     {
         // Point the map root at a throwaway dir under /tmp (getRepGamePath
         // reads $HOME): no writes land in a real world.
+        std::filesystem::remove_all( "/tmp/repgame_test_mobs_home" );
         ScopedTempHome temp_home( "/tmp/repgame_test_mobs_home" );
         MapStorage storage;
         storage.init( "TestMobs" );
         const glm::ivec3 chunk_pos( 0, 0, 0 );
         std::vector<MobFileRecord> in;
-        MobFileRecord r = { 0, 0, 0.0, 0.0, 0.0, 0.0f, 0.0f, 0u };
+        MobFileRecord r = { 0, 0, 0.0, 0.0, 0.0, 0.0f, 0.0f, 0u, 0u };
         r.type = MOB_PIG;
         r.variant = 1;
         r.x = 10.5;
@@ -252,27 +255,193 @@ int test_mobs( ) {
         r.z = 10.25;
         r.yaw = 45.0f;
         r.health = 7.5f;
+        r.net_id = net_natural_mob_id( chunk_pos, 3 );
         in.push_back( r );
-        storage.persist_mobs( chunk_pos, in );
+        storage.persist_mobs( chunk_pos, in, { 3, 7 } );
         std::vector<MobFileRecord> out;
-        check_bool( "mob file: present", storage.load_mobs( chunk_pos, out ) == 1 );
+        std::vector<uint8_t> removed;
+        check_bool( "mob file: present", storage.load_mobs( chunk_pos, out, &removed ) == 1 );
         check_bool( "mob file: one record", out.size( ) == 1 );
         if ( out.size( ) == 1 ) {
             const MobFileRecord &o = out[ 0 ];
-            check_bool( "mob file: fields round trip",
-                        o.type == MOB_PIG && o.variant == 1 && o.x == 10.5 && o.y == 11.0 && o.z == 10.25 && o.yaw == 45.0f && o.health == 7.5f );
+            check_bool( "mob file: fields + net_id round trip",
+                        o.type == MOB_PIG && o.variant == 1 && o.x == 10.5 && o.y == 11.0 && o.z == 10.25 && o.yaw == 45.0f &&
+                            o.health == 7.5f && o.net_id == r.net_id );
         }
-        // Empty file: still "present" (the populated marker) with 0 records.
-        storage.persist_mobs( glm::ivec3( 0, 0, 1 ), std::vector<MobFileRecord>( ) );
+        check_bool( "mob file: removed round trip", removed.size( ) == 2 && removed[ 0 ] == 3 && removed[ 1 ] == 7 );
+        // Empty records + empty removed deletes the file (no populated
+        // marker semantics anymore).
+        storage.persist_mobs( chunk_pos, { }, { } );
         out.clear( );
-        check_bool( "mob file: empty still present", storage.load_mobs( glm::ivec3( 0, 0, 1 ), out ) == 1 );
-        check_bool( "mob file: empty has 0 records", out.empty( ) );
+        check_bool( "mob file: empty+empty removes", storage.load_mobs( chunk_pos, out ) == 0 );
+        // A pre-net_id file (record_size without net_id, no removed
+        // section) still loads with net_id == 0.
+        {
+            char *dir = getRepGamePath( );
+            char map_root[ CHUNK_NAME_MAX_LENGTH ];
+            snprintf( map_root, sizeof( map_root ), "%s/TestMobs", dir );
+            free( dir );
+            char file_name[ CHUNK_NAME_MAX_LENGTH ];
+            snprintf( file_name, sizeof( file_name ), FILE_ROOT_MOBS, map_root, 0, 0, 3 );
+            FILE *f = fopen( file_name, "wb" );
+            const uint32_t old_size = static_cast<uint32_t>( offsetof( MobFileRecord, net_id ) );
+            const uint32_t one = 1;
+            fwrite( &old_size, sizeof( uint32_t ), 1, f );
+            fwrite( &one, sizeof( uint32_t ), 1, f );
+            fwrite( &r, old_size, 1, f );
+            fclose( f );
+            out.clear( );
+            removed.clear( );
+            check_bool( "mob file: old record loads", storage.load_mobs( glm::ivec3( 0, 0, 3 ), out, &removed ) == 1 && out.size( ) == 1 );
+            check_bool( "mob file: old record has net_id 0", out.size( ) == 1 && out[ 0 ].net_id == 0 && removed.empty( ) );
+        }
         // Unknown mob types are skipped on load.
         MobFileRecord bad = r;
         bad.type = MOB_TYPE_COUNT + 3;
         storage.persist_mobs( glm::ivec3( 0, 0, 2 ), std::vector<MobFileRecord>( 1, bad ) );
         out.clear( );
         check_bool( "mob file: unknown type skipped", storage.load_mobs( glm::ivec3( 0, 0, 2 ), out ) == 1 && out.empty( ) );
+    }
+
+    // --- 6a: natural mob ids pack/unpack -----------------------------------
+    {
+        const glm::ivec3 homes[] = { glm::ivec3( 0, 0, 0 ), glm::ivec3( -12, 1, 40 ), glm::ivec3( 1048575, -128, -1048576 ), glm::ivec3( -7, 3, -9 ) };
+        bool ok = true;
+        for ( const glm::ivec3 &h : homes ) {
+            for ( const int idx : { 0, 1, 17, 63 } ) {
+                const NetEntityId id = net_natural_mob_id( h, idx );
+                ok &= net_is_natural_mob_id( id ) && net_natural_mob_home( id ) == h && net_natural_mob_index( id ) == idx;
+            }
+        }
+        check_bool( "natural id: pack/unpack round trip", ok );
+        check_bool( "natural id: client session id is not natural", !net_is_natural_mob_id( ( static_cast<NetEntityId>( 7 ) << 32 ) | 5 ) );
+        check_bool( "natural id: session-0 id is not natural", !net_is_natural_mob_id( 42 ) );
+    }
+
+    // --- 6b: pristine naturals leave no file; hurt -> record + tombstone ---
+    {
+        std::filesystem::remove_all( "/tmp/repgame_test_mobs_home" );
+        ScopedTempHome temp_home( "/tmp/repgame_test_mobs_home" );
+        MapStorage storage;
+        storage.init( "TestMobs" );
+        // A chunk outside every section's reach (x 310..371).
+        const glm::ivec3 home( 5, 0, 0 );
+        MobManager mobs;
+        mobs.init_storage( &storage );
+        mobs.owned_chunks.push_back( { home, 0, {} } );
+        mobs.spawn( MOB_PIG, glm::dvec3( 320.5, 11.0, 10.5 ), 0.0f, 1 );
+        mobs.mobs[ 0 ].natural_id = net_natural_mob_id( home, 0 );
+        mobs.mobs[ 0 ].net_natural = true;
+        mobs.spawn( MOB_COW, glm::dvec3( 322.5, 11.0, 10.5 ), 0.0f, 1 );
+        mobs.mobs[ 1 ].natural_id = net_natural_mob_id( home, 1 );
+        mobs.mobs[ 1 ].net_natural = true;
+        mobs.persist_all( );
+        std::vector<MobFileRecord> out;
+        std::vector<uint8_t> removed;
+        check_bool( "pristine naturals: no file written", storage.load_mobs( home, out, &removed ) == 0 );
+        // A player hit makes the mob touched: its record persists (net_id +
+        // provenance flags) and its roll index is tombstoned.
+        mobs.hurt( 0, 1.0f, glm::dvec3( 318.5, 11.5, 10.5 ) );
+        mobs.persist_all( );
+        check_bool( "touched natural: file written", storage.load_mobs( home, out, &removed ) == 1 && out.size( ) == 1 );
+        if ( out.size( ) == 1 ) {
+            check_bool( "touched natural: net_id + flags persist",
+                        out[ 0 ].net_id == net_natural_mob_id( home, 0 ) &&
+                            ( out[ 0 ].flags & NET_MOB_FLAG_NATURAL ) != 0 && ( out[ 0 ].flags & NET_MOB_FLAG_TOUCHED ) != 0 );
+        }
+        check_bool( "touched natural: index tombstoned", removed.size( ) == 1 && removed[ 0 ] == 0 );
+    }
+
+    // --- 6c: roll -> tombstone -> reload skips the index --------------------
+    {
+        // Find a chunk pos whose deterministic roll emits a herd: a fresh
+        // chunk full of grass floor rolls the same way every time.
+        Chunk roll_chunk;
+        glm::ivec3 found_pos( -1 );
+        const int floor_y = 10;
+        for ( int x = 0; x < 64 && found_pos.x < 0; x++ ) {
+            roll_chunk.chunk_pos = glm::ivec3( x, 0, 0 );
+            roll_chunk.cells = chunk_alloc_cells( );
+            for ( int cx = 0; cx < CHUNK_SIZE_X; cx++ ) {
+                for ( int cz = 0; cz < CHUNK_SIZE_Z; cz++ ) {
+                    roll_chunk.cells[ Chunk::get_index_from_coords( glm::ivec3( cx, floor_y, cz ) ) ] = block_cell_pack( GRASS, 0, 0, 0 );
+                }
+            }
+            roll_chunk.pending_mobs.clear( );
+            if ( roll_chunk.spawn_mobs( ) && roll_chunk.pending_mobs.size( ) >= 2 ) {
+                found_pos = glm::ivec3( x, 0, 0 );
+            } else {
+                chunk_free_cells( roll_chunk.cells );
+                roll_chunk.cells = nullptr;
+            }
+        }
+        check_bool( "natural roll: found a chunk with a herd", found_pos.x >= 0 );
+        if ( found_pos.x >= 0 ) {
+            const std::vector<MobFileRecord> rolled = roll_chunk.pending_mobs;
+            const size_t n = rolled.size( );
+            const int dead_idx = net_natural_mob_index( rolled[ 0 ].net_id );
+            check_bool( "roll: records carry natural ids",
+                        net_is_natural_mob_id( rolled[ 0 ].net_id ) && net_natural_mob_home( rolled[ 0 ].net_id ) == found_pos &&
+                            ( rolled[ 0 ].flags & NET_MOB_FLAG_NATURAL ) != 0 );
+            std::filesystem::remove_all( "/tmp/repgame_test_mobs_home" );
+            ScopedTempHome temp_home( "/tmp/repgame_test_mobs_home" );
+            MapStorage storage;
+            storage.init( "TestMobs" );
+            // Record 0 is the (touched) survivor; its index is tombstoned.
+            MobFileRecord survivor = rolled[ 0 ];
+            survivor.flags |= NET_MOB_FLAG_TOUCHED;
+            storage.persist_mobs( found_pos, std::vector<MobFileRecord>( 1, survivor ), { static_cast<uint8_t>( dead_idx ) } );
+            // Reload like the worker: records first, then re-roll skipping
+            // tombstoned indices and ids already among the records.
+            std::vector<MobFileRecord> file_recs;
+            std::vector<uint8_t> file_removed;
+            check_bool( "reload: file present", storage.load_mobs( found_pos, file_recs, &file_removed ) == 1 );
+            std::set<uint8_t> skip( file_removed.begin( ), file_removed.end( ) );
+            for ( const MobFileRecord &rec : file_recs ) {
+                if ( net_is_natural_mob_id( rec.net_id ) && net_natural_mob_home( rec.net_id ) == found_pos ) {
+                    skip.insert( static_cast<uint8_t>( net_natural_mob_index( rec.net_id ) ) );
+                }
+            }
+            roll_chunk.pending_mobs.clear( );
+            roll_chunk.spawn_mobs( &skip );
+            int dup = 0;
+            for ( const MobFileRecord &rec : roll_chunk.pending_mobs ) {
+                if ( net_natural_mob_index( rec.net_id ) == dead_idx ) {
+                    dup++;
+                }
+            }
+            check_bool( "reload: roll skips tombstoned index", roll_chunk.pending_mobs.size( ) + 1 == n && dup == 0 );
+            check_bool( "reload: restored + rolled == original count", file_recs.size( ) + roll_chunk.pending_mobs.size( ) == n );
+            chunk_free_cells( roll_chunk.cells );
+            roll_chunk.cells = nullptr;
+        }
+    }
+
+    // --- 6d: pen rule: a natural mob in a player-edited chunk is touched ----
+    {
+        Chunk *c0 = world.chunkLoader.get_chunk( glm::ivec3( 0, 0, 0 ) );
+        c0->player_edited = 1;
+        MobManager mobs;
+        mobs.owned_chunks.push_back( { glm::ivec3( 0, 0, 0 ), 0, {} } );
+        mobs.spawn( MOB_PIG, glm::dvec3( 10.5, 11.0, 10.5 ), 0.0f, 1 );
+        mobs.mobs[ 0 ].natural_id = net_natural_mob_id( glm::ivec3( 0, 0, 0 ), 2 );
+        mobs.mobs[ 0 ].net_natural = true;
+        mobs.mobs[ 0 ].ai_state = 0;
+        mobs.mobs[ 0 ].ai_ticks = 100000;
+        mobs.tick( world, player_pos );
+        check_bool( "pen: edited chunk touches the natural", mobs.mobs[ 0 ].touched );
+        check_bool( "pen: index tombstoned in owned chunk", mobs.owned_chunks[ 0 ].removed.count( 2 ) == 1 );
+
+        c0->player_edited = 0;
+        MobManager mobs2;
+        mobs2.owned_chunks.push_back( { glm::ivec3( 0, 0, 0 ), 0, {} } );
+        mobs2.spawn( MOB_PIG, glm::dvec3( 10.5, 11.0, 10.5 ), 0.0f, 1 );
+        mobs2.mobs[ 0 ].natural_id = net_natural_mob_id( glm::ivec3( 0, 0, 0 ), 2 );
+        mobs2.mobs[ 0 ].ai_state = 0;
+        mobs2.mobs[ 0 ].ai_ticks = 100000;
+        mobs2.tick( world, player_pos );
+        check_bool( "pen: unedited chunk leaves it pristine", !mobs2.mobs[ 0 ].touched );
+        c0->player_edited = 1;
     }
 
     // --- 7: face-rect unwrap for the pig head and body ---------------------
@@ -435,7 +604,7 @@ int test_mobs( ) {
             MapStorage storage;
             storage.init( "TestMobs" );
             mobs.init_storage( &storage );
-            mobs.owned_chunks.push_back( { glm::ivec3( 0, 0, 0 ), 0, 0 } );
+            mobs.owned_chunks.push_back( { glm::ivec3( 0, 0, 0 ), 0, {} } );
             mobs.spawn( MOB_PIG, glm::dvec3( 10.5, 11.0, 10.5 ), 0.0f, 1 );
             mobs.persist_all( );
             std::vector<MobFileRecord> out;
@@ -700,7 +869,7 @@ int test_mobs( ) {
         mobs.init_storage( &storage );
         // A fresh chunk (x 186..247) so earlier sections' files can't leak in:
         // the despawnable zombie writes nothing, the persistent pig does.
-        mobs.owned_chunks.push_back( { glm::ivec3( 3, 0, 0 ), 0, 0 } );
+        mobs.owned_chunks.push_back( { glm::ivec3( 3, 0, 0 ), 0, {} } );
         mobs.spawn( MOB_ZOMBIE, glm::dvec3( 190.5, 11.0, 10.5 ), 0.0f, 1 );
         mobs.mobs[ 0 ].despawnable = 1;
         mobs.spawn( MOB_PIG, glm::dvec3( 190.5, 11.0, 10.5 ), 0.0f, 1 );

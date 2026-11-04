@@ -130,21 +130,39 @@ mode is left alone so the reflection pass's `GL_FRONT` survives. A
 face — from z-fighting the ground.
 
 Persistence: each chunk's mobs live in `mobs_x_y_z` beside the
-`chunk_x_y_z`/`chest_x_y_z` files — `u32 record_size`, `u32 count`, then
-packed `MobFileRecord`s (readers copy the shared prefix and skip
-`type >= MOB_TYPE_COUNT`; file formats: `docs/persistence.md`). An
-existing-but-empty file is a *populated marker*: a chunk whose herd was
-killed or removed never naturally
-respawns. The terrain worker loads the file (or rolls the `spawn_chance`
-≈1/12 natural spawn on fresh terrain, seeded `hash(chunk_pos, type,
-MAP_SEED)`) into `Chunk::pending_mobs`; `World::render` hands
-just-finalized chunks to `MobManager::adopt_chunk`, and a ~16-tick poll
+`chunk_x_y_z`/`chest_x_y_z` files — `u32 record_size`, `u32 count`,
+packed `MobFileRecord`s (each carrying a `net_id`), then a tombstone
+section `u32 removed_count, u8 removed[]` listing natural-roll indices
+that must never respawn (readers copy the shared prefix and skip
+`type >= MOB_TYPE_COUNT`; file formats: `docs/persistence.md`).
+
+Natural-spawn products are *provenance-tracked* rather than saved
+wholesale. The terrain worker's roll (`spawn_chance` ≈1/12 per type,
+seeded `hash(chunk_pos, type, MAP_SEED)`) is deterministic, so a
+*pristine* natural mob (`NET_MOB_FLAG_NATURAL` && !`NET_MOB_FLAG_TOUCHED`)
+needs no record — it is recreated by re-rolling on every load, and a
+chunk holding only pristine mobs leaves no `mobs_` file behind
+(`persist_mobs` deletes the file when records and tombstones are both
+empty). Each rolled record carries a `net_natural_mob_id` (home chunk +
+roll index, `include/common/net/packet.hpp`). A mob becomes **touched**
+(sticky `Mob::touched`, `MobManager::mark_touched`) on a player hit or by
+the *pen rule* — a natural mob ticking inside a chunk with
+`Chunk::player_edited` (set by real player edits, never random ticks)
+counts as kept livestock. Touching tombstones the mob's roll index in
+its *home* chunk's removed set; the mob itself then persists as an
+ordinary record under its natural id, and the re-roll skips tombstoned
+indices so it can never duplicate.
+
+The worker loads records + tombstones and *always* re-rolls into
+`Chunk::pending_mobs` (skipping tombstoned/already-loaded indices);
+`World::render` hands just-finalized chunks to
+`MobManager::adopt_chunk`, and a ~16-tick poll
 persists+removes mobs whose owning chunk leaves the active window
 (parked/reused — `CHUNK_LOADING` at the same position has not left).
 `World::cleanup` persists every owned chunk. `despawnable` (night-spawn)
 mobs are never written. No writes in capture or fly
 mode — and no local reads/writes at all in multiplayer, where the server
-holds `mobs_`/`items_` sidecars and the populated markers (see
+holds `mobs_`/`items_` sidecars and the same pristine/touched rules (see
 `docs/entities.md` "Multiplayer entity sync"). Natural spawn stands herds on `spawn_on`
 column tops with hitbox headroom inside the chunk; in multiplayer the
 chunk's owning client runs the roll on its CHUNK_ROLE grant and reports

@@ -612,6 +612,38 @@ int MobManager::resolve_target( const glm::dvec3 &origin, const glm::dvec3 &dir,
     return mob;
 }
 
+// First player interaction with an owned mob: sets the sticky `touched` bit
+// and tombstones a natural mob's roll index so later re-rolls skip it. The
+// index lands in the home chunk's OwnedChunk when owned; otherwise it goes
+// straight into that chunk's sidecar (single player only — in multiplayer
+// the server does this bookkeeping when the TOUCHED flag arrives).
+void MobManager::mark_touched( Mob &mob ) {
+    if ( mob.touched || mob.despawnable || mob.uid != 0 || mob.net.mirror ) {
+        return;
+    }
+    mob.touched = true;
+    if ( !net_is_natural_mob_id( mob.natural_id ) ) {
+        return;
+    }
+    const uint8_t index = static_cast<uint8_t>( net_natural_mob_index( mob.natural_id ) );
+    const glm::ivec3 home = net_natural_mob_home( mob.natural_id );
+    for ( OwnedChunk &owned : this->owned_chunks ) {
+        if ( owned.pos == home ) {
+            owned.removed.insert( index );
+            return;
+        }
+    }
+    if ( this->storage != nullptr && !this->mp_mode ) {
+        std::vector<MobFileRecord> records;
+        std::vector<uint8_t> removed;
+        this->storage->load_mobs( home, records, &removed );
+        if ( std::find( removed.begin( ), removed.end( ), index ) == removed.end( ) ) {
+            removed.push_back( index );
+            this->storage->persist_mobs( home, records, removed );
+        }
+    }
+}
+
 // MC-style knockback: a 0.15 blocks/tick horizontal impulse that decays
 // x0.85 per tick (~1 block of travel) plus a 0.07 blocks/tick vertical bump
 // (~0.2 block hop under the player gravity constant). Returns true when the
@@ -624,6 +656,9 @@ bool MobManager::hurt( int index, float damage, const glm::dvec3 &attacker_pos )
     if ( mob.death_ticks > 0 ) {
         return false;
     }
+    // hurt() is only reached by player hits (local raycast, ENTITY_ACTION on
+    // the owning side): environmental damage adjusts health directly.
+    this->mark_touched( mob );
     const MobTypeDef &def = mob_types[ mob.type ];
     mob.health -= damage;
     mob.hurt_ticks = static_cast<int>( 0.3f * UPS_RATE );
@@ -655,16 +690,18 @@ bool MobManager::hurt( int index, float damage, const glm::dvec3 &attacker_pos )
 // Called from World::render for every chunk that finished load+finalize this
 // frame. Claims ownership (so the leave path knows whether to persist) and
 // spawns the worker-side pending_mobs as live mobs.
-void MobManager::adopt_chunk( Chunk &chunk ) {
+void MobManager::adopt_chunk( World &world, Chunk &chunk ) {
     // Multiplayer: mob files live server-side; the roll runs on CHUNK_ROLE
     // OWNER instead, so local pending_mobs are discarded.
     if ( !this->enabled || this->test_mode || this->mp_mode ) {
         chunk.pending_mobs.clear( );
+        chunk.pending_mobs_removed.clear( );
         return;
     }
     for ( const OwnedChunk &owned : this->owned_chunks ) {
         if ( owned.pos == chunk.chunk_pos ) {
             chunk.pending_mobs.clear( );
+            chunk.pending_mobs_removed.clear( );
             return;
         }
     }
@@ -673,10 +710,20 @@ void MobManager::adopt_chunk( Chunk &chunk ) {
             Mob &mob = this->mobs.back( );
             mob.variant = record.variant;
             mob.health = record.health;
+            if ( net_is_natural_mob_id( record.net_id ) ) {
+                // A roll product (fresh or restored): keep its deterministic
+                // id so re-rolls and tombstones line up.
+                mob.natural_id = record.net_id;
+                mob.net_natural = true;
+                mob.net_flags |= NET_MOB_FLAG_NATURAL;
+            }
+            mob.touched = ( record.flags & NET_MOB_FLAG_TOUCHED ) != 0;
         }
     }
-    this->owned_chunks.push_back( { chunk.chunk_pos, chunk.mobs_file_present, chunk.mobs_spawned } );
+    this->owned_chunks.push_back( { chunk.chunk_pos, chunk.mobs_file_present,
+                                    std::set<uint8_t>( chunk.pending_mobs_removed.begin( ), chunk.pending_mobs_removed.end( ) ) } );
     chunk.pending_mobs.clear( );
+    chunk.pending_mobs_removed.clear( );
 }
 
 // Roughly every 16 ticks: a chunk has left when its slot is empty, carries a
@@ -700,7 +747,13 @@ void MobManager::poll_owned( World &world ) {
         for ( auto it = this->mobs.begin( ); it != this->mobs.end( ); ) {
             const glm::ivec3 feet_chunk = glm::ivec3( glm::floor( it->pos / csize ) );
             if ( it->persistent && !it->despawnable && feet_chunk == owned.pos ) {
-                MobFileRecord record = { 0, 0, 0.0, 0.0, 0.0, 0.0f, 0.0f, 0u };
+                // A pristine natural is dropped rather than persisted — the
+                // deterministic roll recreates it on the next load.
+                if ( it->natural_id != 0 && !it->touched ) {
+                    it = this->remove_mob( it );
+                    continue;
+                }
+                MobFileRecord record = { 0, 0, 0.0, 0.0, 0.0, 0.0f, 0.0f, 0u, 0u };
                 record.type = static_cast<uint16_t>( it->type );
                 record.variant = static_cast<uint16_t>( it->variant < 0 ? 0 : it->variant );
                 record.x = it->pos.x;
@@ -708,6 +761,8 @@ void MobManager::poll_owned( World &world ) {
                 record.z = it->pos.z;
                 record.yaw = it->yaw;
                 record.health = it->health;
+                record.flags = mob_net_flags( *it ) & ( NET_MOB_FLAG_NATURAL | NET_MOB_FLAG_TOUCHED );
+                record.net_id = it->natural_id;
                 records.push_back( record );
                 it = this->remove_mob( it );
             } else {
@@ -715,28 +770,33 @@ void MobManager::poll_owned( World &world ) {
             }
         }
         // Write only if there is something worth recording: live mobs, a
-        // file we loaded, or a spawn roll that produced mobs. An owned chunk
-        // that never had either leaves no file behind.
+        // file we loaded, or tombstoned roll indices. An owned chunk with
+        // only pristine naturals leaves no file behind — and persist_mobs
+        // deletes a stale file when both lists are empty.
         // No writes in capture or fly mode — capture exits without player.dat
         // and fly is a throwaway scripted run; both must leave no mob files.
         if ( this->storage != nullptr && !RepGame::capture_mode( ) && !RepGame::fly_mode( ) &&
-             ( !records.empty( ) || owned.file_present || owned.spawned ) ) {
-            this->storage->persist_mobs( owned.pos, records );
+             ( !records.empty( ) || !owned.removed.empty( ) || owned.file_present ) ) {
+            const std::vector<uint8_t> removed( owned.removed.begin( ), owned.removed.end( ) );
+            this->storage->persist_mobs( owned.pos, records, removed );
         }
         this->owned_chunks.erase( this->owned_chunks.begin( ) + static_cast<long>( i ) );
     }
 }
 
 void MobManager::persist_all( ) {
-    if ( this->storage == nullptr || RepGame::capture_mode( ) || RepGame::fly_mode( ) || this->mp_mode ) {
+    if ( this->storage == nullptr || RepGame::fly_mode( ) || RepGame::capture_mode( ) || this->mp_mode ) {
         return;
     }
     const glm::dvec3 csize( CHUNK_SIZE_X, CHUNK_SIZE_Y, CHUNK_SIZE_Z );
     for ( const OwnedChunk &owned : this->owned_chunks ) {
         std::vector<MobFileRecord> records;
         for ( const Mob &mob : this->mobs ) {
-            if ( mob.persistent && !mob.despawnable && glm::ivec3( glm::floor( mob.pos / csize ) ) == owned.pos ) {
-                MobFileRecord record = { 0, 0, 0.0, 0.0, 0.0, 0.0f, 0.0f, 0u };
+            // Pristine naturals are recreated by the roll — only touched
+            // naturals and other persistent mobs become records.
+            const bool pristine = mob.natural_id != 0 && !mob.touched;
+            if ( mob.persistent && !mob.despawnable && !pristine && glm::ivec3( glm::floor( mob.pos / csize ) ) == owned.pos ) {
+                MobFileRecord record = { 0, 0, 0.0, 0.0, 0.0, 0.0f, 0.0f, 0u, 0u };
                 record.type = static_cast<uint16_t>( mob.type );
                 record.variant = static_cast<uint16_t>( mob.variant < 0 ? 0 : mob.variant );
                 record.x = mob.pos.x;
@@ -744,11 +804,14 @@ void MobManager::persist_all( ) {
                 record.z = mob.pos.z;
                 record.yaw = mob.yaw;
                 record.health = mob.health;
+                record.flags = mob_net_flags( mob ) & ( NET_MOB_FLAG_NATURAL | NET_MOB_FLAG_TOUCHED );
+                record.net_id = mob.natural_id;
                 records.push_back( record );
             }
         }
-        if ( !records.empty( ) || owned.file_present || owned.spawned ) {
-            this->storage->persist_mobs( owned.pos, records );
+        if ( !records.empty( ) || !owned.removed.empty( ) || owned.file_present ) {
+            const std::vector<uint8_t> removed( owned.removed.begin( ), owned.removed.end( ) );
+            this->storage->persist_mobs( owned.pos, records, removed );
         }
     }
 }
@@ -814,6 +877,12 @@ void MobManager::tick( World &world, const glm::dvec3 &player_pos, const MobTick
             it->prev_yaw = it->yaw;
             ++it;
             continue;
+        }
+        // Pen rule: an owned natural mob standing in a player-edited chunk
+        // (fences, pens) counts as interacted — it becomes persistable and
+        // its roll index is tombstoned.
+        if ( it->natural_id != 0 && !it->touched && chunk->player_edited ) {
+            this->mark_touched( *it );
         }
         if ( it->death_ticks > 0 && it->death_ticks > static_cast<int>( 0.5f * UPS_RATE ) ) {
             this->send_net_remove( *it, NET_REMOVE_DIED );
@@ -1142,30 +1211,16 @@ static glm::ivec3 mob_net_chunk_of( const glm::dvec3 &pos ) {
     return net_entity_chunk_of( pos );
 }
 
-// Deterministic id for a natural-spawn roll product: session 0xFFFFFFFF so
-// it can't collide with client- or server-minted ids, and identical rolls
-// on different owners produce the same id (the server's map insert dedupes).
-static NetEntityId natural_net_id( const glm::ivec3 &chunk, int index ) {
-    uint64_t h = 1469598103934665603ull;
-    const uint64_t vals[] = { static_cast<uint64_t>( static_cast<uint32_t>( chunk.x ) ),
-                              static_cast<uint64_t>( static_cast<uint32_t>( chunk.y ) ),
-                              static_cast<uint64_t>( static_cast<uint32_t>( chunk.z ) ),
-                              static_cast<uint64_t>( static_cast<uint32_t>( index ) ) };
-    for ( const uint64_t v : vals ) {
-        h ^= v;
-        h *= 1099511628211ull;
-    }
-    const uint32_t low = static_cast<uint32_t>( h ^ ( h >> 32 ) ) | 1u;
-    return ( 0xFFFFFFFFull << 32 ) | low;
-}
-
 uint32_t MobManager::mob_net_flags( const Mob &mob ) {
-    uint32_t f = mob.net_flags & ( NET_MOB_FLAG_DESPAWNABLE | NET_MOB_FLAG_NATURAL );
+    uint32_t f = mob.net_flags & ( NET_MOB_FLAG_DESPAWNABLE | NET_MOB_FLAG_NATURAL | NET_MOB_FLAG_TOUCHED );
     if ( mob.despawnable ) {
         f |= NET_MOB_FLAG_DESPAWNABLE;
     }
     if ( mob.net_natural ) {
         f |= NET_MOB_FLAG_NATURAL;
+    }
+    if ( mob.touched ) {
+        f |= NET_MOB_FLAG_TOUCHED;
     }
     if ( mob.hurt_ticks > 0 ) {
         f |= NET_MOB_FLAG_HURT;
@@ -1182,9 +1237,6 @@ uint32_t MobManager::mob_net_flags( const Mob &mob ) {
 void MobManager::set_multiplayer_mode( const bool mp_mode, NetEntities *net ) {
     this->mp_mode = mp_mode;
     this->net = mp_mode ? net : nullptr;
-    if ( !mp_mode ) {
-        this->rolled_chunks.clear( );
-    }
 }
 
 void MobManager::announce_spawn( Mob &mob ) {
@@ -1290,6 +1342,8 @@ bool MobManager::spawn_record( const NetEntityRecord &rec, const bool mirror ) {
     mob.net_flags = rec.flags;
     mob.despawnable = ( rec.flags & NET_MOB_FLAG_DESPAWNABLE ) ? 1 : 0;
     mob.net_natural = ( rec.flags & NET_MOB_FLAG_NATURAL ) != 0;
+    mob.natural_id = net_is_natural_mob_id( rec.id ) ? rec.id : 0;
+    mob.touched = ( rec.flags & NET_MOB_FLAG_TOUCHED ) != 0;
     if ( rec.flags & NET_MOB_FLAG_HURT ) {
         mob.hurt_ticks = static_cast<int>( 0.3f * UPS_RATE );
     }
@@ -1334,8 +1388,8 @@ void MobManager::net_apply_state( const NetEntityStateEntry &e ) {
     if ( !mob->net.mirror && owned_here ) {
         // Owned: no server-originated mob state (partial pickups are items
         // only); just keep the provenance flag bits in sync.
-        mob->net_flags = ( mob->net_flags & ~( NET_MOB_FLAG_DESPAWNABLE | NET_MOB_FLAG_NATURAL ) ) |
-                         ( e.flags & ( NET_MOB_FLAG_DESPAWNABLE | NET_MOB_FLAG_NATURAL ) );
+        mob->net_flags = ( mob->net_flags & ~( NET_MOB_FLAG_DESPAWNABLE | NET_MOB_FLAG_NATURAL | NET_MOB_FLAG_TOUCHED ) ) |
+                         ( e.flags & ( NET_MOB_FLAG_DESPAWNABLE | NET_MOB_FLAG_NATURAL | NET_MOB_FLAG_TOUCHED ) );
         return;
     }
     const uint32_t old_flags = mob->net_flags;
@@ -1347,6 +1401,7 @@ void MobManager::net_apply_state( const NetEntityStateEntry &e ) {
     mob->health = e.health;
     mob->net_flags = e.flags;
     mob->despawnable = ( e.flags & NET_MOB_FLAG_DESPAWNABLE ) ? 1 : 0;
+    mob->touched = ( e.flags & NET_MOB_FLAG_TOUCHED ) != 0;
     const MobTypeDef &def = mob_types[ mob->type ];
     // Rising-edge flag visuals: the owner's sim already played its sfx, so
     // mirror playback is full-gain (no attacker distance to fade against).
@@ -1434,7 +1489,8 @@ void MobManager::mirror_hit_feedback( const int index, const glm::dvec3 &attacke
 }
 
 void MobManager::net_apply_chunk_role( RepGameState &state, const glm::ivec3 &chunk, const uint8_t role, const uint8_t populated,
-                                       const std::vector<NetEntityRecord> &records, const std::set<NetEntityId> &keep_ids ) {
+                                       const std::vector<NetEntityRecord> &records, const std::vector<uint8_t> &removed_natural,
+                                       const std::set<NetEntityId> &keep_ids ) {
     if ( !this->enabled ) {
         return;
     }
@@ -1479,6 +1535,8 @@ void MobManager::net_apply_chunk_role( RepGameState &state, const glm::ivec3 &ch
             existing->health = rec.health;
             existing->net_flags = rec.flags;
             existing->despawnable = ( rec.flags & NET_MOB_FLAG_DESPAWNABLE ) ? 1 : 0;
+            existing->natural_id = net_is_natural_mob_id( rec.id ) ? rec.id : 0;
+            existing->touched = ( rec.flags & NET_MOB_FLAG_TOUCHED ) != 0;
         } else {
             this->spawn_record( rec, !owned );
             Mob *sp = this->find_by_net_id( rec.id );
@@ -1488,25 +1546,31 @@ void MobManager::net_apply_chunk_role( RepGameState &state, const glm::ivec3 &ch
         }
     }
 
-    // Freshly owned + never rolled this session + the server hasn't seen a
-    // roll (populated==0): run the deterministic roll on the live chunk and
-    // report CHUNK_POPULATED either way (a zero-mob roll is still a roll).
-    if ( owned && !populated && !this->test_mode && this->net != nullptr && !this->rolled_chunks.count( chunk ) ) {
-        this->rolled_chunks.insert( chunk );
+    // Freshly owned and the server hasn't seen a roll this coverage
+    // (populated==0): re-run the deterministic roll on the live chunk.
+    // Pristine naturals are dropped on uncover, so a re-cover must re-roll;
+    // tombstoned indices (removed_natural) and ids already live locally
+    // are skipped. CHUNK_POPULATED reports the roll either way.
+    if ( owned && !populated && !this->test_mode && this->net != nullptr ) {
         Chunk *live = state.world.get_loaded_chunk( chunk * CHUNK_SIZE_I + CHUNK_SIZE_I / 2 );
         if ( live != nullptr && live->load_state == CHUNK_LIVE ) {
             live->pending_mobs.clear( );
-            live->spawn_mobs( );
-            int index = 0;
+            const std::set<uint8_t> skip( removed_natural.begin( ), removed_natural.end( ) );
+            live->spawn_mobs( &skip );
             for ( const MobFileRecord &record : live->pending_mobs ) {
-                if ( record.type < MOB_TYPE_COUNT &&
-                     this->spawn_any( static_cast<MobType>( record.type ), glm::dvec3( record.x, record.y, record.z ), record.yaw, 1 ) ) {
+                if ( record.type >= MOB_TYPE_COUNT || !net_is_natural_mob_id( record.net_id ) ||
+                     this->find_by_net_id( record.net_id ) != nullptr ) {
+                    continue;
+                }
+                if ( this->spawn_any( static_cast<MobType>( record.type ), glm::dvec3( record.x, record.y, record.z ), record.yaw, 1 ) ) {
                     Mob &mob = this->mobs.back( );
                     mob.variant = record.variant;
                     mob.health = record.health;
-                    mob.net.id = natural_net_id( chunk, index );
+                    mob.net.id = record.net_id;
+                    mob.natural_id = record.net_id;
                     mob.net_natural = true;
                     mob.net_flags |= NET_MOB_FLAG_NATURAL;
+                    mob.touched = ( record.flags & NET_MOB_FLAG_TOUCHED ) != 0;
                     NetEntityRecord rec;
                     rec.id = mob.net.id;
                     rec.kind = NetEntityKind::MOB;
@@ -1520,7 +1584,6 @@ void MobManager::net_apply_chunk_role( RepGameState &state, const glm::ivec3 &ch
                     rec.flags = mob_net_flags( mob );
                     this->net->send_spawn( rec );
                 }
-                index++;
             }
             live->pending_mobs.clear( );
             live->mobs_spawned = 1;

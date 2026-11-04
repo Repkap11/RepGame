@@ -80,11 +80,12 @@ void ServerEntities::send_chunk_role( Server &server, int fd, const glm::ivec3 &
     if ( role != NET_ROLE_NONE ) {
         const auto it = this->chunks.find( chunk );
         if ( it != this->chunks.end( ) ) {
-            p.populated = it->second.populated ? 1 : 0;
+            p.populated = it->second.rolled ? 1 : 0;
             p.records.reserve( it->second.entities.size( ) );
             for ( const auto &pair : it->second.entities ) {
                 p.records.push_back( pair.second );
             }
+            p.removed_natural.assign( it->second.removed_natural.begin( ), it->second.removed_natural.end( ) );
         }
     }
     PacketWriter w;
@@ -152,14 +153,22 @@ void ServerEntities::load_chunk_entities( ServerChunkEntities &ce, const glm::iv
         ce.entities[ e.id ] = e;
     }
     std::vector<MobFileRecord> mobs;
-    if ( this->storage->load_mobs( chunk, mobs ) ) {
-        // File existed (even empty): the populated marker — no natural
-        // respawn for this chunk.
-        ce.populated = true;
-    }
+    std::vector<uint8_t> removed;
+    ce.mobs_file_present = this->storage->load_mobs( chunk, mobs, &removed ) != 0;
+    ce.removed_natural.insert( removed.begin( ), removed.end( ) );
     for ( const MobFileRecord &rec : mobs ) {
         NetEntityRecord e;
-        e.id = this->mint_server_id( );
+        if ( net_is_natural_mob_id( rec.net_id ) ) {
+            // A natural record keeps its deterministic id — the next owner
+            // dedupes the re-roll against it. An id already live elsewhere
+            // means a stale duplicate record: drop it.
+            if ( this->entity_chunk.count( rec.net_id ) ) {
+                continue;
+            }
+            e.id = rec.net_id;
+        } else {
+            e.id = this->mint_server_id( );
+        }
         e.kind = NetEntityKind::MOB;
         e.x = rec.x;
         e.y = rec.y;
@@ -211,17 +220,18 @@ void ServerEntities::persist_chunk_entities( ServerChunkEntities &ce, const glm:
         ce.items_dirty = false;
     }
     if ( ce.mobs_dirty ) {
-        // Persist non-despawnable MOB records. Keep the populated marker
-        // semantics — only write when a mobs file existed or mobs are
-        // present, so a never-populated chunk doesn't gain a marker.
-        bool any_mobs = false;
+        // Persist non-despawnable MOB records except pristine naturals —
+        // untouched roll products are recreated by the next roll. Only
+        // provenance flag bits reach the file; anim/live bits don't.
         std::vector<MobFileRecord> out;
         for ( const auto &pair : ce.entities ) {
             const NetEntityRecord &e = pair.second;
             if ( e.kind != NetEntityKind::MOB || ( e.flags & NET_MOB_FLAG_DESPAWNABLE ) ) {
                 continue; // night-spawner mobs are never persisted
             }
-            any_mobs = true;
+            if ( ( e.flags & NET_MOB_FLAG_NATURAL ) && !( e.flags & NET_MOB_FLAG_TOUCHED ) ) {
+                continue; // pristine natural: re-rolled, not saved
+            }
             MobFileRecord rec = {};
             rec.type = static_cast<uint16_t>( e.type );
             rec.variant = static_cast<uint16_t>( e.count );
@@ -230,11 +240,15 @@ void ServerEntities::persist_chunk_entities( ServerChunkEntities &ce, const glm:
             rec.z = e.z;
             rec.yaw = e.yaw;
             rec.health = e.health;
-            rec.flags = 0; // net flag bits are live state, not file state
+            rec.flags = e.flags & ( NET_MOB_FLAG_NATURAL | NET_MOB_FLAG_TOUCHED );
+            rec.net_id = net_is_natural_mob_id( e.id ) ? e.id : 0;
             out.push_back( rec );
         }
-        if ( any_mobs || ce.populated ) {
-            this->storage->persist_mobs( chunk, out );
+        const std::vector<uint8_t> removed( ce.removed_natural.begin( ), ce.removed_natural.end( ) );
+        // Nothing to record and no stale file to update: skip the filesystem
+        // entirely — pristine-only coverage must leave no mobs_* file.
+        if ( !out.empty( ) || !removed.empty( ) || ce.mobs_file_present ) {
+            this->storage->persist_mobs( chunk, out, removed );
         }
         ce.mobs_dirty = false;
     }
@@ -264,6 +278,9 @@ void ServerEntities::persist_stray_entity( const NetEntityRecord &rec, const glm
     if ( this->storage == nullptr || rec.kind == NetEntityKind::BODY ) {
         return;
     }
+    if ( rec.kind == NetEntityKind::MOB && ( rec.flags & NET_MOB_FLAG_NATURAL ) && !( rec.flags & NET_MOB_FLAG_TOUCHED ) ) {
+        return; // pristine naturals are dropped, never persisted
+    }
     // The entity's chunk isn't covered: load its sidecars, append, write
     // back, evict — the record never enters the live table.
     ServerChunkEntities tmp;
@@ -272,6 +289,32 @@ void ServerEntities::persist_stray_entity( const NetEntityRecord &rec, const glm
     tmp.items_dirty = true;
     tmp.mobs_dirty = true;
     this->persist_chunk_entities( tmp, chunk );
+}
+
+void ServerEntities::note_touched_natural( NetEntityId id ) {
+    if ( !net_is_natural_mob_id( id ) ) {
+        return;
+    }
+    const glm::ivec3 home = net_natural_mob_home( id );
+    const uint8_t index = static_cast<uint8_t>( net_natural_mob_index( id ) );
+    const auto it = this->chunks.find( home );
+    if ( it != this->chunks.end( ) ) {
+        if ( it->second.removed_natural.insert( index ).second ) {
+            it->second.mobs_dirty = true;
+        }
+        return;
+    }
+    // Home chunk not covered: tombstone straight into its sidecar.
+    if ( this->storage == nullptr ) {
+        return;
+    }
+    std::vector<MobFileRecord> records;
+    std::vector<uint8_t> removed;
+    this->storage->load_mobs( home, records, &removed );
+    if ( std::find( removed.begin( ), removed.end( ), index ) == removed.end( ) ) {
+        removed.push_back( index );
+        this->storage->persist_mobs( home, records, removed );
+    }
 }
 
 // Re-evaluate one chunk after a viewer set change: refresh ownership and
@@ -471,16 +514,40 @@ bool ServerEntities::on_client_message( Server &server, int client_fd, NetMsgTyp
         }
         if ( rec.kind == NetEntityKind::MOB && ( rec.flags & NET_MOB_FLAG_NATURAL ) ) {
             // Deterministic natural-spawn roll: only the chunk owner may seed
-            // an unpopulated chunk; duplicates (id already present) and late
-            // arrivals after CHUNK_POPULATED are dropped silently.
-            if ( it->second.owner_fd != client_fd || it->second.populated ) {
-                se_pr_debug( "Dropping NATURAL spawn id=%llu chunk=%d,%d,%d from:%d owner:%d populated:%d dup:%d",
+            // an unrolled chunk. Drop when the sender isn't the owner, the
+            // chunk already rolled this coverage, the roll index is
+            // tombstoned in the home chunk's removed set, or the id is
+            // already live anywhere.
+            bool drop = it->second.owner_fd != client_fd || it->second.rolled;
+            const bool live = this->entity_chunk.count( rec.id ) != 0;
+            if ( !drop && live ) {
+                drop = true;
+            }
+            if ( !drop && net_is_natural_mob_id( rec.id ) ) {
+                const auto hit = this->chunks.find( net_natural_mob_home( rec.id ) );
+                if ( hit != this->chunks.end( ) && hit->second.removed_natural.count( static_cast<uint8_t>( net_natural_mob_index( rec.id ) ) ) ) {
+                    drop = true;
+                }
+            }
+            if ( drop ) {
+                se_pr_debug( "Dropping NATURAL spawn id=%llu chunk=%d,%d,%d from:%d owner:%d rolled:%d live:%d",
                              (unsigned long long)rec.id, chunk.x, chunk.y, chunk.z, client_fd, it->second.owner_fd,
-                             (int)it->second.populated, (int)( it->second.entities.count( rec.id ) != 0 ) );
+                             (int)it->second.rolled, (int)live );
+                if ( !live ) {
+                    // Kill the sender's local copy — it can't be a record.
+                    NetEntityRemovePayload rem{ rec.id, NET_REMOVE_DESPAWN };
+                    PacketWriter wr;
+                    net_serialize_entity_remove( wr, rem );
+                    server.queue_message( client_fd, NetMsgType::ENTITY_REMOVE, 0, wr.take_buf( ) );
+                }
                 return true;
             }
         }
         it->second.entities[ rec.id ] = rec;
+        if ( rec.kind == NetEntityKind::MOB && ( rec.flags & ( NET_MOB_FLAG_NATURAL | NET_MOB_FLAG_TOUCHED ) ) ==
+                                                  ( NET_MOB_FLAG_NATURAL | NET_MOB_FLAG_TOUCHED ) ) {
+            this->note_touched_natural( rec.id );
+        }
         this->entity_chunk[ rec.id ] = chunk;
         if ( rec.kind == NetEntityKind::BODY ) {
             this->body_sim_fd[ rec.id ] = client_fd; // causer simulates
@@ -517,6 +584,7 @@ bool ServerEntities::on_client_message( Server &server, int client_fd, NetMsgTyp
                 continue;
             }
             NetEntityRecord &rec = ce->entities[ e.id ];
+            const uint32_t prev_flags = rec.flags;
             rec.x = e.x;
             rec.y = e.y;
             rec.z = e.z;
@@ -528,6 +596,11 @@ bool ServerEntities::on_client_message( Server &server, int client_fd, NetMsgTyp
             rec.health = e.health;
             rec.flags = e.flags;
             this->mark_dirty( *ce, rec.kind );
+            // A natural mob that just became TOUCHED: tombstone its roll
+            // index in the home chunk so re-rolls skip it.
+            if ( ( rec.flags & NET_MOB_FLAG_NATURAL ) && ( rec.flags & NET_MOB_FLAG_TOUCHED ) && !( prev_flags & NET_MOB_FLAG_TOUCHED ) ) {
+                this->note_touched_natural( rec.id );
+            }
 
             // Chunk-crossing hysteresis (net_entity_next_chunk): an entity
             // resting on a boundary stays in its current chunk instead of
@@ -719,10 +792,9 @@ bool ServerEntities::on_client_message( Server &server, int client_fd, NetMsgTyp
         }
         const auto it = this->chunks.find( glm::ivec3( p.cx, p.cy, p.cz ) );
         if ( it != this->chunks.end( ) && it->second.owner_fd == client_fd ) {
-            // The owner's natural-spawn roll ran (even a zero-mob roll): mark
-            // the chunk populated so the empty-marker file persists.
-            it->second.populated = true;
-            it->second.mobs_dirty = true;
+            // The owner's natural-spawn roll ran (even a zero-mob roll):
+            // in-memory only — a pristine-only chunk leaves no mobs file.
+            it->second.rolled = true;
         }
         return true;
     }

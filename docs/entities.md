@@ -69,7 +69,7 @@ below for the spawn/state/remove/handover rules.
 
 ## Multiplayer entity sync
 
-Protocol v5 (`include/common/net/packet.hpp`) — "server arbitrates, owner
+Protocol v6 (`include/common/net/packet.hpp`) — "server arbitrates, owner
 client simulates". The server (`ServerEntities`, `server_entities.cpp`)
 holds the authoritative entity table per chunk and never simulates;
 clients (`NetEntities`, `net_entities.cpp`) announce what they own and
@@ -78,9 +78,12 @@ mirror the rest. A client declares its interest with VIEW (clamped to
 chunk the server assigns roles — OWNER to the nearest covering player
 (hysteresis: the incumbent keeps it while within best+2 chunks), VIEWER
 to the rest — and pushes CHUNK_ROLE grants carrying the chunk's live
-records. Net ids are `(session << 32) | counter`; session 0 is
-server-minted (chunk-load restores), `0xFFFFFFFF` high word is the
-deterministic natural-mob namespace. Every streamed entity carries a
+records plus the chunk's tombstoned natural-roll indices
+(`removed_natural`). Net ids are `(session << 32) | counter`; session 0
+is server-minted (chunk-load restores), and the `0xFF` top byte is the
+deterministic natural-mob namespace — `net_natural_mob_id` packs the
+home chunk + roll index so tombstones key off the index alone. Every
+streamed entity carries a
 `net.chunk` — the server's belief of its chunk — which drives all local
 ownership checks, so an entity keeps streaming while it physically
 crosses until the server's ENTITY_TRANSFER lands.
@@ -96,7 +99,10 @@ with a reason; ENTITY_TRANSFER switches ownership (adopt=1) or demotes to
 mirror (adopt=0); ENTITY_ACTION carries hits against remote entities;
 PICKUP_REQUEST/PICKUP_RESULT arbitrate item pickup races server-side
 (exactly one grant, partial pickups reduce the count via a server state);
-CHUNK_POPULATED marks a chunk's natural-mob roll done; PLAYER_HIT carries
+CHUNK_POPULATED marks a chunk's natural-mob roll done for this coverage
+(the server's `rolled` flag is in-memory only — a re-covered chunk
+reports `populated=0` and re-rolls, since pristine products were
+dropped); PLAYER_HIT carries
 a remote mob's melee hit to its target; EXPLOSION relays a blast.
 
 Client-side, items, mobs and bodies share one bookkeeping struct:
@@ -117,9 +123,20 @@ everyone else holds easing mirrors. The server persists items and
 non-despawnable mobs in `items_`/`mobs_` sidecar files on uncover —
 client-side entity files are off whenever a hostname is given
 (`multiplayer_mode`). Natural mob spawning runs on the OWNER of an
-unpopulated chunk from `Chunk::spawn_mobs`'s seeded roll, announced with
-`NET_MOB_FLAG_NATURAL` and completed by CHUNK_POPULATED (empty roll still
-writes the marker). Hits on mirrored mobs go through ENTITY_ACTION to the
+unrolled chunk from `Chunk::spawn_mobs`'s seeded roll, announced with
+`NET_MOB_FLAG_NATURAL` and completed by CHUNK_POPULATED; the roll skips
+the grant's `removed_natural` indices and ids already live locally.
+Natural-mob provenance follows the single-player rules
+(`docs/mobs.md`): pristine naturals (NATURAL && !TOUCHED) are never
+persisted — the server drops their records on uncover and the next
+coverage re-rolls them; a mob gains `NET_MOB_FLAG_TOUCHED` on a player
+hit or in a player-edited chunk, which tombstones its roll index in the
+home chunk's `removed_natural` and turns it into an ordinary persisted
+record. The server drops a natural ENTITY_SPAWN when the sender isn't
+the owner, the chunk already rolled, the index is tombstoned, or the id
+is already live — bouncing it back with ENTITY_REMOVE when the id isn't
+live so the sender's copy dies. Hits on mirrored mobs go through
+ENTITY_ACTION to the
 owner; owned hostiles also target remote players via `remote_targets` and
 reach them through PLAYER_HIT (`NetPlayerPayload.flags` bit0 =
 targetable).

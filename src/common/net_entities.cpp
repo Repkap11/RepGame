@@ -176,7 +176,7 @@ void NetEntities::apply_chunk_role( RepGameState &state, const PendingRole &gran
         }
     }
     state.world.items.net_apply_chunk_role( grant.chunk, grant.role, records, grant.late_ids );
-    state.world.mobs.net_apply_chunk_role( state, grant.chunk, grant.role, grant.populated, records, grant.late_ids );
+    state.world.mobs.net_apply_chunk_role( state, grant.chunk, grant.role, grant.populated, records, grant.removed_natural, grant.late_ids );
     state.world.bodies.net_apply_chunk_role( grant.chunk, grant.role, records, grant.late_ids );
 }
 
@@ -205,6 +205,7 @@ bool NetEntities::handle( RepGameState &state, NetMsgType type, int32_t player_i
             grant.role = p.role;
             grant.populated = p.populated;
             grant.records = std::move( p.records );
+            grant.removed_natural = std::move( p.removed_natural );
             // The latest grant supersedes anything still queued for this
             // chunk — drop the stale entry before queuing/applying.
             for ( size_t i = 0; i < this->pending_roles.size( ); i++ ) {

@@ -226,7 +226,7 @@ void World::render( Multiplayer &multiplayer, const glm::dvec3 &camera_pos, cons
     // records or the natural-spawn roll); skipped chunks stay owned next pass.
     if ( !this->chunkLoader.just_finalized.empty( ) ) {
         for ( Chunk *chunk : this->chunkLoader.just_finalized ) {
-            this->mobs.adopt_chunk( *chunk );
+            this->mobs.adopt_chunk( *this, *chunk );
             this->items.adopt_chunk( *chunk );
         }
         this->chunkLoader.just_finalized.clear( );
@@ -1106,6 +1106,7 @@ void World::set_loaded_block( const glm::ivec3 &block_pos, BlockState blockState
         }
         chunk.set_block( diff, blockState );
         chunk.dirty = 1;
+        chunk.player_edited = 1;
         chunk.needs_repopulation = 1;
         this->chunkLoader.repop_must_enqueue( chunk );
         chunk.is_empty_chunk = false;
@@ -1304,7 +1305,10 @@ bool World::process_random_ticks_on_chunk( const Chunk &chunk ) {
 
             const glm::ivec3 chunk_pos = chunk.chunk_pos * chunk_size;
             const glm::ivec3 world_pos = pos + chunk_pos;
+            const uint8_t was_player_edited = chunk.player_edited;
             set_loaded_block( world_pos, blockState );
+            // Random ticks aren't player edits: keep the pen rule out of them.
+            chunk.player_edited = was_player_edited;
             anyBlockStateChanged = true;
         }
     }

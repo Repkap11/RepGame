@@ -36,6 +36,8 @@ class NetEntities {
         uint8_t role;
         uint8_t populated;
         std::vector<NetEntityRecord> records;
+        // Tombstoned natural-roll indices for the mob re-roll (CHUNK_ROLE).
+        std::vector<uint8_t> removed_natural;
         // Ids that entered this chunk (spawn relays, transfers, our own
         // spawns) after the grant was received: they are legitimately absent
         // from the stale record snapshot, so apply-time resync must keep them.

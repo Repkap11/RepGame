@@ -34,6 +34,8 @@ static inline BlockID save_chunk_block_id( uint32_t id ) {
 // Per-mob save record (persist_mobs/load_mobs). Packed on disk; readers copy
 // only the shared prefix so records from a build with a different size still
 // parse. Records with type >= MOB_TYPE_COUNT are skipped by the loader.
+// net_id is the natural-mob id (net_natural_mob_id) for records produced by
+// the natural roll, 0 otherwise — older files without it load as 0.
 struct __attribute__( ( packed ) ) MobFileRecord {
     uint16_t type;
     uint16_t variant;
@@ -41,6 +43,7 @@ struct __attribute__( ( packed ) ) MobFileRecord {
     float yaw;
     float health;
     uint32_t flags;
+    uint64_t net_id;
 };
 
 // Per-item save record (persist_items/load_items). Packed on disk; readers
@@ -79,13 +82,16 @@ class MapStorage {
     // Loads all chest contents stored for a chunk into `out` (keyed by world
     // block position). Returns 1 when a chest file existed, 0 otherwise.
     int load_chests( const glm::ivec3 &chunk_offset, ChestContentsMap &out );
-    // Writes the chunk's mob records. An empty list still writes the file —
-    // its presence marks the chunk as populated (mobs were killed/removed)
-    // so natural spawning never refills it.
-    void persist_mobs( const glm::ivec3 &chunk_offset, const std::vector<MobFileRecord> &mobs );
-    // Loads mob records into `out`. Returns 1 when the file existed — even
-    // when it holds zero records (the populated marker).
-    int load_mobs( const glm::ivec3 &chunk_offset, std::vector<MobFileRecord> &out );
+    // Writes the chunk's mob records plus the tombstoned natural-roll
+    // indices (`removed`). A file's existence no longer marks the chunk
+    // populated — the deterministic roll always runs on load — so when
+    // records and removed are both empty the file is deleted instead of
+    // written.
+    void persist_mobs( const glm::ivec3 &chunk_offset, const std::vector<MobFileRecord> &mobs, const std::vector<uint8_t> &removed = {} );
+    // Loads mob records into `out`, and (when `removed` is given) the
+    // tombstoned natural-roll indices stored after the records. Returns 1
+    // when the file existed — even when it holds zero records.
+    int load_mobs( const glm::ivec3 &chunk_offset, std::vector<MobFileRecord> &out, std::vector<uint8_t> *removed = nullptr );
     // Writes the chunk's dropped-item records. An empty list still writes
     // the file — unlike mobs there is no natural respawn, so an empty file
     // and a missing one are equivalent; writing it just keeps a chunk whose

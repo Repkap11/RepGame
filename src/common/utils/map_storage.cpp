@@ -271,15 +271,22 @@ int MapStorage::load_chests( const glm::ivec3 &chunk_offset, ChestContentsMap &o
     return 1;
 }
 
-// Mob file layout: u32 record_size, u32 count, then `count` MobFileRecords.
-// The file's existence alone marks the chunk populated — an empty file (or
-// one holding only the header) is kept, never deleted.
-void MapStorage::persist_mobs( const glm::ivec3 &chunk_offset, const std::vector<MobFileRecord> &mobs ) {
+// Mob file layout: u32 record_size, u32 count, `count` MobFileRecords, then
+// u32 removed_count + that many u8 natural-roll indices tombstoned by
+// touched/killed naturals. Files written before net_id / the removed
+// section existed still parse (net_id zero-fills, removed stays empty). An
+// all-empty write deletes the file instead — nothing about the file's
+// existence suppresses the deterministic roll anymore.
+void MapStorage::persist_mobs( const glm::ivec3 &chunk_offset, const std::vector<MobFileRecord> &mobs, const std::vector<uint8_t> &removed ) {
     if ( repgame_block_world( ) ) {
         return;
     }
     char file_name[ CHUNK_NAME_MAX_LENGTH ];
     snprintf( file_name, CHUNK_NAME_MAX_LENGTH, FILE_ROOT_MOBS, this->map_name, chunk_offset.x, chunk_offset.y, chunk_offset.z );
+    if ( mobs.empty( ) && removed.empty( ) ) {
+        remove( file_name );
+        return;
+    }
     FILE *write_ptr = fopen( file_name, "wb" );
     if ( write_ptr == NULL ) {
         pr_debug( "fopen failed for mobs file:%s", file_name );
@@ -292,13 +299,18 @@ void MapStorage::persist_mobs( const glm::ivec3 &chunk_offset, const std::vector
     for ( const MobFileRecord &record : mobs ) {
         fwrite( &record, sizeof( MobFileRecord ), 1, write_ptr );
     }
+    uint32_t num_removed = static_cast<uint32_t>( removed.size( ) );
+    fwrite( &num_removed, sizeof( uint32_t ), 1, write_ptr );
+    if ( num_removed > 0 ) {
+        fwrite( removed.data( ), sizeof( uint8_t ), num_removed, write_ptr );
+    }
 #if defined( REPGAME_WASM )
     fdatasync( fileno( write_ptr ) );
 #endif
     fclose( write_ptr );
 }
 
-int MapStorage::load_mobs( const glm::ivec3 &chunk_offset, std::vector<MobFileRecord> &out ) {
+int MapStorage::load_mobs( const glm::ivec3 &chunk_offset, std::vector<MobFileRecord> &out, std::vector<uint8_t> *removed ) {
     if ( repgame_block_world( ) ) {
         return 0;
     }
@@ -309,6 +321,9 @@ int MapStorage::load_mobs( const glm::ivec3 &chunk_offset, std::vector<MobFileRe
         return 0;
     }
     out.clear( );
+    if ( removed != nullptr ) {
+        removed->clear( );
+    }
     uint32_t record_size = 0;
     if ( fread( &record_size, sizeof( uint32_t ), 1, read_ptr ) != 1 ) {
         // Truncated/marker file: it exists, which is all the caller needs.
@@ -321,13 +336,23 @@ int MapStorage::load_mobs( const glm::ivec3 &chunk_offset, std::vector<MobFileRe
         return 1;
     }
     // Read whatever the file's record holds; older/newer builds may have a
-    // different record size, so copy only the shared prefix per record.
+    // different record size, so copy only the shared prefix per record
+    // (shorter records zero-fill their tail, e.g. net_id on pre-net_id files).
     char *raw = static_cast<char *>( calloc( num_mobs, record_size ) );
     size_t num_read = fread( raw, record_size, num_mobs, read_ptr );
+    uint32_t num_removed = 0;
+    uint8_t *removed_raw = nullptr;
+    if ( removed != nullptr && fread( &num_removed, sizeof( uint32_t ), 1, read_ptr ) == 1 && num_removed <= 64 ) {
+        removed_raw = static_cast<uint8_t *>( malloc( num_removed ) );
+        if ( fread( removed_raw, sizeof( uint8_t ), num_removed, read_ptr ) != num_removed ) {
+            free( removed_raw );
+            removed_raw = nullptr;
+        }
+    }
     fclose( read_ptr );
     for ( size_t i = 0; i < num_read; i++ ) {
         const char *record = &raw[ i * record_size ];
-        MobFileRecord mob = { 0, 0, 0.0, 0.0, 0.0, 0.0f, 0.0f, 0u };
+        MobFileRecord mob = { 0, 0, 0.0, 0.0, 0.0, 0.0f, 0.0f, 0u, 0u };
         const size_t prefix = sizeof( MobFileRecord ) <= (size_t)record_size ? sizeof( MobFileRecord ) : (size_t)record_size;
         memcpy( &mob, record, prefix );
         if ( mob.type >= MOB_TYPE_COUNT ) {
@@ -336,6 +361,10 @@ int MapStorage::load_mobs( const glm::ivec3 &chunk_offset, std::vector<MobFileRe
         out.push_back( mob );
     }
     free( raw );
+    if ( removed_raw != nullptr ) {
+        removed->assign( removed_raw, removed_raw + num_removed );
+        free( removed_raw );
+    }
     return 1;
 }
 

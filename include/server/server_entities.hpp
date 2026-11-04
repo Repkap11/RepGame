@@ -35,9 +35,16 @@ struct EntityClientView {
 
 struct ServerChunkEntities {
     int owner_fd = -1;
-    // A mobs file existed at first cover (or natural spawn was already done):
-    // phase 2+ uses this to suppress re-rolling natural spawns.
-    bool populated = false;
+    // The natural-spawn roll ran during this server coverage (CHUNK_POPULATED).
+    // In-memory only — never read from or written to disk; on every re-cover
+    // the pristine naturals are simply re-rolled by the new owner.
+    bool rolled = false;
+    // Tombstoned natural-roll indices: touched/killed naturals that the
+    // deterministic roll must not recreate. Persisted in the mobs sidecar.
+    std::set<uint8_t> removed_natural;
+    // A mobs sidecar existed at first cover (kept so an all-empty persist
+    // still deletes/updates it rather than leaving a stale file).
+    bool mobs_file_present = false;
     bool items_dirty = false;
     bool mobs_dirty = false;
     std::map<NetEntityId, NetEntityRecord> entities;
@@ -81,6 +88,10 @@ class ServerEntities {
     void uncover_chunk( const glm::ivec3 &chunk );
     void persist_chunk_entities( ServerChunkEntities &ce, const glm::ivec3 &chunk );
     void mark_dirty( ServerChunkEntities &ce, NetEntityKind kind );
+    // A NATURAL mob record gained TOUCHED: tombstone its roll index in the
+    // home chunk's removed_natural (covered) or straight into its sidecar
+    // (uncovered). Idempotent — only inserts when not already present.
+    void note_touched_natural( NetEntityId id );
     // Recompute viewers + owner for the chunks in the symmetric difference
     // of old/new boxes, then re-check ownership for the intersection, and
     // push CHUNK_ROLE deltas to every client whose role changed.
@@ -116,8 +127,12 @@ class ServerEntities {
         const auto it = this->chunks.find( chunk );
         return it == this->chunks.end( ) ? 0 : it->second.entities.size( );
     }
-    bool populated_of( const glm::ivec3 &chunk ) const {
+    bool rolled_of( const glm::ivec3 &chunk ) const {
         const auto it = this->chunks.find( chunk );
-        return it != this->chunks.end( ) && it->second.populated;
+        return it != this->chunks.end( ) && it->second.rolled;
+    }
+    size_t removed_natural_of( const glm::ivec3 &chunk ) const {
+        const auto it = this->chunks.find( chunk );
+        return it == this->chunks.end( ) ? 0 : it->second.removed_natural.size( );
     }
 };

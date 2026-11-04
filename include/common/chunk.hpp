@@ -3,6 +3,7 @@
 #include <atomic>
 #include <cstdint>
 #include <map>
+#include <set>
 #include <vector>
 
 #include "block.hpp"
@@ -118,6 +119,7 @@ class Chunk {
     friend int test_lighting( );
     friend int test_structure_border( );
     friend int test_item_entities( );
+    friend int test_mobs( );
 
     int load_state;
     int gl_initialized;
@@ -146,12 +148,20 @@ class Chunk {
     mutable int chests_loaded;
     // Mob sidecar data, filled by load_terrain on the worker and drained by
     // MobManager::adopt_chunk after finalize: records loaded from the mobs
-    // file or produced by the natural-spawn roll, whether the file existed
-    // (an empty one still marks the chunk populated), and whether the spawn
-    // roll produced any mobs. Cleared by release_terrain.
+    // file or produced by the natural-spawn roll, whether the file existed,
+    // whether the spawn roll produced any mobs, and the tombstoned
+    // natural-roll indices stored in the file (pending_mobs_removed).
+    // Cleared by release_terrain.
     std::vector<MobFileRecord> pending_mobs;
     int mobs_file_present;
     int mobs_spawned;
+    std::vector<uint8_t> pending_mobs_removed;
+    // A player edit touched this chunk's blocks: set by MapStorage::load_chunk
+    // hits (saved diffs), ChunkLoader::apply_diff_block and
+    // World::set_loaded_block — never by random ticks or structure gen.
+    // MobManager uses it to "touch" natural mobs standing in a pen.
+    // Mutable like the other load-time fields (worker fills it).
+    mutable uint8_t player_edited;
     // Dropped-item sidecar, same pattern as pending_mobs: filled by
     // load_terrain on the worker, drained by ItemEntities::adopt_chunk after
     // finalize. items_file_present tracks whether an items file existed so
@@ -331,8 +341,13 @@ class Chunk {
     // by destroy(). Render thread only: it deletes GL objects. Afterwards
     // the slot is equivalent to never-loaded.
     void release_terrain( );
-    // Natural mob-spawn roll on a freshly generated chunk (load_terrain).
-    bool spawn_mobs( );
+    // Natural mob-spawn roll (load_terrain + multiplayer CHUNK_ROLE owner).
+    // Deterministic per (chunk_pos, type, MAP_SEED): every emitted record gets
+    // net_id = net_natural_mob_id(chunk_pos, index) + the NATURAL flag, where
+    // index counts the roll's records in emission order. Indices in
+    // `skip` (tombstoned naturals, ids already restored from file) are
+    // omitted from the output but still consume an index.
+    bool spawn_mobs( const std::set<uint8_t> *skip = nullptr );
     void calculate_sides( const glm::ivec3 &center_next );
     static int get_coords_from_index_todo( int index, glm::ivec3 &out_pos );
     static int get_coords_from_index( int index, int &out_x, int &out_y, int &out_z );

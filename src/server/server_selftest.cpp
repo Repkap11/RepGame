@@ -274,6 +274,21 @@ void send_entity_state( Server &server, SimClient &c, NetEntityId id, double x, 
     server.test_logic( ).on_client_message( server, c.fd, NetMsgType::ENTITY_STATE, 0, w.buf( ) );
 }
 
+void send_mob_state( Server &server, SimClient &c, NetEntityId id, double x, double y, double z, uint32_t flags ) {
+    NetEntityStatePayload p;
+    NetEntityStateEntry e{};
+    e.id = id;
+    e.kind = static_cast<uint8_t>( NetEntityKind::MOB );
+    e.x = x;
+    e.y = y;
+    e.z = z;
+    e.flags = flags;
+    p.entries.push_back( e );
+    PacketWriter w;
+    net_serialize_entity_state( w, p );
+    server.test_logic( ).on_client_message( server, c.fd, NetMsgType::ENTITY_STATE, 0, w.buf( ) );
+}
+
 void send_pickup_request( Server &server, SimClient &c, NetEntityId id, int32_t room ) {
     NetPickupRequestPayload p{ id, room };
     PacketWriter w;
@@ -845,35 +860,51 @@ int server_selftest( ) {
         check( se2.owner_of( c_n2 ) == ma.fd, "mob: chunk -2 owned by A" );
         check( se2.owner_of( c2 ) == mb.fd, "mob: chunk 2 owned by B" );
 
-        // A natural-spawn record from the owner of an unpopulated chunk is
-        // accepted and relayed to the other viewers of that chunk.
-        const NetEntityId nat1 = ( 0xFFFFFFFFull << 32 ) | 0xABCDE;
+        // A natural-spawn record from the owner of an unrolled chunk is
+        // accepted. Natural ids encode home chunk + roll index.
+        const NetEntityId nat1 = net_natural_mob_id( c_n2, 0 );
         send_entity_spawn( server, ma, mob_record( nat1, MOB_PIG, NET_MOB_FLAG_NATURAL, -70.0, 30.0, 10.0 ) );
         check( se2.entity_count_of( c_n2 ) == 1, "mob: natural spawn from owner accepted" );
-        {
-            const std::vector<ReceivedFrame> fb = drain_client( server, mb );
-            // B doesn't view chunk -2, so nothing relays there — the accept
-            // shows in the live table instead.
-            (void)fb;
-        }
-        // The same id re-sent (re-roll after an ownership flip) dedupes.
+        drain_client( server, ma );
+        drain_client( server, mb );
+        // The same id re-sent (re-roll after an ownership flip) dedupes
+        // silently: the id is already live.
         send_entity_spawn( server, ma, mob_record( nat1, MOB_PIG, NET_MOB_FLAG_NATURAL, -70.0, 30.0, 10.0 ) );
         check( se2.entity_count_of( c_n2 ) == 1, "mob: duplicate natural id dedupes" );
+        {
+            const std::vector<ReceivedFrame> fa = drain_client( server, ma );
+            check( frames_of_type( fa, NetMsgType::ENTITY_REMOVE ).empty( ), "mob: live dup spawn gets no ENTITY_REMOVE" );
+        }
 
         // CHUNK_POPULATED from a non-owner is ignored; from the owner it
-        // marks the chunk and rejects later natural spawns.
+        // marks the chunk rolled and rejects later natural spawns.
         send_chunk_populated( server, mb, c_n2 );
-        check( !se2.populated_of( c_n2 ), "mob: CHUNK_POPULATED from non-owner ignored" );
+        check( !se2.rolled_of( c_n2 ), "mob: CHUNK_POPULATED from non-owner ignored" );
         send_chunk_populated( server, ma, c_n2 );
-        check( se2.populated_of( c_n2 ), "mob: CHUNK_POPULATED from owner marks chunk" );
-        const NetEntityId nat2 = ( 0xFFFFFFFFull << 32 ) | 0x12345;
+        check( se2.rolled_of( c_n2 ), "mob: CHUNK_POPULATED from owner marks chunk rolled" );
+        // A late natural spawn after the roll is dropped; since its id is
+        // not live the sender gets ENTITY_REMOVE so its local copy dies.
+        const NetEntityId nat2 = net_natural_mob_id( c_n2, 1 );
         send_entity_spawn( server, ma, mob_record( nat2, MOB_COW, NET_MOB_FLAG_NATURAL, -71.0, 30.0, 10.0 ) );
-        check( se2.entity_count_of( c_n2 ) == 1, "mob: natural spawn after populated rejected" );
+        check( se2.entity_count_of( c_n2 ) == 1, "mob: natural spawn after rolled rejected" );
+        {
+            const std::vector<ReceivedFrame> fa = drain_client( server, ma );
+            int removes = 0;
+            for ( const ReceivedFrame &f : frames_of_type( fa, NetMsgType::ENTITY_REMOVE ) ) {
+                PacketReader r( f.payload.data( ), f.payload.size( ) );
+                NetEntityRemovePayload p;
+                if ( net_deserialize_entity_remove( r, p ) && p.id == nat2 && p.reason == NET_REMOVE_DESPAWN ) {
+                    removes++;
+                }
+            }
+            check( removes == 1, "mob: rolled drop replies ENTITY_REMOVE (got %d)", removes );
+        }
 
         // Natural spawn into B's chunk from A (not its owner) is dropped.
-        const NetEntityId nat3 = ( 0xFFFFFFFFull << 32 ) | 0x5555;
+        const NetEntityId nat3 = net_natural_mob_id( c2, 0 );
         send_entity_spawn( server, ma, mob_record( nat3, MOB_SHEEP, NET_MOB_FLAG_NATURAL, 130.0, 30.0, 10.0 ) );
         check( se2.entity_count_of( c2 ) == 0, "mob: natural spawn from non-owner rejected" );
+        drain_client( server, ma );
 
         // ENTITY_ACTION routes to the entity chunk's owner, whoever sent it.
         const NetEntityId despawn_mob = ( static_cast<NetEntityId>( 1 ) << 32 ) | 0x77;
@@ -899,32 +930,113 @@ int server_selftest( ) {
             check( existed == 0, "mob: despawnable-only chunk leaves no mobs file (existed=%d)", existed );
         }
 
-        // Chunk -2 was populated: uncover writes the marker file plus nat1's
-        // record (PIG, not despawnable), and re-cover reports populated=1.
+        // Chunk -2 holds only the pristine nat1: uncovering writes no file
+        // at all — it will be deterministically re-rolled on the next cover.
         send_view( server, ma, glm::ivec3( -1, 0, 0 ), 0, 1 ); // covers only -1: uncovers -2
         {
             MapStorage check_storage;
             check_storage.init( TEST_WORLD );
             std::vector<MobFileRecord> persisted;
             const int existed = check_storage.load_mobs( c_n2, persisted );
-            check( existed == 1 && persisted.size( ) == 1 && persisted[ 0 ].type == MOB_PIG,
-                   "mob: populated chunk persists marker + records (existed=%d n=%zu)", existed, persisted.size( ) );
+            check( existed == 0, "mob: pristine-only chunk leaves no mobs file (existed=%d)", existed );
         }
+        // Re-cover: the chunk rolls fresh (populated=0), its record list is
+        // empty and it has no tombstones — so the owner can spawn nat1
+        // again.
         send_view( server, ma, glm::ivec3( -1, 0, 0 ), 2, 1 ); // re-cover
         {
             const std::vector<ReceivedFrame> fa = drain_client( server, ma );
-            int seen_populated = -1;
+            int seen = 0;
             for ( const ReceivedFrame &f : frames_of_type( fa, NetMsgType::CHUNK_ROLE ) ) {
                 PacketReader r( f.payload.data( ), f.payload.size( ) );
                 NetChunkRolePayload p;
                 if ( net_deserialize_chunk_role( r, p ) && glm::ivec3( p.cx, p.cy, p.cz ) == c_n2 ) {
-                    seen_populated = p.populated;
+                    seen = ( p.populated == 0 && p.records.empty( ) && p.removed_natural.empty( ) ) ? 1 : -1;
                 }
             }
-            check( seen_populated == 1, "mob: re-cover reports populated=1 (got %d)", seen_populated );
+            check( seen == 1, "mob: re-cover after pristine drop reports empty roll (seen=%d)", seen );
+        }
+        send_entity_spawn( server, ma, mob_record( nat1, MOB_PIG, NET_MOB_FLAG_NATURAL, -70.0, 30.0, 10.0 ) );
+        check( se2.entity_count_of( c_n2 ) == 1, "mob: re-covered chunk accepts the re-rolled natural" );
+
+        // A TOUCHED flag arriving via ENTITY_STATE tombstones the roll index
+        // in the home chunk.
+        send_mob_state( server, ma, nat1, -70.0, 30.0, 10.0, NET_MOB_FLAG_NATURAL | NET_MOB_FLAG_TOUCHED );
+        check( se2.removed_natural_of( c_n2 ) == 1, "mob: TOUCHED state tombstones the natural index" );
+        send_chunk_populated( server, ma, c_n2 );
+        check( se2.rolled_of( c_n2 ), "mob: re-roll marks chunk rolled" );
+
+        // Uncover: the touched record persists with its natural net_id and
+        // provenance flags; the removed set holds index 0.
+        send_view( server, ma, glm::ivec3( -1, 0, 0 ), 0, 1 ); // uncovers -2 again
+        {
+            MapStorage check_storage;
+            check_storage.init( TEST_WORLD );
+            std::vector<MobFileRecord> persisted;
+            std::vector<uint8_t> removed;
+            const int existed = check_storage.load_mobs( c_n2, persisted, &removed );
+            check( existed == 1 && persisted.size( ) == 1 && persisted[ 0 ].type == MOB_PIG && persisted[ 0 ].net_id == nat1 &&
+                       ( persisted[ 0 ].flags & NET_MOB_FLAG_NATURAL ) != 0 && ( persisted[ 0 ].flags & NET_MOB_FLAG_TOUCHED ) != 0 &&
+                       removed.size( ) == 1 && removed[ 0 ] == 0,
+                   "mob: touched natural persists record + tombstone (existed=%d n=%zu rem=%zu)", existed, persisted.size( ),
+                   removed.size( ) );
+        }
+        // Re-cover: populated=0 (rolls fresh), removed_natural carries the
+        // tombstoned index, and the record keeps its natural id.
+        send_view( server, ma, glm::ivec3( -1, 0, 0 ), 2, 1 ); // re-cover
+        {
+            const std::vector<ReceivedFrame> fa = drain_client( server, ma );
+            int seen = 0;
+            for ( const ReceivedFrame &f : frames_of_type( fa, NetMsgType::CHUNK_ROLE ) ) {
+                PacketReader r( f.payload.data( ), f.payload.size( ) );
+                NetChunkRolePayload p;
+                if ( net_deserialize_chunk_role( r, p ) && glm::ivec3( p.cx, p.cy, p.cz ) == c_n2 ) {
+                    const bool rec_ok = p.records.size( ) == 1 && p.records[ 0 ].id == nat1;
+                    const bool rem_ok = p.removed_natural.size( ) == 1 && p.removed_natural[ 0 ] == 0;
+                    seen = ( p.populated == 0 && rec_ok && rem_ok ) ? 1 : -1;
+                }
+            }
+            check( seen == 1, "mob: re-cover sends tombstone + natural record (seen=%d)", seen );
+        }
+        // The restored record is live: re-sending nat1 is a silent dup.
+        send_entity_spawn( server, ma, mob_record( nat1, MOB_PIG, NET_MOB_FLAG_NATURAL, -70.0, 30.0, 10.0 ) );
+        check( se2.entity_count_of( c_n2 ) == 1, "mob: restored natural id dedupes" );
+        {
+            const std::vector<ReceivedFrame> fa = drain_client( server, ma );
+            check( frames_of_type( fa, NetMsgType::ENTITY_REMOVE ).empty( ), "mob: restored dup gets no ENTITY_REMOVE" );
+        }
+        // Remove the live record; the tombstone stays. A re-sent spawn for
+        // the tombstoned index now bounces with ENTITY_REMOVE.
+        send_entity_remove( server, ma, nat1, NET_REMOVE_DESPAWN );
+        check( se2.entity_count_of( c_n2 ) == 0, "mob: owner remove drops the record" );
+        send_entity_spawn( server, ma, mob_record( nat1, MOB_PIG, NET_MOB_FLAG_NATURAL, -70.0, 30.0, 10.0 ) );
+        {
+            const std::vector<ReceivedFrame> fa = drain_client( server, ma );
+            int removes = 0;
+            for ( const ReceivedFrame &f : frames_of_type( fa, NetMsgType::ENTITY_REMOVE ) ) {
+                PacketReader r( f.payload.data( ), f.payload.size( ) );
+                NetEntityRemovePayload p;
+                if ( net_deserialize_entity_remove( r, p ) && p.id == nat1 ) {
+                    removes++;
+                }
+            }
+            check( se2.entity_count_of( c_n2 ) == 0 && removes == 1, "mob: tombstoned spawn bounces ENTITY_REMOVE (n=%d rem=%d)",
+                   se2.entity_count_of( c_n2 ), removes );
+        }
+        // Uncover again: a file with no records but the tombstone persists.
+        send_view( server, ma, glm::ivec3( -1, 0, 0 ), 0, 1 ); // uncovers -2
+        {
+            MapStorage check_storage;
+            check_storage.init( TEST_WORLD );
+            std::vector<MobFileRecord> persisted;
+            std::vector<uint8_t> removed;
+            const int existed = check_storage.load_mobs( c_n2, persisted, &removed );
+            check( existed == 1 && persisted.empty( ) && removed.size( ) == 1 && removed[ 0 ] == 0,
+                   "mob: tombstone-only chunk persists removed set (existed=%d n=%zu rem=%zu)", existed, persisted.size( ), removed.size( ) );
         }
 
-        // A zero-mob populated roll still writes the marker file.
+        // A rolled chunk with nothing to keep leaves no file either (no
+        // populated-marker semantics anymore).
         send_view( server, ma, glm::ivec3( -1, 0, 0 ), 0, 1 ); // cover only -1
         drain_client( server, ma );
         send_chunk_populated( server, ma, glm::ivec3( -1, 0, 0 ) );
@@ -934,8 +1046,7 @@ int server_selftest( ) {
             check_storage.init( TEST_WORLD );
             std::vector<MobFileRecord> persisted;
             const int existed = check_storage.load_mobs( glm::ivec3( -1, 0, 0 ), persisted );
-            check( existed == 1 && persisted.empty( ), "mob: zero-mob populated roll writes empty marker (existed=%d n=%zu)", existed,
-                   persisted.size( ) );
+            check( existed == 0, "mob: zero-mob rolled chunk leaves no file (existed=%d)", existed );
         }
 
         disconnect_client( server, ma );

@@ -69,19 +69,30 @@ file and "no chests" are equivalent, so deleted chests can't resurrect.
 u32 record_size              // sizeof(MobFileRecord|ItemFileRecord)
 u32 count
 packed records...
+// mobs only, after the records:
+u32 removed_count
+u8 removed[removed_count]    // tombstoned natural-roll indices
 ```
 
 `MobFileRecord`/`ItemFileRecord` are `__attribute__((packed))` structs
 with the shared-prefix read convention (a larger saved record still
-loads). Invalid records are dropped on read: `type >= MOB_TYPE_COUNT`
+loads). `MobFileRecord` ends in `u64 net_id` — the deterministic
+`net_natural_mob_id` for natural-spawn products, 0 for ordinary mobs —
+and `flags` carries the provenance bits (`NATURAL`/`TOUCHED`). The
+`removed` section tombstones natural-roll indices that must not
+respawn because that mob was touched (it lives on as a record, or died
+after being touched). A pre-`net_id` record size and a missing `removed`
+section both load fine (old files: `net_id == 0`, empty tombstones).
+Invalid records are dropped on read: `type >= MOB_TYPE_COUNT`
 for mobs, `!item_id_valid || count <= 0` for items.
 
-The two files differ in what *existence* means: an empty `mobs_*` file
-still marks the chunk **populated** — the natural-spawn roll ran and
-returned nothing, so it must not re-roll — while an empty `items_*`
-file carries no information at all. `persist_mobs` therefore always
-writes once the chunk was populated; `persist_items` writes whenever it
-runs so stale records don't come back. Loaders: `MobManager`/`ItemManager`
+File *existence* means nothing for mobs anymore — the deterministic
+natural roll always runs on load (pristine naturals are recreated, never
+saved; see `docs/mobs.md`). `persist_mobs` therefore *removes* the file
+when records and `removed` are both empty, and stale "populated marker"
+files from older saves are unlinked the next time that chunk is
+persisted. `persist_items` still writes whenever it runs so stale
+records don't come back. Loaders: `MobManager`/`ItemManager`
 per-chunk ownership (`docs/mobs.md`, `docs/items-crafting.md`); the
 server keeps the same files via `ServerEntities::persist_chunk_entities`.
 

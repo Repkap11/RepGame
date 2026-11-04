@@ -7,6 +7,7 @@
 #include "common/chunk.hpp"
 #include "common/map_gen.hpp"
 #include "common/mob_types.hpp"
+#include "common/net/packet.hpp"
 #include "common/utils/env_config.hpp"
 #include "common/mesh_gen.hpp"
 #include "common/utils/map_storage.hpp"
@@ -289,6 +290,8 @@ void Chunk::release_terrain( ) {
     this->pending_mobs.clear( );
     this->mobs_file_present = 0;
     this->mobs_spawned = 0;
+    this->pending_mobs_removed.clear( );
+    this->player_edited = 0;
     this->pending_items.clear( );
     this->items_file_present = 0;
 }
@@ -505,11 +508,14 @@ static uint64_t mob_spawn_seed( const glm::ivec3 &pos, int type ) {
 // Natural spawn roll for a freshly generated chunk: per mob type, the hash
 // decides whether a herd appears; members stand on `spawn_on` column tops
 // that have hitbox headroom inside the chunk.
-bool Chunk::spawn_mobs( ) {
+bool Chunk::spawn_mobs( const std::set<uint8_t> *skip ) {
     if ( this->cells == nullptr ) {
         return false;
     }
     bool spawned = false;
+    // Roll index of the next emitted record; skipped indices still consume
+    // one so tombstones match the deterministic ordering.
+    int roll_index = 0;
     const glm::ivec3 origin = this->chunk_pos * CHUNK_SIZE_I;
     for ( int t = 0; t < MOB_TYPE_COUNT; t++ ) {
         const MobTypeDef &def = mob_types[ t ];
@@ -564,7 +570,13 @@ bool Chunk::spawn_mobs( ) {
             const glm::ivec3 spot = spots[ pick ];
             spots[ pick ] = spots.back( );
             spots.pop_back( );
-            MobFileRecord record = { 0, 0, 0.0, 0.0, 0.0, 0.0f, 0.0f, 0u };
+            const int index = roll_index++;
+            // Natural ids carry a 6-bit index; nothing past 63 can be
+            // encoded, so it simply doesn't spawn.
+            if ( index >= 64 || ( skip != nullptr && skip->count( static_cast<uint8_t>( index ) ) ) ) {
+                continue;
+            }
+            MobFileRecord record = { 0, 0, 0.0, 0.0, 0.0, 0.0f, 0.0f, 0u, 0u };
             record.type = static_cast<uint16_t>( t );
             record.variant = def.skin_count > 1 ? static_cast<uint16_t>( rng( ) % static_cast<uint64_t>( def.skin_count ) ) : 0;
             record.x = origin.x + spot.x + 0.5;
@@ -572,6 +584,8 @@ bool Chunk::spawn_mobs( ) {
             record.z = origin.z + spot.z + 0.5;
             record.yaw = yaw_pick( rng );
             record.health = def.max_health;
+            record.flags = NET_MOB_FLAG_NATURAL;
+            record.net_id = net_natural_mob_id( this->chunk_pos, index );
             this->pending_mobs.push_back( record );
             spawned = true;
         }
@@ -816,22 +830,30 @@ skip_to_mesh:
         }
         this->chests[ Chunk::get_index_from_coords( diff ) ] = pair.second;
     }
-    // Mob sidecar (same pattern as chests): an existing file — even an
-    // empty marker — suppresses natural spawning; otherwise a freshly
-    // generated chunk rolls spawn_chance per type. Skipped entirely for
+    // Mob sidecar (same pattern as chests): file records load first, then the
+    // deterministic natural roll always runs — pristine naturals are never
+    // persisted, so the roll recreates them on every load. Roll indices in
+    // the file's removed section (touched/killed naturals) or whose id is
+    // already among the loaded records are skipped. Skipped entirely for
     // REPGAME_MOB_TEST runs and REPGAME_MOBS=0. Static env reads: this runs
     // once per chunk on every terrain worker and env can't change mid-run.
     static const bool no_mobs = !env_bool( "REPGAME_MOBS", true ) || env_is_set( "REPGAME_MOB_TEST" );
     this->pending_mobs.clear( );
     this->mobs_file_present = 0;
     this->mobs_spawned = 0;
+    this->pending_mobs_removed.clear( );
     this->pending_items.clear( );
     this->items_file_present = 0;
+    this->player_edited = loaded ? 1 : 0;
     if ( !no_mobs ) {
-        this->mobs_file_present = map_storage.load_mobs( this->chunk_pos, this->pending_mobs ) ? 1 : 0;
-        if ( !this->mobs_file_present && !loaded ) {
-            this->mobs_spawned = this->spawn_mobs( ) ? 1 : 0;
+        this->mobs_file_present = map_storage.load_mobs( this->chunk_pos, this->pending_mobs, &this->pending_mobs_removed ) ? 1 : 0;
+        std::set<uint8_t> roll_skip( this->pending_mobs_removed.begin( ), this->pending_mobs_removed.end( ) );
+        for ( const MobFileRecord &record : this->pending_mobs ) {
+            if ( net_is_natural_mob_id( record.net_id ) && net_natural_mob_home( record.net_id ) == this->chunk_pos ) {
+                roll_skip.insert( static_cast<uint8_t>( net_natural_mob_index( record.net_id ) ) );
+            }
         }
+        this->mobs_spawned = this->spawn_mobs( &roll_skip ) ? 1 : 0;
         // Dropped items follow the same test-mode rules as mobs: no file
         // reads (or writes) under REPGAME_MOBS=0 / REPGAME_MOB_TEST.
         this->items_file_present = map_storage.load_items( this->chunk_pos, this->pending_items ) ? 1 : 0;

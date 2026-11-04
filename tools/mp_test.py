@@ -837,6 +837,54 @@ def sc_persistence(run, A, B):
         raise Fail("restored item count %d, want 3" % it["count"])
 
 
+def sc_natural_persist(run, A, B):
+    NATURAL = 1 << 9
+
+    def naturals(c):
+        return [m for m in mobs_of(c.dump.last_state()) if m["net_flags"] & NATURAL]
+
+    def mobs_files():
+        d = os.path.join(run.dir, "server_home", ".repgame", "Server1")
+        return sorted(f for f in os.listdir(d) if f.startswith("mobs_")) if os.path.isdir(d) else []
+
+    def natural_home(nid):
+        v = int(nid)
+
+        def se(bits, n):
+            bits &= (1 << n) - 1
+            m = 1 << (n - 1)
+            return (bits ^ m) - m
+        return (se(v >> 35, 21), se(v >> 6, 8), se(v >> 14, 21))
+
+    settle(run, A, B)
+    run.wait("natural mobs on A", lambda: len(naturals(A)) > 0, timeout=240)
+    # Pristine naturals are recreated by the deterministic roll — last
+    # client disconnect flushes every covered chunk and must leave no
+    # mobs_ file behind.
+    for c in list(run.clients.values()):
+        c.quit()
+    run.sleep_ticks(60)
+    time.sleep(2)
+    if mobs_files():
+        raise Fail("pristine naturals left mobs_ files: %s" % mobs_files()[:8])
+
+    # Rejoin and hit a natural mob: the hit marks it TOUCHED, so its home
+    # chunk must gain a mobs_ file (record + tombstoned roll index) once
+    # the client disconnects and the server flushes.
+    C = run.client("C", POS_A)
+    run.wait_ready(C)
+    run.wait("natural mobs on C", lambda: len(naturals(C)) > 0, timeout=240)
+    victim = naturals(C)[0]
+    nid = victim["net_id"]
+    hx, hy, hz = natural_home(nid)
+    C.cmd("mode survival")  # a real 4-damage hit, not the creative insta-kill
+    C.cmd("hit %s" % nid)
+    run.sleep_ticks(40)  # ENTITY_STATE carries TOUCHED to the server
+    C.quit()
+    want = "mobs_%d_%d_%d" % (hx, hy, hz)
+    run.wait("mobs file for home chunk", lambda: want in mobs_files(), timeout=30)
+
+
 def sc_disconnect_cleanup(run, A, B):
     gy = settle(run, A, B)
     A.cmd("drop DIRT 1 10.5 %d 10.5" % gy)
@@ -859,6 +907,7 @@ SCENARIOS = [
     ("boundary_rest", sc_boundary_rest),
     ("ownership_flip_no_dup", sc_ownership_flip_no_dup),
     ("natural_mobs", sc_natural_mobs),
+    ("natural_persist", sc_natural_persist),
     ("mob_hit_kill", sc_mob_hit_kill),
     ("hostile_targets_remote", sc_hostile_targets_remote),
     ("falling_block", sc_falling_block),

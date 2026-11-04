@@ -28,7 +28,7 @@ static constexpr int32_t NET_CHUNK_BLOCK_SIZE = ( CHUNK_SIZE_X + 2 ) * ( CHUNK_S
 
 // Wire-format constants. Keep in sync with framed_socket.cpp.
 static constexpr uint32_t NET_MAGIC = 0x52475054u; // 'R','G','P','T' little-endian
-static constexpr uint8_t NET_PROTOCOL_VERSION = 5;
+static constexpr uint8_t NET_PROTOCOL_VERSION = 6;
 // Largest payload we will accept. Chunk diffs dominate; a chunk can have at
 // most CHUNK_BLOCK_SIZE (~35k) diffs, each ~12 bytes -> ~420KB. Round up.
 static constexpr uint32_t NET_MAX_PAYLOAD_LEN = 1u << 20; // 1 MiB
@@ -121,6 +121,36 @@ static constexpr uint32_t NET_MOB_FLAG_DYING = 1u << 1;       // death anim play
 static constexpr uint32_t NET_MOB_FLAG_FUSE = 1u << 2;        // creeper fuse lit
 static constexpr uint32_t NET_MOB_FLAG_DESPAWNABLE = 1u << 8; // night-spawner mob, never persisted
 static constexpr uint32_t NET_MOB_FLAG_NATURAL = 1u << 9;     // deterministic natural-spawn roll
+static constexpr uint32_t NET_MOB_FLAG_TOUCHED = 1u << 10;    // player interacted: a natural mob becomes persistable
+
+// Deterministic id for a natural-spawn roll product: top byte 0xFF keeps it
+// out of the client (session<<32, session >= 1) and server (session 0) id
+// spaces, while the rest packs the home chunk + the roll index so the id is
+// invertible — tombstones and persistence key off the index alone.
+//   [63:56] 0xFF | [55:35] chunk.x s21 | [34:14] chunk.z s21 | [13:6] chunk.y s8 | [5:0] index u6
+// spawn_mobs emits at most 16 records per chunk (4 passive types x herd 4),
+// so the 6-bit index never overflows in practice.
+inline NetEntityId net_natural_mob_id( const glm::ivec3 &chunk, int index ) {
+    return ( 0xFFull << 56 ) |                                                            //
+           ( ( static_cast<uint64_t>( chunk.x ) & 0x1FFFFFull ) << 35 ) |                 //
+           ( ( static_cast<uint64_t>( chunk.z ) & 0x1FFFFFull ) << 14 ) |                 //
+           ( ( static_cast<uint64_t>( chunk.y ) & 0xFFull ) << 6 ) |                      //
+           ( static_cast<uint64_t>( index ) & 0x3Full );
+}
+inline bool net_is_natural_mob_id( NetEntityId id ) {
+    return ( id >> 56 ) == 0xFFull;
+}
+inline glm::ivec3 net_natural_mob_home( NetEntityId id ) {
+    const auto sign_extend = []( uint64_t v, int bits ) {
+        v &= ( 1ull << bits ) - 1;
+        const uint64_t m = 1ull << ( bits - 1 );
+        return static_cast<int32_t>( ( v ^ m ) - m );
+    };
+    return glm::ivec3( sign_extend( id >> 35, 21 ), sign_extend( id >> 6, 8 ), sign_extend( id >> 14, 21 ) );
+}
+inline int net_natural_mob_index( NetEntityId id ) {
+    return static_cast<int>( id & 0x3Full );
+}
 
 // Chunk assignment for net entities. Spawns and records use the plain
 // chunk; streamed positions advance through net_entity_next_chunk so the
@@ -346,11 +376,15 @@ bool net_deserialize_view( PacketReader &r, NetViewPayload &p );
 
 // CHUNK_ROLE (server -> client): role grant/revoke for one chunk, with the
 // chunk's authoritative entity records for VIEWER/OWNER (n=0 for NONE).
+// `populated` means the natural-spawn roll already ran during this server
+// coverage; `removed_natural` lists roll indices tombstoned by touched
+// naturals (never re-rolled).
 struct NetChunkRolePayload {
     int32_t cx, cy, cz;
     uint8_t role;
     uint8_t populated;
     std::vector<NetEntityRecord> records;
+    std::vector<uint8_t> removed_natural;
 };
 void net_serialize_chunk_role( PacketWriter &w, const NetChunkRolePayload &p );
 bool net_deserialize_chunk_role( PacketReader &r, NetChunkRolePayload &p );

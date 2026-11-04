@@ -461,6 +461,10 @@ void net_serialize_chunk_role( PacketWriter &w, const NetChunkRolePayload &p ) {
     for ( const NetEntityRecord &rec : p.records ) {
         net_write_entity_record( w, rec );
     }
+    w.write_u8( static_cast<uint8_t>( p.removed_natural.size( ) ) );
+    for ( const uint8_t index : p.removed_natural ) {
+        w.write_u8( index );
+    }
 }
 
 bool net_deserialize_chunk_role( PacketReader &r, NetChunkRolePayload &p ) {
@@ -478,6 +482,15 @@ bool net_deserialize_chunk_role( PacketReader &r, NetChunkRolePayload &p ) {
     p.records.resize( n );
     for ( uint32_t i = 0; i < n; i++ ) {
         if ( !net_read_entity_record( r, p.records[ i ] ) ) return false;
+    }
+    p.removed_natural.clear( );
+    uint8_t removed_n;
+    if ( !r.read_u8( removed_n ) ) return false;
+    p.removed_natural.reserve( removed_n );
+    for ( uint32_t i = 0; i < removed_n; i++ ) {
+        uint8_t index;
+        if ( !r.read_u8( index ) ) return false;
+        p.removed_natural.push_back( index );
     }
     return true;
 }

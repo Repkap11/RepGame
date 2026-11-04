@@ -588,6 +588,9 @@ void ChunkLoader::apply_diff_block( Chunk &chunk, int index, const BlockState *b
     if ( !chunk.set_block_by_index_if_different( index, blockState ) ) {
         return;
     }
+    // A server diff (or queued local diff) is a player edit: mark the chunk
+    // so natural mobs standing in it count as penned (MobManager::tick).
+    chunk.player_edited = 1;
     // The same world cell is also stored in a neighbor chunk whenever pos
     // sits on a boundary: interior cells at 0/size-1 live in the neighbor's
     // halo, halo cells at -1/size live in the neighbor's interior. Diffs

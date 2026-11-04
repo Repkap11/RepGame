@@ -30,6 +30,8 @@ both directions; receivers validate magic/length/CRC before dispatch.
 mismatch disconnects (`Multiplayer::mismatched_server_version`, surfaced
 by the ImGui overlay). Bump it whenever a message layout changes; the
 `NetMsgType` values are stable on the wire and must never be renumbered.
+Protocol 6 added `removed_natural` (tombstoned natural-roll indices) to
+`CHUNK_ROLE` — see `docs/entities.md`.
 
 ## Transports
 

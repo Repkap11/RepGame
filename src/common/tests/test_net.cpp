@@ -76,13 +76,15 @@ int test_net_entities( ) {
         rec2.id = 99;
         rec2.kind = NetEntityKind::ITEM;
         out.records.push_back( rec2 );
+        out.removed_natural = { 0, 5, 63 };
         PacketWriter w;
         net_serialize_chunk_role( w, out );
         PacketReader r( w.buf( ).data( ), w.buf( ).size( ) );
         NetChunkRolePayload in;
         report( "net entities: CHUNK_ROLE round trip",
                 net_deserialize_chunk_role( r, in ) && in.cx == 1 && in.cy == -2 && in.cz == 3 && in.role == NET_ROLE_OWNER && in.populated == 1 &&
-                    in.records.size( ) == 2 && record_eq( in.records[ 0 ], rec ) && record_eq( in.records[ 1 ], rec2 ) );
+                    in.records.size( ) == 2 && record_eq( in.records[ 0 ], rec ) && record_eq( in.records[ 1 ], rec2 ) &&
+                    in.removed_natural == out.removed_natural );
         PacketReader rt( w.buf( ).data( ), w.buf( ).size( ) - 1 );
         NetChunkRolePayload junk;
         report( "net entities: CHUNK_ROLE truncated fails", !net_deserialize_chunk_role( rt, junk ) );
