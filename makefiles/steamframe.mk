@@ -132,8 +132,8 @@ $(SF_OUT)/sounds/%.o : $(SOUND_OGG_DIR)/%.ogg makefiles/steamframe.mk makefiles/
 	@mkdir -p $(dir $@)
 	$(SF_OBJCOPY) -I binary -O elf64-littleaarch64 $< $@_no_section
 	$(SF_OBJCOPY) --rename-section .data=.rodata,CONTENTS,ALLOC,LOAD,READONLY,DATA \
-		--redefine-sym _binary_$(SOUND_SRC_SYMBOLS)_sounds_$*_ogg_start=_binary_out_sounds_$*_ogg_start \
-		--redefine-sym _binary_$(SOUND_SRC_SYMBOLS)_sounds_$*_ogg_end=_binary_out_sounds_$*_ogg_end \
+		--redefine-sym _binary_$(SOUND_SRC_SYMBOLS)_$*_ogg_start=_binary_out_sounds_$*_ogg_start \
+		--redefine-sym _binary_$(SOUND_SRC_SYMBOLS)_$*_ogg_end=_binary_out_sounds_$*_ogg_end \
 		$@_no_section $@
 
 steamframe: $(SF_OUT)/release/$(TARGET)

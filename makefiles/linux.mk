@@ -114,8 +114,8 @@ $(LINUX_OUT)/sounds/%.o : $(SOUND_OGG_DIR)/%.ogg makefiles/linux.mk makefiles/co
 	@mkdir -p $(dir $@)
 	ld $(LFLAGS) -r -b binary $< -o $@_no_section
 	objcopy --rename-section .data=.rodata,CONTENTS,ALLOC,LOAD,READONLY,DATA \
-		--redefine-sym _binary_$(SOUND_SRC_SYMBOLS)_sounds_$*_ogg_start=_binary_out_sounds_$*_ogg_start \
-		--redefine-sym _binary_$(SOUND_SRC_SYMBOLS)_sounds_$*_ogg_end=_binary_out_sounds_$*_ogg_end \
+		--redefine-sym _binary_$(SOUND_SRC_SYMBOLS)_$*_ogg_start=_binary_out_sounds_$*_ogg_start \
+		--redefine-sym _binary_$(SOUND_SRC_SYMBOLS)_$*_ogg_end=_binary_out_sounds_$*_ogg_end \
 		$@_no_section $@
 
 all: linux
