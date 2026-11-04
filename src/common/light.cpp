@@ -3939,14 +3939,21 @@ void ChunkLoader::light_upload_dirty( const int max_uploads ) {
                 }
             }
             // Nearest of the eligible backlog first so the upload budget
-            // lands on the visible region.
-            std::sort( eligible.begin( ), eligible.end( ), [ this ]( const Chunk *a, const Chunk *b ) {
-                const glm::ivec3 da = a->chunk_pos - this->chunk_center;
-                const glm::ivec3 db = b->chunk_pos - this->chunk_center;
-                return da.x * da.x + da.z * da.z < db.x * db.x + db.z * db.z;
-            } );
-            entries.reserve( entries.size( ) + eligible.size( ) );
+            // lands on the visible region. Keys are snapshotted before the
+            // sort: chunk_pos is rewritten by the terrain thread when a slot
+            // recycles, and a comparator whose answers change mid-sort lets
+            // std::sort's unguarded insertion run off the array (segfault).
+            static std::vector<std::pair<int, Chunk *>> order;
+            order.clear( );
             for ( Chunk *chunk : eligible ) {
+                const glm::ivec3 d = chunk->chunk_pos - this->chunk_center;
+                order.emplace_back( d.x * d.x + d.z * d.z, chunk );
+            }
+            std::sort( order.begin( ), order.end( ),
+                       []( const std::pair<int, Chunk *> &a, const std::pair<int, Chunk *> &b ) { return a.first < b.first; } );
+            entries.reserve( entries.size( ) + order.size( ) );
+            for ( const std::pair<int, Chunk *> &ord : order ) {
+                Chunk *chunk = ord.second;
                 unsigned s = chunk->light_stage_state.load( std::memory_order_relaxed );
                 const bool ready = LIGHT_STAGE_STATUS( s ) == LIGHT_STAGE_READY;
                 // A smoothed fill costs ~25x the raw expand — hand it to a
