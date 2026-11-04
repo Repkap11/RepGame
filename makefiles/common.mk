@@ -106,8 +106,8 @@ out/sounds/%.ogg : tools/sounds_manifest.txt tools/convert_sounds.sh | out
 # Generated MK_BLOB decls + music/sfx tables included by audio.cpp.
 out/include/sounds_manifest.hpp : tools/sounds_manifest.txt tools/convert_sounds.sh | out
 	tools/convert_sounds.sh gen $@
-
-%/common/audio.o : out/include/sounds_manifest.hpp
+# Wired to every */common/audio.o in the top-level Makefile, after the
+# platform .mk files define their OBJECTS_COMMON_* lists.
 
 # Host-side conversion for builds that can't run ffmpeg in their sandbox
 # (flatpak). Mirrors the gpu-prebuilt pattern: `make flatpak` depends on this.
