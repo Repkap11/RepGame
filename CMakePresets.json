@@ -1,0 +1,107 @@
+{
+  "version": 3,
+  "configurePresets": [
+    {
+      "name": "linux-release",
+      "displayName": "Linux client (release)",
+      "binaryDir": "${sourceDir}/out/linux/cmake-release",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Release",
+        "REPGAME_PLATFORM": "linux",
+        "REPGAME_BUILD_CLIENT": "ON"
+      }
+    },
+    {
+      "name": "linux-debug",
+      "displayName": "Linux client (debug)",
+      "binaryDir": "${sourceDir}/out/linux/cmake-debug",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Debug",
+        "REPGAME_PLATFORM": "linux",
+        "REPGAME_BUILD_CLIENT": "ON"
+      }
+    },
+    {
+      "name": "server",
+      "displayName": "Dedicated server (debug)",
+      "binaryDir": "${sourceDir}/out/server/cmake",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Debug",
+        "REPGAME_PLATFORM": "linux",
+        "REPGAME_BUILD_CLIENT": "OFF",
+        "REPGAME_BUILD_SERVER": "ON"
+      }
+    },
+    {
+      "name": "arm-release",
+      "displayName": "ARM aarch64 client (release)",
+      "binaryDir": "${sourceDir}/out/arm/cmake-release",
+      "toolchainFile": "${sourceDir}/cmake/toolchains/arm.cmake",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Release",
+        "REPGAME_PLATFORM": "arm"
+      }
+    },
+    {
+      "name": "arm-debug",
+      "displayName": "ARM aarch64 client (debug)",
+      "binaryDir": "${sourceDir}/out/arm/cmake-debug",
+      "toolchainFile": "${sourceDir}/cmake/toolchains/arm.cmake",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Debug",
+        "REPGAME_PLATFORM": "arm"
+      }
+    },
+    {
+      "name": "steamframe-release",
+      "displayName": "Steam Frame client (release)",
+      "binaryDir": "${sourceDir}/out/steamframe/cmake-release",
+      "toolchainFile": "${sourceDir}/cmake/toolchains/steamframe.cmake",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Release",
+        "REPGAME_PLATFORM": "steamframe"
+      }
+    },
+    {
+      "name": "steamframe-debug",
+      "displayName": "Steam Frame client (debug)",
+      "binaryDir": "${sourceDir}/out/steamframe/cmake-debug",
+      "toolchainFile": "${sourceDir}/cmake/toolchains/steamframe.cmake",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Debug",
+        "REPGAME_PLATFORM": "steamframe"
+      }
+    },
+    {
+      "name": "windows",
+      "displayName": "Windows client (release)",
+      "binaryDir": "${sourceDir}/out/windows/cmake",
+      "toolchainFile": "${sourceDir}/cmake/toolchains/windows-mingw.cmake",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Release",
+        "REPGAME_PLATFORM": "windows"
+      }
+    },
+    {
+      "name": "wasm",
+      "displayName": "WASM client (release)",
+      "binaryDir": "${sourceDir}/out/wasm/cmake",
+      "toolchainFile": "${sourceDir}/emsdk/upstream/emscripten/cmake/Modules/Platform/Emscripten.cmake",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Release",
+        "REPGAME_PLATFORM": "wasm"
+      }
+    }
+  ],
+  "buildPresets": [
+    { "name": "linux-release", "configurePreset": "linux-release" },
+    { "name": "linux-debug", "configurePreset": "linux-debug" },
+    { "name": "server", "configurePreset": "server" },
+    { "name": "arm-release", "configurePreset": "arm-release" },
+    { "name": "arm-debug", "configurePreset": "arm-debug" },
+    { "name": "steamframe-release", "configurePreset": "steamframe-release" },
+    { "name": "steamframe-debug", "configurePreset": "steamframe-debug" },
+    { "name": "windows", "configurePreset": "windows" },
+    { "name": "wasm", "configurePreset": "wasm" }
+  ]
+}

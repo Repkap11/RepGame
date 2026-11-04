@@ -1,35 +1,24 @@
 #Linux Server
 
-REP_MAKEFILES += makefiles/server.mk
-
 REPSERVER := $(TARGET)Server
 
-OBJECTS_SERVER = $(patsubst src/server/%.cpp,out/server/%.o, $(wildcard src/server/*.cpp) out/linux/debug/common/utils/file_utils.o out/linux/debug/common/utils/map_storage.o out/linux/debug/common/utils/player_data.o out/linux/debug/common/chunk_buffer_pool.o out/linux/debug/common/net/packet.o out/linux/debug/common/net/framed_socket.o)
-DEPS_SERVER := $(patsubst src/server/%.cpp,out/server/%.d, $(wildcard src/server/*.cpp))
-SERVER_DIRS := $(patsubst src/server%,out/server%,$(filter src/server%,$(SRC_DIRS)))
+CMAKE_SERVER_DFLAGS := -DCMAKE_CXX_COMPILER=$(LINUX_CXX) -DREPGAME_AUDIO=$(REPGAME_AUDIO)
+ifeq ($(USE_CCACHE),1)
+CMAKE_SERVER_DFLAGS += -DCMAKE_CXX_COMPILER_LAUNCHER=ccache
+endif
 
+# Thin wrapper over CMake (see CMakeLists.txt — REPGAME_BUILD_SERVER). The
+# server preset is Debug with CLIENT=OFF so hosts without SDL3/GLEW/wayland
+# still configure (repkap11.com builds it via tools/server_deploy.sh).
+out/server/$(REPSERVER): FORCE
+	cmake --preset server -B out/server/cmake $(CMAKE_SERVER_DFLAGS)
+	MAKEFLAGS="$(CMAKE_MAKEFLAGS)" cmake --build out/server/cmake
 
-out/server/$(REPSERVER): $(OBJECTS_SERVER) $(REP_MAKEFILES) | out/server
-	$(CC_LINUX) -flto $(CFLAGS_LINUX) $(CFLAGS_LINUX_DEBUG) $(OBJECTS_SERVER) -o $@
+FORCE:
 
 all: server
 
 server: out/server/$(REPSERVER)
-
-out/server/%.o: src/server/%.cpp | out/server
-	@#Use g++ to build o file and a dependecy tree .d file for every cpp file
-	$(CC_LINUX) $(INCLUDES_COMMON) $(CFLAGS_LINUX) $(CFLAGS_LINUX_DEBUG) -MMD -MP -MF $(patsubst %.o,%.d,$@) -MT $(patsubst %.d,%.o,$@) -c $< -o $@
-
-#Include these .d files, so the dependicies are known for secondary builds.
-ifneq ($(REPGAME_COMPLETION),1)
--include $(DEPS_SERVER)
-endif
-
-.PRECIOUS: out/server/$(REPSERVER) $(OBJECTS_SERVER)
-
-out/server: | out
-	mkdir -p $(SERVER_DIRS)
-	touch $@
 
 server-run: server
 	./out/server/$(REPSERVER)

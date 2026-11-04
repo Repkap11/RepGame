@@ -2,9 +2,23 @@
 
 USE_CCACHE ?= 1
 
-# Warning set shared by every platform: warnings are errors so a warning on
-# one toolchain can't silently ship on another.
-CFLAGS_WARNINGS := -Wall -Wextra -Werror -Wno-unused-parameter -Wno-unused-variable
+# C++ compilation is CMake (top-level CMakeLists.txt + cmake/); make targets
+# in linux.mk/server.mk/cuda.mk/hip.mk are thin wrappers. Prefer Ninja when
+# it's installed (`make install` adds ninja-build); otherwise leave
+# CMAKE_GENERATOR unset (Unix Makefiles).
+ifneq ($(shell command -v ninja 2>/dev/null),)
+CMAKE_GENERATOR ?= Ninja
+export CMAKE_GENERATOR
+endif
+
+# cmake --build invokes the generated build system's make; keep the jobserver
+# flags but drop --warn-undefined-variables, which spams warnings from
+# CMake's generated Makefiles.
+CMAKE_MAKEFLAGS := $(filter-out --warn-undefined-variables,$(MAKEFLAGS))
+
+# Warning set shared by every platform (now in CMakeLists.txt's repgame_flags):
+# warnings are errors so a warning on one toolchain can't silently ship on
+# another.
 
 # OpenXR (VR) support for the linux build: REPGAME_OPENXR=1 compiles the
 # OpenXR code paths and moves objects to out/linux-openxr so flat and VR
@@ -41,12 +55,6 @@ define shader_pp
 $(SHADER_PP) -MMD -MP -MT $@ -MF $(SHADER_DEP_DIR)/$@.d $(1) $< -o $@
 endef
 
-SRC_DIRS := $(shell find src -type d)
-SRC_COMMON := $(wildcard src/common/*.cpp) $(wildcard src/common/**/*.cpp)
-SRC_IMGUI := imgui_build/backends/imgui_impl_sdl3.cpp $(wildcard imgui_build/imgui*.cpp)  imgui_build/backends/imgui_impl_opengl3.cpp
-SRC_ALL_C := $(wildcard src/**/*.cpp) $(wildcard src/**/**/*.cpp) $(wildcard src/**/*.cu) $(wildcard src/**/**/*.cu)
-INCLUDES_COMMON := -I include/ -I include/glm -I imgui_build -I imgui_build/backends -isystem entt_build/src
-HEADERS := $(wildcard include/**/*.hpp)
 # Game textures are PNGs decoded by stb_image at load time. bitmaps/icons/
 # holds packaging assets (appimage/flatpak/wasm page), not textures — the
 # non-recursive wildcard only embeds the top level.
@@ -88,26 +96,29 @@ REPGAME_AUDIO ?= 1
 endif
 REPGAME_AUDIO ?= 0
 SOUNDS_ENABLED :=
-CFLAGS_AUDIO :=
 ifeq ($(REPGAME_AUDIO),1)
 SOUNDS_ENABLED := $(shell grep '^[a-z]' tools/sounds_manifest.txt | cut -d'|' -f1)
-CFLAGS_AUDIO := -DREPGAME_AUDIO -I out/include
 endif
 # Directory the .ogg files come from; the flatpak build overrides this with
 # prebuilt/sounds because its sandbox has no ffmpeg (see sounds-prebuilt).
 SOUND_OGG_DIR ?= out/sounds
-# ld -b binary symbol names derive from the input path; platform blob rules
-# rename to _binary_out_sounds_* so MK_BLOB(out_sounds, ...) always matches.
-SOUND_SRC_SYMBOLS := $(subst /,_,$(subst .,_,$(subst -,_,$(SOUND_OGG_DIR))))
 
 out/sounds/%.ogg : tools/sounds_manifest.txt tools/convert_sounds.sh | out
 	tools/convert_sounds.sh convert $* out/sounds
 
-# Generated MK_BLOB decls + music/sfx tables included by audio.cpp.
-out/include/sounds_manifest.hpp : tools/sounds_manifest.txt tools/convert_sounds.sh | out
-	tools/convert_sounds.sh gen $@
-# Wired to every */common/audio.o in the top-level Makefile, after the
-# platform .mk files define their OBJECTS_COMMON_* lists.
+# The .ogg files are still converted by make (rules above); cmake only
+# embeds/stages them. Skip when SOUND_OGG_DIR points elsewhere (flatpak
+# prebuilt). Used by the linux/arm/steamframe/windows/wasm wrappers.
+SOUND_OGGS :=
+ifeq ($(REPGAME_AUDIO),1)
+ifeq ($(SOUND_OGG_DIR),out/sounds)
+SOUND_OGGS := $(patsubst %,out/sounds/%.ogg,$(SOUNDS_ENABLED))
+endif
+endif
+
+# Generated MK_BLOB decls + music/sfx tables included by audio.cpp — now a
+# CMake custom command per build dir (CMakeLists.txt); android.mk preprocesses
+# shaders into assets but compiles audio.cpp in Gradle/CMake too.
 
 # Host-side conversion for builds that can't run ffmpeg in their sandbox
 # (flatpak). Mirrors the gpu-prebuilt pattern: `make flatpak` depends on this.
@@ -152,25 +163,12 @@ check:
 # cppcheck -j$(CPUS) --quiet --enable=warning,style,performance,portability,information,missingInclude -Iinclude -iinclude/common/vendor -DREPGAME_WASM src
 # ~/.local/bin/cpplint --filter=-whitespace,-legal/copyright,-readability/todo --quiet $(SRC_ALL_C)
 
-out/vars/%: | out/vars
-	@echo Changed var:$(notdir $(basename $@)):$($(notdir $(basename $@)))
-	rm -rf $(basename $@).*
-	touch $@
-
-out/vars: | out
-	mkdir -p $@
-	touch $@
-
-clean: clean-vars
-clean-vars:
-	rm -rf out/vars
-
 # All test suites: the in-game rep_tests + the server --selftest.
 # `make test-all` additionally runs the mp end-to-end scenarios (slow).
 test: tests server-test
 
 test-all: test mp-test
 
-.PHONY: clean-bitmaps check clean-vars test-vars mobs-import blocks-import test test-all mc_pack_build
+.PHONY: clean-bitmaps check mobs-import blocks-import test test-all mc_pack_build
 
 .PRECIOUS: $(BITMAP_BINS)

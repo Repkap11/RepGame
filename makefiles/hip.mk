@@ -5,63 +5,14 @@ REPGAME_PACKAGES += hipcc libamdhip64-dev
 hip-install:
 	sudo apt-get install -y hipcc libamdhip64-dev
 
-OBJECTS_HIP := $(patsubst src/linux/hip/%.hip,$(LINUX_OUT)/linux/hip/%.o, $(wildcard src/linux/hip/*.hip))
-CLEAN_HIP := $(OBJECTS_HIP)
-
-CC_HIP := /usr/bin/hipcc
-#If the current system has the hip compiler allow hip to be build
-ifneq ("$(wildcard $(CC_HIP))","")
-
-ifeq ($(USE_CCACHE),1)
-CC_HIP := ccache $(CC_HIP)
-endif
-
-# Generic code objects target an entire GPU family with one arch, so a single
-# binary runs on every supported AMD GPU (including future ones within each
-# family) without listing each chip individually. Requires Code Object V6
-# (ROCm 6.0+); gfx12-generic / gfx1151 need a newer ROCm on the build machine.
-CFLAGS_HIP :=  $(CFLAGS_WARNINGS) -Wno-c++20-designator \
-				--offload-arch=gfx9-generic \
-				--offload-arch=gfx10-1-generic \
-				--offload-arch=gfx10-3-generic \
-				--offload-arch=gfx11-generic \
-				--offload-arch=gfx12-generic \
-				-fPIC -DREPGAME_LINUX
-CFLAGS_HIP_COMPILE := -x hip -c -fno-rtti
-
-
-LIBS_LINUX += -lamdhip64
-CFLAGS_LINUX += -DREPGAME_BUILD_WITH_HIP
-OBJECTS_COMMON_LINUX_RELEASE += $(OBJECTS_HIP)
-OBJECTS_COMMON_LINUX_DEBUG += $(OBJECTS_HIP)
-
-
-$(LINUX_OUT)/linux/hip/%.o: src/linux/hip/%.hip $(HEADERS) | $(LINUX_OUT)
-	$(CC_HIP) $(CFLAGS_HIP_COMPILE) $(INCLUDES_COMMON) $(CFLAGS_HIP) $< -o $@
-
-hip: $(OBJECTS_HIP)
+# HIP objects are built by cmake/RepGameGpu.cmake — see cuda.mk for the
+# GPU-only configure and the prebuilt/gpu layout note.
+hip: $(LINUX_OUT)/cmake-gpu/CMakeCache.txt
+	MAKEFLAGS="$(CMAKE_MAKEFLAGS)" cmake --build $(LINUX_OUT)/cmake-gpu --target repgame_hip
 
 clean-linux: clean-hip
 
 clean-hip:
-	rm -f $(CLEAN_HIP)
+	rm -rf $(LINUX_OUT)/cmake-gpu $(LINUX_OUT)/linux/hip
 
-.PRECIOUS: %.o
-
-.PHONY: hip clean-hip
-
-else
-#No HIP toolchain (e.g. the flatpak sandbox): link objects prebuilt in the
-#Docker image by `make gpu-prebuilt` (makefiles/docker.mk). The ROCm runtime
-#libs they need ship in $(GPU_PREBUILT_DIR)/lib; -rpath-link lets ld resolve
-#their transitive deps without installing them.
-ifneq ($(GPU_PREBUILT_DIR),)
-LIBS_LINUX += -L$(GPU_PREBUILT_DIR)/lib -Wl,-rpath-link,$(GPU_PREBUILT_DIR)/lib -lamdhip64
-CFLAGS_LINUX += -DREPGAME_BUILD_WITH_HIP
-OBJECTS_COMMON_LINUX_RELEASE += $(wildcard $(GPU_PREBUILT_DIR)/linux/hip/*.o)
-OBJECTS_COMMON_LINUX_DEBUG += $(wildcard $(GPU_PREBUILT_DIR)/linux/hip/*.o)
-endif
-
-endif # End if has hip
-
-.PHONY: hip-install
+.PHONY: hip hip-install clean-hip

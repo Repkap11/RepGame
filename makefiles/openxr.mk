@@ -39,12 +39,14 @@ $(OPENXR_HOST_LIB): | $(OPENXR_SRC)/CMakeLists.txt
 	cmake --build $(OPENXR_SRC)/build-host && \
 	cmake --install $(OPENXR_SRC)/build-host
 
-# $(SF_TOOLCHAIN) is defined in makefiles/steamframe.mk, which is included
-# AFTER this file — so it can only appear in the recipe (build-time
-# expansion), not in prerequisites. The literal path is the same location.
-$(OPENXR_SF_LIB): | $(OPENXR_SRC)/CMakeLists.txt $(abspath out/steamframe-sdl3)/steamframe-toolchain.cmake
+# The toolchain is the checked-in cmake/toolchains/steamframe.cmake;
+# $(SF_TOOLCHAIN) and $(SF_SYSROOT) are defined in makefiles/steamframe.mk,
+# which is included AFTER this file — so they can only appear in the recipe
+# (build-time expansion). The literal prerequisite path is the sysroot stamp.
+$(OPENXR_SF_LIB): | $(OPENXR_SRC)/CMakeLists.txt out/steamframe-sysroot/.extracted cmake/toolchains/steamframe.cmake
 	cmake -S $(OPENXR_SRC) -B $(OPENXR_SRC)/build-steamframe \
 		-DCMAKE_TOOLCHAIN_FILE=$(SF_TOOLCHAIN) \
+		-DREPGAME_SF_SYSROOT=$(SF_SYSROOT) \
 		-DCMAKE_INSTALL_PREFIX=$(OPENXR_SF_PREFIX) \
 		$(OPENXR_CMAKE_FLAGS) && \
 	cmake --build $(OPENXR_SRC)/build-steamframe && \

@@ -1,48 +1,7 @@
-#WASM
-REPGAME_PACKAGES += npm
-
-# USE_SDL is needed at compile time too: modern emscripten ports are no
-# longer installed into the shared sysroot, the flag injects the SDL2
-# include path. emdawnwebgpu likewise injects <webgpu/webgpu.h> — the Dawn-
-# based WebGPU binding for browser GPU mapgen (see src/shaders/map_gen.wgsl
-# and src/wasm/webgpu_mapgen.cpp).
-CFLAGS_WASM := $(CFLAGS_WARNINGS) -Wno-c++20-designator -DREPGAME_WASM -pthread -s USE_SDL=2 -O3 -DREPGAME_SKIP_CHECK_FOR_GL_ERRORS --use-port=emdawnwebgpu $(CFLAGS_AUDIO)
-
-
-CFLAGS_LINK_WASM := -O3 \
-			-s WASMFS=1 \
-			-s USE_SDL=2 \
-			--use-port=emdawnwebgpu \
-			-s MAX_WEBGL_VERSION=2 \
-			-s ASSERTIONS=1 \
-			-s EXPORTED_FUNCTIONS='["_main", "_repgame_wasm_start_storage", "_repgame_wasm_request_exit", "_repgame_wasm_request_menu", "_repgame_wasm_pointer_lock_result", "_repgame_wasm_set_server", "_repgame_main_probe_get"]' \
-			-lwebsocket.js \
-			-s EXPORTED_RUNTIME_METHODS='["ccall", "cwrap"]' \
-			-pthread \
-			-s PTHREAD_POOL_SIZE=navigator.hardwareConcurrency
-
-#Works OK
-# INITIAL_MEMORY=3968MB (wasm4gb): the default 2GB cap was hit while
-# loading chunks — WebGPU mapgen fills the loader faster so more chunks
-# are resident (observed demand ~3.77GB). Preallocate rather than grow:
-# with pthreads, ALLOW_MEMORY_GROWTH makes a heap grow sync-park every
-# worker on a futex, which deadlocks against a worker blocked in
-# pthread_cond_wait (observed as a full-page freeze when the UI allocated
-# while a worker waited on a WebGPU job); and the alternative —
-# GROWABLE_ARRAYBUFFERS resizable SharedArrayBuffers — is rejected by
-# Chrome's WebGL entry points (bufferSubData et al. refuse
-# resizable-buffer views). A fixed SharedArrayBuffer commits lazily and
-# sidesteps both. Stay under 4GB: exactly 4GB wraps wasm32 heap accounting
-# (arena computes to ~0 -> instant OOM). >2GB needs wasm4gb, supported by
-# modern Chrome/Safari and Firefox 154+.
-CFLAGS_LINK_WASM += -s INITIAL_MEMORY=3968MB
-
-# Default STACK_SIZE is 64KB. emdawnwebgpu delivers JS error/diagnostic
-# strings to wasm callbacks via stringToUTF8OnStack — a large Dawn message
-# (validation errors embed indented context) overflows a small stack and
-# shows up as a stack-cookie smash. 8MB covers arbitrarily large messages.
-CFLAGS_LINK_WASM += -s STACK_SIZE=8MB
-
+# Cross-compile the web client with Emscripten. Compile + link is CMake
+# (REPGAME_PLATFORM=wasm); this file is the task runner: emsdk install,
+# delivery copies, server/deploy.
+#
 # Vanilla upstream emsdk in an in-repo, git-ignored checkout — `make
 # emsdk_build` clones it and installs/activates the toolchain. (The old note
 # about swapping in Repkap11/emscripten is stale — the fork work was
@@ -50,35 +9,15 @@ CFLAGS_LINK_WASM += -s STACK_SIZE=8MB
 # EM_ROOT ?= leaves room for `make wasm EM_ROOT=/elsewhere/upstream`.
 EMSDK_VERSION ?= latest
 EM_ROOT ?= $(CURDIR)/emsdk/upstream
-emsdk_build: emsdk
-emsdk:
-	git clone https://github.com/emscripten-core/emsdk.git emsdk
-	emsdk/emsdk install $(EMSDK_VERSION)
-	emsdk/emsdk activate $(EMSDK_VERSION)
-CC_WASM := ${EM_ROOT}/emscripten/em++
+EMCMAKE := $(EM_ROOT)/emscripten/emcmake
+EMSDK_TOOLCHAIN := $(abspath $(EM_ROOT))/emscripten/cmake/Modules/Platform/Emscripten.cmake
 
+CMAKE_WASM_DFLAGS := -DCMAKE_TOOLCHAIN_FILE=$(EMSDK_TOOLCHAIN) \
+	-DREPGAME_AUDIO=$(REPGAME_AUDIO) -DREPGAME_SOUND_OGG_DIR=$(abspath $(SOUND_OGG_DIR)) \
+	-DREPGAME_OUTPUT_DIR=$(abspath out/wasm/delivery)
 ifeq ($(USE_CCACHE),1)
-CC_WASM := ccache $(CC_WASM)
+CMAKE_WASM_DFLAGS += -DCMAKE_CXX_COMPILER_LAUNCHER=ccache
 endif
-
-WASM_SHADERS = $(patsubst src/shaders/%.glsl,out/wasm/fs/src/shaders/%.glsl,$(wildcard src/shaders/*.glsl))
-# WGSL compute sources live in src/shaders/*.wgsl (same preprocessor pattern
-# as .glsl — the sources are dialect templates, not literal WGSL). They need
-# the generated block_ids.inc prelude, which keeps block_definitions.hpp's
-# enum as the single source of truth.
-WASM_WGSL_SHADERS = $(patsubst src/shaders/%.wgsl,out/wasm/fs/src/shaders/%.wgsl,$(wildcard src/shaders/*.wgsl))
-WASM_BITMAPS = $(patsubst bitmaps/%.png,out/wasm/fs/bitmaps/%.bin,$(BITMAP_PNGS))
-WASM_FONTS = $(patsubst fonts/%.ttf,out/wasm/fs/fonts/%.ttf,$(wildcard fonts/*.ttf))
-# Sounds can't be embedded via ld -b binary on wasm — they ship as files in
-# the WASMFS preload and audio.cpp loads "sounds/<name>.ogg" at runtime.
-WASM_SOUNDS = $(patsubst %,out/wasm/fs/sounds/%.ogg,$(SOUNDS_ENABLED))
-
-OBJECTS_COMMON_WASM := $(patsubst src/common/%.cpp,out/wasm/common/%.o, $(SRC_COMMON))
-OBJECTS_WASM := $(patsubst src/%.cpp,out/wasm/%.o, $(wildcard src/wasm/*.cpp))
-# Same imgui set as linux's SRC_IMGUI, but with the SDL2 backend: WASM links
-# SDL2 (emscripten -s USE_SDL=2), not SDL3.
-SRC_IMGUI_WASM := imgui_build/backends/imgui_impl_sdl2.cpp $(wildcard imgui_build/imgui*.cpp) imgui_build/backends/imgui_impl_opengl3.cpp
-OBJECTS_IMGUI_WASM := $(patsubst imgui_build/%.cpp,out/wasm/imgui/%.o, $(SRC_IMGUI_WASM))
 
 install: emsdk
 wasm-install: packages
@@ -87,72 +26,20 @@ wasm-install: packages
 all: wasm
 wasm: out/wasm/delivery/$(TARGET).js out/wasm/delivery/index.html out/wasm/delivery/reset.css out/wasm/delivery/index.css out/wasm/delivery/index.js out/wasm/delivery/icon.png
 
-WASM_DIRS = $(patsubst src%,out/wasm%,$(SRC_DIRS)) \
-			out/wasm \
-			out/wasm/fs \
-			out/wasm/fs/src \
-			out/wasm/fs/src/shaders \
-			out/wasm/gen \
-			out/wasm/fs/bitmaps \
-			out/wasm/fs/fonts \
-			out/wasm/fs/sounds \
-			out/wasm/delivery \
-			out/wasm/imgui \
-			out/wasm/imgui/backends
+# The preload fs is staged by CMake custom commands into out/wasm/cmake/fs
+# (preprocessed shaders, WGSL + generated block_ids.inc, bitmaps, fonts,
+# sounds) and linked with --preload-file.
+out/wasm/delivery/$(TARGET).js: $(SOUND_OGGS) $(EM_ROOT)/emscripten/em++ FORCE
+	$(EMCMAKE) cmake --preset wasm -B out/wasm/cmake $(CMAKE_WASM_DFLAGS)
+	MAKEFLAGS="$(CMAKE_MAKEFLAGS)" cmake --build out/wasm/cmake
 
-out/wasm/%.o: src/%.cpp $(HEADERS) src/wasm/RepGameSDL2.cpp | out/wasm
-	@mkdir -p $(@D)
-	$(CC_WASM) $(INCLUDES_COMMON) $(CFLAGS_WASM) -c $< -o $@
-
-# src/wasm/input.cpp is just #include "../linux/input.cpp".
-out/wasm/wasm/input.o: src/linux/input.cpp
-
-# imgui_impl_opengl3 auto-detects Emscripten as GLES2/WebGL1, but the game
-# creates a WebGL2/GLES3 context (SDL_GL_CONTEXT_MAJOR_VERSION=3,
-# MAX_WEBGL_VERSION=2), so force the ES3 path ("#version 300 es").
-out/wasm/imgui/%.o: imgui_build/%.cpp | out/wasm
-	@mkdir -p $(dir $@)
-	@# Vendored imgui keeps -Wall/-Wextra warnings but isn't held to -Werror
-	$(CC_WASM) $(INCLUDES_COMMON) $(CFLAGS_WASM) -Wno-error -DIMGUI_IMPL_OPENGL_ES3 -c $< -o $@
-
-out/wasm/delivery/$(TARGET).js: $(OBJECTS_COMMON_WASM) $(OBJECTS_IMGUI_WASM) $(OBJECTS_WASM) $(WASM_SHADERS) $(WASM_WGSL_SHADERS) $(WASM_BITMAPS) $(WASM_FONTS) $(WASM_SOUNDS) | out/wasm
-	$(CC_WASM) $(CFLAGS_LINK_WASM) $(OBJECTS_WASM) $(OBJECTS_IMGUI_WASM) $(OBJECTS_COMMON_WASM) --preload-file out/wasm/fs@ -o $@
+FORCE:
 
 out/wasm/delivery/index.html: src/wasm/index.html | out/wasm
 	cp $< $@
-
 out/wasm/delivery/index.js: src/wasm/index.js | out/wasm
 	cp $< $@
-
 out/wasm/delivery/%.css: src/wasm/%.css | out/wasm
-	cp $< $@
-
-out/wasm/fs/src/shaders/%.glsl: src/shaders/%.glsl makefiles/common.mk makefiles/wasm.mk | out/wasm
-	$(call shader_pp,-DREPGAME_WASM)
-
-# WGSL: same preprocessor trick as .glsl, plus -DREPGAME_WGSL_GEN which flips
-# the dialect macros in wgsl_dialect.hpp to emit WGSL. -I out/wasm/gen finds
-# the generated block_ids.inc. Headers the dialect sources #include are
-# tracked via the generated dep file so logic edits rebuild the shader.
-out/wasm/gen/block_ids.inc: include/common/block_ids_gen.hpp tools/gen_wgsl_block_ids.awk | out/wasm
-	mkdir -p $(dir $@)
-	awk -f tools/gen_wgsl_block_ids.awk $< > $@
-
-out/wasm/fs/src/shaders/%.wgsl: src/shaders/%.wgsl out/wasm/gen/block_ids.inc makefiles/common.mk makefiles/wasm.mk | out/wasm
-	$(call shader_pp,-I out/wasm/gen -DREPGAME_WGSL_GEN)
-
-ifneq ($(REPGAME_COMPLETION),1)
--include $(patsubst %,$(SHADER_DEP_DIR)/%.d,$(WASM_SHADERS) $(WASM_WGSL_SHADERS))
-endif
-
-out/wasm/fs/bitmaps/% : out/bitmaps/% | out/wasm
-	cp $< $@
-
-out/wasm/fs/fonts/% : fonts/% | out/wasm
-	cp $< $@
-
-out/wasm/fs/sounds/%.ogg : $(SOUND_OGG_DIR)/%.ogg | out/wasm
-	@mkdir -p $(dir $@)
 	cp $< $@
 
 out/wasm/delivery/icon.png : bitmaps/icons/icon.png | out/wasm
@@ -178,15 +65,18 @@ deploy: wasm-deploy
 wasm-deploy: wasm
 	rsync -rt out/wasm/delivery/ ${WASM_DEPLOY_REMOTE_PATH}
 
+emsdk_build: emsdk
+emsdk:
+	git clone https://github.com/emscripten-core/emsdk.git emsdk
+	emsdk/emsdk install $(EMSDK_VERSION)
+	emsdk/emsdk activate $(EMSDK_VERSION)
+
 clean: clean-wasm
 
 clean-wasm:
-	rm -rf $(WASM_DIRS)
+	rm -rf out/wasm
 
 out/wasm: | out
-	mkdir -p $(WASM_DIRS)
-	touch $@
+	mkdir -p out/wasm/delivery
 
-.PRECIOUS: $(TARGET) $(OBJECTS_WASM) $(OBJECTS_COMMON_WASM) $(OBJECTS_IMGUI_WASM)
-
-.PHONY: wasm wasm-run clean-wasm wasm-deploy wasm-install
+.PHONY: wasm wasm-run clean-wasm wasm-deploy wasm-install emsdk_build emsdk FORCE

@@ -4,8 +4,8 @@ runtime-version: '26.08'
 sdk: org.freedesktop.Sdk
 command: RepGame
 build-options:
-  # RepGame's link rules take libs from LIBS_LINUX only; this makes the module
-  # libs (GLEW under /app/lib) visible to ld via LDFLAGS.
+  # RepGame's link line is fixed (CMakeLists.txt); this makes the module libs
+  # (GLEW under /app/lib) visible to ld via LDFLAGS → CMAKE_EXE_LINKER_FLAGS.
   ldflags: -L/app/lib
 finish-args:
   # https://docs.flatpak.org/en/latest/sandbox-permissions-reference.html
@@ -38,13 +38,13 @@ modules:
       - rm -rf out
       # The sandbox has no hipcc/nvcc, so GPU objects are precompiled in the
       # Docker image by `make gpu-prebuilt` (a prerequisite of `make flatpak`)
-      # into prebuilt/gpu. GPU_PREBUILT_DIR makes hip.mk/cuda.mk link them and
-      # pull the bundled runtime libs (prebuilt/gpu/lib → /app/lib).
+      # into prebuilt/gpu. GPU_PREBUILT_DIR makes cmake/RepGameGpu.cmake link
+      # them and pull the bundled runtime libs (prebuilt/gpu/lib → /app/lib).
       # The freedesktop SDK ships gcc, not the host's clang/lld — override
-      # CC_LINUX/CCLD_LINUX so the sandbox builds with g++ + the default ld.
+      # LINUX_CXX/LINUX_USE_LLD so the sandbox builds with g++ + the default ld.
       # SOUND_OGG_DIR points at the host-converted OGGs (make sounds-prebuilt)
       # because the sandbox has no ffmpeg; prebuilt/ survives the `rm -rf out`.
-      - make out/linux/release/RepGame GPU_PREBUILT_DIR=prebuilt/gpu SOUND_OGG_DIR=prebuilt/sounds CC_LINUX=g++ CCLD_LINUX=
+      - make out/linux/release/RepGame GPU_PREBUILT_DIR=prebuilt/gpu SOUND_OGG_DIR=prebuilt/sounds LINUX_CXX=g++ LINUX_USE_LLD=0
       - install -Dm755 out/linux/release/RepGame /app/bin/RepGameBin
       # Wrapper is the flatpak `command:` — like the AppImage's AppRun, it
       # adds the default `World1 repkap11.com` args so a bare `flatpak run`

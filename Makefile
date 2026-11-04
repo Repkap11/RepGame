@@ -55,11 +55,6 @@ include makefiles/common.mk
 -include makefiles/entt.mk
 -include makefiles/model.mk
 
-# Explicit, not a pattern rule: a recipe-less pattern rule never adds
-# prerequisites, so clean builds (e.g. flatpak's `rm -rf out`) compiled
-# audio.cpp before the generated header existed.
-$(filter %/common/audio.o,$(foreach v,$(filter OBJECTS_COMMON_%,$(.VARIABLES)),$($(v)))) : out/include/sounds_manifest.hpp
-
 out:
 	mkdir -p $@
 	touch $@

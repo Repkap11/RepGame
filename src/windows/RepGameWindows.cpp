@@ -4,7 +4,10 @@
 
 int main( int argc, char **argv ) {
     const char *world_path;
-    if ( argc == 1 ) {
+    if ( argc >= 2 && strcmp( argv[ 1 ], "--tests" ) == 0 ) {
+        // `RepGame.exe --tests [filter ...]` — same as the Linux client.
+        return repgame_sdl2_main( argv[ 1 ], NULL, false, argc - 2, argv + 2 );
+    } else if ( argc == 1 ) {
         world_path = "World1";
     } else if ( argc == 2 ) {
         world_path = argv[ 1 ];

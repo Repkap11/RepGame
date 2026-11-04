@@ -1,6 +1,6 @@
 #Used to install platform build tools on linux host
 
-REPGAME_PACKAGES := libglm-dev libglm-doc rsync wget ccache clang libarchive-tools
+REPGAME_PACKAGES := libglm-dev libglm-doc rsync wget ccache clang libarchive-tools cmake ninja-build pkg-config
 
 install: packages
 

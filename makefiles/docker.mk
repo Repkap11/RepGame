@@ -50,7 +50,8 @@ GPU_PREBUILT_OUT ?= prebuilt/gpu
 #Compile the HIP/CUDA objects inside the container (which has both toolchains)
 #and harvest the runtime libraries they need into $(GPU_PREBUILT_OUT)/lib. The
 #flatpak build links these objects — its sandbox has no hipcc/nvcc — via
-#GPU_PREBUILT_DIR in hip.mk/cuda.mk.
+#GPU_PREBUILT_DIR (cmake/RepGameGpu.cmake; `make hip`/`make cuda` in
+#hip.mk/cuda.mk are thin cmake wrappers).
 gpu-prebuilt: | docker-image
 	docker run \
 		--user $(shell id -u):$(shell id -g) \

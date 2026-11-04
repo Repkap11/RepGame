@@ -1,135 +1,67 @@
-#Windows x86_64 builds
-
-REPGAME_PACKAGES += mingw-w64
-
-CFLAGS_WINDOWS := $(CFLAGS_WARNINGS) -std=c++17 -fno-pie -D GLEW_STATIC -D GLEW_NO_GLU -mwindows -D _WIN32_WINNT=0x0A00
-
-CFLAGS_WINDOWS += -O3 -DREPGAME_SKIP_CHECK_FOR_GL_ERRORS
-# CFLAGS_WINDOWS += -g
-
-CFLAGS_WINDOWS += -DREPGAME_WINDOWS
-CFLAGS_WINDOWS += $(CFLAGS_AUDIO)
-# SDL3 MinGW devel only ships a shared library (libSDL3.dll.a + SDL3.dll),
-# so Windows now dynamically links SDL3 and ships SDL3.dll next to the exe.
-LIBS_WINDOWS_SDL3 := windows_build/sdl3/x86_64-w64-mingw32/lib/libSDL3.dll.a -Wl,--no-undefined -Wl,--dynamicbase -Wl,--nxcompat -Wl,--high-entropy-va -lm -luser32 -lgdi32 -lwinmm -limm32 -lole32 -loleaut32 -lshell32 -lsetupapi -lversion -luuid
-LIBS_WINDOWS := windows_build/glew/lib/libglew32.a $(LIBS_WINDOWS_SDL3) -lopengl32 -Wl,-Bstatic -lpthread -Wl,-Bdynamic -static-libgcc -static-libstdc++
-INCLUDES_WINDOWS := -I windows_build/sdl3/x86_64-w64-mingw32/include/SDL3 -I windows_build/sdl3/x86_64-w64-mingw32/include -I windows_build/glew/include
-
-CC_WINDOWS := x86_64-w64-mingw32-g++
-# CC_WINDOWS := clang++
-
-LD_WINDOWS := x86_64-w64-mingw32-ld
-
-ifeq ($(USE_CCACHE),1)
-CC_WINDOWS := ccache $(CC_WINDOWS)
-LD_WINDOWS := ccache $(LD_WINDOWS)
-endif
-
-OBJECTS_COMMON_WINDOWS := $(patsubst src/common/%.cpp,out/windows/common/%.o, $(SRC_COMMON))
-OBJECTS_IMGUI_WINDOWS := $(patsubst imgui_build/%.cpp,out/windows/imgui/%.o, $(SRC_IMGUI))
-OBJECTS_WINDOWS := $(patsubst src/%.cpp,out/windows/%.o, $(wildcard src/windows/*.cpp))
-DEPS_WINDOWS := $(patsubst src/%.cpp,out/windows/%.d, $(wildcard src/windows/*.cpp)) \
-			$(patsubst src/common/%.cpp,out/windows/common/%.d, $(SRC_COMMON))
-
-SHADER_BLOBS_WINDOWS := $(patsubst src/shaders/%.glsl,out/windows/shaders/%.o,$(wildcard src/shaders/*.glsl))
-SHADER_PROCESSED_WINDOWS := $(patsubst src/shaders/%.glsl,out/windows/shaders/%.glsl,$(wildcard src/shaders/*.glsl))
-BITMAP_BLOBS_WINDOWS := $(patsubst bitmaps/%.png,out/windows/bitmaps/%.o,$(BITMAP_PNGS))
-FONT_BLOBS_WINDOWS := $(patsubst fonts/%.ttf,out/windows/fonts/%.o,$(wildcard fonts/*.ttf))
-SOUND_BLOBS_WINDOWS := $(patsubst %,out/windows/sounds/%.o,$(SOUNDS_ENABLED))
-
-# Preprocess shaders through the C preprocessor at build time. Blob symbols are
-# renamed to match what MK_BLOB(src_shaders, <name>, glsl) expects.
-out/windows/shaders/%.glsl: src/shaders/%.glsl makefiles/common.mk makefiles/windows.mk | out/windows
-	$(call shader_pp,-DREPGAME_WINDOWS)
-
-ifneq ($(REPGAME_COMPLETION),1)
--include $(patsubst %,$(SHADER_DEP_DIR)/%.d,$(SHADER_PROCESSED_WINDOWS))
-endif
-
-out/windows/shaders/%.o : out/windows/shaders/%.glsl makefiles/windows.mk | out/windows
-	$(LD_WINDOWS) -r -b binary $< -o $@_no_section
-	x86_64-w64-mingw32-objcopy \
-		--redefine-sym _binary_out_windows_shaders_$*_glsl_start=_binary_src_shaders_$*_glsl_start \
-		--redefine-sym _binary_out_windows_shaders_$*_glsl_end=_binary_src_shaders_$*_glsl_end \
-		$@_no_section $@
-
-out/windows/bitmaps/%.o : out/bitmaps/%.bin makefiles/windows.mk | out/windows
-	$(LD_WINDOWS) -r -b binary $< -o $@
-	objcopy --rename-section .data=.rodata,CONTENTS,ALLOC,LOAD,READONLY,DATA $@ $@
-
-out/windows/fonts/%.o : fonts/%.ttf | out/windows
-	$(LD_WINDOWS) -r -b binary $< -o $@
-	objcopy --rename-section .data=.rodata,CONTENTS,ALLOC,LOAD,READONLY,DATA $@ $@
-
-# Sound blobs: renamed to the out_sounds prefix MK_BLOB expects regardless of
-# which directory the .ogg came from (see linux.mk).
-out/windows/sounds/%.o : $(SOUND_OGG_DIR)/%.ogg makefiles/windows.mk makefiles/common.mk | out/windows
-	@mkdir -p $(dir $@)
-	$(LD_WINDOWS) -r -b binary $< -o $@_no_section
-	objcopy --rename-section .data=.rodata,CONTENTS,ALLOC,LOAD,READONLY,DATA \
-		--redefine-sym _binary_$(SOUND_SRC_SYMBOLS)_$*_ogg_start=_binary_out_sounds_$*_ogg_start \
-		--redefine-sym _binary_$(SOUND_SRC_SYMBOLS)_$*_ogg_end=_binary_out_sounds_$*_ogg_end \
-		$@_no_section $@
+# Cross-compile the Windows client with mingw-w64. Compile is CMake
+# (REPGAME_PLATFORM=windows, toolchain cmake/toolchains/windows-mingw.cmake);
+# this file is the task runner. Release only.
+#
+#   make windows        — builds out/windows/RepGame.exe + SDL3.dll
+#   make windows-run    — run it under Wine
+#   make windows-deploy — rsync the exe to repkap11.com
+#   make windows_build  — download SDL3 + GLEW dev packages
 
 all: windows
-windows:  out/windows/$(TARGET).exe
-
 deploy: windows-deploy
+install: windows_build
 
-windows-deploy: out/windows/$(TARGET).exe
-	rsync $< paul@repkap11.com:/home/paul/website/${TARGET_LOWER}
+# The SDL3.dll that must sit next to the exe at runtime (cmake copies it
+# post-build). Kept as a target so `make SDL3.dll` still works.
+SDL3.dll : out/windows/SDL3.dll
+out/windows/SDL3.dll : out/windows/RepGame.exe
 
-WINDOWS_DIRS = $(patsubst src%,out/windows%,$(SRC_DIRS)) \
-		out/windows/shaders out/windows/bitmaps out/windows/fonts \
-		out/windows/sounds \
-		out/windows/imgui \
-		out/windows/imgui/backends
+WINDOWS_SDL3_VERSION := 3.4.16
 
-out/windows/%.o: src/%.cpp windows_build | out/windows
-	@#Use g++ to build o file and a dependecy tree .d file for every cpp file
-	@mkdir -p $(@D)
-	$(CC_WINDOWS) $(INCLUDES_WINDOWS) $(INCLUDES_COMMON) $(CFLAGS_WINDOWS) -MMD -MP -MF $(patsubst %.o,%.d,$@) -MT $(patsubst %.d,%.o,$@) -c $< -o $@
-
-# Vendored imgui keeps -Wall/-Wextra warnings but isn't held to -Werror
-out/windows/imgui/%.o: imgui_build/%.cpp windows_build | out/windows
-	@#Use g++ to build o file and a dependecy tree .d file for every cpp file
-	$(CC_WINDOWS) $(INCLUDES_WINDOWS) $(INCLUDES_COMMON) $(CFLAGS_WINDOWS) -Wno-error -MMD -MP -MF $(patsubst %.o,%.d,$@) -MT $(patsubst %.d,%.o,$@) -c $< -o $@
-
-#Include these .d files, so the dependicies are known for secondary builds.
-ifneq ($(REPGAME_COMPLETION),1)
--include $(DEPS_WINDOWS)
+CMAKE_WINDOWS_DFLAGS := -DREPGAME_AUDIO=$(REPGAME_AUDIO) -DREPGAME_SOUND_OGG_DIR=$(abspath $(SOUND_OGG_DIR)) \
+	-DREPGAME_OUTPUT_DIR=$(abspath out/windows)
+ifeq ($(USE_CCACHE),1)
+CMAKE_WINDOWS_DFLAGS += -DCMAKE_CXX_COMPILER_LAUNCHER=ccache
 endif
 
-out/windows/$(TARGET).exe: windows_build $(OBJECTS_COMMON_WINDOWS) $(OBJECTS_IMGUI_WINDOWS) $(OBJECTS_WINDOWS) $(SHADER_BLOBS_WINDOWS) $(BITMAP_BLOBS_WINDOWS) $(FONT_BLOBS_WINDOWS) $(SOUND_BLOBS_WINDOWS) | out/windows
-	$(CC_WINDOWS) -flto $(CFLAGS_WINDOWS) $(OBJECTS_WINDOWS) $(OBJECTS_COMMON_WINDOWS) $(OBJECTS_IMGUI_WINDOWS) $(SHADER_BLOBS_WINDOWS) $(BITMAP_BLOBS_WINDOWS) $(FONT_BLOBS_WINDOWS) $(SOUND_BLOBS_WINDOWS) $(LIBS_WINDOWS) -o $@
-	# SDL3 is dynamically linked on Windows, so ship SDL3.dll next to the exe.
-	cp windows_build/sdl3/x86_64-w64-mingw32/bin/SDL3.dll out/windows/
+# Downloaded deps. Not tracked by git.
+WINDOWS_DEP := windows_build/sdl3/SDL3-$(WINDOWS_SDL3_VERSION).tar.gz windows_build/glew/glew-2.1.0-mingw-w64.zip
 
-windows-run: windows
-	wine out/windows/$(TARGET).exe "$(WORLD_DEBUG)"
+windows : out/windows/RepGame.exe
+
+# File target so other makefiles can depend on it. Re-running cmake every
+# time is cheap and makes -D overrides stick.
+out/windows/RepGame.exe : $(SOUND_OGGS) windows_build FORCE
+	cmake --preset windows -B out/windows/cmake $(CMAKE_WINDOWS_DFLAGS)
+	MAKEFLAGS="$(CMAKE_MAKEFLAGS)" cmake --build out/windows/cmake
+
+FORCE:
+
+windows-run : out/windows/RepGame.exe
+	wine out/windows/RepGame.exe "$(WORLD_DEBUG)"
+
+windows-deploy : out/windows/RepGame.exe
+	rsync $< paul@repkap11.com:/home/paul/website/${TARGET_LOWER}
+
+windows_build : $(WINDOWS_DEP)
+
+windows_build/sdl3/SDL3-$(WINDOWS_SDL3_VERSION).tar.gz :
+	mkdir -p windows_build/sdl3
+	wget https://github.com/libsdl-org/SDL/releases/download/release-$(WINDOWS_SDL3_VERSION)/SDL3-devel-$(WINDOWS_SDL3_VERSION)-mingw.tar.gz -O $@
+	tar -xzf $@ -C windows_build/sdl3 --strip-components=1
+
+# MinGW build of glew hosted on repkap11.com (the upstream -win32 zip ships
+# MSVC .lib, not libglew32.a). The zip's top-level dir is glew/, so it unpacks
+# one level deep and gets moved up.
+windows_build/glew/glew-2.1.0-mingw-w64.zip :
+	mkdir -p windows_build/glew
+	wget https://repkap11.com/files/repgame/glew-2.1.0-mingw-w64.zip -O $@
+	unzip $@ -d windows_build/glew
+	mv windows_build/glew/glew/* windows_build/glew/
+	rm -rf windows_build/glew/glew
 
 clean: clean-windows
-
 clean-windows:
 	rm -rf out/windows
 
-out/windows: | out
-	mkdir -p $(WINDOWS_DIRS)
-	touch $@
-
-install: windows_build
-windows_build:
-	rm -rf glew.zip
-	rm -rf windows_build
-	mkdir -p windows_build/glew
-	mkdir -p windows_build/sdl3
-	wget -q https://github.com/libsdl-org/SDL/releases/download/release-3.4.16/SDL3-devel-3.4.16-mingw.tar.gz -O sdl3.tar.gz
-	wget -q https://repkap11.com/files/repgame/glew-2.1.0-mingw-w64.zip -O glew.zip
-	bsdtar --strip-components=1 -xvzf glew.zip -C windows_build/glew
-	bsdtar --strip-components=1 -xvzf sdl3.tar.gz -C windows_build/sdl3
-	rm -rf sdl3.tar.gz
-	rm -rf glew.zip
-
-.PRECIOUS: out/windows/$(TARGET).exe $(OBJECTS_WINDOWS) $(OBJECTS_COMMON_WINDOWS) $(SHADER_BLOBS_WINDOWS) $(SHADER_PROCESSED_WINDOWS) $(BITMAP_BLOBS_WINDOWS) $(FONT_BLOBS_WINDOWS) $(SOUND_BLOBS_WINDOWS)
-
-.PHONY: windows windows-run clean-windows windows-deploy
+.PHONY: windows windows-run windows-deploy windows_build clean-windows FORCE

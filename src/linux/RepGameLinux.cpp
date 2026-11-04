@@ -8,8 +8,8 @@ int main( int argc, char **argv ) {
     bool connect_multi = true;
     int test_argc = 0;
     const char *const *test_argv = nullptr;
-    if ( argc >= 2 && strcmp( argv[ 1 ], "tests" ) == 0 ) {
-        // `RepGame tests [filter ...]` — remaining args are test-name filters.
+    if ( argc >= 2 && strcmp( argv[ 1 ], "--tests" ) == 0 ) {
+        // `RepGame --tests [filter ...]` — remaining args are test-name filters.
         world_path = argv[ 1 ];
         connect_multi = false;
         host = "";

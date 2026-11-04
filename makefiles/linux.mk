@@ -1,175 +1,74 @@
-#Linux x86_64 builds
+#Linux x86_64 builds — thin wrapper over CMake (top-level CMakeLists.txt,
+#cmake/, CMakePresets.json). Every build target re-runs configure so the
+#-D overrides below always stick, then `cmake --build`.
 
 REPGAME_PACKAGES += libglew-dev libxi-dev clang lld g++ libsdl3-dev cppcheck ffmpeg
 
-# ld -b binary generates symbol names from the file path with non-alnum chars
-# converted to underscores. Used for --redefine-sym in shader blob targets.
-LINUX_OUT_SYMBOLS := $(subst /,_,$(subst .,_,$(subst -,_,$(LINUX_OUT))))
+# Compiler + linker overrides (LINUX_CXX=g++ gives a non-PIE binary; the
+# flatpak sandbox ships only gcc and sets both).
+LINUX_CXX ?= clang++
+LINUX_USE_LLD ?= 1
+# Thin LTO on the Release build (compile+link); set 0 to disable.
+LINUX_LTO ?= 1
 
-CFLAGS_LINUX := $(CFLAGS_WARNINGS) -std=c++17 -fno-pie
-LFLAGS := -z noexecstack
-
-# In release mode, don't check for GL errors. HW vsync is a runtime toggle on
-# the 'v' key (default on), not a compile flag.
-CFLAGS_LINUX_RELEASE := -O3 -DREPGAME_SKIP_CHECK_FOR_GL_ERRORS
-CFLAGS_LINUX_DEBUG := -g
-
-CFLAGS_LINUX += -DREPGAME_LINUX
-# Nothing uses GLU (gluErrorString has a local replacement in Logging.hpp);
-# this stops glew.h from pulling in <GL/glu.h>.
-CFLAGS_LINUX += -DGLEW_NO_GLU
-
-ifneq ($(REPGAME_COMPLETION),1)
-CFLAGS_LINUX += $(shell pkg-config --cflags sdl3)
-CFLAGS_LINUX += $(shell pkg-config --cflags wayland-client)
-endif
-CFLAGS_LINUX += $(CFLAGS_AUDIO)
-# Honored on the link line; ?= silences the undefined-variable warning when
-# the environment doesn't set it (e.g. flatpak-builder passes -L/app/lib).
+# Honored on the link line via CMake's CMAKE_EXE_LINKER_FLAGS init; ?=
+# silences the undefined-variable warning when the environment doesn't set it
+# (e.g. flatpak-builder passes -L/app/lib).
 LDFLAGS ?=
 
-# SDL3 is dynamically linked, because it's too hard to statically link against X11, and I don't want to compile it from source.
-LIBS_LINUX := -lSDL3 -Wl,-Bstatic -lGLEW -Wl,-Bdynamic -lGL -lpthread -lm -ldl -static-libgcc -static-libstdc++ -lwayland-client
+# Prebuilt GPU objects dir (flatpak sandbox — see cmake/RepGameGpu.cmake).
+GPU_PREBUILT_DIR ?=
+OPENXR_DEP :=
 
-# REPGAME_OPENXR=1 (common.mk): compile the OpenXR code paths and link the
-# statically built host loader. Objects land in out/linux-openxr via the
-# common.mk LINUX_OUT override.
-ifeq ($(REPGAME_OPENXR),1)
-CFLAGS_LINUX += -DREPGAME_OPENXR -I $(abspath out/openxr-host/install)/include
-# Appended after the shared lib list; the static loader needs -ldl/-lpthread
-# which are already there.
-LIBS_LINUX += $(OPENXR_HOST_LIB) -lEGL
-endif
-
-CC_LINUX := clang++
-# CC_LINUX := g++
-
-# Final link goes through lld: fastest maintained linker and produces the
-# smallest binaries here. Link-only flag — clang's -Werror rejects -fuse-ld on
-# -c compiles as an unused argument. The -r -b binary blob rules use plain `ld`
-# (lld doesn't implement -b binary).
-CCLD_LINUX := -fuse-ld=lld
-
-ifeq ($(CC_LINUX),g++)
-	CFLAGS_LINUX += -no-pie
-	# GCC 15 (flatpak SDK) flags every bounded snprintf whose %s args could
-	# exceed the buffer; truncation there is intended, so don't fail on it.
-	CFLAGS_LINUX += -Wno-format-truncation
-else
-	# clang (like wasm.mk/hip.mk): -Werror flags the C++17-incompatible
-	# designated initializers used throughout; and -no-pie isn't a clang flag.
-	CFLAGS_LINUX += -fPIE -Wno-c++20-designator
-endif
-
+CMAKE_CLIENT_DFLAGS := -DCMAKE_CXX_COMPILER=$(LINUX_CXX) -DREPGAME_USE_LLD=$(LINUX_USE_LLD) \
+	-DREPGAME_LTO=$(LINUX_LTO) -DREPGAME_AUDIO=$(REPGAME_AUDIO) -DREPGAME_OPENXR=$(REPGAME_OPENXR)
 ifeq ($(USE_CCACHE),1)
-CC_LINUX := ccache $(CC_LINUX)
+CMAKE_CLIENT_DFLAGS += -DCMAKE_CXX_COMPILER_LAUNCHER=ccache
+endif
+ifneq ($(SOUND_OGG_DIR),)
+CMAKE_CLIENT_DFLAGS += -DREPGAME_SOUND_OGG_DIR=$(abspath $(SOUND_OGG_DIR))
+endif
+ifneq ($(GPU_PREBUILT_DIR),)
+CMAKE_CLIENT_DFLAGS += -DREPGAME_GPU_PREBUILT_DIR=$(abspath $(GPU_PREBUILT_DIR))
 endif
 
-OBJECTS_COMMON_LINUX_RELEASE := $(patsubst src/common/%.cpp,$(LINUX_OUT)/release/common/%.o, $(SRC_COMMON))
-OBJECTS_COMMON_LINUX_DEBUG := $(patsubst src/common/%.cpp,$(LINUX_OUT)/debug/common/%.o, $(SRC_COMMON))
-OBJECTS_IMGUI_LINUX_RELEASE := $(patsubst imgui_build/%.cpp,$(LINUX_OUT)/release/imgui/%.o, $(SRC_IMGUI))
-OBJECTS_IMGUI_LINUX_DEBUG := $(patsubst imgui_build/%.cpp,$(LINUX_OUT)/debug/imgui/%.o, $(SRC_IMGUI))
-
-OBJECTS_LINUX_RELEASE := $(patsubst src/%.cpp,$(LINUX_OUT)/release/%.o, $(wildcard src/linux/*.cpp))
-OBJECTS_LINUX_DEBUG := $(patsubst src/%.cpp,$(LINUX_OUT)/debug/%.o, $(wildcard src/linux/*.cpp))
-DEPS_LINUX := $(patsubst src/%.cpp,$(LINUX_OUT)/release/%.d, $(wildcard src/linux/*.cpp)) \
-			$(patsubst src/%.cpp,$(LINUX_OUT)/debug/%.d, $(wildcard src/linux/*.cpp)) \
-			$(patsubst src/common/%.cpp,$(LINUX_OUT)/debug/common/%.d, $(SRC_COMMON)) \
-			$(patsubst src/common/%.cpp,$(LINUX_OUT)/release/common/%.d, $(SRC_COMMON))
-
-SHADER_BLOBS_LINUX := $(patsubst src/shaders/%.glsl,$(LINUX_OUT)/shaders/%.o,$(wildcard src/shaders/*.glsl))
-SHADER_PROCESSED_LINUX := $(patsubst src/shaders/%.glsl,$(LINUX_OUT)/shaders/%.glsl,$(wildcard src/shaders/*.glsl))
-BITMAP_BLOBS_LINUX := $(patsubst bitmaps/%.png,$(LINUX_OUT)/bitmaps/%.o,$(BITMAP_PNGS))
-FONT_BLOBS_LINUX := $(patsubst fonts/%.ttf,$(LINUX_OUT)/fonts/%.o,$(wildcard fonts/*.ttf))
-SOUND_BLOBS_LINUX := $(patsubst %,$(LINUX_OUT)/sounds/%.o,$(SOUNDS_ENABLED))
-
-# Preprocess shaders through the C preprocessor at build time. The preprocessed
-# .glsl file lives in $(LINUX_OUT)/shaders/ alongside the .o blob. The blob symbols
-# are renamed to match what MK_BLOB(src_shaders, <name>, glsl) expects.
-$(LINUX_OUT)/shaders/%.glsl: src/shaders/%.glsl makefiles/common.mk makefiles/linux.mk | $(LINUX_OUT)
-	$(call shader_pp,-DREPGAME_LINUX)
-
-ifneq ($(REPGAME_COMPLETION),1)
--include $(patsubst %,$(SHADER_DEP_DIR)/%.d,$(SHADER_PROCESSED_LINUX))
+# ccache for the nvcc/hipcc custom commands in cmake/RepGameGpu.cmake.
+ifeq ($(USE_CCACHE),1)
+CMAKE_GPU_LAUNCHER := -DCMAKE_CXX_COMPILER_LAUNCHER=ccache
 endif
 
-$(LINUX_OUT)/shaders/%.o : $(LINUX_OUT)/shaders/%.glsl makefiles/linux.mk | $(LINUX_OUT)
-	ld $(LFLAGS) -r -b binary $< -o $@_no_section
-	objcopy --rename-section .data=.rodata,CONTENTS,ALLOC,LOAD,READONLY,DATA \
-		--redefine-sym _binary_$(LINUX_OUT_SYMBOLS)_shaders_$*_glsl_start=_binary_src_shaders_$*_glsl_start \
-		--redefine-sym _binary_$(LINUX_OUT_SYMBOLS)_shaders_$*_glsl_end=_binary_src_shaders_$*_glsl_end \
-		$@_no_section $@
+# REPGAME_OPENXR=1 (common.mk): LINUX_OUT moves to out/linux-openxr so flat
+# and VR objects never mix; the statically built host loader is a make dep.
+ifeq ($(REPGAME_OPENXR),1)
+CMAKE_CLIENT_DFLAGS += -DREPGAME_OPENXR_PREFIX=$(abspath out/openxr-host/install)
+OPENXR_DEP := $(OPENXR_HOST_LIB)
+endif
 
-$(LINUX_OUT)/bitmaps/%.o : out/bitmaps/%.bin makefiles/linux.mk | $(LINUX_OUT)
-	ld $(LFLAGS) -r -b binary $< -o $@_no_section
-	objcopy --rename-section .data=.rodata,CONTENTS,ALLOC,LOAD,READONLY,DATA $@_no_section $@
+# SOUND_OGGS (common.mk) builds the .ogg files before cmake embeds them.
 
-$(LINUX_OUT)/fonts/%.o : fonts/%.ttf | $(LINUX_OUT)
-	ld $(LFLAGS) -r -b binary $< -o $@_no_section
-	objcopy --rename-section .data=.rodata,CONTENTS,ALLOC,LOAD,READONLY,DATA $@_no_section $@
-
-# Sound blobs: the .ogg may come from out/sounds or prebuilt/sounds (flatpak),
-# so symbols are always renamed to the out_sounds prefix MK_BLOB expects.
-$(LINUX_OUT)/sounds/%.o : $(SOUND_OGG_DIR)/%.ogg makefiles/linux.mk makefiles/common.mk | $(LINUX_OUT)
-	@mkdir -p $(dir $@)
-	ld $(LFLAGS) -r -b binary $< -o $@_no_section
-	objcopy --rename-section .data=.rodata,CONTENTS,ALLOC,LOAD,READONLY,DATA \
-		--redefine-sym _binary_$(SOUND_SRC_SYMBOLS)_$*_ogg_start=_binary_out_sounds_$*_ogg_start \
-		--redefine-sym _binary_$(SOUND_SRC_SYMBOLS)_$*_ogg_end=_binary_out_sounds_$*_ogg_end \
-		$@_no_section $@
+-include makefiles/cuda.mk
+-include makefiles/hip.mk
 
 all: linux
 linux: $(LINUX_OUT)/release/$(TARGET)
 linux_debug: $(LINUX_OUT)/debug/$(TARGET)
 
+$(LINUX_OUT)/release/$(TARGET): $(SOUND_OGGS) $(OPENXR_DEP) FORCE
+	cmake --preset linux-release -B $(LINUX_OUT)/cmake-release $(CMAKE_CLIENT_DFLAGS) \
+		-DREPGAME_OUTPUT_DIR=$(abspath $(LINUX_OUT))/release
+	MAKEFLAGS="$(CMAKE_MAKEFLAGS)" cmake --build $(LINUX_OUT)/cmake-release
+
+$(LINUX_OUT)/debug/$(TARGET): $(SOUND_OGGS) $(OPENXR_DEP) FORCE
+	cmake --preset linux-debug -B $(LINUX_OUT)/cmake-debug $(CMAKE_CLIENT_DFLAGS) \
+		-DREPGAME_OUTPUT_DIR=$(abspath $(LINUX_OUT))/debug
+	MAKEFLAGS="$(CMAKE_MAKEFLAGS)" cmake --build $(LINUX_OUT)/cmake-debug
+
+FORCE:
+
 deploy: linux-deploy
 
 linux-deploy: $(LINUX_OUT)/release/$(TARGET)
 	rsync $< paul@repkap11.com:/home/paul/website/${TARGET_LOWER}
-
-LINUX_DIRS := $(patsubst src%,$(LINUX_OUT)/release%,$(SRC_DIRS)) \
-		$(patsubst src%,$(LINUX_OUT)/debug%,$(SRC_DIRS)) \
-		$(patsubst src%,$(LINUX_OUT)%,$(SRC_DIRS)) \
-		$(LINUX_OUT)/debug $(LINUX_OUT)/release \
-		$(LINUX_OUT)/shaders $(LINUX_OUT)/bitmaps $(LINUX_OUT)/fonts \
-		$(LINUX_OUT)/sounds \
-		$(LINUX_OUT)/debug/imgui $(LINUX_OUT)/release/imgui \
-		$(LINUX_OUT)/debug/imgui/backends $(LINUX_OUT)/release/imgui/backends
-
--include makefiles/cuda.mk
--include makefiles/hip.mk
-
-$(LINUX_OUT)/release/%.o: src/%.cpp | $(LINUX_OUT)
-	@#Use g++ to build o file and a dependecy tree .d file for every cpp file
-	@#mkdir -p (not just $(LINUX_OUT)) so new src/ subdirs build without a clean
-	@mkdir -p $(@D)
-	$(CC_LINUX) $(INCLUDES_COMMON) $(CFLAGS_LINUX) $(CFLAGS_LINUX_RELEASE) -MMD -MP -MF $(patsubst %.o,%.d,$@) -MT $(patsubst %.d,%.o,$@) -c $< -o $@
-
-$(LINUX_OUT)/debug/%.o: src/%.cpp | $(LINUX_OUT)
-	@#Use g++ to build o file and a dependecy tree .d file for every cpp file
-	@mkdir -p $(@D)
-	$(CC_LINUX) $(INCLUDES_COMMON) $(CFLAGS_LINUX) $(CFLAGS_LINUX_DEBUG) -MMD -MP -MF $(patsubst %.o,%.d,$@) -MT $(patsubst %.d,%.o,$@) -c $< -o $@
-
-
-# Vendored imgui keeps -Wall/-Wextra warnings but isn't held to -Werror
-$(LINUX_OUT)/debug/imgui/%.o: imgui_build/%.cpp | $(LINUX_OUT)
-	@#Use g++ to build o file and a dependecy tree .d file for every cpp file
-	$(CC_LINUX) $(INCLUDES_COMMON) $(CFLAGS_LINUX) $(CFLAGS_LINUX_DEBUG) -Wno-error -MMD -MP -MF $(patsubst %.o,%.d,$@) -MT $(patsubst %.d,%.o,$@) -c $< -o $@
-
-$(LINUX_OUT)/release/imgui/%.o: imgui_build/%.cpp | $(LINUX_OUT)
-	@#Use g++ to build o file and a dependecy tree .d file for every cpp file
-	$(CC_LINUX) $(INCLUDES_COMMON) $(CFLAGS_LINUX) $(CFLAGS_LINUX_RELEASE) -Wno-error -MMD -MP -MF $(patsubst %.o,%.d,$@) -MT $(patsubst %.d,%.o,$@) -c $< -o $@
-
-#Include these .d files, so the dependicies are known for secondary builds.
-ifneq ($(REPGAME_COMPLETION),1)
--include $(DEPS_LINUX)
-endif
-
-$(LINUX_OUT)/release/$(TARGET): $(OBJECTS_IMGUI_LINUX_RELEASE) $(OBJECTS_COMMON_LINUX_RELEASE) $(OBJECTS_LINUX_RELEASE) $(SHADER_BLOBS_LINUX) $(BITMAP_BLOBS_LINUX) $(FONT_BLOBS_LINUX) $(SOUND_BLOBS_LINUX) | $(LINUX_OUT)
-	$(CC_LINUX) -flto $(CCLD_LINUX) $(CFLAGS_LINUX) $(CFLAGS_LINUX_RELEASE) $(OBJECTS_LINUX_RELEASE) $(OBJECTS_IMGUI_LINUX_RELEASE) $(OBJECTS_COMMON_LINUX_RELEASE) $(SHADER_BLOBS_LINUX) $(BITMAP_BLOBS_LINUX) $(FONT_BLOBS_LINUX) $(SOUND_BLOBS_LINUX) $(LDFLAGS) $(LIBS_LINUX) -o $@
-
-$(LINUX_OUT)/debug/$(TARGET): $(OBJECTS_IMGUI_LINUX_DEBUG) $(OBJECTS_COMMON_LINUX_DEBUG) $(OBJECTS_LINUX_DEBUG) $(SHADER_BLOBS_LINUX) $(BITMAP_BLOBS_LINUX) $(FONT_BLOBS_LINUX) $(SOUND_BLOBS_LINUX) | $(LINUX_OUT)
-	$(CC_LINUX) $(CCLD_LINUX) $(CFLAGS_LINUX) $(CFLAGS_LINUX_DEBUG) $(OBJECTS_LINUX_DEBUG) $(OBJECTS_IMGUI_LINUX_DEBUG) $(OBJECTS_COMMON_LINUX_DEBUG) $(SHADER_BLOBS_LINUX) $(BITMAP_BLOBS_LINUX) $(FONT_BLOBS_LINUX) $(SOUND_BLOBS_LINUX) $(LDFLAGS) $(LIBS_LINUX) -o $@
 
 linux-run: linux
 	./$(LINUX_OUT)/release/$(TARGET) $(WORLD) www.repkap11.com
@@ -188,10 +87,7 @@ linux_debug-run: linux_debug
 # `make tests TESTS="net_ mobs"` runs only tests whose name contains a filter.
 TESTS ?=
 tests: linux_debug
-	./$(LINUX_OUT)/debug/$(TARGET) tests $(TESTS)
-
-# map:
-# 	rm -rf ~/.repgame/$(WORLD)
+	./$(LINUX_OUT)/debug/$(TARGET) --tests $(TESTS)
 
 player:
 	rm -rf ~/.repgame/$(WORLD)/player.dat
@@ -201,14 +97,4 @@ clean: clean-linux
 clean-linux:
 	rm -rf out/linux out/linux-portable
 
-ifeq ($(REPGAME_OPENXR),1)
-$(LINUX_OUT): | $(OPENXR_HOST_LIB)
-endif
-
-$(LINUX_OUT): | out
-	mkdir -p $(LINUX_DIRS)
-	touch $@
-
-.PRECIOUS: $(LINUX_OUT)/release/$(TARGET) $(LINUX_OUT)/debug/$(TARGET) $(OBJECTS_LINUX_DEBUG) $(OBJECTS_LINUX_RELEASE) $(OBJECTS_COMMON_LINUX_RELEASE) $(OBJECTS_COMMON_LINUX_DEBUG) $(SHADER_BLOBS_LINUX) $(SHADER_PROCESSED_LINUX) $(BITMAP_BLOBS_LINUX) $(FONT_BLOBS_LINUX) $(SOUND_BLOBS_LINUX)
-
-.PHONY: linux linux-run linux-run2 linux-run-blocks clean-linux linux-deploy dev tests
+.PHONY: linux linux_debug linux-run linux-run2 linux-run-blocks clean-linux linux-deploy dev tests FORCE

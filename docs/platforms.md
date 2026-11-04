@@ -13,6 +13,9 @@ file-level `out/...` rules) are omitted on purpose.
   (see AppImage below).
 - `make linux-run2` — build and launch against `www.repkap11.com` with the
   `WORLD_DEBUG` world (second client alongside `linux-run`).
+- Linux build knobs: `LINUX_CXX` (compiler), `LINUX_USE_LLD`, `LINUX_LTO`
+  (thin LTO on the Release build via `REPGAME_LTO`/`CMAKE_INTERPROCEDURAL_OPTIMIZATION`,
+  default 1 — `make linux LINUX_LTO=0` disables it).
 - `make player` — delete `~/.repgame/$(WORLD)/player.dat`.
 - `make update-world` — prepend an 8-byte header to every `chunk_*` file
   under `~/.repgame/$(WORLD)/` (save-format migration helper).
@@ -22,7 +25,9 @@ file-level `out/...` rules) are omitted on purpose.
 - `make sounds-prebuilt` — convert every manifest sound into
   `prebuilt/sounds/` on the host; `make flatpak` consumes these (its
   sandbox has no ffmpeg).
-- `make hip` / `make cuda` — compile the GPU mapgen/mesh objects.
+- `make hip` / `make cuda` — compile the GPU mapgen/mesh objects (cmake
+  custom commands around hipcc/nvcc — cmake/RepGameGpu.cmake — driven from a
+  GPU-only configure in `$(LINUX_OUT)/cmake-gpu`).
   `make hip-install` installs the HIP toolchain.
 - `make clean` / `make clean-<platform>` — remove `out/` trees
   (`clean-linux`, `clean-android`, `clean-arm`, `clean-appimage`,
@@ -38,8 +43,10 @@ GLES headers instead of glew, an ES 3.2 context, `glTexStorage2DMultisample`
 resizes + `glCopyImageSubData` for the depth snapshot, and the small chunk
 radii (same as Android/WASM) since the board can't carry the desktop torus.
 SDL3 is built static from source under `out/arm-sdl3` with the SDK toolchain.
-arm.mk is a standalone platform makefile, so arm can be built in the same
-invocation as other platforms (e.g. `make linux arm`).
+Compile is CMake (`REPGAME_PLATFORM=arm`, toolchain
+`cmake/toolchains/arm.cmake` driven by `ARM_SDK`); arm.mk is the task runner,
+so arm can be built in the same invocation as other platforms (e.g.
+`make linux arm`).
 
 - `make arm` / `make arm_debug` — release/debug binaries in `out/arm/`.
 - `make arm-sdl3` — (re)build the static SDL3.
@@ -61,6 +68,8 @@ pinned Steam Runtime 3 ARM64 sysroot. The sysroot snapshot is
 be bumped blindly. A host `wayland-scanner` 1.18 is built to match the sysroot's
 wayland version. SDL3 and the OpenXR loader are linked static; the makefile
 verifies the result is glibc ≤ 2.31 and pulls no `libstdc++`/`libgcc_s`.
+Compile is CMake (`REPGAME_PLATFORM=steamframe`); the SDL3/OpenXR/RepGame
+builds share the checked-in `cmake/toolchains/steamframe.cmake`.
 
 - `make steamframe` / `make steamframe_debug` — `out/steamframe/<release|debug>/RepGame`.
 - `make steamframe-dist` — `out/steamframe/dist/RepGame` upload payload.
@@ -78,7 +87,8 @@ verifies the result is glibc ≤ 2.31 and pulls no `libstdc++`/`libgcc_s`.
 - `make wasm` — Emscripten build into `out/wasm/delivery/` (needs emsdk —
   `make emsdk_build` clones it into `emsdk/`; override with
   `EM_ROOT` or `EMSDK_VERSION`. `make wasm-install` installs the
-  host packages).
+  host packages). Compile/link is CMake (`REPGAME_PLATFORM=wasm`, emsdk's
+  Emscripten.cmake); the WASMFS preload is staged under `out/wasm/cmake/fs`.
 - `make wasm-start-server` — serve `out/wasm/delivery` on :8080 via
   `wasm_server.py` (COOP/COEP headers for SharedArrayBuffer).
 - `make wasm-run` — build + open in Chrome (`WASM_START_COMMAND`).
@@ -86,7 +96,10 @@ verifies the result is glibc ≤ 2.31 and pulls no `libstdc++`/`libgcc_s`.
 
 ## Windows
 
-- `make windows` — cross-compile `out/windows/RepGame.exe`.
+- `make windows` — cross-compile `out/windows/RepGame.exe` (CMake
+  `REPGAME_PLATFORM=windows`, mingw toolchain
+  `cmake/toolchains/windows-mingw.cmake`); `SDL3.dll` is copied next to the
+  exe post-build.
 - `make windows-run` — run the exe under wine (single-player `WORLD_DEBUG`).
 - `make windows-deploy` — rsync the exe to repkap11.com.
 
@@ -125,7 +138,7 @@ verifies the result is glibc ≤ 2.31 and pulls no `libstdc++`/`libgcc_s`.
 - `make gpu-prebuilt` — compile HIP/CUDA objects + harvest runtime libs in Docker
   into `prebuilt/gpu` (gitignored). `make flatpak` depends on this: the flatpak
   sandbox has no hipcc/nvcc, so its manifest links the prebuilt objects via
-  `GPU_PREBUILT_DIR` (see hip.mk/cuda.mk) and installs the runtime libs the
+  `GPU_PREBUILT_DIR` (see cmake/RepGameGpu.cmake) and installs the runtime libs the
   freedesktop runtime lacks into `/app/lib` (see `flatpak/com.repkap11.repgame.yml`
   for the whitelist — do NOT bundle runtime-provided libs like libdrm_amdgpu,
   they shadow the GL extension's copies and break EGL).
@@ -134,7 +147,8 @@ verifies the result is glibc ≤ 2.31 and pulls no `libstdc++`/`libgcc_s`.
 ## Server packaging
 
 - `make server-deploy` — `tools/server_deploy.sh`: push HEAD to the `repkap11`
-  remote's master, ff-pull + `make server` on repkap11.com (build happens before
+  remote's master, ff-pull + `make server` on repkap11.com (cmake `server`
+  preset — configures with no SDL3/GLEW/wayland; build happens before
   the old server is stopped), Ctrl-C the server in tmux session `repgame`
   (pane found via the `@repgame_server` pane option, since automatic-rename
   clobbers window names; graceful flush), start `make server-run` there, then attach.
