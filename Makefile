@@ -66,10 +66,6 @@ nothing:
 
 
 
-update-world:
-	ls -1 ~/.repgame/$(WORLD)/ | grep "^chunk_" | xargs -n1 bash -c 'printf "\x08\x0\x0\x0" | cat - ~/.repgame/$(WORLD)/$$0 > ~/.repgame/$(WORLD)/new_$$0'
-	ls -1 ~/.repgame/$(WORLD)/ | grep "^chunk_" | xargs -n1 bash -c 'mv ~/.repgame/$(WORLD)/new_$$0 ~/.repgame/$(WORLD)/$$0'
-
 ifeq (${BUILD_DEBUG},1)
 
 vars:

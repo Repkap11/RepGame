@@ -19,8 +19,6 @@ file-level `out/...` rules) are omitted on purpose.
   cache under `<build dir>/thinlto-cache` makes incremental release relinks
   cheap (wiped by clean-linux); the gcc flatpak path gets no cache.
 - `make player` — delete `~/.repgame/$(WORLD)/player.dat`.
-- `make update-world` — prepend an 8-byte header to every `chunk_*` file
-  under `~/.repgame/$(WORLD)/` (save-format migration helper).
 - `make bedrock_samples_build` — clone Mojang's bedrock-samples (pinned
   `BEDROCK_SAMPLES_TAG`) into `bedrock-samples/` (git-ignored); the input
   to `make blocks-import` / `make mobs-import` (see docs/blocks.md).
