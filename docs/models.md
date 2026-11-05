@@ -30,7 +30,7 @@ out/model_venv/bin/pip install 'trimesh==4.12.2' numpy pillow
 out/model_venv/bin/python tools/model_to_world.py MODEL [MODEL ...] \
     --world NAME [--size 64] [--up y|z] [--x 4] [--gap 8] \
     [--repgame-dir ~/.repgame] [--no-glass] [--force] [--verbose] \
-    [--color NAME=#RRGGBB]...
+    [--color NAME=#RRGGBB]... [--rotate [STEM=]x90,y180]...
 ./out/linux/release/RepGame NAME
 ```
 
@@ -43,6 +43,7 @@ z-centered on 0 and sits on y=1, all in one world.
 |---|---|
 | `--size` | Longest model side in blocks (default 64). |
 | `--up z` | Model is Z-up (most CAD/Blender-native exports); default Y-up (glTF). Applies to every model. |
+| `--rotate [STEM=]x90,y180` | Repeatable. Rotate in world space, right-hand-rule degrees about the Y-up axes, applied after `--up`; steps run left to right. Bare SPEC applies to every model; `STEM=SPEC` applies only to the model whose file stem is `STEM` (unmatched stems warn). Global steps run before per-model ones. |
 | `--x` | World x of the first model's min corner (default 4, keeps spawn at 0,0 clear). Each model is centered on z=0 and sits on y=1. |
 | `--gap` | Empty blocks between consecutive models along +x (default 8). |
 | `--no-glass` | Opaque palette only. |
@@ -133,7 +134,7 @@ per-model overrides):
   Incremental: `world_type` is the stamp; it regenerates only when any
   glb, `tools/model_to_world.py`, or the args
   (`out/models/<world>.args`, rewritten only when `CAR_SIZE`/`CAR_GAP`/
-  `CAR_COLORS`/`CAR_PREFER` or the file list itself changes) are newer,
+  `CAR_COLORS`/`CAR_PREFER`/`CAR_ROTATE` or the file list itself changes) are newer,
   or the world dir is gone. A regen `rm -rf`s the world dir first.
 - `make car-run` — `car` + `linux`, then launches the world. In-game edits
   and `player.dat` persist across runs until a regen.
@@ -147,7 +148,7 @@ per-model overrides):
 Overrides: `CAR_GLB` (source .glb, or a space-separated list /
 `$(wildcard ...)` — list order is placement order), `CAR_WORLD`
 (default `ModelCars`), `CAR_SIZE` (default 512), `CAR_GAP` (default 8),
-`CAR_COLORS` and `CAR_PREFER` (empty by default; commented Ferrari
+`CAR_COLORS`, `CAR_PREFER` and `CAR_ROTATE` (empty by default; commented Ferrari
 values show per-model usage — inside a makefile escape `#` as `\#`, on
 the command line it can be written plainly; `make car CAR_PREFER=`
 disables). `CAR_COLORS`/`CAR_PREFER` apply to every model in the list —

@@ -168,7 +168,7 @@ class BakedGeometry:
     __slots__ = ("vertices", "faces", "visual", "names")
 
 
-def load_geometries(path, up):
+def load_geometries(path, up, rotate=None):
     """Baked world-space geometries, one per scene-graph geometry node."""
     scene = trimesh.load(path, force="scene")
     parts = []
@@ -190,6 +190,17 @@ def load_geometries(path, up):
     if up == "z":
         # Z-up model -> Y-up world: rotate -90 degrees about x.
         rot = trimesh.transformations.rotation_matrix(-np.pi / 2, [1, 0, 0])
+        for g in parts:
+            g.vertices = trimesh.transformations.transform_points(
+                g.vertices, rot
+            )
+    if rotate:
+        ax = {"x": [1, 0, 0], "y": [0, 1, 0], "z": [0, 0, 1]}
+        rot = np.eye(4)
+        for axis, deg in rotate:
+            rot = trimesh.transformations.rotation_matrix(
+                np.radians(deg), ax[axis]
+            ) @ rot
         for g in parts:
             g.vertices = trimesh.transformations.transform_points(
                 g.vertices, rot
@@ -686,6 +697,17 @@ def main():
         "names that win every voxel they touch (repeatable; earlier names "
         "win over later ones), e.g. --prefer Metal_Brushed,Carpaint",
     )
+    ap.add_argument(
+        "--rotate",
+        action="append",
+        default=[],
+        metavar="[STEM=]SPEC",
+        help="Rotate the model(s) in world space (right-hand-rule degrees "
+        "about the Y-up axes, applied after --up). SPEC is a comma list of "
+        "axis+degrees steps, e.g. --rotate x-90 or --rotate x90,z90. "
+        "Prefix with a model file stem to scope it: --rotate Go2=x-90 "
+        "(repeatable; global steps run first).",
+    )
     args = ap.parse_args()
     if not args.list and not args.world:
         ap.error("--world is required unless --list")
@@ -697,6 +719,20 @@ def main():
             sys.exit(f"Bad --color '{spec}' (want NAME=#RRGGBB)")
         r, g, b = (int(m.group(2)[i : i + 2], 16) for i in (0, 2, 4))
         overrides[m.group(1)] = np.array([r, g, b], dtype=np.float64)
+
+    rot_global = []
+    rot_by_stem = {}
+    for spec in args.rotate:
+        stem, eq, body = spec.partition("=")
+        if not eq:
+            stem, body = None, spec
+        steps = []
+        for s in body.split(","):
+            m = re.fullmatch(r"([xyz])(-?\d+(?:\.\d+)?)", s.strip())
+            if not m:
+                sys.exit(f"Bad --rotate '{spec}' (want [STEM=]x-90,y180,...)")
+            steps.append((m.group(1), float(m.group(2))))
+        (rot_global if stem is None else rot_by_stem.setdefault(stem, [])).extend(steps)
 
     if not args.list:
         world_dir = Path(args.repgame_dir) / args.world
@@ -732,9 +768,15 @@ def main():
         sys.exit("SANDSTONE block not found in data/blocks.")
 
     models = []  # (path, parts, origin, scale, dims)
+    used_stems = set()
     for path in args.model:
+        stem = Path(path).stem
+        rot = rot_global + rot_by_stem.get(stem, [])
+        used_stems.add(stem)
         print(f"Loading {path} ...")
-        parts = load_geometries(path, args.up)
+        parts = load_geometries(path, args.up, rot)
+        if rot:
+            print(f"  rotation: {', '.join(f'{a}{d:g}' for a, d in rot)}")
         nverts = sum(len(g.vertices) for g in parts)
         nfaces = sum(len(g.faces) for g in parts)
         bounds = np.array(
@@ -824,6 +866,8 @@ def main():
         print(f"warning: --color '{name}' matched no material", file=sys.stderr)
     for name in set(prefer_list) - matched_prefers:
         print(f"warning: --prefer '{name}' matched no material", file=sys.stderr)
+    for name in set(rot_by_stem) - used_stems:
+        print(f"warning: --rotate '{name}' matched no model", file=sys.stderr)
 
     if args.list:
         report_materials(mat_stats, mat_nodes, limit=None)

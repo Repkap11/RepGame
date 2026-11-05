@@ -16,13 +16,22 @@ MODEL_PY := $(MODEL_VENV)/bin/python
 # # Object_423/426 are the gas cap and its ring (part names, not materials).
 # CAR_PREFER ?= --prefer Object_423,Object_426,Metal_Brushed,Ferrari_Logo_Front,Ferrari_Logo_Side,Grill,Carpaint
 
-CAR_GLB ?= /home/paul/Downloads/2021_alfa_romeo_giulia_gtam.glb
-CAR_WORLD ?= ModelAlfa
+# CAR_GLB ?= /home/paul/Downloads/2021_alfa_romeo_giulia_gtam.glb
+# CAR_WORLD ?= ModelAlfa
+
+
+# CAR_GLB ?= $(sort $(wildcard $(HOME)/Downloads/dogs/*.glb))
+CAR_GLB ?= $(HOME)/Downloads/dogs/Go2.glb
+CAR_WORLD ?= ModelDog
+CAR_ROTATE ?= --rotate x-90
+
 
 # Applies to every model in CAR_GLB — match names vary per file; run
 # `make car-mats` to see what's in each.
 CAR_COLORS ?=
 CAR_PREFER ?=
+# e.g. CAR_ROTATE ?= --rotate x-90   or per file: --rotate Go2=x-90
+CAR_ROTATE ?=
 
 
 CAR_WORLD_DIR := $(HOME)/.repgame/$(CAR_WORLD)
@@ -30,9 +39,9 @@ CAR_SIZE ?= 256
 CAR_GAP ?= 8
 
 # Args stamp: regenerates the world when CAR_SIZE/CAR_GAP/CAR_COLORS/
-# CAR_PREFER or the model list changes. The file's mtime only moves when
-# the content actually differs.
-CAR_ARGS := --size $(CAR_SIZE) --gap $(CAR_GAP) $(CAR_COLORS) $(CAR_PREFER)
+# CAR_PREFER/CAR_ROTATE or the model list changes. The file's mtime only
+# moves when the content actually differs.
+CAR_ARGS := --size $(CAR_SIZE) --gap $(CAR_GAP) $(CAR_COLORS) $(CAR_PREFER) $(CAR_ROTATE)
 CAR_ARGS_FILE := out/models/$(CAR_WORLD).args
 
 ifneq ($(filter car car-run car-reset,$(MAKECMDGOALS)),)
