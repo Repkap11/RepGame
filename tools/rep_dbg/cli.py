@@ -112,6 +112,44 @@ def _parser():
     p.add_argument("--json", action="store_true")
     p.add_argument("--root", default=None)
 
+    p = sub.add_parser("shot", help="deterministic capture (REPGAME_CAPTURE preset)")
+    p.add_argument("spec", help="F12 camera spec 'x,y,z,yaw,pitch[,flags];...'")
+    p.add_argument("--quality", type=int, help="REPGAME_CAPTURE_QUALITY 0..3")
+    p.add_argument("--time", type=int, help="REPGAME_CAPTURE_TIME (world_time ticks)")
+    p.add_argument("--flags", type=int, help="debug-flag bitmask applied to every view")
+    p.add_argument("--settle", type=int, help="REPGAME_CAPTURE_SETTLE")
+    p.add_argument("--timeout", type=int, help="REPGAME_CAPTURE_TIMEOUT (game ticks per view)")
+    p.add_argument("--view-ticks", type=int, help="REPGAME_CAPTURE_VIEW_TICKS")
+    p.add_argument("--flags-sweep", action="store_true",
+                   help="one run: baseline + one view per debug-flag bit -> sweep.png")
+    p.add_argument("--whip", type=int, metavar="N", help="N views at yaw+i*step -> whip.png")
+    p.add_argument("--step", type=float, default=15, help="whip yaw step, degrees")
+    p.add_argument("--revs", help="comma-separated revs (current|git refs) -> side.png + diffs")
+    p.add_argument("--rerun", action=argparse.BooleanOptionalAction, default=True,
+                   help="recheck a differing view-0 with one rerun (bistable caveat)")
+    # run args, minus --timeout (it's the capture tick timeout here)
+    p.add_argument("--build", default="release", choices=["release", "debug", "asan", "tsan"])
+    p.add_argument("--rev")
+    p.add_argument("--world", default="World1")
+    p.add_argument("--flat", action="store_true")
+    p.add_argument("--keep-world")
+    p.add_argument("--env", action="append", metavar="K=V")
+    p.add_argument("--name", default="shot")
+    p.add_argument("--window", action="store_true")
+    p.add_argument("--every", type=int, default=None)
+    p.add_argument("--json", action="store_true")
+    p.add_argument("--root", default=None)
+
+    p = sub.add_parser("diff", help="image diff: files or shot runs")
+    p.add_argument("a")
+    p.add_argument("b")
+    p.add_argument("--threshold", type=int, default=8, help="max-channel delta per pixel")
+    p.add_argument("--out", help="output dir (default: new diff run dir)")
+    p.add_argument("--rerun", action="store_true",
+                   help="on a view-0 run diff, re-execute both runs once")
+    p.add_argument("--json", action="store_true")
+    p.add_argument("--root", default=None)
+
     p = sub.add_parser("metrics", help="per-field stats / CSV / PNG plot for one run")
     p.add_argument("ref", help="run id | run dir | results.jsonl | stdout.log | last")
     p.add_argument("--fields", help="comma-separated dotted fields for the stats table")
@@ -422,6 +460,216 @@ def _do_perf(opts):
     return runner_mod.exit_code(result)
 
 
+def _shot_run(opts, tree, rev_arg, name, extra_env, mode):
+    from . import capture as capture_mod
+    ns = argparse.Namespace(
+        root=opts.root, env=["%s=%s" % kv for kv in extra_env.items()],
+        rev=None, rev_arg=rev_arg, build=opts.build, world=opts.world,
+        flat=opts.flat, keep_world=opts.keep_world, timeout=None,
+        name=name, kind="shot", window=opts.window, extra=[], tree=tree,
+        ab_id=None, cfg=None,
+        postprocess_fn=(lambda d, r, l, m=mode: capture_mod.postprocess(d, r, m, l)))
+    result, run_dir = runner_mod.run(ns, sys.stderr)
+    print("rep-dbg: %s %s" % (result["status"], run_dir), file=sys.stderr)
+    return result, run_dir
+
+
+def _shot_env(opts):
+    from . import capture as capture_mod
+    try:
+        views = capture_mod.parse_views(opts.spec)
+    except ValueError as e:
+        raise ValueError(str(e))
+    mode = None
+    if opts.flags is not None:
+        for v in views:
+            v[5] = opts.flags
+    if opts.flags_sweep:
+        views = capture_mod.sweep_views(opts.spec)
+        mode = "sweep"
+    elif opts.whip:
+        views = capture_mod.whip_views(opts.spec, opts.whip, opts.step)
+        mode = "whip"
+    env = {"REPGAME_CAPTURE": capture_mod.format_views(views)}
+    env.update(_env_pairs(opts.env))
+    for flag, var in ((opts.quality, "REPGAME_CAPTURE_QUALITY"),
+                      (opts.time, "REPGAME_CAPTURE_TIME"),
+                      (opts.settle, "REPGAME_CAPTURE_SETTLE"),
+                      (opts.timeout, "REPGAME_CAPTURE_TIMEOUT"),
+                      (opts.view_ticks, "REPGAME_CAPTURE_VIEW_TICKS")):
+        if flag is not None:
+            env[var] = str(flag)
+    if mode == "whip" and opts.view_ticks is None:
+        env["REPGAME_CAPTURE_VIEW_TICKS"] = "2"
+    return env, mode
+
+
+def _do_shot(opts):
+    from . import ab as ab_mod
+    from . import capture as capture_mod
+    from . import imgdiff
+
+    try:
+        env, mode = _shot_env(opts)
+    except ValueError as e:
+        print("rep-dbg: %s" % e, file=sys.stderr)
+        return 4
+
+    if opts.revs:
+        revs = [r.strip() for r in opts.revs.split(",") if r.strip()]
+        if len(revs) < 2:
+            print("rep-dbg: --revs wants at least two", file=sys.stderr)
+            return 4
+        parent, parent_id = runner_mod.new_run_dir(opts.root, "shot-revs")
+        runs = []
+        for rev in revs:
+            tree_spec = "current" if rev == "current" else "rev:" + rev
+            try:
+                tree = ab_mod.resolve_tree(tree_spec, opts.root, sys.stderr)
+            except (ValueError, RuntimeError) as e:
+                print("rep-dbg: %s" % e, file=sys.stderr)
+                return 4
+            rev_arg = tree_spec[4:] if tree_spec.startswith("rev:") else None
+            result, run_dir = _shot_run(opts, tree, rev_arg,
+                                        "shot-%s" % rev.replace("/", "_"), env, mode)
+            runs.append({"rev": rev, "id": result["id"], "status": result["status"],
+                         "dir": os.path.relpath(run_dir, opts.root), "result": result})
+
+        shots = {}
+        for r in runs:
+            entries = (r["result"].get("artifacts") or {}).get("screenshots") or []
+            if entries:
+                shots[r["rev"]] = os.path.join(opts.root, r["dir"], entries[0]["file"])
+        diffs = []
+        base_rev = revs[0]
+        for r in runs[1:]:
+            if base_rev in shots and r["rev"] in shots:
+                try:
+                    d = imgdiff.compare(shots[base_rev], shots[r["rev"]])
+                except ValueError as e:
+                    print("rep-dbg: diff %s vs %s: %s" % (base_rev, r["rev"], e), file=sys.stderr)
+                    continue
+                if d["changed_px"] and opts.rerun:
+                    stable = _diff_rerun(runs[0]["result"], r["result"], opts.root,
+                                         first_changed=True)
+                    d["stable"] = stable
+                    if stable is False:
+                        print("rep-dbg: bistable capture_0 for %s vs %s — not a regression"
+                              % (base_rev, r["rev"]), file=sys.stderr)
+                diffs.append({"a": base_rev, "b": r["rev"], **d})
+        if len(shots) >= 2:
+            from PIL import Image
+            tiles = [(Image.open(shots[rev]), rev) for rev in revs if rev in shots]
+            capture_mod.contact_sheet(tiles, os.path.join(parent, "side.png"))
+        result = {"schema": runner_mod.SCHEMA, "id": parent_id, "name": "shot-revs",
+                  "kind": "shot-revs",
+                  "status": "ok" if all(r["status"] == "ok" for r in runs) else "failed",
+                  "spec": opts.spec, "revs": revs,
+                  "runs": [{k: v for k, v in r.items() if k != "result"} for r in runs],
+                  "diffs": diffs,
+                  "started": datetime.datetime.now().strftime("%Y-%m-%dT%H:%M:%S"),
+                  "artifacts": {"side": "side.png" if len(shots) >= 2 else None}}
+        with open(os.path.join(parent, "result.json"), "w") as f:
+            json.dump(result, f, indent=2, sort_keys=True)
+        index_mod.append(opts.root, index_mod.index_entry(result, parent, opts.root))
+        print("rep-dbg: %s %s" % (result["status"], parent), file=sys.stderr)
+        if opts.json:
+            print(json.dumps(result, indent=2, sort_keys=True))
+        else:
+            for d in diffs:
+                print("%s vs %s: changed_px=%d max_delta=%d stable=%s" % (
+                    d["a"], d["b"], d["changed_px"], d["max_delta"], d["stable"]))
+        return runner_mod.exit_code(result)
+
+    tree = build_mod.REPO
+    if opts.rev:
+        sha = build_mod.git(tree, "rev-parse", opts.rev)
+        from . import worktree as worktree_mod
+        tree = worktree_mod.ensure(opts.root, sha, sys.stderr)
+    result, run_dir = _shot_run(opts, tree, opts.rev, opts.name, env, mode)
+    if opts.json:
+        print(json.dumps(result, indent=2, sort_keys=True))
+    return runner_mod.exit_code(result)
+
+
+def _diff_rerun(res_a, res_b, root, first_changed):
+    """Re-execute both runs once, re-diff view 0. stable=False when the
+    second diff disagrees with the first (the bistable signature)."""
+    from . import capture as capture_mod
+    from . import imgdiff
+    _dir_a, pngs_a, _c = capture_mod.rerun(res_a, root, sys.stderr)
+    _dir_b, pngs_b, _c = capture_mod.rerun(res_b, root, sys.stderr)
+    if 0 not in pngs_a or 0 not in pngs_b:
+        return None
+    try:
+        second = imgdiff.compare(pngs_a[0], pngs_b[0])
+    except ValueError:
+        return None
+    return (second["changed_px"] > 0) == first_changed
+
+
+def _do_diff(opts):
+    from . import imgdiff
+
+    def as_images(ref):
+        if os.path.isfile(ref):
+            return {0: ref}, None
+        try:
+            r = results_mod.load(ref, opts.root)
+        except (LookupError, OSError) as e:
+            raise ValueError(str(e))
+        entries = (r.result.get("artifacts") or {}).get("screenshots")
+        if not entries:
+            raise ValueError("%s has no artifacts.screenshots" % ref)
+        return {e["view"]: os.path.join(r.dir, e["file"]) for e in entries}, r.result
+
+    try:
+        imgs_a, res_a = as_images(opts.a)
+        imgs_b, res_b = as_images(opts.b)
+    except ValueError as e:
+        print("rep-dbg: %s" % e, file=sys.stderr)
+        return 4
+
+    out_dir = opts.out
+    if not out_dir:
+        out_dir, _id = runner_mod.new_run_dir(opts.root, "diff")
+    os.makedirs(out_dir, exist_ok=True)
+    pairs = sorted(set(imgs_a) & set(imgs_b))
+    if not pairs:
+        print("rep-dbg: no shared view indices", file=sys.stderr)
+        return 4
+    rows, any_changed = [], False
+    for view in pairs:
+        pa, pb = imgs_a[view], imgs_b[view]
+        try:
+            d = imgdiff.compare(pa, pb, opts.threshold)
+        except ValueError as e:
+            print("rep-dbg: %s" % e, file=sys.stderr)
+            return 4
+        heat = os.path.join(out_dir, "heat%s.png" % ("_%d" % view if len(pairs) > 1 else ""))
+        imgdiff.heat_png(pa, pb, heat)
+        imgdiff.side_png(pa, pb, heat, os.path.join(
+            out_dir, "side%s.png" % ("_%d" % view if len(pairs) > 1 else "")))
+        if view == 0 and d["changed_px"] and opts.rerun and res_a and res_b:
+            stable = _diff_rerun(res_a, res_b, opts.root, first_changed=True)
+            d["stable"] = stable
+            if stable is False:
+                print("rep-dbg: bistable capture_0 — not a regression", file=sys.stderr)
+        d["view"] = view
+        d["heat"] = os.path.relpath(heat, out_dir)
+        rows.append(d)
+        any_changed = any_changed or d["changed_px"] > 0
+    if opts.json:
+        print(json.dumps(rows, indent=2, sort_keys=True))
+    else:
+        for d in rows:
+            print("view %d: changed_px=%d (%.4f%%) max_delta=%d mean_delta=%.3f bbox=%s stable=%s" % (
+                d["view"], d["changed_px"], d["changed_frac"] * 100,
+                d["max_delta"], d["mean_delta"], d["bbox"], d["stable"]))
+        print("rep-dbg: diff artifacts in %s" % out_dir, file=sys.stderr)
+    return 1 if any_changed else 0
+
+
 def _do_run(opts):
     env = _preset_env(opts)
     # Preset pairs first so a user's --env overrides a preset default.
@@ -475,6 +723,12 @@ def main(argv):
 
     if opts.cmd == "perf":
         return _do_perf(opts)
+
+    if opts.cmd == "shot":
+        return _do_shot(opts)
+
+    if opts.cmd == "diff":
+        return _do_diff(opts)
 
     if opts.cmd == "metrics":
         from . import metrics as metrics_mod

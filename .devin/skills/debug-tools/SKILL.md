@@ -29,6 +29,9 @@ for humans (`stdout.log`); the only sanctioned scraping is
 | Metric table / CSV / chart | `rep-dbg metrics <run> [--csv] [--plot loader.light_jobs,...] [--after-settle]` |
 | Where is CPU time going? | `rep-dbg perf record stream-flight` → `top.txt`, `flame.svg` in the run dir (needs `kernel.perf_event_paranoid<=1`; `--call-graph fp` wants `make linux PERF=1`) |
 | Profile a running game | `rep-dbg perf attach RepGame --duration 20` |
+| Reproduce an F12 screenshot | `rep-dbg shot "<f12 spec>"` → PNGs in `artifacts.screenshots` |
+| Bisect which subsystem changed a frame | `rep-dbg shot "<f12>" --flags-sweep` → `sweep.png` |
+| Did my change alter rendering | `rep-dbg shot "<f12>" --revs master,current`; `rep-dbg diff <a> <b>` (view-0 diffs are bistable — `--rerun` rechecks) |
 | IPC / cache misses | `rep-dbg perf stat stream-flight`, or `rep-dbg ab --perf-stat --metric perf.stat.ipc ...` |
 | List / export runs | `rep-dbg runs [--status failed] [--last N]`, `rep-dbg export <ids...> --csv` |
 | Old worktrees piling up | `rep-dbg wt list` / `rep-dbg wt prune` |

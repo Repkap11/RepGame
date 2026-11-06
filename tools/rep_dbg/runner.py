@@ -157,6 +157,9 @@ def run(opts, log):
                 (result.get("perf") or {}).get("stat") is None and \
                 "data" not in (result.get("artifacts") or {}).get("perf", {}):
             result["status"] = "failed"
+    post_fn = getattr(opts, "postprocess_fn", None)
+    if post_fn:
+        post_fn(run_dir, result, log)
     _finish(run_dir, result)
     return result, run_dir
 

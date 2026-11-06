@@ -8,6 +8,14 @@ description: Take deterministic screenshots (REPGAME_CAPTURE), diff captures aga
 Deterministic screenshots of exact camera views, env-var driven. With no env
 vars set, behaviour is unchanged.
 
+Prefer `rep-dbg shot` / `rep-dbg diff` (debug-tools skill): `rep-dbg shot
+"<spec>"` runs the capture headless with an isolated `$HOME`, converts the
+display TGAs to PNG and records them in `result.json`; `--flags-sweep`,
+`--whip N --step DEG`, and `--revs a,b` cover the common bisect/compare
+cases and `rep-dbg diff <a> <b>` produces `heat.png`/`side.png` metrics —
+a view-0 run-vs-run diff is automatically rechecked once (`--rerun`) for
+the bistable-capture_0 caveat below.
+
 - `REPGAME_CAPTURE="x,y,z,yaw,pitch[,flags];x,y,z,yaw,pitch[,flags];..."` —
   one view per `;` group. yaw/pitch are raw `camera.angle_H`/`angle_V`.
   Presence enables capture mode: the camera, world time and draw quality are

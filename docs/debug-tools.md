@@ -213,6 +213,54 @@ Recipes:
   `rep-dbg perf attach RepGame --duration 20` in another.
 - Compare two records: `rep-dbg perf diff perf/<idA> perf/<idB> --top 20`.
 
+## Capturing and diffing
+
+`rep-dbg shot "<F12 spec>"` wraps `REPGAME_CAPTURE` (press F12 in-game to
+get the spec string; format `x,y,z,yaw,pitch[,flags];...` — see the capture
+skill for the per-view debug-flag bit table and the settle/view-ticks env
+vars):
+
+- `rep-dbg shot "<spec>" [--quality 0..3] [--time T] [--flags F]
+  [--settle N] [--timeout T] [--view-ticks N] [--flat] [--rev R]` — kind
+  `"shot"`; every `capture_<i>_display.tga` is converted to PNG (TGAs
+  kept), and `artifacts.screenshots` lists `{view,file,tga,flags,timeout}`
+  joined from the `capture_shot` events. Display PNG paths print to
+  stderr.
+- `rep-dbg shot <spec> --flags-sweep` — one run, baseline + one view per
+  debug-flag bit via the per-view flag field; `sweep.png` is a labelled
+  contact sheet (`artifacts.sweep`) for bisecting which subsystem changed
+  a frame.
+- `rep-dbg shot <spec> --whip N --step DEG [--view-ticks T]` — N views at
+  yaw+i·step with `REPGAME_CAPTURE_VIEW_TICKS` (default 2) so transients
+  show; contact sheet `whip.png`.
+- `rep-dbg shot <spec> --revs a,b[,c]` — the same view per rev (`current`
+  = working tree, others via `--rev` worktrees); the parent run dir
+  `<root>/shot-revs/<ts>-<n>/` (kind `"shot-revs"`, indexed) holds
+  `side.png` (labelled side-by-side) and `diffs` per rev vs the first —
+  with the view-0 rerun recheck on by default (`--no-rerun` to disable).
+
+`rep-dbg diff <a> <b> [--threshold 8] [--out DIR] [--json] [--rerun]` —
+a/b are image files (png/tga) or shot run ids/dirs (display shots paired
+by view index). Per pair: `changed_px`, `changed_frac`, `max_delta`,
+`mean_delta`, `bbox`, `stable`, plus `heat.png` (amplified delta over
+dimmed grayscale of a) and `side.png` (a | b | heat) in the out dir
+(default: an indexed `diff/` run dir). Exit 1 when any pair differs above
+threshold, 0 when identical, 4 on usage error or size mismatch.
+
+**Bistable caveat**: `capture_0` is bistable run-to-run, so a run-vs-run
+view-0 diff should be rechecked once before being called a regression.
+`--rerun` re-executes both runs with their recorded `cmd`/`env` in fresh
+run dirs and re-diffs view 0; `stable:false` means the recheck disagreed
+with the first diff (one zero, one non-zero) and a "bistable capture_0"
+note prints. `stable` is null when no rerun happened. Diffs are always
+run-vs-run or rev-vs-rev — no checked-in baseline images.
+
+Recipes:
+
+- "User reports a visual bug with an F12 string": `rep-dbg shot "<f12>"`
+  → look at the PNG, then `--flags-sweep` to bisect the subsystem.
+- "Did my change alter rendering?": `rep-dbg shot "<f12>" --revs master,current`.
+
 ## Recipes
 
 - Reproduce an F12 view: `rep-dbg run --env REPGAME_CAPTURE="<spec>" --flat`
