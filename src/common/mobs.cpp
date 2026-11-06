@@ -88,8 +88,11 @@ void MobManager::init( const VertexBufferLayout &vbl_object_vertex, const Vertex
     }
 }
 
-bool MobManager::spawn( MobType type, const glm::dvec3 &pos, float yaw, int persistent ) {
+bool MobManager::spawn( MobType type, const glm::dvec3 &pos, float yaw, int persistent, bool capped ) {
     if ( !this->enabled ) {
+        return false;
+    }
+    if ( capped && !this->under_mob_cap( ) ) {
         return false;
     }
     if ( !this->spawn_any( type, pos, yaw, persistent ) ) {
@@ -101,10 +104,18 @@ bool MobManager::spawn( MobType type, const glm::dvec3 &pos, float yaw, int pers
     return true;
 }
 
-bool MobManager::spawn_any( MobType type, const glm::dvec3 &pos, float yaw, int persistent ) {
-    if ( this->mobs.size( ) >= MAX_MOBS ) {
-        return false;
+bool MobManager::under_mob_cap( ) const {
+    int count = 0;
+    for ( const Mob &mob : this->mobs ) {
+        count += mob.uid == 0 && !mob.net.mirror;
     }
+    return count < MAX_MOBS;
+}
+
+// Uncapped storage/render spawn: avatars and network mobs (mirrors, owned
+// transfers) must always fit. Local population is capped by the callers via
+// under_mob_cap(), not here.
+bool MobManager::spawn_any( MobType type, const glm::dvec3 &pos, float yaw, int persistent ) {
     const MobTypeDef &def = mob_types[ type ];
     Mob mob;
     mob.type = type;
@@ -706,7 +717,11 @@ void MobManager::adopt_chunk( World &world, Chunk &chunk ) {
         }
     }
     for ( const MobFileRecord &record : chunk.pending_mobs ) {
-        if ( this->spawn( static_cast<MobType>( record.type ), glm::dvec3( record.x, record.y, record.z ), record.yaw, 1 ) ) {
+        // A persisted (touched) mob is restored uncapped — dropping it would
+        // lose a mob the save file says we hold. Fresh roll products are
+        // population-capped like any other new spawn.
+        if ( this->spawn( static_cast<MobType>( record.type ), glm::dvec3( record.x, record.y, record.z ), record.yaw, 1,
+                          !( record.flags & NET_MOB_FLAG_TOUCHED ) ) ) {
             Mob &mob = this->mobs.back( );
             mob.variant = record.variant;
             mob.health = record.health;
@@ -920,6 +935,9 @@ void MobManager::tick_spawner( World &world, const glm::dvec3 &player_feet, cons
         return;
     }
     this->spawn_ticks = 0;
+    if ( !this->under_mob_cap( ) ) {
+        return;
+    }
     int live = 0;
     for ( const Mob &mob : this->mobs ) {
         // In multiplayer only despawnables in chunks we own count: mirrors
@@ -1559,7 +1577,7 @@ void MobManager::net_apply_chunk_role( RepGameState &state, const glm::ivec3 &ch
             live->spawn_mobs( &skip );
             for ( const MobFileRecord &record : live->pending_mobs ) {
                 if ( record.type >= MOB_TYPE_COUNT || !net_is_natural_mob_id( record.net_id ) ||
-                     this->find_by_net_id( record.net_id ) != nullptr ) {
+                     this->find_by_net_id( record.net_id ) != nullptr || !this->under_mob_cap( ) ) {
                     continue;
                 }
                 if ( this->spawn_any( static_cast<MobType>( record.type ), glm::dvec3( record.x, record.y, record.z ), record.yaw, 1 ) ) {

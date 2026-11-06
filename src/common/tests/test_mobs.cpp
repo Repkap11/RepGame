@@ -879,6 +879,43 @@ int test_mobs( ) {
                     storage.load_mobs( glm::ivec3( 3, 0, 0 ), out ) == 1 && out.size( ) == 1 && out[ 0 ].type == MOB_PIG );
     }
 
+    // --- 19: MAX_MOBS caps locally created mobs, not storage/rendering -----
+    // spawn()/spawner/roll products obey the cap; avatars and network mobs
+    // (mirrors, owned transfers) must always fit — dropping them would lose
+    // an entity the server thinks we hold.
+    {
+        MobManager mobs;
+        for ( int i = 0; i < MAX_MOBS; i++ ) {
+            mobs.spawn( MOB_PIG, glm::dvec3( 10.5, 11.0, 10.5 ), 0.0f, 1 );
+        }
+        check_bool( "cap: MAX_MOBS local spawns all accepted", mobs.mobs.size( ) == MAX_MOBS );
+        check_bool( "cap: local spawn refused at MAX_MOBS", !mobs.spawn( MOB_PIG, glm::dvec3( 10.5, 11.0, 10.5 ), 0.0f, 1 ) );
+
+        NetEntityRecord rec;
+        rec.id = 0x10001;
+        rec.kind = NetEntityKind::MOB;
+        rec.x = 10.5;
+        rec.y = 11.0;
+        rec.z = 10.5;
+        rec.type = MOB_PIG;
+        check_bool( "cap: avatar spawn_remote works at cap", mobs.spawn_remote( MOB_PLAYER ) != 0 );
+        check_bool( "cap: mirror record accepted at cap", mobs.spawn_record( rec, true ) );
+        rec.id = 0x10002;
+        check_bool( "cap: owned transfer record accepted at cap", mobs.spawn_record( rec, false ) );
+        check_bool( "cap: storage grew past MAX_MOBS", mobs.mobs.size( ) > MAX_MOBS );
+
+        // Mirrors don't count against the cap: a full house of mirrors still
+        // takes local spawns.
+        MobManager mobs2;
+        for ( int i = 0; i < MAX_MOBS; i++ ) {
+            rec.id = 0x20000 + i;
+            mobs2.spawn_record( rec, true );
+        }
+        check_bool( "cap: MAX_MOBS mirrors don't block local spawn", mobs2.spawn( MOB_PIG, glm::dvec3( 10.5, 11.0, 10.5 ), 0.0f, 1 ) );
+
+        check_bool( "cap: capped=false bypasses", mobs.spawn( MOB_PIG, glm::dvec3( 10.5, 11.0, 10.5 ), 0.0f, 1, false ) );
+    }
+
     return failures;
 }
 

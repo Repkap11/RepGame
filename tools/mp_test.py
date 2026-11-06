@@ -899,6 +899,32 @@ def sc_disconnect_cleanup(run, A, B):
     run.wait("item back on reconnect", lambda: find_item(B2.dump.last_state()) is not None, timeout=120)
 
 
+def avatar_mobs_of(st):
+    """Remote-player avatars (uid != 0) — the inverse of mobs_of()."""
+    return [m for m in (st.get("mobs", []) if st else []) if m.get("uid", 0) != 0]
+
+
+def sc_avatar_at_mob_cap(run, A, B):
+    """A full mob list must not drop a late joiner's avatar (MAX_MOBS gates
+    locally created mobs, not storage)."""
+    gy = settle(run, A, B)
+    x, z = int(A.pos[0]), int(A.pos[2])
+    for i in range(270):
+        A.cmd("mob pig %d %d %d" % (x + (i % 20) - 10, gy, z + (i // 20) - 7))
+    run.wait("A at mob cap",
+             lambda: len((A.dump.last_state() or {}).get("mobs", [])) >= 256, timeout=120, period=0.2)
+    # Late joiner near A's pad (inside the shared view band).
+    C = run.client("C", (30.0, 90.0, 10.0))
+    run.wait_ready(C)
+    run.sleep_ticks(60)
+
+    def avatar_near(c, pos, tol=15.0):
+        return any(dist(m["pos"], pos) < tol for m in avatar_mobs_of(c.dump.last_state()))
+
+    run.wait("A sees C's avatar", lambda: avatar_near(A, C.pos), timeout=60)
+    run.wait("C sees A's avatar", lambda: avatar_near(C, A.pos), timeout=60)
+
+
 SCENARIOS = [
     ("item_mirror_visuals", sc_item_mirror_visuals),
     ("item_pickup", sc_item_pickup),
@@ -916,6 +942,7 @@ SCENARIOS = [
     ("persistence", sc_persistence),
     ("disconnect_cleanup", sc_disconnect_cleanup),
     ("first_view_correct", sc_first_view_correct),
+    ("avatar_at_mob_cap", sc_avatar_at_mob_cap),
 ]
 
 

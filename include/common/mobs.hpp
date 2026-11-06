@@ -18,6 +18,10 @@ class ChunkLoader;
 class NetEntities;
 struct RepGameState;
 
+// Gameplay cap on how many mobs a client may *create* locally (spawns,
+// spawner, natural roll products). It is not a storage/render limit: the
+// mobs vector must hold anything beyond it — avatars and network mobs
+// (mirrors, owned transfers) never count and are never refused.
 #define MAX_MOBS 256
 
 // A remote player's targeting data (built from MultiplayerAvatars): hostile
@@ -168,6 +172,10 @@ class MobManager {
     void tick_spawner( World &world, const glm::dvec3 &player_feet, const MobTickInput &in );
     std::vector<Mob>::iterator remove_mob( std::vector<Mob>::iterator it );
     bool spawn_any( MobType type, const glm::dvec3 &pos, float yaw, int persistent );
+    // True while locally owned world mobs (uid == 0 && !net.mirror — not
+    // avatars, not mirrors) are under MAX_MOBS. The capped spawn paths gate
+    // on this; storage itself is uncapped.
+    bool under_mob_cap( ) const;
     // Streamed NET_MOB_FLAG_* bits for a mob (dynamic + provenance bits).
     static uint32_t mob_net_flags( const Mob &mob );
     // Multiplayer: mint a net id for a just-spawned local mob and announce it
@@ -187,7 +195,9 @@ class MobManager {
     MobManager( );
     void init( const VertexBufferLayout &vbl_object_vertex, const VertexBufferLayout &vbl_mob_instance );
     void init_storage( MapStorage *storage ) { this->storage = storage; }
-    bool spawn( MobType type, const glm::dvec3 &pos, float yaw, int persistent = 1 );
+    // capped=false: restore a persisted mob regardless of MAX_MOBS (adopted
+    // touched mobs must never be dropped).
+    bool spawn( MobType type, const glm::dvec3 &pos, float yaw, int persistent = 1, bool capped = true );
     // Network-driven mobs (remote players): spawned/posed/removed by the
     // multiplayer layer via a stable uid. persistent=0, invisible to the
     // raycast and the mob count, immune to the chunk-live freeze. Works even

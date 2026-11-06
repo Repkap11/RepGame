@@ -46,6 +46,12 @@ Despawnables are removed > 64 blocks out, randomly at
 1/(8·UPS_RATE)/tick past 40, or when their feet chunk leaves
 `CHUNK_LIVE`, and are never persisted.
 
+`MAX_MOBS` (256) caps only locally created mobs — `spawn`, the night
+spawner and fresh natural-roll products check `under_mob_cap()` (owned
+non-mirror, non-avatar count). It is not a storage or render limit:
+`spawn_any` never refuses, so avatars, mirrored mobs and owned transfers
+always fit, and the live count can exceed the cap.
+
 - `REPGAME_MOBS=0` — disables local mobs (spawning, simulation,
   persistence) but NOT remote players: `spawn_remote` and remote
   rendering still work.
