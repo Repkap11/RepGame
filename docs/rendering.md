@@ -93,6 +93,10 @@ is `docs/chunks.md`; the light model these tunables feed is
   All hash math must stay `highp`: bare `uint` is mediump in ES 300, which
   is 16-bit on Mesa/AMD and silently collapses the hash to ~0 (the test
   degenerates to the fixed cutoff and the dither pins dark).
+  Separately, flower/cross-quad plants (short grass, flowers) render with
+  `face_light` 1.0 — like Minecraft's cross model with `shade=false` —
+  since their quads reuse side-face labels that would otherwise shade them
+  at 0.75 (`chunk_vertex.glsl`, `gl_VertexID >= FLOWER_FIRST_VERTEX`).
 - `CUTOUT_FADE_START` / `CUTOUT_FADE_END` — texel-lod window (lod = log2 of
   texels per pixel, so 0 is 1:1 and 3 is 8 texels/px) over which the hashed
   cutout test converges to solid: distant canopy fills in smoothly instead

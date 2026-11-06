@@ -2629,8 +2629,8 @@
     "source": "textures/blocks/tall_dry_grass"
   },
   "tallgrass_carried": {
-    "source": "textures/blocks/tallgrass",
-    "tint": "#77C263"
+    "source": "textures/blocks/tallgrass.tga",
+    "tint": "#93E67D"
   },
   "target_side": {
     "source": "textures/blocks/target_side"

@@ -252,9 +252,12 @@ void main() {
     // diagonal planes, and the flat provoking normal can then differ between
     // a quad's two triangles — a visible diagonal lighting seam. Zero the
     // normal so light is sampled at the fragment's real position and the
-    // fragment per-cell hashes land in the flower's own cell.
+    // fragment per-cell hashes land in the flower's own cell. Cross-quads
+    // aren't side faces, so they also skip the per-face shading (like
+    // Minecraft's cross model, shade=false).
     if(gl_VertexID >= FLOWER_FIRST_VERTEX) {
         face_normal = vec3(0.0);
+        face_light = 1.0f;
     }
     v_light_pos = v_world_coords + face_normal * 0.5;
     v_face_normal = face_normal;
