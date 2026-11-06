@@ -118,6 +118,63 @@ is `docs/chunks.md`; the light model these tunables feed is
 - `REPGAME_NO_WEBGPU_MAPGEN` / `REPGAME_NO_WEBGPU_MESH` — same idea for the
   WASM WebGPU backend (only consulted when `REPGAME_WEBGPU=1`).
 
+## Translucent blocks (stained glass, ice, honey, slime, ...)
+
+Blocks with `renderOrder = RenderOrder_Translucent` draw in their own pass
+inside `ChunkLoader::draw` (`src/common/chunk_loader.cpp`), after opaque and
+flowers and before the dedicated water pass. `REPGAME_TRANSLUCENT_BLEND`
+selects the compositing mode:
+
+- `legacy` — the historical behaviour: translucent faces write depth while
+  blending. Whatever draws first wins the depth test, so overlapping panes
+  punch order-dependent holes in each other (visible mostly across chunk
+  boundaries, where the back-to-front chunk order flips with camera
+  position). Kept for A/B captures.
+- `alpha` (default) — same alpha blending, but the translucent pass runs
+  with `glDepthMask(GL_FALSE)` (the depth TEST stays on, so opaque terrain
+  still occludes glass). Applies to the reflected pass too.
+- `multiply` — same depth-mask-off, plus multiplicative "colour filter"
+  blending (`glBlendFuncSeparate(GL_DST_COLOR, GL_ZERO, GL_ZERO, GL_ONE)`;
+  FBO builds set it via `glBlendFuncSeparatei` on attachments 0 and 1 only,
+  fog/sky attachments stay replace). The chunk shader emits an UNLIT
+  tint*coverage filter (`u_TranslucentMultiply` in
+  `src/shaders/chunk_fragment.glsl`) instead of a lit colour, so draw order
+  doesn't matter at all and the tint can't go black at night.
+
+`REPGAME_TRANSLUCENT_AFTER_WATER` (ignored under `legacy`) moves
+the translucent order out of the main Blocks draw (`order_mask` bit
+argument; glass keeps stencil writes off so it can't mark water pixels for
+the reflection composite). Three values:
+
+- `0` — translucent draws with the main Blocks pass, before
+  water. Water seen through glass composites on top of the glass tint and
+  washes it out.
+- `1` — the whole translucent pass draws after the water pass. Glass *in
+  front of* water composites correctly, but glass *below* the surface is
+  depth-culled by the water surface (water writes depth), so sunken glass
+  disappears from above and glass under water seen from below draws over
+  the surface where it shouldn't.
+- `split` (default; also used for unknown values) — translucent fragments are split at the sea-level water plane
+  (`u_SplitY`/`u_SplitSign` in `chunk_vertex`/`chunk_fragment.glsl`, plane
+  at `WATER_HEIGHT - 1` like the reflection plane): fragments on the far
+  side from the camera draw before water, the camera side after — exact
+  for sea-level water. Non-sea water (ponds, raised pools, water side
+  faces) still misorders: on the camera's side of sea level it behaves
+  like `1`, on the far side like `0`.
+
+At HIGH+ the water reflection composite may still overlay glass where
+glass covers water pixels. Weighted-blended OIT would be the full fix.
+
+Water (`RenderOrder_Water`) still writes depth in every mode: the depth
+snapshot taken after the water pass feeds the X_HIGH water composite/SSR in
+`full_screen_quad_fragment.glsl`, which reconstructs the surface from it.
+
+Known remaining limitations: `alpha` mode still composites in chunk/instance
+order, so the hue of overlapping different-coloured panes can shift slightly
+as the order flips (multiply fixes exactly this); and without
+after-water mode, water draws after glass so water seen through glass
+composites on top of the glass tint rather than behind it.
+
 ## Fly mode (load-in / lighting stress runs)
 
 - `REPGAME_FLY="x,y,z,yaw,pitch[,speed]"` — scripted no-clip flight for

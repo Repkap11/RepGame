@@ -543,7 +543,29 @@ void World::draw( const Texture &blocksTexture, const glm::mat4 &mvp, const glm:
     this->chunkLoader.shader.set_uniform1i( "u_TintUnderWater", block_water_tint_type );
     this->chunkLoader.shader.set_uniform1f( "u_ReflectionDotSign", y_height < 0 ? -1.0f : 1.0f );
     // shader_set_uniform1f( &this->loadedChunks.shader, "u_ReflectionDotSign", 1.0f );
-    this->chunkLoader.draw( mvp, this->renderer, blocksTexture, false, false, useFrameBuffer, renderOriginF, camera_pos_rebased ); // Blocks
+    // REPGAME_TRANSLUCENT_AFTER_WATER moves the translucent order out of the
+    // main pass: After = its own draw after the water pass (below); Split =
+    // per-fragment split at the sea-level water plane — the far side draws
+    // right here (same position as the default order), the camera side after
+    // water.
+    const unsigned order_all = ( 1u << LAST_RENDER_ORDER ) - 1;
+    const unsigned order_no_water = order_all & ~render_order_bit( RenderOrder_Water );
+    const TranslucentWaterOrder water_order = translucent_water_order( );
+    const float split_y = ( WATER_HEIGHT - 1.0f ) - renderOriginF.y;
+    const bool camera_above = camera_pos_rebased.y >= split_y;
+    this->chunkLoader.shader.set_uniform1f( "u_SplitY", split_y );
+    this->chunkLoader.shader.set_uniform1f( "u_SplitSign", 0.0f );
+    this->chunkLoader.draw( mvp, this->renderer, blocksTexture,
+                            order_no_water & ~( water_order != TranslucentWaterOrder::Before ? render_order_bit( RenderOrder_Translucent ) : 0u ),
+                            false, useFrameBuffer, renderOriginF, camera_pos_rebased ); // Blocks
+
+    if ( water_order == TranslucentWaterOrder::Split ) {
+        // Far side of the plane first: below the surface seen from above,
+        // above it seen from below. u_SplitSign keeps only those fragments.
+        this->chunkLoader.shader.set_uniform1f( "u_SplitSign", camera_above ? -1.0f : 1.0f );
+        this->chunkLoader.draw( mvp, this->renderer, blocksTexture, render_order_bit( RenderOrder_Translucent ), false, useFrameBuffer, renderOriginF, camera_pos_rebased ); // Translucent, far side
+        this->chunkLoader.shader.set_uniform1f( "u_SplitSign", 0.0f );
+    }
 
     this->chunkLoader.shader.set_uniform1i( "u_TintUnderWater", 0 );
     if ( draw_mouse_selection ) {
@@ -573,9 +595,29 @@ void World::draw( const Texture &blocksTexture, const glm::mat4 &mvp, const glm:
     this->chunkLoader.shader.set_uniform1f( "u_Time", time_s );
     this->chunkLoader.shader.set_uniform1i( "u_FluidAnim", allowBlur ? 1 : 0 );
     this->chunkLoader.shader.set_uniform1i( "u_TintUnderWater", block_water_tint_type );
-    this->chunkLoader.draw( mvp, this->renderer, blocksTexture, true, false, useFrameBuffer, renderOriginF, camera_pos_rebased ); // Stencil water
+    this->chunkLoader.draw( mvp, this->renderer, blocksTexture, render_order_bit( RenderOrder_Water ), false, useFrameBuffer, renderOriginF, camera_pos_rebased ); // Stencil water
     this->chunkLoader.shader.set_uniform1i( "u_FluidAnim", 0 );
     this->chunkLoader.shader.set_uniform1i( "u_TintUnderWater", 0 );
+
+    if ( water_order != TranslucentWaterOrder::Before ) {
+        // Glass over water: the translucent pass draws on top of the water
+        // surface instead of under it. Stencil op is still KEEP/KEEP/REPLACE
+        // from the water pass — stop glass stamping stencil=1 (the water
+        // marker for the reflection composite); the code below sets
+        // EQUAL/KEEP anyway. Glass writes no depth in alpha/multiply modes,
+        // so the depth snapshot right after is unaffected. Split mode clips
+        // this draw to the camera's side of the sea-level plane.
+        if ( usingReflections ) {
+            glStencilOp( GL_KEEP, GL_KEEP, GL_KEEP );
+        }
+        if ( water_order == TranslucentWaterOrder::Split ) {
+            this->chunkLoader.shader.set_uniform1f( "u_SplitSign", camera_above ? 1.0f : -1.0f );
+        }
+        this->chunkLoader.shader.set_uniform1i( "u_TintUnderWater", block_water_tint_type );
+        this->chunkLoader.draw( mvp, this->renderer, blocksTexture, render_order_bit( RenderOrder_Translucent ), false, useFrameBuffer, renderOriginF, camera_pos_rebased ); // Translucent after water
+        this->chunkLoader.shader.set_uniform1i( "u_TintUnderWater", 0 );
+        this->chunkLoader.shader.set_uniform1f( "u_SplitSign", 0.0f );
+    }
 
 #if ( SUPPORTS_FRAME_BUFFER )
     if ( usingReflections ) {
@@ -686,7 +728,7 @@ void World::draw( const Texture &blocksTexture, const glm::mat4 &mvp, const glm:
         this->chunkLoader.shader.set_uniform1f( "u_ReflectionHeight", offset + renderOriginF.y );
         this->chunkLoader.shader.set_uniform1i( "u_TintUnderWater", block_water_tint_type );
         this->chunkLoader.calculate_cull( mvp_reflect, true, renderOrigin );
-        this->chunkLoader.draw( mvp_reflect, this->renderer, blocksTexture, false, true, useFrameBuffer, renderOriginF, camera_pos_rebased ); // Reflected blocks
+        this->chunkLoader.draw( mvp_reflect, this->renderer, blocksTexture, order_no_water, true, useFrameBuffer, renderOriginF, camera_pos_rebased ); // Reflected blocks
 
         this->chunkLoader.shader.set_uniform1f( "u_ReflectionHeight", 0 );
         this->object_shader.set_uniform1f( "u_ReflectionHeight", 0 );

@@ -2,6 +2,9 @@
 uniform mat4 u_MVP;
 uniform vec3 u_DebugScaleOffset;
 uniform float u_ReflectionHeight;
+// REPGAME_TRANSLUCENT_AFTER_WATER=split: sea-level water plane (rebased) for
+// the per-fragment before/after-water split (u_SplitSign in the fragment).
+uniform float u_SplitY;
 // Floating-origin offset (integer-valued, snapped to chunk grid). Subtracted
 // from absolute block coordinates so all GPU math stays near zero regardless
 // of how far the player is from the world origin. Exact in float32 because
@@ -41,6 +44,7 @@ flat out vec2 v_tex_min;
 flat out vec2 v_tex_max;
 flat out uint v_blockID;
 out float v_planarDot;
+out float v_SplitDot;
 out float v_face_light;
 out vec3 v_world_coords;
 // Outward face normal (post block rotation). The fragment shader samples the
@@ -167,6 +171,7 @@ void main() {
         }
     }
     v_planarDot = dot(vertex, vec4(0, 1, 0, u_ReflectionHeight));
+    v_SplitDot = vertex.y - u_SplitY;
 
     vec2 face_scale = vec2(1, 1);
     vec2 face_shift;

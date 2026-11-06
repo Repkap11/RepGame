@@ -74,6 +74,7 @@ the index, not the reference.
 | `REPGAME_SFX_VOLUME` | 1.0 | all | linear SFX gain 0..1 | docs/audio.md |
 | `REPGAME_TELEPORT` | unset | all | `"x,y,z,angle,sprint,spin_deg_per_tick[,pitch]"` — teleport on tick 1 then hold forward; only consulted under `REPGAME_WALKTEST` | capture skill |
 | `REPGAME_TEX_MIPMAPS` | 1 | all | `0` restores NEAREST minification of the block atlas | docs/rendering.md |
+| `REPGAME_TRANSLUCENT_AFTER_WATER` | `split` | all | `split` splits the translucent pass per-fragment at the sea-level water plane (far side before water, camera side after; exact for sea water); `1` draws it all after water; `0` draws it all before water (old order). Ignored when `REPGAME_TRANSLUCENT_BLEND=legacy` | docs/rendering.md |
 | `REPGAME_TRANSLUCENT_BLEND` | `alpha` | all | `legacy`/`alpha`/`multiply`: translucent-pass (stained glass, ice, ...) compositing — `legacy` = old depth-writing behaviour, `alpha` = no depth writes, `multiply` = order-independent colour-filter blend | docs/rendering.md |
 | `REPGAME_VALIDATE_INSTANCES` | off | all | when set, sanity-check every BlockCoords instance before GPU upload | docs/rendering.md |
 | `REPGAME_VR` | on (OpenXR builds) | OpenXR | `0` disables VR entirely | docs/vr.md |

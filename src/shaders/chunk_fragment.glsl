@@ -54,7 +54,14 @@ uniform float u_ShowRotation;
 uniform int u_TintUnderWater;
 uniform int u_Underwater;
 uniform float u_ReflectionDotSign;
+// REPGAME_TRANSLUCENT_AFTER_WATER=split: +1 keeps fragments at/above the
+// u_SplitY plane, -1 keeps strictly below, 0 draws everything. Complementary
+// so the before/after-water translucent passes cover each fragment once.
+uniform float u_SplitSign;
 uniform int u_DrawToReflection;
+// REPGAME_TRANSLUCENT_BLEND=multiply: translucent pass emits an unlit colour
+// filter instead of a lit colour (blended as DST_COLOR,ZERO — order-free).
+uniform int u_TranslucentMultiply;
 uniform float u_ExtraAlpha;
 uniform vec3 u_Origin;
 uniform int u_OpaqueFog;
@@ -86,6 +93,7 @@ flat in vec2 v_tex_max;
 in float v_face_light;
 in float v_planarDot;
 in vec3 v_world_coords;
+in float v_SplitDot;
 flat in vec3 v_face_normal;
 in vec3 v_light_pos;
 
@@ -109,6 +117,9 @@ void main() {
     vec2 uv_dx = dFdx(v_TexCoordBlock);
     vec2 uv_dy = dFdy(v_TexCoordBlock);
     if(v_planarDot * u_ReflectionDotSign < 0.0f && u_ReflectionHeight != 0.0f) {
+        discard;
+    }
+    if(u_SplitSign != 0.0f && ((v_SplitDot >= 0.0f) != (u_SplitSign > 0.0f))) {
         discard;
     }
     vec2 working_fract = vec2(fract(v_TexCoordBlock.x), fract(v_TexCoordBlock.y));
@@ -427,6 +438,9 @@ void main() {
     // Use the pre-computed average sky color as the fog color.
     vec3 dynamicFogColor = u_SkyAvgColor;
 
+    // Multiply-filter mode: how much of the filter's coverage survives the
+    // distance-fog alpha fade below, so far-away glass stops tinting.
+    float coverage_fade = 1.0f;
     if(u_DrawToReflection == 0) {
         // Color blend: terrain → dynamicFogColor (average sky color) over
         // the first half of the fog range. Alpha fade over the second half.
@@ -435,6 +449,7 @@ void main() {
         // using alphaFog, so distant terrain seamlessly merges with the skybox.
         finalColor.rgb = mix(finalColor.rgb, dynamicFogColor, colorFog);
         if(u_OpaqueFog == 1) {
+            coverage_fade = 1.0f - alphaFog;
             // Store alphaFog in the fog texture for the post-process sky
             // blend (above water this is the sky; underwater it's the
             // water-range fog so the composite fades toward the sky
@@ -490,6 +505,7 @@ void main() {
                 // alpha fade blends alphaFog over the sky attachment, then
                 // the composite blends toward it again by sqrt(alphaFog).
                 float skyFade = 1.0f - (1.0f - alphaFog) * (1.0f - sqrt(alphaFog));
+                coverage_fade = 1.0f - skyFade;
                 finalColor.rgb = mix(finalColor.rgb, skyHere, skyFade);
             } else if(u_shouldDiscardAlpha != 1.0f) {
                 // Same see-through surface as the framebuffer path, but only
@@ -501,12 +517,28 @@ void main() {
     } else {
         finalReflection.rgb = mix(finalReflection.rgb, dynamicFogColor, colorFog);
         finalReflection.a *= (1.0f - alphaFog);
+        coverage_fade = 1.0f - alphaFog;
         fogFactor = vec4(0.0f, 0.0f, 0.0f, 0.0f);
     }
 
     // Chunks are never sky; write black to preserve the sky color attachment
     // (replace blending keeps the sky color written by the sky pass).
     skyColor = vec4(0.0);
+    if(u_TranslucentMultiply == 1) {
+        // Emit a multiplicative filter: rgb=tint, alpha=coverage, blended as
+        // (DST_COLOR, ZERO) so draw order doesn't matter. The tint is UNLIT —
+        // a filter darkened by scene light would go black at night instead of
+        // transmitting. The unused output stays 1.0 (multiply-by-identity).
+        float coverage = texColor.a * coverage_fade;
+        if(u_DrawToReflection == 0) {
+            color = vec4(mix(vec3(1.0), texColor.rgb, coverage), 1.0);
+            reflection = vec4(1.0);
+        } else {
+            color = vec4(1.0);
+            reflection = vec4(mix(vec3(1.0), texColor.rgb, coverage), 1.0);
+        }
+        return;
+    }
     // Underwater on tiers without the framebuffer composite: apply the blue
     // screen wash here instead (the FSQ composite handles it otherwise).
     if(u_Underwater != 0) {

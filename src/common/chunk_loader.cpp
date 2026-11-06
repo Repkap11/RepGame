@@ -1,5 +1,7 @@
 #include <math.h>
 #include <stdlib.h>
+#include <string.h>
+#include <strings.h>
 #include <algorithm>
 #ifdef __GLIBC__
 #include <malloc.h>
@@ -33,6 +35,45 @@ static int occlusion_enabled( ) {
         enabled = env_bool( "REPGAME_OCCLUSION", true ) ? 1 : 0;
     }
     return enabled;
+}
+
+// REPGAME_TRANSLUCENT_BLEND: how the RenderOrder_Translucent pass (stained
+// glass, ice, honey, slime...) composites. See docs/rendering.md.
+typedef enum { TranslucentBlend_Legacy, TranslucentBlend_Alpha, TranslucentBlend_Multiply } TranslucentBlend;
+static TranslucentBlend translucent_blend_mode( ) {
+    static const TranslucentBlend mode = [] {
+        const char *v = env_get( "REPGAME_TRANSLUCENT_BLEND" );
+        if ( v != nullptr && strcmp( v, "legacy" ) == 0 ) {
+            return TranslucentBlend_Legacy;
+        }
+        if ( v != nullptr && strcmp( v, "multiply" ) == 0 ) {
+            return TranslucentBlend_Multiply;
+        }
+        return TranslucentBlend_Alpha;
+    }( );
+    return mode;
+}
+
+// REPGAME_TRANSLUCENT_AFTER_WATER: world.cpp splits the translucent pass
+// per-fragment at the sea-level water plane ("split", the default), draws it
+// in its own call after the water pass ("1"/After), or with the main Blocks
+// call before water ("0"/Before). legacy keeps the original pass order.
+TranslucentWaterOrder translucent_water_order( ) {
+    static const TranslucentWaterOrder order = [] {
+        const char *v = env_get( "REPGAME_TRANSLUCENT_AFTER_WATER" );
+        TranslucentWaterOrder parsed = TranslucentWaterOrder::Split;
+        if ( v != nullptr && v[ 0 ] != '\0' ) {
+            if ( strcmp( v, "0" ) == 0 || strcasecmp( v, "false" ) == 0 || strcasecmp( v, "off" ) == 0 ) {
+                parsed = TranslucentWaterOrder::Before;
+            } else if ( strcmp( v, "1" ) == 0 || strcasecmp( v, "true" ) == 0 || strcasecmp( v, "on" ) == 0 ) {
+                parsed = TranslucentWaterOrder::After;
+            } else if ( strcmp( v, "split" ) != 0 ) {
+                pr_debug( "REPGAME_TRANSLUCENT_AFTER_WATER: unknown value '%s' (want 0|1|split)", v );
+            }
+        }
+        return translucent_blend_mode( ) == TranslucentBlend_Legacy ? TranslucentWaterOrder::Before : parsed;
+    }( );
+    return order;
 }
 
 // Unit cube for the AABB probes (position attr in [0,1]^3, scaled to
@@ -706,7 +747,7 @@ void ChunkLoader::calculate_cull( const glm::mat4 &mvp, const bool saveAsReflect
 
 int shouldInc = 0;
 int showRotation = 0;
-void ChunkLoader::draw( const glm::mat4 &mvp, const Renderer &renderer, const Texture &texture, bool reflect_only, bool draw_reflect, bool use_frame_buffer, const glm::vec3 &render_origin, const glm::vec3 &camera_pos ) {
+void ChunkLoader::draw( const glm::mat4 &mvp, const Renderer &renderer, const Texture &texture, unsigned order_mask, bool draw_reflect, bool use_frame_buffer, const glm::vec3 &render_origin, const glm::vec3 &camera_pos ) {
     Shader &shader = this->shader;
     shader.set_uniform_mat4f( "u_MVP", mvp );
     {
@@ -790,7 +831,7 @@ void ChunkLoader::draw( const glm::mat4 &mvp, const Renderer &renderer, const Te
 
     // pr_debug( "Drawing %d chunks", this->numLoadedChunks );
     for ( int renderOrder = LAST_RENDER_ORDER - 1; renderOrder > 0; renderOrder-- ) {
-        if ( reflect_only == ( renderOrder == RenderOrder_Water ) ) {
+        if ( order_mask & render_order_bit( static_cast<RenderOrder>( renderOrder ) ) ) {
             shader.set_uniform1f( "u_shouldDiscardAlpha", renderOrder != RenderOrder_Water && renderOrder != RenderOrder_Translucent);
             // Screen-space face grow, opaque only: water/translucent/flowers
             // are blended, so overlapping grown edges would blend twice and
@@ -821,6 +862,33 @@ void ChunkLoader::draw( const glm::mat4 &mvp, const Renderer &renderer, const Te
             const bool occl = occlusion_enabled( ) && !draw_reflect;
             // Blended layers walk the sorted list backwards (back-to-front).
             const bool back_to_front = renderOrder == RenderOrder_Water || renderOrder == RenderOrder_Translucent;
+            // Translucent pass (REPGAME_TRANSLUCENT_BLEND): draw with depth
+            // writes off so a pane drawn first can't punch order-dependent
+            // holes in panes/water behind it; the depth TEST stays on so
+            // opaque terrain still occludes it. Multiply mode additionally
+            // switches to colour-filter blending, which is order-independent.
+            // Both restore right after this order's chunk loop. Water keeps
+            // writing depth (the X_HIGH composite reconstructs the surface
+            // from the post-water depth snapshot).
+            const TranslucentBlend tblend = translucent_blend_mode( );
+            const bool translucent_pass = renderOrder == RenderOrder_Translucent && tblend != TranslucentBlend_Legacy;
+            if ( translucent_pass ) {
+                glDepthMask( GL_FALSE );
+                if ( tblend == TranslucentBlend_Multiply ) {
+#if ( SUPPORTS_FRAME_BUFFER )
+                    if ( use_frame_buffer ) {
+                        // Filter blend on the colour + reflection attachments;
+                        // fog/sky attachments (2/3) stay replace.
+                        glBlendFuncSeparatei( 0, GL_DST_COLOR, GL_ZERO, GL_ZERO, GL_ONE );
+                        glBlendFuncSeparatei( 1, GL_DST_COLOR, GL_ZERO, GL_ZERO, GL_ONE );
+                    } else
+#endif
+                    {
+                        glBlendFuncSeparate( GL_DST_COLOR, GL_ZERO, GL_ZERO, GL_ONE );
+                    }
+                }
+            }
+            shader.set_uniform1i( "u_TranslucentMultiply", translucent_pass && tblend == TranslucentBlend_Multiply ? 1 : 0 );
             if ( occl && renderOrder == RenderOrder_Opaque ) {
                 // Two sub-passes over the front-to-back list. (1) Consume
                 // last frame's probe result (non-blocking) and draw chunks
@@ -926,6 +994,20 @@ void ChunkLoader::draw( const glm::mat4 &mvp, const Renderer &renderer, const Te
                         }
                         chunk.light_ensure_texture( this );
                         chunk.draw( renderer, texture, shader, static_cast<RenderOrder>( renderOrder ), draw_reflect, render_origin, light_base_loc );
+                    }
+                }
+            }
+            if ( translucent_pass ) {
+                glDepthMask( GL_TRUE );
+                if ( tblend == TranslucentBlend_Multiply ) {
+#if ( SUPPORTS_FRAME_BUFFER )
+                    if ( use_frame_buffer ) {
+                        glBlendFuncSeparatei( 0, GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA, GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA );
+                        glBlendFuncSeparatei( 1, GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA, GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA );
+                    } else
+#endif
+                    {
+                        glBlendFunc( GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA );
                     }
                 }
             }

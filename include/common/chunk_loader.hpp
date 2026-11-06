@@ -276,7 +276,7 @@ class ChunkLoader {
     int render_distance_blocks( ) const { return this->render_radius * CHUNK_SIZE_X; }
     void repopulate_blocks( );
     void calculate_cull( const glm::mat4 &mvp, bool saveAsReflection, const glm::ivec3 &renderOrigin ) const;
-    void draw( const glm::mat4 &mvp, const Renderer &renderer, const Texture &texture, bool reflect_only, bool draw_reflect, bool use_frame_buffer, const glm::vec3 &render_origin, const glm::vec3 &camera_pos );
+    void draw( const glm::mat4 &mvp, const Renderer &renderer, const Texture &texture, unsigned order_mask, bool draw_reflect, bool use_frame_buffer, const glm::vec3 &render_origin, const glm::vec3 &camera_pos );
     // Whether draw() runs the occlusion probe block. VR calls with false for
     // the second eye so both eyes share one verdict generation.
     void set_occlusion_probe_pass( bool probe ) { this->occl_probe_pass = probe; }
@@ -328,6 +328,14 @@ class ChunkLoader {
     void light_debug_verify( );
     void cleanup( MapStorage &map_storage );
 };
+
+// REPGAME_TRANSLUCENT_AFTER_WATER: where the translucent order draws
+// relative to the water pass (world.cpp). Before = with the main Blocks
+// call, After = own call after water, Split = per-fragment split at the
+// sea-level water plane (u_SplitSign/u_SplitY in the chunk shaders; the
+// default). Always Before when REPGAME_TRANSLUCENT_BLEND=legacy.
+enum class TranslucentWaterOrder { Before, After, Split };
+TranslucentWaterOrder translucent_water_order( );
 
 #define MAX_LOADED_CHUNKS ( ( 2 * CHUNK_RADIUS_XZ + 1 ) * ( 2 * CHUNK_RADIUS_Y + 1 ) * ( 2 * CHUNK_RADIUS_XZ + 1 ) )
 
