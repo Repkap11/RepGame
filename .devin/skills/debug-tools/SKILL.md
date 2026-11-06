@@ -25,6 +25,8 @@ for humans (`stdout.log`); the only sanctioned scraping is
 | Which tick did the capture shoot? | `rep-dbg show last --field game.shots` / `r.events("capture_shot")` |
 | Regression vs another rev | `rep-dbg fly --rev <sha> ...` + `rep-dbg compare <idA> <idB>` |
 | Crash / hang | run with `--timeout S` → `status` is `crashed`/`timeout`, see `stdout.log` |
+| A/B an env toggle or branch | `rep-dbg ab --cfg a=rev:master --cfg b=current:REPGAME_LIGHT_SMOOTH=1 --reps 3 stream-flight` (scenarios: `cold-settle`, `stream-flight`, or preset args after `--`) |
+| Metric table / CSV / chart | `rep-dbg metrics <run> [--csv] [--plot loader.light_jobs,...] [--after-settle]` |
 | List / export runs | `rep-dbg runs [--status failed] [--last N]`, `rep-dbg export <ids...> --csv` |
 | Old worktrees piling up | `rep-dbg wt list` / `rep-dbg wt prune` |
 

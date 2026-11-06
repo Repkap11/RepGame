@@ -117,6 +117,51 @@ stderr line of a run is `rep-dbg: <status> <run-dir>`.
 - `rep-dbg export <ids...> --csv|--json`
 - `rep-dbg wt list|prune` — list/remove `--rev` worktrees (only ever
   touches `<root>/wt/`).
+- `rep-dbg metrics <run|results.jsonl|stdout.log> [--fields a,b] [--csv]
+  [--plot a,b] [--after-settle]` — per-field stats table for one run;
+  `--csv` dumps flattened per-tick metric rows, `--plot` writes a PNG line
+  chart (tick on x, one line per field, legend) into the run dir and
+  registers it under `artifacts.plots` in result.json. A bare
+  `stdout.log` goes through the log shim. `--after-settle` restricts to
+  records after `fly_settled`.
+- `rep-dbg ab --cfg NAME=SPEC ... --reps N [scenario|-- <preset args>]
+  [--metric FIELD ...] [--name N] [--json]` — interleaved A/B/C reps.
+  `SPEC` is `[rev:<ref>|worktree:<path>|current][:K=V[:K=V...]]` — env
+  pairs are colon-separated since values (e.g. `REPGAME_FLY`) contain
+  commas. E.g. `base=current`, `smooth=current:REPGAME_LIGHT_SMOOTH=1`,
+  `old=rev:HEAD~3`. Each distinct tree is built once up front, then reps
+  interleave (rep1 A,B,C; rep2 A,B,C …) so drift affects all cfgs
+  equally. Each rep is a normal indexed run (`kind:"ab-rep"`, plus
+  `ab_id`/`cfg` in result.json). The ab run dir `<root>/ab/<ts>-<n>/`
+  holds its own indexed `result.json` (`kind:"ab"` with the cfg
+  definitions, rep run ids, and aggregates) and a `summary.md` table
+  (rows = metrics, cols = cfgs as `median±stddev`, delta-vs-first-cfg %,
+  noisy marker). Status is `failed` if any rep isn't `ok` (the run keeps
+  going; see `rep_runs` for which). `--metric` names a result.json
+  dotted path; the default set is `wall_s`, `game.settle_tick`,
+  `stats.metric.loader.light_jobs.mean`,
+  `stats.metric.loader.light_pending.max`,
+  `stats.metric.loader.chunks_loading.mean`.
+
+  **Noise rule**: a metric is flagged `"noisy"` when any cfg's
+  `stddev/|mean|` exceeds 10 %, or when the spread between the most
+  separated cfg medians is smaller than the larger of those two cfgs'
+  `max-min` range (i.e. the ranges overlap and the medians don't clear
+  the noise).
+
+  Scenario shortcuts (`tools/rep_dbg/scenarios.py` — adding one is a
+  single dict entry):
+
+  - `cold-settle` — fly parked at `1000,80,1000`, settle
+    `20/6000 ticks`, FLY_TICKS 6000, no flight. The interesting metric
+    is `game.settle_tick`.
+  - `stream-flight` — same settle, then `REPGAME_FLY_FLY_TICKS=600`
+    inside `REPGAME_FLY_TICKS=900` (settle → stream → hover).
+
+  Or pass preset args literally after `--`, e.g.
+  `rep-dbg ab --cfg a=current --cfg b=current --reps 2 -- fly --ticks
+  3000 --settle 20`. The scenario env is applied first, `--env` pairs
+  next, and each cfg's own `K=V` last (it is the variable under test).
 
 ## Recipes
 
@@ -126,3 +171,6 @@ stderr line of a run is `rep-dbg: <status> <run-dir>`.
 - Answer a one-off question: `rep-dbg show last --field
   stats.metric.loader.light_jobs.mean`, or `results.load("last")` in
   Python.
+- A/B an env toggle vs master:
+  `rep-dbg ab --cfg master=rev:master --cfg mine=current --reps 3 stream-flight`
+- Chart a run: `rep-dbg metrics last --plot loader.light_jobs,loader.chunks_loading`

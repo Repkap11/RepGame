@@ -67,12 +67,15 @@ def run(opts, log):
     root = opts.root
     repgame_env = _parse_env(opts.env)
 
-    tree = build_mod.REPO
-    rev_arg = opts.rev
-    if rev_arg:
-        sha = build_mod.git(tree, "rev-parse", rev_arg)
-        tree = worktree_mod.ensure(root, sha, log)
-    info = build_mod.git_info(tree, rev_arg)
+    # ab reps pass an already-resolved tree via opts.tree; --rev resolves
+    # into the cached worktree instead.
+    tree = getattr(opts, "tree", None) or build_mod.REPO
+    rev_arg = getattr(opts, "rev_arg", None) or opts.rev
+    # Refs (HEAD~3, master, ...) resolve against the main repo — inside a
+    # detached worktree HEAD is already the target commit.
+    info = build_mod.git_info(build_mod.REPO if rev_arg else tree, rev_arg)
+    if opts.rev:
+        tree = worktree_mod.ensure(root, info["sha"], log)
 
     binary = build_mod.ensure_built(tree, opts.build, log)
     if binary is None:
@@ -146,7 +149,7 @@ def run(opts, log):
 
 
 def _result_base(run_id, opts, info, run_dir, build):
-    return {
+    result = {
         "schema": SCHEMA,
         "id": run_id,
         "name": opts.name,
@@ -156,6 +159,11 @@ def _result_base(run_id, opts, info, run_dir, build):
         "build": build,
         "source": "results",
     }
+    for key in ("ab_id", "cfg"):
+        val = getattr(opts, key, None)
+        if val is not None:
+            result[key] = val
+    return result
 
 
 def assemble_result(result, run_dir, timed_out=False):

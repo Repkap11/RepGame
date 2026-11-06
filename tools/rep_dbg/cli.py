@@ -8,14 +8,18 @@ last stderr line of run-producing subcommands is
 """
 
 import argparse
+import csv
+import datetime
 import json
 import os
 import sys
+import time
 
 from . import build as build_mod
 from . import index as index_mod
 from . import results as results_mod
 from . import runner as runner_mod
+from . import stats as stats_mod
 from . import worktree as worktree_mod
 
 
@@ -59,6 +63,34 @@ def _parser():
     p.add_argument("--ticks", type=int, default=400, help="REPGAME_WALKTEST_TICKS")
     p.add_argument("--teleport", default=None, help="REPGAME_TELEPORT spec")
     p.set_defaults(kind="walk", name="walk")
+
+    p = sub.add_parser("ab", help="interleaved A/B reps across cfgs")
+    p.add_argument("scenario", nargs="?",
+                   help="scenario shortcut (cold-settle|stream-flight); or pass preset args after --")
+    p.add_argument("--cfg", action="append", required=True, metavar="NAME=SPEC",
+                   help="SPEC: [rev:<ref>|worktree:<path>|current][:K=V[:K=V...]]")
+    p.add_argument("--reps", type=int, default=3)
+    p.add_argument("--metric", action="append",
+                   help="result.json dotted field to aggregate (repeatable)")
+    p.add_argument("--name", default="ab")
+    p.add_argument("--build", default="release", choices=["release", "debug", "asan", "tsan"])
+    p.add_argument("--world", default="World1")
+    p.add_argument("--flat", action="store_true")
+    p.add_argument("--keep-world")
+    p.add_argument("--env", action="append", metavar="K=V")
+    p.add_argument("--timeout", type=float)
+    p.add_argument("--window", action="store_true")
+    p.add_argument("--every", type=int, default=None)
+    p.add_argument("--json", action="store_true")
+    p.add_argument("--root", default=None)
+
+    p = sub.add_parser("metrics", help="per-field stats / CSV / PNG plot for one run")
+    p.add_argument("ref", help="run id | run dir | results.jsonl | stdout.log | last")
+    p.add_argument("--fields", help="comma-separated dotted fields for the stats table")
+    p.add_argument("--plot", help="comma-separated dotted fields to chart")
+    p.add_argument("--csv", action="store_true", help="dump per-tick metric rows")
+    p.add_argument("--after-settle", action="store_true")
+    p.add_argument("--root", default=None)
 
     p = sub.add_parser("runs", help="list runs from the index")
     p.add_argument("--name")
@@ -117,6 +149,149 @@ def _preset_env(opts):
     return env
 
 
+def _env_pairs(kv_list, what="--env"):
+    pairs = {}
+    for kv in kv_list or []:
+        if "=" not in kv:
+            raise ValueError("%s wants K=V, got %r" % (what, kv))
+        k, _, v = kv.partition("=")
+        pairs[k] = v
+    return pairs
+
+
+def _scenario_env(opts):
+    """ab's scenario: preset args after `--`, a shortcut name, or empty."""
+    from . import scenarios
+    if opts.extra:
+        try:
+            o = _parser().parse_args(opts.extra)
+        except SystemExit:
+            raise ValueError("bad scenario args after --")
+        if o.cmd not in ("run", "fly", "walk"):
+            raise ValueError("scenario args after -- must be run|fly|walk")
+        o.env_pairs = _env_pairs(o.env)
+        return _preset_env(o), o.cmd
+    if opts.scenario:
+        if opts.scenario not in scenarios.SCENARIOS:
+            raise ValueError("unknown scenario %r (have: %s)" %
+                             (opts.scenario, ", ".join(sorted(scenarios.SCENARIOS))))
+        return dict(scenarios.SCENARIOS[opts.scenario]), "fly"
+    return {}, "run"
+
+
+def _do_ab(opts):
+    from . import ab as ab_mod
+
+    try:
+        scenario_env, scenario_kind = _scenario_env(opts)
+        user_env = _env_pairs(opts.env)
+        cfgs = []
+        for spec in opts.cfg:
+            name, _, body = spec.partition("=")
+            if not name or not body:
+                raise ValueError("--cfg wants NAME=SPEC, got %r" % spec)
+            tree_spec, cfg_env = ab_mod.parse_spec(body)
+            cfgs.append({"name": name, "spec": body, "tree_spec": tree_spec, "env": cfg_env})
+    except ValueError as e:
+        print("rep-dbg: %s" % e, file=sys.stderr)
+        return 4
+
+    # Build each distinct tree once, up front.
+    trees = {}
+    for cfg in cfgs:
+        if cfg["tree_spec"] in trees:
+            continue
+        try:
+            tree = ab_mod.resolve_tree(cfg["tree_spec"], opts.root, sys.stderr)
+        except (ValueError, RuntimeError) as e:
+            print("rep-dbg: %s" % e, file=sys.stderr)
+            return 4
+        if build_mod.ensure_built(tree, opts.build, sys.stderr) is None:
+            print("rep-dbg: build failed in %s" % tree, file=sys.stderr)
+            return 3
+        trees[cfg["tree_spec"]] = tree
+
+    run_dir, ab_id = runner_mod.new_run_dir(opts.root, opts.name)
+    started = time.time()
+    rep_runs = {cfg["name"]: [] for cfg in cfgs}
+    rep_results = {cfg["name"]: [] for cfg in cfgs}
+    cfg_by_name = {c["name"]: c for c in cfgs}
+    for rep, cfg_name in ab_mod.interleave_order([c["name"] for c in cfgs], opts.reps):
+        cfg = cfg_by_name[cfg_name]
+        env = dict(scenario_env)
+        env.update(user_env)
+        env.update(cfg["env"])  # cfg env is the variable under test
+        if opts.every is not None:
+            env["REPGAME_RESULTS_EVERY"] = str(opts.every)
+        ns = argparse.Namespace(
+            root=opts.root, env=["%s=%s" % kv for kv in env.items()],
+            rev=None, rev_arg=(cfg["tree_spec"][4:]
+                               if cfg["tree_spec"].startswith("rev:") else None),
+            build=opts.build, world=opts.world, flat=opts.flat,
+            keep_world=opts.keep_world, timeout=opts.timeout,
+            name="%s-%s" % (opts.name, cfg["name"]), kind="ab-rep",
+            window=opts.window, extra=[], tree=trees[cfg["tree_spec"]],
+            ab_id=ab_id, cfg=cfg["name"])
+        result, rep_dir = runner_mod.run(ns, sys.stderr)
+        rep_runs[cfg["name"]].append({"id": result["id"], "status": result["status"],
+                                      "dir": os.path.relpath(rep_dir, opts.root)})
+        rep_results[cfg["name"]].append(result)
+
+    fields = opts.metric or ab_mod.DEFAULT_METRICS
+    per_metric = {}
+    for field in fields:
+        per_cfg = {}
+        for cfg in cfgs:
+            vals = []
+            for result in rep_results[cfg["name"]]:
+                try:
+                    v = results_mod.field_of(result, field)
+                except (KeyError, IndexError, ValueError):
+                    continue
+                if isinstance(v, (int, float)) and not isinstance(v, bool):
+                    vals.append(v)
+            if vals:
+                per_cfg[cfg["name"]] = ab_mod.aggregate(vals)
+        if per_cfg:
+            per_metric[field] = per_cfg
+    metrics = ab_mod.metric_table(per_metric)
+
+    any_bad = any(r["status"] != "ok"
+                  for reps in rep_results.values() for r in reps)
+    result = {
+        "schema": runner_mod.SCHEMA,
+        "id": ab_id,
+        "name": opts.name,
+        "kind": "ab",
+        "status": "failed" if any_bad else "ok",
+        "git": build_mod.git_info(build_mod.REPO),
+        "build": opts.build,
+        "scenario": opts.scenario or (" ".join(opts.extra) if opts.extra else None),
+        "cfg_order": [c["name"] for c in cfgs],
+        "cfgs": {c["name"]: {"spec": c["spec"], "tree": trees[c["tree_spec"]], "env": c["env"]}
+                 for c in cfgs},
+        "reps": opts.reps,
+        "metrics": metrics,
+        "rep_runs": rep_runs,
+        "started": datetime.datetime.now().strftime("%Y-%m-%dT%H:%M:%S"),
+        "wall_s": round(time.time() - started, 2),
+        "artifacts": {"summary": "summary.md"},
+    }
+    md = ab_mod.summary_md(result)
+    with open(os.path.join(run_dir, "summary.md"), "w") as f:
+        f.write(md)
+    with open(os.path.join(run_dir, "result.json"), "w") as f:
+        json.dump(result, f, indent=2, sort_keys=True)
+    index_mod.append(opts.root, index_mod.index_entry(result, run_dir, opts.root))
+
+    print("rep-dbg: %s %s" % (result["status"], run_dir), file=sys.stderr)
+    if opts.json:
+        print(json.dumps(result, indent=2, sort_keys=True))
+    else:
+        print(md)
+    return runner_mod.exit_code(result)
+
+
 def _do_run(opts):
     env = _preset_env(opts)
     # Preset pairs first so a user's --env overrides a preset default.
@@ -164,6 +339,54 @@ def main(argv):
             k, _, v = kv.partition("=")
             opts.env_pairs[k] = v
         return _do_run(opts)
+
+    if opts.cmd == "ab":
+        return _do_ab(opts)
+
+    if opts.cmd == "metrics":
+        from . import metrics as metrics_mod
+        try:
+            records, run_dir = metrics_mod.load_records(opts.ref, opts.root)
+        except (LookupError, OSError, ValueError, json.JSONDecodeError) as e:
+            print("rep-dbg: %s" % e, file=sys.stderr)
+            return 4
+        metrics = metrics_mod.metric_records(records, opts.after_settle)
+        if not metrics:
+            print("rep-dbg: no metric records", file=sys.stderr)
+            return 4
+        fields = opts.fields.split(",") if opts.fields else None
+        if opts.csv:
+            header, rows = metrics_mod.csv_rows(metrics)
+            w = csv.writer(sys.stdout)
+            w.writerow(header)
+            w.writerows(rows)
+        else:
+            stats = stats_mod.compute_stats(metrics)
+            wanted = None
+            if fields:
+                wanted = set(f if f.startswith("metric.") else "metric." + f for f in fields)
+            metrics_mod.print_table(stats, wanted)
+        if opts.plot:
+            try:
+                plot_fields = [f[len("metric."):] if f.startswith("metric.") else f
+                               for f in opts.plot.split(",")]
+                base = run_dir or os.path.dirname(os.path.abspath(opts.ref))
+                out = os.path.join(base, "metrics.png")
+                metrics_mod.plot(metrics, plot_fields, out)
+            except (ValueError, ImportError) as e:
+                print("rep-dbg: plot: %s" % e, file=sys.stderr)
+                return 4
+            print(out)
+            if run_dir:
+                result_path = os.path.join(run_dir, "result.json")
+                if os.path.exists(result_path):
+                    with open(result_path) as f:
+                        result = json.load(f)
+                    result.setdefault("artifacts", {}).setdefault("plots", []).append(
+                        os.path.relpath(out, run_dir))
+                    with open(result_path, "w") as f:
+                        json.dump(result, f, indent=2, sort_keys=True)
+        return 0
 
     if opts.cmd == "runs":
         if opts.reindex:

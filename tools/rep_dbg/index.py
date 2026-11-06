@@ -51,7 +51,7 @@ def index_entry(result, run_dir, root):
     for field in ("metric.loader.light_jobs", "metric.loader.light_seeds"):
         if field in stats and stats[field]:
             keys[field + ".mean"] = stats[field].get("mean")
-    return {
+    entry = {
         "id": result.get("id"),
         "name": result.get("name"),
         "kind": result.get("kind"),
@@ -63,6 +63,10 @@ def index_entry(result, run_dir, root):
         "dir": os.path.relpath(run_dir, root),
         "stats": keys,
     }
+    for key in ("ab_id", "cfg"):
+        if result.get(key) is not None:
+            entry[key] = result[key]
+    return entry
 
 
 def reindex(root):

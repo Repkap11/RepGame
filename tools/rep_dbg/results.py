@@ -44,6 +44,28 @@ def _load_result(run_dir):
         return json.load(f)
 
 
+def field_of(result, dotted):
+    val = result
+    parts = dotted.split(".")
+    i = 0
+    while i < len(parts):
+        if isinstance(val, list):
+            val = val[int(parts[i])]
+            i += 1
+            continue
+        # Stat keys are themselves dotted ("metric.loader.light_jobs"),
+        # so join segments until a key matches.
+        for j in range(len(parts), i, -1):
+            key = ".".join(parts[i:j])
+            if key in val:
+                val = val[key]
+                i = j
+                break
+        else:
+            raise KeyError(dotted)
+    return val
+
+
 class Run:
     def __init__(self, run_dir):
         self.dir = run_dir
@@ -108,25 +130,7 @@ class Run:
         return candidate if os.path.exists(candidate) else None
 
     def field(self, dotted):
-        val = self.result
-        parts = dotted.split(".")
-        i = 0
-        while i < len(parts):
-            if isinstance(val, list):
-                val = val[int(parts[i])]
-                i += 1
-                continue
-            # Stat keys are themselves dotted ("metric.loader.light_jobs"),
-            # so join segments until a key matches.
-            for j in range(len(parts), i, -1):
-                key = ".".join(parts[i:j])
-                if key in val:
-                    val = val[key]
-                    i = j
-                    break
-            else:
-                raise KeyError(dotted)
-        return val
+        return field_of(self.result, dotted)
 
 
 def load(ref="last", root=None):
