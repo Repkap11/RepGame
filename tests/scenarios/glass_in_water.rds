@@ -1,0 +1,30 @@
+# Stained glass submerged in a walled flat-world water pool (stone basin so
+# the water can't spread; an uncontained fill flooded the world and crashed
+# the run). Regression scenario for the coplanar water quads water used to
+# emit against translucent neighbours (mesh_vis_logic.hpp liquid_boundary).
+# Screenshots must be eyeball-compared; the asserts only pin the world state.
+# flags 9 = lighting off + fog off so the underwater view isn't murk.
+wait_idle 20 6000
+fill 1 1 1 16 8 1 STONE
+fill 1 1 16 16 8 16 STONE
+fill 1 1 2 1 8 15 STONE
+fill 16 1 2 16 8 15 STONE
+fill 2 1 2 15 6 15 WATER
+setblock 8 3 8 MAGENTA_STAINED_GLASS
+setblock 11 6 8 MAGENTA_STAINED_GLASS
+wait 10
+wait_idle 20 6000
+assert_block 8 3 8 MAGENTA_STAINED_GLASS
+assert_block 11 6 8 MAGENTA_STAINED_GLASS
+assert_block 8 4 8 WATER
+assert_block 9 3 8 WATER
+flags 9
+# Underwater view of the submerged glass, slightly from above.
+camera 8.5 4.0 6.0 180 14
+wait 30
+screenshot submerged
+# Above-water view of the glass sitting in the top water layer.
+camera 11.5 9.5 5.0 180 50
+wait 30
+screenshot surface
+echo glass_in_water done

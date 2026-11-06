@@ -165,6 +165,12 @@ the reflection composite). Three values:
 At HIGH+ the water reflection composite may still overlay glass where
 glass covers water pixels. Weighted-blended OIT would be the full fix.
 
+Since translucent faces no longer write depth, water emits no faces
+against translucent neighbours (`liquid_boundary` in
+`include/common/mesh_vis_logic.hpp`) — otherwise the coplanar water quad
+shows through the glass (`tests/scenarios/glass_in_water.rds`). This
+includes the water top face under glass at the surface.
+
 Water (`RenderOrder_Water`) still writes depth in every mode: the depth
 snapshot taken after the water pass feeds the X_HIGH water composite/SSR in
 `full_screen_quad_fragment.glsl`, which reconstructs the surface from it.

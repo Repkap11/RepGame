@@ -51,9 +51,14 @@ if ( visible != 0 ) {
         MG_VAR( int, face_vis, 0 )
         if ( block.is_seethrough_face[ rotated_face ] != 0u && block.hides_self[ rotated_face ] != 0u ) { // water and glass
             // Waterlogged cells count as water: water (and lava) draws no
-            // surface faces against them.
+            // surface faces against them. Nor against translucent blocks
+            // (stained glass, ice, ...): the glass draws its own face there,
+            // and since the translucent pass writes no depth a coplanar water
+            // quad would show through it.
             MG_LET( int, liquid_boundary,
-                    MG_TERN( block.renderOrder == RenderOrder_Water && mesh_cell_waterlogged( next_to_cell ) != 0, 1, 0 ) )
+                    MG_TERN( block.renderOrder == RenderOrder_Water &&
+                                 ( mesh_cell_waterlogged( next_to_cell ) != 0 || block_next_to.renderOrder == RenderOrder_Translucent ),
+                             1, 0 ) )
             if ( face == FACE_TOP && block.renderOrder == RenderOrder_Water ) {
                 face_vis = MG_TERN( block_next_to.id != block.id && liquid_boundary == 0, 1, 0 );
             } else {
