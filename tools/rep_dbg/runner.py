@@ -11,6 +11,7 @@ import json
 import os
 import re
 import shutil
+import signal
 import subprocess
 import time
 
@@ -113,7 +114,11 @@ def run(opts, log):
     env.update(repgame_env)
     repgame_env = {k: v for k, v in env.items() if k.startswith("REPGAME_")}
 
-    argv = [binary, world] + list(opts.extra or [])
+    # perf record/stat reps wrap the game argv; '{run_dir}' placeholders in
+    # the wrap argv get the just-created run dir.
+    wrap = [w.replace("{run_dir}", run_dir)
+            for w in (getattr(opts, "wrap", None) or [])]
+    argv = wrap + [binary, world] + list(opts.extra or [])
     print("rep-dbg: run %s" % " ".join(argv), file=log)
     for k in sorted(repgame_env):
         print("rep-dbg:   %s=%s" % (k, repgame_env[k]), file=log)
@@ -133,7 +138,8 @@ def run(opts, log):
             code = proc.wait(timeout=opts.timeout)
         except subprocess.TimeoutExpired:
             timed_out = True
-            proc.terminate()
+            # perf reps want SIGINT so perf.data is finalized.
+            proc.send_signal(getattr(opts, "stop_signal", None) or signal.SIGTERM)
             try:
                 code = proc.wait(timeout=10)
             except subprocess.TimeoutExpired:
@@ -144,6 +150,13 @@ def run(opts, log):
                       "signal": -code if code < 0 else None}
 
     assemble_result(result, run_dir, timed_out=timed_out)
+    if getattr(opts, "perf", None):
+        from . import perf as perf_mod
+        perf_mod.postprocess(run_dir, result, opts, log)
+        if result["status"] == "ok" and \
+                (result.get("perf") or {}).get("stat") is None and \
+                "data" not in (result.get("artifacts") or {}).get("perf", {}):
+            result["status"] = "failed"
     _finish(run_dir, result)
     return result, run_dir
 

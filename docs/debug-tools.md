@@ -163,6 +163,56 @@ stderr line of a run is `rep-dbg: <status> <run-dir>`.
   3000 --settle 20`. The scenario env is applied first, `--env` pairs
   next, and each cfg's own `K=V` last (it is the variable under test).
 
+## Profiling (`perf`)
+
+Preflight (`tools/rep_dbg/perf.py`) refuses with exit 4 when
+`kernel.perf_event_paranoid > 1` — record/stat need:
+
+```sh
+sudo sysctl kernel.perf_event_paranoid=1                                   # until reboot
+echo 'kernel.perf_event_paranoid=1' | sudo tee /etc/sysctl.d/99-perf.conf  # persistent
+```
+
+`kernel.kptr_restrict != 0` only warns (kernel symbols resolve as
+`[unknown]`; game code is unaffected). `rep-dbg` never invokes sudo.
+
+Commands:
+
+- `rep-dbg perf record [--freq 999] [--call-graph dwarf|fp|lbr] [--threads]
+  [--duration S] [cold-settle|stream-flight|-- <preset args>]` — a normal
+  preset run (kind `"perf"`) wrapped in `perf record`; `--duration` is the
+  run timeout, and a timeout SIGINTs perf so `perf.data` is finalized.
+- `rep-dbg perf attach <pid|name> [--duration 15]` — `perf record -p` a
+  running game (name resolved via `pgrep -x`; errors on 0 or >1 match).
+- `rep-dbg perf stat <scenario args> [--events ...]` — `perf stat -x,` with
+  the default event set (cycles, instructions, caches, branches,
+  context-switches, task-clock); parsed into `result.json.perf.stat` with
+  `ipc`, `cache_miss_rate` derived, `<not supported>` rows as null.
+- `rep-dbg ab --perf-stat` — runs every rep under `perf stat`, so
+  `perf.stat.*` works as `--metric` fields.
+- `rep-dbg perf diff <runA> <runB> [--top N]` — biggest self% deltas per
+  symbol between two record runs, both directions.
+
+Outputs in the run dir (registered under `artifacts.perf`): `perf.data`
+(size printed on stderr), `top.txt` (top 40 by self time plus a
+per-thread `comm,sym` section; parsed to `perf.top`), `folded.txt` and
+`flame.svg` (collapsed `perf script` stacks → icicle SVG with hover
+titles; `--threads` adds `flame-<comm>.svg`).
+
+Call-graph modes: `dwarf` works on any binary but copies 16 KB of stack
+per sample (big perf.data — lower `--freq` or bound `--duration`); `fp`
+needs a frame-pointer build (`make linux PERF=1`, which adds
+`-fno-omit-frame-pointer -mno-omit-leaf-frame-pointer` via
+`REPGAME_FRAME_POINTERS`; default builds are unaffected and `record
+--call-graph fp` prints a reminder); `lbr` is cheap but only on Intel
+with a shallow stack depth.
+
+Recipes:
+
+- Interactive attach: `make linux-run` in one terminal,
+  `rep-dbg perf attach RepGame --duration 20` in another.
+- Compare two records: `rep-dbg perf diff perf/<idA> perf/<idB> --top 20`.
+
 ## Recipes
 
 - Reproduce an F12 view: `rep-dbg run --env REPGAME_CAPTURE="<spec>" --flat`

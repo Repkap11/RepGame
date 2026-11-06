@@ -12,6 +12,7 @@ import csv
 import datetime
 import json
 import os
+import signal
 import sys
 import time
 
@@ -79,6 +80,33 @@ def _parser():
     p.add_argument("--keep-world")
     p.add_argument("--env", action="append", metavar="K=V")
     p.add_argument("--timeout", type=float)
+    p.add_argument("--window", action="store_true")
+    p.add_argument("--every", type=int, default=None)
+    p.add_argument("--perf-stat", action="store_true",
+                   help="run each rep under perf stat (perf.stat.* metrics)")
+    p.add_argument("--json", action="store_true")
+    p.add_argument("--root", default=None)
+
+    p = sub.add_parser("perf", help="perf record/attach/stat/diff")
+    p.add_argument("action", choices=["record", "attach", "stat", "diff"])
+    p.add_argument("args", nargs="*",
+                   help="record/stat: [scenario]; attach: <pid|name>; diff: <runA> <runB>")
+    p.add_argument("--freq", type=int, default=999)
+    p.add_argument("--call-graph", default="dwarf", choices=["dwarf", "fp", "lbr"],
+                   help="fp needs `make linux PERF=1`; dwarf bounds at 16KB stacks")
+    p.add_argument("--duration", type=float,
+                   help="record/stat: the run timeout; attach: seconds to record (default 15)")
+    p.add_argument("--threads", action="store_true", help="per-thread flame-<comm>.svg")
+    p.add_argument("--events", help="perf stat -e event list")
+    p.add_argument("--top", type=int, default=15, help="diff: rows to print")
+    p.add_argument("--build", default="release", choices=["release", "debug", "asan", "tsan"])
+    p.add_argument("--rev")
+    p.add_argument("--world", default="World1")
+    p.add_argument("--flat", action="store_true")
+    p.add_argument("--keep-world")
+    p.add_argument("--env", action="append", metavar="K=V")
+    p.add_argument("--timeout", type=float)
+    p.add_argument("--name")
     p.add_argument("--window", action="store_true")
     p.add_argument("--every", type=int, default=None)
     p.add_argument("--json", action="store_true")
@@ -185,6 +213,10 @@ def _do_ab(opts):
     try:
         scenario_env, scenario_kind = _scenario_env(opts)
         user_env = _env_pairs(opts.env)
+        if opts.perf_stat:
+            from . import perf as perf_mod
+            if not perf_mod.preflight(sys.stderr):
+                return 4
         cfgs = []
         for spec in opts.cfg:
             name, _, body = spec.partition("=")
@@ -223,6 +255,12 @@ def _do_ab(opts):
         env.update(cfg["env"])  # cfg env is the variable under test
         if opts.every is not None:
             env["REPGAME_RESULTS_EVERY"] = str(opts.every)
+        if opts.perf_stat:
+            from . import perf as perf_mod
+            wrap_ns = {"wrap": perf_mod.stat_wrap(None), "perf": True,
+                       "stop_signal": signal.SIGINT}
+        else:
+            wrap_ns = {"wrap": None, "perf": None, "stop_signal": None}
         ns = argparse.Namespace(
             root=opts.root, env=["%s=%s" % kv for kv in env.items()],
             rev=None, rev_arg=(cfg["tree_spec"][4:]
@@ -231,7 +269,7 @@ def _do_ab(opts):
             keep_world=opts.keep_world, timeout=opts.timeout,
             name="%s-%s" % (opts.name, cfg["name"]), kind="ab-rep",
             window=opts.window, extra=[], tree=trees[cfg["tree_spec"]],
-            ab_id=ab_id, cfg=cfg["name"])
+            ab_id=ab_id, cfg=cfg["name"], **wrap_ns)
         result, rep_dir = runner_mod.run(ns, sys.stderr)
         rep_runs[cfg["name"]].append({"id": result["id"], "status": result["status"],
                                       "dir": os.path.relpath(rep_dir, opts.root)})
@@ -292,6 +330,98 @@ def _do_ab(opts):
     return runner_mod.exit_code(result)
 
 
+def _do_perf(opts):
+    from . import perf as perf_mod
+
+    if opts.action == "diff":
+        if len(opts.args) != 2:
+            print("rep-dbg: perf diff wants <runA> <runB>", file=sys.stderr)
+            return 4
+        try:
+            tops = []
+            for ref in opts.args:
+                r = results_mod.load(ref, opts.root)
+                top = (r.result.get("perf") or {}).get("top")
+                if top is None:
+                    raise ValueError("%s has no perf.top (not a perf record run)" % ref)
+                tops.append(top)
+        except (LookupError, OSError, ValueError) as e:
+            print("rep-dbg: %s" % e, file=sys.stderr)
+            return 4
+        rows = perf_mod.top_diff(tops[0], tops[1], opts.top)
+        if opts.json:
+            print(json.dumps(rows, indent=2, sort_keys=True))
+        else:
+            for r in rows:
+                print("%6.2f -> %6.2f  %+6.2f  %-16s %s" % (
+                    r["a_pct"], r["b_pct"], r["delta"], r["thread"] or "-", r["symbol"]))
+        return 0
+
+    if not perf_mod.preflight(sys.stderr):
+        return 4
+
+    if opts.action == "attach":
+        if not opts.args:
+            print("rep-dbg: perf attach wants <pid|name>", file=sys.stderr)
+            return 4
+        try:
+            pid, name = perf_mod.resolve_pid(opts.args[0])
+        except ValueError as e:
+            print("rep-dbg: %s" % e, file=sys.stderr)
+            return 4
+        run_dir, run_id = runner_mod.new_run_dir(opts.root, "perf-attach")
+        duration = opts.duration or 15
+        result = {"schema": runner_mod.SCHEMA, "id": run_id, "name": "perf-attach",
+                  "kind": "perf", "status": None, "source": "perf-attach",
+                  "attach": {"pid": pid, "target": name,
+                             "duration_s": duration, "freq": opts.freq,
+                             "call_graph": opts.call_graph},
+                  "started": datetime.datetime.now().strftime("%Y-%m-%dT%H:%M:%S")}
+        perf_mod.attach(pid, duration, opts.freq, opts.call_graph, opts.threads,
+                        run_dir, run_id, result, sys.stderr)
+        perf_mod.postprocess(run_dir, result, opts, sys.stderr)
+        with open(os.path.join(run_dir, "result.json"), "w") as f:
+            json.dump(result, f, indent=2, sort_keys=True)
+        index_mod.append(opts.root, index_mod.index_entry(result, run_dir, opts.root))
+        print("rep-dbg: %s %s" % (result["status"], run_dir), file=sys.stderr)
+        if opts.json:
+            print(json.dumps(result, indent=2, sort_keys=True))
+        return runner_mod.exit_code(result)
+
+    # record / stat: a normal preset run with a wrapped argv.
+    opts.scenario = opts.args[0] if opts.args else None
+    try:
+        env, _kind = _scenario_env(opts)
+        env.update(_env_pairs(opts.env))
+    except ValueError as e:
+        print("rep-dbg: %s" % e, file=sys.stderr)
+        return 4
+    if opts.action == "record":
+        if opts.call_graph == "fp":
+            print("rep-dbg: note: fp call graphs want a frame-pointer build"
+                  " (`make linux PERF=1`); unoptimized-out frames show as"
+                  " truncated stacks", file=sys.stderr)
+        wrap = perf_mod.record_wrap(opts.freq, opts.call_graph)
+        name = opts.name or "perf"
+    else:
+        wrap = perf_mod.stat_wrap(opts.events)
+        name = opts.name or "perf-stat"
+    if opts.every is not None:
+        env["REPGAME_RESULTS_EVERY"] = str(opts.every)
+    ns = argparse.Namespace(
+        root=opts.root, env=["%s=%s" % kv for kv in env.items()],
+        rev=opts.rev, rev_arg=None, build=opts.build, world=opts.world,
+        flat=opts.flat, keep_world=opts.keep_world,
+        timeout=opts.duration or opts.timeout, name=name, kind="perf",
+        window=opts.window, extra=[], wrap=wrap, perf=True,
+        stop_signal=signal.SIGINT, ab_id=None, cfg=None, threads=opts.threads)
+    result, run_dir = runner_mod.run(ns, sys.stderr)
+    print("rep-dbg: %s %s" % (result["status"], run_dir), file=sys.stderr)
+    if opts.json:
+        print(json.dumps(result, indent=2, sort_keys=True))
+    return runner_mod.exit_code(result)
+
+
 def _do_run(opts):
     env = _preset_env(opts)
     # Preset pairs first so a user's --env overrides a preset default.
@@ -342,6 +472,9 @@ def main(argv):
 
     if opts.cmd == "ab":
         return _do_ab(opts)
+
+    if opts.cmd == "perf":
+        return _do_perf(opts)
 
     if opts.cmd == "metrics":
         from . import metrics as metrics_mod

@@ -41,6 +41,7 @@ set(REPGAME_SOUND_OGG_DIR "${CMAKE_SOURCE_DIR}/out/sounds" CACHE PATH "Directory
 # on -c compiles as an unused argument.
 option(REPGAME_USE_LLD "Link with -fuse-ld=lld" ON)
 option(REPGAME_LTO "Link-time optimization for Release builds (linux client)" ON)
+option(REPGAME_FRAME_POINTERS "Keep frame pointers (perf --call-graph fp)" OFF)
 # Real LTO via CMake's IPO support: clang gets -flto=thin on compile AND link,
 # gcc -flto/-fno-fat-lto-objects. Set globally before targets exist so RepGame
 # and the repgame_imgui OBJECT library both pick it up; Release config only.
@@ -88,6 +89,10 @@ endif()
 add_library(repgame_flags INTERFACE)
 target_compile_options(repgame_flags INTERFACE
 	-Wall -Wextra -Werror -Wno-unused-parameter -Wno-unused-variable)
+if(REPGAME_FRAME_POINTERS)
+	target_compile_options(repgame_flags INTERFACE
+		-fno-omit-frame-pointer -mno-omit-leaf-frame-pointer)
+endif()
 # In release mode, don't check for GL errors. HW vsync is a runtime toggle on
 # the 'v' key (default on), not a compile flag.
 target_compile_definitions(repgame_flags INTERFACE

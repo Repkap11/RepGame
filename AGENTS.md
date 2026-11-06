@@ -11,6 +11,7 @@ presets in `CMakePresets.json`. The make targets below are thin wrappers
 (each re-runs `cmake --preset` + `cmake --build`).
 
 - `make linux` / `make linux_debug` — release / debug build for Linux
+  (`make linux PERF=1` keeps frame pointers for `perf record --call-graph fp`)
 - `make linux-run` — build and launch fullscreen, connecting to
   `www.repkap11.com` (`linux-run2` uses the second world)
 - `make linux_debug-run` — debug build, single-player on `localhost`

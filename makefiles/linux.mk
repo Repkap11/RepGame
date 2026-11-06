@@ -29,6 +29,15 @@ ifneq ($(GPU_PREBUILT_DIR),)
 CMAKE_CLIENT_DFLAGS += -DREPGAME_GPU_PREBUILT_DIR=$(abspath $(GPU_PREBUILT_DIR))
 endif
 
+# `make linux PERF=1` keeps frame pointers so `perf record --call-graph fp`
+# gets clean stacks. The -D is passed either way so toggling reconfigures.
+PERF ?= 0
+ifeq ($(PERF),1)
+CMAKE_CLIENT_DFLAGS += -DREPGAME_FRAME_POINTERS=ON
+else
+CMAKE_CLIENT_DFLAGS += -DREPGAME_FRAME_POINTERS=OFF
+endif
+
 # REPGAME_OPENXR=1 (common.mk): LINUX_OUT moves to out/linux-openxr so flat
 # and VR objects never mix; the statically built host loader is a make dep.
 ifeq ($(REPGAME_OPENXR),1)
