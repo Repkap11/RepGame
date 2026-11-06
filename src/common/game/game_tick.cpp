@@ -11,6 +11,7 @@
 #include "common/audio.hpp"
 #include "common/block_definitions.hpp"
 #include "common/utils/map_storage.hpp"
+#include "common/utils/profile.hpp"
 #include "common/renderer/texture.hpp"
 #include "common/renderer/frame_buffer.hpp"
 #include "common/world.hpp"
@@ -38,6 +39,7 @@
 using dbgcmd::loader_idle;
 
 void RepGame::tick( ) {
+    PROFILE_SCOPE( "tick" );
     if ( globalGameState.input.exitGame ) {
         // Don't bother updating the state if the game is exiting
         return;

@@ -18,6 +18,7 @@
 #include "common/RepGame.hpp" // GL headers + platform macros
 #include "common/light.hpp"
 #include "common/utils/env_config.hpp"
+#include "common/utils/profile.hpp"
 #include "common/chunk_loader.hpp"
 #include "common/block_definitions.hpp"
 #include "common/renderer/texture.hpp"
@@ -1755,6 +1756,7 @@ int ChunkLoader::light_pop_seed( const int col, LightSeed &add_out, LightRemoveS
 // hold the slot's ownership flag (light_claim_column) — pops and pushes
 // take the slot's queue lock, so this is what serializes the deque ops.
 void ChunkLoader::light_process_queue( const long long budget_us, const int col ) {
+    PROFILE_SCOPE( "light_bfs" );
     const long long start = light_now_us( );
     light_dbg_pq_calls++;
     int iters = 0;
@@ -2206,6 +2208,7 @@ void ChunkLoader::light_recheck_block( const glm::ivec3 &block_pos ) {
 //  - resolve skylight column-by-column (cascade touches neighbors too),
 //  - sync border mirrors with neighbors and seed spreads/removals.
 void ChunkLoader::light_finalize_chunk( Chunk &chunk ) {
+    PROFILE_SCOPE( "light_finalize" );
     if ( chunk.load_state ) {
         // Parked between submit and execution — the work is lost. Nothing
         // to re-flag: the next reactivation marks it stale unconditionally.

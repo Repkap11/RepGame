@@ -65,6 +65,7 @@ the index, not the reference.
 | `REPGAME_OCCLUSION` | 1 | all | `0` disables the hardware occlusion-culling probe pass | docs/rendering.md |
 | `REPGAME_PORT` | 25566 | all | server port override (read in `RepGame::init` when a hostname is given) | mp-test skill |
 | `REPGAME_RENDER_DISTANCE` | `RENDER_RADIUS_DEFAULT` | all | initial horizontal render distance in chunks (`1..RENDER_RADIUS_MAX`); overrides the `player.dat` value | docs/rendering.md |
+| `REPGAME_PROFILE` | 0 | all | `1` enables the `PROFILE_SCOPE` per-tick timers; each metric record gains a `"prof"` block (`src/common/utils/profile.cpp`) | docs/debug-tools.md |
 | `REPGAME_RESULTS` | unset | all | JSONL event-stream path (header/metric/event/probe/assert/summary records); presence enables the results writer | docs/debug-tools.md |
 | `REPGAME_RESULTS_EVERY` | 20 | all | metric record cadence in ticks | docs/debug-tools.md |
 | `REPGAME_SCREENSHOT_TICK` | 0 (off) | all | request a framebuffer screenshot on tick n (`./screenshots/`); only consulted under `REPGAME_WALKTEST` | capture skill |

@@ -9,6 +9,7 @@
 #include "common/audio.hpp"
 #include "common/chunk.hpp"
 #include "common/utils/env_config.hpp"
+#include "common/utils/profile.hpp"
 #include "common/chunk_loader.hpp"
 #include "common/light.hpp"
 #include "common/mp_test.hpp"
@@ -832,6 +833,7 @@ void MobManager::persist_all( ) {
 }
 
 void MobManager::tick( World &world, const glm::dvec3 &player_pos, const MobTickInput *in, MobTickOutput *out ) {
+    PROFILE_SCOPE( "mobs_tick" );
     // Remote mobs tick in every mode (they're driven by the network, not the
     // world); everything else freezes under REPGAME_MOBS=0 and capture mode.
     const bool freeze = !this->enabled || RepGame::capture_mode( );

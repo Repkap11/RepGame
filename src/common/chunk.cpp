@@ -9,6 +9,7 @@
 #include "common/mob_types.hpp"
 #include "common/net/packet.hpp"
 #include "common/utils/env_config.hpp"
+#include "common/utils/profile.hpp"
 #include "common/mesh_gen.hpp"
 #include "common/utils/map_storage.hpp"
 #include "common/structure_gen.hpp"
@@ -950,6 +951,7 @@ int Chunk::can_extend_rect( const BlockState &blockState, const unsigned int *pa
 
 
 void Chunk::calculate_populated_blocks( ) {
+    PROFILE_SCOPE( "chunk_mesh" );
     // Meshing writes instances into a per-render-order thread-local scratch
     // buffer (same lifetime model as tls_workingSpace below): lazily malloc'd
     // at CHUNK_BLOCK_SIZE on first use and never freed, so chunks don't pay

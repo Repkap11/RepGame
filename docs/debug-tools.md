@@ -6,6 +6,21 @@ produces a schema-versioned `result.json`, and runs are indexed and
 queryable. Nobody parses log text — results are structured at the source;
 log parsing exists only as a compatibility shim for old revs.
 
+## Quick start
+
+The five commands you will use most:
+
+```sh
+rep-dbg fly --flat --ticks 400          # a normal headless flight, settled
+rep-dbg show last                        # result.json, pretty-printed
+rep-dbg show last --field stats.metric.loader.light_jobs.mean
+rep-dbg ab --cfg a=rev:master --cfg b=current --reps 3 stream-flight
+rep-dbg metrics last --plot loader.light_jobs,loader.chunks_loading
+```
+
+Then read *Results model* once (that is where every answer lives), skim
+*Commands by area* for the rest, and keep *Recipes* for worked examples.
+
 ## Results model
 
 ### `results.jsonl` — the game-side event stream
@@ -21,6 +36,8 @@ log parsing exists only as a compatibility shim for old revs.
   same loader/light probe as the FLYMET line:
   `{"type":"metric","tick":N,"fly_phase":0-2,"rd":N,"pos":[x,y,z],
   "loader":{...all LoaderDebugStats fields...},"light":{k:v,...}}`.
+  With `REPGAME_PROFILE=1` the record also carries
+  `"prof":{<slot>:{n,us,max_us},...}` — see *Profile timers*.
   `light` carries the `light_dbg_stats` k=v counters as numbers where
   numeric; the `| us:` section's keys are prefixed `us_`. Those counters
   are interval counters reset by every `light_dbg_stats` call: in fly mode
@@ -93,7 +110,9 @@ on stdout; progress goes to stderr. Exit codes: `0` ok, `1` asserts failed,
 `2` crashed/timeout, `3` build failed, `4` usage/preflight error. The last
 stderr line of a run is `rep-dbg: <status> <run-dir>`.
 
-## Commands
+## Commands by area
+
+### Runs and presets
 
 - `rep-dbg run [--build release|debug] [--rev <git-ref>] [--world NAME]
   [--flat] [--keep-world <dir>] [--env K=V ...] [--timeout S] [--name N]
@@ -110,6 +129,13 @@ stderr line of a run is `rep-dbg: <status> <run-dir>`.
   `--fly-ticks`, `--rd "tick:radius,..."`, `--metrics`, `--every`
   (RESULTS_EVERY).
 - `rep-dbg walk` — `REPGAME_WALKTEST` preset: `--ticks`, `--teleport`.
+
+All presets accept `--build release|debug|asan|tsan`, `--profile`
+(REPGAME_PROFILE=1), `--gdb` and `--every`; `rep-dbg tests` is the odd
+one out — see *Sanitizers & crashes*.
+
+### Runs, stats and metrics
+
 - `rep-dbg runs [--name N] [--status S] [--git SHA] [--since 2h] [--last N]
   [--reindex] [--json]`
 - `rep-dbg show <id|dir|last> [--json] [--field stats.metric.loader.light_jobs.max]`
@@ -162,6 +188,44 @@ stderr line of a run is `rep-dbg: <status> <run-dir>`.
   `rep-dbg ab --cfg a=current --cfg b=current --reps 2 -- fly --ticks
   3000 --settle 20`. The scenario env is applied first, `--env` pairs
   next, and each cfg's own `K=V` last (it is the variable under test).
+
+## Profile timers (`REPGAME_PROFILE`)
+
+In-game coarse timers complement `perf`: **perf shows where CPU time goes
+inside call stacks; profile timers give per-tick subsystem budgets** that
+aggregate cleanly and A/B well.
+
+- Add `PROFILE_SCOPE("name")` at the top of a coarse function (tick,
+  world draw, chunk mesh, mob tick, block-update drain, light job…).
+  It registers a fixed slot once (64 slots, mutex, overflow logs once and
+  lands in a shared dummy) and runs an RAII `profile::Scope`.
+- When profiling is off, the Scope is one relaxed check of
+  `profile::g_enabled` — no clock reads, effectively free. When on
+  (`REPGAME_PROFILE=1`, or `--profile` on any rep-dbg preset / all `ab`
+  cfgs) it times with `steady_clock` and accumulates relaxed
+  `n`/`total_ns`/`max_ns` atomics per slot. Names aggregate across
+  threads, so light workers sum into one slot.
+- On each metric record `snapshot_and_reset()` swaps the interval
+  counters into `"prof":{name:{n,us,max_us}}` — the interval is one
+  `REPGAME_RESULTS_EVERY` window (metric to metric), and the stats
+  pipeline automatically produces `stats.metric.prof.<name>.us.mean`,
+  `...max_us.max`, etc.
+- `rep-dbg metrics <run> --fields 'prof.*'` tabulates them;
+  `--plot prof.tick.us,prof.world_draw.us` charts a run;
+  `rep-dbg ab --profile --metric stats.metric.prof.tick.us.mean ...`
+  compares budgets across cfgs.
+- Instrumented sites: `profile.hpp`/`game_tick.cpp` ("tick"),
+  `game_render.cpp` ("draw_frame"), `world.cpp` ("world_draw"),
+  `light.cpp` ("light_bfs" — per-column BFS drain on the light workers, "light_finalize"),
+  `terrain_loading_thread.cpp` ("terrain_job"), `chunk.cpp`
+  ("chunk_mesh"), `mobs.cpp` ("mobs_tick"), `player.cpp`
+  ("player_movement", "block_updates"). Implementation:
+  `src/common/utils/profile.cpp`.
+
+Cost model: off is a single bool load per scope; on is two steady_clock
+reads + three relaxed atomics per scope — negligible at call-site
+granularity, which is why scopes belong on coarse functions, never on
+per-block inner loops.
 
 ## Profiling (`perf`)
 
@@ -416,3 +480,23 @@ to verify `--gdb` and sanitizer report collection.
 - A/B an env toggle vs master:
   `rep-dbg ab --cfg master=rev:master --cfg mine=current --reps 3 stream-flight`
 - Chart a run: `rep-dbg metrics last --plot loader.light_jobs,loader.chunks_loading`
+- Per-subsystem tick budgets: `rep-dbg fly --profile --json` →
+  `stats.metric.prof.*`; A/B them with `rep-dbg ab --profile --metric
+  stats.metric.prof.tick.us.mean`.
+- Measure profiler overhead itself: `rep-dbg ab --cfg off=current --cfg
+  on=current:REPGAME_PROFILE=1 --reps 3 stream-flight`.
+
+## Don't
+
+- Don't write one-off `/tmp` shell scripts that set `SDL_VIDEODRIVER` and
+  hand-delete worlds — `rep-dbg run` already does isolation, timeouts and
+  interleaving.
+- Don't regex `stdout.log` — the field you want is already in
+  `result.json`; if it isn't, add a record to `results.cpp` (the log
+  shim exists only for old revs).
+- Don't use checked-in image baselines — diffs are always run-vs-run or
+  rev-vs-rev (`rep-dbg diff`, `shot --revs`).
+- Don't `sudo` anything — the only root knob is the perf sysctl, and the
+  preflight tells you exactly what to ask the user to run.
+- Don't `rm` worlds under `~/.repgame` — rep-dbg runs are isolated
+  copies; reuse a save via `--keep-world`, never mutate the real one.

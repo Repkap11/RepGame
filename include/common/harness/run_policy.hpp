@@ -124,6 +124,9 @@ struct RunPolicy {
     long results_every = 20;
     // REPGAME_GIT=<sha>: stamped into the header record (rep-dbg sets it).
     const char *git_sha = nullptr;
+    // REPGAME_PROFILE=1: PROFILE_SCOPE timers aggregate into each metric
+    // record's "prof" object (docs/debug-tools.md).
+    bool profile = false;
 
     // True while a scripted harness owns the camera — VR input, pointer lock
     // and HUD interaction are suppressed on these paths.

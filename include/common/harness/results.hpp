@@ -14,7 +14,8 @@ struct RepGameState;
 // flushed per record and writes are mutex-protected.
 namespace results {
 // Pure record formatters (no trailing newline) — rep_tests cover these.
-std::string format_metric( long tick, int fly_phase, int rd, const glm::dvec3 &pos, const LoaderDebugStats &s, const std::string &light_json );
+std::string format_metric( long tick, int fly_phase, int rd, const glm::dvec3 &pos, const LoaderDebugStats &s, const std::string &light_json,
+                           const std::string &prof_json = "" );
 std::string format_event( long tick, const char *name, const std::string &detail_json );
 std::string format_probe( long tick, const glm::ivec3 &pos, int block, const char *name, int rotation, int sky, int blocklight );
 std::string format_assert( long tick, int line, const char *cmd, bool ok, const char *expected, const char *actual );

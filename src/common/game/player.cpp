@@ -11,6 +11,7 @@
 #include "common/audio.hpp"
 #include "common/block_definitions.hpp"
 #include "common/utils/map_storage.hpp"
+#include "common/utils/profile.hpp"
 #include "common/renderer/texture.hpp"
 #include "common/renderer/frame_buffer.hpp"
 #include "common/world.hpp"
@@ -484,6 +485,7 @@ void RepGame::process_camera_angle( ) {
 }
 
 void RepGame::process_movement( ) {
+    PROFILE_SCOPE( "player_movement" );
     bool player_flying = globalGameState.input.player_flying;
     bool player_sprinting = globalGameState.input.player_sprinting;
 
@@ -773,6 +775,7 @@ void RepGame::process_movement( ) {
 }
 
 void RepGame::process_block_updates( ) {
+    PROFILE_SCOPE( "block_updates" );
     // for ( size_t i = 0; i < 20; i++ ) {
     //     world_process_random_ticks( &globalGameState.world );
     // }

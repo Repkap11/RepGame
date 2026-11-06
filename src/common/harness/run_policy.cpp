@@ -117,6 +117,7 @@ static RunPolicy run_policy_parse( ) {
     p.results_path = env_get( "REPGAME_RESULTS" );
     p.results_every = env_long( "REPGAME_RESULTS_EVERY", 20 );
     p.git_sha = env_get( "REPGAME_GIT" );
+    p.profile = env_int( "REPGAME_PROFILE", 0 ) != 0;
     return p;
 }
 

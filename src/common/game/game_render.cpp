@@ -12,6 +12,7 @@
 #include "common/audio.hpp"
 #include "common/block_definitions.hpp"
 #include "common/utils/map_storage.hpp"
+#include "common/utils/profile.hpp"
 #include "common/renderer/texture.hpp"
 #include "common/renderer/frame_buffer.hpp"
 #include "common/world.hpp"
@@ -40,6 +41,7 @@ void RepGame::draw_vr( float alpha, const RenderView *views, int num_views ) {
 }
 
 void RepGame::draw_frame( float alpha, const RenderView *views, int num_views ) {
+    PROFILE_SCOPE( "draw_frame" );
     static int screenshot_counter = 0;
     if ( globalGameState.input.exitGame ) {
         // Don't bother draw the state if the game is exiting

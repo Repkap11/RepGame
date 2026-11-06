@@ -36,3 +36,4 @@ int test_crafting( );
 int test_results( );
 int test_script( );
 int test_inspect( );
+int test_profile( );

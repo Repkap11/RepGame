@@ -1,6 +1,6 @@
 ---
 name: debug-tools
-description: Structured debug/profiling runs for RepGame via tools/rep-dbg — indexed runs with a result.json + results.jsonl event stream (metrics, events, asserts). Use when stress-testing loading/lighting, bisecting with --rev, or answering "what did the loader/light queues do" questions without regexing logs.
+description: Structured debug/profiling runs for RepGame via tools/rep-dbg — indexed runs with a result.json + results.jsonl event stream. Use for profiling (perf or REPGAME_PROFILE timers), screenshots and visual-bug diffs, reproducing bug reports, block/light debugging, crashes and hangs, sanitizer runs (asan/tsan), A/B comparisons across revs or env toggles, and stress-testing loading/lighting — without regexing logs.
 ---
 
 # rep-dbg
@@ -31,6 +31,7 @@ for humans (`stdout.log`); the only sanctioned scraping is
 | A/B an env toggle or branch | `rep-dbg ab --cfg a=rev:master --cfg b=current:REPGAME_LIGHT_SMOOTH=1 --reps 3 stream-flight` (scenarios: `cold-settle`, `stream-flight`, or preset args after `--`) |
 | Metric table / CSV / chart | `rep-dbg metrics <run> [--csv] [--plot loader.light_jobs,...] [--after-settle]` |
 | Where is CPU time going? | `rep-dbg perf record stream-flight` → `top.txt`, `flame.svg` in the run dir (needs `kernel.perf_event_paranoid<=1`; `--call-graph fp` wants `make linux PERF=1`) |
+| Per-tick subsystem budgets | `rep-dbg fly --profile` (`REPGAME_PROFILE=1`) → `stats.metric.prof.<name>.{n,us,max_us}`; `metrics <run> --fields 'prof.*'` / `--plot prof.tick.us`; `ab --profile` to A/B budgets |
 | Profile a running game | `rep-dbg perf attach RepGame --duration 20` |
 | Reproduce an F12 screenshot | `rep-dbg shot "<f12 spec>"` → PNGs in `artifacts.screenshots` |
 | Bisect which subsystem changed a frame | `rep-dbg shot "<f12>" --flags-sweep` → `sweep.png` |
@@ -63,6 +64,21 @@ r.stats["metric.loader.light_jobs"]["max"]
 r.metrics(after_settle=True); r.events("capture_shot"); r.probes()
 results.query(name="fly", status="ok")
 ```
+
+## Preflight & caveats
+
+- perf: `kernel.perf_event_paranoid > 1` refuses with exit 4 — agents
+  can't `sudo`; ask the user to run the sysctl line printed by
+  `docs/debug-tools.md`.
+- `capture_0` flat captures are bistable — rerun a view-0 diff once
+  (`rep-dbg diff --rerun`) before calling it a regression.
+- Sanitizer known findings as of commit ab63d8c (verify before
+  assuming): UBSan misaligned `unsigned int` load
+  (`map_storage.cpp:490` in `load_blocks_decode`), UBSan invalid
+  `TranslucentBlend` sentinel (`chunk_loader.cpp:44`), exit-time
+  chunk/light leaks (~951 MB: `calculate_populated_blocks`,
+  `load_terrain`, `light_fill_chunk`), TSan `light_dbg_*` counter races
+  in `light.cpp`. RepGame findings are reported, never suppressed.
 
 ## Statuses
 

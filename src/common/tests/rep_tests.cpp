@@ -49,6 +49,7 @@ constexpr Test all_tests[] = {  //
     MK_TEST( results ),          //
     MK_TEST( script ),          //
     MK_TEST( inspect ),          //
+    MK_TEST( profile ),          //
     { nullptr, nullptr }
 
 };

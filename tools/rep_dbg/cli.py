@@ -39,6 +39,8 @@ def _add_run_args(p):
     p.add_argument("--every", type=int, default=None, help="REPGAME_RESULTS_EVERY cadence")
     p.add_argument("--gdb", action="store_true",
                    help="wrap the game in batch gdb; signal + all-thread bt land in crash.txt")
+    p.add_argument("--profile", action="store_true",
+                   help="REPGAME_PROFILE=1: per-tick PROFILE_SCOPE timers in each metric record")
 
 
 def _parser():
@@ -86,6 +88,8 @@ def _parser():
     p.add_argument("--every", type=int, default=None)
     p.add_argument("--perf-stat", action="store_true",
                    help="run each rep under perf stat (perf.stat.* metrics)")
+    p.add_argument("--profile", action="store_true",
+                   help="REPGAME_PROFILE=1 for all cfgs")
     p.add_argument("--json", action="store_true")
     p.add_argument("--root", default=None)
 
@@ -237,6 +241,8 @@ def _preset_env(opts):
         env["REPGAME_WALKTEST_TICKS"] = str(opts.ticks)
         if opts.teleport:
             env["REPGAME_TELEPORT"] = opts.teleport
+    if getattr(opts, "profile", False):
+        env["REPGAME_PROFILE"] = "1"
     if opts.every is not None:
         env["REPGAME_RESULTS_EVERY"] = str(opts.every)
     return env
@@ -318,6 +324,8 @@ def _do_ab(opts):
         env = dict(scenario_env)
         env.update(user_env)
         env.update(cfg["env"])  # cfg env is the variable under test
+        if opts.profile:
+            env["REPGAME_PROFILE"] = "1"
         if opts.every is not None:
             env["REPGAME_RESULTS_EVERY"] = str(opts.every)
         if opts.perf_stat:

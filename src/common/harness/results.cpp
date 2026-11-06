@@ -12,6 +12,7 @@
 #include <vector>
 
 #include "common/RepGame.hpp"
+#include "common/utils/profile.hpp"
 #include "common/block_definitions.hpp"
 #include "common/harness/run_policy.hpp"
 #include "common/light.hpp"
@@ -140,7 +141,8 @@ std::string results::light_json_from_dbg( const char *dbg ) {
     return out;
 }
 
-std::string results::format_metric( long tick, int fly_phase, int rd, const glm::dvec3 &pos, const LoaderDebugStats &s, const std::string &light_json ) {
+std::string results::format_metric( long tick, int fly_phase, int rd, const glm::dvec3 &pos, const LoaderDebugStats &s, const std::string &light_json,
+                                    const std::string &prof_json ) {
     char buf[ 2048 ];
     snprintf( buf, sizeof( buf ),
               "{\"type\":\"metric\",\"tick\":%ld,\"fly_phase\":%d,\"rd\":%d,\"pos\":[%.4f,%.4f,%.4f],"
@@ -153,7 +155,12 @@ std::string results::format_metric( long tick, int fly_phase, int rd, const glm:
               s.chunks_occluded, s.light_jobs, s.light_pending, s.light_claims, s.light_dirty, s.light_bfs_active,
               s.light_bfs_priority, s.light_bfs_starve, s.light_seeds, s.light_dropped, s.light_stale_count,
               s.light_jlag_us, s.light_njlag_us );
-    return std::string( buf ) + light_json + "}";
+    std::string out = std::string( buf ) + light_json;
+    if ( !prof_json.empty( ) ) {
+        out += ",\"prof\":";
+        out += prof_json;
+    }
+    return out + "}";
 }
 
 std::string results::format_event( long tick, const char *name, const std::string &detail_json ) {
@@ -214,6 +221,7 @@ void results::init( const char *world_name ) {
         pr_debug( "REPGAME_RESULTS: cannot open '%s'", path );
         return;
     }
+    profile::set_enabled( run_policy( ).profile );
     const RunPolicy &p = run_policy( );
     char policy[ 2048 ];
     snprintf( policy, sizeof( policy ),
@@ -241,7 +249,7 @@ void results::metric( const RepGameState &state, const LoaderDebugStats &s, cons
         return;
     }
     write_line( format_metric( state.tick_number, run_policy( ).fly.phase, state.input.render_distance, state.camera.pos, s,
-                               light_json_from_dbg( light_dbg ) ) );
+                               light_json_from_dbg( light_dbg ), profile::json_and_reset( ) ) );
 }
 
 void results::event( long tick, const char *name, const char *fmt, ... ) {

@@ -3,6 +3,7 @@
 #include "common/chunk.hpp"
 #include "common/chunk_loader.hpp"
 #include "common/utils/env_config.hpp"
+#include "common/utils/profile.hpp"
 #include "common/renderer/screenshot.hpp"
 #include "common/block_update_events/BlockNextToChangeEvent.hpp"
 #include "common/block_update_events/BlockNextToChangeEvent.hpp"
@@ -246,6 +247,7 @@ void World::set_selected_block( const glm::ivec3 &selected, const bool shouldDra
 #define WATER_THRESHOLD_N ( -0.01 )
 void World::draw( const Texture &blocksTexture, const glm::mat4 &mvp, const glm::mat4 &inv_mvp, const glm::mat4 &mvp_reflect, const glm::mat4 &mvp_sky, const glm::mat4 &mvp_sky_reflect, const int debug, const int draw_mouse_selection, const float y_height,
                   const bool headInWater, WorldDrawQuality worldDrawQuality, const glm::dvec3 &camera_pos, const glm::ivec3 &renderOrigin, const float time_s, const float daylight, const float min_ambient, const float alpha ) {
+    PROFILE_SCOPE( "world_draw" );
 
     const glm::vec3 renderOriginF = glm::vec3( renderOrigin );
     // Camera and block positions are rebased by u_Origin in the vertex shaders,

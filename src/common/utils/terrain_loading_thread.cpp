@@ -2,6 +2,7 @@
 #include <unistd.h>
 
 #include "common/utils/terrain_loading_thread.hpp"
+#include "common/utils/profile.hpp"
 #include "common/chunk.hpp"
 
 #if TERRAIN_GEN_PROFILING
@@ -39,6 +40,7 @@ void TerrainLoadingThread::set_focus( const glm::ivec3 &chunk_pos, int render_ra
 }
 
 void TerrainLoadingThread::process_value( TerrainWorkItem &item ) {
+    PROFILE_SCOPE( "terrain_job" );
     Chunk &chunk = *item.chunk;
     glm::ivec3 target = item.new_chunk_pos;
 #if TERRAIN_GEN_PROFILING
