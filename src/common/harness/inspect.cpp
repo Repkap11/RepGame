@@ -226,9 +226,10 @@ inspect::Result inspect::column( const char *dir, const int x, const int z, cons
     std::map<int, std::vector<BlockState>> cache;
     std::string runs_json, runs_text;
     int run_start = y0;
-    BlockID run_id = static_cast<BlockID>( -1 );
+    bool have_run = false;
+    BlockID run_id = BlockID::AIR;
     auto flush = [&]( const int upto ) {
-        if ( run_id == static_cast<BlockID>( -1 ) ) {
+        if ( !have_run ) {
             return;
         }
         runs_json += runs_json.empty() ? "" : ",";
@@ -246,10 +247,11 @@ inspect::Result inspect::column( const char *dir, const int x, const int z, cons
         }
         const glm::ivec3 local{ x - cx * CHUNK_SIZE_X, y - cy * CHUNK_SIZE_Y, z - cz * CHUNK_SIZE_Z };
         const BlockID id = cell_at( it->second.data( ), local ).id;
-        if ( id != run_id ) {
+        if ( !have_run || id != run_id ) {
             flush( y );
             run_id = id;
             run_start = y;
+            have_run = true;
         }
     }
     flush( y1 + 1 );
