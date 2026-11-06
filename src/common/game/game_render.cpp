@@ -280,7 +280,17 @@ void RepGame::draw_frame( float alpha, const RenderView *views, int num_views ) 
     debugVars.player_pos = glm::vec3( globalGameState.camera.pos );
     debugVars.world_time = globalGameState.world_time;
     debugVars.daylight = daylight;
-    globalGameState.world.chunkLoader.debug_loader_stats( &debugVars.loader );
+    // debug_loader_stats scans every loaded-chunk slot and takes
+    // light_work_mutex — only the ImGui overlay reads it, so refresh at
+    // most every 100 ms and only while the overlay is shown.
+    static long long t_loader_stats_last = 0;
+    if ( globalGameState.ui.imgui.shown ) {
+        const long long t_now = repgame_now_us( );
+        if ( t_now - t_loader_stats_last > 100000 ) {
+            t_loader_stats_last = t_now;
+            globalGameState.world.chunkLoader.debug_loader_stats( &debugVars.loader );
+        }
+    }
     debugVars.debris_particles = static_cast<int>( globalGameState.world.blockDebris.count( ) );
     debugVars.primed_tnt = static_cast<int>( globalGameState.world.bodies.count_tnt( ) );
     debugVars.falling_blocks = static_cast<int>( globalGameState.world.bodies.count_falling( ) );
