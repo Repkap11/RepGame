@@ -744,6 +744,7 @@ void RepGame::process_movement( ) {
     // is audible on the splash).
     {
         static bool was_in_liquid = false;
+        static bool liquid_state_known = false;
         static double swim_distance = 0.0;
         static long last_swim_tick = -1000;
         const double feet_y = globalGameState.camera.pos.y - globalGameState.camera.eye_height;
@@ -753,6 +754,13 @@ void RepGame::process_movement( ) {
         const bool feet_in_liquid = feet_block_now.id < LAST_BLOCK_ID && block_definition_get_definition( feet_block_now.id )->flows != 0;
         const bool body_in_liquid_now = body_block_now.id < LAST_BLOCK_ID && block_definition_get_definition( body_block_now.id )->flows != 0;
         const bool in_liquid = ( feet_in_liquid || body_in_liquid_now ) && !player_flying && !globalGameState.input.no_clip;
+        // Unloaded chunks read as LAST_BLOCK_ID: skip until they load, and take
+        // the first loaded sample silently so spawning underwater doesn't splash.
+        const bool blocks_loaded = feet_block_now.id != LAST_BLOCK_ID && body_block_now.id != LAST_BLOCK_ID;
+        if ( blocks_loaded && !liquid_state_known ) {
+            liquid_state_known = true;
+            was_in_liquid = in_liquid;
+        }
         if ( in_liquid ) {
             if ( !was_in_liquid ) {
                 audio_play_sfx( globalGameState.camera.y_speed < -0.25 ? "heavy_splash" : "splash" );
@@ -770,7 +778,9 @@ void RepGame::process_movement( ) {
         } else {
             swim_distance = 0.0;
         }
-        was_in_liquid = in_liquid;
+        if ( blocks_loaded ) {
+            was_in_liquid = in_liquid;
+        }
     }
 }
 
