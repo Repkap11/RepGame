@@ -487,7 +487,8 @@ int load_blocks_decode( MapStorage &storage, const glm::ivec3 &chunk_offset, Sin
 
     for ( unsigned int i = 0; i < persist_data_length; i++ ) {
         char *block_storage = &persist_data[ i * storage_type_size ];
-        unsigned int block_storage_num = *( unsigned int * )&persist_data[ ( ( i + 1 ) * storage_type_size ) - sizeof( unsigned int ) ];
+        unsigned int block_storage_num;
+        memcpy( &block_storage_num, &persist_data[ ( ( i + 1 ) * storage_type_size ) - sizeof( unsigned int ) ], sizeof( block_storage_num ) );
 
         BlockState blockState = BLOCK_STATE_AIR;
         memset( &blockState, 0, sizeof( BlockState ) );
