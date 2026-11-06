@@ -21,6 +21,7 @@
 #include "common/multiplayer.hpp"
 #include "common/mp_test.hpp"
 #include "common/harness/run_policy.hpp"
+#include "common/harness/results.hpp"
 #include "common/utils/env_config.hpp"
 #include "common/light.hpp"
 #include "common/map_gen.hpp"
@@ -155,7 +156,8 @@ void RepGame::draw_frame( float alpha, const RenderView *views, int num_views ) 
         static int light_dbg = 0;
         // Skipped in fly mode: FLYMET owns the light_dbg_stats interval there
         // (a second caller would split the counters across two streams).
-        if ( ++light_dbg % 120 == 0 && !RepGame::fly_mode( ) ) {
+        // Likewise the REPGAME_RESULTS metric record when it's enabled.
+        if ( ++light_dbg % 120 == 0 && !RepGame::fly_mode( ) && !results::active( ) ) {
             const glm::ivec3 p = glm::ivec3( glm::floor( render_pos ) );
             const glm::ivec3 up = p + glm::ivec3( 0, 5, 0 );
             char dbg[ 1024 ];
@@ -312,6 +314,7 @@ void RepGame::draw_frame( float alpha, const RenderView *views, int num_views ) 
         // Capture intermediate framebuffer attachments for debugging.
         std::string prefix = "screenshot_" + std::to_string( screenshot_counter++ );
         globalGameState.world.screenshot( prefix );
+        results::event( globalGameState.tick_number, "screenshot", "\"file\":\"screenshots/%s_display.tga\"", prefix.c_str( ) );
         // Emit the current view in REPGAME_CAPTURE format so an interesting
         // spot can be reproduced deterministically in capture mode.
         // Log the exact rendered camera (this frame's interpolated pos +
@@ -327,11 +330,16 @@ void RepGame::draw_frame( float alpha, const RenderView *views, int num_views ) 
     if ( run_policy().capture.enabled && run_policy().capture.shot_pending ) {
         run_policy().capture.shot_pending = false;
         globalGameState.world.screenshot( "capture_" + std::to_string( run_policy().capture.view_index ) );
+        results::event( globalGameState.tick_number, "capture_shot",
+                        "\"view\":%d,\"file\":\"screenshots/capture_%d_display.tga\",\"ticks\":%ld,\"timeout\":%d",
+                        run_policy().capture.view_index, run_policy().capture.view_index, run_policy().capture.ticks_in_view,
+                        run_policy().capture.shot_timed_out ? 1 : 0 );
 #if defined( REPGAME_WASM )
         // WASM: exiting reloads the page and loses the captures — mark done
         // and keep the camera pinned on the last (still valid) view.
         if ( run_policy().capture.view_index == static_cast<int>( run_policy().capture.views.size( ) ) - 1 ) {
             run_policy().capture.finished = true;
+            results::note_exit_reason( "capture_done" );
             pr_debug( "Capture complete" );
         } else {
             run_policy().capture.view_index++;
@@ -341,6 +349,7 @@ void RepGame::draw_frame( float alpha, const RenderView *views, int num_views ) 
 #else
         run_policy().capture.view_index++;
         if ( run_policy().capture.view_index >= static_cast<int>( run_policy().capture.views.size( ) ) ) {
+            results::note_exit_reason( "capture_done" );
             globalGameState.input.exitGame = true;
         } else {
             run_policy().capture.ticks_in_view = 0;

@@ -118,6 +118,8 @@ FLYMET telemetry lines log the loader/light counters (glossary and the
 settle knobs `REPGAME_FLY_SETTLE`/`REPGAME_FLY_SETTLE_TIMEOUT`/
 `REPGAME_FLY_FLY_TICKS` are in `docs/rendering.md`). Combine with
 `SDL_VIDEODRIVER=offscreen SDL_AUDIODRIVER=dummy` for headless runs.
+Prefer `rep-dbg fly` (debug-tools skill) — same env under the hood plus a
+queryable `result.json`, so nobody has to parse FLYMET text.
 
 Deterministic mob/item staging for captures: `REPGAME_MOB_TEST` /
 `REPGAME_ITEM_TEST` (docs/mobs.md, docs/items-crafting.md); capture mode

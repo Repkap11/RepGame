@@ -20,6 +20,7 @@
 #include "common/multiplayer.hpp"
 #include "common/mp_test.hpp"
 #include "common/harness/run_policy.hpp"
+#include "common/harness/results.hpp"
 #include "common/utils/env_config.hpp"
 #include "common/light.hpp"
 #include "common/map_gen.hpp"
@@ -338,6 +339,8 @@ RepGameState *RepGame::init( const char *world_name, const bool connect_multi, c
     glGetIntegerv( GL_SAMPLES, &iNumSamples );
     pr_debug( "GL_SAMPLE_BUFFERS = %d, GL_SAMPLES = %d", iMultiSample, iNumSamples );
     audio_init( );
+    // Opens REPGAME_RESULTS and writes the header line (no-op when unset).
+    results::init( world_name );
     return &globalGameState;
 }
 
@@ -399,6 +402,8 @@ void RepGame::cleanup( ) {
     block_definitions_free_definitions( );
     audio_cleanup( );
 
+    // Last results record — a missing summary line marks an abnormal exit.
+    results::summary( globalGameState );
     clean_up_done = true;
     // pr_debug( "RepGame cleanup done" );
 }

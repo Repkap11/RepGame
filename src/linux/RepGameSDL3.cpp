@@ -5,6 +5,7 @@
 #include <chrono>
 
 #include "common/RepGame.hpp"
+#include "common/harness/results.hpp"
 #include "common/utils/env_config.hpp"
 #include "common/rep_tests.hpp"
 #ifdef REPGAME_LINUX
@@ -322,6 +323,9 @@ int repgame_sdl2_main( const char *world_path, const char *host, const bool conn
 #if defined( REPGAME_OPENXR )
     }
 #endif
+    if ( exit_signal_received ) {
+        results::note_exit_reason( "signal" );
+    }
     repgame.cleanup( );
     delete repgamePrt;
     SDL_GL_DestroyContext( sdl_context );

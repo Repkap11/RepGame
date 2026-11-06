@@ -20,6 +20,7 @@
 #include "common/multiplayer.hpp"
 #include "common/mp_test.hpp"
 #include "common/harness/run_policy.hpp"
+#include "common/harness/results.hpp"
 #include "common/utils/env_config.hpp"
 #include "common/light.hpp"
 #include "common/map_gen.hpp"
@@ -28,6 +29,16 @@
 #include "common/block_update_events/PressurePlateEvent.hpp"
 #include "common/block_update_events/TntExplodeEvent.hpp"
 #include "common/game/game_internal.hpp"
+
+// Shared idle predicate for the harness settle gates: true when the terrain
+// loader and light queues have no work outstanding. The fly-mode settle
+// gate and capture-mode readiness both wait on this.
+static bool loader_idle( ChunkLoader &loader ) {
+    LoaderDebugStats s;
+    loader.debug_loader_stats( &s );
+    return s.chunks_loading == 0 && s.terrain_queued == 0 && s.terrain_results == 0 && s.light_jobs == 0 && s.light_pending == 0 &&
+           s.light_dirty == 0 && s.light_bfs_active == 0 && s.light_seeds == 0 && s.light_stale_count == 0;
+}
 
 void RepGame::tick( ) {
     if ( globalGameState.input.exitGame ) {
@@ -290,6 +301,7 @@ void RepGame::tick( ) {
         // threads — exit() here tears down libamdhip64 while a worker may be
         // inside map_gen_load_block_hip, segfaulting during shutdown.
         if ( run_policy( ).walktest_ticks && globalGameState.tick_number >= run_policy( ).walktest_ticks ) {
+            results::note_exit_reason( "walktest_ticks" );
             globalGameState.input.exitGame = true;
         }
         // REPGAME_TELEPORT="x,y,z,angle,sprint,spin_deg_per_tick[,pitch]": teleport on
@@ -395,17 +407,11 @@ void RepGame::tick( ) {
         // Settle gate: hold at the start position until the loader and light
         // queues have been idle REPGAME_FLY_SETTLE consecutive ticks (or the
         // timeout expires) so the flight starts from a converged baseline.
-        const auto loader_idle = [&]( ) {
-            LoaderDebugStats s;
-            globalGameState.world.chunkLoader.debug_loader_stats( &s );
-            return s.chunks_loading == 0 && s.terrain_queued == 0 && s.terrain_results == 0 && s.light_jobs == 0 && s.light_pending == 0 &&
-                   s.light_dirty == 0 && s.light_bfs_active == 0 && s.light_seeds == 0 && s.light_stale_count == 0;
-        };
         // REPGAME_LIGHT_VERIFY also checks once the post-flight hover has
         // drained (phase 2), so streaming-time light bugs get caught too.
         static int verify_hover_streak = 0;
         if ( run_policy().fly.phase == 2 && verify_hover_streak >= 0 && env_int( "REPGAME_LIGHT_VERIFY", 0 ) > 0 ) {
-            verify_hover_streak = loader_idle( ) ? verify_hover_streak + 1 : 0;
+            verify_hover_streak = loader_idle( globalGameState.world.chunkLoader ) ? verify_hover_streak + 1 : 0;
             if ( verify_hover_streak >= ( run_policy().fly.settle_ticks > 0 ? run_policy().fly.settle_ticks : 1 ) ) {
                 pr_debug( "Fly mode: hover drained at tick %ld", globalGameState.tick_number );
                 globalGameState.world.chunkLoader.light_debug_verify( );
@@ -415,7 +421,7 @@ void RepGame::tick( ) {
         if ( run_policy().fly.phase == 0 ) {
             bool go = true;
             if ( run_policy().fly.settle_ticks > 0 && globalGameState.tick_number < run_policy().fly.settle_timeout ) {
-                const bool idle = loader_idle( );
+                const bool idle = loader_idle( globalGameState.world.chunkLoader );
                 run_policy().fly.idle_streak = idle ? run_policy().fly.idle_streak + 1 : 0;
                 go = run_policy().fly.idle_streak >= run_policy().fly.settle_ticks;
             }
@@ -423,6 +429,7 @@ void RepGame::tick( ) {
                 run_policy().fly.phase = 1;
                 run_policy().fly.fly_start_tick = globalGameState.tick_number;
                 pr_debug( "Fly mode: settled, flight begins at tick %ld", run_policy().fly.fly_start_tick );
+                results::event( globalGameState.tick_number, "fly_settled" );
                 // 2 = hover check only: the settle check freezes the main
                 // loop for seconds, and the tick catch-up afterwards skews
                 // the flight's timing metrics.
@@ -451,6 +458,7 @@ void RepGame::tick( ) {
         globalGameState.camera.prev_angle_H = globalGameState.camera.angle_H;
         globalGameState.camera.prev_angle_V = globalGameState.camera.angle_V;
         if ( run_policy().fly.exit_tick && globalGameState.tick_number >= run_policy().fly.exit_tick ) {
+            results::note_exit_reason( "fly_ticks" );
             globalGameState.input.exitGame = true;
         }
     }
@@ -482,12 +490,7 @@ void RepGame::tick( ) {
     // everything visible is then generated, meshed, lit and uploaded.
     if ( run_policy().capture.enabled && !run_policy().capture.shot_pending && !run_policy().capture.finished ) {
         run_policy().capture.ticks_in_view++;
-        LoaderDebugStats s;
-        globalGameState.world.chunkLoader.debug_loader_stats( &s );
-        const bool idle = s.chunks_loading == 0 && s.terrain_queued == 0 && s.terrain_results == 0 && //
-                          s.light_jobs == 0 && s.light_pending == 0 && s.light_dirty == 0 &&         //
-                          s.light_bfs_active == 0 && s.light_seeds == 0 && s.light_stale_count == 0;
-        run_policy().capture.idle_streak = idle ? run_policy().capture.idle_streak + 1 : 0;
+        run_policy().capture.idle_streak = loader_idle( globalGameState.world.chunkLoader ) ? run_policy().capture.idle_streak + 1 : 0;
         // REPGAME_CAPTURE_VIEW_TICKS: views after the first shoot on a fixed
         // tick count regardless of queue state — the shot lands on the frame
         // the camera jumped to, catching transition transients (stale
@@ -498,6 +501,7 @@ void RepGame::tick( ) {
             const bool timed_out = !fixed_hold && run_policy().capture.idle_streak < run_policy().capture.settle_ticks;
             pr_debug( "Capture view %d: shot pending after %ld ticks%s", run_policy().capture.view_index, run_policy().capture.ticks_in_view,
                       timed_out ? " (TIMEOUT — loader still busy)" : "" );
+            run_policy().capture.shot_timed_out = timed_out;
             run_policy().capture.shot_pending = true;
         }
     }
@@ -506,16 +510,26 @@ void RepGame::tick( ) {
     // light-queue dynamics can be plotted over the flight. Carries the same
     // counters as the LIGHT probe plus claim/window state (j=jobs p=pending
     // c=claims d=dirty x=dropped s=seeds; pri/starve = open priority windows).
-    if ( run_policy().fly.enabled && run_policy().fly.metric_every > 0 && globalGameState.tick_number % run_policy().fly.metric_every == 0 ) {
+    const bool flymet_due = run_policy().fly.enabled && run_policy().fly.metric_every > 0 &&
+                            globalGameState.tick_number % run_policy().fly.metric_every == 0;
+    if ( flymet_due || results::metric_due( globalGameState.tick_number ) ) {
+        // One probe per tick shared between FLYMET and the results metric
+        // record: light_dbg_stats resets its interval counters, so a second
+        // call would hand FLYMET a truncated sample.
         LoaderDebugStats s;
         globalGameState.world.chunkLoader.debug_loader_stats( &s );
         char dbg[ 1024 ];
         globalGameState.world.chunkLoader.light_dbg_stats( dbg, sizeof( dbg ) );
-        pr_debug( "FLYMET t=%ld ph=%d rd=%d p=(%.1f,%.1f,%.1f) cl=%d j=%d p=%d c=%d d=%d x=%lld bfs=%d pri=%d stv=%d s=%lld stl=%d occ=%d/%d | %s",
-                  globalGameState.tick_number, run_policy().fly.phase, globalGameState.input.render_distance, globalGameState.camera.pos.x, globalGameState.camera.pos.y,
-                  globalGameState.camera.pos.z, s.chunks_loading, s.light_jobs, s.light_pending, s.light_claims, s.light_dirty,
-                  s.light_dropped, s.light_bfs_active, s.light_bfs_priority, s.light_bfs_starve, s.light_seeds,
-                  s.light_stale_count, s.chunks_occluded, s.chunks_drawable, dbg );
+        if ( flymet_due ) {
+            pr_debug( "FLYMET t=%ld ph=%d rd=%d p=(%.1f,%.1f,%.1f) cl=%d j=%d p=%d c=%d d=%d x=%lld bfs=%d pri=%d stv=%d s=%lld stl=%d occ=%d/%d | %s",
+                      globalGameState.tick_number, run_policy().fly.phase, globalGameState.input.render_distance, globalGameState.camera.pos.x, globalGameState.camera.pos.y,
+                      globalGameState.camera.pos.z, s.chunks_loading, s.light_jobs, s.light_pending, s.light_claims, s.light_dirty,
+                      s.light_dropped, s.light_bfs_active, s.light_bfs_priority, s.light_bfs_starve, s.light_seeds,
+                      s.light_stale_count, s.chunks_occluded, s.chunks_drawable, dbg );
+        }
+        if ( results::metric_due( globalGameState.tick_number ) ) {
+            results::metric( globalGameState, s, dbg );
+        }
     }
 
     // Multiplayer test harness: ctl commands + JSONL dumps (no-op without

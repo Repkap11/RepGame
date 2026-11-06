@@ -36,6 +36,7 @@ the index, not the reference.
 | `REPGAME_FLY_SETTLE_TIMEOUT` | `30 * UPS_RATE` | all | give up waiting for settle after this many ticks | docs/rendering.md |
 | `REPGAME_FLY_TICKS` | 0 (run forever) | all | exit at fly tick n via the normal cleanup path | docs/rendering.md |
 | `REPGAME_FOG_RANGE` | 96 | all | width of the distance-fog band in blocks (capped at 38% of render distance) | docs/rendering.md |
+| `REPGAME_GIT` | unset | all | `<sha>` stamped into the `REPGAME_RESULTS` header record (set by rep-dbg) | docs/debug-tools.md |
 | `REPGAME_ITEM_TEST` | unset | all | `"name,x,y,z[,count][;...]"` deterministic non-persistent item spawns at init | docs/items-crafting.md |
 | `REPGAME_LIGHT_CLAIM_RADIUS` | 1 | all | `1..4`: Chebyshev claim-conflict radius between light-job center columns | docs/rendering.md |
 | `REPGAME_LIGHT_MIPMAPS` | 1 | all | `0`/`1`: mipmapped light volume vs flat RG8 volume | docs/rendering.md |
@@ -63,6 +64,8 @@ the index, not the reference.
 | `REPGAME_OCCLUSION` | 1 | all | `0` disables the hardware occlusion-culling probe pass | docs/rendering.md |
 | `REPGAME_PORT` | 25566 | all | server port override (read in `RepGame::init` when a hostname is given) | mp-test skill |
 | `REPGAME_RENDER_DISTANCE` | `RENDER_RADIUS_DEFAULT` | all | initial horizontal render distance in chunks (`1..RENDER_RADIUS_MAX`); overrides the `player.dat` value | docs/rendering.md |
+| `REPGAME_RESULTS` | unset | all | JSONL event-stream path (header/metric/event/probe/assert/summary records); presence enables the results writer | docs/debug-tools.md |
+| `REPGAME_RESULTS_EVERY` | 20 | all | metric record cadence in ticks | docs/debug-tools.md |
 | `REPGAME_SCREENSHOT_TICK` | 0 (off) | all | request a framebuffer screenshot on tick n (`./screenshots/`); only consulted under `REPGAME_WALKTEST` | capture skill |
 | `REPGAME_SFX_VOLUME` | 1.0 | all | linear SFX gain 0..1 | docs/audio.md |
 | `REPGAME_TELEPORT` | unset | all | `"x,y,z,angle,sprint,spin_deg_per_tick[,pitch]"` — teleport on tick 1 then hold forward; only consulted under `REPGAME_WALKTEST` | capture skill |

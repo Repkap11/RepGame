@@ -33,6 +33,7 @@ struct CaptureState {
     long ticks_in_view = 0;
     long idle_streak = 0;
     bool shot_pending = false;
+    bool shot_timed_out = false; // the pending shot hit REPGAME_CAPTURE_TIMEOUT
     // WASM only: all views shot — stay on the last view instead of exiting
     // (exit would reload the page and drop the captures).
     bool finished = false;
@@ -89,6 +90,15 @@ struct RunPolicy {
     int capture_periodic = 0;
     // REPGAME_CAPTURE_ANOMALY: 1 = display outlier scan, 2 = +FBO alpha scan.
     int capture_anomaly = 0;
+
+    // REPGAME_RESULTS=<path>: structured JSONL event stream (header, metric,
+    // event, probe, assert, summary records — see docs/debug-tools.md);
+    // presence enables the results writer.
+    const char *results_path = nullptr;
+    // REPGAME_RESULTS_EVERY=n: metric record cadence in ticks (default 20).
+    long results_every = 20;
+    // REPGAME_GIT=<sha>: stamped into the header record (rep-dbg sets it).
+    const char *git_sha = nullptr;
 
     // True while a scripted harness owns the camera — VR input, pointer lock
     // and HUD interaction are suppressed on these paths.

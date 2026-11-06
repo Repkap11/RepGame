@@ -130,7 +130,10 @@ is `docs/chunks.md`; the light model these tunables feed is
   `def`=write-hot dirty-upload deferrals — see the upload debounce in
   `docs/lighting-thread-plan.md`) and per-phase µs). `rd` is the active
   render radius and `cl` the count of slots with terrain work in flight
-  (a nonzero `cl` keeps the settle gate from opening).
+  (a nonzero `cl` keeps the settle gate from opening). The same counters
+  also land as structured `metric` records on the `REPGAME_RESULTS`
+  stream — prefer `rep-dbg fly` + `result.json` stats over parsing FLYMET
+  text (docs/debug-tools.md).
   `REPGAME_FLY_RD="tick:radius,tick:radius"` applies scripted
   render-distance changes at those fly ticks (e.g. `200:2,500:8`) — the
   schedule evaluates against flight time, so it exercises the park/release

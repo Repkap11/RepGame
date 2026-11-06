@@ -35,3 +35,4 @@ prebuilt
 
 # Mojang bedrock-samples checkout (make bedrock-samples) — texture/model source for blocks-import / mobs-import
 bedrock-samples
+__pycache__/
